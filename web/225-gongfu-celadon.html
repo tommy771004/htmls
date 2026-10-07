@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>青瓷冰裂 · 功夫茶計時</title>
+<meta name="description" content="宋瓷青釉風格的功夫茶計時器：選一款茶，照建議的水溫與投茶量一泡一泡沖，計時中釉面的冰裂紋會像窯變一樣慢慢裂開，時間到了敲一聲磬，記下每一泡的湯色。">
+<style>
+:root{
+  --silk:#d9ccb2; --silk-2:#cbbb9b; --leaf:#efe8d8; --ink:#2b2a26; --ink-2:#5f5b51; --mute:#97907f; --seal:#a8352a;
+  --celadon:#a9c3b2; --celadon-2:#87a895;
+  --kai:"Kaiti TC","STKaiti","BiauKai","DFKai-SB","KaiTi","Songti TC",serif;
+  --song:"Songti TC","STSong","Noto Serif TC","PMingLiU",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--silk);color:var(--ink);font-family:var(--song);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+/* 綾絹裱邊 */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(60deg,rgba(255,255,255,.08) 0 2px,transparent 2px 6px),repeating-linear-gradient(-60deg,rgba(120,90,40,.06) 0 2px,transparent 2px 6px)}
+.album{position:relative;max-width:1200px;margin:clamp(12px,3vw,36px) auto;background:var(--leaf);box-shadow:0 0 0 1px rgba(80,60,30,.25),0 0 0 10px var(--silk-2),0 0 0 11px rgba(80,60,30,.25),0 30px 60px -30px rgba(60,40,10,.5);display:grid;grid-template-columns:auto minmax(0,1fr) minmax(250px,300px);gap:clamp(18px,3vw,44px);padding:clamp(22px,3vw,44px)}
+.album::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(80% 70% at 50% 40%,transparent 60%,rgba(140,110,60,.12));mix-blend-mode:multiply}
+.title{writing-mode:vertical-rl;display:flex;gap:18px;align-items:flex-start}
+.title h1{font-family:var(--kai);font-weight:400;font-size:clamp(46px,5vw,72px);letter-spacing:.18em;line-height:1}
+.title p{font-family:var(--kai);font-size:16px;line-height:2;letter-spacing:.24em;color:var(--ink-2);max-height:420px}
+.seal{display:inline-grid;place-items:center;width:42px;height:42px;background:var(--seal);color:#f4e7d4;font-family:var(--kai);font-size:15px;line-height:1.05;writing-mode:vertical-rl;border-radius:3px;text-align:center;opacity:.92}
+.seal.o{background:transparent;color:var(--seal);box-shadow:inset 0 0 0 2px var(--seal)}
+.center{display:flex;flex-direction:column;align-items:center}
+.disc{position:relative;width:min(100%,560px);aspect-ratio:1/1}
+.disc canvas{position:absolute;inset:0;width:100%;height:100%}
+.read{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
+.read .n{font-family:var(--kai);font-size:clamp(14px,1.6vw,18px);letter-spacing:.4em;color:var(--ink-2)}
+.read .t{font-family:"Hoefler Text","Songti TC",serif;font-weight:400;font-size:clamp(56px,8vw,104px);line-height:1;color:#2f4a3e;font-variant-numeric:lining-nums tabular-nums;margin:6px 0}
+.read .s{font-family:var(--kai);font-size:15px;letter-spacing:.2em;color:var(--ink-2)}
+.acts{display:flex;gap:14px;margin-top:22px}
+.acts button{font-family:var(--kai);font-size:20px;letter-spacing:.4em;padding:12px 26px 12px 34px;border:0;background:var(--ink);color:var(--leaf);cursor:pointer;border-radius:2px;transition:background .3s,opacity .3s}
+.acts button.o{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.acts button:hover{background:#45433c}.acts button.o:hover{background:rgba(43,42,38,.06)}
+.acts button[disabled]{opacity:.3;cursor:default}
+.cup{display:flex;align-items:center;gap:14px;margin-top:20px;font-family:var(--kai);font-size:15px;color:var(--ink-2);letter-spacing:.1em}
+.cup svg{width:70px;height:56px}
+.side h2{font-family:var(--kai);font-weight:400;font-size:20px;letter-spacing:.3em;border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+.side h2 small{font-size:12px;color:var(--mute);letter-spacing:.1em}
+.teas{list-style:none;display:grid;gap:2px;margin-bottom:22px}
+.teas button{width:100%;display:grid;grid-template-columns:16px 1fr auto;gap:10px;align-items:center;font:inherit;text-align:left;padding:8px 6px;background:transparent;border:0;border-bottom:1px dotted rgba(43,42,38,.25);cursor:pointer;color:var(--ink);transition:background .3s}
+.teas button:hover{background:rgba(169,195,178,.18)}
+.teas button.on{background:rgba(169,195,178,.35)}
+.teas i{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.teas b{font-family:var(--kai);font-weight:400;font-size:18px;letter-spacing:.1em}
+.teas small{font-size:11.5px;color:var(--ink-2);text-align:right;line-height:1.35}
+.spec{font-size:13px;line-height:1.8;color:var(--ink-2);margin-bottom:22px}
+.spec b{font-family:var(--kai);font-weight:400;font-size:17px;color:var(--ink);margin-right:4px}
+.log{list-style:none;display:flex;flex-wrap:wrap;gap:10px 8px}
+.log li{width:44px;text-align:center;font-family:var(--kai);font-size:13px;color:var(--ink-2)}
+.log li i{display:block;width:40px;height:40px;margin:0 auto 4px;border-radius:50%;box-shadow:inset 0 2px 6px rgba(0,0,0,.25),0 0 0 3px var(--leaf),0 0 0 4px rgba(43,42,38,.2)}
+.log li.empty i{background:transparent!important;box-shadow:inset 0 0 0 1px rgba(43,42,38,.25)}
+@media (max-width:980px){
+  .album{grid-template-columns:minmax(0,1fr);padding:22px 18px}
+  .title{writing-mode:horizontal-tb;flex-direction:column;gap:8px;align-items:center;text-align:center}
+  .title p{max-height:none;font-size:14px;letter-spacing:.12em;line-height:1.8}
+  .title h1{letter-spacing:.3em}
+}
+</style>
+</head>
+<body>
+<main class="album">
+  <aside class="title">
+    <h1>青瓷冰裂</h1>
+    <p>一泡一泡地沖，<br>等釉面慢慢開片。<br>時辰到，敲一聲磬，<br>出湯。</p>
+    <span class="seal">功夫<br>茶事</span>
+  </aside>
+  <section class="center">
+    <div class="disc"><canvas id="cv" width="1120" height="1120" aria-label="青瓷盤上的冰裂紋計時"></canvas>
+      <div class="read"><div class="n" id="rn">第一泡</div><div class="t" id="rt">50</div><div class="s" id="rs">秒 · 九十五度</div></div></div>
+    <div class="acts"><button id="brew">沖</button><button id="pour" class="o" disabled>出湯</button></div>
+    <div class="cup"><svg viewBox="0 0 70 56"><path d="M6 10 L64 10 L56 50 Q35 56 14 50Z" fill="#f2efe6" stroke="#2b2a26" stroke-width="1.2"/><clipPath id="cc"><path d="M6 10 L64 10 L56 50 Q35 56 14 50Z"/></clipPath><rect id="liq" x="0" y="56" width="70" height="0" fill="#c99a3a" clip-path="url(#cc)"/><path d="M64 14 q8 2 4 10" fill="none" stroke="#2b2a26" stroke-width="1.2"/></svg><span id="cupTxt">公道杯，空的。</span></div>
+  </section>
+  <aside class="side">
+    <h2>擇茶<small>水溫 · 投茶</small></h2>
+    <ul class="teas" id="teas"></ul>
+    <p class="spec" id="spec"></p>
+    <h2>湯色<small id="cnt">零泡</small></h2>
+    <ol class="log" id="log"></ol>
+  </aside>
+</main>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var TEAS=[
+  {zh:'高山烏龍',temp:95,g:7,water:'百毫升',c:[214,178,82],sch:[50,30,40,55,70,90,120,150],note:'球形茶需要第一泡讓葉子舒展。'},
+  {zh:'東方美人',temp:85,g:5,water:'百毫升',c:[196,120,52],sch:[40,30,35,45,60,80,110],note:'水溫不可太高，蜜香才不會悶掉。'},
+  {zh:'鐵觀音',temp:98,g:7,water:'百毫升',c:[186,128,44],sch:[45,35,45,60,75,95,120,150],note:'焙火重的可以沸水直沖。'},
+  {zh:'白毫銀針',temp:85,g:5,water:'百毫升',c:[226,206,140],sch:[60,45,60,80,100,130],note:'芽頭嬌嫩，慢慢出味。'},
+  {zh:'正山小種',temp:92,g:5,water:'百毫升',c:[150,62,28],sch:[20,15,20,30,40,60],note:'松煙香明顯，出湯要快。'},
+  {zh:'熟普洱',temp:100,g:8,water:'百毫升',c:[92,36,20],sch:[15,10,10,15,20,30,45,60,90,120],note:'先以沸水洗茶一次，再開始計泡。'}
+];
+var CN='零一二三四五六七八九十';
+function cn(n){ if(n<=10) return CN[n]; if(n<20) return '十'+(n%10?CN[n%10]:''); return CN[Math.floor(n/10)]+'十'+(n%10?CN[n%10]:''); }
+var cur=0, idx=0, timing=false, t0=0, dur=50, elapsed=0, cracks=[], logs=[];
+$('teas').innerHTML=TEAS.map(function(t,i){ return '<li><button data-i="'+i+'"'+(i?'':' class="on"')+'><i style="background:rgb('+t.c.join(',')+')"></i><b>'+t.zh+'</b><small>'+t.temp+'°C<br>'+t.g+' 克</small></button></li>'; }).join('');
+$('teas').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b||timing) return; cur=+b.dataset.i; Array.prototype.forEach.call(this.querySelectorAll('button'),function(x){ x.classList.toggle('on',x===b); }); idx=0; logs=[]; reseed(); show(); });
+
+// ---- 冰裂紋：從盤緣往內長的裂線，主線鐵黑、支線金絲 ----
+var cv=$('cv'), ctx=cv.getContext('2d'), S=1120, C=S/2, R=500, RIN=420;
+function rng(s){ return function(){ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
+function reseed(){
+  var r=rng(1234+cur*97+idx*31); cracks=[];
+  function grow(x,y,a,len,depth,start,gold){
+    var pts=[[x,y]], L=0, step=10+r()*8;
+    while(L<len){ a+=(r()-.5)*.7; x+=Math.cos(a)*step; y+=Math.sin(a)*step; L+=step; if(Math.hypot(x-C,y-C)>RIN-4) break; pts.push([x,y]);
+      if(depth<3 && r()<.09){ var na=a+(r()<.5?1:-1)*(.8+r()*.9); grow(x,y,na,len*(.35+r()*.4),depth+1,start+L/len*.5,depth>=1||r()<.5); } }
+    cracks.push({pts:pts,start:start,span:.35+r()*.35,gold:gold,w:gold?1.1:2.2-depth*.4});
+  }
+  for(var i=0;i<16;i++){ var a=i/16*Math.PI*2+r()*.3, x=C+Math.cos(a)*(RIN-2), y=C+Math.sin(a)*(RIN-2); grow(x,y,a+Math.PI+(r()-.5)*.9,180+r()*240,0,r()*.45,false); }
+  // 再撒一些短短的金絲細紋
+  for(i=0;i<30;i++){ var a2=r()*Math.PI*2, d=Math.sqrt(r())*RIN*.9; grow(C+Math.cos(a2)*d,C+Math.sin(a2)*d,r()*6.28,40+r()*70,2,.3+r()*.6,true); }
+}
+function drawDisc(p,now){
+  ctx.clearRect(0,0,S,S);
+  // 盤影
+  var sh=ctx.createRadialGradient(C+14,C+22,R*.8,C+14,C+22,R*1.08); sh.addColorStop(0,'rgba(80,60,30,.28)'); sh.addColorStop(1,'rgba(80,60,30,0)');
+  ctx.fillStyle=sh; ctx.beginPath(); ctx.arc(C+14,C+22,R*1.08,0,6.283); ctx.fill();
+  // 外緣：釉積得厚的地方顏色深一點
+  var g=ctx.createRadialGradient(C-R*.3,C-R*.35,R*.1,C,C,R);
+  g.addColorStop(0,'#c8dccd'); g.addColorStop(.7,'#a9c3b2'); g.addColorStop(.93,'#8eac9a'); g.addColorStop(1,'#7e9c8a');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(C,C,R,0,6.283); ctx.fill();
+  // 盤心的凹面
+  var g2=ctx.createRadialGradient(C+RIN*.2,C+RIN*.25,RIN*.1,C,C,RIN);
+  g2.addColorStop(0,'#bcd3c2'); g2.addColorStop(.8,'#a6c0af'); g2.addColorStop(1,'#93b19f');
+  ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(C,C,RIN,0,6.283); ctx.fill();
+  ctx.strokeStyle='rgba(60,80,70,.25)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(C,C,RIN,0,6.283); ctx.stroke();
+  // 釉裡的細小氣泡
+  var r=rng(77); ctx.fillStyle='rgba(255,255,255,.18)'; for(var i=0;i<220;i++){ var a=r()*6.283, d=Math.sqrt(r())*R; ctx.beginPath(); ctx.arc(C+Math.cos(a)*d,C+Math.sin(a)*d,.8+r()*1.8,0,6.283); ctx.fill(); }
+  // 裂紋依進度長出
+  cracks.forEach(function(k){
+    var q=(p-k.start)/k.span; if(q<=0) return; q=Math.min(1,q);
+    var n=Math.max(2,Math.floor(k.pts.length*q));
+    ctx.strokeStyle=k.gold?'rgba(176,138,60,.75)':'rgba(48,44,38,.78)'; ctx.lineWidth=k.w; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.beginPath(); for(var j=0;j<n;j++){ var pt=k.pts[j]; j?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); } ctx.stroke();
+    if(!k.gold){ ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1; ctx.beginPath(); for(j=0;j<n;j++){ pt=k.pts[j]; j?ctx.lineTo(pt[0]+1.5,pt[1]+1.5):ctx.moveTo(pt[0]+1.5,pt[1]+1.5); } ctx.stroke(); }
+  });
+  // 進度：盤緣一圈淡淡的墨線
+  if(p>0){ ctx.strokeStyle='rgba(43,42,38,.55)'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(C,C,R-22,-Math.PI/2,-Math.PI/2+Math.min(1,p)*Math.PI*2); ctx.stroke(); }
+  if(p>1){ ctx.strokeStyle='rgba(168,53,42,'+(.4+.3*Math.sin(now/200))+')'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(C,C,R-22,-Math.PI/2,-Math.PI/2+Math.min(1,p-1)*Math.PI*2); ctx.stroke(); }
+  // 高光
+  ctx.fillStyle='rgba(255,255,255,.22)'; ctx.beginPath(); ctx.ellipse(C-R*.42,C-R*.5,R*.16,R*.05,-.7,0,6.283); ctx.fill();
+}
+// ---- 聲音：磬 ----
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function qing(){ var a=A(); if(!a) return; var t=a.currentTime; [[523,1],[1307,.5],[2093,.25],[2876,.15]].forEach(function(p){ var o=a.createOscillator(),g=a.createGain(); o.frequency.value=p[0]; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.09*p[1],t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+3.5); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+3.6); }); }
+function water(){ var a=A(); if(!a) return; var n=a.sampleRate*1.2,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.sin(i/n*Math.PI); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1100; f.Q.value=.8; var g=a.createGain(); g.gain.value=.18; s.connect(f); f.connect(g); g.connect(a.destination); s.start(); }
+
+function show(){
+  var t=TEAS[cur]; dur=t.sch[Math.min(idx,t.sch.length-1)]+(idx>=t.sch.length?(idx-t.sch.length+1)*30:0);
+  $('rn').textContent='第'+cn(idx+1)+'泡'; $('rt').textContent=dur; $('rs').textContent='秒 · '+t.temp+'°C';
+  $('spec').innerHTML='<b>'+t.zh+'</b>'+t.temp+'°C 的水，每'+t.water+'投 '+t.g+' 克。'+t.note+'<br>建議泡次：'+t.sch.join('、')+' 秒。';
+  $('cnt').textContent=cn(logs.length)+'泡';
+  var html=logs.map(function(l,i){ return '<li><i style="background:'+l.col+'"></i>'+cn(i+1)+'<br>'+l.s+'″</li>'; }).join('');
+  for(var k=logs.length;k<Math.max(6,logs.length+1);k++) html+='<li class="empty"><i></i>'+cn(k+1)+'</li>';
+  $('log').innerHTML=html;
+  drawDisc(logs.length?1:0,0);
+}
+function liquor(){ var t=TEAS[cur], k=Math.max(.25,1-idx*.09), over=Math.max(0,elapsed-dur)/dur;
+  var c=t.c.map(function(v){ return Math.round(255-(255-v)*k*(1+over*.5)); }); return 'rgb('+c.map(function(v){return Math.max(0,Math.min(255,v));}).join(',')+')'; }
+var raf=0;
+$('brew').onclick=function(){
+  if(timing) return; A(); water(); timing=true; t0=performance.now(); this.disabled=true; $('pour').disabled=false; reseed();
+  var rang=false;
+  cancelAnimationFrame(raf);
+  (function f(now){
+    if(!timing) return;
+    elapsed=(now-t0)/1000; var p=elapsed/dur, left=Math.ceil(dur-elapsed);
+    $('rt').textContent=left>0?left:'+'+Math.floor(elapsed-dur);
+    $('rs').textContent=left>0?'秒 · 浸泡中':'秒 · 該出湯了';
+    if(p>=1 && !rang){ rang=true; qing(); }
+    drawDisc(p,now); raf=requestAnimationFrame(f);
+  })(t0);
+};
+$('pour').onclick=function(){
+  if(!timing) return; timing=false; cancelAnimationFrame(raf); water();
+  var col=liquor(), s=Math.round(elapsed);
+  logs.push({col:col,s:s});
+  var liq=$('liq'); liq.setAttribute('fill',col); liq.style.transition='none'; liq.setAttribute('y',56); liq.setAttribute('height',0);
+  var tt=performance.now(); (function f(now){ var q=Math.min(1,(now-tt)/900); liq.setAttribute('y',56-40*q); liq.setAttribute('height',40*q); if(q<1) requestAnimationFrame(f); })(tt);
+  var diff=s-dur, msg=Math.abs(diff)<=3?'剛好，湯色清亮。':diff>0?'多泡了 '+diff+' 秒，略濃略澀。':'少了 '+(-diff)+' 秒，味道還淡。';
+  $('cupTxt').textContent='第'+cn(idx+1)+'泡：'+msg;
+  idx++; this.disabled=true; $('brew').disabled=false; show();
+};
+reseed(); show();
+})();
+</script>
+</body>
+</html>

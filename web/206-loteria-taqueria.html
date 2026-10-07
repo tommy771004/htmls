@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Lotería · 塔可小館</title>
+<meta name="description" content="墨西哥塔可小館：每道菜都是一張 Lotería 牌卡。剪紙旗在頭頂飄，司儀一張張喊牌、念順口溜，在你的 4×4 牌板上放豆子，連成一線就喊 ¡Lotería! 換一張免費塔可券。">
+<style>
+:root{
+  --pink:#e5007d; --teal:#00a09a; --gold:#ffb100; --chile:#d3241c; --navy:#1c2c8c; --lime:#7cb518;
+  --cream:#f6ebcf; --paper:#fbf4e0; --ink:#1c130e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  overflow-x:clip;color:var(--ink);background:var(--cream);
+  font-family:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.35;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .35 0 0 0 0 .2 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
+button{font:inherit;color:inherit;cursor:pointer}
+.slab{font-family:"Rockwell","Rockwell Nova","Roboto Slab","Courier New",serif;font-weight:800}
+/* 剪紙旗 */
+.picado{position:relative;height:120px;overflow:hidden}
+.picado::before{content:"";position:absolute;left:-2%;right:-2%;top:14px;height:2px;background:#5a4632;border-radius:50%}
+.flags{display:flex;justify-content:center;gap:6px;padding:15px 0 0}
+.flag{flex:0 0 auto;width:88px;height:96px;transform-origin:50% 0;animation:flutter var(--d,3s) ease-in-out infinite;animation-delay:var(--dl,0s);filter:drop-shadow(0 4px 3px rgba(60,30,10,.25))}
+@keyframes flutter{0%,100%{transform:rotate(-3deg) skewX(2deg)}50%{transform:rotate(3deg) skewX(-3deg)}}
+/* 招牌 */
+.hero{text-align:center;padding:12px 16px 4px}
+.hero h1{margin:0;font-size:clamp(46px,9vw,118px);line-height:.92;letter-spacing:.01em;color:var(--gold);
+  text-shadow:3px 3px 0 var(--chile),6px 6px 0 var(--ink);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.hero .pre{display:inline-block;font-size:clamp(16px,2.2vw,24px);letter-spacing:.3em;color:var(--teal);margin-bottom:6px}
+.hero p{margin:14px auto 0;max-width:640px;font-size:15px;line-height:1.75;color:#5c4636}
+/* 遊戲 */
+.game{max-width:1180px;margin:26px auto 0;padding:0 16px;display:grid;grid-template-columns:minmax(0,600px) minmax(0,1fr);gap:28px;align-items:start}
+.tabla{background:var(--pink);padding:14px;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);position:relative}
+.tabla h2{margin:0 0 10px;color:var(--paper);font-size:20px;letter-spacing:.24em;display:flex;justify-content:space-between;align-items:baseline}
+.tabla h2 small{font-family:"PingFang TC",sans-serif;font-size:12px;letter-spacing:.08em;font-weight:600;color:#ffd5ea}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.card{position:relative;aspect-ratio:5/7;background:var(--paper);border:2.5px solid var(--ink);padding:0;display:flex;flex-direction:column;overflow:hidden;transition:transform .2s}
+.card .num{position:absolute;left:5px;top:3px;font-size:13px;z-index:2}
+.card .art{flex:1;display:grid;place-items:center;margin:16px 6px 0;border:2px solid var(--ink);background:var(--bg,var(--gold))}
+.card .art svg{width:86%;height:auto}
+.card .nm{font-size:clamp(9px,1.05vw,13px);letter-spacing:.06em;text-align:center;padding:4px 2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid .card:hover{transform:translateY(-3px) rotate(-1deg)}
+.bean{position:absolute;left:50%;top:50%;width:38%;aspect-ratio:1.35;border-radius:50%;transform:translate(-50%,-50%) rotate(-24deg) scale(0);
+  background:radial-gradient(ellipse at 35% 30%,#a96a52,#6b3426 60%,#3e1d14);box-shadow:0 3px 3px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.3,1.7,.5,1);z-index:3}
+.bean::after{content:"";position:absolute;left:22%;top:26%;width:30%;height:16%;border-radius:50%;background:rgba(255,230,210,.55)}
+.card.on .bean{transform:translate(-50%,-50%) rotate(-24deg) scale(1)}
+.card.called:not(.on){animation:glow 1.2s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 4px var(--gold),0 0 18px 6px rgba(255,177,0,.7)}}
+.card.win{outline:4px solid var(--gold);outline-offset:-2px}
+.lot{margin-top:14px;width:100%;border:3px solid var(--ink);background:var(--gold);padding:14px;font-size:28px;letter-spacing:.06em;box-shadow:5px 5px 0 var(--ink);transition:transform .15s}
+.lot:disabled{background:#d8c9a6;color:#8c7a5c;box-shadow:3px 3px 0 #8c7a5c;border-color:#8c7a5c;cursor:not-allowed;font-size:22px}
+.lot:not(:disabled){animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.03)}}
+/* 司儀 */
+.cantor{background:var(--navy);color:var(--paper);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);padding:18px;position:sticky;top:14px}
+.cantor h2{margin:0;font-size:20px;letter-spacing:.24em;color:var(--gold)}
+.cantor .sub{font-size:12px;color:#b9c1f0;margin:2px 0 14px}
+.stage{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr);gap:16px;align-items:center}
+.big{perspective:800px}
+.big .card{width:100%;transform-style:preserve-3d}
+.big .card.flipin{animation:flipin .55s cubic-bezier(.2,.8,.3,1.2)}
+@keyframes flipin{from{transform:rotateY(-100deg) translateX(-30px);opacity:.2}}
+.big .card .nm{font-size:16px}
+.verse{font-size:15px;line-height:1.7}
+.verse q{display:block;font-family:"Rockwell","Roboto Slab",Georgia,serif;font-style:italic;font-size:19px;color:var(--gold);quotes:"«" "»";margin-bottom:6px}
+.verse .zh{color:#dfe3ff}
+.ctl{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.ctl button{border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:10px 14px;font-weight:800;box-shadow:3px 3px 0 var(--ink)}
+.ctl .next{background:var(--gold);flex:1}
+.ctl button[aria-pressed=true]{background:var(--teal);color:#fff}
+.ctl button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.history{display:flex;flex-wrap:wrap;gap:5px;margin-top:16px;min-height:30px}
+.history span{font-size:11px;background:rgba(255,255,255,.12);padding:3px 7px;border-radius:2px}
+.history span.mine{background:var(--pink);color:#fff}
+.deckinfo{font-size:12px;color:#b9c1f0;margin-top:10px}
+/* 菜單 */
+.carta{max-width:1180px;margin:56px auto 0;padding:0 16px 70px}
+.carta h2{text-align:center;margin:0;font-size:clamp(36px,6vw,64px);color:var(--teal);text-shadow:3px 3px 0 var(--ink);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
+.carta>p{text-align:center;margin:6px 0 28px;color:#6d5442}
+.board{background:var(--chile);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);padding:26px clamp(14px,3vw,36px);columns:2 300px;column-gap:44px;color:var(--paper)}
+.dish{break-inside:avoid;display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 0;border-bottom:2px dashed rgba(255,235,200,.35)}
+.dish .mini{width:54px;height:54px;border:2px solid var(--ink);background:var(--bg);display:grid;place-items:center;grid-row:span 2}
+.dish .mini svg{width:88%}
+.dish b{font-size:22px;color:var(--gold);text-shadow:2px 2px 0 var(--ink);letter-spacing:.02em}
+.dish .pr{font-size:24px;color:#fff;text-shadow:2px 2px 0 var(--ink);grid-row:span 2}
+.dish span{font-size:13px;color:#ffe2d3;line-height:1.5}
+.coupon{position:fixed;inset:0;display:grid;place-items:center;background:rgba(28,19,14,.7);z-index:50;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s}
+.coupon.show{opacity:1;pointer-events:auto}
+.ticket{background:var(--paper);border:3px solid var(--ink);box-shadow:10px 10px 0 var(--pink);max-width:440px;width:100%;padding:26px;text-align:center;transform:rotate(-2deg) scale(.8);transition:transform .45s cubic-bezier(.3,1.6,.5,1)}
+.coupon.show .ticket{transform:rotate(-2deg) scale(1)}
+.ticket h3{margin:0;font-size:46px;color:var(--chile);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--gold)}
+.ticket p{margin:10px 0;line-height:1.7}
+.ticket .code{font-family:"Courier New",monospace;font-weight:700;letter-spacing:.2em;border:2px dashed var(--ink);padding:8px;margin:14px 0}
+.ticket button{border:2.5px solid var(--ink);background:var(--gold);padding:12px 20px;font-weight:800;box-shadow:3px 3px 0 var(--ink)}
+.toast{position:fixed;left:50%;top:18px;transform:translate(-50%,-160%);visibility:hidden;background:var(--ink);color:var(--paper);padding:10px 18px;font-weight:700;z-index:60;transition:transform .3s;max-width:calc(100% - 32px);text-align:center}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.confetti{position:fixed;top:-20px;width:14px;height:16px;z-index:55;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (max-width:900px){
+  .game{grid-template-columns:1fr}
+  .cantor{position:static;order:-1}
+}
+@media (max-width:520px){
+  .flag{width:64px;height:72px}
+  .picado{height:96px}
+  .tabla{padding:10px;box-shadow:5px 5px 0 var(--ink)}
+  .grid{gap:5px}
+  .card .art{margin:14px 3px 0;border-width:1.5px}
+  .card .num{font-size:10px}
+  .card{border-width:2px}
+  .stage{grid-template-columns:120px minmax(0,1fr)}
+  .verse q{font-size:16px}.verse{font-size:13px}
+  .cantor{box-shadow:5px 5px 0 var(--ink)}
+}
+@media (prefers-reduced-motion:reduce){
+  .flag,.lot:not(:disabled),.card.called:not(.on){animation:none}
+}
+</style>
+</head>
+<body>
+<div class="picado" aria-hidden="true"><div class="flags" id="flags"></div></div>
+<header class="hero">
+  <span class="pre slab">TAQUERÍA · 塔可小館</span>
+  <h1 class="slab">La Lotería</h1>
+  <p>每道菜都是一張牌卡。司儀喊到你牌板上的那一張，就放一顆豆子；橫、直、斜連成一線或四個角落都有豆，喊 <b>¡Lotería!</b> 換一張免費塔可券。</p>
+</header>
+
+<main class="game">
+  <section class="tabla" aria-label="你的牌板">
+    <h2 class="slab">TU TABLA <small>你的牌板・點喊到的牌放豆子</small></h2>
+    <div class="grid" id="tabla"></div>
+    <button class="lot slab" id="lot" type="button" disabled>¡LOTERÍA!</button>
+  </section>
+  <section class="cantor" aria-label="司儀">
+    <h2 class="slab">EL CANTOR</h2>
+    <p class="sub">司儀抽牌，念一句順口溜</p>
+    <div class="stage">
+      <div class="big" id="big"></div>
+      <div class="verse" id="verse" aria-live="polite"><q>¡Se va y se corre!</q><span class="zh">按「下一張」開始抽牌。</span></div>
+    </div>
+    <div class="ctl">
+      <button class="next slab" id="next" type="button">¡Siguiente! 下一張</button>
+      <button id="auto" type="button" aria-pressed="false">自動喊牌</button>
+      <button id="newt" type="button">換牌板</button>
+    </div>
+    <div class="deckinfo" id="deckinfo"></div>
+    <div class="history" id="history"></div>
+  </section>
+</main>
+
+<section class="carta" aria-label="菜單">
+  <h2 class="slab">La Carta</h2>
+  <p>牌卡上的東西都吃得到。價格為墨西哥披索。</p>
+  <div class="board" id="carta"></div>
+</section>
+
+<div class="coupon" id="coupon" role="dialog" aria-modal="true" aria-label="中獎券">
+  <div class="ticket">
+    <h3 class="slab">¡LOTERÍA!</h3>
+    <p id="prize"></p>
+    <div class="code" id="code"></div>
+    <button type="button" class="slab" id="again">再玩一局</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+var K = 'stroke="#1c130e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+/* 24 張牌：編號、西文、中文、底色、圖、順口溜、價錢 */
+var CARDS = [
+  {n:1,es:'El Taco',zh:'牧師塔可',bg:'#ffb100',p:35,d:'豬肉醃辣椒醬直立烤，削下來配鳳梨、洋蔥和香菜。',
+   v:['Da vueltas el trompo y cae en tu mano.','轉呀轉的肉，落進你手心。'],
+   s:'<path d="M14 66 Q50 8 86 66 Z" fill="#f3d27a" '+K+'/><path d="M24 62 Q50 26 76 62" fill="#c8452b" '+K+'/><circle cx="38" cy="50" r="4" fill="#5aa02c"/><circle cx="56" cy="44" r="4" fill="#5aa02c"/><circle cx="64" cy="54" r="3" fill="#fff"/><rect x="44" y="52" width="9" height="6" fill="#ffd23a" '+K+'/>'},
+  {n:2,es:'El Elote',zh:'烤玉米',bg:'#00a09a',p:40,d:'炭烤玉米塗美乃滋、灑起司粉和辣椒粉，再擠萊姆。',
+   v:['Con mayonesa, queso y chile, nadie se resiste.','美乃滋加起司加辣粉，誰忍得住。'],
+   s:'<rect x="34" y="12" width="30" height="66" rx="15" fill="#ffd23a" '+K+'/><path d="M36 30h26M36 42h26M36 54h26M36 66h26M44 14v62M54 14v62" stroke="#c99a12" stroke-width="2"/><path d="M36 26 Q50 34 62 24 M36 46 Q50 40 62 50" stroke="#fff" stroke-width="5" fill="none"/><circle cx="42" cy="36" r="2" fill="#d3241c"/><circle cx="56" cy="58" r="2" fill="#d3241c"/><rect x="45" y="78" width="8" height="16" fill="#c9a26b" '+K+'/>'},
+  {n:3,es:'El Aguacate',zh:'酪梨醬',bg:'#ffb100',p:60,d:'石臼現搗的酪梨醬，配一籃熱玉米片。',
+   v:['Verde por fuera, verde por dentro, y en el centro un corazón.','裡外都綠，中間一顆心。'],
+   s:'<path d="M50 10 C78 10 86 50 80 70 C74 90 26 90 20 70 C14 50 22 10 50 10Z" fill="#2f5f20" '+K+'/><path d="M50 18 C72 20 76 52 72 68 C66 82 34 82 28 68 C24 52 28 20 50 18Z" fill="#c7e07a"/><circle cx="50" cy="58" r="15" fill="#8a4b22" '+K+'/><circle cx="45" cy="53" r="4" fill="#b8733c"/>'},
+  {n:4,es:'El Chile',zh:'墨西哥辣椒',bg:'#7cb518',p:15,d:'炭烤或醃漬的哈拉皮紐辣椒，一份三支。',
+   v:['El que no aguanta, que no lo pruebe.','受不了的，就別試。'],
+   s:'<path d="M30 30 C20 50 30 84 70 88 C56 70 50 48 46 32 Z" fill="#2e8a26" '+K+'/><path d="M30 30 C34 22 44 22 46 32" fill="#4a7a2a" '+K+'/><path d="M38 24 C36 14 44 8 52 10" fill="none" '+K+'/><path d="M36 44 C38 56 44 68 54 76" stroke="#8fd16a" stroke-width="3" fill="none"/>'},
+  {n:5,es:'La Tortilla',zh:'玉米餅',bg:'#e5007d',p:10,d:'每天現壓的玉米餅，一份五張，可以包任何東西。',
+   v:['Redondita y calientita, abraza lo que le pongas.','圓圓熱熱，什麼都包得住。'],
+   s:'<ellipse cx="50" cy="66" rx="40" ry="14" fill="#d3241c" '+K+'/><ellipse cx="50" cy="58" rx="36" ry="12" fill="#f2d28a" '+K+'/><ellipse cx="50" cy="50" rx="36" ry="12" fill="#f5da95" '+K+'/><ellipse cx="50" cy="42" rx="36" ry="12" fill="#f8e2a6" '+K+'/><circle cx="40" cy="42" r="2" fill="#c49a4a"/><circle cx="60" cy="40" r="2.5" fill="#c49a4a"/><path d="M14 66 L22 84 H78 L86 66" fill="#fff" '+K+'/><path d="M30 76h40" stroke="#00a09a" stroke-width="4"/>'},
+  {n:6,es:'El Nopal',zh:'仙人掌沙拉',bg:'#ffb100',p:45,d:'去刺的仙人掌切條燙熟，拌番茄、洋蔥和鮮起司。',
+   v:['Me quitan las espinas y me sirven con cariño.','拔掉刺，溫柔地端上桌。'],
+   s:'<ellipse cx="44" cy="58" rx="24" ry="32" fill="#4e9a3a" '+K+'/><ellipse cx="68" cy="30" rx="14" ry="18" fill="#5fae45" '+K+' transform="rotate(30 68 30)"/><g fill="#1c130e"><circle cx="38" cy="44" r="1.6"/><circle cx="50" cy="56" r="1.6"/><circle cx="36" cy="68" r="1.6"/><circle cx="52" cy="76" r="1.6"/><circle cx="66" cy="28" r="1.6"/></g><circle cx="72" cy="18" r="6" fill="#e5007d" '+K+'/>'},
+  {n:7,es:'La Sandía',zh:'西瓜冰飲',bg:'#00a09a',p:30,d:'西瓜打成的 agua fresca，大杯冰涼。',
+   v:['La barriga verde y el corazón colorado.','綠色的肚子，紅色的心。'],
+   s:'<path d="M10 40 A40 40 0 0 0 90 40 Z" fill="#2e8a26" '+K+'/><path d="M16 40 A34 34 0 0 0 84 40 Z" fill="#e8f2c8"/><path d="M20 40 A30 30 0 0 0 80 40 Z" fill="#e2384a"/><g fill="#1c130e"><ellipse cx="36" cy="50" rx="2" ry="3"/><ellipse cx="50" cy="58" rx="2" ry="3"/><ellipse cx="64" cy="50" rx="2" ry="3"/><ellipse cx="44" cy="46" rx="2" ry="3"/><ellipse cx="58" cy="46" rx="2" ry="3"/></g>'},
+  {n:8,es:'El Limón',zh:'萊姆',bg:'#e5007d',p:5,d:'每一份塔可都附萊姆角，加點不另收費（意思一下）。',
+   v:['Exprímeme encima y verás qué rico.','擠在上面，你就知道多好吃。'],
+   s:'<circle cx="38" cy="54" r="26" fill="#6bb82e" '+K+'/><circle cx="38" cy="54" r="20" fill="#d8f08a"/><path d="M38 34v40M18 54h40M24 40l28 28M52 40L24 68" stroke="#9ccc4a" stroke-width="2.5"/><ellipse cx="72" cy="36" rx="18" ry="14" fill="#4f9a22" '+K+'/>'},
+  {n:9,es:'El Churro',zh:'吉拿棒',bg:'#1c2c8c',p:35,d:'現炸吉拿棒裹肉桂糖，附一杯熱巧克力。',
+   v:['Largo, dorado y con azúcar, ¿quién dijo dieta?','長長金黃還沾糖，誰說要減肥？'],
+   s:'<rect x="40" y="8" width="16" height="70" rx="6" fill="#d7943b" '+K+' transform="rotate(14 48 44)"/><path d="M44 12l6 66M50 11l6 66" stroke="#a96a24" stroke-width="2" transform="rotate(14 48 44)"/><path d="M22 60 h40 l-5 30 h-30 z" fill="#f6ebcf" '+K+'/><ellipse cx="42" cy="60" rx="20" ry="5" fill="#5b2c17" '+K+'/>'},
+  {n:10,es:'La Concha',zh:'貝殼甜麵包',bg:'#00a09a',p:25,d:'頂上有貝殼紋酥皮的甜麵包，早餐配咖啡。',
+   v:['Con mi sombrero de azúcar, endulzo tu mañana.','戴著糖做的帽子，甜一整個早上。'],
+   s:'<path d="M12 62 Q12 22 50 22 Q88 22 88 62 Z" fill="#f2a8c6" '+K+'/><path d="M50 26 V62 M50 26 Q30 36 22 62 M50 26 Q70 36 78 62 M50 26 Q40 40 36 62 M50 26 Q60 40 64 62" stroke="#d26a96" stroke-width="2.5" fill="none"/><path d="M10 62 H90 Q90 74 50 74 Q10 74 10 62Z" fill="#e8b46a" '+K+'/>'},
+  {n:11,es:'La Olla',zh:'陶鍋燉豆',bg:'#ffb100',p:30,d:'陶鍋慢燉的花豆，加豬皮與土荊芥。',
+   v:['Hierve y hierve, los frijoles nunca se duermen.','滾呀滾，豆子從不睡覺。'],
+   s:'<path d="M18 40 Q14 86 50 88 Q86 86 82 40 Z" fill="#b5532a" '+K+'/><ellipse cx="50" cy="40" rx="34" ry="9" fill="#6b3426" '+K+'/><g fill="#a96a52" stroke="#1c130e" stroke-width="1.5"><ellipse cx="40" cy="39" rx="4" ry="2.6"/><ellipse cx="52" cy="41" rx="4" ry="2.6"/><ellipse cx="62" cy="38" rx="4" ry="2.6"/></g><path d="M14 42 Q6 44 10 54 M86 42 Q94 44 90 54" fill="none" '+K+'/><path d="M30 60 Q50 66 70 60" stroke="#f6ebcf" stroke-width="3" fill="none"/><path d="M40 28 q-4 -8 2 -14 M58 28 q-4 -8 2 -14" stroke="#fff" stroke-width="3" fill="none" opacity=".8"/>'},
+  {n:12,es:'El Cántaro',zh:'米漿飲 Horchata',bg:'#d3241c',p:30,d:'米、肉桂、香草打成的 horchata，從陶罐倒出來。',
+   v:['Fresquecita en el cántaro, canela y arroz.','陶罐裡冰冰涼涼，肉桂和米。'],
+   s:'<path d="M34 20 h32 l-4 10 Q86 40 80 66 Q74 90 50 90 Q26 90 20 66 Q14 40 38 30 Z" fill="#c4682f" '+K+'/><path d="M24 54 Q50 62 76 54" stroke="#f6ebcf" stroke-width="3" fill="none"/><path d="M28 66 Q50 74 72 66" stroke="#00a09a" stroke-width="3" fill="none"/><ellipse cx="50" cy="20" rx="16" ry="4" fill="#f6ebcf" '+K+'/>'},
+  {n:13,es:'La Salsa',zh:'石臼莎莎醬',bg:'#7cb518',p:20,d:'火山石臼現磨的紅莎莎，辣度可以跟我們說。',
+   v:['Roja o verde, pero que pique.','紅的綠的都好，重點是要辣。'],
+   s:'<path d="M14 44 Q16 80 50 80 Q84 80 86 44 Z" fill="#5a5450" '+K+'/><ellipse cx="50" cy="44" rx="36" ry="10" fill="#c2261e" '+K+'/><g fill="#3a3430"><circle cx="30" cy="64" r="2"/><circle cx="48" cy="70" r="2"/><circle cx="66" cy="62" r="2"/></g><path d="M30 80 l-6 10 M70 80 l6 10 M50 80 v10" '+K+'/><rect x="56" y="14" width="10" height="30" rx="5" fill="#7a726c" '+K+' transform="rotate(30 61 29)"/><circle cx="44" cy="42" r="2.5" fill="#5aa02c"/>'},
+  {n:14,es:'El Tamal',zh:'玉米粽',bg:'#e5007d',p:35,d:'玉米葉包玉米麵團與青醬雞肉，蒸到鬆軟。',
+   v:['Envuelto en mi hoja, guardo un secreto calientito.','裹在葉子裡，藏著一個熱熱的祕密。'],
+   s:'<path d="M50 8 Q84 40 70 92 H30 Q16 40 50 8Z" fill="#e8d08a" '+K+'/><path d="M50 8 Q60 50 56 92 M50 8 Q40 50 44 92" stroke="#b89a50" stroke-width="2" fill="none"/><path d="M34 52 Q50 44 66 52 L64 72 Q50 78 36 72Z" fill="#f6dc8e" '+K+'/><path d="M40 62 Q50 58 60 62" stroke="#2e8a26" stroke-width="3" fill="none"/>'},
+  {n:15,es:'La Quesadilla',zh:'起司薄餅',bg:'#00a09a',p:45,d:'對折的玉米餅夾瓦哈卡起司與南瓜花，煎到流絲。',
+   v:['Si no lleva queso, ¿entonces qué es?','沒有起司，那還叫什麼？'],
+   s:'<path d="M10 64 A40 40 0 0 1 90 64 Z" fill="#f2c96a" '+K+'/><path d="M22 64 q4 10 8 0 q4 14 10 0 q4 8 8 0 q4 12 10 0 q4 8 8 0" fill="#fff6d0" '+K+'/><circle cx="36" cy="44" r="2.5" fill="#c4862a"/><circle cx="58" cy="38" r="3" fill="#c4862a"/><circle cx="70" cy="52" r="2" fill="#c4862a"/>'},
+  {n:16,es:'El Pozole',zh:'玉米肉湯',bg:'#ffb100',p:80,d:'大顆白玉米與豬肉燉的紅湯，桌邊自己加小紅蘿蔔與奧勒岡。',
+   v:['Maíz que revienta como flor en el caldo rojo.','玉米在紅湯裡開成一朵花。'],
+   s:'<path d="M10 40 Q12 84 50 84 Q88 84 90 40 Z" fill="#f6ebcf" '+K+'/><ellipse cx="50" cy="40" rx="40" ry="11" fill="#c2261e" '+K+'/><g fill="#fff" stroke="#1c130e" stroke-width="1.5"><circle cx="34" cy="38" r="4"/><circle cx="46" cy="42" r="4"/><circle cx="60" cy="37" r="4"/></g><g fill="#e5007d" stroke="#1c130e" stroke-width="1.5"><circle cx="70" cy="42" r="4"/><circle cx="26" cy="43" r="3.5"/></g><path d="M14 56 Q50 64 86 56" stroke="#00a09a" stroke-width="4" fill="none"/>'},
+  {n:17,es:'La Piña',zh:'鳳梨',bg:'#d3241c',p:20,d:'烤架頂上的鳳梨，削一片下來落在你的塔可上。',
+   v:['Corona verde, reina del trompo.','頭戴綠冠，烤肉架上的女王。'],
+   s:'<ellipse cx="50" cy="62" rx="24" ry="28" fill="#ffb100" '+K+'/><path d="M30 48 l40 30 M30 64 l30 22 M36 38 l34 26 M70 48 l-40 30 M70 64 l-30 22 M64 38 l-34 26" stroke="#b77a00" stroke-width="2"/><path d="M50 36 L40 12 L50 22 L56 6 L58 24 L68 14 L58 36 Z" fill="#3e9a2a" '+K+'/>'},
+  {n:18,es:'El Trompo',zh:'直立烤肉架',bg:'#7cb518',p:0,d:'牧師塔可的心臟。只看不賣。',
+   v:['Bailo toda la noche frente al fuego.','整夜在火前跳舞。'],
+   s:'<rect x="48" y="4" width="4" height="92" fill="#7a726c" '+K+'/><path d="M30 26 Q50 16 70 26 L66 76 Q50 84 34 76 Z" fill="#c8452b" '+K+'/><path d="M32 40 Q50 46 68 40 M33 54 Q50 60 67 54 M34 66 Q50 72 66 66" stroke="#8a2a14" stroke-width="3" fill="none"/><ellipse cx="50" cy="16" rx="10" ry="8" fill="#ffb100" '+K+'/><path d="M46 9 L50 2 L54 9" fill="#3e9a2a" '+K+'/>'},
+  {n:19,es:'El Cilantro',zh:'香菜',bg:'#e5007d',p:5,d:'不愛的人可以說 sin cilantro，我們不會生氣。',
+   v:['Unos me aman y otros me odian.','有人愛我，有人恨我。'],
+   s:'<path d="M50 92 V50 M50 60 L30 40 M50 56 L70 34 M50 70 L34 58 M50 68 L68 56" stroke="#2e7a22" stroke-width="3" fill="none"/><g fill="#5aa02c" stroke="#1c130e" stroke-width="2"><circle cx="28" cy="36" r="9"/><circle cx="72" cy="30" r="9"/><circle cx="50" cy="44" r="10"/><circle cx="32" cy="56" r="7"/><circle cx="70" cy="54" r="7"/></g><rect x="40" y="76" width="20" height="8" fill="#d3241c" '+K+'/>'},
+  {n:20,es:'La Calavera',zh:'糖骷髏',bg:'#1c2c8c',p:25,d:'亡靈節的糖骷髏，糖霜畫花，可以吃但有點硬。',
+   v:['Hecha de azúcar, me río de la muerte.','我是糖做的，所以笑看死亡。'],
+   s:'<path d="M20 44 Q20 12 50 12 Q80 12 80 44 Q80 60 70 64 V80 H30 V64 Q20 60 20 44Z" fill="#fbf4e0" '+K+'/><circle cx="37" cy="42" r="9" fill="#00a09a" '+K+'/><circle cx="63" cy="42" r="9" fill="#e5007d" '+K+'/><path d="M50 50 l-4 8 h8 z" fill="#1c130e"/><path d="M36 70h28M42 66v8M50 66v8M58 66v8" stroke="#1c130e" stroke-width="2"/><path d="M40 22 q10 -6 20 0" stroke="#ffb100" stroke-width="3" fill="none"/>'},
+  {n:21,es:'El Mole',zh:'巧克力辣醬雞',bg:'#ffb100',p:95,d:'二十多種材料的普埃布拉黑醬，淋在雞腿上灑芝麻。',
+   v:['Oscuro y profundo, con chocolate y chile.','又深又黑，有巧克力也有辣椒。'],
+   s:'<ellipse cx="50" cy="62" rx="42" ry="20" fill="#00a09a" '+K+'/><ellipse cx="50" cy="58" rx="34" ry="14" fill="#3a1a12" '+K+'/><path d="M34 54 Q50 40 66 56" stroke="#5b2c17" stroke-width="10" fill="none" stroke-linecap="round"/><g fill="#fbf4e0"><circle cx="40" cy="58" r="1.6"/><circle cx="50" cy="54" r="1.6"/><circle cx="58" cy="60" r="1.6"/><circle cx="46" cy="62" r="1.6"/><circle cx="62" cy="54" r="1.6"/></g>'},
+  {n:22,es:'La Cebolla',zh:'紫洋蔥',bg:'#00a09a',p:5,d:'醃紫洋蔥配哈瓦那辣椒，粉紅色的那一碟。',
+   v:['Te hago llorar, pero luego me extrañas.','我讓你哭，之後你又想我。'],
+   s:'<path d="M50 14 Q84 40 76 66 Q66 88 50 88 Q34 88 24 66 Q16 40 50 14Z" fill="#9b2f6e" '+K+'/><path d="M50 22 Q70 44 64 70 M50 22 Q30 44 36 70 M50 22 V86" stroke="#d870a8" stroke-width="2.5" fill="none"/><path d="M50 14 L46 4 M50 14 L56 6" '+K+'/>'},
+  {n:23,es:'El Jitomate',zh:'番茄',bg:'#7cb518',p:5,d:'莎莎醬、仙人掌沙拉和 pico de gallo 都靠它。',
+   v:['Rojo como el atardecer de Oaxaca.','紅得像瓦哈卡的黃昏。'],
+   s:'<circle cx="50" cy="56" r="32" fill="#d3241c" '+K+'/><path d="M50 26 L42 16 L50 22 L56 12 L56 24 L66 20 L58 28 Z" fill="#2e8a26" '+K+'/><ellipse cx="38" cy="44" rx="7" ry="4" fill="#ff7a6a" transform="rotate(-30 38 44)"/>'},
+  {n:24,es:'El Mezcal',zh:'梅斯卡爾酒',bg:'#e5007d',p:120,d:'龍舌蘭心窯烤後蒸餾的煙燻烈酒，配柳橙片與蟲鹽。',
+   v:['Para todo mal, mezcal; para todo bien, también.','壞事喝梅斯卡爾，好事也是。'],
+   s:'<path d="M30 34 h40 l-6 54 h-28 z" fill="#f6ebcf" '+K+' opacity=".95"/><path d="M33 50 h34 l-4 36 h-26 z" fill="#ffd27a" opacity=".8"/><circle cx="70" cy="30" r="14" fill="#ff8a1c" '+K+'/><path d="M70 16 V44 M56 30 H84 M60 20 L80 40 M80 20 L60 40" stroke="#ffd27a" stroke-width="2"/><ellipse cx="30" cy="84" rx="10" ry="4" fill="#d3241c" '+K+'/>'}
+];
+function art(c){ return '<svg viewBox="0 0 100 100" aria-hidden="true">' + c.s + '</svg>'; }
+function cardHTML(c, extra){
+  return '<span class="num slab">' + c.n + '</span><span class="art" style="--bg:' + c.bg + '">' + art(c) + '</span><span class="nm slab">' + c.es.toUpperCase() + '</span>' + (extra || '');
+}
+
+/* 剪紙旗：每面旗用 SVG mask 挖出不同圖樣 */
+(function(){
+  var cols = ['#e5007d','#00a09a','#ffb100','#7cb518','#1c2c8c','#d3241c','#ff7a1c'];
+  var cuts = [
+    function(){ var s = ''; for (var i = 0; i < 4; i++) for (var j = 0; j < 3; j++) s += '<circle cx="' + (14 + j*20 + (i%2)*10) + '" cy="' + (22 + i*16) + '" r="4"/>'; return s + '<path d="M44 40 l10 10 -10 10 -10 -10z"/>'; },
+    function(){ var s = ''; for (var k = 0; k < 8; k++){ var a = k/8*Math.PI*2; s += '<ellipse cx="' + (44 + Math.cos(a)*16).toFixed(1) + '" cy="' + (50 + Math.sin(a)*16).toFixed(1) + '" rx="7" ry="3.5" transform="rotate(' + (k*45) + ' ' + (44 + Math.cos(a)*16).toFixed(1) + ' ' + (50 + Math.sin(a)*16).toFixed(1) + ')"/>'; } return s + '<circle cx="44" cy="50" r="6"/><path d="M8 84 h72 v3 h-72z M8 18 h72 v3 h-72z"/>'; },
+    function(){ return '<path d="M24 40 Q24 22 44 22 Q64 22 64 40 Q64 50 58 52 V62 H30 V52 Q24 50 24 40Z"/><path d="M14 76 l6 -6 6 6 6 -6 6 6 6 -6 6 6 6 -6 6 6 6 -6 6 6 v4 H14z"/>'; },
+    function(){ var s = ''; for (var i = 0; i < 5; i++) s += '<path d="M' + (10 + i*16) + ' 24 l6 8 -6 8 -6 -8z"/><path d="M' + (10 + i*16) + ' 66 l6 8 -6 8 -6 -8z"/>'; return s + '<path d="M44 34 C58 34 62 50 44 66 C26 50 30 34 44 34Z"/>'; },
+    function(){ return '<path d="M14 64 A30 30 0 0 1 74 64 Z"/><circle cx="20" cy="24" r="5"/><circle cx="44" cy="20" r="5"/><circle cx="68" cy="24" r="5"/><path d="M10 80 h68 v4 h-68z"/>'; }
+  ];
+  var html = '', n = Math.ceil(innerWidth/90) + 2;
+  for (var i = 0; i < n; i++){
+    var c = cols[i % cols.length], cut = cuts[i % cuts.length](), id = 'm' + i;
+    html += '<svg class="flag" viewBox="0 0 88 96" style="--d:' + (2.6 + (i%3)*.5) + 's;--dl:-' + (i*.37).toFixed(2) + 's"><defs><mask id="' + id + '"><path d="M0 0 H88 V86 l-8 10 -8 -10 -8 10 -8 -10 -8 10 -8 -10 -8 10 -8 -10 -8 10 -8 -10 -8 10 Z" fill="#fff"/><g fill="#000">' + cut + '</g></mask></defs><rect width="88" height="96" fill="' + c + '" mask="url(#' + id + ')"/></svg>';
+  }
+  $('#flags').innerHTML = html;
+})();
+
+/* 遊戲狀態 */
+var deck = [], called = [], tabla = [], marked = new Set(), auto = null, won = false;
+function shuffle(a){ for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random()*(i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function newTabla(){
+  tabla = shuffle(CARDS.slice()).slice(0, 16); marked = new Set(); won = false;
+  deck = shuffle(CARDS.slice()); called = [];
+  var g = $('#tabla'); g.innerHTML = '';
+  tabla.forEach(function(c, i){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'card'; b.dataset.n = c.n;
+    b.setAttribute('aria-label', c.es + '，' + c.zh); b.innerHTML = cardHTML(c, '<i class="bean"></i>');
+    b.addEventListener('click', function(){ mark(c, b); });
+    g.appendChild(b);
+  });
+  $('#big').innerHTML = '<div class="card" style="background:#f6ebcf"><span class="art" style="--bg:#1c2c8c;margin:10px"><svg viewBox="0 0 100 100"><text x="50" y="58" text-anchor="middle" font-size="16" fill="#ffb100" font-family="Rockwell,Georgia,serif" font-weight="800" letter-spacing="1">LOTERÍA</text></svg></span></div>';
+  $('#verse').innerHTML = '<q>¡Se va y se corre!</q><span class="zh">按「下一張」開始抽牌。</span>';
+  $('#history').innerHTML = ''; $('#lot').disabled = true; info();
+}
+function info(){ $('#deckinfo').textContent = '已喊 ' + called.length + ' / ' + CARDS.length + ' 張　牌板上有豆 ' + marked.size + ' 顆'; }
+function next(){
+  if (won) return;
+  if (!deck.length){ toast('牌喊完了，換一張牌板再來'); stopAuto(); return; }
+  var c = deck.pop(); called.push(c.n);
+  var big = $('#big'); big.innerHTML = '<div class="card flipin">' + cardHTML(c) + '</div>';
+  $('#verse').innerHTML = '<q>' + c.v[0] + '</q><span class="zh">' + c.v[1] + '　——' + c.es + '（' + c.zh + '）</span>';
+  var mine = tabla.some(function(t){ return t.n === c.n; });
+  var h = document.createElement('span'); h.textContent = c.n + ' ' + c.es; if (mine) h.className = 'mine'; $('#history').prepend(h);
+  var cell = document.querySelector('#tabla .card[data-n="' + c.n + '"]'); if (cell) cell.classList.add('called');
+  maraca(); info();
+}
+function mark(c, b){
+  if (won) return;
+  if (called.indexOf(c.n) < 0){ toast('司儀還沒喊到 ' + c.es + ' 喔'); thud(); return; }
+  if (marked.has(c.n)) return;
+  marked.add(c.n); b.classList.add('on'); bean(); info();
+  $('#lot').disabled = !winLine();
+}
+var LINES = (function(){
+  var L = [];
+  for (var r = 0; r < 4; r++) L.push([0,1,2,3].map(function(c){ return r*4 + c; }));
+  for (var c = 0; c < 4; c++) L.push([0,1,2,3].map(function(r){ return r*4 + c; }));
+  L.push([0,5,10,15]); L.push([3,6,9,12]); L.push([0,3,12,15]);
+  return L;
+})();
+function winLine(){ return LINES.find(function(l){ return l.every(function(i){ return marked.has(tabla[i].n); }); }); }
+$('#lot').addEventListener('click', function(){
+  var line = winLine(); if (!line) return;
+  won = true; stopAuto();
+  var cells = document.querySelectorAll('#tabla .card');
+  line.forEach(function(i){ cells[i].classList.add('win'); });
+  var food = tabla.filter(function(c, i){ return line.indexOf(i) >= 0 && c.p > 0; });
+  var prize = food[Math.floor(Math.random()*food.length)] || CARDS[0];
+  $('#prize').innerHTML = '只喊了 ' + called.length + ' 張就連線！<br>憑此券兌換一份 <b>' + prize.es + '（' + prize.zh + '）</b>。';
+  $('#code').textContent = 'LOT-' + String(Date.now()).slice(-6) + '-' + prize.n;
+  setTimeout(function(){ $('#coupon').classList.add('show'); $('#again').focus(); }, 500);
+  fanfare(); confetti();
+});
+$('#again').addEventListener('click', function(){ $('#coupon').classList.remove('show'); newTabla(); });
+$('#next').addEventListener('click', function(){ audio(); next(); });
+$('#newt').addEventListener('click', function(){ stopAuto(); newTabla(); toast('換了一張新牌板'); });
+function stopAuto(){ clearInterval(auto); auto = null; $('#auto').setAttribute('aria-pressed', 'false'); }
+$('#auto').addEventListener('click', function(){
+  audio();
+  if (auto){ stopAuto(); return; }
+  this.setAttribute('aria-pressed', 'true'); next(); auto = setInterval(next, 3800);
+});
+document.addEventListener('keydown', function(e){ if ((e.key === 'n' || e.key === 'N') && !won){ audio(); next(); } if (e.key === 'Escape' && won) $('#coupon').classList.remove('show'); });
+
+function toast(t){ var el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(function(){ el.classList.remove('show'); }, 1800); }
+function confetti(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cols = ['#e5007d','#00a09a','#ffb100','#7cb518','#1c2c8c'];
+  for (var i = 0; i < 46; i++){
+    var d = document.createElement('i'); d.className = 'confetti';
+    d.style.left = Math.random()*100 + 'vw'; d.style.background = cols[i % cols.length];
+    d.style.animationDuration = (2 + Math.random()*2) + 's'; d.style.animationDelay = Math.random()*.6 + 's';
+    d.style.clipPath = 'polygon(0 0,100% 0,100% 80%,75% 100%,50% 80%,25% 100%,0 80%)';
+    document.body.appendChild(d); setTimeout(function(x){ return function(){ x.remove(); }; }(d), 4800);
+  }
+}
+
+/* 聲音：沙鈴、豆子、號角 */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function noise(dur, freq, vol, at){
+  if (!ac) return; var t = ac.currentTime + (at || 0), buf = ac.createBuffer(1, ac.sampleRate*dur, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2);
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.5; g.gain.value = vol;
+  s.connect(f).connect(g).connect(ac.destination); s.start(t);
+}
+function maraca(){ noise(.09, 6000, .25, 0); noise(.09, 6500, .2, .14); noise(.14, 5800, .22, .26); }
+function bean(){ if (!ac) audio(); noise(.05, 1200, .5, 0); }
+function thud(){ if (!ac) audio(); noise(.08, 300, .4, 0); }
+function fanfare(){
+  if (!ac) return; var notes = [523, 659, 784, 1047, 784, 1047];
+  notes.forEach(function(f, i){
+    var t = ac.currentTime + i*.13, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.06, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + (i === notes.length - 1 ? .8 : .2));
+    var fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2400;
+    o.connect(fl).connect(g).connect(ac.destination); o.start(t); o.stop(t + 1);
+  });
+}
+
+/* 菜單 */
+$('#carta').innerHTML = CARDS.filter(function(c){ return c.p > 0; }).map(function(c){
+  return '<div class="dish"><span class="mini" style="--bg:' + c.bg + '">' + art(c) + '</span><b class="slab">' + c.es + '</b><span class="pr slab">$' + c.p + '</span><span>' + c.zh + '・' + c.d + '</span></div>';
+}).join('');
+
+newTabla();
+})();
+</script>
+</body>
+</html>

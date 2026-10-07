@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>窗台上的康普茶 · 二十一天</title>
+<meta name="description" content="窗台上一罐康普茶的發酵縮時：拖動日子看糖被吃掉、酸度上升、菌膜一層層長厚；調整室溫與茶種，挑一天裝瓶做二次發酵。">
+<style>
+:root{
+  --sill:#efe8dc; --sill-2:#e5dccb; --ink:#2d2924; --ink-2:#6b6358; --mute:#a59b8b; --line:#d6ccba;
+  --amber:#b8732c; --sage:#7b8a64;
+  --serif:"Iowan Old Style","Hoefler Text","Charter","Georgia","Songti TC","Noto Serif TC",serif;
+  --sans:"Avenir Next","Avenir","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--sill);color:var(--ink);font-family:var(--serif);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background-color .6s}
+.light{position:fixed;inset:0;pointer-events:none;z-index:0;transition:opacity .4s}
+.wrap{position:relative;z-index:1;display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,520px) minmax(260px,1fr);gap:clamp(16px,3vw,48px);padding:40px clamp(16px,4vw,56px) 40px;min-height:100vh;align-items:center}
+.intro .kicker{font-family:var(--sans);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-2)}
+.intro h1{font-weight:400;font-size:clamp(38px,4.6vw,66px);line-height:1.02;letter-spacing:-.01em;margin:14px 0 18px}
+.intro h1 em{display:block;font-style:italic;color:var(--amber)}
+.intro p{font-size:16px;line-height:1.75;color:var(--ink-2);max-width:30em}
+.knobs{margin-top:28px;display:grid;gap:16px;font-family:var(--sans)}
+.knob label{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px}
+.knob label b{font-weight:500;letter-spacing:.04em;color:var(--ink);font-size:13px;text-transform:none}
+.pills{display:flex;gap:8px}
+.pills button{font:inherit;font-size:13px;padding:7px 14px;border-radius:30px;border:1px solid var(--line);background:rgba(255,255,255,.35);cursor:pointer;color:var(--ink);transition:all .3s}
+.pills button.on{background:var(--ink);color:var(--sill);border-color:var(--ink)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;height:22px;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;margin-top:-7px;background:var(--sill);border:1.5px solid var(--ink)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--sill);border:1.5px solid var(--ink)}
+.jarbox{position:relative}
+#jar{display:block;width:100%;height:auto;aspect-ratio:520/640}
+.daybig{position:absolute;left:0;right:0;bottom:-14px;pointer-events:none;text-align:center;font-style:italic;font-size:15px;color:var(--ink-2)}
+.daybig b{font-style:normal;font-size:42px;font-weight:400;color:var(--ink);margin:0 .15em;font-variant-numeric:lining-nums tabular-nums}
+.timeline{margin-top:34px;font-family:var(--sans)}
+.timeline .row{display:flex;align-items:center;gap:14px}
+.play{width:44px;height:44px;flex:none;border-radius:50%;border:1.5px solid var(--ink);background:transparent;cursor:pointer;display:grid;place-items:center;transition:background .3s}
+.play:hover{background:rgba(45,41,36,.08)}
+.play svg{width:14px;height:14px}
+.ticks{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;color:var(--mute);margin:2px 0 0 58px}
+.readout{display:grid;gap:22px}
+.m .lab{font-family:var(--sans);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2);display:flex;justify-content:space-between;align-items:baseline}
+.m .lab b{font-family:var(--serif);font-size:30px;font-weight:400;letter-spacing:-.01em;color:var(--ink);text-transform:none;font-variant-numeric:lining-nums tabular-nums}
+.m .lab b small{font-size:13px;color:var(--ink-2);margin-left:3px}
+.m svg{display:block;width:100%;height:46px;margin-top:4px;overflow:visible}
+.taste{border-top:1px solid var(--line);padding-top:18px}
+.taste .scale{position:relative;height:28px;margin-top:10px;font-family:var(--sans);font-size:11px;color:var(--ink-2);display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--ink)}
+.taste .scale::before{content:"";position:absolute;left:40%;width:22%;bottom:0;height:8px;background:rgba(123,138,100,.35)}
+.taste .needle{position:absolute;bottom:-5px;width:2px;height:22px;background:var(--amber);transition:left .3s;margin-left:-1px}
+.taste .needle::after{content:"";position:absolute;bottom:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--amber)}
+.verdict{font-size:19px;line-height:1.5;margin-top:16px;font-style:italic;min-height:3em}
+.bottle{font-family:var(--sans);font-size:13px;margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bottle span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-right:4px}
+.bottle button{font:inherit;padding:7px 12px;border:1px solid var(--ink);background:transparent;border-radius:30px;cursor:pointer;display:flex;gap:6px;align-items:center;transition:background .3s,color .3s}
+.bottle button i{width:10px;height:10px;border-radius:50%}
+.bottle button:hover{background:var(--ink);color:var(--sill)}
+.bottle button[disabled]{opacity:.35;cursor:not-allowed;background:transparent;color:var(--ink)}
+@media (max-width:1060px){
+  .wrap{grid-template-columns:1fr minmax(300px,440px)}
+  .intro{grid-column:1/-1}
+}
+@media (max-width:720px){
+  .wrap{grid-template-columns:1fr;padding-top:28px}
+  .jarbox{max-width:400px;justify-self:center;width:100%}
+}
+@media (prefers-reduced-motion:reduce){body,.light{transition:none}}
+</style>
+</head>
+<body>
+<div class="light" id="light"></div>
+<main class="wrap">
+  <section class="intro">
+    <p class="kicker">A Kombucha Diary · 發酵日誌</p>
+    <h1>窗台上的<em>二十一天</em></h1>
+    <p>一罐加了糖的紅茶，一片乳白色的菌膜。酵母把糖變成酒精與氣泡，醋酸菌再把酒精變成酸。日子越長越酸，在中間某一天，它剛好好喝。</p>
+    <div class="knobs">
+      <div class="knob"><label>茶種</label><div class="pills" id="tea"><button class="on" data-t="black">紅茶</button><button data-t="green">綠茶</button><button data-t="oolong">烏龍</button></div></div>
+      <div class="knob"><label for="temp">室溫 <b id="tv">24 °C</b></label><input id="temp" type="range" min="18" max="30" step="1" value="24"></div>
+      <div class="knob"><label for="sugar">起始糖量 <b id="sv">70 g/L</b></label><input id="sugar" type="range" min="40" max="100" step="5" value="70"></div>
+    </div>
+  </section>
+  <section class="jarbox">
+    <div style="position:relative"><canvas id="jar" width="1040" height="1280" aria-label="發酵中的康普茶罐"></canvas>
+    <p class="daybig">第<b id="dnum">0</b>天</p></div>
+    <div class="timeline">
+      <div class="row"><button class="play" id="play" aria-label="播放縮時"><svg viewBox="0 0 14 14" id="pi"><path d="M3 1 L12 7 L3 13Z" fill="#2d2924"/></svg></button><input id="day" type="range" min="0" max="21" step="0.05" value="0" aria-label="發酵天數"></div>
+      <div class="ticks"><span>0</span><span>7</span><span>14</span><span>21 天</span></div>
+    </div>
+  </section>
+  <section class="readout">
+    <div class="m"><div class="lab">殘糖<b id="vSugar">70<small>g/L</small></b></div><svg id="cSugar" viewBox="0 0 300 46" preserveAspectRatio="none"></svg></div>
+    <div class="m"><div class="lab">酸鹼值<b id="vPh">4.6<small>pH</small></b></div><svg id="cPh" viewBox="0 0 300 46" preserveAspectRatio="none"></svg></div>
+    <div class="m"><div class="lab">菌膜厚度<b id="vScoby">1.0<small>mm</small></b></div><svg id="cScoby" viewBox="0 0 300 46" preserveAspectRatio="none"></svg></div>
+    <div class="taste"><div class="lab" style="font-family:var(--sans);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)">今天喝起來</div>
+      <div class="scale"><span>太甜</span><span>剛好</span><span>醋</span><i class="needle" id="needle"></i></div>
+      <p class="verdict" id="verdict"></p>
+      <div class="bottle"><span>裝瓶二發</span><button data-f="ginger" data-c="#e3c46a"><i style="background:#e3c46a"></i>老薑</button><button data-f="roselle" data-c="#b0243c"><i style="background:#b0243c"></i>洛神</button><button data-f="mango" data-c="#f0a030"><i style="background:#f0a030"></i>芒果</button></div>
+    </div>
+  </section>
+</main>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var TEA={black:[150,74,24],green:[188,160,70],oolong:[170,108,40]};
+var st={tea:'black',T:24,S0:70,day:0,bottle:null,bottleDay:0};
+function k(){ return 0.13*Math.pow(1.075,st.T-24); }
+function model(d){
+  var kk=k(), sugar=st.S0*Math.exp(-kk*d), a=1-Math.exp(-kk*d*.85), ph=4.6-1.95*a;
+  var scoby=1+9*(1-Math.exp(-kk*d*.55)), alc=.6*(1-Math.exp(-kk*d*1.6))*Math.exp(-kk*d*.35);
+  return {sugar:sugar,ph:ph,acid:a,scoby:scoby,alc:alc,sweet:sugar/st.S0};
+}
+
+// ---- 曲線 ----
+function curve(id,fn,min,max,col){
+  var s=$(id), d='', a='';
+  for(var i=0;i<=84;i++){ var x=i/84*300, v=fn(i/84*21), y=46-((v-min)/(max-min))*42-2; d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }
+  a=d+'L300 46 L0 46Z';
+  s.innerHTML='<path d="'+a+'" fill="'+col+'" opacity=".12"/><path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.4" vector-effect="non-scaling-stroke"/><line id="'+id+'L" x1="0" x2="0" y1="0" y2="46" stroke="#2d2924" stroke-width="1" vector-effect="non-scaling-stroke"/><circle id="'+id+'D" r="3" fill="#2d2924"/>';
+  s._fn=fn; s._min=min; s._max=max;
+}
+function curves(){
+  curve('cSugar',function(d){return model(d).sugar;},0,100,'#b8732c');
+  curve('cPh',function(d){return model(d).ph;},2.4,4.8,'#7b8a64');
+  curve('cScoby',function(d){return model(d).scoby;},0,11,'#a08a6a');
+}
+function cursor(){
+  ['cSugar','cPh','cScoby'].forEach(function(id){ var s=$(id), x=st.day/21*300, v=s._fn(st.day), y=46-((v-s._min)/(s._max-s._min))*42-2;
+    var L=document.getElementById(id+'L'), D=document.getElementById(id+'D'); L.setAttribute('x1',x); L.setAttribute('x2',x); D.setAttribute('cx',x); D.setAttribute('cy',y); });
+}
+
+// ---- 罐子 ----
+var cv=$('jar'), ctx=cv.getContext('2d'), W=1040, H=1280;
+var JX=480, JT=300, JB=1150, JW=300; // 罐子中心、口、底、半寬
+var seed=11; function r(){ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }
+var strands=[]; for(var i=0;i<26;i++) strands.push({x:(r()-.5)*1.7,len:.2+r()*.8,w:1+r()*3,ph:r()*6,born:r()*18});
+var spots=[]; for(i=0;i<60;i++) spots.push({x:(r()-.5)*1.9,y:r(),s:2+r()*6,born:r()*20});
+var bubbles=[];
+function mix(a,b,t){ return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]; }
+function rgba(c,a){ return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+a+')'; }
+function jarPath(){
+  ctx.beginPath();
+  ctx.moveTo(JX-JW*.62,JT-30); ctx.lineTo(JX-JW*.62,JT+10);
+  ctx.bezierCurveTo(JX-JW*.62,JT+60,JX-JW,JT+70,JX-JW,JT+150);
+  ctx.lineTo(JX-JW,JB-40); ctx.quadraticCurveTo(JX-JW,JB,JX-JW+40,JB);
+  ctx.lineTo(JX+JW-40,JB); ctx.quadraticCurveTo(JX+JW,JB,JX+JW,JB-40);
+  ctx.lineTo(JX+JW,JT+150); ctx.bezierCurveTo(JX+JW,JT+70,JX+JW*.62,JT+60,JX+JW*.62,JT+10);
+  ctx.lineTo(JX+JW*.62,JT-30);
+}
+var t0=performance.now();
+function draw(now){
+  var m=model(st.day), T=(now-t0)/1000;
+  ctx.clearRect(0,0,W,H);
+  // 窗台陰影
+  var sh=ctx.createRadialGradient(JX+80,JB+10,20,JX+80,JB+10,JW*1.5); sh.addColorStop(0,'rgba(80,60,30,.28)'); sh.addColorStop(1,'rgba(80,60,30,0)');
+  ctx.fillStyle=sh; ctx.beginPath(); ctx.ellipse(JX+80,JB+12,JW*1.45,44,0,0,6.283); ctx.fill();
+  // 液面高度
+  var LT=JT+250, scobyH=m.scoby*7.5;
+  ctx.save(); jarPath(); ctx.clip();
+  // 茶湯：發酵越久越淡、越金黃，也更混濁
+  var base=TEA[st.tea], c=mix(base,[214,160,70],m.acid*.55);
+  var g=ctx.createLinearGradient(JX-JW,0,JX+JW,0);
+  g.addColorStop(0,rgba(mix(c,[60,30,10],.25),.95)); g.addColorStop(.35,rgba(mix(c,[255,230,170],.12),.9)); g.addColorStop(1,rgba(mix(c,[40,20,5],.35),.95));
+  ctx.fillStyle=g; ctx.fillRect(JX-JW,LT,JW*2,JB-LT);
+  ctx.fillStyle=rgba([240,220,180],.06+m.acid*.16); ctx.fillRect(JX-JW,LT,JW*2,JB-LT);
+  // 沉在底部的酵母
+  ctx.fillStyle=rgba([70,40,15],.15+m.acid*.3); ctx.beginPath(); ctx.ellipse(JX,JB-6,JW*.95,10+m.acid*16,0,0,6.283); ctx.fill();
+  // 垂下的酵母絲
+  strands.forEach(function(s){ if(st.day<s.born*.6) return; var grow=Math.min(1,(st.day-s.born*.6)/4);
+    var x=JX+s.x*JW*.9, y0=LT+scobyH, L=s.len*260*grow;
+    ctx.strokeStyle=rgba([95,58,24],.55); ctx.lineWidth=s.w; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(x,y0);
+    for(var j=1;j<=10;j++){ var yy=y0+L*j/10; ctx.lineTo(x+Math.sin(j*.9+s.ph+T*.6)*8*j/10,yy); } ctx.stroke(); });
+  // 氣泡：酵母活躍時多
+  var act=Math.exp(-k()*st.day*.4)*(st.day>0.3?1:0.15);
+  if(Math.random()<act*.9) bubbles.push({x:JX+(Math.random()-.5)*JW*1.8,y:JB-20,r:2+Math.random()*4,v:.6+Math.random()*1.4});
+  bubbles.forEach(function(b){ b.y-=b.v; b.x+=Math.sin(b.y*.04)*.4; ctx.strokeStyle='rgba(255,245,220,.6)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,6.283); ctx.stroke(); });
+  bubbles=bubbles.filter(function(b){ return b.y>LT+scobyH; });
+  // 菌膜：一層層疊上去的乳白圓盤
+  var layers=Math.max(1,Math.round(m.scoby));
+  for(var L=0;L<layers;L++){
+    var y=LT+scobyH-(L+1)*7.5, shade=mix([226,212,182],[190,168,128],L/Math.max(1,layers-1)*.6);
+    ctx.fillStyle=rgba(shade,.96); ctx.fillRect(JX-JW,y,JW*2,8.5);
+    ctx.strokeStyle=rgba([150,120,80],.35); ctx.lineWidth=1; ctx.beginPath();
+    for(var x=JX-JW;x<=JX+JW;x+=20){ var yy=y+8+Math.sin(x*.05+L*1.7)*1.6; x===JX-JW?ctx.moveTo(x,yy):ctx.lineTo(x,yy); } ctx.stroke();
+  }
+  // 菌膜表面的斑點與細泡
+  spots.forEach(function(s){ if(st.day<s.born) return; ctx.fillStyle=rgba([175,140,95],.4); ctx.beginPath(); ctx.ellipse(JX+s.x*JW*.95,LT-2+s.y*6,s.s,s.s*.35,0,0,6.283); ctx.fill(); });
+  // 液面上方的空氣
+  ctx.fillStyle='rgba(255,255,255,.05)'; ctx.fillRect(JX-JW,JT-40,JW*2,LT-JT+40);
+  ctx.restore();
+  // 玻璃
+  jarPath(); ctx.strokeStyle='rgba(70,60,45,.55)'; ctx.lineWidth=3; ctx.stroke();
+  ctx.save(); jarPath(); ctx.clip();
+  var gl=ctx.createLinearGradient(JX-JW,0,JX+JW,0); gl.addColorStop(0,'rgba(255,255,255,.18)'); gl.addColorStop(.12,'rgba(255,255,255,.5)'); gl.addColorStop(.2,'rgba(255,255,255,.04)'); gl.addColorStop(.85,'rgba(255,255,255,0)'); gl.addColorStop(.93,'rgba(255,255,255,.25)'); gl.addColorStop(1,'rgba(255,255,255,.05)');
+  ctx.fillStyle=gl; ctx.fillRect(JX-JW,JT-40,JW*2,JB-JT+40); ctx.restore();
+  // 罐口的棉布與麻繩
+  ctx.fillStyle='#f3ede0'; ctx.beginPath(); ctx.moveTo(JX-JW*.7,JT-30);
+  ctx.quadraticCurveTo(JX,JT-90,JX+JW*.7,JT-30); ctx.lineTo(JX+JW*.76,JT+40);
+  for(var i2=0;i2<=12;i2++){ ctx.lineTo(JX+JW*.76-i2*(JW*1.52/12),JT+40+(i2%2?14:0)+Math.sin(i2+T)*1.5); }
+  ctx.closePath(); ctx.fill(); ctx.strokeStyle='rgba(120,100,70,.35)'; ctx.lineWidth=1.5; ctx.stroke();
+  for(i2=0;i2<9;i2++){ ctx.strokeStyle='rgba(150,130,100,.18)'; ctx.beginPath(); ctx.moveTo(JX-JW*.65+i2*JW*.16,JT-40); ctx.lineTo(JX-JW*.7+i2*JW*.17,JT+44); ctx.stroke(); }
+  ctx.strokeStyle='#a9844f'; ctx.lineWidth=7; ctx.beginPath(); ctx.moveTo(JX-JW*.64,JT+6); ctx.lineTo(JX+JW*.64,JT+6); ctx.stroke();
+  ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(JX+JW*.5,JT+6); ctx.quadraticCurveTo(JX+JW*.72,JT+60,JX+JW*.66,JT+110); ctx.moveTo(JX+JW*.5,JT+6); ctx.quadraticCurveTo(JX+JW*.6,JT+70,JX+JW*.5,JT+120); ctx.stroke();
+  // 手寫標籤
+  ctx.save(); ctx.translate(JX-JW*.42,JT+420); ctx.rotate(-.05);
+  ctx.fillStyle='rgba(250,245,232,.94)'; ctx.fillRect(-90,-46,190,104); ctx.strokeStyle='rgba(120,100,70,.4)'; ctx.strokeRect(-90,-46,190,104);
+  ctx.fillStyle='#4a4136'; ctx.font='italic 26px "Iowan Old Style", Georgia, serif'; ctx.fillText('Batch Nº 7',-74,-12);
+  ctx.font='20px "Iowan Old Style", Georgia, serif'; ctx.fillText({black:'紅茶',green:'綠茶',oolong:'烏龍'}[st.tea]+' · '+st.S0+' g 糖',-74,18);
+  ctx.fillText(st.T+' °C · day '+Math.floor(st.day),-74,44); ctx.restore();
+  // 裝好的二發瓶
+  if(st.bottle){ drawBottle(JX+JW+40>W-60?W-110:JX+JW+40,JB,T); }
+  requestAnimationFrame(draw);
+}
+function drawBottle(x,base,T){
+  var b=st.bottle, c=b.c, fizz=Math.min(1,(st.day-st.bottleDay)/3);
+  ctx.save(); ctx.translate(948,0);
+  var bw=56, top=base-300;
+  ctx.beginPath(); ctx.moveTo(-14,top); ctx.lineTo(14,top); ctx.lineTo(14,top+50); ctx.quadraticCurveTo(bw,top+90,bw,top+140); ctx.lineTo(bw,base-12); ctx.quadraticCurveTo(bw,base,bw-12,base); ctx.lineTo(-bw+12,base); ctx.quadraticCurveTo(-bw,base,-bw,base-12); ctx.lineTo(-bw,top+140); ctx.quadraticCurveTo(-bw,top+90,-14,top+50); ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,.22)'; ctx.fill();
+  ctx.save(); ctx.clip(); var gg=ctx.createLinearGradient(-bw,0,bw,0); gg.addColorStop(0,c); gg.addColorStop(.3,'rgba(255,255,255,.25)'); gg.addColorStop(.36,c); gg.addColorStop(1,'#00000055');
+  ctx.fillStyle=c; ctx.globalAlpha=.85; ctx.fillRect(-bw,top+14,bw*2,base-top-14); ctx.globalAlpha=1; ctx.fillStyle=gg; ctx.globalAlpha=.4; ctx.fillRect(-bw,top+14,bw*2,base-top-14); ctx.globalAlpha=1;
+  for(var i=0;i<18*fizz;i++){ var yy=base-((T*60*(1+i%3*.4)+i*47)%(base-top-90)); ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(((i*29)%(bw*2))-bw+6,yy,2+(i%3),0,6.283); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle='rgba(60,50,38,.75)'; ctx.lineWidth=3; ctx.stroke();
+  ctx.fillStyle='#d8d2c4'; ctx.fillRect(-17,top-22,34,24); ctx.strokeStyle='#7d7465'; ctx.lineWidth=2; ctx.strokeRect(-17,top-22,34,24);
+  ctx.fillStyle='rgba(250,245,232,.95)'; ctx.fillRect(-bw+8,base-110,bw*2-16,78);
+  ctx.fillStyle='#4a4136'; ctx.font='italic 20px "Iowan Old Style", Georgia, serif'; ctx.textAlign='center'; ctx.fillText(b.zh,0,base-70); ctx.font='16px "Iowan Old Style", Georgia, serif'; ctx.fillText(fizz>=1?'氣泡足':'二發 '+Math.max(0,st.day-st.bottleDay).toFixed(1)+' 天',0,base-46);
+  ctx.restore();
+}
+
+// ---- 窗光：每過一天，光從左邊掃到右邊再暗下來 ----
+function light(){
+  var f=st.day%1, sun=Math.max(0,Math.sin(f*Math.PI*2-Math.PI/2+Math.PI/2)); // 0 → 1 → 0
+  sun=Math.sin(Math.min(1,f/0.75)*Math.PI);
+  var night=1-sun, x=10+f/0.75*80;
+  $('light').style.background='radial-gradient(60vw 90vh at '+x.toFixed(1)+'% 30%,rgba(255,226,170,'+(0.45*sun).toFixed(3)+'),transparent 70%),linear-gradient(rgba(40,50,80,'+(0.32*night*(playing?1:0.15)).toFixed(3)+'),rgba(40,50,80,'+(0.32*night*(playing?1:0.15)).toFixed(3)+'))';
+}
+// ---- 讀數 ----
+function update(){
+  var m=model(st.day);
+  $('dnum').textContent=Math.floor(st.day);
+  $('vSugar').innerHTML=m.sugar.toFixed(0)+'<small>g/L</small>';
+  $('vPh').innerHTML=m.ph.toFixed(2)+'<small>pH</small>';
+  $('vScoby').innerHTML=m.scoby.toFixed(1)+'<small>mm</small>';
+  // 甜酸平衡：0 很甜，1 很酸
+  var bal=Math.max(0,Math.min(1,(4.6-m.ph)/1.95*0.8+(1-m.sweet)*0.2));
+  $('needle').style.left=(bal*100).toFixed(1)+'%';
+  var v= st.day<0.5?'剛泡好的甜紅茶，還沒開始發酵。':bal<.32?'還很甜，帶一點點酒香，菌膜才剛成形。':bal<.4?'甜味退了一些，開始出現蘋果醋般的酸。再等一兩天。':bal<.62?'剛好。酸甜平衡，像微酸的蘋果汁——現在裝瓶。':bal<.78?'明顯偏酸了，可以留一些當下一批的引子。':'這已經是醋了。適合拌沙拉，或留作菌種液。';
+  $('verdict').textContent=v;
+  Array.prototype.forEach.call(document.querySelectorAll('.bottle button'),function(b){ b.disabled=!!st.bottle||bal<.36; });
+  cursor(); light();
+}
+var playing=false, last=0;
+function loop(now){
+  if(playing){ var dt=Math.min(.05,(now-last)/1000); st.day=Math.min(21,st.day+dt*1.15); $('day').value=st.day; update(); if(st.day>=21){ playing=false; icon(); } }
+  last=now; requestAnimationFrame(loop);
+}
+function icon(){ $('pi').innerHTML=playing?'<rect x="2" y="1" width="3.5" height="12" fill="#2d2924"/><rect x="8.5" y="1" width="3.5" height="12" fill="#2d2924"/>':'<path d="M3 1 L12 7 L3 13Z" fill="#2d2924"/>'; }
+$('play').onclick=function(){ if(st.day>=21){ st.day=0; st.bottle=null; bubbles=[]; } playing=!playing; icon(); };
+$('day').addEventListener('input',function(){ st.day=+this.value; if(st.bottle && st.day<st.bottleDay) st.bottle=null; playing=false; icon(); update(); });
+$('temp').addEventListener('input',function(){ st.T=+this.value; $('tv').textContent=st.T+' °C'; curves(); update(); });
+$('sugar').addEventListener('input',function(){ st.S0=+this.value; $('sv').textContent=st.S0+' g/L'; curves(); update(); });
+$('tea').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; st.tea=b.dataset.t; Array.prototype.forEach.call(this.children,function(x){x.classList.toggle('on',x===b);}); });
+Array.prototype.forEach.call(document.querySelectorAll('.bottle button'),function(b){ b.onclick=function(){ st.bottle={c:b.dataset.c,zh:b.textContent.trim()}; st.bottleDay=st.day; update(); }; });
+curves(); update(); requestAnimationFrame(draw); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

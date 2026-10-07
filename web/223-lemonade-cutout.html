@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citron · 剪紙檸檬水攤</title>
+<meta name="description" content="馬諦斯剪紙風的檸檬水小攤經營遊戲：看天氣決定檸檬、糖、冰塊與售價，七天內把三百元本錢做大。剪紙小人會走過攤位，告訴你太酸、太甜還是太貴。">
+<style>
+:root{
+  --paper:#f4efe3; --blue:#1b3fa6; --lemon:#f5c518; --coral:#ef6a4c; --pink:#f3a6b8; --green:#1f8a4c; --black:#1a1a1a; --sky:#8fc3e8;
+  --round:"Arial Rounded MT Bold","Nunito","Trebuchet MS","PingFang TC","Microsoft JhengHei",sans-serif;
+  --text:"Avenir Next","Trebuchet MS","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--black);font-family:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;mix-blend-mode:multiply;background:repeating-radial-gradient(circle at 20% 30%,rgba(120,100,60,.05) 0 1px,transparent 1px 5px)}
+.cut{filter:drop-shadow(2px 3px 0 rgba(40,30,10,.18))}
+header{display:flex;align-items:center;gap:18px;padding:18px clamp(16px,3vw,36px) 0;flex-wrap:wrap}
+.logo{display:flex;gap:2px;font-family:var(--round);font-size:clamp(34px,5vw,58px);line-height:1}
+.logo span{display:inline-block;padding:4px 8px 6px;color:var(--paper)}
+.logo span:nth-child(5n+1){background:var(--blue);transform:rotate(-4deg)}
+.logo span:nth-child(5n+2){background:var(--coral);transform:rotate(3deg) translateY(4px)}
+.logo span:nth-child(5n+3){background:var(--green);transform:rotate(-2deg)}
+.logo span:nth-child(5n+4){background:var(--black);transform:rotate(5deg) translateY(-3px)}
+.logo span:nth-child(5n){background:var(--lemon);color:var(--black);transform:rotate(-6deg) translateY(2px)}
+.sub{font-family:var(--round);font-size:15px;color:var(--blue)}
+.money{margin-left:auto;display:flex;gap:10px;font-family:var(--round)}
+.chip{padding:8px 14px 9px;background:var(--black);color:var(--paper);border-radius:40% 55% 45% 60%/60% 45% 55% 40%;font-size:15px;white-space:nowrap}
+.chip b{font-size:22px;color:var(--lemon);margin-left:4px}
+.chip.alt{background:var(--blue)}
+main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:clamp(16px,3vw,32px);padding:18px clamp(16px,3vw,36px) 30px;align-items:start}
+.scene{position:relative;aspect-ratio:16/11;width:100%;background:var(--sky);overflow:hidden;border-radius:4px}
+.scene svg.bgsvg{position:absolute;inset:0;width:100%;height:100%}
+.walker{position:absolute;bottom:12%;width:9%;transition:none;will-change:transform}
+.walker svg{width:100%;height:auto;display:block}
+.bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--paper);font-family:var(--round);font-size:clamp(10px,1.2vw,14px);padding:5px 9px;border-radius:50% 45% 55% 40%/55% 50% 45% 50%;white-space:nowrap;box-shadow:2px 2px 0 rgba(0,0,0,.2);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+.bubble.buy{background:var(--lemon)}
+@keyframes pop{from{transform:translateX(-50%) scale(.2)}to{transform:translateX(-50%) scale(1)}}
+.coin{position:absolute;width:3%;aspect-ratio:1;border-radius:50%;background:var(--lemon);box-shadow:inset 0 0 0 3px var(--black);animation:coin .9s ease-in forwards}
+@keyframes coin{0%{transform:translateY(0) scale(1)}60%{transform:translateY(-120%) scale(1.2)}100%{transform:translateY(-300%) scale(.4);opacity:0}}
+.daytag{position:absolute;left:3%;top:4%;font-family:var(--round);font-size:clamp(18px,2.4vw,30px);color:var(--paper);background:var(--black);padding:6px 14px 8px;transform:rotate(-3deg)}
+.clock{position:absolute;right:3%;top:4%;width:12%;aspect-ratio:1}
+.panel{display:grid;gap:14px}
+.card{background:#fffaf0;padding:16px 18px;position:relative;border-radius:3px}
+.card::before{content:"";position:absolute;inset:0;background:inherit;z-index:-1;transform:rotate(-1deg);border-radius:3px}
+.card h2{font-family:var(--round);font-size:18px;color:var(--blue);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.forecast{display:flex;gap:14px;align-items:center}
+.forecast svg{width:64px;height:64px;flex:none}
+.forecast b{font-family:var(--round);font-size:26px;display:block}
+.forecast span{font-size:13px;color:#555}
+.knob{display:grid;grid-template-columns:5.2em 1fr 3.2em;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+.knob output{font-family:var(--round);font-size:18px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;background:var(--pink);border-radius:8px}
+input[type=range]::-moz-range-track{height:8px;background:var(--pink);border-radius:8px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-8px;background:var(--blue);border-radius:45% 55% 40% 60%/55% 40% 60% 45%;border:0}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;background:var(--blue);border-radius:50%;border:0}
+.cost{display:flex;justify-content:space-between;font-family:var(--round);font-size:15px;border-top:2px dashed var(--black);padding-top:10px;margin-top:8px}
+.go{font-family:var(--round);font-size:22px;padding:14px;border:0;background:var(--coral);color:var(--paper);cursor:pointer;border-radius:46% 54% 50% 50%/30% 30% 70% 70%;transition:transform .15s,background .2s;box-shadow:3px 4px 0 var(--black)}
+.go:hover{transform:rotate(-2deg) scale(1.03)}
+.go[disabled]{background:#bbb;cursor:default;transform:none}
+.ledger{font-size:14px;line-height:1.8}
+.ledger .r{display:flex;justify-content:space-between;border-bottom:1px dotted #aaa}
+.ledger b{font-family:var(--round)}
+.ledger .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ledger .tags span{font-family:var(--round);font-size:12px;padding:3px 9px;background:var(--pink);border-radius:20px}
+.week{display:flex;gap:5px;margin-top:6px}
+.week i{flex:1;height:8px;background:#ddd;border-radius:4px}
+.week i.done{background:var(--green)}.week i.now{background:var(--coral)}
+.final{position:fixed;inset:0;display:grid;place-items:center;background:rgba(244,239,227,.92);z-index:5;opacity:0;pointer-events:none;transition:opacity .5s}
+.final.show{opacity:1;pointer-events:auto}
+.final .box{text-align:center;max-width:420px;padding:20px}
+.final svg{width:180px;height:180px}
+.final h2{font-family:var(--round);font-size:40px;color:var(--blue)}
+.final p{font-size:16px;line-height:1.7;margin:10px 0 20px}
+@media (max-width:900px){
+  main{grid-template-columns:minmax(0,1fr)}
+  .money{margin-left:0;width:100%}
+  .walker{width:13%}
+}
+@media (prefers-reduced-motion:reduce){.bubble,.coin{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo cut" aria-label="Citron"><span>C</span><span>i</span><span>t</span><span>r</span><span>o</span><span>n</span></div>
+  <div class="sub">剪紙檸檬水攤 · 七天挑戰</div>
+  <div class="money"><div class="chip">現金<b id="cash">300</b> 元</div><div class="chip alt">口碑<b id="rep">★★★</b></div></div>
+</header>
+<main>
+  <section class="scene cut" id="scene">
+    <svg class="bgsvg" viewBox="0 0 1600 1100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect width="1600" height="1100" fill="#8fc3e8"/>
+      <g id="sun"><circle cx="1300" cy="230" r="120" fill="#f5c518"/><path d="M1300 110 l20 -60 l20 60 M1420 230 l60 20 l-60 20 M1300 350 l-20 60 l-20 -60 M1180 230 l-60 -20 l60 -20 M1385 145 l55 -35 l-15 60 M1385 315 l40 50 l-60 -10 M1215 315 l-55 35 l15 -60 M1215 145 l-40 -50 l60 10" fill="#f5c518"/></g>
+      <g id="clouds" opacity="0"><path d="M300 260 c-10 -70 90 -110 140 -60 c30 -70 150 -60 160 20 c80 -10 100 90 30 110 h-300 c-70 -10 -80 -70 -30 -70z" fill="#f4efe3"/><path d="M900 180 c-10 -60 80 -90 120 -50 c30 -60 130 -50 140 20 c70 -10 90 80 30 90 h-260 c-60 -10 -70 -60 -30 -60z" fill="#f4efe3"/></g>
+      <g id="rain" opacity="0" stroke="#1b3fa6" stroke-width="10" stroke-linecap="round"></g>
+      <!-- 馬諦斯的海藻與葉子 -->
+      <path d="M60 1100 C40 960 120 900 90 800 C70 720 150 680 120 590 C170 640 160 720 190 790 C230 860 160 930 210 1100Z" fill="#1f8a4c"/>
+      <path d="M1500 1100 C1470 980 1560 930 1520 830 C1490 760 1570 700 1550 620 C1610 680 1600 760 1590 820 C1640 900 1570 980 1600 1100Z" fill="#1b3fa6"/>
+      <path d="M250 420 c40 -30 60 -10 70 20 c30 -40 70 -30 60 10 c40 -10 60 30 20 50 c40 30 0 70 -40 40 c0 50 -60 50 -60 0 c-40 30 -80 -10 -40 -40 c-40 -20 -30 -70 -10 -80z" fill="#f3a6b8" opacity=".9"/>
+      <path d="M720 330 c20 -40 70 -20 60 20 c40 -10 60 40 20 60 c30 40 -20 70 -50 40 c-20 40 -80 20 -60 -20 c-40 0 -40 -60 0 -60 c-20 -30 10 -60 30 -40z" fill="#ef6a4c" opacity=".85"/>
+      <!-- 地面 -->
+      <path d="M0 880 Q400 850 800 875 T1600 860 V1100 H0Z" fill="#f4efe3"/>
+      <path d="M0 920 Q400 900 800 925 T1600 910" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-dasharray="40 30"/>
+      <!-- 攤位 -->
+      <g transform="translate(640 470)">
+        <rect x="20" y="210" width="340" height="200" fill="#1b3fa6"/>
+        <rect x="20" y="210" width="340" height="40" fill="#f4efe3"/>
+        <text x="190" y="240" text-anchor="middle" font-family="Arial Rounded MT Bold, Trebuchet MS, sans-serif" font-size="32" fill="#1b3fa6">LEMONADE</text>
+        <rect x="40" y="30" width="16" height="190" fill="#1a1a1a"/><rect x="324" y="30" width="16" height="190" fill="#1a1a1a"/>
+        <path d="M0 40 L380 40 L360 -40 L20 -40Z" fill="#ef6a4c"/>
+        <path d="M0 40 q24 40 48 0 q24 40 48 0 q24 40 48 0 q24 40 48 0 q24 40 48 0 q24 40 48 0 q24 40 48 0 q24 40 48 0" fill="#f4efe3"/>
+        <path d="M60 -40 L50 40 M120 -40 L118 40 M180 -40 L186 40 M240 -40 L254 40 M300 -40 L322 40" stroke="#f4efe3" stroke-width="18"/>
+        <!-- 水壺與檸檬 -->
+        <path d="M120 210 L110 120 Q110 100 140 100 L190 100 Q210 100 205 120 L200 210Z" fill="#f5c518" opacity=".9"/>
+        <path d="M200 125 q40 10 20 60" stroke="#1a1a1a" stroke-width="8" fill="none"/>
+        <ellipse cx="270" cy="195" rx="34" ry="22" fill="#f5c518" stroke="#1a1a1a" stroke-width="4"/>
+        <ellipse cx="310" cy="200" rx="28" ry="18" fill="#f5c518" stroke="#1a1a1a" stroke-width="4"/>
+        <text id="stockTxt" x="190" y="330" text-anchor="middle" font-family="Arial Rounded MT Bold, Trebuchet MS, sans-serif" font-size="40" fill="#f4efe3">0 杯</text>
+        <text id="priceTxt" x="190" y="380" text-anchor="middle" font-family="Arial Rounded MT Bold, Trebuchet MS, sans-serif" font-size="30" fill="#f5c518">20 元</text>
+      </g>
+    </svg>
+    <div class="daytag" id="daytag">第 1 天</div>
+    <svg class="clock" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="#f4efe3"/><path id="clockArc" d="" fill="#ef6a4c"/><circle cx="50" cy="50" r="6" fill="#1a1a1a"/></svg>
+  </section>
+  <section class="panel">
+    <div class="card cut"><h2>天氣預報<span class="week" id="week" style="width:120px"></span></h2><div class="forecast" id="forecast"></div></div>
+    <div class="card cut"><h2>今天的配方</h2>
+      <div class="knob"><label for="lemon">每壺檸檬</label><input id="lemon" type="range" min="1" max="8" value="4"><output id="oLemon">4 顆</output></div>
+      <div class="knob"><label for="sugar">每壺糖</label><input id="sugar" type="range" min="0" max="8" value="4"><output id="oSugar">4 匙</output></div>
+      <div class="knob"><label for="ice">每杯冰塊</label><input id="ice" type="range" min="0" max="6" value="3"><output id="oIce">3 塊</output></div>
+      <div class="knob"><label for="pitch">做幾壺</label><input id="pitch" type="range" min="1" max="8" value="3"><output id="oPitch">3 壺</output></div>
+      <div class="knob"><label for="price">每杯售價</label><input id="price" type="range" min="5" max="60" step="5" value="20"><output id="oPrice">20 元</output></div>
+      <div class="cost"><span>一壺 12 杯 · 共 <b id="cups">36</b> 杯</span><span>成本 <b id="cost">0</b> 元</span></div>
+    </div>
+    <button class="go" id="go">開店！</button>
+    <div class="card cut ledger" id="ledger"><h2>帳本</h2><p style="font-size:13px;color:#555">檸檬一顆 5 元、糖一匙 2 元、冰塊一塊 0.5 元、杯子一個 1 元。沒賣完的當天倒掉。</p></div>
+  </section>
+</main>
+<div class="final" id="final"><div class="box"></div></div>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var WX=[
+  {k:'hot',zh:'大太陽',t:34,base:44,ice:5},
+  {k:'sun',zh:'晴朗',t:28,base:34,ice:3},
+  {k:'cloud',zh:'多雲',t:23,base:22,ice:2},
+  {k:'rain',zh:'下雨',t:19,base:11,ice:0}
+];
+var game={day:1,cash:300,rep:.5,wx:null,history:[],running:false};
+function rollWx(){ var r=Math.random(); return WX[r<.28?0:r<.6?1:r<.85?2:3]; }
+function stars(){ var n=Math.max(1,Math.min(5,Math.round(game.rep*5))); return '★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n); }
+function wxIcon(w){
+  if(w.k==='hot') return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="16" fill="#f5c518"/><path d="M32 4l4 10h-8zM32 60l-4-10h8zM4 32l10-4v8zM60 32l-10 4v-8zM12 12l10 4-6 6zM52 52l-10-4 6-6zM52 12l-4 10-6-6zM12 52l4-10 6 6z" fill="#ef6a4c"/></svg>';
+  if(w.k==='sun') return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="18" fill="#f5c518"/><path d="M32 32 m0 -9 a9 9 0 1 1 -8 5 a5 5 0 1 0 5 -3" fill="none" stroke="#1a1a1a" stroke-width="3"/></svg>';
+  if(w.k==='cloud') return '<svg viewBox="0 0 64 64"><circle cx="42" cy="22" r="12" fill="#f5c518"/><path d="M10 46c-6 0-6-12 2-12 0-10 14-12 18-4 4-8 20-6 18 6 8 0 8 10 0 10z" fill="#1b3fa6"/></svg>';
+  return '<svg viewBox="0 0 64 64"><path d="M10 34c-6 0-6-12 2-12 0-10 14-12 18-4 4-8 20-6 18 6 8 0 8 10 0 10z" fill="#1b3fa6"/><path d="M18 42l-4 12M30 42l-4 12M42 42l-4 12" stroke="#1b3fa6" stroke-width="4" stroke-linecap="round"/></svg>';
+}
+function plan(){ return {lemon:+$('lemon').value,sugar:+$('sugar').value,ice:+$('ice').value,pitch:+$('pitch').value,price:+$('price').value}; }
+function costOf(p){ var cups=p.pitch*12; return p.pitch*(p.lemon*5+p.sugar*2)+cups*(p.ice*.5+1); }
+function refresh(){
+  var p=plan(); $('oLemon').textContent=p.lemon+' 顆'; $('oSugar').textContent=p.sugar+' 匙'; $('oIce').textContent=p.ice+' 塊'; $('oPitch').textContent=p.pitch+' 壺'; $('oPrice').textContent=p.price+' 元';
+  var c=Math.round(costOf(p)); $('cups').textContent=p.pitch*12; $('cost').textContent=c;
+  $('go').disabled=game.running||c>game.cash; $('go').textContent=game.running?'營業中…':c>game.cash?'錢不夠':'開店！';
+  $('priceTxt').textContent=p.price+' 元'; if(!game.running) $('stockTxt').textContent=p.pitch*12+' 杯';
+}
+['lemon','sugar','ice','pitch','price'].forEach(function(k){ $(k).addEventListener('input',refresh); });
+function newDay(){
+  game.wx=rollWx(); var w=game.wx;
+  $('daytag').textContent='第 '+game.day+' 天';
+  $('forecast').innerHTML=wxIcon(w)+'<div><b>'+w.zh+' · '+w.t+'°C</b><span>'+(w.k==='hot'?'冰塊會賣得很好，人也多。':w.k==='sun'?'適合擺攤的一天。':w.k==='cloud'?'人潮普通，別做太多。':'雨天沒什麼人，少做一點。')+'</span></div>';
+  $('week').innerHTML=[1,2,3,4,5,6,7].map(function(d){ return '<i class="'+(d<game.day?'done':d===game.day?'now':'')+'"></i>'; }).join('');
+  sky(w); refresh();
+}
+function sky(w){
+  var colors={hot:'#f7b267',sun:'#8fc3e8',cloud:'#a9b9c6',rain:'#7c8ea3'};
+  document.querySelector('.bgsvg rect').setAttribute('fill',colors[w.k]);
+  $('sun').setAttribute('opacity',w.k==='rain'?0:w.k==='cloud'?.5:1);
+  $('clouds').setAttribute('opacity',w.k==='cloud'||w.k==='rain'?1:0);
+  var r=$('rain'); r.setAttribute('opacity',w.k==='rain'?.7:0);
+  if(!r.childNodes.length){ var s=''; for(var i=0;i<40;i++){ var x=(i*97)%1600, y=(i*53)%700+150; s+='<line x1="'+x+'" y1="'+y+'" x2="'+(x-14)+'" y2="'+(y+40)+'"/>'; } r.innerHTML=s; }
+}
+// ---- 一天的模擬 ----
+function taste(p){
+  var w=game.wx, q=1-Math.abs(p.lemon-4)*.13-Math.abs(p.sugar-4)*.12-Math.abs(p.ice-w.ice)*.07;
+  return Math.max(0,Math.min(1,q));
+}
+function reason(p,buy,w){
+  if(buy){ if(p.lemon>p.sugar+1) return '好酸！'; if(p.sugar>p.lemon+1) return '有點甜'; if(w.t>30&&p.ice<3) return '不夠冰'; return ['好喝！','再一杯','清爽～','讚'][Math.random()*4|0]; }
+  return null;
+}
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function ding(){ var a=A(); if(!a) return; var t=a.currentTime; [1318,1760].forEach(function(f,i){ var o=a.createOscillator(),g=a.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.06,t+i*.07); g.gain.exponentialRampToValueAtTime(.0001,t+i*.07+.3); o.connect(g); g.connect(a.destination); o.start(t+i*.07); o.stop(t+i*.07+.32); }); }
+function boo(){ var a=A(); if(!a) return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.type='sine'; o.frequency.setValueAtTime(320,t); o.frequency.exponentialRampToValueAtTime(200,t+.2); g.gain.setValueAtTime(.04,t); g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.24); }
+var PAL=['#1b3fa6','#ef6a4c','#1f8a4c','#1a1a1a','#f3a6b8','#f5c518'];
+function person(){
+  var b=PAL[Math.random()*PAL.length|0], h=PAL[Math.random()*PAL.length|0], hat=Math.random()<.4;
+  if(h===b) h='#f4efe3';
+  return '<svg viewBox="0 0 60 120"><path d="M14 118 L20 60 Q30 46 40 60 L46 118 L36 118 L32 86 L28 86 L24 118Z" fill="'+b+'"/><path d="M8 70 Q20 54 30 56 Q40 54 52 70 L46 76 L30 66 L14 76Z" fill="'+b+'"/><circle cx="30" cy="38" r="14" fill="'+h+'"/>'+(hat?'<path d="M12 30 Q30 4 48 30Z" fill="#f5c518"/>':'')+'</svg>';
+}
+$('go').onclick=function(){
+  var p=plan(), c=Math.round(costOf(p)); if(c>game.cash||game.running) return;
+  A(); game.running=true; game.cash-=c; $('cash').textContent=Math.round(game.cash); refresh();
+  var w=game.wx, q=taste(p), n=Math.round(w.base*(.6+.8*game.rep)*(.85+Math.random()*.3));
+  var stock=p.pitch*12, sold=0, revenue=0, tags={}, turned=0, sat=0;
+  var scene=$('scene'), dur=13000, t0=performance.now(), spawned=0;
+  var walkers=[];
+  function spawn(){
+    var el=document.createElement('div'); el.className='walker'; el.innerHTML=person(); scene.appendChild(el);
+    var dir=Math.random()<.5?1:-1, speed=.11+Math.random()*.06;
+    var o={el:el,x:dir>0?-12:108,dir:dir,speed:speed,decided:false,stop:0};
+    walkers.push(o);
+  }
+  (function tick(now){
+    var t=(now-t0)/dur;
+    // 時鐘
+    var a=Math.min(1,t)*Math.PI*2, large=a>Math.PI?1:0; $('clockArc').setAttribute('d',t>=.999?'M50 4 A46 46 0 1 1 49.9 4 Z':'M50 50 L50 4 A46 46 0 '+large+' 1 '+(50+46*Math.sin(a)).toFixed(2)+' '+(50-46*Math.cos(a)).toFixed(2)+' Z');
+    while(spawned<n && spawned/n<t*1.05){ spawn(); spawned++; }
+    walkers.forEach(function(o){
+      if(o.stop>0){ o.stop-=16; }
+      else o.x+=o.dir*o.speed*1.6;
+      // 走到攤位前面才決定
+      if(!o.decided && Math.abs(o.x-48)<3){
+        o.decided=true; o.stop=900;
+        var maxP=(8+w.t*.75)*(.55+.9*q)*(.8+.4*game.rep)*(.7+Math.random()*.6);
+        var msg, cls='';
+        if(stock<=0){ msg='賣完了？'; turned++; boo(); }
+        else if(p.price<=maxP){ stock--; sold++; revenue+=p.price; msg=reason(p,true,w); cls=' buy'; sat+=q; ding();
+          var coin=document.createElement('div'); coin.className='coin'; coin.style.left=(o.x+3)+'%'; coin.style.bottom='45%'; scene.appendChild(coin); setTimeout(function(){ coin.remove(); },900); }
+        else { msg=q<.55?(p.lemon>p.sugar+1?'聞起來好酸':p.sugar>p.lemon+1?'看起來太甜':'不太好喝的樣子'):'太貴了吧'; boo(); }
+        tags[msg]=(tags[msg]||0)+1;
+        var b=document.createElement('div'); b.className='bubble'+cls; b.textContent=msg; o.el.appendChild(b); setTimeout(function(){ b.remove(); },1100);
+        $('stockTxt').textContent=stock+' 杯'; $('cash').textContent=Math.round(game.cash+revenue);
+      }
+      o.el.style.left=o.x+'%'; o.el.style.transform='scaleX('+o.dir+') translateY('+(Math.abs(Math.sin(o.x*1.3))*-6)+'%)';
+      var bb=o.el.querySelector('.bubble'); if(bb) bb.style.transform='translateX(-50%) scaleX('+o.dir+')';
+    });
+    walkers=walkers.filter(function(o){ if(o.x<-15||o.x>112){ o.el.remove(); return false; } return true; });
+    if(t<1 || walkers.length) requestAnimationFrame(tick); else endDay();
+  })(t0);
+  function endDay(){
+    game.cash+=revenue; var profit=revenue-c;
+    var avgSat=sold?sat/sold:0.4;
+    game.rep=Math.max(.1,Math.min(1,game.rep*.55+avgSat*.45-(turned>3?.05:0)));
+    game.history.push({day:game.day,profit:profit});
+    $('cash').textContent=Math.round(game.cash); $('rep').textContent=stars();
+    var tg=Object.keys(tags).sort(function(a,b){return tags[b]-tags[a];}).slice(0,6).map(function(k){ return '<span>'+k+' ×'+tags[k]+'</span>'; }).join('');
+    $('ledger').innerHTML='<h2>第 '+game.day+' 天帳本</h2>'+
+      '<div class="r"><span>路過的客人</span><b>'+n+' 人</b></div><div class="r"><span>賣出</span><b>'+sold+' / '+p.pitch*12+' 杯</b></div>'+
+      '<div class="r"><span>營收</span><b>'+revenue+' 元</b></div><div class="r"><span>成本</span><b>'+c+' 元</b></div>'+
+      '<div class="r"><span>本日盈虧</span><b style="color:'+(profit>=0?'#1f8a4c':'#ef6a4c')+'">'+(profit>=0?'+':'')+Math.round(profit)+' 元</b></div>'+
+      '<div class="tags">'+tg+'</div>';
+    game.running=false; game.day++;
+    if(game.day>7) finish(); else newDay();
+  }
+};
+function finish(){
+  var gain=Math.round(game.cash-300);
+  var title=gain>600?'檸檬大亨':gain>250?'街角名店':gain>0?'小有賺頭':'繳了學費';
+  $('final').querySelector('.box').innerHTML='<svg viewBox="0 0 200 200"><path d="M100 10 C130 50 190 40 170 90 C200 130 150 180 110 160 C80 200 20 170 40 120 C0 90 30 30 70 50 C70 20 90 10 100 10Z" fill="#f5c518"/><circle cx="100" cy="100" r="40" fill="#1b3fa6"/><text x="100" y="112" text-anchor="middle" font-family="Arial Rounded MT Bold,sans-serif" font-size="34" fill="#f4efe3">'+(gain>=0?'+':'')+gain+'</text></svg><h2>'+title+'</h2><p>七天下來，你的現金從 300 元變成 '+Math.round(game.cash)+' 元。<br>口碑 '+stars()+'</p><button class="go" id="restart">再開一季</button>';
+  $('final').classList.add('show');
+  $('restart').onclick=function(){ game={day:1,cash:300,rep:.5,wx:null,history:[],running:false}; $('cash').textContent=300; $('rep').textContent=stars(); $('final').classList.remove('show'); $('ledger').innerHTML='<h2>帳本</h2><p style="font-size:13px;color:#555">新的一季開始了。</p>'; newDay(); };
+}
+$('rep').textContent=stars();
+newDay();
+})();
+</script>
+</body>
+</html>

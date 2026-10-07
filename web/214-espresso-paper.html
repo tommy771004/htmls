@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>論濃縮咖啡的萃取 · 一篇可以操作的論文</title>
+<meta name="description" content="以學術論文排版呈現的濃縮咖啡萃取模型：調整粉量、液重、研磨與水溫，即時在萃取控制圖上看 TDS 與萃取率，按「萃取」實際拉一杯並記入表格。">
+<style>
+:root{
+  --paper:#fbfaf6; --ink:#1b1a17; --ink-2:#4b4842; --rule:#1b1a17; --mute:#8c877c;
+  --fig:#5b3a22; --hot:#c0392b; --ideal:#ece4d3;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Cambria","Songti TC","Noto Serif TC","PMingLiU",serif;
+  --cjk:"Songti TC","STSong","Noto Serif TC","PMingLiU",serif;
+  --math:"STIX Two Math","STIXGeneral","Cambria Math","Times New Roman",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e8e5dd;color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.page{max-width:920px;margin:36px auto 60px;background:var(--paper);padding:64px 72px 72px;box-shadow:0 1px 0 rgba(0,0,0,.06),0 20px 50px -30px rgba(40,30,10,.35)}
+.runhead{display:flex;justify-content:space-between;font-size:11.5px;letter-spacing:.04em;color:var(--mute);border-bottom:.6px solid var(--mute);padding-bottom:6px;margin-bottom:38px;font-variant:small-caps}
+h1{font-weight:400;font-size:29px;line-height:1.3;text-align:center;letter-spacing:.02em;margin-bottom:6px}
+.sub{text-align:center;font-style:italic;color:var(--ink-2);font-size:16px;margin-bottom:18px}
+.authors{text-align:center;font-size:15px}
+.authors sup{font-size:10px}
+.aff{text-align:center;font-size:12.5px;color:var(--ink-2);margin:6px 0 4px;font-style:italic}
+.date{text-align:center;font-size:12.5px;color:var(--mute);margin-bottom:30px}
+.abstract{margin:0 48px 30px;font-size:14.5px;text-align:justify}
+.abstract b{font-variant:small-caps;letter-spacing:.06em;margin-right:.6em}
+.kw{margin:-18px 48px 34px;font-size:13px;color:var(--ink-2)}
+.kw i{font-style:normal;font-variant:small-caps;letter-spacing:.05em;color:var(--ink)}
+.cols{column-count:2;column-gap:34px;text-align:justify;hyphens:auto}
+.cols p{margin-bottom:.7em;text-indent:1.6em}
+.cols h2+p,.cols .noind{text-indent:0}
+h2{font-size:15px;font-weight:700;letter-spacing:.02em;margin:1.1em 0 .4em;break-after:avoid}
+h2 span{margin-right:.6em}
+.eq{display:flex;justify-content:center;align-items:center;gap:8px;margin:.8em 0;font-family:var(--math);font-style:italic;font-size:17px;break-inside:avoid;text-indent:0}
+.eq .no{margin-left:auto;font-style:normal;font-size:14px}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.88em;line-height:1.15}
+.frac span:first-child{border-bottom:1px solid currentColor;padding:0 4px}
+sup.fn{font-size:10px;color:var(--hot);cursor:help}
+figure{margin:30px 0 26px;break-inside:avoid}
+figure svg{display:block;width:100%;height:auto;overflow:visible}
+figcaption{font-size:13.5px;line-height:1.55;margin-top:10px;color:var(--ink-2);text-align:justify}
+figcaption b{color:var(--ink);font-weight:700}
+.twofig{display:grid;grid-template-columns:1.12fr 1fr;gap:36px;align-items:start;margin:30px 0}
+.twofig figure{margin:0}
+/* 儀器（控制面板）做成論文裡的參數表 */
+.apparatus{border-top:1.4px solid var(--rule);border-bottom:1.4px solid var(--rule);padding:4px 0 10px}
+.apparatus .hd{display:grid;grid-template-columns:7.2em 1fr 4.6em;font-size:12.5px;font-variant:small-caps;letter-spacing:.05em;border-bottom:.6px solid var(--rule);padding:4px 0 5px;color:var(--ink-2)}
+.row{display:grid;grid-template-columns:7.2em 1fr 4.6em;align-items:center;gap:0 4px;padding:6px 0;font-size:14px}
+.row output{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--math)}
+.row label i{font-family:var(--math);margin-left:.3em;color:var(--mute)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;margin:0 10px 0 0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--paper);border:1.3px solid var(--ink);margin-top:-4.5px}
+input[type=range]::-moz-range-thumb{width:8px;height:8px;border-radius:50%;background:var(--paper);border:1.3px solid var(--ink)}
+input[type=range]:focus-visible::-webkit-slider-thumb{background:var(--hot);border-color:var(--hot)}
+.seg{display:flex;gap:14px;font-size:13.5px}
+.seg label{cursor:pointer;display:flex;align-items:center;gap:5px}
+.seg input{accent-color:var(--ink)}
+.go{display:flex;gap:14px;align-items:center;margin-top:12px;font-size:13px;color:var(--ink-2)}
+button{font-family:var(--serif);font-size:14px;background:var(--ink);color:var(--paper);border:0;padding:8px 18px;cursor:pointer;letter-spacing:.04em;border-radius:1px;transition:background .2s}
+button:hover{background:#3b372f}button[disabled]{opacity:.4;cursor:default}
+button.link{background:none;color:var(--ink-2);padding:0;text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.pred{font-family:var(--math);font-style:italic}
+.pred b{font-style:normal;color:var(--hot);font-weight:400}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;margin-top:8px}
+caption{caption-side:top;text-align:left;font-size:13.5px;color:var(--ink-2);margin-bottom:8px}
+caption b{color:var(--ink)}
+thead th{border-top:1.4px solid var(--rule);border-bottom:.6px solid var(--rule);font-weight:400;font-style:italic;padding:5px 6px;text-align:right}
+td{padding:4px 6px;text-align:right}
+th:first-child,td:first-child,th:last-child,td:last-child{text-align:left}
+tbody tr:last-child td{border-bottom:1.4px solid var(--rule)}
+tbody tr{cursor:pointer;transition:background .2s}
+tbody tr:hover,tbody tr.sel{background:var(--ideal)}
+tbody tr.empty td{color:var(--mute);font-style:italic;text-align:center;cursor:default}
+.refs{font-size:12.5px;color:var(--ink-2);column-count:1;margin-top:8px}
+.refs li{margin:0 0 5px 1.8em;text-indent:-1.8em;list-style:none}
+.foot{border-top:.6px solid var(--mute);margin-top:30px;padding-top:8px;font-size:11.5px;color:var(--mute);display:flex;justify-content:space-between;gap:10px}
+.fnbox{font-size:12px;color:var(--ink-2);border-top:.6px solid var(--mute);width:40%;padding-top:6px;margin-top:16px}
+svg text{font-family:var(--serif)}
+.ax{stroke:var(--ink);stroke-width:.9}
+.tick{stroke:var(--ink);stroke-width:.7}
+.grid{stroke:#d7d1c4;stroke-width:.5}
+.lbl{font-size:11px;fill:var(--ink)}
+.lbl-i{font-size:11.5px;fill:var(--ink);font-style:italic}
+.reg{font-size:9.5px;fill:var(--mute);font-style:italic;letter-spacing:.02em}
+.ratio{stroke:var(--fig);stroke-width:.7;stroke-dasharray:3 3;fill:none}
+.ratio-t{font-size:10px;fill:var(--fig);font-style:italic}
+.cup-liq{transition:height .1s}
+@media (max-width:760px){
+  body{background:var(--paper)}
+  .page{margin:0;padding:28px 18px 40px;box-shadow:none}
+  h1{font-size:23px}
+  .abstract,.kw{margin-left:0;margin-right:0}
+  .cols{column-count:1}
+  .twofig{grid-template-columns:1fr;gap:26px}
+  .row,.apparatus .hd{grid-template-columns:6.4em 1fr 4.4em}
+  .runhead span:last-child{display:none}
+  table{font-size:12px}
+  .col-x{display:none}
+  .fnbox{width:70%}
+}
+</style>
+</head>
+<body>
+<article class="page">
+  <div class="runhead"><span>J. Bar Sci. · Vol. 26, No. 10</span><span>Extraction of Espresso — an interactive note</span><span>pp. 1–4</span></div>
+  <h1>論一杯濃縮咖啡的萃取：<br>研磨、粉水比與時間的交互作用</h1>
+  <p class="sub">On the extraction of a single shot: grind, brew ratio and contact time</p>
+  <p class="authors">吧台實驗室<sup>1</sup>　·　讀者<sup>2,*</sup></p>
+  <p class="aff"><sup>1</sup>一台義式咖啡機旁的小角落　<sup>2</sup>正在閱讀本文的你</p>
+  <p class="date">收稿 2026 年 10 月 7 日 · 本文所有圖表均可由讀者重新萃取</p>
+
+  <p class="abstract"><b>摘要</b>濃縮咖啡的風味可以用兩個數值近似描述：杯中可溶固形物濃度（TDS）與萃取率（EY）。本文以一個刻意簡化的模型，讓讀者直接改變粉量、液重、研磨粒徑、水溫與壓力曲線，觀察兩者在萃取控制圖上的位置。我們發現，研磨與液重對 EY 的影響方向一致、程度不同；而粉水比決定點落在哪一條對角線上。讀者可在第 2 節的參數表中進行實驗，結果會即時寫入表 1。</p>
+  <p class="kw"><i>關鍵詞：</i>濃縮咖啡、萃取率、TDS、粉水比、壓力曲線、通道效應</p>
+
+  <div class="cols">
+    <h2><span>1</span>引言</h2>
+    <p>一杯濃縮咖啡大約由 18 公克咖啡粉、9 bar 的熱水與不到半分鐘的接觸時間構成。看似簡單，但吧台手調整任何一個變數，都會同時移動濃度與萃取率。咖啡業界自上世紀中葉起便以「萃取控制圖」描述這件事<sup class="fn" title="參見 Lingle (1996)">[1]</sup>：橫軸是萃取率，縱軸是濃度，理想區間是一個小方框。</p>
+    <p>原圖是為濾泡咖啡設計的。濃縮咖啡的濃度高出約八倍，因此本文將縱軸改為 6–14%，並沿用多數吧台常引用的 18–22% 萃取率區間<sup class="fn" title="參見 Illy &amp; Viani (2005)">[2]</sup>。</p>
+    <h2><span>2</span>方法</h2>
+    <p>萃取率定義為從粉中帶走的可溶物質量占乾粉的比例：</p>
+    <div class="eq">EY = <span class="frac"><span>TDS · m<sub>bev</sub></span><span>m<sub>dose</sub></span></span><span class="no">(1)</span></div>
+    <p class="noind">其中 <i>m</i><sub>bev</sub> 為杯中液重。流速由壓力與粉餅阻力決定，阻力隨粉量增加、隨粒徑以約平方反比上升：</p>
+    <div class="eq">q(t) ∝ <span class="frac"><span>P(t) − P<sub>0</sub></span><span>m<sub>dose</sub> · d<sup>−2.2</sup></span></span><span class="no">(2)</span></div>
+    <p class="noind">萃取率再依粉水比、接觸時間、粒徑與水溫作經驗修正。研磨過細（<i>d</i> &lt; 215 µm）時，模型會模擬通道效應：水從裂縫穿過，部分粉餅未被萃取。</p>
+  </div>
+
+  <div class="twofig">
+    <div>
+      <div class="apparatus" role="group" aria-label="萃取參數">
+        <div class="hd"><span>變數</span><span></span><span style="text-align:right">值</span></div>
+        <div class="row"><label for="dose">粉量<i>m</i><sub>dose</sub></label><input id="dose" type="range" min="14" max="22" step=".5" value="18"><output id="oDose"></output></div>
+        <div class="row"><label for="yield">液重<i>m</i><sub>bev</sub></label><input id="yield" type="range" min="20" max="60" step="1" value="36"><output id="oYield"></output></div>
+        <div class="row"><label for="grind">粒徑<i>d</i></label><input id="grind" type="range" min="180" max="420" step="5" value="300"><output id="oGrind"></output></div>
+        <div class="row"><label for="temp">水溫<i>T</i></label><input id="temp" type="range" min="86" max="98" step=".5" value="93"><output id="oTemp"></output></div>
+        <div class="row"><label for="pi">預浸<i>t</i><sub>pi</sub></label><input id="pi" type="range" min="0" max="12" step="1" value="6"><output id="oPi"></output></div>
+        <div class="row"><span>壓力曲線</span><div class="seg"><label><input type="radio" name="prof" value="flat" checked>恆壓 9 bar</label><label><input type="radio" name="prof" value="decl">遞減 9→6</label></div><span></span></div>
+      </div>
+      <div class="go"><button id="pull">萃　取</button><span class="pred" id="pred"></span></div>
+    </div>
+    <figure>
+      <svg id="fig2" viewBox="0 0 400 270" role="img" aria-label="圖 2：液重與壓力隨時間變化"></svg>
+      <figcaption><b>圖 2.</b> 一次萃取的液重（實線，左軸）與泵壓（虛線，右軸）。按下「萃取」後以四倍速記錄；灰色線為上一杯。</figcaption>
+    </figure>
+  </div>
+
+  <figure>
+    <svg id="fig1" viewBox="0 0 820 430" role="img" aria-label="圖 1：濃縮咖啡萃取控制圖"></svg>
+    <figcaption><b>圖 1.</b> 濃縮咖啡的萃取控制圖。橫軸為萃取率 EY，縱軸為濃度 TDS；虛線為等粉水比線（1 : <i>r</i>），陰影方框為常見理想區間。紅點是依目前參數預測的位置，空心圓為表 1 中已萃取的杯次，點選表格列可標示對應的點。</figcaption>
+  </figure>
+
+  <div class="cols">
+    <h2><span>3</span>結果</h2>
+    <p class="noind" id="result">在預設參數（18 g → 36 g，粒徑 300 µm，93 °C）下，模型給出約 28 秒的萃取時間，落在控制圖的理想方框附近。</p>
+    <p>沿等粉水比線移動的唯一方法是改變萃取率：研磨變細、水溫升高或接觸時間拉長都會把點往右上推。反之，若固定研磨而增加液重，點會跨越對角線往右下移動，杯子變得更淡、但萃取更完整。這解釋了為何吧台常說「先定粉水比，再用研磨調時間」。</p>
+    <h2><span>4</span>討論</h2>
+    <p>本模型忽略了烘焙度、豆子新鮮度與水質，這三者在實際吧台上的影響並不小。我們也假設粉餅均勻；真實的通道效應往往是局部且不可預測的，模型只以粒徑門檻粗略代表。請把本文當成一個直覺的地圖，而非沖煮配方。</p>
+    <p>遞減壓力曲線在模型中會延長接觸時間並略為提高萃取率，同時降低通道效應的機率，與近年許多吧台的經驗一致。</p>
+  </div>
+
+  <table id="tbl">
+    <caption><b>表 1.</b> 讀者的萃取紀錄。點選一列可在圖 1 標示該點。</caption>
+    <thead><tr><th>#</th><th>粉量 g</th><th>液重 g</th><th class="col-x">粒徑 µm</th><th>時間 s</th><th>TDS %</th><th>EY %</th><th>評語</th></tr></thead>
+    <tbody id="tbody"><tr class="empty"><td colspan="8">尚無紀錄，請按「萃取」。</td></tr></tbody>
+  </table>
+  <p style="margin-top:8px"><button class="link" id="clear">清除紀錄</button></p>
+
+  <div class="fnbox">* 通訊作者：任何仍在等待熱水的人。</div>
+  <h2 style="margin-top:22px"><span></span>參考文獻</h2>
+  <ol class="refs">
+    <li>[1] Lingle, T. R. (1996). <i>The Coffee Brewing Handbook</i>. Specialty Coffee Association of America.</li>
+    <li>[2] Illy, A., &amp; Viani, R. (Eds.). (2005). <i>Espresso Coffee: The Science of Quality</i> (2nd ed.). Elsevier Academic Press.</li>
+  </ol>
+  <div class="foot"><span>本文模型為教學用簡化，數值不代表任何特定咖啡機或豆子。</span><span>1</span></div>
+</article>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent,text){ var e=document.createElementNS(NS,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; if(parent) parent.appendChild(e); return e; }
+var $=function(id){ return document.getElementById(id); };
+var P={dose:$('dose'),yield:$('yield'),grind:$('grind'),temp:$('temp'),pi:$('pi')};
+
+function params(){
+  return {dose:+P.dose.value,yld:+P.yield.value,d:+P.grind.value,T:+P.temp.value,pi:+P.pi.value,prof:document.querySelector('input[name=prof]:checked').value};
+}
+// ---- 模型 ----
+function pressure(t,p){
+  if(t<p.pi) return 3*Math.min(1,t/1.2);
+  var tt=t-p.pi, ramp=Math.min(1,tt/2.2), base=3+6*ramp;
+  if(p.prof==='decl' && tt>8) base=Math.max(6,9-(tt-8)*0.22);
+  return base;
+}
+function simulate(p,keep){
+  var k=(p.dose/18)*Math.pow(300/p.d,2.2), ch=p.d<215 && !(p.prof==='decl' && p.d>205);
+  var w=0,t=0,dt=0.05,trace=[];
+  while(w<p.yld && t<90){
+    var pr=pressure(t,p), q=Math.max(0,pr-1.5)/7.5*1.75/k;
+    if(ch && t>p.pi+3) q*=1.6; // 通道：水找到捷徑，流速突然變快
+    if(t<p.pi*0.55) q*=0.15; // 預浸前段，粉餅還在吸水
+    w+=q*dt; t+=dt; if(keep) trace.push([t,Math.min(w,p.yld),pr]);
+  }
+  var r=p.yld/p.dose;
+  var c=Math.pow(t/27,0.22)*Math.pow(300/p.d,0.3)*(1+(p.T-93)*0.018)*(p.prof==='decl'?1.015:1);
+  var ey=(9.2+9.2*Math.log(1+r))*c;
+  if(ch) ey-= (215-p.d)*0.12+2.2;
+  ey=Math.max(12,Math.min(28,ey));
+  var tds=ey*p.dose/p.yld;
+  return {t:t,ey:ey,tds:tds,trace:trace,ch:ch,r:r};
+}
+function verdict(o){
+  var e=o.ey<18?'萃取不足':o.ey>22?'過度萃取':'萃取適中', s=o.tds<8?'偏淡':o.tds>12?'偏濃':'濃度適中';
+  var taste=o.ey<18?'酸、鹹、收尾短':o.ey>22?'苦、澀、口乾':'甜感與酸度平衡';
+  return {short:(o.ch?'通道效應，':'')+e+'、'+s, taste:taste};
+}
+
+// ---- 圖 1：控制圖 ----
+var f1=$('fig1'), X0=64,X1=790,Y0=380,Y1=20, EY0=14,EY1=26,TD0=6,TD1=14;
+function fx(v){ return X0+(v-EY0)/(EY1-EY0)*(X1-X0); }
+function fy(v){ return Y0-(v-TD0)/(TD1-TD0)*(Y0-Y1); }
+var gHist, gPred, gSel;
+function drawFig1(){
+  f1.innerHTML='';
+  el('rect',{x:fx(18),y:fy(12),width:fx(22)-fx(18),height:fy(8)-fy(12),fill:'#ece4d3'},f1);
+  for(var e=14;e<=26;e+=1) el('line',{x1:fx(e),x2:fx(e),y1:Y0,y2:Y1,class:'grid'},f1);
+  for(var t=6;t<=14;t+=1) el('line',{x1:X0,x2:X1,y1:fy(t),y2:fy(t),class:'grid'},f1);
+  // 九宮格標籤
+  var cols=[[16,'萃取不足'],[20,'萃取適中'],[24,'過度萃取']], rows=[[13,'濃'],[10,'適中'],[7,'淡']];
+  rows.forEach(function(r){ cols.forEach(function(c){ el('text',{x:fx(c[0]),y:fy(r[0])+3,'text-anchor':'middle',class:'reg'},f1,(r[1]==='適中'&&c[1]==='萃取適中')?'理想':(c[1]+' · '+r[1])); }); });
+  // 等粉水比線 TDS = EY / r
+  [1.5,2,2.5,3].forEach(function(r){
+    var a=Math.max(EY0,TD0*r), b=Math.min(EY1,TD1*r);
+    var pts=[[a,a/r],[b,b/r]];
+    el('line',{x1:fx(pts[0][0]),y1:fy(pts[0][1]),x2:fx(pts[1][0]),y2:fy(pts[1][1]),class:'ratio'},f1);
+    var lx=Math.min(EY1,TD1*r), ly=lx/r; var tx=fx(lx), ty=fy(ly);
+    if(lx>=EY1){ el('text',{x:tx+4,y:ty+3,class:'ratio-t'},f1,'1 : '+r); } else { el('text',{x:tx+3,y:ty-5,class:'ratio-t'},f1,'1 : '+r); }
+  });
+  // 軸
+  el('line',{x1:X0,x2:X1,y1:Y0,y2:Y0,class:'ax'},f1); el('line',{x1:X0,x2:X0,y1:Y0,y2:Y1,class:'ax'},f1);
+  for(e=14;e<=26;e+=2){ el('line',{x1:fx(e),x2:fx(e),y1:Y0,y2:Y0+5,class:'tick'},f1); el('text',{x:fx(e),y:Y0+19,'text-anchor':'middle',class:'lbl'},f1,e); }
+  for(t=6;t<=14;t+=2){ el('line',{x1:X0-5,x2:X0,y1:fy(t),y2:fy(t),class:'tick'},f1); el('text',{x:X0-9,y:fy(t)+4,'text-anchor':'end',class:'lbl'},f1,t); }
+  el('text',{x:(X0+X1)/2,y:Y0+40,'text-anchor':'middle',class:'lbl-i'},f1,'萃取率 EY (%)');
+  var yl=el('text',{x:18,y:(Y0+Y1)/2,'text-anchor':'middle',class:'lbl-i',transform:'rotate(-90 18 '+((Y0+Y1)/2)+')'},f1,'濃度 TDS (%)');
+  gHist=el('g',{},f1); gSel=el('g',{},f1); gPred=el('g',{},f1);
+}
+function placePred(o){
+  gPred.innerHTML='';
+  var x=fx(Math.max(EY0,Math.min(EY1,o.ey))), y=fy(Math.max(TD0,Math.min(TD1,o.tds)));
+  el('line',{x1:x,x2:x,y1:Y0,y2:y,stroke:'#c0392b','stroke-width':.6,'stroke-dasharray':'1.5 2.5'},gPred);
+  el('line',{x1:X0,x2:x,y1:y,y2:y,stroke:'#c0392b','stroke-width':.6,'stroke-dasharray':'1.5 2.5'},gPred);
+  el('circle',{cx:x,cy:y,r:5.5,fill:'#c0392b'},gPred);
+  el('circle',{cx:x,cy:y,r:10,fill:'none',stroke:'#c0392b','stroke-width':.7,opacity:.6},gPred);
+  var right=x<X1-150;
+  el('text',{x:x+(right?14:-14),y:y-10,'text-anchor':right?'start':'end',class:'lbl-i',fill:'#c0392b',style:'fill:#c0392b'},gPred,'預測 ('+o.ey.toFixed(1)+', '+o.tds.toFixed(1)+')');
+}
+function drawHist(){
+  gHist.innerHTML='';
+  shots.forEach(function(s,i){
+    var x=fx(Math.max(EY0,Math.min(EY1,s.ey))), y=fy(Math.max(TD0,Math.min(TD1,s.tds)));
+    el('circle',{cx:x,cy:y,r:4.2,fill:'#fbfaf6',stroke:'#5b3a22','stroke-width':1.1},gHist);
+    el('text',{x:x+6,y:y+11,style:'font-size:9px;fill:#5b3a22'},gHist,i+1);
+  });
+}
+
+// ---- 圖 2：萃取曲線 ----
+var f2=$('fig2'), A0=44,A1=350,B0=225,B1=14, TMAX=45, WMAX=60;
+function ax(t){ return A0+t/TMAX*(A1-A0); } function aw(w){ return B0-w/WMAX*(B0-B1); } function ap(p){ return B0-p/10*(B0-B1); }
+var gPrev,gLive,cupLiq;
+function drawFig2(){
+  f2.innerHTML='';
+  for(var t=0;t<=TMAX;t+=5) el('line',{x1:ax(t),x2:ax(t),y1:B0,y2:B1,class:'grid'},f2);
+  for(var w=0;w<=WMAX;w+=10) el('line',{x1:A0,x2:A1,y1:aw(w),y2:aw(w),class:'grid'},f2);
+  el('line',{x1:A0,x2:A1,y1:B0,y2:B0,class:'ax'},f2); el('line',{x1:A0,x2:A0,y1:B0,y2:B1,class:'ax'},f2); el('line',{x1:A1,x2:A1,y1:B0,y2:B1,class:'ax'},f2);
+  for(t=0;t<=TMAX;t+=10){ el('line',{x1:ax(t),x2:ax(t),y1:B0,y2:B0+4,class:'tick'},f2); el('text',{x:ax(t),y:B0+16,'text-anchor':'middle',class:'lbl'},f2,t); }
+  for(w=0;w<=WMAX;w+=20){ el('text',{x:A0-7,y:aw(w)+4,'text-anchor':'end',class:'lbl'},f2,w); }
+  for(var p=0;p<=10;p+=3){ el('text',{x:A1+7,y:ap(p)+4,class:'lbl'},f2,p); }
+  el('text',{x:(A0+A1)/2,y:B0+34,'text-anchor':'middle',class:'lbl-i'},f2,'時間 t (s)');
+  el('text',{x:12,y:(B0+B1)/2,'text-anchor':'middle',class:'lbl-i',transform:'rotate(-90 12 '+((B0+B1)/2)+')'},f2,'液重 (g)');
+  el('text',{x:392,y:(B0+B1)/2,'text-anchor':'middle',class:'lbl-i',transform:'rotate(90 392 '+((B0+B1)/2)+')'},f2,'壓力 (bar)');
+  gPrev=el('g',{},f2); gLive=el('g',{},f2);
+  // 小杯示意
+  var cg=el('g',{transform:'translate(296 172)'},f2);
+  el('path',{d:'M0 0 h34 l-4 30 h-26 z',fill:'none',stroke:'#1b1a17','stroke-width':.9},cg);
+  el('path',{d:'M34 8 q10 2 7 12 q-2 5 -9 5',fill:'none',stroke:'#1b1a17','stroke-width':.9},cg);
+  var clip=el('clipPath',{id:'cupc'},cg); el('path',{d:'M0 0 h34 l-4 30 h-26 z'},clip);
+  cupLiq=el('rect',{x:-2,y:30,width:40,height:0,fill:'#5b3a22','clip-path':'url(#cupc)'},cg);
+  el('rect',{x:-2,y:30,width:40,height:0,fill:'#c89b6a',id:'crema','clip-path':'url(#cupc)'},cg);
+}
+function path(tr,col,i){ return tr.map(function(p,k){ return (k?'L':'M')+ax(Math.min(TMAX,p[0])).toFixed(1)+' '+(i===1?aw(p[1]):ap(p[2])).toFixed(1); }).join(''); }
+function cup(w,yld){
+  var h=Math.min(1,w/60)*30; cupLiq.setAttribute('y',30-h); cupLiq.setAttribute('height',h);
+  var cr=$('crema'); var ch=Math.min(h,2.4+h*.08); cr.setAttribute('y',30-h); cr.setAttribute('height',h>0?ch:0);
+}
+
+// ---- 互動 ----
+var shots=[]; try{ shots=JSON.parse(localStorage.getItem('espresso-paper:shots')||'[]')||[]; }catch(e){ shots=[]; }
+function save(){ try{ localStorage.setItem('espresso-paper:shots',JSON.stringify(shots.slice(-12))); }catch(e){} }
+var cur;
+function update(){
+  var p=params();
+  $('oDose').textContent=p.dose.toFixed(1)+' g'; $('oYield').textContent=p.yld+' g'; $('oGrind').textContent=p.d+' µm'; $('oTemp').textContent=p.T.toFixed(1)+' °C'; $('oPi').textContent=p.pi+' s';
+  cur=simulate(p,false);
+  placePred(cur);
+  $('pred').innerHTML='預計 <b>'+cur.t.toFixed(0)+' s</b> · 1 : '+cur.r.toFixed(2)+' · '+verdict(cur).short;
+}
+function table(){
+  var tb=$('tbody');
+  if(!shots.length){ tb.innerHTML='<tr class="empty"><td colspan="8">尚無紀錄，請按「萃取」。</td></tr>'; return; }
+  tb.innerHTML=shots.map(function(s,i){ return '<tr data-i="'+i+'"><td>'+(i+1)+'</td><td>'+s.dose.toFixed(1)+'</td><td>'+s.yld+'</td><td class="col-x">'+s.d+'</td><td>'+s.t.toFixed(1)+'</td><td>'+s.tds.toFixed(2)+'</td><td>'+s.ey.toFixed(1)+'</td><td>'+s.v+'</td></tr>'; }).join('');
+}
+$('tbody').addEventListener('click',function(e){
+  var tr=e.target.closest('tr[data-i]'); if(!tr) return;
+  Array.prototype.forEach.call(this.children,function(r){ r.classList.toggle('sel',r===tr); });
+  var s=shots[+tr.dataset.i]; gSel.innerHTML='';
+  var x=fx(Math.max(EY0,Math.min(EY1,s.ey))), y=fy(Math.max(TD0,Math.min(TD1,s.tds)));
+  el('circle',{cx:x,cy:y,r:12,fill:'none',stroke:'#5b3a22','stroke-width':1.2},gSel);
+  $('fig1').scrollIntoView({behavior:'smooth',block:'center'});
+});
+$('clear').onclick=function(){ shots=[]; save(); table(); drawHist(); gSel.innerHTML=''; };
+Object.keys(P).forEach(function(k){ P[k].addEventListener('input',update); });
+Array.prototype.forEach.call(document.querySelectorAll('input[name=prof]'),function(r){ r.addEventListener('change',update); });
+
+var ac=null;
+function drip(){ if(!ac) return; var t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(900+Math.random()*500,t); o.frequency.exponentialRampToValueAtTime(300,t+.06); g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.0001,t+.08); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+.1); }
+var lastTrace=null, running=false;
+$('pull').onclick=function(){
+  if(running) return; running=true; this.disabled=true;
+  try{ if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ac=null; }
+  var p=params(), o=simulate(p,true), tr=o.trace, i=0, t0=performance.now(), live=el('path',{fill:'none',stroke:'#1b1a17','stroke-width':1.6},gLive), pl=el('path',{fill:'none',stroke:'#1b1a17','stroke-width':1,'stroke-dasharray':'4 3'},gLive), btn=this, nd=0;
+  gPrev.innerHTML=''; if(lastTrace){ el('path',{d:path(lastTrace,0,1),fill:'none',stroke:'#b9b2a4','stroke-width':1.2},gPrev); }
+  (function step(now){
+    var simT=(now-t0)/1000*4; while(i<tr.length-1 && tr[i][0]<simT) i++;
+    var sub=tr.slice(0,i+1); live.setAttribute('d',path(sub,0,1)); pl.setAttribute('d',path(sub,0,2));
+    cup(sub[sub.length-1][1],p.yld);
+    if(simT>nd && sub[sub.length-1][1]>0.5){ drip(); nd=simT+0.35+Math.random()*.4; }
+    if(i<tr.length-1) requestAnimationFrame(step);
+    else{
+      running=false; btn.disabled=false; gLive.innerHTML=''; el('path',{d:path(tr,0,1),fill:'none',stroke:'#1b1a17','stroke-width':1.6},gLive); el('path',{d:path(tr,0,2),fill:'none',stroke:'#1b1a17','stroke-width':1,'stroke-dasharray':'4 3'},gLive);
+      lastTrace=tr;
+      var v=verdict(o);
+      shots.push({dose:p.dose,yld:p.yld,d:p.d,t:o.t,tds:o.tds,ey:o.ey,v:v.short}); if(shots.length>12) shots.shift();
+      save(); table(); drawHist();
+      $('result').textContent='第 '+shots.length+' 杯：'+p.dose.toFixed(1)+' g 粉萃出 '+p.yld+' g，歷時 '+o.t.toFixed(1)+' 秒，TDS '+o.tds.toFixed(2)+'%、EY '+o.ey.toFixed(1)+'%。依模型判斷為「'+v.short+'」，風味大致是'+v.taste+'。'+(o.ch?'流速在預浸後突然加快，是研磨過細造成通道效應的典型樣貌；試著放粗研磨或改用遞減壓力。':'');
+    }
+  })(t0);
+};
+
+drawFig1(); drawFig2(); drawHist(); table(); update(); cup(0,36);
+})();
+</script>
+</body>
+</html>

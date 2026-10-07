@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>불판 · 炭火烤肉</title>
+<meta name="description" content="俯視角的韓式炭火烤肉：把五花、梅花、牛小排、蝦與杏鮑菇夾上炭火烤網，中間火旺、邊緣保溫，看邊緣顏色判斷底面熟度，適時翻面、用剪刀剪段，烤到剛好再放進生菜包。">
+<style>
+:root{--ink:#f3eee6;--dim:#a39d94;--kimchi:#e2442c;--lettuce:#6fb04a;--steel:#1a1b1d;--panel:rgba(14,13,12,.78)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0d0d0e;color:var(--ink);
+  font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","PingFang TC","Microsoft JhengHei",sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;left:0;right:0;top:0;padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+.brand{pointer-events:auto}
+.brand h1{margin:0;font-size:clamp(28px,4vw,46px);font-weight:900;letter-spacing:-.02em;line-height:1}
+.brand h1 span{color:var(--kimchi)}
+.brand p{margin:4px 0 0;font-size:12px;color:var(--dim);letter-spacing:.06em}
+.stats{display:flex;gap:6px;pointer-events:auto}
+.stat{background:var(--panel);border:1px solid #ffffff14;border-radius:10px;padding:6px 12px;text-align:center;min-width:64px}
+.stat b{display:block;font-size:22px;font-weight:900;font-family:"Avenir Next Condensed","Arial Narrow","Apple SD Gothic Neo",sans-serif;font-variant-numeric:tabular-nums}
+.stat small{font-size:10px;color:var(--dim);letter-spacing:.08em}
+.dock{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid #ffffff14;border-radius:16px;padding:8px;max-width:calc(100% - 16px)}
+.dock .grp{display:flex;gap:4px}
+.dock button{border:0;background:#2a2826;border-radius:11px;padding:9px 12px;font-weight:800;font-size:14px;display:flex;flex-direction:column;align-items:center;line-height:1.1;min-width:54px}
+.dock button small{font-size:10px;color:var(--dim);font-weight:600;margin-top:2px}
+.dock button[aria-pressed=true]{background:var(--ink);color:#141210}
+.dock button[aria-pressed=true] small{color:#5a554e}
+.dock .sep{width:1px;align-self:stretch;background:#ffffff1a;margin:0 2px}
+.dock .add{background:var(--kimchi);color:#fff}
+.dock .add small{color:#ffd2c8}
+.help{position:fixed;left:16px;bottom:calc(84px + env(safe-area-inset-bottom));max-width:260px;font-size:12px;line-height:1.65;color:var(--dim);background:var(--panel);border-radius:10px;padding:10px 12px;border:1px solid #ffffff10;transition:opacity .4s}
+.help b{color:var(--ink)}
+.help.hide{opacity:0;pointer-events:none}
+@media (max-width:760px){
+  .help{left:50%;right:auto;transform:translateX(-50%);top:74px;bottom:auto;width:calc(100% - 32px);max-width:420px;font-size:11.5px}
+  .stat{min-width:48px;padding:5px 8px}.stat b{font-size:18px}
+  .brand p{display:none}
+  .dock button{padding:8px 8px;min-width:44px;font-size:13px}
+  .dock .heat small{display:none}
+}
+@media (max-width:380px){.dock .grp.heat button{min-width:34px}}
+</style>
+</head>
+<body>
+<canvas id="cv" aria-label="炭火烤網，可拖曳肉片烤、點擊翻面"></canvas>
+<header class="top">
+  <div class="brand"><h1>불판<span>.</span></h1><p>炭火烤肉 · 中間火旺，邊緣保溫</p></div>
+  <div class="stats" aria-live="polite">
+    <div class="stat"><b id="sScore">0</b><small>점수 分數</small></div>
+    <div class="stat"><b id="sPerfect">0</b><small>완벽 完美</small></div>
+    <div class="stat"><b id="sBurnt">0</b><small>탄 것 焦</small></div>
+  </div>
+</header>
+<div class="help" id="help"><b>玩法</b>：從生肉盤拖到烤網上（或點一下自動放）。點網上的肉＝翻面，<b>邊緣的顏色就是底面的熟度</b>。五花和牛小排可以切換剪刀剪段。兩面都烤到焦糖色，就拖進右邊的生菜包。</div>
+<nav class="dock" aria-label="工具">
+  <div class="grp" role="group" aria-label="工具">
+    <button type="button" id="tTong" aria-pressed="true">집게<small>夾子</small></button>
+    <button type="button" id="tCut" aria-pressed="false">가위<small>剪刀</small></button>
+  </div>
+  <span class="sep"></span>
+  <div class="grp heat" role="group" aria-label="火力">
+    <button type="button" data-h="0.6" aria-pressed="false">약<small>小火</small></button>
+    <button type="button" data-h="1" aria-pressed="true">중<small>中火</small></button>
+    <button type="button" data-h="1.5" aria-pressed="false">강<small>大火</small></button>
+  </div>
+  <span class="sep"></span>
+  <button type="button" class="add" id="more">추가<small>加點</small></button>
+</nav>
+
+<script>
+(function(){
+'use strict';
+var cv = document.getElementById('cv'), g = cv.getContext('2d');
+var W = 0, H = 0, DPR = 1, L = {};
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* 食材：熟度色階 [生, 半熟, 剛好, 焦] 依熟度 0 / .5 / 1 / 1.45 內插 */
+var TYPES = {
+  belly:{ko:'삼겹살',zh:'五花',w:118,h:34,rate:1,fat:true,cut:true,
+    meat:['#e17f86','#d6a18f','#ae6b3c','#2f1d12'],fat2:['#f7e8e3','#f4dcc6','#e3ab60','#4a2f17']},
+  neck:{ko:'목살',zh:'梅花',w:70,h:52,rate:.85,fat:true,cut:true,
+    meat:['#d86f78','#c99880','#9d5f34','#2c1b10'],fat2:['#f2ddd8','#eed6c0','#d8a066','#433016']},
+  galbi:{ko:'갈비',zh:'醬牛小排',w:96,h:44,rate:1.25,cut:true,
+    meat:['#8e2c2e','#7a3a28','#5a2614','#1d0f08'],fat2:['#c4766a','#a8664b','#7f4222','#2b170c']},
+  shrimp:{ko:'새우',zh:'鮮蝦',w:50,h:30,rate:1.4,
+    meat:['#a9b1b2','#f2a07f','#f07a45','#3a1d10']},
+  mush:{ko:'새송이',zh:'杏鮑菇',w:44,h:44,rate:.9,tol:.15,
+    meat:['#f1e8d8','#e4c693','#b98142','#3d2612']}
+};
+var ORDER = ['belly','neck','galbi','shrimp','mush'];
+var stock = {belly:4,neck:2,galbi:3,shrimp:4,mush:4};
+var pieces = [], parts = [], pops = [], heat = 1, tool = 'tong', score = 0, perfect = 0, burnt = 0, t0 = performance.now();
+var drag = null, idSeq = 1;
+
+function lerpC(a, b, t){
+  var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  var r = (pa>>16) + ((pb>>16) - (pa>>16))*t, gg = ((pa>>8)&255) + (((pb>>8)&255) - ((pa>>8)&255))*t, bb = (pa&255) + ((pb&255) - (pa&255))*t;
+  return 'rgb(' + (r|0) + ',' + (gg|0) + ',' + (bb|0) + ')';
+}
+function shade(stops, c){
+  var k = [0, .5, 1, 1.45]; c = Math.max(0, Math.min(1.45, c));
+  for (var i = 0; i < 3; i++) if (c <= k[i+1]) return lerpC(stops[i], stops[i+1], (c - k[i])/(k[i+1] - k[i]));
+  return stops[3];
+}
+
+/* 版面：橫向時生肉盤在左、生菜在右；直向時兩者放在烤網下方 */
+function layout(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; g.setTransform(DPR,0,0,DPR,0,0);
+  var land = W > H*1.05;
+  if (land){
+    L.R = Math.min(H*.34, W*.24); L.cx = W/2; L.cy = H*.52;
+    L.s = L.R/240;
+    L.raw = {x:Math.max(20, L.cx - L.R - 300*L.s - 40*L.s), y:L.cy - 170*L.s, w:240*L.s, h:340*L.s};
+    L.ssam = {x:Math.min(W - 130*L.s, L.cx + L.R + 175*L.s), y:L.cy - 90*L.s, r:105*L.s};
+  } else {
+    L.R = Math.min(W*.44, H*.25); L.cx = W/2; L.cy = Math.max(L.R + 84, H*.36);
+    L.s = L.R/240;
+    var by = L.cy + L.R + 22;
+    L.raw = {x:12, y:by, w:W*.56 - 18, h:Math.min(H - by - 92, 300)};
+    L.ssam = {x:W*.79, y:by + Math.min(H - by - 92, 300)/2, r:Math.min(W*.19, (Math.min(H - by - 92, 300))/2)};
+  }
+  L.land = land;
+}
+window.addEventListener('resize', layout);
+layout();
+
+/* 生肉盤的格子 */
+function rawSlots(){
+  var r = L.raw, out = [], n = ORDER.length;
+  if (L.land){
+    var sh = r.h/n;
+    ORDER.forEach(function(k, i){ out.push({k:k, x:r.x + r.w/2, y:r.y + sh*i + sh/2, w:r.w, h:sh}); });
+  } else {
+    var cols = 3, rows = 2, cw = r.w/cols, ch = r.h/rows;
+    ORDER.forEach(function(k, i){ out.push({k:k, x:r.x + cw*(i%cols) + cw/2, y:r.y + ch*Math.floor(i/cols) + ch/2, w:cw, h:ch}); });
+  }
+  return out;
+}
+
+function makePiece(k, x, y){
+  var t = TYPES[k], sc = L.s*(L.land ? 1 : 1.05);
+  return {id:idSeq++, k:k, x:x, y:y, w:t.w*sc, h:t.h*sc, rot:(Math.random()-.5)*.5, down:0, up:0, flip:0, marks:[0,0], seed:Math.random()*1000, lastX:x, lastY:y};
+}
+
+/* 幾何 */
+function local(p, x, y){ var dx = x - p.x, dy = y - p.y, c = Math.cos(-p.rot), s = Math.sin(-p.rot); return {x:dx*c - dy*s, y:dx*s + dy*c}; }
+function hit(p, x, y){ var l = local(p, x, y); return Math.abs(l.x) < p.w/2 + 6 && Math.abs(l.y) < p.h/2 + 6; }
+function onGrill(x, y){ return Math.hypot(x - L.cx, y - L.cy) < L.R - 8; }
+function inSsam(x, y){ return Math.hypot(x - L.ssam.x, y - L.ssam.y) < L.ssam.r + 10; }
+function heatAt(x, y){ var r = Math.hypot(x - L.cx, y - L.cy)/L.R; return r > 1 ? 0 : (.25 + .75*(1 - r*r))*heat; }
+function freeSpot(){
+  for (var tries = 0; tries < 40; tries++){
+    var a = Math.random()*Math.PI*2, r = Math.random()*L.R*.62, x = L.cx + Math.cos(a)*r, y = L.cy + Math.sin(a)*r;
+    if (!pieces.some(function(p){ return Math.hypot(p.x - x, p.y - y) < Math.max(p.w, p.h)*.7; })) return {x:x, y:y};
+  }
+  return {x:L.cx + (Math.random()-.5)*L.R, y:L.cy + (Math.random()-.5)*L.R*.6};
+}
+
+/* 指標 */
+function pos(e){ return {x:e.clientX, y:e.clientY}; }
+cv.addEventListener('pointerdown', function(e){
+  audio(); var p = pos(e);
+  document.getElementById('help').classList.add('hide');
+  for (var i = pieces.length - 1; i >= 0; i--){
+    if (hit(pieces[i], p.x, p.y)){
+      var pc = pieces.splice(i, 1)[0]; pieces.push(pc);
+      drag = {p:pc, from:'grill', sx:p.x, sy:p.y, ox:pc.x - p.x, oy:pc.y - p.y, moved:false, ux:pc.x, uy:pc.y};
+      cv.setPointerCapture(e.pointerId); return;
+    }
+  }
+  var slot = rawSlots().find(function(s){ return Math.abs(p.x - s.x) < s.w/2 && Math.abs(p.y - s.y) < s.h/2; });
+  if (slot && stock[slot.k] > 0){
+    var np = makePiece(slot.k, p.x, p.y);
+    drag = {p:np, from:'raw', sx:p.x, sy:p.y, ox:0, oy:0, moved:false};
+    cv.setPointerCapture(e.pointerId);
+  }
+});
+cv.addEventListener('pointermove', function(e){
+  if (!drag) return; var p = pos(e);
+  if (!drag.moved && Math.hypot(p.x - drag.sx, p.y - drag.sy) > 6){
+    drag.moved = true;
+    if (drag.from === 'raw'){ stock[drag.p.k]--; pieces.push(drag.p); }
+  }
+  if (drag.moved){ drag.p.x = p.x + drag.ox; drag.p.y = p.y + drag.oy; drag.p.lift = 1; }
+});
+function endDrag(e){
+  if (!drag) return; var d = drag, pc = d.p; drag = null; pc.lift = 0;
+  if (!d.moved){
+    if (d.from === 'raw'){ stock[pc.k]--; var f = freeSpot(); pc.x = f.x; pc.y = f.y; pieces.push(pc); sizzleBurst(.7); }
+    else if (tool === 'cut') cut(pc, e.clientX, e.clientY);
+    else flip(pc);
+    return;
+  }
+  if (inSsam(pc.x, pc.y)){ serve(pc); return; }
+  if (onGrill(pc.x, pc.y)){ if (d.from === 'raw') sizzleBurst(.8); return; }
+  if (d.from === 'raw'){ pieces.splice(pieces.indexOf(pc), 1); stock[pc.k]++; return; }
+  pc.x = d.ux; pc.y = d.uy;
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+function flip(p){
+  if (p.flip > 0) return;
+  p.flip = 1; var a = p.down; p.down = p.up; p.up = a;
+  var m = p.marks[0]; p.marks[0] = p.marks[1]; p.marks[1] = m;
+  click(420, .05); sizzleBurst(.5);
+}
+function cut(p, x, y){
+  var t = TYPES[p.k];
+  if (!t.cut || p.w < 46*L.s){ pop(p.x, p.y - 30, '자를 수 없어요　剪不了', '#a39d94'); return; }
+  var l = local(p, x, y), at = Math.max(-p.w/2 + 20*L.s, Math.min(p.w/2 - 20*L.s, l.x));
+  var w1 = at + p.w/2, w2 = p.w/2 - at, c = Math.cos(p.rot), s = Math.sin(p.rot);
+  var a = Object.assign({}, p, {id:idSeq++, w:w1 - 3, x:p.x + c*(-p.w/2 + w1/2 - 3), y:p.y + s*(-p.w/2 + w1/2 - 3)});
+  var b = Object.assign({}, p, {id:idSeq++, w:w2 - 3, x:p.x + c*(p.w/2 - w2/2 + 3), y:p.y + s*(p.w/2 - w2/2 + 3), seed:p.seed + 7});
+  var i = pieces.indexOf(p); pieces.splice(i, 1, a, b);
+  click(1800, .06); click(2400, .04, .05);
+}
+function serve(p){
+  pieces.splice(pieces.indexOf(p), 1);
+  var t = TYPES[p.k], tol = t.tol || 0, lo = Math.min(p.down, p.up), hi = Math.max(p.down, p.up), pts, msg, col;
+  if (hi > 1.3 + tol){ pts = -30; msg = '탔어요　焦了'; col = '#8a8580'; burnt++; }
+  else if (lo < .55 - tol){ pts = -20; msg = '덜 익었어요　沒熟'; col = '#e17f86'; }
+  else if (lo >= .82 - tol && hi <= 1.18 + tol){ pts = 100; msg = '완벽!　完美'; col = '#ffd166'; perfect++; }
+  else { pts = 50; msg = '맛있어요　好吃'; col = '#9ed37a'; }
+  score += pts; pop(L.ssam.x, L.ssam.y - L.ssam.r - 10, msg + (pts > 0 ? ' +' : ' ') + pts, col);
+  click(pts > 0 ? 880 : 220, .06); if (pts === 100){ click(1320, .05, .08); }
+  document.getElementById('sScore').textContent = score;
+  document.getElementById('sPerfect').textContent = perfect;
+  document.getElementById('sBurnt').textContent = burnt;
+}
+function pop(x, y, txt, col){ pops.push({x:x, y:y, txt:txt, col:col, t:0}); }
+
+/* 工具列 */
+var tTong = document.getElementById('tTong'), tCut = document.getElementById('tCut');
+function setTool(t){ tool = t; tTong.setAttribute('aria-pressed', t === 'tong'); tCut.setAttribute('aria-pressed', t === 'cut'); cv.style.cursor = t === 'cut' ? 'crosshair' : 'grab'; }
+tTong.onclick = function(){ setTool('tong'); }; tCut.onclick = function(){ setTool('cut'); };
+document.querySelectorAll('[data-h]').forEach(function(b){
+  b.onclick = function(){ heat = +b.dataset.h; document.querySelectorAll('[data-h]').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); audio(); };
+});
+document.getElementById('more').onclick = function(){ ORDER.forEach(function(k){ stock[k] = Math.min(stock[k] + (k === 'neck' ? 2 : 3), 9); }); pop(L.raw.x + L.raw.w/2, L.raw.y - 6, '추가요!　加點', '#ffd166'); audio(); };
+document.addEventListener('keydown', function(e){ if (e.key === 'c' || e.key === 'C') setTool(tool === 'cut' ? 'tong' : 'cut'); });
+setTool('tong');
+
+/* 聲音：滋滋聲由所有烤網上的肉片熱度驅動 */
+var ac = null, sizz = null;
+function audio(){
+  if (ac){ if (ac.state === 'suspended') ac.resume(); return ac; }
+  try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
+  var len = 2, buf = ac.createBuffer(1, ac.sampleRate*len, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (Math.random() < .02 ? 1 : .35);
+  var s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
+  var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 5200; f.Q.value = .6;
+  sizz = ac.createGain(); sizz.gain.value = 0;
+  s.connect(f).connect(sizz).connect(ac.destination); s.start();
+  return ac;
+}
+function sizzleBurst(v){ if (!sizz) return; var t = ac.currentTime; sizz.gain.cancelScheduledValues(t); sizz.gain.setValueAtTime(Math.min(.25, sizz.gain.value + v*.12), t); }
+function click(f, v, delay){
+  if (!ac) return; var t = ac.currentTime + (delay || 0), o = ac.createOscillator(), gg = ac.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f*.6, t + .08);
+  gg.gain.setValueAtTime(v, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .12); o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .14);
+}
+
+/* 繪圖 */
+var coals = [];
+for (var i = 0; i < 46; i++) coals.push({a:Math.random()*Math.PI*2, r:Math.sqrt(Math.random())*.92, s:.06 + Math.random()*.08, ph:Math.random()*6});
+function drawTable(t){
+  var bg = g.createRadialGradient(L.cx, L.cy, L.R*.6, L.cx, L.cy, Math.max(W, H)*.9);
+  bg.addColorStop(0, '#2b2a28'); bg.addColorStop(.5, '#1a1918'); bg.addColorStop(1, '#0c0c0c');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  // 不鏽鋼桌面的刷紋
+  g.globalAlpha = .05; g.strokeStyle = '#fff'; g.lineWidth = 1;
+  for (var y = 0; y < H; y += 3){ g.beginPath(); g.moveTo(0, y + .5); g.lineTo(W, y + .5); g.stroke(); }
+  g.globalAlpha = 1;
+  // 排煙罩的倒影光環
+  g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.arc(L.cx, L.cy + 10, L.R + 34*L.s, 0, Math.PI*2); g.fill();
+  var rim = g.createLinearGradient(L.cx - L.R, L.cy - L.R, L.cx + L.R, L.cy + L.R);
+  rim.addColorStop(0, '#8d8f93'); rim.addColorStop(.5, '#3c3e42'); rim.addColorStop(1, '#a7a9ad');
+  g.fillStyle = rim; g.beginPath(); g.arc(L.cx, L.cy, L.R + 22*L.s, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#121212'; g.beginPath(); g.arc(L.cx, L.cy, L.R + 6*L.s, 0, Math.PI*2); g.fill();
+  // 炭火
+  var glow = g.createRadialGradient(L.cx, L.cy, 0, L.cx, L.cy, L.R);
+  var hot = Math.min(1, .55 + heat*.35);
+  glow.addColorStop(0, 'rgba(255,' + (150 + 40*hot|0) + ',60,' + (.95*hot) + ')'); glow.addColorStop(.55, 'rgba(220,70,20,' + (.75*hot) + ')'); glow.addColorStop(1, 'rgba(40,10,4,.9)');
+  g.fillStyle = glow; g.beginPath(); g.arc(L.cx, L.cy, L.R, 0, Math.PI*2); g.fill();
+  coals.forEach(function(c){
+    var fl = reduce ? .7 : .55 + .45*Math.sin(t*.002*(1 + c.ph%1) + c.ph);
+    var x = L.cx + Math.cos(c.a)*c.r*L.R, y = L.cy + Math.sin(c.a)*c.r*L.R, rr = c.s*L.R*1.25;
+    // 炭塊：中間黑、邊緣與裂縫透出火光
+    var cg = g.createRadialGradient(x - rr*.2, y - rr*.2, rr*.1, x, y, rr);
+    cg.addColorStop(0, '#2a2420'); cg.addColorStop(.62, '#17110d');
+    cg.addColorStop(1, 'rgba(255,' + (90 + 70*fl|0) + ',30,' + (.35 + .55*fl*hot*(1 - c.r*.5)) + ')');
+    g.fillStyle = cg; g.beginPath();
+    for (var v = 0; v < 7; v++){ var b = v/7*Math.PI*2 + c.ph, q = rr*(.78 + .22*Math.sin(c.ph*3 + v*1.9)); g.lineTo(x + Math.cos(b)*q, y + Math.sin(b)*q); }
+    g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,' + (140 + 80*fl|0) + ',60,' + (.5*fl*hot) + ')'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(x - rr*.4, y + rr*.1); g.lineTo(x, y - rr*.15); g.lineTo(x + rr*.35, y + rr*.2); g.stroke();
+    g.fillStyle = 'rgba(200,195,190,.18)'; g.beginPath(); g.arc(x - rr*.3, y - rr*.35, rr*.18, 0, Math.PI*2); g.fill();
+  });
+  // 烤網
+  g.save(); g.beginPath(); g.arc(L.cx, L.cy, L.R, 0, Math.PI*2); g.clip();
+  var gap = 15*L.s;
+  for (var gx = -L.R; gx <= L.R; gx += gap){
+    g.strokeStyle = '#1b1b1b'; g.lineWidth = 4.2*L.s; g.beginPath(); g.moveTo(L.cx + gx, L.cy - L.R); g.lineTo(L.cx + gx, L.cy + L.R); g.stroke();
+    g.strokeStyle = 'rgba(190,190,195,.35)'; g.lineWidth = 1.2*L.s; g.beginPath(); g.moveTo(L.cx + gx - 1, L.cy - L.R); g.lineTo(L.cx + gx - 1, L.cy + L.R); g.stroke();
+  }
+  g.restore();
+  g.strokeStyle = '#5b5d61'; g.lineWidth = 5*L.s; g.beginPath(); g.arc(L.cx, L.cy, L.R, 0, Math.PI*2); g.stroke();
+}
+function roundRect(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function drawPieceBody(p, c, under){
+  var t = TYPES[p.k], w = p.w, h = p.h;
+  if (p.k === 'shrimp'){
+    g.lineCap = 'round'; g.strokeStyle = shade(t.meat, c); g.lineWidth = h*.62;
+    g.beginPath(); g.arc(0, h*.15, w*.38, Math.PI*1.05, Math.PI*1.95); g.stroke();
+    g.fillStyle = shade(t.meat, c + .1); g.beginPath(); g.moveTo(w*.36, -h*.05); g.lineTo(w*.52, -h*.38); g.lineTo(w*.5, h*.14); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1.2;
+    for (var k = 0; k < 4; k++){ var a = Math.PI*(1.15 + k*.2); g.beginPath(); g.moveTo(Math.cos(a)*w*.25, h*.15 + Math.sin(a)*w*.25); g.lineTo(Math.cos(a)*w*.52, h*.15 + Math.sin(a)*w*.52); g.stroke(); }
+    return;
+  }
+  if (p.k === 'mush'){
+    g.fillStyle = shade(t.meat, c); g.beginPath(); g.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); g.fill();
+    g.strokeStyle = 'rgba(120,80,40,.35)'; g.lineWidth = 1;
+    for (var m = -3; m <= 3; m++){ g.beginPath(); g.moveTo(m*w*.1, -h*.42 + Math.abs(m)*2); g.lineTo(m*w*.1, h*.42 - Math.abs(m)*2); g.stroke(); }
+    g.strokeStyle = shade(t.meat, c + .25); g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, w/2 - 1, h/2 - 1, 0, 0, Math.PI*2); g.stroke();
+    return;
+  }
+  roundRect(-w/2, -h/2, w, h, Math.min(8, h*.25)); g.fillStyle = shade(t.meat, c); g.fill();
+  g.save(); g.clip();
+  if (p.k === 'belly'){
+    // 五花的油脂層：沿長邊的條紋
+    var bands = [.08, .36, .62, .86];
+    bands.forEach(function(b, i){
+      g.fillStyle = shade(t.fat2, c); var y = -h/2 + h*b, bh = h*(i%2 ? .12 : .17);
+      g.beginPath(); g.moveTo(-w/2, y);
+      for (var x = -w/2; x <= w/2; x += 6) g.lineTo(x, y + Math.sin(x*.09 + p.seed + i)*2);
+      g.lineTo(w/2, y + bh); for (var x2 = w/2; x2 >= -w/2; x2 -= 6) g.lineTo(x2, y + bh + Math.sin(x2*.08 + p.seed*2 + i)*2); g.closePath(); g.fill();
+    });
+  } else if (p.k === 'neck'){
+    g.strokeStyle = shade(t.fat2, c); g.lineWidth = 2.2;
+    for (var n = 0; n < 7; n++){ g.beginPath(); var sx = Math.sin(p.seed + n)*w*.4, sy = Math.cos(p.seed*1.7 + n)*h*.35; g.moveTo(sx, sy); g.quadraticCurveTo(sx + 12, sy - 8, sx + 22, sy + 4); g.stroke(); }
+  } else if (p.k === 'galbi'){
+    g.fillStyle = shade(t.fat2, c); g.fillRect(-w/2, -h/2, w*.14, h);
+    g.fillStyle = 'rgba(255,255,255,.12)'; for (var s2 = 0; s2 < 6; s2++){ g.beginPath(); g.arc(-w*.2 + s2*w*.12, Math.sin(p.seed + s2)*h*.25, 2, 0, Math.PI*2); g.fill(); }
+    if (c > .55){ g.fillStyle = 'rgba(40,10,0,' + Math.min(.35, (c - .55)*.6) + ')'; g.fillRect(-w/2, -h/2, w, h); }
+  }
+  g.restore();
+}
+function drawPiece(p, t){
+  var lift = p.lift ? 1 : 0, f = p.flip;
+  g.save(); g.translate(p.x, p.y); g.rotate(p.rot);
+  g.fillStyle = 'rgba(0,0,0,' + (lift ? .45 : .35) + ')';
+  g.beginPath(); g.ellipse(lift ? 8 : 3, lift ? 12 : 4, p.w*.5, p.h*.5, 0, 0, Math.PI*2); g.fill();
+  if (lift) g.translate(-3, -6);
+  if (f > 0) g.scale(1, Math.abs(Math.cos(f*Math.PI)));
+  // 底面的熟度從邊緣透出來
+  g.save(); g.scale(1 + 4/p.w, 1 + 4/p.h); drawPieceBody(p, p.down + .15, true); g.restore();
+  drawPieceBody(p, p.up);
+  // 烤網痕
+  if (p.marks[1] > .4 && p.k !== 'shrimp'){
+    g.save(); g.globalAlpha = Math.min(.75, (p.marks[1] - .4)*1.1); g.strokeStyle = '#2a170b'; g.lineWidth = 3*L.s;
+    var gap = 15*L.s; for (var x = -p.w/2 + 6; x < p.w/2; x += gap){ g.beginPath(); g.moveTo(x, -p.h/2 + 3); g.lineTo(x + 4, p.h/2 - 3); g.stroke(); }
+    g.restore();
+  }
+  // 油光
+  if (p.up > .3 && TYPES[p.k].fat){ g.fillStyle = 'rgba(255,240,210,.18)'; g.beginPath(); g.ellipse(-p.w*.15, -p.h*.15, p.w*.25, p.h*.12, 0, 0, Math.PI*2); g.fill(); }
+  g.restore();
+}
+function drawRaw(){
+  var r = L.raw;
+  g.fillStyle = 'rgba(0,0,0,.4)'; roundRect(r.x + 6, r.y + 10, r.w, r.h, 22); g.fill();
+  var pl = g.createLinearGradient(r.x, r.y, r.x, r.y + r.h); pl.addColorStop(0, '#f4f1ea'); pl.addColorStop(1, '#d9d4c9');
+  g.fillStyle = pl; roundRect(r.x, r.y, r.w, r.h, 22); g.fill();
+  g.strokeStyle = '#b5ada0'; g.lineWidth = 2; roundRect(r.x + 8, r.y + 8, r.w - 16, r.h - 16, 16); g.stroke();
+  rawSlots().forEach(function(s){
+    var n = stock[s.k], tt = TYPES[s.k];
+    var sc = Math.min(1, (s.w*.62)/(tt.w*L.s), (s.h*.5)/(tt.h*L.s));
+    for (var i = Math.min(n, 3) - 1; i >= 0; i--){
+      var p = makePiece(s.k, s.x - (L.land ? 26 : 0)*L.s + i*4, s.y - (L.land ? 0 : 8) + i*-4); p.w *= sc; p.h *= sc; p.rot = -.12 + i*.08; p.seed = i*3 + s.k.length;
+      g.save(); g.translate(p.x, p.y); g.rotate(p.rot); drawPieceBody(p, 0); g.restore();
+    }
+    g.fillStyle = n ? '#2a2724' : '#a39d94';
+    g.font = '800 ' + Math.max(12, 14*L.s*1.2) + 'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif'; g.textAlign = L.land ? 'left' : 'center';
+    var tx = L.land ? s.x + 40*L.s : s.x, ty = L.land ? s.y - 4 : s.y + s.h*.34;
+    g.fillText(tt.ko + (n ? ' ×' + n : ' 0'), tx, ty);
+    g.font = '600 ' + Math.max(10, 11*L.s*1.2) + 'px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillStyle = '#6e675f';
+    g.fillText(tt.zh, tx, ty + Math.max(13, 15*L.s*1.2));
+  });
+  g.textAlign = 'left';
+}
+function drawSsam(t){
+  var s = L.ssam;
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.arc(s.x + 5, s.y + 9, s.r + 8, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#c99b5b'; g.beginPath(); g.arc(s.x, s.y, s.r + 8, 0, Math.PI*2); g.fill();
+  g.strokeStyle = '#8f6a36'; g.lineWidth = 2;
+  for (var i = 0; i < 26; i++){ var a = i/26*Math.PI*2; g.beginPath(); g.moveTo(s.x + Math.cos(a)*(s.r - 2), s.y + Math.sin(a)*(s.r - 2)); g.lineTo(s.x + Math.cos(a + .2)*(s.r + 8), s.y + Math.sin(a + .2)*(s.r + 8)); g.stroke(); }
+  // 生菜葉：四片皺邊的大葉子疊在籃裡
+  for (var k = 0; k < 4; k++){
+    var a2 = k/4*Math.PI*2 + .6, lx = s.x + Math.cos(a2)*s.r*.22, ly = s.y + Math.sin(a2)*s.r*.22, lr = s.r*.78;
+    var lg = g.createRadialGradient(lx - Math.cos(a2)*lr*.3, ly - Math.sin(a2)*lr*.3, 2, lx, ly, lr);
+    lg.addColorStop(0, '#e9f6c4'); lg.addColorStop(.45, '#9fd162'); lg.addColorStop(1, '#4e9a33');
+    g.save(); g.translate(lx, ly); g.rotate(a2);
+    g.fillStyle = lg; g.beginPath();
+    for (var j = 0; j <= 40; j++){ var b = j/40*Math.PI*2, rr = lr*(1 + .06*Math.sin(j*1.7 + k*2)), ex = Math.cos(b)*rr, ey = Math.sin(b)*rr*.72; g.lineTo(ex, ey); }
+    g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(240,255,220,.55)'; g.lineWidth = 2; g.beginPath(); g.moveTo(-lr*.7, 0); g.quadraticCurveTo(0, -lr*.06, lr*.85, 0); g.stroke();
+    g.strokeStyle = 'rgba(240,255,220,.3)'; g.lineWidth = 1;
+    for (var vv = -3; vv <= 3; vv++){ if (!vv) continue; g.beginPath(); g.moveTo(vv*lr*.2, 0); g.quadraticCurveTo(vv*lr*.2 + lr*.12, Math.sign(vv)*lr*.2, vv*lr*.2 + lr*.2, Math.sign(vv)*lr*.48); g.stroke(); }
+    g.restore();
+  }
+  // 包飯醬
+  g.fillStyle = '#7b3b1d'; g.beginPath(); g.arc(s.x, s.y, s.r*.18, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#a65a2c'; g.beginPath(); g.arc(s.x - s.r*.05, s.y - s.r*.05, s.r*.09, 0, Math.PI*2); g.fill();
+  var hov = drag && drag.moved && inSsam(drag.p.x, drag.p.y);
+  g.strokeStyle = hov ? '#ffd166' : 'rgba(255,255,255,.18)'; g.lineWidth = hov ? 4 : 2; g.setLineDash([6, 8]);
+  g.beginPath(); g.arc(s.x, s.y, s.r + 18, 0, Math.PI*2); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#f3eee6'; g.font = '800 ' + Math.max(13, 16*L.s*1.2) + 'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif'; g.textAlign = 'center';
+  g.fillText('쌈 · 生菜包', s.x, s.y + s.r + 40); g.textAlign = 'left';
+}
+
+/* 主迴圈 */
+var last = performance.now();
+function frame(now){
+  var dt = Math.min(.05, (now - last)/1000); last = now;
+  var load = 0;
+  pieces.forEach(function(p){
+    if (p.flip > 0){ p.flip = Math.max(0, p.flip - dt*4); }
+    if (p.lift || !onGrill(p.x, p.y)) return;
+    var h = heatAt(p.x, p.y), rt = TYPES[p.k].rate;
+    p.down += dt*h*rt/14; p.up += dt*h*rt/140;
+    p.marks[0] = p.down;
+    load += h;
+    // 煙與油脂火舌
+    if (!reduce && Math.random() < dt*(1.2 + p.down*3)*h) parts.push({x:p.x + (Math.random()-.5)*p.w*.6, y:p.y + (Math.random()-.5)*p.h*.6, vx:(Math.random()-.5)*10, vy:-14 - Math.random()*14, life:0, max:2 + Math.random()*1.5, r:6 + Math.random()*8, burnt:p.down > 1.3, smoke:true});
+    if (!reduce && TYPES[p.k].fat && Math.random() < dt*.9*h) parts.push({x:p.x + (Math.random()-.5)*p.w*.7, y:p.y + p.h*.45, vx:0, vy:-30, life:0, max:.35, r:5 + Math.random()*6, flame:true});
+  });
+  if (sizz){ var target = Math.min(.22, load*.035); sizz.gain.value += (target - sizz.gain.value)*Math.min(1, dt*3); }
+  drawTable(now);
+  drawRaw(); drawSsam(now);
+  parts.forEach(function(q){ if (q.flame){ q.life += dt; var a = 1 - q.life/q.max; if (a <= 0) return; g.fillStyle = 'rgba(255,' + (160 + 80*a|0) + ',60,' + a*.8 + ')'; g.beginPath(); g.ellipse(q.x, q.y - q.life*40, q.r*a, q.r*1.8*a, 0, 0, Math.PI*2); g.fill(); } });
+  pieces.forEach(function(p){ if (!p.lift) drawPiece(p, now); });
+  parts.forEach(function(q){
+    if (q.flame) return;
+    q.life += dt; q.x += q.vx*dt + Math.sin(q.life*2 + q.y*.01)*.3; q.y += q.vy*dt; q.r += dt*10;
+    var a = Math.max(0, 1 - q.life/q.max)*.22;
+    g.fillStyle = q.burnt ? 'rgba(60,55,52,' + a*1.6 + ')' : 'rgba(235,232,228,' + a + ')';
+    g.beginPath(); g.arc(q.x, q.y, q.r, 0, Math.PI*2); g.fill();
+  });
+  parts = parts.filter(function(q){ return q.life < q.max; });
+  pieces.forEach(function(p){ if (p.lift) drawPiece(p, now); });
+  if (drag && drag.moved && drag.from === 'raw' && !onGrill(drag.p.x, drag.p.y)){ /* 拿在手上 */ }
+  pops.forEach(function(o){
+    o.t += dt; var a = Math.max(0, 1 - o.t/1.6);
+    g.globalAlpha = a; g.fillStyle = o.col; g.font = '900 ' + Math.max(16, 22*L.s*1.2) + 'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif'; g.textAlign = 'center';
+    g.fillText(o.txt, o.x, o.y - o.t*30); g.globalAlpha = 1; g.textAlign = 'left';
+  });
+  pops = pops.filter(function(o){ return o.t < 1.6; });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* 開場先放兩片五花，示範 */
+setTimeout(function(){ ['belly','mush'].forEach(function(k){ if (stock[k] > 0){ stock[k]--; var f = freeSpot(); pieces.push(makePiece(k, f.x, f.y)); } }); }, 300);
+window.__bulpan = {pieces:function(){ return pieces; }, stock:stock, layout:function(){ return L; }, slots:rawSlots};
+})();
+</script>
+</body>
+</html>

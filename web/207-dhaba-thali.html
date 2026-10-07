@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sher-e-Punjab Dhaba · 公路餐館</title>
+<meta name="description" content="大貨車彩繪風的印度公路餐館：在不鏽鋼大盤上自己組一份 thali，豆糊、蔬菜、飯、餅、優格、甜點各選一樣，辣度表跟著跳；再按住按鈕從高處拉一杯起泡的 kadak 奶茶。">
+<style>
+:root{
+  --night:#062e33; --teal:#0b6b6e; --red:#e0262f; --yellow:#ffcb05; --green:#13a538; --pink:#ff3d8b; --blue:#1f4fd8; --orange:#ff7a00;
+  --cream:#fff6dc; --ink:#120a06; --steel1:#f2f4f6; --steel2:#a9b0b8; --steel3:#6d757e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{overflow-x:clip;background:var(--night);color:var(--cream);font-family:"Gill Sans","Gill Sans MT","Trebuchet MS","PingFang TC","Microsoft JhengHei",sans-serif}
+.dev{font-family:"Kohinoor Devanagari","Devanagari Sangam MN","Nirmala UI","Mangal",sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+/* 彩繪花帶 */
+.band{height:34px;background-color:var(--red);background-image:var(--flower);background-size:68px 34px;border-top:4px solid var(--yellow);border-bottom:4px solid var(--green)}
+.band.alt{background-color:var(--blue);background-image:var(--flower2);border-top-color:var(--pink);border-bottom-color:var(--yellow)}
+.chamak{height:22px;background:
+  linear-gradient(135deg,transparent 33%,rgba(255,255,255,.55) 50%,transparent 67%) 0 0/200% 100%,
+  conic-gradient(from 135deg at 50% 0,var(--yellow) 0 90deg,transparent 0) 0 0/22px 22px,
+  conic-gradient(from 135deg at 50% 0,var(--pink) 0 90deg,transparent 0) 11px 0/22px 22px,
+  #0d0d0d;animation:shine 4s linear infinite}
+@keyframes shine{to{background-position:-200% 0,0 0,11px 0}}
+/* 車尾招牌 */
+.tail{position:relative;padding:34px 16px 26px;text-align:center;background:radial-gradient(ellipse at 50% 40%,#0f5a5e,var(--night) 70%);overflow:hidden}
+.tail .eyes{position:absolute;top:16px;width:130px;height:52px;opacity:.95}
+.tail .eyes.l{left:4%}.tail .eyes.r{right:4%;transform:scaleX(-1)}
+.horn{display:inline-block;font-weight:900;font-size:clamp(15px,2vw,20px);letter-spacing:.3em;color:var(--ink);background:var(--yellow);padding:6px 16px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--red);transform:rotate(-2deg)}
+.tail h1{margin:18px 0 0;line-height:.95;font-weight:900;font-size:clamp(44px,8vw,104px);letter-spacing:.02em;color:var(--yellow);
+  text-shadow:0 3px 0 var(--red),0 6px 0 var(--ink),4px 10px 0 rgba(0,0,0,.35)}
+.tail h1 .dev{display:block;font-size:.7em;color:var(--pink);text-shadow:0 3px 0 var(--cream),0 6px 0 var(--ink);margin-top:8px}
+.tail p{margin:16px auto 0;max-width:620px;line-height:1.75;color:#cfe7e2;font-size:15px}
+.tail .slogan{position:absolute;bottom:10px;left:0;right:0;font-size:12px;letter-spacing:.24em;color:#86b9b3}
+/* 主區 */
+.main{max-width:1180px;margin:0 auto;padding:30px 16px 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px;align-items:start}
+.plateWrap{position:sticky;top:14px}
+.plateCard{background:linear-gradient(160deg,#0e4f53,#08393d);border:4px solid var(--yellow);border-radius:24px;padding:18px;box-shadow:0 0 0 4px var(--red),0 0 0 8px var(--green),0 20px 40px rgba(0,0,0,.45);position:relative}
+.plateCard h2{margin:0 0 4px;text-align:center;font-weight:900;font-size:24px;letter-spacing:.12em;color:var(--yellow)}
+.plateCard .sub{text-align:center;margin:0 0 6px;color:#a7d3cd;font-size:13px}
+#plate{width:100%;height:auto;display:block}
+.meter{display:flex;align-items:center;gap:10px;margin-top:6px;justify-content:center;flex-wrap:wrap}
+.meter b{font-size:13px;letter-spacing:.14em;color:#ffd9a8}
+.chilis{display:flex;gap:3px}
+.chilis i{width:22px;height:22px;display:block;opacity:.22;transition:opacity .3s,transform .3s}
+.chilis i.on{opacity:1;transform:rotate(-12deg) scale(1.1)}
+.meter span{font-size:13px;color:#ffd9a8;min-width:6em}
+/* 選單 */
+.menu{display:flex;flex-direction:column;gap:16px}
+.grp{background:var(--cream);color:var(--ink);border-radius:14px;padding:12px 14px 14px;position:relative;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--c,var(--red))}
+.grp h3{margin:0 0 8px;display:flex;align-items:baseline;gap:10px;font-weight:900;font-size:19px;letter-spacing:.04em}
+.grp h3 .dev{font-size:15px;color:var(--c,var(--red))}
+.grp h3 small{margin-left:auto;font-size:12px;color:#7a6650;font-weight:600;letter-spacing:.02em}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2.5px solid var(--ink);background:#fff;border-radius:999px;padding:7px 12px 7px 9px;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;transition:transform .15s,background .2s}
+.chip i{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink);background:var(--dot);flex:none}
+.chip em{font-style:normal;font-weight:600;color:#7a6650;font-size:12px}
+.chip:hover{transform:translateY(-2px)}
+.chip[aria-pressed=true]{background:var(--c,var(--red));color:#fff}
+.chip[aria-pressed=true] em{color:#ffe9d0}
+/* 拉茶 */
+.chai{max-width:1180px;margin:0 auto;padding:0 16px 36px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px}
+.stall{background:var(--yellow);color:var(--ink);border:4px solid var(--ink);border-radius:20px;padding:18px;box-shadow:8px 8px 0 var(--pink);display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:center}
+.stall svg{width:150px;height:auto}
+.stall h2{margin:0;font-weight:900;font-size:26px}
+.stall h2 .dev{font-size:18px;color:var(--red);margin-left:6px}
+.stall p{margin:6px 0 12px;font-size:14px;line-height:1.65}
+.pull{border:3px solid var(--ink);background:var(--red);color:#fff;border-radius:12px;padding:14px 18px;font-weight:900;font-size:16px;letter-spacing:.06em;box-shadow:4px 4px 0 var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+.pull:active,.pull.hold{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink);background:#b81a22}
+.chaiNote{font-weight:800;margin-top:10px;min-height:1.5em}
+/* 帳 */
+.bill{background:#5b2a12;border:4px solid var(--ink);border-radius:20px;padding:18px 20px;box-shadow:8px 8px 0 var(--green);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 3px,transparent 3px 26px)}
+.bill h2{margin:0 0 10px;font-weight:900;font-size:24px;color:var(--yellow);letter-spacing:.06em}
+.bill h2 .dev{font-size:18px;color:var(--cream);margin-left:8px}
+.bill ul{list-style:none;margin:0;padding:0;font-size:15px}
+.bill li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed rgba(255,246,220,.25)}
+.bill li span:last-child{font-variant-numeric:tabular-nums}
+.bill .tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-weight:900}
+.bill .tot output{font-size:34px;color:var(--yellow)}
+.serve{width:100%;margin-top:14px;border:3px solid var(--ink);background:var(--green);color:#fff;border-radius:12px;padding:13px;font-weight:900;font-size:17px;letter-spacing:.06em;box-shadow:4px 4px 0 var(--ink)}
+.serve:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.served{margin-top:10px;font-weight:800;color:var(--yellow);min-height:1.4em}
+/* 鈴鐺 */
+.bells{display:flex;justify-content:center;gap:clamp(8px,2.4vw,26px);padding:4px 0 30px;flex-wrap:nowrap;overflow:hidden}
+.bell{width:30px;display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;cursor:pointer;flex:none}
+.bell::before{content:"";width:2px;height:var(--h,26px);background:repeating-linear-gradient(var(--yellow) 0 4px,#b8860b 4px 6px)}
+.bell b{width:26px;height:26px;border-radius:13px 13px 4px 4px;background:radial-gradient(circle at 35% 30%,#fff3a8,#e0a800 55%,#8a6100);border:2px solid var(--ink);position:relative}
+.bell b::after{content:"";position:absolute;left:50%;bottom:-7px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#8a6100;border:1.5px solid var(--ink)}
+.bell.ring{animation:ring .9s ease-out}
+@keyframes ring{20%{transform:rotate(18deg)}40%{transform:rotate(-14deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-4deg)}}
+.footer{text-align:center;padding:0 16px 30px;color:#7fb0aa;font-size:12px;letter-spacing:.14em}
+@media (max-width:900px){
+  .main,.chai{grid-template-columns:1fr}
+  .plateWrap{position:static}
+}
+@media (max-width:520px){
+  .tail .eyes{width:80px;height:32px}
+  .stall{grid-template-columns:96px minmax(0,1fr);padding:14px}
+  .stall svg{width:96px}
+  .bell:nth-child(n+9){display:none}
+}
+@media (prefers-reduced-motion:reduce){.chamak{animation:none}.bell.ring{animation:none}}
+</style>
+</head>
+<body>
+<div class="chamak" aria-hidden="true"></div>
+<div class="band" aria-hidden="true"></div>
+<header class="tail">
+  <svg class="eyes l" viewBox="0 0 130 52" aria-hidden="true"><path d="M4 26 Q65 -10 126 26 Q65 62 4 26Z" fill="#fff6dc" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="15" fill="#13a538" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="7" fill="#120a06"/><circle cx="60" cy="21" r="3" fill="#fff"/><path d="M2 14 Q65 -22 128 14" fill="none" stroke="#ff3d8b" stroke-width="5" stroke-linecap="round"/></svg>
+  <svg class="eyes r" viewBox="0 0 130 52" aria-hidden="true"><path d="M4 26 Q65 -10 126 26 Q65 62 4 26Z" fill="#fff6dc" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="15" fill="#13a538" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="7" fill="#120a06"/><circle cx="60" cy="21" r="3" fill="#fff"/><path d="M2 14 Q65 -22 128 14" fill="none" stroke="#ff3d8b" stroke-width="5" stroke-linecap="round"/></svg>
+  <span class="horn">HORN · OK · PLEASE</span>
+  <h1>Sher-e-Punjab<span class="dev">शेर-ए-पंजाब ढाबा</span></h1>
+  <p>大幹道（Grand Trunk Road）旁的二十四小時公路餐館。司機下車吃一份 thali 再上路：在不鏽鋼大盤上每一格選一樣，辣度表會一直跳。</p>
+  <div class="slogan">USE DIPPER AT NIGHT · 夜間請切近光燈</div>
+</header>
+<div class="band alt" aria-hidden="true"></div>
+
+<main class="main">
+  <section class="plateWrap" aria-label="你的套餐">
+    <div class="plateCard">
+      <h2>THALI <span class="dev">थाली</span></h2>
+      <p class="sub">點右邊的選項，盤子會跟著裝</p>
+      <svg id="plate" viewBox="0 0 500 500" role="img" aria-label="不鏽鋼套餐盤"></svg>
+      <div class="meter"><b>辣度 TEEKHA</b><div class="chilis" id="chilis"></div><span id="heatTxt"></span></div>
+    </div>
+  </section>
+  <section class="menu" id="menu" aria-label="菜單"></section>
+</main>
+
+<section class="chai" aria-label="奶茶與帳單">
+  <div class="stall">
+    <svg id="chaiSvg" viewBox="0 0 150 220" aria-hidden="true"></svg>
+    <div>
+      <h2>Kadak Chai<span class="dev">कड़क चाय</span></h2>
+      <p>按住按鈕，師傅把茶壺越拉越高，茶從高處落進玻璃杯才會起泡。倒到滿再放開；泡越厚越 kadak（濃）。₹20。</p>
+      <button class="pull" id="pull" type="button">按住拉茶</button>
+      <div class="chaiNote" id="chaiNote" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="bill">
+    <h2>HISAAB<span class="dev">हिसाब · 帳</span></h2>
+    <ul id="billList"></ul>
+    <div class="tot"><span>合計 Total</span><output id="total">₹0</output></div>
+    <button class="serve" id="serve" type="button">上菜！Khaana lagao</button>
+    <div class="served" id="served" aria-live="polite"></div>
+  </div>
+</section>
+<div class="band" aria-hidden="true"></div>
+<div class="bells" id="bells" aria-hidden="true"></div>
+<p class="footer">BURI NAZAR WALE TERA MUNH KALA · 卡車尾的老標語：「看衰我的人，臉會變黑」</p>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+
+/* 花帶圖樣 */
+function flowerSVG(c1, c2, c3){
+  return 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="68" height="34"><g transform="translate(17 17)">' +
+    [0,72,144,216,288].map(function(a){ return '<ellipse rx="4" ry="9" cy="-7" fill="' + c1 + '" stroke="#120a06" stroke-width="1.5" transform="rotate(' + a + ')"/>'; }).join('') +
+    '<circle r="4.5" fill="' + c2 + '" stroke="#120a06" stroke-width="1.5"/></g><path d="M36 17 q8 -12 16 0 q8 12 16 0" fill="none" stroke="' + c3 + '" stroke-width="3"/><circle cx="44" cy="10" r="3" fill="' + c2 + '"/><circle cx="60" cy="24" r="3" fill="' + c2 + '"/></svg>') + '")';
+}
+document.documentElement.style.setProperty('--flower', flowerSVG('#ffcb05', '#13a538', '#fff6dc'));
+document.documentElement.style.setProperty('--flower2', flowerSVG('#ff3d8b', '#ffcb05', '#13a538'));
+
+/* 套餐資料：每格一個槽位 */
+var SLOTS = [
+  {k:'dal',en:'Dal',dev:'दाल',zh:'豆糊',c:'#e0262f',pos:[155,150],r:62,opts:[
+    {id:'makhani',en:'Dal Makhani',zh:'奶油黑豆',p:180,h:1,base:'#6d2f17',top:'#f3e3c8',kind:'swirl'},
+    {id:'tadka',en:'Dal Tadka',zh:'炒香黃扁豆',p:140,h:2,base:'#e3a51d',top:'#b8231a',kind:'fleck'},
+    {id:'chana',en:'Chana Masala',zh:'鷹嘴豆咖哩',p:150,h:2,base:'#9a4f1c',top:'#e3b77a',kind:'beans'}]},
+  {k:'sabzi',en:'Sabzi',dev:'सब्ज़ी',zh:'蔬菜',c:'#13a538',pos:[300,118],r:62,opts:[
+    {id:'aloo',en:'Aloo Gobi',zh:'馬鈴薯花椰菜',p:150,h:1,base:'#e8b82e',top:'#fff4d2',kind:'lumps'},
+    {id:'palak',en:'Palak Paneer',zh:'菠菜起司',p:190,h:1,base:'#2f6b1f',top:'#fbf6e8',kind:'cubes'},
+    {id:'bhindi',en:'Bhindi Masala',zh:'秋葵',p:160,h:2,base:'#6a8a22',top:'#c9e07a',kind:'rings'}]},
+  {k:'raita',en:'Raita',dev:'रायता',zh:'優格',c:'#1f4fd8',pos:[400,220],r:52,opts:[
+    {id:'boondi',en:'Boondi Raita',zh:'炸豆粒優格',p:70,h:0,base:'#f6f3ea',top:'#e3a51d',kind:'dots'},
+    {id:'kheera',en:'Kheera Raita',zh:'小黃瓜優格',p:60,h:0,base:'#f2f4e6',top:'#6fb84a',kind:'fleck'}]},
+  {k:'sweet',en:'Meetha',dev:'मीठा',zh:'甜點',c:'#ff3d8b',pos:[392,345],r:52,opts:[
+    {id:'jamun',en:'Gulab Jamun',zh:'玫瑰炸奶球',p:60,h:0,base:'#e2a64a',top:'#5a240f',kind:'balls'},
+    {id:'kheer',en:'Kheer',zh:'米布丁',p:70,h:0,base:'#f6ecd2',top:'#7cb342',kind:'nuts'},
+    {id:'jalebi',en:'Jalebi',zh:'糖漿炸圈',p:60,h:0,base:'#f7c35a',top:'#ff7a00',kind:'spiral'}]},
+  {k:'achar',en:'Achar',dev:'अचार',zh:'醃菜',c:'#ff7a00',pos:[275,415],r:34,opts:[
+    {id:'mango',en:'Aam ka Achar',zh:'醃青芒果',p:20,h:3,base:'#c7461a',top:'#f1a43a',kind:'chunks'},
+    {id:'mirchi',en:'Hari Mirch',zh:'醃青辣椒',p:10,h:3,base:'#6b8e23',top:'#c9e07a',kind:'rings'}]},
+  {k:'rice',en:'Chawal',dev:'चावल',zh:'飯',c:'#ffcb05',pos:[255,268],r:0,opts:[
+    {id:'jeera',en:'Jeera Rice',zh:'孜然飯',p:90,h:0,base:'#fbf6ea',top:'#6b4a23'},
+    {id:'biryani',en:'Veg Biryani',zh:'蔬菜香料飯',p:200,h:2,base:'#fbf2dc',top:'#ff8a1e'},
+    {id:'plain',en:'Steamed Rice',zh:'白飯',p:60,h:0,base:'#ffffff',top:'#eeeeee'}]},
+  {k:'roti',en:'Roti',dev:'रोटी',zh:'餅',c:'#0b6b6e',pos:[120,350],r:0,opts:[
+    {id:'tandoori',en:'Tandoori Roti ×2',zh:'窯烤全麥餅',p:40,h:0,base:'#d9a35c',top:'#7a3f12'},
+    {id:'naan',en:'Butter Naan ×2',zh:'奶油饢',p:90,h:0,base:'#f1cf88',top:'#8a4a16'},
+    {id:'lachha',en:'Lachha Paratha',zh:'千層煎餅',p:50,h:0,base:'#e2b066',top:'#9a5a1c'}]}
+];
+var pick = {}, chai = null, rnd;
+function seeded(n){ var s = n; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; }
+
+/* 盤子 */
+function steelBowl(x, y, r){
+  return '<circle cx="' + x + '" cy="' + (y + 6) + '" r="' + (r + 4) + '" fill="rgba(0,0,0,.25)"/>' +
+    '<circle cx="' + x + '" cy="' + y + '" r="' + (r + 4) + '" fill="url(#steelR)"/>' +
+    '<circle cx="' + x + '" cy="' + y + '" r="' + (r - 2) + '" fill="url(#steelIn)"/>';
+}
+function content(o, x, y, r, seed){
+  var R = r - 9, s = '', q = seeded(seed);
+  s += '<circle cx="' + x + '" cy="' + y + '" r="' + R + '" fill="' + o.base + '"/>';
+  s += '<circle cx="' + (x - R*.25) + '" cy="' + (y - R*.3) + '" r="' + R*.45 + '" fill="#fff" opacity=".12"/>';
+  var i, a, d;
+  switch (o.kind){
+    case 'swirl': s += '<path d="M' + (x - R*.5) + ' ' + y + ' q' + R*.25 + ' ' + (-R*.5) + ' ' + R*.5 + ' 0 t' + R*.5 + ' 0" stroke="' + o.top + '" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="' + (x + R*.2) + '" cy="' + (y + R*.3) + '" r="5" fill="#2e7d32"/>'; break;
+    case 'fleck': for (i = 0; i < 18; i++){ a = q()*6.28; d = q()*R*.85; s += '<circle cx="' + (x + Math.cos(a)*d).toFixed(1) + '" cy="' + (y + Math.sin(a)*d).toFixed(1) + '" r="' + (1.4 + q()*2).toFixed(1) + '" fill="' + o.top + '"/>'; } break;
+    case 'beans': for (i = 0; i < 14; i++){ a = q()*6.28; d = q()*R*.75; s += '<circle cx="' + (x + Math.cos(a)*d).toFixed(1) + '" cy="' + (y + Math.sin(a)*d).toFixed(1) + '" r="6" fill="' + o.top + '" stroke="#6d3a14" stroke-width="1.2"/>'; } break;
+    case 'lumps': for (i = 0; i < 10; i++){ a = q()*6.28; d = q()*R*.7; s += '<circle cx="' + (x + Math.cos(a)*d).toFixed(1) + '" cy="' + (y + Math.sin(a)*d).toFixed(1) + '" r="' + (6 + q()*5).toFixed(1) + '" fill="' + (i%2 ? o.top : '#f2c95a') + '" stroke="#b07a10" stroke-width="1"/>'; } break;
+    case 'cubes': for (i = 0; i < 8; i++){ a = q()*6.28; d = q()*R*.7; s += '<rect x="' + (x + Math.cos(a)*d - 6).toFixed(1) + '" y="' + (y + Math.sin(a)*d - 6).toFixed(1) + '" width="12" height="12" rx="2" fill="' + o.top + '" stroke="#c9b98a" transform="rotate(' + (q()*60) + ' ' + (x + Math.cos(a)*d).toFixed(1) + ' ' + (y + Math.sin(a)*d).toFixed(1) + ')"/>'; } break;
+    case 'rings': for (i = 0; i < 12; i++){ a = q()*6.28; d = q()*R*.75; s += '<circle cx="' + (x + Math.cos(a)*d).toFixed(1) + '" cy="' + (y + Math.sin(a)*d).toFixed(1) + '" r="5" fill="' + o.top + '" stroke="' + o.base + '" stroke-width="2.5"/>'; } break;
+    case 'dots': for (i = 0; i < 26; i++){ a = q()*6.28; d = q()*R*.85; s += '<circle cx="' + (x + Math.cos(a)*d).toFixed(1) + '" cy="' + (y + Math.sin(a)*d).toFixed(1) + '" r="3" fill="' + o.top + '"/>'; } s += '<circle cx="' + x + '" cy="' + y + '" r="3" fill="#b8231a"/>'; break;
+    case 'balls': s += '<circle cx="' + (x - R*.3) + '" cy="' + (y - R*.1) + '" r="' + R*.36 + '" fill="' + o.top + '"/><circle cx="' + (x + R*.32) + '" cy="' + (y + R*.15) + '" r="' + R*.36 + '" fill="#6b2c12"/><circle cx="' + (x - R*.42) + '" cy="' + (y - R*.22) + '" r="' + R*.1 + '" fill="#fff" opacity=".5"/><circle cx="' + (x + R*.2) + '" cy="' + (y + R*.02) + '" r="' + R*.1 + '" fill="#fff" opacity=".5"/>'; break;
+    case 'nuts': for (i = 0; i < 8; i++){ a = q()*6.28; d = q()*R*.6; s += '<ellipse cx="' + (x + Math.cos(a)*d).toFixed(1) + '" cy="' + (y + Math.sin(a)*d).toFixed(1) + '" rx="4" ry="2" fill="' + (i%2 ? o.top : '#c58a3a') + '" transform="rotate(' + (q()*180) + ' ' + (x + Math.cos(a)*d).toFixed(1) + ' ' + (y + Math.sin(a)*d).toFixed(1) + ')"/>'; } break;
+    case 'spiral': for (i = 0; i < 3; i++){ var cx = x + (i - 1)*R*.45, cy = y + (i%2 ? R*.2 : -R*.15); s += '<path d="M' + cx + ' ' + cy + ' m-2 0 a2 2 0 1 1 4 0 a5 5 0 1 1 -10 0 a8 8 0 1 1 16 0 a11 11 0 1 1 -22 0" fill="none" stroke="' + o.top + '" stroke-width="4" stroke-linecap="round"/>'; } break;
+    case 'chunks': for (i = 0; i < 7; i++){ a = q()*6.28; d = q()*R*.6; s += '<rect x="' + (x + Math.cos(a)*d - 5).toFixed(1) + '" y="' + (y + Math.sin(a)*d - 4).toFixed(1) + '" width="10" height="8" rx="2" fill="' + o.top + '" stroke="#7a2a0a"/>'; } break;
+  }
+  return s;
+}
+function drawPlate(){
+  var s = '<defs>' +
+    '<radialGradient id="steelP" cx=".45" cy=".4" r=".65"><stop offset="0" stop-color="#fbfcfd"/><stop offset=".55" stop-color="#cfd5db"/><stop offset=".9" stop-color="#8c949c"/><stop offset="1" stop-color="#5e666e"/></radialGradient>' +
+    '<radialGradient id="steelR" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#b9c0c7"/><stop offset="1" stop-color="#6d757e"/></radialGradient>' +
+    '<radialGradient id="steelIn" cx=".6" cy=".65" r=".7"><stop offset="0" stop-color="#f3f5f7"/><stop offset=".8" stop-color="#9aa2aa"/><stop offset="1" stop-color="#5e666e"/></radialGradient>' +
+    '</defs>';
+  s += '<circle cx="250" cy="262" r="236" fill="rgba(0,0,0,.35)"/>';
+  s += '<circle cx="250" cy="250" r="236" fill="url(#steelP)" stroke="#5e666e" stroke-width="2"/>';
+  s += '<circle cx="250" cy="250" r="214" fill="none" stroke="#e8ecef" stroke-width="3" opacity=".8"/>';
+  for (var i = 0; i < 10; i++) s += '<circle cx="250" cy="250" r="' + (40 + i*17) + '" fill="none" stroke="#fff" stroke-width=".6" opacity=".25"/>';
+  // 飯：中央小山
+  var rice = SLOTS[5], ro = pick.rice && rice.opts.find(function(o){ return o.id === pick.rice; });
+  if (ro){
+    var q = seeded(42);
+    s += '<ellipse cx="255" cy="278" rx="66" ry="52" fill="rgba(0,0,0,.12)"/><ellipse cx="252" cy="268" rx="64" ry="50" fill="' + ro.base + '"/>';
+    for (var k = 0; k < 120; k++){ var a = q()*6.28, d = Math.sqrt(q())*58; s += '<ellipse cx="' + (252 + Math.cos(a)*d).toFixed(1) + '" cy="' + (268 + Math.sin(a)*d*.78).toFixed(1) + '" rx="3.4" ry="1.3" fill="' + (ro.id === 'biryani' && k%4 === 0 ? ro.top : '#fff') + '" opacity=".9" transform="rotate(' + (q()*180|0) + ' ' + (252 + Math.cos(a)*d).toFixed(1) + ' ' + (268 + Math.sin(a)*d*.78).toFixed(1) + ')"/>'; }
+    if (ro.id === 'jeera') for (var j = 0; j < 30; j++){ var a2 = q()*6.28, d2 = Math.sqrt(q())*55; s += '<ellipse cx="' + (252 + Math.cos(a2)*d2).toFixed(1) + '" cy="' + (268 + Math.sin(a2)*d2*.78).toFixed(1) + '" rx="2.6" ry="1" fill="' + ro.top + '"/>'; }
+    if (ro.id === 'biryani') s += '<circle cx="232" cy="256" r="5" fill="#2e7d32"/><circle cx="272" cy="282" r="4" fill="#e0262f"/><circle cx="262" cy="248" r="4" fill="#ffcb05"/>';
+  } else s += '<ellipse cx="252" cy="268" rx="64" ry="50" fill="none" stroke="#7c848c" stroke-width="2" stroke-dasharray="6 7"/><text x="252" y="274" text-anchor="middle" font-size="16" fill="#5e666e" font-family="Gill Sans,Trebuchet MS,sans-serif">CHAWAL</text>';
+  // 餅：疊在盤左下
+  var roti = SLOTS[6], rt = pick.roti && roti.opts.find(function(o){ return o.id === pick.roti; });
+  if (rt){
+    var q2 = seeded(7);
+    for (var n = 0; n < (rt.id === 'lachha' ? 1 : 2); n++){
+      var cx = 118 + n*18, cy = 352 - n*14;
+      s += '<circle cx="' + (cx + 3) + '" cy="' + (cy + 5) + '" r="62" fill="rgba(0,0,0,.18)"/><circle cx="' + cx + '" cy="' + cy + '" r="62" fill="' + rt.base + '" stroke="#a8692a" stroke-width="2"/>';
+      if (rt.id === 'lachha') for (var sp = 0; sp < 6; sp++) s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (10 + sp*9) + '" fill="none" stroke="#b77a32" stroke-width="2.5" opacity=".7"/>';
+      else for (var b = 0; b < 16; b++){ var a3 = q2()*6.28, d3 = q2()*52; s += '<ellipse cx="' + (cx + Math.cos(a3)*d3).toFixed(1) + '" cy="' + (cy + Math.sin(a3)*d3).toFixed(1) + '" rx="' + (3 + q2()*6).toFixed(1) + '" ry="' + (2 + q2()*4).toFixed(1) + '" fill="' + rt.top + '" opacity=".75"/>'; }
+      if (rt.id === 'naan') s += '<ellipse cx="' + (cx - 14) + '" cy="' + (cy - 16) + '" rx="26" ry="12" fill="#fff8c8" opacity=".4"/>';
+    }
+  } else s += '<circle cx="118" cy="352" r="62" fill="none" stroke="#7c848c" stroke-width="2" stroke-dasharray="6 7"/><text x="118" y="358" text-anchor="middle" font-size="16" fill="#5e666e" font-family="Gill Sans,Trebuchet MS,sans-serif">ROTI</text>';
+  // 小碗
+  SLOTS.forEach(function(sl, si){
+    if (!sl.r) return;
+    var x = sl.pos[0], y = sl.pos[1];
+    s += steelBowl(x, y, sl.r);
+    var o = pick[sl.k] && sl.opts.find(function(z){ return z.id === pick[sl.k]; });
+    if (o) s += '<g class="fill">' + content(o, x, y, sl.r, si*31 + 5) + '</g>';
+    else s += '<text x="' + x + '" y="' + (y + 5) + '" text-anchor="middle" font-size="' + (sl.r > 40 ? 15 : 11) + '" fill="#5e666e" font-family="Gill Sans,Trebuchet MS,sans-serif">' + sl.en.toUpperCase() + '</text>';
+  });
+  // 洋蔥檸檬裝飾
+  s += '<circle cx="168" cy="252" r="13" fill="#c2185b" opacity=".85"/><circle cx="168" cy="252" r="8" fill="none" stroke="#f8bbd0" stroke-width="2"/><path d="M180 232 a14 14 0 0 1 22 10 z" fill="#c6e05a" stroke="#6b8e23" stroke-width="2"/>';
+  $('#plate').innerHTML = s;
+}
+
+/* 選單 */
+function chili(){ return '<svg viewBox="0 0 24 24"><path d="M6 6 C2 12 6 22 20 22 C14 18 12 12 11 7Z" fill="#e0262f" stroke="#120a06" stroke-width="1.5"/><path d="M6 6 C7 3 10 3 11 7" fill="#13a538" stroke="#120a06" stroke-width="1.5"/></svg>'; }
+var menu = $('#menu');
+SLOTS.forEach(function(sl){
+  var g = document.createElement('div'); g.className = 'grp'; g.style.setProperty('--c', sl.c);
+  g.innerHTML = '<h3>' + sl.en + ' <span class="dev">' + sl.dev + '</span> <span>' + sl.zh + '</span><small>選一樣</small></h3><div class="chips"></div>';
+  var box = g.querySelector('.chips');
+  sl.opts.forEach(function(o){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.style.setProperty('--dot', o.base);
+    b.innerHTML = '<i></i>' + o.en + ' <em>' + o.zh + '・₹' + o.p + (o.h ? '・辣 ' + o.h : '') + '</em>';
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function(){
+      audio();
+      pick[sl.k] = pick[sl.k] === o.id ? null : o.id;
+      box.querySelectorAll('.chip').forEach(function(x){ x.setAttribute('aria-pressed', 'false'); });
+      if (pick[sl.k]) b.setAttribute('aria-pressed', 'true');
+      clang(sl.r ? 900 + sl.r*6 : 600); update();
+    });
+    box.appendChild(b);
+  });
+  menu.appendChild(g);
+});
+
+/* 辣度與帳單 */
+var chilis = $('#chilis'); chilis.innerHTML = Array(6).join('<i>' + chili() + '</i>');
+var HEAT = ['不辣 Mild','微辣 Thoda','中辣 Medium','大辣 Teekha','爆辣 Bahut teekha','司機特辣 Driver special'];
+function update(){
+  drawPlate();
+  var items = [], heat = 0;
+  SLOTS.forEach(function(sl){ var o = pick[sl.k] && sl.opts.find(function(z){ return z.id === pick[sl.k]; }); if (o){ items.push([o.en + '　' + o.zh, o.p]); heat += o.h; } });
+  if (chai) items.push(['Kadak Chai　奶茶' + (chai.foam > .6 ? '（厚泡）' : ''), 20]);
+  var lvl = Math.min(5, Math.round(heat/2));
+  chilis.querySelectorAll('i').forEach(function(c, i){ c.classList.toggle('on', i < lvl); });
+  $('#heatTxt').textContent = HEAT[lvl];
+  $('#billList').innerHTML = items.length ? items.map(function(it){ return '<li><span>' + it[0] + '</span><span>₹' + it[1] + '</span></li>'; }).join('') : '<li><span>盤子還是空的</span><span></span></li>';
+  $('#total').textContent = '₹' + items.reduce(function(s, it){ return s + it[1]; }, 0);
+}
+
+/* 上菜 */
+$('#serve').addEventListener('click', function(){
+  audio();
+  var n = SLOTS.filter(function(sl){ return pick[sl.k]; }).length;
+  var msg = n === 0 ? '先選幾樣吧，盤子是空的。' : n < SLOTS.length ? '來了！還有 ' + (SLOTS.length - n) + ' 格空著，司機說沒關係。Chalo, khaana khao!' : '整盤滿了，Shabaash！慢慢吃再上路。';
+  $('#served').textContent = msg;
+  ringAll();
+});
+
+/* 拉茶：按住時壺的高度來回擺動，越高越起泡 */
+var cs = $('#chaiSvg'), pulling = false, fill = 0, foam = 0, t0 = 0, raf = 0;
+function drawChai(h){
+  var level = 200 - fill*112, potY = 30 - h*20, streamTop = potY + 38;
+  var s = '<defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".4" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".45"/></linearGradient></defs>';
+  // 茶壺
+  s += '<g transform="translate(' + (78 + h*6) + ' ' + potY + ') rotate(' + (pulling ? -38 : -8) + ')"><path d="M-22 0 h44 l-4 34 h-36z" fill="#c9cfd5" stroke="#120a06" stroke-width="3"/><path d="M-22 6 h-14" stroke="#120a06" stroke-width="5" stroke-linecap="round"/><path d="M22 4 l14 -10" stroke="#120a06" stroke-width="4" stroke-linecap="round"/><ellipse cx="0" cy="0" rx="22" ry="5" fill="#8a929a" stroke="#120a06" stroke-width="2"/></g>';
+  if (pulling && fill < 1) s += '<path d="M' + (98 + h*6) + ' ' + streamTop + ' Q' + (82) + ' ' + (streamTop + 40) + ' 76 ' + level + '" stroke="#b7743a" stroke-width="5" fill="none" stroke-linecap="round" opacity=".95"/>';
+  // 玻璃杯
+  s += '<path d="M46 88 h60 l-7 112 h-46z" fill="rgba(255,255,255,.18)" stroke="#120a06" stroke-width="3"/>';
+  if (fill > 0){
+    var fy = level, lx = 46 + (fy - 88)*(7/112), rx = 106 - (fy - 88)*(7/112);
+    s += '<path d="M' + lx.toFixed(1) + ' ' + fy.toFixed(1) + ' H' + rx.toFixed(1) + ' L99 200 H53 Z" fill="#b97a3f"/>';
+    var fh = Math.min(30, foam*30)*fill;
+    if (fh > 1) s += '<path d="M' + (lx + 1).toFixed(1) + ' ' + fy.toFixed(1) + ' H' + (rx - 1).toFixed(1) + ' v' + fh.toFixed(1) + ' H' + (lx + 1).toFixed(1) + 'z" fill="#f2dcbc"/>' +
+      '<g fill="#fff8ea">' + [0,1,2,3,4].map(function(i){ return '<circle cx="' + (lx + 8 + i*10).toFixed(1) + '" cy="' + (fy + 2).toFixed(1) + '" r="' + (3 + (i%2)*2) + '"/>'; }).join('') + '</g>';
+  }
+  s += '<path d="M50 92 L54 196" stroke="url(#gl)" stroke-width="6"/>';
+  cs.innerHTML = s;
+}
+function loop(now){
+  if (!pulling) return;
+  var t = (now - t0)/1000, h = (Math.sin(t*3.2 - Math.PI/2) + 1)/2, dt = Math.min(.05, (now - (loop.last || now))/1000);
+  loop.last = now;
+  fill = Math.min(1, fill + dt*(.16 + h*.12));
+  foam = Math.min(1, foam + dt*h*h*.55);
+  drawChai(h); pour(h);
+  if (fill >= 1){ stopPull(true); return; }
+  raf = requestAnimationFrame(loop);
+}
+function startPull(e){ e.preventDefault(); audio(); if (fill >= 1){ fill = 0; foam = 0; } pulling = true; t0 = performance.now(); loop.last = 0; $('#pull').classList.add('hold'); $('#chaiNote').textContent = '拉高……再拉高……'; raf = requestAnimationFrame(loop); }
+function stopPull(full){
+  if (!pulling) return; pulling = false; cancelAnimationFrame(raf); $('#pull').classList.remove('hold'); pourStop();
+  drawChai(0);
+  if (fill >= 1){
+    chai = {foam:foam};
+    $('#chaiNote').textContent = foam > .75 ? 'Ekdum kadak！泡又厚又綿，滿分。' : foam > .45 ? '不錯，泡再厚一點會更香。' : '有點平，下次讓壺拉得更高。';
+    $('#pull').textContent = '再拉一杯'; ringOne(); update();
+  } else $('#chaiNote').textContent = '還沒滿（' + Math.round(fill*100) + '%），按住繼續倒。';
+}
+var pb = $('#pull');
+pb.addEventListener('pointerdown', startPull);
+['pointerup','pointerleave','pointercancel'].forEach(function(ev){ pb.addEventListener(ev, function(){ stopPull(false); }); });
+pb.addEventListener('keydown', function(e){ if ((e.key === ' ' || e.key === 'Enter') && !pulling && !e.repeat) startPull(e); });
+pb.addEventListener('keyup', function(e){ if (e.key === ' ' || e.key === 'Enter') stopPull(false); });
+
+/* 鈴鐺 */
+var bells = $('#bells');
+for (var i = 0; i < 14; i++){ var b = document.createElement('div'); b.className = 'bell'; b.style.setProperty('--h', (18 + (i%3)*12) + 'px'); b.innerHTML = '<b></b>'; bells.appendChild(b); }
+bells.addEventListener('pointerover', function(e){ var b = e.target.closest('.bell'); if (b){ ring(b); } });
+function ring(b){ b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); jingle(1 + Math.random()*.3); }
+function ringOne(){ ring(bells.children[Math.floor(Math.random()*8)]); }
+function ringAll(){ Array.prototype.forEach.call(bells.children, function(b, i){ setTimeout(function(){ ring(b); }, i*60); }); }
+
+/* 聲音 */
+var ac = null, pourNode = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function clang(f){
+  if (!ac) return; var t = ac.currentTime;
+  [1, 2.76, 5.4].forEach(function(m, i){ var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f*m; g.gain.setValueAtTime(.05/(i + 1), t); g.gain.exponentialRampToValueAtTime(.0001, t + .6/(i + 1)); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + .7); });
+}
+function jingle(m){
+  if (!ac) return; var t = ac.currentTime;
+  [2100, 2650, 3300].forEach(function(f, i){ var o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = f*m; g.gain.setValueAtTime(.0001, t + i*.03); g.gain.exponentialRampToValueAtTime(.03, t + i*.03 + .005); g.gain.exponentialRampToValueAtTime(.0001, t + i*.03 + .5); o.connect(g).connect(ac.destination); o.start(t + i*.03); o.stop(t + .7); });
+}
+function pour(h){
+  if (!ac) return;
+  if (!pourNode){
+    var buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+    var s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
+    var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; var g = ac.createGain(); g.gain.value = 0;
+    s.connect(f).connect(g).connect(ac.destination); s.start(); pourNode = {s:s, f:f, g:g};
+  }
+  pourNode.f.frequency.value = 500 + h*1400; pourNode.g.gain.value = .05 + h*.06;
+}
+function pourStop(){ if (pourNode){ try { pourNode.s.stop(); } catch(e){} pourNode = null; } }
+
+drawChai(0); update();
+})();
+</script>
+</body>
+</html>

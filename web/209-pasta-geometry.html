@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trattoria Geometrica · 麵型幾何圖鑑</title>
+<meta name="description" content="一間把菜單做成數學圖鑑的義大利小館：八種乾麵各寫成一組參數方程式，以版畫線條即時繪出，可拖曳旋轉、調整條紋與扭轉，看名字的由來、煮麵時間與配醬，下鍋計時後加入點單。">
+<style>
+:root{--paper:#f3ecdc;--paper2:#ebe2cd;--ink:#33261f;--soft:#7a6a5c;--rule:#b9a98f;--red:#bf3a21}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{overflow-x:clip;background:var(--paper);color:var(--ink);font-family:"Hoefler Text","Baskerville","Baskerville Old Face","Songti TC","Noto Serif CJK TC",Georgia,serif;
+  background-image:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.5),transparent 60%),radial-gradient(ellipse at 80% 90%,rgba(160,130,90,.12),transparent 60%)}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+.it{font-family:"Times New Roman",Times,serif;font-style:italic}
+.sc{font-variant:small-caps;letter-spacing:.08em}
+.head{max-width:1240px;margin:0 auto;padding:22px 20px 0;display:flex;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:1px solid var(--rule);padding-bottom:10px;flex-wrap:wrap}
+.head h1{margin:0;font-weight:400;font-size:clamp(22px,3vw,30px);letter-spacing:.06em}
+.head h1 span{color:var(--red)}
+.head p{margin:0;font-style:italic;color:var(--soft);font-size:15px}
+.book{max-width:1240px;margin:0 auto;padding:20px;display:grid;grid-template-columns:190px minmax(0,1fr) 360px;gap:30px}
+.book>*{min-width:0}
+/* 目錄 */
+.index h2{margin:0 0 8px;font-weight:400;font-size:13px;letter-spacing:.3em;color:var(--soft)}
+.index ol{list-style:none;margin:0;padding:0}
+.index button{display:flex;gap:10px;width:100%;text-align:left;padding:8px 0;border-bottom:1px dotted var(--rule);font-size:17px;align-items:baseline;transition:color .3s}
+.index button i{font-style:normal;font-size:12px;color:var(--soft);width:30px;flex:none;letter-spacing:.06em}
+.index button small{display:block;font-size:12px;color:var(--soft);margin-top:2px}
+.index button[aria-current=true]{color:var(--red)}
+.index button[aria-current=true] i{color:var(--red)}
+/* 圖版 */
+.plate{position:relative;border:1px solid var(--ink);padding:6px;align-self:start}
+.plate::before{content:"";position:absolute;inset:3px;border:.5px solid var(--ink);pointer-events:none}
+.plate .tav{position:absolute;top:14px;left:18px;font-size:13px;letter-spacing:.24em;z-index:1}
+.plate .rot{position:absolute;top:14px;right:18px;font-size:12px;color:var(--soft);font-style:italic;z-index:1}
+canvas{display:block;width:100%;aspect-ratio:1/1;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+.plate figcaption{text-align:center;font-style:italic;font-size:14px;color:var(--soft);padding:6px 10px 10px}
+/* 文字欄 */
+.text h2{margin:0;font-weight:400;font-size:clamp(34px,4vw,48px);line-height:1;letter-spacing:.01em}
+.text .zh{font-size:18px;margin-top:6px;letter-spacing:.2em}
+.text .ety{margin:14px 0 0;font-size:15px;line-height:1.8;color:#4a3a30}
+.text h3{margin:22px 0 6px;font-weight:400;font-size:12px;letter-spacing:.3em;color:var(--soft);border-top:1px solid var(--rule);padding-top:12px}
+.eq{font-family:"Times New Roman",Times,serif;font-size:17px;line-height:1.9;font-style:italic;overflow-x:auto}
+.eq .n{font-style:normal}
+.eq .v{color:var(--red);font-style:normal}
+.ctl{display:flex;align-items:center;gap:12px;margin-top:8px;font-size:14px}
+.ctl label{flex:none;font-style:italic}
+input[type=range]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:20px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--paper);border:1px solid var(--ink);margin-top:-6px}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--paper);border:1px solid var(--ink)}
+input[type=range]:focus-visible{outline:1px dashed var(--red)}
+.dish{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:baseline}
+.dish b{font-weight:400;font-size:19px}
+.dish .pr{font-size:19px}
+.dish p{grid-column:1/-1;margin:2px 0 0;font-size:14px;line-height:1.7;color:#4a3a30}
+.btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btns button{border:1px solid var(--ink);padding:9px 14px;font-size:14px;letter-spacing:.12em;transition:background .3s,color .3s}
+.btns button:hover{background:var(--ink);color:var(--paper)}
+.btns .add{background:var(--red);border-color:var(--red);color:var(--paper)}
+.btns .add:hover{background:#9c2c16}
+.timer{margin-top:12px;font-size:15px;min-height:1.6em;font-style:italic}
+.timer b{font-style:normal;font-family:"Times New Roman",serif;font-size:24px;color:var(--red);margin-right:6px}
+/* 點單 */
+.comanda{max-width:1240px;margin:0 auto;padding:0 20px 40px}
+.slip{border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);padding:12px 0;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+.slip h2{margin:0;font-weight:400;font-size:13px;letter-spacing:.3em}
+.slip ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;flex:1;font-style:italic}
+.slip li button{font-size:12px;color:var(--soft);margin-left:4px}
+.slip .tot{font-size:20px}
+.foot{text-align:center;color:var(--soft);font-size:13px;padding:0 20px 30px;font-style:italic}
+@media (max-width:1080px){
+  .book{grid-template-columns:minmax(0,1fr) 340px}
+  .index{grid-column:1/-1}
+  .index ol{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+  .index li{flex:none}
+  .index button{border:1px solid var(--rule);padding:6px 12px;white-space:nowrap;font-size:15px}
+  .index button small{display:none}
+}
+@media (max-width:760px){
+  .book{grid-template-columns:1fr;gap:20px}
+}
+@media (prefers-reduced-motion:reduce){.index button{transition:none}}
+</style>
+</head>
+<body>
+<header class="head">
+  <h1>Trattoria <span>Geometrica</span></h1>
+  <p>Atlante della pasta · 麵型幾何圖鑑 · 今日八款乾麵</p>
+</header>
+<main class="book">
+  <nav class="index" aria-label="目錄">
+    <h2 class="sc">Indice</h2>
+    <ol id="index"></ol>
+  </nav>
+  <figure class="plate" style="margin:0">
+    <span class="tav sc" id="tav">Tav. I</span>
+    <span class="rot">拖曳旋轉</span>
+    <canvas id="cv" aria-label="麵型的立體版畫，可拖曳旋轉"></canvas>
+    <figcaption id="cap"></figcaption>
+  </figure>
+  <article class="text" aria-live="polite">
+    <h2 id="name"></h2>
+    <div class="zh" id="zh"></div>
+    <p class="ety" id="ety"></p>
+    <h3 class="sc">Equazioni · 參數方程式</h3>
+    <div class="eq" id="eq"></div>
+    <div class="ctl"><label for="param" id="plabel"></label><input type="range" id="param"></div>
+    <h3 class="sc">In cucina · 今日這樣煮</h3>
+    <div class="dish" id="dish"></div>
+    <div class="btns">
+      <button type="button" id="cook">下鍋計時</button>
+      <button type="button" class="add" id="add">加入點單</button>
+    </div>
+    <div class="timer" id="timer"></div>
+  </article>
+</main>
+<section class="comanda" aria-label="點單">
+  <div class="slip">
+    <h2 class="sc">Comanda</h2>
+    <ul id="order"><li>尚未點餐</li></ul>
+    <span class="tot" id="tot">€0</span>
+  </div>
+</section>
+<p class="foot">方程式為本店自行擬寫的近似模型，不是工廠模具的尺寸。計時一秒代表一分鐘。</p>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+var PI = Math.PI, TAU = PI*2;
+var ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
+/* 每款麵：參數曲面 f(u, v, k) → [x, y, z]，u、v ∈ [0, 1] */
+var PASTA = [
+  {id:'rigatoni',it:'Rigatoni',zh:'粗紋管麵',ety:'來自 <i>rigato</i>「有條紋的」。粗管外壁刻著直紋，醬汁會卡在紋路裡，管腔還能藏住碎肉。',
+   nu:72,nv:18,k:{l:'條紋數',min:8,max:24,step:2,val:16},min:12,
+   f:function(u, v, k){ var t = TAU*u, r = 1 + .055*Math.cos(k*t); return [r*Math.cos(t), r*Math.sin(t), 4.2*(v - .5)]; },
+   eq:function(k){ return 'x = (1 + 0.055 cos <span class="v">' + k + '</span>θ) cos θ<br>y = (1 + 0.055 cos <span class="v">' + k + '</span>θ) sin θ<br>z = 4.2 (<span class="n">v</span> − ½)　θ = 2π<span class="n">u</span>'; },
+   dish:['Rigatoni alla Gricia','豬頰肉煸出油，加佩克里諾起司與大量黑胡椒，羅馬的老做法。',14]},
+  {id:'penne',it:'Penne Rigate',zh:'斜管麵',ety:'<i>penna</i> 是「羽毛筆」：兩端斜切，像削尖的鵝毛筆尖。<i>rigate</i> 表示外壁有細紋。',
+   nu:72,nv:16,k:{l:'斜切角',min:.3,max:1.4,step:.1,val:.9},min:11,
+   f:function(u, v, k){ var t = TAU*u, r = .62 + .02*Math.cos(26*t), x = r*Math.cos(t); return [x, r*Math.sin(t), 3.6*(v - .5) + k*x]; },
+   eq:function(k){ return 'x = r cos θ,　y = r sin θ<br>z = 3.6 (<span class="n">v</span> − ½) + <span class="v">' + (+k).toFixed(1) + '</span> x<br>r = 0.62 + 0.02 cos 26θ'; },
+   dish:['Penne all’Arrabbiata','番茄、大蒜與乾辣椒，「生氣的」辣醬，最後灑巴西里。',12]},
+  {id:'fusilli',it:'Fusilli',zh:'螺旋麵',ety:'<i>fuso</i> 是紡錘。早年把麵片繞在鐵棒上捲成螺旋，像紡出來的線。',
+   nu:20,nv:110,k:{l:'圈數',min:1,max:4,step:.25,val:2.5},min:10,
+   f:function(u, v, k){ var w = 2*u - 1, p = TAU*k*v, rr = .25 + .75*Math.abs(w); return [w*Math.cos(p)*(.95), w*Math.sin(p)*(.95), 4*(v - .5) + .18*w*w*Math.sign(w)]; },
+   eq:function(k){ return 'x = s cos φ,　y = s sin φ<br>z = 4 (<span class="n">v</span> − ½)<br>φ = 2π · <span class="v">' + (+k).toFixed(2) + '</span> <span class="n">v</span>,　s = 2<span class="n">u</span> − 1'; },
+   dish:['Fusilli al Pesto','熱那亞青醬：羅勒、松子、帕瑪森與橄欖油，螺紋把青醬全部捲住。',13]},
+  {id:'farfalle',it:'Farfalle',zh:'蝴蝶麵',ety:'<i>farfalla</i> 就是蝴蝶。一片方形麵皮在中間捏緊，兩翼自然翹起，邊緣用花邊刀切出鋸齒。',
+   nu:60,nv:30,k:{l:'中間捏緊',min:.15,max:.7,step:.05,val:.35},min:11,
+   f:function(u, v, k){ var a = 2*u - 1, b = 2*v - 1, w = k + (1 - k)*Math.pow(Math.abs(a), .9);
+     return [1.7*a + .05*Math.sin(34*PI*v)*Math.pow(Math.abs(a), 10), 1.15*b*w, .55*Math.abs(a)*(1 - Math.cos(PI*b))*.5 + .12*Math.cos(PI*a*.5)*(1 - b*b)]; },
+   eq:function(k){ return 'x = 1.7 a,　y = 1.15 b [<span class="v">' + (+k).toFixed(2) + '</span> + (1 − <span class="v">' + (+k).toFixed(2) + '</span>) |a|<sup>0.9</sup>]<br>z = 0.275 |a| (1 − cos πb)<br>a = 2<span class="n">u</span> − 1,　b = 2<span class="n">v</span> − 1'; },
+   dish:['Farfalle Salmone e Piselli','煙燻鮭魚、豌豆與少許奶油，蝴蝶翅膀上沾著淡粉紅。',15]},
+  {id:'conchiglie',it:'Conchiglie',zh:'貝殼麵',ety:'<i>conchiglia</i> 是貝殼。外面有細紋、裡面是空腔，豆子和碎肉醬會被兜在殼裡。',
+   nu:56,nv:40,k:{l:'捲曲',min:.8,max:1.6,step:.1,val:1.2},min:12,
+   f:function(u, v, k){ var t = 2*v - 1, a = PI*k*(u - .5)*(1 + .3*t*t), r = (1 - .55*t*t)*(1 + .035*Math.cos(30*PI*u));
+     return [1.5*t, -r*Math.cos(a)*.8, r*Math.sin(a)]; },
+   eq:function(k){ return 'x = 1.5 t,　t = 2<span class="n">v</span> − 1<br>y = −0.8 r cos α,　z = r sin α<br>α = π · <span class="v">' + (+k).toFixed(1) + '</span> (<span class="n">u</span> − ½)(1 + 0.3 t²)<br>r = (1 − 0.55 t²)(1 + 0.035 cos 30π<span class="n">u</span>)'; },
+   dish:['Conchiglie con Ricotta','番茄慢燉後拌進瑞可塔起司，每個殼裡都有一口奶香。',13]},
+  {id:'orecchiette',it:'Orecchiette',zh:'貓耳朵麵',ety:'<i>orecchietta</i> 是「小耳朵」。普利亞的主婦用刀尖在木板上一拖，再用拇指翻成小碗。',
+   nu:28,nv:64,k:{l:'凹陷深度',min:.15,max:.7,step:.05,val:.45},min:13,
+   f:function(u, v, k){ var r = u, t = TAU*v, z = k*(1 - r*r) + .22*Math.exp(-Math.pow((r - .9)/.09, 2)) + .03*Math.sin(5*t)*r;
+     return [r*Math.cos(t), r*Math.sin(t)*.92, -z]; },
+   eq:function(k){ return 'x = ρ cos θ,　y = 0.92 ρ sin θ<br>z = −[<span class="v">' + (+k).toFixed(2) + '</span>(1 − ρ²) + 0.22 e<sup>−((ρ−0.9)/0.09)²</sup>]<br>ρ = <span class="n">u</span>,　θ = 2π<span class="n">v</span>'; },
+   dish:['Orecchiette alle Cime di Rapa','蕪菁葉、大蒜、鯷魚與辣椒，普利亞最家常的一盤。',14]},
+  {id:'campanelle',it:'Campanelle',zh:'鈴鐺麵',ety:'<i>campanella</i> 是小鈴鐺，也有人叫它 <i>gigli</i>（百合）。一片花邊麵皮捲成喇叭，開口一圈波浪。',
+   nu:90,nv:26,k:{l:'花瓣數',min:4,max:14,step:1,val:9},min:10,
+   f:function(u, v, k){ var t = TAU*1.08*u, r = .12 + 1.05*Math.pow(v, 1.35) + .13*Math.sin(k*t)*Math.pow(v, 6);
+     return [r*Math.cos(t), r*Math.sin(t), 2.4*v - 1.2 + .1*Math.sin(k*t)*Math.pow(v, 6)]; },
+   eq:function(k){ return 'x = r cos θ,　y = r sin θ,　θ = 2.16π<span class="n">u</span><br>r = 0.12 + 1.05 <span class="n">v</span><sup>1.35</sup> + 0.13 sin(<span class="v">' + k + '</span>θ) <span class="n">v</span><sup>6</sup><br>z = 2.4<span class="n">v</span> − 1.2'; },
+   dish:['Campanelle ai Funghi','牛肝菌與蘑菇炒香，加一點鮮奶油，鈴鐺口兜住菇丁。',14]},
+  {id:'casarecce',it:'Casarecce',zh:'捲邊麵',ety:'<i>casareccio</i> 意思是「家常的」。西西里的短麵，斷面像捲起來的 S，兩道溝槽吸醬。',
+   nu:60,nv:24,k:{l:'扭轉',min:0,max:1.6,step:.1,val:.5},min:11,
+   f:function(u, v, k){ var a = 3.3*PI*(u - .5), x0 = .42*Math.sin(a), y0 = .26*(1 - Math.cos(a))*Math.sign(a)*.9, tw = k*(v - .5);
+     return [x0*Math.cos(tw) - y0*Math.sin(tw), x0*Math.sin(tw) + y0*Math.cos(tw), 3.4*(v - .5)]; },
+   eq:function(k){ return 'x<sub>0</sub> = 0.42 sin α,　y<sub>0</sub> = 0.234 (1 − cos α) sgn α<br>α = 3.3π (<span class="n">u</span> − ½),　z = 3.4 (<span class="n">v</span> − ½)<br>斷面再繞 z 軸扭轉 <span class="v">' + (+k).toFixed(1) + '</span>(<span class="n">v</span> − ½)'; },
+   dish:['Casarecce alla Norma','炸茄子、番茄與刨碎的鹹瑞可塔，卡塔尼亞的經典。',13]}
+];
+
+var cv = $('#cv'), g = cv.getContext('2d'), W = 600, DPR = 1;
+var cur = 0, k = PASTA[0].k.val, yaw = .7, pitch = -.45, dragging = null, idle = 0, cook = 0, cooking = null;
+var mesh = null;
+
+function build(){
+  var p = PASTA[cur], nu = p.nu, nv = p.nv, pts = [], max = 0, cx = 0, cy = 0, cz = 0;
+  for (var j = 0; j <= nv; j++) for (var i = 0; i <= nu; i++){ var q = p.f(i/nu, j/nv, k); pts.push(q); cx += q[0]; cy += q[1]; cz += q[2]; }
+  var n = pts.length; cx /= n; cy /= n; cz /= n;
+  pts.forEach(function(q){ q[0] -= cx; q[1] -= cy; q[2] -= cz; max = Math.max(max, Math.hypot(q[0], q[1], q[2])); });
+  pts.forEach(function(q){ q[0] /= max; q[1] /= max; q[2] /= max; });
+  mesh = {pts:pts, nu:nu, nv:nv};
+}
+function size(){ DPR = Math.min(2, devicePixelRatio || 1); W = cv.clientWidth; cv.width = cv.height = W*DPR; g.setTransform(DPR, 0, 0, DPR, 0, 0); }
+window.addEventListener('resize', function(){ size(); });
+
+function mix(a, b, t){ return [a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t, a[2] + (b[2] - a[2])*t]; }
+var PAPER = [243,236,220], INK = [51,38,31];
+function draw(){
+  var c = W/2, f = W*.95, D = 3.4, scale = 1;
+  g.fillStyle = 'rgb(243,236,220)'; g.fillRect(0, 0, W, W);
+  // 版畫地影：斜線排線
+  g.save(); g.beginPath(); g.ellipse(c, c + W*.33, W*.26, W*.05, 0, 0, TAU); g.clip();
+  g.strokeStyle = 'rgba(51,38,31,.55)'; g.lineWidth = .7;
+  for (var x = -W*.3; x < W*.3; x += 4){ g.beginPath(); g.moveTo(c + x, c + W*.27); g.lineTo(c + x + W*.1, c + W*.39); g.stroke(); }
+  g.restore();
+  var cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  var P = mesh.pts, nu = mesh.nu, nv = mesh.nv, proj = new Array(P.length), cam = new Array(P.length);
+  for (var i = 0; i < P.length; i++){
+    var q = P[i], x1 = q[0]*cyw + q[2]*syw, z1 = -q[0]*syw + q[2]*cyw, y1 = q[1]*cp - z1*sp, z2 = q[1]*sp + z1*cp;
+    cam[i] = [x1, y1, z2];
+    var s = f/(D + z2)*1.1;
+    proj[i] = [c + x1*s*scale*1.0, c - y1*s*scale - W*.02];
+  }
+  var faces = [];
+  for (var j = 0; j < nv; j++) for (var ii = 0; ii < nu; ii++){
+    var a = j*(nu + 1) + ii, b = a + 1, d = a + nu + 1, e = d + 1;
+    var A = cam[a], B = cam[b], C = cam[e], Dd = cam[d];
+    var ux = C[0] - A[0], uy = C[1] - A[1], uz = C[2] - A[2], vx = Dd[0] - B[0], vy = Dd[1] - B[1], vz = Dd[2] - B[2];
+    var nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx, nl = Math.hypot(nx, ny, nz) || 1;
+    var lit = Math.abs((nx*-.45 + ny*.62 + nz*-.64)/nl);
+    var facing = nz/nl;
+    faces.push({i:[a, b, e, d], z:(A[2] + B[2] + C[2] + Dd[2])/4, l:lit, f:facing, edgeV:ii % 2 === 0});
+  }
+  faces.sort(function(p, q){ return q.z - p.z; });
+  // 生麵偏金黃、煮熟偏淡，帶光澤
+  var raw = [226,188,112], done = [238,214,160], body = mix(raw, done, cook);
+  g.lineJoin = 'round';
+  for (var fi = 0; fi < faces.length; fi++){
+    var F = faces[fi], p0 = proj[F.i[0]], p1 = proj[F.i[1]], p2 = proj[F.i[2]], p3 = proj[F.i[3]];
+    var dark = 1 - F.l, back = F.f > 0 ? .18 : 0;
+    var col = mix(mix(PAPER, body, .85), INK, Math.min(.85, .08 + dark*.62 + back));
+    g.fillStyle = 'rgb(' + (col[0]|0) + ',' + (col[1]|0) + ',' + (col[2]|0) + ')';
+    g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]); g.lineTo(p2[0], p2[1]); g.lineTo(p3[0], p3[1]); g.closePath(); g.fill();
+    g.strokeStyle = g.fillStyle; g.lineWidth = .6; g.stroke();
+    // 排線：只描一個方向的邊，暗處線較重
+    g.strokeStyle = 'rgba(51,38,31,' + (.12 + dark*.55 + back).toFixed(2) + ')'; g.lineWidth = .55 + dark*.5;
+    g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p3[0], p3[1]); g.stroke();
+    if (cook > .6 && F.l > .92){ g.fillStyle = 'rgba(255,255,255,' + ((cook - .6)*.6).toFixed(2) + ')'; g.fill(); }
+  }
+  // 圖版刻度
+  g.strokeStyle = 'rgba(51,38,31,.5)'; g.lineWidth = .6; g.font = 'italic 11px "Times New Roman",serif'; g.fillStyle = 'rgba(51,38,31,.6)';
+  g.beginPath(); g.moveTo(W*.08, W*.92); g.lineTo(W*.08 + 60, W*.92); g.stroke();
+  for (var t = 0; t <= 6; t++){ g.beginPath(); g.moveTo(W*.08 + t*10, W*.92); g.lineTo(W*.08 + t*10, W*.92 - (t%3 ? 3 : 6)); g.stroke(); }
+  g.fillText('1 cm', W*.08 + 64, W*.92 + 3);
+}
+
+/* 轉動 */
+cv.addEventListener('pointerdown', function(e){ dragging = {x:e.clientX, y:e.clientY, yaw:yaw, pitch:pitch}; cv.setPointerCapture(e.pointerId); idle = 0; });
+cv.addEventListener('pointermove', function(e){ if (!dragging) return; yaw = dragging.yaw + (e.clientX - dragging.x)*.01; pitch = Math.max(-1.4, Math.min(1.4, dragging.pitch + (e.clientY - dragging.y)*.01)); });
+cv.addEventListener('pointerup', function(){ dragging = null; }); cv.addEventListener('pointercancel', function(){ dragging = null; });
+cv.addEventListener('keydown', function(e){ if (e.key === 'ArrowLeft') yaw -= .15; if (e.key === 'ArrowRight') yaw += .15; if (e.key === 'ArrowUp') pitch -= .15; if (e.key === 'ArrowDown') pitch += .15; });
+cv.tabIndex = 0;
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, last = performance.now();
+function loop(now){
+  var dt = Math.min(.05, (now - last)/1000); last = now;
+  if (!dragging && !reduce){ idle += dt; if (idle > 1.2) yaw += dt*.35; }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* 目錄與文字 */
+var idx = $('#index');
+PASTA.forEach(function(p, i){
+  var li = document.createElement('li'), b = document.createElement('button'); b.type = 'button';
+  b.innerHTML = '<i>' + ROMAN[i] + '.</i><span>' + p.it + '<small>' + p.zh + '</small></span>';
+  b.addEventListener('click', function(){ select(i); });
+  li.appendChild(b); idx.appendChild(li);
+});
+function select(i){
+  cur = i; var p = PASTA[i]; k = p.k.val; cook = 0; stopCook(); $('#timer').textContent = '';
+  idx.querySelectorAll('button').forEach(function(b, j){ b.setAttribute('aria-current', j === i); });
+  $('#tav').textContent = 'Tav. ' + ROMAN[i];
+  $('#cap').textContent = 'Fig. ' + (i + 1) + ' — ' + p.it + '，軸測投影，版畫線條';
+  $('#name').textContent = p.it; $('#zh').textContent = p.zh; $('#ety').innerHTML = p.ety;
+  var r = $('#param'); r.min = p.k.min; r.max = p.k.max; r.step = p.k.step; r.value = p.k.val;
+  $('#plabel').textContent = p.k.l;
+  $('#dish').innerHTML = '<b>' + p.dish[0] + '</b><span class="pr">€' + p.dish[2] + '</span><p>' + p.dish[1] + '　煮麵時間約 ' + p.min + ' 分鐘。</p>';
+  eq(); build(); yaw = .7; pitch = -.45; idle = 0;
+  if (history.replaceState) history.replaceState(null, '', '#' + p.id);
+}
+function eq(){ $('#eq').innerHTML = PASTA[cur].eq(k); }
+$('#param').addEventListener('input', function(){ k = +this.value; eq(); build(); idle = 0; });
+
+/* 下鍋：一秒一分鐘 */
+function stopCook(){ clearInterval(cooking); cooking = null; $('#cook').textContent = '下鍋計時'; }
+$('#cook').addEventListener('click', function(){
+  audio();
+  if (cooking){ stopCook(); $('#timer').textContent = '撈起來了，' + Math.round(cook*PASTA[cur].min) + ' 分鐘。'; return; }
+  var total = PASTA[cur].min, left = total; cook = 0;
+  this.textContent = '撈起';
+  $('#timer').innerHTML = '<b>' + left + '′</b>水滾了，麵下鍋。';
+  cooking = setInterval(function(){
+    left--; cook = 1 - left/total; bubble();
+    if (left === 2) $('#timer').innerHTML = '<b>' + left + '′</b>留一杓煮麵水，等一下拌醬用。';
+    else if (left > 0) $('#timer').innerHTML = '<b>' + left + '′</b>' + (left > total/2 ? '大火保持滾。' : '快好了，咬一根試試。');
+    if (left <= 0){ stopCook(); $('#timer').innerHTML = '<b>0′</b>Al dente！中心還留一點白芯，正好。'; ding(); }
+  }, 1000);
+});
+var order = [];
+$('#add').addEventListener('click', function(){
+  audio(); order.push(PASTA[cur].dish); drawOrder(); ding(.5);
+});
+function drawOrder(){
+  $('#order').innerHTML = order.length ? order.map(function(d, i){ return '<li>' + d[0] + ' €' + d[2] + '<button type="button" data-i="' + i + '" aria-label="移除 ' + d[0] + '">×</button></li>'; }).join('') : '<li>尚未點餐</li>';
+  $('#tot').textContent = '€' + order.reduce(function(s, d){ return s + d[2]; }, 0);
+}
+$('#order').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b){ order.splice(+b.dataset.i, 1); drawOrder(); } });
+
+/* 聲音 */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function bubble(){
+  if (!ac) return;
+  for (var i = 0; i < 6; i++){
+    var t = ac.currentTime + Math.random()*.9, o = ac.createOscillator(), gg = ac.createGain(), f = 300 + Math.random()*500;
+    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f*2.2, t + .05);
+    gg.gain.setValueAtTime(.0001, t); gg.gain.exponentialRampToValueAtTime(.05, t + .01); gg.gain.exponentialRampToValueAtTime(.0001, t + .07);
+    o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .08);
+  }
+}
+function ding(v){
+  if (!ac) return; var t = ac.currentTime;
+  [880, 1320].forEach(function(f, i){ var o = ac.createOscillator(), gg = ac.createGain(); o.frequency.value = f; gg.gain.setValueAtTime(.0001, t + i*.1); gg.gain.exponentialRampToValueAtTime(.08*(v || 1), t + i*.1 + .01); gg.gain.exponentialRampToValueAtTime(.0001, t + i*.1 + .9); o.connect(gg).connect(ac.destination); o.start(t + i*.1); o.stop(t + 1.1); });
+}
+
+var start = PASTA.findIndex(function(p){ return '#' + p.id === location.hash; });
+size(); select(start < 0 ? 2 : start); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

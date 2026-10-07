@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>夜庭 · 第九道的擺盤</title>
+<meta name="description" content="一間只有十二個座位的品嚐菜單餐廳，第九道由你擺盤：在聚光燈下的白瓷寬緣盤上刷醬、點醬、放干貝或鴨胸、撒苗與花，主廚依留白、重心、盤緣、奇數與色彩給評語，最後拍一張出餐照。">
+<style>
+:root{--bg:#0a0908;--ink:#ede6da;--dim:#8a8378;--gold:#c8a96a;--line:rgba(200,169,106,.35)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
+body{overflow-x:clip;font-family:"Songti TC","Noto Serif CJK TC","PMingLiU",serif;font-weight:300}
+.dd{font-family:"Didot","Bodoni 72","Bodoni MT","Big Caslon",Georgia,serif}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+.top{display:flex;justify-content:space-between;align-items:flex-start;padding:22px clamp(16px,4vw,48px) 0;gap:16px}
+.top .course{font-style:italic;font-size:15px;letter-spacing:.08em;color:var(--dim)}
+.top .course b{display:block;font-style:normal;font-weight:400;font-size:clamp(28px,4vw,44px);letter-spacing:.02em;color:var(--ink);line-height:1.05;margin-top:4px}
+.top .house{text-align:right;font-size:12px;letter-spacing:.42em;color:var(--gold);line-height:2}
+.top .house span{display:block;letter-spacing:.2em;color:var(--dim);font-size:11px}
+.stage{position:relative;display:grid;place-items:center;margin-top:-10px}
+.stage::before{content:"";position:absolute;inset:-12% 0 0;background:radial-gradient(ellipse 42% 58% at 50% 46%,rgba(255,236,200,.13),rgba(255,236,200,.04) 55%,transparent 75%);pointer-events:none}
+canvas{display:block;touch-action:none;cursor:crosshair;position:relative}
+.hint{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.2em;color:var(--dim);white-space:nowrap;transition:opacity .8s;pointer-events:none}
+.hint.off{opacity:0}
+/* 工具 */
+.pass{max-width:980px;margin:6px auto 0;padding:0 16px 10px}
+.tools{display:flex;justify-content:center;gap:clamp(2px,1.2vw,14px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap}
+.tool{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 10px;color:var(--dim);transition:color .4s;min-width:62px}
+.tool svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.1}
+.tool span{font-size:12px;letter-spacing:.16em}
+.tool[aria-pressed=true]{color:var(--ink)}
+.tool[aria-pressed=true] svg{stroke:var(--gold)}
+.tool:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
+.sub{display:flex;justify-content:center;gap:10px;padding:12px 0 2px;min-height:48px;flex-wrap:wrap;align-items:center}
+.sw{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);padding:4px 8px;letter-spacing:.08em;transition:color .3s}
+.sw i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+.sw[aria-pressed=true]{color:var(--ink)}
+.sw[aria-pressed=true] i{box-shadow:0 0 0 1px var(--bg),0 0 0 2.5px var(--gold)}
+.acts{display:flex;justify-content:center;gap:clamp(12px,3vw,34px);padding:16px 0 40px;flex-wrap:wrap}
+.act{font-size:14px;letter-spacing:.3em;color:var(--dim);padding:8px 2px;border-bottom:1px solid transparent;transition:color .3s,border-color .3s}
+.act:hover{color:var(--ink);border-color:var(--line)}
+.act.main{color:var(--gold);border-color:var(--gold)}
+/* 品評 */
+.verdict{position:fixed;inset:0;display:flex;background:rgba(8,7,6,.97);opacity:0;pointer-events:none;transition:opacity .8s;z-index:20;padding:16px;overflow:auto}
+.verdict.show{opacity:1;pointer-events:auto}
+.card{max-width:520px;width:100%;margin:auto;text-align:center;transform:translateY(14px);transition:transform 1s cubic-bezier(.2,.7,.2,1)}
+.verdict.show .card{transform:none}
+.card .lbl{font-size:12px;letter-spacing:.5em;color:var(--gold)}
+.card h2{font-weight:400;font-size:clamp(22px,4vw,30px);margin:14px 0 4px;letter-spacing:.12em;line-height:1.5}
+.card .score{font-size:clamp(64px,12vw,96px);line-height:1;font-style:italic;color:var(--ink);margin:12px 0 0}
+.card .score small{font-size:.3em;color:var(--dim);font-style:normal;margin-left:6px}
+.card ul{list-style:none;margin:22px 0 0;padding:0;text-align:left;border-top:1px solid var(--line)}
+.card li{padding:10px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.7;display:grid;grid-template-columns:22px 1fr;gap:6px}
+.card li::before{content:attr(data-m);color:var(--gold);font-family:"Didot",Georgia,serif}
+.card img{width:min(210px,52vw);border-radius:50%;margin:8px auto 0;display:block;box-shadow:0 30px 60px rgba(0,0,0,.6)}
+.card .back{margin-top:24px}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:30}
+.flash.on{animation:flash .7s ease-out}
+@keyframes flash{0%{opacity:.9}100%{opacity:0}}
+@media (max-width:620px){
+  .top .house{font-size:10px;letter-spacing:.3em}
+  .tool{min-width:44px;padding:4px 4px}.tool svg{width:28px;height:28px}.tool span{font-size:11px;letter-spacing:.06em}
+  .hint{font-size:11px;letter-spacing:.1em}
+}
+@media (prefers-reduced-motion:reduce){.verdict,.card{transition:none}.flash.on{animation:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="course dd">Course IX of XIV<b>第九道</b></div>
+  <div class="house dd">ATELIER NOCTURNE<span>夜庭 · 十二席</span></div>
+</header>
+<section class="stage">
+  <canvas id="cv" aria-label="擺盤區：依選擇的工具在盤上作畫或放置食材"></canvas>
+  <p class="hint dd" id="hint">選一樣工具，在盤上刷、點、放</p>
+</section>
+<section class="pass" aria-label="出菜台">
+  <div class="tools" id="tools" role="group" aria-label="工具"></div>
+  <div class="sub" id="sub" role="group" aria-label="選項"></div>
+  <div class="acts">
+    <button class="act" id="undo" type="button">退一步</button>
+    <button class="act" id="clear" type="button">換一個盤</button>
+    <button class="act main" id="judge" type="button">請主廚品評</button>
+  </div>
+</section>
+<div class="verdict" id="verdict" role="dialog" aria-modal="true" aria-label="主廚品評">
+  <div class="card">
+    <div class="lbl dd">LE CHEF DIT</div>
+    <img id="photo" alt="出餐照">
+    <h2 id="dish"></h2>
+    <div class="score dd" id="score"></div>
+    <ul id="notes"></ul>
+    <button class="act main back" id="back" type="button">回到出菜台</button>
+  </div>
+</div>
+<div class="flash" id="flash"></div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+var cv = $('#cv'), g = cv.getContext('2d'), S = 600, DPR = 1, P = 0, I = 0, C = 0;
+var items = [], cur = null, tool = 'sauce', opt = {};
+
+var TOOLS = [
+  {k:'sauce',zh:'刷醬',icon:'<path d="M6 26 C12 14 22 22 30 8"/><path d="M26 6 l6 -2 -2 6"/>',
+   opts:[{id:'beet',zh:'甜菜根',c:'#7a1438'},{id:'ink',zh:'墨魚汁',c:'#141414'},{id:'herb',zh:'香草油',c:'#4f7d1f'},{id:'carrot',zh:'胡蘿蔔',c:'#d0601c'}]},
+  {k:'dot',zh:'點醬',icon:'<circle cx="10" cy="22" r="4"/><circle cx="20" cy="16" r="3"/><circle cx="27" cy="10" r="2"/>',
+   opts:[{id:'pea',zh:'豌豆泥',c:'#8dbf3f'},{id:'pumpkin',zh:'南瓜泥',c:'#ef9a2a'},{id:'cauli',zh:'花椰菜泥',c:'#f1ece0'},{id:'berry',zh:'黑莓',c:'#3b1442'}]},
+  {k:'main',zh:'主角',icon:'<ellipse cx="17" cy="20" rx="11" ry="7"/><path d="M8 18 Q17 12 26 18"/>',
+   opts:[{id:'scallop',zh:'干貝',c:'#e9d2a8'},{id:'duck',zh:'鴨胸',c:'#a8424a'},{id:'cod',zh:'鱈魚',c:'#f4efe6'}]},
+  {k:'greens',zh:'微苗',icon:'<path d="M17 30 V14"/><path d="M17 16 C10 14 9 8 12 6 C16 8 17 12 17 16"/><path d="M17 18 C24 16 26 10 23 8 C19 10 17 14 17 18"/>',opts:[]},
+  {k:'flower',zh:'花瓣',icon:'<circle cx="17" cy="17" r="2.5"/><path d="M17 14 C14 6 20 6 17 14 M20 17 C28 14 28 20 20 17 M17 20 C20 28 14 28 17 20 M14 17 C6 20 6 14 14 17"/>',opts:[{id:'nast',zh:'金蓮花',c:'#f07a1a'},{id:'viola',zh:'三色堇',c:'#6a3fb0'},{id:'borage',zh:'琉璃苣',c:'#4a74d8'}]},
+  {k:'crumb',zh:'碎土',icon:'<circle cx="9" cy="22" r="1.4"/><circle cx="14" cy="18" r="1.2"/><circle cx="19" cy="23" r="1.6"/><circle cx="24" cy="17" r="1.1"/><circle cx="27" cy="23" r="1.3"/><circle cx="16" cy="26" r="1"/>',opts:[{id:'rye',zh:'黑麥土',c:'#3a2a1f'},{id:'hazel',zh:'榛果碎',c:'#b88a4f'}]},
+  {k:'foam',zh:'泡沫',icon:'<circle cx="13" cy="20" r="5"/><circle cx="21" cy="16" r="4"/><circle cx="22" cy="24" r="3"/><circle cx="16" cy="12" r="2"/>',opts:[{id:'sea',zh:'海水泡沫',c:'#e8f0ee'},{id:'butter',zh:'焦化奶油',c:'#f3dfb2'}]}
+];
+TOOLS.forEach(function(t){ if (t.opts.length) opt[t.k] = t.opts[0].id; });
+
+/* 尺寸 */
+function size(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  S = Math.max(260, Math.min(innerHeight - 250, innerWidth - 24, 720));
+  cv.style.width = cv.style.height = S + 'px'; cv.width = cv.height = S*DPR;
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  C = S/2; P = S*.47; I = P*.6;
+  render();
+}
+window.addEventListener('resize', size);
+
+/* 以盤半徑為單位存座標，換尺寸後位置不變 */
+function toU(x, y){ return {x:(x - C)/P, y:(y - C)/P}; }
+function toPx(u){ return {x:C + u.x*P, y:C + u.y*P}; }
+function rnd(seed){ var s = Math.floor(seed*1e6) % 2147483647 || 1; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; }
+
+/* 盤子 */
+function drawPlate(){
+  g.clearRect(0, 0, S, S);
+  var sh = g.createRadialGradient(C + P*.05, C + P*.12, P*.6, C + P*.05, C + P*.12, P*1.12);
+  sh.addColorStop(0, 'rgba(0,0,0,.7)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = sh; g.beginPath(); g.arc(C + P*.05, C + P*.12, P*1.12, 0, Math.PI*2); g.fill();
+  var rim = g.createRadialGradient(C - P*.3, C - P*.4, P*.1, C, C, P);
+  rim.addColorStop(0, '#fbfaf6'); rim.addColorStop(.75, '#e8e4dc'); rim.addColorStop(1, '#c9c3b8');
+  g.fillStyle = rim; g.beginPath(); g.arc(C, C, P, 0, Math.PI*2); g.fill();
+  // 寬緣與井的分界
+  var well = g.createRadialGradient(C + I*.25, C + I*.3, I*.2, C, C, I*1.04);
+  well.addColorStop(0, '#f7f5f0'); well.addColorStop(.85, '#ebe7df'); well.addColorStop(1, '#d6d0c5');
+  g.fillStyle = well; g.beginPath(); g.arc(C, C, I*1.03, 0, Math.PI*2); g.fill();
+  g.strokeStyle = 'rgba(160,150,135,.35)'; g.lineWidth = 1; g.beginPath(); g.arc(C, C, I*1.03, 0, Math.PI*2); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1.2; g.beginPath(); g.arc(C, C, P - 1.5, Math.PI*1.05, Math.PI*1.7); g.stroke();
+  // 聚光燈的反光
+  var hl = g.createRadialGradient(C - P*.45, C - P*.55, 0, C - P*.45, C - P*.55, P*.35);
+  hl.addColorStop(0, 'rgba(255,255,255,.55)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = hl; g.beginPath(); g.arc(C, C, P, 0, Math.PI*2); g.fill();
+}
+
+/* 各類食材的畫法 */
+function drawSauce(it){
+  var pts = it.pts.map(toPx); if (pts.length < 2) return;
+  var w = it.w*P, n = pts.length;
+  for (var pass = 0; pass < 2; pass++){
+    for (var i = 1; i < n; i++){
+      var t = i/(n - 1), taper = Math.pow(Math.sin(Math.PI*Math.min(1, t*1.1)), .45);
+      g.strokeStyle = pass ? it.c : 'rgba(0,0,0,.08)';
+      g.lineWidth = Math.max(.6, w*taper*(pass ? 1 : 1.1));
+      g.lineCap = 'round'; g.beginPath(); g.moveTo(pts[i-1].x + (pass ? 0 : 1.5), pts[i-1].y + (pass ? 0 : 2)); g.lineTo(pts[i].x + (pass ? 0 : 1.5), pts[i].y + (pass ? 0 : 2)); g.stroke();
+    }
+  }
+  // 刷痕的亮邊
+  g.globalAlpha = .25; g.strokeStyle = '#fff'; g.lineWidth = Math.max(.5, w*.12);
+  g.beginPath(); pts.forEach(function(p, i){ var q = {x:p.x - w*.18, y:p.y - w*.18}; i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); });
+  g.stroke(); g.globalAlpha = 1;
+}
+function drawDot(it){
+  var a = toPx(it.a), b = toPx(it.b || it.a), r = it.r*P;
+  if (Math.hypot(b.x - a.x, b.y - a.y) > 2){
+    // 拖出的淚滴尾巴
+    var ang = Math.atan2(b.y - a.y, b.x - a.x), len = Math.hypot(b.x - a.x, b.y - a.y);
+    g.save(); g.translate(a.x, a.y); g.rotate(ang);
+    g.fillStyle = it.c; g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(len*.5, -r*.5, len, 0); g.quadraticCurveTo(len*.5, r*.5, 0, r); g.arc(0, 0, r, Math.PI/2, Math.PI*1.5); g.fill();
+    g.restore();
+  }
+  g.fillStyle = 'rgba(0,0,0,.12)'; g.beginPath(); g.arc(a.x + 1.5, a.y + 2, r, 0, Math.PI*2); g.fill();
+  g.fillStyle = it.c; g.beginPath(); g.arc(a.x, a.y, r, 0, Math.PI*2); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.arc(a.x - r*.35, a.y - r*.35, r*.28, 0, Math.PI*2); g.fill();
+}
+function drawMain(it){
+  var p = toPx(it.p), s = P/100;
+  g.save(); g.translate(p.x, p.y); g.rotate(it.rot);
+  g.fillStyle = 'rgba(60,45,30,.16)'; g.beginPath(); g.ellipse(2.5*s, 3.5*s, 13*s, 11*s, 0, 0, Math.PI*2); g.fill();
+  if (it.id === 'scallop'){
+    var sg = g.createRadialGradient(-3*s, -4*s, 1, 0, 0, 14*s); sg.addColorStop(0, '#fff3dc'); sg.addColorStop(1, '#dcc092');
+    g.fillStyle = sg; g.beginPath(); g.arc(0, 0, 13*s, 0, Math.PI*2); g.fill();
+    var cr = g.createRadialGradient(0, 0, 4*s, 0, 0, 12*s); cr.addColorStop(0, '#9a5a1e'); cr.addColorStop(.7, '#c8843a'); cr.addColorStop(1, 'rgba(200,132,58,0)');
+    g.fillStyle = cr; g.beginPath(); g.arc(0, 0, 11*s, 0, Math.PI*2); g.fill();
+    g.strokeStyle = 'rgba(255,240,210,.5)'; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, 13*s, Math.PI*1.1, Math.PI*1.6); g.stroke();
+  } else if (it.id === 'duck'){
+    g.fillStyle = '#efe0c8'; g.beginPath(); g.ellipse(0, -9*s, 18*s, 3*s, 0, 0, Math.PI*2); g.fill();
+    var dg = g.createLinearGradient(0, -8*s, 0, 8*s); dg.addColorStop(0, '#c55a5f'); dg.addColorStop(.5, '#a83a46'); dg.addColorStop(1, '#8a2b36');
+    g.fillStyle = dg; g.beginPath(); g.ellipse(0, 0, 19*s, 8.5*s, 0, 0, Math.PI*2); g.fill();
+    g.fillStyle = '#6b3a1f'; g.beginPath(); g.ellipse(0, -7*s, 18*s, 2.5*s, 0, Math.PI, Math.PI*2); g.fill();
+    g.fillStyle = 'rgba(255,200,200,.25)'; g.beginPath(); g.ellipse(-4*s, 1*s, 9*s, 3*s, 0, 0, Math.PI*2); g.fill();
+  } else {
+    g.fillStyle = '#f6f2ea'; g.fillRect(-15*s, -10*s, 30*s, 20*s);
+    g.strokeStyle = 'rgba(200,190,170,.6)'; g.lineWidth = 1;
+    for (var k = -2; k <= 2; k++){ g.beginPath(); g.moveTo(-15*s, k*4*s); g.quadraticCurveTo(0, k*4*s + 3*s, 15*s, k*4*s); g.stroke(); }
+    var cg = g.createLinearGradient(0, -10*s, 0, -4*s); cg.addColorStop(0, '#b77a35'); cg.addColorStop(1, 'rgba(183,122,53,0)');
+    g.fillStyle = cg; g.fillRect(-15*s, -10*s, 30*s, 6*s);
+  }
+  g.restore();
+}
+function drawGreens(it){
+  var r = rnd(it.seed), c = toPx(it.p), s = P/100;
+  for (var i = 0; i < 6; i++){
+    var x = c.x + (r() - .5)*12*s, y = c.y + (r() - .5)*12*s, a = r()*Math.PI*2;
+    g.save(); g.translate(x, y); g.rotate(a);
+    g.strokeStyle = '#6f8f3a'; g.lineWidth = .8; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 4*s); g.stroke();
+    g.fillStyle = i%3 ? '#5c9a2c' : '#86c043';
+    for (var l = 0; l < 3; l++){ g.rotate(Math.PI*2/3); g.beginPath(); g.ellipse(0, -2.2*s, 1.7*s, 2.4*s, 0, 0, Math.PI*2); g.fill(); }
+    g.restore();
+  }
+}
+function drawFlower(it){
+  var r = rnd(it.seed), c = toPx(it.p), s = P/100;
+  for (var i = 0; i < 3; i++){
+    var x = c.x + (r() - .5)*14*s, y = c.y + (r() - .5)*14*s;
+    g.save(); g.translate(x, y); g.rotate(r()*6.28);
+    g.fillStyle = it.c; g.globalAlpha = .92;
+    g.beginPath(); g.ellipse(0, 0, 3.6*s, 2.2*s, 0, 0, Math.PI*2); g.fill();
+    g.globalAlpha = 1; g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = .6; g.beginPath(); g.moveTo(-3*s, 0); g.lineTo(3*s, 0); g.stroke();
+    g.restore();
+  }
+}
+function drawCrumb(it){
+  var r = rnd(it.seed);
+  it.pts.forEach(function(u){
+    var c = toPx(u);
+    for (var i = 0; i < 5; i++){ g.fillStyle = it.c; g.globalAlpha = .7 + r()*.3; g.beginPath(); g.arc(c.x + (r() - .5)*10, c.y + (r() - .5)*10, .8 + r()*1.8, 0, Math.PI*2); g.fill(); }
+  });
+  g.globalAlpha = 1;
+}
+function drawFoam(it){
+  var r = rnd(it.seed), c = toPx(it.p), s = P/100;
+  for (var i = 0; i < 16; i++){
+    var x = c.x + (r() - .5)*16*s, y = c.y + (r() - .5)*11*s, rr = (1 + r()*3)*s;
+    g.fillStyle = it.c; g.globalAlpha = .75; g.beginPath(); g.arc(x, y, rr, 0, Math.PI*2); g.fill();
+    g.globalAlpha = .9; g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = .6; g.beginPath(); g.arc(x - rr*.3, y - rr*.3, rr*.5, Math.PI, Math.PI*1.6); g.stroke();
+  }
+  g.globalAlpha = 1;
+}
+var DRAW = {sauce:drawSauce, dot:drawDot, main:drawMain, greens:drawGreens, flower:drawFlower, crumb:drawCrumb, foam:drawFoam};
+var ORDER = {sauce:0, dot:1, crumb:2, main:3, foam:4, greens:5, flower:6};
+function render(){
+  drawPlate();
+  items.concat(cur ? [cur] : []).slice().sort(function(a, b){ return ORDER[a.k] - ORDER[b.k]; }).forEach(function(it){ DRAW[it.k](it); });
+}
+
+/* 指標 */
+function getOpt(){ var t = TOOLS.find(function(x){ return x.k === tool; }); return t.opts.find(function(o){ return o.id === opt[tool]; }) || {}; }
+function pt(e){ var r = cv.getBoundingClientRect(); return toU(e.clientX - r.left, e.clientY - r.top); }
+cv.addEventListener('pointerdown', function(e){
+  audio(); $('#hint').classList.add('off');
+  var u = pt(e), o = getOpt(); cv.setPointerCapture(e.pointerId);
+  if (Math.hypot(u.x, u.y) > 1.02) return;
+  if (tool === 'sauce') cur = {k:'sauce', pts:[u], c:o.c, id:o.id, w:.09};
+  else if (tool === 'dot') cur = {k:'dot', a:u, b:u, c:o.c, id:o.id, r:.028 + Math.random()*.012};
+  else if (tool === 'crumb') cur = {k:'crumb', pts:[u], c:o.c, id:o.id, seed:Math.random()};
+  else if (tool === 'main') { items.push({k:'main', p:u, id:o.id, rot:(Math.random() - .5)*.8 + (o.id === 'duck' ? -.4 : 0)}); place(); }
+  else if (tool === 'greens') { items.push({k:'greens', p:u, seed:Math.random()}); place(); }
+  else if (tool === 'flower') { items.push({k:'flower', p:u, c:o.c, id:o.id, seed:Math.random()}); place(); }
+  else if (tool === 'foam') { items.push({k:'foam', p:u, c:o.c, id:o.id, seed:Math.random()}); place(); }
+  render();
+});
+cv.addEventListener('pointermove', function(e){
+  if (!cur) return; var u = pt(e);
+  if (cur.k === 'sauce'){ var l = cur.pts[cur.pts.length - 1]; if (Math.hypot(u.x - l.x, u.y - l.y) > .012) cur.pts.push(u); brush(); }
+  else if (cur.k === 'dot') cur.b = u;
+  else if (cur.k === 'crumb'){ var l2 = cur.pts[cur.pts.length - 1]; if (Math.hypot(u.x - l2.x, u.y - l2.y) > .03) cur.pts.push(u); }
+  render();
+});
+function up(){ if (cur){ if (cur.k !== 'sauce' || cur.pts.length > 2) items.push(cur); cur = null; place(); render(); } }
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+/* 工具列 */
+var toolsEl = $('#tools');
+TOOLS.forEach(function(t){
+  var b = document.createElement('button'); b.type = 'button'; b.className = 'tool'; b.dataset.k = t.k;
+  b.innerHTML = '<svg viewBox="0 0 34 34" aria-hidden="true">' + t.icon + '</svg><span>' + t.zh + '</span>';
+  b.addEventListener('click', function(){ tool = t.k; syncTools(); });
+  toolsEl.appendChild(b);
+});
+function syncTools(){
+  toolsEl.querySelectorAll('.tool').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.k === tool); });
+  var t = TOOLS.find(function(x){ return x.k === tool; }), sub = $('#sub');
+  sub.innerHTML = '';
+  if (!t.opts.length){ sub.innerHTML = '<span class="sw" style="cursor:default">點一下撒一撮</span>'; return; }
+  t.opts.forEach(function(o){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.style.setProperty('--c', o.c);
+    b.innerHTML = '<i></i>' + o.zh; b.setAttribute('aria-pressed', opt[tool] === o.id);
+    b.addEventListener('click', function(){ opt[tool] = o.id; syncTools(); });
+    sub.appendChild(b);
+  });
+}
+$('#undo').addEventListener('click', function(){ items.pop(); render(); });
+$('#clear').addEventListener('click', function(){ items = []; render(); $('#hint').classList.remove('off'); });
+document.addEventListener('keydown', function(e){
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z'){ e.preventDefault(); items.pop(); render(); }
+  if (e.key === 'Escape') $('#verdict').classList.remove('show');
+  var n = parseInt(e.key, 10); if (n >= 1 && n <= TOOLS.length && !$('#verdict').classList.contains('show')){ tool = TOOLS[n - 1].k; syncTools(); }
+});
+
+/* 品評：以格點取樣算覆蓋率、重心、盤緣乾淨度 */
+function covers(it, u){
+  var d;
+  switch (it.k){
+    case 'sauce': for (var i = 1; i < it.pts.length; i++){ if (segDist(u, it.pts[i-1], it.pts[i]) < it.w*.45) return true; } return false;
+    case 'dot': return Math.hypot(u.x - it.a.x, u.y - it.a.y) < it.r || segDist(u, it.a, it.b) < it.r*.5;
+    case 'main': return Math.hypot(u.x - it.p.x, u.y - it.p.y) < .15;
+    case 'greens': case 'flower': return Math.hypot(u.x - it.p.x, u.y - it.p.y) < .08;
+    case 'foam': return Math.hypot(u.x - it.p.x, u.y - it.p.y) < .1;
+    case 'crumb': return it.pts.some(function(p){ return Math.hypot(u.x - p.x, u.y - p.y) < .05; });
+  }
+  return false;
+}
+function segDist(p, a, b){ var dx = b.x - a.x, dy = b.y - a.y, l = dx*dx + dy*dy, t = l ? Math.max(0, Math.min(1, ((p.x - a.x)*dx + (p.y - a.y)*dy)/l)) : 0; return Math.hypot(p.x - a.x - t*dx, p.y - a.y - t*dy); }
+function judge(){
+  var inner = I/P, n = 0, hitN = 0, mx = 0, my = 0, rimDirty = false;
+  for (var y = -1; y <= 1; y += .04) for (var x = -1; x <= 1; x += .04){
+    var r = Math.hypot(x, y); if (r > 1) continue;
+    var u = {x:x, y:y}, hit = items.some(function(it){ return covers(it, u); });
+    if (r <= inner){ n++; if (hit){ hitN++; mx += x; my += y; } }
+    else if (hit) rimDirty = true;
+  }
+  var cov = n ? hitN/n : 0, off = hitN ? Math.hypot(mx/hitN, my/hitN)/inner : 0;
+  var notes = [], score = 100, kinds = {}, colors = {};
+  items.forEach(function(it){ kinds[it.k] = (kinds[it.k] || 0) + 1; if (it.c) colors[it.c] = 1; if (it.k === 'main') colors[it.id] = 1; if (it.k === 'greens') colors.green = 1; });
+  var mains = kinds.main || 0, nc = Object.keys(colors).length, nk = Object.keys(kinds).length;
+  if (!items.length) return {score:0, notes:[['—','盤子是空的。主廚只是看著你。']], cov:0};
+  if (cov < .1){ score -= 22; notes.push(['−','盤面太空，像還沒上完菜。']); }
+  else if (cov > .5){ score -= 20; notes.push(['−','太滿了。留白也是一種味道。']); }
+  else notes.push(['+','留白恰好，盤子在呼吸（覆蓋 ' + Math.round(cov*100) + '%）。']);
+  if (off < .1 && cov > .05){ score -= 10; notes.push(['−','重心正好在中間，安全但無聊。試著推向一側。']); }
+  else if (off > .62){ score -= 14; notes.push(['−','重心跑到井的邊緣，視線會跟著掉出盤子。']); }
+  else if (cov > .05) notes.push(['+','重心偏向' + dir(mx, my) + '，視線有方向。']);
+  if (rimDirty){ score -= 18; notes.push(['−','盤緣沾到了。出餐前要擦乾淨。']); }
+  if (!mains){ score -= 16; notes.push(['−','少了主角。這道菜到底是什麼？']); }
+  else if (mains % 2 === 0){ score -= 8; notes.push(['−','主角擺了 ' + mains + ' 塊。奇數會更自然。']); }
+  else if (mains > 5){ score -= 8; notes.push(['−','主角太多，看起來像自助餐。']); }
+  else notes.push(['+','主角 ' + mains + ' 塊，奇數，好。']);
+  if (!kinds.sauce && !kinds.dot){ score -= 10; notes.push(['−','缺一道醬汁把元素連起來。']); }
+  if (!kinds.greens && !kinds.flower){ score -= 8; notes.push(['−','少了一點生氣：一撮苗或幾片花瓣。']); }
+  if (nc < 3){ score -= 8; notes.push(['−','顏色太少，加一抹綠或一點亮色。']); }
+  else if (nc > 7){ score -= 8; notes.push(['−','顏色太多，彼此在吵架。']); }
+  if (nk >= 5) notes.push(['+','質地有層次：' + nk + ' 種元素。']);
+  return {score:Math.max(0, Math.min(100, score)), notes:notes, cov:cov};
+}
+function dir(x, y){ var a = Math.atan2(y, x)*180/Math.PI; var d = ['右','右下','下','左下','左','左上','上','右上']; return d[Math.round(((a + 360) % 360)/45) % 8]; }
+function dishName(){
+  var names = {scallop:'干貝',duck:'鴨胸',cod:'鱈魚',beet:'甜菜根',ink:'墨魚',herb:'香草油',carrot:'胡蘿蔔',pea:'豌豆',pumpkin:'南瓜',cauli:'花椰菜',berry:'黑莓',nast:'金蓮花',viola:'三色堇',borage:'琉璃苣',rye:'黑麥',hazel:'榛果',sea:'海水',butter:'焦化奶油'};
+  var seen = [], out = [];
+  ['main','sauce','dot','foam','crumb','flower'].forEach(function(k){ items.forEach(function(it){ if (it.k === k && it.id && seen.indexOf(it.id) < 0){ seen.push(it.id); out.push(names[it.id]); } }); });
+  if (items.some(function(it){ return it.k === 'greens'; })) out.push('苗');
+  return out.slice(0, 4).join(' · ') || '空白';
+}
+$('#judge').addEventListener('click', function(){
+  audio();
+  var r = judge();
+  $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); shutter();
+  // 出餐照：裁成圓形
+  var c2 = document.createElement('canvas'), z = 360; c2.width = c2.height = z;
+  var x2 = c2.getContext('2d'); x2.beginPath(); x2.arc(z/2, z/2, z/2, 0, Math.PI*2); x2.clip();
+  x2.drawImage(cv, (C - P)*DPR, (C - P)*DPR, P*2*DPR, P*2*DPR, 0, 0, z, z);
+  $('#photo').src = c2.toDataURL('image/jpeg', .9);
+  $('#dish').textContent = dishName();
+  $('#score').innerHTML = r.score + '<small>/ 100</small>';
+  $('#notes').innerHTML = r.notes.map(function(n){ return '<li data-m="' + n[0] + '">' + n[1] + '</li>'; }).join('');
+  setTimeout(function(){ $('#verdict').classList.add('show'); $('#back').focus(); }, 280);
+});
+$('#back').addEventListener('click', function(){ $('#verdict').classList.remove('show'); });
+
+/* 聲音：極少，只在落件、刷醬與快門 */
+var ac = null, lastBrush = 0;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function place(){
+  if (!ac) return; var t = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(2400 + Math.random()*400, t); gg.gain.setValueAtTime(.025, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .5);
+  o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .55);
+}
+function brush(){
+  if (!ac || performance.now() - lastBrush < 60) return; lastBrush = performance.now();
+  var buf = ac.createBuffer(1, ac.sampleRate*.06, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1)*(1 - i/d.length);
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), gg = ac.createGain(); s.buffer = buf; f.type = 'lowpass'; f.frequency.value = 900; gg.gain.value = .05;
+  s.connect(f).connect(gg).connect(ac.destination); s.start();
+}
+function shutter(){
+  if (!ac) return; [0, .07].forEach(function(dl){
+    var buf = ac.createBuffer(1, ac.sampleRate*.03, ac.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1)*(1 - i/d.length);
+    var s = ac.createBufferSource(), gg = ac.createGain(); s.buffer = buf; gg.gain.value = .18; s.connect(gg).connect(ac.destination); s.start(ac.currentTime + dl);
+  });
+}
+
+syncTools(); size();
+window.__plate = {items:function(){ return items; }, judge:judge};
+})();
+</script>
+</body>
+</html>

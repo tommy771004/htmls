@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chez Lumière · 鏡面菜單</title>
+<meta name="description" content="巴黎老式小酒館的鏡面菜單：拱形木框裡的老鏡子映著球形吊燈，標題是背面貼金的金箔字，菜名用白漆寫在鏡上。點前菜、主菜、甜點與一杯酒，侍者用鉛筆在紙桌巾上記帳，最後寫下 l’addition。">
+<style>
+:root{--wall:#14261e;--wall2:#0d1a14;--wood:#3b1d12;--wood2:#5a2c18;--brass:#b8893b;--paint:#f7f3ea;--paper:#fbf9f3;--pencil:#4a4a4f}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{overflow-x:clip;color:var(--paint);font-family:"Yuanti TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 2px,transparent 2px 120px),
+    radial-gradient(ellipse 70% 50% at 50% 0,#21402f,transparent 70%),
+    linear-gradient(var(--wall),var(--wall2));min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+.script{font-family:"Snell Roundhand","Apple Chancery","Segoe Script","Brush Script MT",cursive}
+.paint{font-family:"Bradley Hand","Segoe Print","Apple Chancery",cursive}
+.rail{height:14px;margin:0;background:linear-gradient(#e8c47a,#9a6b25 50%,#e0b868);box-shadow:0 4px 10px rgba(0,0,0,.5)}
+.lamps{display:flex;justify-content:space-around;max-width:900px;margin:0 auto;height:70px}
+.lamp{width:2px;height:40px;background:#6a5326;position:relative}
+.lamp::after{content:"";position:absolute;left:50%;top:36px;width:36px;height:36px;margin-left:-18px;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fffbe8,#ffd98a 45%,rgba(255,200,110,.25) 70%);box-shadow:0 0 40px 14px rgba(255,200,110,.35)}
+/* 鏡子 */
+.frame{max-width:860px;margin:10px auto 0;padding:22px;border-radius:430px 430px 18px 18px / 200px 200px 18px 18px;
+  background:linear-gradient(135deg,var(--wood2),var(--wood) 40%,#2a120b 70%,var(--wood2));
+  box-shadow:0 0 0 3px #1c0c06,inset 0 0 0 4px var(--brass),inset 0 0 0 7px #2a120b,0 40px 80px rgba(0,0,0,.6);position:relative}
+.frame::before{content:"";position:absolute;left:50%;top:-6px;width:120px;height:44px;margin-left:-60px;background:radial-gradient(ellipse at 50% 100%,var(--brass),#6a4a14 70%);clip-path:polygon(0 100%,20% 30%,50% 0,80% 30%,100% 100%);filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.mirror{position:relative;border-radius:400px 400px 8px 8px / 180px 180px 8px 8px;overflow:hidden;min-height:900px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.18),inset 0 0 60px rgba(0,0,0,.6);background:#1d2622}
+.mirror canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#refl{z-index:0}
+#fog{z-index:2;pointer-events:none}
+.glass{position:relative;z-index:3;padding:96px clamp(18px,6vw,70px) 50px}
+.title{text-align:center;margin:0}
+.title b{display:block;font-weight:700;font-size:clamp(54px,10vw,104px);line-height:1;
+  background:linear-gradient(180deg,#fff4c8 0%,#e7bb5a 32%,#a8741f 50%,#f6d488 66%,#b5832a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 #3a2208) drop-shadow(0 0 1px #000)}
+.title small{display:block;margin-top:10px;font-family:"Big Caslon","Hoefler Text",Georgia,serif;letter-spacing:.5em;font-size:13px;color:#e7c77d;text-transform:uppercase}
+.orn{display:block;margin:14px auto 0;width:220px;height:20px}
+.sect{margin-top:34px}
+.sect h2{margin:0 0 8px;text-align:center;font-weight:700;font-size:clamp(30px,5vw,44px);
+  background:linear-gradient(180deg,#fff0c0,#d9a845 45%,#9c6a1c 55%,#f0cf80);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #2a1806)}
+.sect h2 span{font-family:"Yuanti TC","PingFang TC",sans-serif;font-size:14px;letter-spacing:.3em;-webkit-text-fill-color:#d9be86;margin-left:10px;vertical-align:middle}
+.dish{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0 12px;width:100%;text-align:left;padding:7px 10px;border-radius:8px;position:relative;transition:background .4s}
+.dish .n{font-size:clamp(20px,2.6vw,27px);color:rgba(247,243,234,.92);text-shadow:0 0 1px rgba(255,255,255,.4),0 1px 2px rgba(0,0,0,.4);letter-spacing:.01em}
+.dish .zh{grid-column:1;font-size:13px;color:rgba(230,225,210,.62);letter-spacing:.12em;margin-top:1px}
+.dish .p{grid-row:1;grid-column:2;font-size:clamp(20px,2.6vw,26px);color:rgba(247,243,234,.92)}
+.dish:hover{background:rgba(255,255,255,.04)}
+.dish:focus-visible{outline:1px dashed rgba(255,255,255,.5)}
+.dish svg{position:absolute;left:4px;right:4px;bottom:-2px;width:calc(100% - 8px);height:12px;overflow:visible;pointer-events:none}
+.dish svg path{fill:none;stroke:rgba(247,243,234,.85);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1),opacity .2s}
+.dish[aria-pressed=true] svg path{stroke-dashoffset:0;opacity:1}
+.dish[aria-pressed=true] .n::before{content:"✓ ";color:#f2d18a}
+.formule{text-align:center;margin-top:30px;font-size:clamp(18px,2.4vw,24px);color:rgba(247,243,234,.85)}
+.formule b{font-weight:400;color:#f2d18a}
+.hint{text-align:center;font-size:12px;color:rgba(230,225,210,.45);letter-spacing:.2em;margin:26px 0 0}
+/* 桌巾 */
+.table{max-width:860px;margin:-6px auto 0;position:relative;padding:0 10px 60px}
+.nappe{background:var(--paper);color:var(--pencil);padding:28px clamp(18px,5vw,48px) 30px;transform:perspective(1200px) rotateX(14deg);transform-origin:50% 0;box-shadow:0 30px 50px rgba(0,0,0,.5);
+  background-image:linear-gradient(90deg,rgba(0,0,0,.025) 1px,transparent 1px),linear-gradient(rgba(0,0,0,.02) 1px,transparent 1px);background-size:6px 6px;min-height:280px;position:relative}
+.nappe::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:linear-gradient(rgba(0,0,0,.25),transparent)}
+.nappe header{display:flex;justify-content:space-between;align-items:baseline;font-family:"Big Caslon","Hoefler Text",Georgia,serif;font-size:12px;letter-spacing:.3em;color:#9a958c;text-transform:uppercase;border-bottom:1px solid #e3ddd0;padding-bottom:8px}
+.lines{list-style:none;margin:12px 0 0;padding:0;font-family:"Noteworthy","Segoe Print","Bradley Hand",cursive;font-size:clamp(17px,2.2vw,21px);min-height:120px}
+.lines li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;transform:rotate(var(--r,0deg))}
+.lines li.tot{border-top:2px solid var(--pencil);margin-top:8px;padding-top:6px;font-size:1.25em}
+.lines li.tot span:last-child{position:relative}
+.lines li.tot span:last-child::after{content:"";position:absolute;left:-10px;right:-10px;top:-6px;bottom:-6px;border:2px solid var(--pencil);border-radius:50%;transform:rotate(-4deg)}
+.lines .empty{color:#b5b0a6}
+.acts{display:flex;justify-content:center;gap:12px;margin-top:22px;flex-wrap:wrap}
+.acts button{border:1px solid #c9c1b0;padding:10px 18px;border-radius:30px;color:#5a544a;font-family:"Big Caslon","Hoefler Text",Georgia,serif;letter-spacing:.12em;font-size:15px;background:#fff}
+.acts .bill{background:#2a120b;color:#f2d18a;border-color:#2a120b}
+.carafe{position:absolute;right:clamp(14px,4vw,40px);top:-60px;width:70px;height:120px;z-index:4;pointer-events:none}
+@media (max-width:620px){
+  .frame{padding:12px;border-radius:300px 300px 12px 12px / 120px 120px 12px 12px}
+  .mirror{border-radius:280px 280px 6px 6px / 110px 110px 6px 6px}
+  .glass{padding-top:70px}
+  .dish{padding:6px 4px}
+  .lamps{height:50px}.lamp{height:24px}.lamp::after{top:20px;width:26px;height:26px;margin-left:-13px}
+  .carafe{width:48px;height:84px;top:-40px}
+  .nappe{transform:none}
+}
+@media (prefers-reduced-motion:reduce){.dish svg path{transition:none}}
+</style>
+</head>
+<body>
+<div class="rail" aria-hidden="true"></div>
+<div class="lamps" aria-hidden="true"><i class="lamp"></i><i class="lamp"></i><i class="lamp"></i></div>
+<div class="frame">
+  <div class="mirror" id="mirror">
+    <canvas id="refl" aria-hidden="true"></canvas>
+    <canvas id="fog" aria-hidden="true"></canvas>
+    <div class="glass">
+      <h1 class="title"><b class="script">Chez Lumière</b><small>Bouillon · depuis 1898 · 巴黎小酒館</small></h1>
+      <svg class="orn" viewBox="0 0 220 20" aria-hidden="true"><path d="M10 10 H90 M130 10 H210 M100 10 q10 -12 20 0 q-10 12 -20 0" stroke="#e0b860" stroke-width="1.5" fill="none"/><circle cx="110" cy="10" r="2.5" fill="#e0b860"/></svg>
+      <div id="menu"></div>
+      <p class="formule paint" id="formule">Formule entrée · plat · dessert　<b>32 €</b></p>
+      <p class="hint">點一下菜名就寫進帳 · 在鏡面空白處按住拖曳，呵一口氣寫字</p>
+    </div>
+  </div>
+</div>
+<section class="table" aria-label="紙桌巾">
+  <svg class="carafe" id="carafe" viewBox="0 0 70 120" aria-hidden="true"></svg>
+  <div class="nappe">
+    <header><span>Table 7</span><span id="clock"></span></header>
+    <ul class="lines" id="lines"><li class="empty">侍者拿著鉛筆等你開口……</li></ul>
+    <div class="acts">
+      <button type="button" id="reset">換一桌</button>
+      <button type="button" class="bill" id="bill">L’addition, s’il vous plaît</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+var MENU = [
+  {k:'entree',fr:'Entrées',zh:'前菜',items:[['Œuf mayonnaise','美乃滋水煮蛋',6],['Poireaux vinaigrette','油醋韭蔥',7],['Soupe à l’oignon gratinée','焗烤洋蔥湯',9],['Escargots, la demi-douzaine','蒜香奶油田螺六顆',12]]},
+  {k:'plat',fr:'Plats',zh:'主菜',items:[['Steak frites','牛排佐薯條',22],['Confit de canard','油封鴨腿',21],['Sole meunière','奶油煎比目魚',28],['Blanquette de veau','白醬燉小牛肉',19]]},
+  {k:'dessert',fr:'Desserts',zh:'甜點',items:[['Mousse au chocolat','巧克力慕斯',8],['Crème brûlée','烤布蕾',8],['Tarte Tatin','反烤蘋果塔',9],['Profiteroles','巧克力醬泡芙',10]]},
+  {k:'vin',fr:'Vins au verre',zh:'單杯酒',items:[['Côtes du Rhône','隆河丘紅酒',6],['Muscadet','慕斯卡岱白酒',6],['Beaujolais','薄酒萊',7],['Champagne','香檳',12]]}
+];
+var pick = {entree:null, plat:null, dessert:null, vin:null}, closed = false;
+var menu = $('#menu');
+MENU.forEach(function(sec){
+  var el = document.createElement('div'); el.className = 'sect';
+  el.innerHTML = '<h2 class="script">' + sec.fr + '<span>' + sec.zh + '</span></h2>';
+  sec.items.forEach(function(it, i){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'dish'; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="n paint">' + it[0] + '</span><span class="p paint">' + it[2] + '</span><span class="zh">' + it[1] + '</span>' +
+      '<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 7 C20 ' + (3 + Math.random()*4).toFixed(1) + ' 45 ' + (9 + Math.random()*2).toFixed(1) + ' 70 6 S95 5 98 8"/></svg>';
+    b.addEventListener('click', function(){
+      if (closed) resetAll();
+      pick[sec.k] = pick[sec.k] === i ? null : i;
+      el.querySelectorAll('.dish').forEach(function(d, j){ d.setAttribute('aria-pressed', pick[sec.k] === j); });
+      if (sec.k === 'vin' && pick.vin !== null) pourWine(); else if (sec.k === 'vin') drawCarafe(0);
+      clink(sec.k === 'vin' ? 1.6 : 1); writeBill(false);
+    });
+    el.appendChild(b);
+  });
+  menu.appendChild(el);
+});
+
+/* 紙桌巾上的帳：鉛筆逐字寫 */
+var writing = 0;
+function rows(final){
+  var out = [], sum = 0, n = 0;
+  ['entree','plat','dessert','vin'].forEach(function(k){
+    var sec = MENU.find(function(s){ return s.k === k; }), i = pick[k]; if (i === null) return;
+    var it = sec.items[i]; out.push([shortFr(it[0]), it[2]]); sum += it[2]; if (k !== 'vin') n++;
+  });
+  var formule = pick.entree !== null && pick.plat !== null && pick.dessert !== null;
+  if (formule){
+    var food = MENU.slice(0, 3).reduce(function(s, sec){ return s + sec.items[pick[sec.k]][2]; }, 0);
+    out.push(['— formule −' + (food - 32), -(food - 32)]); sum -= food - 32;
+  }
+  if (final && out.length) out.push(['Total', sum, 'tot']);
+  return out;
+}
+function shortFr(s){ return s.replace(', la demi-douzaine', ' ×6').replace(' gratinée', '').replace('Poireaux vinaigrette', 'Poireaux vinaig.'); }
+function writeBill(final){
+  var list = rows(final), ul = $('#lines'), token = ++writing;
+  if (!list.length){ ul.innerHTML = '<li class="empty">侍者拿著鉛筆等你開口……</li>'; return; }
+  var prev = ul.querySelectorAll('li:not(.empty)').length;
+  ul.innerHTML = '';
+  list.forEach(function(r, i){
+    var li = document.createElement('li'); li.style.setProperty('--r', ((i*37 % 7) - 3)*.25 + 'deg'); if (r[2]) li.className = r[2];
+    var a = document.createElement('span'), b = document.createElement('span');
+    li.appendChild(a); li.appendChild(b); ul.appendChild(li);
+    var txtA = r[0], txtB = (r[2] ? '' : '') + (r[1] < 0 ? '' : r[1]) + (r[1] < 0 ? '' : ' €');
+    if (i < prev && !final){ a.textContent = txtA; b.textContent = txtB; return; }
+    var delay = (i - (final ? list.length - 1 : prev))*500;
+    setTimeout(function(){ type(a, txtA, token, function(){ type(b, txtB, token); }); }, Math.max(0, delay));
+  });
+}
+function type(el, s, token, done){
+  var i = 0;
+  (function step(){
+    if (token !== writing) return;
+    el.textContent = s.slice(0, ++i); if (i % 2) pencil();
+    if (i < s.length) setTimeout(step, 38 + Math.random()*40); else if (done) done();
+  })();
+}
+$('#bill').addEventListener('click', function(){
+  audio();
+  if (!rows(false).length){ $('#lines').innerHTML = '<li class="empty">還沒點東西呢。Monsieur, Madame ?</li>'; return; }
+  closed = true; writeBill(true);
+});
+function resetAll(){ closed = false; Object.keys(pick).forEach(function(k){ pick[k] = null; }); document.querySelectorAll('.dish').forEach(function(d){ d.setAttribute('aria-pressed', 'false'); }); drawCarafe(0); writeBill(false); }
+$('#reset').addEventListener('click', function(){ resetAll(); fog.clear(); });
+function clock(){ var d = new Date(); $('#clock').textContent = String(d.getHours()).padStart(2,'0') + 'h' + String(d.getMinutes()).padStart(2,'0'); }
+clock(); setInterval(clock, 30000);
+
+/* 酒杯 */
+function drawCarafe(level){
+  var vin = pick.vin, col = vin === 1 ? '#e8d27a' : vin === 3 ? '#f3e2a0' : '#6d1424';
+  var top = 70 - level*36;
+  $('#carafe').innerHTML = '<path d="M14 8 Q14 58 35 66 Q56 58 56 8 Z" fill="rgba(255,255,255,.18)" stroke="rgba(255,255,255,.7)" stroke-width="2"/>' +
+    (level ? '<clipPath id="cg"><path d="M14 8 Q14 58 35 66 Q56 58 56 8 Z"/></clipPath><rect x="10" y="' + top + '" width="50" height="70" fill="' + col + '" clip-path="url(#cg)" opacity=".9"/>' + (vin === 3 ? '<circle cx="30" cy="50" r="1.5" fill="#fff"/><circle cx="38" cy="44" r="1.2" fill="#fff"/><circle cx="34" cy="56" r="1" fill="#fff"/>' : '') : '') +
+    '<path d="M35 66 V108 M20 110 H50" stroke="rgba(255,255,255,.75)" stroke-width="3" stroke-linecap="round"/><path d="M20 14 Q20 46 30 56" stroke="rgba(255,255,255,.5)" stroke-width="2" fill="none"/>';
+}
+function pourWine(){ var t0 = performance.now(); (function f(now){ var t = Math.min(1, (now - t0)/900); drawCarafe(t); if (t < 1) requestAnimationFrame(f); })(t0); }
+drawCarafe(0);
+
+/* 鏡中倒影：球形吊燈、酒館客人的輪廓，跟著指標視差 */
+var mirror = $('#mirror'), rc = $('#refl'), rg = rc.getContext('2d'), fc = $('#fog'), fg = fc.getContext('2d');
+var W = 0, H = 0, DPR = 1, mx = .5, my = .3, tx = .5, ty = .3;
+var bokeh = [], figures = [];
+function seedScene(){
+  bokeh = []; figures = [];
+  var s = 3; function r(){ s = (s*16807) % 2147483647; return s/2147483647; }
+  for (var i = 0; i < 26; i++) bokeh.push({x:r(), y:r()*.55, r:8 + r()*34, d:.3 + r()*.9, a:.15 + r()*.45, warm:r() > .2});
+  for (var j = 0; j < 7; j++) figures.push({x:.08 + j*.14 + r()*.05, y:.62 + r()*.1, s:.7 + r()*.5, d:.6 + r()*.3});
+}
+function size(){
+  DPR = Math.min(2, devicePixelRatio || 1); var b = mirror.getBoundingClientRect(); W = b.width; H = b.height;
+  [rc, fc].forEach(function(c){ c.width = W*DPR; c.height = H*DPR; });
+  rg.setTransform(DPR, 0, 0, DPR, 0, 0); fg.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+function drawRefl(){
+  var px = (mx - .5), py = (my - .5);
+  var bg = rg.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2b3530'); bg.addColorStop(.45, '#3a3226'); bg.addColorStop(1, '#151a17');
+  rg.fillStyle = bg; rg.fillRect(0, 0, W, H);
+  // 對面牆的鏡面與木格
+  rg.fillStyle = 'rgba(90,50,25,.35)';
+  for (var k = 0; k < 6; k++){ var x = ((k/6) - px*.15)*W*1.2 - W*.1; rg.fillRect(x, H*.08, W*.012, H*.6); }
+  rg.fillStyle = 'rgba(230,190,110,.08)'; rg.fillRect(0, H*.66 - py*20, W, 6);
+  bokeh.forEach(function(b){
+    var x = (b.x - px*b.d*.25)*W, y = (b.y - py*b.d*.12)*H*.9 + 40;
+    var g = rg.createRadialGradient(x, y, 0, x, y, b.r);
+    g.addColorStop(0, b.warm ? 'rgba(255,224,160,' + b.a + ')' : 'rgba(200,220,255,' + b.a*.6 + ')'); g.addColorStop(.7, b.warm ? 'rgba(255,190,110,' + b.a*.35 + ')' : 'rgba(170,190,230,' + b.a*.2 + ')'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    rg.fillStyle = g; rg.beginPath(); rg.arc(x, y, b.r, 0, Math.PI*2); rg.fill();
+  });
+  rg.save(); if ('filter' in rg) rg.filter = 'blur(5px)';
+  figures.forEach(function(f){
+    var x = (f.x - px*f.d*.2)*W, y = f.y*H, s = f.s*Math.min(W*.05, 34);
+    rg.fillStyle = 'rgba(10,12,11,.32)';
+    rg.beginPath(); rg.arc(x, y - s*1.4, s*.55, 0, Math.PI*2); rg.fill();
+    rg.beginPath(); rg.ellipse(x, y + s*.6, s*1.1, s*1.6, 0, Math.PI, 0); rg.fill(); rg.fillRect(x - s*1.1, y + s*.6, s*2.2, H);
+  });
+  rg.restore();
+  // 鏡子老化：邊緣的脫銀斑點
+  var v = rg.createRadialGradient(W/2, H*.45, Math.min(W, H)*.3, W/2, H*.45, Math.max(W, H)*.75);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(20,16,10,.75)');
+  rg.fillStyle = v; rg.fillRect(0, 0, W, H);
+  // 斜向反光
+  var sh = rg.createLinearGradient(0, 0, W, H); sh.addColorStop(.35 + px*.1, 'rgba(255,255,255,0)'); sh.addColorStop(.42 + px*.1, 'rgba(255,255,255,.07)'); sh.addColorStop(.5 + px*.1, 'rgba(255,255,255,0)');
+  rg.fillStyle = sh; rg.fillRect(0, 0, W, H);
+}
+var spots = [];
+(function(){ var s = 11; function r(){ s = (s*16807) % 2147483647; return s/2147483647; } for (var i = 0; i < 90; i++){ var edge = r() < .5; spots.push({x:edge ? r()*.12 + (r() < .5 ? 0 : .88) : r(), y:edge ? r() : (r() < .5 ? r()*.06 : .94 + r()*.06), r:1 + r()*4, a:.2 + r()*.5}); } })();
+function drawSpots(){ spots.forEach(function(p){ rg.fillStyle = 'rgba(60,50,35,' + p.a + ')'; rg.beginPath(); rg.arc(p.x*W, p.y*H, p.r, 0, Math.PI*2); rg.fill(); }); }
+
+/* 呵氣霧：按住拖曳留下霧，慢慢散去 */
+var fog = {pts:[], clear:function(){ this.pts = []; }};
+var drawing = false;
+mirror.addEventListener('pointerdown', function(e){ if (e.target.closest('.dish')) return; drawing = true; audio(); breath(); addFog(e); });
+mirror.addEventListener('pointermove', function(e){
+  var b = mirror.getBoundingClientRect(); tx = (e.clientX - b.left)/b.width; ty = (e.clientY - b.top)/b.height;
+  if (drawing) addFog(e);
+});
+window.addEventListener('pointerup', function(){ drawing = false; });
+mirror.addEventListener('pointerleave', function(){ tx = .5; ty = .3; });
+function addFog(e){ var b = mirror.getBoundingClientRect(); fog.pts.push({x:e.clientX - b.left, y:e.clientY - b.top, a:1}); if (fog.pts.length > 900) fog.pts.shift(); }
+function drawFog(dt){
+  fg.clearRect(0, 0, W, H);
+  fog.pts.forEach(function(p){
+    p.a -= dt*.05; if (p.a <= 0) return;
+    var g = fg.createRadialGradient(p.x, p.y, 0, p.x, p.y, 34);
+    g.addColorStop(0, 'rgba(235,240,238,' + (p.a*.22).toFixed(3) + ')'); g.addColorStop(1, 'rgba(235,240,238,0)');
+    fg.fillStyle = g; fg.beginPath(); fg.arc(p.x, p.y, 34, 0, Math.PI*2); fg.fill();
+  });
+  fog.pts = fog.pts.filter(function(p){ return p.a > 0; });
+}
+var last = performance.now(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function loop(now){
+  var dt = Math.min(.05, (now - last)/1000); last = now;
+  var k = reduce ? 1 : Math.min(1, dt*3); mx += (tx - mx)*k; my += (ty - my)*k;
+  drawRefl(); drawSpots(); drawFog(dt);
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', size);
+if (window.ResizeObserver) new ResizeObserver(size).observe(mirror);
+
+/* 聲音 */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function clink(m){
+  audio(); if (!ac) return; var t = ac.currentTime;
+  [2637, 3951, 5274].forEach(function(f, i){ var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f*m*(1 + (Math.random() - .5)*.01); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.04/(i + 1), t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + 1.2/(i + 1)); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 1.3); });
+}
+function pencil(){
+  if (!ac) return; var len = .04, buf = ac.createBuffer(1, ac.sampleRate*len, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1)*(1 - i/d.length);
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; f.type = 'highpass'; f.frequency.value = 3800; g.gain.value = .05;
+  s.connect(f).connect(g).connect(ac.destination); s.start();
+}
+function breath(){
+  if (!ac) return; var len = .7, buf = ac.createBuffer(1, ac.sampleRate*len, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++){ var t = i/d.length; d[i] = (Math.random()*2 - 1)*Math.sin(Math.PI*t)*.6; }
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; f.type = 'lowpass'; f.frequency.value = 1200; g.gain.value = .12;
+  s.connect(f).connect(g).connect(ac.destination); s.start();
+}
+seedScene(); size(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

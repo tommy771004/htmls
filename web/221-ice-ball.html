@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>丸氷 · 深夜吧台的冰球</title>
+<meta name="description" content="深夜吧台的手鑿冰球：用冰錐一刀一刀把方冰鑿圓，正面、側面、上面都要圓，最後放進古典杯、倒上威士忌。">
+<style>
+:root{
+  --night:#0b0908; --night-2:#16110e; --hinoki:#c9a477; --paper:#efe7d8; --mute:#8a7d6c; --amber:#d08a3a; --ice:#cfe6f2;
+  --thin:"Avenir Next","Helvetica Neue","Segoe UI","PingFang TC",sans-serif;
+  --mincho:"Hiragino Mincho ProN","Yu Mincho","Songti TC","Noto Serif TC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--night);color:var(--paper);font-family:var(--thin);overflow:hidden;-webkit-font-smoothing:antialiased}
+#c{position:fixed;inset:0;width:100%;height:100%;cursor:none;touch-action:none}
+.hud{position:fixed;left:clamp(16px,4vw,48px);top:clamp(18px,4vh,40px);pointer-events:none;z-index:2}
+.hud .ja{font-family:var(--mincho);font-size:13px;letter-spacing:.6em;color:var(--hinoki)}
+.hud h1{font-family:var(--mincho);font-weight:400;font-size:clamp(40px,5vw,64px);letter-spacing:.2em;line-height:1.1;margin-top:8px}
+.hud p{font-size:13px;line-height:1.9;color:var(--mute);max-width:22em;margin-top:12px;letter-spacing:.04em}
+.stats{position:fixed;right:clamp(16px,4vw,48px);top:clamp(18px,4vh,40px);text-align:right;z-index:2;pointer-events:none}
+.stat{margin-bottom:16px}
+.stat small{display:block;font-size:10px;letter-spacing:.34em;color:var(--mute);text-transform:uppercase}
+.stat b{display:block;font-weight:200;font-size:42px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat b i{font-style:normal;font-size:16px;color:var(--mute);margin-left:3px}
+.faces{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+.faces span{width:30px;height:30px;border:1px solid rgba(239,231,216,.25);border-radius:50%;display:grid;place-items:center;font-family:var(--mincho);font-size:12px;color:var(--mute);transition:all .4s}
+.faces span.on{border-color:var(--hinoki);color:var(--paper)}
+.ctrl{position:fixed;left:50%;bottom:clamp(16px,4vh,34px);transform:translateX(-50%);display:flex;gap:10px;z-index:2}
+.ctrl button{font-family:var(--mincho);font-size:14px;letter-spacing:.3em;padding:12px 20px 12px 24px;background:rgba(20,15,12,.6);color:var(--paper);border:1px solid rgba(201,164,119,.5);cursor:pointer;transition:background .3s,border-color .3s}
+.ctrl button:hover{background:rgba(201,164,119,.16);border-color:var(--hinoki)}
+.ctrl button.pri{background:var(--hinoki);color:#1b130c;border-color:var(--hinoki)}
+.ctrl button[disabled]{opacity:.3;cursor:default}
+.card{position:fixed;right:clamp(16px,5vw,80px);bottom:clamp(90px,14vh,140px);width:240px;background:var(--paper);color:#1b130c;padding:22px 22px 18px;font-family:var(--mincho);opacity:0;transform:translateY(16px);transition:opacity 1s,transform 1s;pointer-events:none;z-index:3;box-shadow:0 30px 50px -20px rgba(0,0,0,.8)}
+.card.show{opacity:1;transform:none}
+.card h2{font-weight:400;font-size:12px;letter-spacing:.5em;color:#6d5d48;border-bottom:1px solid #1b130c;padding-bottom:8px;margin-bottom:12px}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.card dd{text-align:right;font-family:var(--thin);font-variant-numeric:tabular-nums}
+.card p{font-size:14px;line-height:1.8;margin-top:12px;letter-spacing:.06em}
+.hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mincho);letter-spacing:.4em;font-size:13px;color:rgba(239,231,216,.55);pointer-events:none;transition:opacity 1.2s;z-index:2;margin-top:min(26vh,230px)}
+@media (max-width:760px){
+  .hud p{display:none}
+  .hud h1{font-size:34px}
+  .stat b{font-size:28px}
+  .stat{margin-bottom:8px}
+  .card{left:16px;right:16px;width:auto;bottom:86px}
+  .ctrl button{padding:10px 12px 10px 16px;font-size:13px;letter-spacing:.18em}
+}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="吧台上的方冰，點擊冰的邊緣鑿下冰片"></canvas>
+<div class="hud"><div class="ja">銀座 · 午前一時</div><h1>丸氷</h1><p>從一塊透明的方冰開始。冰錐只鑿邊角——點冰的邊緣，一次削下一小片。正面鑿圓之後，轉個方向，側面與上面也要圓。</p></div>
+<div class="stats">
+  <div class="stat"><small>Roundness</small><b id="round">0<i>%</i></b></div>
+  <div class="stat"><small>Strokes</small><b id="strokes">0</b></div>
+  <div class="faces" id="faces"><span class="on">正</span><span>側</span><span>上</span></div>
+</div>
+<div class="hint" id="hint">點 冰 的 邊 角</div>
+<div class="ctrl"><button id="turn">轉 向</button><button id="done" class="pri" disabled>入 杯</button><button id="again" hidden>再 一 顆</button></div>
+<div class="card" id="card"></div>
+<script>
+(function(){
+'use strict';
+var cv=document.getElementById('c'), ctx=cv.getContext('2d'), W=0,H=0,DPR=1, CX=0, CY=0, U=1;
+function CY0(){ return CY; }
+function size(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; CX=W/2; CY=H*0.5; U=Math.min(W*0.9,H*0.62)/360; }
+size(); addEventListener('resize',size);
+var N=240, HALF=120; // 方冰半邊長（以 U 為單位）
+function cube(){ var r=new Float32Array(N); for(var i=0;i<N;i++){ var a=i/N*Math.PI*2; r[i]=HALF/Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a))); } return r; }
+var faces=[cube(),cube(),cube()], chipsMark=[[],[],[]], face=0, strokes=0, state='carve', turnT=1, parts=[], t0=performance.now(), pourT=0, rot=0;
+var ptr={x:-999,y:-999,down:false,last:0};
+function roundness(r){ var mn=1e9,mx=0,s=0,s2=0; for(var i=0;i<N;i++){ mn=Math.min(mn,r[i]); mx=Math.max(mx,r[i]); s+=r[i]; s2+=r[i]*r[i]; } var m=s/N, sd=Math.sqrt(Math.max(0,s2/N-m*m)); return {ratio:Math.max(0,1-3.5*sd/m),min:mn,mean:m}; }
+// 冰放在吧台上：依目前這一面的底部高度，讓冰的最低點貼著檯面
+var iceY=0;
+function settle(r){ var b=0; for(var k=-12;k<=12;k++) b=Math.max(b,r[(N/4+k+N)%N]); return CY+(128-b)*U; }
+function score(){ var a=faces.map(roundness); var ratio=a.reduce(function(s,x){return s+x.ratio;},0)/3; var mn=Math.min(a[0].min,a[1].min,a[2].min); return {ratio:ratio,min:mn,each:a}; }
+// 每個面雖然是各自的剖面，但球的半徑受最小值限制：某面鑿太深，其他面也跟著變小
+function clampFaces(){ var mn=Math.min(roundness(faces[0]).min,roundness(faces[1]).min,roundness(faces[2]).min); faces.forEach(function(r){ for(var i=0;i<N;i++) r[i]=Math.min(r[i],Math.max(mn*1.42,mn+4)); }); }
+
+// ---- 聲音 ----
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function chipSound(hard){ var a=A(); if(!a) return; var t=a.currentTime, n=a.sampleRate*.06, b=a.createBuffer(1,n,a.sampleRate), d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,6); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=hard?5200:3200+Math.random()*1800; f.Q.value=3; var g=a.createGain(); g.gain.value=hard?.25:.5; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+  var o=a.createOscillator(), og=a.createGain(); o.frequency.value=2400+Math.random()*1500; og.gain.setValueAtTime(.03,t); og.gain.exponentialRampToValueAtTime(.0001,t+.12); o.connect(og); og.connect(a.destination); o.start(t); o.stop(t+.13); }
+function clink(){ var a=A(); if(!a) return; [1800,2700,3600].forEach(function(f,i){ var t=a.currentTime+i*.02,o=a.createOscillator(),g=a.createGain(); o.frequency.value=f; g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.0001,t+1.4); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+1.5); }); }
+function glug(){ var a=A(); if(!a) return; for(var k=0;k<7;k++){ (function(k){ var t=a.currentTime+k*.28,o=a.createOscillator(),g=a.createGain(); o.frequency.setValueAtTime(260-k*12,t); o.frequency.exponentialRampToValueAtTime(140,t+.18); g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.24); })(k); } }
+
+// ---- 鑿 ----
+function chipAt(x,y){
+  if(state!=='carve' || turnT<1) return;
+  var dx=(x-CX)/U, dy=(y-iceY)/U, d=Math.hypot(dx,dy), a=Math.atan2(dy,dx); if(a<0) a+=Math.PI*2;
+  var r=faces[face], i0=Math.round(a/(Math.PI*2)*N)%N, edge=r[i0];
+  if(d<edge-34 || d>edge+26) { if(d<edge-34){ chipSound(true); spark(x,y,4); } return; }
+  // 一刀：在落點附近削出一個淺淺的貝殼狀缺口
+  var D=3.5+Math.random()*5, wid=Math.round(N*(0.025+Math.random()*0.03));
+  var base=edge-D;
+  for(var k=-wid;k<=wid;k++){ var j=(i0+k+N)%N, f=k/wid; r[j]=Math.min(r[j],base+D*f*f*1.05+(Math.random()-.5)*.6); }
+  clampFaces();
+  chipsMark[face].push({a:a,r:base,w:wid/N*Math.PI*2,life:1});
+  strokes++; chipSound(false);
+  // 飛出的冰屑
+  var ex=CX+Math.cos(a)*edge*U, ey=iceY+Math.sin(a)*edge*U;
+  for(var n=0;n<10;n++){ var sp=2+Math.random()*5, aa=a+(Math.random()-.5)*1.4; parts.push({x:ex,y:ey,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp-2,s:1+Math.random()*3.5,life:1,rot:Math.random()*6}); }
+  ui();
+}
+function spark(x,y,n){ for(var i=0;i<n;i++) parts.push({x:x,y:y,vx:(Math.random()-.5)*3,vy:-Math.random()*3,s:1,life:.6,rot:0}); }
+cv.addEventListener('pointerdown',function(e){ A(); ptr.down=true; ptr.x=e.clientX; ptr.y=e.clientY; chipAt(e.clientX,e.clientY); ptr.last=performance.now(); try{ cv.setPointerCapture(e.pointerId); }catch(_){}; document.getElementById('hint').style.opacity=0; });
+cv.addEventListener('pointermove',function(e){ ptr.x=e.clientX; ptr.y=e.clientY; if(ptr.down && performance.now()-ptr.last>85){ chipAt(e.clientX,e.clientY); ptr.last=performance.now(); } });
+addEventListener('pointerup',function(){ ptr.down=false; });
+cv.addEventListener('pointerleave',function(){ ptr.x=-999; });
+
+function ui(){
+  var s=score();
+  document.getElementById('round').innerHTML=Math.round(s.ratio*100)+'<i>%</i>';
+  document.getElementById('strokes').textContent=strokes;
+  document.getElementById('done').disabled=strokes<40 || state!=='carve';
+  Array.prototype.forEach.call(document.getElementById('faces').children,function(sp,i){ sp.classList.toggle('on',i===face); sp.style.borderColor=faces[i]&&roundness(faces[i]).ratio>.9?'#7fb2c9':''; });
+}
+document.getElementById('turn').onclick=function(){ if(state!=='carve'||turnT<1) return; A(); turnT=0; var nf=(face+1)%3; var t1=performance.now(); (function f(now){ turnT=Math.min(1,(now-t1)/520); if(turnT>=.5) face=nf; ui(); if(turnT<1) requestAnimationFrame(f); })(t1); };
+addEventListener('keydown',function(e){ if(e.key==='r'||e.key==='R'||e.key==='ArrowRight') document.getElementById('turn').click(); });
+document.getElementById('done').onclick=function(){
+  if(state!=='carve') return; state='glass'; pourT=0; clink(); setTimeout(glug,900);
+  this.disabled=true; document.getElementById('turn').disabled=true;
+  var s=score(), secs=(performance.now()-t0)/1000;
+  var verdict=s.ratio>.95?'近乎正球。調酒師會默默點頭。':s.ratio>.9?'很圓。燈光下的稜線幾乎看不見。':s.ratio>.8?'還留著些稜角——手鑿的痕跡，也是一種表情。':'這比較像一塊石頭。威士忌倒是不介意。';
+  var size=Math.round(s.min*2*0.25); // 換算成公釐（方冰約 60 mm）
+  document.getElementById('card').innerHTML='<h2>本日の一杯</h2><dl><dt>圓度</dt><dd>'+(s.ratio*100).toFixed(1)+'%</dd><dt>直徑</dt><dd>'+size+' mm</dd><dt>刀數</dt><dd>'+strokes+'</dd><dt>時間</dt><dd>'+Math.floor(secs/60)+':'+String(Math.floor(secs%60)).padStart(2,'0')+'</dd></dl><p>'+verdict+'</p>';
+  setTimeout(function(){ document.getElementById('card').classList.add('show'); document.getElementById('again').hidden=false; },2600);
+};
+document.getElementById('again').onclick=function(){ faces=[cube(),cube(),cube()]; chipsMark=[[],[],[]]; face=0; strokes=0; state='carve'; t0=performance.now(); document.getElementById('card').classList.remove('show'); this.hidden=true; document.getElementById('turn').disabled=false; ui(); };
+
+// ---- 畫 ----
+function bg(){
+  ctx.fillStyle='#0b0908'; ctx.fillRect(0,0,W,H);
+  // 吧台：檜木邊緣與黑漆檯面
+  var ty=CY+128*U;
+  var top=ctx.createLinearGradient(0,ty,0,H); top.addColorStop(0,'#1a1310'); top.addColorStop(1,'#060504');
+  ctx.fillStyle=top; ctx.fillRect(0,ty,W,H-ty);
+  ctx.fillStyle='rgba(201,164,119,.16)'; ctx.fillRect(0,ty,W,1.5);
+  // 頂燈
+  var sp=ctx.createRadialGradient(CX,CY-40*U,10,CX,CY+40*U,Math.max(W,H)*.55);
+  sp.addColorStop(0,'rgba(255,236,205,.20)'); sp.addColorStop(.35,'rgba(255,226,180,.07)'); sp.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=sp; ctx.fillRect(0,0,W,H);
+  var pool=ctx.createRadialGradient(CX,ty+18*U,4,CX,ty+18*U,170*U); pool.addColorStop(0,'rgba(255,230,190,.16)'); pool.addColorStop(1,'rgba(255,230,190,0)');
+  ctx.save(); ctx.translate(CX,ty+18*U); ctx.scale(1,26/170); ctx.translate(-CX,-(ty+18*U)); ctx.fillStyle=pool; ctx.beginPath(); ctx.arc(CX,ty+18*U,170*U,0,6.283); ctx.fill(); ctx.restore();
+}
+function icePath(r,sx,sy){
+  ctx.beginPath();
+  for(var i=0;i<=N;i++){ var j=i%N, a=j/N*Math.PI*2, x=CX+Math.cos(a)*r[j]*U*sx, y=iceY+Math.sin(a)*r[j]*U*sy; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.closePath();
+}
+function drawIce(r,sx,sy,tint,now,noShadow){
+  var R=roundness(r).mean*U, CY=iceY, ty=CY0()+128*U;
+  if(!noShadow){
+  // 冰下的影子與焦散
+  ctx.fillStyle='rgba(0,0,0,.5)'; ctx.beginPath(); ctx.ellipse(CX+8*U,ty+3,R*.9*sx,R*.1,0,0,6.283); ctx.fill();
+  var ca=ctx.createRadialGradient(CX,ty+5,2,CX,ty+5,R*.7); ca.addColorStop(0,'rgba(190,230,255,.22)'); ca.addColorStop(1,'rgba(190,230,255,0)'); ctx.fillStyle=ca; ctx.beginPath(); ctx.ellipse(CX,ty+5,R*.7,R*.07,0,0,6.283); ctx.fill(); }
+  icePath(r,sx,sy);
+  ctx.save(); ctx.clip();
+  var g=ctx.createRadialGradient(CX-R*.35,CY-R*.45,R*.1,CX,CY,R*1.25);
+  g.addColorStop(0,'rgba(240,250,255,.55)'); g.addColorStop(.45,'rgba(150,200,230,.20)'); g.addColorStop(.85,'rgba(90,140,180,.28)'); g.addColorStop(1,'rgba(220,240,255,.5)');
+  ctx.fillStyle=g; ctx.fillRect(CX-R*1.6,CY-R*1.6,R*3.2,R*3.2);
+  if(tint){ ctx.fillStyle=tint; ctx.fillRect(CX-R*1.6,CY-R*1.6,R*3.2,R*3.2); }
+  // 冰裡倒映的頂燈（一條彎的亮帶）
+  ctx.globalCompositeOperation='lighter';
+  ctx.strokeStyle='rgba(255,245,225,.35)'; ctx.lineWidth=R*.06; ctx.beginPath(); ctx.arc(CX,CY,R*.78,-2.6,-1.4); ctx.stroke();
+  ctx.fillStyle='rgba(255,250,240,.6)'; ctx.beginPath(); ctx.ellipse(CX-R*.42,CY-R*.5,R*.12,R*.05,-.7,0,6.283); ctx.fill();
+  // 內部的細小氣泡與白霧
+  for(var i=0;i<24;i++){ var a=i*2.39996, d=Math.sqrt(i/24)*R*.5; ctx.fillStyle='rgba(255,255,255,'+(.05+((i*37)%10)/150)+')'; ctx.beginPath(); ctx.arc(CX+Math.cos(a)*d*sx,CY+Math.sin(a)*d*.8,1+(i%3),0,6.283); ctx.fill(); }
+  ctx.globalCompositeOperation='source-over';
+  ctx.restore();
+  // 鑿痕：貝殼狀的亮邊
+  // 鑿痕：剛削下的地方留一道貝殼狀的亮紋，慢慢淡去
+  icePath(r,sx,sy); ctx.save(); ctx.clip();
+  if(face<3) chipsMark[face].slice(-40).forEach(function(c){ if(c.life<=0) return; ctx.strokeStyle='rgba(255,255,255,'+(.4*c.life)+')'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(CX+Math.cos(c.a)*(c.r+4)*U*sx,CY+Math.sin(c.a)*(c.r+4)*U*sy,9*U,c.a+Math.PI-.8,c.a+Math.PI+.8); ctx.stroke(); c.life=Math.max(0,c.life-.006); });
+  ctx.restore();
+  icePath(r,sx,sy); ctx.strokeStyle='rgba(235,248,255,.75)'; ctx.lineWidth=1.6; ctx.stroke();
+  icePath(r,sx,sy); ctx.strokeStyle='rgba(120,180,220,.25)'; ctx.lineWidth=6; ctx.stroke();
+}
+function drawPick(x,y){
+  if(x<0||state!=='carve') return;
+  var dx=(x-CX)/U, dy=(y-iceY)/U, a=Math.atan2(dy,dx);
+  ctx.save(); ctx.translate(x,y); ctx.rotate(a+Math.PI);
+  var hit=ptr.down?-6:0;
+  ctx.translate(hit,0);
+  ctx.strokeStyle='#d8dde0'; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-70,0); ctx.stroke();
+  ctx.fillStyle='#d8dde0'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-10,-2.4); ctx.lineTo(-10,2.4); ctx.fill();
+  var hg=ctx.createLinearGradient(0,-8,0,8); hg.addColorStop(0,'#d9b98c'); hg.addColorStop(1,'#8a6844');
+  ctx.fillStyle=hg; ctx.beginPath(); ctx.roundRect?ctx.roundRect(-150,-8,82,16,7):ctx.rect(-150,-8,82,16); ctx.fill();
+  ctx.fillStyle='#b5b9bb'; ctx.fillRect(-72,-5,6,10);
+  ctx.restore();
+}
+function drawGlass(now){
+  var s=score(), r=faces[0], R=Math.min(s.min,110)*U;
+  pourT=Math.min(1,pourT+0.004);
+  var gw=R*1.45, gh=R*2.0, base=CY+128*U, top=base-gh;
+  // 杯影
+  ctx.fillStyle='rgba(0,0,0,.55)'; ctx.beginPath(); ctx.ellipse(CX+10*U,base+4,gw*1.05,gw*.16,0,0,6.283); ctx.fill();
+  // 威士忌
+  var lv=Math.min(1,Math.max(0,(pourT-.15)/.6))*.62;
+  var ly=base-gh*lv-6;
+  ctx.save(); ctx.beginPath(); ctx.rect(CX-gw+5,top,gw*2-10,gh-14); ctx.clip();
+  if(lv>0){ var wg=ctx.createLinearGradient(0,ly,0,base); wg.addColorStop(0,'rgba(220,140,50,.75)'); wg.addColorStop(1,'rgba(120,60,20,.9)'); ctx.fillStyle=wg; ctx.fillRect(CX-gw,ly,gw*2,base-ly); ctx.fillStyle='rgba(255,210,150,.5)'; ctx.fillRect(CX-gw,ly,gw*2,2); }
+  ctx.restore();
+  // 冰球在杯中（下半浸在酒裡會染色）
+  var mx=0; for(var q=0;q<N;q++) mx=Math.max(mx,r[q]); var bob=Math.sin(now/900)*1.5, scale=R/(mx*U);
+  iceY=CY; ctx.save(); ctx.translate(CX,base-R-12+bob); ctx.scale(scale,scale); ctx.translate(-CX,-CY);
+  drawIce(r,1,1,lv>0?'rgba(210,130,50,'+(lv*.35)+')':null,now,true);
+  ctx.restore();
+  // 倒酒的酒柱
+  if(pourT>.12 && pourT<.78){ ctx.fillStyle='rgba(215,140,55,.85)'; ctx.fillRect(CX+gw*.35,0,4,ly); }
+  // 古典杯：厚底 + 杯壁高光
+  ctx.strokeStyle='rgba(230,240,250,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(CX-gw,top); ctx.lineTo(CX-gw+3,base); ctx.lineTo(CX+gw-3,base); ctx.lineTo(CX+gw,top); ctx.stroke();
+  ctx.fillStyle='rgba(220,235,250,.10)'; ctx.fillRect(CX-gw+3,base-16,gw*2-6,16);
+  ctx.strokeStyle='rgba(230,240,250,.35)'; ctx.beginPath(); ctx.ellipse(CX,top,gw,gw*.12,0,0,6.283); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(CX-gw+10,top+10,6,gh-30);
+  ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(CX+gw-22,top+20,4,gh-50);
+}
+function frame(now){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  bg();
+  if(state==='carve'){
+    // 轉向動畫：橫向壓扁到 0 再展開
+    var sx=turnT<1?Math.abs(Math.cos(turnT*Math.PI)):1; iceY=settle(faces[face]);
+    drawIce(faces[face],Math.max(.04,sx),1,null,now);
+    drawPick(ptr.x,ptr.y);
+  } else drawGlass(now);
+  parts.forEach(function(p){ p.x+=p.vx; p.y+=p.vy; p.vy+=.25; p.life-=.02; p.rot+=.2;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle='rgba(225,242,255,'+Math.max(0,p.life)+')'; ctx.fillRect(-p.s,-p.s*.6,p.s*2,p.s*1.2); ctx.restore(); });
+  parts=parts.filter(function(p){ return p.life>0 && p.y<H; });
+  requestAnimationFrame(frame);
+}
+ui(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

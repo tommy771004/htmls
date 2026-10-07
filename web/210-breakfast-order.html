@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>好日早餐 · 點餐單</title>
+<meta name="description" content="台式早餐店的紅字點餐單：點一下品項，原子筆就在數量欄寫上數字，加蛋、加起司打勾，選內用外帶。交給老闆娘之後，旁邊的鐵板開始煎蛋、煎蛋餅、烤吐司，好了就叫你的號碼。">
+<style>
+:root{--steel:#d7dadd;--paper:#fcfbf4;--red:#d42a2a;--pen:#1d3a9e;--ink:#2a2622;--board:#8a5a34;--plate:#c8102e}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{overflow-x:clip;color:var(--ink);font-family:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;min-height:100vh;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 1px,transparent 1px 3px),linear-gradient(170deg,#e4e7ea,#c6cacf 60%,#b9bec4)}
+button{font:inherit;color:inherit;cursor:pointer}
+.counter{max-width:1220px;margin:0 auto;padding:22px 16px 40px;display:grid;grid-template-columns:minmax(0,600px) minmax(0,1fr);gap:34px;align-items:start}
+/* 夾板與點餐單 */
+.clip{background:linear-gradient(135deg,#9a6a40,#7a4c28);border-radius:14px;padding:44px 14px 16px;position:relative;box-shadow:0 22px 40px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.12);transform:rotate(-.6deg)}
+.clip::before{content:"";position:absolute;left:50%;top:-10px;width:180px;height:52px;margin-left:-90px;border-radius:10px 10px 18px 18px;background:linear-gradient(#f4f5f6,#a7acb2 55%,#d9dcdf);box-shadow:0 4px 8px rgba(0,0,0,.35);z-index:2}
+.clip::after{content:"";position:absolute;left:50%;top:6px;width:60px;height:12px;margin-left:-30px;border-radius:6px;background:#7d838a;z-index:3}
+.form{background:var(--paper);padding:20px 18px 18px;position:relative;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.form header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px double var(--red);padding-bottom:8px;color:var(--red)}
+.form h1{margin:0;font-size:28px;letter-spacing:.2em;font-weight:900}
+.form h1 small{display:block;font-size:12px;letter-spacing:.32em;font-weight:600;margin-top:2px}
+.form .meta{font-size:12px;text-align:right;line-height:1.7;font-weight:600}
+.form .meta span{display:inline-block;min-width:68px;border-bottom:1px solid var(--red);text-align:center;color:var(--pen);font-family:"Bradley Hand","Segoe Print","Comic Sans MS",cursive;font-weight:700;font-size:14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:10px}
+.sec{border:1.5px solid var(--red);margin-bottom:10px;break-inside:avoid}
+.sec h2{margin:0;background:var(--red);color:var(--paper);font-size:13px;letter-spacing:.3em;padding:3px 8px;display:flex;justify-content:space-between}
+.sec h2 em{font-style:normal;font-size:10px;letter-spacing:.1em;font-weight:500;opacity:.9}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 30px 34px 26px 26px;align-items:center;border-top:1px solid rgba(212,42,42,.35);min-height:34px;color:var(--red);font-size:13.5px;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none;position:relative}
+.row:first-of-type{border-top:0}
+.row>*{padding:0 4px;height:100%;display:flex;align-items:center}
+.row .nm{padding-left:7px}
+.row .pr{justify-content:flex-end;font-size:12px;border-left:1px solid rgba(212,42,42,.35)}
+.row .q,.row .x1,.row .x2{justify-content:center;border-left:1px solid rgba(212,42,42,.35)}
+.row:hover{background:rgba(212,42,42,.05)}
+.row:focus-visible{outline:2px solid var(--pen);outline-offset:-2px}
+.hdr{display:grid;grid-template-columns:minmax(0,1fr) 30px 34px 26px 26px;font-size:10px;color:var(--red);font-weight:700;text-align:center;border-bottom:1px solid var(--red)}
+.hdr span{padding:2px 0;border-left:1px solid rgba(212,42,42,.35)}
+.hdr span:first-child{text-align:left;padding-left:7px;border-left:0}
+.ink{width:100%;height:26px;overflow:visible}
+.ink path,.dine svg path,.box svg path{fill:none;stroke:var(--pen);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:pen .45s ease-out forwards}
+@keyframes pen{to{stroke-dashoffset:0}}
+.box{width:13px;height:13px;border:1.3px solid var(--red);position:relative;cursor:pointer;background:none;padding:0}
+.box svg{position:absolute;left:-3px;top:-7px;width:20px;height:20px;overflow:visible}
+.minus{position:absolute;right:-30px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:0;border-radius:50%;background:#fff;color:var(--red);font-weight:900;box-shadow:0 1px 3px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;display:none}
+.row.has .minus{display:block}
+.row:hover .minus,.row:focus-within .minus{opacity:1}
+.foot{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;border-top:3px double var(--red);padding-top:10px;color:var(--red);font-weight:700}
+.dine{display:flex;gap:16px;font-size:14px}
+.dine button{border:0;background:none;color:var(--red);font-weight:700;display:flex;align-items:center;gap:6px;padding:4px 0}
+.dine i{width:15px;height:15px;border:1.4px solid var(--red);border-radius:50%;position:relative}
+.dine svg{position:absolute;left:-5px;top:-5px;width:24px;height:24px;overflow:visible}
+.sum{display:flex;align-items:center;gap:6px;font-size:14px}
+.sum .ink{width:auto;height:30px}
+.note{grid-column:1/-1;font-size:11px;color:#b9706a;font-weight:500}
+/* 右側：鐵板 */
+.side{display:flex;flex-direction:column;gap:18px;position:sticky;top:16px}
+.lady{display:flex;gap:12px;align-items:flex-start}
+.lady .face{flex:none;width:64px;height:64px}
+.bubble{background:#fff;border-radius:18px;padding:12px 16px;font-size:17px;font-weight:700;line-height:1.5;position:relative;box-shadow:0 6px 16px rgba(0,0,0,.15);min-height:50px;flex:1}
+.bubble::before{content:"";position:absolute;left:-8px;top:20px;border:8px solid transparent;border-right-color:#fff;border-left:0}
+.griddle{background:#1f2224;border-radius:16px;padding:14px;box-shadow:0 20px 40px rgba(0,0,0,.3),inset 0 0 0 2px #3b4044}
+.griddle canvas{display:block;width:100%;height:auto;border-radius:6px}
+.griddle .lbl{display:flex;justify-content:space-between;color:#9aa0a6;font-size:12px;margin-top:8px;letter-spacing:.12em}
+.ticketRow{display:flex;gap:16px;align-items:center}
+.tag{width:96px;height:120px;flex:none;background:linear-gradient(160deg,#e3243f,#a80c24);border-radius:12px 12px 16px 16px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;box-shadow:0 10px 20px rgba(120,0,20,.35),inset 0 2px 0 rgba(255,255,255,.3);position:relative}
+.tag::before{content:"";position:absolute;top:10px;width:16px;height:16px;border-radius:50%;background:#b9bec4;box-shadow:inset 0 2px 3px rgba(0,0,0,.4)}
+.tag b{font-size:46px;line-height:1;margin-top:16px;font-family:"Avenir Next","Helvetica Neue",Arial,sans-serif}
+.tag small{font-size:11px;letter-spacing:.3em;font-weight:600}
+.go{flex:1;border:0;border-radius:14px;padding:18px;font-size:19px;font-weight:900;letter-spacing:.14em;background:var(--red);color:#fff;box-shadow:0 5px 0 #8e1515,0 10px 20px rgba(140,20,20,.3)}
+.go:active{transform:translateY(3px);box-shadow:0 2px 0 #8e1515}
+.go:disabled{background:#9ba1a7;box-shadow:0 5px 0 #6d7379;cursor:not-allowed}
+.status{font-size:14px;color:#3d4246;min-height:1.5em;font-weight:600}
+@media (max-width:980px){
+  .counter{grid-template-columns:1fr}
+  .side{position:static}
+}
+@media (max-width:560px){
+  .ticketRow{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(228,231,234,.96);backdrop-filter:blur(6px);padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:10px;box-shadow:0 -8px 20px rgba(0,0,0,.15)}
+  .tag{width:58px;height:70px;border-radius:10px}.tag b{font-size:26px;margin-top:10px}.tag small{font-size:9px;letter-spacing:.1em}.tag::before{top:5px;width:10px;height:10px}
+  .go{padding:13px;font-size:16px}
+  .status{font-size:12px;min-height:0}
+  body{padding-bottom:100px}
+  .cols{grid-template-columns:1fr}
+  .clip{padding:40px 8px 10px;transform:none}
+  .form{padding:16px 10px 14px}
+  .form h1{font-size:22px}
+  .minus{right:122px;opacity:1}
+  .form h1 small{letter-spacing:.12em}
+  .row:hover .minus{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){.ink path{animation-duration:.01s}}
+</style>
+</head>
+<body>
+<main class="counter">
+  <section class="clip" aria-label="點餐單">
+    <form class="form" id="form" onsubmit="return false">
+      <header>
+        <h1>好日早餐<small>HAO RI BREAKFAST · 點餐單</small></h1>
+        <div class="meta">桌號 <span id="table">外帶</span><br>日期 <span id="date"></span></div>
+      </header>
+      <div class="cols" id="cols"></div>
+      <div class="foot">
+        <div class="dine" role="radiogroup" aria-label="內用或外帶">
+          <button type="button" role="radio" data-d="in" aria-checked="false"><i></i>內用</button>
+          <button type="button" role="radio" data-d="out" aria-checked="true"><i></i>外帶</button>
+        </div>
+        <div class="sum">總計 NT$ <svg class="ink" id="sum" viewBox="0 0 60 20" aria-label="總計"></svg></div>
+        <div class="note">點品項＝數量 +1；滑過出現「−」可減一。加蛋、加起司各 +10。</div>
+      </div>
+    </form>
+  </section>
+  <aside class="side">
+    <div class="lady">
+      <svg class="face" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="34" r="22" fill="#f6d2b3"/><path d="M10 32 C8 12 22 6 34 8 C50 8 58 20 54 34 C50 24 40 20 30 22 C22 24 14 26 10 32Z" fill="#3a2a22"/><circle cx="46" cy="14" r="8" fill="#3a2a22"/><circle cx="24" cy="36" r="2.4" fill="#2a2622"/><circle cx="40" cy="36" r="2.4" fill="#2a2622"/><path d="M26 45 Q32 50 38 45" stroke="#c0392b" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="20" cy="42" r="3.5" fill="#f2a1a1" opacity=".7"/><circle cx="44" cy="42" r="3.5" fill="#f2a1a1" opacity=".7"/><path d="M12 56 h40 v8 h-40z" fill="#d42a2a"/></svg>
+      <div class="bubble" id="bubble" aria-live="polite">帥哥美女早安～要吃什麼？</div>
+    </div>
+    <div class="griddle">
+      <canvas id="cv" width="720" height="440" aria-label="鐵板"></canvas>
+      <div class="lbl"><span>鐵板 · 200°C</span><span id="gstate">待機中</span></div>
+    </div>
+    <div class="ticketRow">
+      <div class="tag" aria-label="號碼牌"><small>號碼牌</small><b id="num">27</b></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+        <button class="go" id="go" type="button" disabled>交給老闆娘</button>
+        <div class="status" id="status">點餐單還是空的。</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+/* 手寫數字（10×16 方格），每次寫都抖一下 */
+var DIG = {
+  '0':'M5 1 C1 1 1 15 5 15 C9 15 9 1 5 1',
+  '1':'M3 4 L6 1 L6 15',
+  '2':'M1.5 4 C2 0 9 0 8 5 C7 9 2 11 1 15 L9 15',
+  '3':'M1 2.5 C4 0 9 1 7.5 5 C6.5 7 4 7 4 7 C9 7 10 14 5 15 C3 15.6 1.5 14.5 1 13',
+  '4':'M7 15 L7 1 L1 11 L9.5 11',
+  '5':'M8.5 1 L2.5 1 L1.5 7 C4 5 9 6 8.5 11 C8 16 2.5 15.5 1 13',
+  '6':'M7.5 1 C3.5 2 1 8 1 11 C1 15.5 8.5 16 8.5 11 C8.5 7 2.5 7 1 11',
+  '7':'M1 1 L9 1 L4 15',
+  '8':'M5 7 C1 6 1.5 1 5 1 C8.5 1 9 6 5 7 C0.5 8 1 15 5 15 C9 15 9.5 8 5 7',
+  '9':'M8 5 C8 0 1 0 1 5 C1 9 8 9 8 5 L7 15'
+};
+function jitter(d){ return d.replace(/-?\d+(\.\d+)?/g, function(n){ return (+n + (Math.random() - .5)*.7).toFixed(2); }); }
+function writeNum(svg, n, boxW){
+  var s = String(n), w = 11, total = s.length*w, ox = Math.max(0, (boxW - total)/2), html = '';
+  s.split('').forEach(function(ch, i){
+    html += '<path pathLength="1" style="animation-delay:' + (i*.25) + 's" transform="translate(' + (ox + i*w) + ' 2) rotate(' + ((Math.random() - .5)*6).toFixed(1) + ' 5 8)" d="' + jitter(DIG[ch]) + '"/>';
+  });
+  svg.innerHTML = html;
+}
+function tick(svg){ svg.innerHTML = '<path pathLength="1" d="' + jitter('M2 9 L7 15 L17 1') + '"/>'; }
+function circle(svg){ svg.innerHTML = '<path pathLength="1" d="' + jitter('M18 6 C14 1 4 2 3 10 C2 18 14 22 19 15 C22 10 18 4 12 3') + '"/>'; }
+
+/* 品項 */
+var MENU = [
+  {s:'漢堡',e:'BURGER',col:0,items:[['porkburger','豬肉蛋堡',45,'burger'],['tunaburger','鮪魚蛋堡',45,'burger'],['chickenburger','卡拉雞腿堡',60,'patty'],['baconburger','培根蛋堡',45,'bacon']]},
+  {s:'吐司・厚片',e:'TOAST',col:0,items:[['hamtoast','火腿蛋吐司',35,'toast'],['cheesetoast','起司蛋吐司',35,'toast'],['peanut','花生厚片',30,'thick'],['choco','巧克力厚片',30,'thick']]},
+  {s:'蛋餅',e:'DAN BING',col:0,items:[['plaincrepe','原味蛋餅',25,'crepe'],['corncrepe','玉米蛋餅',35,'crepe'],['tunacrepe','鮪魚蛋餅',40,'crepe'],['cheesecrepe','起司蛋餅',35,'crepe']]},
+  {s:'鐵板麵',e:'NOODLE',col:1,items:[['pepper','黑胡椒鐵板麵',50,'noodle'],['mushroom','蘑菇鐵板麵',50,'noodle']]},
+  {s:'點心',e:'SIDE',col:1,items:[['radish','蘿蔔糕',30,'radish'],['hash','薯餅',25,'hash'],['nugget','雞塊',40,'nugget'],['hotdog','熱狗',20,'hotdog']]},
+  {s:'飲料',e:'DRINK',col:1,items:[['icemilk','大冰奶',30,'drink'],['blacktea','冰紅茶（大）',20,'drink'],['soy','溫豆漿',20,'drink'],['milktea','熱奶茶',25,'drink']]}
+];
+var state = {}, dine = 'out', number = 27 + Math.floor(Math.random()*60), sent = false;
+var cols = $('#cols'), colEls = [document.createElement('div'), document.createElement('div')];
+colEls.forEach(function(c){ cols.appendChild(c); });
+MENU.forEach(function(sec){
+  var el = document.createElement('div'); el.className = 'sec';
+  var drink = sec.e === 'DRINK';
+  el.innerHTML = '<h2>' + sec.s + '<em>' + sec.e + '</em></h2><div class="hdr"><span>品名</span><span>價</span><span>數量</span><span>' + (drink ? '去冰' : '+蛋') + '</span><span>' + (drink ? '少糖' : '+起') + '</span></div>';
+  sec.items.forEach(function(it){
+    var id = it[0]; state[id] = {q:0, x1:false, x2:false, name:it[1], p:it[2], kind:it[3], drink:drink};
+    var r = document.createElement('div'); r.className = 'row'; r.tabIndex = 0; r.setAttribute('role','button');
+    r.setAttribute('aria-label', it[1] + ' ' + it[2] + ' 元');
+    r.innerHTML = '<span class="nm">' + it[1] + '</span><span class="pr">' + it[2] + '</span><span class="q"><svg class="ink" viewBox="0 0 34 20"></svg></span>' +
+      '<span class="x1"><button type="button" class="box" aria-label="' + (drink ? '去冰' : '加蛋') + '" aria-pressed="false"><svg viewBox="0 0 20 16"></svg></button></span>' +
+      '<span class="x2"><button type="button" class="box" aria-label="' + (drink ? '少糖' : '加起司') + '" aria-pressed="false"><svg viewBox="0 0 20 16"></svg></button></span>' +
+      '<button type="button" class="minus" aria-label="' + it[1] + ' 減一">−</button>';
+    r.addEventListener('click', function(e){
+      if (e.target.closest('.box') || e.target.closest('.minus')) return;
+      change(id, 1, r);
+    });
+    r.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); change(id, 1, r); } if (e.key === '-' || e.key === 'Backspace') change(id, -1, r); });
+    r.querySelector('.minus').addEventListener('click', function(){ change(id, -1, r); });
+    var boxes = r.querySelectorAll('.box');
+    boxes.forEach(function(b, bi){
+      b.addEventListener('click', function(){
+        var k = bi ? 'x2' : 'x1', st = state[id];
+        st[k] = !st[k]; b.setAttribute('aria-pressed', st[k]);
+        var svg = b.querySelector('svg'); if (st[k]) tick(svg); else svg.innerHTML = '';
+        if (st[k] && !st.q) change(id, 1, r); else { scratch(); update(); }
+      });
+    });
+    el.appendChild(r);
+  });
+  colEls[sec.col].appendChild(el);
+});
+function change(id, d, r){
+  if (sent) reset();
+  var st = state[id]; st.q = Math.max(0, Math.min(9, st.q + d));
+  var svg = r.querySelector('.q svg'); if (st.q) writeNum(svg, st.q, 34); else svg.innerHTML = '';
+  if (!st.q){ st.x1 = st.x2 = false; r.querySelectorAll('.box').forEach(function(b){ b.setAttribute('aria-pressed', 'false'); b.querySelector('svg').innerHTML = ''; }); }
+  r.classList.toggle('has', st.q > 0);
+  scratch(); update();
+  if (d > 0) say(pickLine(st));
+}
+function pickLine(st){
+  if (st.kind === 'drink') return st.name.indexOf('冰') >= 0 ? st.name + '，' + (st.x2 ? '少糖' : '正常甜') + '對吧？' : st.name + '，好～';
+  if (st.kind === 'crepe') return '蛋餅要不要切？我幫你切喔。';
+  if (st.kind === 'noodle') return '鐵板麵要加蛋嗎？加蛋比較好吃喔。';
+  var L = ['好～還要什麼？','OK～','記下來了！','要不要配一杯大冰奶？'];
+  return L[Math.floor(Math.random()*L.length)];
+}
+document.querySelectorAll('.dine button').forEach(function(b){
+  b.addEventListener('click', function(){
+    dine = b.dataset.d;
+    document.querySelectorAll('.dine button').forEach(function(x){ var on = x === b; x.setAttribute('aria-checked', on); var i = x.querySelector('i'); i.innerHTML = on ? '<svg viewBox="0 0 24 24"></svg>' : ''; if (on) circle(i.querySelector('svg')); });
+    $('#table').textContent = dine === 'in' ? (3 + Math.floor(Math.random()*9)) + ' 桌' : '外帶';
+    say(dine === 'in' ? '內用喔，坐裡面那桌～' : '外帶，好～幫你裝袋。'); scratch();
+  });
+});
+(function(){ var b = document.querySelector('.dine [data-d=out] i'); b.innerHTML = '<svg viewBox="0 0 24 24"></svg>'; circle(b.querySelector('svg')); })();
+function total(){ var t = 0; Object.keys(state).forEach(function(k){ var s = state[k]; if (s.q) t += s.q*(s.p + (!s.drink && s.x1 ? 10 : 0) + (!s.drink && s.x2 ? 10 : 0)); }); return t; }
+function update(){
+  var t = total(), sum = $('#sum');
+  if (t){ var w = String(t).length*11 + 4; sum.setAttribute('viewBox', '0 0 ' + w + ' 20'); sum.style.width = (w*1.5) + 'px'; writeNum(sum, t, w); } else sum.innerHTML = '';
+  $('#go').disabled = !t;
+  var n = Object.keys(state).reduce(function(s, k){ return s + state[k].q; }, 0);
+  $('#status').textContent = t ? '共 ' + n + ' 樣，NT$ ' + t + '。' : '點餐單還是空的。';
+  drawGriddle(false);
+}
+function reset(){
+  sent = false; number++;
+  $('#num').textContent = number;
+  Object.keys(state).forEach(function(k){ state[k].q = 0; state[k].x1 = state[k].x2 = false; });
+  document.querySelectorAll('.row').forEach(function(r){ r.classList.remove('has'); r.querySelector('.q svg').innerHTML = ''; r.querySelectorAll('.box').forEach(function(b){ b.setAttribute('aria-pressed', 'false'); b.querySelector('svg').innerHTML = ''; }); });
+  cookT = 0; $('#gstate').textContent = '待機中';
+}
+var d = new Date(); $('#date').textContent = (d.getMonth() + 1) + '/' + d.getDate();
+$('#num').textContent = number;
+function say(t){ var b = $('#bubble'); b.textContent = t; b.animate([{transform:'scale(.96)'},{transform:'scale(1)'}], {duration:200}); }
+
+/* 鐵板 */
+var cv = $('#cv'), g = cv.getContext('2d'), cookT = 0, cooking = false, steam = [];
+function griddleItems(){
+  var list = [];
+  Object.keys(state).forEach(function(k){
+    var s = state[k]; if (!s.q || s.drink) return;
+    for (var i = 0; i < s.q; i++){ list.push(s.kind); if (s.x1 || ['burger','toast','bacon','noodle'].indexOf(s.kind) >= 0) list.push('egg'); }
+  });
+  return list.slice(0, 15);
+}
+function lerp(a, b, t){ return a + (b - a)*t; }
+function col(a, b, t){ return 'rgb(' + [0,1,2].map(function(i){ return Math.round(lerp(a[i], b[i], t)); }).join(',') + ')'; }
+function drawItem(kind, x, y, t, seed){
+  g.save(); g.translate(x, y); g.scale(1.2, 1.2);
+  switch (kind){
+    case 'egg':
+      g.fillStyle = col([235,235,225],[252,252,248],Math.min(1, t*2)); g.beginPath();
+      for (var i = 0; i <= 16; i++){ var a = i/16*Math.PI*2, r = 34 + Math.sin(a*3 + seed)*5; g.lineTo(Math.cos(a)*r, Math.sin(a)*r*.85); } g.fill();
+      if (t > .5){ g.strokeStyle = 'rgba(190,120,40,' + (t - .5) + ')'; g.lineWidth = 4; g.stroke(); }
+      g.fillStyle = '#f5a623'; g.beginPath(); g.arc(4, -3, 12, 0, Math.PI*2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.arc(0, -7, 4, 0, Math.PI*2); g.fill(); break;
+    case 'crepe':
+      g.rotate(-.2); g.fillStyle = col([240,226,190],[226,176,96],t); g.fillRect(-48, -18, 96, 36);
+      g.fillStyle = col([250,215,90],[240,190,70],t); g.fillRect(-48, -6, 96, 12);
+      g.strokeStyle = 'rgba(120,70,20,.35)'; g.lineWidth = 2; for (var c = -30; c <= 30; c += 30){ g.beginPath(); g.moveTo(c, -18); g.lineTo(c, 18); g.stroke(); } break;
+    case 'toast': case 'thick':
+      g.rotate(.15); g.fillStyle = col([246,232,200],[214,160,80],t); g.beginPath(); g.moveTo(-30, -26); g.quadraticCurveTo(-34, -40, -16, -38); g.quadraticCurveTo(0, -46, 16, -38); g.quadraticCurveTo(34, -40, 30, -26); g.lineTo(30, 30); g.lineTo(-30, 30); g.closePath(); g.fill();
+      g.strokeStyle = col([210,170,110],[150,90,30],t); g.lineWidth = 5; g.stroke();
+      if (kind === 'thick'){ g.fillStyle = seed > .5 ? 'rgba(110,60,30,.8)' : 'rgba(200,140,60,.85)'; g.beginPath(); g.ellipse(0, -2, 18, 16, 0, 0, Math.PI*2); g.fill(); } break;
+    case 'burger': case 'patty':
+      g.fillStyle = col([200,120,110],[110,62,40],t); g.beginPath(); g.ellipse(0, 0, 36, 30, 0, 0, Math.PI*2); g.fill();
+      g.fillStyle = 'rgba(0,0,0,.18)'; for (var p = 0; p < 9; p++){ g.beginPath(); g.arc(Math.sin(p*2.3 + seed)*22, Math.cos(p*1.7 + seed)*18, 2.5, 0, Math.PI*2); g.fill(); }
+      if (kind === 'patty'){ g.fillStyle = col([235,200,150],[200,130,50],t); g.beginPath(); g.ellipse(0, 0, 30, 24, .3, 0, Math.PI*2); g.fill(); } break;
+    case 'bacon':
+      for (var b = 0; b < 2; b++){ g.save(); g.translate(0, b*20 - 10); g.fillStyle = col([220,120,120],[160,60,40],t); g.beginPath(); g.moveTo(-40, 0); for (var bx = -40; bx <= 40; bx += 8) g.lineTo(bx, Math.sin(bx*.2 + seed)*4); g.lineTo(40, 9); for (var bx2 = 40; bx2 >= -40; bx2 -= 8) g.lineTo(bx2, 9 + Math.sin(bx2*.2 + seed)*4); g.fill(); g.strokeStyle = col([250,220,210],[230,180,120],t); g.lineWidth = 2; g.beginPath(); g.moveTo(-40, 4); g.lineTo(40, 4); g.stroke(); g.restore(); } break;
+    case 'noodle':
+      g.strokeStyle = col([230,200,120],[170,110,50],t); g.lineWidth = 4;
+      for (var n = 0; n < 14; n++){ g.beginPath(); g.ellipse(Math.sin(n + seed)*8, Math.cos(n*1.3)*6, 30 - n, 18 - n*.6, n*.4, 0, Math.PI*1.6); g.stroke(); }
+      g.fillStyle = 'rgba(60,30,10,' + (.3 + t*.5) + ')'; g.beginPath(); g.ellipse(0, 0, 14, 10, 0, 0, Math.PI*2); g.fill(); break;
+    case 'radish':
+      for (var rd = 0; rd < 2; rd++){ g.fillStyle = col([240,238,230],[220,180,120],t); g.fillRect(-38 + rd*40, -20, 34, 40); g.strokeStyle = col([220,215,205],[170,110,50],t); g.lineWidth = 3; g.strokeRect(-38 + rd*40, -20, 34, 40); } break;
+    case 'hash':
+      g.fillStyle = col([235,215,160],[214,150,50],t); g.beginPath(); g.ellipse(0, 0, 38, 24, 0, 0, Math.PI*2); g.fill();
+      g.strokeStyle = 'rgba(150,90,20,.35)'; g.lineWidth = 1.5; for (var hh = -24; hh <= 24; hh += 6){ g.beginPath(); g.moveTo(hh, -18); g.lineTo(hh + 6, 18); g.stroke(); } break;
+    case 'nugget':
+      for (var k = 0; k < 4; k++){ g.fillStyle = col([235,210,150],[205,140,50],t); g.beginPath(); g.ellipse((k%2)*30 - 15, Math.floor(k/2)*24 - 12, 14, 11, k, 0, Math.PI*2); g.fill(); } break;
+    case 'hotdog':
+      g.rotate(.4); g.fillStyle = col([220,110,90],[170,60,40],t); g.beginPath(); g.ellipse(0, 0, 42, 10, 0, 0, Math.PI*2); g.fill();
+      g.strokeStyle = 'rgba(80,20,10,' + (.2 + t*.5) + ')'; g.lineWidth = 2; for (var hd = -28; hd <= 28; hd += 14){ g.beginPath(); g.moveTo(hd - 4, -6); g.lineTo(hd + 4, 6); g.stroke(); } break;
+  }
+  g.restore();
+}
+function drawGriddle(){
+  var W = cv.width, H = cv.height;
+  var bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#3a3e42'); bg.addColorStop(.5, '#2b2e31'); bg.addColorStop(1, '#383c40');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  var heat = g.createRadialGradient(W*.5, H*.55, 20, W*.5, H*.55, W*.6); heat.addColorStop(0, 'rgba(255,140,60,' + (cooking ? .12 : .05) + ')'); heat.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = heat; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 1; for (var y = 0; y < H; y += 5){ g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + 20); g.stroke(); }
+  g.fillStyle = 'rgba(30,20,10,.35)'; g.beginPath(); g.ellipse(W*.3, H*.7, 80, 30, .3, 0, Math.PI*2); g.fill();
+  var list = griddleItems(), t = Math.min(1, cookT);
+  if (!list.length){
+    g.fillStyle = 'rgba(255,255,255,.35)'; g.font = '600 26px "PingFang TC","Microsoft JhengHei",sans-serif'; g.textAlign = 'center';
+    g.fillText(Object.keys(state).some(function(k){ return state[k].q; }) ? '只點飲料，鐵板休息' : '點了東西，鐵板上就會出現', W/2, H/2 + 8); g.textAlign = 'left';
+  }
+  list.forEach(function(k, i){ var cx = 84 + (i%5)*138, cy = 84 + Math.floor(i/5)*136; drawItem(k, cx, cy, t, i*1.37 % 1); });
+  // 煎鏟
+  g.save(); g.translate(W - 70, H - 60); g.rotate(-.5); g.fillStyle = '#c9ced3'; g.fillRect(-36, -26, 72, 52); g.fillStyle = '#5a3a22'; g.fillRect(-8, 26, 16, 70); g.restore();
+  steam.forEach(function(s){
+    var sg = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+    sg.addColorStop(0, 'rgba(255,255,255,' + (s.a*.16).toFixed(3) + ')'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = sg; g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI*2); g.fill();
+  });
+}
+var last = performance.now();
+function loop(now){
+  var dt = Math.min(.05, (now - last)/1000); last = now;
+  if (cooking){
+    cookT += dt/7;
+    if (Math.random() < .5) steam.push({x:60 + Math.random()*(cv.width - 120), y:cv.height*(.2 + Math.random()*.6), r:24 + Math.random()*30, a:1});
+    if (cookT >= 1){ cooking = false; done(); }
+  }
+  steam.forEach(function(s){ s.y -= 40*dt; s.r += 10*dt; s.a -= dt*.7; });
+  steam = steam.filter(function(s){ return s.a > 0; });
+  drawGriddle();
+  requestAnimationFrame(loop);
+}
+$('#go').addEventListener('click', function(){
+  audio(); if (cooking) return;
+  sent = true; cookT = 0;
+  var hasFood = griddleItems().length;
+  cooking = !!hasFood; $('#go').disabled = true;
+  $('#gstate').textContent = hasFood ? '煎煮中…' : '飲料直接倒';
+  say(dine === 'in' ? '好，' + number + ' 號，坐著等一下喔～' : '好，' + number + ' 號，外帶稍等喔～');
+  $('#status').textContent = '號碼牌 ' + number + '。' + (hasFood ? '鐵板開始煎了。' : '');
+  if (hasFood) sizzle(true); else setTimeout(done, 1200);
+});
+function done(){
+  sizzle(false); bell();
+  $('#gstate').textContent = '好了！';
+  say(number + ' 號～好囉！' + (dine === 'out' ? '袋子裡有吸管跟醬油膏。' : '小心燙喔。'));
+  $('#status').textContent = '取餐完成。再點一樣會換一張新單。';
+}
+
+/* 聲音 */
+var ac = null, siz = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function scratch(){
+  audio(); if (!ac) return;
+  var len = .22, buf = ac.createBuffer(1, ac.sampleRate*len, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++){ var t = i/ac.sampleRate; d[i] = (Math.random()*2 - 1)*(.3 + .7*Math.abs(Math.sin(t*60)))*(1 - i/d.length); }
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), gg = ac.createGain(); s.buffer = buf; f.type = 'highpass'; f.frequency.value = 2500; gg.gain.value = .06;
+  s.connect(f).connect(gg).connect(ac.destination); s.start();
+}
+function sizzle(on){
+  if (!ac) return;
+  if (on && !siz){
+    var buf = ac.createBuffer(1, ac.sampleRate*2, ac.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1)*(Math.random() < .03 ? 1 : .3);
+    var s = ac.createBufferSource(); s.buffer = buf; s.loop = true; var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4800; var gg = ac.createGain(); gg.gain.value = .0001;
+    s.connect(f).connect(gg).connect(ac.destination); s.start(); gg.gain.exponentialRampToValueAtTime(.12, ac.currentTime + .3); siz = {s:s, g:gg};
+  } else if (!on && siz){ var z = siz; siz = null; z.g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + .4); setTimeout(function(){ try { z.s.stop(); } catch(e){} }, 500); }
+}
+function bell(){
+  if (!ac) return; var t = ac.currentTime;
+  [1760, 2217].forEach(function(f, i){ var o = ac.createOscillator(), gg = ac.createGain(); o.frequency.value = f; gg.gain.setValueAtTime(.0001, t + i*.18); gg.gain.exponentialRampToValueAtTime(.1, t + i*.18 + .01); gg.gain.exponentialRampToValueAtTime(.0001, t + i*.18 + 1); o.connect(gg).connect(ac.destination); o.start(t + i*.18); o.stop(t + 1.3); });
+}
+update(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

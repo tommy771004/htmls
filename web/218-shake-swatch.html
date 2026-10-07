@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>手搖色票 · 甜度冰量扇形色卡</title>
+<meta name="description" content="把台灣手搖飲做成一本扇形色票：選茶底、甜度、冰量與配料，算出這杯飲料的顏色與色號，加進色票扇，點開看糖量與熱量估算。">
+<style>
+:root{
+  --desk:#e7e6e1; --desk-2:#d9d8d2; --ink:#161616; --ink-2:#5c5c58; --mute:#9a9993; --line:#c9c8c1; --hi:#ff4b1f;
+  --sans:"Helvetica Neue","Helvetica","Arial","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--desk);color:var(--ink);font-family:var(--sans);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(70vw 60vh at 50% 70%,rgba(255,255,255,.55),transparent 70%)}
+.bar{position:relative;z-index:3;display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 26px;padding:22px clamp(16px,3vw,40px);border-bottom:1px solid var(--line);background:rgba(231,230,225,.86);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.brand{margin-right:auto;line-height:1}
+.brand b{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em}
+.brand span{display:block;font-size:10.5px;letter-spacing:.24em;color:var(--ink-2);margin-top:6px;text-transform:uppercase}
+.grp{display:flex;flex-direction:column;gap:6px}
+.grp>span{font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--mute);text-transform:uppercase}
+.seg{display:flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.grp{max-width:100%}
+.seg button{font:inherit;font-size:13px;background:transparent;border:0;border-left:1px solid var(--ink);padding:7px 10px;cursor:pointer;color:var(--ink);white-space:nowrap;transition:background .15s,color .15s}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--ink);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--hi);outline-offset:-2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font:inherit;font-size:13px;background:transparent;border:1px solid var(--line);border-radius:20px;padding:6px 11px;cursor:pointer;transition:all .15s}
+.chips button.on{border-color:var(--ink);background:#fff;font-weight:700}
+.add{font:inherit;font-weight:700;font-size:14px;background:var(--hi);color:#fff;border:0;padding:11px 18px;border-radius:2px;cursor:pointer;letter-spacing:.04em;transition:transform .15s,background .2s}
+.add:hover{background:#e43b10}.add:active{transform:translateY(1px)}
+.stage{position:relative;height:max(600px,calc(100vh - 170px));overflow:hidden}
+.deck{position:absolute;left:50%;bottom:70px;width:0;height:0}
+.card{position:absolute;left:calc(var(--cw) / -2);bottom:0;width:var(--cw);height:var(--ch);--cw:132px;--ch:400px;background:#fff;border-radius:4px;transform-origin:50% calc(100% - 22px);
+  box-shadow:0 1px 1px rgba(0,0,0,.08),0 10px 24px -12px rgba(0,0,0,.35);cursor:pointer;transition:transform .7s cubic-bezier(.2,.8,.2,1),box-shadow .3s;overflow:hidden;outline:none}
+.card{display:flex;flex-direction:column}
+.card .chip{flex:1;position:relative;overflow:hidden}
+.card .chip::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.08),transparent 30%,rgba(0,0,0,.06))}
+.card .tops{position:absolute;left:0;right:0;top:0;height:16%;display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px;padding:4px}
+.card .tops i{width:9px;height:9px;border-radius:50%;display:block}
+.card .meta{order:-1;padding:10px 10px 9px;font-size:10px;line-height:1.35}
+.card .meta b{display:block;font-size:12.5px;font-weight:700;letter-spacing:-.01em}
+.card .meta .code{font-size:13px;font-weight:700;margin-top:6px;letter-spacing:.01em}
+.card .meta em{display:block;font-style:normal;color:var(--ink-2);margin-top:2px}
+.card .rivet{position:absolute;left:50%;bottom:15px;z-index:2;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#b5b5b0 55%,#6e6e69);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.card:hover,.card:focus-visible{box-shadow:0 1px 1px rgba(0,0,0,.08),0 18px 30px -12px rgba(0,0,0,.45)}
+.card.sel{box-shadow:0 0 0 2px var(--hi),0 18px 30px -12px rgba(0,0,0,.45)}
+.card.new{animation:drop .8s cubic-bezier(.2,.8,.2,1)}
+@keyframes drop{from{opacity:0;margin-bottom:120px}to{opacity:1;margin-bottom:0}}
+.tools{position:absolute;left:clamp(16px,3vw,40px);bottom:24px;display:flex;gap:10px;z-index:2}
+.tools button{font:inherit;font-size:12px;letter-spacing:.06em;background:transparent;border:1px solid var(--ink);padding:7px 12px;cursor:pointer;border-radius:2px}
+.tools button:hover{background:var(--ink);color:#fff}
+.count{position:absolute;right:clamp(16px,3vw,40px);bottom:24px;font-size:11px;letter-spacing:.2em;color:var(--mute);text-transform:uppercase;z-index:2}
+/* 詳細卡 */
+.detail{position:absolute;right:clamp(16px,3vw,40px);top:30px;width:290px;background:#fff;padding:20px 20px 18px;box-shadow:0 20px 40px -20px rgba(0,0,0,.4);z-index:4;transform:translateX(30px);opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.detail.show{transform:none;opacity:1;pointer-events:auto}
+.detail .x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:20px;cursor:pointer;color:var(--ink-2);line-height:1;padding:4px}
+.detail h3{font-size:20px;letter-spacing:-.01em;line-height:1.15;padding-right:20px}
+.detail .code{font-size:12px;letter-spacing:.06em;color:var(--ink-2);margin:4px 0 14px}
+.detail .row{display:grid;grid-template-columns:90px 1fr;gap:16px;align-items:end}
+.cup{position:relative;width:90px;height:150px}
+.cup svg{width:100%;height:100%;overflow:visible}
+.spec{font-size:12px;line-height:1.5}
+.spec dt{color:var(--mute);font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin-top:8px}
+.spec dt:first-child{margin-top:0}
+.spec dd{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.spec dd small{font-size:11px;font-weight:400;color:var(--ink-2);margin-left:2px}
+.bar2{height:5px;background:#eee;margin-top:14px;position:relative}
+.bar2 i{position:absolute;left:0;top:0;bottom:0;background:var(--hi)}
+.fine{font-size:10.5px;color:var(--mute);line-height:1.5;margin-top:10px}
+@media (max-width:880px){
+  .bar{gap:12px 16px;padding:16px}
+  .brand{width:100%}
+  .seg button{padding:6px 8px;font-size:12px}
+  .stage{height:auto;min-height:760px}
+  .card{--cw:92px;--ch:290px}
+  .card .meta{padding:7px 7px 0;font-size:9px}.card .meta b{font-size:11px}.card .meta .code{font-size:11px}
+  .detail{left:16px;right:16px;width:auto;top:16px}
+  .tools{bottom:16px}.count{bottom:22px}
+}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card.new{animation:none}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><b>手搖色票</b><span>Shake-Tone Swatch Guide · Taiwan</span></div>
+  <div class="grp"><span>茶底</span><div class="seg" id="base"></div></div>
+  <div class="grp"><span>甜度</span><div class="seg" id="sugar"></div></div>
+  <div class="grp"><span>冰量</span><div class="seg" id="ice"></div></div>
+  <div class="grp"><span>配料（可複選）</span><div class="chips" id="tops"></div></div>
+  <button class="add" id="add">印一張色票 ＋</button>
+</header>
+<section class="stage" id="stage">
+  <div class="deck" id="deck"></div>
+  <div class="tools"><button id="fan">收合 / 展開</button><button id="reset">清空</button></div>
+  <div class="count" id="count"></div>
+  <aside class="detail" id="detail" aria-live="polite"></aside>
+</section>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var BASE=[
+  {k:'black',zh:'紅茶',c:[138,58,26],caf:47,kcal:0},
+  {k:'green',zh:'綠茶',c:[196,184,92],caf:30,kcal:0},
+  {k:'oolong',zh:'烏龍',c:[168,100,42],caf:40,kcal:0},
+  {k:'four',zh:'四季春',c:[214,190,96],caf:35,kcal:0},
+  {k:'milk',zh:'奶茶',c:[190,140,96],caf:42,kcal:120},
+  {k:'latte',zh:'鮮奶茶',c:[222,188,148],caf:38,kcal:180},
+  {k:'wax',zh:'冬瓜茶',c:[120,70,30],caf:0,kcal:90},
+  {k:'matcha',zh:'抹茶拿鐵',c:[150,170,90],caf:60,kcal:200}
+];
+var SUGAR=[{zh:'無糖',f:0},{zh:'微糖',f:.2},{zh:'少糖',f:.7},{zh:'半糖',f:.5},{zh:'全糖',f:1}];
+SUGAR.sort(function(a,b){return a.f-b.f;});
+var ICE=[{zh:'去冰',f:0},{zh:'微冰',f:.3},{zh:'少冰',f:.6},{zh:'正常',f:1}];
+var TOPS=[
+  {k:'pearl',zh:'珍珠',c:'#2a1a12',kcal:150},
+  {k:'coco',zh:'椰果',c:'#efeedd',kcal:60},
+  {k:'grass',zh:'仙草',c:'#1d1a17',kcal:40},
+  {k:'pudding',zh:'布丁',c:'#e8b44a',kcal:110},
+  {k:'taro',zh:'芋圓',c:'#a58ab8',kcal:120},
+  {k:'aiyu',zh:'愛玉',c:'#e9d77a',kcal:30}
+];
+var sel={base:0,sugar:3,ice:2,tops:{pearl:1}};
+function seg(id,list,key){
+  $(id).innerHTML=list.map(function(x,i){ return '<button data-i="'+i+'"'+(sel[key]===i?' class="on"':'')+'>'+x.zh+'</button>'; }).join('');
+  $(id).addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; sel[key]=+b.dataset.i; Array.prototype.forEach.call(this.children,function(x){x.classList.toggle('on',x===b);}); tick(); });
+}
+seg('base',BASE,'base'); seg('sugar',SUGAR,'sugar'); seg('ice',ICE,'ice');
+$('tops').innerHTML=TOPS.map(function(t){ return '<button data-k="'+t.k+'"'+(sel.tops[t.k]?' class="on"':'')+'>'+t.zh+'</button>'; }).join('');
+$('tops').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; var k=b.dataset.k; if(sel.tops[k]) delete sel.tops[k]; else sel.tops[k]=1; b.classList.toggle('on',!!sel.tops[k]); tick(); });
+
+// 顏色：茶底色 → 糖讓它更焦糖、更飽和 → 冰塊稀釋讓它變淺
+function drinkColor(d){
+  var c=BASE[d.base].c.slice(), s=SUGAR[d.sugar].f, ic=ICE[d.ice].f;
+  var car=[150,80,20];
+  c=c.map(function(v,i){ return v+(car[i]-v)*s*.18; });
+  c=c.map(function(v){ return v+(255-v)*ic*.22; });
+  return c.map(function(v){ return Math.round(Math.max(0,Math.min(255,v))); });
+}
+function hsl(c){ var r=c[0]/255,g=c[1]/255,b=c[2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2; if(mx!==mn){ var d=mx-mn; s=l>.5?d/(2-mx-mn):d/(mx+mn); h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4; h*=60; } return [h,s,l]; }
+// 色號：仿紡織色票的「明度-色相」編碼
+function code(c,d){ var h=hsl(c); return 'TW '+String(Math.round((1-h[2])*19)).padStart(2,'0')+'-'+String(Math.round(h[0]*10)).padStart(4,'0')+' '+['N','S','H','F','X'][d.sugar]; }
+function rgb(c){ return 'rgb('+c.join(',')+')'; }
+function nut(d){
+  var b=BASE[d.base], sugarG=Math.round(SUGAR[d.sugar].f*52), k=b.kcal+sugarG*4;
+  Object.keys(d.tops).forEach(function(t){ k+=TOPS.filter(function(x){return x.k===t;})[0].kcal; });
+  return {sugar:sugarG,kcal:k,caf:b.caf*(1-ICE[d.ice].f*.15)|0};
+}
+function name(d){ var t=Object.keys(d.tops).map(function(k){ return TOPS.filter(function(x){return x.k===k;})[0].zh; }); return BASE[d.base].zh+(t.length?'＋'+t.join('、'):''); }
+
+var deck=$('deck'), cards=[], open=true, selIdx=-1;
+var PRE=[
+  {base:0,sugar:3,ice:2,tops:{pearl:1}},{base:3,sugar:1,ice:1,tops:{}},{base:5,sugar:2,ice:0,tops:{pudding:1}},{base:7,sugar:3,ice:2,tops:{taro:1}},
+  {base:6,sugar:4,ice:3,tops:{coco:1}},{base:2,sugar:0,ice:0,tops:{}},{base:4,sugar:4,ice:3,tops:{pearl:1,grass:1}},{base:1,sugar:2,ice:3,tops:{aiyu:1}}
+];
+try{ var saved=JSON.parse(localStorage.getItem('shake-swatch')||'null'); if(saved&&saved.length) PRE=saved; }catch(e){}
+function cardHTML(d){
+  var c=drinkColor(d), t=Object.keys(d.tops);
+  var dots=''; t.forEach(function(k){ var tp=TOPS.filter(function(x){return x.k===k;})[0]; for(var i=0;i<(k==='pearl'||k==='taro'?14:9);i++) dots+='<i style="background:'+tp.c+';'+(k==='coco'||k==='aiyu'?'border-radius:1px;opacity:.9':'')+'"></i>'; });
+  return '<div class="chip" style="background:'+rgb(c)+'"><div class="tops">'+dots+'</div></div><div class="meta"><b>'+name(d)+'</b><em>'+SUGAR[d.sugar].zh+' · '+ICE[d.ice].zh+'</em><div class="code">'+code(c,d)+'</div></div><span class="rivet"></span>';
+}
+function addCard(d,isNew){
+  var el=document.createElement('div'); el.className='card'+(isNew?' new':''); el.tabIndex=0; el.setAttribute('role','button');
+  el.innerHTML=cardHTML(d); deck.appendChild(el);
+  var o={d:JSON.parse(JSON.stringify(d)),el:el}; cards.push(o);
+  el.addEventListener('click',function(){ pick(cards.indexOf(o)); });
+  el.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(cards.indexOf(o)); } });
+  if(cards.length>14){ var old=cards.shift(); old.el.remove(); if(selIdx>=0) selIdx--; }
+  layout(); save();
+}
+function save(){ try{ localStorage.setItem('shake-swatch',JSON.stringify(cards.map(function(c){return c.d;}))); }catch(e){} }
+function layout(){
+  var n=cards.length, mob=innerWidth<880, spread=mob?74:118, step=n>1?spread/(n-1):0;
+  cards.forEach(function(c,i){
+    var a=open? -spread/2+i*step : (i-n/2)*.6;
+    var lift=i===selIdx?(mob?-34:-60):0;
+    c.el.style.transform='rotate('+a.toFixed(2)+'deg) translateY('+lift+'px)';
+    c.el.style.zIndex=i;
+    c.el.classList.toggle('sel',i===selIdx);
+  });
+  $('count').textContent=n+' 張色票';
+}
+function pick(i){
+  if(!open){ open=true; layout(); return; }
+  selIdx=selIdx===i?-1:i; layout();
+  if(selIdx<0){ $('detail').classList.remove('show'); return; }
+  var d=cards[i].d, c=drinkColor(d), n=nut(d), ice=ICE[d.ice].f, t=Object.keys(d.tops);
+  // 杯子剖面：配料沉底、冰塊浮在上層
+  var svg='<svg viewBox="0 0 90 150"><defs><clipPath id="cupc"><path d="M8 18 L82 18 L74 146 L16 146 Z"/></clipPath></defs>'+
+    '<g clip-path="url(#cupc)"><rect x="0" y="22" width="90" height="130" fill="'+rgb(c)+'"/>';
+  var y=146; t.forEach(function(k){ var tp=TOPS.filter(function(x){return x.k===k;})[0];
+    for(var r=0;r<3;r++) for(var q=0;q<7;q++){ var cx=14+q*10+(r%2)*5, cy=y-5-r*8; svg+=(k==='coco'||k==='aiyu'||k==='pudding')?'<rect x="'+(cx-4)+'" y="'+(cy-4)+'" width="8" height="8" rx="1.5" fill="'+tp.c+'" opacity=".92"/>':'<circle cx="'+cx+'" cy="'+cy+'" r="4.4" fill="'+tp.c+'"/>'; }
+    y-=24; });
+  for(var k=0;k<Math.round(ice*7);k++) svg+='<rect x="'+(14+(k*17)%56)+'" y="'+(26+((k*29)%30))+'" width="15" height="15" rx="3" fill="rgba(255,255,255,.38)" stroke="rgba(255,255,255,.7)" transform="rotate('+(k*23%40-20)+' '+(20+(k*17)%56)+' '+(32+((k*29)%30))+')"/>';
+  svg+='<rect x="0" y="18" width="90" height="6" fill="rgba(255,255,255,.45)"/></g>'+
+    '<path d="M8 18 L82 18 L74 146 L16 146 Z" fill="none" stroke="#161616" stroke-width="1.5"/>'+
+    '<rect x="4" y="12" width="82" height="7" rx="2" fill="#fff" stroke="#161616" stroke-width="1.5"/>'+
+    '<rect x="52" y="-6" width="8" height="120" rx="2" fill="#ff4b1f" transform="rotate(12 56 60)"/></svg>';
+  var pct=Math.min(100,n.sugar/50*100);
+  $('detail').innerHTML='<button class="x" aria-label="關閉">×</button><h3>'+name(d)+'</h3><p class="code">'+code(c,d)+' · '+SUGAR[d.sugar].zh+' '+ICE[d.ice].zh+' · '+rgb(c).replace('rgb','RGB ')+'</p>'+
+    '<div class="row"><div class="cup">'+svg+'</div><dl class="spec"><dt>糖</dt><dd>'+n.sugar+'<small>g</small></dd><dt>熱量</dt><dd>'+n.kcal+'<small>kcal</small></dd><dt>咖啡因</dt><dd>'+n.caf+'<small>mg</small></dd></dl></div>'+
+    '<div class="bar2"><i style="width:'+pct+'%"></i></div><p class="fine">紅條為每日建議添加糖上限 50 g 的占比。數值以 700 ml 大杯粗估，各店配方不同，僅供比較。</p>';
+  $('detail').classList.add('show');
+  $('detail').querySelector('.x').onclick=function(){ selIdx=-1; layout(); $('detail').classList.remove('show'); };
+  pop(c);
+}
+// 印出色票的「喀」聲與「啵」聲
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function pop(c){ var a=A(); if(!a) return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.frequency.setValueAtTime(300+hsl(c)[2]*600,t); o.frequency.exponentialRampToValueAtTime(120,t+.12); g.gain.setValueAtTime(.12,t); g.gain.exponentialRampToValueAtTime(.0001,t+.15); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.16); }
+function press(){ var a=A(); if(!a) return; [0,.06].forEach(function(dt,i){ var t=a.currentTime+dt,n=a.sampleRate*.04,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var j=0;j<n;j++) d[j]=(Math.random()*2-1)*Math.pow(1-j/n,4); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=i?2400:1200; var g=a.createGain(); g.gain.value=.4; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t); }); }
+function tick(){ var a=ac; if(!a) return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.type='square'; o.frequency.value=2200; g.gain.setValueAtTime(.02,t); g.gain.exponentialRampToValueAtTime(.0001,t+.03); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.04); }
+
+$('add').onclick=function(){ A(); press(); open=true; selIdx=-1; $('detail').classList.remove('show'); addCard(sel,true); setTimeout(function(){ pick(cards.length-1); },500); };
+$('fan').onclick=function(){ open=!open; if(!open){ selIdx=-1; $('detail').classList.remove('show'); } layout(); };
+$('reset').onclick=function(){ cards.forEach(function(c){c.el.remove();}); cards=[]; selIdx=-1; $('detail').classList.remove('show'); layout(); save(); };
+window.addEventListener('resize',layout);
+PRE.forEach(function(d){ addCard(d,false); });
+// 開場：從收合狀態展開
+open=false; layout(); setTimeout(function(){ open=true; layout(); },350);
+})();
+</script>
+</body>
+</html>

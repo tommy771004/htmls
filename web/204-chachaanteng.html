@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>金雀茶餐廳 · 落單紙</title>
+<meta name="description" content="港式茶餐廳：馬賽克磚牆上掛著紅藍膠字價目牌，點一樣，夥計就在落單紙上用暗號寫一樣；凍飲加三蚊、下午茶時段有茶餐，最後埋單。">
+<style>
+:root{
+  --tile-a:#9fcfbe; --tile-b:#c9e5d8; --cream:#f6f1e3; --board:#fdfdf8; --red:#cf1f2e; --blue:#1d3f95; --black:#1a1a1a;
+  --green:#165c45; --gold:#f2c94c; --slip:#f3f6ec; --pencil:#2b3a55; --skirt:#2f7a5e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  overflow-x:clip;min-height:100vh;color:var(--black);
+  font-family:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Heiti TC",sans-serif;
+  background:var(--cream);
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.wall{position:relative;padding-bottom:40px}
+.wall::before{content:"";position:absolute;inset:0;background-image:var(--mosaic);background-size:198px;opacity:.95;z-index:-1}
+/* 招牌 */
+.sign{background:linear-gradient(180deg,#1c6b51,#124a37);color:var(--gold);padding:22px 16px 18px;text-align:center;position:relative;border-bottom:8px solid #0d3527;box-shadow:0 8px 0 #c2a043 inset,0 12px 24px rgba(0,0,0,.25)}
+.sign h1{margin:0;font-family:"Kaiti TC","BiauKai","DFKai-SB","STKaiti",serif;font-size:clamp(40px,7vw,84px);letter-spacing:.18em;line-height:1;text-shadow:0 2px 0 #8a6a1c,0 4px 0 #3d2e08,0 8px 16px rgba(0,0,0,.4)}
+.sign .br{display:none}
+.sign p{margin:10px 0 0;font-family:Georgia,"Times New Roman",serif;letter-spacing:.42em;font-size:13px;color:#e9dca6}
+.fan{position:absolute;top:100%;width:120px;height:120px;margin-top:-6px;pointer-events:none;z-index:3}
+.fan.l{left:6%}.fan.r{right:6%}
+.fan i{position:absolute;left:50%;top:0;width:4px;height:30px;margin-left:-2px;background:#7d7a70}
+.fan b{position:absolute;left:50%;top:22px;width:110px;height:24px;margin-left:-55px;animation:spin 1.6s linear infinite}
+.fan b::before,.fan b::after{content:"";position:absolute;top:8px;height:8px;width:52px;border-radius:50%;background:#d4d0c4;box-shadow:0 2px 0 #9a958a}
+.fan b::before{left:0}.fan b::after{right:0}
+@keyframes spin{to{transform:rotateY(360deg)}}
+/* 時段 */
+.bar{max-width:1180px;margin:0 auto;padding:62px 16px 10px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between}
+.slots{display:flex;gap:6px;flex-wrap:wrap}
+.slots button{border:2px solid var(--black);background:var(--board);padding:7px 14px;border-radius:2px;font-weight:800;letter-spacing:.12em;box-shadow:3px 3px 0 var(--black)}
+.slots button[aria-pressed=true]{background:var(--red);color:#fff}
+.clock{font-size:13px;color:#2c4a3e;background:rgba(253,253,248,.85);padding:6px 12px;border-radius:2px;font-weight:600}
+/* 主要版面 */
+.room{max-width:1180px;margin:0 auto;padding:0 16px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}
+.boards{columns:2 300px;column-gap:22px}
+.board{
+  break-inside:avoid;margin:0 0 22px;background:var(--board);padding:0 0 12px;position:relative;
+  box-shadow:0 1px 0 #fff inset,0 10px 20px rgba(20,60,45,.25),0 2px 0 #c9c7bb;transform:rotate(var(--r,0deg));
+}
+.board::before,.board::after{content:"";position:absolute;top:8px;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#9b9b93 60%,#5f5f58);box-shadow:0 1px 1px rgba(0,0,0,.4)}
+.board::before{left:8px}.board::after{right:8px}
+.board h2{margin:0;padding:10px 26px 8px;font-size:24px;letter-spacing:.3em;font-weight:900;color:var(--board);background:var(--red);text-align:center}
+.board h2 small{display:block;font-size:11px;letter-spacing:.24em;font-weight:600;color:#ffd9d9;margin-top:2px}
+.board.blue h2{background:var(--blue)}.board.blue h2 small{color:#cdd9ff}
+.board.black h2{background:var(--black)}.board.black h2 small{color:#ccc}
+.board.set h2{background:var(--gold);color:var(--black)}.board.set h2 small{color:#5a4a12}
+.items{list-style:none;margin:0;padding:6px 12px 0}
+.item{display:flex;align-items:baseline;gap:8px;padding:7px 8px;border-radius:2px;position:relative;cursor:pointer;user-select:none}
+.item .nm{font-size:22px;font-weight:900;letter-spacing:.06em;line-height:1.15}
+.item .nm small{font-size:13px;font-weight:700;letter-spacing:0;margin-left:4px;opacity:.7}
+.item:nth-of-type(odd) .nm{color:var(--red)}.item:nth-of-type(even) .nm{color:var(--blue)}
+.board.black .item .nm{color:var(--black)}
+.item .dots{flex:1;border-bottom:2px dotted #b9b6a8;transform:translateY(-6px)}
+.item .pr{font-size:22px;font-weight:900;color:var(--red);font-family:"Arial Black","PingFang TC",sans-serif}
+.item .pr::before{content:"$";font-size:.6em;margin-right:1px}
+.item:hover,.item:focus-visible{background:linear-gradient(transparent 55%,rgba(242,201,76,.65) 55%,rgba(242,201,76,.65) 92%,transparent 92%);outline:none}
+.item.added{animation:nudge .35s}
+@keyframes nudge{30%{transform:translateX(5px)}60%{transform:translateX(-3px)}}
+.opts{display:none;flex-wrap:wrap;gap:6px;padding:4px 20px 10px;align-items:center}
+.opts.open{display:flex}
+.opts button{border:1.5px solid var(--black);background:#fff;border-radius:20px;padding:4px 12px;font-size:14px;font-weight:700}
+.opts button[aria-pressed=true]{background:var(--black);color:#fff}
+.opts .send{background:var(--red);border-color:var(--red);color:#fff;margin-left:auto}
+.board .foot{margin:6px 20px 0;font-size:12px;color:#7c7a6c}
+/* 落單紙 */
+.desk{position:sticky;top:16px}
+.slip{
+  background:var(--slip);padding:18px 18px 16px;position:relative;box-shadow:0 18px 30px rgba(20,60,45,.3);transform:rotate(1deg);
+  min-height:440px;
+}
+.slip::before{content:"";position:absolute;left:50%;top:-12px;width:90px;height:26px;margin-left:-45px;background:linear-gradient(#bfc3c6,#8d9297);border-radius:3px;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+.slip header{text-align:center;color:var(--red);border-bottom:2px solid var(--red);padding-bottom:6px;margin-bottom:6px}
+.slip header b{font-size:20px;letter-spacing:.3em;font-weight:900}
+.slip header div{display:flex;justify-content:space-between;font-size:13px;margin-top:6px;font-weight:700}
+.slip header span i{font-style:normal;font-family:"Kaiti TC","BiauKai","DFKai-SB",serif;color:var(--pencil);font-size:20px;margin-left:4px;font-weight:700}
+.lines{list-style:none;margin:0;padding:0;min-height:204px;background:repeating-linear-gradient(transparent 0 33px,#c7d4c0 33px 34px);font-family:"Kaiti TC","BiauKai","DFKai-SB","STKaiti",serif;color:var(--pencil)}
+.lines li{height:34px;display:flex;align-items:center;gap:8px;font-size:25px;font-weight:700;position:relative}
+.lines li .w{display:inline-block;animation:write var(--d,.6s) steps(var(--n,6)) both;white-space:nowrap}
+.lines li .q{font-size:17px;color:#55617a}
+.lines li .p{margin-left:auto;font-size:18px}
+.lines li.x .w{text-decoration:line-through;text-decoration-thickness:2px;opacity:.55}
+.lines li button{border:0;background:none;font-size:14px;color:#9aa;padding:4px;opacity:0;transition:opacity .2s}
+.lines li:hover button,.lines li:focus-within button{opacity:1}
+@keyframes write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.empty{font-family:"Kaiti TC","BiauKai","DFKai-SB",serif;color:#8b978a;font-size:18px;height:34px;display:flex;align-items:center}
+.sum{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--red);margin-top:8px;padding-top:8px;color:var(--red);font-weight:900}
+.sum output{font-family:"Kaiti TC","BiauKai","DFKai-SB",serif;font-size:32px;color:var(--pencil)}
+.paid{position:absolute;right:26px;bottom:70px;border:4px double var(--red);color:var(--red);font-size:30px;font-weight:900;letter-spacing:.2em;padding:4px 10px;transform:rotate(-16deg) scale(2);opacity:0;transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s;pointer-events:none;background:rgba(243,246,236,.5)}
+.paid.on{transform:rotate(-16deg) scale(1);opacity:.85}
+.acts{display:flex;gap:10px;margin-top:16px}
+.acts button{flex:1;border:2px solid var(--black);padding:12px;font-weight:900;letter-spacing:.2em;background:var(--board);box-shadow:3px 3px 0 var(--black);border-radius:2px}
+.acts .bill{background:var(--red);color:#fff}
+.acts button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--black)}
+.shout{position:absolute;left:-14px;top:-48px;background:#fff;border:2px solid var(--black);padding:6px 12px;font-weight:900;font-size:15px;border-radius:14px;box-shadow:3px 3px 0 var(--black);transform:scale(0) rotate(-6deg);transform-origin:20% 100%;transition:transform .25s cubic-bezier(.3,1.6,.5,1);white-space:nowrap;z-index:4}
+.shout.on{transform:scale(1) rotate(-6deg)}
+.shout::after{content:"";position:absolute;left:24px;bottom:-9px;width:14px;height:14px;background:#fff;border-right:2px solid var(--black);border-bottom:2px solid var(--black);transform:rotate(45deg)}
+.legend{margin-top:22px;background:rgba(253,253,248,.92);padding:14px 16px;font-size:13px;line-height:1.7;box-shadow:0 6px 14px rgba(20,60,45,.15)}
+.legend h3{margin:0 0 6px;font-size:14px;letter-spacing:.2em;color:var(--green)}
+.legend dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0}
+.legend dt{font-family:"Kaiti TC","BiauKai","DFKai-SB",serif;font-size:19px;font-weight:700;color:var(--pencil)}
+.legend dd{margin:0;color:#4b5a52;align-self:center}
+.legend p{margin:8px 0 0;color:#6c7a72;font-size:12px}
+/* 牆裙 */
+.skirt{height:70px;background:repeating-linear-gradient(90deg,var(--skirt) 0 46px,#256650 46px 48px),var(--skirt);border-top:6px solid #c2a043;box-shadow:inset 0 10px 18px rgba(0,0,0,.2)}
+.drawerbtn{display:none}
+@media (max-width:900px){
+  .room{grid-template-columns:1fr}
+  .desk{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:20;transform:translateY(calc(100% - 64px));transition:transform .35s cubic-bezier(.2,.8,.2,1);max-height:86vh;overflow:auto;padding:0 12px}
+  .desk.open{transform:none;background:var(--cream);box-shadow:0 -10px 30px rgba(0,0,0,.3)}
+  .slip{transform:none;min-height:0;margin-top:0}
+  .slip::before{display:none}
+  .drawerbtn{display:flex;width:100%;justify-content:space-between;align-items:center;border:0;background:var(--black);color:#fff;padding:0 18px;height:64px;font-weight:900;letter-spacing:.1em;border-radius:14px 14px 0 0;position:sticky;top:0;z-index:2}
+  .drawerbtn b{color:var(--gold);font-size:20px}
+  .legend{margin-bottom:16px}
+  .shout{left:12px;top:72px}
+  body{padding-bottom:70px}
+  .fan{display:none}
+}
+@media (max-width:520px){
+  .sign p{letter-spacing:.24em}.sign p span{display:none}.sign .br{display:inline}
+  .item .nm{font-size:19px}.item .pr{font-size:19px}
+  .board h2{font-size:21px}
+  .bar{padding-top:22px}
+}
+@media (prefers-reduced-motion:reduce){
+  .fan b{animation:none}
+  .lines li .w{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="wall" id="wall">
+  <header class="sign">
+    <h1>金雀茶餐廳</h1>
+    <p>GOLDEN SPARROW CAFÉ<span> · </span><br class="br">港式茶冰廳</p>
+    <div class="fan l" aria-hidden="true"><i></i><b></b></div>
+    <div class="fan r" aria-hidden="true"><i></i><b></b></div>
+  </header>
+  <div class="bar">
+    <div class="slots" id="slots" role="group" aria-label="時段"></div>
+    <div class="clock" id="clock"></div>
+  </div>
+  <main class="room">
+    <section class="boards" id="boards" aria-label="價目牌"></section>
+    <aside class="desk" id="desk">
+      <button class="drawerbtn" id="drawer" type="button" aria-expanded="false"><span>落單紙 <span id="cnt">0 樣</span></span><b id="mini">$0</b></button>
+      <div class="slip" id="slip">
+        <div class="shout" id="shout" aria-live="polite"></div>
+        <header>
+          <b>金雀茶餐廳</b>
+          <div><span>枱號<i id="table"></i></span><span>人數<i id="pax"></i></span><span>No.<i id="no"></i></span></div>
+        </header>
+        <ul class="lines" id="lines"><li class="empty">點牌上的嘢，我幫你寫。</li></ul>
+        <div class="sum"><span>合計</span><output id="total">$0</output></div>
+        <div class="paid" id="paid">埋單</div>
+        <div class="acts">
+          <button type="button" id="clear">重寫</button>
+          <button type="button" class="bill" id="bill">埋單</button>
+        </div>
+      </div>
+      <div class="legend">
+        <h3>本店落單暗號</h3>
+        <dl id="legend"></dl>
+        <p>每間茶記的寫法都唔同，以上是金雀自己的記法。凍飲 +$3；下午茶時段飲品減 $2。</p>
+      </div>
+    </aside>
+  </main>
+  <div class="skirt" aria-hidden="true"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+
+/* 馬賽克磚：用 canvas 畫一塊 198px 的磚面，當作牆的重複背景 */
+(function(){
+  var c = document.createElement('canvas'), n = 9, s = 22; c.width = c.height = n*s*2;
+  var g = c.getContext('2d'), cols = ['#a7d4c2','#bfe0d2','#d5ebe1','#93c8b4','#e6f2ec','#b3dacb'];
+  g.scale(2,2); g.fillStyle = '#eef2ea'; g.fillRect(0,0,n*s,n*s);
+  var seed = 7; function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
+  for (var y = 0; y < n; y++) for (var x = 0; x < n; x++){
+    var col = cols[Math.floor(rnd()*cols.length)];
+    if ((x+y)%4 === 0 && rnd() < .5) col = '#f6f1e3';
+    g.fillStyle = col; g.fillRect(x*s+1.5, y*s+1.5, s-3, s-3);
+    var gr = g.createLinearGradient(x*s, y*s, x*s+s, y*s+s); gr.addColorStop(0,'rgba(255,255,255,.35)'); gr.addColorStop(1,'rgba(0,0,0,.06)');
+    g.fillStyle = gr; g.fillRect(x*s+1.5, y*s+1.5, s-3, s-3);
+  }
+  $('#wall').style.setProperty('--mosaic', 'url(' + c.toDataURL() + ')');
+})();
+
+var DRINK_CODE = {milktea:'T',coffee:'啡',yy:'鴛',lemontea:'0T',lemonwater:'0水',horlicks:'立',ovaltine:'華',lemonhoney:'0蜜'};
+var BOARDS = [
+  {id:'set',cls:'set',title:'茶餐',sub:'依時段供應'},
+  {id:'drink',cls:'',title:'飲品',sub:'凍飲 +$3',items:[
+    {id:'milktea',nm:'港式奶茶',p:20,code:'T',drink:true},
+    {id:'coffee',nm:'咖啡',p:20,code:'啡',drink:true},
+    {id:'yy',nm:'鴛鴦',p:21,code:'鴛',drink:true},
+    {id:'lemontea',nm:'檸檬茶',p:20,code:'0T',drink:true},
+    {id:'lemonhoney',nm:'檸蜜',p:22,code:'0蜜',drink:true},
+    {id:'horlicks',nm:'好立克',p:22,code:'立',drink:true},
+    {id:'ovaltine',nm:'阿華田',p:22,code:'華',drink:true},
+    {id:'redbean',nm:'紅豆冰',p:28,code:'豆冰',drink:true,coldOnly:true}
+  ]},
+  {id:'snack',cls:'blue',title:'多士小食',sub:'即叫即焗',items:[
+    {id:'polo',nm:'菠蘿油',p:16,code:'菠油'},
+    {id:'french',nm:'西多士',p:30,code:'西多'},
+    {id:'condensed',nm:'奶油多',p:16,code:'奶多'},
+    {id:'spam',nm:'餐蛋治',p:26,code:'蛋治'},
+    {id:'eggtart',nm:'蛋撻',p:9,code:'撻',sub:'每件'}
+  ]},
+  {id:'rice',cls:'black',title:'飯類',sub:'加底 +$5',items:[
+    {id:'bakedpork',nm:'焗豬扒飯',p:62,code:'焗扒',rice:true},
+    {id:'beefhofun',nm:'乾炒牛河',p:58,code:'干牛'},
+    {id:'yangzhou',nm:'揚州炒飯',p:56,code:'揚飯',rice:true},
+    {id:'charsiu',nm:'叉燒煎蛋飯',p:52,code:'叉蛋',rice:true},
+    {id:'curry',nm:'咖喱牛腩飯',p:60,code:'咖腩',rice:true}
+  ]},
+  {id:'noodle',cls:'',title:'粉麵',sub:'可轉米粉／河粉',items:[
+    {id:'spamnoodle',nm:'餐蛋公仔麵',p:36,code:'蛋公'},
+    {id:'satay',nm:'沙嗲牛肉麵',p:38,code:'爹牛'},
+    {id:'brisket',nm:'牛腩河',p:45,code:'腩河'},
+    {id:'macaroni',nm:'火腿通粉',p:30,code:'腿通'}
+  ]}
+];
+var SETS = {
+  morning:{label:'早餐',range:'07:00–11:00',items:[
+    {id:'setA',nm:'A 餐',sub:'火腿通粉・炒蛋・牛油多',p:46,code:'A',drink:true,inSet:true},
+    {id:'setB',nm:'B 餐',sub:'沙嗲牛麵・煎蛋・奶油多',p:50,code:'B',drink:true,inSet:true}]},
+  lunch:{label:'午市',range:'11:00–14:30',items:[
+    {id:'lunch1',nm:'午一',sub:'焗豬扒飯・例湯',p:68,code:'午1',drink:true,inSet:true},
+    {id:'lunch2',nm:'午二',sub:'咖喱牛腩飯・例湯',p:66,code:'午2',drink:true,inSet:true}]},
+  tea:{label:'下午茶',range:'14:30–18:00',items:[
+    {id:'teaA',nm:'茶 A',sub:'菠蘿油・配飲品',p:30,code:'茶A',drink:true,inSet:true},
+    {id:'teaB',nm:'茶 B',sub:'西多士・配飲品',p:38,code:'茶B',drink:true,inSet:true}]},
+  dinner:{label:'晚市',range:'18:00–23:00',items:[
+    {id:'din1',nm:'晚一',sub:'豉椒排骨飯・例湯',p:72,code:'晚1',drink:true,inSet:true},
+    {id:'din2',nm:'晚二',sub:'粟米斑塊飯・例湯',p:78,code:'晚2',drink:true,inSet:true}]}
+};
+var LEGEND = [['T','奶茶'],['0T','檸檬茶（0 是一片檸檬）'],['啡','咖啡'],['鴛','鴛鴦'],['冫','凍（冰字旁）'],['走','走甜'],['少','少甜'],['冰✕','走冰'],['+底','加底'],['菠油','菠蘿油'],['干牛','乾炒牛河'],['A / 午1','茶餐編號']];
+
+var order = [], slot = null, optOpen = null, paid = false;
+function nowSlot(){
+  var d = new Date(), m = d.getHours()*60 + d.getMinutes();
+  if (m >= 420 && m < 660) return 'morning';
+  if (m >= 660 && m < 870) return 'lunch';
+  if (m >= 870 && m < 1080) return 'tea';
+  return 'dinner';
+}
+
+/* 時段 */
+var slotsEl = $('#slots');
+Object.keys(SETS).forEach(function(k){
+  var b = document.createElement('button'); b.type = 'button'; b.textContent = SETS[k].label; b.dataset.k = k;
+  b.addEventListener('click', function(){ setSlot(k); });
+  slotsEl.appendChild(b);
+});
+function setSlot(k){
+  slot = k;
+  slotsEl.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.k === k); });
+  BOARDS[0].items = SETS[k].items; BOARDS[0].sub = SETS[k].range + ' 供應・飲品已包';
+  render();
+}
+
+/* 價目牌 */
+function render(){
+  var wrap = $('#boards'); wrap.innerHTML = '';
+  BOARDS.forEach(function(bd, bi){
+    var el = document.createElement('article'); el.className = 'board ' + bd.cls;
+    el.style.setProperty('--r', ([-.6, .8, -.4, .5, -.9][bi]) + 'deg');
+    el.innerHTML = '<h2>' + bd.title + '<small>' + bd.sub + '</small></h2><ul class="items"></ul>';
+    var ul = el.querySelector('ul');
+    bd.items.forEach(function(it){
+      var li = document.createElement('li'); li.className = 'item'; li.tabIndex = 0; li.setAttribute('role','button');
+      var price = it.p - (slot === 'tea' && bd.id === 'drink' ? 2 : 0);
+      li.innerHTML = '<span class="nm">' + it.nm + (it.sub ? '<small>' + it.sub + '</small>' : '') + '</span><span class="dots"></span><span class="pr">' + price + '</span>';
+      li.setAttribute('aria-label', it.nm + ' ' + price + ' 元' + (it.sub ? '，' + it.sub : ''));
+      var opts = document.createElement('div'); opts.className = 'opts';
+      function pick(){
+        if (it.drink || it.rice){ toggleOpts(opts, it, price, li); }
+        else { add(it, price, [], li); }
+      }
+      li.addEventListener('click', pick);
+      li.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(); } });
+      ul.appendChild(li); ul.appendChild(opts);
+    });
+    if (bd.id === 'drink' && slot === 'tea') el.insertAdjacentHTML('beforeend','<p class="foot">下午茶時段，飲品每杯減 $2。</p>');
+    wrap.appendChild(el);
+  });
+}
+function toggleOpts(box, it, price, li){
+  if (optOpen && optOpen !== box){ optOpen.classList.remove('open'); optOpen.innerHTML = ''; }
+  if (box.classList.contains('open')){ box.classList.remove('open'); box.innerHTML = ''; optOpen = null; return; }
+  optOpen = box; box.classList.add('open');
+  var picks = {};
+  var choices = [];
+  if (it.drink){
+    var setDrinks = it.inSet ? [['milktea','奶茶'],['coffee','咖啡'],['yy','鴛鴦'],['lemontea','檸茶']] : null;
+    if (setDrinks) choices.push({g:'d',list:setDrinks,def:'milktea'});
+    if (!it.coldOnly) choices.push({g:'t',list:[['hot','熱'],['cold','凍 +3']],def:'hot'});
+    choices.push({g:'s',list:[['norm','正常'],['less','少甜'],['none','走甜']],def:'norm'});
+    choices.push({g:'i',list:[['ice','有冰'],['noice','走冰']],def:'ice',showIf:function(){ return it.coldOnly || picks.t === 'cold'; }});
+  }
+  if (it.rice) choices.push({g:'r',list:[['n','正常'],['more','加底 +5']],def:'n'});
+  function draw(){
+    box.innerHTML = '';
+    choices.forEach(function(c){
+      if (!(c.g in picks)) picks[c.g] = c.def;
+      if (c.showIf && !c.showIf()) return;
+      c.list.forEach(function(o){
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = o[1];
+        b.setAttribute('aria-pressed', picks[c.g] === o[0]);
+        b.addEventListener('click', function(e){ e.stopPropagation(); picks[c.g] = o[0]; draw(); });
+        box.appendChild(b);
+      });
+      var sep = document.createElement('span'); sep.style.width = '10px'; box.appendChild(sep);
+    });
+    var send = document.createElement('button'); send.type = 'button'; send.className = 'send'; send.textContent = '落單';
+    send.addEventListener('click', function(e){
+      e.stopPropagation();
+      var cold = it.coldOnly || picks.t === 'cold';
+      var tags = [], p = price, code = it.code;
+      if (it.inSet && picks.d){ code += '+' + DRINK_CODE[picks.d]; }
+      if (it.drink && cold && !it.coldOnly){ code = '冫' + code; p += 3; }
+      if (picks.s === 'less') tags.push('少'); if (picks.s === 'none') tags.push('走');
+      if (cold && picks.i === 'noice') tags.push('冰✕');
+      if (picks.r === 'more'){ tags.push('+底'); p += 5; }
+      add(Object.assign({}, it, {code:code}), p, tags, li);
+      box.classList.remove('open'); box.innerHTML = ''; optOpen = null;
+    });
+    box.appendChild(send);
+  }
+  draw();
+}
+
+/* 落單紙 */
+var SHOUTS = ['收到！','好嘢！','即刻嚟！','知道！','記低咗！'];
+function add(it, p, tags, li){
+  if (paid) resetSlip();
+  order.push({it:it, p:p, tags:tags, x:false});
+  li.classList.remove('added'); void li.offsetWidth; li.classList.add('added');
+  shout(it.drink && /冫/.test(it.code) ? '凍' + it.nm.replace('港式','') + (tags.length ? tags.join('') : '') + '！' : SHOUTS[order.length % SHOUTS.length]);
+  scratch();
+  drawSlip(true);
+}
+function drawSlip(animLast){
+  var ul = $('#lines'); ul.innerHTML = '';
+  if (!order.length){ ul.innerHTML = '<li class="empty">點牌上的嘢，我幫你寫。</li>'; }
+  order.forEach(function(o, i){
+    var txt = o.it.code + (o.tags.length ? ' ' + o.tags.join(' ') : '');
+    var li = document.createElement('li'); if (o.x) li.className = 'x';
+    var anim = animLast && i === order.length - 1;
+    li.innerHTML = '<span class="w" style="' + (anim ? '--n:' + Math.max(3, txt.length*2) + ';--d:' + (0.25 + txt.length*.12) + 's' : 'animation:none') + '" title="' + o.it.nm + '">' + txt + '</span>' +
+      '<span class="p">' + (o.x ? '' : o.p) + '</span><button type="button" aria-label="劃掉 ' + o.it.nm + '">' + (o.x ? '還原' : '劃') + '</button>';
+    li.querySelector('button').addEventListener('click', function(){ o.x = !o.x; drawSlip(false); });
+    ul.appendChild(li);
+  });
+  var live = order.filter(function(o){ return !o.x; });
+  var sum = live.reduce(function(s, o){ return s + o.p; }, 0);
+  $('#total').textContent = '$' + sum; $('#mini').textContent = '$' + sum; $('#cnt').textContent = live.length + ' 樣';
+}
+function shout(t){ var s = $('#shout'); s.textContent = t; s.classList.add('on'); clearTimeout(shout.h); shout.h = setTimeout(function(){ s.classList.remove('on'); }, 1300); }
+function resetSlip(){
+  order = []; paid = false; $('#paid').classList.remove('on');
+  $('#table').textContent = 1 + Math.floor(Math.random()*24); $('#pax').textContent = 1 + Math.floor(Math.random()*4); $('#no').textContent = 3000 + Math.floor(Math.random()*6000);
+  drawSlip(false);
+}
+$('#clear').addEventListener('click', function(){ resetSlip(); shout('重新寫過'); });
+$('#bill').addEventListener('click', function(){
+  if (!order.some(function(o){ return !o.x; })){ shout('未點嘢喎！'); return; }
+  paid = true; $('#paid').classList.add('on'); shout('埋單！' + $('#total').textContent); ding();
+});
+$('#drawer').addEventListener('click', function(){ var d = $('#desk'), o = d.classList.toggle('open'); this.setAttribute('aria-expanded', o); });
+
+/* 聲音 */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function scratch(){
+  var a = audio(); if (!a) return;
+  var len = .45, buf = a.createBuffer(1, a.sampleRate*len, a.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++){ var t = i/a.sampleRate; d[i] = (Math.random()*2-1) * (.4 + .6*Math.abs(Math.sin(t*38))) * (1 - i/d.length); }
+  var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = buf; f.type = 'highpass'; f.frequency.value = 3200; g.gain.value = .07;
+  s.connect(f).connect(g).connect(a.destination); s.start();
+}
+function ding(){
+  var a = audio(); if (!a) return;
+  [1568, 2093].forEach(function(f, i){
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + i*.12;
+    o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.12, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 1.2);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 1.3);
+  });
+}
+
+/* 暗號表與時鐘 */
+$('#legend').innerHTML = LEGEND.map(function(l){ return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
+function tick(){
+  var d = new Date();
+  $('#clock').textContent = '而家 ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + '　' + SETS[nowSlot()].label + '時段';
+}
+tick(); setInterval(tick, 30000);
+setSlot(nowSlot());
+resetSlip();
+})();
+</script>
+</body>
+</html>

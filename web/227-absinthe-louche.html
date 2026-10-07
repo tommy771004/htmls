@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Fée Verte · 苦艾酒滴水禮</title>
+<meta name="description" content="新藝術海報風格的苦艾酒儀式：打開冰水壺的龍頭，讓水一滴一滴落在方糖上，看翠綠的酒從杯底開始乳化成霧白的蛋白石色（louche），滴得太快就會失敗。">
+<style>
+:root{
+  --cream:#efe4c8; --cream-2:#e4d4ad; --sage:#7e9a6a; --moss:#3f5a3a; --deep:#24321f; --gold:#b98f3e; --gold-2:#d8b86a; --rose:#d9a48c; --ink:#2b2a22;
+  --nouveau:"Trattatello","Optima","Candara","Segoe UI","Songti TC",serif;
+  --text:"Hoefler Text","Iowan Old Style","Georgia","Songti TC","Noto Serif TC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--deep);color:var(--ink);font-family:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(60vw 70vh at 50% 40%,rgba(185,143,62,.18),transparent 70%)}
+.wrap{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,600px) minmax(0,1fr);gap:clamp(16px,3vw,40px);padding:clamp(16px,3vw,36px);align-items:center;min-height:100vh}
+.poster{position:relative;grid-column:2;aspect-ratio:3/4.1;width:100%;background:var(--cream);border-radius:300px 300px 10px 10px/240px 240px 10px 10px;box-shadow:0 0 0 6px var(--gold),0 0 0 9px var(--deep),0 0 0 11px var(--gold-2),0 40px 80px -30px rgba(0,0,0,.7);overflow:hidden}
+.poster svg.orn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.poster canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+.title{position:absolute;left:0;right:0;bottom:4.5%;text-align:center;pointer-events:none}
+.title h1{font-family:var(--nouveau);font-weight:400;font-size:clamp(30px,5.4vw,58px);letter-spacing:.06em;color:var(--moss);line-height:1}
+.title p{font-family:var(--nouveau);font-size:clamp(11px,1.3vw,14px);letter-spacing:.5em;color:var(--gold);margin-top:6px}
+.side{color:var(--cream)}
+.side.l{grid-column:1;justify-self:end;max-width:300px;grid-row:1}
+.side.r{grid-column:3;max-width:300px}
+.side h2{font-family:var(--nouveau);font-weight:400;font-size:28px;color:var(--gold-2);letter-spacing:.04em;margin-bottom:10px}
+.side p{font-size:15px;line-height:1.8;color:#d8d0b8}
+.side p em{color:var(--gold-2);font-style:italic}
+.lever{margin:18px 0 10px}
+.lever label{display:flex;justify-content:space-between;font-family:var(--nouveau);font-size:14px;letter-spacing:.14em;color:var(--gold-2)}
+.lever output{font-family:var(--text);font-style:italic;color:var(--cream)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--sage),var(--gold-2) 45%,var(--rose))}
+input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--sage),var(--gold-2) 45%,var(--rose))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c8,var(--gold) 60%,#6e521c);box-shadow:0 0 0 2px var(--deep),0 0 0 3px var(--gold-2)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--gold);border:2px solid var(--deep)}
+.zones{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.1em;color:#a59c85}
+.meters{display:grid;gap:9px;margin-top:16px}
+.m{display:grid;grid-template-columns:4.4em 1fr 3.6em;gap:10px;align-items:center;font-size:13px;color:#d8d0b8}
+.m i{height:6px;border-radius:6px;background:rgba(239,228,200,.12);position:relative;overflow:hidden}
+.m i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--v,0));background:var(--c,var(--sage));transition:transform .2s}
+.m em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;color:var(--cream)}
+.m i.tgt::before{content:"";position:absolute;top:-2px;bottom:-2px;left:var(--a);width:var(--w);border:1px solid var(--gold-2);border-radius:3px;z-index:1}
+.btn{margin-top:18px;font-family:var(--nouveau);font-size:16px;letter-spacing:.2em;padding:11px 22px;background:transparent;color:var(--gold-2);border:1.5px solid var(--gold);border-radius:30px;cursor:pointer;transition:background .3s,color .3s}
+.btn:hover{background:var(--gold);color:var(--deep)}
+.verdict{font-family:var(--nouveau);font-size:22px;color:var(--gold-2);min-height:2.4em;line-height:1.3;margin-top:12px}
+.verdict small{display:block;font-family:var(--text);font-size:14px;font-style:italic;color:#d8d0b8;margin-top:4px}
+@media (max-width:1100px){
+  .wrap{grid-template-columns:minmax(0,1fr);justify-items:center}
+  .poster{grid-column:1;max-width:520px}
+  .side.l,.side.r{grid-column:1;grid-row:auto;justify-self:center;max-width:520px;width:100%}
+  .side.l{order:-1;text-align:center}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <aside class="side l">
+    <h2>Le Rituel</h2>
+    <p>苦艾酒倒在杯底，帶孔的銀匙架在杯口，上面一顆方糖。冰水<em>一滴一滴</em>落在糖上，把糖化進酒裡。<br>水比酒重，往下沉，酒裡的茴香油遇水析出——翠綠從杯底開始，慢慢變成霧白的蛋白石色。這就是 <em>louche</em>。</p>
+  </aside>
+  <div class="poster" id="poster">
+    <canvas id="cv" aria-label="苦艾酒杯、銀匙與方糖"></canvas>
+    <svg class="orn" viewBox="0 0 600 820" preserveAspectRatio="none" aria-hidden="true">
+      <!-- 鞭狀曲線邊框與苦艾葉 -->
+      <g fill="none" stroke="#b98f3e" stroke-width="2.5">
+        <path d="M30 800 C30 520 10 330 70 210 C130 90 230 40 300 40 C370 40 470 90 530 210 C590 330 570 520 570 800"/>
+        <path d="M46 800 C46 540 30 350 84 236 C140 120 230 62 300 62 C370 62 460 120 516 236 C570 350 554 540 554 800" stroke-width="1.2"/>
+        <path d="M30 700 C80 690 90 640 60 610 C40 590 70 560 96 580" stroke="#7e9a6a" stroke-width="3"/>
+        <path d="M570 700 C520 690 510 640 540 610 C560 590 530 560 504 580" stroke="#7e9a6a" stroke-width="3"/>
+      </g>
+      <g fill="#7e9a6a" opacity=".85">
+        <path d="M60 520 c-20 -30 0 -50 20 -40 c-6 -20 20 -30 26 -6 c14 -14 34 2 18 20 c20 6 10 30 -12 24 c4 20 -24 26 -28 4 c-14 14 -36 0 -24 -2z"/>
+        <path d="M540 520 c20 -30 0 -50 -20 -40 c6 -20 -20 -30 -26 -6 c-14 -14 -34 2 -18 20 c-20 6 -10 30 12 24 c-4 20 24 26 28 4 c14 14 36 0 24 -2z"/>
+      </g>
+      <!-- 標題下的花飾帶 -->
+      <path d="M90 700 Q300 650 510 700" fill="none" stroke="#b98f3e" stroke-width="1.5"/>
+      <path d="M120 712 Q300 668 480 712" fill="none" stroke="#b98f3e" stroke-width="1"/>
+    </svg>
+    <div class="title"><h1>La Fée Verte</h1><p>苦 艾 酒 滴 水 禮</p></div>
+  </div>
+  <aside class="side r">
+    <h2>La Fontaine</h2>
+    <div class="lever"><label for="tap">冰水壺龍頭<output id="rate">關</output></label><input id="tap" type="range" min="0" max="100" value="0"><div class="zones"><span>關</span><span>一秒一兩滴</span><span>細流</span></div></div>
+    <div class="meters">
+      <div class="m">水酒比<i id="mRatio" class="tgt" style="--a:50%;--w:33%;--c:#d8b86a"></i><em id="vRatio">0 : 1</em></div>
+      <div class="m">方糖<i id="mSugar" style="--c:#efe4c8"></i><em id="vSugar">完整</em></div>
+      <div class="m">乳化<i id="mLouche" style="--c:#cfe0b0"></i><em id="vLouche">0%</em></div>
+    </div>
+    <p class="verdict" id="verdict">慢慢打開龍頭。<small>前半段尤其要慢。</small></p>
+    <button class="btn" id="again">重新倒一杯</button>
+  </aside>
+</main>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var cv=$('cv'), ctx=cv.getContext('2d'), poster=$('poster'), W=600,H=820,DPR=1,K=1;
+function size(){ var b=poster.getBoundingClientRect(); DPR=Math.min(2,devicePixelRatio||1); cv.width=b.width*DPR; cv.height=b.height*DPR; K=b.width/W; }
+new ResizeObserver(size).observe(poster);
+var ABS=30; // 毫升
+var st;
+function reset(){ st={water:0,sugar:1,drops:[],trail:[],louche:0,fast:0,dropT:0,history:[],done:false,idle:0}; $('tap').value=0; update(); }
+// 杯子的幾何（設計座標）
+var GX=300, GT=390, GB=600, GW=92, BW=40; // 杯口寬、杯底寬
+function gHalf(y){ var t=(y-GT)/(GB-GT); return GW-(GW-BW)*Math.pow(t,1.4); }
+// 液面高度：杯底的小球（酒量刻度）+ 上方錐形
+function levelY(ml){ var cap=ABS+180; return GB-(GB-GT-20)*Math.pow(Math.min(1,ml/cap),.8); }
+var t0=performance.now(), last=t0;
+function rate(){ var v=+$('tap').value; return v<3?0:Math.pow(v/100,1.6)*9; } // 每秒滴數
+function update(){
+  var r=rate(); $('rate').textContent=r===0?'關':r<4?r.toFixed(1)+' 滴/秒':'細流';
+  var ratio=st.water/ABS; $('vRatio').textContent=ratio.toFixed(1)+' : 1'; $('mRatio').style.setProperty('--v',Math.min(1,ratio/6));
+  $('mSugar').style.setProperty('--v',st.sugar); $('vSugar').textContent=st.sugar>.95?'完整':st.sugar>.05?Math.round(st.sugar*100)+'%':'化完';
+  $('mLouche').style.setProperty('--v',st.louche); $('vLouche').textContent=Math.round(st.louche*100)+'%';
+}
+$('tap').addEventListener('input',function(){ A(); update(); });
+$('again').onclick=reset;
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function plink(big){ var a=ac; if(!a||a.state!=='running') return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.frequency.setValueAtTime(big?900:1500+Math.random()*700,t); o.frequency.exponentialRampToValueAtTime(big?300:700,t+.07); g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.0001,t+.12); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.13); }
+
+function step(dt,now){
+  var r=rate();
+  // 生成水滴（細流時直接連成一條）
+  if(r>0 && !st.done){ st.dropT+=dt*r; while(st.dropT>=1){ st.dropT-=1; st.drops.push({y:250,v:0}); } }
+  st.drops.forEach(function(d){ d.v+=1400*dt; d.y+=d.v*dt; });
+  // 落在方糖上（y≈372）→ 糖慢慢化掉，水穿過匙孔落進杯裡
+  var keep=[];
+  st.drops.forEach(function(d){
+    if(d.y>=372 && !d.hit){ d.hit=true; st.sugar=Math.max(0,st.sugar-.03); plink(false); }
+    var ly=levelY(ABS+st.water);
+    if(d.y>=ly){ st.water+=3;
+      // 太快：水直接衝散，乳化不漂亮
+      if(r>4.2 && st.water<ABS*2.2) st.fast+=1;
+      for(var k=0;k<6;k++) st.trail.push({x:GX+(Math.random()-.5)*16,y:ly+2,vx:(Math.random()-.5)*14,vy:40+Math.random()*80,life:1,r:5+Math.random()*9});
+      return; }
+    keep.push(d);
+  });
+  st.drops=keep.slice(-60);
+  // 乳化：沉下去的水在杯底累積，霧白從下往上長
+  var target=Math.min(1,Math.max(0,(st.water/ABS-.6)/2.6));
+  st.louche+= (target-st.louche)*Math.min(1,dt*.9);
+  st.trail.forEach(function(p){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx+=Math.sin(p.y*.08+now/500)*12*dt; p.vy*=.985; p.life-=dt*.38; p.r+=dt*7; var hw=gHalf(Math.min(GB,p.y))-6; if(Math.abs(p.x-GX)>hw) p.x=GX+Math.sign(p.x-GX)*hw; if(p.y>GB-6){ p.y=GB-6; p.vy=0; } });
+  st.trail=st.trail.filter(function(p){return p.life>0;}).slice(-500);
+  if(!st.done && st.water/ABS>=6.2){ st.done=true; judge(); $('tap').value=0; }
+  // 龍頭關上一陣子就當作倒好了，端上桌評分
+  if(!st.done && r===0 && st.water>0 && st.drops.length===0) st.idle+=dt; else st.idle=0;
+  if(!st.done && st.idle>4){ st.done=true; judge(); }
+}
+function judge(){
+  var ratio=st.water/ABS, fastPen=Math.min(1,st.fast/30);
+  var rOK=1-Math.min(1,Math.abs(ratio-4)/2.5), sug=1-st.sugar;
+  var score=rOK*.45+(1-fastPen)*.4+sug*.15;
+  var v=score>.82?['Parfait.','乳化從杯底一層層升起，蛋白石般的霧綠——綠仙子現身了。']:
+        score>.62?['Bien.','顏色漂亮，只是'+(fastPen>.3?'前段滴得急了些，霧有點散。':ratio>5?'水多了，味道偏淡。':'還可以再多幾滴水。')]:
+        fastPen>.5?['Trop vite !','水衝得太快，油脂一下子全析出，混濁卻沒有層次。']:['Pas encore.',ratio<2.5?'水太少，酒還是太烈、太綠。':'水加太多，香氣被沖淡了。'];
+  $('verdict').innerHTML=v[0]+'<small>'+v[1]+'</small>';
+}
+function draw(now){
+  var dt=Math.min(.05,(now-last)/1000); last=now; step(dt,now); update();
+  if(!st.done){ var r=rate(); $('verdict').innerHTML=r===0&&st.water===0?'慢慢打開龍頭。<small>前半段尤其要慢。</small>':r>4.2&&st.water<ABS*2.2?'太快了！<small>前半段要一滴一滴來。</small>':r>0?'水正落在方糖上……<small>水酒比 '+(st.water/ABS).toFixed(1)+' : 1，目標三到五。</small>':'龍頭關上了。<small>再等幾秒就端上桌；要繼續就再打開。</small>'; }
+  ctx.setTransform(DPR*K,0,0,DPR*K,0,0); ctx.clearRect(0,0,W,H);
+  // 光環：慕夏海報的圓形背光，馬賽克環
+  var cy=330;
+  ctx.fillStyle='#e4d4ad'; ctx.beginPath(); ctx.arc(GX,cy,220,0,6.283); ctx.fill();
+  for(var i=0;i<48;i++){ var a=i/48*6.283; ctx.fillStyle=i%2?'#d9c08a':'#cdb37a'; ctx.beginPath(); ctx.arc(GX,cy,220,a,a+6.283/48); ctx.arc(GX,cy,196,a+6.283/48,a,true); ctx.closePath(); ctx.fill(); }
+  ctx.strokeStyle='#b98f3e'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(GX,cy,220,0,6.283); ctx.stroke(); ctx.beginPath(); ctx.arc(GX,cy,196,0,6.283); ctx.stroke();
+  // 放射的細線
+  ctx.strokeStyle='rgba(185,143,62,.35)'; ctx.lineWidth=1; for(i=0;i<36;i++){ var a2=i/36*6.283; ctx.beginPath(); ctx.moveTo(GX+Math.cos(a2)*60,cy+Math.sin(a2)*60); ctx.lineTo(GX+Math.cos(a2)*190,cy+Math.sin(a2)*190); ctx.stroke(); }
+  // 冰水壺
+  var fy=118;
+  ctx.fillStyle='rgba(210,230,225,.55)'; ctx.strokeStyle='#3f5a3a'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(GX-60,fy-60); ctx.bezierCurveTo(GX-80,fy,GX-70,fy+70,GX-30,fy+90); ctx.lineTo(GX+30,fy+90); ctx.bezierCurveTo(GX+70,fy+70,GX+80,fy,GX+60,fy-60); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 壺裡的冰水水位
+  var left=Math.max(.1,1-st.water/220);
+  ctx.save(); ctx.clip(); ctx.fillStyle='rgba(170,205,200,.6)'; ctx.fillRect(GX-90,fy+90-150*left,180,200); ctx.restore();
+  ctx.fillStyle='#b98f3e'; ctx.fillRect(GX-64,fy-68,128,10);
+  // 龍頭
+  var open=+$('tap').value/100;
+  ctx.fillStyle='#b98f3e'; ctx.fillRect(GX-6,fy+90,12,40); ctx.beginPath(); ctx.arc(GX,fy+134,8,0,6.283); ctx.fill();
+  ctx.save(); ctx.translate(GX+6,fy+108); ctx.rotate(-open*1.2); ctx.fillStyle='#8a6a2c'; ctx.fillRect(0,-3,30,6); ctx.beginPath(); ctx.arc(30,0,6,0,6.283); ctx.fill(); ctx.restore();
+  // 水滴
+  ctx.fillStyle='rgba(200,230,235,.9)';
+  if(rate()>4.2){ ctx.fillStyle='rgba(200,230,235,.75)'; ctx.fillRect(GX-1.6,fy+140,3.2,372-(fy+140)); }
+  st.drops.forEach(function(d){ if(d.y<372){ ctx.beginPath(); ctx.ellipse(GX,d.y,3,4.5,0,0,6.283); ctx.fill(); } else { ctx.beginPath(); ctx.ellipse(GX+(Math.random()-.5)*6,d.y,2,3,0,0,6.283); ctx.fill(); } });
+  // 杯子
+  var ly=levelY(ABS+st.water);
+  ctx.save(); glassPath(); ctx.clip();
+  // 液體：上層翠綠、下層乳化的霧白（從杯底往上長）
+  var green='rgba(96,160,64,.78)', opal='rgba(214,226,186,.96)';
+  var mixC=mixRGBA([96,160,64,.78],[200,218,168,.9],Math.min(1,st.louche*1.1));
+  ctx.fillStyle=mixC; ctx.fillRect(GX-GW,ly,GW*2,GB-ly+10);
+  var lh=(GB-ly)*Math.min(1,st.louche*1.25);
+  var lg=ctx.createLinearGradient(0,GB-lh-30,0,GB); lg.addColorStop(0,'rgba(214,226,186,0)'); lg.addColorStop(.35,'rgba(214,226,186,.85)'); lg.addColorStop(1,opal);
+  ctx.fillStyle=lg; ctx.fillRect(GX-GW,GB-lh-30,GW*2,lh+40);
+  // 沉降的乳化雲絲
+  st.trail.forEach(function(p){ if(p.y<ly) return; ctx.fillStyle='rgba(235,240,215,'+(.22*p.life)+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); });
+  // 液面
+  ctx.fillStyle='rgba(255,255,240,.35)'; ctx.fillRect(GX-GW,ly,GW*2,2);
+  ctx.restore();
+  glassPath(); ctx.strokeStyle='rgba(43,42,34,.7)'; ctx.lineWidth=2; ctx.stroke();
+  // 杯腳
+  ctx.strokeStyle='rgba(43,42,34,.6)'; ctx.fillStyle='rgba(220,230,225,.5)';
+  ctx.beginPath(); ctx.moveTo(GX-BW,GB); ctx.quadraticCurveTo(GX,GB+30,GX+BW,GB); ctx.fill(); ctx.stroke();
+  ctx.fillRect(GX-6,GB+16,12,44); ctx.strokeRect(GX-6,GB+16,12,44);
+  ctx.beginPath(); ctx.ellipse(GX,GB+64,52,9,0,0,6.283); ctx.fill(); ctx.stroke();
+  // 杯壁高光
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(GX-GW+14,GT+16); ctx.quadraticCurveTo(GX-GW+18,GT+110,GX-BW+8,GB-20); ctx.stroke();
+  // 帶孔銀匙與方糖
+  ctx.fillStyle='#c9c6b8'; ctx.strokeStyle='#4a4a40'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(GX-GW-40,380); ctx.lineTo(GX+GW+40,380); ctx.lineTo(GX+GW+34,388); ctx.lineTo(GX-GW-34,388); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#4a4a40'; for(i=-5;i<=5;i++){ ctx.beginPath(); ctx.ellipse(GX+i*14,384,3,1.6,0,0,6.283); ctx.fill(); }
+  if(st.sugar>0){ var s=26*Math.max(.15,st.sugar), wet=1-st.sugar; ctx.fillStyle='rgb('+(250-wet*30)+','+(248-wet*20)+','+(236-wet*40)+')'; ctx.strokeStyle='rgba(120,110,90,.6)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(GX-s,380); ctx.lineTo(GX-s+3,380-s*1.5); ctx.lineTo(GX+s-2,380-s*1.5-2); ctx.lineTo(GX+s,380); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.6)'; for(i=0;i<10;i++){ ctx.fillRect(GX-s+((i*37)%(s*2)),380-((i*23)%(s*1.4))-3,2,2); } }
+  // 刻度：杯底小球的酒量線
+  ctx.strokeStyle='rgba(185,143,62,.8)'; ctx.lineWidth=1.2; var dy=levelY(ABS); ctx.beginPath(); ctx.moveTo(GX+gHalf(dy)-4,dy); ctx.lineTo(GX+gHalf(dy)+16,dy); ctx.stroke();
+  ctx.fillStyle='#8a6a2c'; ctx.font='italic 12px Hoefler Text, Georgia, serif'; ctx.fillText('dose',GX+gHalf(dy)+20,dy+4);
+  requestAnimationFrame(draw);
+}
+function glassPath(){ ctx.beginPath(); ctx.moveTo(GX-GW,GT); for(var y=GT;y<=GB;y+=6) ctx.lineTo(GX-gHalf(y),y); ctx.lineTo(GX-BW,GB); ctx.quadraticCurveTo(GX,GB+22,GX+BW,GB); for(y=GB;y>=GT;y-=6) ctx.lineTo(GX+gHalf(y),y); ctx.closePath(); }
+function mixRGBA(a,b,t){ return 'rgba('+Math.round(a[0]+(b[0]-a[0])*t)+','+Math.round(a[1]+(b[1]-a[1])*t)+','+Math.round(a[2]+(b[2]-a[2])*t)+','+(a[3]+(b[3]-a[3])*t).toFixed(2)+')'; }
+reset(); size(); requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Ronda del Mate · 馬黛茶輪喝</title>
+<meta name="description" content="布宜諾斯艾利斯 fileteado 彩繪風格的馬黛茶：你是倒茶的人，裝好茶葉、調水溫、一杯一杯倒給圍坐的朋友。水太燙會燒苦，太冷沒味道，喝到淡了就說「lavado」換茶葉。">
+<style>
+:root{
+  --black:#0d0c0b; --red:#d4202a; --green:#1f9a48; --yellow:#f6c42b; --blue:#5aa9e6; --white:#fbf6ea; --gold:#d9a640; --ink:#fbf6ea;
+  --script:"Apple Chancery","Snell Roundhand","Brush Script MT","Segoe Script",cursive;
+  --deco:"Optima","Candara","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--black);color:var(--ink);font-family:var(--deco);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.frame{position:relative;margin:clamp(8px,2vw,22px);min-height:calc(100vh - 2*clamp(8px,2vw,22px));border:3px solid var(--gold);box-shadow:inset 0 0 0 6px var(--black),inset 0 0 0 8px var(--red),inset 0 0 0 12px var(--black),inset 0 0 0 13px var(--gold);padding:clamp(26px,4vw,50px) clamp(16px,4vw,60px) clamp(60px,9vw,130px)}
+.corner{position:absolute;width:clamp(110px,16vw,220px);height:clamp(110px,16vw,220px);pointer-events:none}
+.corner.tl{left:6px;top:6px}.corner.tr{right:6px;top:6px;transform:scaleX(-1)}.corner.bl{left:6px;bottom:6px;transform:scaleY(-1)}.corner.br{right:6px;bottom:6px;transform:scale(-1,-1)}
+header{text-align:center;position:relative;z-index:1}
+header h1{font-family:var(--script);font-weight:400;font-size:clamp(46px,7vw,92px);line-height:1;color:var(--yellow);text-shadow:2px 2px 0 var(--red),4px 4px 0 var(--black),5px 5px 0 var(--green)}
+.cinta{display:inline-block;margin-top:8px;position:relative;padding:6px 40px 8px;background:linear-gradient(var(--blue) 0 33%,var(--white) 33% 66%,var(--blue) 66%);color:var(--black);font-weight:700;letter-spacing:.24em;font-size:13px}
+.cinta::before,.cinta::after{content:"";position:absolute;top:6px;width:26px;height:100%;background:#3d7fb8;z-index:-1}
+.cinta::before{left:-18px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,40% 50%)}
+.cinta::after{right:-18px;clip-path:polygon(0 0,100% 0,60% 50%,100% 100%,0 100%)}
+.table{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,330px);gap:clamp(20px,4vw,50px);margin-top:28px;align-items:center}
+.ronda{position:relative;aspect-ratio:1/1;max-width:600px;width:100%;justify-self:center}
+.ronda svg.mate{position:absolute;left:50%;top:53%;width:31%;transform:translate(-50%,-50%)}
+.amigo{position:absolute;width:24%;text-align:center;cursor:pointer;transition:transform .3s}
+.amigo:hover{transform:scale(1.05)}
+.amigo .med{aspect-ratio:1/1;border-radius:50%;border:3px solid var(--gold);background:radial-gradient(circle at 35% 30%,#2b2622,#0d0c0b);display:grid;place-items:center;box-shadow:0 0 0 4px var(--black),0 0 0 6px var(--green);position:relative;transition:box-shadow .3s}
+.amigo.next .med{box-shadow:0 0 0 4px var(--black),0 0 0 7px var(--yellow),0 0 22px 6px rgba(246,196,43,.35)}
+.amigo.out .med{opacity:.35}
+.amigo .med svg{width:70%;height:70%}
+.amigo b{display:block;font-family:var(--script);font-size:clamp(18px,2.2vw,26px);font-weight:400;color:var(--white);margin-top:4px;line-height:1}
+.amigo small{font-size:11px;letter-spacing:.14em;color:var(--gold)}
+.say{position:absolute;left:50%;top:-6%;transform:translate(-50%,-100%);background:var(--white);color:var(--black);padding:6px 12px;border-radius:14px;font-size:13px;font-weight:700;white-space:nowrap;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;border:2px solid var(--red)}
+.say.show{opacity:1;transform:translate(-50%,-112%)}
+.a0{left:38%;top:-6%}.a1{right:-2%;top:36%}.a2{left:38%;bottom:-4%}.a3{left:-2%;top:36%}
+.panel{background:rgba(255,255,255,.03);border:2px solid var(--gold);border-radius:10px;padding:20px;position:relative}
+.panel h2{font-family:var(--script);font-weight:400;font-size:30px;color:var(--yellow);text-shadow:2px 2px 0 var(--red)}
+.panel p{font-size:14px;line-height:1.7;color:#e7dfcd;margin:6px 0 14px}
+.pava{display:grid;grid-template-columns:54px 1fr;gap:14px;align-items:center;margin-bottom:12px}
+.thermo{position:relative;width:24px;height:130px;margin:0 auto;border:2px solid var(--white);border-radius:12px;background:#1d1a17;overflow:hidden}
+.thermo i{position:absolute;left:3px;right:3px;bottom:3px;border-radius:8px;background:linear-gradient(var(--red),var(--yellow));transition:height .2s}
+.thermo b{position:absolute;left:0;right:0;height:2px;background:var(--green)}
+.tctl label{display:flex;justify-content:space-between;font-size:13px;letter-spacing:.08em}
+.tctl output{font-family:var(--script);font-size:28px;color:var(--yellow)}
+.tctl .note{font-size:12px;color:#bdb39f;min-height:1.4em}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--green) 40%,var(--yellow) 65%,var(--red))}
+input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--green) 40%,var(--yellow) 65%,var(--red))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--white);border:3px solid var(--black);box-shadow:0 0 0 2px var(--gold)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--white);border:3px solid var(--black)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{font:inherit;font-weight:700;letter-spacing:.1em;padding:12px 8px;border:2px solid var(--gold);border-radius:30px;background:var(--red);color:var(--white);cursor:pointer;transition:filter .2s,transform .1s;user-select:none;-webkit-user-select:none;touch-action:none}
+.btn.g{background:var(--green)}.btn.k{background:transparent}
+.btn:hover{filter:brightness(1.12)}.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.35;cursor:default;filter:none}
+.btn.full{grid-column:1/-1}
+.bars{margin-top:16px;display:grid;gap:8px;font-size:12px;letter-spacing:.08em}
+.bar{display:grid;grid-template-columns:4.6em 1fr 2.4em;gap:8px;align-items:center}
+.bar i{height:8px;border-radius:8px;background:#2b2622;position:relative;overflow:hidden}
+.bar i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--v,0));background:var(--c,var(--green));transition:transform .4s}
+.bar em{font-style:normal;text-align:right;color:var(--yellow)}
+.log{margin-top:14px;font-size:13px;line-height:1.6;color:#d9cfbb;min-height:3.2em;border-top:1px dashed var(--gold);padding-top:10px}
+.log b{color:var(--yellow);font-weight:700}
+@media (max-width:900px){
+  .table{grid-template-columns:minmax(0,1fr)}
+  .ronda{max-width:440px;margin-top:20px}
+  .amigo small{display:none}
+  .corner{width:90px;height:90px}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6a3d"/><stop offset=".5" stop-color="#d4202a"/><stop offset="1" stop-color="#6e0d12"/></linearGradient>
+    <linearGradient id="gGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9e65a"/><stop offset=".5" stop-color="#1f9a48"/><stop offset="1" stop-color="#0b4a22"/></linearGradient>
+    <linearGradient id="gYellow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff4b0"/><stop offset=".5" stop-color="#f6c42b"/><stop offset="1" stop-color="#b8761a"/></linearGradient>
+    <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaff"/><stop offset=".5" stop-color="#5aa9e6"/><stop offset="1" stop-color="#1d4f86"/></linearGradient>
+    <!-- fileteado 的捲草：一條粗渦卷加三片葉，白色細線描出立體 -->
+    <g id="scroll">
+      <path d="M10 210 C10 100 70 20 170 14 C230 10 250 70 214 92 C190 106 166 86 178 68" fill="none" stroke="#0d0c0b" stroke-width="30" stroke-linecap="round"/>
+      <path d="M10 210 C10 100 70 20 170 14 C230 10 250 70 214 92 C190 106 166 86 178 68" fill="none" stroke="url(#gRed)" stroke-width="22" stroke-linecap="round"/>
+      <path d="M16 200 C18 108 74 30 168 22" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+      <path d="M60 80 C30 70 20 40 40 20 C50 50 70 60 92 58 C80 74 72 80 60 80Z" fill="url(#gGreen)" stroke="#0d0c0b" stroke-width="3"/>
+      <path d="M46 34 C52 52 64 62 84 62" fill="none" stroke="#fff" stroke-width="1.5" opacity=".8"/>
+      <path d="M108 52 C110 22 140 -4 168 -2 C150 14 140 30 140 48 C128 46 118 48 108 52Z" fill="url(#gYellow)" stroke="#0d0c0b" stroke-width="3"/>
+      <path d="M44 150 C14 156 -6 136 0 114 C14 132 30 136 46 128Z" fill="url(#gBlue)" stroke="#0d0c0b" stroke-width="3"/>
+      <circle cx="196" cy="64" r="9" fill="url(#gYellow)" stroke="#0d0c0b" stroke-width="3"/>
+      <path d="M2 228 L2 2 L228 2" fill="none" stroke="#d9a640" stroke-width="2"/>
+      <path d="M10 236 L10 10 L236 10" fill="none" stroke="#d9a640" stroke-width="1"/>
+    </g>
+  </defs>
+</svg>
+<div class="frame">
+  <svg class="corner tl" viewBox="0 0 240 240"><use href="#scroll"/></svg>
+  <svg class="corner tr" viewBox="0 0 240 240"><use href="#scroll"/></svg>
+  <svg class="corner bl" viewBox="0 0 240 240"><use href="#scroll"/></svg>
+  <svg class="corner br" viewBox="0 0 240 240"><use href="#scroll"/></svg>
+  <header><h1>La Ronda del Mate</h1><div class="cinta">馬 黛 茶 · 輪 著 喝</div></header>
+  <section class="table">
+    <div class="ronda" id="ronda">
+      <svg class="mate" viewBox="0 0 200 260" id="mate" aria-label="馬黛茶葫蘆杯"></svg>
+    </div>
+    <aside class="panel">
+      <h2>Cebador</h2>
+      <p id="howto">你負責倒茶。先裝茶葉，接著每一輪：調好水溫、按住倒水，再把杯子遞給亮起來的那位。第一杯照規矩是你自己喝。</p>
+      <div class="pava"><div class="thermo"><i id="tFill"></i><b style="bottom:34%"></b><b style="bottom:58%"></b></div>
+        <div class="tctl"><label for="temp">水壺溫度<output id="tOut">78°</output></label><input id="temp" type="range" min="60" max="98" value="78"><div class="note" id="tNote"></div></div></div>
+      <div class="btns">
+        <button class="btn g full" id="load">裝茶葉 Yerba</button>
+        <button class="btn" id="pour" disabled>按住倒水</button>
+        <button class="btn k" id="pass" disabled>遞出去</button>
+      </div>
+      <div class="bars">
+        <div class="bar">茶味<i id="bStr" style="--c:var(--green)"></i><em id="vStr">—</em></div>
+        <div class="bar">水位<i id="bLvl" style="--c:var(--blue)"></i><em id="vLvl">—</em></div>
+        <div class="bar">第幾泡<i id="bN" style="--c:var(--yellow)"></i><em id="vN">0</em></div>
+      </div>
+      <p class="log" id="log">桌上有一壺熱水、一包茶葉，和三個等著喝的朋友。</p>
+    </aside>
+  </section>
+</div>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var FR=[
+  {n:'Vos',zh:'你（倒茶的人）',f:'#f6c42b'},
+  {n:'Abuela Rosa',zh:'羅莎奶奶',f:'#d4202a'},
+  {n:'El Tano',zh:'義大利裔的阿塔',f:'#1f9a48'},
+  {n:'La Flaca',zh:'瘦瘦的芙拉卡',f:'#5aa9e6'}
+];
+var ronda=$('ronda');
+FR.forEach(function(f,i){
+  var d=document.createElement('div'); d.className='amigo a'+i; d.dataset.i=i;
+  // 每個人一個 fileteado 小徽章：臉的輪廓 + 帽子或髮型
+  var hats=['<path d="M30 40 Q50 18 70 40Z" fill="'+f.f+'"/>','<path d="M28 50 Q30 22 50 22 Q72 22 72 50 Q66 34 50 34 Q34 34 28 50Z" fill="#d9d2c4"/>','<path d="M24 40 L76 40 L70 34 Q50 20 30 34Z" fill="#0d0c0b" stroke="#d9a640" stroke-width="2"/>','<path d="M30 56 Q26 26 50 24 Q74 26 70 56 L64 40 Q50 32 36 40Z" fill="#7a3b18"/>'];
+  d.innerHTML='<div class="med"><svg viewBox="0 0 100 100"><circle cx="50" cy="56" r="22" fill="#e9c9a3"/><circle cx="42" cy="54" r="2.5" fill="#0d0c0b"/><circle cx="58" cy="54" r="2.5" fill="#0d0c0b"/><path d="M42 66 Q50 72 58 66" stroke="#0d0c0b" stroke-width="2.5" fill="none"/>'+hats[i]+'<path d="M28 90 Q50 76 72 90" stroke="'+f.f+'" stroke-width="8" fill="none"/></svg><span class="say"></span></div><b>'+f.n+'</b><small>'+f.zh+'</small>';
+  ronda.appendChild(d);
+});
+var amigos=ronda.querySelectorAll('.amigo');
+
+// ---- 葫蘆杯 ----
+var mate=$('mate');
+mate.innerHTML='<defs><linearGradient id="gourd" x1="0" x2="1"><stop offset="0" stop-color="#3b200e"/><stop offset=".35" stop-color="#9a5a2a"/><stop offset=".55" stop-color="#6b3a18"/><stop offset="1" stop-color="#24120a"/></linearGradient>'+
+ '<linearGradient id="silver" x1="0" x2="1"><stop offset="0" stop-color="#8d949a"/><stop offset=".4" stop-color="#f5f7f9"/><stop offset=".7" stop-color="#a7aeb4"/><stop offset="1" stop-color="#5d646a"/></linearGradient>'+
+ '<clipPath id="mouth"><ellipse cx="100" cy="86" rx="52" ry="14"/></clipPath></defs>'+
+ '<path d="M48 86 C30 120 20 170 40 210 C60 250 140 250 160 210 C180 170 170 120 152 86Z" fill="url(#gourd)" stroke="#0d0c0b" stroke-width="3"/>'+
+ // fileteado 彩繪在杯身上
+ '<path d="M56 160 C70 130 100 130 100 150 C100 166 80 166 84 154" fill="none" stroke="#f6c42b" stroke-width="5" stroke-linecap="round"/><path d="M144 160 C130 130 100 130 100 150" fill="none" stroke="#d4202a" stroke-width="5" stroke-linecap="round"/>'+
+ '<path d="M70 190 C80 176 96 178 100 190 C104 178 120 176 130 190 C120 196 110 200 100 212 C90 200 80 196 70 190Z" fill="#1f9a48" stroke="#0d0c0b" stroke-width="2"/>'+
+ '<path d="M60 120 Q100 108 140 120" fill="none" stroke="#fbf6ea" stroke-width="1.5" stroke-dasharray="2 4"/>'+
+ '<path d="M42 210 Q100 236 158 210" fill="none" stroke="#d9a640" stroke-width="3"/>'+
+ '<rect x="44" y="76" width="112" height="16" rx="6" fill="url(#silver)" stroke="#0d0c0b" stroke-width="2"/>'+
+ '<path d="M50 84 h100" stroke="#5d646a" stroke-width="1" stroke-dasharray="3 3"/>'+
+ '<ellipse cx="100" cy="84" rx="52" ry="14" fill="#1a1410" stroke="#0d0c0b" stroke-width="2"/>'+
+ '<g clip-path="url(#mouth)"><path id="yerba" d="" fill="#6f8f3a"/><path id="water" d="" fill="#3e5a22" opacity=".9"/><g id="foam"></g></g>'+
+ '<g id="bomb"><path d="M120 92 L150 4" stroke="url(#silver)" stroke-width="7" stroke-linecap="round"/><path d="M146 8 q8 -8 14 -4" stroke="url(#silver)" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="121" cy="90" rx="8" ry="4" fill="#a7aeb4"/></g>'+
+ '<path id="stream" d="" stroke="#cfeaff" stroke-width="4" stroke-linecap="round" opacity=".85"/>'+
+ '<g id="steam" fill="none" stroke="#fbf6ea" stroke-width="3" stroke-linecap="round" opacity="0"><path d="M84 66 q-8 -14 0 -28 q8 -14 0 -28"/><path d="M104 62 q8 -14 0 -28 q-8 -14 0 -28"/></g>';
+var yerbaP=$('yerba'), waterP=$('water'), foamG=$('foam'), streamP=$('stream'), steamG=$('steam');
+
+var st={loaded:false,strength:0,level:0,cebada:0,turn:0,pouring:false,ready:false,drinking:false,lastTemp:78,foam:0};
+function drawMate(){
+  if(!st.loaded){ yerbaP.setAttribute('d',''); waterP.setAttribute('d',''); foamG.innerHTML=''; return; }
+  // 茶葉堆成斜坡（montañita），水倒在低的那一側
+  yerbaP.setAttribute('d','M44 100 L44 78 Q70 64 100 70 Q130 78 158 92 L158 100Z');
+  var w=st.level; if(w>0){ waterP.setAttribute('d','M100 100 L100 '+(92-w*14)+' Q130 '+(84-w*10)+' 158 '+(92-w*6)+' L158 100Z'); } else waterP.setAttribute('d','');
+  var s=''; if(st.foam>0.05 && w>.3){ for(var i=0;i<14*st.foam;i++){ s+='<circle cx="'+(108+((i*13)%46))+'" cy="'+(86-w*8+((i*7)%6))+'" r="'+(1.5+i%3)+'" fill="#d9e4a8" opacity=".85"/>'; } } foamG.innerHTML=s;
+}
+function bars(){
+  $('bStr').style.setProperty('--v',st.strength); $('vStr').textContent=st.loaded?Math.round(st.strength*100):'—';
+  $('bLvl').style.setProperty('--v',st.level); $('vLvl').textContent=st.loaded?Math.round(st.level*100):'—';
+  $('bN').style.setProperty('--v',Math.min(1,st.cebada/15)); $('vN').textContent=st.cebada;
+  amigos.forEach(function(a,i){ a.classList.toggle('next',st.ready && i===st.turn); });
+}
+function say(i,t){ var s=amigos[i].querySelector('.say'); s.textContent=t; s.classList.add('show'); clearTimeout(s._t); s._t=setTimeout(function(){ s.classList.remove('show'); },2200); }
+function log(h){ $('log').innerHTML=h; }
+
+// ---- 溫度 ----
+function tempNote(t){ return t<68?'太冷：茶味出不來。':t<=82?'剛好：七十五到八十度，水壺「冒魚眼」之前。':t<=88?'有點燙，茶葉會開始燒苦。':'滾了！會把茶葉燙死，第一口就苦。'; }
+function upT(){ var t=+$('temp').value; $('tOut').textContent=t+'°'; $('tFill').style.height=((t-55)/45*100)+'%'; $('tNote').textContent=tempNote(t); steamG.setAttribute('opacity',Math.max(0,(t-70)/40)*(st.loaded?1:.4)); }
+$('temp').addEventListener('input',upT);
+
+// ---- 聲音 ----
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+var pourN=null;
+function pourSound(on){ var a=A(); if(!a) return; if(on&&!pourN){ var n=a.sampleRate*2,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=Math.random()*2-1; var s=a.createBufferSource(); s.buffer=b; s.loop=true; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1600; f.Q.value=1.2; var g=a.createGain(); g.gain.value=.09; s.connect(f); f.connect(g); g.connect(a.destination); s.start(); pourN={s:s,g:g,f:f}; } if(!on&&pourN){ try{ pourN.s.stop(); }catch(e){} pourN=null; } }
+function slurp(){ var a=A(); if(!a) return; var t=a.currentTime; for(var k=0;k<5;k++){ var n=a.sampleRate*.09,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.sin(i/n*Math.PI); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=700+k*160; f.Q.value=4; var g=a.createGain(); g.gain.value=k===4?.5:.25; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t+k*.13); } }
+function guitarra(){ var a=A(); if(!a) return; [196,247,294,392].forEach(function(f,i){ var t=a.currentTime+i*.06,o=a.createOscillator(),g=a.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+1.2); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+1.3); }); }
+
+// ---- 流程 ----
+$('load').onclick=function(){
+  A(); st.loaded=true; st.strength=1; st.level=0; st.cebada=0; st.turn=0; st.ready=false; amigos.forEach(function(a){a.classList.remove('out');});
+  guitarra(); drawMate(); bars(); upT();
+  this.textContent='換新茶葉'; $('pour').disabled=false; $('pass').disabled=true;
+  log('茶葉裝好，搖一搖把粉末拍到杯口、再斜放成一座小山。<b>按住倒水</b>，倒在低的那一側。');
+};
+var pourBtn=$('pour'), raf=0;
+function startPour(e){ if(e) e.preventDefault(); if(!st.loaded||st.drinking||pourBtn.disabled) return; A(); st.pouring=true; pourSound(true); st.lastTemp=+$('temp').value; loop(); }
+function stopPour(){ if(!st.pouring) return; st.pouring=false; pourSound(false); streamP.setAttribute('d','');
+  if(st.level>.25){ st.ready=true; $('pass').disabled=false; pourBtn.disabled=true; log(st.level>.97?'倒得太滿，溢出來了一點。':'倒好了。遞給<b>'+FR[st.turn].n+'</b>。'); } bars(); }
+pourBtn.addEventListener('pointerdown',startPour); pourBtn.addEventListener('pointerup',stopPour); pourBtn.addEventListener('pointerleave',stopPour); pourBtn.addEventListener('pointercancel',stopPour);
+pourBtn.addEventListener('keydown',function(e){ if((e.key===' '||e.key==='Enter')&&!st.pouring) startPour(e); }); pourBtn.addEventListener('keyup',function(e){ if(e.key===' '||e.key==='Enter') stopPour(); });
+var lastP=0;
+function loop(){
+  cancelAnimationFrame(raf); lastP=performance.now();
+  (function f(now){
+    if(!st.pouring) return;
+    var dt=Math.min(.05,((now||lastP)-lastP)/1000); lastP=now||lastP;
+    st.level=Math.min(1,st.level+dt*.62);
+    var t=st.lastTemp; st.foam=t>=68&&t<=84?Math.min(1,st.level*1.2):Math.max(0,.3-Math.abs(t-76)/40);
+    streamP.setAttribute('d','M40 -10 Q60 30 '+(118+Math.sin(performance.now()/60)*2)+' '+(82-st.level*10));
+    drawMate(); bars(); raf=requestAnimationFrame(f);
+  })(performance.now());
+}
+function pass(i){
+  if(!st.ready||st.drinking) return;
+  if(i!==st.turn){ say(i,'¡Pará! 還沒輪到我'); return; }
+  st.drinking=true; st.ready=false; $('pass').disabled=true; slurp();
+  var t=st.lastTemp, s=st.strength, burnt=t>88, cold=t<68, warm=t>82&&!burnt;
+  // 萃取：水溫越高抽得越快、也越快淡
+  var taste=s*(cold?.45:burnt?.9:1);
+  var line;
+  if(st.cebada===0 && i===0) line='第一杯最苦，照例自己喝掉。';
+  else if(burnt) line=['¡Quemado! 燙到苦掉了','水滾了吧？苦！','這是燒焦的茶葉'][st.cebada%3];
+  else if(cold) line=['Frío… 沒味道','水太冷了啦','這是溫水泡草'][st.cebada%3];
+  else if(s<.28) line='Lavado. 淡得像水';
+  else if(warm) line='有點燙，但還行';
+  else line=['¡Qué rico!','Está buenísimo','好喝，再來','¡Buen cebador!'][st.cebada%4];
+  setTimeout(function(){ say(i,line); },500);
+  // 說「Gracias」表示不喝了
+  var quit=st.cebada>4 && Math.random()<.12 && i!==0;
+  if(quit) setTimeout(function(){ say(i,'Gracias, 我不用了'); amigos[i].classList.add('out'); },1700);
+  var t0=performance.now();
+  (function f(now){ var p=Math.min(1,(now-t0)/1200); st.level=Math.max(0,st.level*(1-p*.1)-p*.02); if(p<1){ drawMate(); requestAnimationFrame(f); } else { st.level=0; st.foam=0; drawMate(); after(i,taste,burnt); } })(t0);
+}
+function after(i,taste,burnt){
+  st.cebada++; st.strength=Math.max(0,st.strength*(burnt?.72:st.lastTemp>82?.82:.88)-.01);
+  // 下一個還在場的人
+  var n=st.turn; for(var k=0;k<4;k++){ n=(n+1)%4; if(!amigos[n].classList.contains('out')) break; } st.turn=n;
+  st.drinking=false; pourBtn.disabled=false; bars();
+  if(st.strength<.22){ log('第 '+st.cebada+' 泡了，茶已經 <b>lavado</b>（洗淡了）。按「換新茶葉」重新開始一輪。'); pourBtn.disabled=true; }
+  else log('第 '+st.cebada+' 泡喝完。再倒一杯給<b>'+FR[st.turn].n+'</b>。'+(burnt?'剛剛水太燙，茶葉淡得特別快。':''));
+}
+$('pass').onclick=function(){ pass(st.turn); };
+amigos.forEach(function(a,i){ a.addEventListener('click',function(){ pass(i); }); });
+upT(); drawMate(); bars();
+})();
+</script>
+</body>
+</html>

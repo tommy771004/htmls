@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zapfmeister · 倒一杯完美的啤酒</title>
+<meta name="description" content="巴伐利亞啤酒屋的倒酒遊戲：按住龍頭出酒、拖動杯子調整傾斜，液面永遠保持水平；倒到刻度線、留兩指泡沫、不要溢出。三種杯型：一公升瑪斯杯、小麥啤酒杯與皮爾森鬱金香杯。">
+<style>
+:root{
+  --blue:#1f64b5; --blue-d:#123e75; --white:#f7f5ee; --cream:#f1e6c8; --wood:#6b4426; --wood-d:#432812; --ink:#13243f; --gold:#e8a924; --red:#b62a22;
+  --slab:"Superclarendon","Clarendon","Rockwell","Roboto Slab","Courier New","PingFang TC","Microsoft JhengHei",serif;
+  --sans:"Futura","Century Gothic","Avenir Next","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--white);color:var(--ink);font-family:var(--sans);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+/* 巴伐利亞藍白菱格 */
+.rauten{position:fixed;left:0;right:0;top:0;height:30vh;z-index:0;
+  background:linear-gradient(180deg,transparent 60%,var(--white)),
+    conic-gradient(from 45deg at 50% 50%,var(--blue) 0 25%,var(--white) 0 50%,var(--blue) 0 75%,var(--white) 0) 0 0/64px 40px;
+  transform:skewY(-4deg);transform-origin:left top;opacity:.95}
+.table{position:fixed;left:0;right:0;bottom:0;height:22vh;z-index:0;background:
+  repeating-linear-gradient(90deg,rgba(0,0,0,.08) 0 2px,transparent 2px 160px),
+  repeating-linear-gradient(0deg,rgba(255,220,170,.05) 0 3px,transparent 3px 9px),
+  linear-gradient(180deg,#7a4f2c,#4f3018);border-top:6px solid var(--wood-d)}
+.wrap{position:relative;z-index:1;display:grid;grid-template-columns:minmax(260px,330px) 1fr minmax(240px,300px);gap:24px;min-height:100vh;padding:24px clamp(16px,3vw,40px)}
+.sign{align-self:start;background:var(--cream);border:4px solid var(--blue-d);border-radius:16px;padding:20px 20px 18px;box-shadow:inset 0 0 0 3px var(--cream),inset 0 0 0 5px var(--blue),6px 8px 0 rgba(19,36,63,.25)}
+.sign h1{font-family:var(--slab);font-weight:700;font-size:34px;line-height:1;color:var(--blue-d);letter-spacing:-.01em}
+.sign h1 small{display:block;font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.24em;color:var(--red);margin-top:8px}
+.sign p{font-size:13.5px;line-height:1.65;margin-top:12px;color:#2c3a52}
+.glasses{display:grid;gap:8px;margin-top:16px}
+.glasses button{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;text-align:left;font:inherit;padding:9px 10px;border:2px solid var(--blue-d);border-radius:10px;background:var(--white);cursor:pointer;color:var(--ink);transition:background .2s,color .2s,transform .15s}
+.glasses button:hover{transform:translateX(3px)}
+.glasses button.on{background:var(--blue-d);color:var(--white)}
+.glasses svg{width:34px;height:34px}
+.glasses b{font-family:var(--slab);font-size:16px;display:block}
+.glasses small{font-size:11.5px;opacity:.75}
+.stage{position:relative;min-height:560px;touch-action:none;overflow:hidden}
+#c{position:absolute;inset:0;width:100%;height:100%;cursor:ns-resize}
+.score{align-self:start;display:grid;gap:12px}
+.card{background:var(--white);border:3px solid var(--ink);border-radius:6px;padding:14px 16px;box-shadow:5px 5px 0 var(--blue)}
+.card h2{font-family:var(--slab);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue-d);margin-bottom:8px;display:flex;justify-content:space-between}
+.row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;padding:3px 0;border-bottom:1px dotted #b7bccb}
+.row:last-child{border:0}
+.row b{font-family:var(--slab);font-size:20px;font-variant-numeric:tabular-nums}
+.gauge{position:relative;height:12px;border-radius:6px;background:#dfe4ee;margin:10px 0 4px;overflow:hidden}
+.gauge i{position:absolute;top:0;bottom:0;background:rgba(31,100,181,.25);border-left:2px solid var(--blue);border-right:2px solid var(--blue)}
+.gauge u{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--red);border-radius:2px;transition:left .1s}
+.gl{display:flex;justify-content:space-between;font-size:10.5px;color:#56607a}
+.ctrl{display:flex;gap:10px;flex-wrap:wrap}
+.tap{flex:1;font-family:var(--slab);font-size:19px;font-weight:700;padding:16px;border:0;border-radius:10px;background:var(--gold);color:var(--ink);cursor:pointer;box-shadow:0 5px 0 #a77408;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .08s,box-shadow .08s}
+.tap.on{transform:translateY(4px);box-shadow:0 1px 0 #a77408}
+.serve{flex:1;font-family:var(--slab);font-size:16px;padding:14px;border:3px solid var(--ink);border-radius:10px;background:var(--white);cursor:pointer}
+.serve:hover{background:var(--blue-d);color:var(--white)}
+.tilt{font-size:12px;color:#56607a;line-height:1.5}
+.stamp{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%) rotate(-12deg) scale(1.6);border:5px solid var(--red);color:var(--red);font-family:var(--slab);font-weight:700;font-size:38px;padding:8px 22px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .3s,transform .4s cubic-bezier(.2,1.6,.4,1);background:rgba(247,245,238,.75);text-align:center;line-height:1.1}
+.stamp small{display:block;font-size:14px;letter-spacing:.2em}
+.stamp.show{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}
+@media (max-width:1020px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:16px}
+  .wrap>*{min-width:0}
+  .glasses b{font-size:13px}
+  .stage{min-height:min(52vh,460px);order:2}
+  .score{display:flex;flex-direction:column}.ctrl{order:-1}
+  .sign{order:1}.score{order:3}
+  .glasses{grid-template-columns:repeat(3,1fr)}
+  .glasses button{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .glasses small{display:none}
+  .sign p{display:none}
+}
+</style>
+</head>
+<body>
+<div class="rauten" aria-hidden="true"></div><div class="table" aria-hidden="true"></div>
+<main class="wrap">
+  <section class="sign">
+    <h1>Zapfmeister<small>倒酒師傅的考試</small></h1>
+    <p>按住黃色龍頭出酒。杯子越直，泡越多；斜著倒，泡就少。倒到刻度線（Eichstrich），上面留兩指左右的泡，然後送上桌。<br>拖曳杯子或按 ↑↓ 改變傾斜，空白鍵出酒。</p>
+    <div class="glasses" id="glasses"></div>
+  </section>
+  <section class="stage" id="stage"><canvas id="c" aria-label="酒頭與杯子，拖曳上下改變杯子傾斜"></canvas><div class="stamp" id="stamp"></div></section>
+  <aside class="score">
+    <div class="card">
+      <h2><span>Schankmaß</span><span id="gname"></span></h2>
+      <div class="row"><span>酒液</span><b id="vLiq">0 ml</b></div>
+      <div class="row"><span>泡沫</span><b id="vHead">0 指</b></div>
+      <div class="row"><span>傾斜</span><b id="vTilt">0°</b></div>
+      <div class="row"><span>灑出</span><b id="vSpill">0 ml</b></div>
+      <div class="gauge"><i id="gTarget"></i><u id="gNow"></u></div>
+      <div class="gl"><span>空</span><span>刻度線</span><span>滿</span></div>
+    </div>
+    <div class="ctrl"><button class="tap" id="tap">按住出酒</button><button class="serve" id="serve">Prost！送上桌</button></div>
+    <p class="tilt">提示：先斜 35° 左右倒到七八分，再慢慢扶正，最後直著補一點，泡沫就會漂亮地冒出來。</p>
+  </aside>
+</main>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var cv=$('c'), ctx=cv.getContext('2d'), stage=$('stage'), W=0,H=0,DPR=1,U=1;
+// 杯子內緣多邊形（以杯底中心為原點，y 向上為負），單位：設計像素
+var GL=[
+  {k:'mass',name:'Maßkrug',zh:'瑪斯杯 · Helles 1 L',ml:1000,line:.84,head:[1.6,3],beer:[232,170,40],foamK:1,
+   poly:[[-70,-14],[70,-14],[76,-300],[-76,-300]],handle:true,base:14},
+  {k:'weizen',name:'Weizenglas',zh:'小麥啤酒杯 · 0.5 L',ml:500,line:.8,head:[2.2,4],beer:[236,176,70],foamK:1.55,haze:.35,
+   poly:[[-34,-10],[34,-10],[44,-70],[36,-170],[50,-300],[56,-390],[-56,-390],[-50,-300],[-36,-170],[-44,-70]],base:10},
+  {k:'pils',name:'Pilstulpe',zh:'皮爾森鬱金香杯 · 0.3 L',ml:300,line:.74,head:[1.6,3],beer:[240,196,70],foamK:1.15,
+   poly:[[-24,-110],[24,-110],[50,-170],[52,-230],[42,-300],[-42,-300],[-52,-230],[-50,-170]],stem:110}
+];
+var g=GL[0], st;
+function reset(){ st={liq:0,foam:0,tilt:0,pour:false,spill:0,served:false,drops:[],bubbles:[],stream:0}; $('stamp').className='stamp'; }
+reset();
+function area(p){ var a=0; for(var i=0;i<p.length;i++){ var q=p[i],r=p[(i+1)%p.length]; a+=q[0]*r[1]-r[0]*q[1]; } return Math.abs(a)/2; }
+function clipBelow(p,y){ // 保留 y >= 給定值（畫面座標往下為正）的部分
+  var out=[]; for(var i=0;i<p.length;i++){ var a=p[i],b=p[(i+1)%p.length], ia=a[1]>=y, ib=b[1]>=y;
+    if(ia) out.push(a); if(ia!==ib){ var t=(y-a[1])/(b[1]-a[1]); out.push([a[0]+(b[0]-a[0])*t,y]); } }
+  return out;
+}
+function rot(p,ang){ var c=Math.cos(ang),s=Math.sin(ang); return p.map(function(q){ return [q[0]*c-q[1]*s,q[0]*s+q[1]*c]; }); }
+// 給定體積（面積），找出傾斜後杯中液面高度：液面永遠水平
+function surface(poly,vol){
+  var ys=poly.map(function(q){return q[1];}), lo=Math.min.apply(null,ys), hi=Math.max.apply(null,ys);
+  if(vol<=0) return hi; var total=area(poly); if(vol>=total) return lo;
+  for(var k=0;k<40;k++){ var mid=(lo+hi)/2; if(area(clipBelow(poly,mid))>vol) lo=mid; else hi=mid; }
+  return (lo+hi)/2;
+}
+var CAP=0, LINEV=0, LINEY=0;
+function setup(){ CAP=area(g.poly); LINEV=CAP*g.line; LINEY=surface(g.poly,LINEV); }
+function ml(v){ return v/LINEV*g.ml; }
+function fingers(px){ return px/22; }
+
+function size(){ var b=stage.getBoundingClientRect(); DPR=Math.min(2,devicePixelRatio||1); W=b.width; H=b.height; cv.width=W*DPR; cv.height=H*DPR; U=Math.min(W/300,H/620); }
+addEventListener('resize',size);
+
+// 杯型選單
+$('glasses').innerHTML=GL.map(function(x,i){ var p=x.poly, mnx=-60, s=34/420;
+  var d='M'+p.map(function(q){ return ((q[0]+60)*s*2.8/2+2).toFixed(1)+' '+((q[1]+400)*s).toFixed(1); }).join('L')+'Z';
+  return '<button data-i="'+i+'"'+(i?'':' class="on"')+'><svg viewBox="0 0 34 34"><path d="'+d+'" fill="#e8a924" stroke="currentColor" stroke-width="1.5"/></svg><span><b>'+x.name+'</b><small>'+x.zh+'</small></span></button>'; }).join('');
+$('glasses').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; g=GL[+b.dataset.i]; Array.prototype.forEach.call(this.children,function(x){x.classList.toggle('on',x===b);}); setup(); reset(); $('gname').textContent=g.name; });
+
+// ---- 聲音 ----
+var ac=null, pourN=null;
+function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function pourSound(on){ var a=A(); if(!a) return;
+  if(on && !pourN){ var n=a.sampleRate*2,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=Math.random()*2-1; var s=a.createBufferSource(); s.buffer=b; s.loop=true; var f=a.createBiquadFilter(); f.type='bandpass'; f.Q.value=.9; var gn=a.createGain(); gn.gain.value=0; gn.gain.linearRampToValueAtTime(.16,a.currentTime+.1); s.connect(f); f.connect(gn); gn.connect(a.destination); s.start(); pourN={s:s,f:f,g:gn}; }
+  if(!on && pourN){ var p=pourN; p.g.gain.linearRampToValueAtTime(0,a.currentTime+.12); setTimeout(function(){ try{p.s.stop();}catch(e){} },200); pourN=null; } }
+function clunk(){ var a=A(); if(!a) return; var t=a.currentTime,o=a.createOscillator(),gn=a.createGain(); o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(60,t+.15); gn.gain.setValueAtTime(.3,t); gn.gain.exponentialRampToValueAtTime(.0001,t+.25); o.connect(gn); gn.connect(a.destination); o.start(t); o.stop(t+.26); }
+
+// ---- 操作 ----
+var tap=$('tap');
+function startPour(e){ if(e) e.preventDefault(); if(st.served) return; A(); st.pour=true; tap.classList.add('on'); pourSound(true); }
+function stopPour(){ st.pour=false; tap.classList.remove('on'); pourSound(false); }
+tap.addEventListener('pointerdown',startPour); tap.addEventListener('pointerup',stopPour); tap.addEventListener('pointerleave',stopPour); tap.addEventListener('pointercancel',stopPour);
+addEventListener('keydown',function(e){ if(e.code==='Space'){ if(!st.pour) startPour(e); else e.preventDefault(); } if(e.key==='ArrowUp'){ st.tilt=Math.max(0,st.tilt-3); e.preventDefault(); } if(e.key==='ArrowDown'){ st.tilt=Math.min(55,st.tilt+3); e.preventDefault(); } });
+addEventListener('keyup',function(e){ if(e.code==='Space') stopPour(); });
+var drag=null;
+cv.addEventListener('pointerdown',function(e){ drag={y:e.clientY,t:st.tilt}; try{cv.setPointerCapture(e.pointerId);}catch(_){} });
+cv.addEventListener('pointermove',function(e){ if(!drag) return; st.tilt=Math.max(0,Math.min(55,drag.t+(e.clientY-drag.y)*.25)); });
+cv.addEventListener('pointerup',function(){ drag=null; }); cv.addEventListener('pointercancel',function(){ drag=null; });
+$('serve').onclick=function(){
+  if(st.served){ reset(); return; } stopPour(); st.served=true; st.tilt=0; clunk();
+  var lv=ml(st.liq), head=fingers(headPx()), hit=Math.abs(lv-g.ml)/g.ml, hOK=head>=g.head[0]&&head<=g.head[1];
+  var msg, sub;
+  if(st.liq<LINEV*.2){ msg='Leer?'; sub='這是空杯'; }
+  else if(hit<.04&&hOK&&st.spill<g.ml*.04){ msg='Sehr gut!'; sub='刻度準 · 泡剛好'; }
+  else if(hit<.08&&head>=g.head[0]*.6&&head<=g.head[1]*1.4){ msg='Passt scho.'; sub='還可以啦'; }
+  else if(lv<g.ml*.9){ msg='Schlecht eingeschenkt!'; sub='倒不滿，客人要抗議'; }
+  else if(head<g.head[0]){ msg='Kein Schaum?'; sub='沒有泡沫，像糖水'; }
+  else { msg='Zu viel Schaum!'; sub='泡太多了'; }
+  $('stamp').innerHTML=msg+'<small>'+sub+'</small>'; $('stamp').classList.add('show');
+  this.textContent='再倒一杯';
+};
+function headPx(){ var poly=g.poly; var yl=surface(poly,st.liq), yt=surface(poly,st.liq+st.foam); return Math.max(0,yl-yt); }
+
+// ---- 物理 ----
+var last=performance.now();
+function step(dt){
+  if(st.served && st.tilt>0) st.tilt=Math.max(0,st.tilt-dt*80);
+  var ang=st.tilt*Math.PI/180, poly=rot(g.poly,ang);
+  if(st.pour){
+    var flow=CAP*0.2*dt; // 每秒約兩成杯量
+    // 起泡：杯越直、落差越大越多泡；小麥啤酒特別會起泡
+    var upright=1-Math.min(1,st.tilt/45), fall=1-Math.min(1,(st.liq+st.foam)/CAP);
+    var foamFrac=Math.min(.85,(0.1+0.55*upright*upright+0.12*fall)*g.foamK);
+    st.liq+=flow*(1-foamFrac); st.foam+=flow*foamFrac*2.6; // 泡沫體積約是酒液的 2.6 倍
+    if(Math.random()<.6) st.bubbles.push({x:(Math.random()-.5)*40,y:0,v:20+Math.random()*40,life:1});
+  }
+  // 泡沫慢慢塌回酒液
+  var decay=st.foam*0.045*dt; st.foam-=decay; st.liq+=decay/2.6;
+  // 溢出
+  var cap=area(poly); var over=st.liq+st.foam-cap;
+  if(over>0){ var lf=Math.min(st.foam,over); st.foam-=lf; st.spill+=ml(lf/2.6); var ll=over-lf; if(ll>0){ st.liq-=ll; st.spill+=ml(ll); }
+    if(Math.random()<.5) st.drops.push({side:st.tilt>2?1:(Math.random()<.5?-1:1),y:0,v:0,life:1}); }
+  // 傾斜太多會從杯口直接倒出
+  var top=Math.min.apply(null,poly.map(function(q){return q[1];}));
+  st.bubbles.forEach(function(b){ b.y+=b.v*dt; b.life-=dt*.8; }); st.bubbles=st.bubbles.filter(function(b){return b.life>0;});
+  st.drops.forEach(function(d){ d.v+=900*dt; d.y+=d.v*dt; d.life-=dt*.9; }); st.drops=st.drops.filter(function(d){return d.life>0;});
+}
+
+// ---- 畫 ----
+function rgb(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+(a==null?1:a)+')'; }
+function path(p,ox,oy){ ctx.beginPath(); p.forEach(function(q,i){ var x=ox+q[0]*U, y=oy+q[1]*U; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath(); }
+function draw(now){
+  var dt=Math.min(.05,(now-last)/1000); last=now; step(dt);
+  if(!W){ size(); }
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H);
+  var ang=st.tilt*Math.PI/180, gp=rot(g.poly,ang), topY=-Math.min.apply(null,g.poly.map(function(q){return q[1];}));
+  // 傾斜時杯底往左滑，讓杯口保持在龍頭正下方
+  var oy=H-40*U, ox=W/2-10*U-topY*Math.sin(ang)*U*.8;
+  // 杯子的樞紐：杯底與桌面
+  ctx.fillStyle='rgba(40,20,5,.25)'; ctx.beginPath(); ctx.ellipse(ox,oy+6*U,95*U,10*U,0,0,6.283); ctx.fill();
+  // 龍頭
+  var tx=W/2-10*U, ty=oy-440*U;
+  ctx.save(); ctx.translate(tx,ty);
+  var mg=ctx.createLinearGradient(-30*U,0,30*U,0); mg.addColorStop(0,'#7c8590'); mg.addColorStop(.4,'#eef1f4'); mg.addColorStop(1,'#59616b');
+  ctx.fillStyle=mg; ctx.fillRect(-90*U,-90*U,180*U,22*U); ctx.fillRect(-12*U,-70*U,24*U,56*U);
+  ctx.beginPath(); ctx.moveTo(-12*U,-14*U); ctx.quadraticCurveTo(-12*U,6*U,0,10*U); ctx.quadraticCurveTo(12*U,6*U,12*U,-14*U); ctx.fill();
+  // 龍頭把手
+  ctx.save(); ctx.translate(0,-90*U); ctx.rotate(st.pour?.55:0);
+  ctx.fillStyle='#132a4f'; ctx.beginPath(); ctx.roundRect?ctx.roundRect(-11*U,-84*U,22*U,84*U,10*U):ctx.rect(-11*U,-84*U,22*U,84*U); ctx.fill();
+  ctx.fillStyle='#f7f5ee'; ctx.font='700 '+(11*U)+'px Superclarendon, Rockwell, serif'; ctx.save(); ctx.translate(4*U,-30*U); ctx.rotate(-Math.PI/2); ctx.fillText('HELL',0,0); ctx.restore();
+  ctx.restore(); ctx.restore();
+  // 杯中液面（世界座標：水平）
+  var yl=surface(gp,st.liq), yt=surface(gp,st.liq+st.foam);
+  ctx.save(); path(gp,ox,oy); ctx.clip();
+  // 酒液
+  var by=oy+yl*U;
+  var bg=ctx.createLinearGradient(ox-80*U,0,ox+80*U,0); bg.addColorStop(0,rgb(g.beer.map(function(v){return v*.75|0;}))); bg.addColorStop(.35,rgb(g.beer)); bg.addColorStop(1,rgb(g.beer.map(function(v){return v*.7|0;})));
+  ctx.fillStyle=bg; ctx.fillRect(ox-200*U,by,400*U,500*U);
+  if(g.haze){ ctx.fillStyle='rgba(255,240,200,'+g.haze+')'; ctx.fillRect(ox-200*U,by,400*U,500*U); }
+  // 上升的氣泡
+  ctx.fillStyle='rgba(255,250,220,.7)';
+  for(var i=0;i<26;i++){ var bx=ox+Math.sin(i*12.9)*55*U, yy=oy-((now/1000*(30+i%5*12)+i*37)%(Math.max(1,(oy-by)/U)))*U; if(yy>by) { ctx.beginPath(); ctx.arc(bx,yy,(1+i%3*.6)*U,0,6.283); ctx.fill(); } }
+  // 泡沫
+  if(st.foam>1){ var fy=oy+yt*U; var fg=ctx.createLinearGradient(0,fy,0,by); fg.addColorStop(0,'#fffdf4'); fg.addColorStop(1,'#f3e2b8'); ctx.fillStyle=fg; ctx.fillRect(ox-200*U,fy,400*U,by-fy+1);
+    ctx.fillStyle='rgba(255,255,255,.8)'; for(var k=0;k<40;k++){ var fx=ox+(k-20)*6*U; ctx.beginPath(); ctx.arc(fx,fy+Math.sin(k*1.7+now/700)*1.5*U,(3+k%3)*U,0,6.283); ctx.fill(); }
+    ctx.fillStyle='rgba(200,170,110,.25)'; for(k=0;k<60;k++){ ctx.beginPath(); ctx.arc(ox+((k*37)%200-100)*U,fy+((k*53)%Math.max(2,(by-fy)/U))*U,1.2*U,0,6.283); ctx.fill(); } }
+  ctx.restore();
+  // 酒柱
+  if(st.pour){ var sx=tx, sy=ty+10*U, ey=Math.min(oy+yt*U,oy);
+    var colG=ctx.createLinearGradient(sx-4*U,0,sx+4*U,0); colG.addColorStop(0,rgb(g.beer,.7)); colG.addColorStop(.5,'rgba(255,240,190,.95)'); colG.addColorStop(1,rgb(g.beer,.7));
+    ctx.fillStyle=colG; ctx.beginPath(); ctx.moveTo(sx-4*U,sy); ctx.lineTo(sx+4*U,sy); ctx.lineTo(sx+3*U+Math.sin(now/40)*U,ey); ctx.lineTo(sx-3*U+Math.sin(now/40)*U,ey); ctx.fill(); }
+  // 玻璃
+  path(gp,ox,oy); ctx.strokeStyle='rgba(30,50,80,.55)'; ctx.lineWidth=3*U; ctx.stroke();
+  ctx.save(); path(gp,ox,oy); ctx.clip();
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.save(); ctx.translate(ox,oy); ctx.rotate(ang); ctx.fillRect(-60*U,-380*U,10*U,370*U); ctx.fillRect(40*U,-380*U,4*U,370*U); ctx.restore();
+  ctx.restore();
+  // 杯底、把手、杯腳
+  ctx.save(); ctx.translate(ox,oy); ctx.rotate(ang);
+  if(g.base){ ctx.fillStyle='rgba(210,225,235,.55)'; ctx.fillRect(g.poly[0][0]*U-4*U,-g.base*U,(g.poly[1][0]-g.poly[0][0])*U+8*U,g.base*U); }
+  if(g.handle){ ctx.strokeStyle='rgba(200,215,228,.9)'; ctx.lineWidth=16*U; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(78*U,-250*U); ctx.bezierCurveTo(150*U,-250*U,150*U,-60*U,74*U,-60*U); ctx.stroke(); ctx.strokeStyle='rgba(30,50,80,.4)'; ctx.lineWidth=2*U; ctx.stroke();
+    // 瑪斯杯的凹點
+    ctx.fillStyle='rgba(255,255,255,.22)'; for(var r=0;r<5;r++) for(var c=0;c<3;c++){ ctx.beginPath(); ctx.ellipse((-44+c*44)*U,(-60-r*50)*U,12*U,16*U,0,0,6.283); ctx.fill(); } }
+  if(g.stem){ ctx.fillStyle='rgba(215,228,238,.85)'; ctx.fillRect(-6*U,-g.stem*U,12*U,g.stem*U); ctx.beginPath(); ctx.ellipse(0,0,46*U,7*U,0,0,6.283); ctx.fill(); ctx.strokeStyle='rgba(30,50,80,.4)'; ctx.lineWidth=2*U; ctx.stroke(); }
+  // 刻度線
+  ctx.strokeStyle='#b62a22'; ctx.lineWidth=2.5*U; var lw=0; g.poly.forEach(function(q){ if(Math.abs(q[1]-LINEY)<200) lw=Math.max(lw,Math.abs(q[0])); });
+  ctx.beginPath(); ctx.moveTo(-lw*.25*U,LINEY*U); ctx.lineTo(lw*.6*U,LINEY*U); ctx.stroke();
+  ctx.fillStyle='#b62a22'; ctx.font='700 '+(11*U)+'px Superclarendon, Rockwell, serif'; ctx.fillText(g.ml>=1000?'1,0 l':(g.ml/1000).toFixed(1).replace('.',',')+' l',(lw*.6+5)*U,(LINEY+4)*U);
+  ctx.restore();
+  // 溢出的泡沫滴落
+  st.drops.forEach(function(d){ var rim=gp.reduce(function(a,q){ return d.side>0?(q[0]>a[0]?q:a):(q[0]<a[0]?q:a); },[d.side>0?-1e9:1e9,0]); ctx.fillStyle='rgba(255,250,235,'+d.life+')'; ctx.beginPath(); ctx.arc(ox+rim[0]*U+d.side*4*U,oy+rim[1]*U+d.y*U*.3,4*U,0,6.283); ctx.fill(); });
+  ui();
+  requestAnimationFrame(draw);
+}
+var gT=$('gTarget'), gN=$('gNow');
+function ui(){
+  var lv=ml(st.liq), head=fingers(headPx());
+  $('vLiq').textContent=Math.round(lv)+' ml'; $('vHead').textContent=head.toFixed(1)+' 指'; $('vTilt').textContent=Math.round(st.tilt)+'°'; $('vSpill').textContent=Math.round(st.spill)+' ml';
+  var full=CAP/LINEV*g.ml; gT.style.left=(g.ml*.96/full*100)+'%'; gT.style.width=(g.ml*.08/full*100)+'%'; gN.style.left=Math.min(100,lv/full*100)+'%';
+}
+size(); setup(); $('gname').textContent=g.name;
+new ResizeObserver(size).observe(stage);
+requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

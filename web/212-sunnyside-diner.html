@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunny Side Diner · 鬆餅疊疊樂</title>
+<meta name="description" content="1970 年代公路邊的美式小餐館：彩虹條紋招牌、可以自己插字的黑毛氈今日特餐看板，和一台鬆餅疊疊樂——鬆餅在盤子上方來回滑，抓準時機放下，疊歪了整疊會倒，疊到十層送一片派。">
+<style>
+:root{--cream:#f6e8c8;--cream2:#efdcb0;--orange:#e0662b;--brown:#5a3418;--mustard:#e8a93a;--avocado:#8a8f3a;--rust:#b8461f;--felt:#1d1b19;--ink:#3a2210}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{overflow-x:clip;background:var(--cream);color:var(--ink);font-family:"Futura","Futura PT","Century Gothic","PingFang TC","Microsoft JhengHei",sans-serif}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+.cond{font-family:"Avenir Next Condensed","Arial Narrow","Roboto Condensed","PingFang TC",sans-serif}
+/* 招牌：70 年代彎條紋 */
+.hero{position:relative;overflow:hidden;padding:40px 16px 34px;text-align:center}
+.stripes{position:absolute;left:-10%;right:-10%;top:-30%;height:150%;pointer-events:none}
+.stripes i{position:absolute;left:50%;top:100%;border-radius:50%;transform:translate(-50%,-50%);border:clamp(14px,2.2vw,26px) solid}
+.hero .badge{position:relative;display:inline-block;background:var(--cream);padding:18px clamp(20px,5vw,56px) 16px;border-radius:999px;box-shadow:0 0 0 6px var(--cream),0 0 0 10px var(--brown)}
+.hero h1{margin:0;font-weight:800;font-size:clamp(40px,8vw,92px);line-height:.9;letter-spacing:-.01em;color:var(--brown);font-style:italic}
+.hero h1 span{color:var(--orange)}
+.hero p{margin:10px 0 0;font-size:13px;letter-spacing:.3em;color:var(--rust);font-weight:600}
+.sun{position:relative;width:86px;height:86px;margin:0 auto -10px;display:block}
+.sun circle{fill:var(--mustard)}
+.sun path{stroke:var(--orange);stroke-width:6;stroke-linecap:round}
+.sun g{transform-origin:50% 50%;animation:turn 30s linear infinite}
+@keyframes turn{to{transform:rotate(360deg)}}
+/* 主區 */
+.main{max-width:1180px;margin:0 auto;padding:10px 16px 40px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:34px;align-items:start}
+h2.tag{margin:0 0 12px;font-weight:800;font-size:15px;letter-spacing:.24em;color:var(--rust);display:flex;align-items:center;gap:10px}
+h2.tag::after{content:"";flex:1;height:4px;background:repeating-linear-gradient(90deg,var(--orange) 0 18px,var(--mustard) 18px 36px,var(--avocado) 36px 54px)}
+/* 毛氈看板 */
+.boardWrap{background:linear-gradient(135deg,#8a5a2c,#5a3418);padding:14px;border-radius:10px;box-shadow:0 16px 30px rgba(90,52,24,.35),inset 0 0 0 2px rgba(255,255,255,.12)}
+.board{background-color:var(--felt);background-image:repeating-linear-gradient(transparent 0 15px,rgba(0,0,0,.55) 15px 17px,rgba(255,255,255,.04) 17px 18px);padding:22px 10px;border-radius:3px;min-height:280px;display:flex;flex-direction:column;justify-content:center;gap:10px;box-shadow:inset 0 0 30px rgba(0,0,0,.7)}
+.line{display:flex;justify-content:center;flex-wrap:nowrap;min-height:44px;align-items:center;gap:1px}
+.ch{display:inline-block;color:#f4f1ea;font-family:"Avenir Next Condensed","Arial Narrow","Helvetica Neue",sans-serif;font-weight:700;font-size:clamp(22px,3.1vw,36px);line-height:1;min-width:.36em;text-align:center;
+  text-shadow:0 1px 0 #cfcac0,0 2px 2px rgba(0,0,0,.6);transform:translateY(var(--y,0)) rotate(var(--r,0deg));animation:pop .3s cubic-bezier(.3,1.6,.5,1) both}
+.ch.sp{min-width:.4em}
+@keyframes pop{from{transform:translateY(-14px) rotate(8deg);opacity:0}}
+.edit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.edit label{display:flex;flex-direction:column;gap:3px;font-size:11px;letter-spacing:.14em;color:var(--rust);font-weight:600}
+.edit input{border:2px solid var(--brown);background:#fffaf0;padding:8px 10px;border-radius:6px;font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:0}
+.edit input:focus{outline:3px solid var(--mustard);outline-offset:1px}
+.boardBtns{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.pill{border:0;border-radius:999px;padding:10px 18px;font-weight:800;letter-spacing:.06em;background:var(--orange);color:var(--cream);box-shadow:0 4px 0 var(--rust)}
+.pill:active{transform:translateY(3px);box-shadow:0 1px 0 var(--rust)}
+.pill.alt{background:var(--avocado);box-shadow:0 4px 0 #5f6324}
+.small{font-size:12px;color:#8a6a4a}
+/* 鬆餅機 */
+.game{background:var(--orange);border-radius:26px;padding:14px;box-shadow:0 0 0 6px var(--mustard),0 0 0 12px var(--brown),0 20px 36px rgba(90,52,24,.35);position:relative}
+.game canvas{display:block;width:100%;height:auto;border-radius:16px;background:var(--cream);touch-action:manipulation;cursor:pointer}
+.hud{display:flex;justify-content:space-between;align-items:center;color:var(--cream);font-weight:800;padding:10px 6px 2px;gap:10px}
+.hud b{font-size:28px;font-family:"Avenir Next Condensed","Arial Narrow",sans-serif}
+.hud small{display:block;font-size:10px;letter-spacing:.2em;opacity:.85}
+.hud .pill{background:var(--cream);color:var(--brown);box-shadow:0 4px 0 var(--brown)}
+/* 菜單 */
+.menu{max-width:1180px;margin:0 auto;padding:0 16px 60px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.card{background:#fffaf0;border-radius:20px;padding:20px 20px 16px;border:3px solid var(--brown);position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;background:linear-gradient(var(--c1) 0 33%,var(--c2) 33% 66%,var(--c3) 66%)}
+.card h3{margin:8px 0 10px;font-size:24px;font-weight:800;font-style:italic;color:var(--brown)}
+.card h3 small{font-style:normal;font-size:12px;letter-spacing:.2em;color:var(--rust);margin-left:6px}
+.item{display:flex;align-items:baseline;gap:6px;padding:5px 0;font-size:15px}
+.item .d{flex:1;border-bottom:2px dotted #c9a676;transform:translateY(-4px)}
+.item b{font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:18px;color:var(--rust)}
+.item small{display:block;font-size:12px;color:#8a6a4a}
+.foot{text-align:center;font-size:12px;letter-spacing:.2em;color:#8a6a4a;padding:0 16px 30px}
+@media (max-width:960px){
+  .main{grid-template-columns:1fr}
+  .cards{grid-template-columns:1fr 1fr}
+}
+@media (max-width:600px){
+  .cards{grid-template-columns:1fr}
+  .edit{grid-template-columns:1fr}
+  .board{min-height:220px;padding:16px 6px}
+  .line{min-height:34px}
+  .ch{font-size:clamp(16px,5.4vw,24px)}
+  .hero p{letter-spacing:.14em}
+}
+@media (prefers-reduced-motion:reduce){.sun g,.ch{animation:none}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="stripes" id="stripes" aria-hidden="true"></div>
+  <svg class="sun" viewBox="0 0 86 86" aria-hidden="true"><g><path d="M43 4v10M43 72v10M4 43h10M72 43h10M15 15l7 7M64 64l7 7M15 71l7-7M64 22l7-7"/></g><circle cx="43" cy="43" r="22"/></svg>
+  <div class="badge">
+    <h1>Sunny <span>Side</span> Diner</h1>
+    <p>ROUTE 66 · OPEN 6AM–MIDNIGHT · 公路邊的早午餐</p>
+  </div>
+</header>
+
+<main class="main">
+  <section aria-label="今日特餐看板">
+    <h2 class="tag">TODAY'S SPECIALS</h2>
+    <div class="boardWrap"><div class="board" id="board" aria-live="polite"></div></div>
+    <div class="edit" id="edit"></div>
+    <div class="boardBtns">
+      <button class="pill" id="shuffle" type="button">換一組特餐</button>
+      <span class="small">看板只有大寫英文、數字與 $ ¢ . : ! & -</span>
+    </div>
+  </section>
+  <section aria-label="鬆餅疊疊樂">
+    <h2 class="tag">PANCAKE STACKER</h2>
+    <div class="game">
+      <canvas id="cv" width="440" height="560" aria-label="鬆餅疊疊樂：點擊或按空白鍵放下鬆餅"></canvas>
+      <div class="hud">
+        <div><small>STACK 層數</small><b id="h">0</b></div>
+        <div><small>BEST 最高</small><b id="best">0</b></div>
+        <button class="pill" id="start" type="button">開始 / 重來</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<section class="menu" aria-label="菜單">
+  <h2 class="tag">THE MENU · 菜單</h2>
+  <div class="cards">
+    <article class="card" style="--c1:#e0662b;--c2:#e8a93a;--c3:#8a8f3a">
+      <h3>Griddle<small>鐵板</small></h3>
+      <div class="item"><span>Short Stack<small>三片鬆餅、奶油、楓糖漿</small></span><span class="d"></span><b>$4.50</b></div>
+      <div class="item"><span>Tall Stack<small>五片，給真的餓的人</small></span><span class="d"></span><b>$6.25</b></div>
+      <div class="item"><span>Silver Dollar<small>十二片硬幣大小鬆餅</small></span><span class="d"></span><b>$5.00</b></div>
+      <div class="item"><span>French Toast<small>肉桂法式吐司</small></span><span class="d"></span><b>$4.75</b></div>
+    </article>
+    <article class="card" style="--c1:#8a8f3a;--c2:#e0662b;--c3:#5a3418">
+      <h3>Eggs &amp; Plates<small>蛋與餐盤</small></h3>
+      <div class="item"><span>Two Eggs Any Style<small>兩顆蛋任選做法、薯餅、吐司</small></span><span class="d"></span><b>$3.95</b></div>
+      <div class="item"><span>Denver Omelet<small>火腿、青椒、洋蔥歐姆蛋</small></span><span class="d"></span><b>$5.50</b></div>
+      <div class="item"><span>Chicken-Fried Steak<small>炸牛排淋白醬</small></span><span class="d"></span><b>$7.25</b></div>
+      <div class="item"><span>Blue Plate Special<small>今日藍盤特餐，問服務生</small></span><span class="d"></span><b>$6.95</b></div>
+    </article>
+    <article class="card" style="--c1:#e8a93a;--c2:#b8461f;--c3:#e0662b">
+      <h3>Pie &amp; Coffee<small>派與咖啡</small></h3>
+      <div class="item"><span>Cherry Pie<small>櫻桃派，加一球香草冰淇淋 +50¢</small></span><span class="d"></span><b>$2.25</b></div>
+      <div class="item"><span>Apple Pie<small>蘋果派，可以配切達起司</small></span><span class="d"></span><b>$2.25</b></div>
+      <div class="item"><span>Malted Milkshake<small>麥芽奶昔：香草、巧克力、草莓</small></span><span class="d"></span><b>$1.95</b></div>
+      <div class="item"><span>Bottomless Coffee<small>咖啡無限續杯</small></span><span class="d"></span><b>90¢</b></div>
+    </article>
+  </div>
+</section>
+<p class="foot">價格照 1970 年代的物價寫的。疊到十層，女服務生會送你一片派。</p>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+
+/* 招牌條紋 */
+var cols = ['#5a3418','#b8461f','#e0662b','#e8a93a','#8a8f3a'];
+function stripes(){
+  var base = Math.max(innerWidth*1.04, 620), step = base*.062;
+  $('#stripes').innerHTML = cols.map(function(c, i){ var d = base - i*step; return '<i style="width:' + d + 'px;height:' + d*.62 + 'px;border-color:' + c + '"></i>'; }).join('');
+}
+stripes(); window.addEventListener('resize', stripes);
+
+/* 毛氈看板 */
+var SETS = [
+  ['SUNNY SIDE DINER','SHORT STACK $4.50','PIE OF THE DAY:','CHERRY & APPLE'],
+  ['TODAY: MEATLOAF','W/ MASHED POTATO','$5.25 - TIL 3PM','COFFEE 90¢ REFILL'],
+  ['WELCOME TRUCKERS!','FREE COFFEE','WITH ANY STACK','HONK IF HUNGRY'],
+  ['TRY OUR NEW','PEACH COBBLER','A LA MODE $2.50','YES WE HAVE PIE']
+];
+var lines = SETS[0].slice(), setIdx = 0;
+var board = $('#board'), edit = $('#edit');
+var MAX = 18;
+function clean(s){ return s.toUpperCase().replace(/[^A-Z0-9 $¢.,:!?&'\/\-]/g, '').slice(0, MAX); }
+function renderLine(i, animate){
+  var el = board.children[i], txt = lines[i];
+  el.innerHTML = txt.split('').map(function(c, j){
+    var r = ((Math.sin(i*31 + j*7.7) * 10000) % 1)*4 - 2, y = ((Math.cos(i*17 + j*3.1)*10000) % 1)*2;
+    return '<span class="ch' + (c === ' ' ? ' sp' : '') + '" style="--r:' + r.toFixed(1) + 'deg;--y:' + y.toFixed(1) + 'px;' + (animate ? 'animation-delay:' + (j*.03) + 's' : 'animation:none') + '">' + (c === ' ' ? '&nbsp;' : c.replace('&', '&amp;')) + '</span>';
+  }).join('');
+  el.setAttribute('aria-label', txt);
+}
+for (var i = 0; i < 4; i++){
+  var d = document.createElement('div'); d.className = 'line'; board.appendChild(d);
+  var lab = document.createElement('label'); lab.innerHTML = '第 ' + (i + 1) + ' 行 LINE ' + (i + 1) + '<input maxlength="' + MAX + '" autocomplete="off" spellcheck="false">';
+  var inp = lab.querySelector('input'); inp.value = lines[i];
+  (function(i, inp){
+    inp.addEventListener('input', function(){
+      var prev = lines[i], v = clean(inp.value); lines[i] = v; if (inp.value !== v) inp.value = v;
+      var el = board.children[i];
+      if (v.length === prev.length + 1 && v.slice(0, -1) === prev){
+        // 只把新插上的那個字做動畫
+        renderLine(i, false); var last = el.lastElementChild; if (last){ last.style.animation = ''; }
+        tick();
+      } else renderLine(i, false);
+    });
+  })(i, inp);
+  edit.appendChild(lab);
+}
+function renderAll(anim){ for (var i = 0; i < 4; i++){ renderLine(i, anim); edit.querySelectorAll('input')[i].value = lines[i]; } }
+$('#shuffle').addEventListener('click', function(){ audio(); setIdx = (setIdx + 1) % SETS.length; lines = SETS[setIdx].slice(); renderAll(true); for (var k = 0; k < 8; k++) setTimeout(tick, k*70); });
+renderAll(true);
+
+/* 鬆餅疊疊樂 */
+var cv = $('#cv'), g = cv.getContext('2d'), W = 440, H = 560;
+var PR = 78, PT = 15, plateY = H - 58;
+var stack = [], mover = null, falling = [], state = 'idle', cam = 0, camT = 0, speed = 150, msg = null, best = 0, wob = 0, syrup = 0, t0 = 0;
+try { best = +localStorage.getItem('sunnyside-best') || 0; } catch(e){}
+$('#best').textContent = best;
+var HUES = [];
+for (var k = 0; k < 60; k++) HUES.push([30 + Math.random()*6, 62 + Math.random()*10, 52 + Math.random()*8]);
+function topY(){ return plateY - 10 - stack.length*PT; }
+function newMover(){ var dir = Math.random() < .5 ? 1 : -1; mover = {x:W/2 - dir*150, dir:dir, y:topY() - 120}; }
+function start(){ audio(); stack = []; falling = []; cam = camT = 0; speed = 150; wob = 0; syrup = 0; msg = null; state = 'play'; newMover(); $('#h').textContent = 0; }
+function drop(){
+  if (state === 'idle' || state === 'over'){ start(); return; }
+  if (state !== 'play' || !mover) return;
+  var m = mover; mover = null;
+  falling.push({x:m.x, y:m.y, vy:0, target:topY() - PT, i:stack.length});
+}
+function land(f){
+  var below = stack.length ? stack[stack.length - 1].x : W/2, dx = f.x - below;
+  if (Math.abs(dx) > PR*1.15){ // 完全沒疊到，掉到桌上
+    msg = {t:'MISSED!', s:'差太多，掉下去了', c:'#b8461f'}; flop(.6); gameOver(f); return;
+  }
+  var perfect = Math.abs(dx) < 5;
+  if (perfect){ f.x = below; msg = {t:'PERFECT!', s:'正中間', c:'#8a8f3a', age:0}; ding(); }
+  else msg = null;
+  stack.push({x:f.x, hue:HUES[stack.length % HUES.length]});
+  flop(1); wob = Math.min(1, Math.abs(dx)/PR);
+  // 重心：上方所有鬆餅的平均位置不能超出底下那片
+  for (var i = 0; i < stack.length - 1; i++){
+    var sum = 0, n = 0; for (var j = i + 1; j < stack.length; j++){ sum += stack[j].x; n++; }
+    if (Math.abs(sum/n - stack[i].x) > PR*.92){ msg = {t:'TIMBER!', s:'整疊倒了', c:'#b8461f'}; gameOver(null, i); return; }
+  }
+  $('#h').textContent = stack.length;
+  if (stack.length === 10){ msg = {t:'FREE PIE!', s:'十層！送你一片櫻桃派', c:'#e0662b', age:0}; ding(); setTimeout(ding, 150); }
+  speed = Math.min(420, 150 + stack.length*14);
+  camT = Math.max(0, (H*.55) - topY()) ;
+  newMover();
+}
+function gameOver(f, at){
+  state = 'over';
+  if (at !== undefined){ for (var i = stack.length - 1; i > at; i--){ var p = stack.pop(); falling.push({x:p.x, y:plateY - 10 - i*PT - PT, vy:-40, vx:(p.x - W/2)*2 + (Math.random() - .5)*80, rot:0, vr:(Math.random() - .5)*4, gone:true, hue:p.hue}); } }
+  if (f){ falling.push({x:f.x, y:f.y, vy:f.vy, vx:(f.x - W/2)*1.5, rot:0, vr:(f.x > W/2 ? 3 : -3), gone:true}); }
+  var h = stack.length; if (h > best){ best = h; try { localStorage.setItem('sunnyside-best', best); } catch(e){} $('#best').textContent = best; }
+  $('#h').textContent = h; syrup = 0; t0 = performance.now();
+}
+cv.addEventListener('pointerdown', function(e){ e.preventDefault(); drop(); });
+document.addEventListener('keydown', function(e){
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space' || e.key === 'Enter'){ if (document.activeElement === $('#start') && e.key === 'Enter') return; e.preventDefault(); drop(); }
+});
+$('#start').addEventListener('click', start);
+
+function pancake(x, y, hue, rot){
+  g.save(); g.translate(x, y); if (rot) g.rotate(rot);
+  var hs = hue || [32, 66, 55];
+  g.fillStyle = 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 22) + '%)';
+  g.beginPath(); g.ellipse(0, PT*.5, PR, 16, 0, 0, Math.PI*2); g.fill();
+  g.fillRect(-PR, 0, PR*2, PT*.5);
+  g.fillStyle = 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 8) + '%)';
+  g.beginPath(); g.ellipse(0, 0, PR, 16, 0, 0, Math.PI*2); g.fill();
+  var tg = g.createRadialGradient(-PR*.2, -4, 4, 0, 0, PR); tg.addColorStop(0, 'hsl(' + (hs[0] + 4) + ',' + hs[1] + '%,' + (hs[2] + 6) + '%)'); tg.addColorStop(.75, 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 4) + '%)'); tg.addColorStop(1, 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 14) + '%)');
+  g.fillStyle = tg; g.beginPath(); g.ellipse(0, -1, PR - 4, 13, 0, 0, Math.PI*2); g.fill();
+  g.fillStyle = 'rgba(120,60,20,.18)'; for (var i = 0; i < 6; i++){ g.beginPath(); g.ellipse(Math.sin(i*2.1 + hs[0])*PR*.55, Math.cos(i*1.7)*6 - 1, 3, 1.4, 0, 0, Math.PI*2); g.fill(); }
+  g.restore();
+}
+function drawScene(now){
+  g.clearRect(0, 0, W, H);
+  // 背景：格子桌布與窗外
+  g.fillStyle = '#f6e8c8'; g.fillRect(0, 0, W, H);
+  g.save(); g.translate(0, cam*.3);
+  for (var s = 0; s < 5; s++){ g.fillStyle = cols[4 - s]; g.globalAlpha = .9; g.fillRect(0, 40 + s*16, W, 10); }
+  g.globalAlpha = 1; g.restore();
+  g.save(); g.translate(0, cam);
+  // 桌面
+  g.fillStyle = '#e0662b'; g.fillRect(0, plateY + 14, W, 200);
+  g.fillStyle = 'rgba(255,255,255,.25)';
+  for (var cx = 0; cx < W; cx += 40) for (var cy = plateY + 14; cy < plateY + 220; cy += 40){ if (((cx + cy)/40) % 2 < 1) g.fillRect(cx, cy, 40, 40); }
+  // 盤子
+  g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(W/2 + 4, plateY + 10, 128, 26, 0, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#fffaf0'; g.beginPath(); g.ellipse(W/2, plateY, 128, 26, 0, 0, Math.PI*2); g.fill();
+  g.strokeStyle = '#8a8f3a'; g.lineWidth = 3; g.beginPath(); g.ellipse(W/2, plateY, 116, 21, 0, 0, Math.PI*2); g.stroke();
+  // 疊好的鬆餅（最上面幾層晃動）
+  var sway = state === 'play' ? Math.sin(now*.012)*wob*4 : 0;
+  stack.forEach(function(p, i){ var k = i/Math.max(1, stack.length); pancake(p.x + sway*k*k, plateY - 10 - i*PT - PT*.5, p.hue); });
+  // 結束後的奶油與糖漿
+  if (state === 'over' && stack.length){
+    var top = stack[stack.length - 1], ty = plateY - 10 - (stack.length - 1)*PT - PT*.5;
+    syrup = Math.max(0, Math.min(1, (now - t0)/1800));
+    g.fillStyle = 'rgba(140,60,10,.85)'; g.beginPath(); g.ellipse(top.x, ty - 2, (PR - 10)*syrup, 10*syrup, 0, 0, Math.PI*2); g.fill();
+    for (var dd = 0; dd < 5; dd++){ var ang = -PR + 12 + dd*(PR*2 - 24)/4; g.fillRect(top.x + ang*.9*syrup, ty + 4, 6, (20 + dd*7 % 18)*syrup + stack.length*PT*syrup*.4*(dd%2)); }
+    g.fillStyle = '#fbe9a6'; g.fillRect(top.x - 14, ty - 18, 28, 14); g.fillStyle = '#fff6cf'; g.fillRect(top.x - 14, ty - 18, 28, 4);
+  }
+  falling.forEach(function(f){ pancake(f.x, f.y, f.hue || HUES[f.i % HUES.length], f.rot); });
+  if (mover){ g.globalAlpha = .18; g.fillStyle = '#5a3418'; g.beginPath(); g.ellipse(mover.x, topY() - 2, PR*.9, 10, 0, 0, Math.PI*2); g.fill(); g.globalAlpha = 1; pancake(mover.x, mover.y, HUES[stack.length % HUES.length]); }
+  g.restore();
+  // 訊息
+  g.textAlign = 'center';
+  if (state === 'idle'){
+    g.fillStyle = 'rgba(90,52,24,.88)'; roundRect(60, 170, W - 120, 150, 24); g.fill();
+    g.fillStyle = '#f6e8c8'; g.font = 'italic 800 34px Futura,"Century Gothic",sans-serif'; g.fillText('STACK ’EM UP!', W/2, 222);
+    g.font = '600 15px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillText('點畫面或按空白鍵放下鬆餅', W/2, 256); g.fillText('疊歪了整疊會倒 · 十層送一片派', W/2, 282);
+  } else if (msg){
+    g.fillStyle = msg.c; g.font = 'italic 800 40px Futura,"Century Gothic",sans-serif'; g.fillText(msg.t, W/2, 150);
+    g.fillStyle = '#5a3418'; g.font = '600 15px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillText(msg.s, W/2, 176);
+  }
+  if (state === 'over'){ g.fillStyle = '#5a3418'; g.font = '700 15px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillText('疊了 ' + stack.length + ' 層 · 點一下再來一盤', W/2, 206); }
+  g.textAlign = 'left';
+}
+function roundRect(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+var last = performance.now();
+function loop(now){
+  var dt = Math.min(.04, (now - last)/1000); last = now;
+  if (mover && state === 'play'){
+    mover.x += mover.dir*speed*dt;
+    if (mover.x > W/2 + 160){ mover.x = W/2 + 160; mover.dir = -1; }
+    if (mover.x < W/2 - 160){ mover.x = W/2 - 160; mover.dir = 1; }
+    mover.y += ((topY() - 120) - mover.y)*Math.min(1, dt*6);
+  }
+  falling.forEach(function(f){
+    f.vy += 1400*dt; f.y += f.vy*dt;
+    if (f.gone){ f.x += (f.vx || 0)*dt; f.rot += (f.vr || 0)*dt; }
+    else if (f.y >= f.target + PT*.5){ f.y = f.target + PT*.5; f.done = true; land(f); }
+  });
+  falling = falling.filter(function(f){ return !f.done && f.y < plateY + 400; });
+  if (msg && msg.age !== undefined){ msg.age += dt; if (msg.age > 1.4 && state === 'play') msg = null; }
+  cam += (camT - cam)*Math.min(1, dt*4);
+  wob *= Math.pow(.2, dt);
+  drawScene(now);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* 聲音 */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function flop(v){
+  if (!ac) return; var t = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(60, t + .12);
+  gg.gain.setValueAtTime(.25*v, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .16); o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .18);
+}
+function ding(){
+  if (!ac) return; var t = ac.currentTime;
+  [2093, 2637, 3136].forEach(function(f, i){ var o = ac.createOscillator(), gg = ac.createGain(); o.type = 'triangle'; o.frequency.value = f; gg.gain.setValueAtTime(.0001, t + i*.06); gg.gain.exponentialRampToValueAtTime(.05, t + i*.06 + .005); gg.gain.exponentialRampToValueAtTime(.0001, t + i*.06 + .6); o.connect(gg).connect(ac.destination); o.start(t + i*.06); o.stop(t + 1); });
+}
+function tick(){
+  if (!ac) return; var t = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
+  o.type = 'square'; o.frequency.value = 900 + Math.random()*300; gg.gain.setValueAtTime(.025, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .03); o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .04);
+}
+edit.addEventListener('focusin', audio);
+})();
+</script>
+</body>
+</html>

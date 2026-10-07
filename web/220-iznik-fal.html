@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kahve Falı · 土耳其咖啡渣占卜</title>
+<meta name="description" content="伊茲尼克花磚風格的土耳其咖啡：在熱沙上煮出泡沫、喝完、許願、倒扣杯子，等它涼了再掀開，從杯底的咖啡渣讀出鳥、魚、鑰匙與山的預兆。">
+<style>
+:root{
+  --glaze:#f7f4ec; --glaze-2:#ece6d6; --cobalt:#1c3d8c; --cobalt-2:#2c58b5; --turq:#2a9d9a; --coral:#c8452f; --leaf:#3f7d3a; --ink:#1d2236; --ink-2:#4f5470; --sand:#d9b47c; --copper:#b4643a;
+  --cochin:"Cochin","Big Caslon","Palatino Linotype","Palatino","Songti TC","Noto Serif TC",serif;
+  --cjk:"Songti TC","STSong","Noto Serif TC","PMingLiU",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--glaze);color:var(--ink);font-family:var(--cochin);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.band{height:74px;display:block;width:100%}
+.band.b{transform:scaleY(-1)}
+.wrap{max-width:1180px;margin:0 auto;padding:22px clamp(16px,3vw,40px) 30px;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:clamp(20px,4vw,56px);align-items:start}
+header.t{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:2px solid var(--cobalt);padding-bottom:12px}
+header.t h1{font-weight:400;font-size:clamp(34px,4.4vw,58px);line-height:1;color:var(--cobalt);letter-spacing:.01em}
+header.t h1 i{color:var(--coral)}
+header.t h1 small{font-family:var(--cjk);font-size:.36em;letter-spacing:.3em;color:var(--ink-2);margin-left:.6em;vertical-align:middle}
+.steps{display:flex;gap:6px;list-style:none;font-family:var(--cjk);font-size:13px}
+.steps li{padding:6px 10px;border:1.5px solid var(--glaze-2);border-radius:20px;color:var(--ink-2);transition:all .4s}
+.steps li.on{border-color:var(--cobalt);background:var(--cobalt);color:#fff}
+.steps li.done{border-color:var(--turq);color:var(--turq)}
+.stage{position:relative;aspect-ratio:1/1;width:100%;max-width:620px;justify-self:center;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#fffdf6 0 58%,transparent 58.2%),radial-gradient(circle,var(--glaze-2),var(--glaze) 70%)}
+.stage svg,.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.stage canvas{cursor:crosshair}
+.panel{position:relative;background:#fffdf6;border:2px solid var(--cobalt);border-radius:120px 120px 6px 6px;padding:60px 26px 26px;box-shadow:0 0 0 6px var(--glaze),0 0 0 8px var(--turq)}
+.panel::before{content:"";position:absolute;left:50%;top:16px;width:30px;height:30px;margin-left:-15px;background:var(--coral);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.panel h2{font-weight:400;font-size:26px;text-align:center;color:var(--cobalt);margin-bottom:4px}
+.panel .sub{text-align:center;font-family:var(--cjk);font-size:12px;letter-spacing:.3em;color:var(--ink-2);margin-bottom:18px}
+.panel p.lead{font-family:var(--cjk);font-size:15px;line-height:1.85;color:var(--ink)}
+.btn{display:block;width:100%;margin-top:18px;font-family:var(--cjk);font-size:16px;letter-spacing:.2em;padding:13px;background:var(--cobalt);color:#fff;border:0;border-radius:40px;cursor:pointer;transition:background .25s,transform .15s;user-select:none;-webkit-user-select:none;touch-action:none}
+.btn:hover{background:var(--cobalt-2)}.btn:active{transform:translateY(1px)}
+.btn.alt{background:transparent;color:var(--cobalt);box-shadow:inset 0 0 0 1.5px var(--cobalt)}
+.btn[disabled]{opacity:.4;cursor:default}
+.meter{margin-top:16px;height:10px;border-radius:10px;background:var(--glaze-2);position:relative;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#c9a67a,#efe1c5);border-radius:10px}
+.meter b{position:absolute;top:0;bottom:0;left:72%;width:16%;border-left:2px solid var(--turq);border-right:2px solid var(--turq)}
+.meter-l{display:flex;justify-content:space-between;font-family:var(--cjk);font-size:11px;color:var(--ink-2);margin-top:5px}
+.wish{width:100%;margin-top:14px;font-family:var(--cjk);font-size:15px;padding:10px 14px;border:1.5px solid var(--glaze-2);border-radius:30px;background:var(--glaze);color:var(--ink);outline:none}
+.wish:focus{border-color:var(--cobalt)}
+.reading{list-style:none;margin-top:6px}
+.reading li{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start;padding:12px 0;border-top:1px dashed #c9c3b0;cursor:pointer;transition:background .25s}
+.reading li:hover,.reading li.hi{background:rgba(42,157,154,.08)}
+.reading svg{width:42px;height:42px}
+.reading b{font-weight:400;font-size:19px;color:var(--cobalt)}
+.reading b small{font-family:var(--cjk);font-size:11px;letter-spacing:.14em;color:var(--coral);margin-left:6px}
+.reading span{display:block;font-family:var(--cjk);font-size:14px;line-height:1.7;color:var(--ink-2)}
+.summary{font-style:italic;font-size:18px;line-height:1.6;color:var(--ink);margin-top:14px;padding-top:14px;border-top:2px solid var(--cobalt)}
+.fineprint{font-family:var(--cjk);font-size:11px;color:#8b8a86;margin-top:12px;text-align:center}
+@media (max-width:880px){
+  .wrap{grid-template-columns:1fr}
+  .steps{flex-wrap:wrap}
+  .band{height:48px}
+  .panel{border-radius:80px 80px 6px 6px}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<svg class="band" viewBox="0 0 1200 74" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <pattern id="tile" width="100" height="74" patternUnits="userSpaceOnUse">
+      <rect width="100" height="74" fill="#f7f4ec"/>
+      <path d="M0 0 Q50 40 100 0" fill="#1c3d8c"/>
+      <path d="M0 74 Q50 34 100 74" fill="#2a9d9a" opacity=".9"/>
+      <path d="M50 12 C42 22 40 34 50 46 C60 34 58 22 50 12Z" fill="#c8452f"/>
+      <path d="M50 46 C44 38 36 36 30 40 C38 42 44 46 50 46Z M50 46 C56 38 64 36 70 40 C62 42 56 46 50 46Z" fill="#c8452f"/>
+      <path d="M50 46 L50 66" stroke="#3f7d3a" stroke-width="2"/>
+      <path d="M50 58 C38 54 28 58 22 66 C34 64 42 62 50 60Z M50 58 C62 54 72 58 78 66 C66 64 58 62 50 60Z" fill="#3f7d3a"/>
+      <circle cx="0" cy="37" r="7" fill="#1c3d8c"/><circle cx="100" cy="37" r="7" fill="#1c3d8c"/>
+      <circle cx="0" cy="37" r="3" fill="#c8452f"/><circle cx="100" cy="37" r="3" fill="#c8452f"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="74" fill="url(#tile)"/>
+  <rect y="70" width="1200" height="4" fill="#1c3d8c"/>
+</svg>
+<main class="wrap">
+  <header class="t">
+    <h1>Kahve <i>Falı</i><small>咖啡渣占卜</small></h1>
+    <ol class="steps" id="steps"><li>煮</li><li>喝</li><li>許願倒扣</li><li>讀杯</li></ol>
+  </header>
+  <div class="stage" id="stage">
+    <svg id="brew" viewBox="0 0 600 600" aria-label="熱沙上的銅壺"></svg>
+    <canvas id="cup" width="1200" height="1200" hidden aria-label="從上方看的咖啡杯"></canvas>
+  </div>
+  <aside class="panel" id="panel"></aside>
+</main>
+<svg class="band b" viewBox="0 0 1200 74" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="1200" height="74" fill="url(#tile)"/><rect y="70" width="1200" height="4" fill="#1c3d8c"/></svg>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var NS='http://www.w3.org/2000/svg';
+var panel=$('panel'), stepsEl=$('steps').children;
+var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+function tone(f,d,v,type){ var a=A(); if(!a) return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.type=type||'sine'; o.frequency.value=f; g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+d+.02); }
+function porcelain(){ tone(2600,.6,.05,'sine'); setTimeout(function(){ tone(3900,.5,.03,'sine'); },40); }
+function step(n){ for(var i=0;i<4;i++) stepsEl[i].className=i<n?'done':i===n?'on':''; }
+
+// ============ 一、在熱沙上煮 ============
+var brew=$('brew'), foam=0, heating=false, over=false, foamOK=null;
+brew.innerHTML=
+ '<defs><radialGradient id="sand" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#e7c48d"/><stop offset=".8" stop-color="#c99a5c"/><stop offset="1" stop-color="#a87a42"/></radialGradient>'+
+ '<linearGradient id="cop" x1="0" x2="1"><stop offset="0" stop-color="#6e3417"/><stop offset=".3" stop-color="#e09a68"/><stop offset=".55" stop-color="#b4643a"/><stop offset="1" stop-color="#5a2a12"/></linearGradient>'+
+ '<radialGradient id="heatG" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff7a2a" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a2a" stop-opacity="0"/></radialGradient>'+
+ '<filter id="grain"><feTurbulence baseFrequency="1.6" numOctaves="1" seed="3"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .3  0 0 0 0 .15  0 0 0 1.4 -.7"/><feComposite in2="SourceGraphic" operator="in"/></filter></defs>'+
+ '<circle cx="300" cy="300" r="270" fill="url(#sand)"/><circle cx="300" cy="300" r="270" fill="#000" filter="url(#grain)" opacity=".5"/>'+
+ '<circle id="hglow" cx="300" cy="330" r="200" fill="url(#heatG)" opacity="0"/>'+
+ '<g id="cezve"><ellipse cx="300" cy="470" rx="110" ry="18" fill="#7a5226" opacity=".35"/>'+
+ '<path d="M200 230 L400 230 L388 250 Q420 420 386 462 Q300 490 214 462 Q180 420 212 250 Z" fill="url(#cop)" stroke="#4a210d" stroke-width="3"/>'+
+ '<path d="M392 238 L560 170 L566 186 L404 262 Z" fill="#7a4a24" stroke="#3a1a08" stroke-width="3"/>'+
+ '<path d="M196 230 Q180 226 172 214 Q192 214 212 226Z" fill="url(#cop)" stroke="#4a210d" stroke-width="2"/>'+
+ '<ellipse cx="300" cy="232" rx="100" ry="16" fill="#3b2213" stroke="#4a210d" stroke-width="3"/>'+
+ '<path id="foamP" d="" fill="#c9a274" stroke="#8a643c" stroke-width="1.5"/>'+
+ '<path d="M240 300 Q236 380 250 440" stroke="#ffd2a8" stroke-width="8" stroke-linecap="round" opacity=".35" fill="none"/>'+
+ '<g fill="none" stroke="#4a210d" stroke-width="2" opacity=".5"><path d="M214 300 Q300 316 386 300"/><path d="M212 318 Q300 334 388 318"/><path d="M232 309 l8 -6 l8 6 l-8 6z M268 312 l8 -6 l8 6 l-8 6z M304 313 l8 -6 l8 6 l-8 6z M340 311 l8 -6 l8 6 l-8 6z"/></g></g>'+
+ '<g id="steam" opacity="0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M270 200 q-14 -30 0 -60 q14 -30 0 -60"/><path d="M330 196 q14 -30 0 -60 q-14 -30 0 -60"/></g>';
+var foamP=document.getElementById('foamP'), hglow=document.getElementById('hglow'), steamG=document.getElementById('steam');
+function drawFoam(t){
+  // 泡沫從壺口冒起：高度 = foam，超過 1 就溢出
+  var h=Math.min(1.25,foam)*60, d='M202 232 ';
+  for(var i=0;i<=20;i++){ var x=202+i*9.8, y=232-h-Math.sin(i*1.3+t*4)*h*.12-Math.sin(i*.6)*h*.1; d+='L'+x.toFixed(1)+' '+y.toFixed(1)+' '; }
+  d+='L398 232 Z';
+  if(foam>1){ d+='M398 232 Q412 '+(260+(foam-1)*200)+' 404 '+(280+(foam-1)*300)+' L392 250Z'; }
+  foamP.setAttribute('d',foam>.02?d:'');
+}
+var brewT=0, brewRaf=0, brewLast=0;
+function brewLoop(now){
+  var t=now/1000, dt=brewLast?Math.min(.05,(now-brewLast)/1000):0; brewLast=now;
+  if(heating){ foam+=dt*0.15*(1+foam*1.6); }
+  else foam=Math.max(foam*0.993,foamOK?foam:0);
+  hglow.setAttribute('opacity',heating?.9:Math.max(0,+hglow.getAttribute('opacity')-.03));
+  steamG.setAttribute('opacity',Math.min(.6,foam*.6));
+  drawFoam(t);
+  var mi=document.getElementById('mi'); if(mi) mi.style.width=Math.min(100,foam/1.2*100)+'%';
+  if(foam>1.06 && !over){ over=true; heating=false; tone(140,.5,.12,'sawtooth'); verdictBrew(); }
+  brewRaf=requestAnimationFrame(brewLoop);
+}
+var sizz=null;
+function sizzle(on){ var a=A(); if(!a) return; if(on&&!sizz){ var n=a.sampleRate*2,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=Math.random()*2-1; var s=a.createBufferSource(); s.buffer=b; s.loop=true; var f=a.createBiquadFilter(); f.type='highpass'; f.frequency.value=4000; var g=a.createGain(); g.gain.value=.045; s.connect(f); f.connect(g); g.connect(a.destination); s.start(); sizz={s:s,g:g}; } else if(!on&&sizz){ try{ sizz.s.stop(); }catch(e){} sizz=null; } }
+function phaseBrew(){
+  step(0);
+  panel.innerHTML='<h2>Pişirmek</h2><p class="sub">一 · 在熱沙上煮</p><p class="lead">銅壺裡是極細的咖啡粉、冷水與一點糖。按住按鈕把壺推進熱沙，泡沫會慢慢升起；在泡沫快滿出壺口時放開——這層「köpük」越厚，這杯越體面。</p>'+
+   '<div class="meter"><i id="mi" style="width:0"></i><b></b></div><div class="meter-l"><span>未起泡</span><span>理想</span><span>溢出</span></div>'+
+   '<button class="btn" id="heat">按住加熱</button>';
+  var b=$('heat');
+  var on=function(e){ e.preventDefault(); if(over||foamOK) return; A(); heating=true; sizzle(true); b.textContent='加熱中……'; };
+  var off=function(){ if(!heating) return; heating=false; sizzle(false); verdictBrew(); };
+  b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off); b.addEventListener('pointerleave',off); b.addEventListener('pointercancel',off);
+  b.addEventListener('keydown',function(e){ if(e.key===' '||e.key==='Enter'){ if(!heating) on(e); } }); b.addEventListener('keyup',function(e){ if(e.key===' '||e.key==='Enter') off(); });
+  cancelAnimationFrame(brewRaf); brewRaf=requestAnimationFrame(brewLoop);
+}
+function verdictBrew(){
+  sizzle(false);
+  var f=foam, msg;
+  if(over){ msg='溢出來了。泡沫全流到沙上，杯裡只剩一點點——不過占卜照樣可以做。'; foamOK='low'; }
+  else if(f<.45){ msg='還沒起泡就離火了。沒有泡的土耳其咖啡，主人家可是會不好意思的。'; foamOK='low'; }
+  else if(f<.86){ msg='泡沫薄了些，但可以入口。'; foamOK='mid'; }
+  else { msg='完美的 köpük：細密、厚實、剛好停在壺口。'; foamOK='high'; }
+  panel.querySelector('.lead').textContent=msg;
+  var b=$('heat'); b.outerHTML='<button class="btn" id="pour">倒進杯裡</button>';
+  $('pour').onclick=function(){ cancelAnimationFrame(brewRaf); phaseDrink(); };
+}
+
+// ============ 二、杯子（俯視）============
+var cv=$('cup'), ctx=cv.getContext('2d'), S=1200, C=600, RC=400, RIN=336;
+var grounds=null, symbols=[], level=1, cupState='full', flipT=0, hover=-1;
+function rimPattern(){
+  // 伊茲尼克杯口：鈷藍寬帶 + 紅色鬱金香 + 綠色葉
+  ctx.save(); ctx.translate(C,C);
+  ctx.fillStyle='#fffdf6'; ctx.beginPath(); ctx.arc(0,0,RC,0,6.283); ctx.fill();
+  ctx.lineWidth=36; ctx.strokeStyle='#1c3d8c'; ctx.beginPath(); ctx.arc(0,0,RC-22,0,6.283); ctx.stroke();
+  for(var i=0;i<16;i++){ ctx.save(); ctx.rotate(i/16*6.283);
+    ctx.fillStyle='#fffdf6'; ctx.beginPath(); ctx.moveTo(0,-(RC-38)); ctx.bezierCurveTo(-12,-(RC-26),-12,-(RC-12),0,-(RC-6)); ctx.bezierCurveTo(12,-(RC-12),12,-(RC-26),0,-(RC-38)); ctx.fill();
+    ctx.fillStyle=i%2?'#c8452f':'#2a9d9a'; ctx.beginPath(); ctx.arc(0,-(RC-22),5,0,6.283); ctx.fill();
+    ctx.restore(); }
+  ctx.lineWidth=3; ctx.strokeStyle='#1c3d8c'; ctx.beginPath(); ctx.arc(0,0,RC-44,0,6.283); ctx.stroke();
+  ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,RC,0,6.283); ctx.stroke();
+  ctx.restore();
+}
+function saucer(){
+  ctx.save(); ctx.translate(C,C);
+  var g=ctx.createRadialGradient(0,0,RC,0,0,560); g.addColorStop(0,'#f2ede0'); g.addColorStop(1,'#e2dac6');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,560,0,6.283); ctx.fill();
+  ctx.strokeStyle='#1c3d8c'; ctx.lineWidth=6; ctx.beginPath(); ctx.arc(0,0,540,0,6.283); ctx.stroke();
+  for(var i=0;i<24;i++){ ctx.save(); ctx.rotate(i/24*6.283); ctx.translate(0,-500);
+    ctx.fillStyle='#c8452f'; ctx.beginPath(); ctx.moveTo(0,-18); ctx.bezierCurveTo(-12,-6,-8,10,0,14); ctx.bezierCurveTo(8,10,12,-6,0,-18); ctx.fill();
+    ctx.fillStyle='#3f7d3a'; ctx.beginPath(); ctx.ellipse(-14,12,4,10,-.7,0,6.283); ctx.ellipse(14,12,4,10,.7,0,6.283); ctx.fill();
+    ctx.restore(); }
+  // 把手（指向觀看者：下方）
+  ctx.fillStyle='#fffdf6'; ctx.strokeStyle='#1c3d8c'; ctx.lineWidth=4; ctx.beginPath(); ctx.roundRect?ctx.roundRect(-34,RC-8,68,110,30):ctx.rect(-34,RC-8,68,110); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#e2dac6'; ctx.beginPath(); ctx.ellipse(0,RC+56,14,26,0,0,6.283); ctx.fill();
+  // 陰影
+  ctx.fillStyle='rgba(60,50,30,.12)'; ctx.beginPath(); ctx.arc(14,18,RC+6,0,6.283); ctx.fill();
+  ctx.restore();
+}
+// 符號：簡化的剪影
+var SYM={
+  bird:{zh:'鳥',m:'好消息正在路上。',d:'M10 50 Q30 30 50 48 Q70 30 90 50 Q70 42 56 56 L50 70 L44 56 Q30 42 10 50Z'},
+  fish:{zh:'魚',m:'財運與好運（kısmet）。',d:'M15 50 Q45 20 75 50 Q45 80 15 50Z M72 50 L92 34 L88 50 L92 66Z'},
+  tree:{zh:'樹',m:'健康、成長，家族的支持。',d:'M46 92 L46 58 L54 58 L54 92Z M50 10 C80 10 88 50 66 60 C60 64 40 64 34 60 C12 50 20 10 50 10Z'},
+  key:{zh:'鑰匙',m:'一扇門會打開：新的工作或解答。',d:'M30 50 m-18 0 a18 18 0 1 0 36 0 a18 18 0 1 0 -36 0 M48 46 L92 46 L92 54 L84 54 L84 66 L76 66 L76 54 L48 54Z'},
+  ring:{zh:'戒指',m:'承諾、婚約，或一段關係定下來。',d:'M50 20 a30 30 0 1 0 0.1 0 Z M50 32 a18 18 0 1 1 -0.1 0 Z'},
+  mountain:{zh:'山',m:'眼前有障礙，但翻過去就是高處。',d:'M5 85 L35 30 L50 55 L65 22 L95 85Z'},
+  heart:{zh:'心',m:'愛情，或有人正想著你。',d:'M50 86 C10 58 8 30 28 22 C40 18 48 26 50 34 C52 26 60 18 72 22 C92 30 90 58 50 86Z'},
+  moon:{zh:'新月',m:'願望會實現，名聲漸起。',d:'M62 12 A40 40 0 1 0 62 88 A30 30 0 1 1 62 12Z'},
+  snake:{zh:'蛇',m:'提防身邊說話不實的人。',d:'M8 60 Q22 30 36 56 Q50 82 64 56 Q78 30 92 46 L92 56 Q78 42 66 64 Q50 92 34 64 Q22 42 14 66Z'},
+  horse:{zh:'馬',m:'心願成真，有好的變動。',d:'M20 88 L26 54 Q20 40 30 30 L42 14 L50 26 Q74 26 80 44 L84 88 L76 88 L72 60 L40 62 L32 88Z'},
+  road:{zh:'路',m:'一趟旅行，或換一條路走。',d:'M40 95 L46 5 L54 5 L60 95 Z M30 95 L44 5 L46 5 L36 95Z M70 95 L56 5 L54 5 L64 95Z'}
+};
+function rng(s){ return function(){ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
+function buildGrounds(seed){
+  var r=rng(seed), off=document.createElement('canvas'); off.width=off.height=S; var o=off.getContext('2d');
+  o.translate(C,C);
+  // 基底：咖啡渣在倒扣時沿杯壁往下流成放射狀條紋
+  o.fillStyle='rgba(58,36,22,1)';
+  for(var q=0;q<40;q++){ var qa=r()*6.283, qd=Math.sqrt(r())*RIN*.9; o.globalAlpha=.05+r()*.12; o.beginPath(); o.ellipse(Math.cos(qa)*qd,Math.sin(qa)*qd,20+r()*60,14+r()*40,r()*3,0,6.283); o.fill(); }
+  for(var i=0;i<420;i++){ var a=r()*6.283, d=Math.pow(r(),.7)*RIN, len=20+r()*70, w=2+r()*9;
+    o.save(); o.rotate(a); o.globalAlpha=.03+r()*.08; o.beginPath(); o.ellipse(0,d,w,len*(.4+d/RIN),0,0,6.283); o.fill(); o.restore(); }
+  for(i=0;i<260;i++){ var a2=r()*6.283, d2=Math.sqrt(r())*RIN*.98; o.globalAlpha=.15+r()*.3; o.beginPath(); o.arc(Math.cos(a2)*d2,Math.sin(a2)*d2,1+r()*5,0,6.283); o.fill(); }
+  // 杯底的厚渣
+  o.globalAlpha=.6; o.beginPath(); o.ellipse((r()-.5)*30,(r()-.5)*30,40+r()*20,34+r()*20,r(),0,6.283); o.fill();
+  // 放進 3–4 個符號
+  var keys=Object.keys(SYM), n=3+Math.floor(r()*2), chosen=[];
+  while(chosen.length<n){ var k=keys[Math.floor(r()*keys.length)]; if(chosen.indexOf(k)<0) chosen.push(k); }
+  symbols=chosen.map(function(k,j){
+    var ang=(j/n)*6.283+r()*.6-.3+(-1.2), dist=RIN*(.4+r()*.3), sz=140+r()*50, rot=r()*1.2-.6;
+    var x=Math.cos(ang)*dist, y=Math.sin(ang)*dist;
+    o.save(); o.translate(x,y); o.rotate(rot); o.scale(sz/100,sz/100); o.translate(-50,-50);
+    o.globalAlpha=.88; var p=new Path2D(SYM[k].d); o.fill(p,'evenodd'); o.restore();
+    return {k:k,x:x,y:y,sz:sz,rot:rot,ang:Math.atan2(y,x),dist:dist};
+  });
+  o.globalAlpha=1;
+  // 用自己的模糊再疊一次，讓邊緣像被水暈開
+  var blur=document.createElement('canvas'); blur.width=blur.height=S; var b=blur.getContext('2d');
+  b.filter='blur(3px)'; b.drawImage(off,0,0); b.filter='none'; b.globalAlpha=.6; b.drawImage(off,0,0);
+  return blur;
+}
+function drawCup(now){
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,S,S);
+  saucer();
+  var flip=cupState==='flipping'?flipT:cupState==='upside'||cupState==='cooling'?1:0;
+  if(flip>0 && flip<1){
+    // 翻杯：橫向壓扁再展開
+    ctx.save(); ctx.translate(C,C); ctx.scale(1,Math.abs(Math.cos(flip*Math.PI))); ctx.translate(-C,-C);
+  }
+  if(flip>=.5){
+    // 倒扣：看到的是杯底（外側）
+    ctx.save(); ctx.translate(C,C);
+    var g=ctx.createRadialGradient(-60,-60,40,0,0,RC); g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#e9e2d0');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,RC,0,6.283); ctx.fill();
+    ctx.strokeStyle='#1c3d8c'; ctx.lineWidth=3; ctx.stroke();
+    ctx.lineWidth=10; ctx.beginPath(); ctx.arc(0,0,120,0,6.283); ctx.stroke();
+    for(var i=0;i<8;i++){ ctx.save(); ctx.rotate(i/8*6.283); ctx.fillStyle=i%2?'#c8452f':'#2a9d9a'; ctx.beginPath(); ctx.moveTo(0,-200); ctx.bezierCurveTo(-26,-170,-20,-140,0,-128); ctx.bezierCurveTo(20,-140,26,-170,0,-200); ctx.fill(); ctx.restore(); }
+    ctx.fillStyle='#1c3d8c'; ctx.beginPath(); ctx.arc(0,0,40,0,6.283); ctx.fill();
+    if(cupState==='cooling'){ var p=Math.min(1,(now-coolStart)/coolDur); ctx.strokeStyle='#c8452f'; ctx.lineWidth=12; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(0,0,160,-Math.PI/2,-Math.PI/2+p*6.283); ctx.stroke(); }
+    ctx.restore();
+  } else {
+    rimPattern();
+    ctx.save(); ctx.translate(C,C);
+    // 杯內：白瓷
+    var gi=ctx.createRadialGradient(0,0,20,0,0,RIN); gi.addColorStop(0,'#fbf8f0'); gi.addColorStop(1,'#e3dccb');
+    ctx.fillStyle=gi; ctx.beginPath(); ctx.arc(0,0,RIN,0,6.283); ctx.fill();
+    ctx.restore();
+    if(cupState==='read' && grounds){ ctx.save(); ctx.beginPath(); ctx.arc(C,C,RIN,0,6.283); ctx.clip(); ctx.drawImage(grounds,0,0); ctx.restore(); highlight(); }
+    if(level>0){
+      // 咖啡液面與泡沫
+      ctx.save(); ctx.translate(C,C);
+      var rl=RIN*(0.72+0.28*level);
+      ctx.fillStyle='#2e1a0e'; ctx.beginPath(); ctx.arc(0,0,rl,0,6.283); ctx.fill();
+      if(foamOK && level>.05){ var fq={high:1,mid:.6,low:.2}[foamOK]; var fg=ctx.createRadialGradient(-30,-40,10,0,0,rl); fg.addColorStop(0,'rgba(214,180,130,'+(.95*fq)+')'); fg.addColorStop(.8,'rgba(170,125,80,'+(.85*fq)+')'); fg.addColorStop(1,'rgba(90,55,30,'+(.6*fq)+')'); ctx.fillStyle=fg; ctx.beginPath(); ctx.arc(0,0,rl*(.55+.45*level),0,6.283); ctx.fill();
+        var rr=rng(5); for(var k=0;k<160*fq*level;k++){ var a=rr()*6.283, d=Math.sqrt(rr())*rl*.9*(.55+.45*level); ctx.fillStyle='rgba(240,220,190,.45)'; ctx.beginPath(); ctx.arc(Math.cos(a)*d,Math.sin(a)*d,1.5+rr()*3,0,6.283); ctx.fill(); } }
+      ctx.restore();
+    }
+  }
+  if(flip>0 && flip<1) ctx.restore();
+  requestAnimationFrame(drawCup);
+}
+function highlight(){
+  symbols.forEach(function(s,i){ if(i!==hover) return;
+    ctx.save(); ctx.translate(C+s.x,C+s.y); ctx.rotate(s.rot); ctx.scale(s.sz/100,s.sz/100); ctx.translate(-50,-50);
+    ctx.strokeStyle='#2a9d9a'; ctx.lineWidth=5*100/s.sz; ctx.setLineDash([10,8]); ctx.stroke(new Path2D(SYM[s.k].d)); ctx.restore();
+    ctx.save(); ctx.fillStyle='#1c3d8c'; ctx.font='italic 44px Cochin, Georgia, serif'; ctx.textAlign='center'; ctx.fillText(SYM[s.k].zh,C+s.x,C+s.y-s.sz*.62); ctx.restore();
+  });
+}
+function phaseDrink(){
+  step(1); $('brew').style.display='none'; cv.hidden=false; level=1; cupState='full';
+  if(!cupLoop){ cupLoop=true; requestAnimationFrame(drawCup); }
+  panel.innerHTML='<h2>İçmek</h2><p class="sub">二 · 喝</p><p class="lead">小口慢慢喝。土耳其咖啡不過濾，喝到杯底那層泥狀的咖啡渣就停——那是要拿來讀的。</p><button class="btn" id="sip">啜一口</button>';
+  $('sip').onclick=function(){
+    A(); tone(220,.18,.05,'sine'); var from=level, to=Math.max(0,level-.34), t0=performance.now(), btn=this; btn.disabled=true;
+    (function f(now){ var t=Math.min(1,(now-t0)/700); level=from+(to-from)*t; if(t<1) requestAnimationFrame(f); else { btn.disabled=false; if(level<=0.01){ level=0; phaseWish(); } } })(t0);
+  };
+}
+var coolStart=0, coolDur=6000, cupLoop=false;
+function phaseWish(){
+  step(2);
+  panel.innerHTML='<h2>Niyet</h2><p class="sub">三 · 許願，倒扣</p><p class="lead">在心裡許一個願（也可以寫下來），把碟子蓋在杯口，朝自己的方向轉三圈，然後整個倒扣過來。要等杯子涼了，咖啡渣才會乾、圖案才會定住。</p><input class="wish" id="wish" maxlength="40" placeholder="我的願望是……"><button class="btn" id="flip">蓋上碟子，倒扣</button>';
+  $('flip').onclick=function(){
+    var w=$('wish').value; this.disabled=true; A(); porcelain();
+    grounds=buildGrounds(hashStr(w+Date.now()));
+    cupState='flipping'; var t0=performance.now();
+    (function f(now){ flipT=Math.min(1,(now-t0)/1100); if(flipT<1) requestAnimationFrame(f); else { cupState='cooling'; coolStart=performance.now(); porcelain(); cool(w); } })(t0);
+  };
+}
+function hashStr(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0)%2147483646+1; }
+function cool(w){
+  panel.innerHTML='<h2>Soğuması</h2><p class="sub">等杯子涼</p><p class="lead" id="cl">杯底還溫著……</p><button class="btn" id="lift" disabled>掀開杯子</button>';
+  var lines=['杯底還溫著……','咖啡渣沿著杯壁慢慢往下流……','杯底摸起來不燙了。'];
+  var iv=setInterval(function(){ var p=(performance.now()-coolStart)/coolDur; var el=$('cl'); if(!el){ clearInterval(iv); return; } el.textContent=lines[Math.min(2,Math.floor(p*3))]; if(p>=1){ clearInterval(iv); $('lift').disabled=false; tone(660,.4,.04); } },200);
+  $('lift').onclick=function(){ A(); porcelain(); cupState='flipping'; var t0=performance.now();
+    (function f(now){ flipT=1-Math.min(1,(now-t0)/900); if(flipT>0) requestAnimationFrame(f); else { cupState='read'; read(w); } })(t0);
+  };
+}
+function read(w){
+  step(3);
+  // 位置的讀法：把手在下方；右半邊是將來、左半邊是過去；越靠近杯口越快發生
+  var items=symbols.map(function(s,i){
+    var side=s.x>=0?'將來':'過去', when=s.dist>RIN*.55?'很快':'稍晚';
+    var where=side==='將來'?(when==='很快'?'近期':'較遠的將來'):(when==='很快'?'不久之前':'更早以前');
+    return '<li data-i="'+i+'"><svg viewBox="0 0 100 100"><path d="'+SYM[s.k].d+'" fill="#3a2416" fill-rule="evenodd"/></svg><div><b>'+SYM[s.k].zh+'<small>'+where+'</small></b><span>'+SYM[s.k].m+'</span></div></li>';
+  }).join('');
+  var good=symbols.filter(function(s){ return ['snake','mountain'].indexOf(s.k)<0; }).length;
+  var sum=good===symbols.length?'杯裡沒有陰影。你的願望，'+(w?'「'+esc(w)+'」，':'')+'看起來會順順地實現。':good>=symbols.length-1?'大致是好兆頭，只有一處需要留心。':'路上有些阻礙，但杯子沒有說不。';
+  panel.innerHTML='<h2>Fal</h2><p class="sub">四 · 讀杯 · 點符號看位置</p><ul class="reading" id="reading">'+items+'</ul><p class="summary">'+sum+'</p><button class="btn alt" id="again">再煮一壺</button><p class="fineprint">咖啡占卜是土耳其的社交習俗，信不信由你，最重要的是一起喝咖啡聊天。</p>';
+  $('reading').addEventListener('mouseover',function(e){ var li=e.target.closest('li'); if(li){ hover=+li.dataset.i; mark(); } });
+  $('reading').addEventListener('click',function(e){ var li=e.target.closest('li'); if(li){ hover=+li.dataset.i; mark(); } });
+  $('again').onclick=reset;
+}
+function mark(){ Array.prototype.forEach.call(document.querySelectorAll('#reading li'),function(li){ li.classList.toggle('hi',+li.dataset.i===hover); }); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+cv.addEventListener('pointermove',function(e){
+  if(cupState!=='read') return; var b=cv.getBoundingClientRect(), x=(e.clientX-b.left)/b.width*S-C, y=(e.clientY-b.top)/b.height*S-C, best=-1, bd=1e9;
+  symbols.forEach(function(s,i){ var d=Math.hypot(s.x-x,s.y-y); if(d<s.sz*.7&&d<bd){ bd=d; best=i; } });
+  if(best!==hover){ hover=best; mark(); }
+});
+function reset(){ foam=0; over=false; foamOK=null; level=1; cupState='full'; grounds=null; symbols=[]; hover=-1; cv.hidden=true; $('brew').style.display=''; phaseBrew(); }
+phaseBrew();
+})();
+</script>
+</body>
+</html>

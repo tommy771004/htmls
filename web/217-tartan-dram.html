@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>風味格紋 · Flavour Tartan</title>
+<meta name="description" content="把一杯威士忌的風味織成蘇格蘭格紋：泥煤、海鹽、雪莉、香草等八種風味各對應一種染線，強度決定條紋寬度，附格紋織數記號與品飲筆記。">
+<style>
+:root{
+  --wool:#efe9dc; --wool-2:#e3dbc9; --ink:#22201c; --ink-2:#5b554b; --mute:#948b7b; --rule:#cfc5b1;
+  --gill:"Gill Sans","Gill Sans MT","Seravek","Trebuchet MS","PingFang TC","Microsoft JhengHei",sans-serif;
+  --serif:"Baskerville","Baskerville Old Face","Libre Baskerville","Songti TC","PMingLiU",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--wool);color:var(--ink);font-family:var(--gill);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;background:repeating-linear-gradient(45deg,rgba(80,60,30,.025) 0 2px,transparent 2px 4px),repeating-linear-gradient(-45deg,rgba(80,60,30,.025) 0 2px,transparent 2px 4px)}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding:26px clamp(16px,4vw,56px) 0;flex-wrap:wrap}
+.top h1{font-weight:300;font-size:clamp(28px,4vw,46px);letter-spacing:.14em;text-transform:uppercase;line-height:1}
+.top h1 span{font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.02em;font-size:.62em;color:var(--ink-2);margin-left:.5em}
+.top p{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--mute)}
+.book{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,420px);gap:clamp(20px,4vw,60px);padding:28px clamp(16px,4vw,56px) 50px;align-items:start}
+/* 布樣：像釘在樣本冊上的一塊毛料 */
+.swatch{position:relative;justify-self:center;width:min(100%,calc(100vh - 150px),640px)}
+.cloth{position:relative;aspect-ratio:1/1;box-shadow:0 1px 0 rgba(0,0,0,.08),0 24px 40px -18px rgba(40,30,15,.45);transform:rotate(-1.2deg)}
+.cloth canvas{display:block;width:100%;height:100%}
+.cloth::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.12),transparent 40%,rgba(0,0,0,.12));pointer-events:none}
+.fringe{height:16px;margin:0 2px;transform:rotate(-1.2deg);transform-origin:top left;background-size:4px 100%}
+.pin{position:absolute;top:-10px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fbe9a8,#b88a2b 55%,#6d4e12);box-shadow:0 3px 5px rgba(0,0,0,.35);z-index:2}
+.tag{position:absolute;right:-12px;bottom:46px;background:#f7f2e6;padding:12px 16px 12px 22px;box-shadow:0 6px 14px -6px rgba(0,0,0,.35);transform:rotate(3deg);font-family:var(--serif);max-width:230px}
+.tag::before{content:"";position:absolute;left:8px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--wool-2);box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.tag b{display:block;font-family:var(--gill);font-weight:400;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--mute)}
+.tag i{font-size:19px}
+.panel h2{font-weight:400;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;display:flex;justify-content:space-between;border-bottom:1px solid var(--rule);padding-bottom:6px}
+.drams{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:24px}
+.dram{font:inherit;text-align:left;background:transparent;border:1px solid var(--rule);padding:8px 10px;cursor:pointer;color:var(--ink);transition:background .25s,border-color .25s;display:flex;gap:8px;align-items:center}
+.dram:hover{border-color:var(--ink-2)}
+.dram.on{background:var(--ink);color:var(--wool);border-color:var(--ink)}
+.dram i{width:20px;height:20px;flex:none;background-size:6px 6px}
+.dram span{font-size:13px;line-height:1.2}
+.dram small{display:block;font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.dram.on small{color:#bdb4a2}
+.axes{display:grid;gap:7px;margin-bottom:22px}
+.ax{display:grid;grid-template-columns:14px 5.4em 1fr 1.6em;gap:10px;align-items:center;font-size:13px}
+.ax .sw{width:14px;height:14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.ax em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;height:18px;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--rule)}
+input[type=range]::-moz-range-track{height:3px;background:var(--rule)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:18px;margin-top:-7.5px;background:var(--ink);border-radius:1px}
+input[type=range]::-moz-range-thumb{width:8px;height:18px;background:var(--ink);border:0;border-radius:1px}
+.water{display:grid;grid-template-columns:5.4em 1fr auto;gap:10px;align-items:center;font-size:13px;margin:-8px 0 24px;padding-left:24px}
+.drops{display:flex;gap:4px}
+.drops button{width:18px;height:22px;border:0;background:none;cursor:pointer;padding:0}
+.drops svg{width:100%;height:100%}
+.sett{font-family:"Menlo","Consolas",monospace;font-size:12px;line-height:1.7;letter-spacing:.02em;color:var(--ink-2);background:rgba(255,255,255,.4);border-left:3px solid var(--ink);padding:10px 12px;word-break:break-all;margin-bottom:22px}
+.sett b{color:var(--ink);font-weight:400}
+.note{font-family:var(--serif);font-size:17px;line-height:1.6}
+.note small{display:block;font-family:var(--gill);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--mute);margin-top:10px}
+@media (max-width:900px){
+  .book{grid-template-columns:1fr}
+  .swatch{width:min(100%,520px)}
+  .tag{right:-4px;bottom:-30px;max-width:200px}
+  .panel{margin-top:30px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><h1>Flavour Tartan<span>風味格紋</span></h1><p>把一杯威士忌織成一塊布</p></header>
+<main class="book">
+  <div class="swatch">
+    <div class="pin"></div>
+    <div class="cloth"><canvas id="cv" width="720" height="720" aria-label="依風味生成的格紋布樣"></canvas></div>
+    <div class="fringe" id="fringe"></div>
+    <div class="tag"><b id="tagNo">Sett Nº 1</b><i id="tagName">Islay Peat</i></div>
+  </div>
+  <section class="panel">
+    <h2><span>Dram</span><span>選一杯</span></h2>
+    <div class="drams" id="drams"></div>
+    <h2><span>Palate</span><span>風味強度 0–10</span></h2>
+    <div class="axes" id="axes"></div>
+    <div class="water"><span>加水</span><div class="drops" id="drops"></div><em id="wv" style="font-style:normal;color:var(--ink-2)">0 滴</em></div>
+    <h2><span>Threadcount</span><span>織數記號</span></h2>
+    <p class="sett" id="sett"></p>
+    <h2><span>Tasting note</span><span>品飲筆記</span></h2>
+    <p class="note" id="note"></p>
+  </section>
+</main>
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+// 八種風味 → 八種染線（格紋織數記號沿用傳統字母）
+var AX=[
+  {k:'peat',zh:'泥煤煙燻',code:'K',c:'#1b1b1e'},
+  {k:'salt',zh:'海風鹹鮮',code:'B',c:'#1f2f58'},
+  {k:'sherry',zh:'雪莉果乾',code:'R',c:'#8c1c2b'},
+  {k:'vanilla',zh:'香草蜂蜜',code:'Y',c:'#d6a33a'},
+  {k:'floral',zh:'石楠花香',code:'P',c:'#6d4a7a'},
+  {k:'citrus',zh:'柑橘鮮果',code:'O',c:'#c8642b'},
+  {k:'spice',zh:'辛香橡木',code:'DR',c:'#5a2a1e'},
+  {k:'malt',zh:'麥芽穀物',code:'T',c:'#b99a6b'}
+];
+var GROUND={code:'G',c:'#24452e'}, WHITE={code:'W',c:'#ece6d6'};
+var DR=[
+  {zh:'艾雷島泥煤',en:'Islay Peat',v:[9,7,2,3,1,3,4,3]},
+  {zh:'斯佩賽雪莉桶',en:'Speyside Sherry',v:[1,1,9,4,3,4,6,4]},
+  {zh:'斯佩賽波本桶',en:'Speyside Bourbon',v:[0,0,2,8,6,6,3,5]},
+  {zh:'高地',en:'Highland',v:[2,2,4,5,5,5,4,6]},
+  {zh:'低地',en:'Lowland',v:[0,0,1,5,8,7,2,6]},
+  {zh:'坎貝爾鎮',en:'Campbeltown',v:[4,7,3,4,2,4,5,4]},
+  {zh:'島嶼區',en:'The Islands',v:[5,6,3,4,4,4,5,4]},
+  {zh:'自己調',en:'Your Own',v:[3,3,3,3,3,3,3,3]}
+];
+var cur=0, vals=DR[0].v.slice(), water=0;
+
+$('drams').innerHTML=DR.map(function(d,i){
+  var top=d.v.map(function(x,j){return [x,j];}).sort(function(a,b){return b[0]-a[0];});
+  var a=AX[top[0][1]].c, b=AX[top[1][1]].c;
+  return '<button class="dram'+(i?'':' on')+'" data-i="'+i+'"><i style="background:repeating-linear-gradient(90deg,'+a+' 0 4px,'+GROUND.c+' 4px 9px,'+b+' 9px 11px,'+GROUND.c+' 11px 14px)"></i><span>'+d.zh+'<small>'+d.en+'</small></span></button>';
+}).join('');
+$('axes').innerHTML=AX.map(function(a,i){ return '<label class="ax"><span class="sw" style="background:'+a.c+'"></span><span>'+a.zh+'</span><input type="range" min="0" max="10" step="1" data-i="'+i+'" aria-label="'+a.zh+'"><em></em></label>'; }).join('');
+var sliders=$('axes').querySelectorAll('input');
+$('drops').innerHTML=[0,1,2,3,4,5].map(function(n){ return '<button data-n="'+n+'" aria-label="加 '+n+' 滴水"><svg viewBox="0 0 18 22"><path d="M9 1 C9 1 2 10 2 14 a7 7 0 0 0 14 0 C16 10 9 1 9 1Z" fill="'+(n?'none':'none')+'" stroke="#5b554b" stroke-width="1.2"/></svg></button>'; }).join('');
+function drops(){ Array.prototype.forEach.call($('drops').children,function(b,i){ b.querySelector('path').setAttribute('fill',i>0&&i<=water?'#7fa7c2':'none'); b.style.display=i?'':'none'; }); $('wv').textContent=water+' 滴'; }
+
+$('drams').addEventListener('click',function(e){ var b=e.target.closest('.dram'); if(!b) return; cur=+b.dataset.i; vals=DR[cur].v.slice(); Array.prototype.forEach.call(this.children,function(x){x.classList.toggle('on',x===b);}); sync(); weave(true); });
+$('axes').addEventListener('input',function(e){ var i=+e.target.dataset.i; vals[i]=+e.target.value; if(cur!==7){ cur=7; DR[7].v=vals.slice(); Array.prototype.forEach.call($('drams').children,function(x,k){x.classList.toggle('on',k===7);}); } else DR[7].v=vals.slice(); sync(); weave(false); });
+$('drops').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; var n=+b.dataset.n; water=water===n?n-1:n; drops(); sync(); weave(false); drip(); });
+
+// 加水：煙燻與辛香收斂，花香與果香打開
+function eff(){
+  var w=water/5;
+  return vals.map(function(v,i){ var k=AX[i].k, f=k==='peat'||k==='spice'?1-.35*w:k==='floral'||k==='citrus'||k==='vanilla'?1+.3*w:1; return Math.max(0,Math.min(10,v*f)); });
+}
+// 格紋織數：地色 G 之間依序放入每種風味的條紋，寬度＝強度；整組左右對稱（point sett）
+function sett(e){
+  var s=[{c:GROUND,w:20}];
+  var order=[0,2,1,3,6,4,7,5];
+  order.forEach(function(i,n){ var v=e[i]; if(v<0.6) return; var w=Math.max(2,Math.round(v*1.6)*2); s.push({c:AX[i],w:w}); s.push({c:GROUND,w:n%2?6:10}); });
+  // 最強的風味旁邊加一條白色細線，讓格紋有亮點
+  var mx=e.indexOf(Math.max.apply(null,e));
+  for(var k=0;k<s.length;k++) if(s[k].c===AX[mx]){ s.splice(k+1,0,{c:WHITE,w:2},{c:AX[mx],w:2}); break; }
+  return s;
+}
+function threads(s){ var a=[]; s.forEach(function(x){ for(var i=0;i<x.w;i++) a.push(x.c.c); }); var b=a.slice().reverse().slice(1,-1); return a.concat(b); }
+
+var cv=$('cv'), ctx=cv.getContext('2d'), N=720, T=4, img=ctx.createImageData(N,N);
+var noise=new Float32Array(N*N); for(var i=0;i<N*N;i++) noise[i]=Math.random();
+function hex(c){ var n=parseInt(c.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+var target=null, rows=0, raf=0, lastClick=0;
+function build(){
+  var e=eff(), s=sett(e), th=threads(s).map(hex), L=th.length, data=new Uint8ClampedArray(N*N*4);
+  for(var y=0;y<N;y++){
+    var ty=Math.floor(y/T), wy=th[ty%L];
+    for(var x=0;x<N;x++){
+      var tx=Math.floor(x/T), wx=th[tx%L];
+      // 2/2 斜紋：經線與緯線每兩條交錯一次，斜向推進
+      var warp=((tx+ty)%4)<2, c=warp?wx:wy;
+      var lx=x%T, ly=y%T, n=noise[y*N+x];
+      // 紗線的圓柱感：沿線方向中間亮、邊緣暗，加上毛料的隨機起伏
+      var edge=warp?Math.abs(lx-(T-1)/2)/(T/2):Math.abs(ly-(T-1)/2)/(T/2);
+      var sh=1.08-edge*.32+(n-.5)*.16;
+      var o=(y*N+x)*4; data[o]=c[0]*sh; data[o+1]=c[1]*sh; data[o+2]=c[2]*sh; data[o+3]=255;
+    }
+  }
+  return {data:data,s:s,e:e};
+}
+function weave(anim){
+  var b=build(); target=b.data;
+  info(b);
+  cancelAnimationFrame(raf);
+  if(!anim || matchMedia('(prefers-reduced-motion: reduce)').matches){ img.data.set(target); ctx.putImageData(img,0,0); fringe(b.s); return; }
+  rows=0;
+  (function f(now){
+    var nr=Math.min(N,rows+18);
+    img.data.set(target.subarray(rows*N*4,nr*N*4),rows*N*4);
+    ctx.putImageData(img,0,0);
+    // 梭子
+    ctx.fillStyle='rgba(60,40,20,.85)'; ctx.fillRect(0,nr-3,N,3);
+    ctx.fillStyle='#c9a46a'; var sx=(nr/N*7%2<1)?(nr/N*7%1)*N:(1-nr/N*7%1)*N; ctx.beginPath(); ctx.ellipse(sx,nr-1.5,26,6,0,0,6.283); ctx.fill();
+    if(now-lastClick>70){ shuttle(); lastClick=now; }
+    rows=nr;
+    if(rows<N) raf=requestAnimationFrame(f); else { img.data.set(target); ctx.putImageData(img,0,0); }
+  })(performance.now());
+  fringe(b.s);
+}
+function fringe(s){
+  var th=threads(s), step=Math.max(1,Math.floor(th.length/90)), g=[];
+  for(var i=0;i<90;i++){ var c=th[(i*step)%th.length]; g.push(c+' '+(i/90*100).toFixed(2)+'%',c+' '+((i+.7)/90*100).toFixed(2)+'%','transparent '+((i+.7)/90*100).toFixed(2)+'%','transparent '+((i+1)/90*100).toFixed(2)+'%'); }
+  $('fringe').style.background='linear-gradient(90deg,'+g.join(',')+')';
+}
+function info(b){
+  var d=DR[cur];
+  $('tagNo').textContent='Sett Nº '+(cur+1)+(water?' · '+water+' drops':'');
+  $('tagName').textContent=d.en;
+  $('sett').innerHTML=b.s.map(function(x,i){ return (i===0||i===b.s.length-1?'<b>':'')+x.c.code+(i===0||i===b.s.length-1?'/':'')+x.w+(i===0||i===b.s.length-1?'</b>':''); }).join(' ');
+  // 品飲筆記：取最強的三種風味組句
+  var P={peat:['營火餘燼','藥水與碘酒','燻魚皮'],salt:['海風','鹽漬檸檬','潮濕的岩石'],sherry:['葡萄乾','無花果醬','黑巧克力'],vanilla:['香草莢','石楠蜂蜜','奶油太妃'],floral:['石楠花','玫瑰水','新割青草'],citrus:['橙皮','青蘋果','西洋梨'],spice:['肉桂','丁香','烤橡木'],malt:['麥芽餅乾','燕麥粥','烤麵包']};
+  var top=b.e.map(function(v,i){return [v,i];}).sort(function(x,y){return y[0]-x[0];});
+  var pick=function(i,k){ return P[AX[top[i][1]].k][(cur+k)%3]; };
+  var body=top[0][0]>7?'酒體厚實':top[0][0]>5?'中等酒體':'輕盈';
+  $('note').innerHTML='聞起來先是'+pick(0,0)+'，接著是'+pick(1,1)+'；入口'+body+'，'+pick(2,2)+'在舌根慢慢展開，收尾留下'+pick(0,1)+'。'+(water?'加了 '+water+' 滴水之後，'+(water>2?'花果香明顯打開，煙燻退到背景。':'香氣稍微鬆開。'):'')+
+    '<small>'+AX[top[0][1]].zh+' · '+AX[top[1][1]].zh+' · '+AX[top[2][1]].zh+'</small>';
+}
+function sync(){ Array.prototype.forEach.call(sliders,function(s,i){ s.value=vals[i]; s.parentNode.querySelector('em').textContent=vals[i]; }); }
+
+// 梭子與水滴的聲音
+var ac=null;
+function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
+document.addEventListener('pointerdown',A,{once:true});
+function shuttle(){ var a=ac; if(!a||a.state!=='running') return; var t=a.currentTime, n=a.sampleRate*.03, b=a.createBuffer(1,n,a.sampleRate), d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900; var g=a.createGain(); g.gain.value=.25; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t); }
+function drip(){ var a=A(); if(!a) return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.frequency.setValueAtTime(1200,t); o.frequency.exponentialRampToValueAtTime(500,t+.08); g.gain.setValueAtTime(.08,t); g.gain.exponentialRampToValueAtTime(.0001,t+.15); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.16); }
+
+sync(); drops(); weave(true);
+})();
+</script>
+</body>
+</html>

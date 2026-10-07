@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>麺処 夜鳴 · 食券機</title>
+<meta name="description" content="深夜拉麵店的擬物食券機：投幣、按鍵、出券、找零，再在好み記入表上圈選濃淡與麵的硬度，端出依選擇組成的一碗拉麵。">
+<style>
+:root{
+  --wall:#18120e; --slat:#241b15; --noren:#1c2741; --noren-d:#141c30;
+  --plastic:#ece8df; --plastic-2:#dcd6ca; --plastic-3:#b9b2a4; --ink:#1d1a16;
+  --red:#d3291e; --yel:#f2c526; --grn:#3a9450; --blu:#2c69b0; --lcd:#a7f36f; --lcd-bg:#122016;
+  --paper:#fbf8f0; --sheet-red:#c42a20;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh; overflow-x:clip; color:#f2ece2;
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 18%, rgba(255,170,90,.18), transparent 70%),
+    repeating-linear-gradient(90deg, #22190f 0 46px, #150f0b 46px 49px, #1d150f 49px 52px),
+    var(--wall);
+}
+button{font:inherit;color:inherit;cursor:pointer}
+/* 暖簾 */
+.noren{display:flex;justify-content:center;gap:4px;height:120px;padding:0 12px;position:relative;z-index:2}
+.noren::before{content:"";position:absolute;left:8%;right:8%;top:0;height:10px;border-radius:5px;background:linear-gradient(#8a6a44,#5a4229);box-shadow:0 3px 6px rgba(0,0,0,.5)}
+.noren span{
+  flex:0 1 128px;margin-top:6px;background:linear-gradient(180deg,var(--noren),var(--noren-d));
+  border-radius:0 0 3px 3px;display:grid;place-items:center;font-size:44px;font-weight:800;color:#f4efe6;
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Songti TC",serif;
+  transform-origin:50% 0;animation:sway 6s ease-in-out infinite;box-shadow:inset 0 -14px 20px rgba(0,0,0,.25),0 8px 14px rgba(0,0,0,.35);
+  transition:transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.noren span:nth-child(2){animation-delay:-1.4s}.noren span:nth-child(3){animation-delay:-2.9s}.noren span:nth-child(4){animation-delay:-4.1s}
+.noren span:hover{transform:rotate(-7deg) translateX(-6px)}
+@keyframes sway{0%,100%{transform:rotate(1.1deg)}50%{transform:rotate(-1.1deg)}}
+.lead{max-width:1120px;margin:22px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline;justify-content:space-between}
+.lead h1{margin:0;font-size:clamp(22px,3vw,30px);letter-spacing:.12em;font-weight:800}
+.lead h1 small{font-size:.5em;letter-spacing:.2em;color:#c9b89c;margin-left:.6em;font-weight:600}
+.lead p{margin:0;color:#b7a993;font-size:14px;line-height:1.7}
+/* 舞台 */
+.stage{max-width:1120px;margin:20px auto 60px;padding:0 16px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start}
+/* 機身 */
+.machine{
+  background:linear-gradient(180deg,var(--plastic),var(--plastic-2));border-radius:18px;padding:16px;color:var(--ink);
+  box-shadow:0 0 0 2px #fff6 inset,0 -6px 0 #bfb8aa inset,0 30px 60px rgba(0,0,0,.55),0 0 0 6px #9e978a,0 0 0 8px #6b655b;
+  display:grid;grid-template-columns:minmax(0,1fr) 172px;gap:14px;
+}
+.sign{
+  grid-column:1/-1;border-radius:10px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:linear-gradient(180deg,#fffdf6,#f3ecdc);box-shadow:inset 0 0 0 2px #d8cfbe,0 0 28px rgba(255,240,200,.55);
+}
+.sign b{font-size:clamp(22px,3.4vw,34px);color:var(--red);letter-spacing:.18em;font-family:"Hiragino Mincho ProN","Yu Mincho","Songti TC",serif}
+.sign i{font-style:normal;font-size:12px;color:#7a6f60;letter-spacing:.14em;text-align:right;line-height:1.5}
+.keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.key{
+  position:relative;border:0;border-radius:7px;padding:0;background:#f8f6f1;text-align:left;min-height:96px;
+  box-shadow:0 4px 0 #a39c8f,0 5px 8px rgba(0,0,0,.25),inset 0 0 0 1px #d4cdc0;display:flex;flex-direction:column;overflow:hidden;
+  transition:transform .08s,box-shadow .08s,filter .25s;
+}
+.key .band{height:30px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#fff}
+.key[data-c=men] .band{background:var(--red)}.key[data-c=top] .band{background:#d79e10;color:#2a1d00}
+.key[data-c=rice] .band{background:var(--grn)}.key[data-c=drink] .band{background:var(--blu)}
+.key .nm{padding:6px 8px 0;font-size:14px;font-weight:800;line-height:1.25}
+.key .zh{padding:1px 8px;font-size:11px;color:#7b7266}
+.key .pr{margin-top:auto;padding:4px 8px 7px;font-size:15px;font-weight:800;font-family:"Menlo","SF Mono",Consolas,monospace;display:flex;justify-content:space-between;align-items:center}
+.lamp{width:12px;height:12px;border-radius:50%;background:#7d776c;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.key.on{filter:none}
+.key.on .lamp{background:#ffe066;box-shadow:0 0 6px 2px #ffd23f,0 0 14px #ffcc00}
+.key.on::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 70%,rgba(255,240,180,.45),transparent 70%);pointer-events:none}
+.key:active,.key.press{transform:translateY(3px);box-shadow:0 1px 0 #a39c8f,0 2px 4px rgba(0,0,0,.25),inset 0 0 0 1px #d4cdc0}
+.key.sold{filter:grayscale(.7) brightness(.9)}
+.key.sold .lamp{background:#ff3b2f;box-shadow:0 0 8px #ff3b2f}
+.key.sold .pr span{font-size:11px;color:var(--red);font-family:inherit;letter-spacing:.12em}
+.key:focus-visible{outline:3px solid var(--blu);outline-offset:2px}
+/* 投幣區 */
+.cash{background:linear-gradient(180deg,#d3cdc1,#c4bdb0);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 2px 6px rgba(0,0,0,.18)}
+.lcd{background:var(--lcd-bg);border-radius:6px;padding:10px 10px 8px;box-shadow:inset 0 0 0 2px #050a06,inset 0 4px 10px rgba(0,0,0,.7);position:relative;overflow:hidden}
+.lcd small{display:block;color:#5d8a45;font-size:10px;letter-spacing:.18em}
+.lcd output{display:block;font-family:"Menlo","SF Mono",Consolas,monospace;font-weight:700;color:var(--lcd);font-size:26px;text-align:right;letter-spacing:.06em;text-shadow:0 0 6px rgba(167,243,111,.6)}
+.lcd::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,transparent 55%,rgba(0,0,0,.45) 56%) 0 0/3px 3px;pointer-events:none;opacity:.6}
+.slot{height:34px;border-radius:6px;background:linear-gradient(#a49d90,#bdb6a9);display:grid;place-items:center;box-shadow:inset 0 2px 4px rgba(0,0,0,.3)}
+.slot::before{content:"";width:46%;height:6px;border-radius:3px;background:#1a1612;box-shadow:inset 0 2px 2px #000}
+.slot.wide::before{width:78%;height:5px}
+.lbl{font-size:10px;color:#5e574c;letter-spacing:.14em;text-align:center;margin:-6px 0 0}
+.ret{border:0;border-radius:6px;padding:9px 6px;background:linear-gradient(#f1ede5,#d6cfc2);font-weight:800;font-size:13px;color:#4a4339;box-shadow:0 3px 0 #8f887c}
+.ret:active{transform:translateY(2px);box-shadow:0 1px 0 #8f887c}
+.cup{height:62px;border-radius:8px;background:linear-gradient(#24201b,#3a342c);box-shadow:inset 0 6px 10px #000;position:relative;overflow:hidden}
+.cup .c{position:absolute;bottom:6px;width:18px;height:18px;border-radius:50%}
+.exit{grid-column:1/-1;height:58px;border-radius:8px;background:linear-gradient(#2b2620,#3d362d);box-shadow:inset 0 8px 12px #000;position:relative;overflow:hidden;display:flex;align-items:flex-start;justify-content:center}
+.exit::before{content:"食券 TICKET";position:absolute;left:12px;bottom:6px;color:#7d7466;font-size:10px;letter-spacing:.2em}
+.ticket{
+  width:210px;max-width:72%;background:var(--paper);color:var(--ink);font-size:11px;padding:8px 12px;border-radius:2px;
+  font-family:"Menlo","SF Mono",Consolas,monospace;box-shadow:0 4px 8px rgba(0,0,0,.4);transform:translateY(-110%);
+  -webkit-mask:radial-gradient(circle 4px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 4px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;
+          mask:radial-gradient(circle 4px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 4px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;
+}
+.ticket.out{animation:print 1.1s steps(9) forwards}
+@keyframes print{to{transform:translateY(6px)}}
+/* 錢包 */
+.wallet{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:linear-gradient(#5b3b25,#46301f);border-radius:10px;padding:10px 12px;box-shadow:inset 0 0 0 2px #6e4b31,inset 0 0 0 4px #3b2717}
+.wallet span{color:#e8d3b5;font-size:12px;letter-spacing:.2em;flex-basis:100%}
+.coin{border:0;border-radius:50%;width:42px;height:42px;font-size:12px;font-weight:800;display:grid;place-items:center;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.25),inset 0 -4px 6px rgba(0,0,0,.25);transition:transform .15s}
+.coin:hover{transform:translateY(-2px) rotate(-8deg)}
+.coin.y10{background:radial-gradient(circle at 35% 30%,#e9a46d,#a5582c);color:#4a2310}
+.coin.y50{background:radial-gradient(circle at 35% 30%,#f6f6f2,#a8aaa6);color:#3d3f3b;position:relative}
+.coin.y50::after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:#46301f;box-shadow:inset 0 1px 2px #000}
+.coin.y50 b{transform:translateY(-12px);font-size:10px}
+.coin.y100{background:radial-gradient(circle at 35% 30%,#fbfbf7,#9a9c97);color:#33352f}
+.coin.y500{width:46px;height:46px;background:radial-gradient(circle at 35% 30%,#f5e0a0,#b38c34);color:#4a3507}
+.bill{border:0;border-radius:4px;width:64px;height:40px;background:linear-gradient(135deg,#cfdbc8,#9fb59a);color:#24402a;font-weight:800;font-size:13px;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.4),inset 0 0 0 5px #8aa386}
+.bill:hover{transform:translateY(-2px)}
+.fly{position:fixed;z-index:50;pointer-events:none;transition:transform .45s cubic-bezier(.5,0,.75,0),opacity .45s}
+/* 側欄 */
+aside{display:flex;flex-direction:column;gap:18px;position:sticky;top:16px}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:8px}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:center;font-size:14px;color:#a49580;transition:color .3s}
+.steps li::before{content:counter(s);width:24px;height:24px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.steps li.now{color:#ffe08a}.steps li.done{color:#6f8f5f}.steps li.done::before{content:"✓";background:#6f8f5f;color:var(--wall);border-color:#6f8f5f}
+.tray h2,.tray h3{margin:0 0 8px;font-size:14px;letter-spacing:.2em;color:#d5c4a7}
+.tray{background:rgba(0,0,0,.28);border-radius:12px;padding:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.tickets{display:flex;flex-direction:column;gap:6px;min-height:46px}
+.tickets .empty{color:#7e705e;font-size:13px}
+.tk{display:flex;justify-content:space-between;background:var(--paper);color:var(--ink);border-radius:2px;padding:6px 10px;font-size:13px;font-weight:700;animation:drop .4s cubic-bezier(.2,.9,.3,1.3)}
+.tk em{font-style:normal;font-family:"Menlo",monospace;color:#7a6f60;font-weight:600}
+@keyframes drop{from{transform:translateY(-14px) rotate(-3deg);opacity:0}}
+.total{display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:#cdbb9c}
+.go{width:100%;border:0;border-radius:10px;padding:14px;margin-top:12px;font-weight:800;font-size:15px;letter-spacing:.12em;background:var(--red);color:#fff;box-shadow:0 4px 0 #8c1810}
+.go:disabled{background:#4a3e33;color:#8e7f6c;box-shadow:0 4px 0 #2d251e;cursor:not-allowed}
+.go:not(:disabled):active{transform:translateY(3px);box-shadow:0 1px 0 #8c1810}
+.note{font-size:12px;color:#8e806c;line-height:1.7;margin:0}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);opacity:0;visibility:hidden;background:#fffaf0;color:var(--ink);padding:10px 18px;border-radius:30px;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.2,.9,.3,1.2);z-index:60;max-width:calc(100% - 32px);text-align:center}
+.toast.show{transform:translate(-50%,0);opacity:1;visibility:visible}
+/* 好み記入表 */
+dialog{border:0;padding:0;background:transparent;max-width:min(760px,calc(100% - 24px));width:100%;color:var(--ink)}
+dialog::backdrop{background:rgba(10,7,5,.78);backdrop-filter:blur(3px)}
+.sheet{background:var(--paper);border-radius:4px;padding:26px 26px 22px;box-shadow:0 30px 60px rgba(0,0,0,.6);position:relative;
+  background-image:linear-gradient(rgba(196,42,32,.05) 1px,transparent 1px);background-size:100% 26px}
+.sheet h2{margin:0;color:var(--sheet-red);font-family:"Hiragino Mincho ProN","Yu Mincho","Songti TC",serif;letter-spacing:.3em;font-size:24px;text-align:center}
+.sheet .sub{text-align:center;font-size:12px;color:#8a7d6c;margin:4px 0 16px;letter-spacing:.1em}
+.row{display:grid;grid-template-columns:140px minmax(0,1fr);border-top:1.5px solid var(--sheet-red);padding:9px 0;align-items:center}
+.row:last-of-type{border-bottom:1.5px solid var(--sheet-red)}
+.row h4{margin:0;color:var(--sheet-red);font-size:15px;letter-spacing:.08em}
+.row h4 small{display:block;font-size:11px;color:#9a8b78;font-weight:500;letter-spacing:0}
+.opts{display:flex;flex-wrap:wrap;gap:4px 6px}
+.opt{position:relative;border:0;background:none;padding:6px 10px;font-size:14px;font-weight:700;color:#3b342c;border-radius:20px}
+.opt svg{position:absolute;inset:-4px -6px;width:calc(100% + 12px);height:calc(100% + 8px);overflow:visible;pointer-events:none}
+.opt ellipse{fill:none;stroke:#1d3d8f;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset .38s cubic-bezier(.4,0,.2,1)}
+.opt.sel ellipse{stroke-dashoffset:0}
+.opt:focus-visible{outline:2px dashed #1d3d8f}
+.acts{display:flex;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap}
+.acts button{border:0;border-radius:6px;padding:11px 18px;font-weight:800;letter-spacing:.1em}
+.acts .x{background:#e7e0d2;color:#5a5044}.acts .ok{background:var(--sheet-red);color:#fff}
+.stamp{position:absolute;right:22px;top:18px;width:62px;height:62px;border-radius:50%;border:2.5px solid var(--sheet-red);color:var(--sheet-red);display:grid;place-items:center;font-size:13px;font-weight:800;transform:rotate(-14deg);opacity:.85;letter-spacing:.1em;text-align:center;line-height:1.2}
+/* 出餐 */
+.serve{background:#0f0b08;border-radius:16px;padding:24px;color:#f2ece2;box-shadow:0 30px 60px rgba(0,0,0,.7);text-align:center;background-image:radial-gradient(ellipse at 50% 30%,#3a2717,transparent 70%)}
+.serve h2{margin:0 0 4px;font-family:"Hiragino Mincho ProN","Yu Mincho","Songti TC",serif;letter-spacing:.24em;font-size:22px}
+.serve p{margin:0;color:#c3b298;font-size:13px;line-height:1.7}
+.serve svg{width:min(420px,100%);height:auto;display:block;margin:10px auto}
+.steam path{fill:none;stroke:rgba(255,255,255,.4);stroke-width:5;stroke-linecap:round;filter:blur(2px);animation:steam 3.4s ease-in-out infinite}
+.steam path:nth-child(2){animation-delay:-1.1s}.steam path:nth-child(3){animation-delay:-2.2s}
+@keyframes steam{0%{opacity:0;transform:translateY(20px)}40%{opacity:.8}100%{opacity:0;transform:translateY(-40px)}}
+.recap{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 14px}
+.recap span{font-size:12px;padding:4px 10px;border-radius:20px;background:#2a2018;color:#e8d6b8}
+@media (max-width:900px){
+  .stage{grid-template-columns:1fr}
+  aside{position:static}
+}
+@media (max-width:620px){
+  .noren{height:82px}.noren span{font-size:30px}
+  .machine{grid-template-columns:1fr;padding:12px}
+  .keys{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cash{display:grid;grid-template-columns:1fr 1fr;align-items:center}
+  .cash .lcd{grid-column:1/-1}
+  .cup{height:46px}
+  .row{grid-template-columns:1fr;gap:6px}
+  .wallet{position:fixed;left:0;right:0;bottom:0;z-index:40;border-radius:14px 14px 0 0;justify-content:center;padding:10px 8px calc(10px + env(safe-area-inset-bottom));gap:8px}
+  .wallet span{display:none}
+  .coin{width:44px;height:44px}.coin.y500{width:48px;height:48px}.bill{width:70px}
+  body{padding-bottom:80px}
+  .toast{bottom:86px}
+  .sheet{padding:20px 14px 16px}.stamp{width:48px;height:48px;font-size:10px;right:10px;top:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  .noren span,.steam path{animation:none}
+  .ticket.out{animation-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="noren" aria-hidden="true"><span>ら</span><span>あ</span><span>め</span><span>ん</span></div>
+<header class="lead">
+  <h1>麺処 夜鳴<small>YONAKI · 深夜二時まで</small></h1>
+  <p>先在食券機買券、交給店員，再填一張好み記入表。<br>投幣後亮燈的按鍵才能按。</p>
+</header>
+
+<main class="stage">
+  <section class="machine" aria-label="食券機">
+    <div class="sign"><b>麺処 夜鳴</b><i>食券をお買い求めください<br>請先購買食券</i></div>
+    <div class="keys" id="keys"></div>
+    <div class="cash">
+      <div class="lcd"><small>投入金額</small><output id="credit">¥0</output></div>
+      <div class="slot" id="coinSlot"></div><p class="lbl">硬貨</p>
+      <div class="slot wide" id="billSlot"></div><p class="lbl">千円札</p>
+      <button class="ret" id="ret" type="button">おつり　找零</button>
+      <div class="cup" id="cup" aria-label="找零口"></div>
+    </div>
+    <div class="exit" id="exit" aria-live="polite"></div>
+  </section>
+
+  <aside>
+    <div class="wallet" aria-label="錢包">
+      <span>財布</span>
+      <button class="coin y10" data-v="10" type="button" aria-label="投入 10 圓"><b>10</b></button>
+      <button class="coin y50" data-v="50" type="button" aria-label="投入 50 圓"><b>50</b></button>
+      <button class="coin y100" data-v="100" type="button" aria-label="投入 100 圓"><b>100</b></button>
+      <button class="coin y500" data-v="500" type="button" aria-label="投入 500 圓"><b>500</b></button>
+      <button class="bill" data-v="1000" type="button" aria-label="投入千圓鈔">千円</button>
+    </div>
+    <ol class="steps" id="steps">
+      <li class="now">投入硬幣或紙鈔</li>
+      <li>按下亮燈的按鍵買券</li>
+      <li>至少買一張拉麵券</li>
+      <li>填好み記入表，等出餐</li>
+    </ol>
+    <div class="tray">
+      <h2>手上的食券</h2>
+      <div class="tickets" id="tickets"><span class="empty">還沒有食券。</span></div>
+      <div class="total"><span>已花費</span><b id="spent">¥0</b></div>
+      <button class="go" id="go" type="button" disabled>交出食券・填寫好み</button>
+    </div>
+    <p class="note">按鍵：滑鼠或觸控。鍵盤可用 Tab 選鍵、Enter 按下；數字鍵 1–5 依序投入 10、50、100、500、1000 圓。找零後才會把多的錢退回錢包。</p>
+  </aside>
+</main>
+
+<dialog id="sheetDlg" aria-label="好み記入表">
+  <form class="sheet" method="dialog" id="sheet">
+    <div class="stamp">夜鳴<br>記入</div>
+    <h2>好み記入表</h2>
+    <p class="sub">お好みに○をつけてください　在喜歡的選項上畫圈</p>
+    <div id="rows"></div>
+    <div class="acts">
+      <button class="x" value="cancel" type="submit">先不要</button>
+      <button class="ok" id="submitSheet" type="button">交給店員</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="serveDlg" aria-label="出餐">
+  <div class="serve">
+    <h2 id="serveTitle">お待たせしました</h2>
+    <p id="serveSub"></p>
+    <svg id="bowl" viewBox="0 0 400 400" role="img" aria-label="拉麵俯視圖"></svg>
+    <div class="recap" id="recap"></div>
+    <div class="acts" style="justify-content:center">
+      <button class="ok" id="again" type="button" style="background:#c42a20;color:#fff;border:0;border-radius:6px;padding:11px 18px;font-weight:800">再來一碗</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var MENU = [
+  {id:'yonaki',c:'men',cat:'らあめん',nm:'夜鳴らあめん',zh:'招牌豚骨醬油',p:980,ramen:'base'},
+  {id:'toku',c:'men',cat:'らあめん',nm:'特製らあめん',zh:'叉燒三片＋味玉',p:1380,ramen:'toku'},
+  {id:'chashu',c:'men',cat:'らあめん',nm:'チャーシュー麺',zh:'叉燒五片',p:1280,ramen:'chashu'},
+  {id:'miso',c:'men',cat:'らあめん',nm:'辛味噌らあめん',zh:'辣味噌',p:1080,ramen:'miso'},
+  {id:'tama',c:'top',cat:'トッピング',nm:'味玉',zh:'溏心蛋',p:150},
+  {id:'mashi',c:'top',cat:'トッピング',nm:'チャーシュー増し',zh:'加兩片叉燒',p:300},
+  {id:'nori',c:'top',cat:'トッピング',nm:'のり',zh:'海苔三片',p:100},
+  {id:'kaedama',c:'top',cat:'トッピング',nm:'替玉',zh:'加麵',p:180},
+  {id:'rice',c:'rice',cat:'ご飯',nm:'ライス',zh:'白飯',p:150},
+  {id:'don',c:'rice',cat:'ご飯',nm:'炙りチャーシュー丼',zh:'炙燒叉燒丼',p:420},
+  {id:'gyoza',c:'rice',cat:'ご飯',nm:'焼き餃子',zh:'煎餃五顆',p:380},
+  {id:'tsuke',c:'men',cat:'らあめん',nm:'濃厚つけ麺',zh:'沾麵',p:1100,sold:true},
+  {id:'beer',c:'drink',cat:'飲み物',nm:'生ビール',zh:'生啤酒',p:600},
+  {id:'ramune',c:'drink',cat:'飲み物',nm:'ラムネ',zh:'彈珠汽水',p:250},
+  {id:'oolong',c:'drink',cat:'飲み物',nm:'烏龍茶',zh:'烏龍茶',p:200},
+  {id:'highball',c:'drink',cat:'飲み物',nm:'ハイボール',zh:'威士忌蘇打',p:480}
+];
+var PREFS = [
+  {k:'koi',t:'味の濃さ',zh:'湯頭濃淡',o:['うす味','基本','こい味'],d:1},
+  {k:'abura',t:'こってり度',zh:'背脂',o:['なし','あっさり','基本','こってり','超こってり'],d:2},
+  {k:'ninniku',t:'にんにく',zh:'蒜泥',o:['なし','少し','基本','1/2片分','1片分'],d:2},
+  {k:'negi',t:'ねぎ',zh:'蔥',o:['なし','白ねぎ','青ねぎ'],d:2},
+  {k:'tare',t:'秘伝のたれ',zh:'紅色辣醬',o:['なし','1/2倍','基本','2倍','5倍'],d:2},
+  {k:'katasa',t:'麺のかたさ',zh:'麵的硬度',o:['超かた','かため','基本','やわめ','超やわ'],d:2}
+];
+var $ = function(s){ return document.querySelector(s); };
+var credit = 0, spent = 0, owned = [], ticketNo = 40 + Math.floor(Math.random()*20), pref = {}, busy = false;
+PREFS.forEach(function(p){ pref[p.k] = p.d; });
+
+/* 聲音：第一次互動才建立 AudioContext */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function tone(f, t0, dur, type, vol){
+  var a = audio(); if (!a) return;
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (t0||0);
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || .12, t + .005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function clink(){ tone(2600 + Math.random()*500, 0, .25, 'triangle', .08); tone(4100, .03, .18, 'sine', .04); tone(1900, .12, .3, 'triangle', .05); }
+function beep(){ tone(1320, 0, .09, 'square', .04); }
+function printer(){
+  var a = audio(); if (!a) return;
+  for (var i = 0; i < 9; i++){
+    var len = .07, buf = a.createBuffer(1, a.sampleRate*len, a.sampleRate), d = buf.getChannelData(0);
+    for (var j = 0; j < d.length; j++) d[j] = (Math.random()*2-1) * (1 - j/d.length);
+    var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = buf; f.type = 'bandpass'; f.frequency.value = 2200; g.gain.value = .12;
+    s.connect(f).connect(g).connect(a.destination); s.start(a.currentTime + i*.11);
+  }
+}
+
+function yen(n){ return '¥' + n.toLocaleString('ja-JP'); }
+function toast(msg){ var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(function(){ t.classList.remove('show'); }, 2200); }
+
+/* 按鍵 */
+var keys = $('#keys');
+MENU.forEach(function(m){
+  var b = document.createElement('button');
+  b.type = 'button'; b.className = 'key' + (m.sold ? ' sold' : ''); b.dataset.c = m.c; b.dataset.id = m.id;
+  b.innerHTML = '<span class="band">'+m.cat+'</span><span class="nm">'+m.nm+'</span><span class="zh">'+m.zh+'</span>'+
+    '<span class="pr">'+(m.sold ? '<span>売切</span>' : yen(m.p))+'<i class="lamp"></i></span>';
+  b.setAttribute('aria-label', m.nm + '，' + m.zh + '，' + (m.sold ? '已售完' : m.p + ' 圓'));
+  b.addEventListener('click', function(){ buy(m, b); });
+  keys.appendChild(b);
+});
+function refresh(){
+  $('#credit').textContent = yen(credit);
+  Array.prototype.forEach.call(keys.children, function(b){
+    var m = MENU.find(function(x){ return x.id === b.dataset.id; });
+    b.classList.toggle('on', !m.sold && credit >= m.p);
+  });
+  var hasRamen = owned.some(function(o){ return o.ramen; });
+  var st = $('#steps').children;
+  var stage = hasRamen ? 3 : owned.length ? 2 : credit > 0 ? 1 : 0;
+  Array.prototype.forEach.call(st, function(li, i){ li.className = i < stage ? 'done' : i === stage ? 'now' : ''; });
+  $('#go').disabled = !hasRamen;
+  $('#spent').textContent = yen(spent);
+}
+
+/* 投幣 */
+function insert(v, el){
+  if (credit + v > 9990){ toast('投入金額上限 ¥9,990'); return; }
+  var r = el.getBoundingClientRect(), slot = (v === 1000 ? $('#billSlot') : $('#coinSlot')).getBoundingClientRect();
+  var f = el.cloneNode(true); f.classList.add('fly'); f.style.left = r.left + 'px'; f.style.top = r.top + 'px'; f.style.margin = 0; f.removeAttribute('aria-label');
+  document.body.appendChild(f);
+  requestAnimationFrame(function(){
+    f.style.transform = 'translate(' + (slot.left + slot.width/2 - r.left - r.width/2) + 'px,' + (slot.top + slot.height/2 - r.top - r.height/2) + 'px) scale(' + (v === 1000 ? '.6,.15' : '.5') + ')';
+    f.style.opacity = '.2';
+  });
+  setTimeout(function(){ f.remove(); credit += v; v === 1000 ? tone(320, 0, .35, 'sawtooth', .03) : clink(); refresh(); }, 460);
+}
+document.querySelectorAll('.wallet [data-v]').forEach(function(b){ b.addEventListener('click', function(){ insert(+b.dataset.v, b); }); });
+document.addEventListener('keydown', function(e){
+  if (document.querySelector('dialog[open]')) return;
+  var map = {'1':10,'2':50,'3':100,'4':500,'5':1000};
+  if (map[e.key]){ insert(map[e.key], document.querySelector('.wallet [data-v="'+map[e.key]+'"]')); }
+});
+
+/* 買券 */
+function buy(m, b){
+  if (busy) return;
+  if (m.sold){ beep(); toast('つけ麺は本日売切です　沾麵今天賣完了'); return; }
+  if (credit < m.p){ beep(); toast(credit ? '還差 ' + yen(m.p - credit) : '請先投幣'); return; }
+  busy = true; credit -= m.p; spent += m.p; ticketNo++;
+  b.classList.add('press'); setTimeout(function(){ b.classList.remove('press'); }, 140);
+  beep(); refresh();
+  var d = new Date(), hh = String(d.getHours()).padStart(2,'0'), mm = String(d.getMinutes()).padStart(2,'0');
+  var t = document.createElement('div'); t.className = 'ticket';
+  t.innerHTML = '<b style="color:#c42a20">麺処 夜鳴</b>　No.' + String(ticketNo).padStart(4,'0') + '<br><b style="font-size:14px;font-family:Hiragino Sans,PingFang TC,sans-serif">' + m.nm + '</b><br>' + yen(m.p) + '　' + hh + ':' + mm;
+  var ex = $('#exit'); ex.innerHTML = ''; ex.appendChild(t);
+  requestAnimationFrame(function(){ t.classList.add('out'); });
+  printer();
+  setTimeout(function(){
+    owned.push(m); busy = false;
+    var list = $('#tickets'); var em = list.querySelector('.empty'); if (em) em.remove();
+    var row = document.createElement('div'); row.className = 'tk'; row.innerHTML = '<span>' + m.nm + '</span><em>' + yen(m.p) + '</em>';
+    list.appendChild(row); refresh();
+  }, 1150);
+}
+
+/* 找零：依面額由大到小吐回零錢 */
+$('#ret').addEventListener('click', function(){
+  if (!credit){ beep(); toast('沒有可以找的錢'); return; }
+  var cup = $('#cup'); cup.innerHTML = '';
+  var left = credit, list = [], dens = [1000,500,100,50,10];
+  dens.forEach(function(v){ while (left >= v){ list.push(v); left -= v; } });
+  list.forEach(function(v, i){
+    setTimeout(function(){
+      var c = document.createElement('i'); c.className = 'c';
+      var col = v === 10 ? '#b8683a' : v === 500 ? '#c9a54a' : v === 1000 ? '#a9bfa4' : '#c8c9c4';
+      c.style.cssText = 'left:' + (10 + Math.random()*120) + 'px;background:radial-gradient(circle at 35% 30%,#fff8,' + col + ');' + (v === 1000 ? 'width:34px;height:16px;border-radius:2px;' : '');
+      c.animate([{transform:'translateY(-60px)'},{transform:'translateY(0)'},{transform:'translateY(-6px)'},{transform:'translateY(0)'}],{duration:420,easing:'ease-in'});
+      cup.appendChild(c); clink();
+    }, i*130);
+  });
+  toast('找零 ' + yen(credit));
+  credit = 0; refresh();
+});
+
+/* 好み記入表 */
+var rows = $('#rows');
+PREFS.forEach(function(p){
+  var r = document.createElement('div'); r.className = 'row';
+  r.innerHTML = '<h4>' + p.t + '<small>' + p.zh + '</small></h4><div class="opts" role="radiogroup" aria-label="' + p.zh + '"></div>';
+  var box = r.querySelector('.opts');
+  p.o.forEach(function(o, i){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'opt' + (i === pref[p.k] ? ' sel' : '');
+    b.setAttribute('role','radio'); b.setAttribute('aria-checked', i === pref[p.k]);
+    var tilt = (Math.random()*8-4).toFixed(1);
+    b.innerHTML = o + '<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="47" ry="17" transform="rotate(' + tilt + ' 50 20)" pathLength="100" style="--len:112"/></svg>';
+    b.addEventListener('click', function(){
+      pref[p.k] = i;
+      box.querySelectorAll('.opt').forEach(function(x, j){ x.classList.toggle('sel', j === i); x.setAttribute('aria-checked', j === i); });
+      tone(600 + i*60, 0, .06, 'triangle', .03);
+    });
+    box.appendChild(b);
+  });
+  rows.appendChild(r);
+});
+$('#go').addEventListener('click', function(){ $('#sheetDlg').showModal(); });
+$('#submitSheet').addEventListener('click', function(){ $('#sheetDlg').close(); serve(); });
+$('#again').addEventListener('click', function(){
+  $('#serveDlg').close(); owned = []; spent = 0;
+  $('#tickets').innerHTML = '<span class="empty">還沒有食券。</span>'; $('#exit').innerHTML = ''; refresh();
+});
+
+/* 依食券與好み組出一碗 */
+function serve(){
+  var count = function(id){ return owned.filter(function(o){ return o.id === id; }).length; };
+  var main = owned.find(function(o){ return o.ramen; });
+  var chashu = (main.ramen === 'toku' ? 3 : main.ramen === 'chashu' ? 5 : 1) + count('mashi')*2;
+  var eggs = (main.ramen === 'toku' ? 1 : 0) + count('tama');
+  var nori = 1 + count('nori')*3;
+  var noodles = 1 + count('kaedama');
+  var koi = pref.koi, abura = pref.abura;
+  var miso = main.ramen === 'miso';
+  // 湯色：濃度與背脂決定明度，味噌偏橙
+  var L = [64, 54, 44][koi] - abura*2;
+  var broth = miso ? 'hsl(22,62%,' + (L-6) + '%)' : 'hsl(32,' + (38 + abura*6) + '%,' + L + '%)';
+  var broth2 = miso ? 'hsl(14,70%,' + (L-18) + '%)' : 'hsl(28,45%,' + (L-16) + '%)';
+  var noodleCol = ['#f4e3a6','#efd98f','#e9cf7c','#e2c66f','#d9bd66'][pref.katasa];
+  var s = '';
+  s += '<defs><radialGradient id="br" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="' + broth + '"/><stop offset="1" stop-color="' + broth2 + '"/></radialGradient>' +
+       '<radialGradient id="bw" cx=".5" cy=".5" r=".5"><stop offset=".86" stop-color="#121010"/><stop offset=".93" stop-color="#2b2422"/><stop offset="1" stop-color="#0a0808"/></radialGradient>' +
+       '<clipPath id="nd"><ellipse cx="196" cy="214" rx="112" ry="74" transform="rotate(-8 196 214)"/></clipPath><pattern id="rai" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M2 2h14v14H5V5h8v8H8V8h2" fill="none" stroke="#b5271d" stroke-width="2"/></pattern></defs>';
+  s += '<ellipse cx="200" cy="214" rx="186" ry="182" fill="rgba(0,0,0,.45)"/>';
+  s += '<circle cx="200" cy="200" r="186" fill="url(#bw)"/>';
+  s += '<circle cx="200" cy="200" r="172" fill="none" stroke="url(#rai)" stroke-width="16"/>';
+  s += '<circle cx="200" cy="200" r="160" fill="#f4efe6"/>';
+  s += '<circle cx="200" cy="200" r="152" fill="url(#br)"/>';
+  // 麵：硬一點的麵條較直
+  var wav = [1, 2, 3, 5, 7][pref.katasa];
+  s += '<g clip-path="url(#nd)">';
+  for (var n = 0; n < noodles; n++){
+    for (var i = 0; i < 16; i++){
+      var y = 150 + i*7 + n*10, x0 = 92 + (i%3)*6, d = 'M' + x0 + ' ' + y;
+      for (var x = x0; x < 300; x += 12){ d += ' Q' + (x + 6) + ' ' + (y + (((x/12)|0)%2 ? wav : -wav)) + ' ' + (x + 12) + ' ' + y; }
+      s += '<path d="' + d + '" fill="none" stroke="' + noodleCol + '" stroke-width="4.5" stroke-linecap="round" opacity=".95"/>';
+    }
+  }
+  s += '</g>';
+  // 背脂粒
+  for (var k = 0; k < abura*28; k++){
+    var a = Math.random()*Math.PI*2, rr = 40 + Math.random()*105;
+    s += '<circle cx="' + (200 + Math.cos(a)*rr).toFixed(1) + '" cy="' + (200 + Math.sin(a)*rr).toFixed(1) + '" r="' + (1.5 + Math.random()*2.5).toFixed(1) + '" fill="#fff8e6" opacity=".75"/>';
+  }
+  // 油珠
+  for (var o = 0; o < 10 + abura*6; o++){
+    var ao = Math.random()*Math.PI*2, ro = 30 + Math.random()*115;
+    s += '<circle cx="' + (200 + Math.cos(ao)*ro).toFixed(1) + '" cy="' + (200 + Math.sin(ao)*ro).toFixed(1) + '" r="' + (2 + Math.random()*5).toFixed(1) + '" fill="none" stroke="rgba(255,226,150,.55)" stroke-width="1.2"/>';
+  }
+  // 海苔：插在碗後緣
+  for (var q = 0; q < Math.min(nori, 4); q++){
+    s += '<rect x="' + (130 + q*24) + '" y="44" width="62" height="96" rx="3" fill="#1d2b22" stroke="#0f1712" transform="rotate(' + (-14 + q*9) + ' ' + (160 + q*24) + ' 90)"/>';
+  }
+  // 筍乾
+  for (var mm = 0; mm < 6; mm++){
+    s += '<rect x="' + (262 + (mm%3)*9) + '" y="' + (226 + mm*7) + '" width="34" height="8" rx="3" fill="#c9922f" stroke="#8a5f18" stroke-width="1" transform="rotate(' + (30 + mm*5) + ' 280 240)"/>';
+  }
+  // 叉燒：扇形排列
+  var cs = Math.min(chashu, 9);
+  for (var c = 0; c < cs; c++){
+    var ang = -150 + c*(110/Math.max(cs-1,1)), cx = 200 + Math.cos(ang*Math.PI/180)*82, cy = 210 + Math.sin(ang*Math.PI/180)*82;
+    s += '<g transform="translate(' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ') rotate(' + (ang+90).toFixed(1) + ')">' +
+         '<ellipse rx="40" ry="32" fill="#7a3d22"/><ellipse rx="35" ry="27" fill="#e9b39a"/><ellipse rx="26" ry="19" fill="#d8927a"/>' +
+         '<path d="M-22 -4 Q0 6 22 -6" stroke="#f6dccb" stroke-width="3" fill="none"/></g>';
+  }
+  // 味玉
+  for (var e = 0; e < Math.min(eggs*2, 6); e++){
+    var ex = 248 + (e%2)*40, ey = 150 + Math.floor(e/2)*46;
+    s += '<g transform="translate(' + ex + ' ' + ey + ') rotate(' + (e%2 ? 18 : -12) + ')"><ellipse rx="24" ry="30" fill="#c7864a"/><ellipse rx="20" ry="26" fill="#f6efe2"/><ellipse rx="13" ry="15" cy="2" fill="#f0a029"/><ellipse rx="8" ry="8" cy="2" fill="#e8861a"/></g>';
+  }
+  // 蔥
+  if (pref.negi === 1){
+    for (var w = 0; w < 26; w++) s += '<rect x="' + (170 + Math.random()*60) + '" y="' + (240 + Math.random()*50) + '" width="16" height="2.4" rx="1" fill="#fbf8ee" transform="rotate(' + (Math.random()*180) + ' 200 265)"/>';
+  } else if (pref.negi === 2){
+    for (var g2 = 0; g2 < 46; g2++) s += '<circle cx="' + (162 + Math.random()*76) + '" cy="' + (232 + Math.random()*62) + '" r="3.4" fill="none" stroke="#5fae3e" stroke-width="2"/>';
+  }
+  // 蒜泥
+  for (var gi = 0; gi < pref.ninniku*5; gi++) s += '<circle cx="' + (128 + Math.random()*22) + '" cy="' + (262 + Math.random()*16) + '" r="2.6" fill="#efe4c0"/>';
+  // 秘傳紅醬
+  if (pref.tare){ var tr = [0, 8, 13, 19, 30][pref.tare]; s += '<circle cx="200" cy="200" r="' + tr + '" fill="#c3200f"/><circle cx="' + (200 - tr*.3) + '" cy="' + (200 - tr*.3) + '" r="' + (tr*.25) + '" fill="#ff6a4a" opacity=".7"/>'; }
+  s += '<g class="steam"><path d="M150 140 q-14 -30 4 -60 t0 -50"/><path d="M210 130 q-14 -30 4 -60 t0 -50"/><path d="M262 145 q-14 -30 4 -60 t0 -50"/></g>';
+  $('#bowl').innerHTML = s;
+  $('#serveTitle').textContent = 'お待たせしました　久等了';
+  $('#serveSub').textContent = main.nm + (noodles > 1 ? '（替玉 ' + (noodles-1) + '）' : '') + '：叉燒 ' + chashu + ' 片、味玉 ' + eggs + ' 顆、海苔 ' + nori + ' 片。';
+  var side = owned.filter(function(o){ return !o.ramen && !/tama|mashi|nori|kaedama/.test(o.id); }).map(function(o){ return o.nm; });
+  var tags = PREFS.map(function(p){ return p.zh + '：' + p.o[pref[p.k]]; }).concat(side.length ? ['另外：' + side.join('、')] : []);
+  $('#recap').innerHTML = tags.map(function(t){ return '<span>' + t + '</span>'; }).join('');
+  $('#serveDlg').showModal();
+  tone(520, 0, .4, 'sine', .06); tone(780, .12, .5, 'sine', .05);
+}
+refresh();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一服 · 點一碗薄茶</title>
+<meta name="description" content="侘寂茶席：投茶、注湯，用茶筅前後快速刷出細緻的抹茶泡沫，最後以「の」字收筅，看看這一碗能得幾分。">
+<style>
+:root{
+  --washi:#ebe3d3; --washi-2:#e2d8c4; --sumi:#211d18; --sumi-2:#4a4239; --ash:#8a7f70;
+  --matcha:#5f7a2a; --matcha-lt:#a9bf63; --shu:#b6402a; --bamboo:#c8ad79;
+  --mincho:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Songti TC","Noto Serif TC","PMingLiU",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--washi);color:var(--sumi);font-family:var(--mincho);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+/* 和紙纖維 */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
+  background:
+   radial-gradient(1200px 700px at 70% 10%,rgba(255,255,255,.55),transparent 60%),
+   radial-gradient(900px 600px at 10% 100%,rgba(120,96,60,.12),transparent 60%),
+   repeating-linear-gradient(97deg,rgba(90,70,40,.035) 0 1px,transparent 1px 7px),
+   repeating-linear-gradient(13deg,rgba(90,70,40,.03) 0 1px,transparent 1px 11px)}
+.seat{position:relative;min-height:100vh;display:grid;grid-template-columns:minmax(150px,1fr) auto minmax(220px,1fr);align-items:center;gap:clamp(16px,4vw,64px);padding:clamp(20px,4vh,48px) clamp(16px,4vw,56px)}
+.scroll{justify-self:end;align-self:stretch;display:flex;gap:22px;writing-mode:vertical-rl;text-orientation:upright;padding-top:4vh}
+.scroll h1{font-size:clamp(34px,4.2vw,58px);font-weight:600;letter-spacing:.32em;line-height:1}
+.scroll h1 small{display:block;font-size:.3em;letter-spacing:.5em;color:var(--ash);margin-top:.0em}
+.scroll p{font-size:15px;line-height:2.1;letter-spacing:.22em;color:var(--sumi-2);max-height:62vh}
+.seal{writing-mode:horizontal-tb;align-self:flex-end;width:44px;height:44px;border:2px solid var(--shu);color:var(--shu);display:grid;place-items:center;font-size:13px;line-height:1.05;text-align:center;border-radius:3px;transform:rotate(-4deg);letter-spacing:0;opacity:.9}
+.stage{position:relative;width:var(--S);height:var(--S);touch-action:none}
+#c{position:absolute;inset:0;width:100%;height:100%;cursor:none}
+.hint{position:absolute;left:50%;bottom:-38px;transform:translateX(-50%);white-space:nowrap;font-size:14px;letter-spacing:.3em;color:var(--sumi-2);transition:opacity .8s}
+.ledger{align-self:center;max-width:300px}
+.steps{list-style:none;border-top:1px solid rgba(33,29,24,.25)}
+.steps li{display:grid;grid-template-columns:2.2em 1fr;align-items:baseline;padding:13px 0;border-bottom:1px solid rgba(33,29,24,.12);color:var(--ash);transition:color .9s}
+.steps li b{font-weight:400;font-size:13px;letter-spacing:.1em}
+.steps li span{font-size:17px;letter-spacing:.3em}
+.steps li.on{color:var(--sumi)}
+.steps li.on b{color:var(--shu)}
+.steps li.done{color:var(--sumi-2)}
+.steps li.done span::after{content:" 〇";color:var(--matcha);font-size:12px}
+.act{margin-top:22px;min-height:132px}
+.act p{font-size:14px;line-height:1.9;letter-spacing:.12em;color:var(--sumi-2);margin-bottom:14px}
+.btn{font:inherit;font-size:15px;letter-spacing:.35em;padding:12px 20px 12px 26px;background:var(--sumi);color:var(--washi);border:0;cursor:pointer;border-radius:2px;transition:background .35s,transform .2s}
+.btn:hover{background:#3a3027}.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--sumi);box-shadow:inset 0 0 0 1px var(--sumi)}
+.btn.ghost:hover{background:rgba(33,29,24,.06)}
+.btn[disabled]{opacity:.35;cursor:default}
+.temps{display:flex;gap:8px;margin-bottom:14px}
+.temps button{font:inherit;font-size:13px;letter-spacing:.08em;padding:7px 11px;background:transparent;border:1px solid rgba(33,29,24,.3);color:var(--sumi-2);cursor:pointer;border-radius:2px}
+.temps button.on{background:var(--sumi);color:var(--washi);border-color:var(--sumi)}
+.meters{margin-top:20px;display:grid;gap:10px}
+.m{display:grid;grid-template-columns:5.6em 1fr 2.8em;align-items:center;gap:10px;font-size:13px;letter-spacing:.15em;color:var(--sumi-2)}
+.m i{height:3px;background:rgba(33,29,24,.12);position:relative;overflow:hidden}
+.m i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--v,0));background:var(--matcha);transition:transform .25s}
+.m em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+.verdict{position:fixed;inset:0;display:grid;place-items:center;background:rgba(235,227,211,.0);pointer-events:none;opacity:0;transition:opacity 1.2s,background 1.2s;z-index:5}
+.verdict.show{opacity:1;pointer-events:auto;background:rgba(235,227,211,.82)}
+.card{background:#f4eee2;padding:44px 48px 36px;max-width:min(440px,92vw);box-shadow:0 30px 60px -30px rgba(40,30,20,.45),0 0 0 1px rgba(33,29,24,.08);position:relative;text-align:center}
+.card .grade{font-size:92px;line-height:1;letter-spacing:0;color:var(--sumi);margin:8px 0 4px}
+.card h2{font-weight:400;font-size:14px;letter-spacing:.6em;color:var(--ash)}
+.card .poem{font-size:17px;line-height:2;letter-spacing:.2em;margin:18px 0 22px}
+.card dl{display:grid;grid-template-columns:auto auto;gap:6px 18px;justify-content:center;font-size:13px;letter-spacing:.12em;color:var(--sumi-2);margin-bottom:26px}
+.card dd{text-align:left;font-variant-numeric:tabular-nums}
+.card .seal{position:absolute;right:18px;top:18px}
+@media (max-width:860px){
+  .seat{grid-template-columns:1fr;justify-items:center;gap:22px;padding-top:22px}
+  .scroll{writing-mode:horizontal-tb;text-orientation:mixed;justify-self:center;flex-direction:column;align-items:center;padding:0;gap:8px;text-align:center}
+  .scroll h1{letter-spacing:.2em;font-size:34px}
+  .scroll h1 small{display:inline;margin-left:.6em}
+  .scroll p{max-height:none;font-size:13px;line-height:1.8;letter-spacing:.12em;max-width:32em}
+  .scroll .seal{display:none}
+  .ledger{max-width:420px;width:100%;margin-top:30px}
+  .steps{display:grid;grid-template-columns:repeat(4,1fr)}
+  .steps li{grid-template-columns:1fr;text-align:center;padding:9px 0}
+  .steps li span{font-size:15px;letter-spacing:.15em}
+  .act{min-height:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<main class="seat">
+  <aside class="scroll">
+    <h1>一服<small>ICHIFUKU</small></h1>
+    <p>茶杓二杓，湯七十。<br>茶筅不畫圓，要前後疾振，<br>如寫「川」字，泡自細。<br>收筅時於中央寫一「の」。</p>
+    <div class="seal">和敬<br>清寂</div>
+  </aside>
+  <div class="stage" id="stage"><canvas id="c" aria-label="俯視的茶碗，拖曳以刷茶"></canvas><div class="hint" id="hint"></div></div>
+  <section class="ledger">
+    <ol class="steps" id="steps">
+      <li><b>一</b><span>投茶</span></li>
+      <li><b>二</b><span>注湯</span></li>
+      <li><b>三</b><span>點茶</span></li>
+      <li><b>四</b><span>出茶</span></li>
+    </ol>
+    <div class="act" id="act"></div>
+    <div class="meters">
+      <div class="m">泡之細<i id="mF"></i><em id="vF">—</em></div>
+      <div class="m">泡之覆<i id="mC"></i><em id="vC">—</em></div>
+      <div class="m">茶之溶<i id="mD"></i><em id="vD">—</em></div>
+    </div>
+  </section>
+</main>
+<div class="verdict" id="verdict"><div class="card" id="card"></div></div>
+
+<script>
+(function(){
+'use strict';
+var cv=document.getElementById('c'), ctx=cv.getContext('2d'), stage=document.getElementById('stage');
+var act=document.getElementById('act'), hint=document.getElementById('hint'), stepsEl=document.getElementById('steps').children;
+var S=480, DPR=1, R=0, RIN=0, CX=0, CY=0;
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 碗口不規則：以固定種子的雜訊決定每個角度的半徑偏移
+var seed=7; function rnd(){ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }
+var rimN=[]; for(var i=0;i<14;i++) rimN.push(rnd());
+function rimOff(a){ var t=(a/(Math.PI*2))*14, i0=Math.floor(t)%14, f=t-Math.floor(t), i1=(i0+1)%14; var s=f*f*(3-2*f); return rimN[i0]*(1-s)+rimN[i1]*s; }
+var drips=[]; for(i=0;i<9;i++) drips.push({a:rnd()*Math.PI*2,l:.04+rnd()*.07,w:.012+rnd()*.02});
+
+function size(){
+  var w=window.innerWidth, h=window.innerHeight;
+  S=Math.round(w<860? Math.min(w-32,440) : Math.min(h*0.74, w*0.42, 600));
+  stage.style.setProperty('--S',S+'px');
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  cv.width=S*DPR; cv.height=S*DPR;
+  CX=S/2; CY=S/2; R=S*0.47; RIN=R*0.8;
+}
+size(); window.addEventListener('resize',function(){ size(); });
+
+// ---- 狀態 ----
+var st={step:0,powder:0,water:0,temp:80,bubbles:[],clumps:[],air:0,whiskT:0,done:false,noji:0,stir:0,rev:[],lastDY:0,turn:0};
+var ptr={x:0,y:0,px:0,py:0,in:false,down:false,vx:0,vy:0};
+var pouring=false, steam=[], dust=[];
+
+function liqR(){ return RIN*(0.62+0.36*Math.min(1,st.water/70)); }
+
+// ---- 音：茶筅刷動的沙沙聲 ----
+var ac=null, noiseG=null, bp=null;
+function audio(){
+  if(ac) return; try{
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    var len=ac.sampleRate*2, buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+    var src=ac.createBufferSource(); src.buffer=buf; src.loop=true;
+    bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3200; bp.Q.value=1.4;
+    noiseG=ac.createGain(); noiseG.gain.value=0;
+    src.connect(bp); bp.connect(noiseG); noiseG.connect(ac.destination); src.start();
+  }catch(e){ ac=null; }
+}
+function chime(f,dur,vol){
+  if(!ac) return; var t=ac.currentTime, o=ac.createOscillator(), g=ac.createGain();
+  o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||.08,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+dur+.05);
+}
+
+// ---- 流程 UI ----
+function setStep(n){
+  st.step=n;
+  for(var i=0;i<4;i++){ stepsEl[i].className = i<n?'done':(i===n?'on':''); }
+  if(n===0){
+    act.innerHTML='<p>以茶杓舀抹茶二杓，落於碗心。</p><button class="btn" id="b0">投　茶</button>';
+    document.getElementById('b0').onclick=function(){ audio(); this.disabled=true; dropPowder(); };
+    hint.textContent='';
+  } else if(n===1){
+    act.innerHTML='<p>選湯溫，按住注湯，約七十毫升為宜。</p><div class="temps" id="temps"><button data-t="70">七十度</button><button data-t="80" class="on">八十度</button><button data-t="95">九十五度</button></div><button class="btn" id="b1">按住注湯</button> <button class="btn ghost" id="b1n" hidden>注畢</button>';
+    Array.prototype.forEach.call(document.querySelectorAll('#temps button'),function(b){ b.onclick=function(){ st.temp=+b.dataset.t; Array.prototype.forEach.call(document.querySelectorAll('#temps button'),function(x){x.classList.toggle('on',x===b);}); }; });
+    var b1=document.getElementById('b1');
+    var on=function(e){ e.preventDefault(); audio(); pouring=true; };
+    var b1n=document.getElementById('b1n'); b1n.onclick=function(){ pouring=false; setStep(2); };
+    var off=function(){ if(!pouring) return; pouring=false; if(st.water>=35) b1n.hidden=false; };
+    b1.addEventListener('pointerdown',on); window.addEventListener('pointerup',off); b1.addEventListener('pointerleave',off);
+    hint.textContent='';
+  } else if(n===2){
+    act.innerHTML='<p>在碗中拖曳刷茶：前後疾振，泡自然變細。泡滿後再收筅。</p><button class="btn ghost" id="b2" disabled>以「の」收筅</button>';
+    document.getElementById('b2').onclick=function(){ st.noji=0.0001; this.disabled=true; };
+    hint.textContent='↕ 在碗中前後拖曳';
+  } else if(n===3){
+    act.innerHTML='<p>茶已點成。</p><button class="btn" id="b3">再點一服</button>';
+    document.getElementById('b3').onclick=reset;
+    verdict();
+  }
+}
+function reset(){
+  st.powder=0; st.water=0; st.bubbles=[]; st.clumps=[]; st.air=0; st.whiskT=0; st.noji=0; st.stir=0; st.turn=0; st.rev=[];
+  document.getElementById('verdict').classList.remove('show');
+  setStep(0);
+}
+function dropPowder(){
+  var n=0, iv=setInterval(function(){
+    for(var k=0;k<26;k++){ var a=Math.random()*6.283, r=Math.random()*RIN*.12; dust.push({x:CX+Math.cos(a)*r+(Math.random()-.5)*20,y:CY-S*.36+Math.random()*10,tx:CX+Math.cos(a)*r*1.6,ty:CY+Math.sin(a)*r*1.3,t:0,s:.6+Math.random()*1.6}); }
+    n++; if(n>=2){ clearInterval(iv); setTimeout(function(){ st.powder=1; seedClumps(); setStep(1); },900); }
+    chime(660,1.2,.04);
+  },450);
+}
+function seedClumps(){
+  st.clumps=[]; for(var i=0;i<46;i++){ var a=Math.random()*6.283, r=Math.sqrt(Math.random())*RIN*.42; st.clumps.push({x:Math.cos(a)*r,y:Math.sin(a)*r,s:1.2+Math.random()*2.6,life:1}); }
+}
+
+// ---- 指標 ----
+function local(e){ var b=cv.getBoundingClientRect(); return {x:(e.clientX-b.left)*(S/b.width), y:(e.clientY-b.top)*(S/b.height)}; }
+cv.addEventListener('pointerdown',function(e){ audio(); var p=local(e); ptr.down=true; ptr.x=ptr.px=p.x; ptr.y=ptr.py=p.y; try{cv.setPointerCapture(e.pointerId);}catch(_){} });
+cv.addEventListener('pointermove',function(e){ var p=local(e); ptr.x=p.x; ptr.y=p.y; ptr.in=true; if(e.pointerType==='mouse') ptr.down=ptr.down||st.step===2; });
+cv.addEventListener('pointerup',function(){ ptr.down=false; });
+cv.addEventListener('pointercancel',function(){ ptr.down=false; });
+cv.addEventListener('pointerleave',function(e){ ptr.in=false; if(e.pointerType==='mouse') ptr.down=false; });
+
+// ---- 泡沫物理 ----
+function whisk(dt){
+  var dx=ptr.x-ptr.px, dy=ptr.y-ptr.py; ptr.px=ptr.x; ptr.py=ptr.y;
+  var lx=ptr.x-CX, ly=ptr.y-CY, lr=liqR();
+  var inside=Math.hypot(lx,ly)<lr*0.98 && ptr.down && ptr.in;
+  var sp=Math.hypot(dx,dy)/S*60; // 每秒約幾個碗寬
+  if(!inside) sp=0;
+  // 前後（螢幕上下）方向反轉次數：越多越像正確的 M 字刷法
+  var now=performance.now();
+  if(sp>0.15 && Math.abs(dy)>Math.abs(dx)*0.6){ var sgn=dy>0?1:-1; if(st.lastDY && sgn!==st.lastDY) st.rev.push(now); st.lastDY=sgn; }
+  while(st.rev.length && now-st.rev[0]>1000) st.rev.shift();
+  var tech=Math.min(1, st.rev.length/7);
+  var eff=0.35+0.65*tech;
+  if(noiseG){ noiseG.gain.setTargetAtTime(Math.min(.18,sp*.035),ac.currentTime,.03); bp.frequency.setTargetAtTime(2400+sp*500,ac.currentTime,.05); }
+  if(sp>0){
+    st.whiskT+=dt; st.stir+=sp*dt;
+    // 溶開茶粉
+    st.clumps.forEach(function(c){ var d=Math.hypot(c.x-lx,c.y-ly); if(d<S*.12) c.life-=dt*sp*.55; });
+    st.clumps=st.clumps.filter(function(c){return c.life>0;});
+    // 打入空氣：大泡
+    var tempF=st.temp===80?1:(st.temp===70?.8:.62);
+    var spawn=Math.min(40, sp*eff*tempF*9*dt*60/6);
+    for(var k=0;k<spawn && st.bubbles.length<2400;k++){
+      var a=Math.random()*6.283, rr=Math.random()*S*.09;
+      var bx=lx+Math.cos(a)*rr, by=ly+Math.sin(a)*rr;
+      if(Math.hypot(bx,by)<lr*.97) st.bubbles.push({x:bx,y:by,r:(2.4+Math.random()*4.2)*S/480,vx:dx*.3,vy:dy*.3});
+    }
+    // 茶筅附近的泡被打碎、隨流推動
+    var brk=Math.pow(0.86, sp*eff*dt*7);
+    st.bubbles.forEach(function(b){
+      var d=Math.hypot(b.x-lx,b.y-ly), w=S*.13;
+      if(d<w){ var f=1-d/w; b.r=Math.max(.75*S/480, b.r*(1-(1-brk)*f)); b.vx+=dx*f*.18; b.vy+=dy*f*.18; }
+      // 整碗被帶動的翻攪，讓泡慢慢鋪滿液面
+      b.vx+=(Math.random()-.5)*sp*.5*S/480; b.vy+=(Math.random()-.5)*sp*.5*S/480;
+    });
+  }
+  // 漂流與阻尼，泡留在液面內
+  var dec=Math.pow(.86,dt*60);
+  st.bubbles.forEach(function(b){
+    b.x+=b.vx; b.y+=b.vy; b.vx*=dec; b.vy*=dec;
+    var d=Math.hypot(b.x,b.y), m=lr*.97-b.r; if(d>m){ b.x*=m/d; b.y*=m/d; b.vx*=-.3; b.vy*=-.3; }
+    if(sp===0 && b.r>3*S/480 && Math.random()<dt*.35) b.pop=1; // 靜置時大泡慢慢破
+  });
+  st.bubbles=st.bubbles.filter(function(b){return !b.pop;});
+  // 泡太多時，把最大的合併掉一些
+  if(st.bubbles.length>2200) st.bubbles.splice(0,st.bubbles.length-2200);
+}
+function stats(){
+  var lr=liqR(), N=16, cell=lr*2/N, grid=new Float32Array(N*N), rs=0, cells=0, hit=0;
+  st.bubbles.forEach(function(b){ var gx=Math.floor((b.x+lr)/cell), gy=Math.floor((b.y+lr)/cell); if(gx>=0&&gy>=0&&gx<N&&gy<N) grid[gy*N+gx]+=Math.PI*b.r*b.r; rs+=b.r; });
+  for(var j=0;j<N;j++) for(var i=0;i<N;i++){ var cx=(i+.5)*cell-lr, cy=(j+.5)*cell-lr; if(Math.hypot(cx,cy)<lr-cell*.5){ cells++; hit+=Math.min(1,grid[j*N+i]/(cell*cell*.55)); } }
+  var cov=cells?hit/cells:0, avg=st.bubbles.length? rs/st.bubbles.length/(S/480):6;
+  var fine=Math.max(0,Math.min(1,(5.2-avg)/4.2));
+  var dis=st.powder? 1-st.clumps.length/46 : 0;
+  return {cov:cov,fine:st.bubbles.length>30?fine:0,dis:dis};
+}
+
+// ---- 繪製 ----
+function drawBowl(){
+  // 投影
+  var g=ctx.createRadialGradient(CX+R*.06,CY+R*.1,R*.7,CX+R*.06,CY+R*.12,R*1.12);
+  g.addColorStop(0,'rgba(40,28,16,.35)'); g.addColorStop(1,'rgba(40,28,16,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(CX+R*.06,CY+R*.1,R*1.12,0,6.283); ctx.fill();
+  // 樂燒黑釉外緣（不規則）
+  ctx.beginPath();
+  for(var i=0;i<=128;i++){ var a=i/128*6.283, rr=R*(0.972+0.026*rimOff(a)+0.004*Math.sin(a*23)); var x=CX+Math.cos(a)*rr, y=CY+Math.sin(a)*rr; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  var bg=ctx.createRadialGradient(CX-R*.35,CY-R*.4,R*.1,CX,CY,R*1.05);
+  bg.addColorStop(0,'#4b4038'); bg.addColorStop(.55,'#231d19'); bg.addColorStop(1,'#120f0d');
+  ctx.fillStyle=bg; ctx.fill();
+  // 釉的流痕
+  ctx.save(); ctx.clip();
+  drips.forEach(function(d){ ctx.strokeStyle='rgba(120,92,62,.22)'; ctx.lineWidth=R*d.w; ctx.beginPath(); ctx.arc(CX,CY,R*(0.9-d.l*.4),d.a,d.a+d.l*4); ctx.stroke(); });
+  ctx.restore();
+  // 口緣高光
+  ctx.strokeStyle='rgba(255,240,215,.16)'; ctx.lineWidth=R*.018; ctx.beginPath(); ctx.arc(CX,CY,R*.93,3.6,5.4); ctx.stroke();
+  // 內壁
+  var ig=ctx.createRadialGradient(CX+RIN*.15,CY+RIN*.2,RIN*.2,CX,CY,RIN);
+  ig.addColorStop(0,'#3a3029'); ig.addColorStop(.85,'#1c1714'); ig.addColorStop(1,'#0f0c0a');
+  ctx.fillStyle=ig; ctx.beginPath(); ctx.arc(CX,CY,RIN,0,6.283); ctx.fill();
+  // 茶溜（碗底的小凹）
+  ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(CX,CY,RIN*.32,0,6.283); ctx.stroke();
+}
+function mix(a,b,t){ return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]; }
+function rgb(c,al){ return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+(al==null?1:al)+')'; }
+function drawTea(s){
+  if(st.powder && st.water<1){
+    // 抹茶粉堆
+    ctx.save(); ctx.translate(CX,CY);
+    for(var i=0;i<3;i++){ ctx.fillStyle=['#6f8f2c','#86a83a','#9cbd4c'][i]; ctx.beginPath(); ctx.ellipse(-4+i*3,-3+i*2,RIN*(.24-.06*i),RIN*(.2-.05*i),0,0,6.283); ctx.fill(); }
+    ctx.restore(); return;
+  }
+  if(st.water<1) return;
+  var lr=liqR();
+  ctx.save(); ctx.beginPath(); ctx.arc(CX,CY,lr,0,6.283); ctx.clip();
+  var dark=[44,66,20], foam=[163,186,92], pale=[188,204,118];
+  var base=mix(dark,foam,s.cov*0.75);
+  var lg=ctx.createRadialGradient(CX-lr*.3,CY-lr*.35,lr*.1,CX,CY,lr);
+  lg.addColorStop(0,rgb(mix(base,pale,.25))); lg.addColorStop(1,rgb(mix(base,dark,.35)));
+  ctx.fillStyle=lg; ctx.fillRect(CX-lr,CY-lr,lr*2,lr*2);
+  // 未溶的茶粉
+  ctx.translate(CX,CY);
+  st.clumps.forEach(function(c){ ctx.fillStyle='rgba(32,48,12,'+(.75*c.life)+')'; ctx.beginPath(); ctx.arc(c.x,c.y,c.s*S/480*c.life+0.5,0,6.283); ctx.fill(); });
+  // 泡
+  var bc=mix(foam,pale,.4);
+  st.bubbles.forEach(function(b){
+    ctx.fillStyle=rgb(bc,.55); ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,6.283); ctx.fill();
+    if(b.r>1.2){ ctx.strokeStyle='rgba(60,80,26,.35)'; ctx.lineWidth=.6; ctx.stroke(); ctx.fillStyle='rgba(255,255,240,.55)'; ctx.beginPath(); ctx.arc(b.x-b.r*.35,b.y-b.r*.35,b.r*.28,0,6.283); ctx.fill(); }
+  });
+  // 收筅留下的「の」：中央微微隆起的泡
+  if(st.noji>=1){ ctx.fillStyle='rgba(225,232,170,.35)'; ctx.beginPath(); ctx.arc(0,0,lr*.12,0,6.283); ctx.fill(); }
+  ctx.restore();
+  // 液面邊緣的陰影
+  ctx.strokeStyle='rgba(0,0,0,.28)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(CX,CY,lr,0,6.283); ctx.stroke();
+}
+function drawWhisk(x,y,t){
+  // 俯視茶筅：一圈竹穗 + 中心
+  ctx.save(); ctx.translate(x,y); ctx.rotate(t*.6);
+  var rr=S*.07;
+  for(var i=0;i<40;i++){ var a=i/40*6.283; ctx.strokeStyle=i%2?'rgba(214,190,140,.95)':'rgba(185,158,108,.95)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(Math.cos(a)*rr*.3,Math.sin(a)*rr*.3); ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); ctx.stroke(); }
+  ctx.fillStyle='#b59b6a'; ctx.beginPath(); ctx.arc(0,0,rr*.32,0,6.283); ctx.fill();
+  ctx.fillStyle='#8c7347'; ctx.beginPath(); ctx.arc(0,0,rr*.2,0,6.283); ctx.fill();
+  ctx.restore();
+}
+var nojiPath=[]; (function(){ for(var i=0;i<=60;i++){ var t=i/60; var a=-Math.PI*.5+t*Math.PI*2.25; var r=.05+.18*t; nojiPath.push([Math.cos(a)*r*-1+(t<.1?0:0), Math.sin(a)*r]); } nojiPath.unshift([0,-.02]); })();
+
+var last=performance.now(), T=0, mF=document.getElementById('mF'),mC=document.getElementById('mC'),mD=document.getElementById('mD'),vF=document.getElementById('vF'),vC=document.getElementById('vC'),vD=document.getElementById('vD');
+function frame(now){
+  var dt=Math.min(.05,(now-last)/1000); last=now; T+=dt;
+  if(pouring && st.water<95){ st.water+=dt*28; for(var k=0;k<2;k++) steam.push({x:CX+(Math.random()-.5)*RIN*.6,y:CY,life:1,v:.4+Math.random()*.6}); if(st.step===1) act.querySelector('p').textContent='已注 '+Math.round(st.water)+' 毫升・'+st.temp+'°C'; }
+  if(st.step===2 && st.noji===0) whisk(dt); else if(noiseG) noiseG.gain.setTargetAtTime(0,ac.currentTime,.05);
+  var s=stats();
+  if(st.step===2){
+    var b2=document.getElementById('b2'); if(b2 && st.noji===0) b2.disabled = !(s.cov>.55 && st.whiskT>4);
+    if(st.whiskT>1.2) hint.textContent = (st.rev.length>=5?'好，正是這個節奏':'↕ 前後更快些，別畫圓');
+    if(st.noji>0){ st.noji=Math.min(1,st.noji+dt*.7); if(st.noji>=1 && st.step===2){ hint.textContent=''; chime(523,2.2,.06); setTimeout(function(){ chime(784,2.6,.04); },180); setStep(3); } }
+  }
+  mF.style.setProperty('--v',s.fine); mC.style.setProperty('--v',s.cov); mD.style.setProperty('--v',s.dis);
+  vF.textContent=st.bubbles.length>30?Math.round(s.fine*100):'—'; vC.textContent=st.water>0?Math.round(s.cov*100):'—'; vD.textContent=st.powder?Math.round(s.dis*100):'—';
+
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,S,S);
+  // 出茶時碗緩緩轉正面
+  if(st.step===3 && st.turn<1) st.turn=Math.min(1,st.turn+dt*.35);
+  ctx.save(); ctx.translate(CX,CY); ctx.rotate(st.turn*Math.PI*.5); ctx.translate(-CX,-CY);
+  drawBowl(); drawTea(s);
+  ctx.restore();
+  // 落粉
+  dust.forEach(function(d){ d.t+=dt*1.6; var e=1-Math.pow(1-Math.min(1,d.t),3); ctx.fillStyle='rgba(120,160,50,'+(1-Math.max(0,d.t-1))+')'; ctx.beginPath(); ctx.arc(d.x+(d.tx-d.x)*e,d.y+(d.ty-d.y)*e,d.s,0,6.283); ctx.fill(); });
+  dust=dust.filter(function(d){return d.t<2;});
+  // 湯氣
+  var hot=st.temp/95;
+  if(st.water>0 && !reduce && Math.random()<.12*hot) steam.push({x:CX+(Math.random()-.5)*RIN*.8,y:CY+(Math.random()-.5)*RIN*.5,life:1,v:.2+Math.random()*.3});
+  steam.forEach(function(p){ p.life-=dt*.45; p.y-=p.v*1.6; p.x+=Math.sin(T*2+p.y*.05)*.3; ctx.fillStyle='rgba(255,252,244,'+(.045*p.life*p.life)+')'; ctx.beginPath(); ctx.arc(p.x,p.y,S*.06*(1.8-p.life),0,6.283); ctx.fill(); });
+  steam=steam.filter(function(p){return p.life>0;});
+  // 茶筅
+  if(st.step===2){
+    if(st.noji>0){ var i=Math.min(nojiPath.length-1,Math.floor(st.noji*nojiPath.length)), lr=liqR(); drawWhisk(CX+nojiPath[i][0]*lr*2,CY+nojiPath[i][1]*lr*2-st.noji*st.noji*S*.25,T); }
+    else if(ptr.in) drawWhisk(ptr.x,ptr.y,T*(ptr.down?3:.4));
+  }
+  requestAnimationFrame(frame);
+}
+
+function verdict(){
+  var s=stats();
+  var w=Math.round(st.water), tScore=st.temp===80?1:(st.temp===70?.82:.6), wScore=1-Math.min(1,Math.abs(w-70)/45);
+  var score=s.fine*.38+s.cov*.28+s.dis*.16+tScore*.1+wScore*.08;
+  var g=score>.82?['上','泡如細雪，覆滿碗面。','口當甘，喉當潤。']:score>.64?['中上','泡已細，惟邊緣尚見茶色。','可再多振幾息。']:score>.45?['中','大泡猶存，茶粉亦有未溶。','手腕放鬆，前後疾振。']:['下','湯面多大泡。','莫畫圓，寫「川」字。'];
+  var card=document.getElementById('card');
+  card.innerHTML='<div class="seal">一服</div><h2>本日一碗</h2><div class="grade">'+g[0]+'</div><p class="poem">'+g[1]+'<br>'+g[2]+'</p>'+
+    '<dl><dt>泡之細</dt><dd>'+Math.round(s.fine*100)+'</dd><dt>泡之覆</dt><dd>'+Math.round(s.cov*100)+'</dd><dt>茶之溶</dt><dd>'+Math.round(s.dis*100)+'</dd><dt>湯</dt><dd>'+w+' 毫升 · '+st.temp+'°C</dd><dt>點茶</dt><dd>'+st.whiskT.toFixed(1)+' 秒</dd></dl>'+
+    '<button class="btn" id="again">再點一服</button>';
+  document.getElementById('again').onclick=reset;
+  setTimeout(function(){ document.getElementById('verdict').classList.add('show'); },1600);
+}
+
+setStep(0);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
