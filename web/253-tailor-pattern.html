@@ -1181,63 +1181,70 @@ function studioCalc(){
     fit: plan.fit
   };
 }
-/* 駁頭輪廓：y 為翻折線末端（第一顆扣子上方）；平駁領的 V 形缺口向外開、劍領尖端上翹、青果領為連續圓弧 */
-function lapelD(t, y){
-  var e = y - 28;
-  if (t === 'peak') return 'M186 94L146 58L140 126L138 ' + e + 'L200 ' + y + 'Z';
-  if (t === 'shawl') return 'M186 94C164 82 140 92 140 124C140 ' + (y - 22) + ' 162 ' + y + ' 200 ' + y + 'Z';
-  return 'M186 94L152 82L172 116L142 128L138 ' + e + 'L200 ' + y + 'Z';
+/* 駁頭輪廓（左側，300×400 座標）：b 為翻折點 B；db 時外緣點往左 6px，劍尖 x 不小於 86。右側由 drawJacket 鏡射。 */
+function lapelD(t, b, db){
+  var d = db ? 6 : 0, B = 'M' + b[0] + ' ' + b[1];
+  if (t === 'peak') return B + 'L' + (98 - d) + ' 120L' + Math.max(86, 88 - d) + ' 96L114 104L108 92L126 44Z';
+  if (t === 'shawl') return B + 'Q' + (90 - d) + ' 120 126 44Z';
+  return B + 'L' + (100 - d) + ' 118L112 100L' + (102 - d) + ' 90L126 44Z';
 }
-/* 西裝外套正面平面圖：袖子 → 前身 → 內裡掀角 → 前襟 → 口袋 → 背心 → 扣子 → 後領 → 駁頭 */
+/* 西裝外套正面平面圖：幾何以 300×400 座標書寫，整組 translate(12.5 4) scale(1.25) 置中於 400 寬畫布（右側鏡射 x' = 300 − x）。
+   順序：袖子 → 前身 → 內裡掀角 → 疊襟／前襟 → 口袋 → 襯衫 V 區 → 背心 → 領帶 → 後領 → 駁頭 → 扣子 */
 function drawJacket(){
   var c = studioCalc(), f = fillOf(c.fab), lin = LINING[cfg.lining].c;
   var pants = cfg.pants !== 'none', pleat = cfg.pants === 'pleat', db = cfg.btn === 'db';
-  var ln = 'stroke="#3b3b3b" stroke-width="1.5" stroke-linejoin="round"';
-  var dash = 'fill="none" stroke="#3b3b3b" stroke-width="1.1" stroke-dasharray="3 3"';
-  var btnC = function(x, y, r){ return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#f4ecd4" stroke="#3b3b3b" stroke-width="1"/>'; };
-  var bt = cfg.btn === 'sb1' ? [[200, 300]] : cfg.btn === 'sb2' ? [[200, 284], [200, 324]] : [[190, 300], [190, 338], [190, 376], [210, 300], [210, 338], [210, 376]];
-  var yb = cfg.btn === 'sb2' ? 272 : 288;
-  var yo = bt[bt.length - 1][1] + 18;
+  var ln = 'stroke="#1a1f2b" stroke-width="1.5" stroke-linejoin="round"';
+  var lnL = 'stroke="#10141d" stroke-width="1.5" stroke-linejoin="round"';
+  var det = 'fill="' + f + '" stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-linejoin="round"';
+  var btnC = function(x, y, r){ return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#f4ecd4" stroke="#3b3b3b" stroke-width=".8"/>'; };
+  var mir = function(x){ return '<g transform="matrix(-1 0 0 1 300 0)">' + x + '</g>'; };
+  var bt = cfg.btn === 'sb1' ? [[150, 238]] : cfg.btn === 'sb2' ? [[150, 214], [150, 256]] : [[128, 200], [128, 236], [128, 272], [172, 200], [172, 236], [172, 272]];
+  var yLow = bt[bt.length - 1][1];
+  var B = db ? [118, 190] : [150, cfg.btn === 'sb1' ? 226 : 202];
+  var V = 'M126 44L' + B[0] + ' ' + B[1] + 'L' + (300 - B[0]) + ' ' + B[1] + 'L174 44Z';
+  var vest = 'M136 70L126 99L124 294L150 304L176 294L174 99L164 70L150 83Z';
   var s = '<svg viewBox="0 0 400 ' + (pants ? 560 : 462) + '" role="img" aria-label="西裝外套正面示意，目前為' + esc(BTN[cfg.btn].n) + '、' + esc(LAPEL[cfg.lapel].n) + '">';
   if (pants){
     s += '<g fill="' + f + '" ' + ln + '><path d="M140 430L199 430L195 548L146 548Z"/><path d="M201 430L260 430L254 548L205 548Z"/></g>';
     s += '<g fill="none" stroke="#3b3b3b" stroke-width="1.2" opacity=".7">' + (pleat ? '<path d="M164 436Q172 480 166 542"/><path d="M236 436Q228 480 234 542"/>' : '<path d="M170 432V548"/><path d="M230 432V548"/>') + '</g>';
   }
-  /* 袖子：袖山弧線、袖口三顆裝飾扣 */
-  var sleeve = 'M138 90C112 94 100 110 96 132L72 346C70 362 74 376 80 386L108 390C104 374 106 360 110 346L146 166Z';
-  var sl = '<path d="' + sleeve + '" fill="' + f + '" ' + ln + '/>' +
-    '<path d="M138 92C122 108 114 128 112 154" ' + dash + ' opacity=".7"/>' +
-    '<path d="M74 334L112 342" fill="none" stroke="#3b3b3b" stroke-width="1.2"/>' +
-    btnC(88, 350, 2.2) + btnC(88, 364, 2.2) + btnC(88, 378, 2.2);
+  s += '<g transform="translate(12.5 4) scale(1.25)">';
+  /* 袖子：從肩端外弧到袖口，袖口上方三顆小扣 */
+  var sl = '<path d="M62 60Q48 190 44 330L70 334L72 132Q80 96 62 60Z" fill="' + f + '" ' + ln + '/>' +
+    btnC(57, 314, 2.2) + btnC(57, 320, 2.2) + btnC(57, 326, 2.2);
   s += sl + mir(sl);
-  /* 前身：單排前襟在最下一顆扣子以下圓弧分開；雙排下襬為直角 */
+  /* 前身：單排在最下一顆扣子以下以二次曲線分開前襟；雙排下襬為直角 */
   var body = db
-    ? 'M176 74Q156 80 138 90L134 112L136 226L138 300L136 450L264 450L262 300L264 226L266 112L262 90Q244 80 224 74Q200 84 176 74Z'
-    : 'M176 74Q156 80 138 90L134 112L136 226L138 300L136 450L186 450Q190 ' + (yo + 50) + ' 200 ' + yo + 'Q210 ' + (yo + 50) + ' 214 450L264 450L262 300L264 226L266 112L262 90Q244 80 224 74Q200 84 176 74Z';
+    ? 'M126 44Q150 50 174 44Q200 44 238 60Q220 96 228 132L216 232L220 348L80 348L84 232L72 132Q80 96 62 60Q100 44 126 44Z'
+    : 'M126 44Q150 50 174 44Q200 44 238 60Q220 96 228 132L216 232L220 348L166 352Q154 300 150 ' + (yLow + 10) + 'Q146 300 134 352L80 348L84 232L72 132Q80 96 62 60Q100 44 126 44Z';
   s += '<path d="' + body + '" fill="' + f + '" ' + ln + '/>';
-  /* 內裡：一側下襬向後翻開的小三角 */
-  s += '<path d="' + (db ? 'M262 450L238 450L258 420Z' : 'M214 450L244 450L218 414Z') + '" fill="' + lin + '" ' + ln + '/>';
-  s += db ? '<path d="M184 288V450M216 288V450" ' + dash + '/>' : '<path d="M200 ' + yb + 'V' + yo + '" ' + dash + '/>';
-  if (cfg.vest){
-    s += '<path d="M182 92L170 128L168 372L200 384L232 372L230 128L218 92L200 108Z" fill="' + f + '" ' + ln + '/>';
-    [162, 198, 234, 270, 306].forEach(function(y){ s += btnC(200, y, 2.6); });
-  }
-  /* 腰下口袋（左右對稱）與左胸手巾袋（細長斜口） */
-  var det = 'stroke="#a7b0c2" stroke-width="1.3" stroke-linejoin="round"';
-  var pk = cfg.pocket === 'flap' ? '<path d="M144 330H180L179 352Q162 360 145 352Z" fill="' + f + '" ' + det + '/>'
-    : cfg.pocket === 'patch' ? '<rect x="144" y="332" width="36" height="38" rx="3" fill="' + f + '" ' + det + '/>'
-    : '<path d="M142 354L182 328L182 338L144 362Z" fill="' + f + '" ' + det + '/>';
+  /* 內裡掀角：單排在右側開口邊、雙排在右下角 */
+  s += '<path d="' + (db ? 'M190 352L214 352L214 332Z' : 'M166 352L190 352L172 330Z') + '" fill="' + lin + '" stroke="#3b3b3b" stroke-width=".8" stroke-linejoin="round"/>';
+  /* 雙排疊襟線 */
+  if (db) s += '<path d="M118 190V348" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>';
+  /* 口袋：腰袋 y≈282 與左胸手巾袋 */
+  var pk = cfg.pocket === 'flap' ? '<path d="M86 276H128V285Q128 288 125 288H89Q86 288 86 285Z" ' + det + '/>'
+    : cfg.pocket === 'patch' ? '<rect x="86" y="270" width="42" height="46" rx="6" ' + det + '/><rect x="89.5" y="273.5" width="35" height="39" rx="4.5" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>'
+    : '<path d="M86 286L128 276L128 288L86 298Z" ' + det + '/>';
   s += pk + mir(pk);
-  s += '<path d="M224 246L256 233" fill="none" stroke="#a7b0c2" stroke-width="2.4" stroke-linecap="round"/>';
-  bt.forEach(function(b){ s += btnC(b[0], b[1], 3.6); });
-  /* 後領（領台）：露在兩片駁頭之間的頸背 */
-  var cl = 'M172 92Q174 66 200 64Q226 66 228 92L214 96L200 102L186 96Z';
-  s += '<path d="' + cl + '" fill="' + f + '" ' + ln + '/><path d="' + cl + '" fill="#000" fill-opacity=".18"/>';
-  /* 駁頭：比衣身稍亮的同布料，深色描邊 */
-  var lp = lapelD(cfg.lapel, yb);
-  var lap = '<path d="' + lp + '" fill="' + f + '" ' + ln + '/><path d="' + lp + '" fill="#fff" fill-opacity=".12"/>';
+  s += '<path d="M176 132L206 126L206 132L176 138Z" ' + det + '/>';
+  /* 襯衫 V 區、背心、領帶（領帶裁切在 V 區與背心之內） */
+  s += '<path d="' + V + '" fill="#f4f1ea"/>';
+  if (cfg.vest) s += '<path d="' + vest + '" fill="' + f + '" ' + ln + '/>';
+  var tieY = B[1] - 6;
+  s += '<clipPath id="jk-v"><path d="' + V + '"/>' + (cfg.vest ? '<path d="' + vest + '"/>' : '') + '</clipPath>';
+  s += '<g clip-path="url(#jk-v)" fill="#7a2430"><path d="M144 50L156 50L153 62L147 62Z"/><path d="M147 62L153 62L157 ' + tieY + 'L143 ' + tieY + 'Z"/></g>';
+  /* 後領（領台）：弧帶寬約 8px，填布料加深 15% */
+  var band = 'M126 44Q150 34 174 44Q150 50 126 44Z';
+  s += '<path d="' + band + '" fill="' + f + '" ' + ln + '/><path d="' + band + '" fill="#000" fill-opacity=".15"/>';
+  /* 駁頭：同布料、淡白罩層與深色翻折陰影線 */
+  var lp = lapelD(cfg.lapel, B, db);
+  var lap = '<path d="' + lp + '" fill="' + f + '" ' + lnL + '/><path d="' + lp + '" fill="#fff" fill-opacity=".06"/>' +
+    '<path d="M126 44L' + B[0] + ' ' + B[1] + '" fill="none" stroke="#10141d" stroke-width="1" stroke-opacity=".7"/>';
   s += lap + mir(lap);
-  s += '</svg>';
+  /* 扣子 */
+  bt.forEach(function(b){ s += btnC(b[0], b[1], 3); });
+  s += '</g></svg>';
   $('#jacketBox').innerHTML = s;
 }
 function drawBack(){
