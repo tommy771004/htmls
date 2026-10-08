@@ -19,7 +19,7 @@
   --line:rgba(22,23,27,.16);--line2:rgba(22,23,27,.32);
   --wool:#1b1d22;--wool2:#24272e;--chalk:#ece6d6;--chalk-dim:rgba(236,230,214,.62);--chalk-line:rgba(236,230,214,.18);
   --brass:#b08f5c;--brass-d:#7a5f33;--thread:#9a2f27;--tape:#e6dcc2;
-  --serif:'Garamond','Apple Garamond','EB Garamond','Cormorant Garamond','Baskerville','Times New Roman',serif;
+  --serif:'Garamond','Apple Garamond','EB Garamond','Cormorant Garamond','Adobe Garamond Pro','Hoefler Text','Iowan Old Style','Palatino Linotype','Palatino','Book Antiqua','Baskerville','Georgia',serif;
   --cap:'Gill Sans','Gill Sans MT','Optima','Candara','PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;
   --cjk:'Songti TC','Noto Serif TC','Source Han Serif TC','Noto Serif CJK TC','PMingLiU',serif;
   --hand:'Noteworthy','Segoe Print','Bradley Hand',cursive;
@@ -159,10 +159,10 @@ section{padding:clamp(80px,11vw,168px) 0}
     radial-gradient(circle,rgba(22,23,27,.13) 1px,transparent 1.4px) 0 0/22px 22px,
     linear-gradient(180deg,#e9e3d8 0%,#ddd5c7 56%,#cbc1b0 72%,#d6cdbe 100%)}
 .cover-in::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 45%,transparent 55%,rgba(40,32,22,.22))}
-.cover-mast{position:absolute;left:0;right:0;top:9%;z-index:1;margin:0;text-align:center;white-space:nowrap;font:400 clamp(64px,9.2vw,148px)/.86 var(--mast);letter-spacing:.08em;font-variant:small-caps;text-transform:lowercase;color:var(--ink);animation:mastIn 1.6s var(--ease-lux) both}
+.cover-mast{position:absolute;left:0;right:0;top:8%;z-index:1;margin:0;text-align:center;white-space:nowrap;font:400 clamp(56px,7.6vw,124px)/.86 var(--mast);letter-spacing:.08em;font-variant:small-caps;text-transform:lowercase;color:var(--ink);animation:mastIn 1.6s var(--ease-lux) both}
 .cover-mast i{font-style:italic;font-weight:400;text-transform:none;letter-spacing:0;margin:0 .14em;color:var(--brass-d)}
 @keyframes mastIn{from{opacity:0;letter-spacing:.12em}to{opacity:1}}
-.cover-fig{position:absolute;left:50%;bottom:0;z-index:2;height:94%;aspect-ratio:380/780;margin:0;transform:translateX(-50%);animation:figIn 1.8s var(--ease-out) .25s both}
+.cover-fig{position:absolute;left:50%;bottom:0;z-index:2;height:77%;aspect-ratio:380/780;margin:0;transform:translateX(-50%);animation:figIn 1.8s var(--ease-out) .25s both}
 .cover-fig svg{display:block;width:100%;height:100%;overflow:visible}
 @keyframes figIn{from{opacity:0;transform:translate(-50%,24px)}to{opacity:1;transform:translateX(-50%)}}
 .cover-copy{position:absolute;z-index:3;left:var(--gut);bottom:clamp(36px,6vh,72px);max-width:min(30%,420px)}
@@ -446,6 +446,46 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
 .disc-note{margin-top:8px}
 
 /* ===== 響應式 ===== */
+
+/* ===== 動態語彙：透明・交錯・折疊 =====
+   .sg 群組進入畫面時加 .in；子項目以 --i 依序延遲（交錯）。
+   折疊：像布樣冊翻開或紙卡展開，以上緣為軸 rotateX 攤平，同時由透明淡入。 */
+.js .sg>.sgi{opacity:0;transition:opacity .9s var(--ease-out),transform 1.1s var(--ease-lux);transition-delay:calc(var(--i,0) * 90ms)}
+html.js .sg.sg.in>.sgi.sgi{opacity:1;transform:none}
+.js .sg.fold{perspective:1400px}
+.js .sg.fold>.sgi{transform:rotateX(-78deg);transform-origin:50% 0;backface-visibility:hidden}
+.js .sg.lift>.sgi{transform:translateY(22px)}
+.js .sg.zig>.sgi:nth-child(odd){transform:translateX(-28px)}
+.js .sg.zig>.sgi:nth-child(even){transform:translateX(28px)}
+.js .sg.fade>.sgi{transform:none}
+.js .sg.in>.sgi .ph>svg,.js .sg.in>.sgi .ph>img{animation:unveil 1.6s var(--ease-lux) both;animation-delay:calc(var(--i,0) * 120ms + .15s)}
+/* 布樣卡：樣本頁往下翻開；切換分頁時重新播放 */
+@keyframes foldDown{from{opacity:0;transform:perspective(1100px) rotateX(-80deg)}55%{opacity:1}to{opacity:1;transform:none}}
+.fab{animation:none}
+.fab .sw{transform-origin:50% 0}
+.js #fabrics .grid.in .fab .sw{animation:foldDown 1.1s var(--ease-lux) both;animation-delay:calc(var(--i,0) * 80ms)}
+.js #fabrics .grid.in .fab .body{animation:fadeUp .9s var(--ease-out) both;animation-delay:calc(var(--i,0) * 80ms + .35s)}
+.js #fabrics .grid:not(.in) .fab{opacity:0}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* 封面文字：逐行由透明浮現 */
+.cover-copy>*,.cover-look>*{animation:fadeUp 1.1s var(--ease-out) both}
+.cover-copy>*:nth-child(1),.cover-look>*:nth-child(1){animation-delay:.5s}
+.cover-copy>*:nth-child(2),.cover-look>*:nth-child(2){animation-delay:.62s}
+.cover-copy>*:nth-child(3),.cover-look>*:nth-child(3){animation-delay:.74s}
+.cover-copy>*:nth-child(4),.cover-look>*:nth-child(4){animation-delay:.86s}
+.cover-copy>*:nth-child(5),.cover-look>*:nth-child(5){animation-delay:.98s}
+.lead span{animation:fadeUp 1.2s var(--ease-out) both}
+.lead span+span{animation-delay:.18s}
+/* 設計台：換裝時新的人物由透明疊入 */
+@keyframes dissolve{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}
+.fig-box svg{animation:dissolve .6s var(--ease-out)}
+/* 預約完成的量身單：像對折的紙卡攤開 */
+@keyframes unfoldCard{from{opacity:0;transform:perspective(1200px) rotateX(-92deg)}60%{opacity:1}to{opacity:1;transform:none}}
+.slip{transform-origin:50% 0;animation:unfoldCard 1.1s var(--ease-lux) both}
+/* 手機選單：連結交錯淡入 */
+.nav.open a{animation:fadeUp .6s var(--ease-out) both}
+.nav.open a:nth-child(2){animation-delay:.05s}.nav.open a:nth-child(3){animation-delay:.1s}.nav.open a:nth-child(4){animation-delay:.15s}
+.nav.open a:nth-child(5){animation-delay:.2s}.nav.open a:nth-child(6){animation-delay:.25s}.nav.open a:nth-child(7){animation-delay:.3s}
 @media (max-width:1180px){
   .hd-tel{display:none}
   .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -465,7 +505,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
   .cover-mast{position:relative;top:auto;font-size:clamp(46px,13.6vw,110px);line-height:.9;white-space:normal;padding:0 var(--gut)}
   .cover-mast span:first-child{display:block}
   .cover-mast i{margin:0 .12em 0 0}
-  .cover-fig{position:relative;left:auto;transform:none;height:auto;width:min(66vw,380px);margin-top:clamp(-30px,-4vw,-12px);animation:fadeIn 1.4s var(--ease-out) .2s both;opacity:0}
+  .cover-fig{position:relative;left:auto;transform:none;height:auto;width:min(66vw,380px);margin-top:clamp(10px,3vw,20px);animation:fadeIn 1.4s var(--ease-out) .2s both;opacity:0}
   .cover-copy,.cover-look{position:relative;left:auto;right:auto;bottom:auto;max-width:none;width:100%;padding:clamp(32px,6vw,48px) var(--gut) 0;text-align:left;background:var(--bone)}
   .cover-copy{margin-top:-1px}
   .cover-look{display:grid;grid-template-columns:auto 1fr;align-items:end;gap:0 20px;padding-bottom:clamp(36px,7vw,56px)}
@@ -518,6 +558,8 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
   .js .rv{opacity:1;transform:none}
   .js .rv.in .ph>svg,.js .rv.in .ph>img,.tape,.chalk-anim,.cover-mast,.cover-fig,.mark-l,.mark-t,.fab,.slip,.jacket-box svg,.inq-list li,.status.on .dot{animation:none}
   .draw{animation:none;stroke-dashoffset:0}
+  html.js .sg.sg>.sgi.sgi{opacity:1;transform:none;transition:none}
+  html.js #fabrics .grid:not(.in) .fab,html.js #fabrics .grid .fab,html.js #fabrics .grid .fab .sw,html.js #fabrics .grid .fab .body,.cover-copy>*,.cover-look>*,.lead span,.fig-box svg,.slip,.nav.open a{opacity:1;animation:none}
   .fade-late,.mark-l,.mark-t,.cover-fig{animation:none;opacity:1}
   .sw,.ph>svg,.ph>img{transition:none}
   .fab:hover .sw,.ph:hover>svg,.ph:hover>img{transform:none}
@@ -603,7 +645,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
     </aside>
     <span class="cover-v cap" aria-hidden="true">Est. 1958 — Taipei — Measure &amp; Cloth</span>
   </div>
-  <dl class="cover-bar">
+  <dl class="cover-bar sg fold">
     <div><dt>半訂製<small>Made to Measure</small></dt><dd>18,800<small>NT$ 起・4 週</small></dd></div>
     <div><dt>全訂製<small>Full Bespoke</small></dt><dd>48,000<small>NT$ 起・8 週</small></dd></div>
     <div><dt>試身<small>Fittings</small></dt><dd>1–3<small>次・博愛路 98 號</small></dd></div>
@@ -625,7 +667,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
         <button type="button" id="railNext" aria-label="下一套"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4 12H20M14 6L20 12L14 18"/></svg></button>
       </div>
     </div>
-    <div class="rail" id="rail" tabindex="0" aria-label="秋冬系列造型，可左右捲動"></div>
+    <div class="rail sg fold" id="rail" tabindex="0" aria-label="秋冬系列造型，可左右捲動"></div>
   </div>
 </section>
 
@@ -672,7 +714,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
         <button type="button" class="tab" data-cat="配件" aria-pressed="false">配件</button>
       </div>
     </div>
-    <div class="grid" id="grid"></div>
+    <div class="grid" id="grid" data-sg></div>
 
     <div class="inq rv" id="inq" aria-labelledby="inqTitle">
       <h3 id="inqTitle"><span class="cap">Enquiry</span>詢問清單 <span id="inqN">0</span> 件</h3>
@@ -786,7 +828,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
         <p class="sec-en">Book a fitting</p>
         <p class="sec-desc">用途與婚期會決定能不能來得及。婚期太近時會先提醒你，並給出最早可行的日期。</p>
       </div>
-      <ol class="steps">
+      <ol class="steps sg lift">
         <li><b>i</b><strong>量身與挑布</strong><span>約 60 分鐘。師傅量二十多個部位，一起翻布樣冊。</span></li>
         <li><b>ii</b><strong>打版與試身</strong><span>半訂製試身一次，全訂製試身三次，每次約 40 分鐘。</span></li>
         <li><b>iii</b><strong>交件與小修</strong><span>交件後一次免費小修，袖長與褲長各一次。</span></li>
@@ -902,7 +944,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
       <div class="tbl-wrap" role="region" aria-label="成衣西裝尺寸對照表，可左右捲動" tabindex="0">
         <table>
           <thead><tr><th scope="col">號數</th><th scope="col">胸圍 cm</th><th scope="col">腰圍 cm</th><th scope="col">衣長 cm</th><th scope="col">袖長 cm</th><th scope="col">適合身高</th></tr></thead>
-          <tbody id="sizeBody"></tbody>
+          <tbody id="sizeBody" class="sg lift"></tbody>
         </table>
       </div>
       <form class="sz-tool" id="szForm" novalidate>
@@ -935,20 +977,20 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
       <h2 class="sec-title" id="t-gal">工作室一隅</h2>
       <p class="sec-en">Inside the atelier</p>
     </div>
-    <div class="mosaic">
-      <figure class="m1 rv">
+    <div class="mosaic sg lift">
+      <figure class="m1">
         <div class="ph" data-photo="g1" data-art="fabric" data-label="布料牆" data-size="1200×900"></div>
         <figcaption class="fig"><span class="cap">Fig. 03</span>布料牆・依季節換布</figcaption>
       </figure>
-      <figure class="m2 rv">
+      <figure class="m2">
         <div class="ph" data-photo="g2" data-art="scissors" data-label="剪刀與粉片" data-size="1200×1500"></div>
         <figcaption class="fig"><span class="cap">Fig. 04</span>剪刀、粉片與皮尺</figcaption>
       </figure>
-      <figure class="m3 rv">
+      <figure class="m3">
         <div class="ph" data-photo="g3" data-art="fitting" data-label="試身室三面鏡" data-size="900×1200"></div>
         <figcaption class="fig"><span class="cap">Fig. 05</span>試身室三面鏡</figcaption>
       </figure>
-      <figure class="m4 rv">
+      <figure class="m4">
         <div class="ph" data-photo="g4" data-art="storefront" data-label="騎樓老店面" data-size="1600×1000"></div>
         <figcaption class="fig"><span class="cap">Fig. 06</span>博愛路 98 號・騎樓</figcaption>
       </figure>
@@ -964,7 +1006,7 @@ tr.hit{background:var(--ink)!important;color:var(--paper)}
       <h2 class="sec-title" id="t-rev">客人的話</h2>
       <p class="sec-en">Notes from clients</p>
     </div>
-    <div class="notes" id="notes"></div>
+    <div class="notes sg zig" id="notes"></div>
   </div>
 </section>
 
@@ -1508,7 +1550,7 @@ function renderStudio(){
 function drawFigure(){
   var box = $('#figBox'); if (!box) return;
   var fab = byId(cfg.fab);
-  box.innerHTML = figureSvg({pt:fab.pt, db:cfg.btn === 'db', btn:cfg.btn, lapel:cfg.lapel, tie:'#7a2430', sq:LINING[cfg.lining].c, vb:'90 20 420 1450',
+  box.innerHTML = figureSvg({pt:fab.pt, db:cfg.btn === 'db', btn:cfg.btn, lapel:cfg.lapel, pocket:cfg.pocket, vest:cfg.vest, tie:'#7a2430', sq:LINING[cfg.lining].c, vb:'90 20 420 1450',
     label:'穿上這套設計的人物：' + fab.n + '・' + BTN[cfg.btn].n + '・' + LAPEL[cfg.lapel].n});
 }
 $$('.pv-tab').forEach(function(b){ b.addEventListener('click', function(){
@@ -1584,6 +1626,12 @@ function figureSvg(o){
   s += '<path d="M268 204L300 ' + vB + 'L332 204Z" fill="#f4f1ea"/><path d="M300 ' + vB + 'L332 204L318 204Z" fill="#000" fill-opacity=".06"/>';
   s += '<path d="M292 220L308 220L305 236L295 236Z" fill="' + tie + '"/><path d="M295 236L305 236L313 ' + (vB - 10) + 'L300 ' + vB + 'L287 ' + (vB - 10) + 'Z" fill="' + tie + '"/><path d="M300 236L305 236L313 ' + (vB - 10) + 'L300 ' + vB + 'Z" fill="#000" fill-opacity=".22"/>';
   s += '<path d="M282 198L300 222L292 240L274 212Z" fill="#fbfaf6" stroke="#cfc9bd" stroke-width="1"/><path d="M318 198L300 222L308 240L326 212Z" fill="#ece8df" stroke="#cfc9bd" stroke-width="1"/>';
+  // 背心：在 V 區裡畫出背心的 V 領與一排小扣（三件式）
+  if (o.vest){
+    var vy = 268, vx = 268 + 32*(vy - 204)/(vB - 204), vest = 'M' + vx.toFixed(1) + ' ' + vy + 'L300 318L' + (600 - vx).toFixed(1) + ' ' + vy + 'L300 ' + vB + 'Z';
+    s += '<path d="' + vest + '" fill="' + f + '" ' + seam + '/><path d="' + vest + '" fill="#000" fill-opacity=".18"/>';
+    for (var vb = 336; vb < vB - 6; vb += 26) s += '<circle cx="300" cy="' + vb + '" r="3" fill="#2a221c"/>';
+  }
   // 外套前身（單排在最下一顆扣子以下前襟分開，露出西褲）
   var body = db
     ? 'M272 206Q232 214 190 248L198 330Q214 400 222 470Q216 560 212 700Q300 716 388 700Q384 560 378 470Q386 400 402 330L410 248Q368 214 328 206Z'
@@ -1595,8 +1643,11 @@ function figureSvg(o){
   s += '<path d="M222 470Q226 520 224 600" stroke="#000" stroke-opacity=".18" stroke-width="6" fill="none" filter="url(#' + u + 'bl)"/><path d="M378 470Q374 520 376 600" stroke="#000" stroke-opacity=".3" stroke-width="8" fill="none" filter="url(#' + u + 'bl)"/>';
   if (db) s += '<path d="M268 430V706" stroke="#0d0f14" stroke-opacity=".45" stroke-width="1.4"/>';
   // 口袋：腰袋有蓋、胸袋與口袋巾
-  var flap = 'M226 600L282 598L282 614Q282 618 278 618L230 619Q226 619 226 615Z';
-  s += '<path d="' + flap + '" fill="' + f + '" ' + seam + '/><path d="' + flap + '" fill="#000" fill-opacity=".08"/>' + M('<path d="' + flap + '" fill="' + f + '" ' + seam + '/><path d="' + flap + '" fill="#000" fill-opacity=".2"/>');
+  var flap = o.pocket === 'patch' ? 'M226 590L284 588L286 652Q286 658 280 658L232 660Q226 660 226 654Z'
+    : o.pocket === 'slant' ? 'M226 616L284 598L285 608L227 627Z'
+    : 'M226 600L282 598L282 614Q282 618 278 618L230 619Q226 619 226 615Z';
+  var stitch = o.pocket === 'patch' ? '<path d="M231 595L280 593L281 650L232 653Z" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1" stroke-dasharray="3 3"/>' : '';
+  s += '<path d="' + flap + '" fill="' + f + '" ' + seam + '/><path d="' + flap + '" fill="#000" fill-opacity=".08"/>' + stitch + M('<path d="' + flap + '" fill="' + f + '" ' + seam + '/><path d="' + flap + '" fill="#000" fill-opacity=".2"/>' + stitch);
   s += '<path d="M350 336L362 322L370 334L378 318L386 332L392 330L392 344L350 350Z" fill="' + sq + '"/><path d="M348 346L394 340L394 348L348 354Z" fill="' + f + '" ' + seam + '/>';
   // 領子與駁頭（左右鏡射）
   var collar = 'M282 202Q262 212 250 268L262 262L288 206Z';
@@ -1638,7 +1689,7 @@ var LOOKS = [
   {n:'亞麻夏季西裝', en:'Natural linen, unstructured', cfg:{fab:'p06', btn:'sb1', lapel:'notch', pocket:'patch', vent:'double', pants:'flat'}, tie:'#1f5f6b', sq:'#c9d2d6', bg:['#e9e5dc','#d6cfc1']}
 ];
 function lookFig(L, extra){
-  var o = {pt:byId(L.cfg.fab).pt, db:L.cfg.btn === 'db', lapel:L.cfg.lapel === 'peak' ? 'peak' : 'notch', tie:L.tie, sq:L.sq, pose:L.pose, label:'秋冬造型：' + L.n};
+  var o = {pt:byId(L.cfg.fab).pt, db:L.cfg.btn === 'db', btn:L.cfg.btn, lapel:L.cfg.lapel, pocket:L.cfg.pocket, vest:!!L.cfg.vest, tie:L.tie, sq:L.sq, pose:L.pose, label:'秋冬造型：' + L.n};
   for (var k in extra) o[k] = extra[k];
   return figureSvg(o);
 }
@@ -1862,7 +1913,7 @@ wedCheck();
 $('#notes').innerHTML = REVIEWS.map(function(r){
   var stars = '';
   for (var k = 0; k < 5; k++) stars += k < r.star ? '★' : '☆';
-  return '<article class="note rv">' +
+  return '<article class="note">' +
     '<p class="stars" role="img" aria-label="' + r.star + ' 顆星">' + stars + '</p>' +
     '<blockquote>' + esc(r.t) + '</blockquote>' +
     '<p class="who cap">' + esc(r.who) + ' — ' + esc(r.item) + ' — ' + r.date + '</p></article>';
@@ -1873,6 +1924,22 @@ $('#hours').innerHTML = WEEK_ORDER.map(function(d){
   var h = SHOP.hours[d], today = d === now.getDay();
   return '<li class="' + (today ? 'today' : '') + '"><span>' + DAYS[d] + (today ? '<em class="tg">今天</em>' : '') + '</span><span class="num">' + (h ? h[0] + '–' + h[1] : '公休') + '</span></li>';
 }).join('');
+
+/* ===== 交錯群組：子項目編號 --i，群組進入畫面時加 .in ===== */
+function stagger(el){ Array.prototype.forEach.call(el.children, function(c, i){ c.classList.add('sgi'); c.style.setProperty('--i', i); }); }
+(function(){
+  var groups = $$('.sg'), grid = $('#grid');
+  groups.forEach(stagger);
+  var gridIdx = function(){ Array.prototype.forEach.call(grid.children, function(c, i){ c.style.setProperty('--i', i % 4 + Math.floor(i / 4)); }); };
+  gridIdx();
+  new MutationObserver(gridIdx).observe(grid, {childList:true});
+  var all = groups.concat([grid]);
+  if (!('IntersectionObserver' in window)){ all.forEach(function(el){ el.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, {threshold:.08, rootMargin:'0px 0px -8% 0px'});
+  all.forEach(function(el){ io.observe(el); });
+})();
 
 /* ===== 畫面進場（IntersectionObserver） ===== */
 (function(){
