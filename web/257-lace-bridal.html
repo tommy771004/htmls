@@ -943,8 +943,8 @@ function rosette(o){
   }
   s += '<circle class="petal" style="transition-delay:.85s" r="' + (R*.1).toFixed(2) + '" fill="#fbf3e6" stroke="#e6d2b5" stroke-width="' + (R*.012).toFixed(2) + '"/>';
   if (bead){
-    for (i = 0; i < n * 2; i++){
-      var a = i * Math.PI / n;
+    for (i = 0; i < n; i++){
+      var a = i * 2 * Math.PI / n;
       s += '<circle class="petal" style="transition-delay:' + (1 + i * .02).toFixed(2) + 's" cx="' + (Math.cos(a) * R * 1.02).toFixed(2) + '" cy="' + (Math.sin(a) * R * 1.02).toFixed(2) + '" r="' + (R*.024).toFixed(2) + '" fill="#e6d2b5" opacity=".9"/>';
     }
   }
@@ -982,12 +982,13 @@ var SKIRT = {
 // 裙襬波浪：[瓣數, 下垂幅度]
 var HEMS = {'A字':[5,8], '魚尾':[4,12], '公主蓬裙':[6,10], '直筒':[2,3], '帝國腰':[5,6]};
 // 領口：回傳上身頂端（左肩點、右肩點、領口曲線由左到右）
+// top 為 tl 到 tr 之間的指令字串（含肩線與領口），tl／tr 為外側肩點
 var NECK_TOP = {
-  'V領': function(w){ var v = Math.min(226, w - 36); return {tl:[146,112], tr:[254,112], segs:[[164,160,186,v-20,200,v],[214,v-20,236,160,254,112]]}; },
-  '一字肩': function(){ return {tl:[122,128], tr:[278,128], segs:[[150,150,250,150,278,128]]}; },
-  '平口': function(){ return {tl:[142,170], tr:[258,170], segs:[[172,194,228,194,258,170]]}; },
-  '繞頸': function(){ return {tl:[146,150], tr:[254,150], segs:[[160,126,184,108,200,96],[216,108,240,126,254,150]]}; },
-  '蕾絲長袖': function(){ return {tl:[150,112], tr:[250,112], segs:[[172,146,228,146,250,112]]}; }
+  'V領': function(w){ var v = Math.min(226, w - 36); return {tl:[138,118], tr:[262,118], top:'L156 112C164 160 186 ' + (v - 20) + ' 200 ' + v + 'C214 ' + (v - 20) + ' 236 160 244 112L262 118'}; },
+  '一字肩': function(){ return {tl:[122,128], tr:[278,128], top:'C150 150 250 150 278 128'}; },
+  '平口': function(){ return {tl:[142,170], tr:[258,170], top:'C172 194 228 194 258 170'}; },
+  '繞頸': function(){ return {tl:[152,178], tr:[248,178], top:'C166 204 186 226 200 226C214 226 234 204 248 178'}; },
+  '蕾絲長袖': function(){ return {tl:[142,118], tr:[258,118], top:'L154 112C172 146 228 146 246 112L258 118'}; }
 };
 // 沿曲線走：rev=0 正向；rev=1 倒著走；mir=1 左右鏡射
 function sideD(p0, segs, mir, rev){
@@ -1016,20 +1017,21 @@ function dressSVG(o){
   var S = SKIRT[sil], xr = S[S.length - 1][4], xl = 400 - xr, hm = HEMS[sil];
   var skirt = 'M164 ' + wY + ' ' + sideD([164, wY], S, 1, 0) + hemD(xl, xr, hm[0], hm[1]) + sideD([236, wY], S, 0, 1) + 'Z';
   // 拖尾：弧形垂到地面後方
-  var tk = train === '教堂拖尾' ? 46 : 30, ts = train === '教堂拖尾' ? 40 : 22, trainD = '';
-  if (train !== '無') trainD = 'M' + (xl + 10) + ' ' + (HEM - 8) + ' C' + (xl - ts) + ' ' + (HEM + 10) + ' ' + (xl - ts + 6) + ' ' + (HEM + tk) + ' 200 ' + (HEM + tk) + ' C' + (xr + ts - 6) + ' ' + (HEM + tk) + ' ' + (xr + ts) + ' ' + (HEM + 10) + ' ' + (xr - 10) + ' ' + (HEM - 8) + 'Z';
+  var tk = train === '教堂拖尾' ? 40 : 24, ts = train === '教堂拖尾' ? 46 : 30, trainD = '';
+  if (train !== '無') trainD = 'M' + (xl + 14) + ' ' + (HEM - 6) + ' C' + (xl - ts) + ' ' + (HEM + 4) + ' 130 ' + (HEM + tk) + ' 200 ' + (HEM + tk) + ' C270 ' + (HEM + tk) + ' ' + (xr + ts) + ' ' + (HEM + 4) + ' ' + (xr - 14) + ' ' + (HEM - 6) + 'Z';
   // 上身
-  var bod = 'M' + nk.tl.join(' ') + nk.segs.map(function(s){ return 'C' + s.join(' '); }).join('') + sideD(tr, R, 0, 0) + 'L164 ' + wY + sideD(tr, R, 1, 1) + 'Z';
+  var bod = 'M' + nk.tl.join(' ') + nk.top + sideD(tr, R, 0, 0) + 'L164 ' + wY + sideD(tr, R, 1, 1) + 'Z';
   var sc = function(a, b){ return 'matrix(' + a + ' 0 0 ' + b + ' ' + (200 * (1 - a)).toFixed(1) + ' ' + (wY * (1 - b)).toFixed(1) + ')'; };
   var fd = [-1, -.4, .4, 1], w = xr - 200, folds = '';
   fd.forEach(function(d){ folds += 'M' + (200 + d * 34).toFixed(0) + ' ' + wY + 'Q' + (200 + d * w * .6).toFixed(0) + ' ' + (wY + (HEM - wY) * .55).toFixed(0) + ' ' + (200 + d * w * .92).toFixed(0) + ' ' + HEM; });
   var defs = '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf9"/><stop offset=".4" stop-color="' + c + '"/><stop offset="1" stop-color="' + c + '"/></linearGradient>' +
     '<path id="' + u + 'k" d="' + skirt + '"/>' + (trainD ? '<path id="' + u + 't" d="' + trainD + '"/>' : '') +
-    (o.neck === '蕾絲長袖' ? '<path id="' + u + 's" d="M248 112C290 124 306 190 308 300L286 304C286 230 262 166 226 140Z"/><path id="' + u + 'u" d="M285 286L309 286L308 298Q297 310 286 300Z"/>' : '') +
+    (o.neck === '蕾絲長袖' ? '<path id="' + u + 's" d="M262 116C300 126 318 190 320 300L290 304C290 236 272 178 252 150Z"/><path id="' + u + 'u" d="M287 286L321 286L320 298Q309 310 298 300Z"/>' : '') +
+    (o.neck === '繞頸' ? '<path id="' + u + 'h" d="M150 182C154 150 176 120 197 98L200 100C180 122 162 152 157 184Z"/>' : '') +
     '<clipPath id="' + u + 'c"><use href="' + k + '"/></clipPath></defs>';
   var b = '';
   // 裙身：後層較大、中層主體、上層薄紗與底部陰影
-  if (trainD) b += '<use href="#' + u + 't" fill="url(#' + g + ')" opacity=".8"/><use href="#' + u + 't" fill="url(#sheer)" opacity=".6"/>';
+  if (trainD) b += '<use href="#' + u + 't" fill="url(#' + g + ')" opacity=".7" stroke="#b9846f" stroke-opacity=".28"/>';
   b += '<use href="' + k + '" fill="url(#' + g + ')" transform="' + sc(1.06, 1.03) + '" opacity=".4"/>' +
     '<use href="' + k + '" fill="url(#' + g + ')" opacity=".75"/>' +
     '<use href="' + k + '" fill="url(#sheer)" transform="' + sc(.97, .98) + '"/>' +
@@ -1040,7 +1042,8 @@ function dressSVG(o){
   if (o.neck === '蕾絲長袖') b += '<use href="#' + u + 's" fill="#fffdf9" opacity=".5"/><use href="#' + u + 's" fill="url(#lacep)" opacity=".7"/><use href="#' + u + 'u" fill="#fffdf9" opacity=".9"/>' +
     '<use href="#' + u + 's" transform="matrix(-1 0 0 1 400 0)" fill="#fffdf9" opacity=".5"/><use href="#' + u + 's" transform="matrix(-1 0 0 1 400 0)" fill="url(#lacep)" opacity=".7"/><use href="#' + u + 'u" transform="matrix(-1 0 0 1 400 0)" fill="#fffdf9" opacity=".9"/>';
   // 上身：緞面、低對比蕾絲紋、腰線與胸線
-  b += '<path d="' + bod + '" fill="url(#' + g + ')"/><path d="' + bod + '" fill="url(#lacep)" opacity=".5"/><path d="' + bod + '" fill="none" stroke="#b9846f" stroke-opacity=".3"/>' +
+  b += '<path d="' + bod + '" fill="url(#' + g + ')"/><path d="' + bod + '" fill="url(#lacep)" opacity=".35"/><path d="' + bod + '" fill="none" stroke="#b9846f" stroke-opacity=".3"/>' +
+    (o.neck === '繞頸' ? '<use href="#' + u + 'h" fill="url(#' + g + ')" stroke="#b9846f" stroke-opacity=".3"/><use href="#' + u + 'h" transform="matrix(-1 0 0 1 400 0)" fill="url(#' + g + ')" stroke="#b9846f" stroke-opacity=".3"/>' : '') +
     '<path d="M158 ' + (bY + 12) + 'Q200 ' + (bY + 34) + ' 242 ' + (bY + 12) + '" fill="none" stroke="#b9846f" stroke-opacity=".35"/>' +
     // 腰間細緞帶與垂下的一段
     '<path d="M160 ' + (wY - 4) + 'Q200 ' + (wY + 6) + ' 240 ' + (wY - 4) + 'L241 ' + (wY + 4) + 'Q200 ' + (wY + 15) + ' 159 ' + (wY + 4) + 'Z" fill="#c9a24a" opacity=".85"/>' +
