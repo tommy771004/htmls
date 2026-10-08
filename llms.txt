@@ -321,6 +321,11 @@
 - [225 青瓷茶寮 · 茶館官網](https://htmls-ruddy.vercel.app/web/225-gongfu-celadon.html)：茶館官網模板：逐泡參數茶單、冰裂紋功夫茶計時器、品茗包廂預約與低消。
 - [226 AQUIFER · 地層水吧官網](https://htmls-ruddy.vercel.app/web/226-aquifer-water.html)：礦泉水吧官網模板：地層剖面、礦物成分比較圖、依餐點推薦、辦公室配水試算。
 - [227 La Fée Verte · 苦艾酒吧官網](https://htmls-ruddy.vercel.app/web/227-absinthe-louche.html)：苦艾酒吧官網模板：綠仙子海報、可選酒款與滴速的滴水禮示範（花藤隨乳化生長）、主題夜訂位。
+- [243 百草櫃 · 青草茶舖官網](https://htmls-ruddy.vercel.app/web/243-herbal-drawer.html)：青草茶舖官網模板：百子櫃抽屜牆、戥子秤「抓一帖」自配青草茶、整甕預訂與取貨單。
+- [244 TABLETTE · 可可製所官網](https://htmls-ruddy.vercel.app/web/244-cacao-foil.html)：熱可可官網模板：巧克力磚與錫箔視覺、可可濃度與產地調一杯、外帶單與禮盒訂製。
+- [245 SƠN MÀI · 越南滴漏咖啡官網](https://htmls-ruddy.vercel.app/web/245-phin-lacquer.html)：越南咖啡官網模板：漆畫屏風視覺、六步驟 Phin 滴漏計時器、蛋咖啡課程預約。
+- [246 泰泰奶茶 CHA YEN · 泰式奶茶官網](https://htmls-ruddy.vercel.app/web/246-chayen-poster.html)：泰式奶茶官網模板：手繪電影海報視覺、甜度分級章、拖曳倒煉乳的大理石紋實驗、場次式團購訂購。
+- [247 MAKAUY · 馬告琴酒蒸餾所官網](https://htmls-ruddy.vercel.app/web/247-gin-patent.html)：琴酒蒸餾所官網模板：專利線稿視覺、台灣香料籃配方與蒸餾動畫、風味雷達、週末導覽預約。
 
 ## Optional
 
