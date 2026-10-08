@@ -18,7 +18,6 @@
   --bg:#07060b; --panel:#121019; --panel2:#1a1726; --line:#2b2640; --line2:#3a3450;
   --ink:#f2f0f7; --mute:#9a94ad; --ice:#6fd3ff;
   --t0:#0b0014; --t1:#3a0ca3; --t2:#b5179e; --t3:#f72585; --t4:#ff8c00; --t5:#ffd60a; --t6:#ffffff;
-  --paper:#f2f0f7; --paper-ink:#121019; --paper-mute:#5d5670; --paper-line:#d6d1e2;
   --ramp:linear-gradient(90deg,var(--t0),var(--t1),var(--t2),var(--t3),var(--t4),var(--t5),var(--t6));
   --ease-out:cubic-bezier(.22,.8,.24,1);
   --dur-hover:.25s; --dur-press:.12s; --dur-enter:.9s; --dur-exit:.35s;
@@ -209,7 +208,10 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
 input[type=range]:focus-visible{outline:2px solid var(--ice);outline-offset:4px}
 .hint{font-size:12.5px;color:var(--mute);margin-top:4px}
 .fig-wrap{position:relative;display:grid;place-items:center;padding:10px 0 4px;background:radial-gradient(60% 55% at 50% 45%,rgba(58,12,163,.25),rgba(7,6,11,0) 70%);border-radius:12px}
-#fig{width:min(250px,72%);height:auto}
+#fig{width:min(340px,100%);height:auto}
+.fig-t{font-family:var(--f-mono),var(--f-cn);font-size:14px;fill:var(--ink)}
+.fig-l{stroke:var(--ink);stroke-width:1;opacity:.55;fill:none}
+.fig-d{fill:var(--ink)}
 .seg{transition:fill .9s var(--ease-out)}
 .fig-note{text-align:center;font-size:12px;letter-spacing:.1em;color:var(--mute);margin-top:6px}
 .out-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
@@ -267,30 +269,21 @@ input[type=range]:focus-visible{outline:2px solid var(--ice);outline-offset:4px}
 .tk-bar{height:6px;margin:20px 0 16px;border-radius:3px;background:var(--ramp)}
 .tk-note{color:var(--mute);font-size:12px;margin-bottom:14px;line-height:1.7}
 
-/* ===== 尺寸（淺色段落） ===== */
-.size{background:var(--paper);color:var(--paper-ink);padding:110px 0}
-.size .kicker{color:var(--t2)}
-.size .sec-h p{color:var(--paper-mute)}
-.size .sec-h h2 small{color:var(--paper-mute)}
+/* ===== 尺寸（深色面板，熱像色階框線） ===== */
+.size{background:var(--bg);padding:110px 0}
 .size-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
-.tbl-wrap{overflow-x:auto;border-radius:14px;background:#fff;border:1px solid var(--paper-line)}
+.tbl-wrap,.sz-panel{background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,var(--t1),var(--t3),var(--t4),var(--t5)) border-box;border:1px solid transparent;border-radius:14px}
+.tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:440px}
-th,td{padding:13px 14px;border-bottom:1px solid var(--paper-line);text-align:left}
-th{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;color:var(--paper-mute);font-weight:600}
+th,td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left}
+th{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;color:var(--mute);font-weight:600}
 td.mono{font-size:13.5px}
-tr.hit td{background:#fff1c2}
-tr.hit td:first-child{font-weight:900}
-.sz-panel{background:#fff;border:1px solid var(--paper-line);border-radius:14px;padding:22px}
-.sz-panel .field .lbl{color:var(--paper-mute)}
-.sz-panel .fi{background:#faf9fc;border-color:#bdb6cc;color:var(--paper-ink)}
-.sz-panel .fi:focus{border-color:var(--t2);box-shadow:0 0 0 3px rgba(181,23,158,.16)}
-.sz-panel .opts label{color:var(--paper-mute);border-color:#bdb6cc}
-.sz-panel .opts input:checked + label{background:var(--paper-ink);border-color:var(--paper-ink);color:#fff}
-.sz-panel .btn-hot{background:var(--paper-ink);color:#fff}
-.sz-panel .err{color:var(--t2)}
-.sz-res{margin-top:16px;padding:16px;border-radius:12px;background:var(--paper);border-left:4px solid var(--t4);font-size:15px;line-height:1.75}
-.sz-res b{font-family:var(--f-title);font-size:30px;font-weight:400;color:var(--paper-ink);margin-right:6px}
-.sz-res small{display:block;margin-top:6px;color:var(--paper-mute);font-size:13px}
+tr.hit td{background:rgba(255,140,0,.16)}
+tr.hit td:first-child{font-weight:900;color:var(--t5)}
+.sz-panel{padding:22px}
+.sz-res{margin-top:16px;padding:16px 16px 16px 18px;border-radius:12px;background:#0b0a11;border-left:4px solid var(--t4);font-size:15px;line-height:1.75}
+.sz-res b{font-family:var(--f-title);font-size:30px;font-weight:400;background:linear-gradient(90deg,var(--t3),var(--t4),var(--t5));-webkit-background-clip:text;background-clip:text;color:transparent;margin-right:6px}
+.sz-res small{display:block;margin-top:6px;color:var(--mute);font-size:13px}
 
 /* ===== 照片牆 ===== */
 .gallery{background:var(--bg);padding:110px 0}
@@ -488,7 +481,10 @@ tr.hit td:first-child{font-weight:900}
 <linearGradient id="hsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07060b"/><stop offset=".55" stop-color="#150836"/><stop offset="1" stop-color="#3a0ca3"/></linearGradient>
 <radialGradient id="hsg" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffffff"/><stop offset=".16" stop-color="#ffd60a"/><stop offset=".36" stop-color="#ff8c00"/><stop offset=".58" stop-color="#f72585"/><stop offset=".8" stop-color="#b5179e"/><stop offset="1" stop-color="#3a0ca3" stop-opacity="0"/></radialGradient>
 <filter id="hblur" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
-<filter id="hsoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
+<path id="runPath" d="M16 -352a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM38.3 -295.9L46.4 -326.5A11 11 0 0 1 25.6 -333.5L13.7 -304.1A13 13 0 0 1 38.3 -295.9ZM23.3 -184.4L52.3 -291.7A27 27 0 0 1 -0.3 -304.3L-23.3 -195.6A24 24 0 0 1 23.3 -184.4ZM20 -284.5L86.4 -253.1A10 10 0 0 1 95.6 -270.9L32 -307.5A13 13 0 0 1 20 -284.5ZM99.7 -257L127.9 -310A8 8 0 0 1 114.1 -318L82.3 -267A10 10 0 0 1 99.7 -257ZM126.9 -308.6L138.6 -319.9A9 9 0 0 1 125.4 -332.1L115.1 -319.4A8 8 0 0 1 126.9 -308.6ZM138.5 -321.3L144 -334.1A5 5 0 0 1 136 -339.9L125.5 -330.7A8 8 0 0 1 138.5 -321.3ZM16.5 -304.8L-31.3 -248.8A10 10 0 0 1 -16.7 -235.2L35.5 -287.2A13 13 0 0 1 16.5 -304.8ZM-30.1 -250L-74.8 -213.4A8 8 0 0 1 -65.2 -200.6L-17.9 -234A10 10 0 0 1 -30.1 -250ZM-73.2 -214.3L-90.8 -205.4A7 7 0 0 1 -85.2 -192.6L-66.8 -199.7A8 8 0 0 1 -73.2 -214.3ZM19 -172.2L72.2 -246.4A14 14 0 0 1 51.8 -265.6L-19 -207.8A26 26 0 0 1 19 -172.2ZM47.1 -258.1L41.1 -171.2A9 9 0 0 1 58.9 -168.8L76.9 -253.9A15 15 0 0 1 47.1 -258.1ZM43.9 -161.2L78.4 -155.2A7 7 0 0 1 81.6 -168.8L48.1 -178.8A9 9 0 0 1 43.9 -161.2ZM-22.7 -202.6L-62.2 -106.8A14 14 0 0 1 -37.8 -93.2L22.7 -177.4A26 26 0 0 1 -22.7 -202.6ZM-62.9 -107.6L-103.8 -26.6A9 9 0 0 1 -88.2 -17.4L-37.1 -92.4A15 15 0 0 1 -62.9 -107.6ZM-100.5 -22.6L-124 -13.7A7 7 0 0 1 -120 -0.3L-95.5 -5.4A9 9 0 0 1 -100.5 -22.6Z"/>
+<clipPath id="runClip"><use href="#runPath"/></clipPath>
+<filter id="rhalo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+<radialGradient id="hcold" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#6fd3ff"/><stop offset=".5" stop-color="#3a0ca3"/><stop offset="1" stop-color="#3a0ca3" stop-opacity="0"/></radialGradient>
 </defs>
 <rect width="1600" height="900" fill="url(#hsky)"/>
 <ellipse cx="800" cy="520" rx="900" ry="160" fill="#3a0ca3" opacity=".25" filter="url(#hblur)"/>
@@ -498,17 +494,13 @@ tr.hit td:first-child{font-weight:900}
 <path d="M120 430 L140 466 L128 462 L116 474 L104 458 Z" fill="#6fd3ff" opacity=".25"/>
 <path d="M-20 650 L170 520 L330 612 L520 486 L700 624 L870 548 L1020 634 L1190 508 L1340 612 L1620 520 L1620 900 L-20 900Z" fill="#120633"/>
 <rect x="-20" y="760" width="1640" height="160" fill="#0b0014"/>
-<ellipse cx="880" cy="716" rx="380" ry="34" fill="#b5179e" opacity=".22" filter="url(#hblur)"/>
-<g transform="translate(80 0)" fill="none" stroke-linecap="round" filter="url(#hsoft)">
-<path d="M790 300 L748 372 L760 420" stroke="#b5179e" stroke-width="26" opacity=".55"/>
-<path d="M822 300 L866 350 L902 322" stroke="#b5179e" stroke-width="26" opacity=".55"/>
-<path d="M790 440 L752 520 L712 604 L696 672" stroke="#f72585" stroke-width="40" opacity=".45"/>
-<path d="M808 440 L856 516 L892 590 L930 652" stroke="#f72585" stroke-width="40" opacity=".45"/>
-<path d="M696 672 L664 680 M930 652 L960 660" stroke="#3a0ca3" stroke-width="20" opacity=".7"/>
-<path d="M770 296 Q800 276 834 296 L846 424 Q800 452 756 424 Z" fill="#f72585" stroke="none" opacity=".6"/>
-<ellipse cx="818" cy="236" rx="34" ry="40" fill="#ff8c00" stroke="none" opacity=".7"/>
+<ellipse cx="900" cy="760" rx="330" ry="30" fill="#b5179e" opacity=".22" filter="url(#hblur)"/>
+<g transform="translate(900 760) scale(1.25)">
+<use href="#runPath" fill="#f72585" opacity=".5" filter="url(#rhalo)"/>
+<use href="#runPath" fill="#1f0a45"/>
+<g clip-path="url(#runClip)"><g id="spots" filter="url(#hblur)"></g></g>
+<use href="#runPath" fill="none" stroke="#ff8c00" stroke-opacity=".45" stroke-width="1"/>
 </g>
-<g id="spots"></g>
 </svg>
 <div class="sweep"></div>
 <div class="hud" aria-hidden="true">
@@ -661,19 +653,13 @@ tr.hit td:first-child{font-weight:900}
 <span class="comfort" id="comfort">--</span>
 </div>
 <div class="fig-wrap" style="margin-top:18px">
-<svg id="fig" viewBox="0 0 300 520" role="img" aria-label="熱像人形，依預測舒適度上色">
-<defs><filter id="fbg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="16"/></filter></defs>
-<ellipse id="glow" cx="150" cy="230" rx="130" ry="200" opacity=".35" filter="url(#fbg)" style="transition:fill .9s var(--ease-out)"/>
-<ellipse id="hd" class="seg" cx="150" cy="62" rx="32" ry="40"/>
-<path id="tr" class="seg" d="M112 112 Q150 98 188 112 L204 170 L196 282 Q150 296 104 282 L96 170 Z"/>
-<path id="aL" class="seg" d="M96 122 L70 218 L58 300 L78 306 L86 224 L112 134 Z"/>
-<path id="aR" class="seg" d="M204 122 L230 218 L242 300 L222 306 L214 224 L188 134 Z"/>
-<ellipse id="hL" class="seg" cx="68" cy="322" rx="14" ry="19"/>
-<ellipse id="hR" class="seg" cx="232" cy="322" rx="14" ry="19"/>
-<path id="lL" class="seg" d="M104 282 L148 284 L142 392 L140 488 L110 490 L106 392 Z"/>
-<path id="lR" class="seg" d="M196 282 L152 284 L158 392 L160 488 L190 490 L194 392 Z"/>
-<path id="fL" class="seg" d="M106 490 L142 490 L148 510 L98 512 Z"/>
-<path id="fR" class="seg" d="M194 490 L158 490 L152 510 L202 512 Z"/>
+<svg id="fig" viewBox="0 0 400 500" role="img" aria-label="熱像人形，依預測舒適度上色">
+<defs><filter id="fbg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="16"/></filter><filter id="fblend" x="-15%" y="-5%" width="130%" height="110%"><feGaussianBlur stdDeviation="2.4"/></filter></defs>
+<ellipse id="glow" cx="200" cy="260" rx="150" ry="230" opacity=".3" filter="url(#fbg)" style="transition:fill .9s var(--ease-out)"/>
+<g filter="url(#fblend)"><g transform="translate(20 0)"><ellipse class="seg" data-k="head" cx="180" cy="62" rx="26" ry="32"/><path class="seg" data-k="neck" d="M170 86H190L194 118H166Z"/><path class="seg" data-k="sh" d="M136 124Q150 112 170 114H190Q210 112 224 124Q240 130 242 150L226 164H134L118 150Q120 130 136 124Z"/><path class="seg" data-k="tor" d="M134 150H226Q232 176 226 212Q230 236 236 252Q238 262 226 266Q206 274 180 274Q154 274 134 266Q122 262 124 252Q130 236 134 212Q128 176 134 150Z"/><path class="seg" data-k="ua" d="M123.2 131.5L113.1 216.2A11 11 0 0 1 134.9 219.8L152.8 136.5A15 15 0 0 1 123.2 131.5Z"/><path class="seg" data-k="ua" d="M207.2 136.5L225.1 219.8A11 11 0 0 1 246.9 216.2L236.8 131.5A15 15 0 0 1 207.2 136.5Z"/><path class="seg" data-k="fa" d="M113.1 216.3L106.1 280.8A8 8 0 0 1 121.9 283.2L134.9 219.7A11 11 0 0 1 113.1 216.3Z"/><path class="seg" data-k="fa" d="M225.1 219.7L238.1 283.2A8 8 0 0 1 253.9 280.8L246.9 216.3A11 11 0 0 1 225.1 219.7Z"/><path class="seg" data-k="hn" d="M106.2 280.3L99.3 297.6A11 11 0 0 1 120.7 302.4L121.8 283.7A8 8 0 0 1 106.2 280.3Z"/><path class="seg" data-k="hn" d="M238.2 283.7L239.3 302.4A11 11 0 0 1 260.7 297.6L253.8 280.3A8 8 0 0 1 238.2 283.7Z"/><path class="seg" data-k="hn" d="M99.1 298.4L99.1 327A7 7 0 0 1 112.9 329L120.9 301.6A11 11 0 0 1 99.1 298.4Z"/><path class="seg" data-k="hn" d="M239.1 301.6L247.1 329A7 7 0 0 1 260.9 327L260.9 298.4A11 11 0 0 1 239.1 301.6Z"/><path class="seg" data-k="th" d="M128 251.1L134 355.5A14 14 0 0 1 162 356.5L176 252.9A24 24 0 0 1 128 251.1Z"/><path class="seg" data-k="th" d="M184 252.9L198 356.5A14 14 0 0 1 226 355.5L232 251.1A24 24 0 0 1 184 252.9Z"/><path class="seg" data-k="cf" d="M133 362.3L141 450.2A9 9 0 0 1 159 449.8L163 361.7A15 15 0 0 1 133 362.3Z"/><path class="seg" data-k="cf" d="M197 361.7L201 449.8A9 9 0 0 1 219 450.2L227 362.3A15 15 0 0 1 197 361.7Z"/><path class="seg" data-k="ft" d="M136 469L162 469A9 9 0 0 1 162 451L136 451A9 9 0 0 1 136 469Z"/><path class="seg" data-k="ft" d="M224 451L198 451A9 9 0 0 1 198 469L224 469A9 9 0 0 1 224 451Z"/></g></g>
+<path class="fig-l" d="M248 196H290"/><circle class="fig-d" cx="248" cy="196" r="2.5"/><text class="fig-t" id="lbT" x="296" y="201">軀幹 --</text>
+<path class="fig-l" d="M118 300H90"/><circle class="fig-d" cx="118" cy="300" r="2.5"/><text class="fig-t" id="lbH" x="86" y="305" text-anchor="end">手 --</text>
+<path class="fig-l" d="M258 460H290"/><circle class="fig-d" cx="258" cy="460" r="2.5"/><text class="fig-t" id="lbF" x="296" y="465">腳 --</text>
 </svg>
 <p class="fig-note mono" id="figNote">核心 --°C</p>
 </div>
@@ -1019,9 +1005,9 @@ lines += '<path d="M-20 ' + y + ' C260 ' + (y - 70 + (i % 3) * 40) + ', 760 ' + 
 return svgw('<defs><radialGradient id="aw-h" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#fff"/><stop offset=".22" stop-color="#ffd60a"/><stop offset=".5" stop-color="#ff8c00"/><stop offset=".78" stop-color="#f72585"/><stop offset="1" stop-color="#3a0ca3"/></radialGradient><filter id="aw-b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter></defs>' +
 '<rect width="1200" height="900" fill="#07060b"/>' + lines +
 '<g filter="url(#aw-b)"><ellipse cx="640" cy="470" rx="150" ry="210" fill="url(#aw-h)"/><circle cx="640" cy="200" r="66" fill="url(#aw-h)"/><path d="M500 360 Q520 520 500 720 M780 360 Q760 520 790 700" stroke="#f72585" stroke-width="54" fill="none" stroke-linecap="round" opacity=".8"/></g>' +
-'<g fill="none" stroke="#6fd3ff" stroke-width="3" opacity=".7"><circle cx="160" cy="450" r="150"/><circle cx="160" cy="450" r="110" stroke-dasharray="6 10"/></g>' +
-'<path d="M160 450 L110 330 M160 450 L250 420 M160 450 L140 580" stroke="#6fd3ff" stroke-width="10" opacity=".55" stroke-linecap="round"/>' +
-'<text x="60" y="800" font-family="monospace" font-size="34" fill="#ffd60a">WIND 12.4 M/S</text><text x="60" y="846" font-family="monospace" font-size="26" fill="#9a94ad">TEST 03 · 37.2 °C</text>');
+'<g fill="none" stroke="#6fd3ff" stroke-width="3" opacity=".7"><circle cx="330" cy="450" r="150"/><circle cx="330" cy="450" r="110" stroke-dasharray="6 10"/></g>' +
+'<path d="M330 450 L280 330 M330 450 L420 420 M330 450 L310 580" stroke="#6fd3ff" stroke-width="10" opacity=".55" stroke-linecap="round"/>' +
+'<text x="290" y="800" font-family="monospace" font-size="34" fill="#ffd60a">WIND 12.4 M/S</text><text x="290" y="846" font-family="monospace" font-size="26" fill="#9a94ad">TEST 03 · 37.2 °C</text>');
 },
 /* 門市：夜裡的櫥窗與招牌 */
 store: function(){
@@ -1050,7 +1036,7 @@ return svgw('<defs><linearGradient id="ad-s" x1="0" y1="0" x2="0" y2="1"><stop o
 '<rect width="1200" height="900" fill="url(#ad-s)"/><circle cx="600" cy="610" r="260" fill="url(#ad-sun)"/>' +
 '<path d="M0 700 Q200 600 420 680 T820 660 T1200 640 V900 H0Z" fill="#0b0014"/>' +
 '<path d="M0 760 Q300 690 600 740 T1200 720 V900 H0Z" fill="#07060b"/>' + rn +
-'<text x="60" y="846" font-family="monospace" font-size="26" fill="#fff6c2">06:40 · 河濱 10K · 8.4 °C</text>');
+'<text x="190" y="846" font-family="monospace" font-size="26" fill="#fff6c2">06:40 · 河濱 10K · 8.4 °C</text>');
 },
 /* 布料透氣測試：織紋與熱斑 */
 fabric: function(){
@@ -1071,7 +1057,7 @@ return svgw('<defs><linearGradient id="at-s" x1="0" y1="0" x2="0" y2="1"><stop o
 '<path d="M640 900 C560 800 720 720 610 640 C520 580 640 520 600 470" fill="none" stroke="#f72585" stroke-width="22" stroke-linecap="round" opacity=".55" filter="url(#at-b)"/>' +
 '<path d="M640 900 C560 800 720 720 610 640 C520 580 640 520 600 470" fill="none" stroke="#ffd60a" stroke-width="5" stroke-dasharray="14 12" opacity=".85"/>' +
 '<g fill="#07060b"><circle cx="600" cy="446" r="12"/><path d="M590 462 L600 492 L612 462 Z"/></g>' +
-'<text x="60" y="846" font-family="monospace" font-size="30" fill="#ffd60a">TRAIL 8K · +320 M</text>');
+'<text x="60" y="760" font-family="monospace" font-size="30" fill="#ffd60a">TRAIL 8K · +320 M</text>');
 }
 };
 function fillPhotos(){
@@ -1166,25 +1152,20 @@ else countUp(el);
 });
 
 /* ===== hero 熱像：熱源、溫度、準星與最高最低 ===== */
-var OX = 80;   /* 人形在 SVG 裡往右平移的量（與 #scene 內 translate(80 0) 相同） */
+var RX = 900, RY = 760, RS = 1.25;   /* 跑者在 #scene 裡的位置與比例（與 SVG 的 transform 相同） */
+/* 熱源（跑者局部座標，地面為 0）：c=1 為冷色（手腳末端） */
 var SPOTS = [
-{x:818,y:236,r:44,a:.95},  /* 頭 */
-{x:800,y:352,r:92,a:1},    /* 胸腹 */
-{x:796,y:432,r:60,a:.9},   /* 髖 */
-{x:760,y:420,r:24,a:.5},   /* 左手 */
-{x:902,y:322,r:24,a:.55},  /* 右手 */
-{x:752,y:520,r:50,a:.8},   /* 左大腿 */
-{x:856,y:516,r:48,a:.8},   /* 右大腿 */
-{x:712,y:604,r:40,a:.5},   /* 左小腿 */
-{x:892,y:590,r:40,a:.5},   /* 右小腿 */
-{x:696,y:672,r:26,a:.25},  /* 左腳 */
-{x:930,y:652,r:26,a:.25}   /* 右腳 */
+{x:8,y:-246,r:44,a:1},{x:22,y:-284,r:30,a:.85},{x:40,y:-350,r:26,a:.9},{x:32,y:-318,r:13,a:.7},
+{x:2,y:-192,r:32,a:.9},{x:32,y:-224,r:26,a:.85},{x:-24,y:-146,r:24,a:.75},{x:56,y:-212,r:18,a:.55},
+{x:-74,y:-62,r:17,a:.5},{x:60,y:-280,r:15,a:.6},{x:106,y:-289,r:13,a:.45},{x:128,y:-322,r:11,a:.3,c:1},
+{x:-2,y:-266,r:14,a:.5},{x:-46,y:-226,r:12,a:.35},{x:-80,y:-203,r:9,a:.2,c:1},{x:64,y:-165,r:10,a:.2,c:1},
+{x:-110,y:-10,r:9,a:.12,c:1}
 ];
 function heatAt(x, y){
 var h = 0;
 for (var i = 0; i < SPOTS.length; i++){
-var s = SPOTS[i], dx = x - (s.x + OX), dy = y - s.y;
-h += s.a * Math.exp(-(dx * dx + dy * dy) / (2 * s.r * s.r));
+var s = SPOTS[i], dx = x - (RX + RS * s.x), dy = y - (RY + RS * s.y), sr = RS * s.r;
+h += s.a * Math.exp(-(dx * dx + dy * dy) / (2 * sr * sr));
 }
 return h;
 }
@@ -1197,7 +1178,7 @@ var mxEl = $('#mkMax'), mnEl = $('#mkMin');
 /* 熱斑：由 SPOTS 產生，讓畫面與讀值一致 */
 if (spotsG){
 spotsG.innerHTML = SPOTS.map(function(s, i){
-return '<circle class="spot" cx="' + (s.x + OX) + '" cy="' + s.y + '" r="' + Math.round(s.r * 1.9) + '" fill="url(#hsg)" opacity="' + s.a + '" filter="url(#hblur)" style="animation-delay:' + (-i * 0.6).toFixed(1) + 's"/>';
+return '<circle class="spot" cx="' + s.x + '" cy="' + s.y + '" r="' + Math.round(s.r * 1.9) + '" fill="url(#' + (s.c ? 'hcold' : 'hsg') + ')" opacity="' + s.a + '" style="animation-delay:' + (-i * 0.6).toFixed(1) + 's"/>';
 }).join('');
 }
 
@@ -1228,13 +1209,13 @@ var p = pt.matrixTransform(m.inverse());
 return {x:p.x, y:p.y};
 }
 
-var tgt = {x:880, y:400}, cur = {x:880, y:400}, shown = tempAt(880, 400);
+var tgt = {x:910, y:447}, cur = {x:910, y:447}, shown = tempAt(910, 447);
 var lastPtr = -1e9, running = false, rafOn = false;
 function clampX(x, W){ return Math.min(Math.max(x, 70), Math.max(70, W - 125)).toFixed(1); }
 function clampY(y, H){ return Math.min(Math.max(y, 40), Math.max(40, H - 36)).toFixed(1); }
 function drift(now){
 var k = now / 1000;
-return {x: 880 + 420 * Math.sin(k * 0.42), y: 400 + 190 * Math.sin(k * 0.27 + 1)};
+return {x: 900 + 380 * Math.sin(k * 0.42), y: 430 + 170 * Math.sin(k * 0.27 + 1)};
 }
 function loop(now){
 if (!running){ rafOn = false; return; }
@@ -1456,11 +1437,11 @@ var label = p.tor < 29 ? '偏冷' : (p.tor > 36 ? '偏熱' : '舒適');
 cf.textContent = label;
 cf.className = 'comfort ' + (p.tor < 29 ? 'cold' : (p.tor > 36 ? 'hot' : 'ok'));
 }
-var segs = {hd:p.head, tr:p.tor, aL:p.arm, aR:p.arm, hL:p.hand, hR:p.hand, lL:p.leg, lR:p.leg, fL:p.foot, fR:p.foot};
-Object.keys(segs).forEach(function(id){
-var el = document.getElementById(id);
-if (el) el.style.fill = skinColor(segs[id]);
-});
+var segs = {head:p.head, neck:(p.head + p.tor) / 2, sh:(p.tor + p.arm) / 2, tor:p.tor, ua:p.arm, fa:(p.arm + p.hand) / 2, hn:p.hand, th:p.leg, cf:(p.leg + p.foot) / 2, ft:p.foot};
+$$('#fig [data-k]').forEach(function(el){ el.style.fill = skinColor(segs[el.getAttribute('data-k')]); });
+setTxt($('#lbT'), '軀幹 ' + p.tor.toFixed(1) + '°C');
+setTxt($('#lbH'), '手 ' + p.hand.toFixed(1) + '°C');
+setTxt($('#lbF'), '腳 ' + p.foot.toFixed(1) + '°C');
 var glow = $('#glow');
 if (glow) glow.style.fill = skinColor(p.tor);
 setTxt($('#figNote'), '預測核心 ' + p.tor.toFixed(1) + '°C ・ 手部 ' + p.hand.toFixed(1) + '°C');
