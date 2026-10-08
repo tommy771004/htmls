@@ -977,7 +977,7 @@ var SKIRT = {
 var HEMS = {'A字':[5,8], '魚尾':[4,12], '公主蓬裙':[6,10], '直筒':[2,3], '帝國腰':[5,6]};
 // 領口：tl／tr 為外側肩點，top 為 tl→tr 的指令（含領口曲線）
 var NECK_TOP = {
-  'V領': function(w){ var v = Math.min(226, w - 36); return {tl:[138,118], tr:[262,118], top:'L156 112C164 160 186 ' + (v - 20) + ' 200 ' + v + 'C214 ' + (v - 20) + ' 236 160 244 112L262 118'}; },
+  'V領': function(w){ var vB = w < 230 ? w - 3 : 240; return {tl:[138,118], tr:[262,118], top:'Q141 115 146 118C160 150 186 ' + (vB - 18) + ' 200 ' + vB + 'C214 ' + (vB - 18) + ' 240 150 254 118Q259 115 262 118'}; },
   '一字肩': function(){ return {tl:[122,128], tr:[278,128], top:'C150 150 250 150 278 128'}; },
   '平口': function(){ return {tl:[142,170], tr:[258,170], top:'C172 194 228 194 258 170'}; },
   '繞頸': function(){ return {tl:[152,178], tr:[248,178], top:'C166 204 186 226 200 226C214 226 234 204 248 178'}; },
@@ -1005,10 +1005,12 @@ function dressSVG(o){
   var u = 'd' + (++uid), g = u + 'g', k = '#' + u + 'k', wY = sil === '帝國腰' ? 212 : 262, bY = wY < 230 ? wY - 30 : 196;
   var nk = (NECK_TOP[neck] || NECK_TOP['平口'])(wY), tr = nk.tr;
   var R = [[tr[0] + 16, tr[1] + 24, 266, bY - 26, 258, bY], [254, bY + (wY - bY) * .25, 242, bY + (wY - bY) * .6, 236, wY]];
+  if (neck === 'V領') R = [[252,142,242,160,240,bY-6],[240,bY+(wY-bY)*.5,236,bY+(wY-bY)*.8,236,wY]];
   var S = SKIRT[sil], xr = S[S.length - 1][4], xl = 400 - xr, hm = HEMS[sil];
   var skirt = 'M164 ' + wY + ' ' + sideD([164, wY], S, 1, 0) + hemD(xl, xr, hm[0], hm[1]) + sideD([236, wY], S, 0, 1) + 'Z';
-  var tk = train === '教堂拖尾' ? 40 : 24, ts = train === '教堂拖尾' ? 46 : 30, td = '';
-  if (train !== '無') td = 'M' + (xl + 14) + ' ' + (HEM - 6) + ' C' + (xl - ts) + ' ' + (HEM + 4) + ' 130 ' + (HEM + tk) + ' 200 ' + (HEM + tk) + ' C270 ' + (HEM + tk) + ' ' + (xr + ts) + ' ' + (HEM + 4) + ' ' + (xr - 14) + ' ' + (HEM - 6) + 'Z';
+  var tk = 24, ts = 30, td = '';
+  if (train === '教堂拖尾') td = 'M' + (xl+14) + ' 464C' + (xl-10) + ' 478 ' + (xl-6) + ' 508 ' + (xl+40) + ' 512C150 516 300 516 368 504C384 498 376 478 ' + (xr+6) + ' 466L' + (xr-14) + ' 464Z';
+  else if (train !== '無') td = 'M' + (xl + 14) + ' ' + (HEM - 6) + ' C' + (xl - ts) + ' ' + (HEM + 4) + ' 130 ' + (HEM + tk) + ' 200 ' + (HEM + tk) + ' C270 ' + (HEM + tk) + ' ' + (xr + ts) + ' ' + (HEM + 4) + ' ' + (xr - 14) + ' ' + (HEM - 6) + 'Z';
   var bod = 'M' + nk.tl.join(' ') + nk.top + sideD(tr, R, 0, 0) + 'L164 ' + wY + sideD(tr, R, 1, 1) + 'Z';
   var sc = function(a, b){ return 'matrix(' + a + ' 0 0 ' + b + ' ' + (200 * (1 - a)).toFixed(1) + ' ' + (wY * (1 - b)).toFixed(1) + ')'; };
   var sleeve = neck === '蕾絲長袖', halter = neck === '繞頸';
@@ -1018,7 +1020,8 @@ function dressSVG(o){
     (halter ? '<path id="' + u + 'h" d="M150 182C154 150 176 120 197 98L200 100C180 122 162 152 157 184Z"/>' : '') +
     '<clipPath id="' + u + 'c"><use href="' + k + '"/></clipPath></defs>';
   var M = 'matrix(-1 0 0 1 400 0)', b = '';
-  if (td) b += '<use href="#' + u + 't" fill="url(#' + g + ')" opacity=".7" stroke="#b9846f" stroke-opacity=".28"/>';
+  if (train === '教堂拖尾') b += '<use href="#' + u + 't" transform="translate(7 9)" fill="#6b4438" opacity=".16"/>';
+  if (td) b += '<use href="#' + u + 't" fill="url(#' + g + ')" opacity=".85" stroke="#b9846f" stroke-opacity=".3"/>';
   // 裙身三層：後層放大、中層主體、上層薄紗與底部陰影
   b += '<use href="' + k + '" fill="url(#' + g + ')" transform="' + sc(1.06, 1.03) + '" opacity=".4"/>' +
     '<use href="' + k + '" fill="url(#' + g + ')" opacity=".75"/>' +
