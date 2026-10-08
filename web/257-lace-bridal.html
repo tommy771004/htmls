@@ -1011,8 +1011,6 @@ function dressSVG(o){
   if (train !== '無') td = 'M' + (xl + 14) + ' ' + (HEM - 6) + ' C' + (xl - ts) + ' ' + (HEM + 4) + ' 130 ' + (HEM + tk) + ' 200 ' + (HEM + tk) + ' C270 ' + (HEM + tk) + ' ' + (xr + ts) + ' ' + (HEM + 4) + ' ' + (xr - 14) + ' ' + (HEM - 6) + 'Z';
   var bod = 'M' + nk.tl.join(' ') + nk.top + sideD(tr, R, 0, 0) + 'L164 ' + wY + sideD(tr, R, 1, 1) + 'Z';
   var sc = function(a, b){ return 'matrix(' + a + ' 0 0 ' + b + ' ' + (200 * (1 - a)).toFixed(1) + ' ' + (wY * (1 - b)).toFixed(1) + ')'; };
-  var w = xr - 200, folds = '';
-  [-1, -.4, .4, 1].forEach(function(d){ folds += 'M' + (200 + d * 34).toFixed(0) + ' ' + wY + 'Q' + (200 + d * w * .6).toFixed(0) + ' ' + (wY + (HEM - wY) * .55).toFixed(0) + ' ' + (200 + d * w * .92).toFixed(0) + ' ' + HEM; });
   var sleeve = neck === '蕾絲長袖', halter = neck === '繞頸';
   var defs = '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf9"/><stop offset=".4" stop-color="' + c + '"/><stop offset="1" stop-color="' + c + '"/></linearGradient>' +
     '<path id="' + u + 'k" d="' + skirt + '"/>' + (td ? '<path id="' + u + 't" d="' + td + '"/>' : '') +
@@ -1026,7 +1024,6 @@ function dressSVG(o){
     '<use href="' + k + '" fill="url(#' + g + ')" opacity=".75"/>' +
     '<use href="' + k + '" fill="url(#sheer)" transform="' + sc(.97, .98) + '"/>' +
     '<use href="' + k + '" fill="url(#fade)"/>' +
-    '<path d="' + folds + '" fill="none" stroke="#b9846f" stroke-opacity=".2" clip-path="url(#' + u + 'c)"/>' +
     '<use href="' + k + '" fill="none" stroke="#b9846f" stroke-opacity=".3"/>';
   if (sleeve) b += '<use href="#' + u + 's" fill="#fffdf9" opacity=".5"/><use href="#' + u + 's" fill="url(#lacep)" opacity=".7"/><use href="#' + u + 'u" fill="#fffdf9" opacity=".9"/>' +
     '<use href="#' + u + 's" transform="' + M + '" fill="#fffdf9" opacity=".5"/><use href="#' + u + 's" transform="' + M + '" fill="url(#lacep)" opacity=".7"/><use href="#' + u + 'u" transform="' + M + '" fill="#fffdf9" opacity=".9"/>';
@@ -1426,10 +1423,10 @@ $('#sizerForm').addEventListener('submit', function(e){
 
 /* ===== 顧客評論 ===== */
 var REVS = [
-  {n:'林小姐', d:'2026 年 3 月', i:'晨霧・試紗', s:5, t:'第一次試紗就覺得被看見了，設計師記得我說過的每一句話。修改時還幫我把蕾絲袖口調到剛好。'},
-  {n:'陳小姐', d:'2026 年 1 月', i:'月光・租借', s:5, t:'租借的流程很清楚，取件前兩天還幫我再燙過一次。婚禮當天完全不用擔心。'},
-  {n:'王小姐', d:'2025 年 11 月', i:'初雪・訂製', s:4, t:'裙撐的重量比想像中輕，走路很舒服。只是時程比較緊，建議早一點預約。'},
-  {n:'許小姐', d:'2025 年 9 月', i:'香檳夜・晚宴', s:5, t:'朋友都問是哪裡買的。店裡的顏色跟照片一樣，很喜歡這種誠實的感覺。'}
+  {n:'林小姐', d:'2026 年 3 月', i:'晨霧・試紗', s:5, t:'第一次試紗就覺得被看見了，設計師記得我說過的每句話，修改時還幫我調好蕾絲袖口。'},
+  {n:'陳小姐', d:'2026 年 1 月', i:'月光・租借', s:5, t:'租借流程很清楚，取件前還幫我再燙一次，婚禮當天完全不用擔心。'},
+  {n:'王小姐', d:'2025 年 11 月', i:'初雪・訂製', s:4, t:'裙撐比想像中輕，走路很舒服。只是時程較緊，建議早點預約。'},
+  {n:'許小姐', d:'2025 年 9 月', i:'香檳夜・晚宴', s:5, t:'朋友都問是哪裡買的。店裡顏色跟照片一樣，很喜歡這種誠實。'}
 ];
 $('#revs').innerHTML = REVS.map(function(r){
   return '<article class="rev rv"><div class="stars" aria-label="' + r.s + ' 星">' + '★'.repeat(r.s) + '☆'.repeat(5 - r.s) + '</div>' +
