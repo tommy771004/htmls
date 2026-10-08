@@ -25,6 +25,7 @@
   --f-cn:'PingFang TC','Heiti TC','Noto Sans TC','Microsoft JhengHei',sans-serif;
 }
 *{box-sizing:border-box}
+figure{margin:0}
 html{-webkit-text-size-adjust:100%;scroll-padding-top:76px}
 html,body{overflow-x:clip}
 body{margin:0;color:var(--ink);font-family:var(--f-cn);font-size:16px;line-height:1.85;letter-spacing:.02em;
@@ -39,9 +40,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 section{position:relative;padding:clamp(72px,9vw,124px) 0}
 .eyebrow{font-family:var(--f-ocr);font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:inline-flex;gap:10px;align-items:center;margin:0 0 14px}
 .eyebrow b{background:var(--ink);color:var(--yellow);padding:2px 8px;font-weight:700}
-h1,h2,h3{margin:0;line-height:1.05}
+h1,h2,h3{margin:0;line-height:1.1}
 h2{font-family:var(--f-title);font-weight:900;letter-spacing:-.035em;font-size:clamp(42px,6.2vw,80px);text-transform:uppercase}
-h2 small{display:block;font-family:var(--f-cn);font-size:clamp(18px,2.2vw,24px);letter-spacing:.05em;font-weight:900;text-transform:none;margin-top:12px;color:var(--ink-2)}
+h2 small{display:block;font-family:var(--f-cn);font-size:clamp(18px,2.2vw,24px);line-height:1.7;letter-spacing:.05em;font-weight:900;text-transform:none;margin-top:18px;color:var(--ink-2)}
 p{margin:0 0 1em}
 .num{font-family:var(--f-ocr);font-variant-numeric:tabular-nums}
 
@@ -75,7 +76,7 @@ p{margin:0 0 1em}
 
 /* ===== Hero：衣桿 ===== */
 .hero{padding-top:18px;overflow:hidden}
-.rail-hero{position:relative;height:300px;margin-top:8px}
+.rail-hero{position:relative;z-index:1;height:300px;margin-top:8px}
 .rail-hero .bar{position:absolute;left:0;right:0;top:44px;height:12px;border-radius:6px;background:linear-gradient(#f4f5f6,#b9bcc0 40%,#7b8087 60%,#d6d9dc);box-shadow:0 3px 4px rgba(0,0,0,.22)}
 .rail-hero .cap{position:absolute;top:37px;width:22px;height:26px;border-radius:5px;background:#2b2b2b;box-shadow:inset 0 2px 0 rgba(255,255,255,.15)}
 .rail-hero .cap.l{left:-4px}
@@ -84,21 +85,29 @@ p{margin:0 0 1em}
 .hg:nth-child(even){animation-duration:8s;animation-delay:-2s}
 .hg svg{width:100%;height:auto;display:block;filter:drop-shadow(0 8px 6px rgba(0,0,0,.2))}
 @keyframes sway{from{transform:rotate(-2.2deg)}to{transform:rotate(2.2deg)}}
-.tag-big{position:absolute;left:clamp(16px,4vw,48px);top:52px;z-index:3;width:clamp(200px,20vw,252px);transform-origin:50% 0;animation:tagSway 5s ease-in-out infinite alternate}
+.hero-copy{position:relative;max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,48px);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(28px,4vw,56px);align-items:start}
+.drop{position:relative;justify-self:center;width:min(100%,380px);transform-origin:50% -244px;animation:tagSway 5s ease-in-out infinite alternate}
 @keyframes tagSway{from{transform:rotate(-1.4deg)}to{transform:rotate(1.2deg)}}
-.tag-big .string{position:absolute;left:50%;top:-14px;width:3px;height:16px;margin-left:-1.5px;background:#b59a66}
-.tag-big .paper{position:relative;padding:34px 22px 22px;background:var(--kraft);border-radius:8px 8px 14px 14px;box-shadow:0 14px 22px -10px rgba(0,0,0,.45);clip-path:polygon(0 0,100% 0,100% 100%,0 100%);color:var(--ink)}
-.tag-big .paper::before{content:"";position:absolute;top:14px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--brick);box-shadow:inset 0 2px 3px rgba(0,0,0,.4)}
-.tag-big .paper::after{content:"";position:absolute;inset:6px;border:1.5px dashed rgba(29,27,25,.4);border-radius:6px;pointer-events:none}
-.tag-big .lot{font-family:var(--f-ocr);font-size:11px;letter-spacing:.1em;text-align:center}
-.tag-big .nm{font-family:var(--f-title);font-weight:900;font-size:clamp(30px,3.2vw,40px);letter-spacing:-.04em;line-height:.95;text-transform:uppercase;text-align:center;margin:10px 0 6px}
-.tag-big .zh{font-family:var(--f-cn);font-weight:900;text-align:center;font-size:17px;letter-spacing:.1em}
-.tag-big .line{margin:12px 0 0;padding-top:10px;border-top:2px solid var(--ink);font-size:14px;text-align:center;font-weight:700}
-.hero-copy{position:relative;max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+.drop .cord{position:absolute;left:50%;bottom:-14px;width:3px;height:258px;margin-left:-1.5px;background:#b59a66}
+.drop-in{position:relative;padding:40px 24px 24px;background:var(--kraft);border-radius:8px 8px 14px 14px;box-shadow:0 16px 24px -12px rgba(0,0,0,.45)}
+.drop-in::before{content:"";position:absolute;top:14px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--brick);box-shadow:inset 0 2px 3px rgba(0,0,0,.4)}
+.drop-in::after{content:"";position:absolute;inset:6px;border:1.5px dashed rgba(29,27,25,.4);border-radius:6px;pointer-events:none}
+.lot{font-family:var(--f-ocr);font-size:11px;letter-spacing:.1em;text-align:center}
+.drop-h{font-family:var(--f-mark);font-weight:700;font-size:clamp(46px,4.4vw,60px);line-height:1;text-align:center;margin:10px 0 0;transform:rotate(-3deg)}
+.drop .cd{margin-top:16px}
+.drop .cd div{flex:1 1 0;min-width:0}
+.drop-list{list-style:none;margin:18px 0 0;padding:0;border-top:2px solid var(--ink)}
+.drop-list li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1.5px dashed rgba(29,27,25,.45)}
+.drop-list .dt{width:44px;flex:none}
+.drop-list .dt svg{width:100%;height:auto;display:block}
+.drop-list .dn{flex:1;min-width:0}
+.drop-list b{display:block;font-size:15px;line-height:1.4}
+.drop-list small{font-family:var(--f-ocr);font-size:11px;letter-spacing:.06em}
+.drop-list .dp{font-size:15px;padding:3px 10px 3px 14px;flex:none}
 .hero h1{font-family:var(--f-title);font-weight:900;text-transform:uppercase;font-size:clamp(64px,13.5vw,196px);letter-spacing:-.065em;line-height:.84;margin:14px 0 18px}
 .hero h1 .o{color:var(--orange)}
 .zh-stamp{display:inline-block;background:var(--yellow);color:var(--ink);font-family:var(--f-cn);font-weight:900;font-size:clamp(18px,2.4vw,26px);padding:4px 16px 6px;transform:rotate(-2deg);box-shadow:4px 4px 0 var(--ink);letter-spacing:.1em}
-.hero-lede{max-width:33em;font-size:clamp(16px,1.6vw,19px);color:var(--ink-2)}
+.hero-lede{max-width:33em;margin:20px 0 0;font-size:clamp(16px,1.6vw,19px);color:var(--ink-2)}
 .hero-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:26px}
 .status{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;background:var(--ink);color:#f5f1e8;font-weight:700;font-size:14px}
 .status .dot{width:9px;height:9px;border-radius:50%;background:#7a7f86}
@@ -186,7 +195,8 @@ dialog[open]{animation:dlgIn var(--dur-enter) var(--ease-out)}
 .dlg-body dd{margin:0;font-family:var(--f-ocr);font-variant-numeric:tabular-nums}
 .dlg-x{position:absolute;right:10px;top:10px;width:40px;height:40px;border-radius:50%;border:2px solid var(--ink);background:var(--paper);font-size:18px;font-weight:900;cursor:pointer}
 .dlg-x:hover{background:var(--ink);color:var(--yellow)}
-.dlg-price{font-family:var(--f-ocr);font-size:30px;font-weight:700;background:var(--yellow);display:inline-block;padding:4px 14px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 50%,100% 100%,10px 100%,0 50%)}
+.dp{font-family:var(--f-ocr);font-size:17px;font-weight:700;background:var(--yellow);color:var(--ink);display:inline-block;padding:4px 14px;white-space:nowrap;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 50%,100% 100%,10px 100%,0 50%)}
+.dlg-body .dp{font-size:30px}
 
 /* ===== 秤重區 ===== */
 .scale-sec{background:linear-gradient(#e3ddd0,#d5cdbb)}
@@ -252,7 +262,6 @@ dialog[open]{animation:dlgIn var(--dur-enter) var(--ease-out)}
 .est .v{font-family:var(--f-ocr);font-size:clamp(26px,3.4vw,36px);font-weight:700;line-height:1.2;margin:4px 0}
 .est .logic{font-size:13px;line-height:1.7;margin:0;font-weight:700}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.slot-list{font-size:13px;color:#b3a890}
 .ticket{background:var(--kraft);color:var(--ink);border-radius:10px;padding:22px 20px 20px;position:relative;margin-top:18px;box-shadow:0 14px 24px -14px rgba(0,0,0,.6);animation:dlgIn .6s var(--ease-out)}
 .ticket::before{content:"";position:absolute;top:12px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--ink)}
 .ticket::after{content:"";position:absolute;inset:6px;border:1.5px dashed rgba(29,27,25,.45);border-radius:7px;pointer-events:none}
@@ -364,6 +373,9 @@ body.slots .story .ph::after{top:12px;left:12px}
   .links a{padding:12px 4px;font-size:16px;border-bottom:1.5px dashed var(--line)}
   .nav .btn{display:none}
   .nav-in .burger{margin-left:auto}
+  .hero-copy{grid-template-columns:1fr}
+  .drop{width:100%;max-width:440px;justify-self:start;margin-top:40px;transform-origin:50% 0}
+  .drop .cord{display:none}
   .wall-grid .w1,.wall-grid .w2,.wall-grid .w3,.wall-grid .w4{grid-column:1/-1;grid-row:auto}
   .wall-grid .w1 .ph{min-height:0}
   .rv-grid{grid-template-columns:1fr}
@@ -375,7 +387,7 @@ body.slots .story .ph::after{top:12px;left:12px}
   .rail-hero{height:230px}
   .hg-x{display:none}
   .hg{width:92px;left:var(--mx)}
-  .tag-big{display:none}
+  .slot-btn{right:12px;bottom:12px;padding:6px 10px;font-size:11px;opacity:.6}
   .hero h1{font-size:clamp(60px,21vw,96px)}
   .hero-row .btn{flex:1 1 auto}
   .fields{grid-template-columns:1fr}
@@ -390,7 +402,6 @@ body.slots .story .ph::after{top:12px;left:12px}
   .pstat{padding:16px 8px 12px}
   .pstat span{font-size:12px}
   .item{flex-basis:200px}
-  .cd div{min-width:64px;flex:1 1 60px}
   .size-grid .flat{box-shadow:5px 5px 0 var(--ink)}
   .tool input{max-width:none}
 }
@@ -460,39 +471,40 @@ body.slots .story .ph::after{top:12px;left:12px}
 </header>
 
 <main>
-<!-- Hero：衣桿與吊牌 -->
+<!-- Hero：衣桿、店名與本週上新吊牌 -->
 <section class="hero" id="top">
   <div class="rail-hero" id="heroRail" aria-hidden="true">
     <span class="bar"></span><span class="cap l"></span><span class="cap r"></span>
-    <div class="tag-big">
-      <span class="string"></span>
-      <div class="paper">
-        <div class="lot">LOT 250 · ONE OF ONE</div>
-        <div class="nm">RACK<br>&amp; TAG</div>
-        <div class="zh">舊物架</div>
-        <div class="line">論件 ／ 秤重 ／ 收購</div>
-      </div>
-    </div>
   </div>
   <div class="hero-copy">
-    <div class="eyebrow"><b>EST. 2018</b> 台北赤峰街 · 古著選物</div>
-    <h1>RACK<br><span class="o">&amp;</span> TAG</h1>
-    <span class="zh-stamp">每件只有一件</span>
-    <p class="hero-lede" style="margin-top:20px">吊牌上的年代、實測尺寸與狀態等級寫得清清楚楚，衣服掛在衣桿上等你翻找。論件或論公斤都可以，每週五晚上 19:00 上新。</p>
-    <div class="hero-row">
-      <span class="status" id="heroStatus"><i class="dot"></i><span class="tx">營業狀態</span></span>
+    <div>
+      <div class="eyebrow"><b>EST. 2018</b> 台北赤峰街 · 古著選物</div>
+      <h1>RACK<br><span class="o">&amp;</span> TAG</h1>
+      <span class="zh-stamp">每件只有一件</span>
+      <p class="hero-lede">吊牌上的年代、實測尺寸與狀態等級寫得清清楚楚，衣服掛在衣桿上等你翻找。論件或論公斤都可以，每週五晚上 19:00 上新。</p>
+      <div class="hero-row">
+        <span class="status" id="heroStatus"><i class="dot"></i><span class="tx">營業狀態</span></span>
+      </div>
+      <div class="hero-row">
+        <a class="btn" href="#rack">逛衣桿 →</a>
+        <a class="btn ghost" href="#scale">秤重計價</a>
+      </div>
     </div>
-    <div class="cd" aria-label="下一次上新倒數">
-      <p class="cd-l" style="margin:0">每週上新倒數 · 下一次 週五 19:00</p>
-      <div><b id="cdD">--</b><span>天</span></div>
-      <div><b id="cdH">--</b><span>時</span></div>
-      <div><b id="cdM">--</b><span>分</span></div>
-      <div><b id="cdS">--</b><span>秒</span></div>
-    </div>
-    <div class="hero-row">
-      <a class="btn" href="#rack">逛衣桿 →</a>
-      <a class="btn ghost" href="#scale">秤重計價</a>
-    </div>
+    <aside class="drop" aria-labelledby="dropH">
+      <span class="cord" aria-hidden="true"></span>
+      <div class="drop-in">
+        <div class="lot">NEW IN · EVERY FRIDAY 19:00</div>
+        <h3 class="drop-h" id="dropH">本週上新</h3>
+        <div class="cd" aria-label="下一次上新倒數">
+          <p class="cd-l">每週上新倒數 · 下一次 週五 19:00</p>
+          <div><b id="cdD">--</b><span>天</span></div>
+          <div><b id="cdH">--</b><span>時</span></div>
+          <div><b id="cdM">--</b><span>分</span></div>
+          <div><b id="cdS">--</b><span>秒</span></div>
+        </div>
+        <ol class="drop-list" id="dropList" aria-label="本週 3 件精選"></ol>
+      </div>
+    </aside>
   </div>
 </section>
 
@@ -500,7 +512,7 @@ body.slots .story .ph::after{top:12px;left:12px}
 <section class="story" id="story">
   <div class="wrap">
     <div class="story-grid">
-      <figure class="rv" style="margin:0"><div class="ph" data-photo="story" data-art="warehouse" data-label="倉庫選貨" data-size="1200×900"></div></figure>
+      <figure class="rv"><div class="ph" data-photo="story" data-art="warehouse" data-label="倉庫選貨" data-size="1200×900"></div></figure>
       <div class="prose rv">
         <div class="eyebrow"><b>00</b> OUR STORY 故事</div>
         <h2>從倉庫<br>開始的選貨<small>一件一件翻，翻到值得帶回家的那件</small></h2>
@@ -681,18 +693,18 @@ body.slots .story .ph::after{top:12px;left:12px}
     <div class="size-grid">
       <div>
         <div class="flat rv">
-          <svg viewBox="0 0 480 380" role="img" aria-label="平放實測示意圖：胸寬、肩寬、衣長、袖長">
-            <path d="M150 80 L330 80 L340 100 L340 330 L140 330 L140 100 Z" fill="#fbf7ee" stroke="#1d1b19" stroke-width="2.5" stroke-linejoin="round"/>
-            <path d="M150 80 L98 96 L62 250 L92 258 L140 130 Z" fill="#fbf7ee" stroke="#1d1b19" stroke-width="2.5" stroke-linejoin="round"/>
-            <path d="M330 80 L382 96 L418 250 L388 258 L340 130 Z" fill="#fbf7ee" stroke="#1d1b19" stroke-width="2.5" stroke-linejoin="round"/>
-            <path d="M200 80 Q240 118 280 80" fill="none" stroke="#1d1b19" stroke-width="2"/>
-            <path d="M240 118 V330" stroke="#1d1b19" stroke-width="1.6" stroke-dasharray="4 4"/>
-            <rect x="160" y="140" width="46" height="46" rx="2" fill="none" stroke="#1d1b19" stroke-width="1.8"/>
-            <rect x="274" y="140" width="46" height="46" rx="2" fill="none" stroke="#1d1b19" stroke-width="1.8"/>
-            <circle cx="240" cy="160" r="3" fill="#1d1b19"/>
-            <circle cx="240" cy="200" r="3" fill="#1d1b19"/>
-            <circle cx="240" cy="240" r="3" fill="#1d1b19"/>
-            <g stroke="#ff6a2b" stroke-width="2.5" fill="none">
+          <svg viewBox="0 0 480 380" role="img" aria-label="平放實測示意圖：胸寬、肩寬、衣長、袖長" fill="none" stroke="#1d1b19" stroke-width="2.5" stroke-linejoin="round">
+            <g fill="#fbf7ee">
+              <path d="M150 80 L330 80 L340 100 L340 330 L140 330 L140 100 Z"/>
+              <path d="M150 80 L98 96 L62 250 L92 258 L140 130 Z"/>
+              <path d="M330 80 L382 96 L418 250 L388 258 L340 130 Z"/>
+            </g>
+            <path d="M200 80 Q240 118 280 80" stroke-width="2"/>
+            <path d="M240 118 V330" stroke-width="1.6" stroke-dasharray="4 4"/>
+            <rect x="160" y="140" width="46" height="46" rx="2" stroke-width="1.8"/>
+            <rect x="274" y="140" width="46" height="46" rx="2" stroke-width="1.8"/>
+            <g fill="#1d1b19" stroke="none"><circle cx="240" cy="160" r="3"/><circle cx="240" cy="200" r="3"/><circle cx="240" cy="240" r="3"/></g>
+            <g stroke="#ff6a2b">
               <line x1="140" y1="296" x2="340" y2="296"/>
               <line x1="140" y1="286" x2="140" y2="306"/>
               <line x1="340" y1="286" x2="340" y2="306"/>
@@ -705,12 +717,12 @@ body.slots .story .ph::after{top:12px;left:12px}
               <line x1="146" y1="84" x2="62" y2="254" stroke-dasharray="6 5" stroke-width="2"/>
             </g>
             <g font-family="'OCR A Std','Lucida Console','Courier New',monospace" font-size="15" font-weight="700" fill="#1d1b19">
-              <text x="240" y="284" text-anchor="middle" fill="#1d1b19" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">① 胸寬 ×2</text>
-              <text x="240" y="40" text-anchor="middle" fill="#1d1b19" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">② 肩寬</text>
-              <text x="416" y="210" text-anchor="middle" transform="rotate(90 416 210)" fill="#1d1b19" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">③ 衣長</text>
-              <text x="32" y="168" text-anchor="middle" transform="rotate(-70 32 168)" fill="#1d1b19" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">④ 袖長</text>
+              <text x="240" y="284" text-anchor="middle" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">① 胸寬 ×2</text>
+              <text x="240" y="40" text-anchor="middle" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">② 肩寬</text>
+              <text x="416" y="210" text-anchor="middle" transform="rotate(90 416 210)" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">③ 衣長</text>
+              <text x="32" y="168" text-anchor="middle" transform="rotate(-70 32 168)" stroke="#fbf7ee" stroke-width="6" paint-order="stroke">④ 袖長</text>
             </g>
-            <text x="240" y="366" text-anchor="middle" font-family="'OCR A Std','Lucida Console',monospace" font-size="13" fill="#6b6258">FLAT LAY · 平放・扣上扣子・不拉伸</text>
+            <text x="240" y="366" text-anchor="middle" font-family="'OCR A Std','Lucida Console',monospace" font-size="13" fill="#6b6258" stroke="none">FLAT LAY · 平放・扣上扣子・不拉伸</text>
           </svg>
         </div>
         <div class="guide rv">
@@ -749,10 +761,10 @@ body.slots .story .ph::after{top:12px;left:12px}
     <div class="eyebrow rv"><b>05</b> LOOKBOOK 照片牆</div>
     <h2 class="rv">店內一角<small>衣桿、鞋與包的櫃子、試衣間的圓鏡，還有剛拆開的進貨布包</small></h2>
     <div class="wall-grid">
-      <figure class="w1 rv" style="margin:0"><div class="ph" data-photo="g1" data-art="rails" data-label="一整排衣桿" data-size="1200×900"></div><figcaption class="mk">衣桿：週五上新前的一整排</figcaption></figure>
-      <figure class="w2 rv" style="margin:0"><div class="ph" data-photo="g2" data-art="shoes" data-label="鞋與包的櫃子" data-size="900×900"></div><figcaption class="mk">鞋與包：一雙一雙擦乾淨</figcaption></figure>
-      <figure class="w3 rv" style="margin:0"><div class="ph" data-photo="g3" data-art="mirror" data-label="試衣間的圓鏡" data-size="900×1200"></div><figcaption class="mk">試衣間：圓鏡照出的第二眼</figcaption></figure>
-      <figure class="w4 rv" style="margin:0"><div class="ph" data-photo="g4" data-art="bundle" data-label="剛拆開的進貨布包" data-size="1200×900"></div><figcaption class="mk">進貨日：布包一拆開就是驚喜</figcaption></figure>
+      <figure class="w1 rv"><div class="ph" data-photo="g1" data-art="rails" data-label="一整排衣桿" data-size="1200×900"></div><figcaption class="mk">衣桿：週五上新前的一整排</figcaption></figure>
+      <figure class="w2 rv"><div class="ph" data-photo="g2" data-art="shoes" data-label="鞋與包的櫃子" data-size="900×900"></div><figcaption class="mk">鞋與包：一雙一雙擦乾淨</figcaption></figure>
+      <figure class="w3 rv"><div class="ph" data-photo="g3" data-art="mirror" data-label="試衣間的圓鏡" data-size="900×1200"></div><figcaption class="mk">試衣間：圓鏡照出的第二眼</figcaption></figure>
+      <figure class="w4 rv"><div class="ph" data-photo="g4" data-art="bundle" data-label="剛拆開的進貨布包" data-size="1200×900"></div><figcaption class="mk">進貨日：布包一拆開就是驚喜</figcaption></figure>
     </div>
   </div>
 </section>
@@ -893,7 +905,7 @@ body.slots .story .ph::after{top:12px;left:12px}
       <button class="dlg-x" id="dlgX" type="button" aria-label="關閉">×</button>
       <div class="era" id="dlgEra"></div>
       <h3 id="dlgName"></h3>
-      <p class="dlg-price" id="dlgPrice"></p>
+      <p class="dp" id="dlgPrice"></p>
       <dl id="dlgDl"></dl>
       <p id="dlgDesc" style="font-size:14px;margin:0 0 16px"></p>
       <button class="btn ghost" id="dlgFav" type="button" aria-pressed="false">收藏這件</button>
@@ -945,26 +957,36 @@ var PRODUCTS = [
 ];
 var COND_TXT = {A:'良好', B:'有使用痕跡', C:'特色舊件'};
 
+/* ===== 衣物預設（首頁衣桿、照片位與秤重區共用） ===== */
+var G = {
+  nylon:{type:'jacket',v:'nylon',c:'#2c4a6b',c2:'#ff6a2b'},
+  plaid:{type:'shirt',pat:'pPlaid',c2:'#f3efe6'},
+  flo:{type:'dress',pat:'pFloral',c2:'#c8485a'},
+  cable:{type:'sweater',pat:'pCable',c2:'#2b1f17'},
+  denim:{type:'jacket',v:'denim',c:'#4b6a8f',c2:'#e8dcc4'},
+  hood:{type:'hoodie',c:'#6b6f73',c2:'#3a3d40'},
+  m65:{type:'jacket',v:'m65',c:'#5d6246',c2:'#2f321f'},
+  tee:{type:'tee',c:'#efe2c6',c2:'#c0392b'},
+  wave:{type:'shirt',pat:'pWave',c2:'#f3ead8'},
+  flare:{type:'flare',c:'#4f5d75',c2:'#c9a46a'},
+  tank:{type:'tank',c:'#f58fb1',c2:'#fff3f7'}
+};
+
 /* ===== 秤重區的衣物（克數） ===== */
 var SCALE_ITEMS = [
   {n:'T 恤', g:200, o:{type:'tee', c:'#efe2c6', c2:'#1f7a72'}},
   {n:'襯衫', g:250, o:{type:'shirt', c:'#8fb3cf', c2:'#f6f0e2'}},
   {n:'牛仔褲', g:700, o:{type:'pants', c:'#3b5d8f', c2:'#c9a46a'}},
   {n:'毛衣', g:600, o:{type:'sweater', c:'#b5793f', c2:'#f6f0e2'}},
-  {n:'外套', g:1100, o:{type:'jacket', v:'m65', c:'#5d6246', c2:'#2f321f'}},
+  {n:'外套', g:1100, o:G.m65},
   {n:'洋裝', g:350, o:{type:'dress', c:'#8fcfb2', c2:'#c8485a'}}
 ];
 
 /* ===== 首頁衣桿的衣物 ===== */
-var HERO = [
-  {type:'jacket', v:'nylon', c:'#2c4a6b', c2:'#ff6a2b'},
-  {type:'dress', pat:'pFloral', c2:'#c8485a'},
-  {type:'shirt', pat:'pPlaid', c2:'#f3efe6'},
-  {type:'sweater', pat:'pCable', c2:'#2b1f17'},
-  {type:'jacket', v:'denim', c:'#4b6a8f', c2:'#e8dcc4'},
-  {type:'hoodie', c:'#6b6f73', c2:'#3a3d40'},
-  {type:'tee', c:'#efe2c6', c2:'#c0392b'}
-];
+var HERO = [G.nylon, G.flo, G.plaid, G.cable, G.denim, G.hood, G.tee];
+
+/* ===== 本週上新吊牌的 3 件（依品名從 PRODUCTS 取出） ===== */
+var NEW_IN = ['80s 尼龍風衣', '90s 格紋法蘭絨襯衫', '70s 碎花洋裝'];
 
 /* ===== 工具 ===== */
 var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -1064,40 +1086,42 @@ function gAt(o, x, y, sc){ return '<g transform="translate(' + x + ' ' + y + ') 
 function shoe(x, y, c, sc){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + sc + ')"><path d="M0 40 Q0 0 30 8 L60 20 Q92 28 112 40 Q122 48 112 54 H8 Q0 52 0 40 Z" fill="' + c + '" stroke="#1d1b19" stroke-width="3"/><path d="M6 52 H112" stroke="#f6f0e2" stroke-width="5"/><path d="M40 24 L56 30 M52 20 L66 26" stroke="#1d1b19" stroke-width="2" opacity=".45"/></g>'; }
 function bag(x, y, c){ return '<g transform="translate(' + x + ' ' + y + ')"><path d="M14 40 Q30 0 46 40" fill="none" stroke="#1d1b19" stroke-width="4"/><rect x="0" y="40" width="60" height="50" rx="8" fill="' + c + '" stroke="#1d1b19" stroke-width="3"/><rect x="22" y="58" width="16" height="10" rx="2" fill="#f6f0e2" opacity=".8"/></g>'; }
 function shoeBox(x, y){ return '<g transform="translate(' + x + ' ' + y + ')"><rect width="128" height="64" rx="3" fill="#f6f0e2" stroke="#1d1b19" stroke-width="2.5"/><rect y="20" width="128" height="8" fill="#c9a46a" opacity=".8"/><rect x="50" y="34" width="28" height="14" fill="#fff" stroke="#1d1b19" stroke-width="1.5"/></g>'; }
-function svgw(s){ return '<svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true" width="100%" height="100%">' + s + '</svg>'; }
+function svgw(s){ return '<svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + s + '</svg>'; }
 
 /* ===== 照片位佔位插畫 ===== */
+var SK = 'stroke="#1d1b19" stroke-width="1.5"';
+function rc(x, y, w, h, f, a){ return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + f + '"' + (a ? ' ' + a : '') + '/>'; }
 function artWarehouse(){
   var s = '<defs><radialGradient id="wLamp" cx=".5" cy=".2" r=".75"><stop offset="0" stop-color="#fff0c4" stop-opacity=".75"/><stop offset="1" stop-color="#fff0c4" stop-opacity="0"/></radialGradient></defs>';
-  s += '<rect width="1200" height="900" fill="url(#pBrick)"/><rect width="1200" height="900" fill="#3a2a18" opacity=".2"/><rect width="1200" height="900" fill="url(#wLamp)"/>';
-  s += '<rect x="120" y="176" width="960" height="12" rx="6" fill="#b9bcc0"/>';
-  [{type:'jacket',v:'nylon',c:'#2c4a6b',c2:'#ff6a2b'}, {type:'shirt',pat:'pPlaid',c2:'#f3efe6'}, {type:'dress',pat:'pFloral',c2:'#c8485a'}, {type:'sweater',pat:'pCable',c2:'#2b1f17'}, {type:'hoodie',c:'#6b6f73',c2:'#3a3d40'}, {type:'jacket',v:'m65',c:'#5d6246',c2:'#2f321f'}].forEach(function(o, i){ s += gAt(o, 170 + i * 160, 170, .78); });
+  s += rc(0, 0, 1200, 900, 'url(#pBrick)') + rc(0, 0, 1200, 900, '#3a2a18', 'opacity=".2"') + rc(0, 0, 1200, 900, 'url(#wLamp)');
+  s += rc(120, 176, 960, 12, '#b9bcc0', 'rx="6"');
+  [G.nylon, G.plaid, G.flo, G.cable, G.hood, G.m65].forEach(function(o, i){ s += gAt(o, 170 + i * 160, 170, .78); });
   var cols = ['#2c4a6b','#b5483a','#efe2c6','#6b6f73','#8fcfb2','#c9a46a'];
   [500, 690].forEach(function(y, row){
-    s += '<rect x="130" y="' + y + '" width="940" height="16" fill="#6b4a2b"/>';
+    s += rc(130, y, 940, 16, '#6b4a2b');
     for (var i = 0; i < 7; i++){
       var x = 150 + i * 128, h = 40 + ((i + row) % 3) * 12;
-      s += '<rect x="' + x + '" y="' + (y - h) + '" width="104" height="' + h + '" rx="2" fill="' + cols[(i + row) % 6] + '" stroke="#1d1b19" stroke-width="1.5" opacity=".92"/>';
-      s += '<rect x="' + (x + 8) + '" y="' + (y - h - 22) + '" width="88" height="22" rx="2" fill="' + cols[(i + 2) % 6] + '" stroke="#1d1b19" stroke-width="1.5"/>';
+      s += rc(x, y - h, 104, h, cols[(i + row) % 6], SK + ' rx="2" opacity=".92"');
+      s += rc(x + 8, y - h - 22, 88, 22, cols[(i + 2) % 6], SK + ' rx="2"');
     }
   });
-  s += '<g transform="translate(140 640)"><rect width="220" height="130" fill="#c9a46a" stroke="#6b4a2b" stroke-width="4"/><rect width="220" height="24" fill="#d9b982" opacity=".85"/><rect x="30" y="56" width="70" height="44" fill="#fbfaf6" stroke="#1d1b19" stroke-width="2"/><text x="65" y="86" text-anchor="middle" font-family="monospace" font-size="24" font-weight="700" fill="#1d1b19">L</text></g>';
-  s += '<rect x="0" y="790" width="1200" height="110" fill="#6b4a2b" opacity=".35"/>';
+  s += '<g transform="translate(140 640)">' + rc(0, 0, 220, 130, '#c9a46a', 'stroke="#6b4a2b" stroke-width="4"') + rc(0, 0, 220, 24, '#d9b982', 'opacity=".85"') + rc(30, 56, 70, 44, '#fbfaf6', 'stroke="#1d1b19" stroke-width="2"') + '<text x="65" y="86" text-anchor="middle" font-family="monospace" font-size="24" font-weight="700" fill="#1d1b19">L</text></g>';
+  s += rc(0, 790, 1200, 110, '#6b4a2b', 'opacity=".35"');
   return svgw(s);
 }
 function artRails(){
-  var s = '<rect width="1200" height="900" fill="url(#pBrick)"/><rect y="640" width="1200" height="260" fill="#b99a72" opacity=".55"/><rect y="640" width="1200" height="6" fill="#8a6a3d" opacity=".5"/>';
-  s += '<rect x="0" y="146" width="1200" height="14" fill="#b9bcc0"/><rect x="0" y="146" width="1200" height="4" fill="#f4f5f6"/>';
-  var seq = [{type:'jacket',v:'nylon',c:'#2c4a6b',c2:'#ff6a2b'}, {type:'shirt',pat:'pPlaid',c2:'#f3efe6'}, {type:'flare',c:'#4f5d75',c2:'#c9a46a'}, {type:'tank',c:'#f58fb1',c2:'#fff3f7'}, {type:'jacket',v:'denim',c:'#4b6a8f',c2:'#e8dcc4'}, {type:'dress',pat:'pFloral',c2:'#c8485a'}, {type:'sweater',pat:'pCable',c2:'#2b1f17'}, {type:'hoodie',c:'#6b6f73',c2:'#3a3d40'}, {type:'shirt',pat:'pWave',c2:'#f3ead8'}, {type:'jacket',v:'m65',c:'#5d6246',c2:'#2f321f'}];
+  var s = rc(0, 0, 1200, 900, 'url(#pBrick)') + rc(0, 640, 1200, 260, '#b99a72', 'opacity=".55"') + rc(0, 640, 1200, 6, '#8a6a3d', 'opacity=".5"');
+  s += rc(0, 146, 1200, 14, '#b9bcc0') + rc(0, 146, 1200, 4, '#f4f5f6');
+  var seq = [G.nylon, G.plaid, G.flare, G.tank, G.denim, G.flo, G.cable, G.hood, G.wave, G.m65];
   seq.forEach(function(o, i){ s += gAt(o, 30 + i * 116, 146, .66); });
-  s += '<rect x="0" y="466" width="1200" height="14" fill="#b9bcc0"/><rect x="0" y="466" width="1200" height="4" fill="#f4f5f6"/>';
+  s += rc(0, 466, 1200, 14, '#b9bcc0') + rc(0, 466, 1200, 4, '#f4f5f6');
   seq.slice(0, 6).forEach(function(o, i){ s += gAt(o, 80 + i * 190, 466, .66); });
   return svgw(s);
 }
 function artShoes(){
-  var s = '<rect width="1200" height="900" fill="#e4d8c3"/><rect width="1200" height="900" fill="url(#pBrick)" opacity=".35"/>';
-  [250, 480, 710].forEach(function(y){ s += '<rect x="60" y="' + y + '" width="1080" height="18" fill="#8a6a3d"/><rect x="60" y="' + (y + 18) + '" width="1080" height="10" fill="#6b4a2b" opacity=".5"/>'; });
-  s += '<rect x="60" y="180" width="18" height="640" fill="#6b4a2b"/><rect x="1122" y="180" width="18" height="640" fill="#6b4a2b"/>';
+  var s = rc(0, 0, 1200, 900, '#e4d8c3') + rc(0, 0, 1200, 900, 'url(#pBrick)', 'opacity=".35"');
+  [250, 480, 710].forEach(function(y){ s += rc(60, y, 1080, 18, '#8a6a3d') + rc(60, y + 18, 1080, 10, '#6b4a2b', 'opacity=".5"'); });
+  s += rc(60, 180, 18, 640, '#6b4a2b') + rc(1122, 180, 18, 640, '#6b4a2b');
   var cols = ['#b5483a','#2c4a6b','#f6f0e2','#c9a46a','#1f7a72','#2b2530'];
   for (var i = 0; i < 4; i++){ s += shoe(110 + i * 230, 186, cols[i], .95); }
   for (var j = 0; j < 4; j++){ s += bag(110 + j * 240, 395, cols[(j + 2) % 6]); }
@@ -1107,32 +1131,29 @@ function artShoes(){
 }
 function artMirror(){
   var s = '<defs><radialGradient id="mGlass" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#f4f9fb"/><stop offset=".55" stop-color="#cfdde3"/><stop offset="1" stop-color="#8fa9b2"/></radialGradient></defs>';
-  s += '<rect width="1200" height="900" fill="#efe8dc"/>';
-  s += '<rect x="0" y="0" width="230" height="900" fill="#d9b982"/>';
-  for (var k = 0; k < 5; k++){ s += '<rect x="' + (24 + k * 42) + '" y="0" width="14" height="900" fill="#b8925a" opacity=".5"/>'; }
-  s += '<rect x="0" y="0" width="1200" height="120" fill="#e6dccb" opacity=".6"/>';
+  s += rc(0, 0, 1200, 900, '#efe8dc') + rc(0, 0, 230, 900, '#d9b982');
+  for (var k = 0; k < 5; k++){ s += rc(24 + k * 42, 0, 14, 900, '#b8925a', 'opacity=".5"'); }
+  s += rc(0, 0, 1200, 120, '#e6dccb', 'opacity=".6"');
   s += '<circle cx="660" cy="430" r="292" fill="#c3c6ca"/><circle cx="660" cy="430" r="272" fill="#8d9298"/><circle cx="660" cy="430" r="258" fill="url(#mGlass)"/>';
-  s += gAt({type:'dress', pat:'pFloral', c2:'#c8485a'}, 580, 230, .85);
+  s += gAt(G.flo, 580, 230, .85);
   s += '<path d="M470 300 Q560 236 640 260" stroke="#fff" stroke-width="18" opacity=".35" fill="none" stroke-linecap="round"/>';
-  s += '<rect x="560" y="800" width="200" height="26" rx="8" fill="#8a6a3d"/><path d="M590 826 L578 900 M670 826 L682 900 M630 826 V900" stroke="#6b4a2b" stroke-width="10"/>';
+  s += rc(560, 800, 200, 26, '#8a6a3d', 'rx="8"') + '<path d="M590 826 L578 900 M670 826 L682 900 M630 826 V900" stroke="#6b4a2b" stroke-width="10"/>';
   s += '<path d="M1010 60 V110" stroke="#8d9399" stroke-width="3"/>' + gAt({type:'tee', c:'#8fcfb2', c2:'#c8485a'}, 940, 108, .7);
   return svgw(s);
 }
 function artBundle(){
-  var s = '<rect width="1200" height="900" fill="#d9c9a8"/><rect width="1200" height="900" fill="url(#pBrick)" opacity=".25"/>';
-  s += '<rect y="700" width="1200" height="200" fill="#b9986a"/>';
+  var s = rc(0, 0, 1200, 900, '#d9c9a8') + rc(0, 0, 1200, 900, 'url(#pBrick)', 'opacity=".25"') + rc(0, 700, 1200, 200, '#b9986a');
   s += '<path d="M220 520 L330 420 H870 L980 520 Z" fill="#8a6a3d"/>';
-  var bundles = [[290, 400, 190, 130, '#c8485a'], [520, 380, 200, 140, '#2c4a6b'], [770, 410, 170, 120, '#1f7a72']];
-  bundles.forEach(function(b){
-    s += '<rect x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '" rx="10" fill="#f3ead8" stroke="#8a6a3d" stroke-width="2.5"/>';
-    s += '<rect x="' + (b[0] + 14) + '" y="' + (b[1] + 10) + '" width="' + (b[2] - 28) + '" height="34" rx="4" fill="' + b[4] + '" opacity=".9"/>';
+  [[290, 400, 190, 130, '#c8485a'], [520, 380, 200, 140, '#2c4a6b'], [770, 410, 170, 120, '#1f7a72']].forEach(function(b){
+    s += rc(b[0], b[1], b[2], b[3], '#f3ead8', 'rx="10" stroke="#8a6a3d" stroke-width="2.5"');
+    s += rc(b[0] + 14, b[1] + 10, b[2] - 28, 34, b[4], 'rx="4" opacity=".9"');
     s += '<path d="M' + (b[0] + b[2] / 2) + ' ' + b[1] + ' V' + (b[1] + b[3]) + ' M' + b[0] + ' ' + (b[1] + b[3] / 2) + ' H' + (b[0] + b[2]) + '" stroke="#8a6a3d" stroke-width="3" opacity=".55"/>';
   });
-  s += '<rect x="220" y="520" width="760" height="230" fill="#c9a46a" stroke="#6b4a2b" stroke-width="4"/>';
+  s += rc(220, 520, 760, 230, '#c9a46a', 'stroke="#6b4a2b" stroke-width="4"');
   s += '<path d="M220 520 L160 470 L290 380 L330 420 Z" fill="#b8925a" stroke="#6b4a2b" stroke-width="3"/>';
   s += '<path d="M980 520 L1040 470 L910 380 L870 420 Z" fill="#b8925a" stroke="#6b4a2b" stroke-width="3"/>';
-  s += '<rect x="220" y="560" width="760" height="20" fill="#d9b982" opacity=".85"/>';
-  s += '<g transform="rotate(4 900 330)"><rect x="860" y="250" width="200" height="150" rx="4" fill="#fbfaf6" stroke="#1d1b19" stroke-width="2.5"/><path d="M880 300 H1040 M880 318 H1040 M880 336 H1000" stroke="#1d1b19" stroke-width="3"/><rect x="884" y="350" width="90" height="36" fill="#1d1b19" opacity=".85"/></g>';
+  s += rc(220, 560, 760, 20, '#d9b982', 'opacity=".85"');
+  s += '<g transform="rotate(4 900 330)">' + rc(860, 250, 200, 150, '#fbfaf6', 'rx="4" stroke="#1d1b19" stroke-width="2.5"') + '<path d="M880 300 H1040 M880 318 H1040 M880 336 H1000" stroke="#1d1b19" stroke-width="3"/>' + rc(884, 350, 90, 36, '#1d1b19', 'opacity=".85"') + '</g>';
   return svgw(s);
 }
 var ART = { warehouse: artWarehouse, rails: artRails, shoes: artShoes, mirror: artMirror, bundle: artBundle };
@@ -1221,6 +1242,12 @@ setInterval(tickCountdown, 1000);
     rail.appendChild(d);
   });
 })();
+
+/* ===== 本週上新吊牌：3 件精選 ===== */
+$('#dropList').innerHTML = NEW_IN.map(function(n){
+  var p = PRODUCTS.filter(function(x){ return x.n === n; })[0];
+  return p ? '<li><span class="dt">' + icon(p, true) + '</span><span class="dn"><b>' + esc(p.n) + '</b><small>' + esc(p.year) + '・' + esc(p.era) + '・狀態 ' + p.cond + '</small></span><span class="dp">' + money(p.price) + '</span></li>' : '';
+}).join('');
 
 /* ===== 進場動畫 ===== */
 var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(es){

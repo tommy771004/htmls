@@ -36,6 +36,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3,p,figure,blockquote{margin:0}
 .wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
 section{position:relative;padding:clamp(64px,9vw,120px) 0}
+section+section{padding-top:0}
 :focus-visible{outline:2px dashed var(--red);outline-offset:3px}
 
 /* ===== 皮尺（頂部，也是捲動進度） ===== */
@@ -89,7 +90,7 @@ body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " att
 .slotbtn[aria-pressed="true"]{background:var(--navy);color:var(--tape)}
 .slotbtn:active{transform:scale(.95)}
 .fine{font-size:13px;color:var(--muted);line-height:1.7}
-.err{min-height:1.4em;margin:2px 0 0;font-size:13px;color:var(--red);line-height:1.5}
+.err{margin:0;font-size:13px;color:var(--red);line-height:1.5}
 .sec-head{display:grid;gap:6px;margin-bottom:clamp(28px,4vw,46px);max-width:44em}
 .no{display:inline-block;font-family:var(--hand);font-size:17px;color:var(--red);transform:rotate(-3deg);transform-origin:left}
 .sec-title{font-size:clamp(30px,4.4vw,50px);line-height:1.25;color:var(--navy);font-weight:700;letter-spacing:.08em}
@@ -107,18 +108,19 @@ body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " att
 @keyframes drawIn{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
 
 /* ===== Hero ===== */
-.hero{max-width:1200px;margin:0 auto;padding:clamp(28px,5vw,60px) clamp(16px,4vw,40px) clamp(56px,8vw,100px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,4vw,64px);align-items:center}
-.eyebrow{font:italic 600 clamp(14px,1.5vw,16px)/1.5 var(--serif);font-variant:small-caps;letter-spacing:.14em;color:var(--red);margin-bottom:14px}
-.lead{font-size:clamp(24px,2.8vw,34px);line-height:1.55;font-weight:700;color:var(--navy);margin-bottom:16px;letter-spacing:.06em}
+.hero{max-width:1200px;margin:0 auto;padding:clamp(28px,5vw,60px) clamp(16px,4vw,40px) 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,4vw,64px);align-items:center}
+.eyebrow{font:italic 600 clamp(15px,1.6vw,19px)/1.5 var(--serif);font-variant:small-caps;letter-spacing:.14em;color:var(--red);margin-bottom:12px}
+.lead{font-size:clamp(40px,5.2vw,72px);line-height:1.28;font-weight:700;color:var(--navy);margin:0 0 24px;letter-spacing:.08em}
+.lead span{display:block;white-space:nowrap}
 .hero-desc{color:var(--muted);max-width:30em;margin-bottom:24px}
 .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px;align-items:center}
-.piece-hero{position:relative;width:min(100%,470px);justify-self:end;margin:0}
+.piece-hero{position:relative;width:min(100%,520px);justify-self:end;margin:0;container-type:inline-size}
 .piece-hero .pat{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(7px 9px 0 rgba(59,59,59,.16))}
 .anno{font-family:var(--hand);font-size:21px;fill:#3b3b3b}
 .anno.sm{font-size:16px}
-.h1-chalk{position:absolute;left:19%;top:10%;margin:0;font-weight:400;font-size:clamp(68px,10.5vw,128px);line-height:1;letter-spacing:.14em;color:var(--chalk);filter:url(#chalk)}
-.h1-sub{position:absolute;left:21%;top:27%;margin:0;font:italic 600 clamp(15px,2.2vw,25px)/1.2 var(--serif);font-variant:small-caps;letter-spacing:.16em;color:var(--chalk);filter:url(#chalk);white-space:nowrap}
-.h1-tag{position:absolute;left:21%;top:33%;margin:0;font-size:clamp(13px,1.45vw,16px);color:var(--chalk);filter:url(#chalk);line-height:1.8;white-space:nowrap}
+.h1-chalk{position:absolute;left:27.8%;top:16%;margin:0;font-weight:400;font-size:20cqw;line-height:1;letter-spacing:.1em;color:var(--chalk);filter:url(#chalk)}
+.h1-sub{position:absolute;left:27.8%;top:35.6%;margin:0;font:italic 600 4.2cqw/1.2 var(--serif);font-variant:small-caps;letter-spacing:.12em;color:var(--chalk);filter:url(#chalk);white-space:nowrap}
+.h1-tag{position:absolute;left:27.8%;top:42%;margin:0;font-size:max(12px,3.5cqw);color:var(--chalk);filter:url(#chalk);line-height:1.8;white-space:nowrap}
 
 /* ===== 品牌故事 ===== */
 .story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,6vw,90px);align-items:center}
@@ -226,7 +228,7 @@ body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " att
 .fset{border:0;padding:0;margin:0 0 20px;min-width:0}
 .fset legend{font-size:14px;font-weight:700;color:var(--navy);letter-spacing:.06em;margin-bottom:8px;padding:0}
 .row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
-.fld{display:grid;gap:4px;margin-bottom:16px;align-content:start}
+.fld{display:grid;gap:4px;margin-bottom:14px;align-content:start}
 .fld>label{font-size:14px;font-weight:700;color:var(--navy);letter-spacing:.06em}
 .inp{width:100%;min-height:46px;padding:9px 14px;border:1.5px solid var(--pencil);border-radius:4px;background:#fffdf5;font-size:16px;color:var(--ink);transition:border-color var(--dur-hover),box-shadow var(--dur-hover),background-color var(--dur-hover)}
 textarea.inp{resize:vertical;min-height:100px;line-height:1.7}
@@ -309,8 +311,8 @@ tr.hit td{background:rgba(176,58,46,.1)}
 .map text{font-family:var(--hand);fill:#3b3b3b;font-size:15px}
 
 /* ===== 頁尾 ===== */
-.foot{background:var(--navy);color:#cfd6e2;padding:clamp(40px,6vw,64px) 0 clamp(60px,8vw,80px);border-top:3px dashed var(--brass)}
-.foot-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px 40px;align-items:end}
+.foot{background:var(--navy);color:#cfd6e2;padding:0 0 clamp(60px,8vw,80px);border-top:3px dashed var(--brass)}
+.foot-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px 40px;align-items:end;padding-top:clamp(40px,6vw,64px)}
 .foot .logo{color:#f3eedd}
 .foot .logo small{color:#aebfd6}
 .foot p{font-size:14px;line-height:1.85;margin:0}
@@ -334,9 +336,6 @@ tr.hit td{background:rgba(176,58,46,.1)}
   .nav a::after{display:none}
   .hero{grid-template-columns:minmax(0,1fr);gap:28px}
   .piece-hero{justify-self:center;width:min(100%,400px)}
-  .h1-chalk{left:17%;top:9%}
-  .h1-sub{left:19%;top:27%}
-  .h1-tag{left:19%;top:33%}
   .story,.size-grid,.store-grid,.studio-grid,.foot-in{grid-template-columns:minmax(0,1fr)}
   .story .frame-wrap{max-width:440px;width:100%;margin:0 auto}
   .stats li{padding-right:6px}
@@ -429,8 +428,8 @@ tr.hit td{background:rgba(176,58,46,.1)}
 <!-- ===== Hero：放大的西裝前身版片 ===== -->
 <div class="hero">
   <div class="hero-txt">
-    <p class="eyebrow">Boai Road · 第三代訂製</p>
-    <p class="lead">一件好西裝，<br>先從一張紙開始。</p>
+    <p class="eyebrow">Bespoke Tailoring · Since 1958</p>
+    <h1 class="lead"><span>一件好西裝，</span><span>先從一張紙</span><span>開始。</span></h1>
     <p class="hero-desc">衡尺在博愛路老西服街做了三代西裝。半訂製從 NT$ 18,800 起，全訂製從 NT$ 48,000 起。先在下面的設計台選一件西裝，師傅再拿著這張設計量你的身體、打版、試身。</p>
     <span class="status" id="heroStatus"><i class="dot"></i><span class="tx">營業狀態讀取中</span></span>
     <div class="cta">
@@ -443,7 +442,7 @@ tr.hit td{background:rgba(176,58,46,.1)}
     <svg class="pat" viewBox="0 0 460 600" role="img" aria-label="西裝前身版片示意，標有布紋方向、剪口與縫份">
       <path d="M84 46 L236 30 L352 84 C360 170 368 230 378 260 C384 300 380 360 392 468 L404 548 L110 572 L104 480 L96 300 L100 150 Z" fill="#f7efdb" stroke="#3b3b3b" stroke-width="2.4" stroke-linejoin="round"/>
       <path d="M98 66 L228 52 L332 98 C338 174 344 232 352 262 C360 300 356 360 368 462 L378 520 L118 540 L116 470 L110 300 L116 172 Z" fill="none" stroke="#3b3b3b" stroke-width="1.1" stroke-dasharray="6 5" opacity=".55"/>
-      <path d="M226 124 V498 M219 136 L226 122 L233 136 M219 486 L226 500 L233 486" fill="none" stroke="#3b3b3b" stroke-width="1.4"/>
+      <path d="M226 288V532M219 302L226 288L233 302M219 518L226 532L233 518" fill="none" stroke="#3b3b3b" stroke-width="1.4"/>
       <path d="M386 330l12 6-12 6z M372 420l12 6-12 6z M104 400l-10 5 10 5z M170 560l0-12 6 0z" fill="#3b3b3b"/>
       <mask id="mk-hero" maskUnits="userSpaceOnUse" x="0" y="0" width="460" height="600">
         <path class="mk-draw" pathLength="100" d="M98 66 L228 52 L332 98 C338 174 344 232 352 262 C360 300 356 360 368 462 L378 520 L118 540 L116 470 L110 300 L116 172 Z" fill="none" stroke="#fff" stroke-width="40"/>
@@ -453,13 +452,20 @@ tr.hit td{background:rgba(176,58,46,.1)}
       <circle cx="352" cy="84" r="7" fill="url(#brassG)"/>
       <circle cx="404" cy="548" r="7" fill="url(#brassG)"/>
       <circle cx="110" cy="572" r="7" fill="url(#brassG)"/>
-      <text class="anno" x="268" y="330">前片 ×2</text>
-      <text class="anno sm" x="252" y="520">布紋方向</text>
-      <text class="anno sm" x="30" y="260" transform="rotate(-90 30 260)">留份 1.5cm</text>
+      <text class="anno" x="238" y="410">前片 ×2 裁</text>
+      <text class="anno sm" x="214" y="330" text-anchor="end">布紋方向</text>
+      <text class="anno sm" x="30" y="400" transform="rotate(-90 30 400)">縫份 1.5cm</text>
+      <text class="anno sm" x="4" y="268">腰線</text>
+      <path d="M50 262H92" fill="none" stroke="#3b3b3b" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <g transform="translate(46 520) rotate(64.5)" aria-hidden="true">
+        <rect x="-73" y="-9" width="146" height="18" fill="#f2c230" stroke="#8a6d17"/>
+        <path d="M-70 3H70" stroke="#1a1a1a" stroke-width="6" stroke-dasharray="1.2 3.8"/>
+        <g font-size="7" fill="#1a1a1a" text-anchor="middle" style="font-family:var(--serif)"><text x="-48" y="-1.5">10</text><text x="-24" y="-1.5">20</text><text x="0" y="-1.5">30</text><text x="24" y="-1.5">40</text><text x="48" y="-1.5">50</text></g>
+      </g>
     </svg>
-    <h1 class="h1-chalk chalk-anim">衡尺</h1>
-    <p class="h1-sub chalk-anim d1">Measure &amp; Cloth</p>
-    <p class="h1-tag chalk-anim d2">博愛路第三代・西裝訂製</p>
+    <p class="h1-chalk chalk-anim" aria-hidden="true">衡尺</p>
+    <p class="h1-sub chalk-anim d1" aria-hidden="true">Measure &amp; Cloth</p>
+    <p class="h1-tag chalk-anim d2" aria-hidden="true">博愛路第三代・西裝訂製</p>
   </figure>
 </div>
 
@@ -1175,40 +1181,61 @@ function studioCalc(){
     fit: plan.fit
   };
 }
-function lapelD(t){
-  if (t === 'peak') return 'M194 74L124 74L170 170L194 160Z';
-  if (t === 'shawl') return 'M194 74C160 80 138 98 140 122C144 156 168 186 194 214Z';
-  return 'M194 74L140 90L170 168L184 150L194 178Z';
+/* 駁頭輪廓：y 為翻折線末端（第一顆扣子上方）；平駁領的 V 形缺口向外開、劍領尖端上翹、青果領為連續圓弧 */
+function lapelD(t, y){
+  var e = y - 28;
+  if (t === 'peak') return 'M186 94L140 60L134 128L134 ' + e + 'L200 ' + y + 'Z';
+  if (t === 'shawl') return 'M186 94C160 80 134 92 134 124C134 ' + (y - 22) + ' 158 ' + y + ' 200 ' + y + 'Z';
+  return 'M186 94L150 84L170 112L136 126L134 ' + e + 'L200 ' + y + 'Z';
 }
+/* 西裝外套正面平面圖：袖子 → 前身 → 內裡掀角 → 前襟 → 口袋 → 背心 → 扣子 → 後領 → 駁頭 */
 function drawJacket(){
   var c = studioCalc(), f = fillOf(c.fab), lin = LINING[cfg.lining].c;
-  var pants = cfg.pants !== 'none', pleat = cfg.pants === 'pleat';
-  var ln = 'stroke="#3b3b3b" stroke-width="1.6" stroke-linejoin="round"';
+  var pants = cfg.pants !== 'none', pleat = cfg.pants === 'pleat', db = cfg.btn === 'db';
+  var ln = 'stroke="#3b3b3b" stroke-width="1.5" stroke-linejoin="round"';
+  var dash = 'fill="none" stroke="#3b3b3b" stroke-width="1.1" stroke-dasharray="3 3"';
+  var btnC = function(x, y, r){ return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#f4ecd4" stroke="#3b3b3b" stroke-width="1"/>'; };
+  var bt = cfg.btn === 'sb1' ? [[200, 300]] : cfg.btn === 'sb2' ? [[200, 284], [200, 324]] : [[190, 300], [190, 338], [190, 376], [210, 300], [210, 338], [210, 376]];
+  var yb = cfg.btn === 'sb2' ? 272 : 288;
+  var yo = bt[bt.length - 1][1] + 18;
   var s = '<svg viewBox="0 0 400 ' + (pants ? 560 : 462) + '" role="img" aria-label="西裝外套正面示意，目前為' + esc(BTN[cfg.btn].n) + '、' + esc(LAPEL[cfg.lapel].n) + '">';
   if (pants){
     s += '<g fill="' + f + '" ' + ln + '><path d="M140 430L199 430L195 548L146 548Z"/><path d="M201 430L260 430L254 548L205 548Z"/></g>';
     s += '<g fill="none" stroke="#3b3b3b" stroke-width="1.2" opacity=".7">' + (pleat ? '<path d="M164 436Q172 480 166 542"/><path d="M236 436Q228 480 234 542"/>' : '<path d="M170 432V548"/><path d="M230 432V548"/>') + '</g>';
   }
-  var sleeve = '<path d="M134 84L100 98L60 350L94 384L146 250Z" fill="' + f + '" ' + ln + '/><path d="M64 340L100 374" fill="none" stroke="#3b3b3b" stroke-width="1.4"/><circle cx="72" cy="352" r="2.6" fill="#f4ecd4" stroke="#3b3b3b" stroke-width=".9"/><circle cx="82" cy="362" r="2.6" fill="#f4ecd4" stroke="#3b3b3b" stroke-width=".9"/>';
-  s += sleeve + mir(sleeve);
-  s += '<path d="M200 70L134 84L138 236L142 446L200 452L258 446L262 236L266 84Z" fill="' + f + '" ' + ln + '/>';
-  s += cfg.btn === 'db'
-    ? '<path d="M186 74V452M214 74V452" fill="none" stroke="#3b3b3b" stroke-width="1.2" stroke-dasharray="3 3"/>'
-    : '<path d="M194 74V452" fill="none" stroke="#3b3b3b" stroke-width="1.2" stroke-dasharray="3 3"/>';
-  var pk = cfg.pocket === 'flap' ? '<path d="M150 346H184L182 358H152Z" fill="' + f + '" ' + ln + '/>'
-    : cfg.pocket === 'patch' ? '<rect x="152" y="352" width="30" height="34" rx="1" fill="' + f + '" ' + ln + '/>'
-    : '<path d="M148 382L184 362" fill="none" stroke="#3b3b3b" stroke-width="2.4"/><path d="M148 388L184 368" fill="none" stroke="#3b3b3b" stroke-width=".9"/>';
-  s += pk + mir(pk);
-  s += '<path d="M152 196L180 190" fill="none" stroke="#3b3b3b" stroke-width="1.4"/>';
+  /* 袖子：袖山弧線、袖口三顆裝飾扣 */
+  var sleeve = 'M138 90C112 94 100 110 96 132L72 346C70 362 74 376 80 386L108 390C104 374 106 360 110 346L146 166Z';
+  var sl = '<path d="' + sleeve + '" fill="' + f + '" ' + ln + '/>' +
+    '<path d="M138 92C122 108 114 128 112 154" ' + dash + ' opacity=".7"/>' +
+    '<path d="M74 334L112 342" fill="none" stroke="#3b3b3b" stroke-width="1.2"/>' +
+    btnC(88, 350, 2.2) + btnC(88, 364, 2.2) + btnC(88, 378, 2.2);
+  s += sl + mir(sl);
+  /* 前身：單排前襟在最下一顆扣子以下圓弧分開；雙排下襬為直角 */
+  var body = db
+    ? 'M176 74Q156 80 138 90L134 112L136 226L138 300L136 450L264 450L262 300L264 226L266 112L262 90Q244 80 224 74Q200 84 176 74Z'
+    : 'M176 74Q156 80 138 90L134 112L136 226L138 300L136 450L176 450Q182 ' + (yo + 50) + ' 200 ' + yo + 'Q218 ' + (yo + 50) + ' 224 450L264 450L262 300L264 226L266 112L262 90Q244 80 224 74Q200 84 176 74Z';
+  s += '<path d="' + body + '" fill="' + f + '" ' + ln + '/>';
+  /* 內裡：一側下襬向後翻開的小三角 */
+  s += '<path d="' + (db ? 'M262 450L238 450L258 420Z' : 'M224 450L256 450L228 416Z') + '" fill="' + lin + '" ' + ln + '/>';
+  s += db ? '<path d="M184 288V450M216 288V450" ' + dash + '/>' : '<path d="M200 ' + yb + 'V' + yo + '" ' + dash + '/>';
   if (cfg.vest){
-    s += '<path d="M186 92L170 128L168 372L200 384L232 372L230 128L214 92L200 108Z" fill="' + f + '" ' + ln + '/>';
-    [162, 198, 234, 270, 306].forEach(function(y){ s += '<circle cx="200" cy="' + y + '" r="2.8" fill="#f4ecd4" stroke="#3b3b3b" stroke-width=".9"/>'; });
+    s += '<path d="M182 92L170 128L168 372L200 384L232 372L230 128L218 92L200 108Z" fill="' + f + '" ' + ln + '/>';
+    [162, 198, 234, 270, 306].forEach(function(y){ s += btnC(200, y, 2.6); });
   }
-  s += '<path d="M142 446L170 404L192 446Z" fill="' + lin + '" stroke="#3b3b3b" stroke-width="1.2" stroke-linejoin="round"/>';
-  var bt = cfg.btn === 'sb1' ? [[196, 300]] : cfg.btn === 'sb2' ? [[196, 284], [196, 324]] : [[178, 300], [178, 338], [178, 376], [222, 300], [222, 338], [222, 376]];
-  bt.forEach(function(b){ s += '<circle cx="' + b[0] + '" cy="' + b[1] + '" r="3.6" fill="#f4ecd4" stroke="#3b3b3b" stroke-width="1"/>'; });
-  var lp = '<path d="' + lapelD(cfg.lapel) + '" fill="' + f + '" ' + ln + '/><path d="' + lapelD(cfg.lapel) + '" fill="#ffffff" fill-opacity=".12"/>';
-  s += lp + mir(lp);
+  /* 腰下口袋（左右對稱）與左胸手巾袋（細長斜口） */
+  var pk = cfg.pocket === 'flap' ? '<path d="M146 330H176L175 350Q161 357 147 350Z" fill="' + f + '" ' + ln + '/>'
+    : cfg.pocket === 'patch' ? '<rect x="146" y="332" width="30" height="36" rx="3" fill="' + f + '" ' + ln + '/>'
+    : '<path d="M144 352L178 330L178 338L146 360Z" fill="' + f + '" ' + ln + '/>';
+  s += pk + mir(pk);
+  s += '<path d="M224 246L256 233" fill="none" stroke="#3b3b3b" stroke-width="2.6" stroke-linecap="round"/>';
+  bt.forEach(function(b){ s += btnC(b[0], b[1], 3.6); });
+  /* 後領（領台）：露在兩片駁頭之間的頸背 */
+  var cl = 'M172 92Q174 66 200 64Q226 66 228 92L214 96L200 102L186 96Z';
+  s += '<path d="' + cl + '" fill="' + f + '" ' + ln + '/><path d="' + cl + '" fill="#000" fill-opacity=".18"/>';
+  /* 駁頭：比衣身稍亮的同布料，深色描邊 */
+  var lp = lapelD(cfg.lapel, yb);
+  var lap = '<path d="' + lp + '" fill="' + f + '" ' + ln + '/><path d="' + lp + '" fill="#fff" fill-opacity=".16"/>';
+  s += lap + mir(lap);
   s += '</svg>';
   $('#jacketBox').innerHTML = s;
 }

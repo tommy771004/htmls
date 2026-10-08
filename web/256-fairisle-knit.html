@@ -1153,7 +1153,7 @@ buildGrid();
 animateSwatch();
 
 /* ===== 提花毛衣設計器（核心功能 1） ===== */
-var slotC = [YARN[1].h, YARN[4].h, YARN[3].h, YARN[2].h];   // 色 1–4
+var slotC = [YARN[0].h, YARN[4].h, YARN[1].h, YARN[3].h];   // 色 1–4：羊毛白、海軍藍、蔓越莓、芥末
 var brush = 1, sym = true, painting = false, paintVal = 1, lastI = -1;
 var dg = new Uint8Array(16 * 12);
 var cells = [];
@@ -1259,36 +1259,58 @@ chart.addEventListener('click', function(e){
   paintAt(i);
 });
 
-/* 圖樣 */
-function deerHalf(){ return ['20000000','02000000','00200000','00022000','00011111','00111131','00111111','00011111','00001111','00000111','00000011','00000000']; }
-var DEER = deerHalf().map(function(h){ return h + h.split('').reverse().join(''); });
+/* 圖樣：雪花（載入時預設）、麋鹿、愛心、幾何 peerie；色號 1–4 即上方的色 1–4 */
+/* 雪花：以中心為原點的象限座標（X 0–7、Y 0–5）畫一朵八向雪花，左右上下鏡射 */
+var FLAKE = ' 01 02 03 04 05 10 20 30 40 50 11 22 33 15 41 51 54 45 ';
+/* 麋鹿：格中心取樣的幾何形狀。[0,圓心x,圓心y,rx,ry] 為橢圓，[1,x1,y1,x2,y2,線寬] 為粗線 */
+var DEER = {
+  full: [[0,6.6,5.2,4,1.6],[1,10,4.6,12.4,2.6,2.2],[0,13,2.7,1.45,.9],[1,13.9,2.8,15.3,3.2,1.2],
+    [1,12.5,1.9,11.4,.2,1],[1,11.9,1,13.4,.1,1],[1,9.6,6.2,9.7,10.8,1.2],[1,11.5,6,11.8,10.8,1.2],
+    [1,3.6,6.2,3.4,10.8,1.2],[1,5.2,6.2,5.2,10.8,1.2],[1,2.6,4.4,1.4,3.6,1.2]],
+  half: [[0,3.5,5.2,2.3,1.2],[1,5.4,4.6,6.3,3,1.6],[0,6.5,2.8,.95,.75],[1,6.3,2,5.7,.4,.9],
+    [1,5.9,1,7,.3,.9],[1,4.6,6.4,4.5,10.6,1.2],[1,5.7,6.2,5.8,10.6,1.2],[1,1.8,6.4,1.7,10.6,1.2],
+    [1,2.9,6.4,2.9,10.6,1.2],[0,.9,4.6,.6,.6]]
+};
+function deerHit(shapes, x, y){
+  return shapes.some(function(s){
+    if (s[0] === 0){ var a = (x - s[1]) / s[3], b = (y - s[2]) / s[4]; return a*a + b*b <= 1; }
+    var dx = s[3] - s[1], dy = s[4] - s[2];
+    var t = Math.max(0, Math.min(1, ((x - s[1]) * dx + (y - s[2]) * dy) / (dx*dx + dy*dy)));
+    var px = s[1] + t*dx - x, py = s[2] + t*dy - y;
+    return px*px + py*py <= s[5]*s[5] / 4;
+  });
+}
 var PRESET = {
   snow: function(c, r){
-    var dx = Math.abs(c - 7.5), dy = Math.abs(r - 5.5), mn = Math.min(dx, dy), mxv = Math.max(dx, dy);
-    if (dx + dy < 1.2) return 3;
-    if (mn < 0.6 && mxv < 5.2) return 1;
-    if (Math.abs(dx - dy) < 0.6 && mxv < 3.6) return 1;
-    if ((Math.abs(dx - 3) < 0.5 && dy < 1.4) || (Math.abs(dy - 3) < 0.5 && dx < 1.4)) return 2;
-    return 0;
+    var X = c < 8 ? 7 - c : c - 8, Y = r < 6 ? 5 - r : r - 6, k = '' + X + Y;
+    if ((X === 0 && Y === 0) || k === '44') return 3;      // 中心與斜向尖端的蔓越莓點綴
+    return FLAKE.indexOf(' ' + k + ' ') >= 0 ? 1 : 2;      // 白色雪花，其餘為海軍藍底
   },
-  deer: function(c, r){ return +DEER[r].charAt(c); },
+  deer: function(c, r){
+    // 對稱時左半是朝右的一隻鹿，右半鏡像成朝左的另一隻，兩隻相對；不對稱時畫一隻完整的鹿
+    var shapes = sym ? DEER.half : DEER.full, x = (sym && c > 7) ? 15 - c : c;
+    return deerHit(shapes, x + 0.5, r + 0.5) ? 2 : 1;
+  },
   heart: function(c, r){
-    var X = (c - 7.5) / 4.8, Y = (5 - r) / 4.8;
+    var X = (c - 7.5) / 5, Y = (5.6 - r) / 5;
     var f = Math.pow(X*X + Y*Y - 1, 3) - X*X*Y*Y*Y;
-    return f <= 0 ? (f > -0.22 ? 2 : 1) : 0;
+    return f <= 0 ? (f > -0.15 ? 2 : 3) : 0;               // 蔓越莓心、海軍藍細邊
   },
   peerie: function(c, r){
     var s = 2 * ((r >> 2) & 1), x = ((c + s) & 3) - 1.5, y = (r & 3) - 1.5;
     var m = Math.abs(x) + Math.abs(y);
-    return m <= 1 ? 1 : (m <= 2 ? 2 : (m <= 3 ? 4 : 0));
+    return m <= 1 ? 3 : (m <= 2 ? 1 : 2);                  // 菱形：蔓越莓心、白框、海軍藍底
   }
 };
-$('.tb[aria-label="預設圖樣"]').addEventListener('click', function(e){
-  var b = e.target.closest('[data-preset]');
-  if (!b) return;
-  var fn = PRESET[b.getAttribute('data-preset')];
+function applyPreset(name){
+  var fn = PRESET[name];
+  if (!fn) return;
   for (var r = 0; r < 12; r++) for (var c = 0; c < 16; c++) setCell(r*16 + c, fn(c, r));
   renderAll();
+}
+$('.tb[aria-label="預設圖樣"]').addEventListener('click', function(e){
+  var b = e.target.closest('[data-preset]');
+  if (b) applyPreset(b.getAttribute('data-preset'));
 });
 $('#clearBtn').addEventListener('click', function(){
   for (var i = 0; i < 192; i++) setCell(i, 0);
@@ -1323,24 +1345,35 @@ function renderStat(){
   $('#dgStat').textContent = '16 針 × 12 段・用色 ' + u.colors + ' 色・已畫 ' + u.cells + ' 針';
 }
 
-/* 預覽：毛衣剪影 + 胸前橫帶（圖表橫向重複兩次） */
+/* 預覽：毛衣剪影 + 胸前橫帶（圖表橫向重複兩次）；橫帶上下各一行 peerie 邊；羅紋收邊 */
 var BODY_P = 'M128 52Q180 98 232 52L286 80L332 214L300 226L282 170L282 404L78 404L78 170L60 226L28 214L74 80Z';
+function peerieEdge(y, odd){
+  var s = '', n = odd ? 19 : 20;
+  for (var k = 0; k < n; k++) s += '<circle cx="' + (85 + k*10 + (odd ? 5 : 0)) + '" cy="' + y + '" r="2.2" fill="' + ((k + odd) % 2 ? '#d9a33a' : '#a3243b') + '"/>';
+  return s;
+}
 function renderPreview(){
-  var g = '', bx = 80, by = 170, cw = 100 / 16, ch = 10;
+  var g = '', bx = 80, by = 170, cw = 6.25, ch = 10;
   for (var rep = 0; rep < 2; rep++) for (var r = 0; r < 12; r++) for (var c = 0; c < 16; c++){
     var v = dg[r*16 + c], x = bx + rep*100 + c*cw, y = by + r*ch;
-    g += '<rect x="' + x.toFixed(2) + '" y="' + y + '" width="' + cw.toFixed(2) + '" height="' + ch + '" fill="' + (v ? slotC[v-1] : '#fbf7ee') + '"/>';
+    g += '<rect x="' + x.toFixed(2) + '" y="' + y + '" width="' + cw + '" height="' + ch + '" fill="' + (v ? slotC[v-1] : '#d8c8a2') + '"/>';
     g += '<path d="M' + (x + 1.2).toFixed(2) + ' ' + (y + 1.8) + 'L' + (x + cw/2).toFixed(2) + ' ' + (y + ch - 1.6) + 'L' + (x + cw - 1.2).toFixed(2) + ' ' + (y + 1.8) +
-      '" fill="none" stroke="' + (v ? 'rgba(255,255,255,.3)' : '#d2c3a0') + '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>';
+      '" fill="none" stroke="' + (v ? 'rgba(255,255,255,.35)' : 'rgba(110,88,55,.45)') + '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>';
   }
+  var collar = 'M128 52Q180 98 232 52', cuffs = 'M28 214L60 226M332 214L300 226';
   $('#pv').innerHTML = '<svg viewBox="0 0 360 420" role="img" aria-label="提花毛衣預覽，胸前橫帶為目前的圖樣">' +
-    '<defs><pattern id="pvStk" width="12" height="10" patternUnits="userSpaceOnUse"><path d="M1 2L6 9L11 2" fill="none" stroke="#c9b893" stroke-width="1.2"/></pattern>' +
-    '<pattern id="pvRib" width="6" height="20" patternUnits="userSpaceOnUse"><rect width="3" height="20" fill="#c9b893"/></pattern></defs>' +
-    '<path d="' + BODY_P + '" fill="#e9dfc9"/><path d="' + BODY_P + '" fill="url(#pvStk)"/>' +
-    '<path d="M128 52Q180 98 232 52" fill="none" stroke="#c9b893" stroke-width="10"/>' +
-    '<path d="M28 214L60 226M332 214L300 226" stroke="#c9b893" stroke-width="8"/>' +
+    '<defs>' +
+    '<pattern id="pvStk" width="12" height="10" patternUnits="userSpaceOnUse"><path d="M1 2L6 9L11 2" fill="none" stroke="#b39c72" stroke-width="1.3"/></pattern>' +
+    '<pattern id="pvRib" width="6" height="20" patternUnits="userSpaceOnUse"><rect width="3" height="20" fill="#4f3e24" opacity=".3"/></pattern>' +
+    '<linearGradient id="pvSh" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#4f3e24" stop-opacity=".12"/><stop offset=".3" stop-color="#4f3e24" stop-opacity="0"/><stop offset=".7" stop-color="#4f3e24" stop-opacity="0"/><stop offset="1" stop-color="#4f3e24" stop-opacity=".14"/></linearGradient>' +
+    '</defs>' +
+    '<path d="' + BODY_P + '" fill="#f1e9d7"/><path d="' + BODY_P + '" fill="url(#pvStk)"/><path d="' + BODY_P + '" fill="url(#pvSh)"/>' +
+    '<path d="' + collar + '" fill="none" stroke="#c9b48a" stroke-width="11"/><path d="' + collar + '" fill="none" stroke="url(#pvRib)" stroke-width="11"/>' +
+    '<path d="' + cuffs + '" stroke="#c9b48a" stroke-width="9"/><path d="' + cuffs + '" stroke="url(#pvRib)" stroke-width="9"/>' +
+    '<g>' + peerieEdge(160, 0) + peerieEdge(164.5, 1) + peerieEdge(295.5, 0) + peerieEdge(300, 1) + '</g>' +
     '<g>' + g + '</g>' +
-    '<rect x="78" y="384" width="204" height="20" fill="url(#pvRib)"/>' +
+    '<rect x="78.5" y="168.5" width="203" height="123" rx="2" fill="none" stroke="#7d6a4b" stroke-width="1"/>' +
+    '<rect x="78" y="384" width="204" height="20" fill="#c9b48a"/><rect x="78" y="384" width="204" height="20" fill="url(#pvRib)"/>' +
     '</svg>';
 }
 function renderAll(){ renderPreview(); renderStat(); renderPrice(); }
@@ -1537,7 +1570,7 @@ renderStore();
 renderStatus();
 setInterval(renderStatus, 60000);
 setBrush(1);
-renderAll();
+applyPreset('snow');
 recommend();
 fillPhotos();
 buildRulers();
