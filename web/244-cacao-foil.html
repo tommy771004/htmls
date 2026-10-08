@@ -907,9 +907,10 @@ function buildBar(){
     s += '<rect x="' + (x + B) + '" y="' + (y + B) + '" width="' + (W - 2 * B) + '" height="' + (H - 2 * B) + '" rx="2" fill="url(#flat)"/>';
     // 凹刻 T：亮的下緣（先畫、往下偏 1.4px）＋暗的凹槽本體
     var tx = x + W / 2, ty = y + H / 2;
-    var T = 'M' + (tx - 11) + ' ' + (ty - 12) + ' H' + (tx + 11) + ' V' + (ty - 7) + ' H' + (tx + 3) + ' V' + (ty + 12) + ' H' + (tx - 3) + ' V' + (ty - 7) + ' H' + (tx - 11) + 'Z';
-    s += '<path d="' + T + '" transform="translate(0 1.4)" fill="#f1dcc2" fill-opacity=".34"/>';
-    s += '<path d="' + T + '" fill="#140803" fill-opacity=".55"/>';
+    var T = 'M' + (tx - 15) + ' ' + (ty - 16) + ' H' + (tx + 15) + ' V' + (ty - 9) + ' H' + (tx + 4) + ' V' + (ty + 16) + ' H' + (tx - 4) + ' V' + (ty - 9) + ' H' + (tx - 15) + 'Z';
+    s += '<path d="' + T + '" transform="translate(0 1.8)" fill="#f1dcc2" fill-opacity=".5"/>';
+    s += '<path d="' + T + '" fill="#140803" fill-opacity=".72"/>';
+    s += '<path d="' + T + '" transform="translate(0 1)" fill="#5a3320" fill-opacity=".55"/>';
   }
   // 錫箔：包住磚的左半，右緣撕開成鋸齒，表面用多條皺褶反光；左上角微微翹起
   s += '<g class="foil">';

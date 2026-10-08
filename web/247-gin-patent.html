@@ -84,7 +84,7 @@ svg{display:block}
 .fig1 svg{width:100%;height:auto}
 .fig1 .cap{display:flex;justify-content:space-between;font-family:var(--ital);font-size:13px;color:var(--ink2);border-top:1px solid var(--ink);padding-top:8px;margin-top:0;height:36px;box-sizing:border-box}
 .fig1 .stamp{position:absolute;right:2%;bottom:40px;width:clamp(84px,17%,112px);height:auto;transform:rotate(-8deg);pointer-events:none}
-.fig1 .sig1{position:absolute;right:calc(2% + clamp(84px,17%,112px) + 12px);bottom:150px;width:clamp(92px,21%,124px);height:auto;transform:rotate(-3deg);pointer-events:none}
+.fig1 .sig1{position:absolute;right:calc(2% + clamp(84px,17%,112px) + 12px);bottom:166px;width:clamp(92px,21%,124px);height:auto;transform:rotate(-3deg);pointer-events:none}
 
 /* 共用區塊頭 */
 .sec{padding:clamp(56px,7vw,96px) 0;border-top:1px solid var(--ink)}
@@ -259,7 +259,7 @@ svg{display:block}
 .form.done>*:not(.cert){display:none}
 @media (max-width:860px){.visit{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:520px){.vinfo{grid-template-columns:minmax(0,1fr);gap:4px}.vinfo dt{padding-top:10px}}
-@media (max-width:520px){.fig1 .stamp{width:62px}.fig1 .sig1{width:78px;bottom:100px}}
+@media (max-width:520px){.fig1 .stamp{width:62px}.fig1 .sig1{width:78px;bottom:110px}}
 
 /*@@SECTIONS@@*/
 
@@ -409,8 +409,12 @@ body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " att
         <text class="lbl lab" style="--d:2s" x="150" y="536" text-anchor="end">20</text>
       </svg>
       <svg class="sig1" viewBox="0 0 200 60" aria-hidden="true">
-        <style>.sig1 path{stroke-dasharray:100;stroke-dashoffset:100;animation:f1d 1.4s var(--ease-out) 2.2s forwards}</style>
-        <path pathLength="100" d="M8 40 C26 8 40 50 60 26 S92 6 104 36 S134 50 150 22 S170 16 190 28" fill="none" stroke="#1b1a17" stroke-width="2" stroke-linecap="round"/>
+        <defs><clipPath id="sigClip"><rect class="sigR" x="0" y="0" width="200" height="60"/></clipPath></defs>
+        <style>.sig1 .sigR{transform:scaleX(0);transform-origin:0 0;animation:sigW 1.6s var(--ease-out) 2.2s forwards}@keyframes sigW{to{transform:scaleX(1)}}@media (prefers-reduced-motion:reduce){.sig1 .sigR{animation:none;transform:none}}</style>
+        <g clip-path="url(#sigClip)">
+          <text x="8" y="36" font-family="Snell Roundhand,Apple Chancery,Zapfino,Brush Script MT,Segoe Script,cursive" font-style="italic" font-size="30" fill="#1b1a17">Lin Yu-ho</text>
+          <path d="M14 46 C60 40 120 52 176 38 C186 35 192 40 184 46 C170 54 140 52 128 49" fill="none" stroke="#1b1a17" stroke-width="1.4" stroke-linecap="round"/>
+        </g>
       </svg>
       <svg class="stamp" viewBox="0 0 200 240" aria-hidden="true">
         <defs><path id="f1arc" d="M100 100 m-78 0 a78 78 0 1 1 156 0 a78 78 0 1 1 -156 0"/></defs>
@@ -813,10 +817,19 @@ function dot(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="
 var ART = {
   story:function(){
     var s = hatchDef('hpS');
-    // 遠山：等高線式的平行曲線，右側排線陰影
-    var RG = 'M0 470 C70 400 140 430 210 380 S350 300 430 350 S560 290 640 340 S740 330 800 300';
-    s += '<path d="M430 350 S560 290 640 340 S740 330 800 300 V470 H430 Z" fill="url(#hpS)" opacity=".5"/>';
-    for (var r = 0; r < 4; r++) s += '<path d="' + RG + '" transform="translate(0 ' + (r * 24) + ')" fill="none" stroke="' + INK + '" stroke-width="' + (3 - r * 0.35) + '" stroke-linecap="round"/>';
+    // 遠山：兩層山稜線，背光坡用版畫式暈滃線（hachure）沿坡往下排，前山的線較粗較長
+    function ridgeY(V, x){ for (var i = 1; i < V.length; i++) if (x <= V[i][0]){ var t = (x - V[i-1][0])/(V[i][0] - V[i-1][0]); return V[i-1][1] + (V[i][1] - V[i-1][1])*t; } return V[V.length-1][1]; }
+    function range(V, base, sw, hl, step){
+      var d = 'M' + V.map(function(v){ return v[0] + ' ' + v[1]; }).join(' L'), out = '<path d="' + d + ' L800 ' + base + ' L0 ' + base + ' Z" fill="#f3eee2"/>' + pth(d, null, sw);
+      for (var x = V[0][0] + 4; x < 800; x += step){
+        var y = ridgeY(V, x), y2 = ridgeY(V, x + 6), down = y2 > y, L = Math.min(base - y - 6, hl*(down ? 1 : .32)*(.7 + ((x*37) % 11)/22));
+        if (L < 8) continue;
+        out += '<path d="M' + x.toFixed(1) + ' ' + (y + 4).toFixed(1) + ' l' + (down ? L*.28 : -L*.12).toFixed(1) + ' ' + L.toFixed(1) + '" stroke="' + INK + '" stroke-width="' + (down ? 1.3 : .9) + '" stroke-linecap="round" fill="none"/>';
+      }
+      return out;
+    }
+    s += range([[0,360],[90,300],[160,326],[260,240],[340,292],[430,262],[520,318],[600,250],[700,300],[800,272]], 560, 1.8, 46, 9);
+    s += range([[0,470],[70,420],[150,440],[240,372],[330,430],[400,404],[470,446],[560,380],[650,428],[730,398],[800,430]], 560, 2.8, 70, 7);
     // 中景：蒸餾廠立面（斜屋頂、煙囪、拱窗、雙開門）
     s += pth('M180 560 L400 462 L620 560 V860 H180 Z', '#f3eee2', 3.2);
     s += '<path d="M400 462 L620 560 L400 560 Z" fill="url(#hpS)"/>';
@@ -837,8 +850,8 @@ var ART = {
     [[95, 928, -32, 74], [95, 928, -160, 70], [150, 862, -18, 70], [150, 862, -158, 66], [210, 796, -8, 62], [210, 796, -172, 60], [268, 744, -30, 54]].forEach(function(p){ s += leaf(p[0], p[1], p[2], p[3]); });
     [[320, 690], [340, 686], [330, 670], [350, 676], [338, 704]].forEach(function(p, i){ s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="10" fill="' + (i % 2 ? 'url(#hpS)' : '#f3eee2') + '" stroke="' + INK + '" stroke-width="2.4"/>'; });
     // 元件編號：30 山林、32 蒸餾廠、34 馬告
-    s += '<g fill="none" stroke="' + INK + '" stroke-width="1.6"><path d="M500 318 L600 226 H640"/><path d="M600 612 L660 560 H700"/><path d="M112 896 L84 834 H62"/></g>';
-    s += dot(500, 318) + dot(600, 612) + dot(112, 896);
+    s += '<g fill="none" stroke="' + INK + '" stroke-width="1.6"><path d="M560 392 L600 226 H640"/><path d="M600 612 L660 560 H700"/><path d="M112 896 L84 834 H62"/></g>';
+    s += dot(560, 392) + dot(600, 612) + dot(112, 896);
     s += numTag(646, 236, '30') + numTag(706, 568, '32') + numTag(56, 842, '34', 'end');
     return svgWrap(s); },
   still:function(){

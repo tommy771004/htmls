@@ -190,6 +190,7 @@ body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " att
 .gal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(170px,18vw,230px);gap:16px}
 .gal .ph{border-radius:14px;border:1px solid var(--line)}
 .gal .ph:first-child{grid-column:span 2;grid-row:span 2}
+.gal .ph:last-child{grid-column:span 2}
 
 /* 評論 */
 .revs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
@@ -243,8 +244,9 @@ footer a:hover{color:var(--gold2)}
   .hero{padding-top:14px}
   .heroWrap{display:block}
   .screen{aspect-ratio:auto;height:auto;padding:8px}
-  .screen .panels{height:auto;grid-template-columns:1fr 1fr;perspective:none}
-  .panel{transform:none;aspect-ratio:4/5}
+  .screen .panels{height:auto;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;perspective:none}
+  .panel{transform:none;aspect-ratio:2/5;border-radius:8px}
+  .panel::after{inset:3px;border-radius:6px}
   .screen>img{position:static;width:100%;height:auto}
   .heroTxt{max-width:none;padding:28px 2px 0}
   .heroTxt h1{font-size:clamp(44px,12vw,56px)}
@@ -266,7 +268,7 @@ footer a:hover{color:var(--gold2)}
   .doses span b{font-size:20px}
   .revs .rev{padding:24px 22px}
   .gal{grid-template-columns:1fr}
-  .gal .ph:first-child{grid-column:auto}
+  .gal .ph:first-child,.gal .ph:last-child{grid-column:auto}
   .gal .ph{aspect-ratio:1/1}
   .formFoot .btn{width:100%}
   .fast{margin-left:0}
@@ -523,10 +525,13 @@ function shard(cx, cy, s, R){
   for (i = 0; i < n; i++){ var a = a0 + i/n*6.2832 + (R()-.5)*.5, r = s*(.7 + R()*.4); p.push((cx + Math.cos(a)*r).toFixed(1) + ',' + (cy + Math.sin(a)*r*.85).toFixed(1)); }
   return '<polygon points="' + p.join(' ') + '" fill="' + EGG[(R()*4)|0] + '"/>';
 }
+// 蛋殼鑲嵌（雲形區塊）：在雲形 clipPath 內用 crackle 龜裂密鋪；n 只保留相容，碎片大小取 a–b 的平均
+var fieldN = 0;
 function field(cx, cy, rx, ry, n, R, a, b){
-  var s = '<g stroke="#0f0b09" stroke-width="2.2" stroke-linejoin="round">', i;
-  for (i = 0; i < n; i++){ var t = R()*6.2832, r = Math.sqrt(R()); s += shard(cx + Math.cos(t)*rx*r, cy + Math.sin(t)*ry*r, a + R()*(b - a), R); }
-  return s + '</g>';
+  var id = 'fd' + (fieldN++), k = (a + b)*.75;
+  var clip = '<ellipse cx="' + cx + '" cy="' + (cy + ry*.18) + '" rx="' + rx + '" ry="' + (ry*.7).toFixed(1) + '"/>';
+  [[-.55,-.1,.42],[-.15,-.32,.5],[.28,-.22,.46],[.62,0,.36]].forEach(function(q){ clip += '<ellipse cx="' + (cx + q[0]*rx).toFixed(1) + '" cy="' + (cy + q[1]*ry).toFixed(1) + '" rx="' + (q[2]*rx).toFixed(1) + '" ry="' + (q[2]*rx*ry/rx*1.25).toFixed(1) + '"/>'; });
+  return '<clipPath id="' + id + '">' + clip + '</clipPath><g clip-path="url(#' + id + ')">' + crackle(cx - rx, cy - ry, rx*2, ry*2, k, R, Math.max(1.2, k*.09)) + '</g>';
 }
 function gdef(id){ return '<linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6a2c"/><stop offset=".42" stop-color="#c8a24c"/><stop offset=".5" stop-color="#f6e2a0"/><stop offset=".6" stop-color="#c8a24c"/><stop offset="1" stop-color="#6b4f1c"/></linearGradient>'; }
 function sdef(id){ return '<linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7d786d"/><stop offset=".5" stop-color="#e8e3d6"/><stop offset="1" stop-color="#8f897c"/></linearGradient>'; }
@@ -542,6 +547,47 @@ function lantern(x, wy){
     '<rect x="' + (x-22) + '" y="' + (cy-36) + '" width="44" height="6" rx="3" fill="#c8a24c"/>' +
     '<rect x="' + (x-22) + '" y="' + (cy+30) + '" width="44" height="6" rx="3" fill="#c8a24c"/>' +
     '<path d="M' + x + ' ' + (cy+36) + ' V' + (cy+52) + '" stroke="#c8a24c" stroke-width="2"/></g>';
+}
+// 蛋殼龜裂：在範圍內撒錯位的種子點，每點的碎片是 Voronoi 胞（用與鄰點的中垂線逐一裁切），
+// 碎片大小不一、多邊形邊數不定、沒有網格感；每片向形心內縮 inset 留出黑漆細縫
+function clipHalf(P, px, py, nx, ny){
+  var out = [], n = P.length, i;
+  for (i = 0; i < n; i++){
+    var p = P[i], q = P[(i + 1) % n], dp = (p[0] - px)*nx + (p[1] - py)*ny, dq = (q[0] - px)*nx + (q[1] - py)*ny;
+    if (dp <= 0) out.push(p);
+    if ((dp <= 0) !== (dq <= 0)){ var t = dp/(dp - dq); out.push([p[0] + (q[0] - p[0])*t, p[1] + (q[1] - p[1])*t]); }
+  }
+  return out;
+}
+function crackle(x0, y0, w, h, size, R, inset){
+  var pts = [], r, c, i, j, out = '';
+  var rows = Math.ceil(h/(size*.87)) + 2, cols = Math.ceil(w/size) + 2;
+  for (r = -1; r < rows; r++) for (c = -1; c < cols; c++){
+    pts.push([x0 + (c + (r & 1)*.5 + (R() - .5)*.8)*size, y0 + (r + (R() - .5)*.8)*size*.87]);
+    if (R() < .22) pts.push([x0 + (c + R())*size, y0 + (r + R())*size*.87]);   // 偶爾多一點，碎成小片
+  }
+  var lim = size*2.6, lim2 = lim*lim;
+  for (i = 0; i < pts.length; i++){
+    var a = pts[i];
+    if (a[0] < x0 - size || a[0] > x0 + w + size || a[1] < y0 - size || a[1] > y0 + h + size) continue;
+    var P = [[a[0] - lim, a[1] - lim], [a[0] + lim, a[1] - lim], [a[0] + lim, a[1] + lim], [a[0] - lim, a[1] + lim]];
+    for (j = 0; j < pts.length && P.length > 2; j++){
+      if (j === i) continue;
+      var b = pts[j], dx = b[0] - a[0], dy = b[1] - a[1];
+      if (dx*dx + dy*dy > lim2*1.2) continue;
+      P = clipHalf(P, (a[0] + b[0])/2, (a[1] + b[1])/2, dx, dy);
+    }
+    if (P.length < 3) continue;
+    var mx = 0, my = 0, q = [];
+    for (j = 0; j < P.length; j++){ mx += P[j][0]; my += P[j][1]; }
+    mx /= P.length; my /= P.length;
+    for (j = 0; j < P.length; j++){
+      var ex = P[j][0] - mx, ey = P[j][1] - my, L = Math.sqrt(ex*ex + ey*ey) || 1, k = Math.max(0, (L - inset)/L);
+      q.push((mx + ex*k).toFixed(1) + ',' + (my + ey*k).toFixed(1));
+    }
+    out += '<polygon points="' + q.join(' ') + '" fill="' + (R() < .08 ? '#d8c69f' : eggTone(R)) + '"/>';
+  }
+  return out;
 }
 // 蛋殼密鋪：jitter 網格，相鄰碎片共用頂點，每片向自身形心內縮 inset 留出黑漆細縫；顏色為蛋殼白 ±6% 亮度
 function eggTone(R){ var k = 1 + (R()*2 - 1)*.06; return 'rgb(' + Math.round(239*k) + ',' + Math.round(230*k) + ',' + Math.round(210*k) + ')'; }
@@ -583,7 +629,7 @@ function lotus(x, y, k, u, R){
     if (!u || !R){ p += '<path transform="rotate(' + a + ') scale(.62)" d="M0 0 C-30 -18 -30 -74 0 -96 C30 -74 30 -18 0 0Z" fill="#efe6d2"/>'; return; }
     var id = u + 'lt' + i;
     p += '<clipPath id="' + id + '"><path transform="rotate(' + a + ') scale(.62)" d="M0 0 C-30 -18 -30 -74 0 -96 C30 -74 30 -18 0 0Z"/></clipPath>' +
-      '<g clip-path="url(#' + id + ')">' + tiles(-40, -66, 80, 70, 12, 12, R, 3.2) + '</g>';
+      '<g clip-path="url(#' + id + ')">' + crackle(-40, -66, 80, 70, 14, R, 2.2) + '</g>';
   });
   return '<g transform="translate(' + x + ' ' + y + ') scale(' + k + ')"><ellipse cx="0" cy="8" rx="92" ry="16" fill="#0f0b09" stroke="#c8a24c" stroke-opacity=".5"/>' + p + '<circle cy="-4" r="12" fill="#f6e2a0"/></g>';
 }
@@ -600,7 +646,7 @@ function artFull(u){
   s += foil(700, 235, 128, 24, u + 'moon', R, G) + '<circle cx="700" cy="235" r="112" fill="none" stroke="#f6e2a0" stroke-opacity=".5" stroke-width="2"/>';
   // 月下的雲帶：蛋殼密鋪（天空不再撒零散碎片）
   s += '<clipPath id="' + u + 'cloud"><path d="M430 330 C470 292 560 288 610 306 C650 280 740 276 790 310 C840 292 960 300 1010 330 C1020 352 990 376 930 374 C860 380 780 382 700 376 C600 380 500 380 450 366 C425 358 422 342 430 330 Z"/></clipPath>';
-  s += '<g clip-path="url(#' + u + 'cloud)">' + tiles(420, 274, 604, 110, 26, 22, R, 1.8) + '</g>';
+  s += '<g clip-path="url(#' + u + 'cloud)">' + crackle(420, 274, 604, 110, 24, R, 1.6) + '</g>';
   // 電線與燈籠
   s += '<g fill="none" stroke="#0f0b09" stroke-width="2.5"><path d="M46 330 Q800 420 1554 300"/><path d="M46 352 Q800 452 1554 332"/></g>';
   s += lantern(330,356) + lantern(900,364) + lantern(1240,341);
@@ -625,7 +671,7 @@ function artFull(u){
   s += '<path d="M1048 672 L1100 722" stroke="#2a1a12" stroke-width="9" stroke-linecap="round"/>';
   s += '<path d="M1100 716 L1116 704" stroke="#c8a24c" stroke-width="4" stroke-linecap="round"/>';
   s += '<path d="M1022 730 L1040 652 L1074 646 L1100 730 Z" fill="#1c1410"/>';
-  s += '<g clip-path="url(#' + u + 'shirt)">' + tiles(1016, 638, 92, 100, 12, 12, R, 2.2) + '</g>';
+  s += '<g clip-path="url(#' + u + 'shirt)">' + crackle(1016, 638, 92, 100, 13, R, 1.5) + '</g>';
   s += '<circle cx="1063" cy="624" r="17" fill="#5b3a22"/><ellipse cx="1063" cy="612" rx="46" ry="9" fill="#8a6a2c"/><path d="M1063 552 L1100 610 Q1063 620 1026 610 Z" fill="#c8a24c"/>';
   // 水面、銀箔與蓮花
   s += '<rect x="0" y="832" width="1600" height="168" fill="#1c1410"/>';
@@ -660,7 +706,7 @@ var ART = {
   phins:function(){
     var R = mulberry32(302), s = '<defs>' + gdef('ph-g') + sdef('ph-s') + '</defs><rect width="1000" height="800" fill="#0f0b09"/>';
     s += '<circle cx="800" cy="170" r="92" fill="url(#ph-g)"/><circle cx="170" cy="190" r="58" fill="#a8281c"/><rect x="146" y="120" width="48" height="8" fill="#c8a24c"/><rect x="146" y="252" width="48" height="8" fill="#c8a24c"/>';
-    s += field(500, 150, 360, 70, 26, R, 13, 22);
+    s += field(490, 160, 240, 64, 26, R, 13, 22);
     for (var i = 0; i < 4; i++){
       var x = 170 + i*220;
       s += '<path d="M' + (x-44) + ' 470 L' + (x-36) + ' 590 L' + (x+36) + ' 590 L' + (x+44) + ' 470Z" fill="#2a1a12" stroke="#c9c2b2" stroke-width="3"/>';
@@ -676,7 +722,7 @@ var ART = {
     s += '<path d="M352 520 L362 690 Q364 700 376 700 L624 700 Q636 700 638 690 L648 520 Z" fill="#3a1d0e"/>';
     for (var i = 0; i < 26; i++){ var a = R()*6.2832, r = Math.sqrt(R()); s += '<circle cx="' + (500 + Math.cos(a)*170*r).toFixed(1) + '" cy="' + (440 + Math.sin(a)*52*r).toFixed(1) + '" r="' + (22 + R()*18).toFixed(1) + '" fill="#efe6d2" stroke="#b9a98a" stroke-width="2"/>'; }
     s += '<rect x="700" y="260" width="16" height="170" rx="6" fill="#c8a24c" transform="rotate(18 708 260)"/><circle cx="740" cy="250" r="28" fill="url(#eg-g)"/>';
-    s += field(500, 130, 380, 60, 26, R, 13, 22);
+    s += field(500, 150, 300, 56, 26, R, 13, 22);
     s += '<rect y="712" width="1000" height="88" fill="#0f0b09"/>';
     return svgBox('0 0 1000 800', s);
   },

@@ -482,7 +482,7 @@ footer .soc span{border-bottom:2px solid var(--orange2);padding-bottom:2px}
             <button class="btn light" type="button" id="btnReset">重拍</button>
             <button class="btn" type="button" id="btnFreeze">定格成票根</button>
           </div>
-          <p class="hint" id="labHint" aria-live="polite">選好規格，在杯子上畫出第一道煉乳吧。</p>
+          <p class="hint" id="labHint" aria-live="polite">杯裡先示範倒了一道。在杯子上拖曳再倒一道，或按「重拍」清空。</p>
         </div>
       </div>
     </div>
@@ -787,23 +787,24 @@ if (fineHover && !reduceMotion){
 var cv = $('#pour'), ctx = cv.getContext('2d');
 var CREAM = [255,247,224];
 // 杯內正規化座標：杯心 (0,0)，杯緣半徑 1；杯緣前半段徑向速度歸零，點不超過 RIM_MAX
-var OMEGA0 = .55, OMEGA_K = .85, RIM_SOFT = .92, RIM_MAX = .97, STEP_MIN = .012, SPLIT_MAX = .022, MAXPTS = 4000;
+var OMEGA0 = .8, OMEGA_K = .9, RIM_SOFT = .92, RIM_MAX = .97, STEP_MIN = .012, SPLIT_MAX = .02, MAXPTS = 9000;
 var CUP_R = .415;          // 杯內裁切圓半徑，佔畫布寬度的比例
-var STROKE_GRP = [{off:0, k:1, a:.9}, {off:.022, k:.45, a:.7}, {off:-.022, k:.3, a:.7}];   // 一次拖曳＝主線＋兩條副線（法線偏移）
-var RING_GRP = [{off:0, k:1, a:.9}];
-// ribbon = {pts:[{x,y},…], w, age, L0, grp}；L0 為放開時的總長（之後線被拉長就變細），grp 是同一份點列上的平行線
+// 一次倒入＝一束平行細紋（各自獨立平流，被差速旋流剪切成粗細不一的大理石紋）：[法線偏移, 寬度比例, 不透明度]
+var VEINS = [[-.06,.28,.6],[-.032,.5,.75],[0,1,.92],[.026,.42,.7],[.05,.22,.55]];
+var RINGS = [[.03,1,.92],[.056,.45,.72],[.082,.25,.55]];
+// ribbon = {pts:[{x,y},…], w, a, age, L0}；L0 為放開時的總長（之後被拉長就變細）
 var ribbons = [];
-var st = {base:0, rate:2, ice:0, down:false, cur:null, down0:null, hover:null, ml:0, S:520, dpr:1, t:0};
+var st = {base:0, rate:2, ice:0, down:false, cur:null, down0:null, last:null, hover:null, ml:0, S:520, dpr:1, t:0};
 var tickets = [];
 var rafId = 0, lastTs = 0;
 
 function clampNorm(x, y){ var r = Math.sqrt(x*x + y*y); if (r > RIM_MAX){ var f = RIM_MAX/r; x *= f; y *= f; } return {x:x, y:y}; }
 function countPts(){ var n = 0; for (var i = 0; i < ribbons.length; i++) n += ribbons[i].pts.length; return n; }
-// 速度場（單位：杯半徑／秒）：差速旋轉 ω(r)=OMEGA0·(1−OMEGA_K·r²)（杯心快、杯緣慢，線會被剪切捲成螺旋）＋兩組正弦擾動；杯緣前半段徑向速度歸零
+// 速度場（單位：杯半徑／秒）：差速旋轉（杯心快、杯緣慢，線被剪切捲成螺旋）＋兩組緩慢擺動的正弦擾動；杯緣前半段徑向速度歸零
 function velAt(x, y, t){
   var om = OMEGA0*(1 - OMEGA_K*(x*x + y*y));
-  var vx = -om*y + .03*Math.sin(3.1*y + t*.7);
-  var vy =  om*x + .03*Math.sin(2.7*x - t*.6);
+  var vx = -om*y + .06*Math.sin(3.1*y + t*.7) + .03*Math.sin(5.3*y - t*.4);
+  var vy =  om*x + .06*Math.sin(2.7*x - t*.6) + .03*Math.sin(4.7*x + t*.5);
   var r = Math.sqrt(x*x + y*y);
   if (r > RIM_SOFT && r > 1e-6){ var nx = x/r, ny = y/r, vr = vx*nx + vy*ny; vx -= vr*nx; vy -= vr*ny; }
   return [vx, vy];
@@ -831,41 +832,45 @@ function refine(){
     ribbons[i].pts = out;
   }
 }
-// 超過上限時先丟最舊的緞帶；只剩一條時截掉它最前面的點
+// 超過上限時先丟最舊的紋路
 function trim(){
   var total = countPts();
-  while (total > MAXPTS && ribbons.length > 1){ total -= ribbons[0].pts.length; ribbons.shift(); }
-  if (total > MAXPTS && ribbons.length === 1) ribbons[0].pts.splice(0, total - MAXPTS);
+  while (total > MAXPTS && ribbons.length > VEINS.length){ total -= ribbons[0].pts.length; ribbons.shift(); }
 }
 function update(dt){ st.t += dt; advect(dt); refine(); trim(); }
-function amtWidth(){ return .018 + (amt() - .7)*(.022/.8); }   // 甜度倍率 .7–1.5 → 線寬 .018–.04
-function ringPts(c, rad){
-  var out = [], k, a;
-  for (k = 0; k <= 12; k++){ a = k/12*Math.PI*2; out.push(clampNorm(c.x + Math.cos(a)*rad, c.y + Math.sin(a)*rad)); }
-  return out;   // 首尾重複一點，構成閉合環
-}
+function amtWidth(){ return .016 + (amt() - .7)*(.02/.8); }   // 甜度倍率 .7–1.5 → 主紋寬 .016–.036
 function totalLen(P){
   var L = 0;
   for (var i = 1; i < P.length; i++) L += Math.hypot(P[i].x - P[i-1].x, P[i].y - P[i-1].y);
   return L;
 }
 function beginStroke(p){
-  st.cur = {pts:[{x:p.x, y:p.y}], w:amtWidth(), age:0, L0:null, grp:STROKE_GRP};
-  ribbons.push(st.cur);
+  var w = amtWidth();
+  st.cur = VEINS.map(function(v){ var rb = {pts:[{x:p.x, y:p.y}], off:v[0], w:w*v[1], a:v[2], age:0, L0:null}; ribbons.push(rb); return rb; });
+  st.last = p;
   st.ml += .96*amt();
 }
+// 拖曳：每條細紋沿拖曳方向的法線偏移，一束平行線一起長出來
 function extendStroke(p){
-  var rb = st.cur, L = rb.pts[rb.pts.length - 1], dx = p.x - L.x, dy = p.y - L.y, dist = Math.sqrt(dx*dx + dy*dy);
+  var L = st.last, dx = p.x - L.x, dy = p.y - L.y, dist = Math.sqrt(dx*dx + dy*dy);
   if (dist <= STEP_MIN) return;
-  var n = Math.ceil(dist/STEP_MIN);
-  for (var q = 1; q <= n; q++) rb.pts.push({x: L.x + dx*q/n, y: L.y + dy*q/n});
+  var nx = -dy/dist, ny = dx/dist, n = Math.ceil(dist/STEP_MIN), q, k, rb, x, y, first;
+  for (k = 0; k < st.cur.length; k++){
+    rb = st.cur[k]; first = rb.pts.length === 1 && rb.off;
+    if (first) rb.pts[0] = clampNorm(L.x + nx*rb.off, L.y + ny*rb.off);
+    for (q = 1; q <= n; q++){ x = L.x + dx*q/n + nx*rb.off; y = L.y + dy*q/n + ny*rb.off; rb.pts.push(clampNorm(x, y)); }
+  }
+  st.last = p;
   st.ml += 10*amt()*dist;
 }
-// 小圓注入：兩個同心環（半徑 .035 主、.065 副），寬度與透明度比照主線／副線
+function ringPts(c, rad){
+  var out = [], k, a, m = Math.max(12, Math.round(rad*260));
+  for (k = 0; k <= m; k++){ a = k/m*Math.PI*2; out.push(clampNorm(c.x + Math.cos(a)*rad, c.y + Math.sin(a)*rad)); }
+  return out;   // 首尾重複一點，構成閉合環
+}
+// 小圓注入：三個同心環
 function pushRings(c, w){
-  var A = ringPts(c, .035), B = ringPts(c, .065);
-  ribbons.push({pts: A, w: w, age: 0, L0: totalLen(A), grp: RING_GRP});
-  ribbons.push({pts: B, w: w, age: 0, L0: totalLen(B), grp: [{off:0, k:.45, a:.7}]});
+  RINGS.forEach(function(r){ var P = ringPts(c, r[0]); ribbons.push({pts:P, w:w*r[1], a:r[2], age:0, L0:totalLen(P)}); });
 }
 function ringAt(c){
   pushRings(c, amtWidth());
@@ -876,8 +881,8 @@ function drawCube(S, p, n){
   var w = S*.085, x = S*p[0], y = S*p[1];
   ctx.save(); ctx.translate(x, y); ctx.rotate(p[2]);
   ctx.beginPath(); rrPath(ctx, -w/2, -w/2, w, w, S*.018);
-  ctx.fillStyle = 'rgba(255,255,255,.42)'; ctx.fill();
-  ctx.lineWidth = S*.006; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fill();
+  ctx.lineWidth = S*.006; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.stroke();
   ctx.beginPath(); ctx.moveTo(-w*.3, -w*.2); ctx.lineTo(w*.05, -w*.36);
   ctx.lineWidth = S*.008; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();
   ctx.restore();
@@ -892,36 +897,26 @@ function ribbonPath(P, h, R){
   }
   if (n > 1) ctx.lineTo(h + P[n-1].x*R, h + P[n-1].y*R);
 }
-// 副線：沿該點前後點的切線算法線，偏移 off（杯半徑單位）；off 為 0 時直接用原點列
-function offsetPts(P, off){
-  if (!off) return P;
-  var n = P.length, out = new Array(n), i, a, b, tx, ty, l;
-  for (i = 0; i < n; i++){
-    a = P[i > 0 ? i-1 : 0]; b = P[i < n-1 ? i+1 : n-1];
-    tx = b.x - a.x; ty = b.y - a.y; l = Math.sqrt(tx*tx + ty*ty);
-    out[i] = l > 1e-9 ? {x: P[i].x - ty/l*off, y: P[i].y + tx/l*off} : P[i];
-  }
-  return out;
-}
-// 每條緞帶的每條平行線三層：外暈（寬 = 本體 ×1.8，固定不隨年齡變寬）、本體、細高光
-// 寬度 = w × 比例 × clamp(sqrt(L0/L), .35, 1)：線被拉長就變細；透明度 = max(.45, 基準 − 年齡×.008)
+// 先畫一層很淡的寬暈（煉乳往茶裡化開的雲霧），再畫細紋本體；主紋另加一條細高光
+// 寬度 = w × clamp(sqrt(L0/L), .3, 1)：被拉長就變細；暈隨時間慢慢變寬變淡
 function drawRibbons(S){
-  var h = S/2, R = S*CUP_R, i, j, rb, g, P, L, f, bw, al;
+  var h = S/2, R = S*CUP_R, i, rb, L, f, bw, al, haze;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   for (i = 0; i < ribbons.length; i++){
     rb = ribbons[i];
     if (rb.pts.length < 2) continue;
+    haze = Math.min(1, rb.age/12);
+    ribbonPath(rb.pts, h, R); ctx.lineWidth = rb.w*S*(2.5 + haze*3); ctx.strokeStyle = 'rgba(255,240,214,' + (.1 - haze*.04).toFixed(3) + ')'; ctx.stroke();
+  }
+  for (i = 0; i < ribbons.length; i++){
+    rb = ribbons[i];
+    if (rb.pts.length < 2) continue;
     L = totalLen(rb.pts);
-    f = (rb.L0 && L > 0) ? Math.min(1, Math.max(.35, Math.sqrt(rb.L0/L))) : 1;
-    for (j = 0; j < rb.grp.length; j++){
-      g = rb.grp[j];
-      P = offsetPts(rb.pts, g.off);
-      bw = rb.w*g.k*f*S;
-      al = Math.max(.45, g.a - rb.age*.008).toFixed(3);
-      ribbonPath(P, h, R); ctx.lineWidth = bw*1.8; ctx.strokeStyle = 'rgba(255,247,224,.14)'; ctx.stroke();
-      ribbonPath(P, h, R); ctx.lineWidth = bw; ctx.strokeStyle = 'rgba(255,247,224,' + al + ')'; ctx.stroke();
-      ribbonPath(P, h, R); ctx.lineWidth = bw*.25; ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.stroke();
-    }
+    f = (rb.L0 && L > 0) ? Math.min(1, Math.max(.3, Math.sqrt(rb.L0/L))) : 1;
+    bw = Math.max(.8, rb.w*f*S);
+    al = Math.max(.5, rb.a - rb.age*.006).toFixed(3);
+    ribbonPath(rb.pts, h, R); ctx.lineWidth = bw; ctx.strokeStyle = 'rgba(255,247,224,' + al + ')'; ctx.stroke();
+    if (rb.a > .9){ ctx.lineWidth = bw*.28; ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.stroke(); }
   }
 }
 function draw(){
@@ -971,16 +966,15 @@ cv.addEventListener('pointermove', function(e){
   if (!st.down || !st.cur) return;
   extendStroke(p);
 });
-// 沒有拖出任何點就放開：以按下處為中心畫一個小圓環（半徑 .05）
+// 沒有拖出任何點就放開：以按下處為中心畫同心小環
 function endPour(){
   if (st.down && st.cur){
-    if (st.cur.pts.length === 1){
-      // 沒拖出點就放開：撤掉這條線，改成按下處的兩個小環
-      var k = ribbons.indexOf(st.cur);
-      if (k >= 0) ribbons.splice(k, 1);
-      pushRings(st.down0, st.cur.w);   // 墨量已在 beginStroke 記過，這裡不再加
+    if (st.cur[0].pts.length === 1){
+      // 沒拖出點就放開：撤掉這束線，改成按下處的同心小環
+      st.cur.forEach(function(rb){ var k = ribbons.indexOf(rb); if (k >= 0) ribbons.splice(k, 1); });
+      pushRings(st.down0, amtWidth());   // 墨量已在 beginStroke 記過，這裡不再加
     } else {
-      st.cur.L0 = totalLen(st.cur.pts);   // 放開時記下這條線的總長，之後被拉長就變細
+      st.cur.forEach(function(rb){ rb.L0 = totalLen(rb.pts); });   // 放開時記下總長，之後被拉長就變細
     }
   }
   st.down = false; st.cur = null;
@@ -1186,6 +1180,15 @@ if ('IntersectionObserver' in window){
 } else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 window.addEventListener('resize', sizeCanvas);
 sizeCanvas();
+// 開場先示範倒一道：沿 S 形拖一束、再點一下，預先推進幾秒讓紋路成形
+(function(){
+  var k, a;
+  beginStroke({x:-.55, y:-.2});
+  for (k = 1; k <= 40; k++){ a = k/40; extendStroke({x:-.55 + a*1.05, y:-.2 + Math.sin(a*Math.PI*1.6)*.32}); }
+  st.cur.forEach(function(rb){ rb.L0 = totalLen(rb.pts); }); st.cur = null;
+  pushRings({x:.18, y:.42}, amtWidth());
+  for (k = 0; k < 840; k++) update(1/60);
+})();
 requestAnimationFrame(loop);
 })();
 </script>
