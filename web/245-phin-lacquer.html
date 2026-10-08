@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SƠN MÀI 漆咖啡｜越南滴漏咖啡館</title>
+<meta name="description" content="SƠN MÀI 漆咖啡：越南滴漏咖啡館。煉乳冰咖啡、河內蛋咖啡與 Phin 滴漏計時器，蛋咖啡課預約、門市營業時間與地圖。">
+<meta name="theme-color" content="#0f0b09">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、門市地址、營業時間、照片網址）、MENU（菜單）與 DOSES（滴濾粉量與滴落時間）。
+  2. photos 填入照片網址就會取代佔位圖（包括首頁的屏風主視覺）；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 蛋咖啡課預約表單與 Phin 計時器只在頁面上示範，正式使用請串接預約與訂單系統。
+-->
+<style>
+:root{
+  --lacquer:#0f0b09;--lacquer2:#1c1410;--lacquer3:#2a1a12;
+  --vermilion:#a8281c;--vermilion2:#c0392b;--gold:#c8a24c;--gold2:#e6c97a;--silver:#b9b4a8;
+  --eggshell:#efe6d2;--umber:#5b3a22;--muted:#a99c88;--text2:#d9cdb8;--line:rgba(200,162,76,.38);
+  --latin:"Cochin","Baskerville","Times New Roman",serif;
+  --zh:"Songti TC","Noto Serif TC","PMingLiU",serif;
+  --body:"Gill Sans","Seravek","PingFang TC","Microsoft JhengHei",sans-serif;
+  --ease-out:cubic-bezier(.22,.7,.2,1);
+  --dur-hover:.3s;--dur-press:.12s;--dur-enter:.9s;--dur-exit:.4s;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;color-scheme:dark}
+html,body{margin:0}
+body{background:var(--lacquer);color:var(--eggshell);font-family:var(--body);line-height:1.8;overflow-x:clip}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+svg{max-width:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.sec{position:relative;padding:clamp(80px,10vw,128px) 0}
+.alt{background:radial-gradient(ellipse at 85% 0%,rgba(168,40,28,.14),transparent 60%),var(--lacquer2)}
+.eyebrow{font-family:var(--latin);font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin:0 0 14px}
+.ttl{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:52px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+.ttl h2{font-family:var(--zh);font-weight:400;font-size:clamp(34px,4.6vw,56px);line-height:1.15;margin:0;letter-spacing:.03em}
+.ttl p{max-width:460px;margin:0;color:var(--muted);font-size:15.5px}
+.rule{width:56px;height:1px;background:var(--gold);margin:0 0 18px}
+
+/* 按鈕與共用元件 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:12px 24px;border-radius:8px;border:1px solid var(--gold);background:var(--vermilion);color:var(--eggshell);font-family:var(--body);font-size:15.5px;letter-spacing:.08em;text-decoration:none;cursor:pointer;transition:background var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out),opacity var(--dur-hover)}
+.btn:hover{background:var(--vermilion2)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;color:var(--gold2)}
+.btn.ghost:hover{background:rgba(200,162,76,.12)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--lacquer)}
+.btn.gold:hover{background:var(--gold2)}
+.btn.sm{min-height:38px;padding:7px 16px;font-size:14px}
+.btn.block{width:100%}
+.status{display:inline-flex;align-items:center;gap:9px;font-size:14px;letter-spacing:.04em;padding:7px 16px 7px 12px;border-radius:999px;background:rgba(15,11,9,.72);border:1px solid var(--line);color:var(--eggshell)}
+.status i{width:9px;height:9px;border-radius:50%;background:#7a6f60;flex:none}
+.status.on i{background:#8fbf7a}
+.bean{display:inline-block;width:9px;height:12px;color:var(--gold2);font-style:normal;flex:none}
+.bean svg{width:100%;height:100%;display:block}
+.bean.off{color:#4a3d2e}
+.glyph{width:44px;height:44px;fill:rgba(200,162,76,.14);stroke:var(--gold);stroke-width:1.3;position:absolute;right:20px;top:20px}
+
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--lacquer2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:3px dashed var(--gold2);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--lacquer);color:var(--gold2);font-size:11px;padding:3px 9px;border-radius:999px}
+
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:rgba(15,11,9,.95);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:26px;height:72px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--gold2);flex:none}
+.logo svg{width:34px;height:34px;flex:none}
+.logo b{display:block;font-family:var(--latin);font-weight:400;letter-spacing:.24em;font-size:16px;line-height:1.2}
+.logo small{display:block;font-family:var(--zh);font-size:12px;letter-spacing:.2em;color:var(--muted)}
+.nav ul{display:flex;gap:26px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14.5px;letter-spacing:.08em}
+.nav ul a{text-decoration:none;opacity:.88;padding:6px 0;border-bottom:1px solid transparent;transition:color var(--dur-hover),border-color var(--dur-hover)}
+.nav ul a:hover{color:var(--gold2);border-bottom-color:var(--gold)}
+.burger{display:none;margin-left:auto;background:transparent;border:1px solid var(--gold);border-radius:8px;font-size:14px;padding:7px 14px;cursor:pointer;color:var(--gold2)}
+
+/* Hero：四扇屏風 */
+.hero{padding:26px 0 0}
+.heroWrap{position:relative;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:clamp(28px,4vw,56px);align-items:center}
+.screen{position:relative;overflow:hidden;margin:0;aspect-ratio:1600/1000;height:auto;background:#070504;border:1px solid var(--gold);border-radius:14px;padding:12px;box-shadow:0 0 0 5px var(--lacquer),0 0 0 6px rgba(200,162,76,.3)}
+.screen .panels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;height:100%;perspective:1400px}
+.panel{position:relative;overflow:hidden;border-radius:14px;border:1px solid rgba(230,201,122,.55);background:var(--lacquer);transform:rotateY(calc(var(--base) + var(--fold,0deg)));transform-origin:50% 50%}
+.panel::after{content:"";position:absolute;inset:6px;border:1px solid rgba(230,201,122,.3);border-radius:10px;pointer-events:none;z-index:1}
+.panel:nth-child(odd){--base:4deg}
+.panel:nth-child(even){--base:-4deg}
+.panel svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.screen.flash .gl{animation:goldFlash 1.4s ease-out 1 both}
+@keyframes goldFlash{from{opacity:.6}to{opacity:1}}
+.heroTxt{position:relative;order:-1;max-width:460px;padding:12px 0}
+.heroTxt h1{font-family:var(--latin);font-weight:400;font-size:clamp(44px,6vw,92px);line-height:.92;letter-spacing:.06em;margin:0;color:var(--gold2)}
+.heroTxt .zh{font-family:var(--zh);font-size:clamp(28px,3.6vw,46px);line-height:1.3;margin:12px 0 0;letter-spacing:.12em}
+.heroTxt .slogan{font-family:var(--zh);font-size:clamp(18px,1.8vw,22px);color:var(--gold2);margin:14px 0 0}
+.heroTxt .lead{max-width:470px;margin:12px 0 0;font-size:15.5px;color:var(--text2)}
+.heroRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:20px}
+
+/* 菜單 */
+.menuGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.dish{position:relative;background:var(--lacquer2);border:1px solid var(--line);border-radius:14px;padding:26px 24px 22px;display:flex;flex-direction:column;min-height:260px;overflow:hidden;transition:border-color var(--dur-hover),transform var(--dur-hover) var(--ease-out)}
+.dish:hover{border-color:var(--gold);transform:translateY(-3px)}
+.dish h3{font-family:var(--latin);font-style:italic;font-weight:400;font-size:26px;line-height:1.2;color:var(--gold2);margin:0;padding-right:64px}
+.dish .zhn{font-family:var(--zh);font-size:18px;margin:6px 0 12px;color:var(--eggshell)}
+.dish p{margin:0 0 16px;font-size:14.5px;color:var(--muted);flex:1}
+.dish .tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tag{font-size:12px;letter-spacing:.06em;padding:3px 11px;border-radius:999px;border:1px solid var(--line);color:var(--gold2)}
+.dish .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
+.price{font-family:var(--latin);font-size:22px;color:var(--eggshell)}
+.caf{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.caf .bean{width:8px;height:11px}
+.caf .beans{display:inline-flex;gap:3px}
+
+/* Phin 滴漏計時器 */
+.brew{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:start}
+.brewArt{background:#0a0706;border:1px solid var(--line);border-radius:14px;padding:16px}
+.brewArt svg{display:block;width:100%;height:auto;max-height:620px;margin:0 auto}
+.brewPanel{display:flex;flex-direction:column;gap:18px;min-width:0}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.steps li{font-size:13.5px;line-height:1.35;padding:10px 12px;border-radius:8px;border:1px solid var(--line);color:var(--muted);transition:background var(--dur-hover),border-color var(--dur-hover)}
+.steps li b{display:block;font-family:var(--latin);font-weight:400;font-size:16px;color:var(--gold)}
+.steps li.done{color:var(--eggshell);background:rgba(200,162,76,.08)}
+.steps li.cur{color:var(--eggshell);border-color:var(--gold2);background:rgba(168,40,28,.22)}
+.stepTitle{font-family:var(--zh);font-weight:400;font-size:clamp(24px,2.6vw,32px);line-height:1.3;margin:0;color:var(--gold2)}
+.stepDesc{margin:0;color:var(--text2);font-size:15.5px;min-height:3.6em}
+.timer{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0}
+.tLabel{font-size:14px;letter-spacing:.1em;color:var(--muted)}
+.tNum{font-family:var(--latin);font-size:clamp(58px,7vw,88px);line-height:1;color:var(--gold2);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.strength{display:flex;gap:12px;align-items:center;font-size:14.5px;color:var(--muted)}
+.strength .beans{display:inline-flex;gap:4px}
+.doses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.doses label{position:relative;cursor:pointer}
+.doses input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.doses span{display:block;height:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;transition:background var(--dur-hover),border-color var(--dur-hover),color var(--dur-hover)}
+.doses span b{display:block;font-family:var(--latin);font-weight:400;font-size:24px;color:var(--gold2);line-height:1.2}
+.doses span small{display:block;font-size:12.5px;color:var(--muted);line-height:1.4}
+.doses input:checked+span{background:var(--eggshell);border-color:var(--eggshell)}
+.doses input:checked+span b{color:var(--vermilion)}
+.doses input:checked+span small{color:var(--umber)}
+.doses input:focus-visible+span{outline:2px solid var(--gold2);outline-offset:2px}
+.doses input:disabled+span{opacity:.45}
+.doses label:has(input:disabled){cursor:not-allowed}
+.brewBtns{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.fast{display:inline-flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-left:auto;padding:8px 14px;border:1px solid var(--line);border-radius:999px;user-select:none}
+.fast input{accent-color:var(--gold);width:16px;height:16px;margin:0}
+
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(28px,5vw,72px);align-items:center}
+.story .ph{aspect-ratio:4/5;border-radius:14px;border:1px solid var(--line)}
+.story h3{font-family:var(--zh);font-weight:400;font-size:clamp(28px,3.2vw,40px);line-height:1.3;margin:0 0 22px}
+.story p{color:var(--text2);margin:0 0 16px;font-size:16px;max-width:560px}
+.shardLine{height:14px;margin:0 0 30px}
+.shardLine svg{width:100%;height:100%;display:block}
+.sh{opacity:0;transition:opacity .8s ease var(--d,0s)}
+.vis .sh{opacity:1}
+
+/* 課程預約 */
+.sessions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.sess{position:relative;cursor:pointer;display:block}
+.sess input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.sbody{display:flex;flex-direction:column;gap:3px;height:100%;background:var(--lacquer2);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;transition:background var(--dur-hover),border-color var(--dur-hover)}
+.sbody .d{font-family:var(--latin);font-size:26px;line-height:1.1;color:var(--gold2)}
+.sbody .w{font-size:14px;color:var(--eggshell)}
+.sbody .t{font-size:13px;color:var(--muted)}
+.sbody .l{margin-top:auto;padding-top:8px;font-size:12.5px;color:var(--gold2)}
+.sess:hover .sbody{border-color:var(--gold2)}
+.sess input:checked~.sbody{background:var(--eggshell);border-color:var(--eggshell)}
+.sess input:checked~.sbody .d{color:var(--vermilion)}
+.sess input:checked~.sbody .w,.sess input:checked~.sbody .l{color:var(--lacquer)}
+.sess input:checked~.sbody .t{color:var(--umber)}
+.sess input:focus-visible~.sbody{outline:2px solid var(--gold2);outline-offset:3px}
+.sess input:disabled~.sbody{opacity:.4;background:transparent;cursor:not-allowed}
+.form{background:var(--lacquer2);border:1px solid var(--line);border-radius:14px;padding:clamp(22px,3vw,34px);margin-top:36px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.fi{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+.fi input,.fi select{width:100%;min-height:46px;border:1px solid var(--line);border-radius:8px;background:var(--lacquer);padding:11px 13px;font-family:var(--body);font-size:16px;color:var(--eggshell)}
+.fi input:focus,.fi select:focus{outline:2px solid var(--gold2);outline-offset:1px}
+.fi input[aria-invalid="true"],.fi select[aria-invalid="true"]{border-color:#e0715f}
+.err{color:#f0a08c;font-size:12.5px;min-height:1.2em;line-height:1.3}
+.formFoot{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-top:18px;padding-top:20px;border-top:1px solid var(--line)}
+.sum{margin:0;color:var(--muted);font-size:14.5px}
+.demo{font-size:12.5px;color:var(--muted);margin:14px 0 0;opacity:.85}
+.done{text-align:center;padding:14px 0}
+.seal{width:96px;height:96px;margin:0 auto 16px;display:grid;place-items:center;text-align:center;font-family:var(--zh);font-size:21px;line-height:1.25;color:#2e1d0c;background:linear-gradient(135deg,#7a5a22,#f6e2a0 38%,#c8a24c 58%,#7a5a22);box-shadow:inset 0 0 0 4px rgba(46,29,12,.35),inset 0 0 0 6px rgba(246,226,160,.45);animation:stamp .7s var(--ease-out) both}
+@keyframes stamp{from{transform:scale(1.35) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+.done b{display:block;font-family:var(--latin);font-weight:400;font-size:34px;color:var(--gold2);letter-spacing:.06em}
+.done p{margin:10px 0 0;color:var(--text2)}
+
+/* 照片牆 */
+.gal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(170px,18vw,230px);gap:16px}
+.gal .ph{border-radius:14px;border:1px solid var(--line)}
+.gal .ph:first-child{grid-column:span 2;grid-row:span 2}
+
+/* 評論 */
+.revs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.rev{position:relative;background:var(--lacquer2);border:1px solid var(--line);border-radius:14px;padding:26px 26px 24px}
+.rev::before{content:"“";position:absolute;right:22px;top:6px;font-family:var(--latin);font-size:72px;line-height:1;color:var(--gold);opacity:.35;pointer-events:none}
+.rev p{margin:46px 0 16px;font-size:15.5px;color:var(--eggshell)}
+.rev .st{color:var(--gold2);letter-spacing:.2em;font-size:14px}
+.rev small{display:block;color:var(--muted);font-size:13px}
+
+/* 門市 */
+.visitGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.card{background:var(--lacquer2);border:1px solid var(--line);border-radius:14px;padding:26px}
+.card h3{font-family:var(--zh);font-weight:400;font-size:24px;margin:0 0 14px;color:var(--gold2)}
+.card p{margin:0 0 8px;color:var(--text2)}
+.card a{color:var(--gold2);text-decoration-color:var(--gold)}
+.hours{list-style:none;margin:16px 0 0;padding:0}
+.hours li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px dashed rgba(200,162,76,.25);font-size:15px}
+.hours li span:last-child{font-variant-numeric:tabular-nums}
+.hours li.today{color:var(--gold2)}
+.hours li.today span:first-child{padding:2px 10px;border-radius:999px;background:rgba(168,40,28,.35)}
+.hours em{font-style:normal;font-size:12px;margin-left:8px;color:var(--gold2)}
+
+footer{border-top:1px solid var(--line);padding:38px 0 56px;text-align:center;color:var(--muted);font-size:14px}
+footer nav{display:flex;justify-content:center;gap:24px;margin-bottom:10px}
+footer a{text-decoration:none}
+footer a:hover{color:var(--gold2)}
+
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1px solid var(--gold);border-radius:999px;background:var(--lacquer);color:var(--gold2);font-size:12.5px;padding:8px 14px;cursor:pointer}
+.slotBtn[aria-pressed="true"]{background:var(--gold);color:var(--lacquer)}
+
+/* 動效：reveal */
+.rv-in{opacity:0;transform:translateY(18px);transition:opacity var(--dur-enter) ease,transform var(--dur-enter) var(--ease-out)}
+.rv-in.vis{opacity:1;transform:none}
+
+@media (max-width:1100px){
+  .nav ul{gap:18px}
+  .sessions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:1000px){
+  .menuGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .visitGrid{grid-template-columns:1fr 1fr}
+  .visitGrid .card:last-child{grid-column:span 2}
+}
+@media (max-width:859px){
+  html{scroll-padding-top:72px}
+  .nav ul{display:none;position:absolute;top:72px;left:0;right:0;flex-direction:column;gap:0;margin:0;background:var(--lacquer);padding:6px 20px 14px;border-bottom:1px solid var(--line)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:12px 0}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .hero{padding-top:14px}
+  .heroWrap{display:block}
+  .screen{aspect-ratio:auto;height:auto;padding:8px}
+  .screen .panels{height:auto;grid-template-columns:1fr 1fr;perspective:none}
+  .panel{transform:none;aspect-ratio:4/5}
+  .screen>img{position:static;width:100%;height:auto}
+  .heroTxt{max-width:none;padding:28px 2px 0}
+  .heroTxt h1{font-size:clamp(44px,12vw,56px)}
+  .brew{grid-template-columns:1fr}
+  .story{grid-template-columns:1fr}
+  .story .ph{max-width:520px}
+  .revs{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
+  .gal .ph{aspect-ratio:1/1}
+  .gal .ph:first-child{grid-column:span 2;grid-row:auto}
+}
+@media (max-width:560px){
+  .menuGrid{grid-template-columns:1fr}
+  .visitGrid{grid-template-columns:1fr}
+  .visitGrid .card:last-child{grid-column:auto}
+  .sessions{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .fgrid{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .doses span b{font-size:20px}
+  .revs .rev{padding:24px 22px}
+  .gal{grid-template-columns:1fr}
+  .gal .ph:first-child{grid-column:auto}
+  .gal .ph{aspect-ratio:1/1}
+  .formFoot .btn{width:100%}
+  .fast{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv-in,.sh{opacity:1;transform:none;transition:none}
+  .panel{transition:none}
+  .screen.flash .gl{animation:none}
+  .seal{animation:none}
+}
+</style>
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="SƠN MÀI 漆咖啡首頁">
+      <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" fill="#0f0b09" stroke="#c8a24c" stroke-width="1.2"/><polygon points="6,7 17,5 15,15 5,16" fill="#efe6d2"/><polygon points="19,6 29,9 26,17 18,15" fill="#efe6d2"/><polygon points="7,19 16,18 17,28 8,27" fill="#e6c97a"/><polygon points="20,20 28,19 27,28 19,27" fill="#efe6d2"/></svg>
+      <span><b>SƠN MÀI</b><small>漆咖啡</small></span>
+    </a>
+    <ul id="navList">
+      <li><a href="#menu">菜單</a></li>
+      <li><a href="#brew">滴漏計時器</a></li>
+      <li><a href="#story">故事</a></li>
+      <li><a href="#course">蛋咖啡課</a></li>
+      <li><a href="#visit">門市</a></li>
+    </ul>
+    <a class="btn ghost sm" href="#course">預約課程</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList">選單</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="top">
+    <div class="wrap heroWrap">
+      <figure class="ph screen" data-photo="hero" data-art="screen" data-label="屏風主視覺" data-size="2400×1500"></figure>
+      <div class="heroTxt">
+        <p class="eyebrow">越南滴漏咖啡 · Cà Phê Phin</p>
+        <h1>SƠN MÀI</h1>
+        <p class="zh">漆咖啡</p>
+        <p class="slogan">一滴一滴，慢慢等。</p>
+        <p class="lead">胡志明市的滴漏習慣，搬到台北大同區的老公寓一樓。煉乳冰咖啡、河內蛋咖啡，每一杯都從一顆濾杯開始。</p>
+        <div class="heroRow">
+          <span class="status" id="heroStatus"><i></i><span>…</span></span>
+        </div>
+        <div class="heroRow" style="margin-top:14px">
+          <a class="btn ghost" href="#menu">看飲品</a>
+          <a class="btn" href="#course">預約蛋咖啡課</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="menu">
+    <div class="wrap">
+      <div class="ttl rv-in">
+        <div><p class="eyebrow">Menu · 菜單</p><h2>越南咖啡與小點</h2></div>
+        <p>咖啡用 Robusta 深焙，每天現磨、現滴。甜度預設是煉乳的甜，不另外加糖；想要更淡可以跟店員說。</p>
+      </div>
+      <div class="menuGrid" id="menuList"></div>
+    </div>
+  </section>
+
+  <section class="sec alt" id="brew" aria-labelledby="brewTitle">
+    <div class="wrap">
+      <div class="ttl rv-in">
+        <div><p class="eyebrow">Signature · 招牌互動</p><h2 id="brewTitle">Phin 滴漏計時器</h2></div>
+        <p>照著六個步驟沖一杯越南咖啡。選粉量後，滴落時間會跟著變化；看展示的人可以打開「快轉 ×10」。</p>
+      </div>
+      <div class="brew rv-in">
+        <div class="brewArt"><svg id="brewSvg" viewBox="0 0 480 520" role="img" aria-label="phin 濾杯放在玻璃杯上的側視剖面，杯底已有煉乳"></svg></div>
+        <div class="brewPanel">
+          <ol class="steps" id="steps">
+            <li><b>1</b>放粉</li>
+            <li><b>2</b>壓粉</li>
+            <li><b>3</b>悶蒸</li>
+            <li><b>4</b>注滿</li>
+            <li><b>5</b>等待滴落</li>
+            <li><b>6</b>攪拌加冰</li>
+          </ol>
+          <p class="stepTitle" id="stepTitle" role="status" aria-live="polite">①</p>
+          <p class="stepDesc" id="stepDesc"></p>
+          <div class="timer">
+            <span class="tLabel" id="tLabel">預計滴落</span>
+            <span class="tNum" id="tNum">4:30</span>
+          </div>
+          <div class="strength">
+            <span class="beans" id="strengthBeans"></span>
+            <span id="strengthTxt"></span>
+          </div>
+          <div class="doses" role="radiogroup" aria-label="粉量">
+            <label><input type="radio" name="dose" value="0"><span><b>18 g</b><small>清爽・約 4:00</small></span></label>
+            <label><input type="radio" name="dose" value="1" checked><span><b>22 g</b><small>標準・約 4:30</small></span></label>
+            <label><input type="radio" name="dose" value="2"><span><b>25 g</b><small>濃郁・約 5:00</small></span></label>
+          </div>
+          <div class="brewBtns">
+            <button class="btn" id="bNext" type="button">放入咖啡粉</button>
+            <button class="btn ghost" id="bReset" type="button">重新開始</button>
+            <label class="fast"><input type="checkbox" id="fast"><span>快轉 ×10</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="story">
+    <div class="wrap story">
+      <figure class="ph rv-in" data-photo="s1" data-art="bench" data-label="漆畫工作桌" data-size="1000×1250"></figure>
+      <div class="rv-in">
+        <p class="eyebrow">Our Story · 故事</p>
+        <h3>漆與蛋殼的時間</h3>
+        <div class="shardLine" id="shardLine" aria-hidden="true"></div>
+        <p>店主阿禾十年前在胡志明市第一郡的一條小巷裡，認識了一位做了四十年漆畫的師傅。師傅的工作桌上總擺著蛋殼、金箔與一罐生漆。他說，漆要一層一層刷，每一層都要等乾透，急不得。</p>
+        <p>我們把這件事帶回了店裡。咖啡豆來自 Buôn Ma Thuột 的 Robusta，中焙後磨得偏粗，因為滴漏本來就要慢。每一杯都從一個 phin 濾杯開始，讓熱水一滴一滴穿過粉層。</p>
+        <p>屏風上的漆畫是師傅一幅一幅手做的，蛋殼碎片是他剩下的邊角料。我們留下這些碎片，鑲在店裡的桌面、門框與菜單的封面上。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec alt" id="course" aria-labelledby="courseTitle">
+    <div class="wrap">
+      <div class="ttl rv-in">
+        <div><p class="eyebrow">Egg Coffee Class · 蛋咖啡課</p><h2 id="courseTitle">河內蛋咖啡課</h2></div>
+        <p>兩個小時，教你打蛋奶霜、拉煉乳與滴漏節奏，每場最多 4 人。課後每人帶一杯蛋咖啡回家。週六、週日下午開課，以下是接下來四週的場次。</p>
+      </div>
+      <div class="sessions rv-in" id="sessions" role="radiogroup" aria-label="選擇場次"></div>
+      <form class="form rv-in" id="cf" novalidate>
+        <div id="cBody">
+          <div class="fgrid">
+            <label class="fi">人數<select id="cNum"><option value="1">1 位</option><option value="2" selected>2 位</option><option value="3">3 位</option><option value="4">4 位</option></select><span class="err"></span></label>
+            <label class="fi">姓名<input id="cName" autocomplete="name" placeholder="例：林小禎"><span class="err"></span></label>
+            <label class="fi">手機<input id="cPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+            <label class="fi">Email<input id="cMail" type="email" autocomplete="email" placeholder="name@example.com"><span class="err"></span></label>
+          </div>
+          <div class="formFoot">
+            <p class="sum" id="cSum"></p>
+            <button class="btn" type="submit">送出預約</button>
+          </div>
+          <p class="demo">示範版本：表單只在頁面上驗證，沒有真的送出預約。</p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="sec" aria-label="照片牆">
+    <div class="wrap">
+      <div class="gal rv-in">
+        <figure class="ph" data-photo="g1" data-art="phins" data-label="吧台上的 phin 濾杯" data-size="1200×900"></figure>
+        <figure class="ph" data-photo="g2" data-art="egg" data-label="河內蛋咖啡" data-size="1000×1000"></figure>
+        <figure class="ph" data-photo="g3" data-art="wall" data-label="店內漆畫牆" data-size="1000×1000"></figure>
+        <figure class="ph" data-photo="g4" data-art="beans" data-label="Robusta 生豆" data-size="1200×900"></figure>
+      </div>
+      <div class="revs">
+        <div class="rev rv-in"><div class="st">★★★★★</div><p>煉乳的甜跟咖啡的苦剛好平衡。店員會先問你要濃一點還是淡一點，然後教你怎麼等滴漏。</p><small>林○禎・Google 評論</small></div>
+        <div class="rev rv-in"><div class="st">★★★★★</div><p>蛋咖啡的奶霜打得很細，表面不會塌掉。課程兩小時，離開時每個人都帶一杯回家。</p><small>陳○安・蛋咖啡課學員</small></div>
+        <div class="rev rv-in"><div class="st">★★★★☆</div><p>屏風上的漆畫很有味道，坐著喝咖啡像在看一幅慢慢展開的畫。週末人多，建議平日來。</p><small>Instagram 留言</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec alt" id="visit" aria-labelledby="visitTitle">
+    <div class="wrap">
+      <div class="ttl rv-in">
+        <div><p class="eyebrow">Visit · 門市</p><h2 id="visitTitle">營業時間與地址</h2></div>
+        <p>門市在大同區的老公寓一樓，木門推開就是吧台。現場可以用現金與行動支付，蛋咖啡課與包場請先來電。</p>
+      </div>
+      <div class="visitGrid rv-in">
+        <div class="card">
+          <h3>營業時間</h3>
+          <span class="status" id="status"><i></i><span>…</span></span>
+          <ul class="hours" id="hours"></ul>
+        </div>
+        <div class="card">
+          <h3>地址</h3>
+          <p id="addr"></p>
+          <p>捷運北門站 2 號出口步行 8 分鐘，門口有一株檸檬樹。</p>
+          <p><a id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 →</a></p>
+        </div>
+        <div class="card">
+          <h3>聯絡</h3>
+          <p><a id="tel" href="#"></a></p>
+          <p>蛋咖啡課、包場與團購請電話預約；一般點餐直接現場點，Robusta 豆子可以整包帶走。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <nav aria-label="社群連結">
+    <a href="#">Instagram</a>
+    <a href="#">Facebook</a>
+    <a href="#">LINE</a>
+  </nav>
+  <p>© <span id="yr"></span> SƠN MÀI 漆咖啡・Cà Phê Phin</p>
+</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'SƠN MÀI 漆咖啡', phone:'(02) 2555-0139', address:'台北市大同區南京西路示範巷 16 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['08:00','16:00'],null,['07:30','17:00'],['07:30','17:00'],['07:30','17:00'],['07:30','18:00'],['08:00','18:00']],
+  photos:{hero:'',s1:'',g1:'',g2:'',g3:'',g4:''}
+};
+// 菜單 [越南文, 中文, 說明, 價格, 溫度, 含煉乳, 咖啡因 0–3, 圖示]
+var MENU = [
+  ['Cà Phê Sữa Đá','煉乳冰咖啡','深焙 Robusta 先用滴漏沖成濃縮，倒進杯底的煉乳，再加滿冰塊。喝之前攪一下，焦糖味才會慢慢出來。',120,'冰',true,3,'drop'],
+  ['Cà Phê Đen','黑咖啡','只有咖啡與水。冰熱皆可，想喝豆子本身的焦香就點這杯。',90,'冰 / 熱',false,3,'drop'],
+  ['Bạc Xỉu','白咖啡','煉乳與鮮奶的比例比咖啡多，顏色淡、口感滑，不愛苦的人可以先從這杯開始。',110,'冰',true,1,'cube'],
+  ['Cà Phê Trứng','河內蛋咖啡','蛋黃、煉乳與糖打到發白，鋪在熱咖啡上。奶霜要用湯匙由下往上挖，蛋香才會跟咖啡一起進嘴裡。',150,'熱',true,2,'egg'],
+  ['Cà Phê Muối','順化鹽咖啡','鮮奶油加一點海鹽打成鹽奶蓋，鹹甜平衡，是順化人喝咖啡的老味道。',130,'冰',false,2,'cube'],
+  ['Cà Phê Cốt Dừa','椰子冰沙咖啡','椰奶、椰子冰沙與濃咖啡一起打，口感像冰沙，咖啡味仍然清楚。',140,'冰',true,2,'coco'],
+  ['Trà Đá','冰綠茶（免費續杯）','越南綠茶加冰，同一杯可以免費續杯，適合搭配麵包或蛋咖啡。',40,'冰',false,1,'leaf'],
+  ['Sinh Tố Bơ','酪梨奶昔','整顆酪梨加煉乳與冰塊打成，濃稠順口。可以點無糖，煉乳改成鮮奶。',150,'冰',true,0,'egg'],
+  ['Bánh Mì','法國麵包（輕食）','法國麵包夾豬肉鬆、醃蘿蔔與香菜，每天早上現烤，一份就能當早餐。',95,'熱',false,0,'bread']
+];
+// 滴濾粉量：base 為粉層高度（px，示意）、sec 為滴落秒數
+var DOSES = [
+  {g:18, base:28, sec:240, tag:'清爽', beans:1, note:'豆香在後面，適合慢慢喝的人。'},
+  {g:22, base:34, sec:270, tag:'標準', beans:2, note:'煉乳與咖啡剛好平衡，最好上手。'},
+  {g:25, base:40, sec:300, tag:'濃郁', beans:3, note:'苦與焦香明顯，搭煉乳正好。'}
+];
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var SVGNS = 'http://www.w3.org/2000/svg';
+var EGG = ['#efe6d2','#e2d6bb','#f7f1e3','#d8cbb0'];
+var now = new Date();
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+/* ===== 工具 ===== */
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function esc(t){ return String(t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function fmt(s){ s = Math.max(0, Math.ceil(s)); return Math.floor(s/60) + ':' + ('0' + (s % 60)).slice(-2); }
+function svgBox(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + body + '</svg>'; }
+var BEAN = '<svg viewBox="0 0 12 16" aria-hidden="true"><ellipse cx="6" cy="8" rx="5" ry="7" fill="currentColor"/><path d="M6 1.6 Q3.8 8 6 14.4" fill="none" stroke="#0f0b09" stroke-width="1.3"/></svg>';
+function beansHTML(n, max){ var h = ''; for (var k = 0; k < max; k++) h += '<i class="bean' + (k < n ? '' : ' off') + '">' + BEAN + '</i>'; return h; }
+var GLY = {
+  drop:'<path d="M22 5 C30 16 35 23 35 31 A13 13 0 0 1 9 31 C9 23 14 16 22 5Z"/>',
+  egg:'<path d="M22 6 C31 6 36 20 36 29 A14 12 0 0 1 8 29 C8 20 13 6 22 6Z"/>',
+  cube:'<rect x="9" y="9" width="26" height="26" rx="5" transform="rotate(12 22 22)"/><path d="M14 17 L26 13" fill="none"/>',
+  coco:'<circle cx="22" cy="22" r="14"/><path d="M14 18 Q22 11 30 18" fill="none"/>',
+  leaf:'<path d="M9 35 C9 17 19 9 35 9 C35 25 27 35 9 35Z"/><path d="M9 35 L24 20" fill="none"/>',
+  bread:'<rect x="6" y="15" width="32" height="16" rx="8"/><path d="M14 19 L18 27 M22 19 L26 27" fill="none"/>'
+};
+
+/* ===== 蛋殼鑲嵌與漆畫素材 ===== */
+function shard(cx, cy, s, R){
+  var n = 4 + Math.floor(R()*2), a0 = R()*6.2832, p = [], i;
+  for (i = 0; i < n; i++){ var a = a0 + i/n*6.2832 + (R()-.5)*.5, r = s*(.7 + R()*.4); p.push((cx + Math.cos(a)*r).toFixed(1) + ',' + (cy + Math.sin(a)*r*.85).toFixed(1)); }
+  return '<polygon points="' + p.join(' ') + '" fill="' + EGG[(R()*4)|0] + '"/>';
+}
+function field(cx, cy, rx, ry, n, R, a, b){
+  var s = '<g stroke="#0f0b09" stroke-width="2.2" stroke-linejoin="round">', i;
+  for (i = 0; i < n; i++){ var t = R()*6.2832, r = Math.sqrt(R()); s += shard(cx + Math.cos(t)*rx*r, cy + Math.sin(t)*ry*r, a + R()*(b - a), R); }
+  return s + '</g>';
+}
+function gdef(id){ return '<linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6a2c"/><stop offset=".42" stop-color="#c8a24c"/><stop offset=".5" stop-color="#f6e2a0"/><stop offset=".6" stop-color="#c8a24c"/><stop offset="1" stop-color="#6b4f1c"/></linearGradient>'; }
+function sdef(id){ return '<linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7d786d"/><stop offset=".5" stop-color="#e8e3d6"/><stop offset="1" stop-color="#8f897c"/></linearGradient>'; }
+function leaf(x, y, w, fill, R){
+  var h = w*(.8 + R()*.4), rot = R()*90, cx = x + w/2, cy = y + h/2;
+  return '<rect class="gl" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + (R() < .7 ? fill : '#8a6a2c') + '" stroke="#3d2b10" stroke-width=".8" transform="rotate(' + rot.toFixed(1) + ' ' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ')"/>';
+}
+function lantern(x, wy){
+  var cy = wy + 50;
+  return '<g><path d="M' + x + ' ' + wy + ' V' + (cy - 34) + '" stroke="#0f0b09" stroke-width="2" fill="none"/>' +
+    '<ellipse cx="' + x + '" cy="' + cy + '" rx="26" ry="32" fill="#a8281c"/>' +
+    '<ellipse cx="' + x + '" cy="' + cy + '" rx="11" ry="32" fill="none" stroke="#c8a24c" stroke-opacity=".55" stroke-width="2"/>' +
+    '<rect x="' + (x-22) + '" y="' + (cy-36) + '" width="44" height="6" rx="3" fill="#c8a24c"/>' +
+    '<rect x="' + (x-22) + '" y="' + (cy+30) + '" width="44" height="6" rx="3" fill="#c8a24c"/>' +
+    '<path d="M' + x + ' ' + (cy+36) + ' V' + (cy+52) + '" stroke="#c8a24c" stroke-width="2"/></g>';
+}
+// 蛋殼密鋪：jitter 網格，相鄰碎片共用頂點，每片向自身形心內縮 inset 留出黑漆細縫；顏色為蛋殼白 ±6% 亮度
+function eggTone(R){ var k = 1 + (R()*2 - 1)*.06; return 'rgb(' + Math.round(239*k) + ',' + Math.round(230*k) + ',' + Math.round(210*k) + ')'; }
+function tiles(x0, y0, w, h, cw, ch, R, inset, stagger){
+  var cols = Math.ceil(w/cw), rows = Math.ceil(h/ch), P = [], r, c, out = '';
+  for (r = 0; r <= rows; r++){
+    P[r] = [];
+    for (c = 0; c <= cols; c++){
+      var ex = c === 0 || c === cols, ey = r === 0 || r === rows;
+      P[r][c] = [x0 + c*cw + (ex ? 0 : (R() - .5)*cw*.4), y0 + r*ch + (ey ? 0 : (R() - .5)*ch*.4)];
+    }
+  }
+  for (r = 0; r < rows; r++) for (c = 0; c < cols; c++){
+    var q = [P[r][c], P[r][c+1], P[r+1][c+1], P[r+1][c]], mx = 0, my = 0, pts = [], i;
+    for (i = 0; i < 4; i++){ mx += q[i][0]/4; my += q[i][1]/4; }
+    for (i = 0; i < 4; i++){
+      var dx = q[i][0] - mx, dy = q[i][1] - my, L = Math.sqrt(dx*dx + dy*dy) || 1, k = Math.max(0, (L - inset)/L);
+      pts.push((mx + dx*k).toFixed(1) + ',' + (my + dy*k).toFixed(1));
+    }
+    out += '<polygon' + (stagger ? ' class="sh" style="--d:' + (c*stagger).toFixed(3) + 's"' : '') + ' points="' + pts.join(' ') + '" fill="' + eggTone(R) + '"/>';
+  }
+  return out;
+}
+// 金箔拼貼：圓形範圍內的方形箔片，略錯位、每片帶細微明暗差，共用 G 漸層（光澤會隨 .gl 流動）
+function foil(cx, cy, r, cell, id, R, G){
+  var s = '<clipPath id="' + id + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath><g clip-path="url(#' + id + ')">', x, y;
+  for (y = cy - r; y < cy + r; y += cell) for (x = cx - r; x < cx + r; x += cell){
+    var ox = (x + (R() - .5)*2).toFixed(1), oy = (y + (R() - .5)*2).toFixed(1), w = (cell - 2.4).toFixed(1);
+    if (Math.hypot(+ox + cell/2 - cx, +oy + cell/2 - cy) > r + cell*.3) continue;
+    s += '<rect class="gl" x="' + ox + '" y="' + oy + '" width="' + w + '" height="' + w + '" fill="url(#' + G + ')"/>';
+    if (R() < .5) s += '<rect x="' + ox + '" y="' + oy + '" width="' + w + '" height="' + w + '" fill="#0f0b09" fill-opacity="' + (R()*.14).toFixed(3) + '"/>';
+  }
+  return s + '</g>';
+}
+function lotus(x, y, k, u, R){
+  var p = '';
+  [-62,-31,0,31,62].forEach(function(a){ p += '<path transform="rotate(' + a + ')" d="M0 0 C-30 -18 -30 -74 0 -96 C30 -74 30 -18 0 0Z" fill="#a8281c" stroke="#c8a24c" stroke-width="1.6"/>'; });
+  [-20,20].forEach(function(a, i){
+    if (!u || !R){ p += '<path transform="rotate(' + a + ') scale(.62)" d="M0 0 C-30 -18 -30 -74 0 -96 C30 -74 30 -18 0 0Z" fill="#efe6d2"/>'; return; }
+    var id = u + 'lt' + i;
+    p += '<clipPath id="' + id + '"><path transform="rotate(' + a + ') scale(.62)" d="M0 0 C-30 -18 -30 -74 0 -96 C30 -74 30 -18 0 0Z"/></clipPath>' +
+      '<g clip-path="url(#' + id + ')">' + tiles(-40, -66, 80, 70, 12, 12, R, 3.2) + '</g>';
+  });
+  return '<g transform="translate(' + x + ' ' + y + ') scale(' + k + ')"><ellipse cx="0" cy="8" rx="92" ry="16" fill="#0f0b09" stroke="#c8a24c" stroke-opacity=".5"/>' + p + '<circle cy="-4" r="12" fill="#f6e2a0"/></g>';
+}
+var BLD = [[0,120,600,'#1c1410',0],[120,150,468,'#2a1a12',1],[270,110,548,'#3b2415',0],[380,150,492,'#1c1410',1],[530,130,560,'#2a1a12',0],[660,150,474,'#3b2415',1],[810,120,540,'#1c1410',0],[930,160,486,'#2a1a12',1],[1090,120,552,'#3b2415',0],[1210,160,470,'#1c1410',1],[1370,120,530,'#2a1a12',0],[1490,110,500,'#3b2415',1]];
+
+// 一幅完整的漆畫（1600×1000）；四扇各取 400 寬。id 以 u 作前綴，內容由固定 seed 產生，每扇一致。
+function artFull(u){
+  var R = mulberry32(245), G = u + 'gold', S = u + 'silver', s = '', i, j;
+  s += '<defs>' + gdef(G) + sdef(S) +
+    '<linearGradient id="' + u + 'sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1b13"/><stop offset=".6" stop-color="#17100c"/><stop offset="1" stop-color="#0f0b09"/></linearGradient>' +
+    '<clipPath id="' + u + 'shirt"><path d="M1022 730 L1040 652 L1074 646 L1100 730 Z"/></clipPath></defs>';
+  s += '<rect width="1600" height="1000" fill="url(#' + u + 'sky)"/>';
+  // 月：金箔圓
+  s += foil(700, 235, 128, 24, u + 'moon', R, G) + '<circle cx="700" cy="235" r="112" fill="none" stroke="#f6e2a0" stroke-opacity=".5" stroke-width="2"/>';
+  // 月下的雲帶：蛋殼密鋪（天空不再撒零散碎片）
+  s += '<clipPath id="' + u + 'cloud"><path d="M430 330 C470 292 560 288 610 306 C650 280 740 276 790 310 C840 292 960 300 1010 330 C1020 352 990 376 930 374 C860 380 780 382 700 376 C600 380 500 380 450 366 C425 358 422 342 430 330 Z"/></clipPath>';
+  s += '<g clip-path="url(#' + u + 'cloud)">' + tiles(420, 274, 604, 110, 26, 22, R, 1.8) + '</g>';
+  // 電線與燈籠
+  s += '<g fill="none" stroke="#0f0b09" stroke-width="2.5"><path d="M46 330 Q800 420 1554 300"/><path d="M46 352 Q800 452 1554 332"/></g>';
+  s += lantern(330,356) + lantern(900,364) + lantern(1240,341);
+  // 屋舍與硃紅屋頂
+  BLD.forEach(function(b){
+    var x = b[0], w = b[1], t = b[2];
+    s += '<rect x="' + x + '" y="' + t + '" width="' + w + '" height="' + (760 - t) + '" fill="' + b[3] + '"/>';
+    if (b[4]) s += '<path d="M' + (x-16) + ' ' + (t+14) + ' Q' + (x+w/2) + ' ' + (t-26) + ' ' + (x+w+16) + ' ' + (t+14) + ' L' + (x+w-4) + ' ' + (t+26) + ' L' + (x+4) + ' ' + (t+26) + ' Z" fill="#a8281c"/>' +
+      '<path d="M' + (x-16) + ' ' + (t+14) + ' Q' + (x+w/2) + ' ' + (t-26) + ' ' + (x+w+16) + ' ' + (t+14) + '" fill="none" stroke="#c8a24c" stroke-width="2" stroke-opacity=".7"/>';
+    for (var yy = t + 34; yy < 740; yy += 46) for (var xx = x + 16; xx < x + w - 26; xx += 34){
+      s += '<rect x="' + xx + '" y="' + yy + '" width="14" height="20" rx="2" fill="' + (R() < .28 ? '#c8a24c' : '#0f0b09') + '" fill-opacity=".55"/>';
+    }
+  });
+  s += '<rect x="70" y="600" width="130" height="44" rx="4" fill="#a8281c"/><text x="135" y="630" text-anchor="middle" font-family="Cochin,Baskerville,Times New Roman,serif" font-size="22" letter-spacing="4" fill="#e6c97a">PHIN</text>';
+  s += '<rect x="40" y="300" width="12" height="470" fill="#0f0b09"/><rect x="1548" y="290" width="12" height="480" fill="#0f0b09"/>';
+  // 街道與騎士
+  s += '<rect x="0" y="760" width="1600" height="72" fill="#3b2415"/><path d="M0 800 H1600" stroke="#c8a24c" stroke-opacity=".45" stroke-width="3" stroke-dasharray="46 30"/>';
+  s += '<circle cx="970" cy="792" r="34" fill="#0f0b09" stroke="#c8a24c" stroke-width="5"/><circle cx="1090" cy="792" r="34" fill="#0f0b09" stroke="#c8a24c" stroke-width="5"/><circle cx="970" cy="792" r="8" fill="#c8a24c"/><circle cx="1090" cy="792" r="8" fill="#c8a24c"/>';
+  s += '<path d="M985 768 L1040 738 L1102 740 L1114 762 L1050 772 L1000 776 Z" fill="#a8281c"/>';
+  s += '<rect x="1012" y="728" width="52" height="12" rx="6" fill="#0f0b09"/><rect x="1040" y="764" width="40" height="18" rx="5" fill="#0f0b09"/>';
+  s += '<path d="M1028 740 L1040 772" stroke="#0f0b09" stroke-width="9" stroke-linecap="round"/>';
+  s += '<path d="M1048 672 L1100 722" stroke="#2a1a12" stroke-width="9" stroke-linecap="round"/>';
+  s += '<path d="M1100 716 L1116 704" stroke="#c8a24c" stroke-width="4" stroke-linecap="round"/>';
+  s += '<path d="M1022 730 L1040 652 L1074 646 L1100 730 Z" fill="#1c1410"/>';
+  s += '<g clip-path="url(#' + u + 'shirt)">' + tiles(1016, 638, 92, 100, 12, 12, R, 2.2) + '</g>';
+  s += '<circle cx="1063" cy="624" r="17" fill="#5b3a22"/><ellipse cx="1063" cy="612" rx="46" ry="9" fill="#8a6a2c"/><path d="M1063 552 L1100 610 Q1063 620 1026 610 Z" fill="#c8a24c"/>';
+  // 水面、銀箔與蓮花
+  s += '<rect x="0" y="832" width="1600" height="168" fill="#1c1410"/>';
+  for (i = 0; i < 16; i++) s += '<rect x="' + (R()*1400).toFixed(0) + '" y="' + (846 + i*10) + '" width="' + (60 + R()*200).toFixed(0) + '" height="2" fill="#b9b4a8" fill-opacity=".22"/>';
+  for (i = 0; i < 14; i++) s += leaf(R()*1560, 850 + R()*120, 8 + R()*10, 'url(#' + S + ')', R);
+  s += lotus(250,930,.9,u+'a',R) + lotus(1330,950,1.05,u+'b',R);
+  // 咖啡桌上的 phin
+  s += '<rect x="1190" y="780" width="260" height="14" rx="4" fill="#5b3a22"/><rect x="1214" y="794" width="10" height="46" fill="#2a1a12"/><rect x="1426" y="794" width="10" height="46" fill="#2a1a12"/>';
+  s += '<ellipse cx="1310" cy="782" rx="44" ry="6" fill="#efe6d2"/>';
+  s += '<path d="M1282 728 L1288 778 L1332 778 L1338 728 Z" fill="#2a1a12" stroke="#c9c2b2" stroke-width="2.5"/>';
+  s += '<path d="M1286 754 L1288 776 L1332 776 L1334 754 Z" fill="#3a1d0e"/>';
+  s += '<rect x="1278" y="702" width="64" height="22" rx="4" fill="url(#' + S + ')"/><rect x="1276" y="724" width="68" height="6" rx="3" fill="#8a8478"/>';
+  return s;
+}
+
+/* ===== 佔位圖 ===== */
+var ART = {
+  screen:function(){
+    var h = '<div class="panels">';
+    for (var k = 0; k < 4; k++) h += '<div class="panel"><svg viewBox="' + (k*400) + ' 0 400 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + artFull('p' + k + '-') + '</svg></div>';
+    return h + '</div>';
+  },
+  bench:function(){
+    var R = mulberry32(301), s = '<defs>' + gdef('bn-g') + '<linearGradient id="bn-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1a12"/><stop offset="1" stop-color="#0f0b09"/></linearGradient></defs><rect width="1000" height="1250" fill="url(#bn-bg)"/>';
+    s += '<circle cx="770" cy="170" r="110" fill="url(#bn-g)"/>';
+    s += '<g transform="rotate(-4 500 560)"><rect x="170" y="300" width="660" height="520" rx="12" fill="#0f0b09" stroke="#c8a24c" stroke-width="8"/>' + field(500, 560, 280, 200, 60, R, 14, 26) + '</g>';
+    s += '<rect x="0" y="930" width="1000" height="320" fill="#3b2415"/><rect x="0" y="930" width="1000" height="14" fill="#5b3a22"/>';
+    for (var i = 0; i < 3; i++) s += '<g transform="translate(' + (230 + i*60) + ' 960) rotate(' + (-10 + i*8) + ')"><rect x="-6" y="-200" width="12" height="150" rx="5" fill="#a8281c"/><rect x="-8" y="-52" width="16" height="34" fill="#c8a24c"/><path d="M-7 -18 L0 22 L7 -18Z" fill="#2a1a12"/></g>';
+    s += '<ellipse cx="780" cy="1040" rx="170" ry="46" fill="#1c1410"/>' + field(780, 1000, 150, 26, 26, R, 12, 22);
+    return svgBox('0 0 1000 1250', s);
+  },
+  phins:function(){
+    var R = mulberry32(302), s = '<defs>' + gdef('ph-g') + sdef('ph-s') + '</defs><rect width="1000" height="800" fill="#0f0b09"/>';
+    s += '<circle cx="800" cy="170" r="92" fill="url(#ph-g)"/><circle cx="170" cy="190" r="58" fill="#a8281c"/><rect x="146" y="120" width="48" height="8" fill="#c8a24c"/><rect x="146" y="252" width="48" height="8" fill="#c8a24c"/>';
+    s += field(500, 150, 360, 70, 26, R, 13, 22);
+    for (var i = 0; i < 4; i++){
+      var x = 170 + i*220;
+      s += '<path d="M' + (x-44) + ' 470 L' + (x-36) + ' 590 L' + (x+36) + ' 590 L' + (x+44) + ' 470Z" fill="#2a1a12" stroke="#c9c2b2" stroke-width="3"/>';
+      s += '<path d="M' + (x-34) + ' 520 L' + (x-30) + ' 588 L' + (x+30) + ' 588 L' + (x+34) + ' 520Z" fill="#3a1d0e"/>';
+      s += '<rect x="' + (x-50) + '" y="420" width="100" height="50" rx="6" fill="url(#ph-s)"/><rect x="' + (x-54) + '" y="410" width="108" height="12" rx="4" fill="#8a8478"/><rect x="' + (x-46) + '" y="470" width="92" height="8" fill="#c8a24c"/>';
+    }
+    s += '<rect y="600" width="1000" height="24" fill="#5b3a22"/><rect y="624" width="1000" height="176" fill="#1c1410"/>';
+    return svgBox('0 0 1000 800', s);
+  },
+  egg:function(){
+    var R = mulberry32(303), s = '<defs>' + gdef('eg-g') + '</defs><rect width="1000" height="800" fill="#1c1410"/><circle cx="500" cy="380" r="260" fill="#2a1a12"/>';
+    s += '<path d="M330 430 L350 690 Q352 712 376 712 L624 712 Q648 712 650 690 L670 430 Z" fill="#f2ead8" fill-opacity=".92"/>';
+    s += '<path d="M352 520 L362 690 Q364 700 376 700 L624 700 Q636 700 638 690 L648 520 Z" fill="#3a1d0e"/>';
+    for (var i = 0; i < 26; i++){ var a = R()*6.2832, r = Math.sqrt(R()); s += '<circle cx="' + (500 + Math.cos(a)*170*r).toFixed(1) + '" cy="' + (440 + Math.sin(a)*52*r).toFixed(1) + '" r="' + (22 + R()*18).toFixed(1) + '" fill="#efe6d2" stroke="#b9a98a" stroke-width="2"/>'; }
+    s += '<rect x="700" y="260" width="16" height="170" rx="6" fill="#c8a24c" transform="rotate(18 708 260)"/><circle cx="740" cy="250" r="28" fill="url(#eg-g)"/>';
+    s += field(500, 130, 380, 60, 26, R, 13, 22);
+    s += '<rect y="712" width="1000" height="88" fill="#0f0b09"/>';
+    return svgBox('0 0 1000 800', s);
+  },
+  wall:function(){
+    var R = mulberry32(304), s = '<defs>' + gdef('wl-g') + '</defs><rect width="1000" height="1000" fill="#0f0b09"/>', r, c, x, y, m, cx, cy;
+    for (r = 0; r < 3; r++) for (c = 0; c < 3; c++){
+      x = 20 + c*325; y = 20 + r*325; m = (r*3 + c) % 4; cx = x + 150; cy = y + 150;
+      s += '<rect x="' + x + '" y="' + y + '" width="300" height="300" rx="8" fill="' + ((r + c) % 2 ? '#2a1a12' : '#1c1410') + '" stroke="#c8a24c" stroke-opacity=".6" stroke-width="3"/>';
+      if (m === 0) s += '<circle cx="' + cx + '" cy="' + (cy-20) + '" r="72" fill="url(#wl-g)"/>' + field(cx, cy+70, 110, 26, 12, R, 10, 16);
+      else if (m === 1) s += lotus(cx, y + 262, .8, 'wl' + r + c, R);
+      else if (m === 2) s += '<path d="M' + cx + ' ' + (y+20) + ' V' + (y+70) + '" stroke="#0f0b09" stroke-width="2"/><ellipse cx="' + cx + '" cy="' + (cy+10) + '" rx="46" ry="58" fill="#a8281c"/><ellipse cx="' + cx + '" cy="' + (cy+10) + '" rx="18" ry="58" fill="none" stroke="#c8a24c" stroke-opacity=".6" stroke-width="2"/><rect x="' + (cx-36) + '" y="' + (cy-50) + '" width="72" height="7" fill="#c8a24c"/>';
+      else s += field(cx, cy, 110, 100, 26, R, 14, 24) + '<circle cx="' + cx + '" cy="' + cy + '" r="36" fill="#a8281c"/>';
+    }
+    return svgBox('0 0 1000 1000', s);
+  },
+  beans:function(){
+    var R = mulberry32(305), s = '<rect width="1000" height="800" fill="#0f0b09"/><ellipse cx="500" cy="420" rx="400" ry="260" fill="#1c1410" stroke="#c8a24c" stroke-opacity=".5" stroke-width="3"/>';
+    for (var i = 0; i < 30; i++){
+      var x = 500 + (R()-.5)*640, y = 420 + (R()-.5)*380, rot = R()*180, c = R() < .5 ? '#5b3a22' : '#3b2415';
+      s += '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + rot.toFixed(0) + ')"><ellipse rx="28" ry="38" fill="' + c + '"/><path d="M0 -34 Q-7 0 0 34" fill="none" stroke="#1c1410" stroke-width="4"/><ellipse cx="-10" cy="-16" rx="7" ry="12" fill="#efe6d2" fill-opacity=".12"/></g>';
+    }
+    return svgBox('0 0 1000 800', s);
+  }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var url = SHOP.photos[f.dataset.photo];
+    if (url){ f.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; return; }
+    var a = ART[f.dataset.art];
+    if (a) f.innerHTML = a();
+  });
+}
+
+/* ===== 營業狀態 ===== */
+function setStatus(){
+  var n = new Date(), h = SHOP.hours[n.getDay()], m = n.getHours()*60 + n.getMinutes();
+  var open = !!h && m >= mins(h[0]) && m < mins(h[1]), next = '';
+  if (!open) for (var k = 0; k < 8 && !next; k++){
+    var d = (n.getDay() + k) % 7, x = SHOP.hours[d];
+    if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0];
+  }
+  var txt = open ? '營業中・到 ' + h[1] : '休息中・' + next + ' 開門';
+  $$('.status').forEach(function(el){ el.classList.toggle('on', open); el.lastElementChild.textContent = txt; });
+}
+
+/* ===== 菜單 ===== */
+$('#menuList').innerHTML = MENU.map(function(m){
+  return '<article class="dish rv-in"><svg class="glyph" viewBox="0 0 44 44" aria-hidden="true">' + GLY[m[7]] + '</svg>' +
+    '<h3>' + m[0] + '</h3><p class="zhn">' + m[1] + '</p><p>' + m[2] + '</p>' +
+    '<div class="tags"><span class="tag">' + m[4] + '</span>' + (m[5] ? '<span class="tag">含煉乳</span>' : '') + '</div>' +
+    '<div class="foot"><span class="price">NT$ ' + m[3] + '</span>' +
+    '<span class="caf">' + (m[6] ? '咖啡因 <span class="beans">' + beansHTML(m[6], 3) + '</span>' : '不含咖啡因') + '</span></div></article>';
+}).join('');
+
+/* ===== Phin 滴漏計時器 ===== */
+var BREW_SVG =
+  '<defs>' +
+  '<clipPath id="bw-glass"><path d="M142 232 L168 420 Q170 432 184 432 L296 432 Q310 432 312 420 L338 232 Z"/></clipPath>' +
+  '<linearGradient id="bw-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b5448"/><stop offset=".45" stop-color="#e2dccd"/><stop offset="1" stop-color="#6d665a"/></linearGradient>' +
+  '<radialGradient id="bw-bg" cx="50%" cy="58%" r="62%"><stop offset="0" stop-color="#3b2415"/><stop offset="1" stop-color="#0a0706"/></radialGradient>' +
+  '<pattern id="bw-hole" width="12" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.4" fill="#1c1410"/></pattern>' +
+  '</defs>' +
+  '<rect x="0" y="0" width="480" height="436" fill="url(#bw-bg)"/>' +
+  '<rect x="0" y="436" width="480" height="84" fill="#1c1410"/><path d="M0 436 H480" stroke="#c8a24c" stroke-opacity=".45" stroke-width="1.5"/>' +
+  '<ellipse cx="240" cy="436" rx="124" ry="10" fill="#2a1a12" stroke="#c8a24c" stroke-opacity=".4"/>' +
+  '<text id="bw-dose" x="30" y="48" fill="#e6c97a" font-size="16" font-family="Cochin,Baskerville,Times New Roman,serif">22 g</text>' +
+  '<text x="30" y="68" fill="#a99c88" font-size="12" font-family="PingFang TC,Microsoft JhengHei,sans-serif">phin 滴漏・側視剖面</text>' +
+  '<path d="M104 180 H120 M104 124 H120" stroke="#a99c88" stroke-width="1.2"/>' +
+  '<g font-size="11" fill="#a99c88" font-family="PingFang TC,Microsoft JhengHei,sans-serif"><text x="98" y="184" text-anchor="end">20 ml</text><text x="98" y="128" text-anchor="end">注滿</text></g>' +
+  '<path d="M142 232 L168 420 Q170 432 184 432 L296 432 Q310 432 312 420 L338 232 Z" fill="rgba(255,255,255,.05)"/>' +
+  '<g clip-path="url(#bw-glass)"><rect x="120" y="400" width="240" height="32" fill="#f2ead8"/>' +
+  '<rect id="bw-cof" x="120" y="400" width="240" height="0" fill="#2a160c"/>' +
+  '<rect id="bw-men" x="120" y="400" width="240" height="2.4" fill="#7a4524" opacity="0"/>' +
+  '<rect id="bw-mix" x="120" y="400" width="240" height="32" fill="#c99a62" opacity="0"/></g>' +
+  '<path d="M142 232 L168 420 Q170 432 184 432 L296 432 Q310 432 312 420 L338 232 Z" fill="none" stroke="#d9d2c0" stroke-width="2.5" stroke-opacity=".85"/>' +
+  '<path d="M152 244 L174 404" stroke="#fff" stroke-opacity=".22" stroke-width="4" stroke-linecap="round" fill="none"/>' +
+  '<text x="352" y="418" font-size="12" fill="#a99c88" font-family="PingFang TC,Microsoft JhengHei,sans-serif">煉乳層</text>' +
+  '<g id="bw-ice" style="opacity:0">' +
+  '<rect x="180" y="240" width="32" height="32" rx="6" transform="rotate(10 196 256)" fill="rgba(230,246,255,.3)" stroke="#eaf7ff" stroke-width="1.8"/><path d="M186 247 L195 243" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-linecap="round"/>' +
+  '<rect x="228" y="234" width="32" height="32" rx="6" transform="rotate(-8 244 250)" fill="rgba(230,246,255,.3)" stroke="#eaf7ff" stroke-width="1.8"/><path d="M234 240 L242 237" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-linecap="round"/>' +
+  '<rect x="275" y="245" width="30" height="30" rx="6" transform="rotate(14 290 260)" fill="rgba(230,246,255,.3)" stroke="#eaf7ff" stroke-width="1.8"/><path d="M281 252 L289 249" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-linecap="round"/>' +
+  '</g>' +
+  '<g id="bw-drops"></g><g id="bw-rip"></g>' +
+  '<rect x="150" y="118" width="180" height="92" rx="6" fill="url(#bw-metal)"/>' +
+  '<rect x="158" y="124" width="164" height="80" fill="#2a2420"/>' +
+  '<rect id="bw-gr" x="158" y="204" width="164" height="0" fill="#2b1a10"/>' +
+  '<rect id="bw-wa" x="158" y="204" width="164" height="0" fill="#9fc4cc" fill-opacity=".42"/>' +
+  '<g id="bw-disc" style="opacity:0"><ellipse cx="240" cy="128" rx="78" ry="6" fill="#e4dccb" stroke="#8a8478"/></g>' +
+  '<rect x="150" y="204" width="180" height="10" fill="#5b5448"/><rect x="150" y="204" width="180" height="10" fill="url(#bw-hole)"/>' +
+  '<rect x="136" y="216" width="208" height="14" rx="5" fill="#c8a24c"/><path d="M142 219 H338" stroke="#f6e2a0" stroke-opacity=".6"/>';
+$('#brewSvg').innerHTML = BREW_SVG;
+var B = {
+  gr:$('#bw-gr'), wa:$('#bw-wa'), disc:$('#bw-disc'), cof:$('#bw-cof'), men:$('#bw-men'), mix:$('#bw-mix'),
+  ice:$('#bw-ice'), dropsG:$('#bw-drops'), ripG:$('#bw-rip'), dose:$('#bw-dose')
+};
+var PHASE = {
+  dose:  {i:0, title:'① 放入咖啡粉', desc:'選好粉量，把咖啡粉平鋪在濾杯裡，輕搖一下讓表面平整。', btn:'放入咖啡粉', off:false},
+  press: {i:1, title:'② 壓粉', desc:'壓片輕輕壓下去，粉層平整即可，不要用力到把咖啡粉壓碎。', btn:'壓粉', off:false},
+  pour:  {i:2, title:'③ 悶蒸', desc:'先注入約 20 ml 熱水（92°C 左右），讓粉層吸水膨脹。', btn:'注入 20 ml 熱水', off:false},
+  bloom: {i:2, title:'③ 悶蒸中', desc:'等 30 秒，粉層會慢慢鼓起來，表面冒出細小氣泡就對了。', btn:'悶蒸中…', off:true},
+  fill:  {i:3, title:'④ 注滿', desc:'繼續注水到濾杯滿，水會慢慢穿過粉層，開始滴落。', btn:'注滿熱水', off:false},
+  drip:  {i:4, title:'⑤ 等待滴落', desc:'咖啡液大約每秒滴 1–2 滴。這段時間先把煉乳留在杯底。', btn:'滴落中…', off:true},
+  stir:  {i:5, title:'⑥ 攪拌加冰', desc:'滴完了。把咖啡與煉乳攪勻，放入冰塊，顏色會變成焦糖奶色。', btn:'攪拌加冰', off:false},
+  done:  {i:6, title:'完成・焦糖奶色', desc:'', btn:'再沖一杯', off:false}
+};
+var st = {phase:'dose', di:1, left:0, total:DOSES[1].sec, fast:false, emit:0, drops:[], rips:[]};
+var cur = {g:0, press:0, bloom:0, w:0, cof:0, mix:0, ice:0};
+var tgt = {g:0, press:0, bloom:0, w:0, cof:0, mix:0, ice:0};
+var mx = 0;
+
+function ui(){
+  var P = PHASE[st.phase], D = DOSES[st.di];
+  $$('#steps li').forEach(function(li, k){ li.className = k < P.i ? 'done' : (k === P.i && st.phase !== 'done' ? 'cur' : ''); });
+  $('#stepTitle').textContent = P.title;
+  $('#stepDesc').textContent = st.phase === 'done' ? D.g + ' g 粉量、滴落約 ' + fmt(st.total) + '。越南咖啡的重點是等，不是快。' : P.desc;
+  var b = $('#bNext'); b.textContent = P.btn; b.disabled = !!P.off;
+  $$('input[name=dose]').forEach(function(r){ r.disabled = st.phase !== 'dose'; });
+  $('#strengthBeans').innerHTML = beansHTML(D.beans, 3);
+  $('#strengthTxt').textContent = D.tag + '・' + D.note;
+  B.dose.textContent = D.g + ' g';
+}
+function setPhase(p){
+  st.phase = p;
+  if (p === 'bloom') st.left = 30;
+  if (p === 'drip'){ st.total = DOSES[st.di].sec; st.left = st.total; st.emit = .3; }
+  ui();
+}
+function reset(){
+  st.phase = 'dose'; st.left = 0; st.total = DOSES[st.di].sec; st.emit = 0;
+  st.drops.forEach(function(d){ d.el.remove(); }); st.drops = [];
+  st.rips.forEach(function(r){ r.el.remove(); }); st.rips = [];
+  ui();
+}
+function setTargets(){
+  var p = st.phase, i = PHASE[p].i, inBloom = ['bloom','fill','drip','stir','done'].indexOf(p) >= 0;
+  tgt.g = i >= 1 ? 1 : 0;
+  tgt.press = i >= 2 ? 1 : 0;
+  tgt.bloom = inBloom ? 1 : 0;
+  // 濾杯水位：悶蒸 .3、注滿 1，滴落時從 1 排到 0；杯中咖啡滴落時長到約 45%（.6 × 杯高 150 ≈ 90px），攪拌加冰後才升到滿
+  tgt.w = p === 'bloom' ? .3 : p === 'fill' ? 1 : p === 'drip' ? st.left/st.total : 0;
+  tgt.cof = p === 'drip' ? .6*(1 - st.left/st.total) : (p === 'stir' || p === 'done' ? 1 : 0);
+  tgt.mix = p === 'done' ? 1 : 0;
+  tgt.ice = p === 'done' ? 1 : 0;
+}
+function spawn(){
+  if (st.drops.length > 24) return;
+  var x = 240 + (Math.random() - .5)*6, el = document.createElementNS(SVGNS, 'circle');
+  el.setAttribute('cx', x.toFixed(1)); el.setAttribute('cy', '228'); el.setAttribute('r', '3.4'); el.setAttribute('fill', '#8a4a22');
+  B.dropsG.appendChild(el); st.drops.push({el:el, x:x, y:228, vy:40});
+}
+function ripple(x, y){
+  var el = document.createElementNS(SVGNS, 'ellipse');
+  el.setAttribute('cx', x.toFixed(1)); el.setAttribute('cy', y.toFixed(1)); el.setAttribute('rx', '2'); el.setAttribute('ry', '.6');
+  el.setAttribute('fill', 'none'); el.setAttribute('stroke', '#f0d9a8'); el.setAttribute('stroke-width', '1.2');
+  B.ripG.appendChild(el); st.rips.push({el:el, t:0});
+}
+function paint(dt){
+  var D = DOSES[st.di];
+  var gH = D.base * (1 - .14*cur.press) * (1 + .22*cur.bloom) * cur.g, gTop = 204 - gH;
+  B.gr.setAttribute('y', gTop.toFixed(2)); B.gr.setAttribute('height', gH.toFixed(2));
+  B.disc.style.transform = 'translateY(' + ((gTop - 8 - 128) * cur.press).toFixed(2) + 'px)';
+  B.disc.style.opacity = ((cur.g > .05 ? 1 : 0) * (1 - cur.bloom)).toFixed(3);
+  var wT = 204 - cur.w*80;
+  B.wa.setAttribute('y', wT.toFixed(2)); B.wa.setAttribute('height', (204 - wT).toFixed(2));
+  var cT = 400 - cur.cof*150;
+  B.cof.setAttribute('y', cT.toFixed(2)); B.cof.setAttribute('height', (400 - cT).toFixed(2));
+  B.men.setAttribute('y', (cT - 1.2).toFixed(2)); B.men.setAttribute('opacity', (Math.min(1, cur.cof*6) * (1 - cur.mix)).toFixed(3));
+  B.mix.setAttribute('y', cT.toFixed(2)); B.mix.setAttribute('height', (432 - cT).toFixed(2)); B.mix.setAttribute('opacity', cur.mix.toFixed(3));
+  B.ice.style.transform = 'translateY(' + ((1 - cur.ice) * -150).toFixed(1) + 'px)';
+  B.ice.style.opacity = Math.min(1, cur.ice*3).toFixed(3);
+  for (var i = st.drops.length - 1; i >= 0; i--){
+    var d = st.drops[i];
+    d.vy += 900*dt; d.y += d.vy*dt;
+    if (d.y >= cT){ d.el.remove(); st.drops.splice(i, 1); ripple(d.x, cT); }
+    else d.el.setAttribute('cy', d.y.toFixed(1));
+  }
+  for (var j = st.rips.length - 1; j >= 0; j--){
+    var rp = st.rips[j]; rp.t += dt; var f = rp.t / .7;
+    if (f >= 1){ rp.el.remove(); st.rips.splice(j, 1); }
+    else { rp.el.setAttribute('rx', (2 + 12*f).toFixed(2)); rp.el.setAttribute('ry', (.6 + 3.4*f).toFixed(2)); rp.el.setAttribute('opacity', (1 - f).toFixed(3)); }
+  }
+  var lab, sec;
+  switch (st.phase){
+    case 'bloom': lab = '悶蒸倒數'; sec = st.left; break;
+    case 'drip': lab = '滴落倒數'; sec = st.left; break;
+    case 'stir': lab = '滴落完成'; sec = 0; break;
+    case 'done': lab = '總時長'; sec = st.total; break;
+    default: lab = '預計滴落'; sec = D.sec;
+  }
+  $('#tLabel').textContent = lab;
+  $('#tNum').textContent = fmt(sec);
+}
+function flash(){
+  var s = $('.screen'); if (!s) return;
+  s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash');
+  setTimeout(function(){ s.classList.remove('flash'); }, 1600);
+}
+var last = 0;
+function frame(ts){
+  var dt = last ? Math.min(.05, (ts - last) / 1000) : 0; last = ts;
+  var sp = st.fast ? 10 : 1;
+  if (st.phase === 'bloom'){
+    st.left -= dt*sp;
+    if (st.left <= 0){ st.left = 0; setPhase('fill'); }
+  } else if (st.phase === 'drip'){
+    st.left -= dt*sp;
+    if (st.left <= 0){ st.left = 0; setPhase('stir'); flash(); }
+    else { st.emit -= dt*(st.fast ? 4 : 1); if (st.emit <= 0){ spawn(); st.emit = .5 + Math.random()*.5; } }
+  }
+  setTargets();
+  var k = 1 - Math.exp(-dt*5);
+  for (var key in cur) cur[key] += (tgt[key] - cur[key]) * k;
+  paint(dt);
+  // 金箔的光澤緩慢流動，滑鼠移到屏風上會跟著偏移
+  var sh = Math.sin(ts/9000)*.22 + mx*.5;
+  gilds.forEach(function(g){ g.setAttribute('x1', (sh - .45).toFixed(3)); g.setAttribute('x2', (sh + .45).toFixed(3)); });
+  requestAnimationFrame(frame);
+}
+$$('input[name=dose]').forEach(function(r){
+  r.addEventListener('change', function(){
+    if (!this.checked) return;
+    st.di = +this.value; st.total = DOSES[st.di].sec; ui();
+  });
+});
+$('#bNext').addEventListener('click', function(){
+  var p = st.phase;
+  if (p === 'dose') setPhase('press');
+  else if (p === 'press') setPhase('pour');
+  else if (p === 'pour') setPhase('bloom');
+  else if (p === 'fill') setPhase('drip');
+  else if (p === 'stir') setPhase('done');
+  else if (p === 'done') reset();
+});
+$('#bReset').addEventListener('click', reset);
+$('#fast').addEventListener('change', function(){ st.fast = this.checked; });
+reset();
+
+/* ===== 故事：蛋殼碎片分隔線 ===== */
+(function(){
+  // 兩列密鋪的細帶，兩端以 mask 淡出，碎片依欄位序號逐片浮現
+  var R = mulberry32(88), W = 1000;
+  $('#shardLine').innerHTML = '<svg viewBox="0 0 ' + W + ' 14" preserveAspectRatio="none" aria-hidden="true">' +
+    '<defs><linearGradient id="shf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".14" stop-color="#fff"/><stop offset=".86" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+    '<mask id="shm" maskUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="14"><rect width="' + W + '" height="14" fill="url(#shf)"/></mask></defs>' +
+    '<g mask="url(#shm)">' + tiles(0, 0, W, 14, 18, 7, R, 1.2, .012) + '</g></svg>';
+})();
+
+/* ===== 蛋咖啡課：場次與預約 ===== */
+var sessions = [];
+(function(){
+  var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  while (sessions.length < 8){
+    var w = d.getDay();
+    if (w === 6 || w === 0){
+      var R = mulberry32(245 + (d.getMonth() + 1)*41 + d.getDate()*7);
+      sessions.push({d:new Date(d.getTime()), t: w === 6 ? '14:00–16:00' : '14:30–16:30', left: Math.floor(R()*8)});
+    }
+    d.setDate(d.getDate() + 1);
+  }
+})();
+var firstOpen = 0;
+for (var si = 0; si < sessions.length; si++){ if (sessions[si].left > 0){ firstOpen = si; break; } }
+$('#sessions').innerHTML = sessions.map(function(s, i){
+  var dd = s.d;
+  return '<label class="sess"><input type="radio" name="sess" value="' + i + '"' + (i === firstOpen ? ' checked' : '') + (s.left < 1 ? ' disabled' : '') + '>' +
+    '<span class="sbody"><span class="d">' + (dd.getMonth() + 1) + ' / ' + dd.getDate() + '</span><span class="w">' + DAYS[dd.getDay()] + '</span><span class="t">' + s.t + '</span><span class="l">' + (s.left < 1 ? '已額滿' : '剩 ' + s.left + ' 位') + '</span></span></label>';
+}).join('');
+function sumUpdate(){
+  var si2 = $('input[name=sess]:checked'), s = si2 ? sessions[+si2.value] : null, n = $('#cNum').value;
+  $('#cSum').textContent = s ? '已選 ' + (s.d.getMonth() + 1) + '/' + s.d.getDate() + '（' + DAYS[s.d.getDay()] + '）' + s.t + ' · ' + n + ' 位 · 此場剩 ' + s.left + ' 位' : '接下來四週的場次都已額滿，請來電候補。';
+}
+$('#sessions').addEventListener('change', sumUpdate);
+$('#cNum').addEventListener('change', sumUpdate);
+sumUpdate();
+$('#cf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var si3 = $('input[name=sess]:checked'), s = si3 ? sessions[+si3.value] : null, num = +$('#cNum').value;
+  var name = $('#cName'), phone = $('#cPhone'), mail = $('#cMail');
+  var checks = [
+    [name, name.value.trim().length > 0, '請填寫姓名'],
+    [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09 開頭的手機號碼'],
+    [mail, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail.value.trim()), '信箱格式不正確，例如 name@example.com'],
+    [$('#cNum'), !!s && num <= s.left, s ? '此場剩 ' + s.left + ' 位，請減少人數或改選場次' : '請先選擇場次']
+  ];
+  var ok = true;
+  checks.forEach(function(c){
+    c[0].setAttribute('aria-invalid', c[1] ? 'false' : 'true');
+    c[0].parentNode.querySelector('.err').textContent = c[1] ? '' : c[2];
+    if (!c[1]) ok = false;
+  });
+  if (!ok){ var bad = $('#cf [aria-invalid="true"]'); if (bad) bad.focus(); return; }
+  var dd = s.d;
+  $('#cBody').innerHTML = '<div class="done"><div class="seal" aria-hidden="true">漆咖<br>啡課</div>' +
+    '<b>已預留</b><p>' + (dd.getMonth() + 1) + ' 月 ' + dd.getDate() + ' 日（' + DAYS[dd.getDay()] + '）' + s.t + '<br>' + num + ' 位・' + esc(name.value.trim()) + '</p>' +
+    '<p>課前一天會以簡訊確認，若要改期請來電。</p><p class="demo">示範版本：沒有真的送出預約。</p></div>';
+});
+
+/* ===== 門市：營業狀態、時間表與連結 ===== */
+setStatus();
+setInterval(setStatus, 60000);
+$('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){
+  var x = SHOP.hours[i], today = i === now.getDay();
+  return '<li' + (today ? ' class="today"' : '') + '><span>' + DAYS[i] + (today ? '<em>今天</em>' : '') + '</span><span>' + (x ? x[0] + ' – ' + x[1] : '公休') + '</span></li>';
+}).join('');
+$('#addr').textContent = SHOP.address;
+$('#tel').textContent = SHOP.phone;
+$('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 共用：照片位、選單、reveal ===== */
+fillPhotos();
+var nav = $('#nav'), burger = $('#burger');
+burger.addEventListener('click', function(){
+  var o = nav.classList.toggle('open');
+  burger.setAttribute('aria-expanded', o ? 'true' : 'false');
+  burger.textContent = o ? '關閉' : '選單';
+});
+$$('#navList a').forEach(function(a){
+  a.addEventListener('click', function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.textContent = '選單'; });
+});
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+slotBtn.addEventListener('click', function(){ slots(!document.body.classList.contains('slots')); });
+if (/[?&]slots/.test(location.search)) slots(true);
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
+
+/* ===== 屏風：捲動折合與金箔光澤 ===== */
+var screenEl = $('.screen'), panelsEl = $('.screen .panels');
+var gilds = $$('linearGradient[id$="gold"]');
+function onScroll(){
+  if (!screenEl || !panelsEl) return;
+  var r = screenEl.getBoundingClientRect();
+  var c = (r.top + r.height/2 - innerHeight/2) / innerHeight;
+  c = Math.max(-1, Math.min(1, c));
+  panelsEl.style.setProperty('--fold', (c*1.6).toFixed(2) + 'deg');
+}
+addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+if (screenEl){
+  screenEl.addEventListener('pointermove', function(e){ var r = screenEl.getBoundingClientRect(); mx = (e.clientX - r.left)/r.width - .5; });
+  screenEl.addEventListener('pointerleave', function(){ mx = 0; });
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>馬告蒸餾所｜MAKAUY DISTILLING CO.</title>
+<meta name="description" content="馬告蒸餾所：宜蘭的小型精釀琴酒蒸餾所，以馬告、刺蔥、香檬、桂花與烏龍茶為香料。酒單、香料籃配方互動、導覽預約與營業時間。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、門市地址、營業時間、照片網址）與 MENU（酒單條目）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 導覽預約表單只在頁面上示範，正式使用請串接預約系統。
+-->
+<style>
+:root{
+  --paper:#f3eee2;--paper2:#e9e2d0;--ink:#1b1a17;--ink2:#4a463d;
+  --stamp:#9b2c22;--copper:#b0673a;--juniper:#2f4a5a;
+  --serif-d:"Baskerville","Big Caslon","Songti TC","Noto Serif TC",serif;
+  --serif-t:"Iowan Old Style","Palatino","Songti TC","Noto Serif TC",serif;
+  --ital:"Palatino","Times New Roman",serif;
+  --ease-out:cubic-bezier(.2,.7,.2,1);
+  --dur-hover:.25s;--dur-press:.12s;--dur-enter:.6s;--dur-exit:.3s
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif-t);line-height:1.8;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+svg{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.sc{font-variant:small-caps;letter-spacing:.12em}
+.it{font-family:var(--ital);font-style:italic}
+.mono-note{font-family:var(--ital);font-size:12px;letter-spacing:.06em;color:var(--ink2)}
+.rule{border:0;border-top:1px solid var(--ink);margin:0}
+
+/* 頂欄：SHEET 標示 */
+.sheetbar{border-bottom:1px solid var(--ink2);font-family:var(--ital);font-size:11px;letter-spacing:.14em;color:var(--ink2);text-transform:uppercase}
+.sheetbar .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
+
+/* 導覽：細黑雙線框 */
+.hdr{background:var(--paper);position:sticky;top:0;z-index:40}
+.hdr .frame{border:1px solid var(--ink);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 4px var(--ink);margin:10px clamp(10px,2vw,22px) 0}
+.hdr .wrap{display:flex;align-items:center;gap:24px;height:70px;max-width:none}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;font-family:var(--serif-d);letter-spacing:.12em;font-size:15px;line-height:1.25;text-transform:uppercase}
+.logo small{display:block;font-family:var(--serif-t);font-size:12px;letter-spacing:.2em;color:var(--ink2);text-transform:none}
+.logo svg{width:36px;height:36px;flex:none}
+.nav{margin-left:auto;display:flex;align-items:center;gap:0}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0;padding:0}
+.nav a{display:block;text-decoration:none;font-size:15px;padding:6px 12px;position:relative}
+.nav a::after{content:"";position:absolute;left:12px;right:12px;bottom:2px;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-hover) var(--ease-out)}
+.nav a:hover::after,.nav a:focus-visible::after{transform:scaleX(1)}
+.burger{display:none;margin-left:auto;background:transparent;border:1px solid var(--ink);border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;white-space:nowrap}
+
+/* 按鈕：底線從左畫到右 */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 26px;border-radius:8px;border:1px solid var(--juniper);background:var(--juniper);color:var(--paper);text-decoration:none;font-size:16px;letter-spacing:.06em;cursor:pointer;transition:background var(--dur-hover),transform var(--dur-press)}
+.btn::after{content:"";position:absolute;left:22px;right:22px;bottom:7px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform var(--dur-enter) var(--ease-out)}
+.btn:hover::after,.btn:focus-visible::after{transform:scaleX(1)}
+.btn:active{transform:translateY(1px)}
+.btn.line{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn.line:hover{background:var(--paper2)}
+.btn:focus-visible,.nav a:focus-visible,.burger:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid var(--stamp);outline-offset:3px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* 狀態膠囊 */
+.status{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--ink);border-radius:999px;padding:5px 16px 5px 12px;font-size:14px;background:var(--paper)}
+.status i{width:9px;height:9px;border-radius:50%;border:1px solid var(--ink);background:transparent}
+.status.on i{background:var(--juniper);border-color:var(--juniper)}
+
+/* 線條描繪：dashoffset */
+.draw{stroke-dasharray:var(--len,400);stroke-dashoffset:var(--len,400)}
+.drawn .draw,.draw.go{animation:drawIn 1.1s var(--ease-out) forwards;animation-delay:var(--d,0s)}
+@keyframes drawIn{to{stroke-dashoffset:0}}
+
+/* Hero */
+.hero{padding:clamp(28px,5vw,64px) 0 clamp(48px,6vw,80px)}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(24px,4vw,56px);align-items:center}
+.hero h1{font-family:var(--serif-d);font-weight:400;font-size:clamp(40px,6.2vw,84px);line-height:1;letter-spacing:.12em;margin:14px 0 0;text-transform:uppercase}
+.hero .zh{font-size:clamp(22px,2.4vw,30px);margin:18px 0 0;letter-spacing:.2em}
+.hero .lead{max-width:440px;margin:16px 0 28px;font-size:17px;color:var(--ink2)}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:28px}
+.hero .kicker{font-family:var(--ital);font-style:italic;font-size:15px;color:var(--copper)}
+.fig1{position:relative;width:100%;margin:0}
+.fig1 svg{width:100%;height:auto}
+.fig1 .cap{display:flex;justify-content:space-between;font-family:var(--ital);font-size:13px;color:var(--ink2);border-top:1px solid var(--ink);padding-top:8px;margin-top:0;height:36px;box-sizing:border-box}
+.fig1 .stamp{position:absolute;right:2%;bottom:40px;width:clamp(84px,17%,112px);height:auto;transform:rotate(-8deg);pointer-events:none}
+.fig1 .sig1{position:absolute;right:calc(2% + clamp(84px,17%,112px) + 12px);bottom:150px;width:clamp(92px,21%,124px);height:auto;transform:rotate(-3deg);pointer-events:none}
+
+/* 共用區塊頭 */
+.sec{padding:clamp(56px,7vw,96px) 0;border-top:1px solid var(--ink)}
+.sechead{display:grid;gap:8px;margin-bottom:clamp(28px,4vw,44px);max-width:760px}
+.sheet{font-family:var(--ital);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.sec h2{font-family:var(--serif-d);font-weight:400;font-size:clamp(28px,3.6vw,44px);letter-spacing:.1em;text-transform:uppercase;margin:0;line-height:1.15}
+.sechead p{margin:0;color:var(--ink2);font-size:16px}
+.sechead .zhh{font-size:18px;letter-spacing:.16em;color:var(--ink)}
+.fig1 .lab{}
+.fig2keys{font-family:var(--ital);font-style:italic}
+
+/* 香料籃 */
+.bk{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:clamp(18px,2.4vw,30px);align-items:start}
+.cards{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.ing{border:1px solid var(--ink);border-radius:14px;background:var(--paper);padding:10px 12px 12px;display:grid;gap:3px;transition:background var(--dur-hover),outline-color var(--dur-hover)}
+.ing.on{background:var(--paper2);outline:1px solid var(--juniper);outline-offset:-5px}
+.ing>svg{width:100%;height:92px;border-bottom:1px solid var(--ink2);padding-bottom:4px}
+.ing .top{display:flex;justify-content:space-between;font-family:var(--ital);font-style:italic;font-size:12px;color:var(--ink2)}
+.ing h3{margin:4px 0 0;font-size:17px;font-weight:600;letter-spacing:.04em;line-height:1.3}
+.ing .la{font-family:var(--ital);font-style:italic;font-size:13px;color:var(--ink2);line-height:1.3;min-height:1.3em}
+.ing .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.pick{border:1px solid var(--ink);border-radius:8px;background:transparent;padding:4px 10px;font-size:13px;cursor:pointer;transition:background var(--dur-hover)}
+.pick:hover{background:var(--paper2)}
+.pick[aria-pressed=true]{background:var(--juniper);border-color:var(--juniper);color:var(--paper)}
+.pick:disabled{cursor:default}
+.step{display:flex;align-items:center;gap:4px;font-size:13px}
+.step button{width:28px;height:28px;border:1px solid var(--ink);border-radius:8px;background:var(--paper);cursor:pointer;font-size:16px;line-height:1;transition:background var(--dur-press)}
+.step button:hover:not(:disabled){background:var(--paper2)}
+.step button:disabled{opacity:.35;cursor:not-allowed}
+.step output{min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
+.bkfig{margin:0;border:1px solid var(--ink);border-radius:14px;padding:14px;background:var(--paper)}
+.bkfig>svg{width:100%;height:auto}
+.bkfig figcaption{display:flex;justify-content:space-between;font-family:var(--ital);font-style:italic;font-size:13px;color:var(--ink2);margin-top:6px;border-top:1px solid var(--ink);padding-top:6px}
+.bkact{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.bkmsg{font-size:14px;color:var(--ink2);min-height:1.6em}
+.bkcol{display:grid;gap:clamp(18px,2.4vw,30px)}
+.claimbox{padding:16px 18px}
+.claimbox .sc{margin:0 0 6px;font-size:14px}
+.claim{font-size:14.5px;line-height:1.85;margin:0}
+.claim p{margin:0 0 8px}
+.claim .n{font-family:var(--ital);font-style:italic;margin-right:4px}
+.steam{stroke-dasharray:3 5;opacity:0;transition:opacity .4s}
+.steam.on{opacity:1;animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-16}}
+.drop{opacity:0}
+.drop.go{animation:drip 1.2s ease-in forwards}
+@keyframes drip{0%{transform:translateY(0);opacity:0}15%{opacity:1}85%{opacity:1;transform:translateY(34px)}100%{opacity:0;transform:translateY(40px)}}
+.bkshake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@media (max-width:1100px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:1000px){.bk{grid-template-columns:minmax(0,1fr)}#fig2,#radar{max-width:440px;margin:0 auto}}
+@media (max-width:760px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.cards{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.ing{padding:8px 9px 10px}.ing h3{font-size:15px}.ing>svg{height:80px}}
+
+/* 酒單：專利條文 */
+.claims-h{font-family:var(--ital);font-style:italic;font-size:18px;margin:0 0 8px}
+.claims{list-style:none;margin:0;padding:0;max-width:none;border-top:2px solid var(--ink)}
+.menu-grid{display:grid;gap:clamp(24px,4vw,56px);align-items:start}
+.menu-main{min-width:0}
+.fig9{margin:0;position:sticky;top:120px;border:1px solid var(--ink);border-radius:14px;padding:clamp(14px,2vw,22px);background:var(--paper)}
+.fig9>svg{width:100%;height:auto}
+.fig9 figcaption{display:flex;justify-content:space-between;font-family:var(--ital);font-style:italic;font-size:13px;color:var(--ink2);margin-top:6px;border-top:1px solid var(--ink);padding-top:6px}
+@media (min-width:1100px){.menu-grid{grid-template-columns:minmax(0,1fr) minmax(0,340px)}}
+@media (max-width:1099px){.fig9{display:none}}
+.claims li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 16px;padding:18px 0;border-bottom:1px solid var(--ink2);align-items:baseline}
+.claims .num{font-family:var(--ital);font-style:italic;font-size:20px;color:var(--ink)}
+.claims h3{font-size:19px;font-weight:600;margin:0;letter-spacing:.02em;line-height:1.35}
+.claims .spec{font-family:var(--ital);font-size:13px;color:var(--ink2);margin-left:8px;white-space:nowrap}
+.claims .desc{grid-column:2/4;margin:0;color:var(--ink2);font-size:15px}
+.claims .price{font-family:var(--ital);font-size:17px;white-space:nowrap;text-align:right}
+.claims .tag{display:inline-block;font-size:11.5px;border:1px solid var(--ink2);border-radius:999px;padding:0 9px;margin-left:8px;vertical-align:2px;font-family:var(--serif-t);font-style:normal}
+.claims li:hover h3{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+.menu-note{font-size:13.5px;color:var(--ink2);margin:14px 0 0;max-width:880px}
+
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(24px,4vw,56px);align-items:start}
+.story .ph{aspect-ratio:4/5;border-radius:14px}
+.story h3.zhh{font-family:var(--serif-d);font-weight:400;font-size:clamp(22px,2.6vw,30px);margin:0 0 14px;letter-spacing:.06em;line-height:1.35}
+.story p{margin:0 0 14px;font-size:16px;color:var(--ink2)}
+.story p b{color:var(--ink);font-weight:600}
+.tl{margin-top:28px;border-top:1px solid var(--ink);padding-top:14px}
+.tl svg{width:100%;height:auto}
+.tl .draw{--len:100}
+.tl .lbl{font-size:15px;fill:var(--ink)}
+.tl .yr{font-family:var(--ital);font-style:italic;font-size:17px;fill:var(--ink)}
+.tl .cap{font-family:var(--ital);font-size:12px;fill:var(--ink2)}
+
+/* 照片牆 */
+.wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.wall .ph{aspect-ratio:3/4;border-radius:14px}
+.wall figcaption{font-family:var(--ital);font-style:italic;font-size:12px;color:var(--ink2);margin-top:6px}
+.wall figure{margin:0}
+
+.vis .draw{animation:drawIn 1.1s var(--ease-out) forwards;animation-delay:var(--d,0s)}
+
+/* 證人陳述 */
+.wit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.wit article{border:1px solid var(--ink);border-radius:14px;padding:20px 20px 18px;display:grid;gap:10px;align-content:start;background:var(--paper)}
+.wit .wh{font-family:var(--ital);font-style:italic;font-size:12px;color:var(--ink2);letter-spacing:.06em}
+.wit blockquote{margin:0;font-size:16px;line-height:1.8}
+.wit .sig{width:150px;height:auto;border-top:1px dotted var(--ink2);padding-top:4px}
+.wit cite{font-family:var(--ital);font-size:13px;color:var(--ink2);font-style:normal}
+.wit .stars{font-family:var(--ital);font-size:13px;letter-spacing:.2em;color:var(--copper)}
+
+/* 導覽預約 */
+.book{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.form{display:grid;gap:18px;border:1px solid var(--ink);border-radius:14px;padding:clamp(18px,2.6vw,30px);background:var(--paper)}
+.form fieldset{border:0;margin:0;padding:0;min-width:0;display:grid;gap:10px}
+.form legend{font-family:var(--ital);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);padding:0;margin-bottom:8px}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--ink);border-radius:8px;padding:9px 6px;font-size:14px;cursor:pointer;text-align:center;line-height:1.3;transition:background var(--dur-hover),color var(--dur-hover)}
+.chip span small{font-family:var(--ital);font-style:italic;font-size:12px;color:var(--ink2)}
+.chip:hover span{background:var(--paper2)}
+.chip input:checked+span{background:var(--juniper);border-color:var(--juniper);color:var(--paper)}
+.chip input:checked+span small{color:var(--paper)}
+.chip input:focus-visible+span{outline:2px solid var(--stamp);outline-offset:2px}
+.chip.wknd span{font-variant-numeric:tabular-nums}
+.field{display:grid;gap:5px}
+.field label,.field .lb{font-size:14px}
+.field input[type=text],.field input[type=tel],.field input[type=email]{border:1px solid var(--ink);border-radius:8px;background:var(--paper);padding:10px 12px;font-size:16px;width:100%}
+.field input:focus-visible{outline:2px solid var(--stamp);outline-offset:1px}
+.field .err{font-size:13px;color:var(--stamp)}
+.err:empty,.form-msg:empty{display:none}
+.field.bad input{border-color:var(--stamp);border-width:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.people{display:flex;align-items:center;gap:10px}
+.people button{width:36px;height:36px;border:1px solid var(--ink);border-radius:8px;background:var(--paper);font-size:18px;cursor:pointer;line-height:1}
+.people button:disabled{opacity:.35;cursor:not-allowed}
+.people output{min-width:52px;text-align:center;font-size:18px;font-variant-numeric:tabular-nums}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:15px;cursor:pointer}
+.check input{width:18px;height:18px;margin:4px 0 0;accent-color:var(--juniper);flex:none}
+.quote{border:1px solid var(--ink);border-radius:14px;padding:clamp(18px,2.6vw,28px);position:sticky;top:96px;background:var(--paper)}
+.quote h3{font-family:var(--ital);font-style:italic;font-weight:400;font-size:18px;margin:0 0 10px}
+.quote dl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0;font-size:15px}
+.quote dt{color:var(--ink2)}
+.quote dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.quote .total{border-top:1px solid var(--ink);margin-top:10px;padding-top:10px;font-size:19px}
+.quote .total dd{font-family:var(--serif-d);font-size:22px}
+.quote .note{font-size:13px;color:var(--ink2);margin:12px 0 0}
+.quote .btn{width:100%;margin-top:16px}
+.form-msg{font-size:14px;color:var(--stamp);margin:0}
+.cert{display:none;position:relative;border:3px double var(--ink);border-radius:4px;padding:clamp(18px,2.6vw,28px);background:var(--paper);text-align:left}
+.cert.show{display:block;animation:f1f .6s ease forwards}
+.cert .c1{font-family:var(--serif-d);letter-spacing:.14em;text-transform:uppercase;font-size:15px}
+.cert h3{font-family:var(--serif-d);font-weight:400;font-size:clamp(22px,2.6vw,30px);letter-spacing:.08em;margin:10px 0 8px}
+.cert p{margin:0 0 6px;font-size:15px}
+.cert .no{font-family:var(--ital);font-style:italic;font-size:13px;color:var(--ink2)}
+.cert .seal{position:absolute;right:16px;bottom:14px;width:112px;height:112px;transform:rotate(-12deg)}
+.cert .btn{margin-top:14px}
+@media (max-width:860px){.book{grid-template-columns:minmax(0,1fr)}.quote{position:static}}
+@media (max-width:520px){.wit{grid-template-columns:minmax(0,1fr)}.grid2{grid-template-columns:minmax(0,1fr)}.chips{grid-template-columns:repeat(2,minmax(0,1fr))}.cert .seal{width:86px;height:86px;right:10px;bottom:10px}}
+
+/* 門市 */
+.visit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:start}
+.vinfo{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 22px;margin:0;border-top:1px solid var(--ink);padding-top:14px}
+.vinfo dt{font-family:var(--ital);font-style:italic;color:var(--ink2);padding-top:3px}
+.vinfo dd{margin:0;font-size:16px}
+.vinfo a{text-underline-offset:4px}
+.maplink{display:inline-block;border-bottom:1px solid var(--ink);text-decoration:none;padding-bottom:1px}
+.maplink:hover{color:var(--juniper)}
+.hours{border:1px solid var(--ink);border-radius:14px;padding:18px 20px;background:var(--paper)}
+.hours .sc{margin:0 0 8px;font-size:14px}
+.hgrid{display:grid;grid-template-columns:auto 1fr;font-size:15.5px}
+.hgrid span{padding:8px 0;border-bottom:1px dotted var(--ink2)}
+.hgrid span:nth-child(odd){padding-right:22px;font-family:var(--serif-t)}
+.hgrid span.t{font-weight:700;color:var(--juniper)}
+.hours .mono-note{margin:10px 0 0}
+.warn{margin:clamp(30px,4vw,48px) 0 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:12px 0;font-size:14.5px;text-align:center;letter-spacing:.04em}
+.form .err{margin:0;font-size:13px}
+.form.done>*:not(.cert){display:none}
+@media (max-width:860px){.visit{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.vinfo{grid-template-columns:minmax(0,1fr);gap:4px}.vinfo dt{padding-top:10px}}
+@media (max-width:520px){.fig1 .stamp{width:62px}.fig1 .sig1{width:78px;bottom:100px}}
+
+/*@@SECTIONS@@*/
+
+/* 佔位圖與照片位 */
+.ph{position:relative;overflow:hidden;background:var(--paper);margin:0;border:1px solid var(--ink)}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+body.slots .ph{outline:3px dashed var(--stamp);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--paper);color:var(--stamp);font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--stamp)}
+.slotBtn{position:fixed;right:14px;bottom:14px;z-index:60;border:1px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);font-size:12px;padding:7px 14px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+
+/* 進場 reveal */
+.rv-in{opacity:0;transform:translateY(14px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.rv-in.vis{opacity:1;transform:none}
+
+/* 頁尾：細雙線框 */
+.ftr{margin:0 clamp(10px,2vw,22px) 14px;border:1px solid var(--ink);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 4px var(--ink)}
+.ftr .wrap{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px 24px;align-items:center;padding-top:26px;padding-bottom:26px;max-width:none}
+.ftr .brand{font-family:var(--serif-d);letter-spacing:.12em;text-transform:uppercase;font-size:14px;margin:0}
+.ftr .brand small{display:block;font-family:var(--serif-t);text-transform:none;letter-spacing:.14em;color:var(--ink2);font-size:13px}
+.ftr nav ul{list-style:none;display:flex;gap:18px;margin:0;padding:0;flex-wrap:wrap;justify-content:center}
+.ftr nav a{font-size:14.5px;text-decoration:none;border-bottom:1px solid transparent;transition:border-color var(--dur-hover)}
+.ftr nav a:hover{border-color:var(--ink)}
+.ftr .meta{text-align:right;font-family:var(--ital);font-size:12.5px;color:var(--ink2);margin:0;letter-spacing:.06em}
+@media (max-width:760px){.ftr .wrap{grid-template-columns:minmax(0,1fr);text-align:center}.ftr .meta{text-align:center}}
+
+@media (max-width:860px){
+  .hero .wrap{grid-template-columns:1fr}
+  .burger{display:inline-block}
+  .nav{display:none;position:absolute;left:0;right:0;top:100%;background:var(--paper);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:8px 16px 14px;margin:0}
+  .nav.open{display:block}
+  .nav ul{flex-direction:column;gap:0}
+  .nav a{padding:12px 4px}
+  .nav a::after{left:4px;right:4px}
+  .hdr{position:sticky}
+}
+@media (max-width:520px){
+  .hdr .wrap{gap:12px}
+  .logo{font-size:14px;letter-spacing:.08em;white-space:nowrap}
+  .logo svg{width:30px;height:30px}
+  .logo .dc{display:none}
+  .logo small{font-size:11.5px;letter-spacing:.14em}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .rv-in{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="sheetbar"><div class="wrap"><span>SHEET 1 OF 4</span><span>Pat. No. 2026-0247 · 宜蘭</span></div></div>
+
+<header class="hdr">
+  <div class="frame">
+    <div class="wrap">
+      <a class="logo" href="#top" aria-label="馬告蒸餾所首頁">
+        <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#1b1a17" stroke-width="1.4"><circle cx="20" cy="20" r="17"/><path d="M20 9 C14 16 13 24 20 31 C27 24 26 16 20 9z"/><path d="M20 12 V29"/></svg>
+        <span>Makauy <span class="dc">Distilling Co.</span><small>馬告蒸餾所</small></span>
+      </a>
+      <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="nav">選單</button>
+      <nav class="nav" id="nav" aria-label="主選單">
+        <ul id="navList">
+          <li><a href="#basket">香料籃</a></li>
+          <li><a href="#menu">酒單</a></li>
+          <li><a href="#story">由來</a></li>
+          <li><a href="#book">導覽預約</a></li>
+          <li><a href="#visit">門市</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero" aria-labelledby="heroTitle">
+  <div class="wrap">
+    <div class="rv-in">
+      <p class="kicker it">Fig. 1 · Pot still, gin basket &amp; condenser</p>
+      <h1 id="heroTitle">Makauy<br>Dry Gin</h1>
+      <p class="zh">馬告乾型琴酒</p>
+      <p class="lead">以台灣山林為香料籃的琴酒。杜松為骨，馬告為魂，在宜蘭的小蒸餾室裡，用壺式蒸餾器一次只蒸一批。</p>
+      <span class="status" id="heroStatus"><i></i><span>載入中</span></span>
+      <div class="ctas">
+        <a class="btn" href="#book">預約導覽</a>
+        <a class="btn line" href="#menu">酒吧酒單</a>
+      </div>
+    </div>
+    <figure class="fig1 rv-in" aria-label="Fig. 1 壺式蒸餾器線稿">
+      <svg class="f1" viewBox="0 0 640 640" role="img" aria-labelledby="f1t">
+        <title id="f1t">Fig. 1 銅製壺式蒸餾器線稿，含琴酒籃、天鵝頸、冷凝器與接收瓶</title>
+        <style>
+          .f1 .draw{stroke-dasharray:100;stroke-dashoffset:100;animation:f1d 1.1s var(--ease-out) forwards;animation-delay:var(--d,0s)}
+          .f1 .lab{opacity:0;animation:f1f .6s ease forwards;animation-delay:var(--d,0s)}
+          @keyframes f1d{to{stroke-dashoffset:0}}
+          @keyframes f1f{to{opacity:1}}
+          .f1 .ln{fill:none;stroke:#1b1a17;stroke-linecap:round;stroke-linejoin:round}
+          .f1 .lbl{font-family:var(--ital);font-style:italic;font-size:20px;fill:#1b1a17}
+        </style>
+        <defs>
+          <pattern id="f1h" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#1b1a17" stroke-width="1"/></pattern>
+          <pattern id="f1x" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 0 L4 4 M4 0 L0 4" stroke="#4a463d" stroke-width=".6" fill="none"/></pattern>
+          <clipPath id="f1cl"><path d="M532 388 H548 V416 C584 426 592 470 580 484 H508 C496 470 500 424 532 416 Z"/></clipPath>
+        </defs>
+        <!-- 火源 20 -->
+        <path class="ln draw" pathLength="100" style="--d:.1s" stroke-width="1.4" d="M206 466 H316 V488 H206 Z" fill="url(#f1h)"/>
+        <path class="ln draw" pathLength="100" style="--d:.2s" stroke-width="1" d="M222 496 q5 -10 10 0 t10 0 t10 0 t10 0 t10 0 t10 0"/>
+        <path class="ln draw" pathLength="100" style="--d:.1s" stroke-width="1.6" d="M40 506 H600"/>
+        <!-- 壺身 10 -->
+        <path class="ln draw" pathLength="100" style="--d:.1s" stroke-width="1.6" d="M190 300 C160 330 160 440 196 462 H318 C354 440 354 330 324 300 Z"/>
+        <path class="ln draw" pathLength="100" style="--d:.3s" stroke-width="1.2" d="M190 300 Q257 282 324 300"/>
+        <path d="M290 300 C330 330 340 440 318 462 L296 462 C316 430 314 340 290 300 Z" fill="url(#f1h)"/>
+        <!-- 頸部 -->
+        <path class="ln draw" pathLength="100" style="--d:.3s" stroke-width="1.4" d="M240 300 V258 H274 V300 M234 258 H280"/>
+        <!-- 香料籃 14 -->
+        <path class="ln draw" pathLength="100" style="--d:.5s" stroke-width="1.6" d="M232 196 Q257 188 282 196 L276 240 Q257 248 238 240 Z"/>
+        <path d="M257 196 Q266 192 282 196 L276 240 Q266 246 257 244 Z" fill="url(#f1x)"/>
+        <path class="ln draw" pathLength="100" style="--d:.55s" stroke-width=".8" d="M240 204 V236 M248 202 V242 M257 200 V244 M266 202 V242 M274 204 V236 M234 212 H280 M236 224 H278"/>
+        <path class="ln draw" pathLength="100" style="--d:.6s" stroke-width="1.2" d="M257 244 V258"/>
+        <g class="ln" stroke-width=".9"><circle cx="244" cy="230" r="2.4"/><circle cx="258" cy="232" r="2.4"/><circle cx="270" cy="226" r="2.4"/><circle cx="250" cy="218" r="2.4"/><circle cx="266" cy="214" r="2.4"/></g>
+        <!-- 天鵝頸 12 -->
+        <path class="ln draw" pathLength="100" style="--d:.8s" stroke-width="1.6" d="M282 196 C324 190 330 124 372 112 C400 104 432 104 466 108"/>
+        <path class="ln draw" pathLength="100" style="--d:.85s" stroke-width="1" d="M282 206 C322 202 326 138 372 126 C402 118 432 118 466 122"/>
+        <!-- 冷凝器 16 -->
+        <path class="ln draw" pathLength="100" style="--d:1s" stroke-width="1.6" d="M440 112 H492 V340 H440 Z"/>
+        <path d="M472 112 H492 V340 H472 Z" fill="url(#f1h)"/>
+        <path class="ln draw" pathLength="100" style="--d:1.05s" stroke-width=".9" d="M448 130 L484 144 L448 158 L484 172 L448 186 L484 200 L448 214 L484 228 L448 242 L484 256 L448 270 L484 284 L448 298 L484 312 L448 326"/>
+        <path class="ln draw" pathLength="100" style="--d:1.1s" stroke-width="1.2" d="M492 150 H520 M514 146 L520 150 L514 154 M440 300 H418 M424 296 L418 300 L424 304"/>
+        <path class="ln draw" pathLength="100" style="--d:1.3s" stroke-width="1.6" d="M466 340 V362 H540 V388"/>
+        <!-- 接收瓶 18 -->
+        <path class="ln draw" pathLength="100" style="--d:1.4s" stroke-width="1.6" d="M532 388 V416 C500 424 498 470 508 484 H580 C590 470 588 424 556 416 V388 M528 388 H552"/>
+        <rect id="f1liq" x="496" y="484" width="96" height="0" fill="#2f4a5a" fill-opacity=".35" clip-path="url(#f1cl)"/>
+        <!-- 引線與編號 -->
+        <path class="ln draw" pathLength="100" style="--d:.9s" stroke-width=".9" d="M168 380 H126"/>
+        <text class="lbl lab" style="--d:1.6s" x="118" y="386" text-anchor="end">10</text>
+        <path class="ln draw" pathLength="100" style="--d:1.1s" stroke-width=".9" d="M326 150 L296 84 H262"/>
+        <text class="lbl lab" style="--d:1.7s" x="256" y="90" text-anchor="end">12</text>
+        <path class="ln draw" pathLength="100" style="--d:.8s" stroke-width=".9" d="M236 222 H200"/>
+        <text class="lbl lab" style="--d:1.5s" x="194" y="228" text-anchor="end">14</text>
+        <path class="ln draw" pathLength="100" style="--d:1.5s" stroke-width=".9" d="M492 196 H530 L556 170"/>
+        <text class="lbl lab" style="--d:1.8s" x="562" y="176">16</text>
+        <path class="ln draw" pathLength="100" style="--d:1.8s" stroke-width=".9" d="M588 448 H610"/>
+        <text class="lbl lab" style="--d:1.9s" x="616" y="454">18</text>
+        <path class="ln draw" pathLength="100" style="--d:1.4s" stroke-width=".9" d="M206 478 L180 530 H156"/>
+        <text class="lbl lab" style="--d:2s" x="150" y="536" text-anchor="end">20</text>
+      </svg>
+      <svg class="sig1" viewBox="0 0 200 60" aria-hidden="true">
+        <style>.sig1 path{stroke-dasharray:100;stroke-dashoffset:100;animation:f1d 1.4s var(--ease-out) 2.2s forwards}</style>
+        <path pathLength="100" d="M8 40 C26 8 40 50 60 26 S92 6 104 36 S134 50 150 22 S170 16 190 28" fill="none" stroke="#1b1a17" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <svg class="stamp" viewBox="0 0 200 240" aria-hidden="true">
+        <defs><path id="f1arc" d="M100 100 m-78 0 a78 78 0 1 1 156 0 a78 78 0 1 1 -156 0"/></defs>
+        <circle cx="100" cy="100" r="94" fill="none" stroke="#9b2c22" stroke-width="4"/>
+        <circle cx="100" cy="100" r="68" fill="none" stroke="#9b2c22" stroke-width="1.6"/>
+        <text font-family="Palatino,serif" font-size="13" fill="#9b2c22" letter-spacing="2.2"><textPath href="#f1arc">MAKAUY DISTILLING · PATENT · 宜蘭 ·</textPath></text>
+        <text x="100" y="94" text-anchor="middle" font-family="Palatino,serif" font-size="14" fill="#9b2c22" letter-spacing="2">APPROVED</text>
+        <text x="100" y="116" text-anchor="middle" font-family="Palatino,serif" font-size="22" fill="#9b2c22">0247</text>
+      </svg>
+      <figcaption class="cap"><span>FIG. 1</span><span>銅製壺式蒸餾器</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="sec" id="basket" aria-labelledby="bkT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 1 OF 4 · 香料籃配方</span>
+      <h2 id="bkT">Botanical Basket</h2>
+      <p class="zhh">香料籃配方</p>
+      <p>選出香料、調整份數，香料籃剖面與風味雷達會即時變化，並自動產生一段配方專利說明。杜松子為必選（法規規定琴酒須以杜松為主香料），最多選 6 種，每種 1 至 5 份。</p>
+    </div>
+    <div class="bk">
+      <div class="cards rv-in" id="cards" role="group" aria-label="香料選擇"></div>
+      <figure class="bkfig rv-in">
+        <svg id="fig2" viewBox="0 0 320 400" role="img" aria-label="Fig. 2 香料籃剖面，含蒸餾蒸氣與接收瓶">
+          <defs>
+            <pattern id="bkh" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#1b1a17" stroke-width="1"/></pattern>
+            <pattern id="bkx" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 0 L4 4 M4 0 L0 4" stroke="#4a463d" stroke-width=".6" fill="none"/></pattern>
+            <clipPath id="bkcl"><path d="M262 296 C235 304 232 350 240 366 H298 C306 350 303 304 276 296 Z"/></clipPath>
+          </defs>
+          <g fill="none" stroke="#1b1a17" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 380 H310" stroke-width="1.6"/>
+            <!-- 壺身 -->
+            <path d="M40 262 C20 290 20 350 50 376 H150 C180 350 180 290 160 262 Z" stroke-width="1.6"/>
+            <path d="M124 262 C150 290 152 350 130 376 H150 C180 350 180 290 160 262 Z" fill="url(#bkh)" stroke="none"/>
+            <path d="M86 262 V236 M118 262 V236 M82 236 H122" stroke-width="1.4"/>
+            <!-- 香料籃 -->
+            <path d="M70 200 H140 L134 230 H76 Z" stroke-width="1.6"/>
+            <path d="M76 230 H134 M80 212 H130 M90 200 L92 230 M104 200 L104 230 M118 200 L116 230" stroke-width=".8"/>
+            <!-- 天鵝頸 -->
+            <path d="M140 200 C170 190 176 110 210 92 C226 84 242 84 256 84" stroke-width="1.6"/>
+            <path d="M140 210 C166 202 172 128 208 108 C224 100 240 100 256 100" stroke-width="1"/>
+            <!-- 冷凝器 -->
+            <path d="M256 60 H282 V240 H256 Z" stroke-width="1.6"/>
+            <path d="M269 60 H282 V240 H269 Z" fill="url(#bkh)" stroke="none"/>
+            <path d="M262 80 L276 88 L262 96 L276 104 L262 112 L276 120 L262 128 L276 136 L262 144 L276 152 L262 160 L276 168 L262 176 L276 184 L262 192 L276 200 L262 208 L276 216" stroke-width=".9"/>
+            <path d="M269 240 V262" stroke-width="1.6"/>
+            <!-- 接收瓶 -->
+            <path d="M262 262 V296 C235 304 232 350 240 366 H298 C306 350 303 304 276 296 V262 M258 262 H280" stroke-width="1.6"/>
+          </g>
+          <rect id="fig2liq" x="236" y="366" width="66" height="0" fill="#2f4a5a" fill-opacity=".35" clip-path="url(#bkcl)"/>
+          <g id="fig2items" fill="none" stroke="#1b1a17" stroke-width=".9"></g>
+          <path id="fig2steam" class="steam" fill="none" stroke="#1b1a17" stroke-width="1.1" stroke-linecap="round" d="M104 258 C96 246 112 236 104 222 C96 208 112 200 118 190 C128 176 150 150 170 136 C196 118 210 104 230 92 C240 88 248 86 256 84"/>
+          <g id="fig2drops" fill="#2f4a5a"></g>
+        </svg>
+        <figcaption><span>FIG. 2</span><span>香料籃剖面・蒸餾示意</span></figcaption>
+        <div class="bkact">
+          <button class="btn" id="distill" type="button">蒸餾</button>
+          <span class="bkmsg" id="bkMsg" aria-live="polite"></span>
+        </div>
+      </figure>
+      <div class="bkcol">
+        <figure class="bkfig rv-in">
+          <svg id="radar" viewBox="0 0 320 300" role="img" aria-label="Fig. 3 風味雷達圖"></svg>
+          <figcaption><span>FIG. 3</span><span>風味雷達（6 軸）</span></figcaption>
+        </figure>
+        <div class="bkfig claimbox rv-in">
+          <p class="sc">配方專利說明 · What is claimed</p>
+          <div class="claim" id="claim" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="menu" aria-labelledby="menuT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 3 OF 4 · 酒單</span>
+      <h2 id="menuT">Menu</h2>
+      <p class="zhh">酒單・專利條文</p>
+      <p>酒吧與瓶裝品項依序條列。所有飲品現調，酒精濃度為估算值。</p>
+    </div>
+    <div class="menu-grid">
+      <div class="menu-main">
+        <p class="claims-h">What is claimed is:</p>
+        <ol class="claims rv-in" id="menuList" aria-label="酒單品項"></ol>
+        <p class="menu-note">價格含稅。未滿 18 歲請勿飲酒，飲酒過量有害健康。</p>
+      </div>
+      <figure class="fig9" aria-label="Fig. 9 琴酒瓶身正視線稿">
+        <svg viewBox="0 0 300 460" role="img" aria-label="Fig. 9 琴酒瓶身正視線稿，含瓶蓋、酒標與瓶底">
+          <defs>
+            <pattern id="f9h" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#4a463d" stroke-width="1"/></pattern>
+            <clipPath id="f9cl"><path d="M130 80 V118 C130 140 70 150 70 210 V410 Q70 432 92 432 H208 Q230 432 230 410 V210 C230 150 170 140 170 118 V80 Z"/></clipPath>
+          </defs>
+          <g fill="none" stroke="#1b1a17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 瓶身 -->
+            <path d="M130 80 V118 C130 140 70 150 70 210 V410 Q70 432 92 432 H208 Q230 432 230 410 V210 C230 150 170 140 170 118 V80 Z"/>
+            <rect x="190" y="80" width="50" height="360" fill="url(#f9h)" stroke="none" clip-path="url(#f9cl)"/>
+            <!-- 瓶蓋 -->
+            <rect x="118" y="40" width="64" height="40" fill="url(#f9h)"/>
+            <path d="M118 52 H182 M118 66 H182" stroke-width="1"/>
+            <!-- 酒標框 -->
+            <rect x="84" y="232" width="132" height="130"/>
+            <rect x="92" y="240" width="116" height="114" stroke-width="1"/>
+            <!-- 底線與陰影 -->
+            <path d="M30 446 H270" stroke-width="1.4"/>
+          </g>
+          <ellipse cx="150" cy="440" rx="104" ry="7" fill="url(#f9h)"/>
+          <g font-family="Palatino,serif" fill="#1b1a17" text-anchor="middle">
+            <text x="150" y="262" font-size="11" letter-spacing="2.4">MAKAUY</text>
+            <text x="150" y="292" font-size="19" font-style="italic">Dry Gin</text>
+            <text x="150" y="318" font-size="13">馬告乾型琴酒</text>
+            <text x="150" y="342" font-size="10" letter-spacing="1.2">700 ML · 43% ABV</text>
+            <text x="150" y="410" font-size="36" fill="none" stroke="#1b1a17" stroke-width="1.2">M</text>
+          </g>
+          <!-- 引線與編號 -->
+          <g fill="none" stroke="#1b1a17" stroke-width=".9">
+            <path d="M182 60 H236"/>
+            <path d="M216 292 H262"/>
+            <path d="M226 420 H258"/>
+          </g>
+          <g font-family="Palatino,serif" font-style="italic" font-size="14" fill="#1b1a17">
+            <text x="242" y="64">40</text>
+            <text x="266" y="296">42</text>
+            <text x="262" y="424">44</text>
+          </g>
+        </svg>
+        <figcaption><span>FIG. 9</span><span>瓶身・正視</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="story" aria-labelledby="storyT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 2 OF 4 · 由來</span>
+      <h2 id="storyT">Origin</h2>
+    </div>
+    <div class="story">
+      <figure class="ph rv-in" data-photo="s1" data-art="story" data-label="蒸餾廠立面與宜蘭山林" data-size="800×1000"></figure>
+      <div class="rv-in">
+        <h3 class="zhh">在山上，認識了馬告</h3>
+        <p>創辦人在宜蘭山裡走路時，認識了泰雅族長輩用馬告調味的方式。山胡椒的辛香帶著檸檬般的尾韻，後來成了我們蒸餾的起點。</p>
+        <p>2019 年開始在小房間裡試蒸，一次只做二十公升。反覆調整杜松與馬告的比例，前後改了四十多版配方。</p>
+        <p><b>這間蒸餾所的規則很簡單：</b>杜松一定是主角，台灣的香料只當配角，而且每一份香料都要有來歷。</p>
+        <div class="tl rv-in">
+          <svg viewBox="0 0 600 130" role="img" aria-label="Fig. 4 時間軸：2019 試蒸、2021 取得酒牌、2024 開放酒吧">
+            <line class="draw" pathLength="100" x1="40" y1="50" x2="560" y2="50" stroke="#1b1a17" stroke-width="1.4"/>
+            <g stroke="#1b1a17" stroke-width="1.4" fill="#f3eee2">
+              <circle cx="60" cy="50" r="7"/><circle cx="300" cy="50" r="7"/><circle cx="540" cy="50" r="7"/>
+            </g>
+            <text class="yr" x="60" y="28" text-anchor="middle">2019</text>
+            <text class="yr" x="300" y="28" text-anchor="middle">2021</text>
+            <text class="yr" x="540" y="28" text-anchor="middle">2024</text>
+            <text class="lbl" x="60" y="82" text-anchor="middle">試蒸</text>
+            <text class="lbl" x="300" y="82" text-anchor="middle">取得酒牌</text>
+            <text class="lbl" x="540" y="82" text-anchor="middle">開放酒吧</text>
+            <text class="cap" x="60" y="104" text-anchor="middle">20 公升小批次</text>
+            <text class="cap" x="300" y="104" text-anchor="middle">壺式蒸餾器登記</text>
+            <text class="cap" x="540" y="104" text-anchor="middle">蒸餾室旁的小吧台</text>
+            <text class="cap" x="20" y="126">FIG. 4</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="wall" aria-labelledby="wallT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 2 OF 4 · 照片</span>
+      <h2 id="wallT">Plates</h2>
+      <p>蒸餾室、香料台、吧台與瓶身。照片位可換成店內實拍。</p>
+    </div>
+    <div class="wall rv-in">
+      <figure><div class="ph" data-photo="g1" data-art="still" data-label="蒸餾器" data-size="900×1200"></div><figcaption>Fig. 5 壺式蒸餾器</figcaption></figure>
+      <figure><div class="ph" data-photo="g2" data-art="spice" data-label="香料台" data-size="900×1200"></div><figcaption>Fig. 6 香料台</figcaption></figure>
+      <figure><div class="ph" data-photo="g3" data-art="bar" data-label="吧台" data-size="900×1200"></div><figcaption>Fig. 7 吧台</figcaption></figure>
+      <figure><div class="ph" data-photo="g4" data-art="bottle" data-label="瓶身" data-size="900×1200"></div><figcaption>Fig. 8 瓶身</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="witness" aria-labelledby="witT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 3 OF 4 · 證人陳述</span>
+      <h2 id="witT">Witnesses</h2>
+      <p>以下為來店客人留下的評論，來源與日期已保留。</p>
+    </div>
+    <div class="wit rv-in">
+      <article>
+        <span class="wh">Witness A · Google 評論</span>
+        <span class="stars" aria-label="五顆星">★★★★★</span>
+        <blockquote>「第一次喝到 Dry 的時候，我以為是茶。後來老闆說那是馬告，我才發現台灣的山可以這樣喝。」</blockquote>
+        <svg class="sig" viewBox="0 0 150 36" aria-hidden="true"><path d="M6 26 C18 6 26 30 38 16 S56 8 62 24 S80 30 92 12 S112 30 124 18 S138 14 144 22" fill="none" stroke="#1b1a17" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <cite>礁溪・一位週末來的旅人</cite>
+      </article>
+      <article>
+        <span class="wh">Witness B · Instagram</span>
+        <span class="stars" aria-label="五顆星">★★★★★</span>
+        <blockquote>「導覽時老闆把杜松子拿給我聞，之後在家煮飯，我都會想起那個松木與柑橘混在一起的味道。」</blockquote>
+        <svg class="sig" viewBox="0 0 150 36" aria-hidden="true"><path d="M8 22 C20 30 26 6 40 20 S58 30 66 14 S88 6 96 24 S118 32 130 14 S140 16 146 12" fill="none" stroke="#1b1a17" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <cite>台北・常客</cite>
+      </article>
+      <article>
+        <span class="wh">Witness C · Google 評論</span>
+        <span class="stars" aria-label="四顆星">★★★★☆</span>
+        <blockquote>「我開車，朋友喝 Navy。無酒精的品飲組也很有層次，導覽結束還送了一小包香料。推薦週六下午場。」</blockquote>
+        <svg class="sig" viewBox="0 0 150 36" aria-hidden="true"><path d="M10 14 C24 4 30 30 44 18 S62 6 70 22 S92 32 102 14 S118 8 128 26 S140 22 144 16" fill="none" stroke="#1b1a17" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <cite>羅東・第一次來</cite>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="book" aria-labelledby="bookT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 4 OF 4 · 導覽預約</span>
+      <h2 id="bookT">Tour Application</h2>
+      <p>導覽只開放週六、週日，每場約 75 分鐘，含蒸餾室參觀與三款品飲。表單為示範，未送出任何資料。</p>
+    </div>
+    <div class="book">
+      <form class="form rv-in" id="bookForm" novalidate>
+        <fieldset>
+          <legend>導覽日期（接下來六個週末）</legend>
+          <div class="chips" id="dates"></div>
+          <p class="err" id="eDate" role="alert"></p>
+        </fieldset>
+        <fieldset>
+          <legend>場次</legend>
+          <div class="chips" role="radiogroup" aria-label="場次">
+            <label class="chip"><input type="radio" name="sess" value="11:00" checked><span>11:00<small>上午場</small></span></label>
+            <label class="chip"><input type="radio" name="sess" value="14:00"><span>14:00<small>午後場</small></span></label>
+            <label class="chip"><input type="radio" name="sess" value="16:00"><span>16:00<small>傍晚場</small></span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>人數（1–8 位）</legend>
+          <div class="people">
+            <button type="button" id="pDec" aria-label="減少一位">−</button>
+            <output id="pOut" for="pDec" aria-live="polite">2 位</output>
+            <button type="button" id="pInc" aria-label="增加一位">+</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>確認事項</legend>
+          <label class="check"><input type="checkbox" id="ageOk"><span>全體同行者皆已年滿 18 歲。<br><small>（必勾選）</small></span></label>
+          <p class="err" id="eAge" role="alert"></p>
+          <label class="check"><input type="checkbox" id="drive"><span>我會開車：品飲改為無酒精品飲組，價格較低。</span></label>
+        </fieldset>
+        <div class="grid2">
+          <div class="field" id="fName"><label for="fn">姓名</label><input type="text" id="fn" autocomplete="name" placeholder="例：王小明"><p class="err" id="eName"></p></div>
+          <div class="field" id="fPhone"><label for="fp">手機</label><input type="tel" id="fp" autocomplete="tel" placeholder="09xx-xxx-xxx"><p class="err" id="ePhone"></p></div>
+        </div>
+        <div class="field" id="fMail"><label for="fe">Email</label><input type="email" id="fe" autocomplete="email" placeholder="you@example.com"><p class="err" id="eMail"></p></div>
+        <p class="form-msg" id="fmsg" role="status"></p>
+        <div class="cert" id="cert" role="status" aria-live="polite">
+          <p class="c1">Certificate of Booking</p>
+          <h3>導覽預約已登記</h3>
+          <p id="certBody"></p>
+          <p class="no" id="certNo"></p>
+          <svg class="seal" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="none" stroke="#9b2c22" stroke-width="3.5"/><circle cx="60" cy="60" r="44" fill="none" stroke="#9b2c22" stroke-width="1.4"/><defs><path id="sealArc" d="M60 60 m-36 0 a36 36 0 1 1 72 0 a36 36 0 1 1 -72 0"/></defs><text font-family="Palatino,serif" font-size="9.5" fill="#9b2c22" letter-spacing="1.5"><textPath href="#sealArc">MAKAUY · TOUR · APPROVED ·</textPath></text><text x="60" y="66" text-anchor="middle" font-family="Palatino,serif" font-size="15" fill="#9b2c22">示範</text></svg>
+          <button class="btn line" type="button" id="again">再填一份</button>
+        </div>
+      </form>
+      <aside class="quote rv-in" aria-labelledby="qT">
+        <h3 id="qT">報價單 · Fee Schedule</h3>
+        <dl>
+          <dt>人數</dt><dd id="qPeople">2 位</dd>
+          <dt>單價（<span id="qKind">成人・含 3 款品飲</span>）</dt><dd id="qUnit">NT$ 600</dd>
+          <dt>小計</dt><dd id="qSub">NT$ 1,200</dd>
+        </dl>
+        <dl class="total"><dt>合計</dt><dd id="qTotal">NT$ 1,200</dd></dl>
+        <p class="note">成人導覽 NT$ 600，含三款品飲（Dry、Navy、香檬）。開車者 NT$ 450，改為無酒精品飲組。示範價格，以店內公告為準。</p>
+        <button class="btn" type="submit" form="bookForm" id="quoteBtn">送出預約申請</button>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="visit" aria-labelledby="visitT">
+  <div class="wrap">
+    <div class="sechead rv-in">
+      <span class="sheet">SHEET 4 OF 4 · 門市</span>
+      <h2 id="visitT">Premises</h2>
+      <p>酒吧與蒸餾室同一棟，從礁溪火車站步行約十二分鐘。門口有一棵老茄苳，認得就到了。</p>
+    </div>
+    <div class="visit">
+      <dl class="vinfo rv-in">
+        <dt>地址</dt><dd id="addr"></dd>
+        <dt>電話</dt><dd><a id="tel" href="#"></a></dd>
+        <dt>營業狀態</dt><dd><span class="status" id="visitStatus"><i></i><span>載入中</span></span></dd>
+        <dt>地圖</dt><dd><a class="maplink" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 →</a></dd>
+      </dl>
+      <div class="hours rv-in">
+        <p class="sc">營業時間 · Opening Hours</p>
+        <div class="hgrid" id="hours"></div>
+        <p class="mono-note">今天的營業時間以粗體標示。週一公休。</p>
+      </div>
+    </div>
+    <p class="warn">未成年請勿飲酒・飲酒過量有害健康。喝酒不開車，導覽請安排其他交通方式或搭乘大眾運輸。</p>
+  </div>
+</section>
+
+<!--@@SECTIONS@@-->
+
+</main>
+
+<footer class="ftr">
+  <div class="wrap">
+    <p class="brand">Makauy Distilling Co.<small>馬告蒸餾所・宜蘭</small></p>
+    <nav aria-label="社群與聯絡">
+      <ul>
+        <li><a href="#">Instagram</a></li>
+        <li><a href="#">Google 商家</a></li>
+        <li><a href="#">官方 LINE</a></li>
+      </ul>
+    </nav>
+    <p class="meta">© <span id="yr"></span> Makauy Distilling Co.<br>SHEET 4 OF 4</p>
+  </div>
+</footer>
+
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+'use strict';
+(function(){
+var SHOP = {
+  name:'馬告蒸餾所', nameEn:'MAKAUY DISTILLING CO.', phone:'(03) 988-2046', address:'宜蘭縣礁溪鄉示範路 88 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['12:00','20:00'], null, ['14:00','21:00'], ['14:00','22:00'], ['14:00','22:00'], ['14:00','22:00'], ['12:00','22:00']],
+  photos:{ hero:'', s1:'', g1:'', g2:'', g3:'', g4:'' }
+};
+var MENU = [
+  {n:'Makauy Dry Gin', spec:'700ml · 43% ABV', price:1180, tag:'招牌', d:'杜松為骨、馬告為魂。入口是松針與柑橘皮，尾韻有一點山胡椒的麻，適合純飲或加冰。'},
+  {n:'Navy Strength 57%', spec:'700ml · 57% ABV', price:1480, tag:'限量', d:'高酒精度版本，適合調製或點火。少量加入 Negroni 會更有層次。'},
+  {n:'香檬琴酒 Calamansi Gin', spec:'60ml · 約 14% ABV', price:320, d:'Dry 加香檬皮與現擠香檬汁，清爽帶酸，夏天最受歡迎。'},
+  {n:'桂花烏龍琴酒 Osmanthus Oolong', spec:'60ml · 約 13% ABV', price:350, d:'以烏龍茶與桂花浸漬後加入 Dry，茶湯帶淡琥珀，花香在後段才出來。'},
+  {n:'G&T 酒吧杯', spec:'300ml · 約 9% ABV', price:380, d:'Dry 加本店自製奎寧水與一片香檬，冰塊整塊切割，融化得慢。'},
+  {n:'馬告 Negroni', spec:'90ml · 約 22% ABV', price:420, d:'Dry、苦味利口酒與甜香艾酒等比例，杯緣以馬告油脂點綴，苦甜平衡。'},
+  {n:'刺蔥 Martini', spec:'90ml · 約 27% ABV', price:400, d:'乾型馬丁尼，杯口以刺蔥鹽邊收尾，麻香一閃即逝，鹹度很輕。'},
+  {n:'Botanical Tonic', spec:'350ml · 0% ABV', price:180, tag:'無酒精', d:'以香料籃同款香料萃取的無酒精微苦調飲，可加氣泡水，開車的客人首選。'},
+  {n:'導覽品飲組', spec:'3 款 × 15ml', price:240, d:'Dry、Navy、香檬三款小杯，導覽當天可單獨購買，附品飲卡。'},
+  {n:'香料籃禮盒', spec:'700ml 瓶裝 + 香料小包 40g', price:1480, tag:'伴手禮', d:'杜松、馬告、香檬皮與桂花各取少量，附一張配方卡，適合送禮。'}
+];
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var INK = '#1b1a17', INK2 = '#4a463d';
+var now = new Date();
+function $(s, r){ return (r || document).querySelector(s); }
+function $$(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function money(n){ return 'NT$ ' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+/* ===== 酒單：專利條文 ===== */
+$('#menuList').innerHTML = MENU.map(function(m, i){
+  return '<li><span class="num">' + (i + 1) + '.</span><h3>' + m.n + '<span class="spec">' + m.spec + '</span>' + (m.tag ? '<span class="tag">' + m.tag + '</span>' : '') + '</h3><span class="price">' + money(m.price) + '</span><p class="desc">' + m.d + '</p></li>';
+}).join('');
+
+/* ===== 營業狀態（hero 與門市共用） ===== */
+function openInfo(){
+  var d = new Date(), day = d.getDay(), m = d.getHours()*60 + d.getMinutes(), h = SHOP.hours[day];
+  var open = !!h && m >= mins(h[0]) && m < mins(h[1]), next = '';
+  if (!open) for (var k = 0; k < 8 && !next; k++){
+    var dd = (day + k) % 7, x = SHOP.hours[dd];
+    if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[dd]) + ' ' + x[0];
+  }
+  return { open: open, text: open ? '營業中・到 ' + h[1] : '休息中・' + (next || '本週不營業') + ' 開門' };
+}
+function renderStatus(){
+  var info = openInfo(), ids = ['#heroStatus', '#visitStatus'];
+  ids.forEach(function(id){ var el = $(id); el.classList.toggle('on', info.open); el.lastElementChild.textContent = info.text; });
+  var day = now.getDay();
+  $('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){
+    var x = SHOP.hours[i], c = i === new Date().getDay() ? ' class="t"' : '';
+    return '<span' + c + '>' + DAYS[i] + '</span><span' + c + '>' + (x ? x[0] + '–' + x[1] : '公休') + '</span>';
+  }).join('');
+  return day;
+}
+renderStatus();
+setInterval(renderStatus, 60000);
+$('#addr').textContent = SHOP.address;
+$('#tel').textContent = SHOP.phone;
+$('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 佔位插畫（專利線稿風） ===== */
+function svgWrap(body){ return '<svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="800" height="1000" fill="#f3eee2"/>' + body + '</svg>'; }
+function hatchDef(id, gap){ return '<defs><pattern id="' + id + '" width="' + (gap || 9) + '" height="' + (gap || 9) + '" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="' + (gap || 9) + '" stroke="' + INK2 + '" stroke-width="1"/></pattern></defs>'; }
+var LN = 'fill="none" stroke="' + INK + '" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"';
+function pth(d, fill, sw){ return '<path d="' + d + '" fill="' + (fill || 'none') + '" stroke="' + INK + '" stroke-width="' + (sw || 3.2) + '" stroke-linejoin="round" stroke-linecap="round"/>'; }
+function numTag(x, y, t, anchor){ return '<text x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'start') + '" font-family="Palatino,serif" font-style="italic" font-size="34" fill="' + INK + '">' + t + '</text>'; }
+function dot(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="' + INK + '"/>'; }
+var ART = {
+  story:function(){
+    var s = hatchDef('hpS');
+    // 遠山：等高線式的平行曲線，右側排線陰影
+    var RG = 'M0 470 C70 400 140 430 210 380 S350 300 430 350 S560 290 640 340 S740 330 800 300';
+    s += '<path d="M430 350 S560 290 640 340 S740 330 800 300 V470 H430 Z" fill="url(#hpS)" opacity=".5"/>';
+    for (var r = 0; r < 4; r++) s += '<path d="' + RG + '" transform="translate(0 ' + (r * 24) + ')" fill="none" stroke="' + INK + '" stroke-width="' + (3 - r * 0.35) + '" stroke-linecap="round"/>';
+    // 中景：蒸餾廠立面（斜屋頂、煙囪、拱窗、雙開門）
+    s += pth('M180 560 L400 462 L620 560 V860 H180 Z', '#f3eee2', 3.2);
+    s += '<path d="M400 462 L620 560 L400 560 Z" fill="url(#hpS)"/>';
+    s += pth('M160 560 H640', null, 3.2);
+    s += pth('M500 430 H524 V517 M500 430 V507', null, 3);
+    s += '<path d="M512 412 q-14 -12 0 -24 q14 -12 0 -24" fill="none" stroke="' + INK + '" stroke-width="2" stroke-linecap="round"/>';
+    s += pth('M220 740 V660 Q220 616 250 616 Q280 616 280 660 V740 Z', 'url(#hpS)', 3);
+    s += pth('M300 740 V660 Q300 614 340 614 Q380 614 380 660 V740 Z', '#f3eee2', 3);
+    s += pth('M318 728 C312 700 326 690 340 690 C354 690 368 700 362 728 Z', 'url(#hpS)', 2.4);
+    s += pth('M340 690 V676 Q340 662 356 656 M332 676 H348', null, 2.4);
+    s += pth('M470 740 V640 H520 V740 Z', '#f3eee2', 3) + pth('M495 640 V740 M470 690 H520', null, 2);
+    s += pth('M550 740 V640 H592 V740 Z', 'url(#hpS)', 3);
+    s += pth('M388 860 V770 Q388 740 410 740 Q432 740 432 770 V860', '#f3eee2', 3) + pth('M410 740 V860', null, 2.4);
+    s += pth('M60 860 H740', null, 3.2) + '<rect x="60" y="860" width="680" height="22" fill="url(#hpS)" opacity=".35"/>';
+    // 前景：馬告（山胡椒）枝條，互生葉、成串果實
+    function leaf(x, y, a, L){ return '<g transform="translate(' + x + ' ' + y + ') rotate(' + a + ')"><path d="M0 0 Q' + (L * 0.5) + ' ' + (-L * 0.34) + ' ' + L + ' 0 Q' + (L * 0.5) + ' ' + (L * 0.34) + ' 0 0 Z" fill="#f3eee2" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/><path d="M0 0 Q' + (L * 0.5) + ' ' + (L * 0.34) + ' ' + L + ' 0 Z" fill="url(#hpS)"/><path d="M0 0 H' + (L * 0.86) + '" fill="none" stroke="' + INK + '" stroke-width="1.4" stroke-linecap="round"/></g>'; }
+    s += pth('M30 990 C110 905 150 845 205 790 C240 755 280 735 330 712', null, 3.4);
+    [[95, 928, -32, 74], [95, 928, -160, 70], [150, 862, -18, 70], [150, 862, -158, 66], [210, 796, -8, 62], [210, 796, -172, 60], [268, 744, -30, 54]].forEach(function(p){ s += leaf(p[0], p[1], p[2], p[3]); });
+    [[320, 690], [340, 686], [330, 670], [350, 676], [338, 704]].forEach(function(p, i){ s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="10" fill="' + (i % 2 ? 'url(#hpS)' : '#f3eee2') + '" stroke="' + INK + '" stroke-width="2.4"/>'; });
+    // 元件編號：30 山林、32 蒸餾廠、34 馬告
+    s += '<g fill="none" stroke="' + INK + '" stroke-width="1.6"><path d="M500 318 L600 226 H640"/><path d="M600 612 L660 560 H700"/><path d="M112 896 L84 834 H62"/></g>';
+    s += dot(500, 318) + dot(600, 612) + dot(112, 896);
+    s += numTag(646, 236, '30') + numTag(706, 568, '32') + numTag(56, 842, '34', 'end');
+    return svgWrap(s); },
+  still:function(){
+    var s = hatchDef('hpT');
+    s += '<path d="M260 540 C200 600 200 760 270 800 H530 C600 760 600 600 540 540 Z" ' + LN + '/><path d="M420 560 C470 620 470 760 440 800 H530 C600 760 600 600 540 540 H500 Z" fill="url(#hpT)"/>';
+    s += '<path d="M260 540 Q400 500 540 540" ' + LN + '/><path d="M350 540 V440 H450 V540 M336 440 H464" ' + LN + '/>';
+    s += '<path d="M330 380 H470 L450 430 H350 Z" ' + LN + '/><path d="M372 380 L374 430 M400 380 V430 M428 380 L426 430" ' + LN + ' stroke-width="1.4"/>';
+    s += '<path d="M470 380 C560 360 570 260 640 230 C680 214 720 212 740 220" ' + LN + '/>';
+    s += '<rect x="720" y="160" width="50" height="400" ' + LN + '/><rect x="745" y="160" width="25" height="400" fill="url(#hpT)"/>';
+    s += '<path d="M300 800 H500 V830 H300 Z" fill="url(#hpT)" ' + LN + '/><path d="M0 860 H800" ' + LN + '/>';
+    return svgWrap(s); },
+  spice:function(){
+    var s = hatchDef('hpP');
+    s += '<path d="M60 600 H740 M60 820 H740" ' + LN + '/><path d="M60 620 V820 M740 620 V820" ' + LN + ' stroke-width="2"/>';
+    var jars = [[110,220,150],[260,180,110],[410,240,170],[560,200,130]];
+    jars.forEach(function(j, i){
+      var x = j[0], h = j[1], w = j[2];
+      s += '<path d="M' + x + ' 600 V' + (600-h) + ' Q' + x + ' ' + (600-h-24) + ' ' + (x+w/2) + ' ' + (600-h-24) + ' Q' + (x+w) + ' ' + (600-h-24) + ' ' + (x+w) + ' ' + (600-h) + ' V600" ' + LN + '/>';
+      s += '<rect x="' + (x+12) + '" y="' + (600-h*0.5) + '" width="' + (w-24) + '" height="' + (h*0.3) + '" fill="url(#hpP)" ' + LN + ' stroke-width="1.6"/>';
+    });
+    for (var i = 0; i < 26; i++){ var cx = 90 + (i*29)%640, cy = 740 + (i%3)*18; s += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="7" ry="4.5" transform="rotate(' + (i*37%180) + ' ' + cx + ' ' + cy + ')" ' + LN + ' stroke-width="1.6"/>'; }
+    s += '<path d="M610 820 C640 760 660 700 700 690 C690 740 670 790 610 820 Z" ' + LN + '/><path d="M650 790 C670 760 680 730 700 690" ' + LN + ' stroke-width="1.4"/>';
+    return svgWrap(s); },
+  bar:function(){
+    var s = hatchDef('hpB');
+    // 單支瓶：肩線與瓶頸、酒標框、瓶蓋；hatch=true 時整瓶排線
+    function bot(cx, base, h, w, hatch){
+      var x0 = cx - w/2, x1 = cx + w/2, nw = w*0.16, nT = base - h, sY = base - h*0.7;
+      var body = 'M' + x0 + ' ' + base + ' V' + sY + ' C' + x0 + ' ' + (sY - h*0.14) + ' ' + (cx - nw) + ' ' + (sY - h*0.12) + ' ' + (cx - nw) + ' ' + (nT + h*0.12) + ' V' + nT + ' H' + (cx + nw) + ' V' + (nT + h*0.12) + ' C' + (cx + nw) + ' ' + (sY - h*0.12) + ' ' + x1 + ' ' + (sY - h*0.14) + ' ' + x1 + ' ' + sY + ' V' + base + ' Z';
+      return pth(body, hatch ? 'url(#hpB)' : '#f3eee2', 2.4) +
+        '<rect x="' + (cx - w*0.34) + '" y="' + (base - h*0.5) + '" width="' + (w*0.68) + '" height="' + (h*0.2) + '" fill="#f3eee2" stroke="' + INK + '" stroke-width="1.6"/>' +
+        '<rect x="' + (cx - nw - 3) + '" y="' + (nT - h*0.06) + '" width="' + (2*nw + 6) + '" height="' + (h*0.06) + '" fill="url(#hpB)" stroke="' + INK + '" stroke-width="1.6"/>';
+    }
+    // 吊燈：線、燈罩、光錐（排線淡色）
+    s += pth('M400 0 V118', null, 2);
+    s += '<path d="M318 190 H482 L560 380 H240 Z" fill="url(#hpB)" opacity=".18"/>';
+    s += pth('M318 190 Q400 104 482 190 Z', '#f3eee2', 3);
+    s += '<circle cx="400" cy="200" r="9" fill="url(#hpB)" stroke="' + INK + '" stroke-width="2"/>';
+    // 上下兩層層架與瓶子（高矮不同的琴酒瓶）
+    [[90,150,58,0],[190,124,50,1],[300,160,62,0],[400,84,52,1],[500,140,56,0],[606,118,50,1],[706,152,60,0]].forEach(function(p){ s += bot(p[0], 280, p[1], p[2], p[3]); });
+    s += '<rect x="50" y="280" width="700" height="12" fill="url(#hpB)" stroke="' + INK + '" stroke-width="2.6"/>';
+    [[120,140,56,1],[240,116,50,0],[360,150,60,1],[470,122,52,0],[590,140,58,1],[700,112,50,0]].forEach(function(p){ s += bot(p[0], 450, p[1], p[2], p[3]); });
+    s += '<rect x="50" y="450" width="700" height="12" fill="url(#hpB)" stroke="' + INK + '" stroke-width="2.6"/>';
+    // 吧台：檯面、正面（木紋排線與下緣排影）
+    s += '<rect x="40" y="580" width="720" height="26" fill="#f3eee2" stroke="' + INK + '" stroke-width="3"/>';
+    s += '<rect x="60" y="606" width="680" height="250" fill="#f3eee2" stroke="' + INK + '" stroke-width="3"/>';
+    [640, 668, 696, 724, 752, 780].forEach(function(y){ s += pth('M60 ' + y + ' C220 ' + (y - 10) + ' 380 ' + (y + 10) + ' 540 ' + (y - 6) + ' S700 ' + (y + 6) + ' 740 ' + y, null, 1.2); });
+    s += '<rect x="60" y="820" width="680" height="36" fill="url(#hpB)"/>' + pth('M60 820 H740', null, 2);
+    // 三張高腳椅
+    [150, 400, 650].forEach(function(cx){
+      s += pth('M' + (cx-44) + ' 900 L' + (cx-48) + ' 990 M' + (cx+44) + ' 900 L' + (cx+48) + ' 990 M' + cx + ' 912 V990', null, 2.6);
+      s += pth('M' + (cx-42) + ' 950 Q' + cx + ' 962 ' + (cx+42) + ' 950', null, 2.4);
+      s += pth('M' + (cx-58) + ' 884 V900 A58 14 0 0 0 ' + (cx+58) + ' 900 V884 Z', '#f3eee2', 3);
+      s += '<ellipse cx="' + cx + '" cy="884" rx="58" ry="14" fill="url(#hpB)" stroke="' + INK + '" stroke-width="3"/>';
+    });
+    s += pth('M0 992 H800', null, 2.4);
+    return svgWrap(s); },
+  bottle:function(){
+    var s = hatchDef('hpG');
+    s += '<ellipse cx="400" cy="900" rx="170" ry="26" fill="url(#hpG)" stroke="none"/>';
+    s += '<path d="M330 260 H470 V300 L500 360 V860 Q500 900 460 900 H340 Q300 900 300 860 V360 L330 300 Z" ' + LN + '/>';
+    s += '<rect x="350" y="200" width="100" height="62" ' + LN + '/><rect x="350" y="200" width="100" height="62" fill="url(#hpG)"/>';
+    s += '<rect x="330" y="500" width="140" height="240" ' + LN + ' stroke-width="2"/><rect x="330" y="500" width="140" height="240" fill="url(#hpG)" opacity=".35"/>';
+    s += '<path d="M360 580 H440 M360 610 H440 M360 640 H420" ' + LN + ' stroke-width="2"/>';
+    s += '<circle cx="400" cy="770" r="26" ' + LN + ' stroke-width="2"/>';
+    return svgWrap(s); }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var url = SHOP.photos[f.dataset.photo];
+    if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; }
+    var a = ART[f.dataset.art];
+    if (a) f.innerHTML = a();
+  });
+}
+fillPhotos();
+
+/* ===== 共用：漢堡、照片位、reveal ===== */
+var nav = $('#nav'), burger = $('#burger');
+burger.onclick = function(){ var o = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', o); burger.textContent = o ? '關閉' : '選單'; };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.textContent = '選單'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
+
+/* ===== 香料籃配方（Botanical Basket） ===== */
+var AXES = ['杜松','柑橘','花香','辛香','草本','土木'];
+var ING = [
+  {k:'juniper', zh:'杜松子', la:'Juniperus communis', sh:'o', v:[9,2,1,2,4,3], art:'<path d="M30 14 Q60 4 84 22" fill="none" stroke="#1b1a17" stroke-width="1.2"/><g fill="none" stroke="#1b1a17" stroke-width="1.2"><circle cx="46" cy="40" r="8" fill="url(#bkh)"/><circle cx="62" cy="34" r="8"/><circle cx="66" cy="54" r="8" fill="url(#bkh)"/><circle cx="82" cy="44" r="7"/><circle cx="50" cy="58" r="6"/></g>'},
+  {k:'litsea', zh:'馬告', la:'Litsea cubeba', sh:'o', v:[2,5,1,8,3,2], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><path d="M18 66 Q52 40 100 16"/><circle cx="44" cy="50" r="5" fill="url(#bkh)"/><circle cx="58" cy="38" r="5"/><circle cx="72" cy="36" r="5" fill="url(#bkh)"/><circle cx="84" cy="26" r="5"/><circle cx="60" cy="58" r="4"/></g>'},
+  {k:'zanth', zh:'刺蔥', la:'Zanthoxylum ailanthoides', sh:'e', v:[1,6,1,8,5,1], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><path d="M16 66 L104 14"/><ellipse cx="36" cy="54" rx="12" ry="6" transform="rotate(-30 36 54)" fill="url(#bkh)"/><ellipse cx="50" cy="44" rx="12" ry="6" transform="rotate(-30 50 44)"/><ellipse cx="66" cy="34" rx="12" ry="6" transform="rotate(-30 66 34)" fill="url(#bkh)"/><ellipse cx="82" cy="24" rx="11" ry="5.5" transform="rotate(-30 82 24)"/></g>'},
+  {k:'citrus', zh:'香檬皮', la:'Citrus microcarpa', sh:'o', v:[1,9,3,1,2,0], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><circle cx="60" cy="40" r="26"/><circle cx="60" cy="40" r="20" fill="url(#bkh)" stroke="none"/><path d="M54 40 a6 6 0 1 1 12 0 a10 10 0 1 1 -20 0 a14 14 0 1 1 28 0" stroke-width=".9"/></g>'},
+  {k:'osmanthus', zh:'桂花', la:'Osmanthus fragrans', sh:'o', v:[1,2,9,2,1,1], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><ellipse cx="60" cy="26" rx="9" ry="14" fill="url(#bkh)"/><ellipse cx="60" cy="26" rx="9" ry="14" transform="rotate(72 60 40)"/><ellipse cx="60" cy="26" rx="9" ry="14" transform="rotate(144 60 40)" fill="url(#bkh)"/><ellipse cx="60" cy="26" rx="9" ry="14" transform="rotate(216 60 40)"/><ellipse cx="60" cy="26" rx="9" ry="14" transform="rotate(288 60 40)" fill="url(#bkh)"/><circle cx="60" cy="40" r="3" fill="#1b1a17"/></g>'},
+  {k:'oolong', zh:'烏龍茶', la:'Camellia sinensis', sh:'e', v:[2,1,4,1,3,6], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><path d="M22 60 Q40 10 98 22 Q80 70 22 60 Z" fill="url(#bkh)"/><path d="M22 60 Q60 42 98 22"/><path d="M46 52 L60 44 M60 42 L72 34" stroke-width=".8"/></g>'},
+  {k:'coriander', zh:'芫荽籽', la:'Coriandrum sativum', sh:'o', v:[2,6,2,4,6,1], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><circle cx="46" cy="40" r="16"/><path d="M36 30 Q46 40 36 50 M56 30 Q46 40 56 50" stroke-width=".8"/><circle cx="82" cy="50" r="10" fill="url(#bkh)"/><path d="M76 46 Q82 50 76 56" stroke-width=".8"/></g>'},
+  {k:'angelica', zh:'當歸根', la:'Angelica sinensis', sh:'s', v:[3,1,2,4,8,4], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><path d="M60 8 V42 Q60 52 50 60 Q44 66 40 74"/><path d="M60 42 Q72 46 80 40 M60 50 Q68 58 76 64 M50 60 Q40 56 32 60"/><path d="M60 22 Q66 26 64 34" fill="url(#bkh)" stroke="none"/></g>'},
+  {k:'cinnamon', zh:'肉桂', la:'Cinnamomum cassia', sh:'s', v:[1,1,2,9,1,3], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><rect x="28" y="28" width="64" height="24" rx="12" transform="rotate(-14 60 40)"/><ellipse cx="32" cy="46" rx="6" ry="13" transform="rotate(-14 60 40)"/><path d="M40 33 Q48 42 40 52 M50 30 Q58 40 50 50 M60 30 Q68 40 60 50" stroke-width=".7"/></g>'},
+  {k:'licorice', zh:'甘草', la:'Glycyrrhiza glabra', sh:'s', v:[1,0,2,3,7,5], art:'<g fill="none" stroke="#1b1a17" stroke-width="1.2"><path d="M14 40 H96" stroke-width="3"/><path d="M96 40 L104 26 M70 40 L60 26 M40 40 L34 58 M30 40 L18 30"/><circle cx="60" cy="26" r="2.5" fill="url(#bkh)" stroke="none"/></g>'}
+];
+var sel = {juniper:3, litsea:2, citrus:1};
+var cur = [0,0,0,0,0,0], tweenId = null;
+var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var cardsEl = $('#cards'), msgEl = $('#bkMsg'), claimEl = $('#claim');
+function totalParts(){ return Object.keys(sel).reduce(function(s, k){ return s + sel[k]; }, 0); }
+function profile(){
+  var t = totalParts(), out = [0,0,0,0,0,0];
+  ING.forEach(function(g){ if (!sel[g.k]) return; for (var i = 0; i < 6; i++) out[i] += sel[g.k] * g.v[i]; });
+  return out.map(function(x){ return t ? x / t : 0; });
+}
+function say(t){ msgEl.textContent = t; }
+
+/* 卡片 */
+cardsEl.innerHTML = ING.map(function(g, i){
+  var f = String.fromCharCode(97 + i);
+  return '<article class="ing" id="c-' + g.k + '" data-k="' + g.k + '"><svg viewBox="0 0 120 80" aria-hidden="true">' + g.art + '</svg>' +
+    '<div class="top"><span>Fig. 2' + f + '</span><span>No. ' + (i + 1) + '</span></div>' +
+    '<h3>' + g.zh + '</h3><div class="la">' + g.la + '</div>' +
+    '<div class="row"><button class="pick" type="button" aria-pressed="false">選入</button>' +
+    '<div class="step"><button type="button" data-d="-1" aria-label="' + g.zh + ' 減少一份">−</button><output>1 份</output><button type="button" data-d="1" aria-label="' + g.zh + ' 增加一份">+</button></div></div></article>';
+}).join('');
+
+function toggle(k){
+  if (k === 'juniper') return say('杜松子為必選，法規要求琴酒以杜松為主香料。');
+  if (sel[k]) { delete sel[k]; return update(); }
+  if (Object.keys(sel).length >= 6) {
+    say('最多選 6 種，請先取消一種香料。');
+    var c = $('#c-' + k); c.classList.remove('bkshake'); void c.offsetWidth; c.classList.add('bkshake');
+    return;
+  }
+  sel[k] = 1; update();
+}
+function step(k, d){ if (!sel[k]) return; sel[k] = Math.min(5, Math.max(1, sel[k] + d)); update(); }
+
+cardsEl.addEventListener('click', function(e){
+  var card = e.target.closest('.ing'); if (!card) return;
+  var k = card.dataset.k, btn = e.target.closest('button'); if (!btn) return;
+  if (btn.classList.contains('pick')) toggle(k);
+  else if (btn.dataset.d) step(k, +btn.dataset.d);
+});
+
+/* 香料籃剖面（Fig. 2） */
+function drawItems(){
+  var g = $('#fig2items'), html = '', idx = 0;
+  ING.forEach(function(gi){
+    if (!sel[gi.k]) return;
+    var n = sel[gi.k] * 2;
+    for (var j = 0; j < n; j++){
+      var x = 84 + ((j * 17 + idx * 11) % 44), y = 208 + ((j * 7 + idx * 5) % 16);
+      if (gi.sh === 'o') html += '<circle cx="' + x + '" cy="' + y + '" r="4.2" fill="url(#bkh)"/>';
+      else if (gi.sh === 'e') html += '<ellipse cx="' + x + '" cy="' + y + '" rx="5.6" ry="3.2" transform="rotate(' + ((j * 40) % 180) + ' ' + x + ' ' + y + ')"/>';
+      else html += '<path d="M' + (x - 7) + ' ' + y + ' L' + (x + 7) + ' ' + (y + 2) + '" stroke-width="2.2"/>';
+    }
+    idx++;
+  });
+  g.innerHTML = html;
+}
+
+/* 風味雷達（Fig. 3）：靜態部分一次畫好，多邊形平滑插值 */
+var RC = [160, 150], RR = 100;
+function rpt(i, v){ var a = (-90 + i * 60) * Math.PI / 180, r = RR * v / 10; return [RC[0] + r * Math.cos(a), RC[1] + r * Math.sin(a)]; }
+function rlabel(i){
+  var a = (-90 + i * 60) * Math.PI / 180, r = RR + 26, x = RC[0] + r * Math.cos(a), y = RC[1] + r * Math.sin(a) + 5;
+  var c = Math.cos(a), anchor = c > 0.5 ? 'start' : c < -0.5 ? 'end' : 'middle';
+  return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor + '" font-size="14" fill="#1b1a17">' + AXES[i] + '</text>';
+}
+(function buildRadar(){
+  var s = '';
+  [2,4,6,8,10].forEach(function(lv){
+    var pts = []; for (var i = 0; i < 6; i++) pts.push(rpt(i, lv).map(function(n){ return n.toFixed(1); }).join(','));
+    s += '<polygon points="' + pts.join(' ') + '" fill="none" stroke="#4a463d" stroke-width="' + (lv === 10 ? 1 : .6) + '"' + (lv < 10 ? ' stroke-dasharray="2 3"' : '') + '/>';
+  });
+  for (var i = 0; i < 6; i++){ var p = rpt(i, 10); s += '<line x1="' + RC[0] + '" y1="' + RC[1] + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '" stroke="#4a463d" stroke-width=".6"/>' + rlabel(i); }
+  s += '<polygon id="radarPoly" fill="url(#bkh)" fill-opacity=".9" stroke="#1b1a17" stroke-width="1.8" stroke-linejoin="round"/>';
+  for (var j = 0; j < 6; j++) s += '<circle id="rd' + j + '" r="3" fill="#1b1a17"/>';
+  $('#radar').innerHTML = '<defs><pattern id="bkhR" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#4a463d" stroke-width="1"/></pattern></defs>' + s;
+})();
+function paintRadar(vals){
+  var pts = [];
+  vals.forEach(function(v, i){ var p = rpt(i, v); pts.push(p); var d = document.getElementById('rd' + i); if (d){ d.setAttribute('cx', p[0].toFixed(1)); d.setAttribute('cy', p[1].toFixed(1)); } });
+  $('#radarPoly').setAttribute('points', pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '));
+}
+function tweenRadar(target){
+  if (tweenId) cancelAnimationFrame(tweenId);
+  var from = cur.slice(), t0 = null, dur = REDUCE ? 1 : 650;
+  function frame(ts){
+    if (t0 === null) t0 = ts;
+    var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    cur = from.map(function(v, i){ return v + (target[i] - v) * e; });
+    paintRadar(cur);
+    tweenId = k < 1 ? requestAnimationFrame(frame) : null;
+  }
+  tweenId = requestAnimationFrame(frame);
+}
+
+/* 配方專利說明（自動產生） */
+function claimText(){
+  var t = totalParts(), list = ING.filter(function(g){ return sel[g.k]; }).sort(function(a, b){ return sel[b.k] - sel[a.k]; });
+  var p = profile(), top = 0; p.forEach(function(v, i){ if (v > p[top]) top = i; });
+  var parts = list.map(function(g){ return g.zh + ' ' + sel[g.k] + ' 份'; }).join('、');
+  return '<p><span class="n">1.</span>一種琴酒，其特徵在於以' + parts + '為原料，於壺式蒸餾器中蒸餾，並以杜松子為主要香料。</p>' +
+    '<p><span class="n">2.</span>如請求項 1 之琴酒，其中' + AXES[top] + '風味最為突出（' + p[top].toFixed(1) + ' / 10）。</p>' +
+    '<p><span class="n">3.</span>如請求項 1 之琴酒，其中香料總計 ' + t + ' 份，每批約可得 ' + (t * 60) + ' 毫升。</p>';
+}
+
+function update(){
+  ING.forEach(function(g){
+    var card = $('#c-' + g.k), on = !!sel[g.k], pick = card.querySelector('.pick'), out = card.querySelector('output');
+    card.classList.toggle('on', on);
+    var btns = card.querySelectorAll('.step button');
+    if (g.k === 'juniper'){ pick.setAttribute('aria-pressed', 'true'); pick.disabled = true; pick.textContent = '必選'; }
+    else { pick.setAttribute('aria-pressed', on ? 'true' : 'false'); pick.textContent = on ? '已選' : '選入'; }
+    out.textContent = on ? sel[g.k] + ' 份' : '未選';
+    btns[0].disabled = !on || sel[g.k] <= 1; btns[1].disabled = !on || sel[g.k] >= 5;
+  });
+  drawItems();
+  tweenRadar(profile());
+  claimEl.innerHTML = claimText();
+  if (!msgEl.dataset.busy) say('已選 ' + Object.keys(sel).length + ' 種，共 ' + totalParts() + ' 份。');
+}
+
+/* 蒸餾：蒸氣、滴落、液面上升（約 4 秒） */
+var distilling = false;
+$('#distill').addEventListener('click', function(){
+  if (distilling) return;
+  distilling = true;
+  var steam = $('#fig2steam'), liq = $('#fig2liq'), drops = $('#fig2drops'), total = totalParts();
+  var targetH = Math.min(56, 10 + total * 4), dur = REDUCE ? 1 : 4000;
+  msgEl.dataset.busy = '1'; say('蒸餾中，蒸氣正往天鵝頸流動……');
+  steam.classList.add('on');
+  drops.innerHTML = '';
+  var t0 = null;
+  function frame(ts){
+    if (t0 === null) t0 = ts;
+    var k = Math.min(1, (ts - t0) / dur), h = targetH * k;
+    liq.setAttribute('y', (366 - h).toFixed(1)); liq.setAttribute('height', h.toFixed(1));
+    if (k < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  for (var i = 0; i < 8; i++){
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', '269'); c.setAttribute('cy', '246'); c.setAttribute('r', '2.6');
+    c.setAttribute('class', 'drop go'); c.style.animationDelay = (i * 0.45).toFixed(2) + 's';
+    drops.appendChild(c);
+  }
+  setTimeout(function(){
+    steam.classList.remove('on');
+    say('蒸餾完成：本批約 ' + (total * 60) + ' 毫升（示範）。');
+    msgEl.dataset.busy = '';
+    distilling = false;
+  }, dur + 800);
+});
+
+update();
+
+/* ===== 導覽預約（示範，不送出網路請求） ===== */
+var form = $('#bookForm'), people = 2;
+var WK = ['日','一','二','三','四','五','六'];
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function upcomingWeekends(n){
+  var out = [], d = new Date(); d.setHours(0,0,0,0);
+  for (var i = 0; out.length < n && i < 60; i++){
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i);
+    if (x.getDay() === 0 || x.getDay() === 6) out.push(x);
+  }
+  return out;
+}
+$('#dates').innerHTML = upcomingWeekends(6).map(function(x, i){
+  var iso = x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate());
+  return '<label class="chip wknd"><input type="radio" name="date" value="' + iso + '"' + (i === 0 ? ' checked' : '') + '><span>' + (x.getMonth() + 1) + '/' + x.getDate() + '<small>週' + WK[x.getDay()] + '</small></span></label>';
+}).join('');
+function pickedDate(){ var r = form.querySelector('input[name=date]:checked'); return r ? r.value : ''; }
+function pickedSess(){ var r = form.querySelector('input[name=sess]:checked'); return r ? r.value : '11:00'; }
+
+function quote(){
+  var drive = $('#drive').checked, unit = drive ? 450 : 600;
+  $('#qPeople').textContent = people + ' 位';
+  $('#qKind').textContent = drive ? '開車者・無酒精品飲組' : '成人・含 3 款品飲';
+  $('#qUnit').textContent = money(unit);
+  $('#qSub').textContent = money(unit * people);
+  $('#qTotal').textContent = money(unit * people);
+  $('#pOut').textContent = people + ' 位';
+  $('#pDec').disabled = people <= 1;
+  $('#pInc').disabled = people >= 8;
+}
+$('#pDec').addEventListener('click', function(){ people = Math.max(1, people - 1); quote(); });
+$('#pInc').addEventListener('click', function(){ people = Math.min(8, people + 1); quote(); });
+form.addEventListener('change', quote);
+quote();
+
+function setErr(fieldId, errId, msg){
+  var f = $(fieldId), e = $(errId);
+  if (f){ f.classList.toggle('bad', !!msg); var inp = f.querySelector('input'); if (inp) inp.setAttribute('aria-invalid', msg ? 'true' : 'false'); }
+  if (e) e.textContent = msg || '';
+  return !!msg;
+}
+function validate(){
+  var bad = [];
+  if (!pickedDate()){ $('#eDate').textContent = '請選擇導覽日期。'; bad.push(form.querySelector('input[name=date]')); }
+  else $('#eDate').textContent = '';
+  if (!$('#ageOk').checked){ $('#eAge').textContent = '請確認同行者皆已年滿 18 歲（必勾選）。'; bad.push($('#ageOk')); }
+  else $('#eAge').textContent = '';
+  var name = $('#fn').value.trim();
+  if (setErr('#fName', '#eName', name.length < 2 ? '請填寫姓名（至少 2 字）。' : '')) bad.push($('#fn'));
+  var digits = $('#fp').value.replace(/[^\d]/g, '');
+  if (setErr('#fPhone', '#ePhone', (/^09\d{8}$/.test(digits) || /^0\d{7,9}$/.test(digits)) ? '' : '手機請填 09 開頭 10 碼，或市話含區碼。')) bad.push($('#fp'));
+  var mail = $('#fe').value.trim();
+  if (setErr('#fMail', '#eMail', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail) ? '' : '請輸入正確的 Email 格式。')) bad.push($('#fe'));
+  return bad;
+}
+form.addEventListener('submit', function(e){
+  e.preventDefault();
+  var bad = validate();
+  if (bad.length){
+    $('#fmsg').textContent = '還有 ' + bad.length + ' 處需要修正，請看標示的欄位。';
+    bad[0].focus();
+    return;
+  }
+  $('#fmsg').textContent = '';
+  var d = new Date(pickedDate() + 'T00:00:00'), drive = $('#drive').checked, unit = drive ? 450 : 600;
+  $('#certBody').textContent = '導覽日期：' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日（週' + WK[d.getDay()] + '）' + pickedSess() + ' 場，' + people + ' 位，' + (drive ? '開車者（無酒精品飲組）' : '成人（含 3 款品飲）') + '，合計 ' + money(unit * people) + '。';
+  $('#certNo').textContent = '登記編號 MK-' + Date.now().toString(36).slice(-6).toUpperCase() + '（示範，未送出任何資料）';
+  form.classList.add('done');
+  $('#cert').classList.add('show');
+  $('#cert').setAttribute('tabindex', '-1');
+  $('#cert').focus();
+});
+$('#again').addEventListener('click', function(){
+  form.classList.remove('done');
+  $('#cert').classList.remove('show');
+  $('#fmsg').textContent = '';
+  $$('#bookForm .field').forEach(function(f){ f.classList.remove('bad'); });
+  $$('#bookForm .err').forEach(function(p){ p.textContent = ''; });
+  $('#fn').focus();
+});
+
+/*@@SCRIPT@@*/
+})();
+</script>
+</body>
+</html>
