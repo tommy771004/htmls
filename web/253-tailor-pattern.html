@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>衡尺｜博愛路第三代西裝訂製</title>
 <meta name="description" content="衡尺 MEASURE & CLOTH：博愛路第三代西服店，提供半訂製與全訂製西裝。可在網頁上自己設計一件西裝、翻看布樣冊、查尺寸，並預約量身。">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e8d9b0'/%3E%3Cpath d='M9 9H23V23' fill='none' stroke='%231d2738' stroke-width='2.6'/%3E%3Cpath d='M7 25L25 7' stroke='%23b03a2e' stroke-width='1.6' stroke-dasharray='2 2.6'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#16171b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231b1d22'/%3E%3Cpath d='M9 9H23V23' fill='none' stroke='%23ece6d6' stroke-width='2'/%3E%3Cpath d='M7 25L25 7' stroke='%23b08f5c' stroke-width='1.4' stroke-dasharray='3 2'/%3E%3C/svg%3E">
 <!--
   店家模板使用方式
   1. 修改腳本開頭的 SHOP（店名、電話、地址、營業時間、照片網址）與 PRODUCTS（布料與單品）、REVIEWS（顧客評論）。
@@ -14,361 +15,448 @@
 -->
 <style>
 :root{
-  --kraft:#e8d9b0;--kraft2:#dcc99a;--paper:#f4ecd4;--paper-hi:#fbf6e7;
-  --pencil:#3b3b3b;--red:#b03a2e;--chalk:#5b7fa6;--navy:#1d2738;--navy2:#2b3850;
-  --tape:#f2c230;--brass:#b89a4c;--ink:#2b2a27;--muted:#4f4a3c;--board-ink:#ece6d3;
-  --serif:'Garamond','Apple Garamond','EB Garamond','Times New Roman',serif;
+  --bone:#ece6db;--paper:#f6f2ea;--ink:#16171b;--ink2:#2b2d33;--muted:#5b574f;
+  --line:rgba(22,23,27,.16);--line2:rgba(22,23,27,.32);
+  --wool:#1b1d22;--wool2:#24272e;--chalk:#ece6d6;--chalk-dim:rgba(236,230,214,.62);--chalk-line:rgba(236,230,214,.18);
+  --brass:#b08f5c;--brass-d:#7a5f33;--thread:#9a2f27;--tape:#e6dcc2;
+  --serif:'Garamond','Apple Garamond','EB Garamond','Cormorant Garamond','Baskerville','Times New Roman',serif;
+  --cap:'Gill Sans','Gill Sans MT','Optima','Candara','PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;
+  --cjk:'Songti TC','Noto Serif TC','Source Han Serif TC','Noto Serif CJK TC','PMingLiU',serif;
   --hand:'Noteworthy','Segoe Print','Bradley Hand',cursive;
-  --cjk:'PMingLiU','Noto Serif TC','Songti TC','Source Han Serif TC','WenQuanYi Zen Hei','Microsoft JhengHei',serif;
-  --ease-out:cubic-bezier(.2,.7,.2,1);
-  --dur-hover:.28s;--dur-press:.12s;--dur-enter:.9s;--dur-exit:.4s;
-  --tape-h:20px;--head-h:64px;
-  --zig:polygon(0 10px,5% 0,10% 10px,15% 0,20% 10px,25% 0,30% 10px,35% 0,40% 10px,45% 0,50% 10px,55% 0,60% 10px,65% 0,70% 10px,75% 0,80% 10px,85% 0,90% 10px,95% 0,100% 10px,100% 100%,0 100%);
+  --ease-out:cubic-bezier(.22,.61,.24,1);
+  --ease-lux:cubic-bezier(.7,0,.2,1);
+  --dur-hover:.35s;--dur-press:.12s;--dur-enter:1.1s;--dur-exit:.4s;
+  --tape-h:14px;--head-h:76px;--gut:clamp(16px,5vw,72px);
 }
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
-html{scroll-behavior:smooth;scroll-padding-top:calc(var(--tape-h) + var(--head-h) + 12px);-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--tape-h) + var(--head-h) + 8px);-webkit-text-size-adjust:100%}
 html,body{overflow-x:clip}
-body{margin:0;min-height:100vh;padding-top:var(--tape-h);color:var(--ink);font-family:var(--cjk);font-size:16px;line-height:1.85;letter-spacing:.03em;background-color:var(--kraft);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='189' height='189' viewBox='0 0 189 189'%3E%3Cdefs%3E%3Cpattern id='d' width='37.8' height='37.8' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='18.9' cy='18.9' r='.9' fill='%233b3b3b' fill-opacity='.42'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='189' height='189' fill='url(%23d)'/%3E%3Cpath d='M89.5 94.5h10M94.5 89.5v10' stroke='%233b3b3b' stroke-opacity='.55'/%3E%3C/svg%3E");background-size:5cm 5cm}
-img,svg{max-width:100%}
+body{margin:0;background:var(--bone);color:var(--ink);font:300 16px/1.95 var(--cjk);letter-spacing:.04em;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,ul,ol,dl,dd,figure,blockquote{margin:0}
+ul,ol{padding:0;list-style:none}
 a{color:inherit}
-button,input,select,textarea{font:inherit;color:inherit}
-h1,h2,h3,p,figure,blockquote{margin:0}
-.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
-section{position:relative;padding:clamp(64px,9vw,120px) 0}
-section+section{padding-top:0}
-:focus-visible{outline:2px dashed var(--red);outline-offset:3px}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+img,svg{max-width:100%}
+::selection{background:var(--ink);color:var(--chalk)}
+:focus-visible{outline:1px solid currentColor;outline-offset:4px}
+.wrap{max-width:1320px;margin:0 auto;padding:0 var(--gut)}
+.cap{font:500 11px/1.4 var(--cap);letter-spacing:.28em;text-transform:uppercase}
+.it{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:.01em}
 
 /* ===== 皮尺（頂部，也是捲動進度） ===== */
-.tape{position:fixed;left:0;right:0;top:0;height:var(--tape-h);background:var(--tape);z-index:60;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.28);transform-origin:0 50%;animation:tapeOpen var(--dur-enter) var(--ease-out) both}
+.tape{position:fixed;left:0;right:0;top:0;height:var(--tape-h);background:var(--tape);z-index:60;overflow:hidden;border-bottom:1px solid rgba(22,23,27,.35);transform-origin:0 50%;animation:tapeOpen 1.4s var(--ease-lux) both}
 @keyframes tapeOpen{from{transform:scaleX(0)}to{transform:none}}
 .tk-wrap{position:absolute;inset:0}
-.tk{position:absolute;bottom:0;width:1px;height:5px;background:#1a1a1a}
-.tk.m{height:9px}.tk.l{height:14px;width:1.5px}
-.nm{position:absolute;top:2px;font:600 10px/1 var(--serif);color:#1a1a1a;transform:translateX(3px)}
+.tk{position:absolute;top:0;width:1px;height:3px;background:rgba(22,23,27,.55)}
+.tk.m{height:6px}.tk.l{height:9px;background:var(--ink)}
+.nm{position:absolute;bottom:0;font:500 8px/1 var(--cap);letter-spacing:.06em;color:var(--ink);transform:translateX(3px)}
 .nm.end{transform:translateX(-100%) translateX(-3px)}
-.mk{position:absolute;top:0;bottom:0;left:0;width:2px;margin-left:-1px;background:var(--red);transition:left .12s linear}
-.mk b{position:absolute;left:6px;top:2px;font:700 11px/1 var(--serif);color:var(--red);white-space:nowrap;background:var(--tape);padding:0 3px}
+.mk{position:absolute;top:0;bottom:0;left:0;width:1px;background:var(--thread);transition:left .12s linear}
+.mk b{position:absolute;left:5px;top:2px;font:600 8px/1 var(--cap);letter-spacing:.1em;color:var(--thread);white-space:nowrap;background:var(--tape);padding:0 3px}
 
-/* ===== 頁首 ===== */
-.hd{position:sticky;top:var(--tape-h);z-index:50;background:rgba(232,217,176,.95);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border-bottom:1px dashed rgba(59,59,59,.55)}
-.hd-in{display:flex;align-items:center;justify-content:space-between;gap:20px;height:var(--head-h);max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--navy);font-weight:700;font-size:20px;line-height:1.1}
-.logo small{display:block;font:italic 600 11px/1.2 var(--serif);font-variant:small-caps;letter-spacing:.12em;color:var(--muted);margin-top:3px}
-.nav{display:flex;gap:clamp(14px,2vw,26px)}
-.nav a{position:relative;padding:6px 0;text-decoration:none;font-size:15px;color:var(--ink)}
-.nav a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-hover) var(--ease-out)}
-.nav a:hover::after,.nav a:focus-visible::after{transform:scaleX(1)}
-.hd-act{display:flex;align-items:center;gap:10px}
-.burger{display:none;min-height:40px;padding:6px 14px;border:1.5px solid var(--pencil);border-radius:4px;background:var(--paper-hi);cursor:pointer;font-size:14px}
-.burger:active{transform:scale(.96)}
+/* ===== 頁首：左導覽、中間店標、右側預約 ===== */
+.hd{position:sticky;top:var(--tape-h);z-index:50;background:rgba(236,230,219,.9);backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1);border-bottom:1px solid var(--line)}
+.hd-in{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;height:var(--head-h);max-width:1440px;margin:0 auto;padding:0 var(--gut)}
+.logo{grid-column:2;grid-row:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--ink);line-height:1}
+.logo b{font:400 22px/1 var(--cjk);letter-spacing:.62em;margin-right:-.62em}
+.logo small{font:500 9px/1 var(--cap);letter-spacing:.42em;margin-right:-.42em;color:var(--muted);margin-top:6px}
+.nav{grid-column:1;grid-row:1;display:flex;gap:clamp(16px,2.2vw,34px)}
+.nav a{position:relative;padding:8px 0;text-decoration:none;font:400 13px/1 var(--cap);letter-spacing:.22em}
+.nav a::after{content:"";position:absolute;left:0;right:.22em;bottom:2px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform var(--dur-hover) var(--ease-lux)}
+.nav a:hover::after,.nav a:focus-visible::after{transform:scaleX(1);transform-origin:left}
+.hd-act{grid-column:3;grid-row:1;justify-self:end;display:flex;align-items:center;gap:22px}
+.hd-tel{font:400 12px/1 var(--cap);letter-spacing:.16em;text-decoration:none;color:var(--muted)}
+.burger{display:none;align-items:center;gap:10px;height:40px;padding:0;border:0;background:none;cursor:pointer;font:500 11px/1 var(--cap);letter-spacing:.28em}
+.burger i{position:relative;display:block;width:22px;height:1px;background:currentColor;transition:background-color var(--dur-hover)}
+.burger i::before,.burger i::after{content:"";position:absolute;left:0;width:22px;height:1px;background:currentColor;transition:transform var(--dur-hover) var(--ease-lux)}
+.burger i::before{top:-6px}.burger i::after{top:6px}
+.burger[aria-expanded="true"] i{background:transparent}
+.burger[aria-expanded="true"] i::before{transform:translateY(6px) rotate(45deg)}
+.burger[aria-expanded="true"] i::after{transform:translateY(-6px) rotate(-45deg)}
 
 /* ===== 按鈕與共用元件 ===== */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:10px 22px;border:1.5px solid var(--navy);border-radius:4px;background:transparent;color:var(--navy);font-size:15px;letter-spacing:.06em;text-decoration:none;cursor:pointer;transition:transform var(--dur-hover) var(--ease-out),background-color var(--dur-hover),color var(--dur-hover),box-shadow var(--dur-hover)}
-.btn:hover{background:var(--navy);color:var(--paper-hi);transform:translateY(-2px);box-shadow:3px 4px 0 rgba(59,59,59,.32)}
-.btn.pri{background:var(--navy);color:var(--paper-hi)}
-.btn.pri:hover{background:var(--red);border-color:var(--red)}
-.btn.sm{min-height:38px;padding:6px 16px;font-size:14px}
-.btn:active{transform:scale(.97);transition-duration:var(--dur-press)}
+.btn{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:52px;padding:0 30px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:500 13px/1.3 var(--cap);letter-spacing:.24em;text-decoration:none;cursor:pointer;transition:color var(--dur-hover) var(--ease-lux),border-color var(--dur-hover)}
+.btn::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--ink);transform:scaleY(0);transform-origin:bottom;transition:transform var(--dur-hover) var(--ease-lux)}
+.btn:hover{color:var(--paper)}
+.btn:hover::before{transform:scaleY(1)}
+.btn.pri{background:var(--ink);color:var(--paper)}
+.btn.pri::before{background:var(--thread)}
+.btn.pri:hover{border-color:var(--thread)}
+.btn.sm{min-height:40px;padding:0 20px;font-size:12px}
+.btn:active{transform:scale(.98);transition-duration:var(--dur-press)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn:disabled::before{display:none}
+.btn .ar{display:inline-block;width:22px;height:1px;background:currentColor;position:relative;transition:width var(--dur-hover) var(--ease-lux)}
+.btn .ar::after{content:"";position:absolute;right:0;top:-3px;width:7px;height:7px;border-top:1px solid currentColor;border-right:1px solid currentColor;transform:rotate(45deg);transform-origin:100% 0}
+.btn:hover .ar{width:32px}
+.on-dark .btn{border-color:var(--chalk);color:var(--chalk)}
+.on-dark .btn::before{background:var(--chalk)}
+.on-dark .btn:hover{color:var(--ink)}
+.on-dark .btn.pri{background:var(--chalk);color:var(--ink)}
+.on-dark .btn.pri::before{background:var(--brass)}
+.lnk{display:inline-flex;align-items:center;gap:12px;padding:6px 0;text-decoration:none;font:500 13px/1.3 var(--cap);letter-spacing:.24em;border-bottom:1px solid currentColor;background:none;border-top:0;border-left:0;border-right:0;cursor:pointer}
+.lnk:hover{color:var(--thread)}
 .chip{position:relative;display:inline-block;cursor:pointer}
 .chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
-.chip span{display:inline-block;padding:8px 14px;border:1.4px solid currentColor;border-radius:4px;font-size:14px;line-height:1.4;transition:background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover),transform var(--dur-press) var(--ease-out)}
-.chip:hover span{transform:translateY(-1px)}
-.chip:active span{transform:scale(.96)}
-.chip input:focus-visible+span{outline:2px dashed var(--red);outline-offset:3px}
-.status{display:inline-flex;align-items:center;gap:8px;padding:7px 16px 7px 12px;border:1.5px solid var(--pencil);border-radius:999px;background:var(--paper-hi);font-size:14px}
-.status .dot{width:9px;height:9px;border-radius:50%;background:#9a8d74;flex:none}
-.status.on .dot{background:#4d7a3e;box-shadow:0 0 0 3px rgba(77,122,62,.22)}
-.pin{position:absolute;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fbeeb8 0,#d7b867 28%,#8b6f2e 72%,#4f3d15 100%);box-shadow:2px 4px 4px rgba(40,30,10,.4);z-index:4;pointer-events:none}
-.rv.in .pin{animation:pinDrop .8s var(--ease-out) both}
-@keyframes pinDrop{0%{transform:translateY(-34px);opacity:0}60%{transform:translateY(3px);opacity:1}80%{transform:translateY(-2px)}100%{transform:none;opacity:1}}
-.ph{position:relative;overflow:hidden;margin:0;background:var(--paper);aspect-ratio:var(--ar,4/3)}
-.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-body.slots .ph{outline:2px dashed var(--red);outline-offset:-2px}
-body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:8px;top:8px;z-index:3;background:var(--navy);color:var(--tape);font-size:11px;padding:3px 8px;border-radius:3px;font-family:var(--cjk)}
-.slotbtn{position:fixed;right:14px;bottom:14px;z-index:70;padding:6px 12px;border:1.2px solid var(--pencil);border-radius:4px;background:var(--paper-hi);font-size:12px;cursor:pointer;box-shadow:2px 3px 0 rgba(59,59,59,.25);transition:transform var(--dur-press) var(--ease-out)}
-.slotbtn[aria-pressed="true"]{background:var(--navy);color:var(--tape)}
-.slotbtn:active{transform:scale(.95)}
-.fine{font-size:13px;color:var(--muted);line-height:1.7}
-.err{margin:0;font-size:13px;color:var(--red);line-height:1.5}
-.sec-head{display:grid;gap:6px;margin-bottom:clamp(28px,4vw,46px);max-width:44em}
-.no{display:inline-block;font-family:var(--hand);font-size:17px;color:var(--red);transform:rotate(-3deg);transform-origin:left}
-.sec-title{font-size:clamp(30px,4.4vw,50px);line-height:1.25;color:var(--navy);font-weight:700;letter-spacing:.08em}
-.sec-en{font:italic 600 clamp(14px,1.6vw,18px)/1.4 var(--serif);font-variant:small-caps;letter-spacing:.14em;color:var(--muted)}
-.sec-desc{color:var(--muted);margin-top:6px}
+.chip span{display:inline-flex;align-items:center;min-height:42px;padding:6px 16px;border:1px solid var(--line2);font:400 14px/1.4 var(--cjk);letter-spacing:.08em;transition:background-color var(--dur-hover) var(--ease-lux),color var(--dur-hover),border-color var(--dur-hover)}
+.chip:hover span{border-color:var(--ink)}
+.chip input:checked+span{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.chip input:focus-visible+span{outline:1px solid var(--ink);outline-offset:3px}
+.status{display:inline-flex;align-items:center;gap:10px;font:400 12px/1.4 var(--cap);letter-spacing:.18em;color:var(--muted)}
+.status .dot{width:7px;height:7px;border-radius:50%;background:#a0988a;flex:none}
+.status.on .dot{background:#4f7a46;box-shadow:0 0 0 4px rgba(79,122,70,.16);animation:breathe 2.8s ease-in-out infinite}
+@keyframes breathe{50%{box-shadow:0 0 0 7px rgba(79,122,70,.04)}}
+.ph{position:relative;overflow:hidden;margin:0;background:var(--wool2);aspect-ratio:var(--ar,4/3)}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform 1.6s var(--ease-out)}
+.ph:hover>svg,.ph:hover>img{transform:scale(1.03)}
+body.slots .ph{outline:1px dashed var(--thread);outline-offset:-1px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--ink);color:var(--chalk);font:400 11px/1.4 var(--cap);letter-spacing:.08em;padding:4px 10px}
+.slotbtn{position:fixed;right:14px;bottom:14px;z-index:70;padding:8px 14px;border:1px solid var(--ink);background:var(--paper);font:500 11px/1 var(--cap);letter-spacing:.2em;cursor:pointer;transition:background-color var(--dur-hover),color var(--dur-hover)}
+.slotbtn[aria-pressed="true"]{background:var(--ink);color:var(--chalk)}
+.slotbtn:active{transform:scale(.96)}
+.fine{font-size:12.5px;color:var(--muted);line-height:1.8;letter-spacing:.06em}
+.err{margin:0;font-size:12.5px;color:var(--thread);line-height:1.5;min-height:0}
+figcaption.fig{display:flex;gap:16px;align-items:baseline;margin-top:14px;font-size:13px;color:var(--muted)}
+figcaption.fig .cap{color:var(--ink);flex:none}
+
+/* 章節標題：編號＋細線、中文大標、英文斜體 */
+.sec-head{display:grid;gap:10px;margin-bottom:clamp(36px,5vw,72px);max-width:46em}
+.no{display:flex;align-items:center;gap:16px;font:500 11px/1 var(--cap);letter-spacing:.32em;color:var(--brass-d)}
+.no::after{content:"";width:56px;height:1px;background:currentColor;opacity:.6}
+.sec-title{font:300 clamp(32px,3.6vw,54px)/1.3 var(--cjk);letter-spacing:.14em}
+.sec-en{font:italic 400 clamp(18px,1.7vw,24px)/1.3 var(--serif);color:var(--muted);letter-spacing:.02em}
+.sec-desc{color:var(--muted);margin-top:10px;max-width:36em;font-size:15px}
+.on-dark{background:var(--wool);color:var(--chalk)}
+.on-dark .no{color:var(--brass)}
+.on-dark .sec-en,.on-dark .sec-desc,.on-dark .fine{color:var(--chalk-dim)}
+section{padding:clamp(80px,11vw,168px) 0}
+.paper{background:var(--paper)}
 
 /* ===== 進場（JS 加上 .js 才生效；內容預設可見） ===== */
-.js .rv{opacity:0;transform:translateY(16px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.js .rv{opacity:0;transform:translateY(28px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
 .js .rv.in{opacity:1;transform:none}
-.chalk-anim{animation:chalkIn 1.5s var(--ease-out) both}
-.chalk-anim.d1{animation-delay:.3s}
-.chalk-anim.d2{animation-delay:.7s}
-@keyframes chalkIn{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
-.mk-draw{stroke-dasharray:100;stroke-dashoffset:0;animation:drawIn 2.2s var(--ease-out) .5s both}
-@keyframes drawIn{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+.js .rv.in .ph>svg,.js .rv.in .ph>img{animation:unveil 1.6s var(--ease-lux) both}
+@keyframes unveil{from{clip-path:inset(100% 0 0 0);transform:scale(1.08)}to{clip-path:inset(0 0 0 0);transform:none}}
+.chalk-anim{animation:chalkIn 1.6s var(--ease-lux) both}
+.chalk-anim.d1{animation-delay:.5s}
+.chalk-anim.d2{animation-delay:.9s}
+@keyframes chalkIn{from{clip-path:inset(0 0 100% 0);opacity:0}to{clip-path:inset(0 0 0 0);opacity:1}}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:drawIn 2.8s var(--ease-lux) .4s forwards}
+.draw.d1{animation-delay:1.4s;animation-duration:2s}
+.draw.d2{animation-delay:2s;animation-duration:1.6s}
+@keyframes drawIn{to{stroke-dashoffset:0}}
+.fade-late{opacity:0;animation:fadeIn 1.2s var(--ease-out) 2.2s forwards}
+@keyframes fadeIn{to{opacity:1}}
 
-/* ===== Hero ===== */
-.hero{max-width:1200px;margin:0 auto;padding:clamp(28px,5vw,60px) clamp(16px,4vw,40px) 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,4vw,64px);align-items:center}
-.eyebrow{font:italic 600 clamp(15px,1.6vw,19px)/1.5 var(--serif);font-variant:small-caps;letter-spacing:.14em;color:var(--red);margin-bottom:12px}
-.lead{font-size:clamp(40px,5.2vw,72px);line-height:1.28;font-weight:700;color:var(--navy);margin:0 0 24px;letter-spacing:.08em}
+/* ===== Hero：左側羊毛布上的粉筆版片，右側文案 ===== */
+.hero{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);min-height:calc(100svh - var(--tape-h) - var(--head-h));border-bottom:1px solid var(--line)}
+.cloth{position:relative;grid-column:1;grid-row:1;overflow:hidden;margin:0;color:var(--chalk);
+  background-color:var(--wool);
+  background-image:
+    radial-gradient(120% 80% at 30% 20%,rgba(255,255,255,.07),transparent 60%),
+    repeating-linear-gradient(90deg,rgba(236,230,214,.05) 0 1px,transparent 1px 9px),
+    repeating-linear-gradient(45deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(-45deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.cloth::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 50%,transparent 50%,rgba(0,0,0,.45));pointer-events:none}
+.cloth .pat{position:absolute;left:50%;top:52%;width:min(78%,560px);height:auto;transform:translate(-50%,-50%);overflow:visible}
+.cloth .hc{position:absolute;z-index:2;color:var(--chalk-dim)}
+.hc-tl{left:clamp(20px,3vw,40px);top:clamp(20px,3vw,36px)}
+.hc-bl{left:clamp(20px,3vw,40px);bottom:clamp(20px,3vw,36px);display:flex;gap:14px;align-items:baseline;font-size:13px;letter-spacing:.08em}
+.hc-bl .cap{color:var(--chalk)}
+.hc-br{right:clamp(20px,3vw,40px);bottom:clamp(20px,3vw,36px)}
+.hc-v{right:clamp(18px,3vw,40px);top:clamp(20px,3vw,36px);writing-mode:vertical-rl;font:300 clamp(40px,5vw,76px)/1 var(--cjk);letter-spacing:.3em;color:var(--chalk)!important;filter:url(#chalk)}
+.hero-txt{grid-column:2;grid-row:1;display:flex;flex-direction:column;justify-content:center;padding:clamp(48px,6vw,96px) var(--gut) clamp(48px,6vw,96px) clamp(36px,5vw,88px)}
+.eyebrow{display:flex;align-items:center;gap:14px;color:var(--brass-d);margin-bottom:clamp(24px,3vw,40px)}
+.eyebrow::before{content:"";width:40px;height:1px;background:currentColor}
+.lead{font:300 clamp(38px,4.3vw,68px)/1.32 var(--cjk);letter-spacing:.12em;margin:0 0 clamp(22px,2.6vw,34px)}
 .lead span{display:block;white-space:nowrap}
-.hero-desc{color:var(--muted);max-width:30em;margin-bottom:24px}
-.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px;align-items:center}
-.piece-hero{position:relative;width:min(100%,520px);justify-self:end;margin:0;container-type:inline-size}
-.piece-hero .pat{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(7px 9px 0 rgba(59,59,59,.16))}
-.anno{font-family:var(--hand);font-size:21px;fill:#3b3b3b}
-.anno.sm{font-size:16px}
-.h1-chalk{position:absolute;left:27.8%;top:16%;margin:0;font-weight:400;font-size:20cqw;line-height:1;letter-spacing:.1em;color:var(--chalk);filter:url(#chalk)}
-.h1-sub{position:absolute;left:27.8%;top:35.6%;margin:0;font:italic 600 4.2cqw/1.2 var(--serif);font-variant:small-caps;letter-spacing:.12em;color:var(--chalk);filter:url(#chalk);white-space:nowrap}
-.h1-tag{position:absolute;left:27.8%;top:42%;margin:0;font-size:max(12px,3.5cqw);color:var(--chalk);filter:url(#chalk);line-height:1.8;white-space:nowrap}
+.lead em{font:italic 400 .9em/1 var(--serif);letter-spacing:0;color:var(--brass-d)}
+.hero-desc{color:var(--muted);max-width:28em;font-size:15.5px}
+.offer{margin:clamp(26px,3vw,40px) 0 0;max-width:30em;border-top:1px solid var(--ink)}
+.offer div{display:grid;grid-template-columns:1fr auto;gap:4px 18px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line)}
+.offer dt{font:400 15px/1.4 var(--cjk);letter-spacing:.12em}
+.offer dt small{display:block;font:italic 400 15px/1.3 var(--serif);color:var(--muted);letter-spacing:0;margin-top:2px}
+.offer dd{font:400 clamp(22px,2vw,28px)/1 var(--serif);letter-spacing:.02em}
+.offer dd small{font:500 10px/1 var(--cap);letter-spacing:.2em;color:var(--muted);margin-left:6px}
+.cta{display:flex;flex-wrap:wrap;gap:22px 30px;margin-top:clamp(28px,3vw,40px);align-items:center}
+.hero-txt .status{margin-top:22px}
 
-/* ===== 品牌故事 ===== */
-.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,6vw,90px);align-items:center}
-.frame-wrap{position:relative;padding:12px 6px 6px}
-.frame{clip-path:polygon(3% 2%,97% 0,100% 95%,96% 100%,1% 98%,0 4%)}
-.story .ph{--ar:4/5;box-shadow:none}
-.frame-wrap>.pin:nth-of-type(1){top:-2px;left:16%}
-.frame-wrap>.pin:nth-of-type(2){top:-2px;right:14%}
-.story p.body-txt{color:var(--ink);margin-bottom:16px;font-size:16.5px;line-height:1.95}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:30px 0 0;padding:0;list-style:none;border-top:1.5px dashed var(--pencil)}
-.stats li{padding:18px 10px 0 0}
-.stats b{display:block;font:700 clamp(30px,4vw,44px)/1 var(--serif);color:var(--red)}
-.stats span{display:block;margin-top:8px;font-size:14px;color:var(--muted);line-height:1.5}
+/* ===== 01 品牌故事：雜誌跨頁 ===== */
+.story{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(36px,7vw,120px);align-items:start}
+.story .ph{--ar:4/5}
+.story-fig{position:relative}
+.story-fig::before{content:"";position:absolute;left:-18px;top:-18px;width:44%;height:60%;border-left:1px solid var(--line2);border-top:1px solid var(--line2);pointer-events:none}
+.story-txt{padding-top:clamp(0px,4vw,60px)}
+.body-txt{color:var(--ink2);max-width:34em;margin-bottom:1.2em;font-size:16px}
+.body-txt.drop::first-letter{float:left;font:300 4.1em/.86 var(--cjk);margin:.08em .14em 0 0;color:var(--ink)}
+.pull{margin:clamp(30px,4vw,52px) 0;padding-left:clamp(18px,2vw,28px);border-left:1px solid var(--thread);max-width:30em}
+.pull p{font:300 clamp(22px,2.2vw,30px)/1.6 var(--cjk);letter-spacing:.1em}
+.pull cite{display:block;margin-top:12px;font-style:normal;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:clamp(36px,4vw,56px);border-top:1px solid var(--ink)}
+.stats li{padding:22px 18px 0 0}
+.stats li+li{padding-left:18px;border-left:1px solid var(--line)}
+.stats b{display:block;font:300 clamp(34px,3.6vw,54px)/1 var(--serif);letter-spacing:-.01em}
+.stats span{display:block;margin-top:12px;font-size:13px;color:var(--muted);letter-spacing:.1em}
 
-/* ===== 布樣冊 ===== */
-.tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:30px}
-.tab{min-height:40px;padding:6px 16px;border:1.5px solid var(--pencil);border-radius:4px;background:var(--paper-hi);font-size:15px;cursor:pointer;transition:background-color var(--dur-hover),color var(--dur-hover),transform var(--dur-press) var(--ease-out)}
-.tab:hover{transform:translateY(-1px)}
-.tab:active{transform:scale(.96)}
-.tab[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--paper-hi)}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,2.4vw,30px)}
-.fab{margin:0;display:flex;flex-direction:column;background:var(--paper-hi);filter:drop-shadow(3px 5px 0 rgba(59,59,59,.14))}
-.fab .sw{position:relative;height:clamp(150px,17vw,200px);clip-path:var(--zig);transform-origin:50% 0;transition:transform var(--dur-hover) var(--ease-out)}
-.fab:hover .sw{transform:perspective(700px) rotateX(-10deg) translateY(-3px)}
-.fab .sw>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.fab .sw>svg.ico{position:absolute;left:50%;top:50%;width:46%;height:auto;max-height:78%;transform:translate(-50%,-50%);filter:drop-shadow(2px 3px 2px rgba(0,0,0,.25))}
-.fab .body{display:flex;flex-direction:column;flex:1;padding:14px 14px 16px}
-.fab h3{font-size:clamp(15px,1.5vw,18px);line-height:1.4;color:var(--navy);font-weight:700;letter-spacing:.04em}
-.fab .spec{font:italic 600 13px/1.5 var(--serif);font-variant:small-caps;letter-spacing:.06em;color:var(--red);margin-top:4px}
-.fab .mat{font-size:13px;color:var(--muted);line-height:1.7;margin-top:6px;flex:1}
-.fab .pr{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:12px;font-size:13px}
-.fab .pr b{white-space:nowrap;font:700 clamp(18px,1.8vw,21px)/1 var(--serif);color:var(--ink)}
-.fab .pr small{font-size:12px;color:var(--muted);white-space:nowrap}
-.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.mini{min-height:40px;padding:6px 6px;border:1.2px solid var(--pencil);border-radius:4px;background:transparent;font-size:13px;cursor:pointer;transition:background-color var(--dur-hover),color var(--dur-hover),transform var(--dur-press) var(--ease-out),border-color var(--dur-hover)}
-.mini:hover{background:rgba(59,59,59,.07)}
-.mini:active{transform:scale(.95)}
-.mini[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
-.inq{margin-top:clamp(34px,5vw,56px);padding:22px clamp(16px,3vw,28px);border:1.5px dashed var(--pencil);border-radius:4px;background:rgba(251,246,231,.55)}
-.inq h3{font-size:18px;color:var(--navy);margin-bottom:10px}
-.inq h3 span{font-family:var(--serif);font-size:24px;color:var(--red);font-weight:700}
-.inq-list{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-.inq-list li{display:inline-flex;align-items:center;gap:8px;padding:5px 6px 5px 12px;border:1.2px solid var(--pencil);border-radius:4px;background:var(--paper-hi);font-size:14px}
-.inq-list button{min-height:28px;min-width:28px;border:0;border-radius:3px;background:transparent;cursor:pointer;font-size:16px;line-height:1}
-.inq-list button:hover{background:rgba(176,58,46,.12);color:var(--red)}
-.inq-acts{display:flex;flex-wrap:wrap;gap:10px}
-.inq-empty{font-size:14px;color:var(--muted);margin-bottom:14px}
+/* ===== 02 布樣冊：樣本卡下緣鋸齒剪邊、側邊布邊字 ===== */
+.fab-top{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:clamp(32px,4vw,52px)}
+.fab-top .sec-head{margin-bottom:0}
+.tabs{display:flex;gap:clamp(18px,2.6vw,36px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{position:relative;padding:12px 0 14px;border:0;background:none;cursor:pointer;font:400 14px/1 var(--cap);letter-spacing:.2em;color:var(--muted);transition:color var(--dur-hover)}
+.tab::after{content:"";position:absolute;left:0;right:.2em;bottom:-1px;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-hover) var(--ease-lux)}
+.tab:hover{color:var(--ink)}
+.tab[aria-pressed="true"]{color:var(--ink)}
+.tab[aria-pressed="true"]::after{transform:scaleX(1)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(40px,5vw,72px) clamp(18px,2.4vw,36px)}
+.fab{display:flex;flex-direction:column;animation:cardIn .8s var(--ease-out) both}
+.fab:nth-child(4n+2){animation-delay:.06s}.fab:nth-child(4n+3){animation-delay:.12s}.fab:nth-child(4n+4){animation-delay:.18s}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.sw{position:relative;aspect-ratio:4/5;background:var(--wool2);
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),97.5% 100%,95% calc(100% - 8px),92.5% 100%,90% calc(100% - 8px),87.5% 100%,85% calc(100% - 8px),82.5% 100%,80% calc(100% - 8px),77.5% 100%,75% calc(100% - 8px),72.5% 100%,70% calc(100% - 8px),67.5% 100%,65% calc(100% - 8px),62.5% 100%,60% calc(100% - 8px),57.5% 100%,55% calc(100% - 8px),52.5% 100%,50% calc(100% - 8px),47.5% 100%,45% calc(100% - 8px),42.5% 100%,40% calc(100% - 8px),37.5% 100%,35% calc(100% - 8px),32.5% 100%,30% calc(100% - 8px),27.5% 100%,25% calc(100% - 8px),22.5% 100%,20% calc(100% - 8px),17.5% 100%,15% calc(100% - 8px),12.5% 100%,10% calc(100% - 8px),7.5% 100%,5% calc(100% - 8px),2.5% 100%,0 calc(100% - 8px));
+  transition:transform .7s var(--ease-out)}
+.sw>svg:first-child{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sw::before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.16),transparent 38%,transparent 62%,rgba(0,0,0,.28));pointer-events:none;z-index:1}
+.sw .bind{position:absolute;left:0;right:0;top:0;height:30px;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--ink);color:var(--chalk);font:500 9.5px/1 var(--cap);letter-spacing:.24em}
+.sw .bind i{width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f2dfae,#a88a58 55%,#5a4420)}
+.sw .selv{position:absolute;right:0;top:30px;bottom:0;width:18px;z-index:2;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;background:rgba(0,0,0,.34);color:rgba(236,230,214,.8);font:500 8.5px/1 var(--cap);letter-spacing:.3em;white-space:nowrap;overflow:hidden}
+.sw .ico{position:absolute;left:50%;top:56%;width:46%;height:auto;transform:translate(-50%,-50%);z-index:2;filter:drop-shadow(0 10px 14px rgba(0,0,0,.35))}
+.fab:hover .sw{transform:translateY(-6px)}
+.fab .body{display:flex;flex-direction:column;flex:1;padding-top:22px}
+.fab .ref{color:var(--muted);margin-bottom:10px}
+.fab h3{font:400 19px/1.45 var(--cjk);letter-spacing:.12em}
+.fab .spec{font:italic 400 16px/1.4 var(--serif);color:var(--brass-d);margin-top:4px;letter-spacing:.01em}
+.fab .mat{font-size:13.5px;color:var(--muted);line-height:1.85;margin-top:10px;flex:1}
+.fab .pr{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.fab .pr b{font:400 21px/1 var(--serif);letter-spacing:.02em}
+.fab .pr small{font:500 10px/1 var(--cap);letter-spacing:.2em;color:var(--muted)}
+.fab .acts{display:flex;gap:18px;margin-top:14px}
+.mini{position:relative;padding:6px 0 7px;border:0;border-bottom:1px solid var(--line2);background:none;cursor:pointer;font:400 13px/1.3 var(--cap);letter-spacing:.14em;color:var(--ink);transition:border-color var(--dur-hover),color var(--dur-hover)}
+.mini::before{content:"＋ ";color:var(--muted)}
+.mini:hover{border-color:var(--ink)}
+.mini[aria-pressed="true"]{border-color:var(--thread);color:var(--thread)}
+.mini[aria-pressed="true"]::before{content:"✓ ";color:var(--thread)}
+.mini:active{transform:scale(.97)}
+.inq{margin-top:clamp(56px,6vw,96px);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px 40px;align-items:center;padding:clamp(24px,3vw,36px) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}
+.inq h3{font:300 22px/1.4 var(--cjk);letter-spacing:.12em;display:flex;align-items:baseline;gap:14px}
+.inq h3 #inqN{font:400 34px/1 var(--serif);color:var(--thread)}
+.inq h3 .cap{color:var(--muted)}
+.inq-empty{grid-column:1;color:var(--muted);font-size:14px}
+.inq-list{grid-column:1;display:flex;flex-wrap:wrap;gap:10px}
+.inq-list li{display:inline-flex;align-items:center;gap:6px;padding:4px 4px 4px 14px;border:1px solid var(--line2);font-size:14px;animation:cardIn .4s var(--ease-out) both}
+.inq-list button{width:30px;height:30px;border:0;background:none;cursor:pointer;font-size:16px;color:var(--muted)}
+.inq-list button:hover{color:var(--thread)}
+.inq-acts{grid-column:2;grid-row:1/span 3;display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
 
-/* ===== 西裝設計台（深色海軍藍呢板） ===== */
-.studio{background:transparent}
-.board{position:relative;background:var(--navy);color:var(--board-ink);border-radius:6px;padding:clamp(34px,5vw,64px) clamp(20px,4vw,56px);box-shadow:8px 10px 0 rgba(59,59,59,.22)}
-.board::before{content:"";position:absolute;inset:12px;border:1px dashed rgba(236,230,211,.28);border-radius:3px;pointer-events:none}
-.board .no{color:var(--tape)}
-.board .sec-title{color:#f3eedd}
-.board .sec-en{color:#aebfd6}
-.board .sec-desc{color:#c7d0de}
-.board .chip{color:var(--board-ink)}
-.board .chip input:checked+span{background:var(--tape);color:var(--navy);border-color:var(--tape)}
-.board .chip input:focus-visible+span{outline-color:var(--tape)}
-.board .chip span{border-color:rgba(236,230,211,.5)}
-.board .chip:hover span{border-color:var(--board-ink)}
-.studio-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(28px,4vw,56px);position:relative;z-index:1}
-.paper-prev{position:relative;background:var(--paper-hi);padding:clamp(14px,2vw,22px);border-radius:3px;background-image:linear-gradient(rgba(91,127,166,.1) 1px,transparent 1px);background-size:100% 22px;color:var(--pencil)}
-.jacket-box svg{display:block;width:100%;height:auto}
-.back-box{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:12px}
-.back-box svg{display:block;width:clamp(92px,22%,120px);height:auto;background:var(--paper);border:1px solid rgba(59,59,59,.35);padding:4px 4px 2px;box-shadow:2px 3px 0 rgba(59,59,59,.15)}
-.quote{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;padding:18px 20px;border:1.5px solid rgba(236,230,211,.45);border-radius:4px;background:rgba(255,255,255,.03)}
-.quote .lb{display:block;font:italic 600 13px/1.4 var(--serif);font-variant:small-caps;letter-spacing:.12em;color:#aebfd6}
-.quote .big{font:700 clamp(28px,3.6vw,38px)/1.1 var(--serif);color:var(--tape);margin-top:4px}
-.quote .big.sm{font-size:clamp(20px,2.4vw,24px);color:#f3eedd}
-.qnote{grid-column:1/-1;font-size:13px;color:#c7d0de;line-height:1.75;border-top:1px dashed rgba(236,230,211,.3);padding-top:10px}
-.prev-col .btn{margin-top:18px;width:100%;background:var(--tape);border-color:var(--tape);color:var(--navy)}
-.prev-col .btn:hover{background:#ffd95a;border-color:#ffd95a;color:var(--navy);box-shadow:3px 4px 0 rgba(0,0,0,.3)}
-.ctrl{display:grid;gap:4px}
-.opt{border:0;padding:0;margin:0 0 20px;min-width:0}
-.opt legend{font:italic 600 17px/1.4 var(--serif);font-variant:small-caps;letter-spacing:.12em;color:#aebfd6;padding:0;margin-bottom:10px}
+/* ===== 03 設計台：深色羊毛底，左側版型卡，右側選項 ===== */
+.studio-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(36px,6vw,104px);align-items:start}
+.prev-col{position:sticky;top:calc(var(--tape-h) + var(--head-h) + 24px);display:grid;gap:0}
+.paper-prev{position:relative;background-color:var(--paper);background-image:linear-gradient(rgba(22,23,27,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(22,23,27,.05) 1px,transparent 1px);background-size:24px 24px;padding:clamp(18px,3vw,36px) clamp(14px,3vw,36px) 18px;color:var(--ink)}
+.paper-prev::before{content:"PATTERN CARD — FRONT";position:absolute;left:18px;top:14px;font:500 9px/1 var(--cap);letter-spacing:.3em;color:var(--muted)}
+.paper-prev::after{content:"";position:absolute;inset:8px;border:1px solid var(--line);pointer-events:none}
+.jacket-box svg{display:block;width:100%;max-width:440px;height:auto;margin:0 auto}
+.jacket-box svg{animation:swapIn .5s var(--ease-out)}
+@keyframes swapIn{from{opacity:.4;transform:scale(.985)}to{opacity:1;transform:none}}
+.back-box{position:absolute;right:clamp(14px,2vw,24px);bottom:clamp(14px,2vw,24px);width:clamp(76px,16%,104px);background:var(--paper);border:1px solid var(--line2);padding:6px 6px 2px}
+.back-box svg{display:block;width:100%;height:auto}
+.quote{display:grid;grid-template-columns:auto 1fr;gap:16px 34px;align-items:end;padding:26px 0 22px;border-bottom:1px solid var(--chalk-line)}
+.quote .lb{display:block;color:var(--chalk-dim);margin-bottom:10px}
+.quote .big{font:300 clamp(34px,3.4vw,50px)/1 var(--serif);letter-spacing:0;color:var(--chalk)}
+.quote .big.sm{font:300 clamp(18px,1.6vw,22px)/1.2 var(--cjk);letter-spacing:.1em}
+.qnote{grid-column:1/-1;font-size:13px;color:var(--chalk-dim);line-height:1.8}
+.prev-col .btn{margin-top:22px;justify-self:start}
+.ctrl{display:grid;gap:0;border-top:1px solid var(--chalk-line)}
+.opt{border:0;border-bottom:1px solid var(--chalk-line);margin:0;padding:22px 0 24px;display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px 20px;align-items:start}
+.opt legend{float:left;padding:10px 0 0;font:500 11px/1.5 var(--cap);letter-spacing:.28em;color:var(--brass)}
+.opt legend i{display:block;font:400 15px/1.4 var(--cjk);letter-spacing:.14em;font-style:normal;color:var(--chalk);margin-top:4px}
+.opt>.chips,.opt>.fabpick,.opt>.lin-wrap,.opt>.chk{grid-column:2}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.fabpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
-.fabpick label{position:relative;display:grid;justify-items:center;gap:6px;cursor:pointer;text-align:center;font-size:13px;line-height:1.4;color:var(--board-ink)}
+.on-dark .chip span{border-color:rgba(236,230,214,.26);color:var(--chalk)}
+.on-dark .chip:hover span{border-color:var(--chalk)}
+.on-dark .chip input:checked+span{background:var(--chalk);border-color:var(--chalk);color:var(--ink)}
+.on-dark .chip input:focus-visible+span{outline-color:var(--chalk)}
+.chk{display:inline-flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;letter-spacing:.08em}
+.chk input{width:18px;height:18px;margin:0;accent-color:var(--brass)}
+.fabpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 12px}
+.fabpick label,.lin{position:relative;display:flex;flex-direction:column;gap:9px;cursor:pointer}
 .fabpick input,.lin input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
-.disc{display:block;width:60px;height:60px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(236,230,211,.55);transition:transform var(--dur-hover) var(--ease-out),box-shadow var(--dur-hover)}
-.disc svg{display:block;width:100%;height:100%}
-.fabpick label:hover .disc,.lin:hover .disc{transform:scale(1.07)}
-.fabpick label:active .disc,.lin:active .disc{transform:scale(.95);transition-duration:var(--dur-press)}
-.fabpick input:checked+.disc,.lin input:checked+.disc{box-shadow:0 0 0 3px var(--tape)}
-.fabpick input:focus-visible+.disc,.lin input:focus-visible+.disc{outline:2px dashed var(--tape);outline-offset:3px}
-.fabpick .fn{display:block;max-width:100%;overflow-wrap:anywhere}
-.lin{position:relative;cursor:pointer;display:inline-block}
-.lin .disc{width:38px;height:38px}
-.lin-wrap{display:flex;flex-wrap:wrap;gap:12px 14px}
-.lin-wrap .lin-name{display:block;font-size:12px;color:#c7d0de;text-align:center;margin-top:4px}
-.lin-l{display:grid;justify-items:center}
-.chk{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--board-ink)}
-.chk input{width:20px;height:20px;accent-color:var(--tape);margin:0}
+.fabpick .disc{position:relative;display:block;aspect-ratio:3/2;overflow:hidden;outline:1px solid rgba(236,230,214,.16);outline-offset:0;transition:outline-color var(--dur-hover),outline-offset var(--dur-hover) var(--ease-lux)}
+.fabpick .disc svg{display:block;width:100%;height:100%}
+.fabpick .fn{font-size:12.5px;line-height:1.4;color:var(--chalk-dim);letter-spacing:.08em;transition:color var(--dur-hover)}
+.fabpick label:hover .disc{outline-color:rgba(236,230,214,.5)}
+.fabpick input:checked~.disc{outline:1px solid var(--chalk);outline-offset:4px}
+.fabpick input:checked~.fn{color:var(--chalk)}
+.fabpick input:focus-visible~.disc,.lin input:focus-visible~.disc{outline:1px dashed var(--chalk);outline-offset:6px}
+.lin-wrap{display:flex;flex-wrap:wrap;gap:14px 18px}
+.lin{align-items:center}
+.lin .disc{display:block;width:42px;height:42px;outline:1px solid rgba(236,230,214,.16);transition:outline-offset var(--dur-hover) var(--ease-lux)}
+.lin input:checked~.disc{outline:1px solid var(--chalk);outline-offset:4px}
+.lin-name{font-size:12px;color:var(--chalk-dim);letter-spacing:.1em}
+.lin input:checked~.lin-name{color:var(--chalk)}
 
-/* ===== 預約量身（布紋表單紙） ===== */
-.book{background:transparent}
-.sheet{position:relative;max-width:920px;margin:0 auto;background:var(--paper-hi);padding:clamp(26px,4vw,48px);border-radius:3px;box-shadow:6px 8px 0 rgba(59,59,59,.16);border:1px solid rgba(59,59,59,.25)}
-.sheet .pin:nth-of-type(1){top:-8px;left:22px}
-.sheet .pin:nth-of-type(2){top:-8px;right:22px}
-.sheet .chip{color:var(--ink)}
-.sheet .chip span{border-color:rgba(59,59,59,.6)}
-.sheet .chip input:checked+span{background:var(--navy);color:var(--paper-hi);border-color:var(--navy)}
-.sheet .chip:hover span{border-color:var(--navy)}
-.fset{border:0;padding:0;margin:0 0 20px;min-width:0}
-.fset legend{font-size:14px;font-weight:700;color:var(--navy);letter-spacing:.06em;margin-bottom:8px;padding:0}
-.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
-.fld{display:grid;gap:4px;margin-bottom:14px;align-content:start}
-.fld>label{font-size:14px;font-weight:700;color:var(--navy);letter-spacing:.06em}
-.inp{width:100%;min-height:46px;padding:9px 14px;border:1.5px solid var(--pencil);border-radius:4px;background:#fffdf5;font-size:16px;color:var(--ink);transition:border-color var(--dur-hover),box-shadow var(--dur-hover),background-color var(--dur-hover)}
-textarea.inp{resize:vertical;min-height:100px;line-height:1.7}
-.inp:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(176,58,46,.18)}
-.inp:focus-visible{outline:2px dashed var(--red);outline-offset:2px}
-.inp[aria-invalid="true"]{border-color:var(--red);background:#fcefe9}
-.hint{font-size:14px;color:var(--navy);background:rgba(91,127,166,.1);border-left:3px solid var(--chalk);padding:8px 12px;margin:-4px 0 16px;border-radius:0 3px 3px 0}
-.hint.bad{color:var(--red);background:rgba(176,58,46,.08);border-left-color:var(--red)}
-.warn{font-size:14px;line-height:1.7;color:#6a2a20;background:#f8e4dc;border:1.2px solid var(--red);border-radius:4px;padding:12px 14px;margin:-6px 0 16px}
-.warn button{margin-top:8px}
-.warn .btn{min-height:36px;padding:4px 14px;font-size:14px}
-.sub-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;margin-top:8px}
-.done{display:grid;gap:22px;justify-items:center}
-.slip{position:relative;width:min(100%,520px);background:#fffdf5;padding:30px 26px 22px;border:1px solid #cdbf98;box-shadow:3px 8px 0 rgba(59,59,59,.18);rotate:-1.2deg;background-image:repeating-linear-gradient(transparent 0 27px,rgba(91,127,166,.22) 27px 28px);outline:none}
-.slip::before{content:"";position:absolute;left:50%;top:-11px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fbeeb8 0,#d7b867 30%,#8b6f2e 75%,#4f3d15 100%);box-shadow:2px 4px 4px rgba(40,30,10,.4)}
-.slip h3{font:italic 700 24px/1.3 var(--serif);font-variant:small-caps;letter-spacing:.1em;color:var(--navy);text-align:center;margin-bottom:6px}
-.slip .no-id{text-align:center;font-family:var(--hand);color:var(--red);font-size:18px;margin-bottom:14px}
-.slip dl{display:grid;grid-template-columns:auto 1fr;gap:0 16px;margin:0}
-.slip dt{font-size:13px;color:var(--muted);padding-top:2px}
-.slip dd{margin:0 0 4px;font-size:15px;line-height:28px;color:var(--ink);overflow-wrap:anywhere}
-.slip .fine{margin-top:12px;text-align:center}
+/* ===== 04 預約量身：左側流程，右側量身卡 ===== */
+.book-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:clamp(36px,7vw,120px);align-items:start}
+.steps{border-top:1px solid var(--ink);margin-top:8px}
+.steps li{display:grid;grid-template-columns:52px 1fr;gap:4px 12px;padding:20px 0;border-bottom:1px solid var(--line)}
+.steps b{grid-row:span 2;font:300 30px/1 var(--serif);color:var(--brass-d)}
+.steps strong{font:400 16px/1.5 var(--cjk);letter-spacing:.12em}
+.steps span{font-size:13.5px;color:var(--muted);line-height:1.8}
+.sheet{position:relative;background:var(--paper);padding:clamp(26px,4vw,56px);border:1px solid var(--line)}
+.sheet::before{content:"FITTING CARD — No. 0253";position:absolute;right:clamp(26px,4vw,56px);top:18px;font:500 9px/1 var(--cap);letter-spacing:.3em;color:var(--muted)}
+.fset{border:0;margin:0 0 30px;padding:0;min-width:0}
+.fset legend,.fld label{display:block;padding:0;margin-bottom:12px;font:500 11px/1.4 var(--cap);letter-spacing:.24em;color:var(--muted)}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(18px,3vw,40px)}
+.fld{margin-bottom:28px;min-width:0}
+.inp{display:block;width:100%;min-height:46px;padding:10px 0;border:0;border-bottom:1px solid var(--line2);border-radius:0;background:transparent;font:400 16px/1.5 var(--cjk);letter-spacing:.06em;transition:border-color var(--dur-hover)}
+.inp:hover{border-color:var(--ink)}
+.inp:focus{outline:0;border-color:var(--ink);box-shadow:0 1px 0 var(--ink)}
+.inp[aria-invalid="true"]{border-color:var(--thread);box-shadow:0 1px 0 var(--thread)}
+select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 10px) 52%,calc(100% - 5px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:24px;cursor:pointer}
+textarea.inp{resize:vertical;min-height:96px;border:1px solid var(--line2);padding:12px 14px}
+textarea.inp:focus{box-shadow:none}
+.inp::placeholder{color:#9a958a}
+.err:not(:empty){margin-top:8px}
+.warn{margin:-8px 0 28px;padding:18px 20px;border-left:2px solid var(--thread);background:rgba(154,47,39,.06);font-size:14.5px;line-height:1.85}
+.warn p+p{margin-top:6px;color:var(--muted)}
+.warn .btn{margin-top:14px}
+.hint{margin:-14px 0 28px;font-size:13px;color:var(--muted)}
+.hint.bad{color:var(--thread)}
+.sub-row{display:flex;align-items:center;flex-wrap:wrap;gap:16px 26px;margin-top:6px}
+.sub-row .fine{flex:1;min-width:14em}
+.done{display:grid;gap:22px;justify-items:start}
+.slip{width:100%;padding:clamp(22px,3vw,34px);border:1px solid var(--ink);outline:1px solid var(--ink);outline-offset:-6px;animation:cardIn .7s var(--ease-out) both}
+.slip:focus{outline:1px solid var(--ink)}
+.slip h3{font:300 26px/1.3 var(--cjk);letter-spacing:.3em}
+.slip .no-id{font:italic 400 18px/1.4 var(--serif);color:var(--thread);margin:4px 0 18px}
+.slip dl{display:grid;grid-template-columns:7em minmax(0,1fr);border-top:1px solid var(--line)}
+.slip dt,.slip dd{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.slip dt{font:500 11px/2 var(--cap);letter-spacing:.2em;color:var(--muted)}
+.slip dd{white-space:pre-wrap;word-break:break-word}
+.slip .fine{margin-top:16px}
 
-/* ===== 尺寸指南 ===== */
-.size{background:transparent}
-.size-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(30px,5vw,70px);align-items:start}
-.mannequin{margin:0}
-.mannequin svg{display:block;width:100%;max-width:400px;height:auto;margin:0 auto}
-.mannequin figcaption{text-align:center;font-family:var(--hand);color:var(--muted);font-size:16px;margin-top:4px}
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1.5px solid var(--pencil);border-radius:4px;background:var(--paper-hi);margin-bottom:28px}
-table{border-collapse:collapse;width:100%;min-width:500px;font-size:15px}
-th,td{padding:11px 12px;text-align:center;white-space:nowrap;border-bottom:1px dashed rgba(59,59,59,.4)}
-th{background:var(--navy);color:var(--paper-hi);font-weight:600;font-size:14px;letter-spacing:.06em}
-tbody tr:last-child td{border-bottom:0}
-td.sz{font:700 18px/1 var(--serif);color:var(--red)}
-tr.hit td{background:rgba(176,58,46,.1)}
-.sz-tool{background:var(--paper-hi);border:1.5px solid var(--pencil);border-radius:4px;padding:clamp(18px,3vw,28px);position:relative;box-shadow:4px 5px 0 rgba(59,59,59,.14)}
-.sz-tool h3{font-size:19px;color:var(--navy);margin-bottom:14px;letter-spacing:.06em}
-.sz-tool .btn{margin-top:4px}
-.sz-out{margin-top:16px;min-height:3em;font-size:15px;line-height:1.8}
-.sz-out b{font:700 26px/1 var(--serif);color:var(--red);margin-right:4px}
+/* ===== 05 尺寸指南 ===== */
+.size-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(36px,6vw,104px);align-items:start}
+.mannequin svg{display:block;width:100%;max-width:400px;height:auto}
+.mannequin figcaption{margin-top:6px}
+.tbl-wrap{overflow-x:auto;border-top:1px solid var(--ink)}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th{font:500 10.5px/1.4 var(--cap);letter-spacing:.2em;color:var(--muted);text-align:left;padding:16px 12px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:14px 12px;border-bottom:1px solid var(--line);font:400 17px/1.3 var(--serif);letter-spacing:.02em;white-space:nowrap}
+td.sz{font:400 24px/1 var(--serif)}
+tbody tr{transition:background-color var(--dur-hover)}
+tbody tr:hover{background:rgba(22,23,27,.03)}
+tr.hit{background:var(--ink)!important;color:var(--paper)}
+.sz-tool{margin-top:clamp(36px,4vw,56px);padding-top:clamp(26px,3vw,36px);border-top:1px solid var(--line)}
+.sz-tool h3{font:300 22px/1.4 var(--cjk);letter-spacing:.14em;margin-bottom:22px}
+.sz-out{margin:22px 0 10px;font-size:15px;line-height:1.9;min-height:1.9em}
+.sz-out b{font:400 32px/1 var(--serif);color:var(--thread);margin:0 4px;letter-spacing:.02em}
 
-/* ===== 照片牆 ===== */
-.mosaic{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:clamp(18px,3vw,36px) clamp(14px,2vw,24px);align-items:start}
-.polaroid{rotate:var(--r,0deg);background:#fffdf5;padding:10px 10px 16px;box-shadow:0 10px 16px -8px rgba(59,59,59,.5);transition:rotate var(--dur-hover) var(--ease-out),box-shadow var(--dur-hover)}
-.polaroid:hover{rotate:0deg;box-shadow:0 14px 22px -10px rgba(59,59,59,.5)}
-.polaroid .cap{font-family:var(--hand);font-size:17px;color:var(--pencil);text-align:center;margin-top:10px}
-.m1{grid-column:1/span 7}
-.m2{grid-column:9/span 4;margin-top:60px}
-.m3{grid-column:1/span 4;margin-top:-20px}
-.m4{grid-column:6/span 7;margin-top:12px}
-.m1 .ph{--ar:4/3}.m2 .ph{--ar:1/1}.m3 .ph{--ar:3/4}.m4 .ph{--ar:16/10}
+/* ===== 06 工作室：不對稱編輯排版 ===== */
+.mosaic{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:clamp(36px,5vw,80px) clamp(16px,2vw,28px)}
+.mosaic figure{margin:0}
+.m1{grid-column:1/span 7}.m2{grid-column:9/span 4;margin-top:clamp(40px,10vw,160px)!important}
+.m3{grid-column:2/span 4}.m4{grid-column:7/span 6;margin-top:clamp(20px,6vw,100px)!important}
+.m1 .ph{--ar:4/3}.m2 .ph{--ar:4/5}.m3 .ph{--ar:3/4}.m4 .ph{--ar:16/10}
 
-/* ===== 客人的話 ===== */
-.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(22px,3.4vw,40px)}
-.note{position:relative;background:#fbf6e4;padding:26px 24px 20px;border-radius:2px;rotate:var(--r,0deg);box-shadow:0 1px 0 #d4c496,0 8px 14px -10px rgba(40,30,10,.5)}
-.note:nth-child(even){margin-top:34px}
-.tapebit{position:absolute;top:-13px;left:50%;width:92px;height:26px;margin-left:-46px;background:rgba(242,194,48,.72);rotate:-3deg;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.stars{color:var(--red);font-size:16px;letter-spacing:3px;margin-bottom:8px}
-.note blockquote{margin:0;font-size:16px;line-height:1.95;color:var(--ink)}
-.note .who{margin-top:14px;font:italic 600 14px/1.5 var(--serif);font-variant:small-caps;letter-spacing:.06em;color:var(--muted)}
+/* ===== 07 客人的話 ===== */
+.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(28px,6vw,100px);border-top:1px solid var(--chalk-line)}
+.note{position:relative;padding:clamp(30px,4vw,52px) 0 clamp(30px,4vw,48px) 0;border-bottom:1px solid var(--chalk-line)}
+.note::before{content:"\201C";position:absolute;left:-6px;top:clamp(6px,2vw,22px);font:400 88px/1 var(--serif);color:var(--brass);opacity:.5}
+.stars{color:var(--brass);letter-spacing:.3em;font-size:12px;margin:0 0 18px 48px}
+.note blockquote{font:300 clamp(17px,1.5vw,20px)/1.95 var(--cjk);letter-spacing:.08em;color:var(--chalk)}
+.who{margin-top:20px;color:var(--chalk-dim)}
 
-/* ===== 門市 ===== */
-.store{background:transparent}
-.store-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,5vw,70px);align-items:start}
-.ticket{position:relative;background:#f2e7c9;border:1.5px dashed var(--pencil);padding:clamp(20px,3vw,30px);border-radius:3px;margin-bottom:28px}
-.ticket h3{font-size:19px;color:var(--navy);letter-spacing:.06em;margin-bottom:10px}
-.hours{list-style:none;margin:0 0 16px;padding:0}
-.hours li{display:flex;justify-content:space-between;gap:12px;padding:7px 10px;border-bottom:1px dashed rgba(59,59,59,.35);font-size:15px}
-.hours li .num{font-family:var(--serif);font-size:16px;letter-spacing:.02em}
-.hours li.today{background:var(--navy);color:var(--paper-hi);border-radius:3px;border-bottom-color:transparent}
-.hours li.today .tg{font:italic 600 12px/1 var(--serif);font-variant:small-caps;letter-spacing:.1em;color:var(--tape);margin-left:6px}
-.info{display:grid;grid-template-columns:auto 1fr;gap:12px 18px;margin:0 0 22px}
-.info dt{font:italic 600 14px/1.9 var(--serif);font-variant:small-caps;letter-spacing:.1em;color:var(--red)}
-.info dd{margin:0;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
-.info a{text-decoration-thickness:1.5px;text-underline-offset:3px}
-.svc{margin-top:26px}
-.svc h3{font-size:18px;color:var(--navy);margin-bottom:8px;letter-spacing:.06em}
-.svc ul{margin:0;padding-left:1.2em;line-height:1.9;font-size:15px}
-.map{display:block;width:100%;height:auto;margin-top:26px;border:1.5px solid var(--pencil);border-radius:3px;background:#f6eed8}
-.map text{font-family:var(--hand);fill:#3b3b3b;font-size:15px}
+/* ===== 08 門市資訊 ===== */
+.store-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(36px,6vw,104px);align-items:start}
+.ticket{border-top:1px solid var(--ink)}
+.ticket h3,.svc h3{font:500 11px/1.4 var(--cap);letter-spacing:.28em;color:var(--muted);padding:18px 0 10px}
+.hours li{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;letter-spacing:.12em}
+.hours .num{font:400 18px/1 var(--serif);letter-spacing:.04em}
+.hours li.today{color:var(--thread)}
+.tg{font:500 10px/1 var(--cap);letter-spacing:.2em;margin-left:12px;font-style:normal}
+.ticket .status{margin-top:18px}
+.svc{margin-top:clamp(30px,4vw,48px);border-top:1px solid var(--line)}
+.svc li{position:relative;padding:6px 0 6px 22px;font-size:14px;color:var(--ink2);line-height:1.85}
+.svc li::before{content:"";position:absolute;left:0;top:1.05em;width:10px;height:1px;background:var(--brass-d)}
+.info{display:grid;grid-template-columns:5.4em minmax(0,1fr);border-top:1px solid var(--ink);margin-bottom:28px}
+.info dt,.info dd{padding:16px 0;border-bottom:1px solid var(--line)}
+.info dt{font:500 11px/2 var(--cap);letter-spacing:.24em;color:var(--muted)}
+.info dd{font-size:15px;line-height:1.85}
+.info a{text-underline-offset:4px}
+.map{display:block;width:100%;height:auto;margin-top:28px;background:var(--paper);border:1px solid var(--line)}
+.map text{font:400 13px var(--cap);letter-spacing:.2em;fill:var(--muted)}
 
 /* ===== 頁尾 ===== */
-.foot{background:var(--navy);color:#cfd6e2;padding:0 0 clamp(60px,8vw,80px);border-top:3px dashed var(--brass)}
-.foot-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px 40px;align-items:end;padding-top:clamp(40px,6vw,64px)}
-.foot .logo{color:#f3eedd}
-.foot .logo small{color:#aebfd6}
-.foot p{font-size:14px;line-height:1.85;margin:0}
-.foot .soc{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px}
-.foot .soc a{font-size:14px;color:var(--tape);text-decoration:none;border-bottom:1px dashed rgba(242,194,48,.6)}
-.foot .soc a:hover{color:#ffe38a}
-.foot .disc-note{margin-top:18px;font-size:13px;color:#aebfd6}
+.foot{background:var(--ink);color:var(--chalk);padding:clamp(64px,8vw,120px) 0 40px;overflow:hidden}
+.foot-mark{font:italic 400 clamp(54px,11.5vw,184px)/.9 var(--serif);letter-spacing:-.02em;color:transparent;-webkit-text-stroke:1px rgba(236,230,214,.38);white-space:nowrap;margin-bottom:clamp(40px,6vw,80px)}
+.foot-in{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;padding-top:30px;border-top:1px solid var(--chalk-line)}
+.foot .logo{align-items:flex-start;color:var(--chalk)}
+.foot .logo b{margin-right:0}
+.foot .logo small{color:var(--chalk-dim);margin-right:0}
+.foot p{font-size:13px;color:var(--chalk-dim);line-height:2}
+.soc{display:flex;flex-direction:column;gap:6px}
+.soc a{width:max-content;text-decoration:none;font:400 12px/1.8 var(--cap);letter-spacing:.24em;color:var(--chalk);border-bottom:1px solid transparent;transition:border-color var(--dur-hover)}
+.soc a:hover{border-color:var(--chalk)}
+.disc-note{margin-top:8px}
 
-/* ===== 手機與窄版 ===== */
-@media (max-width:1080px){
+/* ===== 響應式 ===== */
+@media (max-width:1180px){
+  .hd-tel{display:none}
   .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-@media (min-width:1100px){
-  .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-}
-@media (max-width:820px){
-  .burger{display:inline-block}
-  .nav{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--paper-hi);padding:6px 16px 14px;border-bottom:1.5px dashed var(--pencil);box-shadow:0 10px 16px -12px rgba(0,0,0,.35)}
-  .nav.open{display:flex}
-  .nav a{padding:12px 4px;border-bottom:1px dashed rgba(59,59,59,.3);font-size:16px}
+@media (max-width:980px){
+  .hd-in{grid-template-columns:auto 1fr auto}
+  .logo{grid-column:1;align-items:flex-start}
+  .logo b{margin-right:0}.logo small{margin-right:0}
+  .burger{display:inline-flex;grid-column:3}
+  .hd-act{grid-column:2;gap:16px}
+  .nav{position:fixed;left:0;right:0;top:calc(var(--tape-h) + var(--head-h));height:calc(100dvh - var(--tape-h) - var(--head-h));flex-direction:column;gap:0;padding:clamp(24px,6vw,48px) var(--gut);background:var(--bone);opacity:0;visibility:hidden;transform:translateY(-8px);transition:opacity var(--dur-hover) var(--ease-out),transform var(--dur-hover) var(--ease-out),visibility 0s linear var(--dur-hover);overflow-y:auto}
+  .nav.open{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+  .nav a{padding:18px 0;border-bottom:1px solid var(--line);font:300 26px/1.2 var(--cjk);letter-spacing:.24em}
   .nav a::after{display:none}
-  .hero{grid-template-columns:minmax(0,1fr);gap:28px}
-  .piece-hero{justify-self:center;width:min(100%,400px)}
-  .story,.size-grid,.store-grid,.studio-grid,.foot-in{grid-template-columns:minmax(0,1fr)}
-  .story .frame-wrap{max-width:440px;width:100%;margin:0 auto}
-  .stats li{padding-right:6px}
-  .notes{grid-template-columns:minmax(0,1fr)}
-  .note:nth-child(even){margin-top:0}
-  .mosaic{grid-template-columns:minmax(0,1fr)}
-  .m1,.m2,.m3,.m4{grid-column:1/-1;margin-top:0;width:100%}
-  .m2,.m4{justify-self:end;width:88%}
-  .m3{justify-self:start;width:82%}
-  .m1{width:100%}
-  .quote{grid-template-columns:minmax(0,1fr)}
-  .row2{grid-template-columns:minmax(0,1fr)}
+  .hero{grid-template-columns:1fr;min-height:0}
+  .hero-txt{grid-column:1;grid-row:1;padding:clamp(40px,8vw,72px) var(--gut)}
+  .cloth{grid-column:1;grid-row:2;aspect-ratio:4/5;max-height:88svh}
+  .story,.studio-grid,.book-grid,.size-grid,.store-grid{grid-template-columns:1fr}
+  .story-fig{max-width:560px}
+  .prev-col{position:static}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .fab .sw{height:clamp(150px,44vw,200px)}
+  .foot-in{grid-template-columns:1fr 1fr}
 }
-@media (max-width:560px){
-  :root{--head-h:58px}
-  .logo span{font-size:18px}
-  .hd-act .btn.sm{min-height:36px;padding:4px 12px}
-  .stats span{font-size:13px}
-  .inq-acts .btn{flex:1}
-  .info{grid-template-columns:minmax(0,1fr);gap:2px 0}
-  .info dt{margin-top:10px}
-  .studio-grid .chips{gap:6px}
-  .board{padding:30px 18px 36px}
-  .fabpick{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:620px){
+  :root{--head-h:64px}
+  .hd-act .btn{display:none}
+  .lead{font-size:clamp(30px,9vw,40px);letter-spacing:.08em}
+  .story-fig::before{display:none}
+  .stats li{padding-right:8px}.stats li+li{padding-left:12px}
+  .stats span{font-size:12px;letter-spacing:.04em}
+  .grid{grid-template-columns:1fr;gap:44px}
+  .fab{display:grid;grid-template-columns:42% minmax(0,1fr);gap:0 18px}
+  .fab .body{padding-top:0}
+  .fab .acts{flex-direction:column;gap:6px;align-items:flex-start}
+  .fab h3{font-size:17px}
+  .inq{grid-template-columns:1fr}
+  .inq-acts{grid-column:1;grid-row:auto;justify-content:flex-start}
+  .opt{grid-template-columns:1fr;gap:12px}
+  .opt legend{float:none;padding:0}
+  .opt>.chips,.opt>.fabpick,.opt>.lin-wrap,.opt>.chk{grid-column:1}
+  .chip span{min-height:40px;padding:6px 13px;font-size:13.5px}
+  .quote{grid-template-columns:1fr 1fr;gap:14px 20px}
+  .row2{grid-template-columns:1fr}
+  .mosaic{grid-template-columns:1fr;gap:44px}
+  .m1,.m2,.m3,.m4{grid-column:1;margin-top:0!important}
+  .notes{grid-template-columns:1fr}
+  .foot-in{grid-template-columns:1fr}
+  .cloth .hc-tl,.cloth .hc-br{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
   .js .rv{opacity:1;transform:none}
-  .chalk-anim{clip-path:none}
-  .mk-draw{stroke-dashoffset:0}
+  .js .rv.in .ph>svg,.js .rv.in .ph>img,.tape,.chalk-anim,.fab,.slip,.jacket-box svg,.inq-list li,.status.on .dot{animation:none}
+  .draw{animation:none;stroke-dashoffset:0}
+  .fade-late{animation:none;opacity:1}
+  .sw,.ph>svg,.ph>img{transition:none}
+  .fab:hover .sw,.ph:hover>svg,.ph:hover>img{transform:none}
 }
 </style>
 </head>
@@ -378,21 +466,21 @@ tr.hit td{background:rgba(176,58,46,.1)}
   <defs>
     <filter id="chalk" x="-6%" y="-14%" width="112%" height="128%">
       <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" result="t"/>
-      <feDisplacementMap in="SourceGraphic" in2="t" scale="3" xChannelSelector="R" yChannelSelector="G" result="d"/>
-      <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 2.1" result="g"/>
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 2.3" result="g"/>
       <feComposite in="d" in2="g" operator="in"/>
     </filter>
-    <radialGradient id="brassG" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#f6e6a8"/><stop offset=".45" stop-color="#b89a4c"/><stop offset="1" stop-color="#5e4a1c"/></radialGradient>
+    <radialGradient id="brassG" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#f3e2b0"/><stop offset=".45" stop-color="#b08f5c"/><stop offset="1" stop-color="#4d3a18"/></radialGradient>
     <linearGradient id="g-satin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0c0c0f"/><stop offset=".42" stop-color="#4a4a54"/><stop offset=".6" stop-color="#15151a"/><stop offset="1" stop-color="#2d2d35"/></linearGradient>
-    <pattern id="pt-pin" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#1d2738"/><rect x="2" width="1.4" height="12" fill="#5b6f94"/></pattern>
-    <pattern id="pt-herr" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#4b4d52"/><path d="M0 0L5 5L10 0M0 5L5 10L10 5" fill="none" stroke="#80838a" stroke-width="1.7"/></pattern>
-    <pattern id="pt-pow" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#8c8473"/><rect width="11" height="24" fill="#2e2d2b" fill-opacity=".55"/><rect width="24" height="11" fill="#2e2d2b" fill-opacity=".55"/><rect x="13" width="1.2" height="24" fill="#f1e7cf" fill-opacity=".7"/><rect y="13" width="24" height="1.2" fill="#f1e7cf" fill-opacity=".7"/></pattern>
-    <pattern id="pt-bird" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#d9d4c7"/><circle cx="2" cy="2" r="1.3" fill="#3b3b3b" fill-opacity=".8"/><circle cx="6" cy="6" r="1.3" fill="#3b3b3b" fill-opacity=".8"/></pattern>
-    <pattern id="pt-flan" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#b98d56"/><rect width="3" height="9" fill="#c9a06a" fill-opacity=".6"/><rect y="5" width="9" height="2" fill="#94693d" fill-opacity=".45"/></pattern>
-    <pattern id="pt-lin" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#e6dcc4"/><path d="M0 1.5H5M1.5 0V5" stroke="#b9ab88" stroke-width=".7"/></pattern>
-    <pattern id="pt-linen2" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#cdd7dd"/><path d="M0 1.5H5M1.5 0V5" stroke="#9fb0bb" stroke-width=".7"/></pattern>
-    <pattern id="pt-poplin" width="4" height="8" patternUnits="userSpaceOnUse"><rect width="4" height="8" fill="#f6f4ee"/><rect width="1" height="8" fill="#e2ded2"/></pattern>
-    <pattern id="pt-silk" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="14" height="14" fill="#1d2738"/><rect width="5" height="14" fill="#b03a2e"/><rect x="7" width="1.4" height="14" fill="#b89a4c"/></pattern>
+    <pattern id="pt-pin" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#1c2434"/><rect x="2" width="1" height="12" fill="#6a7c9c"/></pattern>
+    <pattern id="pt-herr" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#45474c"/><path d="M0 0L5 5L10 0M0 5L5 10L10 5" fill="none" stroke="#6f7279" stroke-width="1.5"/></pattern>
+    <pattern id="pt-pow" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#8a8273"/><rect width="11" height="24" fill="#2e2d2b" fill-opacity=".5"/><rect width="24" height="11" fill="#2e2d2b" fill-opacity=".5"/><rect x="13" width="1" height="24" fill="#8f3a2c" fill-opacity=".55"/><rect y="13" width="24" height="1" fill="#8f3a2c" fill-opacity=".55"/></pattern>
+    <pattern id="pt-bird" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#56524a"/><circle cx="2" cy="2" r="1.2" fill="#2a2925"/><circle cx="6" cy="6" r="1.2" fill="#2a2925"/><circle cx="2" cy="2" r=".45" fill="#8c877b"/><circle cx="6" cy="6" r=".45" fill="#8c877b"/></pattern>
+    <pattern id="pt-flan" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#a8804f"/><rect width="3" height="9" fill="#b98f5e" fill-opacity=".6"/><rect y="5" width="9" height="2" fill="#8a6237" fill-opacity=".4"/></pattern>
+    <pattern id="pt-lin" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#ddd2bb"/><path d="M0 1.5H5M1.5 0V5" stroke="#bcae8f" stroke-width=".7"/></pattern>
+    <pattern id="pt-linen2" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#c9d2d6"/><path d="M0 1.5H5M1.5 0V5" stroke="#a2b0b7" stroke-width=".7"/></pattern>
+    <pattern id="pt-poplin" width="4" height="8" patternUnits="userSpaceOnUse"><rect width="4" height="8" fill="#f3f1ec"/><rect width="1" height="8" fill="#e3e0d8"/></pattern>
+    <pattern id="pt-silk" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="14" height="14" fill="#1a2232"/><rect width="4" height="14" fill="#7d2630"/><rect x="7" width="1" height="14" fill="#b08f5c"/></pattern>
   </defs>
 </svg>
 
@@ -405,116 +493,126 @@ tr.hit td{background:rgba(176,58,46,.1)}
 <header class="hd">
   <div class="hd-in">
     <a class="logo" href="#top" aria-label="衡尺 MEASURE and CLOTH 回到頁首">
-      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="31" height="31" rx="3" fill="#1d2738"/><path d="M7 27L27 7" stroke="#b03a2e" stroke-width="1.5" stroke-dasharray="2 2.4"/><path d="M9 9H25V25" fill="none" stroke="#f2c230" stroke-width="2.6"/></svg>
-      <span>衡尺<small>MEASURE &amp; CLOTH</small></span>
+      <b>衡尺</b><small>MEASURE &amp; CLOTH</small>
     </a>
     <nav class="nav" id="nav" aria-label="主要區塊">
       <a href="#story">故事</a>
       <a href="#fabrics">布樣</a>
       <a href="#studio">設計台</a>
       <a href="#size">尺寸</a>
-      <a href="#gallery">照片</a>
+      <a href="#gallery">工作室</a>
       <a href="#store">門市</a>
     </nav>
     <div class="hd-act">
+      <a class="hd-tel" id="hdTel" href="#store">(02) 2700-1234</a>
       <a class="btn pri sm" href="#book">預約量身</a>
-      <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="nav">選單</button>
+      <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="nav"><i aria-hidden="true"></i>選單</button>
     </div>
   </div>
 </header>
 
 <main id="top">
 
-<!-- ===== Hero：放大的西裝前身版片 ===== -->
+<!-- ===== Hero：深色羊毛布上的粉筆版片 ===== -->
 <div class="hero">
   <div class="hero-txt">
-    <p class="eyebrow">Bespoke Tailoring · Since 1958</p>
+    <p class="eyebrow cap">Bespoke Tailoring — Est. 1958 — Taipei</p>
     <h1 class="lead"><span>一件好西裝，</span><span>先從一張紙</span><span>開始。</span></h1>
-    <p class="hero-desc">衡尺在博愛路老西服街做了三代西裝。半訂製從 NT$ 18,800 起，全訂製從 NT$ 48,000 起。先在下面的設計台選一件西裝，師傅再拿著這張設計量你的身體、打版、試身。</p>
-    <span class="status" id="heroStatus"><i class="dot"></i><span class="tx">營業狀態讀取中</span></span>
+    <p class="hero-desc">衡尺在博愛路老西服街做了三代西裝。先在下面的設計台選一件西裝，師傅再拿著這張設計量你的身體、打版、試身。</p>
+    <dl class="offer">
+      <div><dt>半訂製<small>Made to Measure</small></dt><dd>18,800<small>NT$ 起・4 週</small></dd></div>
+      <div><dt>全訂製<small>Full Bespoke</small></dt><dd>48,000<small>NT$ 起・8 週</small></dd></div>
+    </dl>
     <div class="cta">
-      <a class="btn pri" href="#studio">開始設計一件西裝</a>
-      <a class="btn" href="#book">預約量身</a>
+      <a class="btn pri" href="#studio">開始設計一件西裝<i class="ar" aria-hidden="true"></i></a>
+      <a class="lnk" href="#book">預約量身</a>
     </div>
+    <span class="status" id="heroStatus"><i class="dot"></i><span class="tx">營業狀態讀取中</span></span>
   </div>
 
-  <figure class="piece-hero" style="margin:0">
-    <svg class="pat" viewBox="0 0 460 600" role="img" aria-label="西裝前身版片示意，標有布紋方向、剪口與縫份">
-      <path d="M84 46 L236 30 L352 84 C360 170 368 230 378 260 C384 300 380 360 392 468 L404 548 L110 572 L104 480 L96 300 L100 150 Z" fill="#f7efdb" stroke="#3b3b3b" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M98 66 L228 52 L332 98 C338 174 344 232 352 262 C360 300 356 360 368 462 L378 520 L118 540 L116 470 L110 300 L116 172 Z" fill="none" stroke="#3b3b3b" stroke-width="1.1" stroke-dasharray="6 5" opacity=".55"/>
-      <path d="M226 288V532M219 302L226 288L233 302M219 518L226 532L233 518" fill="none" stroke="#3b3b3b" stroke-width="1.4"/>
-      <path d="M386 330l12 6-12 6z M372 420l12 6-12 6z M104 400l-10 5 10 5z M170 560l0-12 6 0z" fill="#3b3b3b"/>
-      <mask id="mk-hero" maskUnits="userSpaceOnUse" x="0" y="0" width="460" height="600">
-        <path class="mk-draw" pathLength="100" d="M98 66 L228 52 L332 98 C338 174 344 232 352 262 C360 300 356 360 368 462 L378 520 L118 540 L116 470 L110 300 L116 172 Z" fill="none" stroke="#fff" stroke-width="40"/>
-      </mask>
-      <path mask="url(#mk-hero)" d="M98 66 L228 52 L332 98 C338 174 344 232 352 262 C360 300 356 360 368 462 L378 520 L118 540 L116 470 L110 300 L116 172 Z" fill="none" stroke="#b03a2e" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="0.1 9"/>
-      <circle cx="84" cy="46" r="7" fill="url(#brassG)"/>
-      <circle cx="352" cy="84" r="7" fill="url(#brassG)"/>
-      <circle cx="404" cy="548" r="7" fill="url(#brassG)"/>
-      <circle cx="110" cy="572" r="7" fill="url(#brassG)"/>
-      <text class="anno" x="238" y="410">前片 ×2 裁</text>
-      <text class="anno sm" x="214" y="330" text-anchor="end">布紋方向</text>
-      <text class="anno sm" x="30" y="400" transform="rotate(-90 30 400)">縫份 1.5cm</text>
-      <text class="anno sm" x="4" y="268">腰線</text>
-      <path d="M50 262H92" fill="none" stroke="#3b3b3b" stroke-width="1.2" stroke-dasharray="4 3"/>
-      <g transform="translate(46 520) rotate(64.5)" aria-hidden="true">
-        <rect x="-73" y="-9" width="146" height="18" fill="#f2c230" stroke="#8a6d17"/>
-        <path d="M-70 3H70" stroke="#1a1a1a" stroke-width="6" stroke-dasharray="1.2 3.8"/>
-        <g font-size="7" fill="#1a1a1a" text-anchor="middle" style="font-family:var(--serif)"><text x="-48" y="-1.5">10</text><text x="-24" y="-1.5">20</text><text x="0" y="-1.5">30</text><text x="24" y="-1.5">40</text><text x="48" y="-1.5">50</text></g>
+  <figure class="cloth">
+    <svg class="pat" viewBox="0 0 460 600" role="img" aria-label="深色羊毛布上用粉筆畫出的西裝前身版片，標有布紋方向、剪口、扣位與縫份">
+      <g filter="url(#chalk)" fill="none" stroke="#ece6d6" stroke-linejoin="round" stroke-linecap="round">
+        <path class="draw" pathLength="1" d="M84 46 L236 30 L352 84 C360 170 368 230 378 260 C384 300 380 360 392 468 L404 548 L110 572 L104 480 L96 300 L100 150 Z" stroke-width="2.6"/>
+        <path class="draw d1" pathLength="1" d="M98 66 L228 52 L332 98 C338 174 344 232 352 262 C360 300 356 360 368 462 L378 520 L118 540 L116 470 L110 300 L116 172 Z" stroke-width="1.2" stroke-dasharray="1" opacity=".6"/>
+        <path class="draw d2" pathLength="1" d="M236 30 C214 120 200 200 196 262" stroke-width="1.4"/>
+        <path class="draw d2" pathLength="1" d="M280 300 C276 360 276 420 284 470" stroke-width="1.4"/>
+        <g class="fade-late">
+          <path d="M226 300V520M219 314L226 300L233 314M219 506L226 520L233 506" stroke-width="1.4"/>
+          <path d="M386 330l10 6-10 6M372 420l10 6-10 6M104 400l-9 5 9 5" stroke-width="1.6"/>
+          <path d="M154 300l12 12M166 300l-12 12M154 370l12 12M166 370l-12 12" stroke-width="1.6"/>
+          <path d="M290 488H352" stroke-width="1.6"/>
+          <path d="M44 262H96" stroke-width="1" stroke-dasharray="5 4"/>
+        </g>
+      </g>
+      <path class="fade-late" d="M66 120 C 160 128 250 118 344 132" fill="none" stroke="#9a2f27" stroke-width="1.6" stroke-dasharray="12 7" stroke-linecap="round"/>
+      <path class="fade-late" d="M128 588 C 220 576 300 572 412 560" fill="none" stroke="#e4ddcc" stroke-width="1.4" stroke-dasharray="12 7" stroke-linecap="round" opacity=".75"/>
+      <g class="fade-late" fill="#ece6d6" filter="url(#chalk)" style="font-family:var(--hand)">
+        <text x="236" y="420" font-size="21">前片 ×2</text>
+        <text x="214" y="290" font-size="15" text-anchor="end">布紋</text>
+        <text x="40" y="254" font-size="15">腰線</text>
+        <text x="298" y="508" font-size="14">袋口</text>
+      </g>
+      <g aria-hidden="true">
+        <path d="M84 46l-30 -26" stroke="#c9c9c9" stroke-width="1.4"/><circle cx="54" cy="20" r="5.5" fill="url(#brassG)"/>
+        <path d="M352 84l26 -30" stroke="#c9c9c9" stroke-width="1.4"/><circle cx="378" cy="54" r="5.5" fill="url(#brassG)"/>
+        <path d="M404 548l28 22" stroke="#c9c9c9" stroke-width="1.4"/><circle cx="432" cy="570" r="5.5" fill="url(#brassG)"/>
       </g>
     </svg>
-    <p class="h1-chalk chalk-anim" aria-hidden="true">衡尺</p>
-    <p class="h1-sub chalk-anim d1" aria-hidden="true">Measure &amp; Cloth</p>
-    <p class="h1-tag chalk-anim d2" aria-hidden="true">博愛路第三代・西裝訂製</p>
+    <span class="hc hc-tl cap">Pattern No. 0253 — Front</span>
+    <span class="hc hc-v chalk-anim d1" aria-hidden="true">衡尺</span>
+    <figcaption class="hc hc-bl"><span class="cap">Fig. 00</span>粉筆在羊毛上的第一道線</figcaption>
+    <span class="hc hc-br cap">Cut ×2 · Seam 1.5 cm</span>
   </figure>
 </div>
 
 <!-- ===== 01 品牌故事 ===== -->
 <section id="story" aria-labelledby="t-story">
   <div class="wrap story">
-    <div class="frame-wrap rv">
-      <div class="frame">
-        <figure class="ph" data-photo="story" data-art="tailor" data-label="老師傅在案板上劃粉" data-size="1200×1500"></figure>
-      </div>
-      <i class="pin"></i><i class="pin"></i>
-    </div>
-    <div class="rv">
+    <figure class="story-fig rv">
+      <div class="ph" data-photo="story" data-art="tailor" data-label="老師傅在案板上劃粉" data-size="1200×1500"></div>
+      <figcaption class="fig"><span class="cap">Fig. 01</span>老師傅在案板上劃粉</figcaption>
+    </figure>
+    <div class="story-txt rv">
       <div class="sec-head">
-        <span class="no">No.01</span>
+        <span class="no">No. 01 — Story</span>
         <h2 class="sec-title" id="t-story">一張紙，三代人的尺寸</h2>
-        <p class="sec-en">Our Story · Since 1958</p>
+        <p class="sec-en">Our story, since 1958</p>
       </div>
-      <p class="body-txt">衡尺的招牌是一把木製長尺，掛在博愛路 98 號櫃檯後面已經很多年了。師傅不會直接拿成衣來修，而是先用皮尺量你的身體，再在牛皮色的打版紙上一片一片畫出版型。</p>
+      <p class="body-txt drop">衡尺的招牌是一把木製長尺，掛在博愛路 98 號櫃檯後面已經很多年了。師傅不會直接拿成衣來修，而是先用皮尺量你的身體，再在打版紙上一片一片畫出版型。</p>
+      <blockquote class="pull"><p>「先量你的身體，<br>再畫你的西裝。」</p><cite class="cap">— 第三代師傅</cite></blockquote>
       <p class="body-txt">半訂製沿用既有版型，依你的身形微調肩寬、袖長與衣長；全訂製則從零開始打版，試身三次，直到每一顆扣子都落在你習慣的位置。</p>
       <p class="body-txt">布料只選有來源的精紡與法蘭絨。布樣冊就在下面，你可以先看、先摸，再決定要做哪一件。</p>
       <ul class="stats">
         <li><b>1958</b><span>創店於博愛路</span></li>
         <li><b>6,400+</b><span>件訂製西裝完成</span></li>
-        <li><b>3 次</b><span>全訂製的試身次數</span></li>
+        <li><b>3</b><span>全訂製的試身次數</span></li>
       </ul>
     </div>
   </div>
 </section>
 
 <!-- ===== 02 布樣冊（商品） ===== -->
-<section id="fabrics" aria-labelledby="t-fab">
+<section id="fabrics" class="paper" aria-labelledby="t-fab">
   <div class="wrap">
-    <div class="sec-head rv">
-      <span class="no">No.02</span>
-      <h2 class="sec-title" id="t-fab">布樣冊</h2>
-      <p class="sec-en">Fabric Album</p>
-      <p class="sec-desc">每一張布樣都是真的織物，這裡的圖樣是示意。「收藏」留給自己看，「加入詢問」會放進下方的詢問清單，帶去量身時可以一起討論。</p>
-    </div>
-    <div class="tabs" role="group" aria-label="商品分類">
-      <button type="button" class="tab" data-cat="all" aria-pressed="true">全部</button>
-      <button type="button" class="tab" data-cat="西裝布料" aria-pressed="false">西裝布料</button>
-      <button type="button" class="tab" data-cat="襯衫" aria-pressed="false">襯衫</button>
-      <button type="button" class="tab" data-cat="配件" aria-pressed="false">配件</button>
+    <div class="fab-top rv">
+      <div class="sec-head">
+        <span class="no">No. 02 — Cloth</span>
+        <h2 class="sec-title" id="t-fab">布樣冊</h2>
+        <p class="sec-en">The fabric album</p>
+        <p class="sec-desc">每一張布樣都是真的織物，這裡的圖樣是示意。「收藏」留給自己看，「加入詢問」會放進下方的詢問清單，帶去量身時可以一起討論。</p>
+      </div>
+      <div class="tabs" role="group" aria-label="商品分類">
+        <button type="button" class="tab" data-cat="all" aria-pressed="true">全部</button>
+        <button type="button" class="tab" data-cat="西裝布料" aria-pressed="false">西裝布料</button>
+        <button type="button" class="tab" data-cat="襯衫" aria-pressed="false">襯衫</button>
+        <button type="button" class="tab" data-cat="配件" aria-pressed="false">配件</button>
+      </div>
     </div>
     <div class="grid" id="grid"></div>
 
     <div class="inq rv" id="inq" aria-labelledby="inqTitle">
-      <h3 id="inqTitle">詢問清單 <span id="inqN">0</span> 件</h3>
+      <h3 id="inqTitle"><span class="cap">Enquiry</span>詢問清單 <span id="inqN">0</span> 件</h3>
       <p class="inq-empty" id="inqEmpty">還沒有加入任何布料或單品。</p>
       <ul class="inq-list" id="inqList"></ul>
       <div class="inq-acts">
@@ -526,87 +624,85 @@ tr.hit td{background:rgba(176,58,46,.1)}
 </section>
 
 <!-- ===== 03 西裝設計台（核心功能） ===== -->
-<section id="studio" class="studio" aria-labelledby="t-studio">
+<section id="studio" class="studio on-dark" aria-labelledby="t-studio">
   <div class="wrap">
-    <div class="board rv">
-      <div class="sec-head">
-        <span class="no">No.03</span>
-        <h2 class="sec-title" id="t-studio">西裝設計台</h2>
-        <p class="sec-en">Design Table</p>
-        <p class="sec-desc">左邊的版型會跟著右邊的選項即時改變，估價與工期同步更新。這裡的估價是示意，正式報價以布料確認與第一次試身為準。</p>
+    <div class="sec-head rv">
+      <span class="no">No. 03 — Design Table</span>
+      <h2 class="sec-title" id="t-studio">西裝設計台</h2>
+      <p class="sec-en">Compose your suit</p>
+      <p class="sec-desc">左邊的版型會跟著右邊的選項即時改變，估價與工期同步更新。這裡的估價是示意，正式報價以布料確認與第一次試身為準。</p>
+    </div>
+    <div class="studio-grid">
+      <div class="prev-col rv">
+        <div class="paper-prev">
+          <div class="jacket-box" id="jacketBox" role="img" aria-label="西裝外套正面示意圖，隨選項即時更新"></div>
+          <div class="back-box" id="backBox" role="img" aria-label="後衩示意"></div>
+        </div>
+        <div class="quote" aria-live="polite">
+          <div><span class="lb cap">Estimate</span><div class="big" id="qPrice">—</div></div>
+          <div><span class="lb cap">Weeks &amp; Fittings</span><div class="big sm" id="qWeeks">—</div></div>
+          <p class="qnote" id="qNote"></p>
+        </div>
+        <button type="button" class="btn pri" id="toBook">把這套設計帶去預約<i class="ar" aria-hidden="true"></i></button>
       </div>
-      <div class="studio-grid">
-        <div class="prev-col">
-          <div class="paper-prev">
-            <div class="jacket-box" id="jacketBox" role="img" aria-label="西裝外套正面示意圖，隨選項即時更新"></div>
-            <div class="back-box" id="backBox" role="img" aria-label="後衩示意"></div>
-          </div>
-          <div class="quote" aria-live="polite">
-            <div><span class="lb">估價</span><div class="big" id="qPrice">—</div></div>
-            <div><span class="lb">工期與試身</span><div class="big sm" id="qWeeks">—</div></div>
-            <p class="qnote" id="qNote"></p>
-          </div>
-          <button type="button" class="btn" id="toBook">把這套設計帶去預約</button>
-        </div>
 
-        <div class="ctrl">
-          <fieldset class="opt">
-            <legend>方案</legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="plan" value="mtm" checked><span>半訂製・NT$ 18,800 起・4 週</span></label>
-              <label class="chip"><input type="radio" name="plan" value="bespoke"><span>全訂製・NT$ 48,000 起・8 週</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>排扣</legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="btn" value="sb1"><span>單排一扣</span></label>
-              <label class="chip"><input type="radio" name="btn" value="sb2" checked><span>單排二扣</span></label>
-              <label class="chip"><input type="radio" name="btn" value="db"><span>雙排六扣二</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>翻領</legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="lapel" value="notch" checked><span>平駁領</span></label>
-              <label class="chip"><input type="radio" name="lapel" value="peak"><span>劍領</span></label>
-              <label class="chip"><input type="radio" name="lapel" value="shawl"><span>青果領</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>口袋</legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="pocket" value="flap" checked><span>有蓋袋</span></label>
-              <label class="chip"><input type="radio" name="pocket" value="patch"><span>貼袋</span></label>
-              <label class="chip"><input type="radio" name="pocket" value="slant"><span>斜袋</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>後衩</legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="vent" value="none"><span>無衩</span></label>
-              <label class="chip"><input type="radio" name="vent" value="single" checked><span>單衩</span></label>
-              <label class="chip"><input type="radio" name="vent" value="double"><span>雙衩</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>西褲與背心</legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="pants" value="none" checked><span>不加西褲</span></label>
-              <label class="chip"><input type="radio" name="pants" value="flat"><span>西褲・無褶</span></label>
-              <label class="chip"><input type="radio" name="pants" value="pleat"><span>西褲・單褶</span></label>
-            </div>
-            <label class="chk" style="margin-top:12px"><input type="checkbox" name="vest"><span>加背心（五粒扣）</span></label>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>布料（取自布樣冊）</legend>
-            <div class="fabpick" id="fabPick"></div>
-          </fieldset>
-          <fieldset class="opt">
-            <legend>內裡顏色</legend>
-            <div class="lin-wrap" id="linPick"></div>
-          </fieldset>
-        </div>
+      <div class="ctrl rv">
+        <fieldset class="opt">
+          <legend>Plan<i>方案</i></legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="plan" value="mtm" checked><span>半訂製・18,800 起・4 週</span></label>
+            <label class="chip"><input type="radio" name="plan" value="bespoke"><span>全訂製・48,000 起・8 週</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Front<i>排扣</i></legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="btn" value="sb1"><span>單排一扣</span></label>
+            <label class="chip"><input type="radio" name="btn" value="sb2" checked><span>單排二扣</span></label>
+            <label class="chip"><input type="radio" name="btn" value="db"><span>雙排六扣二</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Lapel<i>翻領</i></legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="lapel" value="notch" checked><span>平駁領</span></label>
+            <label class="chip"><input type="radio" name="lapel" value="peak"><span>劍領</span></label>
+            <label class="chip"><input type="radio" name="lapel" value="shawl"><span>青果領</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Pockets<i>口袋</i></legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="pocket" value="flap" checked><span>有蓋袋</span></label>
+            <label class="chip"><input type="radio" name="pocket" value="patch"><span>貼袋</span></label>
+            <label class="chip"><input type="radio" name="pocket" value="slant"><span>斜袋</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Vent<i>後衩</i></legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="vent" value="none"><span>無衩</span></label>
+            <label class="chip"><input type="radio" name="vent" value="single" checked><span>單衩</span></label>
+            <label class="chip"><input type="radio" name="vent" value="double"><span>雙衩</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Trousers<i>西褲與背心</i></legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="pants" value="none" checked><span>不加西褲</span></label>
+            <label class="chip"><input type="radio" name="pants" value="flat"><span>西褲・無褶</span></label>
+            <label class="chip"><input type="radio" name="pants" value="pleat"><span>西褲・單褶</span></label>
+          </div>
+          <label class="chk"><input type="checkbox" name="vest"><span>加背心（五粒扣）</span></label>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Cloth<i>布料</i></legend>
+          <div class="fabpick" id="fabPick"></div>
+        </fieldset>
+        <fieldset class="opt">
+          <legend>Lining<i>內裡</i></legend>
+          <div class="lin-wrap" id="linPick"></div>
+        </fieldset>
       </div>
     </div>
   </div>
@@ -614,18 +710,24 @@ tr.hit td{background:rgba(176,58,46,.1)}
 
 <!-- ===== 預約量身（核心功能 2） ===== -->
 <section id="book" class="book" aria-labelledby="t-book">
-  <div class="wrap">
-    <div class="sec-head rv">
-      <span class="no">No.04</span>
-      <h2 class="sec-title" id="t-book">預約量身</h2>
-      <p class="sec-en">Fitting Appointment</p>
-      <p class="sec-desc">用途與婚期會決定能不能來得及。婚期太近時會先提醒你，並給出最早可行的日期。</p>
+  <div class="wrap book-grid">
+    <div class="rv">
+      <div class="sec-head">
+        <span class="no">No. 04 — Fitting</span>
+        <h2 class="sec-title" id="t-book">預約量身</h2>
+        <p class="sec-en">Book a fitting</p>
+        <p class="sec-desc">用途與婚期會決定能不能來得及。婚期太近時會先提醒你，並給出最早可行的日期。</p>
+      </div>
+      <ol class="steps">
+        <li><b>i</b><strong>量身與挑布</strong><span>約 60 分鐘。師傅量二十多個部位，一起翻布樣冊。</span></li>
+        <li><b>ii</b><strong>打版與試身</strong><span>半訂製試身一次，全訂製試身三次，每次約 40 分鐘。</span></li>
+        <li><b>iii</b><strong>交件與小修</strong><span>交件後一次免費小修，袖長與褲長各一次。</span></li>
+      </ol>
     </div>
     <div class="sheet rv">
-      <i class="pin"></i><i class="pin"></i>
       <form id="bForm" novalidate>
         <fieldset class="fset">
-          <legend>用途</legend>
+          <legend>用途 Occasion</legend>
           <div class="chips">
             <label class="chip"><input type="radio" name="purpose" value="婚禮"><span>婚禮</span></label>
             <label class="chip"><input type="radio" name="purpose" value="上班" checked><span>上班</span></label>
@@ -635,14 +737,14 @@ tr.hit td{background:rgba(176,58,46,.1)}
         </fieldset>
         <div class="row2">
           <fieldset class="fset">
-            <legend>方案</legend>
+            <legend>方案 Plan</legend>
             <div class="chips">
               <label class="chip"><input type="radio" name="bplan" value="mtm" checked><span>半訂製（4 週）</span></label>
               <label class="chip"><input type="radio" name="bplan" value="bespoke"><span>全訂製（8 週）</span></label>
             </div>
           </fieldset>
           <div class="fld" id="wedWrap" hidden>
-            <label for="bWed">婚期</label>
+            <label for="bWed">婚期 Wedding</label>
             <input class="inp" type="date" id="bWed" name="wed">
             <p class="err" id="eWed"></p>
           </div>
@@ -650,12 +752,12 @@ tr.hit td{background:rgba(176,58,46,.1)}
         <div id="wedMsg" class="warn" role="status" hidden></div>
         <div class="row2">
           <div class="fld">
-            <label for="bDate">日期</label>
+            <label for="bDate">日期 Date</label>
             <input class="inp" type="date" id="bDate" name="date" required>
             <p class="err" id="eDate" aria-live="polite"></p>
           </div>
           <div class="fld">
-            <label for="bTime">時段</label>
+            <label for="bTime">時段 Time</label>
             <select class="inp" id="bTime" name="time" required></select>
             <p class="err" id="eTime" aria-live="polite"></p>
           </div>
@@ -663,50 +765,51 @@ tr.hit td{background:rgba(176,58,46,.1)}
         <p class="hint" id="dateHint" role="status" hidden></p>
         <div class="row2">
           <div class="fld">
-            <label for="bName">姓名</label>
+            <label for="bName">姓名 Name</label>
             <input class="inp" id="bName" name="name" autocomplete="name" required>
             <p class="err" id="eName" aria-live="polite"></p>
           </div>
           <div class="fld">
-            <label for="bPhone">電話</label>
+            <label for="bPhone">電話 Phone</label>
             <input class="inp" id="bPhone" name="phone" type="tel" autocomplete="tel" placeholder="09xx-xxx-xxx 或 (02) 2700-xxxx" required>
             <p class="err" id="ePhone" aria-live="polite"></p>
           </div>
         </div>
         <div class="fld">
-          <label for="bNote">備註（想參考的布料、單品或設計）</label>
+          <label for="bNote">備註 Notes（想參考的布料、單品或設計）</label>
           <textarea class="inp" id="bNote" name="note" rows="4"></textarea>
         </div>
         <div class="sub-row">
-          <button type="submit" class="btn pri">送出預約</button>
+          <button type="submit" class="btn pri">送出預約<i class="ar" aria-hidden="true"></i></button>
           <p class="fine">示範頁面：送出後只會顯示量身單，不會真的建立預約。</p>
         </div>
       </form>
       <div class="done" id="bDone" hidden>
         <article class="slip" id="slip" tabindex="-1"></article>
-        <button type="button" class="btn" id="bAgain">重新填寫</button>
+        <button type="button" class="lnk" id="bAgain">重新填寫</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ===== 04 尺寸指南 ===== -->
-<section id="size" class="size" aria-labelledby="t-size">
+<!-- ===== 05 尺寸指南 ===== -->
+<section id="size" class="size paper" aria-labelledby="t-size">
   <div class="wrap size-grid">
     <div class="rv">
       <div class="sec-head">
-        <span class="no">No.05</span>
+        <span class="no">No. 05 — Measure</span>
         <h2 class="sec-title" id="t-size">尺寸指南</h2>
-        <p class="sec-en">Measure Guide</p>
+        <p class="sec-en">The measure guide</p>
       </div>
       <figure class="mannequin">
         <svg viewBox="0 0 400 470" role="img" aria-label="人台正面量身部位示意：肩寬、胸圍、腰圍、袖長、衣長、褲長">
-          <g fill="none" stroke="#3b3b3b" stroke-width="1.6">
-            <path d="M172 58 H208 V76 Q236 84 258 96 Q266 102 268 116 L266 150 Q262 200 254 240 Q250 262 262 300 Q268 330 262 350 H130 Q124 330 130 300 Q142 262 138 240 Q130 200 126 150 L124 116 Q126 102 134 96 Q156 84 172 76 Z" fill="#fbf6e7"/>
-            <path d="M190 350 H198 V420 H190 Z" fill="#e4d9bd"/>
-            <ellipse cx="194" cy="424" rx="66" ry="12" fill="#e4d9bd"/>
+          <g fill="none" stroke="#16171b" stroke-width="1.1">
+            <path d="M172 58 H208 V76 Q236 84 258 96 Q266 102 268 116 L266 150 Q262 200 254 240 Q250 262 262 300 Q268 330 262 350 H130 Q124 330 130 300 Q142 262 138 240 Q130 200 126 150 L124 116 Q126 102 134 96 Q156 84 172 76 Z" fill="#ece6db"/>
+            <path d="M196 100 V350" stroke-dasharray="2 4" opacity=".5"/>
+            <path d="M190 350 H198 V420 H190 Z" fill="#d9d1c2"/>
+            <ellipse cx="194" cy="424" rx="66" ry="10" fill="#d9d1c2"/>
           </g>
-          <g fill="none" stroke="#b03a2e" stroke-width="1.4" stroke-dasharray="5 4">
+          <g fill="none" stroke="#9a2f27" stroke-width="1.1" stroke-dasharray="6 4">
             <path d="M134 94 H258"/>
             <ellipse cx="196" cy="170" rx="74" ry="14"/>
             <ellipse cx="196" cy="252" rx="58" ry="11"/>
@@ -714,16 +817,16 @@ tr.hit td{background:rgba(176,58,46,.1)}
             <path d="M340 62 V344"/>
             <path d="M362 262 V440"/>
           </g>
-          <g fill="#3b3b3b" style="font-family:var(--hand)" font-size="16">
-            <text x="132" y="82">肩寬</text>
+          <g fill="#16171b" style="font-family:var(--cap);letter-spacing:.14em" font-size="13">
+            <text x="140" y="84">肩寬</text>
             <text x="278" y="174">胸圍</text>
-            <text x="268" y="256">腰圍</text>
-            <text x="22" y="236">袖長</text>
+            <text x="262" y="256">腰圍</text>
+            <text x="26" y="236">袖長</text>
             <text x="300" y="206">衣長</text>
-            <text x="322" y="356">褲長</text>
+            <text x="322" y="360">褲長</text>
           </g>
         </svg>
-        <figcaption>量身部位示意（人台正面）</figcaption>
+        <figcaption class="fig"><span class="cap">Fig. 02</span>量身部位示意（人台正面）</figcaption>
       </figure>
     </div>
 
@@ -738,12 +841,12 @@ tr.hit td{background:rgba(176,58,46,.1)}
         <h3>快速找參考尺寸</h3>
         <div class="row2">
           <div class="fld">
-            <label for="szH">身高（cm）</label>
+            <label for="szH">身高 Height（cm）</label>
             <input class="inp" id="szH" type="number" inputmode="numeric" min="140" max="210" value="172">
             <p class="err" id="eH"></p>
           </div>
           <div class="fld">
-            <label for="szC">胸圍（cm）</label>
+            <label for="szC">胸圍 Chest（cm）</label>
             <input class="inp" id="szC" type="number" inputmode="decimal" min="70" max="140" value="98">
             <p class="err" id="eC"></p>
           </div>
@@ -756,63 +859,63 @@ tr.hit td{background:rgba(176,58,46,.1)}
   </div>
 </section>
 
-<!-- ===== 05 照片牆 ===== -->
+<!-- ===== 06 工作室照片 ===== -->
 <section id="gallery" aria-labelledby="t-gal">
   <div class="wrap">
     <div class="sec-head rv">
-      <span class="no">No.06</span>
+      <span class="no">No. 06 — Atelier</span>
       <h2 class="sec-title" id="t-gal">工作室一隅</h2>
-      <p class="sec-en">Atelier</p>
+      <p class="sec-en">Inside the atelier</p>
     </div>
     <div class="mosaic">
-      <figure class="polaroid m1 rv" style="--r:-1.4deg;margin:0">
+      <figure class="m1 rv">
         <div class="ph" data-photo="g1" data-art="fabric" data-label="布料牆" data-size="1200×900"></div>
-        <figcaption class="cap">布料牆・依季節換布</figcaption>
+        <figcaption class="fig"><span class="cap">Fig. 03</span>布料牆・依季節換布</figcaption>
       </figure>
-      <figure class="polaroid m2 rv" style="--r:1.8deg;margin:0">
-        <div class="ph" data-photo="g2" data-art="scissors" data-label="剪刀與粉片" data-size="900×900"></div>
-        <figcaption class="cap">剪刀與粉片</figcaption>
+      <figure class="m2 rv">
+        <div class="ph" data-photo="g2" data-art="scissors" data-label="剪刀與粉片" data-size="1200×1500"></div>
+        <figcaption class="fig"><span class="cap">Fig. 04</span>剪刀、粉片與皮尺</figcaption>
       </figure>
-      <figure class="polaroid m3 rv" style="--r:1.2deg;margin:0">
+      <figure class="m3 rv">
         <div class="ph" data-photo="g3" data-art="fitting" data-label="試身室三面鏡" data-size="900×1200"></div>
-        <figcaption class="cap">試身室三面鏡</figcaption>
+        <figcaption class="fig"><span class="cap">Fig. 05</span>試身室三面鏡</figcaption>
       </figure>
-      <figure class="polaroid m4 rv" style="--r:-1deg;margin:0">
+      <figure class="m4 rv">
         <div class="ph" data-photo="g4" data-art="storefront" data-label="騎樓老店面" data-size="1600×1000"></div>
-        <figcaption class="cap">博愛路 98 號・騎樓</figcaption>
+        <figcaption class="fig"><span class="cap">Fig. 06</span>博愛路 98 號・騎樓</figcaption>
       </figure>
     </div>
   </div>
 </section>
 
-<!-- ===== 06 顧客評論 ===== -->
-<section id="reviews" aria-labelledby="t-rev">
+<!-- ===== 07 顧客評論 ===== -->
+<section id="reviews" class="on-dark" aria-labelledby="t-rev">
   <div class="wrap">
     <div class="sec-head rv">
-      <span class="no">No.07</span>
+      <span class="no">No. 07 — Clients</span>
       <h2 class="sec-title" id="t-rev">客人的話</h2>
-      <p class="sec-en">Notes from Clients</p>
+      <p class="sec-en">Notes from clients</p>
     </div>
     <div class="notes" id="notes"></div>
   </div>
 </section>
 
-<!-- ===== 07 門市資訊 ===== -->
+<!-- ===== 08 門市資訊 ===== -->
 <section id="store" aria-labelledby="t-store">
   <div class="wrap store-grid">
     <div class="rv">
       <div class="sec-head">
-        <span class="no">No.08</span>
+        <span class="no">No. 08 — Visit</span>
         <h2 class="sec-title" id="t-store">門市資訊</h2>
-        <p class="sec-en">Visit the Shop</p>
+        <p class="sec-en">Visit the shop</p>
       </div>
       <div class="ticket">
-        <h3>營業時間</h3>
+        <h3>營業時間 Hours</h3>
         <ul class="hours" id="hours"></ul>
         <span class="status" id="storeStatus"><i class="dot"></i><span class="tx">營業狀態讀取中</span></span>
       </div>
       <div class="svc">
-        <h3>服務項目</h3>
+        <h3>服務項目 Services</h3>
         <ul>
           <li>修改：購買後一次免費小修，袖長與褲長各一次。</li>
           <li>退換貨：未試穿、吊牌完整，14 天內可換；訂製品依訂購合約辦理。</li>
@@ -826,16 +929,17 @@ tr.hit td{background:rgba(176,58,46,.1)}
         <dt>電話</dt><dd><a id="tel" href="#book">—</a></dd>
         <dt>交通</dt><dd>捷運示範站 2 號出口步行約 8 分鐘。博愛路為單行道，路邊臨停不便，建議停在後巷的示範停車場。</dd>
       </dl>
-      <a class="btn pri" id="mapLink" href="https://www.google.com/maps/search/?api=1&amp;query=" target="_blank" rel="noopener">在 Google 地圖開啟</a>
+      <a class="lnk" id="mapLink" href="https://www.google.com/maps/search/?api=1&amp;query=" target="_blank" rel="noopener">在 Google 地圖開啟</a>
       <svg class="map" viewBox="0 0 400 240" role="img" aria-label="門市周邊示意地圖">
-        <g fill="none" stroke="#c9b68a" stroke-width="16"><path d="M0 70 H400"/><path d="M120 0 V240"/></g>
-        <g fill="none" stroke="#3b3b3b" stroke-width="1" stroke-dasharray="4 4" opacity=".6"><path d="M0 150 H400"/><path d="M270 0 V240"/></g>
-        <rect x="150" y="104" width="46" height="34" fill="#e8d9b0" stroke="#3b3b3b"/>
-        <text x="8" y="60">博愛路</text>
-        <text x="128" y="20">示範街</text>
-        <text x="286" y="232">後巷停車場</text>
-        <g transform="translate(228 112)"><path d="M0 0 C-10 -12 -14 -20 -14 -28 A14 14 0 1 1 14 -28 C14 -20 10 -12 0 0Z" fill="#b03a2e" stroke="#3b3b3b"/><circle cx="0" cy="-28" r="5" fill="#fbf6e7"/></g>
-        <text x="244" y="112" style="font-size:17px;fill:#b03a2e">衡尺</text>
+        <g fill="none" stroke="#e2dace" stroke-width="18"><path d="M0 70 H400"/><path d="M120 0 V240"/></g>
+        <g fill="none" stroke="#16171b" stroke-width=".8"><path d="M0 61 H400M0 79 H400"/><path d="M111 0 V240M129 0 V240"/></g>
+        <g fill="none" stroke="#16171b" stroke-width=".8" stroke-dasharray="3 4" opacity=".5"><path d="M0 150 H400"/><path d="M270 0 V240"/></g>
+        <rect x="150" y="100" width="46" height="34" fill="none" stroke="#16171b" stroke-width=".8"/>
+        <text x="8" y="52">博愛路</text>
+        <text x="136" y="20">示範街</text>
+        <text x="282" y="230">後巷停車場</text>
+        <g transform="translate(228 112)"><circle r="16" fill="none" stroke="#9a2f27" stroke-width=".8"/><circle r="4" fill="#9a2f27"/></g>
+        <text x="252" y="117" style="font:400 15px var(--cjk);letter-spacing:.3em;fill:#16171b">衡尺</text>
       </svg>
     </div>
   </div>
@@ -844,672 +948,23 @@ tr.hit td{background:rgba(176,58,46,.1)}
 </main>
 
 <footer class="foot">
-  <div class="wrap foot-in">
-    <div>
-      <a class="logo" href="#top"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="31" height="31" rx="3" fill="#f3eedd"/><path d="M7 27L27 7" stroke="#b03a2e" stroke-width="1.5" stroke-dasharray="2 2.4"/><path d="M9 9H25V25" fill="none" stroke="#1d2738" stroke-width="2.6"/></svg><span>衡尺<small>MEASURE &amp; CLOTH</small></span></a>
+  <div class="wrap">
+    <p class="foot-mark" aria-hidden="true">Measure &amp; Cloth</p>
+    <div class="foot-in">
+      <a class="logo" href="#top"><b>衡尺</b><small>MEASURE &amp; CLOTH</small></a>
+      <div>
+        <p>台北市中正區示範博愛路 98 號</p>
+        <p>© <span id="yr"></span> 衡尺 MEASURE &amp; CLOTH</p>
+        <p class="disc-note">此為店家官網示範模板，商品與評論為示意。</p>
+      </div>
       <div class="soc">
         <a href="#">Instagram</a>
         <a href="#">Facebook</a>
         <a href="#">LINE 官方帳號</a>
       </div>
     </div>
-    <div>
-      <p>台北市中正區示範博愛路 98 號</p>
-      <p>© <span id="yr"></span> 衡尺 MEASURE &amp; CLOTH</p>
-      <p class="disc-note">此為店家官網示範模板，商品與評論為示意。</p>
-    </div>
   </div>
 </footer>
 
 <button type="button" class="slotbtn" id="slotBtn" aria-pressed="false">照片位</button>
 
-<script>
-(function(){
-'use strict';
-
-/* ===== 店家設定 ===== */
-var SHOP = {
-  name:'衡尺', phone:'(02) 2700-1234', address:'台北市中正區示範博愛路 98 號',
-  // 0=週日；[開, 關]，null 表示公休
-  hours:[null,['12:00','20:00'],['12:00','20:00'],['12:00','20:00'],['12:00','20:00'],['12:00','21:00'],['11:00','21:00']],
-  photos:{ story:'', g1:'', g2:'', g3:'', g4:'' }   // 填網址就會取代佔位圖
-};
-
-/* ===== 布樣冊（商品）=====
-   fab：是否可在設計台選為布料；price：布料為「一套布料」價，單品為起價 */
-var PRODUCTS = [
-  {id:'p01', n:'深藍細條紋精紡', cat:'西裝布料', fab:true,  pt:'pin',    spec:'Super 120s・260g/m', mat:'羊毛 100%。海軍藍底的細條紋，上班與正式場合都能穿。', price:9800},
-  {id:'p02', n:'炭灰人字紋',     cat:'西裝布料', fab:true,  pt:'herr',   spec:'Super 100s・300g/m', mat:'羊毛混紡。人字織紋在光線下有層次，秋冬通勤首選。', price:7800},
-  {id:'p03', n:'威爾斯親王格',   cat:'西裝布料', fab:true,  pt:'pow',    spec:'Super 130s・280g/m', mat:'羊毛。格紋線條細緻，是最耐看的商務格紋。', price:12600},
-  {id:'p04', n:'鳥眼紋',         cat:'西裝布料', fab:true,  pt:'bird',   spec:'Super 120s・250g/m', mat:'羊毛。細點重複的鳥眼織紋，表面有柔和光澤。', price:8400},
-  {id:'p05', n:'駝色法蘭絨',     cat:'西裝布料', fab:true,  pt:'flan',   spec:'Super 90s・340g/m',  mat:'羊毛。起毛法蘭絨，保暖又柔軟，適合冬季休閒西裝。', price:6800},
-  {id:'p06', n:'亞麻夏季西裝',   cat:'西裝布料', fab:true,  pt:'lin',    spec:'亞麻 100%・240g/m',  mat:'亞麻。透氣、有自然皺感，是夏天的第一套西裝。', price:5600},
-  {id:'p07', n:'黑色晚宴禮服',   cat:'西裝布料', fab:false, pt:'satin',  spec:'劍領緞面・成品',     mat:'緞面劍領、單排一扣，適合晚宴與典禮。成品訂製，工期 8 週。', price:38000},
-  {id:'p08', n:'訂製白襯衫',     cat:'襯衫',     fab:false, pt:'poplin', spec:'Super 120s 府綢・純棉', mat:'純棉府綢。領型、袖口與胸前的褶可以自己選，一件起訂。', price:3200, icon:'shirt'},
-  {id:'p09', n:'絲質領帶',       cat:'配件',     fab:false, pt:'silk',   spec:'真絲・手工三摺',     mat:'真絲斜紋，藏青底配酒紅條，手工三摺，打出來領口有分量。', price:2800, icon:'tie'},
-  {id:'p10', n:'麻質口袋巾',     cat:'配件',     fab:false, pt:'linen2', spec:'亞麻・手捲邊',       mat:'亞麻薄布，手工捲邊。放進口袋裡的一點顏色。', price:980, icon:'square'}
-];
-
-/* ===== 顧客評論（示意） ===== */
-var REVIEWS = [
-  {who:'林小姐', item:'婚禮・半訂製', date:'2026.03', star:5, t:'婚禮前三個月來量，試身只需要兩次。師傅把肩線調到我習慣的樣子，當天站在台上完全不用拉扯。'},
-  {who:'陳先生', item:'上班・兩套', date:'2026.01', star:4, t:'第一次訂西裝，很怕被推銷。這裡先讓我看布樣，問我平常穿什麼，最後只建議我選一款深藍。'},
-  {who:'王先生', item:'晚宴・全訂製', date:'2025.12', star:5, t:'劍領緞面禮服穿在身上比照片好看。後衩選了雙衩，坐下來不會卡住。'},
-  {who:'周先生', item:'口袋巾・領帶', date:'2026.02', star:4, t:'麻質口袋巾的顏色很淡，搭藏青西裝剛剛好。領帶的斜紋看起來很有分量。'}
-];
-
-/* ===== 設計台：價格與工期（示意） ===== */
-var PLAN = {
-  mtm:{name:'半訂製', base:18800, weeks:4, fit:1},
-  bespoke:{name:'全訂製', base:48000, weeks:8, fit:3}
-};
-var BTN = {sb1:{n:'單排一扣', add:0}, sb2:{n:'單排二扣', add:0}, db:{n:'雙排六扣二', add:1500}};
-var LAPEL = {notch:{n:'平駁領', add:0}, peak:{n:'劍領', add:800}, shawl:{n:'青果領', add:1200}};
-var POCKET = {flap:{n:'有蓋袋', add:0}, patch:{n:'貼袋', add:0}, slant:{n:'斜袋', add:600}};
-var VENT = {none:{n:'無衩', add:0}, single:{n:'單衩', add:0}, double:{n:'雙衩', add:500}};
-var PANTS = {none:{n:'不加西褲', add:0}, flat:{n:'西褲・無褶', add:4200}, pleat:{n:'西褲・單褶', add:4800}};
-var VEST_ADD = 3200;
-var LINING = [
-  {n:'酒紅', c:'#7a2430'}, {n:'孔雀藍', c:'#1f5f6b'}, {n:'杏色', c:'#d8b78a'},
-  {n:'墨綠', c:'#2e4b3d'}, {n:'銀灰', c:'#9aa0a6'}
-];
-var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
-var WEEK_ORDER = [1,2,3,4,5,6,0];
-var SIZES = [
-  {n:'46', chest:'88–91',  waist:'74–77', len:'70', sleeve:'60', h:'160–168', max:91},
-  {n:'48', chest:'92–95',  waist:'78–81', len:'72', sleeve:'61', h:'164–172', max:95},
-  {n:'50', chest:'96–99',  waist:'82–85', len:'74', sleeve:'62', h:'168–176', max:99},
-  {n:'52', chest:'100–103', waist:'86–89', len:'76', sleeve:'63', h:'172–180', max:103},
-  {n:'54', chest:'104–107', waist:'90–93', len:'78', sleeve:'64', h:'176–184', max:107}
-];
-
-/* ===== 工具 ===== */
-var $ = function(s, r){ return (r || document).querySelector(s); };
-var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
-var now = new Date();
-var TODAY = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-function pad(n){ return ('0' + n).slice(-2); }
-function hm(m){ return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
-function minOf(t){ var p = t.split(':'); return +p[0] * 60 + +p[1]; }
-function money(n){ return 'NT$ ' + Math.round(n).toLocaleString('zh-TW'); }
-function addDays(d, k){ return new Date(d.getFullYear(), d.getMonth(), d.getDate() + k); }
-function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
-function parseYmd(s){ var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
-function fmtD(d){ return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + '（' + DAYS[d.getDay()] + '）'; }
-function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-function byId(id){ return PRODUCTS.filter(function(p){ return p.id === id; })[0]; }
-function swatchSvg(pt){
-  var fill = pt === 'satin' ? 'url(#g-satin)' : 'url(#pt-' + pt + ')';
-  return '<svg aria-hidden="true" focusable="false" width="100%" height="100%"><rect width="100%" height="100%" fill="' + fill + '"/></svg>';
-}
-function fillOf(p){ return p.pt === 'satin' ? 'url(#g-satin)' : 'url(#pt-' + p.pt + ')'; }
-function mir(x){ return '<g transform="matrix(-1 0 0 1 400 0)">' + x + '</g>'; }
-
-/* ===== 頁面骨架：進場、頁首、皮尺 ===== */
-document.documentElement.classList.add('js');
-$('#yr').textContent = now.getFullYear();
-$('#addr').textContent = SHOP.address;
-$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
-$('#tel').textContent = SHOP.phone;
-$('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d+]/g, '');
-$('#bDate').min = ymd(TODAY);
-$('#bWed').min = ymd(TODAY);
-
-(function(){
-  var h = '';
-  for (var i = 0; i <= 100; i++){
-    h += '<i class="tk' + (i % 10 === 0 ? ' l' : (i % 5 === 0 ? ' m' : '')) + '" style="left:' + i + '%"></i>';
-    if (i % 10 === 0) h += '<b class="nm' + (i === 100 ? ' end' : '') + '" style="left:' + i + '%">' + i + '</b>';
-  }
-  $('#tkWrap').innerHTML = h;
-  var mk = $('#tapeMk'), val = $('#tapeVal'), ticking = false;
-  function upd(){
-    ticking = false;
-    var max = document.documentElement.scrollHeight - window.innerHeight;
-    var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-    mk.style.left = (p * 100) + '%';
-    val.textContent = Math.round(p * 100) + ' cm';
-  }
-  window.addEventListener('scroll', function(){ if (!ticking){ ticking = true; requestAnimationFrame(upd); } }, {passive:true});
-  window.addEventListener('resize', upd);
-  upd();
-})();
-
-(function(){
-  var nav = $('#nav'), bg = $('#burger');
-  function set(o){ nav.classList.toggle('open', o); bg.setAttribute('aria-expanded', o ? 'true' : 'false'); }
-  bg.addEventListener('click', function(){ set(!nav.classList.contains('open')); });
-  nav.addEventListener('click', function(e){ if (e.target.tagName === 'A') set(false); });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' && nav.classList.contains('open')){ set(false); bg.focus(); }
-  });
-})();
-
-/* ===== 營業狀態（hero 與門市共用） ===== */
-function openState(d){
-  var h = SHOP.hours[d.getDay()], t = d.getHours() * 60 + d.getMinutes();
-  if (h && t >= minOf(h[0]) && t < minOf(h[1])) return {open:true, text:'營業中・到 ' + h[1]};
-  if (h && t < minOf(h[0])) return {open:false, text:'休息中・今天 ' + h[0] + ' 開門'};
-  for (var k = 1; k <= 7; k++){
-    var nd = addDays(d, k), nh = SHOP.hours[nd.getDay()];
-    if (nh) return {open:false, text:'休息中・' + (k === 1 ? '明天' : DAYS[nd.getDay()]) + ' ' + nh[0] + ' 開門'};
-  }
-  return {open:false, text:'休息中'};
-}
-function renderStatus(){
-  var st = openState(new Date());
-  ['#heroStatus', '#storeStatus'].forEach(function(s){
-    var el = $(s);
-    if (!el) return;
-    el.classList.toggle('on', st.open);
-    $('.tx', el).textContent = st.text;
-  });
-}
-renderStatus();
-setInterval(renderStatus, 60000);
-
-/* ===== 照片位（佔位插畫 + ?slots） ===== */
-function svgw(inner){
-  return '<svg viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">' + inner + '</svg>';
-}
-var ART = {};
-ART.tailor = function(){ return svgw(
-  '<rect width="800" height="800" fill="#cdb98f"/><rect width="800" height="270" fill="#bba676"/>' +
-  '<rect x="60" y="60" width="220" height="150" fill="#f1e6c6" opacity=".9"/><path d="M60 60H280V210H60Z" fill="none" stroke="#7a5f3b" stroke-width="8"/>' +
-  '<rect y="470" width="800" height="330" fill="#8f6a44"/><path d="M0 470H800" stroke="#6e4e2f" stroke-width="6"/>' +
-  '<g stroke="#6e4e2f" stroke-width="2" opacity=".45"><path d="M0 520H800M0 580H800M0 640H800M0 700H800M0 760H800"/></g>' +
-  '<path d="M120 520L420 500L470 760L150 790Z" fill="#e8d9b0" stroke="#3b3b3b" stroke-width="2"/>' +
-  '<path d="M170 560C250 540 330 545 410 560C420 620 430 680 440 740C360 752 260 760 170 770C160 700 166 620 170 560Z" fill="none" stroke="#3b3b3b" stroke-width="2" stroke-dasharray="8 6"/>' +
-  '<path d="M300 540V740" stroke="#3b3b3b" stroke-width="1.6"/><path d="M294 556L300 540L306 556M294 724L300 740L306 724" fill="none" stroke="#3b3b3b" stroke-width="1.6"/>' +
-  '<path d="M190 700L236 690L244 724" fill="none" stroke="#5b7fa6" stroke-width="9" stroke-linecap="round"/>' +
-  '<path d="M520 800C520 360 540 300 600 300C660 300 680 360 680 800Z" fill="#1d2738"/>' +
-  '<circle cx="600" cy="236" r="50" fill="#6b4f3a"/><path d="M552 216Q600 170 648 216Q640 196 600 190Q560 196 552 216Z" fill="#2b2420"/>' +
-  '<path d="M560 318L600 382L640 318" fill="#f4f1e8"/>' +
-  '<path d="M600 330C640 400 640 470 600 520" fill="none" stroke="#f2c230" stroke-width="10"/>' +
-  '<path d="M540 540Q500 590 430 610" fill="none" stroke="#1d2738" stroke-width="58" stroke-linecap="round"/>' +
-  '<rect x="400" y="590" width="360" height="22" fill="#f2c230" transform="rotate(-6 400 590)"/>'
-); };
-ART.fabric = function(){
-  var pts = ['pin','herr','pow','bird','flan','lin','satin','poplin','silk','linen2','pin','pow'], s = '<rect width="800" height="800" fill="#d6c7a6"/>';
-  for (var r = 0; r < 3; r++){
-    for (var c = 0; c < 4; c++){
-      var x = 36 + c * 190, y = 50 + r * 250, p = pts[(r * 4 + c) % pts.length];
-      s += '<rect x="' + x + '" y="' + y + '" width="172" height="222" rx="8" fill="' + (p === 'satin' ? 'url(#g-satin)' : 'url(#pt-' + p + ')') + '" stroke="#3b3b3b" stroke-width="2"/>';
-      s += '<rect x="' + (x + 30) + '" y="' + (y + 188) + '" width="112" height="20" fill="#fbf6e7" opacity=".9"/>';
-    }
-  }
-  return svgw(s);
-};
-ART.scissors = function(){ return svgw(
-  '<rect width="800" height="800" fill="#e8d9b0"/>' +
-  '<path d="M60 620C200 520 300 580 420 480S640 380 760 440" fill="none" stroke="#b03a2e" stroke-width="5" stroke-dasharray="2 14" stroke-linecap="round"/>' +
-  '<rect x="110" y="150" width="240" height="64" rx="4" fill="#5b7fa6" transform="rotate(-12 230 182)"/>' +
-  '<rect x="420" y="230" width="210" height="56" rx="4" fill="#f4f1e8" stroke="#c9c2b0" transform="rotate(18 525 258)"/>' +
-  '<rect x="150" y="520" width="170" height="50" rx="4" fill="#5b7fa6" transform="rotate(6 235 545)"/>' +
-  '<g transform="translate(470 560) rotate(-26)"><path d="M-230 -6L60 -14L60 -4L-230 8Z" fill="#c4ccd4" stroke="#3b3b3b" stroke-width="2"/><path d="M-230 6L60 -4L60 6L-230 18Z" fill="#aab3bd" stroke="#3b3b3b" stroke-width="2"/><circle cx="-230" cy="-40" r="34" fill="none" stroke="#1d2738" stroke-width="10"/><circle cx="-230" cy="50" r="34" fill="none" stroke="#1d2738" stroke-width="10"/><circle cx="20" cy="2" r="7" fill="#3b3b3b"/></g>'
-); };
-ART.fitting = function(){
-  var m = function(x){ return '<rect x="' + x + '" y="110" width="170" height="420" rx="6" fill="#5c4a3a"/><rect x="' + (x + 12) + '" y="124" width="146" height="392" fill="url(#g-mirror)"/>'; };
-  return svgw(
-    '<defs><linearGradient id="g-mirror" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef3f2"/><stop offset=".5" stop-color="#b9c7c6"/><stop offset="1" stop-color="#e9efee"/></linearGradient></defs>' +
-    '<rect width="800" height="800" fill="#cfc2a4"/><rect y="560" width="800" height="240" fill="#b7a688"/>' +
-    m(50) + m(315) + m(580) +
-    '<path d="M360 560L440 560L450 720L350 720Z" fill="#6b4f35"/><rect x="330" y="710" width="140" height="20" fill="#5c4a3a"/>' +
-    '<path d="M720 260V180" stroke="#3b3b3b" stroke-width="3"/><path d="M720 180C710 180 700 190 700 200" fill="none" stroke="#3b3b3b" stroke-width="3"/>' +
-    '<path d="M720 260L650 330H790L720 260" fill="none" stroke="#3b3b3b" stroke-width="2"/>' +
-    '<path d="M680 330C700 300 740 300 760 330L770 480H670Z" fill="#1d2738"/>'
-  );
-};
-ART.storefront = function(){
-  var arch = function(x){ return '<path d="M' + x + ' 620V340Q' + (x + 70) + ' 250 ' + (x + 140) + ' 340V620Z" fill="#8f6a44" stroke="#3b3b3b" stroke-width="2"/><path d="M' + (x + 14) + ' 620V348Q' + (x + 70) + ' 272 ' + (x + 126) + ' 348V620Z" fill="#2b3850" opacity=".85"/>'; };
-  return svgw(
-    '<rect width="800" height="800" fill="#a9c1c9"/><circle cx="650" cy="110" r="46" fill="#f4e6b8" opacity=".9"/>' +
-    '<rect y="180" width="800" height="440" fill="#e4d6b4"/><rect y="620" width="800" height="180" fill="#8d8a80"/>' +
-    '<rect x="40" y="170" width="720" height="34" fill="#b89a4c"/>' +
-    arch(60) + arch(260) + arch(460) +
-    '<rect x="580" y="250" width="180" height="66" rx="4" fill="#1d2738"/><text x="670" y="298" text-anchor="middle" font-size="38" fill="#f2c230" font-family="PMingLiU,serif">衡尺</text>' +
-    '<rect x="620" y="360" width="100" height="120" fill="#f4ecd4" stroke="#3b3b3b" stroke-width="2"/>' +
-    '<path d="M0 620H800" stroke="#6e6a60" stroke-width="4"/>'
-  );
-};
-function fillPhotos(){
-  $$('.ph').forEach(function(f){
-    var key = f.getAttribute('data-photo'), u = SHOP.photos[key];
-    if (u){
-      var im = document.createElement('img');
-      im.src = u; im.alt = f.getAttribute('data-label') || ''; im.loading = 'lazy';
-      f.appendChild(im);
-    } else {
-      var fn = ART[f.getAttribute('data-art')];
-      if (fn) f.innerHTML = fn();
-    }
-  });
-}
-fillPhotos();
-(function(){
-  var sb = $('#slotBtn');
-  function setSlots(on){ document.body.classList.toggle('slots', on); sb.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-  setSlots(/[?&]slots(&|=|$)/.test(location.search));
-  sb.addEventListener('click', function(){ setSlots(!document.body.classList.contains('slots')); });
-})();
-
-/* ===== 布樣冊：分類、收藏、詢問清單 ===== */
-var ICON = {
-  shirt:'<path d="M36 14L50 26L64 14L88 26L96 52L84 57L80 44L80 92L20 92L20 44L16 57L4 52L12 26Z" fill="#fffdf6" stroke="#3b3b3b" stroke-width="2" stroke-linejoin="round"/><path d="M50 26V92" stroke="#3b3b3b" stroke-width="1.4" stroke-dasharray="3 3"/><circle cx="50" cy="42" r="2.2" fill="#3b3b3b"/><circle cx="50" cy="60" r="2.2" fill="#3b3b3b"/><circle cx="50" cy="78" r="2.2" fill="#3b3b3b"/>',
-  tie:'<path d="M42 10H58L55 24H45Z" fill="#7a1f2b" stroke="#f4ecd4" stroke-width="2"/><path d="M45 24H55L66 92L50 99L34 92Z" fill="#7a1f2b" stroke="#f4ecd4" stroke-width="2" stroke-linejoin="round"/><path d="M38 40L62 52M36 60L64 72" stroke="#d9b45a" stroke-width="2.6"/>',
-  square:'<rect x="20" y="20" width="60" height="60" transform="rotate(12 50 50)" fill="#dfe6ea" stroke="#3b3b3b" stroke-width="1.8"/><circle cx="50" cy="50" r="2.4" fill="#b03a2e"/>'
-};
-var state = {cat:'all', fav:{}, inq:{}};
-function cardHtml(p){
-  var fav = !!state.fav[p.id], inq = !!state.inq[p.id];
-  var pr = '<b>' + money(p.price) + '</b><small>' + (p.fab ? '一套布料' : '起') + '</small>';
-  var ico = p.icon ? '<svg class="ico" viewBox="0 0 100 100" aria-hidden="true" focusable="false">' + ICON[p.icon] + '</svg>' : '';
-  return '<article class="fab"><div class="sw">' + swatchSvg(p.pt) + ico + '</div>' +
-    '<div class="body"><h3>' + esc(p.n) + '</h3><p class="spec">' + esc(p.spec) + '</p><p class="mat">' + esc(p.mat) + '</p>' +
-    '<div class="pr">' + pr + '</div>' +
-    '<div class="acts">' +
-      '<button type="button" class="mini" data-act="fav" data-id="' + p.id + '" aria-pressed="' + fav + '">' + (fav ? '已收藏' : '收藏') + '</button>' +
-      '<button type="button" class="mini" data-act="inq" data-id="' + p.id + '" aria-pressed="' + inq + '">' + (inq ? '已加入詢問' : '加入詢問') + '</button>' +
-    '</div></div></article>';
-}
-function renderGrid(){
-  $('#grid').innerHTML = PRODUCTS.filter(function(p){ return state.cat === 'all' || p.cat === state.cat; }).map(cardHtml).join('');
-}
-function renderInq(){
-  var ids = Object.keys(state.inq).filter(function(k){ return state.inq[k]; });
-  $('#inqN').textContent = ids.length;
-  $('#inqEmpty').hidden = ids.length > 0;
-  $('#inqList').innerHTML = ids.map(function(id){
-    var p = byId(id);
-    return '<li>' + esc(p.n) + '<button type="button" data-rm="' + id + '" aria-label="移除 ' + esc(p.n) + '">×</button></li>';
-  }).join('');
-  $('#inqGo').disabled = !ids.length;
-  $('#inqClear').disabled = !ids.length;
-}
-function appendNote(line){
-  var t = $('#bNote');
-  if (t.value.indexOf(line) >= 0) return;
-  t.value = (t.value ? t.value.replace(/\s+$/, '') + '\n' : '') + line;
-}
-$('#grid').addEventListener('click', function(e){
-  var b = e.target.closest('[data-act]');
-  if (!b) return;
-  var id = b.getAttribute('data-id');
-  if (b.getAttribute('data-act') === 'fav') state.fav[id] = !state.fav[id];
-  else state.inq[id] = !state.inq[id];
-  renderGrid();
-  renderInq();
-});
-$$('.tab').forEach(function(t){
-  t.addEventListener('click', function(){
-    state.cat = t.getAttribute('data-cat');
-    $$('.tab').forEach(function(o){ o.setAttribute('aria-pressed', o === t ? 'true' : 'false'); });
-    renderGrid();
-  });
-});
-$('#inqList').addEventListener('click', function(e){
-  var b = e.target.closest('[data-rm]');
-  if (!b) return;
-  delete state.inq[b.getAttribute('data-rm')];
-  renderGrid();
-  renderInq();
-});
-$('#inqGo').addEventListener('click', function(){
-  var names = Object.keys(state.inq).filter(function(k){ return state.inq[k]; }).map(function(id){ return byId(id).n; });
-  if (names.length) appendNote('布樣詢問：' + names.join('、'));
-  $('#book').scrollIntoView({behavior:'smooth', block:'start'});
-});
-$('#inqClear').addEventListener('click', function(){
-  state.inq = {};
-  renderGrid();
-  renderInq();
-});
-
-/* ===== 西裝設計台 ===== */
-var cfg = {plan:'mtm', btn:'sb2', lapel:'notch', pocket:'flap', vent:'single', pants:'none', vest:false, fab:'p01', lining:0};
-var FABS = PRODUCTS.filter(function(p){ return p.fab; });
-
-function studioCalc(){
-  var plan = PLAN[cfg.plan], fab = byId(cfg.fab);
-  var grade = fab.price >= 11000 ? '頂級' : (fab.price >= 8000 ? '精紡' : '標準');
-  var fabAdd = Math.max(0, fab.price - 6000);
-  var extras = BTN[cfg.btn].add + LAPEL[cfg.lapel].add + POCKET[cfg.pocket].add + VENT[cfg.vent].add + PANTS[cfg.pants].add + (cfg.vest ? VEST_ADD : 0);
-  return {
-    plan:plan, fab:fab, grade:grade, fabAdd:fabAdd, extras:extras,
-    total: plan.base + fabAdd + extras,
-    weeks: plan.weeks + (grade === '頂級' ? 1 : 0),
-    fit: plan.fit
-  };
-}
-/* 駁頭輪廓（左側，300×400 座標）：b 為翻折點 B；db 時外緣點往左 6px，劍尖 x 不小於 86。右側由 drawJacket 鏡射。 */
-function lapelD(t, b, db){
-  var d = db ? 6 : 0, B = 'M' + b[0] + ' ' + b[1];
-  if (t === 'peak') return B + 'L' + (98 - d) + ' 120L' + Math.max(86, 88 - d) + ' 96L114 104L108 92L126 44Z';
-  if (t === 'shawl') return B + 'Q' + (90 - d) + ' 120 126 44Z';
-  return B + 'L' + (100 - d) + ' 118L112 100L' + (102 - d) + ' 90L126 44Z';
-}
-/* 西裝外套正面平面圖：幾何以 300×400 座標書寫，整組 translate(12.5 4) scale(1.25) 置中於 400 寬畫布（右側鏡射 x' = 300 − x）。
-   順序：袖子 → 前身 → 內裡掀角 → 疊襟／前襟 → 口袋 → 襯衫 V 區 → 背心 → 領帶 → 後領 → 駁頭 → 扣子 */
-function drawJacket(){
-  var c = studioCalc(), f = fillOf(c.fab), lin = LINING[cfg.lining].c;
-  var pants = cfg.pants !== 'none', pleat = cfg.pants === 'pleat', db = cfg.btn === 'db';
-  var ln = 'stroke="#1a1f2b" stroke-width="1.5" stroke-linejoin="round"';
-  var lnL = 'stroke="#10141d" stroke-width="1.5" stroke-linejoin="round"';
-  var det = 'fill="' + f + '" stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-linejoin="round"';
-  var btnC = function(x, y, r){ return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#f4ecd4" stroke="#3b3b3b" stroke-width=".8"/>'; };
-  var mir = function(x){ return '<g transform="matrix(-1 0 0 1 300 0)">' + x + '</g>'; };
-  var bt = cfg.btn === 'sb1' ? [[150, 238]] : cfg.btn === 'sb2' ? [[150, 214], [150, 256]] : [[128, 200], [128, 236], [128, 272], [172, 200], [172, 236], [172, 272]];
-  var yLow = bt[bt.length - 1][1];
-  var B = db ? [118, 190] : [150, cfg.btn === 'sb1' ? 226 : 202];
-  var V = 'M126 44L' + B[0] + ' ' + B[1] + 'L' + (300 - B[0]) + ' ' + B[1] + 'L174 44Z';
-  var vest = 'M136 70L126 99L124 294L150 304L176 294L174 99L164 70L150 83Z';
-  var s = '<svg viewBox="0 0 400 ' + (pants ? 560 : 462) + '" role="img" aria-label="西裝外套正面示意，目前為' + esc(BTN[cfg.btn].n) + '、' + esc(LAPEL[cfg.lapel].n) + '">';
-  if (pants){
-    s += '<g fill="' + f + '" ' + ln + '><path d="M140 430L199 430L195 548L146 548Z"/><path d="M201 430L260 430L254 548L205 548Z"/></g>';
-    s += '<g fill="none" stroke="#3b3b3b" stroke-width="1.2" opacity=".7">' + (pleat ? '<path d="M164 436Q172 480 166 542"/><path d="M236 436Q228 480 234 542"/>' : '<path d="M170 432V548"/><path d="M230 432V548"/>') + '</g>';
-  }
-  s += '<g transform="translate(12.5 4) scale(1.25)">';
-  /* 袖子：從肩端外弧到袖口，袖口上方三顆小扣 */
-  var sl = '<path d="M62 60Q48 190 44 330L70 334L72 132Q80 96 62 60Z" fill="' + f + '" ' + ln + '/>' +
-    btnC(57, 314, 2.2) + btnC(57, 320, 2.2) + btnC(57, 326, 2.2);
-  s += sl + mir(sl);
-  /* 前身：單排在最下一顆扣子以下以二次曲線分開前襟；雙排下襬為直角 */
-  var body = db
-    ? 'M126 44Q150 50 174 44Q200 44 238 60Q220 96 228 132L216 232L220 348L80 348L84 232L72 132Q80 96 62 60Q100 44 126 44Z'
-    : 'M126 44Q150 50 174 44Q200 44 238 60Q220 96 228 132L216 232L220 348L166 352Q154 300 150 ' + (yLow + 10) + 'Q146 300 134 352L80 348L84 232L72 132Q80 96 62 60Q100 44 126 44Z';
-  s += '<path d="' + body + '" fill="' + f + '" ' + ln + '/>';
-  /* 內裡掀角：單排在右側開口邊、雙排在右下角 */
-  s += '<path d="' + (db ? 'M190 352L214 352L214 332Z' : 'M166 352L190 352L172 330Z') + '" fill="' + lin + '" stroke="#3b3b3b" stroke-width=".8" stroke-linejoin="round"/>';
-  /* 雙排疊襟線 */
-  if (db) s += '<path d="M118 190V348" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>';
-  /* 口袋：腰袋 y≈282 與左胸手巾袋 */
-  var pk = cfg.pocket === 'flap' ? '<path d="M86 276H128V285Q128 288 125 288H89Q86 288 86 285Z" ' + det + '/>'
-    : cfg.pocket === 'patch' ? '<rect x="86" y="270" width="42" height="46" rx="6" ' + det + '/><rect x="89.5" y="273.5" width="35" height="39" rx="4.5" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>'
-    : '<path d="M86 286L128 276L128 288L86 298Z" ' + det + '/>';
-  s += pk + mir(pk);
-  s += '<path d="M176 132L206 126L206 132L176 138Z" ' + det + '/>';
-  /* 襯衫 V 區、背心、領帶（領帶裁切在 V 區與背心之內） */
-  s += '<path d="' + V + '" fill="#f4f1ea"/>';
-  if (cfg.vest) s += '<path d="' + vest + '" fill="' + f + '" ' + ln + '/>';
-  var tieY = B[1] - 6;
-  s += '<clipPath id="jk-v"><path d="' + V + '"/>' + (cfg.vest ? '<path d="' + vest + '"/>' : '') + '</clipPath>';
-  s += '<g clip-path="url(#jk-v)" fill="#7a2430"><path d="M144 50L156 50L153 62L147 62Z"/><path d="M147 62L153 62L157 ' + tieY + 'L143 ' + tieY + 'Z"/></g>';
-  /* 後領（領台）：弧帶寬約 8px，填布料加深 15% */
-  var band = 'M126 44Q150 34 174 44Q150 50 126 44Z';
-  s += '<path d="' + band + '" fill="' + f + '" ' + ln + '/><path d="' + band + '" fill="#000" fill-opacity=".15"/>';
-  /* 駁頭：同布料、淡白罩層與深色翻折陰影線 */
-  var lp = lapelD(cfg.lapel, B, db);
-  var lap = '<path d="' + lp + '" fill="' + f + '" ' + lnL + '/><path d="' + lp + '" fill="#fff" fill-opacity=".06"/>' +
-    '<path d="M126 44L' + B[0] + ' ' + B[1] + '" fill="none" stroke="#10141d" stroke-width="1" stroke-opacity=".7"/>';
-  s += lap + mir(lap);
-  /* 扣子 */
-  bt.forEach(function(b){ s += btnC(b[0], b[1], 3); });
-  s += '</g></svg>';
-  $('#jacketBox').innerHTML = s;
-}
-function drawBack(){
-  var f = fillOf(studioCalc().fab), v = cfg.vent;
-  $('#backBox').innerHTML = '<svg viewBox="0 0 120 150" aria-hidden="true" focusable="false">' +
-    '<path d="M28 26Q60 14 92 26L100 44L98 132L22 132L20 44Z" fill="' + f + '" stroke="#3b3b3b" stroke-width="1.6" stroke-linejoin="round"/>' +
-    '<path d="M60 26V132" fill="none" stroke="#3b3b3b" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>' +
-    (v === 'single' ? '<path d="M60 132V100" stroke="#3b3b3b" stroke-width="2.4"/>' : '') +
-    (v === 'double' ? '<path d="M40 132V102M80 132V102" stroke="#3b3b3b" stroke-width="2.4"/>' : '') +
-    '<text x="60" y="147" text-anchor="middle" style="font-family:var(--hand)" font-size="14" fill="#3b3b3b">' + VENT[v].n + '</text></svg>';
-}
-function describeDesign(){
-  var c = studioCalc();
-  return '設計台：' + c.plan.name + '・' + BTN[cfg.btn].n + '・' + LAPEL[cfg.lapel].n + '・' + POCKET[cfg.pocket].n + '・' + VENT[cfg.vent].n +
-    (cfg.pants !== 'none' ? '・' + PANTS[cfg.pants].n : '') + (cfg.vest ? '・背心' : '') +
-    '・布料 ' + c.fab.n + '・內裡' + LINING[cfg.lining].n + '・估價約 ' + money(c.total);
-}
-function renderStudio(){
-  var c = studioCalc();
-  $('#qPrice').textContent = money(c.total);
-  $('#qWeeks').textContent = c.weeks + ' 週・試身 ' + c.fit + ' 次';
-  var parts = [c.plan.name + ' 起價 ' + money(c.plan.base), '布料加價 ' + money(c.fabAdd) + '（' + c.grade + '）'];
-  if (c.extras) parts.push('工藝加價 ' + money(c.extras));
-  $('#qNote').textContent = parts.join('＋') + '。布料加價為布料價超過 NT$ 6,000 的部分。';
-  drawJacket();
-  drawBack();
-}
-function setPlan(p){
-  cfg.plan = p;
-  $$('input[name="plan"]').forEach(function(r){ r.checked = r.value === p; });
-  $$('input[name="bplan"]').forEach(function(r){ r.checked = r.value === p; });
-}
-(function(){
-  $('#fabPick').innerHTML = FABS.map(function(p){
-    return '<label><input type="radio" name="fab" value="' + p.id + '"' + (p.id === cfg.fab ? ' checked' : '') + '><span class="disc">' + swatchSvg(p.pt) + '</span><span class="fn">' + esc(p.n) + '</span></label>';
-  }).join('');
-  $('#linPick').innerHTML = LINING.map(function(l, i){
-    return '<label class="lin"><input type="radio" name="lining" value="' + i + '"' + (i === cfg.lining ? ' checked' : '') + '><span class="disc" style="background:' + l.c + '"></span><span class="lin-name">' + l.n + '</span></label>';
-  }).join('');
-})();
-$('.ctrl').addEventListener('change', function(e){
-  var t = e.target;
-  if (t.name === 'vest') cfg.vest = t.checked;
-  else if (t.name === 'fab') cfg.fab = t.value;
-  else if (t.name === 'lining') cfg.lining = +t.value;
-  else if (t.name === 'plan') setPlan(t.value);
-  else if (t.name in cfg) cfg[t.name] = t.value;
-  renderStudio();
-  wedCheck();
-});
-$('#toBook').addEventListener('click', function(){
-  appendNote(describeDesign());
-  $('#book').scrollIntoView({behavior:'smooth', block:'start'});
-});
-
-/* ===== 預約量身 ===== */
-function purpose(){
-  var r = document.querySelector('input[name="purpose"]:checked');
-  return r ? r.value : '';
-}
-function wedCheck(){
-  var box = $('#wedMsg'), wrap = $('#wedWrap');
-  box.hidden = true;
-  box.innerHTML = '';
-  if (purpose() !== '婚禮'){
-    wrap.hidden = true;
-    $('#eWed').textContent = '';
-    return true;
-  }
-  wrap.hidden = false;
-  var v = $('#bWed').value;
-  if (!v) return true;
-  var c = studioCalc();
-  var earliest = addDays(TODAY, c.weeks * 7 + 7), wd = parseYmd(v);
-  if (wd < earliest){
-    box.hidden = false;
-    box.innerHTML = '<p>婚期 ' + fmtD(wd) + ' 排不及。' + c.plan.name + '工期 ' + c.weeks + ' 週，外加一週修改的緩衝，最早可排的婚期是 ' + fmtD(earliest) + ' 或之後。</p>' +
-      '<p>' + (cfg.plan === 'bespoke' ? '也可以改選半訂製，工期較短。' : '若布料是頂級，改用精紡或標準布料可以少一週。') + '</p>' +
-      '<button type="button" class="btn" data-fix="' + ymd(earliest) + '">改用最早可行的日期</button>';
-    return false;
-  }
-  return true;
-}
-function dateCheck(){
-  var v = $('#bDate').value, sel = $('#bTime'), hint = $('#dateHint');
-  sel.innerHTML = '';
-  $('#eTime').textContent = '';
-  $('#eDate').textContent = '';
-  hint.hidden = true;
-  hint.classList.remove('bad');
-  if (!v){ $('#eDate').textContent = '請選擇日期'; return false; }
-  var d = parseYmd(v), h = SHOP.hours[d.getDay()];
-  if (!h){
-    $('#eDate').textContent = DAYS[d.getDay()] + ' 公休，請改選其他日期';
-    hint.hidden = false;
-    hint.classList.add('bad');
-    hint.textContent = '這一天公休。營業日的時段會在這裡列出。';
-    return false;
-  }
-  var start = minOf(h[0]), end = minOf(h[1]), nowM = now.getHours() * 60 + now.getMinutes();
-  var isToday = ymd(d) === ymd(TODAY), opts = '';
-  for (var m = start; m + 60 <= end; m += 60){
-    if (isToday && m < nowM + 60) continue;
-    opts += '<option value="' + hm(m) + '">' + hm(m) + ' 開始</option>';
-  }
-  if (!opts){
-    $('#eDate').textContent = '今天剩下的時段已經排滿，請改選其他日期';
-    return false;
-  }
-  sel.innerHTML = opts;
-  hint.hidden = false;
-  hint.textContent = '營業時間 ' + h[0] + '–' + h[1] + '，每位預約約 60 分鐘。';
-  return true;
-}
-(function(){
-  var form = $('#bForm');
-  form.addEventListener('change', function(e){
-    var t = e.target;
-    if (t.name === 'purpose') wedCheck();
-    else if (t.name === 'bplan'){ setPlan(t.value); renderStudio(); wedCheck(); }
-    else if (t.id === 'bDate'){ dateCheck(); }
-    else if (t.id === 'bWed'){ wedCheck(); }
-  });
-  $('#wedMsg').addEventListener('click', function(e){
-    var b = e.target.closest('[data-fix]');
-    if (!b) return;
-    $('#bWed').value = b.getAttribute('data-fix');
-    wedCheck();
-  });
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
-    var ok = true, first = null;
-    function mark(el, errEl, msg){
-      errEl.textContent = msg;
-      el.setAttribute('aria-invalid', 'true');
-      if (!first) first = el;
-      ok = false;
-    }
-    function clear(el, errEl){ errEl.textContent = ''; el.removeAttribute('aria-invalid'); }
-
-    var nm = $('#bName'), nmv = nm.value.trim();
-    if (nmv.length < 2) mark(nm, $('#eName'), '請填寫姓名（至少兩個字）'); else clear(nm, $('#eName'));
-
-    var ph = $('#bPhone'), phv = ph.value.replace(/[\s\-()（）]/g, '');
-    if (!/^09\d{8}$/.test(phv) && !/^0[2-8]\d{7,8}$/.test(phv)) mark(ph, $('#ePhone'), '請填寫台灣手機（09xx-xxx-xxx）或含區碼的市話');
-    else clear(ph, $('#ePhone'));
-
-    var dt = $('#bDate');
-    if (!dateCheck()){ mark(dt, $('#eDate'), $('#eDate').textContent || '請選擇日期'); }
-    else clear(dt, $('#eDate'));
-
-    var tm = $('#bTime');
-    if (!tm.value && !tm.options.length) { mark(tm, $('#eTime'), '請先選擇一個可用的日期'); }
-    else if (!tm.value){ mark(tm, $('#eTime'), '請選擇時段'); }
-    else clear(tm, $('#eTime'));
-
-    if (purpose() === '婚禮'){
-      var wd = $('#bWed');
-      if (!wd.value){ mark(wd, $('#eWed'), '婚禮請填寫婚期'); }
-      else if (!wedCheck()){ ok = false; if (!first) first = wd; wd.setAttribute('aria-invalid', 'true'); }
-      else { clear(wd, $('#eWed')); }
-    }
-
-    if (!ok){ if (first) first.focus(); return; }
-
-    var c = studioCalc();
-    var code = 'MT-' + ymd(TODAY).replace(/-/g, '').slice(2) + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
-    var d = parseYmd(dt.value);
-    var rows = [
-      ['預約編號', code],
-      ['姓名', nmv],
-      ['電話', phv.replace(/^(\d{4})(\d{3})(\d{3})$/, '$1-$2-$3')],
-      ['用途', purpose()],
-      ['日期時段', fmtD(d) + ' ' + tm.value + ' 開始'],
-      ['方案', c.plan.name + '・工期 ' + c.weeks + ' 週・試身 ' + c.fit + ' 次'],
-      ['布料', c.fab.n + '（' + c.grade + '）'],
-      ['估價', '約 ' + money(c.total)]
-    ];
-    if (purpose() === '婚禮') rows.push(['婚期', fmtD(parseYmd($('#bWed').value))]);
-    rows.push(['備註', $('#bNote').value.trim() || '—']);
-    $('#slip').innerHTML = '<h3>量身單</h3><p class="no-id">No. ' + esc(code) + '</p><dl>' +
-      rows.slice(1).map(function(r){ return '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('') +
-      '</dl><p class="fine">請於預約時段前 10 分鐘到店。示範頁面不會真的建立預約。</p>';
-    form.hidden = true;
-    $('#bDone').hidden = false;
-    $('#slip').focus();
-  });
-  $('#bAgain').addEventListener('click', function(){
-    $('#bForm').reset();
-    setPlan(cfg.plan);
-    $('#bDone').hidden = true;
-    $('#bForm').hidden = false;
-    $$('#bForm [aria-invalid]').forEach(function(el){ el.removeAttribute('aria-invalid'); });
-    $$('#bForm .err').forEach(function(el){ el.textContent = ''; });
-    dateCheck();
-    wedCheck();
-    $('#bName').focus();
-  });
-})();
-$('#bTime').innerHTML = '';
-wedCheck();
-
-/* ===== 尺寸指南 ===== */
-(function(){
-  $('#sizeBody').innerHTML = SIZES.map(function(r){
-    return '<tr data-n="' + r.n + '"><td class="sz">' + r.n + '</td><td>' + r.chest + '</td><td>' + r.waist + '</td><td>' + r.len + '</td><td>' + r.sleeve + '</td><td>' + r.h + '</td></tr>';
-  }).join('');
-  $('#szForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    var h = parseFloat($('#szH').value), c = parseFloat($('#szC').value);
-    var okH = h >= 140 && h <= 210, okC = c >= 70 && c <= 140;
-    $('#eH').textContent = okH ? '' : '身高請填 140–210 cm';
-    $('#eC').textContent = okC ? '' : '胸圍請填 70–140 cm';
-    if (!okH || !okC){ $('#szOut').textContent = ''; return; }
-    var row = null;
-    for (var i = 0; i < SIZES.length; i++){ if (c <= SIZES[i].max){ row = SIZES[i]; break; } }
-    $$('#sizeBody tr').forEach(function(tr){ tr.classList.remove('hit'); });
-    if (!row){
-      $('#szOut').textContent = '胸圍超過成衣號數範圍，建議直接訂製。';
-      return;
-    }
-    $('[data-n="' + row.n + '"]', $('#sizeBody')).classList.add('hit');
-    var letter = h < 168 ? 'S' : (h <= 176 ? 'R' : 'L');
-    var word = h < 168 ? '短身' : (h <= 176 ? '標準身' : '長身');
-    var note = c < 88 ? ' 胸圍比最小號還小，成衣會偏大，訂製會更合身。' : '';
-    $('#szOut').innerHTML = '建議參考 <b>' + row.n + letter + '</b>（' + word + '）。衣長約 ' + row.len + ' cm、袖長約 ' + row.sleeve + ' cm。' + note;
-  });
-  $('#szForm').dispatchEvent(new Event('submit', {cancelable:true}));
-})();
-
-/* ===== 顧客評論 ===== */
-$('#notes').innerHTML = REVIEWS.map(function(r, i){
-  var stars = '';
-  for (var k = 0; k < 5; k++) stars += k < r.star ? '★' : '☆';
-  return '<article class="note rv" style="--r:' + (i % 2 ? 0.9 : -1) + 'deg">' +
-    '<i class="tapebit" aria-hidden="true"></i>' +
-    '<p class="stars" role="img" aria-label="' + r.star + ' 顆星">' + stars + '</p>' +
-    '<blockquote>' + esc(r.t) + '</blockquote>' +
-    '<p class="who">' + esc(r.who) + '・' + esc(r.item) + '・' + r.date + '</p></article>';
-}).join('');
-
-/* ===== 門市：營業時間表（今天標示） ===== */
-$('#hours').innerHTML = WEEK_ORDER.map(function(d){
-  var h = SHOP.hours[d], today = d === now.getDay();
-  return '<li class="' + (today ? 'today' : '') + '"><span>' + DAYS[d] + (today ? '<em class="tg">今天</em>' : '') + '</span><span class="num">' + (h ? h[0] + '–' + h[1] : '公休') + '</span></li>';
-}).join('');
-
-/* ===== 畫面進場（IntersectionObserver） ===== */
-(function(){
-  var items = $$('.rv');
-  if (!('IntersectionObserver' in window)){ items.forEach(function(el){ el.classList.add('in'); }); return; }
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
-    });
-  }, {threshold:.12});
-  items.forEach(function(el){ io.observe(el); });
-})();
-
-/* 初始化：各區域的首次繪製 */
-renderGrid();
-renderInq();
-renderStudio();
-
-})();
-</script>
-</body>
-</html>
