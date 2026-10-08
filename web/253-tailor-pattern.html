@@ -163,7 +163,8 @@ section{padding:clamp(80px,11vw,168px) 0}
 .cover-mast i{font-style:italic;font-weight:400;text-transform:none;letter-spacing:0;margin:0 .14em;color:var(--brass-d)}
 @keyframes mastIn{from{opacity:0;letter-spacing:.12em}to{opacity:1}}
 .cover-fig{position:absolute;left:50%;bottom:0;z-index:2;height:77%;aspect-ratio:400/760;margin:0;transform:translateX(-50%);animation:figIn 1.8s var(--ease-out) .25s both}
-.cover-fig svg{display:block;width:100%;height:100%;overflow:visible}
+.cover-fig{overflow:hidden}
+.cover-fig svg{display:block;width:100%;height:100%}
 @keyframes figIn{from{opacity:0;transform:translate(-50%,24px)}to{opacity:1;transform:translateX(-50%)}}
 .cover-copy{position:absolute;z-index:3;left:var(--gut);bottom:clamp(36px,6vh,72px);max-width:min(30%,420px)}
 .cover-copy .lead{font-size:clamp(28px,2.6vw,42px);letter-spacing:.14em;line-height:1.45}
@@ -529,7 +530,10 @@ html.js .sg.sg.in>.sgi.sgi{opacity:1;transform:none}
   .story-fig::before{display:none}
   .stats li{padding-right:8px}.stats li+li{padding-left:12px}
   .stats span{font-size:12px;letter-spacing:.04em}
-  .grid{grid-template-columns:1fr;gap:44px}
+  .grid{grid-template-columns:minmax(0,1fr);gap:28px}
+  .fab{min-width:0;align-items:start}
+  .sw .bind{height:24px;padding:0 9px;font-size:7.5px;letter-spacing:.12em;white-space:nowrap}
+  .sw .selv{top:24px}
   .fab{display:grid;grid-template-columns:42% minmax(0,1fr);gap:0 18px}
   .fab .body{padding-top:0}
   .fab .acts{flex-direction:column;gap:6px;align-items:flex-start}
@@ -563,6 +567,116 @@ html.js .sg.sg.in>.sgi.sgi{opacity:1;transform:none}
   .fade-late,.mark-l,.mark-t,.cover-fig{animation:none;opacity:1}
   .sw,.ph>svg,.ph>img{transition:none}
   .fab:hover .sw,.ph:hover>svg,.ph:hover>img{transform:none}
+}
+
+/* ===== 圓角與透明空間（最後載入，覆寫前面的直角與實色底） =====
+   背景是一層固定的柔光與打版點陣，淺色區塊改為半透明，捲動時底下的光層緩慢移動，形成景深；
+   卡片、表單、照片與按鈕一律圓角，卡片用霧面玻璃（半透明＋背景模糊）。 */
+:root{--r-s:12px;--r-m:18px;--r-l:26px;--glass:rgba(250,247,241,.58);--glass-b:rgba(255,255,255,.66);--glass-sh:0 24px 60px -36px rgba(30,26,20,.45),0 2px 8px -4px rgba(30,26,20,.12);--sy:0px}
+body{background:#e9e3d8}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(38vmax 30vmax at 18% 22%,rgba(255,250,238,.9),transparent 70%),
+    radial-gradient(34vmax 28vmax at 86% 38%,rgba(201,186,160,.55),transparent 70%),
+    radial-gradient(40vmax 32vmax at 30% 88%,rgba(176,143,92,.22),transparent 70%),
+    radial-gradient(30vmax 26vmax at 78% 92%,rgba(154,47,39,.08),transparent 70%),
+    radial-gradient(circle,rgba(22,23,27,.1) 1px,transparent 1.4px) 0 calc(var(--sy) * -.18)/26px 26px}
+main section:not(.on-dark):not(.cover){background:transparent}
+main section.paper{background:transparent}
+.cover{border-bottom:0}
+.on-dark{background:rgba(27,29,34,.93);margin:clamp(10px,1.6vw,24px);border-radius:clamp(26px,3vw,44px);box-shadow:0 40px 90px -50px rgba(20,18,14,.7);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.cover-in{background:
+    radial-gradient(46% 62% at 52% 40%,rgba(255,252,244,.8),transparent 70%),
+    radial-gradient(circle,rgba(22,23,27,.13) 1px,transparent 1.4px) 0 0/22px 22px,
+    linear-gradient(180deg,rgba(233,227,216,.6) 0%,rgba(221,213,199,.7) 56%,rgba(203,193,176,.8) 72%,rgba(214,205,190,.7) 100%)}
+
+/* 頁首：頂端是半透明條，往下捲後收成懸浮的圓角玻璃膠囊（玻璃畫在偽元素上，不影響手機選單的 fixed 定位） */
+.hd{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom-color:transparent;transition:border-color .4s}
+.hd::before{content:"";position:absolute;inset:0;z-index:-1;background:rgba(236,230,219,.66);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);border-bottom:1px solid var(--line);transition:opacity .45s var(--ease-out)}
+.hd-in{position:relative;isolation:isolate;transition:height .45s var(--ease-lux),margin .45s var(--ease-lux)}
+.hd-in::before{content:"";position:absolute;inset:0 clamp(4px,1vw,12px);z-index:-1;border-radius:999px;background:rgba(246,242,234,.76);border:1px solid var(--glass-b);box-shadow:var(--glass-sh);-webkit-backdrop-filter:blur(20px) saturate(1.35);backdrop-filter:blur(20px) saturate(1.35);opacity:0;transform:scale(.97);transition:opacity .45s var(--ease-out),transform .45s var(--ease-lux)}
+html.scrolled .hd::before{opacity:0}
+html.scrolled .hd-in{height:62px;margin-top:7px;margin-bottom:7px}
+html.scrolled .hd-in::before{opacity:1;transform:none}
+
+/* 按鈕、標籤、小控制：膠囊或圓形 */
+.btn,.btn::before{border-radius:999px}
+.btn{padding:0 32px}
+.chip span,.pv-tab,.slotbtn,.burger{border-radius:999px}
+.slotbtn{background:var(--glass);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:var(--glass-sh)}
+.rail-ctl button{border-radius:50%;background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.mini{padding:7px 14px;border:1px solid var(--line2);border-radius:999px;background:rgba(255,255,255,.35)}
+.mini:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.mini:hover::before{color:inherit}
+.tabs{gap:8px;border-bottom:0;padding:5px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-b);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.tab{padding:10px 18px;border-radius:999px;transition:background-color var(--dur-hover),color var(--dur-hover)}
+.tab::after{display:none}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.inq-list li{border-radius:999px}
+.inq-list button{border-radius:50%}
+
+/* 表單欄位：圓角霧面 */
+.inp,textarea.inp{padding:12px 18px;border:1px solid var(--line2);border-radius:var(--r-s);background-color:rgba(255,255,255,.5);transition:border-color var(--dur-hover),box-shadow var(--dur-hover),background-color var(--dur-hover)}
+select.inp{background-position:calc(100% - 22px) 52%,calc(100% - 16px) 52%;padding-right:42px}
+.inp:focus{border-color:var(--ink);box-shadow:0 0 0 4px rgba(22,23,27,.08);background-color:rgba(255,255,255,.75)}
+.inp[aria-invalid="true"]{box-shadow:0 0 0 4px rgba(154,47,39,.1)}
+
+/* 卡片與面板：圓角霧面玻璃 */
+.sheet,.slip,.sz-tool,.inq,.ticket,.info,.svc,.tbl-wrap{border-radius:var(--r-l);background:var(--glass);border:1px solid var(--glass-b);box-shadow:var(--glass-sh);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2)}
+.sz-tool,.inq,.ticket,.svc{padding:clamp(22px,3vw,36px)}
+.info{padding:8px clamp(18px,2.4vw,28px)}
+.info dt,.info dd{border-bottom-color:rgba(22,23,27,.1)}
+.info>dt:last-of-type,.info>dd:last-of-type{border-bottom:0}
+.tbl-wrap{padding:6px clamp(10px,1.6vw,18px) 10px;overflow:hidden}
+.tbl-wrap table{min-width:0}
+.slip{outline:0;border:1px solid var(--glass-b);background:rgba(250,247,241,.82)}
+.paper-prev{border-radius:var(--r-l);overflow:hidden}
+.paper-prev::after{inset:10px;border-radius:calc(var(--r-l) - 8px)}
+.back-box{border-radius:var(--r-s)}
+.cover-bar{gap:clamp(10px,1.4vw,18px);padding-top:clamp(14px,2vw,22px);padding-bottom:clamp(14px,2vw,22px)}
+.cover-bar>div,.cover-bar>div+div{padding:20px clamp(18px,2vw,28px);border:1px solid var(--glass-b);border-radius:var(--r-m);background:var(--glass);box-shadow:var(--glass-sh);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.cover-bar>div:last-child{border-right:1px solid var(--glass-b)}
+.note{padding:clamp(28px,3.4vw,44px) clamp(24px,3vw,40px);margin-bottom:clamp(18px,2vw,28px);border:1px solid rgba(236,230,214,.14);border-radius:var(--r-l);background:rgba(255,255,255,.035);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.note::before{left:clamp(14px,2vw,22px)}
+.notes{border-top:0}
+.quote{border-bottom:0}
+
+/* 照片、布樣、造型卡：圓角 */
+.ph{border-radius:var(--r-m)}
+.story-fig::before{border-top-left-radius:var(--r-l)}
+.sw{clip-path:inset(0 round var(--r-m));border-radius:var(--r-m)}
+.sw .bind{border-radius:var(--r-m) var(--r-m) 0 0}
+.fab .body{padding:20px 4px 0}
+.look-fig{border-radius:var(--r-l);box-shadow:var(--glass-sh)}
+.look-meta{padding:18px 6px 0}
+.fabpick .disc{border-radius:var(--r-s)}
+.lin .disc{border-radius:50%}
+.map{border-radius:var(--r-m);overflow:hidden}
+.fig-box{border-radius:var(--r-m)}
+
+/* 捲動的空間感：區塊由遠處淡入（較小、較透明），離開畫面上緣時退後變淡；照片內容做視差 */
+.sp{opacity:var(--o,1);transform:translate3d(0,var(--ty,0px),0) scale(var(--sc,1));transform-origin:50% 0;will-change:opacity,transform}
+.ph>svg,.ph>img{translate:0 var(--py,0px);scale:1.1}
+.cover-mast{translate:0 var(--cm,0px);filter:opacity(var(--co,1))}
+.cover-fig{translate:-50% var(--cf,0px);transform:none;animation-name:figFade}
+@keyframes figFade{from{opacity:0}to{opacity:1}}
+.cover-copy,.cover-look{translate:0 var(--cc,0px);filter:opacity(var(--cco,1))}
+@media (max-width:980px){
+  .cover-fig,.cover-mast,.cover-copy,.cover-look{translate:none;filter:none}
+  .cover-copy,.cover-look{background:transparent}
+  .cover-in{background:radial-gradient(70% 40% at 50% 22%,rgba(255,252,244,.8),transparent 72%),radial-gradient(circle,rgba(22,23,27,.13) 1px,transparent 1.4px) 0 0/22px 22px,rgba(236,230,219,.45)}
+  .cover-bar>div,.cover-bar>div+div{padding:18px 20px!important;border:1px solid var(--glass-b)!important}
+  .hd-in::before{inset:0 6px}
+}
+@media (max-width:620px){
+  .tabs{width:100%;justify-content:space-between}
+  .tab{padding:9px 12px}
+  .note{padding:26px 22px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sp{opacity:1!important;transform:none!important}
+  .ph>svg,.ph>img,.cover-mast,.cover-fig,.cover-copy,.cover-look{translate:none!important;filter:none!important}
+  body::before{background-position:0 0}
 }
 </style>
 </head>
@@ -1928,6 +2042,50 @@ function stagger(el){ Array.prototype.forEach.call(el.children, function(c, i){ 
     entries.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
   }, {threshold:.08, rootMargin:'0px 0px -8% 0px'});
   all.forEach(function(el){ io.observe(el); });
+})();
+
+
+/* ===== 捲動的空間感：計算各區塊與照片的位置，寫進 CSS 變數 ===== */
+(function(){
+  var root = document.documentElement, reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var secs = $$('main > section:not(.cover) > .wrap'), phs = $$('.ph'), cin = $('.cover-in');
+  secs.forEach(function(w){ w.classList.add('sp'); });
+  var ticking = false;
+  function clamp(v){ return v < 0 ? 0 : v > 1 ? 1 : v; }
+  function update(){
+    ticking = false;
+    var vh = window.innerHeight, y = window.scrollY || window.pageYOffset;
+    root.classList.toggle('scrolled', y > 40);
+    root.style.setProperty('--sy', y + 'px');
+    if (reduce) return;
+    secs.forEach(function(w){
+      var r = w.parentNode.getBoundingClientRect();
+      var e = clamp((vh - r.top) / (vh * .55));            // 進場：區塊上緣從畫面底部升到 45% 高
+      var x = clamp((vh * .3 - r.bottom) / (vh * .3));     // 離場：區塊下緣離開畫面上方 30%
+      var o = (.22 + .78 * e) * (1 - .55 * x), sc = (.955 + .045 * e) * (1 - .03 * x);
+      w.style.setProperty('--o', o.toFixed(3));
+      w.style.setProperty('--sc', sc.toFixed(4));
+      w.style.setProperty('--ty', ((1 - e) * 56 - x * 24).toFixed(1) + 'px');
+    });
+    phs.forEach(function(p){
+      var r = p.getBoundingClientRect();
+      if (r.bottom < -40 || r.top > vh + 40) return;
+      var t = (r.top + r.height / 2 - vh / 2) / vh;        // -0.5～0.5：照片在畫面中的位置
+      p.style.setProperty('--py', (t * -7).toFixed(2) + '%');
+    });
+    if (cin){
+      var k = clamp(y / (vh * .9));
+      cin.style.setProperty('--cm', (y * .38).toFixed(1) + 'px');
+      cin.style.setProperty('--co', (1 - k * 1.1).toFixed(3));
+      cin.style.setProperty('--cf', (y * .16).toFixed(1) + 'px');
+      cin.style.setProperty('--cc', (y * -.06).toFixed(1) + 'px');
+      cin.style.setProperty('--cco', (1 - k * .9).toFixed(3));
+    }
+  }
+  function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(update); } }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  update();
 })();
 
 /* ===== 畫面進場（IntersectionObserver） ===== */
