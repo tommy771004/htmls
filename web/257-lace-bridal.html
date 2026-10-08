@@ -474,6 +474,135 @@ body.slots .ph img,body.slots .ph svg{opacity:.55}
   .card,.card:hover,.grid .card:nth-child(3n+2),.grid .card:nth-child(3n+2):hover{transform:none}
   .wall .ph:hover img,.wall .ph:hover svg{transform:none}
 }
+
+/* ===== 圓角・透明・空間感（最後載入，覆寫前面的實色底） =====
+   整頁是一層固定的試紗室光：右上是西窗灑進來的天光，左下是腮紅色的反光，
+   上面鋪一層細小的蕾絲珠點（隨捲動慢速上移）；故事、預約、照片牆、門市與頁尾變成懸浮的圓角霧面面板。 */
+:root{--r-s:14px;--r-m:20px;--r-l:28px;--sy:0px;
+  --gl:color-mix(in srgb,var(--pearl) 62%,transparent);
+  --gl2:color-mix(in srgb,var(--pearl) 72%,transparent);
+  --gl-b:color-mix(in srgb,var(--pearl) 80%,rgba(255,255,255,.5));
+  --gl-sh:0 26px 60px -38px rgba(110,74,82,.5),0 2px 6px -3px rgba(110,74,82,.12)}
+html{background:var(--ivory)}
+body{background:transparent}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  linear-gradient(242deg,color-mix(in srgb,var(--pearl) 85%,transparent) 0%,transparent 34%),
+  radial-gradient(46vmax 36vmax at 94% 0%,color-mix(in srgb,var(--champagne) 45%,transparent),transparent 70%),
+  radial-gradient(42vmax 34vmax at 4% 92%,color-mix(in srgb,var(--blush) 80%,transparent),transparent 72%),
+  radial-gradient(circle,color-mix(in srgb,var(--rose-gold) 26%,transparent) 1px,transparent 1.5px) 0 calc(var(--sy) * -.18)/22px 22px,
+  radial-gradient(circle,color-mix(in srgb,var(--rose-gold) 16%,transparent) 1px,transparent 1.5px) 11px calc(11px + var(--sy) * -.18)/22px 22px,
+  var(--ivory)}
+.hero,.shop,.timeline-sec,.picker,.size,.reviews{background:transparent}
+.story,.book,.wall,.store,footer.foot{margin:clamp(8px,1.6vw,24px);border-radius:clamp(26px,3vw,44px)}
+.story,.book,.wall{background:var(--gl2);border:1px solid var(--gl-b);box-shadow:var(--gl-sh);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15)}
+.store{background:color-mix(in srgb,var(--blush) 72%,transparent);border:1px solid var(--gl-b);box-shadow:var(--gl-sh);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15)}
+footer.foot{box-shadow:0 40px 90px -50px rgba(60,36,42,.7)}
+
+/* 頁首：頂端是半透明條，往下捲後收成懸浮的圓角玻璃膠囊 */
+.top{transition:background-color .45s,border-color .45s}
+.top .wrap{position:relative;isolation:isolate}
+.top .wrap::before{content:"";position:absolute;inset:6px -18px;z-index:-1;border-radius:999px;background:color-mix(in srgb,var(--ivory) 78%,transparent);border:1px solid var(--gl-b);box-shadow:var(--gl-sh);-webkit-backdrop-filter:blur(20px) saturate(1.3);backdrop-filter:blur(20px) saturate(1.3);opacity:0;transform:scale(.97);transition:opacity .45s cubic-bezier(.2,.75,.2,1),transform .45s cubic-bezier(.2,.75,.2,1)}
+html.scrolled .top{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom-color:transparent}
+html.scrolled .top .wrap::before{opacity:1;transform:none}
+.top .wrap{transition:min-height .45s cubic-bezier(.2,.75,.2,1)}
+html.scrolled .top .wrap{min-height:84px}
+.logo b{padding-top:.18em}
+.nav{gap:clamp(4px,1vw,12px)}
+.nav a.l{padding:7px 12px;border-radius:999px;transition:color var(--dh),background-color var(--dh)}
+.nav a.l::after{display:none}
+.nav a.l:hover{background:color-mix(in srgb,var(--blush) 70%,transparent)}
+@media (max-width:820px){
+  .top .wrap::before{inset:6px -8px}
+  .nav{left:8px;right:8px;top:76px;border:1px solid var(--gl-b);border-radius:var(--r-l);background:color-mix(in srgb,var(--pearl) 88%,transparent);box-shadow:var(--gl-sh);-webkit-backdrop-filter:blur(20px) saturate(1.3);backdrop-filter:blur(20px) saturate(1.3);padding:8px 22px 18px}
+  .nav a.l{border-radius:0}
+  .nav a.l:hover{background:transparent}
+}
+
+/* 卡片、面板與表單：大圓角霧面玻璃 */
+.tl-form,.book-form,.fit,.size-scroll,.rev{border-radius:var(--r-l);background:var(--gl);border:1px solid var(--gl-b);box-shadow:var(--gl-sh);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15)}
+.sizer{border-radius:var(--r-l)}
+.card{border-radius:999px 999px var(--r-l) var(--r-l)}
+.card-img{border-radius:999px 999px var(--r-m) var(--r-m)}
+.field input,.field select,.field textarea{border-radius:var(--r-s);background:color-mix(in srgb,var(--ivory) 70%,transparent)}
+.seg span{border-radius:999px;background:color-mix(in srgb,var(--ivory) 70%,transparent)}
+.book-side .plan div,.info-line div,.wedding-banner,.rush,.sizer-result{border-radius:var(--r-m)}
+.book-side .plan div,.info-line div{background:var(--gl);border:1px solid var(--gl-b);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.wedding-banner{background:var(--gl)}
+.wall .ph{border-radius:var(--r-l)}
+.invite{border-radius:var(--r-l)}
+.invite::before{border-radius:calc(var(--r-l) - 10px)}
+.ask-bar{border-radius:999px;background:color-mix(in srgb,var(--mauve) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.hours{border-top:0}
+.hours li{border-radius:999px;border-bottom-color:transparent;margin:3px 0;padding-inline:16px;background:var(--gl)}
+.hours li.today{background:var(--mauve);color:var(--pearl)}
+.hours li.today em.tg{background:var(--pearl);color:var(--mauve)}
+.status,.tab,.opt{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.status,.tab,.opt,.slot-btn,.burger{background:var(--gl)}
+
+/* ===== 交錯與折疊 ===== */
+/* 商品卡：像拱門簾由上緣往下放下，依序進場（切換分類時重新產生，自然重播） */
+.grid{perspective:1600px}
+.js .grid .card.rv{--dl:0s;rotate:x -64deg;transform-origin:50% 0;transition:opacity 1s var(--eo) var(--dl),rotate 1.15s cubic-bezier(.2,.75,.2,1) var(--dl),transform var(--dh),box-shadow var(--dh)}
+.js .grid .card.rv.rv-in{rotate:none}
+.js .grid .card:nth-child(3n+2){--dl:.1s}.js .grid .card:nth-child(3n){--dl:.2s}
+/* 評論：依序浮起 */
+.js .rev-grid .rev.rv{--dl:0s;translate:0 30px;transition:opacity 1s var(--eo) var(--dl),translate 1.1s var(--eo) var(--dl),transform var(--dh),border-color var(--dh)}
+.js .rev-grid .rev.rv.rv-in{translate:none}
+.js .rev-grid .rev:nth-child(3n+2){--dl:.12s}.js .rev-grid .rev:nth-child(3n){--dl:.24s}
+/* 照片牆：依序由下往上揭開 */
+/* 裁切放在照片內容上：被觀察的外框本身若被 clip-path 完全裁掉，IntersectionObserver 不會觸發 */
+.js .wall-grid .ph.rv{--dl:0s;opacity:1;transform:none}
+.js .wall-grid .ph.rv>*{clip-path:inset(100% 0 0 0);transition:clip-path 1.25s cubic-bezier(.7,0,.2,1) var(--dl),transform 1.4s var(--eo)}
+.js .wall-grid .ph.rv.rv-in>*{clip-path:inset(0 0 0 0)}
+.js .wall-grid .ph:nth-child(2){--dl:.1s}.js .wall-grid .ph:nth-child(3){--dl:.2s}.js .wall-grid .ph:nth-child(4){--dl:.12s}.js .wall-grid .ph:nth-child(5){--dl:.22s}.js .wall-grid .ph:nth-child(6){--dl:.32s}
+/* 婚期時程：珍珠一顆顆串上來 */
+@keyframes bead257{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:none}}
+@keyframes pop257{from{scale:0}70%{scale:1.12}to{scale:1}}
+.pearl-step{animation:bead257 .8s cubic-bezier(.2,.75,.2,1) backwards}
+.pearl-step .pearl-dot{animation:pop257 .6s cubic-bezier(.2,.9,.3,1.2) backwards,glint 3.6s ease-in-out infinite}
+.pearl-step:nth-child(2),.pearl-step:nth-child(2) .pearl-dot{animation-delay:.09s}
+.pearl-step:nth-child(3),.pearl-step:nth-child(3) .pearl-dot{animation-delay:.18s}
+.pearl-step:nth-child(4),.pearl-step:nth-child(4) .pearl-dot{animation-delay:.27s}
+.pearl-step:nth-child(5),.pearl-step:nth-child(5) .pearl-dot{animation-delay:.36s}
+.pearl-step:nth-child(6),.pearl-step:nth-child(6) .pearl-dot{animation-delay:.45s}
+.wedding-banner,.rush{transform-origin:50% 0;animation:unfold257 .9s cubic-bezier(.2,.75,.2,1) backwards}
+/* 試紗預約完成：邀請卡以上緣為軸展開 */
+@keyframes unfold257{from{opacity:0;transform:perspective(1100px) rotateX(-82deg)}55%{opacity:1}to{opacity:1;transform:none}}
+.invite{transform-origin:50% 0;animation:unfold257 1.1s cubic-bezier(.2,.75,.2,1) both}
+.sizer-result>*{animation:fadeUp257 .6s cubic-bezier(.2,.75,.2,1) backwards}
+.sizer-result>p{animation-delay:.1s}
+/* 輪廓選擇器：換選項時新的禮服由透明疊入 */
+@keyframes fadeUp257{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes gown257{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+.stage .gown{transform-origin:50% 100%;animation:gown257 .7s cubic-bezier(.2,.75,.2,1) backwards}
+.fit>*{animation:fadeUp257 .6s cubic-bezier(.2,.75,.2,1) backwards}
+.fit>:nth-child(2){animation-delay:.06s}.fit>:nth-child(3){animation-delay:.12s}
+/* 清單類：逐列浮現 */
+.js .sg>.sgi{opacity:0;translate:0 14px;transition:opacity .7s cubic-bezier(.2,.75,.2,1),translate .9s cubic-bezier(.2,.75,.2,1);transition-delay:calc(var(--i,0) * 70ms)}
+.js .sg.sg.rv-in>.sgi.sgi{opacity:1;translate:none}
+/* Hero 文字逐行浮現；手機選單連結依序淡入 */
+.hero-copy>*{animation:fadeUp257 1s cubic-bezier(.2,.75,.2,1) backwards}
+.hero-copy>:nth-child(2){animation-delay:.1s}.hero-copy>:nth-child(3){animation-delay:.2s}.hero-copy>:nth-child(4){animation-delay:.3s}.hero-copy>:nth-child(5){animation-delay:.4s}.hero-copy>:nth-child(6){animation-delay:.5s}
+.nav.open a{animation:fadeUp257 .5s cubic-bezier(.2,.75,.2,1) backwards}
+.nav.open a:nth-child(2){animation-delay:.04s}.nav.open a:nth-child(3){animation-delay:.08s}.nav.open a:nth-child(4){animation-delay:.12s}.nav.open a:nth-child(5){animation-delay:.16s}.nav.open a:nth-child(6){animation-delay:.2s}.nav.open a:nth-child(7){animation-delay:.24s}.nav.open a:nth-child(8){animation-delay:.28s}
+
+/* ===== 捲動景深 ===== */
+.dz{opacity:var(--o,1);transform:translate3d(0,var(--ty,0px),0) scale(var(--sc,1));transform-origin:50% 0}
+.ph>svg,.ph>img{translate:0 var(--py,0px);scale:1.1}
+.hero-copy{translate:0 var(--hy,0px);filter:opacity(var(--ho,1))}
+.arch{translate:0 var(--ay,0px)}
+@media (max-width:920px){ .hero-copy,.arch{translate:none;filter:none} }
+@media (max-width:600px){ .story,.book,.wall,.store,footer.foot{margin-left:8px;margin-right:8px;border-radius:24px} }
+@media (prefers-reduced-motion: reduce){
+  .dz{opacity:1!important;transform:none!important}
+  .ph>svg,.ph>img,.hero-copy,.arch{translate:none!important;filter:none!important}
+  body::before{background-position:0 0,0 0,0 0,0 0,11px 11px,0 0}
+  .js .grid .card.rv{rotate:none}
+  .js .rev-grid .rev.rv{translate:none}
+  .js .wall-grid .ph.rv>*{clip-path:none}
+  .js .sg.sg>.sgi.sgi{opacity:1;translate:none}
+  .pearl-step .pearl-dot{animation:none}
+}
 </style>
 </head>
 
@@ -1578,6 +1707,47 @@ renderAsk();
 renderPicker();
 buildTimeline();
 observeNew();
+
+/* ===== 交錯清單與捲動景深 ===== */
+(function(){
+  var root = document.documentElement;
+  var lists = [$('#stats'), $('#hours'), $('.info-line'), $('.rules'), $('.book-side .plan')].filter(Boolean);
+  lists.forEach(function(l){ l.classList.add('sg'); Array.prototype.forEach.call(l.children, function(c, i){ c.classList.add('sgi'); c.style.setProperty('--i', i); }); });
+  lists.forEach(function(l){ if (io) io.observe(l); else l.classList.add('rv-in'); });
+
+  var wraps = $$('main > section:not(.hero) > .wrap'), phs = $$('.ph'), hc = $('.hero-copy'), arch = $('.arch'), ticking = false;
+  wraps.forEach(function(w){ w.classList.add('dz'); });
+  function cl(v){ return v < 0 ? 0 : v > 1 ? 1 : v; }
+  function update(){
+    ticking = false;
+    var vh = window.innerHeight, y = window.scrollY || window.pageYOffset;
+    root.classList.toggle('scrolled', y > 40);
+    root.style.setProperty('--sy', y + 'px');
+    if (reduceMotion) return;
+    wraps.forEach(function(w){
+      var r = w.parentNode.getBoundingClientRect();
+      var e = cl((vh - r.top) / (vh * .55));          // 進場：區塊上緣從畫面底部升到 45% 高
+      var x = cl((vh * .3 - r.bottom) / (vh * .3));   // 離場：區塊下緣離開畫面上方 30%
+      w.style.setProperty('--o', ((.22 + .78 * e) * (1 - .55 * x)).toFixed(3));
+      w.style.setProperty('--sc', ((.955 + .045 * e) * (1 - .03 * x)).toFixed(4));
+      w.style.setProperty('--ty', ((1 - e) * 56 - x * 24).toFixed(1) + 'px');
+    });
+    phs.forEach(function(p){
+      var r = p.getBoundingClientRect();
+      if (r.bottom < -40 || r.top > vh + 40) return;
+      p.style.setProperty('--py', (((r.top + r.height / 2 - vh / 2) / vh) * -7).toFixed(2) + '%');
+    });
+    if (y < vh * 1.5){
+      var k = cl(y / (vh * .9));
+      if (hc){ hc.style.setProperty('--hy', (y * .1).toFixed(1) + 'px'); hc.style.setProperty('--ho', (1 - k * .85).toFixed(3)); }
+      if (arch) arch.style.setProperty('--ay', (y * -.06).toFixed(1) + 'px');
+    }
+  }
+  function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(update); } }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  update();
+})();
 })();
 </script>
 </body>
