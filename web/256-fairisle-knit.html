@@ -1,0 +1,1551 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>羊毛日和 WOOL DAYS｜用針目織出來的手織毛衣</title>
+<meta name="description" content="羊毛日和 WOOL DAYS：台中南屯的手織與機織毛衣工作室。可以在網頁上畫一張提花圖樣、即時預覽毛衣並送出訂製單，也能報名編織教室、查尺寸與門市資訊。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23a3243b'/%3E%3Cpath d='M7 9l9 15 9-15' fill='none' stroke='%23f8f3e8' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、PRODUCTS（商品）、COURSES（編織課程）；評論直接改「顧客評論」區塊的 HTML。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 「提花毛衣訂製」與「編織教室報名」的送出只在頁面上示範，正式使用請串接訂單／預約系統。
+-->
+<style>
+:root{
+  --oat:#ece3d0;--oat2:#e0d4b9;--wool:#f8f3e8;--paper:#fffdf7;
+  --cran:#a3243b;--cran2:#86192d;--forest:#2f5d46;--mustard:#d9a33a;--navy:#273452;--char:#3a3735;
+  --ink:#2b2724;--mute:#6d655a;--line:#cdbf9f;
+  --c1:#a3243b;--c2:#273452;--c3:#d9a33a;--c4:#2f5d46;
+  --hd:'American Typewriter','Rockwell Nova','Roboto Slab',serif;
+  --num:'Menlo','Monaco',monospace;
+  --zh:'PingFang TC','Noto Sans TC',sans-serif;
+  --ease-out:cubic-bezier(.2,.8,.2,1);
+  --dur-hover:.3s;--dur-press:.14s;--dur-enter:.8s;--dur-exit:.4s;
+  --knit:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Cpath d='M0 1L4 10L8 1L12 10L16 1' fill='none' stroke='%23d3c4a3' stroke-width='1.3'/%3E%3C/svg%3E");
+  --knitd:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Cpath d='M0 1L4 10L8 1L12 10L16 1' fill='none' stroke='%23304366' stroke-width='1.3'/%3E%3C/svg%3E");
+  --fi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='22' viewBox='0 0 40 22'%3E%3Crect width='40' height='22' fill='%23273452'/%3E%3Cpath d='M10 2L15 8L10 14L5 8Z' fill='%23d9a33a'/%3E%3Cpath d='M30 2L35 8L30 14L25 8Z' fill='%23ece3d0'/%3E%3Cpath d='M20 10V20M15.5 15H24.5M16.5 11.5L23.5 18.5M23.5 11.5L16.5 18.5' stroke='%23a3243b' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:86px}
+html,body{margin:0}
+body{background-color:var(--oat);background-image:var(--knit);color:var(--ink);font-family:var(--zh);line-height:1.85;letter-spacing:.02em;overflow-x:clip;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+h1,h2,h3,p,dl,dd,ul,ol,figure{margin:0}
+img,svg{display:block;max-width:100%}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--mustard);outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.num{font-family:var(--num)}
+
+/* ===== 共用元件 ===== */
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px;position:relative}
+.sec{position:relative;padding:116px 0 124px}
+.sec.wool{background-color:var(--wool);background-image:none}
+.sec.navy{background-color:var(--navy);background-image:var(--knitd);color:var(--wool)}
+.shd{display:grid;grid-template-columns:auto 1fr;gap:16px 36px;align-items:end;margin-bottom:60px}
+.shd .no{grid-column:1;grid-row:1;font-family:var(--num);font-size:12px;letter-spacing:.2em;color:var(--cran);border-top:2px solid var(--cran);padding-top:12px;white-space:nowrap}
+.shd h2{grid-column:2;grid-row:1;font-family:var(--hd);font-weight:400;font-size:clamp(30px,4.4vw,54px);line-height:1.18;letter-spacing:.005em}
+.shd h2 em{font-style:normal;color:var(--cran)}
+.shd .lede{grid-column:2;grid-row:2;max-width:40em;color:var(--mute);font-size:16px}
+.navy .shd .no{color:var(--mustard);border-color:var(--mustard)}
+.navy .shd h2 em{color:var(--mustard)}
+.navy .shd .lede{color:#c9cfdd}
+.ruler{position:absolute;left:-54px;top:0;bottom:0;width:34px;pointer-events:none}
+.ruler::before{content:"";position:absolute;right:0;top:0;bottom:0;width:9px;background:repeating-linear-gradient(to bottom,var(--mute) 0 1px,transparent 1px 14px);opacity:.55}
+.ruler i{position:absolute;right:14px;font-family:var(--num);font-style:normal;font-size:10px;line-height:1;color:var(--mute);transform:translateY(-1px)}
+.navy .ruler::before{background:repeating-linear-gradient(to bottom,var(--mustard) 0 1px,transparent 1px 14px)}
+.navy .ruler i{color:#aab3c8}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:11px 22px;border-radius:8px;border:1.5px solid var(--cran);background:var(--cran);color:var(--wool);font-size:15px;font-weight:700;text-decoration:none;cursor:pointer;transition:transform var(--dur-hover) var(--ease-out),background var(--dur-hover),box-shadow var(--dur-hover),color var(--dur-hover)}
+.btn:hover{background:var(--cran2);transform:translateY(-2px);box-shadow:4px 4px 0 0 var(--navy)}
+.btn:active{transform:scale(.97);transition-duration:var(--dur-press)}
+.btn.ghost{background:transparent;color:var(--cran);box-shadow:none}
+.btn.ghost:hover{background:var(--cran);color:var(--wool);box-shadow:4px 4px 0 0 var(--navy)}
+.btn.sm{min-height:38px;padding:7px 14px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.navy .btn.ghost{color:var(--wool);border-color:var(--wool)}
+.navy .btn.ghost:hover{background:var(--wool);color:var(--navy)}
+
+.mini,.chip,.slot,.preset{font:inherit;font-size:13px;padding:7px 13px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:transform var(--dur-hover) var(--ease-out),background var(--dur-hover),color var(--dur-hover),box-shadow var(--dur-hover)}
+.mini:hover,.chip:hover,.preset:hover{background:var(--ink);color:var(--wool)}
+.mini:active,.chip:active,.preset:active,.slot:active{transform:scale(.95);transition-duration:var(--dur-press)}
+.mini[aria-pressed=true],.chip[aria-pressed=true]{background:var(--ink);color:var(--wool)}
+.mini[aria-pressed=true]{background:var(--cran);border-color:var(--cran)}
+
+.status{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;border-radius:999px;background:var(--wool);border:1px solid var(--line);font-size:14px;white-space:nowrap}
+.status::before{content:"";width:9px;height:9px;border-radius:50%;background:#b3a88f}
+.status.on::before{background:var(--forest);box-shadow:0 0 0 4px rgba(47,93,70,.18)}
+
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld>span,.fld>legend{font-size:13px;color:var(--mute);letter-spacing:.06em}
+.inp{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper);font-size:15px;transition:border-color var(--dur-hover),box-shadow var(--dur-hover)}
+.inp:hover{border-color:#b3a383}
+.inp:focus-visible{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(39,52,82,.2)}
+.inp[aria-invalid=true]{border-color:var(--cran)}
+textarea.inp{resize:vertical;min-height:70px}
+.err{min-height:1.4em;font-size:13px;color:var(--cran);line-height:1.5}
+.fset{border:0;padding:0;margin:0;min-width:0}
+.fset legend{padding:0;margin-bottom:8px;font-size:13px;color:var(--mute);letter-spacing:.06em}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.radio{position:relative;display:inline-flex}
+.radio input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.radio span{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border-radius:999px;border:1.5px solid var(--line);background:var(--paper);font-size:14px;cursor:pointer;transition:transform var(--dur-hover) var(--ease-out),border-color var(--dur-hover),background var(--dur-hover),color var(--dur-hover)}
+.radio:hover span{border-color:var(--ink)}
+.radio:active span{transform:scale(.96);transition-duration:var(--dur-press)}
+.radio input:checked+span{background:var(--navy);border-color:var(--navy);color:var(--wool)}
+.radio input:focus-visible+span{outline:3px solid var(--mustard);outline-offset:2px}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:18px;padding:28px}
+.card h3,.panel h3{font-family:var(--hd);font-weight:400;font-size:22px;line-height:1.3;margin:0 0 4px}
+.card .sub,.panel .sub{font-family:var(--num);font-size:12px;color:var(--mute);letter-spacing:.1em;margin-bottom:18px}
+
+/* ===== 照片位 ===== */
+.ph{position:relative;overflow:hidden;border-radius:14px;background:var(--oat2);aspect-ratio:4/5;box-shadow:0 22px 44px -30px rgba(39,52,82,.6)}
+.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph>svg{position:absolute;inset:0;width:100%;height:100%}
+body.slots .ph{outline:3px dashed var(--mustard);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:8px;top:8px;z-index:3;background:var(--ink);color:var(--mustard);font-size:11px;padding:3px 9px;border-radius:999px}
+.slotbtn{position:fixed;right:14px;bottom:14px;z-index:90;font-size:12px;padding:7px 13px;border-radius:999px;border:1.5px solid var(--char);background:var(--wool);cursor:pointer;box-shadow:0 8px 18px -12px rgba(0,0,0,.6);transition:transform var(--dur-hover) var(--ease-out),background var(--dur-hover),color var(--dur-hover)}
+.slotbtn:active{transform:scale(.95)}
+.slotbtn[aria-pressed=true]{background:var(--char);color:var(--wool)}
+
+/* ===== 頁首 ===== */
+.hd{position:sticky;top:0;z-index:50;background:rgba(248,243,232,.95);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hd-in{position:relative;max-width:1200px;margin:0 auto;padding:0 24px;height:70px;display:flex;align-items:center;gap:20px}
+.logo{display:flex;align-items:center;gap:11px;text-decoration:none;min-width:0;flex-shrink:0}
+.logo b{display:block;font-family:var(--hd);font-weight:400;font-size:18px;line-height:1.2;white-space:nowrap}
+.logo small{display:block;font-family:var(--num);font-size:10px;letter-spacing:.22em;color:var(--mute)}
+.nav{display:flex;align-items:center;gap:2px;margin-left:auto}
+.nav a{display:inline-block;font-size:14px;padding:8px 11px;border-radius:6px;text-decoration:none;transition:background var(--dur-hover) var(--ease-out),color var(--dur-hover),transform var(--dur-press)}
+.nav a:hover{background:var(--oat);color:var(--cran)}
+.nav a:active{transform:scale(.96)}
+.hd .btn{padding:8px 16px;min-height:38px;font-size:14px}
+.menu{display:none;margin-left:auto;font:inherit;font-size:14px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;cursor:pointer}
+
+/* ===== Hero ===== */
+.hero{position:relative;padding:50px 0 0;overflow:hidden}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.eyebrow{font-family:var(--num);font-size:12px;letter-spacing:.2em;color:var(--cran);text-transform:uppercase}
+.hero-meta{display:flex;align-items:center;gap:14px}
+.swatch-frame{position:relative;margin-top:30px;background:var(--wool);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 30px 56px -38px rgba(39,52,82,.6)}
+#swatch{display:block;margin:0 auto;border-radius:6px}
+.rowno{position:absolute;right:20px;top:-13px;background:var(--navy);color:var(--wool);font-family:var(--num);font-size:11px;letter-spacing:.08em;padding:4px 11px;border-radius:999px}
+.hero-foot{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:32px;align-items:center;margin-top:34px}
+.hero-lede{font-size:clamp(16px,1.5vw,18px);line-height:1.9;max-width:34em}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.fi-band{height:46px;margin-top:70px;background-color:var(--navy);background-image:var(--fi);background-size:40px 22px;box-shadow:inset 0 4px 0 var(--mustard),inset 0 -4px 0 var(--cran);animation:fiMove 9s linear infinite}
+
+.ball{width:64px;height:64px;flex-shrink:0;animation:rollX 12s ease-in-out infinite}
+.hero-meta .ball{width:56px;height:56px}
+
+/* ===== 品牌故事 ===== */
+.story{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:64px;align-items:center}
+.story p{font-size:17px;line-height:1.95;margin-bottom:1.2em}
+.story p.dc::first-letter{font-family:var(--hd);font-size:4.1em;float:left;line-height:.82;padding:6px 10px 0 0;color:var(--cran)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:40px;border-top:2px solid var(--ink)}
+.stats>div{padding:20px 14px 0 0}
+.stats b{display:block;font-family:var(--num);font-size:clamp(30px,3.6vw,44px);line-height:1.1;color:var(--navy);font-weight:700}
+.stats b em{font-style:normal;font-size:.42em;margin-left:4px;color:var(--cran)}
+.stats span{display:block;font-size:13px;color:var(--mute);margin-top:8px;line-height:1.6}
+
+/* ===== 商品 ===== */
+.chips{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:38px}
+.count{margin-left:auto;font-family:var(--num);font-size:13px;color:var(--mute)}
+.pgrid{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px}
+.pgrid>li{min-width:0}
+.pcard{height:100%;display:flex;flex-direction:column;background:var(--wool);border-radius:16px;overflow:hidden;border:1px solid var(--line);transition:transform var(--dur-hover) var(--ease-out),box-shadow var(--dur-hover)}
+.pcard:hover{transform:translateY(-6px);box-shadow:0 26px 42px -30px rgba(39,52,82,.6)}
+.pcard .art{position:relative;aspect-ratio:1/1;background:var(--tone);display:grid;place-items:center}
+.pcard .art svg{width:76%;height:auto}
+.pcard .rib{height:14px;background:repeating-linear-gradient(90deg,rgba(43,39,36,.3) 0 2px,transparent 2px 6px) var(--tone)}
+.pbody{padding:18px 20px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
+.pbody h3{font-family:var(--hd);font-weight:400;font-size:20px;line-height:1.3}
+.pmeta{font-size:13px;color:var(--mute);line-height:1.6}
+.ptags{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.ptags .sz{margin-left:6px}
+.pprice{font-size:17px;font-weight:700;margin-top:4px}
+.pact{margin-top:auto;padding-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.tray{margin-top:34px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 20px;border:1.5px dashed #b9a985;border-radius:14px;background:var(--paper);font-size:14px}
+.tray .tray-b{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ===== 提花設計室 ===== */
+.needles{position:absolute;right:24px;top:66px;width:96px;height:96px;pointer-events:none}
+.n1{transform-origin:14px 66px;animation:nA 2.4s ease-in-out infinite}
+.n2{transform-origin:30px 70px;animation:nB 2.4s ease-in-out infinite}
+.dgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:36px;align-items:start}
+.panel{background:var(--wool);color:var(--ink);border-radius:18px;padding:28px;box-shadow:0 36px 60px -44px rgba(0,0,0,.7);min-width:0}
+.tb{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tb+.tb{margin-top:12px}
+.tb .lab{font-size:13px;color:var(--mute);min-width:3.2em}
+.slot{display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 8px;background:var(--paper);border-color:var(--line)}
+.slot i{width:18px;height:18px;border-radius:50%;background:var(--c1);box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.slot[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}
+.slot.x i{background:repeating-linear-gradient(45deg,#fffdf7 0 3px,#cdbf9f 3px 5px);}
+.yarn{width:34px;height:34px;padding:0;border-radius:50%;border:0;background:var(--yc);box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);cursor:pointer;transition:transform var(--dur-hover) var(--ease-out),box-shadow var(--dur-hover)}
+.yarn:hover{transform:translateY(-3px)}
+.yarn:active{transform:scale(.9);transition-duration:var(--dur-press)}
+.yarn[aria-pressed=true]{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--ink)}
+.preset{padding:6px 13px}
+.tool-sep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
+.chartbox{margin-top:22px;display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:8px}
+.cnums{grid-column:2;display:grid;grid-template-columns:repeat(16,minmax(0,1fr));font-family:var(--num);font-size:10px;color:var(--mute);margin-bottom:4px;height:14px;align-items:end}
+.cnums span{text-align:center;line-height:1}
+.rnums{display:grid;grid-template-rows:repeat(12,minmax(0,1fr));font-family:var(--num);font-size:10px;color:var(--mute);padding-right:2px}
+.rnums span{display:flex;align-items:center;justify-content:flex-end;line-height:1}
+.chart{grid-column:2;display:grid;grid-template-columns:repeat(16,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr));aspect-ratio:16/12;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+.cell{border:0;margin:0;padding:0;background:var(--paper);cursor:pointer;min-width:0;min-height:0;border-radius:0}
+.cell[data-v="1"]{background:var(--c1)}
+.cell[data-v="2"]{background:var(--c2)}
+.cell[data-v="3"]{background:var(--c3)}
+.cell[data-v="4"]{background:var(--c4)}
+.cell:hover{filter:brightness(1.07)}
+.cell:focus-visible{outline:2px solid var(--mustard);outline-offset:-2px;position:relative;z-index:1}
+.dgstat{margin-top:14px;font-family:var(--num);font-size:12px;color:var(--mute);letter-spacing:.04em}
+.pv{background:var(--oat);border-radius:14px;padding:10px 0 0;overflow:hidden}
+.pv svg{width:100%;height:auto;max-height:420px}
+.price{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 18px;border-radius:12px;background:var(--oat);margin-top:20px}
+.price .k{font-size:13px;color:var(--mute)}
+.price b{display:block;font-family:var(--num);font-size:26px;line-height:1.2}
+.price small{display:block;font-size:12px;color:var(--mute)}
+.oform{display:grid;gap:18px;margin-top:22px}
+.ogrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.ptag{position:relative;background:#dcc497;border-radius:14px;padding:26px 24px 22px 62px;color:var(--ink);animation:tagIn var(--dur-enter) var(--ease-out) both}
+.ptag::before{content:"";position:absolute;left:20px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--wool);box-shadow:inset 0 0 0 2px #b59a68}
+.ptag::after{content:"";position:absolute;inset:8px;border:1.5px dashed rgba(43,39,36,.35);border-radius:9px;pointer-events:none}
+.ptag .tk{font-family:var(--num);font-size:11px;letter-spacing:.18em}
+.ptag h3{font-family:var(--hd);font-weight:400;font-size:24px;margin:6px 0 10px}
+.tag-dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+.tag-dl dt{color:var(--mute)}
+.tag-dl dd{margin:0}
+.ptag .tn{margin-top:12px;font-size:13px;line-height:1.7}
+
+/* ===== 編織教室 ===== */
+.clsgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:36px;align-items:start}
+.courses{border:0;padding:0;margin:0;min-width:0;display:grid;gap:14px}
+.courses legend{padding:0}
+.course{display:block;position:relative;cursor:pointer}
+.course input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.cc{display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:6px 18px;align-items:start;padding:20px 22px;background:var(--paper);border:1.5px solid var(--line);border-radius:14px;transition:transform var(--dur-hover) var(--ease-out),border-color var(--dur-hover),box-shadow var(--dur-hover)}
+.course:hover .cc{transform:translateX(4px);border-color:#b3a383}
+.course input:checked+.cc{border-color:var(--navy);box-shadow:inset 6px 0 0 var(--cran)}
+.course input:focus-visible+.cc{outline:3px solid var(--mustard);outline-offset:3px}
+.course input:disabled+.cc{opacity:.55;cursor:not-allowed;transform:none}
+.cno{grid-row:1 / span 3;font-family:var(--num);font-size:30px;line-height:1;color:var(--cran);padding-top:2px}
+.cc h3{font-family:var(--hd);font-weight:400;font-size:21px;line-height:1.3}
+.cprice{font-family:var(--num);font-size:19px;font-weight:700;text-align:right;white-space:nowrap}
+.cc p{grid-column:2 / span 2;font-size:14px;color:var(--mute);line-height:1.7}
+.cmeta{grid-column:2 / span 2;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:13px;color:var(--mute)}
+.dots{display:inline-flex;gap:5px;align-items:center}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--forest)}
+.dots i.off{background:transparent;box-shadow:inset 0 0 0 1.5px var(--mute)}
+.cfull{color:var(--cran);font-weight:700}
+.course input:checked+.cc .cno{color:var(--navy)}
+
+/* ===== 尺寸 ===== */
+.sizegrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:36px;align-items:start}
+.tblwrap{overflow-x:auto;border-radius:14px;border:1.5px solid var(--line);background:var(--paper)}
+table{width:100%;border-collapse:collapse;min-width:480px}
+caption{caption-side:bottom;padding:12px 16px;font-size:12px;color:var(--mute);text-align:left}
+th,td{padding:15px 16px;text-align:center;border-bottom:1px dotted var(--line);white-space:nowrap}
+thead th{background:var(--navy);color:var(--wool);font-family:var(--num);font-weight:400;font-size:12px;letter-spacing:.12em}
+tbody th{font-family:var(--hd);font-weight:400;font-size:24px;color:var(--cran)}
+tbody td{font-family:var(--num);font-size:15px}
+tbody tr{transition:background var(--dur-hover)}
+tbody tr:hover{background:var(--wool)}
+tbody tr.hit{background:#f1dfb9}
+.fit-in{width:100%;font-family:var(--num);font-size:18px}
+.rec{display:flex;align-items:center;gap:16px;margin-top:20px;padding:16px;border-radius:12px;background:var(--oat);min-height:88px;font-size:14px;line-height:1.6}
+.rec-s{font-family:var(--hd);font-size:44px;line-height:1;color:var(--cran);min-width:2.2em;text-align:center}
+.rec small{display:block;color:var(--mute);font-size:12px}
+.care{margin-top:20px;padding:16px 18px;border-radius:12px;border:1.5px dashed #b9a985;font-size:14px;line-height:1.8}
+.care b{font-family:var(--hd);font-weight:400;font-size:18px;display:block;margin-bottom:4px}
+
+/* ===== 照片牆 ===== */
+.wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:218px;gap:18px}
+.wi{margin:0;position:relative;min-width:0;height:100%}
+.wi .ph{width:100%;height:100%;aspect-ratio:auto}
+.wi:nth-child(1){grid-column:span 2;grid-row:span 2}
+.wi:nth-child(4){grid-column:span 2}
+.wi figcaption{position:absolute;left:14px;bottom:14px;z-index:2;background:var(--wool);font-size:13px;padding:5px 12px;border-radius:6px;box-shadow:0 8px 16px -10px rgba(0,0,0,.5)}
+.story-ph{width:100%}
+
+/* ===== 評論 ===== */
+.revsum{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin:-20px 0 44px}
+.revsum b{font-family:var(--num);font-size:56px;line-height:1;color:var(--cran)}
+.revsum span{font-size:14px;color:var(--mute)}
+.revs{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 26px}
+.revs>li{min-width:0}
+.rev{position:relative;height:100%;background:var(--wool);border:1px solid var(--line);border-radius:16px;padding:34px 30px 24px;overflow:hidden}
+.rev::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;background:repeating-linear-gradient(90deg,var(--cran) 0 4px,transparent 4px 8px)}
+.rev:nth-child(2n)::before{background:repeating-linear-gradient(90deg,var(--forest) 0 4px,transparent 4px 8px)}
+.rev .stars{color:var(--mustard);letter-spacing:.18em;font-size:16px}
+.rev .q{font-size:17px;line-height:1.9;margin:12px 0 18px}
+.rev .by{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--mute);border-top:1px dashed var(--line);padding-top:12px}
+.rev .by b{color:var(--ink);font-weight:700}
+.revs .rv-off{margin-top:40px}
+
+/* ===== 門市 ===== */
+.storegrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:start}
+.addr{font-family:var(--hd);font-size:clamp(22px,2.6vw,30px);line-height:1.45;margin:18px 0 14px}
+.kv{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px 16px;margin:26px 0 30px;font-size:15px;line-height:1.7}
+.kv dt{color:var(--mute);font-size:14px}
+.kv dd{margin:0}
+.kv a{text-decoration:none;border-bottom:1.5px solid var(--cran)}
+.svc{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:10px}
+.svc li{padding:12px 16px 12px 40px;position:relative;background:var(--paper);border-radius:10px;border:1px solid var(--line);font-size:14px}
+.svc li::before{content:"";position:absolute;left:16px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;border:2px solid var(--forest)}
+.hours{list-style:none;padding:0;margin:14px 0 0;border-top:2px solid var(--ink)}
+.hours li{display:flex;justify-content:space-between;align-items:center;padding:13px 10px;border-bottom:1px dotted var(--line);font-size:15px}
+.hours li.today{background:var(--paper);box-shadow:inset 4px 0 0 var(--cran)}
+.hours .num{font-family:var(--num)}
+.tg{display:inline-block;font-style:normal;font-size:11px;background:var(--cran);color:var(--wool);border-radius:999px;padding:1px 9px;margin-left:8px;vertical-align:2px}
+.mapfig{margin-top:26px;border-radius:14px;overflow:hidden;border:1.5px solid var(--line)}
+.mapfig svg{width:100%;height:auto}
+
+/* ===== 頁尾 ===== */
+.ft{background:var(--char);color:#d8cfbc;padding:58px 0 40px;font-size:14px}
+.ft .wrap{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:28px}
+.ft b{font-family:var(--hd);font-weight:400;font-size:22px;color:var(--wool)}
+.ft p{line-height:1.8}
+.ft a{color:var(--mustard)}
+.ft .fine{grid-column:1 / -1;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px dashed #5b554e;padding-top:20px;font-size:12px;color:#aaa190}
+
+/* ===== 動效 ===== */
+@keyframes fiMove{to{background-position:40px 0}}
+@keyframes rollX{0%,100%{transform:translateX(-18px) rotate(0)}50%{transform:translateX(18px) rotate(540deg)}}
+@keyframes nA{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(3deg)}}
+@keyframes nB{0%,100%{transform:rotate(7deg)}50%{transform:rotate(-4deg)}}
+@keyframes tagIn{from{opacity:0;transform:translateY(14px) rotate(-2deg)}to{opacity:1;transform:none}}
+.js .rv{opacity:0;transform:translateY(18px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.js .rv.in{opacity:1;transform:none}
+
+/* ===== 響應式 ===== */
+@media (max-width:1180px){.ruler{display:none}}
+@media (max-width:980px){
+  .story,.dgrid,.clsgrid,.sizegrid,.storegrid,.hero-foot,.ft .wrap{grid-template-columns:minmax(0,1fr)}
+  .ctas{justify-content:flex-start}
+  .pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wall{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:200px}
+  .wi:nth-child(1){grid-column:span 2;grid-row:span 2}
+  .wi:nth-child(4){grid-column:span 2;grid-row:auto}
+  .needles{display:none}
+}
+@media (max-width:820px){
+  .nav{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;align-items:stretch;gap:0;background:var(--wool);padding:6px 24px 16px;border-bottom:1px solid var(--line);box-shadow:0 22px 30px -24px rgba(43,39,36,.6)}
+  .nav.open{display:flex}
+  .nav a{font-size:16px;padding:14px 4px;border-radius:0;border-bottom:1px dashed var(--line)}
+  .nav a:hover{background:transparent}
+  .menu{display:inline-flex}
+}
+@media (max-width:640px){
+  .sec{padding:84px 0 92px}
+  .shd{grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:40px}
+  .shd .no,.shd h2,.shd .lede{grid-column:1;grid-row:auto}
+  .ogrid,.kv{grid-template-columns:minmax(0,1fr)}
+  .kv{gap:4px 0}.kv dd{margin-bottom:12px}
+  .revs{grid-template-columns:minmax(0,1fr)}
+  .revs .rv-off{margin-top:0}
+  .stats{grid-template-columns:minmax(0,1fr)}
+  .stats>div{padding:14px 0 14px;border-bottom:1px dotted var(--line)}
+  .story{gap:40px}
+  .pgrid{gap:16px}
+  .pbody{padding:14px 14px 16px}
+  .pbody h3{font-size:17px}
+  .pcard .art svg{width:82%}
+  .cc{grid-template-columns:40px minmax(0,1fr);padding:16px 16px}
+  .cprice{grid-column:2;text-align:left;grid-row:auto}
+  .cc h3{grid-column:2}
+  .cno{grid-row:auto;grid-column:1}
+  .cc p,.cmeta{grid-column:1 / -1}
+  .card,.panel{padding:20px}
+  .hd .btn{display:none}
+  .wall{grid-auto-rows:170px;gap:12px}
+  .hero{padding-top:36px}
+  .fi-band{margin-top:52px}
+  .rowno{right:12px}
+  .slot.x{padding-right:12px}
+  .ft .fine{flex-direction:column}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .js .rv{opacity:1;transform:none}
+  .fi-band,.ball,.n1,.n2{animation:none}
+}
+</style>
+</head>
+<body id="top">
+<header class="hd">
+  <div class="hd-in">
+    <a class="logo" href="#top" aria-label="羊毛日和 WOOL DAYS 回到首頁">
+      <svg width="36" height="36" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#a3243b"/><g fill="none" stroke="#f8f3e8" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M6 26Q32 42 58 26"/><path d="M5 38Q32 54 59 38"/><path d="M14 8Q36 24 30 58"/><path d="M34 4Q52 26 40 60"/></g></svg>
+      <span><b>羊毛日和</b><small>WOOL DAYS</small></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="主選單">
+      <a href="#story">品牌故事</a>
+      <a href="#products">系列商品</a>
+      <a href="#designer">提花設計</a>
+      <a href="#class">編織教室</a>
+      <a href="#size">尺寸指南</a>
+      <a href="#store">門市資訊</a>
+    </nav>
+    <a class="btn sm" href="#class">預約試織</a>
+    <button class="menu" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav">選單</button>
+  </div>
+</header>
+
+<main>
+<!-- ===== 1 Hero ===== -->
+<section class="hero" aria-labelledby="heroTitle">
+  <div class="wrap">
+    <div class="hero-top">
+      <div>
+        <p class="eyebrow">WOOL DAYS ・ 台中南屯 手織與機織毛衣</p>
+        <h1 class="sr" id="heroTitle">羊毛日和 WOOL DAYS｜用針目織出來</h1>
+      </div>
+      <div class="hero-meta">
+        <span class="status" id="heroStatus"><span class="tx">營業狀態載入中</span></span>
+        <svg class="ball" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#a3243b"/><g fill="none" stroke="#f8f3e8" stroke-width="1.6" stroke-linecap="round" opacity=".5"><path d="M6 26Q32 42 58 26"/><path d="M5 38Q32 54 59 38"/><path d="M14 8Q36 24 30 58"/><path d="M34 4Q52 26 40 60"/></g></svg>
+      </div>
+    </div>
+    <div class="swatch-frame">
+      <canvas id="swatch" role="img" aria-label="以針目織出的標語：用針目織出來"></canvas>
+      <p class="rowno" id="rowNo" aria-hidden="true">ROW 00 / 00</p>
+    </div>
+    <div class="hero-foot">
+      <p class="hero-lede">羊毛日和是一間小小的手織與機織毛衣工作室。我們用美麗諾、羊駝與喀什米爾織毛衣，也開設編織教室。在這裡，每一針都可以先在網頁上畫過一遍，再慢慢織成你要穿的那一件。</p>
+      <div class="ctas">
+        <a class="btn" href="#designer">開始設計提花毛衣</a>
+        <a class="btn ghost" href="#class">報名編織教室</a>
+      </div>
+    </div>
+  </div>
+  <div class="fi-band" aria-hidden="true"></div>
+</section>
+
+<!-- ===== 2 品牌故事 ===== -->
+<section class="sec wool" id="story" aria-labelledby="storyTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">01 / 08 ・ STORY</span>
+      <h2 id="storyTitle">一針一線，<em>慢慢</em>織成一個冬天。</h2>
+      <p class="lede">從一台收在抽屜裡的棒針開始，到現在的工作室，我們始終相信毛衣應該是慢慢做出來的。</p>
+    </div>
+    <div class="story">
+      <div class="rv">
+        <p class="dc">羊毛日和在二〇一九年於台中南屯開業，原本只是一間賣毛線與材料包的小店。後來客人開始帶來舊毛衣，請我們幫忙修補袖口、改領口，我們才發現很多人其實想要的是「自己的一件」。</p>
+        <p>現在的工作室有兩台手搖式機織機，加上十幾位長期駐店的編織師。手織的圓領與麻花毛衣通常需要一百二十小時以上，所以我們不趕，只把做得好的留下來。</p>
+        <p>門市後面有一間教室，週末會開放給任何想學的人。第一堂通常是織一條圍巾，最後大家都會帶走一點點自己的手感。</p>
+        <div class="stats">
+          <div><b class="num">12<em>位</em></b><span>長期駐店的編織師</span></div>
+          <div><b class="num">120<em>小時</em></b><span>一件費爾島毛衣的手織時數</span></div>
+          <div><b class="num">6<em>週</em></b><span>客製提花毛衣的標準交期</span></div>
+        </div>
+      </div>
+      <figure class="rv">
+        <div class="ph story-ph" data-photo="story" data-art="loom" data-label="工作室窗邊的編織機" data-size="800×1000"></div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 3 商品 ===== -->
+<section class="sec" id="products" aria-labelledby="prodTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">02 / 08 ・ COLLECTION</span>
+      <h2 id="prodTitle">從圓領到圍巾，<em>每一件</em>都看得見手的痕跡。</h2>
+      <p class="lede">毛衣、圍巾帽子與材料包。商品圖為程式繪製的示意，店家可以在 PRODUCTS 換成實拍照片。</p>
+    </div>
+    <div class="chips" role="group" aria-label="商品分類">
+      <button class="chip" type="button" aria-pressed="true" data-cat="all">全部</button>
+      <button class="chip" type="button" aria-pressed="false" data-cat="毛衣">毛衣</button>
+      <button class="chip" type="button" aria-pressed="false" data-cat="圍巾帽子">圍巾帽子</button>
+      <button class="chip" type="button" aria-pressed="false" data-cat="材料包">材料包</button>
+      <span class="count" id="pcount" aria-live="polite"></span>
+    </div>
+    <ul class="pgrid" id="pgrid"></ul>
+    <div class="tray" id="tray" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ===== 4 提花設計室（核心功能 1） ===== -->
+<section class="sec navy" id="designer" aria-labelledby="dgTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <svg class="needles" viewBox="0 0 96 96" aria-hidden="true"><g stroke="#d9a33a" stroke-width="3.2" stroke-linecap="round"><path class="n1" d="M14 66L70 14"/><path class="n2" d="M30 70L78 22"/></g><circle cx="70" cy="14" r="3.5" fill="#f8f3e8"/><circle cx="78" cy="22" r="3.5" fill="#f8f3e8"/></svg>
+    <div class="shd rv">
+      <span class="no">03 / 08 ・ CHART</span>
+      <h2 id="dgTitle">自己畫一段圖樣，<em>穿上身</em>看看。</h2>
+      <p class="lede">在 16 × 12 的圖表上點幾針，或按住拖曳塗色；右側會即時把圖樣繞成胸前的橫帶。選好毛料與尺寸，就能送出訂製單。</p>
+    </div>
+    <div class="dgrid">
+      <div class="panel rv" id="studio">
+        <h3>提花圖表</h3>
+        <p class="sub">16 針 × 12 段・點擊或拖曳塗色</p>
+        <div class="tb" role="group" aria-label="畫筆">
+          <span class="lab">畫筆</span>
+          <span id="slots" style="display:contents"></span>
+        </div>
+        <div class="tb" role="group" aria-label="毛線色票">
+          <span class="lab">色票</span>
+          <span id="yarns" style="display:contents"></span>
+        </div>
+        <div class="tb" role="group" aria-label="預設圖樣">
+          <span class="lab">圖樣</span>
+          <button class="preset" type="button" data-preset="snow">雪花</button>
+          <button class="preset" type="button" data-preset="deer">麋鹿</button>
+          <button class="preset" type="button" data-preset="heart">愛心</button>
+          <button class="preset" type="button" data-preset="peerie">幾何 peerie</button>
+        </div>
+        <div class="tb" role="group" aria-label="編輯">
+          <span class="lab">編輯</span>
+          <button class="mini" type="button" id="symBtn" aria-pressed="true">左右對稱</button>
+          <button class="mini" type="button" id="clearBtn">清除</button>
+        </div>
+        <div class="chartbox">
+          <div class="cnums" id="cnums" aria-hidden="true"></div>
+          <div class="rnums" id="rnums" aria-hidden="true"></div>
+          <div class="chart" id="chart" role="group" aria-label="提花圖表，16 針乘 12 段"></div>
+        </div>
+        <p class="dgstat" id="dgStat" aria-live="polite"></p>
+      </div>
+
+      <div class="panel rv" id="order">
+        <h3>即時預覽・訂製</h3>
+        <p class="sub">胸前橫帶為圖表重複繞兩次的效果</p>
+        <div class="pv" id="pv"></div>
+        <form class="oform" id="orderForm" novalidate>
+          <div class="ogrid">
+            <label class="fld"><span>姓名</span><input class="inp" id="oName" name="name" autocomplete="name" maxlength="20" placeholder="例：林小姐" aria-describedby="eName"><small class="err" id="eName" aria-live="polite"></small></label>
+            <label class="fld"><span>電話</span><input class="inp" id="oTel" name="tel" type="tel" autocomplete="tel" placeholder="09xx-xxx-xxx" aria-describedby="eTel"><small class="err" id="eTel" aria-live="polite"></small></label>
+          </div>
+          <fieldset class="fset">
+            <legend>毛料</legend>
+            <div class="radios">
+              <label class="radio"><input type="radio" name="mat" value="merino" checked><span>美麗諾</span></label>
+              <label class="radio"><input type="radio" name="mat" value="alpaca"><span>羊駝 +1,600</span></label>
+              <label class="radio"><input type="radio" name="mat" value="cashmere"><span>喀什米爾 +4,200</span></label>
+            </div>
+          </fieldset>
+          <div class="ogrid">
+            <label class="fld"><span>尺寸</span>
+              <select class="inp" id="oSize" name="size">
+                <option value="S">S（+0）</option>
+                <option value="M" selected>M（+200）</option>
+                <option value="L">L（+400）</option>
+                <option value="XL">XL（+600）</option>
+              </select>
+            </label>
+            <fieldset class="fset">
+              <legend>取件方式</legend>
+              <div class="radios">
+                <label class="radio"><input type="radio" name="pick" value="store" checked><span>門市自取</span></label>
+                <label class="radio"><input type="radio" name="pick" value="home"><span>宅配 +80</span></label>
+              </div>
+            </fieldset>
+          </div>
+          <label class="fld"><span>備註（選填）</span><textarea class="inp" id="oNote" name="note" rows="2" maxlength="200" placeholder="例：袖長想再短 1 cm"></textarea></label>
+          <p class="err" id="eChart" aria-live="polite"></p>
+          <div class="price">
+            <div><span class="k">預估價格</span><b id="dgPrice" aria-live="polite">NT$ 0</b><small id="dgDate"></small></div>
+            <button class="btn" type="submit">送出訂製單</button>
+          </div>
+        </form>
+        <div id="dgDone" hidden></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5 編織教室（核心功能 2） ===== -->
+<section class="sec wool" id="class" aria-labelledby="clsTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">04 / 08 ・ CLASS</span>
+      <h2 id="clsTitle">報名一堂課，<em>帶一針</em>回家。</h2>
+      <p class="lede">三種課程都包含材料與示範。每堂的圓點是剩餘名額，額滿的課程會自動停用。</p>
+    </div>
+    <div class="clsgrid">
+      <fieldset class="courses rv" id="courses"></fieldset>
+      <div class="card rv">
+      <form id="clsForm" novalidate>
+        <h3>報名資料</h3>
+        <p class="sub">選左側課程後填寫</p>
+        <div class="oform" style="margin-top:0">
+          <label class="fld"><span>姓名</span><input class="inp" id="cName" name="cname" autocomplete="name" maxlength="20" placeholder="例：王同學" aria-describedby="eCName"><small class="err" id="eCName" aria-live="polite"></small></label>
+          <label class="fld"><span>電話</span><input class="inp" id="cTel" name="ctel" type="tel" autocomplete="tel" placeholder="09xx-xxx-xxx" aria-describedby="eCTel"><small class="err" id="eCTel" aria-live="polite"></small></label>
+          <small class="err" id="eCourse" aria-live="polite"></small>
+          <button class="btn" type="submit">送出報名</button>
+        </div>
+      </form>
+        <div id="clsDone" hidden></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 6 尺寸指南（工具） ===== -->
+<section class="sec" id="size" aria-labelledby="sizeTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">05 / 08 ・ SIZE</span>
+      <h2 id="sizeTitle">量好胸圍，<em>找到合身</em>的那一件。</h2>
+      <p class="lede">表內尺寸為成品平量。毛衣手織會有些微伸縮，建議選擇寬鬆感較舒服的尺寸。</p>
+    </div>
+    <div class="sizegrid">
+      <div class="tblwrap rv">
+        <table>
+          <caption>單位：公分（成品尺寸）・高亮列為推薦尺寸</caption>
+          <thead><tr><th scope="col">尺寸</th><th scope="col">成品胸圍</th><th scope="col">衣長</th><th scope="col">袖長</th></tr></thead>
+          <tbody id="sizeBody"></tbody>
+        </table>
+      </div>
+      <div class="card rv">
+        <h3>尺寸推薦</h3>
+        <p class="sub">輸入胸圍與偏好，即時推薦</p>
+        <div class="oform" style="margin-top:0">
+          <label class="fld"><span>您的胸圍（cm）</span><input class="inp fit-in" id="chest" type="number" inputmode="numeric" min="60" max="150" step="1" value="88" aria-describedby="eChest"><small class="err" id="eChest" aria-live="polite"></small></label>
+          <fieldset class="fset">
+            <legend>穿著偏好</legend>
+            <div class="radios">
+              <label class="radio"><input type="radio" name="fit" value="slim"><span>合身</span></label>
+              <label class="radio"><input type="radio" name="fit" value="std" checked><span>標準</span></label>
+              <label class="radio"><input type="radio" name="fit" value="loose"><span>寬鬆</span></label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="rec" id="recOut" aria-live="polite"></div>
+        <div class="care"><b>毛衣保養小卡</b>平放晾乾，不掛、不擰；30°C 以下手洗或使用羊毛專用洗劑，洗後輕壓吸水再平放。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 7 照片牆 ===== -->
+<section class="sec wool" id="wall" aria-labelledby="wallTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">06 / 08 ・ LOOKBOOK</span>
+      <h2 id="wallTitle">工作室、毛線牆與<em>針目特寫</em>。</h2>
+      <p class="lede">照片位可換成實拍。建議的比例已標在右下角「照片位」模式裡。</p>
+    </div>
+    <div class="wall rv">
+      <figure class="wi"><div class="ph" data-photo="g1" data-art="wall" data-label="毛線牆" data-size="1200×900"></div><figcaption>毛線牆・色票</figcaption></figure>
+      <figure class="wi"><div class="ph" data-photo="g2" data-art="class" data-label="編織教室" data-size="800×800"></div><figcaption>編織教室</figcaption></figure>
+      <figure class="wi"><div class="ph" data-photo="g3" data-art="stitch" data-label="針目特寫" data-size="800×800"></div><figcaption>針目特寫</figcaption></figure>
+      <figure class="wi"><div class="ph" data-photo="g4" data-art="shop" data-label="店面" data-size="1200×800"></div><figcaption>店面・櫥窗</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 8 顧客評論 ===== -->
+<section class="sec" id="reviews" aria-labelledby="revTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">07 / 08 ・ REVIEWS</span>
+      <h2 id="revTitle">織給自己，<em>也織給身邊的人</em>。</h2>
+      <p class="lede">以下為示意評論，店家上線前請換成真實客人的回饋。</p>
+    </div>
+    <div class="revsum rv"><b>4.9</b><span>平均評分（5 分制・示意）<br>來自 128 則評論</span></div>
+    <ul class="revs">
+      <li class="rv"><article class="rev">
+        <div class="stars" aria-label="5 星">★★★★★</div>
+        <p class="q">領口和袖口的羅紋很紮實，穿了三週完全沒有變形。店員還幫我把肩寬微調了一點，現在穿起來剛剛好。</p>
+        <div class="by"><span><b>林小姐</b>・費爾島圓領毛衣 M</span><span class="num">2026/08/21</span></div>
+      </article></li>
+      <li class="rv"><article class="rev">
+        <div class="stars" aria-label="4 星">★★★★☆</div>
+        <p class="q">羊駝真的很軟，但前一兩週會有一點毛屑，建議先用衣物刷輕輕梳過。整體版型很好看，已經在想下一件要選什麼色。</p>
+        <div class="by"><span><b>陳先生</b>・羊駝開襟外套 L</span><span class="num">2026/07/04</span></div>
+      </article></li>
+      <li class="rv"><article class="rev">
+        <div class="stars" aria-label="5 星">★★★★★</div>
+        <p class="q">第一次拿棒針就織出一條能圍的圍巾。老師很耐心，每針都會停下來看我的手勢，下課後還有群組可以問問題。</p>
+        <div class="by"><span><b>王同學</b>・初學圍巾課程</span><span class="num">2026/06/15</span></div>
+      </article></li>
+      <li class="rv"><article class="rev">
+        <div class="stars" aria-label="5 星">★★★★★</div>
+        <p class="q">材料包的線色很好看，說明書附圖也很清楚。幫女兒織的毛帽她每天都戴，連同學都來問我在哪裡買的。</p>
+        <div class="by"><span><b>許媽媽</b>・毛帽材料包</span><span class="num">2026/05/28</span></div>
+      </article></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 9 門市資訊 ===== -->
+<section class="sec wool" id="store" aria-labelledby="storeTitle">
+  <div class="wrap">
+    <span class="ruler" aria-hidden="true"></span>
+    <div class="shd rv">
+      <span class="no">08 / 08 ・ STORE</span>
+      <h2 id="storeTitle">來工作室坐一下，<em>試穿</em>再回家。</h2>
+      <p class="lede">門市前有兩格臨時停車位，假日建議搭乘大眾運輸或先來電確認車位。</p>
+    </div>
+    <div class="storegrid">
+      <div class="rv">
+        <p class="addr" id="addr"></p>
+        <span class="status" id="storeStatus"><span class="tx">營業狀態載入中</span></span>
+        <dl class="kv">
+          <dt>電話</dt><dd><a id="tel" href="#store">電話載入中</a></dd>
+          <dt>交通</dt><dd>下車後步行約 8 分鐘，門口有一棵大榕樹當作記號。</dd>
+          <dt>停車</dt><dd>門市前兩格臨停位，其餘請停附近收費停車場。</dd>
+        </dl>
+        <a class="btn" id="mapLink" href="#store" target="_blank" rel="noopener">在 Google 地圖開啟</a>
+        <ul class="svc">
+          <li>毛衣修補：領口、袖口、蟲蛀與斷線，當日可估價</li>
+          <li>改尺寸：三週內提出，手織件可加長或收短</li>
+          <li>退換貨：未穿未洗，七天內可於門市辦理</li>
+          <li>毛線與材料包：可現場挑色，也可線上預購取件</li>
+        </ul>
+      </div>
+      <div class="rv">
+        <h3 class="sub" style="font-family:var(--num);margin:0">OPENING HOURS</h3>
+        <ul class="hours" id="hours"></ul>
+        <figure class="mapfig" aria-label="門市位置示意圖">
+          <svg viewBox="0 0 480 250" role="img" aria-label="示意地圖：羊毛日和位於示範路">
+            <rect width="480" height="250" fill="#e4d8bf"/>
+            <rect x="0" y="0" width="150" height="90" fill="#d6cba9"/>
+            <rect x="180" y="150" width="110" height="80" fill="#d3c7a6"/>
+            <rect x="330" y="20" width="130" height="100" fill="#d6cba9"/>
+            <path d="M0 150H480M240 0V250M0 60H480" stroke="#fffdf7" stroke-width="16"/>
+            <path d="M0 150H480" stroke="#e9dfc9" stroke-width="2" stroke-dasharray="10 8"/>
+            <text x="20" y="46" font-family="Menlo,Monaco,monospace" font-size="11" fill="#6d655a">示範路</text>
+            <text x="300" y="142" font-family="Menlo,Monaco,monospace" font-size="11" fill="#6d655a">南屯路段</text>
+            <circle cx="240" cy="118" r="20" fill="#a3243b" opacity=".18"/>
+            <path d="M240 96c-13 0-22 9-22 21 0 16 22 34 22 34s22-18 22-34c0-12-9-21-22-21z" fill="#a3243b"/>
+            <circle cx="240" cy="117" r="7" fill="#f8f3e8"/>
+            <rect x="262" y="176" width="120" height="26" rx="6" fill="#273452"/>
+            <text x="272" y="193" font-family="Menlo,Monaco,monospace" font-size="11" fill="#f8f3e8">WOOL DAYS</text>
+          </svg>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="ft">
+  <div class="wrap">
+    <div>
+      <b>羊毛日和 WOOL DAYS</b>
+      <p>手織與機織毛衣・提花訂製・編織教室</p>
+    </div>
+    <div>
+      <p>社群</p>
+      <p><a href="#top">Instagram</a> ・ <a href="#top">Facebook</a> ・ <a href="#top">LINE</a></p>
+    </div>
+    <div>
+      <p>地址</p>
+      <p id="fAddr"></p>
+    </div>
+    <div class="fine">
+      <span>© <span id="yr">2026</span> 羊毛日和 WOOL DAYS</span>
+      <span>此為店家官網示範模板，商品與評論為示意。</span>
+    </div>
+  </div>
+</footer>
+<button class="slotbtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+<script>
+(function(){
+'use strict';
+document.documentElement.classList.add('js');
+
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'羊毛日和', phone:'(04) 2300-5678', address:'台中市南屯區示範路 56 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['13:00','19:00'], null, ['11:00','20:00'], ['11:00','20:00'], ['11:00','20:00'], ['11:00','21:00'], ['10:00','21:00']],
+  photos:{ story:'', g1:'', g2:'', g3:'', g4:'' }
+};
+
+/* ===== 商品資料（kind：sweater／aran／cardi／scarf／hat／mitten／sock／kit／kit2） ===== */
+var PRODUCTS = [
+  {n:'費爾島圓領毛衣', cat:'毛衣', price:6800, mat:'美麗諾羊毛・雙色提花', size:'S–XL', kind:'sweater', c:'#a3243b', c2:'#273452', tone:'#efe2c6'},
+  {n:'漁夫麻花毛衣', cat:'毛衣', price:4980, mat:'英國美麗諾・麻花編', size:'S–XL', kind:'aran', c:'#f8f3e8', c2:'#3a3735', tone:'#d6dbca'},
+  {n:'羊駝開襟外套', cat:'毛衣', price:8600, mat:'秘魯羊駝・開襟款', size:'S–L', kind:'cardi', c:'#8a4b3a', c2:'#e9dcc1', tone:'#ecd5c6'},
+  {n:'喀什米爾圍巾', cat:'圍巾帽子', price:12800, mat:'蒙古喀什米爾・45×180 cm', size:'單一尺寸', kind:'scarf', c:'#273452', c2:'#d9a33a', tone:'#d9dce6'},
+  {n:'提花毛帽', cat:'圍巾帽子', price:1480, mat:'美麗諾・雪花提花', size:'成人均碼', kind:'hat', c:'#2f5d46', c2:'#f8f3e8', tone:'#d5e0d1'},
+  {n:'分指手套', cat:'圍巾帽子', price:1180, mat:'羊毛混紡・分指設計', size:'S／M／L', kind:'mitten', c:'#d9a33a', c2:'#a3243b', tone:'#f2e3ba'},
+  {n:'羊毛襪', cat:'圍巾帽子', price:680, mat:'美麗諾・加厚襪口', size:'23–26 cm', kind:'sock', c:'#a3243b', c2:'#f8f3e8', tone:'#efd9d1'},
+  {n:'圍巾材料包', cat:'材料包', price:980, mat:'美麗諾線 2 球・棒針', size:'適用 20×160 cm', kind:'kit', c:'#2f5d46', c2:'#d9a33a', tone:'#e5ddcc'},
+  {n:'毛帽材料包', cat:'材料包', price:780, mat:'費爾島雙色線・環狀針', size:'適用成人', kind:'kit2', c:'#273452', c2:'#a3243b', tone:'#dfe3ea'}
+];
+
+/* ===== 編織課程 ===== */
+var COURSES = [
+  {id:'a', n:'初學圍巾', d:'棒針起針、平針與加減針，四堂完成一條 20 × 160 cm 的美麗諾圍巾。', wk:0, time:'14:00', len:'4 堂・每堂 2.5 小時', price:2400, cap:8, left:5},
+  {id:'b', n:'費爾島毛帽', d:'學會雙色提花與渡線，完成一頂帶有雪花帶的毛帽，材料含費爾島雙色線。', wk:1, time:'10:30', len:'3 堂・每堂 3 小時', price:2800, cap:8, left:2},
+  {id:'c', n:'毛衣從領口往下織', d:'以輪編圓領毛衣為例，從領口挑針開始，學會袖子與身片的接合。', wk:2, time:'14:00', len:'5 堂・每堂 3 小時', price:4800, cap:6, left:0}
+];
+
+/* ===== 尺寸表（成品，cm） ===== */
+var SIZES = [
+  {s:'S', chest:98, len:62, sleeve:58},
+  {s:'M', chest:104, len:65, sleeve:60},
+  {s:'L', chest:110, len:68, sleeve:62},
+  {s:'XL', chest:116, len:71, sleeve:64}
+];
+var EASE = {slim:4, std:8, loose:16};
+var EASE_TX = {slim:'合身 +4', std:'標準 +8', loose:'寬鬆 +16'};
+
+/* ===== 毛線色票與設計參數 ===== */
+var YARN = [
+  {n:'羊毛白', h:'#f8f3e8'}, {n:'蔓越莓', h:'#a3243b'}, {n:'森林綠', h:'#2f5d46'},
+  {n:'芥末', h:'#d9a33a'}, {n:'海軍藍', h:'#273452'}, {n:'炭灰', h:'#3a3735'}
+];
+var MAT = {merino:{n:'美麗諾', add:0}, alpaca:{n:'羊駝', add:1600}, cashmere:{n:'喀什米爾', add:4200}};
+var SZ_ADD = {S:0, M:200, L:400, XL:600};
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var WEEK_ORDER = [1,2,3,4,5,6,0];
+var WEEKN = ['日','一','二','三','四','五','六'];
+
+/* ===== 工具 ===== */
+function $(s,r){ return (r||document).querySelector(s); }
+function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function money(n){ return 'NT$ ' + Number(n).toLocaleString('zh-TW'); }
+function minOf(t){ var p = t.split(':'); return (+p[0])*60 + (+p[1]); }
+function addDays(d,n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function fmtDate(d){ return (d.getMonth()+1) + '/' + d.getDate() + '（' + WEEKN[d.getDay()] + '）'; }
+function fmtYmd(d){ return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate(); }
+function pad2(n){ return (n<10 ? '0' : '') + n; }
+function rnd4(){ return Math.random().toString(36).slice(2,6).toUpperCase(); }
+function orderNo(p){ return p + '-' + rnd4() + rnd4().slice(0,2); }
+function checkedVal(name, root){ var el = (root||document).querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; }
+function setErr(sel, msg){ $(sel).textContent = msg || ''; }
+function setInvalid(id, bad){ $(id).setAttribute('aria-invalid', bad ? 'true' : 'false'); }
+function validPhone(s){ var t = s.replace(/[\s\-()（）]/g,''); return /^09\d{8}$/.test(t) || /^0\d{1,2}\d{7,8}$/.test(t); }
+function nextSat(){ var d = new Date(); d.setHours(0,0,0,0); var add = ((6 - d.getDay() + 7) % 7) || 7; return addDays(d, add); }
+
+/* ===== 營業狀態（參考 243 的 openState／renderStatus） ===== */
+function openState(d){
+  var h = SHOP.hours[d.getDay()], t = d.getHours()*60 + d.getMinutes();
+  if (h && t >= minOf(h[0]) && t < minOf(h[1])) return {open:true, text:'營業中・到 ' + h[1]};
+  if (h && t < minOf(h[0])) return {open:false, text:'休息中・今天 ' + h[0] + ' 開門'};
+  for (var k = 1; k <= 7; k++){
+    var nd = addDays(d, k), nh = SHOP.hours[nd.getDay()];
+    if (nh) return {open:false, text:'休息中・' + (k === 1 ? '明天' : DAYS[nd.getDay()]) + ' ' + nh[0] + ' 開門'};
+  }
+  return {open:false, text:'休息中'};
+}
+function renderStatus(){
+  var st = openState(new Date());
+  ['#heroStatus','#storeStatus'].forEach(function(s){
+    var el = $(s);
+    if (!el) return;
+    el.classList.toggle('on', st.open);
+    $('.tx', el).textContent = st.text;
+  });
+}
+
+/* ===== 門市資訊 ===== */
+function renderStore(){
+  $('#addr').textContent = SHOP.address;
+  $('#fAddr').textContent = SHOP.address;
+  var tel = $('#tel');
+  tel.textContent = SHOP.phone;
+  tel.href = 'tel:' + SHOP.phone.replace(/[^\d+]/g,'');
+  $('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+  var today = new Date().getDay();
+  $('#hours').innerHTML = WEEK_ORDER.map(function(d){
+    var h = SHOP.hours[d], isToday = d === today;
+    return '<li class="' + (isToday ? 'today' : '') + '"><span>' + DAYS[d] + (isToday ? '<em class="tg">今天</em>' : '') + '</span><span class="num">' + (h ? h[0] + '–' + h[1] : '公休') + '</span></li>';
+  }).join('');
+}
+
+/* ===== 照片位（參考 243 的 fillPhotos／slots） ===== */
+var ART = {
+  loom: function(){
+    return '<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="lmW" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4ecdb"/><stop offset="1" stop-color="#d8c7a2"/></linearGradient><linearGradient id="lmG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e2"/><stop offset="1" stop-color="#e6d3a4"/></linearGradient></defs>' +
+      '<rect width="400" height="400" fill="url(#lmW)"/>' +
+      '<rect x="206" y="36" width="158" height="196" fill="url(#lmG)" stroke="#b3a27a" stroke-width="7"/><path d="M285 36V232M206 134H364" stroke="#b3a27a" stroke-width="5"/>' +
+      '<path d="M206 232H364L400 400H150Z" fill="#fff8e2" opacity=".35"/>' +
+      '<rect y="330" width="400" height="70" fill="#c9b08a"/>' +
+      '<rect x="36" y="252" width="270" height="20" rx="3" fill="#6b5640"/><rect x="60" y="272" width="10" height="60" fill="#4e3d2d"/><rect x="280" y="272" width="10" height="60" fill="#4e3d2d"/>' +
+      '<rect x="64" y="196" width="210" height="58" rx="7" fill="#2f2a26"/>' +
+      '<g fill="#bfb49a">' + [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].map(function(i){ return '<rect x="' + (74 + i*8) + '" y="208" width="3" height="30"/>'; }).join('') + '</g>' +
+      '<rect x="150" y="190" width="52" height="16" rx="4" fill="#a3243b"/>' +
+      '<path d="M48 176L70 176L64 124L54 124Z" fill="#2f5d46"/><path d="M84 176L106 176L100 110L90 110Z" fill="#d9a33a"/><path d="M116 176L136 176L132 136L122 136Z" fill="#273452"/>' +
+      '<path d="M300 252Q322 196 350 230Q364 252 340 252Z" fill="#a3243b"/><circle cx="330" cy="234" r="14" fill="#f8f3e8"/>' +
+      '</svg>';
+  },
+  wall: function(){
+    var pal = ['#a3243b','#273452','#d9a33a','#2f5d46','#f8f3e8','#3a3735','#c98a6b','#8fa7c4'];
+    var s = '<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="400" fill="#e6dac0"/>';
+    for (var r = 0; r < 6; r++) for (var c = 0; c < 7; c++){
+      var x = 14 + c*55, y = 14 + r*66, col = pal[(r*5 + c*3) % pal.length];
+      s += '<rect x="' + x + '" y="' + y + '" width="44" height="58" rx="20" fill="' + col + '"/>' +
+        '<path d="M' + (x+5) + ' ' + (y+14) + 'H' + (x+39) + 'M' + (x+5) + ' ' + (y+30) + 'H' + (x+39) + 'M' + (x+5) + ' ' + (y+46) + 'H' + (x+39) + '" stroke="rgba(0,0,0,.14)" stroke-width="3"/>';
+    }
+    return s + '</svg>';
+  },
+  'class': function(){
+    var s = '<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="400" fill="#efe6d3"/>' +
+      '<rect x="56" y="48" width="290" height="132" rx="6" fill="#2f3b35" stroke="#8a6a4a" stroke-width="10"/>' +
+      '<text x="80" y="104" font-family="PingFang TC,Noto Sans TC,sans-serif" font-size="26" fill="#f1ead8">第一堂・起針</text>' +
+      '<text x="80" y="140" font-family="Menlo,Monaco,monospace" font-size="16" fill="#d9a33a">CO 24 · 2×2 RIB</text>' +
+      '<rect y="262" width="400" height="22" fill="#8a6a4a"/><rect x="40" y="284" width="10" height="90" fill="#5e4a34"/><rect x="350" y="284" width="10" height="90" fill="#5e4a34"/>' +
+      '<circle cx="90" cy="332" r="20" fill="#5a4a3a"/><circle cx="200" cy="336" r="20" fill="#5a4a3a"/><circle cx="310" cy="332" r="20" fill="#5a4a3a"/>' +
+      '<circle cx="100" cy="244" r="16" fill="#a3243b"/><circle cx="214" cy="246" r="14" fill="#d9a33a"/>' +
+      '<path d="M96 244Q108 254 122 240M70 256L150 226" fill="none" stroke="#f8f3e8" stroke-width="2"/>' +
+      '<rect x="254" y="206" width="104" height="46" fill="#f8f3e8"/>' +
+      '<path d="M254 206v46h104v-46" fill="none" stroke="#c9b58d" stroke-width="2"/>';
+    for (var i = 0; i < 6; i++) for (var j = 0; j < 3; j++){
+      var x = 266 + i*16, y = 214 + j*13;
+      s += '<path d="M' + x + ' ' + y + 'l4 7l4-7" fill="none" stroke="#a3243b" stroke-width="2"/>';
+    }
+    return s + '</svg>';
+  },
+  stitch: function(){
+    var s = '<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><radialGradient id="stV" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient></defs><rect width="400" height="400" fill="#7e1a2b"/>';
+    var cs = 25;
+    for (var r = 0; r < 17; r++) for (var c = 0; c < 17; c++){
+      var x = c*cs - 6, y = r*cs - 6;
+      s += '<path d="M' + (x+4) + ' ' + (y+4) + 'L' + (x+cs/2) + ' ' + (y+cs-4) + 'L' + (x+cs-4) + ' ' + (y+4) + '" fill="none" stroke="#a3243b" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="M' + (x+6) + ' ' + (y+6) + 'L' + (x+cs/2) + ' ' + (y+cs-7) + '" fill="none" stroke="#c9475c" stroke-width="2.2" stroke-linecap="round" opacity=".7"/>';
+    }
+    return s + '<rect width="400" height="400" fill="url(#stV)"/></svg>';
+  },
+  shop: function(){
+    var s = '<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="400" fill="#e6dccb"/>' +
+      '<rect x="0" y="330" width="400" height="70" fill="#b9ab8e"/>' +
+      '<rect x="44" y="134" width="312" height="196" fill="#c7d4cf"/>' +
+      '<rect x="44" y="134" width="312" height="196" fill="none" stroke="#5b4632" stroke-width="10"/>' +
+      '<rect x="60" y="150" width="200" height="180" fill="#dfe9e5"/>' +
+      '<path d="M120 300V252Q120 214 160 214Q200 214 200 252V300Z" fill="#f2e6cc"/>' +
+      '<circle cx="160" cy="194" r="16" fill="#efe2c8"/>' +
+      '<path d="M134 232Q160 252 186 232L196 300H124Z" fill="#a3243b"/>' +
+      '<path d="M140 236l20 16 20-16" fill="none" stroke="#f8f3e8" stroke-width="2"/>' +
+      '<rect x="272" y="236" width="70" height="94" fill="#5b4632"/><rect x="278" y="242" width="58" height="82" fill="#3e3024"/>' +
+      '<rect x="60" y="78" width="280" height="30" fill="#273452"/><text x="200" y="100" text-anchor="middle" font-family="Menlo,Monaco,monospace" font-size="16" letter-spacing="4" fill="#f8f3e8">WOOL DAYS</text>';
+    for (var i = 0; i < 8; i++) s += '<rect x="' + (36 + i*42) + '" y="112" width="42" height="22" fill="' + (i % 2 ? '#f8f3e8' : '#a3243b') + '"/>';
+    return s + '</svg>';
+  }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var key = f.getAttribute('data-photo'), u = SHOP.photos[key];
+    if (u){
+      var im = document.createElement('img');
+      im.src = u; im.alt = f.getAttribute('data-label') || ''; im.loading = 'lazy';
+      f.appendChild(im);
+    } else {
+      var fn = ART[f.getAttribute('data-art')];
+      if (fn) f.innerHTML = fn();
+    }
+  });
+}
+(function(){
+  var sb = $('#slotBtn');
+  function setSlots(on){ document.body.classList.toggle('slots', on); sb.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+  setSlots(/[?&]slots(&|=|$)/.test(location.search));
+  sb.addEventListener('click', function(){ setSlots(!document.body.classList.contains('slots')); });
+})();
+
+/* ===== 商品卡：程式繪製的毛衣、圍巾與材料包 ===== */
+var BODY_SW = 'M62 46Q100 74 138 46L166 66L186 150L164 158L146 116L146 180L54 180L54 116L36 158L14 150L34 66Z';
+function artOf(p, i){
+  var id = 'pa' + i, c = p.c, c2 = p.c2, s = '';
+  var defs = '<defs><pattern id="' + id + '" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="' + c + '"/><path d="M7 2L12 7L7 12L2 7Z" fill="' + c2 + '"/></pattern></defs>';
+  var rib = '<path d="M62 46Q100 74 138 46" fill="none" stroke="' + c2 + '" stroke-width="7"/>';
+  switch (p.kind){
+    case 'sweater':
+      s = '<path d="' + BODY_SW + '" fill="' + c + '"/><rect x="54" y="118" width="92" height="34" fill="url(#' + id + ')"/><rect x="54" y="170" width="92" height="10" fill="' + c2 + '"/>' + rib;
+      break;
+    case 'aran':
+      s = '<path d="' + BODY_SW + '" fill="' + c + '"/><path d="M76 74V176M100 74V176M124 74V176" stroke="' + c2 + '" stroke-width="5" stroke-dasharray="10 5"/><path d="M54 110H146" stroke="' + c2 + '" stroke-width="3"/>' + rib;
+      break;
+    case 'cardi':
+      s = '<path d="' + BODY_SW + '" fill="' + c + '"/><path d="M100 74V180" stroke="' + c2 + '" stroke-width="3"/><g fill="#f8f3e8"><circle cx="100" cy="96" r="4"/><circle cx="100" cy="128" r="4"/><circle cx="100" cy="160" r="4"/></g>' + rib;
+      break;
+    case 'scarf':
+      s = '<g transform="rotate(-8 100 100)"><rect x="60" y="20" width="80" height="150" rx="12" fill="url(#' + id + ')"/><path d="M68 170v14M76 170v14M84 170v14M92 170v14M100 170v14M108 170v14M116 170v14M124 170v14M132 170v14" stroke="' + c2 + '" stroke-width="3" stroke-linecap="round"/></g>';
+      break;
+    case 'hat':
+      s = '<path d="M42 130Q42 34 100 34Q158 34 158 130Z" fill="' + c + '"/><rect x="42" y="112" width="116" height="26" fill="url(#' + id + ')"/><circle cx="100" cy="30" r="13" fill="' + c2 + '"/>';
+      break;
+    case 'mitten':
+      s = '<path d="M72 44Q104 20 128 44L136 160Q124 184 98 180L74 176Q60 150 64 110Z" fill="url(#' + id + ')"/><path d="M64 112Q40 98 48 76Q62 70 74 92Z" fill="' + c + '"/><rect x="72" y="150" width="60" height="8" fill="' + c2 + '"/>';
+      break;
+    case 'sock':
+      s = '<path d="M84 22H128V112Q158 124 160 150Q164 180 134 180H96Q72 180 70 154Q68 130 84 116Z" fill="url(#' + id + ')"/><path d="M84 22H128" stroke="' + c2 + '" stroke-width="10"/>';
+      break;
+    default:
+      s = '<path d="M50 64L150 36M58 74L158 46" stroke="#8a7a60" stroke-width="4" stroke-linecap="round"/>' +
+        '<rect x="40" y="96" width="120" height="86" rx="8" fill="' + c2 + '"/><rect x="40" y="96" width="120" height="16" fill="rgba(0,0,0,.12)"/>' +
+        '<circle cx="78" cy="132" r="22" fill="' + c + '"/><path d="M58 124Q78 146 100 124M60 140Q78 122 98 142" fill="none" stroke="#f8f3e8" stroke-width="2" opacity=".55"/>' +
+        '<circle cx="128" cy="134" r="16" fill="#f8f3e8"/><path d="M116 128Q128 142 140 128" fill="none" stroke="' + c + '" stroke-width="2.4"/>' +
+        '<rect x="72" y="150" width="56" height="18" rx="3" fill="#f8f3e8" opacity=".85"/>';
+      if (p.kind === 'kit2') s = s.replace('r="22"', 'r="26"');
+      break;
+  }
+  return '<svg viewBox="0 0 200 200" aria-hidden="true" focusable="false">' + defs + s + '</svg>';
+}
+
+/* ===== 商品 ===== */
+var fav = {}, inq = [];
+function renderProducts(){
+  $('#pgrid').innerHTML = PRODUCTS.map(function(p, i){
+    return '<li class="rv" data-cat="' + esc(p.cat) + '"><article class="pcard" style="--tone:' + p.tone + '">' +
+      '<div class="art">' + artOf(p, i) + '</div><div class="rib"></div>' +
+      '<div class="pbody">' +
+        '<h3>' + esc(p.n) + '</h3>' +
+        '<p class="pmeta">' + esc(p.mat) + '</p>' +
+        '<p class="ptags"><span class="sw" style="background:' + p.c + '"></span><span class="sw" style="background:' + p.c2 + '"></span><span class="sz">' + esc(p.size) + '</span></p>' +
+        '<p class="pprice num">' + money(p.price) + '</p>' +
+        '<div class="pact">' +
+          '<button class="mini" type="button" data-act="fav" data-i="' + i + '" aria-pressed="false">♡ 收藏</button>' +
+          '<button class="mini" type="button" data-act="inq" data-i="' + i + '" aria-pressed="false">加入詢問</button>' +
+        '</div>' +
+      '</div></article></li>';
+  }).join('');
+  $('#pcount').textContent = '共 ' + PRODUCTS.length + ' 件';
+}
+function renderTray(){
+  var t = $('#tray');
+  if (!inq.length){
+    t.innerHTML = '<p>詢問清單是空的。點商品卡上的「加入詢問」，就能一次整理想問的款式。</p>';
+    return;
+  }
+  t.innerHTML = '<p><b class="num">' + inq.length + '</b> 件待詢問：' + inq.map(function(i){ return esc(PRODUCTS[i].n); }).join('、') + '</p>' +
+    '<div class="tray-b"><a class="btn sm ghost" href="#store">電話詢問</a><button class="btn sm ghost" type="button" id="clrInq">清空</button></div>';
+}
+$('#pgrid').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-act]');
+  if (!b) return;
+  var i = +b.getAttribute('data-i');
+  if (b.getAttribute('data-act') === 'fav'){
+    var on = !fav[i];
+    fav[i] = on;
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.textContent = on ? '♥ 已收藏' : '♡ 收藏';
+  } else {
+    var at = inq.indexOf(i), add = at < 0;
+    if (add) inq.push(i); else inq.splice(at, 1);
+    b.setAttribute('aria-pressed', add ? 'true' : 'false');
+    b.textContent = add ? '已加入 ✓' : '加入詢問';
+    renderTray();
+  }
+});
+$('#tray').addEventListener('click', function(e){
+  if (!e.target.closest('#clrInq')) return;
+  inq = [];
+  $$('#pgrid button[data-act="inq"]').forEach(function(b){ b.setAttribute('aria-pressed', 'false'); b.textContent = '加入詢問'; });
+  renderTray();
+});
+$('.chips').addEventListener('click', function(e){
+  var b = e.target.closest('.chip');
+  if (!b) return;
+  var cat = b.getAttribute('data-cat'), n = 0;
+  $$('.chip').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+  $$('#pgrid > li').forEach(function(li){
+    var show = cat === 'all' || li.getAttribute('data-cat') === cat;
+    li.hidden = !show;
+    if (show) n++;
+  });
+  $('#pcount').textContent = '共 ' + n + ' 件';
+});
+
+/* ===== Hero：用針目織出來（離屏 canvas 讀像素，再逐針畫 V 形針目） ===== */
+var cv = $('#swatch'), ctx = cv.getContext('2d');
+var mk = document.createElement('canvas'), mx = mk.getContext('2d', {willReadFrequently:true});
+var OAT = '#ece3d0', OAT_LINE = '#c9b993', INK = '#a3243b', MUST = '#d9a33a';
+var COLS = 0, ROWS = 0, CELL = 10, DPR = 1, grid = null, raf = 0, lastW = 0, swDone = false;
+var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+function buildGrid(){
+  var W = Math.max(200, cv.parentNode.clientWidth - 32);
+  var narrow = W < 600;
+  CELL = narrow ? 6 : 10;
+  COLS = Math.max(28, Math.floor(W / CELL));
+  ROWS = Math.round(COLS * (narrow ? 0.72 : 0.5));
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = COLS * CELL * DPR;
+  cv.height = ROWS * CELL * DPR;
+  cv.style.width = (COLS * CELL) + 'px';
+  cv.style.height = (ROWS * CELL) + 'px';
+  mk.width = COLS; mk.height = ROWS;
+  mx.clearRect(0, 0, COLS, ROWS);
+  mx.fillStyle = '#000';
+  mx.textAlign = 'center';
+  mx.textBaseline = 'middle';
+  var fs = Math.floor(Math.min(COLS * 0.26, ROWS * 0.42));
+  mx.font = '700 ' + fs + 'px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+  mx.fillText('用針目', COLS / 2, ROWS * 0.3);
+  mx.fillText('織出來', COLS / 2, ROWS * 0.74);
+  var d = mx.getImageData(0, 0, COLS, ROWS).data;
+  grid = new Uint8Array(COLS * ROWS);
+  for (var i = 0; i < COLS * ROWS; i++) grid[i] = d[i*4 + 3] > 120 ? 1 : 0;
+  lastW = cv.parentNode.clientWidth;
+}
+function strokeRows(r0, r1, alpha){
+  var s = CELL, lo = s*0.14, hi = s*0.88, a = s*0.14, b = s*0.86, m = s*0.5;
+  ctx.globalAlpha = alpha;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (var r = r0; r < r1; r++) for (var c = 0; c < COLS; c++){
+    if (grid[r*COLS + c]) continue;
+    var x = c*s, y = r*s;
+    ctx.moveTo(x + a, y + lo); ctx.lineTo(x + m, y + hi); ctx.lineTo(x + b, y + lo);
+  }
+  ctx.strokeStyle = OAT_LINE; ctx.lineWidth = s*0.16; ctx.stroke();
+  ctx.beginPath();
+  for (r = r0; r < r1; r++) for (c = 0; c < COLS; c++){
+    if (!grid[r*COLS + c]) continue;
+    x = c*s; y = r*s;
+    ctx.moveTo(x + a, y + lo); ctx.lineTo(x + m, y + hi); ctx.lineTo(x + b, y + lo);
+  }
+  ctx.strokeStyle = INK; ctx.lineWidth = s*0.3; ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+function drawSwatch(p){
+  var W = COLS * CELL, H = ROWS * CELL, s = CELL;
+  var prog = p * ROWS, full = Math.floor(prog), frac = prog - full;
+  var top = ROWS - full;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#fffdf7';
+  ctx.fillRect(0, 0, W, H);
+  if (full > 0){
+    ctx.fillStyle = OAT;
+    ctx.fillRect(0, top * s, W, full * s);
+    strokeRows(top, ROWS, 1);
+  }
+  if (frac > 0 && top - 1 >= 0){
+    var pr = top - 1;
+    ctx.globalAlpha = frac;
+    ctx.fillStyle = OAT;
+    ctx.fillRect(0, pr * s, W, s);
+    ctx.globalAlpha = 1;
+    strokeRows(pr, pr + 1, frac);
+  }
+  if (p < 1 && top > 0){
+    ctx.fillStyle = MUST;
+    ctx.fillRect(0, top * s - 1, W, 2);
+  }
+}
+function setRowNo(n){ $('#rowNo').textContent = 'ROW ' + pad2(Math.min(ROWS, n)) + ' / ' + pad2(ROWS); }
+function animateSwatch(){
+  cancelAnimationFrame(raf);
+  swDone = false;
+  if (reduceMotion){ drawSwatch(1); setRowNo(ROWS); swDone = true; return; }
+  var t0 = 0;
+  (function step(ts){
+    if (!t0) t0 = ts;
+    var p = Math.min(1, Math.max(0, (ts - t0 - 250) / 2600));
+    drawSwatch(p);
+    setRowNo(Math.floor(p * ROWS));
+    if (p < 1) raf = requestAnimationFrame(step);
+    else swDone = true;
+  })(performance.now());
+}
+buildGrid();
+animateSwatch();
+
+/* ===== 提花毛衣設計器（核心功能 1） ===== */
+var slotC = [YARN[1].h, YARN[4].h, YARN[3].h, YARN[2].h];   // 色 1–4
+var brush = 1, sym = true, painting = false, paintVal = 1, lastI = -1;
+var dg = new Uint8Array(16 * 12);
+var cells = [];
+var chart = $('#chart');
+
+function setSlotVar(k){ document.documentElement.style.setProperty('--c' + k, slotC[k-1]); }
+for (var k0 = 1; k0 <= 4; k0++) setSlotVar(k0);
+
+var cellHTML = '';
+for (var ci = 0; ci < 192; ci++){
+  var rr = (ci >> 4) + 1, cc = (ci & 15) + 1;
+  cellHTML += '<button type="button" class="cell" data-i="' + ci + '" data-v="0" aria-label="第 ' + rr + ' 段第 ' + cc + ' 針"></button>';
+}
+chart.innerHTML = cellHTML;
+cells = $$('.cell', chart);
+
+var numC = '', numR = '';
+for (var nc = 1; nc <= 16; nc++) numC += '<span>' + ((nc === 1 || nc % 5 === 0) ? nc : '') + '</span>';
+for (var nr = 1; nr <= 12; nr++) numR += '<span>' + ((nr === 1 || nr % 5 === 0) ? nr : '') + '</span>';
+$('#cnums').innerHTML = numC;
+$('#rnums').innerHTML = numR;
+
+var slotHTML = '';
+for (var sk = 1; sk <= 4; sk++){
+  slotHTML += '<button class="slot" type="button" data-slot="' + sk + '" aria-pressed="' + (sk === 1 ? 'true' : 'false') + '"><i style="background:' + slotC[sk-1] + '"></i>色 ' + sk + '</button>';
+}
+slotHTML += '<button class="slot x" type="button" data-slot="0" aria-pressed="false"><i></i>擦除</button>';
+$('#slots').innerHTML = slotHTML;
+$('#yarns').innerHTML = YARN.map(function(y, k){
+  return '<button class="yarn" type="button" data-y="' + k + '" style="--yc:' + y.h + '" aria-label="' + y.n + '" title="' + y.n + '"></button>';
+}).join('');
+
+function setBrush(k){
+  brush = k;
+  $$('#slots .slot').forEach(function(b){ b.setAttribute('aria-pressed', String(+b.getAttribute('data-slot') === k)); });
+  markYarn();
+}
+function markYarn(){
+  var cur = brush > 0 ? slotC[brush-1] : '';
+  $$('#yarns .yarn').forEach(function(b){
+    b.setAttribute('aria-pressed', String(YARN[+b.getAttribute('data-y')].h === cur));
+  });
+}
+$('#slots').addEventListener('click', function(e){
+  var b = e.target.closest('.slot');
+  if (b) setBrush(+b.getAttribute('data-slot'));
+});
+$('#yarns').addEventListener('click', function(e){
+  var b = e.target.closest('.yarn');
+  if (!b) return;
+  if (brush === 0) setBrush(1);
+  slotC[brush-1] = YARN[+b.getAttribute('data-y')].h;
+  setSlotVar(brush);
+  var sb = $('#slots .slot[data-slot="' + brush + '"] i');
+  if (sb) sb.style.background = slotC[brush-1];
+  markYarn();
+  renderAll();
+});
+
+function setCell(i, v){
+  if (dg[i] === v) return;
+  dg[i] = v;
+  cells[i].setAttribute('data-v', String(v));
+}
+function paintAt(i){
+  lastI = i;
+  var c = i & 15, r = i >> 4;
+  setCell(i, paintVal);
+  if (sym) setCell(r*16 + (15 - c), paintVal);
+  renderAll();
+}
+function idxAt(e){
+  var rc = chart.getBoundingClientRect();
+  var x = e.clientX - rc.left, y = e.clientY - rc.top;
+  if (x < 0 || y < 0 || x >= rc.width || y >= rc.height) return -1;
+  var c = Math.min(15, Math.floor(x / rc.width * 16)), r = Math.min(11, Math.floor(y / rc.height * 12));
+  return r*16 + c;
+}
+chart.addEventListener('pointerdown', function(e){
+  var i = idxAt(e);
+  if (i < 0) return;
+  e.preventDefault();
+  painting = true;
+  paintVal = (brush === 0 || dg[i] === brush) ? 0 : brush;
+  lastI = -1;
+  try { chart.setPointerCapture(e.pointerId); } catch (err) { /* 不支援時略過 */ }
+  paintAt(i);
+});
+chart.addEventListener('pointermove', function(e){
+  if (!painting) return;
+  var i = idxAt(e);
+  if (i >= 0 && i !== lastI) paintAt(i);
+});
+function endPaint(){ painting = false; lastI = -1; }
+chart.addEventListener('pointerup', endPaint);
+chart.addEventListener('pointercancel', endPaint);
+chart.addEventListener('click', function(e){
+  if (e.detail !== 0) return;               // 滑鼠與觸控已由 pointer 事件處理，這裡只接鍵盤
+  var b = e.target.closest('.cell');
+  if (!b) return;
+  var i = +b.getAttribute('data-i');
+  paintVal = (brush === 0 || dg[i] === brush) ? 0 : brush;
+  paintAt(i);
+});
+
+/* 圖樣 */
+function deerHalf(){ return ['20000000','02000000','00200000','00022000','00011111','00111131','00111111','00011111','00001111','00000111','00000011','00000000']; }
+var DEER = deerHalf().map(function(h){ return h + h.split('').reverse().join(''); });
+var PRESET = {
+  snow: function(c, r){
+    var dx = Math.abs(c - 7.5), dy = Math.abs(r - 5.5), mn = Math.min(dx, dy), mxv = Math.max(dx, dy);
+    if (dx + dy < 1.2) return 3;
+    if (mn < 0.6 && mxv < 5.2) return 1;
+    if (Math.abs(dx - dy) < 0.6 && mxv < 3.6) return 1;
+    if ((Math.abs(dx - 3) < 0.5 && dy < 1.4) || (Math.abs(dy - 3) < 0.5 && dx < 1.4)) return 2;
+    return 0;
+  },
+  deer: function(c, r){ return +DEER[r].charAt(c); },
+  heart: function(c, r){
+    var X = (c - 7.5) / 4.8, Y = (5 - r) / 4.8;
+    var f = Math.pow(X*X + Y*Y - 1, 3) - X*X*Y*Y*Y;
+    return f <= 0 ? (f > -0.22 ? 2 : 1) : 0;
+  },
+  peerie: function(c, r){
+    var s = 2 * ((r >> 2) & 1), x = ((c + s) & 3) - 1.5, y = (r & 3) - 1.5;
+    var m = Math.abs(x) + Math.abs(y);
+    return m <= 1 ? 1 : (m <= 2 ? 2 : (m <= 3 ? 4 : 0));
+  }
+};
+$('.tb[aria-label="預設圖樣"]').addEventListener('click', function(e){
+  var b = e.target.closest('[data-preset]');
+  if (!b) return;
+  var fn = PRESET[b.getAttribute('data-preset')];
+  for (var r = 0; r < 12; r++) for (var c = 0; c < 16; c++) setCell(r*16 + c, fn(c, r));
+  renderAll();
+});
+$('#clearBtn').addEventListener('click', function(){
+  for (var i = 0; i < 192; i++) setCell(i, 0);
+  renderAll();
+});
+$('#symBtn').addEventListener('click', function(){
+  sym = !sym;
+  this.setAttribute('aria-pressed', sym ? 'true' : 'false');
+});
+
+function countUsed(){
+  var n = 0, seen = {};
+  for (var i = 0; i < 192; i++){
+    if (dg[i]){ n++; seen[dg[i]] = 1; }
+  }
+  return {cells:n, colors:Object.keys(seen).length};
+}
+function calcPrice(){
+  var u = countUsed();
+  var mat = MAT[checkedVal('mat', $('#orderForm'))] || MAT.merino;
+  var size = $('#oSize').value;
+  var add = (checkedVal('pick', $('#orderForm')) === 'home') ? 80 : 0;
+  return 2800 + mat.add + (SZ_ADD[size] || 0) + u.colors * 150 + add;
+}
+function renderPrice(){
+  var total = calcPrice();
+  $('#dgPrice').textContent = money(total);
+  $('#dgDate').textContent = '預計 ' + fmtYmd(addDays(new Date(), 42)) + ' 可取件（約 6 週）';
+}
+function renderStat(){
+  var u = countUsed();
+  $('#dgStat').textContent = '16 針 × 12 段・用色 ' + u.colors + ' 色・已畫 ' + u.cells + ' 針';
+}
+
+/* 預覽：毛衣剪影 + 胸前橫帶（圖表橫向重複兩次） */
+var BODY_P = 'M128 52Q180 98 232 52L286 80L332 214L300 226L282 170L282 404L78 404L78 170L60 226L28 214L74 80Z';
+function renderPreview(){
+  var g = '', bx = 80, by = 170, cw = 100 / 16, ch = 10;
+  for (var rep = 0; rep < 2; rep++) for (var r = 0; r < 12; r++) for (var c = 0; c < 16; c++){
+    var v = dg[r*16 + c], x = bx + rep*100 + c*cw, y = by + r*ch;
+    g += '<rect x="' + x.toFixed(2) + '" y="' + y + '" width="' + cw.toFixed(2) + '" height="' + ch + '" fill="' + (v ? slotC[v-1] : '#fbf7ee') + '"/>';
+    g += '<path d="M' + (x + 1.2).toFixed(2) + ' ' + (y + 1.8) + 'L' + (x + cw/2).toFixed(2) + ' ' + (y + ch - 1.6) + 'L' + (x + cw - 1.2).toFixed(2) + ' ' + (y + 1.8) +
+      '" fill="none" stroke="' + (v ? 'rgba(255,255,255,.3)' : '#d2c3a0') + '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>';
+  }
+  $('#pv').innerHTML = '<svg viewBox="0 0 360 420" role="img" aria-label="提花毛衣預覽，胸前橫帶為目前的圖樣">' +
+    '<defs><pattern id="pvStk" width="12" height="10" patternUnits="userSpaceOnUse"><path d="M1 2L6 9L11 2" fill="none" stroke="#c9b893" stroke-width="1.2"/></pattern>' +
+    '<pattern id="pvRib" width="6" height="20" patternUnits="userSpaceOnUse"><rect width="3" height="20" fill="#c9b893"/></pattern></defs>' +
+    '<path d="' + BODY_P + '" fill="#e9dfc9"/><path d="' + BODY_P + '" fill="url(#pvStk)"/>' +
+    '<path d="M128 52Q180 98 232 52" fill="none" stroke="#c9b893" stroke-width="10"/>' +
+    '<path d="M28 214L60 226M332 214L300 226" stroke="#c9b893" stroke-width="8"/>' +
+    '<g>' + g + '</g>' +
+    '<rect x="78" y="384" width="204" height="20" fill="url(#pvRib)"/>' +
+    '</svg>';
+}
+function renderAll(){ renderPreview(); renderStat(); renderPrice(); }
+
+/* 訂製單 */
+$('#orderForm').addEventListener('change', renderPrice);
+$('#oName').addEventListener('input', function(){ setInvalid('#oName', false); });
+$('#oTel').addEventListener('input', function(){ setInvalid('#oTel', false); });
+$('#orderForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#oName').value.trim(), tel = $('#oTel').value.trim();
+  var u = countUsed();
+  var badName = name.length < 2, badTel = !validPhone(tel), badChart = u.cells === 0;
+  setErr('#eName', badName ? '請填寫姓名（至少 2 個字）' : '');
+  setErr('#eTel', badTel ? '請填寫台灣手機（09xx-xxx-xxx）或市話（含區碼）' : '');
+  setErr('#eChart', badChart ? '圖表還是空白的，先點幾針圖樣再送出吧' : '');
+  setInvalid('#oName', badName);
+  setInvalid('#oTel', badTel);
+  if (badName || badTel || badChart){
+    (badName ? $('#oName') : badTel ? $('#oTel') : chart).focus();
+    return;
+  }
+  var mat = MAT[checkedVal('mat', $('#orderForm'))] || MAT.merino;
+  var size = $('#oSize').value;
+  var pick = checkedVal('pick', $('#orderForm')) === 'home' ? '宅配（+80）' : '門市自取';
+  var note = $('#oNote').value.trim();
+  var total = calcPrice();
+  var no = orderNo('WD');
+  $('#dgDone').innerHTML = '<div class="ptag"><p class="tk num">TAG ・ ' + esc(no) + '</p>' +
+    '<h3>提花毛衣訂製單</h3>' +
+    '<dl class="tag-dl"><dt>訂購人</dt><dd>' + esc(name) + '</dd>' +
+    '<dt>毛料</dt><dd>' + esc(mat.n) + '</dd>' +
+    '<dt>尺寸</dt><dd>' + esc(size) + '</dd>' +
+    '<dt>圖樣</dt><dd>' + u.colors + ' 色・' + u.cells + ' 針（16 × 12 圖表）</dd>' +
+    '<dt>取件</dt><dd>' + esc(pick) + '・' + fmtYmd(addDays(new Date(), 42)) + ' 起</dd>' +
+    '<dt>合計</dt><dd class="num">' + money(total) + '</dd></dl>' +
+    (note ? '<p class="tn">備註：' + esc(note) + '</p>' : '') +
+    '<p class="tn">我們會在一個工作日內來電確認細節（示範）。</p></div>' +
+    '<p style="margin-top:14px"><button class="btn ghost sm" type="button" id="dgBack">返回修改</button></p>';
+  $('#orderForm').hidden = true;
+  $('#dgDone').hidden = false;
+  $('#dgDone').querySelector('.ptag').setAttribute('tabindex', '-1');
+  $('#dgDone').querySelector('.ptag').focus();
+});
+$('#dgDone').addEventListener('click', function(e){
+  if (!e.target.closest('#dgBack')) return;
+  $('#dgDone').hidden = true;
+  $('#dgDone').innerHTML = '';
+  $('#orderForm').hidden = false;
+});
+
+/* ===== 編織教室（核心功能 2） ===== */
+function nthDate(c){ return addDays(nextSat(), c.wk * 7); }
+function renderCourses(){
+  var first = -1;
+  COURSES.forEach(function(c, k){ if (first < 0 && c.left > 0) first = k; });
+  $('#courses').innerHTML = '<legend class="sr">選擇課程</legend>' + COURSES.map(function(c, k){
+    var dt = nthDate(c), dots = '';
+    for (var j = 0; j < c.cap; j++) dots += '<i class="' + (j < c.left ? '' : 'off') + '"></i>';
+    return '<label class="course"><input type="radio" name="course" value="' + c.id + '"' + (c.left > 0 ? '' : ' disabled') + (k === first ? ' checked' : '') + '>' +
+      '<span class="cc"><span class="cno">0' + (k + 1) + '</span>' +
+      '<h3>' + esc(c.n) + '</h3>' +
+      '<span class="cprice">' + money(c.price) + '</span>' +
+      '<p>' + esc(c.d) + '</p>' +
+      '<span class="cmeta"><span class="num">' + fmtDate(dt) + ' ' + c.time + '</span><span>' + esc(c.len) + '</span>' +
+      '<span class="dots" role="img" aria-label="剩餘 ' + c.left + ' 位，共 ' + c.cap + ' 位">' + dots + '</span>' +
+      '<span class="' + (c.left ? '' : 'cfull') + '">' + (c.left ? '剩 ' + c.left + ' 位' : '已額滿') + '</span></span>' +
+      '</span></label>';
+  }).join('');
+}
+$('#clsForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#cName').value.trim(), tel = $('#cTel').value.trim();
+  var id = checkedVal('course');
+  var c = COURSES.filter(function(x){ return x.id === id; })[0];
+  var badName = name.length < 2, badTel = !validPhone(tel);
+  setErr('#eCName', badName ? '請填寫姓名（至少 2 個字）' : '');
+  setErr('#eCTel', badTel ? '請填寫台灣手機（09xx-xxx-xxx）或市話（含區碼）' : '');
+  setErr('#eCourse', !c ? '請先選擇一堂課' : (c.left <= 0 ? '此堂已額滿，請改選其他課程' : ''));
+  setInvalid('#cName', badName);
+  setInvalid('#cTel', badTel);
+  if (badName || badTel || !c || c.left <= 0){
+    (badName ? $('#cName') : badTel ? $('#cTel') : $('#courses')).focus();
+    return;
+  }
+  c.left--;
+  var no = orderNo('CL');
+  var dt = nthDate(c);
+  renderCourses();
+  $('#clsForm').hidden = true;
+  $('#clsDone').hidden = false;
+  $('#clsDone').innerHTML = '<div class="ptag"><p class="tk num">ENROLL ・ ' + esc(no) + '</p>' +
+    '<h3>報名完成</h3>' +
+    '<dl class="tag-dl"><dt>學員</dt><dd>' + esc(name) + '</dd><dt>課程</dt><dd>' + esc(c.n) + '</dd>' +
+    '<dt>首堂</dt><dd class="num">' + fmtDate(dt) + ' ' + c.time + '</dd><dt>費用</dt><dd class="num">' + money(c.price) + '</dd></dl>' +
+    '<p class="tn">開課前一天會以電話再提醒一次，材料包可於首堂現場領取（示範）。</p></div>' +
+    '<p style="margin-top:14px"><button class="btn ghost sm" type="button" id="clsBack">返回報名</button></p>';
+  $('#clsDone').querySelector('.ptag').setAttribute('tabindex', '-1');
+  $('#clsDone').querySelector('.ptag').focus();
+});
+$('#clsDone').addEventListener('click', function(e){
+  if (!e.target.closest('#clsBack')) return;
+  $('#clsDone').hidden = true;
+  $('#clsDone').innerHTML = '';
+  $('#clsForm').hidden = false;
+});
+$('#cName').addEventListener('input', function(){ setInvalid('#cName', false); });
+$('#cTel').addEventListener('input', function(){ setInvalid('#cTel', false); });
+
+/* ===== 尺寸指南（工具） ===== */
+function renderSizes(){
+  $('#sizeBody').innerHTML = SIZES.map(function(z){
+    return '<tr data-s="' + z.s + '"><th scope="row">' + z.s + '</th><td>' + z.chest + '</td><td>' + z.len + '</td><td>' + z.sleeve + '</td></tr>';
+  }).join('');
+}
+function recommend(){
+  var raw = $('#chest').value, b = parseFloat(raw), pref = checkedVal('fit');
+  var out = $('#recOut');
+  var bad = !(b >= 60 && b <= 150);
+  setErr('#eChest', bad ? '請輸入 60–150 之間的胸圍（cm）' : '');
+  setInvalid('#chest', bad);
+  $$('#sizeBody tr').forEach(function(tr){ tr.classList.remove('hit'); });
+  if (bad){
+    out.innerHTML = '<span>輸入胸圍後，這裡會顯示建議尺寸。</span>';
+    return;
+  }
+  var target = b + (EASE[pref] || EASE.std), hit = null;
+  for (var k = 0; k < SIZES.length; k++){
+    if (SIZES[k].chest >= target){ hit = SIZES[k]; break; }
+  }
+  if (hit){
+    $$('#sizeBody tr').forEach(function(tr){ if (tr.getAttribute('data-s') === hit.s) tr.classList.add('hit'); });
+    out.innerHTML = '<span class="rec-s">' + hit.s + '</span><span>建議尺寸・成品胸圍 ' + hit.chest + ' cm' +
+      '<small>胸圍 ' + b + ' cm ＋ ' + EASE_TX[pref] + ' cm 穿著量</small></span>';
+  } else {
+    out.innerHTML = '<span class="rec-s">XL+</span><span>目標胸圍已超過 XL 尺寸<small>建議來店量身，改用訂製版型</small></span>';
+  }
+}
+$('#chest').addEventListener('input', recommend);
+$$('input[name="fit"]').forEach(function(r){ r.addEventListener('change', recommend); });
+
+/* ===== 導覽列（手機選單） ===== */
+var mb = $('#menuBtn'), nav = $('#nav');
+function setMenu(open){
+  nav.classList.toggle('open', open);
+  mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+  mb.textContent = open ? '關閉' : '選單';
+}
+mb.addEventListener('click', function(){ setMenu(!nav.classList.contains('open')); });
+nav.addEventListener('click', function(e){ if (e.target.closest('a')) setMenu(false); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape' && nav.classList.contains('open')){ setMenu(false); mb.focus(); }
+});
+window.addEventListener('resize', function(){ if (window.innerWidth > 820) setMenu(false); });
+
+/* ===== 版面：行號尺、Hero 織樣、重排 ===== */
+function buildRulers(){
+  $$('.ruler').forEach(function(rl){
+    var rows = Math.floor(rl.offsetHeight / 14), html = '';
+    for (var i = 1; i <= rows; i++){
+      if (i === 1 || i % 5 === 0) html += '<i style="top:' + ((i - 1) * 14) + 'px">' + i + '</i>';
+    }
+    rl.innerHTML = html;
+  });
+}
+var rzT = 0;
+window.addEventListener('resize', function(){
+  clearTimeout(rzT);
+  rzT = setTimeout(function(){
+    buildRulers();
+    if (Math.abs(cv.parentNode.clientWidth - lastW) >= 2){
+      buildGrid();
+      if (swDone) drawSwatch(1);
+    }
+  }, 160);
+});
+
+/* ===== 進場動畫 ===== */
+var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(entries){
+  entries.forEach(function(en){
+    if (en.isIntersecting){
+      en.target.classList.add('in');
+      io.unobserve(en.target);
+    }
+  });
+}, {threshold:.12, rootMargin:'0px 0px -6% 0px'}) : null;
+
+/* ===== 初始化 ===== */
+renderProducts();
+renderTray();
+renderCourses();
+renderSizes();
+renderStore();
+renderStatus();
+setInterval(renderStatus, 60000);
+setBrush(1);
+renderAll();
+recommend();
+fillPhotos();
+buildRulers();
+$('#yr').textContent = String(new Date().getFullYear());
+$$('.rv').forEach(function(el){
+  if (io) io.observe(el); else el.classList.add('in');
+});
+})();
+</script>
+</body>
+</html>

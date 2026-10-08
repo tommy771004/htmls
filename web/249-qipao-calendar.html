@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<!-- 店家模板使用方式
+  1. 改 <script> 開頭的 SHOP 設定（店名、電話、地址、營業時間、照片網址），並把 PRODUCTS、REVIEWS 陣列換成自己的商品與評論。
+  2. SHOP.photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 表單送出只在頁面上示範，正式使用請串接訂單／預約系統。
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鳳儀旗袍｜迪化街訂製旗袍・月份牌風</title>
+<meta name="description" content="鳳儀旗袍｜台北迪化街訂製旗袍與盤扣手作。線上設計旗袍款式、即時估價與工期，預約量身，查詢成衣尺寸。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='3' fill='%23c8485a'/%3E%3Cpath d='M16 6C21 11 21 21 16 26C11 21 11 11 16 6Z' fill='%23f3e6cc'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23e1b04a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#f3e6cc;--paper-hi:#fbf4e3;--paper-lo:#e7d4ac;
+  --rouge:#c8485a;--rouge-dk:#9d2c40;--shi:#2f7d7a;--teng:#e1b04a;--mo:#2a2530;--pink:#f2c3c0;--gold:#b8923f;
+  --ink-2:#5f5868;--line:rgba(42,37,48,.18);
+  --serif:'Songti TC','STSong','Noto Serif TC','PMingLiU',serif;
+  --caslon:'Big Caslon','Times New Roman',serif;
+  --ease-out:cubic-bezier(.22,.7,.2,1);
+  --dur-hover:.25s;--dur-press:.12s;--dur-enter:.9s;--dur-exit:.4s;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html,body{overflow-x:clip}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;color:var(--mo);font-family:var(--serif);font-size:16px;line-height:1.85;letter-spacing:.04em;background-color:#f3e6cc;background-image:radial-gradient(ellipse 60% 40% at 12% 8%,rgba(200,72,90,.10),transparent 70%),radial-gradient(ellipse 50% 36% at 88% 34%,rgba(47,125,122,.09),transparent 70%),radial-gradient(ellipse 70% 40% at 50% 96%,rgba(225,176,74,.16),transparent 70%)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(rgba(90,60,30,.07) 1px,transparent 1.2px);background-size:7px 7px;opacity:.6}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+p{margin:0 0 1em}
+h1,h2,h3{margin:0;font-family:var(--serif);font-weight:900;line-height:1.25;letter-spacing:.08em}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--shi);outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+section{position:relative;padding:clamp(64px,9vw,120px) 0}
+.alt{background:rgba(251,244,227,.62);border-block:1px solid var(--line)}
+.kicker{margin:0 0 10px;font-family:var(--caslon);font-style:italic;font-size:15px;letter-spacing:.2em;color:var(--gold)}
+.h2{font-size:clamp(34px,5vw,60px);letter-spacing:.12em}
+.sub{max-width:580px;color:var(--ink-2);margin:12px 0 0}
+.sec-h{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px 32px;margin-bottom:clamp(28px,4vw,46px)}
+.band{height:14px;margin:0 0 26px}
+.band svg{width:100%;height:100%}
+.note{font-size:14px;color:var(--ink-2)}
+.num{font-family:var(--caslon)}
+
+/* 按鈕與表單基本 */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:11px 22px;border:1px solid var(--mo);border-radius:4px;background:transparent;color:var(--mo);font-weight:700;letter-spacing:.14em;text-decoration:none;cursor:pointer;transition:transform var(--dur-hover) var(--ease-out),background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover)}
+.btn:hover{background:var(--mo);color:var(--paper)}
+.btn.pri{background:var(--rouge);border-color:var(--rouge);color:#fff8ec}
+.btn.pri:hover{background:var(--rouge-dk);border-color:var(--rouge-dk)}
+.btn:active{transform:scale(.97);transition-duration:var(--dur-press)}
+
+/* 頁首 */
+.top{position:sticky;top:0;z-index:60;background:rgba(243,230,204,.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:clamp(12px,2.4vw,28px);height:70px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.1em;white-space:nowrap;line-height:1.2}
+.brand small{display:block;font-family:var(--caslon);font-style:italic;font-weight:400;font-size:11px;letter-spacing:.18em;color:var(--ink-2)}
+.seal{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:3px;background:var(--rouge);color:#fff8ec;font-size:16px;font-weight:900;transform:rotate(-4deg);box-shadow:inset 0 0 0 2px rgba(255,248,236,.45)}
+.nav{display:flex;align-items:center;gap:clamp(14px,2.2vw,26px);margin-left:auto}
+.nav a{position:relative;padding:4px 0;text-decoration:none;font-size:15px;white-space:nowrap}
+.nav a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:var(--rouge);transition:right var(--dur-hover) var(--ease-out)}
+.nav a:hover::after,.nav a:focus-visible::after{right:0}
+.top .btn{min-height:40px;padding:9px 18px;font-size:15px}
+.burger{display:none;min-height:40px;padding:8px 14px;border:1px solid var(--mo);border-radius:4px;background:transparent;cursor:pointer;font-weight:700;letter-spacing:.1em}
+@media (max-width:820px){
+  .top .btn{margin-left:auto}
+  .burger{display:inline-flex;align-items:center}
+  .nav{display:none;position:absolute;top:70px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;margin:0;padding:6px clamp(16px,4vw,48px) 14px;background:var(--paper-hi);border-bottom:1px solid var(--line);box-shadow:0 18px 30px -20px rgba(42,37,48,.4)}
+  .nav.open{display:flex}
+  .nav a{padding:13px 0;border-bottom:1px dashed var(--line);font-size:16px}
+  .nav a::after{display:none}
+}
+@media (max-width:520px){
+  .brand small{display:none}
+  .top .btn{padding:8px 13px;font-size:14px}
+}
+
+/* 英雄區與月份牌海報 */
+.hero{position:relative;overflow:hidden;padding:clamp(28px,5vw,72px) max(clamp(16px,4vw,48px),calc(50% - 572px)) clamp(56px,7vw,96px);display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(24px,4vw,64px);align-items:center}
+.hero>.hero-text,.hero>.poster{position:relative;z-index:1}
+.wash{position:absolute;border-radius:50%;filter:blur(28px);pointer-events:none;animation:wash 2.6s var(--ease-out) both}
+@keyframes wash{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+.w1{width:460px;height:460px;left:-140px;top:-120px;background:radial-gradient(circle,rgba(200,72,90,.26),transparent 68%)}
+.w2{width:380px;height:380px;right:-120px;bottom:-100px;background:radial-gradient(circle,rgba(47,125,122,.2),transparent 68%);animation-delay:.4s}
+.hero-h{font-size:clamp(58px,8.6vw,120px);line-height:1.16;letter-spacing:.1em;margin:6px 0 18px}
+.hero-h .l{display:block}
+.hero-h .r{color:var(--rouge)}
+.lede{max-width:30em;font-size:clamp(16px,1.6vw,18px);color:var(--ink-2);line-height:1.9}
+.status{display:inline-flex;align-items:center;gap:10px;margin:22px 0 28px;padding:9px 18px;border:1px solid var(--line);border-radius:999px;background:var(--paper-hi);font-size:15px;font-weight:700;letter-spacing:.08em}
+.status .dot{width:9px;height:9px;border-radius:50%;background:#9b93a3}
+.status.on{color:var(--shi)}
+.status.on .dot{background:var(--shi);box-shadow:0 0 0 4px rgba(47,125,122,.18)}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.poster{justify-self:end;width:min(100%,440px);aspect-ratio:2/3;overflow:hidden;background:var(--paper-hi);border-radius:3px;box-shadow:0 1px 0 rgba(0,0,0,.06),0 34px 50px -30px rgba(70,35,25,.6);transform:rotate(.6deg)}
+.pst{position:absolute;inset:0;width:100%;height:100%}
+.pw{transform-box:fill-box;transform-origin:center;animation:wash 2.4s var(--ease-out) both}
+.cal{position:absolute;left:9%;right:9%;top:64%;bottom:3.5%;display:flex;flex-direction:column;font-size:clamp(10px,1.45vw,13px);color:var(--mo)}
+.cal-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--gold)}
+.cal-h b{font-size:clamp(16px,2.6vw,22px);font-weight:900;color:var(--rouge)}
+.cal-h em{font-family:var(--caslon);font-size:.9em;letter-spacing:.12em;color:var(--ink-2)}
+.cal-g{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;text-align:center}
+.cal-g>*{display:flex;align-items:center;justify-content:center;min-height:0}
+.cal-g .wk{font-size:.85em;color:var(--rouge);font-weight:700}
+.cal-g .today{width:1.9em;height:1.9em;margin:auto;border-radius:50%;background:var(--rouge);color:#fff8ec;font-weight:900}
+
+/* 品牌故事 */
+.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:clamp(28px,5vw,80px);align-items:center}
+.story p{color:#3d3745}
+.story-ph{margin:0;aspect-ratio:4/5;border-radius:6px;border:6px solid var(--paper-hi);box-shadow:0 22px 40px -28px rgba(42,37,48,.6)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:30px;padding-top:24px;border-top:1px solid var(--gold)}
+.stats b{display:block;font-family:var(--caslon);font-style:italic;font-weight:400;font-size:clamp(26px,3.2vw,40px);color:var(--rouge);line-height:1.1}
+.stats span{font-size:13px;color:var(--ink-2)}
+
+/* 商品：月曆撕頁 */
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.ct{min-height:40px;padding:8px 16px;border:1px solid var(--line);border-radius:4px;background:var(--paper-hi);cursor:pointer;transition:background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover),transform var(--dur-press)}
+.ct:hover{border-color:var(--gold)}
+.ct[aria-pressed="true"]{background:var(--mo);border-color:var(--mo);color:var(--paper)}
+.ct:active{transform:scale(.96)}
+.ct em{font-style:normal;font-family:var(--caslon);font-size:12px;margin-left:5px;opacity:.7}
+.tears{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:clamp(22px,3vw,34px)}
+.tear{position:relative;margin:0;padding:44px 20px 20px;background:var(--paper-hi);border-radius:6px 6px 4px 4px;box-shadow:0 1px 0 rgba(0,0,0,.05),0 18px 30px -24px rgba(60,30,20,.6);transform-origin:50% 0;transition:transform var(--dur-hover) var(--ease-out),box-shadow var(--dur-hover) var(--ease-out)}
+.tear:hover{transform:translateY(-4px);box-shadow:0 1px 0 rgba(0,0,0,.05),0 26px 36px -24px rgba(60,30,20,.65)}
+.tear::before{content:"";position:absolute;left:0;right:0;top:34px;border-top:1.5px dashed rgba(42,37,48,.35)}
+.perf{position:absolute;left:0;right:0;top:12px;display:flex;justify-content:space-around;padding:0 16px}
+.perf i{width:9px;height:9px;border-radius:50%;background:var(--paper);box-shadow:inset 0 1px 2px rgba(0,0,0,.28)}
+.tear.flip{animation:flip var(--dur-enter) var(--ease-out)}
+@keyframes flip{0%{transform:rotateX(0)}40%{transform:rotateX(-68deg)}100%{transform:rotateX(0)}}
+.tear-no{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.tear-no b{font-family:var(--caslon);font-style:italic;font-weight:400;font-size:44px;line-height:1;color:var(--rouge)}
+.tear-no span{font-size:13px;letter-spacing:.14em;color:var(--ink-2)}
+.tear-art{margin:10px 0 0;aspect-ratio:300/400;background:radial-gradient(ellipse at 50% 30%,#fffaf0,#efe0bd 75%);border-radius:4px;overflow:hidden;padding:6px}
+.tear-art svg{width:100%;height:100%}
+.tear h3{margin:14px 0 4px;font-size:18px}
+.mat{font-size:13px;color:var(--ink-2);margin:0 0 10px;min-height:2.6em}
+.tear-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.price{font-family:var(--caslon);font-size:20px;color:var(--shi)}
+.ask{min-height:38px;padding:7px 12px;border:1px solid var(--rouge);border-radius:4px;background:transparent;color:var(--rouge);cursor:pointer;font-size:14px;letter-spacing:.06em;transition:background-color var(--dur-hover),color var(--dur-hover),transform var(--dur-press)}
+.ask:hover,.ask[aria-pressed="true"]{background:var(--rouge);color:#fff8ec}
+.ask:active{transform:scale(.95)}
+.askbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:34px;padding:16px 20px;border:1px dashed var(--gold);border-radius:6px;background:rgba(255,250,240,.6);font-size:15px}
+.askbar .ask-list{flex:1 1 220px;margin:0}
+
+/* 設計台 */
+.dsn{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(24px,4vw,56px);align-items:start}
+.board{position:sticky;top:90px;padding:clamp(16px,2.4vw,26px);background:var(--paper-hi);border:1px solid var(--gold);border-radius:8px;box-shadow:0 26px 40px -30px rgba(60,30,20,.6)}
+.board::before{content:"";position:absolute;inset:6px;border:1px solid rgba(184,146,63,.45);border-radius:4px;pointer-events:none}
+.dsprev{position:relative;max-width:340px;margin:0 auto;aspect-ratio:300/400;background:radial-gradient(ellipse at 50% 35%,#fffaf0,#e9d7b0 80%);border-radius:4px;overflow:hidden;padding:8px}
+.dsprev svg{width:100%;height:100%}
+.readout{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 10px}
+.readout small{display:block;font-size:12px;letter-spacing:.14em;color:var(--ink-2)}
+.readout b{font-family:var(--caslon);font-weight:400;font-size:clamp(22px,2.6vw,30px);color:var(--rouge);line-height:1.2}
+.bar{height:6px;margin-top:8px;background:rgba(42,37,48,.12);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--shi),var(--teng));transition:width var(--dur-enter) var(--ease-out)}
+.sum{position:relative;font-size:14px;color:var(--ink-2);margin:0;padding-top:12px;border-top:1px dashed var(--line)}
+.grp{margin:0 0 26px;padding:0;border:0;min-width:0}
+.grp legend{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;padding:0;margin-bottom:12px;font-weight:900;font-size:17px;letter-spacing:.1em}
+.grp legend em{font-family:var(--caslon);font-style:italic;font-weight:400;color:var(--rouge);font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{position:relative;cursor:pointer}
+.chip span{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:7px 14px;border:1px solid var(--line);border-radius:4px;background:var(--paper-hi);font-size:14.5px;transition:background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover),transform var(--dur-press)}
+.chip:hover span{border-color:var(--gold)}
+.chip:active span{transform:scale(.96)}
+.chip input:checked+span{background:var(--mo);border-color:var(--mo);color:var(--paper)}
+.chip input:focus-visible+span{outline:2px solid var(--shi);outline-offset:2px}
+.chip svg{width:28px;height:28px;flex:none}
+.chip.fab svg{border-radius:50%}
+.sw{position:relative;cursor:pointer}
+.sw span{display:block;width:36px;height:36px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--paper-hi),0 0 0 1px var(--line);transition:transform var(--dur-hover) var(--ease-out)}
+.sw:hover span{transform:scale(1.08)}
+.sw:active span{transform:scale(.92)}
+.sw input:checked+span{box-shadow:inset 0 0 0 2px var(--paper-hi),0 0 0 3px var(--mo)}
+.sw input:focus-visible+span{outline:2px solid var(--shi);outline-offset:3px}
+.slit{display:flex;align-items:center;gap:14px}
+.slit input{flex:1;min-width:0;accent-color:var(--rouge)}
+.slit output{min-width:4.6em;text-align:right;font-family:var(--caslon);font-size:20px;color:var(--rouge)}
+
+/* 預約量身 */
+.bk{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(28px,5vw,72px);align-items:start}
+.steps{list-style:none;margin:26px 0 0;padding:0;counter-reset:st}
+.steps li{position:relative;counter-increment:st;padding:0 0 18px 52px;color:var(--ink-2)}
+.steps li::before{content:counter(st);position:absolute;left:0;top:0;width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--rouge);border-radius:50%;font-family:var(--caslon);font-style:italic;color:var(--rouge)}
+.steps b{color:var(--mo)}
+.echo{margin-top:24px;padding:16px 18px;border-left:3px solid var(--teng);background:rgba(255,250,240,.7);font-size:14.5px;color:var(--ink-2);border-radius:0 6px 6px 0}
+.echo strong{color:var(--mo)}
+.card-form{padding:clamp(20px,3.2vw,40px);background:var(--paper-hi);border:1px solid var(--line);border-radius:10px;box-shadow:0 26px 40px -30px rgba(60,30,20,.5)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0;padding:0;border:0}
+.fld.full{grid-column:1/-1}
+.fld>label,.fld>.lb,.fld legend{font-size:14px;font-weight:700;letter-spacing:.08em;padding:0}
+.fld small{font-size:12.5px;font-weight:400;color:var(--ink-2)}
+.fld input,.fld select{width:100%;min-height:44px;padding:9px 12px;border:1px solid rgba(42,37,48,.28);border-radius:6px;background:#fffcf4;transition:border-color var(--dur-hover),box-shadow var(--dur-hover)}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--shi);box-shadow:0 0 0 3px rgba(47,125,122,.18)}
+.fld select:disabled{background:#efe6d2;color:var(--ink-2)}
+.fld.bad input,.fld.bad select{border-color:var(--rouge);box-shadow:0 0 0 3px rgba(200,72,90,.14)}
+.err{min-height:0;margin:0;font-size:13px;color:var(--rouge-dk)}
+.err:empty{display:none}
+.warn{grid-column:1/-1;margin:0;padding:12px 14px;border-radius:6px;background:rgba(225,176,74,.22);border:1px solid var(--teng);font-size:14px}
+.mgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.mgrid .fld input{min-height:42px;padding:8px 8px}
+.mgrid label{font-size:13px;font-weight:700}
+.bk-foot{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-top:6px}
+.redcard{position:relative;padding:clamp(24px,4vw,40px);background:var(--rouge);color:#fff8ec;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(246,217,141,.9),inset 0 0 0 6px var(--rouge),inset 0 0 0 7px rgba(246,217,141,.75)}
+.redcard .vt-h{float:right;writing-mode:vertical-rl;margin:0 0 12px 20px;font-size:clamp(28px,4vw,40px);font-weight:900;letter-spacing:.3em;color:#f6d98d}
+.redcard dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 18px;margin:0;font-size:15px}
+.redcard dt{opacity:.82}
+.redcard dd{margin:0;font-weight:700}
+.redcard .no{clear:both;margin:20px 0 14px;font-family:var(--caslon);letter-spacing:.2em;color:#f6d98d;font-size:18px}
+.redcard .btn{border-color:#fff8ec;color:#fff8ec;background:transparent}
+.redcard .btn:hover{background:#fff8ec;color:var(--rouge-dk)}
+
+/* 尺寸指南 */
+.size{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(28px,5vw,72px);align-items:start}
+.fit{margin:0;padding:clamp(18px,3vw,30px);border:1px solid var(--line);border-radius:8px;background:var(--paper-hi)}
+.fit svg{width:100%;max-width:330px;margin:0 auto}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--paper-hi)}
+table{width:100%;border-collapse:collapse;min-width:440px}
+th,td{padding:12px 14px;text-align:center;border-bottom:1px solid var(--line);font-size:15px}
+thead th{font-family:var(--caslon);font-style:italic;font-weight:400;color:var(--rouge);letter-spacing:.06em}
+tbody th{font-family:var(--serif);font-style:normal;font-weight:900;color:var(--mo)}
+.tool{margin-top:26px;padding:22px;border:1px dashed var(--gold);border-radius:8px;background:rgba(255,250,240,.5)}
+.tool h3{font-size:19px;margin-bottom:14px}
+.tool-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:12px;align-items:end}
+.out{margin:14px 0 0;font-size:15px;font-weight:700;color:var(--shi)}
+.out:empty{display:none}
+
+/* 照片位 */
+.ph{position:relative;margin:0;overflow:hidden;border-radius:6px;background:var(--paper-lo);isolation:isolate;min-height:0}
+.ph>img{width:100%;height:100%;object-fit:cover}
+.ph>svg{width:100%;height:100%}
+.wall{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:clamp(12px,2vw,20px)}
+.w-g1{grid-column:1/span 7;grid-row:span 2;min-height:420px}
+.w-g2,.w-g3{grid-column:8/span 5;aspect-ratio:4/3}
+.w-g4{grid-column:1/-1;aspect-ratio:21/8}
+
+/* 顧客評論 */
+.rv-wrap{display:grid;grid-template-columns:clamp(72px,8vw,108px) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:start}
+.vt{margin:0;font-size:clamp(40px,4.6vw,60px);line-height:1.3;letter-spacing:.2em;color:var(--mo)}
+.rvs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(18px,3vw,32px)}
+.rvc{position:relative;margin:0;padding:clamp(22px,3vw,34px);background:var(--paper-hi);border:1px solid var(--line);border-radius:8px}
+.rvc:nth-child(even){margin-top:44px}
+.rvc p{font-size:16px;line-height:1.95;color:#3d3745;margin-bottom:18px}
+.rvc footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding-top:14px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink-2)}
+.rvc strong{color:var(--mo);font-size:16px}
+.mk{position:absolute;right:18px;top:-14px;display:grid;place-items:center;width:40px;height:40px;border-radius:3px;background:var(--rouge);color:#fff8ec;font-weight:900;font-size:16px;transform:rotate(5deg);box-shadow:inset 0 0 0 2px rgba(255,248,236,.4)}
+.dots{display:inline-flex;gap:6px}
+.dots i{width:11px;height:11px;border-radius:50%;border:1px solid var(--gold)}
+.dots i.on{background:var(--gold)}
+
+/* 門市 */
+.store{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:start}
+.hours{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--gold)}
+.hours li{display:flex;justify-content:space-between;gap:12px;padding:11px 6px;border-bottom:1px dashed var(--line)}
+.hours li.today{background:rgba(200,72,90,.09);color:var(--rouge-dk);font-weight:900}
+.hours .tg{font-style:normal;font-size:12px;background:var(--rouge);color:#fff8ec;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:2px}
+.addr{margin-top:26px;padding:22px;border:1px solid var(--line);border-radius:8px;background:var(--paper-hi)}
+.addr p{margin:0 0 6px}
+.addr .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.plain{list-style:none;margin:0;padding:0}
+.plain li{position:relative;padding:12px 0 12px 22px;border-bottom:1px dashed var(--line)}
+.plain li::before{content:"";position:absolute;left:4px;top:1.2em;width:7px;height:7px;transform:rotate(45deg);background:var(--teng)}
+.plain h3{font-size:19px;margin:30px 0 6px}
+.plain h3:first-child{margin-top:0}
+
+/* 頁尾 */
+.foot{background:var(--mo);color:#efe4cf;padding:clamp(40px,6vw,64px) 0 32px;font-size:14px}
+.foot-in{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:24px;align-items:end}
+.foot-in p{margin:0 0 6px}
+.foot .seal{display:inline-grid;margin-right:8px;vertical-align:middle}
+.foot nav a{color:#efe4cf;text-decoration:none;border-bottom:1px solid rgba(239,228,207,.4);margin-right:16px}
+.foot .copy{opacity:.72}
+.foot .disc{opacity:.6}
+
+/* 照片位切換 */
+.slotbtn{position:fixed;right:14px;bottom:14px;z-index:80;min-height:36px;padding:6px 12px;border:1px solid var(--mo);border-radius:4px;background:rgba(251,244,227,.92);font-size:13px;letter-spacing:.08em;cursor:pointer;transition:background-color var(--dur-hover),color var(--dur-hover),transform var(--dur-press)}
+.slotbtn[aria-pressed="true"]{background:var(--mo);color:var(--teng)}
+.slotbtn:active{transform:scale(.95)}
+body.slots .ph{outline:3px dashed var(--teng);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:8px;top:8px;z-index:3;background:var(--mo);color:var(--teng);font-size:12px;padding:3px 9px;border-radius:999px;font-family:var(--serif)}
+
+/* 進場動畫（JS 失敗時內容仍可見） */
+.js .rv{opacity:0;transform:translateY(22px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.js .rv.in{opacity:1;transform:none}
+.js .rv-f{opacity:0;transition:opacity var(--dur-enter) var(--ease-out)}
+.js .rv-f.in{opacity:1}
+.sheen{animation:sheen 6s ease-in-out infinite}
+@keyframes sheen{from{transform:translateX(0)}to{transform:translateX(330px)}}
+
+/* 版面 */
+@media (max-width:900px){
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .poster{order:-1;justify-self:center;width:min(100%,360px)}
+  .dsn,.bk,.size,.store,.story{grid-template-columns:minmax(0,1fr)}
+  .board{position:relative;top:0}
+}
+@media (max-width:760px){
+  .story-ph{order:-1}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fgrid{grid-template-columns:minmax(0,1fr)}
+  .mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tool-row{grid-template-columns:minmax(0,1fr)}
+  .wall{grid-template-columns:minmax(0,1fr)}
+  .w-g1,.w-g2,.w-g3,.w-g4{grid-column:1/-1;grid-row:auto;min-height:0;aspect-ratio:4/3}
+  .w-g1{aspect-ratio:4/5}
+  .rv-wrap{grid-template-columns:minmax(0,1fr)}
+  .vt{font-size:clamp(36px,10vw,52px)}
+  .vt br{display:none}
+  .rvs{grid-template-columns:minmax(0,1fr)}
+  .rvc:nth-child(even){margin-top:0}
+  .foot-in{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .js .rv,.js .rv-f{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="lei" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M1 13V1h12v6H5v3h4" fill="none" stroke="#b8923f" stroke-width="1.2"/></pattern>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#top"><span class="seal" aria-hidden="true">鳳</span><span>鳳儀旗袍<small>FENG YI · 迪化街</small></span></a>
+    <nav class="nav" id="nav" aria-label="主選單">
+      <a href="#story">品牌故事</a>
+      <a href="#series">系列</a>
+      <a href="#design">設計台</a>
+      <a href="#size">尺寸</a>
+      <a href="#reviews">評論</a>
+      <a href="#store">門市</a>
+    </nav>
+    <a class="btn pri" href="#book">預約量身</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="nav">選單</button>
+  </div>
+</header>
+
+<main>
+<!-- ===== 1. Hero：月份牌海報 ===== -->
+<section class="hero" id="top">
+  <div class="wash w1" aria-hidden="true"></div>
+  <div class="wash w2" aria-hidden="true"></div>
+  <div class="hero-text">
+    <p class="kicker">Est. 1937 · Tatung Dihua Street</p>
+    <h1 class="hero-h"><span class="l">鳳儀</span><span class="l r">旗袍</span></h1>
+    <p class="lede">迪化街上的訂製旗袍。從一張尺、一片布，到盤扣一顆一顆手縫，讓每一件都只為你的身形而生。衣長、袖型、盤扣與布料都可以先在設計台試穿，再來店裡定稿。</p>
+    <div id="heroStatus" class="status" role="status"><span class="dot" aria-hidden="true"></span><span class="tx">營業狀態</span></div>
+    <div class="cta">
+      <a class="btn pri" href="#design">開始設計旗袍</a>
+      <a class="btn" href="#book">預約量身</a>
+    </div>
+  </div>
+  <div class="poster">
+    <svg class="pst" id="pst" viewBox="0 0 400 600" aria-hidden="true" focusable="false"></svg>
+    <div class="cal" id="cal" aria-label="本月月曆"></div>
+  </div>
+</section>
+
+<!-- ===== 2. 品牌故事 ===== -->
+<section id="story" class="alt">
+  <div class="wrap story">
+    <div class="rv">
+      <p class="kicker">Our Story · 一</p>
+      <h2 class="h2">一張尺，<br>量過三代人的肩線</h2>
+      <p style="margin-top:22px">鳳儀旗袍 1937 年開在大稻埕的裁縫小店，後來搬到迪化街一段。店裡的老師傅仍然堅持先量身、再畫版，最後才下剪刀，這個順序從來沒有改過。</p>
+      <p>我們做的不是「尺寸正確」的衣服，而是一件會因為你走路、坐下、抬手而服貼的旗袍。盤扣一顆一顆手作，開衩的高度依你的步幅定，領子的高低也要配合你平常的站姿。</p>
+      <p>現在店裡有三代師傅，還有一位專門畫旗袍的設計師。從織錦、香雲紗到蕾絲，每一批布料都由我們親手摸過才進門。</p>
+      <div class="stats">
+        <div><b>1937</b><span>創立於大稻埕</span></div>
+        <div><b>3 代</b><span>師傅相承</span></div>
+        <div><b>46</b><span>道手工工序</span></div>
+        <div><b>3–6</b><span>週訂製工期</span></div>
+      </div>
+    </div>
+    <figure class="ph story-ph rv" data-photo="story" data-art="buttons" data-label="盤扣手作" data-size="1200×1500"></figure>
+  </div>
+</section>
+
+<!-- ===== 3. 商品：月曆撕頁 ===== -->
+<section id="series">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <div>
+        <p class="kicker">Ready &amp; Custom · 二</p>
+        <h2 class="h2">月曆撕頁</h2>
+        <p class="sub">成衣與訂製款式都印在撕頁上。挑一頁，點「加入詢問」，就能把它帶到量身預約表單。</p>
+      </div>
+      <div class="tabs" id="tabs" role="group" aria-label="商品分類"></div>
+    </div>
+    <div class="tears" id="tears"></div>
+    <div class="askbar" id="askbar" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ===== 4. 核心功能一：訂製旗袍設計台 ===== -->
+<section id="design" class="alt">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <div>
+        <p class="kicker">Design Desk · 三</p>
+        <h2 class="h2">訂製旗袍設計台</h2>
+        <p class="sub">調整衣長、袖型、領高、開衩、盤扣、布料與色票，右側會即時更新旗袍輪廓、估價與工期。</p>
+      </div>
+    </div>
+    <div class="dsn">
+      <div class="board rv">
+        <div class="dsprev" id="dsPrev"></div>
+        <div class="readout">
+          <div><small>預估價格</small><b id="dsPrice">NT$ 0</b></div>
+          <div><small>預估工期（3–6 週）</small><b id="dsWeeks">0 週</b><div class="bar" aria-hidden="true"><i id="dsBar"></i></div></div>
+        </div>
+        <p class="sum" id="dsSum" aria-live="polite"></p>
+      </div>
+      <div class="ctl" id="dsCtl">
+        <fieldset class="grp"><legend>衣長 <em>Length</em></legend><div class="chips" id="fLen"></div></fieldset>
+        <fieldset class="grp"><legend>袖型 <em>Sleeve</em></legend><div class="chips" id="fSl"></div></fieldset>
+        <fieldset class="grp"><legend>領高 <em>Collar</em></legend><div class="chips" id="fH"></div></fieldset>
+        <fieldset class="grp"><legend>開衩高度 <em>Slit</em></legend>
+          <div class="slit"><input type="range" id="dsSlit" min="10" max="50" step="1" value="25" aria-label="開衩高度（公分）"><output id="dsSlitOut" for="dsSlit">25 cm</output></div>
+        </fieldset>
+        <fieldset class="grp"><legend>盤扣樣式 <em>Button</em></legend><div class="chips" id="fBtn"></div></fieldset>
+        <fieldset class="grp"><legend>布料 <em>Fabric</em></legend><div class="chips" id="fFab"></div></fieldset>
+        <fieldset class="grp"><legend>色票 <em>Color</em></legend><div class="chips" id="fCol"></div></fieldset>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5. 核心功能二：預約量身 ===== -->
+<section id="book">
+  <div class="wrap bk">
+    <div class="rv">
+      <p class="kicker">Fitting Appointment · 四</p>
+      <h2 class="h2">預約量身</h2>
+      <p class="sub" style="margin-top:14px">量身通常需要 60 至 90 分鐘。若婚期將近，請填寫婚期，我們會依設計台的工期檢查來不來得及。</p>
+      <ol class="steps">
+        <li><b>線上預約</b>：選日期與時段，留下聯絡方式與設計需求。</li>
+        <li><b>量身與定稿</b>：師傅量測身形，與你確認布料、盤扣與開衩位置。</li>
+        <li><b>試身與取件</b>：通常試身兩次，最後一次試穿後即可取件。</li>
+      </ol>
+      <div class="echo" id="bkEcho"></div>
+    </div>
+    <div class="card-form rv" id="bkCard">
+      <form id="bkForm" novalidate>
+        <div class="fgrid">
+          <div class="fld" id="fName">
+            <label for="bkName">姓名</label>
+            <input id="bkName" name="name" autocomplete="name" maxlength="20" aria-describedby="e-name">
+            <p class="err" id="e-name" aria-live="polite"></p>
+          </div>
+          <div class="fld" id="fPhone">
+            <label for="bkPhone">電話 <small>09xx-xxx-xxx 或市話</small></label>
+            <input id="bkPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="0912-345-678" aria-describedby="e-phone">
+            <p class="err" id="e-phone" aria-live="polite"></p>
+          </div>
+          <div class="fld" id="fDate">
+            <label for="bkDate">預約日期</label>
+            <input id="bkDate" type="date" aria-describedby="e-date">
+            <p class="err" id="e-date" aria-live="polite"></p>
+          </div>
+          <div class="fld" id="fTime">
+            <label for="bkTime">時段</label>
+            <select id="bkTime" aria-describedby="e-time"><option value="">請先選擇日期</option></select>
+            <p class="err" id="e-time" aria-live="polite"></p>
+          </div>
+          <div class="fld full">
+            <span class="lb" id="purLb">用途</span>
+            <div class="chips" id="bkPur" role="radiogroup" aria-labelledby="purLb"></div>
+          </div>
+          <div class="fld full" id="fWed" hidden>
+            <label for="bkWed">婚禮日期 <small>婚禮必填，用來檢查工期</small></label>
+            <input id="bkWed" type="date" aria-describedby="e-wed">
+            <p class="err" id="e-wed" aria-live="polite"></p>
+          </div>
+          <p class="warn" id="bkWarn" aria-live="polite" hidden></p>
+          <fieldset class="fld full">
+            <legend>量身數字 <small>（選填，單位 cm，40–200）</small></legend>
+            <div class="mgrid">
+              <div class="fld"><label for="m-sh">肩寬</label><input id="m-sh" type="number" inputmode="decimal" min="40" max="200" step="0.5"></div>
+              <div class="fld"><label for="m-bu">胸圍</label><input id="m-bu" type="number" inputmode="decimal" min="40" max="200" step="0.5"></div>
+              <div class="fld"><label for="m-wa">腰圍</label><input id="m-wa" type="number" inputmode="decimal" min="40" max="200" step="0.5"></div>
+              <div class="fld"><label for="m-hi">臀圍</label><input id="m-hi" type="number" inputmode="decimal" min="40" max="200" step="0.5"></div>
+              <div class="fld"><label for="m-len">衣長</label><input id="m-len" type="number" inputmode="decimal" min="40" max="200" step="0.5"></div>
+            </div>
+            <p class="err" id="e-m" aria-live="polite"></p>
+          </fieldset>
+          <div class="fld full bk-foot">
+            <p class="note" style="margin:0">送出後會顯示預約單（示範，不會真的寄出）。</p>
+            <button class="btn pri" type="submit" id="bkSubmit">送出預約</button>
+          </div>
+        </div>
+      </form>
+      <div class="redcard" id="bkOk" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 6. 尺寸指南 ===== -->
+<section id="size" class="alt">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <div>
+        <p class="kicker">Size Guide · 五</p>
+        <h2 class="h2">尺寸指南</h2>
+        <p class="sub">先依下圖量好六個部位，再對照成衣表。訂製旗袍以量身為準，成衣尺寸只供參考。</p>
+      </div>
+    </div>
+    <div class="size">
+      <figure class="fit rv" id="fitFig" aria-label="量身部位示意圖"></figure>
+      <div class="rv">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th scope="col">尺寸</th><th scope="col">胸圍 cm</th><th scope="col">腰圍 cm</th><th scope="col">臀圍 cm</th><th scope="col">適合身高</th></tr></thead>
+            <tbody id="szBody"></tbody>
+          </table>
+        </div>
+        <form class="tool" id="szForm" novalidate>
+          <h3>尺寸建議</h3>
+          <div class="tool-row">
+            <div class="fld"><label for="szB">胸圍（cm）</label><input id="szB" type="number" inputmode="decimal" min="60" max="150" step="0.5" aria-describedby="e-sz"></div>
+            <div class="fld"><label for="szW">腰圍（cm）</label><input id="szW" type="number" inputmode="decimal" min="60" max="150" step="0.5" aria-describedby="e-sz"></div>
+            <div class="fld"><label for="szH">臀圍（cm）</label><input id="szH" type="number" inputmode="decimal" min="60" max="150" step="0.5" aria-describedby="e-sz"></div>
+            <button class="btn pri" type="submit">推薦尺寸</button>
+          </div>
+          <p class="err" id="e-sz" aria-live="polite"></p>
+          <p class="out" id="szOut" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 7. 照片牆 ===== -->
+<section id="photos">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <div>
+        <p class="kicker">Atelier · 六</p>
+        <h2 class="h2">工作室與店內</h2>
+      </div>
+    </div>
+    <div class="wall">
+      <figure class="ph w-g1 rv" data-photo="g1" data-art="cloth" data-label="布料牆" data-size="1200×1500"></figure>
+      <figure class="ph w-g2 rv" data-photo="g2" data-art="cut" data-label="老師傅裁剪" data-size="1200×900"></figure>
+      <figure class="ph w-g3 rv" data-photo="g3" data-art="fit" data-label="試衣間" data-size="1200×900"></figure>
+      <figure class="ph w-g4 rv" data-photo="g4" data-art="facade" data-label="迪化街洋樓店面" data-size="1600×600"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 8. 顧客評論 ===== -->
+<section id="reviews" class="alt">
+  <div class="wrap rv-wrap">
+    <h2 class="vt rv">顧<br>客<br>的<br>話</h2>
+    <div class="rvs" id="rvs"></div>
+  </div>
+</section>
+
+<!-- ===== 9. 門市資訊 ===== -->
+<section id="store">
+  <div class="wrap store">
+    <div class="rv">
+      <p class="kicker">Visit · 七</p>
+      <h2 class="h2">門市資訊</h2>
+      <div id="storeStatus" class="status" role="status" style="margin-top:22px"><span class="dot" aria-hidden="true"></span><span class="tx">營業狀態</span></div>
+      <ul class="hours" id="hours"></ul>
+      <div class="addr">
+        <p class="num" style="font-size:13px;letter-spacing:.14em;color:var(--ink-2);margin:0 0 4px">ADDRESS</p>
+        <p id="addr" style="font-size:17px;font-weight:700"></p>
+        <p>電話 <a id="tel" href="tel:"></a></p>
+        <div class="btns">
+          <a class="btn pri" id="mapLink" href="https://www.google.com/maps/search/?api=1&amp;query=" target="_blank" rel="noopener">在 Google 地圖開啟</a>
+          <a class="btn" href="#book">預約量身</a>
+        </div>
+      </div>
+    </div>
+    <div class="rv">
+      <h3>交通與停車</h3>
+      <ul class="plain">
+        <li>捷運大橋頭站 2 號出口，沿迪化街一段往北步行約 6 分鐘。</li>
+        <li>店門口不設停車位，附近可使用迪化街周邊的收費停車場（示範）。</li>
+      </ul>
+      <h3>服務項目</h3>
+      <ul class="plain">
+        <li>修改尺寸：成衣購買後 30 天內，免費微調一次。</li>
+        <li>退換貨：訂製款不接受退換；成衣附吊牌、未穿著且 7 天內可換貨。</li>
+        <li>盤扣與繡字：可依需求改色或加繡字，請於第一次試身時提出。</li>
+        <li>旗袍保養：乾洗或手洗冷水，平放陰乾，避免陽光直曬。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div>
+      <p><span class="seal" aria-hidden="true">鳳</span><b>鳳儀旗袍</b></p>
+      <p>台北市大同區示範迪化街一段 66 號</p>
+    </div>
+    <nav aria-label="社群連結">
+      <a href="#">Instagram</a><a href="#">Facebook</a><a href="#">LINE</a>
+    </nav>
+    <div>
+      <p class="copy">© <span id="yr"></span> 鳳儀旗袍</p>
+      <p class="disc">此為店家官網示範模板，商品與評論為示意。</p>
+    </div>
+  </div>
+</footer>
+
+<button id="slotBtn" class="slotbtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'鳳儀旗袍', phone:'(02) 2700-1234', address:'台北市大同區示範迪化街一段 66 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['12:00','19:00'], null, ['11:00','20:00'], ['11:00','20:00'], ['11:00','20:00'], ['11:00','20:00'], ['11:00','21:00']],
+  photos:{ story:'', g1:'', g2:'', g3:'', g4:'' }   // 填網址就會取代佔位圖
+};
+
+/* ===== 商品資料（kind：未填為旗袍；pair 母女、robe 長衫、pin 胸針、shawl 披肩、bag 手拿包） ===== */
+var PRODUCTS = [
+  {n:'海棠紅織錦長旗袍', cat:'長旗袍', price:28800, mat:'織錦緞・真絲', fab:'brocade', base:'#b13a48', ac:'#e8c27a', trim:'#e1b04a', len:'ankle', sl:'cap', btn:'hudie', h:20, slit:30},
+  {n:'月白香雲紗短旗袍', cat:'短旗袍', price:9800, mat:'香雲紗・夏季輕薄', fab:'xiang', base:'#dfe8e4', ac:'#6f8f8a', trim:'#7d9a95', len:'knee', sl:'none', btn:'yi', h:20, slit:20},
+  {n:'石青蕾絲改良式', cat:'改良式', price:12600, mat:'蕾絲・棉混紡', fab:'lace', base:'#2f7d7a', ac:'#bfe3d6', trim:'#e1b04a', len:'mid', sl:'long', btn:'pipa', h:20, slit:0},
+  {n:'藤黃印花日常款', cat:'短旗袍', price:3680, mat:'印花棉麻・好打理', fab:'cotton', base:'#e1b04a', ac:'#b13a48', trim:'#8a5a1f', len:'knee', sl:'cap', btn:'yi', h:12, slit:15},
+  {n:'黛墨絲絨晚宴款', cat:'長旗袍', price:16800, mat:'絲絨・棉混', fab:'silk', base:'#2a2530', ac:'#b8923f', trim:'#b8923f', len:'ankle', sl:'long', btn:'hua', h:26, slit:40},
+  {n:'粉色母女款（兩件組）', cat:'改良式', price:8600, mat:'真絲雙縐・同花色', kind:'pair', fab:'silk', base:'#f2c3c0', ac:'#b8485a', trim:'#b8485a', len:'knee', sl:'cap', btn:'hudie', h:12, slit:0},
+  {n:'男款長衫', cat:'改良式', price:11200, mat:'真絲雙縐・男款', kind:'robe', fab:'silk', base:'#efe2c4', ac:'#9c7a45', trim:'#9c7a45', len:'mid', sl:'long', btn:'yi', h:20, slit:0},
+  {n:'盤扣胸針', cat:'配件', price:680, mat:'手工盤扣・銅絲', kind:'pin', base:'#b8923f', ac:'#e1b04a'},
+  {n:'繡花披肩', cat:'配件', price:4800, mat:'真絲・手繡花紋', kind:'shawl', fab:'cotton', base:'#3f8f6b', ac:'#e7d59a'},
+  {n:'旗袍手拿包', cat:'配件', price:1280, mat:'織錦緞・金屬扣', kind:'bag', fab:'brocade', base:'#2f7d7a', ac:'#e1b04a'}
+];
+
+/* ===== 顧客評論 ===== */
+var REVIEWS = [
+  {who:'林小姐', item:'海棠紅織錦長旗袍', when:'2026 年 8 月', stars:5, mark:'林', text:'試身時師傅幫我把肩線抓到剛好，盤扣排列也很有講究。婚宴那天站了一整晚，腰身一點都沒有鬆掉。'},
+  {who:'陳太太', item:'粉色母女款', when:'2026 年 6 月', stars:5, mark:'陳', text:'和女兒穿同款去參加表姊的喜宴，兩件的花色是同一批布剪的，拍照時特別好看，店員也很貼心。'},
+  {who:'王先生', item:'男款長衫', when:'2026 年 4 月', stars:4, mark:'王', text:'第一次穿長衫，原本擔心會不自在，改了袖長之後走路很輕鬆。若能再多一種深色布料的選擇就更好了。'},
+  {who:'黃小姐', item:'訂製改良式', when:'2026 年 2 月', stars:5, mark:'黃', text:'從量身到取件共三次試身，每次都把問題講得很清楚。推薦給想穿得自在又不失禮的人。'}
+];
+
+/* ===== 旗袍選項與價格 ===== */
+var COLORS = [
+  {n:'海棠紅', b:'#b13a48', a:'#e8c27a'}, {n:'石青', b:'#2f7d7a', a:'#bfe3d6'},
+  {n:'藤黃', b:'#e1b04a', a:'#8a5a1f'}, {n:'黛墨', b:'#2a2530', a:'#b8923f'},
+  {n:'月白', b:'#dfe8e4', a:'#6f8f8a'}, {n:'粉', b:'#f2c3c0', a:'#b8485a'},
+  {n:'宣紙米', b:'#efe2c4', a:'#9c7a45'}, {n:'翡翠', b:'#3f8f6b', a:'#e7d59a'}
+];
+var LEN = {knee:330, mid:380, ankle:430};                       // 下襬的 y 座標
+var LEN_NAME = {knee:'及膝短旗袍', mid:'中長', ankle:'及踝長旗袍'};
+var LEN_PRICE = {knee:6800, mid:9800, ankle:12800};
+var SL = {none:{n:'無袖', p:0}, cap:{n:'短袖', p:1200}, long:{n:'七分袖', p:2200}};
+var COL_H = {'3':{u:12, p:0, n:'3 cm'}, '5':{u:20, p:0, n:'5 cm'}, '6.5':{u:26, p:800, n:'6.5 cm'}};
+var FAB = {
+  brocade:{n:'織錦緞', p:12000, w:1}, xiang:{n:'香雲紗', p:8000, w:0}, silk:{n:'真絲雙縐', p:6000, w:0},
+  lace:{n:'蕾絲', p:15000, w:1}, cotton:{n:'印花棉麻', p:0, w:0}
+};
+var BTN = {
+  yi:{n:'一字扣', c:5, p:150}, pipa:{n:'琵琶扣', c:6, p:220},
+  hudie:{n:'蝴蝶扣', c:8, p:260}, hua:{n:'花扣', c:10, p:380}
+};
+var CATS = ['長旗袍', '短旗袍', '改良式', '配件'];
+var NOS = ['壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖', '拾'];
+var PURPOSES = ['婚禮', '謝客宴', '畢業', '日常'];
+var DAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+var WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+var SIZES = [
+  {s:'S', b:[80, 84], w:[62, 65], h:[88, 91], ht:'155 以下'},
+  {s:'M', b:[85, 88], w:[66, 69], h:[92, 95], ht:'155–160'},
+  {s:'L', b:[89, 93], w:[70, 74], h:[96, 99], ht:'160–165'},
+  {s:'XL', b:[94, 98], w:[75, 79], h:[100, 104], ht:'165 以上'}
+];
+
+/* ===== 共用工具 ===== */
+var GOLD = '#b8923f', TENG = '#e1b04a', MO = '#2a2530', ROUGE = '#c8485a', SHI = '#2f7d7a', SKIN = '#f4d3bd', PINK = '#f2c3c0';
+var SERIF = "'Songti TC','STSong','Noto Serif TC','PMingLiU',serif";
+var CAS = "'Big Caslon','Times New Roman',serif";
+var SP_CAP = 'M92 82C78 90 66 110 60 134L76 146C84 128 94 118 104 112Z';
+var SP_LONG = 'M92 82C74 94 62 128 52 232L70 238C78 172 86 132 104 116Z';
+var TORSO = 'M120 58Q150 66 180 58C212 64 240 74 248 92C254 120 204 128 202 150C200 172 186 180 188 196C196 220 206 236 208 262C210 290 190 300 150 300C110 300 90 290 92 262C94 236 104 220 112 196C114 180 100 172 98 150C96 128 46 120 52 92C60 74 88 64 120 58Z';
+var UID = 0;
+
+function $(s, r){ return (r || document).querySelector(s); }
+function $$(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]; }); }
+function money(n){ return 'NT$ ' + Number(n).toLocaleString('zh-TW'); }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function minOf(t){ var p = t.split(':'); return +p[0] * 60 + +p[1]; }
+function hm(m){ return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+function addDays(d, k){ var x = new Date(d.getTime()); x.setDate(x.getDate() + k); return x; }
+function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function parseYmd(s){ var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function dayStart(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function uid(p){ return (p || 'u') + (++UID); }
+var now = new Date();
+var DS = {};          // 目前的設計結果（給預約表單用）
+var ASKED = {};       // 詢問清單：商品索引 => true
+
+/* ===== 旗袍繪製（SVG 座標 300×460，領口在 y=72） ===== */
+function bez(t, a, b, c, d){ var u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; }
+
+function bodyPath(hb, wl){
+  var r = 300 - wl;
+  return 'M124 72Q102 78 84 88C90 110 96 130 98 150C100 180 ' + wl + ' 210 ' + wl + ' 236C' + (wl - 2) + ' 270 96 310 84 ' + hb +
+    'Q150 ' + (hb + 6) + ' 216 ' + hb + 'C204 310 ' + (r + 2) + ' 270 ' + r + ' 236C' + r + ' 210 200 180 202 150C204 130 210 110 216 88Q198 78 176 72Z';
+}
+
+/* 開衩的側邊位置：沿著右側下襬曲線取點 */
+function edgeX(hb, wl, y){
+  var r = 300 - wl, P = [[216, hb], [204, 310], [r + 2, 270], [r, 236]], best = 216, bd = 1e9;
+  for (var k = 0; k <= 60; k++){
+    var t = k / 60, yy = bez(t, P[0][1], P[1][1], P[2][1], P[3][1]), d = Math.abs(yy - y);
+    if (d < bd){ bd = d; best = bez(t, P[0][0], P[1][0], P[2][0], P[3][0]); }
+  }
+  return best;
+}
+
+function btnG(style, x, y, s, col){
+  var inner;
+  if (style === 'pipa') inner = '<path d="M20 6C30 14 31 26 20 34C9 26 10 14 20 6Z" fill="' + col + '"/><path d="M20 12V28" stroke="#f3e6cc" stroke-width="1.6" opacity=".7"/>';
+  else if (style === 'hudie') inner = '<ellipse cx="13" cy="20" rx="9" ry="6" fill="' + col + '"/><ellipse cx="27" cy="20" rx="9" ry="6" fill="' + col + '"/><circle cx="20" cy="20" r="3" fill="' + col + '"/>';
+  else if (style === 'hua'){
+    inner = '';
+    for (var i = 0; i < 5; i++){
+      var a = i * 72 * Math.PI / 180;
+      inner += '<circle cx="' + (20 + 9 * Math.cos(a)).toFixed(1) + '" cy="' + (20 + 9 * Math.sin(a)).toFixed(1) + '" r="6" fill="' + col + '"/>';
+    }
+    inner += '<circle cx="20" cy="20" r="4" fill="#f3e6cc" opacity=".85"/>';
+  }
+  else inner = '<path d="M4 20H36" stroke="' + col + '" stroke-width="4" stroke-linecap="round"/><circle cx="6" cy="20" r="3.4" fill="' + col + '"/><circle cx="34" cy="20" r="3.4" fill="' + col + '"/>';
+  return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ') translate(-20 -20)">' + inner + '</g>';
+}
+
+function fabricPattern(pid, fab, ac){
+  var w = 28, h = 28, c;
+  if (fab === 'xiang'){
+    w = 30; h = 14;
+    c = '<path d="M0 4Q7.5 0 15 4T30 4M0 11Q7.5 7 15 11T30 11" fill="none" stroke="' + ac + '" stroke-width="1.4" opacity=".4"/>';
+  } else if (fab === 'silk'){
+    w = 8; h = 8;
+    c = '<circle cx="2" cy="2" r=".9" fill="' + ac + '" opacity=".35"/><circle cx="6" cy="6" r=".9" fill="' + ac + '" opacity=".35"/>';
+  } else if (fab === 'lace'){
+    w = 26; h = 26;
+    c = '<g fill="none" stroke="' + ac + '" stroke-width="1"><circle cx="13" cy="13" r="4.5"/><circle cx="0" cy="0" r="4.5"/><circle cx="26" cy="0" r="4.5"/><circle cx="0" cy="26" r="4.5"/><circle cx="26" cy="26" r="4.5"/></g><circle cx="13" cy="13" r="1.4" fill="' + ac + '"/>';
+  } else if (fab === 'cotton'){
+    w = 30; h = 30;
+    c = '<g fill="' + ac + '" opacity=".85"><circle cx="8" cy="5" r="2.4"/><circle cx="11" cy="8" r="2.4"/><circle cx="8" cy="11" r="2.4"/><circle cx="5" cy="8" r="2.4"/></g><circle cx="8" cy="8" r="1.5" fill="' + TENG + '"/><ellipse cx="22" cy="22" rx="3.2" ry="1.4" fill="' + SHI + '" opacity=".75" transform="rotate(-35 22 22)"/>';
+  } else {
+    c = '<path d="M14 2L26 14L14 26L2 14Z" fill="none" stroke="' + ac + '" stroke-width="1.2" opacity=".7"/><circle cx="14" cy="14" r="2.2" fill="' + ac + '" opacity=".8"/>';
+  }
+  return '<pattern id="' + pid + '" width="' + w + '" height="' + h + '" patternUnits="userSpaceOnUse">' + c + '</pattern>';
+}
+
+function headSVG(){
+  return '<path d="M138 36H162V60H138Z" fill="' + SKIN + '"/>' +
+    '<ellipse cx="150" cy="27" rx="22" ry="25" fill="' + SKIN + '"/>' +
+    '<circle cx="172" cy="6" r="9" fill="' + MO + '"/>' +
+    '<path d="M126 28C120 0 178 -4 174 26C172 14 162 9 150 10C138 9 128 15 126 28Z" fill="' + MO + '"/>' +
+    '<path d="M139 27q4-3 8 0M153 27q4-3 8 0" fill="none" stroke="' + MO + '" stroke-width="1.4" stroke-linecap="round"/>' +
+    '<path d="M144 40q6 4 12 0q-6 2-12 0z" fill="' + ROUGE + '" stroke="' + ROUGE + '" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<circle cx="136" cy="36" r="4" fill="#e89a8c" opacity=".45"/><circle cx="164" cy="36" r="4" fill="#e89a8c" opacity=".45"/>';
+}
+
+/* 繪製一件旗袍（回傳 SVG 內容）。o: hb 下襬、h 領高單位、sl 袖型、fab 布料、base/ac 主色/點色、trim 滾邊、slit 開衩 cm、btn 盤扣、robe 長衫、head 畫頭 */
+function garment(o){
+  var id = o.id || uid('g'), hb = o.hb, top = 72 - o.h, wl = o.robe ? 98 : 112;
+  var base = o.base, ac = o.ac, trim = o.trim || ac, body = bodyPath(hb, wl), s = '';
+  var bt = BTN[o.btn] || BTN.yi, pts = [], pl, i, j, t;
+  s += '<defs>' + fabricPattern(id + 'p', o.fab, ac) +
+    '<clipPath id="' + id + 'c"><path d="' + body + '"/></clipPath>' +
+    '<linearGradient id="' + id + 's"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>';
+  if (o.head) s += headSVG();
+  if (o.sl !== 'none'){
+    var sp = o.sl === 'cap' ? SP_CAP : SP_LONG;
+    var sl = '<path d="' + sp + '" fill="' + base + '"/><path d="' + sp + '" fill="url(#' + id + 'p)"/>';
+    s += sl + '<g transform="matrix(-1 0 0 1 300 0)">' + sl + '</g>';
+  }
+  s += '<path d="' + body + '" fill="' + base + '"/>' +
+    '<path d="' + body + '" fill="url(#' + id + 'p)"/>' +
+    '<g clip-path="url(#' + id + 'c)"><rect class="sheen" x="-110" y="0" width="70" height="520" fill="url(#' + id + 's)"/></g>';
+  s += '<path d="M124 72L126 ' + top + 'H174L176 72Z" fill="' + base + '" stroke="' + trim + '" stroke-width="1.4"/>' +
+    '<path d="M126 ' + top + 'H174" stroke="' + trim + '" stroke-width="2.8" stroke-linecap="round"/>';
+  /* 襟與排扣 */
+  if (o.robe){
+    pl = 'M150 ' + top + 'V' + (hb - 2);
+    var n = o.btnN || 7;
+    for (i = 0; i < n; i++) pts.push([150, top + 16 + i * (hb - top - 40) / (n - 1)]);
+  } else {
+    pl = 'M150 ' + top + 'C170 96 188 118 200 150';
+    var nb = bt.c;
+    for (j = 0; j < nb; j++){
+      t = 0.08 + j * 0.84 / (nb - 1);
+      pts.push([bez(t, 150, 170, 188, 200), bez(t, top, 96, 118, 150)]);
+    }
+  }
+  s += '<path d="' + pl + '" fill="none" stroke="' + trim + '" stroke-width="2.4"/>' +
+    '<path d="' + pl + '" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width=".8" transform="translate(3 0)"/>';
+  s += '<path d="M84 ' + hb + 'Q150 ' + (hb + 6) + ' 216 ' + hb + '" fill="none" stroke="' + trim + '" stroke-width="2.6"/>';
+  /* 開衩：沿右側下襬曲線 */
+  if (o.slit){
+    var sy = (hb - o.slit * 1.7).toFixed(1), ex = (edgeX(hb, wl, +sy) - 3).toFixed(1);
+    s += '<path d="M' + ex + ' ' + hb + 'V' + sy + '" stroke="' + MO + '" stroke-width="2" opacity=".8"/>' +
+      '<path d="M' + (+ex + 2.5) + ' ' + hb + 'V' + sy + '" stroke="' + trim + '" stroke-width="1.2"/>';
+  }
+  var bcol = o.btn === 'hua' ? TENG : MO, bstyle = o.robe ? 'yi' : (o.btn || 'yi');
+  for (i = 0; i < pts.length; i++) s += btnG(bstyle, pts[i][0].toFixed(1), pts[i][1].toFixed(1), 0.2, bcol);
+  return s;
+}
+
+/* 月份牌海報上的牡丹 */
+function peony(x, y, s){
+  var p = '', i;
+  for (i = 0; i < 6; i++) p += '<ellipse cx="0" cy="-11" rx="9" ry="12" fill="' + ROUGE + '" opacity=".92" transform="rotate(' + (i * 60) + ')"/>';
+  for (i = 0; i < 5; i++) p += '<ellipse cx="0" cy="-16" rx="5.5" ry="8" fill="' + PINK + '" transform="rotate(' + (i * 72 + 30) + ')"/>';
+  p += '<circle r="5" fill="' + TENG + '"/>';
+  return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><path d="M12 16Q32 6 40 26Q26 32 12 16Z" fill="' + SHI + '" opacity=".9"/>' + p + '</g>';
+}
+
+/* 商品圖 */
+function productArt(p){
+  var id = uid('p'), s = '';
+  if (p.kind === 'pin'){
+    s = '<path d="M150 118V58" stroke="#8a8a8a" stroke-width="3" stroke-linecap="round"/>' +
+      '<circle cx="150" cy="230" r="112" fill="none" stroke="' + GOLD + '" stroke-width="3"/>' +
+      '<circle cx="150" cy="230" r="98" fill="#efe2c4"/>' + btnG('hua', 150, 230, 5.4, GOLD);
+  } else if (p.kind === 'shawl'){
+    var sh = 'M30 118Q150 78 270 118L292 352Q150 396 8 352Z';
+    s = '<defs>' + fabricPattern(id, 'cotton', p.ac) + '</defs>' +
+      '<path d="' + sh + '" fill="' + p.base + '"/><path d="' + sh + '" fill="url(#' + id + ')"/>' +
+      '<path d="' + sh + '" fill="none" stroke="' + TENG + '" stroke-width="3"/>' +
+      '<path d="M30 118Q150 78 270 118" fill="none" stroke="' + TENG + '" stroke-width="1" stroke-dasharray="4 4"/>';
+  } else if (p.kind === 'bag'){
+    var bg = 'M46 176Q150 120 254 176L262 318Q150 352 38 318Z';
+    s = '<defs>' + fabricPattern(id, p.fab, p.ac) + '</defs>' +
+      '<path d="' + bg + '" fill="' + p.base + '"/><path d="' + bg + '" fill="url(#' + id + ')"/>' +
+      '<path d="M46 176Q150 150 254 176" fill="none" stroke="' + p.ac + '" stroke-width="2.4"/>' +
+      '<path d="' + bg + '" fill="none" stroke="' + TENG + '" stroke-width="2.4"/>' + btnG('hua', 150, 222, 0.6, '#8a5a1f');
+  } else if (p.kind === 'pair'){
+    s = '<g transform="translate(-40 40) scale(.74)">' + garment({hb:LEN.mid, h:p.h, sl:p.sl, fab:p.fab, base:p.base, ac:p.ac, trim:p.trim, slit:0, btn:p.btn, id:id + 'a'}) + '</g>' +
+      '<g transform="translate(118 150) scale(.56)">' + garment({hb:LEN.knee, h:12, sl:'cap', fab:p.fab, base:p.ac, ac:p.base, trim:p.base, slit:0, btn:'hudie', id:id + 'b'}) + '</g>';
+  } else if (p.kind === 'robe'){
+    s = garment({hb:LEN.mid, h:20, sl:'long', robe:true, fab:p.fab, base:p.base, ac:p.ac, trim:p.trim, slit:0, btn:'yi', btnN:7, id:id});
+  } else {
+    s = garment({hb:LEN[p.len], h:p.h, sl:p.sl, fab:p.fab, base:p.base, ac:p.ac, trim:p.trim, slit:p.slit, btn:p.btn, id:id});
+  }
+  return '<svg viewBox="0 0 300 460" role="img" aria-label="' + esc(p.n) + '">' + s + '</svg>';
+}
+
+/* ===== 商品：月曆撕頁 ===== */
+function buildTabs(){
+  var h = '<button type="button" class="ct" data-cat="全部" aria-pressed="true">全部<em>' + PRODUCTS.length + '</em></button>';
+  CATS.forEach(function(c){
+    var n = PRODUCTS.filter(function(p){ return p.cat === c; }).length;
+    h += '<button type="button" class="ct" data-cat="' + c + '" aria-pressed="false">' + c + '<em>' + n + '</em></button>';
+  });
+  $('#tabs').innerHTML = h;
+}
+function buildTears(){
+  $('#tears').innerHTML = PRODUCTS.map(function(p, i){
+    return '<article class="tear rv-f" data-cat="' + p.cat + '">' +
+      '<div class="perf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>' +
+      '<div class="tear-no"><b>' + NOS[i] + '</b><span>' + p.cat + '</span></div>' +
+      '<div class="tear-art">' + productArt(p) + '</div>' +
+      '<h3>' + esc(p.n) + '</h3>' +
+      '<p class="mat">' + esc(p.mat) + '</p>' +
+      '<div class="tear-foot"><span class="price">' + money(p.price) + '</span>' +
+      '<button type="button" class="ask" data-ask="' + i + '" aria-pressed="false">加入詢問</button></div>' +
+      '</article>';
+  }).join('');
+}
+function askedList(){
+  return PRODUCTS.filter(function(p, i){ return ASKED[i]; }).map(function(p){ return p.n; });
+}
+function renderAsk(){
+  var list = askedList();
+  $('#askbar').innerHTML = '<p class="ask-list">詢問清單（' + list.length + ' 件）：' +
+    (list.length ? esc(list.join('、')) : '尚未加入款式，點撕頁下方的「加入詢問」即可列入。') + '</p>' +
+    (list.length ? '<button type="button" class="btn" id="askClear">清空清單</button>' : '') +
+    '<a class="btn pri" href="#book">帶到預約量身</a>';
+}
+
+/* ===== 設計台 ===== */
+function opt(name, val, inner, checked, cls, label){
+  return '<label class="chip' + (cls ? ' ' + cls : '') + '"><input class="sr" type="radio" name="' + name + '" value="' + val + '"' +
+    (checked ? ' checked' : '') + (label ? ' aria-label="' + esc(label) + '"' : '') + '><span>' + inner + '</span></label>';
+}
+function btnIcon(k){ return '<svg viewBox="0 0 40 40" aria-hidden="true">' + btnG(k, 20, 20, 1, 'currentColor') + '</svg>'; }
+function fabIcon(k){
+  var pid = uid('fi');
+  return '<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><defs>' + fabricPattern(pid, k, 'currentColor') + '</defs>' +
+    '<circle cx="20" cy="20" r="18" fill="#e7d4ac"/><circle cx="20" cy="20" r="18" fill="url(#' + pid + ')"/></svg>';
+}
+function buildDesignOptions(){
+  var h = '';
+  $('#fLen').innerHTML = ['knee', 'mid', 'ankle'].map(function(k){ return opt('len', k, LEN_NAME[k], k === 'mid'); }).join('');
+  $('#fSl').innerHTML = ['none', 'cap', 'long'].map(function(k){ return opt('sl', k, SL[k].n, k === 'cap'); }).join('');
+  $('#fH').innerHTML = ['3', '5', '6.5'].map(function(k){ return opt('h', k, COL_H[k].n, k === '5'); }).join('');
+  $('#fBtn').innerHTML = Object.keys(BTN).map(function(k){ return opt('btn', k, btnIcon(k) + BTN[k].n, k === 'pipa'); }).join('');
+  $('#fFab').innerHTML = Object.keys(FAB).map(function(k){ return opt('fab', k, fabIcon(k) + FAB[k].n, k === 'silk', 'fab'); }).join('');
+  h = COLORS.map(function(c, i){
+    return '<label class="chip sw"><input class="sr" type="radio" name="col" value="' + i + '"' + (i === 0 ? ' checked' : '') + ' aria-label="' + c.n + '"><span style="background:' + c.b + '"></span></label>';
+  }).join('');
+  $('#fCol').innerHTML = h;
+}
+function readDesign(){
+  var ctl = $('#dsCtl');
+  function v(name){ var el = ctl.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; }
+  return { len:v('len'), sl:v('sl'), h:v('h'), btn:v('btn'), fab:v('fab'), col:+v('col'), slit:+$('#dsSlit').value };
+}
+function quote(d){
+  var raw = LEN_PRICE[d.len] + SL[d.sl].p + COL_H[d.h].p + FAB[d.fab].p + BTN[d.btn].c * BTN[d.btn].p;
+  var wk = 3 + FAB[d.fab].w + (d.len === 'ankle' ? 1 : 0) + (d.btn === 'hua' ? 1 : 0);
+  return { price: Math.round(raw / 100) * 100, weeks: wk };
+}
+function renderDesign(){
+  var d = readDesign(), c = COLORS[d.col], q = quote(d);
+  var txt = c.n + '・' + FAB[d.fab].n + '・' + LEN_NAME[d.len] + '・' + SL[d.sl].n + '・' + BTN[d.btn].n + ' ×' + BTN[d.btn].c +
+    '・領高 ' + COL_H[d.h].n + '・開衩 ' + d.slit + ' cm';
+  $('#dsPrev').innerHTML = '<svg viewBox="0 0 300 460" role="img" aria-label="' + esc(txt) + '">' +
+    garment({hb:LEN[d.len], h:COL_H[d.h].u, sl:d.sl, fab:d.fab, base:c.b, ac:c.a, trim:c.a, slit:d.slit, btn:d.btn, id:uid('d')}) + '</svg>';
+  $('#dsPrice').textContent = money(q.price);
+  $('#dsWeeks').textContent = q.weeks + ' 週';
+  $('#dsBar').style.width = (q.weeks / 6 * 100) + '%';
+  $('#dsSlitOut').textContent = d.slit + ' cm';
+  $('#dsSum').textContent = txt;
+  DS.d = d; DS.q = q; DS.txt = txt;
+  renderEcho();
+}
+
+/* ===== 月份牌海報與月曆 ===== */
+function posterSVG(){
+  var g = garment({hb:330, h:18, sl:'long', fab:'brocade', base:'#b13a48', ac:'#e8c27a', trim:'#e1b04a', slit:25, btn:'hudie', id:'hp', head:true});
+  return '<defs>' +
+    '<linearGradient id="hpbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf4e3"/><stop offset="1" stop-color="#ecdcb8"/></linearGradient>' +
+    '<radialGradient id="hpw1"><stop offset="0" stop-color="#e89aa4" stop-opacity=".45"/><stop offset="1" stop-color="#e89aa4" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="hpw2"><stop offset="0" stop-color="#2f7d7a" stop-opacity=".22"/><stop offset="1" stop-color="#2f7d7a" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="hpw3"><stop offset="0" stop-color="#e1b04a" stop-opacity=".35"/><stop offset="1" stop-color="#e1b04a" stop-opacity="0"/></radialGradient>' +
+    '</defs>' +
+    '<rect width="400" height="600" fill="url(#hpbg)"/>' +
+    '<circle class="pw" cx="110" cy="250" r="150" fill="url(#hpw1)"/>' +
+    '<circle class="pw" cx="320" cy="430" r="140" fill="url(#hpw2)"/>' +
+    '<circle class="pw" cx="300" cy="170" r="110" fill="url(#hpw3)"/>' +
+    '<path fill-rule="evenodd" fill="url(#lei)" d="M8 8H392V592H8Z M22 22V578H378V22Z"/>' +
+    '<rect x="8" y="8" width="384" height="584" fill="none" stroke="' + GOLD + '" stroke-width="1.4"/>' +
+    '<rect x="22" y="22" width="356" height="556" fill="none" stroke="' + GOLD + '" stroke-width="1.4"/>' +
+    '<rect x="104" y="36" width="192" height="50" fill="' + MO + '"/>' +
+    '<rect x="110" y="42" width="180" height="38" fill="none" stroke="' + TENG + '" stroke-width="1"/>' +
+    '<text x="200" y="68" text-anchor="middle" font-size="25" font-weight="900" letter-spacing="8" fill="' + TENG + '" font-family="' + SERIF + '">鳳儀旗袍</text>' +
+    peony(60, 150, 1.25) + peony(340, 150, 1.25) + peony(58, 366, 0.9) + peony(342, 366, 0.9) +
+    '<g transform="translate(80 94.4) scale(.8)">' + g + '</g>';
+}
+function buildCal(){
+  var t = now, y = t.getFullYear(), m = t.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+  var h = '<div class="cal-h"><b>' + (m + 1) + ' 月</b><em>' + MONTHS[m].toUpperCase() + ' ' + y + '</em></div><div class="cal-g">';
+  ['日', '一', '二', '三', '四', '五', '六'].forEach(function(w){ h += '<span class="wk">' + w + '</span>'; });
+  for (var b = 0; b < first; b++) h += '<span></span>';
+  for (var d = 1; d <= days; d++) h += '<span' + (d === t.getDate() ? ' class="today" aria-current="date"' : '') + '>' + d + '</span>';
+  $('#cal').innerHTML = h + '</div>';
+}
+
+/* ===== 營業狀態（參考 243 的寫法） ===== */
+function openState(d){
+  var h = SHOP.hours[d.getDay()], t = d.getHours() * 60 + d.getMinutes();
+  if (h && t >= minOf(h[0]) && t < minOf(h[1])) return { open:true, text:'營業中・到 ' + h[1] };
+  if (h && t < minOf(h[0])) return { open:false, text:'休息中・今天 ' + h[0] + ' 開門' };
+  for (var k = 1; k <= 7; k++){
+    var nd = addDays(dayStart(d), k), nh = SHOP.hours[nd.getDay()];
+    if (nh) return { open:false, text:'休息中・' + (k === 1 ? '明天' : DAYS[nd.getDay()]) + ' ' + nh[0] + ' 開門' };
+  }
+  return { open:false, text:'休息中' };
+}
+function renderStatus(){
+  var st = openState(new Date());
+  ['#heroStatus', '#storeStatus'].forEach(function(s){
+    var el = $(s);
+    if (!el) return;
+    el.classList.toggle('on', st.open);
+    $('.tx', el).textContent = st.text;
+  });
+}
+
+/* ===== 預約量身 ===== */
+function purpose(){ var el = $('#bkForm input[name="pur"]:checked'); return el ? el.value : ''; }
+function dateProblem(ds){
+  if (!ds) return '請選擇預約日期。';
+  var d = parseYmd(ds);
+  if (d < dayStart(now)) return '日期不能早於今天。';
+  if (!SHOP.hours[d.getDay()]) return '這天公休，請改選其他日期。';
+  return '';
+}
+function fillTimes(){
+  var ds = $('#bkDate').value, sel = $('#bkTime'), prob = ds ? dateProblem(ds) : '';
+  sel.innerHTML = '<option value="">請選擇時段</option>';
+  sel.disabled = !!prob || !ds;
+  $('#fDate').classList.toggle('bad', !!prob);
+  $('#e-date').textContent = prob;
+  $('#e-time').textContent = '';
+  if (!ds || prob) return;
+  var h = SHOP.hours[parseYmd(ds).getDay()], a = minOf(h[0]), b = minOf(h[1]), isToday = ds === ymd(now);
+  var cutoff = now.getHours() * 60 + now.getMinutes() + 30, html = '';
+  for (var t = a; t + 60 <= b; t += 60){
+    if (isToday && t < cutoff) continue;
+    html += '<option value="' + hm(t) + '">' + hm(t) + ' – ' + hm(t + 60) + '</option>';
+  }
+  if (!html) $('#e-time').textContent = '今天剩下的時段已過，請改選其他日期。';
+  sel.innerHTML += html;
+}
+function bookingNo(){
+  var c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = '';
+  for (var i = 0; i < 4; i++) s += c.charAt(Math.floor(Math.random() * c.length));
+  return 'FY-' + ymd(now).replace(/-/g, '').slice(2) + '-' + s;
+}
+function checkWedding(){
+  var w = $('#bkWarn'), wd = $('#bkWed').value, pur = purpose();
+  $('#fWed').hidden = pur !== '婚禮';
+  w.hidden = true; w.textContent = '';
+  if (pur !== '婚禮' || !wd || !DS.q) return;
+  var days = Math.round((parseYmd(wd) - dayStart(now)) / 86400000);
+  var need = (DS.q.weeks + 1) * 7 + 2;   // 工期＋一次試身緩衝＋取件 2 天
+  if (days < 0) return;
+  if (days < need){
+    w.hidden = false;
+    w.textContent = '婚期還有 ' + days + ' 天，目前設計約需 ' + DS.q.weeks + ' 週工期，加上試身緩衝與取件，還差約 ' + (need - days) +
+      ' 天。建議加入急件方案（加價約 NT$ 6,000，工期以店內評估為準），或改選成衣與租借。';
+  }
+}
+function renderEcho(){
+  var asked = askedList().join('、');
+  $('#bkEcho').innerHTML = '<strong>目前設計：</strong>' + esc(DS.txt || '') +
+    (DS.q ? '（估價約 ' + money(DS.q.price) + '，工期約 ' + DS.q.weeks + ' 週）' : '') +
+    (asked ? '<br><strong>詢問款式：</strong>' + esc(asked) : '');
+  checkWedding();
+}
+function mark(fid, eid, msg){
+  $(fid).classList.toggle('bad', !!msg);
+  $(eid).textContent = msg;
+  return !msg;
+}
+function showOk(){
+  var no = bookingNo(), pur = purpose(), ds = $('#bkDate').value, tm = $('#bkTime').value, name = $('#bkName').value.trim();
+  var mea = [['m-sh', '肩寬'], ['m-bu', '胸圍'], ['m-wa', '腰圍'], ['m-hi', '臀圍'], ['m-len', '衣長']].filter(function(k){
+    return $('#' + k[0]).value;
+  }).map(function(k){ return k[1] + ' ' + $('#' + k[0]).value; }).join('、');
+  var ok = $('#bkOk');
+  ok.innerHTML = '<p class="vt-h">敬邀量身</p><dl>' +
+    '<dt>姓名</dt><dd>' + esc(name) + '</dd>' +
+    '<dt>預約</dt><dd>' + esc(ds) + '　' + esc(tm) + ' – ' + hm(minOf(tm) + 60) + '</dd>' +
+    '<dt>用途</dt><dd>' + esc(pur) + (pur === '婚禮' ? '（婚期 ' + esc($('#bkWed').value) + '）' : '') + '</dd>' +
+    '<dt>款式</dt><dd>' + esc(DS.txt || '') + '</dd>' +
+    '<dt>估價</dt><dd>約 ' + money(DS.q.price) + '（量身後依布料與修改調整）</dd>' +
+    (mea ? '<dt>量身</dt><dd>' + esc(mea) + '</dd>' : '') +
+    '</dl><p class="no">NO. ' + no + '</p>' +
+    '<button type="button" class="btn" id="bkAgain">再預約一次</button>';
+  $('#bkForm').hidden = true;
+  ok.hidden = false;
+  ok.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+/* ===== 尺寸指南 ===== */
+function mannequinSVG(){
+  var guides = '<g fill="none" stroke="' + ROUGE + '" stroke-width="1.1" stroke-dasharray="3 4">' +
+    '<path d="M48 78H270"/><path d="M90 122H270"/><path d="M110 176H270"/><path d="M90 232H270"/>' +
+    '<path d="M30 58V302"/><path d="M52 96Q34 150 14 226"/></g>';
+  var labs = [[1, 78], [2, 122], [3, 176], [4, 232]].map(function(k){
+    return '<circle cx="284" cy="' + k[1] + '" r="10" fill="' + ROUGE + '"/><text x="284" y="' + (k[1] + 4) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#fff8ec">' + k[0] + '</text>';
+  }).join('');
+  return '<svg viewBox="0 0 300 344" role="img" aria-label="人台正面，標示 1 肩寬、2 胸圍、3 腰圍、4 臀圍、5 衣長、6 袖長">' +
+    '<ellipse cx="150" cy="330" rx="70" ry="8" fill="' + MO + '" opacity=".12"/>' +
+    '<path d="' + TORSO + '" fill="#efe2c4" stroke="' + MO + '" stroke-width="1.2"/>' +
+    '<ellipse cx="150" cy="56" rx="22" ry="6" fill="none" stroke="' + MO + '" stroke-width="1.2"/>' +
+    '<path d="M150 300V322M120 324H180" stroke="' + MO + '" stroke-width="4" stroke-linecap="round"/>' +
+    guides + labs +
+    '<circle cx="30" cy="322" r="10" fill="' + ROUGE + '"/><text x="30" y="326" text-anchor="middle" font-size="12" font-weight="700" fill="#fff8ec">5</text>' +
+    '<circle cx="14" cy="236" r="10" fill="' + ROUGE + '"/><text x="14" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#fff8ec">6</text>' +
+    '</svg>';
+}
+function sizeIdx(m, key){
+  for (var i = 0; i < SIZES.length; i++) if (m <= SIZES[i][key][1]) return i;
+  return -1;
+}
+
+/* ===== 照片位佔位插畫（800×600，slice 裁切） ===== */
+function artSVG(inner){
+  return '<svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">' + inner + '</svg>';
+}
+var ART = {};
+ART.buttons = function(){
+  return artSVG('<rect width="800" height="600" fill="#e7d4ac"/>' +
+    '<path d="M-20 430L560 300L840 470V620H-20Z" fill="#5b4a5e"/>' +
+    '<path d="M170 470C260 380 330 520 430 430S600 380 650 450" fill="none" stroke="' + TENG + '" stroke-width="5" stroke-linecap="round"/>' +
+    '<rect x="470" y="110" width="120" height="34" rx="6" fill="#2f7d7a"/><circle cx="470" cy="127" r="20" fill="#2f7d7a"/>' +
+    '<path d="M590 110L640 70" stroke="#2f7d7a" stroke-width="6" stroke-linecap="round"/>' +
+    btnG('hua', 300, 230, 2.6, '#b13a48') + btnG('pipa', 440, 200, 2.2, '#2f7d7a') +
+    btnG('hudie', 500, 370, 2.4, TENG) + btnG('yi', 300, 400, 2.2, '#fff8ec'));
+};
+ART.cloth = function(){
+  var id = uid('c'), cols = ['#b13a48', '#2f7d7a', '#e1b04a', '#2a2530', '#f2c3c0', '#3f8f6b', '#dfe8e4'];
+  var fabs = ['brocade', 'xiang', 'silk', 'lace', 'cotton', 'silk', 'brocade'], defs = '', body = '';
+  cols.forEach(function(c, i){
+    var pid = id + 'p' + i, x = 14 + i * 112;
+    defs += fabricPattern(pid, fabs[i], i % 2 ? '#fff8ec' : '#e8c27a');
+    body += '<rect x="' + x + '" y="70" width="96" height="500" rx="6" fill="' + c + '"/>' +
+      '<rect x="' + x + '" y="70" width="96" height="500" rx="6" fill="url(#' + pid + ')"/>' +
+      '<ellipse cx="' + (x + 48) + '" cy="70" rx="48" ry="12" fill="' + c + '"/>' +
+      '<ellipse cx="' + (x + 48) + '" cy="70" rx="28" ry="7" fill="#3b2f2a" opacity=".42"/>';
+  });
+  return artSVG('<defs>' + defs + '</defs><rect width="800" height="600" fill="#d8c59c"/>' + body);
+};
+ART.cut = function(){
+  return artSVG('<rect width="800" height="600" fill="#e9dcc0"/>' +
+    '<rect x="-20" y="440" width="840" height="200" fill="#9b7446"/>' +
+    '<path d="M150 430L650 398L700 452L190 482Z" fill="#b13a48"/>' +
+    '<path d="M190 482L700 452" stroke="#fff8ec" stroke-width="2" stroke-dasharray="10 8"/>' +
+    '<rect x="420" y="352" width="340" height="28" rx="3" fill="' + TENG + '"/>' +
+    '<path d="M430 352V366M450 352V362M470 352V366M490 352V362M510 352V366M530 352V362M550 352V366M570 352V362M590 352V366M610 352V362M630 352V366M650 352V362M670 352V366M690 352V362M710 352V366M730 352V362" stroke="' + MO + '" stroke-width="1.4"/>' +
+    '<path d="M520 300L650 250" stroke="#8a8a8a" stroke-width="8" stroke-linecap="round"/><circle cx="660" cy="240" r="16" fill="none" stroke="#5f5868" stroke-width="6"/>' +
+    '<circle cx="230" cy="168" r="50" fill="#d9b89c"/><path d="M180 166C176 108 284 104 280 166C266 138 248 132 230 134C212 132 194 138 180 166Z" fill="#c9c6c2"/>' +
+    '<path d="M160 470C160 300 300 300 300 470Z" fill="' + MO + '"/>' +
+    '<path d="M250 330L340 412" stroke="' + MO + '" stroke-width="28" stroke-linecap="round"/>' +
+    '<circle cx="220" cy="290" r="10" fill="#fff8ec" opacity=".6"/>');
+};
+ART.fit = function(){
+  var id = uid('f');
+  return artSVG('<defs><radialGradient id="' + id + 'm" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fffdf5"/><stop offset=".6" stop-color="#cfd8d4"/><stop offset="1" stop-color="#8fa39e"/></radialGradient></defs>' +
+    '<rect width="800" height="600" fill="#e4d3ae"/><rect x="0" y="470" width="800" height="130" fill="#b99a6a"/>' +
+    '<circle cx="560" cy="250" r="170" fill="#6d5a48"/><circle cx="560" cy="250" r="152" fill="url(#' + id + 'm)"/>' +
+    '<path d="M70 96H360" stroke="' + MO + '" stroke-width="5"/>' +
+    '<g transform="translate(70 100) scale(.66)">' + garment({hb:380, h:20, sl:'cap', fab:'lace', base:'#f2c3c0', ac:'#b8485a', trim:'#b8485a', slit:20, btn:'hudie', id:id + 'g'}) + '</g>' +
+    '<g transform="translate(530 330) scale(1.05)"><path d="' + TORSO + '" fill="#efe2c4" stroke="' + MO + '" stroke-width="1.6" transform="translate(-150 -150)"/></g>' +
+    '<path d="M530 480V520M500 520H560" stroke="' + MO + '" stroke-width="5" stroke-linecap="round"/>');
+};
+ART.facade = function(){
+  var id = uid('x');
+  return artSVG('<defs><linearGradient id="' + id + 's" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe4df"/><stop offset="1" stop-color="#f3e6cc"/></linearGradient></defs>' +
+    '<rect width="800" height="600" fill="url(#' + id + 's)"/>' +
+    '<rect x="120" y="120" width="560" height="350" fill="#efe3c8"/><rect x="100" y="102" width="600" height="22" fill="#9c7a45"/>' +
+    '<rect x="112" y="470" width="576" height="26" fill="#c9b48a"/><rect x="0" y="496" width="800" height="104" fill="#8c8478"/>' +
+    '<rect x="300" y="150" width="200" height="40" rx="3" fill="#b13a48"/><text x="400" y="178" text-anchor="middle" font-size="22" font-weight="900" letter-spacing="6" fill="' + TENG + '" font-family="' + SERIF + '">鳳儀</text>' +
+    [0, 1, 2, 3, 4].map(function(c){
+      return '<rect x="' + (160 + c * 104) + '" y="220" width="56" height="84" fill="#2f7d7a"/><rect x="' + (168 + c * 104) + '" y="228" width="40" height="68" fill="#f7e9c6"/>';
+    }).join('') +
+    '<rect x="150" y="318" width="500" height="8" fill="#9c7a45"/>' +
+    [0, 1, 2, 3, 4].map(function(c){ return '<path d="M' + (160 + c * 104) + ' 318V340M' + (216 + c * 104) + ' 318V340" stroke="#9c7a45" stroke-width="3"/>'; }).join('') +
+    [0, 1, 2].map(function(c){
+      return '<path d="M' + (170 + c * 200) + ' 470V412Q' + (200 + c * 200) + ' 376 ' + (230 + c * 200) + ' 412V470Z" fill="#7a4a3a"/>' +
+        '<path d="M' + (182 + c * 200) + ' 470V418Q' + (200 + c * 200) + ' 392 ' + (218 + c * 200) + ' 418V470Z" fill="#f7e9c6" opacity=".9"/>';
+    }).join('') +
+    '<circle cx="150" cy="150" r="13" fill="#c8485a"/><circle cx="650" cy="150" r="13" fill="#c8485a"/><path d="M150 163V196M650 163V196" stroke="#2a2530" stroke-width="1.4"/>');
+};
+
+/* ===== 照片位：有網址用 img，否則畫佔位插畫 ===== */
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var key = f.getAttribute('data-photo'), u = SHOP.photos[key];
+    if (u){
+      var im = document.createElement('img');
+      im.src = u; im.alt = f.getAttribute('data-label') || ''; im.loading = 'lazy';
+      f.innerHTML = '';
+      f.appendChild(im);
+    } else {
+      var fn = ART[f.getAttribute('data-art')];
+      if (fn) f.innerHTML = fn();
+    }
+  });
+}
+
+/* ===== 評論、門市、尺寸 ===== */
+function buildReviews(){
+  $('#rvs').innerHTML = REVIEWS.map(function(r){
+    var dots = '';
+    for (var i = 0; i < 5; i++) dots += '<i' + (i < r.stars ? ' class="on"' : '') + '></i>';
+    return '<figure class="rvc rv"><span class="mk" aria-hidden="true">' + esc(r.mark) + '</span>' +
+      '<p>' + esc(r.text) + '</p>' +
+      '<footer><span><strong>' + esc(r.who) + '</strong>　' + esc(r.item) + '</span><span>' + esc(r.when) + '　<span class="dots" role="img" aria-label="' + r.stars + ' 顆盤扣">' + dots + '</span></span></footer></figure>';
+  }).join('');
+}
+function buildHours(){
+  $('#hours').innerHTML = WEEK_ORDER.map(function(d){
+    var h = SHOP.hours[d], today = d === now.getDay();
+    return '<li class="' + (today ? 'today' : '') + '"><span>' + DAYS[d] + (today ? '<em class="tg">今天</em>' : '') + '</span><span class="num">' + (h ? h[0] + ' – ' + h[1] : '公休') + '</span></li>';
+  }).join('');
+  $('#addr').textContent = SHOP.address;
+  $('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+  $('#tel').textContent = SHOP.phone;
+  $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d+]/g, '');
+}
+function buildSizes(){
+  $('#szBody').innerHTML = SIZES.map(function(z){
+    return '<tr><th scope="row">' + z.s + '</th><td>' + z.b[0] + '–' + z.b[1] + '</td><td>' + z.w[0] + '–' + z.w[1] + '</td><td>' + z.h[0] + '–' + z.h[1] + '</td><td>' + z.ht + '</td></tr>';
+  }).join('');
+}
+
+/* ===== 事件 ===== */
+function bindEvents(){
+  var nav = $('#nav'), burger = $('#burger');
+  burger.addEventListener('click', function(){
+    var open = nav.classList.toggle('open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  nav.addEventListener('click', function(e){
+    if (e.target.tagName === 'A'){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && nav.classList.contains('open')){
+      nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.focus();
+    }
+  });
+
+  $('#tabs').addEventListener('click', function(e){
+    var b = e.target.closest('.ct');
+    if (!b) return;
+    $$('.ct', $('#tabs')).forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    var c = b.getAttribute('data-cat');
+    $$('.tear').forEach(function(t){ t.hidden = !(c === '全部' || t.getAttribute('data-cat') === c); });
+  });
+
+  function setAsk(i, on){
+    ASKED[i] = on;
+    var btn = $('.ask[data-ask="' + i + '"]');
+    if (btn){
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.textContent = on ? '已加入詢問' : '加入詢問';
+    }
+  }
+  $('#tears').addEventListener('click', function(e){
+    var b = e.target.closest('.ask');
+    if (!b) return;
+    var i = +b.getAttribute('data-ask');
+    setAsk(i, !ASKED[i]);
+    var card = b.closest('.tear');
+    card.classList.remove('flip');
+    void card.offsetWidth;
+    card.classList.add('flip');
+    renderAsk();
+    renderEcho();
+  });
+  $('#tears').addEventListener('animationend', function(e){ e.target.classList.remove('flip'); });
+  $('#askbar').addEventListener('click', function(e){
+    if (!e.target.closest('#askClear')) return;
+    Object.keys(ASKED).forEach(function(k){ setAsk(+k, false); });
+    renderAsk();
+    renderEcho();
+  });
+
+  $('#dsCtl').addEventListener('change', renderDesign);
+  $('#dsSlit').addEventListener('input', renderDesign);
+
+  $('#bkForm').addEventListener('change', function(e){
+    if (e.target.id === 'bkDate') fillTimes();
+    checkWedding();
+  });
+  $('#bkWed').addEventListener('input', checkWedding);
+
+  $('#bkForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var name = $('#bkName').value.trim(), ph = $('#bkPhone').value.trim(), dg = ph.replace(/\D/g, '');
+    var ds = $('#bkDate').value, dp = dateProblem(ds), pur = purpose(), wd = $('#bkWed').value;
+    var okList = [
+      mark('#fName', '#e-name', name.length < 2 ? '請填寫姓名（至少 2 個字）。' : ''),
+      mark('#fPhone', '#e-phone', (/^09\d{8}$/.test(dg) || /^0[2-8]\d{7,8}$/.test(dg)) ? '' : '電話格式不正確，請填 09xx-xxx-xxx 或市話。'),
+      mark('#fDate', '#e-date', dp),
+      mark('#fTime', '#e-time', !dp && !$('#bkTime').value ? '請選擇時段。' : ''),
+      mark('#fWed', '#e-wed', pur === '婚禮' && !wd ? '婚禮請填寫婚期。' : (wd && parseYmd(wd) < dayStart(now) ? '婚期不能早於今天。' : ''))
+    ];
+    var mBad = ['m-sh', 'm-bu', 'm-wa', 'm-hi', 'm-len'].some(function(id){
+      var v = $('#' + id).value;
+      return v !== '' && (+v < 40 || +v > 200);
+    });
+    $('#e-m').textContent = mBad ? '量身數字請填 40–200 cm，或留空。' : '';
+    okList.push(!mBad);
+    if (!okList.every(Boolean)){
+      var first = $('#bkForm .fld.bad input, #bkForm .fld.bad select');
+      if (first) first.focus();
+      return;
+    }
+    showOk();
+  });
+  $('#bkOk').addEventListener('click', function(e){
+    if (!e.target.closest('#bkAgain')) return;
+    $('#bkForm').reset();
+    $('#bkForm').hidden = false;
+    $('#bkOk').hidden = true;
+    $('#bkOk').innerHTML = '';
+    $('#bkDate').min = ymd(now);
+    $('#bkWed').min = ymd(now);
+    fillTimes();
+    checkWedding();
+    $('#bkForm').scrollIntoView({ behavior:'smooth', block:'center' });
+  });
+
+  $('#szForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var keys = [['#szB', 'b', '胸圍'], ['#szW', 'w', '腰圍'], ['#szH', 'h', '臀圍']], m = [], bad = '';
+    keys.forEach(function(k){
+      var v = parseFloat($(k[0]).value);
+      if (!(v >= 60 && v <= 150)) bad = bad || ('請輸入' + k[2] + '（60–150 cm）。');
+      m.push(v);
+    });
+    $('#e-sz').textContent = bad;
+    $('#szOut').textContent = '';
+    if (bad) return;
+    var over = false;
+    var idx = keys.map(function(k, n){
+      var i = sizeIdx(m[n], k[1]);
+      if (i < 0){ over = true; i = SIZES.length - 1; }
+      return i;
+    });
+    var same = idx[0] === idx[1] && idx[1] === idx[2], rec = SIZES[Math.max(idx[0], idx[1], idx[2])].s;
+    var msg = same ? '三圍落在 ' + rec + ' 號，成衣建議選 ' + rec + ' 號。' :
+      '三圍分落在不同尺寸（胸 ' + SIZES[idx[0]].s + '、腰 ' + SIZES[idx[1]].s + '、臀 ' + SIZES[idx[2]].s + '），成衣建議選 ' + rec + ' 號，但版型可能不服貼，建議訂製或修改。';
+    if (over) msg += ' 部分數字超出 XL 範圍，建議直接訂製。';
+    $('#szOut').textContent = msg;
+  });
+}
+
+/* ===== 進場動畫 ===== */
+function observeReveal(){
+  var els = $$('.rv, .rv-f');
+  if (!('IntersectionObserver' in window)){
+    els.forEach(function(el){ el.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting){
+        en.target.classList.add('in');
+        io.unobserve(en.target);
+      }
+    });
+  }, { threshold:0.12, rootMargin:'0px 0px -6% 0px' });
+  els.forEach(function(el){ io.observe(el); });
+}
+
+/* ===== 初始化 ===== */
+function init(){
+  document.documentElement.classList.add('js');
+  $('#yr').textContent = now.getFullYear();
+  $('#pst').innerHTML = posterSVG();
+  buildCal();
+  renderStatus();
+  setInterval(renderStatus, 60000);
+
+  buildTabs();
+  buildTears();
+  renderAsk();
+
+  buildDesignOptions();
+  renderDesign();
+
+  $('#bkDate').min = ymd(now);
+  $('#bkWed').min = ymd(now);
+  $('#bkPur').innerHTML = PURPOSES.map(function(p){ return opt('pur', p, p, p === '日常'); }).join('');
+  fillTimes();
+  checkWedding();
+
+  buildReviews();
+  buildHours();
+  buildSizes();
+  $('#fitFig').innerHTML = mannequinSVG();
+
+  fillPhotos();
+  bindEvents();
+
+  var sb = $('#slotBtn');
+  function setSlots(on){
+    document.body.classList.toggle('slots', on);
+    sb.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  setSlots(/[?&]slots(&|=|$)/.test(location.search));
+  sb.addEventListener('click', function(){ setSlots(!document.body.classList.contains('slots')); });
+
+  observeReveal();
+}
+
+init();
+})();
+</script>
+</body>
+</html>
