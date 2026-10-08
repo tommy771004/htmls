@@ -1,0 +1,1614 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<!--
+店家模板使用方式
+1. 改 <script> 開頭的 SHOP（店名、電話、地址、營業時間）與 PRODUCTS（商品資料）；評論、跑團路線、尺寸表等文字直接改 HTML 即可。
+2. SHOP.photos 填入照片網址會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+3. 表單送出只在頁面上示範，正式使用請串接訂單／預約系統。
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>熱層 THERMAL LAB｜機能跑步與分層穿搭</title>
+<meta name="description" content="熱層 THERMAL LAB 位於台北內湖，販售機能跑步與戶外服，以分層穿搭為核心，提供分層穿搭計算器、週末跑團報名與尺寸諮詢。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307060b'/%3E%3Ccircle cx='16' cy='16' r='11' fill='%23b5179e'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23ff8c00'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ffffff'/%3E%3C/svg%3E">
+<style>
+/* ===== 色彩與動效 token ===== */
+:root{
+  --bg:#07060b; --panel:#121019; --panel2:#1a1726; --line:#2b2640; --line2:#3a3450;
+  --ink:#f2f0f7; --mute:#9a94ad; --ice:#6fd3ff;
+  --t0:#0b0014; --t1:#3a0ca3; --t2:#b5179e; --t3:#f72585; --t4:#ff8c00; --t5:#ffd60a; --t6:#ffffff;
+  --ramp:linear-gradient(90deg,var(--t0),var(--t1),var(--t2),var(--t3),var(--t4),var(--t5),var(--t6));
+  --ease-out:cubic-bezier(.22,.8,.24,1);
+  --dur-hover:.25s; --dur-press:.12s; --dur-enter:.9s; --dur-exit:.35s;
+  --f-title:'Eurostile','Microgramma','Bank Gothic','Arial Black',sans-serif;
+  --f-mono:'SF Mono','Consolas','Menlo',monospace;
+  --f-cn:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;
+}
+
+/* ===== 基礎 ===== */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-cn);font-size:16px;line-height:1.8;letter-spacing:.02em;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,figure,dl,dd{margin:0}
+ul,ol{margin:0;padding:0;list-style:none}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
+.wrap{width:calc(100% - 32px);max-width:1180px;margin-inline:auto}
+.mono{font-family:var(--f-mono)}
+.kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.22em;color:var(--ice);text-transform:uppercase}
+.sec-h{display:grid;gap:12px;max-width:720px;margin-bottom:44px}
+.sec-h h2{font-size:clamp(30px,4.4vw,52px);line-height:1.2;font-weight:900;letter-spacing:.03em}
+.sec-h h2 small{display:block;margin-top:10px;font-family:var(--f-title);font-size:clamp(12px,1.4vw,15px);font-weight:400;letter-spacing:.32em;color:var(--mute);text-transform:uppercase}
+.sec-h p{color:var(--mute);max-width:36em}
+.divider{height:6px;background:var(--ramp)}
+
+/* ===== 按鈕 ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 20px;border-radius:10px;border:1px solid transparent;font-weight:700;font-size:15px;text-decoration:none;text-align:center;transition:transform var(--dur-hover) var(--ease-out),background-color var(--dur-hover),box-shadow var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover)}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:scale(.97);transition-duration:var(--dur-press)}
+.btn-hot{background:var(--t5);color:#07060b}
+.btn-hot:hover{box-shadow:0 10px 30px -10px rgba(255,214,10,.6)}
+.btn-line{background:transparent;border-color:var(--ice);color:var(--ice)}
+.btn-line:hover{background:rgba(111,211,255,.1)}
+.btn-sm{min-height:38px;padding:7px 14px;font-size:14px}
+.btn-block{width:100%}
+.btn-s{min-height:36px;padding:6px 12px;border-radius:8px;border:1px solid var(--line2);background:transparent;font-size:13px;transition:transform var(--dur-press) var(--ease-out),background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover)}
+.btn-s:hover{border-color:var(--mute)}
+.btn-s:active{transform:scale(.95)}
+.btn-s[aria-pressed="true"]{background:var(--t5);border-color:var(--t5);color:#07060b;font-weight:700}
+
+/* ===== 導覽 ===== */
+.top{position:sticky;top:0;z-index:50;background:rgba(7,6,11,.9);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{height:64px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
+.logo svg{width:30px;height:30px;flex:none}
+.logo b{display:block;font-size:17px;font-weight:900;letter-spacing:.06em;line-height:1.15}
+.logo small{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.24em;color:var(--mute);line-height:1.4}
+.nav{display:flex;align-items:center;gap:2px}
+.nav a.lk{padding:8px 11px;border-radius:8px;text-decoration:none;font-size:14px;color:var(--mute);transition:color var(--dur-hover) var(--ease-out),background-color var(--dur-hover) var(--ease-out),transform var(--dur-press)}
+.nav a.lk:hover{color:var(--ink);background:var(--panel2)}
+.nav a.lk:active{transform:scale(.96)}
+.nav a.lk[aria-current="true"]{color:var(--t5)}
+.nav .btn{margin-left:10px}
+.menu-btn{display:none;min-height:40px;padding:6px 14px;border-radius:8px;border:1px solid var(--line2);background:transparent;font-size:14px;transition:transform var(--dur-press),border-color var(--dur-hover)}
+.menu-btn:hover{border-color:var(--mute)}
+.menu-btn:active{transform:scale(.95)}
+
+/* ===== Hero：熱像畫面 ===== */
+.hero{position:relative;isolation:isolate;overflow:hidden;background:var(--bg);min-height:calc(100vh - 64px);min-height:calc(100svh - 64px);display:flex;align-items:center}
+.stage{position:absolute;inset:0;z-index:0;overflow:hidden}
+.stage > svg{position:absolute;inset:0;width:100%;height:100%}
+.hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(7,6,11,.94) 0%,rgba(7,6,11,.6) 38%,rgba(7,6,11,0) 62%),linear-gradient(0deg,rgba(7,6,11,.82) 0%,rgba(7,6,11,0) 30%)}
+.hero-copy{position:relative;z-index:2;width:min(540px,calc(100% - 32px));margin-left:max(16px,calc(50% - 570px));padding:72px 0 64px}
+.hero h1{font-weight:900;font-size:clamp(68px,10.5vw,144px);line-height:1;letter-spacing:.06em}
+.hero .en{margin-top:12px;font-family:var(--f-title);font-size:clamp(14px,1.9vw,20px);letter-spacing:.34em;color:var(--t5);text-transform:uppercase}
+.hero .lead{margin:24px 0 26px;font-size:clamp(15px,1.4vw,17px);color:#d6d2e4;max-width:31em}
+.hero .acts{display:flex;flex-wrap:wrap;gap:12px}
+.pill{display:inline-flex;align-items:center;gap:9px;margin-top:22px;padding:6px 14px;border-radius:999px;border:1px solid var(--line2);background:rgba(18,16,25,.85);font-size:13.5px}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.pill.on{border-color:rgba(255,214,10,.5)}
+.pill.on .dot{background:var(--t5);box-shadow:0 0 10px var(--t5)}
+.hero-foot{margin-top:40px;display:flex;flex-wrap:wrap;gap:10px 22px;font-family:var(--f-mono);font-size:12px;color:var(--mute);letter-spacing:.06em}
+.hero-foot span{border-left:2px solid var(--t3);padding-left:10px}
+.hero-foot b{color:var(--ink);font-weight:400;margin-left:6px}
+
+/* HUD */
+.hud{position:absolute;inset:0;z-index:3;pointer-events:none;font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:#e6e2f2}
+.hud-tl{position:absolute;left:20px;top:18px;line-height:1.7;text-shadow:0 1px 6px #000}
+.rec{color:#ff6fa8}
+.rec i{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--t3);vertical-align:1px;animation:blink 1.6s steps(2,start) infinite}
+.hud-scale{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;gap:8px;color:var(--mute)}
+.hud-scale .ticks{display:flex;flex-direction:column;justify-content:space-between;height:min(54vh,400px);text-align:right;font-size:10.5px;line-height:1}
+.hud-bar{width:12px;height:min(54vh,400px);border-radius:6px;border:1px solid rgba(255,255,255,.35);background:linear-gradient(0deg,var(--t0),var(--t1),var(--t2),var(--t3),var(--t4),var(--t5),var(--t6))}
+.cross{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
+.cross .ring{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.cross .hz,.cross .vt{position:absolute;background:rgba(255,255,255,.85)}
+.cross .hz{left:-38px;top:0;width:76px;height:1px}
+.cross .vt{left:0;top:-38px;width:1px;height:76px}
+.cross output{position:absolute;left:30px;top:-30px;padding:3px 9px;border-radius:6px;background:rgba(7,6,11,.86);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;white-space:nowrap;letter-spacing:.04em}
+.mk{position:absolute;left:0;top:0;white-space:nowrap;font-size:10.5px;padding:2px 7px;border-radius:4px;background:rgba(7,6,11,.82);border:1px solid rgba(255,255,255,.22)}
+.mk.max{color:var(--t5)}
+.mk.min{color:var(--ice)}
+.sweep{position:absolute;top:0;bottom:0;left:0;width:2px;z-index:2;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(255,255,255,.7),transparent);box-shadow:0 0 22px 6px rgba(255,214,10,.25);animation:sweep 11s linear infinite}
+.spot{transform-box:fill-box;transform-origin:50% 50%;animation:breathe 5.2s ease-in-out infinite}
+@keyframes sweep{from{left:-4px}to{left:100%}}
+@keyframes blink{to{visibility:hidden}}
+@keyframes breathe{0%,100%{transform:scale(.94)}50%{transform:scale(1.07)}}
+
+/* ===== 故事 ===== */
+.story{padding:120px 0 110px}
+.story-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:64px;align-items:center}
+.txt p{font-size:16.5px;color:#d3cfe0;max-width:34em;margin-bottom:1.1em}
+.drop::first-letter{float:left;font-family:var(--f-title);font-size:4.4em;line-height:.82;padding:8px 12px 0 0;color:var(--t5)}
+.h2{font-size:clamp(30px,4.4vw,52px);line-height:1.2;font-weight:900;letter-spacing:.03em}
+.h2 small{display:block;margin-top:10px;font-family:var(--f-title);font-size:clamp(12px,1.4vw,15px);font-weight:400;letter-spacing:.32em;color:var(--mute);text-transform:uppercase}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);margin-top:40px;border-top:1px solid var(--line)}
+.stats > div{padding:20px 12px 0 0}
+.stats b{display:block;font-family:var(--f-title);font-size:clamp(30px,4vw,46px);line-height:1;font-weight:400;color:var(--ink)}
+.stats span{display:block;margin-top:8px;font-size:13px;color:var(--mute);line-height:1.5}
+
+/* ===== 照片位 ===== */
+.ph{position:relative;overflow:hidden;margin:0;border-radius:12px;background:#0d0b14}
+.ph > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.ph > svg{position:absolute;inset:0;width:100%;height:100%}
+.story-ph{aspect-ratio:4/5;border-radius:16px}
+body.slots .ph{outline:2px dashed var(--ice);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:8px;top:8px;z-index:3;background:#07060b;color:var(--t5);font-family:var(--f-mono);font-size:11px;padding:3px 9px;border-radius:999px}
+.slot-btn{position:fixed;right:16px;bottom:16px;z-index:60;min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid var(--line2);background:rgba(18,16,25,.93);color:var(--mute);font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;transition:transform var(--dur-press) var(--ease-out),color var(--dur-hover),border-color var(--dur-hover)}
+.slot-btn:hover{color:var(--ink);border-color:var(--mute)}
+.slot-btn:active{transform:scale(.95)}
+.slot-btn[aria-pressed="true"]{background:var(--t5);border-color:var(--t5);color:#07060b}
+
+/* ===== 商品 ===== */
+.shop{background:#0c0a12;padding:110px 0}
+.legend{display:flex;align-items:center;gap:12px;font-family:var(--f-mono);font-size:11px;color:var(--mute);max-width:520px}
+.legend i{flex:1;height:8px;border-radius:4px;background:var(--ramp)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 26px}
+.chip{min-height:40px;padding:8px 16px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--mute);font-size:14px;transition:transform var(--dur-press) var(--ease-out),background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover)}
+.chip:hover{border-color:var(--mute);color:var(--ink)}
+.chip:active{transform:scale(.95)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#07060b}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(262px,1fr));gap:20px}
+.card{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform var(--dur-hover) var(--ease-out),border-color var(--dur-hover) var(--ease-out)}
+.card:hover{transform:translateY(-4px);border-color:#3c3558}
+.card:active{transform:scale(.985)}
+.card.hot{border-color:var(--t4)}
+.art{position:relative;aspect-ratio:5/4;display:grid;place-items:center;background:radial-gradient(120% 90% at 50% 0%,#1d1830 0%,#0b0a12 72%);overflow:hidden;cursor:pointer}
+.art .no,.art .wt{position:absolute;top:12px;font-size:11px;letter-spacing:.12em;color:var(--mute);z-index:2}
+.art .no{left:14px}
+.art .wt{right:14px}
+.gar{width:auto;height:84%;max-width:80%;position:relative;z-index:1}
+.u-ln{fill:none;stroke:#d9d6e2;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.u-ht{fill:url(#thR);stroke:none;opacity:0;transition:opacity var(--dur-enter) var(--ease-out)}
+.card.hot .u-ht{opacity:1}
+@media (hover:hover){.card:hover .u-ht{opacity:1}}
+.info{padding:16px 18px 18px;display:flex;flex-direction:column;gap:9px;flex:1}
+.cat{font-size:11px;letter-spacing:.14em;color:var(--t4)}
+.info h3{font-size:17px;line-height:1.4;font-weight:800}
+.mat{font-size:13px;color:var(--mute);line-height:1.6}
+.zb{position:relative;height:8px;margin-top:4px;border-radius:4px;background:linear-gradient(90deg,#3a0ca3,#6fd3ff 28%,#ff8c00 62%,#ffd60a 82%,#fff)}
+.zb i{position:absolute;top:-4px;bottom:-4px;border:2px solid #fff;border-radius:4px;box-shadow:0 0 0 2px rgba(7,6,11,.6)}
+.zl{font-size:11.5px;color:var(--mute);letter-spacing:.06em}
+.sz{display:flex;flex-wrap:wrap;gap:6px}
+.sz span{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line2);border-radius:6px;padding:2px 7px;color:var(--mute)}
+.foot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:6px;flex-wrap:wrap}
+.price{font-size:17px}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.ask{margin-top:28px;padding:16px 18px;border:1px dashed var(--line2);border-radius:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;color:var(--mute);font-size:14px}
+
+/* ===== 分層計算器 ===== */
+.layers{position:relative;overflow:hidden;background:#100d18;padding:110px 0}
+.layers::before{content:"";position:absolute;width:720px;height:720px;right:-220px;top:-160px;border-radius:50%;background:radial-gradient(circle,rgba(247,37,133,.18),rgba(58,12,163,0) 65%);pointer-events:none}
+.calc-grid{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+.field{margin:0 0 22px}
+.field .lbl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--mute);margin-bottom:10px}
+.field .lbl b{font-family:var(--f-mono);font-size:15px;color:var(--ink);font-weight:400}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts input,.tog input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.opts label,.tog label{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 14px;border:1px solid var(--line2);border-radius:10px;font-size:14px;color:var(--mute);cursor:pointer;user-select:none;transition:transform var(--dur-press) var(--ease-out),background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover)}
+.opts label:hover,.tog label:hover{border-color:var(--mute);color:var(--ink)}
+.opts label:active,.tog label:active{transform:scale(.96)}
+.opts input:checked + label{background:var(--t5);border-color:var(--t5);color:#07060b;font-weight:700}
+.opts input:focus-visible + label,.tog input:focus-visible + label{outline:2px solid var(--ice);outline-offset:2px}
+.tog{display:flex;flex-wrap:wrap;gap:8px}
+.tog label::before{content:"";width:14px;height:14px;border-radius:4px;border:1.5px solid currentColor;flex:none}
+.tog input:checked + label{border-color:var(--ice);color:var(--ice)}
+.tog input:checked + label::before{background:var(--ice);border-color:var(--ice);box-shadow:inset 0 0 0 3px #07060b}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:10px;margin:8px 0 2px;border-radius:6px;background:var(--ramp);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid #07060b;box-shadow:0 0 0 1px #fff;transition:transform var(--dur-press) var(--ease-out)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #07060b}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:focus-visible{outline:2px solid var(--ice);outline-offset:4px}
+.hint{font-size:12.5px;color:var(--mute);margin-top:4px}
+.fig-wrap{position:relative;display:grid;place-items:center;padding:10px 0 4px;background:radial-gradient(60% 55% at 50% 45%,rgba(58,12,163,.25),rgba(7,6,11,0) 70%);border-radius:12px}
+#fig{width:min(340px,100%);height:auto}
+.fig-t{font-family:var(--f-mono),var(--f-cn);font-size:14px;fill:var(--ink)}
+.fig-l{stroke:var(--ink);stroke-width:1;opacity:.55;fill:none}
+.fig-d{fill:var(--ink)}
+.seg{transition:fill .9s var(--ease-out)}
+.fig-note{text-align:center;font-size:12px;letter-spacing:.1em;color:var(--mute);margin-top:6px}
+.out-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.out-top .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;color:var(--mute)}
+.big{font-family:var(--f-mono);font-size:clamp(30px,4vw,42px);line-height:1;color:var(--ink)}
+.comfort{font-size:14px;font-weight:800;padding:6px 14px;border-radius:999px;border:1px solid var(--line2)}
+.comfort.cold{color:var(--ice);border-color:var(--ice)}
+.comfort.ok{color:#07060b;background:var(--t4);border-color:var(--t4)}
+.comfort.hot{color:#07060b;background:var(--t5);border-color:var(--t5)}
+.msg{margin-top:16px;padding:14px 16px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--t4);font-size:15px;line-height:1.75;min-height:4.5em}
+.msg.cold{border-color:var(--ice)}
+.msg.hot{border-color:var(--t5)}
+.note{margin-top:8px;font-size:13px;color:var(--mute);min-height:1.5em}
+.pick{margin-top:16px;border-top:1px solid var(--line)}
+.pick li{display:grid;grid-template-columns:64px 1fr auto auto;gap:10px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.pick .c{font-family:var(--f-mono);font-size:11px;color:var(--t4);letter-spacing:.06em}
+.pick .g,.pick .pr{font-family:var(--f-mono);font-size:13px;color:var(--mute)}
+.pick .pr{color:var(--ink)}
+.tot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:14px;font-family:var(--f-mono);font-size:14px}
+.tot b{font-weight:400;color:var(--t5)}
+
+/* ===== 跑團 ===== */
+.run{padding:110px 0}
+.run-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:28px;align-items:start}
+.routes{display:grid;gap:12px;margin-top:28px}
+.route{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:center;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.route .km{font-family:var(--f-title);font-size:40px;line-height:1;color:var(--t5)}
+.route h3{font-size:16px;font-weight:800}
+.route p{font-size:13.5px;color:var(--mute);line-height:1.6}
+.form{display:grid;gap:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fld label,.fld .lb{display:block;font-size:14px;color:var(--mute);margin-bottom:6px}
+.fi{width:100%;min-height:46px;padding:10px 14px;border-radius:10px;border:1px solid var(--line2);background:#0b0a11;color:var(--ink);transition:border-color var(--dur-hover),box-shadow var(--dur-hover)}
+.fi:hover{border-color:#4a4363}
+.fi:focus{outline:none;border-color:var(--ice);box-shadow:0 0 0 3px rgba(111,211,255,.18)}
+.fi[aria-invalid="true"]{border-color:var(--t3)}
+.err{min-height:1.3em;margin-top:4px;font-size:12.5px;color:#ff6fa8}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.radios input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.radios label{display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border-radius:10px;border:1px solid var(--line2);color:var(--mute);font-size:14px;cursor:pointer;transition:transform var(--dur-press) var(--ease-out),background-color var(--dur-hover),color var(--dur-hover),border-color var(--dur-hover)}
+.radios label:hover{color:var(--ink);border-color:var(--mute)}
+.radios label:active{transform:scale(.96)}
+.radios input:checked + label{background:var(--ice);border-color:var(--ice);color:#07060b;font-weight:700}
+.radios input:focus-visible + label{outline:2px solid var(--ice);outline-offset:2px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--mute);cursor:pointer}
+.check input{width:18px;height:18px;margin-top:4px;accent-color:var(--t5)}
+.ticket{position:relative;padding:26px 24px 22px;border-radius:14px;background:linear-gradient(180deg,#0e0b18,#07060b);border:1px solid rgba(111,211,255,.35);font-family:var(--f-mono);font-size:13px;overflow:hidden}
+.ticket::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.tk-top{display:flex;justify-content:space-between;gap:10px;color:var(--ice);font-size:11px;letter-spacing:.16em;flex-wrap:wrap}
+.tk-name{margin-top:18px;font-family:var(--f-cn);font-size:26px;font-weight:900;letter-spacing:.04em}
+.tk-name small{font-size:12px;font-weight:400;color:var(--mute);margin-left:8px;letter-spacing:.14em}
+.tk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-top:18px}
+.tk-grid dt{font-size:10.5px;letter-spacing:.16em;color:var(--mute)}
+.tk-grid dd{margin:2px 0 0;color:var(--ink);font-size:14px}
+.tk-bar{height:6px;margin:20px 0 16px;border-radius:3px;background:var(--ramp)}
+.tk-note{color:var(--mute);font-size:12px;margin-bottom:14px;line-height:1.7}
+
+/* ===== 尺寸（深色面板，熱像色階框線） ===== */
+.size{background:var(--bg);padding:110px 0}
+.size-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.tbl-wrap,.sz-panel{background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,var(--t1),var(--t3),var(--t4),var(--t5)) border-box;border:1px solid transparent;border-radius:14px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:440px}
+th,td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left}
+th{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;color:var(--mute);font-weight:600}
+td.mono{font-size:13.5px}
+tr.hit td{background:rgba(255,140,0,.16)}
+tr.hit td:first-child{font-weight:900;color:var(--t5)}
+.sz-panel{padding:22px}
+.sz-res{margin-top:16px;padding:16px 16px 16px 18px;border-radius:12px;background:#0b0a11;border-left:4px solid var(--t4);font-size:15px;line-height:1.75}
+.sz-res b{font-family:var(--f-title);font-size:30px;font-weight:400;background:linear-gradient(90deg,var(--t3),var(--t4),var(--t5));-webkit-background-clip:text;background-clip:text;color:transparent;margin-right:6px}
+.sz-res small{display:block;margin-top:6px;color:var(--mute);font-size:13px}
+
+/* ===== 照片牆 ===== */
+.gallery{background:var(--bg);padding:110px 0}
+.wall{display:grid;grid-template-columns:repeat(12,1fr);gap:18px 16px;align-items:start}
+.shot{display:grid;gap:10px}
+.shot .cap{font-size:13px;color:var(--mute);line-height:1.6}
+.shot:nth-child(1){grid-column:span 7}
+.shot:nth-child(2){grid-column:span 5;margin-top:56px}
+.shot:nth-child(3){grid-column:span 5}
+.shot:nth-child(4){grid-column:span 7}
+.shot:nth-child(1) .ph{aspect-ratio:16/10}
+.shot:nth-child(2) .ph{aspect-ratio:1/1}
+.shot:nth-child(3) .ph{aspect-ratio:4/3}
+.shot:nth-child(4) .ph{aspect-ratio:16/9}
+
+/* ===== 評論 ===== */
+.reviews{background:#0c0a12;padding:110px 0}
+.rv-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.rev{position:relative;padding:26px 24px 24px;border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden}
+.rev::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--ramp)}
+.rev blockquote{margin:0;font-size:15.5px;line-height:1.85;color:#e2dff0}
+.rev .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px;font-size:13px;color:var(--mute)}
+.rev .meta b{color:var(--ink);font-weight:700}
+.heat-rate{display:flex;gap:4px}
+.heat-rate i{width:22px;height:8px;border-radius:4px;background:#2a2538}
+.heat-rate i.on:nth-child(1){background:var(--t1)}
+.heat-rate i.on:nth-child(2){background:var(--t2)}
+.heat-rate i.on:nth-child(3){background:var(--t3)}
+.heat-rate i.on:nth-child(4){background:var(--t4)}
+.heat-rate i.on:nth-child(5){background:var(--t5)}
+
+/* ===== 門市 ===== */
+.store{background:#100d18;padding:110px 0}
+.store-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.hours li{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+.hours li.today{color:var(--t5)}
+.hours .tg{font-style:normal;font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;border:1px solid currentColor;border-radius:5px;padding:0 6px;margin-left:6px}
+.info-list{display:grid;gap:14px;margin-top:4px}
+.info-list div{padding-bottom:14px;border-bottom:1px solid var(--line)}
+.info-list dt{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;color:var(--t4)}
+.info-list dd{margin:4px 0 0;font-size:15px;color:#dcd8ea}
+.info-list a{color:var(--ice)}
+.svc{display:grid;gap:8px;margin:10px 0 0;font-size:14px;color:#cfcbe0}
+.svc li::before{content:"— ";color:var(--t3)}
+.map-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+
+/* ===== 頁尾 ===== */
+.foot{background:#050408;border-top:1px solid var(--line);padding:48px 0 60px;color:var(--mute);font-size:13px}
+.foot-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:24px;align-items:start}
+.foot b{color:var(--ink);font-size:16px;letter-spacing:.06em}
+.foot nav{display:flex;flex-wrap:wrap;gap:8px 16px}
+.foot nav a{color:var(--mute);text-decoration:none;border-bottom:1px solid var(--line2)}
+.foot nav a:hover{color:var(--ink);border-color:var(--ink)}
+.foot .disc{margin-top:18px;font-size:12px;color:#77718a}
+
+/* ===== 進場 ===== */
+.js .rv{opacity:0;transform:translateY(18px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.js .rv.shown{opacity:1;transform:none}
+
+/* ===== 響應式 ===== */
+@media (max-width:1020px){
+  .nav a.lk{padding:8px 8px;font-size:13.5px}
+  .story-grid,.calc-grid,.run-grid,.size-grid,.store-grid{gap:40px}
+}
+@media (max-width:820px){
+  .nav{display:none}
+  .nav.open{display:flex;flex-direction:column;align-items:stretch;position:absolute;top:64px;left:0;right:0;padding:10px 16px 18px;background:#0c0a12;border-bottom:1px solid var(--line);gap:2px}
+  .nav.open a.lk{padding:12px 10px;font-size:16px}
+  .nav.open .btn{margin:10px 0 0}
+  .menu-btn{display:inline-flex;align-items:center}
+  .logo small{display:none}
+  .hero{align-items:flex-start}
+  .stage{top:56%}
+  .hero-copy{padding:30px 0 0;margin-left:16px;width:calc(100% - 32px)}
+  .hero-foot{display:none}
+  .hud-tl{top:12px;left:12px}
+  .hud-scale{right:12px;top:auto;bottom:64px;transform:none}
+  .hud-bar{height:min(34vh,220px)}
+  .hud-scale .ticks{display:none}
+  .story-grid,.calc-grid,.run-grid,.size-grid,.store-grid,.foot-grid{grid-template-columns:1fr}
+  .story{padding:88px 0 80px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stats > div{padding:18px 10px 14px 0}
+  .shop,.layers,.run,.size,.gallery,.reviews,.store{padding:84px 0}
+  .sec-h{margin-bottom:30px}
+  .rv-grid{grid-template-columns:1fr}
+  .wall{grid-template-columns:1fr}
+  .shot:nth-child(n){grid-column:auto;margin-top:0}
+  .row2{grid-template-columns:1fr}
+  .calc-grid .panel{padding:20px 18px}
+  .pick li{grid-template-columns:56px 1fr auto}
+  .pick .g{display:none}
+}
+@media (max-width:420px){
+  .logo b{font-size:15px}
+  .top .btn-hot{min-height:38px;padding:7px 12px;font-size:13.5px}
+}
+
+/* ===== 減少動態 ===== */
+@media (prefers-reduced-motion: reduce){
+  .rec i,.sweep,.spot{animation:none!important}
+  .sweep{display:none}
+  .js .rv{opacity:1;transform:none;transition:none}
+  .card,.btn,.chip,.btn-s,.opts label,.tog label,.radios label,.card:hover{transition-duration:.01ms!important;transform:none!important}
+  .u-ht{transition:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<!-- 商品與分層單品的線稿／熱像圖樣（<use> 引用；填色由 CSS 的 .u-ln／.u-ht 控制） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+<radialGradient id="thR" cx="50%" cy="42%" r="62%">
+<stop offset="0" stop-color="#ffffff"/>
+<stop offset=".2" stop-color="#ffd60a"/>
+<stop offset=".45" stop-color="#ff8c00"/>
+<stop offset=".7" stop-color="#f72585"/>
+<stop offset=".9" stop-color="#b5179e"/>
+<stop offset="1" stop-color="#3a0ca3"/>
+</radialGradient>
+<filter id="fb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>
+<symbol id="g-merino" viewBox="0 0 200 220">
+<path d="M70 22 Q100 40 130 22 L166 36 L196 150 L178 160 L158 96 L158 206 Q100 214 42 206 L42 96 L22 160 L4 150 L34 36 Z"/>
+<path d="M58 70 V200 M142 70 V200" stroke-dasharray="3 5" fill="none"/>
+</symbol>
+<symbol id="g-mesh" viewBox="0 0 200 220">
+<path d="M64 24 Q100 52 136 24 L150 42 L156 206 Q100 214 44 206 L50 42 Z"/>
+<path d="M56 80 H144 M56 110 H144 M56 140 H144 M56 170 H144" stroke-dasharray="2 6" fill="none"/>
+</symbol>
+<symbol id="g-shorts" viewBox="0 0 200 220">
+<path d="M28 22 L172 22 L176 58 L190 196 L124 204 L100 110 L76 204 L10 196 L24 58 Z"/>
+<path d="M96 22 L92 46 M104 22 L108 46" fill="none"/>
+</symbol>
+<symbol id="g-tights" viewBox="0 0 200 220">
+<path d="M30 14 L170 14 L172 52 L164 212 L118 214 L104 112 L96 112 L82 214 L36 212 L28 52 Z"/>
+</symbol>
+<symbol id="g-fleece" viewBox="0 0 200 220">
+<path d="M68 24 Q100 52 132 24 L168 46 L196 170 L178 178 L158 102 L158 206 L42 206 L42 102 L22 178 L4 170 L32 46 Z"/>
+<path d="M100 52 V96 M70 124 H130" stroke-dasharray="2 4" fill="none"/>
+</symbol>
+<symbol id="g-vest" viewBox="0 0 200 220">
+<path d="M66 24 Q100 52 134 24 L154 44 L160 206 L40 206 L46 44 Z"/>
+<path d="M100 52 V206 M62 150 H92 V178 H62 Z" fill="none"/>
+</symbol>
+<symbol id="g-jacket3l" viewBox="0 0 200 220">
+<path d="M58 58 Q56 6 100 4 Q144 6 142 58 L134 26 L168 46 L196 170 L178 178 L158 102 L158 210 L42 210 L42 102 L22 178 L4 170 L32 46 L66 26 Z"/>
+<path d="M100 30 V210 M40 60 Q100 74 160 60" fill="none"/>
+</symbol>
+<symbol id="g-wind" viewBox="0 0 200 220">
+<path d="M56 56 Q58 12 100 10 Q142 12 144 56 L134 26 L168 46 L194 166 L176 174 L156 100 L156 194 L44 194 L44 100 L24 174 L6 166 L32 46 L66 26 Z"/>
+<path d="M100 26 V194 M60 140 L84 132 M116 132 L140 140" fill="none"/>
+</symbol>
+<symbol id="g-gloves" viewBox="0 0 200 220">
+<path d="M58 118 L58 66 Q58 38 72 38 Q86 38 86 66 L86 24 Q86 8 100 8 Q114 8 114 24 L114 60 L116 22 Q116 6 130 6 Q144 6 144 22 L142 64 L152 42 Q160 30 170 36 Q178 44 170 60 L156 100 Q148 150 128 186 L70 186 Q54 160 58 118 Z"/>
+<path d="M100 62 V120 M128 64 V118 M72 186 L70 212 H130 L128 186" stroke-dasharray="2 4" fill="none"/>
+</symbol>
+<symbol id="g-beanie" viewBox="0 0 200 220">
+<path d="M38 112 Q38 26 100 22 Q162 26 162 112 Z"/>
+<path d="M34 112 H166 V138 H34 Z"/>
+<path d="M46 124 H154" stroke-dasharray="4 4" fill="none"/>
+<circle cx="100" cy="28" r="8"/>
+</symbol>
+</defs>
+</svg>
+
+<button type="button" id="slotBtn" class="slot-btn" aria-pressed="false">照片位</button>
+
+<header class="top">
+<div class="wrap top-in">
+<a class="logo" href="#top" aria-label="熱層 THERMAL LAB 首頁">
+<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#07060b" stroke="#f72585" stroke-width="1.5"/><circle cx="16" cy="16" r="10" fill="#b5179e"/><circle cx="16" cy="16" r="6" fill="#ff8c00"/><circle cx="16" cy="16" r="2.5" fill="#fff"/></svg>
+<span><b data-shop="name">熱層 THERMAL LAB</b><small>MECHANICAL LAYERS</small></span>
+</a>
+<nav class="nav" id="navLinks" aria-label="主要選單">
+<a class="lk" href="#story">品牌故事</a>
+<a class="lk" href="#shop">分層單品</a>
+<a class="lk" href="#layers">分層計算</a>
+<a class="lk" href="#run">週末跑團</a>
+<a class="lk" href="#size">尺寸</a>
+<a class="lk" href="#store">門市</a>
+<a class="btn btn-hot btn-sm" href="#run">報名跑團</a>
+</nav>
+<div style="display:flex;align-items:center;gap:8px">
+<button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks">選單</button>
+</div>
+</div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="hero" aria-labelledby="heroTitle">
+<div class="stage" id="stage" aria-hidden="true">
+<svg id="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="hsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07060b"/><stop offset=".55" stop-color="#150836"/><stop offset="1" stop-color="#3a0ca3"/></linearGradient>
+<radialGradient id="hsg" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffffff"/><stop offset=".16" stop-color="#ffd60a"/><stop offset=".36" stop-color="#ff8c00"/><stop offset=".58" stop-color="#f72585"/><stop offset=".8" stop-color="#b5179e"/><stop offset="1" stop-color="#3a0ca3" stop-opacity="0"/></radialGradient>
+<filter id="hblur" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
+<path id="runPath" d="M16 -352a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM38.3 -295.9L46.4 -326.5A11 11 0 0 0 25.6 -333.5L13.7 -304.1A13 13 0 0 0 38.3 -295.9ZM23.3 -184.4L52.3 -291.7A27 27 0 0 0 -0.3 -304.3L-23.3 -195.6A24 24 0 0 0 23.3 -184.4ZM20 -284.5L86.4 -253.1A10 10 0 0 0 95.6 -270.9L32 -307.5A13 13 0 0 0 20 -284.5ZM99.7 -257L127.9 -310A8 8 0 0 0 114.1 -318L82.3 -267A10 10 0 0 0 99.7 -257ZM126.9 -308.6L138.6 -319.9A9 9 0 0 0 125.4 -332.1L115.1 -319.4A8 8 0 0 0 126.9 -308.6ZM138.5 -321.3L144 -334.1A5 5 0 0 0 136 -339.9L125.5 -330.7A8 8 0 0 0 138.5 -321.3ZM16.5 -304.8L-31.3 -248.8A10 10 0 0 0 -16.7 -235.2L35.5 -287.2A13 13 0 0 0 16.5 -304.8ZM-30.1 -250L-74.8 -213.4A8 8 0 0 0 -65.2 -200.6L-17.9 -234A10 10 0 0 0 -30.1 -250ZM-73.2 -214.3L-90.8 -205.4A7 7 0 0 0 -85.2 -192.6L-66.8 -199.7A8 8 0 0 0 -73.2 -214.3ZM19 -172.2L72.2 -246.4A14 14 0 0 0 51.8 -265.6L-19 -207.8A26 26 0 0 0 19 -172.2ZM47.1 -258.1L41.1 -171.2A9 9 0 0 0 58.9 -168.8L76.9 -253.9A15 15 0 0 0 47.1 -258.1ZM43.9 -161.2L78.4 -155.2A7 7 0 0 0 81.6 -168.8L48.1 -178.8A9 9 0 0 0 43.9 -161.2ZM-22.7 -202.6L-62.2 -106.8A14 14 0 0 0 -37.8 -93.2L22.7 -177.4A26 26 0 0 0 -22.7 -202.6ZM-62.9 -107.6L-103.8 -26.6A9 9 0 0 0 -88.2 -17.4L-37.1 -92.4A15 15 0 0 0 -62.9 -107.6ZM-100.5 -22.6L-124 -13.7A7 7 0 0 0 -120 -0.3L-95.5 -5.4A9 9 0 0 0 -100.5 -22.6Z"/>
+<clipPath id="runClip"><use href="#runPath"/></clipPath>
+<filter id="rhalo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+<radialGradient id="hcold" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#6fd3ff"/><stop offset=".5" stop-color="#3a0ca3"/><stop offset="1" stop-color="#3a0ca3" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1600" height="900" fill="url(#hsky)"/>
+<ellipse cx="800" cy="520" rx="900" ry="160" fill="#3a0ca3" opacity=".25" filter="url(#hblur)"/>
+<path d="M-20 560 L120 430 L240 500 L400 330 L540 470 L690 360 L820 500 L980 300 L1120 470 L1260 360 L1420 480 L1620 380 L1620 900 L-20 900Z" fill="#1a0740"/>
+<path d="M980 300 L1012 344 L996 340 L982 356 L966 336 Z" fill="#6fd3ff" opacity=".4"/>
+<path d="M400 330 L424 368 L410 364 L398 378 L384 360 Z" fill="#6fd3ff" opacity=".3"/>
+<path d="M120 430 L140 466 L128 462 L116 474 L104 458 Z" fill="#6fd3ff" opacity=".25"/>
+<path d="M-20 650 L170 520 L330 612 L520 486 L700 624 L870 548 L1020 634 L1190 508 L1340 612 L1620 520 L1620 900 L-20 900Z" fill="#120633"/>
+<rect x="-20" y="760" width="1640" height="160" fill="#0b0014"/>
+<ellipse cx="900" cy="760" rx="330" ry="30" fill="#b5179e" opacity=".22" filter="url(#hblur)"/>
+<g transform="translate(900 760) scale(1.25)">
+<use href="#runPath" fill="#f72585" opacity=".5" filter="url(#rhalo)"/>
+<use href="#runPath" fill="#1f0a45"/>
+<g clip-path="url(#runClip)"><g id="spots" filter="url(#hblur)"></g></g>
+</g>
+</svg>
+<div class="sweep"></div>
+<div class="hud" aria-hidden="true">
+<div class="hud-tl mono">
+<span class="rec"><i></i>REC</span>　THERMAL LAB · CAM 01<br>
+<span id="clock">----.--.-- --:--:--</span>
+</div>
+<div class="hud-scale">
+<div class="ticks mono"><span>40°</span><span>35°</span><span>30°</span><span>25°</span><span>20°</span><span>15°</span><span>10°</span></div>
+<div class="hud-bar"></div>
+</div>
+<div class="cross" id="cross">
+<span class="ring"></span><span class="hz"></span><span class="vt"></span>
+<output id="crossOut" class="mono">--</output>
+</div>
+<div class="mk max mono" id="mkMax"></div>
+<div class="mk min mono" id="mkMin"></div>
+</div>
+
+</div>
+<div class="hero-copy">
+<p class="kicker">機能跑步・戶外服｜台北內湖</p>
+<h1 id="heroTitle" style="margin-top:18px">熱層</h1>
+<p class="en">Thermal Lab</p>
+<p class="lead">一件衣服撐不住一整天的溫差。我們用分層穿搭，把排汗、保暖、防護拆開來配，讓身體在跑步、爬山、騎車時都維持在舒適的溫度。</p>
+<div class="acts">
+<a class="btn btn-hot" href="#run">報名週末跑團</a>
+<a class="btn btn-line" href="#layers">排一套分層穿搭</a>
+</div>
+<span class="pill" data-status><i class="dot"></i><span class="tx">--</span></span>
+<div class="hero-foot mono">
+<span>適溫區間<b>5–15°C</b></span>
+<span>分層單品<b>10 件</b></span>
+<span>週末跑團<b>3 條路線</b></span>
+</div>
+</div>
+</section>
+<div class="divider" aria-hidden="true"></div>
+
+<section class="story" id="story" aria-labelledby="storyTitle">
+<div class="wrap story-grid">
+<div class="txt rv">
+<p class="kicker">01 — Our Story</p>
+<h2 class="h2" id="storyTitle" style="margin:12px 0 28px">用溫度來設計衣服<small>Brand Story</small></h2>
+<p class="drop">熱層在 2016 年於內湖一間小小的車庫工作室開始。創辦人是一位每週跑四次、住在山腳下的工程師，他發現同一件外套在清晨的河濱會悶出一身汗，到了山頂又冷得發抖。於是我們從「分層」開始研究：底層排汗、中層保暖、外層擋風防水，每一層只做一件事。</p>
+<p>我們的測試室沒有大型設備，只有一台熱像儀、一座小型風扇與一條 400 公尺的跑道。每件新品都要在三種以上的溫度與風速下穿過實測，數據不好就重做。店裡的分層計算器，就是把這些實測變成你可以拿來用的數字。</p>
+<p>週末我們辦跑團，帶大家在不同溫度下穿一次，親手感受哪一層該加、哪一層該脫。</p>
+<div class="stats">
+<div><b class="cnt" data-to="10">10</b><span>年 分層研發</span></div>
+<div><b class="cnt" data-to="38">38</b><span>件 實測樣本</span></div>
+<div><b class="cnt" data-to="45">45</b><span>°C 測試溫域</span></div>
+<div><b class="cnt" data-to="860">860</b><span>位 跑友回饋</span></div>
+</div>
+</div>
+<figure class="ph story-ph rv" data-photo="story" data-art="wind" data-label="風洞實驗室測試" data-size="1000×1250"></figure>
+</div>
+</section>
+
+<section class="shop" id="shop" aria-labelledby="shopTitle">
+<div class="wrap">
+<header class="sec-h rv">
+<p class="kicker">02 — Layered Shop</p>
+<h2 id="shopTitle">分層單品<small>10 pieces · 3 layers + 1</small></h2>
+<p>點卡片或按「看熱像」，切換成熱像視圖，看看這件衣服哪裡保暖、哪裡透氣。</p>
+</header>
+<div class="legend mono" aria-hidden="true"><span>−10°C</span><i></i><span>35°C</span></div>
+<div class="filters" role="group" aria-label="商品分類" id="filters">
+<button type="button" class="chip" data-f="all" aria-pressed="true">全部</button>
+<button type="button" class="chip" data-f="排汗層" aria-pressed="false">排汗層</button>
+<button type="button" class="chip" data-f="保暖層" aria-pressed="false">保暖層</button>
+<button type="button" class="chip" data-f="防護層" aria-pressed="false">防護層</button>
+<button type="button" class="chip" data-f="配件" aria-pressed="false">配件</button>
+</div>
+<div class="grid" id="grid"></div>
+<div class="ask">
+<p id="askSum" aria-live="polite">詢問清單是空的。點商品卡上的「加入詢問」，到店或線上一次問清楚。</p>
+<button type="button" class="btn btn-line btn-sm" id="askClear">清空詢問清單</button>
+</div>
+</div>
+</section>
+
+<section class="layers" id="layers" aria-labelledby="layersTitle">
+<div class="wrap">
+<header class="sec-h rv">
+<p class="kicker">03 — Layer Calculator</p>
+<h2 id="layersTitle">分層穿搭計算器<small>Feel · Layer · Pick</small></h2>
+<p>輸入天氣與活動，算出體感溫度，直接挑出排汗、保暖、防護三層的具體品項。配件可以手動增減，人形會即時變色。</p>
+</header>
+<div class="calc-grid">
+<form class="panel rv" id="calcForm" novalidate>
+<div class="field">
+<div class="lbl"><label for="tIn">氣溫</label><b id="tVal">12°C</b></div>
+<input type="range" id="tIn" min="-10" max="35" step="1" value="12">
+<p class="hint">−10 ～ 35°C，拖動時人形與清單會同步更新。</p>
+</div>
+<div class="field">
+<div class="lbl" id="lWind">風速</div>
+<div class="opts" role="radiogroup" aria-labelledby="lWind">
+<input type="radio" name="wind" id="wind0" value="0"><label for="wind0">無風</label>
+<input type="radio" name="wind" id="wind1" value="1" checked><label for="wind1">微風</label>
+<input type="radio" name="wind" id="wind2" value="2"><label for="wind2">強風</label>
+</div>
+</div>
+<div class="field">
+<div class="lbl" id="lWx">天氣</div>
+<div class="opts" role="radiogroup" aria-labelledby="lWx">
+<input type="radio" name="wx" id="wx0" value="sun"><label for="wx0">晴</label>
+<input type="radio" name="wx" id="wx1" value="cloud" checked><label for="wx1">陰</label>
+<input type="radio" name="wx" id="wx2" value="rain"><label for="wx2">雨</label>
+</div>
+</div>
+<div class="field">
+<div class="lbl" id="lAct">活動</div>
+<div class="opts" role="radiogroup" aria-labelledby="lAct">
+<input type="radio" name="act" id="ac0" value="jog" checked><label for="ac0">慢跑</label>
+<input type="radio" name="act" id="ac1" value="trail"><label for="ac1">越野跑</label>
+<input type="radio" name="act" id="ac2" value="hike"><label for="ac2">登山健行</label>
+<input type="radio" name="act" id="ac3" value="bike"><label for="ac3">通勤騎車</label>
+</div>
+</div>
+<div class="field">
+<div class="lbl" id="lInt">強度</div>
+<div class="opts" role="radiogroup" aria-labelledby="lInt">
+<input type="radio" name="inten" id="in0" value="easy"><label for="in0">輕鬆</label>
+<input type="radio" name="inten" id="in1" value="mid" checked><label for="in1">中等</label>
+<input type="radio" name="inten" id="in2" value="hard"><label for="in2">高強度</label>
+</div>
+</div>
+<div class="field">
+<div class="lbl"><label for="durIn">時長</label><b id="durVal">60 分鐘</b></div>
+<input type="range" id="durIn" min="30" max="180" step="15" value="60">
+</div>
+<div class="field">
+<div class="lbl" id="lAcc">配件（依推薦自動設定，可手動增減）</div>
+<div class="tog" role="group" aria-labelledby="lAcc">
+<input type="checkbox" id="tGlove"><label for="tGlove">戴手套</label>
+<input type="checkbox" id="tBeanie"><label for="tBeanie">戴毛帽</label>
+<input type="checkbox" id="tTight"><label for="tTight">穿保暖緊身褲</label>
+</div>
+</div>
+</form>
+
+<div class="panel rv" aria-labelledby="outTitle">
+<h3 class="sr-only" id="outTitle" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">計算結果</h3>
+<div class="out-top">
+<div>
+<p class="k">體感溫度</p>
+<p class="big" id="feelVal">--</p>
+</div>
+<span class="comfort" id="comfort">--</span>
+</div>
+<div class="fig-wrap" style="margin-top:18px">
+<svg id="fig" viewBox="0 0 400 500" role="img" aria-label="熱像人形，依預測舒適度上色">
+<defs><filter id="fbg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="16"/></filter><filter id="fblend" x="-15%" y="-5%" width="130%" height="110%"><feGaussianBlur stdDeviation="2.4"/></filter></defs>
+<ellipse id="glow" cx="200" cy="260" rx="150" ry="230" opacity=".3" filter="url(#fbg)" style="transition:fill .9s var(--ease-out)"/>
+<g filter="url(#fblend)"><g transform="translate(20 0)"><ellipse class="seg" data-k="head" cx="180" cy="62" rx="26" ry="32"/><path class="seg" data-k="neck" d="M170 86H190L194 118H166Z"/><ellipse class="seg" data-k="th" cx="152" cy="252" rx="24" ry="24"/><ellipse class="seg" data-k="th" cx="208" cy="252" rx="24" ry="24"/>
+<path class="seg" data-k="sh" d="M136 124Q150 112 170 114H190Q210 112 224 124Q240 130 242 150L226 164H134L118 150Q120 130 136 124Z"/><path class="seg" data-k="tor" d="M134 150H226Q232 176 226 212Q230 236 236 252Q238 262 226 266Q206 274 180 274Q154 274 134 266Q122 262 124 252Q130 236 134 212Q128 176 134 150Z"/><path class="seg" data-k="ua" d="M123.2 131.5L113.1 216.2A11 11 0 0 0 134.9 219.8L152.8 136.5A15 15 0 0 0 123.2 131.5Z"/><path class="seg" data-k="ua" d="M207.2 136.5L225.1 219.8A11 11 0 0 0 246.9 216.2L236.8 131.5A15 15 0 0 0 207.2 136.5Z"/><path class="seg" data-k="fa" d="M113.1 216.3L106.1 280.8A8 8 0 0 0 121.9 283.2L134.9 219.7A11 11 0 0 0 113.1 216.3Z"/><path class="seg" data-k="fa" d="M225.1 219.7L238.1 283.2A8 8 0 0 0 253.9 280.8L246.9 216.3A11 11 0 0 0 225.1 219.7Z"/><path class="seg" data-k="hn" d="M106.2 280.3L99.3 297.6A11 11 0 0 0 120.7 302.4L121.8 283.7A8 8 0 0 0 106.2 280.3Z"/><path class="seg" data-k="hn" d="M238.2 283.7L239.3 302.4A11 11 0 0 0 260.7 297.6L253.8 280.3A8 8 0 0 0 238.2 283.7Z"/><path class="seg" data-k="hn" d="M99.1 298.4L99.1 327A7 7 0 0 0 112.9 329L120.9 301.6A11 11 0 0 0 99.1 298.4Z"/><path class="seg" data-k="hn" d="M239.1 301.6L247.1 329A7 7 0 0 0 260.9 327L260.9 298.4A11 11 0 0 0 239.1 301.6Z"/><path class="seg" data-k="th" d="M128 251.1L134 355.5A14 14 0 0 0 162 356.5L176 252.9A24 24 0 0 0 128 251.1Z"/><path class="seg" data-k="th" d="M184 252.9L198 356.5A14 14 0 0 0 226 355.5L232 251.1A24 24 0 0 0 184 252.9Z"/><path class="seg" data-k="cf" d="M133 362.3L141 450.2A9 9 0 0 0 159 449.8L163 361.7A15 15 0 0 0 133 362.3Z"/><path class="seg" data-k="cf" d="M197 361.7L201 449.8A9 9 0 0 0 219 450.2L227 362.3A15 15 0 0 0 197 361.7Z"/><path class="seg" data-k="ft" d="M136 469L162 469A9 9 0 0 0 162 451L136 451A9 9 0 0 0 136 469Z"/><path class="seg" data-k="ft" d="M224 451L198 451A9 9 0 0 0 198 469L224 469A9 9 0 0 0 224 451Z"/><circle class="seg" data-k="ua" cx="138" cy="134" r="15"/><circle class="seg" data-k="ua" cx="222" cy="134" r="15"/><circle class="seg" data-k="fa" cx="124" cy="218" r="11"/><circle class="seg" data-k="fa" cx="236" cy="218" r="11"/><circle class="seg" data-k="hn" cx="114" cy="282" r="8"/><circle class="seg" data-k="hn" cx="246" cy="282" r="8"/><circle class="seg" data-k="th" cx="148" cy="356" r="14"/><circle class="seg" data-k="th" cx="212" cy="356" r="14"/><circle class="seg" data-k="cf" cx="150" cy="450" r="9"/><circle class="seg" data-k="cf" cx="210" cy="450" r="9"/></g></g>
+<path class="fig-l" d="M248 196H290"/><circle class="fig-d" cx="248" cy="196" r="2.5"/><text class="fig-t" id="lbT" x="296" y="201">軀幹 --</text>
+<path class="fig-l" d="M118 300H90"/><circle class="fig-d" cx="118" cy="300" r="2.5"/><text class="fig-t" id="lbH" x="86" y="305" text-anchor="end">手 --</text>
+<path class="fig-l" d="M258 460H290"/><circle class="fig-d" cx="258" cy="460" r="2.5"/><text class="fig-t" id="lbF" x="296" y="465">腳 --</text>
+</svg>
+<p class="fig-note mono" id="figNote">核心 --°C</p>
+</div>
+<p class="msg" id="calcMsg" role="status">--</p>
+<p class="note" id="calcNote"></p>
+<ul class="pick" id="pick"></ul>
+<p class="tot mono" id="tot"></p>
+</div>
+</div>
+</div>
+</section>
+
+<section class="run" id="run" aria-labelledby="runTitle">
+<div class="wrap run-grid">
+<div class="rv">
+<header class="sec-h" style="margin-bottom:0">
+<p class="kicker">04 — Weekend Run Club</p>
+<h2 id="runTitle">週末跑團報名<small>Sat · Sun</small></h2>
+<p>每週六、日一起跑，帶你在真實的溫度與風裡試穿分層。報名後會收到一張出發證，當天憑證到店領取頭燈與補給。</p>
+</header>
+<div class="routes">
+<div class="route"><span class="km">10K</span><div><h3>河濱 10K</h3><p>平路為主，適合配速穩定的跑友。集合 06:40，內湖店門口出發。</p></div></div>
+<div class="route"><span class="km">8K</span><div><h3>山徑 8K</h3><p>爬升約 320 公尺，需要排汗層與防風外層。集合 06:00。</p></div></div>
+<div class="route"><span class="km">6K</span><div><h3>夜跑 6K</h3><p>傍晚出發，全程需要頭燈；夜跑會自動預留頭燈。集合 18:30。</p></div></div>
+</div>
+</div>
+
+<div class="panel rv" id="runWrap">
+<form class="form" id="runForm" novalidate>
+<div class="row2">
+<div class="fld">
+<label for="rName">姓名</label>
+<input class="fi" id="rName" name="name" type="text" autocomplete="name" placeholder="例：陳小明" aria-describedby="eName">
+<p class="err" id="eName" aria-live="polite"></p>
+</div>
+<div class="fld">
+<label for="rPhone">手機或市話</label>
+<input class="fi" id="rPhone" name="phone" type="tel" autocomplete="tel" placeholder="09xx-xxx-xxx" aria-describedby="ePhone">
+<p class="err" id="ePhone" aria-live="polite"></p>
+</div>
+</div>
+<div class="fld">
+<label for="rDate">跑團日期（僅週六、週日）</label>
+<input class="fi" id="rDate" name="date" type="date" aria-describedby="eDate">
+<p class="err" id="eDate" aria-live="polite"></p>
+</div>
+<div class="fld">
+<span class="lb" id="lRoute">路線</span>
+<div class="radios" role="radiogroup" aria-labelledby="lRoute">
+<input type="radio" name="route" id="rt0" value="river" checked><label for="rt0">河濱 10K</label>
+<input type="radio" name="route" id="rt1" value="trail"><label for="rt1">山徑 8K</label>
+<input type="radio" name="route" id="rt2" value="night"><label for="rt2">夜跑 6K</label>
+</div>
+</div>
+<div class="fld">
+<span class="lb" id="lPace">配速組</span>
+<div class="radios" role="radiogroup" aria-labelledby="lPace">
+<input type="radio" name="pace" id="pc0" value="630"><label for="pc0">6:30</label>
+<input type="radio" name="pace" id="pc1" value="530" checked><label for="pc1">5:30</label>
+<input type="radio" name="pace" id="pc2" value="445"><label for="pc2">4:45</label>
+</div>
+</div>
+<label class="check" for="rLamp"><input type="checkbox" id="rLamp"> 租借頭燈（每次 NT$ 100，夜跑自動預留）</label>
+<button type="submit" class="btn btn-hot btn-block">送出報名</button>
+<p class="hint" style="font-size:12.5px;color:var(--mute)">表單送出只在頁面上示範，正式使用請串接預約系統。</p>
+</form>
+<div id="ticketWrap" hidden></div>
+</div>
+</div>
+</section>
+
+<section class="size" id="size" aria-labelledby="sizeTitle">
+<div class="wrap">
+<header class="sec-h rv">
+<p class="kicker">05 — Size Guide</p>
+<h2 id="sizeTitle">尺寸指南<small>Chest first</small></h2>
+<p>先量胸圍，再看版型。下表是成衣的參考尺寸，平放量測時請以實際數字為準。</p>
+</header>
+<div class="size-grid">
+<div class="tbl-wrap rv">
+<table>
+<caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">上衣尺寸對照表</caption>
+<thead><tr><th scope="col">尺寸</th><th scope="col">胸圍 cm</th><th scope="col">衣長 cm</th><th scope="col">建議身高 cm</th></tr></thead>
+<tbody>
+<tr data-sz="XS"><td>XS</td><td class="mono">82–86</td><td class="mono">64</td><td class="mono">155–163</td></tr>
+<tr data-sz="S"><td>S</td><td class="mono">86–90</td><td class="mono">66</td><td class="mono">163–170</td></tr>
+<tr data-sz="M"><td>M</td><td class="mono">90–96</td><td class="mono">68</td><td class="mono">168–175</td></tr>
+<tr data-sz="L"><td>L</td><td class="mono">96–102</td><td class="mono">70</td><td class="mono">173–180</td></tr>
+<tr data-sz="XL"><td>XL</td><td class="mono">102–108</td><td class="mono">72</td><td class="mono">178–185</td></tr>
+<tr data-sz="XXL"><td>XXL</td><td class="mono">108–116</td><td class="mono">74</td><td class="mono">182–190</td></tr>
+</tbody>
+</table>
+</div>
+<div class="sz-panel rv">
+<form id="szForm" novalidate>
+<div class="row2">
+<div class="fld"><label for="szH">身高 cm</label><input class="fi" id="szH" type="number" inputmode="numeric" min="140" max="210" placeholder="170"><p class="err" id="eH"></p></div>
+<div class="fld"><label for="szW">體重 kg</label><input class="fi" id="szW" type="number" inputmode="numeric" min="35" max="150" placeholder="62"><p class="err" id="eW"></p></div>
+</div>
+<div class="row2">
+<div class="fld"><label for="szC">胸圍 cm</label><input class="fi" id="szC" type="number" inputmode="numeric" min="70" max="130" placeholder="92"><p class="err" id="eC"></p></div>
+<div class="fld">
+<span class="lb" id="lFit">版型偏好</span>
+<div class="opts" role="radiogroup" aria-labelledby="lFit">
+<input type="radio" name="fit" id="ft0" value="std" checked><label for="ft0">標準</label>
+<input type="radio" name="fit" id="ft1" value="slim"><label for="ft1">競賽貼身</label>
+</div>
+</div>
+</div>
+<button type="submit" class="btn btn-hot btn-block">推薦尺寸</button>
+</form>
+<div class="sz-res" id="szRes" aria-live="polite">輸入胸圍與身高，會推薦一個上衣尺寸，並提醒要不要加大或改小。</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="gallery" id="gallery" aria-labelledby="galleryTitle">
+<div class="wrap">
+<header class="sec-h rv">
+<p class="kicker">06 — Lookbook</p>
+<h2 id="galleryTitle">店內與山徑<small>Photo wall</small></h2>
+</header>
+<div class="wall">
+<div class="shot rv">
+<figure class="ph" data-photo="g1" data-art="store" data-label="門市夜景" data-size="1600×1000"></figure>
+<p class="cap">內湖店的櫥窗，夜裡會留一盞暖燈，給跑完回來的人。</p>
+</div>
+<div class="shot rv">
+<figure class="ph" data-photo="g2" data-art="dawn" data-label="清晨跑團" data-size="1200×1200"></figure>
+<p class="cap">週末清晨六點，河濱的第一批跑團。</p>
+</div>
+<div class="shot rv">
+<figure class="ph" data-photo="g3" data-art="fabric" data-label="布料透氣測試" data-size="1200×900"></figure>
+<p class="cap">布料透氣測試：熱像儀上看見熱從哪裡散出。</p>
+</div>
+<div class="shot rv">
+<figure class="ph" data-photo="g4" data-art="trail" data-label="山徑" data-size="1600×900"></figure>
+<p class="cap">山徑 8K，爬升約 320 公尺，風從山脊吹來。</p>
+</div>
+</div>
+</div>
+</section>
+
+<section class="reviews" id="reviews" aria-labelledby="revTitle">
+<div class="wrap">
+<header class="sec-h rv">
+<p class="kicker">07 — Reviews</p>
+<h2 id="revTitle">跑友回饋<small>Field notes</small></h2>
+</header>
+<div class="rv-grid">
+<article class="rev rv">
+<blockquote>清晨 6 度去河濱跑 10K，底層完全不悶，回來也沒有冷汗那種黏感。</blockquote>
+<div class="meta"><span><b>陳先生</b>　台北・2026.08.14</span><span class="heat-rate" role="img" aria-label="熱度 5 分，共 5 分"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+<p class="mono" style="font-size:12px;color:var(--mute);margin-top:8px">購買：美麗諾羊毛排汗長袖</p>
+</article>
+<article class="rev rv">
+<blockquote>夏天的排汗背心很輕，只是 S 號有點緊，建議照胸圍表選 M。</blockquote>
+<div class="meta"><span><b>林小姐</b>　新北・2026.07.02</span><span class="heat-rate" role="img" aria-label="熱度 4 分，共 5 分"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+<p class="mono" style="font-size:12px;color:var(--mute);margin-top:8px">購買：網眼排汗背心</p>
+</article>
+<article class="rev rv">
+<blockquote>上週在阿里山下雨，外套完全擋住了，縫線也很紮實，袖口的鬆緊剛好。</blockquote>
+<div class="meta"><span><b>王先生</b>　台中・2026.05.21</span><span class="heat-rate" role="img" aria-label="熱度 5 分，共 5 分"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+<p class="mono" style="font-size:12px;color:var(--mute);margin-top:8px">購買：3L 防水外套</p>
+</article>
+<article class="rev rv">
+<blockquote>跑步時可以直接滑手機，指尖不冷；就是洗完要平放，不能掛。</blockquote>
+<div class="meta"><span><b>蔡小姐</b>　桃園・2026.09.27</span><span class="heat-rate" role="img" aria-label="熱度 4 分，共 5 分"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+<p class="mono" style="font-size:12px;color:var(--mute);margin-top:8px">購買：觸控保暖手套</p>
+</article>
+</div>
+</div>
+</section>
+
+<section class="store" id="store" aria-labelledby="storeTitle">
+<div class="wrap store-grid">
+<div class="rv">
+<header class="sec-h" style="margin-bottom:24px">
+<p class="kicker">08 — Store</p>
+<h2 id="storeTitle">門市資訊<small>Neihu Store</small></h2>
+</header>
+<span class="pill" data-status id="storeStatus" style="margin:0 0 20px"><i class="dot"></i><span class="tx">--</span></span>
+<ul class="hours" id="hours" aria-label="營業時間"></ul>
+</div>
+<div class="rv">
+<dl class="info-list">
+<div><dt>地址</dt><dd data-shop="addr">台北市內湖區示範路 220 號</dd></div>
+<div><dt>電話</dt><dd><a id="tel" href="tel:+26227001234" data-shop="tel">(02) 2700-1234</a></dd></div>
+<div><dt>交通與停車</dt><dd>捷運內湖站步行約 10 分鐘，店門口有 2 格臨停。週末跑團建議搭乘大眾運輸，或在河濱停車場集合。</dd></div>
+<div><dt>服務項目</dt><dd><ul class="svc">
+<li>尺寸修改：袖長、衣長、收腰（約 7 個工作天）</li>
+<li>退換貨：收到商品 14 天內，未穿未洗、吊牌完整，可免費換尺寸</li>
+<li>分層諮詢：免費到店，帶上你的跑步路線，我們幫你排一套</li>
+<li>跑團租借：頭燈、腰包，每次 NT$ 100</li>
+</ul></dd></div>
+</dl>
+<div class="map-row">
+<a class="btn btn-line" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟</a>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer class="foot">
+<div class="wrap foot-grid">
+<div>
+<b data-shop="name">熱層 THERMAL LAB</b>
+<p style="margin-top:8px">台北市內湖區示範路 220 號・(02) 2700-1234</p>
+</div>
+<nav aria-label="社群連結">
+<a href="#">Instagram</a>
+<a href="#">Facebook</a>
+<a href="#">Strava 跑團</a>
+</nav>
+<div>
+<p class="mono">© <span id="yr">2026</span> 熱層 THERMAL LAB</p>
+<p class="disc">此為店家官網示範模板，商品與評論為示意。</p>
+</div>
+</div>
+</footer>
+<script>
+(function(){
+'use strict';
+
+/* ===== 店家設定 ===== */
+var SHOP = {
+name:'熱層 THERMAL LAB', phone:'(02) 2700-1234', address:'台北市內湖區示範路 220 號',
+// 0=週日；[開, 關]，null 表示公休
+hours:[['12:00','20:00'], null, ['11:00','21:00'], ['11:00','21:00'], ['11:00','21:00'], ['11:00','21:30'], ['10:00','21:00']],
+photos:{ story:'', g1:'', g2:'', g3:'', g4:'' }   // 填網址就會取代佔位圖
+};
+
+/* ===== 商品資料 =====
+id：圖樣與計算用的代號；cat：排汗層／保暖層／防護層／配件；
+t：適溫 [最低, 最高]（°C）；g：重量（g）；
+w：保暖係數（tor 軀幹、arm 手臂、leg 腿、head 頭、hand 手），計算人形的體溫用 */
+var PRODUCTS = [
+{id:'merino',   n:'美麗諾羊毛排汗長袖', cat:'排汗層', mat:'美麗諾羊毛 85%・尼龍 15%',   t:[8,22],   g:165, price:2480, sz:['S','M','L','XL'], w:{tor:.3, arm:.3}},
+{id:'mesh',     n:'網眼排汗背心',       cat:'排汗層', mat:'聚酯纖維網眼・快乾',         t:[18,40],  g:98,  price:1280, sz:['S','M','L','XL'], w:{tor:.1, arm:.05}},
+{id:'shorts',   n:'跑步短褲',           cat:'排汗層', mat:'聚酯・內襯一體・彈性',       t:[12,40],  g:105, price:1080, sz:['S','M','L','XL'], w:{}},
+{id:'fleece',   n:'輕量刷毛中層',       cat:'保暖層', mat:'再生聚酯刷毛・半開襟',       t:[-2,15],  g:260, price:2980, sz:['S','M','L','XL'], w:{tor:.8, arm:.8}},
+{id:'vest',     n:'合成纖維保暖背心',   cat:'保暖層', mat:'輕量填充・防風面料',         t:[-10,8],  g:210, price:3180, sz:['S','M','L','XL'], w:{tor:.9, arm:0}},
+{id:'tights',   n:'保暖緊身褲',         cat:'保暖層', mat:'內刷毛・高彈性',             t:[-5,12],  g:230, price:2380, sz:['S','M','L','XL'], w:{leg:.8}},
+{id:'wind',     n:'超輕風衣',           cat:'防護層', mat:'尼龍防潑水・可收納',         t:[5,25],   g:132, price:3580, sz:['S','M','L','XL'], w:{tor:.25, arm:.25}},
+{id:'jacket3l', n:'3L 防水外套',        cat:'防護層', mat:'三層貼合・全壓膠接縫',       t:[-10,12], g:420, price:9800, sz:['S','M','L','XL'], w:{tor:.5, arm:.5}},
+{id:'gloves',   n:'觸控保暖手套',       cat:'配件',   mat:'抓絨內層・指尖可觸控',       t:[-10,14], g:45,  price:690,  sz:['S/M','L/XL'],     w:{hand:1}},
+{id:'beanie',   n:'反光毛帽',           cat:'配件',   mat:'美麗諾混紡・反光條',         t:[-10,14], g:60,  price:890,  sz:['F'],               w:{head:1}}
+];
+var BY = {};
+PRODUCTS.forEach(function(p){ BY[p.id] = p; });
+
+/* ===== 工具 ===== */
+function $(s, r){ return (r || document).querySelector(s); }
+function $$(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function money(n){ return 'NT$ ' + Number(n).toLocaleString('zh-TW'); }
+function minOf(t){ var p = t.split(':'); return +p[0] * 60 + +p[1]; }
+function addDays(d, k){ var x = new Date(d.getTime()); x.setDate(x.getDate() + k); return x; }
+function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function setTxt(el, s){ if (el) el.textContent = s; }
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var WEEK_ORDER = [1,2,3,4,5,6,0];
+var NOW = new Date();
+var reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+document.documentElement.classList.add('js');
+
+/* ===== 熱像色階 ===== */
+var RAMP = ['#0b0014','#3a0ca3','#b5179e','#f72585','#ff8c00','#ffd60a','#ffffff'];
+function rgbOf(h){ return [parseInt(h.substr(1,2),16), parseInt(h.substr(3,2),16), parseInt(h.substr(5,2),16)]; }
+function mixHex(a, b, t){
+var A = rgbOf(a), B = rgbOf(b);
+return 'rgb(' + A.map(function(v, i){ return Math.round(v + (B[i] - v) * t); }).join(',') + ')';
+}
+/* 皮膚溫度 → 顏色：偏冷為冰藍／紫，舒適為橘，過熱為黃白 */
+var SKIN = [[24,'#3a0ca3'],[28,'#6fd3ff'],[31.5,'#ff8c00'],[35,'#ff8c00'],[36.5,'#ffd60a'],[39,'#ffffff']];
+function skinColor(T){
+if (T <= SKIN[0][0]) return SKIN[0][1];
+for (var i = 1; i < SKIN.length; i++){
+if (T <= SKIN[i][0]){
+var a = SKIN[i - 1], b = SKIN[i];
+return mixHex(a[1], b[1], (T - a[0]) / (b[0] - a[0]));
+}
+}
+return SKIN[SKIN.length - 1][1];
+}
+
+/* ===== 營業狀態（hero、門市共用） ===== */
+function openState(d){
+var h = SHOP.hours[d.getDay()], t = d.getHours() * 60 + d.getMinutes();
+if (h && t >= minOf(h[0]) && t < minOf(h[1])) return { open:true, text:'營業中・到 ' + h[1] };
+if (h && t < minOf(h[0])) return { open:false, text:'休息中・今天 ' + h[0] + ' 開門' };
+for (var k = 1; k <= 7; k++){
+var nd = addDays(d, k), nh = SHOP.hours[nd.getDay()];
+if (nh) return { open:false, text:'休息中・' + (k === 1 ? '明天' : DAYS[nd.getDay()]) + ' ' + nh[0] + ' 開門' };
+}
+return { open:false, text:'休息中' };
+}
+function renderStatus(){
+var st = openState(new Date());
+$$('[data-status]').forEach(function(el){
+el.classList.toggle('on', st.open);
+setTxt($('.tx', el), st.text);
+});
+}
+renderStatus();
+setInterval(renderStatus, 60000);
+
+/* ===== 店家資料填入 ===== */
+var shopFill = {name:SHOP.name, tel:SHOP.phone, addr:SHOP.address};
+$$('[data-shop]').forEach(function(el){
+var k = el.getAttribute('data-shop');
+if (shopFill[k] != null) el.textContent = shopFill[k];
+});
+var telEl = $('#tel');
+if (telEl) telEl.href = 'tel:' + SHOP.phone.replace(/[^\d+]/g, '');
+var mapEl = $('#mapLink');
+if (mapEl) mapEl.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+var hoursEl = $('#hours');
+if (hoursEl){
+hoursEl.innerHTML = WEEK_ORDER.map(function(d){
+var h = SHOP.hours[d], today = d === NOW.getDay();
+return '<li class="' + (today ? 'today' : '') + '"><span>' + DAYS[d] + (today ? '<em class="tg">今天</em>' : '') + '</span><span class="mono">' + (h ? h[0] + ' – ' + h[1] : '公休') + '</span></li>';
+}).join('');
+}
+setTxt($('#yr'), String(NOW.getFullYear()));
+
+/* ===== 照片位佔位插畫（SHOP.photos 沒有網址時顯示） ===== */
+function svgw(inner){
+return '<svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">' + inner + '</svg>';
+}
+var ART = {
+/* 風洞：流線、熱像人形與風扇 */
+wind: function(){
+var lines = '';
+for (var i = 0; i < 16; i++){
+var y = 60 + i * 56, c = ['#3a0ca3','#b5179e','#f72585','#6fd3ff'][i % 4];
+lines += '<path d="M-20 ' + y + ' C260 ' + (y - 70 + (i % 3) * 40) + ', 760 ' + (y + 60 - (i % 4) * 34) + ', 1220 ' + (y + (i % 2 ? -30 : 30)) + '" fill="none" stroke="' + c + '" stroke-width="' + (2 + (i % 3) * 2) + '" opacity="' + (0.35 + (i % 5) * 0.12).toFixed(2) + '"/>';
+}
+return svgw('<defs><radialGradient id="aw-h" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#fff"/><stop offset=".22" stop-color="#ffd60a"/><stop offset=".5" stop-color="#ff8c00"/><stop offset=".78" stop-color="#f72585"/><stop offset="1" stop-color="#3a0ca3"/></radialGradient><filter id="aw-b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter></defs>' +
+'<rect width="1200" height="900" fill="#07060b"/>' + lines +
+'<g filter="url(#aw-b)"><ellipse cx="640" cy="470" rx="150" ry="210" fill="url(#aw-h)"/><circle cx="640" cy="200" r="66" fill="url(#aw-h)"/><path d="M500 360 Q520 520 500 720 M780 360 Q760 520 790 700" stroke="#f72585" stroke-width="54" fill="none" stroke-linecap="round" opacity=".8"/></g>' +
+'<g fill="none" stroke="#6fd3ff" stroke-width="3" opacity=".7"><circle cx="330" cy="450" r="150"/><circle cx="330" cy="450" r="110" stroke-dasharray="6 10"/></g>' +
+'<path d="M330 450 L280 330 M330 450 L420 420 M330 450 L310 580" stroke="#6fd3ff" stroke-width="10" opacity=".55" stroke-linecap="round"/>' +
+'<text x="290" y="800" font-family="monospace" font-size="34" fill="#ffd60a">WIND 12.4 M/S</text><text x="290" y="846" font-family="monospace" font-size="26" fill="#9a94ad">TEST 03 · 37.2 °C</text>');
+},
+/* 門市：夜裡的櫥窗與招牌 */
+store: function(){
+var st = '';
+for (var i = 0; i < 12; i++){
+st += '<rect x="' + (120 + i * 80) + '" y="276" width="40" height="60" fill="' + (i % 2 ? '#b5179e' : '#3a0ca3') + '" opacity=".75"/>';
+}
+return svgw('<defs><linearGradient id="as-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07060b"/><stop offset=".6" stop-color="#2a0b5c"/><stop offset="1" stop-color="#b5179e"/></linearGradient><radialGradient id="as-g" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd60a" stop-opacity=".9"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient><linearGradient id="as-w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd60a"/><stop offset=".5" stop-color="#ff8c00"/><stop offset="1" stop-color="#3a0ca3"/></linearGradient></defs>' +
+'<rect width="1200" height="900" fill="url(#as-s)"/>' +
+'<rect x="120" y="250" width="960" height="650" fill="#120e1f"/><rect x="120" y="230" width="960" height="46" fill="#1b1430"/>' + st +
+'<rect x="180" y="380" width="380" height="330" rx="10" fill="url(#as-w)" opacity=".85"/>' +
+'<g fill="#07060b"><circle cx="370" cy="470" r="34"/><path d="M310 620 Q370 500 430 620 Z"/></g>' +
+'<rect x="640" y="380" width="200" height="330" rx="10" fill="#0b0014"/>' +
+'<rect x="880" y="380" width="200" height="330" rx="10" fill="url(#as-w)" opacity=".5"/>' +
+'<circle cx="560" cy="700" r="300" fill="url(#as-g)"/>' +
+'<text x="600" y="206" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="64" fill="#ffd60a" letter-spacing="8">THERMAL</text>');
+},
+/* 清晨跑團：天色與剪影 */
+dawn: function(){
+var rn = '';
+for (var i = 0; i < 5; i++){
+var x = 240 + i * 170, y = 700 + (i % 2) * 22, s = 1 + (i % 3) * 0.12;
+rn += '<g transform="translate(' + x + ' ' + y + ') scale(' + s.toFixed(2) + ')" fill="none" stroke="#07060b" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="-150" r="20" fill="#07060b" stroke="none"/><path d="M0 -122 L8 -60 M0 -118 L-34 -92 L-20 -68 M0 -118 L36 -96 M8 -60 L-26 -4 M8 -60 L44 -4" stroke-width="18"/></g>';
+}
+return svgw('<defs><linearGradient id="ad-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0ca3"/><stop offset=".5" stop-color="#b5179e"/><stop offset=".8" stop-color="#f72585"/><stop offset="1" stop-color="#ff8c00"/></linearGradient><radialGradient id="ad-sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c2"/><stop offset=".4" stop-color="#ffd60a"/><stop offset="1" stop-color="#ff8c00" stop-opacity="0"/></radialGradient></defs>' +
+'<rect width="1200" height="900" fill="url(#ad-s)"/><circle cx="600" cy="610" r="260" fill="url(#ad-sun)"/>' +
+'<path d="M0 700 Q200 600 420 680 T820 660 T1200 640 V900 H0Z" fill="#0b0014"/>' +
+'<path d="M0 760 Q300 690 600 740 T1200 720 V900 H0Z" fill="#07060b"/>' + rn +
+'<text x="190" y="846" font-family="monospace" font-size="26" fill="#fff6c2">06:40 · 河濱 10K · 8.4 °C</text>');
+},
+/* 布料透氣測試：織紋與熱斑 */
+fabric: function(){
+return svgw('<defs><pattern id="af-w" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M0 11 H22 M11 0 V22" stroke="#3b3550" stroke-width="3"/><path d="M0 0 L22 22" stroke="#25203a" stroke-width="2"/></pattern><radialGradient id="af-h" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".25" stop-color="#ffd60a"/><stop offset=".55" stop-color="#ff8c00"/><stop offset=".8" stop-color="#f72585"/><stop offset="1" stop-color="#3a0ca3" stop-opacity="0"/></radialGradient><linearGradient id="af-r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b0014"/><stop offset=".2" stop-color="#3a0ca3"/><stop offset=".4" stop-color="#b5179e"/><stop offset=".6" stop-color="#f72585"/><stop offset=".8" stop-color="#ff8c00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient><filter id="af-b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter></defs>' +
+'<rect width="1200" height="900" fill="#1a1726"/><rect width="1200" height="900" fill="url(#af-w)"/>' +
+'<g filter="url(#af-b)"><ellipse cx="380" cy="420" rx="220" ry="170" fill="url(#af-h)"/><ellipse cx="820" cy="520" rx="260" ry="180" fill="url(#af-h)" opacity=".8"/></g>' +
+'<g fill="none" stroke="#6fd3ff" stroke-width="5" opacity=".85" stroke-linecap="round"><path d="M90 220 C300 160 420 300 640 220"/><path d="M90 300 C320 250 500 380 760 300"/><path d="M120 640 C360 600 520 720 800 660"/></g>' +
+'<rect x="80" y="790" width="600" height="18" rx="9" fill="url(#af-r)"/>' +
+'<text x="80" y="760" font-family="monospace" font-size="30" fill="#6fd3ff">AIR 38 L/m²s</text>');
+},
+/* 山徑：冷色山景與蜿蜒步道 */
+trail: function(){
+return svgw('<defs><linearGradient id="at-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07060b"/><stop offset=".6" stop-color="#3a0ca3"/><stop offset="1" stop-color="#b5179e"/></linearGradient><linearGradient id="at-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a0b5c"/><stop offset="1" stop-color="#0b0014"/></linearGradient><filter id="at-b" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8"/></filter></defs>' +
+'<rect width="1200" height="900" fill="url(#at-s)"/>' +
+'<path d="M-20 520 L180 300 L320 420 L500 240 L680 430 L820 330 L1000 470 L1220 300 L1220 900 L-20 900Z" fill="url(#at-m)"/>' +
+'<path d="M500 240 L532 290 L514 284 L498 300 L480 280 Z" fill="#6fd3ff" opacity=".4"/>' +
+'<path d="M-20 680 L240 560 L460 660 L700 580 L940 690 L1220 600 L1220 900 L-20 900Z" fill="#120633"/>' +
+'<path d="M640 900 C560 800 720 720 610 640 C520 580 640 520 600 470" fill="none" stroke="#f72585" stroke-width="22" stroke-linecap="round" opacity=".55" filter="url(#at-b)"/>' +
+'<path d="M640 900 C560 800 720 720 610 640 C520 580 640 520 600 470" fill="none" stroke="#ffd60a" stroke-width="5" stroke-dasharray="14 12" opacity=".85"/>' +
+'<g fill="#07060b"><circle cx="600" cy="446" r="12"/><path d="M590 462 L600 492 L612 462 Z"/></g>' +
+'<text x="60" y="760" font-family="monospace" font-size="30" fill="#ffd60a">TRAIL 8K · +320 M</text>');
+}
+};
+function fillPhotos(){
+$$('.ph').forEach(function(f){
+var key = f.getAttribute('data-photo');
+var u = key && SHOP.photos ? SHOP.photos[key] : '';
+if (u){
+var im = document.createElement('img');
+im.src = u;
+im.alt = f.getAttribute('data-label') || '';
+im.loading = 'lazy';
+f.appendChild(im);
+} else {
+var fn = ART[f.getAttribute('data-art')];
+if (fn) f.innerHTML = fn();
+}
+});
+}
+fillPhotos();
+
+/* 照片位切換：網址加 ?slots 或按按鈕 */
+(function(){
+var sb = $('#slotBtn');
+if (!sb) return;
+function setSlots(on){
+document.body.classList.toggle('slots', on);
+sb.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+setSlots(/[?&]slots(&|=|$)/.test(location.search));
+sb.addEventListener('click', function(){ setSlots(!document.body.classList.contains('slots')); });
+})();
+
+/* ===== 導覽：選單、Esc、目前章節 ===== */
+var menuBtn = $('#menuBtn'), navEl = $('#navLinks');
+function setMenu(open){
+if (!menuBtn || !navEl) return;
+navEl.classList.toggle('open', open);
+menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+menuBtn.textContent = open ? '關閉' : '選單';
+}
+if (menuBtn) menuBtn.addEventListener('click', function(){ setMenu(!navEl.classList.contains('open')); });
+if (navEl) navEl.addEventListener('click', function(e){ if (e.target.closest('a')) setMenu(false); });
+document.addEventListener('keydown', function(e){
+if (e.key === 'Escape' && navEl && navEl.classList.contains('open')){
+setMenu(false);
+if (menuBtn) menuBtn.focus();
+}
+});
+var navLinks = $$('.nav a.lk');
+if ('IntersectionObserver' in window){
+var spy = new IntersectionObserver(function(es){
+es.forEach(function(en){
+if (!en.isIntersecting) return;
+navLinks.forEach(function(a){ a.setAttribute('aria-current', a.getAttribute('href') === '#' + en.target.id ? 'true' : 'false'); });
+});
+}, {rootMargin:'-45% 0px -50% 0px'});
+$$('main section[id]').forEach(function(s){ spy.observe(s); });
+}
+
+/* ===== 進場與數字滾動 ===== */
+function fmtNum(v, el){
+var dec = +(el.getAttribute('data-dec') || 0);
+return dec ? v.toFixed(dec) : Math.round(v).toLocaleString('zh-TW');
+}
+function countUp(el){
+var to = +el.getAttribute('data-to');
+if (reduce || !window.requestAnimationFrame){ el.textContent = fmtNum(to, el); return; }
+var t0 = null, dur = 1400;
+requestAnimationFrame(function step(ts){
+if (t0 === null) t0 = ts;
+var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+el.textContent = fmtNum(to * e, el);
+if (k < 1) requestAnimationFrame(step);
+});
+}
+var io = null;
+if ('IntersectionObserver' in window && !reduce){
+io = new IntersectionObserver(function(entries){
+entries.forEach(function(en){
+if (!en.isIntersecting) return;
+var el = en.target;
+el.classList.add('shown');
+if (el.hasAttribute('data-to')) countUp(el);
+io.unobserve(el);
+});
+}, {threshold:.12, rootMargin:'0px 0px -6% 0px'});
+}
+$$('.rv').forEach(function(el){ if (io) io.observe(el); else el.classList.add('shown'); });
+$$('[data-to]').forEach(function(el){
+if (io){ el.textContent = fmtNum(0, el); io.observe(el); }
+else countUp(el);
+});
+
+/* ===== hero 熱像：熱源、溫度、準星與最高最低 ===== */
+var RX = 900, RY = 760, RS = 1.25;   /* 跑者在 #scene 裡的位置與比例（與 SVG 的 transform 相同） */
+/* 熱源（跑者局部座標，地面為 0）：c=1 為冷色（手腳末端） */
+var SPOTS = [
+{x:8,y:-246,r:44,a:1},{x:22,y:-284,r:30,a:.85},{x:40,y:-350,r:26,a:.6},{x:32,y:-318,r:13,a:.5},
+{x:2,y:-192,r:32,a:.9},{x:32,y:-224,r:26,a:.85},{x:-24,y:-146,r:24,a:.75},{x:56,y:-212,r:18,a:.55},
+{x:-74,y:-62,r:17,a:.5},{x:60,y:-280,r:15,a:.6},{x:106,y:-289,r:13,a:.45},{x:128,y:-322,r:11,a:.3,c:1},
+{x:-2,y:-266,r:14,a:.5},{x:-46,y:-226,r:12,a:.35},{x:-80,y:-203,r:9,a:.2,c:1},{x:64,y:-165,r:10,a:.2,c:1},
+{x:-110,y:-10,r:9,a:.12,c:1}
+];
+function heatAt(x, y){
+var h = 0;
+for (var i = 0; i < SPOTS.length; i++){
+var s = SPOTS[i], dx = x - (RX + RS * s.x), dy = y - (RY + RS * s.y), sr = RS * s.r;
+h += s.a * Math.exp(-(dx * dx + dy * dy) / (2 * sr * sr));
+}
+return h;
+}
+function tempAt(x, y){ return 15.5 + 21.5 * Math.min(1, heatAt(x, y)); }
+
+var scene = $('#scene'), stage = $('#stage'), spotsG = $('#spots');
+var hero = $('#hero'), crossEl = $('#cross'), crossOut = $('#crossOut'), clockEl = $('#clock');
+var mxEl = $('#mkMax'), mnEl = $('#mkMin');
+
+/* 熱斑：由 SPOTS 產生，讓畫面與讀值一致 */
+if (spotsG){
+spotsG.innerHTML = SPOTS.map(function(s, i){
+return '<circle class="spot" cx="' + s.x + '" cy="' + s.y + '" r="' + Math.round(s.r * 1.9) + '" fill="url(#' + (s.c ? 'hcold' : 'hsg') + ')" opacity="' + s.a + '" style="animation-delay:' + (-i * 0.6).toFixed(1) + 's"/>';
+}).join('');
+}
+
+/* 全畫面取樣，找出最高與最低溫的位置（在 viewBox 座標） */
+var TMAX = {t:-1, x:880, y:350}, TMIN = {t:99, x:900, y:100};
+for (var gy = 40; gy < 880; gy += 15){
+for (var gx = 300; gx < 1300; gx += 15){
+var tt = tempAt(gx, gy);
+if (tt > TMAX.t) TMAX = {t:tt, x:gx, y:gy};
+if (tt < TMIN.t && gy < 640 && gx > 960) TMIN = {t:tt, x:gx, y:gy};
+}
+}
+setTxt(mxEl, '▲ MAX ' + TMAX.t.toFixed(1) + '°C');
+setTxt(mnEl, '▼ MIN ' + TMIN.t.toFixed(1) + '°C');
+
+function toStage(x, y){
+if (!scene || !stage || !scene.getScreenCTM) return null;
+var m = scene.getScreenCTM(); if (!m) return null;
+var pt = scene.createSVGPoint(); pt.x = x; pt.y = y;
+var p = pt.matrixTransform(m), r = stage.getBoundingClientRect();
+return {x:p.x - r.left, y:p.y - r.top};
+}
+function toScene(cx, cy){
+if (!scene || !scene.getScreenCTM) return null;
+var m = scene.getScreenCTM(); if (!m) return null;
+var pt = scene.createSVGPoint(); pt.x = cx; pt.y = cy;
+var p = pt.matrixTransform(m.inverse());
+return {x:p.x, y:p.y};
+}
+
+var tgt = {x:910, y:447}, cur = {x:910, y:447}, shown = tempAt(910, 447);
+var lastPtr = -1e9, running = false, rafOn = false;
+function clampX(x, W){ return Math.min(Math.max(x, 70), Math.max(70, W - 125)).toFixed(1); }
+function clampY(y, H){ return Math.min(Math.max(y, 40), Math.max(40, H - 36)).toFixed(1); }
+function drift(now){
+var k = now / 1000;
+return {x: 900 + 380 * Math.sin(k * 0.42), y: 430 + 170 * Math.sin(k * 0.27 + 1)};
+}
+function loop(now){
+if (!running){ rafOn = false; return; }
+if (!reduce && now - lastPtr > 3000) tgt = drift(now);
+cur.x += (tgt.x - cur.x) * 0.12;
+cur.y += (tgt.y - cur.y) * 0.12;
+shown += (tempAt(cur.x, cur.y) - shown) * 0.16;
+var p = toStage(cur.x, cur.y), W = stage ? stage.clientWidth : 0, H = stage ? stage.clientHeight : 0;
+if (p && crossEl) crossEl.style.transform = 'translate(' + p.x.toFixed(1) + 'px,' + p.y.toFixed(1) + 'px)';
+if (p && crossOut) crossOut.style.left = p.x > W - 150 ? '-124px' : '30px';
+setTxt(crossOut, shown.toFixed(1) + ' °C');
+var a = toStage(TMAX.x, TMAX.y), b = toStage(TMIN.x, TMIN.y);
+if (a && mxEl) mxEl.style.transform = 'translate(' + clampX(a.x, W) + 'px,' + clampY(a.y, H) + 'px) translate(-50%,-160%)';
+if (b && mnEl) mnEl.style.transform = 'translate(' + clampX(b.x, W) + 'px,' + clampY(b.y, H) + 'px) translate(-50%,60%)';
+requestAnimationFrame(loop);
+}
+if (hero && scene && stage && crossEl){
+var onPtr = function(e){
+var v = toScene(e.clientX, e.clientY);
+if (v){ tgt = v; lastPtr = performance.now(); }
+};
+hero.addEventListener('pointermove', onPtr);
+hero.addEventListener('pointerdown', onPtr);
+if ('IntersectionObserver' in window){
+new IntersectionObserver(function(es){
+running = es[0].isIntersecting;
+if (running && !rafOn){ rafOn = true; requestAnimationFrame(loop); }
+}).observe(hero);
+} else {
+running = true; rafOn = true; requestAnimationFrame(loop);
+}
+}
+function tick(){
+var d = new Date();
+setTxt(clockEl, d.getFullYear() + '.' + pad(d.getMonth() + 1) + '.' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()));
+}
+tick();
+setInterval(tick, 1000);
+
+/* ===== 商品：卡片、熱像切換、詢問清單 ===== */
+function bandPos(t){
+var lo = -10, span = 45;
+var a = Math.max(0, (t[0] - lo) / span * 100), b = Math.min(100, (t[1] - lo) / span * 100);
+return [a.toFixed(1), (b - a).toFixed(1)];
+}
+function cardHTML(p, i){
+var z = bandPos(p.t);
+return '<article class="card" data-id="' + p.id + '" data-cat="' + esc(p.cat) + '">' +
+'<div class="art">' +
+'<span class="no mono">No.' + pad(i + 1) + '</span><span class="wt mono">' + p.g + ' g</span>' +
+'<svg class="gar" viewBox="0 0 200 220" aria-hidden="true" focusable="false"><use href="#g-' + p.id + '" class="u-ln"/><use href="#g-' + p.id + '" class="u-ht"/></svg>' +
+'</div>' +
+'<div class="info">' +
+'<p class="cat mono">' + esc(p.cat) + '</p>' +
+'<h3>' + esc(p.n) + '</h3>' +
+'<p class="mat">' + esc(p.mat) + '</p>' +
+'<div class="zb" role="img" aria-label="適溫 ' + p.t[0] + ' 至 ' + p.t[1] + ' 度"><i style="left:' + z[0] + '%;width:' + z[1] + '%"></i></div>' +
+'<p class="zl mono">適溫 ' + p.t[0] + '–' + p.t[1] + '°C</p>' +
+'<div class="sz">' + p.sz.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</div>' +
+'<div class="foot-row"><span class="price mono">' + money(p.price) + '</span>' +
+'<span class="acts"><button type="button" class="btn-s" data-act="heat" aria-pressed="false">看熱像</button>' +
+'<button type="button" class="btn-s" data-act="ask" aria-pressed="false">加入詢問</button></span></div>' +
+'</div></article>';
+}
+var grid = $('#grid'), filters = $('#filters'), askSum = $('#askSum'), askClear = $('#askClear');
+var ASK = [];
+function renderAsk(){
+if (!askSum) return;
+if (!ASK.length){ askSum.textContent = '詢問清單是空的。點商品卡上的「加入詢問」，到店或線上一次問清楚。'; return; }
+askSum.textContent = '詢問清單 ' + ASK.length + ' 件：' + ASK.map(function(id){ return BY[id].n; }).join('、');
+}
+function setAskBtn(card, on){
+var b = $('[data-act="ask"]', card);
+if (!b) return;
+b.setAttribute('aria-pressed', on ? 'true' : 'false');
+b.textContent = on ? '已加入' : '加入詢問';
+}
+function toggleHeat(card){
+var on = !card.classList.contains('hot');
+card.classList.toggle('hot', on);
+var b = $('[data-act="heat"]', card);
+if (b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? '看線稿' : '看熱像'; }
+}
+if (grid){
+grid.innerHTML = PRODUCTS.map(cardHTML).join('');
+grid.addEventListener('click', function(e){
+var card = e.target.closest('.card');
+if (!card) return;
+var id = card.getAttribute('data-id');
+if (e.target.closest('[data-act="heat"], .art')){ toggleHeat(card); return; }
+if (e.target.closest('[data-act="ask"]')){
+var k = ASK.indexOf(id);
+if (k > -1) ASK.splice(k, 1); else ASK.push(id);
+setAskBtn(card, k === -1);
+renderAsk();
+}
+});
+}
+if (filters && grid){
+filters.addEventListener('click', function(e){
+var b = e.target.closest('button[data-f]');
+if (!b) return;
+var f = b.getAttribute('data-f');
+$$('button[data-f]', filters).forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+$$('.card', grid).forEach(function(c){ c.hidden = !(f === 'all' || c.getAttribute('data-cat') === f); });
+});
+}
+if (askClear){
+askClear.addEventListener('click', function(){
+ASK.length = 0;
+$$('.card', grid).forEach(function(c){ setAskBtn(c, false); });
+renderAsk();
+});
+}
+
+/* ===== 核心功能一：分層穿搭計算器 ===== */
+var ACT = {jog:{n:'慢跑', g:6}, trail:{n:'越野跑', g:7.5}, hike:{n:'登山健行', g:5.5}, bike:{n:'通勤騎車', g:4}};
+var INT = {easy:{m:.6}, mid:{m:1}, hard:{m:1.4}};
+var WIND = [0, 2.5, 6];                       /* 無風／微風／強風 的體感扣除（°C） */
+var WX = {sun:{g:1.5, p:0}, cloud:{g:0, p:0}, rain:{g:0, p:4}};
+var calc = $('#calcForm');
+var lastRec = null;
+function radioVal(name){
+var el = $('input[name="' + name + '"]:checked');
+return el ? el.value : null;
+}
+function readState(){
+var t = $('#tIn'), du = $('#durIn');
+return {
+t: +(t ? t.value : 12),
+wind: +(radioVal('wind') || 1),
+wx: radioVal('wx') || 'cloud',
+act: radioVal('act') || 'jog',
+inten: radioVal('inten') || 'mid',
+dur: +(du ? du.value : 60)
+};
+}
+/* 體感溫度：氣溫 + 運動發熱 + 日照 − 風 − 雨濕 */
+function feelOf(s){
+return s.t + ACT[s.act].g * INT[s.inten].m + WX[s.wx].g - WIND[s.wind] - WX[s.wx].p;
+}
+/* 依體感挑出分層（排汗、保暖、防護、配件） */
+function recommend(s, F){
+var r = {base: F >= 24 ? 'mesh' : 'merino', low: F < 8 ? 'tights' : 'shorts', mid: [], shell: null, acc: []};
+if (F < 12) r.mid.push('fleece');
+if (F < 2) r.mid.push('vest');
+if (F < 6) r.shell = 'jacket3l';
+else if ((s.wx === 'rain' && F < 26) || (s.wind === 2 && F < 16)) r.shell = 'wind';
+if (F < 10 || (s.wind === 2 && F < 14)) r.acc.push('gloves');
+if (F < 6) r.acc.push('beanie');
+return r;
+}
+/* 預測各部位的體溫：軀幹以體感為基準，加上穿著的保暖量；末梢另外計算 */
+function predict(w, F){
+var sum = {tor:0, arm:0, leg:0, head:0, hand:0};
+var items = [BY[w.base], w.low ? BY[w.low] : null, w.gloves ? BY.gloves : null, w.beanie ? BY.beanie : null, w.shell ? BY[w.shell] : null];
+w.mid.forEach(function(id){ items.push(BY[id]); });
+items.forEach(function(p){
+if (!p) return;
+['tor','arm','leg','head','hand'].forEach(function(k){ sum[k] += (p.w[k] || 0); });
+});
+var d = F - 18, dd = d < 0 ? d * 0.55 : d * 0.3;   /* 偏冷時降溫較快，偏熱時升溫趨緩 */
+return {
+tor: 33 + dd + sum.tor * 2.6,
+arm: 33 + dd + sum.arm * 2.6 - (sum.arm < 0.2 ? 1 : 0),
+leg: 34 + dd * 0.9 + sum.leg * 2.6,
+head: 33 + dd * 0.5 + (sum.head ? 4 : (F < 12 ? -2.5 : 0)),
+hand: 32 + dd * 0.9 + (sum.hand ? 4 : (F < 14 ? -3.5 : -1)),
+foot: 31 + dd * 0.9 + (sum.leg ? 0.5 : 0)
+};
+}
+function advise(w, p, s){
+var msg, tone = 'ok';
+if (p.tor < 29){
+tone = 'cold';
+msg = (w.mid.length >= 2 && w.shell) ? '極端低溫：核心仍偏冷，建議縮短停留時間，並備一件乾的保暖層。' : '核心偏冷：多穿一層保暖（刷毛中層或保暖背心），或縮短停留時間。';
+} else if (p.tor > 36){
+tone = 'hot';
+msg = '核心偏熱：減一層、每 20 分鐘補一次水，並避開正午的日照。';
+} else if (p.hand < 30){
+msg = w.gloves ? '核心舒適，手部仍偏冷 → 改用加厚的手套，或加上防風外層。' : '核心舒適，手部偏冷 → 建議加手套';
+} else if (p.head < 29 && !w.beanie){
+msg = '核心舒適，頭部散熱快 → 建議戴毛帽。';
+} else if (p.leg < 30 && w.low === 'shorts'){
+msg = '核心舒適，腿部偏涼 → 建議改穿保暖緊身褲。';
+} else {
+msg = '核心舒適，四肢都在舒適範圍，維持目前搭配。';
+}
+return {text: msg, tone: tone};
+}
+var CAT_ORDER = ['排汗層','保暖層','防護層','配件'];
+function renderCalc(reset){
+if (!calc) return;
+var s = readState(), F = feelOf(s);
+var tG = $('#tGlove'), tB = $('#tBeanie'), tT = $('#tTight');
+setTxt($('#tVal'), s.t + '°C');
+setTxt($('#durVal'), s.dur + ' 分鐘');
+if (reset || !lastRec){
+lastRec = recommend(s, F);
+if (tG) tG.checked = lastRec.acc.indexOf('gloves') > -1;
+if (tB) tB.checked = lastRec.acc.indexOf('beanie') > -1;
+if (tT) tT.checked = lastRec.low === 'tights';
+}
+var w = {
+base: lastRec.base,
+low: (tT && tT.checked) ? 'tights' : 'shorts',
+mid: lastRec.mid,
+shell: lastRec.shell,
+gloves: !!(tG && tG.checked),
+beanie: !!(tB && tB.checked)
+};
+var p = predict(w, F);
+var adv = advise(w, p, s);
+
+setTxt($('#feelVal'), F.toFixed(1) + '°C');
+var cf = $('#comfort');
+if (cf){
+var label = p.tor < 29 ? '偏冷' : (p.tor > 36 ? '偏熱' : '舒適');
+cf.textContent = label;
+cf.className = 'comfort ' + (p.tor < 29 ? 'cold' : (p.tor > 36 ? 'hot' : 'ok'));
+}
+var segs = {head:p.head, neck:(p.head + p.tor) / 2, sh:(p.tor + p.arm) / 2, tor:p.tor, ua:p.arm, fa:(p.arm + p.hand) / 2, hn:p.hand, th:p.leg, cf:(p.leg + p.foot) / 2, ft:p.foot};
+$$('#fig [data-k]').forEach(function(el){ el.style.fill = skinColor(segs[el.getAttribute('data-k')]); });
+setTxt($('#lbT'), '軀幹 ' + p.tor.toFixed(1) + '°C');
+setTxt($('#lbH'), '手 ' + p.hand.toFixed(1) + '°C');
+setTxt($('#lbF'), '腳 ' + p.foot.toFixed(1) + '°C');
+var glow = $('#glow');
+if (glow) glow.style.fill = skinColor(p.tor);
+setTxt($('#figNote'), '預測核心 ' + p.tor.toFixed(1) + '°C ・ 手部 ' + p.hand.toFixed(1) + '°C');
+
+var msgEl = $('#calcMsg');
+if (msgEl){
+msgEl.textContent = adv.text;
+msgEl.className = 'msg ' + (adv.tone === 'ok' ? '' : adv.tone);
+}
+setTxt($('#calcNote'), s.dur >= 120 ? '時長超過 2 小時，多帶一件乾的排汗層替換。' : '');
+
+var rows = [BY[w.base]];
+if (w.low) rows.push(BY[w.low]);
+w.mid.forEach(function(id){ rows.push(BY[id]); });
+if (w.shell) rows.push(BY[w.shell]);
+if (w.gloves) rows.push(BY.gloves);
+if (w.beanie) rows.push(BY.beanie);
+var pick = $('#pick');
+var sumP = 0, sumG = 0;
+if (pick){
+pick.innerHTML = rows.map(function(r){
+sumP += r.price; sumG += r.g;
+return '<li><span class="c mono">' + esc(r.cat) + '</span><span class="n">' + esc(r.n) + '</span><span class="g mono">' + r.g + ' g</span><span class="pr mono">' + money(r.price) + '</span></li>';
+}).join('');
+}
+var tot = $('#tot');
+if (tot) tot.innerHTML = '<span>合計 <b>' + money(sumP) + '</b></span><span>重量 ' + sumG + ' g</span>';
+}
+if (calc){
+calc.addEventListener('change', function(e){
+var isToggle = e.target && e.target.type === 'checkbox';
+renderCalc(!isToggle);
+});
+calc.addEventListener('input', function(e){
+if (e.target && e.target.type === 'range') renderCalc(true);
+});
+renderCalc(true);
+}
+
+/* ===== 核心功能二：週末跑團報名 ===== */
+var ROUTES = {
+river:{n:'河濱 10K', t:'06:40', lamp:false},
+trail:{n:'山徑 8K', t:'06:00', lamp:false},
+night:{n:'夜跑 6K', t:'18:30', lamp:true}
+};
+var PACES = {'630':'6:30 組', '530':'5:30 組', '445':'4:45 組'};
+var runForm = $('#runForm'), runWrap = $('#ticketWrap');
+function randCode(){
+var s = '', chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+for (var i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+return s;
+}
+function setErr(input, errEl, msg){
+if (input) input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+setTxt(errEl, msg || '');
+}
+function validateRun(){
+var name = $('#rName'), phone = $('#rPhone'), date = $('#rDate');
+var ok = true;
+var nv = name ? name.value.trim() : '';
+setErr(name, $('#eName'), nv.length < 2 ? '請填寫持證人姓名（至少 2 個字）' : '');
+if (nv.length < 2) ok = false;
+var pv = phone ? phone.value.replace(/[\s\-()]/g, '') : '';
+var phOK = /^09\d{8}$/.test(pv) || /^0[2-8]\d{7,8}$/.test(pv);
+setErr(phone, $('#ePhone'), phOK ? '' : '請輸入手機 09xx-xxx-xxx 或市話');
+if (!phOK) ok = false;
+var dv = date ? date.value : '';
+var dmsg = '';
+if (!dv) dmsg = '請選擇跑團日期';
+else {
+var wd = new Date(dv + 'T00:00:00').getDay();
+if (wd !== 0 && wd !== 6) dmsg = '跑團只在週六、週日舉行，請改選週末日期';
+else if (dv < ymd(NOW)) dmsg = '日期不能早於今天';
+}
+setErr(date, $('#eDate'), dmsg);
+if (dmsg) ok = false;
+return ok;
+}
+function showTicket(){
+var name = $('#rName').value.trim();
+var rv = $('input[name="route"]:checked'), pv = $('input[name="pace"]:checked');
+var route = ROUTES[rv ? rv.value : 'river'], pace = PACES[pv ? pv.value : '530'];
+var lampOn = route.lamp || !!($('#rLamp') && $('#rLamp').checked);
+var d = new Date($('#rDate').value + 'T00:00:00');
+var dateTxt = d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + DAYS[d.getDay()];
+var temp = (8 + Math.random() * 6).toFixed(1);
+if (!runWrap) return;
+runWrap.innerHTML = '<div class="ticket" role="status">' +
+'<div class="tk-top mono"><span>DEPARTURE PASS</span><span>No. HR-' + randCode() + '</span></div>' +
+'<p class="tk-name">' + esc(name) + '<small>持證人</small></p>' +
+'<dl class="tk-grid mono">' +
+'<div><dt>日期</dt><dd>' + dateTxt + '</dd></div>' +
+'<div><dt>路線</dt><dd>' + route.n + '</dd></div>' +
+'<div><dt>配速組</dt><dd>' + pace + '</dd></div>' +
+'<div><dt>集合</dt><dd>' + route.t + ' 內湖店門口</dd></div>' +
+'<div><dt>頭燈</dt><dd>' + (lampOn ? '已預留' : '未租借') + '</dd></div>' +
+'<div><dt>預估出發</dt><dd>' + temp + ' °C</dd></div>' +
+'</dl>' +
+'<div class="tk-bar"></div>' +
+'<p class="tk-note">出發證僅為示範。正式報名會由店員確認名額並回電。</p>' +
+'<button type="button" class="btn btn-line btn-sm" id="again">再報名一位</button>' +
+'</div>';
+runWrap.hidden = false;
+if (runForm) runForm.hidden = true;
+var again = $('#again');
+if (again) again.addEventListener('click', function(){
+runWrap.hidden = true;
+runWrap.innerHTML = '';
+if (runForm){ runForm.hidden = false; runForm.reset(); }
+setTxt($('#eName'), ''); setTxt($('#ePhone'), ''); setTxt($('#eDate'), '');
+var f = $('#rName'); if (f) f.focus();
+});
+}
+if (runForm){
+var rDate = $('#rDate');
+if (rDate) rDate.min = ymd(NOW);
+runForm.addEventListener('submit', function(e){
+e.preventDefault();
+if (validateRun()) showTicket();
+});
+var rRoute = $('input[name="route"][value="night"]');
+var rLamp = $('#rLamp');
+runForm.addEventListener('change', function(){
+if (rLamp && rRoute){
+rLamp.disabled = !!rRoute.checked;
+if (rRoute.checked) rLamp.checked = true;
+}
+});
+}
+
+/* ===== 核心功能三的尺寸工具（與尺寸指南共用） ===== */
+var SIZES = [['XS',86],['S',90],['M',96],['L',102],['XL',108],['XXL',116]];
+var szForm = $('#szForm');
+if (szForm){
+szForm.addEventListener('submit', function(e){
+e.preventDefault();
+var hEl = $('#szH'), wEl = $('#szW'), cEl = $('#szC');
+var h = +hEl.value, wt = +wEl.value, c = +cEl.value;
+var okH = h >= 140 && h <= 210, okW = wt >= 35 && wt <= 150, okC = c >= 70 && c <= 130;
+setErr(hEl, $('#eH'), okH ? '' : '請輸入 140–210 cm');
+setErr(wEl, $('#eW'), okW ? '' : '請輸入 35–150 kg');
+setErr(cEl, $('#eC'), okC ? '' : '請輸入 70–130 cm');
+if (!(okH && okW && okC)) return;
+var fit = $('input[name="fit"]:checked');
+var slim = fit && fit.value === 'slim';
+var cc = c - (slim ? 2 : 0), size = null;
+for (var i = 0; i < SIZES.length; i++){
+if (cc <= SIZES[i][1]){ size = SIZES[i][0]; break; }
+}
+var notes = [];
+if (!size) { size = 'XXL'; notes.push('胸圍超過 XXL 範圍，建議到店量身或訂製。'); }
+if (h >= 180 && ['XS','S','M'].indexOf(size) > -1) notes.push('身高偏高，衣長可能不足，建議加大一號或改選訂製。');
+if (h <= 165 && ['L','XL','XXL'].indexOf(size) > -1) notes.push('身高偏矮，衣長可能過長，可考慮小一號或修改衣長。');
+var bmi = wt / ((h / 100) * (h / 100));
+if (bmi >= 27 && ['XS','S','M','L'].indexOf(size) > -1) notes.push('體型偏壯，建議加大半號或選寬鬆版型。');
+$$('#size tbody tr').forEach(function(tr){ tr.classList.toggle('hit', tr.getAttribute('data-sz') === size); });
+var res = $('#szRes');
+if (res){
+res.innerHTML = '推薦尺寸 <b>' + size + '</b>' + (slim ? '（競賽貼身，已依胸圍減 2 cm 計算）' : '（標準版型）') +
+(notes.length ? '<small>' + notes.map(esc).join('<br>') + '</small>' : '<small>身高、體重與胸圍都在這個尺寸的範圍內。身高體重只作參考。</small>');
+}
+});
+}
+
+/* ===== 數字與 hero 準備完成 ===== */
+})();
+</script>
+</body>
+</html>

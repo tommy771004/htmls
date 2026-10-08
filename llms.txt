@@ -21,7 +21,7 @@
 以 headless Chrome 在 1440×900 與 390×844 兩種尺寸自動檢查每件作品，並模擬滑鼠移動、點擊、按鍵與滾輪，確認沒有 uncaught exception、console.error、外部網路請求與手機水平溢出，100 件全部通過；另外逐件人工檢視桌機與手機截圖。
 
 **涵蓋哪些風格？**
-分成 15 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例、創意藝術、餐廳與飲料。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
+分成 16 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例、創意藝術、餐廳、飲料與服飾。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
 
 **哪些作品比較弱？**
 目前沒有自評較弱的網頁作品；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
@@ -326,6 +326,18 @@
 - [245 SƠN MÀI · 越南滴漏咖啡官網](https://htmls-ruddy.vercel.app/web/245-phin-lacquer.html)：越南咖啡官網模板：漆畫屏風視覺、六步驟 Phin 滴漏計時器、蛋咖啡課程預約。
 - [246 泰泰奶茶 CHA YEN · 泰式奶茶官網](https://htmls-ruddy.vercel.app/web/246-chayen-poster.html)：泰式奶茶官網模板：手繪電影海報視覺、甜度分級章、拖曳倒煉乳的大理石紋實驗、場次式團購訂購。
 - [247 MAKAUY · 馬告琴酒蒸餾所官網](https://htmls-ruddy.vercel.app/web/247-gin-patent.html)：琴酒蒸餾所官網模板：專利線稿視覺、台灣香料籃配方與蒸餾動畫、風味雷達、週末導覽預約。
+
+### 服飾
+- [248 靛藍鉚釘 INDIGO RIVET · 原色丹寧工坊官網](https://htmls-ruddy.vercel.app/web/248-denim-rivet.html)：丹寧工坊官網模板：後口袋商品卡、牛仔褲褪色模擬器、改褲長與修補預約、腰圍尺寸換算。
+- [249 鳳儀旗袍 FENG YI · 訂製旗袍官網](https://htmls-ruddy.vercel.app/web/249-qipao-calendar.html)：訂製旗袍官網模板：月份牌海報與當月月曆、旗袍設計台即時估價、預約量身與婚期工期檢查。
+- [250 舊物架 RACK & TAG · 古著店官網](https://htmls-ruddy.vercel.app/web/250-vintage-pricegun.html)：古著店官網模板：衣桿貨架與吊牌、本週上新倒數、吊秤論斤計價、收購估價、依胸寬篩選貨架。
+- [251 小毛球 POM-POM KIDS · 有機棉童裝官網](https://htmls-ruddy.vercel.app/web/251-felt-kids.html)：童裝官網模板：毛氈布書視覺、身高尺寸換算與成長尺、成長換穿訂閱盒。
+- [252 熱層 THERMAL LAB · 機能跑步服官網](https://htmls-ruddy.vercel.app/web/252-thermal-layer.html)：機能跑步服官網模板：熱像儀視覺、線稿與熱像切換的商品卡、分層穿搭計算器、週末跑團報名。
+- [253 衡尺 MEASURE & CLOTH · 西裝訂製官網](https://htmls-ruddy.vercel.app/web/253-tailor-pattern.html)：西裝訂製官網模板：打版紙視覺、布料樣本冊、西裝設計台即時估價、預約量身與婚期檢查。
+- [254 棉夢 TOILE & NAP · 睡衣家居服官網](https://htmls-ruddy.vercel.app/web/254-toile-lounge.html)：睡衣品牌官網模板：toile 印花與日夜切換、睡眠小測驗、上下身自由配與口袋繡字。
+- [255 九號倉 BOX 09 · 街頭潮牌官網](https://htmls-ruddy.vercel.app/web/255-crate-drop.html)：潮牌官網模板：紙箱拆箱 Hero 與發售倒數、出貨標籤商品卡與即時庫存、Drop 抽籤登記。
+- [256 羊毛日和 WOOL DAYS · 手織毛衣官網](https://htmls-ruddy.vercel.app/web/256-fairisle-knit.html)：手織毛衣官網模板：針目織出的店名、提花毛衣設計器與即時預覽、編織教室報名。
+- [257 白紗日 L'AUBE BRIDAL · 婚紗禮服官網](https://htmls-ruddy.vercel.app/web/257-lace-bridal.html)：婚紗店官網模板：蕾絲拱窗視覺、婚期倒推時程、禮服輪廓選擇器、預約試紗。
 
 ## Optional
 
