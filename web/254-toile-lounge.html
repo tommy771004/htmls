@@ -17,7 +17,7 @@
   --bg:#f7f0e3;--ink:#2b2326;--mute:#6b5d62;--accent:#9c2f35;--toile:#9c2f35;
   --blush:#f2d9d4;--sage:#a7b8a0;--navy:#1f3049;--champ:#e6d2b5;
   --card:#fffaf2;--panel:#efe4d2;--hover:#f2d9d4;--line:rgba(156,47,53,.28);
-  --btnfg:#fffaf2;--btnbg:#9c2f35;--wall-op:.5;--errc:#a1302a;
+  --btnfg:#fffaf2;--btnbg:#9c2f35;--wall-op:.75;--errc:#a1302a;--glass:rgba(255,250,242,.94);
   --serif:"Athelas","Iowan Old Style","Georgia","Noto Serif TC","Songti TC","PMingLiU",serif;
   --script:"Savoye LET","Snell Roundhand","Apple Chancery",cursive;
   --ease-out:cubic-bezier(.2,.9,.3,1.2);
@@ -26,7 +26,7 @@
 html[data-theme="night"]{
   --bg:#1f3049;--ink:#f7f0e3;--mute:#c9c0c4;--accent:#f2d9d4;--toile:#f7f0e3;
   --card:#294264;--panel:#263b5a;--hover:#34507a;--line:rgba(247,240,227,.3);
-  --btnfg:#1f3049;--btnbg:#f2d9d4;--wall-op:.3;--errc:#f5b8a8;
+  --btnfg:#1f3049;--btnbg:#f2d9d4;--wall-op:.4;--errc:#f5b8a8;--glass:rgba(38,59,90,.94);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:84px;-webkit-text-size-adjust:100%}
@@ -49,7 +49,7 @@ img{max-width:100%;display:block}
 .script{font-family:var(--script);font-weight:400}
 .eb{font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.sec{position:relative;padding:clamp(72px,10vw,124px) 0}
+.sec{position:relative;padding:clamp(60px,8vw,100px) 0}
 .alt{background:var(--panel)}
 .sec-h{margin:0 0 clamp(28px,4vw,46px);text-align:center}
 .sec-h h2{font-size:clamp(28px,3.8vw,44px);letter-spacing:.04em}
@@ -111,12 +111,12 @@ img{max-width:100%;display:block}
   .btn.sm{padding:6px 12px}
 }
 
-/* ===== Hero：toile 壁紙與浮雕框 ===== */
-.hero{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100vh - 68px);min-height:calc(100svh - 68px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 16px 60px;text-align:center}
+/* ===== Hero：toile 壁紙、浮雕框與文字面板 ===== */
+.hero{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100vh - 68px);min-height:calc(100svh - 68px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 16px 56px;text-align:center}
 .wall{position:absolute;inset:0;z-index:-2;background:var(--bg);overflow:hidden}
 .wall>svg{position:absolute;inset:0;width:100%;height:100%}
 .wall>svg.wallsvg{opacity:var(--wall-op)}
-.wall::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 42% 50% at 50% 46%,var(--bg) 0 58%,transparent 100%)}
+.wall::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 40% 36% at 50% 50%,var(--bg) 0 64%,transparent 100%)}
 .hstars{display:none;z-index:-1}
 html[data-theme="night"] .hstars{display:block}
 .hstars circle{fill:#fffaf2;animation:tw 3.4s ease-in-out infinite;animation-delay:var(--d,0s)}
@@ -127,18 +127,24 @@ html[data-theme="night"] .hstars{display:block}
 .theme .ic{width:24px;height:24px;flex:none}
 html:not([data-theme="night"]) .theme .moon{display:none}
 html[data-theme="night"] .theme .sun{display:none}
-.cameo{position:relative;width:min(380px,78vw);aspect-ratio:5/6;margin:0 auto;flex:none}
+.cameo{position:relative;height:min(460px,60vh);aspect-ratio:500/590;margin:0 auto;flex:none}
 .cameo>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.cm-frame{fill:var(--card);stroke:var(--accent);stroke-width:2;transition:fill var(--dur-enter)}
+.cm-frame{fill:var(--card);stroke:var(--accent);stroke-width:2.2;transition:fill var(--dur-enter)}
+.cm-line{fill:none;stroke:var(--accent);stroke-width:1.1}
+.cm-beads circle{fill:var(--accent)}
 .cm-bg{fill:var(--card)}
-.cm-bead{fill:none;stroke:var(--accent);stroke-width:1.4;stroke-dasharray:.1 9;stroke-linecap:round}
-.cameo-tag{position:absolute;left:50%;bottom:-4%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 20px 6px;white-space:nowrap;box-shadow:0 8px 18px rgba(43,35,38,.14)}
+.cameo-tag{position:absolute;left:50%;bottom:-3%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 20px 6px;white-space:nowrap;box-shadow:0 8px 18px rgba(43,35,38,.14)}
 .ct-en{display:block;font-family:var(--script);font-size:clamp(26px,5.4vw,34px);color:var(--accent);line-height:1.15}
 .ct-zh{display:block;font-size:14px;letter-spacing:.5em;padding-left:.5em;font-weight:600}
-.hero-txt{margin-top:clamp(40px,6vw,56px);max-width:620px}
-.hero h1{font-size:clamp(28px,4.4vw,46px);line-height:1.35;letter-spacing:.06em;margin:4px 0 14px}
+.hero-txt{position:relative;margin-top:clamp(34px,5vw,50px);max-width:600px;padding:clamp(24px,3.4vw,36px) clamp(20px,4vw,44px) clamp(26px,3.4vw,34px);background:var(--glass);border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 40px rgba(43,35,38,.12)}
+.hero-txt::before{content:'';position:absolute;inset:6px;border:1px dashed var(--line);border-radius:17px;pointer-events:none}
+.hero h1{font-size:clamp(28px,4.2vw,44px);line-height:1.35;letter-spacing:.06em;margin:4px 0 14px}
 .hero .lead{color:var(--mute);max-width:32em;margin:0 auto 18px;font-size:15px}
+.hero .status{margin:0 auto}
 .hero-cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:22px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.draw{animation:fadeIn 1.6s var(--ease-out) both}
+
 
 /* ===== 品牌故事 ===== */
 .story{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(28px,5vw,80px);align-items:center}
@@ -149,27 +155,26 @@ html[data-theme="night"] .theme .sun{display:none}
 .nums b{display:block;font-family:var(--serif);font-size:clamp(28px,3.4vw,40px);color:var(--accent);line-height:1.1;font-weight:600}
 .nums span{font-size:13px;color:var(--mute);line-height:1.5;display:block;margin-top:4px}
 
-/* ===== 商品：枕套卡 ===== */
+/* ===== 商品：枕套卡（三欄網格，不留洞） ===== */
 .items{overflow:hidden}
-.wallbg{position:absolute;inset:0;width:100%;height:100%;opacity:.07;pointer-events:none}
+.wallbg{position:absolute;inset:0;width:100%;height:100%;opacity:.06;pointer-events:none}
 .items .wrap{position:relative}
-.grid{column-count:4;column-gap:24px}
-@media (max-width:1100px){.grid{column-count:3}}
-@media (max-width:700px){.grid{column-count:2;column-gap:14px}}
-.card{break-inside:avoid;margin:0 0 26px;position:relative;transition:transform var(--dur-hover) var(--ease-out);filter:drop-shadow(0 10px 14px rgba(43,35,38,.14));cursor:default}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:36px 26px}
+@media (max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.grid{gap:24px 14px}}
+.card{position:relative;display:flex;flex-direction:column;transition:transform var(--dur-hover) var(--ease-out);filter:drop-shadow(0 10px 14px rgba(43,35,38,.14));cursor:default}
 .card:hover{transform:translateY(-4px)}
-.card[hidden]{display:none!important}
-.shell{position:relative;overflow:hidden;padding:30px 0 12px;border-radius:0 0 18px 18px;
-  -webkit-mask:linear-gradient(#000 0 0) 0 100%/100% calc(100% - 16px) no-repeat,radial-gradient(circle 16px at 50% 100%,#000 99%,transparent) 0 0/34px 16px repeat-x;
-  mask:linear-gradient(#000 0 0) 0 100%/100% calc(100% - 16px) no-repeat,radial-gradient(circle 16px at 50% 100%,#000 99%,transparent) 0 0/34px 16px repeat-x;
+.card[hidden],.promo[hidden]{display:none!important}
+.shell{position:relative;flex:1;display:flex;flex-direction:column;overflow:hidden;border-radius:18px 18px 0 0;
+  -webkit-mask:linear-gradient(#000 0 0) 0 0/100% calc(100% - 16px) no-repeat,radial-gradient(circle 16px at 50% 100%,#000 99%,transparent) 0 100%/34px 16px repeat-x;
+  mask:linear-gradient(#000 0 0) 0 0/100% calc(100% - 16px) no-repeat,radial-gradient(circle 16px at 50% 100%,#000 99%,transparent) 0 100%/34px 16px repeat-x;
   transition:transform var(--dur-press) var(--ease-out)}
 .card:active .shell{transform:scale(1.03,.92)}
 .card:hover .shell{animation:wave 1.4s ease-in-out}
 @keyframes wave{0%{transform:skewY(0)}30%{transform:skewY(1.4deg)}65%{transform:skewY(-1deg)}100%{transform:skewY(0)}}
-.shell>.fabric-bg{position:absolute;inset:0;width:100%;height:100%}
-.stamp{position:absolute;top:34px;right:12px;z-index:2;background:var(--accent);color:var(--btnfg);font-size:12px;letter-spacing:.08em;padding:2px 9px;border-radius:4px;transform:rotate(6deg)}
-.art{display:block;position:relative;width:64%;height:auto;margin:6px auto 2px}
-.panel{position:relative;margin:0 12px;background:var(--card);border-radius:12px;padding:12px 14px 14px;color:var(--ink)}
+.stamp{position:absolute;top:12px;right:12px;z-index:2;background:var(--accent);color:var(--btnfg);font-size:12px;letter-spacing:.08em;padding:2px 9px;border-radius:4px;transform:rotate(6deg)}
+.art{display:block;position:relative;width:100%;height:auto}
+.panel{position:relative;flex:1;background:var(--card);padding:14px 16px 22px;color:var(--ink)}
 .ptop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
 .cat{font-size:12px;letter-spacing:.12em;color:var(--accent)}
 .fav{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer;padding:0;transition:transform var(--dur-press) var(--ease-out),background-color var(--dur-hover)}
@@ -188,9 +193,14 @@ html[data-theme="night"] .theme .sun{display:none}
 .add:hover{background:var(--accent);color:var(--btnfg)}
 .add:active{transform:scale(.96)}
 .add:disabled{opacity:.5;cursor:default}
+.promo{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;padding:clamp(22px,3vw,34px);border:1px dashed var(--line);border-radius:18px;background:var(--panel);transition:background-color var(--dur-hover)}
+.promo:hover{background:var(--hover)}
+.promo b{font-size:clamp(20px,2.2vw,26px);font-weight:600;color:var(--accent);line-height:1.35}
+.promo p{margin:0;color:var(--mute);font-size:14px;line-height:1.7}
+.promo .btn{margin-top:6px}
 
 /* ===== 睡眠測驗 ===== */
-.qz{max-width:740px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,4vw,44px);position:relative;min-height:440px}
+.qz{max-width:740px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,4vw,44px);position:relative}
 .qz::before{content:'';position:absolute;inset:7px;border:1px dashed var(--line);border-radius:14px;pointer-events:none}
 .qprog{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative}
 .qno{font-size:13px;letter-spacing:.2em;color:var(--mute)}
@@ -292,14 +302,13 @@ table.sz-t{width:100%;border-collapse:collapse;min-width:400px;font-size:15px;te
 .ph>img,.ph>svg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 body.slots .ph{outline:2px dashed var(--accent);outline-offset:-8px}
 body.slots .ph::after{content:'照片位 · ' attr(data-label) ' · 建議 ' attr(data-size);position:absolute;left:10px;bottom:10px;z-index:3;background:rgba(43,35,38,.84);color:#fffaf2;font-size:12px;line-height:1.4;padding:4px 9px;border-radius:6px}
-.photos{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr);grid-template-rows:230px 230px;gap:14px}
-.photos .ph[data-photo="g1"]{grid-row:1/3;border-radius:16px 16px 180px 16px}
-.photos .ph[data-photo="g4"]{grid-column:2/4;border-radius:16px 180px 16px 16px}
-.photos .ph[data-photo="g2"]{border-radius:999px 999px 16px 16px/120px 120px 16px 16px}
+.photos{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr);grid-template-rows:250px 250px;gap:16px}
+.photos .ph[data-photo="g1"]{grid-row:1/3}
+.photos .ph[data-photo="g4"]{grid-column:2/4}
 @media (max-width:700px){
-  .photos{grid-template-columns:1fr 1fr;grid-template-rows:none;grid-auto-rows:auto}
+  .photos{grid-template-columns:1fr 1fr;grid-template-rows:none;gap:12px}
   .photos .ph{aspect-ratio:1/1}
-  .photos .ph[data-photo="g1"]{grid-row:auto;grid-column:1/3;aspect-ratio:16/11}
+  .photos .ph[data-photo="g1"]{grid-row:auto;grid-column:1/3;aspect-ratio:4/3}
   .photos .ph[data-photo="g4"]{grid-column:1/3;aspect-ratio:16/9}
 }
 
@@ -347,8 +356,6 @@ table.hours{width:100%;border-collapse:collapse;font-size:15px}
 .js .rv:not(.in){opacity:0}
 .js .rv.in{animation:rise var(--dur-enter) var(--ease-out) backwards;animation-delay:var(--d,0ms)}
 @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-.draw path{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.9s var(--ease-out) forwards;animation-delay:calc(var(--i,0) * 60ms + 200ms)}
-@keyframes draw{to{stroke-dashoffset:0}}
 .ink-h{stroke:var(--toile)}
 .ink-r{stroke:#9c2f35}
 .ink-b{stroke:#1f3049}
@@ -356,7 +363,7 @@ table.hours{width:100%;border-collapse:collapse;font-size:15px}
 .nav a,.btn,.chip,.opt,.add,.fav,.theme,.slotbtn{-webkit-tap-highlight-color:transparent}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
-  .draw path{stroke-dasharray:none!important;stroke-dashoffset:0!important;animation:none!important}
+  .draw{animation:none!important}
   .hstars circle{animation:none!important;opacity:.8}
   .card:hover .shell{animation:none}
   .card:hover{transform:none}
@@ -624,16 +631,16 @@ var SHOP = {
    bg：卡片外布，R／B／T 為 toile 與細條紋花布，其餘為色票；tone：衣服顏色
    mix：可自由配的部位（top 上身、bottom 下身） */
 var PRODUCTS = [
-  {n:'紗布睡衣套組', cat:'睡衣套組', price:2680, mat:'純棉紗布・雙層', sz:['S','M','L','XL'], cs:['茜紅','霧藍','象牙'], shape:'set', bg:'R', tone:'#fffaf2', tag:'人氣'},
-  {n:'真絲睡衣襯衫', cat:'上衣', price:6800, mat:'22 momme 真絲・光澤', sz:['S','M','L'], cs:['香檳','普魯士藍'], shape:'shirt', bg:'#f2d9d4', tone:'#e6d2b5', mix:'top'},
-  {n:'莫代爾圓領長袖', cat:'上衣', price:1980, mat:'天絲莫代爾・柔滑', sz:['S','M','L','XL'], cs:['鼠尾草','象牙'], shape:'tee', bg:'B', tone:'#a7b8a0', mix:'top'},
-  {n:'細肩帶背心', cat:'上衣', price:780, mat:'棉質羅紋・貼身', sz:['S','M','L'], cs:['象牙','腮紅'], shape:'strap', bg:'T', tone:'#fffaf2', mix:'top'},
-  {n:'法蘭絨格紋長褲', cat:'下身', price:2380, mat:'起毛法蘭絨・保暖', sz:['M','L','XL'], cs:['香檳','茜紅'], shape:'pants', bg:'#a7b8a0', tone:'#e6d2b5', mix:'bottom'},
-  {n:'亞麻睡裙', cat:'下身', price:3280, mat:'80% 亞麻・挺爽透氣', sz:['S','M','L'], cs:['象牙','鼠尾草'], shape:'skirt', bg:'#1f3049', tone:'#fffaf2', mix:'bottom'},
-  {n:'莫代爾短褲', cat:'下身', price:1080, mat:'莫代爾・寬鬆鬆緊腰', sz:['S','M','L','XL'], cs:['腮紅','霧藍'], shape:'shorts', bg:'#e6d2b5', tone:'#f2d9d4', mix:'bottom'},
-  {n:'眼罩', cat:'家居配件', price:450, mat:'純棉・可水洗', sz:['F'], cs:['鼠尾草','普魯士藍'], shape:'mask', bg:'B', tone:'#a7b8a0'},
+  {n:'紗布睡衣套組', cat:'睡衣套組', price:2680, mat:'純棉紗布・雙層', sz:['S','M','L','XL'], cs:['茜紅','霧藍','象牙'], shape:'set', bg:'#f2d9d4', tone:'#fffaf2', tag:'人氣'},
+  {n:'真絲睡衣襯衫', cat:'上衣', price:6800, mat:'22 momme 真絲・光澤', sz:['S','M','L'], cs:['香檳','普魯士藍'], shape:'shirt', bg:'#e6d2b5', tone:'R', mix:'top'},
+  {n:'莫代爾圓領長袖', cat:'上衣', price:1980, mat:'天絲莫代爾・柔滑', sz:['S','M','L','XL'], cs:['鼠尾草','象牙'], shape:'tee', bg:'#dfe6dc', tone:'#a7b8a0', mix:'top'},
+  {n:'細肩帶背心', cat:'上衣', price:780, mat:'棉質羅紋・貼身', sz:['S','M','L'], cs:['象牙','腮紅'], shape:'strap', bg:'#efe4d2', tone:'#fffaf2', mix:'top'},
+  {n:'法蘭絨格紋長褲', cat:'下身', price:2380, mat:'起毛法蘭絨・保暖', sz:['M','L','XL'], cs:['香檳','茜紅'], shape:'pants', bg:'#dde3ea', tone:'P', mix:'bottom'},
+  {n:'亞麻睡裙', cat:'下身', price:3280, mat:'80% 亞麻・挺爽透氣', sz:['S','M','L'], cs:['象牙','鼠尾草'], shape:'skirt', bg:'#f2e6d6', tone:'B', mix:'bottom'},
+  {n:'莫代爾短褲', cat:'下身', price:1080, mat:'莫代爾・寬鬆鬆緊腰', sz:['S','M','L','XL'], cs:['腮紅','霧藍'], shape:'shorts', bg:'#efe4d2', tone:'#1f3049', mix:'bottom'},
+  {n:'眼罩', cat:'家居配件', price:450, mat:'純棉・可水洗', sz:['F'], cs:['鼠尾草','普魯士藍'], shape:'mask', bg:'#dfe6dc', tone:'#9c2f35'},
   {n:'刺繡髮帶', cat:'家居配件', price:580, mat:'純棉・無痕鬆緊', sz:['F'], cs:['腮紅','象牙'], shape:'band', bg:'#f2d9d4', tone:'#fffaf2'},
-  {n:'室內拖', cat:'家居配件', price:1280, mat:'羊毛氈・止滑底', sz:['M','L'], cs:['香檳','普魯士藍'], shape:'slipper', bg:'#a7b8a0', tone:'#e6d2b5'}
+  {n:'室內拖', cat:'家居配件', price:1280, mat:'羊毛氈・止滑底', sz:['M','L'], cs:['香檳','普魯士藍'], shape:'slipper', bg:'#dde3ea', tone:'#e6d2b5'}
 ];
 var COL = {'茜紅':'#9c2f35','霧藍':'#6f87a6','象牙':'#fffaf2','鼠尾草':'#a7b8a0','腮紅':'#f2d9d4','普魯士藍':'#1f3049','香檳':'#e6d2b5'};
 var FAB_NAME = {R:'茜紅 toile', B:'藍 toile', S:'素色', T:'細條紋'};
@@ -690,49 +697,80 @@ var WEEK = [1,2,3,4,5,6,0];
 var now = new Date();
 var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-/* ===== 圖案定義：toile 場景、細條紋與排線（全部在 #defsG 內） ===== */
-function P(d, fill){ return '<path pathLength="1" d="' + d + '"' + (fill ? ' fill="' + fill + '"' : '') + '/>'; }
+/* ===== 圖案定義：toile 場景小品（半格錯位排列）與排線（全部在 #defsG 內） ===== */
+/* 場景座標約 260×230；O 只畫輪廓、F 填排線＋輪廓（fill 由 <use> 指定）、H 只排線 */
+function O(d){ return '<path d="' + d + '" fill="none"/>'; }
+function F(d){ return '<path d="' + d + '"/>'; }
+function H(d){ return '<path d="' + d + '" stroke="none"/>'; }
+function ring(x, y, r){ return 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0'; }
 function hatch(id, cls){
   return '<pattern id="' + id + '" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(-40)"><path class="' + cls + '" d="M2 -1V5" fill="none" stroke-width=".9"/></pattern>';
 }
-/* 360×260 的 toile 場景：月與雲、左右兩棵樹（排線陰影）、鞦韆、睡貓、花甕、小屋 */
-function scene(cls, hid){
-  var H = 'url(#' + hid + ')';
-  return '<g class="' + cls + '" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' +
-    P('M248 40a14 14 0 1 0 28 0a14 14 0 1 0-28 0Z') +
-    P('M96 50Q90 38 102 36Q106 22 120 26Q130 16 142 26Q156 24 156 38Q166 40 162 50Z') +
-    P('M186 70q5-6 10 0q5-6 10 0') + P('M212 56q4-5 8 0q4-5 8 0') +
-    P('M0 200C60 190 120 206 180 198S300 190 360 200') +
-    P('M0 214C70 206 130 222 200 212S310 206 360 214') +
-    P('M140 206l-2-7M143 206v-9M146 206l3-7M300 210l-2-6M303 210v-8') +
-    P('M58 200C57 180 62 164 60 140') + P('M68 200C69 180 65 164 67 146') +
-    P('M18 124C8 106 20 90 36 94C40 72 68 66 80 82C94 72 114 82 108 98C124 104 122 124 108 128C100 138 80 140 70 136C54 144 30 142 18 124Z') +
-    P('M22 130C44 122 74 122 104 127C100 134 90 140 72 137C54 143 34 141 22 130Z', H) +
-    P('M44 110q6-6 12 0M70 104q6-6 12 0M90 116q5-5 10 0') +
-    P('M292 200C291 180 296 164 294 140') + P('M304 200C305 180 301 166 303 146') +
-    P('M262 124C250 106 262 88 280 92C284 74 310 72 318 88C334 80 350 96 340 112C350 124 342 140 326 138C316 148 292 148 282 142C270 146 258 138 262 124Z') +
-    P('M266 130C290 122 322 122 346 124C338 134 326 140 310 140C294 146 276 140 266 130Z', H) +
-    P('M296 152C280 148 262 146 254 150') + P('M254 149L250 190') + P('M270 147L274 190') + P('M244 190H280') +
-    P('M146 200V170L166 150L186 170V200Z') + P('M142 172L166 146L190 172Z', H) +
-    P('M158 180h10v10h-10Z') + P('M172 200v-12h4v12') +
-    P('M108 200C104 190 106 182 112 180H130C136 182 138 190 134 200Z') +
-    P('M114 180C112 174 116 170 118 168M128 180C130 174 126 170 124 168M114 168H128') +
-    P('M121 168V156M121 162q-6-2-6-8M121 158q6-2 6-8') +
-    P('M112 152a4 4 0 1 0 8 0a4 4 0 1 0-8 0M124 148a3 3 0 1 0 6 0a3 3 0 1 0-6 0') +
-    P('M196 200C194 190 204 184 214 186C222 178 234 182 236 192C238 198 234 200 230 200Z') +
-    P('M226 186C224 178 230 172 236 176C240 180 240 186 236 188') + P('M228 178L227 170L233 175') +
-    P('M229 184q2 1.5 4 0') + P('M196 198C186 196 182 190 186 186') +
-    P('M318 200V188M318 192q-5-3-4-8q5 3 4 8') +
-    '</g>';
+/* 場景一：樹下鞦韆與少女 */
+var S1 = O('M8 206C70 196 150 200 252 204') + O('M24 220C90 214 170 218 240 222') +
+  F('M112 206C108 180 112 156 104 124H120C116 152 124 180 122 206Z') +
+  F('M52 124C36 114 40 92 60 92C62 70 92 62 104 80C112 58 146 58 150 82C172 80 180 104 164 118C172 134 154 142 138 136C126 146 98 148 88 140C72 146 56 138 52 124Z') +
+  O('M70 110q8-6 16 0M104 96q8-6 16 0M136 110q8-6 14 0') +
+  O('M150 108C170 110 188 104 206 106') + O('M184 106L176 150M204 106L206 150') +
+  F('M172 150H212L210 156H174Z') +
+  O(ring(199, 128, 7)) +
+  F('M191 130C190 120 200 118 205 122C208 126 206 130 205 132C202 128 196 126 191 130Z') +
+  F('M186 137C188 146 186 150 180 150H212C206 146 204 140 206 137C200 139 192 139 186 137Z') +
+  O('M196 156L192 172M204 156L208 172') +
+  O('M226 62q6-7 12 0q6-7 12 0') + O('M240 80q4-5 9 0q4-5 9 0') +
+  O('M30 206l-3-8M34 206l1-9M38 206l4-7M226 204l-3-7M230 204v-8M234 204l4-6');
+/* 場景二：月與睡貓 */
+var S2 = F('M200 22A34 34 0 1 0 232 74A28 28 0 1 1 200 22Z') +
+  O('M48 34v12M42 40h12M74 62v8M70 66h8M226 118v6M223 121h6M40 150l1-3') +
+  O('M30 94C30 82 46 80 50 88C54 78 74 80 74 94C84 94 86 110 74 110H36C26 110 30 100 30 94Z') +
+  F('M24 178C24 164 40 160 56 160H128C146 160 150 170 148 182C146 192 140 196 128 196H50C30 196 24 188 24 178Z') +
+  O('M42 170C60 176 84 174 100 168') +
+  F('M70 160C60 140 80 124 110 124C136 124 156 136 150 152C146 158 124 160 104 160Z') +
+  F('M50 150C44 140 48 128 60 126C70 124 80 130 80 138C80 146 72 152 62 152Z') +
+  O('M52 134L48 118L62 126M68 128L70 116L78 130') +
+  O('M56 140q3 3 6 0M70 140q3 3 6 0') +
+  O('M150 152C166 148 172 134 164 126') +
+  O('M104 160V170M116 160V170M128 160V168');
+/* 場景三：插花古甕與飛鳥 */
+var S3 = F('M96 146C74 160 66 190 76 206H170C180 190 172 160 150 146Z') +
+  O('M104 146V128H142V146M98 128H148') + O('M100 136H146') +
+  O('M80 178C110 188 140 188 166 178') + O('M80 206H166') +
+  O('M125 128C120 108 104 96 86 80M125 128C128 104 142 88 168 74M125 128C125 110 124 90 126 58') +
+  F(ring(86, 80, 9)) + F(ring(168, 74, 10)) + F(ring(126, 58, 8)) +
+  O(ring(86, 80, 2.5)) + O(ring(168, 74, 3)) +
+  F('M120 106q-14-12-6-24q14 8 6 24Z') + F('M130 102q12-12 20-4q-10 8-20 4Z') +
+  O('M186 52q7-8 14 0q7-8 14 0') + O('M212 40q5-6 11 0q5-6 11 0') + O('M176 72q4-4 8 0q4-4 8 0') +
+  O('M10 214C90 210 170 214 252 210');
+/* 場景四：小屋、小橋與樹 */
+var S4 = O('M30 150H112V206H30Z') + F('M20 152L72 102L124 152Z') +
+  F('M92 118V98H104V128Z') +
+  O('M60 206V176Q71 166 82 176V206') +
+  O('M92 164H108V182H92ZM100 164V182') + O('M40 166H54V184H40Z') +
+  F('M118 190C126 178 136 180 140 190C146 180 158 180 160 192C158 198 120 198 118 190Z') +
+  O('M136 224C160 210 190 210 232 222') +
+  O('M150 214Q186 178 224 214') + O('M140 214H236') + O('M144 214V204M236 214V204M186 196V190') +
+  F('M200 110C190 96 200 80 216 82C220 66 246 64 252 80C266 84 268 102 254 110C246 116 206 116 200 110Z') +
+  O('M232 116V196') +
+  O('M120 70q5-6 10 0q5-6 10 0') +
+  O('M8 218C60 212 110 220 150 216');
+var SG = ' stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"';
+/* 半格錯位（half-drop）磚：1040×560 內放四幅場景，列與列錯開半格 */
+function tile(id, hk, col, sc, bg){
+  return '<pattern id="' + id + '" width="1040" height="560" patternUnits="userSpaceOnUse"' + (sc ? ' patternTransform="scale(' + sc + ')"' : '') + ' style="color:' + col + '">' +
+    (bg ? '<rect width="1040" height="560" fill="' + bg + '"/>' : '') +
+    '<use href="#s1" fill="url(#' + hk + ')"/><use href="#s3" x="520" fill="url(#' + hk + ')"/>' +
+    '<use href="#s2" x="260" y="280" fill="url(#' + hk + ')"/><use href="#s4" x="780" y="280" fill="url(#' + hk + ')"/></pattern>';
 }
-var DEFS = hatch('hkh','ink-h') + hatch('hkr','ink-r') + hatch('hkb','ink-b') +
-  '<pattern id="wallP" width="360" height="260" patternUnits="userSpaceOnUse" patternTransform="scale(.75)">' + scene('ink-h','hkh') + '</pattern>' +
-  '<pattern id="fR" width="360" height="260" patternUnits="userSpaceOnUse" patternTransform="scale(.5)"><rect width="360" height="260" fill="#fbf6ec"/>' + scene('ink-r','hkr') + '</pattern>' +
-  '<pattern id="fB" width="360" height="260" patternUnits="userSpaceOnUse" patternTransform="scale(.5)"><rect width="360" height="260" fill="#fbf6ec"/>' + scene('ink-b','hkb') + '</pattern>' +
-  '<pattern id="fT" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#fbf6ec"/><rect width="3" height="12" fill="#1f3049"/></pattern>';
+var DEFS = hatch('hkh', 'ink-h') + hatch('hkr', 'ink-r') + hatch('hkb', 'ink-b') +
+  '<g id="s1"' + SG + '>' + S1 + '</g><g id="s2"' + SG + '>' + S2 + '</g>' +
+  '<g id="s3"' + SG + '>' + S3 + '</g><g id="s4"' + SG + '>' + S4 + '</g>' +
+  tile('wallP', 'hkh', 'var(--toile)', 0, '') + tile('fabP', 'hkr', '#9c2f35', .3, '') +
+  tile('fR', 'hkr', '#9c2f35', .5, '#fbf6ec') + tile('fB', 'hkb', '#1f3049', .5, '#fbf6ec') +
+  '<pattern id="fT" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#fbf6ec"/><rect width="3" height="12" fill="#1f3049"/></pattern>' +
+  '<pattern id="fP" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="#e6d2b5"/><rect width="18" height="6" fill="#9c2f35" opacity=".8"/><rect width="6" height="18" fill="#1f3049" opacity=".75"/><rect y="13" width="18" height="2" fill="#a7b8a0"/></pattern>';
 $('#defsG').innerHTML = DEFS;
 function fabFill(k){ return k === 'S' ? '#a7b8a0' : 'url(#f' + k + ')'; }
-function shellFill(bg){ return /^#/.test(bg) ? bg : 'url(#f' + bg + ')'; }
+function fillOf(v){ return /^#/.test(v) ? v : 'url(#f' + v + ')'; }
 
 /* ===== 首頁壁紙、星空與浮雕框 ===== */
 $('#wallSvg').innerHTML = '<rect width="100%" height="100%" fill="url(#wallP)"/>';
@@ -753,16 +791,29 @@ function scallop(cx, cy, rx, ry, N){
   for (var i = 0; i < N; i++){ d += ' Q' + pt(t0 + (i + .5) * st, 1.17) + ' ' + pt(t0 + (i + 1) * st, 1); }
   return d + 'Z';
 }
+/* 浮雕框：扇貝邊、外圈細線與小珠點；框內是一幅較完整的庭園場景（比壁紙多細節） */
 function buildCameo(){
   var el = $('#cameoSvg');
   if (!el) return;
-  el.innerHTML = '<defs><clipPath id="cWin"><ellipse cx="250" cy="300" rx="178" ry="214"/></clipPath></defs>' +
-    '<path class="cm-frame" d="' + scallop(250, 300, 212, 252, 40) + '"/>' +
-    '<ellipse class="cm-bead" cx="250" cy="300" rx="194" ry="230"/>' +
-    '<g clip-path="url(#cWin)"><rect class="cm-bg" x="0" y="0" width="500" height="600"/>' +
-    '<rect width="500" height="600" fill="url(#wallP)" opacity=".18"/>' +
-    '<g class="draw"><g transform="translate(52 157) scale(1.1)">' + scene('ink-h', 'hkh') + '</g></g></g>';
-  $$('.draw path', el).forEach(function(p, i){ p.style.setProperty('--i', i); });
+  var beads = '';
+  for (var b = 0; b < 64; b++){
+    var t = b / 64 * 2 * Math.PI;
+    beads += '<circle cx="' + (250 + 248 * Math.cos(t)).toFixed(1) + '" cy="' + (295 + 290 * Math.sin(t)).toFixed(1) + '" r="2.4"/>';
+  }
+  var moon = F('M384 120A46 46 0 1 0 428 190A38 38 0 1 1 384 120Z');
+  var hills = O('M60 330C140 300 210 326 280 306S390 316 440 300') + O('M60 352C150 336 230 354 300 342S400 348 440 338');
+  var birds = O('M120 150q8-10 16 0q8-10 16 0') + O('M158 120q6-8 12 0q6-8 12 0') + O('M96 190q5-7 10 0q5-7 10 0');
+  el.innerHTML = '<defs><clipPath id="cWin"><ellipse cx="250" cy="295" rx="182" ry="222"/></clipPath></defs>' +
+    '<path class="cm-frame" d="' + scallop(250, 295, 206, 246, 40) + '"/>' +
+    '<ellipse class="cm-line" cx="250" cy="295" rx="236" ry="276"/>' +
+    '<g class="cm-beads">' + beads + '</g>' +
+    '<g clip-path="url(#cWin)"><rect class="cm-bg" x="0" y="0" width="500" height="590"/>' +
+    '<rect x="0" y="0" width="500" height="330" fill="url(#hkh)" opacity=".22"/>' +
+    '<g class="draw" style="color:var(--toile)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    '<g fill="url(#hkh)">' + moon + '</g>' + hills + birds +
+    '<use href="#s1" transform="translate(44 190) scale(1.2)" fill="url(#hkh)"/>' +
+    '<use href="#s4" transform="translate(300 150) scale(.75)" fill="url(#hkh)"/>' +
+    '</g></g></svg>';
 }
 buildCameo();
 
@@ -841,15 +892,23 @@ ART.bedroom = function(){
     '<rect x="600" y="612" width="200" height="110" rx="40" fill="#f2d9d4" stroke="#9c2f35" stroke-width="4"/>');
 };
 ART.rolls = function(){
-  var s = '<rect width="1200" height="900" fill="#efe4d2"/>';
-  var fills = ['url(#fR)','url(#fB)','#a7b8a0','url(#fT)','url(#fR)','#f2d9d4'];
-  for (var i = 0; i < 6; i++){
-    var x = 80 + (i % 2) * 540, y = 90 + Math.floor(i / 2) * 270;
-    s += '<rect x="' + x + '" y="' + y + '" width="440" height="200" fill="' + fills[i] + '" stroke="#2b2326" stroke-width="4"/>' +
-      '<ellipse cx="' + (x + 440) + '" cy="' + (y + 100) + '" rx="34" ry="100" fill="#fffaf2" stroke="#2b2326" stroke-width="4"/>' +
-      '<ellipse cx="' + (x + 440) + '" cy="' + (y + 100) + '" rx="10" ry="30" fill="#e6d2b5" stroke="#2b2326" stroke-width="2"/>';
+  var INKC = '#2b2326';
+  function roll(x, y, w, h, f){
+    var cx = x + w, cy = y + h / 2;
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + f + '" stroke="' + INKC + '" stroke-width="3"/>' +
+      '<rect x="' + x + '" y="' + (y + h * .7) + '" width="' + w + '" height="' + (h * .3) + '" fill="' + INKC + '" opacity=".14"/>' +
+      '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (h * .2) + '" ry="' + (h / 2) + '" fill="#fffaf2" stroke="' + INKC + '" stroke-width="3"/>' +
+      '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (h * .12) + '" ry="' + (h * .3) + '" fill="none" stroke="' + INKC + '" stroke-width="2"/>' +
+      '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (h * .05) + '" ry="' + (h * .12) + '" fill="none" stroke="' + INKC + '" stroke-width="2"/>';
   }
-  return svgw(s);
+  return svgw('<rect width="1200" height="900" fill="#efe4d2"/>' +
+    '<rect width="1200" height="900" fill="url(#wallP)" opacity=".16"/>' +
+    '<ellipse cx="600" cy="800" rx="520" ry="34" fill="' + INKC + '" opacity=".16"/>' +
+    '<path d="M150 780H520V800Q340 826 150 800Z" fill="url(#fB)" stroke="' + INKC + '" stroke-width="3"/>' +
+    roll(180, 620, 220, 170, 'url(#fR)') + roll(420, 620, 220, 170, 'url(#fB)') + roll(660, 620, 220, 170, 'url(#fP)') +
+    roll(300, 466, 220, 150, '#a7b8a0') + roll(540, 466, 220, 150, 'url(#fT)') +
+    roll(420, 316, 220, 140, '#f2d9d4') +
+    '<path d="M0 790H1200V900H0Z" fill="#b59a7c" opacity=".55"/>');
 };
 ART.gift = function(){
   return svgw('<rect width="1200" height="900" fill="#1f3049"/>' +
@@ -877,15 +936,27 @@ ART.shelf = function(){
   return svgw(s);
 };
 ART.nap = function(){
-  return svgw('<rect width="1200" height="900" fill="#a7b8a0"/>' +
-    '<rect width="1200" height="900" fill="url(#wallP)" opacity=".18"/>' +
-    '<path d="M180 0H520V560H180Z" fill="#fffaf2" opacity=".55"/>' +
-    '<rect x="0" y="720" width="1200" height="180" fill="#b59a7c"/>' +
-    '<path d="M640 440Q640 330 760 330H940Q1010 330 1010 420V700H640Z" fill="#1f3049"/>' +
-    '<rect x="600" y="600" width="450" height="120" rx="24" fill="#294264"/>' +
-    '<path d="M660 520L930 490L1000 700L700 720Z" fill="url(#fB)" stroke="#2b2326" stroke-width="3"/>' +
-    '<path d="M300 560h60v70a30 30 0 0 1-60 0Z" fill="#fffaf2"/>' +
-    '<ellipse cx="330" cy="630" rx="46" ry="8" fill="#fffaf2"/>');
+  var INKC = '#2b2326';
+  return '<svg viewBox="0 0 1200 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+    '<rect width="1200" height="520" fill="#e6d2b5"/>' +
+    '<rect width="1200" height="520" fill="url(#wallP)" opacity=".2"/>' +
+    '<rect y="400" width="1200" height="120" fill="#b59a7c"/>' +
+    '<path d="M300 60H520V280H300Z" fill="#dfe9ef" stroke="' + INKC + '" stroke-width="5"/>' +
+    '<path d="M410 60V280M300 170H520" stroke="' + INKC + '" stroke-width="5"/>' +
+    '<path d="M300 280L250 400H570L520 280Z" fill="#fffaf2" opacity=".35"/>' +
+    '<path d="M240 40H320V310Q270 322 226 306Q262 180 240 40Z" fill="url(#fR)" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<path d="M500 40H580Q560 170 586 306Q546 322 500 310Z" fill="url(#fR)" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<path d="M220 34H600" stroke="' + INKC + '" stroke-width="6"/>' +
+    '<rect x="540" y="330" width="60" height="70" fill="#8c6a4e" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<rect x="556" y="300" width="26" height="30" rx="4" fill="#fffaf2" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<rect x="630" y="170" width="440" height="170" rx="22" fill="#8c6a4e" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<rect x="670" y="216" width="150" height="72" rx="30" fill="#fffaf2" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<rect x="840" y="216" width="150" height="72" rx="30" fill="#fffaf2" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<path d="M650 300Q800 280 1090 300V404H650Z" fill="url(#fB)" stroke="' + INKC + '" stroke-width="3"/>' +
+    '<path d="M650 330Q830 316 1090 336" fill="none" stroke="' + INKC + '" stroke-width="2"/>' +
+    '<rect x="630" y="390" width="470" height="28" rx="8" fill="#6e5240"/>' +
+    '<ellipse cx="760" cy="470" rx="330" ry="34" fill="url(#fR)" opacity=".9" stroke="' + INKC + '" stroke-width="2"/>' +
+    '</svg>';
 };
 function fillPhotos(){
   $$('.ph').forEach(function(f){
@@ -909,43 +980,62 @@ fillPhotos();
   sb.addEventListener('click', function(){ setSlots(!document.body.classList.contains('slots')); });
 })();
 
-/* ===== 商品：枕套卡與garment 繪製 ===== */
+/* ===== 商品：平拍線稿與卡片（garment 座標 200×190，中心 x=100） ===== */
 var INK = '#2b2326';
 function sh(p, f){ return '<path d="' + p + '" fill="' + f + '"/>'; }
-function pl(p){ return '<path d="' + p + '" fill="none"/>'; }
-function dt(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="2" fill="' + INK + '" stroke="none"/>'; }
+function pl(p, dash){ return '<path d="' + p + '" fill="none"' + (dash ? ' stroke-dasharray="3 3"' : '') + '/>'; }
+function dt(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="2.2" fill="' + INK + '" stroke="none"/>'; }
 function garmentInner(shape, f){
   switch (shape){
-    case 'shirt': return sh('M70 40L130 40L134 62L136 150L64 150L66 62Z', f) + sh('M70 40L44 52L26 116L44 124L58 74Z', f) + sh('M130 40L156 52L174 116L156 124L142 74Z', f) +
-      pl('M84 40L100 62L116 40') + pl('M100 62V150') + pl('M111 66H131V84H111Z') + dt(100, 80) + dt(100, 100) + dt(100, 120);
-    case 'tee': return sh('M76 38Q100 50 124 38L134 44L136 150L64 150L66 44Z', f) + sh('M76 38L44 58L26 116L44 124L60 84Z', f) + sh('M124 38L156 58L174 116L156 124L140 84Z', f) +
-      pl('M80 40Q100 62 120 40');
-    case 'strap': return sh('M80 40L120 40L128 150L72 150Z', f) + sh('M78 14H88L84 42H80Z', f) + sh('M112 14H122L120 42H116Z', f) + pl('M88 40Q100 56 112 40');
-    case 'pants': return sh('M60 24H140L146 40L150 160H108L100 66L92 160H50L54 40Z', f) + pl('M60 30H140') + pl('M100 66V92');
-    case 'shorts': return sh('M60 24H140L146 40L150 96H108L100 62L92 96H50L54 40Z', f) + pl('M60 30H140');
-    case 'skirt': return sh('M80 14H120L126 56L146 160Q100 170 54 160L74 56Z', f) + pl('M84 14L80 4') + pl('M116 14L120 4');
-    case 'mask': return sh('M24 84Q100 36 176 84Q100 124 24 84Z', f) + pl('M24 84L6 72') + pl('M176 84L194 72');
-    case 'band': return '<path d="M22 96Q100 30 178 96" fill="none" stroke="' + INK + '" stroke-width="12"/><path d="M22 96Q100 30 178 96" fill="none" stroke="' + f + '" stroke-width="8.5"/>';
-    case 'slipper': return sh('M40 110Q40 90 70 92L150 96Q170 100 168 120Q164 140 140 138L70 134Q40 132 40 110Z', f) + pl('M60 96Q100 74 130 96');
-    case 'set': return '<g transform="translate(12 30) scale(.5)">' + garmentInner('shirt', f) + '</g>' +
-      '<g transform="translate(88 30) scale(.5)">' + garmentInner('pants', f) + '</g>';
+    case 'shirt': return sh('M78 18L58 26L30 36L12 118L30 124L52 66L56 172Q100 178 144 172L148 66L170 124L188 118L170 36L142 26L122 18Q100 30 78 18Z', f) +
+      pl('M78 18L92 38L100 30L108 38L122 18') + pl('M94 40V172M106 40V172') + pl('M30 36L12 118M170 36L188 118') +
+      pl('M116 56H138V76H116Z') + pl('M64 98L74 150M126 100L136 146') + pl('M56 166Q100 172 144 166') +
+      dt(100, 62) + dt(100, 90) + dt(100, 118) + dt(100, 146);
+    case 'tee': return sh('M76 20Q100 36 124 20L150 28L184 122L168 128L150 84L150 172L50 172L50 84L32 128L16 122L50 28Z', f) +
+      pl('M76 20Q100 36 124 20') + pl('M80 27Q100 42 120 27') + pl('M16 122L32 128M184 122L168 128') + pl('M50 162H150') +
+      pl('M50 84H150', 1);
+    case 'strap': return sh('M72 14H80Q82 40 88 56Q100 66 112 56Q118 40 120 14H128Q132 60 140 96L140 172H60L60 96Q68 60 72 14Z', f) +
+      pl('M88 56Q100 66 112 56') + pl('M80 14Q82 40 88 56M120 14Q118 40 112 56') + pl('M60 164H140') + pl('M60 96H140', 1);
+    case 'pants': return sh('M46 12H154V34H46Z', f) + sh('M46 34L44 176H94L100 62L106 176H156L154 34Z', f) +
+      pl('M50 21H150', 1) + pl('M72 42L70 170M128 42L130 170') + pl('M44 166H94M106 166H156') + pl('M100 62V96');
+    case 'shorts': return sh('M46 12H154L158 112H108L100 62L92 112H42Z', f) +
+      pl('M46 28H154') + pl('M50 20H150', 1) + pl('M42 112H92M108 112H158') + pl('M70 60L66 100M130 60L134 100');
+    case 'skirt': return sh('M78 12H86V62H78Z', f) + sh('M114 12H122V62H114Z', f) +
+      sh('M86 62Q100 70 114 62L124 98L146 166Q100 178 54 166L76 98Z', f) +
+      pl('M86 62Q100 70 114 62') + pl('M76 98Q100 106 124 98') + pl('M60 158Q100 170 140 158') + pl('M54 166Q100 178 146 166') +
+      pl('M100 104L88 96V112ZM100 104L112 96V112Z');
+    case 'mask': return sh('M30 96Q100 46 170 96Q184 122 160 130Q140 138 124 118Q100 106 76 118Q60 138 40 130Q16 122 30 96Z', f) +
+      pl('M38 100Q100 58 162 100', 1) + pl('M30 96Q12 92 4 76') + pl('M170 96Q188 92 196 76');
+    case 'band': return '<path d="M26 104Q100 22 174 104" fill="none" stroke="' + INK + '" stroke-width="13"/>' +
+      '<path d="M26 104Q100 22 174 104" fill="none" stroke="' + f + '" stroke-width="9.5"/>' +
+      '<path d="M26 104Q100 22 174 104" fill="none" stroke="#9c2f35" stroke-width="1.6" stroke-dasharray="2 4"/>' +
+      sh('M170 102Q186 84 196 100Q186 118 170 106Z', f) + pl('M170 104Q180 96 190 100M170 104Q180 112 190 108') + pl(ring(100, 63, 4));
+    case 'slipper': return sh('M30 136Q28 150 46 150H160Q176 150 172 136Q170 128 160 128H40Q30 128 30 136Z', '#8c6a4e') +
+      sh('M30 128Q24 88 66 82Q104 80 128 96Q150 104 162 128Z', f) +
+      pl('M60 84Q92 100 122 96') + pl('M44 108q8-6 16 0t16 0t16 0', 1) +
+      '<circle cx="170" cy="118" r="10" fill="#fffaf2"/>' + pl(ring(170, 118, 10));
+    case 'set': return '<g transform="translate(0 22) scale(.58)">' + garmentInner('tee', f) + '</g>' +
+      '<g transform="translate(104 26) scale(.6)">' + garmentInner('pants', f) + '</g>';
   }
   return '';
 }
 function gShape(shape, f){
   return '<g stroke="' + INK + '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">' + garmentInner(shape, f) + '</g>';
 }
-function artSVG(shape, f, cls){
-  return '<svg class="' + (cls || 'art') + '" viewBox="0 0 200 170" aria-hidden="true">' + gShape(shape, f) + '</svg>';
+/* 卡片上半部：商品色淺底＋淡 toile 紋＋置中平拍（約佔 73% 高度） */
+function cardArt(p, cls){
+  return '<svg class="' + (cls || 'art') + '" viewBox="0 0 300 260" aria-hidden="true"><rect width="300" height="260" fill="' + p.bg + '"/>' +
+    '<rect width="300" height="260" fill="url(#fabP)" opacity=".2"/>' +
+    '<g transform="translate(50 34)" stroke="' + INK + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">' + garmentInner(p.shape, fillOf(p.tone)) + '</g></svg>';
 }
+var PROMO = '<div class="promo"><span class="eb">Mix &amp; Monogram</span><b>自由配・繡字</b><p>上下身任選，上衣口袋可繡 1–3 個字母，平拍圖即時更新。</p><a class="btn sm" href="#mix">去配一套</a></div>' +
+  '<div class="promo"><span class="eb">Size Guide</span><b>尺寸拿不準？</b><p>輸入身高、體重與版型偏好，推薦最接近你的尺碼。</p><a class="btn sm ghost" href="#size">看尺寸表</a></div>';
 function cardHTML(p, i){
   var dots = p.cs.map(function(c){ return '<i style="background:' + COL[c] + '" title="' + c + '"></i>'; }).join('');
   var szs = p.sz.map(function(s){ return '<span>' + s + '</span>'; }).join('');
-  return '<article class="card rv" data-cat="' + esc(p.cat) + '" style="--d:' + ((i % 4) * 90) + 'ms">' +
-    '<div class="shell">' +
-      '<svg class="fabric-bg" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="300" height="300" fill="' + shellFill(p.bg) + '"/></svg>' +
+  return '<article class="card rv" data-cat="' + esc(p.cat) + '" style="--d:' + ((i % 3) * 90) + 'ms">' +
+    '<div class="shell">' + cardArt(p) +
       (p.tag ? '<span class="stamp">' + esc(p.tag) + '</span>' : '') +
-      artSVG(p.shape, p.tone) +
       '<div class="panel">' +
         '<div class="ptop"><span class="cat">' + esc(p.cat) + '</span>' +
         '<button class="fav" type="button" aria-pressed="false" aria-label="收藏 ' + esc(p.n) + '"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17 3.4 10.4a3.6 3.6 0 0 1 6.6-4.3 3.6 3.6 0 0 1 6.6 4.3Z"/></svg></button></div>' +
@@ -959,7 +1049,7 @@ function cardHTML(p, i){
 }
 var grid = $('#grid');
 if (grid){
-  grid.innerHTML = PRODUCTS.map(cardHTML).join('');
+  grid.innerHTML = PRODUCTS.map(cardHTML).join('') + PROMO;
   grid.addEventListener('click', function(e){
     var fav = e.target.closest('.fav');
     if (!fav) return;
@@ -970,8 +1060,9 @@ $('#chips').addEventListener('click', function(e){
   var b = e.target.closest('.chip');
   if (!b) return;
   $$('.chip').forEach(function(c){ c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
-  var f = b.getAttribute('data-f');
-  $$('.card').forEach(function(c){ c.hidden = !(f === '全部' || c.getAttribute('data-cat') === f); });
+  var f = b.getAttribute('data-f'), all = f === '全部';
+  $$('.card').forEach(function(c){ c.hidden = !(all || c.getAttribute('data-cat') === f); });
+  $$('.promo').forEach(function(c){ c.hidden = !all; });
 });
 
 /* ===== 詢問清單 ===== */
@@ -1051,13 +1142,15 @@ function drawSum(c){
     '<dl>' + rows + '<div class="ln tot"><dt>合計</dt><dd class="num">' + money(c.total) + '</dd></div></dl>' :
     '<p class="hint">尚未選擇任何款式。</p>';
 }
+var MONO_POS = { shirt:[127,70], tee:[126,72], strap:[100,88] };
 function drawFlat(c){
   var s = '';
   if (c.t){
-    var mono = MX.mono ? '<text x="' + (c.t.shape === 'shirt' ? 121 : 108) + '" y="78" font-size="10" text-anchor="middle" font-family="Georgia,serif" font-style="italic" fill="#9c2f35" stroke="#fffaf2" stroke-width=".4">' + MX.mono + '</text>' : '';
-    s += '<g transform="translate(80 0) scale(1.2)">' + gShape(c.t.shape, fabFill(MX.tf)) + mono + '</g>';
+    var mp = MONO_POS[c.t.shape] || [100,72];
+    var mono = MX.mono ? '<text x="' + mp[0] + '" y="' + (mp[1] + 3) + '" font-size="9" text-anchor="middle" font-family="Georgia,serif" font-style="italic" fill="#9c2f35" stroke="#fffaf2" stroke-width=".3">' + MX.mono + '</text>' : '';
+    s += '<g transform="translate(100 6)">' + gShape(c.t.shape, fabFill(MX.tf)) + mono + '</g>';
   }
-  if (c.b) s += '<g transform="translate(80 196) scale(1.2)">' + gShape(c.b.shape, fabFill(MX.bf)) + '</g>';
+  if (c.b) s += '<g transform="translate(100 210)">' + gShape(c.b.shape, fabFill(MX.bf)) + '</g>';
   if (!c.t && !c.b) s = '<text x="200" y="210" text-anchor="middle" font-size="16" fill="#6b5d62">請選擇上身或下身</text>';
   $('#flat').innerHTML = s;
   var cap = c.t && c.b ? '上下身成套' : c.t ? '單買上身' : c.b ? '單買下身' : '尚未選擇';
@@ -1149,7 +1242,7 @@ $('#inq').addEventListener('submit', function(e){
 var qS = { i:0, a:[], busy:false };
 function recHTML(i){
   var p = PRODUCTS[i];
-  return '<div class="rec">' + artSVG(p.shape, p.tone) +
+  return '<div class="rec">' + cardArt(p, 'art') +
     '<div><b>' + esc(p.n) + '</b><span class="num">' + money(p.price) + '</span>' +
     '<button class="add" type="button" data-add="' + i + '">加入詢問</button></div></div>';
 }
