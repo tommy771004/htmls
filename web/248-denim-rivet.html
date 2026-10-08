@@ -275,15 +275,6 @@ tr.hit td,tr.hit th{background:#f6e3bf;transition:background-color var(--dur-hov
 .wall{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:170px;gap:12px;margin-top:40px}
 .wall .w1,.wall .w5{grid-column:1 / -1}
 .wall .ph figcaption{display:none}
-@media (min-width:821px){
-  .wall{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(180px,20vw,260px)}
-  .wall .w1{grid-column:1 / span 2;grid-row:1}
-  .wall .w2{grid-column:3;grid-row:1}
-  .wall .w4{grid-column:4;grid-row:1 / span 2}
-  .wall .w3{grid-column:1;grid-row:2}
-  .wall .w5{grid-column:2 / span 2;grid-row:2}
-}
-
 /* ===== 評論 ===== */
 .reviews{background:#2f4a7a;color:#efe6d2;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 2px,transparent 2px 7px)}
 .reviews .eyebrow{color:var(--copper-hi)}
@@ -332,7 +323,26 @@ tr.hit td,tr.hit th{background:#f6e3bf;transition:background-color var(--dur-hov
 .js .rv{opacity:0;transform:translateY(18px);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
 .js .rv.in{opacity:1;transform:none}
 
-/* ===== 手機與平板 ===== */
+/* ===== 故事區 ===== */
+.story-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:clamp(28px,5vw,80px);align-items:center}
+.sp{font-size:16.5px;line-height:1.95}
+.sp+.sp{margin-top:16px}
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid #1b2a4a;margin-top:30px}
+.nums div{padding:16px 12px 0 0}
+.nums b{display:block;font-family:var(--head);font-size:clamp(38px,5vw,56px);line-height:1;color:#1b2a4a;margin-bottom:6px}
+.nums span{font-size:13px;color:#4b5a78;line-height:1.5;display:block}
+.story-grid .ph{aspect-ratio:4/5;box-shadow:0 26px 50px rgba(27,42,74,.25)}
+.story-lead{font-size:clamp(18px,2vw,22px);font-weight:700;line-height:1.7;margin:14px 0 18px;color:#1b2a4a}
+
+/* ===== 響應式（放在所有基本規則之後，才不會被後面的規則蓋掉） ===== */
+@media (min-width:821px){
+  .wall{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(180px,20vw,260px)}
+  .wall .w1{grid-column:1 / span 2;grid-row:1}
+  .wall .w2{grid-column:3;grid-row:1}
+  .wall .w4{grid-column:4;grid-row:1 / span 2}
+  .wall .w3{grid-column:1;grid-row:2}
+  .wall .w5{grid-column:2 / span 2;grid-row:2}
+}
 @media (max-width:820px){
   .menu-btn{display:inline-flex;margin-left:auto}
   .nav-list{display:none;position:absolute;top:100%;left:0;right:0;margin:0;background:#111c33;flex-direction:column;gap:0;padding:6px var(--gut) 16px;border-bottom:1px solid #2f4a7a}
@@ -341,10 +351,12 @@ tr.hit td,tr.hit th{background:#f6e3bf;transition:background-color var(--dur-hov
   .nav-cta{margin-left:auto}
   .nav-in{gap:10px}
   .hero-grid,.story-grid,.sim,.form-grid,.size-grid,.store-grid{grid-template-columns:1fr}
+  .hero-big{position:static;font-size:clamp(30px,10vw,64px);margin:0 0 4px}
   .swatch{max-width:340px;margin:8px auto 0}
   .row2{grid-template-columns:1fr}
   .sum{grid-template-columns:1fr 1fr 1fr}
   .info{grid-template-columns:auto 1fr}
+  .wall .w4{grid-column:1 / -1;grid-row:auto}
 }
 @media (max-width:560px){
   .wz{display:none}
@@ -359,17 +371,6 @@ tr.hit td,tr.hit th{background:#f6e3bf;transition:background-color var(--dur-hov
   .qty{grid-column:2 / -1}
   .big-num{font-size:120px}
 }
-
-/* ===== 故事區 ===== */
-.story-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:clamp(28px,5vw,80px);align-items:center}
-.story p{font-size:16.5px;line-height:1.95}
-.story p+p{margin-top:16px}
-.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid #1b2a4a;margin-top:30px}
-.nums div{padding:16px 12px 0 0}
-.nums b{display:block;font-family:var(--head);font-size:clamp(38px,5vw,56px);line-height:1;color:#1b2a4a;margin-bottom:6px}
-.nums span{font-size:13px;color:#4b5a78;line-height:1.5;display:block}
-.story .ph{aspect-ratio:4/5;box-shadow:0 26px 50px rgba(27,42,74,.25)}
-.story-lead{font-size:clamp(18px,2vw,22px);font-weight:700;line-height:1.7;margin:14px 0 18px;color:#1b2a4a}
 
 /* ===== 減少動態 ===== */
 @media (prefers-reduced-motion: reduce){
@@ -465,8 +466,8 @@ tr.hit td,tr.hit th{background:#f6e3bf;transition:background-color var(--dur-hov
       <p class="eyebrow">01 · Our Story</p>
       <h2 class="h2" id="storyH">從一條褲子開始的工坊</h2>
       <p class="story-lead">我們只想把原色丹寧修到剛好合身，然後看著它一起變老。</p>
-      <p>二〇一七年，我們在台中西區租下一間舊縫衣工廠的小門面。那時候客人多半拿著穿舊的褲子來，問能不能把褲管剪短、把破洞補好。於是我們把車縫機留在門口，讓人看著鏈式車縫一針一針走完。</p>
-      <p>我們只用 14oz 到 16oz 的赤耳原色布，不預縮、不做假的磨白。第一次下水會縮、會硬，之後每一次穿都留下自己的痕跡。店裡改好的每條褲子，都會附一張工單，寫上 LOT 號與改過的地方。</p>
+      <p class="sp">二〇一七年，我們在台中西區租下一間舊縫衣工廠的小門面。那時候客人多半拿著穿舊的褲子來，問能不能把褲管剪短、把破洞補好。於是我們把車縫機留在門口，讓人看著鏈式車縫一針一針走完。</p>
+      <p class="sp">我們只用 14oz 到 16oz 的赤耳原色布，不預縮、不做假的磨白。第一次下水會縮、會硬，之後每一次穿都留下自己的痕跡。店裡改好的每條褲子，都會附一張工單，寫上 LOT 號與改過的地方。</p>
       <div class="nums">
         <div><b>9</b><span>年手工改褲經驗</span></div>
         <div><b>16</b><span>種日本與國產赤耳布</span></div>
@@ -786,7 +787,7 @@ var SVC = [
 ];
 // 腰圍（英吋）、成品腰圍（cm）、建議褲長（cm）
 var SIZES = [[28,71,74],[29,74,74],[30,76,75],[31,79,76],[32,81,77],[33,84,78],[34,86,79],[35,89,79],[36,91,80],[37,94,80],[38,97,81]];
-var SHAPES = {straight:{T:70,K:58,W:82}, taper:{T:68,K:54,W:66}, wide:{T:80,K:70,W:102}, slim:{T:66,K:50,W:60}};
+var SHAPES = {straight:{T:70,K:60,H:56,Ki:10,Hi:4,Wz:66}, taper:{T:68,K:56,H:40,Ki:10,Hi:4,Wz:64}, wide:{T:84,K:80,H:76,Ki:8,Hi:4,Wz:72}, slim:{T:60,K:50,H:44,Ki:12,Hi:5,Wz:60}};
 var SHAPE_LABEL = {straight:'直筒', taper:'錐形', wide:'寬版', slim:'修身'};
 var SHAPE_NOTE = {
   straight:'直筒：褪色最均勻，最容易看出經典的貓鬚。',
@@ -843,41 +844,40 @@ $('#tel').href='tel:'+SHOP.phone.replace(/[^\d+]/g,'');
 $('#mapLink').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(SHOP.address);
 $('#yr').textContent=new Date().getFullYear();
 
-/* ===== 牛仔褲共用幾何（正面，中心 x = 150） ===== */
+/* ===== 牛仔褲共用幾何（正面，中心 x = 150） =====
+   褲管一律用直線連接（不做平滑曲線），避免膝蓋鼓起或褲口外擴。
+   T 臀側外緣、K 膝外緣、H 褲口外緣、Ki 膝內緣、Hi 褲口內緣、Wz 腰口半寬（皆為距中心線的距離） */
 var C=150;
-function outline(s){
-  var L=C-s.T, Lk=C-s.K, Lh=C-4-s.W, Rh=C+4+s.W, Rk=C+s.K, Rt=C+s.T;
-  return [[C-66,58],[L,150],[Lk,262],[Lh,374],[C-4,374],[C-14,262],[C-7,190],[C,142],[C+7,190],[C+14,262],[C+4,374],[Rh,374],[Rk,262],[Rt,150],[C+66,58]];
+// 輪廓：左外側 → 褲口 → 內側 → 檔部 → 右側（閉合多邊形）
+function bodyD(s){
+  var p=[[C-s.Wz,58],[C-s.T,150],[C-s.K,262],[C-s.H,374],[C-s.Hi,374],[C-s.Ki,262],[C-7,190],[C,142],
+    [C+7,190],[C+s.Ki,262],[C+s.Hi,374],[C+s.H,374],[C+s.K,262],[C+s.T,150],[C+s.Wz,58]];
+  return 'M'+p.map(function(q){ return q[0]+' '+q[1]; }).join(' L')+' Z';
 }
-// Catmull-Rom 轉三次貝茲，做出閉合的平滑輪廓
-function smooth(p){
-  var n=p.length, d='M'+p[0][0]+' '+p[0][1], i;
-  for(i=0;i<n;i++){
-    var a=p[(i+n-1)%n], b=p[i], c=p[(i+1)%n], e=p[(i+2)%n];
-    d+=' C'+(b[0]+(c[0]-a[0])/6).toFixed(1)+' '+(b[1]+(c[1]-a[1])/6).toFixed(1)+' '+(c[0]-(e[0]-b[0])/6).toFixed(1)+' '+(c[1]-(e[1]-b[1])/6).toFixed(1)+' '+c[0]+' '+c[1];
-  }
-  return d+'Z';
-}
-function bodyD(s){ return smooth(outline(s)); }
-// 外側車縫線（橘色雙針，往內縮 6 px）
+// 外側車縫線（橘色雙針，往內縮 6 px，跟著外側輪廓走）
 function stitchD(s){
-  var l=[[C-60,62],[C-s.T+6,150],[C-s.K+6,262],[C-4-s.W+6,370]];
+  var l=[[C-s.Wz+6,62],[C-s.T+6,150],[C-s.K+6,262],[C-s.H+6,370]];
   var r=l.map(function(p){ return [2*C-p[0], p[1]]; });
   function join(a){ return a.map(function(p){ return p[0]+' '+p[1]; }).join(' L'); }
   return 'M'+join(l)+' M'+join(r);
 }
-function pocketD(sd){ function X(v){ return C+sd*v; } return 'M'+X(60)+' 72 Q'+X(42)+' 104 '+X(16)+' 106 L'+X(22)+' 126 Q'+X(44)+' 124 '+X(62)+' 98 Z'; }
+// 前口袋輪廓（左右對稱）；修身褲腰口較窄，依腰口縮放
+function pocketD(sd, s){
+  var f=Math.min(1,(s.Wz-6)/60);
+  function X(v){ return C+sd*v*f; }
+  return 'M'+X(60)+' 72 Q'+X(42)+' 104 '+X(16)+' 106 L'+X(22)+' 126 Q'+X(44)+' 124 '+X(62)+' 98 Z';
+}
 // 褲頭、褲耳、鈕扣、門襟、口袋、零錢袋、鉚釘與車縫線（靜態細節）
 function details(fit){
-  var s=SHAPES[fit], o='', xs=[C-62,C-30,C+24,C+56];
-  o+='<rect x="'+(C-70)+'" y="40" width="140" height="20" rx="3" fill="#2d4877" stroke="#0c1628" stroke-width="1.5"/>';
+  var s=SHAPES[fit], Wz=s.Wz, o='', xs=[C-Wz+4, C-Wz*0.45, C+Wz*0.36, C+Wz-10];
+  o+='<rect x="'+(C-Wz-4)+'" y="40" width="'+(2*Wz+8)+'" height="20" rx="3" fill="#2d4877" stroke="#0c1628" stroke-width="1.5"/>';
   xs.forEach(function(x){ o+='<rect x="'+x+'" y="31" width="7" height="32" rx="2" fill="#243b66" stroke="#e3a33b" stroke-opacity=".75" stroke-width="1" stroke-dasharray="2 2"/>'; });
-  o+='<path d="M'+(C-68)+' 45 H'+(C+68)+'" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4" fill="none"/>';
-  o+='<path d="M'+(C-68)+' 55 H'+(C+68)+'" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4" fill="none" opacity=".6"/>';
+  o+='<path d="M'+(C-Wz-2)+' 45 H'+(C+Wz+2)+'" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4" fill="none"/>';
+  o+='<path d="M'+(C-Wz-2)+' 55 H'+(C+Wz+2)+'" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4" fill="none" opacity=".6"/>';
   o+='<rect x="'+(C+22)+'" y="62" width="18" height="20" rx="2" fill="none" stroke="#e3a33b" stroke-dasharray="3 2"/>';
-  o+='<path d="'+pocketD(-1)+'" fill="none" stroke="#e3a33b" stroke-width="1.5" stroke-dasharray="4 3"/>';
-  o+='<path d="'+pocketD(1)+'" fill="none" stroke="#e3a33b" stroke-width="1.5" stroke-dasharray="4 3"/>';
-  o+='<circle cx="'+(C-60)+'" cy="72" r="3.4" fill="url(#gCopper)"/><circle cx="'+(C+60)+'" cy="72" r="3.4" fill="url(#gCopper)"/>';
+  o+='<path d="'+pocketD(-1,s)+'" fill="none" stroke="#e3a33b" stroke-width="1.5" stroke-dasharray="4 3"/>';
+  o+='<path d="'+pocketD(1,s)+'" fill="none" stroke="#e3a33b" stroke-width="1.5" stroke-dasharray="4 3"/>';
+  o+='<circle cx="'+(C-Wz+6)+'" cy="72" r="3.4" fill="url(#gCopper)"/><circle cx="'+(C+Wz-6)+'" cy="72" r="3.4" fill="url(#gCopper)"/>';
   o+='<circle cx="'+C+'" cy="50" r="5" fill="url(#gCopper)" stroke="#4d2a0e" stroke-width=".8"/>';
   o+='<path d="M'+C+' 62 V134" stroke="#0a1322" stroke-width="2.4"/><path d="M'+(C+4)+' 64 V128" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="4 3"/>';
   o+='<path d="'+stitchD(s)+'" fill="none" stroke="#e3a33b" stroke-width="2.2" stroke-dasharray="6 4" stroke-linejoin="round"/>';
@@ -887,22 +887,49 @@ function details(fit){
 /* ===== 商品圖（SVG 平拍） ===== */
 var PIC = {
   pants:function(fit){
-    return '<g transform="translate(150 150) scale(.8) translate(-150 -206)"><path d="'+bodyD(SHAPES[fit])+'" fill="url(#gDenim)"/>'+details(fit)+'</g>';
+    return '<g transform="translate(150 150) scale(.8) translate(-150 -216)"><path d="'+bodyD(SHAPES[fit])+'" fill="url(#gDenim)" stroke="#0c1628" stroke-width="1.2" stroke-linejoin="round"/>'+details(fit)+'</g>';
   },
   jacket:function(){
-    return '<path d="M92 48 L128 36 Q150 56 172 36 L208 48 L252 118 L232 152 L226 262 L74 262 L68 152 L48 118 Z" fill="url(#gDenim)" stroke="#0c1628" stroke-width="2"/>'+
-      '<path d="M128 36 L150 84 L172 36" fill="none" stroke="#0c1628" stroke-width="2"/>'+
-      '<path d="M104 112 H128 V150 H104 Z M172 112 H196 V150 H172 Z" fill="rgba(5,10,22,.35)" stroke="#e3a33b" stroke-dasharray="4 3"/>'+
-      '<path d="M150 84 V262" stroke="#0c1628" stroke-width="2"/>'+
-      '<circle cx="150" cy="122" r="4" fill="url(#gCopper)"/><circle cx="150" cy="164" r="4" fill="url(#gCopper)"/><circle cx="150" cy="206" r="4" fill="url(#gCopper)"/>'+
-      '<path d="M74 152 L150 180 L226 152" fill="none" stroke="#e3a33b" stroke-dasharray="5 4"/>';
+    var body='M116 38 L84 56 L30 206 L72 216 L80 130 L78 262 L222 262 L220 130 L228 216 L270 206 L216 56 L184 38 Q150 54 116 38 Z';
+    return '<path d="'+body+'" fill="url(#gDenim)" stroke="#0c1628" stroke-width="2" stroke-linejoin="round"/>'+
+      // 前育克與袖縫、側縫（橘色車線）
+      '<path d="M84 58 Q150 96 216 58" fill="none" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4" opacity=".8"/>'+
+      '<path d="M88 66 L40 198 M212 66 L260 198 M86 136 L82 250 M214 136 L218 250" fill="none" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4"/>'+
+      // 翻領：左右領片
+      '<path d="M116 38 L150 68 L100 94 L90 62 Z M184 38 L150 68 L200 94 L210 62 Z" fill="#3a5b8f" stroke="#0c1628" stroke-width="1.8" stroke-linejoin="round"/>'+
+      '<path d="M116 38 L150 68 L184 38" fill="none" stroke="#0c1628" stroke-width="1.6"/>'+
+      // 門襟與鈕扣
+      '<path d="M150 68 V262" stroke="#0c1628" stroke-width="2.2"/><path d="M155 74 V256" stroke="#e3a33b" stroke-width="1" stroke-dasharray="4 3"/>'+
+      '<circle cx="150" cy="116" r="3.6" fill="url(#gCopper)"/><circle cx="150" cy="150" r="3.6" fill="url(#gCopper)"/><circle cx="150" cy="184" r="3.6" fill="url(#gCopper)"/><circle cx="150" cy="218" r="3.6" fill="url(#gCopper)"/>'+
+      // 胸口袋（含袋蓋）
+      '<path d="M102 116 H132 V160 H102 Z M168 116 H198 V160 H168 Z" fill="rgba(5,10,22,.22)" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="4 3"/>'+
+      '<path d="M100 110 H134 V119 H100 Z M166 110 H200 V119 H166 Z" fill="#2f4a7a" stroke="#0c1628" stroke-width="1.2"/>'+
+      // 下方斜口袋（含袋蓋）
+      '<path d="M88 206 H120 L118 240 H90 Z M212 206 H180 L182 240 H210 Z" fill="rgba(5,10,22,.22)" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="4 3"/>'+
+      '<path d="M86 204 H122 V210 H86 Z M178 204 H214 V210 H178 Z" fill="#2f4a7a" stroke="#0c1628" stroke-width="1.2"/>'+
+      // 袖口布與鈕扣
+      '<path d="M38 188 L30 206 L72 216 L80 198 Z M262 188 L270 206 L228 216 L220 198 Z" fill="#2f4a7a" stroke="#0c1628" stroke-width="1.6" stroke-linejoin="round"/>'+
+      '<circle cx="54" cy="202" r="3" fill="url(#gCopper)"/><circle cx="246" cy="202" r="3" fill="url(#gCopper)"/>'+
+      // 下襬車線
+      '<path d="M82 250 H218" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4"/>';
   },
   shirt:function(){
-    return '<path d="M96 52 L128 40 Q150 62 172 40 L204 52 L240 120 L222 136 L212 118 L212 262 L88 262 L88 118 L78 136 L60 120 Z" fill="#4a6aa0" stroke="#0c1628" stroke-width="2"/>'+
-      '<path d="M128 40 L150 96 L172 40" fill="none" stroke="#0c1628" stroke-width="2"/>'+
-      '<path d="M120 124 H146 V166 H120 Z M154 124 H180 V166 H154 Z" fill="rgba(5,10,22,.25)" stroke="#e3a33b" stroke-dasharray="4 3"/>'+
-      '<path d="M150 96 V262" stroke="#0c1628" stroke-width="2"/>'+
-      '<circle cx="150" cy="192" r="3.5" fill="url(#gCopper)"/><circle cx="150" cy="230" r="3.5" fill="url(#gCopper)"/>';
+    var body='M120 38 L84 52 L40 190 L66 200 L84 130 L86 262 L214 262 L216 130 L234 200 L260 190 L216 52 L180 38 Q150 56 120 38 Z';
+    return '<path d="'+body+'" fill="#4a6aa0" stroke="#0c1628" stroke-width="2" stroke-linejoin="round"/>'+
+      // 肩線、育克與領座
+      '<path d="M84 52 Q150 84 216 52" fill="none" stroke="#0c1628" stroke-width="1.4" opacity=".65"/>'+
+      '<path d="M120 38 Q150 22 180 38" fill="none" stroke="#0c1628" stroke-width="1.6"/>'+
+      // 翻領：左右領片
+      '<path d="M120 38 L150 66 L104 90 L100 58 Z M180 38 L150 66 L196 90 L200 58 Z" fill="#6f8dbb" stroke="#0c1628" stroke-width="1.8" stroke-linejoin="round"/>'+
+      // 前襟與白貝鈕扣
+      '<path d="M150 66 V262" stroke="#0c1628" stroke-width="2"/><path d="M154 70 V258" stroke="#e3a33b" stroke-width="1" stroke-dasharray="4 3"/>'+
+      '<circle cx="150" cy="98" r="2.8" fill="#efe6d2"/><circle cx="150" cy="128" r="2.8" fill="#efe6d2"/><circle cx="150" cy="158" r="2.8" fill="#efe6d2"/><circle cx="150" cy="188" r="2.8" fill="#efe6d2"/><circle cx="150" cy="218" r="2.8" fill="#efe6d2"/>'+
+      // 胸口袋（含袋蓋）
+      '<path d="M100 112 H132 V156 H100 Z M168 112 H200 V156 H168 Z" fill="rgba(5,10,22,.2)" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="4 3"/>'+
+      '<path d="M98 112 H134 V122 H98 Z M166 112 H202 V122 H166 Z" fill="#6f8dbb" stroke="#0c1628" stroke-width="1.2"/>'+
+      // 袖口
+      '<path d="M46 176 L40 190 L66 200 L72 186 Z M254 176 L260 190 L234 200 L228 186 Z" fill="#6f8dbb" stroke="#0c1628" stroke-width="1.4" stroke-linejoin="round"/>'+
+      '<path d="M86 250 H214" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="5 4"/>';
   },
   tee:function(){
     return '<path d="M100 52 L128 40 Q150 62 172 40 L200 52 L254 96 L232 128 L214 114 L214 262 L86 262 L86 114 L68 128 L46 96 Z" fill="#2f4a7a" stroke="#0c1628" stroke-width="2"/>'+
@@ -991,48 +1018,61 @@ renderInq();
 
 /* ===== 核心功能一：褪色模擬器 ===== */
 var lastShape=null;
-// 依月數與習慣估算各層的褪色程度（0–1）
+// 褪色分區（0–1）。0 個月是均勻的原色靛藍；磨白只集中在大腿、貓鬚、膝蓋、口袋與腰頭邊、褲口堆疊紋
 function model(m, shape, h){
-  var b=1-Math.exp(-m/9), k=h.rare?0.85:1;
+  var b=1-Math.exp(-m/14), k=h.rare?0.8:1;
   return {
-    all:   clamp01(b*k*(h.labor?1.1:1)*(shape==='wide'?0.9:1)),
-    thigh: clamp01(b*k*(h.sit?1.2:0.9)*(shape==='slim'?1.25:(shape==='wide'?0.7:1))),
-    knee:  clamp01(b*k*(h.labor?1.3:0.9)*(shape==='taper'?1.25:(shape==='slim'?1.1:1))),
-    whisk: clamp01(sstep(4,18,m)*k*(h.bike?1.35:0.8)*(h.sit?1.1:1)*(shape==='slim'?1.15:1)),
+    wash:  clamp01(b*k),
+    thigh: clamp01(b*k*(h.sit?1.25:0.9)*(shape==='slim'?1.2:(shape==='wide'?0.75:1))),
+    knee:  clamp01(b*k*(h.labor?1.35:0.95)*(shape==='taper'?1.2:(shape==='slim'?1.1:1))),
+    whisk: clamp01(sstep(3,16,m)*k*(h.bike?1.4:0.85)*(h.sit?1.1:1)*(shape==='slim'?1.15:1)),
     pocket:clamp01(sstep(1,9,m)*k*(h.sit?1.2:1)),
-    stack: clamp01(sstep(6,24,m)*((shape==='taper'||shape==='wide')?1.35:0.55)*(h.labor?1.1:1)*k)
+    stack: clamp01(sstep(6,22,m)*((shape==='taper'||shape==='wide')?1.3:0.5)*(h.labor?1.1:1)*k)
   };
 }
-function whiskers(){
-  var s='';
-  for(var i=0;i<7;i++){
-    var sx=C-6, sy=150+i*1.5, cx=C-34, cy=126+i*4, ex=C-62-i*3, ey=112+i*9;
-    s+='<path d="M'+sx+' '+sy+' Q'+cx+' '+cy+' '+ex+' '+ey+'" fill="none" stroke="#e8f0fc" stroke-width="'+(1.8-i*0.15).toFixed(2)+'" stroke-linecap="round"/>';
-    s+='<path d="M'+(2*C-sx)+' '+sy+' Q'+(2*C-cx)+' '+cy+' '+(2*C-ex)+' '+ey+'" fill="none" stroke="#e8f0fc" stroke-width="'+(1.8-i*0.15).toFixed(2)+'" stroke-linecap="round"/>';
+// 髖部貓鬚：從胯下往兩側髖部放射的 6 條短弧（右側以鏡射產生）
+function whiskers(s){
+  var out='';
+  for(var i=0;i<6;i++){
+    var t=i/5, sx=C-7, sy=168+t*6, ex=C-(s.T-12), ey=118+t*34, cx=C-30, cy=sy-22+t*10;
+    var d='M'+sx+' '+sy+' Q'+cx+' '+cy+' '+ex+' '+ey, w=(1.9-t*0.9).toFixed(2);
+    out+='<path d="'+d+'" fill="none" stroke="#eaf2ff" stroke-width="'+w+'" stroke-linecap="round"/>'+
+      '<path transform="matrix(-1 0 0 1 300 0)" d="'+d+'" fill="none" stroke="#eaf2ff" stroke-width="'+w+'" stroke-linecap="round"/>';
   }
-  return s;
+  return out;
 }
+// 褲口堆疊紋：幾條橫向的淺色皺褶（一條暗線加一條亮線，形成凹凸）
 function stacks(){
-  var s='';
-  for(var j=0;j<6;j++){
-    var y=318+j*9;
-    s+='<path d="M'+(C-100)+' '+y+' Q'+(C-50)+' '+(y+7)+' '+(C-2)+' '+y+' M'+(C+2)+' '+y+' Q'+(C+50)+' '+(y+7)+' '+(C+100)+' '+y+'" fill="none" stroke="#dfe9f8" stroke-width="1.4"/>';
+  var out='';
+  for(var j=0;j<5;j++){
+    var y=326+j*9, d='M'+(C-110)+' '+y+' Q'+(C-55)+' '+(y+6)+' '+(C-2)+' '+y+' M'+(C+2)+' '+y+' Q'+(C+55)+' '+(y+6)+' '+(C+110)+' '+y;
+    out+='<path d="'+d+'" fill="none" stroke="#0c1628" stroke-opacity=".35" stroke-width="1.6" transform="translate(0 1.5)"/>'+
+      '<path d="'+d+'" fill="none" stroke="#e6eef9" stroke-width="1.3"/>';
   }
-  return s;
+  return out;
+}
+function blob(cx,cy,rx,ry){ return '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#gFade)"/>'; }
+// 磨白的邊：腰頭上下緣與兩個口袋
+function worn(s){
+  var Wz=s.Wz;
+  return '<path d="M'+(C-Wz-4)+' 40.5 H'+(C+Wz+4)+'" stroke="#eef4fc" stroke-width="3" stroke-linecap="round"/>'+
+    '<path d="M'+(C-Wz-2)+' 59.5 H'+(C+Wz+2)+'" stroke="#eef4fc" stroke-width="2.4" stroke-linecap="round"/>'+
+    '<path d="'+pocketD(-1,s)+' '+pocketD(1,s)+'" fill="#e6eef9" fill-opacity=".55" stroke="#eef4fc" stroke-width="2.4" stroke-linejoin="round"/>';
 }
 function simSVG(fit){
-  return '<defs><clipPath id="cBody"><path d="'+bodyD(SHAPES[fit])+'"/></clipPath></defs>'+
-    '<path d="'+bodyD(SHAPES[fit])+'" fill="url(#gDenim)"/>'+
+  var s=SHAPES[fit], d=bodyD(s), tx=(s.T+7)/2, kx=(s.K+s.Ki)/2;
+  return '<defs><clipPath id="cBody"><path d="'+d+'"/></clipPath></defs>'+
+    '<path d="'+d+'" fill="#1b2a4a"/>'+
     '<g clip-path="url(#cBody)">'+
       '<rect width="300" height="400" fill="url(#pTw)"/>'+
-      '<path id="jAll" d="'+bodyD(SHAPES[fit])+'" fill="#a9bfe0" class="fx" style="opacity:0"/>'+
-      '<g id="gThigh" class="fx" style="opacity:0"><ellipse cx="'+(C-38)+'" cy="190" rx="34" ry="60" fill="url(#gFade)"/><ellipse cx="'+(C+38)+'" cy="190" rx="34" ry="60" fill="url(#gFade)"/></g>'+
-      '<g id="gKnee" class="fx" style="opacity:0"><ellipse cx="'+(C-36)+'" cy="262" rx="26" ry="30" fill="url(#gFade)"/><ellipse cx="'+(C+36)+'" cy="262" rx="26" ry="30" fill="url(#gFade)"/></g>'+
-      '<g id="gWhisk" class="fx" style="opacity:0">'+whiskers()+'</g>'+
+      '<path id="jAll" d="'+d+'" fill="#6f93c8" class="fx" style="opacity:0"/>'+
+      '<g id="gThigh" class="fx" style="opacity:0">'+blob(C-tx,196,24,54)+blob(C+tx,196,24,54)+'</g>'+
+      '<g id="gKnee" class="fx" style="opacity:0">'+blob(C-kx,262,26,11)+blob(C+kx,262,26,11)+'</g>'+
+      '<g id="gWhisk" class="fx" style="opacity:0">'+whiskers(s)+'</g>'+
       '<g id="gStack" class="fx" style="opacity:0">'+stacks()+'</g>'+
-      '<path id="gPocket" d="'+pocketD(-1)+' '+pocketD(1)+'" fill="#e6eef9" class="fx" style="opacity:0"/>'+
     '</g>'+
-    details(fit);
+    details(fit)+
+    '<g id="gWorn" class="fx" style="opacity:0">'+worn(s)+'</g>';
 }
 function setOp(id,v){ var el=document.getElementById(id); if(el) el.style.opacity=String(v); }
 function stageText(m){
@@ -1051,12 +1091,12 @@ function paint(){
   $('#simCap').textContent=m+' 個月 · '+SHAPE_LABEL[shape];
   if(shape!==lastShape){ lastShape=shape; $('#jeans').innerHTML=simSVG(shape); }
   var f=model(m, shape, h);
-  setOp('jAll', f.all*0.4);
-  setOp('gThigh', f.thigh*0.85);
+  setOp('jAll', f.wash*0.5);
+  setOp('gThigh', f.thigh*0.9);
   setOp('gKnee', f.knee*0.85);
   setOp('gWhisk', f.whisk*0.9);
   setOp('gStack', f.stack*0.8);
-  setOp('gPocket', f.pocket*0.6);
+  setOp('gWorn', f.pocket*0.8);
   $('#stage').textContent=stageText(m);
   var notes=[];
   if(h.sit) notes.push('久坐辦公：大腿與臀部後側磨白較快，褲襠附近也會變淺。');
@@ -1253,25 +1293,71 @@ recommend();
 /* ===== 商品圖卡片渲染完成後才啟用進場觀察 ===== */
 /* ===== 佔位插畫（店家放入照片網址後會被取代） ===== */
 function art(inner){ return '<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+inner+'</svg>'; }
+function spool(x,y,c){
+  return '<rect x="'+x+'" y="'+y+'" width="12" height="22" rx="2" fill="'+c+'"/>'+
+    '<rect x="'+(x-2)+'" y="'+y+'" width="16" height="3" fill="#8a5a2b"/>'+
+    '<rect x="'+(x-2)+'" y="'+(y+19)+'" width="16" height="3" fill="#8a5a2b"/>';
+}
+// 一捲靛藍布（側面看到橫向布層、白底紅線的赤耳，端面是白芯與靛藍層）
+function roll(x,base,w){
+  var top=base-52, cy=base-26, ex=x+w, o='<rect x="'+x+'" y="'+top+'" width="'+w+'" height="52" fill="url(#gDenim)"/>';
+  for(var k=1;k<4;k++) o+='<path d="M'+x+' '+(top+k*13)+' H'+ex+'" stroke="#8ea4c8" stroke-opacity=".3"/>';
+  o+='<rect x="'+x+'" y="'+top+'" width="'+w+'" height="3" fill="#efe6d2"/><path d="M'+x+' '+(top+2)+' H'+ex+'" stroke="#c0392b" stroke-width="1.2"/>';
+  o+='<rect x="'+(x+w*0.16)+'" y="'+top+'" width="6" height="52" fill="#fff" opacity=".1"/>';
+  o+='<rect x="'+x+'" y="'+(base-4)+'" width="'+w+'" height="4" fill="#000" opacity=".3"/>';
+  o+='<ellipse cx="'+ex+'" cy="'+cy+'" rx="12" ry="26" fill="#e9e0cc" stroke="#1b2a4a" stroke-width="1.2"/>';
+  o+='<ellipse cx="'+ex+'" cy="'+cy+'" rx="8" ry="17" fill="none" stroke="#2f4a7a" stroke-width="1.6"/>';
+  o+='<ellipse cx="'+ex+'" cy="'+cy+'" rx="4" ry="8" fill="none" stroke="#2f4a7a" stroke-width="1.2"/>';
+  o+='<ellipse cx="'+ex+'" cy="'+cy+'" rx="11.5" ry="25" fill="none" stroke="#c0392b" stroke-width="1.4"/>';
+  return o;
+}
 var ART = {
   story:function(){
-    return art('<rect width="400" height="400" fill="#24385f"/>'+
-      '<rect y="0" width="400" height="120" fill="#1b2a4a"/>'+
-      '<rect x="40" y="90" width="80" height="22" rx="3" fill="#efe6d2" opacity=".9"/><rect x="290" y="70" width="70" height="30" rx="3" fill="#e3a33b" opacity=".85"/>'+
-      '<rect y="300" width="400" height="100" fill="#6e4524"/><path d="M0 330 H400 M0 360 H400" stroke="#8a5a2b" stroke-width="2" opacity=".6"/>'+
-      '<path d="M110 300 L110 220 Q110 170 165 160 L290 160 L300 300 Z" fill="#2b2f38"/>'+
-      '<rect x="150" y="120" width="120" height="58" rx="10" fill="#3a404c"/><rect x="176" y="100" width="20" height="28" fill="#3a404c"/>'+
-      '<line x1="222" y1="176" x2="222" y2="232" stroke="#c9cfd8" stroke-width="3"/>'+
-      '<circle cx="258" cy="128" r="16" fill="#e3a33b"/><circle cx="258" cy="128" r="6" fill="#6e4524"/>'+
-      '<rect x="110" y="236" width="190" height="26" fill="url(#gDenim)"/>'+
-      '<path d="M120 249 H290" stroke="#e3a33b" stroke-width="2" stroke-dasharray="6 4"/>');
+    var o='<rect width="400" height="400" fill="#22365d"/>'+
+      // 窗光與光束
+      '<path d="M250 170 H360 L330 250 H120 Z" fill="#f4e3b8" opacity=".08"/>'+
+      '<rect x="250" y="40" width="110" height="130" fill="#f4e3b8" opacity=".9"/>'+
+      '<path d="M305 40 V170 M250 105 H360" stroke="#5e3f1e" stroke-width="6"/>'+
+      '<rect x="250" y="40" width="110" height="130" fill="none" stroke="#5e3f1e" stroke-width="8"/>'+
+      // 左側木架與線軸
+      '<rect x="36" y="112" width="120" height="6" fill="#6e4524"/>'+
+      spool(46,88,'#efe6d2')+spool(70,88,'#c0392b')+spool(94,88,'#e3a33b')+
+      // 地板與工作台
+      '<rect x="0" y="300" width="400" height="100" fill="#1a2740"/>'+
+      '<rect x="30" y="250" width="340" height="22" rx="2" fill="#8a5a2b"/><rect x="30" y="250" width="340" height="3" fill="#b0763a"/>'+
+      '<rect x="40" y="272" width="320" height="12" fill="#5e3f1e"/>'+
+      '<rect x="50" y="284" width="14" height="100" fill="#4a2f18"/><rect x="336" y="284" width="14" height="100" fill="#4a2f18"/>'+
+      // 左側一捲靛藍布
+      '<rect x="46" y="214" width="58" height="36" fill="url(#gDenim)"/>'+
+      '<path d="M46 222 H104 M46 230 H104 M46 238 H104" stroke="#8ea4c8" stroke-opacity=".3"/>'+
+      '<rect x="46" y="214" width="58" height="3" fill="#efe6d2"/><path d="M46 216 H104" stroke="#c0392b" stroke-width="1.2"/>'+
+      '<ellipse cx="46" cy="232" rx="9" ry="18" fill="#e9e0cc" stroke="#1b2a4a" stroke-width="1.2"/><ellipse cx="46" cy="232" rx="5" ry="10" fill="none" stroke="#2f4a7a" stroke-width="1.4"/>'+
+      // 鏈式車縫機（側面輪廓，無品牌）
+      '<rect x="116" y="232" width="120" height="18" rx="3" fill="#3a404c"/><rect x="116" y="232" width="120" height="3" fill="#5b6372"/>'+
+      '<rect x="212" y="150" width="24" height="84" rx="3" fill="#3a404c"/>'+
+      '<rect x="140" y="140" width="96" height="28" rx="8" fill="#444b59"/><rect x="144" y="140" width="88" height="3" fill="#5b6372"/>'+
+      '<rect x="220" y="194" width="40" height="28" rx="4" fill="#2b2f38"/>'+
+      '<circle cx="236" cy="178" r="20" fill="none" stroke="#2b2f38" stroke-width="6"/><circle cx="236" cy="178" r="5" fill="#5b6372"/>'+
+      '<rect x="172" y="134" width="4" height="6" fill="#5b6372"/>'+
+      spool(168,112,'#e3a33b')+
+      '<path d="M174 134 Q166 150 152 170" fill="none" stroke="#e3a33b" stroke-width="1.2"/>'+
+      '<rect x="150" y="168" width="4" height="34" fill="#c9cfd8"/>'+
+      '<rect x="140" y="218" width="24" height="6" fill="#c9cfd8"/>'+
+      '<rect x="128" y="224" width="134" height="8" fill="url(#gDenim)"/>'+
+      '<path d="M130 228 H258" stroke="#e3a33b" stroke-width="1.2" stroke-dasharray="4 3"/>'+
+      // 右側黃色車縫線軸
+      spool(340,226,'#e3a33b');
+    return art(o);
   },
   fabric:function(){
-    var rolls='';
-    [[120,90],[260,80],[200,190],[80,230],[320,230]].forEach(function(p){
-      rolls+='<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="58" ry="30" fill="url(#gDenim)"/><ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="40" ry="20" fill="none" stroke="#0c1628" stroke-width="2"/><ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="16" ry="8" fill="#efe6d2"/>';
-    });
-    return art('<rect width="400" height="400" fill="#efe6d2"/>'+rolls+'<path d="M60 300 H340" stroke="#c0392b" stroke-width="3" opacity=".7"/>');
+    var o='<rect width="400" height="400" fill="#2b2219"/>';
+    for(var x=0;x<400;x+=50) o+='<rect x="'+x+'" y="0" width="2" height="400" fill="#3a2e22"/>';
+    // 兩層層架
+    o+='<rect x="0" y="170" width="400" height="10" fill="#8a5a2b"/><rect x="0" y="170" width="400" height="2.5" fill="#b0763a"/><rect x="0" y="180" width="400" height="6" fill="#000" opacity=".3"/>'+
+      '<rect x="0" y="270" width="400" height="10" fill="#8a5a2b"/><rect x="0" y="270" width="400" height="2.5" fill="#b0763a"/><rect x="0" y="280" width="400" height="6" fill="#000" opacity=".3"/>';
+    o+=roll(24,170,80)+roll(122,170,70)+roll(212,170,84)+roll(316,170,50);
+    o+=roll(40,270,64)+roll(118,270,90)+roll(224,270,70)+roll(310,270,60);
+    return art(o);
   },
   bench:function(){
     return art('<rect width="400" height="400" fill="#7a5638"/><path d="M0 60 H400 M0 150 H400 M0 240 H400" stroke="#5e4029" stroke-width="3"/>'+
@@ -1280,13 +1366,40 @@ var ART = {
       '<circle cx="312" cy="200" r="12" fill="url(#gCopper)"/><circle cx="60" cy="300" r="8" fill="#efe6d2"/>');
   },
   shop:function(){
-    return art('<rect width="400" height="400" fill="#16233d"/><rect x="40" y="110" width="320" height="260" fill="#22365d"/>'+
-      '<path d="M30 110 H370 L360 150 H40 Z" fill="#2f4a7a"/><path d="M40 150 H360" stroke="#efe6d2" stroke-width="0"/>'+
-      '<path d="M50 110 L60 150 M90 110 L100 150 M130 110 L140 150 M170 110 L180 150 M210 110 L220 150 M250 110 L260 150 M290 110 L300 150 M330 110 L340 150" stroke="#efe6d2" stroke-width="10" opacity=".55"/>'+
-      '<rect x="70" y="190" width="120" height="150" fill="#f4c76a" opacity=".78"/><rect x="210" y="190" width="120" height="70" fill="#1b2a4a"/>'+
-      '<text x="270" y="232" font-family="Franklin Gothic Medium,Arial Narrow,sans-serif" font-size="22" fill="#e3a33b" text-anchor="middle">INDIGO</text>'+
-      '<text x="270" y="256" font-family="Franklin Gothic Medium,Arial Narrow,sans-serif" font-size="14" fill="#efe6d2" text-anchor="middle" letter-spacing="2">RIVET</text>'+
-      '<path d="M110 340 V350" stroke="#efe6d2" stroke-width="4"/>');
+    var o='<rect width="400" height="400" fill="#22365d"/>';
+    for(var y=150;y<326;y+=16) o+='<path d="M0 '+y+' H400" stroke="#1b2a4a" stroke-opacity=".4"/>';
+    // 招牌
+    o+='<rect x="50" y="48" width="300" height="56" rx="4" fill="#111c33" stroke="#e3a33b" stroke-width="3"/>'+
+      '<text x="200" y="85" font-family="Franklin Gothic Medium,Arial Narrow,sans-serif" font-size="28" fill="#e3a33b" text-anchor="middle" letter-spacing="3">INDIGO RIVET</text>';
+    // 雨遮：藍白條紋與扇形下緣
+    for(var i=0;i<6;i++){
+      var x=50+i*50, c=i%2?'#efe6d2':'#2f4a7a';
+      o+='<rect x="'+x+'" y="110" width="50" height="24" fill="'+c+'"/><path d="M'+x+' 134 A25 10 0 0 0 '+(x+50)+' 134 Z" fill="'+c+'"/>';
+    }
+    // 門口吊燈
+    o+='<ellipse cx="274" cy="172" rx="44" ry="10" fill="#f4c76a" opacity=".15"/><path d="M252 150 H296 L288 166 H260 Z" fill="#111c33"/>';
+    // 左側櫥窗：木框、暖光、人台與褲子
+    o+='<rect x="54" y="168" width="136" height="150" fill="#6e4524"/>'+
+      '<rect x="62" y="176" width="120" height="136" fill="#f4c76a" opacity=".8"/>'+
+      '<rect x="96" y="304" width="58" height="6" rx="2" fill="#3b2412"/><rect x="122" y="262" width="6" height="44" fill="#3b2412"/>'+
+      '<rect x="100" y="254" width="22" height="50" fill="#3a5b8f"/><rect x="128" y="254" width="22" height="50" fill="#3a5b8f"/>'+
+      '<rect x="98" y="246" width="54" height="8" fill="#22395f"/>'+
+      '<path d="M100 206 Q125 198 150 206 L154 250 H96 Z" fill="#2f4a7a" stroke="#0c1628" stroke-width="1"/>'+
+      '<rect x="122" y="192" width="6" height="10" fill="#e8dcc4"/>'+
+      '<ellipse cx="125" cy="178" rx="11" ry="14" fill="#e8dcc4"/>'+
+      '<path d="M68 180 H100 L80 300 H68 Z" fill="#fff" opacity=".12"/>'+
+      '<rect x="50" y="318" width="144" height="8" fill="#6e4524"/>';
+    // 右側門：門框、玻璃窗、OPEN 牌與黃銅把手
+    o+='<rect x="226" y="168" width="78" height="158" fill="#3b2412"/>'+
+      '<rect x="234" y="176" width="62" height="150" fill="#8a5a2b"/>'+
+      '<rect x="242" y="186" width="46" height="60" fill="#cfe0f5" opacity=".45" stroke="#3b2412" stroke-width="2"/>'+
+      '<text x="265" y="222" font-family="Courier New,monospace" font-size="11" fill="#1b2a4a" text-anchor="middle" letter-spacing="2">OPEN</text>'+
+      '<rect x="242" y="256" width="46" height="60" fill="none" stroke="#5e3f1e" stroke-width="2"/>'+
+      '<circle cx="284" cy="252" r="4" fill="#e3a33b"/>'+
+      '<rect x="220" y="326" width="90" height="6" fill="#6e4524"/>';
+    // 人行道
+    o+='<rect x="0" y="332" width="400" height="68" fill="#2b3446"/><path d="M0 356 H400 M120 332 V400 M260 332 V400" stroke="#3a4358" stroke-width="2"/>';
+    return art(o);
   },
   swatch:function(){
     var cells='', labels=['0 月','3 月','6 月','12 月','24 月','36 月'], tones=['#2f4a7a','#4a6aa0','#6f8dbb','#9db3d6','#c3d3ea','#e5edf8'];

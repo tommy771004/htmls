@@ -21,8 +21,9 @@
   --disp:'Chalkboard SE','Chalkboard','Comic Neue',sans-serif;
   --cjk:'Yuanti TC','jf-openhuninn','Arial Rounded MT Bold','PingFang TC','Noto Sans TC',sans-serif;
   /* 毛氈纖維：SVG filter（feTurbulence 雜訊 → feColorMatrix 壓成低透明度的棕色纖維）。
-     以 data URI 靜態疊加，瀏覽器只光柵化一次，不隨動畫重算。 */
-  --felt:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='3' stitchTiles='stitch' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .25 0 0 0 0 .2 .25 0 0 0 -.08'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)'/%3E%3C/svg%3E");
+     以 data URI 靜態疊加，瀏覽器只光柵化一次，不隨動畫重算。
+     baseFrequency 不可用整數（1、2…）：柏林雜訊在整數像素格點上為 0，會變成平板。 */
+  --felt:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .25 0 0 0 0 .2 .25 0 0 0 -.08'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)'/%3E%3C/svg%3E");
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}

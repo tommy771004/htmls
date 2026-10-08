@@ -88,7 +88,7 @@ p,h1,h2,h3{margin:0}
 .cavity::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(115deg,rgba(120,90,50,.09) 0 2px,transparent 2px 13px),repeating-linear-gradient(28deg,rgba(255,255,255,.22) 0 1px,transparent 1px 21px)}
 .cavity::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 78%,rgba(255,90,31,.3),transparent 62%);opacity:0;transition:opacity 1s var(--ease-out) .5s}
 .box.open .cavity::after{opacity:1}
-.hood{position:absolute;left:50%;bottom:0;width:calc(var(--lid) * .92);height:calc(var(--lid) * .92);transform:translate(-50%,112%);transition:transform 1.05s var(--ease-out) .5s;filter:drop-shadow(0 0 1.5px rgba(251,250,246,.7)) drop-shadow(0 0 18px rgba(255,90,31,.35))}
+.hood{position:absolute;z-index:2;left:50%;bottom:0;width:calc(var(--lid) * .92);height:calc(var(--lid) * .92);transform:translate(-50%,112%);transition:transform 1.05s var(--ease-out) .5s;filter:drop-shadow(0 0 1.5px rgba(251,250,246,.7)) drop-shadow(0 0 18px rgba(255,90,31,.35))}
 .box.open .hood{transform:translate(-50%,-4%)}
 .lid{position:absolute;left:0;right:0;top:0;height:var(--lid);z-index:3;transform-origin:50% 0;transform:rotateX(0deg);transition:transform 1s var(--ease-out) .5s;background:var(--kraft-tex);border-radius:4px 4px 0 0;box-shadow:inset 0 -6px 0 rgba(60,35,15,.16),inset 0 0 0 2px rgba(90,58,28,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px;color:var(--ink);overflow:hidden}
 .box.open .lid{transform:rotateX(-112deg)}
@@ -496,14 +496,14 @@ body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " att
           </mask>
           <!-- 噴漆顆粒：淺色小點，低透明度疊在字面上 -->
           <pattern id="sprayDots" width="7" height="7" patternUnits="userSpaceOnUse">
-            <circle cx="1.6" cy="2.1" r=".85" fill="#d9b98a"/>
-            <circle cx="5.2" cy="5.4" r=".6" fill="#d9b98a"/>
-            <circle cx="4.6" cy="1.2" r=".45" fill="#d9b98a"/>
+            <circle cx="1.6" cy="2.1" r=".7" fill="#d9b98a"/>
+            <circle cx="5.2" cy="5.4" r=".5" fill="#d9b98a"/>
+            <circle cx="4.6" cy="1.2" r=".4" fill="#d9b98a"/>
           </pattern>
         </defs>
         <g mask="url(#stencilMask)">
           <text class="base" id="stencilText" x="20" y="132" font-size="118" textLength="600" lengthAdjust="spacing">DROP 09</text>
-          <text x="20" y="132" font-size="118" textLength="600" lengthAdjust="spacing" fill="url(#sprayDots)" opacity=".6">DROP 09</text>
+          <text x="20" y="132" font-size="118" textLength="600" lengthAdjust="spacing" fill="url(#sprayDots)" opacity=".4">DROP 09</text>
         </g>
         <g id="stencilRing" aria-hidden="true"><path class="ring-path" d="M60 8 C20 4 6 30 10 48 C14 74 96 80 112 44 C124 18 92 2 56 6 C40 8 30 10 26 14"/></g>
       </svg>
