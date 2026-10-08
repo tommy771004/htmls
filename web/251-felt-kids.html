@@ -1114,7 +1114,7 @@ function calcSize(){
   var i = rowFor(h), note = [];
   if (i < 0){ i = SIZES.length - 1; note.push('身高已超過 140 號範圍，建議洽詢加大版。'); }
   else if (i === 0 && h < SIZES[0].h[0]) note.push('身高低於 80 號範圍，先以 80 號為準。');
-  if (i < SIZES.length - 1 && w > SIZES[i].w[1]){ i++; note.push('體重偏重，已加大一號。'); }
+  else if (i < SIZES.length - 1 && w > SIZES[i].w[1]){ i++; note.push('體重偏重，已加大一號。'); }
   else if (w < SIZES[i].w[0]) note.push('體重偏輕，這個尺寸可以穿到長高為止。');
   if (!note.length) note.push('身高與體重都在這個號數的範圍內，穿起來剛好。');
 
