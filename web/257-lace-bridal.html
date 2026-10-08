@@ -1472,7 +1472,6 @@ function grad(id, a, b, dir){
   return '<linearGradient id="' + id + '" ' + dir + '><stop offset="0" stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient>';
 }
 var ART = {
-  // 設計師工作室：拱窗、人台上的魚尾婚紗、滿地的布料卷
   studio: function(){
     return svgw('<defs>' + grad('ar1', '#f7eee6', '#e6cfc2') + grad('ar2', '#e6d2b5', '#b9846f') + '</defs>' +
       '<rect width="1200" height="900" fill="url(#ar1)"/>' +
@@ -1484,7 +1483,6 @@ var ART = {
       '<rect x="592" y="520" width="16" height="270" fill="#b9846f" opacity=".75"/>' +
       nest(dressSVG({sil:'魚尾', neck:'一字肩', c:'#fffdf9'}), 400, 150, 400, 520));
   },
-  // 試紗室：拱形鏡框、掛在前方的 A 字白紗、小凳
   fitting: function(){
     return svgw('<defs>' + grad('af1', '#f1d9d3', '#fbf7f1') + grad('af2', '#fffdf9', '#e6d2b5') + '</defs>' +
       '<rect width="1200" height="900" fill="url(#af1)"/>' +
@@ -1494,14 +1492,12 @@ var ART = {
       '<rect y="720" width="1200" height="180" fill="#e6d2b5" opacity=".6"/>' +
       '<ellipse cx="600" cy="760" rx="120" ry="18" fill="#b9846f" opacity=".3"/>');
   },
-  // 蕾絲細節：大型紙花與珍珠
   lace: function(){
     return svgw('<defs>' + grad('al1', '#f1d9d3', '#e6cfc2') + '</defs>' +
       '<rect width="1200" height="900" fill="url(#al1)"/>' +
       '<g transform="translate(600 430)">' + rosette({r:330,n:14,fill:'#fffdf9'}) + '</g>' +
       '<g transform="translate(180 720)" opacity=".85">' + rosette({r:120,n:9,fill:'#fffdf9'}) + '</g>' );
   },
-  // 頭紗：薄紗從頂部流下，珍珠頭飾
   veil: function(){
     var p = '';
     for (var i = 0; i < 9; i++) p += '<circle cx="' + (330 + i * 67.5) + '" cy="' + (150 - Math.sin(i / 8 * Math.PI) * 50) + '" r="' + (i === 4 ? 14 : 10) + '" fill="url(#pg)"/>';
@@ -1510,7 +1506,6 @@ var ART = {
       '<path d="M300 0C460 280 780 360 930 900L380 900C420 600 270 320 300 0Z" fill="url(#vv)"/>' +
       '<path d="M520 0C600 300 640 480 620 900L560 900C590 520 540 300 520 0Z" fill="#fff" opacity=".35"/>' + p);
   },
-  // 門市櫥窗：拱形櫥窗、招牌與展示中的禮服
   window: function(){
     return svgw('<defs>' + grad('wb1', '#e6d2b5', '#f1d9d3') + grad('wb2', '#fffdf9', '#f1d9d3') + '</defs>' +
       '<rect width="1200" height="900" fill="url(#wb1)"/>' +
@@ -1521,7 +1516,6 @@ var ART = {
       nest(dressSVG({sil:'公主蓬裙', neck:'一字肩', c:'#fffdf9'}), 400, 300, 400, 520) +
       '<rect x="250" y="800" width="700" height="30" fill="#c9a24a" opacity=".6"/>');
   },
-  // 掛衣桿：一排禮服
   hanger: function(){
     var cols = ['#fffdf9','#e6d2b5','#b7c6cf','#d9b3aa'], sils = ['A字','魚尾','直筒','帝國腰'], necks = ['V領','繞頸','蕾絲長袖','一字肩'], s = '';
     for (var i = 0; i < 4; i++){
@@ -1534,7 +1528,6 @@ var ART = {
       '<path d="M90 160L1110 160" stroke="#6e4a52" stroke-width="7" stroke-linecap="round"/>' + s +
       '<rect x="0" y="760" width="1200" height="140" fill="#e6d2b5" opacity=".5"/>');
   },
-  // 設計師工作桌：裁切墊上的蕾絲紙樣、剪刀、線軸、珍珠針
   desk: function(){
     return svgw('<defs>' + grad('dk1', '#f7eee6', '#f1d9d3') + grad('dk2', '#d7b7a4', '#b58a77') +
       '<pattern id="dgp" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#e6d2b5" stroke-width="2"/></pattern></defs>' +
