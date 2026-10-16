@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#24211d">
+<meta name="description" content="The Book of Leather：皮革工藝精品雜誌的互動 3D 刊物。按住書頁拖曳翻頁，紙張會彎曲、投影並回彈；黑白攝影、暖灰紙色與淺景深。">
+<title>The Book of Leather · 皮革之書</title>
+<style>
+:root{
+  --ink:#ece6db;--ink-dim:rgba(236,230,219,.62);--ink-faint:rgba(236,230,219,.28);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --didot:"Didot","Bodoni 72","Bodoni MT","Times New Roman",serif;
+  --ease-out:cubic-bezier(.22,.8,.24,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#24211d;color:var(--ink);font-family:var(--mono)}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.scrim{position:fixed;left:0;right:0;pointer-events:none;z-index:1}
+.scrim.top{top:0;height:120px;background:linear-gradient(rgba(22,20,17,.55),rgba(22,20,17,0))}
+.scrim.bot{bottom:0;height:150px;background:linear-gradient(rgba(22,20,17,0),rgba(22,20,17,.6))}
+.mast{position:fixed;z-index:2;top:max(18px,env(safe-area-inset-top));left:24px;right:24px;display:flex;align-items:baseline;gap:18px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;pointer-events:none}
+.mast b{font-family:var(--didot);font-weight:400;font-style:italic;font-size:22px;letter-spacing:.01em;text-transform:none;color:var(--ink)}
+.mast span{color:var(--ink-dim)}
+.mast .sp{flex:1}
+#snd{pointer-events:auto;font:inherit;letter-spacing:.2em;color:var(--ink);background:none;border:1px solid var(--ink-faint);padding:7px 11px;border-radius:2px;cursor:pointer;transition:border-color var(--dur-hover,.18s),background-color .18s}
+#snd:hover{border-color:var(--ink-dim);background:rgba(236,230,219,.06)}
+#snd:focus-visible,.dots button:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
+#snd[aria-pressed="false"]{color:var(--ink-dim)}
+.bar{position:fixed;z-index:2;left:24px;right:24px;bottom:max(18px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:16px;font-size:11px;letter-spacing:.16em}
+#folio{text-transform:uppercase;line-height:1.6}
+#folio strong{display:block;font-family:var(--didot);font-style:italic;font-weight:400;font-size:19px;letter-spacing:.01em;text-transform:none}
+#folio span{color:var(--ink-dim)}
+.dots{display:flex;gap:4px}
+.dots button{width:30px;height:26px;padding:0;border:0;background:none;cursor:pointer;position:relative}
+.dots button::after{content:"";position:absolute;left:4px;right:4px;top:12px;height:1px;background:var(--ink-faint);transition:background-color .2s,height .2s,top .2s}
+.dots button[aria-current="true"]::after{background:var(--ink);height:3px;top:11px}
+.dots button:hover::after{background:var(--ink-dim)}
+.hint{margin:0;text-align:right;color:var(--ink-dim);line-height:1.6}
+#loader{position:fixed;inset:0;z-index:5;background:#1d1b18;display:grid;place-content:center;text-align:center;transition:opacity .9s var(--ease-out),visibility .9s}
+#loader.done{opacity:0;visibility:hidden}
+#loader h1{margin:0 0 14px;font-family:var(--didot);font-weight:400;font-style:italic;font-size:clamp(34px,6vw,64px);letter-spacing:.005em}
+#loader p{margin:0;font-size:11px;letter-spacing:.3em;color:var(--ink-dim);text-transform:uppercase}
+#loader i{display:block;margin:22px auto 0;width:180px;height:1px;background:var(--ink-faint);position:relative;overflow:hidden}
+#loader i::after{content:"";position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(var(--p,0));transition:transform .3s}
+#err{position:fixed;inset:0;z-index:6;display:grid;place-content:center;padding:24px;text-align:center;background:#1d1b18;line-height:1.8;font-size:13px}
+#err[hidden]{display:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+  .mast{left:16px;right:16px;gap:10px}
+  .mast .iss{display:none}
+  .mast b{font-size:19px}
+  .bar{left:16px;right:16px;grid-template-columns:1fr auto;row-gap:8px}
+  .hint{grid-column:1/-1;text-align:left;order:3}
+  .dots button{width:22px}
+}
+@media (prefers-reduced-motion:reduce){#loader{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0" aria-label="攤開的《The Book of Leather》刊物。按住書頁拖曳翻頁，或用左右方向鍵。"></canvas>
+<div class="scrim top"></div><div class="scrim bot"></div>
+<header class="mast"><span>258</span><b>The Book of Leather</b><span class="iss">Nº 07 — Autumn / Winter 2026</span><span class="sp"></span><button id="snd" type="button" aria-pressed="true">聲音 開</button></header>
+<footer class="bar">
+  <div id="folio" aria-live="polite"><strong>The Book of Leather</strong><span>封面</span></div>
+  <nav class="dots" id="dots" aria-label="跳到跨頁"></nav>
+  <p class="hint">按住書頁拖曳翻頁 · 放手看速度決定翻過或彈回<br>點一下書頁 · ← → 鍵</p>
+</footer>
+<div id="loader"><div><h1>The Book of Leather</h1><p>製版中 <span id="lp">0</span>%</p><i></i></div></div>
+<div id="err" hidden><div><p>這台裝置無法啟動 WebGL，刊物無法以 3D 呈現。</p><p>本頁的文字內容仍可由螢幕閱讀器讀取。</p></div></div>
+<article id="txt" class="sr"></article>
+<noscript><p style="position:fixed;inset:auto 0 40% 0;text-align:center">《The Book of Leather》是一份需要 JavaScript 與 WebGL 的互動 3D 皮革工藝刊物。</p></noscript>
+<script type="module">
+const $ = s => document.querySelector(s);
+const showErr = () => { $('#loader').classList.add('done'); $('#err').hidden = false; };
+let THREE;
+try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
+catch { try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); } catch (e) { showErr(); throw e; } }
+
+/* ───────────── constants ───────────── */
+const PI = Math.PI;
+const W = 1, H = 1.359375;               // page size (1024 × 1392 design canvas)
+const NF = 6, N = NF + 1;                // flippable sheets + static last sheet
+const SX = 44, SY = 10;                  // sheet grid
+const T = 0.03, EPS = 0.0017, EPS0 = 0.0028, LAMBDA = 0.055;
+const KS = 44, CS = 2 * Math.sqrt(44) * 0.68, REST = 0.24;
+const small = Math.min(innerWidth, innerHeight) < 620;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PW = small ? 768 : 1024, PH = Math.round(PW * 1392 / 1024), S = PW / 1024;
+const INK = '#17150f', PAPER = '#f1ece2';
+const F = {
+  didot: '"Didot","Bodoni 72","Bodoni MT","Bodoni 72 Oldstyle","Times New Roman",serif',
+  mono: '"SF Mono","Menlo","Consolas","IBM Plex Mono","Courier New",monospace',
+  song: '"Songti TC","STSong","Noto Serif TC","Noto Serif CJK TC","Source Han Serif TC","PMingLiU","MingLiU",serif',
+};
+const clamp = (v, a = -1, b = 1) => Math.min(b, Math.max(a, v));
+const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+function page() { const c = mk(PW, PH), x = c.getContext('2d', { willReadFrequently: true }); x.setTransform(S, 0, 0, S, 0, 0); return { c, x }; }
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+
+/* ───────────── magazine copy ───────────── */
+const TOC = [
+  { n: 15, t: 'The Transubstantiation of Skin', k: 'ESSAY — TAINAN', d: '一張生皮如何在九十天裡，從會壞的東西變成會老的東西。' },
+  { n: 29, t: 'Two Needles, One Thread', k: 'CRAFT — DADAOCHENG', d: '鞍具師傅的騎馬釘：每公分三點五針，一只包一千二百針。' },
+  { n: 43, t: 'A Ledger of Touch', k: 'PATINA — PORTFOLIO', d: '三十八年的公事包、被磨亮的提把，以及皮革記下的每一次觸碰。' },
+  { n: 57, t: 'Ninety Days in the Pit', k: 'TANNERY — ANPING', d: '栗木、含羞草與白堅木：植鞣槽裡一級一級提高的濃度。' },
+  { n: 73, t: 'Masthead & Stockists', k: 'COLOPHON', d: '本期工作人員、販售點與下一期預告。' },
+];
+const TXT = {
+  editor: '這一期，我們只談皮。皮是動物留下的最後一層邊界，也是人類最早學會保存的材料之一。從安平的植鞣老廠、大稻埕的鞍具師傅，到一只用了三十八年、邊角磨成蜂蜜色的公事包，我們想知道一張皮怎麼被時間、雙手和耐心改寫。\n本期照片全部以黑白拍攝。皮革最動人的地方往往不在顏色，而在光落在毛孔與摺痕上的樣子。',
+  skin: '生皮從屠宰場運出來的那一刻起就在倒數。它含有六成以上的水分、脂肪與蛋白質，放在室溫下不到兩天就會發臭、脫毛、腐爛。鞣製這件事，說穿了就是一場和腐敗搶時間的工作：用單寧、鉻鹽或油脂，把膠原纖維之間會被細菌分解的位置一個一個佔據，讓皮從「會壞的東西」變成「會老的東西」。\n在安平的老皮廠，第三代廠長陳立德習慣用手指背去碰剛出槽的皮。「這個溫度不對，」他說，「還要再泡一週。」牆上掛著父親留下來的木牌，寫著每一槽的天數與濃度，字跡被鞣液的蒸氣燻成深褐色。\n聖餐禮的神學裡有個詞叫 transubstantiation：外形不變，本質卻已經徹底改變。我們借用這個詞，是因為眼前的變化確實如此：一張皮看起來還是皮，摸起來卻已經是另一種物質。它不再屬於某一頭牛，開始屬於下一個使用它的人。\n陳立德說，好的皮要「吃得進去」。單寧要慢慢滲到纖維深處，太急，表面會先硬化、把裡面鎖死。所以植鞣要九十天，鉻鞣只要一天。這八十九天的差距，日後會在皮面上一點一點被讀出來。\n鞣好的皮被吊上二樓的晾皮間，在穿過百葉窗的光裡慢慢乾燥。這個階段不能吹電扇，也不能曬太陽，只能等。「皮會記得你急過，」他說。我們離開那天，他把一小塊剛出槽的皮塞進記者手裡：「放在口袋裡，明年再拿出來看。」',
+  stitch: '手縫的騎馬釘用的是一條線、兩根針。線的兩端各穿一根鈍頭針，從同一個孔分別由正面與背面穿過，在皮的中間交叉、拉緊，再前進到下一個孔。和縫紉機的鎖鏈線跡不同，騎馬釘的每一針都由兩股線各自鎖住；就算其中一段被割斷，整條縫線也不會一路鬆開。\n大稻埕的鞍具師傅林秋木做這件事已經五十一年。他先用菱斬打出斜向的孔，每公分三點五針；再用蜂蠟反覆搓過麻線，讓線硬挺、不吃水。「斜孔是為了讓線躺下來，」他說，「每一針都斜同一個角度，看起來才像一條繩子。」\n兩手要用一樣的力。太鬆，線會浮起來；太緊，皮會被勒出皺摺。好的縫線會微微陷進皮裡，像是本來就長在那裡。一只公事包大約一千二百針，三十一個小時。他說從不計時：「手會知道。」',
+  patina: '植鞣皮剛做好時是淺淺的膚色，帶一點粉紅。它會在第一個夏天迅速變深，像人曬黑一樣：陽光讓單寧氧化，手上的油脂一點一點滲進毛孔。一年以後，常被握住的提把會比包身深兩個色階，包底四個角落則被磨出淡淡的光。\n收藏家把這些痕跡叫做 patina。它不是污漬，也不是損耗，而是一本帳：哪裡常被碰、哪裡淋過雨、主人慣用左手還是右手，全都記在上面。\n我們訪問的一位律師，用同一只公事包走過三十八年的法院長廊；包蓋內側有一道被鋼筆劃過的細痕，旁邊是女兒小時候畫上的一顆星星。\n保養其實很簡單：避免曝曬與浸水，每隔幾個月擦去灰塵，上一層薄薄的蜂蠟。不要試圖把顏色「恢復原狀」。皮革的原狀，本來就包括它被使用的樣子。',
+  tannery: '植鞣用的單寧來自樹皮：栗木、含羞草、白堅木。在安平，鞣液裝在一排深兩公尺的磚槽裡，皮每隔幾天往下一槽移動，濃度一級一級提高。太早泡進濃液，表面會「燒」起來，所以前三週只能慢慢搖。\n最後的層槽最安靜。皮一張一張平鋪，中間撒上磨碎的樹皮，壓上木板，一放就是一個半月。工人每週量一次鞣液的波美度，記在牆上的木牌上。廠裡的氣味介於雨後的森林和舊書店之間。\n出槽後的皮要漂洗、上油、伸展，再吊上二樓晾乾。九十天下來，一張生皮大約失去一半的重量，換來可以用上好幾代的韌性。今天全世界只剩不到一成的皮革這樣鞣製：它太慢、太佔空間，也太依賴人的判斷。',
+  colophon: '《The Book of Leather》是一份虛構的皮革工藝刊物。本頁所有照片、人物、店家與數據皆以程式即時繪製，不代表任何真實品牌。',
+};
+
+/* ───────────── canvas helpers ───────────── */
+const font = (x, size, fam, style = '') => { x.font = `${style} ${size}px ${fam}`.trim(); };
+function tracked(x, s, px, py, sp, align = 'left') {
+  const ch = [...s], ws = ch.map(c => x.measureText(c).width);
+  const w = ws.reduce((a, b) => a + b, 0) + sp * (ch.length - 1);
+  let cx = align === 'left' ? px : align === 'right' ? px - w : px - w / 2;
+  ch.forEach((c, i) => { x.fillText(c, cx, py); cx += ws[i] + sp; });
+  return w;
+}
+function fit(x, s, fam, style, maxW, maxSize) { font(x, 100, fam, style); return Math.min(maxSize, 100 * maxW / x.measureText(s).width); }
+const NOSTART = '，。、；：？！」』）》〉…,.;:!?)%';
+const NOEND = '「『（《〈(';
+const tokenize = s => s.match(/[A-Za-z0-9’'\-.°%–]+|\s+|[^\s]/gu) || [];
+/* flow CJK + latin text through column frames; returns true if it overflowed */
+function flow(x, text, frames, o) {
+  const size = o.size, lh = o.lh;
+  if (o.balance && frames.length > 1) {
+    const r = flow(x, text, frames, { ...o, dry: true, balance: false });
+    if (!r.over) { const per = Math.ceil(r.tl / frames.length); frames = frames.map(f => ({ ...f, h: size + (per - 1) * lh + .5 })); }
+  }
+  font(x, size, o.fam || F.song); x.fillStyle = o.color || INK; x.textAlign = 'left';
+  const cache = new Map(), mw = t => { let v = cache.get(t); if (v === undefined) { v = /^\s+$/.test(t) ? size * 0.3 : x.measureText(t).width; cache.set(t, v); } return v; };
+  let fi = 0, li = 0, tl = 0, over = false, dropLeft = 0, dropW = 0;
+  const paras = text.split('\n');
+  const cap = f => Math.floor((f.h - size) / lh) + 1;
+  for (let pi = 0; pi < paras.length && !over; pi++) {
+    const toks = tokenize(paras[pi]);
+    let indent = pi > 0 ? size * 2 : 0;
+    if (pi === 0 && o.drop) {
+      const d = toks.shift(), f0 = frames[0], ds = lh * 2 + size * 0.98;
+      font(x, ds, F.song); if (!o.dry) x.fillText(d, f0.x - 2, f0.y + size + lh * 2); dropW = x.measureText(d).width + size * 0.5; dropLeft = 3;
+      font(x, size, o.fam || F.song);
+    }
+    let line = [], lw = 0;
+    const avail = () => frames[fi].w - indent - (dropLeft > 0 ? dropW : 0);
+    const emit = just => {
+      if (over) return;
+      if (fi >= frames.length) { over = true; return; }
+      const f = frames[fi], off = indent + (dropLeft > 0 ? dropW : 0), extra = avail() - lw;
+      const gaps = line.length - 1, g = just && gaps > 0 && extra < size * 1.6 ? extra / gaps : 0;
+      let cx = f.x + off; const by = f.y + size + li * lh;
+      if (!o.dry) for (const t of line) { if (!/^\s+$/.test(t)) x.fillText(t, cx, by); cx += mw(t) + g; }
+      line = []; lw = 0; indent = 0; if (dropLeft > 0) dropLeft--;
+      li++; tl++; if (li >= cap(f)) { fi++; li = 0; }
+    };
+    for (const tk of toks) {
+      if (over) break;
+      if (!line.length && /^\s+$/.test(tk)) continue;
+      const tw = mw(tk);
+      if (lw + tw > avail() && line.length) {
+        if (NOSTART.includes(tk[0])) { line.push(tk); lw += tw; emit(true); continue; }
+        let carry = null;
+        if (line.length > 1 && NOEND.includes(line[line.length - 1])) { carry = line.pop(); lw -= mw(carry); }
+        emit(true);
+        if (carry) { line.push(carry); lw = mw(carry); }
+        if (/^\s+$/.test(tk)) continue;
+      }
+      line.push(tk); lw += tw;
+    }
+    if (line.length) emit(false);
+  }
+  if (over && o.cont && !o.dry) { const f = frames[frames.length - 1]; font(x, 12, F.mono); x.textAlign = 'right'; tracked(x, o.cont, f.x + f.w, f.y + f.h + 26, 2, 'right'); x.textAlign = 'left'; }
+  return { over, tl };
+}
+
+/* noise + grain + blur */
+function vnoise(seed, gw, gh) {
+  const r = rng(seed), g = new Float32Array((gw + 1) * (gh + 1)).map(() => r());
+  return (u, v) => {
+    const X = clamp(u, 0, 0.9999) * gw, Y = clamp(v, 0, 0.9999) * gh, ix = X | 0, iy = Y | 0, fx = X - ix, fy = Y - iy;
+    const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), o = iy * (gw + 1) + ix;
+    const a = g[o], b = g[o + 1], c = g[o + gw + 1], d = g[o + gw + 2];
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  };
+}
+const GRAIN = (() => { const c = mk(256, 256), x = c.getContext('2d'), im = x.createImageData(256, 256), r = rng(7); for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (r() + r() + r() - 1.5) * 120; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c; })();
+function grain(c, a) { const x = c.getContext('2d'); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = a; x.globalCompositeOperation = 'overlay'; x.fillStyle = x.createPattern(GRAIN, 'repeat'); x.fillRect(0, 0, c.width, c.height); x.restore(); }
+function vignette(c, a, cx = 0.5, cy = 0.5) { const x = c.getContext('2d'), w = c.width, h = c.height; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); const g = x.createRadialGradient(w * cx, h * cy, Math.min(w, h) * 0.25, w * cx, h * cy, Math.hypot(w, h) * 0.62); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${a})`); x.fillStyle = g; x.fillRect(0, 0, w, h); x.restore(); }
+/* separable box blur with a per-row radius (design px); two passes ≈ gaussian */
+function blurRows(c, rOf) {
+  const w = c.width, h = c.height, x = c.getContext('2d'), im = x.getImageData(0, 0, w, h), d = im.data;
+  const R = new Int32Array(h); let any = false;
+  for (let y = 0; y < h; y++) { R[y] = Math.max(0, Math.round(rOf(y / h) * S)); if (R[y]) any = true; }
+  if (!any) return;
+  const Sx = new Float64Array((Math.max(w, h) + 1) * 3);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let y = 0; y < h; y++) {
+      const r = R[y]; if (!r) continue; const o = y * w * 4;
+      for (let i = 0; i < w; i++) { const p = o + i * 4, q = i * 3; Sx[q + 3] = Sx[q] + d[p]; Sx[q + 4] = Sx[q + 1] + d[p + 1]; Sx[q + 5] = Sx[q + 2] + d[p + 2]; }
+      for (let i = 0; i < w; i++) { const a = Math.max(0, i - r), b = Math.min(w - 1, i + r), n = b - a + 1, p = o + i * 4; d[p] = (Sx[(b + 1) * 3] - Sx[a * 3]) / n; d[p + 1] = (Sx[(b + 1) * 3 + 1] - Sx[a * 3 + 1]) / n; d[p + 2] = (Sx[(b + 1) * 3 + 2] - Sx[a * 3 + 2]) / n; }
+    }
+    for (let i = 0; i < w; i++) {
+      for (let y = 0; y < h; y++) { const p = (y * w + i) * 4, q = y * 3; Sx[q + 3] = Sx[q] + d[p]; Sx[q + 4] = Sx[q + 1] + d[p + 1]; Sx[q + 5] = Sx[q + 2] + d[p + 2]; }
+      for (let y = 0; y < h; y++) { const r = R[y]; if (!r) continue; const a = Math.max(0, y - r), b = Math.min(h - 1, y + r), n = b - a + 1, p = (y * w + i) * 4; d[p] = (Sx[(b + 1) * 3] - Sx[a * 3]) / n; d[p + 1] = (Sx[(b + 1) * 3 + 1] - Sx[a * 3 + 1]) / n; d[p + 2] = (Sx[(b + 1) * 3 + 2] - Sx[a * 3 + 2]) / n; }
+    }
+  }
+  x.putImageData(im, 0, 0);
+}
+/* worley pebble height field: 1 on the rounded grain tops, 0 in the creases */
+function pebble(w, h, cell, seed, wrap) {
+  const gx = Math.ceil(w / cell), gy = Math.ceil(h / cell), r = rng(seed), P = new Float32Array(gx * gy * 2), out = new Float32Array(w * h);
+  for (let i = 0; i < P.length; i++) P[i] = 0.12 + 0.76 * r();
+  const wx0 = vnoise(seed + 1, Math.max(2, gx >> 1), Math.max(2, gy >> 1)), wy0 = vnoise(seed + 2, Math.max(2, gx >> 1), Math.max(2, gy >> 1));
+  for (let y = 0; y < h; y++) {
+    for (let xx = 0; xx < w; xx++) {
+      const u = xx / w, v = y / h;
+      const fx = xx / cell + (wrap ? Math.sin(v * PI * 2 * 3 + u * 9) * .18 : (wx0(u, v) - .5) * .9), fy = y / cell + (wrap ? Math.sin(u * PI * 2 * 3 + v * 7) * .18 : (wy0(u, v) - .5) * .9);
+      const ix = Math.floor(fx), iy = Math.floor(fy); let d1 = 9, d2 = 9;
+      for (let oy = -1; oy <= 1; oy++) {
+        const cy = iy + oy, wy = wrap ? ((cy % gy) + gy) % gy : clamp(cy, 0, gy - 1);
+        for (let ox = -1; ox <= 1; ox++) {
+          const cx = ix + ox, wx = wrap ? ((cx % gx) + gx) % gx : clamp(cx, 0, gx - 1), k = (wy * gx + wx) * 2;
+          const dx = cx + P[k] - fx, dy = cy + P[k + 1] - fy, dd = dx * dx + dy * dy;
+          if (dd < d1) { d2 = d1; d1 = dd; } else if (dd < d2) d2 = dd;
+        }
+      }
+      const sd1 = Math.sqrt(d1); out[y * w + xx] = (1 - Math.exp(-(Math.sqrt(d2) - sd1) * 3.4)) * (1 - .38 * sd1);
+    }
+  }
+  return out;
+}
+function normalCanvas(hf, s, str) {
+  const c = mk(s, s), x = c.getContext('2d'), im = x.createImageData(s, s), d = im.data;
+  for (let y = 0; y < s; y++) for (let i = 0; i < s; i++) {
+    const dx = hf[y * s + (i + 1) % s] - hf[y * s + (i - 1 + s) % s], dy = hf[((y + 1) % s) * s + i] - hf[((y - 1 + s) % s) * s + i];
+    let nx = -dx * str, ny = dy * str, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    const p = (y * s + i) * 4; d[p] = (nx * .5 + .5) * 255; d[p + 1] = (ny * .5 + .5) * 255; d[p + 2] = (nz * .5 + .5) * 255; d[p + 3] = 255;
+  }
+  x.putImageData(im, 0, 0); return c;
+}
+/* paint something soft: draw far off-canvas and let the shadow land in place */
+function soft(x, blur, color, draw) { x.save(); x.shadowColor = color; x.shadowBlur = blur * S; x.shadowOffsetX = 4000 * S; x.fillStyle = color; x.strokeStyle = color; x.translate(-4000, 0); draw(); x.restore(); }
+function capsule(x, l, t) { const r = t / 2; x.beginPath(); x.moveTo(-l / 2 + r, -r); x.lineTo(l / 2 - r, -r); x.arc(l / 2 - r, 0, r, -PI / 2, PI / 2); x.lineTo(-l / 2 + r, r); x.arc(-l / 2 + r, 0, r, PI / 2, PI * 1.5); x.closePath(); }
+
+/* ───────────── photographs (canvas) ───────────── */
+function photoProfile() {
+  const { c, x } = page();
+  let g = x.createRadialGradient(760, 470, 30, 700, 560, 980);
+  g.addColorStop(0, '#5f5b55'); g.addColorStop(.38, '#302d29'); g.addColorStop(1, '#0d0c0b');
+  x.fillStyle = g; x.fillRect(0, 0, 1024, 1392);
+  x.save(); x.translate(10, 90); x.scale(1.06, 1.06);
+  const head = new Path2D('M560 250 C470 248 410 290 392 360 C380 400 378 430 372 455 C366 470 362 478 364 488 C358 520 340 560 318 592 C312 602 318 612 332 613 C342 614 350 617 352 624 C350 634 342 640 340 648 C346 654 352 656 350 661 C344 668 342 676 352 684 C362 692 366 700 362 712 C358 736 370 752 400 760 C440 770 470 772 488 790 C502 830 504 880 500 980 L742 980 C716 880 696 760 690 650 C722 600 760 540 762 450 C764 330 680 250 560 250 Z');
+  const front = new Path2D('M392 360 C380 400 378 430 372 455 C366 470 362 478 364 488 C358 520 340 560 318 592 C312 602 318 612 332 613 C342 614 350 617 352 624 C350 634 342 640 340 648 C346 654 352 656 350 661 C344 668 342 676 352 684 C362 692 366 700 362 712 C358 736 370 752 400 760 C440 770 470 772 488 790');
+  // skin
+  x.save(); x.clip(head);
+  g = x.createLinearGradient(310, 0, 720, 0); g.addColorStop(0, '#d9d3ca'); g.addColorStop(.35, '#a59e94'); g.addColorStop(.7, '#4b4641'); g.addColorStop(1, '#1d1b19');
+  x.fillStyle = g; x.fillRect(250, 200, 600, 900);
+  soft(x, 60, 'rgba(255,250,240,.28)', () => { x.beginPath(); x.ellipse(452, 575, 70, 50, -.3, 0, PI * 2); x.fill(); });
+  soft(x, 40, 'rgba(0,0,0,.45)', () => { x.beginPath(); x.ellipse(430, 500, 40, 26, 0, 0, PI * 2); x.fill(); });
+  soft(x, 70, 'rgba(0,0,0,.6)', () => { x.beginPath(); x.ellipse(470, 830, 120, 50, .2, 0, PI * 2); x.fill(); });
+  soft(x, 30, 'rgba(0,0,0,.25)', () => { x.beginPath(); x.ellipse(348, 660, 18, 30, 0, 0, PI * 2); x.fill(); });
+  // hair: slicked back, clipped to head
+  x.fillStyle = '#121010';
+  x.beginPath(); x.moveTo(380, 250); x.lineTo(398, 352); x.bezierCurveTo(470, 336, 560, 382, 604, 470); x.bezierCurveTo(640, 545, 650, 610, 700, 660); x.lineTo(800, 660); x.lineTo(800, 200); x.closePath(); x.fill();
+  x.lineCap = 'round';
+  const r = rng(31);
+  for (let i = 0; i < 140; i++) {
+    const t = r(), y0 = 352 - t * 90, x0 = 398 + t * 120;
+    x.strokeStyle = `rgba(255,252,245,${0.03 + r() * 0.12 * (1 - t * .6)})`; x.lineWidth = .8 + r() * 2.2;
+    x.beginPath(); x.moveTo(x0, y0 + r() * 8); x.bezierCurveTo(x0 + 120, y0 - 30 + r() * 40, 640 + r() * 60, 380 + r() * 120, 760 + r() * 30, 540 + r() * 80); x.stroke();
+  }
+  x.restore();
+  // bun
+  x.fillStyle = '#100e0d'; x.beginPath(); x.ellipse(772, 560, 66, 78, .3, 0, PI * 2); x.fill();
+  for (let i = 0; i < 40; i++) { x.strokeStyle = `rgba(255,250,240,${.04 + r() * .1})`; x.lineWidth = 1 + r() * 2; x.beginPath(); x.arc(772, 560, 20 + r() * 50, -2.4 + r(), -1 + r() * .8); x.stroke(); }
+  // ear
+  x.fillStyle = '#3d3935'; x.beginPath(); x.ellipse(612, 556, 26, 46, .18, 0, PI * 2); x.fill();
+  x.strokeStyle = 'rgba(0,0,0,.5)'; x.lineWidth = 4; x.beginPath(); x.ellipse(616, 556, 13, 30, .18, -1.2, 2.2); x.stroke();
+  x.strokeStyle = 'rgba(230,222,210,.75)'; x.lineWidth = 2.4; x.beginPath(); x.arc(608, 612, 13, 0, PI * 2); x.stroke();
+  // features
+  x.strokeStyle = 'rgba(20,18,16,.85)'; x.lineWidth = 3; x.beginPath(); x.moveTo(384, 500); x.quadraticCurveTo(404, 509, 428, 503); x.stroke();
+  x.lineWidth = 1.4; for (let i = 0; i < 6; i++) { const lx = 390 + i * 6; x.beginPath(); x.moveTo(lx, 504 + i * .6); x.lineTo(lx - 4, 513 + i * .4); x.stroke(); }
+  soft(x, 8, 'rgba(18,16,14,.55)', () => { x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.moveTo(380, 470); x.quadraticCurveTo(410, 458, 446, 466); x.stroke(); });
+  soft(x, 6, 'rgba(30,24,22,.5)', () => { x.beginPath(); x.ellipse(347, 666, 9, 20, .1, 0, PI * 2); x.fill(); });
+  // rim light along the profile
+  x.save(); x.lineJoin = 'round'; x.strokeStyle = 'rgba(255,252,246,.9)'; x.lineWidth = 2.2; x.shadowColor = 'rgba(255,250,240,.9)'; x.shadowBlur = 14 * S; x.stroke(front); x.restore();
+  // jacket
+  const jacket = new Path2D('M60 1400 L120 1080 C170 990 300 930 452 900 L520 960 L600 940 L700 905 C820 930 920 1000 970 1110 L1040 1400 Z');
+  x.fillStyle = '#0d0c0b'; x.fill(jacket);
+  x.save(); x.clip(jacket);
+  const collar = new Path2D('M452 900 C470 860 500 846 520 852 L560 980 L470 1120 Z M700 905 C690 860 640 850 610 860 L600 950 L690 1060 Z');
+  x.fillStyle = '#1a1816'; x.fill(collar);
+  soft(x, 22, 'rgba(255,250,240,.35)', () => { x.lineWidth = 10; x.beginPath(); x.moveTo(140, 1090); x.bezierCurveTo(220, 990, 330, 945, 452, 912); x.stroke(); });
+  soft(x, 10, 'rgba(255,250,240,.5)', () => { x.lineWidth = 4; x.beginPath(); x.moveTo(456, 905); x.lineTo(520, 1080); x.stroke(); });
+  soft(x, 30, 'rgba(255,250,240,.16)', () => { x.lineWidth = 26; x.beginPath(); x.moveTo(260, 1140); x.quadraticCurveTo(340, 1240, 300, 1400); x.stroke(); });
+  x.strokeStyle = 'rgba(214,206,194,.4)'; x.lineWidth = 2; x.beginPath(); x.moveTo(566, 990); x.lineTo(650, 1400); x.stroke();
+  for (let i = 0; i < 58; i++) { const t = i / 58, zx = 566 + t * 84, zy = 990 + t * 410; x.fillStyle = `rgba(222,214,202,${.5 - t * .3})`; x.fillRect(zx + (i % 2 ? 1 : -6), zy, 5, 3); }
+  x.restore();
+  x.restore();
+  blurRows(c, () => 1.4);
+  grain(c, .22); vignette(c, .5, .55, .45);
+  return c;
+}
+function photoBack() {
+  const { c, x } = page();
+  let g = x.createRadialGradient(560, 420, 60, 512, 560, 900); g.addColorStop(0, '#a7a198'); g.addColorStop(.5, '#6d6861'); g.addColorStop(1, '#2a2825');
+  x.fillStyle = g; x.fillRect(0, 0, 1024, 1392);
+  // head
+  x.fillStyle = '#6e675f'; x.beginPath(); x.ellipse(398, 352, 18, 34, -.1, 0, PI * 2); x.ellipse(626, 352, 18, 34, .1, 0, PI * 2); x.fill();
+  g = x.createLinearGradient(440, 0, 590, 0); g.addColorStop(0, '#5b544d'); g.addColorStop(1, '#9e968c');
+  x.fillStyle = g; x.fillRect(452, 420, 120, 140);
+  x.fillStyle = '#16130f'; x.beginPath(); x.ellipse(512, 320, 116, 140, 0, 0, PI * 2); x.fill();
+  const r = rng(12);
+  for (let i = 0; i < 420; i++) { const a = r() * PI * 2, rr = r(); const px = 512 + Math.cos(a) * 110 * rr, py = 320 + Math.sin(a) * 132 * rr; x.strokeStyle = `rgba(255,250,240,${.02 + r() * .08 * (px > 512 ? 1.4 : .6)})`; x.lineWidth = 1 + r() * 1.5; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a + 1.6) * 7, py + 10 + r() * 6); x.stroke(); }
+  soft(x, 30, 'rgba(255,250,240,.22)', () => { x.lineWidth = 12; x.beginPath(); x.arc(512, 320, 112, -1.2, .3); x.stroke(); });
+  // jacket
+  const jk = new Path2D('M436 540 Q512 520 588 540 C640 560 770 575 836 622 C904 664 934 770 944 900 L966 1400 L58 1400 L80 900 C90 770 120 664 188 622 C254 575 384 560 436 540 Z');
+  g = x.createLinearGradient(200, 540, 860, 1300); g.addColorStop(0, '#1c1a18'); g.addColorStop(.55, '#0f0e0d'); g.addColorStop(1, '#080807');
+  x.fillStyle = g; x.fill(jk);
+  x.save(); x.clip(jk);
+  x.globalAlpha = .18; x.globalCompositeOperation = 'soft-light'; x.fillStyle = x.createPattern(LEATHER_TILE, 'repeat'); x.fillRect(0, 500, 1024, 900); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+  const seam = (d, w = 3) => { const p = new Path2D(d); x.strokeStyle = 'rgba(0,0,0,.7)'; x.lineWidth = w; x.stroke(p); x.save(); x.translate(0, 3); x.strokeStyle = 'rgba(200,192,180,.22)'; x.lineWidth = 1.4; x.stroke(p); x.setLineDash([7, 6]); x.translate(0, 9); x.strokeStyle = 'rgba(210,200,186,.3)'; x.lineWidth = 1.6; x.stroke(p); x.restore(); };
+  seam('M150 720 Q512 590 874 720');
+  seam('M512 640 L512 1240');
+  seam('M320 735 Q300 980 334 1240'); seam('M704 735 Q724 980 690 1240');
+  x.fillStyle = '#0a0908'; x.fillRect(0, 1240, 1024, 70);
+  x.fillStyle = 'rgba(210,200,186,.25)'; x.fillRect(0, 1240, 1024, 2.5);
+  soft(x, 26, 'rgba(255,250,240,.5)', () => { x.lineWidth = 14; x.lineCap = 'round'; x.beginPath(); x.moveTo(600, 548); x.bezierCurveTo(680, 565, 780, 585, 842, 640); x.stroke(); });
+  soft(x, 26, 'rgba(255,250,240,.2)', () => { x.lineWidth = 14; x.lineCap = 'round'; x.beginPath(); x.moveTo(424, 548); x.bezierCurveTo(344, 565, 244, 585, 182, 640); x.stroke(); });
+  for (let i = 0; i < 26; i++) {
+    const side = r() < .65 ? 1 : -1, bx = 512 + side * (260 + r() * 170), by = 760 + r() * 520;
+    soft(x, 6 + r() * 10, `rgba(255,250,240,${(side > 0 ? .14 : .06) + r() * .12})`, () => { x.lineWidth = 2 + r() * 7; x.beginPath(); x.moveTo(bx, by); x.quadraticCurveTo(bx + side * 30, by + 30 + r() * 30, bx - side * 10, by + 80 + r() * 60); x.stroke(); });
+  }
+  soft(x, 40, 'rgba(0,0,0,.8)', () => { x.lineWidth = 30; x.beginPath(); x.moveTo(214, 820); x.quadraticCurveTo(200, 1100, 236, 1400); x.moveTo(810, 820); x.quadraticCurveTo(824, 1100, 788, 1400); x.stroke(); });
+  x.restore();
+  x.fillStyle = '#121110'; x.beginPath(); x.moveTo(436, 540); x.quadraticCurveTo(512, 520, 588, 540); x.lineTo(592, 580); x.quadraticCurveTo(512, 560, 432, 580); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(220,212,200,.4)'; x.lineWidth = 2; x.beginPath(); x.moveTo(438, 541); x.quadraticCurveTo(512, 521, 586, 541); x.stroke();
+  blurRows(c, v => 1.2 + Math.max(0, v - .72) * 30);
+  grain(c, .24); vignette(c, .45);
+  return c;
+}
+function hidePath(cx, top, w, h, seed) {
+  const r = rng(seed), j = (v, k = .04) => v + (r() - .5) * k * w, p = new Path2D(), l = cx - w / 2, rr = cx + w / 2, b = top + h;
+  p.moveTo(l + w * .05, top); p.lineTo(rr - w * .05, top);
+  p.bezierCurveTo(j(rr + w * .05), top + h * .07, j(rr + w * .14), top + h * .17, j(rr + w * .03), top + h * .27);
+  p.bezierCurveTo(j(rr - w * .05), top + h * .44, j(rr + w * .02), top + h * .62, j(rr + w * .07), top + h * .85);
+  p.lineTo(j(rr - w * .01), b);
+  p.bezierCurveTo(j(rr - w * .16), b - h * .09, cx + w * .13, b - h * .03, j(cx), b + h * .04);
+  p.bezierCurveTo(cx - w * .13, b - h * .03, j(l + w * .16), b - h * .09, j(l + w * .01), b);
+  p.lineTo(j(l - w * .07), top + h * .85);
+  p.bezierCurveTo(j(l - w * .02), top + h * .62, j(l + w * .05), top + h * .44, j(l - w * .03), top + h * .27);
+  p.bezierCurveTo(j(l - w * .14), top + h * .17, j(l - w * .05), top + h * .07, l + w * .05, top);
+  p.closePath(); return p;
+}
+function photoTannery() {
+  const { c, x } = page();
+  let g = x.createLinearGradient(0, 0, 0, 1392); g.addColorStop(0, '#2b2824'); g.addColorStop(.5, '#3a3631'); g.addColorStop(.7, '#1b1916'); g.addColorStop(1, '#2a2723');
+  x.fillStyle = g; x.fillRect(0, 0, 1024, 1392);
+  const wins = [[150, 150], [430, 150], [710, 150]];
+  for (const [wx, wy] of wins) {
+    soft(x, 70, 'rgba(250,246,238,.55)', () => { x.fillRect(wx - 10, wy, 180, 520); });
+    x.fillStyle = '#f6f2ea'; x.beginPath(); x.moveTo(wx, wy + 500); x.lineTo(wx, wy + 80); x.arc(wx + 80, wy + 80, 80, PI, 0); x.lineTo(wx + 160, wy + 500); x.closePath(); x.fill();
+    x.fillStyle = 'rgba(28,25,22,.9)';
+    x.fillRect(wx + 52, wy + 10, 6, 490); x.fillRect(wx + 104, wy + 10, 6, 490);
+    for (let k = 1; k < 6; k++) x.fillRect(wx, wy + k * 84, 160, 5);
+  }
+  x.save(); x.globalCompositeOperation = 'screen';
+  for (const [wx, wy] of wins) {
+    g = x.createLinearGradient(wx, wy + 300, wx - 220, 1392); g.addColorStop(0, 'rgba(255,250,240,.2)'); g.addColorStop(1, 'rgba(255,250,240,0)');
+    x.fillStyle = g; x.beginPath(); x.moveTo(wx, wy + 200); x.lineTo(wx + 160, wy + 200); x.lineTo(wx - 40, 1392); x.lineTo(wx - 400, 1392); x.closePath(); x.fill();
+  }
+  x.restore();
+  x.fillStyle = 'rgba(255,250,240,.07)'; for (const [wx] of wins) { soft(x, 30, 'rgba(255,250,240,.12)', () => x.fillRect(wx + 20, 1050, 120, 340)); }
+  // far rail + hides
+  x.fillStyle = '#4b4741'; x.fillRect(0, 440, 1024, 4);
+  for (let i = 0; i < 9; i++) { const p = hidePath(40 + i * 122, 446, 82, 150, 40 + i); x.fillStyle = '#56514a'; x.fill(p); x.strokeStyle = 'rgba(232,226,214,.35)'; x.lineWidth = 2; x.stroke(p); }
+  // mid rail + hides
+  x.fillStyle = '#26231f'; x.fillRect(0, 330, 1024, 7);
+  for (let i = 0; i < 4; i++) {
+    const hx = [150, 404, 640, 890][i], hw = [170, 156, 176, 160][i], p = hidePath(hx, 334, hw, 300 + i * 14, 60 + i);
+    x.fillStyle = '#2b2824'; x.fill(p);
+    x.save(); x.clip(p); const nz = vnoise(70 + i, 5, 7);
+    for (let k = 0; k < 30; k++) { const u = rng(80 + i * 40 + k)(); soft(x, 30, `rgba(255,248,236,${.04 + nz(u, k / 30) * .06})`, () => { x.beginPath(); x.ellipse(hx - hw / 2 + u * hw, 360 + k * 10, 34, 18, 0, 0, PI * 2); x.fill(); }); }
+    x.restore();
+    x.save(); x.strokeStyle = 'rgba(244,238,226,.65)'; x.lineWidth = 2.5; x.shadowColor = 'rgba(255,250,240,.8)'; x.shadowBlur = 12 * S; x.stroke(p); x.restore();
+    x.fillStyle = '#1a1815'; x.fillRect(hx - hw / 2 - 6, 326, hw + 12, 14);
+  }
+  // near hides (blurred, out of focus)
+  const near = mk(PW, PH), nx = near.getContext('2d', { willReadFrequently: true }); nx.setTransform(S, 0, 0, S, 0, 0);
+  nx.fillStyle = '#0f0e0c'; nx.fillRect(-20, 96, 1064, 14);
+  for (const [hx, sd] of [[-30, 90]]) { const p = hidePath(hx, 104, 400, 760, sd); nx.fillStyle = '#121110'; nx.fill(p); nx.save(); nx.strokeStyle = 'rgba(232,224,210,.55)'; nx.lineWidth = 5; nx.stroke(p); nx.restore(); }
+  blurRows(near, () => 9);
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(near, 0, 0); x.restore();
+  x.save(); x.globalCompositeOperation = 'source-over'; g = x.createLinearGradient(0, 300, 0, 900); g.addColorStop(0, 'rgba(210,204,194,.0)'); g.addColorStop(.5, 'rgba(210,204,194,.08)'); g.addColorStop(1, 'rgba(210,204,194,0)'); x.fillStyle = g; x.fillRect(0, 0, 1024, 1392); x.restore();
+  blurRows(c, v => Math.max(0, Math.abs(v - .42) - .12) * 18);
+  grain(c, .26); vignette(c, .55);
+  return c;
+}
+function photoStitch() {
+  const w = PW, h = PH, c = mk(w, h), x = c.getContext('2d', { willReadFrequently: true });
+  const hp = pebble(w, h, Math.round(30 * S), 11, false), nz = vnoise(5, 6, 8), fine = vnoise(9, 140, 190);
+  const im = x.createImageData(w, h), d = im.data;
+  let L = [-.42, -.62, .66]; const ll = Math.hypot(...L); L = L.map(v => v / ll);
+  let Hh = [L[0], L[1], L[2] + 1]; const hl = Math.hypot(...Hh); Hh = Hh.map(v => v / hl);
+  const edge = 1010, gy = xx => 812 - xx * .06;
+  for (let y = 0; y < h; y++) {
+    const yy = y / S;
+    for (let i = 0; i < w; i++) {
+      const xx = i / S, p = (y * w + i) * 4; let v;
+      if (yy < edge) {
+        const k = y * w + i, a = hp[k + (i < w - 1 ? 1 : 0)] - hp[k - (i > 0 ? 1 : 0)], b = hp[k + (y < h - 1 ? w : 0)] - hp[k - (y > 0 ? w : 0)];
+        let nx = -a * 1.25, ny = -b * 1.25, nzz = 1;
+        const gd = yy - gy(xx);
+        if (Math.abs(gd) < 11) { ny += -Math.sin(gd / 11 * PI) * .9; }
+        const et = (yy - (edge - 54)) / 54; if (et > 0) { ny += et * et * 3.2; }
+        const l = Math.hypot(nx, ny, nzz); nx /= l; ny /= l; nzz /= l;
+        const dif = Math.max(0, nx * L[0] + ny * L[1] + nzz * L[2]), sp = Math.pow(Math.max(0, nx * Hh[0] + ny * Hh[1] + nzz * Hh[2]), 34);
+        const base = .3 + (nz(i / w, y / h) - .5) * .12 + (fine(i / w, y / h) - .5) * .05;
+        v = base * (.38 + .9 * dif) + sp * (et > 0 ? .5 : .26);
+        if (Math.abs(gd) < 11) v *= .78;
+        if (et > 0) v += Math.sin(clamp(et, 0, 1) * PI) * .16;
+      } else if (yy < edge + 64) {
+        const t = (yy - edge) / 64; v = .2 + (fine(i / w * 3, t) - .5) * .12 + Math.sin(i * 1.7) * .012 - t * .05;
+      } else if (yy < edge + 82) {
+        v = .34 - (yy - edge - 64) / 18 * .2;
+      } else {
+        v = .07 + Math.max(0, 1 - (yy - edge - 82) / 300) * .05;
+      }
+      const g8 = clamp(v, 0, 1) * 255; d[p] = g8 * 1.02; d[p + 1] = g8; d[p + 2] = g8 * .97; d[p + 3] = 255;
+    }
+  }
+  x.putImageData(im, 0, 0);
+  x.setTransform(S, 0, 0, S, 0, 0);
+  for (let i = 0; i < 26; i++) {
+    const cx = 10 + i * 44, cy = gy(cx);
+    x.save(); x.translate(cx, cy); x.rotate(-.64);
+    soft(x, 7, 'rgba(0,0,0,.7)', () => { x.save(); x.translate(4, 6); capsule(x, 52, 17); x.fill(); x.restore(); });
+    x.fillStyle = 'rgba(0,0,0,.85)'; x.beginPath(); x.arc(-24, 0, 6.5, 0, PI * 2); x.arc(24, 0, 6.5, 0, PI * 2); x.fill();
+    const g = x.createLinearGradient(0, -9, 0, 9); g.addColorStop(0, '#d8d1c4'); g.addColorStop(.35, '#f4efe6'); g.addColorStop(.75, '#a19a8e'); g.addColorStop(1, '#5a554d');
+    x.fillStyle = g; capsule(x, 48, 16); x.fill();
+    x.strokeStyle = 'rgba(40,34,28,.35)'; x.lineWidth = 1.5;
+    for (let k = -3; k <= 3; k++) { x.beginPath(); x.moveTo(k * 7 - 4, -8); x.lineTo(k * 7 + 4, 8); x.stroke(); }
+    x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(-18, -5); x.lineTo(18, -5); x.stroke();
+    x.restore();
+  }
+  blurRows(c, v => { const yy = v * 1392; return Math.min(24, Math.max(0, Math.abs(yy - 790) - 120) * .05); });
+  grain(c, .22); vignette(c, .42);
+  return c;
+}
+
+/* ───────────── renderer + studio photographs (3D) ───────────── */
+const canvas = $('#c');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { showErr(); throw e; }
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+const MAXANISO = renderer.capabilities.getMaxAnisotropy();
+let LEATHER_TILE, LEATHER_NORMAL;
+{
+  const s = 256, hf = pebble(s, s, 16, 3, true);
+  LEATHER_NORMAL = normalCanvas(hf, s, 3.2);
+  LEATHER_TILE = mk(s, s); const x = LEATHER_TILE.getContext('2d'), im = x.createImageData(s, s);
+  for (let i = 0; i < s * s; i++) { const v = 90 + hf[i] * 120; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+  x.putImageData(im, 0, 0);
+}
+function envFor(bg, boxes) {
+  const pm = new THREE.PMREMGenerator(renderer), sc = new THREE.Scene(); sc.background = new THREE.Color(bg);
+  for (const [w, h, i, px, py, pz] of boxes) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(i, i, i), side: THREE.DoubleSide })); m.position.set(px, py, pz); m.lookAt(0, 0, 0); sc.add(m); }
+  const t = pm.fromScene(sc, .03).texture; pm.dispose(); sc.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); return t;
+}
+function rrect(w, h, r) { const s = new THREE.Shape(), x = -w / 2, y = -h / 2; s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h); s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r); s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y); return s; }
+function flapShape(w, h, r) { const s = new THREE.Shape(); s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(w / 2, -h + r); s.quadraticCurveTo(w / 2, -h, w / 2 - r, -h); s.lineTo(-w / 2 + r, -h); s.quadraticCurveTo(-w / 2, -h, -w / 2, -h + r); s.lineTo(-w / 2, 0); return s; }
+function stitchLine(pts, z, mat, skip = () => false) {
+  const geo = new THREE.BoxGeometry(.027, .0075, .006), im = new THREE.InstancedMesh(geo, mat, pts.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  let n = 0;
+  for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (skip(a) || skip(b)) continue; p.set((a.x + b.x) / 2, (a.y + b.y) / 2, z); e.set(0, 0, Math.atan2(b.y - a.y, b.x - a.x) + .38); q.setFromEuler(e); m.compose(p, q, one); im.setMatrixAt(n++, m); }
+  im.count = n; im.castShadow = true; return im;
+}
+function satchel(M) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(1.4, 1, .16), { depth: .34, bevelEnabled: true, bevelThickness: .05, bevelSize: .045, bevelSegments: 5, curveSegments: 12 }), M.leather);
+  body.geometry.translate(0, 0, -.17); body.position.y = .545; g.add(body);
+  const flap = new THREE.Mesh(new THREE.ExtrudeGeometry(flapShape(1.38, .66, .26), { depth: .02, bevelEnabled: true, bevelThickness: .008, bevelSize: .008, bevelSegments: 3, curveSegments: 16 }), M.leather2);
+  flap.position.set(0, 1.08, .226); flap.rotation.x = -.04; g.add(flap);
+  const inset = flapShape(1.3, .62, .22); flap.add(stitchLine(inset.getSpacedPoints(Math.round(inset.getLength() / .042)), .03, M.thread, p => p.y > -.035));
+  const fold = new THREE.Mesh(new THREE.CylinderGeometry(.032, .032, 1.396, 18), M.leather2); fold.rotation.z = PI / 2; fold.position.set(0, 1.088, .228); g.add(fold);
+  for (const sx of [-.38, .38]) {
+    const up = new THREE.Mesh(new THREE.BoxGeometry(.11, .64, .012), M.leather); up.position.set(sx, .76, .268); up.rotation.x = -.04; g.add(up);
+    const lp = []; for (let i = 0; i <= 15; i++) lp.push(new THREE.Vector2(0, -.3 + i * .04));
+    for (const ex of [-.04, .04]) { const sl = stitchLine(lp.map(p => new THREE.Vector2(ex, p.y)), .007, M.thread); up.add(sl); }
+    const lo = new THREE.Mesh(new THREE.BoxGeometry(.11, .26, .012), M.leather); lo.position.set(sx, .33, .228); g.add(lo);
+    const keep = new THREE.Mesh(new THREE.BoxGeometry(.15, .045, .03), M.leather2); keep.position.set(sx, .3, .232); g.add(keep);
+    const fr = rrect(.18, .15, .03); fr.holes.push(rrect(.115, .085, .014));
+    const bk = new THREE.Mesh(new THREE.ExtrudeGeometry(fr, { depth: .014, bevelEnabled: true, bevelThickness: .006, bevelSize: .006, bevelSegments: 3, curveSegments: 8 }), M.brass);
+    bk.position.set(sx, .44, .262); g.add(bk);
+    const prong = new THREE.Mesh(new THREE.BoxGeometry(.014, .12, .012), M.brass); prong.position.set(sx, .44, .29); prong.rotation.x = -.15; g.add(prong);
+  }
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(.3, .036, 16, 56, PI), M.leather2); handle.position.set(0, 1.13, -.02); g.add(handle);
+  for (const sx of [-.3, .3]) {
+    const tab = new THREE.Mesh(new THREE.BoxGeometry(.08, .1, .05), M.leather); tab.position.set(sx, 1.15, -.02); g.add(tab);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.04, .009, 8, 24), M.brass); ring.position.set(sx, 1.19, -.02); g.add(ring);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return g;
+}
+function beltCoil(M) {
+  const g = new THREE.Group(), pts = [], turns = 3.1;
+  for (let i = 0; i <= 260; i++) { const t = i / 260 * turns, a = t * PI * 2, r = .15 + .034 * t; pts.push(new THREE.Vector3(Math.cos(a) * r, .065, Math.sin(a) * r)); }
+  const end = pts[pts.length - 1], tan = end.clone().sub(pts[pts.length - 2]).normalize();
+  for (let i = 1; i <= 6; i++) pts.push(end.clone().addScaledVector(tan, i * .05));
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const belt = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(.12, .014, .005), { steps: 1100, bevelEnabled: false, extrudePath: curve }), M.leather);
+  g.add(belt);
+  const P = pts[pts.length - 1], Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3().crossVectors(tan, Y);
+  const fr = rrect(.16, .17, .03); fr.holes.push(rrect(.1, .12, .02));
+  const bk = new THREE.Mesh(new THREE.ExtrudeGeometry(fr, { depth: .016, bevelEnabled: true, bevelThickness: .006, bevelSize: .006, bevelSegments: 3, curveSegments: 8 }), M.brass);
+  bk.geometry.translate(0, 0, -.008);
+  const basis = new THREE.Matrix4().makeBasis(tan, Y, Z);
+  bk.quaternion.setFromRotationMatrix(basis); bk.position.copy(P).addScaledVector(tan, .075); g.add(bk);
+  const prong = new THREE.Mesh(new THREE.BoxGeometry(.12, .014, .014), M.brass); prong.quaternion.copy(bk.quaternion); prong.position.copy(bk.position).addScaledVector(Z, .012); g.add(prong);
+  const keep = new THREE.Mesh(new THREE.BoxGeometry(.03, .13, .03), M.leather2); keep.quaternion.copy(bk.quaternion); keep.position.copy(P).addScaledVector(tan, -.06); g.add(keep);
+  const card = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(.62, .42, .05), { depth: .02, bevelEnabled: true, bevelThickness: .008, bevelSize: .008, bevelSegments: 3 }), M.leather2);
+  card.rotation.set(-PI / 2, 0, .45); card.position.set(.62, .008, .42); g.add(card);
+  const ins = rrect(.56, .36, .035); card.add(stitchLine(ins.getSpacedPoints(Math.round(ins.getLength() / .04)), .03, M.thread));
+  const slot = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(.6, .24, .04), { depth: .006, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }), M.leather);
+  slot.position.set(0, -.08, .03); card.add(slot);
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return g;
+}
+function cycGeo() {
+  const g = new THREE.PlaneGeometry(16, 1, 1, 90), p = g.attributes.position, L = 6 + 2.513 + 6;
+  for (let i = 0; i < p.count; i++) { const s = (p.getY(i) + .5) * L; let y, z; if (s < 6) { z = 5 - s; y = 0; } else if (s < 8.513) { const a = (s - 6) / 1.6; z = -1 - Math.sin(a) * 1.6; y = 1.6 - Math.cos(a) * 1.6; } else { z = -2.6; y = 1.6 + (s - 8.513); } p.setXYZ(i, p.getX(i), y, z); }
+  g.computeVertexNormals(); return g;
+}
+function studio(kind) {
+  const hi = kind === 'cover';
+  const sc = new THREE.Scene(), bg = hi ? 0xc6c1b8 : kind === 'belt' ? 0x1c1a18 : 0x2a2622;
+  sc.background = new THREE.Color(bg);
+  const env = envFor(hi ? 0x6a6660 : 0x0a0908, [[3, 3, hi ? 5 : 7, -4, 3, 3], [1, 4, 3, 4, 2, -1], [4, 4, 1.2, 0, 6, 0]]);
+  sc.environment = env; sc.environmentIntensity = hi ? .55 : .42;
+  const nt = new THREE.CanvasTexture(LEATHER_NORMAL); nt.wrapS = nt.wrapT = THREE.RepeatWrapping; nt.repeat.set(8, 8);
+  const M = {
+    leather: new THREE.MeshPhysicalMaterial({ color: hi ? 0xa47a52 : 0x3c2618, roughness: .52, clearcoat: .28, clearcoatRoughness: .4, normalMap: nt, normalScale: new THREE.Vector2(.45, .45) }),
+    leather2: new THREE.MeshPhysicalMaterial({ color: hi ? 0x8e6440 : 0x342014, roughness: .46, clearcoat: .35, clearcoatRoughness: .35, normalMap: nt, normalScale: new THREE.Vector2(.4, .4) }),
+    brass: new THREE.MeshStandardMaterial({ color: 0xc9a46a, metalness: 1, roughness: .26 }),
+    thread: new THREE.MeshStandardMaterial({ color: 0xe6dcc8, roughness: .7 }),
+  };
+  const cyc = new THREE.Mesh(cycGeo(), new THREE.MeshStandardMaterial({ color: bg, roughness: .95, side: THREE.DoubleSide })); cyc.receiveShadow = true; sc.add(cyc);
+  const key = new THREE.SpotLight(0xfff6ea, hi ? 2.6 : 4.2, 0, hi ? .55 : .38, 1, 0);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0004; key.shadow.normalBias = .01; key.shadow.camera.near = 1; key.shadow.camera.far = 14;
+  sc.add(key, key.target);
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x6e6a64, hi ? .8 : .12));
+  const rim = new THREE.DirectionalLight(0xffffff, hi ? .9 : 1.6); rim.position.set(2.5, 3, -3); sc.add(rim);
+  const cam = new THREE.PerspectiveCamera(30, PW / PH, .1, 40);
+  if (kind === 'belt') {
+    sc.add(beltCoil(M)); key.position.set(-1.7, 3.1, .5); key.target.position.set(.15, 0, .1);
+    cam.fov = 36; cam.position.set(.05, 1.55, 1.25); cam.lookAt(.18, .02, .12);
+  } else {
+    const bag = satchel(M); sc.add(bag);
+    if (hi) { bag.rotation.y = .5; key.position.set(-3, 4.6, 3.6); key.target.position.set(0, .5, 0); cam.fov = 34; cam.position.set(-1.1, 1.75, 5.6); cam.lookAt(-.62, 1.28, 0); }
+    else { bag.rotation.y = -.42; key.position.set(3.2, 2.6, 1.6); key.target.position.set(0, .7, 0); rim.position.set(-3, 2.5, -2); cam.fov = 30; cam.position.set(1.45, 1.6, 3.7); cam.lookAt(.02, .64, 0); }
+  }
+  cam.updateProjectionMatrix();
+  renderer.setPixelRatio(1); renderer.setSize(PW, PH, false);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = hi ? 1.05 : 1.2;
+  renderer.setRenderTarget(null); renderer.render(sc, cam);
+  const c = mk(PW, PH); c.getContext('2d', { willReadFrequently: true }).drawImage(renderer.domElement, 0, 0);
+  sc.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
+  Object.values(M).forEach(m => m.dispose()); nt.dispose(); env.dispose(); cyc.material.dispose(); key.shadow.map?.dispose();
+  const x = c.getContext('2d'), im = x.getImageData(0, 0, PW, PH), d = im.data;
+  for (let i = 0; i < d.length; i += 4) { let l = (d[i] * .3 + d[i + 1] * .59 + d[i + 2] * .11) / 255; l = l * l * (3 - 2 * l) * .35 + l * .65; d[i] = d[i + 1] = d[i + 2] = l * 255; }
+  x.putImageData(im, 0, 0);
+  if (kind === 'belt') blurRows(c, v => Math.max(0, Math.abs(v - .5) - .16) * 34);
+  else if (!hi) blurRows(c, v => Math.max(0, Math.abs(v - .46) - .2) * 30);
+  grain(c, hi ? .16 : .22); vignette(c, hi ? .28 : .5);
+  return c;
+}
+
+/* ───────────── page compositing ───────────── */
+function paperBase(x, side) {
+  x.fillStyle = PAPER; x.fillRect(0, 0, 1024, 1392);
+  const r = rng(side === 'R' ? 4 : 5);
+  x.lineWidth = 1;
+  for (let i = 0; i < 900; i++) { const px = r() * 1024, py = r() * 1392, a = r() * PI; x.strokeStyle = r() < .5 ? 'rgba(90,70,40,.05)' : 'rgba(255,255,255,.1)'; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * 9, py + Math.sin(a) * 9); x.stroke(); }
+}
+function gutter(x, side) {
+  const g = side === 'R' ? x.createLinearGradient(0, 0, 110, 0) : x.createLinearGradient(1024, 0, 914, 0);
+  g.addColorStop(0, 'rgba(48,36,22,.32)'); g.addColorStop(.35, 'rgba(48,36,22,.1)'); g.addColorStop(1, 'rgba(48,36,22,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 1024, 1392);
+}
+function runningHead(x, folio, section) {
+  x.fillStyle = INK; font(x, 13, F.mono);
+  tracked(x, 'THE BOOK OF LEATHER', 104, 66, 3.2); tracked(x, 'Nº 07 — A/W 2026', 940, 66, 3.2, 'right');
+  x.fillRect(104, 82, 836, 1);
+  font(x, 12, F.mono); tracked(x, section, 104, 1346, 2.6);
+  font(x, 16, F.mono); tracked(x, String(folio), 940, 1347, 2, 'right');
+}
+const kicker = (x, s, y = 150) => { x.fillStyle = INK; font(x, 14, F.mono); tracked(x, s, 104, y, 4); };
+const deck = (x, s, y, w = 700, size = 26) => flow(x, s, [{ x: 104, y, w, h: size * 1.7 * 3 }], { size, lh: size * 1.7 });
+const byline = (x, s, y) => { font(x, 12, F.mono); x.fillStyle = INK; tracked(x, s, 104, y, 2.6); x.fillRect(104, y + 22, 836, 2); };
+const cols = (y, h, gap = 40) => { const w = (836 - gap) / 2; return [{ x: 104, y, w, h }, { x: 104 + w + gap, y, w, h }]; };
+function rightPage(draw, folio, section) {
+  const { c, x } = page(); paperBase(x, 'R'); draw(x); runningHead(x, folio, section); gutter(x, 'R'); grain(c, .06); return c;
+}
+function leftPhoto(photo, folio, caption, light = true) {
+  const { c, x } = page();
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(photo, 0, 0, PW, PH); x.restore();
+  x.fillStyle = light ? 'rgba(240,234,224,.88)' : 'rgba(20,18,15,.85)';
+  font(x, 12, F.mono); tracked(x, caption, 84, 1346, 2.4);
+  font(x, 16, F.mono); tracked(x, String(folio), 84, 1310, 2);
+  font(x, 11, F.mono); tracked(x, 'THE BOOK OF LEATHER', 940, 66, 3.6, 'right');
+  gutter(x, 'L');
+  return c;
+}
+function contentsPage() {
+  return rightPage(x => {
+    x.fillStyle = INK;
+    font(x, 172, F.didot, 'italic'); x.fillText('Contents', 96, 290);
+    font(x, 13, F.mono); tracked(x, 'ISSUE Nº 07 — AUTUMN / WINTER 2026 — ON SKIN, TIME & HANDS', 108, 336, 2.6);
+    TOC.forEach((e, i) => {
+      const y = 392 + i * 124;
+      x.fillRect(104, y, 836, 1);
+      font(x, 66, F.didot); x.fillText(String(e.n), 104, y + 76);
+      font(x, 35, F.didot, 'italic'); x.fillText(e.t, 250, y + 46);
+      font(x, 12, F.mono); tracked(x, e.k, 252, y + 74, 3);
+      font(x, 18, F.song); x.fillText(e.d, 252, y + 104);
+    });
+    x.fillRect(104, 1012, 836, 2);
+    font(x, 13, F.mono); tracked(x, "EDITOR'S LETTER — 編者的話", 104, 1052, 3);
+    flow(x, TXT.editor, cols(1076, 214, 36), { size: 17, lh: 29, balance: true });
+    font(x, 12, F.mono); tracked(x, '— 沈若衡，總編輯', 940, 1310, 2, 'right');
+  }, 3, 'CONTENTS / 目錄');
+}
+function featurePage() {
+  return rightPage(x => {
+    kicker(x, 'ESSAY · 論述 — TAINAN');
+    x.fillStyle = INK;
+    font(x, 72, F.didot, 'italic'); x.fillText('The', 100, 262);
+    const fs = fit(x, 'Transubstantiation', F.didot, '', 842, 130); font(x, fs, F.didot); x.fillText('Transubstantiation', 98, 262 + fs * .98);
+    font(x, 148, F.didot, 'italic'); x.fillText('of Skin.', 300, 262 + fs * .98 + 138);
+    const dy = 262 + fs * .98 + 200;
+    deck(x, '鞣製讓一張會腐壞的皮，變成可以陪人走過幾十年的材料。我們在安平的老皮廠待了三個月，看生皮如何被時間改寫。', dy, 690, 25);
+    byline(x, 'TEXT — 林以安      PHOTOGRAPHS — 周澈      PP. 15–27', dy + 150);
+    flow(x, TXT.skin, cols(dy + 200, 1300 - dy - 200), { size: 18, lh: 31, drop: true, balance: true, cont: 'CONTINUED ON P. 22 →' });
+  }, 15, 'ESSAY / 論述');
+}
+function stitchPage() {
+  return rightPage(x => {
+    kicker(x, 'CRAFT · 工藝 — DADAOCHENG');
+    x.fillStyle = INK;
+    font(x, 118, F.didot); x.fillText('Two Needles,', 98, 280);
+    font(x, 118, F.didot, 'italic'); x.fillText('One Thread.', 200, 398);
+    deck(x, '大稻埕的鞍具師傅林秋木，做了五十一年的騎馬釘。一條線、兩根針，每公分三點五針。', 448, 700, 24);
+    // Fig. 1 — saddle stitch in section
+    const y0 = 600, holes = [210, 320, 430, 540, 650, 760, 870];
+    x.fillStyle = 'rgba(23,21,15,.05)'; x.fillRect(104, y0 - 40, 836, 240);
+    x.strokeStyle = INK; x.lineWidth = 1.2;
+    for (const [ty, th] of [[y0 + 40, 34], [y0 + 76, 34]]) {
+      x.save(); x.beginPath(); x.rect(150, ty, 760, th); x.clip();
+      for (let k = -40; k < 900; k += 9) { x.beginPath(); x.moveTo(150 + k, ty + th); x.lineTo(150 + k + th, ty); x.strokeStyle = 'rgba(23,21,15,.28)'; x.stroke(); }
+      x.restore(); x.strokeStyle = INK; x.strokeRect(150, ty, 760, th);
+    }
+    x.fillStyle = PAPER; holes.forEach(hx => x.fillRect(hx - 3, y0 + 36, 6, 78));
+    const top = y0 + 32, bot = y0 + 118;
+    x.beginPath(); x.lineWidth = 3; x.strokeStyle = INK;
+    for (let i = 0; i < holes.length - 1; i++) { x.moveTo(holes[i], top); x.lineTo(holes[i + 1], top); x.moveTo(holes[i] + 2, bot); }
+    x.stroke();
+    x.setLineDash([9, 6]); x.beginPath(); for (let i = 0; i < holes.length - 1; i++) { x.moveTo(holes[i], bot); x.lineTo(holes[i + 1], bot); } x.stroke(); x.setLineDash([]);
+    x.lineWidth = 1.4; holes.forEach(hx => { x.beginPath(); x.moveTo(hx - 2, top); x.lineTo(hx - 2, bot); x.stroke(); x.setLineDash([5, 4]); x.beginPath(); x.moveTo(hx + 2, top); x.lineTo(hx + 2, bot); x.stroke(); x.setLineDash([]); });
+    font(x, 12, F.mono); x.fillStyle = INK;
+    tracked(x, 'A', 262, top - 12, 0); tracked(x, 'B', 262, bot + 26, 0);
+    x.fillRect(320, y0 - 14, 110, 1); x.fillRect(320, y0 - 20, 1, 12); x.fillRect(430, y0 - 20, 1, 12);
+    tracked(x, '3.85 MM', 375, y0 - 22, 1.6, 'center');
+    tracked(x, 'FIG. 1 — SADDLE STITCH IN SECTION. THREAD A (SOLID) AND B (DASHED) CROSS IN EVERY HOLE.', 130, y0 + 176, 1.4);
+    byline(x, 'TEXT — 何予白      PHOTOGRAPHS — 周澈      PP. 29–35', 812);
+    flow(x, TXT.stitch, cols(862, 438), { size: 18, lh: 31, drop: true, balance: true });
+  }, 29, 'CRAFT / 工藝');
+}
+function patinaPage() {
+  return rightPage(x => {
+    kicker(x, 'PATINA · 歲月 — PORTFOLIO');
+    x.fillStyle = INK;
+    font(x, 136, F.didot); x.fillText('A Ledger', 98, 300);
+    font(x, 136, F.didot, 'italic'); x.fillText('of Touch.', 250, 428);
+    deck(x, '皮革記得所有的事：提把被握住的位置、淋過的那場雨、主人慣用的那隻手。', 470, 700, 24);
+    byline(x, 'TEXT — 葉知秋      PP. 43–55', 586);
+    const c1 = cols(636, 260), c2 = cols(1090, 210);
+    x.fillRect(104, 920, 836, 1); x.fillRect(104, 1062, 836, 1);
+    font(x, 66, F.didot, 'italic'); x.textAlign = 'center'; x.fillText('“Leather keeps the receipts.”', 522, 1000);
+    font(x, 18, F.song); x.fillText('皮革會替你留下每一張收據。', 522, 1040); x.textAlign = 'left';
+    flow(x, TXT.patina, [c1[0], c1[1], c2[0], c2[1]], { size: 18, lh: 31, drop: true });
+  }, 43, 'PATINA / 歲月');
+}
+function tanneryPage() {
+  return rightPage(x => {
+    kicker(x, 'TANNERY · 皮廠 — ANPING');
+    x.fillStyle = INK;
+    font(x, 128, F.didot); x.fillText('Ninety Days', 98, 290);
+    font(x, 128, F.didot, 'italic'); x.fillText('in the Pit.', 236, 410);
+    deck(x, '植鞣皮要九十天，鉻鞣只要一天。這八十九天的差距，會在皮面上被讀出一輩子。', 452, 700, 24);
+    const rows = [['SOAKING', '浸水', '2', '—'], ['LIMING', '浸灰脫毛', '7', '—'], ['ROCKER PITS', '搖槽', '21', '2–6'], ['LAYER PITS', '層槽', '45', '8–14'], ['BLEACH & OIL', '漂洗上油', '6', '—'], ['DRYING LOFT', '晾乾', '9', '—']];
+    let y = 584; x.fillRect(104, y, 836, 2);
+    font(x, 11, F.mono); tracked(x, 'STAGE', 104, y + 26, 3); tracked(x, 'DAYS', 760, y + 26, 3, 'right'); tracked(x, 'LIQUOR °BÉ', 940, y + 26, 3, 'right');
+    y += 38;
+    rows.forEach(r => { x.fillRect(104, y, 836, .8); font(x, 14, F.mono); tracked(x, r[0], 104, y + 30, 2.4); font(x, 17, F.song); x.fillText(r[1], 330, y + 30); font(x, 26, F.didot); x.textAlign = 'right'; x.fillText(r[2], 760, y + 31); font(x, 14, F.mono); x.fillText(r[3], 940, y + 30); x.textAlign = 'left'; y += 44; });
+    x.fillRect(104, y, 836, 2); font(x, 12, F.mono); tracked(x, 'TOTAL', 104, y + 30, 3); font(x, 34, F.didot, 'italic'); x.textAlign = 'right'; x.fillText('90', 760, y + 34); x.textAlign = 'left';
+    flow(x, TXT.tannery, cols(y + 70, 1300 - y - 70), { size: 18, lh: 31, drop: true, balance: true });
+  }, 57, 'TANNERY / 皮廠');
+}
+function barcode(x, bx, by, w, h, seed) {
+  const r = rng(seed); x.fillStyle = '#fbf8f2'; x.fillRect(bx - 12, by - 12, w + 24, h + 40); x.fillStyle = INK;
+  let cx = bx; while (cx < bx + w) { const bw = 1 + (r() * 4 | 0); if (r() > .45) x.fillRect(cx, by, bw, h); cx += bw + 1 + (r() * 2 | 0); }
+  font(x, 12, F.mono); tracked(x, '4 710468 270073 07', bx + w / 2, by + h + 18, 1.4, 'center');
+}
+function mastheadPage() {
+  return rightPage(x => {
+    kicker(x, 'COLOPHON · 版權頁');
+    x.fillStyle = INK;
+    font(x, 150, F.didot, 'italic'); x.fillText('Masthead', 96, 300);
+    const staff = [['EDITOR-IN-CHIEF', '沈若衡'], ['CREATIVE DIRECTOR', '周澈'], ['FEATURES EDITOR', '林以安'], ['CRAFT EDITOR', '何予白'], ['ART DIRECTION', '葉知秋'], ['PHOTOGRAPHY', '周澈、何予白'], ['COPY', '吳靜'], ['PRINTING', '120 g 無塗佈粗面紙・黑白雙色']];
+    staff.forEach((s, i) => { const col = i % 2, row = i >> 1, px = 104 + col * 430, py = 380 + row * 82; x.fillRect(px, py, 400, .8); font(x, 11, F.mono); tracked(x, s[0], px, py + 26, 3); font(x, 22, F.song); x.fillText(s[1], px, py + 60); });
+    font(x, 64, F.didot, 'italic'); x.fillText('Stockists', 98, 800);
+    const shops = [['TAIPEI', '大稻埕 · 迪化街一段'], ['TAINAN', '安平 · 古堡街'], ['TAICHUNG', '審計新村'], ['KYOTO', '三条通'], ['FLORENCE', 'Santa Croce'], ['ONLINE', 'bookofleather.example']];
+    shops.forEach((s, i) => { const px = 104 + (i % 2) * 430, py = 840 + (i >> 1) * 56; font(x, 11, F.mono); tracked(x, s[0], px, py + 18, 3); font(x, 18, F.song); x.fillText(s[1], px + 120, py + 19); });
+    x.fillRect(104, 1030, 836, 1);
+    font(x, 12, F.mono); tracked(x, 'NEXT ISSUE — Nº 08 · ON WAX & THREAD · SPRING 2027', 104, 1066, 2.6);
+    flow(x, TXT.colophon, [{ x: 104, y: 1100, w: 560, h: 120 }], { size: 17, lh: 29 });
+    barcode(x, 724, 1176, 210, 76, 21);
+  }, 73, 'COLOPHON / 版權頁');
+}
+function coverPage(photo) {
+  const { c, x } = page();
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(photo, 0, 0, PW, PH); x.restore();
+  x.fillStyle = INK;
+  font(x, 13, F.mono); tracked(x, 'Nº 07', 64, 70, 3.2); tracked(x, 'AUTUMN / WINTER 2026', 512, 70, 3.2, 'center'); tracked(x, 'NT$ 480', 960, 70, 3.2, 'right');
+  x.fillRect(64, 86, 896, 1.2);
+  const a = fit(x, 'The Book', F.didot, '', 900, 250); font(x, a, F.didot); x.fillText('The Book', 58, 92 + a * .8);
+  const b = fit(x, 'of Leather', F.didot, 'italic', 880, 250); font(x, b, F.didot, 'italic'); x.fillText('of Leather', 74, 92 + a * .8 + b * .78);
+  font(x, 13, F.mono); tracked(x, 'ON SKIN, TIME & HANDS — 皮、時間與手', 66, 92 + a * .8 + b * .78 + 74, 2.8);
+  const lines = [['15', 'The Transubstantiation of Skin'], ['29', 'Two Needles, One Thread'], ['43', 'A Ledger of Touch'], ['57', 'Ninety Days in the Pit']];
+  lines.forEach((l, i) => { const y = 1110 + i * 52; font(x, 12, F.mono); tracked(x, 'P. ' + l[0], 66, y, 2.4); font(x, 30, F.didot, 'italic'); x.fillText(l[1], 140, y + 4); });
+  barcode(x, 790, 1236, 150, 58, 9);
+  return c;
+}
+
+/* background objects: other magazines + loose prints */
+function smallCanvas(src, w, h, sx = 0, sy = 0, sw = src.width, sh = src.height) { const c = mk(w, h); c.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, w, h); return c; }
+function otherCover(photo, kind) {
+  const w = 512, h = 696, c = mk(w, h), x = c.getContext('2d');
+  if (kind === 2) { x.fillStyle = '#ebe5da'; x.fillRect(0, 0, w, h); }
+  else x.drawImage(photo, 0, 0, w, h);
+  x.fillStyle = kind === 0 ? '#f2ede4' : INK;
+  if (kind === 0) { font(x, 132, F.didot); x.textAlign = 'center'; x.fillText('VELLUM', w / 2, 150); font(x, 14, F.mono); tracked(x, 'THE QUARTERLY OF HIDES · 31', w / 2, 186, 4, 'center'); }
+  if (kind === 1) { font(x, 96, F.didot, 'italic'); x.fillText('Hide &', 30, 110); x.fillText('Hand', 30, 200); font(x, 13, F.mono); tracked(x, 'Nº 12 — THE GLOVE ISSUE', 34, 246, 3); }
+  if (kind === 2) { x.fillStyle = INK; font(x, 15, F.mono); tracked(x, "TANNERS' ALMANAC", 40, 70, 5); x.fillRect(40, 88, 432, 2); font(x, 230, F.didot); x.fillText('1931', 30, 380); font(x, 22, F.didot, 'italic'); x.fillText('Bark, lime & patience', 44, 440); for (let i = 0; i < 9; i++) x.fillRect(40, 500 + i * 18, 200 + (i * 37) % 200, 3); }
+  if (kind === 3) { font(x, 70, F.didot); x.fillText('The Book', 34, 104); font(x, 70, F.didot, 'italic'); x.fillText('of Leather', 40, 172); font(x, 12, F.mono); tracked(x, 'Nº 06 — SPRING / SUMMER 2026', 42, 210, 3); }
+  grain(c, .08); return c;
+}
+function printCanvas(photo, w, h) { const c = mk(w, h), x = c.getContext('2d'), m = Math.round(w * .07); x.fillStyle = '#f4f1ea'; x.fillRect(0, 0, w, h); const ar = (w - 2 * m) / (h - 2 * m * 1.6), sw = photo.width, sh = sw / ar; x.drawImage(photo, 0, (photo.height - sh) / 2, sw, sh, m, m, w - 2 * m, h - m * 2.6); return c; }
+
+/* ───────────── main scene ───────────── */
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(28, innerWidth / innerHeight, .1, 60);
+const tex = (c, back = false) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAXANISO; if (back) { t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; t.offset.x = 1; } return t; };
+const book = new THREE.Group(); scene.add(book);
+const sheets = [];
+let cur = 0;
+function makeSheet(k, front, back, flex) {
+  const n = (SX + 1) * (SY + 1), pos = new Float32Array(n * 3), uv = new Float32Array(n * 2), idx = [];
+  for (let j = 0; j <= SY; j++) for (let i = 0; i <= SX; i++) { const v = j * (SX + 1) + i; uv[v * 2] = i / SX; uv[v * 2 + 1] = 1 - j / SY; }
+  for (let j = 0; j < SY; j++) for (let i = 0; i < SX; i++) { const a = j * (SX + 1) + i, b = a + 1, c = a + SX + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
+  const fm = new THREE.MeshStandardMaterial({ map: front, roughness: .86, side: THREE.FrontSide, shadowSide: THREE.DoubleSide });
+  const f = new THREE.Mesh(geo, fm); f.castShadow = true; f.receiveShadow = true; f.frustumCulled = false; book.add(f);
+  let b = null;
+  if (back) { b = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: back, roughness: .86, side: THREE.BackSide })); b.receiveShadow = true; b.frustumCulled = false; book.add(b); }
+  const s = { k, geo, f, b, flex, theta: 0, omega: 0, goal: 0, kappa: 0, kv: 0, lead: 0, lv: 0, grabV: 0, hover: 0, hoverT: 0, hv: 0, hvT: 0, dragging: false, target: 0, dragDir: 1, landed: true };
+  sheets.push(s); return s;
+}
+let hR = T, hL = 0;
+const riseR = k => hR + (N - 1 - k) * EPS + EPS0, riseL = k => hL + k * EPS + EPS0;
+function deform(s) {
+  const th = s.theta, t = th / PI, st = t * t * (3 - 2 * t), ds = W / SX;
+  const aR = Math.min(1.1, riseR(s.k) / LAMBDA), aL = Math.min(1.1, riseL(s.k) / LAMBDA);
+  const p = s.geo.attributes.position.array, hs = th < PI / 2 ? 1 : -1;
+  const supUp = sstep(0, .6, th), supDn = sstep(0, .6, PI - th);
+  let o = 0;
+  for (let j = 0; j <= SY; j++) {
+    const z = -H / 2 + j * H / SY, vj = z / (H / 2);
+    let c = (s.kappa + s.lead * vj * s.grabV) * s.flex;
+    if (c < 0) c *= supUp; else c *= supDn;
+    const hl = hs * s.hover * .5 * Math.exp(-((vj - s.hv) ** 2) / .45) * s.flex;
+    let x = 0, y = 0; p[o++] = 0; p[o++] = 0; p[o++] = z;
+    for (let i = 1; i <= SX; i++) {
+      const sm = (i - .5) * ds, sn = sm / W, e = Math.exp(-sm / LAMBDA);
+      const phi = th + e * (aR * (1 - st) - aL * st) + (c + hl) * Math.pow(sn, 1.7);
+      x += Math.cos(phi) * ds; y += Math.sin(phi) * ds;
+      p[o++] = x; p[o++] = y; p[o++] = z;
+    }
+  }
+  s.geo.attributes.position.needsUpdate = true; s.geo.computeVertexNormals();
+}
+let blockR, blockL;
+function makeBlocks() {
+  const sh = new THREE.Shape(); sh.moveTo(.004, 0);
+  for (let i = 1; i <= 30; i++) { const x = i / 30 * W; sh.lineTo(x, 1 - Math.exp(-x / LAMBDA)); }
+  sh.lineTo(W, 0); sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth: H - .004, bevelEnabled: false }); g.translate(0, 0, -(H - .004) / 2);
+  const m = new THREE.MeshStandardMaterial({ color: 0xe4ddd0, roughness: .95, side: THREE.DoubleSide });
+  blockR = new THREE.Mesh(g, m); blockL = new THREE.Mesh(g, m); blockL.scale.x = -1;
+  for (const b of [blockR, blockL]) { b.castShadow = true; b.receiveShadow = true; book.add(b); }
+}
+function shadowTex(round) {
+  const c = mk(256, 256), x = c.getContext('2d');
+  x.fillStyle = '#000'; x.fillRect(0, 0, 256, 256);
+  x.shadowColor = '#fff'; x.shadowBlur = 34; x.shadowOffsetX = 1000; x.fillStyle = '#fff'; x.beginPath();
+  round ? x.ellipse(128 - 1000, 128, 76, 76, 0, 0, PI * 2) : x.rect(46 - 1000, 46, 164, 164); x.fill();
+  return new THREE.CanvasTexture(c);
+}
+let bookShadow;
+function contactShadow(w, d, op, round = false) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color: 0x000000, alphaMap: shadowTex(round), transparent: true, opacity: op, depthWrite: false }));
+  m.rotation.x = -PI / 2; m.position.y = .0015; m.renderOrder = 1; return m;
+}
+
+function buildScene(P) {
+  // table
+  const tc = mk(1024, 1024), tx = tc.getContext('2d'); tx.fillStyle = '#a49d92'; tx.fillRect(0, 0, 1024, 1024);
+  const r = rng(77), nz = vnoise(3, 6, 6);
+  for (let i = 0; i < 70; i++) { const px = r() * 1024, py = r() * 1024; tx.fillStyle = `rgba(${nz(px / 1024, py / 1024) > .5 ? '255,250,240' : '60,50,40'},.018)`; tx.beginPath(); tx.ellipse(px, py, 60 + r() * 140, 40 + r() * 100, r() * PI, 0, PI * 2); tx.fill(); }
+  for (let i = 0; i < 9000; i++) { const px = r() * 1024, py = r() * 1024, a = r() * PI; tx.strokeStyle = r() < .5 ? 'rgba(50,40,30,.07)' : 'rgba(255,250,240,.08)'; tx.lineWidth = .7; tx.beginPath(); tx.moveTo(px, py); tx.lineTo(px + Math.cos(a) * 7, py + Math.sin(a) * 7); tx.stroke(); }
+  const tt = new THREE.CanvasTexture(tc); tt.colorSpace = THREE.SRGBColorSpace; tt.wrapS = tt.wrapT = THREE.RepeatWrapping; tt.repeat.set(5, 5); tt.anisotropy = MAXANISO;
+  const table = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), new THREE.MeshStandardMaterial({ map: tt, roughness: .93 }));
+  table.rotation.x = -PI / 2; table.receiveShadow = true; scene.add(table);
+  // lights
+  const key = new THREE.SpotLight(0xfff3e2, 3.1, 0, .62, .85, 0);
+  key.position.set(-2.4, 6.4, 3.1); key.target.position.set(.15, 0, -.05);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 3; key.shadow.bias = -.00025; key.shadow.normalBias = .012; key.shadow.camera.near = 3; key.shadow.camera.far = 14;
+  scene.add(key, key.target);
+  scene.add(new THREE.HemisphereLight(0xfff8ee, 0x4e4943, .55));
+  scene.environment = envFor(0x403c37, [[4, 3, 2.2, -4, 5, 3], [2, 4, 1, 4, 3, -2]]); scene.environmentIntensity = .35;
+  // magazines
+  const magGeo = new THREE.BoxGeometry(.92, .012, 1.25), edge = new THREE.MeshStandardMaterial({ color: 0xe8e1d4, roughness: .9 });
+  const mags = [[P.mag0, -2.12, -.42, .36, 0], [P.mag1, 2.2, -.72, -.24, 0], [P.mag2, 2.32, -.6, -.06, 1], [P.mag3, -1.32, -1.62, -.62, 0], [P.mag2b, -2.5, 1.2, .9, 0]];
+  for (const [t, x, z, ry, lvl] of mags) {
+    const top = new THREE.MeshStandardMaterial({ map: tex(t), roughness: .6 });
+    const m = new THREE.Mesh(magGeo, [edge, edge, top, edge, edge, edge]); m.position.set(x, .006 + lvl * .013, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m);
+    if (!lvl) { const sh = contactShadow(1.12, 1.45, .45); sh.position.set(x, .0012, z); sh.rotation.z = ry; scene.add(sh); }
+  }
+  // loose prints
+  const prints = [[P.pr0, .62, .78, 1.72, .62, .16], [P.pr1, .7, .56, -1.86, .78, -.22], [P.pr2, .58, .74, .42, -1.42, .1], [P.pr3, .66, .5, 2.48, .2, .5], [P.pr4, .5, .64, -.86, -1.36, -.3], [P.pr5, .6, .8, .1, 1.5, -.12]];
+  for (const [t, w, d, x, z, ry] of prints) {
+    const g = new THREE.PlaneGeometry(w, d, 10, 10); g.rotateX(-PI / 2); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const u = p.getX(i) / w * 2; p.setY(i, .003 + u * u * .012); } g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex(t), roughness: .42, side: THREE.DoubleSide })); m.position.set(x, 0, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m);
+    const sh = contactShadow(w * 1.2, d * 1.2, .28); sh.position.set(x, .001, z); sh.rotation.z = ry; scene.add(sh);
+  }
+  // the book
+  const PAGES = P.pages;
+  makeSheet(0, tex(PAGES.cover), tex(PAGES.L[0], true), .4);
+  for (let k = 1; k < NF; k++) makeSheet(k, tex(PAGES.R[k - 1]), tex(PAGES.L[k], true), 1);
+  makeSheet(NF, tex(PAGES.R[NF - 1]), null, 1);
+  makeBlocks();
+  bookShadow = contactShadow(1, 1, .55); book.add(bookShadow);
+}
+
+/* ───────────── post: depth of field + monochrome print ───────────── */
+const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(4, 4) });
+const post = new THREE.ShaderMaterial({
+  uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, uRes: { value: new THREE.Vector2() }, uNear: { value: camera.near }, uFar: { value: camera.far }, uFocus: { value: 5 }, uAperture: { value: 1.6 }, uBand: { value: .55 }, uMaxBlur: { value: 14 }, uRad: { value: 1.3 }, uGrain: { value: .045 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `precision highp float;
+  uniform sampler2D tColor, tDepth; uniform vec2 uRes; uniform float uNear, uFar, uFocus, uAperture, uBand, uMaxBlur, uRad, uGrain; varying vec2 vUv;
+  float linD(vec2 uv){ float z = texture2D(tDepth, uv).x * 2. - 1.; return 2. * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
+  float coc(float d){ return clamp(uAperture * max(abs(d - uFocus) - uBand, 0.) / d, 0., 1.) * uMaxBlur; }
+  vec3 aces(vec3 x){ return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
+  float hash(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+  void main(){
+    vec2 px = 1. / uRes; float cd = linD(vUv), cs = coc(cd);
+    vec3 col = texture2D(tColor, vUv).rgb; float tot = 1., r = uRad, ang = 0.;
+    for (int i = 0; i < 110; i++) {
+      if (r >= uMaxBlur) break;
+      vec2 tc = vUv + vec2(cos(ang), sin(ang)) * px * r;
+      vec3 sc = texture2D(tColor, tc).rgb; float sd = linD(tc), ss = coc(sd);
+      if (sd > cd) ss = clamp(ss, 0., cs * 2.);
+      float m = smoothstep(r - .5, r + .5, ss);
+      col += mix(col / tot, sc, m); tot += 1.;
+      ang += 2.39996323; r += uRad / r;
+    }
+    col /= tot;
+    col = aces(col * 1.08);
+    float l = dot(col, vec3(.2126, .7152, .0722));
+    vec3 tone = mix(vec3(.9, .93, .98), vec3(1.05, 1., .9), smoothstep(0., .85, l));
+    col = mix(vec3(l) * tone, col, .05);
+    col = pow(col, vec3(1. / 2.2));
+    vec2 q = (vUv - .5) * vec2(1.05, 1.25); col *= 1. - dot(q, q) * .62;
+    col += (hash(gl_FragCoord.xy) - .5) * uGrain * (1.15 - l);
+    gl_FragColor = vec4(col, 1.);
+  }`,
+  depthTest: false, depthWrite: false,
+});
+const postScene = new THREE.Scene(), postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
+
+let DPR = Math.min(devicePixelRatio || 1, small ? 1.5 : 1.75);
+const focusPt = new THREE.Vector3(0, 0, 0);
+function resize() {
+  const w = innerWidth, h = innerHeight, a = w / h;
+  renderer.setPixelRatio(DPR); renderer.setSize(w, h, false);
+  const v = renderer.getDrawingBufferSize(new THREE.Vector2()); rt.setSize(v.x, v.y); post.uniforms.uRes.value.copy(v);
+  post.uniforms.uMaxBlur.value = 12 * DPR; post.uniforms.uRad.value = 1.15 * DPR;
+  camera.aspect = a;
+  const portrait = a < .85, elev = (portrait ? 68 : 57) * PI / 180, vf = camera.fov * PI / 360, hf = Math.atan(Math.tan(vf) * a);
+  const hw = portrait ? 1.12 : 1.72, hh = portrait ? .9 : 1.02;
+  const d = Math.max(hw / Math.tan(hf), hh / Math.tan(vf));
+  camera.position.set(0, Math.sin(elev) * d, Math.cos(elev) * d + .02); camera.lookAt(0, 0, .02);
+  camera.updateProjectionMatrix();
+  post.uniforms.uFocus.value = camera.position.distanceTo(focusPt);
+  post.uniforms.uBand.value = portrait ? .7 : .52;
+  post.uniforms.uAperture.value = portrait ? 2.6 : 1.7;
+  invalidate();
+}
+
+/* ───────────── sound (WebAudio, synthesized) ───────────── */
+let AC = null, NOISE = null, soundOn = true, dragSrc = null;
+try { soundOn = localStorage.getItem('bol-sound') !== '0'; } catch { }
+function audio() {
+  if (!soundOn) return null;
+  if (!AC) {
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
+    const len = AC.sampleRate * 2, b = AC.createBuffer(1, len, AC.sampleRate), d = b.getChannelData(0); let l = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; l = .97 * l + .03 * w; d[i] = w * .5 + l * 2.2; }
+    NOISE = b;
+  }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function noiseHit({ gain = .4, dur = .3, f0 = 1800, f1 = 3600, q = .8, type = 'bandpass', attack = .25 }) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = NOISE; s.playbackRate.value = .85 + Math.random() * .3;
+  f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + dur * attack); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+  s.connect(f).connect(g).connect(a.destination); s.start(t, Math.random() * 1.4); s.stop(t + dur + .05);
+}
+const sfx = {
+  flip: v => noiseHit({ gain: .16 + Math.min(.2, v * .03), dur: .42, f0: 1400, f1: 4200, q: .7 }),
+  land: v => { noiseHit({ gain: Math.min(.3, .05 + v * .035), dur: .09, f0: 900, f1: 260, type: 'lowpass', q: .5, attack: .08 }); noiseHit({ gain: Math.min(.12, v * .02), dur: .05, f0: 5200, f1: 3000, q: 1.2, attack: .05 }); },
+  slide: () => noiseHit({ gain: .14, dur: 1.4, f0: 500, f1: 180, type: 'lowpass', q: .4, attack: .2 }),
+};
+function dragNoise(on) {
+  const a = audio();
+  if (on && a && !dragSrc) {
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = NOISE; s.loop = true; f.type = 'bandpass'; f.Q.value = .6; f.frequency.value = 2400; g.gain.value = 0;
+    s.connect(f).connect(g).connect(a.destination); s.start(); dragSrc = { s, f, g };
+  } else if (!on && dragSrc) { const d = dragSrc; dragSrc = null; d.g.gain.setTargetAtTime(0, AC.currentTime, .04); setTimeout(() => d.s.stop(), 250); }
+}
+const sndBtn = $('#snd');
+const syncSnd = () => { sndBtn.setAttribute('aria-pressed', String(soundOn)); sndBtn.textContent = soundOn ? '聲音 開' : '聲音 關'; };
+sndBtn.addEventListener('click', () => { soundOn = !soundOn; try { localStorage.setItem('bol-sound', soundOn ? '1' : '0'); } catch { } if (!soundOn) dragNoise(false); else { audio(); sfx.flip(1); } syncSnd(); });
+syncSnd();
+
+/* ───────────── interaction ───────────── */
+const SPREADS = [['封面', 'The Book of Leather'], ['pp. 2–3', 'Contents · 目錄'], ['pp. 14–15', 'The Transubstantiation of Skin'], ['pp. 28–29', 'Two Needles, One Thread'], ['pp. 42–43', 'A Ledger of Touch'], ['pp. 56–57', 'Ninety Days in the Pit'], ['pp. 72–73', 'Masthead & Stockists']];
+const dotsEl = $('#dots');
+SPREADS.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', `${s[0]} ${s[1]}`); b.addEventListener('click', () => goTo(i)); dotsEl.append(b); });
+let shownSpread = -1;
+function syncUI() {
+  const n = sheets.slice(0, NF).filter(s => s.goal === PI).length;
+  cur = n;
+  if (n === shownSpread) return; shownSpread = n;
+  $('#folio').innerHTML = `<strong>${SPREADS[n][1]}</strong><span>${SPREADS[n][0]}</span>`;
+  [...dotsEl.children].forEach((b, i) => b.setAttribute('aria-current', String(i === n)));
+}
+const queue = [];
+let locked = true;
+function goTo(i) { if (locked) return; const pending = queue.reduce((a, d) => a + d, 0), d = i - (cur + pending); for (let k = 0; k < Math.abs(d); k++) queue.push(Math.sign(d)); invalidate(); }
+const topRight = () => { for (let k = 0; k < NF; k++) if (sheets[k].goal === 0) return sheets[k]; return null; };
+const topLeft = () => { for (let k = NF - 1; k >= 0; k--) if (sheets[k].goal === PI) return sheets[k]; return null; };
+function autoFlip(dir, speed = 1) {
+  const s = dir > 0 ? topRight() : topLeft(); if (!s) return false;
+  s.goal = dir > 0 ? PI : 0; s.omega = dir * (reduced ? 6 : 3.4 * speed); s.kappa = dir * .32 * s.flex; s.grabV = .6; s.lead = dir * .18; s.landed = false;
+  sfx.flip(3); return true;
+}
+function processQueue() {
+  if (!queue.length || drag) return;
+  for (const s of sheets) { if (s.goal === PI && s.theta < .55 * PI) return; if (s.goal === 0 && s.theta > .45 * PI) return; }
+  const d = queue.shift(); if (!autoFlip(d, queue.length ? 1.7 : 1)) queue.length = 0;
+}
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hitP = new THREE.Vector3();
+function pickLocal(e, lift = .04) {
+  const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera); plane.constant = -(book.position.y + lift);
+  if (!ray.ray.intersectPlane(plane, hitP)) return null;
+  return book.worldToLocal(hitP.clone());
+}
+function pickPage(e) {
+  const p = pickLocal(e); if (!p || Math.abs(p.z) > H / 2 + .02) return null;
+  if (p.x > 0 && p.x < W + .02) { const s = topRight(); return s ? { s, side: 1, p } : null; }
+  if (p.x < 0 && p.x > -W - .02) { const s = topLeft(); return s ? { s, side: -1, p } : null; }
+  return null;
+}
+let drag = null, hoverSheet = null;
+canvas.addEventListener('pointerdown', e => {
+  if (locked || e.button > 0) return;
+  audio();
+  const h = pickPage(e); if (!h) return;
+  e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+  const s = h.s; s.dragging = true; s.dragDir = h.side; s.grabV = clamp(h.p.z / (H / 2)); s.target = s.theta; s.hoverT = 0; s.landed = false;
+  drag = { s, r0: Math.max(Math.abs(h.p.x), .42), sx: e.clientX, sy: e.clientY, t0: performance.now(), samples: [[performance.now(), s.theta]], id: e.pointerId };
+  canvas.style.cursor = 'grabbing'; dragNoise(true); invalidate();
+});
+canvas.addEventListener('pointermove', e => {
+  if (drag) {
+    if (e.pointerId !== drag.id) return;
+    const p = pickLocal(e); if (!p) return;
+    drag.s.target = Math.acos(clamp(p.x / drag.r0));
+    const now = performance.now(); drag.samples.push([now, drag.s.target]); while (drag.samples.length > 2 && now - drag.samples[0][0] > 90) drag.samples.shift();
+    invalidate(); return;
+  }
+  if (locked) return;
+  const h = e.pointerType === 'mouse' ? pickPage(e) : null;
+  for (const s of sheets) s.hoverT = 0;
+  if (h) { const u = Math.abs(h.p.x) / W; h.s.hoverT = sstep(.35, 1, u); h.s.hvT = clamp(h.p.z / (H / 2)); }
+  hoverSheet = h ? h.s : null;
+  canvas.style.cursor = h ? 'grab' : 'default';
+  invalidate();
+});
+function endDrag(e) {
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  const s = drag.s, now = performance.now(), moved = e ? Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) : 99;
+  const a = drag.samples[0], b = drag.samples[drag.samples.length - 1], w = b[0] > a[0] ? (b[1] - a[1]) / ((b[0] - a[0]) / 1000) : 0;
+  s.dragging = false;
+  const from = s.goal;
+  if (moved < 7 && now - drag.t0 < 400) { s.goal = from === 0 ? PI : 0; s.omega = (from === 0 ? 1 : -1) * 3.4; s.kappa = (from === 0 ? 1 : -1) * .3 * s.flex; }
+  else {
+    s.omega = clamp(w, -14, 14);
+    s.goal = Math.abs(w) > 1.8 ? (w > 0 ? PI : 0) : (s.theta > PI / 2 ? PI : 0);
+  }
+  if (s.goal !== from) sfx.flip(Math.abs(s.omega));
+  drag = null; dragNoise(false); canvas.style.cursor = 'default'; invalidate();
+}
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('lostpointercapture', e => endDrag(e));
+canvas.addEventListener('pointerleave', () => { if (!drag) { for (const s of sheets) s.hoverT = 0; invalidate(); } });
+addEventListener('keydown', e => {
+  if (locked || e.altKey || e.metaKey || e.ctrlKey) return;
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); audio(); queue.push(1); invalidate(); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); audio(); queue.push(-1); invalidate(); }
+  else if (e.key === 'Home') goTo(0); else if (e.key === 'End') goTo(NF);
+});
+
+/* ───────────── simulation ───────────── */
+function stepSheet(s, h) {
+  const acc = s.dragging ? 560 * (s.target - s.theta) - 2 * Math.sqrt(560) * s.omega : KS * (s.goal - s.theta) - CS * s.omega;
+  s.omega += acc * h; s.theta += s.omega * h;
+  for (const [edge, sign] of [[0, -1], [PI, 1]]) {
+    if ((s.theta - edge) * sign > 0) {
+      s.theta = edge;
+      if (s.omega * sign > 0) { const v = Math.abs(s.omega); if (!s.dragging && !s.landed && v > .6) { sfx.land(v); s.landed = true; } s.omega = s.dragging ? 0 : -s.omega * REST; if (Math.abs(s.omega) < .05) s.omega = 0; }
+    }
+  }
+  const kT = s.dragging ? s.dragDir * .62 * Math.sin(s.theta) : clamp(-.075 * s.omega, -.75, .75);
+  s.kv += (130 * (kT - s.kappa) - 8.5 * s.kv) * h; s.kappa += s.kv * h;
+  const lT = s.dragging ? s.dragDir * .36 * Math.sin(s.theta) : 0;
+  s.lv += (90 * (lT - s.lead) - 12 * s.lv) * h; s.lead += s.lv * h;
+  const kh = Math.min(1, h * 11); s.hover += (s.hoverT - s.hover) * kh; s.hv += (s.hvT - s.hv) * Math.min(1, h * 14);
+}
+function atRest(s) {
+  if (s.dragging) return false;
+  const r = Math.abs(s.theta - s.goal) < 1e-3 && Math.abs(s.omega) < .02 && Math.abs(s.kappa) < 1.5e-3 && Math.abs(s.kv) < .02 && Math.abs(s.lead) < 1.5e-3 && Math.abs(s.lv) < .02 && Math.abs(s.hover - s.hoverT) < 1.5e-3 && Math.abs(s.hv - s.hvT) < 2e-3;
+  if (r) { s.theta = s.goal; s.omega = s.kappa = s.kv = s.lead = s.lv = 0; s.hover = s.hoverT; s.hv = s.hvT; }
+  return r;
+}
+let intro = { t: 0, dur: reduced ? 0 : 1.75, opened: false };
+const easeOut = t => 1 - Math.pow(1 - t, 4);
+let needs = 3, lastProg = -1;
+const invalidate = () => { needs = Math.max(needs, 2); };
+function step(dt) {
+  let moving = false;
+  if (!intro.opened) {
+    intro.t += dt; moving = true;
+    if (intro.t > intro.dur + (reduced ? 0 : .35)) { intro.opened = true; locked = false; queue.push(1); }
+  }
+  processQueue();
+  const sub = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / sub;
+  const live = sheets.filter(s => s.k < NF && !atRest(s));
+  for (let i = 0; i < sub; i++) for (const s of live) stepSheet(s, h);
+  if (live.length) moving = true;
+  let prog = 0; for (let k = 0; k < NF; k++) prog += sheets[k].theta / PI;
+  hR = T * (NF - prog) / NF; hL = T * prog / NF;
+  const progChanged = Math.abs(prog - lastProg) > 1e-6; lastProg = prog;
+  for (const s of sheets) if (progChanged || live.includes(s)) deform(s);
+  blockR.scale.y = Math.max(hR, 1e-4); blockL.scale.y = Math.max(hL, 1e-4); blockR.visible = hR > 4e-4; blockL.visible = hL > 4e-4;
+  // book placement: slide in, then recentre as the cover opens
+  const o = sstep(0, 1, sheets[0].theta / PI), te = intro.dur ? easeOut(clamp(intro.t / intro.dur, 0, 1)) : 1;
+  book.position.set(-.5 * W * (1 - o) + (1 - te) * 2.9, 0, (1 - te) * 1.25);
+  book.rotation.y = (1 - te) * .42 + Math.sin(te * PI) * -.025;
+  bookShadow.scale.set(W * (1 + o) + .16, H + .16, 1); bookShadow.position.set((W - W * o) / 2, .0015, 0);
+  if (drag && dragSrc) { const v = Math.min(1, Math.abs(drag.s.omega) / 6); dragSrc.g.gain.setTargetAtTime(v * .16, AC.currentTime, .03); dragSrc.f.frequency.setTargetAtTime(1800 + v * 2600, AC.currentTime, .05); }
+  syncUI();
+  return moving || queue.length > 0;
+}
+let ft = [], last = performance.now();
+function render() { renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(postScene, postCam); }
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const moving = step(dt);
+  if (moving || needs > 0) {
+    render(); if (needs > 0) needs--;
+    ft.push(dt); if (ft.length > 40) { const avg = ft.reduce((a, b) => a + b, 0) / ft.length; ft = []; if (avg > .026 && DPR > 1) { DPR = Math.max(1, DPR - .25); resize(); } }
+  } else ft = [];
+}
+
+/* ───────────── boot ───────────── */
+async function boot() {
+  const lp = $('#lp'), bar = $('#loader i'); let done = 0;
+  const steps = 14, tick = async () => { done++; lp.textContent = Math.round(done / steps * 100); bar.style.setProperty('--p', done / steps); await nextFrame(); };
+  await nextFrame();
+  const ph = {}, tm = {}; let tp = performance.now(); const lap = k => { const n = performance.now(); tm[k] = Math.round(n - tp); tp = n; }; window.__bol.timing = tm;
+  ph.cover = studio('cover'); lap('cover'); await tick();
+  ph.belt = studio('belt'); lap('belt'); await tick();
+  ph.bag = studio('bag'); lap('bag'); await tick();
+  ph.profile = photoProfile(); lap('profile'); await tick();
+  ph.stitch = photoStitch(); lap('stitch'); await tick();
+  ph.back = photoBack(); lap('back'); await tick();
+  ph.tannery = photoTannery(); lap('tannery'); await tick();
+  const pages = { cover: coverPage(ph.cover), L: [], R: [] };
+  pages.L.push(leftPhoto(ph.profile, 2, 'PLATE I — PROFILE IN LAMPLIGHT. LAMB NAPPA COLLAR.'));
+  pages.L.push(leftPhoto(ph.belt, 14, 'PLATE II — 38 MM BRIDLE BELT, HAND-CREASED EDGE.'));
+  pages.L.push(leftPhoto(ph.stitch, 28, 'PLATE III — SADDLE STITCH, 3.85 MM PITCH, WAXED LINEN.'));
+  await tick();
+  pages.L.push(leftPhoto(ph.back, 42, 'PLATE IV — HORSEHIDE RIDER, SEVENTEEN YEARS WORN.'));
+  pages.L.push(leftPhoto(ph.tannery, 56, 'PLATE V — DRYING LOFT, ANPING. 6:40 A.M.'));
+  pages.L.push(leftPhoto(ph.bag, 72, "PLATE VI — THE DOCTOR'S SATCHEL, 1,200 STITCHES."));
+  await tick();
+  pages.R.push(contentsPage(), featurePage()); await tick();
+  pages.R.push(stitchPage(), patinaPage()); await tick();
+  pages.R.push(tanneryPage(), mastheadPage()); await tick();
+  const sc = (c, w = 384) => smallCanvas(c, w, Math.round(w * c.height / c.width));
+  const P = {
+    pages,
+    mag0: otherCover(sc(ph.tannery, 512), 0), mag1: otherCover(sc(ph.back, 512), 1), mag2: otherCover(null, 2), mag2b: otherCover(null, 2), mag3: otherCover(sc(ph.stitch, 512), 3),
+    pr0: printCanvas(sc(ph.bag), 400, 500), pr1: printCanvas(sc(ph.belt), 448, 360), pr2: printCanvas(sc(ph.profile), 400, 510), pr3: printCanvas(sc(ph.stitch), 448, 340), pr4: printCanvas(sc(ph.tannery), 380, 486), pr5: printCanvas(sc(ph.cover), 400, 530),
+  };
+  await tick();
+  window.__bol.pages = pages;
+  lap('pages'); buildScene(P); lap('scene'); await tick();
+  renderer.toneMapping = THREE.NoToneMapping;
+  resize(); await tick();
+  for (const s of sheets) deform(s);
+  // pre-upload textures so the first frames don't stutter
+  renderer.compile(scene, camera); render();
+  $('#txt').innerHTML = `<h1>The Book of Leather · Nº 07</h1><h2>Contents</h2><ol>${TOC.map(t => `<li>${t.n} — ${t.t}：${t.d}</li>`).join('')}</ol><h2>編者的話</h2><p>${TXT.editor}</p><h2>The Transubstantiation of Skin</h2><p>${TXT.skin}</p><h2>Two Needles, One Thread</h2><p>${TXT.stitch}</p><h2>A Ledger of Touch</h2><p>${TXT.patina}</p><h2>Ninety Days in the Pit</h2><p>${TXT.tannery}</p><p>${TXT.colophon}</p>`;
+  $('#loader').classList.add('done');
+  if (!reduced) setTimeout(() => sfx.slide(), 60);
+  if (reduced) { sheets[0].theta = sheets[0].goal = PI; intro.opened = true; locked = false; }
+  last = performance.now(); requestAnimationFrame(loop);
+}
+addEventListener('resize', resize);
+window.__bol = { flip: d => { queue.push(d); invalidate(); }, go: goTo, state: () => ({ cur, locked, queue: queue.length, thetas: sheets.map(s => +s.theta.toFixed(3)) }), hover: (k, u, v) => { const s = sheets[k]; s.hoverT = u; s.hvT = v; invalidate(); } };
+boot().catch(e => { showErr(); throw e; });
+</script>
+</body>
+</html>

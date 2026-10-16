@@ -338,6 +338,7 @@
 - [255 九號倉 BOX 09 · 街頭潮牌官網](https://htmls-ruddy.vercel.app/web/255-crate-drop.html)：潮牌官網模板：紙箱拆箱 Hero 與發售倒數、出貨標籤商品卡與即時庫存、Drop 抽籤登記。
 - [256 羊毛日和 WOOL DAYS · 手織毛衣官網](https://htmls-ruddy.vercel.app/web/256-fairisle-knit.html)：手織毛衣官網模板：針目織出的店名、提花毛衣設計器與即時預覽、編織教室報名。
 - [257 白紗日 L'AUBE BRIDAL · 婚紗禮服官網](https://htmls-ruddy.vercel.app/web/257-lace-bridal.html)：婚紗店官網模板：蕾絲拱窗視覺、婚期倒推時程、禮服輪廓選擇器、預約試紗。
+- [258 The Book of Leather · 皮革工藝精品雜誌](https://htmls-ruddy.vercel.app/web/258-leather-folio.html)：互動 3D 時尚刊物：拖曳翻頁的紙張彎曲、投影與回彈，黑白攝影與淺景深，編輯風內頁排版，合成翻頁音效。
 
 ## Optional
 
