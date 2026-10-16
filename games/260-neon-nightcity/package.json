@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "霓虹夜城 · NEON NIGHT CITY：第三人稱賽博龐克開放夜城駕駛與探索（作品 259）",
+  "description": "霓虹夜城 · NEON NIGHT CITY：第三人稱賽博龐克開放夜城駕駛與探索（作品 260）",
   "scripts": {
     "assets": "node tools/assets.mjs",
     "build": "node tools/build.mjs",

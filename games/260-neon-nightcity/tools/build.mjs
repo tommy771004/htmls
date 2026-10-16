@@ -1,4 +1,4 @@
-// 打包：src/main.js（含 three）→ 內嵌進 src/index.html → ../../web/259-neon-nightcity.html
+// 打包：src/main.js（含 three）→ 內嵌進 src/index.html → ../../web/260-neon-nightcity.html
 // blender/out/*.glb 以 gzip＋base64 放進 <script type="application/octet-stream" id="glb-名稱">，
 // 頁面執行時用 DecompressionStream 解壓後交給 GLTFLoader.parseAsync。
 import { build } from 'esbuild';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const minify = !process.argv.includes('--dev');
 const outArg = process.argv.find((a) => a.startsWith('--out='));
-const outFile = outArg ? resolve(process.cwd(), outArg.slice(6)) : resolve(root, '../../web/259-neon-nightcity.html');
+const outFile = outArg ? resolve(process.cwd(), outArg.slice(6)) : resolve(root, '../../web/260-neon-nightcity.html');
 
 const result = await build({
   entryPoints: [resolve(root, 'src/main.js')],

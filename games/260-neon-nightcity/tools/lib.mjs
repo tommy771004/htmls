@@ -19,6 +19,8 @@ function chromePath() {
       if (existsSync(p)) return p;
     }
   }
+  const sysChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  if (existsSync(sysChrome)) return sysChrome;
   return undefined;
 }
 

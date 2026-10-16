@@ -1,11 +1,11 @@
-// Automated end-to-end acceptance test suite for 259-neon-nightcity
+// Automated end-to-end acceptance test suite for 260-neon-nightcity
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync } from 'node:fs';
 import { open, raf } from './lib.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const htmlPath = resolve(root, '../../web/259-neon-nightcity.html');
+const htmlPath = resolve(root, '../../web/260-neon-nightcity.html');
 const shotDir = resolve(
   '/Users/xieyuanyou/.gemini/antigravity-cli/brain/a7db79b1-92e4-4461-a94e-47acf8a1fac7/scratch'
 );
@@ -45,12 +45,12 @@ async function runAcceptance() {
     });
     assert(startStats.mode === 'driving', `Initial mode is driving (at ${JSON.stringify(startStats.pos)})`);
 
-    // Simulate driving forward with boost for 45 frames
+    // Simulate driving forward with boost for 65 frames
     const afterDriveStats = await page.evaluate(() => {
       const nc = window.__nc;
       nc.gameplay.keys.forward = true;
       nc.gameplay.keys.sprint = true;
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < 65; i++) {
         nc.step(1 / 60);
       }
       const st = nc.getStats();

@@ -209,10 +209,15 @@ export function buildAtmosphere(scene, assets, city) {
   }
 
   function update(dt, elapsed, focusPos, camera) {
-    // 1. Update rain streaks centered around focusPos
+    // 1. Update rain streaks centered around focusPos (keep outside indoor roofs when inside a venue)
     const fx = focusPos.x;
     const fz = focusPos.z;
-    rainLines.position.set(fx, 0, fz);
+    const insideV = city.getVenueAt ? city.getVenueAt(fx, fz) : null;
+    if (insideV) {
+      rainLines.position.set(insideV.doorX, 0, insideV.z0 - rainBox - 2);
+    } else {
+      rainLines.position.set(fx, 0, fz);
+    }
 
     const posArr = rainGeo.attributes.position.array;
     for (let i = 0; i < RAIN_COUNT; i++) {

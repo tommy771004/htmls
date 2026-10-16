@@ -62,9 +62,27 @@ export class GameplayController {
     this.underglowLight.position.set(0, 0.28, 0);
     this.carGroup.add(this.underglowLight);
 
-    this.headlightGlow = new THREE.PointLight(0xd8f8ff, 6.5, 22, 1.5);
-    this.headlightGlow.position.set(0, 0.75, 2.6);
+    this.headlightGlow = new THREE.PointLight(0xd8f8ff, 10.0, 28, 1.4);
+    this.headlightGlow.position.set(0, 0.85, 3.2);
     this.carGroup.add(this.headlightGlow);
+
+    // Twin volumetric headlight beams angled onto the wet road
+    const beamGeo = new THREE.ConeGeometry(0.82, 9.5, 14, 1, true);
+    beamGeo.translate(0, -4.75, 0);
+    beamGeo.rotateX(-Math.PI / 2 + 0.11);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x9ceeff,
+      transparent: true,
+      opacity: 0.075,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    for (const bx of [-0.68, 0.68]) {
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.set(bx, 0.42, 2.18);
+      this.carGroup.add(beam);
+    }
 
     // Initial car transform on Neon Central Avenue (z = -30), facing East (+X -> yaw = Math.PI/2)
     this.carPos = new THREE.Vector3(-8, 0, -26.5);
@@ -87,6 +105,9 @@ export class GameplayController {
       clip: 'idle',
       timeScale: 1.0,
     });
+    const charFillLight = new THREE.PointLight(0x6ce2ff, 4.5, 15, 1.4);
+    charFillLight.position.set(0, 2.5, -1.0);
+    this.playerChar.root.add(charFillLight);
     this.playerPos = new THREE.Vector3(-8, 0, -24.0);
     this.playerYaw = 0;
     this.playerSpeed = 0;
@@ -274,6 +295,10 @@ export class GameplayController {
     const fwdZ = Math.cos(yaw);
     this.camPos.set(x - fwdX * 7, 3.2, z - fwdZ * 7);
     this.camLook.set(x + fwdX * 2, 1.3, z + fwdZ * 2);
+
+    this.currentDistrict = this.city.getDistrictAt(x, z);
+    this.insideVenue = this.city.getVenueAt(x, z);
+    this.nearVenue = !this.insideVenue ? this.city.getNearbyVenue(x, z, 13) : null;
   }
 
   checkCollision(x, z, radius) {

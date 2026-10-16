@@ -35,6 +35,7 @@ export async function loadAllAssets() {
 
 function prepareScene(g) {
   bakeSkinnedGlow(g.scene);
+  bakeStaticMultiMaterial(g.scene);
   const seen = new Set();
   g.scene.traverse((o) => {
     if (!o.isMesh) return;
@@ -103,6 +104,60 @@ function bakeSkinnedGlow(root) {
     for (const k of kids) grp.remove(k);
     grp.add(sm);
     sm.bind(k0.skeleton, k0.bindMatrix);
+    for (const k of kids) k.geometry.dispose();
+  }
+}
+
+const sharedStaticGlowMat = createSkinnedGlowMaterial();
+
+// 將靜態模型（車輛、路燈、霓虹招牌、夜店與酒吧道具）的多材質 primitive 烘入 HDR 頂點色並合併為單一 Mesh，大幅降低 Draw Calls
+function bakeStaticMultiMaterial(root) {
+  const groups = [];
+  root.traverse((o) => {
+    if (o.isMesh || !o.children || o.children.length < 2) return;
+    const meshKids = o.children.filter(
+      (c) => c.isMesh && !c.isSkinnedMesh && c.children.length === 0 && !Array.isArray(c.material)
+    );
+    if (meshKids.length >= 2) {
+      groups.push([o, meshKids]);
+    }
+  });
+
+  for (const [grp, kids] of groups) {
+    const geos = [];
+    for (const k of kids) {
+      const src = k.geometry;
+      const m = k.material;
+      const g = new THREE.BufferGeometry();
+      for (const a of ['position', 'normal']) {
+        if (src.attributes[a]) g.setAttribute(a, src.attributes[a].clone());
+      }
+      if (src.index) g.setIndex(src.index.clone());
+      g.applyMatrix4(k.matrix);
+      const n = g.attributes.position.count;
+      const col = new Float32Array(n * 3);
+      const baseC = m.color || new THREE.Color(0.2, 0.25, 0.35);
+      const emC = m.emissive || new THREE.Color(0, 0, 0);
+      const isGlow = emC.r + emC.g + emC.b > 0.08;
+      const cr = isGlow ? 1.0 + emC.r * 1.9 : baseC.r;
+      const cg = isGlow ? 1.0 + emC.g * 1.9 : baseC.g;
+      const cb = isGlow ? 1.0 + emC.b * 1.9 : baseC.b;
+      for (let i = 0; i < n; i++) {
+        col[i * 3] = cr;
+        col[i * 3 + 1] = cg;
+        col[i * 3 + 2] = cb;
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geos.push(g);
+    }
+    const merged = mergeGeometries(
+      geos.map((g) => (geos.some((x) => !x.index) && g.index ? g.toNonIndexed() : g))
+    );
+    if (!merged) continue;
+    const mesh = new THREE.Mesh(merged, sharedStaticGlowMat);
+    mesh.name = grp.name + '_merged';
+    for (const k of kids) grp.remove(k);
+    grp.add(mesh);
     for (const k of kids) k.geometry.dispose();
   }
 }

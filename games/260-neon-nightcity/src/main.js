@@ -1,4 +1,4 @@
-// Main entry point for 259-neon-nightcity (霓虹夜城 // NEON NIGHT CITY)
+// Main entry point for 260-neon-nightcity (霓虹夜城 // NEON NIGHT CITY)
 import * as THREE from 'three';
 import { loadAssets } from './assets.js';
 import { buildCity } from './city.js';
@@ -32,9 +32,21 @@ async function boot() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
 
-  // 2. Scene & Camera
+  // 2. Scene & Camera & Rainy Night Lighting
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x040711);
+  scene.background = new THREE.Color(0x050916);
+  scene.fog = new THREE.FogExp2(0x060b1c, 0.0072);
+
+  const hemiLight = new THREE.HemisphereLight(0x4c88f0, 0x281542, 2.35);
+  scene.add(hemiLight);
+
+  const dirLight = new THREE.DirectionalLight(0x82bfff, 1.9);
+  dirLight.position.set(50, 100, -60);
+  scene.add(dirLight);
+
+  const neonBounceLight = new THREE.DirectionalLight(0xff3ca8, 1.05);
+  neonBounceLight.position.set(-60, 55, 65);
+  scene.add(neonBounceLight);
 
   const camera = new THREE.PerspectiveCamera(
     60,

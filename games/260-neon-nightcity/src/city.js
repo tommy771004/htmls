@@ -572,9 +572,9 @@ function buildPulseNightclub(cityGroup, colliders, mapBuildings, danceTiles, clu
   archR.position.set(3.8, 2.4, -16.0);
   club.add(archTop, archL, archR);
 
-  // 正門外巨型全息招牌
-  const clubSign = new THREE.Mesh(new THREE.PlaneGeometry(14, 5.2), signMat);
-  clubSign.position.set(0, 11.2, -16.25);
+  // 正門外巨型全息招牌（緊鄰霓虹拱門上方，街道視角一覽無遺）
+  const clubSign = new THREE.Mesh(new THREE.PlaneGeometry(13.5, 4.4), signMat);
+  clubSign.position.set(0, 6.9, -16.25);
   clubSign.rotation.y = Math.PI;
   club.add(clubSign);
 
@@ -640,12 +640,29 @@ function buildPulseNightclub(cityGroup, colliders, mapBuildings, danceTiles, clu
     club.add(vip);
   }
 
-  // 夜店室內主點光源
-  const clubLight1 = new THREE.PointLight(0xff2bd6, 35, 22, 1.5);
-  clubLight1.position.set(0, 5.5, 1.5);
-  const clubLight2 = new THREE.PointLight(0x00f2ff, 28, 18, 1.5);
-  clubLight2.position.set(0, 4.2, 10.2);
+  // 夜店室內主點光源與牆面霓虹光帶
+  const clubLight1 = new THREE.PointLight(0xff2bd6, 48, 28, 1.3);
+  clubLight1.position.set(0, 5.8, 1.5);
+  const clubLight2 = new THREE.PointLight(0x00f2ff, 42, 24, 1.3);
+  clubLight2.position.set(0, 4.5, 10.2);
   club.add(clubLight1, clubLight2);
+
+  // 室內東西兩側牆面水平霓虹光帶與背牆邊框
+  for (const side of [-1, 1]) {
+    for (const h of [1.4, 3.8, 6.4]) {
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.14, 28),
+        h === 3.8 ? neonCyan : neonMag
+      );
+      strip.position.set(side * 15.3, h, 0);
+      club.add(strip);
+    }
+  }
+  const backFrameTop = new THREE.Mesh(new THREE.BoxGeometry(26, 0.18, 0.15), neonCyan);
+  backFrameTop.position.set(0, 6.6, 15.3);
+  const backFrameMid = new THREE.Mesh(new THREE.BoxGeometry(22, 0.16, 0.15), neonMag);
+  backFrameMid.position.set(0, 4.2, 15.3);
+  club.add(backFrameTop, backFrameMid);
 
   // 14 名舞池熱舞人群 + 1 名舞台 DJ（全部具備 Blender 骨架動畫）
   const dancerPositions = [
@@ -772,10 +789,26 @@ function buildAfterglowBar(cityGroup, colliders, mapBuildings, npcMixers, signMa
     bar.add(booth);
   }
 
-  // 溫暖琥珀與洋紅室內光源
-  const barLight = new THREE.PointLight(0xff9922, 32, 22, 1.5);
-  barLight.position.set(cx, 4.8, cz + 4.0);
-  bar.add(barLight);
+  // 溫暖琥珀與洋紅室內光源與霓虹腰線
+  const barLight = new THREE.PointLight(0xff9922, 46, 26, 1.3);
+  barLight.position.set(cx, 5.0, cz + 4.0);
+  const barFill = new THREE.PointLight(0xff2bd6, 32, 22, 1.3);
+  barFill.position.set(cx, 4.5, cz - 4.0);
+  bar.add(barLight, barFill);
+
+  for (const side of [-1, 1]) {
+    for (const h of [1.3, 3.4, 5.6]) {
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.14, 26),
+        h === 3.4 ? neonMag : neonAmber
+      );
+      strip.position.set(cx + side * 14.3, h, cz);
+      bar.add(strip);
+    }
+  }
+  const barBackNeon = new THREE.Mesh(new THREE.BoxGeometry(20, 0.16, 0.15), neonAmber);
+  barBackNeon.position.set(cx, 5.4, cz + 14.3);
+  bar.add(barBackNeon);
 
   // 調酒師（bartend 動作）與 5 名酒客
   const barCast = [
@@ -859,7 +892,18 @@ function buildChromeGarage(cityGroup, colliders, mapBuildings, holoSpinners, sig
   gar.add(scanRing);
   holoSpinners.push(scanRing);
 
-  const garLight = new THREE.PointLight(0x00f2ff, 30, 22, 1.5);
+  for (const side of [-1, 1]) {
+    const floorStrip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 18), neonCyan);
+    floorStrip.position.set(cx + side * 3.4, 0.11, cz - 1);
+    gar.add(floorStrip);
+    for (const h of [1.5, 4.2, 6.5]) {
+      const wallStrip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 24), neonCyan);
+      wallStrip.position.set(cx + side * 13.3, h, cz);
+      gar.add(wallStrip);
+    }
+  }
+
+  const garLight = new THREE.PointLight(0x00f2ff, 46, 26, 1.3);
   garLight.position.set(cx, 5.2, cz);
   gar.add(garLight);
 
