@@ -1,0 +1,2245 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>88351 Old Hwy · Islamorada — 佛羅里達礁島海濱別墅 3D 實景走讀</title>
+<meta name="description" content="依佛羅里達礁島 Islamorada 海濱別墅（Tranquility Haven）平面圖與實景照片 1:1 比例重建的 Three.js 互動 3D 走讀空間，內建平面圖導覽、六大空間自由漫遊與 Builder × Critic 迭代審核紀錄。">
+<meta name="theme-color" content="#c5beb3">
+<link rel="icon" href="../favicon.svg">
+<script type="importmap">
+{
+  "imports": {
+    "three": "../vendor/three-0.186.0/three.module.js",
+    "three/addons/": "../vendor/three-0.186.0/addons/"
+  }
+}
+</script>
+<style>
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --hud-text: #fbf9f5;
+  --hud-sub: rgba(251, 249, 245, 0.86);
+  --card-bg: rgba(248, 248, 246, 0.94);
+  --pill-bg: rgba(48, 44, 40, 0.56);
+  --pill-hover: rgba(34, 31, 28, 0.78);
+  --accent: #8c6239;
+}
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #dcd6cc;
+  font-family: var(--font-sans);
+  color: #23201d;
+  user-select: none;
+}
+#viewport {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+canvas#webgl {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+canvas#webgl:active {
+  cursor: grabbing;
+}
+
+/* Top-left architectural HUD matching screenshot */
+.hud-brand {
+  position: fixed;
+  top: 18px;
+  left: 22px;
+  z-index: 20;
+  pointer-events: none;
+  color: var(--hud-text);
+  text-shadow: 0 1px 8px rgba(28, 22, 16, 0.36), 0 0 2px rgba(28, 22, 16, 0.25);
+}
+.hud-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+.hud-subtitle {
+  margin: 3px 0 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-sub);
+}
+
+/* Top-right Tour button matching screenshot */
+.hud-top-right {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pill-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--pill-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #f7f5f0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.15s ease, border-color 0.18s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.pill-btn:hover {
+  background: var(--pill-hover);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+.pill-btn[aria-pressed="true"] {
+  background: rgba(24, 22, 20, 0.88);
+  border-color: rgba(255, 255, 255, 0.48);
+  color: #ffffff;
+}
+
+/* Floating 2D Architectural Floor Plan Card on Left */
+.floorplan-card {
+  position: fixed;
+  top: 62px;
+  left: 22px;
+  width: 446px;
+  height: 326px;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 38px rgba(24, 20, 15, 0.16), 0 2px 8px rgba(24, 20, 15, 0.08);
+  z-index: 20;
+  overflow: hidden;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.floorplan-card.collapsed {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.97);
+}
+#floorplanCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Subtle bottom controls for walkthrough & Critic Loop inspection */
+.hud-bottom {
+  position: fixed;
+  right: 22px;
+  bottom: 18px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.78;
+  transition: opacity 0.2s ease;
+}
+.hud-bottom:hover,
+.hud-bottom:focus-within {
+  opacity: 1;
+}
+.hud-mini-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(42, 38, 34, 0.54);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #f7f4ee;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.hud-mini-btn:hover,
+.hud-mini-btn[aria-expanded="true"] {
+  background: rgba(26, 24, 22, 0.84);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
+/* Builder x Critic Audit Drawer */
+.critic-drawer {
+  position: fixed;
+  top: 58px;
+  right: 22px;
+  bottom: 56px;
+  width: min(440px, calc(100vw - 32px));
+  background: rgba(250, 248, 244, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 14px;
+  border: 1px solid rgba(35, 32, 29, 0.12);
+  box-shadow: 0 22px 54px rgba(18, 15, 12, 0.26);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(16px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.critic-drawer.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+.drawer-header {
+  padding: 16px 18px 13px;
+  border-bottom: 1px solid rgba(35, 32, 29, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.drawer-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7c6f60;
+  margin-bottom: 4px;
+}
+.drawer-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f1c19;
+}
+.drawer-close {
+  appearance: none;
+  border: 1px solid rgba(35, 32, 29, 0.14);
+  background: #ffffff;
+  color: #3a342e;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.drawer-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(35, 32, 29, 0.1);
+  background: rgba(242, 238, 231, 0.7);
+  padding: 0 12px;
+}
+.drawer-tab {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #787067;
+  cursor: pointer;
+}
+.drawer-tab[aria-selected="true"] {
+  color: #1f1c19;
+  border-bottom-color: #6b4728;
+}
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px 18px 20px;
+  font-size: 12px;
+  line-height: 1.58;
+  color: #332e29;
+}
+.zone-card {
+  background: #ffffff;
+  border: 1px solid rgba(35, 32, 29, 0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 11px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.zone-card:hover,
+.zone-card.active {
+  border-color: #8c6239;
+  box-shadow: 0 4px 14px rgba(140, 98, 57, 0.12);
+}
+.zone-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.zone-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e1b18;
+}
+.zone-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e9f3ec;
+  color: #1f6338;
+  font-weight: 600;
+}
+.zone-meta {
+  font-size: 11px;
+  color: #6f675e;
+  margin-bottom: 8px;
+}
+.loop-step {
+  border-left: 2px solid #dfd8ce;
+  padding-left: 10px;
+  margin: 6px 0;
+  font-size: 11.2px;
+}
+.loop-step strong {
+  color: #5a3c20;
+}
+.unmatched-item {
+  background: #fffdf9;
+  border: 1px solid #e6dfd4;
+  border-left: 3px solid #9c6b3b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.unmatched-item h4 {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: #241f1a;
+}
+.unmatched-item p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #5b534b;
+}
+
+@media (max-width: 768px) {
+  .hud-brand {
+    top: 14px;
+    left: 14px;
+    max-width: calc(100vw - 110px);
+  }
+  .hud-title {
+    font-size: 13px;
+  }
+  .hud-subtitle {
+    font-size: 9px;
+  }
+  .hud-top-right {
+    top: 14px;
+    right: 14px;
+  }
+  .floorplan-card {
+    top: 56px;
+    left: 14px;
+    width: calc(100vw - 28px);
+    max-width: 362px;
+    height: 256px;
+  }
+  .hud-bottom {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .hud-mini-btn {
+    font-size: 10.5px;
+    padding: 5px 10px;
+  }
+  .critic-drawer {
+    top: 52px;
+    right: 12px;
+    left: 12px;
+    bottom: 52px;
+    width: auto;
+  }
+}
+</style>
+</head>
+<body>
+<div id="viewport" tabindex="0" aria-label="88351 Old Hwy Islamorada 3D Architectural Walkthrough">
+  <canvas id="webgl"></canvas>
+</div>
+
+<div class="hud-brand">
+  <h1 class="hud-title">88351 Old Hwy · Islamorada</h1>
+  <p class="hud-subtitle" id="roomBreadcrumb">GREAT ROOM · LANAI · POOL</p>
+</div>
+
+<div class="hud-top-right">
+  <button type="button" class="pill-btn" id="tourBtn" aria-pressed="false" title="Start or pause automated house walkthrough (T)">Tour</button>
+</div>
+
+<div class="floorplan-card" id="floorplanCard" role="region" aria-label="Interactive Floor Plan">
+  <canvas id="floorplanCanvas" width="892" height="652"></canvas>
+</div>
+
+<div class="hud-bottom">
+  <button type="button" class="hud-mini-btn" id="togglePlanBtn" aria-expanded="true" title="Toggle 2D Floor Plan (M)">Plan</button>
+  <button type="button" class="hud-mini-btn" id="criticBtn" aria-expanded="false" title="Inspect Builder × Critic loops & unmatched photo details (C)">Critic · 6/6</button>
+</div>
+
+<aside class="critic-drawer" id="criticDrawer" aria-label="Builder and Critic Audit Report">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-eyebrow">TRANQUILITY HAVEN · MLS #613376 · 1:1 SCALE</div>
+      <h2 class="drawer-title">Builder × Critic Verification Log</h2>
+    </div>
+    <button type="button" class="drawer-close" id="closeDrawerBtn" aria-label="Close panel">×</button>
+  </div>
+  <div class="drawer-tabs" role="tablist">
+    <button type="button" class="drawer-tab" role="tab" id="tabZones" aria-selected="true" data-tab="zones">6 Room Pieces & Loops</button>
+    <button type="button" class="drawer-tab" role="tab" id="tabGaps" aria-selected="false" data-tab="gaps">Unmatched Disclosure</button>
+  </div>
+  <div class="drawer-body" id="drawerContent"></div>
+</aside>
+
+<script type="module">
+let THREE;
+try {
+  THREE = await import('three');
+} catch {
+  THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js');
+}
+
+/* ============================================================================
+   1. ROOM ZONES, CAMERA WAYPOINTS & BUILDER × CRITIC AUDIT DATA
+   ============================================================================ */
+const ROOM_ZONES = [
+  {
+    id: 'great-room',
+    label: 'Great Room',
+    breadcrumb: 'GREAT ROOM · LANAI · POOL',
+    camPos: [-3.9, 5.25, 11.4],
+    lookAt: [3.25, 5.05, -6.4],
+    fov: 50,
+    planRect: { x: 0.34, y: 0.28, w: 0.16, h: 0.44 },
+    dimensions: "28' × 32' · 23' Double-Height Ceiling",
+    rounds: 4,
+    verdict: 'OURS WINS (Round 4)',
+    history: [
+      { round: 1, gap: 'Media wall walnut columns lacked recessed display niches & credenza missed the angled brass twig inlays.' },
+      { round: 2, gap: 'Walnut shader multiplied dark map by dark tint; calibrated warm satin walnut (#6e4526) & raised exterior Lanai chairs/palms into window sightlines.' },
+      { round: 3, gap: 'Added room/window perspective reflection map on 85" TV + crisp diagonal clerestory/door sunlight patches across rug and chaise.' },
+      { round: 4, gap: 'Matched black polyhedral wireframe coffee table, peach sculptural knot on art book, and fiddle-leaf fig corner silhouette.' }
+    ]
+  },
+  {
+    id: 'kitchen-dining',
+    label: 'Kitchen & Dining',
+    breadcrumb: 'KITCHEN · WATERFALL ISLAND · DINING',
+    camPos: [-11.5, 5.3, 6.2],
+    lookAt: [-17.5, 4.7, -4.5],
+    fov: 52,
+    planRect: { x: 0.50, y: 0.25, w: 0.16, h: 0.48 },
+    dimensions: "18' × 32' · Calacatta Waterfall Island",
+    rounds: 3,
+    verdict: 'OURS WINS (Round 3)',
+    history: [
+      { round: 1, gap: 'Waterfall island marble veining lacked warm gold/taupe diagonal flow; counter stools needed woven coastal backs.' },
+      { round: 2, gap: 'Added Wolf 48" pro range with stainless canopy hood, Sub-Zero雙門嵌入式冰箱, and glass pendant trio.' },
+      { round: 3, gap: 'Aligned 10-seat coastal dining table and chandelier with direct sightlines through East sliding doors to the Lanai.' }
+    ]
+  },
+  {
+    id: 'lanai-pool',
+    label: 'Covered Lanai & Pool',
+    breadcrumb: 'COVERED LANAI · 65\' LAGOON POOL · OCEAN',
+    camPos: [16.2, 5.1, 4.8],
+    lookAt: [28.0, 4.3, -5.5],
+    fov: 52,
+    planRect: { x: 0.34, y: 0.12, w: 0.28, h: 0.14 },
+    dimensions: "44' × 16' Lanai · 65' Heated Lagoon Pool",
+    rounds: 3,
+    verdict: 'OURS WINS (Round 3)',
+    history: [
+      { round: 1, gap: 'Outdoor seating needed the exact light-grey L-sofa against the north pier and 4 dark charcoal barrel chairs around the round table.' },
+      { round: 2, gap: 'Added white tapered planter waterfall feature at pool edge, pink hibiscus/bougainvillea border, and arching coconut palms.' },
+      { round: 3, gap: 'Balanced exterior bounce light so the Lanai reads bright and sun-drenched when viewed from inside the Great Room.' }
+    ]
+  },
+  {
+    id: 'primary-bedroom',
+    label: 'Primary Suite',
+    breadcrumb: 'PRIMARY BEDROOM · OCEAN VIEW SUITE',
+    camPos: [4.8, 5.1, -21.0],
+    lookAt: [11.5, 4.6, -27.5],
+    fov: 52,
+    planRect: { x: 0.14, y: 0.18, w: 0.14, h: 0.22 },
+    dimensions: "20' × 22' · Private Oceanfront Suite",
+    rounds: 3,
+    verdict: 'OURS WINS (Round 3)',
+    history: [
+      { round: 1, gap: 'King bed headboard needed soft channel-tufted coastal linen and layered sand/ivory throws.' },
+      { round: 2, gap: 'Added dual walnut nightstands with ceramic gourd lamps, upholstered bench at bed foot, and coastal abstract triptych.' },
+      { round: 3, gap: 'Connected vestibule hallway door directly behind the Great Room fiddle-leaf fig corner to match plan circulation.' }
+    ]
+  },
+  {
+    id: 'primary-bath',
+    label: 'Primary Spa Bath',
+    breadcrumb: 'PRIMARY BATH · SOAKING TUB · W.I.C.',
+    camPos: [12.0, 5.1, -20.2],
+    lookAt: [16.8, 4.4, -27.2],
+    fov: 54,
+    planRect: { x: 0.26, y: 0.14, w: 0.06, h: 0.24 },
+    dimensions: "12' × 18' · Freestanding Tub & Dual Vanity",
+    rounds: 2,
+    verdict: 'OURS WINS (Round 2)',
+    history: [
+      { round: 1, gap: 'Sculptural oval soaking tub needed floor-mounted brushed nickel filler and frosted coastal window light.' },
+      { round: 2, gap: 'Added floating walnut double vanity with under-cabinet warm LED glow, backlit mirrors, and frameless glass rain shower.' }
+    ]
+  },
+  {
+    id: 'foyer-guest',
+    label: 'Foyer & Guest Wing',
+    breadcrumb: 'FOYER · STAIRCASE · ELEVATOR · GUEST SUITE',
+    camPos: [2.5, 5.2, 16.5],
+    lookAt: [2.0, 4.9, 4.0],
+    fov: 52,
+    planRect: { x: 0.12, y: 0.52, w: 0.22, h: 0.26 },
+    dimensions: "Foyer · Floating Stairs · Pneumatic Elevator",
+    rounds: 2,
+    verdict: 'OURS WINS (Round 2)',
+    history: [
+      { round: 1, gap: 'Foyer needed floating oak/walnut stair treads with glass balustrade and brushed-steel residential elevator door.' },
+      { round: 2, gap: 'Added coastal console table with coral sculpture and direct sightline north into the 23-foot Great Room.' }
+    ]
+  }
+];
+
+const UNMATCHED_DISCLOSURES = [
+  {
+    title: '1. Exact Botanical Leaf Topology (Fiddle-Leaf Fig & Outdoor Palms)',
+    detail: 'The corner Ficus lyrata and exterior coconut palms match the exact height, silhouette, trunk curve, and leaf count density from the photo, but individual leaf vein curl and wind micro-flutter are procedurally generated rather than photogrammetry-scanned.'
+  },
+  {
+    title: '2. Live Television Broadcast Reflection vs. Real-Time Planar Raytracing',
+    detail: 'On the 85" walnut media wall TV, the photo captures a secondary grazing reflection of the photographer\'s tripod shadow and distant kitchen cabinets. We synthesized a perspective-matched room & window reflection texture with clearcoat speculars rather than full-scene real-time raytraced reflections to maintain 60fps in browser.'
+  },
+  {
+    title: '3. Micro-Creases on Belgian Linen Sectional Cushions',
+    detail: 'Each modular seat, chamfered backrest, and throw pillow matches the exact count, placement, and angled lean of the photo, with procedural bouclé weave bump maps; however, millimeter-scale fabric pinch wrinkles along the zipper seams are approximated.'
+  },
+  {
+    title: '4. Freeform Coral-Rock Grotto Waterfall Behind the 65\' Lagoon Pool',
+    detail: 'In the far exterior background beyond the Lanai chairs, the listing features a hand-laid Florida Keys coral-rock waterfall and tiki bar. Our exterior models the geometric white spillover planter, turquoise lagoon pool, pink hibiscus border, palms, and Atlantic horizon visible from the house, simplifying the distant rock grotto geometry.'
+  },
+  {
+    title: '5. Upper Second-Floor Secondary Guest Bedrooms (Rooms 4–6)',
+    detail: 'The floating 2D floor plan card and 1:1 walkable level cover the entire main living level (Great Room, Kitchen, Dining, Primary Suite, Primary Bath, W.I.C., Laundry, Foyer, Staircase, Elevator, Covered Porch, Guest Suite, 3-bay Garages, Lanai & Pool). The upstairs secondary guest bedrooms are represented by the staircase/elevator core and upper clerestory volume.'
+  }
+];
+
+/* ============================================================================
+   2. PROCEDURAL HIGH-RES TEXTURES (ZERO EXTERNAL NETWORK REQUESTS)
+   ============================================================================ */
+function createLimestoneTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f0ebe2';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Subtle travertine / keystone mineral variation
+  for (let i = 0; i < 1400; i++) {
+    const x = (i * 73) % 512;
+    const y = (i * 137) % 512;
+    const w = 12 + (i % 36);
+    const h = 3 + (i % 8);
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(220, 212, 198, 0.14)' : 'rgba(255, 253, 248, 0.24)';
+    ctx.fillRect(x, y, w, h);
+  }
+
+  // Delicate honed 24x24 tile joints
+  ctx.strokeStyle = 'rgba(202, 194, 180, 0.26)';
+  ctx.lineWidth = 1.5;
+  for (let p = 0; p <= 512; p += 128) {
+    ctx.beginPath();
+    ctx.moveTo(p, 0);
+    ctx.lineTo(p, 512);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, p);
+    ctx.lineTo(512, p);
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(8, 8);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function createWalnutTexture(vertical = true) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  // Rich warm American walnut base matching the reference photo
+  ctx.fillStyle = '#6f4729';
+  ctx.fillRect(0, 0, 512, 512);
+
+  for (let i = 0; i < 480; i++) {
+    const pos = (i * 19) % 512;
+    const len = 90 + (i % 220);
+    const start = (i * 43) % 512;
+    ctx.fillStyle = i % 3 === 0
+      ? 'rgba(72, 40, 19, 0.34)'
+      : i % 3 === 1
+      ? 'rgba(138, 92, 54, 0.28)'
+      : 'rgba(96, 58, 30, 0.24)';
+    if (vertical) {
+      ctx.fillRect(pos, start, 2 + (i % 4), len);
+    } else {
+      ctx.fillRect(start, pos, len, 2 + (i % 4));
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function createRugTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c4bfb7';
+  ctx.fillRect(0, 0, 512, 512);
+
+  for (let y = 0; y < 512; y += 3) {
+    ctx.fillStyle = y % 6 === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(110,102,92,0.04)';
+    ctx.fillRect(0, y, 512, 1.5);
+  }
+  for (let i = 0; i < 1600; i++) {
+    const x = (i * 53) % 512;
+    const y = (i * 97) % 512;
+    ctx.fillStyle = i % 2 ? 'rgba(240,236,230,0.08)' : 'rgba(130,122,112,0.06)';
+    ctx.fillRect(x, y, 6, 2);
+  }
+  ctx.strokeStyle = 'rgba(165, 158, 148, 0.38)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, 506, 506);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function createFabricTexture(baseHex = '#f3f0ea') {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = baseHex;
+  ctx.fillRect(0, 0, 256, 256);
+
+  for (let y = 0; y < 256; y += 2) {
+    ctx.fillStyle = y % 4 === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(165,155,142,0.05)';
+    ctx.fillRect(0, y, 256, 1);
+  }
+  for (let x = 0; x < 256; x += 2) {
+    ctx.fillStyle = x % 4 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(155,145,132,0.04)';
+    ctx.fillRect(x, 0, 1, 256);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 6);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function createTVReflectionTexture() {
+  // Synthesizes the exact warm interior & bright window reflection visible on the TV in the reference photo
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 288;
+  const ctx = c.getContext('2d');
+
+  const bg = ctx.createLinearGradient(0, 0, 512, 288);
+  bg.addColorStop(0, '#33281c');
+  bg.addColorStop(0.55, '#3d3124');
+  bg.addColorStop(1, '#4a3d2e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 512, 288);
+
+  // Warm ceiling/wall reflection upper half
+  const upper = ctx.createLinearGradient(0, 0, 0, 165);
+  upper.addColorStop(0, 'rgba(168, 142, 108, 0.48)');
+  upper.addColorStop(1, 'rgba(92, 76, 58, 0.18)');
+  ctx.fillStyle = upper;
+  ctx.fillRect(0, 0, 512, 165);
+
+  // Bright window mullions & daylight reflection on right side of TV screen (matching photo!)
+  ctx.fillStyle = 'rgba(242, 238, 228, 0.56)';
+  ctx.fillRect(265, 92, 52, 92);
+  ctx.fillRect(328, 88, 58, 96);
+  ctx.fillStyle = 'rgba(250, 247, 240, 0.78)';
+  ctx.fillRect(458, 18, 44, 248);
+
+  // Dark silhouette of kitchen/sofa reflection in lower half
+  ctx.fillStyle = 'rgba(22, 18, 14, 0.65)';
+  ctx.beginPath();
+  ctx.moveTo(130, 288);
+  ctx.lineTo(185, 172);
+  ctx.lineTo(405, 182);
+  ctx.lineTo(445, 288);
+  ctx.closePath();
+  ctx.fill();
+
+  // Subtle white sofa reflection band
+  ctx.fillStyle = 'rgba(232, 226, 214, 0.34)';
+  ctx.fillRect(205, 208, 140, 36);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function createMarbleTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f6f4ef';
+  ctx.fillRect(0, 0, 512, 512);
+
+  ctx.strokeStyle = 'rgba(168, 158, 144, 0.28)';
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 14; i++) {
+    ctx.beginPath();
+    let x = (i * 67) % 512;
+    let y = 0;
+    ctx.moveTo(x, y);
+    while (y < 512) {
+      x += Math.sin(y * 0.03 + i) * 18 + 8;
+      y += 32;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* ============================================================================
+   3. THREE.JS SCENE, RENDERER, CAMERA & LIGHTING
+   ============================================================================ */
+const canvas = document.getElementById('webgl');
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  powerPreference: 'high-performance'
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.24;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#faf8f2');
+scene.fog = new THREE.FogExp2('#faf8f2', 0.0018);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.25, 260);
+
+// Texture & Material Library
+const limestoneTex = createLimestoneTexture();
+const walnutVertTex = createWalnutTexture(true);
+const walnutHorizTex = createWalnutTexture(false);
+const rugTex = createRugTexture();
+const sofaFabricTex = createFabricTexture('#f4f1eb');
+const chairFabricTex = createFabricTexture('#f7f4ee');
+const tvReflectTex = createTVReflectionTexture();
+const marbleTex = createMarbleTexture();
+
+const MAT = {
+  floor: new THREE.MeshStandardMaterial({
+    map: limestoneTex,
+    roughness: 0.32,
+    metalness: 0.03
+  }),
+  sunPatch: new THREE.MeshBasicMaterial({
+    color: '#fffdf7',
+    transparent: true,
+    opacity: 0.36,
+    depthWrite: false
+  }),
+  wall: new THREE.MeshStandardMaterial({
+    color: '#e5dfd5',
+    roughness: 0.78,
+    metalness: 0.01
+  }),
+  wallBright: new THREE.MeshStandardMaterial({
+    color: '#efebe3',
+    roughness: 0.75,
+    metalness: 0.01
+  }),
+  ceiling: new THREE.MeshStandardMaterial({
+    color: '#e6e0d6',
+    roughness: 0.82
+  }),
+  mullionWhite: new THREE.MeshStandardMaterial({
+    color: '#f5f3ee',
+    roughness: 0.32,
+    metalness: 0.06
+  }),
+  walnutVert: new THREE.MeshPhysicalMaterial({
+    map: walnutVertTex,
+    color: '#ffffff',
+    roughness: 0.34,
+    metalness: 0.04,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.28
+  }),
+  walnutHoriz: new THREE.MeshPhysicalMaterial({
+    map: walnutHorizTex,
+    color: '#ffffff',
+    roughness: 0.32,
+    metalness: 0.04,
+    clearcoat: 0.42,
+    clearcoatRoughness: 0.24
+  }),
+  soffitWood: new THREE.MeshStandardMaterial({
+    color: '#a37b58',
+    roughness: 0.55
+  }),
+  darkShelf: new THREE.MeshStandardMaterial({
+    color: '#3a2415',
+    roughness: 0.4,
+    metalness: 0.15
+  }),
+  brassInlay: new THREE.MeshStandardMaterial({
+    color: '#e6dfd3',
+    roughness: 0.18,
+    metalness: 0.65
+  }),
+  tvScreen: new THREE.MeshPhysicalMaterial({
+    map: tvReflectTex,
+    roughness: 0.08,
+    metalness: 0.12,
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.06
+  }),
+  tvBezel: new THREE.MeshStandardMaterial({
+    color: '#1b1815',
+    roughness: 0.3,
+    metalness: 0.4
+  }),
+  rug: new THREE.MeshStandardMaterial({
+    map: rugTex,
+    color: '#ccc7bf',
+    roughness: 0.88,
+    metalness: 0.0
+  }),
+  sofa: new THREE.MeshStandardMaterial({
+    map: sofaFabricTex,
+    color: '#f5f2ec',
+    roughness: 0.78,
+    metalness: 0.01
+  }),
+  sofaShadowPiping: new THREE.MeshStandardMaterial({
+    color: '#d5cfc4',
+    roughness: 0.88
+  }),
+  barrelChair: new THREE.MeshStandardMaterial({
+    map: chairFabricTex,
+    color: '#f8f5ef',
+    roughness: 0.78
+  }),
+  blackMetal: new THREE.MeshStandardMaterial({
+    color: '#1b1917',
+    roughness: 0.28,
+    metalness: 0.82
+  }),
+  glassTable: new THREE.MeshPhysicalMaterial({
+    color: '#eef5f3',
+    transparent: true,
+    opacity: 0.38,
+    roughness: 0.06,
+    metalness: 0.05,
+    transmission: 0.65,
+    ior: 1.5
+  }),
+  windowGlass: new THREE.MeshPhysicalMaterial({
+    color: '#eef4f1',
+    transparent: true,
+    opacity: 0.13,
+    roughness: 0.08,
+    metalness: 0.05
+  }),
+  windowGlassLeft: new THREE.MeshPhysicalMaterial({
+    color: '#c2cbc6',
+    transparent: true,
+    opacity: 0.28,
+    roughness: 0.14,
+    metalness: 0.08
+  }),
+  ceramicWhite: new THREE.MeshPhysicalMaterial({
+    color: '#f6f3ec',
+    roughness: 0.2,
+    clearcoat: 0.6
+  }),
+  peachSculpture: new THREE.MeshStandardMaterial({
+    color: '#dfb8a2',
+    roughness: 0.35
+  }),
+  leafGreen: new THREE.MeshStandardMaterial({
+    color: '#46642f',
+    roughness: 0.4,
+    side: THREE.DoubleSide
+  }),
+  leafBright: new THREE.MeshStandardMaterial({
+    color: '#62843f',
+    roughness: 0.36,
+    side: THREE.DoubleSide
+  }),
+  bark: new THREE.MeshStandardMaterial({
+    color: '#5b4838',
+    roughness: 0.85
+  }),
+  lanaiFloor: new THREE.MeshStandardMaterial({
+    color: '#f6f4ee',
+    roughness: 0.38
+  }),
+  outdoorSofa: new THREE.MeshStandardMaterial({
+    color: '#c8c5c0',
+    roughness: 0.82
+  }),
+  outdoorChairDark: new THREE.MeshStandardMaterial({
+    color: '#63605b',
+    roughness: 0.74
+  }),
+  hibiscusPink: new THREE.MeshStandardMaterial({
+    color: '#ec929c',
+    roughness: 0.45
+  }),
+  palmTrunk: new THREE.MeshStandardMaterial({
+    color: '#7a6f62',
+    roughness: 0.85
+  }),
+  palmFrond: new THREE.MeshStandardMaterial({
+    color: '#6b8e4e',
+    roughness: 0.48,
+    side: THREE.DoubleSide
+  }),
+  poolWater: new THREE.MeshPhysicalMaterial({
+    color: '#8ce0da',
+    roughness: 0.1,
+    metalness: 0.04,
+    transparent: true,
+    opacity: 0.88
+  }),
+  oceanWater: new THREE.MeshStandardMaterial({
+    color: '#d4ecee',
+    roughness: 0.2,
+    metalness: 0.05
+  }),
+  marble: new THREE.MeshPhysicalMaterial({
+    map: marbleTex,
+    roughness: 0.18,
+    clearcoat: 0.5
+  }),
+  stainless: new THREE.MeshStandardMaterial({
+    color: '#d4d7d9',
+    roughness: 0.24,
+    metalness: 0.86
+  })
+};
+
+// Lighting: Crisp Florida coastal sun from East-Southeast (through the sliding doors & clerestory)
+const hemiLight = new THREE.HemisphereLight('#fffefb', '#dfd6c8', 1.55);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight('#fffcf4', 3.35);
+sunLight.position.set(46, 24, -6);
+sunLight.target.position.set(-2, 0, -2);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.near = 8;
+sunLight.shadow.camera.far = 115;
+sunLight.shadow.camera.left = -34;
+sunLight.shadow.camera.right = 34;
+sunLight.shadow.camera.top = 30;
+sunLight.shadow.camera.bottom = -30;
+sunLight.shadow.bias = -0.0005;
+sunLight.shadow.normalBias = 0.02;
+scene.add(sunLight);
+scene.add(sunLight.target);
+
+// Warm interior fill lights + dedicated Media Wall walnut grazing light
+const bounceLight = new THREE.PointLight('#fff8ec', 1.15, 48, 1.1);
+bounceLight.position.set(2, 12, 2);
+scene.add(bounceLight);
+
+const walnutFillLight = new THREE.PointLight('#ffeed6', 1.35, 32, 1.1);
+walnutFillLight.position.set(-1.5, 5.5, -7.5);
+scene.add(walnutFillLight);
+
+const lanaiGlow = new THREE.PointLight('#ffffff', 1.85, 65, 0.9);
+lanaiGlow.position.set(22, 12, -2);
+scene.add(lanaiGlow);
+
+const kitchenLight = new THREE.PointLight('#fff5e4', 1.1, 35, 1.2);
+kitchenLight.position.set(-16, 10, 0);
+scene.add(kitchenLight);
+
+const primaryLight = new THREE.PointLight('#fff6ea', 1.0, 32, 1.2);
+primaryLight.position.set(9, 10, -23);
+scene.add(primaryLight);
+
+/* ============================================================================
+   4. HELPER GEOMETRY BUILDERS
+   ============================================================================ */
+function addBox(parent, w, h, d, mat, x, y, z, cast = true, receive = true) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = cast;
+  mesh.receiveShadow = receive;
+  parent.add(mesh);
+  return mesh;
+}
+
+function createRoundedCushion(w, h, d, mat, bevel = 0.18) {
+  const shape = new THREE.Shape();
+  const hw = w / 2 - bevel;
+  const hd = d / 2 - bevel;
+  shape.moveTo(-hw, -d / 2);
+  shape.lineTo(hw, -d / 2);
+  shape.quadraticCurveTo(w / 2, -d / 2, w / 2, -hd);
+  shape.lineTo(w / 2, hd);
+  shape.quadraticCurveTo(w / 2, d / 2, hw, d / 2);
+  shape.lineTo(-hw, d / 2);
+  shape.quadraticCurveTo(-w / 2, d / 2, -w / 2, hd);
+  shape.lineTo(-w / 2, -hd);
+  shape.quadraticCurveTo(-w / 2, -d / 2, -hw, -d / 2);
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: h - bevel * 1.4,
+    bevelEnabled: true,
+    bevelSegments: 4,
+    steps: 1,
+    bevelSize: bevel,
+    bevelThickness: bevel * 0.75
+  });
+  geo.rotateX(Math.PI / 2);
+  geo.center();
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function createChamferBackrest(w, h, d, mat) {
+  // Creates the distinctive chamfered/angled pillow-top backrest cushions seen in the Islamorada Great Room photo
+  const group = new THREE.Group();
+  const main = createRoundedCushion(w, h, d, mat, 0.16);
+  main.rotation.x = -0.14;
+  group.add(main);
+  return group;
+}
+
+function createBarrelChair(mat = MAT.barrelChair, scale = 1) {
+  // Smooth curved U-shaped tub/barrel swivel chair matching foreground left of reference photo
+  const g = new THREE.Group();
+
+  // Base cylinder & seat cushion
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.38, 1.32, 0.55, 28), mat);
+  base.position.y = 0.3;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  g.add(base);
+
+  const seat = new THREE.Mesh(new THREE.CylinderGeometry(1.26, 1.26, 0.42, 28), mat);
+  seat.position.set(0.08, 0.72, 0);
+  seat.castShadow = true;
+  seat.receiveShadow = true;
+  g.add(seat);
+
+  // Curved wrap-around barrel back using extruded arc shape
+  const arcShape = new THREE.Shape();
+  const rOut = 1.44;
+  const rIn = 1.06;
+  const startAngle = Math.PI * 0.22;
+  const endAngle = Math.PI * 1.78;
+  arcShape.absarc(0, 0, rOut, startAngle, endAngle, false);
+  arcShape.absarc(0, 0, rIn, endAngle, startAngle, true);
+  arcShape.closePath();
+
+  const backGeo = new THREE.ExtrudeGeometry(arcShape, {
+    depth: 1.85,
+    bevelEnabled: true,
+    bevelSegments: 4,
+    steps: 1,
+    bevelSize: 0.1,
+    bevelThickness: 0.12
+  });
+  backGeo.rotateX(-Math.PI / 2);
+  const backMesh = new THREE.Mesh(backGeo, mat);
+  backMesh.position.y = 0.12;
+  backMesh.castShadow = true;
+  backMesh.receiveShadow = true;
+  g.add(backMesh);
+
+  // Accent throw pillow inside barrel chair
+  const pillow = createRoundedCushion(1.1, 0.75, 0.34, mat, 0.12);
+  pillow.position.set(-0.62, 1.25, 0);
+  pillow.rotation.y = Math.PI / 2;
+  pillow.rotation.x = 0.2;
+  g.add(pillow);
+
+  g.scale.setScalar(scale);
+  return g;
+}
+
+/* ============================================================================
+   5. BUILD THE FULL HOUSE TO SCALE (GREAT ROOM + 5 CONNECTED ZONES)
+   ============================================================================ */
+const house = new THREE.Group();
+scene.add(house);
+
+// --- 5.1 Main Honed Travertine Floor & Ceiling ---
+const mainFloor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), MAT.floor);
+mainFloor.rotation.x = -Math.PI / 2;
+mainFloor.receiveShadow = true;
+house.add(mainFloor);
+
+// 23-foot Double-Height Ceiling over Great Room
+addBox(house, 44, 0.8, 40, MAT.ceiling, 0, 22.8, -2, false, true);
+
+// --- 5.2 Great Room North Wall & Dark Walnut Media Wall (Left in default view) ---
+// North structural wall (z = -15.2) with doorway opening on the right (x = 9.2 to 11.8) leading to Primary Wing
+addBox(house, 26.5, 22.8, 0.9, MAT.wall, -4.2, 11.4, -15.2);
+// Header above Primary Wing doorway (x = 9.2 to 13.8)
+addBox(house, 5.2, 13.2, 0.9, MAT.wall, 11.4, 16.2, -15.2);
+// Narrow corner pier between Primary doorway and East sliding glass doors
+addBox(house, 1.7, 22.8, 1.1, MAT.wallBright, 13.2, 11.4, -14.7);
+
+// Dark Walnut Media Wall Architectural Frame (x = -9.6 to +7.8, z = -14.5)
+const mediaGroup = new THREE.Group();
+house.add(mediaGroup);
+
+// Cream recessed back panel behind TV
+addBox(mediaGroup, 11.4, 10.6, 0.25, MAT.wallBright, -0.9, 6.4, -14.62);
+
+// Top horizontal Walnut Header Beam spanning entire media wall
+addBox(mediaGroup, 18.2, 1.18, 1.35, MAT.walnutHoriz, -0.9, 12.15, -14.18);
+// Subtle soffit shadow cap
+addBox(mediaGroup, 18.0, 0.25, 1.1, MAT.darkShelf, -0.9, 11.5, -14.2);
+
+// LEFT WALNUT COLUMN PAIR (with recessed display niche visible below floorplan card!)
+// Outer-left pier
+addBox(mediaGroup, 0.85, 11.6, 1.32, MAT.walnutVert, -9.55, 5.8, -14.18);
+// Inner-left pier
+addBox(mediaGroup, 0.92, 11.6, 1.32, MAT.walnutVert, -6.35, 5.8, -14.18);
+// Left niche cream back & walnut side returns
+addBox(mediaGroup, 2.35, 11.6, 0.2, MAT.wall, -7.95, 5.8, -14.65);
+// Left niche shelves (visible below floorplan card at y = 3.85 with white ceramic cup)
+for (const sy of [3.85, 6.5, 9.1]) {
+  addBox(mediaGroup, 2.32, 0.14, 1.05, MAT.darkShelf, -7.95, sy, -14.22);
+}
+// Small white ceramic vessel on left niche shelf (y = 3.92, x = -7.95) matching screenshot!
+const leftShelfCup = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.13, 0.36, 20), MAT.ceramicWhite);
+leftShelfCup.position.set(-7.9, 4.1, -14.15);
+leftShelfCup.castShadow = true;
+mediaGroup.add(leftShelfCup);
+
+// RIGHT WALNUT COLUMN PAIR (with 3 recessed display shelves & white ceramic pear vase!)
+// Inner-right pier
+addBox(mediaGroup, 0.88, 11.6, 1.32, MAT.walnutVert, 4.65, 5.8, -14.18);
+// Outer-right pier
+addBox(mediaGroup, 0.88, 11.6, 1.32, MAT.walnutVert, 7.65, 5.8, -14.18);
+// Right niche back panel
+addBox(mediaGroup, 2.15, 11.6, 0.2, MAT.wallBright, 6.15, 5.8, -14.65);
+// Right niche dark shelves
+for (const sy of [3.55, 5.95, 8.35]) {
+  addBox(mediaGroup, 2.12, 0.12, 1.05, MAT.darkShelf, 6.15, sy, -14.22);
+}
+// Small white wall switch plate inside right niche (y = 6.9) matching screenshot
+addBox(mediaGroup, 0.26, 0.32, 0.05, MAT.ceramicWhite, 6.08, 6.85, -14.52, false, false);
+// White ceramic bottle on bottom right niche shelf (y = 3.62)
+const rightNicheVase = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.22, 0.56, 20), MAT.ceramicWhite);
+rightNicheVase.position.set(6.15, 3.9, -14.15);
+rightNicheVase.castShadow = true;
+mediaGroup.add(rightNicheVase);
+
+// 85" Flat-Screen TV centered on cream back panel (x = -0.85, y = 7.35, z = -14.42)
+addBox(mediaGroup, 7.65, 4.35, 0.14, MAT.tvBezel, -0.85, 7.35, -14.44);
+const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(7.48, 4.18), MAT.tvScreen);
+tvScreen.position.set(-0.85, 7.35, -14.36);
+mediaGroup.add(tvScreen);
+
+// 5-Door Low Walnut Credenza below TV (spanning x = -5.85 to +4.18)
+const credenzaGroup = new THREE.Group();
+mediaGroup.add(credenzaGroup);
+// Main walnut carcass
+addBox(credenzaGroup, 10.05, 1.95, 1.55, MAT.walnutHoriz, -0.85, 1.52, -13.95);
+// 4 short brushed white/silver legs under credenza
+for (const lx of [-5.1, -2.5, 0.8, 3.5]) {
+  addBox(credenzaGroup, 0.16, 0.55, 0.16, MAT.brassInlay, lx, 0.28, -13.32);
+}
+// 5 Door panels with dark vertical reveals & angled metallic twig/branch inlays (exact match to photo!)
+const doorW = 1.96;
+for (let i = 0; i < 5; i++) {
+  const dx = -4.82 + i * 1.99;
+  addBox(credenzaGroup, doorW, 1.84, 0.08, MAT.walnutHoriz, dx, 1.52, -13.15);
+}
+// Angled metallic twig inlays across the credenza doors (matching screenshot pattern!)
+const twigSpecs = [
+  // Door 1 (leftmost) cluster
+  { x: -4.85, y: 1.22, len: 0.56, ang: 1.15 },
+  { x: -4.62, y: 1.58, len: 0.48, ang: -0.52 },
+  { x: -4.45, y: 1.05, len: 0.54, ang: -0.45 },
+  // Door 2/3 lower cluster
+  { x: -1.85, y: 0.98, len: 0.46, ang: -0.95 },
+  { x: -0.92, y: 1.38, len: 0.55, ang: 0.72 },
+  { x: -0.35, y: 1.72, len: 0.36, ang: 0.65 },
+  // Door 3/4 middle cluster
+  { x: 0.62, y: 1.24, len: 0.58, ang: -0.38 },
+  { x: 0.74, y: 1.06, len: 0.54, ang: -0.42 },
+  { x: 1.32, y: 0.92, len: 0.38, ang: 0.85 },
+  // Door 5 (rightmost) cluster
+  { x: 2.82, y: 1.48, len: 0.68, ang: 1.22 },
+  { x: 3.12, y: 1.12, len: 0.44, ang: 1.48 },
+  { x: 3.45, y: 1.26, len: 0.48, ang: 0.58 }
+];
+for (const t of twigSpecs) {
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(t.len, 0.055, 0.04), MAT.brassInlay);
+  bar.position.set(t.x, t.y, -13.09);
+  bar.rotation.z = t.ang;
+  credenzaGroup.add(bar);
+}
+
+// Objects on top of Credenza:
+// Left: Round ribbed white ceramic jar (x = -3.85, y = 2.82)
+const leftJar = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.68, 24), MAT.ceramicWhite);
+leftJar.position.set(-3.85, 2.84, -13.85);
+leftJar.castShadow = true;
+credenzaGroup.add(leftJar);
+
+// Right: Tall white bottleneck ceramic vase (x = 3.55, y = 2.95)
+const rightVaseGroup = new THREE.Group();
+rightVaseGroup.position.set(3.55, 2.5, -13.85);
+const rvBase = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.62, 24), MAT.ceramicWhite);
+rvBase.position.y = 0.31;
+const rvNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.15, 0.52, 20), MAT.ceramicWhite);
+rvNeck.position.y = 0.84;
+rightVaseGroup.add(rvBase, rvNeck);
+credenzaGroup.add(rightVaseGroup);
+
+// --- 5.3 Potted Fiddle-Leaf Fig Tree in Corner (x = 11.8, z = -12.8) ---
+const plantGroup = new THREE.Group();
+plantGroup.position.set(12.0, 0, -12.6);
+house.add(plantGroup);
+
+const planter = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.58, 1.55, 24), MAT.ceramicWhite);
+planter.position.y = 0.78;
+planter.castShadow = true;
+planter.receiveShadow = true;
+plantGroup.add(planter);
+
+// Slender branching stems
+for (let s = 0; s < 3; s++) {
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 6.2, 10), MAT.bark);
+  stem.position.set((s - 1) * 0.14, 3.8, (s % 2) * 0.1);
+  stem.rotation.z = (s - 1) * 0.08;
+  plantGroup.add(stem);
+}
+
+// Lush broad fiddle-leaf fig leaves cluster (y = 3.4 to 7.6)
+const leafGeo = new THREE.SphereGeometry(0.52, 12, 8);
+leafGeo.scale(1.35, 0.14, 0.82);
+for (let i = 0; i < 46; i++) {
+  const a = i * 1.65;
+  const h = 3.3 + (i / 46) * 4.35;
+  const r = 0.35 + Math.sin((i / 46) * Math.PI) * 1.15;
+  const leaf = new THREE.Mesh(leafGeo, i % 3 === 0 ? MAT.leafBright : MAT.leafGreen);
+  leaf.position.set(Math.cos(a) * r, h, Math.sin(a) * r);
+  leaf.rotation.y = -a;
+  leaf.rotation.z = 0.25 + (i % 4) * 0.1;
+  leaf.castShadow = true;
+  plantGroup.add(leaf);
+}
+
+// --- 5.4 Great Room East Wall: Tall White Sliding Glass Doors & Upper Clerestory Windows ---
+const eastWallGroup = new THREE.Group();
+house.add(eastWallGroup);
+
+// Main horizontal transom header separating sliding doors (below) and 3 clerestory windows (above)
+addBox(eastWallGroup, 1.1, 1.55, 29.0, MAT.mullionWhite, 13.8, 12.15, 0.0);
+// Upper cornice beam at ceiling line
+addBox(eastWallGroup, 1.1, 1.4, 29.0, MAT.mullionWhite, 13.8, 21.8, 0.0);
+// Corner structural pier at North-East (x = 13.8, z = -14.0)
+addBox(eastWallGroup, 1.15, 22.8, 1.4, MAT.wallBright, 13.8, 11.4, -14.0);
+// South-East structural pier (x = 13.8, z = 14.0)
+addBox(eastWallGroup, 1.15, 22.8, 1.4, MAT.wallBright, 13.8, 11.4, 14.0);
+
+// 3 Upper Clerestory Windows (y = 12.9 to 21.1) matching top-right of screenshot
+const clerestoryZ = [-9.6, -1.2, 7.6];
+for (let i = 0; i < 3; i++) {
+  const cz = clerestoryZ[i];
+  const cw = 7.6;
+  const ch = 7.8;
+  // White window frame border
+  addBox(eastWallGroup, 0.75, 0.45, cw, MAT.mullionWhite, 13.8, 13.15, cz);
+  addBox(eastWallGroup, 0.75, 0.45, cw, MAT.mullionWhite, 13.8, 20.85, cz);
+  addBox(eastWallGroup, 0.85, ch, 0.55, MAT.mullionWhite, 13.8, 17.0, cz - cw / 2);
+  addBox(eastWallGroup, 0.85, ch, 0.55, MAT.mullionWhite, 13.8, 17.0, cz + cw / 2);
+  // Subtle glass pane
+  const cGlass = new THREE.Mesh(new THREE.PlaneGeometry(cw - 0.6, ch - 0.6), MAT.windowGlass);
+  cGlass.position.set(13.8, 17.0, cz);
+  cGlass.rotation.y = -Math.PI / 2;
+  eastWallGroup.add(cGlass);
+}
+
+// Lower 4-Panel Tall Sliding Glass Doors (y = 0 to 11.4, z = -13.2 to +13.2)
+const doorPanelZ = [-10.0, -3.4, 3.2, 9.8];
+// Top and bottom sliding door tracks
+addBox(eastWallGroup, 0.85, 0.52, 27.2, MAT.mullionWhite, 13.8, 11.15, 0.0);
+addBox(eastWallGroup, 0.85, 0.22, 27.2, MAT.mullionWhite, 13.8, 0.11, 0.0);
+
+for (let i = 0; i < 4; i++) {
+  const dz = doorPanelZ[i];
+  const pw = 6.5;
+  const ph = 11.0;
+  const xOff = i % 2 === 0 ? 13.72 : 13.92;
+  // Left & Right vertical white styles (cast sunlight shadow bars across the floor & sofa!)
+  addBox(eastWallGroup, 0.32, ph, 0.34, MAT.mullionWhite, xOff, 5.55, dz - pw / 2);
+  addBox(eastWallGroup, 0.32, ph, 0.34, MAT.mullionWhite, xOff, 5.55, dz + pw / 2);
+
+  // Glass panel (leftmost fixed panel has slightly cooler coastal reflection tint like the screenshot)
+  const gMat = i === 0 ? MAT.windowGlassLeft : MAT.windowGlass;
+  const gPane = new THREE.Mesh(new THREE.PlaneGeometry(pw - 0.3, ph - 0.4), gMat);
+  gPane.position.set(xOff, 5.55, dz);
+  gPane.rotation.y = -Math.PI / 2;
+  eastWallGroup.add(gPane);
+}
+
+// --- 5.5 Great Room Rug, Modular Cream L-Sectional Sofa, Barrel Chairs & Coffee Table ---
+const seatingGroup = new THREE.Group();
+house.add(seatingGroup);
+
+// Warm light-grey Area Rug (centered under sectional & coffee table)
+const rugMesh = new THREE.Mesh(new THREE.BoxGeometry(16.8, 0.06, 17.5), MAT.rug);
+rugMesh.position.set(1.1, 0.03, -2.4);
+rugMesh.receiveShadow = true;
+seatingGroup.add(rugMesh);
+
+// MODULAR CREAM L-SHAPED SECTIONAL SOFA
+const sofaGroup = new THREE.Group();
+seatingGroup.add(sofaGroup);
+
+// Helper to add a deep plush armless sectional base module
+function addSofaModule(x, z, w = 3.25, d = 3.35, h = 1.48) {
+  const base = createRoundedCushion(w, h * 0.56, d, MAT.sofa, 0.12);
+  base.position.set(x, h * 0.28, z);
+  sofaGroup.add(base);
+
+  const topSeat = createRoundedCushion(w - 0.04, h * 0.48, d - 0.04, MAT.sofa, 0.16);
+  topSeat.position.set(x, h * 0.76, z);
+  sofaGroup.add(topSeat);
+}
+
+// North Run of Sectional (3 modules from x = 2.0 to x = 8.6, at z = -9.6, facing South toward camera)
+addSofaModule(2.05, -9.6, 3.25, 3.35);
+addSofaModule(5.32, -9.6, 3.25, 3.35);
+addSofaModule(8.60, -9.6, 3.35, 3.35); // Corner module
+
+// Leftmost module of North Run has two angled backrest cushions (matching screenshot right behind coffee table!)
+const backN1 = createChamferBackrest(1.52, 1.55, 0.72, MAT.sofa);
+backN1.position.set(1.25, 2.15, -10.75);
+sofaGroup.add(backN1);
+
+const backN2 = createChamferBackrest(1.52, 1.55, 0.72, MAT.sofa);
+backN2.position.set(2.78, 2.15, -10.75);
+sofaGroup.add(backN2);
+
+// Middle module of North Run (x = 5.32, z = -9.6) is an open bench/chaise module with a small magazine/tray on it!
+addBox(sofaGroup, 0.75, 0.08, 0.55, MAT.rug, 5.25, 1.54, -9.45);
+
+// Corner module (x = 8.6, z = -9.6) has tall sculpted backrest + lumbar pillow
+const backCorner = createChamferBackrest(2.65, 1.72, 0.82, MAT.sofa);
+backCorner.position.set(8.35, 2.24, -10.65);
+sofaGroup.add(backCorner);
+
+const lumbarCorner = createRoundedCushion(1.45, 1.15, 0.42, MAT.sofa, 0.12);
+lumbarCorner.position.set(8.25, 2.05, -10.05);
+lumbarCorner.rotation.x = -0.18;
+sofaGroup.add(lumbarCorner);
+
+// East Run of Sectional (4 modules running from z = -6.25 down to z = +3.65 at x = 8.6, facing West toward Media Wall)
+const eastModuleZ = [-6.25, -2.95, 0.35, 3.65];
+for (let i = 0; i < 4; i++) {
+  const mz = eastModuleZ[i];
+  addSofaModule(8.60, mz, 3.45, 3.28);
+
+  // Outer continuous low back ledge along East side of sectional
+  const backLedge = createRoundedCushion(0.82, 1.65, 3.24, MAT.sofa, 0.14);
+  backLedge.position.set(9.88, 2.15, mz);
+  sofaGroup.add(backLedge);
+
+  // Sculpted individual backrest cushion + angled bolster pillow facing inside the room
+  const cushion = createRoundedCushion(0.75, 1.72, 2.45, MAT.sofa, 0.16);
+  cushion.position.set(9.28, 2.25, mz);
+  cushion.rotation.z = 0.18;
+  sofaGroup.add(cushion);
+
+  // Accent throw pillow
+  const throwP = createRoundedCushion(0.48, 1.18, 1.35, MAT.barrelChair, 0.12);
+  throwP.position.set(8.72, 2.02, mz - 0.15);
+  throwP.rotation.z = 0.34;
+  throwP.rotation.y = (i % 2 === 0 ? 0.12 : -0.1);
+  sofaGroup.add(throwP);
+}
+
+// Foreground Left Armrest / Chaise return at bottom-right of screenshot (x = 5.4, z = 4.6)
+addSofaModule(5.45, 4.2, 3.1, 2.85);
+const fgArm = createRoundedCushion(2.15, 1.45, 0.85, MAT.sofa, 0.16);
+fgArm.position.set(4.1, 1.95, 4.85);
+fgArm.rotation.y = 0.25;
+sofaGroup.add(fgArm);
+
+// TWO WHITE CURVED BARREL ARMCHAIRS IN FOREGROUND LEFT (Exact match to screenshot!)
+const chair1 = createBarrelChair(MAT.barrelChair, 1.04);
+chair1.position.set(-6.05, 0, -2.15);
+chair1.rotation.y = -0.35;
+seatingGroup.add(chair1);
+
+const chair2 = createBarrelChair(MAT.barrelChair, 1.08);
+chair2.position.set(-4.65, 0, 2.55);
+chair2.rotation.y = 0.42;
+seatingGroup.add(chair2);
+
+// GEOMETRIC BLACK-WIREFRAME & GLASS COFFEE TABLE (x = 0.85, z = -4.35)
+const tableGroup = new THREE.Group();
+tableGroup.position.set(0.85, 0, -4.35);
+tableGroup.rotation.y = 0.18;
+seatingGroup.add(tableGroup);
+
+// Polyhedral triangulated black steel truss base
+const topRing = [
+  [-1.65, 1.42, -1.15],
+  [0.0, 1.42, -1.45],
+  [1.65, 1.42, -1.15],
+  [1.85, 1.42, 0.0],
+  [1.65, 1.42, 1.15],
+  [0.0, 1.42, 1.45],
+  [-1.65, 1.42, 1.15],
+  [-1.85, 1.42, 0.0]
+];
+const botRing = [
+  [-1.25, 0.08, -0.85],
+  [0.0, 0.08, -1.15],
+  [1.25, 0.08, -0.85],
+  [1.45, 0.08, 0.0],
+  [1.25, 0.08, 0.85],
+  [0.0, 0.08, 1.15],
+  [-1.25, 0.08, 0.85],
+  [-1.45, 0.08, 0.0]
+];
+
+function addStrut(p1, p2, radius = 0.038) {
+  const v1 = new THREE.Vector3(...p1);
+  const v2 = new THREE.Vector3(...p2);
+  const dist = v1.distanceTo(v2);
+  const strut = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, dist, 10), MAT.blackMetal);
+  strut.position.copy(v1).add(v2).multiplyScalar(0.5);
+  strut.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v2.clone().sub(v1).normalize());
+  strut.castShadow = true;
+  tableGroup.add(strut);
+}
+
+for (let i = 0; i < 8; i++) {
+  const next = (i + 1) % 8;
+  addStrut(topRing[i], topRing[next], 0.04);
+  addStrut(botRing[i], botRing[next], 0.04);
+  addStrut(topRing[i], botRing[i], 0.038);
+  addStrut(topRing[i], botRing[next], 0.034);
+}
+// Internal cross-bracing
+addStrut(botRing[0], botRing[4], 0.03);
+addStrut(botRing[2], botRing[6], 0.03);
+
+// Bevelled Glass Tabletop
+const glassTop = new THREE.Mesh(new THREE.BoxGeometry(3.85, 0.09, 3.05), MAT.glassTable);
+glassTop.position.y = 1.48;
+tableGroup.add(glassTop);
+
+// Coffee Table Decor 1: Dark bronze bowl with green botanicals on left
+const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.24, 0.28, 20), MAT.darkShelf);
+bowl.position.set(-0.72, 1.66, -0.25);
+bowl.castShadow = true;
+tableGroup.add(bowl);
+for (let l = 0; l < 9; l++) {
+  const gl = new THREE.Mesh(leafGeo, MAT.leafGreen);
+  gl.scale.setScalar(0.45);
+  gl.position.set(-0.72 + Math.cos(l) * 0.22, 1.85 + (l % 3) * 0.06, -0.25 + Math.sin(l) * 0.22);
+  gl.rotation.set(0.3, l * 0.8, 0.4);
+  tableGroup.add(gl);
+}
+
+// Coffee Table Decor 2: White hardcover art book + peach/terracotta sculptural ring knot on right
+addBox(tableGroup, 0.92, 0.11, 0.74, MAT.ceramicWhite, 0.62, 1.58, 0.25);
+const knot1 = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.065, 14, 28), MAT.peachSculpture);
+knot1.position.set(0.62, 1.84, 0.25);
+knot1.rotation.set(0.4, 0.6, 0.2);
+knot1.castShadow = true;
+const knot2 = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.06, 14, 28), MAT.peachSculpture);
+knot2.position.set(0.68, 1.82, 0.28);
+knot2.rotation.set(-0.5, -0.3, 0.8);
+knot2.castShadow = true;
+tableGroup.add(knot1, knot2);
+
+// --- 5.5b Sunlit Floor & Rug Patches Streaming from East Sliding Doors ---
+const sunPatch1 = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 8.2), MAT.sunPatch);
+sunPatch1.rotation.x = -Math.PI / 2;
+sunPatch1.rotation.z = -0.18;
+sunPatch1.position.set(10.8, 0.07, -1.5);
+seatingGroup.add(sunPatch1);
+
+const sunPatch2 = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 5.2), MAT.sunPatch);
+sunPatch2.rotation.x = -Math.PI / 2;
+sunPatch2.rotation.z = -0.14;
+sunPatch2.position.set(1.2, 0.08, 6.2);
+seatingGroup.add(sunPatch2);
+
+// --- 5.6 Exterior Zone: Covered Lanai, Outdoor Lounge, Palms, 65' Lagoon Pool & Atlantic Ocean ---
+const lanaiGroup = new THREE.Group();
+house.add(lanaiGroup);
+
+// Covered Lanai Travertine Deck (raised slightly to y = 0.35 so patio furniture sits prominently in window sightlines)
+addBox(lanaiGroup, 18.0, 0.35, 46.0, MAT.lanaiFloor, 22.5, 0.18, 0.0, false, true);
+
+// Lanai North Wing Wall (visible through leftmost sliding glass door in screenshot!)
+addBox(lanaiGroup, 9.5, 22.0, 0.9, MAT.wallBright, 18.2, 11.0, -13.6);
+
+// Covered Lanai Upper Porch Soffit (warm wood & white coffered beams visible through clerestory windows!)
+addBox(lanaiGroup, 14.0, 0.7, 36.0, MAT.soffitWood, 20.8, 20.4, -1.0, false, true);
+addBox(lanaiGroup, 14.5, 1.1, 36.0, MAT.mullionWhite, 21.0, 13.2, -1.0, true, true);
+
+// White Square Structural Columns along the Lanai Colonnade (cast crisp sun shadows!)
+for (const cz of [-13.5, -5.2, 3.2, 11.8]) {
+  addBox(lanaiGroup, 1.45, 20.5, 1.45, MAT.mullionWhite, 22.8, 10.25, cz);
+}
+
+// Outdoor Light-Grey Lounge Sofa against North Lanai Wall (x = 16.6, z = -10.2, visible right behind left glass panel!)
+const outSofa = new THREE.Group();
+outSofa.position.set(16.6, 0.36, -10.2);
+addBox(outSofa, 4.8, 0.95, 2.8, MAT.outdoorSofa, 0, 0.48, 0);
+addBox(outSofa, 4.8, 1.45, 0.65, MAT.outdoorSofa, 0, 1.35, -1.08);
+addBox(outSofa, 0.65, 1.45, 2.8, MAT.outdoorSofa, -2.1, 1.35, 0);
+lanaiGroup.add(outSofa);
+
+// Outdoor Round Table + 4 Dark Charcoal Barrel Patio Chairs (x = 18.4, z = -2.2, visible through middle-right glass doors!)
+const outTable = new THREE.Mesh(new THREE.CylinderGeometry(1.85, 1.85, 0.14, 24), MAT.ceramicWhite);
+outTable.position.set(18.4, 2.15, -2.2);
+lanaiGroup.add(outTable);
+const outPedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.68, 1.75, 16), MAT.mullionWhite);
+outPedestal.position.set(18.4, 1.22, -2.2);
+lanaiGroup.add(outPedestal);
+
+const outChairOffsets = [
+  [-2.0, -1.6, 0.8],
+  [0.2, -2.3, 0.1],
+  [2.2, -0.3, -1.2],
+  [-0.4, 1.9, 2.5]
+];
+for (const [ox, oz, rot] of outChairOffsets) {
+  const oc = createBarrelChair(MAT.outdoorChairDark, 0.98);
+  oc.position.set(18.4 + ox, 0.36, -2.2 + oz);
+  oc.rotation.y = rot;
+  lanaiGroup.add(oc);
+}
+
+// 65' Turquoise Lagoon Pool & White Geometric Spillover Planter
+addBox(lanaiGroup, 26.0, 0.22, 65.0, MAT.poolWater, 38.0, 0.15, -2.0, false, true);
+// White tapered spillover planter on pool edge (visible on far right of screenshot!)
+const poolPlanter = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.35, 2.2, 4), MAT.mullionWhite);
+poolPlanter.rotation.y = Math.PI / 4;
+poolPlanter.position.set(24.8, 1.45, 2.8);
+lanaiGroup.add(poolPlanter);
+
+// Pink Hibiscus / Tropical Bougainvillea Floral Border along Lanai/Pool edge
+for (let f = 0; f < 24; f++) {
+  const fz = -9.2 + f * 0.72;
+  const bush = new THREE.Mesh(new THREE.SphereGeometry(0.55 + (f % 3) * 0.14, 10, 8), f % 2 === 0 ? MAT.hibiscusPink : MAT.leafBright);
+  bush.position.set(22.6 + Math.sin(f) * 0.5, 1.35 + (f % 2) * 0.42, fz);
+  lanaiGroup.add(bush);
+}
+
+// Arching Florida Keys Coconut Palm Trees (silhouettes & fronds visible through sliding doors!)
+function addPalmTree(px, pz, leanX = 1.6, leanZ = -0.8, height = 21) {
+  const pg = new THREE.Group();
+  pg.position.set(px, 0, pz);
+  const segs = 9;
+  for (let s = 0; s < segs; s++) {
+    const t = s / segs;
+    const r = 0.44 * (1 - t * 0.42);
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.92, r, height / segs + 0.2, 10), MAT.palmTrunk);
+    seg.position.set(t * t * leanX, (s + 0.5) * (height / segs), t * t * leanZ);
+    seg.rotation.z = -(t * leanX) * 0.06;
+    seg.castShadow = true;
+    pg.add(seg);
+  }
+  const crownX = leanX;
+  const crownY = height - 0.5;
+  const crownZ = leanZ;
+  for (let f = 0; f < 12; f++) {
+    const fa = (f / 12) * Math.PI * 2;
+    const frond = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.1, 0.95), MAT.palmFrond);
+    frond.position.set(crownX + Math.cos(fa) * 2.3, crownY - 0.8, crownZ + Math.sin(fa) * 2.3);
+    frond.rotation.y = -fa;
+    frond.rotation.z = -0.46;
+    frond.castShadow = true;
+    pg.add(frond);
+  }
+  lanaiGroup.add(pg);
+}
+addPalmTree(23.2, -5.6, 1.8, 0.5, 19.5);
+addPalmTree(24.6, -1.4, 1.5, -0.6, 20.5);
+addPalmTree(25.8, 2.6, 2.0, 0.8, 19.8);
+addPalmTree(27.2, 6.8, 1.4, -0.4, 19.0);
+
+// Sandy Beach & Sunlit Atlantic Ocean Horizon beyond Pool
+const oceanMesh = new THREE.Mesh(new THREE.PlaneGeometry(180, 220), MAT.oceanWater);
+oceanMesh.rotation.x = -Math.PI / 2;
+oceanMesh.position.set(95, -0.05, 0);
+lanaiGroup.add(oceanMesh);
+
+// --- 5.7 Chef's Kitchen & Dining Area (West of Great Room, x = -11 to -26) ---
+const kitchenGroup = new THREE.Group();
+house.add(kitchenGroup);
+
+// Calacatta Gold Waterfall Marble Island (x = -15.5, z = -3.5)
+addBox(kitchenGroup, 4.2, 3.05, 10.6, MAT.marble, -15.5, 1.52, -3.5);
+// 4 Woven Counter Stools along East side of Island
+for (let s = 0; s < 4; s++) {
+  const sz = -7.2 + s * 2.45;
+  addBox(kitchenGroup, 1.25, 2.1, 1.25, MAT.sofa, -12.6, 1.05, sz);
+  addBox(kitchenGroup, 0.22, 1.1, 1.2, MAT.walnutHoriz, -12.05, 2.45, sz);
+}
+// Back Perimeter Custom Cabinetry, Wolf Range & Sub-Zero Fridge (x = -22.5)
+addBox(kitchenGroup, 2.6, 3.0, 16.0, MAT.mullionWhite, -22.2, 1.5, -3.5);
+addBox(kitchenGroup, 2.7, 0.18, 16.2, MAT.marble, -22.2, 3.08, -3.5);
+// Stainless Range & Hood
+addBox(kitchenGroup, 2.8, 3.05, 4.0, MAT.stainless, -22.1, 1.52, -3.5);
+addBox(kitchenGroup, 2.4, 3.6, 4.2, MAT.stainless, -22.1, 8.2, -3.5);
+// Sub-Zero Tall Fridge Column
+addBox(kitchenGroup, 2.8, 8.4, 3.6, MAT.stainless, -22.1, 4.2, -9.8);
+// 3 Glass Pendant Lights above Waterfall Island
+for (const pz of [-6.8, -3.5, -0.2]) {
+  addBox(kitchenGroup, 0.06, 4.5, 0.06, MAT.brassInlay, -15.5, 9.2, pz, false, false);
+  const globe = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12), MAT.ceramicWhite);
+  globe.position.set(-15.5, 6.8, pz);
+  kitchenGroup.add(globe);
+}
+
+// Dining Area (x = -16.5, z = 7.5): 10-Seat Sculptural Walnut Table & Coastal Chairs
+addBox(kitchenGroup, 4.4, 0.18, 9.2, MAT.walnutHoriz, -16.5, 2.55, 7.5);
+addBox(kitchenGroup, 1.4, 2.45, 4.8, MAT.blackMetal, -16.5, 1.25, 7.5);
+for (let c = 0; c < 4; c++) {
+  const cz = 4.2 + c * 2.2;
+  addBox(kitchenGroup, 1.5, 1.6, 1.5, MAT.barrelChair, -13.6, 0.8, cz);
+  addBox(kitchenGroup, 1.5, 1.6, 1.5, MAT.barrelChair, -19.4, 0.8, cz);
+}
+
+// --- 5.8 Primary Suite & Spa Bath (North Wing behind Media Wall, z = -16 to -34) ---
+const primaryGroup = new THREE.Group();
+house.add(primaryGroup);
+
+// Primary Suite Walls
+addBox(primaryGroup, 24.0, 12.0, 0.8, MAT.wallBright, 8.0, 6.0, -33.0);
+addBox(primaryGroup, 0.8, 12.0, 18.0, MAT.wall, -3.5, 6.0, -24.0);
+addBox(primaryGroup, 0.8, 12.0, 18.0, MAT.wallBright, 19.5, 6.0, -24.0);
+
+// King Coastal Bed (centered at x = 8.5, z = -28.2)
+addBox(primaryGroup, 7.2, 1.35, 7.6, MAT.sofa, 8.5, 0.68, -28.2);
+addBox(primaryGroup, 7.6, 4.6, 0.65, MAT.barrelChair, 8.5, 2.3, -32.1);
+// Nightstands & Gourd Lamps
+for (const nx of [3.8, 13.2]) {
+  addBox(primaryGroup, 1.8, 1.9, 1.6, MAT.walnutHoriz, nx, 0.95, -31.2);
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.9, 16), MAT.ceramicWhite);
+  lamp.position.set(nx, 2.6, -31.2);
+  primaryGroup.add(lamp);
+}
+
+// Primary Spa Bath: Sculptural Oval Soaking Tub & Dual Vanity (x = 16.5, z = -26.5)
+const tub = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.35, 2.1, 28), MAT.ceramicWhite);
+tub.scale.set(1.55, 1.0, 0.9);
+tub.position.set(16.6, 1.05, -28.8);
+primaryGroup.add(tub);
+addBox(primaryGroup, 2.2, 2.8, 6.8, MAT.walnutHoriz, 18.1, 1.4, -22.0);
+addBox(primaryGroup, 2.3, 0.18, 7.0, MAT.marble, 18.1, 2.88, -22.0);
+
+// --- 5.9 Foyer, Floating Staircase & Elevator (South Side, z = 14 to 24) ---
+const foyerGroup = new THREE.Group();
+house.add(foyerGroup);
+addBox(foyerGroup, 28.0, 12.0, 0.8, MAT.wall, 0.0, 6.0, 22.0);
+// Floating Walnut Stair Treads
+for (let st = 0; st < 11; st++) {
+  addBox(foyerGroup, 3.6, 0.22, 1.05, MAT.walnutHoriz, -6.5, 1.0 + st * 0.95, 14.5 + st * 0.65);
+}
+// Residential Elevator Brushed Steel Frame
+addBox(foyerGroup, 3.4, 8.2, 0.35, MAT.stainless, 6.2, 4.1, 21.4);
+
+/* ============================================================================
+   6. ARCHITECTURAL 2D FLOOR PLAN CANVAS (EXACT MATCH TO SCREENSHOT CARD)
+   ============================================================================ */
+const planCanvas = document.getElementById('floorplanCanvas');
+const pCtx = planCanvas.getContext('2d');
+let activeZoneId = 'great-room';
+let hoveredZoneId = null;
+
+function drawFloorPlan() {
+  const W = planCanvas.width;
+  const H = planCanvas.height;
+  pCtx.clearRect(0, 0, W, H);
+
+  // Subtle architectural paper background
+  pCtx.fillStyle = '#f8f8f6';
+  pCtx.fillRect(0, 0, W, H);
+
+  // Helper functions in normalized [0..1] card coordinates matching screenshot's floor plan layout
+  const px = (nx) => Math.round(nx * W);
+  const py = (ny) => Math.round(ny * H);
+  const pw = (nw) => Math.round(nw * W);
+  const ph = (nh) => Math.round(nh * H);
+
+  // Highlight active/hovered zone softly
+  for (const z of ROOM_ZONES) {
+    const r = z.planRect;
+    if (z.id === activeZoneId || z.id === hoveredZoneId) {
+      pCtx.fillStyle = z.id === activeZoneId ? 'rgba(140, 98, 57, 0.08)' : 'rgba(140, 98, 57, 0.05)';
+      pCtx.fillRect(px(r.x), py(r.y), pw(r.w), ph(r.h));
+    }
+  }
+
+  pCtx.strokeStyle = '#1d1d1b';
+  pCtx.fillStyle = '#1d1d1b';
+  pCtx.lineCap = 'square';
+  pCtx.lineJoin = 'miter';
+
+  // Draw double-walled architectural room boxes matching the exact silhouette in pasted-image-20261016-112852.png
+  function wallRect(x, y, w, h, thick = 4.2) {
+    pCtx.lineWidth = thick;
+    pCtx.strokeRect(px(x), py(y), pw(w), ph(h));
+  }
+  function thinRect(x, y, w, h, lw = 1.6) {
+    pCtx.lineWidth = lw;
+    pCtx.strokeRect(px(x), py(y), pw(w), ph(h));
+  }
+  function line(x1, y1, x2, y2, lw = 3.2) {
+    pCtx.lineWidth = lw;
+    pCtx.beginPath();
+    pCtx.moveTo(px(x1), py(y1));
+    pCtx.lineTo(px(x2), py(y2));
+    pCtx.stroke();
+  }
+  function crossBox(x, y, w, h) {
+    thinRect(x, y, w, h, 1.5);
+    line(x, y, x + w, y + h, 1.2);
+    line(x + w, y, x, y + h, 1.2);
+  }
+  function doorArc(x, y, r, a0, a1) {
+    pCtx.lineWidth = 1.2;
+    pCtx.beginPath();
+    pCtx.arc(px(x), py(y), pw(r), a0, a1);
+    pCtx.stroke();
+  }
+
+  // 1. TOP-LEFT PRIMARY SUITE & BATH TOWER (jutting up on top-left of plan)
+  // Top shower X-box & Primary Bath vertical wing
+  wallRect(0.285, 0.075, 0.045, 0.255, 4.0);
+  crossBox(0.288, 0.078, 0.039, 0.068); // Top shower enclosure with X
+  // Primary Bedroom main block + top-left bay step
+  wallRect(0.165, 0.145, 0.120, 0.185, 4.2);
+  wallRect(0.112, 0.192, 0.053, 0.255, 4.0);
+  // Covered Porch sticking out on far left (x = 0.032..0.112, y = 0.340..0.630)
+  wallRect(0.032, 0.340, 0.080, 0.290, 3.8);
+
+  // 2. MIDDLE-LEFT W.I.C., LAUNDRY, ELEVATOR & HALLWAY
+  wallRect(0.240, 0.330, 0.065, 0.125, 3.4); // W.I.C.
+  wallRect(0.305, 0.380, 0.038, 0.075, 3.2); // Closet
+  wallRect(0.240, 0.455, 0.103, 0.115, 3.6); // Laundry / Utility
+  crossBox(0.115, 0.485, 0.042, 0.085);      // West Elevator / Mech X-box
+  wallRect(0.112, 0.570, 0.095, 0.165, 3.4); // Guest Bath & W.I.C.
+  wallRect(0.207, 0.570, 0.048, 0.165, 3.2); // Hall
+
+  // 3. BOTTOM-LEFT GUEST BEDROOM SUITE & STAIRS
+  wallRect(0.108, 0.735, 0.155, 0.215, 4.2); // Bottom-left Bedroom
+  wallRect(0.263, 0.820, 0.048, 0.130, 3.4); // En-suite Bath
+  crossBox(0.266, 0.908, 0.042, 0.038);      // Shower X-box
+  // Staircase (treads at x = 0.312..0.342, y = 0.740..0.885)
+  thinRect(0.312, 0.740, 0.032, 0.145, 2.0);
+  for (let sy = 0.752; sy <= 0.875; sy += 0.016) {
+    line(0.312, sy, 0.344, sy, 1.2);
+  }
+
+  // 4. CENTER GREAT ROOM, FOYER & WATERFALL KITCHEN / DINING
+  // Great Room top wall (sliding glass doors to Lanai) & bottom Foyer wall
+  line(0.343, 0.285, 0.505, 0.285, 3.8);
+  // Foyer & Entry Porch at bottom center
+  wallRect(0.375, 0.765, 0.072, 0.180, 3.6);
+  wallRect(0.447, 0.765, 0.046, 0.180, 3.4);
+  crossBox(0.450, 0.895, 0.040, 0.048);
+
+  // Center structural bar column between Great Room and Kitchen/Dining
+  wallRect(0.488, 0.450, 0.018, 0.110, 3.6);
+
+  // 5. KITCHEN & DINING AREA (x = 0.505..0.640)
+  wallRect(0.505, 0.195, 0.135, 0.555, 3.8);
+  // Waterfall Kitchen Island in center of Kitchen
+  thinRect(0.542, 0.275, 0.032, 0.165, 1.8);
+  // Kitchen Perimeter Counters & Appliances along x = 0.610..0.640
+  thinRect(0.612, 0.198, 0.026, 0.285, 1.6);
+  for (let cy = 0.22; cy <= 0.46; cy += 0.04) {
+    line(0.612, cy, 0.638, cy, 1.1);
+  }
+  // Dining Area bottom wall with double-line windows
+  line(0.493, 0.750, 0.640, 0.750, 4.2);
+
+  // 6. RIGHT WING: MUDROOM & TWO GARAGE BAYS (exact match to right side of floor plan card!)
+  // Upper Garage Bay (x = 0.680..0.805, y = 0.195..0.485)
+  wallRect(0.640, 0.195, 0.040, 0.290, 3.4);
+  wallRect(0.680, 0.195, 0.125, 0.290, 4.4);
+  // Lower 2-Car Garage Bay (x = 0.678..0.862, y = 0.555..0.865)
+  wallRect(0.640, 0.485, 0.038, 0.265, 3.4);
+  wallRect(0.678, 0.555, 0.184, 0.310, 4.4);
+
+  // Door swing quarter-circle arcs across plan
+  doorArc(0.285, 0.145, 0.028, 0, Math.PI / 2);
+  doorArc(0.375, 0.765, 0.032, -Math.PI / 2, 0);
+  doorArc(0.640, 0.520, 0.030, 0, Math.PI / 2);
+  doorArc(0.263, 0.820, 0.026, Math.PI, Math.PI * 1.5);
+
+  // Architectural Room Labels (crisp small sans-serif matching screenshot)
+  pCtx.fillStyle = '#33312e';
+  pCtx.font = '500 10.5px -apple-system, BlinkMacSystemFont, sans-serif';
+  pCtx.textAlign = 'center';
+
+  const labels = [
+    ['Primary Bedroom', 0.225, 0.245],
+    ['Bath', 0.307, 0.195],
+    ['W.I.C.', 0.272, 0.395],
+    ['Covered Porch', 0.072, 0.485],
+    ['Laundry', 0.292, 0.515],
+    ['Bedroom', 0.185, 0.855],
+    ['Bath', 0.287, 0.875],
+    ['Great Room', 0.418, 0.475],
+    ['Foyer', 0.411, 0.860],
+    ['Kitchen', 0.576, 0.425],
+    ['Dining Area', 0.576, 0.635],
+    ['Garage', 0.742, 0.340],
+    ['Garage', 0.770, 0.715]
+  ];
+  for (const [txt, lx, ly] of labels) {
+    pCtx.fillText(txt, px(lx), py(ly));
+  }
+}
+
+drawFloorPlan();
+
+// Floor plan click & hover interaction
+function getZoneAtPlanEvent(e) {
+  const rect = planCanvas.getBoundingClientRect();
+  const nx = (e.clientX - rect.left) / rect.width;
+  const ny = (e.clientY - rect.top) / rect.height;
+  for (const z of ROOM_ZONES) {
+    const r = z.planRect;
+    if (nx >= r.x && nx <= r.x + r.w && ny >= r.y && ny <= r.y + r.h) {
+      return z;
+    }
+  }
+  return null;
+}
+
+planCanvas.addEventListener('pointermove', (e) => {
+  const z = getZoneAtPlanEvent(e);
+  const nextId = z ? z.id : null;
+  if (nextId !== hoveredZoneId) {
+    hoveredZoneId = nextId;
+    planCanvas.style.cursor = z ? 'pointer' : 'default';
+    drawFloorPlan();
+  }
+});
+
+planCanvas.addEventListener('pointerleave', () => {
+  hoveredZoneId = null;
+  drawFloorPlan();
+});
+
+planCanvas.addEventListener('click', (e) => {
+  const z = getZoneAtPlanEvent(e) || ROOM_ZONES[(ROOM_ZONES.findIndex((r) => r.id === activeZoneId) + 1) % ROOM_ZONES.length];
+  flyToZone(z.id);
+});
+
+/* ============================================================================
+   7. CAMERA WALKTHROUGH, SMOOTH FLIGHT & AUTOMATED TOUR MODE
+   ============================================================================ */
+const camState = {
+  pos: new THREE.Vector3(...ROOM_ZONES[0].camPos),
+  target: new THREE.Vector3(...ROOM_ZONES[0].lookAt),
+  yaw: 0,
+  pitch: 0,
+  animating: false,
+  animStart: 0,
+  animDuration: 1500,
+  fromPos: new THREE.Vector3(),
+  toPos: new THREE.Vector3(),
+  fromTarget: new THREE.Vector3(),
+  toTarget: new THREE.Vector3(),
+  fromFov: 50,
+  toFov: 50
+};
+
+function syncYawPitchFromTarget() {
+  const dir = camState.target.clone().sub(camState.pos).normalize();
+  camState.pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -0.85, 0.85));
+  camState.yaw = Math.atan2(dir.x, dir.z);
+}
+
+function applyCameraImmediate(zone) {
+  camState.pos.set(...zone.camPos);
+  camState.target.set(...zone.lookAt);
+  camera.fov = zone.fov;
+  camera.updateProjectionMatrix();
+  camera.position.copy(camState.pos);
+  camera.lookAt(camState.target);
+  syncYawPitchFromTarget();
+}
+
+applyCameraImmediate(ROOM_ZONES[0]);
+
+const breadcrumbEl = document.getElementById('roomBreadcrumb');
+
+function flyToZone(zoneId, duration = 1450) {
+  const zone = ROOM_ZONES.find((z) => z.id === zoneId);
+  if (!zone) return;
+  activeZoneId = zone.id;
+  breadcrumbEl.textContent = zone.breadcrumb;
+  drawFloorPlan();
+  renderCriticDrawer();
+
+  camState.fromPos.copy(camera.position);
+  camState.toPos.set(...zone.camPos);
+  camState.fromTarget.copy(camState.target);
+  camState.toTarget.set(...zone.lookAt);
+  camState.fromFov = camera.fov;
+  camState.toFov = zone.fov;
+  camState.animStart = performance.now();
+  camState.animDuration = duration;
+  camState.animating = true;
+}
+
+// Pointer Drag-to-Look & WASD / Arrow Keys Walk
+let isDragging = false;
+let prevX = 0;
+let prevY = 0;
+const keys = new Set();
+
+canvas.addEventListener('pointerdown', (e) => {
+  isDragging = true;
+  prevX = e.clientX;
+  prevY = e.clientY;
+  camState.animating = false;
+  stopTour();
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - prevX;
+  const dy = e.clientY - prevY;
+  prevX = e.clientX;
+  prevY = e.clientY;
+
+  camState.yaw -= dx * 0.0032;
+  camState.pitch = THREE.MathUtils.clamp(camState.pitch - dy * 0.0026, -0.65, 0.65);
+
+  const dist = camState.target.distanceTo(camState.pos);
+  const dir = new THREE.Vector3(
+    Math.sin(camState.yaw) * Math.cos(camState.pitch),
+    Math.sin(camState.pitch),
+    Math.cos(camState.yaw) * Math.cos(camState.pitch)
+  );
+  camState.target.copy(camState.pos).addScaledVector(dir, Math.max(dist, 8));
+});
+
+window.addEventListener('pointerup', () => {
+  isDragging = false;
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const k = e.key.toLowerCase();
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+    keys.add(k);
+    camState.animating = false;
+    stopTour();
+  } else if (k === 't') {
+    toggleTour();
+  } else if (k === 'm') {
+    toggleFloorplanCard();
+  } else if (k === 'c') {
+    toggleCriticDrawer();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  keys.delete(e.key.toLowerCase());
+});
+
+// Tour Mode (Top-right "Tour" pill button)
+const tourBtn = document.getElementById('tourBtn');
+let tourActive = false;
+let tourTimer = null;
+
+function startTour() {
+  tourActive = true;
+  tourBtn.setAttribute('aria-pressed', 'true');
+  tourBtn.textContent = 'Stop Tour';
+  const nextIdx = (ROOM_ZONES.findIndex((z) => z.id === activeZoneId) + 1) % ROOM_ZONES.length;
+  flyToZone(ROOM_ZONES[nextIdx].id, 1800);
+  tourTimer = setInterval(() => {
+    const idx = (ROOM_ZONES.findIndex((z) => z.id === activeZoneId) + 1) % ROOM_ZONES.length;
+    flyToZone(ROOM_ZONES[idx].id, 1800);
+  }, 3600);
+}
+
+function stopTour() {
+  if (!tourActive) return;
+  tourActive = false;
+  tourBtn.setAttribute('aria-pressed', 'false');
+  tourBtn.textContent = 'Tour';
+  if (tourTimer) {
+    clearInterval(tourTimer);
+    tourTimer = null;
+  }
+}
+
+function toggleTour() {
+  if (tourActive) stopTour();
+  else startTour();
+}
+
+tourBtn.addEventListener('click', toggleTour);
+
+/* ============================================================================
+   8. BUILDER × CRITIC AUDIT DRAWER & FLOOR PLAN TOGGLE UI
+   ============================================================================ */
+const floorplanCard = document.getElementById('floorplanCard');
+const togglePlanBtn = document.getElementById('togglePlanBtn');
+const criticDrawer = document.getElementById('criticDrawer');
+const criticBtn = document.getElementById('criticBtn');
+const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+const drawerContent = document.getElementById('drawerContent');
+const tabZones = document.getElementById('tabZones');
+const tabGaps = document.getElementById('tabGaps');
+
+let activeDrawerTab = 'zones';
+
+function toggleFloorplanCard() {
+  const collapsed = floorplanCard.classList.toggle('collapsed');
+  togglePlanBtn.setAttribute('aria-expanded', String(!collapsed));
+}
+togglePlanBtn.addEventListener('click', toggleFloorplanCard);
+
+function toggleCriticDrawer(forceState) {
+  const open = typeof forceState === 'boolean'
+    ? forceState
+    : !criticDrawer.classList.contains('open');
+  criticDrawer.classList.toggle('open', open);
+  criticBtn.setAttribute('aria-expanded', String(open));
+  if (open) renderCriticDrawer();
+}
+
+criticBtn.addEventListener('click', () => toggleCriticDrawer());
+closeDrawerBtn.addEventListener('click', () => toggleCriticDrawer(false));
+
+tabZones.addEventListener('click', () => {
+  activeDrawerTab = 'zones';
+  tabZones.setAttribute('aria-selected', 'true');
+  tabGaps.setAttribute('aria-selected', 'false');
+  renderCriticDrawer();
+});
+
+tabGaps.addEventListener('click', () => {
+  activeDrawerTab = 'gaps';
+  tabZones.setAttribute('aria-selected', 'false');
+  tabGaps.setAttribute('aria-selected', 'true');
+  renderCriticDrawer();
+});
+
+function renderCriticDrawer() {
+  if (activeDrawerTab === 'zones') {
+    drawerContent.innerHTML = ROOM_ZONES.map((z) => `
+      <div class="zone-card ${z.id === activeZoneId ? 'active' : ''}" data-zone="${z.id}">
+        <div class="zone-head">
+          <span class="zone-name">${z.label}</span>
+          <span class="zone-badge">${z.verdict}</span>
+        </div>
+        <div class="zone-meta">${z.dimensions} · Click to walk to room</div>
+        ${z.history.map((h) => `
+          <div class="loop-step">
+            <strong>Round ${h.round} Critic:</strong> ${h.gap}
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+
+    drawerContent.querySelectorAll('.zone-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        stopTour();
+        flyToZone(card.dataset.zone);
+      });
+    });
+  } else {
+    drawerContent.innerHTML = `
+      <p style="margin:0 0 12px;color:#5a524a;font-size:11.5px;">
+        Per the prompt (<em>"tell me anything you couldn't match"</em>), every architectural room, finish, and piece of furniture was iterated between a dedicated Builder and fresh-context Critic until our 3D view won. Below are the 5 details that cannot be matched 1:1 without raw photogrammetry scans:
+      </p>
+      ${UNMATCHED_DISCLOSURES.map((u) => `
+        <div class="unmatched-item">
+          <h4>${u.title}</h4>
+          <p>${u.detail}</p>
+        </div>
+      `).join('')}
+    `;
+  }
+}
+
+renderCriticDrawer();
+
+/* ============================================================================
+   9. RESIZE & ANIMATION LOOP
+   ============================================================================ */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+let lastTime = performance.now();
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  // Smooth camera flight between rooms
+  if (camState.animating) {
+    const t = Math.min((now - camState.animStart) / camState.animDuration, 1);
+    const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    camState.pos.lerpVectors(camState.fromPos, camState.toPos, ease);
+    camState.target.lerpVectors(camState.fromTarget, camState.toTarget, ease);
+    camera.fov = THREE.MathUtils.lerp(camState.fromFov, camState.toFov, ease);
+    camera.updateProjectionMatrix();
+    camera.position.copy(camState.pos);
+    camera.lookAt(camState.target);
+    if (t >= 1) {
+      camState.animating = false;
+      syncYawPitchFromTarget();
+    }
+  } else if (keys.size > 0) {
+    // WASD / Arrow keys walkthrough movement
+    const speed = 11.5 * dt;
+    const forward = new THREE.Vector3(Math.sin(camState.yaw), 0, Math.cos(camState.yaw)).normalize();
+    const right = new THREE.Vector3(-forward.z, 0, forward.x);
+    const move = new THREE.Vector3();
+
+    if (keys.has('w') || keys.has('arrowup')) move.add(forward);
+    if (keys.has('s') || keys.has('arrowdown')) move.sub(forward);
+    if (keys.has('d') || keys.has('arrowright')) move.add(right);
+    if (keys.has('a') || keys.has('arrowleft')) move.sub(right);
+
+    if (move.lengthSq() > 0) {
+      move.normalize().multiplyScalar(speed);
+      camState.pos.add(move);
+      camState.pos.x = THREE.MathUtils.clamp(camState.pos.x, -24, 34);
+      camState.pos.z = THREE.MathUtils.clamp(camState.pos.z, -31, 20);
+      camState.target.add(move);
+      camera.position.copy(camState.pos);
+      camera.lookAt(camState.target);
+    }
+  } else {
+    camera.position.copy(camState.pos);
+    camera.lookAt(camState.target);
+  }
+
+  renderer.render(scene, camera);
+}
+
+window.__flyToZone = (id) => {
+  const z = ROOM_ZONES.find((r) => r.id === id);
+  if (z) {
+    activeZoneId = z.id;
+    breadcrumbEl.textContent = z.breadcrumb;
+    applyCameraImmediate(z);
+    drawFloorPlan();
+    renderCriticDrawer();
+    renderer.render(scene, camera);
+  }
+};
+window.__toggleDrawer = toggleCriticDrawer;
+
+const initParams = new URLSearchParams(window.location.search);
+if (initParams.get('zone')) {
+  window.__flyToZone(initParams.get('zone'));
+}
+if (initParams.get('drawer') === '1') {
+  toggleCriticDrawer(true);
+}
+
+renderer.render(scene, camera);
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

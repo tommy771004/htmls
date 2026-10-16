@@ -1,0 +1,24 @@
+{
+  "name": "neon-nightcity",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "霓虹夜城 · NEON NIGHT CITY：第三人稱賽博龐克開放夜城駕駛與探索（作品 259）",
+  "scripts": {
+    "assets": "node tools/assets.mjs",
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node tools/accept.mjs",
+    "thumb": "node tools/thumb.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.55.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

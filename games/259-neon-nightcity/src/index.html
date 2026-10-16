@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>霓虹夜城 // NEON NIGHT CITY — 賽博龐克開放街區駕駛與探索</title>
+  <meta name="description" content="以 Three.js 與 Blender 5.2 打造的賽博龐克開放夜城：程序生成摩天大樓、全息漢字霓虹、雨滴粒子與濕地反射、第三人稱跑車駕駛與下車步行探索 PULSE 脈衝夜店及 AFTERGLOW 餘燼酒吧。" />
+  <style>
+    :root {
+      --bg-void: #040711;
+      --panel-bg: rgba(7, 13, 28, 0.82);
+      --panel-border: rgba(0, 240, 255, 0.45);
+      --neon-cyan: #00f0ff;
+      --neon-pink: #ff1e8a;
+      --neon-yellow: #ffe600;
+      --neon-green: #00ff9d;
+      --text-main: #e8f4ff;
+      --text-dim: #7fa2c7;
+      --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-void);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+    }
+
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    #canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Subtle CRT scanline & vignette overlay */
+    .cyber-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 62%, rgba(2, 5, 14, 0.58) 100%),
+        repeating-linear-gradient(0deg, rgba(0, 240, 255, 0.018) 0px, rgba(0, 240, 255, 0.018) 1px, transparent 1px, transparent 3px);
+    }
+
+    /* HUD Root */
+    .hud-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px 18px;
+    }
+
+    .hud-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    /* Left Radar Minimap & Location Card */
+    .radar-cluster {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      pointer-events: auto;
+    }
+
+    .minimap-frame {
+      position: relative;
+      width: 146px;
+      height: 146px;
+      border-radius: 50%;
+      background: rgba(4, 9, 20, 0.85);
+      box-shadow: 0 0 22px rgba(0, 240, 255, 0.25), inset 0 0 14px rgba(0, 240, 255, 0.2);
+      flex-shrink: 0;
+    }
+
+    #minimap-canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .minimap-north {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      background: rgba(4, 9, 20, 0.9);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 240, 255, 0.4);
+    }
+
+    .location-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-left: 3px solid var(--neon-cyan);
+      backdrop-filter: blur(8px);
+      padding: 10px 14px;
+      border-radius: 4px 10px 10px 4px;
+      min-width: 220px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .loc-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .loc-clock {
+      color: var(--neon-yellow);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .loc-fps {
+      color: var(--neon-green);
+      font-weight: 600;
+    }
+
+    #hud-district-name {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+      line-height: 1.25;
+    }
+
+    #hud-district-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+    }
+
+    .quick-nav-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .cyber-btn {
+      pointer-events: auto;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.45);
+      padding: 4px 9px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .cyber-btn:hover {
+      background: rgba(0, 240, 255, 0.28);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    }
+
+    .cyber-btn.pink {
+      background: rgba(255, 30, 138, 0.15);
+      border-color: rgba(255, 30, 138, 0.55);
+    }
+
+    .cyber-btn.pink:hover {
+      background: rgba(255, 30, 138, 0.34);
+      border-color: var(--neon-pink);
+      box-shadow: 0 0 10px rgba(255, 30, 138, 0.45);
+    }
+
+    .cyber-btn.yellow {
+      background: rgba(255, 230, 0, 0.14);
+      border-color: rgba(255, 230, 0, 0.55);
+      color: #fff6b3;
+    }
+
+    /* Right Top Controls & Brand Header */
+    .top-right-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .brand-pill {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 30, 138, 0.5);
+      border-right: 3px solid var(--neon-pink);
+      padding: 7px 13px;
+      border-radius: 8px 4px 4px 8px;
+      text-align: right;
+      backdrop-filter: blur(8px);
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--text-main);
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--neon-pink);
+    }
+
+    .action-btn-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    /* Center Venue Entry Banner & Toast */
+    .center-notifications {
+      position: fixed;
+      top: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 12;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: min(92vw, 520px);
+    }
+
+    #hud-venue-banner {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.96);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(6, 11, 24, 0.9);
+      border: 1px solid var(--neon-cyan);
+      padding: 10px 24px;
+      border-radius: 6px;
+      text-align: center;
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.35);
+    }
+
+    #hud-venue-banner.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .vb-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--text-dim);
+    }
+
+    .vb-title {
+      font-size: 21px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    #hud-toast {
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: all 0.2s ease;
+      background: rgba(8, 16, 34, 0.92);
+      border: 1px solid rgba(0, 240, 255, 0.55);
+      color: var(--text-main);
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+
+    #hud-toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Bottom HUD Bar */
+    .hud-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .prompt-bar {
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 240, 255, 0.38);
+      backdrop-filter: blur(8px);
+      padding: 9px 15px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: var(--text-main);
+      letter-spacing: 0.02em;
+      max-width: 560px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Speedometer & Vehicle Telemetry Card */
+    .telemetry-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-right: 3px solid var(--neon-cyan);
+      backdrop-filter: blur(8px);
+      padding: 10px 16px;
+      border-radius: 10px 4px 4px 10px;
+      min-width: 215px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .mode-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .mode-badge.driving {
+      background: rgba(0, 240, 255, 0.16);
+      color: var(--neon-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.45);
+    }
+
+    .mode-badge.walking {
+      background: rgba(255, 30, 138, 0.2);
+      color: #ff77b7;
+      border: 1px solid rgba(255, 30, 138, 0.5);
+    }
+
+    .speed-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #hud-speed-val {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.6);
+      line-height: 1;
+    }
+
+    .speed-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    #hud-gear {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--neon-yellow);
+    }
+
+    #hud-speed-unit {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .gauge-group {
+      margin-top: 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .gauge-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+    }
+
+    .gauge-track {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    #hud-rpm-fill {
+      height: 100%;
+      width: 20%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+      transition: width 0.08s linear;
+    }
+
+    #hud-boost-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--neon-yellow), var(--neon-green));
+      transition: width 0.1s linear;
+    }
+
+    /* Mobile Touch Controls (shown on touch/compact screens) */
+    .touch-controls {
+      display: none;
+      position: fixed;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 15;
+      pointer-events: none;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .touch-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(2, 44px);
+      gap: 5px;
+      pointer-events: auto;
+    }
+
+    .touch-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 54px);
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    .t-btn {
+      background: rgba(8, 16, 34, 0.82);
+      border: 1px solid rgba(0, 240, 255, 0.5);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    .t-btn.active {
+      background: rgba(0, 240, 255, 0.38);
+      border-color: #ffffff;
+    }
+
+    /* Full-City Map & Quick Teleport Modal */
+    #map-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: rgba(3, 6, 15, 0.84);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #map-modal[hidden] {
+      display: none !important;
+    }
+
+    .modal-card {
+      background: rgba(8, 15, 32, 0.96);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.28);
+      border-radius: 12px;
+      width: min(94vw, 680px);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--neon-cyan);
+    }
+
+    .venue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .venue-item {
+      background: rgba(14, 26, 52, 0.75);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .venue-item h4 {
+      font-size: 14px;
+      color: #ffffff;
+    }
+
+    .venue-item p {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    .controls-legend {
+      background: rgba(5, 10, 22, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+
+    .controls-legend strong {
+      color: var(--neon-cyan);
+    }
+
+    /* Loading Overlay */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: #040711;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    #loading-overlay[hidden] {
+      display: none !important;
+    }
+
+    .loading-title {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 18px rgba(0, 240, 255, 0.6);
+      margin-bottom: 6px;
+    }
+
+    .loading-track {
+      width: min(80vw, 320px);
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 14px 0 8px;
+    }
+
+    #loading-bar-fill {
+      height: 100%;
+      width: 12%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+      transition: width 0.2s ease;
+    }
+
+    #loading-status {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* Responsive adjustments for mobile portrait (390x844) & landscape (667x375) */
+    @media (max-width: 768px), (max-height: 500px) {
+      .hud-layer {
+        padding: 8px 10px;
+      }
+      .minimap-frame {
+        width: 92px;
+        height: 92px;
+      }
+      .location-card {
+        min-width: 0;
+        padding: 6px 10px;
+      }
+      #hud-district-name {
+        font-size: 13px;
+      }
+      .quick-nav-row {
+        display: none;
+      }
+      .brand-pill {
+        display: none;
+      }
+      .prompt-bar {
+        display: none;
+      }
+      .telemetry-card {
+        min-width: 142px;
+        padding: 6px 10px;
+        margin-bottom: 102px;
+      }
+      #hud-speed-val {
+        font-size: 24px;
+      }
+      .touch-controls {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+  <div class="cyber-overlay"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-overlay">
+    <div class="loading-title">霓虹夜城 // NEON NIGHT CITY</div>
+    <div style="font-size:12px;color:#7fa2c7;">CYBERPUNK RAIN-SOAKED OPEN WORLD // THREE.JS + BLENDER GLTF</div>
+    <div class="loading-track"><div id="loading-bar-fill"></div></div>
+    <div id="loading-status">正在初始化神經網路與城市幾何...</div>
+  </div>
+
+  <!-- Center Notifications -->
+  <div class="center-notifications">
+    <div id="hud-venue-banner"></div>
+    <div id="hud-toast"></div>
+  </div>
+
+  <!-- Main HUD -->
+  <div class="hud-layer">
+    <div class="hud-top">
+      <div class="radar-cluster">
+        <div class="minimap-frame" title="即時旋轉雷達小地圖">
+          <canvas id="minimap-canvas" width="146" height="146"></canvas>
+          <span class="minimap-north">N</span>
+        </div>
+        <div class="location-card">
+          <div class="loc-meta">
+            <span id="hud-clock" class="loc-clock">23:42</span>
+            <span id="hud-fps" class="loc-fps">60 FPS</span>
+          </div>
+          <div id="hud-district-name">霓虹中樞區</div>
+          <div id="hud-district-sub">NEON CENTRAL // SECTOR 01</div>
+          <div class="quick-nav-row">
+            <button class="cyber-btn pink" data-teleport="pulse_inside">🕺 進入夜店舞池</button>
+            <button class="cyber-btn yellow" data-teleport="bar_inside">🍸 進入餘燼酒吧</button>
+            <button class="cyber-btn" data-teleport="garage_inside">🔧 電馭改裝廠</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-right-cluster">
+        <div class="brand-pill">
+          <div class="brand-title">NEON NIGHT CITY // 2099</div>
+          <div class="brand-sub">QUADRA V-TECH &amp; WALKING SIM</div>
+        </div>
+        <div class="action-btn-group">
+          <button id="btn-mode-switch" class="cyber-btn pink">🚶 下車步行 (F)</button>
+          <button id="btn-map-open" class="cyber-btn">🗺️ 城市導覽 (M)</button>
+          <button id="btn-audio" class="cyber-btn">🔊 音效：開</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-bottom">
+      <div id="hud-prompt" class="prompt-bar">
+        [WASD] 駕駛/移動   [F] 下車步行探索   [Space] 手煞車甩尾   [Shift] 氮氣加速   [M] 城市地圖
+      </div>
+
+      <div class="telemetry-card">
+        <div id="hud-mode-badge" class="mode-badge driving">DRIVING // 載具模式</div>
+        <div class="speed-row">
+          <span id="hud-speed-val">000</span>
+          <div class="speed-meta">
+            <span id="hud-gear">N</span>
+            <span id="hud-speed-unit">KM/H</span>
+          </div>
+        </div>
+        <div class="gauge-group">
+          <div class="gauge-line">
+            <span>RPM</span>
+            <div class="gauge-track"><div id="hud-rpm-fill"></div></div>
+          </div>
+          <div class="gauge-line">
+            <span>NITRO</span>
+            <div class="gauge-track"><div id="hud-boost-fill"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Touch Controls -->
+  <div class="touch-controls">
+    <div class="touch-pad">
+      <div></div>
+      <button id="touch-up" class="t-btn">▲</button>
+      <div></div>
+      <button id="touch-left" class="t-btn">◀</button>
+      <button id="touch-down" class="t-btn">▼</button>
+      <button id="touch-right" class="t-btn">▶</button>
+    </div>
+    <div class="touch-actions">
+      <button id="touch-boost" class="t-btn">NITRO</button>
+      <button id="touch-drift" class="t-btn">DRIFT</button>
+      <button id="touch-exit" class="t-btn">上/下車</button>
+      <button id="touch-interact" class="t-btn">互動/舞</button>
+    </div>
+  </div>
+
+  <!-- City Map & Teleport Modal -->
+  <div id="map-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🗺️ 霓虹夜城全區導覽與快速傳送 // NIGHT CITY NAV</div>
+        <button id="btn-map-close" class="cyber-btn">✕ 關閉 (Esc)</button>
+      </div>
+
+      <div class="venue-grid">
+        <div class="venue-item">
+          <div>
+            <h4 style="color:#ff1e8a">🕺 PULSE // 脈衝夜店 (室內)</h4>
+            <p>位於霓虹中樞區北側。擁有 8×8 音訊反應 LED 舞池、掃射雷射燈架、DJ 台與 14 位骨骼動畫熱舞人群。</p>
+          </div>
+          <button class="cyber-btn pink" data-teleport="pulse_inside">直接傳送至夜店舞池 (步行)</button>
+        </div>
+
+        <div class="venue-item">
+          <div>
+            <h4 style="color:#ffe600">🍸 AFTERGLOW // 餘燼酒吧 (室內)</h4>
+            <p>位於歌舞伎町南巷。酒保現場調酒、發光酒瓶牆、復古街機與點唱機，可按 [E] 點賽博調酒。</p>
+          </div>
+          <button class="cyber-btn yellow" data-teleport="bar_inside">直接傳送至餘燼酒吧 (步行)</button>
+        </div>
+
+        <div class="venue-item">
+          <div>
+            <h4 style="color:#00f0ff">🔧 CHROME WORKS // 電馭改裝廠</h4>
+            <p>位於九龍全息市場。可直接開車或步行進入，按 [E] 免費切換跑車 5 款高亮度霓虹底燈塗裝。</p>
+          </div>
+          <button class="cyber-btn" data-teleport="garage_inside">開車駛入電馭改裝廠</button>
+        </div>
+
+        <div class="venue-item">
+          <div>
+            <h4 style="color:#00ff9d">🚘 霓虹中樞大道 (夜店正門)</h4>
+            <p>返回中央雙向四車道濕地大道，體驗雨夜霓虹倒影、甩尾過彎與高速巡航。</p>
+          </div>
+          <button class="cyber-btn" data-teleport="pulse_street">傳送至中央大道 (駕駛)</button>
+        </div>
+
+        <div class="venue-item">
+          <div>
+            <h4 style="color:#ff3d5a">🏙️ 荒坂金融區 // CORPO PLAZA</h4>
+            <p>西北側巨型財閥摩天大樓群，仰望高空全息投影廣告與飛行巡邏車航道。</p>
+          </div>
+          <button class="cyber-btn" data-teleport="arasaka_plaza">傳送至荒坂金融區 (駕駛)</button>
+        </div>
+
+        <div class="venue-item">
+          <div>
+            <h4 style="color:#38b6ff">🌊 工業海灣大道 // RAIN HARBOR</h4>
+            <p>南側長直道高速路段，適合開啟 Shift 氮氣加速測試極速與 Space 手煞車甩尾。</p>
+          </div>
+          <button class="cyber-btn" data-teleport="harbor_highway">傳送至海灣高速大道 (駕駛)</button>
+        </div>
+      </div>
+
+      <div class="controls-legend">
+        <div><strong>【駕駛模式】</strong> <strong>W / S</strong> 加速與倒車 ｜ <strong>A / D</strong> 轉向 ｜ <strong>Space</strong> 手煞車甩尾 ｜ <strong>Shift</strong> 氮氣加速 ｜ <strong>F</strong> 下車步行 ｜ <strong>C / E</strong> 切換底燈</div>
+        <div><strong>【步行模式】</strong> <strong>W / S</strong> 前進後退 ｜ <strong>A / D</strong> 轉向 ｜ <strong>Shift</strong> 奔跑衝刺 ｜ <strong>F</strong> 登車 ｜ <strong>V</strong> 召喚座駕至身邊 ｜ <strong>G</strong> 律動熱舞 ｜ <strong>E</strong> 場所互動</div>
+        <div><strong>【視角與介面】</strong> 滑鼠拖曳可自由環繞鏡頭（雙擊復位）｜ <strong>M</strong> 開關全區地圖 ｜ <strong>數字鍵 1-4</strong> 快速切換場景</div>
+      </div>
+    </div>
+  </div>
+
+  <!--ASSETS-->
+  <!--BUNDLE-->
+</body>
+</html>
