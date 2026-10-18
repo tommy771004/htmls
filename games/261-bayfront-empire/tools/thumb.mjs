@@ -23,7 +23,12 @@ try {
   await page.waitForTimeout(1200);
   await raf(page);
   await page.screenshot({ path: tmp });
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tmp, '-vf', 'scale=640:400', '-q:v', '3', out]);
+  try {
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tmp, '-vf', 'scale=640:400', '-q:v', '3', out]);
+  } catch {
+    // 沒有 ffmpeg 時用 macOS 內建的 sips
+    execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '80', '-z', '400', '640', tmp, '--out', out], { stdio: 'ignore' });
+  }
   console.log('已輸出', out);
 } finally {
   await browser.close();

@@ -45,6 +45,10 @@ function quay(S, D, B) {
   S.box(H.gateX + 5.6, y, 18, H.gateX + 8.4, y + 2.8, 21, '#e9efe6');
   S.box(H.gateX + 5.4, y + 2.8, 17.8, H.gateX + 8.6, y + 3.05, 21.2, '#2d5a45');
   S.box(H.gateX - 5, y + 0.9, 19.2, H.gateX + 5.4, y + 1.05, 19.4, '#e0763a');
+  // 綠色門架
+  for (const sx of [H.gateX - 5.8, H.gateX + 4.9]) S.box(sx, y, 17.4, sx + 0.7, y + 6.2, 18.1, '#2f5a47');
+  S.box(H.gateX - 6, y + 6.2, 17.2, H.gateX + 5.8, y + 7.4, 18.3, '#2f5a47');
+  S.box(H.gateX - 3.5, y + 6.4, 18.3, H.gateX + 3.5, y + 7.2, 18.36, '#e8c25a', true);
   // 照明塔
   for (const [lx, lz] of TOWERS) {
     S.box(lx - 0.25, y, lz - 0.25, lx + 0.25, y + 16, lz + 0.25, '#7d8784');
@@ -82,6 +86,16 @@ function harborLevel(S, B, lv) {
     S.box(-154.6, y + 18, 20, -147.4, y + 18.4, 26, '#e9e2d0');
     S.cyl(-151, y + 18.4, 23, 0.1, 4, '#d8d4c8', 6);
   }
+  if (lv >= 1) {
+    // 紅白條紋管制塔（橘色塔頂）
+    const tx = -148, tz = 38;
+    for (let k = 0; k < 6; k++) S.cyl(tx, y + k * 2.4, tz, 1.6 - k * 0.05, 2.4, k % 2 ? '#c8453c' : '#f2ecdc', 12);
+    S.cyl(tx, y + 14.4, tz, 2.4, 0.4, '#e9e2d0', 12);
+    S.cyl(tx, y + 14.8, tz, 1.9, 2.0, '#cfe3e0', 12);
+    B.cyl(tx, y + 15.2, tz, 1.92, 0.5, '#ffe9b0', 12);
+    S.cone(tx, y + 16.8, tz, 2.3, 1.6, '#e0763a', 12);
+    S.cyl(tx, y + 18.4, tz, 0.08, 2.2, '#3a4144', 6);
+  }
   // 岸橋：門型框架、伸向海面的吊臂、機房
   const n = lv ? PORT.cranes[lv - 1] : 1;
   for (let b = 0; b < n; b++) {
@@ -95,13 +109,21 @@ function harborLevel(S, B, lv) {
       strut(S, lx, y + 9.8, za, y + 23, zb, 0.3, c);
     }
     S.box(cx - 5.4, y + 9, za - 0.4, cx + 5.4, y + 9.8, za + 0.4, c);
+    // 門架兩面的 X 形斜撐
+    const ang = Math.atan2(10, 13);
+    for (const lz of [za, zb]) {
+      S.add(TBOX, cx - 5, y + 9.8, lz, 0.28, Math.hypot(10, 13), 0.28, 0, c, 0, -ang);
+      S.add(TBOX, cx + 5, y + 9.8, lz, 0.28, Math.hypot(10, 13), 0.28, 0, c, 0, ang);
+    }
     S.box(cx - 5.4, y + 23, za - 0.5, cx + 5.4, y + 24.2, zb + 0.5, c);
     // 吊臂（兩根平行樑）
     for (const sx of [cx - 1.6, cx + 1.6]) S.box(sx - 0.35, y + 23.4, 38, sx + 0.35, y + 24.6, 82, c);
     S.box(cx - 2.1, y + 24.6, 79, cx + 2.1, y + 25.2, 82, c);
     // 機房與拉桿
-    S.box(cx - 3, y + 24.2, 39, cx + 3, y + 27.4, 45, PAL.white);
-    S.box(cx - 2.6, y + 25, 45, cx + 2.6, y + 26.4, 45.1, '#3e5258', true);
+    S.box(cx - 3, y + 24.2, 39, cx + 3, y + 27.4, 45, lv ? '#2f5a47' : '#5d6b64');
+    S.box(cx - 3.2, y + 27.4, 38.8, cx + 3.2, y + 27.8, 45.2, '#e9e2d0');
+    S.box(cx - 2.6, y + 25, 45, cx + 2.6, y + 26.4, 45.1, '#cfe3e0', true);
+    S.box(cx - 1.2, y + 27.8, 40.5, cx + 1.2, y + 28.6, 42.5, PAL.ac);
     S.box(cx - 0.3, y + 24.2, za + 2, cx + 0.3, y + 31, za + 2.6, c);
     for (const sx of [cx - 1.6, cx + 1.6]) {
       strut(S, sx, y + 31, za + 2.3, y + 24.6, 81, 0.2, c);

@@ -9,16 +9,16 @@ import {
 } from './layout.js';
 
 export const PAL = {
-  asphalt: '#46524f', asphalt2: '#3e4a47', line: '#e6dcb4', yellow: '#d9b648', zebra: '#e7e2d0',
-  walk: '#cdc5ae', curb: '#b2aa94', lotPave: '#bdb6a2', grass: '#9fae72', grass2: '#8fa065', hedge: '#6f8a4f',
-  trunk: '#6d5038', leaf: '#7f9a55', leaf2: '#6c8749', palmTrunk: '#a0815a', frond: '#5e8a45',
-  sand: '#ead9b0', sand2: '#e2cf9f', prom: '#d8d0bb', promLine: '#c6bda6', rail: '#2f4f3f', railTop: '#3b5d4b',
+  asphalt: '#566a68', asphalt2: '#4e615f', line: '#e8e0c4', yellow: '#d9b648', zebra: '#ece6d4',
+  walk: '#ddd5bf', curb: '#c3bba4', lotPave: '#cfc7b0', grass: '#a6b278', grass2: '#97a56c', hedge: '#6f8a4f',
+  trunk: '#6d5038', leaf: '#86a05a', leaf2: '#6f8c4c', palmTrunk: '#a0815a', frond: '#5e8a45',
+  sand: '#e6d9b6', sand2: '#ddcfa6', prom: '#ddd5c0', promLine: '#cbc2ab', rail: '#2f4f3f', railTop: '#3b5d4b',
   rock: '#a7a49a', rock2: '#8f8c84', wood: '#b48a5c', wood2: '#9c7449', woodDark: '#7b5a3a',
-  roof: '#3c4a47', roofEdge: '#56625e', trim: '#ece2c8', glass: '#33444b', ac: '#c9cbc3', metal: '#7d8784',
+  roof: '#425b5b', roofEdge: '#56625e', trim: '#efe5cc', glass: '#34474c', ac: '#d3d3c8', metal: '#7d8784', fence: '#a8653f',
   lampPole: '#2c3d36', red: '#c0503d', cream: '#f2e8cf', white: '#f4f1e6', orange: '#e0763a', teal: '#5e9a96',
 };
 // 建築外牆（磚紅、芥末黃、灰綠、霧藍、奶油、鼠尾草）
-export const WALLS = ['#b4513c', '#a9473a', '#d4ae55', '#c99f47', '#6f9a95', '#5f8790', '#e2d5b8', '#8ea488', '#9a5b48', '#7c8f9a'];
+export const WALLS = ['#b0533d', '#9c4734', '#d2b157', '#c49c45', '#6f9fa6', '#5d8a93', '#7c9196', '#e0d3b5', '#8fa58a', '#a8604a'];
 
 export function buildWorld(scene) {
   const S = new Builder();   // 一般靜態（投影＋受光）
@@ -139,19 +139,83 @@ function cityBlock(S, D, G, L, B, lamps, rnd, i, j) {
   slab(S, D, x0, z0, x1, z1);
   const ix0 = x0 + SIDEWALK, ix1 = x1 - SIDEWALK, iz0 = z0 + SIDEWALK, iz1 = z1 - SIDEWALK;
   // 偶爾是一塊小綠地
-  if (rnd() < 0.12) {
+  if (rnd() < 0.08) {
     S.box(ix0, 0.22, iz0, ix1, 0.3, iz1, PAL.grass);
     for (let k = 0; k < 5; k++) tree(S, ix0 + 3 + rnd() * (ix1 - ix0 - 6), 0.3, iz0 + 3 + rnd() * (iz1 - iz0 - 6), rnd);
     return;
   }
-  const n = rnd() < 0.5 ? 2 : 3;
-  const w = (ix1 - ix0) / n;
-  for (let k = 0; k < n; k++) {
-    const bx0 = ix0 + k * w + 0.3, bx1 = ix0 + (k + 1) * w - 0.3;
-    const floors = 3 + Math.floor(rnd() * 4);
-    building(S, G, L, rnd, { x0: bx0, x1: bx1, z0: iz0, z1: iz1, floors, wall: WALLS[Math.floor(rnd() * WALLS.length)], simple: true });
-  }
+  lowBlock(S, G, L, rnd, ix0, iz0, ix1, iz1);
   streetFurniture(S, B, lamps, rnd, x0, z0, x1, z1);
+}
+
+// 2–4 層的步登公寓：沿街一排（正面朝 +z），後排是後院，偶爾東北角再一棟
+function lowBlock(S, G, L, rnd, ix0, iz0, ix1, iz1) {
+  const fd = 11 + rnd() * 3;
+  let x = ix0;
+  let k = 0;
+  while (x < ix1 - 4) {
+    let w = 9 + rnd() * 7;
+    if (ix1 - (x + w) < 7) w = ix1 - x;
+    if (k > 0 && rnd() < 0.14) yard(S, rnd, x + 0.2, iz1 - fd, x + w - 0.2, iz1, true);
+    else building(S, G, L, rnd, { x0: x + 0.2, x1: x + w - 0.2, z0: iz1 - fd, z1: iz1, floors: 2 + Math.floor(rnd() * 3), wall: WALLS[Math.floor(rnd() * WALLS.length)], fireEscape: rnd() < 0.5, simple: true });
+    x += w;
+    k++;
+  }
+  const bz0 = iz0, bz1 = iz1 - fd - 0.4;
+  if (bz1 - bz0 < 4) return;
+  if (rnd() < 0.55) {
+    const bw = 10 + rnd() * 5;
+    building(S, G, L, rnd, { x0: ix1 - bw, x1: ix1, z0: bz0, z1: bz1, floors: 2 + Math.floor(rnd() * 3), wall: WALLS[Math.floor(rnd() * WALLS.length)], simple: true, back: true });
+    yard(S, rnd, ix0, bz0, ix1 - bw - 0.3, bz1);
+  } else yard(S, rnd, ix0, bz0, ix1, bz1);
+}
+
+// 後院：草地、木圍籬、菜圃、樹，偶爾有野餐桌與陽傘
+export function yard(S, rnd, x0, z0, x1, z1, street = false) {
+  if (x1 - x0 < 2 || z1 - z0 < 2) return;
+  S.box(x0, 0.22, z0, x1, 0.28, z1, rnd() < 0.5 ? PAL.grass : PAL.grass2);
+  fence(S, x0, z1, x1, z1, street);
+  fence(S, x1, z0, x1, z1);
+  fence(S, x0, z0, x1, z0);
+  fence(S, x0, z0, x0, z1);
+  const W = x1 - x0, Dd = z1 - z0;
+  const beds = Math.min(3, Math.floor(W / 3.5));
+  for (let k = 0; k < beds; k++) {
+    if (rnd() < 0.35) continue;
+    const bx = x0 + 1.2 + k * 3.2, bz = z0 + 1.2 + rnd() * Math.max(0, Dd - 4.5);
+    if (bx + 2.6 > x1 - 0.8) break;
+    S.box(bx, 0.28, bz, bx + 2.6, 0.62, bz + 1.4, '#9c6a46');
+    S.box(bx + 0.12, 0.62, bz + 0.12, bx + 2.48, 0.66, bz + 1.28, '#6f5236');
+    for (let i = 0; i < 4; i++) S.ball(bx + 0.4 + i * 0.6, 0.62, bz + 0.7, 0.2, ['#7f9a55', '#d9b648', '#c8453c', '#e8e2d0'][(i + k) % 4], 0);
+  }
+  if (rnd() < 0.8) tree(S, x1 - 1.8 - rnd() * Math.max(0, W - 4), 0.28, z0 + 1.6 + rnd() * Math.max(0, Dd - 3.2), rnd);
+  if (W > 7 && Dd > 5 && rnd() < 0.45) {
+    const px = x0 + W * (0.3 + rnd() * 0.4), pz = z0 + Dd * 0.55;
+    S.box(px - 1, 0.98, pz - 0.45, px + 1, 1.06, pz + 0.45, PAL.wood);
+    for (const s of [-0.8, 0.8]) S.box(px - 1, 0.62, pz + s - 0.15, px + 1, 0.68, pz + s + 0.15, PAL.wood);
+    S.cyl(px, 0.28, pz, 0.04, 2.3, PAL.white, 6);
+    S.add(T.cone12, px, 2.25, pz, 2.6, 0.55, 2.6, 0, rnd() < 0.5 ? '#e0763a' : '#d9b648');
+  }
+}
+
+function fence(S, x0, z0, x1, z1, gate = false) {
+  const len = Math.hypot(x1 - x0, z1 - z0);
+  const n = Math.max(1, Math.round(len / 1.4));
+  const alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0);
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
+    if (gate && Math.abs(t - 0.5) < 0.12) continue;
+    S.box(x - 0.06, 0.28, z - 0.06, x + 0.06, 1.15, z + 0.06, PAL.fence, true);
+  }
+  for (const y of [0.55, 0.98]) {
+    if (alongX) {
+      if (gate) {
+        const m = (x0 + x1) / 2;
+        S.box(x0, y, z0 - 0.04, m - len * 0.12, y + 0.08, z0 + 0.04, PAL.fence, true);
+        S.box(m + len * 0.12, y, z0 - 0.04, x1, y + 0.08, z0 + 0.04, PAL.fence, true);
+      } else S.box(x0, y, z0 - 0.04, x1, y + 0.08, z0 + 0.04, PAL.fence, true);
+    } else S.box(x0 - 0.04, y, z0, x0 + 0.04, y + 0.08, z1, PAL.fence, true);
+  }
 }
 
 function coreBlocks(S, D, G, L, B, lamps, rnd) {
@@ -167,10 +231,13 @@ function coreBlocks(S, D, G, L, B, lamps, rnd) {
           const isShop = Object.values(CITY_LOTS).some(([lc, lr, ls]) => lc === c && lr === r && ls === side);
           const seed = c * 7 + r * 3 + (side === 'E' ? 1 : 0);
           const wall = WALLS[(seed * 5 + 2) % WALLS.length];
-          // 店面那棟比較矮、後方留一點後院；住宅比較高
-          const floors = lotFloors(c, r, side, isShop);
-          building(S, G, L, rnd, { x0: rr.x0, x1: rr.x1, z0: rr.z0 + (isShop ? 4 : 1.5), z1: rr.z1, floors, wall, shop: isShop, fireEscape: !isShop || seed % 3 === 0 });
-          if (isShop) backyard(S, rnd, rr.x0, rr.z0, rr.x1, rr.z0 + 4);
+          // 店面整棟由 decor.js 依等級畫（未開設是兩層樓店屋、開設後是剖面室內），後方留後院
+          if (isShop) { backyard(S, rnd, rr.x0, rr.z0, rr.x1, rr.z0 + 4); continue; }
+          // 住宅：沿街 3–4 層步登公寓，後面是有圍籬與菜圃的後院
+          const floors = lotFloors(c, r, side, false);
+          const bz0 = rr.z1 - 13;
+          building(S, G, L, rnd, { x0: rr.x0, x1: rr.x1, z0: bz0, z1: rr.z1, floors, wall, fireEscape: true });
+          yard(S, rnd, rr.x0, rr.z0, rr.x1, bz0 - 0.3);
         }
       }
       streetFurniture(S, B, lamps, rnd, x0, z0, x1, z1, true);
@@ -180,26 +247,37 @@ function coreBlocks(S, D, G, L, B, lamps, rnd) {
 
 export const lotFloors = (c, r, side, isShop = true) => {
   const seed = c * 7 + r * 3 + (side === 'E' ? 1 : 0);
-  return isShop ? 3 + (seed % 2) : 4 + (seed % 3);
+  return isShop ? 2 : 3 + (seed % 2);
 };
-export const roofY = (floors) => 4.2 + (floors - 1) * 3.3;
+export const GROUND_H = 3.6, FLOOR_H = 3.2;
+export const roofY = (floors) => GROUND_H + (floors - 1) * FLOOR_H;
 
-// 建築：正面 +z、側面 +x 有窗；屋頂有冷氣、天窗、水塔
+// 建築：正面 +z、側面 +x 有窗；屋頂有冷氣、天窗、樓梯間、水塔
 export function building(S, G, L, rnd, o) {
   const { x0, x1, z0, z1, floors, wall } = o;
-  const GH = 4.2, FH = 3.3;
+  const GH = GROUND_H, FH = FLOOR_H;
   const top = GH + (floors - 1) * FH;
   const trim = PAL.trim;
   S.box(x0, 0.22, z0, x1, top, z1, wall);
-  // 簷口與樓層腰線
-  S.box(x0 - 0.2, top - 0.55, z0, x1 + 0.2, top, z1 + 0.22, trim);
+  // 簷口（帶齒飾）與樓層腰線
+  S.box(x0 - 0.2, top - 0.45, z0, x1 + 0.2, top, z1 + 0.22, trim);
+  for (let x = x0 + 0.3; x < x1 - 0.2; x += 0.7) S.box(x, top - 0.75, z1, x + 0.3, top - 0.45, z1 + 0.14, trim, true);
+  for (let z = z0 + 0.3; z < z1 - 0.2; z += 0.7) S.box(x1, top - 0.75, z, x1 + 0.14, top - 0.45, z + 0.3, trim, true);
   S.box(x0, GH - 0.25, z1, x1 + 0.08, GH + 0.05, z1 + 0.14, trim, true);
-  // 屋頂：深色平頂＋女兒牆
+  // 屋頂：深色平頂＋奶油色壓頂的女兒牆
   S.box(x0 + 0.35, top, z0 + 0.35, x1 - 0.35, top + 0.08, z1 - 0.35, PAL.roof);
-  S.box(x0, top, z0, x1, top + 0.5, z0 + 0.35, wall);
-  S.box(x0, top, z1 - 0.35, x1, top + 0.5, z1, wall);
-  S.box(x0, top, z0, x0 + 0.35, top + 0.5, z1, wall);
-  S.box(x1 - 0.35, top, z0, x1, top + 0.5, z1, wall);
+  S.box(x0, top, z0, x1, top + 0.45, z0 + 0.35, wall);
+  S.box(x0, top, z1 - 0.35, x1, top + 0.45, z1, wall);
+  S.box(x0, top, z0, x0 + 0.35, top + 0.45, z1, wall);
+  S.box(x1 - 0.35, top, z0, x1, top + 0.45, z1, wall);
+  S.box(x0 - 0.05, top + 0.45, z1 - 0.4, x1 + 0.05, top + 0.58, z1 + 0.05, trim, true);
+  S.box(x1 - 0.4, top + 0.45, z0 - 0.05, x1 + 0.05, top + 0.58, z1 + 0.05, trim, true);
+  // 樓梯間小屋（奶油色牆、深色頂）
+  {
+    const hx = x0 + 1 + rnd() * Math.max(0.5, x1 - x0 - 4.5), hz = z0 + 1 + rnd() * Math.max(0.5, z1 - z0 - 4);
+    S.box(hx, top, hz, hx + 2.2, top + 1.6, hz + 2, trim);
+    S.box(hx - 0.1, top + 1.6, hz - 0.1, hx + 2.3, top + 1.75, hz + 2.1, PAL.roof);
+  }
   const W = x1 - x0, Dd = z1 - z0;
   const nAc = 1 + Math.floor(rnd() * 3);
   for (let k = 0; k < nAc; k++) {
@@ -231,7 +309,13 @@ export function building(S, G, L, rnd, o) {
       const cx = ox + k * step;
       S.box(cx - winW / 2 - 0.16, y - 0.16, z1, cx + winW / 2 + 0.16, y + winH + 0.12, z1 + 0.1, trim, true);
       (rnd() < 0.42 ? L : G).box(cx - winW / 2, y, z1 + 0.02, cx + winW / 2, y + winH, z1 + 0.14, PAL.glass, true);
+      S.box(cx - winW / 2 + 0.6, y, z1 + 0.05, cx - winW / 2 + 0.68, y + winH, z1 + 0.16, trim, true);
       S.box(cx - winW / 2 - 0.25, y - 0.32, z1, cx + winW / 2 + 0.25, y - 0.12, z1 + 0.28, trim, true);
+      if (rnd() < 0.22) {
+        // 窗台花箱
+        S.box(cx - winW / 2 - 0.1, y - 0.12, z1 + 0.05, cx + winW / 2 + 0.1, y + 0.18, z1 + 0.42, '#8a5a3a', true);
+        for (let i = 0; i < 3; i++) S.ball(cx - 0.45 + i * 0.45, y + 0.1, z1 + 0.26, 0.17, rnd() < 0.5 ? '#c8453c' : '#e2b84f');
+      }
     }
     for (let k = 0; k < nz; k++) {
       const cz = oz + k * step;
@@ -245,11 +329,15 @@ export function building(S, G, L, rnd, o) {
     L.box(sx0, 0.5, z1 + 0.02, sx1, GH - 0.6, z1 + 0.12, '#3e5258', true);
     for (let x = sx0; x <= sx1 + 0.01; x += (sx1 - sx0) / 4) S.box(x - 0.09, 0.22, z1, x + 0.09, GH - 0.5, z1 + 0.2, PAL.trim, true);
     S.box(sx0, 0.22, z1, sx1, 0.55, z1 + 0.2, PAL.trim, true);
-  } else {
-    const cx = (x0 + x1) / 2 + 2.5;
-    S.box(cx - 1, 0.22, z1, cx + 1, 2.8, z1 + 0.15, '#3b2f28', true);
-    S.box(cx - 1.4, 2.8, z1, cx + 1.4, 3.1, z1 + 0.6, trim, true);
-    S.box(cx - 1.6, 0.22, z1, cx + 1.6, 0.5, z1 + 1.1, PAL.walk, true);
+  } else if (!o.back) {
+    // 步登公寓入口：門、深綠雨棚、門前階梯與扶手
+    const cx = (x0 + x1) / 2 + (W > 11 ? 2.5 : 0);
+    S.box(cx - 0.9, 0.7, z1, cx + 0.9, 3.0, z1 + 0.15, '#2f3f36', true);
+    S.box(cx - 0.75, 0.85, z1 + 0.15, cx + 0.75, 2.85, z1 + 0.18, '#506a62', true);
+    S.add(TBOX, cx, 2.95, z1 + 0.55, 2.4, 0.12, 1.2, 0, '#2f5a47', -0.25);
+    S.box(cx - 1.2, 2.75, z1 + 1.05, cx + 1.2, 3.0, z1 + 1.15, '#2f5a47', true);
+    for (let k = 0; k < 3; k++) S.box(cx - 1.1, 0.22, z1 + 0.15 + k * 0.32, cx + 1.1, 0.7 - k * 0.16, z1 + 1.3, PAL.walk, true);
+    for (const sx of [-1.15, 1.15]) S.add(TBOX, cx + sx, 0.75, z1 + 0.7, 0.06, 0.06, 1.2, 0, PAL.lampPole, 0.4);
     for (let k = 0; k < nx; k++) {
       const wx = ox + k * step;
       if (Math.abs(wx - cx) < 2) continue;

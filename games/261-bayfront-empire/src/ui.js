@@ -95,6 +95,7 @@ export function createUI(root, ctx) {
   $('#labels').appendChild(portLbl);
   let portKey = '';
   const shipEls = [];
+  const elevEls = [], tagEls = [];
   function portLabelHTML() {
     const s = st(), lv = s.port.lv;
     if (!lv) return `<span class="li sale">${icon('anchor', 14)}</span><span>${PORT.name}</span><b class="price">${money(PORT.cost)}</b>`;
@@ -104,7 +105,7 @@ export function createUI(root, ctx) {
     const s = st(), b = BIZ_BY_ID[id], lv = s.biz[id].lv;
     if (!lv) return `<span class="li sale">${icon(b.icon, 14)}</span><span>${esc(b.name)}</span><b class="price">${money(b.cost)}</b>`;
     const shut = !isOpen(b, s.minute);
-    return `<span class="li">${icon(b.icon, 14)}</span><span>${esc(b.name)}</span><b class="lv${shut ? ' shut' : ''}">${shut ? '打烊' : 'Lv' + lv}</b>`;
+    return `<span class="li">${icon(b.icon, 14)}</span><span>${lv >= 3 && b.zone === 'city' ? 'F1 · ' : ''}${esc(b.name)}</span><b class="lv${shut ? ' shut' : ''}">${shut ? '打烊' : 'Lv' + lv}</b>`;
   }
 
   // ── 飄字 ──
@@ -542,6 +543,38 @@ export function createUI(root, ctx) {
           el.style.transform = `translate3d(${pp.x.toFixed(1)}px, ${pp.y.toFixed(1)}px, 0) translate(-50%, -100%)`;
           const html = `${icon('ship', 13)}<span>${esc(q.name)}</span><b class="${q.q.state}">${shipStatus(q.q, now)}</b>`;
           if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
+        }
+      }
+      // Lv3 店家：F2 樓層標籤與電梯樓層指示（F1 ▲ 2/4）
+      {
+        const list = ctx.elevators();
+        for (let i = 0; i < Math.max(list.length, elevEls.length); i++) {
+          if (!elevEls[i]) {
+            const el = document.createElement('div');
+            el.className = 'elbl';
+            const tg = document.createElement('button');
+            tg.className = 'lbl ftag';
+            tg.addEventListener('click', (e) => { e.stopPropagation(); openBiz(tg.dataset.id); });
+            $('#labels').append(tg, el);
+            elevEls.push(el);
+            tagEls.push(tg);
+          }
+          const el = elevEls[i], tg = tagEls[i], q = list[i];
+          const pb = q && ctx.project(q.id);
+          if (!q || !pb.vis || pb.far) { el.style.visibility = tg.style.visibility = 'hidden'; continue; }
+          el.style.visibility = tg.style.visibility = '';
+          const pe = ctx.projectPoint(q.x, q.y, q.z), pt = ctx.projectPoint(q.tag[0], q.tag[1], q.tag[2]);
+          el.style.transform = `translate3d(${pe.x.toFixed(1)}px, ${pe.y.toFixed(1)}px, 0) translate(-50%, -100%)`;
+          tg.style.transform = `translate3d(${pt.x.toFixed(1)}px, ${pt.y.toFixed(1)}px, 0) translate(-50%, -100%)`;
+          const eh = `F${q.floor} ${q.dir > 0 ? '▲' : q.dir < 0 ? '▼' : '■'} ${q.n}/${q.cap}`;
+          if (el.textContent !== eh) el.textContent = eh;
+          if (tg.dataset.id !== q.id) {
+            const b = BIZ_BY_ID[q.id];
+            tg.dataset.id = q.id;
+            tg.style.setProperty('--c', b.color);
+            tg.innerHTML = `<span class="li">${icon(b.icon, 14)}</span><span>F2 · ${esc(b.name)}</span>`;
+          }
+          tg.classList.toggle('sel', ctx.selected() === q.id);
         }
       }
       for (let i = pops.length - 1; i >= 0; i--) {

@@ -6,6 +6,7 @@ import { BIZ, BIZ_BY_ID } from './data.js';
 import { arrivalPerMin, capOf, serve, turnAway, isOpen, beachCrowd } from './econ.js';
 import { CITY_LOTS, lotRect, BEACH, umbrellaSlot, STAIRS_X, BOAT_SLOTS, JET_SLOTS, groundY, SAND_Y, DECK_Y, RAIL_Z } from './layout.js';
 import { SEA_Y } from './sea.js';
+import { seatsOf, elevatorOf, F2Y } from './interior.js';
 
 const TBOX = T.box;
 const SHIRTS = ['#c8453c', '#2f7f8f', '#d9a63e', '#2d5a45', '#e07a5f', '#5f8790', '#f2e8cf', '#8a4f6e', '#3f7a8c', '#b5793a', '#f4f1e6', '#6a5a8a', '#e8c25a', '#7a9a5a'];
@@ -54,6 +55,64 @@ export function createPeople(scene, ctx) {
     scene.add(m);
   }
   bodies.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
+
+  // ── Lv3 城市商家的電梯 ──
+  // 車廂依固定循環上下（下層停 2.5 秒 → 上行 3.5 秒 → 上層停 2.5 秒 → 下行 3.5 秒），客人在停靠時進出，最多 4 人
+  const CITY_IDS = BIZ.filter((b) => b.zone === 'city').map((b) => b.id);
+  const ELEV = Object.fromEntries(CITY_IDS.map((id, i) => [id, { ...elevatorOf(id), off: i * 2.7 }]));
+  const ECAP = 4;
+  let elevT = 0, clockMin = 0;
+  const ease = (k) => k * k * (3 - 2 * k);
+  function cabState(id) {
+    const E = ELEV[id];
+    const t = (elevT + E.off) % 12;
+    let k, dir = 0;
+    if (t < 2.5) k = 0;
+    else if (t < 6) { k = ease((t - 2.5) / 3.5); dir = 1; }
+    else if (t < 8.5) k = 1;
+    else { k = 1 - ease((t - 8.5) / 3.5); dir = -1; }
+    return { k, dir, y: E.y0 + (E.y1 - E.y0) * k, bottom: t < 2.3, top: t >= 6 && t < 8.3 };
+  }
+  const riders = (id) => { let n = 0; for (const a of A) if (a.on && a.ride === id) n++; return n; };
+  const cabGeo = (() => {
+    const S = new Builder();
+    S.add(TBOX, 0, -0.12, 0, 2.0, 0.12, 2.0, 0, '#3a4144');
+    S.add(TBOX, 0, 2.3, 0, 2.0, 0.14, 2.0, 0, '#e0b646');
+    for (const [dx, dz] of [[-0.95, -0.95], [0.95, -0.95], [-0.95, 0.95], [0.95, 0.95]]) S.add(TBOX, dx, 0, dz, 0.08, 2.3, 0.08, 0, '#e0b646');
+    S.add(TBOX, 0, 0.9, -0.95, 1.9, 0.06, 0.04, 0, '#e0b646');
+    return S.geometry();
+  })();
+  const cabs = new THREE.InstancedMesh(cabGeo, mat, CITY_IDS.length);
+  cabs.count = 0;
+  cabs.frustumCulled = false;
+  cabs.castShadow = true;
+  scene.add(cabs);
+  // 走到電梯口等車廂，進去後跟著車廂移動，到站後接著走 path
+  function takeElevator(a, id, up, then) {
+    const E = ELEV[id];
+    a.pose = 'stand';
+    a.yaw = Math.PI / 2;
+    a.wait = 0;
+    a.waitFor = () => {
+      const c = cabState(id);
+      if (!(up ? c.bottom : c.top) || riders(id) >= ECAP) return false;
+      a.ride = id;
+      const slot = riders(id) - 1;
+      a.x = E.x + (slot % 2 ? 0.45 : -0.45);
+      a.z = E.z + (slot > 1 ? 0.45 : -0.45);
+      a.pose = 'ride';
+      a.waitFor = () => {
+        const cc = cabState(id);
+        a.y = cc.y;
+        if (!(up ? cc.top : cc.bottom)) return false;
+        a.ride = null;
+        a.fy = up ? E.y1 : null;
+        then();
+        return true;
+      };
+      return false;
+    };
+  }
   heads.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
   towels.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(40 * 3), 3);
 
@@ -61,6 +120,7 @@ export function createPeople(scene, ctx) {
   const occ = Object.fromEntries(BIZ.map((b) => [b.id, 0]));
   const acc = Object.fromEntries(BIZ.map((b) => [b.id, rnd()]));
   const umbBusy = new Array(12).fill(null);
+  const seatCache = {}, seatBusy = {};
   const snackQ = [];
   let ambAcc = 0, beachAcc = 0;
   const counts = { city: 0, beach: 0, cust: 0 };
@@ -93,7 +153,7 @@ export function createPeople(scene, ctx) {
     if (!a) return null;
     const [x, z] = P(from);
     Object.assign(a, {
-      on: true, kind, x, z, y: groundY(x, z), yaw: 0, path: [], pi: 0, pose: 'walk', timer: 0, biz: null, slot: -1, craft: null,
+      on: true, kind, x, z, y: groundY(x, z), fy: null, ride: null, yaw: 0, path: [], pi: 0, pose: 'walk', timer: 0, biz: null, slot: -1, craft: null,
       surfer: null, from, phase: rnd() * 6, then: null, wait: 0, towel: -1, beach: false,
     });
     _c.set(SHIRTS[Math.floor(rnd() * SHIRTS.length)]);
@@ -142,9 +202,44 @@ export function createPeople(scene, ctx) {
         occ[id]++;
         a.biz = id;
         pay(a, id);
-        a.pose = 'hidden';
-        a.timer = BIZ_BY_ID[id].stay * (0.8 + rnd() * 0.4);
-        a.then = () => { occ[id]--; a.biz = null; a.y = groundY(a.x, a.z); leave(a); };
+        // 剖面室內：走進店裡找空位坐下（或站在器材前），客滿的人在店裡看不到的地方
+        const lv = s.biz[id].lv;
+        const seats = seatCache[id + lv] || (seatCache[id + lv] = seatsOf(id, lv));
+        const busy = seatBusy[id + lv] || (seatBusy[id + lv] = new Set());
+        const free = seats.map((_, k) => k).filter((k) => !busy.has(k));
+        const stay = BIZ_BY_ID[id].stay * (0.8 + rnd() * 0.4);
+        const out = () => { a.biz = null; a.y = groundY(a.x, a.z); leave(a); };
+        if (!free.length) {
+          a.pose = 'hidden';
+          a.timer = stay;
+          a.then = () => { occ[id]--; out(); };
+          return;
+        }
+        // 佔用容量的時間維持和以前一樣（付款起算 stay 分鐘）：路上與等電梯的時間從入座時間扣掉，離座就釋放
+        const t0 = clockMin;
+        const k = free[Math.floor(rnd() * free.length)];
+        busy.add(k);
+        const st = seats[k];
+        const inZ = r.z1 - 1.4;
+        const sit = () => {
+          a.pose = st.pose;
+          a.x = st.x; a.z = st.z; a.y = st.y; a.yaw = st.yaw;
+          a.timer = Math.max(stay * 0.25, stay - (clockMin - t0));
+          a.then = () => {
+            busy.delete(k);
+            occ[id]--;
+            a.pose = 'walk';
+            if (st.floor !== 2) return go(a, [[dx, st.z], [dx, inZ], [dx, r.z1 + 0.4]], out);
+            // 從 F2 搭電梯下樓再出門
+            const E = ELEV[id];
+            go(a, [[dx, st.z], [dx, E.z], E.wait], () => takeElevator(a, id, false, () => go(a, [E.wait, [dx, inZ], [dx, r.z1 + 0.4]], out)));
+          };
+        };
+        if (st.floor !== 2) go(a, [[dx, inZ], [dx, st.z], [st.x, st.z]], sit);
+        else {
+          const E = ELEV[id];
+          go(a, [[dx, inZ], E.wait], () => takeElevator(a, id, true, () => go(a, [E.wait, [dx, E.z], [dx, st.z], [st.x, st.z]], sit)));
+        }
       });
     },
     snack(a, id) {
@@ -379,6 +474,19 @@ export function createPeople(scene, ctx) {
         while (beachAcc >= 1) { beachAcc -= 1; if (nb < beachTarget) { spawnBeachGoer(); nb++; } }
       }
 
+      // 電梯車廂
+      elevT += dt * speed;
+      clockMin += dMin;
+      let nc3 = 0;
+      for (const id of CITY_IDS) {
+        if ((s.biz[id] && s.biz[id].lv) < 3) continue;
+        const E = ELEV[id];
+        _m.compose(_p.set(E.x, cabState(id).y, E.z), _q.identity(), _s.set(1, 1, 1));
+        cabs.setMatrixAt(nc3++, _m);
+      }
+      cabs.count = nc3;
+      cabs.instanceMatrix.needsUpdate = true;
+
       // 移動與狀態
       const step = WALK_SPEED * dt * speed;
       const tMin = dMin;
@@ -394,7 +502,7 @@ export function createPeople(scene, ctx) {
             else { a.x += (dx / d) * left; a.z += (dz / d) * left; a.yaw = Math.atan2(dx, dz); left = 0; }
           }
           a.phase += step * 3.2;
-          const gy = groundY(a.x, a.z);
+          const gy = a.fy != null ? a.fy : groundY(a.x, a.z);
           a.y += (gy - a.y) * Math.min(1, dt * 12 + 0.2);
           if (a.z > 44.5 && !(Math.abs(a.x - 18) < 2.2 && a.z < 65) && !(Math.abs(a.x - 60) < 1.5 && a.z < 56)) a.y = SEA_Y - Math.min(0.9, (a.z - 44.5) * 0.25);
           if (a.pi >= a.path.length) {
@@ -418,6 +526,7 @@ export function createPeople(scene, ctx) {
         let pitch = 0, roll = 0, y = a.y, yaw = a.yaw;
         if (a.pose === 'walk') { y += Math.abs(Math.sin(a.phase)) * 0.06; roll = Math.sin(a.phase) * 0.04; }
         else if (a.pose === 'lie') { pitch = -Math.PI / 2; }
+        else if (a.pose === 'sit') { y -= 0.4; }
         else if (a.pose === 'swim') { y = SEA_Y - 1.05 + Math.sin(a.phase + performance.now() * 0.002) * 0.06; a.phase += dt; }
         _m.compose(_p.set(a.x, y, a.z), _q.setFromEuler(_e.set(pitch, yaw, roll, 'YXZ')), _s.set(1, 1, 1));
         bodies.setMatrixAt(n, _m);
@@ -443,6 +552,14 @@ export function createPeople(scene, ctx) {
       }
     },
     active: () => A.filter((a) => a.on).length,
+    // 介面用：各 Lv3 店家電梯的位置、所在樓層、方向與乘客數
+    elevators() {
+      const s = getState();
+      return CITY_IDS.filter((id) => s.biz[id] && s.biz[id].lv >= 3).map((id) => {
+        const c = cabState(id), E = ELEV[id];
+        return { id, x: E.x, y: c.y + 2.9, z: E.z, floor: c.k < 0.5 ? 1 : 2, dir: c.dir, n: riders(id), cap: ECAP, tag: E.tag };
+      });
+    },
     visible: () => bodies.count,
     agents: A,
   };

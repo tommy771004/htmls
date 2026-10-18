@@ -40,7 +40,7 @@ const quality = { dpr: Math.min(devicePixelRatio, mobile ? 1.5 : 2), shadowEvery
 renderer.setPixelRatio(quality.dpr);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#5aa6a6');
+scene.background = new THREE.Color('#62a19c');
 const hemi = new THREE.HemisphereLight('#e9f1ff', '#9a8e72', 1.4);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff3df', 2.4);
@@ -75,7 +75,7 @@ for (const b of BIZ) {
   if (CITY_LOTS[b.id]) {
     const [c, r, side] = CITY_LOTS[b.id];
     const rr = lotRect(c, r, side);
-    PICK[b.id] = [new THREE.Box3(new THREE.Vector3(rr.x0, 0, rr.z0), new THREE.Vector3(rr.x1, roofY(lotFloors(c, r, side)) + 1, rr.z1 + 2.4))];
+    PICK[b.id] = [new THREE.Box3(new THREE.Vector3(rr.x0, 0, rr.z0), new THREE.Vector3(rr.x1, Math.max(roofY(lotFloors(c, r, side)) + 1, 11), rr.z1 + 2.4))];
   }
 }
 const box = (x0, z0, x1, z1, h = 4) => new THREE.Box3(new THREE.Vector3(x0, 0, z0), new THREE.Vector3(x1, h, z1));
@@ -130,7 +130,7 @@ scene.add(rain);
 function anchorOf(id) {
   if (CITY_LOTS[id]) {
     const rr = lotRect(...CITY_LOTS[id]);
-    return [(rr.x0 + rr.x1) / 2, 6.6, rr.z1 + 0.8];
+    return [(rr.x0 + rr.x1) / 2, 5.2, rr.z1 + 0.8];
   }
   const a = labelAnchor(id);
   return [a[0], a[1] + 2.2, a[2]];
@@ -153,6 +153,7 @@ const ui = createUI(document.getElementById('ui'), {
     return p;
   },
   shipLabels: () => harbor.shipLabels(),
+  elevators: () => people.elevators(),
   project(id) {
     const a = anchorOf(id);
     const p = projectPoint(a[0], a[1], a[2]);
@@ -478,8 +479,8 @@ function autoQuality(dt) {
 
 // ───────── 日夜與天氣 ─────────
 const C = (h) => new THREE.Color(h);
-const SKY = { day: C('#5aa6a6'), night: C('#1c2b3a') };
-const SUNC = { noon: C('#fff4e2'), gold: C('#ffb36b'), moon: C('#8fa6d8') };
+const SKY = { day: C('#62a19c'), night: C('#1b2a48') };
+const SUNC = { noon: C('#fff4e2'), gold: C('#ffb36b'), moon: C('#7d98dc') };
 let rainK = 0, cloudK = 0;
 function lighting(dt) {
   const h = S.minute / 60;
@@ -500,16 +501,17 @@ function lighting(dt) {
   sun.target.position.set(view.x, 0, view.z);
   const gold = clamp(1 - elev * 2.2, 0, 1) * day;
   sun.color.copy(SUNC.noon).lerp(SUNC.gold, gold).lerp(SUNC.moon, night);
-  sun.intensity = (day * 2.5 * w.light * (1 - cloudK * 0.55) + night * 0.35);
+  // 夜裡是偏藍的月光，亮到能投出影子（影片的夜景）
+  sun.intensity = (day * 2.5 * w.light * (1 - cloudK * 0.55) + night * 0.95 * (1 - cloudK * 0.4));
   hemi.intensity = 0.55 + day * 0.95 * (1 - cloudK * 0.2);
-  hemi.color.setRGB(0.92 - night * 0.45, 0.95 - night * 0.4, 1.0 - night * 0.2);
-  hemi.groundColor.setRGB(0.6 - night * 0.35, 0.55 - night * 0.32, 0.45 - night * 0.2);
+  hemi.color.setRGB(0.92 - night * 0.52, 0.95 - night * 0.45, 1.0 - night * 0.16);
+  hemi.groundColor.setRGB(0.6 - night * 0.4, 0.55 - night * 0.32, 0.45 - night * 0.06);
   scene.background.copy(SKY.day).lerp(SKY.night, night);
   const nightK = clamp(1 - day * 1.3 + cloudK * 0.2 * day, 0, 1);
   world.setNight(nightK);
   decor.setNight(nightK);
   harbor.setNight(nightK);
-  sea.uniforms.uNight.value = night * 0.75;
+  sea.uniforms.uNight.value = night * 0.9;
   sea.uniforms.uRain.value = rainK;
   sea.uniforms.uCloud.value = cloudK;
   // 陰影框跟著鏡頭

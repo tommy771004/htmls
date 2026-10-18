@@ -18,6 +18,30 @@ uniform float uTime, uNight, uRain, uCloud;
 uniform vec3 uSand, uWet, uShallow, uMid, uDeep, uFoam, uNightTint;
 varying vec3 vW;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+// 手繪感的短浪紋：每格最多一筆，沿海岸方向，慢慢漂移、淡入淡出
+float strokes(vec2 p, float t, float seed) {
+  vec2 cs = vec2(7.0, 2.6);
+  vec2 q = p + vec2(t * 0.9, -t * 0.25);
+  vec2 id = floor(q / cs);
+  vec2 f = q - id * cs;
+  float h = hash(id + seed);
+  if (h < 0.45) return 0.0;
+  float len = 2.2 + 2.6 * hash(id + seed + 3.1);
+  float cx = 0.6 + (cs.x - len - 1.2) * hash(id + seed + 7.7);
+  float cz = cs.y * (0.3 + 0.4 * hash(id + seed + 1.9));
+  float u = (f.x - cx) / len;
+  if (u < 0.0 || u > 1.0) return 0.0;
+  float wob = sin(u * 3.1416 * 1.5 + h * 6.0) * 0.22;
+  float w = 0.22 * sin(u * 3.1416);
+  float d = abs(f.y - cz - wob);
+  float life = sin(t * 0.35 + h * 40.0) * 0.5 + 0.5;
+  return (1.0 - smoothstep(w * 0.4, w, d)) * smoothstep(0.15, 0.6, life);
+}
 void main() {
   float x = vW.x, z = vW.z;
   float shore = 44.0 + 1.3 * sin(x * 0.043) + 0.7 * sin(x * 0.131 + 1.3);
@@ -44,7 +68,14 @@ void main() {
     float wave = (1.0 - smoothstep(0.0, 0.45, abs(band))) * smoothstep(9.5, 2.0, d) * 0.7;
     // 外海的湧浪條紋
     float swell = sin(z * 0.32 + x * 0.06 - uTime * 0.9) * sin(z * 0.11 - x * 0.03 + uTime * 0.4);
-    col += vec3(0.035) * swell * smoothstep(4.0, 30.0, d);
+    col += vec3(0.02) * swell * smoothstep(4.0, 30.0, d);
+    // 手繪浪紋（亮）與少量暗紋
+    float far = smoothstep(3.0, 16.0, d);
+    col = mix(col, mix(col, uFoam, 0.7), strokes(vW.xz, uTime, 0.0) * far);
+    col = mix(col, col * 0.9, strokes(vW.xz * vec2(0.8, 1.1) + 13.0, uTime * 0.8, 5.3) * far * 0.8);
+    // 飄過海面的薄雲影（淡化成霧白）
+    float cl = vnoise(vW.xz * 0.012 + vec2(uTime * 0.01, 0.0)) * 0.65 + vnoise(vW.xz * 0.03 - vec2(0.0, uTime * 0.012)) * 0.35;
+    col = mix(col, mix(col, uFoam, 0.4), smoothstep(0.58, 0.85, cl) * smoothstep(20.0, 60.0, d) * (1.0 - uNight));
     // 細碎反光
     vec2 cell = floor(vW.xz * vec2(0.8, 1.6));
     float g = hash(cell + floor(uTime * 1.5));
@@ -185,9 +216,9 @@ export function createSea(scene) {
   const rnd = prng(77);
   const uniforms = {
     uTime: { value: 0 }, uNight: { value: 0 }, uRain: { value: 0 }, uCloud: { value: 0 },
-    uSand: { value: new THREE.Color('#ead9b0') }, uWet: { value: new THREE.Color('#cdb889') },
-    uShallow: { value: new THREE.Color('#a8dccb') }, uMid: { value: new THREE.Color('#82c8bb') }, uDeep: { value: new THREE.Color('#5aa6a6') },
-    uFoam: { value: new THREE.Color('#f6fbf3') }, uNightTint: { value: new THREE.Color('#3a5470') },
+    uSand: { value: new THREE.Color('#e6d9b6') }, uWet: { value: new THREE.Color('#cbb98f') },
+    uShallow: { value: new THREE.Color('#a4cdbf') }, uMid: { value: new THREE.Color('#7db5ac') }, uDeep: { value: new THREE.Color('#62a19c') },
+    uFoam: { value: new THREE.Color('#eef4ea') }, uNightTint: { value: new THREE.Color('#2f4f8a') },
   };
   const seaMat = new THREE.ShaderMaterial({ uniforms, vertexShader: seaVert, fragmentShader: seaFrag });
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(1000, 560).rotateX(-Math.PI / 2), seaMat);

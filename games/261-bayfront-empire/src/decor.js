@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { Builder, prng, T } from './geo.js';
 import { CITY_LOTS, lotRect, BEACH, umbrellaSlot, SAND_Y, DECK_Y, UMBRELLA_MAX } from './layout.js';
-import { PAL, lotFloors, roofY, bench } from './world.js';
+import { PAL, lotFloors, bench, building } from './world.js';
+import { interior, roomOf } from './interior.js';
 import { BIZ_BY_ID } from './data.js';
 
 const TBOX = T.box;
@@ -49,72 +50,18 @@ function stripes(S, x0, x1, y, z, depth, drop, color, n = 0) {
   for (let k = 0; k < cnt; k++) S.box(x0 + k * sw, y - drop - 0.35, z + depth - 0.05, x0 + (k + 1) * sw, y - drop, z + depth + 0.03, k % 2 ? PAL.cream : color, true);
 }
 
-function sign(S, cx, y, z, w, color) {
-  S.box(cx - w / 2, y, z, cx + w / 2, y + 0.8, z + 0.25, color, true);
-  S.box(cx - w / 2 + 0.25, y + 0.22, z + 0.25, cx + w / 2 - 0.25, y + 0.58, z + 0.3, PAL.cream, true);
-}
-
-function pot(S, x, y, z) {
-  S.box(x - 0.35, y, z - 0.35, x + 0.35, y + 0.6, z + 0.35, '#9a6b48');
-  S.ball(x, y + 0.5, z, 0.45, PAL.leaf2);
-}
-
-function cafeTable(S, x, y, z, umb) {
-  S.cyl(x, y, z, 0.05, 0.75, PAL.lampPole, 6);
-  S.cyl(x, y + 0.72, z, 0.42, 0.06, PAL.white, 8);
-  for (const s of [-0.7, 0.7]) S.box(x + s - 0.2, y, z - 0.2, x + s + 0.2, y + 0.45, z + 0.2, PAL.lampPole);
-  if (umb) {
-    S.cyl(x, y + 0.75, z, 0.04, 1.6, PAL.white, 6);
-    S.add(T.cone8, x, y + 2.0, z, 2.2, 0.55, 2.2, 0, umb);
-  }
-}
-
 function cityShop(S, B, id, lv, color, rnd) {
   const [c, r, side] = CITY_LOTS[id];
   const rr = lotRect(c, r, side);
+  if (lv > 0) { interior(S, B, id, lv, color); return; }
+  // 未開設：兩層樓店屋，一樓鐵捲門＋出租牌
+  const R = roomOf(id);
+  building(S, S, S, rnd, { x0: rr.x0, x1: rr.x1, z0: R.z0, z1: rr.z1, floors: lotFloors(c, r, side), wall: R.wall, shop: true });
   const z1 = rr.z1, x0 = rr.x0 + 0.6, x1 = rr.x1 - 0.6, cx = (rr.x0 + rr.x1) / 2;
-  const y0 = 0.22;
-  if (lv === 0) {
-    // 鐵捲門＋出租牌
-    S.box(x0 + 0.3, 0.55, z1 + 0.12, x1 - 0.3, 3.55, z1 + 0.26, '#9aa19c', true);
-    for (let y = 0.8; y < 3.5; y += 0.32) S.box(x0 + 0.3, y, z1 + 0.26, x1 - 0.3, y + 0.05, z1 + 0.29, '#848b86', true);
-    S.box(cx - 1.4, 1.9, z1 + 0.29, cx + 1.4, 3.0, z1 + 0.34, PAL.white, true);
-    S.box(cx - 1.2, 2.2, z1 + 0.34, cx + 1.2, 2.7, z1 + 0.37, PAL.red, true);
-    return;
-  }
-  stripes(S, x0, x1, 3.9, z1 + 0.15, 1.7, 0.75, color);
-  sign(S, cx, 4.35, z1 + 0.05, Math.min(7, x1 - x0 - 1), color);
-  pot(S, x0 + 0.2, y0, z1 + 0.6);
-  pot(S, x1 - 0.2, y0, z1 + 0.6);
-  // 門
-  S.box(cx - 0.8, y0, z1 + 0.12, cx + 0.8, 3.0, z1 + 0.2, color, true);
-  S.box(cx - 0.6, 0.4, z1 + 0.2, cx + 0.6, 2.8, z1 + 0.24, '#506a70', true);
-  if (lv >= 2) {
-    const food = ['cafe', 'bakery', 'burger', 'pizza', 'bar'].includes(id);
-    if (food) {
-      cafeTable(S, x0 + 2.2, y0, z1 + 2.2, null);
-      cafeTable(S, x1 - 2.2, y0, z1 + 2.2, null);
-    } else {
-      bench(S, x0 + 2.4, y0, z1 + 2.0, 0);
-    }
-    // A 字立牌
-    S.add(TBOX, cx + 2.6, y0, z1 + 1.6, 0.8, 1.1, 0.08, 0, color, -0.2);
-    S.add(TBOX, cx + 2.6, y0, z1 + 1.8, 0.8, 1.1, 0.08, 0, PAL.cream, 0.2);
-    // 窗台花箱
-    S.box(x0, 4.9 + 0.1, z1, x1, 5.3, z1 + 0.5, '#9a6b48', true);
-    for (let x = x0 + 0.5; x < x1; x += 1.1) S.ball(x, 5.2, z1 + 0.3, 0.32, rnd() < 0.5 ? '#d0607a' : '#e2b84f');
-  }
-  if (lv >= 3) {
-    const top = roofY(lotFloors(c, r, side));
-    const bw = Math.min(9, x1 - x0 - 1);
-    for (const s of [-bw / 2 + 0.6, bw / 2 - 0.6]) S.box(cx + s - 0.12, top, rr.z1 - 3, cx + s + 0.12, top + 2.4, rr.z1 - 2.7, PAL.lampPole);
-    S.box(cx - bw / 2, top + 2.2, rr.z1 - 3, cx + bw / 2, top + 4.2, rr.z1 - 2.6, color);
-    S.box(cx - bw / 2 + 0.4, top + 2.6, rr.z1 - 2.6, cx + bw / 2 - 0.4, top + 3.8, rr.z1 - 2.5, PAL.cream, true);
-    // 星級徽章
-    for (let k = 0; k < 3; k++) S.ball(cx - 1.2 + k * 1.2, top + 3.0, rr.z1 - 2.55, 0.3, '#d9a63e');
-    // 雨棚燈串
-    for (let x = x0 + 0.3; x < x1; x += 0.9) B.ball(x, 2.95 + Math.sin(x * 2) * 0.08, z1 + 1.9, 0.11, '#ffe2a0');
-  }
+  S.box(x0 + 0.3, 0.55, z1 + 0.12, x1 - 0.3, 3.05, z1 + 0.26, '#9aa19c', true);
+  for (let y = 0.8; y < 3.0; y += 0.32) S.box(x0 + 0.3, y, z1 + 0.26, x1 - 0.3, y + 0.05, z1 + 0.29, '#848b86', true);
+  S.box(cx - 1.4, 1.6, z1 + 0.29, cx + 1.4, 2.7, z1 + 0.34, PAL.white, true);
+  S.box(cx - 1.2, 1.9, z1 + 0.34, cx + 1.2, 2.4, z1 + 0.37, PAL.red, true);
 }
 
 // ───────── 海灘商家 ─────────

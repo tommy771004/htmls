@@ -29,7 +29,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     ok(await page.evaluate((m) => __bf.state.money === m - 60000 + 20000, cafe0), '扣款並拿到第一個任務獎勵');
     await page.evaluate(() => __bf.ui.close());
     // 經營一段時間：有顧客上門收錢
-    await page.evaluate(() => __bf.fast(25, 1));
+    await page.evaluate(() => __bf.fast(40, 1));
     ok(await page.evaluate(() => __bf.state.biz.cafe.visits > 0), '咖啡館有顧客消費');
     // 海灘改版：全部商家開到 Lv2，正午晴天
     await page.evaluate(() => { __bf.buyAll(2); __bf.setTime(11.5); __bf.setWeather('sunny'); __bf.fast(50, 1); });
@@ -37,6 +37,8 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     for (const [id, n] of Object.entries(st.v)) ok(n > 0, `海灘商家 ${id} 有消費（${n}）`);
     ok(st.s.boatsOut + st.s.jetsOut > 0, `海上有出租船或水上摩托車（船 ${st.s.boatsOut}、摩托車 ${st.s.jetsOut}）`);
     ok(st.s.agents > 40, `街上與海灘有行人（${st.s.agents}）`);
+    const seated = await page.evaluate(() => __bf.people.agents.filter((a) => a.on && a.pose === 'sit').length);
+    ok(seated > 0, `剖面店內有入座的客人（${seated}）`);
     // 面板與標籤
     // 物流與海港：從面板開港、補給船到港卸貨、投標合約
     await page.evaluate(() => { __bf.ui.close(); __bf.give(2e6); });
@@ -78,6 +80,15 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.evaluate(() => __bf.ui.close());
     // 水平溢出
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= innerWidth), '無水平溢出');
+    // Lv3：F2 樓層與電梯，客人搭電梯上樓入座，畫面上有樓層指示
+    const lift = await page.evaluate(() => {
+      __bf.give(5e6); __bf.buyAll(3); __bf.setTime(11); __bf.setWeather('sunny'); __bf.fast(40, 1); __bf.look(-75, -25, 60);
+      const A = __bf.people.agents.filter((a) => a.on);
+      return { up: A.filter((a) => a.fy != null).length, ride: A.filter((a) => a.pose === 'ride').length, badges: [...document.querySelectorAll('.elbl')].length };
+    });
+    await raf(page);
+    ok(lift.up + lift.ride > 0, `客人搭電梯到 F2（F2 上 ${lift.up}、電梯裡 ${lift.ride}）`);
+    ok(await page.evaluate(() => [...document.querySelectorAll('.elbl')].some((e) => e.style.visibility !== 'hidden' && /^F[12] [▲▼■] \d\/4$/.test(e.textContent))), '電梯樓層指示');
     // 存檔：v1 舊存檔放進 localStorage，重新載入後選「繼續」
     await page.evaluate(() => __bf.stopSaving());
     await page.evaluate(() => localStorage.setItem('bayfront-empire', JSON.stringify({ v: 1, cash: 777000, day: 4, time: 600, shops: { cafe: 2, bar: 1 }, quest: 3 })));
