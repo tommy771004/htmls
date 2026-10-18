@@ -2,7 +2,7 @@
 // 海灘商家則是小屋、傘位、衝浪板架與碼頭售票亭。每家店一個網格，升級時整個重建。
 import * as THREE from 'three';
 import { Builder, prng, T } from './geo.js';
-import { CITY_LOTS, lotRect, BEACH, umbrellaSlot, SAND_Y, DECK_Y, UMBRELLA_MAX } from './layout.js';
+import { CITY_LOTS, lotRect, stackOf, BEACH, umbrellaSlot, SAND_Y, DECK_Y, UMBRELLA_MAX } from './layout.js';
 import { PAL, lotFloors, bench, building } from './world.js';
 import { interior, roomOf } from './interior.js';
 import { BIZ_BY_ID } from './data.js';
@@ -53,7 +53,8 @@ function stripes(S, x0, x1, y, z, depth, drop, color, n = 0) {
 function cityShop(S, B, id, lv, color, rnd) {
   const [c, r, side] = CITY_LOTS[id];
   const rr = lotRect(c, r, side);
-  if (lv > 0) { interior(S, B, id, lv, color); return; }
+  // 已開設，或疊樓建築的任一層（空樓層畫成待租的空樓板）都用剖面室內
+  if (lv > 0 || stackOf(id).floors > 1) { interior(S, B, id, lv, color); return; }
   // 未開設：兩層樓店屋，一樓鐵捲門＋出租牌
   const R = roomOf(id);
   building(S, S, S, rnd, { x0: rr.x0, x1: rr.x1, z0: R.z0, z1: rr.z1, floors: lotFloors(c, r, side), wall: R.wall, shop: true });

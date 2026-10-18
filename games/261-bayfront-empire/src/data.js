@@ -92,7 +92,54 @@ export const EVENTS = {
   weekend:  { name: '週末海灘日', note: '海灘客流 +35%', zone: 'beach', mult: 1.35 },
   market:   { name: '街區市集', note: '城市客流 +25%', zone: 'city', mult: 1.25 },
   festival: { name: '海灘音樂節', note: '海灘客流 +50%', zone: 'beach', mult: 1.5 },
+  // 城市生活改版：週五晚上的街區派對（18 點到凌晨 3 點，夜店類 ×2、其他城市商家 ×1.5）
+  party:    { name: '週五夜派對', note: '晚上城市客流 +50%，酒吧加倍', zone: 'city', mult: 1, night: true },
+  // 批發短缺：向城市批發商進貨貴 50%，港口有庫存的不受影響
+  shortage: { name: '批發短缺', note: '市價進貨貴 50%，港口庫存不受影響', zone: null, mult: 1 },
 };
+
+// ── 城市生活改版 ──
+// 季節：每季 7 天，影響海灘與城市的客流；冬天沒有熱浪、夏天少雨
+export const SEASON_DAYS = 7;
+export const SEASONS = [
+  { id: 'spring', name: '春', beach: 1, city: 1 },
+  { id: 'summer', name: '夏', beach: 1.3, city: 0.95 },
+  { id: 'autumn', name: '秋', beach: 0.85, city: 1.06 },
+  { id: 'winter', name: '冬', beach: 0.55, city: 1.15 },
+];
+// 定價：平價客人多、評分漲得快；精品客單價高、客人少
+export const TIERS = {
+  '-1': { name: '平價', price: 0.85, arrive: 1.22, rating: 1.5 },
+  0: { name: '標準', price: 1, arrive: 1, rating: 1 },
+  1: { name: '精品', price: 1.22, arrive: 0.8, rating: 0.6 },
+};
+// 促銷：花客單價的 25 倍，接下來 3 小時客流 ×1.6
+export const PROMO = { costMul: 25, minutes: 180, mult: 1.6 };
+// 疊樓：同棟每多一級別家店，客流 +5%（樓上的店吃一樓的人潮）
+export const STACK_BONUS = 0.05;
+// 電梯：每棟一部，叫車制；升級加大車廂、加快速度
+export const LIFT = { cap: [4, 6, 8], move: [3.2, 2.2, 1.4], cost: [0, 150000, 380000], name: ['標準電梯', '雙速電梯', '高速觀景梯'] };
+export const SWAP_COST = 60000; // 疊樓兩層交換位置的裝修費
+// 公寓：買下住宅收房租，住戶也是城市商家的客人（每級 +2.5% 城市客流）
+export const APT_NAMES = ['鷗鳴公寓', '紅磚大樓', '轉角公寓', '燈塔街 12 號', '海風住宅', '老榆樹公寓', '晨光大樓', '水手公寓', '貝灣住宅'];
+export const APT = { base: 360000, step: 50000, renoMul: 1.5, rent: [0.045, 0.05], pop: 0.025 };
+// 地標：一次買斷，帶來全區加成
+export const LANDMARKS = [
+  { id: 'lighthouse', name: '防波堤燈塔', en: 'Breakwater Lighthouse', icon: 'beacon', color: '#c8453c', cost: 1600000,
+    note: '水上活動客流 +15%，夜裡有旋轉的光束', at: [-99, 0, 90] },
+  { id: 'market', name: '海濱夜市', en: 'Seaside Night Market', icon: 'lantern', color: '#d9a63e', cost: 2200000,
+    note: '城市客流 +10%，晚上 6 點到午夜再 +25%', at: [-108, 0, 26] },
+  { id: 'ferris', name: '海灣摩天輪', en: 'Bayfront Wheel', icon: 'wheel', color: '#2f7f8f', cost: 3500000,
+    note: '海灘人潮 +20%、戶外與水上 +10%，每小時賣票收入', at: [140, 0, 30] },
+];
+export const LANDMARK_BY_ID = Object.fromEntries(LANDMARKS.map((m) => [m.id, m]));
+export const FERRIS_TICKET = 9000; // 每小時票房（乘上海灘人潮倍率）
+// 競爭對手：搶走目標店家的部分客人，可以收購或買下他租的那棟公寓趕走
+export const RIVAL_NAMES = {
+  cafe: '星浪連鎖咖啡', bakery: '工業吐司坊', burger: '巨無霸速食', mart: '全日超商', books: '網路書城體驗店',
+  pizza: '閃電外送披薩', nail: '快剪美甲吧', boutique: '快時尚旗艦店', gym: '24H 健身中心', bar: '霓虹夜店',
+};
+export const RIVAL = { start: 0.15, grow: 0.02, max: 0.35, buyMul: 3, cooldown: 5 };
 
 export const LEVEL_AT = [0, 150000, 420000, 950000, 2000000, 4200000, 8000000, 14000000];
 

@@ -26,7 +26,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.evaluate(() => __bf.ui.openBiz('cafe'));
     await page.click('[data-buy=cafe]');
     ok(await page.evaluate(() => __bf.state.biz.cafe.lv === 1), '從面板買下咖啡館');
-    ok(await page.evaluate((m) => __bf.state.money === m - 60000 + 20000, cafe0), '扣款並拿到第一個任務獎勵');
+    ok(await page.evaluate((m) => { const S = __bf.state; const d = S.daily ? S.daily.tasks.filter((t) => t.done).reduce((a, t) => a + t.reward, 0) : 0; return S.money === m - 60000 + 20000 + d; }, cafe0), '扣款並拿到第一個任務獎勵（含每日任務獎金）');
     await page.evaluate(() => __bf.ui.close());
     // 經營一段時間：有顧客上門收錢
     await page.evaluate(() => __bf.fast(40, 1));
@@ -80,15 +80,72 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.evaluate(() => __bf.ui.close());
     // 水平溢出
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= innerWidth), '無水平溢出');
-    // Lv3：F2 樓層與電梯，客人搭電梯上樓入座，畫面上有樓層指示
+    // 疊樓建築：F2、F3 是不同店家，客人從一樓搭電梯上樓入座，畫面上有樓層指示
     const lift = await page.evaluate(() => {
-      __bf.give(5e6); __bf.buyAll(3); __bf.setTime(11); __bf.setWeather('sunny'); __bf.fast(40, 1); __bf.look(-75, -25, 60);
+      __bf.give(5e6); __bf.buyAll(3); __bf.setTime(11); __bf.setWeather('sunny'); __bf.fast(40, 1); __bf.look(40, -22, 60);
       const A = __bf.people.agents.filter((a) => a.on);
       return { up: A.filter((a) => a.fy != null).length, ride: A.filter((a) => a.pose === 'ride').length, badges: [...document.querySelectorAll('.elbl')].length };
     });
     await raf(page);
-    ok(lift.up + lift.ride > 0, `客人搭電梯到 F2（F2 上 ${lift.up}、電梯裡 ${lift.ride}）`);
-    ok(await page.evaluate(() => [...document.querySelectorAll('.elbl')].some((e) => e.style.visibility !== 'hidden' && /^F[12] [▲▼■] \d\/4$/.test(e.textContent))), '電梯樓層指示');
+    ok(lift.up + lift.ride > 0, `客人搭電梯到樓上的店（樓上 ${lift.up}、電梯裡 ${lift.ride}）`);
+    ok(await page.evaluate(() => [...document.querySelectorAll('.elbl')].some((e) => e.style.visibility !== 'hidden' && /^F[123] [▲▼■] \d+\/\d+$/.test(e.textContent))), '電梯樓層指示');
+    // 城市生活改版：定價、促銷、公寓、地標、對手、跟拍、照片模式、每日任務
+    const life = await page.evaluate(() => {
+      __bf.give(2e7);
+      const S = __bf.state;
+      __bf.act('tier', 'cafe', -1); __bf.act('promo', 'cafe');
+      const key = Object.keys(S.apts).length ? null : '0,0,W';
+      __bf.act('apt', '0,0,W');
+      __bf.act('mark', 'ferris'); __bf.act('mark', 'lighthouse');
+      return { tier: S.biz.cafe.tier, promo: S.biz.cafe.promo > 0, apt: S.apts['0,0,W'], ferris: !!S.marks.ferris, light: !!S.marks.lighthouse };
+    });
+    ok(life.tier === -1 && life.promo, '切換平價並開始促銷');
+    ok(life.apt === 1 && life.ferris && life.light, '買下公寓、興建摩天輪與燈塔');
+    await page.evaluate(() => { __bf.ui.close(); __bf.ui.openApt('0,0,W'); });
+    ok(await page.evaluate(() => __bf.ui.isOpen() === 'apt:0,0,W' && /房租/.test(document.getElementById('sheetBody').textContent)), '公寓面板');
+    await page.evaluate(() => { __bf.ui.close(); __bf.ui.openBiz('nail'); });
+    ok(await page.evaluate(() => document.querySelectorAll('.frow').length === 3 && !!document.querySelector('[data-swap]')), '疊樓面板列出三層與交換按鈕');
+    await page.evaluate(() => { __bf.ui.close(); __bf.ui.openPanel('quests'); });
+    await page.click('[data-qtab=daily]');
+    ok(await page.evaluate(() => document.querySelectorAll('.qlist > div').length >= 1), '每日任務分頁');
+    await page.click('[data-qtab=ach]');
+    ok(await page.evaluate(() => document.querySelectorAll('.qlist .done').length >= 1), '成就分頁有已達成項目');
+    await page.evaluate(() => __bf.ui.close());
+    const rv = await page.evaluate(() => {
+      const S = __bf.state;
+      S.rival = { id: 'cafe', name: '測試咖啡', lot: '1,0,W', since: S.day };
+      __bf.act('focus', 'rival');
+      return true;
+    });
+    await raf(page); await raf(page);
+    ok(await page.evaluate(() => [...document.querySelectorAll('.lbl.rv')].some((e) => e.style.visibility !== 'hidden')), '對手標籤出現在地圖上');
+    await page.evaluate(() => { __bf.ui.openRival(); });
+    ok(await page.evaluate(() => !!document.querySelector('[data-buyout]')), '對手面板有收購按鈕');
+    await page.click('[data-buyout]');
+    ok(await page.evaluate(() => !__bf.state.rival), '收購對手');
+    await page.evaluate(() => { __bf.setTime(10); __bf.fast(5, 1); });
+    const fol = await page.evaluate(() => __bf.follow(true));
+    await raf(page);
+    ok(!!fol && await page.evaluate(() => !document.getElementById('follow').hidden), `跟拍客人（${fol ? fol.who + ' ' + fol.what : '無'}）`);
+    await page.evaluate(() => __bf.follow(false));
+    await page.click('#btnPhoto');
+    await raf(page);
+    ok(await page.evaluate(() => getComputedStyle(document.getElementById('photobar')).display !== 'none' && getComputedStyle(document.querySelector('.nav')).display === 'none'), '照片模式藏起介面、顯示控制列');
+    await page.evaluate(() => { const r = document.getElementById('phTime'); r.value = 21; r.dispatchEvent(new Event('input', { bubbles: true })); });
+    ok(await page.evaluate(() => Math.abs(__bf.state.minute - 1260) < 3), '照片模式調整時間');
+    await page.click('[data-ph=exit]');
+    ok(await page.evaluate(() => getComputedStyle(document.querySelector('.nav')).display !== 'none'), '離開照片模式');
+    // v3 存檔（城市生活改版前）：顯示改版公告
+    await page.evaluate(() => __bf.stopSaving());
+    await page.evaluate(() => { const o = JSON.parse(__bf.exportSave()); o.v = 3; delete o.apts; delete o.marks; delete o.rival; delete o.ach; delete o.daily; delete o.savedAt; localStorage.setItem('bayfront-empire', JSON.stringify(o)); });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForFunction(() => window.__bf && window.__bf.ready);
+    await page.click('[data-start=cont]');
+    await raf(page);
+    ok(await page.evaluate(() => !!document.getElementById('goLife') && JSON.parse(localStorage.getItem('bayfront-empire')).v === 4), 'v3 存檔顯示城市生活改版公告並存回 v4');
+    await page.click('#goLife');
+    ok(await page.evaluate(() => __bf.ui.isOpen() === 'shop' && !!document.querySelector('[data-openapt]')), '公告按鈕開啟地產分頁');
+    await page.evaluate(() => __bf.ui.close());
     // 存檔：v1 舊存檔放進 localStorage，重新載入後選「繼續」
     await page.evaluate(() => __bf.stopSaving());
     await page.evaluate(() => localStorage.setItem('bayfront-empire', JSON.stringify({ v: 1, cash: 777000, day: 4, time: 600, shops: { cafe: 2, bar: 1 }, quest: 3 })));
@@ -98,7 +155,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await raf(page);
     const mig = await page.evaluate(() => ({ m: __bf.state.money, cafe: __bf.state.biz.cafe.lv, boat: __bf.state.biz.boat.lv, v: JSON.parse(localStorage.getItem('bayfront-empire')).v, modal: !!document.getElementById('goBeach') }));
     ok(mig.m === 777000 && mig.cafe === 2 && mig.boat === 0, 'v1 存檔遷移保留資金與店家');
-    ok(mig.v === 3, '遷移後以 v3 格式存回');
+    ok(mig.v === 4, '遷移後以 v4 格式存回');
     ok(mig.modal, '顯示海灘改版公告');
     await page.click('#goBeach');
     // v2 存檔（物流改版前）：保留海灘商家，顯示物流改版公告
@@ -110,7 +167,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await raf(page);
     const m2 = await page.evaluate(() => ({ m: __bf.state.money, boat: __bf.state.biz.boat.lv, port: __bf.state.port.lv, v: JSON.parse(localStorage.getItem('bayfront-empire')).v, modal: !!document.getElementById('goPort') }));
     ok(m2.m === 3210000 && m2.boat === 2 && m2.port === 0, 'v2 存檔遷移保留資金與海灘商家，海港為未開設');
-    ok(m2.v === 3 && m2.modal, '以 v3 存回並顯示物流改版公告');
+    ok(m2.v === 4 && m2.modal, '以 v4 存回並顯示物流改版公告');
     await page.click('#goPort');
     ok(await page.evaluate(() => __bf.ui.isOpen() === 'port'), '公告按鈕開啟物流面板');
     await page.evaluate(() => __bf.ui.close());

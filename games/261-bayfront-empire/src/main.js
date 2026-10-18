@@ -1,7 +1,9 @@
 // 灣岸商業帝國 · BAYFRONT EMPIRE — 進入點：渲染器、等角鏡頭、日夜與天氣、輸入、存檔與主迴圈。
 import * as THREE from 'three';
-import { BIZ, BIZ_BY_ID, WEATHER, EVENTS, BEACH_IDS, PORT } from './data.js';
-import { newState, migrate, serialize, tick, buyOrUpgrade, nextCost, capOf, SAVE_KEY, empireLevel, rand } from './econ.js';
+import { BIZ, BIZ_BY_ID, WEATHER, EVENTS, BEACH_IDS, PORT, LANDMARKS, LANDMARK_BY_ID, TIERS } from './data.js';
+import { newState, migrate, serialize, tick, buyOrUpgrade, nextCost, capOf, SAVE_KEY, empireLevel, rand, investedOf } from './econ.js';
+import { setTier, startPromo, upgradeLift, swapFloors, floorOrder, buyApt, buyMark, buyoutRival, offlineEarnings, APTS, APT_BY_KEY, aptLv, hasMark, liftLv } from './empire.js';
+import { createEstate, aptBox } from './estate.js';
 import { buyPort, placeBid, setReorder, portNextCost, absMin } from './port.js';
 import { createHarbor } from './portview.js';
 import { buildWorld } from './world.js';
@@ -12,7 +14,8 @@ import { createTraffic } from './traffic.js';
 import { createUI, money } from './ui.js';
 import { createAudio } from './audio.js';
 import { icon } from './icons.js';
-import { buildWalkGraph, buildNextHop, CITY_LOTS, lotRect, BEACH, labelAnchor, HARBOR } from './layout.js';
+import { buildWalkGraph, buildNextHop, CITY_LOTS, lotRect, floorOf, stackOf, setFloor, STACKS, lotKey, BEACH, labelAnchor, HARBOR } from './layout.js';
+import { floorY } from './interior.js';
 import { lotFloors, roofY } from './world.js';
 
 const SEC_PER_MIN = 0.3; // 1 倍速時，一遊戲分鐘 = 0.3 秒（一天約 7 分鐘）
@@ -59,7 +62,12 @@ const LIMIT = { x0: -290, x1: 150, z0: -95, z1: 120, h0: 34, h1: 190 };
 const world = buildWorld(scene);
 const decor = createDecor(scene);
 const sea = createSea(scene);
-const harbor = createHarbor(scene, { sea, getState: () => S });
+const harbor = createHarbor(scene, {
+  sea, getState: () => S,
+  // 物流車停在店門口卸貨：飄一個「補貨」
+  onDeliver(id, x, z) { if (BIZ_BY_ID[id]) ui.pop(`補貨 · ${{ food: '食材', goods: '零售貨', fuel: '燃油' }[BIZ_BY_ID[id].cargo]}`, x, 3.4, z, 'dlv'); },
+});
+const estate = createEstate(scene);
 const graph = buildWalkGraph();
 const route = buildNextHop(graph);
 const audio = createAudio();
@@ -71,12 +79,35 @@ scene.add(selBox);
 
 // 點選範圍
 const PICK = {};
-for (const b of BIZ) {
-  if (CITY_LOTS[b.id]) {
+function cityPick() {
+  for (const b of BIZ) {
+    if (!CITY_LOTS[b.id]) continue;
     const [c, r, side] = CITY_LOTS[b.id];
     const rr = lotRect(c, r, side);
-    PICK[b.id] = [new THREE.Box3(new THREE.Vector3(rr.x0, 0, rr.z0), new THREE.Vector3(rr.x1, Math.max(roofY(lotFloors(c, r, side)) + 1, 11), rr.z1 + 2.4))];
+    // 疊樓建築每層是不同店家，各自點自己那層（交換樓層後重算）
+    const f = floorOf(b.id), y0 = f > 1 ? floorY(f) - 0.6 : 0;
+    const y1 = stackOf(b.id).floors > 1 ? floorY(f) + 5.4 : Math.max(roofY(lotFloors(c, r, side)) + 1, 11);
+    PICK[b.id] = [new THREE.Box3(new THREE.Vector3(rr.x0, y0, rr.z0), new THREE.Vector3(rr.x1, y1, rr.z1 + 2.4))];
   }
+}
+cityPick();
+// 公寓、地標與對手的店面
+for (const a of APTS) {
+  const q = aptBox(a.key);
+  PICK['apt:' + a.key] = [new THREE.Box3(new THREE.Vector3(q.x0, 0, q.z0), new THREE.Vector3(q.x1, q.top + 1, q.z1 + 1.5))];
+}
+const MARK_PICK = { lighthouse: [6, 22, 6], market: [11, 6, 7.5], ferris: [8, 26, 8] };
+function markPick() {
+  for (const m of LANDMARKS) {
+    const [x, , z] = m.at, [w, h, d] = MARK_PICK[m.id];
+    if (hasMark(S, m.id)) PICK['mark:' + m.id] = [new THREE.Box3(new THREE.Vector3(x - w, 0, z - d), new THREE.Vector3(x + w, h, z + d))];
+    else delete PICK['mark:' + m.id];
+  }
+}
+function rivalPick() {
+  if (!S.rival) { delete PICK.rival; return; }
+  const q = aptBox(S.rival.lot);
+  PICK.rival = [new THREE.Box3(new THREE.Vector3(q.x0, 0, q.z1 - 2), new THREE.Vector3((q.x0 + q.x1) / 2 - 1.5, 4.2, q.z1 + 2.6))];
 }
 const box = (x0, z0, x1, z1, h = 4) => new THREE.Box3(new THREE.Vector3(x0, 0, z0), new THREE.Vector3(x1, h, z1));
 PICK.snack = [box(-86, 20, -72, 33)];
@@ -95,7 +126,7 @@ const people = createPeople(scene, {
     ui.income(id, amt, a[0], a[1] - 2, a[2]);
     audio.coin(amt);
   },
-  onTurned(id, x, y, z) { ui.turned(id, x, y, z); },
+  onTurned(id, x, y, z, why) { ui.turned(id, x, y, z, why); },
 });
 people.setSecPerMin(SEC_PER_MIN);
 const traffic = createTraffic(scene, { mobile });
@@ -128,9 +159,21 @@ scene.add(rain);
 
 // ───────── 介面 ─────────
 function anchorOf(id) {
+  if (id.startsWith('apt:')) {
+    const q = aptBox(id.slice(4));
+    return [(q.x0 + q.x1) / 2, q.top + 3.2, q.z1];
+  }
+  if (id.startsWith('mark:')) {
+    const m = LANDMARK_BY_ID[id.slice(5)];
+    return [m.at[0], { lighthouse: 21, market: 7, ferris: 27 }[m.id], m.at[2]];
+  }
+  if (id === 'rival') {
+    const q = aptBox(S.rival ? S.rival.lot : APTS[0].key);
+    return [q.x0 + (q.x1 - q.x0) * 0.25, 5.2, q.z1 + 0.8];
+  }
   if (CITY_LOTS[id]) {
     const rr = lotRect(...CITY_LOTS[id]);
-    return [(rr.x0 + rr.x1) / 2, 5.2, rr.z1 + 0.8];
+    return [(rr.x0 + rr.x1) / 2, floorY(floorOf(id)) + 4.9, rr.z1 + 0.8];
   }
   const a = labelAnchor(id);
   return [a[0], a[1] + 2.2, a[2]];
@@ -154,6 +197,8 @@ const ui = createUI(document.getElementById('ui'), {
   },
   shipLabels: () => harbor.shipLabels(),
   elevators: () => people.elevators(),
+  anchor: anchorOf,
+  far: () => view.h > 130,
   project(id) {
     const a = anchorOf(id);
     const p = projectPoint(a[0], a[1], a[2]);
@@ -177,7 +222,8 @@ const ui = createUI(document.getElementById('ui'), {
     focus(id) {
       const a = anchorOf(id);
       view.tx = a[0];
-      view.tz = a[2] + (BIZ_BY_ID[id].zone === 'beach' ? 6 : 4);
+      view.tz = a[2] + (BIZ_BY_ID[id] && BIZ_BY_ID[id].zone === 'beach' ? 6 : 4);
+      if (follow) stopFollow();
       view.th = Math.min(view.th, mobile ? 92 : 80);
       selected = id;
     },
@@ -207,8 +253,142 @@ const ui = createUI(document.getElementById('ui'), {
     setQuality(q) { S.opts.quality = q; applyQuality(); },
     save() { save(); },
     reset() { store.del(); startGame(newState(Date.now() % 100000)); },
+    // ── 城市生活改版 ──
+    tier(id, t) { if (setTier(S, id, t)) { audio.buy(); ui.toast(`${BIZ_BY_ID[id].name}改成${TIERS[t].name}定價`, 'tag'); save(); } },
+    promo(id) {
+      if (!startPromo(S, id)) { audio.deny(); return; }
+      audio.buy();
+      ui.toast(`${BIZ_BY_ID[id].name}促銷開跑：接下來 3 小時客流 +60%`, 'megaphone', 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    lift(key) {
+      const lv = upgradeLift(S, key);
+      if (!lv) { audio.deny(); return; }
+      audio.buy();
+      S.stats.invested = investedOf(S);
+      ui.toast(`大樓電梯升級：${['', '標準電梯', '雙速電梯', '高速觀景梯'][lv]}`, 'lift', 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    swap(key, a, b) {
+      if (!swapFloors(S, key, a, b)) { audio.deny(); return; }
+      audio.buy();
+      const ids = stackOf(a).ids;
+      people.evict(ids);
+      applyOrder();
+      for (const id of ids) decor.set(id, S.biz[id].lv);
+      cityPick();
+      ui.toast(`${BIZ_BY_ID[a].name}換到 F${floorOf(a)}，${BIZ_BY_ID[b].name}換到 F${floorOf(b)}`, 'swap', 'good');
+      save();
+    },
+    apt(key) {
+      const was = aptLv(S, key), hadRival = !!S.rival;
+      const lv = buyApt(S, key);
+      if (!lv) { audio.deny(); return; }
+      audio.buy();
+      S.stats.invested = investedOf(S);
+      estate.setApt(key, lv);
+      const a = APT_BY_KEY[key];
+      ui.toast(was ? `${a.name}翻修完成：房租與住戶都變多了` : `買下${a.name}：每天收房租，住戶也會來你的店消費`, 'home', 'good');
+      if (hadRival && !S.rival) rivalGone();
+      handle(tick(S, 0));
+      save();
+    },
+    mark(id) {
+      if (!buyMark(S, id)) { audio.deny(); return; }
+      audio.buy();
+      S.stats.invested = investedOf(S);
+      estate.setMark(id, true);
+      markPick();
+      const m = LANDMARK_BY_ID[id];
+      ui.toast(`${m.name}落成！${m.note}`, m.icon, 'good');
+      view.tx = m.at[0]; view.tz = m.at[2] + 4; view.th = Math.min(view.th, mobile ? 100 : 86);
+      handle(tick(S, 0));
+      save();
+    },
+    buyout() {
+      if (!buyoutRival(S)) { audio.deny(); return; }
+      audio.buy();
+      rivalGone();
+      handle(tick(S, 0));
+      save();
+    },
+    follow(on = true) { if (on) followSomeone(); else stopFollow(); },
+    photo(on) { photoMode(on); },
+    photoTime(h) { S.minute = Math.round(h * 60) % 1440; },
+    photoWeather(w) { if (WEATHER[w]) { S.weather.cur = w; S.weather.until = S.minute + 240; if (w === 'rain') people.clearBeach(); } },
+    timelapse() { lapse = lapse ? null : { left: 1440, prev: speed }; if (lapse) speed = 20; else speed = 1; },
+    record() { toggleRecord(); },
+    snapshot() { snap = true; },
   },
 });
+
+// ───────── 城市生活改版：樓層、對手、跟拍、照片模式 ─────────
+function applyOrder() {
+  for (const st of STACKS) floorOrder(S, st.key).forEach((id, i) => setFloor(id, i + 1));
+}
+function rivalGone() {
+  const r = S.rivalLog;
+  estate.setRival(null);
+  rivalPick();
+  if (r) ui.toast(r.how === 'evict' ? `${r.name}的店面租約被你收回，搬走了` : `你收購了${r.name}，對街又是你的天下`, 'rival', 'good');
+}
+// 跟拍：點人或按「跟拍」挑一位正在路上的顧客，鏡頭跟著走
+let follow = null;
+function followAgent(a) {
+  follow = { a, gen: a.gen };
+  view.th = Math.min(view.th, mobile ? 70 : 60);
+  ui.follow(people.describe(a), a);
+}
+function followSomeone() {
+  const A = people.agents.filter((a) => a.on && a.kind === 'cust' && !a.paid && a.pose === 'walk' && !a.rival);
+  // 優先挑要去疊樓上層的客人（會搭電梯）
+  const up = A.filter((a) => a.target && CITY_LOTS[a.target] && floorOf(a.target) > 1);
+  const pool = up.length ? up : A;
+  if (!pool.length) { ui.toast('現在街上沒有客人可以跟', 'eye'); return; }
+  followAgent(pool[Math.floor(Math.random() * pool.length)]);
+}
+function stopFollow() { follow = null; ui.follow(null); }
+function pickPerson(cx, cy) {
+  let best = null, bd = 24 * 24;
+  for (const a of people.agents) {
+    if (!a.on || a.pose === 'hidden') continue;
+    const p = projectPoint(a.x, a.y + 0.9, a.z);
+    const d = (p.x - cx) ** 2 + (p.y - cy) ** 2;
+    if (d < bd) { bd = d; best = a; }
+  }
+  return best;
+}
+// 照片模式：藏起介面、可調時間天氣、24 小時縮時、錄影與截圖
+let lapse = null, snap = false, rec = null;
+function photoMode(on) {
+  document.getElementById('ui').classList.toggle('photo', on);
+  if (!on && lapse) { lapse = null; speed = 1; }
+  if (!on && rec) toggleRecord();
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const stamp = () => `bayfront-D${S.day}-${String(Math.floor(S.minute / 60)).padStart(2, '0')}${String(Math.floor(S.minute % 60)).padStart(2, '0')}`;
+function toggleRecord() {
+  if (rec) { rec.stop(); rec = null; ui.recording(false); return; }
+  if (!canvas.captureStream || typeof MediaRecorder === 'undefined') { ui.toast('這個瀏覽器不支援錄影', 'film', 'warn'); return; }
+  const type = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
+  if (!type) { ui.toast('這個瀏覽器不支援錄影', 'film', 'warn'); return; }
+  const chunks = [];
+  const r = new MediaRecorder(canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: 8e6 });
+  r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  r.onstop = () => download(new Blob(chunks, { type }), `${stamp()}.${type.includes('mp4') ? 'mp4' : 'webm'}`);
+  r.start(500);
+  rec = r;
+  ui.recording(true);
+}
 
 function focusPort() {
   view.tx = -222; view.tz = 40; view.th = Math.min(Math.max(view.th, mobile ? 120 : 100), 140);
@@ -220,7 +400,16 @@ function applyBiz(id) {
   if (id === 'boat') sea.setFleet('boat', S.biz.boat.lv ? capOf(S, 'boat') : 0);
   if (id === 'jetski') sea.setFleet('jet', S.biz.jetski.lv ? capOf(S, 'jetski') : 0);
 }
-function applyAll() { for (const b of BIZ) applyBiz(b.id); }
+function applyAll() {
+  applyOrder();
+  cityPick();
+  for (const b of BIZ) applyBiz(b.id);
+  for (const a of APTS) estate.setApt(a.key, aptLv(S, a.key));
+  for (const m of LANDMARKS) estate.setMark(m.id, hasMark(S, m.id));
+  markPick();
+  estate.setRival(S.rival);
+  rivalPick();
+}
 
 function save() {
   if (!started) return;
@@ -245,6 +434,18 @@ function handle(events) {
     } else if (e.type === 'port') {
       ui.toast(e.msg, e.ic || 'anchor', e.tone || '');
       if (e.msg.includes('準備靠泊')) audio.horn();
+    } else if (e.type === 'daily') {
+      ui.toast(`每日目標完成：${e.text}　+${money(e.reward)}`, 'target', 'good');
+      audio.coin(e.reward);
+    } else if (e.type === 'ach') {
+      ui.toast(`成就解鎖：${e.name} · ${e.desc}　+${money(e.reward)}`, 'trophy', 'good');
+      audio.buy();
+    } else if (e.type === 'rival') {
+      estate.setRival(S.rival);
+      rivalPick();
+      ui.toast(`競爭對手進駐：${e.name}開在${APT_BY_KEY[S.rival.lot].name}一樓，搶走${BIZ_BY_ID[e.id].name}的客人`, 'rival', 'warn');
+    } else if (e.type === 'season') {
+      ui.toast(`換季：${e.season.name}天到了 · 海灘 ${Math.round(e.season.beach * 100)}%、城市 ${Math.round(e.season.city * 100)}%`, { spring: 'flower', summer: 'sun', autumn: 'leaf', winter: 'snow' }[e.season.id]);
     } else if (e.type === 'contract') {
       ui.toast(e.late ? `${e.name} 卸貨完成，逾期 ${e.hours} 小時扣 ${Math.round(e.pen * 100)}%：收款 ${money(e.pay)}` : `合約完成：${e.client} 付款 ${money(e.pay)}`, 'contract', e.late ? 'warn' : 'good');
       const q = harbor.shipLabels().find((v) => v.name === e.name);
@@ -264,10 +465,14 @@ const V2_DEMO = { v: 2, money: 2380000, day: 15, minute: 10 * 60 + 20, rng: 3133
   stats: { invested: 4.6e6, earned: 1.5e7, served: 38000, turned: 2100 }, history: [], today: { rev: {}, visits: {}, turned: {}, cost: 0, buy: 0 }, opts: { sound: true, quality: 'auto' } };
 const LEGACY_DEMO = { v: 1, cash: 1450000, day: 6, time: 9 * 60 + 40, shops: { cafe: 3, bakery: 2, burger: 2, mart: 2, books: 1, pizza: 2, nail: 1, boutique: 1, gym: 1, bar: 1 }, earnedTotal: 2650000, quest: 4, rating: 86, seed: 4242 };
 
-function startGame(state) {
+function startGame(state, resumed = false) {
   S = state;
   started = true;
   speed = 1;
+  stopFollow();
+  // 離線收入：繼續經營時結算不在的這段時間（店長代管）
+  const off = resumed ? offlineEarnings(S, Date.now()) : { amount: 0 };
+  if (off.amount > 0) { S.money += off.amount; S.stats.earned += off.amount; }
   audio.setOn(S.opts.sound);
   applyAll();
   applyQuality();
@@ -303,6 +508,24 @@ function startGame(state) {
       ui.openPanel('port', true);
       save();
     };
+  } else if (S.notice === 'life-update') {
+    ui.modal(`<div class="mcard">
+      <p class="kick">${icon('home', 18)} 改版公告 · 存檔 v3 → v4</p>
+      <h2>城市生活改版上線</h2>
+      <p>你的存檔已完整轉換，所有商家、海港與任務進度都保留。這次新增：</p>
+      <ul><li>定價（平價／標準／精品）與促銷活動；疊樓的店互相帶客，電梯改成叫車制、可以升級，也能付錢交換樓層</li><li>買下公寓收房租、增加住戶；三座地標：燈塔、海濱夜市、摩天輪</li><li>競爭對手會開到對街搶客；四季、週五夜派對、批發短缺</li><li>每日目標與成就、離線收入、跟拍客人與照片模式</li></ul>
+      <button class="big" id="goLife">${icon('arrow', 18)} 開始經營</button></div>`);
+    document.getElementById('goLife').onclick = () => { S.notice = null; ui.closeModal(); ui.openShop('estate'); save(); };
+  } else if (off.amount > 0) {
+    S.notice = null;
+    ui.modal(`<div class="mcard">
+      <p class="kick">${icon('clock', 18)} 歡迎回來</p>
+      <h2>店長幫你顧店</h2>
+      <p>你離開了 ${off.minutes >= 60 ? `${Math.floor(off.minutes / 60)} 小時 ${Math.round(off.minutes % 60)} 分` : `${Math.round(off.minutes)} 分鐘`}。各店照常營業，結算${off.days >= 1 ? '一整天' : '這段時間'}平均淨利的一半：</p>
+      <p class="offamt">+${money(off.amount, true)}</p>
+      <p class="muted">離線收入最多結算遊戲裡的一天（約真實 7 分鐘），想賺更多就回來親自經營。</p>
+      <button class="big" id="goBack">${icon('check', 18)} 收下</button></div>`);
+    document.getElementById('goBack').onclick = () => { ui.closeModal(); audio.coin(off.amount); };
   } else {
     S.notice = null;
   }
@@ -329,7 +552,7 @@ function startScreen() {
   document.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => {
     audio.start();
     const k = b.dataset.start;
-    if (k === 'cont') startGame(prev);
+    if (k === 'cont') startGame(prev, true);
     else if (k === 'new') startGame(newState(Date.now() % 100000));
     else if (k === 'v2') startGame(migrate(JSON.stringify(V2_DEMO)));
     else startGame(migrate(JSON.stringify(LEGACY_DEMO)));
@@ -369,6 +592,7 @@ canvas.addEventListener('pointermove', (e) => {
     const [a, b] = [...ptrs.values()];
     view.th = view.h = clamp(pinch.h * pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), LIMIT.h0, LIMIT.h1);
   } else if (drag && drag.start) {
+    if (follow && moved > 8) stopFollow();
     placeCamera();
     const p = groundAt(e.clientX, e.clientY);
     if (p) {
@@ -396,6 +620,11 @@ canvas.addEventListener('wheel', (e) => {
   view.th = clamp(view.th * Math.exp(e.deltaY * 0.0012), LIMIT.h0, LIMIT.h1);
 }, { passive: false });
 function tap(cx, cy) {
+  // 先看有沒有點到人（放大時才容易點到）
+  if (view.h < 110) {
+    const a = pickPerson(cx, cy);
+    if (a) { followAgent(a); return; }
+  }
   const ndc = new THREE.Vector2((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   let best = null, bd = Infinity;
@@ -409,6 +638,9 @@ function tap(cx, cy) {
     }
   }
   if (best === 'port') { selected = 'port'; ui.openPanel('port', true); }
+  else if (best && best.startsWith('apt:')) ui.openApt(best.slice(4));
+  else if (best && best.startsWith('mark:')) ui.openMark(best.slice(5));
+  else if (best === 'rival') ui.openRival();
   else if (best) ui.openBiz(best);
   else ui.close();
 }
@@ -420,7 +652,7 @@ addEventListener('keydown', (e) => {
   if (e.key === '1') speed = 1;
   if (e.key === '2') speed = 2;
   if (e.key === '3') speed = 4;
-  if (e.key === 'Escape') ui.close();
+  if (e.key === 'Escape') { if (document.getElementById('ui').classList.contains('photo')) ui.photo(false); else if (follow) stopFollow(); else ui.close(); }
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
@@ -531,7 +763,7 @@ function lighting(dt) {
 
 // ───────── 主迴圈 ─────────
 const clock = new THREE.Clock();
-let time = 0, frame = 0, saveT = 0, fpsSm = 60;
+let time = 0, frame = 0, saveT = 0, fpsSm = 60, followT = 0;
 function loop() {
   const dt = Math.min(0.05, clock.getDelta());
   time += dt;
@@ -550,6 +782,23 @@ function loop() {
   }
   if (keys.has('q')) view.th = clamp(view.th * (1 - dt), LIMIT.h0, LIMIT.h1);
   if (keys.has('e')) view.th = clamp(view.th * (1 + dt), LIMIT.h0, LIMIT.h1);
+  // 跟拍：鏡頭對準這個人（在樓上時把高度換算回地面座標）
+  if (follow) {
+    const a = follow.a;
+    if (!a.on || a.gen !== follow.gen) { stopFollow(); ui.toast('這位客人回家了', 'eye'); }
+    else if (!drag) {
+      const k = (a.y + 0.9) / camDir.y;
+      view.tx = a.x - camDir.x * k;
+      view.tz = a.z - camDir.z * k;
+      followT -= dt;
+      if (followT <= 0) { followT = 0.2; ui.follow(people.describe(a), a); }
+    }
+  }
+  // 24 小時縮時
+  if (lapse && started) {
+    lapse.left -= dMin;
+    if (lapse.left <= 0) { lapse = null; speed = 1; ui.toast('縮時結束', 'film'); }
+  }
   const k = Math.min(1, dt * 7);
   if (!drag) { view.x += (view.tx - view.x) * k; view.z += (view.tz - view.z) * k; }
   view.h += (view.th - view.h) * k;
@@ -560,18 +809,20 @@ function loop() {
   sea.update(dt, time, gameSpeed);
   harbor.update(dt, gameSpeed);
   const { day } = lighting(dt);
+  estate.update(dt, gameSpeed, 1 - day);
 
   // 選取框
   if (selected && PICK[selected]) {
     const b = PICK[selected][0];
     selBox.visible = true;
-    selBox.position.set((b.min.x + b.max.x) / 2, 0.3, (b.min.z + b.max.z) / 2);
+    selBox.position.set((b.min.x + b.max.x) / 2, b.min.y + (b.min.y > 0 ? 0.6 : 0.3), (b.min.z + b.max.z) / 2);
     selBox.scale.set(b.max.x - b.min.x + 0.6, 0.02 + Math.abs(Math.sin(time * 3)) * 0.25, b.max.z - b.min.z + 0.6);
   } else selBox.visible = false;
 
   if (quality.shadows) renderer.shadowMap.needsUpdate = frame % quality.shadowEvery === 0;
   renderer.shadowMap.autoUpdate = false;
   renderer.render(scene, camera);
+  if (snap) { snap = false; canvas.toBlob((b) => b && download(b, `${stamp()}.png`), 'image/png'); }
   ui.update(dt, fpsSm);
   audio.update(dt, { beach: clamp((view.z + 10) / 40, 0, 1), port: clamp((-150 - view.x) / 60, 0, 1) * clamp((view.z + 10) / 40, 0, 1), day, rainK, speed: gameSpeed });
   autoQuality(dt);
@@ -617,6 +868,10 @@ window.__bf = {
   bid: (id, bid) => placeBid(S, rand, id, bid),
   bidWin(id) { const o = S.port.offers.find((x) => x.id === id) || S.port.offers[0]; return o && placeBid(S, () => 0, o.id, Math.round(o.guide * 0.8)); },
   now: () => absMin(S),
-  harbor,
+  harbor, estate, traffic,
+  act: (k, ...a) => ui.act(k, ...a),
+  follow(on = true) { if (on) followSomeone(); else stopFollow(); return follow && people.describe(follow); },
+  photo(on = true) { ui.photo(on); },
+  elevators: () => people.elevators(),
   stats: () => ({ ...harbor.stats(), fps: Math.round(fpsSm), agents: people.active(), visible: people.visible(), tris: Math.round(world.tris), calls: renderer.info.render.calls, level: empireLevel(S), ...sea.stats() }),
 };

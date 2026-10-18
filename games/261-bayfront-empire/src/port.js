@@ -52,7 +52,8 @@ export const inbound = (s, c) => s.port.ships.filter((q) => q.kind === 'supply' 
 
 // 每位客人消費時呼叫：回傳這次的供應成本，並記錄是否走港口
 export function supplyCost(s, def, price) {
-  const retail = price * def.supply;
+  // 批發短缺的日子市價貴 50%（走港口的照樣打折，省下的就更多）
+  const retail = price * def.supply * (s.event === 'shortage' ? 1.5 : 1);
   const p = s.port;
   if (p.lv && p.stock[def.cargo] >= 1 && p.truckUsed < truckCap(s)) {
     p.stock[def.cargo] -= 1;

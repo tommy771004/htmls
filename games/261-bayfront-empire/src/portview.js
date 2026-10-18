@@ -154,7 +154,8 @@ function truckGeo() {
   return S.geometry();
 }
 
-export function createHarbor(scene, { sea, getState }) {
+export function createHarbor(scene, ctx) {
+  const { sea, getState } = ctx;
   const matS = new THREE.MeshLambertMaterial({ vertexColors: true });
   const matD = new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const matB = new THREE.MeshBasicMaterial({ vertexColors: true, color: new THREE.Color(0.8, 0.8, 0.78) });
@@ -376,7 +377,7 @@ export function createHarbor(scene, { sea, getState }) {
             if (w[0] === 'stop') {
               const [, sx, sz] = w;
               const dx = sx - tr.x, dz = sz - tr.z, d = Math.hypot(dx, dz);
-              if (d <= left) { tr.x = sx; tr.z = sz; tr.i++; tr.wait = 3; break; }
+              if (d <= left) { tr.x = sx; tr.z = sz; tr.i++; tr.wait = 3; if (ctx.onDeliver) ctx.onDeliver(tr.route.id, sx, sz); break; }
               tr.x += (dx / d) * left; tr.z += (dz / d) * left; tr.yaw = Math.atan2(dx, dz); left = 0;
               continue;
             }

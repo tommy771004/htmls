@@ -2,12 +2,13 @@
 // 露出棋盤地板、依業種擺的家具、櫃台店員與入座的客人。家具位置同時產生客人的「座位」，
 // people.js 以同一份 plan 讓客人走進店裡坐下或站在器材前。
 import { T } from './geo.js';
-import { CITY_LOTS, lotRect } from './layout.js';
+import { CITY_LOTS, lotRect, floorOf, stackOf } from './layout.js';
 import { PAL, WALLS } from './world.js';
 
 const TBOX = T.box;
-// 室內地板高：F1 在街區平台上，Lv3 多一層 F2，以展開的方式懸在上方（細柱支撐、玻璃電梯井連通）
-export const F1Y = 0.3, F2Y = 10.2;
+// 室內地板高：F1 在街區平台上；疊樓的上層以展開的方式懸在上方（細柱支撐、玻璃電梯井連通）
+export const F1Y = 0.3, FLOOR_GAP = 9.6;
+export const floorY = (f) => F1Y + (f - 1) * FLOOR_GAP;
 let FY = F1Y;
 const WALL_H = 3.1; // 牆高（自樓板起算）
 
@@ -155,8 +156,18 @@ const PLAN = {
     for (let y of [1.3, 1.9]) for (let x = R.x0 + 0.8; x < R.x1 - 3.2; x += 0.3) S.cyl(x, FY + y, R.z0 + 0.5, 0.07, 0.4, GOODS[Math.floor(x * 3) % GOODS.length], 6);
     staff(S, R.cx, R.z0 + 0.95, 0, '#2a2a2a');
     for (let x = R.x0 + 1.2, k = 0; x < R.x1 - 3.4; x += 1.1, k++) { stool(S, x, R.z0 + 2.75, '#a8462f'); if (k < n.bar) spot(x, R.z0 + 2.75, Math.PI, 'sit'); }
-    // 撞球台
-    if (n.lv >= 2) {
+    if (n.lv >= 3) {
+      // Lv3 變成夜店：發光舞池、DJ 台與鏡面球（影片裡的 Club）
+      const px = (R.zr0 + R.zr1) / 2, pz = z.a + 2.2;
+      const NEON = ['#ff4f9a', '#3fd0e0', '#ffd23f', '#9b6bff'];
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) B.box(px - 1.6 + i * 0.8, FY + 0.01, pz - 1.6 + j * 0.8, px - 0.85 + i * 0.8, FY + 0.05, pz - 0.85 + j * 0.8, NEON[(i + j * 2) % 4], true);
+      S.box(px - 1.2, FY, pz - 2.8, px + 1.2, FY + 1.1, pz - 2.1, '#1f232b');
+      B.box(px - 1.0, FY + 1.1, pz - 2.7, px + 1.0, FY + 1.16, pz - 2.2, '#3fd0e0', true);
+      S.box(px - 0.02, FY + 2.4, pz - 0.02, px + 0.02, FY + 3.1, pz + 0.02, PAL.metal);
+      B.ball(px, FY + 2.05, pz, 0.32, '#e8eef2', 1);
+      for (const [dx, dz] of [[-0.8, -0.6], [0.7, -0.4], [-0.4, 0.8], [0.9, 0.9]]) spot(px + dx, pz + dz, Math.atan2(-dx, -dz), 'stand');
+    } else if (n.lv >= 2) {
+      // 撞球台
       const px = (R.zr0 + R.zr1) / 2, pz = z.a + 2.2;
       S.box(px - 1.0, FY, pz - 1.7, px + 1.0, FY + 0.8, pz + 1.7, '#5a3a28');
       S.box(px - 0.85, FY + 0.8, pz - 1.55, px + 0.85, FY + 0.84, pz + 1.55, '#2f6b55');
@@ -211,8 +222,16 @@ const PLAN = {
       S.box(x + 0.45, FY, zz - 0.5, x + 0.6, FY + 0.7, zz + 0.5, '#7a4560');
       spot(x, zz, 0, 'sit');
     }
-    counter(S, R.x1 - 2.8, R.z0 + 0.4, R.x1 - 0.6, R.z0 + 2.4, 1.0, color, '#e8e2d0');
-    staff(S, R.x1 - 1.7, R.z0 + 0.15, 0, color);
+    // 書店咖啡吧（影片裡三樓是咖啡館）：櫃台、咖啡機、杯架與高腳椅
+    const cx0 = R.x1 - 6.2, cx1 = R.x1 - 3.2;
+    counter(S, cx0, R.z0 + 1.2, cx1, R.z0 + 2.0, 1.05, color, '#e8e2d0');
+    S.box(cx0 + 0.3, FY + 1.05, R.z0 + 1.3, cx0 + 1.0, FY + 1.6, R.z0 + 1.8, '#7d8784');
+    S.box(cx0 + 0.4, FY + 1.6, R.z0 + 1.35, cx0 + 0.9, FY + 1.68, R.z0 + 1.75, '#2a2f30');
+    for (let i = 0; i < 4; i++) S.cyl(cx0 + 1.4 + i * 0.32, FY + 1.05, R.z0 + 1.55, 0.09, 0.16, PAL.white, 6);
+    S.box(cx0 + 0.2, FY + 2.2, R.z0 + 0.82, cx1 - 0.2, FY + 2.9, R.z0 + 0.88, '#2f3a33', true);
+    for (let i = 0; i < 3; i++) S.box(cx0 + 0.4, FY + 2.7 - i * 0.18, R.z0 + 0.88, cx0 + 1.6 + (i % 2) * 0.5, FY + 2.76 - i * 0.18, R.z0 + 0.9, PAL.cream, true);
+    staff(S, (cx0 + cx1) / 2, R.z0 + 0.95, 0, color);
+    for (let i = 0, x = cx0 + 0.5; x < cx1 && i < 1 + n.lv; x += 0.95, i++) { stool(S, x, R.z0 + 2.6, '#8a4f6e'); spot(x, R.z0 + 2.6, Math.PI, 'sit'); }
     return ['#c7a57a', '#b8956b', '#efe6d2'];
   },
   boutique(S, B, R, z, spot, n, color) {
@@ -235,7 +254,7 @@ const PLAN = {
       }
     }
     // 人台
-    for (const [x, zz] of [[R.cx - 2.6, R.z1 - 1.4], [R.cx + 2.6, R.z1 - 1.4]]) {
+    for (const [x, zz] of [[R.cx - 2.6, R.z1 - 1.4], [R.cx - 4.6, R.z1 - 1.4]]) {
       S.cyl(x, FY, zz, 0.2, 0.05, PAL.lampPole, 8);
       S.cyl(x, FY, zz, 0.03, 0.9, PAL.lampPole, 6);
       S.box(x - 0.24, FY + 0.9, zz - 0.14, x + 0.24, FY + 1.55, zz + 0.14, color);
@@ -313,38 +332,53 @@ export function interior(S, B, id, lv, color) {
   const R = roomOf(id);
   R.zl0 = R.x0 + 0.7; R.zl1 = R.cx - 1.5; R.zr0 = R.cx + 1.5; R.zr1 = R.x1 - 0.7;
   const spots = [];
-  const floors = lv >= 3 ? 2 : 1;
-  for (let f = 1; f <= floors; f++) {
-    FY = f === 1 ? F1Y : F2Y;
+  const f = floorOf(id), st = stackOf(id), stacked = st.floors > 1;
+  FY = floorY(f);
+  if (lv > 0) {
     const spot = (x, z, yaw, pose, y = FY) => spots.push({ x, z, yaw, pose, y, floor: f });
-    // 兩層時右前角是電梯井，家具往後收
-    const z = { a: R.z0 + 3.6, b: R.z1 - (floors > 1 ? 3.2 : 1.6) };
+    // 疊樓的地右前角是電梯井，家具往後收
+    const z = { a: R.z0 + 3.6, b: R.z1 - (stacked ? 3.2 : 1.6) };
     const rowsMax = Math.floor((z.b - z.a - 0.8) / 2.5) + 1;
     const n = { lv, rows: Math.max(2, Math.round(rowsMax * [0, 0.5, 0.75, 1][lv])), bar: [0, 4, 6, 8][lv] };
     const [fa, fb, paint] = PLAN[id](S, B, R, z, spot, n, color);
-    shell(S, B, R, fa, fb, paint, lv, color, f, floors > 1);
-  }
+    shell(S, B, R, fa, fb, paint, lv, color, f, stacked);
+  } else vacant(S, R, f, stacked);
+  // 最底層的店負責畫整棟的支柱與電梯井（不管各層有沒有開）
+  if (stacked && f === 1) frame(S, R, st.floors);
   FY = F1Y;
-  if (floors > 1) frame(S, B, R);
   return spots;
 }
 
-// 電梯：井在右前角，F1 從入口往右走到井的左側上車，F2 也在同一側下車
-export function elevatorOf(id) {
-  const R = roomOf(id);
-  return { x: R.x1 - 1.5, z: R.z1 - 1.5, wait: [R.x1 - 3.1, R.z1 - 1.5], y0: F1Y, y1: F2Y, tag: [R.cx, F2Y + 3.6, R.z1] };
+// 未開設的樓層：空的灰色棋盤樓板、立著出租牌、幾個紙箱
+function vacant(S, R, f, stacked) {
+  shell(S, null, R, '#cfc8b8', '#bfb8a6', '#e4ddcc', 0, '#9a9182', f, stacked);
+  const { cx, z0, z1, x0 } = R;
+  const zc = (z0 + z1) / 2;
+  for (const sx of [-0.9, 0.9]) S.box(cx + sx - 0.05, FY, zc - 0.05, cx + sx + 0.05, FY + 1.5, zc + 0.05, PAL.woodDark);
+  S.box(cx - 1.2, FY + 1.1, zc, cx + 1.2, FY + 2.1, zc + 0.08, PAL.white);
+  S.box(cx - 0.95, FY + 1.35, zc + 0.08, cx + 0.95, FY + 1.85, zc + 0.11, PAL.red, true);
+  for (const [bx, bz, h] of [[x0 + 1.5, z0 + 2, 0.7], [x0 + 2.4, z0 + 2.2, 0.55], [x0 + 1.8, z0 + 2.1, 1.25]]) S.box(bx - 0.4, FY + (h > 1 ? 0.7 : 0), bz - 0.35, bx + 0.4, FY + h, bz + 0.35, '#c9a77a');
 }
 
-// 展開式結構：撐起 F2 的黃色與鐵紅色細柱、電梯井框架與纜繩
-function frame(S, B, R) {
+// 電梯：井在右前角，各層都從井的左側上下車
+export function elevatorOf(id) {
+  const R = roomOf(id), st = stackOf(id);
+  return { x: R.x1 - 1.5, z: R.z1 - 1.5, wait: [R.x1 - 3.1, R.z1 - 1.5], floors: st.floors, ys: st.ids.map((_, i) => floorY(i + 1)) };
+}
+
+// 展開式結構：撐起上層的黃色與鐵紅色細柱、電梯井框架與纜繩
+function frame(S, R, floors) {
   const { x0, x1, z0, z1 } = R;
   const Y = '#d9b648', RUST = '#8a4a36';
+  const yTop = floorY(floors);
   for (const [x, z, c] of [[x0 + 0.15, z0 + 0.15, RUST], [x0 + 0.15, z1 - 0.15, Y], [(x0 + x1) / 2, z1 - 0.15, RUST], [x1 - 0.15, z0 + 0.15, Y], [x1 - 0.15, (z0 + z1) / 2, RUST]]) {
-    S.box(x - 0.14, F1Y, z - 0.14, x + 0.14, F2Y - 0.4, z + 0.14, c);
+    S.box(x - 0.14, F1Y, z - 0.14, x + 0.14, yTop - 0.4, z + 0.14, c);
   }
-  const ex0 = x1 - 2.6, ex1 = x1 - 0.4, ez0 = z1 - 2.6, ez1 = z1 - 0.4, top = F2Y + 2.9;
+  const ex0 = x1 - 2.6, ex1 = x1 - 0.4, ez0 = z1 - 2.6, ez1 = z1 - 0.4, top = yTop + 2.9;
   for (const [x, z] of [[ex0, ez0], [ex1, ez0], [ex0, ez1], [ex1, ez1]]) S.box(x - 0.09, F1Y, z - 0.09, x + 0.09, top, z + 0.09, '#e0b646');
-  for (const y of [F1Y, F2Y - 0.4, top]) {
+  const rings = [F1Y, top];
+  for (let f = 2; f <= floors; f++) rings.push(floorY(f) - 0.4);
+  for (const y of rings) {
     S.box(ex0, y, ez0 - 0.06, ex1, y + 0.12, ez0 + 0.06, '#e0b646');
     S.box(ex0, y, ez1 - 0.06, ex1, y + 0.12, ez1 + 0.06, '#e0b646');
     S.box(ex0 - 0.06, y, ez0, ex0 + 0.06, y + 0.12, ez1, '#e0b646');
@@ -368,6 +402,8 @@ function shell(S, B, R, fa, fb, paint, lv, color, floor = 1, two = false) {
     S.box(x0 - 0.1, FY - 0.5, z0 - 0.1, x1 + 0.1, FY - 0.01, z1 + 0.1, '#d3cab3');
     S.box(x0 - 0.12, FY - 0.5, z1 + 0.1, x1 + 0.12, FY - 0.1, z1 + 0.16, wall, true);
     S.box(x1 + 0.1, FY - 0.5, z0 - 0.12, x1 + 0.16, FY - 0.1, z1 + 0.16, wall, true);
+    // 樓板帶正面的店招色條
+    S.box(cx - 2.2, FY - 0.44, z1 + 0.16, cx + 2.2, FY - 0.16, z1 + 0.2, color, true);
   }
   for (let i = 0; x0 + i * t < x1 - 0.01; i++) {
     for (let j = 0; z0 + j * t < z1 - 0.01; j++) {
@@ -392,7 +428,7 @@ function shell(S, B, R, fa, fb, paint, lv, color, floor = 1, two = false) {
     S.box(a, y2, z1 - 0.2, b, y3, z1 - 0.05, rail);
     for (let x = a; x <= b + 0.01; x += Math.max(0.5, (b - a) / Math.ceil((b - a) / 2.4))) S.box(x - 0.05, y1, z1 - 0.2, x + 0.05, y3 - 0.05, z1 - 0.05, rail);
   };
-  const upper = floor === 2;
+  const upper = floor > 1;
   if (upper) lowZ(x0, x1 - 2.7);
   else { lowZ(x0, cx - 1.6); lowZ(cx + 1.6, x1); }
   const rz1 = upper ? z1 - 2.7 : z1;

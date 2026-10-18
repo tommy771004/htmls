@@ -1,9 +1,14 @@
 // 介面：頂部資金／日期／評分／帝國等級、遊戲時間與天氣、任務列、底部導覽、商家標籤、收入飄字、各種面板。
-import { BIZ, BIZ_BY_ID, WEATHER, EVENTS, QUESTS, PORT, CARGO, CARGO_IDS } from './data.js';
-import { nextCost, capOf, todayRevenue, todayCosts, empireLevel, questProgress, isOpen } from './econ.js';
+import { BIZ, BIZ_BY_ID, WEATHER, EVENTS, QUESTS, PORT, CARGO, CARGO_IDS, TIERS, PROMO, LIFT, SWAP_COST, APT, LANDMARKS, LANDMARK_BY_ID, RIVAL } from './data.js';
+import { nextCost, capOf, todayRevenue, todayCosts, empireLevel, questProgress, isOpen, priceOf } from './econ.js';
+import {
+  seasonOf, seasonDay, promoLeft, promoCost, stackMult, liftLv, liftCost, floorOrder, APTS, APT_BY_KEY, aptLv, aptNextCost, aptRent,
+  popLevels, rentPerDay, hasMark, rivalMult, rivalBuyCost, dailyProgress, dailyText, ACHIEVEMENTS,
+} from './empire.js';
 import { portNextCost, winChance, shipStatus, absMin, truckCap, inbound } from './port.js';
 import { LEVEL_AT } from './data.js';
 import { icon } from './icons.js';
+import { stackOf, floorOf, CITY_LOTS } from './layout.js';
 
 export const money = (v, full = false) => {
   const s = v < 0 ? '-' : '';
@@ -13,6 +18,8 @@ export const money = (v, full = false) => {
   return `${s}$${(v / 1e6).toFixed(v < 1e8 ? 2 : 1)}M`;
 };
 const hhmm = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}`;
+const pct = (v) => `${Math.round(v * 100)}%`;
+const hrs = (m) => (m >= 60 ? `${Math.floor(m / 60)} 小時${m % 60 >= 1 ? ` ${Math.floor(m % 60)} 分` : ''}` : `${Math.max(1, Math.floor(m))} 分`);
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const KIND = { indoor: '室內 · 雨天反而多', outdoor: '戶外 · 晴天熱浪大增', water: '水上 · 下雨幾乎停擺' };
 const ZONE = { city: '海濱大道 · 城市街區', beach: '海灘改版 · 沙灘與碼頭' };
@@ -43,13 +50,15 @@ export function createUI(root, ctx) {
   </header>
   <div class="row2">
     <button class="pill btn-quests" id="btnQuests">${icon('quest', 18)}<span>任務</span><em id="qBadge"></em></button>
-    <div class="chips"><span class="chip ev" id="event" hidden></span><span class="chip inc" id="lastInc" hidden></span></div>
+    <div class="chips"><span class="chip ev" id="event" hidden></span><span class="chip inc" id="lastInc" hidden></span><button class="chip follow" id="follow" hidden></button></div>
   </div>
   <aside class="tools">
     <button class="sq" id="btnSettings" title="設定">${icon('gear')}</button>
     <button class="sq" id="btnOverview" title="全景">${icon('map')}</button>
     <button class="sq" id="btnZoomIn" title="放大">${icon('plus')}</button>
     <button class="sq" id="btnZoomOut" title="縮小">${icon('minus')}</button>
+    <button class="sq" id="btnFollow" title="跟拍一位客人">${icon('eye')}</button>
+    <button class="sq" id="btnPhoto" title="照片模式">${icon('camera')}</button>
     <div class="speed" id="speed">
       <button data-s="0" title="暫停">${icon('pause', 16)}</button><button data-s="1">1×</button><button data-s="2">2×</button><button data-s="4">4×</button>
     </div>
@@ -68,6 +77,16 @@ export function createUI(root, ctx) {
     <button data-p="alerts">${icon('bell')}<span>通知</span><em id="alertBadge"></em></button>
   </nav>
   <div class="toasts" id="toasts"></div>
+  <div class="photobar card" id="photobar">
+    <label class="ptime">${icon('clock', 16)}<input type="range" min="0" max="23.9" step="0.1" id="phTime" aria-label="時間"><b id="phTimeV">12:00</b></label>
+    <div class="seg" id="phWx">${['sunny', 'partly', 'cloudy', 'rain', 'heat'].map((w) => `<button data-phw="${w}" title="${WEATHER[w].name}">${icon(w, 16)}</button>`).join('')}</div>
+    <div class="phact">
+      <button class="mini" data-ph="lapse">${icon('film', 14)} <span>24 小時縮時</span></button>
+      <button class="mini" data-ph="rec">${icon('record', 14)} <span>錄影</span></button>
+      <button class="mini" data-ph="snap">${icon('camera', 14)} <span>截圖</span></button>
+      <button class="mini warn" data-ph="exit">${icon('close', 14)} <span>離開</span></button>
+    </div>
+  </div>
   <div class="sheet" id="sheet" hidden><div class="grab"></div><button class="x" id="sheetX" aria-label="關閉">${icon('close', 18)}</button><div class="body" id="sheetBody"></div></div>
   <div class="modal" id="modal" hidden></div>
   `;
@@ -95,7 +114,22 @@ export function createUI(root, ctx) {
   $('#labels').appendChild(portLbl);
   let portKey = '';
   const shipEls = [];
-  const elevEls = [], tagEls = [];
+  const elevEls = [];
+  // 公寓、地標與對手的標籤
+  const xLabels = [];
+  const mkLabel = (id, color, onClick, cls = '') => {
+    const el = document.createElement('button');
+    el.className = 'lbl ' + cls;
+    el.style.setProperty('--c', color);
+    el.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+    $('#labels').appendChild(el);
+    const L = { id, el, key: '' };
+    xLabels.push(L);
+    return L;
+  };
+  for (const a of APTS) mkLabel('apt:' + a.key, '#2d5a45', () => openApt(a.key));
+  for (const m of LANDMARKS) mkLabel('mark:' + m.id, m.color, () => openMark(m.id));
+  mkLabel('rival', '#2a2f3a', () => openRival(), 'rv');
   function portLabelHTML() {
     const s = st(), lv = s.port.lv;
     if (!lv) return `<span class="li sale">${icon('anchor', 14)}</span><span>${PORT.name}</span><b class="price">${money(PORT.cost)}</b>`;
@@ -103,9 +137,28 @@ export function createUI(root, ctx) {
   }
   function labelHTML(id) {
     const s = st(), b = BIZ_BY_ID[id], lv = s.biz[id].lv;
-    if (!lv) return `<span class="li sale">${icon(b.icon, 14)}</span><span>${esc(b.name)}</span><b class="price">${money(b.cost)}</b>`;
+    // 同一棟疊樓的店家標上樓層
+    const fl = b.zone === 'city' && stackOf(id).floors > 1 ? `F${floorOf(id)} · ` : '';
+    if (!lv) return `<span class="li sale">${icon(b.icon, 14)}</span><span>${fl}${esc(b.name)}</span><b class="price">${money(b.cost)}</b>`;
     const shut = !isOpen(b, s.minute);
-    return `<span class="li">${icon(b.icon, 14)}</span><span>${lv >= 3 && b.zone === 'city' ? 'F1 · ' : ''}${esc(b.name)}</span><b class="lv${shut ? ' shut' : ''}">${shut ? '打烊' : 'Lv' + lv}</b>`;
+    return `<span class="li">${icon(b.icon, 14)}</span><span>${fl}${esc(b.name)}</span><b class="lv${shut ? ' shut' : ''}">${shut ? '打烊' : 'Lv' + lv}</b>`;
+  }
+
+  function xLabelState(id) {
+    const s = st();
+    const shopping = open === 'shop';
+    if (id.startsWith('apt:')) {
+      const key = id.slice(4), lv = aptLv(s, key), a = APT_BY_KEY[key];
+      const show = lv || (shopping && shopTab === 'estate') || open === id;
+      return { show, html: lv ? `<span class="li">${icon('home', 14)}</span><span>${esc(a.name)}</span><b class="lv">Lv${lv}</b>` : `<span class="li sale">${icon('home', 14)}</span><span>${esc(a.name)}</span><b class="price">${money(a.cost)}</b>`, sale: !lv };
+    }
+    if (id.startsWith('mark:')) {
+      const m = LANDMARK_BY_ID[id.slice(5)], on = hasMark(s, m.id);
+      const show = on || (shopping && shopTab === 'marks') || open === id;
+      return { show, html: on ? `<span class="li">${icon(m.icon, 14)}</span><span>${esc(m.name)}</span>` : `<span class="li sale">${icon(m.icon, 14)}</span><span>${esc(m.name)}</span><b class="price">${money(m.cost)}</b>`, sale: !on };
+    }
+    const r = s.rival;
+    return { show: !!r, html: r ? `<span class="li">${icon('rival', 14)}</span><span>對手 · ${esc(r.name)}</span><b class="neg">−${Math.round((1 - rivalMult(s, r.id)) * 100)}%</b>` : '', sale: false };
   }
 
   // ── 飄字 ──
@@ -157,7 +210,7 @@ export function createUI(root, ctx) {
     const s = st(), b = BIZ_BY_ID[id], lv = s.biz[id].lv;
     const L = Math.max(1, lv);
     return `<div class="grid">
-      <div><small>客單價</small><b>${money(b.price[L - 1], true)}</b></div>
+      <div><small>客單價</small><b>${money(lv ? priceOf(s, id) : b.price[L - 1], true)}${lv && s.biz[id].tier ? ` <em>${TIERS[s.biz[id].tier].name}</em>` : ''}</b></div>
       <div><small>容量</small><b>${b.cap[L - 1]} ${id === 'boat' || id === 'jetski' ? '艘' : id === 'umbrella' ? '傘位' : '人'}</b></div>
       <div><small>營業時間</small><b>${hhmm(b.open)}–${hhmm(b.close)}</b></div>
       <div><small>工資／日</small><b>${money(b.wage[L - 1])}</b></div>
@@ -179,24 +232,139 @@ export function createUI(root, ctx) {
     const extra = { boat: '多兩艘出租船停在棧橋', jetski: '多兩台水上摩托車', umbrella: '沙灘上加開四組傘位', surf: '加大衝浪板架、插旗', snack: '加野餐桌與遮陽傘' }[id] || (lv === 1 ? '外帶座位、A 字立牌與花箱' : '屋頂看板與燈串');
     return `<div class="next"><small>Lv${lv + 1} 之後</small><p>客單價 ${money(b.price[lv - 1], true)} → <b>${money(b.price[lv], true)}</b>　容量 ${b.cap[lv - 1]} → <b>${b.cap[lv]}</b>　吸引力 +${lv === 1 ? 40 : 32}%</p><p class="muted">${extra}</p></div>`;
   }
+  // 經營策略：定價三段與促銷
+  function strategyHTML(id) {
+    const s = st(), lv = s.biz[id].lv;
+    if (!lv) return '';
+    const t = s.biz[id].tier || 0, left = promoLeft(s, id), pc = promoCost(id), T = TIERS[t];
+    const note = t === -1 ? '評分漲得快，也能對抗對手的價格戰' : t === 1 ? '客人少但每位付得多，適合常常客滿的店' : '客單價與來客數都照原本';
+    return `<h3>經營策略</h3>
+      <div class="set"><span>${icon('tag', 18)} 定價</span><div class="seg">${[-1, 0, 1].map((k) => `<button data-tier="${id}:${k}" class="${t === k ? 'on' : ''}">${TIERS[k].name}</button>`).join('')}</div></div>
+      <p class="muted">客單價 ${pct(T.price)}、來客 ${pct(T.arrive)}：${note}。</p>
+      <div class="set"><span>${icon('megaphone', 18)} 促銷</span>${left > 0 ? `<b class="g">進行中 · 剩 ${hrs(left)}</b>` : `<button class="mini" data-promo="${id}" ${s.money >= pc ? '' : 'disabled'}>3 小時客流 +${Math.round((PROMO.mult - 1) * 100)}% · ${money(pc)}</button>`}</div>`;
+  }
+  // 疊樓：各層店家、交換樓層、同棟加成與電梯
+  function towerHTML(id) {
+    const sk = CITY_LOTS[id] && stackOf(id);
+    if (!sk || sk.floors < 2) return '';
+    const s = st(), key = sk.key, lv = liftLv(s, key), c = liftCost(s, key);
+    const order = floorOrder(s, key), me = order.indexOf(id);
+    const bonus = Math.round((stackMult(s, id) - 1) * 100);
+    const rows = order.map((k, i) => ({ k, i })).reverse().map(({ k, i }) => {
+      const b = BIZ_BY_ID[k], l = s.biz[k].lv;
+      return `<div class="frow${k === id ? ' me' : ''}"><span class="fl">F${i + 1}</span><span class="bic" style="--c:${b.color}">${icon(b.icon, 14)}</span><b>${esc(b.name)}</b><small>${l ? `Lv${l}` : '空樓層'}</small>${k === id ? '' : `<button class="mini alt" data-swap="${key}:${id}:${k}" ${s.money >= SWAP_COST ? '' : 'disabled'} title="和${esc(b.name)}交換樓層">${icon('swap', 14)}</button>`}</div>`;
+    }).join('');
+    return `<h3>同一棟的樓層</h3>
+      <div class="floors">${rows}</div>
+      <p class="muted">同棟別家每多一級，這家客流 +5%（現在 +${bonus}%）。交換樓層的裝修費 ${money(SWAP_COST)}，店內客人會先請出門。${me > 0 ? '樓上的客人要從一樓搭電梯上來。' : ''}</p>
+      <div class="set"><span>${icon('lift', 18)} ${LIFT.name[lv - 1]}</span><small class="lt">${LIFT.cap[lv - 1]} 人 · 每層 ${LIFT.move[lv - 1]} 秒${s.today.liftLost ? ` · <em class="r">今日因排隊流失 ${s.today.liftLost} 人</em>` : ''}</small></div>
+      ${c === null ? '<p class="muted">電梯已是最高等級。</p>' : `<button class="big alt" data-lift="${key}" ${s.money >= c ? '' : 'disabled'}>${icon('up', 18)} 升級為${LIFT.name[lv]}（${LIFT.cap[lv]} 人、每層 ${LIFT.move[lv]} 秒）· ${money(c)}</button>`}`;
+  }
+  function rivalBox(id) {
+    const s = st(), r = s.rival;
+    if (!r || r.id !== id) return '';
+    return `<div class="warnbox" data-rival="1">${icon('rival', 20)}<p><b>${esc(r.name)}</b>開在對街，搶走這家 ${Math.round((1 - rivalMult(s, id)) * 100)}% 的客人。<small>點這裡看怎麼應對</small></p>${icon('arrow', 16)}</div>`;
+  }
   function openBiz(id) {
     ctx.actions.select(id);
     const s = st(), b = BIZ_BY_ID[id], lv = s.biz[id].lv;
     show('biz:' + id, `
-      <p class="zone">${ZONE[b.zone]}</p>
+      <p class="zone">${ZONE[b.zone]}${CITY_LOTS[id] && stackOf(id).floors > 1 ? ` · F${floorOf(id)}` : ''}</p>
       <h2><span class="bic" style="--c:${b.color}">${icon(b.icon, 22)}</span>${esc(b.name)}<small>${esc(b.en)}</small></h2>
       <div class="lvrow">${[1, 2, 3].map((k) => `<i class="${lv >= k ? 'on' : ''}"></i>`).join('')}<span>${lv ? `Lv${lv} · ${b.cat}` : `出售中 · ${b.cat}`}</span><span class="tag">${KIND[b.kind]}</span></div>
+      ${rivalBox(id)}
       ${bizStats(id)}
       ${nextPreview(id)}
       ${buyBtn(id)}
+      ${strategyHTML(id)}
+      ${towerHTML(id)}
       <button class="ghost" data-focus="${id}">${icon('pin', 16)} 鏡頭移到這裡</button>
     `);
   }
+  // ── 公寓、地標、對手 ──
+  function openApt(key) {
+    ctx.actions.select('apt:' + key);
+    const s = st(), a = APT_BY_KEY[key], lv = aptLv(s, key), c = aptNextCost(s, key);
+    const rentNow = aptRent(key, lv), rentNext = aptRent(key, Math.min(2, lv + 1));
+    const rv = s.rival && s.rival.lot === key ? s.rival : null;
+    show('apt:' + key, `
+      <p class="zone">城市生活改版 · 住宅</p>
+      <h2><span class="bic" style="--c:#2d5a45">${icon('home', 22)}</span>${esc(a.name)}<small>${lv ? '你的公寓' : '出售中'}</small></h2>
+      <div class="lvrow">${[1, 2].map((k) => `<i class="${lv >= k ? 'on' : ''}"></i>`).join('')}<span>${lv ? (lv === 2 ? 'Lv2 · 翻修完成' : 'Lv1 · 出租中') : '出售中 · 公寓'}</span><span class="tag">住戶會去城市商家消費</span></div>
+      ${rv ? `<div class="warnbox" data-rival="1">${icon('rival', 20)}<p><b>${esc(rv.name)}</b>租了這棟的一樓。<small>買下這棟就能收回店面，請他們搬走</small></p></div>` : ''}
+      <div class="grid">
+        <div><small>房租／日</small><b class="g">${money(lv ? rentNow : rentNext)}</b></div>
+        <div><small>城市客流</small><b>+${(APT.pop * 100).toFixed(1)}% / 級</b></div>
+        <div><small>全城住戶加成</small><b>+${(popLevels(s) * APT.pop * 100).toFixed(1)}%</b></div>
+        <div><small>名下公寓房租／日</small><b>${money(rentPerDay(s))}</b></div>
+      </div>
+      ${lv === 1 ? `<div class="next"><small>翻修之後</small><p>房租 ${money(rentNow)} → <b>${money(rentNext)}</b>／日，再多 +${(APT.pop * 100).toFixed(1)}% 城市客流</p><p class="muted">外牆掛上帝國布條、露台加棚架。</p></div>` : ''}
+      ${c === null ? `<button class="big done" disabled>${icon('check', 18)} 已翻修完成</button>` : `<button class="big" data-apt="${key}" ${s.money >= c ? '' : 'disabled'}>${icon(lv ? 'up' : 'home', 18)} ${lv ? '翻修' : '買下公寓'} · ${money(c, c < 1e6)}</button>${s.money >= c ? '' : `<p class="need">還差 ${money(c - s.money)}</p>`}`}
+      <button class="ghost" data-focus="apt:${key}">${icon('pin', 16)} 鏡頭移到這裡</button>`);
+  }
+  function openMark(id) {
+    ctx.actions.select('mark:' + id);
+    const s = st(), m = LANDMARK_BY_ID[id], on = hasMark(s, id);
+    show('mark:' + id, `
+      <p class="zone">城市生活改版 · 地標</p>
+      <h2><span class="bic" style="--c:${m.color}">${icon(m.icon, 22)}</span>${esc(m.name)}<small>${esc(m.en)}</small></h2>
+      <div class="lvrow"><i class="${on ? 'on' : ''}"></i><span>${on ? `第 ${s.marks[id]} 天落成` : '尚未興建'}</span></div>
+      <div class="next"><small>效果</small><p>${esc(m.note)}</p>${id === 'ferris' && on ? `<p class="muted">今日票房 ${money(s.today.rev.ferris || 0)}</p>` : ''}</div>
+      ${on ? `<button class="big done" disabled>${icon('check', 18)} 已落成</button>` : `<button class="big" data-mark="${id}" ${s.money >= m.cost ? '' : 'disabled'}>${icon(m.icon, 18)} 興建 · ${money(m.cost)}</button>${s.money >= m.cost ? '' : `<p class="need">還差 ${money(m.cost - s.money)}</p>`}`}
+      <button class="ghost" data-focus="mark:${id}">${icon('pin', 16)} 鏡頭移到這裡</button>`);
+  }
+  function openRival() {
+    const s = st(), r = s.rival;
+    if (!r) { close(); return; }
+    ctx.actions.select('rival');
+    const b = BIZ_BY_ID[r.id], c = rivalBuyCost(s), a = APT_BY_KEY[r.lot], ac = aptNextCost(s, r.lot);
+    show('rival', `
+      <p class="zone">競爭對手 · 開在${esc(a.name)}一樓</p>
+      <h2><span class="bic" style="--c:#2a2f3a">${icon('rival', 22)}</span>${esc(r.name)}<small>第 ${r.since} 天進駐</small></h2>
+      <div class="grid">
+        <div><small>搶走${esc(b.name)}的客人</small><b class="r">${Math.round((1 - rivalMult(s, r.id)) * 100)}%</b></div>
+        <div><small>每天變強</small><b>+${Math.round(RIVAL.grow * 100)}%（最多 ${Math.round(RIVAL.max * 100)}%）</b></div>
+      </div>
+      <h3>怎麼應對</h3>
+      <div class="costs">
+        <div><span>${icon('tag', 14)} ${esc(b.name)}改成平價</span><b>影響減半</b></div>
+        <div><span>${icon('up', 14)} ${esc(b.name)}升到 Lv3</span><b>影響 −20%</b></div>
+      </div>
+      <button class="big" data-buyout="1" ${s.money >= c ? '' : 'disabled'}>${icon('money', 18)} 收購${esc(r.name)} · ${money(c)}</button>
+      ${ac !== null ? `<button class="big alt" data-apt="${r.lot}" ${s.money >= ac ? '' : 'disabled'}>${icon('home', 18)} 買下${esc(a.name)}收回店面 · ${money(ac)}</button>` : ''}
+      <p class="muted">趕走後 ${RIVAL.cooldown} 天內不會有新對手；把空著的公寓都買下，對手就沒地方開店。</p>
+      <button class="ghost" data-focus="rival">${icon('pin', 16)} 鏡頭移到這裡</button>`);
+  }
   function shopHTML(tab) {
     const s = st();
+    const tabs = `<div class="tabs"><button data-tab="city" class="${tab === 'city' ? 'on' : ''}">城市</button><button data-tab="beach" class="${tab === 'beach' ? 'on' : ''}">海灘</button><button data-tab="estate" class="${tab === 'estate' ? 'on' : ''}">地產</button><button data-tab="marks" class="${tab === 'marks' ? 'on' : ''}">地標</button><button data-p="port">海港</button></div>`;
+    if (tab === 'estate') {
+      return `<h2 class="plain">商店</h2>${tabs}
+        <p class="muted">買下街上的公寓：每天收房租，住戶也是城市商家的客人（每級 +${(APT.pop * 100).toFixed(1)}% 城市客流）。對手只能租你沒買下的公寓開店。</p>
+        <div class="cards">${APTS.map((a) => {
+          const lv = aptLv(s, a.key), c = aptNextCost(s, a.key);
+          return `<div class="bcard${lv ? ' own' : ''}" data-openapt="${a.key}">
+            <div class="bt"><span class="bic" style="--c:#2d5a45">${icon('home', 18)}</span><b>${esc(a.name)}</b>${lv ? `<em>Lv${lv}</em>` : ''}</div>
+            <dl><dt>${lv ? '翻修' : '買下'}</dt><dd>${c === null ? '完成' : money(c)}</dd><dt>房租／日</dt><dd>${money(aptRent(a.key, Math.max(1, lv)))}</dd></dl>
+            ${s.rival && s.rival.lot === a.key ? '<div class="stars rv">對手在這</div>' : ''}
+          </div>`;
+        }).join('')}</div>`;
+    }
+    if (tab === 'marks') {
+      return `<h2 class="plain">商店</h2>${tabs}
+        <p class="muted">一次買斷的大型地標，帶來全區加成，也是新的風景。</p>
+        <div class="mlist">${LANDMARKS.map((m) => {
+          const on = hasMark(s, m.id);
+          return `<div class="mrow" data-openmark="${m.id}">
+            <span class="bic" style="--c:${m.color}">${icon(m.icon, 18)}</span>
+            <div class="mt"><b>${esc(m.name)}</b><small>${esc(m.note)}</small></div>
+            ${on ? '<span class="maxed">已落成</span>' : `<button class="mini" data-mark="${m.id}" ${s.money >= m.cost ? '' : 'disabled'}>${money(m.cost)}</button>`}
+          </div>`;
+        }).join('')}</div>`;
+    }
     const list = BIZ.filter((b) => b.zone === tab);
     return `<h2 class="plain">商店</h2>
-      <div class="tabs"><button data-tab="city" class="${tab === 'city' ? 'on' : ''}">城市街區</button><button data-tab="beach" class="${tab === 'beach' ? 'on' : ''}">海灘改版</button><button data-p="port">海港<em>NEW</em></button></div>
+      ${tabs}
       ${tab === 'beach' ? '<p class="muted">沿海道路以南的新區域：沙灘、碼頭與海面。客人會從街區穿過斑馬線走下步道消費，晴天與熱浪天生意最好。</p>' : ''}
       <div class="cards">${list.map((b) => {
         const lv = s.biz[b.id].lv, c = nextCost(s, b.id);
@@ -226,6 +394,10 @@ export function createUI(root, ctx) {
           <span class="bic" style="--c:${PORT.color}">${icon('anchor', 18)}</span>
           <div class="mt"><b>${PORT.name} <em>Lv${s.port.lv}</em></b><small>${s.port.ships.filter((q) => q.state !== 'departed').length} 艘船 · 庫存 ${CARGO_IDS.map((c) => `${CARGO[c].name} ${Math.floor(s.port.stock[c])}`).join('、')}</small></div>
           <div class="mv"><b class="g">${money(s.today.saved)}</b><small>今日省下</small></div>
+        </div>` : ''}${popLevels(s) ? `<div class="mrow" data-tab="estate">
+          <span class="bic" style="--c:#2d5a45">${icon('home', 18)}</span>
+          <div class="mt"><b>公寓 <em>${APTS.filter((a) => aptLv(s, a.key)).length} 棟</em></b><small>城市客流 +${(popLevels(s) * APT.pop * 100).toFixed(1)}% · 房租 ${money(rentPerDay(s))}／日</small></div>
+          <div class="mv"><b>${money(s.today.rev.rent || 0)}</b><small>今日房租</small></div>
         </div>` : ''}</div>`;
   }
   function financeHTML() {
@@ -236,15 +408,15 @@ export function createUI(root, ctx) {
     const max = Math.max(1, ...days.map((d) => Math.max(d.rev, d.cost)));
     const byBiz = BIZ.filter((b) => s.biz[b.id].lv).map((b) => ({ b, v: s.today.rev[b.id] || 0 })).sort((p, q) => q.v - p.v);
     const top = Math.max(1, ...byBiz.map((x) => x.v));
-    const city = byBiz.filter((x) => x.b.zone === 'city').reduce((a, x) => a + x.v, 0), port = t.rev.port || 0, beach = rev - city - port;
+    const city = byBiz.filter((x) => x.b.zone === 'city').reduce((a, x) => a + x.v, 0), port = t.rev.port || 0, estate = (t.rev.rent || 0) + (t.rev.ferris || 0), beach = rev - city - port - estate;
     return `<h2 class="plain">財務 <small>第 ${s.day} 天</small></h2>
       <div class="grid three">
         <div><small>今日營收</small><b class="g">${money(rev)}</b></div>
         <div><small>營業成本</small><b class="r">${money(cost)}</b></div>
         <div><small>營業淨利</small><b class="${rev - cost >= 0 ? 'g' : 'r'}">${money(rev - cost)}</b></div>
       </div>
-      <div class="split"><i style="flex:${Math.max(city, 1)}"></i><i class="b" style="flex:${Math.max(beach, beach ? 1 : 0.001)}"></i><i class="p" style="flex:${Math.max(port, port ? 1 : 0.001)}"></i></div>
-      <p class="legend"><span class="d1"></span>城市 ${money(city)}　<span class="d2"></span>海灘 ${money(beach)}${port ? `　<span class="d4"></span>貨運合約 ${money(port)}` : ''}</p>
+      <div class="split"><i style="flex:${Math.max(city, 1)}"></i><i class="b" style="flex:${Math.max(beach, beach ? 1 : 0.001)}"></i><i class="p" style="flex:${Math.max(port, port ? 1 : 0.001)}"></i><i class="e" style="flex:${Math.max(estate, estate ? 1 : 0.001)}"></i></div>
+      <p class="legend"><span class="d1"></span>城市 ${money(city)}　<span class="d2"></span>海灘 ${money(beach)}${port ? `　<span class="d4"></span>貨運合約 ${money(port)}` : ''}${estate ? `　<span class="d5"></span>房租與摩天輪 ${money(estate)}` : ''}</p>
       <h3>今日成本</h3>
       <div class="costs">
         <div><span>人事與營運</span><b>${money(t.cost)}</b></div>
@@ -362,9 +534,26 @@ export function createUI(root, ctx) {
   function alertsHTML() {
     return `<h2 class="plain">通知</h2><div class="alist">${alerts.length ? alerts.map((a) => `<div>${icon(a.ic, 18)}<p>${esc(a.msg)}<small>${a.when}</small></p></div>`).join('') : '<p class="muted">目前沒有通知。</p>'}</div>`;
   }
+  let qTab = 'main';
   function questsHTML() {
     const s = st();
-    return `<h2 class="plain">任務</h2><div class="qlist">${QUESTS.map((q, i) => {
+    const done = Object.keys(s.ach).length;
+    const dd = s.daily ? s.daily.tasks.filter((t) => !t.done).length : 0;
+    const tabs = `<div class="tabs"><button data-qtab="main" class="${qTab === 'main' ? 'on' : ''}">主線</button><button data-qtab="daily" class="${qTab === 'daily' ? 'on' : ''}">每日${dd ? `<em>${dd}</em>` : ''}</button><button data-qtab="ach" class="${qTab === 'ach' ? 'on' : ''}">成就 ${done}/${ACHIEVEMENTS.length}</button></div>`;
+    if (qTab === 'daily') {
+      const tasks = s.daily ? s.daily.tasks : [];
+      return `<h2 class="plain">任務 <small>第 ${s.day} 天</small></h2>${tabs}
+        <p class="muted">每天換一批，完成馬上發獎金；午夜沒做完的就作廢。累計完成 ${s.stats.daily || 0} 個。</p>
+        <div class="qlist">${tasks.map((t) => {
+          const p = Math.min(t.goal, dailyProgress(s, t));
+          return `<div class="${t.done ? 'done' : 'cur'}"><span>${t.done ? icon('check', 16) : icon('target', 16)}</span><p><b>${esc(dailyText(t))}</b><i class="qp"><u style="width:${(p / t.goal) * 100}%"></u></i><em>${t.goal >= 1000 ? `${money(p)} / ${money(t.goal)}` : `${p} / ${t.goal}`}</em></p><b class="rw">+${money(t.reward)}</b></div>`;
+        }).join('')}</div>`;
+    }
+    if (qTab === 'ach') {
+      return `<h2 class="plain">任務</h2>${tabs}
+        <div class="qlist">${ACHIEVEMENTS.map((a) => `<div class="${s.ach[a.id] ? 'done' : ''}"><span>${s.ach[a.id] ? icon('trophy', 16) : icon('star', 14)}</span><p><b>${esc(a.name)}</b><em>${esc(a.desc)}${s.ach[a.id] ? ` · 第 ${s.ach[a.id]} 天達成` : ''}</em></p><b class="rw">+${money(a.reward)}</b></div>`).join('')}</div>`;
+    }
+    return `<h2 class="plain">任務</h2>${tabs}<div class="qlist">${QUESTS.map((q, i) => {
       const done = i < s.quest, cur = i === s.quest;
       const p = cur ? questProgress(s) : null;
       return `<div class="${done ? 'done' : cur ? 'cur' : ''}"><span>${done ? icon('check', 16) : i + 1}</span><p><small>CH ${q.ch} · ${q.chName}</small><b>${esc(q.title)}</b>${cur ? `<em>${esc(q.hint)}</em><i class="qp"><u style="width:${(p.cur / p.goal) * 100}%"></u></i>` : ''}</p><b class="rw">+${money(q.reward)}</b></div>`;
@@ -377,16 +566,19 @@ export function createUI(root, ctx) {
       <div class="set"><span>${icon('gear', 18)} 畫質</span><div class="seg">${['auto', 'high', 'low'].map((q) => `<button data-q="${q}" class="${s.opts.quality === q ? 'on' : ''}">${{ auto: '自動', high: '高', low: '省電' }[q]}</button>`).join('')}</div></div>
       <p class="muted">「自動」會在手機上以較低解析度與陰影更新頻率維持 50fps 以上，畫面掉到 45fps 以下時再自動降級。</p>
       <div class="set"><span>${icon('save', 18)} 存檔</span><button class="mini" data-act="save">立即存檔</button></div>
-      <p class="muted">每 15 秒與切換分頁時自動存到這台裝置。存檔格式 v3；海灘改版前的 v1 與物流改版前的 v2 存檔都會自動轉換，原有進度完整保留。</p>
+      <p class="muted">每 15 秒與切換分頁時自動存到這台裝置。存檔格式 v4；更早的 v1（海灘改版前）、v2（物流改版前）、v3（城市生活改版前）存檔都會自動轉換，原有進度完整保留。</p>
       <div class="set"><span>${icon('close', 18)} 重新開始</span><button class="mini warn" data-act="reset">清除進度</button></div>
       <h3>操作</h3>
-      <p class="muted">拖曳移動地圖，滾輪或雙指縮放，點店面或標籤看詳情。鍵盤：WASD／方向鍵移動、Q／E 縮放、空白鍵暫停、1／2／3 切換速度。</p>`;
+      <p class="muted">拖曳移動地圖，滾輪或雙指縮放，點店面、公寓或標籤看詳情；放大後點街上的人可以跟拍。鍵盤：WASD／方向鍵移動、Q／E 縮放、空白鍵暫停、1／2／3 切換速度、Esc 離開跟拍或照片模式。</p>`;
   }
 
   function render() {
     if (!open) return;
     const y = $('#sheetBody').scrollTop;
     if (open.startsWith('biz:')) openBiz(open.slice(4));
+    else if (open.startsWith('apt:')) openApt(open.slice(4));
+    else if (open.startsWith('mark:')) openMark(open.slice(5));
+    else if (open === 'rival') openRival();
     else if (open === 'shop') openShop();
     else if (open === 'manage') show('manage', manageHTML());
     else if (open === 'finance') show('finance', financeHTML());
@@ -408,6 +600,26 @@ export function createUI(root, ctx) {
     const t = e.target.closest('button, [data-open], [data-p]');
     if (!t) return;
     if (t.dataset.buy) { ctx.actions.buy(t.dataset.buy); render(); return; }
+    if (t.dataset.tier) { const [id, k] = t.dataset.tier.split(':'); ctx.actions.tier(id, +k); render(); return; }
+    if (t.dataset.promo) { ctx.actions.promo(t.dataset.promo); render(); return; }
+    if (t.dataset.lift) { ctx.actions.lift(t.dataset.lift); render(); return; }
+    if (t.dataset.swap) { const [key, a, b] = t.dataset.swap.split(':'); ctx.actions.swap(key, a, b); render(); return; }
+    if (t.dataset.apt) { ctx.actions.apt(t.dataset.apt); render(); return; }
+    if (t.dataset.mark) { ctx.actions.mark(t.dataset.mark); render(); return; }
+    if (t.dataset.buyout) { ctx.actions.buyout(); close(); return; }
+    if (t.dataset.rival) { openRival(); ctx.actions.focus('rival'); return; }
+    if (t.dataset.openapt) { openApt(t.dataset.openapt); ctx.actions.focus('apt:' + t.dataset.openapt); return; }
+    if (t.dataset.openmark) { openMark(t.dataset.openmark); ctx.actions.focus('mark:' + t.dataset.openmark); return; }
+    if (t.dataset.qtab) { qTab = t.dataset.qtab; render(); $('#sheetBody').scrollTop = 0; return; }
+    if (t.dataset.phw) { ctx.actions.photoWeather(t.dataset.phw); return; }
+    if (t.dataset.ph) {
+      const k = t.dataset.ph;
+      if (k === 'exit') photo(false);
+      else if (k === 'lapse') ctx.actions.timelapse();
+      else if (k === 'rec') ctx.actions.record();
+      else if (k === 'snap') ctx.actions.snapshot();
+      return;
+    }
     if (t.dataset.pbuy) { ctx.actions.buyPort(); render(); return; }
     if (t.dataset.ptab) { portTab = t.dataset.ptab; render(); $('#sheetBody').scrollTop = 0; return; }
     if (t.dataset.pfocus) { ctx.actions.focusPort(); if (matchMedia('(max-width: 899px)').matches) close(); return; }
@@ -419,6 +631,7 @@ export function createUI(root, ctx) {
       return;
     }
     if (t.dataset.open) { openBiz(t.dataset.open); ctx.actions.focus(t.dataset.open); return; }
+    if (t.dataset.tab && t.classList.contains('mrow')) { openShop(t.dataset.tab); return; }
     if (t.dataset.focus) { ctx.actions.focus(t.dataset.focus); if (matchMedia('(max-width: 899px)').matches) close(); return; }
     if (t.dataset.tab) { openShop(t.dataset.tab); return; }
     if (t.dataset.p) { openPanel(t.dataset.p); return; }
@@ -436,6 +649,7 @@ export function createUI(root, ctx) {
   // 出價滑桿：拖動時只更新數字，不重繪整個面板
   root.addEventListener('input', (e) => {
     const el = e.target;
+    if (el.id === 'phTime') { ctx.actions.photoTime(+el.value); return; }
     if (!el.dataset || el.dataset.bidr === undefined) return;
     const id = +el.dataset.bidr, o = st().port.offers.find((x) => x.id === id);
     if (!o) return;
@@ -463,8 +677,16 @@ export function createUI(root, ctx) {
   $('#btnOverview').addEventListener('click', () => ctx.actions.overview());
   $('#btnZoomIn').addEventListener('click', () => ctx.actions.zoom(0.8));
   $('#btnZoomOut').addEventListener('click', () => ctx.actions.zoom(1.25));
+  $('#btnFollow').addEventListener('click', () => ctx.actions.follow(true));
+  $('#follow').addEventListener('click', () => ctx.actions.follow(false));
+  $('#btnPhoto').addEventListener('click', () => photo(true));
+  function photo(on) {
+    root.classList.toggle('photo', on);
+    if (on) close();
+    ctx.actions.photo(on);
+  }
   // 擋住介面上的指標事件，避免拖到地圖
-  for (const el of root.querySelectorAll('.hud, .row2, .tools, .questbar, .nav, .sheet, .modal, .toasts')) {
+  for (const el of root.querySelectorAll('.hud, .row2, .tools, .questbar, .nav, .sheet, .modal, .toasts, .photobar')) {
     el.addEventListener('pointerdown', (e) => e.stopPropagation());
     el.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
   }
@@ -483,7 +705,21 @@ export function createUI(root, ctx) {
       void inc.offsetWidth;
       inc.classList.add('flash');
     },
-    turned(id, x, y, z) { pop('客滿', x, y, z, 'full'); },
+    turned(id, x, y, z, why) { pop(why === 'lift' ? '電梯排太長' : '客滿', x, y, z, 'full'); },
+    pop(text, x, y, z, cls = '') { pop(text, x, y, z, cls); },
+    act: (k, ...args) => ctx.actions[k](...args),
+    // 跟拍資訊
+    follow(d, a) {
+      const el = $('#follow');
+      el.hidden = !d;
+      if (!d) return;
+      const html = `${icon('eye', 14)}<span><b>${esc(d.who)}</b> ${esc(d.what)}${d.left ? ` · 還要 ${d.left} 分` : ''}${d.paid ? ` · 付了 ${money(d.paid, true)}` : ''}</span><i>${icon('close', 12)}</i>`;
+      if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
+      if (a) el.style.setProperty('--c', `rgb(${a.shirt.map((v) => Math.round(Math.pow(v, 1 / 2.2) * 255)).join(',')})`);
+    },
+    recording(on) { root.querySelector('[data-ph=rec]').classList.toggle('on', on); root.querySelector('[data-ph=rec] span').textContent = on ? '停止錄影' : '錄影'; },
+    photo(on) { photo(on); },
+    openApt, openMark, openRival,
     modal(html) {
       $('#modal').innerHTML = html;
       $('#modal').hidden = false;
@@ -517,6 +753,17 @@ export function createUI(root, ctx) {
         L.el.classList.toggle('sel', ctx.selected() === b.id);
         L.el.classList.toggle('far', p.far);
       }
+      for (const L of xLabels) {
+        if (!L.show) { L.el.style.visibility = 'hidden'; continue; }
+        const a = ctx.anchor(L.id);
+        const p = ctx.projectPoint(a[0], a[1], a[2]);
+        const vis = p.x > -60 && p.x < innerWidth + 60 && p.y > 40 && p.y < innerHeight + 40;
+        L.el.style.visibility = vis ? '' : 'hidden';
+        if (!vis) continue;
+        L.el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0) translate(-50%, -100%)`;
+        L.el.classList.toggle('far', ctx.far());
+        L.el.classList.toggle('sel', ctx.selected() === L.id);
+      }
       {
         const p = ctx.projectPort();
         portLbl.style.visibility = p.vis ? '' : 'hidden';
@@ -545,36 +792,24 @@ export function createUI(root, ctx) {
           if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
         }
       }
-      // Lv3 店家：F2 樓層標籤與電梯樓層指示（F1 ▲ 2/4）
+      // 疊樓建築：電梯樓層指示（F1 ▲ 2/4）
       {
         const list = ctx.elevators();
         for (let i = 0; i < Math.max(list.length, elevEls.length); i++) {
           if (!elevEls[i]) {
             const el = document.createElement('div');
             el.className = 'elbl';
-            const tg = document.createElement('button');
-            tg.className = 'lbl ftag';
-            tg.addEventListener('click', (e) => { e.stopPropagation(); openBiz(tg.dataset.id); });
-            $('#labels').append(tg, el);
+            $('#labels').append(el);
             elevEls.push(el);
-            tagEls.push(tg);
           }
-          const el = elevEls[i], tg = tagEls[i], q = list[i];
-          const pb = q && ctx.project(q.id);
-          if (!q || !pb.vis || pb.far) { el.style.visibility = tg.style.visibility = 'hidden'; continue; }
-          el.style.visibility = tg.style.visibility = '';
-          const pe = ctx.projectPoint(q.x, q.y, q.z), pt = ctx.projectPoint(q.tag[0], q.tag[1], q.tag[2]);
+          const el = elevEls[i], q = list[i];
+          const pb = q && ctx.project(q.base);
+          if (!q || !pb.vis || pb.far) { el.style.visibility = 'hidden'; continue; }
+          el.style.visibility = '';
+          const pe = ctx.projectPoint(q.x, q.y, q.z);
           el.style.transform = `translate3d(${pe.x.toFixed(1)}px, ${pe.y.toFixed(1)}px, 0) translate(-50%, -100%)`;
-          tg.style.transform = `translate3d(${pt.x.toFixed(1)}px, ${pt.y.toFixed(1)}px, 0) translate(-50%, -100%)`;
           const eh = `F${q.floor} ${q.dir > 0 ? '▲' : q.dir < 0 ? '▼' : '■'} ${q.n}/${q.cap}`;
           if (el.textContent !== eh) el.textContent = eh;
-          if (tg.dataset.id !== q.id) {
-            const b = BIZ_BY_ID[q.id];
-            tg.dataset.id = q.id;
-            tg.style.setProperty('--c', b.color);
-            tg.innerHTML = `<span class="li">${icon(b.icon, 14)}</span><span>F2 · ${esc(b.name)}</span>`;
-          }
-          tg.classList.toggle('sel', ctx.selected() === q.id);
         }
       }
       for (let i = pops.length - 1; i >= 0; i--) {
@@ -596,10 +831,25 @@ export function createUI(root, ctx) {
         const key = `${s.biz[b.id].lv}|${isOpen(b, s.minute)}`;
         if (labels[b.id].key !== key) { labels[b.id].key = key; labels[b.id].el.innerHTML = labelHTML(b.id); labels[b.id].el.classList.toggle('sale', !s.biz[b.id].lv); }
       }
+      for (const L of xLabels) {
+        const x = xLabelState(L.id);
+        L.show = x.show;
+        if (L.key !== x.html) { L.key = x.html; L.el.innerHTML = x.html; L.el.classList.toggle('sale', x.sale); }
+      }
       const pk = `${s.port.lv}`;
       if (pk !== portKey) { portKey = pk; portLbl.innerHTML = portLabelHTML(); portLbl.classList.toggle('sale', !s.port.lv); }
       $('#portBadge').textContent = s.port.lv ? (s.port.offers.length || '') : (s.money >= PORT.cost ? '!' : '');
-      $('#day').textContent = `第 ${s.day} 天`;
+      const se = seasonOf(s);
+      $('#day').textContent = `第 ${s.day} 天 · ${se.name}`;
+      $('#day').title = `${se.name}季第 ${seasonDay(s)} 天：海灘 ${Math.round(se.beach * 100)}%、城市 ${Math.round(se.city * 100)}%`;
+      if (root.classList.contains('photo')) {
+        const ph = $('#phTime');
+        if (document.activeElement !== ph) ph.value = (s.minute / 60).toFixed(1);
+        $('#phTimeV').textContent = hhmm(s.minute);
+        root.querySelectorAll('[data-phw]').forEach((b) => b.classList.toggle('on', b.dataset.phw === s.weather.cur));
+        root.querySelector('[data-ph=lapse]').classList.toggle('on', ctx.speed() >= 20);
+      }
+      const dd = s.daily ? s.daily.tasks.filter((t) => !t.done).length : 0;
       const wi = weatherIcon(s.weather.cur, s.minute);
       if ($('#wx').dataset.k !== wi) { $('#wx').dataset.k = wi; $('#wx').innerHTML = icon(wi, 26); $('#wx').className = 'wx ' + wi; }
       $('#wx').title = WEATHER[s.weather.cur].name;
@@ -626,7 +876,7 @@ export function createUI(root, ctx) {
         $('#qhint').textContent = '自由經營：挑戰更高的單日營收';
         $('#qval').textContent = '';
       }
-      $('#qBadge').textContent = qp ? '1' : '';
+      $('#qBadge').textContent = qp ? '1' : dd || '';
       const affordable = BIZ.filter((b) => !s.biz[b.id].lv && s.money >= b.cost).length;
       $('#shopBadge').textContent = affordable || '';
       $('#alertBadge').textContent = unread ? Math.min(unread, 9) : '';

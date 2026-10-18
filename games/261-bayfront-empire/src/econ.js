@@ -2,8 +2,10 @@
 // 純資料，不碰 DOM／three；畫面層呼叫 tick() 推進、arrivalPerMin() 決定生客、serve() 收錢。
 import { BIZ, BIZ_BY_ID, CURVES, WEATHER, WEATHER_NEXT, EVENTS, QUESTS, LEVEL_AT, FIRST_BEACH_QUEST, PORT } from './data.js';
 import { newPort, sanitizePort, supplyCost, portStep, portHour } from './port.js';
+import { lifeMult, tierOf, lifeHour, lifeDay, checkLife, newLife, sanitizeLife, seasonOf, ferrisCrowd, APTS, aptLv, hasMark } from './empire.js';
+import { TIERS, LANDMARKS, LIFT } from './data.js';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const START_MONEY = 250000;
 export const SAVE_KEY = 'bayfront-empire';
 
@@ -26,11 +28,12 @@ export function newState(seed = 20261016) {
     biz: {}, quest: 0, history: [], today: blankDay(), port: newPort(),
     weather: { cur: 'sunny', until: 12 * 60 },
     event: null,
-    stats: { earned: 0, served: 0, turned: 0, invested: 0 },
+    stats: { earned: 0, served: 0, turned: 0, invested: 0, promos: 0, daily: 0, rivals: 0 },
     opts: { sound: true, quality: 'auto' },
     notice: null,
+    ...newLife(),
   };
-  for (const b of BIZ) s.biz[b.id] = { lv: 0, earned: 0, visits: 0 };
+  for (const b of BIZ) s.biz[b.id] = { lv: 0, earned: 0, visits: 0, tier: 0, promo: 0 };
   rollEvent(s);
   return s;
 }
@@ -38,7 +41,8 @@ export function newState(seed = 20261016) {
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const int = (v, d, lo = -Infinity, hi = Infinity) => Math.max(lo, Math.min(hi, Math.round(num(v, d))));
 
-// 讀檔：v1 是海灘改版前的格式（cash／time／shops{id: 等級}），v2 是海灘改版（沒有海港），v3 是現行格式。
+// 讀檔：v1 是海灘改版前的格式（cash／time／shops{id: 等級}），v2 是海灘改版（沒有海港），v3 是物流改版，
+// v4 是現行格式（城市生活改版：定價、促銷、電梯、公寓、地標、對手、每日目標與成就）。
 // 任何缺欄位、未知商家或壞資料都退回預設值，不丟例外。
 export function migrate(raw) {
   if (typeof raw === 'string') {
@@ -72,17 +76,18 @@ export function migrate(raw) {
       for (const id of Object.keys(s.biz)) {
         const b = raw.biz[id];
         if (!b || typeof b !== 'object') continue;
-        s.biz[id] = { lv: int(b.lv, 0, 0, 3), earned: num(b.earned, 0), visits: int(b.visits, 0, 0) };
+        s.biz[id] = { lv: int(b.lv, 0, 0, 3), earned: num(b.earned, 0), visits: int(b.visits, 0, 0), tier: TIERS[b.tier] ? +b.tier : 0, promo: num(b.promo, 0) };
       }
     }
     if (Array.isArray(raw.history)) s.history = raw.history.filter((h) => h && typeof h.day === 'number').slice(-7);
     if (raw.today && typeof raw.today === 'object') {
       for (const k of ['rev', 'visits', 'turned']) {
         if (raw.today[k] && typeof raw.today[k] === 'object') {
-          for (const id of [...Object.keys(s.biz), 'port']) if (typeof raw.today[k][id] === 'number') s.today[k][id] = raw.today[k][id];
+          for (const id of [...Object.keys(s.biz), 'port', 'rent', 'ferris']) if (typeof raw.today[k][id] === 'number') s.today[k][id] = raw.today[k][id];
         }
       }
       for (const k of DAY_NUM) s.today[k] = num(raw.today[k], 0);
+      s.today.promos = num(raw.today.promos, 0);
     }
     if (raw.weather && WEATHER[raw.weather.cur]) s.weather = { cur: raw.weather.cur, until: int(raw.weather.until, s.minute + 120, 0, 1440 * 2) };
     if (raw.event === null || (raw.event && EVENTS[raw.event])) s.event = raw.event;
@@ -92,6 +97,8 @@ export function migrate(raw) {
     s.port = sanitizePort(raw.port);
     // v2 存檔沒有海港：供應成本從讀檔後開始計，顯示物流改版公告
     if (raw.v === 2) { s.migratedFrom = 2; s.notice = 'port-update'; }
+    else if (raw.v === 3) { s.migratedFrom = 3; s.notice = 'life-update'; }
+    sanitizeLife(raw, s);
     if (raw.opts && typeof raw.opts === 'object') {
       s.opts.sound = raw.opts.sound !== false;
       if (['auto', 'low', 'high'].includes(raw.opts.quality)) s.opts.quality = raw.opts.quality;
@@ -101,9 +108,9 @@ export function migrate(raw) {
   return s;
 }
 
-export function serialize(s) {
+export function serialize(s, now = Date.now()) {
   const { notice, migratedFrom, ...rest } = s;
-  return JSON.stringify(rest);
+  return JSON.stringify({ ...rest, savedAt: now });
 }
 
 export function investedOf(s) {
@@ -118,6 +125,10 @@ export function investedOf(s) {
   if (pl >= 1) t += PORT.cost;
   if (pl >= 2) t += PORT.up[0];
   if (pl >= 3) t += PORT.up[1];
+  // 城市生活改版的投資也算進帝國等級
+  for (const a of APTS) { const lv = aptLv(s, a.key); if (lv >= 1) t += a.cost; if (lv >= 2) t += a.reno; }
+  for (const m of LANDMARKS) if (hasMark(s, m.id)) t += m.cost;
+  for (const k in s.lifts || {}) for (let i = 1; i < s.lifts[k]; i++) t += LIFT.cost[i];
   return t;
 }
 
@@ -144,7 +155,14 @@ const APPEAL = [0, 1, 1.4, 1.85];
 
 export function eventMult(s, def) {
   const e = s.event && EVENTS[s.event];
-  return e && e.zone === def.zone ? e.mult : 1;
+  if (!e || e.zone !== def.zone) return 1;
+  if (e.night) {
+    // 週五夜派對：18 點到凌晨 3 點
+    const h = (s.minute / 60) % 24;
+    if (!(h >= 18 || h < 3)) return 1;
+    return def.curve === 'night' ? 2 : 1.5;
+  }
+  return e.mult;
 }
 
 export function ratingMult(s) { return 0.7 + 0.6 * (s.rating / 100); }
@@ -153,16 +171,17 @@ export function ratingMult(s) { return 0.7 + 0.6 * (s.rating / 100); }
 export function arrivalPerMin(s, id) {
   const def = BIZ_BY_ID[id], st = s.biz[id];
   if (!st.lv || !isOpen(def, s.minute)) return 0;
-  return def.demand * 0.155 * APPEAL[st.lv] * curveAt(def.curve, s.minute) * WEATHER[s.weather.cur].mult[def.kind] * ratingMult(s) * eventMult(s, def);
+  return def.demand * 0.155 * APPEAL[st.lv] * curveAt(def.curve, s.minute) * WEATHER[s.weather.cur].mult[def.kind] * ratingMult(s) * eventMult(s, def) * lifeMult(s, id);
 }
 
 // 海灘閒逛人潮（不消費的泳客、散步的人），畫面層用來決定沙灘熱鬧程度
 export function beachCrowd(s) {
   const e = s.event && EVENTS[s.event];
-  return curveAt('beach', s.minute) * WEATHER[s.weather.cur].beach * (e && e.zone === 'beach' ? e.mult : 1);
+  return curveAt('beach', s.minute) * WEATHER[s.weather.cur].beach * (e && e.zone === 'beach' ? e.mult : 1) * seasonOf(s).beach * ferrisCrowd(s);
 }
 
-export const priceOf = (s, id) => BIZ_BY_ID[id].price[Math.max(0, s.biz[id].lv - 1)];
+export const basePriceOf = (s, id) => BIZ_BY_ID[id].price[Math.max(0, s.biz[id].lv - 1)];
+export const priceOf = (s, id) => Math.round(basePriceOf(s, id) * tierOf(s, id).price);
 export const capOf = (s, id) => BIZ_BY_ID[id].cap[Math.max(0, s.biz[id].lv - 1)];
 export const wageOf = (s, id) => (s.biz[id].lv ? BIZ_BY_ID[id].wage[s.biz[id].lv - 1] : 0);
 
@@ -201,7 +220,7 @@ export function serve(s, id) {
   s.biz[id].visits += 1;
   s.stats.earned += amt;
   s.stats.served += 1;
-  s.rating = Math.min(100, s.rating + (100 - s.rating) * 0.012);
+  s.rating = Math.min(100, s.rating + (100 - s.rating) * 0.012 * tierOf(s, id).rating);
   return amt;
 }
 
@@ -209,7 +228,9 @@ export function serve(s, id) {
 export function turnAway(s, id) {
   s.today.turned[id] = (s.today.turned[id] || 0) + 1;
   s.stats.turned += 1;
-  s.rating = Math.max(20, s.rating - 0.9);
+  // 派對夜大家都知道要排隊，客滿扣的評分少很多
+  const party = s.event === 'party' && eventMult(s, BIZ_BY_ID[id]) > 1;
+  s.rating = Math.max(20, s.rating - (party ? 0.25 : 0.9));
 }
 
 // 今日營運成本：工資＋供應＋海港運費、倉儲、耗損
@@ -237,6 +258,10 @@ function rollWeather(s) {
   const h = (s.minute / 60) % 24;
   let next = pickWeighted(s, WEATHER_NEXT[s.weather.cur]);
   if (next === 'heat' && (h < 9 || h > 15)) next = 'sunny';
+  // 季節：冬天沒有熱浪（改成陰天），夏天的雨有一半變成晴時多雲
+  const se = seasonOf(s).id;
+  if (se === 'winter' && next === 'heat') next = 'cloudy';
+  if (se === 'summer' && next === 'rain' && rand(s) < 0.5) next = 'partly';
   s.weather.cur = next;
   s.weather.until = s.minute + 120 + Math.floor(rand(s) * 4) * 60;
 }
@@ -246,7 +271,8 @@ function rollEvent(s) {
   if (dow === 6 || dow === 0) s.event = 'weekend';
   else {
     const r = rand(s);
-    s.event = r < 0.2 ? 'market' : r < 0.32 ? 'festival' : null;
+    if (dow === 5) s.event = 'party';
+    else s.event = r < 0.2 ? 'market' : r < 0.32 ? 'festival' : r < 0.37 ? 'shortage' : null;
   }
 }
 
@@ -282,6 +308,7 @@ export function tick(s, dMin) {
   }
   const q = checkQuest(s);
   if (q) ev.push(q);
+  checkLife(s, ev);
   return ev;
 }
 
@@ -291,6 +318,8 @@ function onHour(s, ev) {
   if (s.port.lv) cost += PORT.wage[s.port.lv - 1] / 24;
   cost = Math.round(cost);
   portHour(s);
+  const inc = lifeHour(s);
+  if (inc) ev.push({ type: 'passive', amount: inc });
   if (cost) {
     s.money -= cost;
     s.today.cost += cost;
@@ -308,6 +337,7 @@ function onDay(s, ev) {
   s.today = blankDay();
   rollEvent(s);
   if (s.event) ev.push({ type: 'event', id: s.event });
+  lifeDay(s, rand, ev);
 }
 
 export function questProgress(s) {

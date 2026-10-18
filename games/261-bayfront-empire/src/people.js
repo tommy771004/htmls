@@ -2,16 +2,18 @@
 // 消費（入店、躺椅、排隊買小吃、上船、衝浪）後離開。另有不消費的路人與海灘遊客維持街景熱鬧。
 import * as THREE from 'three';
 import { Builder, prng, T } from './geo.js';
-import { BIZ, BIZ_BY_ID } from './data.js';
+import { BIZ, BIZ_BY_ID, LIFT } from './data.js';
 import { arrivalPerMin, capOf, serve, turnAway, isOpen, beachCrowd } from './econ.js';
-import { CITY_LOTS, lotRect, BEACH, umbrellaSlot, STAIRS_X, BOAT_SLOTS, JET_SLOTS, groundY, SAND_Y, DECK_Y, RAIL_Z } from './layout.js';
+import { CITY_LOTS, lotRect, lotKey, floorOf, STACKS, BEACH, umbrellaSlot, STAIRS_X, BOAT_SLOTS, JET_SLOTS, groundY, SAND_Y, DECK_Y, RAIL_Z } from './layout.js';
 import { SEA_Y } from './sea.js';
-import { seatsOf, elevatorOf, F2Y } from './interior.js';
+import { seatsOf, elevatorOf, floorY, roomOf, FLOOR_GAP } from './interior.js';
+import { liftLv, APT_BY_KEY } from './empire.js';
 
 const TBOX = T.box;
 const SHIRTS = ['#c8453c', '#2f7f8f', '#d9a63e', '#2d5a45', '#e07a5f', '#5f8790', '#f2e8cf', '#8a4f6e', '#3f7a8c', '#b5793a', '#f4f1e6', '#6a5a8a', '#e8c25a', '#7a9a5a'];
 const SKINS = ['#f1c9a5', '#e0ac85', '#c68b62', '#a8704b', '#7d4f33', '#f5d5bc'];
 const TOWELS = ['#c8453c', '#2f7f8f', '#d9a63e', '#e07a5f', '#5f8790', '#f2e8cf', '#c0607a'];
+const BROLLY = ['#c8453c', '#2d5a45', '#d9a63e', '#2f3a3d', '#3f7a8c', '#8a4f6e', '#e8e2d0'];
 
 export const WALK_SPEED = 3.2; // 公尺／秒（1 倍速）
 
@@ -22,6 +24,13 @@ function bodyGeo() {
   S.add(TBOX, 0, 0.78, 0, 0.48, 0.66, 0.28, 0, '#ffffff');
   S.add(TBOX, -0.31, 0.84, 0, 0.12, 0.58, 0.15, 0, '#ffffff');
   S.add(TBOX, 0.31, 0.84, 0, 0.12, 0.58, 0.15, 0, '#ffffff');
+  return S.geometry();
+}
+function brollyGeo() {
+  // 雨傘：頂在頭上的八角傘面＋傘柄
+  const S = new Builder();
+  S.cyl(0.18, 0.9, 0.12, 0.025, 1.25, '#3a3a3a', 5);
+  S.add(T.cone8, 0.18, 2.05, 0.12, 1.5, 0.42, 1.5, 0, '#ffffff');
   return S.geometry();
 }
 function headGeo() {
@@ -56,23 +65,52 @@ export function createPeople(scene, ctx) {
   }
   bodies.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
 
-  // ── Lv3 城市商家的電梯 ──
-  // 車廂依固定循環上下（下層停 2.5 秒 → 上行 3.5 秒 → 上層停 2.5 秒 → 下行 3.5 秒），客人在停靠時進出，最多 4 人
-  const CITY_IDS = BIZ.filter((b) => b.zone === 'city').map((b) => b.id);
-  const ELEV = Object.fromEntries(CITY_IDS.map((id, i) => [id, { ...elevatorOf(id), off: i * 2.7 }]));
-  const ECAP = 4;
+  // ── 疊樓建築的電梯（每棟一部，不同樓層是不同店家） ──
+  // 叫車制：有人在等或車廂裡有人要去的樓層才會動，依掃描法（同方向優先）決定下一站；到站開門 2 秒。
+  // 電梯等級（empire.js 的 liftLv）決定車廂容量與每層行程時間。
+  const ELEV = Object.fromEntries(STACKS.map((st) => {
+    const E = elevatorOf(st.base);
+    return [st.key, { ...E, ids: st.ids, floors: st.floors, y: floorY(1), cur: 1, target: null, dwell: 0, dir: 0, at: 1 }];
+  }));
+  const ECAP = (key) => LIFT.cap[liftLv(getState(), key) - 1];
   let elevT = 0, clockMin = 0;
-  const ease = (k) => k * k * (3 - 2 * k);
-  function cabState(id) {
-    const E = ELEV[id];
-    const t = (elevT + E.off) % 12;
-    let k, dir = 0;
-    if (t < 2.5) k = 0;
-    else if (t < 6) { k = ease((t - 2.5) / 3.5); dir = 1; }
-    else if (t < 8.5) k = 1;
-    else { k = 1 - ease((t - 8.5) / 3.5); dir = -1; }
-    return { k, dir, y: E.y0 + (E.y1 - E.y0) * k, bottom: t < 2.3, top: t >= 6 && t < 8.3 };
+  function liftRequests(key) {
+    const want = new Set();
+    for (const a of A) {
+      if (!a.on) continue;
+      if (a.ride === key) want.add(a.rto);
+      else if (a.lw && a.lw.key === key) want.add(a.lw.from);
+    }
+    return want;
   }
+  function stepLift(key, sec) {
+    const E = ELEV[key];
+    if (E.dwell > 0) {
+      E.dwell -= sec;
+      E.at = E.cur;
+      if (E.dwell > 0) return;
+    }
+    if (E.target === null) {
+      const req = [...liftRequests(key)].filter((f) => f !== E.cur || riders(key) >= ECAP(key));
+      const up = req.filter((f) => f > E.cur), dn = req.filter((f) => f < E.cur);
+      if (E.dir >= 0 && up.length) E.target = Math.min(...up);
+      else if (E.dir <= 0 && dn.length) E.target = Math.max(...dn);
+      else if (up.length) E.target = Math.min(...up);
+      else if (dn.length) E.target = Math.max(...dn);
+      if (E.target === null) { E.dir = 0; E.at = E.cur; return; }
+    }
+    E.at = 0;
+    const ty = floorY(E.target), v = (FLOOR_GAP / LIFT.move[liftLv(getState(), key) - 1]) * sec;
+    E.dir = Math.sign(ty - E.y);
+    if (Math.abs(ty - E.y) <= v) {
+      E.y = ty;
+      E.cur = E.target;
+      E.target = null;
+      E.dwell = 2;
+      E.at = E.cur;
+    } else E.y += E.dir * v;
+  }
+  const liftQueue = (key, from) => { let n = 0; for (const a of A) if (a.on && a.lw && a.lw.key === key && a.lw.from === from) n++; return n; };
   const riders = (id) => { let n = 0; for (const a of A) if (a.on && a.ride === id) n++; return n; };
   const cabGeo = (() => {
     const S = new Builder();
@@ -82,31 +120,40 @@ export function createPeople(scene, ctx) {
     S.add(TBOX, 0, 0.9, -0.95, 1.9, 0.06, 0.04, 0, '#e0b646');
     return S.geometry();
   })();
-  const cabs = new THREE.InstancedMesh(cabGeo, mat, CITY_IDS.length);
+  const cabs = new THREE.InstancedMesh(cabGeo, mat, Math.max(1, STACKS.length));
+  const brollies = new THREE.InstancedMesh(brollyGeo(), mat, MAX);
+  brollies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  brollies.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
+  brollies.frustumCulled = false;
+  brollies.castShadow = true;
+  brollies.count = 0;
+  scene.add(brollies);
   cabs.count = 0;
   cabs.frustumCulled = false;
   cabs.castShadow = true;
   scene.add(cabs);
-  // 走到電梯口等車廂，進去後跟著車廂移動，到站後接著走 path
-  function takeElevator(a, id, up, then) {
-    const E = ELEV[id];
+  // 走到電梯口按鈕等車廂，車廂停在 from 層開門時進去，跟著車廂移動，停在 to 層時出來接著走 path
+  function takeElevator(a, key, from, to, then) {
+    const E = ELEV[key];
     a.pose = 'stand';
     a.yaw = Math.PI / 2;
     a.wait = 0;
+    a.lw = { key, from, to };
     a.waitFor = () => {
-      const c = cabState(id);
-      if (!(up ? c.bottom : c.top) || riders(id) >= ECAP) return false;
-      a.ride = id;
-      const slot = riders(id) - 1;
+      if (E.at !== from || riders(key) >= ECAP(key)) return false;
+      a.lw = null;
+      a.ride = key;
+      a.rto = to;
+      E.dwell = Math.max(E.dwell, 0.8);
+      const slot = (riders(key) - 1) % 4;
       a.x = E.x + (slot % 2 ? 0.45 : -0.45);
       a.z = E.z + (slot > 1 ? 0.45 : -0.45);
       a.pose = 'ride';
       a.waitFor = () => {
-        const cc = cabState(id);
-        a.y = cc.y;
-        if (!(up ? cc.top : cc.bottom)) return false;
+        a.y = E.y;
+        if (E.at !== to) return false;
         a.ride = null;
-        a.fy = up ? E.y1 : null;
+        a.fy = to > 1 ? floorY(to) : null;
         then();
         return true;
       };
@@ -148,13 +195,15 @@ export function createPeople(scene, ctx) {
     return best;
   }
 
+  let gen = 0;
   function spawn(kind, from) {
     const a = A.find((q) => !q.on);
     if (!a) return null;
     const [x, z] = P(from);
     Object.assign(a, {
-      on: true, kind, x, z, y: groundY(x, z), fy: null, ride: null, yaw: 0, path: [], pi: 0, pose: 'walk', timer: 0, biz: null, slot: -1, craft: null,
-      surfer: null, from, phase: rnd() * 6, then: null, wait: 0, towel: -1, beach: false,
+      on: true, kind, x, z, y: groundY(x, z), fy: null, ride: null, rto: 0, lw: null, yaw: 0, path: [], pi: 0, pose: 'walk', timer: 0, biz: null, slot: -1, craft: null,
+      surfer: null, from, phase: rnd() * 6, then: null, wait: 0, towel: -1, beach: false, waitFor: null,
+      gen: ++gen, target: null, paid: 0, rejected: false, inside: false, release: null, home: null, rival: false,
     });
     _c.set(SHIRTS[Math.floor(rnd() * SHIRTS.length)]);
     a.shirt = [_c.r, _c.g, _c.b];
@@ -165,6 +214,8 @@ export function createPeople(scene, ctx) {
   const despawn = (a) => {
     if (a.towel >= 0) towelFree[a.towel] = true;
     a.on = false;
+    a.lw = null;
+    a.ride = null;
   };
   const go = (a, pts, then) => { a.path = pts; a.pi = 0; a.pose = 'walk'; a.then = then; };
   // 回家：從目前位置走回最近的路網點，再沿路網到出口
@@ -199,25 +250,36 @@ export function createPeople(scene, ctx) {
       go(a, [...pathNodes(a.from, door), [dx, r.z1 + 0.4]], () => {
         const s = getState();
         if (!isOpen(BIZ_BY_ID[id], s.minute) || occ[id] >= capOf(s, id)) return reject(a, id);
+        // 樓上的店（同一棟的 F2、F3）從一樓大門進來，搭電梯上樓；電梯口排太長就不等了
+        const f = floorOf(id), key = lotKey(id), E = ELEV[key];
+        if (f > 1 && liftQueue(key, 1) >= ECAP(key) * 2) {
+          s.today.liftLost = (s.today.liftLost || 0) + 1;
+          return reject(a, id, false, 'lift');
+        }
         occ[id]++;
         a.biz = id;
+        a.inside = true;
         pay(a, id);
         // 剖面室內：走進店裡找空位坐下（或站在器材前），客滿的人在店裡看不到的地方
         const lv = s.biz[id].lv;
-        const seats = seatCache[id + lv] || (seatCache[id + lv] = seatsOf(id, lv));
-        const busy = seatBusy[id + lv] || (seatBusy[id + lv] = new Set());
+        const ck = `${id}|${lv}|${f}`;
+        const seats = seatCache[ck] || (seatCache[ck] = seatsOf(id, lv));
+        const busy = seatBusy[ck] || (seatBusy[ck] = new Set());
         const free = seats.map((_, k) => k).filter((k) => !busy.has(k));
         const stay = BIZ_BY_ID[id].stay * (0.8 + rnd() * 0.4);
-        const out = () => { a.biz = null; a.y = groundY(a.x, a.z); leave(a); };
+        const out = () => { a.biz = null; a.inside = false; a.release = null; a.y = groundY(a.x, a.z); leave(a); };
+        let k = -1, released = false;
+        // 釋放容量與座位（離座或樓層交換時被請出去），只做一次
+        a.release = () => { if (released) return; released = true; if (k >= 0) busy.delete(k); occ[id]--; };
         if (!free.length) {
           a.pose = 'hidden';
           a.timer = stay;
-          a.then = () => { occ[id]--; out(); };
+          a.then = () => { a.release(); out(); };
           return;
         }
         // 佔用容量的時間維持和以前一樣（付款起算 stay 分鐘）：路上與等電梯的時間從入座時間扣掉，離座就釋放
         const t0 = clockMin;
-        const k = free[Math.floor(rnd() * free.length)];
+        k = free[Math.floor(rnd() * free.length)];
         busy.add(k);
         const st = seats[k];
         const inZ = r.z1 - 1.4;
@@ -226,20 +288,15 @@ export function createPeople(scene, ctx) {
           a.x = st.x; a.z = st.z; a.y = st.y; a.yaw = st.yaw;
           a.timer = Math.max(stay * 0.25, stay - (clockMin - t0));
           a.then = () => {
-            busy.delete(k);
-            occ[id]--;
+            a.release();
             a.pose = 'walk';
-            if (st.floor !== 2) return go(a, [[dx, st.z], [dx, inZ], [dx, r.z1 + 0.4]], out);
-            // 從 F2 搭電梯下樓再出門
-            const E = ELEV[id];
-            go(a, [[dx, st.z], [dx, E.z], E.wait], () => takeElevator(a, id, false, () => go(a, [E.wait, [dx, inZ], [dx, r.z1 + 0.4]], out)));
+            if (f === 1) return go(a, [[dx, st.z], [dx, inZ], [dx, r.z1 + 0.4]], out);
+            // 從樓上搭電梯下樓再出門
+            go(a, [[dx, st.z], [dx, E.z], E.wait], () => takeElevator(a, key, f, 1, () => go(a, [E.wait, [dx, inZ], [dx, r.z1 + 0.4]], out)));
           };
         };
-        if (st.floor !== 2) go(a, [[dx, inZ], [dx, st.z], [st.x, st.z]], sit);
-        else {
-          const E = ELEV[id];
-          go(a, [[dx, inZ], E.wait], () => takeElevator(a, id, true, () => go(a, [E.wait, [dx, E.z], [dx, st.z], [st.x, st.z]], sit)));
-        }
+        if (f === 1) go(a, [[dx, inZ], [dx, st.z], [st.x, st.z]], sit);
+        else go(a, [[dx, inZ], E.wait], () => takeElevator(a, key, 1, f, () => go(a, [E.wait, [dx, E.z], [dx, st.z], [st.x, st.z]], sit)));
       });
     },
     snack(a, id) {
@@ -374,13 +431,15 @@ export function createPeople(scene, ctx) {
   function pay(a, id) {
     const s = getState();
     const amt = serve(s, id);
+    a.paid = amt;
     a.biz = id;
     counts.cust++;
     onIncome(id, amt, a.x, a.y, a.z);
   }
-  function reject(a, id, beach = false) {
+  function reject(a, id, beach = false, why = 'full') {
     turnAway(getState(), id);
-    onTurned(id, a.x, a.y + 2.2, a.z);
+    onTurned(id, a.x, a.y + 2.2, a.z, why);
+    a.rejected = why;
     leave(a, beach);
   }
 
@@ -435,6 +494,81 @@ export function createPeople(scene, ctx) {
     });
   }
 
+  // ── 店員：營業中的城市店每級一位店員在店內走動（端盤子、整理貨架、帶課），樓上的店員待在自己那層 ──
+  const CITY_SHOPS = BIZ.filter((b) => b.zone === 'city').map((b) => b.id);
+  const staffOf = Object.fromEntries(CITY_SHOPS.map((id) => [id, []]));
+  function seatsFor(id, lv) {
+    const ck = `${id}|${lv}|${floorOf(id)}`;
+    return { seats: seatCache[ck] || (seatCache[ck] = seatsOf(id, lv)), busy: seatBusy[ck] || (seatBusy[ck] = new Set()) };
+  }
+  function spawnStaff(id, f, k) {
+    const R = roomOf(id);
+    const hx = R.cx + (k - 1) * 1.7, hz = R.z0 + 3.0;
+    const a = spawn('staff', 0);
+    if (!a) return null;
+    a.x = hx; a.z = hz;
+    a.fy = f > 1 ? floorY(f) : null;
+    a.y = f > 1 ? floorY(f) : groundY(hx, hz);
+    a.sbiz = id; a.sf = f; a.home = [hx, hz]; a.inside = true;
+    _c.set(BIZ_BY_ID[id].color);
+    a.shirt = [_c.r, _c.g, _c.b];
+    a.pose = 'stand';
+    a.yaw = Math.PI;
+    a.timer = 1 + rnd() * 4;
+    a.then = () => staffRound(a);
+    return a;
+  }
+  function staffRound(a) {
+    const s = getState(), id = a.sbiz, lv = s.biz[id].lv;
+    if (!lv) return despawn(a);
+    const { seats, busy } = seatsFor(id, lv);
+    const taken = [...busy];
+    const k = taken.length && rnd() < 0.75 ? taken[Math.floor(rnd() * taken.length)] : Math.floor(rnd() * seats.length);
+    const st = seats[k];
+    if (!st) { a.timer = 5; a.then = () => staffRound(a); return; }
+    const dx = roomOf(id).cx, tx = st.x + (dx - st.x) * 0.45;
+    go(a, [[dx, a.home[1]], [dx, st.z], [tx, st.z]], () => {
+      a.pose = 'stand';
+      a.yaw = Math.atan2(st.x - tx, 0.001);
+      a.timer = 2 + rnd() * 4;
+      a.then = () => go(a, [[dx, st.z], [dx, a.home[1]], a.home], () => {
+        a.pose = 'stand';
+        a.yaw = Math.PI;
+        a.timer = 3 + rnd() * 6;
+        a.then = () => staffRound(a);
+      });
+    });
+  }
+  function syncStaff(s) {
+    for (const id of CITY_SHOPS) {
+      const lv = s.biz[id].lv, f = floorOf(id);
+      const want = lv && isOpen(BIZ_BY_ID[id], s.minute) ? Math.min(lv, mobile ? 2 : 3) : 0;
+      const keep = [];
+      for (const a of staffOf[id]) {
+        if (!a.on || a.kind !== 'staff' || a.sbiz !== id) continue;
+        if (a.sf !== f || keep.length >= want) despawn(a); else keep.push(a);
+      }
+      while (keep.length < want) { const a = spawnStaff(id, f, keep.length); if (!a) break; keep.push(a); }
+      staffOf[id] = keep;
+    }
+  }
+  // ── 競爭對手的客人：走進對街那棟公寓一樓的店 ──
+  function spawnRivalCustomer(s) {
+    const apt = APT_BY_KEY[s.rival.lot];
+    const from = pickSpawn(apt.x, apt.z);
+    const a = spawn('cust', from);
+    if (!a) return;
+    a.rival = true;
+    a.target = 'rival';
+    const end = nearestNode(apt.x, apt.z + 3);
+    go(a, [...pathNodes(from, end), [apt.x + jitter(), apt.z + 0.4]], () => {
+      a.pose = 'hidden';
+      a.timer = BIZ_BY_ID[s.rival ? s.rival.id : 'cafe'].stay * 0.6;
+      a.then = () => { a.z = apt.z + 0.6; leave(a); };
+    });
+  }
+  let rivalAcc = 0, staffT = 0;
+
   let SEC_PER_MIN = 0.3;
   const api = {
     setSecPerMin(v) { SEC_PER_MIN = v; },
@@ -458,15 +592,26 @@ export function createPeople(scene, ctx) {
             const from = pickSpawn(tx, tz);
             const a = spawn('cust', from);
             if (!a) break;
+            a.target = b.id;
             (flows[b.id] || flows.city)(a, b.id);
           }
         }
-        // 路人與海灘遊客：維持目標人數
+        // 對手的客人（目標店家被搶走的那一份）
+        if (s.rival && isOpen(BIZ_BY_ID[s.rival.id], s.minute)) {
+          const lam = arrivalPerMin(s, s.rival.id);
+          rivalAcc += (lam / Math.max(0.3, 1 - s.rival.power)) * s.rival.power * dMin;
+          while (rivalAcc >= 1) { rivalAcc -= 1; spawnRivalCustomer(s); }
+        }
+        staffT -= dMin;
+        if (staffT <= 0) { staffT = 2; syncStaff(s); }
+        // 路人與海灘遊客：維持目標人數（週五夜派對的晚上街上人多很多）
         const h = s.minute / 60;
-        const cityTarget = (mobile ? 16 : 26) * (h < 6 ? 0.15 : h < 8 ? 0.6 : h > 22 ? 0.3 : 1);
+        const party = s.event === 'party' && (h >= 18 || h < 3);
+        const cityTarget = (mobile ? 16 : 26) * (party ? (h < 3 ? 1.2 : 1.6) : h < 6 ? 0.15 : h < 8 ? 0.6 : h > 22 ? 0.3 : 1);
         const beachTarget = (mobile ? 30 : 46) * beachCrowd(s);
         let nc = 0, nb = 0;
         for (const a of A) if (a.on) { if (a.kind === 'amb') nc++; else if (a.kind === 'beach') nb++; }
+        if (party) ambAcc += dMin * 0.8;
         counts.city = nc; counts.beach = nb;
         ambAcc += dMin * 0.6;
         beachAcc += dMin * 0.8;
@@ -478,10 +623,10 @@ export function createPeople(scene, ctx) {
       elevT += dt * speed;
       clockMin += dMin;
       let nc3 = 0;
-      for (const id of CITY_IDS) {
-        if ((s.biz[id] && s.biz[id].lv) < 3) continue;
-        const E = ELEV[id];
-        _m.compose(_p.set(E.x, cabState(id).y, E.z), _q.identity(), _s.set(1, 1, 1));
+      for (const key in ELEV) {
+        stepLift(key, dt * speed);
+        const E = ELEV[key];
+        _m.compose(_p.set(E.x, E.y, E.z), _q.identity(), _s.set(1, 1, 1));
         cabs.setMatrixAt(nc3++, _m);
       }
       cabs.count = nc3;
@@ -490,7 +635,8 @@ export function createPeople(scene, ctx) {
       // 移動與狀態
       const step = WALK_SPEED * dt * speed;
       const tMin = dMin;
-      let n = 0, nt = 0;
+      const raining = s.weather.cur === 'rain';
+      let n = 0, nt = 0, nu = 0;
       for (const a of A) {
         if (!a.on) continue;
         if (a.pose === 'walk') {
@@ -534,6 +680,13 @@ export function createPeople(scene, ctx) {
         bodies.instanceColor.setXYZ(n, a.shirt[0], a.shirt[1], a.shirt[2]);
         heads.instanceColor.setXYZ(n, a.skin[0], a.skin[1], a.skin[2]);
         n++;
+        // 下雨時在戶外走路或等待的人撐傘
+        if (raining && !a.inside && a.fy == null && (a.pose === 'walk' || a.pose === 'stand') && a.kind !== 'staff' && a.z < 44) {
+          _m.compose(_p.set(a.x, y, a.z), _q.setFromEuler(_e.set(0, yaw, 0)), _s.set(1, 1, 1));
+          brollies.setMatrixAt(nu, _m);
+          _c.set(BROLLY[a.i % BROLLY.length]);
+          brollies.instanceColor.setXYZ(nu++, _c.r, _c.g, _c.b);
+        }
         if (a.towel >= 0 && a.pose === 'lie') {
           const [tx, tz, ry] = a.towelPos;
           _m.compose(_p.set(tx, SAND_Y, tz), _q.setFromEuler(_e.set(0, ry, 0)), _s.set(1.1, 1, 2.1));
@@ -542,6 +695,8 @@ export function createPeople(scene, ctx) {
       }
       bodies.count = heads.count = n;
       towels.count = nt;
+      brollies.count = nu;
+      if (nu) { brollies.instanceMatrix.needsUpdate = true; brollies.instanceColor.needsUpdate = true; }
       bodies.instanceMatrix.needsUpdate = heads.instanceMatrix.needsUpdate = towels.instanceMatrix.needsUpdate = true;
       bodies.instanceColor.needsUpdate = heads.instanceColor.needsUpdate = true;
       // 毛巾顏色以第幾條毛巾決定，重新排序後要跟著寫
@@ -552,13 +707,45 @@ export function createPeople(scene, ctx) {
       }
     },
     active: () => A.filter((a) => a.on).length,
-    // 介面用：各 Lv3 店家電梯的位置、所在樓層、方向與乘客數
+    // 介面用：各棟電梯的位置、所在樓層、方向、乘客數與排隊人數（整棟都還沒開店就不顯示）
     elevators() {
       const s = getState();
-      return CITY_IDS.filter((id) => s.biz[id] && s.biz[id].lv >= 3).map((id) => {
-        const c = cabState(id), E = ELEV[id];
-        return { id, x: E.x, y: c.y + 2.9, z: E.z, floor: c.k < 0.5 ? 1 : 2, dir: c.dir, n: riders(id), cap: ECAP, tag: E.tag };
+      return Object.entries(ELEV).filter(([, E]) => E.ids.some((id) => s.biz[id] && s.biz[id].lv > 0)).map(([key, E]) => {
+        let q = 0;
+        for (const a of A) if (a.on && a.lw && a.lw.key === key) q++;
+        return { id: key, base: E.ids[0], x: E.x, y: E.y + 2.9, z: E.z, floor: Math.round((E.y - floorY(1)) / FLOOR_GAP) + 1, dir: E.dir, n: riders(key), cap: ECAP(key), q };
       });
+    },
+    // 疊樓交換樓層：店內的客人與店員先請出門（容量與座位立刻釋放），店員在新樓層重新上班
+    evict(ids) {
+      for (const a of A) {
+        if (!a.on) continue;
+        if (a.kind === 'staff' && ids.includes(a.sbiz)) { despawn(a); continue; }
+        if (!a.release || !ids.includes(a.biz)) continue;
+        a.release();
+        const r = lotRect(...CITY_LOTS[a.biz]);
+        Object.assign(a, { release: null, ride: null, lw: null, waitFor: null, fy: null, inside: false, biz: null, then: null });
+        a.x = (r.x0 + r.x1) / 2; a.z = r.z1 + 0.6; a.y = groundY(a.x, a.z);
+        leave(a);
+      }
+      for (const id of ids) staffOf[id] = [];
+      staffT = 0;
+    },
+    // 跟拍用：這個人現在在做什麼
+    describe(a) {
+      const name = (id) => (id === 'rival' ? (getState().rival ? getState().rival.name : '對手的店') : BIZ_BY_ID[id] ? BIZ_BY_ID[id].name : '');
+      if (a.kind === 'staff') return { who: `${name(a.sbiz)}的店員`, what: a.pose === 'walk' ? '送餐、整理座位' : '在櫃台待命' };
+      if (a.kind === 'amb') return { who: '路人', what: '在街上散步' };
+      if (a.kind === 'beach') return { who: '海灘遊客', what: a.pose === 'swim' ? '在海裡游泳' : a.pose === 'lie' ? '在沙灘上曬太陽' : '去海邊' };
+      const who = a.rival ? `${name('rival')}的客人` : '顧客';
+      if (a.rejected) return { who, what: a.rejected === 'lift' ? '電梯排太長，不等了' : `${name(a.target)}客滿，只好回家` };
+      if (a.ride) return { who, what: `搭電梯往 F${a.rto}`, paid: a.paid };
+      if (a.lw) return { who, what: `等電梯 F${a.lw.from} → F${a.lw.to}`, paid: a.paid };
+      if (a.biz && a.pose !== 'walk') return { who, what: `在${name(a.biz)}消費中`, left: Math.max(0, Math.ceil(a.timer)), paid: a.paid };
+      if (a.biz && a.inside) return { who, what: `走進${name(a.biz)}`, paid: a.paid };
+      if (a.paid) return { who, what: '消費完回家', paid: a.paid };
+      if (a.rival) return { who, what: `前往${name('rival')}` };
+      return { who, what: a.target ? `前往${name(a.target)}` : '逛街' };
     },
     visible: () => bodies.count,
     agents: A,

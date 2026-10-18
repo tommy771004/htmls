@@ -32,14 +32,27 @@ export const lotRect = (col, row, side) => {
   return { x0: ix0, x1: ix1, z0: iz0, z1: iz1 };
 };
 
-// 城市商家的店面位置
+// 城市商家的店面位置：[欄, 列, 東西半, 樓層]。同一塊地可以疊好幾家店（影片裡的 F1 服飾／F2 美甲／F3…），
+// 各層是展開式的剖面樓板，以電梯連通
 export const CITY_LOTS = {
-  cafe: [0, 1, 'W'], bakery: [0, 1, 'E'], burger: [1, 1, 'W'], mart: [1, 1, 'E'],
-  boutique: [3, 1, 'W'], nail: [3, 1, 'E'], pizza: [4, 1, 'W'], books: [4, 1, 'E'],
-  gym: [0, 0, 'E'], bar: [3, 0, 'W'],
+  cafe: [0, 1, 'W', 1], bakery: [0, 1, 'E', 1], burger: [1, 1, 'W', 1], mart: [1, 1, 'E', 1],
+  boutique: [3, 1, 'W', 1], nail: [3, 1, 'W', 2], books: [3, 1, 'W', 3], pizza: [4, 1, 'W', 1],
+  gym: [0, 0, 'E', 1], bar: [0, 0, 'E', 2],
 };
+export const floorOf = (id) => (CITY_LOTS[id] && CITY_LOTS[id][3]) || 1;
+// 玩家可以付裝修費交換疊樓的樓層（empire.js 的 swapFloors），讀檔與交換後由畫面層呼叫 setFloor 套用
+export const DEFAULT_FLOOR = Object.fromEntries(Object.entries(CITY_LOTS).map(([id, v]) => [id, v[3]]));
+export function setFloor(id, f) { CITY_LOTS[id][3] = f; }
+export const lotKey = (id) => CITY_LOTS[id].slice(0, 3).join(',');
+// 同一塊地上的店（依樓層排序）；只有一層的地不算「疊樓」
+export function stackOf(id) {
+  const key = lotKey(id);
+  const ids = Object.keys(CITY_LOTS).filter((k) => lotKey(k) === key).sort((a, b) => floorOf(a) - floorOf(b));
+  return { key, ids, floors: ids.length, base: ids[0] };
+}
+export const STACKS = [...new Set(Object.keys(CITY_LOTS).map(lotKey))].map((k) => stackOf(Object.keys(CITY_LOTS).find((id) => lotKey(id) === k))).filter((s) => s.floors > 1);
 // 住宅（客人的出發點）
-export const APT_LOTS = [[0, 0, 'W'], [1, 0, 'W'], [1, 0, 'E'], [3, 0, 'E'], [4, 0, 'W'], [4, 0, 'E']];
+export const APT_LOTS = [[0, 0, 'W'], [1, 0, 'W'], [1, 0, 'E'], [3, 0, 'W'], [3, 0, 'E'], [4, 0, 'W'], [4, 0, 'E'], [3, 1, 'E'], [4, 1, 'E']];
 export const PARK = [2, 1];
 export const HALL = [2, 0];
 

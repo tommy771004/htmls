@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Builder, prng, T } from './geo.js';
 const TBOX = T.box;
 import {
-  STREETS_X, CORE_STREETS_X, AVES_Z, COAST_Z, ROAD_W, COAST_W, COLS, ROWS, SIDEWALK, PROM, SAND_Y, STAIRS_X, RAIL_Z,
+  STACKS, STREETS_X, CORE_STREETS_X, AVES_Z, COAST_Z, ROAD_W, COAST_W, COLS, ROWS, SIDEWALK, PROM, SAND_Y, STAIRS_X, RAIL_Z,
   CITY_LOTS, APT_LOTS, PARK, HALL, lotRect, BEACH, DECK_Y, HARBOR,
 } from './layout.js';
 
@@ -247,7 +247,10 @@ function coreBlocks(S, D, G, L, B, lamps, rnd) {
 
 export const lotFloors = (c, r, side, isShop = true) => {
   const seed = c * 7 + r * 3 + (side === 'E' ? 1 : 0);
-  return isShop ? 2 : 3 + (seed % 2);
+  if (isShop) return 2;
+  // 疊樓店家的鏡頭前方（東側）鄰棟壓低成兩層，不擋住展開的樓層
+  if (side === 'E' && STACKS.some((st) => st.key === `${c},${r},W`)) return 2;
+  return 3 + (seed % 2);
 };
 export const GROUND_H = 3.6, FLOOR_H = 3.2;
 export const roofY = (floors) => GROUND_H + (floors - 1) * FLOOR_H;
