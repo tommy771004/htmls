@@ -10,7 +10,7 @@
 :root{
   --ink:#f4f1fb;--ink-2:rgba(240,236,252,.72);--ink-3:rgba(232,226,248,.46);
   --friend:#86cdfa;--foe:#ff6b55;--order:#efb54f;--boost:#7af1ff;--hp:#f4f1fb;
-  --night:#120e1c;
+  --night:#120e1c;--emp:#ff5cbd;--rail:#ffcf5c;
   --hud-shadow:0 1px 2px rgba(12,8,22,.85),0 0 14px rgba(12,8,22,.45);
   --num:"DIN Alternate","DIN Condensed","Bahnschrift","Arial Narrow","Roboto Condensed",sans-serif;
   --tc:"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
@@ -70,20 +70,42 @@ body.playing #hud{opacity:1}
 #spd .k{font:700 52px/0.9 var(--num);letter-spacing:.01em}
 #spd .u{font:700 13px var(--num);color:var(--ink-2);margin-left:4px}
 #spd .fps{font:700 12px var(--num);color:var(--ink-3);margin-bottom:6px}
+#snd{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:10px;pointer-events:auto;text-shadow:none}
+#sndB{width:30px;height:30px;border:0;padding:0;display:grid;place-items:center;color:var(--ink);background:rgba(240,236,252,.1);cursor:pointer;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);transition:background var(--dur-hover,.15s)}
+#sndB:hover{background:rgba(240,236,252,.2)}
+#sndB svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+#sndB .x{display:none}
+#sndB.off{color:var(--foe)}
+#sndB.off .x{display:inline}
+#sndB.off .w{display:none}
+#sndV{width:86px;accent-color:var(--boost);cursor:pointer}
+body:not(.playing) #snd{pointer-events:none}
+#snd:has(.off) #sndV{opacity:.4}
 #spd .fps b{color:var(--ink-2)}
 #spd .gear{font-size:12px;color:var(--ink-2);margin-top:6px}
 
 /* 右下：雷達與武器 */
 #rd{position:absolute;right:24px;bottom:22px;display:grid;justify-items:end;gap:8px}
 #radar{width:196px;height:196px;display:block}
-#wep{text-align:right;min-width:196px}
-#wep .n{font-size:12px;color:var(--ink-2)}
+#wep{text-align:right;min-width:196px;--wc:var(--boost)}
+#wsl{list-style:none;display:flex;justify-content:flex-end;gap:12px;font-size:12px;color:var(--ink-3);margin-bottom:6px}
+#wsl li{display:flex;gap:4px;align-items:baseline;padding-bottom:3px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+#wsl b{font:700 11px var(--num)}
+#wsl li.on{color:var(--wc);border-color:var(--wc)}
+#wep .n{font-size:12px;color:var(--wc)}
 #wep .a{font:700 46px/1 var(--num);margin-top:2px}
 #wep .a small{font-size:20px;color:var(--ink-3);margin-left:4px}
 #wep .a.empty{color:var(--foe)}
 #wep .rl{height:3px;margin:5px 0 0 auto;width:120px;background:rgba(240,236,252,.14);position:relative;opacity:0;transition:opacity .2s}
 #wep .rl.on{opacity:1}
 #wep .rl::before{content:"";position:absolute;inset:0;background:var(--order);transform-origin:right;transform:scaleX(var(--v,0))}
+#msl{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:9px;font-size:12px;color:var(--ink-2)}
+#msl .pp{display:flex;gap:6px;padding:0 2px}
+#msl i{width:7px;height:7px;transform:rotate(45deg);box-shadow:inset 0 0 0 1.5px var(--ink-3)}
+#msl i.f{background:var(--order);box-shadow:none}
+#msl i.l{background:var(--foe);box-shadow:none}
+#msl em{font:700 11px/1 var(--num);font-style:normal;color:var(--ink-3);min-width:52px;text-align:right}
+#msl.lk em{color:var(--foe)}
 #veh{font-size:12px;color:var(--ink-2);margin-top:7px}
 #vehM{font:700 13px/1 var(--num);letter-spacing:.14em;color:var(--boost);margin-bottom:8px}
 #vehM.foot{color:var(--order)}
@@ -112,6 +134,21 @@ body.playing #xh{opacity:1}
 #xh.hit .hit{opacity:1}
 #xh.kill .hit{stroke:var(--foe);opacity:1}
 #xh.tgt .t,#xh.tgt .d{stroke:var(--foe);fill:var(--foe)}
+#xh .sg,#xh .rg,#xh .lg{display:none}
+#xh.w1 .t{display:none}
+#xh.w1 .sg{display:inline;fill:none;stroke:var(--emp);stroke-width:2;stroke-linecap:round;transition:transform .08s}
+#xh.w2 .rg{display:inline}
+#xh .rg circle{fill:none;stroke-width:2.4}
+#xh .rg .bg{stroke:rgba(240,236,252,.2)}
+#xh .rg .fg{stroke:var(--rail);stroke-dasharray:81.68;stroke-dashoffset:81.68}
+#xh.lock .lg{display:inline;fill:none;stroke:var(--foe);stroke-width:1.5;stroke-dasharray:3 8;opacity:.7}
+body.touch #xh .lg{display:none!important}
+.lk{position:fixed;left:0;top:0;width:var(--s,34px);height:var(--s,34px);pointer-events:none;display:none}
+.lk i{position:absolute;inset:0;border:2px solid var(--foe);transform:rotate(45deg) scale(.72)}
+.lk::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;background:var(--foe);transform:rotate(45deg)}
+.lk b{position:absolute;left:100%;top:-8px;margin-left:1px;font:700 11px/1 var(--num);color:var(--foe)}
+.lk.trk i{animation:blink .24s steps(2) infinite}
+body:not(.playing) .lk{display:none!important}
 .mk{position:fixed;left:0;top:0;pointer-events:none;font:700 11px/1 var(--num);color:var(--foe);display:none;white-space:nowrap;transform:translate(-50%,-100%)}
 .mk::before{content:"";display:block;width:7px;height:7px;margin:0 auto 4px;background:var(--foe);transform:rotate(45deg)}
 .mk.car::before{transform:none;width:8px;height:6px}
@@ -158,6 +195,8 @@ body.touch #go kbd{display:none}
 #tFire{right:24px;bottom:150px;width:82px;height:82px}
 #tBoost{right:118px;bottom:118px;width:62px;height:62px}
 #tMount{right:118px;bottom:192px;width:52px;height:52px;font-size:12px}
+#tMsl{right:24px;bottom:246px;width:62px;height:62px;font-size:12px}
+#tWep{right:100px;bottom:262px;width:52px;height:52px;font-size:12px}
 
 @media (max-width:760px){
   #dir{left:14px;top:12px;width:200px}
@@ -171,11 +210,17 @@ body.touch #go kbd{display:none}
   .bar b{font-size:13px}
   #spd{right:14px;top:12px}
   #spd .k{font-size:34px}
-  #rd{right:12px;bottom:auto;top:108px;gap:4px}
+  #sndV{display:none}
+  #snd{margin-bottom:6px}
+  #sndB{width:28px;height:28px}
+  #rd{right:12px;bottom:auto;top:142px;gap:4px}
   #radar{width:108px;height:108px}
   #wep{min-width:0}
   #wep .n,#veh{display:none}
   #wep .a{font-size:26px}
+  #wsl{gap:8px;font-size:11px;margin-bottom:3px}
+  #msl{margin-top:5px}
+  #msl>span:first-child,#msl em{display:none}
   #logw{left:14px;bottom:178px;width:calc(100vw - 196px)}
   #log li{font-size:11px;gap:6px}
   #log li:nth-child(-n+2){display:none}
@@ -190,7 +235,7 @@ body.touch #go kbd{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   #log li{animation:none}
-  #boBar.low i,#hpBar.hit i,#boBar.regen i::before{animation:none}
+  #boBar.low i,#hpBar.hit i,#boBar.regen i::before,.lk.trk i{animation:none}
 }
 </style>
 </head>
@@ -210,6 +255,7 @@ body.touch #go kbd{display:none}
     <div class="bar" id="boBar"><span>氮氣</span><i><u></u></i><b class="num">100</b></div>
   </section>
   <section id="spd">
+    <div id="snd"><input id="sndV" type="range" min="0" max="100" value="75" aria-label="音量"><button id="sndB" aria-label="靜音"><svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10L5 10H2z"/><path class="w" d="M11.5 5.5a3.5 3.5 0 0 1 0 5M13.5 3.5a6.3 6.3 0 0 1 0 9"/><path class="x" d="M11 5.5l4 5M15 5.5l-4 5"/></svg></button></div>
     <div class="fps num">FPS <b id="fps">60</b></div>
     <div><span class="k num" id="kmh">0</span><span class="u">km/h</span></div>
     <div class="gear" id="gear">步行</div>
@@ -218,9 +264,11 @@ body.touch #go kbd{display:none}
     <canvas id="radar" width="392" height="392"></canvas>
     <div id="wep">
       <div id="vehM">BIKE</div>
-      <div class="n">ARC-9 電漿卡賓</div>
+      <ol id="wsl"><li class="on"><b>1</b>電漿</li><li><b>2</b>散彈</li><li><b>3</b>軌道</li></ol>
+      <div class="n" id="wName">ARC-9 電漿卡賓</div>
       <div class="a num" id="ammo">40<small>/40</small></div>
       <div class="rl" id="reload"></div>
+      <div id="msl"><span>微型飛彈</span><span class="pp"><i></i><i></i><i></i><i></i><i></i><i></i></span><em id="mslS">就緒</em></div>
       <div id="veh">K-7 重機 <b id="vehS">騎乘中</b></div>
     </div>
   </section>
@@ -231,22 +279,27 @@ body.touch #go kbd{display:none}
       <span><kbd>Shift</kbd>衝刺</span>
       <span><kbd>F</kbd>上下車</span>
       <span><kbd>左鍵</kbd>射擊</span>
+      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>滾輪換武器</span>
+      <span><kbd>右鍵</kbd><kbd>Q</kbd>按住鎖定，放開發射飛彈</span>
       <span><kbd>R</kbd>換彈</span>
-      <span><kbd>右鍵</kbd>轉視角</span>
+      <span><kbd>中鍵</kbd>拖曳轉視角</span>
       <span><kbd>M</kbd>聲音</span>
       <span><kbd>Esc</kbd>暫停</span>
     </div>
   </section>
 </div>
 
-<div id="xh"><svg viewBox="-22 -22 44 44"><g class="t" id="xhT"><line x1="0" y1="-15" x2="0" y2="-8"/><line x1="0" y1="8" x2="0" y2="15"/><line x1="-15" y1="0" x2="-8" y2="0"/><line x1="8" y1="0" x2="15" y2="0"/></g><circle class="d" r="1.6"/><g class="hit"><line x1="-11" y1="-11" x2="-5" y2="-5"/><line x1="11" y1="-11" x2="5" y2="-5"/><line x1="-11" y1="11" x2="-5" y2="5"/><line x1="11" y1="11" x2="5" y2="5"/></g></svg></div>
+<div id="xh"><svg viewBox="-22 -22 44 44"><g class="t" id="xhT"><line x1="0" y1="-15" x2="0" y2="-8"/><line x1="0" y1="8" x2="0" y2="15"/><line x1="-15" y1="0" x2="-8" y2="0"/><line x1="8" y1="0" x2="15" y2="0"/></g><path class="sg" d="M-12 -12A17 17 0 0 0 -12 12M12 -12A17 17 0 0 1 12 12"/><g class="rg"><circle class="bg" r="13"/><circle class="fg" id="xhR" r="13" transform="rotate(-90)"/></g><circle class="lg" r="90"/><circle class="d" r="1.6"/><g class="hit"><line x1="-11" y1="-11" x2="-5" y2="-5"/><line x1="11" y1="-11" x2="5" y2="-5"/><line x1="-11" y1="11" x2="-5" y2="5"/><line x1="11" y1="11" x2="5" y2="5"/></g></svg></div>
 <div id="marks"></div>
+<div id="locks"></div>
 
 <div id="touch">
   <div id="stick"><i></i></div>
   <button class="tb" id="tFire">射擊</button>
   <button class="tb" id="tBoost">氮氣</button>
   <button class="tb" id="tMount">上下車</button>
+  <button class="tb" id="tMsl">飛彈</button>
+  <button class="tb" id="tWep">電漿</button>
 </div>
 
 <div class="ov on" id="title">
@@ -254,7 +307,7 @@ body.touch #go kbd{display:none}
   <div class="blk">
     <h1>霜港高架</h1>
     <div class="en">FROSTLINE RIDER</div>
-    <p>無轂霓虹輪、雙氮氣噴嘴與 ARC-9 電漿卡賓。路面、大樓、車與人都由程式即時生成。</p>
+    <p>無轂霓虹輪、雙氮氣噴嘴、三種電漿武器與背包微型飛彈。路面、大樓、車與人都由程式即時生成。</p>
     <button id="go"><kbd>Enter</kbd>出發</button>
   </div>
   <dl class="ctl">
@@ -262,7 +315,9 @@ body.touch #go kbd{display:none}
     <dt><kbd>A</kbd> <kbd>D</kbd></dt><dd>轉向壓車</dd>
     <dt><kbd>Shift</kbd></dt><dd>氮氣衝刺／步行奔跑</dd>
     <dt><kbd>F</kbd> <kbd>E</kbd></dt><dd>上下車</dd>
-    <dt>滑鼠</dt><dd>準星瞄準，左鍵連發</dd>
+    <dt>滑鼠</dt><dd>準星瞄準，左鍵射擊，中鍵拖曳轉視角</dd>
+    <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>電漿步槍／EMP 散彈／軌道砲（滾輪也可）</dd>
+    <dt>右鍵 <kbd>Q</kbd></dt><dd>按住掃過敵人鎖定，放開齊射飛彈</dd>
   </dl>
 </div>
 <div class="ov" id="pause"><div class="c"><h2>暫停</h2><p>按 Esc 或點擊繼續。</p><button class="btn" id="resume">繼續騎乘</button></div></div>
@@ -442,10 +497,11 @@ vN = normalize(mat3(modelMatrix) * normal);
 #endif
 vV = normalize(cameraPosition - wp.xyz); vec4 mv = viewMatrix * wp; float d = -mv.z; vFog = exp(-fogD*fogD*d*d); gl_Position = projectionMatrix * mv; }`;
 function glowMat(hex, k, shape, extra = {}) {
+  const { __decl, ...more } = extra;
   return new THREE.ShaderMaterial({
-    uniforms: Object.assign({ col: { value: hdr(hex, k) }, fogD: { value: scene.fog.density }, op: { value: 1 } }, extra),
+    uniforms: Object.assign({ col: { value: hdr(hex, k) }, fogD: { value: scene.fog.density }, op: { value: 1 } }, more),
     vertexShader: glowVS,
-    fragmentShader: `uniform vec3 col; uniform float op; varying vec2 vUv; varying float vFog; varying vec3 vN; varying vec3 vV; ${extra.__decl || ''}
+    fragmentShader: `uniform vec3 col; uniform float op; varying vec2 vUv; varying float vFog; varying vec3 vN; varying vec3 vV; ${__decl || ''}
 void main(){ float a = 1.; ${shape} a = clamp(a, 0., 4.); gl_FragColor = vec4(col*a*vFog*op, 1.); }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false
   });
@@ -758,14 +814,14 @@ void main(){ vec3 drift = vec3(1.4 + sin(time*0.3)*0.8, -2.1*(0.6+aS*0.25), 0.6)
 // ───────── 共用幾何與材質 ─────────
 const MAT = {
   armor: toon(0xc4c0d0), dark: toon(0x2a2735), mid: toon(0x575170), red: toon(0xc9383c), teal: toon(0x26414a),
-  visor: glowBasic(0x7af1ff, 5), cyan: glowBasic(0x7af1ff, 3.5), redGlow: glowBasic(0xff3b32, 5), white: glowBasic(0xf2f4ff, 7), amber: glowBasic(0xffb35a, 5),
+  visor: glowBasic(0x7af1ff, 5), cyan: glowBasic(0x7af1ff, 3.5), redGlow: glowBasic(0xff3b32, 5), white: glowBasic(0xf2f4ff, 7), amber: glowBasic(0xffb35a, 5), emp: glowBasic(0xff4fb8, 4),
   paint: new THREE.MeshStandardMaterial({ color: 0x1d1b26, metalness: 0.8, roughness: 0.28, flatShading: true }),
   chrome: new THREE.MeshStandardMaterial({ color: 0x8c8aa0, metalness: 1, roughness: 0.22 }),
   rubber: toon(0x15131b), glass: new THREE.MeshStandardMaterial({ color: 0x0c0b14, metalness: 0.9, roughness: 0.06 }),
   enemy: new THREE.MeshStandardMaterial({ color: 0x4a4756, metalness: 0.55, roughness: 0.4, flatShading: true }),
   enemyPlate: toon(0x8d889c), gun: toon(0x34313e)
 };
-const DOWN = new V3(0, -1, 0);
+const DOWN = new V3(0, -1, 0), UP = new V3(0, 1, 0);
 const solid = m => !m.transparent && !m.isShaderMaterial && !m.isMeshBasicMaterial;
 function part(parent, geo, mat, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, shadow = true) {
   const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = shadow; parent.add(m); return m;
@@ -810,6 +866,17 @@ function buildRider() {
   // 背包噴射：向後下方噴出的焰錐（與機車氮氣同一套形狀）
   const jfl = new THREE.ConeGeometry(0.075, 1, 10, 1, true); jfl.translate(0, -0.5, 0);
   const jets = [-1, 1].map(s => { const j = part(pack, jfl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), s * 0.1, -0.29, 0.04, -0.3, 0, 0, false); j.scale.set(1, 0.01, 1); return j; });
+  // 微型飛彈艙：頂部 2×3 發射管，護蓋鉸鍊在背側上緣，齊射時向後掀開
+  const tubes = [];
+  for (let i = 0; i < 6; i++) {
+    const x = (i % 3 - 1) * 0.1, z = i < 3 ? -0.04 : 0.04;
+    part(pack, new THREE.CylinderGeometry(0.032, 0.032, 0.045, 8), MAT.dark, x, 0.232, z);
+    part(pack, new THREE.CircleGeometry(0.022, 8), MAT.amber, x, 0.256, z, -Math.PI / 2, 0, 0, false);
+    tubes.push(grp(pack, x, 0.27, z));
+  }
+  const lid = grp(pack, 0, 0.262, 0.085);
+  part(lid, box(0.36, 0.028, 0.17), MAT.armor, 0, 0.014, -0.085);
+  part(lid, box(0.22, 0.01, 0.022), MAT.red, 0, 0.03, -0.13, 0, 0, 0, false);
   // 頭盔
   const neck = grp(chest, 0, 0.53, 0);
   part(neck, new THREE.CylinderGeometry(0.06, 0.07, 0.08, 8), MAT.dark, 0, 0.02, 0);
@@ -846,17 +913,38 @@ function buildRider() {
   // 戰袍下襬（三節擺動）
   const cape = []; let parent = grp(pelvis, 0, -0.02, 0.13);
   for (let i = 0; i < 3; i++) { const g = grp(parent, 0, i ? -0.17 : 0, 0); part(g, box(0.34 - i * 0.03, 0.17, 0.018), i === 2 ? MAT.red : MAT.teal, 0, -0.085, 0); cape.push(g); parent = g; }
-  // ARC-9 電漿卡賓（槍管朝 +Z，方便 lookAt）
-  const gun = grp(chest, 0.2, 0.26, -0.3);
-  part(gun, box(0.07, 0.11, 0.46), MAT.gun, 0, 0, 0.02);
-  part(gun, box(0.05, 0.05, 0.3), MAT.dark, 0, 0.075, 0.0);
-  part(gun, new THREE.CylinderGeometry(0.026, 0.03, 0.26, 8), MAT.chrome, 0, 0.01, 0.36, Math.PI / 2);
-  part(gun, box(0.075, 0.02, 0.22), MAT.cyan, 0, -0.035, 0.05, 0, 0, 0, false);
-  part(gun, box(0.05, 0.13, 0.06), MAT.dark, 0, -0.1, -0.08, 0.3);
-  part(gun, box(0.06, 0.09, 0.14), MAT.mid, 0, -0.01, -0.26);
+  // 三把槍共用握把位置（槍管朝 +Z，方便 lookAt），依目前武器切換顯示
+  const gun = grp(chest, 0.2, 0.26, -0.3), gunSets = [grp(gun), grp(gun), grp(gun)];
+  // [1] ARC-9 電漿卡賓
+  let g = gunSets[0];
+  part(g, box(0.07, 0.11, 0.46), MAT.gun, 0, 0, 0.02);
+  part(g, box(0.05, 0.05, 0.3), MAT.dark, 0, 0.075, 0.0);
+  part(g, new THREE.CylinderGeometry(0.026, 0.03, 0.26, 8), MAT.chrome, 0, 0.01, 0.36, Math.PI / 2);
+  part(g, box(0.075, 0.02, 0.22), MAT.cyan, 0, -0.035, 0.05, 0, 0, 0, false);
+  part(g, box(0.05, 0.13, 0.06), MAT.dark, 0, -0.1, -0.08, 0.3);
+  part(g, box(0.06, 0.09, 0.14), MAT.mid, 0, -0.01, -0.26);
+  // [2] EMP-8 電磁散彈砲：短粗雙管，洋紅色電容環
+  g = gunSets[1];
+  part(g, box(0.1, 0.13, 0.38), MAT.gun, 0, 0, 0.0);
+  for (const s of [-1, 1]) part(g, new THREE.CylinderGeometry(0.036, 0.042, 0.24, 10), MAT.dark, s * 0.028, 0.02, 0.3, Math.PI / 2);
+  for (const z of [0.21, 0.32]) part(g, new THREE.TorusGeometry(0.075, 0.014, 6, 18), MAT.emp, 0, 0.02, z, 0, 0, 0, false);
+  part(g, box(0.11, 0.05, 0.16), MAT.mid, 0, 0.09, -0.04);
+  part(g, box(0.105, 0.02, 0.2), MAT.emp, 0, -0.065, 0.06, 0, 0, 0, false);
+  part(g, box(0.05, 0.13, 0.06), MAT.dark, 0, -0.1, -0.08, 0.3);
+  part(g, box(0.07, 0.1, 0.16), MAT.mid, 0, -0.01, -0.26);
+  // [3] LX-3 軌道砲：兩條長導軌夾著金色線圈，蓄力時線圈變亮
+  g = gunSets[2];
+  const coilMat = glowBasic(0xffc94a, 1.2);
+  part(g, box(0.08, 0.12, 0.5), MAT.gun, 0, 0, -0.02);
+  for (const s of [-1, 1]) part(g, box(0.022, 0.05, 0.6), MAT.chrome, s * 0.042, 0.02, 0.43);
+  for (const z of [0.24, 0.38, 0.52, 0.66]) part(g, box(0.1, 0.07, 0.026), coilMat, 0, 0.02, z, 0, 0, 0, false);
+  part(g, box(0.045, 0.06, 0.22), MAT.dark, 0, 0.095, -0.02);
+  part(g, box(0.05, 0.13, 0.06), MAT.dark, 0, -0.1, -0.08, 0.3);
+  part(g, box(0.06, 0.1, 0.18), MAT.mid, 0, -0.01, -0.3);
+  gunSets[1].visible = gunSets[2].visible = false;
   const muzzle = grp(gun, 0, 0.01, 0.5), gripR = grp(gun, 0, -0.1, -0.08), gripL = grp(gun, 0, -0.05, 0.2);
   root.traverse(o => { if (o.isMesh) o.castShadow = o.castShadow && true; });
-  return { root, pelvis, spine, chest, neck, head, arms, legs, cape, gun, muzzle, gripR, gripL, tanks, vents, jets, aimK: 0 };
+  return { root, pelvis, spine, chest, neck, head, arms, legs, cape, gun, gunSets, coilMat, muzzle, gripR, gripL, tanks, vents, jets, tubes, lid, aimK: 0 };
 }
 
 // 兩段式 IK：upper/lower 的幾何都沿 -Y 延伸
@@ -1028,6 +1116,46 @@ function boltPool(n, coreHex, shellHex, shellK, w) {
 }
 const pBolts = boltPool(70, 0xffffff, 0x5ef2ff, 2.6, 0.2);
 const eBolts = boltPool(110, 0xfff0f0, 0xff2f2a, 4, 0.22);
+// EMP 散彈：粗短的洋紅色電漿顆粒
+const sBolts = boltPool(48, 0xfff0fa, 0xff3fae, 3.4, 0.34);
+// EMP 槍口震波環
+const empRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 1, 40), new THREE.MeshBasicMaterial({ color: hdr(0xff5cbd, 3), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+empRing.visible = false; empRing.userData.t = 0; scene.add(empRing);
+// 軌道砲光束：金色實心光芯＋外層光暈，消散後留下 1.5 秒螺旋扭動的電離殘影
+const beamGeo = (() => { const g = new THREE.CylinderGeometry(1, 1, 1, 20, 1, true); g.rotateX(Math.PI / 2); g.translate(0, 0, 0.5); return g; })();
+const BEAMS = Array.from({ length: 3 }, () => {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const core = new THREE.Mesh(beamGeo, glowMat(0xfff1c8, 4, 'a = pow(abs(dot(vN,vV)), 1.6);'));
+  const shell = new THREE.Mesh(beamGeo, glowMat(0xffae2e, 1.6, 'a = pow(abs(dot(vN,vV)), 1.1)*0.8;'));
+  const ion = new THREE.Mesh(beamGeo, glowMat(0xffc350, 1.1, 'float s = vUv.y*len; float h = fract(vUv.x*3. + s*0.32 - age*0.7); float fil = exp(-(h-0.5)*(h-0.5)*42.); a = (fil*0.95 + 0.18)*pow(abs(dot(vN,vV)), 0.7)*(0.65+0.35*sin(s*1.9 + age*11.));', { len: { value: 1 }, age: { value: 0 }, __decl: 'uniform float len; uniform float age;' }));
+  for (const m of [core, shell, ion]) { m.frustumCulled = false; g.add(m); }
+  return { g, core, shell, ion, t: 9, len: 1 };
+});
+// 背包微型飛彈：彈體、尾焰與面向鏡頭的帶狀煙跡
+const LOCK_MAX = 6, MSL_PER = 2, MSL_N = LOCK_MAX * MSL_PER, TRAIL_N = 46, TRAIL_LIFE = 0.95;
+const mslGeo = merge([
+  [new THREE.CylinderGeometry(0.045, 0.05, 0.42, 8), mat4(0, 0, 0, Math.PI / 2)],
+  [new THREE.ConeGeometry(0.045, 0.12, 8), mat4(0, 0, 0.27, Math.PI / 2)],
+  [box(0.2, 0.012, 0.07), mat4(0, 0, -0.17)], [box(0.012, 0.2, 0.07), mat4(0, 0, -0.17)]
+]);
+const mslBody = new THREE.InstancedMesh(mslGeo, toon(0xd9d5e4), MSL_N);
+const mslFlame = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial({ color: hdr(0xffc27a, 7), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }), MSL_N);
+for (const m of [mslBody, mslFlame]) { m.frustumCulled = false; m.count = 0; scene.add(m); }
+const MSL = Array.from({ length: MSL_N }, (_, i) => ({ on: false, i, t: 0, T: 1, e: null, p0: new V3(), c1: new V3(), off: new V3(), p3: new V3(), v0: new V3(), pos: new V3(), prev: new V3(), dir: new V3(0, 1, 0), smk: 0, samp: 0, tr: Array.from({ length: TRAIL_N }, () => ({ p: new V3(), t: -9 })), th: 0, tn: 0 }));
+const trail = (() => {
+  const nV = MSL_N * TRAIL_N * 2, g = new THREE.BufferGeometry();
+  const pos = new Float32Array(nV * 3), col = new Float32Array(nV * 3), side = new Float32Array(nV), idx = [];
+  for (let s = 0; s < MSL_N; s++) for (let j = 0; j < TRAIL_N; j++) { const k = (s * TRAIL_N + j) * 2; side[k + 1] = 1; if (j < TRAIL_N - 1) idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+  g.setIndex(idx); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aC', new THREE.BufferAttribute(col, 3)); g.setAttribute('aS', new THREE.BufferAttribute(side, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { fogD: { value: scene.fog.density } },
+    vertexShader: 'attribute vec3 aC; attribute float aS; uniform float fogD; varying vec3 vC; varying float vS, vF; void main(){ vC = aC; vS = aS; vec4 mv = modelViewMatrix*vec4(position,1.); vF = exp(-fogD*fogD*mv.z*mv.z)*smoothstep(1.,5.,-mv.z); gl_Position = projectionMatrix*mv; }',
+    fragmentShader: 'varying vec3 vC; varying float vS, vF; void main(){ float e = clamp(1.-abs(vS*2.-1.), 0., 1.); gl_FragColor = vec4(vC*e*e*vF, 1.); }',
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; scene.add(mesh);
+  return { g, pos, col };
+})();
 function fireBolt(pool, from, dir, speed, dmg, len) {
   const b = pool.items.find(b => !b.on); if (!b) return null;
   b.on = true; b.p.copy(from); b.v.copy(dir).multiplyScalar(speed); b.life = 1.6; b.len = len; b.dmg = dmg; return b;
@@ -1188,7 +1316,7 @@ const evacMesh = (() => {
 const rider = buildRider(), bike = buildBike();
 scene.add(bike.root);
 const LANE_R = [3.0, 6.6, 10.2];
-const S = { mode: 'title', score: 0, won: false, ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1 };
+const S = { mode: 'title', score: 0, won: false, ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1, wi: 0, mags: [40, 6, 5], reloadMax: 1.3, charge: 0, shWarned: false };
 const P = { pos: new V3(6.6, 0, 0), yaw: 0, v: 0, steer: 0, lean: 0, pitch: 0, acc: 0, boosting: false, wheel: 0 };
 const F = { pos: new V3(), vel: new V3(), yaw: 0, phase: 0, aimYaw: 0, aimPitch: 0, ready: 1, jet: false, lift: 0 };
 const CAM = { yawOff: 0, footYaw: 0, off: new V3(0, 2.4, 6.5), vel: new V3(), fov: 60, look: new V3() };
@@ -1200,8 +1328,8 @@ function seatRider() { bike.body.add(rider.root); rider.root.position.set(0, -0.
 seatRider();
 
 // ───────── 輸入 ─────────
-const keys = {}, mouse = { x: innerWidth / 2, y: innerHeight / 2, fire: false, drag: false, lx: 0 };
-const touch = { x: 0, y: 0, fire: false, boost: false, id: null };
+const keys = {}, mouse = { x: innerWidth / 2, y: innerHeight / 2, fire: false, lock: false, drag: false, lx: 0 };
+const touch = { x: 0, y: 0, fire: false, boost: false, lock: false, id: null };
 addEventListener('keydown', e => {
   if (e.repeat && keys[e.code]) return; keys[e.code] = true;
   if (e.code === 'Escape' || e.code === 'KeyP') { if (S.mode === 'play') setMode('pause'); else if (S.mode === 'pause') setMode('play'); }
@@ -1209,45 +1337,59 @@ addEventListener('keydown', e => {
   if (S.mode === 'over' && e.code === 'KeyR' && S.overT > 0.8) restart();
   if (S.mode !== 'play') return;
   if (e.code === 'KeyF' || e.code === 'KeyE') toggleMount();
-  if (e.code === 'KeyR' && S.ammo < 40 && S.reload <= 0) startReload();
-  if (e.code === 'KeyM') { AU.on = !AU.on; if (AU.master) AU.master.gain.value = AU.on ? 0.75 : 0; log('系統', AU.on ? '音效開啟' : '音效靜音', 'var(--ink-2)'); }
+  if (e.code === 'KeyR' && S.ammo < WEAPONS[S.wi].mag && S.reload <= 0) startReload();
+  const wk = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code.replace('Numpad', 'Digit')); if (wk >= 0) switchWeapon(wk);
+  if (e.code === 'KeyM') { setVolume(AU.vol || 0.75, !AU.on); log('系統', AU.on ? '音效開啟' : '音效靜音', 'var(--ink-2)'); }
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.fire = false; if (S.mode === 'play') setMode('pause'); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.fire = mouse.lock = mouse.drag = false; if (S.mode === 'play') setMode('pause'); });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('mousemove', e => { if (mouse.drag) { const dx = e.clientX - mouse.lx; if (S.ctl === 'foot') CAM.footYaw -= dx * 0.006; else CAM.yawOff = clamp(CAM.yawOff - dx * 0.006, -2.6, 2.6); } mouse.lx = e.clientX; mouse.x = e.clientX; mouse.y = e.clientY; });
-canvas.addEventListener('mousedown', e => { audioInit(); if (S.mode !== 'play') return; if (e.button === 0) mouse.fire = true; if (e.button === 2) { mouse.drag = true; mouse.lx = e.clientX; } });
-addEventListener('mouseup', e => { if (e.button === 0) mouse.fire = false; if (e.button === 2) mouse.drag = false; });
+// 左鍵射擊、右鍵按住鎖定飛彈、中鍵拖曳轉視角
+canvas.addEventListener('mousedown', e => { audioInit(); if (S.mode !== 'play') return; if (e.button === 0) mouse.fire = true; if (e.button === 2) mouse.lock = true; if (e.button === 1) { e.preventDefault(); mouse.drag = true; mouse.lx = e.clientX; } });
+addEventListener('mouseup', e => { if (e.button === 0) mouse.fire = false; if (e.button === 2) mouse.lock = false; if (e.button === 1) mouse.drag = false; });
+let wheelT = 0;
+canvas.addEventListener('wheel', e => { e.preventDefault(); if (S.mode !== 'play' || performance.now() - wheelT < 140 || !e.deltaY) return; wheelT = performance.now(); switchWeapon(S.wi + Math.sign(e.deltaY)); }, { passive: false });
 const stick = $('stick'), knob = stick.querySelector('i');
 stick.addEventListener('pointerdown', e => { touch.id = e.pointerId; stick.setPointerCapture(e.pointerId); moveStick(e); });
 stick.addEventListener('pointermove', e => { if (e.pointerId === touch.id) moveStick(e); });
 const endStick = e => { if (e.pointerId !== touch.id) return; touch.id = null; touch.x = touch.y = 0; knob.style.transform = ''; };
 stick.addEventListener('pointerup', endStick); stick.addEventListener('pointercancel', endStick);
 function moveStick(e) { const r = stick.getBoundingClientRect(); let x = (e.clientX - r.left - r.width / 2) / (r.width / 2), y = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } touch.x = x; touch.y = -y; knob.style.transform = `translate(${x * 38}px,${y * 38}px)`; }
-for (const [id, k] of [['tFire', 'fire'], ['tBoost', 'boost']]) {
+for (const [id, k] of [['tFire', 'fire'], ['tBoost', 'boost'], ['tMsl', 'lock']]) {
   const b = $(id);
   b.addEventListener('pointerdown', e => { audioInit(); touch[k] = true; b.classList.add('on'); e.preventDefault(); });
   const up = () => { touch[k] = false; b.classList.remove('on'); };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
 }
 $('tMount').addEventListener('pointerdown', e => { e.preventDefault(); if (S.mode === 'play') toggleMount(); });
+$('tWep').addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); if (S.mode === 'play') switchWeapon(S.wi + 1); });
 const inp = () => ({
   f: (keys.KeyW || keys.ArrowUp ? 1 : 0) + Math.max(0, touch.y > 0.25 ? touch.y : 0),
   b: (keys.KeyS || keys.ArrowDown ? 1 : 0) + (touch.y < -0.3 ? -touch.y : 0),
   x: (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + (Math.abs(touch.x) > 0.15 ? touch.x : 0),
   sh: !!(keys.ShiftLeft || keys.ShiftRight || touch.boost),
-  fire: mouse.fire || touch.fire || keys.Space
+  fire: mouse.fire || touch.fire || keys.Space,
+  lock: mouse.lock || touch.lock || keys.KeyQ
 });
 
 // ───────── 音效（WebAudio 即時合成） ─────────
-const AU = { ctx: null, on: true };
+const AU = { ctx: null, on: true, vol: 0.75 };
+try { const v = localStorage.getItem('frostline-vol'); if (v !== null) { AU.vol = clamp(+v, 0, 1); AU.on = AU.vol > 0 && localStorage.getItem('frostline-mute') !== '1'; } } catch (e) {}
+// 音量：滑桿調大小，按鈕切靜音；M 鍵同按鈕
+function setVolume(v, on = AU.on) {
+  AU.vol = clamp(v, 0, 1); AU.on = on && AU.vol > 0;
+  if (AU.master) AU.master.gain.setTargetAtTime(AU.on ? AU.vol : 0, AU.ctx.currentTime, 0.03);
+  $('sndV').value = Math.round(AU.vol * 100); $('sndB').classList.toggle('off', !AU.on); $('sndB').setAttribute('aria-label', AU.on ? '靜音' : '開啟聲音');
+  try { localStorage.setItem('frostline-vol', AU.vol); localStorage.setItem('frostline-mute', AU.on ? '0' : '1'); } catch (e) {}
+}
 function audioInit() {
   if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   const ctx = AU.ctx = new AC();
   const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5; comp.connect(ctx.destination);
-  AU.master = ctx.createGain(); AU.master.gain.value = AU.on ? 0.75 : 0; AU.master.connect(comp);
+  AU.master = ctx.createGain(); AU.master.gain.value = AU.on ? AU.vol : 0; AU.master.connect(comp);
   const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = nb.getChannelData(0);
   let b0 = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; d[i] = w; }
   AU.noise = nb;
@@ -1256,7 +1398,9 @@ function audioInit() {
   const loop = (buf, filterType, freq, q, gain) => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q; const g = ctx.createGain(); g.gain.value = gain; s.connect(f).connect(g).connect(AU.master); s.start(); return { f, g }; };
   AU.amb = loop(brown, 'lowpass', 220, 0.5, 0.22);
   AU.wind = loop(nb, 'bandpass', 500, 0.6, 0);
-  AU.boostN = loop(nb, 'highpass', 1500, 0.5, 0);
+  // 渦輪呼嘯：帶通白噪音＋隨轉速上升的正弦哨音
+  AU.boostN = loop(nb, 'bandpass', 2400, 4, 0);
+  { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 2200; const g = ctx.createGain(); g.gain.value = 0; o.connect(g).connect(AU.master); o.start(); AU.whine = { o, g }; }
   const eg = ctx.createGain(); eg.gain.value = 0; const ef = ctx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 500; ef.Q.value = 3;
   const o1 = ctx.createOscillator(); o1.type = 'sawtooth'; const o2 = ctx.createOscillator(); o2.type = 'square'; const o3 = ctx.createOscillator(); o3.type = 'sine';
   const g2 = ctx.createGain(); g2.gain.value = 0.5; const lfo = ctx.createOscillator(); lfo.frequency.value = 26; const lg = ctx.createGain(); lg.gain.value = 0.25; lfo.connect(lg).connect(eg.gain);
@@ -1265,13 +1409,15 @@ function audioInit() {
   AU.eng = { o1, o2, o3, ef, eg, lfo };
 }
 function env(g, t, a, peak, dcy) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dcy); }
-function sfx(kind, vol = 1) {
+function sfx(kind, vol = 1, n = 1) {
   const ctx = AU.ctx; if (!ctx || !AU.on) return; const t = ctx.currentTime;
   const g = ctx.createGain(); g.connect(AU.master);
   if (kind === 'shot') {
-    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(1300 + Math.random() * 200, t); o.frequency.exponentialRampToValueAtTime(170, t + 0.11);
-    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = 0.8; o.connect(f).connect(g); env(g, t, 0.004, 0.16 * vol, 0.11); o.start(t); o.stop(t + 0.14);
-    const n = ctx.createBufferSource(); n.buffer = AU.noise; const ng = ctx.createGain(); const hf = ctx.createBiquadFilter(); hf.type = 'highpass'; hf.frequency.value = 3000; n.connect(hf).connect(ng).connect(AU.master); env(ng, t, 0.002, 0.08 * vol, 0.05); n.start(t, Math.random()); n.stop(t + 0.07);
+    // 電漿槍：三角波 800→120 Hz、0.08 秒的快速下滑，疊一層高八度正弦讓起音更脆，再加 4 ms 高通雜訊當擊發聲
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(800 + Math.random() * 60, t); o.frequency.exponentialRampToValueAtTime(120, t + 0.08);
+    o.connect(g); env(g, t, 0.002, 0.26 * vol, 0.08); o.start(t); o.stop(t + 0.1);
+    const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.setValueAtTime(1600, t); o2.frequency.exponentialRampToValueAtTime(240, t + 0.06); const g2 = ctx.createGain(); o2.connect(g2).connect(AU.master); env(g2, t, 0.001, 0.07 * vol, 0.05); o2.start(t); o2.stop(t + 0.07);
+    const n = ctx.createBufferSource(); n.buffer = AU.noise; const ng = ctx.createGain(); const hf = ctx.createBiquadFilter(); hf.type = 'highpass'; hf.frequency.value = 4000; n.connect(hf).connect(ng).connect(AU.master); env(ng, t, 0.001, 0.05 * vol, 0.025); n.start(t, Math.random()); n.stop(t + 0.04);
   } else if (kind === 'laser') {
     const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(900, t); o.frequency.exponentialRampToValueAtTime(240, t + 0.2);
     const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2400; o.connect(f).connect(g); env(g, t, 0.01, 0.09 * vol, 0.2); o.start(t); o.stop(t + 0.24);
@@ -1280,11 +1426,27 @@ function sfx(kind, vol = 1) {
   } else if (kind === 'boom') {
     const n = ctx.createBufferSource(); n.buffer = AU.noise; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(90, t + 1.2);
     n.connect(f).connect(g); env(g, t, 0.01, 0.9 * vol, 1.3); n.start(t); n.stop(t + 1.5);
-    const o = ctx.createOscillator(); o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + 0.6); const og = ctx.createGain(); o.connect(og).connect(AU.master); env(og, t, 0.005, 0.7 * vol, 0.7); o.start(t); o.stop(t + 0.8);
+    // Sub-bass：60→20 Hz 的正弦下潛，比噪音層晚一點衰減，讓轟鳴拖尾
+    const o = ctx.createOscillator(); o.frequency.setValueAtTime(60, t); o.frequency.exponentialRampToValueAtTime(20, t + 0.9); const og = ctx.createGain(); o.connect(og).connect(AU.master); env(og, t, 0.005, 0.9 * vol, 1.0); o.start(t); o.stop(t + 1.1);
   } else if (kind === 'hit') {
-    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(2400, t); o.frequency.exponentialRampToValueAtTime(900, t + 0.05); o.connect(g); env(g, t, 0.002, 0.08 * vol, 0.05); o.start(t); o.stop(t + 0.07);
+    // 金屬碰撞：三個非整數倍頻的方波經高通，衰減極短，聽起來像子彈敲在鋼板上
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800; hp.connect(g); env(g, t, 0.001, 0.1 * vol, 0.07);
+    for (const fr of [2100, 2100 * 1.47, 2100 * 2.09]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr * (0.97 + Math.random() * 0.06); o.connect(hp); o.start(t); o.stop(t + 0.09); }
   } else if (kind === 'hurt') {
     const n = ctx.createBufferSource(); n.buffer = AU.noise; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700; n.connect(f).connect(g); env(g, t, 0.003, 0.35 * vol, 0.16); n.start(t, Math.random()); n.stop(t + 0.2);
+  } else if (kind === 'servo') {
+    // 上車：伺服馬達轉動聲
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(420, t + 0.3);
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 3; o.connect(f).connect(g); env(g, t, 0.03, 0.05 * vol, 0.3); o.start(t); o.stop(t + 0.36);
+  } else if (kind === 'lock' || kind === 'unlock') {
+    // 機械鎖定：金屬咔嗒＋低頻悶響；解鎖時改成先洩壓嘶聲再咔嗒
+    const d0 = kind === 'unlock' ? 0.12 : 0;
+    if (kind === 'unlock') { const n = ctx.createBufferSource(); n.buffer = AU.noise; const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2500; const ng = ctx.createGain(); n.connect(f).connect(ng).connect(AU.master); env(ng, t, 0.01, 0.06 * vol, 0.14); n.start(t, Math.random()); n.stop(t + 0.17); }
+    for (const [dt, fr] of [[d0, 1500], [d0 + 0.05, 980]]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fr * 1.6; f.Q.value = 8; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t + dt, 0.001, 0.12 * vol, 0.04); o.start(t + dt); o.stop(t + dt + 0.06); }
+    const th = ctx.createOscillator(); th.frequency.setValueAtTime(130, t + d0); th.frequency.exponentialRampToValueAtTime(55, t + d0 + 0.12); const tg = ctx.createGain(); th.connect(tg).connect(AU.master); env(tg, t + d0, 0.002, 0.3 * vol, 0.12); th.start(t + d0); th.stop(t + d0 + 0.16);
+  } else if (kind === 'alarm') {
+    // 低血量警報：880／660 Hz 兩聲方波
+    for (const [dt, fr] of [[0, 880], [0.18, 660]]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2200; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t + dt, 0.005, 0.05 * vol, 0.14); o.start(t + dt); o.stop(t + dt + 0.17); }
   } else if (kind === 'clank') {
     for (const [dt, fr] of [[0, 520], [0.11, 380]]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fr * 2; f.Q.value = 6; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t + dt, 0.002, 0.1 * vol, 0.08); o.start(t + dt); o.stop(t + dt + 0.1); }
   } else if (kind === 'beep') {
@@ -1293,7 +1455,59 @@ function sfx(kind, vol = 1) {
     const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(1500, t + 0.5); o.connect(g); env(g, t, 0.05, 0.06 * vol, 0.5); o.start(t); o.stop(t + 0.6);
   } else if (kind === 'boost') {
     const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(620, t + 0.35); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1600; o.connect(f).connect(g); env(g, t, 0.02, 0.12 * vol, 0.4); o.start(t); o.stop(t + 0.45);
+  } else if (kind === 'emp') {
+    // EMP 散彈：方波 190→38 Hz 的重擊、帶通噪音爆裂，再疊一道鋸齒波電弧嘶聲
+    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.22);
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; o.connect(f).connect(g); env(g, t, 0.003, 0.3 * vol, 0.24); o.start(t); o.stop(t + 0.3);
+    const nz = ctx.createBufferSource(); nz.buffer = AU.noise; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1400; bp.Q.value = 0.8; const ng = ctx.createGain(); nz.connect(bp).connect(ng).connect(AU.master); env(ng, t, 0.002, 0.4 * vol, 0.16); nz.start(t, Math.random()); nz.stop(t + 0.2);
+    const z = ctx.createOscillator(); z.type = 'sawtooth'; z.frequency.setValueAtTime(3200, t); z.frequency.exponentialRampToValueAtTime(480, t + 0.12); const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200; const zg = ctx.createGain(); z.connect(hp).connect(zg).connect(AU.master); env(zg, t, 0.001, 0.05 * vol, 0.12); z.start(t); z.stop(t + 0.15);
+  } else if (kind === 'rail') {
+    // 軌道砲：高壓放電的鋸齒波下掃＋90→30 Hz 次低頻衝擊，尾端是電離空氣斷續的劈啪聲
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(2600, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.35);
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 5000; o.connect(f).connect(g); env(g, t, 0.002, 0.28 * vol, 0.4); o.start(t); o.stop(t + 0.45);
+    const sb = ctx.createOscillator(); sb.frequency.setValueAtTime(90, t); sb.frequency.exponentialRampToValueAtTime(30, t + 0.6); const sg = ctx.createGain(); sb.connect(sg).connect(AU.master); env(sg, t, 0.004, 0.8 * vol, 0.6); sb.start(t); sb.stop(t + 0.7);
+    const nz = ctx.createBufferSource(); nz.buffer = AU.noise; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2500; const ng = ctx.createGain(); nz.connect(hp).connect(ng).connect(AU.master); env(ng, t, 0.001, 0.25 * vol, 0.08); nz.start(t, Math.random()); nz.stop(t + 0.12);
+    const cr = ctx.createBufferSource(); cr.buffer = AU.noise; const cb = ctx.createBiquadFilter(); cb.type = 'bandpass'; cb.frequency.value = 3000; cb.Q.value = 2; const cg = ctx.createGain(); cg.gain.setValueAtTime(0, t);
+    for (let i = 0; i < 16; i++) { const tt = t + 0.08 + i * 0.085 + Math.random() * 0.04; cg.gain.setValueAtTime(0.09 * vol * (1 - i / 17), tt); cg.gain.setValueAtTime(0, tt + 0.012); }
+    cr.connect(cb).connect(cg).connect(AU.master); cr.start(t, Math.random() * 0.5); cr.stop(t + 1.6);
+  } else if (kind === 'shbreak') {
+    // 護盾碎裂：四個非整數倍頻的正弦快速衰減，像玻璃，再加一道高通噪音
+    [1870, 2790, 4130, 5600].forEach((fr, i) => { const o = ctx.createOscillator(); o.frequency.value = fr * (0.98 + Math.random() * 0.04); const gg = ctx.createGain(); o.connect(gg).connect(AU.master); env(gg, t, 0.001, 0.07 * vol, 0.4 - i * 0.07); o.start(t); o.stop(t + 0.45); });
+    const nz = ctx.createBufferSource(); nz.buffer = AU.noise; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000; nz.connect(hp).connect(g); env(g, t, 0.002, 0.16 * vol, 0.2); nz.start(t, Math.random()); nz.stop(t + 0.25);
+  } else if (kind === 'swap') {
+    for (const [dt, fr] of [[0, 700], [0.06, 1150]]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fr * 1.8; f.Q.value = 7; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t + dt, 0.001, 0.09 * vol, 0.04); o.start(t + dt); o.stop(t + dt + 0.06); }
+    const th = ctx.createOscillator(); th.frequency.setValueAtTime(150, t); th.frequency.exponentialRampToValueAtTime(70, t + 0.1); th.connect(g); env(g, t, 0.002, 0.18 * vol, 0.1); th.start(t); th.stop(t + 0.13);
+  } else if (kind === 'lockon' || kind === 'lockfull') {
+    // 鎖定：兩聲短方波，每多鎖一個目標升兩個半音；鎖滿六個時改成三連高音
+    const fr = kind === 'lockfull' ? 2350 : 1180 * Math.pow(2, (n - 1) / 6), k = kind === 'lockfull' ? 3 : 2;
+    for (let i = 0; i < k; i++) { const dt = i * 0.055, o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 3600; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t + dt, 0.002, 0.07 * vol, 0.035); o.start(t + dt); o.stop(t + dt + 0.05); }
+  } else if (kind === 'seek') {
+    const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(g); env(g, t, 0.003, 0.035 * vol, 0.05); o.start(t); o.stop(t + 0.07);
+  } else if (kind === 'hatch') {
+    // 背包護蓋彈開：氣壓洩放＋金屬咔嗒
+    const nz = ctx.createBufferSource(); nz.buffer = AU.noise; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800; nz.connect(hp).connect(g); env(g, t, 0.005, 0.1 * vol, 0.18); nz.start(t, Math.random()); nz.stop(t + 0.22);
+    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 900; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1700; f.Q.value = 8; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t, 0.001, 0.12 * vol, 0.04); o.start(t); o.stop(t + 0.06);
+  } else if (kind === 'mlaunch') {
+    // 飛彈點火：帶通噪音 600→3200 Hz 快速掃頻的「咻」聲＋低沉推進
+    const nz = ctx.createBufferSource(); nz.buffer = AU.noise; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2.5; bp.frequency.setValueAtTime(600, t); bp.frequency.exponentialRampToValueAtTime(3200, t + 0.25);
+    nz.connect(bp).connect(g); env(g, t, 0.005, 0.22 * vol, 0.35); nz.start(t, Math.random()); nz.stop(t + 0.4);
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(900, t + 0.3); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const gg = ctx.createGain(); o.connect(f).connect(gg).connect(AU.master); env(gg, t, 0.01, 0.04 * vol, 0.25); o.start(t); o.stop(t + 0.3);
   }
+}
+// 軌道砲蓄力聲：0.5 秒內鋸齒波 110→880 Hz 爬升，濾波器同步打開；放開或擊發時收掉
+function chargeStart() {
+  const ctx = AU.ctx; if (!ctx || !AU.on || AU.chg) return; const t = ctx.currentTime;
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.1, t + RAIL_T);
+  const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(4500, t + RAIL_T);
+  const o1 = ctx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(110, t); o1.frequency.exponentialRampToValueAtTime(880, t + RAIL_T);
+  const o2 = ctx.createOscillator(); o2.frequency.setValueAtTime(224, t); o2.frequency.exponentialRampToValueAtTime(1790, t + RAIL_T);
+  o1.connect(f); o2.connect(f); f.connect(g).connect(AU.master); o1.start(t); o2.start(t);
+  AU.chg = { g, os: [o1, o2] };
+}
+function chargeStop() {
+  const c = AU.chg; if (!c) return; AU.chg = null; const t = AU.ctx.currentTime;
+  if (c.g.gain.cancelAndHoldAtTime) c.g.gain.cancelAndHoldAtTime(t); else c.g.gain.cancelScheduledValues(t);
+  c.g.gain.setTargetAtTime(0.0001, t, 0.02); for (const o of c.os) o.stop(t + 0.15);
 }
 function updateAudio(dt) {
   if (!AU.ctx || !AU.eng) return; const t = AU.ctx.currentTime, E = AU.eng;
@@ -1305,7 +1519,11 @@ function updateAudio(dt) {
   E.ef.frequency.setTargetAtTime(260 + sp * 34 + thr * 300, t, 0.08);
   E.eg.gain.setTargetAtTime(S.mode === 'play' || S.mode === 'title' ? (0.05 + thr * 0.05 + sp * 0.0012) * near * (S.mode === 'title' ? 0.5 : 1) : 0, t, 0.1);
   AU.wind.g.gain.setTargetAtTime(Math.min(0.32, sp * sp * 0.00006) * (S.mode === 'play' ? 1 : 0.4), t, 0.2); AU.wind.f.frequency.setTargetAtTime(300 + sp * 18, t, 0.2);
-  AU.boostN.g.gain.setTargetAtTime(P.boosting ? 0.07 : 0, t, 0.08);
+  const turbo = P.boosting ? 1 : S.ctl === 'foot' && F.jet ? 0.5 : 0;
+  AU.boostN.g.gain.setTargetAtTime(turbo * 0.16, t, 0.08); AU.boostN.f.frequency.setTargetAtTime(1800 + sp * 28, t, 0.15);
+  AU.whine.g.gain.setTargetAtTime(turbo * 0.022, t, turbo ? 0.25 : 0.08); AU.whine.o.frequency.setTargetAtTime(turbo ? 2400 + sp * 22 : 1500, t, turbo ? 0.6 : 0.3);
+  // 低血量警報
+  if (S.mode === 'play' && S.hp < 30 && S.ctl !== 'dead' && !S.won) { AU.alarmT = (AU.alarmT ?? 0) - dt; if (AU.alarmT <= 0) { sfx('alarm'); AU.alarmT = 0.95; } } else AU.alarmT = 0;
 }
 
 // ───────── HUD ─────────
@@ -1347,7 +1565,7 @@ function log(tag, msg, col = 'var(--friend)', pts = 0) {
   [...logEl.children].forEach((c, i, a) => c.classList.toggle('old', i < a.length - 3));
 }
 const hpBar = $('hpBar'), boBar = $('boBar'), hpI = hpBar.querySelector('i'), boI = boBar.querySelector('i'), hpB = hpBar.querySelector('b'), boB = boBar.querySelector('b');
-const xh = $('xh'), vehM = $('vehM');
+const xh = $('xh'), xhR = $('xhR'), xhS = xh.querySelector('.sg'), vehM = $('vehM');
 const marks = Array.from({ length: 10 }, () => { const d = document.createElement('div'); d.className = 'mk'; $('marks').appendChild(d); return d; });
 let hudT = 0, hitT = 0, killT = 0;
 let hpG = 100, boG = 100, hpHold = 0, boHold = 0, boPrev = 100, hpHitT = 0;
@@ -1367,18 +1585,19 @@ function hud(dt) {
     const sp = S.ctl === 'foot' || S.ctl === 'mount' ? F.vel.length() : Math.abs(P.v);
     $('kmh').textContent = Math.round(sp * 3.6);
     $('gear').textContent = S.ctl === 'foot' ? (F.jet ? '背包噴射' : F.vel.length() > 5 ? '步行・奔跑' : '步行') : P.boosting ? '氮氣衝刺' : P.v < -0.5 ? '倒車' : '騎乘';
-    $('ammo').innerHTML = `${S.ammo}<small>/40</small>`; $('ammo').classList.toggle('empty', S.ammo === 0);
+    $('ammo').innerHTML = `${S.ammo}<small>/${WEAPONS[S.wi].mag}</small>`; $('ammo').classList.toggle('empty', S.ammo === 0);
     $('vehS').textContent = S.ctl === 'foot' ? `停放 ${Math.round(F.pos.distanceTo(P.pos))} m` : S.ctl === 'ride' ? (P.boosting ? '氮氣噴射' : '騎乘中') : '切換中';
     $('wave').innerHTML = S.wave ? `第<b>${S.wave}</b>波・擊毀 <b>${S.kills}</b>・分數 <b>${S.score}</b>` : '';
     const onFoot = S.ctl === 'foot' || S.ctl === 'mount'; vehM.textContent = onFoot ? 'ON FOOT' : 'BIKE'; vehM.classList.toggle('foot', onFoot);
     drawMissions();
   }
-  const rl = $('reload'); rl.classList.toggle('on', S.reload > 0); if (S.reload > 0) rl.style.setProperty('--v', (1 - S.reload / 1.3).toFixed(3));
+  const rl = $('reload'); rl.classList.toggle('on', S.reload > 0); if (S.reload > 0) rl.style.setProperty('--v', (1 - S.reload / S.reloadMax).toFixed(3));
+  xhR.style.strokeDashoffset = (81.68 * (1 - S.charge / RAIL_T)).toFixed(2);
   xh.style.transform = `translate(${mouse.x}px,${mouse.y}px)`;
   hitT -= dt; killT -= dt; xh.classList.toggle('hit', hitT > 0); xh.classList.toggle('kill', killT > 0);
   // 準星張開幅度＝實際散布（騎乘固定、步行隨速度）＋後座
   const spr = S.ctl === 'ride' ? 0.01 : 0.006 + F.vel.length() * 0.0012;
-  $('xhT').style.transform = `scale(${(1 + Math.min(0.5, S.kick * 18) + spr * 26).toFixed(3)})`;
+  const xs = `scale(${(1 + Math.min(0.5, S.kick * 18) + spr * 26).toFixed(3)})`; $('xhT').style.transform = xs; xhS.style.transform = xs;
 }
 // 雷達：以鏡頭朝向為上
 const rc = $('radar').getContext('2d');
@@ -1420,6 +1639,29 @@ const flashMat = new THREE.MeshBasicMaterial({ color: hdr(0xffffff, 2.6) });
 function setFlash(obj, on) { if (obj.userData.flashOn === on) return; obj.userData.flashOn = on; obj.traverse(o => { if (o.isMesh) { if (!o.userData.base) o.userData.base = o.material; if (solid(o.userData.base)) o.material = on ? flashMat : o.userData.base; } }); }
 const DRONES = Array.from({ length: 8 }, () => { const m = buildDrone(); m.root.visible = false; scene.add(m.root); return Object.assign(m, { on: false, p: new V3(), v: new V3(), hp: 0, ph: 0, zOff: 0, xOff: 0, cool: 0, charge: 0, flash: 0, alt: 6 }); });
 const CARS = Array.from({ length: 4 }, () => { const m = buildCar(); m.root.visible = false; scene.add(m.root); return Object.assign(m, { on: false, x: 0, z: 0, y: 0, yaw: 0, v: 0, vx: 0, hp: 0, mode: 'chase', side: 1, off: 6, ram: 0, ramCd: 4, burst: 0, burstN: 0, cool: 2, flash: 0, turn: 0, spin: new V3(), vy: 0, rot: new Euler(), burn: 0, warned: false, wheel: 0 }); });
+// 能量護盾：六角網格＋邊緣菲涅耳，電漿打上去會被偏折，EMP 一擊就破
+const shieldGeo = new THREE.SphereGeometry(1, 28, 16);
+const SHIELD_SHAPE = 'float f = 1.-abs(dot(vN,vV)); vec2 q = vec2(vUv.x*34., vUv.y*16.); q.x += mod(floor(q.y), 2.)*0.5; vec2 c = abs(fract(q)-0.5); float e = smoothstep(0.36, 0.5, max(c.x*1.15, c.y)); a = pow(f, 2.4)*1.5 + e*(0.1 + 0.55*f)*(0.6 + 0.4*sin(vUv.y*40. - t*5.));';
+function addShield(e, sx, sy, sz, y) { const m = new THREE.Mesh(shieldGeo, glowMat(0xff9a5c, 0.85, SHIELD_SHAPE, { t: beaconTime, __decl: 'uniform float t;' })); m.scale.set(sx, sy, sz); m.position.y = y; m.visible = false; m.userData.s = m.scale.clone(); e.root.add(m); Object.assign(e, { shield: m, sh: 0, shHit: 0, shBreak: 0, stun: 0 }); }
+for (const d of DRONES) addShield(d, 2.3, 2.0, 2.3, 0);
+for (const c of CARS) { addShield(c, 1.6, 1.2, 2.95, 0.8); c.kx = c.kz = 0; }
+const FOES = [...DRONES, ...CARS];
+const foeAlive = e => e.on && e.mode !== 'dead';
+const foePos = (e, out) => e.p ? out.copy(e.p) : out.set(e.x, 0.95 + e.y, e.z);
+function shieldFx(e, dt) {
+  const m = e.shield, u = m.material.uniforms.op;
+  if (e.sh > 0) { m.visible = true; e.shHit = Math.max(0, e.shHit - dt); u.value = 0.75 + e.shHit * 7 + Math.sin(S.time * 31 + (e.ph || e.x)) * 0.06; m.scale.copy(m.userData.s); }
+  else if (e.shBreak > 0) { e.shBreak -= dt; const k = 1 - Math.max(0, e.shBreak) / 0.35; m.scale.copy(m.userData.s).multiplyScalar(1 + k * 0.45); u.value = (1 - k) * 3; if (e.shBreak <= 0) m.visible = false; }
+  else m.visible = false;
+  // 被 EMP 癱瘓時冒洋紅色電弧
+  if (e.stun > 0 && R() < dt * 34) { foePos(e, _v4); const r = e.p ? 1.3 : 1.8; spk.emit(_v4.x + (R() - 0.5) * r * 2, _v4.y + (R() - 0.3) * r, _v4.z + (R() - 0.5) * r * 2, (R() - 0.5) * 6, R() * 4, (R() - 0.5) * 6, 0.12 + R() * 0.15, 6, 1.4, 4.4, 0.12, 0, 3); }
+}
+function breakShield(e, emp) {
+  e.sh = 0; e.shBreak = 0.35; foePos(e, _v4);
+  sparks(_v4, 40, 12, 0xffb27a, 4, 0.15, 0.07); if (emp) sparks(_v4, 26, 9, 0xff5cbd, 5, 0.2, 0.08);
+  sfx('shbreak', clamp(1.2 - _v4.distanceTo(camera.position) / 120, 0.3, 1));
+  if (!S.shBroke) { S.shBroke = true; log('系統', emp ? '護盾過載擊破，目標暫時癱瘓' : '目標護盾已擊破', 'var(--emp)'); }
+}
 const CIVS = Array.from({ length: LOW ? 6 : 10 }, (_, i) => { const m = buildCiv(i); scene.add(m.root); return Object.assign(m, { x: 0, z: 0, v: 0, dir: 1, i }); });
 function placeCiv(c, pz, ahead) {
   c.dir = R() < 0.55 ? 1 : -1; const lane = LANE_R[(R() * 3) | 0];
@@ -1431,19 +1673,22 @@ function placeCiv(c, pz, ahead) {
 const onBike = () => S.ctl === 'ride' || S.ctl === 'mount' || (S.ctl === 'dead' && rider.root.parent !== scene);
 function playerPos() { return onBike() ? P.pos : F.pos; }
 function playerVel(out) { return onBike() ? fwdOf(P.yaw, out).multiplyScalar(P.v) : out.copy(F.vel); }
-function spawnDrone(fromBehind) {
+function spawnDrone(fromBehind, sh) {
   const d = DRONES.find(d => !d.on); if (!d) return; const pp = playerPos();
+  d.sh = sh ? 6 : 0; d.shHit = d.shBreak = d.stun = 0; if (sh) warnShield();
   d.on = true; d.root.visible = true; d.hp = 7 + S.wave * 0.6; d.ph = R() * 6.28; d.zOff = -28 + R() * 46; d.xOff = (R() < 0.5 ? -1 : 1) * (3 + R() * 9); d.alt = 5 + R() * 4;
   d.p.set(pp.x + d.xOff * 2, 26 + R() * 10, pp.z + (fromBehind ? 130 : -170)); playerVel(d.v); d.cool = 1.5 + R() * 2; d.charge = 0; d.flash = 0; setFlash(d.root, false);
 }
-function spawnCar() {
+function spawnCar(sh) {
   const c = CARS.find(c => !c.on); if (!c) return; const pp = playerPos(), side = pp.x >= 0 ? 1 : -1;
+  c.sh = sh ? 14 : 0; c.shHit = c.shBreak = c.stun = c.kx = c.kz = 0; if (sh) warnShield();
   c.on = true; c.root.visible = true; c.hp = 24 + S.wave * 2; c.flash = 0; c.ram = 0; c.ramCd = 4 + R() * 3; c.cool = 2 + R() * 2; c.burstN = 0; c.warned = false; c.y = 0; c.vy = 0; c.rot.set(0, 0, 0); c.burn = 0;
   setFlash(c.root, false); c.root.scale.setScalar(1);
   if (R() < 0.5 || Math.abs(P.v) < 10) { c.mode = 'chase'; c.side = side; c.x = side * LANE_R[(R() * 3) | 0]; c.z = pp.z + 150 + R() * 40; c.yaw = 0; const pv = playerVel(_v); c.v = Math.max(20, -pv.z + 18); c.off = -10 + R() * 12; }
   else { c.mode = 'oncoming'; c.side = -side; c.x = -side * LANE_R[(R() * 3) | 0]; c.z = pp.z - 320; c.yaw = Math.PI; c.v = 46; c.off = -2 + R() * 6; }
   for (const o of CIVS) if (Math.abs(o.x - c.x) < 2 && Math.abs(o.z - c.z) < 12) o.z -= 30;
 }
+function warnShield() { if (S.shWarned) return; S.shWarned = true; log('警告', '偵測到護盾單位：電漿會被偏折，切換 [2] EMP 散彈破盾', 'var(--foe)'); }
 function killDrone(d, byFoot) {
   d.on = false; d.root.visible = false;
   boom(d.p, 1, 0x3b3648);
@@ -1453,6 +1698,7 @@ function killDrone(d, byFoot) {
 }
 function killCar(c) {
   c.mode = 'dead'; c.vy = 9 + R() * 4; c.spin.set((R() - 0.5) * 5, (R() - 0.5) * 4, (R() < 0.5 ? -1 : 1) * (3 + R() * 3)); c.burn = 6;
+  c.sh = c.shBreak = c.stun = 0; c.shield.visible = false;
   boom(_v.set(c.x, 1, c.z), 1.7, 0x2b2a33);
   S.kills++; S.cKills++; S.score += 250; mission('car', S.cKills); log('擊毀', '攔截車已摧毀', 'var(--order)', 250); killT = 0.25;
 }
@@ -1465,6 +1711,8 @@ function updateDrones(dt) {
     const desX = clamp(pp.x + d.xOff + Math.sin(t * 0.5 + d.ph) * 6, -19, 19), desY = d.alt + Math.sin(t * 0.9 + d.ph) * 1.6, desZ = pp.z + d.zOff + Math.sin(t * 0.33 + d.ph) * 7;
     _v.set((desX - d.p.x) * 2.2 + (pv.x - d.v.x) * 1.8, (desY - d.p.y) * 2.4 - d.v.y * 1.8, (desZ - d.p.z) * 2.2 + (pv.z - d.v.z) * 1.8);
     if (_v.length() > 60) _v.setLength(60);
+    // 被 EMP 癱瘓時失去大部分推力，往下沉並被擊退甩開
+    if (d.stun > 0) { _v.multiplyScalar(0.15); _v.y -= 4; }
     d.v.addScaledVector(_v, dt); d.p.addScaledVector(d.v, dt);
     d.root.position.copy(d.p);
     const dx = aim.x - d.p.x, dz = aim.z - d.p.z, dist = Math.hypot(dx, dz, aim.y - d.p.y);
@@ -1473,8 +1721,10 @@ function updateDrones(dt) {
     d.bob.position.y = Math.sin(t * 2.3 + d.ph) * 0.18; d.ring.rotation.y += dt * 2.6; d.ring.rotation.z = Math.sin(t + d.ph) * 0.2;
     d.scan.rotation.y = Math.sin(t * 1.7 + d.ph) * 0.35;
     if (d.flash > 0) d.flash -= dt; setFlash(d.root, d.flash > 0);
+    shieldFx(d, dt);
+    if (d.stun > 0) { d.stun -= dt; d.charge = 0; d.scan.material.uniforms.op.value = d.stun > dt && R() < 0.5 ? 0.1 : 1; d.eyeMat.color.setHex(0xff2b26).multiplyScalar(d.stun > 0 ? (R() < 0.5 ? 0.3 : 3) : 5); d.ring.rotation.y -= dt * 2.2; }
     // 開火：先充能（掃描眼變亮）再射出紅色雷射
-    if (S.mode === 'play' && S.ctl !== 'dead') {
+    else if (S.mode === 'play' && S.ctl !== 'dead') {
       if (d.charge > 0) {
         d.charge -= dt; d.eyeMat.color.setHex(0xff2b26).multiplyScalar(5 + (0.55 - d.charge) * 30); d.scan.material.uniforms.op.value = 1 + (0.55 - d.charge) * 6;
         if (d.charge <= 0) {
@@ -1531,6 +1781,8 @@ function updateCars(dt) {
       tx = clamp(tx, c.side > 0 ? sideMin : -sideMax, c.side > 0 ? sideMax : -sideMin);
       const want = clamp(-pv.z + clamp((c.z - tz) * 0.7, -18, 28), still ? 0 : 6, 82);
       c.v = damp(c.v, want, 1.6, dt); c.vx = clamp((tx - c.x) * 1.6, -8, 8) * (c.ram > 0 ? 1.5 : 1);
+      // 被 EMP 癱瘓：失去動力滑行、不轉向也不衝撞
+      if (c.stun > 0) { c.v = Math.max(0, c.v - 9 * dt); c.vx = 0; c.ram = 0; }
       // 避開前方民車
       for (const o of CIVS) if (o.dir > 0 && Math.abs(o.x - c.x) < 2.2 && o.z < c.z && c.z - o.z < 16) { c.vx += (c.x > o.x ? 1 : -1) * 6; if (c.z - o.z < 8) c.v = Math.min(c.v, o.v); }
       c.x = clamp(c.x + c.vx * dt, c.side > 0 ? sideMin : -sideMax, c.side > 0 ? sideMax : -sideMin); c.z -= c.v * dt;
@@ -1547,7 +1799,8 @@ function updateCars(dt) {
       const tgt = S.ctl === 'ride' ? _v.copy(P.pos).setY(1.1) : _v.copy(F.pos).setY(1.3);
       const local = Math.atan2(-(tgt.x - c.x), -(tgt.z - c.z)) - c.yaw;
       c.turret.rotation.y = damp(c.turret.rotation.y, c.turret.rotation.y + angDiff(c.turret.rotation.y, local), 5, dt);
-      if (S.mode === 'play') {
+      if (S.mode === 'play' && c.stun > 0) c.burstN = 0;
+      else if (S.mode === 'play') {
         c.cool -= dt;
         if (c.cool <= 0 && dist < 85 && c.burstN === 0) { c.burstN = 5; c.burst = 0; }
         if (c.burstN > 0) { c.burst -= dt; if (c.burst <= 0) {
@@ -1561,10 +1814,14 @@ function updateCars(dt) {
       if (!c.warned && dist < 70) { c.warned = true; log('警告', `偵測到敵方攔截車接近，距離 ${Math.round(dist)} m`, 'var(--foe)'); }
     }
     if (c.flash > 0) c.flash -= dt; setFlash(c.root, c.flash > 0.03);
+    shieldFx(c, dt);
+    // EMP 擊退：沿彈道方向推開，限制在自己那一側的車道
+    if (c.kx || c.kz) { c.x = clamp(c.x + c.kx * dt, c.x > 0 ? 1.4 : -13.2, c.x > 0 ? 13.2 : -1.4); c.z += c.kz * dt; const k = Math.exp(-3.5 * dt); c.kx *= k; c.kz *= k; if (Math.abs(c.kx) + Math.abs(c.kz) < 0.05) c.kx = c.kz = 0; }
     const blink = Math.floor(S.time * 7) % 2;
-    c.red.color.setHex(0xff2a30).multiplyScalar(blink ? 7 : 0.4); c.blue.color.setHex(0x3a6bff).multiplyScalar(blink ? 0.4 : 7);
+    if (c.stun > 0) { c.stun -= dt; const f = R() < 0.3 ? 3 : 0.2; c.red.color.setHex(0xff2a30).multiplyScalar(f); c.blue.color.setHex(0x3a6bff).multiplyScalar(f); }
+    else { c.red.color.setHex(0xff2a30).multiplyScalar(blink ? 7 : 0.4); c.blue.color.setHex(0x3a6bff).multiplyScalar(blink ? 0.4 : 7); }
     c.wheel -= c.v * dt / 0.4; for (const w of c.wheels) w.rotation.x = c.wheel;
-    c.body.rotation.z = clamp(c.vx * 0.012, -0.1, 0.1); c.body.position.y = Math.sin(S.time * 23 + c.x) * 0.012 * Math.min(1, c.v / 40);
+    c.body.rotation.z = clamp(c.vx * 0.012 + c.kx * 0.03, -0.3, 0.3); c.body.position.y = Math.sin(S.time * 23 + c.x) * 0.012 * Math.min(1, c.v / 40);
     c.root.position.set(c.x, c.y, c.z); c.root.rotation.set(0, c.yaw, 0);
     if (c.z > pp.z + 260 || c.z < pp.z - 500) { c.on = false; c.root.visible = false; }
   }
@@ -1592,7 +1849,8 @@ function updateCivs(dt) {
 
 // ───────── 爆炸、受傷、震動 ─────────
 function shake(k, at) { const d = at ? at.distanceTo(camera.position) : 0; S.trauma = Math.min(1, S.trauma + k * clamp(1.4 - d / 60, 0.1, 1)); }
-function boom(p, size, tint) {
+// k 調低震動與音量：飛彈連環爆炸時十幾發疊在一起不會把畫面晃爛
+function boom(p, size, tint, k = 1) {
   const f = flashes.find(f => !f.visible) || flashes[0]; f.visible = true; f.position.copy(p); f.userData.t = 0; f.userData.s = size;
   const r = rings.find(r => !r.visible) || rings[0]; r.visible = true; r.position.set(p.x, p.y < 3 ? 0.08 : p.y, p.z); r.userData.t = 0; r.userData.s = size;
   const L = boomLights.find(l => l.intensity < 5) || boomLights[0]; L.position.copy(p).y += 1.5; L.intensity = 900 * size; L.userData.k = 900 * size;
@@ -1608,7 +1866,7 @@ function boom(p, size, tint) {
   for (let i = 0; i < Math.round(9 * size); i++) puff(_v2.copy(p).add(_v3.set((R() - 0.5) * 2.4 * size, (R() - 0.2) * 1.6 * size, (R() - 0.5) * 2.4 * size)), _v3.set((R() - 0.5) * 4 * size, 1 + R() * 2.5, (R() - 0.5) * 4 * size), (0.45 + R() * 0.5) * Math.sqrt(size), 0.9 + R() * 0.7, 0.9);
   sparks(p, Math.round(70 * size), 16 * size, 0xffb35a, 5, 0.35, 0.09);
   sparks(p, Math.round(26 * size), 22 * size, 0xfff1d8, 6, 0.2, 0.06);
-  shake(0.55 * size, p); sfx('boom', clamp(1.2 - p.distanceTo(camera.position) / 160, 0.2, 1));
+  shake(0.55 * size * k, p); sfx('boom', clamp(1.2 - p.distanceTo(camera.position) / 160, 0.2, 1) * (0.5 + k * 0.5));
   compMat.uniforms.flash.value = Math.max(compMat.uniforms.flash.value, clamp(0.12 - p.distanceTo(camera.position) / 900, 0, 0.12) * size);
 }
 function updateBooms(dt) {
@@ -1647,30 +1905,144 @@ function checkEvac() {
 // ───────── 射擊 ─────────
 const _seg = new V3();
 function segHit(a, b, c, r) { _seg.subVectors(b, a); const l2 = _seg.lengthSq(); let t = l2 ? _v3.subVectors(c, a).dot(_seg) / l2 : 0; t = clamp(t, 0, 1); return _v3.copy(a).addScaledVector(_seg, t).distanceToSquared(c) < r * r ? t : -1; }
-function startReload() { S.reload = 1.3; sfx('reload'); log('系統', 'ARC-9 電漿匣更換中', 'var(--ink-2)'); }
-const _mz = new V3(), _dir = new V3();
+// 三種武器：數字鍵／滾輪切換，各自保留彈匣
+const RAIL_T = 0.5, MUZ_Z = [0.5, 0.44, 0.74];
+const WEAPONS = [
+  { name: 'ARC-9 電漿卡賓', short: '電漿', mag: 40, rl: 1.3, css: 'var(--boost)', flash: hdr(0xffffff, 2.4), light: 0x8ef6ff },
+  { name: 'EMP-8 電磁散彈砲', short: '散彈', mag: 6, rl: 1.7, css: 'var(--emp)', flash: hdr(0xff8fd6, 3), light: 0xff5cbd },
+  { name: 'LX-3 穿透軌道砲', short: '軌道', mag: 5, rl: 2.1, css: 'var(--rail)', flash: hdr(0xffe0a0, 3.4), light: 0xffc45a }
+];
+const wsl = [...document.querySelectorAll('#wsl li')];
+function setGun(i) { rider.gunSets.forEach((g, k) => { g.visible = k === i; }); rider.muzzle.position.z = MUZ_Z[i]; }
+function hudWeapon() {
+  const W = WEAPONS[S.wi]; $('wep').style.setProperty('--wc', W.css); $('wName').textContent = W.name; $('tWep').textContent = W.short;
+  wsl.forEach((li, i) => li.classList.toggle('on', i === S.wi));
+  xh.classList.toggle('w1', S.wi === 1); xh.classList.toggle('w2', S.wi === 2);
+  $('ammo').innerHTML = `${S.ammo}<small>/${W.mag}</small>`;
+}
+function switchWeapon(i) {
+  i = (i + 3) % 3; if (i === S.wi || S.ctl === 'dead') return;
+  S.mags[S.wi] = S.ammo; S.reload = 0; S.charge = 0; chargeStop();
+  S.wi = i; S.ammo = S.mags[i]; S.cool = Math.max(S.cool, 0.22);
+  setGun(i); sfx('swap'); hudWeapon();
+  if (S.ammo === 0) startReload();
+}
+function startReload() { const W = WEAPONS[S.wi]; S.reload = S.reloadMax = W.rl; S.charge = 0; chargeStop(); sfx('reload'); log('系統', `${W.name}換彈中`, 'var(--ink-2)'); }
+const _mz = new V3(), _dir = new V3(), _rt = new V3(), _up2 = new V3(), _pd = new V3(), _hit = new V3();
+function muzzleAim(spread) {
+  rider.muzzle.getWorldPosition(_mz); _dir.subVectors(aimPt, _mz).normalize();
+  _dir.x += (R() - 0.5) * spread * 2; _dir.y += (R() - 0.5) * spread * 2; _dir.z += (R() - 0.5) * spread * 2; _dir.normalize();
+}
+function muzzleFx(scale, light) {
+  const W = WEAPONS[S.wi]; muzzleFlash.children[0].material.color.copy(W.flash);
+  muzzleFlash.visible = true; muzzleFlash.position.copy(_mz); muzzleFlash.quaternion.setFromUnitVectors(_bz, _dir); muzzleFlash.rotateZ(R() * 6); muzzleFlash.scale.setScalar(scale * (0.8 + R() * 0.6)); muzzleFlash.userData.t = 0.05;
+  // 光源放在槍口前方 0.8 m，照亮路面與周遭，但不把貼近槍身的騎士裝甲照成一片白
+  muzzleLight.color.setHex(W.light); muzzleLight.position.copy(_mz).addScaledVector(_dir, 0.8); muzzleLight.intensity = light;
+}
 function tryFire(dt) {
   S.cool -= dt;
-  if (S.reload > 0) { S.reload -= dt; if (S.reload <= 0) { S.reload = 0; S.ammo = 40; } return; }
-  if (!inp().fire || S.cool > 0 || S.ctl === 'mount' || S.ctl === 'dismount' || S.ctl === 'dead') return;
+  if (S.reload > 0) { S.reload -= dt; if (S.reload <= 0) { S.reload = 0; S.ammo = WEAPONS[S.wi].mag; } return; }
+  const want = inp().fire && S.ctl !== 'mount' && S.ctl !== 'dismount' && S.ctl !== 'dead';
+  if (S.wi === 2) {
+    // 軌道砲：按住蓄力 0.5 秒，滿了自動擊發；中途放開就洩掉
+    if (want && S.cool <= 0) {
+      if (S.ammo <= 0) { startReload(); return; }
+      if (S.charge === 0) chargeStart();
+      S.charge = Math.min(RAIL_T, S.charge + dt); S.lastFire = S.time;
+      const k = S.charge / RAIL_T; rider.muzzle.getWorldPosition(_mz);
+      for (let i = 0; i < 3; i++) { _v.set(R() - 0.5, R() - 0.5, R() - 0.5).setLength(0.35 + R() * 0.4); spk.emit(_mz.x + _v.x, _mz.y + _v.y, _mz.z + _v.z, -_v.x * 6, -_v.y * 6, -_v.z * 6, 0.14, 6, 4.2, 1.6, 0.05 + k * 0.05, 0, 0); }
+      muzzleLight.color.setHex(0xffc45a); muzzleLight.position.copy(_mz); muzzleLight.intensity = Math.max(muzzleLight.intensity, 2 + k * 7);
+      if (S.charge >= RAIL_T) { chargeStop(); fireRail(); S.charge = 0; if (S.ammo === 0) startReload(); }
+    } else if (S.charge > 0 && !want) { S.charge = 0; chargeStop(); }
+    return;
+  }
+  if (!want || S.cool > 0) return;
   if (S.ammo <= 0) { startReload(); return; }
-  S.cool = 1 / 11; S.ammo--; S.lastFire = S.time;
-  rider.muzzle.getWorldPosition(_mz);
-  _dir.subVectors(aimPt, _mz).normalize();
-  const spread = 0.006 + (S.ctl === 'ride' ? 0.004 : F.vel.length() * 0.0012);
-  _dir.x += (R() - 0.5) * spread * 2; _dir.y += (R() - 0.5) * spread * 2; _dir.z += (R() - 0.5) * spread * 2; _dir.normalize();
-  const b = fireBolt(pBolts, _mz, _dir, 240, 1, 3.4); if (b && S.ctl === 'ride') b.v.add(fwdOf(P.yaw, _v).multiplyScalar(P.v));
-  muzzleFlash.visible = true; muzzleFlash.position.copy(_mz); muzzleFlash.quaternion.setFromUnitVectors(_bz, _dir); muzzleFlash.rotateZ(R() * 6); muzzleFlash.scale.setScalar(0.8 + R() * 0.6); muzzleFlash.userData.t = 0.05;
-  // 光源放在槍口前方 0.8 m，照亮路面與周遭，但不把貼近槍身的騎士裝甲照成一片白
-  muzzleLight.position.copy(_mz).addScaledVector(_dir, 0.8); muzzleLight.intensity = 14;
-  S.kick = Math.min(0.03, S.kick + 0.006); S.trauma = Math.min(1, S.trauma + 0.02); S.recoil = 1;
-  sparks(_mz, 2, 3, 0x9ef8ff, 4, 0, 0.05);
-  sfx('shot');
+  S.ammo--; S.lastFire = S.time;
+  if (S.wi === 0) {
+    S.cool = 1 / 11;
+    muzzleAim(0.006 + (S.ctl === 'ride' ? 0.004 : F.vel.length() * 0.0012));
+    const b = fireBolt(pBolts, _mz, _dir, 240, 1, 3.4); if (b && S.ctl === 'ride') b.v.add(fwdOf(P.yaw, _v).multiplyScalar(P.v));
+    muzzleFx(1, 14);
+    S.kick = Math.min(0.03, S.kick + 0.006); S.trauma = Math.min(1, S.trauma + 0.02); S.recoil = 1;
+    sparks(_mz, 2, 3, 0x9ef8ff, 4, 0, 0.05);
+    sfx('shot');
+  } else fireEmp();
   if (S.ammo === 0) startReload();
+}
+// EMP 散彈：以準星方向為中心，8 發在水平面展開成扇形
+function fireEmp() {
+  S.cool = 0.62; muzzleAim(0.004);
+  _rt.crossVectors(_dir, UP).normalize(); _up2.crossVectors(_rt, _dir);
+  const bv = S.ctl === 'ride' ? fwdOf(P.yaw, _v4).multiplyScalar(P.v) : _v4.set(0, 0, 0);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 7 - 0.5) * 0.3 + (R() - 0.5) * 0.03, e = (R() - 0.5) * 0.07;
+    _pd.copy(_dir).addScaledVector(_rt, Math.tan(a)).addScaledVector(_up2, e).normalize();
+    const b = fireBolt(sBolts, _mz, _pd, 150 + R() * 30, 2, 1.1); if (b) { b.life = 0.34 + R() * 0.06; b.v.add(bv); }
+  }
+  muzzleFx(2.2, 30);
+  empRing.visible = true; empRing.userData.t = 0; empRing.position.copy(_mz).addScaledVector(_dir, 0.5); empRing.quaternion.setFromUnitVectors(_bz, _dir);
+  for (let i = 0; i < 18; i++) { const v = 14 + R() * 26; spk.emit(_mz.x, _mz.y, _mz.z, _dir.x * v + (R() - 0.5) * 8, _dir.y * v + (R() - 0.5) * 6, _dir.z * v + (R() - 0.5) * 8, 0.12 + R() * 0.12, 6, 1.6, 4.6, 0.08, 0, 4); }
+  S.kick = Math.min(0.05, S.kick + 0.03); S.trauma = Math.min(1, S.trauma + 0.14); S.recoil = 1.8;
+  if (S.ctl === 'foot') { F.vel.x -= _dir.x * 3.5; F.vel.z -= _dir.z * 3.5; }
+  sfx('emp');
+}
+// 軌道砲：一條直線貫穿路徑上所有敵人，直到打中路面或 280 m
+function fireRail() {
+  S.cool = 0.5; S.ammo--; S.lastFire = S.time; muzzleAim(0);
+  let len = 280; if (_dir.y < -1e-3) len = Math.min(len, (_mz.y - 0.02) / -_dir.y);
+  _v5.copy(_mz).addScaledVector(_dir, len);
+  let n = 0;
+  for (const d of DRONES) if (d.on && segHit(_mz, _v5, d.p, 1.9) >= 0) { _hit.copy(_v3); n++; sparks(_hit, 22, 10, 0xffe2a0, 5, 0.2, 0.08); hitFoe(d, 16, 'rail', _hit, _dir); }
+  for (const c of CARS) {
+    if (!foeAlive(c)) continue;
+    for (const oz of [-1.3, 0, 1.3]) { _ctr.set(c.x - Math.sin(c.yaw) * oz, 0.9, c.z - Math.cos(c.yaw) * oz); if (segHit(_mz, _v5, _ctr, 1.45) >= 0) { _hit.copy(_v3); n++; sparks(_hit, 26, 10, 0xffe2a0, 5, 0.2, 0.08); hitFoe(c, 18, 'rail', _hit, _dir); break; } }
+  }
+  if (n) { hitT = 0.14; sfx('hit'); if (n > 1) log('系統', `軌道砲貫穿 ${n} 個目標`, 'var(--rail)'); }
+  if (len < 280) { sparks(_v5, 40, 12, 0xffc45a, 5, 0.5, 0.08); for (let i = 0; i < 4; i++) puff(_v2.copy(_v5).add(_v.set((R() - 0.5) * 1.5, 0.3, (R() - 0.5) * 1.5)), _v.set((R() - 0.5) * 2, 1.5, (R() - 0.5) * 2), 0.5 + R() * 0.4, 1.1, 0.5); }
+  // 光束與電離殘影
+  const B = BEAMS.find(b => b.t > 1.5) || BEAMS.reduce((a, b) => (a.t > b.t ? a : b));
+  B.t = 0; B.len = len; B.g.visible = true; B.g.position.copy(_mz); B.g.quaternion.setFromUnitVectors(_bz, _dir); B.ion.material.uniforms.len.value = len;
+  for (let i = 0; i < 70; i++) { const t = R() * len; spk.emit(_mz.x + _dir.x * t, _mz.y + _dir.y * t, _mz.z + _dir.z * t, (R() - 0.5) * 1.6, (R() - 0.3) * 1.4, (R() - 0.5) * 1.6, 0.7 + R() * 0.8, 5, 3.6, 1.6, 0.07 + R() * 0.06, -0.04, 1.8); }
+  muzzleFx(3, 60);
+  S.kick = Math.min(0.06, S.kick + 0.04); S.trauma = Math.min(1, S.trauma + 0.3); S.recoil = 2.4;
+  compMat.uniforms.flash.value = Math.max(compMat.uniforms.flash.value, 0.05);
+  if (S.ctl === 'foot') { F.vel.x -= _dir.x * 6; F.vel.z -= _dir.z * 6; }
+  sfx('rail');
+}
+function updateBeams(dt) {
+  for (const B of BEAMS) {
+    if (!B.g.visible) continue;
+    B.t += dt; const t = B.t;
+    if (t > 1.5) { B.g.visible = false; continue; }
+    const c = Math.max(0, 1 - t / 0.16), sh = Math.max(0, 1 - t / 0.32), io = Math.pow(1 - t / 1.5, 1.5) * Math.min(1, t / 0.06 + 0.3);
+    B.core.visible = c > 0; B.core.scale.set(0.05 + c * 0.17, 0.05 + c * 0.17, B.len); B.core.material.uniforms.op.value = c;
+    B.shell.visible = sh > 0; B.shell.scale.set(0.2 + sh * 0.42, 0.2 + sh * 0.42, B.len); B.shell.material.uniforms.op.value = sh;
+    const r = 0.22 + t * 0.32; B.ion.scale.set(r, r, B.len); B.ion.material.uniforms.op.value = io; B.ion.material.uniforms.age.value = t;
+  }
+  if (empRing.visible) { const u = (empRing.userData.t += dt) / 0.2; if (u >= 1) empRing.visible = false; else { empRing.scale.setScalar(0.3 + u * 3); empRing.material.opacity = (1 - u) * (1 - u); } }
+  // 軌道砲線圈：蓄力時隨充能變亮，擊發後慢慢冷卻
+  const k = S.charge / RAIL_T;
+  rider.coilMat.color.setHex(0xffc94a).multiplyScalar(k > 0 ? 1.4 + k * 9 * (0.85 + R() * 0.3) : 1.2 + Math.max(0, 0.5 - (S.time - S.lastFire)) * 14);
+}
+// 統一的命中結算：kind = plasma／emp／rail／msl。電漿被護盾吸收，EMP 讓護盾過載並癱瘓目標，軌道砲無視護盾，飛彈打破護盾但傷害減半
+function hitFoe(e, dmg, kind, at, dir) {
+  if (e.sh > 0) {
+    if (kind === 'plasma') { e.sh -= dmg * 0.6; e.shHit = 0.14; sparks(at, 6, 7, 0xffa070, 4, 0.1, 0.05); if (e.sh <= 0) breakShield(e, false); return 'shield'; }
+    if (kind === 'emp') { breakShield(e, true); e.stun = 2.4; dmg += 2; }
+    else if (kind === 'msl') { breakShield(e, false); dmg *= 0.5; }
+  }
+  if (kind === 'emp') {
+    e.stun = Math.max(e.stun, 0.9);
+    if (e.p) e.v.addScaledVector(dir, 7); else { e.kx += dir.x * 1.8; e.kz += dir.z * 2.4; }
+  }
+  e.hp -= dmg; e.flash = 0.07;
+  if (e.hp <= 0) { if (e.p) killDrone(e, S.ctl === 'foot'); else killCar(e); return 'kill'; }
+  return 'hit';
 }
 const _pa = new V3(), _ctr = new V3(), _imp = new V3();
 const RAILS = [-13.75, 0, 13.75];
-function boltImpact(b) {
+function boltImpact(b, hex = 0x9ef8ff) {
   let t = 2, side = 0;
   if (b.p.y < 0.02 && _pa.y >= 0.02) t = (_pa.y - 0.02) / (_pa.y - b.p.y);
   for (const wx of RAILS) {
@@ -1679,23 +2051,30 @@ function boltImpact(b) {
   }
   if (t > 1) return false;
   _imp.lerpVectors(_pa, b.p, t); if (side) _imp.x += side * 0.18; else if (Math.abs(_imp.x) > 14.5) return false; else _imp.y = 0.05;
-  sparks(_imp, 9, 6, 0x9ef8ff, 4, side ? 0.3 : 0.5, 0.06);
+  sparks(_imp, 9, 6, hex, 4, side ? 0.3 : 0.5, 0.06);
   spk.emit(_imp.x, _imp.y, _imp.z, 0, 0.4, 0, 0.12, 6, 9, 10, 0.5, 0, 4);
   return true;
 }
-function updateBolts(dt) {
-  for (const b of pBolts.items) {
+let hitSndT = 0;
+function updatePlayerBolts(pool, kind, dt) {
+  const hex = kind === 'emp' ? 0xff8fd6 : 0xbff8ff;
+  for (const b of pool.items) {
     if (!b.on) continue;
     _pa.copy(b.p); b.p.addScaledVector(b.v, dt); b.life -= dt;
-    let hit = false;
-    for (const d of DRONES) { if (!d.on) continue; if (segHit(_pa, b.p, d.p, 1.55) >= 0) { hit = true; d.hp -= 1; d.flash = 0.07; sparks(_v3.copy(b.p), 9, 7, 0xbff8ff, 5, 0.1, 0.06); if (d.hp <= 0) killDrone(d, S.ctl === 'foot'); break; } }
-    if (!hit) for (const c of CARS) { if (!c.on || c.mode === 'dead') continue; for (const oz of [-1.3, 0, 1.3]) { _ctr.set(c.x - Math.sin(c.yaw) * oz, 0.9, c.z - Math.cos(c.yaw) * oz); if (segHit(_pa, b.p, _ctr, 1.25) >= 0) { hit = true; break; } } if (hit) { c.hp -= 1; c.flash = 0.07; sparks(_v3.copy(b.p), 9, 7, 0xffd9a8, 5, 0.2, 0.06); if (c.hp <= 0) killCar(c); break; } }
-    if (!hit) for (const c of CIVS) { _ctr.set(c.x, 0.8, c.z); if (segHit(_pa, b.p, _ctr, 1.3) >= 0) { hit = true; sparks(_v3.copy(b.p), 6, 5, 0xbff8ff, 3, 0.2, 0.05); break; } }
-    if (hit) { hitT = 0.1; sfx('hit'); b.on = false; continue; }
+    let hit = false; _pd.copy(b.v).normalize();
+    // 護盾比機體大，先用護盾半徑判定，電漿會在護盾表面被擋下
+    for (const d of DRONES) { if (!d.on) continue; if (segHit(_pa, b.p, d.p, d.sh > 0 ? 2.3 : 1.55) >= 0) { hit = true; _hit.copy(b.p); if (d.sh <= 0 || kind !== 'plasma') sparks(_hit, 9, 7, hex, 5, 0.1, 0.06); hitFoe(d, b.dmg, kind, _hit, _pd); break; } }
+    if (!hit) for (const c of CARS) { if (!foeAlive(c)) continue; for (const oz of [-1.3, 0, 1.3]) { _ctr.set(c.x - Math.sin(c.yaw) * oz, 0.9, c.z - Math.cos(c.yaw) * oz); if (segHit(_pa, b.p, _ctr, c.sh > 0 ? 1.6 : 1.25) >= 0) { hit = true; break; } } if (hit) { _hit.copy(b.p); if (c.sh <= 0 || kind !== 'plasma') sparks(_hit, 9, 7, kind === 'emp' ? hex : 0xffd9a8, 5, 0.2, 0.06); hitFoe(c, b.dmg, kind, _hit, _pd); break; } }
+    if (!hit) for (const c of CIVS) { _ctr.set(c.x, 0.8, c.z); if (segHit(_pa, b.p, _ctr, 1.3) >= 0) { hit = true; sparks(_v3.copy(b.p), 6, 5, hex, 3, 0.2, 0.05); break; } }
+    // 散彈一次 8 發同時命中時只播一次命中聲
+    if (hit) { hitT = 0.1; if (S.time - hitSndT > 0.04) { hitSndT = S.time; sfx('hit'); } b.on = false; continue; }
     // 一幀可飛 2 m，比護欄還厚，所以用整段軌跡和路面、三道護欄的交點判定
-    if (boltImpact(b)) { b.on = false; continue; }
+    if (boltImpact(b, kind === 'emp' ? 0xff8fd6 : 0x9ef8ff)) { b.on = false; continue; }
     if (b.life <= 0 || b.p.y < -30) b.on = false;
   }
+}
+function updateBolts(dt) {
+  updatePlayerBolts(pBolts, 'plasma', dt); updatePlayerBolts(sBolts, 'emp', dt);
   const me = S.ctl === 'ride' ? _ctr.copy(P.pos).setY(0.9) : _ctr.copy(F.pos).setY(1.15), rad = S.ctl === 'ride' ? 1.0 : 0.62;
   for (const b of eBolts.items) {
     if (!b.on) continue;
@@ -1704,10 +2083,135 @@ function updateBolts(dt) {
     if (b.p.y < 0.02 && Math.abs(b.p.x) < 14.5) { b.p.y = 0.05; sparks(b.p, 6, 5, 0xff5a40, 4, 0.5, 0.06); b.on = false; continue; }
     if (b.life <= 0) b.on = false;
   }
-  syncBolts(pBolts); syncBolts(eBolts);
+  syncBolts(pBolts); syncBolts(sBolts); syncBolts(eBolts);
   if (muzzleFlash.visible) { muzzleFlash.userData.t -= dt; if (muzzleFlash.userData.t <= 0) muzzleFlash.visible = false; }
   muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt * 400);
   S.recoil = Math.max(0, (S.recoil || 0) - dt * 16);
+}
+
+// ───────── 背包微型飛彈：按住右鍵／Q 讓準星掃過敵人鎖定，放開齊射 ─────────
+const LK = { on: false, list: [], next: 0, cd: 0, cdMax: 1, q: [], lidT: 0, tube: 0, clock: 0, seekT: 0 };
+const lockEls = Array.from({ length: LOCK_MAX }, (_, i) => { const d = document.createElement('div'); d.className = 'lk'; d.innerHTML = `<i></i><b>${i + 1}</b>`; $('locks').appendChild(d); return d; });
+const mslPips = [...document.querySelectorAll('#msl i')];
+function updateLock(dt) {
+  const want = inp().lock && S.ctl !== 'dead' && S.ctl !== 'mount' && S.ctl !== 'dismount' && !S.won;
+  LK.cd = Math.max(0, LK.cd - dt);
+  for (let i = LK.list.length - 1; i >= 0; i--) if (!foeAlive(LK.list[i].e)) LK.list.splice(i, 1);
+  for (const l of LK.list) l.t += dt;
+  if (want && LK.cd <= 0) {
+    if (!LK.on) { LK.on = true; LK.next = 0; LK.seekT = 0; }
+    if ((LK.seekT -= dt) <= 0 && LK.list.length < LOCK_MAX) { LK.seekT = 0.45; sfx('seek'); }
+    LK.next -= dt;
+    if (LK.list.length < LOCK_MAX && LK.next <= 0) {
+      // 準星周圍 90 px 內最近的未鎖定目標；觸控時改用畫面中央的大範圍
+      const cx = TOUCH ? innerWidth / 2 : mouse.x, cy = TOUCH ? innerHeight * 0.45 : mouse.y, pp = playerPos();
+      let best = null, bd = TOUCH ? Math.min(innerWidth, innerHeight) * 0.48 : 90;
+      for (const e of FOES) {
+        if (!foeAlive(e) || LK.list.some(l => l.e === e)) continue;
+        foePos(e, _v); if (_v.distanceTo(pp) > 230) continue;
+        _v.project(camera); if (_v.z > 1 || Math.abs(_v.x) > 1 || Math.abs(_v.y) > 1) continue;
+        const dd = Math.hypot((_v.x * 0.5 + 0.5) * innerWidth - cx, (-_v.y * 0.5 + 0.5) * innerHeight - cy);
+        if (dd < bd) { bd = dd; best = e; }
+      }
+      if (best) { LK.list.push({ e: best, t: 0 }); LK.next = 0.12; sfx(LK.list.length === LOCK_MAX ? 'lockfull' : 'lockon', 1, LK.list.length); }
+    }
+  } else if (LK.on) {
+    LK.on = false;
+    if (LK.list.length) launchVolley();
+  }
+}
+function launchVolley() {
+  const n = LK.list.length; let k = 0;
+  for (let r = 0; r < MSL_PER; r++) for (const l of LK.list) LK.q.push({ t: 0.12 + k++ * 0.055, e: l.e });
+  LK.lidT = 0.12 + k * 0.055 + 0.35; LK.cd = LK.cdMax = 3 + n * 0.5; LK.list.length = 0;
+  sfx('hatch'); log('系統', `微型飛彈齊射，追蹤 ${n} 個目標`, 'var(--order)');
+}
+const _b0 = new V3(), _b1 = new V3(), _b2 = new V3();
+function launchMissile(e) {
+  const m = MSL.find(m => !m.on && LK.clock - m.tr[m.th].t > TRAIL_LIFE) || MSL.find(m => !m.on); if (!m) return;
+  const ti = LK.tube = (LK.tube + 1) % 6; rider.tubes[ti].getWorldPosition(m.p0);
+  playerVel(m.v0);
+  const yaw = onBike() ? P.yaw : F.yaw, rt = rightOf(yaw, _b0), fw = fwdOf(yaw, _b1), sd = ti % 3 === 1 ? (R() - 0.5) * 4 : (ti % 3 === 0 ? -1 : 1) * (3 + R() * 5);
+  // 曲線控制點：先向上、往兩側散開，再從目標上方俯衝下去
+  m.c1.copy(m.p0).addScaledVector(UP, 9 + R() * 5).addScaledVector(rt, sd).addScaledVector(fw, -3 + R() * 4);
+  m.off.set((R() - 0.5) * 12, 6 + R() * 6, (R() - 0.5) * 12);
+  m.e = e; foePos(e, m.p3); m.T = clamp(m.p0.distanceTo(m.p3) / 80 + 0.6, 0.85, 2.4);
+  m.on = true; m.t = 0; m.tn = 0; m.samp = 0; m.smk = R() * 0.08; m.pos.copy(m.p0); m.prev.copy(m.p0); m.dir.set(0, 1, 0);
+  sfx('mlaunch', 0.8); sparks(m.p0, 6, 5, 0xffc070, 4, 0.8, 0.05);
+}
+function updateMissiles(dt) {
+  LK.clock += dt;
+  if (S.mode === 'play') for (let i = LK.q.length - 1; i >= 0; i--) if ((LK.q[i].t -= dt) <= 0) launchMissile(LK.q.splice(i, 1)[0].e);
+  LK.lidT -= dt;
+  rider.lid.rotation.x = damp(rider.lid.rotation.x, LK.lidT > 0 ? 2.0 : LK.on ? 0.35 : 0, 16, dt);
+  let k = 0;
+  for (const m of MSL) {
+    if (!m.on) continue;
+    m.t += dt; if (foeAlive(m.e)) foePos(m.e, m.p3);
+    // 三次 Bezier：起點與第一控制點跟著發射時的車速前進，後兩點追著目標即時更新，保證命中
+    const u = Math.min(1, m.t / m.T), w = Math.pow(u, 1.3), iw = 1 - w;
+    _b0.copy(m.p0).addScaledVector(m.v0, m.t); _b1.copy(m.c1).addScaledVector(m.v0, m.t); _b2.copy(m.p3).add(m.off);
+    m.prev.copy(m.pos);
+    m.pos.copy(_b0).multiplyScalar(iw * iw * iw).addScaledVector(_b1, 3 * iw * iw * w).addScaledVector(_b2, 3 * iw * w * w).addScaledVector(m.p3, w * w * w);
+    _v.subVectors(m.pos, m.prev); if (_v.lengthSq() > 1e-8) m.dir.copy(_v).normalize();
+    if ((m.samp -= dt) <= 0) { m.samp = 0.018; m.th = (m.th + 1) % TRAIL_N; m.tr[m.th].p.copy(m.pos); m.tr[m.th].t = LK.clock; m.tn = Math.min(TRAIL_N, m.tn + 1); }
+    if ((m.smk -= dt) <= 0) { m.smk = 0.08; puff(m.pos, _v.set((R() - 0.5) * 0.8, 0.4, (R() - 0.5) * 0.8), 0.22 + R() * 0.12, 0.75, 0.55); }
+    if (u >= 1) {
+      m.on = false;
+      if (foeAlive(m.e)) { hitT = 0.1; hitFoe(m.e, m.e.p ? 12 : 15, 'msl', m.pos, m.dir); }
+      boom(m.pos, 0.5, 0x3b3648, 0.4);
+      continue;
+    }
+    _q.setFromUnitVectors(_bz, m.dir);
+    _m.compose(m.pos, _q, _v.set(1, 1, 1)); mslBody.setMatrixAt(k, _m);
+    _m.compose(_v2.copy(m.pos).addScaledVector(m.dir, -0.32), _q, _v3.set(0.085, 0.085, 0.3 + R() * 0.14)); mslFlame.setMatrixAt(k, _m); k++;
+  }
+  mslBody.count = mslFlame.count = k; mslBody.instanceMatrix.needsUpdate = mslFlame.instanceMatrix.needsUpdate = true;
+  writeTrails();
+}
+// 煙跡：每枚飛彈一條面向鏡頭的帶狀網格，越舊越寬越淡；青色與橘色交錯
+const TR_COL = [new C(0.32, 0.92, 1.0).multiplyScalar(2.4), new C(1.0, 0.5, 0.16).multiplyScalar(2.6)], TR_HOT = new C(1, 0.9, 0.72).multiplyScalar(5);
+const _tp = [], _ta = [], _tg = new V3(), _tv = new V3(), _ts = new V3();
+function writeTrails() {
+  const { pos, col } = trail, cam = camera.position;
+  for (const m of MSL) {
+    let n = 0;
+    if (m.on) { _tp[n] = m.pos; _ta[n++] = 0; }
+    for (let j = 0; j < m.tn && n < TRAIL_N; j++) { const q = m.tr[(m.th - j + TRAIL_N) % TRAIL_N], age = LK.clock - q.t; if (age > TRAIL_LIFE) break; _tp[n] = q.p; _ta[n++] = age; }
+    const base = m.i * TRAIL_N * 2, tc = TR_COL[m.i % 2];
+    for (let j = 0; j < TRAIL_N; j++) {
+      const v = (base + j * 2) * 3;
+      if (n < 2 || j >= n) { const p = n ? _tp[n - 1] : cam; for (let s = 0; s < 6; s += 3) { pos[v + s] = p.x; pos[v + s + 1] = p.y; pos[v + s + 2] = p.z; col[v + s] = col[v + s + 1] = col[v + s + 2] = 0; } continue; }
+      const p = _tp[j], age = _ta[j];
+      _tg.subVectors(_tp[Math.max(0, j - 1)], _tp[Math.min(n - 1, j + 1)]); _tv.subVectors(cam, p);
+      _ts.crossVectors(_tg, _tv); if (_ts.lengthSq() < 1e-10) _ts.set(0, 1, 0); _ts.normalize().multiplyScalar(0.07 + age * 0.75);
+      pos[v] = p.x - _ts.x; pos[v + 1] = p.y - _ts.y; pos[v + 2] = p.z - _ts.z; pos[v + 3] = p.x + _ts.x; pos[v + 4] = p.y + _ts.y; pos[v + 5] = p.z + _ts.z;
+      const f = j === n - 1 ? 0 : Math.pow(1 - age / TRAIL_LIFE, 1.5) / (1 + age * 2.5), hot = clamp(1 - age / 0.07, 0, 1);
+      _c.copy(tc).lerp(TR_HOT, hot).multiplyScalar(f);
+      col[v] = col[v + 3] = _c.r; col[v + 1] = col[v + 4] = _c.g; col[v + 2] = col[v + 5] = _c.b;
+    }
+  }
+  trail.g.attributes.position.needsUpdate = trail.g.attributes.aC.needsUpdate = true;
+}
+// 鎖定框：鎖定中顯示掃到的目標；齊射後改成閃爍的追蹤框，直到飛彈命中
+const _trk = new Set();
+function updateLockUI() {
+  let k = 0;
+  const put = (e, t, trk) => {
+    if (k >= lockEls.length) return; foePos(e, _v).project(camera); if (_v.z > 1 || Math.abs(_v.x) > 1.1 || Math.abs(_v.y) > 1.1) return;
+    const el = lockEls[k++], sz = e.p ? 34 : 46, a = clamp(t / 0.18, 0, 1), ea = 1 - (1 - a) * (1 - a);
+    el.style.display = 'block'; el.classList.toggle('trk', trk); el.style.setProperty('--s', sz + 'px');
+    el.style.transform = `translate(${((_v.x * 0.5 + 0.5) * innerWidth - sz / 2).toFixed(1)}px,${((-_v.y * 0.5 + 0.5) * innerHeight - sz / 2).toFixed(1)}px) rotate(${((1 - ea) * 90).toFixed(1)}deg) scale(${(1 + (1 - ea) * 1.3).toFixed(3)})`;
+  };
+  if (LK.on) for (const l of LK.list) put(l.e, l.t, false);
+  else { _trk.clear(); for (const m of MSL) if (m.on && foeAlive(m.e)) _trk.add(m.e); for (const q of LK.q) if (foeAlive(q.e)) _trk.add(q.e); for (const e of _trk) put(e, 1, true); }
+  for (; k < lockEls.length; k++) lockEls[k].style.display = 'none';
+  xh.classList.toggle('lock', LK.on);
+  // HUD：六格菱形，鎖定時紅色、裝填時依進度填滿
+  const nL = LK.on ? LK.list.length : 0, ready = LK.cd > 0 ? Math.floor((1 - LK.cd / LK.cdMax) * LOCK_MAX) : LOCK_MAX;
+  mslPips.forEach((p, i) => { p.className = i < nL ? 'l' : i < ready ? 'f' : ''; });
+  $('msl').classList.toggle('lk', LK.on);
+  $('mslS').textContent = LK.on ? `鎖定 ${nL}/${LOCK_MAX}` : LK.cd > 0 ? `裝填 ${LK.cd.toFixed(1)}s` : '就緒';
 }
 
 // ───────── 騎乘物理 ─────────
@@ -1792,12 +2296,12 @@ function toggleMount() {
     else if (!S.autoStop) { S.autoStop = true; log('系統', '緊急減速，準備下車', 'var(--ink-2)'); }
   } else if (S.ctl === 'foot') {
     const d = F.pos.distanceTo(P.pos);
-    if (d < 3.4) { S.ctl = 'mount'; S.ctlT = 0; mountFrom.copy(F.pos); mountYaw0 = F.yaw; sfx('clank'); }
+    if (d < 3.4) { S.ctl = 'mount'; S.ctlT = 0; mountFrom.copy(F.pos); mountYaw0 = F.yaw; sfx('servo'); }
     else log('系統', `距離機車 ${Math.round(d)} m，靠近後再按 F`, 'var(--ink-2)');
   }
 }
 function beginDismount() {
-  S.autoStop = false; S.ctl = 'dismount'; S.ctlT = 0; sfx('clank');
+  S.autoStop = false; S.ctl = 'dismount'; S.ctlT = 0; sfx('unlock');
   scene.attach(rider.root); rider.root.rotation.set(0, P.yaw, 0);
   mountFrom.copy(rider.root.position);
   mountTo.copy(P.pos).addScaledVector(rightOf(P.yaw, _v), P.pos.x > 0 ? -1.05 : 1.05);
@@ -1815,7 +2319,7 @@ function updateMountAnim(dt) {
     rider.root.rotation.set(0, mountYaw0 + angDiff(mountYaw0, P.yaw) * e, 0);
     poseFoot(dt, 0, e);
     rider.legs[1].hip.rotation.x = Math.sin(t * Math.PI) * 1.5;
-    if (t >= 1) { S.ctl = 'ride'; seatRider(); CAM.yawOff = 0; log('系統', '切換為騎乘模式・K-7 動力系統上線', 'var(--ink-2)'); }
+    if (t >= 1) { S.ctl = 'ride'; seatRider(); CAM.yawOff = 0; sfx('lock'); log('系統', '切換為騎乘模式・K-7 動力系統上線', 'var(--ink-2)'); }
   }
 }
 
@@ -1995,13 +2499,14 @@ function updateMarks() {
 // ───────── 波次 ─────────
 const spawnQ = [];
 function director(dt) {
-  for (let i = spawnQ.length - 1; i >= 0; i--) { spawnQ[i].t -= dt; if (spawnQ[i].t <= 0) { const s = spawnQ.splice(i, 1)[0]; s.kind === 'd' ? spawnDrone(s.behind) : spawnCar(); } }
+  for (let i = spawnQ.length - 1; i >= 0; i--) { spawnQ[i].t -= dt; if (spawnQ[i].t <= 0) { const s = spawnQ.splice(i, 1)[0]; s.kind === 'd' ? spawnDrone(s.behind, s.sh) : spawnCar(s.sh); } }
   const alive = DRONES.some(d => d.on) || CARS.some(c => c.on && c.mode !== 'dead') || spawnQ.length;
   if (alive) return;
   if (S.waveT > 0) { S.waveT -= dt * (S.wave === 0 && Math.abs(P.v) > 16 ? 3 : 1); if (S.wave > 0 && S.waveT > 5.5) S.hp = Math.min(100, S.hp + 6 * dt); return; }
   S.wave++; const nd = Math.min(1 + S.wave, 6), nc = Math.min(Math.floor((S.wave + 1) / 2), 3);
-  for (let i = 0; i < nd; i++) spawnQ.push({ kind: 'd', t: i * 0.9 + R() * 0.4, behind: R() < 0.4 });
-  for (let i = 0; i < nc; i++) spawnQ.push({ kind: 'c', t: 1.5 + i * 2.6 });
+  // 第 2 波起出現護盾無人機（每波至少一架），第 3 波起部分攔截車也帶護盾
+  for (let i = 0; i < nd; i++) spawnQ.push({ kind: 'd', t: i * 0.9 + R() * 0.4, behind: R() < 0.4, sh: S.wave >= 2 && (i === 0 || R() < Math.min(0.55, 0.1 + S.wave * 0.08)) });
+  for (let i = 0; i < nc; i++) spawnQ.push({ kind: 'c', t: 1.5 + i * 2.6, sh: S.wave >= 3 && (i === 0 || R() < 0.4) });
   log('HQ', `第 ${S.wave} 波：偵測到 ${nd} 架無人機${nc ? `、${nc} 輛攔截車` : ''}接近`, 'var(--foe)'); sfx('beep');
   S.waveT = 7;
 }
@@ -2013,7 +2518,9 @@ function rebase() {
   const D = 4000, shiftZ = v => { v.z += D; };
   shiftZ(P.pos); shiftZ(F.pos); shiftZ(camera.position); shiftZ(CAM.look); if (rider.root.parent === scene) shiftZ(rider.root.position); shiftZ(mountFrom); shiftZ(mountTo);
   for (const d of DRONES) shiftZ(d.p); for (const c of CARS) c.z += D; for (const c of CIVS) c.z += D;
-  for (const b of pBolts.items) shiftZ(b.p); for (const b of eBolts.items) shiftZ(b.p);
+  for (const b of [...pBolts.items, ...sBolts.items, ...eBolts.items]) shiftZ(b.p);
+  for (const m of MSL) { for (const v of [m.p0, m.c1, m.p3, m.pos, m.prev]) shiftZ(v); for (const q of m.tr) shiftZ(q.p); }
+  for (const B of BEAMS) shiftZ(B.g.position); shiftZ(empRing.position);
   for (const p of spk.P) p.z += D; for (const q of PUFF) shiftZ(q.p); for (const d of DEB) shiftZ(d.p);
   for (const r of ribbons) for (const p of r.pts) shiftZ(p);
   EVAC.z += D;
@@ -2034,19 +2541,27 @@ function start() {
   P.v = Math.max(P.v, 12);
   log('HQ', '騎士，南向車道遭攔截車隊封鎖。清除敵機後前往撤離點。', 'var(--friend)');
   log('系統', 'K-7 重機上線・ARC-9 電漿匣 40 發', 'var(--ink-2)');
+  log('系統', TOUCH ? '「電漿」鍵切換武器，按住「飛彈」鎖定、放開齊射' : '1／2／3 或滾輪切換武器，按住右鍵或 Q 鎖定、放開齊射飛彈', 'var(--ink-2)');
 }
 function restart() {
   for (const d of DRONES) { d.on = false; d.root.visible = false; }
   for (const c of CARS) { c.on = false; c.root.visible = false; }
-  for (const b of [...pBolts.items, ...eBolts.items]) b.on = false;
+  for (const b of [...pBolts.items, ...sBolts.items, ...eBolts.items]) b.on = false;
+  for (const m of MSL) { m.on = false; m.tn = 0; } for (const B of BEAMS) B.g.visible = false;
+  Object.assign(LK, { on: false, next: 0, cd: 0, lidT: 0 }); LK.list.length = LK.q.length = 0; chargeStop();
   spawnQ.length = 0;
-  Object.assign(S, { ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, dmg: 0, autoStop: false, score: 0, won: false });
+  Object.assign(S, { ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, dmg: 0, autoStop: false, score: 0, won: false, wi: 0, mags: [40, 6, 5], charge: 0, cool: 0, shWarned: false, shBroke: false });
+  setGun(0); hudWeapon();
   EVAC.on = false; evacMesh.visible = false; $('over').classList.remove('win');
   for (const m of MISSIONS) { m.done = false; m.n = 0; $('m-' + m.id).classList.remove('done'); }
   P.pos.x = 6.6; P.yaw = 0; P.v = 14; P.lean = 0; seatRider(); logEl.innerHTML = '';
   setMode('play'); log('HQ', '重新部署完成，K-7 已回到南向車道。', 'var(--friend)');
 }
 $('go').addEventListener('click', start);
+$('sndB').addEventListener('click', e => { audioInit(); setVolume(AU.vol || 0.75, !AU.on); e.currentTarget.blur(); });
+$('sndV').addEventListener('input', e => { audioInit(); setVolume(e.target.value / 100, true); });
+$('sndV').addEventListener('change', e => e.target.blur());
+setVolume(AU.vol, AU.on);
 $('resume').addEventListener('click', () => setMode('play'));
 $('again').addEventListener('click', restart);
 $('pause').addEventListener('click', e => { if (e.target.id === 'pause') setMode('play'); });
@@ -2076,7 +2591,7 @@ function frame(now) {
     else if (S.ctl === 'mount' || S.ctl === 'dismount') { updateBike(dt, { f: 0, b: 0, x: 0, sh: false }); updateMountAnim(dt); }
     else if (S.ctl === 'dead') { updateBike(dt, { f: 0, b: 0, x: 0, sh: false }); }
     if (S.time - S.lastHurt > 5 && S.hp > 0) S.hp = Math.min(100, S.hp + 2.2 * dt);
-    director(dt); updateDrones(dt); updateCars(dt); updateAim(); tryFire(dt);
+    director(dt); updateDrones(dt); updateCars(dt); updateAim(); tryFire(dt); updateLock(dt);
     checkEvac(); evacMesh.userData.mat.uniforms.time.value = S.time;
   } else if (S.mode === 'title') {
     S.time += dt;
@@ -2086,7 +2601,7 @@ function frame(now) {
     aimPt.copy(P.pos).add(_v.set(0, 1, -30)); poseRide(dt);
   }
   if (S.mode !== 'pause') {
-    updateCivs(dt); updateBolts(dt); updateSparks(dt); updatePuffs(dt); updateDebris(dt); updateBooms(dt); updateRibbons(dt);
+    updateCivs(dt); updateBolts(dt); updateBeams(dt); updateMissiles(dt); updateSparks(dt); updatePuffs(dt); updateDebris(dt); updateBooms(dt); updateRibbons(dt);
     if (S.mode === 'title') {
       const t = S.time * 0.16, cy = P.yaw + 2.5 + Math.sin(t) * 0.7;
       camera.position.copy(P.pos).add(_v.set(-Math.sin(cy) * 7.5, 1.2 + Math.sin(t * 1.7) * 0.5, -Math.cos(cy) * 7.5));
@@ -2110,16 +2625,17 @@ function frame(now) {
     updateAudio(dt);
   }
   compMat.uniforms.time.value = now / 1000;
-  if (S.mode === 'play') { hud(dt); radar(dt); updateMarks(); }
+  if (S.mode === 'play') { hud(dt); radar(dt); updateMarks(); updateLockUI(); }
   renderFrame();
 }
 requestAnimationFrame(tick);
 
 // ───────── 除錯 API ─────────
 window.__fr = {
-  S, P, F, scene, bike, rider, camera, compMat, CARS, DRONES, EVAC, mission, hurt, start, restart, spawnDrone, spawnCar, boom: (x = 0, y = 2, z = -20) => boom(new V3(P.pos.x + x, y, P.pos.z + z), 1.2, 0x3b3648),
+  S, P, F, scene, bike, rider, camera, compMat, CARS, DRONES, EVAC, mission, hurt, sfx, AU, start, restart, spawnDrone, spawnCar, boom: (x = 0, y = 2, z = -20) => boom(new V3(P.pos.x + x, y, P.pos.z + z), 1.2, 0x3b3648),
   god(v = true) { S.god = v; }, speed(kmh) { P.v = kmh / 3.6; }, dismount() { P.v = 0; beginDismount(); S.ctlT = 1; updateMountAnim(0); },
   aim(x, y) { mouse.x = x; mouse.y = y; }, fire(v = true) { mouse.fire = v; }, key(code, v = true) { keys[code] = v; },
+  weapon(i) { switchWeapon(i); }, lock(v = true) { mouse.lock = v; }, LK, MSL, BEAMS, FOES,
   step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(last + dt * 1000); }
 };
 </script>
