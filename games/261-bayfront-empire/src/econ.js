@@ -3,9 +3,14 @@
 import { BIZ, BIZ_BY_ID, CURVES, WEATHER, WEATHER_NEXT, EVENTS, QUESTS, LEVEL_AT, FIRST_BEACH_QUEST, PORT } from './data.js';
 import { newPort, sanitizePort, supplyCost, portStep, portHour } from './port.js';
 import { lifeMult, tierOf, lifeHour, lifeDay, checkLife, newLife, sanitizeLife, seasonOf, ferrisCrowd, APTS, aptLv, hasMark } from './empire.js';
-import { TIERS, LANDMARKS, LIFT } from './data.js';
+import { TIERS, LANDMARKS, LIFT, BEACH_IDS, CITY_IDS, DELIVERY } from './data.js';
+import {
+  newItems, sanitizeItems, itemArrive, weatherMult, heaterSeason, itemCrowd, capMult, stayMult, priceMult, canDeliver, loyalPenalty,
+  itemsHour, newDeal, applyBooking, itemsInvested, giveItems,
+} from './items.js';
+import { newStory, sanitizeStory, storyServe, checkStory, storyDayEnd } from './story.js';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const START_MONEY = 250000;
 export const SAVE_KEY = 'bayfront-empire';
 
@@ -18,8 +23,10 @@ export function rand(s) {
 }
 
 // cost 是工資；supply 供應成本；freight／storage／spoil 是海港的運費、倉儲費與生鮮耗損；saved 是走港口省下的錢
-const DAY_NUM = ['cost', 'buy', 'supply', 'saved', 'freight', 'storage', 'spoil', 'viaPort'];
-const blankDay = () => ({ rev: {}, visits: {}, turned: {}, cost: 0, buy: 0, supply: 0, saved: 0, freight: 0, storage: 0, spoil: 0, viaPort: 0 });
+// delivered 是外送單數；items 今天用掉的道具數
+const DAY_NUM = ['cost', 'buy', 'supply', 'saved', 'freight', 'storage', 'spoil', 'viaPort', 'delivered', 'items'];
+const blankDay = () => ({ rev: {}, visits: {}, turned: {}, cost: 0, buy: 0, supply: 0, saved: 0, freight: 0, storage: 0, spoil: 0, viaPort: 0, delivered: 0, items: 0 });
+const REV_KEYS = ['port', 'rent', 'ferris', 'insurance'];
 
 export function newState(seed = 20261016) {
   const s = {
@@ -28,13 +35,20 @@ export function newState(seed = 20261016) {
     biz: {}, quest: 0, history: [], today: blankDay(), port: newPort(),
     weather: { cur: 'sunny', until: 12 * 60 },
     event: null,
-    stats: { earned: 0, served: 0, turned: 0, invested: 0, promos: 0, daily: 0, rivals: 0 },
+    stats: {
+      earned: 0, served: 0, turned: 0, invested: 0, promos: 0, daily: 0, rivals: 0,
+      items: 0, fireworks: 0, delivered: 0, story: 0, weekly: 0, chals: 0, nightBest: 0, winterBeach: 0, onTime: 0, onTimeBest: 0, streakBest: 0,
+    },
     opts: { sound: true, quality: 'auto' },
     notice: null,
+    nightRev: 0,
     ...newLife(),
+    ...newItems(),
+    ...newStory(),
   };
   for (const b of BIZ) s.biz[b.id] = { lv: 0, earned: 0, visits: 0, tier: 0, promo: 0 };
   rollEvent(s);
+  newDeal(s, rand);
   return s;
 }
 
@@ -83,7 +97,7 @@ export function migrate(raw) {
     if (raw.today && typeof raw.today === 'object') {
       for (const k of ['rev', 'visits', 'turned']) {
         if (raw.today[k] && typeof raw.today[k] === 'object') {
-          for (const id of [...Object.keys(s.biz), 'port', 'rent', 'ferris']) if (typeof raw.today[k][id] === 'number') s.today[k][id] = raw.today[k][id];
+          for (const id of [...Object.keys(s.biz), ...REV_KEYS]) if (typeof raw.today[k][id] === 'number') s.today[k][id] = raw.today[k][id];
         }
       }
       for (const k of DAY_NUM) s.today[k] = num(raw.today[k], 0);
@@ -98,12 +112,18 @@ export function migrate(raw) {
     // v2 存檔沒有海港：供應成本從讀檔後開始計，顯示物流改版公告
     if (raw.v === 2) { s.migratedFrom = 2; s.notice = 'port-update'; }
     else if (raw.v === 3) { s.migratedFrom = 3; s.notice = 'life-update'; }
+    else if (raw.v === 4) { s.migratedFrom = 4; s.notice = 'items-update'; }
     sanitizeLife(raw, s);
+    sanitizeItems(raw, s);
+    sanitizeStory(raw, s);
+    s.nightRev = num(raw.nightRev, 0);
     if (raw.opts && typeof raw.opts === 'object') {
       s.opts.sound = raw.opts.sound !== false;
       if (['auto', 'low', 'high'].includes(raw.opts.quality)) s.opts.quality = raw.opts.quality;
     }
   }
+  // 讀進來的特價不是今天的（或舊存檔沒有）：換一批今天的
+  if (!s.deal || s.deal.day !== s.day) newDeal(s, rand);
   s.stats.invested = investedOf(s);
   return s;
 }
@@ -129,6 +149,7 @@ export function investedOf(s) {
   for (const a of APTS) { const lv = aptLv(s, a.key); if (lv >= 1) t += a.cost; if (lv >= 2) t += a.reno; }
   for (const m of LANDMARKS) if (hasMark(s, m.id)) t += m.cost;
   for (const k in s.lifts || {}) for (let i = 1; i < s.lifts[k]; i++) t += LIFT.cost[i];
+  if (s.gear) t += itemsInvested(s);
   return t;
 }
 
@@ -171,18 +192,20 @@ export function ratingMult(s) { return 0.7 + 0.6 * (s.rating / 100); }
 export function arrivalPerMin(s, id) {
   const def = BIZ_BY_ID[id], st = s.biz[id];
   if (!st.lv || !isOpen(def, s.minute)) return 0;
-  return def.demand * 0.155 * APPEAL[st.lv] * curveAt(def.curve, s.minute) * WEATHER[s.weather.cur].mult[def.kind] * ratingMult(s) * eventMult(s, def) * lifeMult(s, id);
+  return def.demand * 0.155 * APPEAL[st.lv] * curveAt(def.curve, s.minute) * weatherMult(s, def) * ratingMult(s) * eventMult(s, def) * lifeMult(s, id) * itemArrive(s, id);
 }
 
 // 海灘閒逛人潮（不消費的泳客、散步的人），畫面層用來決定沙灘熱鬧程度
 export function beachCrowd(s) {
   const e = s.event && EVENTS[s.event];
-  return curveAt('beach', s.minute) * WEATHER[s.weather.cur].beach * (e && e.zone === 'beach' ? e.mult : 1) * seasonOf(s).beach * ferrisCrowd(s);
+  return curveAt('beach', s.minute) * WEATHER[s.weather.cur].beach * (e && e.zone === 'beach' ? e.mult : 1) * heaterSeason(s, seasonOf(s).beach) * ferrisCrowd(s) * itemCrowd(s);
 }
 
 export const basePriceOf = (s, id) => BIZ_BY_ID[id].price[Math.max(0, s.biz[id].lv - 1)];
-export const priceOf = (s, id) => Math.round(basePriceOf(s, id) * tierOf(s, id).price);
-export const capOf = (s, id) => BIZ_BY_ID[id].cap[Math.max(0, s.biz[id].lv - 1)];
+export const priceOf = (s, id) => Math.round(basePriceOf(s, id) * tierOf(s, id).price * priceMult(s, id));
+export const capOf = (s, id) => Math.round(BIZ_BY_ID[id].cap[Math.max(0, s.biz[id].lv - 1)] * capMult(s, id));
+// 客人停留（佔用容量）的分鐘數
+export const stayOf = (s, id) => BIZ_BY_ID[id].stay * stayMult(s, id);
 export const wageOf = (s, id) => (s.biz[id].lv ? BIZ_BY_ID[id].wage[s.biz[id].lv - 1] : 0);
 
 export function nextCost(s, id) {
@@ -221,16 +244,46 @@ export function serve(s, id) {
   s.stats.earned += amt;
   s.stats.served += 1;
   s.rating = Math.min(100, s.rating + (100 - s.rating) * 0.012 * tierOf(s, id).rating);
+  track(s, id, amt);
+  storyServe(s, id);
   return amt;
 }
+// 夜間（18 點到凌晨 3 點）與冬天海灘的營收紀錄，給主線任務用
+function track(s, id, amt) {
+  const h = (s.minute / 60) % 24;
+  if (h >= 18 || h < 3) {
+    s.nightRev = (s.nightRev || 0) + amt;
+    s.stats.nightBest = Math.max(s.stats.nightBest || 0, s.nightRev);
+  }
+  if (BIZ_BY_ID[id].zone === 'beach' && seasonOf(s).id === 'winter') {
+    let b = 0;
+    for (const k of BEACH_IDS) b += s.today.rev[k] || 0;
+    s.stats.winterBeach = Math.max(s.stats.winterBeach || 0, b);
+  }
+}
 
-// 客滿或打烊被拒於門外
+// 客滿或打烊被拒於門外。有外送機車的店會把一部分客滿的客人轉成外送單：回傳外送收入（0 表示真的拒客）
 export function turnAway(s, id) {
+  const def = BIZ_BY_ID[id];
+  if (s.biz[id].lv && isOpen(def, s.minute) && canDeliver(s, id, rand(s))) {
+    const amt = Math.round(priceOf(s, id) * DELIVERY.price);
+    const sc = supplyCost(s, def, amt);
+    s.money += amt - sc;
+    s.today.supply += sc;
+    s.today.rev[id] = (s.today.rev[id] || 0) + amt;
+    s.today.delivered += 1;
+    s.biz[id].earned += amt;
+    s.stats.earned += amt;
+    s.stats.delivered = (s.stats.delivered || 0) + 1;
+    track(s, id, amt);
+    return amt;
+  }
   s.today.turned[id] = (s.today.turned[id] || 0) + 1;
   s.stats.turned += 1;
-  // 派對夜大家都知道要排隊，客滿扣的評分少很多
-  const party = s.event === 'party' && eventMult(s, BIZ_BY_ID[id]) > 1;
-  s.rating = Math.max(20, s.rating - (party ? 0.25 : 0.9));
+  // 派對夜大家都知道要排隊，客滿扣的評分少很多；有會員卡的店再減半
+  const party = s.event === 'party' && eventMult(s, def) > 1;
+  s.rating = Math.max(20, s.rating - (party ? 0.25 : 0.9) * loyalPenalty(s, id));
+  return 0;
 }
 
 // 今日營運成本：工資＋供應＋海港運費、倉儲、耗損
@@ -309,7 +362,25 @@ export function tick(s, dMin) {
   const q = checkQuest(s);
   if (q) ev.push(q);
   checkLife(s, ev);
+  checkStory(s, rand, ev, (id) => arrivalPerMin(s, id), (id) => priceOf(s, id));
   return ev;
+}
+
+// 雨天保險：海灘商家這個整點在晴時多雲下的期望營收和現在的差額（受容量限制）
+function rainLoss(s) {
+  let t = 0;
+  const cur = s.weather.cur;
+  for (const id of BEACH_IDS) {
+    if (!s.biz[id].lv) continue;
+    const def = BIZ_BY_ID[id];
+    const now = arrivalPerMin(s, id);
+    s.weather.cur = 'partly';
+    const fair = arrivalPerMin(s, id);
+    s.weather.cur = cur;
+    const thru = (capOf(s, id) * 60) / stayOf(s, id);
+    t += Math.max(0, Math.min(fair * 60, thru) - Math.min(now * 60, thru)) * priceOf(s, id);
+  }
+  return t;
 }
 
 function onHour(s, ev) {
@@ -318,6 +389,8 @@ function onHour(s, ev) {
   if (s.port.lv) cost += PORT.wage[s.port.lv - 1] / 24;
   cost = Math.round(cost);
   portHour(s);
+  if ((s.minute / 60) % 24 === 18) s.nightRev = 0;
+  itemsHour(s, ev, s.weather.cur === 'rain' ? rainLoss(s) : 0);
   const inc = lifeHour(s);
   if (inc) ev.push({ type: 'passive', amount: inc });
   if (cost) {
@@ -333,11 +406,14 @@ function onDay(s, ev) {
   s.history.push({ day: s.day, rev, cost: t.cost, supply: Math.round(t.supply), port: Math.round(t.freight + t.storage + t.spoil), saved: Math.round(t.saved), buy: t.buy, visits: Object.values(t.visits).reduce((a, b) => a + b, 0) });
   if (s.history.length > 7) s.history.shift();
   ev.push({ type: 'day', day: s.day, rev, cost: todayCosts(s) });
+  storyDayEnd(s);
   s.day += 1;
   s.today = blankDay();
   rollEvent(s);
+  if (applyBooking(s)) ev.push({ type: 'booked', id: s.event });
   if (s.event) ev.push({ type: 'event', id: s.event });
   lifeDay(s, rand, ev);
+  newDeal(s, rand);
 }
 
 export function questProgress(s) {
@@ -351,6 +427,7 @@ export function checkQuest(s) {
   const p = questProgress(s);
   if (!p || p.cur < p.goal) return null;
   s.money += p.q.reward;
+  if (p.q.items) giveItems(s, p.q.items);
   s.quest += 1;
-  return { type: 'quest', title: p.q.title, reward: p.q.reward };
+  return { type: 'quest', title: p.q.title, reward: p.q.reward, items: p.q.items };
 }

@@ -141,7 +141,80 @@ export const RIVAL_NAMES = {
 };
 export const RIVAL = { start: 0.15, grow: 0.02, max: 0.35, buyMul: 3, cooldown: 5 };
 
-export const LEVEL_AT = [0, 150000, 420000, 950000, 2000000, 4200000, 8000000, 14000000];
+export const LEVEL_AT = [0, 150000, 420000, 950000, 2000000, 4200000, 8000000, 14000000, 22000000, 32000000, 44000000, 58000000];
+
+// ── 道具與任務改版 ──
+// 消耗品：買了放背包，自己挑時機用。價格隨近幾天平均營收調整（k × 平均日營收，至少 min）
+// target：shop 指定一家店（ok 列出可用的店）、cargo 指定貨種、event 指定活動；minutes 是效果時間，day 表示到午夜
+export const ITEMS = [
+  { id: 'temp', name: '臨時工', icon: 'staff', k: 0.006, min: 6000, target: 'shop', minutes: 240,
+    note: '指定一家店 4 小時容量 +50%', ok: ['cafe', 'bakery', 'burger', 'mart', 'books', 'pizza', 'nail', 'boutique', 'gym', 'bar', 'snack', 'surf'] },
+  { id: 'influencer', name: '網紅探店', icon: 'camera', k: 0.02, min: 15000, target: 'shop', minutes: 1440,
+    note: '評分立刻 +8，這家店接下來 24 小時客流 +30%' },
+  { id: 'fireworks', name: '煙火秀', icon: 'spark', k: 0.03, min: 20000, minutes: 60, hours: [19, 23],
+    note: '晚上 7 到 11 點施放：1 小時內海灘人潮 ×2、海灘商家客流 +60%' },
+  { id: 'shuttle', name: '接駁巴士', icon: 'bus', k: 0.015, min: 10000, day: true,
+    note: '今天剩下的時間全城客流 +15%，公車站多一倍乘客' },
+  { id: 'heater', name: '海灘暖爐', icon: 'flame', k: 0.02, min: 15000, day: true,
+    note: '今天海灘的季節倍率至少 85%，冬天最有感' },
+  { id: 'airfreight', name: '急件空運', icon: 'plane', fixed: 36000, target: 'cargo', units: 200, port: true,
+    note: '立刻補 200 單位指定貨物到港口倉庫' },
+  { id: 'overtime', name: '加班岸橋', icon: 'crane', fixed: 60000, minutes: 180, port: true,
+    note: '3 小時內岸橋卸貨速度 ×2' },
+  { id: 'booking', name: '活動預約券', icon: 'ticket', k: 0.05, min: 30000, target: 'event',
+    note: '指定明天辦街區市集或海灘音樂節' },
+  { id: 'flyer', name: '價格戰傳單', icon: 'megaphone', k: 0.02, min: 20000, rival: true,
+    note: '對手的影響力 −10%' },
+  // 稀有品：只在每日特價出現，或當任務獎勵
+  { id: 'insurance', name: '雨天保險', icon: 'shield', k: 0.025, min: 20000, day: true, rare: true,
+    note: '今天每個下雨的整點，補回海灘商家一半的損失' },
+  { id: 'chef', name: '名廚客座', icon: 'chef', k: 0.03, min: 20000, target: 'shop', minutes: 1440, rare: true,
+    note: '一家餐飲店 24 小時客單價 +30%', ok: ['cafe', 'bakery', 'burger', 'pizza', 'bar', 'snack'] },
+];
+export const ITEM_BY_ID = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
+export const BAG_MAX = 9;
+export const DEAL = { slots: 4, off: 0.3, rareChance: 0.35 };
+export const BOOKABLE = ['market', 'festival'];
+
+// 店家設備：每家店各買一次，價格是開店價 × mul
+export const GEAR = [
+  { id: 'delivery', name: '外送機車', icon: 'scooter', mul: 1.2, ok: ['cafe', 'bakery', 'burger', 'mart', 'pizza'],
+    note: '客滿時 40% 的客人改叫外送，收 70% 客單價、不扣評分' },
+  { id: 'kiosk', name: '自助點餐機', icon: 'kiosk', mul: 0.8, zone: 'city',
+    note: '客人停留時間 −15%，翻桌更快' },
+  { id: 'neon', name: '霓虹招牌', icon: 'neon', mul: 0.6, zone: 'city',
+    note: '晚上 6 點以後客流 +20%，夜裡亮起招牌' },
+  { id: 'loyal', name: '會員卡', icon: 'card', mul: 1,
+    note: '回頭客讓客流 +8%，客滿時扣的評分減半' },
+  { id: 'awning', name: '雨棚與室內座位', icon: 'awning', mul: 0.9, ok: ['snack', 'umbrella', 'surf', 'jetski', 'boat'],
+    note: '陰天與下雨時的客流倍率提高' },
+];
+export const GEAR_BY_ID = Object.fromEntries(GEAR.map((g) => [g.id, g]));
+export const DELIVERY = { share: 0.4, price: 0.7 };
+
+// 全城建設（要先拿到角色委託給的許可證）與外觀
+export const CIVIC = [
+  { id: 'stage', name: '公園街頭表演台', icon: 'mic', cost: 600000, permit: 'mayor', color: '#b4513c',
+    note: '公園裡有街頭藝人，路人會停下來看；城市客流 +4%，每小時評分 +0.3' },
+  { id: 'lifeguard', name: '救生員塔', icon: 'tower', cost: 800000, permit: 'coach', color: '#c8453c',
+    note: '有人看守，下雨也有人下水：雨天海灘人潮 ×3、陰雨時水上客流 ×2' },
+  { id: 'parking', name: '東區立體停車場', icon: 'parking', cost: 1200000, permit: 'resident', color: '#2f7f8f',
+    note: '把東邊的平面停車場蓋成三層立體停車場，開車來的人變多：城市客流 +6%' },
+  { id: 'yacht', name: '私人遊艇「帝國號」', icon: 'boat', cost: 5000000, permit: 'harbor', color: '#d9a63e', cosmetic: true,
+    note: '在海灣裡繞圈巡航，可以讓鏡頭跟著它走' },
+  { id: 'mascot', name: '吉祥物「浪浪」', icon: 'bird', cost: 1000000, color: '#7f9aa8', cosmetic: true,
+    note: '海鷗布偶裝在步道上散步，可以跟拍；海灘人潮 +5%' },
+];
+export const CIVIC_BY_ID = Object.fromEntries(CIVIC.map((c) => [c.id, c]));
+// 帝國旗色：公寓布條、地標旗子與遊艇用這個顏色
+export const FLAGS = [
+  { id: 'green', name: '灣岸綠', color: '#2d5a45', cost: 0 },
+  { id: 'red', name: '燈塔紅', color: '#b4513c', cost: 200000 },
+  { id: 'navy', name: '深海藍', color: '#24476b', cost: 200000 },
+  { id: 'gold', name: '日落金', color: '#d9a63e', cost: 500000 },
+];
+export const FLAG_BY_ID = Object.fromEntries(FLAGS.map((f) => [f.id, f]));
+
 
 // 任務鏈。index 0–3 是海灘改版前就有的城市任務，v1 存檔的進度直接沿用
 export const QUESTS = [
@@ -176,9 +249,65 @@ export const QUESTS = [
     goal: (s) => [Math.round(s.today.saved || 0), 40000] },
   { ch: 5, chName: '物流與海港', title: '海港升到 Lv3 · 區域港', hint: '三座岸橋、三個泊位、六台物流車', reward: 2000000, target: 'port',
     goal: (s) => [s.port.lv >= 3 ? 1 : 0, 1] },
+  // ── 城市生活（第 6 章起，道具與任務改版）──
+  { ch: 6, chName: '城市生活', title: '買下第一棟公寓', hint: '商店的「地產」分頁：每天收房租，住戶也會來消費', reward: 150000, items: { shuttle: 1 },
+    goal: (s) => [Object.values(s.apts).filter((v) => v > 0).length, 1] },
+  { ch: 6, chName: '城市生活', title: '升級一部電梯', hint: '點疊樓裡的店，在「同一棟的樓層」升級電梯', reward: 200000, target: 'nail',
+    goal: (s) => [Object.values(s.lifts).some((v) => v >= 2) ? 1 : 0, 1] },
+  { ch: 6, chName: '城市生活', title: '蓋第一座地標', hint: '燈塔、夜市或摩天輪，各有不同的全區加成', reward: 400000,
+    goal: (s) => [Object.keys(s.marks).length, 1] },
+  { ch: 6, chName: '城市生活', title: '趕走一個競爭對手', hint: '對手出現後：收購、買下他租的公寓，或用價格戰傳單削弱', reward: 300000, items: { flyer: 1 },
+    goal: (s) => [s.stats.rivals || 0, 1] },
+  { ch: 6, chName: '城市生活', title: '完成 3 個角色委託', hint: '任務手冊的「委託」：市長、港務長、教練、住戶與對手老闆', reward: 500000, items: { influencer: 1 },
+    goal: (s) => [s.stats.story || 0, 3] },
+  // ── 夜生活 ──
+  { ch: 7, chName: '夜生活', title: '燈塔酒吧升到 Lv3', hint: 'Lv3 的酒吧會變成有舞池與 DJ 台的夜店', reward: 300000, target: 'bar',
+    goal: (s) => [s.biz.bar.lv >= 3 ? 1 : 0, 1] },
+  { ch: 7, chName: '夜生活', title: '3 家店裝上霓虹招牌', hint: '店家面板的「設備」：晚上 6 點後客流 +20%', reward: 400000,
+    goal: (s) => [Object.values(s.gear).filter((v) => v.includes('neon')).length, 3] },
+  { ch: 7, chName: '夜生活', title: '單晚營收 $1.2M', hint: '晚上 6 點到凌晨 3 點的營收；週五派對夜最容易', reward: 600000, items: { fireworks: 1 },
+    goal: (s) => [Math.round(s.stats.nightBest || 0), 1200000] },
+  { ch: 7, chName: '夜生活', title: '海濱夜市開張', hint: '晚上 6 點到午夜城市客流再 +25%', reward: 600000,
+    goal: (s) => [s.marks.market ? 1 : 0, 1] },
+  { ch: 7, chName: '夜生活', title: '放一場煙火秀', hint: '在道具背包使用煙火秀（晚上 7 到 11 點）', reward: 200000,
+    goal: (s) => [s.stats.fireworks || 0, 1] },
+  // ── 四季 ──
+  { ch: 8, chName: '四季', title: '使用 5 個道具', hint: '每日特價每天換一批，稀有品只在特價出現', reward: 250000, items: { heater: 1 },
+    goal: (s) => [s.stats.items || 0, 5] },
+  { ch: 8, chName: '四季', title: '裝 5 件店家設備', hint: '外送機車、點餐機、霓虹招牌、會員卡、雨棚', reward: 400000,
+    goal: (s) => [Object.values(s.gear).reduce((t, v) => t + v.length, 0), 5] },
+  { ch: 8, chName: '四季', title: '冬天海灘單日營收 $2.5M', hint: '冬天海灘只剩 55% 客流：暖爐、煙火與雨棚都能幫忙', reward: 800000,
+    goal: (s) => [Math.round(s.stats.winterBeach || 0), 2500000] },
+  { ch: 8, chName: '四季', title: '完成 2 個每週任務', hint: '任務手冊的「挑戰」分頁', reward: 500000, items: { booking: 1 },
+    goal: (s) => [s.stats.weekly || 0, 2] },
+  { ch: 8, chName: '四季', title: '走過一整年', hint: '春夏秋冬各 7 天', reward: 800000,
+    goal: (s) => [Math.min(28, s.day - 1), 28] },
+  // ── 海運大亨 ──
+  { ch: 9, chName: '海運大亨', title: '連續 8 份合約準時交貨', hint: '逾期一份就從頭算；加班岸橋能救急', reward: 600000, target: 'port',
+    goal: (s) => [s.stats.onTimeBest || 0, 8] },
+  { ch: 9, chName: '海運大亨', title: '單日省下 $150,000 供應成本', hint: '海港升級、多加物流車，庫存不要見底', reward: 800000, target: 'port',
+    goal: (s) => [Math.round(s.today.saved || 0), 150000] },
+  { ch: 9, chName: '海運大亨', title: '累計卸下 400 櫃', hint: '補給船與合約船的貨櫃都算', reward: 600000, target: 'port',
+    goal: (s) => [s.port.stats.containers, 400] },
+  { ch: 9, chName: '海運大亨', title: '完成港務長的委託', hint: '三段委託做完就拿到遊艇泊位許可', reward: 1000000,
+    goal: (s) => [(s.story.harbor && s.story.harbor.step) || 0, 3] },
+  { ch: 9, chName: '海運大亨', title: '帝國號下水', hint: '商店的「地標」分頁：私人遊艇', reward: 1500000, items: { fireworks: 2 },
+    goal: (s) => [s.civic.yacht ? 1 : 0, 1] },
+  // ── 灣岸傳奇 ──
+  { ch: 10, chName: '灣岸傳奇', title: '帝國等級 10', hint: '店家、海港、地產、地標、設備與建設都算投資', reward: 1500000,
+    goal: (s) => [LEVEL_AT.filter((v) => s.stats.invested >= v).length, 10] },
+  { ch: 10, chName: '灣岸傳奇', title: '三座地標與九棟公寓', hint: '整條海岸線的天際線都是你的', reward: 3000000,
+    goal: (s) => [Object.keys(s.marks).length + Object.values(s.apts).filter((v) => v > 0).length, 12] },
+  { ch: 10, chName: '灣岸傳奇', title: '三項全城建設', hint: '表演台、救生員塔、停車場；許可證來自角色委託', reward: 2000000,
+    goal: (s) => [['stage', 'lifeguard', 'parking'].filter((k) => s.civic[k]).length, 3] },
+  { ch: 10, chName: '灣岸傳奇', title: '收集 6 張攝影作品', hint: '照片模式按截圖時判定，見任務手冊的「收藏」', reward: 2000000,
+    goal: (s) => [Object.keys(s.shots).length, 6] },
+  { ch: 10, chName: '灣岸傳奇', title: '帝國等級 12', hint: '灣岸商業帝國的頂點', reward: 5000000,
+    goal: (s) => [LEVEL_AT.filter((v) => s.stats.invested >= v).length, 12] },
 ];
 export const FIRST_BEACH_QUEST = 4;
 export const FIRST_PORT_QUEST = 11;
+export const FIRST_LIFE_QUEST = 15;
 
 // ── 物流與海港 ──
 // 每位客人消費會用掉 1 單位貨；單位成本 = 客單價 × supply。沒有港口時全部向城市批發商以市價進貨。

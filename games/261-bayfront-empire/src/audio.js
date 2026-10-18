@@ -1,7 +1,7 @@
 // WebAudio 即時合成：海浪、城市底噪、海鷗、雨聲、港口機械聲、船笛、收銀叮噹、購買音效。第一次點擊後才啟動。
 export function createAudio() {
   let ctx = null, master = null, waves = null, city = null, rain = null, dock = null, on = true;
-  let lastHorn = -99;
+  let lastHorn = -99, lastBoom = -99, boomBuf = null;
   let lastCoin = 0, gullT = 4;
   const noiseBuf = (c, brown) => {
     const b = c.createBuffer(1, c.sampleRate * 3, c.sampleRate);
@@ -117,6 +117,25 @@ export function createAudio() {
         o.start(t);
         o.stop(t + 1.8);
       }
+    },
+    // 煙火：低通濾過的噪音爆裂，far 0–1 越遠越悶越小聲
+    boom(far = 0) {
+      if (!ctx || !on) return;
+      const t = ctx.currentTime;
+      if (t - lastBoom < 0.15) return;
+      lastBoom = t;
+      const src = ctx.createBufferSource();
+      src.buffer = boomBuf || (boomBuf = noiseBuf(ctx, true));
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 900 - far * 600;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.18 * (1 - far * 0.65), t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+      src.connect(f).connect(g).connect(master);
+      src.start(t, Math.random() * 1.5);
+      src.stop(t + 1.4);
     },
     deny() {
       if (!ctx || !on) return;

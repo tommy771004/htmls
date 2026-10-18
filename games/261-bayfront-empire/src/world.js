@@ -5,7 +5,7 @@ import { Builder, prng, T } from './geo.js';
 const TBOX = T.box;
 import {
   STACKS, STREETS_X, CORE_STREETS_X, AVES_Z, COAST_Z, ROAD_W, COAST_W, COLS, ROWS, SIDEWALK, PROM, SAND_Y, STAIRS_X, RAIL_Z,
-  CITY_LOTS, APT_LOTS, PARK, HALL, lotRect, BEACH, DECK_Y, HARBOR,
+  CITY_LOTS, APT_LOTS, PARK, HALL, PARKING, lotRect, BEACH, DECK_Y, HARBOR,
 } from './layout.js';
 
 export const PAL = {
@@ -127,6 +127,16 @@ function slab(S, D, x0, z0, x1, z1) {
   D.box(x1 - 0.25, 0.22, z0, x1, 0.235, z1, PAL.curb, true);
 }
 
+function parkingLot(S, D, ix0, iz0, ix1, iz1) {
+  S.box(ix0, 0.22, iz0, ix1, 0.24, iz1, PAL.asphalt2);
+  for (let x = ix0 + 2; x < ix1 - 1; x += 3.4) {
+    D.box(x, 0.24, iz0 + 1, x + 0.12, 0.25, iz0 + 6, PAL.line, true);
+    D.box(x, 0.24, iz1 - 6, x + 0.12, 0.25, iz1 - 1, PAL.line, true);
+  }
+  S.box(ix0, 0.22, iz0, ix1, 0.7, iz0 + 0.4, PAL.hedge);
+  S.box(ix1 - 0.4, 0.22, iz0, ix1, 0.7, iz1, PAL.hedge);
+}
+
 function cityBlock(S, D, G, L, B, lamps, rnd, i, j) {
   // 背景街區：核心區以外，用比較簡單的建築填滿畫面
   const xs = STREETS_X, zs = AVES_Z;
@@ -138,6 +148,13 @@ function cityBlock(S, D, G, L, B, lamps, rnd, i, j) {
   if (core) return;
   slab(S, D, x0, z0, x1, z1);
   const ix0 = x0 + SIDEWALK, ix1 = x1 - SIDEWALK, iz0 = z0 + SIDEWALK, iz1 = z1 - SIDEWALK;
+  if (i === PARKING.i && j === PARKING.j) {
+    // 東區平面停車場：照樣抽一次亂數（丟掉結果），其他街區的建築才會和以前一樣
+    const X = new Builder();
+    if (rnd() >= 0.08) { lowBlock(X, X, X, rnd, ix0, iz0, ix1, iz1); streetFurniture(X, X, [], rnd, x0, z0, x1, z1); } else for (let k = 0; k < 5; k++) tree(X, ix0 + 3 + rnd() * (ix1 - ix0 - 6), 0.3, iz0 + 3 + rnd() * (iz1 - iz0 - 6), rnd);
+    parkingLot(S, D, ix0, iz0, ix1, iz1);
+    return;
+  }
   // 偶爾是一塊小綠地
   if (rnd() < 0.08) {
     S.box(ix0, 0.22, iz0, ix1, 0.3, iz1, PAL.grass);

@@ -1,6 +1,6 @@
 // 灣岸商業帝國 · BAYFRONT EMPIRE — 進入點：渲染器、等角鏡頭、日夜與天氣、輸入、存檔與主迴圈。
 import * as THREE from 'three';
-import { BIZ, BIZ_BY_ID, WEATHER, EVENTS, BEACH_IDS, PORT, LANDMARKS, LANDMARK_BY_ID, TIERS } from './data.js';
+import { BIZ, BIZ_BY_ID, WEATHER, EVENTS, BEACH_IDS, PORT, LANDMARKS, LANDMARK_BY_ID, TIERS, ITEM_BY_ID, GEAR_BY_ID, CIVIC_BY_ID, FLAG_BY_ID, CARGO } from './data.js';
 import { newState, migrate, serialize, tick, buyOrUpgrade, nextCost, capOf, SAVE_KEY, empireLevel, rand, investedOf } from './econ.js';
 import { setTier, startPromo, upgradeLift, swapFloors, floorOrder, buyApt, buyMark, buyoutRival, offlineEarnings, APTS, APT_BY_KEY, aptLv, hasMark, liftLv } from './empire.js';
 import { createEstate, aptBox } from './estate.js';
@@ -14,9 +14,12 @@ import { createTraffic } from './traffic.js';
 import { createUI, money } from './ui.js';
 import { createAudio } from './audio.js';
 import { icon } from './icons.js';
-import { buildWalkGraph, buildNextHop, CITY_LOTS, lotRect, floorOf, stackOf, setFloor, STACKS, lotKey, BEACH, labelAnchor, HARBOR } from './layout.js';
+import { buildWalkGraph, buildNextHop, CITY_LOTS, lotRect, floorOf, stackOf, setFloor, STACKS, lotKey, BEACH, labelAnchor, HARBOR, STAGE, PARKING } from './layout.js';
 import { floorY } from './interior.js';
 import { lotFloors, roofY } from './world.js';
+import { createExtras } from './extras.js';
+import { buyItem as buyItemS, useItem as useItemS, buyGear, buyCivic, setFlag, flagColor, buffOf } from './items.js';
+import { acceptNpc, chooseNpc, claimNpc, acceptChallenge, claimChallenge, claimWeekly, claimShot, markShot, NPC_BY_ID, SHOTS, FOLLOWS } from './story.js';
 
 const SEC_PER_MIN = 0.3; // 1 倍速時，一遊戲分鐘 = 0.3 秒（一天約 7 分鐘）
 const params = new URLSearchParams(location.search);
@@ -68,6 +71,7 @@ const harbor = createHarbor(scene, {
   onDeliver(id, x, z) { if (BIZ_BY_ID[id]) ui.pop(`補貨 · ${{ food: '食材', goods: '零售貨', fuel: '燃油' }[BIZ_BY_ID[id].cargo]}`, x, 3.4, z, 'dlv'); },
 });
 const estate = createEstate(scene);
+const extras = createExtras(scene, sea);
 const graph = buildWalkGraph();
 const route = buildNextHop(graph);
 const audio = createAudio();
@@ -127,8 +131,16 @@ const people = createPeople(scene, {
     audio.coin(amt);
   },
   onTurned(id, x, y, z, why) { ui.turned(id, x, y, z, why); },
+  // 客滿改叫外送：飄字、店門口騎出一台機車
+  onDelivery(id, amt, x, y, z) {
+    ui.pop(`外送 +${money(amt, true)}`, x, y, z, 'dlv');
+    extras.deliver(id);
+    audio.coin(amt);
+  },
 });
 people.setSecPerMin(SEC_PER_MIN);
+// 煙火爆開的聲音：離鏡頭越遠越悶
+extras.fireworks.onBurst = (x, y, z) => audio.boom(Math.min(1, Math.hypot(x - view.x, z - view.z) / 220));
 const traffic = createTraffic(scene, { mobile });
 
 // 雨
@@ -288,7 +300,7 @@ const ui = createUI(document.getElementById('ui'), {
       if (!lv) { audio.deny(); return; }
       audio.buy();
       S.stats.invested = investedOf(S);
-      estate.setApt(key, lv);
+      estate.setApt(key, lv, flagColor(S));
       const a = APT_BY_KEY[key];
       ui.toast(was ? `${a.name}翻修完成：房租與住戶都變多了` : `買下${a.name}：每天收房租，住戶也會來你的店消費`, 'home', 'good');
       if (hadRival && !S.rival) rivalGone();
@@ -321,8 +333,187 @@ const ui = createUI(document.getElementById('ui'), {
     timelapse() { lapse = lapse ? null : { left: 1440, prev: speed }; if (lapse) speed = 20; else speed = 1; },
     record() { toggleRecord(); },
     snapshot() { snap = true; },
+    // ── 道具與任務改版 ──
+    buyItem(id) {
+      if (!buyItemS(S, id)) { audio.deny(); return; }
+      audio.buy();
+      ui.toast(`買了${ITEM_BY_ID[id].name}，放進背包`, ITEM_BY_ID[id].icon, 'good');
+      save();
+    },
+    useItem(id, t) {
+      const ev = [];
+      if (!useItemS(S, id, t, ev)) { audio.deny(); return false; }
+      audio.buy();
+      itemFx(id, t);
+      handle(ev);
+      handle(tick(S, 0));
+      save();
+      return true;
+    },
+    gear(bizId, gid) {
+      if (!buyGear(S, bizId, gid)) { audio.deny(); return; }
+      audio.buy();
+      S.stats.invested = investedOf(S);
+      extras.setGear(S.gear);
+      ui.toast(`${BIZ_BY_ID[bizId].name}裝好${GEAR_BY_ID[gid].name}`, GEAR_BY_ID[gid].icon, 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    civic(id) {
+      if (!buyCivic(S, id)) { audio.deny(); return; }
+      audio.buy();
+      S.stats.invested = investedOf(S);
+      extras.setCivic(S.civic, flagColor(S));
+      const c = CIVIC_BY_ID[id];
+      ui.toast(`${c.name}完工！${c.note}`, c.icon, 'good');
+      const at = civicAt(id);
+      if (at) { view.tx = at[0]; view.tz = at[2] + 4; view.th = Math.min(view.th, mobile ? 100 : 86); if (follow) stopFollow(); }
+      handle(tick(S, 0));
+      save();
+    },
+    flag(id) {
+      if (!setFlag(S, id)) { audio.deny(); return; }
+      audio.buy();
+      S.stats.invested = investedOf(S);
+      for (const a of APTS) estate.setApt(a.key, aptLv(S, a.key), flagColor(S));
+      extras.setCivic(S.civic, flagColor(S));
+      ui.toast(`帝國旗色換成${FLAG_BY_ID[id].name}`, 'flag', 'good');
+      save();
+    },
+    npcAccept(id) {
+      if (!acceptNpc(S, id)) { audio.deny(); return; }
+      audio.buy();
+      ui.toast(`接下${NPC_BY_ID[id].name}的委託：${NPC_BY_ID[id].steps[S.story[id].step].title}`, 'chat');
+      handle(tick(S, 0));
+      save();
+    },
+    npcChoose(id, opt) {
+      const hadRival = !!S.rival;
+      const r = chooseNpc(S, id, opt);
+      if (!r) { audio.deny(); return; }
+      audio.buy();
+      claimFx(r);
+      if (id === 'mayor') {
+        const m = LANDMARK_BY_ID[opt];
+        ui.toast(hasMark(S, opt) ? `${m.name}已經蓋好了，補助改發現金` : `市府補助${m.name}：興建費 −40%`, m.icon, 'good');
+      }
+      if (id === 'rivalboss') {
+        if (hadRival) { estate.setRival(null); rivalPick(); }
+        ui.toast('你收購了黑潮集團：灣岸不會再有競爭對手', 'rival', 'good');
+      }
+      handle(tick(S, 0));
+      save();
+    },
+    npcClaim(id) {
+      const n = NPC_BY_ID[id], title = n.steps[S.story[id].step].title;
+      const r = claimNpc(S, id);
+      if (!r) { audio.deny(); return; }
+      claimFx(r);
+      ui.toast(`${n.name}：「${title}」完成${rewardText(r)}${r.permit ? `，拿到${n.permit}` : ''}`, 'gift', 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    chalAccept() {
+      if (!acceptChallenge(S)) { audio.deny(); return; }
+      audio.buy();
+      ui.toast('接受挑戰，計時開始', 'timer');
+      save();
+    },
+    chalClaim() {
+      const c = S.chal;
+      if (!claimChallenge(S)) { audio.deny(); return; }
+      claimFx({ money: c.reward });
+      ui.toast(`挑戰獎勵 +${money(c.reward)}，再送一個${ITEM_BY_ID[c.item].name}`, 'gift', 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    weeklyClaim(i) {
+      const t = S.weekly && S.weekly.tasks[i];
+      if (!claimWeekly(S, i)) { audio.deny(); return; }
+      claimFx({ money: t.reward });
+      ui.toast(`每週任務獎勵 +${money(t.reward)}`, 'gift', 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    shotClaim(kind, id) {
+      const def = (kind === 'shot' ? SHOTS : FOLLOWS).find((x) => x.id === id);
+      if (!claimShot(S, kind, id)) { audio.deny(); return; }
+      claimFx({ money: def.reward });
+      ui.toast(`收藏「${def.name}」+${money(def.reward)}`, 'gift', 'good');
+      handle(tick(S, 0));
+      save();
+    },
+    followThing(kind) { followThing(kind); },
   },
 });
+
+// ───────── 道具與任務改版：特效、領獎、攝影與跟拍判定 ─────────
+const itemsText = (items) => Object.entries(items || {}).map(([id, n]) => `${ITEM_BY_ID[id].name}×${n}`).join('、');
+const rewardText = (r) => [r.money ? ` +${money(r.money)}` : '', r.items ? `，獲得${itemsText(r.items)}` : '', r.rating ? `，評分 +${r.rating}` : ''].join('');
+function claimFx(r) {
+  if (r.money) { audio.coin(r.money); ui.coins(r.money); }
+  else audio.buy();
+}
+function civicAt(id) {
+  if (id === 'stage') return [STAGE.x, 1, STAGE.z];
+  if (id === 'lifeguard') return [-58, 4, 31];
+  if (id === 'parking') return [(PARKING.x0 + PARKING.x1) / 2, 6, (PARKING.z0 + PARKING.z1) / 2];
+  if (id === 'yacht') return extras.yachtPos();
+  if (id === 'mascot') return extras.mascotPos();
+  return null;
+}
+const ITEM_MSG = {
+  temp: (t) => `臨時工到${BIZ_BY_ID[t].name}報到：4 小時容量 +50%`,
+  influencer: (t) => `網紅來${BIZ_BY_ID[t].name}探店：評分 +8，24 小時客流 +30%`,
+  fireworks: () => '煙火秀開始！一小時內海灘人潮 ×2',
+  shuttle: () => '接駁巴士加開：今天全城客流 +15%',
+  heater: () => '海灘暖爐點起來了：今天海灘不怕冷',
+  airfreight: (t) => `急件空運：${CARGO[t].name} 200 單位已入庫，貨機正飛往港口`,
+  overtime: () => '岸橋加班：3 小時內卸貨速度 ×2',
+  booking: (t) => `預約好了：明天辦${EVENTS[t].name}`,
+  flyer: () => '價格戰傳單發出去了：對手影響力 −10%',
+  insurance: () => '雨天保險生效：今天下雨的整點補回海灘一半損失',
+  chef: (t) => `名廚到${BIZ_BY_ID[t].name}客座：24 小時客單價 +30%`,
+};
+function itemFx(id, t) {
+  const it = ITEM_BY_ID[id];
+  ui.toast(ITEM_MSG[id](t), it.icon, 'good');
+  if (id === 'influencer') { for (let i = 0; i < 3; i++) people.vip(t); }
+  if (id === 'heater') extras.setHeaters(true);
+  if (id === 'airfreight') extras.airfreight(() => ui.pop('空運到貨', -214, 12, 40, 'dlv'));
+  if (id === 'fireworks') {
+    // 鏡頭轉向海上：把煙火中心換算回地面上的注視點
+    const k = 48 / camDir.y;
+    view.tx = 60 - camDir.x * k; view.tz = 95 - camDir.z * k; view.th = Math.max(view.th, mobile ? 120 : 110);
+    if (follow) stopFollow();
+  }
+  if ((it.target === 'shop') && t) selected = t;
+}
+// 照片模式按「截圖」時判定收藏：目標要在畫面裡
+function onScreen(x, y, z, m = 0) {
+  _v.set(x, y, z).project(camera);
+  return _v.z < 1 && Math.abs(_v.x) < 1 - m && Math.abs(_v.y) < 1 - m;
+}
+function checkShots(night) {
+  const h = (S.minute / 60) % 24, got = [];
+  const at = (id) => anchorOf(id);
+  const vis = (p, m) => p && onScreen(p[0], p[1], p[2], m);
+  if (night > 0.5 && hasMark(S, 'lighthouse') && hasMark(S, 'ferris') && vis(at('mark:lighthouse'), 0.05) && vis(at('mark:ferris'), 0.05)) got.push('beams');
+  if (S.weather.cur === 'rain') {
+    let n = 0;
+    for (const a of people.agents) if (a.on && !a.inside && a.fy == null && (a.pose === 'walk' || a.pose === 'stand') && a.kind !== 'staff' && a.z < 44 && onScreen(a.x, a.y + 1, a.z)) n++;
+    if (n >= 8) got.push('umbrellas');
+  }
+  if (vis(extras.fireworks.center(), 0)) got.push('fireworks');
+  if ((h >= 20 || h < 3) && S.biz.bar.lv >= 3 && view.h < 64 && vis(at('bar'), 0.1)) got.push('club');
+  if (STACKS.some((sk) => sk.floors >= 3 && sk.ids.every((id) => S.biz[id].lv) && vis(at(sk.ids[0]), 0.05) && vis(at(sk.ids[sk.ids.length - 1]), 0.05))) got.push('tower');
+  if (h >= 5.5 && h < 7 && view.z > 30) got.push('sunrise');
+  if (vis(extras.yachtPos(), 0.05)) got.push('yacht');
+  if (vis(extras.mascotPos(), 0.05)) got.push('mascot');
+  for (const id of got) {
+    if (markShot(S, 'shot', id)) { const d = SHOTS.find((x) => x.id === id); ui.toast(`拍到收藏照「${d.name}」：到任務 › 收藏領 ${money(d.reward)}`, 'camera', 'good'); audio.buy(); }
+  }
+}
 
 // ───────── 城市生活改版：樓層、對手、跟拍、照片模式 ─────────
 function applyOrder() {
@@ -337,7 +528,7 @@ function rivalGone() {
 // 跟拍：點人或按「跟拍」挑一位正在路上的顧客，鏡頭跟著走
 let follow = null;
 function followAgent(a) {
-  follow = { a, gen: a.gen };
+  follow = { a, gen: a.gen, t: 0, boat: 0 };
   view.th = Math.min(view.th, mobile ? 70 : 60);
   ui.follow(people.describe(a), a);
 }
@@ -348,6 +539,37 @@ function followSomeone() {
   const pool = up.length ? up : A;
   if (!pool.length) { ui.toast('現在街上沒有客人可以跟', 'eye'); return; }
   followAgent(pool[Math.floor(Math.random() * pool.length)]);
+}
+// 跟拍吉祥物或帝國號（不是街上的人）
+const THINGS = {
+  mascot: { pos: () => extras.mascotPos(), who: '吉祥物浪浪', what: '在步道上散步、跟遊客揮手', color: '#7f9aa8' },
+  yacht: { pos: () => extras.yachtPos(), who: '帝國號', what: '在海灣裡巡航', color: '#d9a63e' },
+};
+function followThing(kind) {
+  const T = THINGS[kind];
+  if (!T || !T.pos()) { ui.toast(kind === 'yacht' ? '還沒有帝國號' : '還沒有吉祥物', 'eye'); return; }
+  follow = { thing: kind, t: 0 };
+  view.th = Math.min(view.th, kind === 'yacht' ? (mobile ? 110 : 96) : (mobile ? 70 : 60));
+  ui.follow({ who: T.who, what: T.what }, null, T.color);
+}
+// 跟拍收藏：跟到某個時刻才算數
+function followQuests(dt) {
+  if (!follow) return;
+  follow.t += dt;
+  let id = null;
+  if (follow.thing === 'mascot' && follow.t >= 30) id = 'mascot';
+  const a = follow.a;
+  if (a && a.kind === 'cust' && a.biz) {
+    if (CITY_LOTS[a.biz] && floorOf(a.biz) > 1 && a.fy && a.pose !== 'walk' && !a.ride) id = 'upstairs';
+    if (a.biz === 'umbrella' && a.pose === 'lie') id = 'umbrella';
+    if (a.biz === 'boat' && a.pose === 'hidden') follow.boat = 1;
+    if (follow.boat && a.pose === 'walk') id = 'boat';
+  }
+  if (id && markShot(S, 'follow', id)) {
+    const d = FOLLOWS.find((x) => x.id === id);
+    ui.toast(`跟拍收藏「${d.name}」達成：到任務 › 收藏領 ${money(d.reward)}`, 'eye', 'good');
+    audio.buy();
+  }
 }
 function stopFollow() { follow = null; ui.follow(null); }
 function pickPerson(cx, cy) {
@@ -404,7 +626,10 @@ function applyAll() {
   applyOrder();
   cityPick();
   for (const b of BIZ) applyBiz(b.id);
-  for (const a of APTS) estate.setApt(a.key, aptLv(S, a.key));
+  for (const a of APTS) estate.setApt(a.key, aptLv(S, a.key), flagColor(S));
+  extras.setGear(S.gear);
+  extras.setCivic(S.civic, flagColor(S));
+  extras.setHeaters(!!buffOf(S, 'heater'));
   for (const m of LANDMARKS) estate.setMark(m.id, hasMark(S, m.id));
   markPick();
   estate.setRival(S.rival);
@@ -423,7 +648,7 @@ function handle(events) {
       ui.toast(`${w.name} · ${w.note}`, e.to === 'rain' ? 'rain' : e.to === 'heat' ? 'heat' : e.to === 'cloudy' ? 'cloudy' : 'sun', e.to === 'rain' ? 'warn' : '');
       if (e.to === 'rain') people.clearBeach();
     } else if (e.type === 'quest') {
-      ui.toast(`任務完成：${e.title}　+${money(e.reward)}`, 'check', 'good');
+      ui.toast(`任務完成：${e.title}　+${money(e.reward)}${e.items ? `，獲得${itemsText(e.items)}` : ''}`, 'check', 'good');
       audio.buy();
     } else if (e.type === 'day') {
       ui.toast(`第 ${e.day} 天結算：營收 ${money(e.rev)}，成本 ${money(e.cost)}`, 'finance');
@@ -451,6 +676,33 @@ function handle(events) {
       const q = harbor.shipLabels().find((v) => v.name === e.name);
       ui.income('port', e.pay, q ? q.x : -214, 12, q ? q.z : 60);
       audio.coin(e.pay);
+    } else if (e.type === 'buffEnd') {
+      const it = ITEM_BY_ID[e.id];
+      if (e.id === 'heater') extras.setHeaters(false);
+      if (!it.day) ui.toast(`${e.t ? BIZ_BY_ID[e.t].name + '的' : ''}${it.name}效果結束`, it.icon);
+    } else if (e.type === 'insurance') {
+      ui.toast(`雨天保險理賠 +${money(e.amount)}`, 'shield', 'good');
+      audio.coin(e.amount);
+    } else if (e.type === 'booked') {
+      ui.toast(`預約的活動今天登場：${EVENTS[e.id].name}`, 'ticket', 'good');
+    } else if (e.type === 'npc') {
+      ui.toast(`${e.name}有事想找你：打開任務 › 委託看看`, 'chat', 'good');
+    } else if (e.type === 'npcReady') {
+      ui.toast(`${e.name}的委託「${e.title}」達成，去任務 › 委託領獎`, 'gift', 'good');
+      audio.buy();
+    } else if (e.type === 'npcFail') {
+      ui.toast(`${e.name}的委託「${e.title}」超過時限，可以重新接受`, 'timer', 'warn');
+    } else if (e.type === 'npcReset') {
+      ui.toast(`有一份合約逾期，${e.name}的委託從頭算`, 'contract', 'warn');
+    } else if (e.type === 'chal') {
+      ui.toast(`限時挑戰：${e.text}（45 分鐘內到任務 › 挑戰接受）`, 'timer', 'good');
+    } else if (e.type === 'chalDone') {
+      ui.toast(`挑戰成功：${e.text}，去領獎`, 'gift', 'good');
+      audio.buy();
+    } else if (e.type === 'chalFail') {
+      ui.toast(`挑戰失敗：${e.text}`, 'timer', 'warn');
+    } else if (e.type === 'weekly') {
+      ui.toast(`每週任務完成：${e.text}，去領獎`, 'gift', 'good');
     }
   }
 }
@@ -516,6 +768,14 @@ function startGame(state, resumed = false) {
       <ul><li>定價（平價／標準／精品）與促銷活動；疊樓的店互相帶客，電梯改成叫車制、可以升級，也能付錢交換樓層</li><li>買下公寓收房租、增加住戶；三座地標：燈塔、海濱夜市、摩天輪</li><li>競爭對手會開到對街搶客；四季、週五夜派對、批發短缺</li><li>每日目標與成就、離線收入、跟拍客人與照片模式</li></ul>
       <button class="big" id="goLife">${icon('arrow', 18)} 開始經營</button></div>`);
     document.getElementById('goLife').onclick = () => { S.notice = null; ui.closeModal(); ui.openShop('estate'); save(); };
+  } else if (S.notice === 'items-update') {
+    ui.modal(`<div class="mcard">
+      <p class="kick">${icon('bag', 18)} 改版公告 · 存檔 v4 → v5</p>
+      <h2>道具與任務改版上線</h2>
+      <p>你的存檔已完整轉換，所有商家、地產、海港與任務進度都保留。這次新增：</p>
+      <ul><li>道具背包：臨時工、網紅探店、煙火秀、急件空運等 11 種消耗品，每天換一批特價，稀有品只在特價出現</li><li>店家設備（外送機車、霓虹招牌、會員卡…）與全城建設（表演台、救生員塔、立體停車場、帝國號、吉祥物、旗色）</li><li>五位角色的委託故事線、限時挑戰、每週任務、攝影與跟拍收藏；主線延伸到第 10 章</li></ul>
+      <button class="big" id="goItems">${icon('arrow', 18)} 打開委託</button></div>`);
+    document.getElementById('goItems').onclick = () => { S.notice = null; ui.closeModal(); ui.openQuests('story'); save(); };
   } else if (off.amount > 0) {
     S.notice = null;
     ui.modal(`<div class="mcard">
@@ -783,7 +1043,15 @@ function loop() {
   if (keys.has('q')) view.th = clamp(view.th * (1 - dt), LIMIT.h0, LIMIT.h1);
   if (keys.has('e')) view.th = clamp(view.th * (1 + dt), LIMIT.h0, LIMIT.h1);
   // 跟拍：鏡頭對準這個人（在樓上時把高度換算回地面座標）
-  if (follow) {
+  if (follow && follow.thing) {
+    const p = THINGS[follow.thing].pos();
+    if (!p) stopFollow();
+    else if (!drag) {
+      const k = p[1] / camDir.y;
+      view.tx = p[0] - camDir.x * k;
+      view.tz = p[2] - camDir.z * k;
+    }
+  } else if (follow) {
     const a = follow.a;
     if (!a.on || a.gen !== follow.gen) { stopFollow(); ui.toast('這位客人回家了', 'eye'); }
     else if (!drag) {
@@ -810,6 +1078,9 @@ function loop() {
   harbor.update(dt, gameSpeed);
   const { day } = lighting(dt);
   estate.update(dt, gameSpeed, 1 - day);
+  extras.fireworks.setScale((innerHeight * renderer.getPixelRatio()) / placeCamera());
+  extras.update(dt, gameSpeed, 1 - day, !!buffOf(S, 'fireworks'));
+  if (started) followQuests(dt);
 
   // 選取框
   if (selected && PICK[selected]) {
@@ -822,7 +1093,7 @@ function loop() {
   if (quality.shadows) renderer.shadowMap.needsUpdate = frame % quality.shadowEvery === 0;
   renderer.shadowMap.autoUpdate = false;
   renderer.render(scene, camera);
-  if (snap) { snap = false; canvas.toBlob((b) => b && download(b, `${stamp()}.png`), 'image/png'); }
+  if (snap) { snap = false; checkShots(1 - day); if (!params.has('auto')) canvas.toBlob((b) => b && download(b, `${stamp()}.png`), 'image/png'); }
   ui.update(dt, fpsSm);
   audio.update(dt, { beach: clamp((view.z + 10) / 40, 0, 1), port: clamp((-150 - view.x) / 60, 0, 1) * clamp((view.z + 10) / 40, 0, 1), day, rainK, speed: gameSpeed });
   autoQuality(dt);
@@ -873,5 +1144,10 @@ window.__bf = {
   follow(on = true) { if (on) followSomeone(); else stopFollow(); return follow && people.describe(follow); },
   photo(on = true) { ui.photo(on); },
   elevators: () => people.elevators(),
+  extras,
+  // 道具與任務改版：直接塞道具、跟拍吉祥物、判定收藏照
+  giveItem(id, n = 1) { S.bag[id] = Math.min(9, (S.bag[id] || 0) + n); },
+  followThing,
+  shots() { checkShots(1 - lighting(0).day); return { ...S.shots }; },
   stats: () => ({ ...harbor.stats(), fps: Math.round(fpsSm), agents: people.active(), visible: people.visible(), tris: Math.round(world.tris), calls: renderer.info.render.calls, level: empireLevel(S), ...sea.stats() }),
 };

@@ -19,7 +19,7 @@ function beam(S, x0, y0, z0, x1, y1, z1, w, color) {
   S.add(TBOX, x0, y0, z0, w, len, w, _be.y, color, _be.x, _be.z);
 }
 const matS = new THREE.MeshLambertMaterial({ vertexColors: true });
-const OWN = '#2d5a45', GOLD = '#d9a63e';
+const GOLD = '#d9a63e';
 
 // 公寓的外觀範圍（和 world.js 畫住宅時一樣：沿街 13 公尺深）
 export function aptBox(key) {
@@ -34,7 +34,7 @@ function parasol(S, x, y, z, c) {
   S.box(x - 0.45, y, z + 0.5, x + 0.45, y + 0.45, z + 1.0, PAL.white);
 }
 
-function aptGeo(S, B, key, lv) {
+function aptGeo(S, B, key, lv, OWN = '#2d5a45') {
   const { x0, x1, z1, top } = aptBox(key);
   const y = top + 0.08;
   // 屋頂露台：木地板、陽傘、花槽、燈串
@@ -244,7 +244,7 @@ export function createEstate(scene) {
   const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1);
 
   return {
-    setApt(key, lv) { put('apt:' + key, lv ? (S, B) => aptGeo(S, B, key, lv) : null); },
+    setApt(key, lv, flag) { put('apt:' + key, lv ? (S, B) => aptGeo(S, B, key, lv, flag) : null); },
     setRival(r) { put('rival', r ? (S, B) => rivalGeo(S, B, r.lot) : null); },
     setMark(id, on) {
       if (id === 'ferris') {

@@ -1,6 +1,6 @@
 // 在 Node 跑經濟模擬，檢查節奏：node tools/sim.mjs [天數] [策略 greedy|city]
 // 以排隊模型近似畫面層：每分鐘依 arrivalPerMin 抽來客，容量滿就拒客，停留 stay 分鐘後離開。
-import { newState, tick, arrivalPerMin, capOf, serve, turnAway, buyOrUpgrade, nextCost, todayRevenue, empireLevel, rand } from '../src/econ.js';
+import { newState, tick, arrivalPerMin, capOf, stayOf, serve, turnAway, buyOrUpgrade, nextCost, todayRevenue, empireLevel, rand } from '../src/econ.js';
 import { buyPort, portNextCost, placeBid } from '../src/port.js';
 import { BIZ, BIZ_BY_ID, QUESTS } from '../src/data.js';
 
@@ -38,7 +38,7 @@ export function simulate(days = 10, strategy = 'greedy', seed = 7) {
       let lam = arrivalPerMin(s, b.id);
       while (lam > 0) {
         if (rnd() < Math.min(1, lam)) {
-          if (q.length < capOf(s, b.id)) { serve(s, b.id); q.push(m + b.stay); q.sort((a, c) => a - c); }
+          if (q.length < capOf(s, b.id)) { serve(s, b.id); q.push(m + stayOf(s, b.id)); q.sort((a, c) => a - c); }
           else turnAway(s, b.id);
         }
         lam -= 1;

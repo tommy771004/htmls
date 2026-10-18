@@ -54,6 +54,10 @@ export const STACKS = [...new Set(Object.keys(CITY_LOTS).map(lotKey))].map((k) =
 // 住宅（客人的出發點）
 export const APT_LOTS = [[0, 0, 'W'], [1, 0, 'W'], [1, 0, 'E'], [3, 0, 'W'], [3, 0, 'E'], [4, 0, 'W'], [4, 0, 'E'], [3, 1, 'E'], [4, 1, 'E']];
 export const PARK = [2, 1];
+// 東區停車場：核心區東側沿海那一塊背景街區（平面停車場，蓋了全城建設後變成立體停車場）
+export const PARKING = { x0: 129, x1: 159, z0: -33, z1: -10, i: 8, j: 4 };
+// 公園街頭表演台（全城建設）：舞台中心與朝向，觀眾站在舞台南側
+export const STAGE = { x: -8, z: -30.5, w: 8, d: 3.6 };
 export const HALL = [2, 0];
 
 // 海灘商家的擺設座標

@@ -160,10 +160,12 @@ test('貨運合約：得標、船到、卸貨、收款；逾期扣款', () => {
   // 逾期：把交期改到過去
   const o2 = s.port.offers[0] || { id: -1 };
   if (o2.id >= 0) {
+    const late0 = s.port.stats.late;
     const r2 = placeBid(s, () => 0, o2.id, o2.guide);
     r2.ship.deadline = absMin(s) - 600;
     tick(s, o2.arrive + 60 * 24);
-    assert.equal(s.port.stats.late, 1);
+    assert.equal(s.port.stats.late, late0 + 1);
+    assert.equal(s.stats.onTime, 0, '逾期後準時連續數歸零');
   }
 });
 

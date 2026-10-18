@@ -3,8 +3,9 @@
 import * as THREE from 'three';
 import { Builder, prng, T } from './geo.js';
 import { BIZ, BIZ_BY_ID, LIFT } from './data.js';
-import { arrivalPerMin, capOf, serve, turnAway, isOpen, beachCrowd } from './econ.js';
-import { CITY_LOTS, lotRect, lotKey, floorOf, STACKS, BEACH, umbrellaSlot, STAIRS_X, BOAT_SLOTS, JET_SLOTS, groundY, SAND_Y, DECK_Y, RAIL_Z } from './layout.js';
+import { arrivalPerMin, capOf, stayOf, serve, turnAway, isOpen, beachCrowd } from './econ.js';
+import { buffOf, hasCivic } from './items.js';
+import { STAGE, CITY_LOTS, lotRect, lotKey, floorOf, STACKS, BEACH, umbrellaSlot, STAIRS_X, BOAT_SLOTS, JET_SLOTS, groundY, SAND_Y, DECK_Y, RAIL_Z } from './layout.js';
 import { SEA_Y } from './sea.js';
 import { seatsOf, elevatorOf, floorY, roomOf, FLOOR_GAP } from './interior.js';
 import { liftLv, APT_BY_KEY } from './empire.js';
@@ -48,7 +49,7 @@ const _s = new THREE.Vector3();
 const _c = new THREE.Color();
 
 export function createPeople(scene, ctx) {
-  const { graph, route, getState, sea, onIncome, onTurned, mobile } = ctx;
+  const { graph, route, getState, sea, onIncome, onTurned, onDelivery, mobile } = ctx;
   const MAX = mobile ? 150 : 220;
   const rnd = prng(5150);
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
@@ -203,7 +204,7 @@ export function createPeople(scene, ctx) {
     Object.assign(a, {
       on: true, kind, x, z, y: groundY(x, z), fy: null, ride: null, rto: 0, lw: null, yaw: 0, path: [], pi: 0, pose: 'walk', timer: 0, biz: null, slot: -1, craft: null,
       surfer: null, from, phase: rnd() * 6, then: null, wait: 0, towel: -1, beach: false, waitFor: null,
-      gen: ++gen, target: null, paid: 0, rejected: false, inside: false, release: null, home: null, rival: false,
+      gen: ++gen, target: null, paid: 0, rejected: false, inside: false, release: null, home: null, rival: false, vip: false, watch: false, temp: false,
     });
     _c.set(SHIRTS[Math.floor(rnd() * SHIRTS.length)]);
     a.shirt = [_c.r, _c.g, _c.b];
@@ -266,7 +267,7 @@ export function createPeople(scene, ctx) {
         const seats = seatCache[ck] || (seatCache[ck] = seatsOf(id, lv));
         const busy = seatBusy[ck] || (seatBusy[ck] = new Set());
         const free = seats.map((_, k) => k).filter((k) => !busy.has(k));
-        const stay = BIZ_BY_ID[id].stay * (0.8 + rnd() * 0.4);
+        const stay = stayOf(s, id) * (0.8 + rnd() * 0.4);
         const out = () => { a.biz = null; a.inside = false; a.release = null; a.y = groundY(a.x, a.z); leave(a); };
         let k = -1, released = false;
         // 釋放容量與座位（離座或樓層交換時被請出去），只做一次
@@ -311,7 +312,7 @@ export function createPeople(scene, ctx) {
         go(a, [[q[0] - 2 + k * 1.2, q[1]]], () => {
           a.pose = 'stand';
           a.yaw = Math.PI;
-          a.timer = BIZ_BY_ID[id].stay;
+          a.timer = stayOf(getState(), id);
           a.then = () => { occ[id]--; afterBeach(a); };
         });
       });
@@ -328,7 +329,7 @@ export function createPeople(scene, ctx) {
         pay(a, id);
         const p = umbrellaSlot(k);
         const lx = p.x + (rnd() < 0.5 ? -0.9 : 0.9);
-        const stay = BIZ_BY_ID[id].stay;
+        const stay = stayOf(s, id);
         const lie = () => {
           go(a, [[lx, p.z + 1.6]], () => {
             a.pose = 'lie'; a.x = lx; a.z = p.z + 1.15; a.y = SAND_Y + 0.42; a.yaw = 0;
@@ -366,7 +367,7 @@ export function createPeople(scene, ctx) {
           a.surfer = sf;
           a.pose = 'hidden';
           if (sf) { sf.x = wx; sf.z = 47; }
-          a.timer = BIZ_BY_ID[id].stay;
+          a.timer = stayOf(getState(), id);
           a.then = () => {
             if (a.surfer) { a.x = Math.min(z.x1, Math.max(z.x0, a.surfer.x)); sea.surferEnd(a.surfer); a.surfer = null; }
             a.z = 45;
@@ -405,7 +406,7 @@ export function createPeople(scene, ctx) {
         const walk = isBoat ? [[px, 29], [px + (craft.hx < px ? -1.2 : 1.2), craft.hz]] : [[px, 38], [px, craft.hz]];
         go(a, walk, () => {
           a.pose = 'hidden';
-          sea.launch(isBoat ? 'boat' : 'jet', craft, BIZ_BY_ID[id].stay * SEC_PER_MIN, () => {
+          sea.launch(isBoat ? 'boat' : 'jet', craft, stayOf(s, id) * SEC_PER_MIN, () => {
             occ[id]--;
             a.pose = 'walk';
             const back = isBoat ? [[px, 30], [18, 22]] : [[px, 40], [px, 37]];
@@ -437,7 +438,14 @@ export function createPeople(scene, ctx) {
     onIncome(id, amt, a.x, a.y, a.z);
   }
   function reject(a, id, beach = false, why = 'full') {
-    turnAway(getState(), id);
+    // 有外送機車的店：客滿的客人改叫外送（店門口騎出一台機車）
+    const d = turnAway(getState(), id);
+    if (d) {
+      if (onDelivery) onDelivery(id, d, a.x, a.y + 2.2, a.z);
+      a.rejected = 'delivery';
+      leave(a, beach);
+      return;
+    }
     onTurned(id, a.x, a.y + 2.2, a.z, why);
     a.rejected = why;
     leave(a, beach);
@@ -445,7 +453,24 @@ export function createPeople(scene, ctx) {
 
   // ── 不消費的路人與海灘遊客 ──
   const towelFree = new Array(40).fill(true);
+  // 表演台的觀眾：走到舞台前站著看一陣子
+  function spawnAudience() {
+    const from = homes[Math.floor(rnd() * homes.length)];
+    const a = spawn('amb', from);
+    if (!a) return;
+    const near = nearestNode(STAGE.x, STAGE.z + 9);
+    const ax = STAGE.x + (rnd() - 0.5) * (STAGE.w + 2), az = STAGE.z + STAGE.d / 2 + 2.2 + rnd() * 3.2;
+    go(a, [...pathNodes(from, near), [ax, az]], () => {
+      a.pose = 'stand';
+      a.watch = true;
+      a.yaw = Math.atan2(STAGE.x - ax, STAGE.z - az);
+      a.timer = 15 + rnd() * 30;
+      a.then = () => { a.watch = false; leave(a); };
+    });
+  }
   function spawnCityWalker() {
+    const s0 = getState(), h0 = s0.minute / 60;
+    if (hasCivic(s0, 'stage') && h0 >= 10 && h0 < 22 && rnd() < 0.3) return spawnAudience();
     const from = homes[Math.floor(rnd() * homes.length)];
     const to = Math.floor(rnd() * nodes.length);
     if (nodes[to].tag === 'stair' || nodes[to].tag === 'deck') return;
@@ -542,13 +567,20 @@ export function createPeople(scene, ctx) {
   function syncStaff(s) {
     for (const id of CITY_SHOPS) {
       const lv = s.biz[id].lv, f = floorOf(id);
-      const want = lv && isOpen(BIZ_BY_ID[id], s.minute) ? Math.min(lv, mobile ? 2 : 3) : 0;
+      // 臨時工（道具）多派一位穿黃背心的店員
+      const temp = lv && buffOf(s, 'temp', id) ? 1 : 0;
+      const want = lv && isOpen(BIZ_BY_ID[id], s.minute) ? Math.min(lv, mobile ? 2 : 3) + temp : 0;
       const keep = [];
       for (const a of staffOf[id]) {
         if (!a.on || a.kind !== 'staff' || a.sbiz !== id) continue;
         if (a.sf !== f || keep.length >= want) despawn(a); else keep.push(a);
       }
-      while (keep.length < want) { const a = spawnStaff(id, f, keep.length); if (!a) break; keep.push(a); }
+      while (keep.length < want) {
+        const a = spawnStaff(id, f, keep.length);
+        if (!a) break;
+        if (temp && keep.length === want - 1) { _c.set('#e9b93a'); a.shirt = [_c.r, _c.g, _c.b]; a.temp = true; }
+        keep.push(a);
+      }
       staffOf[id] = keep;
     }
   }
@@ -607,7 +639,8 @@ export function createPeople(scene, ctx) {
         // 路人與海灘遊客：維持目標人數（週五夜派對的晚上街上人多很多）
         const h = s.minute / 60;
         const party = s.event === 'party' && (h >= 18 || h < 3);
-        const cityTarget = (mobile ? 16 : 26) * (party ? (h < 3 ? 1.2 : 1.6) : h < 6 ? 0.15 : h < 8 ? 0.6 : h > 22 ? 0.3 : 1);
+        const cityTarget = (mobile ? 16 : 26) * (party ? (h < 3 ? 1.2 : 1.6) : h < 6 ? 0.15 : h < 8 ? 0.6 : h > 22 ? 0.3 : 1)
+          * (buffOf(s, 'shuttle') ? 1.35 : 1) * (hasCivic(s, 'stage') && h >= 10 && h < 22 ? 1.25 : 1);
         const beachTarget = (mobile ? 30 : 46) * beachCrowd(s);
         let nc = 0, nb = 0;
         for (const a of A) if (a.on) { if (a.kind === 'amb') nc++; else if (a.kind === 'beach') nb++; }
@@ -707,6 +740,19 @@ export function createPeople(scene, ctx) {
       }
     },
     active: () => A.filter((a) => a.on).length,
+    // 網紅探店：派一位穿亮粉色的客人走到那家店（照一般流程消費）
+    vip(id) {
+      let tx = 0, tz = 25;
+      if (CITY_LOTS[id]) { const r = lotRect(...CITY_LOTS[id]); tx = (r.x0 + r.x1) / 2; tz = r.z1; } else if (BEACH[id] && BEACH[id].x !== undefined) tx = BEACH[id].x;
+      const a = spawn('cust', pickSpawn(tx, tz));
+      if (!a) return null;
+      _c.set('#ff5c8a');
+      a.shirt = [_c.r, _c.g, _c.b];
+      a.vip = true;
+      a.target = id;
+      (flows[id] || flows.city)(a, id);
+      return a;
+    },
     // 介面用：各棟電梯的位置、所在樓層、方向、乘客數與排隊人數（整棟都還沒開店就不顯示）
     elevators() {
       const s = getState();
@@ -734,10 +780,12 @@ export function createPeople(scene, ctx) {
     // 跟拍用：這個人現在在做什麼
     describe(a) {
       const name = (id) => (id === 'rival' ? (getState().rival ? getState().rival.name : '對手的店') : BIZ_BY_ID[id] ? BIZ_BY_ID[id].name : '');
+      if (a.kind === 'staff' && a.temp) return { who: `${name(a.sbiz)}的臨時工`, what: '尖峰時段來支援' };
       if (a.kind === 'staff') return { who: `${name(a.sbiz)}的店員`, what: a.pose === 'walk' ? '送餐、整理座位' : '在櫃台待命' };
-      if (a.kind === 'amb') return { who: '路人', what: '在街上散步' };
+      if (a.kind === 'amb') return { who: '路人', what: a.watch ? '在看街頭表演' : '在街上散步' };
       if (a.kind === 'beach') return { who: '海灘遊客', what: a.pose === 'swim' ? '在海裡游泳' : a.pose === 'lie' ? '在沙灘上曬太陽' : '去海邊' };
-      const who = a.rival ? `${name('rival')}的客人` : '顧客';
+      const who = a.vip ? '網紅' : a.rival ? `${name('rival')}的客人` : '顧客';
+      if (a.rejected === 'delivery') return { who, what: `${name(a.target)}客滿，改叫外送` };
       if (a.rejected) return { who, what: a.rejected === 'lift' ? '電梯排太長，不等了' : `${name(a.target)}客滿，只好回家` };
       if (a.ride) return { who, what: `搭電梯往 F${a.rto}`, paid: a.paid };
       if (a.lw) return { who, what: `等電梯 F${a.lw.from} → F${a.lw.to}`, paid: a.paid };

@@ -106,9 +106,9 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.evaluate(() => { __bf.ui.close(); __bf.ui.openBiz('nail'); });
     ok(await page.evaluate(() => document.querySelectorAll('.frow').length === 3 && !!document.querySelector('[data-swap]')), '疊樓面板列出三層與交換按鈕');
     await page.evaluate(() => { __bf.ui.close(); __bf.ui.openPanel('quests'); });
-    await page.click('[data-qtab=daily]');
+    await page.click('[data-qtab=chal]');
     ok(await page.evaluate(() => document.querySelectorAll('.qlist > div').length >= 1), '每日任務分頁');
-    await page.click('[data-qtab=ach]');
+    await page.click('[data-qtab=album]');
     ok(await page.evaluate(() => document.querySelectorAll('.qlist .done').length >= 1), '成就分頁有已達成項目');
     await page.evaluate(() => __bf.ui.close());
     const rv = await page.evaluate(() => {
@@ -143,7 +143,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.waitForFunction(() => window.__bf && window.__bf.ready);
     await page.click('[data-start=cont]');
     await raf(page);
-    ok(await page.evaluate(() => !!document.getElementById('goLife') && JSON.parse(localStorage.getItem('bayfront-empire')).v === 4), 'v3 存檔顯示城市生活改版公告並存回 v4');
+    ok(await page.evaluate(() => !!document.getElementById('goLife') && JSON.parse(localStorage.getItem('bayfront-empire')).v === 5), 'v3 存檔顯示城市生活改版公告並存回 v4');
     await page.click('#goLife');
     ok(await page.evaluate(() => __bf.ui.isOpen() === 'shop' && !!document.querySelector('[data-openapt]')), '公告按鈕開啟地產分頁');
     await page.evaluate(() => __bf.ui.close());
@@ -156,7 +156,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await raf(page);
     const mig = await page.evaluate(() => ({ m: __bf.state.money, cafe: __bf.state.biz.cafe.lv, boat: __bf.state.biz.boat.lv, v: JSON.parse(localStorage.getItem('bayfront-empire')).v, modal: !!document.getElementById('goBeach') }));
     ok(mig.m === 777000 && mig.cafe === 2 && mig.boat === 0, 'v1 存檔遷移保留資金與店家');
-    ok(mig.v === 4, '遷移後以 v4 格式存回');
+    ok(mig.v === 5, '遷移後以 v4 格式存回');
     ok(mig.modal, '顯示海灘改版公告');
     await page.click('#goBeach');
     // v2 存檔（物流改版前）：保留海灘商家，顯示物流改版公告
@@ -168,7 +168,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await raf(page);
     const m2 = await page.evaluate(() => ({ m: __bf.state.money, boat: __bf.state.biz.boat.lv, port: __bf.state.port.lv, v: JSON.parse(localStorage.getItem('bayfront-empire')).v, modal: !!document.getElementById('goPort') }));
     ok(m2.m === 3210000 && m2.boat === 2 && m2.port === 0, 'v2 存檔遷移保留資金與海灘商家，海港為未開設');
-    ok(m2.v === 4 && m2.modal, '以 v4 存回並顯示物流改版公告');
+    ok(m2.v === 5 && m2.modal, '以 v4 存回並顯示物流改版公告');
     await page.click('#goPort');
     ok(await page.evaluate(() => __bf.ui.isOpen() === 'port'), '公告按鈕開啟物流面板');
     await page.evaluate(() => __bf.ui.close());

@@ -6,6 +6,8 @@ import {
 } from './data.js';
 import { CITY_LOTS, APT_LOTS, STACKS, DEFAULT_FLOOR, lotKey, lotRect } from './layout.js';
 import { absMin } from './port.js';
+import { heaterSeason } from './items.js';
+import { landmarkCost, NPCS } from './story.js';
 
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const hourOf = (s) => (s.minute / 60) % 24;
@@ -101,9 +103,10 @@ export const rentPerDay = (s) => APTS.reduce((t, a) => t + aptRent(a.key, aptLv(
 export const hasMark = (s, id) => !!(s.marks && s.marks[id]);
 export function buyMark(s, id) {
   const m = LANDMARK_BY_ID[id];
-  if (!m || hasMark(s, id) || s.money < m.cost) return false;
-  s.money -= m.cost;
-  s.today.buy += m.cost;
+  const c = m && landmarkCost(s, m);
+  if (!m || hasMark(s, id) || s.money < c) return false;
+  s.money -= c;
+  s.today.buy += c;
   s.marks[id] = s.day;
   return true;
 }
@@ -160,7 +163,7 @@ function rivalDay(s, rand, ev) {
 // ───────── econ 用的總倍率 ─────────
 export function lifeMult(s, id) {
   const def = BIZ_BY_ID[id], se = seasonOf(s);
-  let k = def.zone === 'beach' ? se.beach : se.city;
+  let k = def.zone === 'beach' ? heaterSeason(s, se.beach) : se.city;
   k *= tierOf(s, id).arrive * stackMult(s, id) * rivalMult(s, id) * markMult(s, def);
   if (promoLeft(s, id) > 0) k *= PROMO.mult;
   if (def.zone === 'city') k *= popMult(s);
@@ -206,7 +209,9 @@ export function newDaily(s) {
   const own = BIZ.filter((b) => s.biz[b.id].lv);
   const tasks = [];
   const avg = avgRev(s);
-  const rw = (m = 1) => round(Math.max(8000, avg * 0.03) * m, 1000);
+  // 連續每天全部完成：獎金每天 +10%，最多 +50%
+  const streak = 1 + 0.1 * Math.min(5, s.streak || 0);
+  const rw = (m = 1) => round(Math.max(8000, avg * 0.03) * m * streak, 1000);
   if (own.length) {
     // 服務某家店 N 位客人（每天換一家；週五晚上優先挑夜店）
     const pool = s.event === 'party' && s.biz.bar.lv ? [BIZ_BY_ID.bar] : own;
@@ -265,6 +270,12 @@ export const ACHIEVEMENTS = [
   { id: 'daily10', name: '每日打卡', desc: '完成 10 個每日目標', reward: 150000, ok: (s) => (s.stats.daily || 0) >= 10 },
   { id: 'rating95', name: '五星好評', desc: '顧客評分達到 95', reward: 200000, ok: (s) => s.rating >= 95 },
   { id: 'year', name: '四季更迭', desc: '經營滿 28 天，走過一整年', reward: 500000, ok: (s) => s.day > SEASONS.length * SEASON_DAYS },
+  { id: 'items20', name: '道具達人', desc: '使用 20 個道具', reward: 200000, ok: (s) => (s.stats.items || 0) >= 20 },
+  { id: 'gear10', name: '全副武裝', desc: '裝上 10 件店家設備', reward: 400000, ok: (s) => Object.values(s.gear || {}).reduce((t, v) => t + v.length, 0) >= 10 },
+  { id: 'deliver100', name: '外送大隊', desc: '外送 100 單', reward: 150000, ok: (s) => (s.stats.delivered || 0) >= 100 },
+  { id: 'story', name: '老朋友', desc: '五位角色的委託全部完成', reward: 1500000, ok: (s) => NPCS.every((n) => s.story && s.story[n.id] && s.story[n.id].step >= n.steps.length) },
+  { id: 'streak7', name: '全勤', desc: '連續 7 天完成全部每日任務', reward: 300000, ok: (s) => (s.stats.streakBest || 0) >= 7 },
+  { id: 'photo', name: '灣岸攝影師', desc: '收集全部攝影作品', reward: 800000, ok: (s) => Object.keys(s.shots || {}).length >= 8 },
 ];
 
 // 每次 tick 結尾檢查每日目標與成就，完成就發獎金

@@ -156,7 +156,9 @@ export function portStep(s, dMin, rand, ev, weather) {
   const berths = PORT.berths[p.lv - 1];
   const busy = new Set(p.ships.filter((q) => q.state === 'berthing' || q.state === 'unloading').map((q) => q.berth));
   const unloading = p.ships.filter((q) => q.state === 'unloading');
-  const perShip = unloading.length ? (PORT.cranes[p.lv - 1] * PORT.craneRate) / Math.max(unloading.length, 1) / 60 : 0;
+  // 加班岸橋（道具）：卸貨速度 ×2
+  const ot = (s.buffs || []).some((b) => b.id === 'overtime' && b.until > now) ? 2 : 1;
+  const perShip = unloading.length ? (PORT.cranes[p.lv - 1] * PORT.craneRate * ot) / Math.max(unloading.length, 1) / 60 : 0;
   for (const q of p.ships) {
     if (q.state === 'inbound') {
       // 下雨時航行中的船有機會延誤
@@ -211,7 +213,8 @@ export function portStep(s, dMin, rand, ev, weather) {
           s.stats.earned += pay;
           p.stats.contracts++;
           p.stats.containers += q.total;
-          if (pen) { p.stats.late++; s.rating = Math.max(20, s.rating - 4); }
+          if (pen) { p.stats.late++; s.rating = Math.max(20, s.rating - 4); s.stats.onTime = 0; }
+          else { s.stats.onTime = (s.stats.onTime || 0) + 1; s.stats.onTimeBest = Math.max(s.stats.onTimeBest || 0, s.stats.onTime); }
           q.paid = true;
           ev.push({ type: 'contract', name: q.name, client: q.client, pay, late: pen > 0, pen, hours: Math.ceil(late / 60) });
         } else {

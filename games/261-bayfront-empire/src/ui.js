@@ -6,7 +6,9 @@ import {
   popLevels, rentPerDay, hasMark, rivalMult, rivalBuyCost, dailyProgress, dailyText, ACHIEVEMENTS,
 } from './empire.js';
 import { portNextCost, winChance, shipStatus, absMin, truckCap, inbound } from './port.js';
-import { LEVEL_AT } from './data.js';
+import { LEVEL_AT, ITEMS, ITEM_BY_ID, GEAR, CIVIC, FLAGS, BOOKABLE, DEAL, BAG_MAX } from './data.js';
+import { itemPrice, itemListPrice, bagCount, bagTotal, canBuyItem, buffOf, itemTargets, useGate, useBlock, gearFits, hasGear, gearCost, hasCivic, hasPermit, ownsFlag } from './items.js';
+import { NPCS, NPC_BY_ID, npcStatus, npcStep, npcProgress, npcState, landmarkCost, chalText, chalProgress, weeklyProgress, weeklyText, weekOf, SHOTS, FOLLOWS, CHAL } from './story.js';
 import { icon } from './icons.js';
 import { stackOf, floorOf, CITY_LOTS } from './layout.js';
 
@@ -50,7 +52,8 @@ export function createUI(root, ctx) {
   </header>
   <div class="row2">
     <button class="pill btn-quests" id="btnQuests">${icon('quest', 18)}<span>任務</span><em id="qBadge"></em></button>
-    <div class="chips"><span class="chip ev" id="event" hidden></span><span class="chip inc" id="lastInc" hidden></span><button class="chip follow" id="follow" hidden></button></div>
+    <button class="pill btn-bag" id="btnBag">${icon('bag', 18)}<span>道具</span><em id="bagBadge"></em></button>
+    <div class="chips"><button class="chip chal" id="chalChip" hidden></button><span class="chip ev" id="event" hidden></span><span class="chip inc" id="lastInc" hidden></span><button class="chip follow" id="follow" hidden></button></div>
   </div>
   <aside class="tools">
     <button class="sq" id="btnSettings" title="設定">${icon('gear')}</button>
@@ -155,7 +158,7 @@ export function createUI(root, ctx) {
     if (id.startsWith('mark:')) {
       const m = LANDMARK_BY_ID[id.slice(5)], on = hasMark(s, m.id);
       const show = on || (shopping && shopTab === 'marks') || open === id;
-      return { show, html: on ? `<span class="li">${icon(m.icon, 14)}</span><span>${esc(m.name)}</span>` : `<span class="li sale">${icon(m.icon, 14)}</span><span>${esc(m.name)}</span><b class="price">${money(m.cost)}</b>`, sale: !on };
+      return { show, html: on ? `<span class="li">${icon(m.icon, 14)}</span><span>${esc(m.name)}</span>` : `<span class="li sale">${icon(m.icon, 14)}</span><span>${esc(m.name)}</span><b class="price">${money(landmarkCost(s, m))}</b>`, sale: !on };
     }
     const r = s.rival;
     return { show: !!r, html: r ? `<span class="li">${icon('rival', 14)}</span><span>對手 · ${esc(r.name)}</span><b class="neg">−${Math.round((1 - rivalMult(s, r.id)) * 100)}%</b>` : '', sale: false };
@@ -277,6 +280,7 @@ export function createUI(root, ctx) {
       ${nextPreview(id)}
       ${buyBtn(id)}
       ${strategyHTML(id)}
+      ${gearHTML(id)}
       ${towerHTML(id)}
       <button class="ghost" data-focus="${id}">${icon('pin', 16)} 鏡頭移到這裡</button>
     `);
@@ -304,13 +308,13 @@ export function createUI(root, ctx) {
   }
   function openMark(id) {
     ctx.actions.select('mark:' + id);
-    const s = st(), m = LANDMARK_BY_ID[id], on = hasMark(s, id);
+    const s = st(), m = LANDMARK_BY_ID[id], on = hasMark(s, id), mc = landmarkCost(s, m);
     show('mark:' + id, `
       <p class="zone">城市生活改版 · 地標</p>
       <h2><span class="bic" style="--c:${m.color}">${icon(m.icon, 22)}</span>${esc(m.name)}<small>${esc(m.en)}</small></h2>
       <div class="lvrow"><i class="${on ? 'on' : ''}"></i><span>${on ? `第 ${s.marks[id]} 天落成` : '尚未興建'}</span></div>
       <div class="next"><small>效果</small><p>${esc(m.note)}</p>${id === 'ferris' && on ? `<p class="muted">今日票房 ${money(s.today.rev.ferris || 0)}</p>` : ''}</div>
-      ${on ? `<button class="big done" disabled>${icon('check', 18)} 已落成</button>` : `<button class="big" data-mark="${id}" ${s.money >= m.cost ? '' : 'disabled'}>${icon(m.icon, 18)} 興建 · ${money(m.cost)}</button>${s.money >= m.cost ? '' : `<p class="need">還差 ${money(m.cost - s.money)}</p>`}`}
+      ${on ? `<button class="big done" disabled>${icon('check', 18)} 已落成</button>` : `<button class="big" data-mark="${id}" ${s.money >= mc ? '' : 'disabled'}>${icon(m.icon, 18)} 興建 · ${money(mc)}${mc < m.cost ? '<small>市府觀光補助 −40%</small>' : ''}</button>${s.money >= mc ? '' : `<p class="need">還差 ${money(mc - s.money)}</p>`}`}
       <button class="ghost" data-focus="mark:${id}">${icon('pin', 16)} 鏡頭移到這裡</button>`);
   }
   function openRival() {
@@ -337,7 +341,8 @@ export function createUI(root, ctx) {
   }
   function shopHTML(tab) {
     const s = st();
-    const tabs = `<div class="tabs"><button data-tab="city" class="${tab === 'city' ? 'on' : ''}">城市</button><button data-tab="beach" class="${tab === 'beach' ? 'on' : ''}">海灘</button><button data-tab="estate" class="${tab === 'estate' ? 'on' : ''}">地產</button><button data-tab="marks" class="${tab === 'marks' ? 'on' : ''}">地標</button><button data-p="port">海港</button></div>`;
+    const tabs = `<div class="tabs wrap">${[['city', '城市'], ['beach', '海灘'], ['estate', '地產'], ['marks', '建設'], ['items', '道具']].map(([k, n]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${n}${k === 'items' && s.deal && s.deal.sale ? '<em>特價</em>' : ''}</button>`).join('')}<button data-p="port">海港</button></div>`;
+    if (tab === 'items') return `<h2 class="plain">商店</h2>${tabs}${itemShopHTML()}`;
     if (tab === 'estate') {
       return `<h2 class="plain">商店</h2>${tabs}
         <p class="muted">買下街上的公寓：每天收房租，住戶也是城市商家的客人（每級 +${(APT.pop * 100).toFixed(1)}% 城市客流）。對手只能租你沒買下的公寓開店。</p>
@@ -352,15 +357,17 @@ export function createUI(root, ctx) {
     }
     if (tab === 'marks') {
       return `<h2 class="plain">商店</h2>${tabs}
+        <h3>地標</h3>
         <p class="muted">一次買斷的大型地標，帶來全區加成，也是新的風景。</p>
         <div class="mlist">${LANDMARKS.map((m) => {
-          const on = hasMark(s, m.id);
+          const on = hasMark(s, m.id), c = landmarkCost(s, m);
           return `<div class="mrow" data-openmark="${m.id}">
             <span class="bic" style="--c:${m.color}">${icon(m.icon, 18)}</span>
-            <div class="mt"><b>${esc(m.name)}</b><small>${esc(m.note)}</small></div>
-            ${on ? '<span class="maxed">已落成</span>' : `<button class="mini" data-mark="${m.id}" ${s.money >= m.cost ? '' : 'disabled'}>${money(m.cost)}</button>`}
+            <div class="mt"><b>${esc(m.name)}${c < m.cost && !on ? ' <em>補助 −40%</em>' : ''}</b><small>${esc(m.note)}</small></div>
+            ${on ? '<span class="maxed">已落成</span>' : `<button class="mini" data-mark="${m.id}" ${s.money >= c ? '' : 'disabled'}>${money(c)}</button>`}
           </div>`;
-        }).join('')}</div>`;
+        }).join('')}</div>
+        ${civicHTML()}`;
     }
     const list = BIZ.filter((b) => b.zone === tab);
     return `<h2 class="plain">商店</h2>
@@ -374,6 +381,109 @@ export function createUI(root, ctx) {
           <div class="stars" title="天氣敏感度">${b.kind === 'indoor' ? '室內' : b.kind === 'outdoor' ? '戶外' : '水上'}</div>
         </div>`;
       }).join('')}</div>`;
+  }
+  // ── 道具與任務改版：道具商店、背包、設備、全城建設 ──
+  const itemCost = (s, it) => {
+    const p = itemPrice(s, it.id), l = itemListPrice(s, it.id);
+    return p < l ? `<s>${money(l)}</s> ${money(p)}` : money(p);
+  };
+  function itemBuyBtn(s, it) {
+    if (bagCount(s, it.id) >= BAG_MAX) return '<span class="maxed">背包已滿</span>';
+    if (it.rare && s.deal && s.deal.bought.includes(it.id)) return '<span class="maxed">今天已買</span>';
+    return `<button class="mini" data-buyitem="${it.id}" ${canBuyItem(s, it.id) ? '' : 'disabled'}>${itemCost(s, it)}</button>`;
+  }
+  function itemShopHTML() {
+    const s = st(), deal = s.deal || { items: [], bought: [] };
+    const row = (it, inDeal) => `<div class="irow${inDeal && deal.sale === it.id ? ' sale' : ''}${it.rare ? ' rare' : ''}">
+        <span class="bic" style="--c:${it.rare ? '#7a4a2a' : '#2f7f8f'}">${icon(it.icon, 18)}</span>
+        <div class="mt"><b>${esc(it.name)}${bagCount(s, it.id) ? ` <em>背包 ${bagCount(s, it.id)}</em>` : ''}${inDeal && deal.sale === it.id ? ` <i class="tg off">−${Math.round(DEAL.off * 100)}%</i>` : ''}${it.rare ? ' <i class="tg rare">稀有</i>' : ''}</b><small>${esc(it.note)}${it.port && !s.port.lv ? '（要先開海港）' : ''}</small></div>
+        ${itemBuyBtn(s, it)}
+      </div>`;
+    const dealItems = deal.items.map((id) => ITEM_BY_ID[id]);
+    return `<h3>今日特價 <small>第 ${s.day} 天 · 午夜換一批</small></h3>
+      <div class="mlist">${dealItems.map((it) => row(it, true)).join('')}</div>
+      <h3>常備道具</h3>
+      <p class="muted">價格跟著近 3 天的平均營收走，生意越大、效果越值錢。每種最多帶 ${BAG_MAX} 個；稀有品只在今日特價出現，每天限買一個。</p>
+      <div class="mlist">${ITEMS.filter((it) => !it.rare).map((it) => row(it, false)).join('')}</div>
+      <button class="big alt" data-p="bag">${icon('bag', 18)} 打開背包 · ${bagTotal(s)} 件</button>`;
+  }
+  function civicHTML() {
+    const s = st();
+    const rows = CIVIC.map((c) => {
+      const on = hasCivic(s, c.id), ok = hasPermit(s, c.id), n = c.permit && NPC_BY_ID[c.permit];
+      const right = on ? (c.id === 'yacht' || c.id === 'mascot' ? `<button class="mini alt" data-fthing="${c.id}">${icon('eye', 14)} 跟拍</button>` : '<span class="maxed">已完工</span>')
+        : ok ? `<button class="mini" data-civic="${c.id}" ${s.money >= c.cost ? '' : 'disabled'}>${money(c.cost)}</button>`
+          : `<span class="lockd">${icon('lock', 14)} ${money(c.cost)}</span>`;
+      return `<div class="mrow${ok || on ? '' : ' locked'}">
+        <span class="bic" style="--c:${c.color}">${icon(c.icon, 18)}</span>
+        <div class="mt"><b>${esc(c.name)}${c.cosmetic ? ' <i class="tg">外觀</i>' : ''}</b><small>${ok || on ? esc(c.note) : `需要${esc(n.name)}的「${esc(n.permit)}」：完成${esc(n.name)}的委託`}</small></div>
+        ${right}
+      </div>`;
+    }).join('');
+    return `<h3>全城建設</h3>
+      <p class="muted">公共設施要先拿到角色委託給的許可證；吉祥物不用。帝國號與吉祥物主要是風景，可以跟拍。</p>
+      <div class="mlist">${rows}</div>
+      <h3>帝國旗色</h3>
+      <p class="muted">公寓外牆的布條、帝國號與吉祥物用這個顏色。</p>
+      <div class="flags">${FLAGS.map((f) => {
+        const own = ownsFlag(s, f.id), on = s.flag === f.id;
+        return `<button class="flagb${on ? ' on' : ''}" data-flag="${f.id}" ${own || s.money >= f.cost ? '' : 'disabled'} style="--c:${f.color}"><i></i><b>${f.name}</b><small>${on ? '使用中' : own ? '已擁有' : money(f.cost)}</small></button>`;
+      }).join('')}</div>`;
+  }
+  // 店家面板：設備與快速用道具
+  function gearHTML(id) {
+    const s = st();
+    if (!s.biz[id].lv) return '';
+    const list = GEAR.filter((g) => gearFits(id, g.id));
+    const now = absMin(s);
+    // 稀有品只有背包裡有、或今天特價有賣時才列出來
+    const quick = ITEMS.filter((it) => it.target === 'shop' && (!it.ok || it.ok.includes(id)) && (!it.rare || bagCount(s, it.id) || (s.deal && s.deal.items.includes(it.id))));
+    const active = s.buffs.filter((b) => b.t === id && b.until > now);
+    return `${list.length ? `<h3>設備</h3><div class="gears">${list.map((g) => {
+      const own = hasGear(s, id, g.id), c = gearCost(id, g.id);
+      return `<div class="grow${own ? ' own' : ''}"><span class="gi">${icon(g.icon, 18)}</span><div class="mt"><b>${esc(g.name)}</b><small>${esc(g.note)}</small></div>${own ? `<span class="maxed">${icon('check', 12)} 已裝</span>` : `<button class="mini" data-gear="${id}:${g.id}" ${s.money >= c ? '' : 'disabled'}>${money(c)}</button>`}</div>`;
+    }).join('')}</div>` : ''}
+      ${quick.length ? `<h3>對這家店用道具</h3>
+      ${active.length ? `<div class="buffs">${active.map((b) => `<span class="buff">${icon(ITEM_BY_ID[b.id].icon, 14)} ${ITEM_BY_ID[b.id].name} · 剩 ${hrs(b.until - now)}</span>`).join('')}</div>` : ''}
+      <div class="quick">${quick.map((it) => {
+        const n = bagCount(s, it.id), why = n ? useBlock(s, it.id, id) : null;
+        return n ? `<button class="mini${why ? ' alt' : ''}" data-use="${it.id}:${id}" ${why ? `disabled title="${esc(why)}"` : ''}>${icon(it.icon, 14)} ${it.name} ×${n}</button>`
+          : `<button class="mini alt" data-tab="items" title="到道具商店買">${icon(it.icon, 14)} ${it.name} · 買</button>`;
+      }).join('')}</div>` : ''}`;
+  }
+  let bagSel = null;
+  function useArea(s, it) {
+    const gate = useGate(s, it.id);
+    if (gate) return `<p class="why">${icon('info', 14)} ${esc(gate)}</p>`;
+    if (it.target === 'shop') {
+      const ts = itemTargets(s, it.id);
+      if (!ts.length) return `<p class="why">${icon('info', 14)} 還沒有能用這個道具的店</p>`;
+      return `<div class="targets">${ts.map((t) => {
+        const b = BIZ_BY_ID[t], why = useBlock(s, it.id, t);
+        return `<button class="tgt" data-use="${it.id}:${t}" ${why ? `disabled title="${esc(why)}"` : ''} style="--c:${b.color}"><span>${icon(b.icon, 14)}</span>${esc(b.name)}${why ? '<small>效果中</small>' : ''}</button>`;
+      }).join('')}</div>`;
+    }
+    if (it.target === 'cargo') return `<div class="targets">${CARGO_IDS.map((c) => `<button class="tgt" data-use="${it.id}:${c}" style="--c:${CARGO[c].color}"><span>${icon('crate', 14)}</span>${CARGO[c].name}<small>庫存 ${Math.floor(s.port.stock[c])}</small></button>`).join('')}</div>`;
+    if (it.target === 'event') return `<div class="targets">${BOOKABLE.map((e) => `<button class="tgt" data-use="${it.id}:${e}" style="--c:#b4513c"><span>${icon('ticket', 14)}</span>${EVENTS[e].name}<small>${esc(EVENTS[e].note)}</small></button>`).join('')}</div>`;
+    return `<button class="big" data-use="${it.id}">${icon(it.icon, 18)} 現在使用</button>`;
+  }
+  function bagHTML() {
+    const s = st(), now = absMin(s);
+    const own = ITEMS.filter((it) => bagCount(s, it.id));
+    const buffs = s.buffs.filter((b) => b.until > now);
+    if (bagSel && !bagCount(s, bagSel)) bagSel = null;
+    return `<h2 class="plain">道具 <small>背包 ${bagTotal(s)} 件</small></h2>
+      ${buffs.length ? `<h3>生效中</h3><div class="buffs">${buffs.map((b) => `<span class="buff">${icon(ITEM_BY_ID[b.id].icon, 14)} ${ITEM_BY_ID[b.id].name}${b.t ? ` · ${BIZ_BY_ID[b.t].name}` : ''} · 剩 ${hrs(b.until - now)}</span>`).join('')}</div>` : ''}
+      ${s.booked ? `<p class="muted">${icon('ticket', 14)} 明天預約了${EVENTS[s.booked].name}。</p>` : ''}
+      <h3>背包</h3>
+      ${own.length ? `<div class="bag">${own.map((it) => {
+        const sel = bagSel === it.id, gate = useGate(s, it.id);
+        return `<div class="bitem${sel ? ' on' : ''}">
+          <button class="bh" data-pick="${it.id}"><span class="bic" style="--c:${it.rare ? '#7a4a2a' : '#2f7f8f'}">${icon(it.icon, 18)}</span><span class="mt"><b>${esc(it.name)} <em>×${bagCount(s, it.id)}</em></b><small>${esc(it.note)}</small></span><span class="use${gate ? ' no' : ''}">${gate ? '暫不能用' : sel ? '收起' : '使用'}</span></button>
+          ${sel ? `<div class="bu">${useArea(s, it)}</div>` : ''}
+        </div>`;
+      }).join('')}</div>` : '<p class="muted">背包是空的。到「商店 › 道具」買，或完成委託、挑戰拿獎勵。</p>'}
+      <button class="big alt" data-tab="items">${icon('shop', 18)} 道具商店${s.deal && s.deal.sale ? ` · ${ITEM_BY_ID[s.deal.sale].name}特價中` : ''}</button>`;
   }
   let shopTab = 'city';
   function openShop(tab) { shopTab = tab || shopTab; show('shop', shopHTML(shopTab)); }
@@ -408,7 +518,7 @@ export function createUI(root, ctx) {
     const max = Math.max(1, ...days.map((d) => Math.max(d.rev, d.cost)));
     const byBiz = BIZ.filter((b) => s.biz[b.id].lv).map((b) => ({ b, v: s.today.rev[b.id] || 0 })).sort((p, q) => q.v - p.v);
     const top = Math.max(1, ...byBiz.map((x) => x.v));
-    const city = byBiz.filter((x) => x.b.zone === 'city').reduce((a, x) => a + x.v, 0), port = t.rev.port || 0, estate = (t.rev.rent || 0) + (t.rev.ferris || 0), beach = rev - city - port - estate;
+    const city = byBiz.filter((x) => x.b.zone === 'city').reduce((a, x) => a + x.v, 0), port = t.rev.port || 0, estate = (t.rev.rent || 0) + (t.rev.ferris || 0) + (t.rev.insurance || 0), beach = rev - city - port - estate;
     return `<h2 class="plain">財務 <small>第 ${s.day} 天</small></h2>
       <div class="grid three">
         <div><small>今日營收</small><b class="g">${money(rev)}</b></div>
@@ -416,7 +526,8 @@ export function createUI(root, ctx) {
         <div><small>營業淨利</small><b class="${rev - cost >= 0 ? 'g' : 'r'}">${money(rev - cost)}</b></div>
       </div>
       <div class="split"><i style="flex:${Math.max(city, 1)}"></i><i class="b" style="flex:${Math.max(beach, beach ? 1 : 0.001)}"></i><i class="p" style="flex:${Math.max(port, port ? 1 : 0.001)}"></i><i class="e" style="flex:${Math.max(estate, estate ? 1 : 0.001)}"></i></div>
-      <p class="legend"><span class="d1"></span>城市 ${money(city)}　<span class="d2"></span>海灘 ${money(beach)}${port ? `　<span class="d4"></span>貨運合約 ${money(port)}` : ''}${estate ? `　<span class="d5"></span>房租與摩天輪 ${money(estate)}` : ''}</p>
+      <p class="legend"><span class="d1"></span>城市 ${money(city)}　<span class="d2"></span>海灘 ${money(beach)}${port ? `　<span class="d4"></span>貨運合約 ${money(port)}` : ''}${estate ? `　<span class="d5"></span>房租、摩天輪${t.rev.insurance ? '與保險理賠' : ''} ${money(estate)}` : ''}</p>
+      ${t.delivered ? `<p class="legend">${icon('scooter', 14)} 今天外送 ${t.delivered} 單（已算進各店營收）</p>` : ''}
       <h3>今日成本</h3>
       <div class="costs">
         <div><span>人事與營運</span><b>${money(t.cost)}</b></div>
@@ -535,29 +646,138 @@ export function createUI(root, ctx) {
     return `<h2 class="plain">通知</h2><div class="alist">${alerts.length ? alerts.map((a) => `<div>${icon(a.ic, 18)}<p>${esc(a.msg)}<small>${a.when}</small></p></div>`).join('') : '<p class="muted">目前沒有通知。</p>'}</div>`;
   }
   let qTab = 'main', dayKey = '';
+  const itemsText = (items) => Object.entries(items || {}).map(([id, n]) => `${ITEM_BY_ID[id].name}×${n}`).join('、');
+  const rewardLine = (r, permit) => [r.money ? money(r.money) : '', r.items ? itemsText(r.items) : '', r.rating ? `評分 +${r.rating}` : '', r.permit ? permit : ''].filter(Boolean).join(' · ');
+  // 可以領的獎勵數（任務鈕的紅點）
+  function claimables(s) {
+    let n = NPCS.filter((x) => npcStatus(s, x.id) === 'ready').length;
+    if (s.chal && s.chal.state === 'ready') n++;
+    if (s.weekly) n += s.weekly.tasks.filter((t) => t.done && !t.claimed).length;
+    n += Object.values(s.shots).filter((v) => v === 1).length + Object.values(s.follows).filter((v) => v === 1).length;
+    return n;
+  }
+  // 角色頭像：參數化的平面插畫，光源在右上
+  function portrait(L) {
+    const H = L.hair;
+    const back = L.style === 'long' ? `<path d="M12.5 33c-1.5-13 2.5-23 11.5-23s13 10 11.5 23c-2 1-4 1-5.5 0V21H18v12c-1.5 1-3.5 1-5.5 0z" fill="${H}"/>` : '';
+    const front = {
+      side: `<path d="M14.6 21.5c-.4-8 4-12.3 9.6-12.3 5.8 0 9.6 4 9.4 11.4-2.6-3.2-7.6-4.6-13.6-3.4-2.2.7-4 2.2-5.4 4.3z" fill="${H}"/>`,
+      short: `<path d="M14.8 20.5c0-7.2 4.2-10.8 9.2-10.8s9.2 3.6 9.2 10.8c-1.8-2.4-5-3.6-9.2-3.6s-7.4 1.2-9.2 3.6z" fill="${H}"/>`,
+      long: `<path d="M14.6 21c.4-7 4.2-11 9.4-11s9 4 9.4 11c-2.4-3.6-5.6-5.4-9.4-5.4s-7 1.8-9.4 5.4z" fill="${H}"/>`,
+      bun: `<circle cx="24" cy="8.6" r="4.2" fill="${H}"/><path d="M14.8 21c0-7.2 4.2-11 9.2-11s9.2 3.8 9.2 11c-2-3.8-5.2-5.8-9.2-5.8s-7.2 2-9.2 5.8z" fill="${H}"/>`,
+      slick: `<path d="M14.8 20.4c0-7 4-10.7 9.4-10.7 6 0 9.2 3.4 9.2 8.8-3.4-2-9.4-3.2-14.8-2-2.2.8-3 2.2-3.8 3.9z" fill="${H}"/>`,
+    }[L.style] || '';
+    const acc = {
+      glasses: '<g fill="none" stroke="#2a2a2a" stroke-width="1.1"><rect x="17.6" y="20" width="5.6" height="4.2" rx="1.6"/><rect x="24.8" y="20" width="5.6" height="4.2" rx="1.6"/><path d="M23.2 21.6h1.6"/></g>',
+      shades: '<path d="M17.2 20.2h6.2v2.6a1.8 1.8 0 0 1-1.8 1.8h-2.6a1.8 1.8 0 0 1-1.8-1.8zM24.6 20.2h6.2v2.6a1.8 1.8 0 0 1-1.8 1.8h-2.6a1.8 1.8 0 0 1-1.8-1.8z" fill="#1f2a30"/><path d="M23.4 21h1.2" stroke="#1f2a30" stroke-width="1"/>',
+      cap: '<path d="M14.6 17.6c.8-5.4 4.6-8.4 9.4-8.4s8.6 3 9.4 8.4z" fill="#24476b"/><path d="M13 17.6h22.4c-.4 1.2-1.4 1.8-3 1.8H16c-1.6 0-2.6-.6-3-1.8z" fill="#1a3550"/><path d="M21.4 12.4h5.2v2.4h-5.2z" fill="#d9a63e"/>',
+      earring: '<circle cx="15.2" cy="26" r="1.1" fill="#d9a63e"/><circle cx="32.8" cy="26" r="1.1" fill="#d9a63e"/>',
+    }[L.acc] || '';
+    const tie = L.tie ? `<path d="M19.4 36.4l4.6 4.4 4.6-4.4" fill="none" stroke="#f4f1e6" stroke-width="2.2" stroke-linejoin="round"/><path d="M23 37.6h2l1.1 7.6-2.1 2.2-2.1-2.2z" fill="${L.tie}"/>` : '';
+    return `<svg class="pt" viewBox="0 0 48 48" width="52" height="52" aria-hidden="true">
+      <rect width="48" height="48" rx="14" fill="#efe2c2"/>
+      ${back}
+      <path d="M7 48c0-8.6 7.4-12.6 17-12.6S41 39.4 41 48z" fill="${L.shirt}"/>
+      <path d="M7 48c0-8.6 7.4-12.6 17-12.6-6 1.6-10 5-11 12.6z" fill="rgba(0,0,0,.12)"/>
+      <path d="M20.6 30h6.8v6.4L24 38.6l-3.4-2.2z" fill="${L.skin}"/><path d="M20.6 30h6.8v2.4c-2.4 1.2-4.4 1.2-6.8 0z" fill="rgba(0,0,0,.14)"/>
+      <ellipse cx="15.2" cy="22.6" rx="1.6" ry="2.4" fill="${L.skin}"/><ellipse cx="32.8" cy="22.6" rx="1.6" ry="2.4" fill="${L.skin}"/>
+      <ellipse cx="24" cy="21.4" rx="9" ry="10.4" fill="${L.skin}"/>
+      <path d="M17 26.5c1.2 3.6 3.8 5.3 7 5.3-4.2-.6-7-4.6-7.4-11.4z" fill="rgba(0,0,0,.08)"/>
+      ${front}
+      <path d="M18.6 19.2c1-.6 2.4-.7 3.4-.2M26 19c1-.5 2.4-.4 3.4.2" stroke="${H === '#d8d2c4' || H === '#8a8a8a' ? '#6a6a6a' : H}" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <circle cx="20.6" cy="22.2" r="1.15" fill="#2a2a2a"/><circle cx="27.4" cy="22.2" r="1.15" fill="#2a2a2a"/>
+      <path d="M23.4 23.6l-.6 2.6h1.6" stroke="rgba(0,0,0,.18)" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <path d="M21.4 27.6c1.6 1.1 3.6 1.1 5.2 0" stroke="#8a4a3a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      ${acc}${tie}
+    </svg>`;
+  }
+  function npcCard(s, n) {
+    const status = npcStatus(s, n.id), st0 = npcState(s, n.id), total = n.steps.length;
+    const head = `<div class="nh">${portrait(n.look)}<div class="nn"><b>${esc(n.name)}</b><small>${esc(n.role)}</small></div><span class="nstep">${Math.min(st0.step + (status === 'ready' ? 1 : 0), total)} / ${total}</span></div>
+      <div class="pips">${n.steps.map((_, i) => `<i class="${i < st0.step ? 'on' : i === st0.step && status !== 'locked' ? 'cur' : ''}"></i>`).join('')}</div>`;
+    if (status === 'locked') return `<div class="npc locked">${head}<p class="why">${icon('lock', 14)} ${esc(n.lockText)}</p></div>`;
+    if (status === 'done') return `<div class="npc done">${head}<p class="say">委託全部完成。${n.permit ? `你拿到了「${esc(n.permit)}」。` : ''}</p></div>`;
+    const step = npcStep(s, n.id), g = step.goal, now = absMin(s);
+    const p = npcProgress(s, n.id);
+    const prog = status === 'on' || status === 'ready'
+      ? `<i class="qp"><u style="width:${Math.min(100, (p.cur / p.goal) * 100)}%"></u></i><em>${g.k === 'hold' ? `${hrs(p.cur)} / ${hrs(p.goal)}` : g.k === 'state' ? (p.cur ? '已達成' : '尚未達成') : `${Math.min(p.cur, p.goal)} / ${p.goal}`}${st0.until && status === 'on' ? ` · 剩 ${hrs(Math.max(0, st0.until - now))}` : ''}</em>` : '';
+    let act = '';
+    if (status === 'ready') act = `<button class="big" data-npc="claim:${n.id}">${icon('gift', 18)} 領取獎勵</button>`;
+    else if (status === 'wait') act = `<p class="why">${icon('lock', 14)} ${esc(step.reqText)}</p>`;
+    else if (status === 'new' && g.k === 'choice') act = `<div class="opts">${g.options.map((o) => `<button class="big${g.options.length > 1 ? ' alt' : ''}" data-npc="choose:${n.id}:${o.id}" ${o.cost && s.money < o.cost ? 'disabled' : ''}>${esc(o.label)}<small>${esc(o.note)}</small></button>`).join('')}</div>`;
+    else if (status === 'new') act = `<button class="big" data-npc="accept:${n.id}">${icon('chat', 18)} 接下委託${g.hours ? `<small>接下後 ${g.hours} 小時內完成</small>` : ''}</button>`;
+    else act = g.ids ? `<button class="ghost" data-focus="${g.ids[0]}">${icon('pin', 16)} 鏡頭移到${esc(BIZ_BY_ID[g.ids[0]].name)}</button>` : '';
+    const rw = rewardLine(step.reward, n.permit ? `「${n.permit}」` : '');
+    return `<div class="npc ${status}">${head}
+      <p class="say">${esc(step.say)}</p>
+      <div class="ngoal"><b>${esc(step.title)}</b>${prog}${rw ? `<small>獎勵 ${esc(rw)}</small>` : ''}</div>
+      ${act}</div>`;
+  }
+  function chalHTML(s) {
+    const c = s.chal, now = absMin(s);
+    if (!c) {
+      const wait = s.quest < CHAL.startQuest ? '主線第 1 章完成後開放' : s.chalNext > now ? `下一個挑戰大約 ${hrs(s.chalNext - now)}後出現` : '新的挑戰馬上就來';
+      return `<div class="chal idle"><span class="ci">${icon('timer', 20)}</span><p><b>目前沒有挑戰</b><small>${wait}。挑戰出現後 ${CHAL.offerMin} 分鐘內要接受。</small></p></div>`;
+    }
+    const p = chalProgress(s), rw = `${money(c.reward)} · ${ITEM_BY_ID[c.item].name}×1`;
+    if (c.state === 'offer') return `<div class="chal offer"><span class="ci">${icon('timer', 20)}</span><p><b>${esc(chalText(c))}</b><small>獎勵 ${rw} · 接受期限剩 ${hrs(Math.max(0, c.offerUntil - now))}</small></p></div><button class="big" data-chal="accept">${icon('timer', 18)} 接受挑戰</button>`;
+    if (c.state === 'ready') return `<div class="chal ready"><span class="ci">${icon('check', 20)}</span><p><b>${esc(chalText(c))}</b><small>挑戰成功 · 獎勵 ${rw}</small></p></div><button class="big" data-chal="claim">${icon('gift', 18)} 領取獎勵</button>`;
+    if (c.state === 'fail') return `<div class="chal fail"><span class="ci">${icon('close', 20)}</span><p><b>${esc(chalText(c))}</b><small>這次沒成功，下一個挑戰晚點會來</small></p></div>`;
+    const before = c.start > now;
+    return `<div class="chal on"><span class="ci">${icon('timer', 20)}</span><p><b>${esc(chalText(c))}</b><i class="qp"><u style="width:${(p.cur / p.goal) * 100}%"></u></i><small>${before ? `${hrs(c.start - now)}後開始計算` : c.k === 'calm' ? `已撐 ${hrs(p.cur)} / 2 小時 · 拒客 ${Math.max(0, s.stats.turned - (c.base || 0))} / ${c.limit}` : `${c.k === 'rev' ? `${money(p.cur)} / ${money(p.goal)}` : `${p.cur} / ${p.goal}`} · 剩 ${hrs(Math.max(0, c.end - now))}`} · 獎勵 ${rw}</small></p></div>`;
+  }
   function questsHTML() {
     const s = st();
-    const done = Object.keys(s.ach).length;
-    const dd = s.daily ? s.daily.tasks.filter((t) => !t.done).length : 0;
-    const tabs = `<div class="tabs"><button data-qtab="main" class="${qTab === 'main' ? 'on' : ''}">主線</button><button data-qtab="daily" class="${qTab === 'daily' ? 'on' : ''}">每日${dd ? `<em>${dd}</em>` : ''}</button><button data-qtab="ach" class="${qTab === 'ach' ? 'on' : ''}">成就 ${done}/${ACHIEVEMENTS.length}</button></div>`;
-    if (qTab === 'daily') {
+    const npcN = NPCS.filter((n) => ['ready', 'new'].includes(npcStatus(s, n.id))).length;
+    const chN = (s.chal && (s.chal.state === 'offer' || s.chal.state === 'ready') ? 1 : 0) + (s.weekly ? s.weekly.tasks.filter((t) => t.done && !t.claimed).length : 0) + (s.daily ? s.daily.tasks.filter((t) => !t.done).length : 0);
+    const alN = Object.values(s.shots).filter((v) => v === 1).length + Object.values(s.follows).filter((v) => v === 1).length;
+    const tb = (k, n, b) => `<button data-qtab="${k}" class="${qTab === k ? 'on' : ''}">${n}${b ? `<em>${b}</em>` : ''}</button>`;
+    const tabs = `<div class="tabs">${tb('main', '主線')}${tb('story', '委託', npcN)}${tb('chal', '挑戰', chN)}${tb('album', '收藏', alN)}</div>`;
+    if (qTab === 'story') {
+      return `<h2 class="plain">任務 <small>角色委託</small></h2>${tabs}
+        <p class="muted">灣岸的人各有心事。接下委託、達成條件後按「領取」；有些委託會給許可證，蓋全城建設要用。</p>
+        <div class="npcs">${NPCS.map((n) => npcCard(s, n)).join('')}</div>`;
+    }
+    if (qTab === 'chal') {
       const tasks = s.daily ? s.daily.tasks : [];
+      const w = s.weekly, left = 7 - ((s.day - 1) % 7);
+      const bonus = Math.round(Math.min(5, s.streak || 0) * 10);
       return `<h2 class="plain">任務 <small>第 ${s.day} 天</small></h2>${tabs}
-        <p class="muted">每天換一批，完成馬上發獎金；午夜沒做完的就作廢。累計完成 ${s.stats.daily || 0} 個。</p>
+        <h3>限時挑戰</h3>${chalHTML(s)}
+        <h3>每日目標 <small>${s.streak ? `連續 ${s.streak} 天全部完成 · 獎金 +${bonus}%` : '全部完成可累積連續天數'}</small></h3>
         <div class="qlist">${tasks.map((t) => {
           const p = Math.min(t.goal, dailyProgress(s, t));
           return `<div class="${t.done ? 'done' : 'cur'}"><span>${t.done ? icon('check', 16) : icon('target', 16)}</span><p><b>${esc(dailyText(t))}</b><i class="qp"><u style="width:${(p / t.goal) * 100}%"></u></i><em>${t.goal >= 1000 ? `${money(p)} / ${money(t.goal)}` : `${p} / ${t.goal}`}</em></p><b class="rw">+${money(t.reward)}</b></div>`;
-        }).join('')}</div>`;
+        }).join('')}</div>
+        <h3>每週任務 <small>第 ${weekOf(s) + 1} 週 · 剩 ${left} 天</small></h3>
+        <div class="qlist">${w ? w.tasks.map((t, i) => {
+          const p = Math.min(t.goal, weeklyProgress(s, t));
+          return `<div class="${t.claimed ? 'done' : t.done ? 'ready' : ''}"><span>${t.claimed ? icon('check', 16) : icon('calendar', 16)}</span><p><b>${esc(weeklyText(t))}</b><i class="qp"><u style="width:${(p / t.goal) * 100}%"></u></i><em>${t.goal >= 1000 ? `${money(p)} / ${money(t.goal)}` : `${p} / ${t.goal}`}</em></p>${t.done && !t.claimed ? `<button class="mini" data-weekly="${i}">${icon('gift', 14)} ${money(t.reward)}</button>` : `<b class="rw">+${money(t.reward)}</b>`}</div>`;
+        }).join('') : '<p class="muted">每週一批，跨週時更新。</p>'}</div>`;
     }
-    if (qTab === 'ach') {
-      return `<h2 class="plain">任務</h2>${tabs}
+    if (qTab === 'album') {
+      const done = Object.keys(s.ach).length;
+      const cell = (kind, d, v) => `<div class="shot${v === 2 ? ' got' : v === 1 ? ' ready' : ''}"><span>${icon(kind === 'shot' ? 'camera' : 'eye', 16)}</span><p><b>${esc(d.name)}</b><small>${esc(d.hint)}</small></p>${v === 1 ? `<button class="mini" data-shot="${kind}:${d.id}">${icon('gift', 14)} ${money(d.reward)}</button>` : v === 2 ? `<span class="maxed">${icon('check', 12)} 收藏</span>` : `<b class="rw">+${money(d.reward)}</b>`}</div>`;
+      return `<h2 class="plain">任務 <small>收藏</small></h2>${tabs}
+        <h3>攝影收藏 <small>照片模式按「截圖」時判定</small></h3>
+        <div class="shots">${SHOTS.map((d) => cell('shot', d, s.shots[d.id])).join('')}</div>
+        <h3>跟拍收藏 <small>放大後點街上的人，或按右側的眼睛鈕</small></h3>
+        <div class="shots">${FOLLOWS.map((d) => cell('follow', d, s.follows[d.id])).join('')}</div>
+        <h3>成就 <small>${done} / ${ACHIEVEMENTS.length}</small></h3>
         <div class="qlist">${ACHIEVEMENTS.map((a) => `<div class="${s.ach[a.id] ? 'done' : ''}"><span>${s.ach[a.id] ? icon('trophy', 16) : icon('star', 14)}</span><p><b>${esc(a.name)}</b><em>${esc(a.desc)}${s.ach[a.id] ? ` · 第 ${s.ach[a.id]} 天達成` : ''}</em></p><b class="rw">+${money(a.reward)}</b></div>`).join('')}</div>`;
     }
-    return `<h2 class="plain">任務</h2>${tabs}<div class="qlist">${QUESTS.map((q, i) => {
-      const done = i < s.quest, cur = i === s.quest;
-      const p = cur ? questProgress(s) : null;
-      return `<div class="${done ? 'done' : cur ? 'cur' : ''}"><span>${done ? icon('check', 16) : i + 1}</span><p><small>CH ${q.ch} · ${q.chName}</small><b>${esc(q.title)}</b>${cur ? `<em>${esc(q.hint)}</em><i class="qp"><u style="width:${(p.cur / p.goal) * 100}%"></u></i>` : ''}</p><b class="rw">+${money(q.reward)}</b></div>`;
-    }).join('')}</div>`;
+    // 主線：做完的章節收成一列
+    const chs = [];
+    QUESTS.forEach((q, i) => { let c = chs[chs.length - 1]; if (!c || c.ch !== q.ch) chs.push((c = { ch: q.ch, name: q.chName, list: [] })); c.list.push(i); });
+    return `<h2 class="plain">任務 <small>主線 ${Math.min(s.quest, QUESTS.length)} / ${QUESTS.length}</small></h2>${tabs}${chs.map((c) => {
+      const all = c.list.every((i) => i < s.quest);
+      if (all) return `<div class="chdone">${icon('check', 14)}<b>第 ${c.ch} 章 · ${esc(c.name)}</b><small>${c.list.length} / ${c.list.length}</small></div>`;
+      return `<h3>第 ${c.ch} 章 · ${esc(c.name)}</h3><div class="qlist">${c.list.map((i) => {
+        const q = QUESTS[i], done = i < s.quest, cur = i === s.quest;
+        const p = cur ? questProgress(s) : null;
+        return `<div class="${done ? 'done' : cur ? 'cur' : ''}"><span>${done ? icon('check', 16) : i + 1}</span><p><b>${esc(q.title)}</b>${cur ? `<em>${esc(q.hint)}</em><i class="qp"><u style="width:${(p.cur / p.goal) * 100}%"></u></i>` : ''}</p><b class="rw">+${money(q.reward)}${q.items ? `<small>${esc(itemsText(q.items))}</small>` : ''}</b></div>`;
+      }).join('')}</div>`;
+    }).join('')}`;
   }
   function settingsHTML() {
     const s = st();
@@ -566,7 +786,7 @@ export function createUI(root, ctx) {
       <div class="set"><span>${icon('gear', 18)} 畫質</span><div class="seg">${['auto', 'high', 'low'].map((q) => `<button data-q="${q}" class="${s.opts.quality === q ? 'on' : ''}">${{ auto: '自動', high: '高', low: '省電' }[q]}</button>`).join('')}</div></div>
       <p class="muted">「自動」會在手機上以較低解析度與陰影更新頻率維持 50fps 以上，畫面掉到 45fps 以下時再自動降級。</p>
       <div class="set"><span>${icon('save', 18)} 存檔</span><button class="mini" data-act="save">立即存檔</button></div>
-      <p class="muted">每 15 秒與切換分頁時自動存到這台裝置。存檔格式 v4；更早的 v1（海灘改版前）、v2（物流改版前）、v3（城市生活改版前）存檔都會自動轉換，原有進度完整保留。</p>
+      <p class="muted">每 15 秒與切換分頁時自動存到這台裝置。存檔格式 v5；更早的 v1（海灘改版前）、v2（物流改版前）、v3（城市生活改版前）、v4（道具與任務改版前）存檔都會自動轉換，原有進度完整保留。</p>
       <div class="set"><span>${icon('close', 18)} 重新開始</span><button class="mini warn" data-act="reset">清除進度</button></div>
       <h3>操作</h3>
       <p class="muted">拖曳移動地圖，滾輪或雙指縮放，點店面、公寓或標籤看詳情；放大後點街上的人可以跟拍。鍵盤：WASD／方向鍵移動、Q／E 縮放、空白鍵暫停、1／2／3 切換速度、Esc 離開跟拍或照片模式。</p>`;
@@ -584,6 +804,7 @@ export function createUI(root, ctx) {
     else if (open === 'finance') show('finance', financeHTML());
     else if (open === 'alerts') show('alerts', alertsHTML());
     else if (open === 'quests') show('quests', questsHTML());
+    else if (open === 'bag') show('bag', bagHTML());
     else if (open === 'settings') show('settings', settingsHTML());
     else if (open === 'port') show('port', portHTML());
     $('#sheetBody').scrollTop = y;
@@ -600,6 +821,24 @@ export function createUI(root, ctx) {
     const t = e.target.closest('button, [data-open], [data-p]');
     if (!t) return;
     if (t.dataset.buy) { ctx.actions.buy(t.dataset.buy); render(); return; }
+    if (t.dataset.buyitem) { ctx.actions.buyItem(t.dataset.buyitem); render(); return; }
+    if (t.dataset.pick) { bagSel = bagSel === t.dataset.pick ? null : t.dataset.pick; render(); return; }
+    if (t.dataset.use) { const [id, x] = t.dataset.use.split(':'); if (ctx.actions.useItem(id, x)) bagSel = null; render(); return; }
+    if (t.dataset.gear) { const [id, g] = t.dataset.gear.split(':'); ctx.actions.gear(id, g); render(); return; }
+    if (t.dataset.civic) { ctx.actions.civic(t.dataset.civic); render(); return; }
+    if (t.dataset.flag) { ctx.actions.flag(t.dataset.flag); render(); return; }
+    if (t.dataset.fthing) { ctx.actions.followThing(t.dataset.fthing); if (matchMedia('(max-width: 899px)').matches) close(); return; }
+    if (t.dataset.npc) {
+      const [k, id, o] = t.dataset.npc.split(':');
+      if (k === 'accept') ctx.actions.npcAccept(id);
+      else if (k === 'choose') ctx.actions.npcChoose(id, o);
+      else ctx.actions.npcClaim(id);
+      render();
+      return;
+    }
+    if (t.dataset.chal) { if (t.dataset.chal === 'accept') ctx.actions.chalAccept(); else ctx.actions.chalClaim(); render(); return; }
+    if (t.dataset.weekly !== undefined) { ctx.actions.weeklyClaim(+t.dataset.weekly); render(); return; }
+    if (t.dataset.shot) { const [k, id] = t.dataset.shot.split(':'); ctx.actions.shotClaim(k, id); render(); return; }
     if (t.dataset.tier) { const [id, k] = t.dataset.tier.split(':'); ctx.actions.tier(id, +k); render(); return; }
     if (t.dataset.promo) { ctx.actions.promo(t.dataset.promo); render(); return; }
     if (t.dataset.lift) { ctx.actions.lift(t.dataset.lift); render(); return; }
@@ -665,6 +904,9 @@ export function createUI(root, ctx) {
   });
   $('#sheetX').addEventListener('click', close);
   $('#btnQuests').addEventListener('click', () => openPanel('quests'));
+  $('#btnBag').addEventListener('click', () => openPanel('bag'));
+  $('#chalChip').addEventListener('click', () => openQuests('chal'));
+  function openQuests(tab) { qTab = tab; if (open === 'quests') render(); else openPanel('quests'); }
   $('#qnext').addEventListener('click', () => {
     const p = questProgress(st());
     if (p && p.q.target === 'port') { if (st().port.lv) portTab = s0(p.index); openPanel('port', true); ctx.actions.focusPort(); }
@@ -686,7 +928,7 @@ export function createUI(root, ctx) {
     ctx.actions.photo(on);
   }
   // 擋住介面上的指標事件，避免拖到地圖
-  for (const el of root.querySelectorAll('.hud, .row2, .tools, .questbar, .nav, .sheet, .modal, .toasts, .photobar')) {
+  for (const el of root.querySelectorAll('.hud, .row2 > *, .tools, .questbar, .nav, .sheet, .modal, .toasts, .photobar')) {
     el.addEventListener('pointerdown', (e) => e.stopPropagation());
     el.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
   }
@@ -709,17 +951,44 @@ export function createUI(root, ctx) {
     pop(text, x, y, z, cls = '') { pop(text, x, y, z, cls); },
     act: (k, ...args) => ctx.actions[k](...args),
     // 跟拍資訊
-    follow(d, a) {
+    follow(d, a, color) {
       const el = $('#follow');
       el.hidden = !d;
       if (!d) return;
       const html = `${icon('eye', 14)}<span><b>${esc(d.who)}</b> ${esc(d.what)}${d.left ? ` · 還要 ${d.left} 分` : ''}${d.paid ? ` · 付了 ${money(d.paid, true)}` : ''}</span><i>${icon('close', 12)}</i>`;
       if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
       if (a) el.style.setProperty('--c', `rgb(${a.shirt.map((v) => Math.round(Math.pow(v, 1 / 2.2) * 255)).join(',')})`);
+      else if (color) el.style.setProperty('--c', color);
     },
     recording(on) { root.querySelector('[data-ph=rec]').classList.toggle('on', on); root.querySelector('[data-ph=rec] span').textContent = on ? '停止錄影' : '錄影'; },
     photo(on) { photo(on); },
-    openApt, openMark, openRival,
+    openApt, openMark, openRival, openQuests,
+    // 領獎：金幣從畫面中間飛進資金欄（減少動態效果時只閃一下）
+    coins(amount) {
+      const box = $('.funds');
+      box.classList.remove('gain');
+      void box.offsetWidth;
+      box.classList.add('gain');
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Element.prototype.animate) return;
+      const to = $('.coin').getBoundingClientRect();
+      const sx = innerWidth / 2, sy = innerHeight * 0.5;
+      const n = Math.min(10, 3 + Math.round(Math.log10(Math.max(10, amount))));
+      for (let i = 0; i < n; i++) {
+        const el = document.createElement('i');
+        el.className = 'coinfx';
+        el.style.left = `${sx}px`;
+        el.style.top = `${sy}px`;
+        root.appendChild(el);
+        const a = (i / n) * Math.PI * 2, r = 26 + (i % 3) * 12;
+        const jx = Math.cos(a) * r, jy = Math.sin(a) * r * 0.7;
+        const dx = to.left + to.width / 2 - sx, dy = to.top + to.height / 2 - sy;
+        el.animate([
+          { transform: 'translate(-50%, -50%) scale(.4)', opacity: 0 },
+          { transform: `translate(-50%, -50%) translate(${jx}px, ${jy - 18}px) scale(1)`, opacity: 1, offset: 0.25 },
+          { transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(.55)`, opacity: 0.9 },
+        ], { duration: 720 + i * 45, easing: 'cubic-bezier(.45, 0, .55, 1)', fill: 'forwards' }).onfinish = () => el.remove();
+      }
+    },
     modal(html) {
       $('#modal').innerHTML = html;
       $('#modal').hidden = false;
@@ -877,7 +1146,23 @@ export function createUI(root, ctx) {
         $('#qhint').textContent = '自由經營：挑戰更高的單日營收';
         $('#qval').textContent = '';
       }
-      $('#qBadge').textContent = qp ? '1' : dd || '';
+      const cl = claimables(s);
+      $('#qBadge').textContent = cl || (qp ? '1' : dd || '');
+      $('#qBadge').classList.toggle('gift', cl > 0);
+      $('#bagBadge').textContent = bagTotal(s) || '';
+      {
+        const c = s.chal, now = absMin(s), chip = $('#chalChip');
+        chip.hidden = !c || c.state === 'fail';
+        if (c && c.state !== 'fail') {
+          const p = chalProgress(s);
+          const txt = c.state === 'offer' ? `新挑戰 · ${hrs(Math.max(0, c.offerUntil - now))}內接受`
+            : c.state === 'ready' ? '挑戰成功 · 去領獎'
+              : c.start > now ? `挑戰 · ${hrs(c.start - now)}後開始`
+                : c.k === 'calm' ? `撐住 · 剩 ${hrs(Math.max(0, c.end - now))}` : `挑戰 ${c.k === 'rev' ? money(p.cur) : p.cur} / ${c.k === 'rev' ? money(p.goal) : p.goal} · 剩 ${hrs(Math.max(0, c.end - now))}`;
+          const html = `${icon(c.state === 'ready' ? 'gift' : 'timer', 14)}<span>${txt}</span>`;
+          if (chip.dataset.h !== html) { chip.dataset.h = html; chip.innerHTML = html; chip.className = `chip chal ${c.state}`; }
+        }
+      }
       const affordable = BIZ.filter((b) => !s.biz[b.id].lv && s.money >= b.cost).length;
       $('#shopBadge').textContent = affordable || '';
       $('#alertBadge').textContent = unread ? Math.min(unread, 9) : '';
