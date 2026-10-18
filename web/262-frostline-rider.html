@@ -2307,7 +2307,8 @@ const FIELDS = { cp: CP_DEF.map(p => navField(p.x, p.z, false)), cpV: CP_DEF.map
 // 世界切換旗標：高架追擊或據點攻防（固定的貨運區）
 const CQ = { on: false };
 // ───────── 步兵：TR 與 ORC 兩隊共用骨架，每塊骨頭一個合併網格（頂點色），幾何依隊伍建一次後共用 ─────────
-// 骨架與騎士相同（骨盆 0.98、肩 ±0.25、大腿與小腿各 0.44），姿勢與 IK 可以共用同一套算法
+// 骨架比例照 1.8 m 成人：髖關節 0.92、肩關節 1.49（左右 ±0.2）、頸根 1.59、眼睛約 1.73；大腿與小腿各 0.44，腳踝離地 0.077
+// 身體（軀幹、四肢、頭）用平滑放樣管做出肌肉與骨架的起伏，卡通著色會出現柔和的明暗帶；裝甲板件保留倒角切面
 function mergeC(parts) {
   const gs = parts.map(([g, m, hex]) => { const x = g.index ? g.toNonIndexed() : g.clone(); if (m) x.applyMatrix4(m); if (!x.attributes.normal) x.computeVertexNormals(); x.userData.c = new C(hex); return x; });
   let n = 0; for (const g of gs) n += g.attributes.position.count;
@@ -2315,73 +2316,110 @@ function mergeC(parts) {
   for (const g of gs) { const k = g.attributes.position.count, c = g.userData.c; pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); for (let i = 0; i < k; i++) { col[(o + i) * 3] = c.r; col[(o + i) * 3 + 1] = c.g; col[(o + i) * 3 + 2] = c.b; } o += k; g.dispose(); }
   const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); out.setAttribute('color', new THREE.BufferAttribute(col, 3)); return out;
 }
+// 平滑放樣管：rings = [[y, 半寬, 半深, 中心 x, 中心 z], …]（y 可遞增或遞減），圓周 n 段、兩端封口，法線平滑
+function tube(rings, n = 12) {
+  const R = rings.length, pos = [], idx = [], up = rings[R - 1][0] > rings[0][0];
+  for (const [y, rx, rz, cx = 0, cz = 0] of rings) for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; pos.push(cx + Math.sin(a) * rx, y, cz + Math.cos(a) * rz); }
+  for (let r = 0; r < R - 1; r++) for (let i = 0; i < n; i++) { const a = r * n + i, b = r * n + (i + 1) % n, c = a + n, d = b + n; if (up) idx.push(a, b, c, b, d, c); else idx.push(a, c, b, b, c, d); }
+  for (const r of [0, R - 1]) {
+    const [y, , , cx = 0, cz = 0] = rings[r], c0 = pos.length / 3, top = (r === R - 1) === up; pos.push(cx, y, cz);
+    for (let i = 0; i < n; i++) { const a = r * n + i, b = r * n + (i + 1) % n; if (top) idx.push(c0, a, b); else idx.push(c0, b, a); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
 const SOLD_MAT = toon(0xffffff, { vertexColors: true });
 const TEAM_PAL = [
-  // TR：白色裝甲、深綠戰袍紅下襬、白背包紅三角、青色護目鏡
-  { armor: 0xd4d1e0, plate: 0xb8b4c9, suit: 0x2b2936, dark: 0x1d1b24, mid: 0x55516a, tabard: 0x2b4637, hem: 0xb3393a, pack: 0xdcd9e6, tri: 0xc72f2f, boot: 0x24222b, gun: 0x34313e, glow: 0x7af1ff, holster: 0xff3b32 },
-  // ORC：槍灰重裝甲、鏽橘飾條、紅色護目鏡與防毒面罩
-  { armor: 0x4d4959, plate: 0x6e6879, suit: 0x1c1a21, dark: 0x131117, mid: 0x3a3645, tabard: 0x3d2b27, hem: 0xc2582b, pack: 0x5a5564, tri: 0xd3632b, boot: 0x16141a, gun: 0x2a2730, glow: 0xff3a24, holster: 0xff7a2a }
+  // TR：白色頭盔、肩甲與背包，深石板色防彈背心配白色胸板，灰綠作戰服、深綠戰袍紅下襬，青色護目鏡
+  { armor: 0xd6d3e0, plate: 0xb4b0c4, vest: 0x3a3e4a, fab: 0x46524a, fab2: 0x3a463e, under: 0x2a2931, mask: 0x302e37, glass: 0x15171f, belt: 0x4a4656, pouch: 0x55604f, glove: 0x2c2a31, boot: 0x26242b, sole: 0x18171c, mid: 0x5a5669, tabard: 0x2b4637, hem: 0xb3393a, pack: 0xdcd9e6, tri: 0xc72f2f, gun: 0x34313e, dark: 0x1d1b24, glow: 0x7af1ff, holster: 0xff3b32 },
+  // ORC：槍灰重裝甲、鏽褐作戰服、防毒面罩與紅色目鏡
+  { armor: 0x4f4b5b, plate: 0x6e6879, vest: 0x2d2b33, fab: 0x4a3a33, fab2: 0x3d2f2a, under: 0x1f1d23, mask: 0x2a2830, glass: 0x120f12, belt: 0x37333f, pouch: 0x4b4239, glove: 0x221f25, boot: 0x1a181d, sole: 0x111014, mid: 0x3c3846, tabard: 0x3d2b27, hem: 0xc2582b, pack: 0x5a5564, tri: 0xd3632b, gun: 0x2a2730, dark: 0x131117, glow: 0xff3a24, holster: 0xff7a2a }
 ];
 const TEAM_GLOW = TEAM_PAL.map(p => glowBasic(p.glow, 5)), TEAM_HOL = TEAM_PAL.map(p => glowBasic(p.holster, 4.5));
+const SHOULDER_X = 0.2;
 function soldierGeo(team) {
-  const c = TEAM_PAL[team], P = { pelvis: [], chest: [], head: [], up: [[], []], lo: [[], []], th: [[], []], sh: [[], []], capeA: [], capeB: [], gun: [], mg: [], at: [], ant: [], glowH: [], glowC: [], glowT: [] };
-  // 骨盆：多面體髖部、腰帶、三個彈匣袋
-  P.pelvis.push([loftY([[-0.11, [[0, -0.08], [0.1, -0.07], [0.13, 0], [0.1, 0.07], [0, 0.08]]], [0.0, [[0, -0.11], [0.15, -0.09], [0.18, 0], [0.15, 0.09], [0, 0.11]]], [0.1, [[0, -0.1], [0.14, -0.08], [0.16, 0], [0.13, 0.09], [0, 0.1]]]]), null, c.suit]);
-  P.pelvis.push([cbox(0.37, 0.06, 0.25, 0.012), mat4(0, 0.07, 0), c.mid]);
-  for (const x of [-0.1, 0, 0.1]) P.pelvis.push([cbox(0.075, 0.09, 0.05, 0.01), mat4(x, 0.05, -0.14), c.dark]);
-  P.pelvis.push([cbox(0.3, 0.2, 0.02, 0.006), mat4(0, -0.1, -0.12, 0.08), c.tabard]);
-  P.pelvis.push([box(0.3, 0.035, 0.022), mat4(0, -0.2, -0.128, 0.08), c.hem]);
-  // 軀幹：底衣、斜角胸甲、腹甲、護頸、雙層肩甲
-  P.chest.push([loftY([[0.0, [[0, -0.1], [0.13, -0.08], [0.16, 0], [0.12, 0.09], [0, 0.11]]], [0.2, [[0, -0.12], [0.17, -0.1], [0.2, 0], [0.15, 0.12], [0, 0.14]]], [0.42, [[0, -0.13], [0.21, -0.11], [0.23, 0.02], [0.17, 0.14], [0, 0.16]]], [0.52, [[0, -0.1], [0.2, -0.08], [0.21, 0], [0.14, 0.09], [0, 0.1]]], [0.57, [[0, -0.05], [0.08, -0.04], [0.09, 0], [0.06, 0.05], [0, 0.06]]]]), null, c.suit]);
-  for (const s of [-1, 1]) P.chest.push([cbox(0.2, 0.22, 0.06, 0.02), mat4(s * 0.1, 0.33, -0.165, 0.15, -s * 0.28, s * 0.08), c.armor]);
-  P.chest.push([cbox(0.22, 0.09, 0.05, 0.016), mat4(0, 0.16, -0.135, 0.1), c.armor]);
-  P.chest.push([cbox(0.2, 0.08, 0.05, 0.016), mat4(0, 0.075, -0.12, 0.05), c.plate]);
-  P.chest.push([cbox(0.29, 0.07, 0.23, 0.02), mat4(0, 0.53, 0), c.mid]);
-  for (const s of [-1, 1]) { P.chest.push([cbox(0.2, 0.06, 0.26, 0.02), mat4(s * 0.27, 0.5, 0, 0, 0, -s * 0.32), c.armor]); P.chest.push([cbox(0.17, 0.05, 0.24, 0.018), mat4(s * 0.3, 0.43, 0, 0, 0, -s * 0.55), c.plate]); }
-  // 背包：倒角外殼、紅色三角徽記、兩道深色散熱槽、底部一道青色（ORC 為橘色）燈條
-  P.chest.push([cbox(0.4, 0.46, 0.18, 0.035), mat4(0, 0.27, 0.2), c.pack]);
-  P.chest.push([cbox(0.42, 0.06, 0.2, 0.015), mat4(0, 0.06, 0.2), c.mid]);
-  { const t = triGeo.clone(); t.scale(0.17, 0.17, 1); P.chest.push([t, mat4(0, 0.36, 0.292), c.tri]); }
-  for (const y of [0.2, 0.15]) P.chest.push([box(0.22, 0.022, 0.012), mat4(0, y, 0.29), c.dark]);
-  P.glowC.push([box(0.24, 0.026, 0.02), mat4(0, 0.085, 0.29), 0]);
-  // 頭盔：TR 是圓潤的多面體盔與環繞護目鏡；ORC 是方正的盔殼加防毒面罩與雙濾罐
-  P.head.push([new THREE.CylinderGeometry(0.06, 0.07, 0.1, 8), mat4(0, -0.15, 0), c.dark]);
+  const c = TEAM_PAL[team], P = { pelvis: [], chest: [], head: [], up: [[], []], lo: [[], []], th: [[], []], sh: [[], []], ft: [[], []], capeA: [], capeB: [], gun: [], mg: [], at: [], ant: [], glowH: [], glowC: [], glowT: [] };
+  // 骨盆：臀部與胯下的褲身、腰帶與扣環、兩側斜放的彈匣袋、後腰包、前擺
+  P.pelvis.push([tube([[0.12, 0.13, 0.092], [0.05, 0.146, 0.1], [-0.03, 0.158, 0.108, 0, 0.008], [-0.09, 0.148, 0.1, 0, 0.006], [-0.14, 0.085, 0.072]], 16), null, c.fab]);
+  P.pelvis.push([tube([[0.07, 0.152, 0.108], [0.118, 0.14, 0.1]], 16), null, c.belt]);
+  P.pelvis.push([cbox(0.07, 0.045, 0.02, 0.006), mat4(0, 0.094, -0.108), c.mid]);
+  for (const s of [-1, 1]) P.pelvis.push([cbox(0.07, 0.085, 0.05, 0.012), mat4(s * 0.118, 0.06, -0.074, 0, -s * 0.64, 0), c.pouch]);
+  P.pelvis.push([cbox(0.15, 0.085, 0.055, 0.014), mat4(0, 0.06, 0.118), c.pouch]);
+  P.pelvis.push([cbox(0.19, 0.15, 0.016, 0.005), mat4(0, -0.03, -0.112, 0.07), c.tabard], [box(0.19, 0.03, 0.02), mat4(0, -0.1, -0.117, 0.07), c.hem]);
+  // 軀幹：由腰往胸擴張、肩膀收圓的上身（胸口略向前凸），外罩防彈背心、胸板、三個彈匣袋、無線電包、護領與肩帶
+  P.chest.push([tube([[0.0, 0.135, 0.095], [0.1, 0.143, 0.1], [0.22, 0.158, 0.108, 0, -0.008], [0.34, 0.17, 0.114, 0, -0.012], [0.42, 0.168, 0.105, 0, -0.006], [0.47, 0.148, 0.092], [0.52, 0.1, 0.075], [0.56, 0.06, 0.06]], 16), null, c.under]);
+  P.chest.push([tube([[0.06, 0.153, 0.114, 0, -0.004], [0.2, 0.17, 0.124, 0, -0.012], [0.33, 0.183, 0.13, 0, -0.016], [0.42, 0.175, 0.116, 0, -0.008], [0.46, 0.156, 0.1]], 16), null, c.vest]);
+  P.chest.push([cbox(0.25, 0.2, 0.03, 0.012), mat4(0, 0.33, -0.142, 0.1), c.armor]);
+  P.chest.push([box(0.12, 0.012, 0.006), mat4(0, 0.4, -0.16, 0.1), c.tri]);
+  for (const x of [-0.07, 0, 0.07]) P.chest.push([cbox(0.058, 0.085, 0.04, 0.01), mat4(x, 0.16, -0.143), c.pouch]);
+  P.chest.push([cbox(0.05, 0.1, 0.04, 0.01), mat4(-0.13, 0.31, -0.11, 0, 0.5, 0), c.pouch], [new THREE.CylinderGeometry(0.004, 0.006, 0.16, 5), mat4(-0.14, 0.42, -0.1), c.dark]);
+  P.chest.push([tube([[0.455, 0.105, 0.088], [0.53, 0.083, 0.072]], 14), null, c.mid]);
+  for (const s of [-1, 1]) P.chest.push([cbox(0.045, 0.018, 0.24, 0.006), mat4(s * 0.105, 0.462, 0, 0, 0, s * 0.18), c.belt]);
+  // 背包：倒角外殼、捲起的睡墊、紅色三角徽記、兩道散熱槽、底部燈條
+  P.chest.push([cbox(0.33, 0.38, 0.15, 0.04), mat4(0, 0.27, 0.2), c.pack]);
+  P.chest.push([cbox(0.35, 0.05, 0.16, 0.014), mat4(0, 0.085, 0.2), c.mid]);
+  P.chest.push([new THREE.CylinderGeometry(0.055, 0.055, 0.32, 12), mat4(0, 0.5, 0.2, 0, 0, Math.PI / 2), c.fab2]);
+  { const t = triGeo.clone(); t.scale(0.15, 0.15, 1); P.chest.push([t, mat4(0, 0.35, 0.277), c.tri]); }
+  for (const y of [0.21, 0.17]) P.chest.push([box(0.2, 0.02, 0.012), mat4(0, y, 0.277), c.dark]);
+  P.glowC.push([box(0.22, 0.024, 0.02), mat4(0, 0.107, 0.278), 0]);
+  // 頭：頸、蒙面頭套（下巴往前收）；TR 圓頂頭盔、頂脊、環繞深色面罩與發光細線、耳罩、護頸；ORC 方盔加防毒面罩、雙濾罐、紅色目鏡
+  P.head.push([tube([[-0.05, 0.05, 0.055, 0, 0.014], [-0.22, 0.058, 0.062, 0, 0.012]], 12), null, c.under]);
+  P.head.push([tube([[0.03, 0.09, 0.1, 0, 0.012], [-0.03, 0.095, 0.108, 0, 0.006], [-0.09, 0.083, 0.098, 0, -0.004], [-0.135, 0.064, 0.08, 0, -0.012], [-0.162, 0.038, 0.048, 0, -0.03]], 14), null, c.mask]);
   if (team === 0) {
-    P.head.push([loft([[-0.16, [[0, -0.07], [0.04, -0.06], [0.05, 0], [0.04, 0.06], [0, 0.075]]], [-0.08, [[0, -0.13], [0.12, -0.11], [0.15, 0], [0.13, 0.11], [0, 0.16]]], [0.04, [[0, -0.14], [0.13, -0.11], [0.16, 0], [0.14, 0.12], [0, 0.18]]], [0.14, [[0, -0.1], [0.1, -0.08], [0.13, 0.01], [0.1, 0.1], [0, 0.14]]], [0.2, [[0, -0.03], [0.04, -0.02], [0.05, 0.02], [0.03, 0.06], [0, 0.07]]]]), null, c.armor]);
-    P.head.push([new THREE.CylinderGeometry(0.188, 0.188, 0.075, 18, 1, true, Math.PI - 1.0, 2.0), mat4(0, 0.005, 0.02), c.dark]);
-    P.glowH.push([new THREE.CylinderGeometry(0.193, 0.193, 0.028, 18, 1, true, Math.PI - 0.9, 1.8), mat4(0, 0.008, 0.02), 0]);
-    for (const s of [-1, 1]) P.head.push([new THREE.CylinderGeometry(0.055, 0.06, 0.04, 8), mat4(s * 0.155, -0.005, 0.02, 0, 0, Math.PI / 2), c.mid]);
-    P.head.push([cbox(0.17, 0.07, 0.09, 0.02), mat4(0, -0.095, -0.12, 0.4), c.mid]);
+    P.head.push([tube([[0.132, 0.018, 0.02, 0, 0.012], [0.122, 0.068, 0.078, 0, 0.01], [0.094, 0.106, 0.122, 0, 0.012], [0.05, 0.126, 0.142, 0, 0.012], [0.0, 0.131, 0.147, 0, 0.012], [-0.035, 0.128, 0.143, 0, 0.012]], 18), null, c.armor]);
+    P.head.push([cbox(0.022, 0.03, 0.2, 0.008), mat4(0, 0.13, 0.02, 0.05), c.plate]);
+    P.head.push([cbox(0.2, 0.024, 0.05, 0.008), mat4(0, 0.012, -0.123, 0.25), c.plate]);
+    P.head.push([new THREE.CylinderGeometry(0.133, 0.128, 0.065, 22, 1, true, Math.PI - 1.1, 2.2), mat4(0, -0.03, 0.012), c.glass]);
+    P.glowH.push([new THREE.CylinderGeometry(0.135, 0.135, 0.008, 22, 1, true, Math.PI - 1.0, 2.0), mat4(0, -0.012, 0.012), 0]);
+    for (const s of [-1, 1]) P.head.push([new THREE.CylinderGeometry(0.04, 0.043, 0.03, 12), mat4(s * 0.132, -0.035, 0.02, 0, 0, Math.PI / 2), c.mid]);
+    P.head.push([cbox(0.2, 0.055, 0.045, 0.012), mat4(0, -0.06, 0.13, -0.35), c.armor]);
+    P.head.push([cbox(0.09, 0.045, 0.035, 0.01), mat4(0, -0.125, -0.083, 0.35), c.mid]);
   } else {
-    P.head.push([cbox(0.3, 0.2, 0.32, 0.05), mat4(0, 0.06, 0.02), c.armor]);
-    P.head.push([cbox(0.33, 0.04, 0.36, 0.015), mat4(0, -0.02, 0.02), c.plate]);
-    P.head.push([cbox(0.2, 0.15, 0.12, 0.04), mat4(0, -0.08, -0.15, 0.25), c.dark]);
-    for (const s of [-1, 1]) P.head.push([new THREE.CylinderGeometry(0.045, 0.045, 0.08, 10), mat4(s * 0.1, -0.11, -0.2, 1.2, 0, s * 0.5), c.mid]);
-    for (const s of [-1, 1]) P.glowH.push([new THREE.CircleGeometry(0.035, 10), mat4(s * 0.065, 0.04, -0.141, 0, Math.PI, 0), 0]);
-    P.head.push([cbox(0.27, 0.06, 0.02, 0.008), mat4(0, 0.04, -0.135), c.dark]);
+    P.head.push([cbox(0.26, 0.17, 0.29, 0.05), mat4(0, 0.05, 0.015), c.armor]);
+    P.head.push([cbox(0.28, 0.032, 0.31, 0.012), mat4(0, -0.02, 0.015), c.plate]);
+    P.head.push([cbox(0.22, 0.05, 0.02, 0.006), mat4(0, -0.02, -0.128), c.glass]);
+    for (const s of [-1, 1]) P.glowH.push([new THREE.CircleGeometry(0.026, 12), mat4(s * 0.05, -0.02, -0.139, 0, Math.PI, 0), 0]);
+    P.head.push([cbox(0.14, 0.11, 0.1, 0.035), mat4(0, -0.1, -0.1, 0.25), c.dark]);
+    for (const s of [-1, 1]) P.head.push([new THREE.CylinderGeometry(0.038, 0.038, 0.07, 12), mat4(s * 0.07, -0.13, -0.15, 1.2, 0, s * 0.5), c.mid]);
+    P.head.push([cbox(0.2, 0.06, 0.04, 0.012), mat4(0, -0.06, 0.13, -0.35), c.armor]);
   }
-  // 手臂：肩球＋袖＋二頭護板；肘球＋前臂護腕＋手套
   for (const [i, s] of [[0, -1], [1, 1]]) {
-    P.up[i].push([new THREE.SphereGeometry(0.06, 8, 6), null, c.mid], [new THREE.CylinderGeometry(0.055, 0.047, 0.25, 8), mat4(0, -0.15, 0), c.suit], [cbox(0.06, 0.16, 0.1, 0.016), mat4(s * 0.03, -0.12, 0), c.armor]);
-    P.lo[i].push([new THREE.SphereGeometry(0.05, 8, 6), null, c.dark], [new THREE.CylinderGeometry(0.058, 0.044, 0.2, 6), mat4(0, -0.13, 0), c.armor], [cbox(0.075, 0.08, 0.09, 0.014), mat4(0, -0.3, 0), c.dark]);
-    // 腿：大腿底衣＋前護板（右腿外側掛槍套）；膝甲＋小腿＋脛甲＋戰術靴
-    P.th[i].push([new THREE.SphereGeometry(0.075, 8, 6), null, c.dark], [new THREE.CylinderGeometry(0.08, 0.066, 0.4, 8), mat4(0, -0.22, 0), c.suit], [cbox(0.13, 0.27, 0.05, 0.018), mat4(0, -0.19, -0.075, -0.06), c.armor]);
-    if (s > 0) { P.th[i].push([cbox(0.06, 0.2, 0.13, 0.015), mat4(0.1, -0.2, 0.0), c.dark]); P.glowT.push([box(0.012, 0.13, 0.03), mat4(0.132, -0.2, 0.0), 0]); }
-    P.sh[i].push([new THREE.SphereGeometry(0.062, 8, 6), null, c.mid], [cbox(0.13, 0.13, 0.05, 0.02), mat4(0, 0, -0.07, -0.25), c.armor], [new THREE.CylinderGeometry(0.066, 0.05, 0.36, 8), mat4(0, -0.22, 0.012), c.suit], [cbox(0.115, 0.3, 0.045, 0.018), mat4(0, -0.22, -0.06), c.plate]);
-    P.sh[i].push([loft([[0.08, [[0, -0.05], [0.055, -0.045], [0.06, 0.03], [0, 0.045]]], [-0.02, [[0, -0.05], [0.066, -0.045], [0.064, 0.02], [0, 0.03]]], [-0.15, [[0, -0.05], [0.06, -0.045], [0.055, -0.005], [0, 0]]], [-0.2, [[0, -0.05], [0.045, -0.045], [0.04, -0.025], [0, -0.02]]]]), mat4(0, -0.44, 0), c.boot], [cbox(0.13, 0.03, 0.29, 0.008), mat4(0, -0.505, -0.055), c.dark], [new THREE.CylinderGeometry(0.062, 0.066, 0.1, 8), mat4(0, -0.41, 0.005), c.mid]);
+    // 上臂：三角肌到肱二頭肌、往肘部收窄；肩甲是包住三角肌的圓殼加下層護板，外緣一道隊色條
+    P.up[i].push([tube([[0.045, 0.045, 0.05], [0.0, 0.062, 0.064], [-0.06, 0.058, 0.06, 0, -0.004], [-0.15, 0.05, 0.053, 0, -0.006], [-0.25, 0.043, 0.045], [-0.3, 0.04, 0.04]], 12), null, c.fab]);
+    P.up[i].push([tube([[0.058, 0.02, 0.028], [0.05, 0.058, 0.07], [0.025, 0.075, 0.086], [-0.01, 0.079, 0.09], [-0.03, 0.074, 0.085]], 14), mat4(s * 0.02, 0.005, 0, 0, 0, -s * 0.3), c.armor]);
+    P.up[i].push([tube([[0.0, 0.066, 0.078], [-0.035, 0.063, 0.075]], 14), mat4(s * 0.03, -0.045, 0, 0, 0, -s * 0.34), c.plate]);
+    P.up[i].push([box(0.012, 0.02, 0.09), mat4(s * 0.07, 0.03, 0, 0, 0, -s * 0.3), c.tri]);
+    // 前臂：肘、前臂肌肉往手腕收細、護腕、手套（掌心、彎曲的四指與拇指，握槍的形狀）
+    P.lo[i].push([tube([[0.035, 0.04, 0.042], [-0.02, 0.046, 0.047], [-0.08, 0.048, 0.046, 0, 0.004], [-0.17, 0.039, 0.037], [-0.215, 0.032, 0.029]], 12), null, c.fab]);
+    P.lo[i].push([tube([[-0.07, 0.052, 0.051], [-0.19, 0.042, 0.04]], 12), null, c.plate]);
+    P.lo[i].push([cbox(0.06, 0.07, 0.035, 0.014), mat4(0, -0.005, 0.045), c.plate]);
+    P.lo[i].push([cbox(0.066, 0.085, 0.034, 0.013), mat4(0, -0.258, 0.004), c.glove], [cbox(0.064, 0.048, 0.044, 0.014), mat4(0, -0.295, -0.022, 0.45), c.glove], [cbox(0.024, 0.055, 0.024, 0.008), mat4(-s * 0.034, -0.252, -0.028, 0.3, 0, s * 0.45), c.glove]);
+    // 大腿：臀側到膝上收窄、前側股四頭肌略凸；外側貨袋，右腿外掛發光槍套
+    P.th[i].push([tube([[0.06, 0.07, 0.075], [0.0, 0.086, 0.092], [-0.08, 0.088, 0.094, 0, -0.006], [-0.2, 0.078, 0.084, 0, -0.008], [-0.33, 0.064, 0.068, 0, -0.004], [-0.43, 0.058, 0.06]], 14), null, c.fab]);
+    P.th[i].push([cbox(0.04, 0.11, 0.09, 0.012), mat4(s * 0.086, -0.22, 0.0), c.fab2]);
+    if (s > 0) { P.th[i].push([cbox(0.055, 0.17, 0.11, 0.012), mat4(0.1, -0.21, -0.005), c.dark]); P.glowT.push([box(0.012, 0.12, 0.03), mat4(0.13, -0.21, -0.005), 0]); }
+    // 小腿：膝甲、後側腿肚的弧度、脛甲，褲管塞進靴筒
+    P.sh[i].push([cbox(0.1, 0.11, 0.05, 0.022), mat4(0, -0.005, -0.062, -0.15), c.plate]);
+    P.sh[i].push([tube([[0.03, 0.057, 0.06], [-0.06, 0.059, 0.067, 0, 0.014], [-0.16, 0.055, 0.061, 0, 0.012], [-0.29, 0.045, 0.048, 0, 0.004], [-0.37, 0.04, 0.043]], 14), null, c.fab]);
+    P.sh[i].push([cbox(0.085, 0.22, 0.026, 0.011), mat4(0, -0.19, -0.054, -0.04), c.plate]);
+    // 戰術靴（踝關節為原點）：靴筒、多面體鞋面、鋼頭、鞋底與鞋跟；鞋底底面在踝下 0.077
+    P.ft[i].push([new THREE.CylinderGeometry(0.056, 0.06, 0.12, 12), mat4(0, 0.03, 0.005), c.boot]);
+    P.ft[i].push([loft([[0.075, [[0, -0.05], [0.052, -0.045], [0.057, 0.03], [0, 0.045]]], [-0.02, [[0, -0.05], [0.062, -0.045], [0.06, 0.02], [0, 0.03]]], [-0.14, [[0, -0.05], [0.057, -0.045], [0.052, -0.005], [0, 0]]], [-0.19, [[0, -0.05], [0.042, -0.045], [0.038, -0.025], [0, -0.02]]]]), null, c.boot]);
+    P.ft[i].push([cbox(0.1, 0.035, 0.07, 0.012), mat4(0, -0.03, -0.15, 0.2), c.mid]);
+    P.ft[i].push([cbox(0.124, 0.024, 0.28, 0.008), mat4(0, -0.065, -0.055), c.sole], [cbox(0.105, 0.03, 0.07, 0.008), mat4(0, -0.062, 0.055), c.sole]);
   }
-  P.capeA.push([box(0.34, 0.2, 0.018), mat4(0, -0.1, 0), c.tabard]);
-  P.capeB.push([box(0.32, 0.18, 0.018), mat4(0, -0.09, 0), c.tabard], [box(0.32, 0.04, 0.022), mat4(0, -0.18, 0), c.hem]);
-  // 步槍（BR-9 卡賓）：機匣、長槍管、彈匣、槍托與瞄具；槍管朝 +Z
+  // 戰袍後擺：腰後垂到膝上，兩節擺動
+  P.capeA.push([box(0.3, 0.22, 0.016), mat4(0, -0.11, 0), c.tabard]);
+  P.capeB.push([box(0.28, 0.2, 0.016), mat4(0, -0.1, 0), c.tabard], [box(0.28, 0.035, 0.02), mat4(0, -0.19, 0), c.hem]);
+  // 步槍（BR-9 卡賓）：機匣、長槍管、彈匣、槍托與瞄具；槍管朝 +Z，槍托底板在 z = -0.4
   P.gun.push([cbox(0.07, 0.11, 0.5, 0.01), mat4(0, 0, 0.02), c.gun], [new THREE.CylinderGeometry(0.018, 0.022, 0.32, 8), mat4(0, 0.01, 0.42, Math.PI / 2), c.dark], [cbox(0.05, 0.14, 0.07, 0.01), mat4(0, -0.11, 0.08, 0.25), c.dark], [cbox(0.06, 0.12, 0.2, 0.01), mat4(0, -0.03, -0.3), c.mid], [cbox(0.04, 0.05, 0.14, 0.008), mat4(0, 0.085, 0.02), c.dark], [cbox(0.05, 0.12, 0.05, 0.01), mat4(0, -0.1, -0.08, 0.3), c.dark]);
   // 機槍手：粗槍管、彈鏈箱與兩腳架
   P.mg.push([cbox(0.09, 0.13, 0.62, 0.012), mat4(0, 0, 0.05), c.gun], [new THREE.CylinderGeometry(0.028, 0.032, 0.45, 10), mat4(0, 0.015, 0.55, Math.PI / 2), c.dark], [cbox(0.14, 0.13, 0.15, 0.015), mat4(-0.05, -0.12, 0.05), c.mid], [cbox(0.06, 0.12, 0.22, 0.01), mat4(0, -0.03, -0.34), c.mid], [cbox(0.05, 0.12, 0.05, 0.01), mat4(0, -0.1, -0.1, 0.3), c.dark]);
   for (const s of [-1, 1]) P.mg.push([new THREE.CylinderGeometry(0.008, 0.008, 0.3, 5), mat4(s * 0.04, -0.1, 0.62, 0.4, 0, s * 0.3), c.dark]);
   // 反裝甲手：背上斜背一支火箭筒；偵察兵：背包上的天線
-  P.at.push([new THREE.CylinderGeometry(0.065, 0.065, 1.05, 12), mat4(0.12, 0.34, 0.33, 0.3, 0, -0.45), c.mid], [new THREE.CylinderGeometry(0.08, 0.07, 0.12, 12), mat4(0.33, 0.78, 0.48, 0.3, 0, -0.45), c.dark]);
-  P.ant.push([new THREE.CylinderGeometry(0.006, 0.01, 0.75, 5), mat4(-0.13, 0.85, 0.24), c.dark], [cbox(0.07, 0.1, 0.06, 0.01), mat4(-0.13, 0.48, 0.28), c.mid]);
+  P.at.push([new THREE.CylinderGeometry(0.06, 0.06, 1.0, 12), mat4(0.1, 0.36, 0.31, 0.3, 0, -0.45), c.mid], [new THREE.CylinderGeometry(0.075, 0.065, 0.12, 12), mat4(0.3, 0.78, 0.46, 0.3, 0, -0.45), c.dark]);
+  P.ant.push([new THREE.CylinderGeometry(0.006, 0.01, 0.75, 5), mat4(-0.12, 0.85, 0.23), c.dark], [cbox(0.07, 0.1, 0.06, 0.01), mat4(-0.12, 0.48, 0.27), c.mid]);
   const G = {}; for (const k of ['pelvis', 'chest', 'head', 'capeA', 'capeB', 'gun', 'mg', 'at', 'ant', 'glowH', 'glowC', 'glowT']) G[k] = mergeC(P[k]);
-  for (const k of ['up', 'lo', 'th', 'sh']) G[k] = P[k].map(mergeC);
+  for (const k of ['up', 'lo', 'th', 'sh', 'ft']) G[k] = P[k].map(mergeC);
   return G;
 }
 const SGEO = [soldierGeo(0), soldierGeo(1)];
@@ -2391,15 +2429,19 @@ function buildSoldier(team) {
   const spine = grp(pelvis, 0, 0.08, 0), chest = grp(spine); m(chest, G.chest); m(chest, G.glowC, TEAM_GLOW[team], false);
   const at = m(chest, G.at), ant = m(chest, G.ant, SOLD_MAT, false);
   const neck = grp(chest, 0, 0.53, 0), head = grp(neck, 0, 0.17, 0); m(head, G.head); m(head, G.glowH, TEAM_GLOW[team], false);
-  const arms = [-1, 1].map((s, i) => { const upper = grp(chest, s * 0.26, 0.42, 0); m(upper, G.up[i]); const lower = grp(upper, 0, -0.3, 0); m(lower, G.lo[i]); return { upper, lower, s }; });
-  const legs = [-1, 1].map((s, i) => { const hip = grp(pelvis, s * 0.11, -0.06, 0); m(hip, G.th[i]); if (s > 0) m(hip, G.glowT, TEAM_HOL[team], false); const knee = grp(hip, 0, -0.44, 0); m(knee, G.sh[i]); return { hip, knee, s }; });
-  const capeA = grp(pelvis, 0, -0.02, 0.13); m(capeA, G.capeA, SOLD_MAT, false); const capeB = grp(capeA, 0, -0.2, 0); m(capeB, G.capeB, SOLD_MAT, false);
+  const arms = [-1, 1].map((s, i) => { const upper = grp(chest, s * SHOULDER_X, 0.42, 0); m(upper, G.up[i]); const lower = grp(upper, 0, -0.29, 0); m(lower, G.lo[i]); return { upper, lower, s }; });
+  const legs = [-1, 1].map((s, i) => { const hip = grp(pelvis, s * 0.11, -0.06, 0); m(hip, G.th[i]); if (s > 0) m(hip, G.glowT, TEAM_HOL[team], false); const knee = grp(hip, 0, -0.44, 0); m(knee, G.sh[i]); const foot = grp(knee, 0, -0.44, 0); m(foot, G.ft[i]); return { hip, knee, foot, s }; });
+  const capeA = grp(pelvis, 0, -0.01, 0.125); m(capeA, G.capeA, SOLD_MAT, false); const capeB = grp(capeA, 0, -0.22, 0); m(capeB, G.capeB, SOLD_MAT, false);
   const gun = grp(chest, 0.2, 0.26, -0.3), rifle = m(gun, G.gun), mg = m(gun, G.mg);
-  const muzzle = grp(gun, 0, 0.01, 0.58), gripR = grp(gun, 0, -0.1, -0.08), gripL = grp(gun, 0, -0.05, 0.2);
+  const muzzle = grp(gun, 0, 0.01, 0.58), gripR = grp(gun, 0, -0.1, -0.08), gripL = grp(gun, 0, -0.05, 0.14);
   root.visible = false; scene.add(root);
-  return { root, pelvis, spine, chest, neck, head, arms, legs, cape: [capeA, capeB], gun, rifle, mg, at, ant, muzzle, gripR, gripL, team, used: false, deadT: 0 };
+  return { root, pelvis, spine, chest, neck, head, arms, legs, cape: [capeA, capeB], gun, rifle, mg, at, ant, muzzle, gripR, gripL, team, used: false, deadT: 0, gs: newGait(), rig: SOLD_RIG };
 }
-function setRole(b, role) { b.mg.visible = role === 'MG'; b.rifle.visible = role !== 'MG'; b.at.visible = role === 'AT'; b.ant.visible = role === 'RCN'; b.muzzle.position.z = role === 'MG' ? 0.8 : 0.58; }
+function setRole(b, role) { b.mg.visible = role === 'MG'; b.rifle.visible = role !== 'MG'; b.at.visible = role === 'AT'; b.ant.visible = role === 'RCN'; b.muzzle.position.z = role === 'MG' ? 0.8 : 0.58; b.butt = role === 'MG' ? 0.45 : 0.4; }
+// 步態狀態（gait 用）與握槍幾何（upperBody 用，座標都在胸口骨頭裡）：
+// pocket 瞄準時槍托底板抵住的右肩窩、low 低持槍、port 衝刺時斜持在胸前；blade 瞄準時上身往右側身的角度（左肩前送，左手才搆得到護木）
+function newGait() { return { ph: 0, w: 0, t: -9, kn: 0, aim: 0, spr: 0, yaw0: 0, yr: 0, v: 0, runW: 0, armSw: 0, init: false, dir: new V3(0, 0, -1), feet: [0, 1].map(() => ({ pl: new V3(), py: 0, t: 1, from: new V3(), to: new V3(), fy: 0, ty: 0, lift: 0, gs: new V3(), ga: 0, gy: 0, il: new V3(), iy: 0, ank: new V3(), yaw: 0, a: 0 })) }; }
+const SOLD_RIG = { pocket: new V3(0.085, 0.5, -0.12), low: new V3(0.07, 0.42, -0.16), port: new V3(0.17, 0.14, -0.2), lowDir: new V3(-0.3, -0.45, -0.85).normalize(), portDir: new V3(-0.5, 0.75, -0.45).normalize(), blade: -0.5, gripAim: 0.14, gripLow: 0.04, a: 0.29, b: 0.3 };
 
 // ───────── APE 雙足步行機甲：方盒頭部一顆大光學鏡頭，逆關節雙腿，右臂機槍、左臂火箭莢艙 ─────────
 const APE_PAL = [{ hull: 0xcfccdc, plate: 0x9d99b0, dark: 0x2c2a36, joint: 0x4c4860, lens: 0x6fd8ff, stripe: 0x3e8a96 }, { hull: 0x56525f, plate: 0x3f3b48, dark: 0x1b1920, joint: 0x2e2b36, lens: 0xff4a2a, stripe: 0xc2582b }];
@@ -3741,16 +3783,6 @@ const _pole = new V3(), _tw = new V3(), _gl = new V3(), _gr = new V3();
 const _eu = new Euler(), GUN_AIM = new V3(0.16, 0.3, -0.34), GUN_RIDE = new V3(0.24, 0.12, -0.26), _ga = new V3(), _gb = new V3(), _gc = new V3();
 // 後座力：槍身沿槍管往後退、槍口上揚，手臂 IK 跟著握把一起被推回
 function recoilGun(g) { if (S.recoil > 0.01) { g.translateZ(-0.07 * S.recoil); g.rotateX(-0.16 * S.recoil); } }
-function aimGun(chestTwistMax) {
-  const g = rider.gun; g.position.copy(GUN_AIM); g.lookAt(aimPt); recoilGun(g);
-  return g;
-}
-function armsToGun() {
-  const ch = rider.chest; rider.gun.updateWorldMatrix(true, true);
-  rider.gripR.getWorldPosition(_gr); rider.gripL.getWorldPosition(_gl);
-  ik2(rider.arms[1].upper, rider.arms[1].lower, ch, _gr, ch.localToWorld(_pole.set(0.6, -0.4, 0.4)), 0.3, 0.29);
-  ik2(rider.arms[0].upper, rider.arms[0].lower, ch, _gl, ch.localToWorld(_pole.set(-0.7, -0.5, -0.1)), 0.3, 0.29);
-}
 // 騎乘骨架常數：腳跟抬起的角度、前腳掌相對腳踝的位置（鞋底貼在踏板頂面）、肘與膝的極向
 const _fq = new Q(), _fq2 = new Q(), _fq3 = new Q(), HEEL_UP = new Q().setFromEuler(new Euler(-0.35, 0, 0)), BALL = new V3(0, -0.095, -0.1);
 function poseRide(dt) {
@@ -3791,39 +3823,27 @@ function poseRide(dt) {
   // 戰袍被風吹起
   for (let i = 0; i < 3; i++) rd.cape[i].rotation.x = -(i === 0 ? 0.25 + sn * 1.0 : sn * 0.25) + Math.sin(S.time * (12 + sn * 14) + i * 1.3) * (0.05 + sn * 0.14);
 }
+// 騎士的握槍幾何：肩關節比步兵寬（±0.27），側身多一點；三把槍的槍托底板都在 z ≈ -0.34
+const RIDER_RIG = { pocket: new V3(0.1, 0.5, -0.13), low: new V3(0.09, 0.4, -0.17), port: new V3(0.19, 0.12, -0.2), lowDir: new V3(-0.25, -0.5, -0.83).normalize(), portDir: new V3(-0.5, 0.75, -0.45).normalize(), blade: -0.55, gripAim: 0.13, gripLow: 0.04, a: 0.3, b: 0.29 };
 function poseFoot(dt, speed, blend = 1) {
-  const rd = rider, f = F;
-  const fwd = fwdOf(f.yaw, _v), rt = rightOf(f.yaw, _v2);
-  const vF = f.vel.dot(fwd), vS = f.vel.dot(rt), spd = Math.hypot(vF, vS), cr = F.cr || 0;
-  f.phase += Math.min(spd, 8.5) * dt * 2.25;
-  const run = spd > 5.2, A = clamp(spd / 4.2, 0, 1) * (run ? 0.8 : 0.55), An = clamp(spd / 4.2, 0, 1.4), still = 1 - clamp(spd / 1.0, 0, 1);
-  // 步態與蹲姿和步兵共用（stride）：移動時彎腰小步，靜止時單膝跪地
-  const drop = stride(rd, f.phase, A, An, vF < -0.4 ? -1 : 1, vS, run, cr, still);
-  rd.pelvis.position.set(0, 0.98 - drop - (run ? 0.04 : 0), 0);
-  rd.pelvis.rotation.set(0, Math.sin(f.phase) * 0.12 * An, 0);
-  rd.spine.rotation.set(-0.06 - (F.spr ? 0.3 : spd * 0.022) - cr * 0.18 * (1 - still), -Math.sin(f.phase) * 0.08 * An, 0);
-  // 上半身與槍朝準星
-  rd.chest.updateWorldMatrix(true, false); rd.chest.getWorldPosition(_tw);
-  const dx = aimPt.x - _tw.x, dz = aimPt.z - _tw.z;
-  const tw = clamp(angDiff(f.yaw, Math.atan2(-dx, -dz)), -1.3, 1.3), pt = clamp(Math.atan2(aimPt.y - _tw.y, Math.hypot(dx, dz)), -0.9, 0.9);
-  rd.chest.rotation.set(pt * 0.55 * (F.spr ? 0.2 : 1), (tw * 0.7 - rd.pelvis.rotation.y - rd.spine.rotation.y) * (F.spr ? 0.3 : 1), 0);
-  rd.neck.rotation.set(pt * 0.35 - rd.spine.rotation.x * 0.5, tw * 0.3, 0);
-  // 衝刺時一律低持槍
+  const rd = rider, f = F, g = rd.gs || (rd.gs = newGait());
+  rd.rig = RIDER_RIG;
+  const fw = fwdOf(f.yaw, _v), rt = rightOf(f.yaw, _v2), air = S.ctl !== 'foot' || F.lift > 0.03;
+  const lvx = air ? 0 : f.vel.x * rt.x + f.vel.z * rt.z, lvz = air ? 0 : -(f.vel.x * fw.x + f.vel.z * fw.z), spd = Math.hypot(lvx, lvz), cr = F.cr || 0;
+  const yaw = S.ctl === 'foot' ? f.yaw : rd.root.rotation.y;
+  if (S.time - g.t > 0.25) { g.yaw0 = yaw; g.kn = 0; g.aim = 1; g.yr = 0; }
+  g.yr = damp(g.yr, angDiff(g.yaw0, yaw) / Math.max(dt, 1e-3), 10, dt); g.yaw0 = yaw;
+  g.kn = damp(g.kn, F.crouch && spd < 0.6 && !air ? 1 : 0, 7, dt);
+  // 一段時間沒開火就放低槍（右手單手持槍、左手隨步伐擺動），衝刺時斜持在胸前
   const relaxed = (S.time - S.lastFire > 1.5 && !inp().fire && S.mode === 'play') || F.spr;
   F.ready = damp(F.ready ?? 1, relaxed ? 0 : 1, 7, dt);
-  if (F.ready > 0.5) { aimGun(); armsToGun(); }
-  else {
-    // 低持槍：槍口朝前下方，右手握槍、左臂隨步伐擺動
-    const g = rd.gun; g.position.set(0.2, 0.08, -0.22);
-    rd.chest.localToWorld(_pole.set(0.25, -1.1, -3)); g.lookAt(_pole);
-    g.updateWorldMatrix(true, true); rd.gripR.getWorldPosition(_gr);
-    ik2(rd.arms[1].upper, rd.arms[1].lower, rd.chest, _gr, rd.chest.localToWorld(_pole.set(0.6, -0.4, 0.5)), 0.3, 0.29);
-    const sw = Math.sin(f.phase) * (F.spr ? 0.8 : 0.55) * An * (vF < -0.4 ? -1 : 1);
-    rd.arms[0].upper.quaternion.setFromEuler(_eu.set(sw, 0, -0.12)); rd.arms[0].lower.quaternion.setFromEuler(_eu.set(0.25 + Math.max(0, sw) * 0.6 + (F.spr ? 0.6 : 0), 0, 0));
-  }
+  g.aim = F.ready; g.spr = damp(g.spr, F.spr ? 1 : 0, 7, dt);
+  gait(rd, g, dt, lvx, lvz, { cr, kneel: g.kn, spr: F.spr, yaw, stance: F.ready, seed: 0, lean: clamp(g.yr * spd * 0.03, -0.25, 0.25), air });
+  upperBody(rd, g, aimPt, yaw, S.recoil, cr, 9, 0, 0.34, F.ready < 0.5 && !F.spr);
   // 投擲手榴彈：左臂由後上方往前甩
   if (S.throwT > 0) { const k = 1 - S.throwT / 0.45; rd.arms[0].upper.quaternion.setFromEuler(_eu.set(-2.7 + k * 3.3, 0, -0.25)); rd.arms[0].lower.quaternion.setFromEuler(_eu.set(-1.1 * (1 - k), 0, 0)); }
-  for (let i = 0; i < 3; i++) rd.cape[i].rotation.x = -(i === 0 ? 0.04 + spd * 0.06 : spd * 0.02) + Math.sin(f.phase * 2 + i) * 0.05 * An + Math.sin(S.time * 2 + i) * 0.03 - (i === 0 ? cr * still * 0.7 : 0);
+  const ph = g.ph * Math.PI * 4;
+  for (let i = 0; i < 3; i++) rd.cape[i].rotation.x = -(i === 0 ? 0.05 + g.v * 0.07 : g.v * 0.03) + Math.sin(ph + i) * 0.06 * g.w + Math.sin(S.time * 2 + i) * 0.03 - (i === 0 ? g.kn * 0.6 + cr * 0.2 : 0);
 }
 function updateFoot(dt, I) {
   // 鏡頭邊緣自動轉向
@@ -4701,47 +4721,149 @@ function pushActors(p, r, self) {
   }
 }
 
-// ── 步兵姿勢：程序走路／跑步／衝刺／蹲走／單膝跪地瞄準，手臂以 IK 握槍 ──
-const SOLD_GUN = new V3(0.16, 0.3, -0.34), SOLD_LOW = new V3(0.08, 0.14, -0.26), _sp = new V3(), _sl = new V3(), _sr = new V3();
-// 共用的步態：回傳骨盆下沉量。kneel 是靜止蹲下時的單膝跪姿（左膝著地、右腳在前）
-function stride(b, ph, A, An, dir, vS, run, cr, still) {
-  const kk = cr * still, cw = cr * (1 - still);
-  for (const L of b.legs) {
-    const p = ph + (L.s < 0 ? 0 : Math.PI);
-    let th = Math.sin(p) * A * dir + (run ? 0.1 : 0), kn = -(0.08 + Math.max(0, Math.cos(p) * dir) * 1.15 * An * (run ? 1.15 : 0.8));
-    const kTh = L.s < 0 ? 0.05 : 1.45, kKn = L.s < 0 ? -1.62 : -1.86;
-    th = th * (1 - cr) + kTh * kk + (th * 0.7 + 0.75) * cw; kn = kn * (1 - cr) + kKn * kk + (kn * 0.8 - 1.1) * cw;
-    L.hip.rotation.set(th, 0, -L.s * (0.04 + kk * 0.1) + clamp(vS / 6, -0.3, 0.3) * Math.max(0, Math.sin(p)) * 0.4 * (1 - kk));
-    L.knee.rotation.set(kn, 0, 0);
-    if (L.foot) L.foot.rotation.set(-(th + kn) * 0.6 * (1 - kk) + (L.s < 0 ? 1.1 : 0.3) * kk, 0, 0);
+// ── 步態：腳掌落地鎖定（步兵與騎士步行共用）──
+// 支撐期的腳在身體座標裡以實際速度往後移，所以在世界裡是踩住不動的；左右腳差半拍，支撐期比例由走路的 60% 降到跑步的 37%（出現騰空期），
+// 步頻隨速度提高、步幅有上限。腳踝由「鞋底中心＋腳掌俯仰」反推：腳跟離地時以前腳掌為支點，腳尖翹起時以腳跟為支點；
+// 腿用兩段 IK 對準腳踝，骨盆高度不超過兩腳搆得到的範圍（跨大步時自然下沉）。停下來時腳鎖在地上，轉身或挪動超過門檻才一次補一步。
+const ANK = 0.077, BALL_Z = -0.12, HEEL_Z = 0.065, LEG_R = 0.874;
+const _sp = new V3(), _sl = new V3(), _sr = new V3();
+const _gq = new Q(), _gq2 = new Q(), _gq3 = new Q(), _ge = new Euler(), _gv = new V3(), _gw = new V3(), _gpo = new V3();
+// 鞋底中心 sole（身體座標）、腳掌偏航 yaw、俯仰 a（正值腳尖翹起、負值腳跟離地）→ 腳踝位置
+function ankleFrom(sole, yaw, a, out) {
+  _ge.set(a, yaw, 0, 'YXZ'); _gq.setFromEuler(_ge);
+  const pz = a >= 0 ? HEEL_Z : BALL_Z;
+  _gv.set(0, 0, pz).applyAxisAngle(UP, yaw).add(sole);
+  _gw.set(0, -ANK, pz).applyQuaternion(_gq);
+  return out.subVectors(_gv, _gw);
+}
+// lvx／lvz：身體座標的速度（+x 往右、+z 往後）；o = { cr 蹲姿, kneel 跪姿, spr 衝刺, yaw 身體朝向, stance 持槍戒備（左腳前、右腳後）, seed, lean 轉彎內傾, air 騰空 }
+function gait(b, g, dt, lvx, lvz, o) {
+  const v = Math.hypot(lvx, lvz), feet = g.feet, root = b.root, kn = o.kneel;
+  if (S.time - g.t > 0.25) g.init = false;
+  g.t = S.time;
+  const mv = v > 0.3 && !o.air ? 1 : 0;
+  g.w = damp(g.w, mv, mv ? 7 : 5, dt);
+  if (v > 0.05) { _gv.set(lvx / v, 0, lvz / v); g.dir.lerp(_gv, 1 - Math.exp(-12 * dt)).normalize(); }
+  const dir = g.dir, cr = o.cr * (1 - kn), runW = smooth(2.6, 4.6, v) * (1 - cr), sp = clamp(v / 1.5, 0, 1);
+  const D = lerp(lerp(0.6, 0.37, runW), 0.66, cr), Lmax = lerp(0.9, 1.15, runW) * lerp(1, 0.72, cr);
+  const f = clamp(v * D / Lmax, 0.9, 2.2), Ls = v * D / f;
+  if (v > 0.05) g.ph = (g.ph + f * dt) % 1;
+  const h = (0.11 + 0.17 * runW + (o.spr ? 0.08 : 0)) * clamp(v / 1.2, 0.35, 1) * (1 - 0.35 * cr), roll = clamp(v / 1.2, 0, 1);
+  g.v = v; g.runW = runW;
+  root.updateWorldMatrix(true, false); root.getWorldQuaternion(_gq3);
+  // 1) 步行循環：支撐期往後滑（世界中不動）、擺盪期抬腳往前，跑步時腳跟往後上踢
+  for (let i = 0; i < 2; i++) {
+    const s = b.legs[i].s, F = feet[i], p = (g.ph + i * 0.5) % 1;
+    let along, lift = 0, a;
+    if (p < D) { const u = p / D; along = Ls * (0.5 - u); a = u < 0.15 ? 0.28 * (1 - runW) * (1 - u / 0.15) ** 2 : -0.85 * smooth(0.6, 1, u); }
+    else {
+      const s2 = (p - D) / (1 - D), e = s2 * s2 * (3 - 2 * s2);
+      along = Ls * (-0.5 + e) - runW * 0.2 * Math.sin(Math.PI * s2) * (1 - s2);
+      lift = h * Math.sin(Math.PI * Math.min(1, s2 * 1.12)) + runW * 0.16 * Math.sin(Math.PI * Math.min(1, s2 * 1.3)) ** 2;
+      a = lerp(-0.85, 0.25 * (1 - runW), smooth(0.05, 0.85, s2));
+    }
+    const W = 0.105 + 0.04 * Math.abs(dir.x) + 0.02 * cr;
+    F.gs.set(s * W + dir.x * along, lift, dir.z * along);
+    F.gs.x = s < 0 ? Math.min(F.gs.x, -0.045) : Math.max(F.gs.x, 0.045);
+    F.ga = a * roll; F.gy = s * 0.07;
+    // 站姿：持槍戒備時左腳在前、右腳在後並外開
+    F.il.set(s * (0.12 + 0.015 * o.stance), 0, (s < 0 ? -0.07 : 0.09) * o.stance); F.iy = s * 0.08 + (s > 0 ? 0.32 : -0.06) * o.stance;
   }
-  return Math.abs(Math.sin(ph)) * 0.055 * An * (1 - cr) + kk * 0.42 + cw * 0.28;
+  // 2) 落腳點：走動中跟著步行循環；停下來鎖在世界座標
+  for (const F of feet) if (!g.init || g.w > 0.55 || o.air) { F.pl.copy(g.init && !o.air ? F.gs : F.il).setY(0); root.localToWorld(F.pl); F.py = o.yaw + (g.init && !o.air ? F.gy : F.iy); F.t = 1; }
+  g.init = true;
+  if (feet[0].t >= 1 && feet[1].t >= 1 && g.w <= 0.55) {
+    let best = -1, bd = 0;
+    for (let i = 0; i < 2; i++) { const F = feet[i]; _gv.copy(F.il); root.localToWorld(_gv); const d = Math.hypot(_gv.x - F.pl.x, _gv.z - F.pl.z) + Math.abs(angDiff(F.py, o.yaw + F.iy)) * 0.25; if (d > 0.15 && d > bd) { bd = d; best = i; } }
+    if (best >= 0) { const F = feet[best]; F.from.copy(F.pl); F.to.copy(F.il); root.localToWorld(F.to); F.to.y = F.pl.y; F.fy = F.py; F.ty = o.yaw + F.iy; F.t = 0; }
+  }
+  for (const F of feet) if (F.t < 1) { F.t = Math.min(1, F.t + dt / 0.24); const e = smooth(0, 1, F.t); F.pl.lerpVectors(F.from, F.to, e); F.py = F.fy + angDiff(F.fy, F.ty) * e; F.lift = 0.075 * Math.sin(Math.PI * F.t); } else F.lift = 0;
+  // 3) 混合：停步落腳 ↔ 步行循環 ↔ 跪姿（左膝著地、腳尖撐地，右腳在前踩平），算出腳踝
+  for (let i = 0; i < 2; i++) {
+    const s = b.legs[i].s, F = feet[i];
+    _gw.copy(F.pl); root.worldToLocal(_gw); _gw.y += F.lift;
+    const sole = _gw.lerp(F.gs, g.w);
+    let yaw = lerp(angDiff(o.yaw, F.py), F.gy, g.w), a = lerp(F.t < 1 ? -0.3 * Math.sin(Math.PI * F.t) : 0, F.ga, g.w);
+    if (kn > 0) { sole.lerp(_gpo.set(s < 0 ? -0.12 : 0.15, 0, s < 0 ? 0.52 : -0.3), kn); a = lerp(a, s < 0 ? -1.15 : 0, kn); yaw = lerp(yaw, s * 0.1, kn); }
+    F.yaw = yaw; F.a = a; ankleFrom(sole, yaw, a, F.ank);
+  }
+  // 4) 骨盆：走路時支撐中段最高、跑步時支撐中段最低；重心左右移到支撐腳、對側髖略降；骨盆隨跨步扭轉
+  const c2 = Math.cos(2 * Math.PI * (g.ph - D / 2)), c4 = Math.cos(4 * Math.PI * (g.ph - D / 2)), wk = g.w, fwdK = -dir.z;
+  let y = lerp(lerp(0.955 - 0.04 * runW - (o.spr ? 0.03 : 0), 0.7, cr), 0.56, kn) + wk * sp * lerp(0.016, -0.032, runW) * c4 - (1 - wk) * 0.004 * Math.sin(S.time * 1.7 + o.seed);
+  const sx = -wk * sp * (1 - 0.7 * runW) * 0.024 * c2 + (1 - wk) * (1 - kn) * 0.014 * Math.sin(S.time * 0.45 + o.seed);
+  for (let i = 0; i < 2; i++) { const A = feet[i].ank, dh = Math.hypot(A.x - sx - b.legs[i].s * 0.11, A.z); y = Math.min(y, A.y + Math.sqrt(Math.max(0.0025, LEG_R * LEG_R - dh * dh)) + 0.06); }
+  const pyaw = -wk * sp * lerp(0.12, 0.2, runW) * Math.cos(2 * Math.PI * g.ph) * fwdK;
+  b.pelvis.position.set(sx, y, 0);
+  b.pelvis.rotation.set(-0.05 * runW - 0.12 * cr, pyaw, -wk * sp * 0.045 * (1 - 0.5 * runW) * c2 + o.lean * 0.4);
+  g.armSw = wk * sp * Math.cos(2 * Math.PI * g.ph) * fwdK;
+  // 5) 腿的 IK（膝蓋朝腳尖方向、略外開；跪姿右膝朝上、左膝朝下），腳掌轉成目標朝向
+  b.pelvis.updateWorldMatrix(true, false);
+  for (let i = 0; i < 2; i++) {
+    const L = b.legs[i], F = feet[i], s = L.s, A = F.ank;
+    _gv.copy(A); root.localToWorld(_gv);
+    _gpo.set((A.x + sx + s * 0.11) * 0.5 - Math.sin(F.yaw) * 1.2 + s * 0.1, (A.y + y) * 0.5 + (s > 0 ? 0.7 : -0.5) * kn, A.z * 0.5 - Math.cos(F.yaw) * 1.2); root.localToWorld(_gpo);
+    ik2(L.hip, L.knee, b.pelvis, _gv, _gpo, 0.44, 0.44);
+    L.knee.getWorldQuaternion(_gq2).invert();
+    _ge.set(F.a, F.yaw, 0, 'YXZ'); _gq.setFromEuler(_ge);
+    L.foot.quaternion.copy(_gq2).multiply(_gq3).multiply(_gq);
+  }
+}
+// ── 上半身：脊椎前傾與反向扭轉、頭部保持水平、槍托抵肩瞄準 ／ 低持槍 ／ 衝刺斜持，雙手以 IK 握住握把與護木 ──
+// tgt 是瞄準點（世界，可為 null）；rec 後座力；hitAge 距離上次中彈的秒數；free 為 true 時左手離開槍、隨步伐擺動
+const _ud = new V3(), _ud2 = new V3(), _up = new V3();
+function upperBody(b, g, tgt, yaw, rec, cr, hitAge, seed, butt, free) {
+  const R0 = b.rig, aim = g.aim, spr = g.spr, kn = g.kn, t = S.time + seed, flinch = clamp(1 - hitAge / 0.3, 0, 1), pr = b.pelvis.rotation;
+  b.spine.rotation.set(-(0.05 + 0.1 * g.runW + 0.22 * spr) - 0.28 * cr * (1 - kn) - 0.06 * kn + 0.22 * flinch, -pr.y * 0.6, -pr.z * 0.5);
+  const sr = b.spine.rotation;
+  b.chest.rotation.set(0, 0, 0); b.chest.updateWorldMatrix(true, false); b.chest.getWorldPosition(_sp);
+  let tw = 0, pt = 0;
+  if (tgt) { const dx = tgt.x - _sp.x, dz = tgt.z - _sp.z; tw = clamp(angDiff(yaw, Math.atan2(-dx, -dz)), -1.25, 1.25); pt = clamp(Math.atan2(tgt.y - _sp.y, Math.hypot(dx, dz)), -0.9, 0.9); }
+  // 胸口：平時隨步伐反扭、瞥向目標；瞄準時扭向目標並側身，前傾大部分被抵銷讓槍保持水平
+  const want = lerp(-pr.y * 0.5 + tw * 0.25, tw + R0.blade, aim);
+  b.chest.rotation.set(lerp(0.018 * Math.sin(t * 1.6), pt * 0.6 - (sr.x + pr.x) * 0.8, aim) - 0.05 * rec, want - pr.y - sr.y, -sr.z * 0.3 + flinch * 0.12 * Math.sin(seed * 7));
+  const cx = b.chest.rotation.x, tilt = pr.x + sr.x + cx, roll = pr.z + sr.z + b.chest.rotation.z;
+  // 頭：平時看前方（偶爾左右張望）、保持水平；瞄準時看向目標、低頭並往右歪貼住槍托
+  const look = Math.sin(t * 0.37) * 0.4 * (1 - g.w) * (1 - aim);
+  b.neck.rotation.set(lerp(-tilt * 0.8, pt - tilt - 0.1, aim), lerp(look + tw * 0.5 - want * 0.6, -R0.blade * 0.85, aim), -roll * 0.9 - 0.13 * aim);
+  // 槍：槍托底板落在肩窩（瞄準）／腰前（低持槍）／右腰（衝刺斜持），槍口朝瞄準方向或身體前下方
+  b.chest.updateWorldMatrix(true, false); const M = b.chest.matrixWorld;
+  const ap = aim * (1 - spr);
+  _up.copy(R0.low).lerp(R0.pocket, ap).lerp(R0.port, spr); b.chest.localToWorld(_up);
+  _ud2.copy(R0.lowDir).transformDirection(M);
+  if (tgt) _ud.subVectors(tgt, _up).normalize(); else _ud.copy(_ud2);
+  _ud.lerp(_ud2, 1 - ap).normalize();
+  _ud2.copy(R0.portDir).transformDirection(M); _ud.lerp(_ud2, spr).normalize();
+  _up.addScaledVector(_ud, butt - 0.07 * rec);
+  const gn = b.gun; gn.position.copy(_up); b.chest.worldToLocal(gn.position);
+  gn.lookAt(_gw.copy(_up).add(_ud)); if (rec > 0.01) gn.rotateX(-0.12 * rec);
+  b.gripL.position.z = lerp(R0.gripLow, R0.gripAim, ap);
+  gn.updateWorldMatrix(true, true);
+  b.gripR.getWorldPosition(_sr); ik2(b.arms[1].upper, b.arms[1].lower, b.chest, _sr, b.chest.localToWorld(_pole.set(0.6, lerp(-0.6, -0.2, ap), 0.3)), R0.a, R0.b);
+  if (!free) { b.gripL.getWorldPosition(_sl); ik2(b.arms[0].upper, b.arms[0].lower, b.chest, _sl, b.chest.localToWorld(_pole.set(-0.35, -0.8, lerp(0.1, -0.3, ap))), R0.a, R0.b); }
+  else {
+    const sw = g.armSw * lerp(0.45, 0.8, g.runW);
+    b.arms[0].upper.quaternion.setFromEuler(_eu.set(-sw, 0, -0.1 - 0.05 * g.runW));
+    b.arms[0].lower.quaternion.setFromEuler(_eu.set(0.2 + Math.max(0, -sw) * 0.6 + g.runW * 0.9, 0, 0));
+  }
 }
 function poseSoldier(u, b, dt) {
-  const fw = fwdOf(u.yaw, _v), rt = rightOf(u.yaw, _v2), vF = u.v.x * fw.x + u.v.z * fw.z, vS = u.v.x * rt.x + u.v.z * rt.z, spd = Math.hypot(vF, vS);
-  u.phase += Math.min(spd, 8) * dt * 2.25;
-  const run = spd > 4.2, A = clamp(spd / 4.2, 0, 1) * (run ? 0.8 : 0.55), An = clamp(spd / 4.2, 0, 1.4), still = 1 - clamp(spd / 1.0, 0, 1);
-  const drop = stride(b, u.phase, A, An, vF < -0.4 ? -1 : 1, vS, run, u.cr, still);
-  b.pelvis.position.set(0, 0.98 - drop - (run ? 0.04 : 0), 0); b.pelvis.rotation.set(0, Math.sin(u.phase) * 0.12 * An, 0);
-  const lean = u.sprint ? 0.32 : spd * 0.022;
-  b.spine.rotation.set(-0.06 - lean - u.cr * 0.18 * (1 - still), -Math.sin(u.phase) * 0.08 * An, 0);
-  // 上半身轉向目標（水平扭轉＋俯仰），衝刺時槍放低在胸前
-  const aiming = u.los && !u.sprint;
-  if (u.los) tCenter(u.tgt, _tc); else _tc.copy(u.p).addScaledVector(fw, 20).setY(1.2 + u.p.y);
-  b.chest.updateWorldMatrix(true, false); b.chest.getWorldPosition(_sp);
-  const dx = _tc.x - _sp.x, dz = _tc.z - _sp.z, tw = clamp(angDiff(u.yaw, Math.atan2(-dx, -dz)), -1.2, 1.2), pt = clamp(Math.atan2(_tc.y - _sp.y, Math.hypot(dx, dz)), -0.8, 0.8);
-  b.chest.rotation.set(pt * 0.5 * (aiming ? 1 : 0.3) + u.cr * still * 0.1, tw * 0.6 - b.pelvis.rotation.y - b.spine.rotation.y, 0);
-  b.neck.rotation.set(pt * 0.35 - b.spine.rotation.x * 0.5, tw * 0.35, 0);
-  const g = b.gun;
-  if (aiming) { g.position.copy(SOLD_GUN); g.lookAt(_tc); if (u.recoil > 0) { g.translateZ(-0.06 * u.recoil); g.rotateX(-0.12 * u.recoil); } }
-  else { g.position.copy(SOLD_LOW); b.chest.localToWorld(_sl.set(-0.5, -0.9, -1.4)); g.lookAt(_sl); }
-  g.updateWorldMatrix(true, true);
-  b.gripR.getWorldPosition(_sr); ik2(b.arms[1].upper, b.arms[1].lower, b.chest, _sr, b.chest.localToWorld(_pole.set(0.6, -0.4, 0.4)), 0.3, 0.29);
-  b.gripL.getWorldPosition(_sl); ik2(b.arms[0].upper, b.arms[0].lower, b.chest, _sl, b.chest.localToWorld(_pole.set(-0.7, -0.5, -0.1)), 0.3, 0.29);
-  b.cape[0].rotation.x = -(0.04 + spd * 0.06) + Math.sin(u.phase * 2) * 0.05 * An - u.cr * still * 0.7; b.cape[1].rotation.x = -spd * 0.02 + Math.sin(u.phase * 2 + 1) * 0.05 * An;
+  const g = b.gs, fw = fwdOf(u.yaw, _v), rt = rightOf(u.yaw, _v2);
+  const lvx = u.v.x * rt.x + u.v.z * rt.z, lvz = -(u.v.x * fw.x + u.v.z * fw.z), spd = Math.hypot(lvx, lvz);
+  if (u.seed === undefined) u.seed = R() * 20;
+  if (S.time - g.t > 0.25) { g.yaw0 = u.yaw; g.kn = 0; g.aim = u.los ? 1 : 0; g.yr = 0; }
+  g.yr = damp(g.yr, angDiff(g.yaw0, u.yaw) / Math.max(dt, 1e-3), 10, dt); g.yaw0 = u.yaw;
+  g.kn = damp(g.kn, u.cr > 0.5 && spd < 0.6 ? 1 : 0, 7, dt);
+  g.aim = damp(g.aim, u.los && !u.sprint ? 1 : 0, 9, dt); g.spr = damp(g.spr, u.sprint ? 1 : 0, 7, dt);
+  gait(b, g, dt, lvx, lvz, { cr: u.cr, kneel: g.kn, spr: u.sprint, yaw: u.yaw, stance: g.aim, seed: u.seed, lean: clamp(g.yr * spd * 0.03, -0.25, 0.25), air: false });
+  if (u.los) tCenter(u.tgt, _tc);
+  upperBody(b, g, u.los ? _tc : null, u.yaw, u.recoil || 0, u.cr, S.time - (u.lastHit ?? -9), u.seed, b.butt || 0.4, false);
+  // 戰袍後擺：隨速度往後飄、隨步伐擺；跪下時往後撩開
+  const ph = g.ph * Math.PI * 4;
+  b.cape[0].rotation.x = -(0.05 + g.v * 0.07) + Math.sin(ph) * 0.06 * g.w - g.kn * 0.6 - u.cr * 0.2;
+  b.cape[1].rotation.x = -g.v * 0.035 + Math.sin(ph + 1) * 0.07 * g.w + g.kn * 0.2;
   setFlash(b.root, u.flash > 0);
 }
-// 屍體：先膝蓋一軟往下坐，再以腳為支點朝中彈方向倒下，四肢放鬆；14 秒後沉進雪裡
+// 屍體：膝蓋一軟往下沉、上身往中彈方向折，再以腳為支點倒下（越倒越快），落地小彈一下，四肢攤平在地上；14 秒後沉進雪裡
 const _fq4 = new Q(), _fax = new V3();
 function updateCorpses(dt) {
   for (const pool of BODY) for (const b of pool) {
@@ -4753,17 +4875,27 @@ function updateCorpses(dt) {
   if (S.ctl === 'dead' && rider.root.parent === scene && rider.fall) { rider.deadT += dt; fallPose(rider, Math.min(rider.deadT, 3)); }
 }
 function fallPose(b, t) {
-  {
-    const k1 = smooth(0, 0.28, t), e = clamp((t - 0.12) / 0.62, 0, 1), k2 = e * e, bounce = t > 0.74 ? Math.sin(Math.min(1, (t - 0.74) / 0.25) * Math.PI) * 0.06 : 0;
-    _fax.set(b.fall.z, 0, -b.fall.x); _fq4.setFromAxisAngle(_fax, k2 * 1.45 - bounce);
-    b.root.quaternion.setFromAxisAngle(UP, b.yaw).premultiply(_fq4);
-    b.root.position.y = k2 * 0.13 - Math.max(0, t - 14) * 0.25;
-    b.pelvis.position.y = 0.98 - k1 * 0.22 * (1 - k2 * 0.6);
-    b.spine.rotation.x = k1 * 0.25 - k2 * 0.2;
-    b.legs.forEach((L, i) => { L.hip.rotation.set(k1 * (0.6 + b.limp[i] * 0.4) * (1 - k2 * 0.7), 0, L.s * k2 * 0.2); L.knee.rotation.x = -k1 * (0.9 + b.limp[i] * 0.4) * (1 - k2 * 0.6); });
-    b.arms.forEach((A, i) => { A.upper.quaternion.setFromEuler(_eu.set(-k2 * (1.2 + b.limp[i + 2]), 0, A.s * (0.3 + k2 * 0.6))); A.lower.quaternion.setFromEuler(_eu.set(0.3 + b.limp[i + 2] * 0.6, 0, 0)); });
-    b.neck.rotation.set(k2 * 0.3, (b.limp[0] - 0.5) * k2, 0);
-  }
+  // fd：倒下方向與面向的關係，1 是往前撲（趴著）、-1 是往後仰（背包著地，倒的角度小一點）
+  const fd = -(b.fall.x * Math.sin(b.yaw) + b.fall.z * Math.cos(b.yaw));
+  const k1 = smooth(0, 0.3, t), e = clamp((t - 0.18) / 0.6, 0, 1), k2 = e * e, bounce = t > 0.78 ? Math.sin(Math.min(1, (t - 0.78) / 0.22) * Math.PI) * 0.05 : 0;
+  _fax.set(b.fall.z, 0, -b.fall.x); _fq4.setFromAxisAngle(_fax, k2 * lerp(1.38, 1.5, (fd + 1) / 2) - bounce);
+  b.root.quaternion.setFromAxisAngle(UP, b.yaw).premultiply(_fq4);
+  b.root.position.y = k2 * 0.06 - Math.max(0, t - 14) * 0.25;
+  b.pelvis.position.set(0, 0.96 - k1 * 0.3 * (1 - k2), 0); b.pelvis.rotation.set(0, 0, 0);
+  b.spine.rotation.set((fd > 0 ? -0.45 : 0.3) * k1 * (1 - k2) + (fd > 0 ? -0.05 : 0.06) * k2, 0, 0);
+  b.chest.rotation.set(0, 0, 0);
+  b.legs.forEach((L, i) => {
+    const l = b.limp[i];
+    L.hip.quaternion.setFromEuler(_eu.set(k1 * (0.7 + l * 0.4) * (1 - k2) + k2 * (0.06 + l * 0.22), 0, L.s * k2 * (0.08 + l * 0.14)));
+    L.knee.quaternion.setFromEuler(_eu.set(-k1 * (1.2 + l * 0.5) * (1 - k2) - k2 * (0.08 + l * 0.45), 0, 0));
+    if (L.foot) L.foot.quaternion.setFromEuler(_eu.set(0.2 + k2 * 0.45, L.s * 0.2 * k2, 0));
+  });
+  b.arms.forEach((A, i) => {
+    const l = b.limp[i + 2];
+    A.upper.quaternion.setFromEuler(_eu.set(lerp(-0.5 - l * 0.6, 0.1 - l * 0.35, k2), 0, A.s * lerp(0.25, 0.35 + l * 0.9, k2)));
+    A.lower.quaternion.setFromEuler(_eu.set(lerp(0.6, 0.15 + l * 0.8, k2), 0, A.s * k2 * 0.3 * l));
+  });
+  b.neck.rotation.set(k2 * (fd > 0 ? -0.1 : 0.15), (b.limp[0] - 0.5) * 1.6 * k2, 0);
 }
 
 // ── 載具 ──
@@ -5252,7 +5384,7 @@ window.__fr = {
   god(v = true) { S.god = v; }, speed(kmh) { P.v = kmh / 3.6; }, dismount() { P.v = 0; beginDismount(); S.ctlT = 1; updateMountAnim(0); },
   aim(x, y) { mouse.x = x; mouse.y = y; }, fire(v = true) { mouse.fire = v; }, key(code, v = true) { keys[code] = v; },
   weapon(i) { switchWeapon(i); }, lock(v = true) { mouse.lock = v; }, LK, MSL, BEAMS, FOES, setWorld, COL, NAV, FIELDS, CP_DEF,
-  cq: { start: startCq, CQS, UNITS, VEH, CPS, PU, BODY, spawnUnit, spawnVeh, throwGren, cqHit, poseSoldier, stride },
+  cq: { start: startCq, CQS, UNITS, VEH, CPS, PU, BODY, spawnUnit, spawnVeh, throwGren, cqHit, poseSoldier, gait, fallPose },
   over: showOver, toTitle, TC, grade,
   BOSS, RAMPS, BARS, ZONES, NET, boss() { mission('drone', 10); mission('car', 5); }, bossObj: boss,
   ramp(dz = 60, x = P.pos.x) { placeRamp(x, P.pos.z - dz); }, bar(dz = 40, x = P.pos.x) { placeBar(x, P.pos.z - dz); },
