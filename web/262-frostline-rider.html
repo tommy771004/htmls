@@ -457,6 +457,7 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const angDiff = (a, b) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const R = Math.random;
@@ -991,6 +992,11 @@ const MAT = {
   paint: new THREE.MeshStandardMaterial({ color: 0x1d1b26, metalness: 0.8, roughness: 0.28, flatShading: true }),
   chrome: new THREE.MeshStandardMaterial({ color: 0x8c8aa0, metalness: 1, roughness: 0.22 }),
   rubber: toon(0x15131b), glass: new THREE.MeshStandardMaterial({ color: 0x0c0b14, metalness: 0.9, roughness: 0.06 }),
+  // 切面零件用平面著色版本；喇叭口要看得到內壁所以雙面
+  armorF: toon(0xc4c0d0, { flatShading: true }), darkF: toon(0x2a2735, { flatShading: true }), midF: toon(0x575170, { flatShading: true }),
+  chromeIn: new THREE.MeshStandardMaterial({ color: 0x8c8aa0, metalness: 1, roughness: 0.22, side: THREE.DoubleSide }),
+  screen: new THREE.MeshStandardMaterial({ color: 0x1f8f9c, emissive: 0x0a4650, metalness: 0.5, roughness: 0.05, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }),
+  cyanHi: glowBasic(0x7af1ff, 7), core: glowBasic(0x8ff4ff, 3.2), dash: glowBasic(0x7af1ff, 1.4),
   enemy: new THREE.MeshStandardMaterial({ color: 0x4a4756, metalness: 0.55, roughness: 0.4, flatShading: true }),
   enemyPlate: toon(0x8d889c), gun: toon(0x34313e)
 };
@@ -1008,37 +1014,102 @@ function profile(pts, w, bevel = 0.025) {
 }
 const triGeo = (() => { const s = new THREE.Shape([new THREE.Vector2(0, 0.5), new THREE.Vector2(0.48, -0.36), new THREE.Vector2(-0.48, -0.36)]); const h = new THREE.Path([new THREE.Vector2(0, 0.22), new THREE.Vector2(-0.24, -0.2), new THREE.Vector2(0.24, -0.2)]); s.holes.push(h); return new THREE.ShapeGeometry(s); })();
 
+// 截面放樣：rings 為 [z, 右半截面 [[x, y], …]]，右半由下中線往上排到上中線，左右鏡射成封閉多面體；
+// 輸出非索引幾何、法線逐面，所以每一塊斜面都是一個獨立的切面
+function loft(rings) {
+  const rs = rings.slice().sort((a, b) => a[0] - b[0]).map(([z, h]) => {
+    const r = h.map(([x, y]) => [x, y, z]);
+    for (let i = h.length - 1; i >= 0; i--) if (h[i][0] > 1e-6) r.push([-h[i][0], h[i][1], z]);
+    return r;
+  });
+  const p = [], tri = (a, b, c) => p.push(...a, ...b, ...c);
+  for (let k = 0; k < rs.length - 1; k++) {
+    const A = rs[k], B = rs[k + 1], n = A.length;
+    for (let j = 0; j < n; j++) { const j1 = (j + 1) % n; tri(A[j], A[j1], B[j1]); tri(A[j], B[j1], B[j]); }
+  }
+  for (const [ring, s] of [[rs[0], -1], [rs[rs.length - 1], 1]]) {
+    const n = ring.length, c = [0, 0, ring[0][2]];
+    for (const v of ring) { c[0] += v[0] / n; c[1] += v[1] / n; }
+    for (let j = 0; j < n; j++) { const j1 = (j + 1) % n; if (s > 0) tri(c, ring[j], ring[j1]); else tri(c, ring[j1], ring[j]); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.computeVertexNormals(); return g;
+}
+// 直立放樣（軀幹、骨盆）：截面座標改為 [x, 往前]，z 當高度
+const loftY = rings => loft(rings).rotateX(-Math.PI / 2);
+// 倒角方塊：每條邊都切一道斜角的裝甲板件
+function cbox(w, h, d, b = 0.012) {
+  b = Math.min(b, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001);
+  return profile([[-d / 2 + b, -h / 2 + b], [d / 2 - b, -h / 2 + b], [d / 2 - b, h / 2 - b], [-d / 2 + b, h / 2 - b]], w, b);
+}
+const ZA = new V3(0, 0, 1);
+// 兩點之間的圓管（避震管、連桿）與倒角樑（車架、搖臂）
+function rod(parent, a, b, r0, r1, mat, seg = 10) {
+  const d = new V3().subVectors(b, a), m = part(parent, new THREE.CylinderGeometry(r1, r0, d.length(), seg), mat);
+  m.position.copy(a).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(UP, d.normalize()); return m;
+}
+function beam(parent, a, b, w, h, mat, bv = 0.01) {
+  const d = new V3().subVectors(b, a), m = part(parent, cbox(w, h, d.length(), bv), mat);
+  m.position.copy(a).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(ZA, d.normalize()); return m;
+}
+
 // ───────── 多關節騎士 ─────────
 function buildRider() {
   const root = grp(null);
+  // 骨盆：多面體髖部、腰帶與發光扣環、兩側斜掛的腿甲裙
   const pelvis = grp(root, 0, 0.98, 0);
-  part(pelvis, box(0.34, 0.18, 0.22), MAT.dark);
-  part(pelvis, box(0.36, 0.08, 0.24), MAT.mid, 0, 0.06, 0);
-  for (const s of [-1, 1]) part(pelvis, box(0.12, 0.16, 0.2), MAT.armor, s * 0.17, -0.04, 0, 0, 0, s * 0.18);
+  part(pelvis, loftY([
+    [-0.11, [[0, -0.08], [0.1, -0.07], [0.13, 0], [0.1, 0.07], [0, 0.08]]],
+    [0.0, [[0, -0.11], [0.15, -0.09], [0.18, 0], [0.15, 0.09], [0, 0.11]]],
+    [0.1, [[0, -0.1], [0.14, -0.08], [0.16, 0], [0.13, 0.09], [0, 0.1]]]
+  ]), MAT.dark);
+  part(pelvis, cbox(0.37, 0.055, 0.25, 0.012), MAT.mid, 0, 0.07, 0);
+  part(pelvis, box(0.07, 0.035, 0.015), MAT.cyan, 0, 0.07, -0.127, 0, 0, 0, false);
+  part(pelvis, cbox(0.15, 0.11, 0.035, 0.012), MAT.armor, 0, -0.03, -0.112, 0.18);
+  for (const s of [-1, 1]) part(pelvis, cbox(0.05, 0.16, 0.19, 0.015), MAT.armor, s * 0.18, -0.05, 0, 0, 0, s * 0.22);
   const spine = grp(pelvis, 0, 0.08, 0);
   const chest = grp(spine, 0, 0, 0);
-  part(chest, box(0.32, 0.16, 0.21), MAT.dark, 0, 0.06, 0);
-  part(chest, box(0.42, 0.34, 0.26), MAT.armor, 0, 0.3, 0);
-  part(chest, box(0.36, 0.2, 0.05), MAT.armor, 0, 0.32, -0.145, -0.12);
-  part(chest, box(0.2, 0.05, 0.02), MAT.cyan, 0, 0.2, -0.155, 0, 0, 0, false);
-  part(chest, box(0.24, 0.07, 0.22), MAT.mid, 0, 0.5, 0);
-  for (const s of [-1, 1]) part(chest, box(0.17, 0.12, 0.24), MAT.armor, s * 0.27, 0.46, 0, 0, 0, -s * 0.22);
-  // 背包：紅三角、能量槽、噴氣孔
-  const pack = grp(chest, 0, 0.27, 0.2);
-  part(pack, box(0.38, 0.44, 0.17), MAT.armor);
-  part(pack, box(0.4, 0.06, 0.19), MAT.mid, 0, -0.2, 0);
-  const tri = part(pack, triGeo, MAT.red, 0, 0.04, 0.087, 0, 0, 0, false); tri.scale.setScalar(0.2);
-  part(pack, box(0.3, 0.025, 0.02), MAT.cyan, 0, -0.17, 0.1, 0, 0, 0, false);
-  const tanks = [];
+  // 軀幹底衣：由腰往肩放寬的多面體
+  part(chest, loftY([
+    [0.0, [[0, -0.1], [0.13, -0.08], [0.16, 0], [0.12, 0.09], [0, 0.11]]],
+    [0.2, [[0, -0.12], [0.17, -0.1], [0.2, 0], [0.15, 0.12], [0, 0.14]]],
+    [0.42, [[0, -0.13], [0.21, -0.11], [0.23, 0.02], [0.17, 0.14], [0, 0.16]]],
+    [0.52, [[0, -0.1], [0.2, -0.08], [0.21, 0], [0.14, 0.09], [0, 0.1]]],
+    [0.57, [[0, -0.05], [0.08, -0.04], [0.09, 0], [0.06, 0.05], [0, 0.06]]]
+  ]), MAT.dark);
+  // 胸甲：左右斜角胸板向外側翻、中央六角核心、兩片腹甲、護頸
+  for (const s of [-1, 1]) part(chest, cbox(0.19, 0.2, 0.05, 0.02), MAT.armor, s * 0.1, 0.34, -0.165, 0.15, -s * 0.3, s * 0.08);
+  part(chest, new THREE.CylinderGeometry(0.042, 0.042, 0.03, 6), MAT.mid, 0, 0.29, -0.185, Math.PI / 2);
+  part(chest, new THREE.CylinderGeometry(0.027, 0.027, 0.034, 6), MAT.cyan, 0, 0.29, -0.188, Math.PI / 2, 0, 0, false);
+  part(chest, cbox(0.2, 0.075, 0.04, 0.014), MAT.armor, 0, 0.17, -0.135, 0.1);
+  part(chest, cbox(0.18, 0.07, 0.04, 0.014), MAT.armor, 0, 0.085, -0.12, 0.05);
+  part(chest, cbox(0.28, 0.06, 0.22, 0.02), MAT.mid, 0, 0.53, 0);
+  // 肩甲：上下兩片疊合，頂片有紅色辨識條、外緣一道光條
   for (const s of [-1, 1]) {
-    part(pack, new THREE.CylinderGeometry(0.05, 0.05, 0.36, 10), MAT.glass, s * 0.23, 0.0, 0.0);
-    const t = grp(pack, s * 0.23, -0.17, 0); part(t, new THREE.CylinderGeometry(0.034, 0.034, 0.34, 8), MAT.cyan, 0, 0.17, 0, 0, 0, 0, false); tanks.push(t);
-    part(pack, new THREE.CylinderGeometry(0.035, 0.05, 0.08, 8), MAT.dark, s * 0.1, -0.25, 0.04);
+    const sh = grp(chest, s * 0.27, 0.47, 0); sh.rotation.z = -s * 0.32;
+    part(sh, cbox(0.18, 0.05, 0.25, 0.02), MAT.armor, 0, 0.03, 0);
+    part(sh, cbox(0.16, 0.045, 0.23, 0.018), MAT.armor, s * 0.035, -0.035, 0, 0, 0, -s * 0.28);
+    part(sh, box(0.12, 0.008, 0.035), MAT.red, 0, 0.058, -0.06, 0, 0, 0, false);
+    part(sh, box(0.012, 0.03, 0.13), MAT.cyan, s * 0.112, -0.055, 0, 0, 0, -s * 0.28, false);
   }
-  const vents = [-1, 1].map(s => part(pack, box(0.06, 0.02, 0.06), MAT.amber, s * 0.1, -0.295, 0.04, 0, 0, 0, false));
+  // 戰術背包：倒角外殼、側肋、背面凹槽裡三格獨立能量條、底部雙噴嘴
+  const pack = grp(chest, 0, 0.27, 0.2);
+  part(pack, cbox(0.38, 0.44, 0.17, 0.03), MAT.armor);
+  part(pack, cbox(0.4, 0.06, 0.19, 0.015), MAT.mid, 0, -0.2, 0);
+  for (const s of [-1, 1]) part(pack, cbox(0.035, 0.38, 0.15, 0.01), MAT.mid, s * 0.195, 0, 0);
+  part(pack, cbox(0.27, 0.3, 0.02, 0.006), MAT.dark, 0, -0.02, 0.083);
+  const tri = part(pack, triGeo, MAT.red, 0, 0.172, 0.089, 0, 0, 0, false); tri.scale.setScalar(0.08);
+  const tanks = [-1, 0, 1].map(i => { const t = grp(pack, i * 0.075, -0.155, 0.094); part(t, box(0.048, 0.25, 0.01), MAT.cyan, 0, 0.125, 0, 0, 0, 0, false); return t; });
+  // 背包兩側接到胸側的供能軟管
+  for (const s of [-1, 1]) part(pack, new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new V3(s * 0.2, -0.12, -0.02), new V3(s * 0.25, -0.2, -0.1), new V3(s * 0.21, -0.16, -0.2)]), 12, 0.014, 6), MAT.mid);
+  const vents = [];
+  for (const s of [-1, 1]) {
+    part(pack, new THREE.TorusGeometry(0.036, 0.012, 6, 14), MAT.dark, s * 0.1, -0.235, 0.03, Math.PI / 2);
+    part(pack, new THREE.CylinderGeometry(0.03, 0.046, 0.07, 12, 1, true), MAT.chromeIn, s * 0.1, -0.27, 0.03);
+    vents.push(part(pack, new THREE.CircleGeometry(0.03, 12), MAT.amber, s * 0.1, -0.255, 0.03, Math.PI / 2, 0, 0, false));
+  }
   // 背包噴射：向後下方噴出的焰錐（與機車氮氣同一套形狀）
   const jfl = new THREE.ConeGeometry(0.075, 1, 10, 1, true); jfl.translate(0, -0.5, 0);
-  const jets = [-1, 1].map(s => { const j = part(pack, jfl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), s * 0.1, -0.29, 0.04, -0.3, 0, 0, false); j.scale.set(1, 0.01, 1); return j; });
+  const jets = [-1, 1].map(s => { const j = part(pack, jfl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), s * 0.1, -0.3, 0.03, -0.3, 0, 0, false); j.scale.set(1, 0.01, 1); return j; });
   // 微型飛彈艙：頂部 2×3 發射管，護蓋鉸鍊在背側上緣，齊射時向後掀開
   const tubes = [];
   for (let i = 0; i < 6; i++) {
@@ -1050,37 +1121,75 @@ function buildRider() {
   const lid = grp(pack, 0, 0.262, 0.085);
   part(lid, box(0.36, 0.028, 0.17), MAT.armor, 0, 0.014, -0.085);
   part(lid, box(0.22, 0.01, 0.022), MAT.red, 0, 0.03, -0.13, 0, 0, 0, false);
-  // 頭盔
+  // 頭盔：多面體殼、往後掠的導流角與頂脊、環繞式發光橫條護目鏡
   const neck = grp(chest, 0, 0.53, 0);
   part(neck, new THREE.CylinderGeometry(0.06, 0.07, 0.08, 8), MAT.dark, 0, 0.02, 0);
   const head = grp(neck, 0, 0.17, 0);
-  const helm = part(head, new THREE.SphereGeometry(0.155, 14, 10), MAT.armor); helm.scale.set(1, 1.06, 1.14);
-  part(head, box(0.025, 0.06, 0.3), MAT.armor, 0, 0.15, 0.0);
-  part(head, box(0.27, 0.07, 0.12), MAT.dark, 0, 0.0, -0.1);
-  part(head, box(0.25, 0.04, 0.04), MAT.visor, 0, 0.01, -0.165, 0, 0, 0, false);
-  part(head, box(0.16, 0.07, 0.08), MAT.mid, 0, -0.08, -0.12);
-  for (const s of [-1, 1]) part(head, new THREE.CylinderGeometry(0.06, 0.06, 0.04, 12), MAT.mid, s * 0.155, 0, 0, 0, 0, Math.PI / 2);
-  // 手臂（上臂與前臂由 IK 決定）
+  part(head, loft([
+    [-0.165, [[0, -0.07], [0.04, -0.06], [0.05, 0], [0.04, 0.06], [0, 0.075]]],
+    [-0.08, [[0, -0.13], [0.12, -0.11], [0.15, 0], [0.13, 0.11], [0, 0.16]]],
+    [0.04, [[0, -0.14], [0.13, -0.11], [0.16, 0], [0.14, 0.12], [0, 0.18]]],
+    [0.14, [[0, -0.1], [0.1, -0.08], [0.13, 0.01], [0.1, 0.1], [0, 0.14]]],
+    [0.21, [[0, -0.03], [0.04, -0.02], [0.05, 0.02], [0.03, 0.06], [0, 0.07]]]
+  ]), MAT.armor);
+  part(head, new THREE.CylinderGeometry(0.19, 0.19, 0.075, 20, 1, true, Math.PI - 1.0, 2.0), MAT.dark, 0, 0.005, 0.02);
+  part(head, new THREE.CylinderGeometry(0.195, 0.195, 0.03, 20, 1, true, Math.PI - 0.9, 1.8), MAT.visor, 0, 0.008, 0.02, 0, 0, 0, false);
+  part(head, cbox(0.17, 0.07, 0.09, 0.022), MAT.mid, 0, -0.095, -0.12, 0.4);
+  part(head, profile([[-0.12, 0.15], [0.0, 0.205], [0.16, 0.17], [0.2, 0.09], [0.05, 0.15]], 0.026, 0.008), MAT.armor);
+  part(head, cbox(0.09, 0.035, 0.03, 0.008), MAT.dark, 0, 0.02, 0.2, -0.3);
+  for (const s of [-1, 1]) {
+    part(head, profile([[0.0, 0.07], [0.14, 0.12], [0.27, 0.17], [0.22, 0.08], [0.08, 0.02]], 0.016, 0.005), MAT.armor, s * 0.13, 0, 0, 0, 0, -s * 0.35);
+    part(head, box(0.01, 0.01, 0.08), MAT.cyan, s * 0.19, 0.15, 0.21, 0.35, 0, -s * 0.35, false);
+    part(head, new THREE.CylinderGeometry(0.055, 0.06, 0.04, 8), MAT.mid, s * 0.155, -0.005, 0.02, 0, 0, Math.PI / 2);
+    part(head, new THREE.TorusGeometry(0.035, 0.007, 4, 14), MAT.cyan, s * 0.177, -0.005, 0.02, 0, Math.PI / 2, 0, false);
+  }
+  // 手臂：肩球、上臂（底衣＋二頭護板）、肘球與肘甲、前臂護腕（發光條）、戰術手套（掌、指節、拇指）
+  // 上臂與前臂由 IK 決定
   const arms = [-1, 1].map(s => {
     const upper = grp(chest, s * 0.27, 0.4, 0);
-    part(upper, box(0.11, 0.3, 0.12), MAT.dark, 0, -0.15, 0);
-    part(upper, box(0.13, 0.12, 0.14), MAT.armor, 0, -0.06, 0);
+    part(upper, new THREE.SphereGeometry(0.062, 10, 8), MAT.mid);
+    part(upper, new THREE.CylinderGeometry(0.055, 0.047, 0.25, 8), MAT.darkF, 0, -0.15, 0);
+    part(upper, cbox(0.06, 0.16, 0.1, 0.016), MAT.armor, s * 0.03, -0.12, 0);
     const lower = grp(upper, 0, -0.3, 0);
-    part(lower, box(0.12, 0.08, 0.12), MAT.mid, 0, 0, 0);
-    part(lower, box(0.1, 0.24, 0.115), MAT.armor, 0, -0.14, 0);
-    part(lower, box(0.085, 0.09, 0.1), MAT.dark, 0, -0.29, 0);
+    part(lower, new THREE.SphereGeometry(0.05, 10, 8), MAT.dark);
+    part(lower, cbox(0.085, 0.08, 0.05, 0.016), MAT.armor, 0, 0.005, 0.05);
+    part(lower, new THREE.CylinderGeometry(0.058, 0.044, 0.2, 6), MAT.armorF, 0, -0.13, 0);
+    part(lower, box(0.012, 0.13, 0.02), MAT.cyan, s * 0.05, -0.13, 0, 0, 0, 0, false);
+    part(lower, new THREE.CylinderGeometry(0.047, 0.047, 0.035, 8), MAT.mid, 0, -0.245, 0);
+    part(lower, cbox(0.07, 0.075, 0.085, 0.014), MAT.dark, 0, -0.3, 0);
+    part(lower, cbox(0.074, 0.03, 0.05, 0.01), MAT.mid, 0, -0.29, 0.022);
+    part(lower, cbox(0.066, 0.05, 0.04, 0.012), MAT.dark, 0, -0.345, -0.025, 0.6);
+    part(lower, box(0.025, 0.05, 0.025), MAT.dark, -s * 0.04, -0.31, -0.03, 0, 0, s * 0.4);
     return { upper, lower, s };
   });
+  // 腿：髖球、大腿（底衣＋前護板＋外側護板與紅光條）、膝球與膝甲、小腿（腿肚＋脛甲＋外側護板）、戰術靴
   const legs = [-1, 1].map(s => {
     const hip = grp(pelvis, s * 0.11, -0.06, 0);
-    part(hip, box(0.15, 0.42, 0.16), MAT.dark, 0, -0.21, 0);
-    part(hip, box(0.13, 0.26, 0.05), MAT.armor, 0, -0.18, -0.085);
-    part(hip, box(0.02, 0.12, 0.02), MAT.redGlow, s * 0.078, -0.22, 0.02, 0, 0, 0, false);
+    part(hip, new THREE.SphereGeometry(0.075, 10, 8), MAT.dark);
+    part(hip, new THREE.CylinderGeometry(0.08, 0.066, 0.4, 8), MAT.darkF, 0, -0.22, 0);
+    part(hip, cbox(0.13, 0.27, 0.05, 0.018), MAT.armor, 0, -0.19, -0.075, -0.06);
+    part(hip, cbox(0.04, 0.22, 0.12, 0.012), MAT.armor, s * 0.075, -0.2, 0.01);
+    part(hip, box(0.012, 0.13, 0.02), MAT.redGlow, s * 0.097, -0.21, 0.02, 0, 0, 0, false);
     const knee = grp(hip, 0, -0.44, 0);
-    part(knee, box(0.15, 0.1, 0.07), MAT.armor, 0, 0, -0.07);
-    part(knee, box(0.13, 0.42, 0.14), MAT.armor, 0, -0.21, 0);
+    part(knee, new THREE.SphereGeometry(0.062, 10, 8), MAT.mid);
+    part(knee, cbox(0.13, 0.13, 0.05, 0.02), MAT.armor, 0, 0, -0.07, -0.25);
+    part(knee, cbox(0.035, 0.1, 0.03, 0.01), MAT.mid, 0, 0, -0.1, -0.25);
+    part(knee, new THREE.CylinderGeometry(0.066, 0.05, 0.36, 8), MAT.darkF, 0, -0.22, 0.012);
+    part(knee, cbox(0.115, 0.3, 0.045, 0.018), MAT.armor, 0, -0.22, -0.06);
+    part(knee, cbox(0.035, 0.18, 0.09, 0.01), MAT.mid, s * 0.062, -0.27, 0);
+    // 戰術靴：靴筒、多面體鞋面、鋼頭、加厚鞋底與鞋跟、紅色綁帶
     const foot = grp(knee, 0, -0.44, 0);
-    part(foot, box(0.13, 0.09, 0.27), MAT.dark, 0, -0.03, -0.05);
+    part(foot, new THREE.CylinderGeometry(0.062, 0.066, 0.1, 8), MAT.midF, 0, 0.03, 0.005);
+    part(foot, loft([
+      [0.08, [[0, -0.05], [0.055, -0.045], [0.06, 0.03], [0, 0.045]]],
+      [-0.02, [[0, -0.05], [0.066, -0.045], [0.064, 0.02], [0, 0.03]]],
+      [-0.15, [[0, -0.05], [0.06, -0.045], [0.055, -0.005], [0, 0]]],
+      [-0.2, [[0, -0.05], [0.045, -0.045], [0.04, -0.025], [0, -0.02]]]
+    ]), MAT.dark);
+    part(foot, cbox(0.11, 0.04, 0.075, 0.014), MAT.armor, 0, -0.03, -0.155, 0.2);
+    part(foot, cbox(0.13, 0.025, 0.29, 0.008), MAT.rubber, 0, -0.064, -0.055);
+    part(foot, cbox(0.11, 0.03, 0.07, 0.008), MAT.rubber, 0, -0.06, 0.06);
+    part(foot, box(0.136, 0.016, 0.03), MAT.red, 0, 0, -0.06, -0.35);
     return { hip, knee, foot, s };
   });
   // 戰袍下襬（三節擺動）
@@ -1137,67 +1246,175 @@ function ik2(upper, lower, parent, targetW, poleW, a, b) {
 }
 
 // ───────── 科幻重機 K-7 ─────────
-function wheel(parent, x, y, z) {
-  const w = grp(parent, x, y, z);
-  const spin = grp(w);
-  part(spin, new THREE.TorusGeometry(0.33, 0.07, 10, 40), MAT.rubber, 0, 0, 0, 0, Math.PI / 2);
-  part(spin, new THREE.TorusGeometry(0.275, 0.028, 8, 40), MAT.chrome, 0, 0, 0, 0, Math.PI / 2);
-  part(spin, new THREE.TorusGeometry(0.255, 0.014, 6, 48), MAT.cyan, 0, 0, 0, 0, Math.PI / 2, 0, false);
-  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; part(spin, box(0.05, 0.035, 0.05), MAT.dark, 0, Math.sin(a) * 0.29, Math.cos(a) * 0.29, a); }
-  return { w, spin };
+// 寬體無轂輪：外層深黑胎體（加寬的 Torus）＋鍍鉻輪圈＋內層高亮度青色 Torus，輪心是空的，
+// 由輪圈內緣一段弧形承載臂（不跟著轉）扶住。at 是承載臂的方位角（0 正前、π/2 正上、π 正後）；
+// 回傳的 hub 是承載臂中點，前叉與搖臂接在這裡
+function wheel(parent, x, y, z, at) {
+  const w = grp(parent, x, y, z), spin = grp(w);
+  const tire = new THREE.TorusGeometry(0.325, 0.082, 10, 44); tire.scale(1, 1, 1.5);
+  part(spin, tire, MAT.rubber, 0, 0, 0, 0, Math.PI / 2);
+  part(spin, new THREE.TorusGeometry(0.262, 0.03, 8, 44), MAT.chrome, 0, 0, 0, 0, Math.PI / 2);
+  part(spin, new THREE.TorusGeometry(0.247, 0.016, 6, 56), MAT.cyanHi, 0, 0, 0, 0, Math.PI / 2, 0, false);
+  // 交錯胎紋與壓在光環上的輪圈卡榫，轉動時才看得出輪子在滾
+  const lug = box(0.07, 0.02, 0.045), key = box(0.05, 0.04, 0.03), L = [], K = [];
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; L.push([lug, mat4((i % 2 ? 1 : -1) * 0.03, Math.sin(a) * 0.403, Math.cos(a) * 0.403, Math.PI / 2 - a)]); }
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; K.push([key, mat4(0, Math.sin(a) * 0.245, Math.cos(a) * 0.245, Math.PI / 2 - a)]); }
+  part(spin, merge(L), MAT.rubber); part(spin, merge(K), MAT.dark);
+  const arc = 1.5, ca = new THREE.TorusGeometry(0.218, 0.024, 6, 20, arc); ca.rotateZ(at - arc / 2);
+  part(w, ca, MAT.dark, 0, 0, 0, 0, Math.PI / 2);
+  for (const s of [-1, 1]) { const cl = new THREE.TorusGeometry(0.218, 0.008, 4, 20, arc * 0.8); cl.rotateZ(at - arc * 0.4); part(w, cl, MAT.cyan, s * 0.026, 0, 0, 0, Math.PI / 2, 0, false); }
+  const hub = new V3(0, Math.sin(at) * 0.218, -Math.cos(at) * 0.218);
+  part(w, cbox(0.42, 0.045, 0.07, 0.012), MAT.mid, hub.x, hub.y, hub.z, at);
+  return { w, spin, hub };
 }
+// 騎乘時騎士根節點在車身上的位置：骨盆（根節點上方 0.98）落在座墊頂面上方，髖球微陷進坐墊；
+// KNEE_POLE 是膝蓋 IK 的極向（車身座標，x 乘左右號）：往前、往外，讓膝蓋夾在油箱兩側
+const RIDE_ROOT = new V3(0, 0.05, 0.17), KNEE_POLE = new V3(0.36, 0.9, -0.6);
 function buildBike() {
-  const root = grp(null), lean = grp(root), body = grp(lean);
-  part(body, profile([[-0.62, 0.52], [-0.98, 0.7], [-0.9, 0.86], [-0.55, 1.0], [-0.12, 0.99], [0.06, 0.86], [0.06, 0.46], [-0.3, 0.38]], 0.36, 0.04), MAT.paint);
+  const root = grp(null), lean = grp(root), body = grp(lean), v = (x, y, z) => new V3(x, y, z);
+  // 前傾斜角整流罩：機首壓低、往後拉高的斜切多面體，下緣讓出前輪
+  part(body, loft([
+    [-1.12, [[0, 0.8], [0.05, 0.82], [0.056, 0.86], [0.03, 0.9], [0, 0.91]]],
+    [-0.95, [[0, 0.84], [0.14, 0.86], [0.18, 0.93], [0.12, 1.0], [0, 1.02]]],
+    [-0.7, [[0, 0.84], [0.2, 0.86], [0.24, 0.95], [0.16, 1.06], [0, 1.09]]],
+    [-0.46, [[0, 0.74], [0.21, 0.76], [0.25, 0.93], [0.17, 1.04], [0, 1.06]]]
+  ]), MAT.paint);
+  // 整流罩兩側的白色護甲板與紅三角，板件前端略向外張，和車殼之間留一道陰影縫
   for (const s of [-1, 1]) {
-    const p = part(body, profile([[-0.88, 0.6], [-0.52, 0.93], [-0.14, 0.8], [-0.3, 0.52]], 0.02, 0), MAT.armor, s * 0.2, 0, 0);
-    const t = part(body, triGeo, MAT.red, s * 0.212, 0.73, -0.42, 0, s * Math.PI / 2, 0, false); t.scale.setScalar(0.17);
-    part(body, profile([[0.05, 0.5], [0.55, 0.72], [0.62, 0.66], [0.15, 0.44]], 0.03, 0), MAT.mid, s * 0.17, 0, 0);
-    part(body, box(0.04, 0.05, 0.62), MAT.paint, s * 0.16, 0.42, 0.5, -0.12);
+    const ch = grp(body, s * 0.25, 0, -0.7); ch.rotation.y = -s * 0.1;
+    part(ch, profile([[-0.27, 0.87], [-0.08, 1.02], [0.2, 1.0], [0.25, 0.86], [0.02, 0.84]], 0.018, 0.006), MAT.armor);
+    const t = part(ch, triGeo, MAT.red, s * 0.011, 0.93, 0.02, 0, s * Math.PI / 2, 0, false); t.scale.setScalar(0.11);
+    part(ch, box(0.012, 0.012, 0.22), MAT.cyan, s * 0.012, 0.865, -0.02, 0, 0, 0, false);
   }
-  part(body, profile([[0.0, 0.78], [0.05, 0.9], [0.7, 0.98], [1.04, 1.0], [1.0, 0.9], [0.56, 0.74]], 0.28, 0.03), MAT.paint);
-  part(body, profile([[-0.15, 0.86], [0.0, 0.91], [0.5, 0.94], [0.56, 0.88], [0.05, 0.83]], 0.3, 0.03), MAT.dark);
-  part(body, profile([[-0.45, 0.26], [0.36, 0.3], [0.42, 0.6], [-0.32, 0.6]], 0.3, 0.03), MAT.dark);
-  part(body, box(0.26, 0.12, 0.5), MAT.chrome, 0, 0.36, -0.05);
-  part(body, box(0.2, 0.025, 0.02), MAT.redGlow, 0, 0.955, 1.03, 0, 0, 0, false);
-  const screen = part(body, box(0.3, 0.02, 0.26), MAT.glass, 0, 1.03, -0.66, -0.75); screen.castShadow = false;
-  // 頭燈與光錐
-  const heads = [];
-  for (const s of [-1, 1]) heads.push(part(body, box(0.1, 0.05, 0.04), MAT.white, s * 0.085, 0.73, -0.975, 0, 0, 0, false));
+  // 半透明深青色風鏡：沿機首弧面包覆、往後仰
+  const sg = new THREE.CylinderGeometry(0.19, 0.19, 0.32, 18, 1, true, Math.PI - 0.95, 1.9); sg.translate(0, 0.16, 0.19);
+  const screen = part(body, sg, MAT.screen, 0, 1.0, -0.88, 0.95, 0, 0, false); screen.renderOrder = 1;
+  const sr = new THREE.CylinderGeometry(0.192, 0.192, 0.012, 18, 1, true, Math.PI - 0.95, 1.9); sr.translate(0, 0.32, 0.19);
+  part(body, sr, MAT.cyan, 0, 1.0, -0.88, 0.95, 0, 0, false);
+  // 儀表：固定在整流罩後緣、面向騎士的斜面螢幕
+  part(body, cbox(0.18, 0.04, 0.1, 0.012), MAT.dark, 0, 1.1, -0.62, -0.35);
+  part(body, box(0.13, 0.006, 0.065), MAT.dash, 0, 1.122, -0.62, -0.35, 0, 0, false);
+  // 頭燈與光錐：機首兩側斜切面上的細長燈條
+  const heads = [-1, 1].map(s => part(body, box(0.085, 0.02, 0.03), MAT.white, s * 0.07, 0.875, -1.05, 0.1, -s * 0.6, 0, false));
   const coneGeo = new THREE.ConeGeometry(2.6, 11, 24, 1, true); coneGeo.translate(0, -5.5, 0); coneGeo.rotateX(Math.PI / 2 - 0.08);
-  const cones = [-1, 1].map(s => { const c = part(body, coneGeo, glowMat(0xdff4ff, 0.09, 'a = pow(clamp(vUv.y,0.,1.),1.8)*pow(abs(dot(vN,vV)),1.3);'), s * 0.085, 0.73, -1.0, 0, 0, 0, false); c.renderOrder = 2; return c; });
+  const cones = [-1, 1].map(s => { const c = part(body, coneGeo, glowMat(0xdff4ff, 0.09, 'a = pow(clamp(vUv.y,0.,1.),1.8)*pow(abs(dot(vN,vV)),1.3);'), s * 0.07, 0.875, -1.08, 0, 0, 0, false); c.renderOrder = 2; return c; });
   // 左右兩盞 SpotLight 各自對應一顆頭燈，光束略向外張
   const spots = [-1, 1].map(s => {
-    const l = new THREE.SpotLight(0xe8f4ff, 32, 70, 0.4, 0.55, 1.4); l.position.set(s * 0.085, 0.8, -1.6); body.add(l);
+    const l = new THREE.SpotLight(0xe8f4ff, 32, 70, 0.4, 0.55, 1.4); l.position.set(s * 0.085, 0.9, -1.6); body.add(l);
     l.target.position.set(s * 1.2, -0.5, -16); body.add(l.target); return l;
   });
-  // 尾部雙氮氣噴嘴
+  // 隆起的多面體油箱：頂脊偏前，油箱蓋與兩側護膝墊
+  part(body, loft([
+    [-0.5, [[0, 0.8], [0.17, 0.82], [0.21, 0.93], [0.13, 1.03], [0, 1.05]]],
+    [-0.27, [[0, 0.76], [0.21, 0.78], [0.25, 0.94], [0.15, 1.07], [0, 1.11]]],
+    [-0.03, [[0, 0.76], [0.18, 0.78], [0.21, 0.9], [0.12, 1.0], [0, 1.02]]],
+    [0.1, [[0, 0.8], [0.12, 0.8], [0.14, 0.87], [0.08, 0.92], [0, 0.93]]]
+  ]), MAT.paint);
+  part(body, new THREE.CylinderGeometry(0.045, 0.05, 0.02, 8), MAT.chrome, 0, 1.09, -0.2, -0.32);
+  for (const s of [-1, 1]) part(body, profile([[-0.3, 0.84], [-0.16, 0.95], [0.0, 0.93], [0.04, 0.84]], 0.012, 0.004), MAT.dark, s * 0.235, 0, 0, 0, -s * 0.1, 0);
+  // 座墊與流線車尾
+  part(body, loft([
+    [0.0, [[0, 0.85], [0.1, 0.86], [0.115, 0.9], [0, 0.915]]],
+    [0.3, [[0, 0.85], [0.15, 0.86], [0.16, 0.905], [0, 0.925]]],
+    [0.52, [[0, 0.88], [0.12, 0.89], [0.13, 0.95], [0, 0.98]]]
+  ]), MAT.dark);
+  part(body, loft([
+    [0.28, [[0, 0.66], [0.17, 0.7], [0.19, 0.83], [0.14, 0.88], [0, 0.89]]],
+    [0.62, [[0, 0.83], [0.14, 0.85], [0.165, 0.92], [0.11, 0.985], [0, 1.0]]],
+    [0.96, [[0, 0.89], [0.085, 0.9], [0.1, 0.95], [0.06, 1.0], [0, 1.015]]],
+    [1.1, [[0, 0.935], [0.03, 0.94], [0.035, 0.96], [0.02, 0.985], [0, 0.99]]]
+  ]), MAT.paint);
+  for (const s of [-1, 1]) part(body, profile([[0.3, 0.74], [0.62, 0.86], [0.94, 0.92], [0.9, 0.95], [0.6, 0.9], [0.32, 0.84]], 0.012, 0.004), MAT.armor, s * 0.235, 0, 0, 0, -s * 0.133, 0);
+  part(body, box(0.06, 0.03, 0.02), MAT.redGlow, 0, 0.962, 1.1, 0, 0, 0, false);
+  // 車尾流線尾翼：兩支後掠支柱撐起翼板，翼端板與翼板下緣紅色光條
+  part(body, profile([[0.9, 1.08], [0.97, 1.11], [1.17, 1.12], [1.21, 1.1], [1.0, 1.07]], 0.56, 0.008), MAT.paint);
+  for (const s of [-1, 1]) {
+    part(body, profile([[0.78, 0.97], [0.93, 1.085], [1.05, 1.09], [0.98, 0.95]], 0.018, 0.005), MAT.mid, s * 0.075, 0, 0);
+    part(body, profile([[0.92, 1.03], [0.99, 1.15], [1.2, 1.165], [1.23, 1.05]], 0.014, 0.004), MAT.armor, s * 0.285, 0, 0);
+  }
+  part(body, box(0.42, 0.012, 0.012), MAT.redGlow, 0, 1.068, 1.18, 0, 0, 0, false);
+  // 動力：曲軸箱、側蓋與 V 型雙缸；散熱鰭片之間露出發光的氣缸核心
+  part(body, loft([
+    [-0.36, [[0, 0.32], [0.1, 0.33], [0.12, 0.42], [0.08, 0.52], [0, 0.54]]],
+    [-0.1, [[0, 0.27], [0.13, 0.28], [0.15, 0.42], [0.12, 0.54], [0, 0.57]]],
+    [0.16, [[0, 0.31], [0.1, 0.32], [0.12, 0.43], [0.09, 0.51], [0, 0.53]]]
+  ]), MAT.dark);
+  part(body, new THREE.CylinderGeometry(0.11, 0.11, 0.33, 10), MAT.mid, 0, 0.4, -0.08, 0, 0, Math.PI / 2);
+  const fin = new THREE.CylinderGeometry(0.1, 0.1, 0.014, 12), finGeo = merge([0, 1, 2, 3, 4, 5].map(i => [fin, mat4(0, 0.05 + i * 0.036, 0)]));
+  for (const [z, rx] of [[-0.2, -0.5], [0.02, 0.38]]) {
+    const c = grp(body, 0, 0.5, z); c.rotation.x = rx;
+    part(c, new THREE.CylinderGeometry(0.056, 0.056, 0.25, 12), MAT.core, 0, 0.13, 0, 0, 0, 0, false);
+    part(c, finGeo, MAT.dark);
+    part(c, cbox(0.2, 0.06, 0.17, 0.015), MAT.mid, 0, 0.28, 0);
+    part(c, box(0.06, 0.03, 0.18), MAT.chrome, 0, 0.32, 0);
+  }
+  // 車架雙樑、搖臂與後避震（紅色彈簧＋儲油筒）
+  for (const s of [-1, 1]) {
+    beam(body, v(s * 0.15, 0.9, -0.52), v(s * 0.17, 0.46, 0.04), 0.045, 0.09, MAT.mid);
+    beam(body, v(s * 0.17, 0.45, 0.02), v(s * 0.17, 0.585, 0.684), 0.04, 0.075, MAT.dark);
+  }
+  part(body, new THREE.CylinderGeometry(0.035, 0.035, 0.42, 10), MAT.chrome, 0, 0.45, 0.02, 0, 0, Math.PI / 2);
+  part(body, cbox(0.34, 0.04, 0.05, 0.01), MAT.dark, 0, 0.527, 0.4);
+  const shock = grp(body, 0, 0.54, 0.4); shock.quaternion.setFromUnitVectors(UP, v(0, 0.3, -0.28).normalize());
+  part(shock, new THREE.CylinderGeometry(0.018, 0.018, 0.41, 8), MAT.chrome, 0, 0.205, 0);
+  part(shock, merge([0, 1, 2, 3, 4, 5, 6].map(i => [new THREE.TorusGeometry(0.036, 0.007, 4, 14), mat4(0, 0.07 + i * 0.035, 0, Math.PI / 2)])), MAT.red);
+  part(shock, new THREE.CylinderGeometry(0.025, 0.025, 0.1, 8), MAT.dark, 0.045, 0.3, 0);
+  // 下導流板
+  part(body, loft([
+    [-0.44, [[0, 0.27], [0.06, 0.28], [0.08, 0.31], [0, 0.32]]],
+    [-0.2, [[0, 0.19], [0.14, 0.21], [0.16, 0.3], [0, 0.31]]],
+    [0.16, [[0, 0.24], [0.1, 0.25], [0.12, 0.31], [0, 0.32]]]
+  ]), MAT.paint);
+  // 雙側氮氣排氣管：由前缸頭繞過曲軸箱下方、沿車尾側面上揚到噴口；中段有隔熱板與兩道青色加壓環
   const nozzles = [-1, 1].map(s => {
-    const n = grp(body, s * 0.12, 0.66, 0.96);
-    part(n, new THREE.CylinderGeometry(0.06, 0.075, 0.26, 12, 1, true), MAT.chrome, 0, 0, 0, Math.PI / 2);
-    const core = part(n, new THREE.CircleGeometry(0.055, 12), MAT.cyan, 0, 0, 0.12, 0, 0, 0, false);
+    const curve = new THREE.CatmullRomCurve3([v(s * 0.05, 0.7, -0.36), v(s * 0.15, 0.48, -0.36), v(s * 0.22, 0.3, -0.12), v(s * 0.25, 0.32, 0.3), v(s * 0.24, 0.48, 0.65), v(s * 0.21, 0.62, 0.86)]);
+    part(body, new THREE.TubeGeometry(curve, 48, 0.032, 8), MAT.chrome);
+    for (const u of [0.5, 0.82]) { const r = part(body, new THREE.TorusGeometry(0.04, 0.009, 6, 16), MAT.cyan, 0, 0, 0, 0, 0, 0, false); r.position.copy(curve.getPointAt(u)); r.quaternion.setFromUnitVectors(ZA, curve.getTangentAt(u)); }
+    const hs = part(body, cbox(0.012, 0.07, 0.24, 0.004), MAT.dark); hs.position.copy(curve.getPointAt(0.66)).add(v(s * 0.036, 0.012, 0)); hs.quaternion.setFromUnitVectors(ZA, curve.getTangentAt(0.66));
+    // 噴口：外擴的喇叭口、內壁底板、口緣護圈，口內一支發光錐體
+    const n = grp(body, s * 0.21, 0.62, 0.98);
+    part(n, new THREE.CylinderGeometry(0.07, 0.05, 0.24, 14, 1, true), MAT.chromeIn, 0, 0, 0, Math.PI / 2);
+    part(n, new THREE.CircleGeometry(0.05, 14), MAT.dark, 0, 0, -0.09, 0, 0, 0, false);
+    part(n, new THREE.TorusGeometry(0.07, 0.011, 6, 18), MAT.dark, 0, 0, 0.12);
+    const cg = new THREE.ConeGeometry(0.042, 0.15, 12); cg.rotateX(Math.PI / 2);
+    const core = part(n, cg, MAT.cyan, 0, 0, 0.01, 0, 0, 0, false);
     const fl = new THREE.ConeGeometry(0.07, 1, 10, 1, true); fl.translate(0, -0.5, 0); fl.rotateX(-Math.PI / 2);
-    const flame = part(n, fl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), 0, 0, 0.14, 0, 0, 0, false); flame.scale.set(1, 1, 0.01);
+    const flame = part(n, fl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), 0, 0, 0.12, 0, 0, 0, false); flame.scale.set(1, 1, 0.01);
     const tip = grp(n, 0, 0, 0.2);
     return { n, core, flame, tip };
   });
-  // 轉向：前輪與車把
-  const rear = wheel(body, 0, 0.4, 0.8);
-  for (const s of [-1, 1]) part(body, box(0.04, 0.06, 0.7), MAT.chrome, s * 0.13, 0.5, 0.48, 0.2);
+  // 轉向：前輪、前叉與車把。外管（防塵封環）裝在輪子上、內管裝在前叉上，避震壓縮時外管沿內管滑動
+  const rear = wheel(body, 0, 0.4, 0.8, 1.01);
   const fork = grp(body, 0, 0.4, -0.8);
-  const front = wheel(fork, 0, 0, 0);
-  for (const s of [-1, 1]) part(fork, box(0.04, 0.62, 0.05), MAT.chrome, s * 0.12, 0.3, 0.12, -0.38);
-  part(fork, box(0.3, 0.05, 0.36), MAT.paint, 0, 0.42, 0.0, -0.1);
-  const bars = grp(body, 0, 1.0, -0.56);
-  part(bars, box(0.68, 0.035, 0.035), MAT.dark);
-  for (const s of [-1, 1]) part(bars, new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8), MAT.rubber, s * 0.34, 0, 0, 0, 0, Math.PI / 2);
+  const front = wheel(fork, 0, 0, 0, Math.PI - 1.01);
+  const top = v(0, 0.66, 0.34), fd = v(0, 0, 0).subVectors(top, front.hub).normalize(), rake = Math.atan2(fd.z, fd.y);
+  for (const s of [-1, 1]) {
+    const H = v(s * 0.17, front.hub.y, front.hub.z), T = v(s * 0.17, top.y, top.z);
+    rod(front.w, H, H.clone().addScaledVector(fd, 0.22), 0.036, 0.036, MAT.dark);
+    const seal = part(front.w, new THREE.TorusGeometry(0.035, 0.01, 6, 16), MAT.red); seal.position.copy(H).addScaledVector(fd, 0.22); seal.rotation.x = rake - Math.PI / 2;
+    rod(fork, H.clone().addScaledVector(fd, 0.16), T, 0.024, 0.024, MAT.chrome);
+  }
+  part(fork, cbox(0.42, 0.035, 0.07, 0.01), MAT.mid, 0, front.hub.y + fd.y * 0.33, front.hub.z + fd.z * 0.33, rake);
+  part(fork, cbox(0.42, 0.03, 0.1, 0.01), MAT.paint, top.x, top.y, top.z, rake);
+  const fg = new THREE.TorusGeometry(0.43, 0.022, 4, 16, 1.0); fg.scale(1, 1, 5.5); fg.rotateZ(0.3);
+  part(front.w, fg, MAT.paint, 0, 0, 0, 0, Math.PI / 2);
+  const bars = grp(body, 0, 1.06, -0.46);
+  part(bars, new THREE.CylinderGeometry(0.017, 0.017, 0.62, 8), MAT.dark, 0, 0, 0, 0, 0, Math.PI / 2);
+  for (const s of [-1, 1]) {
+    part(bars, new THREE.CylinderGeometry(0.027, 0.027, 0.13, 10), MAT.rubber, s * 0.34, 0, 0, 0, 0, Math.PI / 2);
+    part(bars, new THREE.CylinderGeometry(0.03, 0.03, 0.03, 10), MAT.chrome, s * 0.42, 0, 0, 0, 0, Math.PI / 2);
+    part(bars, box(0.15, 0.012, 0.025), MAT.chrome, s * 0.3, 0.012, -0.07, 0, s * 0.25, 0);
+  }
   const gripL = grp(bars, -0.33, 0, 0.02), gripR = grp(bars, 0.33, 0, 0.02);
-  const pegL = grp(body, -0.21, 0.42, 0.18), pegR = grp(body, 0.21, 0.42, 0.18);
-  for (const s of [-1, 1]) part(body, box(0.1, 0.03, 0.05), MAT.chrome, s * 0.2, 0.42, 0.18);
-  const seat = grp(body, 0, 0.9, 0.22);
+  const pegL = grp(body, -0.21, 0.55, 0.12), pegR = grp(body, 0.21, 0.55, 0.12);
+  for (const s of [-1, 1]) {
+    part(body, new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8), MAT.chrome, s * 0.21, 0.55, 0.12, 0, 0, Math.PI / 2);
+    part(body, profile([[0.06, 0.52], [0.14, 0.72], [0.24, 0.7], [0.2, 0.53]], 0.01, 0.003), MAT.mid, s * 0.2, 0, 0);
+  }
+  const seat = grp(body, RIDE_ROOT.x, RIDE_ROOT.y, RIDE_ROOT.z);
   const stand = part(body, box(0.03, 0.4, 0.03), MAT.chrome, -0.16, 0.2, 0.1, 0, 0, -0.5); stand.visible = false;
   root.traverse(o => { if (o.isMesh) o.castShadow = solid(o.material); });
-  return { root, lean, body, rear, front, fork, bars, gripL, gripR, pegL, pegR, seat, nozzles, cones, spots, stand, heads };
+  return { root, lean, body, rear, front, fork, bars, gripL, gripR, pegL, pegR, seat, nozzles, cones, spots, stand, heads, screen };
 }
 
 // ───────── 戰鬥無人機 ─────────
@@ -1514,7 +1731,9 @@ const evacMesh = (() => {
 })();
 
 // ═════════ 遊戲狀態 ═════════
-const rider = buildRider(), bike = buildBike();
+// 玩家騎士與 K-7 重機一起建立（騎乘時騎士掛在 bike.body 上）
+function createPlayerAndBike() { return { rider: buildRider(), bike: buildBike() }; }
+const { rider, bike } = createPlayerAndBike();
 scene.add(bike.root);
 const LANE_R = [3.0, 6.6, 10.2];
 const S = { mode: 'title', score: 0, won: false, ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1, wi: 0, mags: [40, 6, 5], reloadMax: 1.3, charge: 0, shWarned: false, shots: 0, hits: 0, empVol: 0, empHit: -1 };
@@ -1525,7 +1744,7 @@ const aimPt = new V3(), aimRay = new THREE.Ray(), raycaster = new THREE.Raycaste
 const fwdOf = (yaw, out = new V3()) => out.set(-Math.sin(yaw), 0, -Math.cos(yaw));
 const rightOf = (yaw, out = new V3()) => out.set(Math.cos(yaw), 0, -Math.sin(yaw));
 
-function seatRider() { bike.body.add(rider.root); rider.root.position.set(0, -0.06, 0.26); rider.root.rotation.set(0, 0, 0); }
+function seatRider() { bike.body.add(rider.root); rider.root.position.copy(RIDE_ROOT); rider.root.rotation.set(0, 0, 0); }
 seatRider();
 
 // ───────── 輸入 ─────────
@@ -2704,7 +2923,7 @@ function updateMountAnim(dt) {
     poseFoot(dt, 0, 1 - e);
     if (t >= 1) { S.ctl = 'foot'; F.pos.copy(mountTo); log('系統', '切換為步行戰鬥模式・K-7 停放於路肩', 'var(--ink-2)'); }
   } else {
-    bike.seat.getWorldPosition(mountTo); mountTo.y -= 0.94;
+    bike.seat.getWorldPosition(mountTo);
     rider.root.position.lerpVectors(mountFrom, mountTo, e); rider.root.position.y += Math.sin(t * Math.PI) * 0.4;
     rider.root.rotation.set(0, mountYaw0 + angDiff(mountYaw0, P.yaw) * e, 0);
     poseFoot(dt, 0, e);
@@ -2728,30 +2947,44 @@ function armsToGun() {
   ik2(rider.arms[1].upper, rider.arms[1].lower, ch, _gr, ch.localToWorld(_pole.set(0.6, -0.4, 0.4)), 0.3, 0.29);
   ik2(rider.arms[0].upper, rider.arms[0].lower, ch, _gl, ch.localToWorld(_pole.set(-0.7, -0.5, -0.1)), 0.3, 0.29);
 }
+// 騎乘骨架常數：腳跟抬起的角度、前腳掌相對腳踝的位置（鞋底貼在踏板頂面）、肘與膝的極向
+const _fq = new Q(), _fq2 = new Q(), _fq3 = new Q(), HEEL_UP = new Q().setFromEuler(new Euler(-0.35, 0, 0)), BALL = new V3(0, -0.095, -0.1);
 function poseRide(dt) {
   const rd = rider, sp = Math.abs(P.v), sn = clamp(sp / 60, 0, 1), aiming = S.time - S.lastFire < 0.9 || inp().fire;
-  rd.pelvis.position.set(0, 0.98, 0); rd.pelvis.rotation.set(-0.1, 0, P.lean * 0.25);
-  const crouch = 0.42 + sn * 0.2 + compMat.uniforms.boost.value * 0.22;
-  rd.spine.rotation.set(-crouch, 0, P.lean * 0.15);
-  // 上半身朝準星扭轉；不開火時頭部仍會微調看向準星
+  // 跑車低風阻騎姿：骨盆坐在座墊上，軀幹前傾 25°（停車）到 35°（高速＋氮氣），骨盆分擔其中 7°
+  const tuck = 0.44 + sn * 0.1 + compMat.uniforms.boost.value * 0.07;
+  rd.pelvis.position.set(0, 0.98, 0); rd.pelvis.rotation.set(-0.12, 0, P.lean * 0.2);
+  rd.spine.rotation.set(-(tuck - 0.12), 0, P.lean * 0.12);
+  // 上身只小幅扭向準星（往左扭會把左肩帶離車把，所以上限較小），水平與垂直瞄準交給右臂與槍
   rd.chest.updateWorldMatrix(true, false); rd.chest.getWorldPosition(_tw);
-  const dx = aimPt.x - _tw.x, dz = aimPt.z - _tw.z, tw = clamp(angDiff(P.yaw, Math.atan2(-dx, -dz)), -1.5, 1.5);
+  const dx = aimPt.x - _tw.x, dz = aimPt.z - _tw.z, tw = angDiff(P.yaw, Math.atan2(-dx, -dz));
   const pt = Math.atan2(aimPt.y - _tw.y, Math.hypot(dx, dz));
   rd.aimK = damp(rd.aimK, aiming ? 1 : 0, 12, dt); const k = rd.aimK;
-  rd.chest.rotation.set(damp(rd.chest.rotation.x, k * (crouch * 0.6 + pt * 0.4), 8, dt), damp(rd.chest.rotation.y, tw * lerp(0.12, 0.75, k), 9, dt), 0);
-  rd.neck.rotation.set(crouch * 0.85 - k * rd.chest.rotation.x + 0.05 - (1 - k) * clamp(pt, -0.4, 0.4) * 0.5, lerp(clamp(tw * 0.45, -0.7, 0.7), tw * 0.25, k), -P.lean * 0.55);
-  // 雙腳踩踏板
-  for (const [i, peg] of [[0, bike.pegL], [1, bike.pegR]]) { const L = rd.legs[i]; peg.getWorldPosition(_gl); bike.body.localToWorld(_pole.set(L.s * 0.35, 1.0, -1.2)); ik2(L.hip, L.knee, rd.pelvis, _gl, _pole, 0.44, 0.44); L.foot.rotation.set(-L.knee.rotation.x * 0, 0, 0); L.foot.quaternion.copy(_q.copy(L.hip.quaternion).multiply(L.knee.quaternion).invert()); }
-  // 左手握把；右手持槍：平時槍口朝前下方、約三成偏向準星，開火時平滑舉到瞄準位置
+  rd.chest.rotation.set(damp(rd.chest.rotation.x, clamp(pt, -0.5, 0.5) * 0.25 * k, 8, dt), damp(rd.chest.rotation.y, clamp(tw * lerp(0.15, 0.45, k), -0.5, 0.3), 9, dt), 0);
+  // 頭部始終朝向準星：在頸部座標裡求準星方向，前傾的軀幹由抬頭補回來；車身側傾時頭部往回擺一半保持視線水平
+  rd.neck.rotation.set(0, 0, 0); rd.neck.updateWorldMatrix(true, false);
+  const hl = rd.neck.worldToLocal(_ga.copy(aimPt)).sub(rd.head.position);
+  rd.neck.rotation.set(clamp(Math.atan2(hl.y, Math.hypot(hl.x, hl.z)), -0.6, 1.0), clamp(Math.atan2(-hl.x, -hl.z), -1.3, 1.3), -P.lean * 0.45, 'YXZ');
+  // 雙腿：大腿往前上抬、膝蓋外張約 20° 夾住油箱，小腿往後下折；前腳掌（不是腳踝）踩在踏板上，腳掌朝前、腳跟抬起
+  const bq = bike.body.getWorldQuaternion(_fq);
+  for (const [i, peg] of [[0, bike.pegL], [1, bike.pegR]]) {
+    const L = rd.legs[i];
+    _fq2.copy(bq).multiply(HEEL_UP);
+    peg.getWorldPosition(_gl).sub(_v.copy(BALL).applyQuaternion(_fq2));
+    ik2(L.hip, L.knee, rd.pelvis, _gl, bike.body.localToWorld(_pole.set(L.s * KNEE_POLE.x, KNEE_POLE.y, KNEE_POLE.z)), 0.44, 0.44);
+    L.foot.quaternion.copy(L.knee.getWorldQuaternion(_fq3).invert().multiply(_fq2));
+  }
+  // 左手前伸握住左把（掌心落在握把上）
   bike.gripL.getWorldPosition(_gl);
-  ik2(rd.arms[0].upper, rd.arms[0].lower, rd.chest, _gl, rd.chest.localToWorld(_pole.set(-0.8, -0.3, 0.3)), 0.3, 0.29);
+  ik2(rd.arms[0].upper, rd.arms[0].lower, rd.chest, _gl, rd.chest.localToWorld(_pole.set(-0.8, -0.5, 0.2)), 0.3, 0.3);
+  // 右手持槍：槍口始終跟著準星做水平與垂直旋轉；開火時槍身由腰際舉到肩前。準星落到身後時才退回前下方，避免槍穿過身體
   const g = rd.gun; g.position.lerpVectors(GUN_RIDE, GUN_AIM, k); g.updateWorldMatrix(true, false); g.getWorldPosition(_ga);
   rd.chest.localToWorld(_gb.set(0.3, -1.4, -4)).sub(_ga).normalize();
   _gc.subVectors(aimPt, _ga).normalize();
-  _gb.lerp(_gc, lerp(0.32, 1, k)).normalize(); g.lookAt(_ga.add(_gb)); recoilGun(g);
+  _gb.lerp(_gc, 1 - smooth(1.25, 1.75, Math.abs(tw))).normalize(); g.lookAt(_ga.add(_gb)); recoilGun(g);
   g.updateWorldMatrix(true, true); rd.gripR.getWorldPosition(_gr);
   ik2(rd.arms[1].upper, rd.arms[1].lower, rd.chest, _gr, rd.chest.localToWorld(_pole.set(0.7, -0.4, 0.4)), 0.3, 0.29);
-  // 戰袍被風吹起、背包能量槽
+  // 戰袍被風吹起
   for (let i = 0; i < 3; i++) rd.cape[i].rotation.x = -(i === 0 ? 0.25 + sn * 1.0 : sn * 0.25) + Math.sin(S.time * (12 + sn * 14) + i * 1.3) * (0.05 + sn * 0.14);
 }
 function poseFoot(dt, speed, blend = 1) {
@@ -3386,7 +3619,7 @@ function frame(now) {
     moon.position.copy(playerPos()).add(_v.set(-30, 60, 20)); moon.target.position.copy(playerPos());
     S.dmg = Math.max(0, S.dmg - dt * 1.4); compMat.uniforms.dmg.value = S.dmg + (S.hp < 30 && S.mode === 'play' ? 0.25 + Math.sin(S.time * 5) * 0.1 : 0);
     beaconTime.value = S.time; snow.uniforms.time.value = S.time; updateRain();
-    for (const t of rider.tanks) t.scale.y = Math.max(0.03, S.boost / 100);
+    rider.tanks.forEach((t, i) => { t.scale.y = clamp(S.boost / 100 * 3 - i, 0.03, 1); });
     const jetOn = S.ctl === 'foot' && F.jet;
     for (const v of rider.vents) v.visible = P.boosting || jetOn;
     for (const j of rider.jets) { j.scale.y = damp(j.scale.y, jetOn ? 0.26 + R() * 0.16 : 0.01, 20, dt); j.scale.x = j.scale.z = jetOn ? 0.9 + R() * 0.3 : 1; }
@@ -3400,7 +3633,7 @@ requestAnimationFrame(tick);
 
 // ───────── 除錯 API ─────────
 window.__fr = {
-  S, P, F, scene, bike, rider, camera, compMat, CARS, DRONES, EVAC, mission, hurt, sfx, AU, start, restart, spawnDrone, spawnCar, boom: (x = 0, y = 2, z = -20) => boom(new V3(P.pos.x + x, y, P.pos.z + z), 1.2, 0x3b3648),
+  S, P, F, scene, bike, rider, camera, aimPt, compMat, CARS, DRONES, EVAC, mission, hurt, sfx, AU, start, restart, spawnDrone, spawnCar, boom: (x = 0, y = 2, z = -20) => boom(new V3(P.pos.x + x, y, P.pos.z + z), 1.2, 0x3b3648),
   god(v = true) { S.god = v; }, speed(kmh) { P.v = kmh / 3.6; }, dismount() { P.v = 0; beginDismount(); S.ctlT = 1; updateMountAnim(0); },
   aim(x, y) { mouse.x = x; mouse.y = y; }, fire(v = true) { mouse.fire = v; }, key(code, v = true) { keys[code] = v; },
   weapon(i) { switchWeapon(i); }, lock(v = true) { mouse.lock = v; }, LK, MSL, BEAMS, FOES,
