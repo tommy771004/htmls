@@ -130,8 +130,9 @@ body.cq #squad{display:block}
 #sqList b{font:700 13px/1.2 var(--num);color:var(--friend)}
 #sqList span{color:var(--ink-3);font-size:11.5px}
 #sqList em{font-style:normal;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sqList i{height:3px;background:rgba(240,236,252,.14);position:relative}
+#sqList i{height:4px;background:rgba(240,236,252,.26);position:relative}
 #sqList u{position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(var(--v,1))}
+#sqList u.lo{background:var(--foe)}
 #sqList li.me b{color:var(--order)}
 #sqList li.dead{opacity:.5}
 #sqList li.dead em{color:var(--foe)}
@@ -263,7 +264,7 @@ body:not(.playing) .lk{display:none!important}
 .mk.ally{color:var(--friend);font:600 11px/1 var(--tc)}
 .mk.ally::before{width:5px;height:5px;background:var(--friend)}
 .mk.evac::before{background:none;width:10px;height:10px;box-shadow:inset 0 0 0 2px var(--boost)}
-body:not(.playing) .mk{display:none!important}
+body:not(.playing) .mk,body:has(#resp.on) .mk{display:none!important}
 
 /* 開場、暫停、結算 */
 .ov{position:fixed;inset:0;display:none;pointer-events:auto}
@@ -4668,7 +4669,7 @@ function updateUnit(u, dt) {
   u.cool -= dt; u.rk -= dt;
   if (eng && u.react <= 0 && u.cool <= 0 && u.body) {
     u.body.muzzle.getWorldPosition(_sa);
-    if (u.role === 'AT' && u.rk <= 0 && (u.tgt.kind !== 'inf' || R() < 0.15)) { u.rk = 9 + R() * 4; u.cool = 1.2; fireRocket(_sa, tCenter(u.tgt, _tc), u.team, u, 46, 13, 26, 4.5); }
+    if (u.role === 'AT' && u.rk <= 0 && (u.tgt.kind !== 'inf' || R() < 0.15)) { u.rk = 9 + R() * 4; u.cool = 1.2; fireRocket(_sa, tCenter(u.tgt, _tc), u.team, u, 46, 9, 26, 3.5); }
     else {
       if (u.burst <= 0) u.burst = u.R.burst[0] + Math.floor(R() * (u.R.burst[1] - u.R.burst[0] + 1));
       aiFire(u, _sa, u.R.spread, u.role === 'RCN' ? 260 : 175, u.R.dmg, u.R.pdmg, u.role === 'RCN' ? 4 : 2.4, 0);
@@ -4807,7 +4808,7 @@ function updateVeh(v, dt) {
     } else if (v.cool <= 0) { if (v.burst <= 0) v.burst = 3; m.muz.getWorldPosition(_sa); aiFire(v, _sa, 0.022, 150, 1.0, 7, 3.6, 2.2); v.burst--; v.cool = v.burst > 0 ? 0.3 : 1.8 + R() * 0.8; v.kick = 1; }
   }
   // APE 莢艙三連發，間隔 0.22 秒
-  if (v.salvo > 0 && (v.salvoT -= dt) <= 0) { v.salvo--; v.salvoT = 0.22; if (tgt) { m.muzL.getWorldPosition(_sb); fireRocket(_sb, tCenter(tgt, _tc), v.team, v, 40, 11, 18, 4); } }
+  if (v.salvo > 0 && (v.salvoT -= dt) <= 0) { v.salvo--; v.salvoT = 0.22; if (tgt) { m.muzL.getWorldPosition(_sb); fireRocket(_sb, tCenter(tgt, _tc), v.team, v, 40, 8, 18, 3.6); } }
   v.kick = Math.max(0, (v.kick || 0) - dt * 6);
   v.st = v.los ? '交戰' : `推進 ${c.id}`;
   m.root.position.copy(v.p); m.root.rotation.set(0, v.yaw, 0);
@@ -4995,7 +4996,8 @@ function cqHud(dt) {
     const u = r.u, dead = u === PU ? S.ctl === 'dead' : !u.on;
     r.li.classList.toggle('dead', dead);
     r.st.textContent = u === PU ? (dead ? `重生 ${Math.ceil(Math.max(0, CQS.resT))}` : S.ctl === 'ride' ? 'K-7 騎乘' : F.crouch ? '蹲姿' : '步行') : dead ? (CQS.tix[0] > 0 ? `重生 ${Math.ceil(Math.max(0, u.resT))}` : '陣亡') : u.st;
-    r.hp.style.setProperty('--v', dead ? 0 : u === PU ? (S.hp / 100).toFixed(3) : (u.hp / 6).toFixed(3));
+    const hv = dead ? 0 : u === PU ? S.hp / 100 : u.hp / 6;
+    r.hp.style.setProperty('--v', hv.toFixed(3)); r.hp.classList.toggle('lo', hv < 0.35);
   }
   if (S.ctl === 'dead') $('respT').textContent = Math.ceil(Math.max(0, CQS.resT));
 }
