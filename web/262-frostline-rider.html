@@ -45,8 +45,17 @@ body.playing #hud{opacity:1}
 .bar{display:grid;grid-template-columns:48px 1fr 40px;gap:10px;align-items:center}
 .bar span{font-size:12px;color:var(--ink-2)}
 .bar i{display:block;height:6px;background:rgba(240,236,252,.13);clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);position:relative;overflow:hidden}
-.bar i::before{content:"";position:absolute;inset:0;background:var(--fill);transform-origin:left;transform:scaleX(var(--v,1))}
-.bar i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(18,14,28,.9) calc(10% - 2px) 10%)}
+.bar i::before{content:"";position:absolute;inset:0;z-index:1;background:var(--fill);transform-origin:left;transform:scaleX(var(--v,1))}
+.bar i::after{content:"";position:absolute;inset:0;z-index:2;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(18,14,28,.9) calc(10% - 2px) 10%)}
+/* 殘影：數值下降時先留一段淺色，0.35 秒後才追上 */
+.bar i u{position:absolute;inset:0;background:rgba(255,236,230,.62);transform-origin:left;transform:scaleX(var(--g,1))}
+#hpBar.hit i::before{background:var(--foe)}
+#hpBar.hit b{color:var(--foe)}
+#hpBar.hit i{animation:hpJolt .3s var(--ease-out)}
+@keyframes hpJolt{0%{transform:translateX(-4px)}35%{transform:translateX(3px)}70%{transform:translateX(-1px)}}
+/* 回充：亮帶沿著能量條掃過 */
+#boBar.regen i::before{background:linear-gradient(90deg,var(--fill) 0 38%,#d6fbff 50%,var(--fill) 62% 100%) 0 0/260% 100%;animation:sheen 1.2s linear infinite}
+@keyframes sheen{from{background-position:100% 0}to{background-position:-160% 0}}
 .bar b{font:700 17px/1 var(--num);text-align:right}
 #hpBar{--fill:var(--hp)}
 #hpBar.low{--fill:var(--foe)}
@@ -76,6 +85,8 @@ body.playing #hud{opacity:1}
 #wep .rl.on{opacity:1}
 #wep .rl::before{content:"";position:absolute;inset:0;background:var(--order);transform-origin:right;transform:scaleX(var(--v,0))}
 #veh{font-size:12px;color:var(--ink-2);margin-top:7px}
+#vehM{font:700 13px/1 var(--num);letter-spacing:.14em;color:var(--boost);margin-bottom:8px}
+#vehM.foot{color:var(--order)}
 #veh b{color:var(--ink);font-weight:600}
 
 /* 左下：戰術訊息與按鍵 */
@@ -83,7 +94,8 @@ body.playing #hud{opacity:1}
 #log{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 #log li{display:grid;grid-template-columns:auto 1fr;gap:10px;font-size:13.5px;line-height:1.3;padding-left:9px;position:relative;animation:logIn .35s var(--ease-out)}
 #log li::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:2px;border-radius:2px;background:var(--t,var(--friend))}
-#log li em{font:700 11px/1.55 var(--tc);font-style:normal;color:var(--t,var(--friend));white-space:nowrap}
+#log li em{font:700 11px/1.55 var(--num);letter-spacing:.04em;font-style:normal;color:var(--t,var(--friend));white-space:nowrap}
+#log li b{font:700 12px var(--num);color:var(--order);margin-left:6px}
 #log li.old{opacity:.5}
 @keyframes logIn{from{transform:translateX(-14px)}}
 #keys{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--ink-3)}
@@ -103,6 +115,8 @@ body.playing #xh{opacity:1}
 .mk{position:fixed;left:0;top:0;pointer-events:none;font:700 11px/1 var(--num);color:var(--foe);display:none;white-space:nowrap;transform:translate(-50%,-100%)}
 .mk::before{content:"";display:block;width:7px;height:7px;margin:0 auto 4px;background:var(--foe);transform:rotate(45deg)}
 .mk.car::before{transform:none;width:8px;height:6px}
+.mk.evac{color:var(--boost);font-size:12px}
+.mk.evac::before{background:none;width:10px;height:10px;box-shadow:inset 0 0 0 2px var(--boost)}
 body:not(.playing) .mk{display:none!important}
 
 /* 開場、暫停、結算 */
@@ -123,8 +137,9 @@ body:not(.playing) .mk{display:none!important}
 #pause .c,#over .c{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(90vw,520px)}
 #pause h2,#over h2{font:800 54px/1 var(--tc);letter-spacing:.04em}
 #over h2{color:var(--foe)}
+#over.win h2{color:var(--boost)}
 #pause p,#over p{color:var(--ink-2);margin:16px 0 24px;line-height:1.7;font-size:14px}
-#over dl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0 4px}
+#over dl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:22px 0 4px}
 #over dd{font:700 34px/1 var(--num)}
 #over dt{font-size:12px;color:var(--ink-3);margin-top:6px}
 .btn{font:700 15px/1 var(--tc);color:var(--night);background:var(--ink);border:0;padding:13px 22px;cursor:pointer;transition:background .18s}
@@ -150,7 +165,6 @@ body.touch #go kbd{display:none}
   #dir li{font-size:11px;padding:2px 0 3px;grid-template-columns:12px 1fr auto;gap:6px}
   #dir li svg{width:11px;height:11px}
   #dir li .c{font-size:11px}
-  #dir li:nth-child(n+4){display:none}
   #bars{top:auto;bottom:22px;left:auto;right:16px;transform:none;width:150px;gap:6px}
   .bar{grid-template-columns:1fr 26px}
   .bar span{display:none}
@@ -172,10 +186,11 @@ body.touch #go kbd{display:none}
   #title p{font-size:14px;margin:16px 0 22px}
   #pause h2,#over h2{font-size:38px}
   #over dd{font-size:26px}
+  #over dl{grid-template-columns:repeat(2,1fr);gap:16px 8px}
 }
 @media (prefers-reduced-motion:reduce){
   #log li{animation:none}
-  #boBar.low i{animation:none}
+  #boBar.low i,#hpBar.hit i,#boBar.regen i::before{animation:none}
 }
 </style>
 </head>
@@ -191,8 +206,8 @@ body.touch #go kbd{display:none}
     <div class="wave" id="wave"></div>
   </section>
   <section id="bars">
-    <div class="bar" id="hpBar"><span>裝甲</span><i></i><b class="num">100</b></div>
-    <div class="bar" id="boBar"><span>氮氣</span><i></i><b class="num">100</b></div>
+    <div class="bar" id="hpBar"><span>裝甲</span><i><u></u></i><b class="num">100</b></div>
+    <div class="bar" id="boBar"><span>氮氣</span><i><u></u></i><b class="num">100</b></div>
   </section>
   <section id="spd">
     <div class="fps num">FPS <b id="fps">60</b></div>
@@ -202,6 +217,7 @@ body.touch #go kbd{display:none}
   <section id="rd">
     <canvas id="radar" width="392" height="392"></canvas>
     <div id="wep">
+      <div id="vehM">BIKE</div>
       <div class="n">ARC-9 電漿卡賓</div>
       <div class="a num" id="ammo">40<small>/40</small></div>
       <div class="rl" id="reload"></div>
@@ -250,7 +266,7 @@ body.touch #go kbd{display:none}
   </dl>
 </div>
 <div class="ov" id="pause"><div class="c"><h2>暫停</h2><p>按 Esc 或點擊繼續。</p><button class="btn" id="resume">繼續騎乘</button></div></div>
-<div class="ov" id="over"><div class="c"><h2>機體全損</h2><dl><div><dd class="num" id="oDist">0</dd><dt>行駛公里</dt></div><div><dd class="num" id="oKill">0</dd><dt>擊毀目標</dt></div><div><dd class="num" id="oWave">0</dd><dt>撐到第幾波</dt></div></dl><p>按 R 或點擊重新出發。</p><button class="btn" id="again">重新出發</button></div></div>
+<div class="ov" id="over"><div class="c"><h2 id="oT">機體全損</h2><dl><div><dd class="num" id="oScore">0</dd><dt>分數</dt></div><div><dd class="num" id="oKill">0</dd><dt>擊毀目標</dt></div><div><dd class="num" id="oDist">0</dd><dt>行駛公里</dt></div><div><dd class="num" id="oWave">0</dd><dt>撐到第幾波</dt></div></dl><p id="oP">按 R 或點擊重新出發。</p><button class="btn" id="again">重新出發</button></div></div>
 <script type="module">
 // ───────────── 霜港高架 FROSTLINE RIDER ─────────────
 const $ = id => document.getElementById(id);
@@ -282,7 +298,7 @@ const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const angDiff = (a, b) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const R = Math.random;
-const _v = new V3(), _v2 = new V3(), _v3 = new V3(), _q = new Q(), _m = new M4(), _o = new O3(), _c = new C(), _c2 = new C();
+const _v = new V3(), _v2 = new V3(), _v3 = new V3(), _v4 = new V3(), _v5 = new V3(), _q = new Q(), _m = new M4(), _o = new O3(), _c = new C(), _c2 = new C();
 const hdr = (hex, k) => new C(hex).multiplyScalar(k);
 
 // 把多個幾何（含各自的矩陣）合併為一個非索引幾何
@@ -791,6 +807,9 @@ function buildRider() {
     part(pack, new THREE.CylinderGeometry(0.035, 0.05, 0.08, 8), MAT.dark, s * 0.1, -0.25, 0.04);
   }
   const vents = [-1, 1].map(s => part(pack, box(0.06, 0.02, 0.06), MAT.amber, s * 0.1, -0.295, 0.04, 0, 0, 0, false));
+  // 背包噴射：向後下方噴出的焰錐（與機車氮氣同一套形狀）
+  const jfl = new THREE.ConeGeometry(0.075, 1, 10, 1, true); jfl.translate(0, -0.5, 0);
+  const jets = [-1, 1].map(s => { const j = part(pack, jfl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), s * 0.1, -0.29, 0.04, -0.3, 0, 0, false); j.scale.set(1, 0.01, 1); return j; });
   // 頭盔
   const neck = grp(chest, 0, 0.53, 0);
   part(neck, new THREE.CylinderGeometry(0.06, 0.07, 0.08, 8), MAT.dark, 0, 0.02, 0);
@@ -837,7 +856,7 @@ function buildRider() {
   part(gun, box(0.06, 0.09, 0.14), MAT.mid, 0, -0.01, -0.26);
   const muzzle = grp(gun, 0, 0.01, 0.5), gripR = grp(gun, 0, -0.1, -0.08), gripL = grp(gun, 0, -0.05, 0.2);
   root.traverse(o => { if (o.isMesh) o.castShadow = o.castShadow && true; });
-  return { root, pelvis, spine, chest, neck, head, arms, legs, cape, gun, muzzle, gripR, gripL, tanks, vents };
+  return { root, pelvis, spine, chest, neck, head, arms, legs, cape, gun, muzzle, gripR, gripL, tanks, vents, jets, aimK: 0 };
 }
 
 // 兩段式 IK：upper/lower 的幾何都沿 -Y 延伸
@@ -886,8 +905,11 @@ function buildBike() {
   for (const s of [-1, 1]) heads.push(part(body, box(0.1, 0.05, 0.04), MAT.white, s * 0.085, 0.73, -0.975, 0, 0, 0, false));
   const coneGeo = new THREE.ConeGeometry(2.6, 11, 24, 1, true); coneGeo.translate(0, -5.5, 0); coneGeo.rotateX(Math.PI / 2 - 0.08);
   const cones = [-1, 1].map(s => { const c = part(body, coneGeo, glowMat(0xdff4ff, 0.09, 'a = pow(clamp(vUv.y,0.,1.),1.8)*pow(abs(dot(vN,vV)),1.3);'), s * 0.085, 0.73, -1.0, 0, 0, 0, false); c.renderOrder = 2; return c; });
-  const spot = new THREE.SpotLight(0xe8f4ff, 60, 70, 0.42, 0.55, 1.4); spot.position.set(0, 0.8, -1.6); body.add(spot);
-  spot.target.position.set(0, -0.5, -16); body.add(spot.target);
+  // 左右兩盞 SpotLight 各自對應一顆頭燈，光束略向外張
+  const spots = [-1, 1].map(s => {
+    const l = new THREE.SpotLight(0xe8f4ff, 32, 70, 0.4, 0.55, 1.4); l.position.set(s * 0.085, 0.8, -1.6); body.add(l);
+    l.target.position.set(s * 1.2, -0.5, -16); body.add(l.target); return l;
+  });
   // 尾部雙氮氣噴嘴
   const nozzles = [-1, 1].map(s => {
     const n = grp(body, s * 0.12, 0.66, 0.96);
@@ -914,7 +936,7 @@ function buildBike() {
   const seat = grp(body, 0, 0.9, 0.22);
   const stand = part(body, box(0.03, 0.4, 0.03), MAT.chrome, -0.16, 0.2, 0.1, 0, 0, -0.5); stand.visible = false;
   root.traverse(o => { if (o.isMesh) o.castShadow = solid(o.material); });
-  return { root, lean, body, rear, front, fork, bars, gripL, gripR, pegL, pegR, seat, nozzles, cones, spot, stand, heads };
+  return { root, lean, body, rear, front, fork, bars, gripL, gripR, pegL, pegR, seat, nozzles, cones, spots, stand, heads };
 }
 
 // ───────── 戰鬥無人機 ─────────
@@ -950,14 +972,17 @@ const carGeo = {
   wheel: (() => { const g = new THREE.CylinderGeometry(0.4, 0.4, 0.32, 16); g.rotateZ(Math.PI / 2); return g; })(),
   hub: (() => { const g = new THREE.TorusGeometry(0.24, 0.035, 6, 20); g.rotateY(Math.PI / 2); return g; })()
 };
+// 黑紅塗裝：高光澤黑色金屬車身反射霓虹與路燈，紅色側板與引擎蓋條紋負責遠距辨識
+const CAR_MAT = { paint: new THREE.MeshStandardMaterial({ color: 0x15131a, metalness: 0.7, roughness: 0.26, envMapIntensity: 1.6 }), red: toon(0xc0202c) };
 function buildCar() {
   const root = grp(null), body = grp(root);
-  part(body, carGeo.body, MAT.enemy);
+  part(body, carGeo.body, CAR_MAT.paint);
+  part(body, box(0.5, 0.03, 2.1), CAR_MAT.red, 0, 1.08, -1.25, -0.12);
   part(body, carGeo.cabin, MAT.glass);
   part(body, carGeo.ram, MAT.gun);
   for (const s of [-1, 1]) {
-    part(body, box(0.06, 0.32, 2.6), MAT.enemyPlate, s * 1.02, 0.62, 0.2);
-    part(body, box(0.07, 0.07, 2.6), MAT.red, s * 1.04, 0.62, 0.2);
+    part(body, box(0.06, 0.32, 2.6), CAR_MAT.red, s * 1.02, 0.62, 0.2);
+    part(body, box(0.07, 0.07, 2.6), MAT.gun, s * 1.04, 0.62, 0.2);
     part(body, box(0.03, 0.025, 1.2), MAT.redGlow, s * 1.06, 0.36, 0.5, 0, 0, 0, false);
     part(body, box(0.42, 0.05, 0.04), MAT.white, s * 0.62, 0.62, -2.37, 0, 0, 0, false);
     part(body, box(0.5, 0.06, 0.04), MAT.redGlow, s * 0.6, 0.8, 2.29, 0, 0, 0, false);
@@ -972,7 +997,7 @@ function buildCar() {
   // 車頂機槍塔
   const turret = grp(body, 0, 1.4, 0.95);
   part(turret, new THREE.CylinderGeometry(0.32, 0.38, 0.2, 12), MAT.gun, 0, 0.1, 0);
-  part(turret, box(0.38, 0.26, 0.6), MAT.enemyPlate, 0, 0.3, -0.05);
+  part(turret, box(0.38, 0.26, 0.6), CAR_MAT.paint, 0, 0.3, -0.05);
   for (const s of [-1, 1]) part(turret, new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), MAT.chrome, s * 0.09, 0.32, -0.75, Math.PI / 2);
   const tMuzzle = grp(turret, 0, 0.32, -1.22);
   const cone = part(body, (() => { const g = new THREE.ConeGeometry(2.2, 10, 18, 1, true); g.translate(0, -5, 0); g.rotateX(Math.PI / 2 - 0.06); return g; })(), glowMat(0xeaf2ff, 0.06, 'a = pow(clamp(vUv.y,0.,1.),1.8)*pow(abs(dot(vN,vV)),1.3);'), 0, 0.62, -2.4, 0, 0, 0, false);
@@ -992,10 +1017,11 @@ function buildCiv(i) {
 }
 
 // ───────── 特效物件池 ─────────
-// 電漿光束：白芯＋外層光殼，兩組 InstancedMesh
+// 電漿光束：白芯＋外層光殼兩層長條圓柱，各一組 InstancedMesh
+const boltCyl = r => { const g = new THREE.CylinderGeometry(r, r, 1, 10, 1); g.rotateX(Math.PI / 2); return g; };
 function boltPool(n, coreHex, shellHex, shellK, w) {
-  const core = new THREE.InstancedMesh(box(w * 0.32, w * 0.32, 1), glowBasic(coreHex, 5), n);
-  const shell = new THREE.InstancedMesh(box(w, w, 1), new THREE.MeshBasicMaterial({ color: hdr(shellHex, shellK), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), n);
+  const core = new THREE.InstancedMesh(boltCyl(w * 0.16), glowBasic(coreHex, 5), n);
+  const shell = new THREE.InstancedMesh(boltCyl(w * 0.5), new THREE.MeshBasicMaterial({ color: hdr(shellHex, shellK), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), n);
   for (const m of [core, shell]) { m.frustumCulled = false; m.count = 0; scene.add(m); }
   const items = Array.from({ length: n }, () => ({ on: false, p: new V3(), v: new V3(), life: 0, len: 3, dmg: 1 }));
   return { core, shell, items };
@@ -1061,10 +1087,12 @@ function updateSparks(dt) {
 }
 // 賽璐珞煙團與燃燒碎片
 const PUFF_N = 160;
-const puffs = new THREE.InstancedMesh((() => { const g = new THREE.IcosahedronGeometry(1, 1); g.computeVertexNormals(); return g; })(), toon(0xffffff), PUFF_N);
+// 半透明且不寫深度：不會被後製的深度描邊勾成實心石塊，疊在一起也比較像煙
+const puffs = new THREE.InstancedMesh((() => { const g = new THREE.IcosahedronGeometry(1, 1); g.computeVertexNormals(); return g; })(), toon(0xffffff, { transparent: true, opacity: 0.62, depthWrite: false }), PUFF_N);
 puffs.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(PUFF_N * 3), 3);
 puffs.frustumCulled = false; puffs.count = PUFF_N; scene.add(puffs);
-const SMOKE = new C(0.38, 0.35, 0.42);
+// 煙要比雪夜背景更暗，否則經過卡通光照會變成淺色石塊
+const SMOKE = new C(0.13, 0.12, 0.16);
 const PUFF = Array.from({ length: PUFF_N }, () => ({ life: 0, max: 1, p: new V3(), v: new V3(), s: 1, rot: 0, hot: 0 }));
 let puffHead = 0;
 function puff(p, v, size, life, hot) { const q = PUFF[puffHead]; puffHead = (puffHead + 1) % PUFF_N; q.life = q.max = life; q.p.copy(p); q.v.copy(v); q.s = size; q.rot = R() * 6; q.hot = hot; }
@@ -1085,7 +1113,7 @@ function updatePuffs(dt) {
     _o.position.copy(q.p); _o.rotation.set(q.rot, q.rot * 0.7 + t, 0); _o.scale.setScalar(Math.max(0.001, sc)); _o.updateMatrix();
     puffs.setMatrixAt(i, _o.matrix);
     const hot = Math.max(0, q.hot - t * 2.4);
-    _c.setRGB(0.9 + hot * 2.4, 0.78 + hot * 0.9, 0.62 + hot * 0.1).lerp(SMOKE, Math.min(1, t * 1.3) * (1 - q.hot * 0.4) * 0.8);
+    _c.setRGB(0.32 + hot * 3.2, 0.29 + hot * 1.3, 0.33 + hot * 0.2).lerp(SMOKE, Math.min(1, t * 1.6));
     puffs.setColorAt(i, _c);
   }
   puffs.instanceMatrix.needsUpdate = true; puffs.instanceColor.needsUpdate = true;
@@ -1101,7 +1129,7 @@ function updateDebris(dt) {
     const floor = Math.abs(d.p.x) < 14.4 ? d.s.y * 0.5 : -24;
     if (d.p.y < floor) { d.p.y = floor; if (d.v.y < -1.5) { d.v.y *= -0.38; sparks(d.p, 4, 4, 0xffb35a, 3, 0.4, 0.05); } else d.v.y = 0; d.v.x *= 0.75; d.v.z *= 0.75; d.w.multiplyScalar(0.7); }
     if (d.burn > 0 && R() < dt * 26) spk.emit(d.p.x, d.p.y + 0.1, d.p.z, (R() - 0.5), 2 + R() * 2, (R() - 0.5), 0.5 + R() * 0.4, 6, 2.2, 0.5, 0.18, -0.15, 0.8);
-    if (d.burn > 0 && R() < dt * 5) puff(d.p, _v.set(0, 1.5, 0), 0.25 + R() * 0.25, 1.2, 0.2);
+    if (d.burn > 0 && R() < dt * 2.5) puff(d.p, _v.set(0, 1.2, 0), 0.16 + R() * 0.16, 1.0, 0.2);
     d.burn -= dt;
     const sc = Math.min(1, d.life * 2);
     _o.position.copy(d.p); _o.rotation.copy(d.r); _o.scale.copy(d.s).multiplyScalar(sc); _o.updateMatrix();
@@ -1142,15 +1170,28 @@ function makeRibbon() {
   return { mesh, g, pts: Array.from({ length: RIB_N }, () => new V3()), init: false };
 }
 const ribbons = [makeRibbon(), makeRibbon()];
+// 撤離點：地面光環＋直上夜空的光柱。不吃霧，1 km 外也看得到方向
+const evacMesh = (() => {
+  const g = new THREE.Group();
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { time: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; varying vec3 vN, vV; varying float vD; void main(){ vUv = uv; vec4 wp = modelMatrix*vec4(position,1.); vN = normalize(mat3(modelMatrix)*normal); vV = normalize(cameraPosition-wp.xyz); vD = distance(cameraPosition.xz, wp.xz); gl_Position = projectionMatrix*viewMatrix*wp; }',
+    fragmentShader: 'uniform float time; varying vec2 vUv; varying vec3 vN, vV; varying float vD; void main(){ float y = clamp(vUv.y,0.,1.); float a = pow(1.-y,1.2)*(0.35+0.65*pow(1.-abs(dot(vN,vV)),2.)); a *= 0.75+0.25*sin(y*90.-time*6.); a *= 1.+clamp(vD/250.,0.,4.); gl_FragColor = vec4(vec3(0.35,0.95,1.0)*a*2.2, 1.); }',
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+  });
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 5.8, 240, 40, 1, true), mat); pillar.position.y = 120; pillar.frustumCulled = false; g.add(pillar);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(5.4, 6.0, 64), new THREE.MeshBasicMaterial({ color: hdr(0x5ef2ff, 3), side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; g.add(ring);
+  g.userData.mat = mat; g.visible = false; scene.add(g); return g;
+})();
 
 // ═════════ 遊戲狀態 ═════════
 const rider = buildRider(), bike = buildBike();
 scene.add(bike.root);
 const LANE_R = [3.0, 6.6, 10.2];
-const S = { mode: 'title', ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1 };
+const S = { mode: 'title', score: 0, won: false, ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1 };
 const P = { pos: new V3(6.6, 0, 0), yaw: 0, v: 0, steer: 0, lean: 0, pitch: 0, acc: 0, boosting: false, wheel: 0 };
-const F = { pos: new V3(), vel: new V3(), yaw: 0, phase: 0, aimYaw: 0, aimPitch: 0, ready: 1 };
-const CAM = { yawOff: 0, footYaw: 0, off: new V3(0, 2.4, 6.5), fov: 60, look: new V3() };
+const F = { pos: new V3(), vel: new V3(), yaw: 0, phase: 0, aimYaw: 0, aimPitch: 0, ready: 1, jet: false, lift: 0 };
+const CAM = { yawOff: 0, footYaw: 0, off: new V3(0, 2.4, 6.5), vel: new V3(), fov: 60, look: new V3() };
 const aimPt = new V3(), aimRay = new THREE.Ray(), raycaster = new THREE.Raycaster();
 const fwdOf = (yaw, out = new V3()) => out.set(-Math.sin(yaw), 0, -Math.cos(yaw));
 const rightOf = (yaw, out = new V3()) => out.set(Math.cos(yaw), 0, -Math.sin(yaw));
@@ -1270,31 +1311,54 @@ function updateAudio(dt) {
 // ───────── HUD ─────────
 const MISSIONS = [
   { id: 'speed', t: '騎上 K-7 衝到 150 km/h', goal: 1, n: 0 },
-  { id: 'drone', t: '擊落巡邏無人機', goal: 6, n: 0 },
-  { id: 'car', t: '擊毀追擊車', goal: 3, n: 0 },
+  { id: 'drone', t: '擊落戰鬥無人機', goal: 10, n: 0 },
+  { id: 'car', t: '摧毀攔截車', goal: 5, n: 0 },
   { id: 'foot', t: '下車步行擊落 1 架無人機', goal: 1, n: 0 },
-  { id: 'dist', t: '沿高架南下 5 km', goal: 5, n: 0, fmt: n => n.toFixed(1) }
+  { id: 'evac', t: '抵達撤離點', goal: 1, n: 0 }
 ];
+// 前四項完成後才在前方 1.2 km 標定撤離點；抵達即結算
+const EVAC = { on: false, x: 6.6, z: 0 };
 const dirList = $('dirList');
 dirList.innerHTML = MISSIONS.map(m => `<li id="m-${m.id}"><svg viewBox="0 0 14 14"><rect x="0.7" y="0.7" width="12.6" height="12.6" rx="2"/><path d="M3 7.4 6 10.2 11.4 3.6"/></svg><span>${m.t}</span><span class="c num"></span></li>`).join('');
 function mission(id, n) {
   const m = MISSIONS.find(m => m.id === id); if (m.done) return;
   m.n = Math.min(m.goal, n);
-  if (m.n >= m.goal) { m.done = true; $('m-' + id).classList.add('done'); log('HQ', `指令完成：${m.t}`, 'var(--boost)'); sfx('beep'); }
+  if (m.n >= m.goal) {
+    m.done = true; $('m-' + id).classList.add('done'); log('HQ', `指令完成：${m.t}`, 'var(--boost)'); sfx('beep');
+    if (!EVAC.on && id !== 'evac' && MISSIONS.every(m => m.done || m.id === 'evac')) openEvac();
+  }
 }
-function drawMissions() { for (const m of MISSIONS) { const el = $('m-' + m.id).querySelector('.c'); el.textContent = m.goal > 1 ? `${m.fmt ? m.fmt(m.n) : m.n}/${m.goal}` : ''; } }
+function openEvac() {
+  EVAC.on = true; EVAC.z = playerPos().z - 1200; evacMesh.visible = true;
+  log('HQ', '戰鬥目標全數達成，撤離點已標定：南向 1.2 km', 'var(--boost)');
+}
+function drawMissions() {
+  for (const m of MISSIONS) {
+    const el = $('m-' + m.id).querySelector('.c');
+    if (m.id === 'evac') el.textContent = m.done ? '' : EVAC.on ? `${(Math.max(0, playerPos().z - EVAC.z) / 1000).toFixed(2)} km` : '鎖定';
+    else el.textContent = m.goal > 1 ? `${m.n}/${m.goal}` : '';
+  }
+}
 const logEl = $('log');
-function log(tag, msg, col = 'var(--friend)') {
-  const li = document.createElement('li'); li.style.setProperty('--t', col); li.innerHTML = `<em>${tag}</em><span>${msg}</span>`;
+const LOG_CODE = { '警告': 'WARNING', '擊毀': 'KILL', '系統': 'SYS', 'HQ': 'HQ' };
+function log(tag, msg, col = 'var(--friend)', pts = 0) {
+  const li = document.createElement('li'); li.style.setProperty('--t', col); li.innerHTML = `<em>[${LOG_CODE[tag] || tag}]</em><span>${msg}${pts ? `<b>+${pts}</b>` : ''}</span>`;
   logEl.appendChild(li); while (logEl.children.length > 5) logEl.firstChild.remove();
   [...logEl.children].forEach((c, i, a) => c.classList.toggle('old', i < a.length - 3));
 }
 const hpBar = $('hpBar'), boBar = $('boBar'), hpI = hpBar.querySelector('i'), boI = boBar.querySelector('i'), hpB = hpBar.querySelector('b'), boB = boBar.querySelector('b');
-const xh = $('xh');
+const xh = $('xh'), vehM = $('vehM');
 const marks = Array.from({ length: 10 }, () => { const d = document.createElement('div'); d.className = 'mk'; $('marks').appendChild(d); return d; });
 let hudT = 0, hitT = 0, killT = 0;
+let hpG = 100, boG = 100, hpHold = 0, boHold = 0, boPrev = 100, hpHitT = 0;
 function hud(dt) {
   hpI.style.setProperty('--v', (S.hp / 100).toFixed(3)); boI.style.setProperty('--v', (S.boost / 100).toFixed(3));
+  // 殘影：上升時直接跟上，下降時停 0.35 秒再追
+  if (S.hp >= hpG) { hpG = S.hp; hpHold = 0.35; } else if ((hpHold -= dt) <= 0) hpG = damp(hpG, S.hp, 5, dt);
+  if (S.boost >= boG) { boG = S.boost; boHold = 0.35; } else if ((boHold -= dt) <= 0) boG = damp(boG, S.boost, 5, dt);
+  hpI.style.setProperty('--g', (hpG / 100).toFixed(3)); boI.style.setProperty('--g', (boG / 100).toFixed(3));
+  hpHitT -= dt; hpBar.classList.toggle('hit', hpHitT > 0);
+  boBar.classList.toggle('regen', S.boost > boPrev + 1e-4 && S.boost < 99.9); boPrev = S.boost;
   hudT -= dt;
   if (hudT <= 0) {
     hudT = 0.1;
@@ -1302,16 +1366,19 @@ function hud(dt) {
     hpBar.classList.toggle('low', S.hp < 30); boBar.classList.toggle('low', S.boost < 20);
     const sp = S.ctl === 'foot' || S.ctl === 'mount' ? F.vel.length() : Math.abs(P.v);
     $('kmh').textContent = Math.round(sp * 3.6);
-    $('gear').textContent = S.ctl === 'foot' ? (F.vel.length() > 5 ? '步行・奔跑' : '步行') : P.boosting ? '氮氣衝刺' : P.v < -0.5 ? '倒車' : '騎乘';
+    $('gear').textContent = S.ctl === 'foot' ? (F.jet ? '背包噴射' : F.vel.length() > 5 ? '步行・奔跑' : '步行') : P.boosting ? '氮氣衝刺' : P.v < -0.5 ? '倒車' : '騎乘';
     $('ammo').innerHTML = `${S.ammo}<small>/40</small>`; $('ammo').classList.toggle('empty', S.ammo === 0);
     $('vehS').textContent = S.ctl === 'foot' ? `停放 ${Math.round(F.pos.distanceTo(P.pos))} m` : S.ctl === 'ride' ? (P.boosting ? '氮氣噴射' : '騎乘中') : '切換中';
-    $('wave').innerHTML = S.wave ? `第<b>${S.wave}</b>波・擊毀 <b>${S.kills}</b>` : '';
-    mission('dist', S.dist / 1000); drawMissions();
+    $('wave').innerHTML = S.wave ? `第<b>${S.wave}</b>波・擊毀 <b>${S.kills}</b>・分數 <b>${S.score}</b>` : '';
+    const onFoot = S.ctl === 'foot' || S.ctl === 'mount'; vehM.textContent = onFoot ? 'ON FOOT' : 'BIKE'; vehM.classList.toggle('foot', onFoot);
+    drawMissions();
   }
   const rl = $('reload'); rl.classList.toggle('on', S.reload > 0); if (S.reload > 0) rl.style.setProperty('--v', (1 - S.reload / 1.3).toFixed(3));
   xh.style.transform = `translate(${mouse.x}px,${mouse.y}px)`;
   hitT -= dt; killT -= dt; xh.classList.toggle('hit', hitT > 0); xh.classList.toggle('kill', killT > 0);
-  $('xhT').style.transform = `scale(${1 + Math.min(0.5, S.kick * 18)})`;
+  // 準星張開幅度＝實際散布（騎乘固定、步行隨速度）＋後座
+  const spr = S.ctl === 'ride' ? 0.01 : 0.006 + F.vel.length() * 0.0012;
+  $('xhT').style.transform = `scale(${(1 + Math.min(0.5, S.kick * 18) + spr * 26).toFixed(3)})`;
 }
 // 雷達：以鏡頭朝向為上
 const rc = $('radar').getContext('2d');
@@ -1335,6 +1402,8 @@ function radar(dt) {
   if (S.ctl === 'foot') { const [x, y] = tr(P.pos.x, P.pos.z); g.strokeStyle = '#86cdfa'; g.lineWidth = 3; g.strokeRect(x - 6, y - 9, 12, 18); }
   for (const cr of CARS) if (cr.on && cr.mode !== 'dead') { const [x, y] = tr(cr.x, cr.z); g.save(); g.translate(x, y); g.rotate(-(cr.yaw - cy)); g.fillStyle = '#ff6b55'; g.fillRect(-6, -11, 12, 22); g.restore(); }
   for (const d of DRONES) if (d.on) { const [x, y] = tr(d.p.x, d.p.z); g.fillStyle = '#ff6b55'; g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x + 7, y); g.lineTo(x, y + 8); g.lineTo(x - 7, y); g.fill(); }
+  // 撤離點：超出雷達範圍時貼在外圈指出方向
+  if (EVAC.on) { let [x, y] = tr(EVAC.x, EVAC.z); const ex = x - c, ey = y - c, l = Math.hypot(ex, ey); if (l > Rr - 16) { x = c + ex / l * (Rr - 16); y = c + ey / l * (Rr - 16); } g.strokeStyle = '#5ef2ff'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 11, 0, Math.PI * 2); g.stroke(); g.fillStyle = '#5ef2ff'; g.beginPath(); g.arc(x, y, 3.5, 0, Math.PI * 2); g.fill(); }
   // 中心：玩家朝向箭頭
   const hy = (S.ctl === 'ride' ? P.yaw : F.yaw) - cy;
   g.translate(c, c); g.rotate(-hy); g.fillStyle = '#f4f1fb'; g.beginPath(); g.moveTo(0, -13); g.lineTo(9, 9); g.lineTo(0, 4); g.lineTo(-9, 9); g.closePath(); g.fill();
@@ -1379,12 +1448,13 @@ function killDrone(d, byFoot) {
   d.on = false; d.root.visible = false;
   boom(d.p, 1, 0x3b3648);
   S.kills++; S.dKills++; mission('drone', S.dKills); if (byFoot) { S.footKills++; mission('foot', S.footKills); }
-  log('擊毀', `無人機已擊落${byFoot ? '（步行）' : ''}`, 'var(--order)'); killT = 0.25;
+  const pts = byFoot ? 150 : 100; S.score += pts;
+  log('擊毀', `擊落戰鬥無人機${byFoot ? '（步行）' : ''}`, 'var(--order)', pts); killT = 0.25;
 }
 function killCar(c) {
   c.mode = 'dead'; c.vy = 9 + R() * 4; c.spin.set((R() - 0.5) * 5, (R() - 0.5) * 4, (R() < 0.5 ? -1 : 1) * (3 + R() * 3)); c.burn = 6;
   boom(_v.set(c.x, 1, c.z), 1.7, 0x2b2a33);
-  S.kills++; S.cKills++; mission('car', S.cKills); log('擊毀', '追擊車已摧毀', 'var(--order)'); killT = 0.25;
+  S.kills++; S.cKills++; S.score += 250; mission('car', S.cKills); log('擊毀', '攔截車已摧毀', 'var(--order)', 250); killT = 0.25;
 }
 function updateDrones(dt) {
   const pp = playerPos(), pv = playerVel(_v3), aim = S.ctl === 'ride' ? _v2.copy(P.pos).setY(1.2) : _v2.copy(F.pos).setY(1.3);
@@ -1456,7 +1526,7 @@ function updateCars(dt) {
       if (c.ram > 0) { c.ram -= dt; tx = pp.x; } else {
         const opts = LANE_R.map(l => c.side * l).filter(l => Math.abs(l - pp.x) > 2.6);
         tx = opts.reduce((a, b) => Math.abs(b - c.x) < Math.abs(a - c.x) ? b : a, opts[0] ?? c.side * 6.6);
-        if (c.side * pp.x > 0 && c.ramCd <= 0 && Math.abs(dzP) < 4 && !still) { c.ram = 1.1; c.ramCd = 5 + R() * 4; log('警告', '追擊車切入車道企圖衝撞', 'var(--foe)'); }
+        if (c.side * pp.x > 0 && c.ramCd <= 0 && Math.abs(dzP) < 4 && !still) { c.ram = 1.1; c.ramCd = 5 + R() * 4; log('警告', '攔截車切入車道企圖衝撞', 'var(--foe)'); }
       }
       tx = clamp(tx, c.side > 0 ? sideMin : -sideMax, c.side > 0 ? sideMax : -sideMin);
       const want = clamp(-pv.z + clamp((c.z - tz) * 0.7, -18, 28), still ? 0 : 6, 82);
@@ -1488,7 +1558,7 @@ function updateCars(dt) {
           if (c.burstN === 0) c.cool = (2.4 + R() * 1.6) / rate;
         } }
       }
-      if (!c.warned && dist < 70) { c.warned = true; log('警告', `追擊車接近，距離 ${Math.round(dist)} m`, 'var(--foe)'); }
+      if (!c.warned && dist < 70) { c.warned = true; log('警告', `偵測到敵方攔截車接近，距離 ${Math.round(dist)} m`, 'var(--foe)'); }
     }
     if (c.flash > 0) c.flash -= dt; setFlash(c.root, c.flash > 0.03);
     const blink = Math.floor(S.time * 7) % 2;
@@ -1535,7 +1605,7 @@ function boom(p, size, tint) {
     debris.setColorAt(DEB.indexOf(d), R() < 0.3 ? _c2.copy(_c).multiplyScalar(0.4) : _c);
   }
   debris.instanceColor.needsUpdate = true;
-  for (let i = 0; i < Math.round(9 * size); i++) puff(_v2.copy(p).add(_v3.set((R() - 0.5) * 2.4 * size, (R() - 0.2) * 1.6 * size, (R() - 0.5) * 2.4 * size)), _v3.set((R() - 0.5) * 6, 2 + R() * 4, (R() - 0.5) * 6).multiplyScalar(size), (0.5 + R() * 0.55) * Math.sqrt(size), 1.1 + R() * 0.9, 0.9);
+  for (let i = 0; i < Math.round(9 * size); i++) puff(_v2.copy(p).add(_v3.set((R() - 0.5) * 2.4 * size, (R() - 0.2) * 1.6 * size, (R() - 0.5) * 2.4 * size)), _v3.set((R() - 0.5) * 4 * size, 1 + R() * 2.5, (R() - 0.5) * 4 * size), (0.45 + R() * 0.5) * Math.sqrt(size), 0.9 + R() * 0.7, 0.9);
   sparks(p, Math.round(70 * size), 16 * size, 0xffb35a, 5, 0.35, 0.09);
   sparks(p, Math.round(26 * size), 22 * size, 0xfff1d8, 6, 0.2, 0.06);
   shake(0.55 * size, p); sfx('boom', clamp(1.2 - p.distanceTo(camera.position) / 160, 0.2, 1));
@@ -1548,14 +1618,30 @@ function updateBooms(dt) {
   compMat.uniforms.flash.value = Math.max(0, compMat.uniforms.flash.value - dt * 0.5);
 }
 function hurt(n, from) {
-  if (S.god || S.mode !== 'play' || S.ctl === 'dead') return;
-  S.hp -= n; S.dmg = Math.min(1, S.dmg + n / 22); S.lastHurt = S.time; shake(0.12 + n / 60);
+  if (S.god || S.mode !== 'play' || S.ctl === 'dead' || S.won) return;
+  S.hp -= n; S.dmg = Math.min(1, S.dmg + n / 22); S.lastHurt = S.time; shake(0.12 + n / 60); hpHitT = 0.3;
   if (S.hp <= 0) { S.hp = 0; die(); }
 }
 function die() {
   S.ctl === 'ride' ? boom(_v.copy(P.pos).setY(0.8), 1.4, 0x1d1b26) : boom(_v.copy(F.pos).setY(0.8), 0.8, 0x2a2735);
   S.ctl = 'dead'; S.overT = 0; P.v *= 0.3; log('警告', '裝甲全損', 'var(--foe)');
-  setTimeout(() => { if (S.ctl === 'dead') { setMode('over'); $('oDist').textContent = (S.dist / 1000).toFixed(1); $('oKill').textContent = S.kills; $('oWave').textContent = S.wave; } }, 1600);
+  setTimeout(() => { if (S.ctl === 'dead') showOver(false); }, 1600);
+}
+function showOver(won) {
+  setMode('over'); $('over').classList.toggle('win', won);
+  $('oT').textContent = won ? '突圍成功' : '機體全損';
+  $('oP').textContent = won ? `抵達撤離點，用時 ${Math.floor(S.time / 60)} 分 ${String(Math.floor(S.time % 60)).padStart(2, '0')} 秒。按 R 或點擊再跑一次。` : '按 R 或點擊重新出發。';
+  $('oScore').textContent = S.score; $('oDist').textContent = (S.dist / 1000).toFixed(1); $('oKill').textContent = S.kills; $('oWave').textContent = S.wave;
+}
+function checkEvac() {
+  if (!EVAC.on || S.won || S.ctl === 'dead') return;
+  evacMesh.position.set(EVAC.x, 0, EVAC.z);
+  const pp = playerPos();
+  if (Math.abs(pp.z - EVAC.z) < 7 && pp.x > 0) {
+    S.won = true; S.overT = 0; mission('evac', 1); const bonus = 1000 + Math.round(S.hp) * 10; S.score += bonus;
+    log('HQ', '已抵達撤離點，K-7 回收完成', 'var(--boost)', bonus); sfx('beep');
+    setTimeout(() => { if (S.won) showOver(true); }, 1400);
+  }
 }
 
 // ───────── 射擊 ─────────
@@ -1575,13 +1661,28 @@ function tryFire(dt) {
   _dir.x += (R() - 0.5) * spread * 2; _dir.y += (R() - 0.5) * spread * 2; _dir.z += (R() - 0.5) * spread * 2; _dir.normalize();
   const b = fireBolt(pBolts, _mz, _dir, 240, 1, 3.4); if (b && S.ctl === 'ride') b.v.add(fwdOf(P.yaw, _v).multiplyScalar(P.v));
   muzzleFlash.visible = true; muzzleFlash.position.copy(_mz); muzzleFlash.quaternion.setFromUnitVectors(_bz, _dir); muzzleFlash.rotateZ(R() * 6); muzzleFlash.scale.setScalar(0.8 + R() * 0.6); muzzleFlash.userData.t = 0.05;
-  muzzleLight.position.copy(_mz); muzzleLight.intensity = 26;
-  S.kick = Math.min(0.03, S.kick + 0.006); S.trauma = Math.min(1, S.trauma + 0.02);
+  // 光源放在槍口前方 0.8 m，照亮路面與周遭，但不把貼近槍身的騎士裝甲照成一片白
+  muzzleLight.position.copy(_mz).addScaledVector(_dir, 0.8); muzzleLight.intensity = 14;
+  S.kick = Math.min(0.03, S.kick + 0.006); S.trauma = Math.min(1, S.trauma + 0.02); S.recoil = 1;
   sparks(_mz, 2, 3, 0x9ef8ff, 4, 0, 0.05);
   sfx('shot');
   if (S.ammo === 0) startReload();
 }
-const _pa = new V3(), _ctr = new V3();
+const _pa = new V3(), _ctr = new V3(), _imp = new V3();
+const RAILS = [-13.75, 0, 13.75];
+function boltImpact(b) {
+  let t = 2, side = 0;
+  if (b.p.y < 0.02 && _pa.y >= 0.02) t = (_pa.y - 0.02) / (_pa.y - b.p.y);
+  for (const wx of RAILS) {
+    const a = _pa.x - wx, c = b.p.x - wx; if (a * c >= 0) continue;
+    const tt = a / (a - c), y = lerp(_pa.y, b.p.y, tt); if (y > 0 && y < 1.02 && tt < t) { t = tt; side = Math.sign(a); }
+  }
+  if (t > 1) return false;
+  _imp.lerpVectors(_pa, b.p, t); if (side) _imp.x += side * 0.18; else if (Math.abs(_imp.x) > 14.5) return false; else _imp.y = 0.05;
+  sparks(_imp, 9, 6, 0x9ef8ff, 4, side ? 0.3 : 0.5, 0.06);
+  spk.emit(_imp.x, _imp.y, _imp.z, 0, 0.4, 0, 0.12, 6, 9, 10, 0.5, 0, 4);
+  return true;
+}
 function updateBolts(dt) {
   for (const b of pBolts.items) {
     if (!b.on) continue;
@@ -1591,8 +1692,8 @@ function updateBolts(dt) {
     if (!hit) for (const c of CARS) { if (!c.on || c.mode === 'dead') continue; for (const oz of [-1.3, 0, 1.3]) { _ctr.set(c.x - Math.sin(c.yaw) * oz, 0.9, c.z - Math.cos(c.yaw) * oz); if (segHit(_pa, b.p, _ctr, 1.25) >= 0) { hit = true; break; } } if (hit) { c.hp -= 1; c.flash = 0.07; sparks(_v3.copy(b.p), 9, 7, 0xffd9a8, 5, 0.2, 0.06); if (c.hp <= 0) killCar(c); break; } }
     if (!hit) for (const c of CIVS) { _ctr.set(c.x, 0.8, c.z); if (segHit(_pa, b.p, _ctr, 1.3) >= 0) { hit = true; sparks(_v3.copy(b.p), 6, 5, 0xbff8ff, 3, 0.2, 0.05); break; } }
     if (hit) { hitT = 0.1; sfx('hit'); b.on = false; continue; }
-    if (b.p.y < 0.02 && Math.abs(b.p.x) < 14.5) { b.p.y = 0.05; sparks(b.p, 8, 6, 0x9ef8ff, 4, 0.5, 0.06); b.on = false; continue; }
-    if (Math.abs(b.p.x) > 13.5 && Math.abs(b.p.x) < 14.1 && b.p.y < 1.05 && b.p.y > 0) { sparks(b.p, 8, 6, 0x9ef8ff, 4, 0.5, 0.06); b.on = false; continue; }
+    // 一幀可飛 2 m，比護欄還厚，所以用整段軌跡和路面、三道護欄的交點判定
+    if (boltImpact(b)) { b.on = false; continue; }
     if (b.life <= 0 || b.p.y < -30) b.on = false;
   }
   const me = S.ctl === 'ride' ? _ctr.copy(P.pos).setY(0.9) : _ctr.copy(F.pos).setY(1.15), rad = S.ctl === 'ride' ? 1.0 : 0.62;
@@ -1606,13 +1707,15 @@ function updateBolts(dt) {
   syncBolts(pBolts); syncBolts(eBolts);
   if (muzzleFlash.visible) { muzzleFlash.userData.t -= dt; if (muzzleFlash.userData.t <= 0) muzzleFlash.visible = false; }
   muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt * 400);
+  S.recoil = Math.max(0, (S.recoil || 0) - dt * 16);
 }
 
 // ───────── 騎乘物理 ─────────
 function updateBike(dt, I) {
   const riding = S.ctl === 'ride', sp = P.v;
   let a;
-  const canBoost = riding && I.sh && S.boost > 0 && I.f > 0 && sp > 4 && !S.autoStop;
+  // 能量耗盡後要回充到 12 才能再次啟動，避免在 0 附近每幀開關
+  const canBoost = riding && I.sh && S.boost > (P.boosting ? 0 : 12) && I.f > 0 && sp > 4 && !S.autoStop;
   if (canBoost && !P.boosting) { sfx('boost'); }
   P.boosting = canBoost;
   const maxV = P.boosting ? 80 : 54;
@@ -1622,16 +1725,22 @@ function updateBike(dt, I) {
   else a = -1.6 - sp * 0.014;
   P.v = Math.max(-7, P.v + a * dt); P.acc = damp(P.acc, a, 6, dt);
   if (P.boosting) { S.boost = Math.max(0, S.boost - 22 * dt); if (S.boost <= 0 && !S.lowWarned) { S.lowWarned = true; log('警告', '氮氣能量耗盡，充能中', 'var(--foe)'); } }
-  else { S.boost = Math.min(100, S.boost + (sp > 1 ? 9 : 14) * dt); if (S.boost > 30) S.lowWarned = false; }
+  else if (!F.jet) { S.boost = Math.min(100, S.boost + (sp > 1 ? 9 : 14) * dt); if (S.boost > 30) S.lowWarned = false; }
   if (S.boost < 15 && P.boosting && !S.lowWarned) { S.lowWarned = true; log('警告', '氮氣能量過低', 'var(--order)'); }
   const steerIn = riding && !S.autoStop ? clamp(I.x, -1, 1) : 0;
-  P.steer = damp(P.steer, steerIn * lerp(0.5, 0.075, clamp(Math.abs(sp) / 60, 0, 1)), 7, dt);
-  const yawRate = clamp(sp * Math.tan(P.steer) / 1.6, -2.4, 2.4);
+  P.steer = damp(P.steer, steerIn * lerp(0.5, 0.075, clamp(Math.abs(sp) / 60, 0, 1)), steerIn ? 7 : 12, dt);
+  // 橫向加速度上限約 1.1g：低速可以原地掉頭，高速只能拉大弧線，壓車角因此隨轉向量連續變化
+  const yawLim = Math.min(2.4, 11 / Math.max(1, Math.abs(sp)));
+  const yawRate = clamp(sp * Math.tan(P.steer) / 1.6, -yawLim, yawLim);
   P.yaw -= yawRate * dt;
+  // 放開方向且車頭偏離道路不多時，慢慢對齊車道方向
+  if (riding && steerIn === 0 && Math.abs(sp) > 8) { const road = Math.abs(angDiff(P.yaw, 0)) < Math.PI / 2 ? 0 : Math.PI, d = angDiff(P.yaw, road); if (Math.abs(d) < 0.6) P.yaw += d * Math.min(1, 2.2 * dt); }
   fwdOf(P.yaw, _v); P.pos.addScaledVector(_v, sp * dt);
   // 護欄碰撞（中央分隔島與兩側）
   const side = P.pos.x >= 0 ? 1 : -1, lo = 1.08, hi = 13.05, ax = Math.abs(P.pos.x);
+  P.rail = Math.max(0, (P.rail || 0) - dt);
   if (ax < lo || ax > hi) {
+    P.rail = 0.3;
     const into = -Math.sin(P.yaw) * sp * side * (ax > hi ? 1 : -1);
     P.pos.x = side * clamp(ax, lo, hi);
     const road = sp >= 0 ? 0 : Math.PI;
@@ -1639,7 +1748,8 @@ function updateBike(dt, I) {
     if (into > 2) { P.v *= 0.86; const cp = _v2.set(side * (ax > hi ? 13.5 : 0.7), 0.7, P.pos.z); sparks(cp, Math.round(into * 2), into * 0.8, 0xffcf9a, 4, 0.3, 0.07); if (into > 5) { hurt(into * 0.7, cp); sfx('hurt', 0.5); } shake(Math.min(0.3, into * 0.02)); }
   }
   // 壓車、俯仰、懸吊
-  const leanT = riding ? clamp(-Math.atan(sp * yawRate / 9.8), -0.88, 0.88) : (Math.abs(sp) < 0.5 ? 0.17 : 0);
+  // 貼著護欄時車頭被擋住，不再照轉向輸入壓車
+  const leanT = riding ? clamp(-Math.atan(sp * yawRate / 9.8), -0.88, 0.88) * (P.rail > 0 ? 0.3 : 1) : (Math.abs(sp) < 0.5 ? 0.17 : 0);
   P.lean = damp(P.lean, leanT, riding ? 5 : 3, dt);
   P.pitch = damp(P.pitch, clamp(P.acc / 32, -1, 1) * 0.075 + (P.boosting ? 0.03 : 0), 5, dt);
   const buzz = Math.min(1, Math.abs(sp) / 50) * (Math.sin(S.time * 41) * 0.006 + Math.sin(S.time * 17.3) * 0.005);
@@ -1651,7 +1761,7 @@ function updateBike(dt, I) {
   bike.stand.visible = !riding && Math.abs(sp) < 0.5;
   const bk = P.boosting ? 1 : 0;
   for (const n of bike.nozzles) { n.flame.scale.z = damp(n.flame.scale.z, bk ? 1.6 + Math.random() * 0.8 : (riding && I.f ? 0.25 : 0.01), 14, dt); n.flame.scale.x = n.flame.scale.y = 1 + bk * 0.4; n.core.material = bk ? MAT.white : MAT.cyan; }
-  compMat.uniforms.boost.value = damp(compMat.uniforms.boost.value, bk, 4, dt);
+  compMat.uniforms.boost.value = damp(compMat.uniforms.boost.value, bk || (F.jet && S.ctl === 'foot' ? 0.4 : 0), 4, dt);
   compMat.uniforms.aberr.value = damp(compMat.uniforms.aberr.value, bk * 0.012 + S.dmg * 0.02, 5, dt);
 }
 // 光跡
@@ -1698,22 +1808,24 @@ function updateMountAnim(dt) {
   if (S.ctl === 'dismount') {
     rider.root.position.lerpVectors(mountFrom, mountTo, e); rider.root.position.y = lerp(mountFrom.y, 0, e) + Math.sin(t * Math.PI) * 0.25;
     poseFoot(dt, 0, 1 - e);
-    if (t >= 1) { S.ctl = 'foot'; F.pos.copy(mountTo); log('系統', '已下車，K-7 停放於路肩', 'var(--ink-2)'); }
+    if (t >= 1) { S.ctl = 'foot'; F.pos.copy(mountTo); log('系統', '切換為步行戰鬥模式・K-7 停放於路肩', 'var(--ink-2)'); }
   } else {
     bike.seat.getWorldPosition(mountTo); mountTo.y -= 0.94;
     rider.root.position.lerpVectors(mountFrom, mountTo, e); rider.root.position.y += Math.sin(t * Math.PI) * 0.4;
     rider.root.rotation.set(0, mountYaw0 + angDiff(mountYaw0, P.yaw) * e, 0);
     poseFoot(dt, 0, e);
     rider.legs[1].hip.rotation.x = Math.sin(t * Math.PI) * 1.5;
-    if (t >= 1) { S.ctl = 'ride'; seatRider(); CAM.yawOff = 0; log('系統', '已上車，K-7 動力系統上線', 'var(--ink-2)'); }
+    if (t >= 1) { S.ctl = 'ride'; seatRider(); CAM.yawOff = 0; log('系統', '切換為騎乘模式・K-7 動力系統上線', 'var(--ink-2)'); }
   }
 }
 
 // ───────── 姿勢：騎乘與步行 ─────────
 const _pole = new V3(), _tw = new V3(), _gl = new V3(), _gr = new V3();
-const _eu = new Euler(), GUN_AIM = new V3(0.16, 0.3, -0.34), GUN_STOW = new V3(-0.25, 0.34, 0.22);
+const _eu = new Euler(), GUN_AIM = new V3(0.16, 0.3, -0.34), GUN_RIDE = new V3(0.24, 0.12, -0.26), _ga = new V3(), _gb = new V3(), _gc = new V3();
+// 後座力：槍身沿槍管往後退、槍口上揚，手臂 IK 跟著握把一起被推回
+function recoilGun(g) { if (S.recoil > 0.01) { g.translateZ(-0.07 * S.recoil); g.rotateX(-0.16 * S.recoil); } }
 function aimGun(chestTwistMax) {
-  const g = rider.gun; g.position.copy(GUN_AIM); g.lookAt(aimPt);
+  const g = rider.gun; g.position.copy(GUN_AIM); g.lookAt(aimPt); recoilGun(g);
   return g;
 }
 function armsToGun() {
@@ -1727,28 +1839,24 @@ function poseRide(dt) {
   rd.pelvis.position.set(0, 0.98, 0); rd.pelvis.rotation.set(-0.1, 0, P.lean * 0.25);
   const crouch = 0.42 + sn * 0.2 + compMat.uniforms.boost.value * 0.22;
   rd.spine.rotation.set(-crouch, 0, P.lean * 0.15);
-  // 上半身朝準星扭轉
-  let tw = 0, pt = 0;
-  if (aiming) {
-    rd.chest.updateWorldMatrix(true, false); rd.chest.getWorldPosition(_tw);
-    const dx = aimPt.x - _tw.x, dz = aimPt.z - _tw.z; tw = clamp(angDiff(P.yaw, Math.atan2(-dx, -dz)), -1.5, 1.5);
-    pt = Math.atan2(aimPt.y - _tw.y, Math.hypot(dx, dz));
-  }
-  rd.chest.rotation.set(damp(rd.chest.rotation.x, aiming ? crouch * 0.6 + pt * 0.4 : 0, 8, dt), damp(rd.chest.rotation.y, tw * 0.75, 9, dt), 0);
-  rd.neck.rotation.set(crouch * 0.85 - (aiming ? rd.chest.rotation.x : 0) + 0.05, aiming ? tw * 0.25 : 0, -P.lean * 0.55);
+  // 上半身朝準星扭轉；不開火時頭部仍會微調看向準星
+  rd.chest.updateWorldMatrix(true, false); rd.chest.getWorldPosition(_tw);
+  const dx = aimPt.x - _tw.x, dz = aimPt.z - _tw.z, tw = clamp(angDiff(P.yaw, Math.atan2(-dx, -dz)), -1.5, 1.5);
+  const pt = Math.atan2(aimPt.y - _tw.y, Math.hypot(dx, dz));
+  rd.aimK = damp(rd.aimK, aiming ? 1 : 0, 12, dt); const k = rd.aimK;
+  rd.chest.rotation.set(damp(rd.chest.rotation.x, k * (crouch * 0.6 + pt * 0.4), 8, dt), damp(rd.chest.rotation.y, tw * lerp(0.12, 0.75, k), 9, dt), 0);
+  rd.neck.rotation.set(crouch * 0.85 - k * rd.chest.rotation.x + 0.05 - (1 - k) * clamp(pt, -0.4, 0.4) * 0.5, lerp(clamp(tw * 0.45, -0.7, 0.7), tw * 0.25, k), -P.lean * 0.55);
   // 雙腳踩踏板
   for (const [i, peg] of [[0, bike.pegL], [1, bike.pegR]]) { const L = rd.legs[i]; peg.getWorldPosition(_gl); bike.body.localToWorld(_pole.set(L.s * 0.35, 1.0, -1.2)); ik2(L.hip, L.knee, rd.pelvis, _gl, _pole, 0.44, 0.44); L.foot.rotation.set(-L.knee.rotation.x * 0, 0, 0); L.foot.quaternion.copy(_q.copy(L.hip.quaternion).multiply(L.knee.quaternion).invert()); }
-  // 左手握把；右手握把或舉槍
+  // 左手握把；右手持槍：平時槍口朝前下方、約三成偏向準星，開火時平滑舉到瞄準位置
   bike.gripL.getWorldPosition(_gl);
   ik2(rd.arms[0].upper, rd.arms[0].lower, rd.chest, _gl, rd.chest.localToWorld(_pole.set(-0.8, -0.3, 0.3)), 0.3, 0.29);
-  if (aiming) {
-    aimGun(); rd.gun.updateWorldMatrix(true, true); rd.gripR.getWorldPosition(_gr);
-    ik2(rd.arms[1].upper, rd.arms[1].lower, rd.chest, _gr, rd.chest.localToWorld(_pole.set(0.7, -0.4, 0.4)), 0.3, 0.29);
-  } else {
-    rd.gun.position.copy(GUN_STOW); rd.gun.rotation.set(-Math.PI / 2 + 0.35, 0, 0.35);
-    bike.gripR.getWorldPosition(_gr);
-    ik2(rd.arms[1].upper, rd.arms[1].lower, rd.chest, _gr, rd.chest.localToWorld(_pole.set(0.8, -0.3, 0.3)), 0.3, 0.29);
-  }
+  const g = rd.gun; g.position.lerpVectors(GUN_RIDE, GUN_AIM, k); g.updateWorldMatrix(true, false); g.getWorldPosition(_ga);
+  rd.chest.localToWorld(_gb.set(0.3, -1.4, -4)).sub(_ga).normalize();
+  _gc.subVectors(aimPt, _ga).normalize();
+  _gb.lerp(_gc, lerp(0.32, 1, k)).normalize(); g.lookAt(_ga.add(_gb)); recoilGun(g);
+  g.updateWorldMatrix(true, true); rd.gripR.getWorldPosition(_gr);
+  ik2(rd.arms[1].upper, rd.arms[1].lower, rd.chest, _gr, rd.chest.localToWorld(_pole.set(0.7, -0.4, 0.4)), 0.3, 0.29);
   // 戰袍被風吹起、背包能量槽
   for (let i = 0; i < 3; i++) rd.cape[i].rotation.x = -(i === 0 ? 0.25 + sn * 1.0 : sn * 0.25) + Math.sin(S.time * (12 + sn * 14) + i * 1.3) * (0.05 + sn * 0.14);
 }
@@ -1756,7 +1864,7 @@ function poseFoot(dt, speed, blend = 1) {
   const rd = rider, f = F;
   const fwd = fwdOf(f.yaw, _v), rt = rightOf(f.yaw, _v2);
   const vF = f.vel.dot(fwd), vS = f.vel.dot(rt), spd = Math.hypot(vF, vS);
-  f.phase += spd * dt * 2.25;
+  f.phase += Math.min(spd, 8) * dt * 2.25;
   const run = spd > 5.2, A = clamp(spd / 4.2, 0, 1) * (run ? 0.78 : 0.55), An = clamp(spd / 4.2, 0, 1.4);
   const dir = vF < -0.4 ? -1 : 1, ph = f.phase;
   for (const L of rd.legs) {
@@ -1793,7 +1901,12 @@ function updateFoot(dt, I) {
   if (!TOUCH && !mouse.drag) { const ex = (mouse.x / innerWidth - 0.5) * 2; if (Math.abs(ex) > 0.62) CAM.footYaw -= Math.sign(ex) * (Math.abs(ex) - 0.62) * 2.6 * dt; }
   const cf = fwdOf(CAM.footYaw, _v), cr = rightOf(CAM.footYaw, _v2);
   const mv = _v3.set(0, 0, 0).addScaledVector(cf, clamp(I.f - I.b, -1, 1)).addScaledVector(cr, clamp(I.x, -1, 1));
-  const run = I.sh, top = run ? 7.6 : 4.3;
+  // Shift：有氮氣時背包噴射衝刺（消耗能量槽），沒有能量時只是奔跑
+  const moving = mv.lengthSq() > 0.01, jet = I.sh && moving && S.boost > (F.jet ? 0 : 12), run = I.sh;
+  if (jet && !F.jet) { sfx('boost', 0.6); puff(_v4.copy(F.pos).setY(0.4), _v5.set(0, 0.6, 0), 0.5, 0.5, 1); }
+  F.jet = jet;
+  if (jet) S.boost = Math.max(0, S.boost - 20 * dt);
+  const top = jet ? 11.5 : run ? 7.6 : 4.3;
   if (mv.lengthSq() > 1) mv.normalize();
   mv.multiplyScalar(top);
   F.vel.x = damp(F.vel.x, mv.x, 9, dt); F.vel.z = damp(F.vel.z, mv.z, 9, dt);
@@ -1804,7 +1917,9 @@ function updateFoot(dt, I) {
   // 身體跟著準星轉
   const dx = aimPt.x - F.pos.x, dz = aimPt.z - F.pos.z, ay = Math.atan2(-dx, -dz);
   F.yaw += angDiff(F.yaw, ay) * (1 - Math.exp(-5 * dt));
-  rider.root.position.copy(F.pos); rider.root.rotation.set(0, F.yaw, 0);
+  F.lift = damp(F.lift, jet ? 0.14 + Math.sin(S.time * 9) * 0.02 : 0, 6, dt);
+  rider.root.position.copy(F.pos); rider.root.position.y = F.lift; rider.root.rotation.set(0, F.yaw, 0);
+  if (jet && R() < dt * 30) { const v = rider.jets[R() < 0.5 ? 0 : 1]; v.getWorldPosition(_v4); sparks(_v4, 1, 2.5, 0x9af6ff, 3, -0.6, 0.05); }
   poseFoot(dt);
   S.dist += F.vel.length() * dt;
 }
@@ -1812,7 +1927,7 @@ function updateFoot(dt, I) {
 // ───────── 鏡頭 ─────────
 const baseFov = () => camera.aspect < 0.8 ? 72 : 60;
 function camYaw() { return S.ctl === 'foot' || S.ctl === 'dismount' ? CAM.footYaw : P.yaw + CAM.yawOff; }
-const _cp = new V3(), _cl = new V3();
+const _cp = new V3(), _cl = new V3(), _cs = new V3();
 function updateCamera(dt) {
   const boost = compMat.uniforms.boost.value;
   let base, off, look;
@@ -1828,7 +1943,14 @@ function updateCamera(dt) {
     look = _cl.copy(base).setY(1.2).addScaledVector(f, 9);
     if (!mouse.drag) CAM.yawOff = damp(CAM.yawOff, 0, 1.6, dt);
   }
-  CAM.off.x = damp(CAM.off.x, off.x, 6, dt); CAM.off.y = damp(CAM.off.y, off.y, 6, dt); CAM.off.z = damp(CAM.off.z, off.z, 6, dt);
+  // 彈簧阻尼（阻尼比約 0.6）：起步、衝刺與急彎時鏡頭先被甩開再拉回，略微過衝
+  const k = S.ctl === 'ride' ? 34 : 60, c = 2 * Math.sqrt(k) * 0.6;
+  for (let h = dt; h > 1e-5; h -= 1 / 120) {
+    const st = Math.min(h, 1 / 120);
+    CAM.vel.addScaledVector(_cs.subVectors(off, CAM.off).multiplyScalar(k).addScaledVector(CAM.vel, -c), st);
+    CAM.off.addScaledVector(CAM.vel, st);
+  }
+  if (CAM.off.distanceToSquared(off) > 100) { CAM.off.copy(off); CAM.vel.set(0, 0, 0); }
   camera.position.copy(base).add(CAM.off);
   if (camera.position.y < 0.5) camera.position.y = 0.5;
   CAM.look.lerp(look, 1 - Math.exp(-14 * dt)); if (CAM.look.distanceToSquared(look) > 400) CAM.look.copy(look);
@@ -1863,7 +1985,8 @@ function updateAim() {
 }
 function updateMarks() {
   let k = 0; const pp = playerPos();
-  const put = (x, y, z, car, d) => { if (k >= marks.length) return; _v.set(x, y, z).project(camera); if (_v.z > 1 || Math.abs(_v.x) > 1.05 || Math.abs(_v.y) > 1.05) return; const m = marks[k++]; m.style.display = 'block'; m.className = 'mk' + (car ? ' car' : ''); m.style.transform = `translate(${(_v.x * 0.5 + 0.5) * innerWidth}px,${(-_v.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%)`; m.textContent = `${Math.round(d)}m`; };
+  const put = (x, y, z, car, d) => { if (k >= marks.length) return; _v.set(x, y, z).project(camera); if (_v.z > 1 || Math.abs(_v.x) > 1.05 || Math.abs(_v.y) > 1.05) return; const m = marks[k++]; m.style.display = 'block'; m.className = 'mk' + (car === true ? ' car' : car ? ' ' + car : ''); m.style.transform = `translate(${(_v.x * 0.5 + 0.5) * innerWidth}px,${(-_v.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%)`; m.textContent = d < 1000 ? `${Math.round(d)}m` : `${(d / 1000).toFixed(1)}km`; };
+  if (EVAC.on && !S.won) put(EVAC.x, 16, EVAC.z, 'evac', Math.max(0, pp.z - EVAC.z));
   for (const d of DRONES) if (d.on) { const dist = d.p.distanceTo(pp); if (dist < 160 && dist > 8) put(d.p.x, d.p.y + 2.2, d.p.z, false, dist); }
   for (const c of CARS) if (c.on && c.mode !== 'dead') { const dist = Math.hypot(c.x - pp.x, c.z - pp.z); if (dist < 160 && dist > 10) put(c.x, 2.8, c.z, true, dist); }
   for (; k < marks.length; k++) marks[k].style.display = 'none';
@@ -1879,7 +2002,7 @@ function director(dt) {
   S.wave++; const nd = Math.min(1 + S.wave, 6), nc = Math.min(Math.floor((S.wave + 1) / 2), 3);
   for (let i = 0; i < nd; i++) spawnQ.push({ kind: 'd', t: i * 0.9 + R() * 0.4, behind: R() < 0.4 });
   for (let i = 0; i < nc; i++) spawnQ.push({ kind: 'c', t: 1.5 + i * 2.6 });
-  log('HQ', `第 ${S.wave} 波：偵測到 ${nd} 架無人機${nc ? `、${nc} 輛追擊車` : ''}接近`, 'var(--foe)'); sfx('beep');
+  log('HQ', `第 ${S.wave} 波：偵測到 ${nd} 架無人機${nc ? `、${nc} 輛攔截車` : ''}接近`, 'var(--foe)'); sfx('beep');
   S.waveT = 7;
 }
 let clearedLogged = 0;
@@ -1893,6 +2016,7 @@ function rebase() {
   for (const b of pBolts.items) shiftZ(b.p); for (const b of eBolts.items) shiftZ(b.p);
   for (const p of spk.P) p.z += D; for (const q of PUFF) shiftZ(q.p); for (const d of DEB) shiftZ(d.p);
   for (const r of ribbons) for (const p of r.pts) shiftZ(p);
+  EVAC.z += D;
   for (const o of [...flashes, ...rings, ...boomLights]) shiftZ(o.position);
   tileOffset += D / TILE; for (const g of gantries) { g.visible = false; g.userData.tile = null; }
   updateWorld(pp.z, true);
@@ -1908,7 +2032,7 @@ function setMode(m) {
 function start() {
   audioInit(); setMode('play'); S.time = 0; S.waveT = 6;
   P.v = Math.max(P.v, 12);
-  log('HQ', '騎士，南向車道遭追擊車隊封鎖。衝過去，清出一條路。', 'var(--friend)');
+  log('HQ', '騎士，南向車道遭攔截車隊封鎖。清除敵機後前往撤離點。', 'var(--friend)');
   log('系統', 'K-7 重機上線・ARC-9 電漿匣 40 發', 'var(--ink-2)');
 }
 function restart() {
@@ -1916,7 +2040,8 @@ function restart() {
   for (const c of CARS) { c.on = false; c.root.visible = false; }
   for (const b of [...pBolts.items, ...eBolts.items]) b.on = false;
   spawnQ.length = 0;
-  Object.assign(S, { ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, dmg: 0, autoStop: false });
+  Object.assign(S, { ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, dmg: 0, autoStop: false, score: 0, won: false });
+  EVAC.on = false; evacMesh.visible = false; $('over').classList.remove('win');
   for (const m of MISSIONS) { m.done = false; m.n = 0; $('m-' + m.id).classList.remove('done'); }
   P.pos.x = 6.6; P.yaw = 0; P.v = 14; P.lean = 0; seatRider(); logEl.innerHTML = '';
   setMode('play'); log('HQ', '重新部署完成，K-7 已回到南向車道。', 'var(--friend)');
@@ -1952,6 +2077,7 @@ function frame(now) {
     else if (S.ctl === 'dead') { updateBike(dt, { f: 0, b: 0, x: 0, sh: false }); }
     if (S.time - S.lastHurt > 5 && S.hp > 0) S.hp = Math.min(100, S.hp + 2.2 * dt);
     director(dt); updateDrones(dt); updateCars(dt); updateAim(); tryFire(dt);
+    checkEvac(); evacMesh.userData.mat.uniforms.time.value = S.time;
   } else if (S.mode === 'title') {
     S.time += dt;
     P.v = damp(P.v, 30, 1, dt); P.pos.x = damp(P.pos.x, 6.6 + Math.sin(S.time * 0.4) * 3.2, 0.8, dt);
@@ -1978,7 +2104,9 @@ function frame(now) {
     S.dmg = Math.max(0, S.dmg - dt * 1.4); compMat.uniforms.dmg.value = S.dmg + (S.hp < 30 && S.mode === 'play' ? 0.25 + Math.sin(S.time * 5) * 0.1 : 0);
     beaconTime.value = S.time; snow.uniforms.time.value = S.time;
     for (const t of rider.tanks) t.scale.y = Math.max(0.03, S.boost / 100);
-    for (const v of rider.vents) v.visible = P.boosting || (S.ctl === 'foot' && F.vel.lengthSq() > 30);
+    const jetOn = S.ctl === 'foot' && F.jet;
+    for (const v of rider.vents) v.visible = P.boosting || jetOn;
+    for (const j of rider.jets) { j.scale.y = damp(j.scale.y, jetOn ? 0.26 + R() * 0.16 : 0.01, 20, dt); j.scale.x = j.scale.z = jetOn ? 0.9 + R() * 0.3 : 1; }
     updateAudio(dt);
   }
   compMat.uniforms.time.value = now / 1000;
@@ -1989,7 +2117,7 @@ requestAnimationFrame(tick);
 
 // ───────── 除錯 API ─────────
 window.__fr = {
-  S, P, F, scene, bike, rider, camera, compMat, CARS, DRONES, start, restart, spawnDrone, spawnCar, boom: (x = 0, y = 2, z = -20) => boom(new V3(P.pos.x + x, y, P.pos.z + z), 1.2, 0x3b3648),
+  S, P, F, scene, bike, rider, camera, compMat, CARS, DRONES, EVAC, mission, hurt, start, restart, spawnDrone, spawnCar, boom: (x = 0, y = 2, z = -20) => boom(new V3(P.pos.x + x, y, P.pos.z + z), 1.2, 0x3b3648),
   god(v = true) { S.god = v; }, speed(kmh) { P.v = kmh / 3.6; }, dismount() { P.v = 0; beginDismount(); S.ctlT = 1; updateMountAnim(0); },
   aim(x, y) { mouse.x = x; mouse.y = y; }, fire(v = true) { mouse.fire = v; }, key(code, v = true) { keys[code] = v; },
   step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(last + dt * 1000); }
