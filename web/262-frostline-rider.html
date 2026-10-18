@@ -105,7 +105,7 @@ body:not(.playing) #snd{pointer-events:none}
 #msl i.f{background:var(--order);box-shadow:none}
 #msl i.l{background:var(--foe);box-shadow:none}
 #msl em{font:700 11px/1 var(--num);font-style:normal;color:var(--ink-3);min-width:52px;text-align:right}
-#msl.lk em{color:var(--foe)}
+#msl.on em{color:var(--foe)}
 #veh{font-size:12px;color:var(--ink-2);margin-top:7px}
 #vehM{font:700 13px/1 var(--num);letter-spacing:.14em;color:var(--boost);margin-bottom:8px}
 #vehM.foot{color:var(--order)}
@@ -1119,15 +1119,15 @@ const eBolts = boltPool(110, 0xfff0f0, 0xff2f2a, 4, 0.22);
 // EMP 散彈：粗短的洋紅色電漿顆粒
 const sBolts = boltPool(48, 0xfff0fa, 0xff3fae, 3.4, 0.34);
 // EMP 槍口震波環
-const empRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 1, 40), new THREE.MeshBasicMaterial({ color: hdr(0xff5cbd, 3), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+const empRing = new THREE.Mesh(new THREE.RingGeometry(0.82, 1, 40), new THREE.MeshBasicMaterial({ color: hdr(0xff5cbd, 2), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
 empRing.visible = false; empRing.userData.t = 0; scene.add(empRing);
 // 軌道砲光束：金色實心光芯＋外層光暈，消散後留下 1.5 秒螺旋扭動的電離殘影
 const beamGeo = (() => { const g = new THREE.CylinderGeometry(1, 1, 1, 20, 1, true); g.rotateX(Math.PI / 2); g.translate(0, 0, 0.5); return g; })();
 const BEAMS = Array.from({ length: 3 }, () => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
-  const core = new THREE.Mesh(beamGeo, glowMat(0xfff1c8, 4, 'a = pow(abs(dot(vN,vV)), 1.6);'));
-  const shell = new THREE.Mesh(beamGeo, glowMat(0xffae2e, 1.6, 'a = pow(abs(dot(vN,vV)), 1.1)*0.8;'));
-  const ion = new THREE.Mesh(beamGeo, glowMat(0xffc350, 1.1, 'float s = vUv.y*len; float h = fract(vUv.x*3. + s*0.32 - age*0.7); float fil = exp(-(h-0.5)*(h-0.5)*42.); a = (fil*0.95 + 0.18)*pow(abs(dot(vN,vV)), 0.7)*(0.65+0.35*sin(s*1.9 + age*11.));', { len: { value: 1 }, age: { value: 0 }, __decl: 'uniform float len; uniform float age;' }));
+  const core = new THREE.Mesh(beamGeo, glowMat(0xfff1c8, 4, 'a = pow(abs(dot(vN,vV)), 1.6)*smoothstep(0.9, 0.97, gl_FragCoord.z);'));
+  const shell = new THREE.Mesh(beamGeo, glowMat(0xffae2e, 1.8, 'a = pow(abs(dot(vN,vV)), 1.1)*0.8*smoothstep(0.93, 0.98, gl_FragCoord.z);'));
+  const ion = new THREE.Mesh(beamGeo, glowMat(0xffc350, 1.1, 'float s = vUv.y*len; float h = fract(vUv.x*3. + s*0.32 - age*0.7); float fil = exp(-(h-0.5)*(h-0.5)*42.); a = (fil*0.95 + 0.18)*pow(abs(dot(vN,vV)), 0.7)*(0.65+0.35*sin(s*1.9 + age*11.))*smoothstep(0.95, 0.985, gl_FragCoord.z);', { len: { value: 1 }, age: { value: 0 }, __decl: 'uniform float len; uniform float age;' }));
   for (const m of [core, shell, ion]) { m.frustumCulled = false; g.add(m); }
   return { g, core, shell, ion, t: 9, len: 1 };
 });
@@ -1149,7 +1149,7 @@ const trail = (() => {
   g.setIndex(idx); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aC', new THREE.BufferAttribute(col, 3)); g.setAttribute('aS', new THREE.BufferAttribute(side, 1));
   const m = new THREE.ShaderMaterial({
     uniforms: { fogD: { value: scene.fog.density } },
-    vertexShader: 'attribute vec3 aC; attribute float aS; uniform float fogD; varying vec3 vC; varying float vS, vF; void main(){ vC = aC; vS = aS; vec4 mv = modelViewMatrix*vec4(position,1.); vF = exp(-fogD*fogD*mv.z*mv.z)*smoothstep(1.,5.,-mv.z); gl_Position = projectionMatrix*mv; }',
+    vertexShader: 'attribute vec3 aC; attribute float aS; uniform float fogD; varying vec3 vC; varying float vS, vF; void main(){ vC = aC; vS = aS; vec4 mv = modelViewMatrix*vec4(position,1.); vF = exp(-fogD*fogD*mv.z*mv.z)*smoothstep(2.5,10.,-mv.z); gl_Position = projectionMatrix*mv; }',
     fragmentShader: 'varying vec3 vC; varying float vS, vF; void main(){ float e = clamp(1.-abs(vS*2.-1.), 0., 1.); gl_FragColor = vec4(vC*e*e*vF, 1.); }',
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
   });
@@ -1981,7 +1981,7 @@ function fireEmp() {
     const b = fireBolt(sBolts, _mz, _pd, 150 + R() * 30, 2, 1.1); if (b) { b.life = 0.34 + R() * 0.06; b.v.add(bv); }
   }
   muzzleFx(2.2, 30);
-  empRing.visible = true; empRing.userData.t = 0; empRing.position.copy(_mz).addScaledVector(_dir, 0.5); empRing.quaternion.setFromUnitVectors(_bz, _dir);
+  empRing.visible = true; empRing.userData.t = 0; empRing.position.copy(_mz).addScaledVector(_dir, 1.1); empRing.quaternion.setFromUnitVectors(_bz, _dir);
   for (let i = 0; i < 18; i++) { const v = 14 + R() * 26; spk.emit(_mz.x, _mz.y, _mz.z, _dir.x * v + (R() - 0.5) * 8, _dir.y * v + (R() - 0.5) * 6, _dir.z * v + (R() - 0.5) * 8, 0.12 + R() * 0.12, 6, 1.6, 4.6, 0.08, 0, 4); }
   S.kick = Math.min(0.05, S.kick + 0.03); S.trauma = Math.min(1, S.trauma + 0.14); S.recoil = 1.8;
   if (S.ctl === 'foot') { F.vel.x -= _dir.x * 3.5; F.vel.z -= _dir.z * 3.5; }
@@ -2015,12 +2015,13 @@ function updateBeams(dt) {
     if (!B.g.visible) continue;
     B.t += dt; const t = B.t;
     if (t > 1.5) { B.g.visible = false; continue; }
-    const c = Math.max(0, 1 - t / 0.16), sh = Math.max(0, 1 - t / 0.32), io = Math.pow(1 - t / 1.5, 1.5) * Math.min(1, t / 0.06 + 0.3);
-    B.core.visible = c > 0; B.core.scale.set(0.05 + c * 0.17, 0.05 + c * 0.17, B.len); B.core.material.uniforms.op.value = c;
-    B.shell.visible = sh > 0; B.shell.scale.set(0.2 + sh * 0.42, 0.2 + sh * 0.42, B.len); B.shell.material.uniforms.op.value = sh;
+    // 近鏡頭的部分在 shader 裡依深度淡出，否則掠過鏡頭時螺旋紋會放大成一圈圈的環
+    const c = Math.max(0, 1 - t / 0.24), sh = Math.max(0, 1 - t / 0.45), io = Math.pow(1 - t / 1.5, 1.5) * Math.min(1, t / 0.06 + 0.3);
+    B.core.visible = c > 0; B.core.scale.set(0.06 + c * 0.2, 0.06 + c * 0.2, B.len); B.core.material.uniforms.op.value = c;
+    B.shell.visible = sh > 0; B.shell.scale.set(0.25 + sh * 0.5, 0.25 + sh * 0.5, B.len); B.shell.material.uniforms.op.value = sh;
     const r = 0.22 + t * 0.32; B.ion.scale.set(r, r, B.len); B.ion.material.uniforms.op.value = io; B.ion.material.uniforms.age.value = t;
   }
-  if (empRing.visible) { const u = (empRing.userData.t += dt) / 0.2; if (u >= 1) empRing.visible = false; else { empRing.scale.setScalar(0.3 + u * 3); empRing.material.opacity = (1 - u) * (1 - u); } }
+  if (empRing.visible) { const u = (empRing.userData.t += dt) / 0.16; if (u >= 1) empRing.visible = false; else { empRing.scale.setScalar(0.15 + u * 1.3); empRing.material.opacity = (1 - u) * (1 - u); } }
   // 軌道砲線圈：蓄力時隨充能變亮，擊發後慢慢冷卻
   const k = S.charge / RAIL_T;
   rider.coilMat.color.setHex(0xffc94a).multiplyScalar(k > 0 ? 1.4 + k * 9 * (0.85 + R() * 0.3) : 1.2 + Math.max(0, 0.5 - (S.time - S.lastFire)) * 14);
@@ -2155,7 +2156,8 @@ function updateMissiles(dt) {
     m.pos.copy(_b0).multiplyScalar(iw * iw * iw).addScaledVector(_b1, 3 * iw * iw * w).addScaledVector(_b2, 3 * iw * w * w).addScaledVector(m.p3, w * w * w);
     _v.subVectors(m.pos, m.prev); if (_v.lengthSq() > 1e-8) m.dir.copy(_v).normalize();
     if ((m.samp -= dt) <= 0) { m.samp = 0.018; m.th = (m.th + 1) % TRAIL_N; m.tr[m.th].p.copy(m.pos); m.tr[m.th].t = LK.clock; m.tn = Math.min(TRAIL_N, m.tn + 1); }
-    if ((m.smk -= dt) <= 0) { m.smk = 0.08; puff(m.pos, _v.set((R() - 0.5) * 0.8, 0.4, (R() - 0.5) * 0.8), 0.22 + R() * 0.12, 0.75, 0.55); }
+    // 不用煙團：在夜空前會被卡通光照成灰色石塊，改灑餘燼讓尾跡更濃
+    if ((m.smk -= dt) <= 0) { m.smk = 0.025; const cy = m.i % 2 === 0; spk.emit(m.pos.x, m.pos.y, m.pos.z, (R() - 0.5) * 2 - m.dir.x * 3, (R() - 0.5) * 2 - m.dir.y * 3, (R() - 0.5) * 2 - m.dir.z * 3, 0.35 + R() * 0.35, cy ? 1.4 : 5, cy ? 4.4 : 2.4, cy ? 5 : 0.7, 0.06 + R() * 0.05, 0.1, 2); }
     if (u >= 1) {
       m.on = false;
       if (foeAlive(m.e)) { hitT = 0.1; hitFoe(m.e, m.e.p ? 12 : 15, 'msl', m.pos, m.dir); }
@@ -2170,7 +2172,7 @@ function updateMissiles(dt) {
   writeTrails();
 }
 // 煙跡：每枚飛彈一條面向鏡頭的帶狀網格，越舊越寬越淡；青色與橘色交錯
-const TR_COL = [new C(0.32, 0.92, 1.0).multiplyScalar(2.4), new C(1.0, 0.5, 0.16).multiplyScalar(2.6)], TR_HOT = new C(1, 0.9, 0.72).multiplyScalar(5);
+const TR_COL = [new C(0.32, 0.92, 1.0).multiplyScalar(2.4), new C(1.0, 0.5, 0.16).multiplyScalar(2.6)], TR_HOT = new C(1, 0.86, 0.66).multiplyScalar(2.8);
 const _tp = [], _ta = [], _tg = new V3(), _tv = new V3(), _ts = new V3();
 function writeTrails() {
   const { pos, col } = trail, cam = camera.position;
@@ -2186,7 +2188,7 @@ function writeTrails() {
       _tg.subVectors(_tp[Math.max(0, j - 1)], _tp[Math.min(n - 1, j + 1)]); _tv.subVectors(cam, p);
       _ts.crossVectors(_tg, _tv); if (_ts.lengthSq() < 1e-10) _ts.set(0, 1, 0); _ts.normalize().multiplyScalar(0.07 + age * 0.75);
       pos[v] = p.x - _ts.x; pos[v + 1] = p.y - _ts.y; pos[v + 2] = p.z - _ts.z; pos[v + 3] = p.x + _ts.x; pos[v + 4] = p.y + _ts.y; pos[v + 5] = p.z + _ts.z;
-      const f = j === n - 1 ? 0 : Math.pow(1 - age / TRAIL_LIFE, 1.5) / (1 + age * 2.5), hot = clamp(1 - age / 0.07, 0, 1);
+      const f = j === n - 1 ? 0 : Math.pow(1 - age / TRAIL_LIFE, 1.5) / (1 + age * 2.5), hot = clamp(1 - age / 0.045, 0, 1);
       _c.copy(tc).lerp(TR_HOT, hot).multiplyScalar(f);
       col[v] = col[v + 3] = _c.r; col[v + 1] = col[v + 4] = _c.g; col[v + 2] = col[v + 5] = _c.b;
     }
@@ -2210,7 +2212,7 @@ function updateLockUI() {
   // HUD：六格菱形，鎖定時紅色、裝填時依進度填滿
   const nL = LK.on ? LK.list.length : 0, ready = LK.cd > 0 ? Math.floor((1 - LK.cd / LK.cdMax) * LOCK_MAX) : LOCK_MAX;
   mslPips.forEach((p, i) => { p.className = i < nL ? 'l' : i < ready ? 'f' : ''; });
-  $('msl').classList.toggle('lk', LK.on);
+  $('msl').classList.toggle('on', LK.on);
   $('mslS').textContent = LK.on ? `鎖定 ${nL}/${LOCK_MAX}` : LK.cd > 0 ? `裝填 ${LK.cd.toFixed(1)}s` : '就緒';
 }
 
