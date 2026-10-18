@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>霜港高架 · FROSTLINE RIDER</title>
 <link rel="icon" href="../favicon.svg">
-<meta name="description" content="Three.js 第三人稱科幻動作遊戲：雪夜無限延伸的高架快速道路上騎乘程序生成的無轂霓虹重機，下車步行持電漿步槍迎擊巡邏無人機與追擊車。賽璐珞描邊、濕路面反射、程序化步態與壓車動作，所有模型都以程式生成。">
+<meta name="description" content="Three.js 第三人稱科幻動作遊戲：雨夾雪的夜裡無限延伸的高架快速道路上騎乘程序生成的無轂霓虹重機，三種電漿武器與鎖定飛彈迎擊無人機、追擊車與重型武裝砲艇，飛越跳台觸發子彈時間，結算給出 S／A／B 評級。所有模型都以程式生成。">
 <style>
 :root{
   --ink:#f4f1fb;--ink-2:rgba(240,236,252,.72);--ink-3:rgba(232,226,248,.46);
@@ -180,26 +180,74 @@ body:not(.playing) .mk{display:none!important}
 /* 開場、暫停、結算 */
 .ov{position:fixed;inset:0;display:none;pointer-events:auto}
 .ov.on{display:block}
-#title{background:linear-gradient(90deg,rgba(14,10,24,.72),rgba(14,10,24,0) 62%)}
-#title .blk{position:absolute;left:max(40px,6vw);bottom:max(56px,10vh);max-width:640px}
-#title h1{font:800 clamp(56px,9.6vw,148px)/0.92 var(--tc);letter-spacing:.02em;color:var(--ink);text-shadow:0 2px 0 rgba(12,8,22,.4)}
-#title .en{font:700 clamp(15px,1.6vw,22px)/1 var(--num);letter-spacing:.32em;color:var(--order);margin:16px 0 0 4px}
-#title p{font-size:15px;line-height:1.7;color:var(--ink-2);margin:22px 0 30px 2px;max-width:30em}
-#go{font:700 17px/1 var(--tc);color:var(--night);background:var(--ink);border:0;padding:15px 26px 15px 22px;cursor:pointer;display:inline-flex;gap:14px;align-items:center;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);transition:background .18s}
-#go:hover{background:var(--order)}
+#title{background:linear-gradient(90deg,rgba(14,10,24,.8),rgba(14,10,24,.3) 46%,rgba(14,10,24,0) 68%)}
+/* 主選單整塊隨滑鼠做 3D 微傾，標題字疊全息掃描線 */
+#title .blk{position:absolute;left:max(40px,6vw);bottom:max(44px,7vh);width:min(560px,calc(100vw - 80px));transform:perspective(1100px) rotateY(var(--ry,0deg)) rotateX(var(--rx,0deg));transform-origin:0 70%;transition:transform .6s var(--ease-out)}
+#title .holo{padding:4px 0 6px}
+/* 掃描線與往上掃過的亮帶都只裁在字形裡，不在背景上留下方框 */
+#title h1{font:800 clamp(56px,9.2vw,140px)/0.92 var(--tc);letter-spacing:.02em;color:transparent;background:linear-gradient(180deg,transparent 0 44%,rgba(170,248,255,.95) 50%,transparent 56%) 0 0/100% 260% no-repeat,repeating-linear-gradient(180deg,var(--ink) 0 3px,rgba(244,241,251,.5) 3px 4px);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(-2px 0 rgba(255,92,189,.55)) drop-shadow(2px 0 rgba(122,241,255,.5));animation:scan 3.8s linear infinite,holo 7s steps(1) infinite}
+@keyframes scan{from{background-position:0 0%,0 0}to{background-position:0 100%,0 0}}
+@keyframes holo{0%,100%{translate:0}91%{translate:3px 0}92%{translate:-2px 0}93%{translate:0}}
+#title .en{font:700 clamp(15px,1.6vw,21px)/1 var(--num);letter-spacing:.32em;color:var(--order);margin:14px 0 0 4px}
+#title .en span{color:var(--ink-3);letter-spacing:.12em;margin-left:10px}
+#menu{list-style:none;margin:30px 0 0;display:grid;gap:3px;width:min(380px,100%)}
+#menu button{width:100%;display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:10px;padding:12px 14px 12px 14px;border:0;background:transparent;color:var(--ink-2);font:600 16px/1 var(--tc);text-align:left;cursor:pointer;position:relative;transition:color .15s,background .15s}
+#menu button b{font:700 12px/1 var(--num);color:var(--ink-3);letter-spacing:.06em}
+#menu button em{font:700 12px/1 var(--num);font-style:normal;color:var(--ink-3)}
+#menu button::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--boost);transform:scaleY(0);transition:transform .18s var(--ease-out)}
+#menu button.on{color:var(--ink);background:rgba(240,236,252,.08)}
+#menu button.on::before{transform:scaleY(1)}
+#menu button.on b{color:var(--boost)}
+#menu #go{font-size:19px;padding:16px 26px 16px 14px;color:var(--night);background:var(--ink);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%)}
+#menu #go b{color:rgba(18,14,28,.55)}
+#menu #go::before{display:none}
+#menu #go.on{background:var(--boost)}
 #go kbd{background:rgba(18,14,28,.14);color:var(--night);box-shadow:none}
+#best{margin:18px 0 0 2px;font-size:12.5px;line-height:1.6;color:var(--ink-3)}
+#best b{font:700 14px var(--num);color:var(--order);margin:0 2px}
 #title .ctl{position:absolute;right:max(36px,5vw);bottom:max(56px,10vh);display:grid;grid-template-columns:auto auto;gap:9px 16px;font-size:13px;color:var(--ink-2);text-align:left}
+#title .ctl.hide{display:none}
 #title .ctl dt{text-align:right}
 #title .note{position:absolute;left:max(40px,6vw);top:32px;font-size:12px;color:var(--ink-3);max-width:520px;line-height:1.6}
-#pause,#over{background:rgba(14,10,24,.62)}
-#pause .c,#over .c{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(90vw,520px)}
-#pause h2,#over h2{font:800 54px/1 var(--tc);letter-spacing:.04em}
-#over h2{color:var(--foe)}
-#over.win h2{color:var(--boost)}
-#pause p,#over p{color:var(--ink-2);margin:16px 0 24px;line-height:1.7;font-size:14px}
-#over dl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:22px 0 4px}
-#over dd{font:700 34px/1 var(--num)}
-#over dt{font-size:12px;color:var(--ink-3);margin-top:6px}
+#tCam{position:absolute;right:max(36px,5vw);top:30px;text-align:right;font:700 12px/1.6 var(--num);letter-spacing:.08em;color:var(--ink-2);text-shadow:var(--hud-shadow)}
+#tCam i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--foe);margin-right:7px;vertical-align:1px;animation:blink 1.4s steps(2) infinite}
+#tCam b{color:var(--ink);font-weight:700}
+#pause{background:rgba(14,10,24,.62)}
+#pause .c{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(90vw,520px)}
+#pause h2{font:800 54px/1 var(--tc);letter-spacing:.04em}
+#pause p{color:var(--ink-2);margin:16px 0 24px;line-height:1.7;font-size:14px}
+/* 戰術結算：左欄評級、右欄六項統計，面板四角切角，內容留足內距避開切口 */
+#over{background:rgba(10,7,18,.66)}
+#over .c{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(820px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;display:grid;grid-template-columns:190px 1fr;gap:6px 40px;padding:34px 40px 32px;background:rgba(20,14,32,.9);clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px))}
+#over .c::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(240,236,252,.025) 0 1px,transparent 1px 4px)}
+#over .oh{grid-column:1/-1;margin-bottom:18px}
+#over .k{font:700 12px/1 var(--num);letter-spacing:.24em;color:var(--foe)}
+#over.win .k{color:var(--boost)}
+#over h2{font:800 46px/1.05 var(--tc);letter-spacing:.04em;margin-top:10px}
+#over .oh p{color:var(--ink-2);margin-top:10px;line-height:1.6;font-size:14px}
+#over .rk{display:flex;flex-direction:column;justify-content:center;padding-right:30px;border-right:1px solid rgba(240,236,252,.12)}
+#oRank{font:800 148px/0.8 var(--num);color:var(--ink-2);animation:stamp .5s var(--ease-out)}
+#oRank.S{color:var(--order)}
+#oRank.A{color:var(--boost)}
+@keyframes stamp{from{transform:scale(1.7);opacity:0}}
+#over .rk span{font-size:13px;color:var(--ink-2);margin-top:14px}
+#over .rk small{font:700 12px var(--num);color:var(--ink-3);margin-top:4px}
+#over dl{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 18px;align-content:center}
+#over dd{font:700 34px/1 var(--num);white-space:nowrap}
+#over dd small{font-size:14px;color:var(--ink-3);margin-left:3px}
+#over dt{font-size:12px;color:var(--ink-3);margin-top:7px}
+#over .tot{grid-column:2;display:flex;align-items:baseline;gap:14px;margin-top:22px;padding-top:16px;border-top:1px solid rgba(240,236,252,.12)}
+#over .tot span{font-size:13px;color:var(--ink-2)}
+#over .tot b{font:700 40px/1 var(--num);color:var(--ink)}
+#over .tot em{font:700 12px/1 var(--num);font-style:normal;letter-spacing:.12em;color:var(--night);background:var(--order);padding:4px 7px 3px;display:none}
+#over .tot em.on{display:inline-block}
+#over .act{grid-column:1/-1;display:flex;align-items:center;gap:26px;margin-top:26px}
+#again{font:700 16px/1 var(--tc);color:var(--night);background:var(--ink);border:0;padding:15px 30px 15px 20px;cursor:pointer;display:inline-flex;gap:12px;align-items:center;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);transition:background .18s}
+#again:hover{background:var(--boost)}
+#again kbd,#toMenu kbd{background:rgba(18,14,28,.14);color:inherit;box-shadow:none}
+#toMenu{font:600 14px/1 var(--tc);color:var(--ink-2);background:none;border:0;cursor:pointer;display:inline-flex;gap:8px;align-items:center;padding:8px 0;transition:color .15s}
+#toMenu:hover{color:var(--ink)}
+#toMenu kbd{background:rgba(240,236,252,.12)}
 .btn{font:700 15px/1 var(--tc);color:var(--night);background:var(--ink);border:0;padding:13px 22px;cursor:pointer;transition:background .18s}
 .btn:hover{background:var(--order)}
 #boot{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font:700 13px var(--num);color:var(--ink-3);letter-spacing:.2em}
@@ -250,17 +298,31 @@ body.touch #go kbd{display:none}
   #log li{font-size:11px;gap:6px}
   #log li:nth-child(-n+2){display:none}
   #keys{display:none}
-  #title .blk{left:22px;right:22px;bottom:44px}
-  #title .ctl{display:none}
+  #title .blk{left:22px;right:22px;width:auto;bottom:36px}
+  #title .ctl{display:none;left:22px;right:22px;top:118px;bottom:auto;padding:16px 18px;background:rgba(16,11,26,.88);font-size:12.5px}
+  #title .ctl.show{display:grid}
   #title .note{left:22px;right:22px;top:20px}
-  #title p{font-size:14px;margin:16px 0 22px}
-  #pause h2,#over h2{font-size:38px}
+  #tCam{display:none}
+  #menu{margin-top:22px;width:100%}
+  #menu button{padding:11px 12px}
+  #pause h2{font-size:38px}
+  #over .c{grid-template-columns:1fr;padding:26px 24px 24px;gap:4px}
+  #over h2{font-size:32px}
+  #over .oh{margin-bottom:12px}
+  #over .rk{flex-direction:row;align-items:baseline;gap:14px;border-right:0;padding:0 0 12px;border-bottom:1px solid rgba(240,236,252,.12)}
+  #oRank{font-size:84px}
+  #over .rk span{margin:0}
+  #over dl{grid-template-columns:repeat(2,1fr);gap:14px 10px;margin-top:14px}
   #over dd{font-size:26px}
-  #over dl{grid-template-columns:repeat(2,1fr);gap:16px 8px}
+  #over .tot{grid-column:1;margin-top:16px;padding-top:12px}
+  #over .tot b{font-size:32px}
+  #over .act{margin-top:18px;gap:20px}
+  #over kbd{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   #log li{animation:none}
-  #boBar.low i,#hpBar.hit i,#boBar.regen i::before,.lk.trk i,#bwarn .en{animation:none}
+  #boBar.low i,#hpBar.hit i,#boBar.regen i::before,.lk.trk i,#bwarn .en,#title h1,#oRank,#tCam i{animation:none}
+  #title .blk{transform:none}
 }
 </style>
 </head>
@@ -330,14 +392,19 @@ body.touch #go kbd{display:none}
 </div>
 
 <div class="ov on" id="title">
-  <p class="note">雪夜的環河高架，追擊車隊與巡邏無人機正封鎖南向車道，夜霧裡還有一艘重型武裝砲艇。騎上 K-7 重機衝上跳台、閃過路障，必要時下車步行迎戰。</p>
+  <p class="note">雨夾雪的環河高架，追擊車隊與巡邏無人機正封鎖南向車道，夜霧裡還有一艘重型武裝砲艇。騎上 K-7 重機衝上跳台、閃過路障，必要時下車步行迎戰。</p>
+  <p id="tCam"><i></i><b id="tCamN">CAM 01</b><br><span id="tCamT">環繞機位 · 南向車道</span></p>
   <div class="blk">
-    <h1>霜港高架</h1>
-    <div class="en">FROSTLINE RIDER</div>
-    <p>無轂霓虹輪、雙氮氣噴嘴、三種電漿武器與背包微型飛彈。路面、大樓、車與人都由程式即時生成。</p>
-    <button id="go"><kbd>Enter</kbd>出發</button>
+    <div class="holo"><h1>霜港高架</h1></div>
+    <div class="en">FROSTLINE RIDER<span>CYBER-RIDER</span></div>
+    <ol id="menu">
+      <li><button id="go" class="on"><b>01</b>出發任務<kbd>Enter</kbd></button></li>
+      <li><button id="mHelp"><b>02</b>操作說明<em id="mHelpS">顯示中</em></button></li>
+      <li><button id="mSnd"><b>03</b>聲音<em id="mSndS">開</em></button></li>
+    </ol>
+    <p id="best">尚無紀錄。抵達撤離點或撐到最後，結算會留下最佳成績。</p>
   </div>
-  <dl class="ctl">
+  <dl class="ctl" id="ctl">
     <dt><kbd>W</kbd> <kbd>S</kbd></dt><dd>加速／煞車</dd>
     <dt><kbd>A</kbd> <kbd>D</kbd></dt><dd>轉向壓車</dd>
     <dt><kbd>Shift</kbd></dt><dd>氮氣衝刺／步行奔跑</dd>
@@ -348,7 +415,20 @@ body.touch #go kbd{display:none}
   </dl>
 </div>
 <div class="ov" id="pause"><div class="c"><h2>暫停</h2><p>按 Esc 或點擊繼續。</p><button class="btn" id="resume">繼續騎乘</button></div></div>
-<div class="ov" id="over"><div class="c"><h2 id="oT">機體全損</h2><dl><div><dd class="num" id="oScore">0</dd><dt>分數</dt></div><div><dd class="num" id="oKill">0</dd><dt>擊毀目標</dt></div><div><dd class="num" id="oDist">0</dd><dt>行駛公里</dt></div><div><dd class="num" id="oWave">0</dd><dt>撐到第幾波</dt></div></dl><p id="oP">按 R 或點擊重新出發。</p><button class="btn" id="again">重新出發</button></div></div>
+<div class="ov" id="over"><div class="c">
+  <header class="oh"><p class="k" id="oK">MISSION FAILED</p><h2 id="oT">機體全損</h2><p id="oP"></p></header>
+  <div class="rk"><b id="oRank">B</b><span>戰術評級</span><small id="oPts">0 / 100</small></div>
+  <dl>
+    <div><dd class="num"><span id="oDist">0</span><small>km</small></dd><dt>行駛里程</dt></div>
+    <div><dd class="num"><span id="oTop">0</span><small>km/h</small></dd><dt>最高時速</dt></div>
+    <div><dd class="num"><span id="oTime">0:00</span></dd><dt>任務用時</dt></div>
+    <div><dd class="num"><span id="oDrone">0</span></dd><dt>擊墜無人機</dt></div>
+    <div><dd class="num"><span id="oCar">0</span></dd><dt>擊毀追擊車</dt></div>
+    <div><dd class="num"><span id="oAcc">0</span><small>%</small></dd><dt>精準度</dt></div>
+  </dl>
+  <div class="tot"><span>總分</span><b class="num" id="oScore">0</b><em id="oBest">新紀錄</em></div>
+  <div class="act"><button id="again"><kbd>R</kbd>重新出發</button><button id="toMenu"><kbd>Esc</kbd>回主選單</button></div>
+</div></div>
 <script type="module">
 // ───────────── 霜港高架 FROSTLINE RIDER ─────────────
 const $ = id => document.getElementById(id);
@@ -454,7 +534,7 @@ const brightMat = pass('uniform sampler2D t; varying vec2 vUv; void main(){ vec3
 const downMat = pass('uniform sampler2D t; uniform vec2 px; varying vec2 vUv; void main(){ vec3 c = texture2D(t,vUv).rgb*4.; c += texture2D(t,vUv+px*vec2(-1,-1)).rgb + texture2D(t,vUv+px*vec2(1,-1)).rgb + texture2D(t,vUv+px*vec2(-1,1)).rgb + texture2D(t,vUv+px*vec2(1,1)).rgb; gl_FragColor = vec4(c/8.,1.); }', { t: { value: null }, px: { value: new THREE.Vector2() } });
 const upMat = pass('uniform sampler2D t; uniform vec2 px; varying vec2 vUv; void main(){ vec3 c = vec3(0.); c += texture2D(t,vUv+px*vec2(-1,0)).rgb*2.; c += texture2D(t,vUv+px*vec2(1,0)).rgb*2.; c += texture2D(t,vUv+px*vec2(0,-1)).rgb*2.; c += texture2D(t,vUv+px*vec2(0,1)).rgb*2.; c += texture2D(t,vUv+px*vec2(-1,-1)).rgb + texture2D(t,vUv+px*vec2(1,-1)).rgb + texture2D(t,vUv+px*vec2(-1,1)).rgb + texture2D(t,vUv+px*vec2(1,1)).rgb; gl_FragColor = vec4(c/12.,1.); }', { t: { value: null }, px: { value: new THREE.Vector2() } }, { blending: THREE.AdditiveBlending, transparent: true });
 const compMat = pass(`
-uniform sampler2D tS, tD, tB; uniform vec2 res; uniform float near, far, time, boost, dmg, aberr, ink, expo, flash, slow;
+uniform sampler2D tS, tD, tB; uniform vec2 res; uniform float near, far, time, boost, dmg, aberr, ink, expo, flash, slow, spd, fade;
 varying vec2 vUv;
 float lin(float d){ float z = d*2.-1.; return 2.*near*far/(far+near-z*(far-near)); }
 float h12(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
@@ -477,8 +557,14 @@ void main(){
   if (dc > 0.99999) e = smoothstep(0.04,0.16,lap)*(1.-smoothstep(70.,300.,1./max(max(wl,wr),max(wu,wd))));
   col = mix(col, col*0.16 + vec3(0.012,0.008,0.02), e*0.9);
   col += texture2D(tB, uv).rgb * 0.7;
-  // 衝刺速度線
+  // 速度線：畫面四周的放射細線由內往外流，車速越高越密越亮，衝刺時再加碼
   float ang = atan(cc.y, cc.x*res.x/res.y); float r = length(cc*vec2(res.x/res.y,1.));
+  float sk = clamp(max(spd, boost), 0., 1.);
+  float an = ang*(54./6.2831853); float bin = floor(an), hb = h12(vec2(bin, 7.3)), lw = abs(fract(an)-0.5);
+  float head = fract(time*(1.1 + hb*1.5) + hb*9.), rr = (r - 0.3)/0.75;
+  float lpx = lw*(6.2831853/54.)*r*res.y;
+  float streak = step(1. - 0.4*sk, hb) * (1. - smoothstep(0.6, 1.8, lpx)) * smoothstep(head - 0.3, head, rr) * (1. - smoothstep(head, head + 0.015, rr));
+  col += vec3(0.78,0.93,1.)*streak*sk*smoothstep(0.3, 0.62, r)*0.85;
   float sl = step(0.95, h12(vec2(floor(ang*90.), floor(time*24.)))) * smoothstep(0.34, 0.8, r);
   col += vec3(0.75,0.92,1.)*sl*boost*0.1;
   col += vec3(1.,0.85,0.7)*flash;
@@ -491,10 +577,11 @@ void main(){
   float lum = dot(col, vec3(0.2126,0.7152,0.0722));
   col = mix(col, mix(vec3(lum), col, 0.45)*vec3(0.9,1.,1.12), slow*0.85);
   col *= 1. - slow*step(0.5-0.075*slow, abs(cc.y));
+  col *= 1. - fade;
   col = mix(col*12.92, 1.055*pow(col, vec3(1./2.4))-0.055, step(0.0031308, col));
   col += (h12(uv*res + fract(time)*91.)-0.5)*0.03;
   gl_FragColor = vec4(col,1.);
-}`, { tS: { value: rtScene.texture }, tD: { value: rtScene.depthTexture }, tB: { value: bloomRT[0].texture }, res: { value: new THREE.Vector2() }, near: { value: camera.near }, far: { value: camera.far }, time: { value: 0 }, boost: { value: 0 }, dmg: { value: 0 }, aberr: { value: 0.0 }, slow: { value: 0 }, ink: { value: 1 }, expo: { value: 1.05 }, flash: { value: 0 } });
+}`, { tS: { value: rtScene.texture }, tD: { value: rtScene.depthTexture }, tB: { value: bloomRT[0].texture }, res: { value: new THREE.Vector2() }, near: { value: camera.near }, far: { value: camera.far }, time: { value: 0 }, boost: { value: 0 }, dmg: { value: 0 }, aberr: { value: 0.0 }, slow: { value: 0 }, spd: { value: 0 }, fade: { value: 0 }, ink: { value: 1 }, expo: { value: 1.05 }, flash: { value: 0 } });
 
 let renderScale = LOW ? Math.min(devicePixelRatio, 1.5) * 0.75 : Math.min(devicePixelRatio, 1.5);
 function resize() {
@@ -506,7 +593,7 @@ function resize() {
   for (const rt of bloomRT) { rt.setSize(Math.max(1, bw), Math.max(1, bh)); bw >>= 1; bh >>= 1; }
   compMat.uniforms.res.value.set(W, H);
   compMat.uniforms.ink.value = Math.max(1, H / 820);
-  snow.uniforms.scale.value = H; spk.m.uniforms.scale.value = H * 0.5;
+  snow.uniforms.scale.value = H; spk.m.uniforms.scale.value = H * 0.5; splash.uniforms.scale.value = H;
 }
 addEventListener('resize', resize);
 function renderFrame() {
@@ -822,8 +909,8 @@ function twinkleWindows(dt) {
   winTex.needsUpdate = true;
 }
 
-// ───────── 雪 ─────────
-const SNOW_N = LOW ? 2200 : 5200, SNOW_BOX = new V3(110, 46, 110);
+// ───────── 雨夾雪：稀疏的雪片疊在雨絲之間 ─────────
+const SNOW_N = LOW ? 700 : 1600, SNOW_BOX = new V3(110, 46, 110);
 const snow = (() => {
   const g = new THREE.BufferGeometry(), p = new Float32Array(SNOW_N * 3), s = new Float32Array(SNOW_N);
   for (let i = 0; i < SNOW_N; i++) { p[i * 3] = R() * SNOW_BOX.x; p[i * 3 + 1] = R() * SNOW_BOX.y; p[i * 3 + 2] = R() * SNOW_BOX.z; s[i] = 0.5 + R() * R() * 2.2; }
@@ -841,6 +928,61 @@ void main(){ vec3 drift = vec3(1.4 + sin(time*0.3)*0.8, -2.1*(0.6+aS*0.25), 0.6)
   });
   const pts = new THREE.Points(g, m); pts.frustumCulled = false; scene.add(pts); return m;
 })();
+
+// ───────── 夜雨：3000 條雨絲＋路面水花 ─────────
+// 每條雨絲兩個頂點：頭在下落位置，尾巴沿「雨對鏡頭的相對速度」往回拉，車速越快越往後傾；子彈時間時快門變短，雨絲縮成幾乎靜止的水珠
+const RAIN_N = LOW ? 1800 : 3000, RAIN_BOX = new V3(64, 30, 84);
+const rain = (() => {
+  const g = new THREE.BufferGeometry(), p = new Float32Array(RAIN_N * 6), e = new Float32Array(RAIN_N * 2), sd = new Float32Array(RAIN_N * 2);
+  for (let i = 0; i < RAIN_N; i++) {
+    const x = R() * RAIN_BOX.x, y = R() * RAIN_BOX.y, z = R() * RAIN_BOX.z, k = R();
+    for (let j = 0; j < 2; j++) { const v = i * 2 + j; p[v * 3] = x; p[v * 3 + 1] = y; p[v * 3 + 2] = z; e[v] = j; sd[v] = k; }
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('aE', new THREE.BufferAttribute(e, 1)); g.setAttribute('aS', new THREE.BufferAttribute(sd, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { time: { value: 0 }, cam: { value: new V3() }, boxv: { value: RAIN_BOX }, vel: { value: new V3() }, shut: { value: 0.03 } },
+    vertexShader: `attribute float aE, aS; uniform float time, shut; uniform vec3 cam, boxv, vel; varying vec3 vC; varying float vA;
+void main(){ float sp = 19. + aS*7.; vec3 p = position + vec3(1.6, -sp, 0.)*time;
+  vec3 wp = cam + mod(p - cam, boxv) - boxv*0.5;
+  vec3 rel = vec3(1.6, -sp, 0.) - vel; wp -= rel*shut*aE;
+  vec4 mv = viewMatrix*vec4(wp,1.); float d = -mv.z;
+  // 依兩側護欄燈條與路燈反射成青、洋紅或琥珀，整體偏白
+  vec3 c = aS < 0.42 ? vec3(0.5,0.9,1.) : aS < 0.78 ? vec3(1.,0.5,0.86) : vec3(1.,0.76,0.46);
+  vC = mix(c, vec3(0.86,0.88,1.), 0.4);
+  vA = smoothstep(0.8, 3.5, d)*exp(-d*0.032)*mix(1., 0.18, aE)*(0.45 + 0.55*fract(aS*17.3));
+  gl_Position = projectionMatrix*mv; }`,
+    fragmentShader: 'varying vec3 vC; varying float vA; void main(){ gl_FragColor = vec4(vC*vA*0.62, 1.); }',
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const ln = new THREE.LineSegments(g, m); ln.frustumCulled = false; scene.add(ln); return m;
+})();
+// 水花：路面上隨機位置一閃即逝的扁平小水環，每個點每次閃爍都換一個位置
+const SPL_N = LOW ? 260 : 520;
+const splash = (() => {
+  const g = new THREE.BufferGeometry(), p = new Float32Array(SPL_N * 3), sd = new Float32Array(SPL_N);
+  for (let i = 0; i < SPL_N; i++) sd[i] = R();
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('aS', new THREE.BufferAttribute(sd, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { time: { value: 0 }, cam: { value: new V3() }, fwd: { value: new V3(0, 0, -1) }, scale: { value: 300 } },
+    vertexShader: `attribute float aS; uniform float time, scale; uniform vec3 cam, fwd; varying float vA, vP;
+void main(){ float t = time*(2.2 + aS*2.4) + aS*31.; float cyc = floor(t); vP = fract(t);
+  vec2 h = fract(sin(vec2(cyc*12.9898 + aS*78.233, cyc*39.346 + aS*11.135))*43758.5453);
+  vec3 ctr = cam + fwd*30.; vec3 wp = vec3(ctr.x + (h.x - 0.5)*44., 0.03, ctr.z + (h.y - 0.5)*70.);
+  vec4 mv = viewMatrix*vec4(wp,1.); float d = -mv.z;
+  vA = abs(wp.x) < 14.2 ? pow(1. - vP, 3.)*smoothstep(1.5, 5., d)*exp(-d*0.03) : 0.;
+  gl_PointSize = vA > 0. ? clamp((0.35 + vP*0.9)*scale*0.1/max(d, 0.1), 1., 40.) : 0.;
+  gl_Position = projectionMatrix*mv; }`,
+    fragmentShader: 'varying float vA, vP; void main(){ vec2 c = (gl_PointCoord - 0.5)*vec2(1., 2.8); float r = length(c); float ring = smoothstep(0.5, 0.4, r)*smoothstep(0.18 + vP*0.2, 0.34 + vP*0.12, r); float dot = smoothstep(0.2, 0.0, r)*(1. - vP); float a = (ring + dot)*vA; if (a < 0.004) discard; gl_FragColor = vec4(vec3(0.8,0.92,1.)*a*1.4, 1.); }',
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false; scene.add(pts); return m;
+})();
+function updateRain() {
+  const ru = rain.uniforms, su = splash.uniforms;
+  ru.time.value = su.time.value = S.time; ru.cam.value.copy(camera.position); su.cam.value.copy(camera.position);
+  playerVel(ru.vel.value); ru.shut.value = 0.032 * Math.max(0.15, S.slow);
+  camera.getWorldDirection(su.fwd.value); su.fwd.value.y = 0; su.fwd.value.normalize();
+}
 
 // ───────── 共用幾何與材質 ─────────
 const MAT = {
@@ -1221,6 +1363,34 @@ const spk = (() => {
   let head = 0;
   return { g, pos, col, size, P, m, emit(x, y, z, vx, vy, vz, life, r, gg, b, s, grav = 1, drag = 1.5) { const p = P[head]; head = (head + 1) % SPK_N; Object.assign(p, { life, max: life, x, y, z, vx, vy, vz, r, g: gg, b, s, grav, drag }); } };
 })();
+// 摩擦火花：用線段畫，尾巴沿「相對玩家」的速度拉長；貼著護欄磨時拖出一長串橘色火花
+const STK_N = 340;
+const stk = (() => {
+  const g = new THREE.BufferGeometry(), pos = new Float32Array(STK_N * 6), col = new Float32Array(STK_N * 6);
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const m = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const ln = new THREE.LineSegments(g, m); ln.frustumCulled = false; scene.add(ln);
+  const P = Array.from({ length: STK_N }, () => ({ life: 0, max: 1, p: new V3(), v: new V3(), k: 1 }));
+  let head = 0;
+  return { g, pos, col, P, emit(x, y, z, vx, vy, vz, life, k) { const q = P[head]; head = (head + 1) % STK_N; q.life = q.max = life; q.p.set(x, y, z); q.v.set(vx, vy, vz); q.k = k; } };
+})();
+const scrapeLight = new THREE.PointLight(0xff7a2a, 0, 10, 2); scene.add(scrapeLight);
+const _sv = new V3();
+function updateStreaks(dt) {
+  const { P: Q, pos, col } = stk, pv = playerVel(_sv);
+  for (let i = 0; i < STK_N; i++) {
+    const q = Q[i], o = i * 6;
+    if (q.life <= 0) { for (let j = 0; j < 6; j++) { pos[o + j] = 0; col[o + j] = 0; } continue; }
+    q.life -= dt; q.v.y -= 9.8 * dt; q.v.multiplyScalar(Math.exp(-0.9 * dt)); q.p.addScaledVector(q.v, dt);
+    if (q.p.y < 0.02 && Math.abs(q.p.x) < 14.4) { q.p.y = 0.02; q.v.y *= -0.35; q.v.x *= 0.7; q.v.z *= 0.7; }
+    const f = Math.max(0, q.life / q.max), k = q.k * f;
+    pos[o] = q.p.x; pos[o + 1] = q.p.y; pos[o + 2] = q.p.z;
+    pos[o + 3] = q.p.x - (q.v.x - pv.x) * 0.045; pos[o + 4] = q.p.y - (q.v.y - pv.y) * 0.045; pos[o + 5] = q.p.z - (q.v.z - pv.z) * 0.045;
+    col[o] = 1.0 * k; col[o + 1] = 0.52 * k; col[o + 2] = 0.16 * k; col[o + 3] = 0.9 * k * 0.3; col[o + 4] = 0.22 * k * 0.3; col[o + 5] = 0.03 * k * 0.3;
+  }
+  stk.g.attributes.position.needsUpdate = stk.g.attributes.color.needsUpdate = true;
+  scrapeLight.intensity = P.scrape > 0 ? 5 + R() * 9 : Math.max(0, scrapeLight.intensity - dt * 400);
+}
 function sparks(p, n, speed, hex = 0xffb35a, k = 4, up = 0.4, s = 0.07) {
   _c.setHex(hex);
   for (let i = 0; i < n; i++) {
@@ -1347,7 +1517,7 @@ const evacMesh = (() => {
 const rider = buildRider(), bike = buildBike();
 scene.add(bike.root);
 const LANE_R = [3.0, 6.6, 10.2];
-const S = { mode: 'title', score: 0, won: false, ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1, wi: 0, mags: [40, 6, 5], reloadMax: 1.3, charge: 0, shWarned: false };
+const S = { mode: 'title', score: 0, won: false, ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, cool: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, lastHurt: -9, lastFire: -9, dmg: 0, trauma: 0, kick: 0, top: 0, ctlT: 0, autoStop: false, lowWarned: false, god: false, overT: 0, slow: 1, wi: 0, mags: [40, 6, 5], reloadMax: 1.3, charge: 0, shWarned: false, shots: 0, hits: 0, empVol: 0, empHit: -1 };
 const P = { pos: new V3(6.6, 0, 0), yaw: 0, v: 0, steer: 0, lean: 0, pitch: 0, acc: 0, boosting: false, wheel: 0, vy: 0, air: false, bt: false, sus: 0, ext: 0, jumpZ: 0 };
 const F = { pos: new V3(), vel: new V3(), yaw: 0, phase: 0, aimYaw: 0, aimPitch: 0, ready: 1, jet: false, lift: 0 };
 const CAM = { yawOff: 0, footYaw: 0, off: new V3(0, 2.4, 6.5), vel: new V3(), fov: 60, look: new V3() };
@@ -1364,8 +1534,12 @@ const touch = { x: 0, y: 0, fire: false, boost: false, lock: false, id: null };
 addEventListener('keydown', e => {
   if (e.repeat && keys[e.code]) return; keys[e.code] = true;
   if (e.code === 'Escape' || e.code === 'KeyP') { if (S.mode === 'play') setMode('pause'); else if (S.mode === 'pause') setMode('play'); }
-  if (e.code === 'Enter' && S.mode === 'title') start();
-  if (S.mode === 'over' && e.code === 'KeyR' && S.overT > 0.8) restart();
+  if (S.mode === 'title') {
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') menuSel(menuI - 1);
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') menuSel(menuI + 1);
+    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); MENU[menuI].click(); }
+  }
+  if (S.mode === 'over' && S.overT > 0.8) { if (e.code === 'KeyR' || e.code === 'Enter') restart(); else if (e.code === 'Escape') toTitle(); }
   if (S.mode !== 'play') return;
   if (e.code === 'KeyF' || e.code === 'KeyE') toggleMount();
   if (e.code === 'KeyR' && S.ammo < WEAPONS[S.wi].mag && S.reload <= 0) startReload();
@@ -1376,6 +1550,8 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.fire = mouse.lock = mouse.drag = false; if (S.mode === 'play') setMode('pause'); });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+const titleBlk = document.querySelector('#title .blk');
+addEventListener('mousemove', e => { if (S.mode === 'title') { titleBlk.style.setProperty('--ry', ((e.clientX / innerWidth - 0.5) * 8).toFixed(2) + 'deg'); titleBlk.style.setProperty('--rx', ((0.5 - e.clientY / innerHeight) * 5).toFixed(2) + 'deg'); } });
 addEventListener('mousemove', e => { if (mouse.drag) { const dx = e.clientX - mouse.lx; if (S.ctl === 'foot') CAM.footYaw -= dx * 0.006; else CAM.yawOff = clamp(CAM.yawOff - dx * 0.006, -2.6, 2.6); } mouse.lx = e.clientX; mouse.x = e.clientX; mouse.y = e.clientY; });
 // 左鍵射擊、右鍵按住鎖定飛彈、中鍵拖曳轉視角
 canvas.addEventListener('mousedown', e => { audioInit(); if (S.mode !== 'play') return; if (e.button === 0) mouse.fire = true; if (e.button === 2) mouse.lock = true; if (e.button === 1) { e.preventDefault(); mouse.drag = true; mouse.lx = e.clientX; } });
@@ -1412,7 +1588,7 @@ try { const v = localStorage.getItem('frostline-vol'); if (v !== null) { AU.vol 
 function setVolume(v, on = AU.on) {
   AU.vol = clamp(v, 0, 1); AU.on = on && AU.vol > 0;
   if (AU.master) AU.master.gain.setTargetAtTime(AU.on ? AU.vol : 0, AU.ctx.currentTime, 0.03);
-  $('sndV').value = Math.round(AU.vol * 100); $('sndB').classList.toggle('off', !AU.on); $('sndB').setAttribute('aria-label', AU.on ? '靜音' : '開啟聲音');
+  $('sndV').value = Math.round(AU.vol * 100); $('sndB').classList.toggle('off', !AU.on); $('mSndS').textContent = AU.on ? '開' : '靜音'; $('sndB').setAttribute('aria-label', AU.on ? '靜音' : '開啟聲音');
   try { localStorage.setItem('frostline-vol', AU.vol); localStorage.setItem('frostline-mute', AU.on ? '0' : '1'); } catch (e) {}
 }
 function audioInit() {
@@ -1431,6 +1607,9 @@ function audioInit() {
   const loop = (buf, filterType, freq, q, gain) => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q; const g = ctx.createGain(); g.gain.value = gain; s.connect(f).connect(g).connect(AU.master); s.start(); return { f, g }; };
   AU.amb = loop(brown, 'lowpass', 220, 0.5, 0.22);
   AU.wind = loop(nb, 'bandpass', 500, 0.6, 0);
+  // 雨聲：高通白噪音鋪底；護欄摩擦：窄帶噪音，貼著護欄時才打開
+  AU.rain = loop(nb, 'highpass', 2600, 0.4, 0.035);
+  AU.scr = loop(nb, 'bandpass', 3300, 2.2, 0);
   // 渦輪呼嘯：帶通白噪音＋隨轉速上升的正弦哨音
   AU.boostN = loop(nb, 'bandpass', 2400, 4, 0);
   { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 2200; const g = ctx.createGain(); g.gain.value = 0; o.connect(g).connect(AU.master); o.start(); AU.whine = { o, g }; }
@@ -1565,6 +1744,13 @@ function sfx(kind, vol = 1, n = 1) {
   } else if (kind === 'netfire') {
     const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(1800, t); o.frequency.exponentialRampToValueAtTime(300, t + 0.6); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 4000; o.connect(f).connect(g); env(g, t, 0.005, 0.12 * vol, 0.7); o.start(t); o.stop(t + 0.75);
     const nz = ctx.createBufferSource(); nz.buffer = AU.noise; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000; const ng = ctx.createGain(); nz.connect(hp).connect(ng).connect(AU.master); env(ng, t, 0.01, 0.08 * vol, 1.6); nz.start(t, Math.random()); nz.stop(t + 1.7);
+  } else if (kind === 'tally') {
+    // 結算數字跳動：短促高音方波
+    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 1400 + n * 90; o.connect(g); env(g, t, 0.002, 0.025 * vol, 0.04); o.start(t); o.stop(t + 0.06);
+  } else if (kind === 'stamp') {
+    // 評級蓋章：低頻重擊加一道上升琶音，S 級高兩個半音
+    const o = ctx.createOscillator(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.25); o.connect(g); env(g, t, 0.003, 0.5 * vol, 0.3); o.start(t); o.stop(t + 0.35);
+    [0, 4, 7, 12].forEach((s2, i) => { const o2 = ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = 330 * Math.pow(2, (s2 + (n > 1 ? 2 : 0)) / 12); const g2 = ctx.createGain(); o2.connect(g2).connect(AU.master); const t2 = t + 0.06 + i * 0.07; env(g2, t2, 0.01, 0.06 * vol, 0.5); o2.start(t2); o2.stop(t2 + 0.6); });
   } else if (kind === 'bossdie') {
     // 砲艇墜毀：3 秒的 50→16 Hz 次低頻與逐漸收窄的低通噪音
     const o = ctx.createOscillator(); o.frequency.setValueAtTime(50, t); o.frequency.exponentialRampToValueAtTime(16, t + 3); o.connect(g); env(g, t, 0.005, 1.0 * vol, 3); o.start(t); o.stop(t + 3.1);
@@ -1610,6 +1796,9 @@ function updateAudio(dt) {
   const turbo = P.boosting ? 1 : S.ctl === 'foot' && F.jet ? 0.5 : 0;
   AU.boostN.g.gain.setTargetAtTime(turbo * 0.16, t, 0.08); AU.boostN.f.frequency.setTargetAtTime(1800 + sp * 28, t, 0.15);
   AU.whine.g.gain.setTargetAtTime(turbo * 0.022, t, turbo ? 0.25 : 0.08); AU.whine.o.frequency.setTargetAtTime(turbo ? 2400 + sp * 22 : 1500, t, turbo ? 0.6 : 0.3);
+  AU.scr.g.gain.setTargetAtTime(P.scrape > 0 && S.mode === 'play' ? Math.min(0.22, Math.abs(P.v) * 0.004) : 0, t, P.scrape > 0 ? 0.02 : 0.06);
+  AU.scr.f.frequency.setTargetAtTime(2600 + Math.abs(P.v) * 30 + Math.random() * 600, t, 0.02);
+  AU.rain.g.gain.setTargetAtTime(S.mode === 'over' ? 0.02 : 0.035 * S.slow + 0.01, t, 0.3);
   // 低血量警報
   if (S.mode === 'play' && S.hp < 30 && S.ctl !== 'dead' && !S.won) { AU.alarmT = (AU.alarmT ?? 0) - dt; if (AU.alarmT <= 0) { sfx('alarm'); AU.alarmT = 0.95; } } else AU.alarmT = 0;
 }
@@ -1997,11 +2186,44 @@ function die() {
   S.ctl = 'dead'; S.overT = 0; P.v *= 0.3; log('警告', '裝甲全損', 'var(--foe)');
   setTimeout(() => { if (S.ctl === 'dead') showOver(false); }, 1600);
 }
+// 評級：撤離 35、指令完成度 20、精準度 20、擊毀數 15、撤離時剩餘裝甲 10，80 分以上 S、55 分以上 A，其餘 B
+function grade(won) {
+  const acc = S.shots ? S.hits / S.shots : 0, done = MISSIONS.filter(m => m.done).length;
+  const pts = Math.round((won ? 35 : 0) + done / MISSIONS.length * 20 + acc * 20 + Math.min(1, S.kills / 25) * 15 + (won ? clamp(S.hp / 100, 0, 1) * 10 : 0));
+  return { acc, pts, done, rank: pts >= 80 ? 'S' : pts >= 55 ? 'A' : 'B' };
+}
+let BEST = null;
+try { BEST = JSON.parse(localStorage.getItem('frostline-best') || 'null'); } catch (e) { BEST = null; }
+function drawBest() {
+  $('best').innerHTML = BEST && BEST.score > 0 ? `最佳紀錄　評級 <b>${BEST.rank}</b>・<b>${BEST.score.toLocaleString()}</b> 分・最高 <b>${BEST.top}</b> km/h` : '尚無紀錄。抵達撤離點或撐到最後，結算會留下最佳成績。';
+}
+drawBest();
+const fmtTime = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+let tallyId = 0;
 function showOver(won) {
   setMode('over'); $('over').classList.toggle('win', won);
+  const g = grade(won), top = Math.round(S.top);
+  $('oK').textContent = won ? 'MISSION COMPLETE' : 'MISSION FAILED';
   $('oT').textContent = won ? '突圍成功' : '機體全損';
-  $('oP').textContent = won ? `抵達撤離點，用時 ${Math.floor(S.time / 60)} 分 ${String(Math.floor(S.time % 60)).padStart(2, '0')} 秒。按 R 或點擊再跑一次。` : '按 R 或點擊重新出發。';
-  $('oScore').textContent = S.score; $('oDist').textContent = (S.dist / 1000).toFixed(1); $('oKill').textContent = S.kills; $('oWave').textContent = S.wave;
+  $('oP').textContent = won ? `K-7 已在撤離點回收，剩餘裝甲 ${Math.round(S.hp)}，撤離加分已計入。` : `撐到第 ${S.wave} 波，完成 ${g.done}／${MISSIONS.length} 項指令。`;
+  const rk = $('oRank'); rk.textContent = g.rank; rk.className = g.rank;
+  $('oPts').textContent = `${g.pts} / 100 分`;
+  const isBest = S.score > 0 && (!BEST || S.score > BEST.score);
+  if (isBest) { BEST = { rank: g.rank, score: S.score, top }; try { localStorage.setItem('frostline-best', JSON.stringify(BEST)); } catch (e) {} drawBest(); }
+  $('oBest').classList.toggle('on', isBest);
+  // 數字先寫成最終值（動畫沒跑也看得到），再從 0 跳上去
+  const rows = [['oDist', S.dist / 1000, 1], ['oTop', top, 0], ['oDrone', S.dKills, 0], ['oCar', S.cKills, 0], ['oAcc', g.acc * 100, 0], ['oScore', S.score, 0]];
+  const put = (k) => { for (const [id, v, dp] of rows) $(id).textContent = id === 'oScore' ? Math.round(v * k).toLocaleString() : (v * k).toFixed(dp); };
+  put(1); $('oTime').textContent = fmtTime(S.time);
+  const id = ++tallyId, t0 = performance.now(); let tick = 0;
+  const step = now => {
+    if (id !== tallyId || S.mode !== 'over') return;
+    const u = clamp((now - t0) / 900, 0, 1); put(1 - Math.pow(1 - u, 3));
+    if (now - tick > 60 && u < 1) { tick = now; sfx('tally', 1, (u * 8) | 0); }
+    if (u < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  sfx('stamp', 1, g.rank === 'S' ? 2 : 1);
 }
 function checkEvac() {
   if (!EVAC.on || S.won || S.ctl === 'dead') return;
@@ -2074,7 +2296,7 @@ function tryFire(dt) {
   if (S.wi === 0) {
     S.cool = 1 / 11;
     muzzleAim(0.006 + (S.ctl === 'ride' ? 0.004 : F.vel.length() * 0.0012));
-    const b = fireBolt(pBolts, _mz, _dir, 240, 1, 3.4); if (b && S.ctl === 'ride') b.v.add(fwdOf(P.yaw, _v).multiplyScalar(P.v));
+    const b = fireBolt(pBolts, _mz, _dir, 240, 1, 3.4); if (b && S.ctl === 'ride') b.v.add(fwdOf(P.yaw, _v).multiplyScalar(P.v)); S.shots++;
     muzzleFx(1, 14);
     S.kick = Math.min(0.03, S.kick + 0.006); S.trauma = Math.min(1, S.trauma + 0.02); S.recoil = 1;
     sparks(_mz, 2, 3, 0x9ef8ff, 4, 0, 0.05);
@@ -2087,10 +2309,11 @@ function fireEmp() {
   S.cool = 0.62; muzzleAim(0.004);
   _rt.crossVectors(_dir, UP).normalize(); _up2.crossVectors(_rt, _dir);
   const bv = S.ctl === 'ride' ? fwdOf(P.yaw, _v4).multiplyScalar(P.v) : _v4.set(0, 0, 0);
+  S.shots++; S.empVol++;
   for (let i = 0; i < 8; i++) {
     const a = (i / 7 - 0.5) * 0.3 + (R() - 0.5) * 0.03, e = (R() - 0.5) * 0.07;
     _pd.copy(_dir).addScaledVector(_rt, Math.tan(a)).addScaledVector(_up2, e).normalize();
-    const b = fireBolt(sBolts, _mz, _pd, 150 + R() * 30, 2, 1.1); if (b) { b.life = 0.34 + R() * 0.06; b.v.add(bv); }
+    const b = fireBolt(sBolts, _mz, _pd, 150 + R() * 30, 2, 1.1); if (b) { b.life = 0.34 + R() * 0.06; b.v.add(bv); b.vol = S.empVol; }
   }
   muzzleFx(2.2, 30);
   empRing.visible = true; empRing.userData.t = 0; empRing.position.copy(_mz).addScaledVector(_dir, 1.1); empRing.quaternion.setFromUnitVectors(_bz, _dir);
@@ -2101,7 +2324,7 @@ function fireEmp() {
 }
 // 軌道砲：一條直線貫穿路徑上所有敵人，直到打中路面或 280 m
 function fireRail() {
-  S.cool = 0.5; S.ammo--; S.lastFire = S.time; muzzleAim(0);
+  S.cool = 0.5; S.ammo--; S.lastFire = S.time; muzzleAim(0); S.shots++;
   let len = 280; if (_dir.y < -1e-3) len = Math.min(len, (_mz.y - 0.02) / -_dir.y);
   _v5.copy(_mz).addScaledVector(_dir, len);
   let n = 0;
@@ -2111,7 +2334,9 @@ function fireRail() {
     for (const oz of [-1.3, 0, 1.3]) { _ctr.set(c.x - Math.sin(c.yaw) * oz, 0.9, c.z - Math.cos(c.yaw) * oz); if (segHit(_mz, _v5, _ctr, 1.45) >= 0) { _hit.copy(_v3); n++; sparks(_hit, 26, 10, 0xffe2a0, 5, 0.2, 0.08); hitFoe(c, 18, 'rail', _hit, _dir); break; } }
   }
   if (bossActive()) for (const e of BOSS.parts) if (e.on && segHit(_mz, _v5, e.p, e.r) >= 0) { _hit.copy(_v3); n++; sparks(_hit, 30, 12, 0xffe2a0, 5, 0.2, 0.08); hitFoe(e, 16, 'rail', _hit, _dir); }
-  for (const b of BARS) if (b.on && segHit(_mz, _v5, _ctr.set(b.x, 0.8, b.z), 1.2) >= 0) smashBar(b, _v.copy(_dir).multiplyScalar(14), true);
+  let nb = 0;
+  for (const b of BARS) if (b.on && segHit(_mz, _v5, _ctr.set(b.x, 0.8, b.z), 1.2) >= 0) { smashBar(b, _v.copy(_dir).multiplyScalar(14), true); nb++; }
+  if (n || nb) S.hits++;
   if (n) { hitT = 0.14; sfx('hit'); if (n > 1) log('系統', `軌道砲貫穿 ${n} 個目標`, 'var(--rail)'); }
   if (len < 280) { sparks(_v5, 40, 12, 0xffc45a, 5, 0.5, 0.08); for (let i = 0; i < 4; i++) puff(_v2.copy(_v5).add(_v.set((R() - 0.5) * 1.5, 0.3, (R() - 0.5) * 1.5)), _v.set((R() - 0.5) * 2, 1.5, (R() - 0.5) * 2), 0.5 + R() * 0.4, 1.1, 0.5); }
   // 光束與電離殘影
@@ -2187,6 +2412,8 @@ function updatePlayerBolts(pool, kind, dt) {
       if (!hit) for (const h of BOSS.hull) if (segHit(_pa, b.p, h, 3.8) >= 0) { hit = true; sparks(_v3.copy(b.p), 6, 6, 0xc8c4d8, 4, 0.2, 0.05); break; }
     }
     if (!hit) for (const br of BARS) { if (!br.on) continue; _ctr.set(br.x, 0.8, br.z); if (segHit(_pa, b.p, _ctr, 1.15) >= 0) { hit = true; hitBar(br, 1, _v3.copy(b.p)); break; } }
+    // 精準度：打中敵人、Boss 或路障才算命中；散彈一次齊射只要有一顆中就算一次
+    if (hit) { if (kind !== 'emp') S.hits++; else if (b.vol !== S.empHit) { S.empHit = b.vol; S.hits++; } }
     if (!hit) for (const c of CIVS) { _ctr.set(c.x, 0.8, c.z); if (segHit(_pa, b.p, _ctr, 1.3) >= 0) { hit = true; sparks(_v3.copy(b.p), 6, 5, hex, 3, 0.2, 0.05); break; } }
     // 散彈一次 8 發同時命中時只播一次命中聲
     if (hit) { hitT = 0.1; if (S.time - hitSndT > 0.04) { hitSndT = S.time; sfx('hit'); } b.on = false; continue; }
@@ -2251,6 +2478,7 @@ function launchVolley() {
 const _b0 = new V3(), _b1 = new V3(), _b2 = new V3();
 function launchMissile(e) {
   const m = MSL.find(m => !m.on && LK.clock - m.tr[m.th].t > TRAIL_LIFE) || MSL.find(m => !m.on); if (!m) return;
+  S.shots++;
   const ti = LK.tube = (LK.tube + 1) % 6; rider.tubes[ti].getWorldPosition(m.p0);
   playerVel(m.v0);
   const yaw = onBike() ? P.yaw : F.yaw, rt = rightOf(yaw, _b0), fw = fwdOf(yaw, _b1), sd = ti % 3 === 1 ? (R() - 0.5) * 4 : (ti % 3 === 0 ? -1 : 1) * (3 + R() * 5);
@@ -2281,7 +2509,7 @@ function updateMissiles(dt) {
     if ((m.smk -= dt) <= 0) { m.smk = 0.025; const cy = m.i % 2 === 0; spk.emit(m.pos.x, m.pos.y, m.pos.z, (R() - 0.5) * 2 - m.dir.x * 3, (R() - 0.5) * 2 - m.dir.y * 3, (R() - 0.5) * 2 - m.dir.z * 3, 0.35 + R() * 0.35, cy ? 1.4 : 5, cy ? 4.4 : 2.4, cy ? 5 : 0.7, 0.06 + R() * 0.05, 0.1, 2); }
     if (u >= 1) {
       m.on = false;
-      if (foeAlive(m.e)) { hitT = 0.1; hitFoe(m.e, m.e.p ? 12 : 15, 'msl', m.pos, m.dir); }
+      if (foeAlive(m.e)) { hitT = 0.1; S.hits++; hitFoe(m.e, m.e.p ? 12 : 15, 'msl', m.pos, m.dir); }
       boom(m.pos, 0.5, 0x3b3648, 0.4);
       continue;
     }
@@ -2388,9 +2616,16 @@ function updateBike(dt, I) {
   } else P.pos.y = gh;
   // 護欄碰撞（中央分隔島與兩側）
   const side = P.pos.x >= 0 ? 1 : -1, lo = 1.08, hi = 13.05, ax = Math.abs(P.pos.x);
-  P.rail = Math.max(0, (P.rail || 0) - dt);
+  P.rail = Math.max(0, (P.rail || 0) - dt); P.scrape = Math.max(0, (P.scrape || 0) - dt);
   if (ax < lo || ax > hi) {
     P.rail = 0.3;
+    // 貼著護欄磨：從接觸點往車道內側噴出長串摩擦火花
+    if (riding && Math.abs(sp) > 7) {
+      P.scrape = 0.08; const cx = side * (ax > hi ? 13.42 : 0.82), inw = ax > hi ? -side : side, f = fwdOf(P.yaw, _v4), n = Math.min(16, Math.ceil(dt * Math.abs(sp) * 9));
+      for (let i = 0; i < n; i++) stk.emit(cx, 0.28 + R() * 0.6, P.pos.z + (R() - 0.5) * 1.4, f.x * sp * 0.55 + inw * (1 + R() * 4.5), 1 + R() * 4, f.z * sp * 0.55 + (R() - 0.5) * 3, 0.3 + R() * 0.5, 1.4 + R() * 1.8);
+      if (R() < 0.5) spk.emit(cx, 0.5, P.pos.z, inw * (2 + R() * 3), 2 + R() * 3, f.z * sp * 0.5, 0.25, 7, 3, 0.8, 0.06, 1, 1);
+      scrapeLight.position.set(cx + inw * 0.4, 0.6, P.pos.z);
+    }
     const into = -Math.sin(P.yaw) * sp * side * (ax > hi ? 1 : -1);
     P.pos.x = side * clamp(ax, lo, hi);
     const road = sp >= 0 ? 0 : Math.PI;
@@ -2417,7 +2652,10 @@ function updateBike(dt, I) {
   const bk = P.boosting ? 1 : 0;
   for (const n of bike.nozzles) { n.flame.scale.z = damp(n.flame.scale.z, bk ? 1.6 + Math.random() * 0.8 : (riding && I.f ? 0.25 : 0.01), 14, dt); n.flame.scale.x = n.flame.scale.y = 1 + bk * 0.4; n.core.material = bk ? MAT.white : MAT.cyan; }
   compMat.uniforms.boost.value = damp(compMat.uniforms.boost.value, bk || (F.jet && S.ctl === 'foot' ? 0.4 : 0), 4, dt);
-  compMat.uniforms.aberr.value = damp(compMat.uniforms.aberr.value, bk * 0.012 + S.dmg * 0.02, 5, dt);
+  // 高速時畫面邊緣輕微色差，衝刺時更明顯
+  const spdK = riding ? clamp((Math.abs(sp) * 3.6 - 120) / 140, 0, 1) : 0;
+  compMat.uniforms.spd.value = damp(compMat.uniforms.spd.value, spdK, 3, dt);
+  compMat.uniforms.aberr.value = damp(compMat.uniforms.aberr.value, bk * 0.022 + spdK * 0.01 + S.dmg * 0.02, 5, dt);
 }
 // 光跡
 function updateRibbons(dt) {
@@ -3032,15 +3270,15 @@ function start() {
   log('系統', 'K-7 重機上線・ARC-9 電漿匣 40 發', 'var(--ink-2)');
   log('系統', TOUCH ? '「電漿」鍵切換武器，按住「飛彈」鎖定、放開齊射' : '1／2／3 或滾輪切換武器，按住右鍵或 Q 鎖定、放開齊射飛彈', 'var(--ink-2)');
 }
-function restart() {
+function resetRun() {
   for (const d of DRONES) { d.on = false; d.root.visible = false; }
   for (const c of CARS) { c.on = false; c.root.visible = false; }
   for (const b of [...pBolts.items, ...sBolts.items, ...eBolts.items]) b.on = false;
   for (const m of MSL) { m.on = false; m.tn = 0; } for (const B of BEAMS) B.g.visible = false;
   Object.assign(LK, { on: false, next: 0, cd: 0, lidT: 0 }); LK.list.length = LK.q.length = 0; chargeStop();
   spawnQ.length = 0;
-  Object.assign(S, { ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, dmg: 0, autoStop: false, score: 0, won: false, wi: 0, mags: [40, 6, 5], charge: 0, cool: 0, shWarned: false, shBroke: false });
-  setGun(0); hudWeapon();
+  Object.assign(S, { ctl: 'ride', hp: 100, boost: 100, ammo: 40, reload: 0, kills: 0, dKills: 0, cKills: 0, footKills: 0, dist: 0, wave: 0, waveT: 6, time: 0, dmg: 0, autoStop: false, score: 0, won: false, wi: 0, mags: [40, 6, 5], charge: 0, cool: 0, shWarned: false, shBroke: false, top: 0, shots: 0, hits: 0, empHit: -1, overT: 0 });
+  setGun(0); hudWeapon(); tallyId++;
   // 路況、子彈時間與 Boss 全部歸零
   for (const h of HAZ) { h.on = false; h.root.visible = false; } ROAD.next = P.pos.z - 60; ROAD.n = 0;
   Object.assign(P, { air: false, vy: 0, bt: false, sus: 0, ext: 0 }); P.pos.y = 0; S.slow = 1; S.btFx = 0; S.btOn = false; if (AU.lp) AU.lp.frequency.value = 20000;
@@ -3049,9 +3287,10 @@ function restart() {
   $('boss').classList.remove('on'); $('bwarn').classList.remove('on');
   EVAC.on = false; evacMesh.visible = false; $('over').classList.remove('win');
   for (const m of MISSIONS) { m.done = false; m.n = 0; $('m-' + m.id).classList.remove('done'); }
-  P.pos.x = 6.6; P.yaw = 0; P.v = 14; P.lean = 0; seatRider(); logEl.innerHTML = '';
-  setMode('play'); log('HQ', '重新部署完成，K-7 已回到南向車道。', 'var(--friend)');
+  P.pos.x = 6.6; P.yaw = 0; P.v = 14; P.lean = 0; P.scrape = 0; seatRider(); logEl.innerHTML = '';
 }
+function restart() { resetRun(); setMode('play'); compMat.uniforms.fade.value = 0.8; log('HQ', '重新部署完成，K-7 已回到南向車道。', 'var(--friend)'); }
+function toTitle() { resetRun(); setMode('title'); TC.shot = -1; TC.t = 99; drawBest(); menuSel(0); }
 $('go').addEventListener('click', start);
 $('sndB').addEventListener('click', e => { audioInit(); setVolume(AU.vol || 0.75, !AU.on); e.currentTarget.blur(); });
 $('sndV').addEventListener('input', e => { audioInit(); setVolume(e.target.value / 100, true); });
@@ -3059,6 +3298,15 @@ $('sndV').addEventListener('change', e => e.target.blur());
 setVolume(AU.vol, AU.on);
 $('resume').addEventListener('click', () => setMode('play'));
 $('again').addEventListener('click', restart);
+$('toMenu').addEventListener('click', toTitle);
+// 主選單：滑鼠移入或上下鍵選擇，Enter 執行
+const MENU = [...document.querySelectorAll('#menu button')]; let menuI = 0, helpOn = !matchMedia('(max-width:760px)').matches;
+function menuSel(i) { menuI = (i + MENU.length) % MENU.length; MENU.forEach((b, j) => b.classList.toggle('on', j === menuI)); }
+function drawHelp() { $('ctl').classList.toggle('hide', !helpOn); $('ctl').classList.toggle('show', helpOn); $('mHelpS').textContent = helpOn ? '顯示中' : '已收起'; }
+MENU.forEach((b, i) => b.addEventListener('pointerenter', () => menuSel(i)));
+$('mHelp').addEventListener('click', e => { helpOn = !helpOn; drawHelp(); sfx('swap'); e.currentTarget.blur(); });
+$('mSnd').addEventListener('click', e => { audioInit(); setVolume(AU.vol || 0.75, !AU.on); sfx('beep'); e.currentTarget.blur(); });
+drawHelp();
 $('pause').addEventListener('click', e => { if (e.target.id === 'pause') setMode('play'); });
 
 // ───────── 主迴圈 ─────────
@@ -3068,6 +3316,21 @@ updateWorld(0, true);
 resize();
 $('boot').remove();
 function tick(now) { requestAnimationFrame(tick); frame(now); }
+// 標題畫面三個機位輪播，切換時黑場一閃
+const TC = { shot: 0, t: 0 }, TC_N = [['CAM 01', '環繞機位・南向車道'], ['CAM 02', '前方追焦・雙頭燈'], ['CAM 03', '高空搖臂・環河高架']];
+const _tr = new V3();
+function titleCam(dt) {
+  TC.t += dt;
+  if (TC.t > 7) { TC.t = 0; TC.shot = (TC.shot + 1) % 3; compMat.uniforms.fade.value = 1; $('tCamN').textContent = TC_N[TC.shot][0]; $('tCamT').textContent = TC_N[TC.shot][1]; }
+  const p = P.pos, k = TC.t, off = camera.aspect < 0.8 ? 0.5 : 2.4;
+  if (TC.shot === 0) {
+    const t = S.time * 0.16, cy = P.yaw + 2.5 + Math.sin(t) * 0.7;
+    camera.position.copy(p).add(_v.set(-Math.sin(cy) * 7.5, 1.2 + Math.sin(t * 1.7) * 0.5, -Math.cos(cy) * 7.5)); _v2.copy(p).setY(1);
+  } else if (TC.shot === 1) { camera.position.set(p.x - 3.4 + Math.sin(k * 0.5) * 0.4, 0.75 + k * 0.04, p.z - 6.5 - k * 0.15); _v2.set(p.x, 0.9, p.z); }
+  else { camera.position.set(p.x - 11 + k * 0.6, 8.5 - k * 0.5, p.z + 15 - k * 1.1); _v2.set(p.x, 0.8, p.z - 10); }
+  // 先對準機車，再沿鏡頭右方向往左偏，讓機車落在選單右側
+  camera.lookAt(_v2); _tr.set(1, 0, 0).applyQuaternion(camera.quaternion); camera.lookAt(_v2.addScaledVector(_tr, -off));
+}
 function frame(now) {
   let dt = Math.min(0.05, (now - last) / 1000); last = now;
   fpsN++; fpsT += dt;
@@ -3108,11 +3371,9 @@ function frame(now) {
     aimPt.copy(P.pos).add(_v.set(0, 1, -30)); poseRide(dt);
   }
   if (S.mode !== 'pause') {
-    updateCivs(gdt); updateBolts(gdt); updateBeams(gdt); updateMissiles(gdt); updateSparks(gdt); updatePuffs(gdt); updateDebris(gdt); updateBooms(gdt); updateRibbons(gdt);
+    updateCivs(gdt); updateBolts(gdt); updateBeams(gdt); updateMissiles(gdt); updateSparks(gdt); updateStreaks(gdt); updatePuffs(gdt); updateDebris(gdt); updateBooms(gdt); updateRibbons(gdt);
     if (S.mode === 'title') {
-      const t = S.time * 0.16, cy = P.yaw + 2.5 + Math.sin(t) * 0.7;
-      camera.position.copy(P.pos).add(_v.set(-Math.sin(cy) * 7.5, 1.2 + Math.sin(t * 1.7) * 0.5, -Math.cos(cy) * 7.5));
-      camera.lookAt(_v2.copy(P.pos).add(_v3.set(camera.aspect < 0.8 ? -0.6 : -2.6, 1.0, -2)));
+      titleCam(dt);
       if (Math.abs(camera.fov - baseFov()) > 0.01) { camera.fov = baseFov(); camera.updateProjectionMatrix(); }
       sky.position.copy(camera.position); snow.uniforms.cam.value.copy(camera.position);
     } else updateCamera(dt);
@@ -3124,14 +3385,14 @@ function frame(now) {
     for (const l of lampLights) { const L = cand[li++]; if (L) { l.position.set(L.x, L.y, L.z + base); l.visible = true; } else l.visible = false; }
     moon.position.copy(playerPos()).add(_v.set(-30, 60, 20)); moon.target.position.copy(playerPos());
     S.dmg = Math.max(0, S.dmg - dt * 1.4); compMat.uniforms.dmg.value = S.dmg + (S.hp < 30 && S.mode === 'play' ? 0.25 + Math.sin(S.time * 5) * 0.1 : 0);
-    beaconTime.value = S.time; snow.uniforms.time.value = S.time;
+    beaconTime.value = S.time; snow.uniforms.time.value = S.time; updateRain();
     for (const t of rider.tanks) t.scale.y = Math.max(0.03, S.boost / 100);
     const jetOn = S.ctl === 'foot' && F.jet;
     for (const v of rider.vents) v.visible = P.boosting || jetOn;
     for (const j of rider.jets) { j.scale.y = damp(j.scale.y, jetOn ? 0.26 + R() * 0.16 : 0.01, 20, dt); j.scale.x = j.scale.z = jetOn ? 0.9 + R() * 0.3 : 1; }
     updateAudio(dt);
   }
-  compMat.uniforms.time.value = now / 1000;
+  compMat.uniforms.time.value = now / 1000; compMat.uniforms.fade.value = Math.max(0, compMat.uniforms.fade.value - dt * 3.2);
   if (S.mode === 'play') { hud(dt); radar(dt); updateMarks(); updateLockUI(); bossHud(); }
   renderFrame();
 }
@@ -3143,6 +3404,7 @@ window.__fr = {
   god(v = true) { S.god = v; }, speed(kmh) { P.v = kmh / 3.6; }, dismount() { P.v = 0; beginDismount(); S.ctlT = 1; updateMountAnim(0); },
   aim(x, y) { mouse.x = x; mouse.y = y; }, fire(v = true) { mouse.fire = v; }, key(code, v = true) { keys[code] = v; },
   weapon(i) { switchWeapon(i); }, lock(v = true) { mouse.lock = v; }, LK, MSL, BEAMS, FOES,
+  over: showOver, toTitle, TC, grade,
   BOSS, RAMPS, BARS, ZONES, NET, boss() { mission('drone', 10); mission('car', 5); }, bossObj: boss,
   ramp(dz = 60, x = P.pos.x) { placeRamp(x, P.pos.z - dz); }, bar(dz = 40, x = P.pos.x) { placeBar(x, P.pos.z - dz); },
   step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(last + dt * 1000); }
