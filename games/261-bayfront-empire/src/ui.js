@@ -79,7 +79,7 @@ export function createUI(root, ctx) {
   <div class="toasts" id="toasts"></div>
   <div class="photobar card" id="photobar">
     <label class="ptime">${icon('clock', 16)}<input type="range" min="0" max="23.9" step="0.1" id="phTime" aria-label="時間"><b id="phTimeV">12:00</b></label>
-    <div class="seg" id="phWx">${['sunny', 'partly', 'cloudy', 'rain', 'heat'].map((w) => `<button data-phw="${w}" title="${WEATHER[w].name}">${icon(w, 16)}</button>`).join('')}</div>
+    <div class="seg" id="phWx">${['sunny', 'partly', 'cloudy', 'rain', 'heat'].map((w) => `<button data-phw="${w}" title="${WEATHER[w].name}">${icon(w === 'sunny' ? 'sun' : w, 16)}</button>`).join('')}</div>
     <div class="phact">
       <button class="mini" data-ph="lapse">${icon('film', 14)} <span>24 小時縮時</span></button>
       <button class="mini" data-ph="rec">${icon('record', 14)} <span>錄影</span></button>
@@ -258,7 +258,7 @@ export function createUI(root, ctx) {
       <div class="floors">${rows}</div>
       <p class="muted">同棟別家每多一級，這家客流 +5%（現在 +${bonus}%）。交換樓層的裝修費 ${money(SWAP_COST)}，店內客人會先請出門。${me > 0 ? '樓上的客人要從一樓搭電梯上來。' : ''}</p>
       <div class="set"><span>${icon('lift', 18)} ${LIFT.name[lv - 1]}</span><small class="lt">${LIFT.cap[lv - 1]} 人 · 每層 ${LIFT.move[lv - 1]} 秒${s.today.liftLost ? ` · <em class="r">今日因排隊流失 ${s.today.liftLost} 人</em>` : ''}</small></div>
-      ${c === null ? '<p class="muted">電梯已是最高等級。</p>' : `<button class="big alt" data-lift="${key}" ${s.money >= c ? '' : 'disabled'}>${icon('up', 18)} 升級為${LIFT.name[lv]}（${LIFT.cap[lv]} 人、每層 ${LIFT.move[lv]} 秒）· ${money(c)}</button>`}`;
+      ${c === null ? '<p class="muted">電梯已是最高等級。</p>' : `<button class="big alt" data-lift="${key}" ${s.money >= c ? '' : 'disabled'}>${icon('up', 18)} 升級為${LIFT.name[lv]} · ${money(c)}<small>${LIFT.cap[lv]} 人、每層 ${LIFT.move[lv]} 秒，排隊的客人更少</small></button>`}`;
   }
   function rivalBox(id) {
     const s = st(), r = s.rival;
@@ -534,7 +534,7 @@ export function createUI(root, ctx) {
   function alertsHTML() {
     return `<h2 class="plain">通知</h2><div class="alist">${alerts.length ? alerts.map((a) => `<div>${icon(a.ic, 18)}<p>${esc(a.msg)}<small>${a.when}</small></p></div>`).join('') : '<p class="muted">目前沒有通知。</p>'}</div>`;
   }
-  let qTab = 'main';
+  let qTab = 'main', dayKey = '';
   function questsHTML() {
     const s = st();
     const done = Object.keys(s.ach).length;
@@ -840,7 +840,8 @@ export function createUI(root, ctx) {
       if (pk !== portKey) { portKey = pk; portLbl.innerHTML = portLabelHTML(); portLbl.classList.toggle('sale', !s.port.lv); }
       $('#portBadge').textContent = s.port.lv ? (s.port.offers.length || '') : (s.money >= PORT.cost ? '!' : '');
       const se = seasonOf(s);
-      $('#day').textContent = `第 ${s.day} 天 · ${se.name}`;
+      const dk = `${s.day}|${se.id}`;
+      if (dayKey !== dk) { dayKey = dk; $('#day').innerHTML = `第 ${s.day} 天<i class="se ${se.id}">${icon({ spring: 'flower', summer: 'sun', autumn: 'leaf', winter: 'snow' }[se.id], 13)}<b>${se.name}</b></i>`; }
       $('#day').title = `${se.name}季第 ${seasonDay(s)} 天：海灘 ${Math.round(se.beach * 100)}%、城市 ${Math.round(se.city * 100)}%`;
       if (root.classList.contains('photo')) {
         const ph = $('#phTime');

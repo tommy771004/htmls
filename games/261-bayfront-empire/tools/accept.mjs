@@ -37,7 +37,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     for (const [id, n] of Object.entries(st.v)) ok(n > 0, `海灘商家 ${id} 有消費（${n}）`);
     ok(st.s.boatsOut + st.s.jetsOut > 0, `海上有出租船或水上摩托車（船 ${st.s.boatsOut}、摩托車 ${st.s.jetsOut}）`);
     ok(st.s.agents > 40, `街上與海灘有行人（${st.s.agents}）`);
-    const seated = await page.evaluate(() => __bf.people.agents.filter((a) => a.on && a.pose === 'sit').length);
+    const seated = await page.evaluate(() => { let n = 0; for (let i = 0; i < 8 && !n; i++) { n = __bf.people.agents.filter((a) => a.on && a.pose === 'sit').length; if (!n) __bf.fast(5, 1); } return n; });
     ok(seated > 0, `剖面店內有入座的客人（${seated}）`);
     // 面板與標籤
     // 物流與海港：從面板開港、補給船到港卸貨、投標合約
@@ -113,13 +113,14 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.evaluate(() => __bf.ui.close());
     const rv = await page.evaluate(() => {
       const S = __bf.state;
-      S.rival = { id: 'cafe', name: '測試咖啡', lot: '1,0,W', since: S.day };
+      S.rival = { id: 'cafe', name: '測試咖啡', lot: '1,0,W', power: 0.2, since: S.day };
       __bf.act('focus', 'rival');
       return true;
     });
-    await raf(page); await raf(page);
-    ok(await page.evaluate(() => [...document.querySelectorAll('.lbl.rv')].some((e) => e.style.visibility !== 'hidden')), '對手標籤出現在地圖上');
-    await page.evaluate(() => { __bf.ui.openRival(); });
+    await page.waitForTimeout(900);
+    const rl = await page.evaluate(() => [...document.querySelectorAll('.lbl.rv')].map((e) => [e.style.visibility, e.style.transform, e.textContent]));
+    ok(rl.some((e) => e[0] !== 'hidden'), `對手標籤出現在地圖上 ${rl.some((e) => e[0] !== 'hidden') ? '' : JSON.stringify(rl)}`);
+    await page.evaluate(() => { __bf.give(1e8); __bf.ui.openRival(); });
     ok(await page.evaluate(() => !!document.querySelector('[data-buyout]')), '對手面板有收購按鈕');
     await page.click('[data-buyout]');
     ok(await page.evaluate(() => !__bf.state.rival), '收購對手');

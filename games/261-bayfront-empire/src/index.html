@@ -310,6 +310,9 @@ small { font-size: 11px; }
   .questbar { display: none; }
 }
 /* 城市生活改版 */
+.chip .se { font-style: normal; display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding-left: 6px; border-left: 1px solid #d8c9a3; }
+.se.spring { color: #b4587a; } .se.summer { color: #c98a14; } .se.autumn { color: #b4513c; } .se.winter { color: #4f7c95; }
+.photobar .seg { justify-content: space-between; } .photobar .seg button { flex: 1; }
 .chip.follow { color: var(--ink); cursor: pointer; max-width: min(64vw, 380px); }
 .chip.follow > span { overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 .chip.follow > span b { font-weight: 800; color: var(--c, var(--green)); }
@@ -353,6 +356,8 @@ b.r { color: var(--red); }
 #ui.photo .photobar { display: grid; }
 #ui.photo > :not(.photobar):not(.modal) { display: none !important; }
 @media (max-width: 560px) {
+  .chip .se b { display: none; }
+  .chip .se { margin-left: 4px; padding-left: 4px; }
   .photobar { grid-template-columns: 1fr; }
   .phact .mini span { font-size: 11.5px; }
 }

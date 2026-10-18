@@ -35,7 +35,7 @@ function parasol(S, x, y, z, c) {
 }
 
 function aptGeo(S, B, key, lv) {
-  const { x0, x1, z0, z1, top } = aptBox(key);
+  const { x0, x1, z1, top } = aptBox(key);
   const y = top + 0.08;
   // 屋頂露台：木地板、陽傘、花槽、燈串
   const dx0 = x0 + 1.2, dx1 = x1 - 1.2, dz0 = z1 - 6.2, dz1 = z1 - 0.9;
@@ -227,10 +227,15 @@ export function createEstate(scene) {
   cabins.castShadow = true;
   wheel.add(cabins);
   // 燈塔光束：兩道反向的半透明長錐，夜裡才看得到
-  const beamMat = new THREE.MeshBasicMaterial({ color: '#fff1c4', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  // 加法混合：頂點色由燈頭的亮黃漸暗到末端的黑，光束自然淡出，不會看到錐底的硬邊
+  const beamMat = new THREE.MeshBasicMaterial({ color: '#fff1c4', vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
   const beam = new THREE.Group();
   for (const s of [1, -1]) {
-    const g = new THREE.ConeGeometry(4, 60, 16, 1, true).translate(0, -30, 0).rotateZ(s * Math.PI / 2);
+    const g = new THREE.ConeGeometry(3.6, 56, 18, 8, true).translate(0, -28, 0);
+    const pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) { const t = -pos.getY(i) / 56; const f = t < 0.04 ? t / 0.04 : Math.pow(1 - t, 1.8); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = f; }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.rotateZ(s * (Math.PI / 2 - 0.06));
     beam.add(new THREE.Mesh(g, beamMat));
   }
   beam.visible = false;
@@ -265,7 +270,7 @@ export function createEstate(scene) {
       if (beam.visible) {
         beamA += dt * 0.9;
         beam.rotation.y = beamA;
-        beamMat.opacity = 0.22 * night;
+        beamMat.opacity = 0.5 * night;
       }
     },
   };

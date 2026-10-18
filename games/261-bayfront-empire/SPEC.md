@@ -18,11 +18,24 @@
 - **畫面**：防波堤西側 x −300…−140 的碼頭平台；岸橋小車與吊具在對應泊位有船卸貨時循環吊櫃；堆場貨櫃數 ＝ 庫存櫃數＋卸下中的合約櫃；貨櫃船位置由狀態與時間插值（每幀只讀經濟狀態，不存畫面專用資料）。
 - **任務**：第 5 章「物流與海港」四個任務（開港、完成合約、單日省下 $40K、海港 Lv3）。
 
+## 城市生活改版
+
+- **純資料層** `src/empire.js`：`econ.js` 在 `arrivalPerMin` 乘上 `lifeMult(s, id)`（定價 × 促銷 × 疊樓加成 × 公寓人口 × 地標 × 對手 × 季節），`beachCrowd` 乘上季節與摩天輪；`onHour` 呼叫 `lifeHour`（摩天輪票房、促銷到期），`onDay` 呼叫 `lifeDay`（房租、對手成長或進駐、換季、新的每日任務），`tick` 結尾呼叫 `checkLife`（每日任務與成就發獎）。
+- **定價**：`TIERS[-1|0|1]` 的 `price`／`arrive`／`rating` 倍率；`priceOf()` 是實際客單價，`serve` 的評分增量乘上 `rating`。
+- **疊樓**：`stackMult` ＝ 1 ＋ 0.05 × 同棟其他店的等級總和；`LIFT` 三級（容量、每層秒數、升級費），`liftLv(s, key)` 存在 `s.lifts[key]`。`floorOrder(s, key)` 讀 `s.order[key]`（缺省用 `DEFAULT_FLOOR`），畫面層用 `layout.js` 的 `setFloor()` 改寫 `CITY_LOTS` 第四欄後重建該棟的 decor 與點選範圍。
+- **電梯**（`people.js`）：每棟一個 `ELEV`，`liftRequests` 收集各樓的等候與車廂內的目的樓層，`stepLift` 用 SCAN：有同方向的請求就繼續，否則折返，到站停 2 秒；一樓排隊 ≥ 容量 × 2 時新客人放棄並記 `today.liftLost`。
+- **公寓**：`APTS` 由 `APT_LOTS` 產生（key 是 `"c,r,side"`），價格 $360K 起每棟 +$50K，翻修 1.5 倍；房租每日為價格的 4.5%／5%；`popMult` ＝ 1 ＋ 0.025 × 公寓等級總和（只作用在城市商家）。
+- **地標**：`LANDMARKS` 一次買斷，`s.marks[id]` 存落成日；摩天輪每小時票房 `FERRIS_TICKET` × 夜間 1.3 × 雨天 0.2 × 季節海灘倍率，記在 `today.rev.ferris`。
+- **對手**：`s.rival = { id, name, lot, power, since }`；任務 ≥ 4 後每天 50% 機會進駐（冷卻 `rivalNext` 內不會），目標是營收前三名之一、店面是最近的未購公寓。`rivalMult` ＝ 1 − power（平價 ×0.5、Lv3 ×0.8）；收購價 ＝ 目標店開店價 × 3 ×（1 ＋ power）。
+- **季節**：`SEASON_DAYS` 7，`seasonOf(s)` 依 `(day − 1) / 7` 輪替；冬天的熱浪改成陰天、夏天的雨有一半改成晴時多雲。週五（`day % 7 === 5`）固定是派對夜 `party`；`shortage` 讓市價進貨 ×1.5（港口庫存不受影響）。
+- **每日任務／成就**：`s.daily = { day, tasks: [{ k, id?, base, goal, reward, done }] }`，獎金 ＝ max($8K, 近 7 天平均營收 × 3%)；`s.ach[id]` 是達成日。
+- **離線收入**：`serialize` 寫入 `savedAt`（毫秒），`offlineEarnings` ＝ 最近平均淨利 × min(1, 實際分鐘 / 7.2) × 50%。
+
 ## 畫面風格（依影片對照）
 
 - 暖色低彩度的插畫調：石板藍綠路面、奶油色人行道、鼠尾草綠草地，建築外牆用磚紅、芥末黃、霧藍、灰藍幾組，簷口與窗框一律奶油色。
 - 城市是 2–4 層步登公寓，沿街一排、後面是後院（木圍籬、菜圃、樹、野餐桌）；已開設的城市商家改成剖面室內（`interior.js`），可直接看到地板、家具、店員與入座的客人。座位數至少等於各等級容量，客滿時多出來的客人才隱藏。
-- 疊樓建築（照參考影片的 Fashion／Nail／Café、Gym／Club）：`CITY_LOTS` 第四欄是樓層，同一塊地的店家疊在同一棟，(3,1,W) 是 F1 海風服飾／F2 貝殼美甲／F3 潮汐書店，(0,0,E) 是 F1 浪尖健身房／F2 燈塔酒吧。每層樓板相隔 `FLOOR_GAP` 9.6 公尺（展開式剖面，黃色與鐵紅色細柱支撐，由 F1 那家店的 decor 畫），右前角是黃框玻璃電梯井，每棟一部電梯依固定站序來回，畫面上有 `F2 ▲ 2/4` 式的樓層指示，店名標籤前加「F2 · 」。未開設的樓層畫成待租的空樓板。樓上店家的客人從一樓大門進來、在電梯口等車廂停靠才進出，路上與等電梯的時間從入座時間扣掉，所以容量佔用與一樓店家相同。點選範圍與標籤依樓層分開；疊樓東側的鄰棟公寓壓低成兩層，不擋住展開的樓層。
+- 疊樓建築（照參考影片的 Fashion／Nail／Café、Gym／Club）：`CITY_LOTS` 第四欄是樓層，同一塊地的店家疊在同一棟，(3,1,W) 是 F1 海風服飾／F2 貝殼美甲／F3 潮汐書店，(0,0,E) 是 F1 浪尖健身房／F2 燈塔酒吧。每層樓板相隔 `FLOOR_GAP` 9.6 公尺（展開式剖面，黃色與鐵紅色細柱支撐，由 F1 那家店的 decor 畫），右前角是黃框玻璃電梯井，每棟一部叫車電梯，畫面上有 `F2 ▲ 2/4` 式的樓層指示（分母是電梯容量），店名標籤前加「F2 · 」。未開設的樓層畫成待租的空樓板。樓上店家的客人從一樓大門進來、在電梯口等車廂停靠才進出，路上與等電梯的時間從入座時間扣掉，所以容量佔用與一樓店家相同。點選範圍與標籤依樓層分開；疊樓東側的鄰棟公寓壓低成兩層，不擋住展開的樓層。
 - 夜景是偏藍的月光：月光強度足以投影，天空、地面反射光與夜間海面都往深藍調，亮窗、店內立燈與燈串維持暖色。
 - 海面以淡青綠漸層加上沿海岸方向的短浪紋與飄過的雲影；海港岸橋為紅色桁架加深綠機房，另有紅白條紋管制塔與綠色大門門架。
 
@@ -40,9 +53,10 @@
 
 - **v1（海灘改版前）**：`{ v: 1, cash, day, time, shops: { 店id: 等級 }, earnedTotal, quest, rating, seed }`
 - **v2（物流改版前）**：`{ v: 2, seed, rng, day, minute, money, rating, biz: { id: { lv, earned, visits } }, quest, history[], today: { rev, visits, turned, cost, buy }, weather: { cur, until }, event, stats, opts }`
-- **v3（現行）**：v2 加上 `port: { lv, stock, reorder, ships[], offers[], truckUsed, nextShip, nextOffer, offerAt, stats }`，`today` 加上 `supply`、`saved`、`freight`、`storage`、`spoil`、`viaPort`，`today.rev.port` 是合約收入，`history[]` 加上 `supply`、`port`、`saved`。
+- **v3（城市生活改版前）**：v2 加上 `port: { lv, stock, reorder, ships[], offers[], truckUsed, nextShip, nextOffer, offerAt, stats }`，`today` 加上 `supply`、`saved`、`freight`、`storage`、`spoil`、`viaPort`，`today.rev.port` 是合約收入，`history[]` 加上 `supply`、`port`、`saved`。
+- **v4（現行）**：v3 加上 `biz[id].tier`（−1／0／1）與 `biz[id].promo`（促銷結束的絕對分鐘）、`lifts: { 棟key: 等級 }`、`order: { 棟key: [由下到上的店id] }`、`apts: { 公寓key: 等級 }`、`marks: { 地標id: 落成日 }`、`rival`、`rivalNext`（`rivalLog` 只在當次執行中給畫面發通知，讀檔不保留）、`ach`、`daily`、`savedAt`；`today` 加上 `promos`、`liftLost`、`rev.rent`、`rev.ferris`；`stats` 加上 `promos`、`daily`、`rivals`。
 
-`migrate()` 規則：v1 只接受城市商家 id（海灘商家一律從 0 開始）、任務進度最多接到海灘改版第一個任務（index 4）、標記 `notice: 'beach-update'` 讓畫面顯示改版公告；v2 補上空的海港（未開設）並標記 `notice: 'port-update'`，任務進度最多接到物流改版第一個任務（index 11）；v3 的 `port` 由 `sanitizePort()` 逐欄位修正（船最多 12 艘、報價最多 4 份）；各版本都逐欄位驗證，未知商家與壞值退回預設；JSON 壞掉時開新局，不丟例外。
+`migrate()` 規則：v1 只接受城市商家 id（海灘商家一律從 0 開始）、任務進度最多接到海灘改版第一個任務（index 4）、標記 `notice: 'beach-update'` 讓畫面顯示改版公告；v2 補上空的海港（未開設）並標記 `notice: 'port-update'`，任務進度最多接到物流改版第一個任務（index 11）；v3 標記 `notice: 'life-update'`（公告按鈕開啟商店的地產分頁）；v3 以後的 `port` 由 `sanitizePort()` 逐欄位修正（船最多 12 艘、報價最多 4 份），v4 欄位由 `sanitizeLife()` 修正（未知公寓、地標與棟 key 丟掉，`order` 必須是該棟店家的排列，對手的目標店與店面不合法就移除）；各版本都逐欄位驗證，未知商家與壞值退回預設；JSON 壞掉時開新局，不丟例外。
 
 ## 效能策略
 
@@ -51,4 +65,5 @@
 - 陰影圖手機 1024、桌機 2048，陰影框跟著鏡頭；手機每 2 幀更新一次陰影。
 - 自動畫質：連續 3 秒低於 47fps 依序改成每 3 幀更新陰影 → 解析度降 0.5 → 關閉陰影。設定裡可手動選高／省電。
 - 海港增加 3 個靜態網格（隨等級重建一次）、岸橋小車／吊具／鋼索／吊櫃、堆場貨櫃、船身、甲板貨櫃、物流車 8 個 InstancedMesh。
-- 驗收量測（含 Lv3 海港與卸貨中的船，鏡頭拉遠同時看城市、海灘與海港）：1440×900 平均 16.7ms（60fps，77 draw calls）；390×844 在 CPU 4× 降速下 16.7ms（60fps，36–58 draw calls，依鏡頭位置）。
+- 城市生活改版加上：紅綠燈 2 個 InstancedMesh、雨傘 1 個、摩天輪車廂 1 個 InstancedMesh，公寓屋頂、對手店面與地標各自合併成靜態網格（購買時重建一次）；燈塔光束是 2 個加法混合的錐體，以頂點色漸暗。
+- 驗收量測（含 Lv3 海港與卸貨中的船，鏡頭拉遠同時看城市、海灘與海港）：1440×900 平均 8.3ms（120fps 螢幕上限，85 draw calls）；390×844 在 CPU 4× 降速下 8.3ms（39–63 draw calls，依鏡頭位置）。
