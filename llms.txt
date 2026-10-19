@@ -332,6 +332,7 @@
 - [245 SƠN MÀI · 越南滴漏咖啡官網](https://htmls-ruddy.vercel.app/web/245-phin-lacquer.html)：越南咖啡官網模板：漆畫屏風視覺、六步驟 Phin 滴漏計時器、蛋咖啡課程預約。
 - [246 泰泰奶茶 CHA YEN · 泰式奶茶官網](https://htmls-ruddy.vercel.app/web/246-chayen-poster.html)：泰式奶茶官網模板：手繪電影海報視覺、甜度分級章、拖曳倒煉乳的大理石紋實驗、場次式團購訂購。
 - [247 MAKAUY · 馬告琴酒蒸餾所官網](https://htmls-ruddy.vercel.app/web/247-gin-patent.html)：琴酒蒸餾所官網模板：專利線稿視覺、台灣香料籃配方與蒸餾動畫、風味雷達、週末導覽預約。
+- [264 Strawberry Corner · 草莓街角咖啡官網](https://htmls-ruddy.vercel.app/web/264-strawberry-corner.html)：小咖啡店官網模板：手繪水彩繪本風的轉角小樓與頂樓大草莓，滑鼠經過時窗戶亮燈、花瓣飄落，店貓會說話；季節特餐、熱銷四品、周邊小物、草莓點數與收藏、購物袋自取與活動報名，不載入外部資源。
 
 ### 服飾
 - [248 靛藍鉚釘 INDIGO RIVET · 原色丹寧工坊官網](https://htmls-ruddy.vercel.app/web/248-denim-rivet.html)：丹寧工坊官網模板：後口袋商品卡、牛仔褲褪色模擬器、改褲長與修補預約、腰圍尺寸換算。
