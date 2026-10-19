@@ -1,4 +1,4 @@
-// Automated end-to-end acceptance test suite for 260-neon-nightcity
+// 作品 260 驗收：兩種尺寸開頁，走完「門禁 · 今夜」任務、開車、進出場館，檢查錯誤、外部請求與手機溢出
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync } from 'node:fs';
@@ -6,218 +6,140 @@ import { open, raf } from './lib.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const htmlPath = resolve(root, '../../web/260-neon-nightcity.html');
-const shotDir = resolve(
-  '/Users/xieyuanyou/.gemini/antigravity-cli/brain/a7db79b1-92e4-4461-a94e-47acf8a1fac7/scratch'
-);
-mkdirSync(shotDir, { recursive: true });
+const shotDir = process.env.SHOT_DIR ? resolve(process.env.SHOT_DIR) : null;
+if (shotDir) mkdirSync(shotDir, { recursive: true });
 
-function assert(cond, msg) {
-  if (!cond) {
-    throw new Error(`ASSERTION FAILED: ${msg}`);
-  }
-  console.log(`  ✓ ${msg}`);
+let failed = 0;
+function check(cond, msg) {
+  console.log(`  ${cond ? '✓' : '✗'} ${msg}`);
+  if (!cond) failed++;
 }
+const ev = (page, fn, arg) => page.evaluate(fn, arg);
+const shot = async (page, name) => { if (shotDir) { await raf(page); await page.screenshot({ path: resolve(shotDir, name + '.png') }); } };
+async function hold(page, key, ms) { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); }
 
-async function runAcceptance() {
-  console.log('=== 1. Launching Desktop Viewport (1440x900) ===');
+async function desktop() {
+  console.log('=== 1440×900 ===');
   const { browser, page, log } = await open(htmlPath, { w: 1440, h: 900 });
-
   try {
-    await raf(page);
-    await page.waitForTimeout(250);
+    const a = await ev(page, () => window.__nc.assets);
+    check(a.loaded.length === 2 && a.missing.length === 0, `內嵌 GLB：${a.loaded.join('、')}（缺 ${a.missing.length}）`);
+    await ev(page, () => window.__nc.start());
+    await page.waitForTimeout(1200);
+    await shot(page, 'd-start');
 
-    // 1. Verify embedded GLB assets & zero placeholders
-    const assetReport = await page.evaluate(() => window.__nc.assets.report);
-    console.log('  Asset report:', JSON.stringify(assetReport));
-    assert(
-      assetReport.loaded.length === 4,
-      `All 4 Blender GLB packs loaded (${assetReport.loaded.join(', ')})`
-    );
-    assert(assetReport.missing.length === 0, 'Zero missing GLB packs');
-    assert(assetReport.placeholders.length === 0, 'Zero missing model placeholders');
+    // 走路
+    const p0 = await ev(page, () => ({ x: window.__nc.player.x, z: window.__nc.player.z }));
+    await hold(page, 'KeyW', 900);
+    const p1 = await ev(page, () => ({ x: window.__nc.player.x, z: window.__nc.player.z }));
+    check(Math.hypot(p1.x - p0.x, p1.z - p0.z) > 1, `按 W 走動 ${Math.hypot(p1.x - p0.x, p1.z - p0.z).toFixed(1)} m`);
 
-    // 2. Verify driving physics & street scene
-    console.log('=== 2. Testing Third-Person Driving & Nitro Boost ===');
-    const startStats = await page.evaluate(() => {
-      const nc = window.__nc;
-      nc.soundscape.init();
-      return nc.getStats();
-    });
-    assert(startStats.mode === 'driving', `Initial mode is driving (at ${JSON.stringify(startStats.pos)})`);
+    // 任務：Marlo → Juno → Marlo → 進門 → 跳舞
+    const s = await ev(page, () => window.__nc.spots);
+    await ev(page, (b) => window.__nc.tp(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
+    await page.waitForTimeout(300);
+    const club0 = await ev(page, (d) => { const nc = window.__nc; nc.player.x = d.x; nc.player.z = d.z; return nc.ctx(); }, s.clubDoor);
+    check(/Marlo|門鎖/.test(club0 || ''), `放行前在門口：${club0}`);
+    await ev(page, (b) => window.__nc.tp(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
+    await page.waitForTimeout(200);
+    check(/Marlo/.test((await ev(page, () => window.__nc.ctx())) || ''), 'Marlo 旁出現對話提示');
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(200);
+    check(await ev(page, () => window.__nc.dialog.open), '按 E 開啟對話');
+    await shot(page, 'd-dialog');
+    await page.keyboard.press('Digit2');
+    await page.keyboard.press('Digit1');
+    check((await ev(page, () => window.__nc.quest.n)) === 1, '選項推進到任務 1（找 Juno）');
 
-    // Simulate driving forward with boost for 65 frames
-    const afterDriveStats = await page.evaluate(() => {
-      const nc = window.__nc;
-      nc.gameplay.keys.forward = true;
-      nc.gameplay.keys.sprint = true;
-      for (let i = 0; i < 65; i++) {
-        nc.step(1 / 60);
-      }
-      const st = nc.getStats();
-      nc.gameplay.keys.forward = false;
-      nc.gameplay.keys.sprint = false;
-      return st;
-    });
-    console.log('  After driving:', JSON.stringify(afterDriveStats));
-    assert(afterDriveStats.speedKmh > 40, `Car accelerated to ${afterDriveStats.speedKmh} km/h`);
-    assert(
-      Math.hypot(afterDriveStats.pos.x - startStats.pos.x, afterDriveStats.pos.z - startStats.pos.z) > 8,
-      'Car moved forward along Neon Central Avenue'
-    );
-    await raf(page);
-    await page.screenshot({ path: resolve(shotDir, '01-driving-street.png') });
+    await ev(page, (d) => window.__nc.tp(d.x, d.z + 1, Math.PI), s.barDoor);
+    await page.waitForTimeout(200);
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(1600);
+    check((await ev(page, () => window.__nc.player.where)) === 'bar', '進入 AFTERGLOW');
+    await ev(page, (j) => { const p = window.__nc.player; p.x = j.x; p.z = j.z; }, s.juno);
+    await page.waitForTimeout(200);
+    await shot(page, 'd-bar');
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Digit1');
+    await page.keyboard.press('Digit1');
+    check((await ev(page, () => window.__nc.quest.n)) === 2, 'Juno 給火柴盒，任務 2');
+    await ev(page, () => window.__nc.exit());
+    await page.waitForTimeout(300);
+    check((await ev(page, () => window.__nc.player.where)) === 'out', '回到街上');
 
-    // 3. Test Exiting Car (F) & Walking into PULSE Nightclub
-    console.log('=== 3. Testing Vehicle Exit (F) & Walking into PULSE // 脈衝夜店 ===');
-    const clubStats = await page.evaluate(() => {
-      const nc = window.__nc;
-      // Exit vehicle first to test toggleVehicleMode
-      nc.gameplay.toggleVehicleMode();
-      const exitedMode = nc.gameplay.mode;
-      // Now teleport to just outside PULSE Nightclub door (0, -17.2) facing North (+Z -> yaw = 0) and walk inside
-      nc.gameplay.teleportTo(0, -17.2, 0, 'walking');
-      nc.gameplay.keys.forward = true;
-      for (let i = 0; i < 95; i++) {
-        nc.step(1 / 60);
-      }
-      nc.gameplay.keys.forward = false;
-      // Trigger dance inside the club
-      nc.gameplay.triggerContextAction();
-      for (let i = 0; i < 30; i++) {
-        nc.step(1 / 60);
-      }
-      return { exitedMode, stats: nc.getStats(), npcCount: nc.city.npcMixers.length };
-    });
-    console.log('  Club stats:', JSON.stringify(clubStats));
-    assert(clubStats.exitedMode === 'walking', 'F key exits car into third-person walking mode');
-    assert(
-      clubStats.stats.venue === 'PULSE // 脈衝夜店',
-      `Walked seamlessly through doorway into ${clubStats.stats.venue}`
-    );
-    assert(clubStats.stats.dancing === true, 'Player character dancing on LED dancefloor');
-    assert(clubStats.npcCount >= 18, `Active skeletal NPC mixers (${clubStats.npcCount})`);
-    await raf(page);
-    await page.screenshot({ path: resolve(shotDir, '02-pulse-nightclub.png') });
+    await ev(page, (b) => window.__nc.tp(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
+    await page.waitForTimeout(200);
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Digit1');
+    check((await ev(page, () => window.__nc.quest.n)) === 3, '出示火柴盒，絨布繩撤開（任務 3）');
+    await ev(page, (d) => window.__nc.tp(d.x, d.z + .4, Math.PI), s.clubDoor);
+    await page.waitForTimeout(200);
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(1600);
+    check((await ev(page, () => [window.__nc.player.where, window.__nc.quest.n].join())) === 'club,4', '走進 LAZARUS（任務 4）');
+    await ev(page, (f) => { const p = window.__nc.player; p.x = f.x; p.z = f.z; }, s.floor);
+    await page.waitForTimeout(200);
+    await page.keyboard.press('KeyG');
+    await page.waitForTimeout(5800);
+    check((await ev(page, () => window.__nc.quest.n)) === 5, '舞池跳滿 5 秒，任務完成');
+    await shot(page, 'd-club');
+    const fpsClub = (await ev(page, () => window.__nc.getStats())).fps;
 
-    // 4. Test AFTERGLOW // 餘燼酒吧 interior & ordering drink
-    console.log('=== 4. Testing AFTERGLOW // 餘燼酒吧 & Drink Interaction ===');
-    const barStats = await page.evaluate(() => {
-      const nc = window.__nc;
-      nc.hud.handleTeleport('bar_inside');
-      nc.gameplay.keys.forward = true;
-      for (let i = 0; i < 65; i++) {
-        nc.step(1 / 60);
-      }
-      nc.gameplay.keys.forward = false;
-      nc.gameplay.triggerContextAction();
-      for (let i = 0; i < 20; i++) {
-        nc.step(1 / 60);
-      }
-      return nc.getStats();
-    });
-    console.log('  Bar stats:', JSON.stringify(barStats));
-    assert(barStats.venue === 'AFTERGLOW // 餘燼酒吧', `Inside ${barStats.venue}`);
-    assert(barStats.drinksOrdered === 1, 'Ordered cyberpunk cocktail from bartender');
-    await raf(page);
-    await page.screenshot({ path: resolve(shotDir, '03-afterglow-bar.png') });
+    // 開車
+    await ev(page, () => window.__nc.drive());
+    await page.waitForTimeout(300);
+    const v0 = await ev(page, () => ({ x: window.__nc.player.veh.x, z: window.__nc.player.veh.z }));
+    await hold(page, 'KeyW', 1500);
+    const v1 = await ev(page, () => { const v = window.__nc.player.veh; return { x: v.x, z: v.z, s: Math.hypot(v.vx, v.vz) * 3.6 }; });
+    check(Math.hypot(v1.x - v0.x, v1.z - v0.z) > 5, `油門 1.5 秒：移動 ${Math.hypot(v1.x - v0.x, v1.z - v0.z).toFixed(1)} m、${v1.s.toFixed(0)} km/h`);
+    await shot(page, 'd-drive');
+    await ev(page, () => window.__nc.drive('hanzo'));
+    await page.waitForTimeout(300);
+    check((await ev(page, () => window.__nc.player.veh.name)) === 'Hanzo', '換騎 Hanzo 機車');
 
-    // 5. Test CHROME WORKS // 電馭改裝廠 & Car Livery Customization
-    console.log('=== 5. Testing CHROME WORKS // 電馭改裝廠 & Livery Customization ===');
-    const garageStats = await page.evaluate(() => {
-      const nc = window.__nc;
-      nc.hud.handleTeleport('garage_inside');
-      nc.gameplay.triggerContextAction();
-      for (let i = 0; i < 25; i++) {
-        nc.step(1 / 60);
-      }
-      return nc.getStats();
-    });
-    console.log('  Garage stats:', JSON.stringify(garageStats));
-    assert(garageStats.venue === 'CHROME WORKS // 電馭改裝廠', `Inside ${garageStats.venue}`);
-    assert(garageStats.liveryIndex === 1, 'Customized vehicle neon underglow livery');
-    await raf(page);
-    await page.screenshot({ path: resolve(shotDir, '04-chrome-garage.png') });
+    // 地圖
+    await page.keyboard.press('KeyM');
+    await page.waitForTimeout(200);
+    check(await ev(page, () => document.getElementById('map').classList.contains('on')), 'M 開啟大地圖');
+    await page.keyboard.press('Escape');
 
-    // 6. Test City Map Modal & HUD Elements
-    console.log('=== 6. Testing HUD Clock, Minimap & City Map Modal ===');
-    const hudCheck = await page.evaluate(() => {
-      const nc = window.__nc;
-      nc.hud.toggleMapModal(true);
-      const clockText = document.getElementById('hud-clock')?.textContent || '';
-      const distText = document.getElementById('hud-district-name')?.textContent || '';
-      const modalVisible = !document.getElementById('map-modal')?.hasAttribute('hidden');
-      return { clockText, distText, modalVisible };
-    });
-    assert(/^\d{2}:\d{2}$/.test(hudCheck.clockText), `HUD Clock formatted (${hudCheck.clockText})`);
-    assert(hudCheck.distText.length > 0, `HUD District/Venue displayed (${hudCheck.distText})`);
-    assert(hudCheck.modalVisible === true, 'Full-city map modal opens cleanly');
-    await raf(page);
-    await page.screenshot({ path: resolve(shotDir, '05-city-map-modal.png') });
-
-    // Close modal & measure render call budget and frame timing
-    const perfStats = await page.evaluate(async () => {
-      const nc = window.__nc;
-      nc.hud.toggleMapModal(false);
-      nc.hud.handleTeleport('pulse_street');
-      const t0 = performance.now();
-      const frames = 60;
-      for (let i = 0; i < frames; i++) {
-        nc.step(1 / 60);
-      }
-      const elapsedMs = performance.now() - t0;
-      return {
-        avgStepMs: Number((elapsedMs / frames).toFixed(2)),
-        drawCalls: nc.renderer.info.render.calls,
-        triangles: nc.renderer.info.render.triangles,
-        overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      };
-    });
-    console.log('  Performance stats:', JSON.stringify(perfStats));
-    assert(perfStats.drawCalls < 320, `Draw calls within 60fps budget (${perfStats.drawCalls})`);
-    assert(!perfStats.overflowX, 'Zero horizontal overflow on 1440x900 desktop');
-    assert(log.errors.length === 0, `Zero console errors (${log.errors.length})`);
-    assert(log.pageerrors.length === 0, `Zero page errors (${log.pageerrors.length})`);
-    assert(log.external.length === 0, `Zero external network requests (${log.external.length})`);
+    const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
+    console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);
+    check(!log.pageerrors.length && !log.errors.length, `無錯誤 ${[...log.pageerrors, ...log.errors].slice(0, 3).join(' | ')}`);
+    check(!log.external.length, `無外部請求 ${log.external.slice(0, 3).join(' ')}`);
   } finally {
     await browser.close();
   }
-
-  // 7. Test Mobile Portrait (390x844) & Landscape (667x375)
-  console.log('=== 7. Testing Mobile Viewports (390x844 & 667x375) ===');
-  for (const vp of [
-    { w: 390, h: 844, name: '06-mobile-portrait.png' },
-    { w: 667, h: 375, name: '07-mobile-landscape.png' },
-  ]) {
-    const { browser: mb, page: mp, log: mlog } = await open(htmlPath, {
-      w: vp.w,
-      h: vp.h,
-      touch: true,
-    });
-    try {
-      await raf(mp);
-      const mCheck = await mp.evaluate(() => {
-        const nc = window.__nc;
-        nc.step(0.016);
-        const touchEl = document.querySelector('.touch-controls');
-        const touchDisplay = touchEl ? getComputedStyle(touchEl).display : 'none';
-        return {
-          touchVisible: touchDisplay === 'flex',
-          overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-        };
-      });
-      assert(mCheck.touchVisible, `Touch controls visible at ${vp.w}x${vp.h}`);
-      assert(!mCheck.overflowX, `Zero horizontal overflow at ${vp.w}x${vp.h}`);
-      assert(mlog.errors.length === 0, `Zero errors at ${vp.w}x${vp.h}`);
-      await mp.screenshot({ path: resolve(shotDir, vp.name) });
-    } finally {
-      await mb.close();
-    }
-  }
-
-  console.log('\n🎉 ALL ACCEPTANCE TESTS PASSED SUCCESSFULLY!');
 }
 
-runAcceptance().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+async function mobile() {
+  console.log('=== 390×844（觸控）===');
+  const { browser, page, log } = await open(htmlPath, { w: 390, h: 844, touch: true });
+  try {
+    check(await ev(page, () => !!document.querySelector('meta[name=viewport]')), '有 viewport meta');
+    await ev(page, () => window.__nc.start());
+    await page.waitForTimeout(1200);
+    check(await ev(page, () => document.getElementById('touch').classList.contains('on')), '觸控搖桿與按鈕顯示');
+    await shot(page, 'm-start');
+    await ev(page, () => window.__nc.talk.marlo());
+    await page.waitForTimeout(200);
+    check(await ev(page, () => getComputedStyle(document.getElementById('touch')).display === 'none'), '對話時隱藏觸控按鈕');
+    await shot(page, 'm-dialog');
+    await ev(page, () => window.__nc.closeDialog());
+    await ev(page, () => window.__nc.drive());
+    await page.waitForTimeout(500);
+    await shot(page, 'm-drive');
+    check(await ev(page, () => document.documentElement.scrollWidth <= innerWidth), '無水平溢出');
+    check(!log.pageerrors.length && !log.errors.length, `無錯誤 ${[...log.pageerrors, ...log.errors].slice(0, 3).join(' | ')}`);
+    check(!log.external.length, '無外部請求');
+  } finally {
+    await browser.close();
+  }
+}
+
+await desktop();
+await mobile();
+console.log(failed ? `\n${failed} 項未通過` : '\n全部通過');
+process.exit(failed ? 1 : 0);

@@ -112,6 +112,12 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 所有模型（漁夫、棧橋、船、木箱、魚簍、珊瑚、海草、魚）都由 `blender/*.py` 以 Blender 5.2 無頭腳本建模、綁骨與做動畫（共用工具在 `blender/common.py`，action 要指定 slot、以 NLA 軌匯出），`npm run assets` 重建 `blender/out/*.glb`（有 commit，build 不需要 Blender），打包時以 gzip＋base64 內嵌。節點、骨頭與動作名稱是遊戲取用的契約，見 `SPEC.md`；改資產後用 `node tools/view.mjs <glb> --node … --anim …` 在 three 裡截圖檢查。
 - 操作、`window.__cc` 測試 API 與已知限制見同資料夾的 `README.md`。
 
+## 霓虹夜城（260）
+
+- 原始碼在 `games/260-neon-nightcity/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 把 `src/parts/*.js` 依檔名順序串成**同一個模組**（共用頂層變數，後面的檔案直接用前面宣告的東西）再打包成單檔 `web/260-neon-nightcity.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 是兩種尺寸的無頭 Chrome 驗收（走完整段任務），`npm run thumb` 產生縮圖。
+- 只內嵌 `blender/out/` 的 `interior_props`、`street_props` 兩個 GLB；車輛與人物都由程式建模（`30-vehicles.js`、`40-people.js` 的 vertex shader 骨架動畫），`blender/vehicles.py`、`characters.py` 是舊版留下的。
+- three r186 的 `new Color(hex)` 已經是線性值，不要再 `convertSRGBToLinear()`（重複轉換會讓整個畫面變暗變髒）。招牌字圖集是 2048×2048，新增招牌格子前先算會不會超出（超出會 `console.warn`）。各檔分工、`window.__nc` 測試 API 見同資料夾的 `README.md`，城市尺寸、場館、任務與渲染流程見 `SPEC.md`。
+
 ## 灣岸商業帝國（261）
 
 - 原始碼在 `games/261-bayfront-empire/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 輸出單檔 `web/261-bayfront-empire.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 `tools/econ.test.mjs`（經濟、海港、v1／v2→v3 存檔遷移）再跑兩種尺寸的無頭 Chrome 驗收；`npm run sim` 在 Node 跑經濟模擬看節奏。

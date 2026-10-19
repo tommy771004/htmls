@@ -1,55 +1,66 @@
-# 260 — 霓虹夜城 // NEON NIGHT CITY
+# 260 霓虹夜城 · NEON NIGHT CITY
 
-> **分類**：遊戲敘事（Cyberpunk Open-World Driving & Walking Simulator）  
-> **單檔成品**：[`web/260-neon-nightcity.html`](../../web/260-neon-nightcity.html)  
-> **預覽縮圖**：[`thumbs/260.jpg`](../../thumbs/260.jpg)
+單檔成品：[`web/260-neon-nightcity.html`](../../web/260-neon-nightcity.html)，縮圖 [`thumbs/260.jpg`](../../thumbs/260.jpg)。分類：遊戲敘事。
 
-## 作品簡介
+凌晨兩點的雨夜街區。可以開楔形跑車 Kestrel、騎 Hanzo 機車，或下車走路；LAZARUS 夜店今晚只放名單上的人，要先到 7 St 的 AFTERGLOW 酒吧找 Juno 拿火柴盒，再回去說服門口的 Marlo。
 
-《**霓虹夜城 // NEON NIGHT CITY**》是一座以 **Three.js (r186)** 與 **Blender 5.2 無頭建模管線**從零打造的賽博龐克開放式雨夜城市，完全不依賴任何外部網路素材（零外部請求，所有 3D `.glb` 資產皆以 `gzip + base64` 內嵌於單一 HTML 檔案中，由瀏覽器原生 `DecompressionStream` 即時解壓載入）。
+畫面方向參考 @Ainthropos 的 Three.js 雨夜城市影片：紅磚與石材立面、濕地上的霓虹倒影、霧與路燈光錐、亮著窗的店面、成排車流與撐傘行人，HUD 有地名、時鐘與小地圖。
 
-玩家可以駕駛 **Quadra V-Tech 電馭跑車**穿梭於六大命名行政區的雙向四車道濕地大道，體驗積水霓虹倒影、雨滴漣漪、手煞車甩尾與氮氣加速；亦可隨時按 **`F` 下車步行**，直接走進街邊建築的敞開大門，進入 **PULSE // 脈衝夜店**（與 14 名骨架動畫舞客在 8×8 音訊律動 LED 舞池及雷射光束下熱舞）、**AFTERGLOW // 餘燼酒吧**（向調酒師點賽博調酒、欣賞復古街機與點唱機）以及 **CHROME WORKS // 電馭改裝廠**（切換 5 款高亮度車底霓虹與塗裝光效）。
-
----
-
-## 核心特色與系統架構
-
-### 1. 程序生成賽博龐克雨夜城市（`src/city.js` + `src/atmosphere.js`）
-- **6×6 大道網格與 6 大行政區**：涵蓋「霓虹中樞 · NEON CORE」、「餘燼巷弄 · EMBER ALLEY」、「電馭車道 · CHROME SECTOR」、「財閥天際 · CORP PLAZA」、「黑市船塢 · RUST CANAL」與「合成住宅 · SYNTH HEIGHTS」。
-- **多層退縮摩天大樓與全息廣告**：68 棟高聳大樓具備程序生成發光窗格、漢字/日文/英文霓虹招牌、跨街全息門廊（Gantry Bridges）與屋頂旋轉全息光環。
-- **雨夜氛圍與濕地面 Shader**：2,200 道動態雨滴粒子（進入室內時自動遮蔽於屋頂外）、街道蒸氣孔煙霧、雙懸臂路燈體積光錐，以及自訂 `onBeforeCompile` 濕地面積水漣漪與霓虹倒影 Shader。
-- **動態車流、飛車航道與撐傘行人**：街道雙向 AI 車流、高空環繞飛行巡邏車（Hover-Spinners），以及人行道手持發光霓虹雨傘的骨骼動畫行人。
-
-### 2. Blender 5.2 建模與骨架動畫管線（`blender/*.py` → `blender/out/*.glb`）
-- **`vehicles.glb`**：`player_car`（楔形超跑車體、分離式可轉向/滾動四輪 `wheel_FL/FR/RL/RR`、百葉後窗、貫穿式尾燈與車底霓虹燈管）、`traffic_car`、`hover_spinner`。
-- **`characters.glb`**：15 根骨骼人形骨架（`human_rig` + `human`），內建 6 段烘焙 NLA 骨骼動畫（`idle`、`walk`、`run`、`dance_groove`、`dance_hype`、`bartend`）。載入時由 `src/assets.js` 將多材質子網格烘焙為單一 HDR 頂點色自發光 `SkinnedMesh`，大幅降低 Draw Calls。
-- **`street_props.glb`**：雙懸臂路燈 `street_lamp`、漢字霓虹招牌 `neon_sign_kanji`、自動販賣機 `vending_machine`、全息投影基座 `holo_projector`、蒸氣排氣孔 `steam_vent`、防撞柱 `bollards_barrier`。
-- **`interior_props.glb`**：DJ 控台 `dj_booth`、重低音音箱塔 `speaker_stack`、環形雷射燈架 `laser_rig`、VIP 卡座 `club_table`、發光吧台 `bar_counter`、酒瓶背牆 `bottle_rack`、高腳椅 `bar_stool`、街機框體 `arcade_cab`、點唱機 `jukebox`。
-
-### 3. WebAudio 程序化音效與空間音樂合成器（`src/audio.js`）
-- **雨聲與環境低頻**：粉紅噪音帶通濾波雨滴聲（進入建築內部時自動切換為室內悶響濾波）與 Vangelis 風格合成器低頻 Drone。
-- **引擎與甩尾音效**：雙振盪器隨車速與檔位動態調頻，搭配氮氣增壓高頻渦輪聲與手煞車輪胎摩擦聲。
-- **空間化場館音樂**：靠近或步入 **PULSE 脈衝夜店**時響起 124 BPM 電馭 Techno 鼓組與 Acid Bassline；靠近或步入 **AFTERGLOW 餘燼酒吧**時響起 92 BPM Lo-Fi Synth 琶音。
-
-### 4. HUD 儀表板與全區導覽地圖（`src/ui.js`）
-- 左上角**即時旋轉雷達小地圖**（顯示道路、車流、可進入場館輪廓、大門標記、停放座駕與玩家朝向）、行政區/場館名稱、動態推進的雨夜時鐘与 FPS 監測。
-- 右下角**數位時速表、檔位、RPM 轉速條與 NITRO 氮氣量表**。
-- 按 **`M`** 開啟全區導覽與快速傳送面板，亦支援行動裝置觸控方向鍵與功能鍵（`390×844` 直向與 `667×375` 橫向零溢出）。
-
----
-
-## 建置與驗收指令
+## 指令
 
 ```bash
-# 1. 重新由 Blender 5.2 生成所有 GLB 模型資產
-node tools/assets.mjs
-
-# 2. 打包單一 HTML 成品至 ../../web/260-neon-nightcity.html
-node tools/build.mjs
-
-# 3. 執行 Playwright 自動化端對端驗收測試
-node tools/accept.mjs
-
-# 4. 產生作品集預覽縮圖 ../../thumbs/260.jpg
-node tools/thumb.mjs
+npm run build    # 打包成 ../../web/260-neon-nightcity.html（--dev 不壓縮）
+npm test         # tools/accept.mjs：1440×900 走完整段任務、開車、地圖，390×844 觸控版；SHOT_DIR=… 會存截圖
+npm run thumb    # tools/thumb.mjs → ../../thumbs/260.jpg；THUMB="車 dx,dz,車 yaw,相機 yaw,pitch,遠近" 可調構圖
+npm run assets   # 用 Blender 重建 blender/out/*.glb（需要 Blender 5.x）
 ```
+
+`node_modules` 連到 `../201-coral-cove/node_modules`（three 0.186.0、esbuild、playwright-core）。
+
+## 操作
+
+| 按鍵 | 開車 | 走路 |
+| :-- | :-- | :-- |
+| W A S D／方向鍵 | 油門、煞車倒車、轉向 | 移動 |
+| Shift | 氮氣 | 跑步 |
+| Space | 手煞車甩尾 | |
+| F | 停穩後下車 | 靠近車輛時上車 |
+| E | 停在 CHROME WORKS 門口時換塗裝 | 對話、進出場館、點酒 |
+| G | | 跳舞（舞池上跳滿 5 秒完成任務） |
+| V | | 把 Kestrel 叫到最近的車道 |
+| C | 切換相機遠近 | 同左 |
+| M／Esc | 大地圖與傳送 | 同左 |
+| 1–4 | 傳送：LAZARUS 門口、舞池、AFTERGLOW、CHROME WORKS | 同左 |
+| 滑鼠 | 點畫面鎖定游標環顧，沒鎖定時拖曳 | 同左 |
+
+手機顯示左下搖桿與六顆按鈕，拖曳畫面環顧。
+
+## 結構
+
+原始碼在 `src/parts/`，打包時依檔名順序串成同一個模組（共用頂層變數）：
+
+| 檔案 | 內容 |
+| :-- | :-- |
+| `00-core.js` | renderer、城市尺寸常數、共用 uniform `U`、GLSL 函式庫（路燈格、點光、霧、環境反射）、uber 材質、`Kit` 幾何合併 |
+| `10-city.js` | 街區與地塊、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
+| `20-props.js` | 路燈與光錐、紅綠燈、街道設施、行道樹、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空 |
+| `30-vehicles.js` | 程式建模的 Kestrel、計程車、房車、警車、貨車、Hanzo；車道圖、號誌停等、跟車與車輛物理 |
+| `40-people.js` | 11 根骨頭在 vertex shader 裡程序動畫的人物（走、跑、三種舞、坐、調酒、撐傘、DJ…），行人、排隊人龍與玩家 |
+| `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何 |
+| `60-venues.js` | 三座場館門面、夜店與酒吧室內場景、任務、對話、進出場館 |
+| `70-render.js` | 反射相機、MSAA 半浮點渲染目標、5 階泛光、動態模糊、色散、ACES、調色、顆粒、動態解析度 |
+| `80-audio.js` | WebAudio：雨聲、城市低頻、引擎、甩尾、124 BPM 夜店鼓組（拍點驅動舞步與燈光）、酒吧 lo-fi、喇叭、警笛、雷聲 |
+| `90-hud.js` | 羅盤與街名、時鐘、小地圖、大地圖與傳送、目標標記、時速表 |
+| `99-main.js` | 輸入、相機（防穿牆、遮擋物抖動淡出）、每幀挑燈、天氣、主迴圈、`window.__nc` |
+
+`blender/vehicles.py`、`blender/characters.py` 是舊版用的模型，現在車輛與人物都由程式建模，打包時不內嵌。
+
+## 測試 API
+
+`window.__nc`：`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar')`、`exit()`、`look(yaw, pitch, far)`、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
+
+## 已知限制
+
+- 無頭 Chrome（Metal）約 120 fps、130 個 draw call、190 萬個三角形；低階手機會自動降低點光數量與解析度。
+- 車流是固定車道圖上的跟車模型，不會變換車道；車輛之間只有簡單的圓形碰撞。
+- 城市只有 5×5 個街區，邊緣是一圈遠景剪影。
