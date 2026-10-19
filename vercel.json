@@ -1,5 +1,7 @@
 {
   "redirects": [
+    { "source": "/web/200-carball.html", "destination": "/web/200-roadster-arena.html", "permanent": true },
+    { "source": "/200-carball.html", "destination": "/web/200-roadster-arena.html", "permanent": true },
     { "source": "/:file(\\d{3}-[a-z0-9-]+\\.html)", "destination": "/web/:file", "permanent": true }
   ]
 }

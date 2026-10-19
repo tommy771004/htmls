@@ -99,12 +99,12 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - CC0 貼圖、天空 HDRI、車輛、道具與士兵模型放在 `assets/199/`（約 18 MB，不內嵌），頁面需透過網站伺服器開啟；以檔案開啟時退回程序貼圖與方塊人，不能報錯。`node tools/fetch-assets.mjs` 重抓（需要 curl、unzip、cwebp、sips），士兵與 IK 烘焙的步槍動畫用 `blender -b -P tools/build-soldier.py`（借 `games/197-openworld/.cache/` 的 Quaternius 素材包），外觀模組、槍、家具分別是 `build-kit.py`、`build-guns.py`、`build-furniture.py`（Blender 5.x，action 要指定 slot 才會套用）；家具尺寸要和 `map.js` 的 `FURN` 表一致。來源見 `CREDITS.md`。`npm start` 的靜態白名單要能送出 `.hdr`、`.gltf`。
 - 協定、輸入位元與快照格式見 `SPEC.md`，操作與限制見 `README.md`；`window.__sc` 的 `solo()`、`place(x, z, mode)`、`give(w)`、`look(yaw, pitch)`、`bring(n)` 可在離線練習裡直接擺位置截圖。截圖與驗收工具用 `tools/lib.mjs` 的 `serve()` 在同一行程起網站伺服器；畫質預設「高」（級聯陰影＋泛光），`?q=low|mid|high|ultra` 或選單切換。
 
-## 車球碗（200）
+## Roadster Stunt Arena（200）
 
-- 原始碼在 `games/200-carball/`（Three.js 0.186.0 + Rapier `@dimforge/rapier3d-compat` + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/200-carball.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 Node 的手感數值測試（`tools/sim.test.mjs`），再跑兩種尺寸的無頭 Chrome 驗收（跑打包後的單檔）。
-- Rapier 內建的 base64 WASM 在打包時被換掉：`tools/build.mjs` 把 WASM 以 gzip＋base64 放進 `<script id="rapier-wasm">`，頁面用 `DecompressionStream` 解開。升級 Rapier 版本後打包失敗，多半是那段 base64 的寫法變了。
-- `src/core/`（球場幾何與距離場、車輛控制、對局、AI）不碰 DOM，Node 測試與瀏覽器共用。車的手感是逐 tick 自己寫速度（Rapier 只負責碰撞），常數集中在 `const.js`，照 Rocket League 公開資料換算成公尺；改了要跑 `npm run test:sim`。難度平衡用 `node tools/balance.mjs <難度> 8 <對手>`（換邊各打一半，抵消開球時剛體建立順序造成的偏差）。
-- 操作、`window.__cb` 測試 API 與已知限制見同資料夾的 `README.md`。
+- 原始碼在 `games/200-roadster-arena/`（Three.js 0.186.0 + Rapier `@dimforge/rapier3d-compat` + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/200-roadster-arena.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 Node 測試（`tools/sim.test.mjs`：手感、任務、計時賽、聯賽規則與 AI、大廳／房間／排行榜、本機 WebSocket 兩人整合），再跑兩種尺寸的無頭 Chrome 驗收；`node tools/mp.mjs` 開兩個分頁走完快速配對、分享網址加入、球權與進球同步。舊的「車球碗」`web/200-carball.html` 已由它取代，`vercel.json` 308 轉址。非官方同人作品，頁面與 README 要維持「與車廠無關」的聲明，不要加入品牌名稱或標誌。
+- Rapier 內建的 base64 WASM 在打包時被換掉：`tools/build.mjs` 把 WASM 以 gzip＋base64 內嵌，頁面用 `DecompressionStream` 解開。升級 Rapier 版本後打包失敗，多半是那段 base64 的寫法變了。
+- `src/core/`（車輛控制、特技場與聯賽球場、任務與計時賽、聯賽規則與 AI）與 `src/net/core.js`（`LobbyCore`／`RoomCore`／`BoardCore`）不碰 DOM。`net/core.js` 由本機 `server/roadster/server.mjs`（`createRoadster()`，經 jade 伺服器的 `onUpgrade` 掛在 8127 的 `/api/rsa`）與 `worker/index.js`（Cloudflare Durable Objects）共用；伺服器不跑物理，每人模擬自己的車、球由球權人模擬，伺服器裁定球權與進球。協定見 `SPEC.md`。
+- 頁面找伺服器：`RSA_SERVER` 打包變數 → `?server=` → localhost／127.0.0.1 同網址 → 否則離線（Vercel 與以檔案開啟都是離線，不會發 WebSocket）。Cloudflare 部署要用使用者自己的帳號，不要自動執行。操作、`window.__rsa` 測試 API 與已知限制見同資料夾的 `README.md`。
 
 ## 珊瑚灣垂釣（201）
 
