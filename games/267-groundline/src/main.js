@@ -71,7 +71,7 @@ function renderTimelinePanel() {
     badge.textContent = '已離場';
     badge.className = 'badge good';
   } else if (f.cascadeDelay > 0) {
-    badge.textContent = `⛓ +${totalDelay}m`;
+    badge.textContent = `↳ +${totalDelay}m`;
     badge.className = 'badge warn';
   } else if (totalDelay > 2) {
     badge.textContent = `+${totalDelay}m`;
@@ -99,14 +99,14 @@ function renderTimelinePanel() {
     );
     chainBox.hidden = false;
     chainBox.innerHTML =
-      `<span>⛓ ${esc(nextAtGate.callsign)} +${nextAtGate.cascadeDelay}m</span>` +
+      `<span>↳ ${esc(nextAtGate.callsign)} +${nextAtGate.cascadeDelay}m</span>` +
       (freeGate
         ? `<button type="button" class="mini-act" data-reassign-flight="${nextAtGate.id}" data-reassign-gate="${freeGate.id}">改${freeGate.id}</button>`
         : `<button type="button" class="mini-act" data-select-flight="${nextAtGate.id}">查看</button>`);
   } else if (f.cascadeDelay > 0 && f.cascadeFrom) {
     chainBox.hidden = false;
     chainBox.innerHTML =
-      `<span>⛓ 受 ${esc(f.cascadeFrom)} +${f.cascadeDelay}m</span>` +
+      `<span>↳ 受 ${esc(f.cascadeFrom)} +${f.cascadeDelay}m</span>` +
       `<button type="button" class="mini-act" data-select-flight="${esc(f.cascadeFrom)}">前班</button>`;
   } else {
     chainBox.hidden = true;
@@ -194,7 +194,7 @@ function renderRightTabs() {
         }
 
         const delayPill = f.cascadeDelay > 0
-          ? `<span class="pill warn">⛓+${totalDelay}m</span>`
+          ? `<span class="pill warn">↳+${totalDelay}m</span>`
           : totalDelay > 2
           ? `<span class="pill warn">+${totalDelay}m</span>`
           : `<span class="pill good">準點</span>`;
@@ -248,7 +248,7 @@ function renderRightTabs() {
         <b class="callsign">${activeF ? esc(activeF.callsign) : '空閒'}</b>
         <span class="step-txt">${esc(curStep)}${nextF ? ` → ${esc(nextF.callsign)}` : ''}</span>
         <div class="prog-bar"><i style="width:${pct}%"></i></div>
-        ${nextF && nextF.cascadeDelay > 0 ? `<span class="pill warn">⛓+${nextF.cascadeDelay}m</span>` : `<span class="pill ${activeF ? 'good' : ''}">${pct}%</span>`}
+        ${nextF && nextF.cascadeDelay > 0 ? `<span class="pill warn">↳+${nextF.cascadeDelay}m</span>` : `<span class="pill ${activeF ? 'good' : ''}">${pct}%</span>`}
       </div>`;
     }).join('');
   }
