@@ -254,8 +254,17 @@ body.touch #reelBox { bottom: calc(max(26px, env(safe-area-inset-bottom)) + 108p
   #quest.collapsed ul, #quest.collapsed .board { display: none; }
   #intro h1 { font-size: 34px; }
   #intro .lede { display: none; }
-  #tag { width: 280px; }
-  #tag img { height: 50px; }
+  #tag { left: auto; right: max(12px, env(safe-area-inset-right)); top: 56px; bottom: auto; width: 250px; transform: rotate(-2deg); }
+  #tag.off { transform: translateY(12px) rotate(-5deg); }
+  #tag img { height: 40px; }
+  #tag .paper { padding: 10px 12px 10px 40px; }
+  #tag .en { font-size: 17px; }
+  #tag .qrow { margin-top: 6px; }
+  #tag .size { margin-top: 6px; font-size: 16px; }
+  #tag .flags, #tag .string { display: none; }
+  #tag .stamp { width: 56px; height: 56px; font-size: 11px; right: 8px; top: 6px; }
+  #tag .hole { left: 11px; }
+  #creel, body:not(.touch) #creel { top: max(14px, env(safe-area-inset-top)); bottom: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pop, #biteMark svg, #tension.red .needle { animation: none; }

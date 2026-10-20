@@ -451,6 +451,7 @@ export function startGame(renderer) {
     unlockAll() { save.cps = save.cps.map(() => true); for (const k of Object.keys(save.upgrades)) save.upgrades[k] = true; save.chapter = 5; ensureBoard(save, rng); boatView.setLantern(true); persist(); },
     fillBook(n = 55, tier = 3) { for (const f of FISH.slice(0, n)) if (!save.book[f.id]) save.book[f.id] = { n: 1, tier: (f.id * 7) % 5 === 0 ? 4 : tier, len: f.len * 1.2, kg: f.kg * 1.3 }; persist(); },
     reset() { Object.assign(save, fresh()); persist(); },
+    zoom(d) { st.camDist = d; st.curDist = null; },
     hud(on) { $('hud').style.visibility = on ? '' : 'hidden'; },
   };
   return window.__st;

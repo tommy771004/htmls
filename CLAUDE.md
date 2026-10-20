@@ -142,6 +142,13 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 原始碼在 `games/268-terra-sandbox/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 輸出單檔 `web/268-terra-sandbox.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 `tools/engine.test.mjs`（`src/core/selftest.js` 的 31 項自我測試：圖磚串流與 LRU、建物與室內、窗燈、天氣與縮時、七種載具與纜車、攝影與日誌、OSM 真實街道），再跑兩種尺寸的無頭 Chrome 驗收（截圖在 gitignore 的 `dist/`，並輸出 `thumbs/268.jpg`）；`node tools/shot.mjs out.png "<js>;;wait 500"` 可擺好場景截一張除錯圖。六個地點的真實街道是 `data/osm/*.json`（`npm run osm` 由 `tools/fetch-osm.mjs` 從 OpenStreetMap 與 Terrarium 高程烘焙，有 commit，build 時 gzip＋base64 內嵌，頁面不連網；`?map=proc` 或設定切回程序街道），人物模型由 `npm run people`（Blender，素材借 197 的 `.cache/`）產生 `blender/out/people.glb`。
 - `src/core/`（世界生成、圖磚串流、室內、天氣、車流、玩家）不碰 DOM 與 three，供瀏覽器與 Node 測試共用；`src/gfx/` 是畫面層（合併幾何 `Builder` 帶頂點色與 `atl` 圖集矩形，所有世界網格共用 `atlas.js` 的一個材質）。朝向 `yaw` 0 = 北（-z），three 的 `rotation.y = -yaw`。建地是 `blockRect`（路緣到路緣）再往內退 `K.walk`。`OsmWorld`（`osm.js`）沿用 `World` 介面，矩形建物有自己的局部座標（`localView`／`toWorldDir`）；夜間窗燈的房間規則在 `lights.js`（`roomLightP`），著色器的 `roomP` 要和它一致。改了 `world.js` 的建物或地點座標，`selftest.js` 與 `tools/accept.mjs` 寫死的位置要一起檢查。各檔分工與 `window.__terra` 測試 API 見同資料夾的 `SPEC.md` 與 `README.md`。
 
+## 靜水釣遊（269）
+
+- 原始碼在 `games/269-stillwater/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 輸出單檔 `web/269-stillwater.html`，改了 `src/` 或 `blender/out/` 要重新 build 並把產出一起 commit。`npm test` 先跑 `tools/core.test.mjs`（魚種表、品質判定、收線可釣性、地圖、出魚、主線、存檔）再跑三種尺寸的無頭 Chrome 驗收（實際划船、拋竿、提竿、收線到釣起），`npm run thumb` 產生縮圖。
+- 船、漁夫（`sit`／`row`／`row_L`／`row_R`／`cast`／`wait`／`hook`／`reel`／`cheer` 動作）、環境物件與 55 種魚都由 `blender/*.py` 建模（Blender 5.2，共用工具在 `common.py`／`meshkit.py`），`npm run assets` 重建 `blender/out/*.glb`（有 commit，build 不需要 Blender）。節點名、契約材質（`hull_paint`／`hat_ribbon`／`lamp_glow`／`win_glow`）與划槳公式見 `SPEC.md`；槳的角度由 `src/core/boat.js` 的 `oarPose()` 計算，必須和 `blender/rowing.py` 一致。
+- `src/core/`（魚種表、品質、收線、地圖、船的物理、主線與委託、存檔）不碰 DOM 與 three；`src/view/` 是畫面，`src/game.js` 串起迴圈、面板動作與 `window.__st` 測試 API（`toSpot(k)`、`toCp(k)`、`setTime(min)`、`unlockAll()`、`fillBook(n)`、`give(id, tier)`、`act(type, down)`），`src/ui/` 是 HUD 與面板。座標：北方 −Z、船頭 = (sin yaw, cos yaw)，漁夫面向船尾坐，釣魚時整艘船轉成船尾朝釣點。存檔在 `localStorage` 的 `st269.save`。
+- 指令、操作與已知限制見同資料夾的 `README.md`。
+
 ## 青雀真人麻將（127）架構
 
 - `assets/jade-table/engine.mjs`：台灣十六張規則引擎（`MahjongGame`、`scoreHand`、台表），**瀏覽器單人模式與伺服器共用同一份**。改規則時兩邊會一起受影響。

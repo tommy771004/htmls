@@ -71,6 +71,7 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true], [667, 375, tr
       sawBite = true;
       if (!(await page.evaluate(() => !document.getElementById('biteMark').classList.contains('hidden')))) ok(false, `${tag} 咬鉤時顯示驚嘆浮標記號`);
       await press(true);
+      await page.waitForFunction(() => window.__st.state().phase !== 'bite', null, { timeout: 2000 }).catch(() => {});
       let hold = true; t0 = Date.now();
       while (Date.now() - t0 < 90000) {
         s = await st();
