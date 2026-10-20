@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>雪夜五月廣場 · El Eternauta Online</title>
+<link rel="icon" href="../favicon.svg">
+<meta name="description" content="網頁版第三人稱遊戲原型：以 Spark 在 Three.js 裡渲染布宜諾斯艾利斯五月廣場的 Gaussian splat（約 500 萬個 splat，依距離做 LoD 與剔除並自動調整預算維持 60 FPS），戴防毒面罩的雪衣角色可走、跑、跳與重生，冷色霧氣、下雪粒子與夜間路燈即時打亮 splat，簡化碰撞體防止穿牆，按 P 開除錯面板。">
+<style>
+:root{
+  --snow:#eef1f4;--snow-2:rgba(238,241,244,.74);--snow-3:rgba(238,241,244,.46);--snow-4:rgba(238,241,244,.16);
+  --ink:#06080c;--frost:#93b4d6;--sodium:#ffb35c;--alarm:#ff5a4a;--ok:#9fe0a8;
+  --night:#121823;
+  --cond:"Avenir Next Condensed","Helvetica Neue Condensed","Arial Narrow","Roboto Condensed",sans-serif-condensed,sans-serif;
+  --tc:"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease-out:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--night);color:var(--snow);font-family:var(--tc);-webkit-user-select:none;user-select:none}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+body.playing.locked canvas#gl{cursor:none}
+
+/* ---------- 開場：一格黑白漫畫分鏡 ---------- */
+#boot{position:fixed;inset:0;display:grid;place-items:center;padding:24px 16px;overflow:auto;
+  background:radial-gradient(120% 90% at 30% 20%,rgba(18,24,35,.35),rgba(6,8,12,.9));transition:opacity .6s var(--ease-out)}
+#boot.gone{opacity:0;pointer-events:none}
+.panel{position:relative;width:min(880px,100%);display:grid;grid-template-columns:1.1fr 1fr;gap:0;
+  background:rgba(6,8,12,.86);border:3px solid var(--snow);box-shadow:10px 10px 0 rgba(238,241,244,.12)}
+.panel>section{padding:28px 30px}
+.panel>section+section{border-left:3px solid var(--snow)}
+.kicker{font:600 12px/1 var(--cond);letter-spacing:.32em;text-transform:uppercase;color:var(--frost)}
+h1{margin-top:14px;font:800 clamp(38px,6.4vw,64px)/.86 var(--cond);letter-spacing:-.01em;text-transform:uppercase}
+h1 span{display:block;color:var(--snow-3);font-weight:600;font-size:.52em;letter-spacing:.08em;margin-top:10px}
+.zh{margin-top:18px;font-size:15px;line-height:1.75;color:var(--snow-2)}
+.caption{margin-top:20px;display:inline-block;background:var(--snow);color:var(--ink);font:700 13px/1.5 var(--tc);padding:6px 10px;transform:rotate(-1deg)}
+.keys{margin-top:22px;display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13px;color:var(--snow-2)}
+.keys kbd{font:700 12px/1 var(--cond);letter-spacing:.06em;color:var(--snow);border:1.5px solid var(--snow-3);padding:4px 7px;min-width:28px;text-align:center;justify-self:start}
+.assets{list-style:none;display:grid;gap:14px}
+.assets li{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13px}
+.assets b{font-weight:600}
+.assets i{font:500 12px/1.3 var(--mono);font-style:normal;color:var(--snow-3);text-align:right}
+.bar{grid-column:1/-1;height:6px;background:var(--snow-4);position:relative;overflow:hidden}
+.bar u{position:absolute;inset:0 auto 0 0;width:0;background:var(--snow);transition:width .25s linear}
+.assets li.done .bar u{background:var(--frost)}
+.assets li.fail .bar u{background:var(--alarm);width:100%!important}
+.assets li.fail i{color:var(--alarm)}
+#go{margin-top:24px;width:100%;font:800 20px/1 var(--cond);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:var(--snow);border:0;padding:16px 18px;cursor:pointer;
+  transition:transform var(--dur-press,.12s) var(--ease-out),background .2s}
+#go:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--frost)}
+#go:active:not(:disabled){transform:translate(0,0);box-shadow:none}
+#go:disabled{background:var(--snow-4);color:var(--snow-3);cursor:progress}
+#goNote{margin-top:10px;font-size:12px;line-height:1.6;color:var(--snow-3);min-height:1.6em}
+.keys-touch{display:none;margin-top:22px;font-size:13px;line-height:1.7;color:var(--snow-2)}
+body.touch .keys{display:none}
+body.touch .keys-touch{display:block}
+.credit{grid-column:1/-1;border-top:3px solid var(--snow);padding:12px 30px;font-size:11.5px;line-height:1.65;color:var(--snow-3)}
+.credit a{color:var(--snow-2)}
+
+/* ---------- 遊戲中 HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .5s var(--ease-out);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+body.playing #hud{opacity:1}
+#tag{position:absolute;left:18px;top:16px;font:700 13px/1.2 var(--cond);letter-spacing:.24em;text-transform:uppercase}
+#tag small{display:block;margin-top:4px;font:500 11px/1 var(--tc);letter-spacing:.08em;color:var(--snow-3)}
+#hint{position:absolute;left:18px;bottom:16px;font-size:12px;color:var(--snow-2);line-height:1.8}
+#hint kbd{font:700 11px/1 var(--cond);border:1px solid var(--snow-3);padding:2px 5px;margin-right:3px}
+#toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);font:700 14px/1.4 var(--tc);background:rgba(6,8,12,.72);border:2px solid var(--snow);padding:8px 14px;opacity:0;transition:opacity .3s}
+#toast.on{opacity:1}
+#pause{position:fixed;inset:0;display:none;place-items:center;background:rgba(6,8,12,.42);cursor:pointer}
+body.playing.paused #pause{display:grid}
+#pause div{border:3px solid var(--snow);background:rgba(6,8,12,.86);padding:18px 26px;text-align:center}
+#pause b{display:block;font:800 26px/1 var(--cond);letter-spacing:.12em;text-transform:uppercase}
+#pause span{display:block;margin-top:10px;font-size:13px;color:var(--snow-2)}
+
+/* ---------- 除錯面板 (P) ---------- */
+#dbg{position:fixed;right:12px;top:12px;width:340px;max-height:calc(100% - 24px);overflow:auto;display:none;
+  background:rgba(4,6,10,.84);border:1.5px solid var(--snow-3);font:12px/1.55 var(--mono);color:var(--snow-2);padding:10px 12px 12px;pointer-events:auto}
+#dbg.on{display:block}
+#dbg h3{font:700 11px/1 var(--cond);letter-spacing:.26em;text-transform:uppercase;color:var(--snow);margin:10px 0 6px;border-bottom:1px solid var(--snow-4);padding-bottom:5px}
+#dbg h3:first-child{margin-top:0}
+#dbg .row{display:flex;justify-content:space-between;gap:8px}
+#dbg .row b{color:var(--snow);font-weight:600}
+#dbg .k{color:var(--snow-3)}
+#dbg .miss{color:var(--alarm)}
+#dbg .okc{color:var(--ok)}
+#dbg .fb{color:var(--sodium)}
+#dbg table{width:100%;border-collapse:collapse}
+#dbg td{padding:1px 0;vertical-align:top}
+#dbg td:first-child{width:52px;padding-right:6px;color:var(--snow)}
+#dbg tr.cur td{background:rgba(147,180,214,.14)}
+#dbg label{display:flex;align-items:center;gap:8px;margin-top:5px;cursor:pointer}
+#dbg input[type=range]{flex:1;accent-color:var(--frost)}
+#dbg input[type=checkbox]{accent-color:var(--frost)}
+#dbg .fps{font:700 26px/1 var(--cond);color:var(--snow)}
+#dbg .fps.low{color:var(--alarm)}
+#dbg button{margin-top:8px;font:600 11px/1 var(--mono);background:transparent;color:var(--snow);border:1px solid var(--snow-3);padding:6px 8px;cursor:pointer}
+
+/* ---------- 觸控 ---------- */
+#touch{display:none}
+body.touch.playing #touch{display:block}
+#stick{position:fixed;left:22px;bottom:28px;width:124px;height:124px;border:2px solid var(--snow-3);border-radius:50%;pointer-events:auto;touch-action:none}
+#stick i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(238,241,244,.4)}
+.tbtn{position:fixed;right:22px;width:64px;height:64px;border:2px solid var(--snow);background:rgba(6,8,12,.5);color:var(--snow);font:800 13px/1 var(--cond);letter-spacing:.1em;pointer-events:auto;touch-action:none}
+#tJump{bottom:30px}#tRun{bottom:108px}#tRun.on{background:var(--snow);color:var(--ink)}#tDbg{bottom:186px;font-size:11px}
+body.touch #hint{display:none}
+
+@media (max-width:760px){
+  .panel{grid-template-columns:1fr}
+  .panel>section{padding:22px 20px}
+  .panel>section+section{border-left:0;border-top:3px solid var(--snow)}
+  .credit{padding:12px 20px}
+  #dbg{left:12px;right:12px;width:auto;top:auto;bottom:12px;max-height:46%}
+}
+@media (prefers-reduced-motion:reduce){
+  #boot,#hud,#toast{transition:none}
+}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="boot">
+  <div class="panel">
+    <section>
+      <p class="kicker">Prototipo · Gaussian splat · tercera persona</p>
+      <h1>El Eternauta Online<span>Plaza de Mayo · 雪夜五月廣場</span></h1>
+      <p class="zh">布宜諾斯艾利斯，一場會致命的雪落了一整夜。戴上防毒面罩、裹緊雪衣，在只剩路燈亮著的五月廣場上走一圈。整座廣場是約 500 萬個 Gaussian splat，依距離做 LoD 與剔除，即時加上夜色、冷霧與路燈光。</p>
+      <p class="caption">別讓雪碰到皮膚。</p>
+      <div class="keys">
+        <kbd>WASD</kbd><span>移動（Shift 跑）</span>
+        <kbd>Space</kbd><span>跳</span>
+        <kbd>R</kbd><span>回到起點重生</span>
+        <kbd>滾輪</kbd><span>拉近／拉遠鏡頭</span>
+        <kbd>點畫面</kbd><span>鎖定滑鼠轉視角，Esc 釋放</span>
+        <kbd>P</kbd><span>除錯面板（FPS、座標、動畫、可見 splat）</span>
+      </div>
+      <p class="keys-touch">觸控：左下搖桿移動，右半邊拖曳轉視角，右側按鈕切換「跑」、按「跳」，P 開除錯面板。</p>
+    </section>
+    <section>
+      <ul class="assets" id="assets">
+        <li data-k="spark"><b>Spark splat 渲染器</b><i>—</i><span class="bar"><u></u></span></li>
+        <li data-k="splat"><b>五月廣場 splat（.spz）</b><i>—</i><span class="bar"><u></u></span></li>
+        <li data-k="fbx"><b>角色 FBX（防毒面罩・雪衣）</b><i>—</i><span class="bar"><u></u></span></li>
+        <li data-k="clips"><b>動畫片段</b><i>—</i><span class="bar"><u></u></span></li>
+        <li data-k="col"><b>簡化碰撞體</b><i>—</i><span class="bar"><u></u></span></li>
+      </ul>
+      <button id="go" disabled>載入中…</button>
+      <p id="goNote">第一次進場約下載 95 MB（場景 65 MB、角色 27 MB），之後由瀏覽器快取。</p>
+    </section>
+    <p class="credit">非官方同人原型，與《El Eternauta》原作、出版社及串流平台無關。場景 splat、角色 FBX、動畫片段與碰撞網格取自開源專案 <a href="https://github.com/santisiri/eternauta-online" target="_blank" rel="noopener">santisiri/eternauta-online</a>（程式 MIT，素材屬原作者），固定在 8377fe2 版本即時載入；splat 以 <a href="https://sparkjs.dev/" target="_blank" rel="noopener">Spark</a>（MIT）渲染。</p>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="tag">El Eternauta · Plaza de Mayo<small>雪夜五月廣場 · 原型</small></div>
+  <div id="hint"><kbd>WASD</kbd>移動 <kbd>Shift</kbd>跑 <kbd>Space</kbd>跳 <kbd>R</kbd>重生 <kbd>滾輪</kbd>鏡頭 <kbd>P</kbd>除錯 <kbd>Esc</kbd>釋放滑鼠</div>
+  <div id="toast"></div>
+</div>
+<div id="pause"><div><b>Pausa</b><span>滑鼠已釋放。點畫面回到廣場。</span></div></div>
+<aside id="dbg" aria-label="除錯面板"></aside>
+<div id="touch">
+  <div id="stick"><i></i></div>
+  <button class="tbtn" id="tJump">跳</button>
+  <button class="tbtn" id="tRun">跑</button>
+  <button class="tbtn" id="tDbg">P</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* ======================================================================
+   素材：固定在上游 commit，座標系（Y 向上、公尺）與碰撞網格才不會跑掉
+   ====================================================================== */
+const REPO = 'https://raw.githubusercontent.com/santisiri/eternauta-online/8377fe2d1bb9539ddd85618540c04bf5a1491b30/public/assets/';
+const QS = new URLSearchParams(location.search);
+const URLS = {
+  spark: 'https://cdn.jsdelivr.net/npm/@sparkjsdev/spark@2.3.1/dist/spark.module.min.js',
+  splat: QS.get('spz') || REPO + 'scene.spz',
+  fbx: QS.get('fbx') || REPO + 'player/Meshy_AI_Blue_Wasteland_Sentin_biped_Animation_Walking_withSkin.fbx',
+  rough: REPO + 'player/texture_0_roughness_1k.png',
+  metal: REPO + 'player/texture_0_metallic_1k.png',
+  collider: REPO + 'collider.glb',
+};
+const SIZE = { splat: 64.7e6, fbx: 27.5e6 };
+// 角色只有走路片段內嵌在 FBX；其他片段是同一副 Mixamo 骨架的 three.js JSON。
+// fall／land 上游沒有做，面板會標成「缺少」並用替代姿勢。
+const CLIP_FILES = { idle: 'idle.json', run: 'running.json', jump: 'jump.json' };
+const ANIM_STATES = ['idle', 'walk', 'run', 'jump', 'fall', 'land'];
+
+const CFG = {
+  spawn: new THREE.Vector3(0, -0.2, 3), spawnYaw: Math.PI,
+  bounds: { minX: -48, maxX: 59, minZ: -80, maxZ: 42 }, killY: -30,
+  walk: 1.7, run: 4.6, accel: 12, decel: 14, airCtl: 0.35, gravity: 22, jump: 6.2,
+  radius: 0.34, step: 0.42, maxSlope: Math.cos(THREE.MathUtils.degToRad(42)),
+  camMin: 1.6, camMax: 12, pivot: 1.55,
+  walkClipSpeed: 1.43, runClipSpeed: 4.79, // 上游以腳步取樣量出的不打滑速度
+};
+const FOG = { color: new THREE.Color('#1b2230'), density: 0.016, cull: 170, lampGain: 1 };
+
+/* 路燈（取自上游 layout.json：型號、位置、朝向）。燈頭高度量自其 props.glb。 */
+const LAMP_RAW = 'alto,15.1,-0.33,-36.8,90;alto,-35.5,-0.41,-24.2,0;alto,14.5,-0.64,20,-160;simple,-6.5,-0.18,2.9,0;simple,8.9,-0.32,4.9,0;simple,9.1,-0.6,16.9,0;simple,5.9,-0.44,15.8,0;simple,13.9,-0.48,7.4,0;simple,5.5,-0.55,20.3,0;simple,-16.4,-0.33,-25.1,0;simple,-19.4,-0.26,-8,0;simple,-19.7,-0.23,5.9,0;simple,-6.1,-0.31,-30.8,0;triple,-3.1,-0.21,-11.3,0;triple,5.5,-0.16,-9.5,0;triple,2.5,-0.21,1.9,0;triple,-9.1,-0.24,-5.9,0;triple,10.9,-0.29,-5,0';
+const LAMPS = LAMP_RAW.split(';').map(s => {
+  const [kind, x, y, z, yaw] = s.split(','); const X = +x, Y = +y, Z = +z, a = THREE.MathUtils.degToRad(+yaw);
+  if (kind === 'alto') return { kind, pos: new THREE.Vector3(X + 0.62 * Math.cos(a), Y + 4.45, Z - 0.62 * Math.sin(a)), power: 1.25, globes: [[0, 0]] };
+  if (kind === 'triple') return { kind, pos: new THREE.Vector3(X, Y + 4.05, Z), power: 1.35, globes: [[-0.66, 0], [0, 0.14], [0.66, 0]] };
+  return { kind, pos: new THREE.Vector3(X, Y + 4.2, Z), power: 1, globes: [[0, 0]] };
+});
+
+/* 簡化碰撞體：上游 layout.json 每件物件的 collide 形狀，換算成世界座標。
+   c = 圓柱 (x, 底 y, z, 半徑, 高)；b = 盒 (中心 x, y, z, 長, 高, 寬, 偏航)。 */
+const PRIM_RAW = 'c,-23.2,-0.2,8.5,0.4,3.75;c,-10.3,-0.16,-29.9,0.43,4.05;c,-0.9,-0.5,21.1,0.32,3;c,12.1,-0.46,-33.7,0.42,3.9;c,29,-0.2,-29.2,0.48,4.5;c,-20.2,-0.39,-23.8,0.36,3.6;c,-2.4,-0.37,13.6,0.29,2.85;c,8.3,-0.61,19.6,0.3,3;c,25.5,-0.77,23.2,0.24,2.4;b,-7.6,0.34,2,4.3,1.05,1.74,-1.48;b,-7.63,1,1.65,1.9,0.47,1.54,-1.48;b,11,0.08,9.6,4.3,1.05,1.74,-1.08;b,10.84,0.74,9.29,1.9,0.47,1.54,-1.08;b,-22.5,0.18,-20.5,4.6,1.25,1.85,-0.99;b,-22.87,1.02,-21.07,3.25,0.63,1.65,-0.99;b,-4.5,0.21,-8.8,1.9,0.84,0.56,2.7;b,3.6,0.24,-8.9,1.9,0.84,0.56,-2.79;b,3,0.21,-5.2,1.9,0.84,0.56,-0.72;b,12.6,0.08,-3.4,1.9,0.84,0.56,-0.58;b,-14,0.17,-8.1,1.9,0.84,0.56,1.09;b,-22,-0.02,-15.6,1.9,0.84,0.56,0.32;b,-21.1,0.09,-7.3,1.9,0.84,0.56,0.22;b,-30.2,-0.06,-21.6,2,0.84,0.6,0.86;b,-28,-0.05,-23.8,2,0.84,0.6,0.86;b,-25.8,-0.01,-26,2,0.84,0.6,0.91;b,-27,-0.02,-10,2,0.84,0.6,1.4;b,-15,0.19,-29.1,2,0.84,0.6,-0.75;b,-12,0.26,-31.9,2,0.84,0.6,-0.75;b,-13.5,0.3,-30.5,2,0.96,0.6,-0.75;b,0.1,0.16,-26.1,2,0.96,0.6,0.45;b,26.5,-0.31,1.1,2,0.96,0.6,-1.46;c,-12,-0.28,-2,0.35,1;c,40.5,-0.2,-16,0.13,0.9;c,40,-0.2,-12,0.13,0.9;c,39.5,-0.2,-8,0.13,0.9;c,39,-0.2,-4,0.13,0.9;c,38.3,-0.2,0,0.13,0.9;b,-53.68,6.62,-3,33.25,13,14.4,1.64;b,-8.3,0.35,8,1.2,0.95,1.08,0.26;b,-14.2,0.55,13.3,1.2,0.95,1.08,0.09;b,-14.3,1.51,13.25,1.2,0.95,1.08,0.61;b,-22.5,0.2,4.5,1.2,0.95,1.08,-0.35;b,-29.5,0.18,-0.5,1.2,0.95,1.08,0.17;b,-30.3,0.19,0.9,1.2,0.95,1.08,-0.26;b,-14.5,0.24,-13.6,1.2,0.95,1.08,0;b,-36,0.01,-15.6,1.2,0.95,1.08,-1.31;b,13.5,0.02,4.5,1.2,0.95,1.08,0.52;b,9,0.13,0.5,1.2,0.95,1.08,-0.21;b,-2.8,0.14,6.8,1.28,0.62,0.76,-0.52;b,-23.6,0.06,6.1,1.28,0.62,0.76,0.87;b,-29.8,0.96,-0.2,1.28,0.62,0.76,0.44;b,-21,-0.06,-12,1.28,0.62,0.76,0.7;b,-35.5,-0.22,-11.9,1.28,0.62,0.76,-1.38;b,19.5,-0.3,1,1.28,0.62,0.76,0.35;b,24,-0.47,3,1.28,0.62,0.76,-0.17;b,15.5,0.07,-28,1.28,0.62,0.76,-0.37;b,15.4,0.69,-28,1.28,0.62,0.76,-0.09;b,20,-0.01,-27,1.28,0.62,0.76,0.52;b,-8.54,0.58,-20.69,8.09,0.6,6.2,0.65;b,7.12,0.21,-11.27,11.6,0.6,3.74,-0.39;b,-6.92,0.14,-13.02,10.67,0.6,3.61,0.16;b,-0.09,0.18,8.06,6.68,0.6,3.49,-1.31;b,-18.45,0.08,-11.26,2.81,0.6,1.5,1.49;b,18.95,0.06,-8.71,3.73,0.6,2.12,1.29;b,-3.24,0.13,-5.44,6.05,0.6,2.2,-0.04;b,6.94,0.02,-2.07,3.63,0.6,3.11,-0.8;b,20.11,-0.28,-0.22,3.58,0.6,2.4,1.23;b,13.49,-0.15,6.3,2.89,0.6,2.7,1.38;b,-15.7,0.04,1.6,3.82,0.6,1.63,-0.27;b,-5.8,0.12,6.2,2.88,0.6,1.94,-1.41;b,20.4,0.15,-12.4,5.2,0.6,3.05,1.27;b,-31.9,-0.08,-30.4,2.29,0.6,1.82,-0.1;b,20.3,-0.1,-24.4,2.94,0.6,1.49,-1.09;b,66.91,10.75,-27.16,6.4,21.5,20,-1.66;b,66.25,10.75,-20.72,6.4,21.5,20,-1.7;b,65.46,10.75,-14.77,6.4,21.5,20,-1.7;b,64.69,10.75,-8.86,6.4,21.5,20,-1.7;b,63.69,10.75,-2.06,6.4,21.5,20,-1.79;b,61.9,10.75,4.86,6.4,21.5,20,-1.9;b,60.14,10.75,10.17,6.4,21.5,20,-1.86;b,58.21,10.75,16.23,6.4,21.5,20,-1.9;b,56.28,10.75,21.91,6.4,21.5,20,-1.9;b,53.64,10.75,28.33,6.4,21.5,20,-1.99;b,49.67,10.75,35.07,6.4,21.5,20,-2.18;b,45.94,10.75,40.1,6.4,21.5,20,-2.2;b,44.67,10.75,41.15,6.13,21.5,20,-1.77;b,-6.4,1.46,10.6,12,3.2,2.55,-0.12;c,15.1,-0.33,-36.8,0.24,3;c,-35.5,-0.41,-24.2,0.24,3;c,14.5,-0.64,20,0.24,3;c,-6.5,-0.18,2.9,0.22,3;c,8.9,-0.32,4.9,0.22,3;c,9.1,-0.6,16.9,0.22,3;c,5.9,-0.44,15.8,0.22,3;c,13.9,-0.48,7.4,0.22,3;c,5.5,-0.55,20.3,0.22,3;c,-16.4,-0.33,-25.1,0.22,3;c,-19.4,-0.26,-8,0.22,3;c,-19.7,-0.23,5.9,0.22,3;c,-6.1,-0.31,-30.8,0.22,3;c,-3.1,-0.21,-11.3,0.3,3;c,5.5,-0.16,-9.5,0.3,3;c,2.5,-0.21,1.9,0.3,3;c,-9.1,-0.24,-5.9,0.3,3;c,10.9,-0.29,-5,0.3,3;b,-33,1.23,18,2.5,2.35,1.8,2.07;c,36.5,-0.2,-12,0.7,0.8;c,36.5,-0.2,-12,0.12,5;c,-16.3,-0.16,10,0.42,4;c,0.8,-0.35,10.4,0.42,4;c,23.55,-0.45,-5.6,0.42,4;c,-8.3,-0.07,-13.35,0.42,4;c,14.9,-0.62,22.5,0.42,4;c,11.5,-0.63,21.2,0.42,4;c,0.1,-0.21,-18.5,4.9,0.22;c,0.1,-0.1,-18.5,4.3,0.44;c,0.1,-0.21,-18.5,3.1,2.4;c,17,-0.68,12.5,0.26,3;b,33,-0.37,9,2.5,1.2,4.9,-1.57;c,-11.3,-0.27,16.6,0.3,0.9;c,-8.2,-0.23,-2.6,0.3,0.9;c,7,-0.23,-6.4,0.3,0.9;b,-4.8,0.3,0.4,0.56,0.96,0.56,1.5;b,-18,0.09,-16,0.56,0.96,0.56,0.35;b,2.3,0.19,-27.1,2.2,1.1,0.15,0.45;b,-2,0.61,-25.1,2.2,1.1,0.15,0.45';
+
+/* ======================================================================
+   畫面基礎
+   ====================================================================== */
+const canvas = document.getElementById('gl');
+const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+if (isTouch) document.body.classList.add('touch');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const BASE_DPR = Math.min(window.devicePixelRatio || 1, isTouch ? 1.25 : 1.5);
+let renderScale = 1;
+const scene = new THREE.Scene();
+scene.background = FOG.color.clone();
+scene.fog = new THREE.FogExp2(FOG.color.clone(), FOG.density);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 2000);
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setPixelRatio(BASE_DPR * renderScale);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w < h ? Math.min(82, 55 / Math.sqrt(w / h)) : 55;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// 夜間光：冷月光 + 最近的幾盞路燈（只影響角色；splat 的燈光在 GPU 修飾器裡算）
+scene.add(new THREE.HemisphereLight(0x7d93bb, 0x1a1e27, 0.9));
+const moon = new THREE.DirectionalLight(0xa9bfe6, 0.55); moon.position.set(-20, 40, 10); scene.add(moon, moon.target);
+const lampLights = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffb066, 0, 16, 1.6); scene.add(l); return l; });
+
+/* ---------- 路燈光暈 ---------- */
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.12, 'rgba(255,236,200,.85)');
+  gr.addColorStop(0.35, 'rgba(255,190,120,.25)'); gr.addColorStop(1, 'rgba(255,170,90,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const GLOW = glowTexture();
+const haloCore = new THREE.SpriteMaterial({ map: GLOW, color: 0xffd6a0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true });
+const haloHaze = new THREE.SpriteMaterial({ map: GLOW, color: 0xff9d4d, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: 0.16 });
+const halos = new THREE.Group(); scene.add(halos);
+for (const L of LAMPS) {
+  for (const [ox, oy] of L.globes) {
+    const s = new THREE.Sprite(haloCore); s.position.set(L.pos.x + ox, L.pos.y + oy, L.pos.z); s.scale.setScalar(0.9); s.renderOrder = 5; halos.add(s);
+  }
+  const h = new THREE.Sprite(haloHaze); h.position.copy(L.pos); h.scale.setScalar(L.kind === 'triple' ? 7 : 5.5); h.renderOrder = 5; halos.add(h);
+}
+
+/* ---------- 下雪粒子（跟著鏡頭的循環體積，靠近路燈的雪片會被染暖） ---------- */
+const SNOW_N = isTouch ? 2600 : 6000, SNOW_AREA = 34;
+const snowGeo = new THREE.BufferGeometry();
+{
+  const p = new Float32Array(SNOW_N * 3), s = new Float32Array(SNOW_N);
+  for (let i = 0; i < SNOW_N; i++) { p[i * 3] = Math.random(); p[i * 3 + 1] = Math.random(); p[i * 3 + 2] = Math.random(); s[i] = Math.random(); }
+  snowGeo.setAttribute('position', new THREE.BufferAttribute(p, 3)); snowGeo.setAttribute('seed', new THREE.BufferAttribute(s, 1));
+}
+const snowUniforms = {
+  uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uArea: { value: SNOW_AREA }, uPx: { value: 1 },
+  uLamps: { value: LAMPS.map(L => new THREE.Vector4(L.pos.x, L.pos.y, L.pos.z, L.power)) },
+  uFog: { value: FOG.color }, uDensity: { value: FOG.density },
+};
+const snowMat = new THREE.ShaderMaterial({
+  uniforms: snowUniforms, transparent: true, depthWrite: false,
+  vertexShader: `
+    attribute float seed; uniform float uTime, uArea, uPx; uniform vec3 uCam; uniform vec4 uLamps[${LAMPS.length}];
+    varying float vA; varying vec3 vC;
+    void main(){
+      vec3 p = position * uArea;
+      float fall = 0.75 + seed * 0.7;
+      p.y -= uTime * fall * 1.15;
+      p.x += uTime * 0.38 + sin(uTime * 0.7 + seed * 40.0) * 0.45;
+      p.z += uTime * 0.16 + cos(uTime * 0.5 + seed * 23.0) * 0.35;
+      vec3 rel = mod(p - uCam + uArea * 0.5, uArea) - uArea * 0.5;
+      vec3 wp = uCam + rel;
+      vec4 mv = modelViewMatrix * vec4(wp, 1.0);
+      float d = -mv.z;
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = clamp((0.016 + seed * 0.024) * uPx / max(d, 0.1), 1.0, 14.0);
+      vec3 warm = vec3(0.0);
+      for (int i = 0; i < ${LAMPS.length}; i++) { vec3 L = uLamps[i].xyz - wp; float dd = dot(L, L); warm += uLamps[i].w * 6.0 / (6.0 + dd) * (1.0 - smoothstep(30.0, 140.0, dd)); }
+      vC = vec3(0.62, 0.70, 0.84) + vec3(1.0, 0.68, 0.36) * min(warm, 1.6);
+      float edge = 1.0 - smoothstep(uArea * 0.32, uArea * 0.5, length(rel));
+      vA = edge * (0.5 + 0.5 * seed) * smoothstep(0.15, 0.8, d);
+    }`,
+  fragmentShader: `
+    varying float vA; varying vec3 vC;
+    void main(){ vec2 c = gl_PointCoord - 0.5; float r = dot(c, c); if (r > 0.25) discard; gl_FragColor = vec4(vC, vA * (1.0 - r * 4.0)); }`,
+});
+const snow = new THREE.Points(snowGeo, snowMat); snow.frustumCulled = false; snow.renderOrder = 6; scene.add(snow);
+
+/* ======================================================================
+   載入進度 UI
+   ====================================================================== */
+const rows = {}; document.querySelectorAll('#assets li').forEach(li => rows[li.dataset.k] = li);
+function setRow(k, frac, text, cls) {
+  const li = rows[k]; if (!li) return;
+  if (frac != null) li.querySelector('u').style.width = Math.round(Math.min(1, frac) * 100) + '%';
+  if (text != null) li.querySelector('i').textContent = text;
+  if (cls) li.className = cls;
+}
+const mb = b => (b / 1e6).toFixed(1);
+const LOAD = { spark: 'wait', splat: 'wait', fbx: 'wait', clips: 'wait', col: 'wait' };
+const WARN = []; // 給面板看的警告
+function warn(msg) { WARN.push(msg); console.warn('[266]', msg); }
+
+/* ======================================================================
+   簡化碰撞體：三角形湯 → XZ 均勻網格（CSR）
+   ====================================================================== */
+const COL = { n: 0, tri: null, nrm: null, cs: 2, x0: -90, z0: -120, nx: 0, nz: 0, start: null, idx: null, stamp: null, mark: 1, meshTris: 0, primCount: 0, primTris: 0, source: '' };
+function primitiveTris(out) {
+  let count = 0;
+  const push = (a, b, c) => out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  for (const s of PRIM_RAW.split(';')) {
+    const f = s.split(','); const t = f[0]; const n = f.slice(1).map(Number); count++;
+    if (t === 'c') {
+      const [x, y0, z, r, h] = n, seg = 12, ring0 = [], ring1 = [];
+      for (let i = 0; i < seg; i++) { const a = i / seg * Math.PI * 2; ring0.push(V(x + Math.cos(a) * r, y0, z + Math.sin(a) * r)); ring1.push(V(x + Math.cos(a) * r, y0 + h, z + Math.sin(a) * r)); }
+      const top = V(x, y0 + h, z);
+      for (let i = 0; i < seg; i++) { const j = (i + 1) % seg; push(ring0[i], ring1[i], ring1[j]); push(ring0[i], ring1[j], ring0[j]); push(top, ring1[j], ring1[i]); }
+    } else {
+      const [x, y, z, sx, sy, sz, yaw] = n, hx = sx / 2, hy = sy / 2, hz = sz / 2, c = Math.cos(yaw), sn = Math.sin(yaw);
+      const P = (lx, ly, lz) => V(x + lx * c + lz * sn, y + ly, z - lx * sn + lz * c);
+      const p = [P(-hx, -hy, -hz), P(hx, -hy, -hz), P(hx, -hy, hz), P(-hx, -hy, hz), P(-hx, hy, -hz), P(hx, hy, -hz), P(hx, hy, hz), P(-hx, hy, hz)];
+      const faces = [[4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
+      for (const [a, b, cc, d] of faces) { push(p[a], p[b], p[cc]); push(p[a], p[cc], p[d]); }
+    }
+  }
+  return count;
+}
+function fallbackGround(out) {
+  // 碰撞網格載入失敗時：平地 + 四面邊界牆，至少不會掉出世界
+  const { minX, maxX, minZ, maxZ } = CFG.bounds, y = -0.2, H = 6;
+  out.push(minX, y, minZ, maxX, y, minZ, maxX, y, maxZ, minX, y, minZ, maxX, y, maxZ, minX, y, maxZ);
+  const wall = (ax, az, bx, bz) => out.push(ax, y, az, bx, y, bz, bx, y + H, bz, ax, y, az, bx, y + H, bz, ax, y + H, az);
+  wall(minX, minZ, maxX, minZ); wall(maxX, minZ, maxX, maxZ); wall(maxX, maxZ, minX, maxZ); wall(minX, maxZ, minX, minZ);
+}
+function buildGrid(soup) {
+  // 過濾：天空穹頂（全部高於 45 m）與退化三角形
+  const keep = [];
+  for (let i = 0; i < soup.length; i += 9) {
+    const ay = soup[i + 1], by = soup[i + 4], cy = soup[i + 7];
+    if (Math.min(ay, by, cy) > 45) continue;
+    const ux = soup[i + 3] - soup[i], uy = by - ay, uz = soup[i + 5] - soup[i + 2];
+    const vx = soup[i + 6] - soup[i], vy = cy - ay, vz = soup[i + 8] - soup[i + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.hypot(nx, ny, nz);
+    if (l < 1e-7) continue;
+    keep.push(i);
+  }
+  const n = keep.length, tri = new Float32Array(n * 9), nrm = new Float32Array(n * 3);
+  keep.forEach((src, k) => {
+    for (let j = 0; j < 9; j++) tri[k * 9 + j] = soup[src + j];
+    const o = k * 9;
+    const ux = tri[o + 3] - tri[o], uy = tri[o + 4] - tri[o + 1], uz = tri[o + 5] - tri[o + 2];
+    const vx = tri[o + 6] - tri[o], vy = tri[o + 7] - tri[o + 1], vz = tri[o + 8] - tri[o + 2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz);
+    nrm[k * 3] = nx / l; nrm[k * 3 + 1] = ny / l; nrm[k * 3 + 2] = nz / l;
+  });
+  const cs = COL.cs, nx = Math.ceil(190 / cs), nz = Math.ceil(200 / cs);
+  const cellRange = (k) => {
+    const o = k * 9;
+    const mnx = Math.min(tri[o], tri[o + 3], tri[o + 6]), mxx = Math.max(tri[o], tri[o + 3], tri[o + 6]);
+    const mnz = Math.min(tri[o + 2], tri[o + 5], tri[o + 8]), mxz = Math.max(tri[o + 2], tri[o + 5], tri[o + 8]);
+    const i0 = Math.max(0, Math.floor((mnx - COL.x0) / cs)), i1 = Math.min(nx - 1, Math.floor((mxx - COL.x0) / cs));
+    const j0 = Math.max(0, Math.floor((mnz - COL.z0) / cs)), j1 = Math.min(nz - 1, Math.floor((mxz - COL.z0) / cs));
+    return [i0, i1, j0, j1];
+  };
+  const counts = new Uint32Array(nx * nz + 1);
+  for (let k = 0; k < n; k++) { const [i0, i1, j0, j1] = cellRange(k); for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) counts[j * nx + i]++; }
+  const start = new Uint32Array(nx * nz + 1); for (let c = 0; c < nx * nz; c++) start[c + 1] = start[c] + counts[c];
+  const fill = start.slice(), idx = new Uint32Array(start[nx * nz]);
+  for (let k = 0; k < n; k++) { const [i0, i1, j0, j1] = cellRange(k); for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) idx[fill[j * nx + i]++] = k; }
+  Object.assign(COL, { n, tri, nrm, nx, nz, start, idx, stamp: new Uint32Array(n), mark: 1 });
+}
+function forCells(x0, z0, x1, z1, fn) {
+  if (!COL.n) return;
+  const cs = COL.cs;
+  const i0 = Math.max(0, Math.floor((x0 - COL.x0) / cs)), i1 = Math.min(COL.nx - 1, Math.floor((x1 - COL.x0) / cs));
+  const j0 = Math.max(0, Math.floor((z0 - COL.z0) / cs)), j1 = Math.min(COL.nz - 1, Math.floor((z1 - COL.z0) / cs));
+  const m = ++COL.mark; if (m > 4e9) { COL.stamp.fill(0); COL.mark = 1; }
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const c = j * COL.nx + i;
+    for (let p = COL.start[c]; p < COL.start[c + 1]; p++) { const k = COL.idx[p]; if (COL.stamp[k] === m) continue; COL.stamp[k] = m; fn(k); }
+  }
+}
+// Ericson：點到三角形的最近點（寫入 CP）
+const CP = new THREE.Vector3();
+function closestOnTri(px, py, pz, k) {
+  const t = COL.tri, o = k * 9;
+  const ax = t[o], ay = t[o + 1], az = t[o + 2], bx = t[o + 3], by = t[o + 4], bz = t[o + 5], cx = t[o + 6], cy = t[o + 7], cz = t[o + 8];
+  const abx = bx - ax, aby = by - ay, abz = bz - az, acx = cx - ax, acy = cy - ay, acz = cz - az;
+  const apx = px - ax, apy = py - ay, apz = pz - az;
+  const d1 = abx * apx + aby * apy + abz * apz, d2 = acx * apx + acy * apy + acz * apz;
+  if (d1 <= 0 && d2 <= 0) return CP.set(ax, ay, az);
+  const bpx = px - bx, bpy = py - by, bpz = pz - bz;
+  const d3 = abx * bpx + aby * bpy + abz * bpz, d4 = acx * bpx + acy * bpy + acz * bpz;
+  if (d3 >= 0 && d4 <= d3) return CP.set(bx, by, bz);
+  const vc = d1 * d4 - d3 * d2;
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) { const v = d1 / (d1 - d3); return CP.set(ax + abx * v, ay + aby * v, az + abz * v); }
+  const cpx = px - cx, cpy = py - cy, cpz = pz - cz;
+  const d5 = abx * cpx + aby * cpy + abz * cpz, d6 = acx * cpx + acy * cpy + acz * cpz;
+  if (d6 >= 0 && d5 <= d6) return CP.set(cx, cy, cz);
+  const vb = d5 * d2 - d1 * d6;
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) { const w = d2 / (d2 - d6); return CP.set(ax + acx * w, ay + acy * w, az + acz * w); }
+  const va = d3 * d6 - d5 * d4;
+  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) { const w = (d4 - d3) / ((d4 - d3) + (d5 - d6)); return CP.set(bx + (cx - bx) * w, by + (cy - by) * w, bz + (cz - bz) * w); }
+  const den = 1 / (va + vb + vc), v = vb * den, w = vc * den;
+  return CP.set(ax + abx * v + acx * w, ay + aby * v + acy * w, az + abz * v + acz * w);
+}
+// 往下的射線：回傳 yTop 以下、最高的表面
+const GROUND = { y: 0, ny: 1, hit: false };
+function rayDown(x, z, yTop, maxDrop) {
+  GROUND.hit = false; let best = -Infinity, bestN = 1;
+  forCells(x, z, x, z, k => {
+    const t = COL.tri, o = k * 9;
+    const ax = t[o], ay = t[o + 1], az = t[o + 2], bx = t[o + 3], by = t[o + 4], bz = t[o + 5], cx = t[o + 6], cy = t[o + 7], cz = t[o + 8];
+    const det = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz); if (Math.abs(det) < 1e-9) return;
+    const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / det, l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / det, l3 = 1 - l1 - l2;
+    if (l1 < -1e-4 || l2 < -1e-4 || l3 < -1e-4) return;
+    const y = l1 * ay + l2 * by + l3 * cy;
+    if (y <= yTop && y >= yTop - maxDrop && y > best) { best = y; bestN = Math.abs(COL.nrm[k * 3 + 1]); }
+  });
+  if (best > -Infinity) { GROUND.hit = true; GROUND.y = best; GROUND.ny = bestN; }
+  return GROUND;
+}
+// 線段射線（鏡頭防穿牆）：回傳最近交點參數 t ∈ [0,1]
+function raySegment(a, b) {
+  let tMin = 1; const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  forCells(Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z), k => {
+    const t = COL.tri, o = k * 9;
+    const e1x = t[o + 3] - t[o], e1y = t[o + 4] - t[o + 1], e1z = t[o + 5] - t[o + 2];
+    const e2x = t[o + 6] - t[o], e2y = t[o + 7] - t[o + 1], e2z = t[o + 8] - t[o + 2];
+    const px = dy * e2z - dz * e2y, py = dz * e2x - dx * e2z, pz = dx * e2y - dy * e2x;
+    const det = e1x * px + e1y * py + e1z * pz; if (Math.abs(det) < 1e-9) return;
+    const inv = 1 / det, sx = a.x - t[o], sy = a.y - t[o + 1], sz = a.z - t[o + 2];
+    const u = (sx * px + sy * py + sz * pz) * inv; if (u < 0 || u > 1) return;
+    const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+    const v = (dx * qx + dy * qy + dz * qz) * inv; if (v < 0 || u + v > 1) return;
+    const tt = (e2x * qx + e2y * qy + e2z * qz) * inv; if (tt > 0 && tt < tMin) tMin = tt;
+  });
+  return tMin;
+}
+let colliderViz = null;
+function buildColliderViz() {
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(COL.tri, 3));
+  colliderViz = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x7fd4ff, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false, fog: false }));
+  colliderViz.visible = false; colliderViz.renderOrder = 7; colliderViz.frustumCulled = false; scene.add(colliderViz);
+}
+async function loadCollider() {
+  LOAD.col = 'load'; setRow('col', 0.05, '下載網格…');
+  const soup = [];
+  try {
+    const res = await fetch(URLS.collider); if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buf = await res.arrayBuffer(); setRow('col', 0.6, '整理三角形…');
+    const gltf = await new GLTFLoader().parseAsync(buf, '');
+    gltf.scene.updateMatrixWorld(true);
+    const v = new THREE.Vector3();
+    gltf.scene.traverse(o => {
+      if (!o.isMesh) return;
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry, p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld); soup.push(v.x, v.y, v.z); }
+    });
+    COL.meshTris = soup.length / 9; COL.source = 'Marble 碰撞網格';
+  } catch (e) {
+    warn('碰撞網格載入失敗，改用平地與邊界牆：' + (e.message || e)); fallbackGround(soup); COL.meshTris = soup.length / 9; COL.source = '後備平地';
+  }
+  const before = soup.length; COL.primCount = primitiveTris(soup); COL.primTris = (soup.length - before) / 9;
+  buildGrid(soup); buildColliderViz();
+  player.pos.y = groundAt(player.pos.x, player.pos.z);
+  LOAD.col = 'done'; setRow('col', 1, `${COL.n.toLocaleString()} 三角形 · ${COL.primCount} 個簡化體`, COL.source === '後備平地' ? 'fail' : 'done');
+}
+
+/* ======================================================================
+   Spark：Gaussian splat、LoD、依距離剔除、夜色／冷霧／路燈（逐 splat 修飾器）
+   ====================================================================== */
+const SPLAT = { S: null, spark: null, mesh: null, total: 0, ready: false, U: null, lastCam: new THREE.Vector3(1e9, 0, 0), lastT: 0, dirty: true, lodScale: 1 };
+function makeNightModifier(S) {
+  const { dynoBlock, Gsplat, Dyno, DynoVec3, DynoVec4 } = S.dyno;
+  const U = {
+    cam: new DynoVec3({ value: new THREE.Vector3() }),
+    fog: new DynoVec4({ value: new THREE.Vector4(FOG.density, FOG.cull, 26, FOG.lampGain) }),
+    fogColor: new DynoVec3({ value: new THREE.Vector3(FOG.color.r, FOG.color.g, FOG.color.b) }),
+  };
+  // FOG.color 是線性值；splat 顏色是顯示用的 sRGB，霧色要換回 sRGB 才會和背景接縫
+  const srgb = FOG.color.clone().convertLinearToSRGB(); U.fogColor.value.set(srgb.r, srgb.g, srgb.b);
+  const n = LAMPS.length;
+  const lampGlsl = `const vec4 ETN_LAMPS[${n}] = vec4[${n}](${LAMPS.map(L => `vec4(${L.pos.x.toFixed(2)},${L.pos.y.toFixed(2)},${L.pos.z.toFixed(2)},${L.power.toFixed(2)})`).join(',')});`;
+  const mod = dynoBlock({ gsplat: Gsplat }, { gsplat: Gsplat }, ({ gsplat }) => {
+    const d = new Dyno({
+      inTypes: { gsplat: Gsplat, cam: 'vec3', fog: 'vec4', fogColor: 'vec3' },
+      outTypes: { gsplat: Gsplat },
+      inputs: { gsplat, cam: U.cam, fog: U.fog, fogColor: U.fogColor },
+      globals: () => [lampGlsl],
+      statements: ({ inputs: i, outputs: o }) => [
+        `${o.gsplat} = ${i.gsplat};`,
+        `vec3 etP = ${o.gsplat}.center;`,
+        `float etD = distance(etP, ${i.cam});`,
+        `if (etD > ${i.fog}.y) { ${o.gsplat}.flags &= ~GSPLAT_FLAG_ACTIVE; }`,
+        `vec3 etC = ${o.gsplat}.rgba.rgb;`,
+        `float etL = dot(etC, vec3(0.299, 0.587, 0.114));`,
+        // 夜色：去飽和、壓暗、偏冷藍（雪地變成月光下的藍灰）
+        `vec3 etN = mix(vec3(etL), etC, 0.45) * vec3(0.15, 0.2, 0.31);`,
+        `float etW = 0.0;`,
+        `for (int k = 0; k < ${n}; k++) { vec3 etV = ETN_LAMPS[k].xyz - etP; float dd = dot(etV, etV); if (dd < 240.0) etW += ETN_LAMPS[k].w * 6.0 / (6.0 + dd) * (1.0 - smoothstep(70.0, 240.0, dd)); }`,
+        `vec3 etLit = etN + etC * vec3(1.0, 0.6, 0.29) * min(etW * ${i.fog}.w, 1.25) * 1.05;`,
+        // 冷色霧：指數衰減，越遠越融進背景
+        `float etF = 1.0 - exp(-${i.fog}.x * max(etD - 2.0, 0.0));`,
+        `etLit = mix(etLit, ${i.fogColor}, clamp(etF, 0.0, 0.97));`,
+        `float etFade = 1.0 - smoothstep(${i.fog}.y - ${i.fog}.z, ${i.fog}.y, etD);`,
+        `${o.gsplat}.rgba = vec4(min(etLit, vec3(1.0)), ${o.gsplat}.rgba.a * etFade);`,
+      ],
+    });
+    return { gsplat: d.outputs.gsplat };
+  });
+  return { mod, U };
+}
+async function loadSpark() {
+  LOAD.spark = 'load'; setRow('spark', 0.2, '下載程式庫…');
+  try {
+    const S = await import(URLS.spark);
+    SPLAT.S = S;
+    const spark = new S.SparkRenderer({ renderer, lodSplatScale: isTouch ? 0.8 : 1, lodRenderScale: 1.5, maxStdDev: Math.sqrt(7) });
+    spark.renderOrder = 0;
+    scene.add(spark); SPLAT.spark = spark; SPLAT.lodScale = spark.lodSplatScale;
+    LOAD.spark = 'done'; setRow('spark', 1, 'v2.3.1', 'done');
+    return S;
+  } catch (e) {
+    LOAD.spark = 'fail'; LOAD.splat = 'fail';
+    setRow('spark', 1, '載入失敗', 'fail'); setRow('splat', 1, '略過', 'fail');
+    warn('Spark 載入失敗，只顯示碰撞體與霧：' + (e.message || e));
+    return null;
+  }
+}
+async function loadSplat(S) {
+  if (!S) return;
+  LOAD.splat = 'load'; setRow('splat', 0, '連線中…');
+  try {
+    const { mod, U } = makeNightModifier(S); SPLAT.U = U;
+    let downloaded = false;
+    const mesh = new S.SplatMesh({
+      url: URLS.splat, lod: true, worldModifier: mod,
+      onProgress: e => {
+        const total = e.total || SIZE.splat, f = Math.min(1, e.loaded / total);
+        setRow('splat', f * 0.85, `${mb(e.loaded)} / ${mb(total)} MB`);
+        if (f >= 1 && !downloaded) { downloaded = true; setRow('splat', 0.88, '解碼並建立 LoD 樹…'); }
+      },
+    });
+    scene.add(mesh); SPLAT.mesh = mesh;
+    await mesh.initialized;
+    SPLAT.total = mesh.packedSplats?.lodSplats?.numSplats || mesh.extSplats?.lodSplats?.numSplats || mesh.numSplats || 0;
+    SPLAT.ready = true; LOAD.splat = 'done';
+    setRow('splat', 1, `${(SPLAT.total / 1e6).toFixed(2)} M splats · LoD`, 'done');
+  } catch (e) {
+    LOAD.splat = 'fail'; setRow('splat', 1, '載入失敗', 'fail');
+    warn('splat 載入失敗：' + (e.message || e));
+    if (SPLAT.mesh) { scene.remove(SPLAT.mesh); SPLAT.mesh = null; }
+  }
+}
+function updateSplatUniforms(now) {
+  const U = SPLAT.U; if (!U || !SPLAT.mesh) return;
+  const cam = camera.position;
+  U.cam.value.copy(cam);
+  // 只在鏡頭明顯移動時重新跑修飾器，霧與剔除不需要每格都精確
+  if (SPLAT.dirty || (cam.distanceToSquared(SPLAT.lastCam) > 0.36 && now - SPLAT.lastT > 90)) {
+    SPLAT.lastCam.copy(cam); SPLAT.lastT = now; SPLAT.dirty = false; SPLAT.mesh.updateVersion();
+  }
+}
+
+/* ======================================================================
+   角色：FBX + 動畫片段（缺少的片段標示在面板，用替代姿勢不讓程式壞掉）
+   ====================================================================== */
+const player = {
+  pos: CFG.spawn.clone(), vel: new THREE.Vector3(), yaw: CFG.spawnYaw, grounded: true, airTime: 0, landT: 0,
+  root: new THREE.Group(), pivot: new THREE.Group(), model: null, mixer: null, hips: null,
+  acts: {}, w: {}, anim: 'idle', clipInfo: {}, fallbackModel: false,
+};
+player.root.add(player.pivot); scene.add(player.root);
+for (const s of ANIM_STATES) player.clipInfo[s] = { ok: false, name: null, dur: 0, src: '', note: '' };
+
+// 腳下的影子圓斑
+const blob = new THREE.Mesh(new THREE.CircleGeometry(0.62, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({
+  map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })(),
+  transparent: true, depthWrite: false, fog: false,
+}));
+blob.renderOrder = 4; scene.add(blob);
+
+function isStaticClip(clip) {
+  return clip.tracks.every(t => { const v = t.values, sz = t.getValueSize(); for (let i = sz; i < v.length; i++) if (Math.abs(v[i] - v[i % sz]) > 1e-4) return false; return true; });
+}
+function fixHips(clip, mode) {
+  const tr = clip.tracks.find(t => /Hips\.position$/.test(t.name)); if (!tr) return;
+  const v = tr.values, n = v.length / 3; if (n < 2) return;
+  const x0 = v[0], y0 = v[1], z0 = v[2], dx = v[(n - 1) * 3] - x0, dz = v[(n - 1) * 3 + 2] - z0;
+  for (let i = 0; i < n; i++) {
+    const f = tr.times[i] / (clip.duration || 1);
+    if (mode === 'flat') { v[i * 3] = x0; v[i * 3 + 1] = y0; v[i * 3 + 2] = z0; }
+    else { v[i * 3] -= dx * f; v[i * 3 + 2] -= dz * f; }
+  }
+}
+function buildFallbackFigure() {
+  // FBX 失敗時的備用人形：雪衣斗篷 + 防毒面罩，至少能玩
+  const g = new THREE.Group();
+  const coat = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.9 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x23272d, roughness: 0.6, metalness: 0.2 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.27, 0.8, 6, 14), coat); body.position.y = 0.95; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 18, 14), dark); head.position.y = 1.62; g.add(head);
+  const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.12, 14).rotateX(Math.PI / 2), dark); filter.position.set(0, 1.56, 0.19); g.add(filter);
+  [-1, 1].forEach(s => { const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.5, 4, 8), dark); leg.position.set(0.12 * s, 0.35, 0); g.add(leg); });
+  return g;
+}
+async function loadClips() {
+  LOAD.clips = 'load'; setRow('clips', 0.05, '下載中…');
+  const out = {}; let done = 0; const keys = Object.keys(CLIP_FILES);
+  await Promise.all(keys.map(async st => {
+    try {
+      const r = await fetch(REPO + 'player/animations/' + CLIP_FILES[st]); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const clip = THREE.AnimationClip.parse(await r.json());
+      if (isStaticClip(clip)) throw new Error('沒有關鍵影格');
+      out[st] = { clip, src: CLIP_FILES[st] };
+    } catch (e) { out[st] = { err: e.message || String(e), src: CLIP_FILES[st] }; }
+    setRow('clips', ++done / keys.length, `${done} / ${keys.length}`);
+  }));
+  const bad = Object.values(out).filter(o => o.err).length;
+  LOAD.clips = 'done'; setRow('clips', 1, bad ? `${keys.length - bad} 個可用 · ${bad} 個失敗` : `${keys.length} 個 JSON 片段`, bad ? 'fail' : 'done');
+  return out;
+}
+async function loadCharacter(clipsTask) {
+  LOAD.fbx = 'load'; setRow('fbx', 0, '連線中…');
+  let model = null;
+  try {
+    model = await new FBXLoader().loadAsync(URLS.fbx, e => { const t = e.total || SIZE.fbx; setRow('fbx', e.loaded / t * 0.92, `${mb(e.loaded)} / ${mb(t)} MB`); });
+  } catch (e) {
+    warn('角色 FBX 載入失敗，改用備用人形：' + (e.message || e));
+  }
+  const clipRes = await clipsTask;
+  if (!model) {
+    player.fallbackModel = true; player.pivot.add(buildFallbackFigure());
+    for (const s of ANIM_STATES) player.clipInfo[s].note = '沒有骨架（FBX 未載入）';
+    LOAD.fbx = 'fail'; setRow('fbx', 1, '失敗 · 備用人形', 'fail');
+    return;
+  }
+  // 模型整理：藏起 Meshy 匯出的輔助球體、材質轉 PBR
+  const meshes = [], skinned = [];
+  model.traverse(o => { if (o.isMesh) { meshes.push(o); if (o.isSkinnedMesh) skinned.push(o); } if (o.isBone && /Hips$/.test(o.name) && !player.hips) player.hips = o; });
+  const tl = new THREE.TextureLoader(); tl.setCrossOrigin('anonymous');
+  const [rough, metal] = await Promise.all([URLS.rough, URLS.metal].map(u => tl.loadAsync(u).catch(() => null)));
+  for (const m of meshes) {
+    if (skinned.length && !m.isSkinnedMesh) { m.visible = false; continue; }
+    const mats = (Array.isArray(m.material) ? m.material : [m.material]).map(src => {
+      const mat = new THREE.MeshStandardMaterial({ map: src.map || null, normalMap: src.normalMap || null, roughness: 1, metalness: rough && metal ? 1 : 0.1, roughnessMap: rough, metalnessMap: metal, color: 0xffffff });
+      if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+      src.dispose?.(); return mat;
+    });
+    m.material = Array.isArray(m.material) ? mats : mats[0];
+    m.frustumCulled = false;
+  }
+  // 縮放成 1.8 m、腳底貼地（在模型自己的座標裡量）
+  model.updateMatrixWorld(true);
+  const box = new THREE.Box3(); for (const m of (skinned.length ? skinned : meshes)) { if (m.isSkinnedMesh) m.computeBoundingBox(); box.expandByObject(m); }
+  const h = box.max.y - box.min.y || 1.8, k = 1.8 / h;
+  player.pivot.add(model);
+  player.pivot.scale.setScalar(k);
+  player.pivot.position.y = -box.min.y * k;
+  player.model = model;
+
+  // 動畫片段
+  const names = new Set(); model.traverse(o => names.add(o.name));
+  const clean = clip => { clip.tracks = clip.tracks.filter(t => names.has(t.name.split('.')[0])); return clip; };
+  const clips = {};
+  const walk = model.animations.find(c => !isStaticClip(c));
+  if (walk) { clips.walk = clean(walk); fixHips(clips.walk, 'loop'); player.clipInfo.walk = { ok: true, name: walk.name, dur: walk.duration, src: 'FBX 內嵌', note: '' }; }
+  for (const [st, r] of Object.entries(clipRes)) {
+    if (r.clip) { clips[st] = clean(r.clip); fixHips(clips[st], st === 'jump' ? 'flat' : 'loop'); player.clipInfo[st] = { ok: true, name: r.clip.name, dur: r.clip.duration, src: r.src, note: '' }; }
+    else player.clipInfo[st] = { ok: false, name: null, dur: 0, src: r.src, note: '下載失敗：' + r.err };
+  }
+  const mixer = new THREE.AnimationMixer(model); player.mixer = mixer;
+  const act = (clip, loop = true) => { const a = mixer.clipAction(clip); a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true; a.enabled = true; a.setEffectiveWeight(0); a.play(); return a; };
+  // 缺什麼補什麼：每個狀態都要有一個 action，面板記下替代方式
+  const note = (st, txt) => { if (!player.clipInfo[st].ok) player.clipInfo[st].note = (player.clipInfo[st].note ? player.clipInfo[st].note + '；' : '') + txt; };
+  if (clips.walk) player.acts.walk = act(clips.walk);
+  if (clips.run) player.acts.run = act(clips.run);
+  if (clips.idle) player.acts.idle = act(clips.idle);
+  if (clips.jump) { player.acts.jump = act(clips.jump, false); player.acts.jump.timeScale = 0; }
+  if (!player.acts.walk && player.acts.run) { player.acts.walk = act(clips.run.clone()); note('walk', '以 run 放慢代替'); }
+  if (!player.acts.run && player.acts.walk) { player.acts.run = act(clips.walk.clone()); note('run', '以 walk 加速代替'); player.speedRunFromWalk = true; }
+  if (!player.acts.idle) {
+    const base = clips.walk || clips.run;
+    if (base) { player.acts.idle = act(base.clone()); player.acts.idle.timeScale = 0; note('idle', '以走路第一格靜止姿勢代替'); }
+  }
+  if (!player.acts.jump) note('jump', '在空中凍結目前姿勢');
+  note('fall', player.acts.jump ? '以 jump 片段頂點姿勢代替' : '凍結目前姿勢');
+  note('land', '以 idle／walk 交叉淡入代替');
+  for (const s of ANIM_STATES) if (!player.clipInfo[s].ok) warn(`缺少動畫片段「${s}」：${player.clipInfo[s].note}`);
+  LOAD.fbx = 'done'; setRow('fbx', 1, `縮放 ×${k.toFixed(4)} → 1.80 m · ${skinned.length} 個蒙皮網格`, 'done');
+}
+
+/* ======================================================================
+   輸入
+   ====================================================================== */
+const keys = new Set();
+const view = { yaw: CFG.spawnYaw + Math.PI, pitch: 0.2, dist: 4.4, distT: 4.4 };
+let playing = false, jumpQueued = false, touchRun = false;
+const stick = { x: 0, y: 0, id: null };
+addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) jumpQueued = true; }
+  if (e.code === 'KeyP' && !e.repeat) toggleDebug();
+  if (e.code === 'KeyR' && !e.repeat && playing) respawn();
+  keys.add(e.code);
+});
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+function lockPointer() {
+  if (isTouch) return;
+  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch { /* 不支援就用拖曳 */ }
+}
+canvas.addEventListener('click', () => { if (playing && document.pointerLockElement !== canvas) lockPointer(); });
+document.getElementById('pause').addEventListener('click', () => { document.body.classList.remove('paused'); lockPointer(); });
+document.addEventListener('pointerlockchange', () => {
+  const locked = document.pointerLockElement === canvas;
+  document.body.classList.toggle('locked', locked);
+  document.body.classList.toggle('paused', playing && !locked && !isTouch && pauseOnUnlock);
+});
+let pauseOnUnlock = false;
+addEventListener('mousemove', e => {
+  if (document.pointerLockElement === canvas) look(e.movementX, e.movementY, 0.0022);
+  else if (drag && playing) look(e.movementX, e.movementY, 0.004);
+});
+let drag = false;
+canvas.addEventListener('mousedown', () => { drag = true; });
+addEventListener('mouseup', () => { drag = false; });
+addEventListener('wheel', e => { view.distT = THREE.MathUtils.clamp(view.distT * Math.pow(1.0015, e.deltaY), CFG.camMin, CFG.camMax); }, { passive: true });
+function look(dx, dy, s) { view.yaw -= dx * s; view.pitch = THREE.MathUtils.clamp(view.pitch + dy * s, -0.6, 1.2); }
+
+// 觸控：左搖桿、右半邊拖曳轉視角
+const stickEl = document.getElementById('stick'), knob = stickEl.querySelector('i');
+stickEl.addEventListener('pointerdown', e => { stick.id = e.pointerId; stickEl.setPointerCapture(e.pointerId); moveStick(e); });
+stickEl.addEventListener('pointermove', e => { if (e.pointerId === stick.id) moveStick(e); });
+const endStick = e => { if (e.pointerId !== stick.id) return; stick.id = null; stick.x = stick.y = 0; knob.style.transform = ''; };
+stickEl.addEventListener('pointerup', endStick); stickEl.addEventListener('pointercancel', endStick);
+function moveStick(e) {
+  const r = stickEl.getBoundingClientRect(), R = r.width / 2;
+  let x = (e.clientX - r.left - R) / R, y = (e.clientY - r.top - R) / R; const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+  stick.x = x; stick.y = y; knob.style.transform = `translate(${x * R * 0.6}px,${y * R * 0.6}px)`;
+}
+let lookTouch = null;
+canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { lookTouch = { id: e.pointerId, x: e.clientX, y: e.clientY }; } });
+canvas.addEventListener('pointermove', e => { if (lookTouch && e.pointerId === lookTouch.id) { look(e.clientX - lookTouch.x, e.clientY - lookTouch.y, 0.0075); lookTouch.x = e.clientX; lookTouch.y = e.clientY; } });
+canvas.addEventListener('pointerup', e => { if (lookTouch && e.pointerId === lookTouch.id) lookTouch = null; });
+document.getElementById('tJump').addEventListener('pointerdown', e => { e.preventDefault(); jumpQueued = true; });
+const tRun = document.getElementById('tRun');
+tRun.addEventListener('pointerdown', e => { e.preventDefault(); touchRun = !touchRun; tRun.classList.toggle('on', touchRun); });
+document.getElementById('tDbg').addEventListener('pointerdown', e => { e.preventDefault(); toggleDebug(); });
+
+/* ======================================================================
+   角色控制（固定 120 Hz）
+   ====================================================================== */
+const TICK = 1 / 120; let acc = 0;
+const wish = new THREE.Vector3();
+let toastT = 0;
+function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('on'); toastT = 2.2; }
+// 從人站得到的高度往下找（從太高開始會落在碰撞網格裡的樹冠上）
+function groundAt(x, z) { let g = rayDown(x, z, 2.5, 8); if (!g.hit) g = rayDown(x, z, 40, 120); return g.hit ? g.y : -0.2; }
+function respawn() {
+  player.pos.copy(CFG.spawn); player.pos.y = groundAt(CFG.spawn.x, CFG.spawn.z); player.vel.set(0, 0, 0); player.yaw = CFG.spawnYaw; player.grounded = true; player.airTime = 0;
+  view.yaw = CFG.spawnYaw + Math.PI; view.pitch = 0.2; snapCamera = true; toast('回到起點');
+}
+function step(dt) {
+  const p = player.pos, v = player.vel;
+  // 輸入 → 鏡頭方向的水平期望速度
+  let ix = 0, iz = 0;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) iz += 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) iz -= 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1;
+  if (stick.id !== null) { ix += stick.x; iz -= stick.y; }
+  const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
+  const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || touchRun;
+  const sp = (running ? CFG.run : CFG.walk) * Math.min(1, il);
+  const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw); // 鏡頭前方（水平）
+  wish.set(fx * iz - fz * ix, 0, fz * iz + fx * ix);
+  if (wish.lengthSq() > 1e-6) wish.normalize().multiplyScalar(sp);
+  const ctl = player.grounded ? 1 : CFG.airCtl;
+  const rate = (wish.lengthSq() > 1e-6 ? CFG.accel : CFG.decel) * ctl * dt;
+  const ddx = wish.x - v.x, ddz = wish.z - v.z, dl = Math.hypot(ddx, ddz);
+  if (dl > 0) { const m = Math.min(1, rate * Math.max(1, sp) / dl); v.x += ddx * m; v.z += ddz * m; }
+  if (wish.lengthSq() > 0.01) {
+    const target = Math.atan2(wish.x, wish.z); let d = target - player.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+    player.yaw += d * Math.min(1, 10 * dt);
+  }
+  // 跳
+  if (jumpQueued && player.grounded) { v.y = CFG.jump; player.grounded = false; player.airTime = 0; }
+  jumpQueued = false;
+  v.y -= CFG.gravity * dt; if (v.y < -40) v.y = -40;
+  p.addScaledVector(v, dt);
+
+  // 牆：膝、腰、頭三顆球，只做水平推出（地面交給往下的射線）
+  const R = CFG.radius;
+  for (let it = 0; it < 2; it++) {
+    for (const hgt of [0.62, 1.05, 1.5]) {
+      const cy = p.y + hgt;
+      forCells(p.x - R, p.z - R, p.x + R, p.z + R, k => {
+        closestOnTri(p.x, cy, p.z, k);
+        const dx = p.x - CP.x, dy = cy - CP.y, dz = p.z - CP.z, d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 >= R * R) return;
+        const ny = Math.abs(COL.nrm[k * 3 + 1]);
+        if (ny > CFG.maxSlope) { // 水平面：在上方是天花板，在下方是地面
+          if (CP.y > cy && v.y > 0 && hgt > 1.4) v.y = 0;
+          return;
+        }
+        const hl = Math.hypot(dx, dz); if (hl < 1e-5) return;
+        const d = Math.sqrt(d2), push = (R - d) * (hl / Math.max(d, 1e-5));
+        const nx = dx / hl, nz = dz / hl;
+        p.x += nx * push; p.z += nz * push;
+        const vn = v.x * nx + v.z * nz; if (vn < 0) { v.x -= nx * vn; v.z -= nz * vn; }
+      });
+    }
+  }
+  // 地面：從腳上 step 高度往下打射線
+  const wasGrounded = player.grounded;
+  let g = rayDown(p.x, p.z, p.y + CFG.step, 60);
+  // 腳下什麼都沒有：可能是被推進了網格裡，往上多找一點把人救回地面
+  if (!g.hit) { g = rayDown(p.x, p.z, p.y + 1.2, 1.2); if (g.hit && g.ny >= CFG.maxSlope) p.y = g.y; }
+  player.grounded = false;
+  if (g.hit) {
+    const snap = wasGrounded ? 0.32 : 0.02;
+    if (v.y <= 0 && p.y <= g.y + snap) {
+      if (g.ny >= CFG.maxSlope) {
+        p.y = g.y; v.y = 0; player.grounded = true;
+      } else { // 太陡：不能站，貼著表面滑下去
+        p.y = Math.max(p.y, g.y); v.y = Math.min(v.y, 0) - CFG.gravity * dt * 0.5;
+      }
+    }
+  }
+  if (player.grounded && !wasGrounded) { if (player.airTime > 0.35) player.landT = 0.28; }
+  player.airTime = player.grounded ? 0 : player.airTime + dt;
+  // 安全網
+  const B = CFG.bounds;
+  p.x = THREE.MathUtils.clamp(p.x, B.minX, B.maxX); p.z = THREE.MathUtils.clamp(p.z, B.minZ, B.maxZ);
+  if (p.y < CFG.killY) { respawn(); toast('掉出廣場，已重生'); }
+}
+
+/* ======================================================================
+   動畫混合
+   ====================================================================== */
+const W = { idle: 1, walk: 0, run: 0, jump: 0 };
+function updateAnim(dt) {
+  const v = player.vel, s = Math.hypot(v.x, v.z);
+  player.landT = Math.max(0, player.landT - dt);
+  let st;
+  if (!player.grounded && player.airTime > 0.06) st = v.y > 0.4 ? 'jump' : 'fall';
+  else if (player.landT > 0) st = 'land';
+  else if (s < 0.15) st = 'idle';
+  else st = s < (CFG.walk + CFG.run) / 2 ? 'walk' : 'run';
+  player.anim = st;
+  if (!player.mixer) return;
+  const A = player.acts, T = { idle: 0, walk: 0, run: 0, jump: 0 };
+  const air = st === 'jump' || st === 'fall';
+  if (air && A.jump) T.jump = 1;
+  else if (air) { /* 沒有跳的片段：凍結目前姿勢 */ }
+  else {
+    const run = THREE.MathUtils.smoothstep(s, CFG.walk * 1.05, CFG.run * 0.85);
+    const move = THREE.MathUtils.smoothstep(s, 0.08, 0.7);
+    T.idle = 1 - move; T.walk = move * (1 - run); T.run = move * run;
+    if (st === 'land') { T.idle = Math.max(T.idle, 0.6); const sum = T.idle + T.walk + T.run; T.idle /= sum; T.walk /= sum; T.run /= sum; }
+  }
+  const k = 1 - Math.exp(-dt * (air ? 16 : 10));
+  const freeze = air && !A.jump;
+  for (const n of ['idle', 'walk', 'run', 'jump']) {
+    if (!freeze) W[n] += (T[n] - W[n]) * k;
+    if (A[n]) A[n].setEffectiveWeight(W[n]);
+  }
+  if (A.walk) A.walk.timeScale = freeze ? 0 : THREE.MathUtils.clamp(Math.max(s, 0.8) / CFG.walkClipSpeed, 0.55, 1.9);
+  if (A.run) A.run.timeScale = freeze ? 0 : THREE.MathUtils.clamp(Math.max(s, 2.5) / (player.speedRunFromWalk ? CFG.walkClipSpeed : CFG.runClipSpeed), 0.6, 2.6);
+  if (A.idle && player.clipInfo.idle.ok) A.idle.timeScale = freeze ? 0 : 1;
+  if (A.jump) {
+    // 片段時間由垂直速度決定：起跳 → 頂點 → 落下（fall 停在頂點之後）
+    const d = A.jump.getClip().duration;
+    const ph = st === 'fall' && player.vel.y > -2 ? 0.55 : THREE.MathUtils.clamp((CFG.jump - v.y) / (2 * CFG.jump), 0, 1);
+    A.jump.time = d * (0.12 + ph * 0.7);
+  }
+  player.mixer.update(dt);
+}
+
+/* ======================================================================
+   鏡頭
+   ====================================================================== */
+let snapCamera = true;
+const pivot = new THREE.Vector3(), camWant = new THREE.Vector3(), lookAt = new THREE.Vector3(), camPos = new THREE.Vector3(), tmp = new THREE.Vector3();
+function updateCamera(dt, t) {
+  if (!playing) { // 開場：繞著起點慢慢轉
+    view.yaw += dt * 0.06; view.pitch = 0.12; view.distT = 7.5;
+  }
+  view.dist += (view.distT - view.dist) * (1 - Math.exp(-dt * 10));
+  pivot.set(player.pos.x, player.pos.y + CFG.pivot, player.pos.z);
+  const cp = Math.cos(view.pitch);
+  camWant.set(Math.sin(view.yaw) * cp, Math.sin(view.pitch), Math.cos(view.yaw) * cp).multiplyScalar(view.dist).add(pivot);
+  // 鏡頭碰撞：從角色頭部往鏡頭打射線，撞到就拉近
+  if (COL.n) {
+    const tt = raySegment(pivot, camWant);
+    if (tt < 1) camWant.lerpVectors(pivot, camWant, Math.max(0.08, tt - 0.25 / view.dist));
+    const gy = rayDown(camWant.x, camWant.z, camWant.y + 2, 30); if (gy.hit && camWant.y < gy.y + 0.3) camWant.y = gy.y + 0.3;
+  }
+  if (snapCamera) { camPos.copy(camWant); snapCamera = false; } else camPos.lerp(camWant, 1 - Math.exp(-dt * 14));
+  camera.position.copy(camPos);
+  lookAt.copy(pivot); lookAt.y += 0.3;
+  camera.lookAt(lookAt);
+}
+
+/* ======================================================================
+   效能：依 FPS 自動調整 Spark 的 LoD 預算，必要時再降解析度
+   ====================================================================== */
+const perf = { frames: [], fps: 0, low: 0, acc: 0, good: 0, auto: true };
+function adapt(dt) {
+  perf.frames.push(dt); if (perf.frames.length > 240) perf.frames.shift();
+  perf.acc += dt; if (perf.acc < 1) return; perf.acc = 0;
+  const f = perf.frames.slice(-90), avg = f.reduce((a, b) => a + b, 0) / f.length;
+  perf.fps = 1 / avg; const sorted = [...f].sort((a, b) => b - a); perf.low = 1 / sorted[Math.max(0, Math.floor(f.length * 0.05))];
+  if (!perf.auto || !SPLAT.spark || !SPLAT.ready || document.hidden) return;
+  if (perf.fps < 57) {
+    perf.good = 0;
+    if (SPLAT.lodScale > 0.3) { SPLAT.lodScale = Math.max(0.3, SPLAT.lodScale * 0.82); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
+    else if (renderScale > 0.7) { renderScale = Math.max(0.7, renderScale - 0.1); resize(); }
+  } else if (perf.fps > 59 && ++perf.good >= 4) {
+    perf.good = 0;
+    if (renderScale < 1) { renderScale = Math.min(1, renderScale + 0.1); resize(); }
+    else if (SPLAT.lodScale < (isTouch ? 0.8 : 1)) { SPLAT.lodScale = Math.min(isTouch ? 0.8 : 1, SPLAT.lodScale * 1.1); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
+  }
+}
+
+/* ======================================================================
+   除錯面板 (P)
+   ====================================================================== */
+const dbg = document.getElementById('dbg');
+let dbgOn = QS.has('debug'), dbgT = 0;
+function toggleDebug() { dbgOn = !dbgOn; dbg.classList.toggle('on', dbgOn); if (dbgOn) { buildDebug(); renderDebug(); } }
+function buildDebug() {
+  if (dbg.dataset.built) return; dbg.dataset.built = '1';
+  dbg.innerHTML = `<div id="dbgLive"></div>
+    <h3>控制</h3>
+    <label><input type="checkbox" id="cViz"> 顯示碰撞體線框</label>
+    <label><input type="checkbox" id="cAuto" checked> 自動 LoD（維持 60 FPS）</label>
+    <label>剔除半徑 <input type="range" id="cCull" min="40" max="400" step="5" value="${FOG.cull}"><span id="vCull">${FOG.cull} m</span></label>
+    <label>霧密度 <input type="range" id="cFog" min="0" max="0.05" step="0.001" value="${FOG.density}"><span id="vFog">${FOG.density.toFixed(3)}</span></label>
+    <label>路燈強度 <input type="range" id="cLamp" min="0" max="2" step="0.05" value="${FOG.lampGain}"><span id="vLamp">${FOG.lampGain.toFixed(2)}</span></label>
+    <button id="cSpawn">R 重生</button>`;
+  const $ = id => dbg.querySelector('#' + id);
+  $('cViz').onchange = e => { if (colliderViz) colliderViz.visible = e.target.checked; };
+  $('cAuto').onchange = e => { perf.auto = e.target.checked; };
+  $('cCull').oninput = e => { FOG.cull = +e.target.value; $('vCull').textContent = FOG.cull + ' m'; syncFog(); };
+  $('cFog').oninput = e => { FOG.density = +e.target.value; $('vFog').textContent = FOG.density.toFixed(3); syncFog(); };
+  $('cLamp').oninput = e => { FOG.lampGain = +e.target.value; $('vLamp').textContent = FOG.lampGain.toFixed(2); syncFog(); };
+  $('cSpawn').onclick = () => respawn();
+}
+function syncFog() {
+  scene.fog.density = FOG.density; snowUniforms.uDensity.value = FOG.density;
+  if (SPLAT.U) { SPLAT.U.fog.value.set(FOG.density, FOG.cull, Math.min(26, FOG.cull * 0.3), FOG.lampGain); SPLAT.dirty = true; }
+  haloCore.opacity = Math.min(1, 0.3 + FOG.lampGain * 0.7); haloHaze.opacity = 0.16 * FOG.lampGain;
+  lampLights.forEach(l => l.userData.gain = FOG.lampGain);
+}
+const fmt = n => n.toLocaleString('en-US');
+function renderDebug() {
+  const live = dbg.querySelector('#dbgLive'); if (!live) return;
+  const p = player.pos, s = Math.hypot(player.vel.x, player.vel.z);
+  const vis = SPLAT.spark ? SPLAT.spark.activeSplats || 0 : 0;
+  const ci = player.clipInfo[player.anim];
+  const rowsHtml = ANIM_STATES.map(st => {
+    const c = player.clipInfo[st];
+    const val = c.ok ? `<span class="okc">✓</span> ${c.name.split('|').pop()} <span class="k">${c.dur.toFixed(2)} s · ${c.src}</span>`
+      : `<span class="miss">✗ 缺少</span> <span class="fb">${c.note || '—'}</span>`;
+    return `<tr class="${st === player.anim ? 'cur' : ''}"><td>${st}</td><td>${val}</td></tr>`;
+  }).join('');
+  const warnHtml = WARN.length ? `<h3>警告 (${WARN.length})</h3>` + WARN.slice(-5).map(w => `<div class="fb">· ${w}</div>`).join('') : '';
+  live.innerHTML = `
+    <h3>效能</h3>
+    <div class="row"><span class="fps ${perf.fps && perf.fps < 55 ? 'low' : ''}">${perf.fps ? perf.fps.toFixed(0) : '—'} <span class="k" style="font-size:12px">FPS</span></span><span class="k">5% low ${perf.low ? perf.low.toFixed(0) : '—'} · ${(perf.fps ? 1000 / perf.fps : 0).toFixed(1)} ms</span></div>
+    <div class="row"><span class="k">可見 splat</span><b>${fmt(vis)}</b></div>
+    <div class="row"><span class="k">LoD 樹總數</span><b>${SPLAT.total ? fmt(SPLAT.total) : (LOAD.splat === 'fail' ? '載入失敗' : '載入中')}</b></div>
+    <div class="row"><span class="k">LoD 預算倍率／解析度</span><b>${SPLAT.lodScale.toFixed(2)} × · ${(BASE_DPR * renderScale).toFixed(2)} dpr</b></div>
+    <div class="row"><span class="k">剔除半徑／霧</span><b>${FOG.cull} m · ${FOG.density.toFixed(3)}</b></div>
+    <h3>角色</h3>
+    <div class="row"><span class="k">座標</span><b>${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}</b></div>
+    <div class="row"><span class="k">速度／著地</span><b>${s.toFixed(2)} m/s · ${player.grounded ? '著地' : '空中 ' + player.vel.y.toFixed(1)}</b></div>
+    <div class="row"><span class="k">目前動畫</span><b>${player.anim} → ${ci.ok ? ci.name.split('|').pop() : '<span class="miss">缺少</span>'}</b></div>
+    <div class="row"><span class="k">權重 idle/walk/run/jump</span><b>${W.idle.toFixed(2)} ${W.walk.toFixed(2)} ${W.run.toFixed(2)} ${W.jump.toFixed(2)}</b></div>
+    <h3>動畫片段</h3><table>${rowsHtml}</table>
+    <h3>碰撞</h3>
+    <div class="row"><span class="k">來源</span><b>${COL.source || '載入中'}</b></div>
+    <div class="row"><span class="k">網格／簡化體三角形</span><b>${fmt(COL.meshTris)} + ${fmt(COL.primTris)}（${COL.primCount} 件）</b></div>
+    ${warnHtml}`;
+}
+
+/* ======================================================================
+   主迴圈
+   ====================================================================== */
+const lampSort = LAMPS.map((L, i) => i);
+let lampT = 0, last = performance.now(), simTime = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; simTime += dt;
+  if (playing && !document.body.classList.contains('paused')) {
+    acc += dt; let n = 0;
+    while (acc >= TICK && n++ < 12) { step(TICK); acc -= TICK; }
+    if (n >= 12) acc = 0;
+  }
+  updateAnim(dt);
+  player.root.position.copy(player.pos);
+  player.root.rotation.y = player.yaw;
+  blob.position.set(player.pos.x, player.pos.y + 0.03, player.pos.z);
+  blob.material.opacity = player.grounded ? 1 : Math.max(0.2, 1 - player.airTime * 1.5);
+  updateCamera(dt, now);
+  // 最近的三盞路燈照在角色身上
+  if ((lampT -= dt) <= 0) {
+    lampT = 0.25;
+    lampSort.sort((a, b) => LAMPS[a].pos.distanceToSquared(player.pos) - LAMPS[b].pos.distanceToSquared(player.pos));
+    lampLights.forEach((l, i) => { const L = LAMPS[lampSort[i]]; l.position.copy(L.pos); l.userData.target = 14 * L.power * (l.userData.gain ?? 1); });
+  }
+  lampLights.forEach(l => { l.intensity += ((l.userData.target || 0) - l.intensity) * Math.min(1, dt * 4); });
+  moon.target.position.copy(player.pos); moon.position.set(player.pos.x - 20, player.pos.y + 40, player.pos.z + 10);
+  snowUniforms.uTime.value = simTime; snowUniforms.uCam.value.copy(camera.position); snowUniforms.uPx.value = renderer.domElement.height * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  updateSplatUniforms(now);
+  if (toastT > 0 && (toastT -= dt) <= 0) document.getElementById('toast').classList.remove('on');
+  adapt(dt);
+  if (dbgOn && (dbgT -= dt) <= 0) { dbgT = 0.25; renderDebug(); }
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+
+/* ======================================================================
+   開場流程
+   ====================================================================== */
+const go = document.getElementById('go'), goNote = document.getElementById('goNote');
+function refreshGo() {
+  const charReady = LOAD.fbx === 'done' || LOAD.fbx === 'fail';
+  const colReady = LOAD.col === 'done';
+  const splatSettled = LOAD.splat === 'done' || LOAD.splat === 'fail';
+  if (charReady && colReady && splatSettled) { go.disabled = false; go.textContent = '進入廣場'; goNote.textContent = LOAD.splat === 'fail' ? '場景 splat 沒有載入成功，只能在碰撞體與霧裡走動。' : '點按鈕後滑鼠會被鎖定；按 Esc 釋放。'; }
+  else if (charReady && colReady && LOAD.splat === 'load') { go.disabled = false; go.textContent = '先進場（場景仍在載入）'; }
+}
+const ticker = setInterval(() => { refreshGo(); if (LOAD.splat === 'done' && !go.disabled && go.textContent === '進入廣場') clearInterval(ticker); }, 300);
+go.addEventListener('click', () => {
+  playing = true; pauseOnUnlock = true; snapCamera = false;
+  view.yaw = player.yaw + Math.PI; view.pitch = 0.18; view.distT = 4.4;
+  document.body.classList.add('playing');
+  document.getElementById('boot').classList.add('gone');
+  lockPointer();
+  canvas.focus?.();
+});
+if (dbgOn) { dbg.classList.add('on'); buildDebug(); }
+
+(async () => {
+  const clipsTask = loadClips();
+  const charTask = loadCharacter(clipsTask);
+  const colTask = loadCollider();
+  const S = await loadSpark();
+  const splatTask = loadSplat(S);
+  await Promise.all([charTask, colTask, splatTask]);
+  refreshGo();
+})();
+
+// 測試用
+window.__eter = {
+  get state() { return { playing, pos: player.pos.toArray(), grounded: player.grounded, anim: player.anim, load: { ...LOAD }, splats: { visible: SPLAT.spark?.activeSplats || 0, total: SPLAT.total, lodScale: SPLAT.lodScale }, fps: perf.fps, clips: player.clipInfo, warn: WARN.slice() }; },
+  start() { go.disabled = false; go.click(); },
+  place(x, z, yaw = player.yaw) { player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); player.yaw = yaw; view.yaw = yaw + Math.PI; snapCamera = true; },
+  look(yaw, pitch, dist) { view.yaw = yaw; view.pitch = pitch; if (dist) view.distT = view.dist = dist; snapCamera = true; },
+  keys, jump() { jumpQueued = true; },
+  showCollider(v) { if (colliderViz) colliderViz.visible = v; },
+  probe(x, z, top = 5) { let n = 0; forCells(x, z, x, z, () => n++); const g = rayDown(x, z, top, 60); return { n, hit: g.hit, y: g.y, ny: g.ny }; },
+};
+</script>
+</body>
+</html>
