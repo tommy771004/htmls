@@ -131,6 +131,11 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 所有 3D 資產（`Terminal` 弧形玻璃屋頂航廈、`Jetbridge_1..5`／`JetbridgeRotunda`／`JetbridgeArm` 空橋、`Aircraft_A320`／`B738`／`A321`／`E190` 客機、`FuelTruck`、`BaggageTug`、`CateringTruck`、`CleaningVan`、`PushbackTug`、`FuelTankFarm` 油槽）由 `blender/build_apron.py` 以 Blender 無頭模式建模並匯出 `blender/out/groundline.glb`（有 commit，build 不需要 Blender），打包時以 gzip＋base64 內嵌。
 - 規格與 `window.__gl` 測試 API 見同資料夾的 `SPEC.md` 與 `README.md`。
 
+## TERRA 地球尺度開放世界沙盒（268）
+
+- 原始碼在 `games/268-terra-sandbox/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 輸出單檔 `web/268-terra-sandbox.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 `tools/engine.test.mjs`（`src/core/selftest.js` 的 24 項自我測試：圖磚串流與 LRU、建物與室內、天氣與縮時、六種載具與纜車、攝影與日誌），再跑兩種尺寸的無頭 Chrome 驗收（截圖在 gitignore 的 `dist/`，並輸出 `thumbs/268.jpg`）；`node tools/shot.mjs out.png "<js>;;wait 500"` 可擺好場景截一張除錯圖。
+- `src/core/`（世界生成、圖磚串流、室內、天氣、車流、玩家）不碰 DOM 與 three，供瀏覽器與 Node 測試共用；`src/gfx/` 是畫面層（合併幾何 `Builder` 帶頂點色與 `atl` 圖集矩形，所有世界網格共用 `atlas.js` 的一個材質）。朝向 `yaw` 0 = 北（-z），three 的 `rotation.y = -yaw`。建地是 `blockRect`（路緣到路緣）再往內退 `K.walk`。改了 `world.js` 的建物或地點座標，`selftest.js` 與 `tools/accept.mjs` 寫死的位置要一起檢查。各檔分工與 `window.__terra` 測試 API 見同資料夾的 `SPEC.md` 與 `README.md`。
+
 ## 青雀真人麻將（127）架構
 
 - `assets/jade-table/engine.mjs`：台灣十六張規則引擎（`MahjongGame`、`scoreHand`、台表），**瀏覽器單人模式與伺服器共用同一份**。改規則時兩邊會一起受影響。

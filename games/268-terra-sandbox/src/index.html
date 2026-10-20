@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TERRA · 地球尺度開放世界沙盒引擎</title>
+<meta name="description" content="地球尺度開放世界沙盒：向量圖磚與高程 LOD 串流、依樓層擠出的建物與種子程序室內、全球程序天氣（雲、雨、雪、雷暴、龍捲風、颶風與縮時）、步行／滑板／單車／汽車／飛機／快艇、雪場吊椅纜車，以及景深攝影模式與每日進度日誌。">
+<meta name="theme-color" content="#1b1d20">
+<style>
+:root {
+  --panel: rgba(28, 30, 34, 0.62);
+  --panel-solid: rgba(28, 30, 34, 0.86);
+  --line: rgba(255, 255, 255, 0.12);
+  --ink: #f4f1ea;
+  --ink-2: #c9c4ba;
+  --mute: #8f8a80;
+  --orange: #e8622c;
+  --orange-2: #ff8a4c;
+  --paper: #f3ece0;
+  --paper-2: #fbf7f0;
+  --paper-line: #e2d8c7;
+  --paper-ink: #2b2620;
+  --paper-mute: #8a7f70;
+  --sans: -apple-system, "SF Pro Text", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #1b1d20; color: var(--ink); font: 12px/1.4 var(--sans); -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--orange-2); outline-offset: 2px; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.hud { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+.hud.off > :not(#toasts):not(#dock) { display: none !important; }
+.hud > * { pointer-events: auto; }
+.glass { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; backdrop-filter: blur(10px) saturate(130%); -webkit-backdrop-filter: blur(10px) saturate(130%); }
+
+/* 左上：除錯資訊 */
+#dbg { position: absolute; left: 10px; top: 10px; width: 300px; padding: 7px 9px; font: 10.5px/1.45 var(--mono); color: #e7e2d8; white-space: pre; overflow: hidden; pointer-events: none; }
+#dbg b { color: #fff; font-weight: 600; }
+#dbg .w { color: var(--orange-2); }
+
+/* 上方：羅盤 */
+#compass { position: absolute; left: 50%; top: 8px; width: min(420px, 60vw); height: 34px; transform: translateX(-50%); overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+#cmpTrack { position: absolute; top: 0; left: 0; height: 100%; }
+#cmpTrack span { position: absolute; top: 3px; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+#cmpTrack i { position: absolute; top: 0; width: 1px; height: 6px; background: rgba(255,255,255,.7); }
+#cmpTrack em { position: absolute; top: 15px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 2px rgba(255,255,255,.85); }
+#cmpDeg { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); font: 600 10px/1 var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+#cmpNeedle { position: absolute; left: 50%; top: 0; width: 2px; height: 9px; margin-left: -1px; background: var(--orange); }
+
+/* 右上：天氣與時間 */
+#wx { position: absolute; right: 10px; top: 10px; display: flex; gap: 8px; align-items: center; padding: 6px 10px; }
+#wx .t { font: 600 15px/1 var(--sans); }
+#wx .l { color: var(--ink-2); font-size: 11px; }
+#wx .ts { font: 600 10px/1 var(--mono); color: var(--orange-2); }
+#alert { position: absolute; left: 50%; top: 48px; transform: translateX(-50%); padding: 5px 12px; border-radius: 6px; background: rgba(176, 38, 25, 0.86); font-weight: 700; letter-spacing: .04em; display: none; }
+
+/* 右側：導航卡與小地圖 */
+#nav { position: absolute; right: 10px; bottom: 214px; width: 156px; padding: 7px 9px; display: none; gap: 8px; align-items: center; }
+#nav.on { display: flex; }
+#navArrow { width: 26px; height: 26px; flex: none; transition: transform .2s; }
+#nav .d { font: 700 14px/1.1 var(--sans); }
+#nav .s { color: var(--ink-2); font-size: 10.5px; }
+#nav .n { color: var(--orange-2); font-size: 10.5px; }
+#miniWrap { position: absolute; right: 10px; bottom: 58px; width: 156px; height: 150px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,0,0,.25); box-shadow: 0 4px 14px rgba(0,0,0,.3); cursor: pointer; background: var(--paper); }
+#mini { width: 100%; height: 100%; display: block; }
+#miniWrap .x { position: absolute; right: 5px; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; font: 700 10px/16px var(--sans); text-align: center; }
+
+/* 左下：操作說明 */
+#help { position: absolute; left: 10px; bottom: 58px; width: 330px; padding: 7px 9px; color: var(--ink-2); font-size: 10.5px; line-height: 1.55; }
+#help kbd { display: inline-block; min-width: 15px; padding: 0 3px; border: 1px solid rgba(255,255,255,.28); border-radius: 3px; font: 600 9.5px/14px var(--mono); color: #fff; text-align: center; background: rgba(255,255,255,.06); }
+#help .row { display: flex; gap: 10px; flex-wrap: wrap; }
+#help .row > span { white-space: nowrap; }
+#help .hd { color: #fff; font-weight: 600; margin-bottom: 2px; }
+
+/* 下方：載具列 */
+#dock { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; gap: 2px; padding: 4px; max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none; }
+#dock::-webkit-scrollbar { display: none; }
+#dock button { flex: none; width: 58px; height: 40px; border-radius: 6px; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--ink-2); font-size: 9.5px; }
+#dock button svg { width: 17px; height: 17px; }
+#dock button:hover { background: rgba(255,255,255,.08); color: #fff; }
+#dock button.on { background: rgba(255,255,255,.16); color: #fff; box-shadow: inset 0 -2px 0 var(--orange); }
+#dock .sep { width: 1px; margin: 6px 3px; background: var(--line); flex: none; }
+#attr { position: absolute; right: 10px; bottom: 8px; width: 156px; color: rgba(255,255,255,.7); font-size: 8.5px; line-height: 1.3; text-align: right; text-shadow: 0 1px 2px rgba(0,0,0,.6); pointer-events: none; }
+
+/* 速度表、招式、互動提示 */
+#gauge { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); display: none; align-items: baseline; gap: 10px; padding: 5px 12px; }
+#gauge.on { display: flex; }
+#gauge .v { font: 700 22px/1 var(--sans); }
+#gauge .u { color: var(--ink-2); font-size: 10px; }
+#gauge .bar { width: 70px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; align-self: center; }
+#gauge .bar i { display: block; height: 100%; background: var(--orange); }
+#trick { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font: 800 22px/1.1 var(--sans); color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.55); text-align: center; opacity: 0; transition: opacity .25s; pointer-events: none; }
+#trick small { display: block; font: 600 12px/1.4 var(--sans); color: var(--orange-2); }
+#prompt { position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); padding: 5px 11px; display: none; font-size: 11.5px; }
+#prompt kbd { font: 700 10px/16px var(--mono); padding: 0 4px; border-radius: 3px; background: var(--orange); color: #fff; margin-right: 6px; }
+#reticle { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 1.5px solid rgba(120, 220, 230, .85); border-radius: 50%; pointer-events: none; }
+#toasts { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: grid; gap: 5px; justify-items: center; pointer-events: none; }
+#toasts div { padding: 5px 12px; border-radius: 6px; background: var(--panel-solid); border: 1px solid var(--line); font-size: 11.5px; animation: tin .25s ease-out; }
+@keyframes tin { from { opacity: 0; transform: translateY(-6px); } }
+
+/* 覆蓋面板（地圖／相簿／設定／畫質／地點／日誌／測試） */
+#ov { position: fixed; inset: 14px; z-index: 5; display: none; flex-direction: column; background: var(--paper); color: var(--paper-ink); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.45); overflow: hidden; }
+#ov.on { display: flex; }
+#ovBar { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--paper-line); flex: none; overflow-x: auto; scrollbar-width: none; }
+#ovBar::-webkit-scrollbar { display: none; }
+#ovBar button { flex: none; padding: 5px 12px; border-radius: 99px; font-weight: 600; color: var(--paper-mute); }
+#ovBar button.on { background: var(--paper-ink); color: var(--paper); }
+#ovBar .close { margin-left: auto; width: 28px; height: 28px; padding: 0; border-radius: 50%; background: #e7dfd1; color: var(--paper-ink); font-size: 15px; }
+.tab { display: none; flex: 1; min-height: 0; overflow: auto; }
+.tab.on { display: block; }
+#tab-map.on { display: block; position: relative; overflow: hidden; }
+#globe { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; background: radial-gradient(circle at 50% 45%, #fbf7f0, #efe6d6); }
+#mapTools { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; }
+#mapTools button, .pbtn { padding: 6px 11px; border-radius: 99px; background: #fff; border: 1px solid var(--paper-line); font-weight: 600; font-size: 11.5px; color: var(--paper-ink); }
+#mapTools button.on { background: var(--paper-ink); color: #fff; }
+#card { position: absolute; left: 12px; bottom: 12px; width: min(440px, calc(100% - 24px)); padding: 12px 14px; background: var(--paper-2); border: 1px solid var(--paper-line); border-radius: 12px; box-shadow: 0 6px 20px rgba(60, 40, 10, .12); }
+#card h3 { margin: 0 0 2px; font-size: 15px; }
+#card .m { color: var(--paper-mute); font: 11px/1.4 var(--mono); }
+#card .w { margin: 6px 0 9px; font-size: 12px; }
+#card .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.obtn { padding: 6px 12px; border-radius: 99px; background: var(--orange); color: #fff; font-weight: 700; font-size: 11.5px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.15); }
+.obtn.ghost { background: #fff; color: var(--paper-ink); border: 1px solid var(--paper-line); box-shadow: none; }
+#mapLegend { position: absolute; right: 12px; top: 12px; padding: 8px 10px; background: rgba(255,255,255,.85); border: 1px solid var(--paper-line); border-radius: 10px; font-size: 11px; line-height: 1.6; }
+#mapLegend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+.sheet { max-width: 760px; margin: 0 auto; padding: 14px 16px 28px; }
+.sheet h4 { margin: 16px 2px 6px; font-size: 10.5px; letter-spacing: .1em; color: var(--paper-mute); }
+.row2 { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 6px; background: var(--paper-2); border: 1px solid var(--paper-line); border-radius: 10px; }
+.row2 .tx { flex: 1; min-width: 0; }
+.row2 .tx b { display: block; font-size: 12.5px; }
+.row2 .tx small { color: var(--paper-mute); font-size: 11px; }
+.row2.hot { background: var(--orange); border-color: var(--orange); color: #fff; }
+.row2.hot small { color: rgba(255,255,255,.8); }
+.row2 input[type=range] { width: 150px; accent-color: var(--paper-ink); }
+.row2 select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--paper-line); background: #fff; color: var(--paper-ink); max-width: 46%; }
+.row2.hot select { color: var(--paper-ink); }
+.sw { width: 38px; height: 22px; border-radius: 99px; background: #d7cdbc; position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+.sw.on { background: var(--paper-ink); }
+.sw.on::after { left: 19px; }
+.seg { display: flex; gap: 3px; padding: 3px; border-radius: 99px; background: #e7dfd1; flex: none; }
+.seg button { padding: 4px 10px; border-radius: 99px; font-weight: 600; color: var(--paper-mute); }
+.seg button.on { background: #fff; color: var(--paper-ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.stat { font: 11px/1.6 var(--mono); color: var(--paper-ink); white-space: pre-wrap; }
+.plist { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.pcard { text-align: left; padding: 11px 12px; background: var(--paper-2); border: 1px solid var(--paper-line); border-radius: 10px; }
+.pcard b { display: block; font-size: 13px; }
+.pcard small { color: var(--paper-mute); }
+.pcard em { float: right; font-style: normal; font-size: 10px; padding: 1px 7px; border-radius: 99px; background: #e7dfd1; color: var(--paper-ink); }
+.pcard:hover { border-color: var(--orange); }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.photos figure { margin: 0; background: #fff; border: 1px solid var(--paper-line); border-radius: 8px; overflow: hidden; }
+.photos img { display: block; width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+.photos figcaption { padding: 5px 8px; font-size: 10.5px; color: var(--paper-mute); display: flex; justify-content: space-between; gap: 6px; }
+.photos a { color: var(--orange); font-weight: 600; text-decoration: none; }
+.day { padding: 12px 14px; margin-bottom: 8px; background: var(--paper-2); border: 1px solid var(--paper-line); border-radius: 10px; }
+.day h5 { margin: 0 0 4px; font-size: 13px; }
+.day h5 span { color: var(--orange); margin-right: 6px; }
+.day ul { margin: 4px 0; padding-left: 18px; }
+.day li { margin: 2px 0; }
+.day .nx { color: var(--paper-mute); }
+textarea { width: 100%; min-height: 80px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--paper-line); background: #fff; color: var(--paper-ink); resize: vertical; }
+.tests { display: grid; gap: 4px; }
+.tests div { display: flex; gap: 8px; padding: 6px 10px; background: var(--paper-2); border: 1px solid var(--paper-line); border-radius: 8px; font-size: 11.5px; }
+.tests .ok { color: #2f7a3a; font-weight: 700; }
+.tests .ng { color: #b3261e; font-weight: 700; }
+.tests small { color: var(--paper-mute); margin-left: auto; text-align: right; }
+
+/* 攝影模式 */
+#photo { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 4; display: none; flex-direction: column; gap: 6px; width: min(760px, calc(100vw - 16px)); padding: 8px; }
+#photo.on { display: flex; }
+#photoOpts { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+#photoOpts::-webkit-scrollbar { display: none; }
+#photoOpts button { flex: none; padding: 5px 9px; border-radius: 6px; text-align: left; background: rgba(255,255,255,.06); }
+#photoOpts button small { display: block; color: var(--mute); font-size: 9.5px; }
+#photoOpts button b { font-size: 11.5px; }
+#photoOpts button.sel { box-shadow: inset 0 -2px 0 var(--orange); background: rgba(255,255,255,.14); }
+#photoRow { display: flex; gap: 6px; align-items: center; justify-content: space-between; color: var(--ink-2); font-size: 10.5px; }
+#shutter { width: 46px; height: 46px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.35), inset 0 0 0 3px #1b1d20; flex: none; }
+#grid { position: fixed; inset: 0; z-index: 3; pointer-events: none; display: none;
+  background:
+    linear-gradient(90deg, transparent calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% + .5px), transparent calc(66.66% + .5px)),
+    linear-gradient(transparent calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% + .5px), transparent calc(33.33% + .5px), transparent calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% - .5px), rgba(255,255,255,.4) calc(66.66% + .5px), transparent calc(66.66% + .5px)); }
+#grid.on { display: block; }
+#flashFx { position: fixed; inset: 0; z-index: 6; background: #fff; opacity: 0; pointer-events: none; transition: opacity .35s; }
+
+/* 觸控 */
+#touch { position: fixed; inset: 0; z-index: 3; pointer-events: none; display: none; }
+body.touch #touch { display: block; }
+#stick { position: absolute; left: 18px; bottom: 112px; width: 118px; height: 118px; border-radius: 50%; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); pointer-events: auto; touch-action: none; }
+#stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255,255,255,.45); }
+#tbtns { position: absolute; right: 14px; bottom: 214px; display: grid; grid-template-columns: repeat(2, 54px); gap: 8px; pointer-events: auto; }
+body.touch #tbtns { bottom: 112px; right: 182px; }
+#tbtns button { height: 46px; border-radius: 12px; background: rgba(28,30,34,.62); border: 1px solid var(--line); font-weight: 700; font-size: 11.5px; touch-action: none; }
+#tbtns button.hold { background: var(--orange); }
+
+#boot { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: #1b1d20; transition: opacity .5s; }
+#boot.done { opacity: 0; pointer-events: none; }
+#boot .b { text-align: center; }
+#boot h1 { margin: 0; font: 800 34px/1 var(--sans); letter-spacing: .32em; padding-left: .32em; }
+#boot p { margin: 8px 0 14px; color: var(--ink-2); }
+#boot .pb { width: 220px; height: 3px; margin: 0 auto; border-radius: 2px; background: rgba(255,255,255,.12); overflow: hidden; }
+#boot .pb i { display: block; height: 100%; width: 0; background: var(--orange); transition: width .2s; }
+
+@media (max-width: 760px) {
+  #dbg { display: none; }
+  #help { display: none; }
+  #wx { top: auto; bottom: 58px; left: 10px; right: auto; }
+  #nav { bottom: 168px; width: 120px; }
+  #miniWrap { width: 120px; height: 104px; }
+  #attr { display: none; }
+  #dock button { width: 50px; }
+  #compass { top: 8px; width: 72vw; }
+  #toasts { top: 46px; width: calc(100vw - 32px); }
+  #toasts div { text-align: center; }
+  #alert { top: 40px; }
+  #ov { inset: 6px; }
+  .row2 { flex-wrap: wrap; }
+  .row2 input[type=range] { width: 100%; }
+  #gauge { bottom: 104px; }
+  #prompt { bottom: 150px; }
+}
+@media (prefers-reduced-motion: reduce) { #toasts div { animation: none; } #navArrow { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="TERRA 3D 世界"></canvas>
+<div class="hud" id="hud">
+  <div id="dbg" class="glass" aria-hidden="true"></div>
+  <div id="compass" aria-hidden="true"><div id="cmpTrack"></div><div id="cmpNeedle"></div><div id="cmpDeg"></div></div>
+  <div id="wx" class="glass"><div><div class="t" id="wxTime">15:30</div><div class="l" id="wxLabel">晴朗</div></div><div class="ts" id="wxTs">1×</div></div>
+  <div id="alert" role="status"></div>
+  <div id="reticle"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="trick"></div>
+  <div id="prompt" class="glass"></div>
+  <div id="gauge" class="glass"><span class="v" id="gV">0</span><span class="u" id="gU">km/h</span><span class="bar"><i id="gBar"></i></span><span class="u" id="gX"></span></div>
+  <div id="nav" class="glass"><svg id="navArrow" viewBox="0 0 24 24"><path d="M12 3l6 15-6-3.5L6 18z" fill="#fff"/></svg><div><div class="d" id="navD">—</div><div class="s" id="navS">直走</div><div class="n" id="navN"></div></div></div>
+  <div id="miniWrap" title="開啟地圖（M）"><canvas id="mini" width="312" height="300"></canvas><span class="x">M</span></div>
+  <div id="help" class="glass"></div>
+  <nav id="dock" class="glass" aria-label="載具與工具"></nav>
+  <div id="attr">© OpenMapTiles 架構 · © OpenStreetMap 貢獻者（示意資料由程序生成）· Natural Earth 陸地輪廓 · TERRA 268</div>
+</div>
+<div id="grid"></div>
+<div id="flashFx"></div>
+<section id="photo" class="glass" aria-label="攝影模式">
+  <div id="photoOpts"></div>
+  <div id="photoRow"><span id="photoHint">WASD 移動自由鏡頭 · Q/E 升降 · 拖曳轉向 · ←/→ 選項 · ↑/↓ 調整</span><button id="shutter" aria-label="拍照"></button><span><button class="pbtn" id="photoExit">離開攝影 P</button></span></div>
+</section>
+<div id="ov" role="dialog" aria-label="地圖與設定">
+  <div id="ovBar">
+    <button data-tab="map">地圖</button><button data-tab="photos">相簿</button><button data-tab="settings">設定</button><button data-tab="quality">畫質</button><button data-tab="places">地點</button><button data-tab="log">日誌</button><button data-tab="tests">測試</button>
+    <button class="close" id="ovClose" aria-label="關閉">×</button>
+  </div>
+  <div class="tab" id="tab-map">
+    <canvas id="globe"></canvas>
+    <div id="mapTools"><button id="mapFlat">平面地圖</button><button id="mapHome">回到你身邊</button><button id="mapStorms" class="on">風暴</button></div>
+    <div id="mapLegend"><div><i style="background:#e8622c"></i>你的位置</div><div><i style="background:#2b2620"></i>精選地點</div><div><i style="background:#2563eb"></i>導航目的地</div><div><i style="background:#7c3aed"></i>颶風／雷暴</div></div>
+    <div id="card"></div>
+  </div>
+  <div class="tab" id="tab-photos"><div class="sheet"><h4>相簿</h4><div class="photos" id="photos"></div></div></div>
+  <div class="tab" id="tab-settings"><div class="sheet" id="settings"></div></div>
+  <div class="tab" id="tab-quality"><div class="sheet" id="quality"></div></div>
+  <div class="tab" id="tab-places"><div class="sheet" id="places"></div></div>
+  <div class="tab" id="tab-log"><div class="sheet" id="log"></div></div>
+  <div class="tab" id="tab-tests"><div class="sheet" id="tests"></div></div>
+</div>
+<div id="touch"><div id="stick"><i></i></div><div id="tbtns"><button data-k="jump">跳</button><button data-k="use">互動</button><button data-k="crouch">蹲／抓板</button><button data-k="sprint">衝刺</button></div></div>
+<div id="boot"><div class="b"><h1>TERRA</h1><p id="bootMsg">串流圖磚中…</p><div class="pb"><i id="bootBar"></i></div></div></div>
+<!--BUNDLE-->
+</body>
+</html>
