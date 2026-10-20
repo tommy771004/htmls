@@ -37,6 +37,10 @@ body.playing.locked canvas#gl{cursor:none}
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:3;
   background:radial-gradient(320px 220px at var(--mx,22%) var(--my,-10%),rgba(255,255,255,.17),rgba(255,255,255,0) 70%);mix-blend-mode:screen}
 .glass>*{position:relative;z-index:5}
+/* 開始面板與設定面板不畫外框邊線：拿掉邊緣高光環與 1px 內緣線，只留柔和的內光與投影 */
+.sheet.glass::before,#dbg.glass::before{content:none}
+.sheet.glass,#dbg.glass{box-shadow:inset 0 22px 34px -26px rgba(255,255,255,.3),inset 0 -20px 30px -26px rgba(170,200,240,.22),
+    0 24px 60px -18px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.22)}
 .well{border-radius:18px;background:rgba(4,8,15,.26);box-shadow:inset 0 1px 3px rgba(0,0,0,.38),inset 0 0 0 1px rgba(255,255,255,.05),0 1px 0 rgba(255,255,255,.07)}
 
 /* ---------- 開場 ---------- */
