@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Groundline · 機場停機坪即時調度</title>
+<meta name="description" content="像策略遊戲一樣玩的機場停機坪即時調度網頁 Groundline：Blender Python 低多邊形航廈（弧形玻璃屋頂）、5 座空橋、A320 客機、加油車、行李拖車、餐車與油槽 glTF，Three.js 等角場景、過站六步驟與連鎖延誤調度。">
+<meta name="theme-color" content="#dce6ee">
+<style>
+:root {
+  --bg: #dce6ee;
+  /* 液態玻璃（Liquid Glass）材質變數 */
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.42) 0%, rgba(246, 251, 255, 0.22) 55%, rgba(230, 242, 252, 0.34) 100%);
+  --glass-item: linear-gradient(145deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.16) 100%);
+  --glass-item-active: linear-gradient(145deg, rgba(255, 255, 255, 0.68) 0%, rgba(235, 245, 255, 0.46) 100%);
+  --glass-border: rgba(255, 255, 255, 0.62);
+  --glass-border-subtle: rgba(255, 255, 255, 0.42);
+  --glass-shadow:
+    0 12px 32px -4px rgba(15, 28, 46, 0.12),
+    0 2px 6px rgba(15, 28, 46, 0.05),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.88),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.38),
+    inset 1px 0 1px rgba(255, 255, 255, 0.48);
+  --glass-blur: blur(20px) saturate(185%);
+  --ink: #132030;
+  --ink-2: #384d63;
+  --mute: #5c7187;
+  --accent: #1868d6;
+  --accent-soft: rgba(24, 104, 214, 0.16);
+  --good: #0f7e58;
+  --good-soft: rgba(15, 126, 88, 0.16);
+  --warn: #d43f2d;
+  --warn-soft: rgba(212, 63, 45, 0.18);
+  --amber: #c67610;
+  --amber-soft: rgba(198, 118, 16, 0.18);
+  --r: 20px;
+  --sans: "SF Pro Text", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+  --num: "DIN Alternate", "Bahnschrift", "SF Pro Display", var(--sans);
+  --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font: 12.5px/1.35 var(--sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+#glCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+#glCanvas:active {
+  cursor: grabbing;
+}
+
+/* 3D 停機坪飛機浮動液態玻璃標籤 */
+#apronLabels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+.apron-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin-left: -54px;
+  margin-top: -30px;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 4px;
+  border-radius: 999px;
+  background: rgba(19, 32, 48, 0.62);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  color: #f6f9fc;
+  font-size: 11px;
+  box-shadow: 0 4px 12px rgba(15, 25, 38, 0.18), inset 0 1px 0.5px rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  white-space: nowrap;
+  will-change: transform;
+  transition: background-color 140ms, border-color 140ms;
+}
+.apron-tag:hover {
+  background: rgba(19, 32, 48, 0.82);
+}
+.apron-tag.sel {
+  background: rgba(20, 62, 118, 0.78);
+  border-color: rgba(130, 195, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(24, 104, 214, 0.35), 0 6px 14px rgba(15, 25, 38, 0.22);
+}
+.apron-tag.warn {
+  border-color: rgba(255, 130, 112, 0.85);
+}
+.apron-tag .at-gate {
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #f4c038;
+  color: #18222c;
+  font: 700 10px/1.15 var(--mono);
+}
+.apron-tag .at-step {
+  color: #d6e4f2;
+  font-size: 10.5px;
+}
+.apron-tag .at-dly {
+  font-style: normal;
+  font-weight: 700;
+  color: #ff9c8d;
+  font-size: 10.5px;
+}
+
+/* HUD 疊層容器 */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+#hud > * {
+  pointer-events: none;
+}
+
+/* 液態玻璃卡片基底 */
+.card {
+  pointer-events: auto;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r);
+  box-shadow: var(--glass-shadow);
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 80% at 15% 0%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 55%);
+  pointer-events: none;
+}
+
+/* ── 頂部列：4 張精簡指標卡 + 右上時鐘與倍速 ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kpi-grid {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.kpi-card {
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.kpi-lbl {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.kpi-val {
+  font: 700 17px/1 var(--num);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.gate-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.gdot {
+  padding: 1px 5px;
+  border-radius: 999px;
+  font: 700 10px/1.2 var(--mono);
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: var(--ink-2);
+}
+.gdot.on {
+  background: var(--good-soft);
+  border-color: rgba(15, 126, 88, 0.32);
+  color: var(--good);
+}
+.gdot.warn {
+  background: var(--warn-soft);
+  border-color: rgba(212, 63, 45, 0.38);
+  color: var(--warn);
+}
+
+/* 右上：液態玻璃時鐘膠囊與倍速 */
+.clock-card {
+  padding: 5px 10px 5px 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+#simClock {
+  font: 700 18px/1 var(--mono);
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.seg-group {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid var(--glass-border-subtle);
+  padding: 2px;
+  border-radius: 999px;
+  gap: 2px;
+}
+.seg-group button {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font: 600 11px/1 var(--mono);
+  color: var(--ink-2);
+  transition: background-color 120ms, color 120ms;
+}
+.seg-group button[aria-pressed="true"] {
+  background: var(--ink);
+  color: #ffffff;
+}
+.cam-bar {
+  display: inline-flex;
+  gap: 3px;
+}
+.cam-btn {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.cam-btn:hover {
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--ink);
+}
+
+/* ── 底部雙欄：輕巧不擋畫面的液態玻璃浮島 ── */
+.bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.panel-card {
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#timelineCard {
+  width: min(390px, 46vw);
+}
+#tabsCard {
+  width: min(380px, 46vw);
+}
+
+/* 左下：單列精簡航班頭 + 6 步進度膠囊 */
+.p-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.p-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.p-title b {
+  font: 700 15px/1.1 var(--mono);
+}
+.p-meta {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.p-sched {
+  font: 600 11px/1 var(--mono);
+  color: var(--mute);
+}
+
+.badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge.good { background: var(--good-soft); color: var(--good); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+
+.prio-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+.prio-seg {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid var(--glass-border-subtle);
+  padding: 2px;
+  border-radius: 999px;
+  gap: 2px;
+}
+.prio-seg button {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.prio-seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.chain-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  border: 1px solid rgba(198, 118, 16, 0.28);
+  color: #6e3f05;
+  font-size: 11px;
+}
+.chain-alert[hidden] {
+  display: none !important;
+}
+
+/* 6 步驟緊湊 3×2 液態玻璃格 */
+.tl-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+.tl-step {
+  padding: 5px 7px;
+  border-radius: 11px;
+  background: var(--glass-item);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.tl-step.active {
+  background: var(--glass-item-active);
+  border-color: rgba(24, 104, 214, 0.65);
+}
+.tl-step.done {
+  background: rgba(15, 126, 88, 0.10);
+  border-color: rgba(15, 126, 88, 0.28);
+}
+.tl-step.delayed {
+  background: rgba(212, 63, 45, 0.12);
+  border-color: rgba(212, 63, 45, 0.5);
+}
+.st-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.st-idx {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(19, 32, 48, 0.12);
+  color: var(--ink-2);
+  font: 700 9.5px/15px var(--mono);
+  text-align: center;
+  flex: none;
+}
+.tl-step.done .st-idx {
+  background: var(--good);
+  color: #fff;
+}
+.tl-step.active .st-idx {
+  background: var(--accent);
+  color: #fff;
+}
+.st-name {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.st-time {
+  font: 600 10px/1 var(--mono);
+  color: var(--mute);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.tl-step.delayed .st-time {
+  color: var(--warn);
+}
+.st-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.st-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(19, 32, 48, 0.12);
+  overflow: hidden;
+}
+.st-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 180ms ease-out;
+}
+.tl-step.done .st-bar i { background: var(--good); }
+.tl-step.delayed .st-bar i { background: var(--warn); }
+
+.v-tag {
+  font: 600 9.5px/1 var(--mono);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.v-tag.on {
+  color: var(--good);
+}
+.mini-act {
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mini-act:hover {
+  filter: brightness(1.08);
+}
+
+/* ── 右下分頁清單：單行緊湊液態玻璃列 ── */
+.tab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.tabs-nav {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid var(--glass-border-subtle);
+  padding: 2px;
+  border-radius: 999px;
+  gap: 2px;
+  width: 100%;
+}
+.tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.tab-btn .cnt {
+  padding: 0 5px;
+  border-radius: 999px;
+  font: 600 10px/1.3 var(--mono);
+  background: rgba(19, 32, 48, 0.09);
+}
+.tab-btn[aria-selected="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+.tab-btn[aria-selected="true"] .cnt {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 146px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(19, 32, 48, 0.22) transparent;
+}
+.list-row {
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: var(--glass-item);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  transition: background 120ms, border-color 120ms;
+}
+.list-row:hover {
+  background: var(--glass-item-active);
+}
+.list-row.sel {
+  background: var(--glass-item-active);
+  border-color: rgba(24, 104, 214, 0.68);
+}
+.gate-chip {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #1c2633;
+  color: #f4c038;
+  font: 700 10.5px/1.25 var(--mono);
+  flex: none;
+}
+.veh-badge {
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  flex: none;
+}
+.veh-badge.fuel { background: #d96b2b; }
+.veh-badge.baggage { background: #c7961a; }
+.veh-badge.catering { background: #388e7c; }
+
+.callsign {
+  font: 700 12px/1.1 var(--mono);
+  white-space: nowrap;
+}
+.step-txt {
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 105px;
+}
+.prog-bar {
+  flex: 1;
+  min-width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(19, 32, 48, 0.12);
+  overflow: hidden;
+}
+.prog-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 180ms ease-out;
+}
+.pill {
+  padding: 1px 5px;
+  border-radius: 999px;
+  font: 700 10px/1.2 var(--mono);
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+.prio-btn {
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.48);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.prio-btn.p2 {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(24, 104, 214, 0.35);
+}
+.prio-btn.p3 {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: rgba(212, 63, 45, 0.4);
+}
+
+/* 響應式：平板與手機 (390×844) 不溢出、輕巧半透明 */
+@media (max-width: 900px) {
+  #hud { padding: 6px; }
+  .top-bar { gap: 4px; }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 4px;
+  }
+  .kpi-card { padding: 4px 9px; justify-content: space-between; }
+  .kpi-val { font-size: 14.5px; }
+  .clock-card { width: 100%; justify-content: space-between; padding: 4px 8px; gap: 4px; }
+  #simClock { font-size: 15px; }
+  .cam-btn[data-cam="fuelfarm"], .cam-btn[data-action="download-gltf"] { display: none; }
+  .bottom-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+  #timelineCard, #tabsCard {
+    width: 100%;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .tab-body { max-height: 96px; }
+  .apron-tag { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="glCanvas" aria-label="Groundline 機場停機坪 3D 即時調度場景"></canvas>
+</div>
+<div id="apronLabels" aria-hidden="true"></div>
+
+<div id="hud">
+  <!-- 頂部：4 張精簡液態玻璃指標膠囊 ＋ 右上模擬時鐘與倍速 -->
+  <header class="top-bar">
+    <div class="kpi-grid" role="region" aria-label="停機坪營運指標">
+      <div class="card kpi-card">
+        <span class="kpi-lbl">準點率</span>
+        <b class="kpi-val" id="kpiOntime">88.9%</b>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-lbl">過站</span>
+        <b class="kpi-val" id="kpiTurn">39.2m</b>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-lbl">機門</span>
+        <b class="kpi-val" id="kpiGates">5/5</b>
+        <div class="gate-dots" id="kpiGateDots"></div>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-lbl">行李</span>
+        <b class="kpi-val" id="kpiBags">1,284</b>
+      </div>
+    </div>
+
+    <div class="card clock-card" role="region" aria-label="模擬時鐘與倍速控制">
+      <b id="simClock">08:12</b>
+      <div class="seg-group" id="speedBtns" role="group" aria-label="模擬倍速">
+        <button type="button" data-speed="0" aria-pressed="false" title="暫停">⏸</button>
+        <button type="button" data-speed="1" aria-pressed="true">1×</button>
+        <button type="button" data-speed="2" aria-pressed="false">2×</button>
+        <button type="button" data-speed="4" aria-pressed="false">4×</button>
+        <button type="button" data-speed="8" aria-pressed="false">8×</button>
+      </div>
+      <div class="cam-bar" role="group" aria-label="視角與工具">
+        <button type="button" class="cam-btn" data-cam="overview">全覽</button>
+        <button type="button" class="cam-btn" data-cam="terminal">航廈</button>
+        <button type="button" class="cam-btn" data-cam="fuelfarm">油槽</button>
+        <button type="button" class="cam-btn" data-action="download-gltf">glTF</button>
+        <button type="button" class="cam-btn" data-action="mute" aria-pressed="false">🔊</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 左下：精簡過站時間軸 ｜ 右下：航班／車輛／登機門單行清單 -->
+  <section class="bottom-bar">
+    <div class="card panel-card" id="timelineCard" role="region" aria-label="選中航班過站時間軸">
+      <div class="p-head">
+        <div class="p-title">
+          <span class="gate-chip" id="tlGate">G1</span>
+          <b id="tlCallsign">GL-101</b>
+          <span class="p-meta" id="tlMeta">A320neo · HND</span>
+        </div>
+        <span class="p-sched" id="tlSched">07:50→08:36</span>
+        <span class="badge warn" id="tlDelayBadge">+6m</span>
+      </div>
+
+      <div class="prio-bar">
+        <div class="prio-seg" role="group" aria-label="優先順序">
+          <button type="button" data-set-prio="1" aria-pressed="true">普通</button>
+          <button type="button" data-set-prio="2" aria-pressed="false">▲優先</button>
+          <button type="button" data-set-prio="3" aria-pressed="false">★緊急</button>
+        </div>
+        <div class="chain-alert" id="tlChainAlert" hidden></div>
+        <button type="button" class="cam-btn" data-action="inject-delay">+延誤</button>
+      </div>
+
+      <div class="tl-steps" id="tlSteps"></div>
+    </div>
+
+    <div class="card panel-card" id="tabsCard" role="region" aria-label="航班、車輛與登機門調度清單">
+      <div class="tab-head">
+        <div class="tabs-nav" role="tablist" aria-label="調度分頁">
+          <button type="button" class="tab-btn" role="tab" data-tab="flights" aria-selected="true">
+            <span>航班</span><span class="cnt" id="tabCntFlights">15</span>
+          </button>
+          <button type="button" class="tab-btn" role="tab" data-tab="vehicles" aria-selected="false">
+            <span>車輛</span><span class="cnt" id="tabCntVehicles">4/9</span>
+          </button>
+          <button type="button" class="tab-btn" role="tab" data-tab="gates" aria-selected="false">
+            <span>登機門</span><span class="cnt" id="tabCntGates">5/5</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tab-body" id="tabBody"></div>
+    </div>
+  </section>
+</div>
+
+<!--ASSETS-->
+<!--BUNDLE-->
+</body>
+</html>

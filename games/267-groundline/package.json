@@ -1,0 +1,25 @@
+{
+  "name": "groundline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Groundline · 機場停機坪即時調度策略遊戲（作品 267）",
+  "scripts": {
+    "assets": "node tools/assets.mjs",
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node --test tools/sim.test.mjs && node tools/accept.mjs",
+    "test:sim": "node --test tools/sim.test.mjs",
+    "thumb": "node tools/thumb.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.55.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
