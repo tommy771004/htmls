@@ -1,0 +1,24 @@
+{
+  "name": "stillwater",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "靜水釣遊 · Stillwater Row & Cast：俯視角划船探索與生態收集釣魚（作品 269）",
+  "scripts": {
+    "assets": "node tools/assets.mjs",
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node --test tools/core.test.mjs && node tools/accept.mjs",
+    "thumb": "node tools/thumb.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.55.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

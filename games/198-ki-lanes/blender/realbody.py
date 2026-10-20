@@ -1,10 +1,11 @@
 # 真人比例的身體：Quaternius「Universal Base Characters」Superhero 男／女底模（CC0，和 268 TERRA 的路人同一套），
-# 取代以斷面放樣拼出來的皮膚與緊身衣部件。衣物、盔甲、靴子、頭與頭髮仍由各英雄的腳本建模。
+# 取代以斷面放樣拼出來的皮膚與緊身衣部件，以及 anime_head 的頭顱。衣物、盔甲、靴子與頭髮仍由各英雄的腳本建模。
 #   1. 底模（T 字）依骨段擬合到 rig.json 的 A 字綁定姿勢：每根底模骨頭一個「旋轉＋沿骨縮放＋徑向縮放」，以底模權重混合；
 #      軀幹改用依高度的縱向重新對應＋橫向縮放，寬度照英雄自己的皮膚／緊身衣部件量出來。
 #   2. 顏色：從被取代的部件（skin=1）就近投影 pal／mat／ol，所以袖子、手套、緊身衣的分色照舊。
 #   3. 被衣物蓋住的地方：從骨軸往外射線，碰到衣物內壁就把皮膚收進去（留 3 mm），擺動時才不會穿出來。
 #   4. 權重直接沿用底模（骨名對應到 198 的骨架），不經過骨熱。
+#   5. 頭：和身體同一次擬合（head_map 對到動畫頭顱的顱骨橢球與貼花的眼線），眼窩填平，頸部接縫共用頂點、權重全給頭骨。
 # 素材包由 games/197-openworld/tools/fetch-quaternius.py 下載到 games/197-openworld/.cache/（或設 QUATERNIUS_CACHE）。
 import math
 import os
@@ -34,6 +35,7 @@ REF_R = {
 G_TORSO_SET = {1, 10, 11, 19}   # heroes 的 G_TORSO、G_PELVIS、G_BELT、G_CHEST
 
 _SRC = {}
+HEAD_ARGS = {}   # anime_head 的物件名 → 參數（換成底模的頭時用）
 
 
 def enabled(hid):
@@ -65,8 +67,55 @@ def bone_map(q):
     return [('hips', 1.0)]
 
 
+def head_enabled(hid):
+    """REAL_HEAD 環境變數：all（預設）／none／逗號分隔的英雄名單。關掉時沿用 anime_head 的動畫頭顱。"""
+    v = os.environ.get('REAL_HEAD', 'all')
+    return enabled(hid) and (v == 'all' or hid in v.split(','))
+
+
+def neighbors(n, polys):
+    nb = [set() for _ in range(n)]
+    for p in polys:
+        for a, b in zip(p, p[1:] + p[:1]):
+            nb[a].add(b)
+            nb[b].add(a)
+    return [list(s) for s in nb]
+
+
+def fill_eyes(co, nb, eyes):
+    """眼窩填平：底模的眼皮開口裡是凹進去的眼窩（眼球是另一個網格，不用）。開口裡的頂點往前推到
+    周圍眼皮表面的高度，再在網格上平滑幾輪，動畫眼睛的貼花才畫在一片乾淨、朝前的面上。"""
+    for (ex, ey, ez), (rx, ry) in eyes:
+        def r2(c):
+            return ((c.x - ex) / rx) ** 2 + ((c.y - ey) / ry) ** 2
+        inner = [i for i, c in enumerate(co) if c.z > ez - 0.045 and r2(c) < 1.0]
+        rim = [co[i] for i, c in enumerate(co) if c.z > ez - 0.012 and 1.0 <= r2(c) < 3.0]
+
+        def zs(c):
+            acc = tot = 0.0
+            for q in rim:
+                w = 1.0 / (((q.x - c.x) ** 2 + (q.y - c.y) ** 2) + 1e-7)
+                acc += q.z * w
+                tot += w
+            return acc / tot
+        for i in inner:
+            c = co[i]
+            co[i] = V((c.x, c.y, max(c.z, zs(c) - 0.0015)))
+        # 平滑：開口內與眼皮一圈（r² < 1.8）一起放鬆，外圈固定
+        soft = set(inner) | {i for i, c in enumerate(co) if c.z > ez - 0.02 and r2(c) < 1.8}
+        for _ in range(8):
+            nxt = {}
+            for i in soft:
+                if nb[i]:
+                    m = sum((co[j] for j in nb[i]), V((0, 0, 0))) / len(nb[i])
+                    nxt[i] = co[i].lerp(m, 0.6)
+            for i, p in nxt.items():
+                co[i] = p
+
+
 def load(sex):
-    """匯入底模（只取頂點、面與權重，座標轉成 three 空間：+Y 上、面向 +Z），去掉頭部。"""
+    """匯入底模（只取頂點、面與權重，座標轉成 three 空間：+Y 上、面向 +Z）。
+    面分成身體（polys）與頭（hpolys：每個頂點的 Head 權重都 ≥ 0.55），兩者共用頂點，接縫是同一圈頂點。"""
     if sex in _SRC:
         return _SRC[sex]
     before = set(bpy.data.objects)
@@ -74,6 +123,7 @@ def load(sex):
     objs = [o for o in bpy.data.objects if o not in before]
     arm = next(o for o in objs if o.type == 'ARMATURE')
     body = next(o for o in objs if o.type == 'MESH' and o.name.lower().startswith('superhero'))
+    eyes_ob = next(o for o in objs if o.type == 'MESH' and o.name.lower().startswith('eyes'))
     T = lambda p: V((p.x, p.z, -p.y))
     J = {b.name: (T(arm.matrix_world @ b.head_local), T(arm.matrix_world @ b.tail_local)) for b in arm.data.bones}
     me = body.data
@@ -86,11 +136,40 @@ def load(sex):
         tot = sum(w for _, w in ws) or 1.0
         W.append([(n, w / tot) for n, w in ws])
     head = [sum(w for n, w in ws if n == 'Head') for ws in W]
-    # 頭部：權重大半在 Head 的面拿掉（動畫頭顱另外掛在頭骨上），保留脖子
-    polys = [tuple(p.vertices) for p in me.polygons if min(head[i] for i in p.vertices) < 0.55]
-    used = sorted({i for p in polys for i in p})
-    remap = {o: n for n, o in enumerate(used)}
-    src = {'J': J, 'co': [co[i] for i in used], 'W': [W[i] for i in used], 'polys': [tuple(remap[i] for i in p) for p in polys]}
+    polys = [tuple(p.vertices) for p in me.polygons]
+    is_head = [min(head[i] for i in p) >= 0.55 for p in polys]
+    # 眼球網格只拿來量眼睛的位置（左右各一顆）
+    ec = [T(eyes_ob.matrix_world @ v.co) for v in eyes_ob.data.vertices]
+    eyes = []
+    for s in (1, -1):
+        e = [c for c in ec if c.x * s > 0]
+        lo = V((min(c.x for c in e), min(c.y for c in e), min(c.z for c in e)))
+        hi = V((max(c.x for c in e), max(c.y for c in e), max(c.z for c in e)))
+        eyes.append((((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, hi.z), ((hi.x - lo.x) * 0.62, (hi.y - lo.y) * 0.45)))
+    fill_eyes(co, neighbors(len(co), polys), eyes)
+    hp = J['Head'][0]
+    hv = [c - hp for i, c in enumerate(co) if head[i] > 0.55]
+    eye_y = eyes[0][0][1] - hp.y
+    crown = max(c.y for c in hv)
+    # 下巴：臉中線、前方的頂點裡最低的（脖子在下巴後面，z 較小）
+    chin = min(c.y for c in hv if abs(c.x) < 0.02 and c.z > eyes[0][0][2] - hp.z - 0.03)
+    # 顱骨斷面：眼睛到頭頂之間（耳朵以上）的寬度與前後範圍
+    ys = eye_y + (crown - eye_y) * 0.5
+    sl = [c for c in hv if abs(c.y - ys) < 0.006]
+    lm = {'eye': eye_y, 'eye_x': abs(eyes[0][0][0]), 'crown': crown, 'chin': chin, 'ys': ys,
+          'ax': max(abs(c.x) for c in sl), 'az0': min(c.z for c in sl), 'az1': max(c.z for c in sl)}
+
+    def piece(sel):
+        ps = [p for p, k in zip(polys, is_head) if k == sel]
+        used = sorted({i for p in ps for i in p})
+        return used, ps
+    bu, bp = piece(False)
+    hu, hpp = piece(True)
+    seam = set(bu) & set(hu)
+    remap = {o: n for n, o in enumerate(bu)}
+    src = {'J': J, 'co': co, 'W': W, 'lm': lm,
+           'used': bu, 'polys': [tuple(remap[i] for i in p) for p in bp], 'seam': [i in seam for i in bu],
+           'hused': hu, 'hpolys': hpp}
     for o in objs:
         bpy.data.objects.remove(o, do_unlink=True)
     _SRC[sex] = src
@@ -122,8 +201,8 @@ def median(xs):
 
 
 class Fitter:
-    def __init__(self, F, sex, parts):
-        self.F, self.sex = F, sex
+    def __init__(self, F, sex, parts, hargs=None):
+        self.F, self.sex, self.hargs = F, sex, hargs
         self.S = load(sex)
         self.R = F.R
         self.B = F.b   # 198 骨頭：name → (head, tail)
@@ -211,6 +290,40 @@ class Fitter:
             return V((p.x * sx, ymap(p.y), bzc + (p.z - azc) * sz))
         return xf, ymap, ky
 
+    def head_map(self):
+        """底模的頭（Head 骨的權重）對到動畫頭顱：頭髮、髮帽與臉部貼花都以頭心 F.c 與 hr 定位，所以頭頂與顱骨寬、前後
+        對到 anime_head 的顱骨橢球（cranium），眼睛對到貼花的眼線高度（頭心上 0.01 hr），下巴對到動畫臉的下巴；
+        眼睛以上、以下各自縱向縮放（交界 3 cm 內漸變）。下半臉的寬度乘上 cheek×jaw，最後套 hx（頭的橫向比例）。"""
+        F, a, lm = self.F, self.hargs, self.S['lm']
+        c, hr = F.c, F.hr
+        hp = self.S['J']['Head'][0]
+        kx, ky, kz = a['cranium']
+        te = c.y + 0.01 * hr
+        tcrown = c.y + hr * (0.9 * ky + 0.08)
+        tchin = c.y - hr * (0.9 * 0.86 * a['face_len'] + 0.06)
+        eye = lm['eye']
+        su = (tcrown - te) / (lm['crown'] - eye)
+        sd = (te - tchin) / (eye - lm['chin'])
+        yt = te + (lm['ys'] - eye) * su
+        k = math.sqrt(max(0.05, 1 - ((yt - (c.y + 0.08 * hr)) / (0.9 * ky * hr)) ** 2))
+        sx = 0.8 * kx * hr * k / lm['ax']
+        sz = 0.88 * kz * hr * k / ((lm['az1'] - lm['az0']) / 2)
+        zc_s, zc_t = (lm['az0'] + lm['az1']) / 2, c.z - 0.04 * hr
+        wf_low = a['cheek'] * a['jaw']
+        hx = F.R.get('hx', 1.0)
+        self.head_info = {'eye_y': te, 'chin_y': tchin}
+
+        def fn(p):
+            r = p - hp
+            d = r.y - eye
+            t = smooth((d + 0.015) / 0.03)
+            y = te + d * (sd + (su - sd) * t)
+            wf = 1 + (wf_low - 1) * smooth(-d / (eye - lm['chin']))
+            x = c.x + r.x * sx * wf * hx
+            z = zc_t + (r.z - zc_s) * sz
+            return V((x, y, c.z + (z - c.z) * (0.5 + 0.5 * hx)))
+        return fn
+
     def fit(self):
         J, B, F = self.S['J'], self.B, self.F
         tx, ymap, ky = self.torso_map()
@@ -263,6 +376,7 @@ class Fitter:
             nr = max(0.8, min(1.6, median(ds) / src))
         X['neck_01'] = seg_xf(J['neck_01'][0], J['Head'][0], nh, nt, nr or 1.1)
         X['Head'] = X['neck_01']
+        hf = self.head_map() if self.hargs is not None else None
         TORSO = {'root', 'pelvis', 'spine_01', 'spine_02', 'spine_03'}
         out = []
         for c, ws in zip(self.S['co'], self.S['W']):
@@ -271,6 +385,8 @@ class Fitter:
             for n, w in ws:
                 if n in TORSO:
                     p = tx(c)
+                elif n == 'Head' and hf:
+                    p = hf(c)
                 else:
                     M = X.get(n)
                     p = (M @ c) if M is not None else tx(c)
@@ -281,15 +397,32 @@ class Fitter:
 
 
 # ---------------------------------------------------------------- 主流程
-def make(F, body_parts, name='realbody'):
-    """body_parts：英雄的全部身體部件（含標記 skin=1 的）。回傳 (真人身體物件, (KDTree, 每頂點權重 {198 骨名: w}), 其餘部件)。"""
+def make(F, body_parts, name='realbody', hargs=None):
+    """body_parts：英雄的全部身體部件（含標記 skin=1 的）。hargs：anime_head 的參數（有就連頭一起換成底模的頭）。
+    回傳 (真人身體物件, (KDTree, 每頂點權重 {198 骨名: w}, 被蓋住程度, 是否接縫), 其餘部件, 頭顱物件或 None)。"""
     hid = F.R.get('id', '')
     sex = 'Female' if hid in FEMALE else 'Male'
     skins = [o for o in body_parts if o.get('skin')]
     rest = [o for o in body_parts if not o.get('skin')]
-    fitter = Fitter(F, sex, skins)
+    fitter = Fitter(F, sex, skins, hargs)
     S = fitter.S
-    co = fitter.fit()
+    co_all = fitter.fit()
+    skull = None
+    if hargs is not None:
+        hu = S['hused']
+        hm = {o: n for n, o in enumerate(hu)}
+        mh = bpy.data.meshes.new(name + '_head')
+        mh.from_pydata([tuple(co_all[i]) for i in hu], [], [tuple(hm[i] for i in p) for p in S['hpolys']])
+        mh.update()
+        skull = bpy.data.objects.new(name + '_head', mh)
+        bpy.context.scene.collection.objects.link(skull)
+        skull['chin_y'] = fitter.head_info['chin_y']
+        if not hargs['ears']:
+            drop_ears(skull, [S['co'][i] - S['J']['Head'][0] for i in hu], S['lm'])
+    used = S['used']
+    co = [co_all[i] for i in used]
+    # 有底模的頭時，接縫那一圈頂點整個跟著頭骨（頭顱是掛在頭骨上的剛體，兩邊的接縫才不會在轉頭時裂開）
+    seam = list(S['seam']) if skull else [False] * len(used)
     me = bpy.data.meshes.new(name)
     me.from_pydata([tuple(c) for c in co], [], S['polys'])
     me.update()
@@ -298,12 +431,15 @@ def make(F, body_parts, name='realbody'):
     # 不重算法線：頭部挖空後是開口網格，重算可能整張翻面；底模原本的繞序就是朝外
     kit.tag(ob, 0, mat=4, grp=G_REAL, ol=1.0)
     weights = []
-    for ws in S['W']:
+    for i in used:
         acc = {}
-        for n, w in ws:
+        for n, w in S['W'][i]:
             for b, k in bone_map(n):
                 acc[b] = acc.get(b, 0.0) + w * k
         weights.append(acc)
+    for i, s in enumerate(seam):
+        if s:
+            weights[i] = {'head': 1.0}
     dom = [max(w.items(), key=lambda kv: kv[1])[0] for w in weights]
     skin_tree = merged_tree(skins)
     real_tree = BVHTree.FromObject(ob, bpy.context.evaluated_depsgraph_get())
@@ -312,8 +448,8 @@ def make(F, body_parts, name='realbody'):
         kd0.insert(v.co, i)
     kd0.balance()
     retarget(rest, F, skin_tree, real_tree, kd0, dom)
-    covered = conform(ob, rest, F, dom)
-    weights, dom, covered = drop_covered(ob, skin_tree, covered, weights, dom)
+    covered = conform(ob, rest, F, dom, seam)
+    weights, dom, covered, seam = drop_covered(ob, skin_tree, covered, weights, dom, seam)
     cov = spread(ob, covered)
     # 權重查表要在上色切線之前建立（切線會在邊上插入新頂點，新頂點取最近的舊頂點權重）
     kd = KDTree(len(ob.data.vertices))
@@ -322,7 +458,155 @@ def make(F, body_parts, name='realbody'):
     kd.balance()
     project(ob, skins, F, kd, dom)
     # 被取代的部件留在場景裡（骨熱替身可能還用到），只是不再併進身體
-    return ob, (kd, weights, cov), rest
+    return ob, (kd, weights, cov, seam), rest, skull
+
+
+def drop_ears(skull, rel, lm, thr=0.058):
+    """沒有耳朵（弗利沙）或另外接尖耳（比克）：拿掉底模的耳朵，洞補平。rel：每個頂點在底模裡相對 Head 骨的座標。"""
+    eye = lm['eye']
+    ear = [abs(c.x) > thr and eye - 0.085 < c.y < eye + 0.045 and -0.075 < c.z < 0.04 for c in rel]
+    bm = bmesh.new()
+    bm.from_mesh(skull.data)
+    bm.verts.ensure_lookup_table()
+    # 離頸部接縫三圈以內的不動：耳洞不能和頸部的開口連在一起
+    near = {v for e in bm.edges if e.is_boundary for v in e.verts}
+    for _ in range(3):
+        near |= {u for v in list(near) for e in v.link_edges for u in e.verts}
+    for v in near:
+        ear[v.index] = False
+    kill = [f for f in bm.faces if any(ear[v.index] for v in f.verts)]
+    bmesh.ops.delete(bm, geom=kill, context='FACES_ONLY')
+    bmesh.ops.delete(bm, geom=[e for e in bm.edges if not e.link_faces], context='EDGES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    # 頸部接縫也是開口，只補耳朵留下的洞（頭頂側、靠兩側的開口）
+    hole = [e for e in bm.edges if e.is_boundary]
+    # 每個洞：洞緣的中心加一個頂點，沿洞緣做扇形面（繞序照洞緣原本那一面反過來，法線才朝外），再細分、放鬆
+    left = set(hole)
+    bm.verts.index_update()
+    n0 = len(bm.verts)   # 新頂點（扇形中心、細分）都接在後面
+    new_f = []
+    while left:
+        e0 = left.pop()
+        loop = [e0]
+        v = e0.verts[1]
+        while True:
+            nxt = next((e for e in v.link_edges if e in left), None)
+            if nxt is None:
+                break
+            left.discard(nxt)
+            loop.append(nxt)
+            v = nxt.other_vert(v)
+        cen = sum((e.verts[0].co for e in loop), V((0, 0, 0))) / len(loop)
+        if abs(cen.x) < 0.03:
+            continue   # 頸部接縫的開口（在中線上）不補
+        cen = bm.verts.new(cen)
+        for e in loop:
+            f0 = e.link_faces[0]
+            lv = list(f0.verts)
+            i = lv.index(e.verts[0])
+            a_, b_ = (e.verts[0], e.verts[1]) if lv[(i + 1) % len(lv)] == e.verts[1] else (e.verts[1], e.verts[0])
+            new_f.append(bm.faces.new((b_, a_, cen)))
+    res = {'faces': new_f}
+    hs = set(hole)
+    bmesh.ops.subdivide_edges(bm, edges=list({e for f in new_f for e in f.edges if e not in hs}), cuts=2, use_grid_fill=True)
+    # 洞緣不動，補上的內部頂點（扇形中心與細分出來的）放鬆成平順的一片
+    bm.verts.index_update()
+    ring = {v for v in bm.verts if v.index >= n0}
+    for _ in range(25):
+        nxt = {}
+        for v in ring:
+            nb = [e.other_vert(v) for e in v.link_edges]
+            nxt[v] = v.co.lerp(sum((u.co for u in nb), V((0, 0, 0))) / len(nb), 0.5)
+        for v, p in nxt.items():
+            v.co = p
+    bm.to_mesh(skull.data)
+    bm.free()
+    skull.data.update()
+    print('  底模的頭：拿掉耳朵 %d 面、補 %d 面（洞邊 %d）' % (len(kill), len(res['faces']), len(hole)))
+
+
+def dress_head(skull, old, F, hargs):
+    """底模的頭上色：顏色與外框倍率從動畫頭顱（old）就近投影；鼻子附近外框變細。接上尖耳等額外部件。"""
+    kit.tag(skull, hargs['pal'], mat=4, grp=0, ol=0.55)
+    n = len(skull.data.vertices)
+    kd = KDTree(n)
+    for i, v in enumerate(skull.data.vertices):
+        kd.insert(v.co, i)
+    kd.balance()
+    project(skull, [old], F, kd, ['head'] * n, center=F.c + V((0, -F.hr * 0.1, -F.hr * 0.1)), iters=16)
+    hr = F.hr
+    tip = max((V(v.co) for v in skull.data.vertices if abs(v.co.x - F.c.x) < 0.01 and v.co.y < F.c.y), key=lambda p: p.z)
+    kit.paint_ol(skull, lambda co: 0.12 if (co - tip).length < hr * 0.3 else None)
+    keep = hargs.get('keep') or []
+    parts = []
+    sk = [V(v.co) for v in skull.data.vertices]
+    tree = BVHTree.FromObject(skull, bpy.context.evaluated_depsgraph_get())
+    for o in keep:
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)   # 鏡射變形過的部件繞序是反的
+        bm.to_mesh(o.data)
+        bm.free()
+        if o.get('ear'):
+            # 尖耳：底模的頭比動畫頭顱窄，整隻耳朵往內挪到貼著頭側（耳根埋進去 4 mm）
+            vs = [V(v.co) for v in o.data.vertices]
+            sx = 1 if sum(p.x for p in vs) > 0 else -1
+            root = min(vs, key=lambda p: (p.x - F.c.x) * sx)
+            side = [p for p in sk if (p.x - F.c.x) * sx > 0 and abs(p.y - root.y) < hr * 0.35 and abs(p.z - root.z) < hr * 0.3]
+            if side:
+                wall = max((p.x - F.c.x) * sx for p in side)
+                dx = (wall - 0.004 - (root.x - F.c.x) * sx) * sx
+                kit.deform(o, lambda p, dx=dx: V((p.x + dx, p.y, p.z)))
+        else:
+            # 其他附加部件（比克的額頭隆起）：底模的額頭比較高，沿頭心往外推到貼著表面
+            vs = [V(v.co) for v in o.data.vertices]
+            cen = sum(vs, V((0, 0, 0))) / len(vs)
+            d = cen - F.c
+            dist = d.length
+            d.normalize()
+            hit = tree.ray_cast(F.c, d, hr * 3)
+            if hit[0] is not None:
+                rad = min((p - cen).length for p in vs)
+                push = hit[3] + rad * 0.6 - dist
+                if push > 0:
+                    kit.deform(o, lambda p, m=d * push: p + m)
+        o = kit.subsurf(o, 1)
+        parts.append(kit.tag(o, hargs['pal'], mat=4, grp=0, ol=0.55))
+    if parts:
+        chin = skull['chin_y']
+        skull = kit.join([skull] + parts, 'realhead')
+        skull['chin_y'] = chin
+    return skull
+
+
+def seam_normals(body, skull):
+    """頭顱與身體在頸部接縫的那圈頂點，兩邊各自只算到一側的面：平均兩邊的法線，明暗才接得上。"""
+    nb_ = body.data.attributes['nrm'].data
+    ns_ = skull.data.attributes['nrm'].data
+    kd = KDTree(len(body.data.vertices))
+    for i, v in enumerate(body.data.vertices):
+        kd.insert(v.co, i)
+    kd.balance()
+    bm = bmesh.new()
+    bm.from_mesh(skull.data)
+    edge_v = {v.index for e in bm.edges if e.is_boundary for v in e.verts}
+    bm.free()
+    k = 0
+    if os.environ.get('REAL_DEBUG'):
+        ds = sorted(kd.find(skull.data.vertices[i].co)[2] for i in edge_v)
+        print('  接縫距離（mm）：', len(ds), [round(d * 1000, 2) for d in ds[::max(1, len(ds) // 8)]])
+    for i in edge_v:
+        p = skull.data.vertices[i].co
+        hits = kd.find_range(p, 1e-5)
+        if not hits:
+            continue
+        nsum = V(ns_[i].vector) + sum((V(nb_[j].vector) for _c, j, _d in hits), V((0, 0, 0))) / len(hits)
+        nsum.normalize()
+        ns_[i].vector = nsum
+        for _c, j, _d in hits:
+            nb_[j].vector = nsum
+        k += 1
+    print('  頸部接縫：%d 頂點對齊法線' % k)
 
 
 def spread(ob, covered, iters=6):
@@ -422,7 +706,7 @@ def retarget(garments, F, skin_tree, real_tree, kd, dom, reach=0.025, fade=0.03,
             print('    %-14s %5d/%5d 頂點  平均 %.1f mm' % (o.name, len(mv), n, 1000 * sum(mv) / max(1, len(mv))))
 
 
-def conform(ob, garments, F, dom, gap=0.003):
+def conform(ob, garments, F, dom, seam, gap=0.003):
     """被衣物蓋住的皮膚收進衣物內壁：從主導骨的骨軸往外射線，先碰到衣物就把頂點拉回碰撞點內側。手與手指不處理。
     回傳每個頂點是否被衣物蓋住。"""
     covered = [False] * len(ob.data.vertices)
@@ -431,6 +715,8 @@ def conform(ob, garments, F, dom, gap=0.003):
         return covered
     moved = 0
     for i, v in enumerate(ob.data.vertices):
+        if seam[i]:
+            continue   # 和頭顱共用的接縫不動
         p = V(v.co)
         # 沿法線往外 8 cm 內碰到衣物：從外面看不到（胯下、腋下這種骨軸射線打不準的地方）
         if dom[i] not in HAND_BONES and tree.ray_cast(p + v.normal * 0.001, v.normal, 0.08)[0] is not None:
@@ -455,12 +741,12 @@ def conform(ob, garments, F, dom, gap=0.003):
     return covered
 
 
-def drop_covered(ob, skin_tree, covered, weights, dom, far=0.035):
+def drop_covered(ob, skin_tree, covered, weights, dom, seam, far=0.035):
     """完全被衣物蓋住、原本也沒有皮膚部件的地方（褲管裡的腿、靴子裡的腳）整塊刪掉：少面數，也不會在擺動時穿出來。"""
     me = ob.data
     keepv = [True] * len(me.vertices)
     for i, v in enumerate(me.vertices):
-        if not covered[i]:
+        if not covered[i] or seam[i]:
             continue
         if skin_tree is not None:
             hit = skin_tree.find_nearest(V(v.co), far)
@@ -479,10 +765,10 @@ def drop_covered(ob, skin_tree, covered, weights, dom, far=0.035):
     bm.free()
     me.update()
     print('  真人身體：刪掉 %d 面（被衣物蓋住）' % len(kill))
-    return [weights[i] for i in old], [dom[i] for i in old], [covered[i] for i in old]
+    return [weights[i] for i in old], [dom[i] for i in old], [covered[i] for i in old], [seam[i] for i in old]
 
 
-def project(ob, skins, F, kd, dom):
+def project(ob, skins, F, kd, dom, center=None, iters=6):
     """從被取代的部件投影顏色：從骨軸往外射線，打到原本部件的哪一塊顏色（pal, mat）就是哪一塊（手、手指沒有骨軸，取最近點）。
     各顏色沿網格邊的中點切開再上色，邊界平滑；ol 取最近的部件。"""
     if not skins:
@@ -508,7 +794,7 @@ def project(ob, skins, F, kd, dom):
         if key in cache:
             return cache[key]
         _c, j, _d = kd.find(co)
-        a = axis_point(F, dom[j], co)
+        a = center if center is not None else axis_point(F, dom[j], co)
         k = None
         if a is not None:
             r = co - a
@@ -559,7 +845,7 @@ def project(ob, skins, F, kd, dom):
     ind = {k: [1.0 if x == k else 0.0 for x in lab] for k in order}
     for k in order:
         x = ind[k]
-        for _ in range(6):
+        for _ in range(iters):
             x = [(x[i] + sum(x[j] for j in nb[i]) / len(nb[i])) * 0.5 if nb[i] else x[i] for i in range(n)]
         ind[k] = x
     kd2 = KDTree(n)
@@ -589,7 +875,7 @@ def weights_for(body, real_lookup, bone_names, W):
     """build_heroes 算出的權重表 W（骨熱，和衣物同一套）中，屬於真人身體（grp＝G_REAL）的頂點：
     露在外面的地方換成底模權重；被衣物蓋住的地方保留骨熱權重（和衣物一起動，扭身時才不會從衣服穿出來），交界漸變。
     骨熱裡的擺動鏈（垂帶、尾巴等）不給身體。"""
-    kd, weights, cov = real_lookup
+    kd, weights, cov, seam = real_lookup
     bidx = {n: i for i, n in enumerate(bone_names)}
     main = {i for n, i in bidx.items() if not n[-1].isdigit()}
     G = body.data.attributes['grp'].data
@@ -598,6 +884,10 @@ def weights_for(body, real_lookup, bone_names, W):
         if G[i].value != G_REAL:
             continue
         _co, j, _d = kd.find(v.co)
+        if seam[j] and 'head' in bidx:
+            W[i] = [(bidx['head'], 1.0)]
+            n += 1
+            continue
         c = cov[j]
         acc = {}
         for b, w in weights[j].items():

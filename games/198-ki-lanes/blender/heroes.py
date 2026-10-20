@@ -4,6 +4,7 @@
 import math
 
 import bmesh
+import bpy
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
@@ -387,7 +388,19 @@ def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_s
             else:
                 kit.deform(e, lambda p, sx=sx: c + V((sx * (hr * 0.78 + p.x * hr * 0.1), -hr * 0.12 + p.y * hr * 0.2 * ear_scale, -hr * 0.04 + p.z * hr * 0.1)))
             parts.append(e)
+    if realbody.head_enabled(F.R.get('id')):
+        # 換成底模的頭時用得到的參數；尖耳與額外部件（比克的額頭隆起）另外複製一份，之後接到底模的頭上
+        keep = [kit.duplicate(o, name + '_keep') for o in extra]
+        if ears and pointed_ears:
+            for o in parts[-2:]:
+                e = kit.duplicate(o, name + '_ear')
+                e['ear'] = 1
+                keep.append(e)
+        hargs = {'cranium': cranium, 'face_len': face_len, 'jaw': jaw, 'cheek': cheek, 'chin': chin, 'nose': nose,
+                 'ears': ears and not pointed_ears, 'pal': pal_skin, 'keep': keep}
     head = kit.join(parts + list(extra), name)
+    if realbody.head_enabled(F.R.get('id')):
+        realbody.HEAD_ARGS[head.name] = hargs
     m = head.modifiers.new('rm', 'REMESH')
     m.mode = 'VOXEL'
     m.voxel_size = hr * 0.02
@@ -523,8 +536,10 @@ def core_proxy(F):
 def finish(F, P, body, proxy, heads, extras=None, custom=None):
     proxy = [p for p in proxy if is_closed(p)] + core_proxy(F)
     real = None
+    skull = None
+    hargs = realbody.HEAD_ARGS.get(heads['base'][0].name) if realbody.head_enabled(F.R.get('id')) else None
     if realbody.enabled(F.R.get('id')) and any(o.get('skin') for o in body):
-        ob, lookup, body = realbody.make(F, body)
+        ob, lookup, body, skull = realbody.make(F, body, hargs=hargs)
         real = (ob, lookup)
     # 頭部橫向比例（照參考圖量的臉寬）：頭顱、髮型與頭上配件一起以頭心為軸縮放
     hx = F.R.get('hx', 1.0)
@@ -533,10 +548,19 @@ def finish(F, P, body, proxy, heads, extras=None, custom=None):
         for objs in heads.values():
             for o in objs:
                 kit.deform(o, lambda p: V((c.x + (p.x - c.x) * hx, p.y, c.z + (p.z - c.z) * (0.5 + 0.5 * hx))))
+        for o in (hargs or {}).get('keep', []):
+            kit.deform(o, lambda p: V((c.x + (p.x - c.x) * hx, p.y, c.z + (p.z - c.z) * (0.5 + 0.5 * hx))))
+    if skull is not None:
+        # 底模的頭（擬合時已經套過 hx）取代動畫頭顱：顏色從動畫頭顱投影過來（弗利沙的圓頂、比克的綠皮膚）
+        old = heads['base'][0]
+        skull = realbody.dress_head(skull, old, F, hargs)
+        heads['base'][0] = skull
+        bpy.data.objects.remove(old, do_unlink=True)
     return {
         'body': body, 'proxy': proxy, 'heads': heads, 'extras': extras or {}, 'real': real,
         'allow': ALLOW, 'custom': custom or {}, 'palette': P, 'head_center': F.c, 'hr': F.hr,
         'faceRect': [0, F.hr * 0.9 - F.hr * 0.12, F.hr * 1.9 * F.R.get('hx', 1.0), F.hr * 1.9],
+        'real_head': skull is not None,
     }
 
 

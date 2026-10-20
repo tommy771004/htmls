@@ -189,7 +189,12 @@ def build_one(hid, R, opt):
             kit.decimate_keep(hairs[f], H.get('hair_tris', 5200))
             kit.crisp_split(hairs[f])
     kit.crisp_split(skull)
-    kit.face_normals(skull, H['head_center'], H['hr'])
+    if H.get('real_head'):
+        # 底模的頭：保留一點真實的骨相（k 較小），下巴以下不動，再和身體對齊接縫的法線
+        kit.face_normals(skull, H['head_center'], H['hr'], k=0.55, y0=skull['chin_y'])
+        realbody.seam_normals(body, skull)
+    else:
+        kit.face_normals(skull, H['head_center'], H['hr'])
     extras = {k: kit.join(v, k) if isinstance(v, list) else v for k, v in H.get('extras', {}).items()}
     bone_names = [b['name'] for b in R['bones']]
     arm = kit.build_armature([(b['name'], b['head'], b['tail'], b['parent']) for b in R['bones']])

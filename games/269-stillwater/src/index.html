@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>靜水釣遊 · Stillwater Row &amp; Cast</title>
+<meta name="description" content="俯視角划船探索與生態收集釣魚：由南往北划過五個生態區，點亮 6 座燈樁、發現 15 個釣點，用張力收線釣起 55 種魚，判定 5 階品質、完成主線與木屋委託。">
+<meta name="theme-color" content="#16231c">
+<style>
+:root {
+  --pine: #16231c; --pine-2: #1f3128; --pine-3: #2a4034; --pine-edge: #3a5545;
+  --birch: #efe8d8; --birch-2: #c9c1ac; --birch-3: #8f8a78;
+  --amber: #e0a752; --amber-2: #b98336;
+  --kraft: #c9a576; --kraft-2: #b38f60; --kraft-ink: #3a2c1c; --stamp: #9b3a2c;
+  --q0: #a39886; --q1: #8cc063; --q2: #d9dde0; --q3: #e9b949; --q4: #9d7bd0;
+  --red: #c8553d; --yellow: #d9b24a; --green: #7fae6a;
+  --zh: "Songti TC", "Noto Serif TC", "Noto Serif CJK TC", "PMingLiU", serif;
+  --latin: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --ui: system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --cut: 12px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #16231c; color: var(--birch); font-family: var(--ui); -webkit-tap-highlight-color: transparent; }
+canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+#sheet > .plank:focus { outline: none; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px dashed var(--amber); outline-offset: 3px; }
+.hidden { display: none !important; }
+/* 招牌面板：松木漆面＋切角（signature 輪廓：左上角切得比較大） */
+.plank {
+  background: linear-gradient(180deg, rgba(31, 49, 40, .96), rgba(22, 35, 28, .96));
+  clip-path: polygon(calc(var(--cut) * 1.6) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 calc(var(--cut) * 1.6));
+  box-shadow: inset 0 1px 0 rgba(239, 232, 216, .08);
+}
+.zh { font-family: var(--zh); }
+.latin { font-family: var(--latin); font-style: italic; letter-spacing: .01em; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+#quest { position: absolute; left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top)); width: 290px; padding: 14px 16px 12px 22px; font-size: 13px; line-height: 1.45; }
+#quest .ch { font-family: var(--zh); font-size: 16px; font-weight: 700; color: var(--birch); margin: 0 0 6px; }
+#quest .ch small { display: block; font-family: var(--latin); font-style: italic; font-weight: 400; font-size: 12px; color: var(--birch-3); margin-top: 1px; }
+#quest ul { list-style: none; margin: 0; padding: 0; }
+#quest li { display: grid; grid-template-columns: 14px 1fr auto; gap: 7px; align-items: start; color: var(--birch-2); padding: 2px 0; }
+#quest li .k { width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--birch-3); }
+#quest li.done { color: var(--birch-3); }
+#quest li.done .k { background: var(--amber); box-shadow: none; }
+#quest li .c { color: var(--birch-3); font-size: 12px; }
+#quest .ready { margin-top: 8px; color: var(--amber); font-weight: 600; }
+#quest .board { margin-top: 8px; padding-top: 7px; color: var(--birch-3); font-size: 12px; background: linear-gradient(90deg, rgba(239,232,216,.12), rgba(239,232,216,0)) top / 100% 1px no-repeat; }
+#questToggle { display: none; }
+
+#creel { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 18px; }
+#creel .lbl { font-family: var(--zh); font-size: 14px; white-space: nowrap; }
+#creel .lbl b { font-family: var(--latin); font-style: normal; font-size: 17px; color: var(--birch); font-weight: 600; }
+#creel .slots { display: flex; gap: 4px; }
+#creel .slot { width: 22px; height: 14px; position: relative; }
+#creel .slot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+#creel.full .lbl b { color: var(--amber); }
+
+#clock { position: absolute; right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 14px; }
+#dial { width: 74px; height: 42px; display: block; }
+#clock .t { min-width: 66px; }
+#clock .t b { display: block; font-family: var(--latin); font-style: normal; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+#clock .t span { font-size: 12px; color: var(--birch-2); white-space: nowrap; }
+.ib { width: 38px; height: 38px; display: grid; place-items: center; color: var(--birch-2); border-radius: 6px; transition: color .15s, background-color .15s; }
+.ib:hover { color: var(--birch); background: rgba(239, 232, 216, .07); }
+.ib svg { width: 22px; height: 22px; display: block; }
+.ib.off { color: var(--birch-3); }
+
+#riverMap { position: absolute; right: max(14px, env(safe-area-inset-right)); top: 86px; width: 74px; height: min(56vh, 520px); padding: 10px 6px; }
+#riverMap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+#hints { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 16px; align-items: center; padding: 8px 18px; font-size: 13px; color: var(--birch-2); white-space: nowrap; }
+#hints .h { display: flex; align-items: center; gap: 7px; }
+kbd { font-family: var(--ui); font-size: 11.5px; font-weight: 600; color: var(--pine); background: var(--birch); border-radius: 4px; padding: 2px 6px 1px; box-shadow: 0 2px 0 var(--birch-3); min-width: 22px; text-align: center; display: inline-block; }
+
+#banner { position: absolute; left: 50%; top: 17%; transform: translate(-50%, 0); text-align: center; pointer-events: none; transition: opacity .5s var(--ease), transform .5s var(--ease); }
+#banner.off { opacity: 0; transform: translate(-50%, -10px); }
+#banner .en { font-family: var(--latin); font-style: italic; font-size: clamp(26px, 4vw, 40px); color: var(--birch); text-shadow: 0 1px 2px rgba(10, 20, 15, .55), 0 0 18px rgba(10, 20, 15, .35); }
+#banner .sub { margin-top: 4px; font-family: var(--zh); font-size: 16px; color: var(--birch); text-shadow: 0 1px 2px rgba(10, 20, 15, .7); letter-spacing: .08em; }
+
+#pops { position: absolute; left: 50%; top: 31%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.pop { font-family: var(--zh); font-size: 18px; font-weight: 700; color: var(--birch); text-shadow: 0 1px 2px rgba(10, 20, 15, .8), 0 0 10px rgba(10, 20, 15, .4); animation: popIn 1.9s var(--ease) forwards; white-space: nowrap; }
+.pop.gold { color: #f2cf73; font-size: 22px; }
+.pop.big { color: var(--amber); }
+.pop.warn { color: #f0d9a8; }
+.pop.bad { color: #f2a68f; }
+@keyframes popIn { 0% { transform: translateY(8px); } 12% { transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+
+#biteMark { position: absolute; width: 34px; height: 46px; margin: -46px 0 0 -17px; pointer-events: none; }
+#biteMark svg { width: 100%; height: 100%; animation: biteBob .3s ease-in-out infinite alternate; }
+@keyframes biteBob { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+
+#reelBox { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 52px); transform: translateX(-50%); width: min(460px, calc(100vw - 28px)); padding: 12px 18px 12px 22px; }
+#reelBox .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+#reelBox .fish { font-family: var(--zh); font-size: 14px; color: var(--birch-2); }
+#reelBox .state { font-family: var(--zh); font-size: 15px; font-weight: 700; }
+#reelBox .state.calm { color: var(--green); }
+#reelBox .state.hot { color: #f0a080; }
+.meter { position: relative; height: 12px; margin: 4px 0 2px; }
+.meter .track { position: absolute; inset: 0; border-radius: 6px; background: rgba(239, 232, 216, .09); overflow: hidden; }
+.meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; width: 0; }
+#tension .zones { position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(90deg, rgba(127,174,106,.28) 0 60%, rgba(217,178,74,.32) 60% 80%, rgba(200,85,61,.4) 80%); }
+#tension .fill { background: var(--birch); width: 0; opacity: .9; }
+#tension .needle { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; background: var(--birch); left: 0; margin-left: -1.5px; }
+#tension.red .needle { background: #ffb59e; animation: shake .08s linear infinite alternate; }
+@keyframes shake { from { transform: translateX(-1.5px); } to { transform: translateX(1.5px); } }
+#progress .fill { background: var(--amber); }
+.meter-lbl { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--birch-3); }
+
+#zoneToast { position: absolute; left: 50%; top: 9.5%; transform: translateX(-50%); text-align: center; pointer-events: none; transition: opacity .8s; }
+#zoneToast.off { opacity: 0; }
+#zoneToast .z { font-family: var(--zh); font-size: 15px; letter-spacing: .14em; color: var(--birch); text-shadow: 0 1px 2px rgba(10,20,15,.7); }
+#zoneToast .e { font-family: var(--latin); font-style: italic; font-size: 13px; color: var(--birch-2); text-shadow: 0 1px 2px rgba(10,20,15,.7); }
+
+/* 觸控 */
+#touch { display: none; }
+body.touch #touch { display: block; }
+#joy { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); width: 124px; height: 124px; border-radius: 50%; background: rgba(22, 35, 28, .45); box-shadow: inset 0 0 0 2px rgba(239, 232, 216, .22); touch-action: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(239, 232, 216, .85); box-shadow: inset 0 -3px 0 rgba(22, 35, 28, .25); }
+#act { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(26px, env(safe-area-inset-bottom)); width: 96px; height: 96px; border-radius: 50%; background: var(--birch); color: var(--pine); font-family: var(--zh); font-weight: 700; font-size: 16px; touch-action: none; box-shadow: inset 0 -4px 0 var(--birch-3); }
+#act:active, #act.on { background: #d9cfb8; box-shadow: inset 0 -1px 0 var(--birch-3); }
+#use { position: absolute; right: max(124px, calc(env(safe-area-inset-right) + 110px)); bottom: max(40px, env(safe-area-inset-bottom)); height: 44px; padding: 0 16px; border-radius: 22px 6px 22px 6px; background: rgba(22, 35, 28, .85); color: var(--birch); font-family: var(--zh); font-size: 14px; box-shadow: inset 0 0 0 1.5px var(--amber-2); }
+body.touch #hints { display: none; }
+body.touch #reelBox { bottom: calc(max(26px, env(safe-area-inset-bottom)) + 108px); }
+
+/* ---------- 面板 ---------- */
+#sheet { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(12, 20, 16, .5); padding: 16px; z-index: 20; }
+#sheet > .plank { width: min(820px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column; padding: 20px 22px 18px 26px; position: relative; }
+#sheet h2 { margin: 0; font-family: var(--zh); font-size: 22px; font-weight: 700; }
+#sheet h2 .latin { font-size: 15px; color: var(--birch-3); font-weight: 400; margin-left: 10px; }
+#sheet .x { position: absolute; right: 14px; top: 12px; width: 40px; height: 40px; display: grid; place-items: center; color: var(--birch-2); }
+#sheet .x:hover { color: var(--birch); }
+#sheet .body { overflow: auto; margin-top: 14px; padding-right: 4px; overscroll-behavior: contain; }
+.tabs { display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
+.tab { padding: 7px 13px 8px; font-size: 14px; color: var(--birch-3); border-radius: 6px 6px 0 0; font-family: var(--zh); }
+.tab:hover { color: var(--birch-2); }
+.tab.on { color: var(--birch); background: rgba(239, 232, 216, .08); }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.row + .row { background: linear-gradient(90deg, rgba(239,232,216,.1), rgba(239,232,216,.02)) top / 100% 1px no-repeat; }
+.row .grow { flex: 1; min-width: 0; }
+.row .meta { font-size: 12px; color: var(--birch-3); margin-top: 2px; }
+.btn { padding: 8px 14px 9px; font-size: 14px; font-family: var(--zh); color: var(--pine); background: var(--birch); border-radius: 6px 2px 6px 2px; white-space: nowrap; transition: background-color .15s; }
+.btn:hover { background: #fff8e8; }
+.btn:disabled { background: rgba(239, 232, 216, .14); color: var(--birch-3); cursor: default; }
+.btn.amber { background: var(--amber); }
+.btn.amber:hover { background: #ebb866; }
+.link { color: var(--amber); font-size: 14px; padding: 6px 4px; font-family: var(--zh); }
+.link:hover { color: #f0c27a; }
+.note { color: var(--birch-3); font-size: 13px; line-height: 1.6; }
+.goal { display: grid; grid-template-columns: 14px 1fr auto; gap: 8px; align-items: start; color: var(--birch-2); padding: 3px 0; font-size: 14px; }
+.goal .k { width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--birch-3); }
+.goal.done .k { background: var(--amber); box-shadow: none; }
+.creelList { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.cfish { display: grid; grid-template-columns: 56px 1fr; gap: 8px; align-items: center; padding: 8px 10px 8px 8px; background: rgba(239, 232, 216, .05); border-radius: 6px; }
+.cfish img { width: 56px; height: 28px; object-fit: contain; }
+.cfish .n { font-family: var(--zh); font-size: 13px; }
+.cfish .m { font-size: 11.5px; color: var(--birch-3); }
+.cfish button { grid-column: 1 / -1; justify-self: end; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.sw { width: 46px; height: 30px; border-radius: 4px 12px 4px 12px; box-shadow: inset 0 0 0 1.5px rgba(239,232,216,.2); }
+.sw.on { box-shadow: inset 0 0 0 2.5px var(--amber); }
+.sw:disabled { opacity: .25; cursor: default; }
+
+/* 圖鑑 */
+.mile { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; margin-top: 4px; }
+.mile .bar { position: relative; height: 8px; border-radius: 4px; background: rgba(239, 232, 216, .09); }
+.mile .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--amber); }
+.mile .bar b { position: absolute; top: -3px; width: 2px; height: 14px; border-radius: 1px; background: var(--birch-3); }
+.mile .bar b.got { background: var(--amber); }
+.book { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.card { position: relative; display: flex; flex-direction: column; align-items: stretch; text-align: left; padding: 8px 10px 10px; background: rgba(239, 232, 216, .045); border-radius: 6px; min-height: 132px; transition: background-color .15s; }
+.card:hover { background: rgba(239, 232, 216, .09); }
+.card .no { font-family: var(--latin); font-size: 12px; color: var(--birch-3); }
+.card img { width: 100%; height: 58px; object-fit: contain; margin: 2px 0 4px; }
+.card.unk img { filter: brightness(0) opacity(.45); }
+.card .zhn { font-family: var(--zh); font-size: 13.5px; line-height: 1.3; }
+.card .en { font-family: var(--latin); font-style: italic; font-size: 12px; color: var(--birch-3); }
+.card .badge { position: absolute; right: 8px; top: 6px; width: 22px; height: 22px; }
+.card.unk .zhn { color: var(--birch-3); }
+.detail { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; }
+.detail img { width: 100%; height: 150px; object-fit: contain; }
+.detail dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 13.5px; }
+.detail dt { color: var(--birch-3); }
+.detail dd { margin: 0; }
+
+/* ---------- 漁獲吊牌（牛皮紙標籤，左端切角加穿孔與麻繩） ---------- */
+#tag { position: fixed; right: max(18px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%) rotate(-2deg); width: 330px; z-index: 15; transition: transform .45s var(--ease), opacity .3s; }
+#tag.off { opacity: 0; transform: translateY(-46%) rotate(-5deg); pointer-events: none; }
+#tag .paper { position: relative; color: var(--kraft-ink); background: var(--kraft); padding: 16px 18px 16px 52px;
+  clip-path: polygon(30px 0, 100% 0, 100% 100%, 30px 100%, 0 calc(100% - 30px), 0 30px);
+  background-image: radial-gradient(rgba(90, 60, 30, .08) 1px, transparent 1.2px), linear-gradient(180deg, #d2b07f, #c4a06e); background-size: 5px 5px, 100% 100%; }
+#tag .hole { position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; background: #3d2a18; box-shadow: 0 0 0 4px #b08a58; }
+#tag .string { position: absolute; left: -64px; top: 50%; width: 82px; height: 30px; margin-top: -15px; pointer-events: none; }
+#tag img { width: calc(100% - 78px); height: 92px; object-fit: contain; object-position: left center; display: block; margin: 0 0 4px; }
+#tag .en { font-family: var(--latin); font-style: italic; font-size: 21px; line-height: 1.1; }
+#tag .zhn { font-family: var(--zh); font-size: 15px; font-weight: 700; margin-top: 2px; }
+#tag .qrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+#tag .qrow svg { width: 40px; height: 40px; flex: none; }
+#tag .q b { display: block; font-family: var(--zh); font-size: 16px; }
+#tag .q span { font-size: 12px; color: #5f4a30; }
+#tag .size { display: flex; gap: 18px; margin-top: 10px; font-family: var(--latin); font-size: 19px; }
+#tag .size small { display: block; font-family: var(--ui); font-size: 11px; color: #6a5236; }
+#tag .flags { margin-top: 8px; font-size: 12px; color: #5f4a30; line-height: 1.5; }
+#tag .stamp { position: absolute; right: 14px; top: 12px; transform: rotate(9deg); color: var(--stamp); border: 2px solid var(--stamp); border-radius: 50%; width: 74px; height: 74px; display: grid; place-items: center; text-align: center; font-family: var(--latin); font-style: italic; font-size: 13px; line-height: 1.05; opacity: .82; }
+
+/* ---------- 開場 ---------- */
+#intro { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-columns: 1fr auto; align-items: stretch; pointer-events: none; }
+#intro .sign { grid-column: 2; pointer-events: auto; margin: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) 0; padding: 30px 26px 26px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 24px; }
+#intro h1 { margin: 0; writing-mode: vertical-rl; font-family: var(--zh); font-size: clamp(44px, 7.5vh, 70px); font-weight: 700; letter-spacing: .2em; line-height: 1; color: var(--birch); }
+#intro .en { writing-mode: vertical-rl; font-family: var(--latin); font-style: italic; font-size: 17px; color: var(--birch-2); letter-spacing: .04em; }
+#intro .titles { display: flex; gap: 14px; align-items: flex-start; }
+#intro .go { display: flex; flex-direction: column; gap: 10px; align-items: stretch; width: 160px; }
+#intro .go .btn { font-size: 17px; padding: 11px 14px 12px; text-align: center; }
+#intro .keys { font-size: 12px; color: var(--birch-3); line-height: 1.7; text-align: center; }
+#intro .lede { position: absolute; left: max(24px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); max-width: 420px; font-family: var(--zh); font-size: 15px; line-height: 1.8; color: var(--birch); text-shadow: 0 1px 2px rgba(10, 20, 15, .8), 0 0 14px rgba(10, 20, 15, .4); pointer-events: none; }
+
+#loading { position: fixed; inset: 0; display: grid; place-items: center; background: #16231c; z-index: 40; font-family: var(--zh); color: var(--birch-2); transition: opacity .5s; }
+#loading.done { opacity: 0; pointer-events: none; }
+#fade { position: fixed; inset: 0; background: #0f1a14; opacity: 0; pointer-events: none; transition: opacity .45s; z-index: 25; }
+#fade.on { opacity: 1; }
+
+@media (max-width: 760px) {
+  #quest { top: calc(max(14px, env(safe-area-inset-top)) + 58px); width: auto; max-width: calc(100vw - 28px); padding: 10px 12px 9px 17px; font-size: 12px; }
+  #hud.reeling #creel { visibility: hidden; }
+  #quest .ch { font-size: 14px; margin-bottom: 3px; }
+  #quest.collapsed ul, #quest.collapsed .board, #quest.collapsed .ch small { display: none; }
+  #creel { top: auto; bottom: calc(max(26px, env(safe-area-inset-bottom)) + 108px); left: 50%; padding: 6px 12px 6px 14px; }
+  body:not(.touch) #creel { bottom: 64px; }
+  #creel .slot { width: 16px; height: 11px; }
+  #clock { padding: 4px 4px 4px 8px; }
+  #dial { display: none; }
+  #clock .t b { font-size: 16px; }
+  #riverMap { display: none; }
+  #tag { left: 50%; right: auto; top: auto; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 8px); width: min(340px, calc(100vw - 32px)); transform: translateX(-50%) rotate(-1.5deg); }
+  #tag.off { transform: translateX(-50%) translateY(20px); }
+  #tag img { height: 64px; }
+  #tag .paper { padding: 12px 14px 12px 46px; }
+  #tag .string { display: none; }
+  #sheet > .plank { padding: 16px 14px 14px 18px; max-height: 88vh; }
+  .detail { grid-template-columns: 1fr; }
+  #intro { grid-template-columns: 1fr; align-items: end; }
+  #intro .sign { grid-column: 1; margin: 0 14px max(14px, env(safe-area-inset-bottom)); flex-direction: row; align-items: flex-end; padding: 18px 18px 16px 22px; }
+  #intro h1 { font-size: 40px; }
+  #intro .go { width: 140px; }
+  #intro .lede { position: static; display: none; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  #riverMap { display: none; }
+  #quest.collapsed ul, #quest.collapsed .board { display: none; }
+  #intro h1 { font-size: 34px; }
+  #intro .lede { display: none; }
+  #tag { width: 280px; }
+  #tag img { height: 50px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pop, #biteMark svg, #tension.red .needle { animation: none; }
+  #banner, #tag, #zoneToast { transition: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="loading">整理船具中…</div>
+<div id="hud" class="hidden">
+  <section id="quest" class="plank" aria-live="polite"></section>
+  <div id="creel" class="plank" role="button" tabindex="0" aria-label="魚簍"><span class="lbl">魚簍 <b class="num" id="creelN">0/8</b></span><span class="slots" id="slots"></span></div>
+  <div id="clock" class="plank">
+    <svg id="dial" viewBox="0 0 74 42" aria-hidden="true"></svg>
+    <div class="t"><b class="num" id="clockT">06:20</b><span id="clockP">早上 · 第 1 天</span></div>
+    <button class="ib" id="bBook" aria-label="圖鑑（Tab）"></button>
+    <button class="ib" id="bMute" aria-label="靜音（M）"></button>
+    <button class="ib" id="bPause" aria-label="暫停（P）"></button>
+  </div>
+  <div id="riverMap" class="plank" aria-hidden="true"><svg id="rmap"></svg></div>
+  <div id="zoneToast" class="off"><div class="z" id="zoneZh"></div><div class="e" id="zoneEn"></div></div>
+  <div id="banner" class="off"><div class="en" id="bannerEn"></div><div class="sub" id="bannerSub"></div></div>
+  <div id="pops"></div>
+  <div id="biteMark" class="hidden"><svg viewBox="0 0 34 46"><path d="M17 3c-4 0-6 3-5.6 7l2.3 19c.2 1.9 1.4 2.9 3.3 2.9s3.1-1 3.3-2.9l2.3-19C23 6 21 3 17 3z" fill="#efe8d8" stroke="#16231c" stroke-width="2"/><circle cx="17" cy="39" r="4" fill="#efe8d8" stroke="#16231c" stroke-width="2"/></svg></div>
+  <div id="reelBox" class="plank hidden">
+    <div class="top"><span class="fish" id="reelFish"></span><span class="state calm" id="reelState">平靜</span></div>
+    <div class="meter-lbl"><span>張力</span><span id="tensionN" class="num">0%</span></div>
+    <div class="meter" id="tension"><div class="track"><div class="zones"></div></div><div class="needle" id="needle"></div></div>
+    <div class="meter-lbl" style="margin-top:8px"><span>收線進度</span><span id="progN" class="num">0%</span></div>
+    <div class="meter" id="progress"><div class="track"><div class="fill" id="progFill"></div></div></div>
+  </div>
+  <div id="hints" class="plank"></div>
+  <div id="touch">
+    <div id="joy" aria-label="划船搖桿"><div id="knob"></div></div>
+    <button id="use" class="hidden"></button>
+    <button id="act" aria-label="拋竿／提竿／收線">拋竿</button>
+  </div>
+</div>
+<div id="tag" class="off" aria-live="polite"></div>
+<div id="sheet" class="hidden"></div>
+<div id="intro" class="hidden">
+  <div class="lede">一條從木屋碼頭往北流到瀑布潭的河。划著小船，點亮沿途的燈樁，在魚群聚集的地方拋竿，把 55 種魚一一記進圖鑑。</div>
+  <div class="sign plank">
+    <div class="titles"><h1>靜水釣遊</h1><div class="en">Stillwater Row &amp; Cast</div></div>
+    <div class="go">
+      <button class="btn amber" id="start">出航</button>
+      <div class="keys" id="introKeys">WASD 划船 · 空白鍵 拋竿／提竿／按住收線<br>E 停泊、木屋 · Tab 圖鑑</div>
+    </div>
+  </div>
+</div>
+<div id="fade"></div>
+<!--ASSETS-->
+<!--BUNDLE-->
+</body>
+</html>

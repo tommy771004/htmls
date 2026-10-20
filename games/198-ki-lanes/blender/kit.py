@@ -655,7 +655,7 @@ def crisp_split(ob):
     return ob
 
 
-def face_normals(ob, c, hr, k=0.75):
+def face_normals(ob, c, hr, k=0.75, y0=None):
     """動畫臉的平滑陰影：皮膚（mat 4）頂點的法線往「頭心後方一點」的放射方向靠，臉上不會出現破碎的明暗塊。"""
     me = ob.data
     nrm = me.attributes['nrm'].data
@@ -669,4 +669,6 @@ def face_normals(ob, c, hr, k=0.75):
         n = V(nrm[i].vector)
         # 只處理正面（臉）；耳後與後腦維持原法線
         w = k * smooth((p.z - (c[2] - hr * 0.1)) / (hr * 0.5))
+        if y0 is not None:   # 底模的頭：下巴以下（接脖子的地方）維持原法線，和身體的接縫才接得上
+            w *= smooth((p.y - y0) / (hr * 0.25))
         nrm[i].vector = n.lerp(rad, w).normalized()
