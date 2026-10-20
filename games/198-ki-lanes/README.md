@@ -2,7 +2,7 @@
 
 《七龍珠 FighterZ》的連段手感 × 三路推塔。14 名角色分三組：七龍珠（悟空、貝吉塔、特南克斯、比克、弗利沙、人造人18號）、火影忍者（鳴人、佐助、卡卡西、小櫻）、海賊王（魯夫、索隆、香吉士、娜美）。選一名，和兩名 AI 隊友對上三名 AI 敵人，推倒敵方主堡就獲勝。機制分析、角色技能表、地圖座標與模組契約見 [SPEC.md](SPEC.md)。
 
-非官方同人作品：角色與招式名稱版權屬各原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
+非官方同人作品：角色與招式名稱版權屬各原作者；角色的身體以 Quaternius 的 CC0 人體底模擬合到本作骨架，衣物、頭部、頭髮、特效、地圖與音效以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
 
 - 成品：`web/198-ki-lanes.html`（單檔約 5.6 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
 - 一場約 10～16 分鐘（叢林改成連續石牆後，全 AI 模擬 5 場在 9.5～16 分鐘結束）
@@ -32,7 +32,7 @@ node tools/dragonshot.mjs # 開發截圖：龍珠面板、召喚、神龍升起�
 sh tools/refcmp.sh <參考圖資料夾> goku naruto …  # 角色立正的正交正面圖與官方設定圖等高並排（每 5% 一條格線），用來校比例；參考圖不進 repo，資料夾放 <id>/<nn>.img 與 picks.txt
 node tools/perf.mjs    # 開打 4 分鐘後的實際幀率
 node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
-npm run models         # 重建六名英雄的網格（需要 Blender 5.2；約 25 秒），寫入 src/models-baked.js，再 npm run build
+npm run models         # 重建 14 名英雄的網格（需要 Blender 5.2 與 Quaternius 素材包；約 80 秒），寫入 src/models-baked.js，再 npm run build
 npm run models -- --only goku,vegeta   # 只重建部分英雄（其他沿用快取或現有的 models-baked.js）
 node tools/viewer.mjs name "ids=goku&anim=atk1&t=0.1&ang=30&zoom=3&focus=handR"   # 開發截圖：角色檢視頁（參數見 tools/viewer-entry.js）
 sh tools/heads.sh 25   # 開發截圖：六名角色的頭部特寫拼成 dist/view/heads.png
@@ -95,12 +95,19 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 角色模型（Blender）
 
-六名英雄在 Blender 以 Python 腳本建模，產物 `src/models-baked.js` 有 commit，所以 build 不需要 Blender；只有改造型時才要（開發機用 Blender 5.2 LTS）。
+14 名英雄在 Blender 以 Python 腳本建模，產物 `src/models-baked.js` 有 commit，所以 build 不需要 Blender；只有改造型時才要（開發機用 Blender 5.2 LTS）。
 
 - `npm run models` = `node tools/rig-dump.mjs`（從 `models.js` 的骨架算出 A 字綁定姿勢的骨頭位置，寫 `blender/rig.json`）＋ `blender -b --factory-startup --python blender/build_heroes.py`。改了 `models.js` 的骨架或 `models-heroes.js` 的 PROPS 也要重跑。
 - `blender/kit.py`：斷面放樣（含前開口的弧形斷面，用來做 V 領與敞開的外套）、細分、布料加厚、等值線切割上色、骨熱權重、遮蔽、輸出。`blender/heroes.py` 是悟空與共用部件（軀幹、手臂、握拳、靴、動畫臉、髮束），`blender/cast.py` 是其他五名。
 - 身體是一張蒙皮網格（11 根主骨頭＋擺動鏈＋第二版骨架的胸 `ribs`、手腕 `wrL/R`、腳踝 `anL/R`（`BONE_EXTRA`，接在擺動鏈之後，烘焙資料標 `rig: 2` 才啟用；胸分攤腰的扭轉、腳踝讓站地的腳掌貼平）；悟空與比克的垂帶、弗利沙的尾巴、魯夫與索隆的腰帶尾、索隆大衣、佐助腰布與 18 號長裙的後片），頭顱掛在頭骨上；JS 端把骨架擺成同樣的 A 字姿勢後綁定，再交給原本的程式動畫。擺動鏈的權重在 Blender 端由 `custom` 群組函式指定（`skirt_chain_weights` 只把後片的一部分權重讓給擺動鏈，前片仍跟著雙腿）。
 - 髮型是綁在頭骨＋一根 `hairBone` 彈簧骨的蒙皮網格，權重在 JS 端依位置算（`hairWeights`：頭心以下、偏後的髮束才擺，臉前的瀏海不動），跑動時往後甩、轉身與集氣時被甩動。
+- 身體（`blender/realbody.py`）：皮膚與緊身衣不再用斷面放樣拼，改成 Quaternius「Universal Base Characters」的 Superhero 男／女底模（CC0，和 268 TERRA 的路人同一套；18 號、小櫻、娜美用女性）。腳本把被取代的部件標成 `realbody.skin(...)`（手臂、手、脖子、裸露的軀幹與小腿、背心、緊身衣褲），`finish()` 再一次換掉：
+  1. 底模（T 字）依骨段擬合到 rig.json 的 A 字綁定姿勢：每根底模骨頭一個「旋轉＋沿骨縮放＋徑向縮放」，以底模權重混合；粗細照被取代部件量出來（量不到就用特南克斯／18 號的比例），軀幹依高度對應並照斷面縮放，手指每節對到 fa／fb／fc、拇指對到 tb。頭部拿掉，接動畫頭顱。
+  2. 衣物跟著換身體：沿骨軸往外的射線上，原本皮膚與真人皮膚的距離差就是衣物頂點的位移（寬鬆處漸弱、在網格上平滑）。
+  3. 被衣物蓋住的皮膚收進衣物內壁；完全蓋住、原本也沒有皮膚的地方（褲管裡的腿、靴子裡的腳）整塊刪掉。
+  4. 顏色從被取代的部件投影：從骨軸往外射線打到哪塊顏色就是哪塊，去掉零星色塊後沿平滑後的指示值切開上色（袖口、手套、條紋、比克的粉紅肌肉紋照舊）。
+  5. 權重：露在外面的地方用底模權重（手指、肩、肘的變形比骨熱自然），被衣物蓋住的地方用和衣物同一套骨熱權重（扭身時不會從衣服穿出來），交界漸變。
+  素材包由 `games/197-openworld/tools/fetch-quaternius.py` 下載到 `games/197-openworld/.cache/`（或設 `QUATERNIUS_CACHE`）；`REAL_BODY=none` 可退回舊的放樣身體比對，`REAL_DEBUG=1` 印出各部件的貼合量。
 - 每頂點存調色盤索引、材質碼（0 一般、1 頭髮、2 亮面、3 發光、4 皮膚、5 隊伍色）、遮蔽、外框粗細倍率與平滑法線；以欄位式串流差分後 zlib＋base64，六名約 1.8 MB。
 
 建模時踩過的坑：骨熱權重在原尺寸常解不出來，要放大 10 倍算；開口的衣服殼會讓骨熱亂掉，所以權重改在封閉的替身（軀幹、骨盆、四肢）上算再轉移；上色交界先沿等值線切開網格再分島，邊界才會又平又銳利；一條管子硬折會在內側自我穿插，手指改成每節一顆膠囊。
@@ -164,6 +171,10 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 - 遊走包抄：自己那一路沒人時，支援正在交手的隊友或切壓到我方塔下的敵人後路，先繞到敵人與它家之間再出手。
 - 草叢埋伏：鎖定一名落單、正沿路往我方推進的敵方英雄，兩到三名隊友先躲進它前方路邊的草叢（避開敵塔射程），不集氣以免暴露；敵人走近、或有人被它打到時一起出手。
 - 插眼、放真眼、看到敵方眼就拆。
+
+## 素材來源
+
+- 角色身體的底模：Quaternius「Universal Base Characters」（CC0），只取網格與權重，貼圖不用；衣物、頭與頭髮都是本作腳本建模。
 
 ## 已知限制
 

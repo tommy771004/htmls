@@ -6,6 +6,7 @@ from mathutils import Matrix
 
 import heroes as _H
 import kit
+import realbody
 from kit import S, V, ang_bump, bump, lerp, smooth
 from heroes import (
     BACK, FRONT, G_ARM_L, G_ARM_R, G_BELT, G_CHEST, G_FOOT_L, G_FORE_L, G_FREE, G_LEG_L, G_NECK, G_PELVIS, G_TORSO, G_UPPER_L, PI, TORSO_ROWS,
@@ -179,7 +180,7 @@ def bare_torso(F, skin, pec=0.12, lat=0.1, abs_=True):
             pass
     tor = kit.loft('chest', sts, n=20, cap0=None, cap1=None)
     tor = kit.subsurf(tor, 2)
-    return kit.tag(tor, skin, mat=4, grp=G_TORSO)
+    return realbody.skin(kit.tag(tor, skin, mat=4, grp=G_TORSO))
 
 
 def sandal(F, skin, sole, name='footL'):
@@ -188,7 +189,7 @@ def sandal(F, skin, sole, name='footL'):
     for o in parts:
         kit.tag(o, skin, mat=4, grp=G_FOOT_L)
     kit.paint_field(parts[1], lambda co: co.y - 0.016, sole, 0)
-    return parts
+    return [realbody.skin(o) for o in parts]
 
 
 # ================================================================ 鳴人
@@ -235,7 +236,7 @@ def build_naruto(R):
     leg = baggy_leg(F, orange, bag=1.0, blouse=1.0, s_end=F.tl + 0.12)
     kl = F.k_leg
     # 小腿皮膚整段藏在綁腿裡：做細一點，綁腿再撐大一圈，膝蓋彎曲時皮膚不會從綁腿後面穿出來
-    shin = leg_tube(F, skin, [(F.tl + 0.06, 0.064 * kl, 0.066 * kl), (F.tl + 0.2, 0.054 * kl, 0.056 * kl), (F.tl + F.sl - 0.06, 0.046 * kl, 0.048 * kl)], name='shinL', mat=4)
+    shin = realbody.skin(leg_tube(F, skin, [(F.tl + 0.06, 0.064 * kl, 0.066 * kl), (F.tl + 0.2, 0.054 * kl, 0.056 * kl), (F.tl + F.sl - 0.06, 0.046 * kl, 0.048 * kl)], name='shinL', mat=4))
     wr = band('wrapL', F.th, F.dl, F.tl + 0.1, F.tl + F.sl - 0.1, 0.068 * kl + 0.012, 0.052 * kl + 0.01, sandal_c, G_LEG_L, thick=0.006)
     ft = sandal(F, skin, sandal_c)
     thw = band('thighWrap', F.th, F.dl, 0.16, 0.24, 0.112 * kl + 0.02, 0.106 * kl + 0.02, wrap, G_LEG_L, thick=0.008)
@@ -338,7 +339,7 @@ def build_sasuke(R):
     chest = kit.loft('chest', torso_rows(F, e=0.0, u0=0.0, pec=0.12, lat=0.08), n=18, cap0=None, cap1=None)
     chest = kit.subsurf(chest, 2)
     kit.tag(chest, skin, mat=4, grp=G_TORSO)
-    body.append(chest)
+    body.append(realbody.skin(chest))
     proxy.append(chest)
     # 淡紫上衣：胸前 V 開口、高立領、袖子到手肘上方
     lav = P(0xb4b0d6)
@@ -420,7 +421,7 @@ def build_kakashi(R):
     sh = kit.loft('shirt', torso_rows(F, e=0.004, u0=0.0, pec=0.08), n=18, cap0=None, cap1=None)
     sh = kit.subsurf(sh, 2)
     kit.tag(sh, navy, grp=G_TORSO)
-    body.append(sh)
+    body.append(realbody.skin(sh))
     proxy.append(sh)
     # 綠色戰術背心：厚、前方雙排口袋
     vs = kit.loft('vest', torso_rows(F, e=lambda u: 0.02 - 0.012 * smooth((u - 0.85) / 0.12), u0=0.12, u1=0.97, pec=0.06, lat=0.05, p=2.35), n=20, cap0=None, cap1=None)
@@ -532,7 +533,7 @@ def build_sakura(R):
     top = kit.loft('top', torso_rows(F, e=0.006, rows=top_rows, pec=0, lat=0, bust=0.3, p=2.0), n=20, cap0=None, cap1=None)
     top = kit.subsurf(top, 2)
     kit.tag(top, red, grp=G_SAK_WAIST)
-    body.append(top)
+    body.append(realbody.skin(top))
     proxy.append(top)
     zp = path_loft('zip', [V((0, F.y(0.3), F.cz * 0.9 + 0.012)), V((0, F.y(0.65), F.cz * 1.04 + 0.012)), V((0, F.y(0.97), F.cz * 0.7 + 0.012))], [0.006] * 3, n=6, flat=0.5)
     body.append(kit.tag(kit.subsurf(zp, 1), white, grp=G_TORSO, ol=0.3))
@@ -549,7 +550,7 @@ def build_sakura(R):
     pel = pelvis(F, black, e=0.004, grp=G_SAK_WAIST)
     # 褲頭往內收：上緣藏進上衣、臀部最寬處留在裙子裡面（原本褲頭比上衣下段與裙腰都寬，從腰線露出黑邊）
     kit.deform(pel, lambda p: (lambda f: V((p.x * f, p.y, p.z * f)))(1 - 0.07 * smooth((p.y - F.L + 0.02) / 0.04) - 0.14 * smooth((p.y - F.L - 0.04) / 0.04)))
-    body.append(pel)
+    body.append(realbody.skin(pel))
     proxy.append(pel)
     yb = F.y(0.12)
     hw = F.R['hip']
@@ -564,6 +565,7 @@ def build_sakura(R):
     leg = leg_tube(F, skin, [(-0.07, 0.112 * kl, 0.112 * kl), (0.05, 0.11 * kl, 0.114 * kl), (0.22, 0.094 * kl, 0.098 * kl), (F.tl - 0.03, 0.068 * kl, 0.074 * kl),
                              (F.tl + 0.07, 0.064 * kl, 0.07 * kl, calf), (F.tl + 0.14, 0.05 * kl, 0.054 * kl)], mat=4)
     kit.paint_field(leg, lambda co: (co - F.th).dot(F.dl) - 0.14, black, 0)  # 黑色短褲
+    realbody.skin(leg)
     bt = boot(F, P(0x4a4256), F.tl + 0.02, 0.066, pal_sole=black, toe=0.9)
     kp = band('kneeL', F.th, F.dl, F.tl - 0.045, F.tl + 0.045, 0.08 * kl, 0.082 * kl, pink, G_LEG_L, thick=0.016, ol=0.7, bulge=1.08)
     pair_add(body, proxy, [arm, pad, glove, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
@@ -646,8 +648,8 @@ def build_luffy(R):
                                  (F.tl - 0.02, 0.122 * kl, 0.124 * kl), (s_sh, 0.124 * kl, 0.126 * kl)], cap1=None, name='shortsL')
     fur = band('furL', F.th, F.dl, s_sh - 0.03, s_sh + 0.03, 0.13 * kl, 0.13 * kl, P(0xf4f2ec), G_LEG_L, thick=0.02, bulge=1.12)
     calf = lambda th: 1 + 0.1 * ang_bump(th, BACK, 1.0)
-    shin = leg_tube(F, skin, [(s_sh - 0.04, 0.088 * kl, 0.09 * kl), (F.tl, 0.08 * kl, 0.082 * kl), (F.tl + 0.12, 0.078 * kl, 0.084 * kl, calf), (F.tl + 0.22, 0.062 * kl, 0.066 * kl, calf), (F.tl + F.sl - 0.06, 0.05 * kl, 0.054 * kl)],
-                    name='shinL', mat=4)
+    shin = realbody.skin(leg_tube(F, skin, [(s_sh - 0.04, 0.088 * kl, 0.09 * kl), (F.tl, 0.08 * kl, 0.082 * kl), (F.tl + 0.12, 0.078 * kl, 0.084 * kl, calf), (F.tl + 0.22, 0.062 * kl, 0.066 * kl, calf), (F.tl + F.sl - 0.06, 0.05 * kl, 0.054 * kl)],
+                    name='shinL', mat=4))
     ft = sandal(F, skin, sole)
     # 短褲管與毛邊：自訂權重（依沿大腿骨的距離，褲頭一小段交回骨盆），踢腿時整根褲管跟著大腿轉
     kit.tag(shorts, denim, grp=G_SHORTS_L)
@@ -870,7 +872,7 @@ def build_sanji(R):
     sh = kit.subsurf(sh, 2)
     kit.tag(sh, shirt, grp=G_TORSO)
     kit.paint_field(sh, lambda co: 0.55 - math.sin(co.x * 160.0), P(0x3a62b0), 0)  # 細直條紋襯衫
-    body.append(sh)
+    body.append(realbody.skin(sh))
     proxy.append(sh)
     tie_s = path_loft('tie', [V((0, F.y(0.95), F.cz * 0.78 + 0.012)), V((0, F.y(0.82), F.cz * 0.98 + 0.012)), V((0, F.y(0.7), F.cz * 1.02 + 0.014))], [0.014, 0.02, 0.022], n=6, flat=0.25)
     body.append(kit.tag(kit.subsurf(tie_s, 1), tie, grp=G_TORSO, ol=0.5))
@@ -944,7 +946,7 @@ def build_nami(R):
     tor = kit.loft('skinTop', torso_rows(F, e=0.0, u0=0.0, pec=0, lat=0, bust=0.38, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
     tor = kit.subsurf(tor, 2)
     kit.tag(tor, skin, mat=4, grp=G_TORSO)
-    body.append(tor)
+    body.append(realbody.skin(tor))
     proxy.append(tor)
     # 比基尼上衣：兩片扁平罩杯貼在胸口（藍白迷彩紋），頸後綁帶與背後細帶
     from cast import plate
@@ -964,7 +966,7 @@ def build_nami(R):
     hand = fist(F, skin, scale=0.98)
     # 咖啡色七分褲（到小腿中段）、金環皮帶、橘色綁帶高跟涼鞋
     capri = P(0x4a3226)
-    body.append(pelvis(F, capri, e=0.006))
+    body.append(realbody.skin(pelvis(F, capri, e=0.006)))
     proxy.append(body[-1])
     yb = F.L + 0.05
     body.append(belt_ring(F, yb, 0.032, belt_c, e=0.016, thick=0.008))
@@ -976,14 +978,14 @@ def build_nami(R):
     s_cap = F.tl + 0.08
     leg_rows = [(-0.07, 0.114 * kl, 0.114 * kl), (0.05, 0.114 * kl, 0.118 * kl), (0.22, 0.1 * kl, 0.104 * kl), (F.tl - 0.03, 0.08 * kl, 0.084 * kl),
                 (F.tl + 0.08, 0.078 * kl, 0.082 * kl), (s_cap, 0.074 * kl, 0.076 * kl)]
-    leg = leg_tube(F, capri, leg_rows, cap1=None)
+    leg = realbody.skin(leg_tube(F, capri, leg_rows, cap1=None))
     # 褲管下緣開口，不算封閉、不進骨熱代理體：代理體上整條大腿空著，褲管內側就近抓到骨盆（hips 權重到大腿中段還有七成），
     # 抬腿時兩腿之間拉出一大片三角形。另做一根封閉的大腿替身只給骨熱用（往下伸進小腿皮膚，接上膝蓋）
     thigh_px = leg_tube(F, skin, leg_rows[:-1] + [(F.tl + 0.14, 0.07 * kl, 0.074 * kl)], name='thighPx')
     from heroes import mirror
     proxy += [thigh_px, mirror(thigh_px)]
     calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
-    shin = leg_tube(F, skin, [(F.tl + 0.1, 0.066 * kl, 0.07 * kl, calf), (F.tl + 0.2, 0.054 * kl, 0.058 * kl, calf), (F.tl + F.sl - 0.06, 0.044 * kl, 0.048 * kl)], name='shinL', mat=4)
+    shin = realbody.skin(leg_tube(F, skin, [(F.tl + 0.1, 0.066 * kl, 0.07 * kl, calf), (F.tl + 0.2, 0.054 * kl, 0.058 * kl, calf), (F.tl + F.sl - 0.06, 0.044 * kl, 0.048 * kl)], name='shinL', mat=4))
     bt = boot(F, P(0xd8783a), F.tl + 0.2, 0.05, pal_sole=P(0x8a4a22), toe=0.85)
     for o in bt:
         kit.paint_field(o, lambda co: 0.25 - math.sin(co.y * 120.0), skin, 4)  # 綁帶之間露出皮膚

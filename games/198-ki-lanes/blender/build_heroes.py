@@ -19,6 +19,7 @@ if HERE not in sys.path:
 
 import kit  # noqa: E402
 import heroes  # noqa: E402
+import realbody  # noqa: E402
 
 V = Vector
 ROOT = os.path.dirname(HERE)
@@ -171,6 +172,11 @@ def build_one(hid, R, opt):
     body = kit.join(H['body'], 'body')
     kit.decimate_keep(body, H.get('body_tris', 32000))
     kit.crisp_split(body)
+    if H.get('real'):
+        # 真人身體不減面（底模本身就是低面數的拓撲），切好色界後併進身體
+        rb = H['real'][0]
+        kit.crisp_split(rb)
+        body = kit.join([body, rb], 'body')
     # 頭：各型態共用同一顆頭顱（取 base 的），髮型各自一張；只減髮束（單色），頭顱保留切好的上色邊界
     skull = H['heads']['base'][0]
     for f, objs in H['heads'].items():
@@ -266,6 +272,9 @@ def build_one(hid, R, opt):
                 W[i] = [(bidx[b], w) for b, w in ws.items() if w > 1e-4] or [(bidx[fb[0]], 1.0)]
             elif g in heroes.FINGER_BONE and heroes.FINGER_BONE[g] in bidx:
                 W[i] = [(bidx[heroes.FINGER_BONE[g]], 1.0)]   # 手指每節剛性跟著自己的骨頭
+
+    if H.get('real'):
+        print('  真人身體：%d 頂點改用底模權重' % realbody.weights_for(body, H['real'][1], bone_names, W))
 
     # 遮蔽（各髮型分開算，避免超級賽亞人的頭髮被基本髮型遮到）
     t1 = time.time()

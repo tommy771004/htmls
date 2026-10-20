@@ -6,9 +6,16 @@ import { existsSync } from 'node:fs';
 
 export async function loadPlaywright() {
   const p = process.env.PLAYWRIGHT_MODULE || resolve(homedir(), '.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs');
-  if (!existsSync(p)) throw new Error(`找不到 Playwright：${p}（請設定 PLAYWRIGHT_MODULE）`);
-  const m = await import(pathToFileURL(p).href);
-  return m.chromium || m.default.chromium;
+  if (existsSync(p)) {
+    const m = await import(pathToFileURL(p).href);
+    return m.chromium || m.default.chromium;
+  }
+  // 沒有 Playwright 快取時：用 node_modules 的 playwright-core 開系統的 Chrome（CHROME_PATH 可指定）
+  const chrome = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  let core;
+  try { core = (await import('playwright-core')).chromium; } catch (_) {}
+  if (!core || !existsSync(chrome)) throw new Error(`找不到 Playwright：${p}（請設定 PLAYWRIGHT_MODULE，或安裝 playwright-core 並設定 CHROME_PATH）`);
+  return { launch: (o = {}) => core.launch({ executablePath: chrome, ...o }) };
 }
 export const GPU_ARGS = ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'];
 export const SOFT_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'];

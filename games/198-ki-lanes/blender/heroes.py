@@ -8,6 +8,7 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 import kit
+import realbody
 from kit import S, V, ang_bump, bump, lerp, smooth
 
 PI = math.pi
@@ -166,7 +167,8 @@ def neck(F, pal, r=0.062, top=None):
     y1 = top if top is not None else F.hp.y + F.hr * 0.25
     o = limb('neck', V((0, y0, -0.006)), V((0, 1, 0)), [(0, r * 1.05, r), ((y1 - y0) * 0.45, r * 0.94, r * 0.9), ((y1 - y0) * 0.85, r * 0.88, r * 0.86), (y1 - y0, r * 0.65, r * 0.65)], n=12)
     o = kit.subsurf(o, 1)
-    return kit.tag(o, pal, mat=4, grp=G_NECK)
+    o['proj_y0'] = F.y(1.0)
+    return realbody.skin(kit.tag(o, pal, mat=4, grp=G_NECK))
 
 
 # ================================================================ 四肢
@@ -201,7 +203,7 @@ def arm_skin(F, pal, muscle=1.0, k=1.0, s0=-0.07, name='armL', grp=G_ARM_L, mat=
     # 手腕端外框漸細：前臂的反向殼比手掌厚，會從手上穿出黑塊
     se = up + lo
     kit.paint_ol(o, lambda co: 1.0 - smooth(((co - F.sh).dot(F.da) - (se - 0.07)) / 0.05))
-    return o
+    return realbody.skin(o)
 
 
 def place_left_hand(F, ob):
@@ -257,7 +259,7 @@ def fist(F, pal, mat=4, scale=1.0, glove=False):
         # 掌心側（局部 −X）不描外框：握拳時四指的掌心面貼著手掌，反向殼會在指縫露出黑點
         kit.paint_ol(o, lambda co: 0.0 if co.x < kx - 0.004 * k else None)
     hand = kit.join(parts, 'handL')
-    return place_left_hand(F, hand)
+    return realbody.skin(place_left_hand(F, hand))
 
 
 def band(name, h, d, s0, s1, r0, r1, pal, grp, thick=0.008, n=14, rb=None, front=V((0, 0, 1)), side=V((1, 0, 0)), mat=0, ol=0.8, bulge=1.02):
@@ -520,6 +522,10 @@ def core_proxy(F):
 
 def finish(F, P, body, proxy, heads, extras=None, custom=None):
     proxy = [p for p in proxy if is_closed(p)] + core_proxy(F)
+    real = None
+    if realbody.enabled(F.R.get('id')) and any(o.get('skin') for o in body):
+        ob, lookup, body = realbody.make(F, body)
+        real = (ob, lookup)
     # 頭部橫向比例（照參考圖量的臉寬）：頭顱、髮型與頭上配件一起以頭心為軸縮放
     hx = F.R.get('hx', 1.0)
     if hx != 1.0:
@@ -528,7 +534,7 @@ def finish(F, P, body, proxy, heads, extras=None, custom=None):
             for o in objs:
                 kit.deform(o, lambda p: V((c.x + (p.x - c.x) * hx, p.y, c.z + (p.z - c.z) * (0.5 + 0.5 * hx))))
     return {
-        'body': body, 'proxy': proxy, 'heads': heads, 'extras': extras or {},
+        'body': body, 'proxy': proxy, 'heads': heads, 'extras': extras or {}, 'real': real,
         'allow': ALLOW, 'custom': custom or {}, 'palette': P, 'head_center': F.c, 'hr': F.hr,
         'faceRect': [0, F.hr * 0.9 - F.hr * 0.12, F.hr * 1.9 * F.R.get('hx', 1.0), F.hr * 1.9],
     }
@@ -595,7 +601,7 @@ def build_goku(R):
     kit.tag(under, blue, grp=G_TORSO)
     # 內衣整件包在道服裡（只從 V 領露出），離道服約 1.4 cm、比外框殼還薄：領口以下不描外框，腋下擠壓時才不會從道服穿出黑點
     kit.paint_ol(under, lambda co: 0.0 if co.y < F.y(0.9) else None)
-    body.append(under)
+    body.append(realbody.skin(under))
     proxy.append(under)
 
     # ---- 道服上衣：腰帶下垂出一截衣襬、V 領開口（開口弧放樣，邊緣乾淨）
@@ -809,6 +815,7 @@ def build(hid, R):
         B.update(crossover.BUILDERS)
     except ImportError:
         pass
+    R['id'] = hid
     for k, v in {'naruto': cast.build_trunks, 'luffy': cast.build_trunks, 'zoro': cast.build_trunks, 'sasuke': cast.build_trunks, 'kakashi': cast.build_trunks, 'sanji': cast.build_trunks, 'sakura': cast.build_a18, 'nami': cast.build_a18}.items():
         B.setdefault(k, v)
     return B[hid](R)

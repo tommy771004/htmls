@@ -4,6 +4,7 @@ import math
 from mathutils import Matrix
 
 import kit
+import realbody
 import heroes
 from kit import S, V, ang_bump, bump, lerp, smooth
 from heroes import (
@@ -87,7 +88,7 @@ def build_vegeta(R):
     st = kit.loft('suit', torso_rows(F, e=0.004, u0=0.0, pec=0.108, lat=0.09), n=18, cap0=None, cap1=None)
     st = kit.subsurf(st, 2)
     kit.tag(st, suit, grp=G_TORSO)
-    body.append(st)
+    body.append(realbody.skin(st))
     proxy.append(st)
     # 高領
     col = limb('collar', V((0, F.y(0.93), -0.008)), V((0, 1, 0)), [(0, 0.075, 0.07), (0.05, 0.068, 0.064), (0.085, 0.066, 0.062)], n=14, cap0=None, cap1=None)
@@ -96,7 +97,7 @@ def build_vegeta(R):
     body.append(col)
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
-    body.append(pelvis(F, suit, e=0.004))
+    body.append(realbody.skin(pelvis(F, suit, e=0.004)))
     proxy.append(body[-1])
     kl = F.k_leg
     quad = lambda th: 1 + 0.06 * ang_bump(th, FRONT - 0.3, 1.0)
@@ -110,6 +111,7 @@ def build_vegeta(R):
         (F.tl + 0.14, 0.066 * kl, 0.07 * kl, calf),
         (F.tl + 0.2, 0.05 * kl, 0.052 * kl),
     ])
+    realbody.skin(leg)
     # 戰鬥服胸甲：一體成形，胸口白色、腹部金色分節（亮面），肩上金色背帶
     ar = kit.loft('armor', torso_rows(F, e=lambda u: 0.028 - 0.02 * smooth((u - 0.8) / 0.13) - 0.008 * smooth((0.3 - u) / 0.15), u0=0.15, u1=0.93, pec=0.126, lat=0.054, p=2.5), n=20, cap0=None, cap1=None)
     ar = kit.subsurf(ar, 2, solidify=0.014)
@@ -247,7 +249,7 @@ def build_trunks(R):
     tk = kit.loft('tank', torso_rows(F, e=0.003, u0=0.0, pec=0.09), n=18, cap0=None, cap1=None)
     tk = kit.subsurf(tk, 2)
     kit.tag(tk, tank, grp=G_TORSO)
-    body.append(tk)
+    body.append(realbody.skin(tk))
     proxy.append(tk)
     # 外套：前襟敞開、立領
     rows = [r for r in TORSO_ROWS if r[0] > 0.3]  # 短版外套：下襬在胸下
@@ -508,7 +510,7 @@ def build_piccolo(R):
     chest = kit.loft('chest', torso_rows(F, e=0.0, u0=0.3, pec=0.144), n=18, cap0=None, cap1=None)
     chest = kit.subsurf(chest, 2)
     kit.tag(chest, gskin, grp=G_TORSO, mat=4)
-    body.append(chest)
+    body.append(realbody.skin(chest))
     proxy.append(chest)
     rows = [(-0.2, ('w', 1.3), 1.0, 0.02), (-0.08, ('w', 1.2), 0.9, 0.01)] + TORSO_ROWS
     us = [r[0] for r in rows]
@@ -610,7 +612,7 @@ def build_frieza(R):
         kit.tag(o, skin, mat=4, grp=G_FREE)
     skin_body = kit.fuse(parts, 'skin', voxel=0.0055, iters=10, factor=0.6, tris=9000)
     kit.tag(skin_body, skin, mat=4, grp=G_FREE)
-    body.append(skin_body)
+    body.append(realbody.skin(skin_body))
     proxy.append(skin_body)
     hand = fist(F, skin, scale=1.15)
     pair_add(body, proxy, [hand], proxy_set=[hand])
@@ -685,7 +687,7 @@ def build_a18(R):
     sh = kit.loft('shirt', torso_rows(F, e=0.003, u0=0.0, pec=0, lat=0, bust=0.14, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
     sh = kit.subsurf(sh, 2)
     kit.tag(sh, shirt, grp=G_TORSO)
-    body.append(sh)
+    body.append(realbody.skin(sh))
     proxy.append(sh)
     us = [r[0] for r in FEMALE_ROWS if r[0] >= 0.3]
     # 參考圖（超版本）：黑色背心＋條紋長袖，不穿牛仔背心
@@ -699,7 +701,7 @@ def build_a18(R):
     kit.paint_field(arm, lambda co: max(0.2 - math.sin(2 * PI * arm_s(F, co) / 0.046), arm_s(F, co) - s_end + 0.01, 0.03 - arm_s(F, co)), stripe, 0)
     hand = fist(F, skin, scale=1.0)
     # 裙、內搭褲、短靴
-    body.append(pelvis(F, legging, e=0.004))
+    body.append(realbody.skin(pelvis(F, legging, e=0.004)))
     proxy.append(body[-1])
     yb = F.y(0.15)
     hw = F.R['hip']
@@ -713,6 +715,7 @@ def build_a18(R):
     calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
     leg = leg_tube(F, legging, [(-0.07, 0.112 * kl, 0.112 * kl), (0.05, 0.11 * kl, 0.114 * kl), (0.22, 0.094 * kl, 0.098 * kl), (F.tl - 0.03, 0.068 * kl, 0.074 * kl),
                                 (F.tl + 0.07, 0.068 * kl, 0.074 * kl, calf), (F.tl + 0.17, 0.056 * kl, 0.06 * kl, calf), (F.tl + 0.26, 0.042 * kl, 0.046 * kl)])
+    realbody.skin(leg)
     bt = boot(F, bootc, F.tl + 0.06, 0.068, pal_sole=bootD, toe=0.92)  # 咖啡色靴子到小腿中段
     pair_add(body, proxy, [arm, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.0))
