@@ -21,6 +21,8 @@ const VENUE_PINS = [
   { name: 'LAZARUS', x: CLUB_X, z: CLUB_Z + 2, col: '#ff3fa0' },
   { name: 'AFTERGLOW', x: BAR_X - 4.6, z: BAR_Z + 2, col: '#ffa040' },
   { name: 'CHROME WORKS', x: GAR_X, z: GAR_Z + 4, col: '#2cf2d8' },
+  { name: 'VELOCE MOTORS', x: DEAL_X, z: DEAL_Z + 2, col: '#ffcf6a' },
+  { name: 'GARAGE 07', x: HOME_X, z: HOME_Z - 2, col: '#ff8a3a' },
 ];
 const mini = $('mini'), mctx = mini.getContext('2d');
 const cmp = $('cmp'), cctx = cmp.getContext('2d');
@@ -98,8 +100,8 @@ function updateHud(dt) {
     setText('stName', streetName(px, pz));
     setText('district', district(px, pz));
   } else {
-    setText('stName', p.where === 'club' ? 'LAZARUS' : 'AFTERGLOW');
-    setText('district', p.where === 'club' ? '霓虹區 · 9 St' : '紅磚巷 · 7 St');
+    setText('stName', VENUES[p.where].name);
+    setText('district', VENUES[p.where].dist);
   }
   setText('stHead', `${dirName(h)} ${Math.round(h)}°`);
   clockSt.acc += dt;
@@ -127,10 +129,11 @@ function updateHud(dt) {
   $('speedo').classList.toggle('on', inV);
   if (inV) {
     const v = p.veh, kmh = Math.round(Math.abs(v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw)) * 3.6);
-    setText('spd', String(kmh)); setText('gear', String(v.gear)); setText('vehName', v.name);
+    setText('spd', String(kmh)); setText('gear', String(v.gear)); setText('vehName', motors.test && v === kestrel ? `試駕 ${v.name} · ${Math.ceil(motors.test.t)}s` : v.name);
     const r = $('rpm').firstElementChild; r.style.width = `${Math.round(v.rpm * 100)}%`; r.classList.toggle('hi', v.rpm > .86);
     const nb = $('nitro').firstElementChild; nb.style.width = `${Math.round(nitro.v * 100)}%`;
   }
+  setText('cash', money(motors.cash));
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('on'); }
 }
 // ─── 全區地圖（M）：點地點傳送 ───
@@ -147,7 +150,7 @@ function drawBigMap() {
   c.fillStyle = 'rgba(236,232,224,.55)'; c.font = `500 ${10 / s}px system-ui`; c.textAlign = 'center';
   for (let i = 0; i <= NX; i++) c.fillText(AVE[i], X(avX(i)), Z(stZ(0)) - 14 / s);
   for (let j = 0; j <= NZ; j++) c.fillText(STR[j], X(avX(0)) - 30 / s, Z(stZ(j)));
-  const p = player.where === 'out' ? (player.mode === 'drive' ? player.veh : player) : { x: player.where === 'club' ? CLUB_X : BAR_X, z: player.where === 'club' ? CLUB_Z : BAR_Z };
+  const p = player.where === 'out' ? (player.mode === 'drive' ? player.veh : player) : VENUES[player.where].door;
   c.fillStyle = '#ffffff'; c.beginPath(); c.arc(X(p.x), Z(p.z), 6 / s, 0, 7); c.fill();
   c.restore();
 }
@@ -168,7 +171,10 @@ function teleport(k) {
   else if (k === 'clubIn') { if (quest.n >= 3) { if (player.mode === 'drive') exitVehicle(); enterVenue('club'); } else { go(CLUB_X - 3, CLUB_Z + 4.5, Math.PI); toast('還沒上名單，先到門口'); } }
   else if (k === 'barIn') { if (player.mode === 'drive') exitVehicle(); enterVenue('bar'); }
   else if (k === 'garage') go(GAR_X - 4, GAR_Z + 3, Math.PI);
+  else if (k === 'dealer') go(DEAL_X - 2.5, DEAL_Z + 3.4, Math.PI);
+  else if (k === 'home') go(HOME_X + 2.5, HOME_Z - 3.4, 0);
   else if (k === 'car') {
+    if (motors.stowed) { toast(`${kestrel.name} 停在 GARAGE 07 裡，按 V 叫出來`); return; }
     const fn = () => { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = kestrel.x + Math.cos(kestrel.yaw) * 1.6; player.z = kestrel.z - Math.sin(kestrel.yaw) * 1.6; player.yaw = kestrel.yaw; camState.yaw = kestrel.yaw; };
     transition(fn);
   }

@@ -37,6 +37,8 @@ function lampKit(col) {
 const lampMeshA = instanced(lampKit(0xff8a3a), MAT.uber, lampsA);
 const lampMeshS = instanced(lampKit(0xb8dcff), MAT.uber, lampsS);
 for (const l of [...lampsA, ...lampsS]) { circles.push({ x: l.x, z: l.z, r: .22 }); claim(l.x, l.z, 1.4); }
+// 車行門前的兩台展示車與門口、車庫門前的車道：不放人行道設施
+for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
 
 // 路燈下的光錐（體積光）：加法混合，越靠近燈頭越亮
 const CONE_VS = /* glsl */`
@@ -369,6 +371,8 @@ BILL.forEach(([n, d]) => cell('w:' + n, 512, 256, d));
 cell('LAZARUS', 1024, 256, (c, w, h) => { plate(c, w, h, '#050306'); neon(c, 'LAZARUS', w / 2, h * .5, 150, '#ff3fa0', FONT_C, 800); });
 cell('AFTERGLOW', 512, 128, (c, w, h) => { plate(c, w, h, '#120804'); neon(c, 'AFTERGLOW', w / 2, h * .42, 64, '#ffa040', FONT_C, 700); c.font = `500 20px ${FONT_H}`; c.fillStyle = '#d99a62'; c.textAlign = 'center'; c.fillText('餘燼 · COCKTAILS · SINCE 2041', w / 2, h * .82); });
 cell('CHROME', 512, 128, (c, w, h) => { plate(c, w, h, '#03090c'); neon(c, 'CHROME WORKS', w / 2, h * .42, 58, '#2cf2d8', FONT_C, 700); c.font = `500 20px ${FONT_H}`; c.fillStyle = '#7fc8c0'; c.textAlign = 'center'; c.fillText('電馭改裝 · PAINT · WRAP · 24H', w / 2, h * .82); });
+cell('VELOCE', 512, 128, (c, w, h) => { plate(c, w, h, '#0a0805'); neon(c, 'VELOCE MOTORS', w / 2, h * .42, 56, '#ffcf6a', FONT_C, 700); c.font = `500 20px ${FONT_H}`; c.fillStyle = '#d8b878'; c.textAlign = 'center'; c.fillText('疾風車行 · 新車 · 經典車 · 收購', w / 2, h * .82); });
+cell('GARAGE07', 512, 128, (c, w, h) => { plate(c, w, h, '#06070a'); neon(c, 'GARAGE 07', w / 2, h * .42, 64, '#ff8a3a', FONT_C, 700); c.font = `500 20px ${FONT_H}`; c.fillStyle = '#c8926a'; c.textAlign = 'center'; c.fillText('私人車庫 · 請勿停車', w / 2, h * .82); });
 cell('LAZARUS_SMALL', 512, 96, (c, w, h) => { plate(c, w, h, '#050306'); c.font = `600 22px ${FONT_C}`; c.fillStyle = '#c98ab0'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('MEMBERS & GUESTS · DOOR POLICY IN EFFECT', w / 2, h / 2); });
 const atlasTex = new T.CanvasTexture(atlas);
 atlasTex.colorSpace = T.SRGBColorSpace; atlasTex.anisotropy = 8; atlasTex.generateMipmaps = true; atlasTex.minFilter = T.LinearMipmapLinearFilter;

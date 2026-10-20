@@ -375,7 +375,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 車流與座駕也會擋路
   const pushOut = (ox, oz, rr) => { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { x = ox + dx / d * rr; z = oz + dz / d * rr; } };
   for (const c of traffic) { const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
-  for (const v of vehicles) { const L = v.isCar ? 1.25 : .5; for (const s of [-1, 1]) pushOut(v.x + Math.sin(v.yaw) * L * s, v.z + Math.cos(v.yaw) * L * s, v.rad + .3); }
+  for (const v of vehicles) { const L = v.off; for (const s of [-1, 1]) pushOut(v.x + Math.sin(v.yaw) * L * s, v.z + Math.cos(v.yaw) * L * s, v.rad + .3); }
   for (let k = 0; k < PED_N; k++) { const p = peds.people[k]; pushOut(p.x, p.z, .55); }
   player.x = x; player.z = z;
   player.y = damp(player.y, groundH(x, z), 20, dt);

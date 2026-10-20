@@ -116,6 +116,7 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 
 - 原始碼在 `games/260-neon-nightcity/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 把 `src/parts/*.js` 依檔名順序串成**同一個模組**（共用頂層變數，後面的檔案直接用前面宣告的東西）再打包成單檔 `web/260-neon-nightcity.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 是兩種尺寸的無頭 Chrome 驗收（走完整段任務），`npm run thumb` 產生縮圖。
 - 只內嵌 `blender/out/` 的 `interior_props`、`street_props` 兩個 GLB；車輛與人物都由程式建模（`30-vehicles.js`、`40-people.js` 的 vertex shader 骨架動畫），`blender/vehicles.py`、`characters.py` 是舊版留下的。
+- 車行與車庫：車型目錄 `CARS` 與 `carKit()` 在 `25-cars.js`（只取經典車款的剪影比例，車名虛構、不放廠牌字樣或標誌）；門面在 `55-motor-front.js`（要在 60 把 `signLights` 複製成 `outLights`、合併 `signMesh` 之前）；展示廳、車庫、買車／試駕／出庫／賣車與甩尾打賞在 `65-motors.js`。室內場館都登錄在 60 的 `VENUES`，互動提示可以掛進 `ctxHooks`；玩家座駕只有一個物件（沿用 `kestrel` 變數），換車一律走 `applyCar(v, id, paint)`；存檔在 `localStorage` 的 `nc260.motors`。
 - three r186 的 `new Color(hex)` 已經是線性值，不要再 `convertSRGBToLinear()`（重複轉換會讓整個畫面變暗變髒）。招牌字圖集是 2048×2048，新增招牌格子前先算會不會超出（超出會 `console.warn`）。各檔分工、`window.__nc` 測試 API 見同資料夾的 `README.md`，城市尺寸、場館、任務與渲染流程見 `SPEC.md`。
 
 ## 灣岸商業帝國（261）

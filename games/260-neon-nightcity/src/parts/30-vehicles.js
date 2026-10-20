@@ -134,21 +134,31 @@ function bezTan(a, b, c, t) { const u = 1 - t; return [2 * u * (b[0] - a[0]) + 2
 // ─── 車流與路邊停車都畫成 InstancedMesh，每種車型一次 draw call ───
 const TYPES = {
   taxi: { kit: () => sedanKit('taxi'), len: 4.9, w: 1.9, vmax: 13 },
-  sedan: { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 12.5 },
+  sedan: { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 12.5, pal: 1 },
   police: { kit: () => sedanKit('police'), len: 4.9, w: 1.9, vmax: 14 },
   truck: { kit: truckKit, len: 6.8, w: 2.4, vmax: 10 },
-  kestrel: { kit: () => kestrelKit(0x888888, true), len: 4.4, w: 1.9, vmax: 15 },
+  kestrel: { kit: () => kestrelKit(0x888888, true), len: 4.4, w: 1.9, vmax: 15, pal: 1 },
+  // 車行目錄裡比較常見的幾款也會上街（車身色交給調色盤）
+  doodle: { kit: () => carKit('doodle', 0x888888, 1), len: 4.05, w: 1.6, vmax: 11, pal: 1 },
+  kanto: { kit: () => carKit('kanto', 0x888888, 1), len: 4.3, w: 1.84, vmax: 14.5, pal: 1 },
+  bulldog: { kit: () => carKit('bulldog', 0x888888, 1), len: 4.8, w: 1.96, vmax: 14, pal: 1 },
+  ronin: { kit: () => carKit('ronin', 0x888888, 1), len: 4.7, w: 1.92, vmax: 15, pal: 1 },
+  lucerna: { kit: () => carKit('lucerna', 0x888888, 1), len: 4.65, w: 1.98, vmax: 14.5, pal: 1 },
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
-function pickType() { const r = rT(); return r < .4 ? 'taxi' : r < .78 ? 'sedan' : r < .88 ? 'truck' : r < .94 ? 'police' : 'kestrel'; }
+const SPORTY = ['doodle', 'kanto', 'bulldog', 'ronin', 'lucerna', 'kestrel'];
+function pickType() { const r = rT(); return r < .32 ? 'taxi' : r < .6 ? 'sedan' : r < .68 ? 'truck' : r < .73 ? 'police' : SPORTY[Math.floor((r - .73) / .27 * SPORTY.length)]; }
 // 停車：每段路兩側的停車格，避開路口、消防栓、施工區與夜店門口
 const CLUB_X = avX(1) + 36, CLUB_Z = stZ(3) - HR - SW;
 const BAR_X = lerp(avX(3) + HR + SW, avX(4) - HR - SW, SPECIAL.bar.at), BAR_Z = stZ(1) - HR - SW;
 const GAR_X = avX(2) + 36, GAR_Z = stZ(2) - HR - SW;
 const KESTREL_SPOT = { x: avX(1) - PARK, z: stZ(2) + 22, yaw: 0 };
 const HANZO_SPOT = { x: BAR_X + 9, z: stZ(1) - PARK, yaw: -Math.PI / 2 };
+// 車行交車、車庫門口：都在門前的停車道上，車頭順著車流
+const DEAL_SPOT = { x: DEAL_X, z: stZ(3) - PARK, yaw: -Math.PI / 2 };
+const HOME_SPOT = { x: HOME_X, z: stZ(2) + PARK, yaw: Math.PI / 2 };
 for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) for (const d of [0, 2]) {
   // 大道（沿 z），右駕：往 +z 的車停在 x 負側
   const side = d === 0 ? -1 : 1;
@@ -170,6 +180,8 @@ for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3
     if (Math.abs(z - (BAR_Z + 4.5)) < 3 && Math.abs(x - BAR_X) < 12) continue;
     if (Math.hypot(x - HANZO_SPOT.x, z - HANZO_SPOT.z) < 5) continue;
     if (Math.abs(z - (GAR_Z + 4.5)) < 3 && Math.abs(x - GAR_X) < 10) continue;
+    if (Math.abs(z - DEAL_SPOT.z) < 3 && Math.abs(x - DEAL_X) < 14) continue;
+    if (Math.abs(z - HOME_SPOT.z) < 3 && Math.abs(x - HOME_X) < 9) continue;
     parked.push({ type: pickType(), x, z, yaw: d === 1 ? Math.PI / 2 : -Math.PI / 2, pal: Math.floor(rT() * PAL.length) });
   }
 }
@@ -192,7 +204,7 @@ for (const [name, ty] of Object.entries(TYPES)) {
   m.frustumCulled = false;
   scene.add(m);
   typeMesh[name] = { mesh: m, list, geo: g };
-  list.forEach((c, k) => { c.mk = k; g.attributes.aIns.array[k * 4 + 1] = c.seed ?? rT(); g.attributes.aIns.array[k * 4 + 2] = name === 'sedan' || name === 'kestrel' ? c.pal + 1 : 0; });
+  list.forEach((c, k) => { c.mk = k; g.attributes.aIns.array[k * 4 + 1] = c.seed ?? rT(); g.attributes.aIns.array[k * 4 + 2] = ty.pal ? c.pal + 1 : 0; });
 }
 // 車底陰影與頭燈照地
 const SHADOW_FS = /* glsl */`varying vec2 vUv; void main(){ vec2 q = (vUv - .5) * 2.; float a = (1. - smoothstep(.35, 1., length(q * vec2(1., .9)))) * .82; gl_FragColor = vec4(0., 0., 0., a); }`;
@@ -309,25 +321,39 @@ function updateTraffic(dt, t) {
 }
 
 // ─── 玩家座駕 ───
+// 汽車的車身與輪子依 CARS 目錄重建（車行買車、試駕、車庫換車、改裝廠換色都走 applyCar）
 function mkVehicle(kind) {
-  const isCar = kind === 'kestrel';
+  const isCar = kind !== 'hanzo';
   const mat = mkUber(); mat.uniforms.uM.value.set(0, 0, 1, 0);
   const g = new T.Group();
   const body = new T.Group(); g.add(body);
-  body.add(new T.Mesh((isCar ? kestrelKit(0x8a1018) : hanzoKit()).build(), mat));
-  const wm = new T.Mesh(isCar ? wheelGeo(.34, .26) : BIKE_WHEEL, mat);
   const wheels = [];
-  if (isCar) for (const [x, z] of [[-.82, 1.35], [.82, 1.35], [-.82, -1.35], [.82, -1.35]]) {
-    const piv = new T.Group(); piv.position.set(x, .34, z); g.add(piv);
-    const w = wm.clone(); if (x < 0) w.rotation.y = Math.PI; piv.add(w); wheels.push({ piv, w, front: z > 0 });
-  } else for (const z of [.8, -.72]) {
-    const piv = new T.Group(); piv.position.set(0, .33, z); body.add(piv);
-    const w = wm.clone(); w.position.x = -.07; piv.add(w); wheels.push({ piv, w, front: z > 0 });
-  }
   scene.add(g);
   const sp = isCar ? KESTREL_SPOT : HANZO_SPOT;
-  return { kind, isCar, g, body, mat, wheels, x: sp.x, z: sp.z, y: 0, yaw: sp.yaw, vx: 0, vz: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0,
-    len: isCar ? 4.4 : 2.1, w: isCar ? 1.9 : .7, rad: isCar ? 1.0 : .45, vmax: isCar ? 54 : 47, eng: isCar ? 11 : 12.5, name: isCar ? 'Kestrel' : 'Hanzo', rpm: 0, gear: 1, slip: 0, lights: 0 };
+  const v = { kind, isCar, g, body, mat, wheels, x: sp.x, z: sp.z, y: 0, yaw: sp.yaw, vx: 0, vz: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0,
+    len: 2.1, w: .7, rad: .45, off: .55, vmax: 47, eng: 12.5, grip: 7, wb: 1.5, wr: .33, name: 'Hanzo', rpm: 0, gear: 1, slip: 0, lights: 0 };
+  if (isCar) applyCar(v, 'kestrel');
+  else {
+    body.add(new T.Mesh(hanzoKit().build(), mat));
+    for (const z of [.8, -.72]) {
+      const piv = new T.Group(); piv.position.set(0, .33, z); body.add(piv);
+      const w = new T.Mesh(BIKE_WHEEL, mat); w.position.x = -.07; piv.add(w); wheels.push({ piv, w, front: z > 0 });
+    }
+  }
+  return v;
+}
+function applyCar(v, id, paint) {
+  const c = CARS[id];
+  for (const m of v.body.children) m.geometry.dispose();
+  v.body.clear();
+  for (const w of v.wheels) v.g.remove(w.piv);
+  v.wheels.length = 0;
+  v.body.add(new T.Mesh(carKit(id, paint, 0).build(), v.mat));
+  for (const s of [-1, 1]) for (const [z, f] of [[c.fa, 0], [c.ra, 1]]) {
+    const piv = new T.Group(); piv.position.set(s * c.track, c.wr, z); v.g.add(piv);
+    const w = new T.Mesh(carWheelGeo(id, f), v.mat); if (s < 0) w.rotation.y = Math.PI; piv.add(w); v.wheels.push({ piv, w, front: f === 0 });
+  }
+  Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name });
 }
 const kestrel = mkVehicle('kestrel'), hanzo = mkVehicle('hanzo');
 const vehicles = [kestrel, hanzo];
@@ -356,7 +382,7 @@ function collideCircle(x, z, r, skipCar) {
 // 兩個圓代表車身前後，跟靜態物、停車與車流碰撞
 function vehicleCollide(v, dt) {
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
-  const off = v.isCar ? 1.25 : .55;
+  const off = v.off;
   let impact = 0;
   for (const s of [1, -1]) {
     const cx = v.x + fx * off * s, cz = v.z + fz * off * s;
@@ -395,9 +421,9 @@ function driveVehicle(v, inp, dt) {
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
   if (!inp.thr && !inp.brk && Math.abs(vF) < .3) vF = 0;
-  const grip = inp.hb ? 1.4 : (v.isCar ? 8.5 : 7) * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6));
+  const grip = inp.hb ? 1.4 : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6));
   vR *= Math.exp(-grip * dt);
-  const wb = v.isCar ? 2.7 : 1.5;
+  const wb = v.wb;
   let targetYr = vF * Math.tan(v.steer) / wb;
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
   v.yr = damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
@@ -416,7 +442,7 @@ function driveVehicle(v, inp, dt) {
   v.roll = damp(v.roll, v.isCar ? clamp(latA * .006, -.06, .06) : 0, 6, dt);
   v.pitch = damp(v.pitch, clamp(-aF * .0035, -.04, .04), 6, dt);
   v.lean = damp(v.lean, v.isCar ? 0 : clamp(-latA * .045, -.7, .7), 7, dt);
-  v.spin += vF * dt / .34;
+  v.spin += vF * dt / v.wr;
   const kmh = Math.abs(vF) * 3.6;
   const gears = [0, 38, 72, 108, 146, 999];
   let g = 1; while (g < 5 && kmh > gears[g]) g++;

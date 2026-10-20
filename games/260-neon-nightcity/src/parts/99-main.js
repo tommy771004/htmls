@@ -33,6 +33,8 @@ function onKey(code) {
   if (code === 'Digit2') teleport('clubIn');
   if (code === 'Digit3') teleport('barIn');
   if (code === 'Digit4') teleport('garage');
+  if (code === 'Digit5') teleport('dealer');
+  if (code === 'Digit6') teleport('home');
   if (fading) return;
   const ctx = contextAction();
   if (code === 'KeyF') {
@@ -43,15 +45,16 @@ function onKey(code) {
   if (code === 'KeyG' && player.mode === 'walk') toggleDance();
   if (code === 'KeyV' && player.mode === 'walk' && player.where === 'out') summonCar();
 }
-// V：把 Kestrel 叫到最近的車道上並直接上車
+// V：把目前的座駕叫到最近的車道上並直接上車（停在車庫裡的也會開出來）
 function summonCar() {
+  motors.stowed = false; kestrel.g.visible = true;
   let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(player.x - avX(i)); if (d < bd) { bd = d; bi = i; } }
   let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(player.z - stZ(j)); if (d < be) { be = d; bj = j; } }
   if (bd < be) { const s = player.x < avX(bi) ? -1 : 1; kestrel.x = avX(bi) + s * LANE; kestrel.z = clamp(player.z, stZ(0) + 12, stZ(NZ) - 12); kestrel.yaw = s < 0 ? 0 : Math.PI; }
   else { const s = player.z < stZ(bj) ? -1 : 1; kestrel.z = stZ(bj) + s * LANE; kestrel.x = clamp(player.x, avX(0) + 12, avX(NX) - 12); kestrel.yaw = s > 0 ? Math.PI / 2 : -Math.PI / 2; }
   kestrel.vx = kestrel.vz = 0; kestrel.y = 0; poseVehicle(kestrel);
   enterVehicle(kestrel); camState.yaw = kestrel.yaw; camState.snap = true;
-  toast('Kestrel 開過來了');
+  toast(`${kestrel.name} 開過來了`);
 }
 
 // 滑鼠：點畫面鎖定游標；沒鎖定時拖曳也能轉
@@ -125,7 +128,7 @@ function updateCamera(dt, spd) {
   if (inV) {
     const v = p.veh;
     tx = v.x; ty = v.y + (v.isCar ? 1.15 : 1.3); tz = v.z;
-    dist = (v.isCar ? 6.2 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
+    dist = (v.isCar ? 6.2 + (v.len - 4.4) * .7 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
     if (camState.idle > 1.2) {
       const vf = v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw);
       const want = vf < -1 ? v.yaw : v.yaw + clamp(v.yr * .18, -.3, .3);
@@ -152,7 +155,7 @@ function updateCamera(dt, spd) {
   }
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
   const floor = (p.where === 'out' ? groundH(wx, wz) : 0) + .35;
-  const ceil = p.where === 'club' ? 6.6 : p.where === 'bar' ? 3.3 : 999;
+  const ceil = p.where === 'out' ? 999 : VENUES[p.where].ceil;
   wy = clamp(wy, floor, ceil);
   if (camState.snap) camState.pos.set(wx, wy, wz);
   else { const k = 1 - Math.exp(-(inV ? 14 : 18) * dt); camState.pos.x += (wx - camState.pos.x) * k; camState.pos.y += (wy - camState.pos.y) * k; camState.pos.z += (wz - camState.pos.z) * k; }
@@ -191,7 +194,7 @@ function pickLights(t) {
     }
     const n = Math.max(0, NL - dynLights.length);
     L.push(...dynLights, ...lightPick.slice(0, n));
-  } else L.push(...(player.where === 'club' ? club.lights : bar.lights));
+  } else L.push(...VENUES[player.where].data.lights);
   for (let k = 0; k < NL; k++) {
     const l = L[k];
     if (!l) { U.uLP.value[k].set(0, -999, 0, 0); continue; }
@@ -242,6 +245,7 @@ function step(dt) {
     v.vmax = vmax0; v.eng = eng0;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
     spd = Math.abs(r.vF) * 3.6;
+    driftTick(dt, v, r.imp, spd);
     if (!v.isCar) { me.anim(0, ANIM.ride, 0, 1); me.anim2(0, 0, 0); _o.position.set(0, 0, 0); placeRider(v); }
     sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_X, v.z - CLUB_Z), dBar: Math.hypot(v.x - BAR_X, v.z - BAR_Z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: v.slip, nitro: nitro.on });
   } else {
@@ -252,10 +256,11 @@ function step(dt) {
     const db = player.where === 'out' ? Math.hypot(player.x - BAR_X, player.z - BAR_Z) : 999;
     sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: 0, gear: 1, thr: 0, slip: 0, nitro: false });
   }
+  updateMotors(dt, t);
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {
     quest.danceT += dt;
-    if (quest.danceT > 5) { setQuest(5); toast('Marlo 說得對，這裡的低音值得淋一場雨'); }
+    if (quest.danceT > 5) { setQuest(5); toast('Marlo 說得對，這裡的低音值得淋一場雨'); earn(250000, 'Juno 托人送來的謝禮'); }
   }
   updateWeather(dt, t);
   updateCamera(dt, spd);
@@ -307,14 +312,16 @@ window.__nc = {
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },
   drive(name = 'kestrel') { const v = name === 'hanzo' ? hanzo : kestrel; if (player.mode === 'drive') exitVehicle(); setWhere('out'); enterVehicle(v); camState.yaw = v.yaw; camState.snap = true; },
   walk() { if (player.mode === 'drive') exitVehicle(); },
-  enter(w) { if (player.mode === 'drive') exitVehicle(); const sp = w === 'club' ? CLUB_SPAWN : BAR_SPAWN; setWhere(w); player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.snap = true; },
-  exit() { const w = player.where; setWhere('out'); if (w === 'club') { player.x = CLUB_X; player.z = CLUB_Z + 1.2; } else { player.x = BAR_X - 4.6; player.z = BAR_Z + 1.2; } camState.snap = true; },
+  enter(w) { if (player.mode === 'drive') exitVehicle(); const sp = VENUES[w].spawn; setWhere(w); player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.snap = true; },
+  exit() { const w = player.where; setWhere('out'); const o = VENUES[w].out; player.x = o.x; player.z = o.z; player.yaw = o.yaw; camState.snap = true; },
   look(yaw, pitch = camState.pitch, far = camState.far) { camState.yaw = yaw; camState.pitch = pitch; camState.far = far; camState.idle = 0; camState.snap = true; },
   setQuest, talk: { marlo: talkMarlo, juno: talkJuno }, dialog: dlg, closeDialog,
-  spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 } },
+  spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 },
+    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z })), seller: SELLER },
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   rain(v) { U.uRain.value = v; }, flash() { weather.next = 0; },
   keys, inp, nitro, livery: cycleLivery,
+  motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),
   getStats: () => ({ fps: Math.round(fps), drawCalls: R.info.render.calls, triangles: R.info.render.triangles, mode: player.mode, where: player.where, quest: quest.n, pos: { x: +(player.mode === 'drive' ? player.veh.x : player.x).toFixed(2), z: +(player.mode === 'drive' ? player.veh.z : player.z).toFixed(2) }, scale: post.scale }),
 };

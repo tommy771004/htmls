@@ -1,4 +1,4 @@
-// 作品 260 驗收：兩種尺寸開頁，走完「門禁 · 今夜」任務、開車、進出場館，檢查錯誤、外部請求與手機溢出
+// 作品 260 驗收：兩種尺寸開頁，走完「門禁 · 今夜」任務、開車、進出場館、車行買車試駕與車庫，檢查錯誤、外部請求與手機溢出
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync } from 'node:fs';
@@ -105,6 +105,70 @@ async function desktop() {
     check(await ev(page, () => document.getElementById('map').classList.contains('on')), 'M 開啟大地圖');
     await page.keyboard.press('Escape');
 
+    // 車行與車庫：買車、試駕、停進車庫、開出庫、換色
+    const nc = (fn, a) => ev(page, fn, a);
+    const cash0 = await nc(() => window.__nc.motors.cash);
+    check(cash0 >= 400000, `任務獎金入帳，現金 $${cash0.toLocaleString()}`);
+    await nc((d) => window.__nc.tp(d.x, d.z + .4, Math.PI), s.dealerDoor);
+    await page.waitForTimeout(200);
+    check(/VELOCE/.test((await nc(() => window.__nc.ctx())) || ''), '車行門口出現進入提示');
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(800);
+    check((await nc(() => window.__nc.player.where)) === 'show', '進入 VELOCE MOTORS 展示廳');
+    const ronin = s.showCars.find((c) => c.id === 'ronin');
+    await nc((c) => { const p = window.__nc.player; p.x = c.x; p.z = c.z - 2.9; }, ronin);
+    await page.waitForTimeout(200);
+    check(/Ronin GT/.test((await nc(() => window.__nc.ctx())) || ''), '走到車旁出現看車提示');
+    await shot(page, 'd-show');
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(200);
+    check(await nc(() => window.__nc.dialog.open), '看車對話框');
+    await nc(() => window.__nc.pick(0));
+    await nc(() => window.__nc.pick(0));
+    await nc(() => window.__nc.pick(0));
+    await page.waitForTimeout(900);
+    const b = await nc(() => ({ mode: window.__nc.player.mode, name: window.__nc.player.veh && window.__nc.player.veh.name, cash: window.__nc.motors.cash, owned: window.__nc.motors.owned.slice(), where: window.__nc.player.where }));
+    check(b.mode === 'drive' && b.name === 'Ronin GT' && b.where === 'out' && cash0 - b.cash === 128000 && b.owned.includes('ronin'), `買下 Ronin GT 開出車行（${b.name}、扣款 $${(cash0 - b.cash).toLocaleString()}）`);
+    await shot(page, 'd-bought');
+    await nc(() => window.__nc.enter('show'));
+    await nc(() => window.__nc.testDrive('furia'));
+    await page.waitForTimeout(900);
+    check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Furia V12' && (await nc(() => !!window.__nc.motors.test)), '試駕 Furia V12');
+    await hold(page, 'KeyW', 800);
+    await nc(() => window.__nc.walk());
+    await page.waitForTimeout(200);
+    check((await nc(() => window.__nc.vehicles[0].carId)) === 'ronin' && !(await nc(() => window.__nc.motors.test)), '下車結束試駕，座駕換回 Ronin GT');
+    await nc((sp) => { const nc = window.__nc, v = nc.vehicles[0]; v.x = sp.x; v.z = sp.z; v.yaw = sp.yaw; nc.drive(); }, s.homeSpot);
+    await page.waitForTimeout(200);
+    check(/停進車庫/.test((await nc(() => window.__nc.ctx())) || ''), '開到車庫門口出現停車提示');
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(900);
+    check((await nc(() => window.__nc.player.where)) === 'home' && (await nc(() => window.__nc.motors.stowed)), '停進 GARAGE 07');
+    await nc(() => { const p = window.__nc.player; p.x = -3.4; p.z = 4.6; window.__nc.look(-Math.PI / 2 + .5, .2, 1); });
+    await page.waitForTimeout(300);
+    check(/Kestrel/.test((await nc(() => window.__nc.ctx())) || ''), '車庫裡 Kestrel 車格旁出現提示');
+    await shot(page, 'd-garage');
+    await nc(() => window.__nc.garageInfo('kestrel'));
+    await nc(() => window.__nc.pick(0));
+    await page.waitForTimeout(900);
+    check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Kestrel' && (await nc(() => window.__nc.player.where)) === 'out', '從車庫把 Kestrel 開出去');
+    await nc((g) => { const v = window.__nc.vehicles[0]; v.x = g.x; v.z = g.z; v.vx = v.vz = 0; }, s.garage);
+    await page.waitForTimeout(100);
+    const p0c = await nc(() => window.__nc.vehicles[0].paint);
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(100);
+    check((await nc(() => window.__nc.vehicles[0].paint)) !== p0c, 'CHROME WORKS 換色');
+    const dr = await nc(() => {
+      const nc = window.__nc, c0 = nc.motors.cash, car = { isCar: true, slip: 2.6 };
+      for (let i = 0; i < 90; i++) nc.driftTick(1 / 60, car, 0, 80);
+      car.slip = 0; for (let i = 0; i < 40; i++) nc.driftTick(1 / 60, car, 0, 80);
+      const won = nc.motors.cash - c0;
+      car.slip = 2.6; for (let i = 0; i < 90; i++) nc.driftTick(1 / 60, car, 0, 80);
+      nc.driftTick(1 / 60, car, 9, 80); car.slip = 0; for (let i = 0; i < 40; i++) nc.driftTick(1 / 60, car, 0, 80);
+      return { won, lost: nc.motors.cash - c0 - won };
+    });
+    check(dr.won > 0 && dr.lost === 0, `甩尾 1.5 秒打賞 $${dr.won}，撞車那段不算`);
+
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
     console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);
     check(!log.pageerrors.length && !log.errors.length, `無錯誤 ${[...log.pageerrors, ...log.errors].slice(0, 3).join(' | ')}`);
@@ -127,6 +191,11 @@ async function mobile() {
     await page.waitForTimeout(200);
     check(await ev(page, () => getComputedStyle(document.getElementById('touch')).display === 'none'), '對話時隱藏觸控按鈕');
     await shot(page, 'm-dialog');
+    await ev(page, () => window.__nc.closeDialog());
+    await ev(page, () => { window.__nc.enter('show'); window.__nc.player.z = 3; window.__nc.look(0, .2, 1); window.__nc.carInfo('halcyon'); });
+    await page.waitForTimeout(500);
+    await shot(page, 'm-show');
+    check(await ev(page, () => document.documentElement.scrollWidth <= innerWidth && document.getElementById('dialog').getBoundingClientRect().right <= innerWidth), '車行看車對話框不溢出');
     await ev(page, () => window.__nc.closeDialog());
     await ev(page, () => window.__nc.drive());
     await page.waitForTimeout(500);

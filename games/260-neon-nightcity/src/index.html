@@ -47,6 +47,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 #weather{font-size:11px;color:var(--ink-2);display:flex;align-items:center;gap:4px}
 #weather svg{width:10px;height:12px}
 #clock{font-family:var(--cond);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+#cash{display:grid;place-items:center;height:30px;padding:0 10px;border-radius:7px;background:var(--panel);font-family:var(--cond);font-size:15px;font-weight:600;color:#ffcf6a;font-variant-numeric:tabular-nums}
+@keyframes cashUp{0%{color:#fff;transform:scale(1.18)}100%{color:#ffcf6a;transform:none}}
+#cash.up{animation:cashUp .6s var(--ease-out);transform-origin:right center}
 
 /* 左下：小地圖 */
 #mapBox{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));width:132px;height:132px;padding:6px;border-radius:14px}
@@ -100,7 +103,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #dialog.on{display:block}
 body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #prompt{display:none!important}
 #dlgWho{display:block;font-size:12px;color:var(--sodium);margin-bottom:5px}
-#dlgText{margin:0;font-size:15px;line-height:1.6}
+#dlgText{margin:0;font-size:15px;line-height:1.6;white-space:pre-line}
 #dlgOpts{display:flex;flex-direction:column;gap:6px;margin-top:11px}
 #dlgOpts button{text-align:left;background:rgba(236,232,224,.07);border:0;border-radius:6px;padding:8px 11px;font-size:14px;transition:background var(--dur-hover) var(--ease-out)}
 #dlgOpts button:hover,#dlgOpts button:focus-visible{background:rgba(255,174,87,.22);outline:none}
@@ -168,7 +171,7 @@ body.touch #capture{display:none}
 }
 @media (prefers-reduced-motion: reduce){
   #hud,#speedo,#fade,#start.gone{transition-duration:1ms}
-  #obj.flash b{animation:none}
+  #obj.flash b,#cash.up{animation:none}
 }
 </style>
 </head>
@@ -178,19 +181,19 @@ body.touch #capture{display:none}
   <div id="obj" class="pan"><small>門禁 <i>· 今夜</i></small><b id="objText">進入 LAZARUS</b></div>
   <div id="compass"><canvas id="cmp" width="560" height="56"></canvas><div id="street" class="pan"><b id="stName">Atlas Av</b><span id="stHead">N 0°</span></div></div>
   <div id="clockBox" class="pan"><small id="district">霓虹區</small><div id="clockRow"><span id="weather"><svg viewBox="0 0 10 12"><path d="M5 1C3.5 4 2 5.6 2 7.6a3 3 0 0 0 6 0C8 5.6 6.5 4 5 1z" fill="#a9a49a"/></svg><span id="wxText">小雨</span></span><b id="clock">02:14</b></div></div>
-  <div id="tools"><button id="bMap" aria-label="全區地圖"><svg viewBox="0 0 16 16"><path d="M1.8 3.6 5.6 2l4.8 1.8L14.2 2.4v10L10.4 14l-4.8-1.8-3.8 1.6z"/><path d="M5.6 2v10.2M10.4 3.8V14"/></svg></button><button id="bHelp" aria-label="操作說明"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4M8 11.6v.1"/></svg></button><button id="bMute" aria-label="靜音"><svg viewBox="0 0 16 16"><path d="M2.5 6h2.6L8.6 3v10L5.1 10H2.5z"/><path id="muteWave" d="M11 5.4a3.6 3.6 0 0 1 0 5.2M12.8 3.6a6.2 6.2 0 0 1 0 8.8"/></svg></button></div>
+  <div id="tools"><b id="cash" aria-label="現金">$180,000</b><button id="bMap" aria-label="全區地圖"><svg viewBox="0 0 16 16"><path d="M1.8 3.6 5.6 2l4.8 1.8L14.2 2.4v10L10.4 14l-4.8-1.8-3.8 1.6z"/><path d="M5.6 2v10.2M10.4 3.8V14"/></svg></button><button id="bHelp" aria-label="操作說明"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4M8 11.6v.1"/></svg></button><button id="bMute" aria-label="靜音"><svg viewBox="0 0 16 16"><path d="M2.5 6h2.6L8.6 3v10L5.1 10H2.5z"/><path id="muteWave" d="M11 5.4a3.6 3.6 0 0 1 0 5.2M12.8 3.6a6.2 6.2 0 0 1 0 8.8"/></svg></button></div>
   <div id="help"><dl>
     <dt>WASD</dt><dd>移動／油門與轉向</dd>
     <dt>滑鼠</dt><dd>環顧（點畫面鎖定游標）</dd>
     <dt>Shift</dt><dd>步行奔跑／開車氮氣</dd>
     <dt>Space</dt><dd>手煞車甩尾</dd>
     <dt>F</dt><dd>上車／下車</dd>
-    <dt>V</dt><dd>把 Kestrel 叫到身邊</dd>
-    <dt>E</dt><dd>交談、開門、改裝廠換色</dd>
+    <dt>V</dt><dd>把座駕叫到身邊</dd>
+    <dt>E</dt><dd>交談、開門、看車、改裝廠換色、停進車庫</dd>
     <dt>G</dt><dd>跳舞</dd>
     <dt>C</dt><dd>切換鏡頭距離</dd>
     <dt>M</dt><dd>全區地圖與傳送</dd>
-    <dt>1–4</dt><dd>夜店門口／夜店裡／酒吧／改裝廠</dd>
+    <dt>1–6</dt><dd>夜店門口／夜店裡／酒吧／改裝廠／車行／車庫</dd>
   </dl></div>
   <div id="mapBox" class="pan"><canvas id="mini" width="240" height="240"></canvas></div>
   <div id="speedo" class="pan"><small id="vehName">Kestrel</small><div id="spRow"><span id="gear">1</span><b id="spd">0</b><em>km/h</em></div><i id="rpm"><span></span></i><i id="nitro"><span></span></i></div>
@@ -201,11 +204,11 @@ body.touch #capture{display:none}
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
 <div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button></div></div>
-<div id="map"><div id="mapIn"><canvas id="bigmap"></canvas><div id="mapList"><b>傳送</b><button data-t="club"><kbd>1</kbd>LAZARUS 門口</button><button data-t="clubIn"><kbd>2</kbd>LAZARUS 舞池</button><button data-t="barIn"><kbd>3</kbd>AFTERGLOW 酒吧</button><button data-t="garage"><kbd>4</kbd>CHROME WORKS</button><button data-t="car">回到 Kestrel 旁</button><small>M 或 Esc 關閉</small></div></div></div>
+<div id="map"><div id="mapIn"><canvas id="bigmap"></canvas><div id="mapList"><b>傳送</b><button data-t="club"><kbd>1</kbd>LAZARUS 門口</button><button data-t="clubIn"><kbd>2</kbd>LAZARUS 舞池</button><button data-t="barIn"><kbd>3</kbd>AFTERGLOW 酒吧</button><button data-t="garage"><kbd>4</kbd>CHROME WORKS</button><button data-t="dealer"><kbd>5</kbd>VELOCE MOTORS 車行</button><button data-t="home"><kbd>6</kbd>GARAGE 07 車庫</button><button data-t="car">回到座駕旁</button><small>M 或 Esc 關閉</small></div></div></div>
 <div id="fade"></div>
 <div id="start"><div id="startIn">
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>
-  <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。</p>
+  <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。甩尾賺錢，再去 VELOCE MOTORS 挑一台夢想中的車。</p>
   <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖</div>
   <button id="go" disabled>進入雨夜</button>
   <span id="bootMsg">正在鋪路…</span>

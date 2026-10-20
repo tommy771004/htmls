@@ -28,12 +28,17 @@ const district = (x, z) => {
 };
 
 // 特殊店面：LAZARUS 夜店（Atlas 與 Bishop 之間，面向 9 St）、AFTERGLOW 酒吧（Cinder 與 Delmar 之間，面向 7 St）、
-// CHROME WORKS 改裝廠（Bishop 與 Cinder 之間，面向 8 St）
+// CHROME WORKS 改裝廠（Bishop 與 Cinder 之間，面向 8 St）、VELOCE MOTORS 車行（Cinder 與 Delmar 之間，面向 9 St）、
+// 你的車庫 GARAGE 07（Harbor 與 Atlas 之間，面向 8 St）
 const SPECIAL = {
   club: { i: 1, j: 2, side: +1, at: .5, w: 20 },
   bar: { i: 3, j: 0, side: +1, at: .45, w: 13 },
   garage: { i: 2, j: 1, side: +1, at: .5, w: 13 },
+  dealer: { i: 3, j: 2, side: +1, at: .5, w: 22 },
+  home: { i: 0, j: 2, side: -1, at: .78, w: 12 },
 };
+const DEAL_X = lerp(avX(3) + HR + SW, avX(4) - HR - SW, SPECIAL.dealer.at), DEAL_Z = stZ(3) - HR - SW;
+const HOME_X = lerp(avX(0) + HR + SW, avX(1) - HR - SW, SPECIAL.home.at), HOME_Z = stZ(2) + HR + SW;
 const venues = {};
 
 // 一個街區切成兩排（面向 -z 與 +z），每排沿 x 切成數個地塊
@@ -89,6 +94,8 @@ function addLot(axis, a0, a1, x0, x1, z0, z1, face, b, special) {
   if (special === 'club') { style = 5; floors = 3; }
   else if (special === 'bar') { style = 6; floors = 4; }
   else if (special === 'garage') { style = 2; floors = 2; }
+  else if (special === 'dealer') { style = 3; floors = 0; }
+  else if (special === 'home') { style = 2; floors = 3; }
   else if (b.outer) { style = r < .5 ? 0 : r < .75 ? 1 : 2; floors = 5 + Math.floor(rnd() * 6); }
   else if (mid && r < .35) { style = 3; floors = 0; }
   else if (neon && r < .3) { style = 4; floors = 4 + Math.floor(rnd() * 5); }
@@ -408,7 +415,7 @@ for (const L of lots) {
       const fw = k === 'pz' || k === 'nz' ? L.x1 - L.x0 : L.z1 - L.z0;
       const units = Math.max(1, Math.round(fw / 6.5));
       let mask = 0;
-      for (let u = 0; u < units; u++) if ((rnd() < .28 && !L.special) || L.special === 'garage') mask |= 1 << u;
+      for (let u = 0; u < units; u++) if ((rnd() < .28 && !L.special) || L.special === 'garage' || L.special === 'home') mask |= 1 << u;
       masks[k] = [mask, units];
       const nrm = { pz: [0, 1], nz: [0, -1], px: [1, 0], nx: [-1, 0] }[k];
       for (let u = 0; u < units; u++) {

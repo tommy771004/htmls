@@ -426,15 +426,20 @@ function talkJuno() {
 }
 
 // ─── 進出場館 ───
+// 每個室內場館一筆：場景、碰撞與燈光（data）、進門位置、HUD 名稱、相機天花板、街上的門與出門位置
+// 車行與車庫在 65-motors.js 加進來
+const VENUES = {
+  club: { scene: clubScene, data: club, spawn: CLUB_SPAWN, name: 'LAZARUS', toast: 'LAZARUS', dist: '霓虹區 · 9 St', ceil: 6.6, door: { x: CLUB_X, z: CLUB_Z }, out: { x: CLUB_X - .2, z: CLUB_Z + 1.0, yaw: Math.PI } },
+  bar: { scene: barScene, data: bar, spawn: BAR_SPAWN, name: 'AFTERGLOW', toast: 'AFTERGLOW 餘燼酒吧', dist: '紅磚巷 · 7 St', ceil: 3.3, door: { x: BAR_X, z: BAR_Z }, out: { x: BAR_X - 4.6, z: BAR_Z + 1.2, yaw: Math.PI } },
+};
 let curScene = scene;
-const sceneOf = { out: scene, club: clubScene, bar: barScene };
 function setWhere(w) {
   player.where = w;
-  curScene = sceneOf[w];
+  curScene = w === 'out' ? scene : VENUES[w].scene;
   curScene.add(me.mesh);
   applyEnv(ENV[w]);
   if (w === 'out') { activeBoxes = colliders; activeCircles = circles; }
-  else { const v = w === 'club' ? club : bar; activeBoxes = v.boxes; activeCircles = v.circles; }
+  else { const v = VENUES[w].data; activeBoxes = v.boxes; activeCircles = v.circles; }
   rainMesh.visible = splashMesh.visible = w === 'out';
 }
 let fading = false;
@@ -443,32 +448,37 @@ function transition(fn) {
   $('fade').classList.add('on'); sfx.door();
   setTimeout(() => { fn(); camState.snap = true; setTimeout(() => { $('fade').classList.remove('on'); fading = false; }, 120); }, reduceMotion ? 30 : 400);
 }
-function enterVenue(w) {
+function enterVenue(w, then) {
   transition(() => {
-    const sp = w === 'club' ? CLUB_SPAWN : BAR_SPAWN;
+    const sp = VENUES[w].spawn;
     setWhere(w);
     player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; player.v = 0; player.dance = 0;
     camState.yaw = sp.yaw; camState.pitch = .12;
     if (w === 'club' && quest.n === 3) setQuest(4);
-    toast(w === 'club' ? 'LAZARUS' : 'AFTERGLOW 餘燼酒吧');
+    toast(VENUES[w].toast);
+    if (then) then();
   });
 }
-function exitVenue() {
+function exitVenue(then) {
   const w = player.where;
   transition(() => {
     setWhere('out');
-    if (w === 'club') { player.x = CLUB_X - .2; player.z = CLUB_Z + 1.0; player.yaw = Math.PI; }
-    else { player.x = BAR_X - 4.6; player.z = BAR_Z + 1.2; player.yaw = Math.PI; }
+    const o = VENUES[w].out;
+    player.x = o.x; player.z = o.z; player.yaw = o.yaw;
     player.v = 0; camState.yaw = player.yaw; camState.pitch = .1;
+    if (then) then();
   });
 }
+// 其他模組可以掛進來的互動（車行、車庫）：回傳 { key, text, fn } 或 null
+const ctxHooks = [];
 // 依位置找出目前可以做的事，回傳 { key, text, fn }
 function contextAction() {
   const p = player;
   const near = (x, z, r) => Math.hypot(p.x - x, p.z - z) < r;
+  for (const h of ctxHooks) { const r = h(p, near); if (r) return r; }
   if (p.mode === 'drive') {
     const v = p.veh;
-    if (v === kestrel && Math.hypot(v.x - GAR_X, v.z - (GAR_Z + SW + 4)) < 6 && Math.hypot(v.vx, v.vz) < 2)
+    if (v === kestrel && !motors.test && Math.hypot(v.x - GAR_X, v.z - (GAR_Z + SW + 4)) < 6 && Math.hypot(v.vx, v.vz) < 2)
       return { key: 'E', text: '換一套塗裝 <i>· CHROME WORKS</i>', fn: cycleLivery };
     return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: '下車', fn: exitVehicle } : null;
   }
@@ -489,17 +499,14 @@ function contextAction() {
   }
   return null;
 }
-const LIVERIES = [[0x8a1018, '酒紅'], [0x3c4148, '槍灰'], [0x0d3b5c, '午夜藍'], [0xd8d4c8, '珍珠白'], [0x1b1c1f, '消光黑']];
-let livery = 0;
+// CHROME WORKS 換色：第一個選項是這台車的原廠色，換完記在車庫存檔裡
+const LIVERIES = [[0x8a1018, '酒紅'], [0x3c4148, '槍灰'], [0x0d3b5c, '午夜藍'], [0xd8d4c8, '珍珠白'], [0x1b1c1f, '消光黑'], [0xc9a227, '香檳金'], [0x2f6a3a, '賽車綠']];
 function cycleLivery() {
-  livery = (livery + 1) % LIVERIES.length;
-  const c = lin(LIVERIES[livery][0]);
-  const col = kestrel.body.children[0].geometry.attributes.color, mat = kestrel.body.children[0].geometry.attributes.aMat;
-  const base = lin(0x8a1018);
-  if (!kestrel.paintIdx) { kestrel.paintIdx = []; for (let i = 0; i < mat.count; i++) if (mat.getX(i) === 0 && Math.abs(col.getX(i) - base.r) < 1e-3) kestrel.paintIdx.push(i); }
-  for (const i of kestrel.paintIdx) col.setXYZ(i, c.r, c.g, c.b);
-  col.needsUpdate = true;
-  sfx.spray(); toast(`塗裝：${LIVERIES[livery][1]}`);
+  const id = kestrel.carId, opts = [[CARS[id].paint, '原廠色'], ...LIVERIES.filter(l => l[0] !== CARS[id].paint)];
+  const k = (opts.findIndex(o => o[0] === kestrel.paint) + 1) % opts.length;
+  applyCar(kestrel, id, opts[k][0]); poseVehicle(kestrel);
+  motors.paint[id] = opts[k][0]; saveMotors();
+  sfx.spray(); toast(`塗裝：${opts[k][1]}`);
 }
 function toggleDance() {
   if (player.mode !== 'walk') return;
