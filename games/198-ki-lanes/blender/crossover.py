@@ -2,6 +2,8 @@
 # 介面與 heroes.build_goku 相同：build_xxx(R) 回傳 finish(...) 的 dict。座標＝three.js 空間（+Y 上、面向 +Z、角色左手在 +X）。
 import math
 
+import bpy
+
 from mathutils import Matrix
 
 import heroes as _H
@@ -14,7 +16,7 @@ from heroes import (
     torso_rows, baggy_leg, bob_cap,
 )
 from heroes import G_CHAIN, G_SKIRT, sash_chain_weights, skirt_chain_weights
-from cast import FEMALE_ROWS, arm_s, belt_ring, strap_around, team_band
+from cast import ARM_BONES, FEMALE_ROWS, arm_s, belt_ring, sleeve_arm_weights, strap_around, team_band, torso_arm_free
 
 
 # ================================================================ 共用配件
@@ -128,8 +130,14 @@ def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.007, e=0.008,
         (s_end - 0.03, 0.056 * kf * cuff + e * 1.2, 0.05 * kf * cuff + e * 1.2),
         (s_end, 0.055 * kf * cuff + e * 1.2, 0.049 * kf * cuff + e * 1.2),
     ]
+    # 短袖（s_end 在手肘附近，佐助）：固定的前臂斷面（up＋0.02、up＋0.12）會排在袖口兩個斷面之後，
+    # 放樣管往下走到前臂再折回袖口，折回來的那段穿出袖子表面，袖口上方一圈黑色鋸齒（外框）與淡紫碎片。只留袖口之前的斷面
+    st = [x for x in st[:-2] if x[0] < s_end - 0.03 - 1e-6] + st[-2:]
     sl = limb(name, F.sh, F.da, st, n=14, cap0='pole', cap1=None)  # 肩頭收成圓頂封口
     sl = kit.subsurf(sl, 2, solidify=thick)
+    # 換真人身體時，袖子裡（肩下 6 cm 到袖口前 6 cm）的底模手臂整段刪掉（realbody.hollow_mask）
+    if s_end - 0.06 > 0.12:
+        sl['hollow'] = (0.06, s_end - 0.06)
     return kit.tag(sl, pal, grp=G_ARM_L)
 
 
@@ -209,7 +217,10 @@ def build_naruto(R):
     # 運動外套：上半身黑色肩片、下半身橘色，拉鍊立領
     rows = [(0.02, ('w', 1.2), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
     jk = kit.loft('jacket', torso_rows(F, e=0.016, rows=rows, pec=0.1, lat=0.08), n=20, cap0=None, cap1=None)
-    jk = kit.subsurf(jk, 2, solidify=0.01)
+    # 袖孔：外套的殼原本包到肩關節外，抬手時殼的肩頭（腋下以下是橘色）從黑袖子裡穿出成一塊塊橘色。孔比袖根小，站著時孔緣藏在袖子裡
+    jk = kit.subsurf(jk, 1)
+    _H.cut_armholes(jk, F, 0.08 * F.k_arm)
+    jk = kit.subsurf(jk, 1, solidify=0.01)
     kit.tag(jk, orange, grp=G_TORSO)
     kit.paint_field(jk, lambda co: F.y(0.72) - co.y, black, 0)
     body.append(jk)
@@ -243,7 +254,7 @@ def build_naruto(R):
     pair_add(body, proxy, [sl, cuff, arm, hand, leg, shin, wr] + ft, proxy_set=[arm, hand, leg] + ft)
     from heroes import mirror
     body.append(mirror(thw))  # 只有右腿
-    body.append(team_band(F, team, 1.25))
+    body.append(team_band(F, team, on=sl))
     # 腿上的忍具包（右大腿）
     pouch = kit.box_cage('pouch', 0.07, 0.09, 0.05, cuts=(1, 1, 1))
     kit.transform(pouch, Matrix.Translation(F.leg_pt(0.2) * V((-1, 1, 1)) + V((-0.12 * F.k_leg - 0.03, 0, 0.02))))
@@ -252,7 +263,9 @@ def build_naruto(R):
     h = anime_head('head_base', F, skin, jaw=1.02, chin=0.95, cheek=1.07, nose=0.75, face_len=0.94, cranium=(0.83, 0.9, 0.9))
     hc = P(0xf6c93a)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.1, scale=1.06, nape=-0.55)] + hair(F, hc, naruto_hair()) + head_band(F, cloth, metal, y=0.4, h=0.32, scale=1.13)}
-    return finish(F, P, body, proxy, heads, custom={G_N_POUCH: lambda co: [('thR', 1.0)]})
+    # 黑長袖與袖上的臂章：上臂內側的骨熱分到胸廓（cast.sleeve_arm_weights），出拳時袖根內側留在身上，從外套袖孔斜插出一塊黑色楔子
+    sw = sleeve_arm_weights(F)
+    return finish(F, P, body, proxy, heads, custom={G_N_POUCH: lambda co: [('thR', 1.0)], _H.G_ARM_L: sw, _H.G_ARM_R: sw})
 
 
 G_N_POUCH = 68   # 鳴人專用群組（不在 ALLOW 裡：權重由自訂函式決定）
@@ -346,7 +359,10 @@ def build_sasuke(R):
     rows = [(0.02, ('w', 1.2), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
     us = [r[0] for r in rows]
     top = kit.loft('gi_top', torso_rows(F, e=0.016, rows=rows, pec=0.1, lat=0.06), n=20, cap0=None, cap1=None, gap=lambda i: 0.0 if us[i] <= 0.45 else min(0.9, 0.08 + (us[i] - 0.45) * 1.5))
-    top = kit.subsurf(top, 2, solidify=0.01)
+    # 袖孔：上衣的殼原本包到肩關節外、側面貼著上臂，殼的外框從寬袖的下半截穿出一排黑色鋸齒。孔比袖子小，孔緣藏在袖子裡
+    top = kit.subsurf(top, 1)
+    _H.cut_armholes(top, F, 0.08 * F.k_arm, s1=F.up - 0.05)
+    top = kit.subsurf(top, 1, solidify=0.01)
     kit.tag(top, lav, grp=G_TORSO)
     body.append(top)
     col = kit.loft('collar', [S(V((0, F.y(0.95), -0.012)), F.cx * 0.62, F.cz * 0.78), S(V((0, F.y(1.12), -0.02)), F.cx * 0.58, F.cz * 0.74), S(V((0, F.y(1.26), -0.03)), F.cx * 0.66, F.cz * 0.8)],
@@ -383,7 +399,7 @@ def build_sasuke(R):
     wrap = band('wrapL', F.th, F.dl, F.tl + 0.17, F.tl + F.sl - 0.07, 0.062 * F.k_shin + 0.008, 0.05 * F.k_shin + 0.008, P(0x8a8c96), G_LEG_L, thick=0.006)
     ft = sandal(F, skin, P(0x24262e))
     pair_add(body, proxy, [slv, arm, ag, hand, leg, wrap] + ft, proxy_set=[arm, hand, leg] + ft)
-    body.append(team_band(F, team, 1.3))   # 1.2 倍時和袖子表面重合（互相閃爍，只露出幾塊青色），加大一圈浮在袖子外
+    body.append(team_band(F, team, on=slv))
 
     h = anime_head('head_base', F, skin, jaw=0.88, chin=0.78, cheek=0.93, nose=0.8, face_len=1.07)
     hc = P(0x1a1c2e)
@@ -427,6 +443,11 @@ def build_kakashi(R):
     vs = kit.loft('vest', torso_rows(F, e=lambda u: 0.02 - 0.012 * smooth((u - 0.85) / 0.12), u0=0.12, u1=0.97, pec=0.06, lat=0.05, p=2.35), n=20, cap0=None, cap1=None)
     vs = kit.subsurf(vs, 2, solidify=0.014)
     kit.tag(vs, vest, grp=G_TORSO)
+    # 背心背面正中、兩片肩胛骨之間的大紅漩渦（參考 k3、k4：直徑約 0.6 頭高）
+    yc_b = F.y(0.7)
+    back_f = lambda co: max(math.hypot(co.x, co.y - yc_b) - 0.064, co.z * 20)
+    realbody.refine_near(vs, lambda co: back_f(co) * 40, 1)
+    kit.paint_field(vs, back_f, red, 0)
     body.append(vs)
     from heroes import tree_of
     vt = tree_of(vs)
@@ -448,6 +469,20 @@ def build_kakashi(R):
     body.append(neck(F, navy, r=0.056))
     proxy.append(body[-1])
     sl = long_sleeve(F, navy, k=1.0)
+    # 紅色漩渦臂章（參考 S.H.Figuarts 2015／2022：兩條上臂外側、三角肌位置各一個實心圓，直徑約 0.35 頭高）：
+    # 直接塗在袖子上（換真人身體時袖子整件跟著挪，色塊不會像另外套的細環那樣埋進袖子、只剩幾塊紅色碎片穿出袖面）。
+    # 圓心在肩下 8.5 cm 的手臂外側，以垂直「外側方向」的平面量距離，從側面看是正圓；只塗外側那半圈
+    out_d = V((-F.da.y, F.da.x, 0)).normalized()   # 手臂外側（朝外上）
+    fr_d = F.da.cross(out_d).normalized()
+    s_mark, r_mark = 0.085, 0.037
+
+    def mark_f(co):
+        s = arm_s(F, co)
+        rel = co - F.arm_pt(s)
+        return max(math.hypot(s - s_mark, rel.dot(fr_d)) - r_mark, -rel.dot(out_d) * 20)
+    # 袖子的面約 1.5 cm，直接切線是一個八角形：交界附近（±1 cm）先細分一次
+    realbody.refine_near(sl, lambda co: mark_f(co) * 40, 1)
+    kit.paint_field(sl, mark_f, red, 0)
     arm = arm_skin(F, skin, muscle=0.8)
     kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), navy, 0)  # 袖子下的手臂染成衣服色：彎肘時戳出來也不會露膚色
     glove = band('gloveL', F.sh, F.da, F.up + F.lo - 0.05, F.up + F.lo + 0.01, 0.062 * F.k_fore, 0.058 * F.k_fore, navyD, G_FORE_L, thick=0.008)
@@ -460,9 +495,9 @@ def build_kakashi(R):
     wr = band('wrapL', F.th, F.dl, F.tl + 0.06, F.tl + F.sl - 0.1, 0.07 * F.k_shin + 0.01, 0.056 * F.k_shin + 0.008, wrap, G_LEG_L, thick=0.008)
     bt = boot(F, navyD, F.tl + F.sl - 0.11, 0.054, pal_sole=navyD)
     pair_add(body, proxy, [sl, arm, glove, hand, leg, wr] + bt, proxy_set=[arm, hand, leg] + bt)
-    body.append(team_band(F, team, 1.2))
-    # 左臂的紅色漩渦臂章（簡化成紅色細環）
-    body.append(band('mark', F.sh, F.da, 0.06, 0.09, 0.102 * F.k_arm, 0.1 * F.k_arm, red, G_UPPER_L, thick=0.004, ol=0.4))
+    # 臂章貼著袖子表面（fit_band，跟著袖子挪）：圓管的 band() 套在袖子外，換真人身體後上臂變細、袖子跟著收，
+    # 臂章大半埋進袖子，只剩背面幾塊青色碎片
+    body.append(team_band(F, team, on=sl))
 
     h = anime_head('head_base', F, skin, jaw=0.96, chin=0.95, cheek=0.95, nose=0.6, face_len=1.12, cranium=(0.8, 0.92, 0.9))
     hc = P(0xd8dbe6)
@@ -490,7 +525,7 @@ def kakashi_hair():
 # ================================================================ 小櫻
 # 小櫻專屬綁骨群組：短裙、腰部（上衣與短褲頭；短褲頭在腰線以下和裙子同權重，上衣下襬只跟骨盆）
 from heroes import ALLOW  # noqa: E402
-G_SAK_SKIRT, G_SAK_WAIST = 72, 73
+G_SAK_SKIRT, G_SAK_WAIST = 72, realbody.torso_group(73)   # 上衣與短褲頭是軀幹部件（換真人身體時要量它的寬度、不能算進手臂）
 ALLOW[G_SAK_SKIRT] = ALLOW[G_PELVIS]
 ALLOW[G_SAK_WAIST] = ALLOW[G_PELVIS] | ALLOW[G_TORSO]
 
@@ -533,10 +568,29 @@ def build_sakura(R):
     top = kit.loft('top', torso_rows(F, e=0.006, rows=top_rows, pec=0, lat=0, bust=0.3, p=2.0), n=20, cap0=None, cap1=None)
     top = kit.subsurf(top, 2)
     kit.tag(top, red, grp=G_SAK_WAIST)
+    # 換真人身體後，上衣的紅色原本是逐頂點投影：袖孔處上衣的殼和插進來的手臂交錯，底模頂點一個投到上衣、一個投到手臂，
+    # 肩膀的紅／膚色交界成鋸齒，還留下零星膚色碎塊；背面下襬是上衣和縮進去的短褲頭貼得太近，交界忽紅忽黑。
+    # 改成解析場切線上色。袖孔照 GK 的無袖背心：斜方肌在上衣裡、三角肌整塊露出，從正面看是一條從肩頂垂到腋窩的弧線，
+    # 手臂與軀幹的分界用 heroes.arm_region（|x| 鉛直切面＋離手臂骨軸的距離，見該函式）
+    # arm_region 的 |x| 鉛直切面在站姿下是平滑的弧線，但腋窩的皮膚幾乎和切面平行、還有皺褶，切線在腋下來回折；
+    # 一抬手（出拳、施法）腋下攤開，紅／膚色交界就成了階梯和三角形碎片。改用底模蒙皮權重的 0.5 等值線（realbody.weight_field）：
+    # 那就是皮膚分給手臂和軀幹的地方，抬手時沿著它平順拉開；沒有換真人身體時退回 arm_region
+    arm_zone = lambda s1: _H.arm_region(F, s1)
+    # 門檻 0.5（不是 0.3）：三角肌前緣和胸大肌交界的皮膚，手臂權重約 0.3–0.45，門檻 0.3 時那塊會被塗成膚色；
+    # 待機姿勢手肘往後收時，這塊皮膚跟著上臂拉到胸前，在左肩的紅色裡切出一塊膚色三角形（遊戲鏡頭下很明顯）
+    armw = realbody.weight_field(ARM_BONES, 0.5, fallback=arm_zone(F.up + F.lo + 0.3))
+    nk_y = F.y(0.95)
+    neckzone = lambda co: min(0.062 - math.hypot(co.x, co.z + 0.01), co.y - nk_y)
+    # 材質也要指定（0＝布）：投影在肩頭給的是膚色材質（4），只改顏色的話那幾塊紅色用皮膚的柔和明暗，紅／膚交界看起來是一片暈開的紅
+    realbody.paint(top, F, lambda co: max(F.y(0.08) - co.y, -armw(co), neckzone(co)), red, 0)
+    # 膚色只補到護肘底下：手掌包在拳套裡，投影給的是手套的黑色，塗成膚色會從指縫透出來
+    realbody.paint(top, F, lambda co: max(armw(co), (V((abs(co.x), co.y, co.z)) - F.sh).dot(F.da) - F.up), skin, 4)
     body.append(realbody.skin(top))
     proxy.append(top)
     zp = path_loft('zip', [V((0, F.y(0.3), F.cz * 0.9 + 0.012)), V((0, F.y(0.65), F.cz * 1.04 + 0.012)), V((0, F.y(0.97), F.cz * 0.7 + 0.012))], [0.006] * 3, n=6, flat=0.5)
-    body.append(kit.tag(kit.subsurf(zp, 1), white, grp=G_TORSO, ol=0.3))
+    zp = kit.tag(kit.subsurf(zp, 1), white, grp=G_TORSO, ol=0.3)
+    zp['trim'] = 1   # 細飾條：不當成遮住身體的衣物（見 realbody.make）
+    body.append(zp)
     col = kit.loft('collar', [S(V((0, F.y(0.94), -0.01)), F.cx * 0.6, F.cz * 0.76), S(V((0, F.y(1.06), -0.015)), F.cx * 0.52, F.cz * 0.66)], n=16, cap0=None, cap1=None)
     body.append(kit.tag(kit.subsurf(col, 2, solidify=0.008), red, grp=G_NECK, ol=0.8))
     body.append(neck(F, skin, r=0.046))
@@ -569,7 +623,7 @@ def build_sakura(R):
     bt = boot(F, P(0x4a4256), F.tl + 0.02, 0.066, pal_sole=black, toe=0.9)
     kp = band('kneeL', F.th, F.dl, F.tl - 0.045, F.tl + 0.045, 0.08 * kl, 0.082 * kl, pink, G_LEG_L, thick=0.016, ol=0.7, bulge=1.08)
     pair_add(body, proxy, [arm, pad, glove, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
-    body.append(team_band(F, team, 1.0))
+    body.append(team_band(F, team, 1.0, s=(0.1, 0.125), hug=True))   # 護肘從 up−0.07（約 0.15 m）開始，臂章放在它上方，原本的 0.155～0.18 整圈被護肘蓋住
 
     h = anime_head('head_base', F, skin, jaw=0.86, chin=0.78, cheek=0.98, nose=0.6, face_len=0.92, cranium=(0.85, 0.98, 0.93))
     hc = P(0xf4a6c4)
@@ -700,6 +754,32 @@ def luffy_hair():
 
 
 # ================================================================ 索隆
+def fit_ring(F, targets, name, ys, pal, gap=0.003, thick=0.012, grp=G_BELT, n=24, cinch=0.008, mat=0):
+    """繞身體一圈、貼合衣物斷面的環帶（腰帶）：每個高度 y、每個方向往鉛直軸打射線，碰到 targets 最外層的距離＋gap＋厚度就是外徑
+    （厚度往內長）。和 cast.fit_band 同一個想法，只是軸是鉛直的。
+    cinch：每個斷面最多比同方向所有斷面的最大值往內收這麼多。完全照各斷面貼合時，大衣前襟敞開處射線打到裡面的腹卷，
+    腰帶在正前方凹進一個深缺口；取最大值做成直筒，上緣又離上方較窄的大衣腰身一段距離。"""
+    from heroes import tree_of
+    tmp = kit.join([kit.duplicate(t, 'tmp') for t in targets], 'tmp_ring')
+    tr = tree_of(tmp)
+    bpy.data.objects.remove(tmp, do_unlink=True)
+    kc = 6.0 / (4.0 + 2.0 * math.cos(2 * PI / n))   # 細分一次會把 n 邊形往內縮，先放大補回
+
+    def reach(y, th):
+        d = V((math.cos(th), 0, math.sin(th)))
+        hit = tr.ray_cast(V((0, y, 0)) + d * 0.6, -d, 0.6)
+        return (0.6 - hit[3]) if hit[0] is not None else 0.0
+    rr = lambda y, th: max(reach(y, th), max(reach(yy, th) for yy in ys) - cinch)
+    sts = []
+    for y in ys:
+        def mod(th, y=y):
+            return (rr(y, th) + gap + thick) * kc
+        sts.append(S(V((0, y, 0)), 1.0, 1.0, p=2.0, mod=mod))
+    o = kit.loft(name, sts, n=n, cap0=None, cap1=None)
+    o = kit.subsurf(o, 2, solidify=thick)
+    return kit.tag(o, pal, grp=grp, mat=mat)
+
+
 def build_zoro(R):
     F = Fig(R)
     P = kit.Palette()
@@ -734,7 +814,9 @@ def build_zoro(R):
     kit.tag(ct, coat, grp=G_TORSO)
     body.append(ct)
     hw = F.R['hip']
-    body.append(long_skirt(F, coat, F.L + 0.1, F.L - 0.6, F.w * 1.32 + 0.03, F.cz * 1.0 + 0.03, hw * 2.3, F.cz * 1.55, gap=0.16, name='coatSkirt'))
+    sk_rx, sk_rz = F.w * 1.32 + 0.03, F.cz * 1.0 + 0.03
+    skirt = long_skirt(F, coat, F.L + 0.1, F.L - 0.6, sk_rx, sk_rz, hw * 2.3, F.cz * 1.55, gap=0.16, name='coatSkirt')
+    body.append(skirt)
     # 淺綠腹卷（從大衣開口露出）
     hara = kit.loft('hara', torso_rows(F, e=0.01, u0=0.12, u1=0.5, pec=0.06, lat=0.04), n=18, cap0=None, cap1=None)
     hara = kit.subsurf(hara, 2, solidify=0.008)
@@ -742,14 +824,25 @@ def build_zoro(R):
     kit.paint_field(hara, lambda co: 0.6 - math.sin(co.y * 140.0), P(0x5a9636), 0)
     body.append(hara)
     yb = F.L + 0.1
-    body.append(belt_ring(F, yb, 0.085, red, e=0.045, thick=0.014))
+    # 腰帶要套在大衣下襬的腰頭外面：下襬從腰帶中線（yb）開始、斷面 (sk_rx, sk_rz)，原本腰帶只比軀幹寬 4.5 cm，
+    # 比下襬腰頭還小一圈，下襬從腰帶下半截整圈穿出來，腰帶下緣成一排綠色鋸齒。改成照下襬腰頭量：
+    # 腰帶內壁（外徑−厚度 0.014）離下襬外皮再留 4 mm（腰帶下緣處的下襬已經開始外擴約 2 mm）
+    # 但下襬腰頭比上方大衣的腰身寬一圈，照下襬腰頭加間隙做成橢圓，腰帶上緣離大衣一段距離：側面看像一圈凸出的法蘭、看得到內壁，
+    # 俯看像浮在腰上的游泳圈。改成每個斷面、每個方向往大衣＋下襬＋腹卷打射線（fit_ring），內壁離最外層 3 mm，
+    # 上半截貼著大衣腰身、下半截貼著下襬腰頭；換真人身體時跟著下襬一起挪（ride_on），不會各自挪成一鬆一緊
+    belt = fit_ring(F, [ct, skirt, hara], 'belt', [yb - 0.0425, yb - 0.02, yb, yb + 0.02, yb + 0.0425], red, gap=0.003, thick=0.014, grp=G_BELT)
+    belt['ride_on'] = skirt.name
+    body.append(belt)
     body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 1.0)), V((F.w * 1.45, yb - 0.3, F.cz * 1.45)), V((F.w * 1.5, yb - 0.62, F.cz * 1.72))], 0.085, 0.072, name='sashTail', grp=G_CHAIN, side=V((-0.62, 0, 0.78)), flat=0.24))
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
-    arm = arm_skin(F, skin, muscle=0.9, k=1.08)  # 整條手臂都在袖子裡：肌肉起伏收小，前臂隆起才不會從袖口內壁穿出來
+    arm = arm_skin(F, skin, muscle=1.0, k=1.08)
+    # 參考 POP SA：大衣袖子捲到前臂上段、袖口寬鬆，粗壯的前臂與手腕露在外面。
+    # 舊版袖子一路蓋到手腕，出拳施法時從正面只看到一截比手掌還寬的空心袖筒
+    s_end = F.up + 0.16
     # 袖子底下的手臂塗成大衣色，但交界收進袖口深處：從寬袖口斜看進去時看到的是皮膚，不是一圈綠色弧線
-    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.14), coat, 0)
-    slv = long_sleeve(F, coat, k=1.08, e=0.014, cuff=0.88)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (s_end - 0.06), coat, 0)
+    slv = long_sleeve(F, coat, s_end=s_end, k=1.08, e=0.014, cuff=1.25)
     bandana = band('bandL', F.sh, F.da, 0.1, 0.17, 0.1 * F.k_arm + 0.016, 0.096 * F.k_arm + 0.016, black, G_UPPER_L, thick=0.008)
     hand = fist(F, skin, scale=1.08)
     body.append(pelvis(F, black, e=0.012))
@@ -781,9 +874,23 @@ def build_zoro(R):
             import bpy
             bpy.data.objects.remove(o, do_unlink=True)
     return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sh3},
-                  custom={G_CHAIN: sash_chain_weights(F, 'sash'), G_SKIRT: zoro_skirt_weights(F),
+                  custom={G_CHAIN: zoro_tail_weights(F, yb), G_SKIRT: zoro_skirt_weights(F),
                           G_ARM_L: zoro_arm_weights(F), G_ARM_R: zoro_arm_weights(F),
                           G_UPPER_L: zoro_upper_weights(F)})
+
+
+def zoro_tail_weights(F, yb):
+    """垂在左前方的腰帶尾：原本只跟擺動鏈，但底下的大衣前片（zoro_skirt_weights）約八成跟著左大腿、膝下一半跟小腿，
+    出招、跨步時左腿往前一抬，前片就從布條中間整片穿出來。改成腰帶下 3 cm 起漸漸交給和前片相同的骨頭與比例，
+    其餘留給擺動鏈保留晃動。"""
+    chain_w = sash_chain_weights(F, 'sash')
+    kn_y = F.b['knL'][0].y
+
+    def fn(co):
+        k = 0.8 * smooth((yb - 0.03 - co.y) / 0.2)
+        kq = 0.5 * smooth((kn_y + 0.05 - co.y) / 0.12)
+        return [(b, w * (1 - k)) for b, w in chain_w(co)] + [('thL', k * (1 - kq)), ('knL', k * kq)]
+    return fn
 
 
 def zoro_arm_weights(F):
@@ -882,6 +989,9 @@ def build_sanji(R):
     jk = kit.loft('jacket', torso_rows(F, e=0.012, rows=rows, pec=0.05, lat=0.04), n=22, cap0=None, cap1=None, gap=lambda i: 0.06 if us[i] < 0.6 else min(0.7, 0.06 + (us[i] - 0.6) * 1.6))
     jk = kit.subsurf(jk, 2, solidify=0.009)
     kit.tag(jk, suit, grp=G_TORSO)
+    # 外套底下的身體（襯衫）收得比預設 3 mm 深：外套和底下身體的權重來源不同（骨熱在不同位置取樣），
+    # 跑步手臂後擺時背後腰側的身體被拉出外套 1 公分內，露出一點藍色
+    jk['conform_gap'] = 0.012
     body.append(jk)
     gold = P(0xe8c050)
     for u in (0.2, 0.36, 0.52):
@@ -892,7 +1002,13 @@ def build_sanji(R):
     proxy.append(body[-1])
     sl = long_sleeve(F, suit, k=1.0, e=0.007)
     arm = arm_skin(F, skin, muscle=0.6)
-    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), suit, 0)
+    s_w = F.up + F.lo - 0.06
+    kit.paint_field(arm, lambda co: arm_s(F, co) - s_w, suit, 0)
+    # 換真人身體後，袖口裡留著的那段前臂（長袖裡的手臂刪掉了，袖口前 6 cm 留著）是逐頂點投影上色的：
+    # A 字站姿下前臂貼著腰側，骨軸射線有幾個打到襯衫，前臂上留下藍色小塊，跑步時從袖口旁露出來。手臂上直接用場切線上色
+    on_arm = realbody.weight_field(ARM_BONES[:7], 0.5)
+    realbody.paint(arm, F, lambda co: max(arm_s(F, co) - s_w, on_arm(co)), suit, 0)
+    realbody.paint(arm, F, lambda co: max(s_w - arm_s(F, co), on_arm(co)), skin, 4)
     hand = fist(F, skin, scale=1.0)
     body.append(pelvis(F, suit, e=0.01))
     proxy.append(body[-1])
@@ -911,7 +1027,8 @@ def build_sanji(R):
     kit.deform(tip, lambda p: F.c + V((-F.hr * 0.43, -F.hr * 0.665, F.hr * 1.09)) + p * F.hr * 0.04)
     hairs.append(kit.tag(tip, P(0xff7a3a), mat=3, grp=G_FREE, ol=0.0))
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.5, temple=0.0, scale=1.07, nape=-0.65, side_cut=False)] + hairs}
-    return finish(F, P, body, proxy, heads)
+    # 西裝腰側不跟手肘（cast.torso_arm_free）：跑步手臂後擺時，外套腰側被拉開、背後露出藍襯衫的小點
+    return finish(F, P, body, proxy, heads, custom={G_TORSO: torso_arm_free(F)})
 
 
 def sanji_hair():
@@ -979,6 +1096,16 @@ def build_nami(R):
     leg_rows = [(-0.07, 0.114 * kl, 0.114 * kl), (0.05, 0.114 * kl, 0.118 * kl), (0.22, 0.1 * kl, 0.104 * kl), (F.tl - 0.03, 0.08 * kl, 0.084 * kl),
                 (F.tl + 0.08, 0.078 * kl, 0.082 * kl), (s_cap, 0.074 * kl, 0.076 * kl)]
     leg = realbody.skin(leg_tube(F, capri, leg_rows, cap1=None))
+    # 換真人身體後，褲管下緣原本是逐頂點投影：褲管（開口）和小腿皮膚兩個部件在膝下交疊，底模頂點一個投到褲管、
+    # 一個投到小腿，下緣成一圈鋸齒。改用沿大腿骨方向的距離切一條平滑的褲口（s_cap＋1 cm，兩部件交疊的中間），
+    # 只在褲口上下 15 cm、離腿骨軸 11 cm 以內塗，不碰骨盆與另一條腿
+    s_hem = s_cap + 0.01
+
+    def leg_zone(co, a, b):
+        s = (co - F.th).dot(F.dl)
+        return max(a - s, s - b, (co - F.leg_pt(s)).length - 0.11)
+    realbody.paint(leg, F, lambda co: leg_zone(co, s_hem - 0.15, s_hem), capri)
+    realbody.paint(leg, F, lambda co: leg_zone(co, s_hem, s_hem + 0.15), skin, 4)
     # 褲管下緣開口，不算封閉、不進骨熱代理體：代理體上整條大腿空著，褲管內側就近抓到骨盆（hips 權重到大腿中段還有七成），
     # 抬腿時兩腿之間拉出一大片三角形。另做一根封閉的大腿替身只給骨熱用（往下伸進小腿皮膚，接上膝蓋）
     thigh_px = leg_tube(F, skin, leg_rows[:-1] + [(F.tl + 0.14, 0.07 * kl, 0.074 * kl)], name='thighPx')
@@ -990,7 +1117,7 @@ def build_nami(R):
     for o in bt:
         kit.paint_field(o, lambda co: 0.25 - math.sin(co.y * 120.0), skin, 4)  # 綁帶之間露出皮膚
     pair_add(body, proxy, [arm, bracelet, hand, leg, shin] + bt, proxy_set=[arm, hand, leg] + bt)
-    body.append(team_band(F, team, 1.0))
+    body.append(team_band(F, team, 1.0, hug=True))
 
     h = anime_head('head_base', F, skin, jaw=0.88, chin=0.8, cheek=1.0, nose=0.6, face_len=0.98)
     hc = P(0xf28a3a)
@@ -1016,6 +1143,8 @@ def nami_halter(F, targets, pal):
     bpy.data.objects.remove(tmp, do_unlink=True)
     cx = F.cx
     yn = F.y(1.0)
+    # 後頸那一段照真人身體的頸根放高（女性底模以肩關節為錨，頸根比 F.y(1.0) 高約 5 cm；前頸的頸窩較低，維持原高度）
+    lift = realbody.neck_lift(F)
 
     def onto(q, axis_z=0.0, off=0.0045):
         a = V((0, q.y, axis_z))
@@ -1033,17 +1162,19 @@ def nami_halter(F, targets, pal):
             (V((sx * cx * 0.38, F.y(0.9), 0.08)), 0.0),
             (V((sx * cx * 0.3, F.y(0.97), 0.05)), -0.01),
             (V((sx * 0.05, yn, 0.03)), -0.006),
-            (V((sx * 0.05, yn + 0.008, -0.01)), -0.006),
-            (V((sx * 0.035, yn + 0.012, -0.04)), -0.006),
-            (V((sx * 0.008, yn + 0.014, -0.06)), -0.006),
+            (V((sx * 0.05, yn + 0.008 + lift * 0.4, -0.01)), -0.006),
+            (V((sx * 0.035, yn + 0.012 + lift * 0.75, -0.04)), -0.006),
+            (V((sx * 0.008, yn + 0.014 + lift * 0.85, -0.06)), -0.006),
         ]
         pts = [onto(q, az) for q, az in ctrl]
         o = path_loft('halter', pts, [0.0045] * len(pts), n=6, flat=0.6)
         out.append(kit.tag(kit.subsurf(o, 1), pal, grp=G_TORSO, ol=0.45))
+        out[-1]['wrap'] = 1   # 換真人身體後由 realbody.float_on 抬到皮膚外，不參與 conform（見 realbody.make）
     knot = kit.quad_sphere('halterKnot', 1.0, cuts=2)
-    kp = onto(V((0, yn + 0.014, -0.06)), -0.006, off=0.006)
+    kp = onto(V((0, yn + 0.014 + lift * 0.85, -0.06)), -0.006, off=0.006)
     kit.deform(knot, lambda q: kp + V((q.x * 0.011, q.y * 0.008, q.z * 0.006)))
     out.append(kit.tag(knot, pal, grp=G_TORSO, ol=0.4))
+    out[-1]['wrap'] = 1
     return out
 
 

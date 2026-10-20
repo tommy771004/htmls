@@ -220,11 +220,18 @@ function stance(style, t) {
 
 
 const HAND_OPEN = { cast: [0.2, 1, 0.6], beam: [1, 1, 0.85], barrier: [1, 1, 1], grab: [0.3, 1, 0.5], overhead: [0.4, 1, 1], win: [0, 0, 0] };
+// 補齊姿勢鍵：角色檔的架式多半寫成物件字面值，後來才加進 KEYS 的鍵（wfL／wfR 手腕後彎、stretchL 左臂伸長）在裡面是 undefined。
+// 平滑跟隨 cur += (目標 − cur)×a 一碰到 undefined 就變成 NaN，而且之後永遠回不來：手腕骨的旋轉、左前臂的縮放變成 NaN，
+// 整隻手（連手指、拇指）和左前臂的頂點都算不出位置而消失（貝吉塔、比克、索隆、小櫻、娜美出拳施法時只剩空心袖口）。
+// 用 isFinite 判斷，算式算出的 NaN 也一起擋掉
+const _blank = blank();
+const _cq = new THREE.Quaternion(), _cqi = new THREE.Quaternion(), _cqa = new THREE.Quaternion(), _cax = new THREE.Vector3(); // 尾巴 coil 用的暫存
+const fillPose = (p, from) => { for (const k of KEYS) if (!Number.isFinite(p[k])) p[k] = from[k]; return p; };
 function heroPose(d, name, t, k, phase, out, key) {
   // 角色專屬動作（src/poses/<英雄>.js）：先找「動作_技能鍵」（例如 cast_Q），再找動作名；回傳 undefined 就用下面的共用動作
   const mod = HERO_POSES[d.id];
   const ctx = { d, name, t, k, phase, key, time: t };
-  const base = (mod && mod.stance && mod.stance(ctx)) || stance(d.style, t);
+  const base = fillPose((mod && mod.stance && mod.stance(ctx)) || stance(d.style, t), _blank);
   const P = (o) => Object.assign({ ...base }, o);
   ctx.base = base; ctx.P = P;
   let p = base;
@@ -314,8 +321,12 @@ function heroPose(d, name, t, k, phase, out, key) {
       break;
     }
     case 'cast': {
-      const W = P({ torsoY: -0.7, shRX: 0.65, shRZ: 0.3, elR: -1.9, shLX: -0.6, elL: -1.4 });
-      const S = P({ torsoY: 0.75, torsoX: 0.1, shRX: -1.6, shRZ: 0.0, elR: 0, shLX: 0.3, shLZ: 0.45, elL: -0.6, hipsZ: 0.08, thLX: -0.45, knL: 0.4, thRX: 0.4, headY: -0.5 });
+      // 右手腕三軸在蓄勢（W）與推掌（S）都明確歸零或重設：P() 是從角色架式展開的，架式裡的偏腕會一路帶進來
+      // （索隆握刀的 SHEATHE_R wrR 1.0、香吉士插口袋的 wrR 0.9），再疊上下面的旋前與後彎，攤開的手掌就轉成平放、掌心朝下
+      const W = P({ torsoY: -0.7, shRX: 0.65, shRZ: 0.3, elR: -1.9, wrR: 0, wtR: 0, wfR: 0, shLX: -0.6, elL: -1.4 });
+      // 推掌：前臂旋前（上臂內旋 shRY 一點、其餘在腕上 wtR）讓掌心朝下，再把手腕往手背方向後彎（wfR），掌心朝正前方、指尖朝上；
+      // 只伸直手臂不轉的話，攤開的手掌是側立的（掌心朝身體中線）
+      const S = P({ torsoY: 0.75, torsoX: 0.1, shRX: -1.6, shRY: -0.45, shRZ: 0.0, elR: 0, wrR: 0, wtR: 0.95, wfR: 1.2, shLX: 0.3, shLZ: 0.45, elL: -0.6, hipsZ: 0.08, thLX: -0.45, knL: 0.4, thRX: 0.4, headY: -0.5 });
       p = strike(t, IMPACT.cast, base, W, S, 0.4);
       break;
     }
@@ -441,6 +452,7 @@ function heroPose(d, name, t, k, phase, out, key) {
   if (globalThis.__kiPoseOverride) { p = p === base ? { ...p } : p; Object.assign(p, globalThis.__kiPoseOverride); }
   // 手形（第三版骨架）：發氣功、龜派氣功、護盾、抓取、高舉氣彈是張開的手；冷淡型的待機是放鬆半開
   if (HAND_OPEN[name] && !(mine && mine.ownHands)) { const [l, r, ts] = HAND_OPEN[name]; p = p === base ? { ...p } : p; p.hoL = Math.max(p.hoL, l); p.hoR = Math.max(p.hoR, r); p.hsL = p.hsR = ts; }
+  if (p !== base) fillPose(p, base); // 角色動作沒從 base 展開、直接寫字面值時缺的鍵照架式
   return lerpPose(p, p, 0, out);
 }
 
@@ -529,7 +541,8 @@ export function chainSpecs(id, d) {
   if (id === 'luffy' || id === 'zoro') out.push({ name: 'sash', parent: 'hips', pos: [d.waist * (id === 'zoro' ? 1.05 : 1.0), id === 'zoro' ? 0.08 : 0.06, d.chest[2] * (id === 'zoro' ? 1.0 : 0.72)], n: 2, len: id === 'zoro' ? 0.31 : 0.28, base: 0, lift: 0.55, flutter: 0.3 });
   // 長下襬的後片（索隆大衣、佐助腰布、18 號長裙）：跑動時往後飄，前片仍跟著雙腿
   if (id === 'zoro' || id === 'sasuke' || id === 'a18') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : id === 'a18' ? 0.04 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : id === 'a18' ? 0.19 : 0.28, base: 0, lift: id === 'a18' ? 0.3 : 0.4, flutter: 0.14 });
-  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.226, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
+  // 弗利沙的尾巴：從臀部正後方往後下垂，往一側（yaw）偏開、後段每節往側面捲（coil），在地上繞成弧（參考 01／02／03：尾巴繞到身側，不是夾在兩腿之間的第三條腿）
+  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.226, base: 1.0, lift: 0.22, flutter: 0.1, curl: 0.08, sway: 0.4, yaw: 0.8, coil: 0.7 });
   return out;
 }
 // 綁定姿勢（A 字）：模型在 Blender 以這個姿勢建模與刷權重
@@ -701,7 +714,7 @@ export function buildHero(id, team = 0) {
   }
   const hs = { x: 0, z: 0, vx: 0, vz: 0, yaw: root.rotation.y };
 
-  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6, hang: c.name !== 'tail' }));
+  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, coil: c.coil || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6, hang: c.name !== 'tail' }));
 
   // 特南克斯的劍：背上的鞘與在手上的劍
   let sword = null, swordState = 'back', backSocket = null, handSocket = null;
@@ -737,7 +750,7 @@ export function buildHero(id, team = 0) {
     hands.R.add(handSocket);
   }
 
-  const aura = makeAura(d.H);
+  const aura = makeAura(d.top || d.H); // top：模型實際頭頂高（頭殼比 H 推算的高時，例如弗利沙）
   root.add(aura.group);
 
   const cur = stance(d.style, 0), tgt = {};
@@ -813,6 +826,17 @@ export function buildHero(id, team = 0) {
         s.rotation.x = c.cur[i];
         if (i === 0) s.rotation.y = c.yaw + (c.sway ? Math.sin(time * 1.7) * c.sway : 0);
         else if (c.sway) s.rotation.z = Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.35;
+        if (c.coil) {
+          // coil：後段每節繞「骨盆的上方」轉一個固定角度，尾巴在水平面上繞成弧（繞各節自己的 z 軸轉的話，往下垂的節會往側上方翹，尾尖翹到胸口）。
+          // _cq 累積鏈上各節的旋轉，把骨盆的上方換到這一節父骨的座標
+          if (i === 0) _cq.copy(s.quaternion);
+          else {
+            _cax.set(0, 1, 0).applyQuaternion(_cqi.copy(_cq).invert());
+            _cqa.setFromAxisAngle(_cax, c.coil * (dead ? 0.3 : 1) + Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.12);
+            s.quaternion.premultiply(_cqa);
+            _cq.multiply(s.quaternion);
+          }
+        }
       });
     }
     // 頭髮彈簧：前進速度讓髮尾往後甩、轉身時往反方向甩，集氣時被氣流吹動
@@ -858,8 +882,8 @@ export function buildHero(id, team = 0) {
         const pitch = cur.hipsRX + cur['th' + s + 'X'] + cur['kn' + s];
         const up = smooth01((-cur['th' + s + 'X'] - 0.9) / 0.6);
         J['an' + s].rotation.x = (clamp(-pitch, -0.7, 0.95) * (1 - up) + 0.55 * up) * upright + 0.3 * (1 - upright) + cur['an' + s];
-        // 手腕兩軸：wr 繞掌面法線（左右偏）、wf 繞拇指軸（掌屈／背屈；右手鏡像）
-        J['wr' + s].rotation.set(cur['wr' + s], 0, (s === 'L' ? 1 : -1) * cur['wf' + s]);
+        // 手腕三軸：wr 繞掌面法線（左右偏）、wt 繞前臂軸（旋前，先轉）、wf 繞拇指軸（掌屈／背屈，在轉過的手掌上彎；右手鏡像）
+        J['wr' + s].rotation.set(cur['wr' + s], (s === 'L' ? -1 : 1) * cur['wt' + s], (s === 'L' ? 1 : -1) * cur['wf' + s]);
       }
     } else torso.rotation.set(cur.torsoX, cur.torsoY, cur.torsoZ, 'YXZ');
     if (rig3) {
@@ -927,7 +951,7 @@ export function buildHero(id, team = 0) {
   setAura(0, d.element);
 
   return {
-    root, height: d.H, element: d.element, update, setAura, setForm, sword, hitReact,
+    root, height: d.top || d.H, element: d.element, update, setAura, setForm, sword, hitReact,
     handL: hands.L, handR: hands.R, chest, head,
     get form() { return form; },
     get speed() { return speed; }, get forwardSpeed() { return fwd; },

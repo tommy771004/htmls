@@ -40,10 +40,12 @@ ALLOW = {
     G_NECK: {'ribs', 'neck', 'head'},
     G_CHEST: {'torso', 'ribs'},
     G_DELT_L: {'shL'}, G_DELT_R: {'shR'},
+    # 貼在真人手臂上的環帶：實際權重由 realbody.hug_weights 照底下皮膚指定，這裡只是骨熱的暫時範圍
+    realbody.G_HUG_L: {'clL', 'shL', 'elL', 'wrL'}, realbody.G_HUG_R: {'clR', 'shR', 'elR', 'wrR'},
 }
 ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
 MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R,
-              G_FA_L: G_FA_R, G_FB_L: G_FB_R, G_FC_L: G_FC_R, G_TB_L: G_TB_R, G_DELT_L: G_DELT_R}
+              G_FA_L: G_FA_R, G_FB_L: G_FB_R, G_FC_L: G_FC_R, G_TB_L: G_TB_R, G_DELT_L: G_DELT_R, realbody.G_HUG_L: realbody.G_HUG_R}
 
 
 # FighterZ 式的造型強調（全體英雄共用）：手腳加大、肌肉起伏更深、道服褲更蓬、髮束有稜線（每撮各自分出亮暗面）
@@ -92,6 +94,8 @@ def mirror(ob):
         vals = [0] * len(o2.data.vertices)
         g.data.foreach_get('value', vals)
         g.data.foreach_set('value', [MIRROR_GRP.get(x, x) for x in vals])
+    if 'paint_id' in ob:
+        o2['paint_mx'] = 1 - ob.get('paint_mx', 0)   # realbody.paint() 的色塊場：鏡射的部件要把 x 反過來算
     return o2
 
 
@@ -263,6 +267,37 @@ def fist(F, pal, mat=4, scale=1.0, glove=False):
     return realbody.skin(place_left_hand(F, hand))
 
 
+def armhole(F, r, s0=-0.03, s1=0.3):
+    """袖孔的場（＜0 在孔內）：離上臂骨軸（s0..s1 段，左右對稱）r 以內。"""
+    def f(co):
+        p = V((abs(co.x), co.y, co.z))
+        s = max(s0, min(s1, (p - F.sh).dot(F.da)))
+        return (p - F.arm_pt(s)).length - r
+    return f
+
+
+def arm_region(F, s1, inset=0.015, rise=0.016, r=0.1, both=True):
+    """真人身體上「手臂」的場（＜0 在手臂上，左右對稱）：給 realbody.paint() 在底模上切袖孔、袖子花紋用。
+    底模的手臂垂成 A 字，肩下的斷面前後很厚（三角肌與腋窩的皺褶），離骨軸的距離分不開手臂和腋下的軀幹；
+    量水平斷面，軀幹側緣在 |x|≈sh.x−1.5 cm，所以用 |x| 的鉛直切面（從腋窩往肩頂外移 rise 到接近肩關節），
+    再限制離手臂骨軸（s 夾在 0..s1）r 以內，免得骨盆、大腿這些 |x| 也大的地方被當成手臂。
+    both=False 只算左臂（＋x）：登錄在會被鏡射的手臂部件上時要用這個，否則鏡射那一份的色塊會連另一隻手臂一起蓋掉。"""
+    def f(co):
+        p = V((abs(co.x), co.y, co.z)) if both else V(co)
+        s = max(0.0, min(s1, (p - F.sh).dot(F.da)))
+        cut = F.sh.x - inset + rise * smooth((co.y - F.sh.y + 0.07) / 0.1)
+        return max(cut - p.x, (p - F.arm_pt(s)).length - r)
+    return f
+
+
+def cut_armholes(ob, F, r, s0=-0.03, s1=0.3):
+    """在軀幹的殼（胸甲、外套，加厚之前）挖袖孔：沿等值線切開再刪掉孔內的面，孔緣平滑。
+    軀幹的殼一路包到肩關節外時，手臂（或袖子）往前抬、往內收就會從殼的側面穿出來，或是殼從袖子裡穿出來。"""
+    f = armhole(F, r, s0, s1)
+    kit.iso_cut(ob, f)
+    return kit.cut(ob, lambda co, n: f(co) < 0)
+
+
 def band(name, h, d, s0, s1, r0, r1, pal, grp, thick=0.008, n=14, rb=None, front=V((0, 0, 1)), side=V((1, 0, 0)), mat=0, ol=0.8, bulge=1.02):
     """套在肢體上的環帶（護腕、靴口、腰帶）：開口短管＋厚度。"""
     rb = rb or 1.0
@@ -353,9 +388,33 @@ def boot(F, pal, top_s, r_top, pal_sole=None, toe=1.0, name='bootL', grp=G_FOOT_
 
 
 # ================================================================ 頭
-def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_scale=1.0, pointed_ears=False, cranium=(0.8, 0.9, 0.88), nose=1.0, brow=0.0, extra=(), face_len=1.0, square=0.0):
+def pointed_ear_pt(c, hr, sx, p, scale=1.0):
+    """尖耳（比克，參考 SHF 02 正側背三視圖）：葉片形，耳根貼在頭側眼睛高度，耳尖往外上方約 50°、略往後，長約 0.75 hr。
+    葉面朝前外側（法線偏外 35°）：正面與俯視的遊戲鏡頭看到的是整片三角形的耳朵，側面只看到斜斜的一片；
+    耳根寬、往耳尖收尖，兩側邊緣往前捲一點成淺碗。舊版是葉面朝正外側的扁橢球（長 1.1 hr），側面看像一支船槳、正面只剩一條線。
+    p：quad_sphere 的點（各軸 −1..1）：p.y 沿耳長、p.x 沿葉寬、p.z 是厚度。"""
+    u = (p.y + 1) * 0.5
+    L = hr * 0.75 * scale
+    ld = V((sx * 0.62, 0.74, -0.26)).normalized()           # 耳長方向：外、上、略後
+    nrm = V((sx * 0.57, 0.0, 0.82)).normalized()            # 葉面法線：朝前外
+    wd = nrm.cross(ld).normalized()                         # 葉寬方向
+    root = c + V((sx * hr * 0.66, -hr * 0.1, -hr * 0.1))
+    hw = hr * 0.2 * (1 - u) ** 0.8 * (0.62 + 0.38 * smooth(u / 0.3))   # 耳根略收、中前段最寬、耳尖收成尖
+    th = hr * (0.045 * (1 - u) + 0.01)                      # 耳根厚、耳尖薄
+    q = root + ld * (u * L) + V((0, 0, -hr * 0.08 * u * u))   # 耳尖再往後彎一點
+    return q + wd * (p.x * hw) + nrm * (p.z * th + hr * 0.05 * p.x * p.x * (1 - u))
+
+
+def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_scale=1.0, pointed_ears=False, cranium=(0.8, 0.9, 0.88), nose=1.0, brow=0.0, extra=(), face_len=1.0, square=0.0, egg=0.0, occ=0.0, taper=0.0, relax=0, muzzle=0.0, soft=0, recede=0.0):
     """動畫臉：顱骨＋往前下收尖的下顎＋小鼻子＋耳朵，體素聯集後平滑。
-    face_len 拉長／縮短下半臉；square＞0 讓下顎角更方（下顎斷面的超橢圓指數變大）。"""
+    face_len 拉長／縮短下半臉；square＞0 讓下顎角更方（下顎斷面的超橢圓指數變大）。
+    egg（只在換成底模的頭時有用）：眼線以上的顱骨往橢球靠攏的程度，0＝照底模原本偏方的頭頂，1＝光滑的蛋形頭殼（弗利沙）。
+    occ（只在換成底模的頭時有用）：後腦勺往後鼓的程度（眼線下 0.3 hr 附近的後腦往後推，頸部接縫不動），0＝照底模。
+    taper（只在換成底模的頭時有用）：臉的前半部從眼睛到下巴直線收窄成尖下巴的程度（0＝照底模的 S 形收窄，1＝完全直線）。
+    relax（只在換成底模的頭時有用）：眼線以下的臉頰與下顎 Taubin 平滑幾輪（0＝不平滑，保留底模的真人五官起伏）。
+    muzzle（只在換成底模的頭時有用）：底模的人中與上下唇一起壓平的程度（0＝只照 nose 壓鼻子，1＝鼻子到下巴之間鬆成一片光滑的面）。
+    soft（只在換成底模的頭時有用）：整顆頭的法線在網格上平滑幾輪（0＝不平滑；頸部接縫那圈不動，之後和身體對齊）。
+    recede（只在換成底模的頭時有用）：下半臉往頭心收的比例（下巴收最多；0＝照底模垂直的臉）。"""
     c, hr = F.c, F.hr
     face_len *= 0.86  # 照設定圖：眼睛到下巴的距離較短，下巴不要拉得太尖太長
     parts = []
@@ -384,20 +443,23 @@ def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_s
         for sx in (1, -1):
             e = kit.quad_sphere(name + '_ear', 1.0, cuts=3)
             if pointed_ears:
-                kit.deform(e, lambda p, sx=sx: c + V((sx * (hr * 0.78 + p.x * hr * 0.1 + (p.y + 1) * hr * 0.16), -hr * 0.05 + p.y * hr * 0.42 * ear_scale, -hr * 0.1 + p.z * hr * 0.12 - (p.y + 1) * hr * 0.1)))
+                kit.deform(e, lambda p, sx=sx: pointed_ear_pt(c, hr, sx, p, ear_scale))
             else:
                 kit.deform(e, lambda p, sx=sx: c + V((sx * (hr * 0.78 + p.x * hr * 0.1), -hr * 0.12 + p.y * hr * 0.2 * ear_scale, -hr * 0.04 + p.z * hr * 0.1)))
             parts.append(e)
     if realbody.head_enabled(F.R.get('id')):
         # 換成底模的頭時用得到的參數；尖耳與額外部件（比克的額頭隆起）另外複製一份，之後接到底模的頭上
         keep = [kit.duplicate(o, name + '_keep') for o in extra]
+        for o, k in zip(extra, keep):
+            if 'hole' in o:
+                k['hole'] = list(o['hole'])   # duplicate 不複製物件屬性
         if ears and pointed_ears:
             for o in parts[-2:]:
                 e = kit.duplicate(o, name + '_ear')
                 e['ear'] = 1
                 keep.append(e)
-        hargs = {'cranium': cranium, 'face_len': face_len, 'jaw': jaw, 'cheek': cheek, 'chin': chin, 'nose': nose,
-                 'ears': ears and not pointed_ears, 'pal': pal_skin, 'keep': keep}
+        hargs = {'cranium': cranium, 'face_len': face_len, 'jaw': jaw, 'cheek': cheek, 'chin': chin, 'nose': nose, 'egg': egg, 'occ': occ, 'taper': taper, 'relax': relax,
+                 'muzzle': muzzle, 'soft': soft, 'recede': recede, 'ears': ears and not pointed_ears, 'pal': pal_skin, 'keep': keep}
     head = kit.join(parts + list(extra), name)
     if realbody.head_enabled(F.R.get('id')):
         realbody.HEAD_ARGS[head.name] = hargs
@@ -416,36 +478,61 @@ def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_s
     return head
 
 
-def hair_cap(name, F, pal, scale=1.07, hairline=0.3, temple=0.0, nape=-0.55, side_cut=True, mat=1, thick=0.08):
-    """髮帽：顱骨放大一點的殼，前額依 hairline 開口。"""
+def hair_cap(name, F, pal, scale=1.07, hairline=0.3, temple=0.0, nape=-0.55, side_cut=True, mat=1, thick=0.08, peak=None, fit=None):
+    """髮帽：顱骨放大一點的殼，前額依 hairline 開口。
+    peak＝(深度, 半寬[, 指數])：額頭中央的美人尖（貝吉塔的 M 字髮際）。指數 1 是直邊的寬 V 字，越大尖端越細。有 peak 時前額開口改沿等值線切開，
+    髮際線是平滑的曲線；只刪頂點的話，球面網格約 0.15 hr 一格，V 字邊緣會切成一階一階的鋸齒。
+    fit＝間隙（公尺）：換成底模的頭時，埋進頭顱的部分沿頭心往外推到貼著表面（底模的額頭比動畫頭顱高、往前凸，
+    髮帽的前緣整段埋在額頭裡看不到，只剩外框的反殼從皮膚裡穿出幾道黑線）。由 finish() 在換好頭之後處理。"""
     c, hr = F.c, F.hr
-    cap = kit.quad_sphere(name, 1.0, cuts=10)
+    # 有美人尖時網格加密一倍：尖端只有 0.2 hr 寬，10 等分的球面切出來是一塊平底的方塊
+    cap = kit.quad_sphere(name, 1.0, cuts=20 if peak is not None else 10)
+    if peak is not None:
+        pd, pw = peak[:2]
+        pe = peak[2] if len(peak) > 2 else 1.3
+
+        def front(p):   # ＞0：前額開口（要刪掉的地方）
+            hl = hairline + temple * abs(p.x) - pd * max(0.0, 1.0 - abs(p.x) / pw) ** pe
+            return min(p.z - 0.2, hl - p.y)
+        kit.iso_cut(cap, front)
+        kit.cut(cap, lambda co, n: front(co) > 0)
     bm = bmesh.new()
     bm.from_mesh(cap.data)
     kill = []
     for v in bm.verts:
         x, y, z = v.co
         hl = hairline + temple * abs(x)
-        if (z > 0.2 and y < hl) or y < nape or (side_cut and abs(x) > 0.7 and y < -0.05 and z > -0.35):
+        if (peak is None and z > 0.2 and y < hl) or y < nape or (side_cut and abs(x) > 0.7 and y < -0.05 and z > -0.35):
             kill.append(v)
     bmesh.ops.delete(bm, geom=kill, context='VERTS')
     bm.to_mesh(cap.data)
     bm.free()
     kit.deform(cap, lambda p: c + V((p.x * hr * 0.8 * scale, p.y * hr * 0.9 * scale + hr * 0.08, p.z * hr * 0.88 * scale - hr * 0.04)))
     cap = kit.subsurf(cap, 1, solidify=hr * thick)
-    return kit.tag(cap, pal, mat=mat, grp=G_FREE, ol=0.9)
+    if fit is not None:
+        cap['fit_skull'] = (fit, hr * thick)
+    cap = kit.tag(cap, pal, mat=mat, grp=G_FREE, ol=0.9)
+    if peak is not None:
+        # 髮際線不描外框：髮帽有 0.08 hr 厚，前緣的切面加上外框的反殼，在額頭上是一條黑線貼著一條黑線（雙層描邊），
+        # 太陽穴兩側的切口（z＝0.2 的鉛直切面）也各拉出一條往下的細黑線，看起來像裂痕。髮際線靠黑髮與膚色的色差就清楚了，
+        # 外框倍率從開口邊往髮帽裡 0.15（單位球）漸變回原值；頭頂、後腦的輪廓照舊描
+        def unit(co):
+            return V(((co.x - c.x) / (hr * 0.8 * scale), (co.y - c.y - hr * 0.08) / (hr * 0.9 * scale), (co.z - c.z + hr * 0.04) / (hr * 0.88 * scale)))
+        kit.paint_ol(cap, lambda co: 0.9 * smooth(-front(unit(co)) / 0.15))
+    return cap
 
 
 def bob_cap(name, F, pal, hairline=0.45, length=0.85, flare=0.22, scale=1.12, part=0.0, mat=1, thick=0.09):
     """鮑伯頭：一整片包住頭的髮殼，往下延伸到下巴（length，單位 hr），下緣往外蓬（flare）；前方挖出臉的開口。"""
     c, hr = F.c, F.hr
     cap = kit.quad_sphere(name, 1.0, cuts=12)
-    bm = bmesh.new()
-    bm.from_mesh(cap.data)
-    kill = [v for v in bm.verts if (v.co.z > 0.18 and v.co.y < hairline - 0.25 * abs(v.co.x - part)) or (v.co.z > 0.55 and v.co.y < hairline + 0.15)]
-    bmesh.ops.delete(bm, geom=kill, context='VERTS')
-    bm.to_mesh(cap.data)
-    bm.free()
+    # 臉的開口：原本逐頂點刪（z＞0.18 且在髮際斜線下、或 z＞0.55 且在髮際上 0.15 下），開口邊緣沿四邊形格子成階梯，
+    # 兩頰階梯的最下一格還會留下一片四個頂點都沒被刪、四周的面全刪掉的孤立方塊，掛在下巴旁像一個浮空的耳環（18號）。
+    # 改成同一個區域的場（＜0 在開口裡）沿等值線切開再刪面，開口邊緣是平滑的直線，也不會留下孤島
+    def opening(co):
+        return min(max(0.18 - co.z, co.y - (hairline - 0.25 * abs(co.x - part))), max(0.55 - co.z, co.y - (hairline + 0.15)))
+    kit.iso_cut(cap, opening)
+    kit.cut(cap, lambda co, n: opening(co) < 0)
 
     def dfm(p):
         y = p.y if p.y > 0 else p.y * (1 + length)       # 下半往下拉長
@@ -556,6 +643,10 @@ def finish(F, P, body, proxy, heads, extras=None, custom=None):
         skull = realbody.dress_head(skull, old, F, hargs)
         heads['base'][0] = skull
         bpy.data.objects.remove(old, do_unlink=True)
+        for objs in heads.values():
+            for o in objs[1:]:
+                if o.get('fit_skull'):
+                    realbody.fit_cap(o, skull, F.c, *o['fit_skull'])
     return {
         'body': body, 'proxy': proxy, 'heads': heads, 'extras': extras or {}, 'real': real,
         'allow': ALLOW, 'custom': custom or {}, 'palette': P, 'head_center': F.c, 'hr': F.hr,
@@ -669,7 +760,8 @@ def build_goku(R):
     kit.paint_ol(slv, lambda co: 0.0 if (co - F.sh).dot(F.da) < 0.02 and (co - F.sh).dot(up_dir) < -0.02 else None)
     # 護腕：前臂肌群（k＝1.12、肌肉 1.25）在靠肘端比原本的環帶粗，起點往腕側挪、半徑加大，皮膚才不會穿出來
     wb_s0 = F.up + 0.16
-    wb = band('wristL', F.sh, F.da, wb_s0, F.up + F.lo - 0.005, 0.068 * F.k_fore, 0.055 * F.k_fore, blue, G_FORE_L, thick=0.012, rb=0.92)
+    wb = band('wristL', F.sh, F.da, wb_s0, F.up + F.lo - 0.005, 0.068 * F.k_fore, 0.055 * F.k_fore, blue, G_FORE_L, thick=0.009, rb=0.92)
+    wb['hug'] = 0.0015   # 護腕直接套在前臂皮膚上：換真人身體時內壁重新貼到新的前臂外 1.5 mm（realbody.hug_fit）
     # 被袖子、護腕蓋住的皮膚不描外框：外框殼（遊戲鏡頭下約 1.5 cm）會從布料外面穿出黑刺
     arm_s = lambda co: (co - F.sh).dot(F.da)
     kit.paint_ol(arm, lambda co: 0.0 if arm_s(co) < 0.05 or arm_s(co) > wb_s0 + 0.012 else None)
@@ -786,6 +878,9 @@ def goku_team_band(F, pal, muscle, k):
         st.append((s, a + 0.004, b + 0.004, m))
     o = limb('teamL', F.sh, F.da, st, n=16, cap0=None, cap1=None)
     o = kit.subsurf(o, 2, solidify=0.006)
+    # 臂章直接貼在皮膚上：換真人身體時內壁重新貼到新的上臂外 1.5 mm（realbody.hug_fit；arm_skin 的上臂比底模粗 2～3 cm，
+    # 底模上臂又偏在骨軸下方，照位移平移的話臂章一側懸空）。套在袖子外的環帶不能這樣做：皮膚縮進袖子裡，環帶會跟著陷進袖子
+    o['hug'] = 0.0015
     return kit.tag(o, pal, mat=5, grp=G_UPPER_L, ol=0.5)
 
 

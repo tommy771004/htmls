@@ -176,6 +176,9 @@ def build_one(hid, R, opt):
         # 真人身體不減面（底模本身就是低面數的拓撲），切好色界後併進身體
         rb = H['real'][0]
         kit.crisp_split(rb)
+        # soft 的頭（弗利沙）：頸胸法線多平滑幾輪。底模脖子一圈只有十幾個點，喉結與胸鎖乳突肌的起伏讓下巴底下的明暗交界切成直邊的多邊形
+        soft = H['real_head'] and H['heads']['base'][0].get('soft')
+        realbody.smooth_normals(rb, H['real'][1], iters=24 if soft else 8, k=0.6 if soft else 0.5)
         body = kit.join([body, rb], 'body')
     # 頭：各型態共用同一顆頭顱（取 base 的），髮型各自一張；只減髮束（單色），頭顱保留切好的上色邊界
     skull = H['heads']['base'][0]
@@ -192,6 +195,8 @@ def build_one(hid, R, opt):
     if H.get('real_head'):
         # 底模的頭：保留一點真實的骨相（k 較小），下巴以下不動，再和身體對齊接縫的法線
         kit.face_normals(skull, H['head_center'], H['hr'], k=0.55, y0=skull['chin_y'])
+        if skull.get('soft'):
+            realbody.soft_normals(skull, int(skull['soft']))
         realbody.seam_normals(body, skull)
     else:
         kit.face_normals(skull, H['head_center'], H['hr'])
@@ -280,11 +285,16 @@ def build_one(hid, R, opt):
 
     if H.get('real'):
         print('  真人身體：%d 頂點改用底模權重' % realbody.weights_for(body, H['real'][1], bone_names, W))
+        print('  貼手臂的環帶：%d 頂點抄皮膚權重' % realbody.hug_weights(body, W))
 
     # 遮蔽（各髮型分開算，避免超級賽亞人的頭髮被基本髮型遮到）
     t1 = time.time()
     hb = hairs.get('base')
     aos = kit.ambient_occlusion([body, skull], [o for o in (body, skull, hb) if o])
+    if H.get('real'):
+        realbody.smooth_ao(body, aos[body.name], H['real'][1])
+        if H.get('real_head') and skull.get('soft'):
+            realbody.soft_ao(skull, aos[skull.name], body, aos[body.name])
     for f, ob in hairs.items():
         aos.update(kit.ambient_occlusion([ob], [body, skull, ob]))
     print('  遮蔽 %.1fs；權重骨群：%s' % (time.time() - t1, ','.join(sorted({g.name for g in body.vertex_groups}))))

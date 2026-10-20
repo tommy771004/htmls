@@ -1,6 +1,6 @@
 // 開發用角色檢視頁（不進成品）：node tools/viewer.mjs 打包並截圖。
 // URL 參數：ids=goku,vegeta、anim=idle、key=Q、t=0.4（照遊戲時間軸播到 t；settle=1 改成慢慢收斂）、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、pitch（俯角，度）、
-// focus=handL｜handR｜head（對準第一名角色的部位）＋fy（高度偏移）、nool=1（隱藏外框，查外框殼的問題）
+// focus=handL｜handR｜head（對準第一名角色的部位）＋fy（高度偏移）、nool=1（隱藏外框，查外框殼的問題）、dbg=ao｜ndl｜lit（材質改輸出遮蔽／N·L／明暗門檻）
 import * as THREE from 'three';
 import { buildHero, HERO_IDS } from '../src/models.js';
 const q = new URLSearchParams(location.search);
@@ -22,6 +22,11 @@ const rigs = ids.map((id, i) => {
   if (q.get('form')) r.setForm(q.get('form'));
   return r;
 });
+// dbg=ao｜ndl｜lit｜rim｜mat｜base：角色材質改輸出烘焙遮蔽、N·L（0.5＋0.5×）或明暗門檻（查卡通明暗的斑塊是遮蔽還是法線造成的）
+if (q.get('dbg')) {
+  const out = { ao: 'vec3(ao)', ndl: 'vec3(ndl * 0.5 + 0.5)', lit: 'vec3(lit)', rim: 'vec3(rim)', mat: 'vec3(mt / 5.0)', base: 'base' }[q.get('dbg')];
+  for (const r of rigs) r.root.traverse((o) => { const m = o.material; if (m && m.isShaderMaterial && m.fragmentShader.includes('gl_FragColor = vec4(c, 1.0);') && !m.__dbg) { m.__dbg = 1; m.fragmentShader = m.fragmentShader.replace('gl_FragColor = vec4(c, 1.0);', `gl_FragColor = vec4(${out}, 1.0);`); m.needsUpdate = true; } });
+}
 if (q.get('nool')) for (const r of rigs) r.root.traverse((o) => { if (o.material && o.material.side === THREE.BackSide) o.visible = false; });
 const anim = q.get('anim') || 'idle', t = +(q.get('t') || 0.4), ang = (+(q.get('ang') || 0) * Math.PI) / 180;
 for (const r of rigs) r.root.rotation.y = ang;

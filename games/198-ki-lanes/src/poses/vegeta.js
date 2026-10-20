@@ -124,10 +124,10 @@ export default {
       shRX: -0.35, shRY: -0.2, shRZ: 0.5, elR: -2.2, hoR: 0.9, hsR: 0.6, wrR: 0.4,
       shLX: -1.35, shLZ: 0.55, elL: -0.35, hoL: 0.9, hsL: 0.4, headY: 0.55 });
     const R = P({ torsoY: 0.3, hipsRY: 0.1, torsoX: 0.18, hipsY: -0.13, hipsZ: 0.12,
-      shRX: -1.62, shRY: 0, shRZ: 0.3, elR: -0.05, hoR: 1, hsR: 0.85, wrR: -0.55, clR: 0.12,
+      shRX: -1.62, shRY: 0, shRZ: 0.3, elR: -0.05, hoR: 1, hsR: 0.85, wrR: -0.25, wtR: 0.95, wfR: 1.1, clR: 0.12, // 前臂旋前＋手腕後彎：掌心朝正前方
       shLX: -0.55, shLY: -0.6, shLZ: 0.2, elL: -2.15, hoL: 0.1, hsL: 0,
       thLX: -0.62, knL: 0.62, thRX: 0.5, knR: 0.2, headY: -0.25 });
-    const K = P({ ...R, shRX: -1.85, elR: -0.35, wrR: -0.2, torsoX: 0.04, hipsZ: 0.04, clR: 0 }); // 反作用力：手掌往上彈、上身退回
+    const K = P({ ...R, shRX: -1.85, elR: -0.35, wrR: -0.1, wfR: 1.3, torsoX: 0.04, hipsZ: 0.04, clR: 0 }); // 反作用力：手掌往上彈、上身退回
     let p;
     if (t < 0.045) p = mix(base, Wd, smooth01(t / 0.045));
     else if (t < 0.075) p = mix(Wd, R, outQ((t - 0.045) / 0.03));

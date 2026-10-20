@@ -30,6 +30,11 @@ const ballUp = (P, lift) => P({ hipsY: 0.08 + lift, torsoX: -0.24, torsoY: 0.12,
   thLX: -0.32, thLZ: 0.08, knL: 0.8, anL: 0.65, thRX: 0.05, thRZ: 0.08, knR: 0.3, anR: 0.65 });
 
 const moves = {
+  // 比對參考圖用的站姿（共用的 stand 是握拳）：參考 01／02／04／06 都是攤開長手指的手，弗利沙不握拳
+  stand() {
+    return own(Object.assign(blank(), { thLZ: 0.13, thRZ: 0.13, shLZ: 0.22, shRZ: 0.22, hoL: 0.9, hoR: 0.9, hsL: 0.6, hsR: 0.6 }));
+  },
+
   // 架式：上身微後仰、頭歪向一側斜睨，左手叉腰（手肘往外撐出三角），右手往身側攤開、掌心朝上（從俯視鏡頭看手伸出身體輪廓）；
   // 骨盆離地懸浮、輕輕上下浮動，兩腳腳尖垂向地面，小腿跟著浮動前後晃。
   // 架式也是所有動作的底：上臂扭轉（shLY／shRY）、身體側歪只給待機與自己的招式，
@@ -87,9 +92,11 @@ const moves = {
 
   // Q 死亡光束（0.12 秒射出）：右手先舉到臉旁、指尖朝天 → 側過身、手臂水平伸直、指尖對準，左手叉腰不動，
   // 射出後指尖往上輕輕一挑
+  // 指尖對準時前臂旋前（wtR）：手背朝上、併攏的指頭平平指向目標。不轉的話，側伸的手臂帶著架式的掌心朝上，
+  // 從正面與遊戲俯角看是攤開的手掌斜向側面（像在招手），讀不出「一指」
   cast_Q({ t, P }) {
-    const W = P({ torsoY: 0.1, torsoX: -0.2, hipsRY: -0.25, shRX: -2.35, shRZ: 0.5, elR: -1.75, ...POINT_R, wrR: 0.15, headY: -0.1, headX: -0.28 });
-    const S = P({ torsoY: 1.05, hipsRY: 0.15, torsoX: -0.04, shRX: -1.62, shRZ: 1.2, elR: 0, ...POINT_R, clR: 0.25,
+    const W = P({ torsoY: 0.1, torsoX: -0.2, hipsRY: -0.25, shRX: -2.35, shRZ: 0.5, elR: -1.75, ...POINT_R, wrR: 0.15, wtR: 0.5, headY: -0.1, headX: -0.28 });
+    const S = P({ torsoY: 1.05, hipsRY: 0.15, torsoX: -0.04, shRX: -1.62, shRZ: 1.2, elR: 0, ...POINT_R, wtR: 1.15, clR: 0.25,
       headY: -0.9, headX: -0.02, thLX: -0.35, knL: 0.6 });
     const R = P({ ...S, wrR: -0.4, shRX: -1.78, torsoX: -0.1 });
     return own(track(t, [[0, P({})], [0.07, W], [0.12, S], [0.18, R], [0.27, P({})]]));

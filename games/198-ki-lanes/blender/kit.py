@@ -308,7 +308,21 @@ def iso_cut(ob, field):
         a, b = e.verts
         fa, fb = fv[a], fv[b]
         if fa * fb < 0:
+            # 切點要真的落在等值線上：只用兩端的值線性內插，場是非線性（例如 sin 的條紋）而邊又和條紋差不多長時，
+            # 切點會偏到條紋寬度的三分之一以上，切開的面整片歸錯邊，條紋邊緣成一排三角形缺角（18 號的袖子）。
+            # 從線性內插的位置起，在變號的區間裡用試位法＋二分法逼近真正的零點
+            t0, t1, g0, g1 = 0.0, 1.0, fa, fb
             t = fa / (fa - fb)
+            for _ in range(12):
+                gt = field(a.co.lerp(b.co, t))
+                if abs(gt) < 1e-7:
+                    break
+                if (gt < 0) == (g0 < 0):
+                    t0, g0 = t, gt
+                else:
+                    t1, g1 = t, gt
+                tf = t0 + (t1 - t0) * g0 / (g0 - g1)
+                t = tf if t0 + (t1 - t0) * 0.05 < tf < t1 - (t1 - t0) * 0.05 else (t0 + t1) * 0.5
             if t < 0.02 or t > 0.98:
                 # 太靠近端點：直接把端點挪到等值線上，避免產生碎面
                 v = a if t < 0.5 else b
@@ -319,13 +333,31 @@ def iso_cut(ob, field):
             _ne, nv = bmesh.utils.edge_split(e, a, t)
             fv[nv] = 0.0
             cut.add(nv)
-    for f in list(bm.faces):
-        cv = [v for v in f.verts if v in cut]
-        if len(cv) == 2 and not any(set(e.verts) == set(cv) for e in f.edges):
+    # 被等值線穿過的面沿切點分開。一個面可能被兩條以上的等值線穿過（細條紋的寬度和面差不多大時，一個面上有 4 個切點）：
+    # 原本只處理剛好 2 個切點的面，其他整面照中心歸一邊，條紋邊緣成一排三角形缺角。
+    # 沿面的邊界走，相鄰兩個切點之間的那一段頂點一定同號（變號的地方都插了切點），所以每次切下一段、剩下的面再處理，直到切完
+    todo = list(bm.faces)
+    while todo:
+        f = todo.pop()
+        if not f.is_valid:
+            continue
+        loop = list(f.verts)
+        ci = [i for i, v in enumerate(loop) if v in cut]
+        if len(ci) < 2:
+            continue
+        for k in range(len(ci)):
+            i, j = ci[k], ci[(k + 1) % len(ci)]
+            gap = (j - i) % len(loop)
+            if gap < 2 or gap > len(loop) - 2:
+                continue   # 兩個切點相鄰（同一條邊），中間沒有頂點可切
             try:
-                bmesh.utils.face_split(f, cv[0], cv[1])
+                res = bmesh.utils.face_split(f, loop[i], loop[j])
             except Exception:  # noqa: BLE001
-                pass
+                continue
+            todo.append(f)
+            if res and res[0] is not None:
+                todo.append(res[0])
+            break
     bm.to_mesh(ob.data)
     bm.free()
     ob.data.update()
