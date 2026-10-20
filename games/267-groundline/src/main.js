@@ -274,12 +274,17 @@ function renderApronFloatingLabels() {
       ]
         .filter(Boolean)
         .join(' ');
-      return `<button type="button" class="${cls}" style="transform:translate3d(${scr.x.toFixed(1)}px,${scr.y.toFixed(1)}px,0)" data-select-flight="${f.id}">
+      const extraBtns = isSel
+        ? `<span class="at-act" data-closeup-flight="${f.id}" title="近景檢視飛機細節">🔍</span>` +
+          `<span class="at-act" data-action="inspect-doors" title="開啟／關閉艙門與行李輸送帶">🚪</span>`
+        : '';
+      return `<div role="button" tabindex="0" class="${cls}" style="transform:translate3d(${scr.x.toFixed(1)}px,${scr.y.toFixed(1)}px,0)" data-select-flight="${f.id}">
         <span class="at-gate">${f.gateId}</span>
         <b>${esc(f.callsign)}</b>
         <span class="at-step">${esc(stepLbl)}</span>
         ${delay > 2 ? `<em class="at-dly">+${delay}m</em>` : ''}
-      </button>`;
+        ${extraBtns}
+      </div>`;
     })
     .join('');
 }
@@ -321,9 +326,19 @@ async function downloadGLTF() {
 // 全局事件代理
 document.addEventListener('click', (e) => {
   const btn = e.target.closest(
-    '[data-speed],[data-tab],[data-select-flight],[data-set-prio],[data-cycle-prio],[data-dispatch-type],[data-assign-veh],[data-focus-gate],[data-reassign-flight],[data-cam],[data-action]'
+    '[data-speed],[data-tab],[data-select-flight],[data-closeup-flight],[data-set-prio],[data-cycle-prio],[data-dispatch-type],[data-assign-veh],[data-focus-gate],[data-reassign-flight],[data-cam],[data-action]'
   );
   if (!btn) return;
+
+  if (btn.hasAttribute('data-closeup-flight')) {
+    e.stopPropagation();
+    const fid = btn.getAttribute('data-closeup-flight');
+    world.selectedFlightId = fid;
+    if (sceneApi) sceneApi.focusFlight(fid, true);
+    playTone('click');
+    renderAllUI();
+    return;
+  }
 
   if (btn.hasAttribute('data-speed')) {
     world.speed = Number(btn.getAttribute('data-speed'));
@@ -432,12 +447,33 @@ document.addEventListener('click', (e) => {
       btn.textContent = m ? '🔇' : '🔊';
     } else if (act === 'download-gltf') {
       downloadGLTF();
+    } else if (act === 'cutaway') {
+      if (sceneApi) {
+        const on = sceneApi.toggleTerminalCutaway();
+        btn.setAttribute('aria-pressed', String(on));
+        if (on) sceneApi.setCameraPreset('terminal');
+        playTone('click');
+      }
+    } else if (act === 'night') {
+      if (sceneApi) {
+        sceneApi.triggerTowerAction();
+        btn.setAttribute('aria-pressed', String(sceneApi.envState.nightMode));
+        playTone('dispatch');
+      }
+    } else if (act === 'inspect-doors') {
+      e.stopPropagation();
+      if (sceneApi) {
+        sceneApi.toggleInspectDoors();
+        sceneApi.focusFlight(world.selectedFlightId, true);
+        playTone('click');
+      }
     }
   }
 });
 
 async function boot() {
   const canvas = $('glCanvas');
+  const hoverTip = $('hoverTip');
   sceneApi = await createApronScene(canvas, world, {
     onSelectFlight(fid) {
       selectFlight(fid, false);
@@ -446,6 +482,53 @@ async function boot() {
       world.activeTab = 'vehicles';
       playTone('click');
       renderAllUI();
+    },
+    onDirectDispatchVehicle(vid, fid) {
+      if (dispatchVehicleToFlight(world, vid, fid, true)) {
+        world.selectedFlightId = fid;
+        playTone('dispatch');
+        renderAllUI();
+      }
+    },
+    onInteractBuilding(kind) {
+      if (kind === 'terminal') {
+        const cutBtn = document.querySelector('[data-action="cutaway"]');
+        if (cutBtn && sceneApi) cutBtn.setAttribute('aria-pressed', String(sceneApi.envState.terminalCutaway));
+        playTone('click');
+      } else if (kind === 'tower') {
+        const nightBtn = document.querySelector('[data-action="night"]');
+        if (nightBtn && sceneApi) nightBtn.setAttribute('aria-pressed', String(sceneApi.envState.nightMode));
+        playTone('dispatch');
+      } else if (kind === 'fuelfarm') {
+        playTone('dispatch');
+        renderAllUI();
+      } else if (kind === 'depot') {
+        const idleV = world.vehicles.find((v) => v.state === 'idle');
+        if (idleV && world.selectedFlightId) {
+          dispatchVehicleToFlight(world, idleV.id, world.selectedFlightId, true);
+          playTone('dispatch');
+          renderAllUI();
+        }
+      } else if (kind === 'gate') {
+        playTone('click');
+        renderAllUI();
+      }
+    },
+    onHover3D(info) {
+      if (!hoverTip) return;
+      if (!info || !info.label) {
+        hoverTip.hidden = true;
+        return;
+      }
+      let txt = info.label;
+      if (sceneApi && sceneApi.envState.selectedVehicleId && info.pickType === 'flight') {
+        txt = `點擊將已選地勤車 ${sceneApi.envState.selectedVehicleId} 派往 ${info.flightId}`;
+      }
+      hoverTip.textContent = txt;
+      hoverTip.hidden = false;
+      const x = Math.min(window.innerWidth - 260, Math.max(12, info.clientX + 14));
+      const y = Math.min(window.innerHeight - 40, Math.max(12, info.clientY - 28));
+      hoverTip.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     },
   });
 

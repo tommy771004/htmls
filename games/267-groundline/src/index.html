@@ -139,6 +139,42 @@ button {
   color: #ff9c8d;
   font-size: 10.5px;
 }
+.apron-tag .at-act {
+  margin-left: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+.apron-tag .at-act:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+/* 3D 物件懸停液態玻璃提示膠囊 */
+#hoverTip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9;
+  pointer-events: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(19, 32, 48, 0.78);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow: 0 6px 18px rgba(15, 25, 38, 0.22), inset 0 1px 0.5px rgba(255, 255, 255, 0.45);
+  color: #f6f9fc;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  will-change: transform;
+}
+#hoverTip[hidden] {
+  display: none !important;
+}
 
 /* HUD 疊層容器 */
 #hud {
@@ -279,6 +315,11 @@ button {
 .cam-btn:hover {
   background: rgba(255, 255, 255, 0.58);
   color: var(--ink);
+}
+.cam-btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: rgba(24, 104, 214, 0.65);
+  color: #fff;
 }
 
 /* ── 底部雙欄：輕巧不擋畫面的液態玻璃浮島 ── */
@@ -657,9 +698,11 @@ button {
   .kpi-val { font-size: 14px; }
   .gate-dots { gap: 2px; }
   .gdot { padding: 1px 3.5px; font-size: 9px; }
-  .clock-card { width: 100%; justify-content: space-between; padding: 4px 8px; gap: 4px; }
-  #simClock { font-size: 15px; }
-  .cam-btn[data-cam="fuelfarm"], .cam-btn[data-action="download-gltf"] { display: none; }
+  .clock-card { width: 100%; justify-content: space-between; padding: 4px 7px; gap: 3px; }
+  #simClock { font-size: 14px; }
+  .seg-group button { padding: 2px 5px; font-size: 10px; }
+  .cam-btn { padding: 2px 6px; font-size: 10px; }
+  .cam-btn[data-cam="terminal"], .cam-btn[data-cam="fuelfarm"], .cam-btn[data-action="download-gltf"] { display: none; }
   .bottom-bar {
     flex-direction: column;
     align-items: stretch;
@@ -680,6 +723,7 @@ button {
   <canvas id="glCanvas" aria-label="Groundline 機場停機坪 3D 即時調度場景"></canvas>
 </div>
 <div id="apronLabels" aria-hidden="true"></div>
+<div id="hoverTip" hidden></div>
 
 <div id="hud">
   <!-- 頂部：4 張精簡液態玻璃指標膠囊 ＋ 右上模擬時鐘與倍速 -->
@@ -713,9 +757,11 @@ button {
         <button type="button" data-speed="4" aria-pressed="false">4×</button>
         <button type="button" data-speed="8" aria-pressed="false">8×</button>
       </div>
-      <div class="cam-bar" role="group" aria-label="視角與工具">
+      <div class="cam-bar" role="group" aria-label="視角與互動工具">
         <button type="button" class="cam-btn" data-cam="overview">全覽</button>
         <button type="button" class="cam-btn" data-cam="terminal">航廈</button>
+        <button type="button" class="cam-btn" data-action="cutaway" aria-pressed="false" title="切換航廈波浪屋頂透視檢視內裝">透視</button>
+        <button type="button" class="cam-btn" data-action="night" aria-pressed="false" title="切換夜航燈光與塔台雷達掃描">夜航</button>
         <button type="button" class="cam-btn" data-cam="fuelfarm">油槽</button>
         <button type="button" class="cam-btn" data-action="download-gltf">glTF</button>
         <button type="button" class="cam-btn" data-action="mute" aria-pressed="false">🔊</button>

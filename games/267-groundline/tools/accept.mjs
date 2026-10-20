@@ -37,7 +37,7 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true]]) {
     ok(meta.vp, `${tag} 有 viewport meta`);
     ok(meta.title.includes('Groundline'), `${tag} 標題包含 Groundline（${meta.title}）`);
     ok(meta.overflow, `${tag} 無水平溢出`);
-    ok(meta.glbLoaded && meta.loaded.includes('Terminal') && meta.loaded.includes('Aircraft_A320') && meta.loaded.includes('FuelTruck') && meta.loaded.includes('BaggageTug') && meta.loaded.includes('CateringTruck') && meta.loaded.includes('FuelTankFarm'), `${tag} Blender glTF 3D 資產已載入（${meta.loaded.length} 項）`);
+    ok(meta.glbLoaded && meta.loaded.includes('Terminal') && meta.loaded.includes('TerminalRoof') && meta.loaded.includes('TowerRadar') && meta.loaded.includes('GSEDepot') && meta.loaded.includes('Aircraft_A320') && meta.loaded.includes('FuelTruck') && meta.loaded.includes('BaggageTug') && meta.loaded.includes('CateringTruck') && meta.loaded.includes('FuelTankFarm'), `${tag} Blender glTF 高細節 3D 資產已載入（${meta.loaded.length} 項）`);
     ok(meta.kpiCount === 4, `${tag} 頂部 4 張指標卡（準點率=${meta.metrics.onTimeRate}%、平均過站=${meta.metrics.avgTurnaround}m、登機門=${meta.metrics.activeGates}/${meta.metrics.totalGates}、行李=${meta.metrics.totalBags}）`);
     ok(meta.stepCount === 6, `${tag} 左下顯示 6 個過站步驟（到站→下客→清潔→加油→登機→推出）`);
 
@@ -77,6 +77,25 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true]]) {
 
     await page.click('[data-tab="flights"]');
     await raf(page);
+
+    // 測試 3D 建築與飛機深度互動（航廈屋頂透視、夜航／塔台雷達、油槽增壓、飛機艙門與行李輸送帶檢視）
+    const interactOk = await page.evaluate(() => {
+      const s = window.__gl.scene;
+      const cutOn = s.toggleTerminalCutaway(true);
+      const nightOn = s.toggleNightMode(true);
+      s.triggerFuelBoost();
+      const doorsOn = s.toggleInspectDoors(true);
+      s.syncScene(performance.now() + 200);
+      const okState = cutOn === true && nightOn === true && doorsOn === true;
+      // 恢復預設日景與全覽供標準驗收截圖
+      s.toggleTerminalCutaway(false);
+      s.toggleNightMode(false);
+      s.toggleInspectDoors(true);
+      s.syncScene(performance.now() + 400);
+      return okState;
+    });
+    ok(interactOk, `${tag} 3D 建築與飛機互動（航廈透視、塔台夜航雷達、油槽增壓、開啟艙門與動態輸送帶）正常`);
+
     await page.screenshot({ path: resolve(distDir, `accept-${w}x${h}.png`) });
     if (w === 1440) {
       execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '84', '-z', '400', '640', resolve(distDir, `accept-${w}x${h}.png`), '--out', outThumb], { stdio: 'ignore' });
