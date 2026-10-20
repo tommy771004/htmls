@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DC-07 黑五尖峰中控 · 倉庫營運俯瞰儀表板</title>
+<meta name="description" content="Black Friday 尖峰的倉庫營運俯瞰儀表板：等角倉庫平面上 320 台揀貨機器人、93 名員工、堆高機、堆垛吊車與進出碼頭的卡車由模擬器即時驅動，右側是每小時出貨量、在途訂單、機隊使用率、各區人數、QA 與儲位使用率，底部碼頭卡片與告警清單。">
+<meta name="theme-color" content="#0e0f11">
+<style>
+:root{
+  --bg:#0e0f11; --panel:#17181b; --panel2:#1c1e22; --line:#282b30; --line2:#363a40;
+  --ink:#ece8df; --ink2:#b4b1a9; --mute:#7f838a; --dim:#55595f;
+  --yel:#f2c230; --org:#ff7a1a; --red:#ff4a3d; --grn:#4cc38a; --teal:#3fb6a8; --blu:#5b9cf0; --kraft:#b8915e; --mnt:#a8825e;
+  --num:"DIN Alternate","DIN Condensed","Bahnschrift","D-DIN","Roboto Condensed","Arial Narrow","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --zh:"PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --eo:cubic-bezier(.22,1,.36,1);
+  --dur-enter:.32s;
+  --gut:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:13px/1.45 var(--zh);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 500px;grid-template-rows:auto minmax(0,1fr) 176px;gap:8px;height:100vh;height:100dvh;padding:0 8px 8px}
+
+/* ── header ── */
+.top{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:9px 4px 13px;position:relative;min-width:0}
+.top::after{content:"";position:absolute;left:calc(var(--gut) * -1);right:calc(var(--gut) * -1);bottom:0;height:4px;background:repeating-linear-gradient(-45deg,var(--yel) 0 9px,#111 9px 18px)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:38px;height:38px;flex:none;background:var(--yel);color:#111;display:grid;place-items:center;font:700 16px/1 var(--num);clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%)}
+.brand b{display:block;font-size:15px;letter-spacing:.02em;white-space:nowrap}
+.brand small{display:block;color:var(--mute);font-size:11px;white-space:nowrap}
+.bf{border:1px solid var(--yel);color:var(--yel);padding:3px 9px 4px;font:700 13px/1.1 var(--num);letter-spacing:.16em;white-space:nowrap;flex:none}
+.bf small{display:block;font:500 10px/1.3 var(--zh);letter-spacing:.06em;color:var(--ink2)}
+.kpis{flex:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));min-width:0;border-left:1px solid var(--line)}
+.kpi{padding:0 11px;border-right:1px solid var(--line);min-width:0}
+.kpi span{display:block;color:var(--mute);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi b{display:block;font:700 22px/1.12 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi em{display:block;font:500 11px/1.2 var(--num);font-style:normal;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.up{color:var(--grn)!important}.dn{color:var(--red)!important}.wn{color:var(--org)!important}
+.clock{text-align:right;white-space:nowrap;flex:none}
+.clock #tm{font:700 26px/1 var(--mono);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.clock #dt{font-size:11px;color:var(--ink2);margin-top:3px}
+.speed{display:flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden;flex:none}
+.speed button{background:none;border:0;border-right:1px solid var(--line2);padding:7px 9px;font:600 12px/1 var(--num);color:var(--ink2);cursor:pointer;min-width:34px}
+.speed button:last-child{border-right:0}
+.speed button[aria-pressed="true"]{background:var(--yel);color:#111}
+.speed button:focus-visible,.seg button:focus-visible,.inj button:focus-visible,.dock:focus-visible,.al:focus-visible{outline:2px solid var(--yel);outline-offset:-2px}
+
+/* ── map ── */
+.map{grid-column:1;grid-row:2;position:relative;background:#111214;border:1px solid var(--line);border-radius:4px;overflow:hidden;min-height:0}
+.map canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.map canvas.drag{cursor:grabbing}
+.map-h{position:absolute;left:11px;top:9px;pointer-events:none;text-shadow:0 1px 2px #000}
+.map-h b{font:700 12px/1.2 var(--num);letter-spacing:.14em;color:var(--yel)}
+.map-h div{font-size:11px;color:var(--ink2)}
+.tools{position:absolute;right:8px;top:8px;display:flex;gap:6px}
+.seg{display:flex;background:rgba(14,15,17,.88);border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+.seg button{background:none;border:0;border-right:1px solid var(--line2);padding:5px 9px;font-size:12px;cursor:pointer;color:var(--ink2);min-width:30px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{color:#111;background:var(--ink)}
+.legend{position:absolute;left:8px;bottom:8px;display:flex;flex-wrap:wrap;gap:3px 12px;background:rgba(14,15,17,.85);border:1px solid var(--line);padding:5px 9px;border-radius:3px;font-size:11px;color:var(--ink2);max-width:calc(100% - 16px);pointer-events:none}
+.legend span{white-space:nowrap}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px}
+.legend i.o{border-radius:50%;background:#f4efe4;box-shadow:0 0 0 1px #000}
+.tip{position:absolute;z-index:3;pointer-events:none;background:#0a0b0c;border:1px solid var(--line2);border-left:3px solid var(--yel);padding:6px 9px;font-size:12px;border-radius:2px;max-width:250px;display:none;line-height:1.5}
+.tip b{display:block;font:700 12px/1.3 var(--num);letter-spacing:.04em}
+
+/* ── side ── */
+.side{grid-column:2;grid-row:2;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#34373c transparent}
+.pn{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:7px 10px 8px;min-width:0}
+.pn h3,.docks h3,.alerts h3{margin:0 0 6px;font-size:12px;font-weight:600;display:flex;align-items:baseline;gap:7px;min-width:0}
+h3 i{font:700 10px/1 var(--mono);font-style:normal;color:#111;background:var(--yel);padding:2px 3px 1px;border-radius:1px;flex:none}
+h3 .meta{margin-left:auto;font:500 11px/1.2 var(--num);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tri{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.lgr{display:flex;gap:9px;font-size:11px;color:var(--ink2);align-items:center;font-weight:400;white-space:nowrap}
+.lgr .sw{display:inline-block;width:14px;height:0;border-top:2px solid var(--yel);vertical-align:3px;margin-right:5px}
+.lgr .sw.f{border-top:2px dashed #9aa0a8}
+.lgr b{font:700 12px var(--num)}
+#chart{display:block;width:100%;height:104px}
+#chart .gl{stroke:#26292e}
+#chart text{font:10px var(--num);fill:#6f737a}
+#chart .yl{text-anchor:end}
+#chart .xl{text-anchor:middle}
+#chart .fc{fill:none;stroke:#9aa0a8;stroke-dasharray:4 3;stroke-width:1.4}
+#chart .ac{fill:none;stroke:var(--yel);stroke-width:2;stroke-linejoin:round}
+#chart .aa{fill:rgba(242,194,48,.11)}
+#chart .pj{fill:none;stroke:var(--yel);stroke-width:1.5;stroke-dasharray:2 3}
+#chart .nw{stroke:#ece8df;stroke-dasharray:2 3;opacity:.55}
+#chart .nt{fill:var(--ink);font-weight:700}
+.pr{display:grid;grid-template-columns:58px minmax(0,1fr) 52px 46px;align-items:center;gap:6px;height:16px;font-size:11.5px}
+.pr .lb{color:var(--ink2);white-space:nowrap}
+.trk{height:8px;background:#25282c;position:relative;border-radius:1px;overflow:hidden}
+.trk i{position:absolute;left:0;top:0;bottom:0;background:var(--yel);transition:width .5s var(--eo)}
+.trk.hi i{background:var(--org)}
+.trk.ov i{background:repeating-linear-gradient(-45deg,var(--red) 0 5px,#9b2a22 5px 10px)}
+.pr .v{text-align:right;font:600 12.5px var(--num);font-variant-numeric:tabular-nums}
+.pr .d{text-align:right;font:500 10.5px var(--num);color:var(--mute);white-space:nowrap}
+.note{font-size:10.5px;color:var(--dim);margin-top:4px}
+.stack{display:flex;height:14px;border-radius:2px;overflow:hidden;background:#25282c}
+.stack i{height:100%;transition:width .5s var(--eo)}
+.flg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px}
+.flg div{font-size:11px;color:var(--ink2);border-left:3px solid;padding-left:6px;min-width:0;white-space:nowrap}
+.flg b{display:block;font:700 16px/1.1 var(--num);color:var(--ink)}
+.flg small{color:var(--mute);font:500 10.5px var(--num)}
+.eq{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:6px;margin-top:4px}
+.eq .lb{font-size:11px;color:var(--ink2)}
+.cells{display:flex;gap:3px;flex-wrap:wrap}
+.cell{width:22px;height:20px;background:#24272b;border-bottom:3px solid var(--dim);font:600 10px/17px var(--num);text-align:center;color:var(--ink2);border-radius:1px;position:relative}
+.cell.fault{animation:blink 1s steps(2,end) infinite}
+.eqsum{font:500 10.5px var(--num);color:var(--mute);margin:2px 0 0 40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd{display:grid;grid-template-columns:46px minmax(0,1fr) 20px;align-items:center;gap:5px;height:13.6px;font-size:11px}
+.hd span{color:var(--ink2);white-space:nowrap}
+.hd .trk{height:6px}
+.hd .trk i{background:#c9c5bb}
+.hd.br .trk i{background:var(--grn)}
+.hd b{font:600 12px var(--num);text-align:right}
+.qa-n{font:700 27px/1 var(--num);font-variant-numeric:tabular-nums}
+.qa-n small{font-size:12px;color:var(--mute);margin-left:4px;font-weight:500}
+.qa-s{font:500 10.5px/1.4 var(--num);color:var(--mute);margin-top:2px}
+#qaSpark{display:block;width:100%;height:34px;margin-top:6px}
+.sl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 5px;align-items:center;font-size:11px;margin-bottom:4px}
+.sl .trk{grid-column:1/-1;height:5px}
+.sl span{color:var(--ink2);white-space:nowrap}
+.sl b{font:600 11.5px var(--num);text-align:right;grid-row:1;grid-column:2}
+.sl span{grid-row:1;grid-column:1}
+.aisles{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:5px}
+.aisles i{height:12px;border-radius:1px;display:block}
+.aisle-l{font-size:10px;color:var(--dim);margin-top:2px;display:flex;justify-content:space-between}
+
+/* ── docks ── */
+.docks{grid-column:1;grid-row:3;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 8px 8px;min-width:0;display:flex;flex-direction:column;min-height:0}
+.dgrid{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:1fr 1fr;gap:6px;min-height:0}
+.dock{background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--dim);padding:3px 7px 4px;display:flex;flex-direction:column;justify-content:space-between;min-width:0;font-size:11px;cursor:pointer;overflow:hidden;transition:border-color .3s}
+.dock:hover{background:#212328}
+.dh{display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.dh b{font:700 13px/1.2 var(--num);letter-spacing:.04em}
+.dh .dk{font-size:10px;color:var(--mute)}
+.dh .ds{margin-left:auto;font-style:normal;font-size:10.5px;color:var(--ink2)}
+.dm{display:flex;gap:6px;white-space:nowrap;overflow:hidden;font:500 11px var(--num)}
+.dm .dv{color:var(--mute);overflow:hidden;text-overflow:ellipsis;font-family:var(--zh);font-size:10.5px}
+.dock .trk{height:5px}
+.df{display:flex;justify-content:space-between;gap:4px;font:500 10.5px var(--num);color:var(--ink2);white-space:nowrap}
+.df .dr{font-family:var(--mono);font-size:10px}
+.dock.s-work{border-top-color:var(--yel)}
+.dock.s-work.k-in .trk i,.dock.s-work.k-ret .trk i{background:var(--blu)}
+.dock.k-in.s-work,.dock.k-ret.s-work{border-top-color:var(--blu)}
+.dock.s-in,.dock.s-out{border-top-color:var(--teal)}
+.dock.s-empty{opacity:.72}
+.dock.late{border-top-color:var(--red)}
+.dock.late .dr{color:var(--red)}
+.dkey{display:flex;gap:10px;font-size:10.5px;color:var(--mute);margin-left:auto;white-space:nowrap}
+.dkey i{display:inline-block;width:8px;height:3px;vertical-align:2px;margin-right:4px}
+
+/* ── alerts ── */
+.alerts{grid-column:2;grid-row:3;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 8px 4px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.inj{display:flex;gap:4px;margin-left:auto}
+.inj button{background:none;border:1px solid var(--line2);border-radius:2px;color:var(--ink2);font-size:10.5px;padding:1px 6px;cursor:pointer;white-space:nowrap}
+.inj button:hover{border-color:var(--yel);color:var(--yel)}
+.alist{list-style:none;margin:0;padding:0;overflow:auto;flex:1;min-height:0;scrollbar-width:thin;scrollbar-color:#34373c transparent}
+.al{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:8px;padding:4px 4px 4px 0;border-bottom:1px solid var(--line);cursor:pointer;animation:alin var(--dur-enter) var(--eo) both}
+.al:hover{background:#1f2125}
+.al .sv{border-radius:1px;background:var(--dim)}
+.al.crit .sv{background:var(--red)}
+.al.warn .sv{background:var(--org)}
+.al.info .sv{background:var(--blu)}
+.al.crit:not(.done) .sv{animation:blink 1s steps(2,end) infinite}
+.al-t{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al-w{font-size:10.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al-r{text-align:right;font:500 10.5px/1.45 var(--num);white-space:nowrap}
+.al-r time{color:var(--ink2);font-family:var(--mono);font-size:10.5px}
+.al-r em{display:block;font-style:normal;color:var(--red)}
+.al.warn .al-r em{color:var(--org)}
+.al.info .al-r em{color:var(--blu)}
+.al.done{opacity:.55}
+.al.done .al-r em{color:var(--mute)}
+.acount{font:500 11px var(--num);color:var(--mute);white-space:nowrap}
+.acount b{color:var(--red)}
+.acount b.w{color:var(--org)}
+@keyframes alin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes blink{50%{opacity:.25}}
+
+/* ── responsive ── */
+@media (max-width:1320px){
+  .top{flex-wrap:wrap;row-gap:8px}
+  .kpis{order:5;flex:1 1 100%;border-left:0;border-top:1px solid var(--line);padding-top:7px}
+  .kpi:first-child{padding-left:2px}
+  .clock{margin-left:auto}
+}
+@media (max-width:1320px){ .app{grid-template-columns:minmax(0,1fr) 420px} .tri{grid-template-columns:1fr 1fr} }
+@media (max-width:1180px){ .app{grid-template-columns:minmax(0,1fr) 380px} }
+@media (max-width:980px){
+  body{overflow:auto}
+  .app{display:flex;flex-direction:column;height:auto;min-height:100vh}
+  .map{height:min(86vw,620px);min-height:320px;flex:none}
+  .docks{height:auto}
+  .dgrid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:148px;grid-template-rows:76px 76px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+  .side{overflow:visible}
+  .alerts{max-height:340px}
+  .dkey{display:none}
+}
+@media (max-width:560px){
+  :root{--gut:6px}
+  .app{padding:0 6px 6px;gap:6px}
+  .top{gap:8px 10px;padding:7px 2px 12px}
+  .brand b{font-size:13px}
+  .bf{font-size:11px;padding:2px 6px}
+  .bf small{display:none}
+  .mark{width:30px;height:30px;font-size:13px}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:8px}
+  .kpi{padding:0 7px}
+  .kpi:nth-child(3n){border-right:0}
+  .kpi b{font-size:18px}
+  .clock{order:3;margin-left:0;text-align:left}
+  .clock #tm{font-size:21px}
+  .speed{order:4;margin-left:auto}
+  .speed button{padding:6px 7px;min-width:30px}
+  .two,.tri{grid-template-columns:1fr}
+  .legend{font-size:10px;gap:2px 9px;padding:4px 7px}
+  .map-h div{display:none}
+  .inj button{padding:1px 4px}
+}
+@media (prefers-reduced-motion:reduce){
+  .al,.cell.fault,.al.crit:not(.done) .sv{animation:none}
+  .trk i,.stack i{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><div class="mark" aria-hidden="true">07</div><div><b>DC-07 北區履約中心</b><small>倉庫營運中控 · 俯瞰儀表板</small></div></div>
+    <div class="bf" id="bfTag">BLACK FRIDAY<small>尖峰作業 · 第 1 日</small></div>
+    <div class="kpis">
+      <div class="kpi"><span>今日出貨（件）</span><b id="kShip">—</b><em id="kShipS">—</em></div>
+      <div class="kpi"><span>近 60 分時速</span><b id="kUph">—</b><em id="kUphS">—</em></div>
+      <div class="kpi"><span>在途訂單</span><b id="kWip">—</b><em id="kWipS">—</em></div>
+      <div class="kpi"><span>預估準時率</span><b id="kSla">—</b><em id="kSlaS">—</em></div>
+      <div class="kpi"><span>機隊使用率</span><b id="kFleet">—</b><em id="kFleetS">—</em></div>
+      <div class="kpi"><span>在場人員</span><b id="kStaff">93</b><em id="kStaffS">—</em></div>
+    </div>
+    <div class="clock"><div id="tm">14:19:20</div><div id="dt">2026/11/27 週五</div></div>
+    <div class="speed" role="group" aria-label="模擬速度">
+      <button type="button" data-s="0" aria-pressed="false" title="暫停（空白鍵）">❚❚</button>
+      <button type="button" data-s="1" aria-pressed="false">1×</button>
+      <button type="button" data-s="10" aria-pressed="false">10×</button>
+      <button type="button" data-s="60" aria-pressed="true">60×</button>
+      <button type="button" data-s="240" aria-pressed="false">240×</button>
+    </div>
+  </header>
+
+  <section class="map" aria-label="倉庫平面俯瞰">
+    <canvas id="map" role="img" aria-label="等角倉庫平面：高架儲區、機器人揀貨區、充電區、收貨與退貨、揀貨站、包裝、分揀、出貨碼頭與休息室，機器人、員工、堆高機、吊車與卡車即時移動"></canvas>
+    <div class="map-h"><b>1F 作業區 · FLOOR VIEW</b><div id="mapSub">—</div></div>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="視角"><button type="button" id="vIso" aria-pressed="true">等角</button><button type="button" id="vTop" aria-pressed="false">俯視</button></div>
+      <div class="seg" role="group" aria-label="縮放"><button type="button" id="zIn" aria-label="放大">＋</button><button type="button" id="zOut" aria-label="縮小">－</button><button type="button" id="zFit" aria-label="重設視野">⤢</button></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--yel)"></i>搬運</span><span><i style="background:var(--teal)"></i>行駛</span><span><i style="background:#7d838b"></i>待命</span><span><i style="background:var(--blu)"></i>充電</span><span><i class="o"></i>員工</span><span><i style="background:var(--org)"></i>堆高機</span><span><i style="background:#e8d36a;width:4px;height:12px"></i>吊車</span>
+    </div>
+    <div class="tip" id="tip"></div>
+  </section>
+
+  <aside class="side" aria-label="營運指標">
+    <section class="pn">
+      <h3><i>01</i>每小時出貨量<span class="lgr"><span><span class="sw"></span>實際</span><span><span class="sw f"></span>預測</span></span><span class="meta" id="shipMeta">—</span><span class="lgr"><b id="shipDelta">—</b></span></h3>
+      <svg id="chart" role="img" aria-label="每小時出貨量折線圖：實際與當日預測"></svg>
+    </section>
+    <section class="pn">
+      <h3 title="條長＝占該階段 WIP 上限；右欄為 10 分鐘變化"><i>02</i>各階段在途訂單<span class="meta" id="pipeMeta">—</span></h3>
+      <div id="pipe"></div>
+    </section>
+    <div class="two">
+    <section class="pn">
+      <h3><i>03</i>機隊 AMR ×320<span class="meta" id="fleetMeta">—</span></h3>
+      <div class="stack" id="fleetBar"></div>
+      <div class="flg" id="fleetLg"></div>
+    </section>
+    <section class="pn">
+      <h3><i>04</i>堆高機與吊車<span class="meta" id="eqMeta">—</span></h3>
+      <div class="eq"><span class="lb">堆高機</span><div class="cells" id="flCells"></div></div>
+      <div class="eqsum" id="flSum">—</div>
+      <div class="eq"><span class="lb">吊車</span><div class="cells" id="crCells"></div></div>
+      <div class="eqsum" id="crSum">—</div>
+    </section>
+    </div>
+    <div class="tri">
+      <section class="pn"><h3><i>05</i>各區人數<span class="meta" id="headMeta">—</span></h3><div id="heads"></div></section>
+      <section class="pn"><h3><i>06</i>QA 通過率</h3><div class="qa-n" id="qaN">—</div><div class="qa-s" id="qaS">—</div><svg id="qaSpark" aria-hidden="true"></svg></section>
+      <section class="pn"><h3><i>07</i>儲位使用率</h3><div id="slots"></div><div class="aisles" id="aisles"></div><div class="aisle-l"><span>走道 1</span><span>7</span></div></section>
+    </div>
+  </aside>
+
+  <section class="docks" aria-label="進出貨碼頭">
+    <h3><i>08</i>碼頭 · 出貨 8／收貨 4／退貨 2<span class="dkey"><span><i style="background:var(--yel)"></i>裝載</span><span><i style="background:var(--blu)"></i>卸貨</span><span><i style="background:var(--teal)"></i>靠站／駛離</span><span><i style="background:var(--red)"></i>截單風險</span></span></h3>
+    <div class="dgrid" id="dgrid"></div>
+  </section>
+
+  <section class="alerts" aria-label="告警">
+    <h3><i>09</i>告警<span class="acount" id="aCount"></span><span class="inj" aria-label="演練：注入事件"><button type="button" data-ev="crane">吊車故障</button><button type="button" data-ev="dl">死結</button><button type="button" data-ev="tc">交通管制</button></span></h3>
+    <ul class="alist" id="alist"></ul>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ═════════ 工具 ═════════ */
+var $=function(s){return document.querySelector(s);};
+var seed=0x2611b;
+function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
+function R(a,b){return a+(b-a)*rnd();}
+function RI(a,b){return Math.floor(a+(b-a+1)*rnd());}
+function pick(a){return a[Math.floor(rnd()*a.length)];}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+function fmt(n){return Math.round(n).toLocaleString('en-US');}
+function p2(n){return (n<10?'0':'')+n;}
+function hhmm(t){t=((t%86400)+86400)%86400;return p2(Math.floor(t/3600))+':'+p2(Math.floor(t/60)%60);}
+function hms(t){return hhmm(t)+':'+p2(Math.floor(t)%60);}
+function mmss(t){t=Math.max(0,t);var m=Math.floor(t/60);return (m>=60?Math.floor(m/60)+':'+p2(m%60):p2(m))+':'+p2(Math.floor(t%60));}
+function sgn(n,d){return (n>=0?'+':'−')+Math.abs(n).toFixed(d==null?0:d);}
+var SHC={};
+function sh(hex,f){var k=hex+f;var v=SHC[k];if(v)return v;var n=parseInt(hex.slice(1),16);v='rgb('+Math.min(255,((n>>16)&255)*f|0)+','+Math.min(255,((n>>8)&255)*f|0)+','+Math.min(255,(n&255)*f|0)+')';SHC[k]=v;return v;}
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ═════════ 時間 ═════════ */
+var VSF={0:0,1:.45,10:.75,60:1,240:1.5};
+var S=reduce?10:60, TS=14*3600+19*60+20, curDay=0;
+var BASE=Date.UTC(2026,10,27);
+var WK=['日','一','二','三','四','五','六'];
+var DAYTAG=['BLACK FRIDAY','黑五週末','黑五週末','CYBER MONDAY'];
+
+/* ═════════ 世界與區域 ═════════ */
+var C30=Math.cos(Math.PI/6), ZK=.8;
+var WB={x0:-3,y0:-3,x1:137,y1:97};
+var ZONES=[
+  {id:'HB',n:'高架儲區',e:'HIGH-BAY STORAGE',x:3,y:3,w:41,h:37,c:'#25282d',lx:4.5,ly:43.9},
+  {id:'RB',n:'機器人揀貨區',e:'ROBOTIC PICK FIELD',x:47,y:3,w:51,h:36,c:'#212528',lx:48.5,ly:6.6},
+  {id:'CH',n:'充電區',e:'CHARGING',x:100,y:3,w:18,h:13,c:'#1e252d',lx:100.6,ly:15.6,fs:13},
+  {id:'RC',n:'收貨區',e:'RECEIVING',x:100,y:18,w:18,h:26,c:'#252824',lx:101.4,ly:21.6},
+  {id:'PS',n:'揀貨站',e:'PICK STATIONS',x:47,y:40,w:51,h:5,c:'#28281f',lx:47.6,ly:44.8,fs:12},
+  {id:'PK',n:'包裝',e:'PACKING · QA',x:47,y:51,w:51,h:14,c:'#24272b',lx:48.4,ly:57.4},
+  {id:'SO',n:'分揀',e:'SORTATION',x:3,y:51,w:41,h:14,c:'#282525',lx:3.8,ly:57.6,fs:16},
+  {id:'OB',n:'出貨碼頭',e:'OUTBOUND DOCKS',x:3,y:69,w:79,h:10.6,c:'#262529',lx:4.5,ly:71.5,fs:16},
+  {id:'BR',n:'休息室',e:'BREAK ROOM',x:84,y:69,w:14,h:10.6,c:'#222a28',lx:85,ly:71.6,fs:15},
+  {id:'RT',n:'退貨',e:'RETURNS',x:100,y:51,w:18,h:28.6,c:'#2a2527',lx:101.4,ly:55}
+];
+var ZBY={};ZONES.forEach(function(z){ZBY[z.id]=z;});
+function zoneAt(x,y){for(var i=0;i<ZONES.length;i++){var z=ZONES[i];if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h)return z;}return null;}
+
+/* 機器人網格 */
+var GX0=47,GY0=3,CELL=1,GC=71,GR=36,RBC=51;
+function gx(i){return GX0+(i+.5)*CELL;}
+function gy(j){return GY0+(j+.5)*CELL;}
+function gi(i,j){return j*GC+i;}
+var wall=new Uint8Array(GC*GR), closed=new Uint8Array(GC*GR), occ=new Int16Array(GC*GR).fill(-1);
+for(var j0=0;j0<GR;j0++)for(var i0=RBC;i0<GC;i0++)if(j0>=13)wall[gi(i0,j0)]=1;
+var PADS=[];for(var pj=1;pj<=10;pj+=3)for(var pi=55;pi<=68;pi++)PADS.push({i:pi,j:pj,own:-1,off:false});
+var isPad=new Int16Array(GC*GR).fill(-1);PADS.forEach(function(p,k){isPad[gi(p.i,p.j)]=k;});
+
+/* 揀貨站 */
+var STATIONS=[];[3,7,11,15,19,23,27,31,35,39,43,47].forEach(function(i,k){STATIONS.push({k:k,i:i,x:gx(i),q:0,open:true,n:0,code:'PS-'+p2(k+1)});});
+
+/* 高架貨架 */
+var RACK_H=5.2, LV=5, LH=RACK_H/LV;
+var ROWY=[],AISLE=[];for(var rk=0;rk<8;rk++)ROWY.push(4+rk*4.6);for(var ak=0;ak<7;ak++)AISLE.push(7.3+ak*4.6);
+var BAYS=[];
+for(var r=0;r<8;r++)for(var b=0;b<9;b++){var o=new Uint8Array(20);for(var s=0;s<20;s++)o[s]=rnd()<.87?1:0;BAYS.push({r:r,b:b,x0:6+b*4,x1:10+b*4,y0:ROWY[r],y1:ROWY[r]+2,occ:o,tone:RI(0,3)});}
+var rackCount=0;BAYS.forEach(function(B){for(var s=0;s<20;s++)rackCount+=B.occ[s];});
+function bayAt(r,b){return BAYS[r*9+b];}
+
+/* 分揀環線（跑道形） */
+var LOOP_L=2*22+2*Math.PI*3;
+function loopPos(s){s=((s%LOOP_L)+LOOP_L)%LOOP_L;
+  if(s<22)return [12+s,55];s-=22;
+  var arc=Math.PI*3;if(s<arc){var a=-Math.PI/2+s/3;return [34+3*Math.cos(a),58+3*Math.sin(a)];}s-=arc;
+  if(s<22)return [34-s,61];s-=22;var a2=Math.PI/2+s/3;return [12+3*Math.cos(a2),58+3*Math.sin(a2)];}
+var CHUTES=[];for(var ck=0;ck<7;ck++){CHUTES.push({x:13.5+ck*3,top:true,lv:R(.3,.7),w:R(.6,1.3)});CHUTES.push({x:13.5+ck*3,top:false,lv:R(.3,.7),w:R(.6,1.3)});}
+var BENCHES=[];for(var bk=0;bk<9;bk++){BENCHES.push({x:50.5+bk*4.9,y:54.2,row:0});BENCHES.push({x:50.5+bk*4.9,y:61.8,row:1});}
+var QA_BENCH={x:94.6,y:54.2};
+
+/* ═════════ 路網（人與堆高機共用） ═════════ */
+function entry(p){
+  if(p[0]>99.5&&(p[1]>49||p[1]<19))return {l:'V',x:99.2,y:p[1]};
+  if(p[1]<=47.6)return {l:'M',x:p[0],y:47.5};
+  if(p[0]>98)return {l:'V',x:99.2,y:p[1]};
+  return {l:'S',x:p[0],y:67};
+}
+function route(p,q){
+  var a=entry(p),c=entry(q),out=[[a.x,a.y]];
+  if(a.l!==c.l){
+    if(a.l==='V'||c.l==='V'){var o=a.l==='V'?c:a;out.push([99.2,o.l==='M'?47.5:67]);}
+    else{var cx=(Math.abs(a.x-45.5)+Math.abs(c.x-45.5)<=Math.abs(a.x-99.2)+Math.abs(c.x-99.2))?45.5:99.2;
+      if(a.l==='M'){out.push([cx,47.5]);out.push([cx,67]);}else{out.push([cx,67]);out.push([cx,47.5]);}}
+  }
+  out.push([c.x,c.y]);out.push([q[0],q[1]]);return out;
+}
+function walkPath(o,spd,dv){var d=spd*dv;while(d>0&&o.pi<o.path.length){var t=o.path[o.pi],dx=t[0]-o.x,dy=t[1]-o.y,L=Math.hypot(dx,dy);if(L<1e-6){o.pi++;continue;}o.ang=Math.atan2(dy,dx);if(L<=d){o.x=t[0];o.y=t[1];o.pi++;d-=L;}else{o.x+=dx/L*d;o.y+=dy/L*d;d=0;}}return o.pi>=o.path.length;}
+function setPath(o,path){o.path=path;o.pi=0;}
+
+/* ═════════ 機器人 ═════════ */
+var ST={IDLE:0,PARK:1,GO:2,LIFT:3,TO:4,AT:5,RET:6,DROP:7,TOCH:8,CHG:9};
+var CAT=[2,1,1,0,0,0,0,0,1,3]; /* 0 搬運 1 行駛 2 待命 3 充電 */
+var CATN=['搬運','行駛','待命','充電'], CATC=['#f2c230','#3fb6a8','#7d838b','#5b9cf0'];
+var STN=['待命','前往停放','前往取架','頂升貨架','送往揀貨站','揀貨站呈現','歸還貨架','放下貨架','前往充電','充電中'];
+var NR=320, ROB=[], RSPD=6.8, fleetCnt=[0,0,0,0], busyN=0, frozenN=0, batAvg=0, util=.85;
+function randStorage(){for(var k=0;k<20;k++){var i=RI(0,RBC-1),j=RI(0,GR-8),c=gi(i,j);if(!closed[c]&&!inDL(i,j)&&occ[c]<0)return [i,j];}return [RI(0,RBC-1),RI(0,GR-8)];}
+function randPark(){for(var k=0;k<20;k++){var i=RI(0,RBC-1),j=RI(0,14),c=gi(i,j);if(!closed[c]&&!inDL(i,j)&&occ[c]<0)return [i,j];}return [RI(0,RBC-1),RI(0,14)];}
+function setT(r,t){r.ti=t[0];r.tj=t[1];r.xf=true;r.wait=0;}
+(function initRobots(){
+  var cells=[];for(var j=0;j<=GR-4;j++)for(var i=0;i<RBC;i++)cells.push([i,j]);
+  for(var k=cells.length-1;k>0;k--){var m=Math.floor(rnd()*(k+1)),t=cells[k];cells[k]=cells[m];cells[m]=t;}
+  var ci=0;
+  for(var n=0;n<NR;n++){
+    var r={id:n,code:'AMR-'+String(n+1).padStart(3,'0'),i:0,j:0,ni:-1,nj:-1,t:0,st:ST.IDLE,ti:0,tj:0,s:-1,wait:0,pat:R(.4,1),tm:0,bat:R(30,100),frz:false,xf:true,pad:-1};
+    if(n<36){var p=PADS[n];r.i=p.i;r.j=p.j;r.st=ST.CHG;r.pad=n;p.own=n;r.bat=R(4,50);}
+    else{var c=cells[ci++];r.i=c[0];r.j=c[1];}
+    r.ti=r.i;r.tj=r.j;occ[gi(r.i,r.j)]=n;ROB.push(r);
+  }
+})();
+function dirH(j){return j===GR-1?1:(j&1?-1:1);}
+var CDIR=new Int8Array(GC);for(var ci_=0;ci_<GC;ci_++)CDIR[ci_]=ci_&1?-1:1;
+STATIONS.forEach(function(st){CDIR[st.i]=1;CDIR[st.i+1]=-1;});
+function isWall(i,j){return i<0||j<0||i>=GC||j>=GR||wall[gi(i,j)]===1;}
+function freeCell(i,j,r){if(i<0||j<0||i>=GC||j>=GR)return false;var c=gi(i,j);if(wall[c]||occ[c]>=0)return false;if(closed[c]&&!closed[gi(r.i,r.j)])return false;if(DL&&inDL(i,j)&&!inDL(r.i,r.j))return false;return true;}
+function tryMove(r,dx,dy){var ni=r.i+dx,nj=r.j+dy;if(!freeCell(ni,nj,r))return false;occ[gi(ni,nj)]=r.id;r.ni=ni;r.nj=nj;r.t=0;r.wait=0;return true;}
+function chooseStation(r){var best=-1,bq=1e9;for(var s=0;s<STATIONS.length;s++){var S_=STATIONS[s];if(!S_.open)continue;var q=S_.q*1.6+(r?Math.abs(S_.i-r.i)/3:0)+rnd()*1.5;if(q<bq){bq=q;best=s;}}return best;}
+function toStation(r){var s=chooseStation(r);if(s<0){r.tm=.5;return;}r.s=s;STATIONS[s].q++;r.st=ST.TO;setT(r,[STATIONS[s].i,GR-1]);}
+function freePad(){var best=-1;for(var k=0;k<PADS.length;k++){if(PADS[k].own<0&&!PADS[k].off){best=k;if(rnd()<.35)break;}}return best;}
+function goCharge(r){var k=freePad();if(k<0)return false;PADS[k].own=r.id;r.pad=k;r.st=ST.TOCH;setT(r,[PADS[k].i,PADS[k].j]);return true;}
+function goPark(r){r.st=ST.PARK;setT(r,randPark());}
+function afterDrop(r){
+  if(r.bat<24&&goCharge(r))return;
+  if(busyN>targetBusy+2){goPark(r);return;}
+  r.st=ST.GO;setT(r,randStorage());
+}
+function arrive(r){
+  switch(r.st){
+    case ST.GO:r.st=ST.LIFT;r.tm=.35;break;
+    case ST.TO:r.st=ST.AT;r.tm=R(.5,.8);STATIONS[r.s].n++;break;
+    case ST.RET:r.st=ST.DROP;r.tm=.3;break;
+    case ST.PARK:r.st=ST.IDLE;break;
+    case ST.TOCH:r.st=ST.CHG;break;
+  }
+}
+var targetBusy=200;
+function stepRobot(r,dv){
+  if(r.ni>=0){
+    r.t+=dv*RSPD;r.bat-=dv*(CAT[r.st]===0?.5:.38);
+    if(r.t<1)return;
+    occ[gi(r.i,r.j)]=-1;r.i=r.ni;r.j=r.nj;r.ni=-1;r.t=0;
+  }
+  if(DL&&inDL(r.i,r.j)){r.frz=true;return;}
+  r.frz=false;
+  var st=r.st;
+  if(st===ST.IDLE)return;
+  if(st===ST.LIFT||st===ST.DROP||st===ST.AT){
+    r.tm-=dv;if(r.tm>0)return;
+    if(st===ST.LIFT)toStation(r);
+    else if(st===ST.AT){STATIONS[r.s].q--;r.s=-1;r.st=ST.RET;setT(r,randStorage());}
+    else afterDrop(r);
+    return;
+  }
+  if(st===ST.CHG){
+    var pd=PADS[r.pad];
+    if(pd&&pd.off){pd.own=-1;r.pad=-1;goPark(r);return;}
+    r.bat+=dv*2.2;if(r.bat>=96){r.bat=96;if(pd)pd.own=-1;r.pad=-1;goPark(r);}return;
+  }
+  if(st===ST.TO&&!STATIONS[r.s].open){STATIONS[r.s].q--;var s2=chooseStation(r);if(s2<0){r.s=-1;r.st=ST.RET;setT(r,randStorage());}else{r.s=s2;STATIONS[s2].q++;setT(r,[STATIONS[s2].i,GR-1]);}}
+  if(r.i===r.ti&&r.j===r.tj){arrive(r);return;}
+  /* 單行道：偶數列往右、奇數列往左；揀貨站那一欄往下、站右側一欄往上 */
+  /* 前往揀貨站：先到站欄上方的排隊入口，再沿站欄直下 */
+  var tj=r.tj;if(st===ST.TO&&r.i!==r.ti)tj=GR-6;
+  var dx=r.ti-r.i,dy=tj-r.j,h=dirH(r.j),v=CDIR[r.i],sx=Math.sign(dx),sy=Math.sign(dy);
+  var ax=0,ay=0,bx=0,by=0,gh=sx!==0&&sx===h,gv=sy!==0&&sy===v;
+  if(Math.abs(dx)+Math.abs(dy)<=1){ax=sx;ay=sy;}
+  else if(gh&&gv){if(Math.abs(dx)>=Math.abs(dy)){ax=h;by=v;}else{ay=v;bx=h;}}
+  else if(gh){ax=h;by=v;}
+  else if(gv){ay=v;bx=h;}
+  else if(dx===0)ax=h;
+  else if(dy===0)ay=v;
+  else{ay=v;bx=h;}
+  if(tryMove(r,ax,ay))return;
+  var hitWall=isWall(r.i+ax,r.j+ay);
+  if(hitWall&&(bx||by)&&tryMove(r,bx,by))return;
+  r.wait+=dv;
+  var bc=occ[gi(clamp(r.i+ax,0,GC-1),clamp(r.j+ay,0,GR-1))];
+  if(st===ST.TO&&bc>=0){var o=ROB[bc];if((o.st===ST.TO||o.st===ST.AT)&&o.s===r.s&&r.wait<4)return;}
+  if(r.wait>r.pat){
+    r.wait=0;r.pat=R(.35,1.1);
+    var tc=gi(r.ti,r.tj);
+    if((Math.abs(dx)+Math.abs(dy)===1&&(st===ST.GO||st===ST.RET||st===ST.PARK))||closed[tc]||(DL&&inDL(r.ti,r.tj))){
+      if(st===ST.GO||st===ST.RET){setT(r,randStorage());return;}
+      if(st===ST.PARK){setT(r,randPark());return;}
+    }
+    if((bx||by)&&tryMove(r,bx,by))return;
+    if(tryMove(r,h,0)||tryMove(r,0,v))return;
+    var d0=Math.floor(rnd()*4);
+    for(var k=0;k<4;k++){var d=(d0+k)&3,ddx=d===0?1:d===1?-1:0,ddy=d===2?1:d===3?-1:0;if(tryMove(r,ddx,ddy))return;}
+  }
+}
+function robotXY(r){if(r.ni<0)return [gx(r.i),gy(r.j)];return [lerp(gx(r.i),gx(r.ni),r.t),lerp(gy(r.j),gy(r.nj),r.t)];}
+
+/* ═════════ 員工 ═════════ */
+var HOME={RC:13,RT:7,HB:5,RB:3,CH:1,PS:12,PK:25,SO:12,OB:15};
+var ZORDER=['RC','RT','HB','RB','CH','PS','PK','SO','OB','BR'];
+var ROLE={RC:'收貨員',RT:'退貨處理員',HB:'儲區作業員',RB:'機器人技師',CH:'充電區技師',PS:'揀貨員',PK:'包裝員',SO:'分揀員',OB:'裝車員'};
+var WORK={RC:[101,19.5,117,43],RT:[101,52.5,117,78],HB:[4,40.8,43,44.6],RB:[44.7,4,46.3,38.5],CH:[101,16.2,117,17.6],OB:[4,70,81,78.6],BR:[85,70,97,78.6]};
+var WK_=[], brkN=0;
+(function initWorkers(){
+  var n=0,pkI=0;
+  Object.keys(HOME).forEach(function(z){for(var k=0;k<HOME[z];k++){
+    var w={id:n,code:'W-'+String(n+1).padStart(3,'0'),home:z,x:0,y:0,path:[],pi:0,wait:R(0,2),st:'work',brkEnd:0,anchor:null,ang:0,qa:false};
+    if(z==='PS'){w.anchor=[STATIONS[k].x,43.5];w.st_=k;}
+    if(z==='PK'){var bi=pkI++;if(bi<18){var B=BENCHES[bi];w.anchor=[B.x,B.row?63.5:52.6];}else if(bi<20){w.anchor=[QA_BENCH.x+(bi-18)*1.4-.7,52.6];w.qa=true;}else{var B2=BENCHES[(bi-20)*3];w.anchor=[B2.x+1.3,B2.row?63.5:52.6];}}
+    var p=homePoint(w);w.x=p[0];w.y=p[1];WK_.push(w);n++;}});
+  /* 開場時已有 7 人在休息 */
+  [['PK',19],['PK',21],['OB',3],['OB',9],['RC',5],['SO',4],['PS',6]].forEach(function(a){
+    var c=0;for(var i=0;i<WK_.length;i++){var w=WK_[i];if(w.home===a[0]){if(c===a[1]){w.st='brk';w.brkEnd=TS+R(2,14)*60;var p=brPoint();w.x=p[0];w.y=p[1];brkN++;break;}c++;}}});
+})();
+function inRect(a){return [R(a[0],a[2]),R(a[1],a[3])];}
+function brPoint(){return inRect(WORK.BR);}
+function homePoint(w){
+  if(w.anchor)return [w.anchor[0]+R(-.45,.45),w.anchor[1]+R(-.3,.3)];
+  if(w.home==='SO')return rnd()<.5?[R(12.5,35.5),R(64.6,65.6)]:[R(12.5,35.5),R(50.2,51.1)];
+  return inRect(WORK[w.home]);
+}
+function stepWorker(w,dv){
+  var spd=2.5;
+  if(w.pi<w.path.length){
+    var done=walkPath(w,spd,dv);
+    if(done){if(w.st==='go'){w.st='brk';w.brkEnd=TS+R(12,18)*60;}else if(w.st==='back'){w.st='work';brkN--;}w.wait=R(.6,2.5);}
+    return;
+  }
+  w.wait-=dv;if(w.wait>0)return;
+  if(w.st==='work'){setPath(w,[homePoint(w)]);w.wait=w.anchor?R(.5,2):R(1,4.5);}
+  else if(w.st==='brk'){setPath(w,[brPoint()]);w.wait=R(3,9);}
+}
+function workersSim(sdt){
+  for(var i=0;i<WK_.length;i++){var w=WK_[i];
+    if(w.st==='work'&&brkN<9&&w.home!=='CH'&&rnd()<sdt/(3.4*3600)){w.st='go';brkN++;setPath(w,route([w.x,w.y],brPoint()));}
+    else if(w.st==='brk'&&TS>=w.brkEnd){w.st='back';setPath(w,route([w.x,w.y],homePoint(w)));}
+  }
+  for(var s=0;s<STATIONS.length;s++){var pw=PSW[s];STATIONS[s].open=pw.st==='work'&&pw.pi>=pw.path.length||pw.st==='work'&&Math.abs(pw.y-43.5)<1.2&&Math.abs(pw.x-STATIONS[s].x)<1.5;}
+}
+var PSW=WK_.filter(function(w){return w.home==='PS';});
+function zoneCount(){var c={};ZORDER.forEach(function(z){c[z]=0;});WK_.forEach(function(w){c[(w.st==='go'||w.st==='brk')?'BR':w.home]++;});return c;}
+function atWork(z){var n=0;for(var i=0;i<WK_.length;i++){var w=WK_[i];if(w.home===z&&(w.st==='work'))n++;}return n;}
+
+/* ═════════ 堆高機 ═════════ */
+var FL=[];
+for(var f=0;f<12;f++)FL.push({code:'FL-'+p2(f+1),x:101.2+(f%8)*2.1,y:17,ang:Math.PI/2,path:[],pi:0,plan:[],st:'idle',load:false,tm:R(0,3),bat:R(35,95),mnt:f===10});
+function flSpot(f){var k=FL.indexOf(f)%8;return [101.2+k*2.1,17];}
+function ioPt(){return [44.8,AISLE[RI(0,6)]+R(-.4,.4)];}
+function newPlan(f){
+  if(f.mnt){f.st='mnt';f.plan=[];return;}
+  if(f.bat<25){f.plan=[{to:flSpot(f),act:'charge'}];return;}
+  var u=rnd();
+  if(u<.38)f.plan=[{to:[R(103,116),R(30,42.5)],act:'load'},{to:ioPt(),act:'unload'}];
+  else if(u<.68)f.plan=[{to:ioPt(),act:'load'},{to:[R(6,79),R(70.4,72)],act:'unload'}];
+  else if(u<.86)f.plan=[{to:[R(103,116),R(56,77)],act:'load'},{to:ioPt(),act:'unload'}];
+  else f.plan=[{to:flSpot(f),act:'park'}];
+}
+function stepFL(f,dv){
+  if(f.st==='mnt')return;
+  if(f.st==='act'||f.st==='idle'||f.st==='chg'){
+    if(f.st==='chg'){f.bat+=dv*3;if(f.bat<92)return;f.st='idle';f.tm=R(.5,2);}
+    f.tm-=dv;if(f.tm>0)return;
+    if(!f.plan.length)newPlan(f);
+    if(f.st==='mnt'||!f.plan.length)return;
+    var stp=f.plan[0];setPath(f,route([f.x,f.y],stp.to));f.st='move';return;
+  }
+  if(f.st==='move'){
+    f.bat-=dv*.32;
+    if(walkPath(f,3.3,dv)){
+      var a=f.plan.shift();
+      if(a.act==='load'){f.load=true;f.st='act';f.tm=1.1;}
+      else if(a.act==='unload'){f.load=false;f.st='act';f.tm=1.1;}
+      else if(a.act==='charge'){f.st='chg';f.ang=-Math.PI/2;}
+      else{f.st='idle';f.tm=R(3,8);f.ang=-Math.PI/2;}
+    }
+  }
+}
+function flState(f){if(f.st==='mnt')return '保養';if(f.st==='chg')return '充電';if(f.st==='idle')return '待命';if(f.load||f.st==='act')return '搬運';return '空駛';}
+var FLC={'搬運':'#f2c230','空駛':'#3fb6a8','待命':'#7d838b','充電':'#5b9cf0','保養':'#a8825e'};
+
+/* ═════════ 堆垛吊車 ═════════ */
+var CR=[];for(var c=0;c<7;c++)CR.push({code:'CR-'+p2(c+1),k:c,y:AISLE[c],x:R(12,42),z:R(.6,4),tx:43.5,tz:.6,ph:3,tm:0,st:'acc',slot:null});
+function craneSlot(c){
+  var wantPut=rackCount/1440<.865;
+  for(var t=0;t<14;t++){var rr=rnd()<.5?c.k:c.k+1,face=rr===c.k?1:0,bb=RI(0,8),col=RI(0,1),lv=RI(0,4),B=bayAt(rr,bb),idx=face*10+col*5+lv;
+    if(t>11||(B.occ[idx]===0)===wantPut)return {B:B,idx:idx,x:(B.x0+B.x1)/2+(col?.9:-.9),z:lv*LH+.45};}
+}
+function stepCrane(c,dv){
+  if(c.st==='fault')return;
+  if(c.ph===0){c.tm-=dv;if(c.tm>0)return;c.slot=craneSlot(c);c.tx=c.slot.x;c.tz=c.slot.z;c.ph=1;c.st='acc';return;}
+  if(c.ph===1||c.ph===3){
+    var dx=c.tx-c.x,dz=c.tz-c.z,mx=5.4*dv,mz=2.2*dv;
+    c.x+=Math.abs(dx)<=mx?dx:Math.sign(dx)*mx;c.z+=Math.abs(dz)<=mz?dz:Math.sign(dz)*mz;
+    if(Math.abs(c.x-c.tx)<1e-3&&Math.abs(c.z-c.tz)<1e-3){c.ph++;c.tm=.7;}return;
+  }
+  c.tm-=dv;if(c.tm>0)return;
+  if(c.ph===2){var sl=c.slot;if(sl){var v=sl.B.occ[sl.idx];sl.B.occ[sl.idx]=v?0:1;rackCount+=v?-1:1;}c.tx=43.5;c.tz=.6;c.ph=3;}
+  else if(c.ph===4){c.ph=0;c.tm=rnd()<.25?R(1.5,4):R(.1,.6);c.st=c.tm>1?'idle':'acc';}
+}
+var CRN={acc:'存取',idle:'待命',fault:'故障'}, CRC={acc:'#f2c230',idle:'#7d838b',fault:'#ff4a3d'};
+
+/* ═════════ 碼頭與卡車 ═════════ */
+var CARRIERS=[['北航快運','#d8473b'],['島運物流','#3b8fd6'],['順安宅配','#3aae6a'],['嘉禾貨運','#e2a33a'],['東岸快遞','#cfcac0']];
+var VENDORS=['禾豐食品','金茂家電','青蘭日用','鼎宇 3C','山邊寢具','栗子玩具'];
+var DOCKS=[];
+for(var dk=0;dk<8;dk++)DOCKS.push({id:'D'+p2(dk+1),kind:'out',a:8+dk*9.6,W:80});
+for(dk=0;dk<4;dk++)DOCKS.push({id:'R'+p2(dk+1),kind:'in',a:22+dk*6,W:120});
+for(dk=0;dk<2;dk++)DOCKS.push({id:'T'+p2(dk+1),kind:'ret',a:60+dk*10,W:120});
+var KIND={out:'出貨',in:'收貨',ret:'退貨'};
+var DOCK_W=[];for(dk=0;dk<8;dk++)DOCK_W.push(R(.8,1.25));
+function newTruck(d){
+  if(d.kind==='out'){var c=pick(CARRIERS),cap=RI(18,26)*100;return {code:'BF-'+RI(1000,9999),car:c[0],col:c[1],cap:cap,load:0,dep:0};}
+  if(d.kind==='in'){var p=RI(18,30);return {code:'PO-'+RI(40000,49999),car:pick(VENDORS),col:'#8a96a3',cap:p,load:p,dep:0};}
+  var q=RI(12,26)*10;return {code:'RMA-'+RI(1000,9999),car:'逆物流 · 島運',col:'#3b8fd6',cap:q,load:q,dep:0};
+}
+DOCKS.forEach(function(d,k){
+  d.st='empty';d.an=0;d.tr=null;d.nextAt=TS+R(1,6)*60;
+  var working=d.kind==='out'?[0,1,2,4,5,7].indexOf(k)>=0:d.kind==='in'?k!==10:k===12;
+  if(working){d.st='work';d.tr=newTruck(d);
+    if(d.kind==='out'){d.tr.load=d.tr.cap*R(.08,.86);d.tr.dep=TS+R(4,46)*60;if(k===5){d.tr.load=d.tr.cap*.52;d.tr.dep=TS+7*60;}}
+    else d.tr.load=d.tr.cap*R(.2,.9);}
+});
+var ANIM=3.4;
+function depart(d){d.st='out';d.an=0;
+  if(d.kind==='out'){trucksOut++;if(d.tr.load<d.tr.cap*.62)addAlert({kind:'under',sev:'info',title:d.id+' 未滿載封櫃 '+Math.round(d.tr.load/d.tr.cap*100)+'%',where:'出貨碼頭 · 車次 '+d.tr.code+' · '+d.tr.car,dur:0,done:true,loc:dockLoc(d)});}}
+function dockLoc(d){return function(){return d.kind==='out'?[d.a,80,3]:[120,d.a,3];};}
+function dockSim(sdt){
+  var rcF=atWork('RC')/13;
+  for(var k=0;k<DOCKS.length;k++){var d=DOCKS[k];
+    if(d.st==='empty'&&TS>=d.nextAt){d.tr=newTruck(d);d.st='in';d.an=0;}
+    else if(d.st==='work'){
+      if(d.kind==='out'){if(d.tr.load>=d.tr.cap-.5||TS>=d.tr.dep)depart(d);}
+      else{var rate=(d.kind==='in'?34:330)*(.45+.55*rcF);d.tr.load-=rate*sdt/3600;if(d.tr.load<=0){d.tr.load=0;depart(d);}}
+    }
+  }
+}
+function dockAnim(dv){
+  var dur=clamp(ANIM*60/Math.max(S,1),1.4,ANIM);
+  for(var k=0;k<DOCKS.length;k++){var d=DOCKS[k];
+    if(d.st==='in'||d.st==='out'){d.an+=dv/dur;
+      if(d.an>=1){if(d.st==='in'){d.st='work';if(d.kind==='out')d.tr.dep=TS+R(36,55)*60;}else{d.st='empty';d.tr=null;d.nextAt=TS+(d.kind==='out'?R(3,9):R(6,16))*60;}}}
+  }
+}
+function bez(p0,c,p1,u){var m=1-u;return [m*m*p0[0]+2*m*u*c[0]+u*u*p1[0],m*m*p0[1]+2*m*u*c[1]+u*u*p1[1]];}
+function truckPose(d){
+  var a=d.a,oD=d.W+5.4,oR=d.W+11.5,A,O,ang,t=d.an;
+  var P0=[a+9,oR],Cc=[a+1.5,oR],P1=[a,oD];
+  function curve(u){var p=bez(P0,Cc,P1,u),q=bez(P0,Cc,P1,Math.min(1,u+.01)),r_=bez(P0,Cc,P1,Math.max(0,u-.01));A=p[0];O=p[1];ang=Math.atan2(-(q[1]-r_[1]),-(q[0]-r_[0]));}
+  if(d.st==='work'){A=a;O=oD;ang=Math.PI/2;}
+  else if(d.st==='in'){if(t<.5){A=lerp(a-46,a+9,ease(t/.5));O=oR;ang=0;}else curve(ease((t-.5)/.5));}
+  else if(d.st==='out'){if(t<.5)curve(1-ease(t/.5));else{A=lerp(a+9,a+70,ease((t-.5)/.5));O=oR;ang=0;}}
+  else return null;
+  return d.kind==='out'?{x:A,y:O,ang:ang}:{x:O,y:A,ang:Math.PI/2-ang};
+}
+
+/* ═════════ 訂單流（流體模型） ═════════ */
+var FC=[9800,9400,8800,8200,7600,7900,9800,12400,14600,15400,15800,15600,14900,15200,15900,16300,16600,16400,16100,16800,17200,16900,15400,12800];
+var F={W:6400,P:2400,K:1700,S:1150,D:900,Q:40};
+var TAU={P:.14,K:.1,S:.07};
+var WIPCAP={W:30000,P:3500,K:2600,S:2000,D:3600,Q:200};
+var CAPS={pick:17760,pack:17600,sort:19500,load:16000};
+var rates={pick:15800,pack:15800,sort:15800,load:15600};
+var hourly=new Float64Array(24), shippedDay=0, prevDay=0, trucksOut=0;
+var minRing=[], stageRing=[], qaRing=[], minAcc={ship:0,pack:0}, lastMin=Math.floor(TS/60);
+(function prehistory(){
+  var h=Math.floor(TS/3600);
+  for(var i=0;i<h;i++){hourly[i]=FC[i]*R(.93,1.04);shippedDay+=hourly[i];}
+  hourly[h]=FC[h]*((TS%3600)/3600)*R(.95,1.01);shippedDay+=hourly[h];
+  for(var m=0;m<60;m++){minRing.push(FC[h-1]/60*R(.9,1.08));var ins=Math.round(R(15,22)),fl=rnd()<.86?0:1;qaRing.push({i:ins,f:fl});stageRing.push({W:F.W*R(.92,1.02),P:F.P*R(.95,1.05),K:F.K*R(.95,1.05),S:F.S*R(.95,1.05),D:F.D*R(.9,1.1),Q:F.Q});}
+  trucksOut=Math.round(shippedDay/2150);
+})();
+function demand(hf){var h=Math.floor(hf)%24,b=FC[h]*1.06;if(hf>=20&&hf<22)b*=1.28;if(hf<1)b*=1.35;return b;}
+var ACT={crane:0,dl:null,tc:null,jam:false,chg:false,qa:false};
+function computeCaps(){
+  var open=0;STATIONS.forEach(function(s){if(s.open)open++;});
+  CAPS.pick=1480*open*(ACT.dl?.8:1)*(ACT.tc?.9:1)*(1-.05*ACT.crane)*(ACT.chg?.96:1);
+  CAPS.pack=760*atWork('PK')*(ACT.qa?.93:1);
+  CAPS.sort=ACT.jam?0:19500;
+}
+function flowStep(dt){
+  var dH=dt/3600,hf=(TS%86400)/3600;
+  F.W+=demand(hf)*dH;
+  var pc=CAPS.pick,kc=CAPS.pack,sc=CAPS.sort;
+  var rel=Math.max(0,Math.min(F.W,(pc*1.02+(pc*TAU.P-F.P)*3)*dH));
+  var oP=Math.min(F.P,Math.min(F.P/TAU.P,pc)*dH);
+  var oK=Math.min(F.K,Math.min(F.K/TAU.K,kc)*dH);
+  var oS=Math.min(F.S,Math.min(F.S/TAU.S,sc)*dH,Math.max(0,WIPCAP.D*1.05-F.D));
+  var oQ=Math.min(F.Q,600*dH);
+  F.W-=rel;F.P+=rel-oP;F.K+=oP-oK+oQ;F.Q-=oQ;F.S+=oK-oS;F.D+=oS;
+  /* 裝車 */
+  var obF=.6+.4*atWork('OB')/15,ld=[],n=0;
+  for(var k=0;k<8;k++){var d=DOCKS[k];if(d.st==='work'&&d.tr.load<d.tr.cap){ld.push(d);n++;}}
+  CAPS.load=n*2700*obF;
+  var take=Math.min(F.D,CAPS.load*dH),loaded=0;
+  for(k=0;k<n;k++){var dd=ld[k],put=Math.min(take/n,dd.tr.cap-dd.tr.load);dd.tr.load+=put;loaded+=put;}
+  F.D-=loaded;
+  var hb=Math.floor(hf);hourly[hb]+=loaded;shippedDay+=loaded;minAcc.ship+=loaded;minAcc.pack+=oK;
+  var a=dH>0?1-Math.exp(-dH/.05):0;
+  rates.pick=lerp(rates.pick,oP/dH||0,a);rates.pack=lerp(rates.pack,oK/dH||0,a);rates.sort=lerp(rates.sort,oS/dH||0,a);rates.load=lerp(rates.load,loaded/dH||0,a);
+}
+function minuteTick(){
+  minRing.push(minAcc.ship);if(minRing.length>60)minRing.shift();
+  var ins=Math.round(minAcc.pack*.07*R(.9,1.1));
+  var fr=.0062+Math.max(0,F.K/WIPCAP.K-.8)*.02+(ACT.qa?.028:0)+R(-.002,.003);
+  var fl=Math.max(0,Math.round(ins*fr+R(-.5,.5)));
+  qaRing.push({i:ins,f:fl});if(qaRing.length>60)qaRing.shift();
+  F.Q+=fl*1.4;
+  stageRing.push({W:F.W,P:F.P,K:F.K,S:F.S,D:F.D,Q:F.Q});if(stageRing.length>60)stageRing.shift();
+  minAcc.ship=0;minAcc.pack=0;
+}
+function simStep(sdt){
+  computeCaps();
+  var n=Math.max(1,Math.ceil(sdt/15)),dt=sdt/n;
+  for(var i=0;i<n;i++){TS+=dt;flowStep(dt);}
+  var day=Math.floor(TS/86400);
+  if(day!==curDay){curDay=day;prevDay=shippedDay;shippedDay=0;hourly.fill(0);trucksOut=0;}
+  var m=Math.floor(TS/60);if(m!==lastMin){lastMin=m;minuteTick();}
+  dockSim(sdt);workersSim(sdt);eventsSim();
+}
+
+/* ═════════ 告警與事件 ═════════ */
+var ALERTS=[],aSeq=0,alertsDirty=true,nextEv=TS+R(6,11)*60,nextWave=(Math.floor(TS/3600)+1)*3600+5*60,waveNo=15,lastBacklog=-1e9;
+var DL=null;
+function inDL(i,j){return DL&&i>=DL.i0&&i<=DL.i1&&j>=DL.j0&&j<=DL.j1;}
+function cellName(i,j){return String.fromCharCode(65+Math.floor(j/4))+p2(Math.floor(i/4)+1);}
+function addAlert(o){o.id=++aSeq;o.t0=o.t0!=null?o.t0:TS;o.done=!!o.done;if(o.dur)o.end=o.t0+o.dur;ALERTS.unshift(o);if(ALERTS.length>40)ALERTS.pop();alertsDirty=true;return o;}
+function resolve(a){if(a.done)return;a.done=true;a.tEnd=TS;if(a.onEnd)a.onEnd();alertsDirty=true;}
+var SPAWN={
+  crane:function(t0,dur,c){var free=CR.filter(function(c){return c.st!=='fault';});if(!free.length)return null;c=c&&c.st!=='fault'?c:pick(free);c.st='fault';ACT.crane++;var lv=Math.min(5,Math.floor(c.z/LH)+1);
+    return addAlert({kind:'crane',sev:'crit',title:'吊車故障 '+c.code,where:'高架儲區 · 走道 '+(c.k+1)+' · 載具停在第 '+lv+' 層，待維修',t0:t0,dur:dur||R(9,18)*60,loc:function(){return [c.x,c.y,6.7];},obj:c,onEnd:function(){c.st='idle';if(c.ph===1||c.ph===2){c.ph=3;c.tx=43.5;c.tz=.6;}if(c.ph===0)c.tm=.5;ACT.crane--;}});},
+  dl:function(t0,dur){if(DL)return null;var i0=RI(4,42),j0=RI(3,24);DL={i0:i0,j0:j0,i1:i0+6,j1:j0+5};var reg=DL;
+    return addAlert({kind:'dl',sev:'crit',title:'區域死結 '+cellName(i0,j0)+'–'+cellName(i0+6,j0+5),where:'機器人揀貨區 · 交會格互相讓路失敗，人工解鎖中',t0:t0,dur:dur||R(5,10)*60,loc:function(){return [gx(reg.i0+3),gy(reg.j0+2.5),1.2];},onEnd:function(){if(DL===reg)DL=null;}});},
+  tc:function(t0,dur){if(ACT.tc)return null;var i0=RI(5,38),j0=RI(4,22),reg={i0:i0,j0:j0,i1:i0+9,j1:j0+2};ACT.tc=reg;for(var j=j0;j<=reg.j1;j++)for(var i=i0;i<=reg.i1;i++)closed[gi(i,j)]=1;
+    return addAlert({kind:'tc',sev:'warn',title:'交通管制 '+cellName(i0,j0),where:'機器人揀貨區 · 技師進場更換地標，封閉 30 格',t0:t0,dur:dur||R(6,12)*60,loc:function(){return [gx(reg.i0+4),gy(reg.j0+1),.8];},onEnd:function(){for(var j=reg.j0;j<=reg.j1;j++)for(var i=reg.i0;i<=reg.i1;i++)closed[gi(i,j)]=0;ACT.tc=null;}});},
+  jam:function(t0,dur){if(ACT.jam)return null;ACT.jam=true;var ch=RI(1,14);
+    return addAlert({kind:'jam',sev:'crit',title:'分揀機卡件',where:'分揀 · 環線第 '+ch+' 槽出口，輸送暫停',t0:t0,dur:dur||R(3,6)*60,loc:function(){return [36,58,1.2];},onEnd:function(){ACT.jam=false;}});},
+  chg:function(t0,dur){if(ACT.chg)return null;ACT.chg=true;var col=RI(0,12),ks=[];PADS.forEach(function(p,k){if(p.i>=55+col&&p.i<=55+col+1&&ks.length<8){p.off=true;ks.push(k);}});
+    return addAlert({kind:'chg',sev:'warn',title:'充電樁離線 '+ks.length+' 座',where:'充電區 · C'+(col+1)+' 列配電跳脫',t0:t0,dur:dur||R(10,18)*60,loc:function(){return [gx(55+col)+.5,gy(5),.6];},onEnd:function(){ks.forEach(function(k){PADS[k].off=false;});ACT.chg=false;}});},
+  qa:function(t0,dur){if(ACT.qa)return null;ACT.qa=true;
+    return addAlert({kind:'qa',sev:'warn',title:'QA 抽檢異常',where:'包裝 · 抽檢台 · 面單錯貼率上升，加嚴抽檢',t0:t0,dur:dur||R(6,12)*60,loc:function(){return [QA_BENCH.x,QA_BENCH.y,1.2];},onEnd:function(){ACT.qa=false;}});}
+};
+function spawnRandom(){var w=[['crane',.22],['dl',.22],['tc',.2],['jam',.12],['chg',.12],['qa',.12]],u=rnd(),acc=0;for(var i=0;i<w.length;i++){acc+=w[i][1];if(u<=acc)return SPAWN[w[i][0]]();}}
+function eventsSim(){
+  for(var i=0;i<ALERTS.length;i++){var a=ALERTS[i];if(!a.done&&a.end&&TS>=a.end)resolve(a);}
+  if(TS>=nextEv){spawnRandom();nextEv=TS+R(8,17)*60;}
+  if(TS>=nextWave){var n=Math.round(demand((TS%86400)/3600)*R(.11,.14)/10)*10;addAlert({kind:'wave',sev:'info',title:'第 '+(waveNo++)+' 波次釋放 · '+fmt(n)+' 單',where:'WMS · 依截單時間排序，優先北航與島運車次',dur:0,done:true});nextWave+=3600;}
+  if(F.W>26000&&TS-lastBacklog>3600){lastBacklog=TS;addAlert({kind:'backlog',sev:'warn',title:'訂單積壓 '+fmt(F.W)+' 單',where:'等待釋放 · 已啟動加班與跨區支援',dur:20*60});}
+}
+(function seedAlerts(){
+  addAlert({kind:'tc',sev:'warn',title:'交通管制 B04',where:'機器人揀貨區 · 技師進場更換地標，封閉 30 格',t0:TS-93*60,done:true,tEnd:TS-84*60});
+  addAlert({kind:'wave',sev:'info',title:'第 13 波次釋放 · 1,840 單',where:'WMS · 依截單時間排序',t0:TS-74*60,done:true,tEnd:TS-74*60});
+  addAlert({kind:'chg',sev:'warn',title:'充電樁離線 4 座',where:'充電區 · C6 列配電跳脫',t0:TS-41*60,done:true,tEnd:TS-27*60});
+  addAlert({kind:'wave',sev:'info',title:'第 14 波次釋放 · 1,920 單',where:'WMS · 依截單時間排序',t0:TS-14*60,done:true,tEnd:TS-14*60});
+  var c=CR[3];c.z=2.6;c.x=24.5;c.ph=1;SPAWN.crane(TS-5*60-40,17*60,c);
+  var a2=SPAWN.dl(TS-110,14*60);
+  if(DL){DL.i0=22;DL.j0=12;DL.i1=28;DL.j1=17;a2.title='區域死結 '+cellName(22,12)+'–'+cellName(28,17);}
+})();
+
+/* ═════════ 視圖 ═════════ */
+var cv=$('#map'),ctx=cv.getContext('2d'),stc=document.createElement('canvas'),sctx=stc.getContext('2d');
+var g=ctx,dpr=1,CW=0,CH=0,staticDirty=true;
+var V={iso:true,s:5,ox:0,oy:0,fitS:5,user:false};
+function P(x,y,z){return V.iso?[V.ox+(x-y)*C30*V.s,V.oy+(x+y)*.5*V.s-z*ZK*V.s]:[V.ox+x*V.s,V.oy+y*V.s];}
+function unproject(sx,sy){if(V.iso){var X=(sx-V.ox)/(C30*V.s),Y=(sy-V.oy)/(.5*V.s);return [(X+Y)/2,(Y-X)/2];}return [(sx-V.ox)/V.s,(sy-V.oy)/V.s];}
+function Tf(){var s=V.s*dpr;if(V.iso)g.setTransform(C30*s,.5*s,-C30*s,.5*s,V.ox*dpr,V.oy*dpr);else g.setTransform(s,0,0,s,V.ox*dpr,V.oy*dpr);}
+function Tz(z){var s=V.s*dpr;g.setTransform(C30*s,.5*s,-C30*s,.5*s,V.ox*dpr,(V.oy-z*ZK*V.s)*dpr);}
+function Ty(y){var s=V.s*dpr;g.setTransform(C30*s,.5*s,0,-ZK*s,(V.ox-y*C30*V.s)*dpr,(V.oy+y*.5*V.s)*dpr);}
+function Tx(x){var s=V.s*dpr;g.setTransform(-C30*s,.5*s,0,-ZK*s,(V.ox+x*C30*V.s)*dpr,(V.oy+x*.5*V.s)*dpr);}
+function Ts(){g.setTransform(dpr,0,0,dpr,0,0);}
+function box(x0,y0,x1,y1,z0,h,cT,cF,cR){
+  if(V.iso){Ty(y1);g.fillStyle=cF;g.fillRect(x0,z0,x1-x0,h);Tx(x1);g.fillStyle=cR;g.fillRect(y0,z0,y1-y0,h);Tz(z0+h);g.fillStyle=cT;g.fillRect(x0,y0,x1-x0,y1-y0);}
+  else{Tf();var o=(z0+h)*.16+.05;g.fillStyle='rgba(0,0,0,.38)';g.fillRect(x0+o*.7,y0+o,x1-x0,y1-y0);g.fillStyle=cT;g.fillRect(x0,y0,x1-x0,y1-y0);}
+}
+function rprism(cx,cy,ang,len,wid,z0,h,col){
+  var c=Math.cos(ang),s=Math.sin(ang),hl=len/2,hw=wid/2,X=[],Y=[],L=[[hl,hw],[-hl,hw],[-hl,-hw],[hl,-hw]];
+  for(var k=0;k<4;k++){X.push(cx+L[k][0]*c-L[k][1]*s);Y.push(cy+L[k][0]*s+L[k][1]*c);}
+  if(!V.iso){Tf();var o=(z0+h)*.16+.05;g.fillStyle='rgba(0,0,0,.38)';g.beginPath();for(k=0;k<4;k++)g[k?'lineTo':'moveTo'](X[k]+o*.7,Y[k]+o);g.fill();g.fillStyle=col;g.beginPath();for(k=0;k<4;k++)g[k?'lineTo':'moveTo'](X[k],Y[k]);g.fill();return;}
+  Ts();
+  for(k=0;k<4;k++){var k2=(k+1)&3,ex=X[k2]-X[k],ey=Y[k2]-Y[k],nx=ey,ny=-ex,mx=(X[k]+X[k2])/2-cx,my=(Y[k]+Y[k2])/2-cy;if(nx*mx+ny*my<0){nx=-nx;ny=-ny;}
+    if(nx+ny<=0)continue;var nl=Math.hypot(nx,ny),f=.52+.3*((nx-ny)/nl*.5+.5);
+    var a=P(X[k],Y[k],z0),b=P(X[k2],Y[k2],z0),cc=P(X[k2],Y[k2],z0+h),d=P(X[k],Y[k],z0+h);
+    g.fillStyle=sh(col,Math.round(f*20)/20);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineTo(cc[0],cc[1]);g.lineTo(d[0],d[1]);g.fill();}
+  g.fillStyle=col;g.beginPath();for(k=0;k<4;k++){var p=P(X[k],Y[k],z0+h);g[k?'lineTo':'moveTo'](p[0],p[1]);}g.fill();
+}
+function rawExtent(){var mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9,xs=[WB.x0,WB.x1],ys=[WB.y0,WB.y1];
+  xs.forEach(function(x){ys.forEach(function(y){[0,7].forEach(function(z){var sx=V.iso?(x-y)*C30:x,sy=V.iso?(x+y)*.5-z*ZK:y;mnx=Math.min(mnx,sx);mxx=Math.max(mxx,sx);mny=Math.min(mny,sy);mxy=Math.max(mxy,sy);});});});
+  return [mnx,mxx,mny,mxy];}
+function fit(){var e=rawExtent(),pad=10,top=34,bot=CW<600?44:34;var s=Math.min((CW-pad*2)/(e[1]-e[0]),(CH-top-bot)/(e[3]-e[2]));
+  V.s=s;V.fitS=s;V.ox=(CW-(e[1]-e[0])*s)/2-e[0]*s;V.oy=top+((CH-top-bot)-(e[3]-e[2])*s)/2-e[2]*s;V.user=false;
+  if(CW<600)zoomAt(CW*.42,CH*.5,1.55,true);staticDirty=true;}
+function zoomAt(px,py,f,keep){var ns=clamp(V.s*f,V.fitS*.7,V.fitS*9);f=ns/V.s;V.ox=px-(px-V.ox)*f;V.oy=py-(py-V.oy)*f;V.s=ns;if(!keep)V.user=true;staticDirty=true;}
+function resize(){var r=cv.parentNode.getBoundingClientRect();CW=Math.max(10,Math.round(r.width));CH=Math.max(10,Math.round(r.height));dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=stc.width=Math.round(CW*dpr);cv.height=stc.height=Math.round(CH*dpr);
+  if(!V.user)fit();staticDirty=true;}
+
+/* ═════════ 靜態地板層 ═════════ */
+function floorText(x,y,txt,size,color,weight,font){g.save();g.translate(x,y);g.scale(.1,.1);g.font=(weight||700)+' '+size+'px '+(font||'"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif');g.fillStyle=color;g.fillText(txt,0,0);g.restore();}
+var ZHF='"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+var NUMF='"DIN Alternate","Bahnschrift","Roboto Condensed","Arial Narrow",sans-serif';
+function walkway(x,y,w,h){g.fillStyle='rgba(76,195,138,.07)';g.fillRect(x,y,w,h);g.strokeStyle='rgba(76,195,138,.42)';g.lineWidth=.13;g.beginPath();if(w>h){g.moveTo(x,y);g.lineTo(x+w,y);g.moveTo(x,y+h);g.lineTo(x+w,y+h);}else{g.moveTo(x,y);g.lineTo(x,y+h);g.moveTo(x+w,y);g.lineTo(x+w,y+h);}g.stroke();}
+function drawStatic(){
+  g=sctx;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,stc.width,stc.height);
+  Tf();
+  g.fillStyle='#141517';g.fillRect(WB.x0-60,WB.y0-60,WB.x1-WB.x0+120,WB.y1-WB.y0+120);
+  g.fillStyle='#1b1c1f';g.fillRect(-80,89.4,260,4.2);g.fillRect(129.4,-80,4.2,260);
+  g.strokeStyle='rgba(242,194,48,.32)';g.lineWidth=.14;g.setLineDash([1.6,1.4]);g.beginPath();g.moveTo(-80,91.5);g.lineTo(180,91.5);g.moveTo(131.5,-80);g.lineTo(131.5,180);g.stroke();g.setLineDash([]);
+  g.fillStyle='#18191c';g.fillRect(0,80,121,9.4);g.fillRect(120,0,9.4,81);
+  g.strokeStyle='rgba(255,255,255,.13)';g.lineWidth=.12;g.beginPath();
+  DOCKS.forEach(function(d){if(d.kind==='out'){g.moveTo(d.a-2.7,80.2);g.lineTo(d.a-2.7,89);g.moveTo(d.a+2.7,80.2);g.lineTo(d.a+2.7,89);}else{g.moveTo(120.2,d.a-2.7);g.lineTo(129,d.a-2.7);g.moveTo(120.2,d.a+2.7);g.lineTo(129,d.a+2.7);}});g.stroke();
+  g.fillStyle='#232528';g.fillRect(0,0,120,80);
+  g.strokeStyle='rgba(255,255,255,.035)';g.lineWidth=.1;g.beginPath();for(var x=10;x<120;x+=10){g.moveTo(x,0);g.lineTo(x,80);}for(var y=10;y<80;y+=10){g.moveTo(0,y);g.lineTo(120,y);}g.stroke();
+  ZONES.forEach(function(z){g.fillStyle=z.c;g.fillRect(z.x,z.y,z.w,z.h);g.strokeStyle=z.id==='BR'?'rgba(76,195,138,.6)':'rgba(242,194,48,.5)';g.lineWidth=.24;g.strokeRect(z.x,z.y,z.w,z.h);});
+  walkway(2,46,116,3);walkway(2,66,96,2);walkway(44,49,3,17);walkway(98.6,16,1.3,64);walkway(44,3,3,43);
+  /* 機器人網格地標 */
+  g.fillStyle='rgba(255,255,255,.1)';for(var j=0;j<GR;j++)for(var i=0;i<GC;i++){if(wall[gi(i,j)])continue;g.fillRect(gx(i)-.08,gy(j)-.08,.16,.16);}
+  g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=.06;g.strokeRect(GX0,GY0,RBC*CELL,GR*CELL);
+  /* 充電樁 */
+  PADS.forEach(function(p){g.strokeStyle='rgba(91,156,240,.55)';g.lineWidth=.1;g.strokeRect(gx(p.i)-.42,gy(p.j)-.42,.84,.84);g.fillStyle='rgba(91,156,240,.5)';g.fillRect(gx(p.i)-.1,gy(p.j)-.55,.2,.12);});
+  for(var k=0;k<8;k++){g.strokeStyle='rgba(91,156,240,.4)';g.lineWidth=.1;g.strokeRect(100.2+k*2.1,16.1,1.9,1.8);}
+  /* 揀貨站前的呈現格與排隊線 */
+  STATIONS.forEach(function(s){g.fillStyle='rgba(242,194,48,.18)';g.fillRect(s.x-.5,gy(GR-1)-.5,1,1);g.strokeStyle='rgba(242,194,48,.28)';g.lineWidth=.1;g.setLineDash([.4,.4]);g.beginPath();g.moveTo(s.x,gy(GR-5));g.lineTo(s.x,gy(GR-2));g.stroke();g.setLineDash([]);});
+  /* 高架：軌道與出入口 */
+  g.strokeStyle='rgba(200,200,200,.18)';g.lineWidth=.1;g.beginPath();AISLE.forEach(function(a){g.moveTo(4,a);g.lineTo(44,a);});g.stroke();
+  AISLE.forEach(function(a){g.fillStyle='rgba(242,194,48,.35)';g.fillRect(43.6,a-.7,.9,1.4);});
+  /* 分揀環線、滑槽、入料輸送帶 */
+  g.fillStyle='#303338';g.fillRect(37,57.45,59.6,1.1);
+  g.strokeStyle='rgba(255,255,255,.07)';g.lineWidth=.06;g.beginPath();for(x=37.4;x<96.5;x+=.7){g.moveTo(x,57.45);g.lineTo(x,58.55);}g.stroke();
+  g.beginPath();g.moveTo(12,55);g.lineTo(34,55);g.arc(34,58,3,-Math.PI/2,Math.PI/2);g.lineTo(12,61);g.arc(12,58,3,Math.PI/2,Math.PI*1.5);g.closePath();
+  g.strokeStyle='#363a40';g.lineWidth=1.25;g.stroke();g.strokeStyle='rgba(255,255,255,.1)';g.lineWidth=.07;g.stroke();
+  CHUTES.forEach(function(c){g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=.08;g.strokeRect(c.x-1,c.top?51.4:61.7,2,2.9);});
+  /* 出貨暫存道 */
+  DOCKS.forEach(function(d){if(d.kind!=='out')return;g.fillStyle='rgba(255,255,255,.025)';g.fillRect(d.a-1.6,72.4,3.2,7.2);g.strokeStyle='rgba(242,194,48,.25)';g.lineWidth=.08;g.strokeRect(d.a-1.6,72.4,3.2,7.2);});
+  /* 碼頭門 */
+  DOCKS.forEach(function(d){g.fillStyle=d.kind==='out'?'rgba(242,194,48,.75)':d.kind==='in'?'rgba(91,156,240,.8)':'rgba(255,122,26,.8)';
+    if(d.kind==='out'){g.fillRect(d.a-1.6,79.55,3.2,.45);floorText(d.a-1.3,82.2,d.id,15,'rgba(236,232,223,.5)',700,NUMF);}
+    else{g.fillRect(119.55,d.a-1.6,.45,3.2);floorText(121,d.a-1.9,d.id,13,'rgba(236,232,223,.5)',700,NUMF);}});
+  /* 休息室家具 */
+  g.fillStyle='rgba(76,195,138,.12)';[[86,74.5],[90.5,74.5],[95,74.5]].forEach(function(t){g.beginPath();g.arc(t[0],t[1],1.1,0,7);g.fill();});
+  /* 區域標字 */
+  ZONES.forEach(function(z){floorText(z.lx,z.ly,z.n,z.fs||20,'rgba(236,232,223,.2)',700);floorText(z.lx,z.ly+(z.fs?1.25:1.6),z.e,z.fs?7:9,'rgba(242,194,48,.36)',600,NUMF);});
+  floorText(3,49.1,'主通道 MAIN AISLE',8,'rgba(76,195,138,.5)',600);
+  floorText(-1,95.6,'出貨車道 →',14,'rgba(236,232,223,.22)',700);
+  /* 牆面 */
+  if(V.iso){
+    Tx(0);g.fillStyle='#1a1c1f';g.fillRect(0,0,80,7);g.fillStyle='rgba(242,194,48,.55)';g.fillRect(0,0,80,.32);
+    Ty(0);g.fillStyle='#1e2024';g.fillRect(0,0,120,7);g.fillStyle='rgba(242,194,48,.55)';g.fillRect(0,0,120,.32);
+    g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=.08;g.beginPath();for(x=6;x<120;x+=6){g.moveTo(x,0);g.lineTo(x,7);}g.stroke();
+    g.fillStyle='#0b0b0c';g.fillRect(62,3.3,28,2.6);g.fillStyle='#f2c230';g.fillRect(62,3.3,28,.18);g.fillRect(62,5.72,28,.18);
+    g.save();g.scale(.1,-.1);g.font='700 17px '+NUMF;g.fillStyle='#f2c230';g.fillText('BLACK FRIDAY · 尖峰作戰',640,-41);g.font='600 13px '+NUMF;g.fillStyle='rgba(236,232,223,.5)';g.fillText('DC-07  NORTHGATE FULFILLMENT  ·  北區履約中心',96,-56);g.restore();
+    Tz(7);g.fillStyle='#2c2f34';g.fillRect(-.4,-.4,120.4,.4);g.fillRect(-.4,0,.4,80);
+  } else {g.strokeStyle='#3d4046';g.lineWidth=.6;g.strokeRect(0,0,120,80);}
+  staticDirty=false;g=ctx;
+}
+
+/* ═════════ 動態繪製 ═════════ */
+var items=[],blink=false,nowMs=0;
+var parcelsC=[],parcelsL=[];for(var pc=0;pc<26;pc++)parcelsC.push(37.5+pc*2.27+R(0,.8));for(pc=0;pc<36;pc++)parcelsL.push(pc*LOOP_L/36+R(0,.6));
+function drawFlat(){
+  g=ctx;Tf();
+  PADS.forEach(function(p){if(p.off){g.strokeStyle='rgba(255,74,61,.9)';g.lineWidth=.14;g.beginPath();g.moveTo(gx(p.i)-.45,gy(p.j)-.45);g.lineTo(gx(p.i)+.45,gy(p.j)+.45);g.moveTo(gx(p.i)+.45,gy(p.j)-.45);g.lineTo(gx(p.i)-.45,gy(p.j)+.45);g.stroke();}
+    else if(p.own>=0&&ROB[p.own].st===ST.CHG){g.fillStyle='rgba(91,156,240,'+(.18+.12*Math.sin(nowMs/300+p.i))+')';g.fillRect(gx(p.i)-.45,gy(p.j)-.45,.9,.9);}});
+  CHUTES.forEach(function(c){var lv=clamp(c.lv,0,1),y0=c.top?51.45:61.75;g.fillStyle=lv>.9?'rgba(255,122,26,.8)':'rgba(184,145,94,.65)';if(c.top)g.fillRect(c.x-.9,y0+2.8*(1-lv),1.8,2.8*lv);else g.fillRect(c.x-.9,y0,1.8,2.8*lv);});
+  if(ACT.tc){var t=ACT.tc,x0=gx(t.i0)-.5,y0=gy(t.j0)-.5,w=(t.i1-t.i0+1)*CELL,h=(t.j1-t.j0+1)*CELL;g.save();g.beginPath();g.rect(x0,y0,w,h);g.clip();g.strokeStyle='rgba(242,194,48,.45)';g.lineWidth=.38;g.beginPath();for(var s=-h;s<w;s+=.95){g.moveTo(x0+s,y0+h);g.lineTo(x0+s+h,y0);}g.stroke();g.restore();g.strokeStyle='#f2c230';g.lineWidth=.16;g.strokeRect(x0,y0,w,h);}
+  if(DL){var d=DL,dx0=gx(d.i0)-.5,dy0=gy(d.j0)-.5,dw=(d.i1-d.i0+1)*CELL,dh=(d.j1-d.j0+1)*CELL;g.fillStyle='rgba(255,74,61,'+(.1+.08*Math.sin(nowMs/220))+')';g.fillRect(dx0,dy0,dw,dh);g.strokeStyle='#ff4a3d';g.lineWidth=.16;g.setLineDash([.6,.4]);g.strokeRect(dx0,dy0,dw,dh);g.setLineDash([]);}
+  /* 出貨暫存棧板 */
+  for(var k=0;k<8;k++){var dd=DOCKS[k],n=Math.min(6,Math.round(F.D/WIPCAP.D*6*DOCK_W[k]*(dd.st==='work'?1:.5)));for(var m=0;m<n;m++){var py=78.7-m*1.15;box(dd.a-.55,py-.5,dd.a+.55,py+.5,0,.75,'#c9a46e','#7e6240','#9b7a50');}}
+  for(var i=0;i<parcelsC.length;i++){var px=parcelsC[i];box(px-.3,57.7,px+.3,58.3,.15,.42,'#cfa874','#7a5e3c','#9a7850');}
+  for(i=0;i<parcelsL.length;i++){var lp=loopPos(parcelsL[i]);box(lp[0]-.3,lp[1]-.3,lp[0]+.3,lp[1]+.3,.15,.42,'#cfa874','#7a5e3c','#9a7850');}
+}
+function pushItem(k,t,o,x,y,h){items.push({k:V.iso?k:h*1000+y,t:t,o:o,x:x,y:y});}
+function buildItems(){
+  items.length=0;var i,o;
+  for(i=0;i<BAYS.length;i++){o=BAYS[i];pushItem((o.x0+o.x1)/2+(o.y0+o.y1)/2,0,o,0,(o.y0+o.y1)/2,RACK_H);}
+  for(i=0;i<CR.length;i++){o=CR[i];pushItem(o.x+o.y,1,o,0,o.y,6.6);}
+  for(i=0;i<STATIONS.length;i++){o=STATIONS[i];pushItem(o.x+41,6,o,0,41,1.6);}
+  for(i=0;i<BENCHES.length;i++){o=BENCHES[i];pushItem(o.x+o.y,7,o,0,o.y,.9);}
+  pushItem(QA_BENCH.x+QA_BENCH.y,7,QA_BENCH,0,QA_BENCH.y,.9);
+  for(i=0;i<NR;i++){o=ROB[i];var p=robotXY(o);pushItem(p[0]+p[1],2,o,p[0],p[1],1);}
+  for(i=0;i<WK_.length;i++){o=WK_[i];pushItem(o.x+o.y+.2,3,o,o.x,o.y,2);}
+  for(i=0;i<FL.length;i++){o=FL[i];pushItem(o.x+o.y,4,o,o.x,o.y,2.1);}
+  for(i=0;i<DOCKS.length;i++){o=DOCKS[i];var tp=truckPose(o);if(tp){o.pose=tp;pushItem(tp.x+tp.y,5,o,tp.x,tp.y,3.6);}else o.pose=null;}
+  items.sort(function(a,b){return a.k-b.k;});
+}
+var CART=['#b8915e','#a8844f','#c49b66','#9e7a4c'];
+function drawBay(B){
+  var x0=B.x0,x1=B.x1,y0=B.y0,y1=B.y1,h=RACK_H;
+  if(!V.iso){Tf();g.fillStyle='rgba(0,0,0,.4)';g.fillRect(x0+.6,y0+.9,4,2);g.fillStyle='#2b3440';g.fillRect(x0,y0,4,2);
+    for(var f=0;f<2;f++)for(var c=0;c<2;c++){var cnt=0;for(var l=0;l<5;l++)cnt+=B.occ[f*10+c*5+l];if(!cnt)continue;g.fillStyle=CART[(B.tone+c+f)&3];g.globalAlpha=.35+cnt*.13;g.fillRect(x0+.2+c*1.9,f?y0+1.05:y0+.15,1.7,.8);}
+    g.globalAlpha=1;g.fillStyle='#e0702a';g.fillRect(x0,y0,4,.12);g.fillRect(x0,y1-.12,4,.12);return;}
+  Tx(x1);g.fillStyle='#18202a';g.fillRect(y0,0,2,h);g.fillStyle='#3c6fa0';g.fillRect(y0,0,.14,h);g.fillRect(y1-.14,0,.14,h);
+  g.fillStyle='#c4611f';for(var l2=0;l2<=LV;l2++)g.fillRect(y0,l2*LH-.05,2,.1);
+  Ty(y1);g.fillStyle='#141a21';g.fillRect(x0,0,4,h);
+  for(var l3=0;l3<LV;l3++)for(var c2=0;c2<2;c2++){if(!B.occ[10+c2*5+l3])continue;var col=CART[(B.tone+l3+c2)&3];g.fillStyle=col;g.fillRect(x0+.18+c2*1.92,l3*LH+.06,1.7,LH*.7);g.fillStyle=sh(col,1.18);g.fillRect(x0+.18+c2*1.92,l3*LH+.06+LH*.62,1.7,LH*.08);}
+  g.fillStyle='#e0702a';for(var l4=0;l4<=LV;l4++)g.fillRect(x0,l4*LH-.06,4,.12);
+  g.fillStyle='#3c6fa0';g.fillRect(x0,0,.15,h);g.fillRect(x0+1.93,0,.14,h);g.fillRect(x1-.15,0,.15,h);
+  Tz(h);g.fillStyle='#26303b';g.fillRect(x0,y0,4,2);
+  for(var f2=0;f2<2;f2++)for(var c3=0;c3<2;c3++){if(!B.occ[f2*10+c3*5+4])continue;g.fillStyle=sh(CART[(B.tone+c3)&3],.85);g.fillRect(x0+.2+c3*1.9,f2?y0+1.05:y0+.15,1.7,.8);}
+  g.fillStyle='#e0702a';g.fillRect(x0,y0,4,.1);g.fillRect(x0,y1-.1,4,.1);
+}
+function drawCrane(c){
+  var bad=c.st==='fault',mc=bad?(blink?'#ff4a3d':'#8c2a22'):'#e8d36a';
+  if(!V.iso){Tf();g.fillStyle='rgba(0,0,0,.35)';g.fillRect(c.x-.2,c.y-1.1,.9,2.6);g.fillStyle=mc;g.fillRect(c.x-.45,c.y-1.2,.9,2.4);g.fillStyle=bad?'#ff4a3d':'#ff7a1a';g.fillRect(c.x-.25,c.y-.55,.5,1.1);return;}
+  box(c.x-.75,c.y-.55,c.x+.75,c.y+.55,c.z,.42,'#ff9a3c','#a24d12','#c9631a');
+  box(c.x-.22,c.y-.32,c.x+.22,c.y+.32,0,6.4,mc,sh(bad?'#ff4a3d':'#e8d36a',.55),sh(bad?'#ff4a3d':'#e8d36a',.78));
+  box(c.x-.4,c.y-1.15,c.x+.4,c.y+1.15,6.4,.22,'#3a3d42','#24262a','#2e3035');
+}
+function drawRobot(r,x,y){
+  var cat=CAT[r.st],col=r.frz?(blink?'#ff4a3d':'#8c2a22'):CATC[cat],h=cat===0?.9:.4,s=.34;
+  if(r.st===ST.AT){h=1.05;}
+  box(x-s,y-s,x+s,y+s,0,h,col,sh(col,.5),sh(col,.72));
+}
+function drawStation(s){
+  var on=s.open,x=s.x;
+  box(x-1.35,40.4,x+1.35,41.6,0,.95,'#454a52','#2a2d33','#363a41');
+  box(x-.7,40.45,x+.7,40.65,.95,.75,on?'#2c3a33':'#3a2626',on?(s.q>3?'#f2c230':'#4cc38a'):'#ff4a3d',on?'#2f6b4f':'#8c2a22');
+}
+function drawBench(b){
+  var qa=b===QA_BENCH;box(b.x-1.5,b.y-.7,b.x+1.5,b.y+.7,0,.85,qa?'#2f6b62':'#4a4f57',qa?'#1f4741':'#30343a',qa?'#285a53':'#3c4047');
+  if(!qa&&((b.x*7+Math.floor(nowMs/2400))|0)%3===0)box(b.x-.5,b.y-.35,b.x+.3,b.y+.35,.85,.45,'#cfa874','#7a5e3c','#9a7850');
+}
+function drawWorker(w){
+  var p=P(w.x,w.y,0),q=P(w.x,w.y,1.15);Ts();var r=clamp(V.s*.4,1.6,7);
+  g.fillStyle='rgba(0,0,0,.4)';g.beginPath();g.ellipse(p[0],p[1],r*1.1,r*.55,0,0,6.2832);g.fill();
+  if(V.iso){g.strokeStyle='rgba(244,239,228,.35)';g.lineWidth=Math.max(1,r*.35);g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke();}
+  var brk=w.st==='brk'||w.st==='go';g.fillStyle=brk?'#9aa0a8':'#f4efe4';g.beginPath();g.arc(q[0],q[1],r,0,6.2832);g.fill();
+  g.lineWidth=1;g.strokeStyle='#0d0e10';g.stroke();
+  if(!brk&&r>2.6){g.fillStyle=w.home==='RB'||w.home==='CH'?'#5b9cf0':'#c8f04a';g.beginPath();g.arc(q[0],q[1],r*.42,0,6.2832);g.fill();}
+}
+function drawFL(f){
+  var a=f.ang,c=Math.cos(a),s=Math.sin(a),front=V.iso?(c+s)>0:true,col=f.st==='mnt'?'#8a6e52':'#ff7a1a';
+  function body(){rprism(f.x-c*.15,f.y-s*.15,a,1.6,1.05,0,.9,col);rprism(f.x-c*.35,f.y-s*.35,a,.7,.95,.9,.55,'#2b2e33');}
+  function mast(){rprism(f.x+c*.72,f.y+s*.72,a,.16,.95,0,2.1,'#3a3d42');if(f.load)rprism(f.x+c*1.32,f.y+s*1.32,a,1,1,.15,.85,'#c49b66');}
+  if(front){body();mast();}else{mast();body();}
+}
+function drawTruck(d){
+  var tp=d.pose,c=Math.cos(tp.ang),s=Math.sin(tp.ang);
+  var tr=[tp.x-c*1.2,tp.y-s*1.2],cb=[tp.x+c*3.95,tp.y+s*3.95];
+  var trailer=function(){rprism(tr[0],tr[1],tp.ang,7.6,2.5,.45,3.15,d.kind==='ret'?'#c9c3b5':'#d9d6cf');},cab=function(){rprism(cb[0],cb[1],tp.ang,2.1,2.4,.3,2.6,d.tr?d.tr.col:'#888');};
+  if(V.iso&&(tr[0]+tr[1])>(cb[0]+cb[1])){cab();trailer();}else{trailer();cab();}
+}
+function drawItems(){
+  for(var i=0;i<items.length;i++){var it=items[i];
+    switch(it.t){case 0:drawBay(it.o);break;case 1:drawCrane(it.o);break;case 2:drawRobot(it.o,it.x,it.y);break;case 3:drawWorker(it.o);break;case 4:drawFL(it.o);break;case 5:drawTruck(it.o);break;case 6:drawStation(it.o);break;case 7:drawBench(it.o);break;}}
+}
+var FOCUS=null,hoverObj=null;
+function drawOverlay(){
+  Ts();var placed=[];
+  ALERTS.forEach(function(a){
+    if(a.done||!a.loc||a.sev==='info')return;
+    var L=a.loc(),p=P(L[0],L[1],L[2]),crit=a.sev==='crit';
+    var ph=(nowMs/1000)%1.2/1.2;
+    if(!reduce){g.strokeStyle=crit?'rgba(255,74,61,'+(1-ph)+')':'rgba(255,154,31,'+(1-ph)+')';g.lineWidth=2;g.beginPath();g.arc(p[0],p[1],5+ph*16,0,6.2832);g.stroke();}
+    g.fillStyle=crit?'#ff4a3d':'#ff9a1f';g.beginPath();g.arc(p[0],p[1],3.2,0,6.2832);g.fill();
+    g.font='600 11.5px '+ZHF;
+    var txt=a.title,sub=hms(TS-a.t0).slice(3),tw=g.measureText(txt).width,w=tw+44,h=21;
+    var bx=p[0]+14,by=p[1]-40;
+    if(bx+w>CW-6)bx=p[0]-14-w;if(by<44)by=p[1]+18;
+    for(var t=0;t<8;t++){var hit=false;for(var k=0;k<placed.length;k++){var q=placed[k];if(bx<q[0]+q[2]&&bx+w>q[0]&&by<q[1]+q[3]+3&&by+h+3>q[1]){hit=true;break;}}if(!hit)break;by-=h+5;}
+    placed.push([bx,by,w,h]);
+    g.strokeStyle=crit?'#ff4a3d':'#ff9a1f';g.lineWidth=1.2;g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(bx+(bx>p[0]?0:w),by+h/2);g.stroke();
+    g.fillStyle=crit?'#ff4a3d':'#ff9a1f';g.fillRect(bx,by,w,h);
+    g.fillStyle=crit?'#fff':'#111';g.textBaseline='middle';g.fillText(txt,bx+7,by+h/2+.5);
+    g.font='500 10px '+NUMF;g.globalAlpha=.85;g.fillText(sub,bx+tw+12,by+h/2+.5);g.globalAlpha=1;g.textBaseline='alphabetic';
+  });
+  if(FOCUS){var age=(nowMs-FOCUS.t)/1000;if(age>2.6)FOCUS=null;else{var fp=P(FOCUS.x,FOCUS.y,FOCUS.z);for(var r2=0;r2<2;r2++){var ph2=((age+r2*.5)%1);g.strokeStyle='rgba(242,194,48,'+(1-ph2)+')';g.lineWidth=2;g.beginPath();g.arc(fp[0],fp[1],6+ph2*26,0,6.2832);g.stroke();}}}
+  if(hoverObj&&hoverObj.sp){g.strokeStyle='#f2c230';g.lineWidth=1.5;g.beginPath();g.arc(hoverObj.sp[0],hoverObj.sp[1],8,0,6.2832);g.stroke();}
+}
+function draw(){
+  if(staticDirty)drawStatic();
+  g=ctx;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cv.width,cv.height);g.drawImage(stc,0,0);
+  drawFlat();buildItems();drawItems();drawOverlay();
+}
+
+/* ═════════ 每幀推進 ═════════ */
+function visStep(dv){
+  /* 機器人 */
+  for(var i=0;i<NR;i++)stepRobot(ROB[i],dv);
+  fleetCnt[0]=fleetCnt[1]=fleetCnt[2]=fleetCnt[3]=0;busyN=0;frozenN=0;var bs=0,chg=0;
+  for(i=0;i<NR;i++){var r=ROB[i],c=CAT[r.st];fleetCnt[c]++;bs+=r.bat;if(r.frz)frozenN++;if(r.st>=ST.GO&&r.st<=ST.DROP)busyN++;if(r.st===ST.CHG||r.st===ST.TOCH)chg++;}
+  batAvg=bs/NR;
+  util=clamp(rates.pick/17760,.3,.97);
+  targetBusy=Math.round(util*(NR-chg)*.93);
+  var need=targetBusy-busyN,start=Math.floor(rnd()*NR);
+  for(i=0;i<NR&&need>0;i++){var rr=ROB[(start+i)%NR];if(rr.st!==ST.IDLE||rr.ni>=0||rr.frz)continue;if(rr.bat<24){goCharge(rr);continue;}rr.st=ST.GO;setT(rr,randStorage());need--;}
+  for(i=0;i<NR;i++){var ri=ROB[i];if(ri.st===ST.IDLE&&ri.bat<24&&rnd()<.02)goCharge(ri);}
+  /* 人、堆高機、吊車、卡車、輸送帶 */
+  for(i=0;i<WK_.length;i++)stepWorker(WK_[i],dv);
+  for(i=0;i<FL.length;i++)stepFL(FL[i],dv);
+  for(i=0;i<CR.length;i++)stepCrane(CR[i],dv);
+  dockAnim(dv);
+  if(!ACT.jam){var sp=2.4*dv;for(i=0;i<parcelsC.length;i++){parcelsC[i]-=sp;if(parcelsC[i]<37.4)parcelsC[i]+=59.2;}for(i=0;i<parcelsL.length;i++)parcelsL[i]+=3*dv;}
+  var sFill=F.S/WIPCAP.S;
+  CHUTES.forEach(function(c){var tgt=clamp(sFill*c.w*(ACT.jam?1.2:1),0,1);c.lv+=(tgt-c.lv)*Math.min(1,dv*.8);});
+}
+
+/* ═════════ 面板 UI ═════════ */
+var el={tm:$('#tm'),dt:$('#dt'),bf:$('#bfTag'),kShip:$('#kShip'),kShipS:$('#kShipS'),kUph:$('#kUph'),kUphS:$('#kUphS'),kWip:$('#kWip'),kWipS:$('#kWipS'),kSla:$('#kSla'),kSlaS:$('#kSlaS'),kFleet:$('#kFleet'),kFleetS:$('#kFleetS'),kStaff:$('#kStaff'),kStaffS:$('#kStaffS'),mapSub:$('#mapSub')};
+function setTxt(e,v){if(e.textContent!==v)e.textContent=v;}
+function setCls(e,c){if(e.className!==c)e.className=c;}
+function fcToNow(){var hf=(TS%86400)/3600,h=Math.floor(hf),s=0;for(var i=0;i<h;i++)s+=FC[i];return s+FC[h]*(hf-h);}
+function uph(){var s=0;for(var i=0;i<minRing.length;i++)s+=minRing[i];return s*60/minRing.length;}
+function updateHeader(){
+  setTxt(el.tm,hms(TS));
+  var day=Math.floor(TS/86400),d=new Date(BASE+day*86400000);
+  setTxt(el.dt,d.getUTCFullYear()+'/'+(d.getUTCMonth()+1)+'/'+d.getUTCDate()+' 週'+WK[d.getUTCDay()]+' · '+(S?'模擬 '+S+'×':'已暫停'));
+}
+function updateKPI(){
+  var fcn=fcToNow(),dl=(shippedDay/fcn-1)*100;
+  setTxt(el.kShip,fmt(shippedDay));setTxt(el.kShipS,'對預測 '+sgn(dl,1)+'%');setCls(el.kShipS,dl>=0?'up':dl>-4?'wn':'dn');
+  var u=uph(),hf=(TS%86400)/3600,fc=FC[Math.floor(hf)];setTxt(el.kUph,fmt(u));setTxt(el.kUphS,'本時預測 '+fmt(fc));setCls(el.kUphS,u>=fc*.97?'up':u>=fc*.88?'wn':'dn');
+  var wip=F.W+F.P+F.K+F.S+F.D+F.Q;setTxt(el.kWip,fmt(wip));setTxt(el.kWipS,'積壓 '+Math.round(F.W/Math.max(1,rates.pick)*60)+' 分鐘');
+  var sla=clamp(99.4-Math.max(0,F.W-9000)/1400-(ACT.jam?1.2:0),80,99.6);setTxt(el.kSla,sla.toFixed(1)+'%');setTxt(el.kSlaS,'今日目標 97.0%');setCls(el.kSla,sla>=97?'':sla>=93?'wn':'dn');
+  var fu=(fleetCnt[0]+fleetCnt[1])/NR*100;setTxt(el.kFleet,fu.toFixed(1)+'%');setTxt(el.kFleetS,'搬運 '+fleetCnt[0]+' · 受阻 '+frozenN);
+  setTxt(el.kStaffS,'作業 '+(93-brkN)+' · 休息 '+brkN);
+  var tk=DOCKS.filter(function(d){return d.st!=='empty';}).length;
+  setTxt(el.mapSub,'機器人 320 · 人員 93 · 堆高機 12 · 吊車 7 · 卡車在場 '+tk+' · 今日已發車 '+trucksOut);
+  var tag=DAYTAG[day(TS)]||'尖峰後續',sub=day(TS)===0?'尖峰作業 · 第 1 日':'尖峰作業 · 第 '+(day(TS)+1)+' 日';
+  if(el.bf.firstChild.nodeValue!==tag)el.bf.firstChild.nodeValue=tag;setTxt(el.bf.lastChild,sub);
+}
+function day(t){return Math.floor(t/86400);}
+function renderChart(){
+  var svg=$('#chart'),W=Math.max(220,Math.round(svg.getBoundingClientRect().width)||400),H=104,L=30,Rr=6,Tp=6,B=16,iw=W-L-Rr,ih=H-Tp-B,ym=20000;
+  function X(h){return L+h/24*iw;}function Y(v){return Tp+ih*(1-Math.min(v,ym*1.05)/ym);}
+  var s='',v,h;
+  for(v=0;v<=ym;v+=5000)s+='<line class="gl" x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="yl" x="'+(L-5)+'" y="'+(Y(v)+3)+'">'+(v?v/1000+'k':'0')+'</text>';
+  for(h=0;h<=24;h+=3)s+='<text class="xl" x="'+X(h)+'" y="'+(H-4)+'">'+p2(h)+'</text>';
+  var fp='';for(h=0;h<24;h++)fp+=(h?'L':'M')+X(h+.5).toFixed(1)+' '+Y(FC[h]).toFixed(1);
+  s+='<path class="fc" d="'+fp+'"/>';
+  var hf=(TS%86400)/3600,hn=Math.floor(hf),frac=Math.max(.02,hf-hn),ap='',area='';
+  for(h=0;h<hn;h++)ap+=(h?'L':'M')+X(h+.5).toFixed(1)+' '+Y(hourly[h]).toFixed(1);
+  if(hn>0){area=ap+'L'+X(hn-.5).toFixed(1)+' '+Y(0)+'L'+X(.5)+' '+Y(0)+'Z';s+='<path class="aa" d="'+area+'"/><path class="ac" d="'+ap+'"/>';
+    for(h=0;h<hn;h++)if(h>=hn-1)s+='<circle cx="'+X(h+.5)+'" cy="'+Y(hourly[h])+'" r="2.6" fill="#f2c230"/>';}
+  var proj=hourly[hn]/frac;
+  if(hn>0)s+='<path class="pj" d="M'+X(hn-.5)+' '+Y(hourly[hn-1])+'L'+X(hn+.5)+' '+Y(proj)+'"/>';
+  s+='<circle cx="'+X(hn+.5)+'" cy="'+Y(proj)+'" r="3" fill="#17181b" stroke="#f2c230" stroke-width="1.5"/>';
+  s+='<line class="nw" x1="'+X(hf)+'" x2="'+X(hf)+'" y1="'+Tp+'" y2="'+(Tp+ih)+'"/>';
+  var nx=X(hf);s+='<text class="nt" x="'+(nx>W-60?nx-4:nx+4)+'" y="'+(Tp+9)+'" style="text-anchor:'+(nx>W-60?'end':'start')+'">'+hhmm(TS)+' 推估 '+fmt(proj)+'</text>';
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.innerHTML=s;
+  var fcn=fcToNow(),dl=(shippedDay/fcn-1)*100;
+  setTxt($('#shipMeta'),fmt(shippedDay)+' / '+fmt(fcn)+' 件');
+  var sd=$('#shipDelta');setTxt(sd,sgn(dl,1)+'%');setCls(sd,dl>=0?'up':dl>-4?'wn':'dn');
+}
+var PIPE=[['W','等待釋放'],['P','揀貨中'],['K','包裝中'],['S','分揀槽'],['D','待裝車'],['Q','QA 重工']];
+(function buildPipe(){var h='';PIPE.forEach(function(p){h+='<div class="pr"><span class="lb">'+p[1]+'</span><div class="trk" id="pt'+p[0]+'"><i></i></div><span class="v" id="pv'+p[0]+'"></span><span class="d" id="pd'+p[0]+'"></span></div>';});$('#pipe').innerHTML=h;})();
+function renderPipe(){
+  var old=stageRing[Math.max(0,stageRing.length-11)]||F,tot=0;
+  PIPE.forEach(function(p){var k=p[0],v=F[k],f=v/WIPCAP[k];tot+=v;var t=$('#pt'+k);t.firstChild.style.width=Math.min(100,f*100).toFixed(1)+'%';setCls(t,'trk'+(f>=1?' ov':f>.85?' hi':''));
+    setTxt($('#pv'+k),fmt(v));var dd=v-old[k],pd=$('#pd'+k);setTxt(pd,(dd>=0?'▲ ':'▼ ')+fmt(Math.abs(dd)));pd.style.color=Math.abs(dd)<Math.max(5,v*.02)?'':(dd>0?(k==='W'||k==='Q'?'#ff7a1a':'#b4b1a9'):'#4cc38a');});
+  setTxt($('#pipeMeta'),'合計 '+fmt(tot)+' 單');
+}
+(function buildFleet(){var b='',l='';CATN.forEach(function(n,k){b+='<i id="fb'+k+'" style="background:'+CATC[k]+'"></i>';l+='<div style="border-color:'+CATC[k]+'"><b id="fn'+k+'">0</b>'+n+' <small id="fp'+k+'"></small></div>';});$('#fleetBar').innerHTML=b;$('#fleetLg').innerHTML=l;})();
+function renderFleet(){
+  for(var k=0;k<4;k++){var n=fleetCnt[k];$('#fb'+k).style.width=(n/NR*100)+'%';setTxt($('#fn'+k),String(n));setTxt($('#fp'+k),Math.round(n/NR*100)+'%');}
+  setTxt($('#fleetMeta'),'使用 '+Math.round((fleetCnt[0]+fleetCnt[1])/NR*100)+'% · 電量 '+Math.round(batAvg)+'%');
+}
+(function buildEq(){var h='';FL.forEach(function(f,k){h+='<div class="cell" id="fl'+k+'">'+p2(k+1)+'</div>';});$('#flCells').innerHTML=h;h='';CR.forEach(function(c,k){h+='<div class="cell" id="cr'+k+'">'+p2(k+1)+'</div>';});$('#crCells').innerHTML=h;})();
+function renderEq(){
+  var cnt={};FL.forEach(function(f,k){var s=flState(f),e=$('#fl'+k);cnt[s]=(cnt[s]||0)+1;e.style.borderBottomColor=FLC[s];e.title=f.code+' · '+s+' · 電量 '+Math.round(f.bat)+'%';});
+  setTxt($('#flSum'),['搬運','空駛','待命','充電','保養'].map(function(s){return s+' '+(cnt[s]||0);}).join(' · '));
+  var cc={acc:0,idle:0,fault:0};CR.forEach(function(c,k){cc[c.st]++;var e=$('#cr'+k);e.style.borderBottomColor=CRC[c.st];setCls(e,'cell'+(c.st==='fault'?' fault':''));e.title=c.code+' · 走道 '+(c.k+1)+' · '+CRN[c.st];});
+  setTxt($('#crSum'),'存取 '+cc.acc+' · 待命 '+cc.idle+' · 故障 '+cc.fault);
+  setTxt($('#eqMeta'),'可用 '+(FL.filter(function(f){return f.st!=='mnt';}).length+CR.filter(function(c){return c.st!=='fault';}).length)+' / 19');
+}
+var SHORT={RB:'機器人區'};
+(function buildHeads(){var h='';ZORDER.forEach(function(z){h+='<div class="hd'+(z==='BR'?' br':'')+'"><span>'+(SHORT[z]||ZBY[z].n)+'</span><div class="trk"><i id="hh'+z+'"></i></div><b id="hn'+z+'">0</b></div>';});$('#heads').innerHTML=h;})();
+function renderHeads(){var c=zoneCount();ZORDER.forEach(function(z){$('#hh'+z).style.width=Math.min(100,c[z]/25*100)+'%';setTxt($('#hn'+z),String(c[z]));});setTxt($('#headMeta'),'93 人');}
+function renderQA(){
+  var i=0,f=0;qaRing.forEach(function(q){i+=q.i;f+=q.f;});var pr=i?(1-f/i)*100:100;
+  var n=$('#qaN');n.innerHTML=pr.toFixed(2)+'<small>%</small>';n.style.color=pr>=99?'':pr>=98.4?'#ff7a1a':'#ff4a3d';
+  setTxt($('#qaS'),'近 60 分抽檢 '+fmt(i)+' 件，不良 '+f+'；目標 99.0%');
+  var svg=$('#qaSpark'),W=Math.max(100,Math.round(svg.getBoundingClientRect().width)||140),H=34,pts=[],lo=97,hi=100;
+  for(var k=0;k<qaRing.length;k++){var a=0,b=0;for(var m=Math.max(0,k-4);m<=k;m++){a+=qaRing[m].i;b+=qaRing[m].f;}var v=a?(1-b/a)*100:100;pts.push((k/(qaRing.length-1)*W).toFixed(1)+','+(H-2-(clamp(v,lo,hi)-lo)/(hi-lo)*(H-4)).toFixed(1));}
+  var ty=H-2-(99-lo)/(hi-lo)*(H-4);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.innerHTML='<line x1="0" x2="'+W+'" y1="'+ty+'" y2="'+ty+'" stroke="#4cc38a" stroke-dasharray="2 3" opacity=".6"/><polyline points="'+pts.join(' ')+'" fill="none" stroke="#ece8df" stroke-width="1.4"/>';
+}
+(function buildSlots(){var h='';[['hb','高架儲位'],['pod','機器人貨架'],['chute','分揀槽'],['stg','出貨暫存']].forEach(function(s){h+='<div class="sl"><span>'+s[1]+'</span><div class="trk" id="sx'+s[0]+'"><i></i></div><b id="sv'+s[0]+'"></b></div>';});$('#slots').innerHTML=h;var a='';for(var k=0;k<7;k++)a+='<i id="ai'+k+'"></i>';$('#aisles').innerHTML=a;})();
+function renderSlots(){
+  var v={hb:rackCount/1440,pod:.915+.02*Math.sin(TS/2400),chute:F.S/WIPCAP.S,stg:F.D/WIPCAP.D};
+  Object.keys(v).forEach(function(k){var f=v[k],t=$('#sx'+k);t.firstChild.style.width=Math.min(100,f*100)+'%';setCls(t,'trk'+(f>=1?' ov':f>.9?' hi':''));setTxt($('#sv'+k),Math.round(f*100)+'%');});
+  for(var a=0;a<7;a++){var n=0;for(var b=0;b<9;b++){var B1=bayAt(a,b),B2=bayAt(a+1,b);for(var s=0;s<10;s++){n+=B1.occ[10+s]+B2.occ[s];}}var u=n/180,e=$('#ai'+a);e.style.background='rgba(242,194,48,'+(.15+Math.max(0,u-.6)*2).toFixed(2)+')';e.title='走道 '+(a+1)+' · '+Math.round(u*100)+'%';}
+}
+/* 碼頭卡片 */
+(function buildDocks(){var gEl=$('#dgrid');DOCKS.forEach(function(d){var e=document.createElement('div');e.className='dock';e.tabIndex=0;e.setAttribute('role','button');
+  e.innerHTML='<div class="dh"><b>'+d.id+'</b><span class="dk">'+KIND[d.kind]+'</span><i class="ds"></i></div><div class="dm"><span class="dc"></span><span class="dv"></span></div><div class="trk"><i></i></div><div class="df"><span class="dl"></span><span class="dr"></span></div>';
+  d.el=e;d.q={ds:e.querySelector('.ds'),dc:e.querySelector('.dc'),dv:e.querySelector('.dv'),bar:e.querySelector('.trk i'),dl:e.querySelector('.dl'),dr:e.querySelector('.dr')};
+  e.addEventListener('click',function(){focusOn(d.kind==='out'?d.a:124,d.kind==='out'?84:d.a,2);});e.addEventListener('keydown',function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();e.click();}});gEl.appendChild(e);});})();
+function renderDocks(){
+  DOCKS.forEach(function(d){var q=d.q,t=d.tr,late=false,ds,dl,dr,pr=0;
+    if(d.st==='empty'){ds='空檔';dl='待派車';dr='到站 '+mmss(d.nextAt-TS);}
+    else if(d.st==='in'){ds='靠站中';dl=t.code;dr='—';}
+    else if(d.st==='out'){ds='駛離';dl='已封櫃';dr='—';pr=d.kind==='out'?t.load/t.cap:1;}
+    else if(d.kind==='out'){ds='裝載中';pr=t.load/t.cap;dl=fmt(t.load)+'/'+fmt(t.cap);dr='截 '+mmss(t.dep-TS);late=t.dep-TS<6*60&&pr<.8;}
+    else{var rate=(d.kind==='in'?34:330)*(.45+.55*atWork('RC')/13);ds=d.kind==='in'?'卸貨中':'退貨卸貨';pr=1-t.load/t.cap;dl=Math.round(t.cap-t.load)+'/'+t.cap+(d.kind==='in'?' 板':' 箱');dr='剩 '+mmss(t.load/rate*3600);}
+    setCls(d.el,'dock k-'+d.kind+' s-'+d.st+(late?' late':''));
+    setTxt(q.ds,ds);setTxt(q.dc,t?t.code:'—');setTxt(q.dv,t?t.car:'');q.bar.style.width=(pr*100).toFixed(1)+'%';setTxt(q.dl,dl);setTxt(q.dr,dr);});
+}
+/* 告警清單 */
+function renderAlerts(full){
+  var ul=$('#alist');
+  if(full){ul.innerHTML='';ALERTS.forEach(function(a){var li=document.createElement('li');li.tabIndex=0;li.innerHTML='<span class="sv"></span><div><div class="al-t"></div><div class="al-w"></div></div><div class="al-r"><time></time><em></em></div>';
+    li.querySelector('.al-t').textContent=a.title;li.querySelector('.al-w').textContent=a.where;li.querySelector('time').textContent=hhmm(a.t0);a.li=li;
+    if(!a.seen){a.seen=true;}else li.style.animation='none';
+    li.addEventListener('click',function(){if(a.loc){var L=a.loc();focusOn(L[0],L[1],L[2]);}});li.addEventListener('keydown',function(ev){if(ev.key==='Enter'){li.click();}});ul.appendChild(li);});}
+  var cr=0,wr=0;
+  ALERTS.forEach(function(a){if(!a.li)return;setCls(a.li,'al '+a.sev+(a.done?' done':''));var em=a.li.querySelector('em');
+    if(!a.done){if(a.sev==='crit')cr++;else if(a.sev==='warn')wr++;setTxt(em,(a.kind==='dl'?'受困 '+frozenN+' 台 · ':'')+'處理中 '+mmss(TS-a.t0));}
+    else setTxt(em,a.sev!=='info'?'已解除 · 歷時 '+Math.max(1,Math.round(((a.tEnd||TS)-a.t0)/60))+' 分':'通知');});
+  $('#aCount').innerHTML='<b>嚴重 '+cr+'</b> · <b class="w">警告 '+wr+'</b>';
+}
+function focusOn(x,y,z){FOCUS={x:x,y:y,z:z||0,t:nowMs};var p=P(x,y,z||0);if(p[0]<40||p[0]>CW-40||p[1]<50||p[1]>CH-50){PAN={tx:V.ox+(CW/2-p[0]),ty:V.oy+(CH/2-p[1])};}}
+var PAN=null;
+
+/* ═════════ 互動 ═════════ */
+document.querySelectorAll('.speed button').forEach(function(b){b.addEventListener('click',function(){S=+b.dataset.s;syncSpeed();});});
+function syncSpeed(){document.querySelectorAll('.speed button').forEach(function(b){b.setAttribute('aria-pressed',String(+b.dataset.s===S));});}
+var lastRun=S||60;
+document.addEventListener('keydown',function(e){if(e.code==='Space'&&!/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)&&!document.activeElement.classList.contains('dock')&&!document.activeElement.classList.contains('al')){e.preventDefault();if(S){lastRun=S;S=0;}else S=lastRun;syncSpeed();}});
+$('#vIso').addEventListener('click',function(){V.iso=true;this.setAttribute('aria-pressed','true');$('#vTop').setAttribute('aria-pressed','false');fit();});
+$('#vTop').addEventListener('click',function(){V.iso=false;this.setAttribute('aria-pressed','true');$('#vIso').setAttribute('aria-pressed','false');fit();});
+$('#zIn').addEventListener('click',function(){zoomAt(CW/2,CH/2,1.35);});
+$('#zOut').addEventListener('click',function(){zoomAt(CW/2,CH/2,1/1.35);});
+$('#zFit').addEventListener('click',function(){fit();});
+document.querySelectorAll('.inj button').forEach(function(b){b.addEventListener('click',function(){var a=SPAWN[b.dataset.ev](TS);if(a&&a.loc){var L=a.loc();focusOn(L[0],L[1],L[2]);}});});
+cv.addEventListener('wheel',function(e){e.preventDefault();var r=cv.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,Math.exp(-e.deltaY*.0015));},{passive:false});
+var ptrs={},dragStart=null,pinch=null;
+cv.addEventListener('pointerdown',function(e){cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=[e.clientX,e.clientY];var ks=Object.keys(ptrs);
+  if(ks.length===1)dragStart={x:e.clientX,y:e.clientY,ox:V.ox,oy:V.oy,moved:false};
+  else if(ks.length===2){var a=ptrs[ks[0]],b=ptrs[ks[1]];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])};dragStart=null;}});
+cv.addEventListener('pointermove',function(e){var r=cv.getBoundingClientRect();
+  if(ptrs[e.pointerId])ptrs[e.pointerId]=[e.clientX,e.clientY];
+  var ks=Object.keys(ptrs);
+  if(pinch&&ks.length===2){var a=ptrs[ks[0]],b=ptrs[ks[1]],d=Math.hypot(a[0]-b[0],a[1]-b[1]);zoomAt((a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top,d/pinch.d);pinch.d=d;return;}
+  if(dragStart){var dx=e.clientX-dragStart.x,dy=e.clientY-dragStart.y;if(Math.abs(dx)+Math.abs(dy)>3){dragStart.moved=true;cv.classList.add('drag');V.ox=dragStart.ox+dx;V.oy=dragStart.oy+dy;V.user=true;staticDirty=true;PAN=null;hideTip();}return;}
+  if(e.pointerType==='mouse')hover(e.clientX-r.left,e.clientY-r.top);});
+function endPtr(e){var r=cv.getBoundingClientRect();if(dragStart&&!dragStart.moved&&e.type==='pointerup')hover(e.clientX-r.left,e.clientY-r.top);delete ptrs[e.pointerId];if(Object.keys(ptrs).length<2)pinch=null;if(!Object.keys(ptrs).length){dragStart=null;cv.classList.remove('drag');}}
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse')hideTip();});
+var tip=$('#tip');
+function hideTip(){tip.style.display='none';hoverObj=null;}
+function hover(mx,my){
+  var best=null,bd=10;
+  function test(sp,o,kind){var d=Math.hypot(sp[0]-mx,sp[1]-my);if(d<bd){bd=d;best={o:o,kind:kind,sp:sp};}}
+  ROB.forEach(function(r){var p=robotXY(r);test(P(p[0],p[1],.5),r,'r');});
+  WK_.forEach(function(w){test(P(w.x,w.y,1.15),w,'w');});
+  FL.forEach(function(f){test(P(f.x,f.y,1),f,'f');});
+  CR.forEach(function(c){test(P(c.x,c.y,6.3),c,'c');});
+  DOCKS.forEach(function(d){if(d.pose)test(P(d.pose.x,d.pose.y,3.2),d,'t');});
+  var html='';
+  if(best){var o=best.o;
+    if(best.kind==='r')html='<b>'+o.code+'</b>'+(o.frz?'<span style="color:#ff4a3d">死結受困</span> · ':'')+STN[o.st]+(o.s>=0&&(o.st===ST.TO||o.st===ST.AT)?' → '+STATIONS[o.s].code:'')+'<br>電量 '+Math.round(o.bat)+'% · 格位 '+cellName(o.i,o.j);
+    else if(best.kind==='w')html='<b>'+o.code+' · '+ROLE[o.home]+'</b>'+ZBY[o.home].n+' · '+(o.st==='work'?'作業中':o.st==='brk'?'休息中':o.st==='go'?'前往休息室':'返回崗位');
+    else if(best.kind==='f')html='<b>'+o.code+' 堆高機</b>'+flState(o)+(o.load?' · 載棧板':'')+'<br>電量 '+Math.round(o.bat)+'%';
+    else if(best.kind==='c')html='<b>'+o.code+' 堆垛吊車</b>走道 '+(o.k+1)+' · '+CRN[o.st]+'<br>載具高度 第 '+(Math.floor(o.z/LH)+1)+' 層';
+    else{var t=o.tr;html='<b>'+o.id+' · '+(t?t.code:'')+'</b>'+(t?t.car:'')+'<br>'+(o.kind==='out'?'裝載 '+(t?Math.round(t.load/t.cap*100):0)+'%':'剩 '+(t?Math.round(t.load):0)+(o.kind==='in'?' 板':' 箱'));}
+  } else {var wp=unproject(mx,my),z=zoneAt(wp[0],wp[1]);
+    if(z){var c=zoneCount();html='<b>'+z.n+' · '+z.e+'</b>在場 '+c[z.id]+' 人';
+      if(z.id==='RB')html+='<br>機器人 '+(fleetCnt[0]+fleetCnt[1])+' 台作業 · 受阻 '+frozenN;
+      if(z.id==='PS')html+='<br>開站 '+STATIONS.filter(function(s){return s.open;}).length+' / 12 · 產能 '+fmt(CAPS.pick)+' 件/時';
+      if(z.id==='PK')html+='<br>產能 '+fmt(CAPS.pack)+' 件/時 · 在製 '+fmt(F.K);
+      if(z.id==='SO')html+='<br>'+(ACT.jam?'<span style="color:#ff4a3d">卡件停線</span>':'分揀 '+fmt(rates.sort)+' 件/時')+' · 槽內 '+fmt(F.S);
+      if(z.id==='HB')html+='<br>儲位 '+Math.round(rackCount/1440*100)+'% · 吊車故障 '+ACT.crane;
+      if(z.id==='CH')html+='<br>充電中 '+fleetCnt[3]+' 台 · 離線樁 '+PADS.filter(function(p){return p.off;}).length;
+      if(z.id==='OB')html+='<br>待裝車 '+fmt(F.D)+' 件 · 裝車 '+fmt(rates.load)+' 件/時';}}
+  if(!html){hideTip();return;}
+  hoverObj=best;tip.innerHTML=html;tip.style.display='block';
+  var tw=tip.offsetWidth,th=tip.offsetHeight,x=mx+14,y=my+14;if(x+tw>CW-4)x=mx-14-tw;if(y+th>CH-4)y=my-14-th;tip.style.left=Math.max(4,x)+'px';tip.style.top=Math.max(4,y)+'px';
+}
+
+/* ═════════ 主迴圈 ═════════ */
+new ResizeObserver(function(){resize();}).observe(cv.parentNode);
+window.addEventListener('resize',function(){renderChart();});
+resize();
+for(var w=0;w<260;w++)visStep(.1);
+var last=performance.now(),tUI=0,tChart=0,tDock=0;
+function frame(now){
+  var rdt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;nowMs=now;blink=Math.floor(now/450)%2===0;
+  if(S>0)simStep(rdt*S);
+  var dv=rdt*VSF[S];if(dv>0)visStep(dv);
+  if(PAN){V.ox+= (PAN.tx-V.ox)*.18;V.oy+=(PAN.ty-V.oy)*.18;staticDirty=true;V.user=true;if(Math.abs(PAN.tx-V.ox)+Math.abs(PAN.ty-V.oy)<1)PAN=null;}
+  draw();
+  updateHeader();
+  if(now-tDock>250){tDock=now;renderDocks();renderAlerts(alertsDirty);alertsDirty=false;}
+  if(now-tUI>500){tUI=now;updateKPI();renderPipe();renderFleet();renderEq();renderHeads();renderQA();renderSlots();}
+  if(now-tChart>1000){tChart=now;renderChart();}
+  requestAnimationFrame(frame);
+}
+syncSpeed();
+requestAnimationFrame(frame);
+window.__wh={STATIONS:STATIONS,zoom:function(x,y,f){var p=P(x,y,0);zoomAt(p[0],p[1],f);},get TS(){return TS;},set speed(v){S=v;syncSpeed();},F:F,ROB:ROB,ALERTS:ALERTS,spawn:function(k){return SPAWN[k](TS);},view:V};
+})();
+</script>
+</body>
+</html>
