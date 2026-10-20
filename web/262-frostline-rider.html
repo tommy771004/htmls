@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>霜港高架 · FROSTLINE RIDER</title>
 <link rel="icon" href="../favicon.svg">
-<meta name="description" content="Three.js 第三人稱科幻動作遊戲：雪夜黃昏（可切換雨夜）無限延伸的高架快速道路上騎乘程序生成的無轂霓虹重機，三種電漿武器與鎖定飛彈迎擊無人機、追擊車與重型武裝砲艇，飛越跳台觸發子彈時間，結算給出 S／A／B 評級；另有據點攻防模式，與 AI 小隊、雙足機甲和裝甲車爭奪五個據點。所有模型都以程式生成。">
+<meta name="description" content="Three.js 第三人稱科幻動作遊戲：雪夜黃昏（可切換雨夜）無限延伸的高架快速道路上騎乘程序生成的黑銀仿賽跑車，三種電漿武器與鎖定飛彈迎擊無人機、追擊車與重型武裝砲艇，飛越跳台觸發子彈時間，結算給出 S／A／B 評級；另有據點攻防模式，與 AI 小隊、雙足機甲和裝甲車爭奪五個據點。所有模型都以程式生成。">
 <style>
 :root{
   --ink:#f4f1fb;--ink-2:rgba(240,236,252,.72);--ink-3:rgba(232,226,248,.46);
@@ -1577,174 +1577,258 @@ function ik2(upper, lower, parent, targetW, poleW, a, b) {
   lower.quaternion.setFromUnitVectors(DOWN, _ie);
 }
 
-// ───────── 科幻重機 K-7 ─────────
-// 寬體無轂輪：外層深黑胎體（加寬的 Torus）＋鍍鉻輪圈＋內層高亮度青色 Torus，輪心是空的，
-// 由輪圈內緣一段弧形承載臂（不跟著轉）扶住。at 是承載臂的方位角（0 正前、π/2 正上、π 正後）；
-// 回傳的 hub 是承載臂中點，前叉與搖臂接在這裡
-function wheel(parent, x, y, z, at) {
-  const w = grp(parent, x, y, z), spin = grp(w);
-  const tire = new THREE.TorusGeometry(0.325, 0.082, 10, 44); tire.scale(1, 1, 1.5);
-  part(spin, tire, MAT.rubber, 0, 0, 0, 0, Math.PI / 2);
-  part(spin, new THREE.TorusGeometry(0.262, 0.03, 8, 44), MAT.chrome, 0, 0, 0, 0, Math.PI / 2);
-  part(spin, new THREE.TorusGeometry(0.247, 0.016, 6, 56), MAT.cyanHi, 0, 0, 0, 0, Math.PI / 2, 0, false);
-  // 交錯胎紋與壓在光環上的輪圈卡榫，轉動時才看得出輪子在滾
-  const lug = box(0.07, 0.02, 0.045), key = box(0.05, 0.04, 0.03), L = [], K = [];
-  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; L.push([lug, mat4((i % 2 ? 1 : -1) * 0.03, Math.sin(a) * 0.403, Math.cos(a) * 0.403, Math.PI / 2 - a)]); }
-  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; K.push([key, mat4(0, Math.sin(a) * 0.245, Math.cos(a) * 0.245, Math.PI / 2 - a)]); }
-  part(spin, merge(L), MAT.rubber); part(spin, merge(K), MAT.dark);
-  const arc = 1.5, ca = new THREE.TorusGeometry(0.218, 0.024, 6, 20, arc); ca.rotateZ(at - arc / 2);
-  part(w, ca, MAT.dark, 0, 0, 0, 0, Math.PI / 2);
-  for (const s of [-1, 1]) { const cl = new THREE.TorusGeometry(0.218, 0.008, 4, 20, arc * 0.8); cl.rotateZ(at - arc * 0.4); part(w, cl, MAT.cyan, s * 0.026, 0, 0, 0, Math.PI / 2, 0, false); }
-  const hub = new V3(0, Math.sin(at) * 0.218, -Math.cos(at) * 0.218);
-  part(w, cbox(0.42, 0.045, 0.07, 0.012), MAT.mid, hub.x, hub.y, hub.z, at);
-  return { w, spin, hub };
+// ───────── 仿賽跑車 K-7 ─────────
+// 外型參考 125cc 級仿賽：亮黑整流罩、拋光鋁合金雙樑車架與香蕉形搖臂、黑色五爪 Y 型輻條輪框、浮動碟煞與腹下排氣。
+// 全部以程式建模，不放任何廠牌字樣或標誌
+const BK = {
+  paint: new THREE.MeshStandardMaterial({ color: 0x0e0e12, metalness: 0.55, roughness: 0.24, flatShading: true }),
+  alu: new THREE.MeshStandardMaterial({ color: 0xb6bac1, metalness: 0.92, roughness: 0.3 }),
+  aluF: new THREE.MeshStandardMaterial({ color: 0xb0b4bb, metalness: 0.92, roughness: 0.34, flatShading: true }),
+  satin: new THREE.MeshStandardMaterial({ color: 0x26272c, metalness: 0.6, roughness: 0.45 }),
+  rim: new THREE.MeshStandardMaterial({ color: 0x111114, metalness: 0.5, roughness: 0.35, side: THREE.DoubleSide }),
+  disc: new THREE.MeshStandardMaterial({ color: 0xa6a8af, metalness: 1, roughness: 0.38, side: THREE.DoubleSide }),
+  engine: Object.assign(toon(0x2a2a30), { flatShading: true }), grey: toon(0x8a8e97), seat: Object.assign(toon(0x1a1a1f), { flatShading: true }), plate: toon(0xd9dade),
+  screen: new THREE.MeshStandardMaterial({ color: 0x7a8794, metalness: 0.4, roughness: 0.05, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide }),
+  dash: glowBasic(0xcfe4ff, 1.2)
+};
+BK.paintD = Object.assign(BK.paint.clone(), { side: THREE.DoubleSide });
+// 側整流罩殼：每個截面 [z, 下緣 y, 上緣 y, 內側 x, 外側最鼓 x] 圍成一圈外鼓、內平的厚殼，s 決定左右；
+// 逐面法線、雙面材質，所以不用管三角形繞向
+function pod(secs, s) {
+  const rs = secs.map(([z, yb, yt, xi, xo]) => { const h = yt - yb; return [[xi, yb], [xo - 0.025, yb + h * 0.06], [xo, yb + h * 0.45], [xo - 0.02, yt - h * 0.05], [xi, yt]].map(([x, y]) => [s * x, y, z]); });
+  const p = [], tri = (a, b, c) => p.push(...a, ...b, ...c);
+  for (let k = 0; k < rs.length - 1; k++) { const A = rs[k], B = rs[k + 1], n = A.length; for (let j = 0; j < n; j++) { const j1 = (j + 1) % n; tri(A[j], A[j1], B[j1]); tri(A[j], B[j1], B[j]); } }
+  for (const r of [rs[0], rs[rs.length - 1]]) for (let j = 1; j < r.length - 1; j++) tri(r[0], r[j], r[j + 1]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.computeVertexNormals(); return g;
+}
+// 碟盤／鏈輪：圓環上打一圈孔，平面朝 x（輪軸方向）
+function discGeo(ro, ri, holes, hr = 0.007) {
+  const s = new THREE.Shape(); s.absarc(0, 0, ro, 0, Math.PI * 2, false);
+  const h = new THREE.Path(); h.absarc(0, 0, ri, 0, Math.PI * 2, true); s.holes.push(h);
+  for (let i = 0; i < holes; i++) { const a = (i + 0.5) / holes * Math.PI * 2, r = (ro + ri) / 2, p = new THREE.Path(); p.absarc(Math.cos(a) * r, Math.sin(a) * r, hr, 0, Math.PI * 2, true); s.holes.push(p); }
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.005, bevelEnabled: false, curveSegments: 20 }); g.rotateY(Math.PI / 2); return g;
+}
+// 輪面內兩點之間的長條（輻條、碟盤承架）：極座標 (a, r)，a 從正前方往上量
+function spokeBars(list, t) {
+  return merge(list.map(([a0, r0, a1, r1]) => {
+    const y0 = Math.sin(a0) * r0, z0 = -Math.cos(a0) * r0, y1 = Math.sin(a1) * r1, z1 = -Math.cos(a1) * r1, dy = y1 - y0, dz = z1 - z0;
+    return [box(t, 0.024, Math.hypot(dy, dz) + 0.01), mat4(0, (y0 + y1) / 2, (z0 + z1) / 2, Math.atan2(-dy, dz))];
+  }));
+}
+// 輻條輪：Lathe 車出圓弧胎面（輪軸沿 x）＋黑色輪框（兩道輪緣、內桶、機削銀邊）＋五爪 Y 型輻條＋浮動碟盤。
+// 前輪單碟在右側；後輪右側碟盤、左側鏈輪。spin 跟著轉，w 上的卡鉗與輪軸不轉
+function spokeWheel(parent, x, y, z, rear) {
+  const w = grp(parent, x, y, z), spin = grp(w), hw = rear ? 0.09 : 0.064, R1 = 0.405, R0 = 0.288;
+  const prof = [[R0 + 0.004, -hw * 0.78], [R0 + 0.03, -hw * 0.98], [R1 - 0.05, -hw], [R1 - 0.016, -hw * 0.8], [R1, -hw * 0.32]];
+  const tire = new THREE.LatheGeometry([...prof, ...prof.slice().reverse().map(([r, a]) => [r, -a])].map(([r, a]) => new THREE.Vector2(r, a)), 56);
+  tire.rotateZ(Math.PI / 2);
+  part(spin, tire, MAT.rubber);
+  const barrel = new THREE.CylinderGeometry(R0 - 0.004, R0 - 0.004, hw * 1.56, 48, 1, true); barrel.rotateZ(Math.PI / 2);
+  part(spin, barrel, BK.rim);
+  for (const s of [-1, 1]) {
+    part(spin, new THREE.TorusGeometry(R0, 0.011, 6, 56), BK.rim, s * hw * 0.78, 0, 0, 0, Math.PI / 2);
+    part(spin, new THREE.TorusGeometry(R0 - 0.012, 0.0035, 4, 56), BK.alu, s * hw * 0.84, 0, 0, 0, Math.PI / 2, 0, false);
+  }
+  const S = [];
+  for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; S.push([a, 0.05, a, 0.15]); for (const d of [-0.21, 0.21]) S.push([a, 0.14, a + d, R0 - 0.004]); }
+  part(spin, spokeBars(S, 0.026), BK.rim);
+  part(spin, new THREE.CylinderGeometry(0.056, 0.056, hw * 1.5, 16), BK.satin, 0, 0, 0, 0, 0, Math.PI / 2);
+  part(w, new THREE.CylinderGeometry(0.018, 0.018, rear ? 0.3 : 0.24, 8), MAT.chrome, 0, 0, 0, 0, 0, Math.PI / 2);
+  const C = [0, 1, 2, 3, 4].map(i => { const a = (i + 0.5) / 5 * Math.PI * 2; return [a, 0.05, a, rear ? 0.08 : 0.122]; });
+  const dx = rear ? 0.104 : 0.078, ro = rear ? 0.11 : 0.165;
+  part(spin, discGeo(ro, rear ? 0.072 : 0.118, rear ? 10 : 14), BK.disc, dx - 0.0025, 0, 0);
+  part(spin, spokeBars(C, 0.012), BK.alu, dx, 0, 0, 0, 0, 0, false);
+  // 卡鉗跨在碟盤外緣：前輪在後上方（裝在前叉腳後側），後輪在前上方（裝在搖臂上）
+  const ca = rear ? 2.2 : 0.6, cr = ro - 0.022;
+  part(w, cbox(0.046, 0.1, 0.05, 0.01), BK.satin, dx + 0.004, Math.sin(ca) * cr, Math.cos(ca) * cr, -ca);
+  if (rear) {
+    part(spin, discGeo(0.128, 0.05, 6, 0.022), BK.satin, -0.098, 0, 0);
+    part(spin, new THREE.TorusGeometry(0.126, 0.006, 4, 36), BK.satin, -0.098, 0, 0, 0, Math.PI / 2, 0, false);
+  }
+  return { w, spin, hub: new V3() };
 }
 // 騎乘時騎士根節點在車身上的位置：骨盆（根節點上方 0.98）落在座墊頂面上方，髖球微陷進坐墊；
 // KNEE_POLE 是膝蓋 IK 的極向（車身座標，x 乘左右號）：往前、往外，讓膝蓋夾在油箱兩側
 const RIDE_ROOT = new V3(0, 0.05, 0.17), KNEE_POLE = new V3(0.36, 0.9, -0.6);
 function buildBike() {
   const root = grp(null), lean = grp(root), body = grp(lean), v = (x, y, z) => new V3(x, y, z);
-  // 前傾斜角整流罩：機首壓低、往後拉高的斜切多面體，下緣讓出前輪
+  // 上整流罩：尖鼻、往後拉高到風鏡座，下緣讓出前輪
   part(body, loft([
-    [-1.12, [[0, 0.8], [0.05, 0.82], [0.056, 0.86], [0.03, 0.9], [0, 0.91]]],
-    [-0.95, [[0, 0.84], [0.14, 0.86], [0.18, 0.93], [0.12, 1.0], [0, 1.02]]],
-    [-0.7, [[0, 0.84], [0.2, 0.86], [0.24, 0.95], [0.16, 1.06], [0, 1.09]]],
-    [-0.46, [[0, 0.74], [0.21, 0.76], [0.25, 0.93], [0.17, 1.04], [0, 1.06]]]
-  ]), MAT.paint);
-  // 整流罩兩側的白色護甲板與紅三角，板件前端略向外張，和車殼之間留一道陰影縫
+    [-1.13, [[0, 0.885], [0.03, 0.89], [0.04, 0.91], [0.02, 0.93], [0, 0.935]]],
+    [-0.98, [[0, 0.86], [0.12, 0.865], [0.16, 0.91], [0.11, 0.98], [0, 1.0]]],
+    [-0.78, [[0, 0.86], [0.24, 0.865], [0.27, 0.95], [0.17, 1.05], [0, 1.08]]],
+    [-0.58, [[0, 0.86], [0.26, 0.865], [0.275, 0.97], [0.16, 1.04], [0, 1.05]]]
+  ]), BK.paint);
+  // 側整流罩：從機鼻往後包，下緣沿前輪外圈（離輪軸 0.46 以上）繞到車腹，後上緣斜切露出車架樑；外側一道灰色斜飾條
   for (const s of [-1, 1]) {
-    const ch = grp(body, s * 0.25, 0, -0.7); ch.rotation.y = -s * 0.1;
-    part(ch, profile([[-0.27, 0.87], [-0.08, 1.02], [0.2, 1.0], [0.25, 0.86], [0.02, 0.84]], 0.018, 0.006), MAT.armor);
-    const t = part(ch, triGeo, MAT.red, s * 0.011, 0.93, 0.02, 0, s * Math.PI / 2, 0, false); t.scale.setScalar(0.11);
-    part(ch, box(0.012, 0.012, 0.22), MAT.cyan, s * 0.012, 0.865, -0.02, 0, 0, 0, false);
+    part(body, pod([
+      [-1.06, 0.875, 0.9, 0.03, 0.055], [-0.92, 0.86, 0.93, 0.09, 0.18], [-0.74, 0.86, 0.95, 0.15, 0.26], [-0.6, 0.815, 0.93, 0.17, 0.275],
+      [-0.5, 0.755, 0.9, 0.175, 0.275], [-0.42, 0.665, 0.88, 0.175, 0.27], [-0.34, 0.36, 0.86, 0.175, 0.265], [-0.26, 0.24, 0.84, 0.17, 0.26],
+      [-0.16, 0.22, 0.74, 0.16, 0.25], [-0.04, 0.25, 0.58, 0.155, 0.24], [0.06, 0.29, 0.42, 0.15, 0.225], [0.1, 0.32, 0.36, 0.15, 0.21]
+    ], s), BK.paintD);
+    part(body, profile([[-0.52, 0.82], [-0.45, 0.84], [-0.12, 0.47], [-0.06, 0.32], [-0.13, 0.31], [-0.2, 0.47]], 0.006, 0.002), BK.grey, s * 0.243, 0, 0, 0, -s * 0.086, 0);
   }
-  // 半透明深青色風鏡：沿機首弧面包覆、往後仰
-  const sg = new THREE.CylinderGeometry(0.19, 0.19, 0.32, 18, 1, true, Math.PI - 0.95, 1.9); sg.translate(0, 0.16, 0.19);
-  const screen = part(body, sg, MAT.screen, 0, 1.0, -0.88, 0.95, 0, 0, false); screen.renderOrder = 1;
-  const sr = new THREE.CylinderGeometry(0.192, 0.192, 0.012, 18, 1, true, Math.PI - 0.95, 1.9); sr.translate(0, 0.32, 0.19);
-  part(body, sr, MAT.cyan, 0, 1.0, -0.88, 0.95, 0, 0, false);
-  // 儀表：固定在整流罩後緣、面向騎士的斜面螢幕
-  part(body, cbox(0.18, 0.04, 0.1, 0.012), MAT.dark, 0, 1.1, -0.62, -0.35);
-  part(body, box(0.13, 0.006, 0.065), MAT.dash, 0, 1.122, -0.62, -0.35, 0, 0, false);
-  // 頭燈與光錐：機首兩側斜切面上的細長燈條
-  const heads = [-1, 1].map(s => part(body, box(0.085, 0.02, 0.03), MAT.white, s * 0.07, 0.875, -1.05, 0.1, -s * 0.6, 0, false));
+  // 車腹導流罩
+  part(body, loft([
+    [-0.34, [[0, 0.27], [0.16, 0.28], [0.22, 0.34], [0, 0.36]]],
+    [-0.12, [[0, 0.22], [0.2, 0.235], [0.24, 0.32], [0, 0.34]]],
+    [0.04, [[0, 0.25], [0.15, 0.26], [0.2, 0.32], [0, 0.33]]]
+  ]), BK.paint);
+  // 水箱與鋁網護罩：藏在側整流罩之間、前輪正後方
+  part(body, cbox(0.34, 0.36, 0.05, 0.01), BK.rim, 0, 0.6, -0.36, -0.25);
+  part(body, merge([0, 1, 2, 3, 4, 5, 6].map(i => [box(0.3, 0.008, 0.012), mat4(0, -0.15 + i * 0.05, -0.03)])), BK.satin, 0, 0.6, -0.36, -0.25, 0, 0, false);
+  // 半透明淺灰風鏡：沿機首弧面包覆、往後仰
+  const sg = new THREE.CylinderGeometry(0.17, 0.17, 0.3, 18, 1, true, Math.PI - 0.95, 1.9); sg.translate(0, 0.15, 0.17);
+  const screen = part(body, sg, BK.screen, 0, 1.0, -0.95, 1.0, 0, 0, false); screen.renderOrder = 1;
+  const sr = new THREE.CylinderGeometry(0.172, 0.172, 0.01, 18, 1, true, Math.PI - 0.95, 1.9); sr.translate(0, 0.3, 0.17);
+  part(body, sr, BK.satin, 0, 1.0, -0.95, 1.0, 0, 0, false);
+  // 儀表與後照鏡
+  part(body, cbox(0.16, 0.035, 0.09, 0.01), BK.satin, 0, 1.08, -0.62, -0.4);
+  part(body, box(0.12, 0.006, 0.06), BK.dash, 0, 1.1, -0.62, -0.4, 0, 0, false);
+  for (const s of [-1, 1]) {
+    rod(body, v(s * 0.24, 0.99, -0.8), v(s * 0.33, 1.06, -0.78), 0.008, 0.008, BK.satin, 6);
+    part(body, cbox(0.11, 0.055, 0.04, 0.012), BK.paint, s * 0.37, 1.07, -0.78, 0, -s * 0.2, 0);
+    part(body, box(0.095, 0.04, 0.004), MAT.chrome, s * 0.37 + s * 0.004, 1.07, -0.757, 0, -s * 0.2, 0, false);
+  }
+  // 雙頭燈：機鼻兩側斜切的燈組＋上緣日行燈條，中間黑色進氣口；光錐與 SpotLight 各對應一顆頭燈
+  part(body, box(0.07, 0.04, 0.03), MAT.rubber, 0, 0.885, -1.09, 0, 0, 0, false);
+  const heads = [-1, 1].map(s => {
+    part(body, cbox(0.11, 0.045, 0.05, 0.01), BK.satin, s * 0.09, 0.905, -1.03, 0.1, -s * 0.55, 0);
+    part(body, box(0.1, 0.007, 0.01), MAT.white, s * 0.095, 0.93, -1.035, 0.1, -s * 0.55, 0, false);
+    return part(body, box(0.08, 0.022, 0.012), MAT.white, s * 0.092, 0.9, -1.058, 0.1, -s * 0.55, 0, false);
+  });
   const coneGeo = new THREE.ConeGeometry(2.6, 11, 24, 1, true); coneGeo.translate(0, -5.5, 0); coneGeo.rotateX(Math.PI / 2 - 0.08);
-  const cones = [-1, 1].map(s => { const c = part(body, coneGeo, glowMat(0xdff4ff, 0.09, 'a = pow(clamp(vUv.y,0.,1.),1.8)*pow(abs(dot(vN,vV)),1.3);'), s * 0.07, 0.875, -1.08, 0, 0, 0, false); c.renderOrder = 2; return c; });
-  // 左右兩盞 SpotLight 各自對應一顆頭燈，光束略向外張
+  const cones = [-1, 1].map(s => { const c = part(body, coneGeo, glowMat(0xdff4ff, 0.09, 'a = pow(clamp(vUv.y,0.,1.),1.8)*pow(abs(dot(vN,vV)),1.3);'), s * 0.092, 0.9, -1.08, 0, 0, 0, false); c.renderOrder = 2; return c; });
   const spots = [-1, 1].map(s => {
-    const l = new THREE.SpotLight(0xe8f4ff, 32, 70, 0.4, 0.55, 1.4); l.position.set(s * 0.085, 0.9, -1.6); body.add(l);
+    const l = new THREE.SpotLight(0xe8f4ff, 32, 70, 0.4, 0.55, 1.4); l.position.set(s * 0.09, 0.9, -1.6); body.add(l);
     l.target.position.set(s * 1.2, -0.5, -16); body.add(l.target); return l;
   });
   // 隆起的多面體油箱：頂脊偏前，油箱蓋與兩側護膝墊
   part(body, loft([
     [-0.5, [[0, 0.8], [0.17, 0.82], [0.21, 0.93], [0.13, 1.03], [0, 1.05]]],
-    [-0.27, [[0, 0.76], [0.21, 0.78], [0.25, 0.94], [0.15, 1.07], [0, 1.11]]],
-    [-0.03, [[0, 0.76], [0.18, 0.78], [0.21, 0.9], [0.12, 1.0], [0, 1.02]]],
+    [-0.27, [[0, 0.78], [0.21, 0.8], [0.25, 0.94], [0.15, 1.07], [0, 1.11]]],
+    [-0.03, [[0, 0.78], [0.18, 0.8], [0.21, 0.9], [0.12, 1.0], [0, 1.02]]],
     [0.1, [[0, 0.8], [0.12, 0.8], [0.14, 0.87], [0.08, 0.92], [0, 0.93]]]
-  ]), MAT.paint);
-  part(body, new THREE.CylinderGeometry(0.045, 0.05, 0.02, 8), MAT.chrome, 0, 1.09, -0.2, -0.32);
-  for (const s of [-1, 1]) part(body, profile([[-0.3, 0.84], [-0.16, 0.95], [0.0, 0.93], [0.04, 0.84]], 0.012, 0.004), MAT.dark, s * 0.235, 0, 0, 0, -s * 0.1, 0);
-  // 座墊與流線車尾
-  part(body, loft([
-    [0.0, [[0, 0.85], [0.1, 0.86], [0.115, 0.9], [0, 0.915]]],
-    [0.3, [[0, 0.85], [0.15, 0.86], [0.16, 0.905], [0, 0.925]]],
-    [0.52, [[0, 0.88], [0.12, 0.89], [0.13, 0.95], [0, 0.98]]]
-  ]), MAT.dark);
-  part(body, loft([
-    [0.28, [[0, 0.66], [0.17, 0.7], [0.19, 0.83], [0.14, 0.88], [0, 0.89]]],
-    [0.62, [[0, 0.83], [0.14, 0.85], [0.165, 0.92], [0.11, 0.985], [0, 1.0]]],
-    [0.96, [[0, 0.89], [0.085, 0.9], [0.1, 0.95], [0.06, 1.0], [0, 1.015]]],
-    [1.1, [[0, 0.935], [0.03, 0.94], [0.035, 0.96], [0.02, 0.985], [0, 0.99]]]
-  ]), MAT.paint);
-  for (const s of [-1, 1]) part(body, profile([[0.3, 0.74], [0.62, 0.86], [0.94, 0.92], [0.9, 0.95], [0.6, 0.9], [0.32, 0.84]], 0.012, 0.004), MAT.armor, s * 0.235, 0, 0, 0, -s * 0.133, 0);
-  part(body, box(0.06, 0.03, 0.02), MAT.redGlow, 0, 0.962, 1.1, 0, 0, 0, false);
-  // 車尾流線尾翼：兩支後掠支柱撐起翼板，翼端板與翼板下緣紅色光條
-  part(body, profile([[0.9, 1.08], [0.97, 1.11], [1.17, 1.12], [1.21, 1.1], [1.0, 1.07]], 0.56, 0.008), MAT.paint);
+  ]), BK.paint);
+  part(body, new THREE.CylinderGeometry(0.045, 0.05, 0.02, 8), BK.alu, 0, 1.09, -0.2, -0.32);
+  for (const s of [-1, 1]) part(body, profile([[-0.3, 0.84], [-0.16, 0.95], [0.0, 0.93], [0.04, 0.84]], 0.012, 0.004), BK.satin, s * 0.235, 0, 0, 0, -s * 0.1, 0);
+  // 拋光鋁合金雙樑車架：龍頭管斜下到搖臂樞軸的寬扁樑，下端接樞軸板
+  part(body, new THREE.CylinderGeometry(0.042, 0.042, 0.2, 12), BK.alu, 0, 0.95, -0.52, Math.atan2(0.34, 0.66));
   for (const s of [-1, 1]) {
-    part(body, profile([[0.78, 0.97], [0.93, 1.085], [1.05, 1.09], [0.98, 0.95]], 0.018, 0.005), MAT.mid, s * 0.075, 0, 0);
-    part(body, profile([[0.92, 1.03], [0.99, 1.15], [1.2, 1.165], [1.23, 1.05]], 0.014, 0.004), MAT.armor, s * 0.285, 0, 0);
+    const P = [v(s * 0.07, 0.96, -0.52), v(s * 0.2, 0.8, -0.34), v(s * 0.215, 0.74, -0.1), v(s * 0.19, 0.6, 0.04)];
+    for (let i = 0; i < 3; i++) beam(body, P[i], P[i + 1], 0.045, 0.13, BK.alu, 0.014);
+    part(body, profile([[-0.06, 0.7], [0.07, 0.68], [0.1, 0.5], [0.06, 0.36], [-0.04, 0.34], [-0.08, 0.5]], 0.04, 0.008), BK.aluF, s * 0.18, 0, 0);
+    // 座墊下的銀色後副車架
+    rod(body, v(s * 0.17, 0.74, 0.0), v(s * 0.11, 0.9, 0.78), 0.016, 0.016, BK.alu, 8);
+    rod(body, v(s * 0.17, 0.58, 0.06), v(s * 0.11, 0.86, 0.6), 0.014, 0.014, BK.alu, 8);
   }
-  part(body, box(0.42, 0.012, 0.012), MAT.redGlow, 0, 1.068, 1.18, 0, 0, 0, false);
-  // 動力：曲軸箱、側蓋與 V 型雙缸；散熱鰭片之間露出發光的氣缸核心
+  // 引擎：黑色曲軸箱、前傾的銀色單缸、左右側蓋
   part(body, loft([
-    [-0.36, [[0, 0.32], [0.1, 0.33], [0.12, 0.42], [0.08, 0.52], [0, 0.54]]],
+    [-0.34, [[0, 0.32], [0.1, 0.33], [0.12, 0.42], [0.08, 0.52], [0, 0.54]]],
     [-0.1, [[0, 0.27], [0.13, 0.28], [0.15, 0.42], [0.12, 0.54], [0, 0.57]]],
     [0.16, [[0, 0.31], [0.1, 0.32], [0.12, 0.43], [0.09, 0.51], [0, 0.53]]]
-  ]), MAT.dark);
-  part(body, new THREE.CylinderGeometry(0.11, 0.11, 0.33, 10), MAT.mid, 0, 0.4, -0.08, 0, 0, Math.PI / 2);
-  const fin = new THREE.CylinderGeometry(0.1, 0.1, 0.014, 12), finGeo = merge([0, 1, 2, 3, 4, 5].map(i => [fin, mat4(0, 0.05 + i * 0.036, 0)]));
-  for (const [z, rx] of [[-0.2, -0.5], [0.02, 0.38]]) {
-    const c = grp(body, 0, 0.5, z); c.rotation.x = rx;
-    part(c, new THREE.CylinderGeometry(0.056, 0.056, 0.25, 12), MAT.core, 0, 0.13, 0, 0, 0, 0, false);
-    part(c, finGeo, MAT.dark);
-    part(c, cbox(0.2, 0.06, 0.17, 0.015), MAT.mid, 0, 0.28, 0);
-    part(c, box(0.06, 0.03, 0.18), MAT.chrome, 0, 0.32, 0);
-  }
-  // 車架雙樑、搖臂與後避震（紅色彈簧＋儲油筒）
+  ]), BK.engine);
+  const cyl = grp(body, 0, 0.5, -0.16); cyl.rotation.x = -0.45;
+  part(cyl, cbox(0.17, 0.2, 0.15, 0.02), BK.aluF, 0, 0.12, 0);
+  part(cyl, cbox(0.19, 0.07, 0.17, 0.015), BK.alu, 0, 0.25, 0);
+  part(cyl, cbox(0.15, 0.04, 0.13, 0.012), BK.engine, 0, 0.3, 0);
+  part(body, new THREE.CylinderGeometry(0.1, 0.1, 0.03, 20), BK.alu, 0.15, 0.4, -0.04, 0, 0, Math.PI / 2);
+  part(body, new THREE.CylinderGeometry(0.085, 0.085, 0.03, 18), BK.satin, -0.15, 0.42, -0.08, 0, 0, Math.PI / 2);
+  // 香蕉形鋁搖臂：右側上方一道弧形補強，左側鏈條與鏈蓋
+  part(body, new THREE.CylinderGeometry(0.022, 0.022, 0.42, 10), MAT.chrome, 0, 0.45, 0.03, 0, 0, Math.PI / 2);
   for (const s of [-1, 1]) {
-    beam(body, v(s * 0.15, 0.9, -0.52), v(s * 0.17, 0.46, 0.04), 0.045, 0.09, MAT.mid);
-    beam(body, v(s * 0.17, 0.45, 0.02), v(s * 0.17, 0.585, 0.684), 0.04, 0.075, MAT.dark);
+    part(body, profile([[0.0, 0.5], [0.12, 0.51], [0.5, 0.47], [0.84, 0.43], [0.86, 0.37], [0.62, 0.37], [0.3, 0.39], [0.02, 0.4]], 0.04, 0.008), BK.aluF, s * 0.128, 0, 0);
+    part(body, cbox(0.03, 0.05, 0.07, 0.006), BK.alu, s * 0.15, 0.4, 0.8);
   }
-  part(body, new THREE.CylinderGeometry(0.035, 0.035, 0.42, 10), MAT.chrome, 0, 0.45, 0.02, 0, 0, Math.PI / 2);
-  part(body, cbox(0.34, 0.04, 0.05, 0.01), MAT.dark, 0, 0.527, 0.4);
-  const shock = grp(body, 0, 0.54, 0.4); shock.quaternion.setFromUnitVectors(UP, v(0, 0.3, -0.28).normalize());
-  part(shock, new THREE.CylinderGeometry(0.018, 0.018, 0.41, 8), MAT.chrome, 0, 0.205, 0);
-  part(shock, merge([0, 1, 2, 3, 4, 5, 6].map(i => [new THREE.TorusGeometry(0.036, 0.007, 4, 14), mat4(0, 0.07 + i * 0.035, 0, Math.PI / 2)])), MAT.red);
-  part(shock, new THREE.CylinderGeometry(0.025, 0.025, 0.1, 8), MAT.dark, 0.045, 0.3, 0);
-  // 下導流板
+  beam(body, v(0.128, 0.505, 0.12), v(0.128, 0.6, 0.42), 0.028, 0.04, BK.alu);
+  beam(body, v(0.128, 0.6, 0.42), v(0.128, 0.46, 0.72), 0.028, 0.04, BK.alu);
+  part(body, cbox(0.24, 0.05, 0.06, 0.01), BK.alu, 0, 0.46, 0.28);
+  part(body, new THREE.CylinderGeometry(0.045, 0.045, 0.02, 14), BK.satin, -0.098, 0.42, -0.02, 0, 0, Math.PI / 2);
+  beam(body, v(-0.098, 0.465, -0.02), v(-0.098, 0.526, 0.8), 0.014, 0.012, BK.satin, 0.003);
+  beam(body, v(-0.098, 0.375, -0.02), v(-0.098, 0.274, 0.8), 0.014, 0.012, BK.satin, 0.003);
+  part(body, profile([[0.1, 0.5], [0.55, 0.54], [0.56, 0.55], [0.1, 0.515]], 0.03, 0.004), BK.paint, -0.098, 0, 0);
+  // 單槍後避震
+  const shock = grp(body, 0, 0.47, 0.3); shock.quaternion.setFromUnitVectors(UP, v(0, 0.31, -0.17).normalize());
+  part(shock, new THREE.CylinderGeometry(0.02, 0.02, 0.36, 8), BK.satin, 0, 0.18, 0);
+  part(shock, merge([0, 1, 2, 3, 4, 5].map(i => [new THREE.TorusGeometry(0.034, 0.006, 4, 14), mat4(0, 0.08 + i * 0.035, 0, Math.PI / 2)])), MAT.chrome);
+  // 座墊、後座與上揚的尖尾罩
   part(body, loft([
-    [-0.44, [[0, 0.27], [0.06, 0.28], [0.08, 0.31], [0, 0.32]]],
-    [-0.2, [[0, 0.19], [0.14, 0.21], [0.16, 0.3], [0, 0.31]]],
-    [0.16, [[0, 0.24], [0.1, 0.25], [0.12, 0.31], [0, 0.32]]]
-  ]), MAT.paint);
-  // 雙側氮氣排氣管：由前缸頭繞過曲軸箱下方、沿車尾側面上揚到噴口；中段有隔熱板與兩道青色加壓環
+    [-0.04, [[0, 0.84], [0.1, 0.85], [0.12, 0.89], [0, 0.905]]],
+    [0.24, [[0, 0.84], [0.15, 0.85], [0.16, 0.9], [0, 0.92]]],
+    [0.44, [[0, 0.86], [0.12, 0.87], [0.13, 0.93], [0, 0.95]]]
+  ]), BK.seat);
+  part(body, loft([
+    [0.26, [[0, 0.68], [0.17, 0.72], [0.185, 0.83], [0.15, 0.875], [0, 0.88]]],
+    [0.5, [[0, 0.76], [0.15, 0.79], [0.16, 0.9], [0.12, 0.95], [0, 0.96]]],
+    [0.8, [[0, 0.85], [0.11, 0.88], [0.115, 0.98], [0.08, 1.03], [0, 1.04]]],
+    [1.0, [[0, 0.92], [0.06, 0.935], [0.06, 1.0], [0.04, 1.035], [0, 1.04]]],
+    [1.08, [[0, 0.97], [0.02, 0.975], [0.02, 1.0], [0.01, 1.02], [0, 1.02]]]
+  ]), BK.paint);
+  part(body, loft([
+    [0.5, [[0, 0.94], [0.09, 0.945], [0.1, 0.97], [0, 0.98]]],
+    [0.82, [[0, 1.0], [0.07, 1.005], [0.075, 1.04], [0, 1.05]]]
+  ]), BK.seat);
+  for (const s of [-1, 1]) part(body, profile([[0.42, 0.8], [0.9, 0.95], [0.92, 0.97], [0.46, 0.84]], 0.006, 0.002), BK.grey, s * 0.242, 0, 0, 0, -s * 0.149, 0);
+  part(body, box(0.09, 0.03, 0.02), MAT.redGlow, 0, 0.98, 1.075, -0.6, 0, 0, false);
+  // 車牌架：尾罩下伸出的黑色長臂、空白車牌與兩顆琥珀方向燈
+  beam(body, v(0, 0.88, 0.95), v(0, 0.73, 1.21), 0.07, 0.025, BK.paint, 0.006);
+  part(body, cbox(0.2, 0.12, 0.008, 0.003), BK.plate, 0, 0.66, 1.235, -0.2);
+  for (const s of [-1, 1]) { rod(body, v(s * 0.03, 0.8, 1.13), v(s * 0.1, 0.8, 1.15), 0.006, 0.006, BK.satin, 6); part(body, box(0.04, 0.018, 0.025), MAT.amber, s * 0.115, 0.8, 1.15, 0, 0, 0, false); }
+  // 腹下排氣：前缸頭出來的集合管繞到曲軸箱下方，接進黑色消音器，兩個尾口朝後微外張（氮氣噴焰從這裡出來）
+  const pipe = new THREE.CatmullRomCurve3([v(0.04, 0.64, -0.3), v(0.07, 0.42, -0.31), v(0.07, 0.24, -0.26), v(0.04, 0.18, -0.08), v(0, 0.19, 0.04)]);
+  part(body, new THREE.TubeGeometry(pipe, 32, 0.022, 8), MAT.chrome);
+  part(body, loft([
+    [-0.02, [[0, 0.15], [0.08, 0.155], [0.12, 0.2], [0.1, 0.26], [0, 0.27]]],
+    [0.3, [[0, 0.155], [0.1, 0.16], [0.14, 0.21], [0.12, 0.28], [0, 0.29]]],
+    [0.36, [[0, 0.17], [0.08, 0.175], [0.11, 0.21], [0.1, 0.26], [0, 0.27]]]
+  ]), BK.satin);
   const nozzles = [-1, 1].map(s => {
-    const curve = new THREE.CatmullRomCurve3([v(s * 0.05, 0.7, -0.36), v(s * 0.15, 0.48, -0.36), v(s * 0.22, 0.3, -0.12), v(s * 0.25, 0.32, 0.3), v(s * 0.24, 0.48, 0.65), v(s * 0.21, 0.62, 0.86)]);
-    part(body, new THREE.TubeGeometry(curve, 48, 0.032, 8), MAT.chrome);
-    for (const u of [0.5, 0.82]) { const r = part(body, new THREE.TorusGeometry(0.04, 0.009, 6, 16), MAT.cyan, 0, 0, 0, 0, 0, 0, false); r.position.copy(curve.getPointAt(u)); r.quaternion.setFromUnitVectors(ZA, curve.getTangentAt(u)); }
-    const hs = part(body, cbox(0.012, 0.07, 0.24, 0.004), MAT.dark); hs.position.copy(curve.getPointAt(0.66)).add(v(s * 0.036, 0.012, 0)); hs.quaternion.setFromUnitVectors(ZA, curve.getTangentAt(0.66));
-    // 噴口：外擴的喇叭口、內壁底板、口緣護圈，口內一支發光錐體
-    const n = grp(body, s * 0.21, 0.62, 0.98);
-    part(n, new THREE.CylinderGeometry(0.07, 0.05, 0.24, 14, 1, true), MAT.chromeIn, 0, 0, 0, Math.PI / 2);
-    part(n, new THREE.CircleGeometry(0.05, 14), MAT.dark, 0, 0, -0.09, 0, 0, 0, false);
-    part(n, new THREE.TorusGeometry(0.07, 0.011, 6, 18), MAT.dark, 0, 0, 0.12);
-    const cg = new THREE.ConeGeometry(0.042, 0.15, 12); cg.rotateX(Math.PI / 2);
-    const core = part(n, cg, MAT.cyan, 0, 0, 0.01, 0, 0, 0, false);
-    const fl = new THREE.ConeGeometry(0.07, 1, 10, 1, true); fl.translate(0, -0.5, 0); fl.rotateX(-Math.PI / 2);
-    const flame = part(n, fl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), 0, 0, 0.12, 0, 0, 0, false); flame.scale.set(1, 1, 0.01);
-    const tip = grp(n, 0, 0, 0.2);
+    const n = grp(body, s * 0.07, 0.215, 0.36); n.rotation.y = s * 0.12;
+    part(n, new THREE.CylinderGeometry(0.036, 0.03, 0.08, 14, 1, true), MAT.chromeIn, 0, 0, 0, Math.PI / 2);
+    part(n, new THREE.CircleGeometry(0.03, 14), BK.satin, 0, 0, -0.03, 0, 0, 0, false);
+    part(n, new THREE.TorusGeometry(0.036, 0.006, 6, 18), BK.alu, 0, 0, 0.04);
+    const cg = new THREE.ConeGeometry(0.022, 0.06, 12); cg.rotateX(Math.PI / 2);
+    const core = part(n, cg, MAT.cyan, 0, 0, -0.005, 0, 0, 0, false);
+    const fl = new THREE.ConeGeometry(0.05, 1, 10, 1, true); fl.translate(0, -0.5, 0); fl.rotateX(-Math.PI / 2);
+    const flame = part(n, fl, glowMat(0x7af1ff, 3, 'a = pow(clamp(vUv.y,0.,1.), 1.3);'), 0, 0, 0.04, 0, 0, 0, false); flame.scale.set(1, 1, 0.01);
+    const tip = grp(n, 0, 0, 0.1);
     return { n, core, flame, tip };
   });
-  // 轉向：前輪、前叉與車把。外管（防塵封環）裝在輪子上、內管裝在前叉上，避震壓縮時外管沿內管滑動
-  const rear = wheel(body, 0, 0.4, 0.8, 1.01);
+  // 轉向：前輪、前叉與分離式把手。黑色外管裝在輪子上、鍍鉻內管裝在前叉上，避震壓縮時外管沿內管滑動
+  const rear = spokeWheel(body, 0, 0.4, 0.8, true);
   const fork = grp(body, 0, 0.4, -0.8);
-  const front = wheel(fork, 0, 0, 0, Math.PI - 1.01);
-  const top = v(0, 0.66, 0.34), fd = v(0, 0, 0).subVectors(top, front.hub).normalize(), rake = Math.atan2(fd.z, fd.y);
+  const front = spokeWheel(fork, 0, 0, 0, false);
+  const top = v(0, 0.66, 0.34), fd = top.clone().normalize(), rake = Math.atan2(fd.z, fd.y);
   for (const s of [-1, 1]) {
-    const H = v(s * 0.17, front.hub.y, front.hub.z), T = v(s * 0.17, top.y, top.z);
-    rod(front.w, H, H.clone().addScaledVector(fd, 0.22), 0.036, 0.036, MAT.dark);
-    const seal = part(front.w, new THREE.TorusGeometry(0.035, 0.01, 6, 16), MAT.red); seal.position.copy(H).addScaledVector(fd, 0.22); seal.rotation.x = rake - Math.PI / 2;
-    rod(fork, H.clone().addScaledVector(fd, 0.16), T, 0.024, 0.024, MAT.chrome);
+    const H = v(s * 0.112, 0, 0), T = v(s * 0.112, top.y, top.z);
+    rod(front.w, H, H.clone().addScaledVector(fd, 0.3), 0.033, 0.033, BK.satin);
+    part(front.w, cbox(0.05, 0.06, 0.07, 0.01), BK.satin, s * 0.112, 0, 0.01, rake);
+    rod(fork, H.clone().addScaledVector(fd, 0.24), T, 0.024, 0.024, MAT.chrome);
+    part(fork, new THREE.CylinderGeometry(0.02, 0.02, 0.03, 10), BK.alu, T.x, T.y + 0.02, T.z, rake);
   }
-  part(fork, cbox(0.42, 0.035, 0.07, 0.01), MAT.mid, 0, front.hub.y + fd.y * 0.33, front.hub.z + fd.z * 0.33, rake);
-  part(fork, cbox(0.42, 0.03, 0.1, 0.01), MAT.paint, top.x, top.y, top.z, rake);
-  const fg = new THREE.TorusGeometry(0.43, 0.022, 4, 16, 1.0); fg.scale(1, 1, 5.5); fg.rotateZ(0.3);
-  part(front.w, fg, MAT.paint, 0, 0, 0, 0, Math.PI / 2);
-  const bars = grp(body, 0, 1.06, -0.46);
-  part(bars, new THREE.CylinderGeometry(0.017, 0.017, 0.62, 8), MAT.dark, 0, 0, 0, 0, 0, Math.PI / 2);
+  part(fork, cbox(0.28, 0.035, 0.07, 0.01), BK.alu, 0, fd.y * 0.6, fd.z * 0.6, rake);
+  part(fork, cbox(0.28, 0.025, 0.09, 0.01), BK.satin, top.x, top.y, top.z, rake);
+  const fg = new THREE.TorusGeometry(0.445, 0.02, 4, 18, 1.5); fg.scale(1, 1, 4); fg.rotateZ(Math.PI / 2 - 0.2 - 0.75);
+  part(front.w, fg, BK.paint, 0, 0, 0, 0, Math.PI / 2);
+  const bars = grp(body, 0, 1.02, -0.48);
   for (const s of [-1, 1]) {
-    part(bars, new THREE.CylinderGeometry(0.027, 0.027, 0.13, 10), MAT.rubber, s * 0.34, 0, 0, 0, 0, Math.PI / 2);
-    part(bars, new THREE.CylinderGeometry(0.03, 0.03, 0.03, 10), MAT.chrome, s * 0.42, 0, 0, 0, 0, Math.PI / 2);
-    part(bars, box(0.15, 0.012, 0.025), MAT.chrome, s * 0.3, 0.012, -0.07, 0, s * 0.25, 0);
+    rod(bars, v(s * 0.112, 0, 0), v(s * 0.29, -0.03, 0.05), 0.016, 0.016, BK.satin, 8);
+    part(bars, new THREE.CylinderGeometry(0.026, 0.026, 0.12, 10), MAT.rubber, s * 0.35, -0.035, 0.055, 0, 0, Math.PI / 2);
+    part(bars, new THREE.CylinderGeometry(0.028, 0.028, 0.03, 10), BK.alu, s * 0.42, -0.035, 0.055, 0, 0, Math.PI / 2);
+    part(bars, box(0.15, 0.01, 0.022), BK.alu, s * 0.31, -0.022, -0.02, 0, s * 0.25, 0);
   }
-  const gripL = grp(bars, -0.33, 0, 0.02), gripR = grp(bars, 0.33, 0, 0.02);
+  part(bars, cbox(0.05, 0.035, 0.04, 0.006), BK.satin, 0.17, 0.02, 0.02);
+  const gripL = grp(bars, -0.34, -0.035, 0.06), gripR = grp(bars, 0.34, -0.035, 0.06);
+  // 鋁合金後移式腳踏：吊架板、腳踏桿與護跟板
   const pegL = grp(body, -0.21, 0.55, 0.12), pegR = grp(body, 0.21, 0.55, 0.12);
   for (const s of [-1, 1]) {
-    part(body, new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8), MAT.chrome, s * 0.21, 0.55, 0.12, 0, 0, Math.PI / 2);
-    part(body, profile([[0.06, 0.52], [0.14, 0.72], [0.24, 0.7], [0.2, 0.53]], 0.01, 0.003), MAT.mid, s * 0.2, 0, 0);
+    part(body, new THREE.CylinderGeometry(0.016, 0.016, 0.1, 8), BK.alu, s * 0.23, 0.55, 0.12, 0, 0, Math.PI / 2);
+    part(body, profile([[0.04, 0.52], [0.12, 0.68], [0.22, 0.66], [0.17, 0.5]], 0.012, 0.003), BK.aluF, s * 0.2, 0, 0);
+    part(body, profile([[0.1, 0.57], [0.16, 0.62], [0.22, 0.6], [0.18, 0.55]], 0.006, 0.002), BK.satin, s * 0.212, 0, 0);
+    rod(body, v(s * 0.215, 0.53, 0.1), v(s * 0.225, 0.5, -0.06), 0.008, 0.008, BK.alu, 6);
   }
   const seat = grp(body, RIDE_ROOT.x, RIDE_ROOT.y, RIDE_ROOT.z);
-  const stand = part(body, box(0.03, 0.4, 0.03), MAT.chrome, -0.16, 0.2, 0.1, 0, 0, -0.5); stand.visible = false;
+  const stand = part(body, box(0.025, 0.4, 0.025), BK.alu, -0.16, 0.2, 0.1, 0, 0, -0.5); stand.visible = false;
   root.traverse(o => { if (o.isMesh) o.castShadow = solid(o.material); });
   return { root, lean, body, rear, front, fork, bars, gripL, gripR, pegL, pegR, seat, nozzles, cones, spots, stand, heads, screen };
 }
