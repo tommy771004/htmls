@@ -317,6 +317,63 @@ export function drawMini(cv, world, streamer, p, camYaw, navBearing) {
   };
   const vis = streamer.visible || [];
   const near = vis.filter((v) => v.d < 300);
+  if (world.osm) {
+    drawMiniOsm(g, world, near);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  } else miniLayers(g, world, near, p, W, H, s, rect);
+  miniOverlay(g, W, H, p, camYaw, navBearing);
+}
+
+// 真實地圖：水域、綠地與建物都是多邊形，道路畫成折線
+function drawMiniOsm(g, world, near) {
+  const poly = (rings, c) => {
+    g.fillStyle = c;
+    g.beginPath();
+    for (const r of rings) {
+      g.moveTo(r[0], r[1]);
+      for (let k = 2; k < r.length; k += 2) g.lineTo(r[k], r[k + 1]);
+      g.closePath();
+    }
+    g.fill('evenodd');
+  };
+  const seen = new Set();
+  for (const v of near) {
+    for (const gr of v.chunk.osm.green) {
+      if (seen.has(gr)) continue;
+      seen.add(gr);
+      poly(gr.rings, gr.cls === 'sand' ? MINI_COL.sand : gr.cls === 'parking' || gr.cls === 'pier' ? '#dcd6cb' : MINI_COL.park);
+    }
+  }
+  for (const v of near) {
+    for (const w of v.chunk.osm.water) {
+      if (seen.has(w)) continue;
+      seen.add(w);
+      poly(w.rings, MINI_COL.water);
+    }
+  }
+  if (world.osm.sea) {
+    g.fillStyle = MINI_COL.water;
+    for (const v of near) {
+      const c = v.chunk;
+      for (let x = c.x0; x < c.x1; x += 10) for (let z = c.z0; z < c.z1; z += 10) if (world.terrain(x + 5, z + 5) < world.waterY - 0.2) g.fillRect(x, z, 10, 10);
+    }
+  }
+  g.lineCap = 'round';
+  for (const v of near) {
+    for (const p of v.chunk.osm.pieces) {
+      const r = p.r;
+      g.strokeStyle = r.cls <= 2 ? MINI_COL.major : r.cls >= 8 ? '#efe9de' : MINI_COL.road;
+      g.lineWidth = Math.max(1.2, r.w * 0.8);
+      g.beginPath();
+      g.moveTo(p.x0, p.z0);
+      g.lineTo(p.x1, p.z1);
+      g.stroke();
+    }
+  }
+  for (const v of near) for (const b of v.chunk.layers.building) poly([b.poly], b.shop ? '#e6c9a8' : MINI_COL.building);
+}
+
+function miniLayers(g, world, near, p, W, H, s, rect) {
   for (const v of near) {
     const L = v.chunk.layers;
     for (const w of L.water) rect(w, MINI_COL.water);
@@ -356,6 +413,9 @@ export function drawMini(cv, world, streamer, p, camYaw, navBearing) {
   }
   for (const v of near) for (const b of v.chunk.layers.building) rect(b, b.shop ? '#e6c9a8' : MINI_COL.building);
   g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function miniOverlay(g, W, H, p, camYaw, navBearing) {
   // 導航方向
   if (navBearing != null) {
     g.strokeStyle = '#e8622c';

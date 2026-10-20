@@ -7,8 +7,13 @@ import { Weather } from './weather.js';
 import { Traffic, signalState } from './traffic.js';
 import { createPlayer, emptyInput, spawnPlayer, stepPlayer, setMode } from './player.js';
 import { DEVLOG, PHOTO_OPTIONS, cycleOption } from './devlog.js';
+import { OsmWorld, hasOsm, interiorView, osmData } from './osm.js';
+import { OsmTraffic } from './osmtraffic.js';
+import { roomLightP, roomLit } from './lights.js';
 
 const place = (id) => PLACES.find((p) => p.id === id);
+const OSM_IDS = ['nyc', 'ams', 'sf', 'venice', 'taipei', 'kirkwood'];
+const osmWorld = (id) => new OsmWorld(place(id), osmData(id));
 
 function env(world, extra = {}) {
   const streamer = new ChunkStreamer(world, { viewDist: 300 });
@@ -103,6 +108,29 @@ const TESTS = [
     const flowers = L.furniture.filter((f) => f.kind === 'flowers').length;
     const counter = L.furniture.some((f) => f.kind === 'counter');
     return [flowers >= 10 && counter, `${flowers} 桶花`];
+  }],
+  ['建物', '夜間窗燈：依房間類型與時刻開燈，室內與窗外同一套規則', () => {
+    const sched = roomLightP('living', 21) > 0.5 && roomLightP('living', 3) < 0.1 && roomLightP('office', 10) > 0.8 && roomLightP('office', 2) < 0.2 && roomLightP('stairs', 3) > 0.6;
+    const W = new World(place('nyc'));
+    let lit21 = 0;
+    let lit3 = 0;
+    let rooms = 0;
+    let same = true;
+    for (let i = 0; i < 3; i++) {
+      for (const b of W.generateChunk(i, 0).layers.building) {
+        for (let f = 1; f < Math.min(b.floors, 6); f++) {
+          const L = generateInterior(b, f);
+          L.rooms.forEach((_, k) => {
+            rooms++;
+            const a = roomLit(b, L, k, 21);
+            if (a !== roomLit(b, L, k, 21)) same = false;
+            lit21 += a ? 1 : 0;
+            lit3 += roomLit(b, L, k, 3) ? 1 : 0;
+          });
+        }
+      }
+    }
+    return [sched && same && lit21 > lit3 * 1.6 && rooms > 50, `${rooms} 間房：21 點亮 ${lit21} 間、凌晨 3 點亮 ${lit3} 間`];
   }],
   ['建物', '室內碰撞不會穿出外牆', () => {
     const W = new World(place('ams'));
@@ -282,6 +310,83 @@ const TESTS = [
     for (let k = 0; k < 400; k++) T.update(0.05, me);
     const waiting = T.cars.filter((c) => c.waiting).length;
     return [n > 10 && moving > 3 && signalState('z', 5) === 'green' && signalState('x', 5) === 'red', `${n} 台車、${moving} 台行進、${waiting} 台等紅燈`];
+  }],
+  // ── 真實街道（OpenStreetMap，tools/fetch-osm.mjs 烘焙；Node 由 tools/engine.test.mjs 先登錄）──
+  ['真實街道', '六個地點的 OSM 資料都解得開：建物、道路、高程', () => {
+    const rows = OSM_IDS.map((id) => {
+      if (!hasOsm(id)) return { id, ok: false };
+      const D = osmData(id);
+      return { id, ok: D.blds.length > 100 && D.roads.length > 50 && (!!D.dem || D.flat), b: D.blds.length, r: D.roads.length };
+    });
+    return [rows.every((r) => r.ok), rows.map((r) => `${r.id} ${r.ok ? `${r.b} 棟／${r.r} 路` : '缺資料'}`).join('、')];
+  }],
+  ['真實街道', '坡地：路面在地形上線性內插的誤差（p99）小於 10 公分', () => {
+    const W = osmWorld('sf');
+    const errs = [];
+    for (const p of W.osm.pieces.slice(0, 4000)) {
+      const mx = (p.x0 + p.x1) / 2;
+      const mz = (p.z0 + p.z1) / 2;
+      const L = Math.hypot(p.x1 - p.x0, p.z1 - p.z0);
+      const n = Math.max(1, Math.ceil(L / 3));
+      const t = 0.5 / n;
+      const ax = p.x0 + (p.x1 - p.x0) * (0.5 - t);
+      const az = p.z0 + (p.z1 - p.z0) * (0.5 - t);
+      const bx = p.x0 + (p.x1 - p.x0) * (0.5 + t);
+      const bz = p.z0 + (p.z1 - p.z0) * (0.5 + t);
+      errs.push(Math.abs((W.terrain(ax, az) + W.terrain(bx, bz)) / 2 - W.terrain(mx, mz)));
+    }
+    errs.sort((a, b) => a - b);
+    const p99 = errs[Math.floor(errs.length * 0.99)];
+    return [p99 < 0.1, `舊金山 ${errs.length} 段，p99 ${(p99 * 100).toFixed(1)} cm`];
+  }],
+  ['真實街道', '矩形建物門朝路、室內只取臨街一個單位，走進去再走出來', () => {
+    const W = osmWorld('nyc');
+    const E = env(W);
+    const p = createPlayer();
+    spawnPlayer(p, W, W.spawnPoint(place('nyc').spawn));
+    const b = E.streamer.buildingsNear(p.x, p.z, 120).find((x) => x.frame && x.door && x.frame.hw > 9);
+    const v = interiorView(b);
+    // 門外 1 公尺（局部北 = 世界方向 (s, -c)）
+    const out = { x: b.door.x + b.frame.s, z: b.door.z - b.frame.c };
+    const road = W.roadAt(out.x, out.z, 14);
+    p.x = out.x;
+    p.z = out.z;
+    p.y = W.groundAt(p.x, p.z);
+    const inp = emptyInput();
+    inp.use = true;
+    run(p, inp, 0.1, E);
+    const entered = !!p.inside;
+    const small = v.x1 - v.x0 <= 16.01 && v.z1 - v.z0 <= 16.01;
+    p.x = b.door.x - b.frame.s * 1.2;
+    p.z = b.door.z + b.frame.c * 1.2;
+    inp.use = true;
+    run(p, inp, 0.1, E);
+    return [entered && small && !!road && !p.inside, `${b.name || b.id}：${(b.frame.hw * 2).toFixed(0)}×${(b.frame.hd * 2).toFixed(0)} m，室內 ${(v.x1 - v.x0).toFixed(0)}×${(v.z1 - v.z0).toFixed(0)} m`];
+  }],
+  ['真實街道', '阿姆斯特丹運河：水面、橋與船屋', () => {
+    const W = osmWorld('ams');
+    let water = 0;
+    let bridge = 0;
+    for (const r of W.osm.roads) if (r.bridge) bridge++;
+    for (let x = -300; x < 300; x += 10) for (let z = -300; z < 300; z += 10) if (W.waterAt(x, z) !== null) water++;
+    let boats = 0;
+    for (let i = -3; i < 3; i++) for (let j = -3; j < 3; j++) boats += W.generateChunk(i, j).props.boats.length;
+    return [water > 100 && bridge > 10 && boats > 3, `水面取樣 ${water} 點、橋 ${bridge} 座、船 ${boats} 艘`];
+  }],
+  ['真實街道', '車流沿 OSM 道路行駛、號誌路口停車', () => {
+    const W = osmWorld('nyc');
+    const T = new OsmTraffic(W, 3);
+    const me = { x: 0, z: 0, y: 0, mode: 'walk' };
+    for (let k = 0; k < 120; k++) T.update(0.05, me);
+    const n = T.cars.length;
+    const moving = T.cars.filter((c) => c.speed > 3).length;
+    let waiting = 0;
+    for (let k = 0; k < 600; k++) {
+      T.update(0.05, me);
+      waiting = Math.max(waiting, T.cars.filter((c) => c.waiting && c.speed < 1).length);
+    }
+    const onRoad = T.cars.filter((c) => W.roadAt(c.x, c.z, 0.5)).length;
+    return [n > 10 && moving > 3 && waiting > 0 && onRoad >= T.cars.length * 0.9 && T.peds.length > 10, `${n} 台車、${moving} 台行進、最多 ${waiting} 台等紅燈、${onRoad}/${T.cars.length} 在路上、${T.peds.length} 位行人`];
   }],
   // ── Stage 5 ──
   ['攝影與日誌', '攝影選項可循環切換', () => {

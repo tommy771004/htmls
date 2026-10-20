@@ -16,6 +16,14 @@ export class Builder {
     this.atl = [];
     this.idx = [];
     this.n = 0;
+    this.wlr = []; // 窗燈資料範圍：{ s, e, v }（頂點 s..e 的 wl 屬性 = v，其餘為 -1）
+  }
+
+  // 在 fn 裡加的頂點標上窗燈資料（v = [起點, 每層欄數, 欄位偏移, 樓層偏移 + 層數 × 4]）
+  win(v, fn) {
+    const s = this.n;
+    fn();
+    if (v && this.n > s) this.wlr.push({ s, e: this.n, v });
   }
 
   get empty() {
@@ -125,6 +133,7 @@ export class Builder {
     for (const v of o.uv) this.uv.push(v);
     for (const v of o.atl) this.atl.push(v);
     for (const i of o.idx) this.idx.push(base + i);
+    for (const r of o.wlr) this.wlr.push({ s: base + r.s, e: base + r.e, v: r.v });
     this.n += o.n;
   }
 
@@ -135,6 +144,10 @@ export class Builder {
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
     g.setAttribute('atl', new THREE.Float32BufferAttribute(this.atl, 4));
+    const wl = new Float32Array(this.n * 4);
+    for (let i = 0; i < this.n; i++) wl[i * 4] = -1;
+    for (const r of this.wlr) for (let i = r.s; i < r.e; i++) wl.set(r.v, i * 4);
+    g.setAttribute('wl', new THREE.BufferAttribute(wl, 4));
     g.setIndex(this.n > 65535 ? new THREE.Uint32BufferAttribute(this.idx, 1) : new THREE.Uint16BufferAttribute(this.idx, 1));
     g.computeBoundingSphere();
     g.computeBoundingBox();

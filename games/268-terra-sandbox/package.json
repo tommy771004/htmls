@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node tools/build.mjs",
+    "people": "node tools/people.mjs",
+    "osm": "node tools/fetch-osm.mjs",
     "test:unit": "node --test tools/engine.test.mjs",
     "test": "node --test tools/engine.test.mjs && node tools/accept.mjs"
   }

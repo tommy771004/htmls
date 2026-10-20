@@ -26,7 +26,7 @@ export const SHOPS = [
   { id: 'deli', name: '熟食店', sign: '#a16207' },
 ];
 
-const PAL = {
+export const PAL = {
   glass: [0x6f93b8, 0x5d8792, 0x8c8070, 0x56657e, 0x7aa0c4, 0x4c6b86],
   stone: [0xd9ccb4, 0xcbb99e, 0xc2b9ab, 0xe5dccd, 0xb7a58a, 0xd3c4ae],
   brick: [0x9e523d, 0x8a4a3a, 0x7b4b3e, 0xa86448, 0x6e3b30],
@@ -36,7 +36,7 @@ const PAL = {
   beach: [0xf2a48c, 0x77c6c2, 0xf4d58d, 0xf5f1e6, 0x9fd8b8, 0xe9b6d0, 0xf0c27b],
 };
 export const CAR_MODELS = ['sedan', 'taxi', 'suv', 'pickup', 'van', 'hatch', 'jeep'];
-const CAR_COLORS = [0xe9ecef, 0x22262b, 0x8b97a3, 0x9b1c1c, 0x1f3a63, 0x6b7f5a, 0xc9b98f, 0x7fb0c8, 0xd5d7d9, 0x4a4e55, 0x9ac0cf, 0xb64a2f];
+export const CAR_COLORS = [0xe9ecef, 0x22262b, 0x8b97a3, 0x9b1c1c, 0x1f3a63, 0x6b7f5a, 0xc9b98f, 0x7fb0c8, 0xd5d7d9, 0x4a4e55, 0x9ac0cf, 0xb64a2f];
 
 // 雪場：吊椅纜車與雪道
 export const LIFT = { name: '山峰快線', x: 150, zBase: 250, zTop: -760, spacing: 24, speed: 4.4, towerEvery: 112, gauge: 2.4 };

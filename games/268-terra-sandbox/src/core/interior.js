@@ -42,7 +42,7 @@ export function generateInterior(b, floor = 0) {
   if (floors > 1) out.stairs = { x0: leftX, z0: backZ, x1: leftX + sw, z1: backZ + sd };
 
   // 門口
-  if (floor === 0) {
+  if (floor === 0 && b.door) {
     out.exit = { x: b.door.x, z: b.door.z, side: b.door.side };
   }
 

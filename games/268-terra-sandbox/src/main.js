@@ -3,6 +3,8 @@
 import { World, CAR_MODELS } from './core/world.js';
 import { ChunkStreamer, raycastBuildings } from './core/stream.js';
 import { Traffic } from './core/traffic.js';
+import { OsmWorld, OSM_ATTRIB, hasOsm, osmData, registerOsm, localView, toWorldDir } from './core/osm.js';
+import { OsmTraffic } from './core/osmtraffic.js';
 import { Weather, OVERRIDES, TIMESCALES, seaState } from './core/weather.js';
 import { PLACES, LANDMARKS, KINDS, placeAt, isLand } from './core/places.js';
 import { MODES, createPlayer, emptyInput, spawnPlayer, setMode, stepPlayer, carName } from './core/player.js';
@@ -48,6 +50,7 @@ const S = {
   hud: store.get('hud', true),
   units: store.get('units', 'metric'),
   stance: store.get('stance', 'regular'),
+  realMap: store.get('realMap', true), // 有烘焙好的 OSM 資料就用真實街道
   quality: store.get('quality', window.innerWidth < 760 ? 'low' : 'mid'),
   photo: { active: false, sel: 0, opts: {}, focusDist: 12 },
   photos: [],
@@ -64,15 +67,24 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 if (isTouch) document.body.classList.add('touch');
 
 // ── 地點 ──
+const ATTR_PROC = '© OpenMapTiles 架構 · © OpenStreetMap 貢獻者（示意資料由程序生成）· Natural Earth 陸地輪廓 · TERRA 268';
 function loadPlace(place, at) {
-  S.place = place;
-  S.world = new World(place);
+  const osm = S.realMap && hasOsm(place.id);
+  if (osm) {
+    const D = osmData(place.id);
+    S.world = new OsmWorld(place, D);
+    S.place = { ...place, lat: D.lat, lon: D.lon }; // 經緯度換算以資料原點為準
+  } else {
+    S.place = place;
+    S.world = new World(place);
+  }
+  $('attr').textContent = osm ? `${OSM_ATTRIB} · TERRA 268` : ATTR_PROC;
   S.streamer = new ChunkStreamer(S.world, { viewDist: QUALITY[S.quality].view, cacheSize: 260, genPerUpdate: 6 });
-  S.traffic = new Traffic(S.world, 7);
+  S.traffic = osm ? new OsmTraffic(S.world, 7) : new Traffic(S.world, 7);
   const p = S.player;
   if (p.inside) p.inside = null;
   p.lift = null;
-  spawnPlayer(p, S.world, at || place.spawn);
+  spawnPlayer(p, S.world, osm ? S.world.spawnPoint(at || place.spawn) : at || place.spawn);
   R.setWorld(S.world, S.streamer);
   R.cam.yaw = p.yaw;
   R.cam.pitch = 0.2;
@@ -494,6 +506,7 @@ function renderSettings() {
   <h4>顯示</h4>
   <div class="row2"><div class="tx"><b>顯示 HUD</b><small>速度、儀表、小地圖、羅盤與除錯資訊</small></div>${sw(S.hud, 'hud')}</div>
   <div class="row2"><div class="tx"><b>單位</b><small>距離與速度</small></div>${seg('units', [['metric', '公制'], ['imperial', '英制']], S.units)}</div>
+  <div class="row2"><div class="tx"><b>真實街道</b><small>OpenStreetMap 的建物、道路與水域（關閉改用程序生成的街區）</small></div>${sw(S.realMap, 'realmap')}</div>
   <div class="row2"><div class="tx"><b>音效</b><small>環境、引擎與招式（WebAudio 即時合成）</small></div>${sw(!isMuted(), 'sound')}</div>
   <h4>天空</h4>
   <div class="row2"><div class="tx"><b>時刻</b><small>太陽依真實經緯度與日期計算位置</small></div><input type="range" min="0" max="23.99" step="0.05" value="${W.hour}" data-r="hour" aria-label="時刻"><b style="width:44px;text-align:right">${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</b></div>
@@ -512,6 +525,11 @@ $('settings').addEventListener('click', (e) => {
   if (b.dataset.s === 'hud') setHud(!S.hud);
   else if (b.dataset.s === 'sound') setMuted(!isMuted());
   else if (b.dataset.s === 'passes') S.weather.timePasses = !S.weather.timePasses;
+  else if (b.dataset.s === 'realmap') {
+    S.realMap = !S.realMap;
+    store.set('realMap', S.realMap);
+    loadPlace(PLACES.find((x) => x.id === S.place.id) || S.place);
+  }
   const g = b.closest('[data-g]');
   if (g) {
     const v = b.dataset.v;
@@ -802,7 +820,7 @@ function tick(rawDt) {
   } else if (!p.inside && R.U.uCutY.value < 1e5) R.setInterior(null);
 
   R.frame({
-    player: p, local: S.local, dt, t: S.t, lat: ll.lat, lon: ll.lon, weather: S.weather, sun: S.weather.sun(ll.lat, hourOffset(ll)), moon: S.weather.moon(ll.lat, hourOffset(ll)),
+    player: p, local: S.local, dt, t: S.t, lat: ll.lat, lon: ll.lon, weather: S.weather, hour: (((S.weather.hour + hourOffset(ll)) % 24) + 24) % 24, sun: S.weather.sun(ll.lat, hourOffset(ll)), moon: S.weather.moon(ll.lat, hourOffset(ll)),
     visible, warm: S.warmFrames > 0, traffic: S.traffic.enabled ? S.traffic : null, trafficT: S.traffic.t,
     newFlash: flash, flashPos: S.weather.flashPos, timeScale: S.weather.timeScale,
     interiorLayout: p.inside ? p.inside.layout : null, photo: photoState(), stance: S.stance,
@@ -839,7 +857,7 @@ function tick(rawDt) {
     drawMini($('mini'), W, S.streamer, p, R.cam.yaw, nb);
   }
   if (S.overlay === 'quality' && Math.random() < 0.05) renderQuality();
-  if (!S.ready && S.streamer.stats.queued === 0 && R.stats.builtThisFrame === 0) {
+  if (!S.ready && S.streamer.stats.queued === 0 && R.stats.builtThisFrame === 0 && R.peopleReady) {
     S.ready = true;
     $('boot').classList.add('done');
   } else if (!S.ready) $('bootBar').style.width = `${Math.min(100, (R.stats.chunkMeshes / Math.max(1, S.streamer.stats.drawn)) * 100)}%`;
@@ -925,7 +943,7 @@ ${S.place.name}（${KINDS[W.kind].label}）
       const car = S.traffic.cars.find((c) => Math.hypot(c.x - p.x, c.z - p.z) < 3.6);
       if (car) hint = `接手這台${carName(car.model)}`;
       else {
-        const b = S.streamer.buildingsNear(p.x, p.z, 3).find((b2) => Math.hypot(b2.door.x - p.x, b2.door.z - p.z) < 2.6);
+        const b = S.streamer.buildingsNear(p.x, p.z, 3).find((b2) => b2.door && Math.hypot(b2.door.x - p.x, b2.door.z - p.z) < 2.6);
         if (b) hint = `走進${b.shop ? b.shop.name : '建物'}（${b.floors} 層）`;
       }
     }
@@ -968,7 +986,7 @@ window.__terra = {
   state() {
     const p = S.player;
     return {
-      place: S.place.id, kind: S.world.kind, mode: p.mode, x: p.x, y: p.y, z: p.z, yaw: p.yaw, sp: p.sp, inside: p.inside ? { id: p.inside.id, floor: p.inside.floor, rooms: p.inside.layout.rooms.length } : null,
+      place: S.place.id, kind: S.world.kind, map: S.world.osm ? 'osm' : 'proc', mode: p.mode, x: p.x, y: p.y, z: p.z, yaw: p.yaw, sp: p.sp, inside: p.inside ? { id: p.inside.id, floor: p.inside.floor, rooms: p.inside.layout.rooms.length } : null,
       lift: !!p.lift, anim: p.anim, weather: S.local.label, hour: S.weather.hour, stats: { ...S.streamer.stats }, render: { ...R.stats }, cars: S.traffic.cars.length, peds: S.traffic.peds.length,
     };
   },
@@ -1048,9 +1066,14 @@ window.__terra = {
   },
   enter() {
     const p = S.player;
-    const b = S.streamer.buildingsNear(p.x, p.z, 60).filter((x) => x.shop).sort((a, c) => Math.hypot(a.door.x - p.x, a.door.z - p.z) - Math.hypot(c.door.x - p.x, c.door.z - p.z))[0];
+    const b = S.streamer.buildingsNear(p.x, p.z, 60).filter((x) => x.shop && x.door).sort((a, c) => Math.hypot(a.door.x - p.x, a.door.z - p.z) - Math.hypot(c.door.x - p.x, c.door.z - p.z))[0];
     if (!b) return false;
-    const out = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] }[b.door.side];
+    const v = b.frame ? localView(b) : b;
+    let out = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] }[v.door.side];
+    if (b.frame) {
+      const w = toWorldDir(b, out[0], out[1]);
+      out = [w.x, w.z];
+    }
     p.x = b.door.x + out[0] * 1.2;
     p.z = b.door.z + out[1] * 1.2;
     pressed.add('KeyE');
@@ -1081,6 +1104,11 @@ window.__terra = {
     } else keys.delete(code);
   },
   tests: () => runSelfTests(),
+  realMap(on) {
+    S.realMap = on !== false;
+    loadPlace(PLACES.find((x) => x.id === S.place.id) || S.place);
+    return S.world.osm ? 'osm' : 'proc';
+  },
   CAR_MODELS,
   _r: R,
   _s: S,
@@ -1089,7 +1117,26 @@ window.__terra = {
 // ── 開場 ──
 const q = new URLSearchParams(location.search);
 const startId = q.get('place');
-loadPlace(PLACES.find((p) => p.id === startId) || PLACES[0]);
-if (q.has('hour')) window.__terra.time(Number(q.get('hour')));
-setHud(S.hud);
-requestAnimationFrame(loop);
+if (q.get('map') === 'proc') S.realMap = false;
+// 內嵌的 OSM 資料（gzip＋base64）先解開登錄，再載入第一個地點
+async function loadOsmAll() {
+  const els = [...document.querySelectorAll('script[id^="osm-"]')];
+  await Promise.all(
+    els.map(async (el) => {
+      try {
+        const bin = Uint8Array.from(atob(el.textContent.trim()), (c) => c.charCodeAt(0));
+        const txt = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+        registerOsm(el.id.slice(4), JSON.parse(txt));
+      } catch (err) {
+        console.warn('OSM 資料解不開，改用程序街道', el.id, err);
+      }
+      el.remove();
+    }),
+  );
+}
+loadOsmAll().then(() => {
+  loadPlace(PLACES.find((p) => p.id === startId) || PLACES[0]);
+  if (q.has('hour')) window.__terra.time(Number(q.get('hour')));
+  setHud(S.hud);
+  requestAnimationFrame(loop);
+});

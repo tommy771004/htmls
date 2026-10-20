@@ -1,128 +1,241 @@
-// 木偶人角色：關節骨架（骨盆、脊椎、胸、頭、上臂、前臂、手、大腿、小腿、腳）＋程序動畫。
-// 玩家穿橘色連帽外套、深灰短褲、護膝與背包（背上掛滑板或雪板）；路人共用同一套骨架，以 InstancedMesh 一次畫完。
+// 人物：Quaternius Universal Base Characters 男女底模＋ Universal Animation Library 動畫（CC0），
+// 由 blender/people.py 組好（衣物分區材質、髮型、滑板／單車的 IK 姿勢）並以 meshopt 壓縮，打包時內嵌成 #glb-people。
+// 每個人是 SkeletonUtils 複製出來的 SkinnedMesh＋自己的 AnimationMixer；衣服、膚色、髮型、髮色依路人編號決定。
+// 模型面向 +z，外層包一層轉 180° 的群組，讓 rotation.y = -yaw 時面向 -z（北）。
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { Builder, P, mat } from './geo.js';
 
-export const SKIN = 0xc9b79e;
-const JOINT = 0x45484d;
-const DARK = 0x2f3236;
+let LIB = null;
+let loading = null;
 
-const BONES = ['pelvis', 'spine', 'chest', 'head', 'uArmL', 'fArmL', 'handL', 'uArmR', 'fArmR', 'handR', 'thighL', 'shinL', 'footL', 'thighR', 'shinR', 'footR'];
-const PARENT = { spine: 'pelvis', chest: 'spine', head: 'chest', uArmL: 'chest', fArmL: 'uArmL', handL: 'fArmL', uArmR: 'chest', fArmR: 'uArmR', handR: 'fArmR', thighL: 'pelvis', shinL: 'thighL', footL: 'shinL', thighR: 'pelvis', shinR: 'thighR', footR: 'shinR' };
-const OFFSET = {
-  pelvis: [0, 0.94, 0], spine: [0, 0.07, 0], chest: [0, 0.2, 0], head: [0, 0.31, 0],
-  uArmL: [-0.205, 0.175, 0], fArmL: [0, -0.27, 0], handL: [0, -0.245, 0],
-  uArmR: [0.205, 0.175, 0], fArmR: [0, -0.27, 0], handR: [0, -0.245, 0],
-  thighL: [-0.095, -0.05, 0], shinL: [0, -0.44, 0], footL: [0, -0.425, 0],
-  thighR: [0.095, -0.05, 0], shinR: [0, -0.44, 0], footR: [0, -0.425, 0],
+// 內嵌的 gzip＋base64 → GLTF
+export function loadPeople() {
+  if (loading) return loading;
+  loading = (async () => {
+    const el = document.getElementById('glb-people');
+    if (!el) throw new Error('缺少內嵌的人物模型');
+    const bin = Uint8Array.from(atob(el.textContent.trim()), (c) => c.charCodeAt(0));
+    const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    await MeshoptDecoder.ready;
+    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    const gltf = await new Promise((res, rej) => loader.parse(ab, '', res, rej));
+    const templates = {};
+    for (const g of ['Male', 'Female']) {
+      const o = gltf.scene.getObjectByName(g);
+      if (!o) throw new Error(`人物模型缺少 ${g}`);
+      o.position.set(0, 0, 0);
+      templates[g] = o;
+    }
+    // 兩副骨架的骨頭同名，載入器會把後面那副改成「名稱_1」；統一改回原名，動畫軌道也一樣
+    const names = new Set();
+    templates.Female.traverse((o) => names.add(o.name));
+    templates.Male.traverse((o) => names.add(o.name));
+    const canon = (n) => {
+      const m = /^(.*)_\d+$/.exec(n);
+      return m && names.has(m[1]) ? m[1] : n;
+    };
+    for (const g of ['Male', 'Female']) templates[g].traverse((o) => {
+      if (o.isBone) o.name = canon(o.name);
+    });
+    // 動畫只留旋轉（加上骨盆位移），男女骨架長度不同，不能套用其他骨頭的位移與縮放
+    const clips = new Map();
+    for (const c of gltf.animations) {
+      for (const t of c.tracks) {
+        const i = t.name.lastIndexOf('.');
+        t.name = canon(t.name.slice(0, i)) + t.name.slice(i);
+      }
+      c.tracks = c.tracks.filter((t) => t.name.endsWith('.quaternion') || /^(pelvis|root)\.position$/.test(t.name));
+      clips.set(c.name, c);
+    }
+    relax(clips, templates.Male);
+    const mats = {};
+    gltf.scene.traverse((o) => {
+      if (o.isMesh) for (const m of [].concat(o.material)) mats[m.name] = m;
+    });
+    LIB = { templates, clips, mats };
+    return LIB;
+  })();
+  return loading;
+}
+
+// 動畫庫的待機是握拳、雙臂外張的備戰姿勢，放在這副底模上像在擺健美動作：
+// 手指往靜止姿勢（張開）放鬆一半；待機再把手肘伸直一些、上臂往下收。握把的動作（開車、單車）不動。
+function relax(clips, tpl) {
+  const rest = new Map();
+  tpl.traverse((o) => o.isBone && rest.set(o.name, o.quaternion.clone()));
+  const q = new THREE.Quaternion();
+  const each = (t, f) => {
+    for (let i = 0; i < t.values.length; i += 4) f(q.fromArray(t.values, i)).toArray(t.values, i);
+  };
+  for (const [name, c] of clips) {
+    if (name === 'Driving_Loop' || name === 'Bike_Loop') continue;
+    for (const t of c.tracks) {
+      const bone = t.name.slice(0, t.name.lastIndexOf('.'));
+      if (/^(thumb|index|middle|ring|pinky)_/.test(bone)) each(t, (v) => v.slerp(rest.get(bone), 0.6));
+      else if (name === 'Idle_Loop' && /^lowerarm_/.test(bone)) each(t, (v) => v.slerp(rest.get(bone), 0.3));
+    }
+  }
+  // 上臂：在第 0 幀量出手臂在父骨空間的方向，往正下方轉 40%，整段動畫都套同一個修正
+  const idle = clips.get('Idle_Loop');
+  if (!idle) return;
+  const body = cloneSkinned(tpl);
+  const mixer = new THREE.AnimationMixer(body);
+  mixer.clipAction(idle).play();
+  mixer.update(0);
+  body.updateMatrixWorld(true);
+  for (const s of ['l', 'r']) {
+    const ua = body.getObjectByName(`upperarm_${s}`);
+    const la = body.getObjectByName(`lowerarm_${s}`);
+    const track = idle.tracks.find((t) => t.name === `upperarm_${s}.quaternion`);
+    if (!ua || !la || !track) continue;
+    const dir = la.position.clone().applyQuaternion(ua.quaternion).normalize();
+    const down = new THREE.Vector3(0, -1, 0).applyQuaternion(ua.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
+    const fix = new THREE.Quaternion().setFromUnitVectors(dir, dir.clone().lerp(down, 0.4).normalize());
+    each(track, (v) => v.premultiply(fix));
+  }
+  mixer.stopAllAction();
+}
+
+// ── 衣著 ──
+const TOPS = [0x3b82c4, 0xe0b23a, 0x6b8f71, 0xb84a4a, 0xe8e4da, 0x2f3540, 0x8a5fb0, 0xd97941, 0x4fa3a5, 0xc7c1b3, 0x7d2f4a, 0x9cb36b, 0x1d1f22, 0xf2efe8];
+const BOTS = [0x2b3a55, 0x3a3f46, 0xb9a986, 0x1f2328, 0x55606e, 0x6e5a48, 0x4b6584, 0x2c2c2c];
+const SHOES = [0xf2f2f0, 0x24262a, 0x8a6d50, 0xc8ccd2, 0x3d4a66];
+const TINTS = [0xfff4ee, 0xffe6d8, 0xd9b49a, 0xa77b5e, 0x6e4a36];
+const HAIRC = [0x2a221d, 0x4a3020, 0x7a5434, 0xc9a46a, 0x8c8c8c, 0x1c1c1c];
+const HAIRS = { Male: ['Male_Hair_SimpleParted', 'Male_Hair_Buzzed', 'Male_Hair_Beard'], Female: ['Female_Hair_Long', 'Female_Hair_Buns', 'Female_Hair_BuzzedFemale'] };
+export const PLAYER_LOOK = { gender: 'Male', top: 0xd65a22, bottom: 0x3e4652, shoe: 0x50555c, longSleeve: true, longPants: true, skin: 0, hair: 0, hairColor: 1 };
+
+export function lookFor(n) {
+  const h = (k) => Math.abs(Math.imul(n * 2654435761 + k * 40503, 0x9e3779b1) >>> 7);
+  const gender = h(1) % 2 ? 'Female' : 'Male';
+  return {
+    gender, top: TOPS[h(2) % TOPS.length], bottom: BOTS[h(3) % BOTS.length], shoe: SHOES[h(4) % SHOES.length],
+    longSleeve: h(5) % 3 === 0, longPants: h(6) % 3 !== 0, skin: h(7) % TINTS.length, hair: h(8) % 3, hairColor: h(9) % HAIRC.length,
+  };
+}
+
+const cache = new Map();
+function cached(key, make) {
+  let m = cache.get(key);
+  if (!m) {
+    m = make();
+    cache.set(key, m);
+  }
+  return m;
+}
+const clothMat = (hex) => cached(`c${hex}`, () => new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0 }));
+function skinMat(g, tint) {
+  return cached(`s${g}${tint}`, () => {
+    const m = LIB.mats[`${g}_skin`].clone();
+    m.color.setHex(TINTS[tint]);
+    m.roughness = 0.62;
+    return m;
+  });
+}
+function hairMat(base, c) {
+  return cached(`h${base.name}${c}`, () => {
+    const m = base.clone();
+    m.color.setHex(HAIRC[c]).multiplyScalar(2.2);
+    return m;
+  });
+}
+
+// ── 動作對應 ──
+const ANIM = {
+  idle: 'Idle_Loop', talk: 'Idle_Talking_Loop', walk: 'Walk_Loop', run: 'Jog_Fwd_Loop', sprint: 'Sprint_Loop', jump: 'Jump_Loop', fall: 'Jump_Loop',
+  crouch: 'Crouch_Idle_Loop', swim: 'Swim_Fwd_Loop', sit: 'Sitting_Idle_Loop', drive: 'Driving_Loop', fly: 'Driving_Loop', bike: 'Bike_Loop',
+  ride: 'Board_Ride', grind: 'Board_Ride', push: 'Board_Push', crouchride: 'Board_Crouch', air: 'Board_Crouch', grab: 'Board_Grab', bail: 'Roll',
 };
-const UPPER = new Set(['spine', 'chest', 'uArmL', 'fArmL', 'uArmR', 'fArmR']);
+// 動畫原本的步速（m/s），用來對齊腳步
+const PACE = { Walk_Loop: 1.35, Jog_Fwd_Loop: 3.4, Sprint_Loop: 6.2, Bike_Loop: 4.5, Swim_Fwd_Loop: 1.2 };
 
-export function makeRig() {
-  const root = new THREE.Group();
-  const b = {};
-  for (const n of BONES) {
-    const g = new THREE.Group();
-    g.name = n;
-    g.position.set(...OFFSET[n]);
-    g.rotation.order = 'YXZ';
-    b[n] = g;
-    (PARENT[n] ? b[PARENT[n]] : root).add(g);
+class Person {
+  constructor(look) {
+    this.look = look;
+    const t = LIB.templates[look.gender];
+    this.model = cloneSkinned(t);
+    this.model.rotation.y = Math.PI;
+    this.root = new THREE.Group();
+    this.root.add(this.model);
+    this.meshes = [];
+    this.model.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = true;
+      o.frustumCulled = false;
+      this.meshes.push(o);
+    });
+    this.dress(look);
+    this.mixer = new THREE.AnimationMixer(this.model);
+    this.actions = new Map();
+    this.cur = null;
+    this.bones = {};
+    this.model.traverse((o) => {
+      if (o.isBone) this.bones[o.name] = o;
+    });
   }
-  return { root, b };
+
+  dress(L) {
+    const g = L.gender;
+    const hairName = HAIRS[g][L.hair];
+    const skin = skinMat(g, L.skin);
+    for (const m of this.meshes) {
+      const n = m.material.name || '';
+      const name = m.name;
+      if (/_Hair_/.test(name) || /_Hair_/.test(m.parent && m.parent.name)) {
+        const owner = /_Hair_/.test(name) ? name : m.parent.name;
+        m.visible = owner.startsWith(hairName);
+        if (m.visible) m.material = hairMat(LIB.mats[n] || m.material, L.hairColor);
+        continue;
+      }
+      if (/_Brows/.test(name) || /_Brows/.test(m.parent && m.parent.name)) {
+        // 眉毛的 UV 落在頭髮貼圖的淺色區，直接用髮色素色
+        m.material = cached(`b${L.hairColor}`, () => new THREE.MeshStandardMaterial({ color: new THREE.Color(HAIRC[L.hairColor]).multiplyScalar(0.8), roughness: 0.85 }));
+        continue;
+      }
+      if (n.endsWith('_skin')) m.material = skin;
+      else if (n.endsWith('_top')) m.material = clothMat(L.top);
+      else if (n.endsWith('_sleeve')) m.material = L.longSleeve ? clothMat(L.top) : skin;
+      else if (n.endsWith('_bottom')) m.material = clothMat(L.bottom);
+      else if (n.endsWith('_shin')) m.material = L.longPants ? clothMat(L.bottom) : skin;
+      else if (n.endsWith('_shoe')) m.material = clothMat(L.shoe);
+    }
+  }
+
+  // 依動作狀態切換動畫；sp：移動速度（對齊步伐）
+  play(anim, sp = 0, dt = 0) {
+    const name = ANIM[anim] || 'Idle_Loop';
+    let a = this.actions.get(name);
+    if (!a) {
+      const clip = LIB.clips.get(name);
+      if (!clip) return;
+      a = this.mixer.clipAction(clip);
+      if (name === 'Roll' || name === 'Jump_Land') {
+        a.setLoop(THREE.LoopOnce, 1);
+        a.clampWhenFinished = true;
+      }
+      this.actions.set(name, a);
+    }
+    if (this.cur !== a) {
+      a.reset();
+      a.time = name === 'Idle_Loop' || name === 'Walk_Loop' ? Math.random() * a.getClip().duration : 0;
+      a.play();
+      if (this.cur) a.crossFadeFrom(this.cur, anim === 'jump' || anim === 'bail' ? 0.12 : 0.22, false);
+      this.cur = a;
+    }
+    const pace = PACE[name];
+    a.timeScale = pace ? Math.min(2.2, Math.max(0.35, sp / pace)) : 1;
+    if (dt) this.mixer.update(dt);
+  }
 }
 
-// 各骨頭的幾何（cloth：衣物，乘上衣色；skin：皮膚與固定色細節）
-function sph(B, x, y, z, sx, sy, sz, c) {
-  B.geom(P.sphere(14, 10), mat(x, y, z, sx, sy, sz), c);
-}
-function cyl(B, x, y, z, r0, r1, h, c, rx = 0, rz = 0, seg = 10) {
-  const g = r0 === r1 ? P.cyl(seg) : null;
-  if (g) B.geom(g, mat(x, y, z, r0, h, r0, rx, 0, rz), c);
-  else B.geom(new THREE.CylinderGeometry(r1, r0, h, seg, 1), mat(x, y, z, 1, 1, 1, rx, 0, rz), c);
-}
-
-export function buildParts(colors, detail = true) {
-  const top = colors.top;
-  const bot = colors.bottom;
-  const skin = colors.skin ?? SKIN;
-  const parts = {};
-  const get = (n) => (parts[n] ||= { cloth: new Builder(), skin: new Builder() });
-  // 骨盆：短褲
-  let p = get('pelvis');
-  sph(p.cloth, 0, -0.02, 0, 0.165, 0.12, 0.115, bot);
-  // 腹部
-  p = get('spine');
-  sph(p.cloth, 0, 0.09, 0, 0.158, 0.15, 0.112, top);
-  // 胸：連帽外套、肩、頸
-  p = get('chest');
-  sph(p.cloth, 0, 0.07, 0, 0.198, 0.2, 0.128, top);
-  sph(p.cloth, -0.185, 0.165, 0, 0.078, 0.072, 0.078, top);
-  sph(p.cloth, 0.185, 0.165, 0, 0.078, 0.072, 0.078, top);
-  cyl(p.skin, 0, 0.27, 0, 0.042, 0.042, 0.1, skin);
-  cyl(p.skin, 0, 0.232, 0, 0.062, 0.062, 0.05, JOINT);
-  if (detail) {
-    // 帽兜（後頸一圈）、拉鍊、口袋、抽繩
-    p.cloth.geom(new THREE.TorusGeometry(0.085, 0.045, 8, 16, Math.PI * 1.25), mat(0, 0.235, 0.035, 1, 1, 1.15, Math.PI / 2, 0, Math.PI * 0.125 + Math.PI), top);
-    sph(p.cloth, 0, 0.2, 0.085, 0.12, 0.09, 0.07, top);
-    p.skin.geom(P.box(), mat(0, 0.04, -0.126, 0.008, 0.36, 0.006), 0xd8d4cc);
-    p.cloth.geom(P.box(), mat(0, -0.075, -0.118, 0.2, 0.09, 0.03), shade(top, 0.92));
-    p.skin.geom(P.cyl(5), mat(-0.03, 0.12, -0.13, 0.004, 0.13, 0.004), 0xe8e4dc);
-    p.skin.geom(P.cyl(5), mat(0.03, 0.12, -0.13, 0.004, 0.13, 0.004), 0xe8e4dc);
-  }
-  // 頭：圓頭＋兩側耳盤＋小眼睛
-  p = get('head');
-  sph(p.skin, 0, 0.13, 0, 0.112, 0.138, 0.124, skin);
-  for (const s of [-1, 1]) {
-    cyl(p.skin, s * 0.112, 0.125, 0.005, 0.058, 0.058, 0.04, shade(skin, 0.9), 0, Math.PI / 2, 16);
-    cyl(p.skin, s * 0.131, 0.125, 0.005, 0.032, 0.032, 0.012, DARK, 0, Math.PI / 2, 12);
-    sph(p.skin, s * 0.043, 0.122, -0.112, 0.014, 0.017, 0.008, DARK);
-  }
-  // 手臂
-  for (const s of ['L', 'R']) {
-    p = get('uArm' + s);
-    cyl(p.cloth, 0, -0.125, 0, 0.06, 0.06, 0.25, top);
-    sph(p.cloth, 0, -0.25, 0, 0.056, 0.05, 0.056, top);
-    p = get('fArm' + s);
-    cyl(p.cloth, 0, -0.08, 0, 0.054, 0.05, 0.16, top);
-    cyl(p.skin, 0, -0.165, 0, 0.042, 0.042, 0.03, JOINT);
-    cyl(p.skin, 0, -0.205, 0, 0.033, 0.03, 0.08, skin);
-    p = get('hand' + s);
-    p.skin.geom(P.box(), mat(0, -0.045, 0, 0.068, 0.08, 0.03), skin);
-    if (detail) {
-      for (let f = 0; f < 4; f++) p.skin.geom(P.cyl(5), mat(-0.026 + f * 0.017, -0.112, 0, 0.0085, 0.06, 0.0085), skin);
-      p.skin.geom(P.cyl(5), mat((s === 'L' ? 1 : -1) * 0.038, -0.065, -0.012, 0.009, 0.05, 0.009, 0, 0, (s === 'L' ? -1 : 1) * 0.6), skin);
-    } else p.skin.geom(P.box(), mat(0, -0.11, 0, 0.066, 0.06, 0.025), skin);
-  }
-  // 腿
-  for (const s of ['L', 'R']) {
-    p = get('thigh' + s);
-    cyl(p.cloth, 0, -0.13, 0, 0.088, 0.08, 0.27, bot);
-    if (detail) p.cloth.geom(P.box(), mat((s === 'L' ? -1 : 1) * 0.08, -0.17, 0, 0.03, 0.1, 0.08), shade(bot, 0.9));
-    cyl(p.skin, 0, -0.35, 0, 0.058, 0.05, 0.18, skin);
-    p = get('shin' + s);
-    sph(p.skin, 0, -0.01, -0.022, 0.058, 0.06, 0.052, JOINT);
-    cyl(p.skin, 0, -0.21, 0, 0.048, 0.036, 0.4, skin);
-    p = get('foot' + s);
-    sph(p.skin, 0, -0.03, -0.045, 0.058, 0.05, 0.125, colors.shoe ?? 0x4d5259);
-    p.skin.geom(P.box(), mat(0, -0.068, -0.045, 0.106, 0.026, 0.245), 0xe9e7e2);
-  }
-  return parts;
-}
-
-function shade(hex, k) {
-  const c = new THREE.Color(hex);
-  c.multiplyScalar(k);
-  return c.getHex();
-}
-
-// 背包（掛在胸骨上）與背上的板子
 function buildBackpack(board) {
   const B = new Builder();
   const pack = 0x4a5562;
   B.geom(new THREE.CapsuleGeometry(0.13, 0.22, 4, 10), mat(0, 0.06, 0.2, 1.15, 1, 0.65), pack);
   B.geom(P.box(), mat(0, -0.04, 0.29, 0.2, 0.14, 0.04), 0x3d4752);
-  for (const s of [-1, 1]) B.geom(new THREE.TorusGeometry(0.11, 0.016, 6, 12, Math.PI), mat(s * 0.1, 0.13, 0.03, 1, 1.3, 0.9, 0, Math.PI / 2, 0), 0x3d4752);
   if (board === 'skate') {
     B.geom(P.box(), mat(0, 0.08, 0.33, 0.21, 0.78, 0.025), 0xe8692d);
     B.geom(P.box(), mat(0, 0.08, 0.318, 0.2, 0.76, 0.006), 0x2b2b2b);
@@ -138,261 +251,52 @@ function buildBackpack(board) {
   return B.build();
 }
 
-// 姿勢：依動作狀態設定各骨頭旋轉
-export function pose(r, s) {
-  const b = r.b;
-  for (const n of BONES) b[n].rotation.set(0, 0, 0);
-  b.pelvis.position.set(0, 0.94, 0);
-  const ph = s.phase || 0;
-  const a = s.anim || 'idle';
-  const sin = Math.sin;
-  const cos = Math.cos;
-  const arms = (down = 0.08) => {
-    b.uArmL.rotation.z = -down;
-    b.uArmR.rotation.z = down;
-  };
-  switch (a) {
-    case 'walk':
-    case 'run':
-    case 'sprint': {
-      const k = a === 'walk' ? 0.42 : a === 'run' ? 0.78 : 1.0;
-      const w = ph * Math.PI * (a === 'walk' ? 1.05 : 1.0);
-      const sw = sin(w);
-      b.thighL.rotation.x = sw * k;
-      b.thighR.rotation.x = -sw * k;
-      b.shinL.rotation.x = -Math.max(0, -cos(w) * k * 1.6) - 0.08;
-      b.shinR.rotation.x = -Math.max(0, cos(w) * k * 1.6) - 0.08;
-      b.footL.rotation.x = Math.max(0, sw) * 0.3;
-      b.footR.rotation.x = Math.max(0, -sw) * 0.3;
-      b.uArmL.rotation.x = -sw * k * 0.8;
-      b.uArmR.rotation.x = sw * k * 0.8;
-      b.fArmL.rotation.x = 0.25 + k * 0.9;
-      b.fArmR.rotation.x = 0.25 + k * 0.9;
-      arms(0.1);
-      const lean = a === 'walk' ? 0.03 : a === 'run' ? 0.14 : 0.26;
-      b.spine.rotation.x = -lean;
-      b.pelvis.position.y = 0.94 - (a === 'walk' ? 0.01 : 0.04) + Math.abs(sin(w)) * (a === 'walk' ? 0.025 : 0.06);
-      b.spine.rotation.y = sw * 0.08 * k;
-      b.head.rotation.x = lean * 0.6;
-      break;
-    }
-    case 'jump':
-    case 'fall':
-      b.thighL.rotation.x = a === 'jump' ? 0.75 : 0.25;
-      b.thighR.rotation.x = a === 'jump' ? 0.15 : -0.15;
-      b.shinL.rotation.x = a === 'jump' ? -1.1 : -0.4;
-      b.shinR.rotation.x = -0.5;
-      b.uArmL.rotation.z = -0.9 - (a === 'fall' ? 0.6 : 0);
-      b.uArmR.rotation.z = 0.9 + (a === 'fall' ? 0.6 : 0);
-      b.uArmL.rotation.x = 0.4;
-      b.uArmR.rotation.x = 0.4;
-      b.fArmL.rotation.x = 0.5;
-      b.fArmR.rotation.x = 0.5;
-      break;
-    case 'crouch':
-      b.pelvis.position.y = 0.62;
-      b.thighL.rotation.x = 1.25;
-      b.thighR.rotation.x = 1.1;
-      b.shinL.rotation.x = -1.95;
-      b.shinR.rotation.x = -1.8;
-      b.footL.rotation.x = 0.6;
-      b.footR.rotation.x = 0.6;
-      b.spine.rotation.x = 0.35;
-      b.uArmL.rotation.x = 0.6;
-      b.uArmR.rotation.x = 0.6;
-      b.fArmL.rotation.x = 0.8;
-      b.fArmR.rotation.x = 0.8;
-      break;
-    case 'swim': {
-      b.pelvis.position.y = 0.94;
-      b.spine.rotation.x = 0.1;
-      const w = ph * 2.4;
-      b.uArmL.rotation.x = -Math.PI + ((w % (Math.PI * 2)) / (Math.PI * 2)) * Math.PI * 2;
-      b.uArmR.rotation.x = -Math.PI + (((w + Math.PI) % (Math.PI * 2)) / (Math.PI * 2)) * Math.PI * 2;
-      b.thighL.rotation.x = sin(w * 2) * 0.3 - 0.1;
-      b.thighR.rotation.x = -sin(w * 2) * 0.3 - 0.1;
-      break;
-    }
-    case 'ride':
-    case 'push':
-    case 'crouchride':
-    case 'air':
-    case 'grab':
-    case 'grind': {
-      // 板上：身體側站（相對板子轉 90°），膝蓋微彎，手往兩側
-      const deep = a === 'crouchride' || a === 'air' || a === 'grab' ? 1 : a === 'grind' ? 0.6 : 0.35;
-      b.pelvis.position.y = 0.94 - deep * 0.22;
-      b.thighL.rotation.x = 0.3 + deep * 0.6;
-      b.thighR.rotation.x = 0.3 + deep * 0.6;
-      b.shinL.rotation.x = -0.55 - deep * 1.1;
-      b.shinR.rotation.x = -0.55 - deep * 1.1;
-      b.footL.rotation.x = 0.2 + deep * 0.4;
-      b.footR.rotation.x = 0.2 + deep * 0.4;
-      b.thighL.rotation.z = -0.28;
-      b.thighR.rotation.z = 0.28;
-      b.spine.rotation.x = 0.12 + deep * 0.25;
-      b.spine.rotation.z = (s.lean || 0) * 0.6;
-      b.head.rotation.y = 1.3;
-      b.uArmL.rotation.z = -0.75;
-      b.uArmR.rotation.z = 0.75;
-      b.uArmL.rotation.x = 0.2;
-      b.uArmR.rotation.x = 0.2;
-      b.fArmL.rotation.x = 0.4;
-      b.fArmR.rotation.x = 0.4;
-      if (a === 'push') {
-        // 後腳往地面推
-        const w = (ph * 3) % (Math.PI * 2);
-        b.thighR.rotation.x = 0.25 - sin(w) * 0.55;
-        b.shinR.rotation.x = -0.25 - Math.max(0, cos(w)) * 0.5;
-        b.thighR.rotation.z = 0.05;
-        b.pelvis.position.y = 0.86;
-      }
-      if (a === 'grab') {
-        b.uArmR.rotation.z = 0.1;
-        b.uArmR.rotation.x = 1.2;
-        b.fArmR.rotation.x = 0.4;
-      }
-      if (a === 'grind') {
-        b.uArmL.rotation.z = -1.3;
-        b.uArmR.rotation.z = 1.3;
-      }
-      break;
-    }
-    case 'bail':
-      b.spine.rotation.x = 0.8;
-      b.uArmL.rotation.x = 1.5;
-      b.uArmR.rotation.x = 1.5;
-      b.thighL.rotation.x = 1.3;
-      b.thighR.rotation.x = 0.8;
-      b.shinL.rotation.x = -1.6;
-      b.shinR.rotation.x = -1.2;
-      b.pelvis.position.y = 0.32;
-      break;
-    case 'sit':
-    case 'drive':
-    case 'fly':
-      b.pelvis.position.y = 0.5;
-      b.thighL.rotation.x = 1.45;
-      b.thighR.rotation.x = 1.45;
-      b.shinL.rotation.x = -1.45;
-      b.shinR.rotation.x = -1.45;
-      b.thighL.rotation.z = -0.08;
-      b.thighR.rotation.z = 0.08;
-      if (a === 'sit') {
-        b.uArmL.rotation.x = 0.4;
-        b.uArmR.rotation.x = 0.4;
-        b.fArmL.rotation.x = 0.9;
-        b.fArmR.rotation.x = 0.9;
-        b.thighL.rotation.x = 1.35 + sin(ph * 0.8) * 0.12;
-        b.shinR.rotation.x = -1.2 + sin(ph * 0.9) * 0.2;
-      } else {
-        b.uArmL.rotation.x = 0.9;
-        b.uArmR.rotation.x = 0.9;
-        b.fArmL.rotation.x = 0.5;
-        b.fArmR.rotation.x = 0.5;
-        b.uArmL.rotation.z = 0.15;
-        b.uArmR.rotation.z = -0.15;
-        b.spine.rotation.x = -0.05;
-      }
-      break;
-    case 'bike': {
-      b.pelvis.position.y = 0.98;
-      const w = ph * 3.2;
-      b.thighL.rotation.x = 1.05 + sin(w) * 0.42;
-      b.thighR.rotation.x = 1.05 - sin(w) * 0.42;
-      b.shinL.rotation.x = -1.25 - cos(w) * 0.4;
-      b.shinR.rotation.x = -1.25 + cos(w) * 0.4;
-      b.spine.rotation.x = 0.45;
-      b.head.rotation.x = -0.4;
-      b.uArmL.rotation.x = 1.25;
-      b.uArmR.rotation.x = 1.25;
-      b.fArmL.rotation.x = 0.2;
-      b.fArmR.rotation.x = 0.2;
-      b.spine.rotation.z = (s.lean || 0) * 0.5;
-      break;
-    }
-    case 'tpose':
-      b.uArmL.rotation.z = -1.35;
-      b.uArmR.rotation.z = 1.35;
-      b.fArmL.rotation.z = -0.1;
-      b.fArmR.rotation.z = 0.1;
-      b.thighL.rotation.x = 0.2;
-      b.shinL.rotation.x = -0.4;
-      break;
-    default: {
-      // 待機：呼吸
-      const br = sin(ph * 1.6) * 0.02;
-      b.spine.rotation.x = br;
-      b.head.rotation.x = -br;
-      arms(0.1);
-      b.fArmL.rotation.x = 0.15;
-      b.fArmR.rotation.x = 0.15;
-      b.thighL.rotation.z = -0.03;
-      b.thighR.rotation.z = 0.03;
-    }
-  }
-}
-
 // ── 玩家角色 ──
-const MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0.02 });
+const PACK_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0.02 });
 
 export class PlayerAvatar {
   constructor() {
-    this.rig = makeRig();
-    this.root = this.rig.root;
-    const parts = buildParts({ top: 0xd65a22, bottom: 0x3e4652, shoe: 0x50555c }, true);
-    this.meshes = [];
-    for (const [n, pr] of Object.entries(parts)) {
-      const B = new Builder();
-      B.append(pr.cloth);
-      B.append(pr.skin);
-      const m = new THREE.Mesh(B.build(), MAT);
-      m.castShadow = true;
-      this.rig.b[n].add(m);
-      this.meshes.push(m);
-    }
+    this.root = new THREE.Group();
+    this.person = null;
     this.packs = { none: buildBackpack(null), skate: buildBackpack('skate'), snow: buildBackpack('snow') };
-    this.pack = new THREE.Mesh(this.packs.skate, MAT);
+    this.pack = new THREE.Mesh(this.packs.skate, PACK_MAT);
     this.pack.castShadow = true;
-    this.rig.b.chest.add(this.pack);
+    this.item = 'skate';
+  }
+
+  // 模型載入後才真正建立
+  build() {
+    this.person = new Person(PLAYER_LOOK);
+    this.root.add(this.person.root);
+    // 背包掛在上背（spine_03），用靜止姿勢算出相對骨頭的位置
+    const chest = this.person.bones.spine_03;
+    this.root.updateMatrixWorld(true);
+    const rootInv = new THREE.Matrix4().copy(this.root.matrixWorld).invert();
+    const boneRel = new THREE.Matrix4().multiplyMatrices(rootInv, chest.matrixWorld);
+    const want = new THREE.Matrix4().makeTranslation(0, new THREE.Vector3().setFromMatrixPosition(boneRel).y - 0.12, -0.06);
+    this.pack.matrixAutoUpdate = false;
+    this.pack.matrix.copy(boneRel.invert().multiply(want));
+    chest.add(this.pack);
   }
 
   setBackItem(kind) {
+    this.item = kind;
     this.pack.geometry = this.packs[kind] || this.packs.none;
   }
 
-  update(state) {
-    pose(this.rig, state);
+  update(state, dt) {
+    if (!this.person) return;
+    this.person.play(state.anim, state.sp || 0, dt);
   }
 }
 
-// ── 路人群：每個骨頭兩個 InstancedMesh（衣物乘上衣色、皮膚） ──
-const NPC_TOPS = [0x3b82c4, 0xe0b23a, 0x6b8f71, 0xb84a4a, 0xe8e4da, 0x2f3540, 0x8a5fb0, 0xd97941, 0x4fa3a5, 0xc7c1b3, 0x7d2f4a, 0x9cb36b];
-const NPC_BOTS = [0x2b3a55, 0x3a3f46, 0xb9a986, 0x1f2328, 0x55606e, 0x6e5a48];
-const NPC_SKINS = [[1, 1, 1], [0.34, 0.35, 0.38], [1.1, 1.1, 1.12], [0.82, 0.78, 0.74]];
-
+// ── 路人：每個外觀編號對應一個人（快取），每幀最多新建幾個，避免卡頓 ──
 export class Crowd {
   constructor(max = 64) {
     this.max = max;
-    this.rig = makeRig();
     this.group = new THREE.Group();
-    const parts = buildParts({ top: 0xffffff, bottom: 0xffffff, shoe: 0x55595f }, false);
-    this.inst = [];
-    const clothMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
-    for (const [n, pr] of Object.entries(parts)) {
-      for (const slot of ['cloth', 'skin']) {
-        if (pr[slot].empty) continue;
-        const im = new THREE.InstancedMesh(pr[slot].build(), clothMat, max);
-        im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        im.count = 0;
-        im.castShadow = true;
-        im.frustumCulled = false;
-        im.setColorAt(0, new THREE.Color(1, 1, 1));
-        this.group.add(im);
-        this.inst.push({ bone: n, slot, im, upper: UPPER.has(n) });
-      }
-    }
-    this.boards = new THREE.InstancedMesh(boardGeo(), clothMat, max);
+    this.people = new Map();
+    this.boards = new THREE.InstancedMesh(boardGeo(), PACK_MAT, max);
     this.boards.count = 0;
     this.boards.frustumCulled = false;
     this.boards.castShadow = true;
@@ -400,27 +304,41 @@ export class Crowd {
     this.group.add(this.boards);
     this._c = new THREE.Color();
     this._m = new THREE.Matrix4();
+    this.frame = 0;
+    this.shadows = true;
   }
 
-  // list：[{x,y,z,yaw,anim,phase,look,board?}]
-  update(list) {
+  // list：[{x,y,z,yaw,anim,phase,look,board?,lean?,sp?}]；cam：攝影機位置（遠處的人降低動畫更新頻率）
+  update(list, dt = 1 / 60, cam = null) {
+    this.frame++;
+    if (!LIB) return;
     const n = Math.min(list.length, this.max);
-    const r = this.rig;
+    const used = new Set();
+    let made = 0;
     let nb = 0;
     for (let i = 0; i < n; i++) {
       const s = list[i];
-      r.root.position.set(s.x, s.y, s.z);
-      r.root.rotation.set(0, -s.yaw + (s.board ? -Math.PI / 2 : 0), 0);
-      r.root.updateMatrix();
-      pose(r, s);
-      r.root.updateMatrixWorld(true);
-      const look = s.look || 0;
-      for (const it of this.inst) {
-        it.im.setMatrixAt(i, r.b[it.bone].matrixWorld);
-        if (it.slot === 'cloth') this._c.setHex(it.upper ? NPC_TOPS[look % NPC_TOPS.length] : NPC_BOTS[(look * 7 + 3) % NPC_BOTS.length]);
-        else this._c.setRGB(...NPC_SKINS[(look * 5 + 1) % NPC_SKINS.length]);
-        it.im.setColorAt(i, this._c);
+      let key = s.look || 0;
+      while (used.has(key)) key += 1000;
+      used.add(key);
+      let per = this.people.get(key);
+      if (!per) {
+        if (made >= 3) continue;
+        per = new Person(lookFor(key % 1000 + (key >= 1000 ? 77 : 0)));
+        per.root.traverse((o) => {
+          if (o.isMesh) o.castShadow = this.shadows;
+        });
+        this.people.set(key, per);
+        this.group.add(per.root);
+        made++;
       }
+      per.root.visible = true;
+      per.root.position.set(s.x, s.y + (s.board ? 0.13 : 0), s.z);
+      per.root.rotation.set(0, -s.yaw + (s.board ? -Math.PI / 2 : 0), s.board ? (s.lean || 0) * 0.5 : 0, 'YXZ');
+      const far = cam ? Math.hypot(s.x - cam.x, s.z - cam.z) > 45 : false;
+      const step = far ? 3 : 1;
+      per.play(s.anim, s.sp ?? (s.anim === 'walk' ? 1.35 : 0), (this.frame + key) % step === 0 ? dt * step : 0);
+      per.seen = this.frame;
       if (s.board) {
         this._m.makeRotationY(-s.yaw);
         this._m.setPosition(s.x, s.y + 0.1, s.z);
@@ -429,14 +347,25 @@ export class Crowd {
         nb++;
       }
     }
-    for (const it of this.inst) {
-      it.im.count = n;
-      it.im.instanceMatrix.needsUpdate = true;
-      if (it.im.instanceColor) it.im.instanceColor.needsUpdate = true;
+    // 沒用到的人藏起來；太多就丟掉最久沒出現的
+    for (const [k, per] of this.people) {
+      if (per.seen !== this.frame) per.root.visible = false;
+      if (this.people.size > this.max * 1.5 && this.frame - per.seen > 600) {
+        this.group.remove(per.root);
+        per.mixer.stopAllAction();
+        this.people.delete(k);
+      }
     }
     this.boards.count = nb;
     this.boards.instanceMatrix.needsUpdate = true;
     if (this.boards.instanceColor) this.boards.instanceColor.needsUpdate = true;
+  }
+
+  setShadows(on) {
+    this.shadows = on;
+    for (const per of this.people.values()) per.root.traverse((o) => {
+      if (o.isMesh) o.castShadow = on;
+    });
   }
 }
 

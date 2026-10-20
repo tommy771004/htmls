@@ -522,13 +522,13 @@ const PAINT = {
 // 世界材質：所有建物、地面與街道家具共用
 export function createWorldMaterial() {
   const A = getAtlas();
-  const uniforms = { uAtlas: { value: A.tex }, uNight: { value: 0 }, uWet: { value: 0 }, uSnow: { value: 0 }, uCutY: { value: 1e6 }, uCutBox: { value: new THREE.Vector4(1e6, 1e6, -1e6, -1e6) } };
+  const uniforms = { uAtlas: { value: A.tex }, uNight: { value: 0 }, uWet: { value: 0 }, uSnow: { value: 0 }, uCutY: { value: 1e6 }, uCutBox: { value: new THREE.Vector4(1e6, 1e6, -1e6, -1e6) }, uWin: { value: null }, uHour: { value: 12 } };
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.0 });
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uniforms);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec4 atl;\nvarying vec4 vAtl;\nvarying vec2 vRep;\nvarying vec3 vWPos;\nvarying vec3 vWNorm;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvAtl = atl;\nvRep = uv;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNorm = normalize(mat3(modelMatrix) * normal);');
+      .replace('#include <common>', '#include <common>\nattribute vec4 atl;\nattribute vec4 wl;\nvarying vec4 vAtl;\nflat varying vec4 vWl;\nvarying vec2 vRep;\nvarying vec3 vWPos;\nvarying vec3 vWNorm;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvAtl = atl;\nvWl = wl;\nvRep = uv;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNorm = normalize(mat3(modelMatrix) * normal);');
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
@@ -539,11 +539,39 @@ uniform float uWet;
 uniform float uSnow;
 uniform float uCutY;
 uniform vec4 uCutBox;
+uniform sampler2D uWin;
+uniform float uHour;
 varying vec4 vAtl;
+flat varying vec4 vWl;
 varying vec2 vRep;
 varying vec3 vWPos;
 varying vec3 vWNorm;
-float hash21(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }`,
+float hash21(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+// 窗燈：房間類型在這個時刻開燈的機率（與 winlights.js 的 roomLightP 相同）
+float inH(float h, float a, float b) { return a < b ? step(a, h) * (1.0 - step(b, h)) : max(step(a, h), 1.0 - step(b, h)); }
+float roomP(float t, float h) {
+  if (t < 0.5) return 0.0;
+  if (t < 1.5 || t > 11.5) return mix(0.06, 0.95, inH(h, 8.0, 22.0));
+  if (t < 2.5) return mix(0.03, 0.5, inH(h, 8.0, 23.0));
+  if (t < 3.5) return 0.85;
+  if (t > 9.5 && t < 10.5) return mix(0.85, 0.4, inH(h, 23.0, 6.0));
+  if (t > 10.5 && t < 11.5) return 0.7;
+  if (t < 4.5) return max(max(0.75 * inH(h, 17.0, 23.5), 0.3 * inH(h, 6.0, 8.0)), 0.05);
+  if (t < 5.5) return max(max(0.45 * inH(h, 21.0, 24.0), 0.35 * inH(h, 6.0, 7.5)), max(0.15 * inH(h, 0.0, 1.0), 0.03));
+  if (t < 6.5) return max(max(0.5 * inH(h, 6.0, 9.0), 0.7 * inH(h, 17.0, 21.0)), 0.04);
+  if (t < 7.5) return max(0.4 * inH(h, 6.0, 8.0), 0.12);
+  return max(max(0.9 * inH(h, 7.0, 19.0), 0.35 * inH(h, 19.0, 22.0)), 0.12);
+}
+vec3 roomCol(float t) {
+  if (t < 1.5 || t > 11.5) return vec3(1.0, 0.88, 0.7) * 0.95;
+  if (t < 2.5) return vec3(0.95, 0.95, 0.9) * 0.55;
+  if (t < 3.5 || (t > 9.5 && t < 11.5)) return vec3(1.0, 0.8, 0.52) * 0.5;
+  if (t < 4.5) return vec3(1.0, 0.7, 0.4) * 0.75;
+  if (t < 5.5) return vec3(1.0, 0.6, 0.32) * 0.5;
+  if (t < 6.5) return vec3(1.0, 0.88, 0.68) * 0.8;
+  if (t < 7.5) return vec3(0.86, 0.93, 1.0) * 0.65;
+  return vec3(0.82, 0.9, 1.0) * 0.85;
+}`,
       )
       .replace(
         '#include <clipping_planes_fragment>',
@@ -587,15 +615,30 @@ metalnessFactor = mix(metalnessFactor, 0.45, tGlass);`,
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
 if (tGlass > 0.0 && uNight > 0.0) {
-  vec2 cell = floor(vRep) + floor(vWPos.xz * 0.07) * 7.0;
-  float h = hash21(cell);
-  float lit = step(0.5, h) * tGlass * uNight;
-  vec3 warm = mix(vec3(1.0, 0.74, 0.42), vec3(0.8, 0.88, 1.0), step(0.88, h));
-  totalEmissiveRadiance += lit * warm * (0.45 + 0.4 * fract(h * 7.0));
+  if (vWl.x > 0.5) {
+    // 近景：查這扇窗後面的房間
+    float rows = floor(vWl.w / 4.0);
+    float row = mod(vWl.w, 4.0) + floor(vRep.y + 0.001);
+    if (row > rows - 0.5) row = rows > 1.5 ? 1.0 + mod(row - 1.0, rows - 1.0) : 0.0;
+    float col = clamp(vWl.z + floor(vRep.x), 0.0, vWl.y - 1.0);
+    float idx = vWl.x - 1.0 + row * vWl.y + col;
+    vec4 d = texelFetch(uWin, ivec2(int(mod(idx, 1024.0)), int(floor(idx / 1024.0))), 0);
+    float type = floor(d.r * 255.0 + 0.5);
+    float lit = step(d.g + 0.0001, roomP(type, uHour)) * tGlass * uNight;
+    totalEmissiveRadiance += lit * roomCol(type) * (0.8 + 0.35 * d.b);
+  } else {
+    // 遠景：依時刻的平均亮燈率
+    vec2 cell = floor(vRep) + floor(vWPos.xz * 0.07) * 7.0;
+    float h = hash21(cell);
+    float p = max(max(0.6 * inH(uHour, 17.5, 23.0), 0.3 * inH(uHour, 23.0, 1.5)), max(0.35 * inH(uHour, 5.5, 8.0), 0.14));
+    float lit = step(h, p) * tGlass * uNight;
+    vec3 warm = mix(vec3(1.0, 0.74, 0.42), vec3(0.8, 0.88, 1.0), step(0.88, fract(h * 13.0)));
+    totalEmissiveRadiance += lit * warm * (0.45 + 0.4 * fract(h * 7.0));
+  }
 }`,
       );
   };
   mat.userData.uniforms = uniforms;
-  mat.customProgramCacheKey = () => 'terra-world-v1';
+  mat.customProgramCacheKey = () => 'terra-world-v2';
   return mat;
 }

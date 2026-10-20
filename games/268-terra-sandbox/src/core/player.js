@@ -2,6 +2,7 @@
 // 單車、吉普車、螺旋槳飛機、快艇，以及吊椅纜車與進入建物室內。
 import { collideBuildings } from './stream.js';
 import { collideInterior, generateInterior } from './interior.js';
+import { interiorView, localView, toLocal, toWorldDir, toWorldPt } from './osm.js';
 import { LIFT, SKATE, bowlSD, liftPoint } from './world.js';
 import { clamp, lerp, wrapAngle } from './math.js';
 import { waveHeight } from './weather.js';
@@ -242,7 +243,7 @@ function tryUse(p, env) {
   // 3) 進入建物
   if (p.mode === 'walk' && env.streamer) {
     for (const b of env.streamer.buildingsNear(p.x, p.z, 3)) {
-      if (Math.hypot(b.door.x - p.x, b.door.z - p.z) < 2.6) {
+      if (b.door && Math.hypot(b.door.x - p.x, b.door.z - p.z) < 2.6) {
         enterBuilding(p, b, 0);
         emit(p, 'toast', `走進${b.shop ? b.shop.name : '建物門廳'}`);
         return;
@@ -256,18 +257,30 @@ export function carName(m) {
 }
 
 export function enterBuilding(p, b, floor) {
-  const layout = generateInterior(b, floor);
+  // 真實地圖的建物在局部座標系生成室內（矩形在原點、門在局部北側），位置再轉回世界
+  const lb = interiorView(b);
+  const layout = generateInterior(lb, floor);
   p.inside = { id: b.id, b, floor, layout };
-  const inward = { n: [0, 1], s: [0, -1], w: [1, 0], e: [-1, 0] }[b.door.side] || [0, 1];
+  const inward = { n: [0, 1], s: [0, -1], w: [1, 0], e: [-1, 0] }[lb.door.side] || [0, 1];
+  let lx = p.x;
+  let lz = p.z;
   if (floor === 0) {
-    p.x = b.door.x + inward[0] * 1.3;
-    p.z = b.door.z + inward[1] * 1.3;
-    p.yaw = Math.atan2(inward[0], -inward[1]);
+    lx = lb.door.x + inward[0] * 1.3;
+    lz = lb.door.z + inward[1] * 1.3;
+    const d = toWorldDir(b, inward[0], inward[1]);
+    p.yaw = Math.atan2(d.x, -d.z);
   } else if (layout.stairs) {
     const s = layout.stairs;
-    p.x = (s.x0 + s.x1) / 2;
-    p.z = (s.z0 + s.z1) / 2 + (s.z0 > (layout.z0 + layout.z1) / 2 ? -s.z1 + s.z0 - 0.6 : s.z1 - s.z0 + 0.6) * 0.5;
+    lx = (s.x0 + s.x1) / 2;
+    lz = (s.z0 + s.z1) / 2 + (s.z0 > (layout.z0 + layout.z1) / 2 ? -s.z1 + s.z0 - 0.6 : s.z1 - s.z0 + 0.6) * 0.5;
+  } else {
+    const l = toLocal(b, p.x, p.z);
+    lx = l.x;
+    lz = l.z;
   }
+  const w = toWorldPt(b, lx, lz);
+  p.x = w.x;
+  p.z = w.z;
   p.y = layout.y;
   p.vy = 0;
   p.sp = 0;
@@ -275,6 +288,7 @@ export function enterBuilding(p, b, floor) {
 
 function stepInterior(p, inp, dt, env) {
   const L = p.inside.layout;
+  const b = p.inside.b;
   const { fx, fz, rx, rz } = camVectors(inp.camYaw);
   let dx = fx * inp.my + rx * inp.mx;
   let dz = fz * inp.my + rz * inp.mx;
@@ -287,9 +301,10 @@ function stepInterior(p, inp, dt, env) {
   }
   p.vx = lerp(p.vx, dx * spd, Math.min(1, dt * 12));
   p.vz = lerp(p.vz, dz * spd, Math.min(1, dt * 12));
-  let nx = p.x + p.vx * dt;
-  let nz = p.z + p.vz * dt;
-  // 從店門走出去
+  // 出口、碰撞與樓梯都在建物局部座標裡判斷
+  const nl = toLocal(b, p.x + p.vx * dt, p.z + p.vz * dt);
+  const nx = nl.x;
+  const nz = nl.z;
   const ex = L.exit;
   if (ex) {
     const out = { n: nz < L.z0, s: nz > L.z1, w: nx < L.x0, e: nx > L.x1 }[ex.side];
@@ -300,32 +315,35 @@ function stepInterior(p, inp, dt, env) {
     }
   }
   const c = collideInterior(L, nx, nz, 0.3);
-  p.x = c.x;
-  p.z = c.z;
+  const w = toWorldPt(b, c.x, c.z);
+  p.x = w.x;
+  p.z = w.z;
   p.y = L.y;
   p.sp = Math.hypot(p.vx, p.vz);
   p.anim = p.sp > 2.6 ? 'run' : p.sp > 0.3 ? 'walk' : 'idle';
   p.phase += dt * p.sp * 1.6;
   if (inp.use) {
     const s = L.stairs;
-    if (s && p.x > s.x0 - 0.8 && p.x < s.x1 + 0.8 && p.z > s.z0 - 0.8 && p.z < s.z1 + 0.8) {
-      const b = p.inside.b;
+    const here = toLocal(b, p.x, p.z);
+    if (s && here.x > s.x0 - 0.8 && here.x < s.x1 + 0.8 && here.z > s.z0 - 0.8 && here.z < s.z1 + 0.8) {
       let f = p.inside.floor + (inp.crouch ? -1 : 1);
       if (f >= b.floors) f = 0;
       if (f < 0) f = b.floors - 1;
       enterBuilding(p, b, f);
       emit(p, 'toast', `${f === 0 ? '一樓' : `${f + 1} 樓`} · ${p.inside.layout.rooms.length} 個空間`);
-    } else if (ex && Math.hypot(p.x - ex.x, p.z - ex.z) < 2.2) exitBuilding(p);
+    } else if (ex && Math.hypot(here.x - ex.x, here.z - ex.z) < 2.2) exitBuilding(p);
   }
 }
 
 export function exitBuilding(p) {
   const b = p.inside.b;
-  const out = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] }[b.door.side] || [0, -1];
-  p.x = b.door.x + out[0] * 1.4;
-  p.z = b.door.z + out[1] * 1.4;
+  const lb = localView(b);
+  const outL = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] }[lb.door.side] || [0, -1];
+  const out = toWorldDir(b, outL[0], outL[1]);
+  p.x = b.door.x + out.x * 1.4;
+  p.z = b.door.z + out.z * 1.4;
   p.y = b.floor0;
-  p.yaw = Math.atan2(out[0], -out[1]);
+  p.yaw = Math.atan2(out.x, -out.z);
   p.inside = null;
   emit(p, 'toast', '回到街上');
 }

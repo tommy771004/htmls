@@ -4,7 +4,7 @@ import { Builder, P, mat } from './geo.js';
 import { getAtlas } from './atlas.js';
 import { carParts } from './vehicles.js';
 import { CURB, LIFT, SKATE, bowlSD } from '../core/world.js';
-import { hash2, mulberry32 } from '../core/math.js';
+import { clamp, hash2, mulberry32 } from '../core/math.js';
 
 const A = () => getAtlas();
 const R = (n) => getAtlas().rect(n);
@@ -131,7 +131,16 @@ function strip(B, xa, za, xb, zb, botFn, topFn, tile, color, scale, seg = 6) {
 }
 
 // ── 建物 ──
-export function buildBuilding(B, b, lod, W) {
+// 一側牆上第 t（0..1，從 uv 的 u0 端起算）處的位置與外法線（與 face() 的 u 方向一致）
+function wallAt(p, s, t) {
+  if (s === 'n') return [[p.x1 - (p.x1 - p.x0) * t, p.z0], [0, -1]];
+  if (s === 's') return [[p.x0 + (p.x1 - p.x0) * t, p.z1], [0, 1]];
+  if (s === 'e') return [[p.x1, p.z1 - (p.z1 - p.z0) * t], [1, 0]];
+  return [[p.x0, p.z0 + (p.z1 - p.z0) * t], [-1, 0]];
+}
+
+// win：WinLights 的收集器（只給近景圖磚），把每扇窗對應到室內的房間
+export function buildBuilding(B, b, lod, W, win = null) {
   const st = STYLE[b.style] || STYLE.stone;
   const rnd = mulberry32(b.seed);
   const winTile = st.win[Math.floor(rnd() * st.win.length)];
@@ -143,6 +152,7 @@ export function buildBuilding(B, b, lod, W) {
   const facing = (s) => s === b.front || s === b.corner;
   // 和隔壁相接的側牆（連棟屋）不開窗
   const party = (s) => {
+    if (b.osm) return false;
     if (!(b.style === 'canal' || b.style === 'plaster' || b.style === 'stucco' || b.style === 'brick')) return false;
     const blk = W.blockRect(Math.floor(((b.x0 + b.x1) / 2) / W.chunkW), Math.floor(((b.z0 + b.z1) / 2) / W.chunkD));
     if (s === 'w') return b.x0 > blk.x0 + 0.5;
@@ -150,12 +160,37 @@ export function buildBuilding(B, b, lod, W) {
     return false;
   };
 
+  // 每一段（量體 × 側）的窗欄數與位置
+  const bayOf = (p, s) => Math.max(1, Math.round((s === 'n' || s === 's' ? p.x1 - p.x0 : p.z1 - p.z0) / st.bay));
+  const gBayOf = (p, s) => (b.shop && facing(s) && !party(s) ? Math.max(1, Math.round((s === 'n' || s === 's' ? p.x1 - p.x0 : p.z1 - p.z0) / 4.2)) : bayOf(p, s));
+  const colOff = {};
+  let wl = null;
+  if (win) {
+    const cols = [];
+    b.parts.forEach((p, pi) => {
+      for (const s of sides) {
+        const bays = bayOf(p, s);
+        const gB = pi === 0 ? gBayOf(p, s) : 0;
+        colOff[`${pi}${s}`] = cols.length;
+        for (let k = 0; k < Math.max(bays, gB); k++) {
+          const [u, n] = wallAt(p, s, Math.min(1, (k + 0.5) / bays));
+          const g = gB ? wallAt(p, s, Math.min(1, (k + 0.5) / gB))[0] : u;
+          cols.push({ g, u, n });
+        }
+      }
+    });
+    wl = cols.length ? win.add(b, cols, cols.length) : null;
+    if (wl) wl.stride = cols.length;
+  }
+  // 窗燈屬性：[起點 + 1, 每層欄數, 欄位偏移, 樓層偏移 + 層數 × 4]
+  const wv = (pi, s, du, floorOff) => (wl ? [wl.base + 1, wl.stride, colOff[`${pi}${s}`] + du, floorOff + wl.rows * 4] : null);
+
   b.parts.forEach((p, pi) => {
     const yb = pi === 0 ? b.base : b.base + b.parts[pi - 1].top;
     const yt = b.base + p.top;
     for (const s of sides) {
       const along = s === 'n' || s === 's' ? p.x1 - p.x0 : p.z1 - p.z0;
-      const bays = Math.max(1, Math.round(along / st.bay));
+      const bays = bayOf(p, s);
       const pw = party(s) && pi === 0;
       if (pi === 0) {
         // 地基（坡地時露出）
@@ -177,17 +212,17 @@ export function buildBuilding(B, b, lod, W) {
             const t0 = k / segs;
             const t1 = (k + 1) / segs;
             const door = k === Math.floor(segs / 2);
-            sub(B, s, p, t0, t1, b.floor0, yU, door ? 'shopB' : 'shopA', gCol, 0, 1, 0, 1);
+            B.win(wv(0, s, k, 0), () => sub(B, s, p, t0, t1, b.floor0, yU, door ? 'shopB' : 'shopA', gCol, 0, 1, 0, 1));
           }
-        } else face(B, s, p.x0, p.z0, p.x1, p.z1, b.floor0, yU, gTile, gCol, uOff, uOff + gBays, 0, 1);
+        } else B.win(wv(0, s, -uOff, 0), () => face(B, s, p.x0, p.z0, p.x1, p.z1, b.floor0, yU, gTile, gCol, uOff, uOff + gBays, 0, 1));
         // 樓上
         if (yt > yU + 0.01) {
           const tile = pw ? st.plain : winTile;
-          face(B, s, p.x0, p.z0, p.x1, p.z1, yU, yt, tile, col, uOff, uOff + bays, 0, (yt - yU) / b.floorH);
+          B.win(wv(0, s, -uOff, 1), () => face(B, s, p.x0, p.z0, p.x1, p.z1, yU, yt, tile, col, uOff, uOff + bays, 0, (yt - yU) / b.floorH));
         }
       } else {
         const v0 = (yb - yU) / b.floorH;
-        face(B, s, p.x0, p.z0, p.x1, p.z1, yb, yt, winTile, col, uOff, uOff + bays, v0, v0 + (yt - yb) / b.floorH);
+        B.win(wv(pi, s, -uOff, 1), () => face(B, s, p.x0, p.z0, p.x1, p.z1, yb, yt, winTile, col, uOff, uOff + bays, v0, v0 + (yt - yb) / b.floorH));
       }
     }
     // 屋頂
@@ -216,7 +251,7 @@ export function buildBuilding(B, b, lod, W) {
   if (lod <= 1 && b.bay) bayWindows(B, b, st);
   if (lod === 0) {
     if (b.shop && b.style !== 'glass' && rnd() < 0.65) awning(B, b, shopSign);
-    if (b.stoop && !b.shop) stoop(B, b, col);
+    if (b.stoop && (!b.shop || b.stoopY !== undefined)) stoop(B, b, col);
     if (b.porch) porch(B, b);
     for (const rp of b.roofProps || []) roofProp(B, rp, b.base + b.parts[b.parts.length - 1].top, rnd);
   }
@@ -400,6 +435,20 @@ function stoop(B, b, col) {
   const z = s === 'n' ? b.z0 : b.z1;
   const cx = b.door.x;
   const c = shade(col, 0.75);
+  if (b.stoopY !== undefined) {
+    // 坡地：從門前的人行道一階階爬到一樓地板
+    const drop = b.floor0 - b.stoopY;
+    const n = clamp(Math.round(drop / 0.18), 1, 14);
+    const rise = drop / n;
+    for (let k = 0; k < n; k++) {
+      const za = z + dir * ((n - 1 - k) * 0.3);
+      const zb = z + dir * ((n - k) * 0.3);
+      B.box(cx - 0.95, b.stoopY - 0.3, Math.min(za, zb), cx + 0.95, b.stoopY + rise * (k + 1), Math.max(za, zb), c);
+    }
+    const ze = z + dir * (n * 0.3 + 0.1);
+    for (const sx of [-1, 1]) B.box(cx + sx * 1.0 - 0.08, b.stoopY - 0.3, Math.min(z, ze), cx + sx * 1.0 + 0.08, b.floor0 + 0.9, Math.max(z, ze), shade(col, 0.55));
+    return;
+  }
   for (let k = 0; k < 4; k++) {
     const za = z + dir * (k * 0.32);
     const zb = z + dir * ((k + 1) * 0.32);
@@ -567,6 +616,7 @@ function appendXform(B, src, m, dim = 1) {
   for (const v of src.uv) B.uv.push(v);
   for (const v of src.atl) B.atl.push(v);
   for (const i of src.idx) B.idx.push(base + i);
+  for (const r of src.wlr) B.wlr.push({ s: base + r.s, e: base + r.e, v: r.v });
   B.n += src.n;
 }
 
@@ -627,7 +677,7 @@ function railing(B, r, y) {
 }
 
 // ── 主要建構：一塊圖磚 ──
-export function buildChunk(W, c, lod) {
+export function buildChunk(W, c, lod, win = null) {
   const Gd = new Builder();
   const Bd = new Builder();
   const Pr = new Builder();
@@ -649,7 +699,7 @@ export function buildChunk(W, c, lod) {
     }, 'snow', 8);
   }
 
-  for (const b of c.layers.building) buildBuilding(Bd, b, lod, W);
+  for (const b of c.layers.building) buildBuilding(Bd, b, lod, W, win);
 
   const P2 = c.props;
   if (lod <= 1) {
@@ -1006,4 +1056,4 @@ function lifeguard(B, lg, g) {
   B.quad(lg.x + 1.6, y + 3.0, lg.z - 0.6, lg.x + 1.6, y + 3.0, lg.z + 0.6, lg.x + 4.5, y, lg.z + 0.6, lg.x + 4.5, y, lg.z - 0.6, 0xd9d4c8);
 }
 
-export { shade };
+export { shade, STYLE, face, ground, heightfield, strip, tree, palm, pine, lamp, bench, parkedCar, boat, bike, appendXform, skatepark, roofProp };

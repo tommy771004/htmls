@@ -7,11 +7,12 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { buildChunk } from './chunks.js';
+import { buildOsmChunk } from './osmchunks.js';
 import { createWorldMaterial } from './atlas.js';
 import { Sky } from './sky.js';
 import { Water } from './water.js';
 import { buildInterior } from './interior.js';
-import { PlayerAvatar, Crowd, boardGeo } from './character.js';
+import { PlayerAvatar, Crowd, boardGeo, loadPeople } from './character.js';
 import { TrafficRenderer, playerCar, bikeModel, planeModel, boatModel, chairGeo } from './vehicles.js';
 import { signalState } from '../core/traffic.js';
 import { raycastBuildings } from '../core/stream.js';
@@ -19,6 +20,8 @@ import { LIFT, RUNS, SKATE, liftPoint } from '../core/world.js';
 import { clamp, lerp, wrapAngle, mulberry32 } from '../core/math.js';
 import { seaState } from '../core/weather.js';
 import { ShuttleView } from './shuttle.js';
+import { WinLights } from './winlights.js';
+import { roomLit } from '../core/lights.js';
 import { Earth } from './earth.js';
 import { EARTH_R } from '../core/shuttle.js';
 
@@ -57,6 +60,10 @@ export class Renderer {
     this.scene.fog = new THREE.Fog(0xb9d7f1, 300, 900);
     this.worldMat = createWorldMaterial();
     this.U = this.worldMat.userData.uniforms;
+    this.win = new WinLights(); // 近景建物的窗燈資料（對應室內房間）
+    this.U.uWin.value = this.win.tex;
+    this.hour = 12;
+    this.night = 0;
     // 室內用另一份同樣的材質（不受剖面切割）
     this.interiorMat = createWorldMaterial();
     this.glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: true, toneMapped: false });
@@ -113,6 +120,14 @@ export class Renderer {
     // 玩家
     this.avatar = new PlayerAvatar();
     this.scene.add(this.avatar.root);
+    this.peopleReady = false;
+    loadPeople().then(() => {
+      this.avatar.build();
+      this.peopleReady = true;
+    }).catch((e) => {
+      console.warn('人物模型載入失敗', e);
+      this.peopleReady = true;
+    });
     const boardMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 });
     this.boardPivot = new THREE.Group();
     this.board = { skate: new THREE.Mesh(boardGeo('skate'), boardMat), snow: new THREE.Mesh(boardGeo('snow'), boardMat) };
@@ -150,6 +165,7 @@ export class Renderer {
   setQuality(q) {
     this.q = QUALITY[q] ? q : 'mid';
     const Q = QUALITY[this.q];
+    this.crowd.setShadows(this.q !== 'low');
     this.Q = Q;
     this.r.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.ratio));
     this.sun.shadow.mapSize.set(Q.shadow, Q.shadow);
@@ -175,7 +191,7 @@ export class Renderer {
   setWorld(world, streamer) {
     this.W = world;
     this.streamer = streamer;
-    for (const e of this.chunks.values()) disposeEntry(e);
+    for (const e of this.chunks.values()) disposeEntry(e, null, this.win);
     this.chunks.clear();
     this.chunkRoot.clear();
     if (this.chairs) {
@@ -230,12 +246,23 @@ export class Renderer {
     if (!parts.glass.empty) g.add(new THREE.Mesh(parts.glass.build(), this.glassMat));
     if (!parts.glow.empty) g.add(new THREE.Mesh(parts.glow.build(), this.lampMat));
     const lights = new THREE.Group();
-    layout.lights.slice(0, 3).forEach((l) => {
-      const pl = new THREE.PointLight(0xffe7c4, 6, 14, 1.4);
+    // 夜裡只有亮著的房間開燈（與外面看到的窗燈同一套規則）；全暗時留一盞小燈
+    let on = layout.lights;
+    if (b && this.night > 0.3) {
+      on = layout.lights.filter((_, i) => layout.rooms[i] && roomLit(b, layout, i, this.hour));
+      if (!on.length) on = layout.lights.slice(0, 1).map((l) => ({ ...l, dim: true }));
+    }
+    on.slice(0, 3).forEach((l) => {
+      const pl = new THREE.PointLight(0xffe7c4, l.dim ? 1.5 : 6, 14, 1.4);
       pl.position.set(l.x, layout.y + Math.min(layout.height, 3.2) - 0.4, l.z);
       lights.add(pl);
     });
     g.add(lights);
+    // 真實地圖的建物：室內在局部座標系生成，整組轉回世界
+    if (b && b.frame) {
+      g.position.set(b.frame.cx, 0, b.frame.cz);
+      g.rotation.y = -b.frame.ang;
+    }
     this.scene.add(g);
     this.interior = { group: g, key: `${layout.building}:${layout.floor}`, layout };
     // 娃娃屋剖面：本棟與左右鄰棟在這層地板以上全部切掉，攝影機從斜上方看進房間
@@ -257,13 +284,13 @@ export class Renderer {
       budget--;
       built++;
       const ne = this.makeEntry(c, v.lod);
-      if (e) disposeEntry(e, this.chunkRoot);
+      if (e) disposeEntry(e, this.chunkRoot, this.win);
       this.chunks.set(c.key, ne);
       this.chunkRoot.add(ne.group);
     }
     for (const [k, e] of this.chunks) {
       if (!want.has(k)) {
-        disposeEntry(e, this.chunkRoot);
+        disposeEntry(e, this.chunkRoot, this.win);
         this.chunks.delete(k);
       }
     }
@@ -272,7 +299,8 @@ export class Renderer {
   }
 
   makeEntry(c, lod) {
-    const out = buildChunk(this.W, c, lod);
+    const win = lod === 0 ? this.win.collector() : null;
+    const out = (this.W.osm ? buildOsmChunk : buildChunk)(this.W, c, lod, win);
     const g = new THREE.Group();
     const add = (B, material, cast, recv) => {
       if (B.empty) return;
@@ -285,7 +313,7 @@ export class Renderer {
     add(out.build, this.worldMat, lod <= 1, true);
     add(out.props, this.worldMat, lod === 0, true);
     add(out.glow, this.glowMat, false, false);
-    return { key: c.key, lod, group: g, pools: out.pools, lens: out.lens };
+    return { key: c.key, lod, group: g, pools: out.pools, lens: out.lens, win: win && win.list };
   }
 
   // ── 每幀 ──
@@ -352,6 +380,10 @@ export class Renderer {
     // 世界材質
     const U = this.U;
     U.uNight.value = night;
+    this.night = night;
+    this.hour = s.hour ?? 12;
+    U.uHour.value = this.hour;
+    this.win.flush();
     U.uWet.value = lerp(U.uWet.value, local.snow ? 0 : clamp(local.rain * 1.4, 0, 1), Math.min(1, dt * 0.3));
     U.uSnow.value = lerp(U.uSnow.value, W.kind === 'ski' ? 0.9 : local.snow ? 0.75 : 0, Math.min(1, dt * 0.15));
     this.glowMat.color.setScalar(lerp(0.55, 2.6, night));
@@ -414,7 +446,7 @@ export class Renderer {
       }
     }
     this.npcs(people, t);
-    this.crowd.update(people);
+    this.crowd.update(people, dt, this.camera.position);
 
     // 纜車吊椅
     if (this.chairs) this.updateLift(t);
@@ -601,7 +633,7 @@ export class Renderer {
       A.root.position.set(p.x - Math.sin(p.yaw) * 0.5, y + 0.15, p.z + Math.cos(p.yaw) * 0.5);
     }
     A.root.rotation.set(0, rootYaw, 0);
-    A.update({ anim: mode === 'bike' && !p.inside ? 'bike' : p.anim, phase: p.phase, lean: p.lean || 0 });
+    A.update({ anim: mode === 'bike' && !p.inside ? 'bike' : p.anim, phase: p.phase, lean: p.lean || 0, sp: Math.abs(p.sp) }, s.dt);
   }
 
   rotateCam(dx, dy) {
@@ -722,7 +754,8 @@ export class Renderer {
   }
 }
 
-function disposeEntry(e, parent) {
+function disposeEntry(e, parent, win) {
   if (parent) parent.remove(e.group);
+  if (win) win.release(e.win);
   e.group.traverse((o) => o.geometry && o.geometry.dispose());
 }

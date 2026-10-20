@@ -31,7 +31,7 @@ const SCENES = [
   ['nyc-street', async (p) => {
     await T(p, 'time', 15.6);
     await T(p, 'weather', 'clear');
-    await T(p, 'cam', 0.35, 0.12, 1);
+    await T(p, 'cam', (await T(p, 'state')).yaw + 0.3, 0.12, 1);
   }],
   ['nyc-aerial', async (p) => {
     await T(p, 'time', 18.9);
@@ -44,7 +44,8 @@ const SCENES = [
     await T(p, 'time', 11);
     await T(p, 'weather', 'cloudy');
     await settle(p);
-    await T(p, 'place', 30, 58, -1.2);
+    await T(p, 'place', -38, 60, -1.57);
+    await T(p, 'mode', 'boat');
     await T(p, 'cam', -1.2, 0.25, 1.4);
   }],
   ['venice-skate', async (p) => {
@@ -111,6 +112,11 @@ const SCENES = [
     await T(p, 'cam', 0.3, 0.1, 0.9);
     await p.waitForTimeout(800);
   }],
+  ['procedural', async (p) => {
+    const a = await T(p, 'realMap', false);
+    const b = await T(p, 'realMap', true);
+    ok(a === 'proc' && b === 'osm', `切換程序街區／真實街道：${a} → ${b}`);
+  }],
   ['map', async (p) => {
     await T(p, 'photo', false);
     await T(p, 'nav', 'niagara');
@@ -133,6 +139,7 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true]]) {
     ok(meta.vp, `${tag} viewport meta`);
     ok(meta.overflow, `${tag} 無水平溢出`);
     ok(meta.tests.passed === meta.tests.total, `${tag} 引擎自我測試 ${meta.tests.passed}/${meta.tests.total}`);
+    ok(meta.st.map === 'osm', `${tag} 真實街道（OpenStreetMap）：${meta.st.place}`);
     ok(meta.st.stats.drawn > 10 && meta.st.render.chunkMeshes > 10, `${tag} 圖磚串流 繪製 ${meta.st.stats.drawn} · 網格 ${meta.st.render.chunkMeshes} · ${meta.st.render.calls} calls`);
     if (w > 1000) {
       for (const [name, act] of SCENES) {
@@ -150,7 +157,8 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true]]) {
         await T(page, 'weather', 'clear');
         await settle(page);
         await T(page, 'hud', false);
-        await T(page, 'cam', 0.35, 0.1, 1);
+        // 真實街道的出生點朝著街道方向：鏡頭沿街看過去
+        await T(page, 'cam', (await T(page, 'state')).yaw + 0.3, 0.1, 1);
         await page.waitForTimeout(2800);
         await page.evaluate(() => ['toasts', 'dock', 'alert'].forEach((id) => (document.getElementById(id).style.visibility = 'hidden')));
         await page.screenshot({ path: resolve(distDir, 'thumb.png') });
