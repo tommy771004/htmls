@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>雪夜五月廣場 · El Eternauta Online</title>
 <link rel="icon" href="../favicon.svg">
-<meta name="description" content="網頁版第三人稱遊戲原型：以 Spark 在 Three.js 裡渲染布宜諾斯艾利斯五月廣場的 Gaussian splat（約 500 萬個 splat，依距離做 LoD 與剔除並自動調整預算維持 60 FPS），戴防毒面罩的雪衣角色可走、跑、跳與重生，冷色霧氣、下雪粒子與夜間路燈即時打亮 splat，簡化碰撞體防止穿牆，按 P 開除錯面板。">
+<meta name="description" content="網頁版第三人稱生存遊戲：以 Spark 在 Three.js 裡渲染布宜諾斯艾利斯五月廣場的 Gaussian splat（約 500 萬個 splat），喪屍、武器與裝備也都是 .spz splat——喪屍用 Spark 的 SplatSkinning 跟著骨架走路、揮拳、倒下。撿鐵撬、手槍、霰彈槍與步槍，收集濾罐、醫療箱與膠帶，完成五段任務：撬開軍用木箱、守住五月金字塔三波屍潮、用無線電呼叫救援。">
 <style>
 :root{
   --snow:#f3f6fa;--snow-2:rgba(243,246,250,.8);--snow-3:rgba(243,246,250,.54);--snow-4:rgba(243,246,250,.16);
@@ -111,9 +111,7 @@ body.touch .keys-touch{display:block}
 body.playing #hud{opacity:1}
 #tag{position:absolute;left:18px;top:16px;font:700 13px/1.2 var(--cond);letter-spacing:.24em;text-transform:uppercase}
 #tag small{display:block;margin-top:4px;font:500 11px/1 var(--tc);letter-spacing:.08em;color:var(--snow-3)}
-#hint{--r:999px;--blur:10px;position:absolute;left:16px;bottom:16px;padding:7px 12px;font-size:12px;color:var(--snow-2);text-shadow:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-#hint kbd{height:20px;min-width:22px;padding:0 6px;border-radius:6px;font-size:10px;margin-left:4px}
-#toast{--r:999px;--blur:12px;position:absolute;left:50%;top:16%;transform:translate(-50%,-6px) scale(.96);font:600 14px/1.4 var(--tc);padding:10px 18px;opacity:0;text-shadow:none;
+#toast{--r:22px;--blur:12px;position:absolute;left:50%;top:16%;transform:translate(-50%,-6px) scale(.96);width:max-content;max-width:min(560px,calc(100vw - 32px));text-align:center;font:600 14px/1.5 var(--tc);padding:10px 18px;opacity:0;text-shadow:none;
   transition:opacity var(--dur-hover),transform var(--dur-enter) var(--ease-spring)}
 #toast.on{opacity:1;transform:translate(-50%,0) scale(1)}
 #pause{position:fixed;inset:0;display:none;place-items:center;background:rgba(6,9,14,.18);cursor:pointer}
@@ -193,9 +191,94 @@ body.touch.playing #touch{display:block}
 #stick i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;z-index:6;
   background:radial-gradient(circle at 38% 30%,#fff,rgba(230,240,252,.75) 50%,rgba(190,210,238,.6));box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .tbtn{position:fixed;right:22px;width:64px;height:64px;--r:50%;--blur:8px;border:0;color:var(--snow);font:800 14px/1 var(--tc);pointer-events:auto;touch-action:none}
-#tJump{bottom:30px}#tRun{bottom:106px}#tDbg{bottom:182px;font:700 12px/1 var(--cond)}
+#tFire{right:18px;bottom:24px;width:84px;height:84px;font-size:15px;display:grid;place-content:center;gap:3px}
+#tFire small{font:600 10.5px/1 var(--mono);color:var(--snow-2)}
+#tJump{right:112px;bottom:18px;width:58px;height:58px}
+#tRun{right:112px;bottom:86px;width:58px;height:58px}
+#tReload,#tSwap,#tHeal{width:52px;height:52px;font-size:12px}
+#tReload{right:24px;bottom:122px}#tSwap{right:24px;bottom:184px;font-size:11px}#tHeal{right:176px;bottom:18px}
+#tDbg{right:28px;bottom:246px;width:44px;height:44px;font:700 12px/1 var(--cond)}
+#tUse{right:176px;bottom:86px;width:58px;height:58px;display:none;background:linear-gradient(180deg,rgba(255,214,160,.9),rgba(255,180,110,.75));color:var(--ink)}
+#tUse.on{display:block}
 #tRun.on{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(214,229,248,.78));color:var(--ink)}
-body.touch #hint{display:none}
+.tbtn:active{transform:scale(.94)}
+
+/* ---------- 戰鬥 HUD ---------- */
+#vitals{--r:22px;--blur:12px;position:absolute;left:16px;bottom:16px;width:236px;padding:12px 14px;display:grid;gap:7px;text-shadow:none}
+.vbar{display:grid;grid-template-columns:40px 1fr 30px;align-items:center;gap:8px;font:600 11px/1 var(--tc);color:var(--snow-2)}
+.vbar u{position:relative;display:block;height:6px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+.vbar u i{position:absolute;inset:0;border-radius:inherit;transform-origin:left;transition:transform .25s var(--ease-out)}
+.vbar b{font:700 12px/1 var(--mono);color:var(--snow);text-align:right;font-variant-numeric:tabular-nums}
+#vHp u i{background:linear-gradient(90deg,#ff7d6e,#ffc3b3)}
+#vArm u i{background:linear-gradient(90deg,#7fa9dc,#d6e7fb)}
+#vFil u i{background:linear-gradient(90deg,#8fd39b,#e0f6d9)}
+.vbar.low b{color:var(--alarm)}
+.vbar.low u i{animation:blink .9s ease-in-out infinite}
+#vitals.warn{box-shadow:inset 0 0 0 1.5px rgba(255,128,114,.55),0 24px 60px -18px rgba(0,0,0,.6)}
+.inv{display:flex;gap:6px;margin-top:2px}
+.inv span{flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.06);font:600 11px/1.1 var(--tc);color:var(--snow-2)}
+.inv span b{margin-left:auto;font:700 12px/1 var(--mono);color:var(--snow)}
+.inv kbd{height:18px;min-width:18px;padding:0 5px;font-size:9.5px;border-radius:5px}
+#weapon{--r:22px;--blur:12px;position:absolute;right:16px;bottom:16px;min-width:226px;padding:12px 16px;text-shadow:none;text-align:right}
+#wName{font:700 11px/1 var(--cond);letter-spacing:.24em;color:var(--snow-3)}
+#wAmmo{margin-top:6px;font:800 34px/.9 var(--cond);font-variant-numeric:tabular-nums}
+#wAmmo small{margin-left:6px;font:600 13px/1 var(--tc);color:var(--snow-3)}
+#wAmmo.empty{color:var(--alarm)}
+#wSlots{display:flex;gap:5px;justify-content:flex-end;margin-top:9px}
+#wSlots i{padding:5px 7px;border-radius:8px;font:600 10.5px/1 var(--tc);font-style:normal;background:rgba(255,255,255,.05);color:var(--snow-4)}
+#wSlots i.own{color:var(--snow-2)}
+#wSlots i.cur{background:rgba(255,194,122,.2);color:var(--sodium);box-shadow:inset 0 0 0 1px rgba(255,194,122,.35)}
+#mission{--r:22px;--blur:12px;position:absolute;right:16px;top:16px;width:300px;padding:13px 16px 12px;text-shadow:none}
+#mStep{display:flex;justify-content:space-between;font:700 10px/1 var(--cond);letter-spacing:.22em;text-transform:uppercase;color:var(--sodium)}
+#mTitle{display:block;margin-top:7px;font:700 17px/1.2 var(--tc);color:var(--snow)}
+#mObj{margin-top:5px;font-size:12.5px;line-height:1.55;color:var(--snow-2)}
+#mWp{display:flex;align-items:center;gap:8px;margin-top:8px;font:600 12px/1 var(--mono);color:var(--snow-2)}
+#mArrow{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:rgba(255,194,122,.16)}
+#mArrow::before{content:"";border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid var(--sodium)}
+.mbar{height:4px;margin-top:9px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.mbar i{display:block;height:100%;background:linear-gradient(90deg,rgba(255,194,122,.6),var(--sodium));transform-origin:left;transition:transform .3s linear}
+#mission.flash{animation:pop var(--dur-enter) var(--ease-spring)}
+#feed{position:absolute;right:16px;top:178px;display:grid;gap:5px;justify-items:end}
+#feed div{padding:5px 11px;border-radius:999px;font:600 12px/1.3 var(--tc);background:rgba(8,12,20,.42);text-shadow:none;animation:pop var(--dur-enter) var(--ease-spring)}
+#cross{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0;transition:opacity var(--dur-hover)}
+body.playing:not(.over) #cross{opacity:1}
+#cross i{position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 3px rgba(0,0,0,.85);border-radius:1px}
+#cross i:nth-child(-n+2){left:-1px;width:2px;height:7px}
+#cross i:nth-child(n+3){top:-1px;width:7px;height:2px}
+#cross i:nth-child(1){top:calc(-1 * var(--g,8px) - 7px)}#cross i:nth-child(2){top:var(--g,8px)}
+#cross i:nth-child(3){left:calc(-1 * var(--g,8px) - 7px)}#cross i:nth-child(4){left:var(--g,8px)}
+#cross b{position:absolute;left:-2px;top:-2px;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 3px #000}
+#scope{position:absolute;inset:0;opacity:0;transition:opacity var(--dur-press);background:radial-gradient(circle at 50% 50%,transparent 0 31vmin,rgba(0,0,0,.55) 31.4vmin,#020305 33vmin),linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)) 50% 50%/100% 1px no-repeat,linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)) 50% 50%/1px 100% no-repeat}
+body.scoped #scope{opacity:1}body.scoped #cross i{opacity:0}
+#cross.melee i{opacity:.35}
+#hitmark{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;opacity:0;pointer-events:none}
+#hitmark::before,#hitmark::after{content:"";position:absolute;left:12px;top:0;width:2px;height:26px;background:linear-gradient(#fff 0 30%,transparent 30% 70%,#fff 70%);transform:rotate(45deg)}
+#hitmark::after{transform:rotate(-45deg)}
+#hitmark.on{animation:hitm .26s ease-out}
+#hitmark.kill::before,#hitmark.kill::after{background:linear-gradient(var(--alarm) 0 30%,transparent 30% 70%,var(--alarm) 70%)}
+@keyframes hitm{from{opacity:1;transform:scale(1.3)}to{opacity:0;transform:scale(1)}}
+#prompt{--r:999px;--blur:10px;position:absolute;left:50%;bottom:24%;transform:translate(-50%,6px);padding:9px 16px;font:600 13px/1.3 var(--tc);text-shadow:none;opacity:0;transition:opacity var(--dur-hover),transform var(--dur-hover) var(--ease-out)}
+#prompt.on{opacity:1;transform:translate(-50%,0)}
+#prompt kbd{height:22px;min-width:24px;margin-right:4px;font-size:10px;border-radius:7px}
+#prompt b{color:var(--sodium);font-weight:600}
+#hurt{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(140,0,0,0) 42%,rgba(150,12,12,.6));opacity:0}
+#frost{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(205,228,255,0) 38%,rgba(205,228,255,.5));opacity:0;transition:opacity 1.2s}
+#over{position:fixed;inset:0;z-index:8;display:none;place-items:center;padding:16px;background:radial-gradient(ellipse at center,rgba(6,9,14,.25),rgba(6,9,14,.7))}
+#over.on{display:grid}
+#over .glass{--r:30px;--blur:18px;width:min(440px,100%);padding:26px 26px 22px;text-align:center;animation:pop var(--dur-enter) var(--ease-spring)}
+#over h2{font:800 40px/1 var(--cond);letter-spacing:.08em;text-transform:uppercase}
+#over p{margin-top:12px;font-size:14px;line-height:1.75;color:var(--snow-2)}
+#over .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+#over .stats div{padding:10px 6px;border-radius:14px;background:rgba(255,255,255,.06)}
+#over .stats b{display:block;font:800 24px/1 var(--cond);font-variant-numeric:tabular-nums}
+#over .stats span{display:block;margin-top:4px;font-size:11px;color:var(--snow-3)}
+#over .gbtn{margin-top:18px;height:50px;font-size:15px}
+body.touch #weapon{display:none}
+body.touch #vitals{bottom:auto;top:16px;width:200px;padding:10px 12px;gap:5px}
+body.touch .inv kbd{display:none}.inv span{white-space:nowrap}
+body.touch #tag{display:none}
+body.over #pause{display:none}
+body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
 
 @media (max-width:860px){
   .boot-grid{grid-template-columns:1fr;gap:20px;align-self:start}
@@ -204,13 +287,21 @@ body.touch #hint{display:none}
   #dbg{left:10px;right:10px;top:max(10px,env(safe-area-inset-top));bottom:auto;width:auto;height:48%}
   @keyframes sheetIn{from{opacity:0;transform:translateY(-18px) scale(.97)}}
 }
+@media (max-width:640px){
+  #mission{left:12px;right:12px;top:max(10px,env(safe-area-inset-top));width:auto;padding:10px 13px 11px}
+  #mTitle{margin-top:5px;font-size:15px}
+  #mObj{font-size:12px}
+  body.touch #vitals{top:calc(max(10px,env(safe-area-inset-top)) + 132px);left:12px;width:176px}
+  #feed{display:none}
+  #toast{top:30%;max-width:calc(100vw - 32px);white-space:normal;text-align:center}
+}
 @media (max-width:420px){
   .boot-top .live{display:none}
   .keys{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){
-  #boot,#hud,#toast,#go,.sw input::after{transition:none}
-  #dbg.on,#pause .glass,.pill .blink,.assets li.load .dot,#go:disabled{animation:none}
+  #boot,#hud,#toast,#go,.sw input::after,#prompt,.vbar u i,.mbar i{transition:none}
+  #dbg.on,#pause .glass,.pill .blink,.assets li.load .dot,#go:disabled,#mission.flash,#feed div,#over .glass,.vbar.low u i{animation:none}
 }
 </style>
 <script type="importmap">
@@ -233,8 +324,8 @@ body.touch #hint{display:none}
     <section class="hero">
       <h1>El Eternauta<br>Online</h1>
       <p class="place">Plaza de Mayo · <b>雪夜五月廣場</b></p>
-      <p class="zh">布宜諾斯艾利斯，一場會致命的雪落了一整夜。戴上防毒面罩、裹緊雪衣，在只剩路燈亮著的五月廣場上走一圈。整座廣場是約 500 萬個 Gaussian splat，依距離做 LoD 與剔除，即時加上夜色、冷霧與路燈光。</p>
-      <p class="caption glass"><i>AVISO</i>別讓雪碰到皮膚。</p>
+      <p class="zh">布宜諾斯艾利斯，一場會致命的雪落了一整夜。被雪碰到的人站起來了，但已經不是人。戴上防毒面罩、裹緊雪衣，在五月廣場找武器、換濾罐，守住金字塔，用無線電呼叫救援。廣場、喪屍、槍和補給全都是 Gaussian splat。</p>
+      <p class="caption glass"><i>AVISO</i>別讓雪碰到皮膚，也別讓牠們碰到你。</p>
     </section>
     <aside class="sheet glass" data-lens>
       <div>
@@ -245,39 +336,66 @@ body.touch #hint{display:none}
           <li data-k="fbx"><span class="dot"></span><b>角色 FBX（防毒面罩・雪衣）</b><i>—</i><span class="bar"><u></u></span></li>
           <li data-k="clips"><span class="dot"></span><b>動畫片段</b><i>—</i><span class="bar"><u></u></span></li>
           <li data-k="col"><span class="dot"></span><b>簡化碰撞體</b><i>—</i><span class="bar"><u></u></span></li>
+          <li data-k="zomb"><span class="dot"></span><b>喪屍 splat（3 種・綁骨）</b><i>—</i><span class="bar"><u></u></span></li>
+          <li data-k="items"><span class="dot"></span><b>武器與裝備 splat</b><i>—</i><span class="bar"><u></u></span></li>
         </ul>
       </div>
       <div>
         <h2>操作</h2>
         <div class="keys">
-          <div class="well"><kbd>WASD</kbd>移動</div>
-          <div class="well"><kbd>Shift</kbd>跑</div>
-          <div class="well"><kbd>Space</kbd>跳</div>
-          <div class="well"><kbd>R</kbd>重生</div>
-          <div class="well"><kbd>滾輪</kbd>鏡頭遠近</div>
-          <div class="well"><kbd>P</kbd>設定與除錯</div>
-          <div class="well wide"><kbd>點畫面</kbd>鎖定滑鼠轉視角，<kbd>Esc</kbd>釋放</div>
+          <div class="well"><kbd>WASD</kbd>移動・<kbd>Shift</kbd>跑</div>
+          <div class="well"><kbd>Space</kbd>跳・<kbd>滾輪</kbd>鏡頭</div>
+          <div class="well"><kbd>左鍵</kbd>射擊／攻擊</div>
+          <div class="well"><kbd>右鍵</kbd>瞄準</div>
+          <div class="well"><kbd>F</kbd>近戰・<kbd>V</kbd>踢</div>
+          <div class="well"><kbd>R</kbd>換彈・<kbd>1–4</kbd>武器</div>
+          <div class="well"><kbd>E</kbd>撿起／互動</div>
+          <div class="well"><kbd>H</kbd>醫療・<kbd>T</kbd>膠帶</div>
+          <div class="well wide"><kbd>點畫面</kbd>鎖定滑鼠，<kbd>Esc</kbd>釋放・<kbd>M</kbd>靜音・<kbd>P</kbd>設定</div>
         </div>
-        <p class="keys-touch well">左下搖桿移動，右半邊拖曳轉視角；右側按鈕切換「跑」、按「跳」，P 開設定與除錯面板。</p>
+        <p class="keys-touch well">左下搖桿移動，右半邊拖曳轉視角。右下「射擊」會自動微調準心，旁邊有跳、跑、換彈、換武器與醫療；靠近物品時出現「撿」。P 開設定與除錯面板。</p>
       </div>
       <button id="go" class="glass" disabled>載入中…</button>
-      <p id="goNote">第一次進場約下載 95 MB（場景 65 MB、角色 27 MB），之後由瀏覽器快取。</p>
+      <p id="goNote">第一次進場約下載 100 MB（場景 65 MB、角色 27 MB、喪屍與裝備 5 MB），之後由瀏覽器快取。</p>
     </aside>
   </div>
-  <p class="credit glass">非官方同人原型，與《El Eternauta》原作、出版社及串流平台無關。場景 splat、角色 FBX、動畫片段與碰撞網格取自開源專案 <a href="https://github.com/santisiri/eternauta-online" target="_blank" rel="noopener">santisiri/eternauta-online</a>（程式 MIT，素材屬原作者），固定在 8377fe2 版本即時載入；splat 以 <a href="https://sparkjs.dev/" target="_blank" rel="noopener">Spark</a>（MIT）渲染。</p>
+  <p class="credit glass">非官方同人作品，與《El Eternauta》原作、出版社及串流平台無關。場景 splat、角色 FBX、動畫片段與碰撞網格取自開源專案 <a href="https://github.com/santisiri/eternauta-online" target="_blank" rel="noopener">santisiri/eternauta-online</a>（程式 MIT，素材屬原作者），固定在 8377fe2 版本即時載入；splat 以 <a href="https://sparkjs.dev/" target="_blank" rel="noopener">Spark</a>（MIT）渲染。喪屍由 <a href="https://quaternius.com/" target="_blank" rel="noopener">Quaternius</a> 的 Universal Base Characters 與 Animation Library（CC0）、武器與補給由 <a href="https://polyhaven.com/models" target="_blank" rel="noopener">Poly Haven</a> 的模型（CC0）烘焙成 .spz。</p>
 </div>
 
 <div id="hud">
   <div id="tag">El Eternauta · Plaza de Mayo<small>雪夜五月廣場 · 原型</small></div>
-  <div id="hint" class="glass"><kbd>WASD</kbd>移動 <kbd>Shift</kbd>跑 <kbd>Space</kbd>跳 <kbd>R</kbd>重生 <kbd>滾輪</kbd>鏡頭 <kbd>P</kbd>設定 <kbd>Esc</kbd>釋放滑鼠</div>
+  <div id="hurt"></div><div id="frost"></div>
+  <div id="scope"></div>
+  <div id="cross"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="hitmark"></div>
+  <section id="mission" class="glass" aria-live="polite">
+    <div id="mStep"></div><b id="mTitle"></b><p id="mObj"></p>
+    <div class="mbar" hidden><i id="mProg"></i></div>
+    <div id="mWp" hidden><span id="mArrow"></span><span id="mDist"></span></div>
+  </section>
+  <div id="feed"></div>
+  <section id="vitals" class="glass">
+    <div class="vbar" id="vHp"><span>生命</span><u><i></i></u><b>100</b></div>
+    <div class="vbar" id="vArm"><span>雪衣</span><u><i></i></u><b>60</b></div>
+    <div class="vbar" id="vFil"><span>濾罐</span><u><i></i></u><b>80</b></div>
+    <div class="inv"><span><kbd>H</kbd>醫療<b id="iMed">1</b></span><span><kbd>T</kbd>膠帶<b id="iTape">0</b></span></div>
+  </section>
+  <section id="weapon" class="glass"><div id="wName"></div><div id="wAmmo"></div><div id="wSlots"></div></section>
+  <div id="prompt" class="glass"></div>
   <div id="toast" class="glass"></div>
 </div>
 <div id="pause"><div class="glass"><b>Pausa</b><span>滑鼠已釋放。點畫面回到廣場。</span></div></div>
+<div id="over"><div class="glass"></div></div>
 <aside id="dbg" class="glass" aria-label="設定與除錯面板"></aside>
 <div id="touch">
   <div id="stick" class="glass"><i></i></div>
+  <button class="tbtn glass" id="tFire">攻擊</button>
   <button class="tbtn glass" id="tJump">跳</button>
   <button class="tbtn glass" id="tRun">跑</button>
+  <button class="tbtn glass" id="tReload">換彈</button>
+  <button class="tbtn glass" id="tSwap">拳腳</button>
+  <button class="tbtn glass" id="tHeal">醫療</button>
+  <button class="tbtn glass" id="tUse">撿</button>
   <button class="tbtn glass" id="tDbg">P</button>
 </div>
 
@@ -298,12 +416,14 @@ const URLS = {
   rough: REPO + 'player/texture_0_roughness_1k.png',
   metal: REPO + 'player/texture_0_metallic_1k.png',
   collider: REPO + 'collider.glb',
+  actors: QS.get('actors') || '../assets/266/', // 喪屍、武器與裝備的 .spz（本站）
 };
 const SIZE = { splat: 64.7e6, fbx: 27.5e6 };
 // 角色只有走路片段內嵌在 FBX；其他片段是同一副 Mixamo 骨架的 three.js JSON。
 // fall／land 上游沒有做，面板會標成「缺少」並用替代姿勢。
-const CLIP_FILES = { idle: 'idle.json', run: 'running.json', jump: 'jump.json' };
-const ANIM_STATES = ['idle', 'walk', 'run', 'jump', 'fall', 'land'];
+const CLIP_FILES = { idle: 'idle.json', run: 'running.json', jump: 'jump.json', shoot: 'run-shoot.json', punch: 'punch.json', kick: 'kick.json', die: 'die.json' };
+const ANIM_STATES = ['idle', 'walk', 'run', 'jump', 'fall', 'land', 'shoot', 'punch', 'kick', 'die'];
+const ONE_SHOTS = ['punch', 'kick', 'die'];
 
 const CFG = {
   spawn: new THREE.Vector3(0, -0.2, 3), spawnYaw: Math.PI,
@@ -407,12 +527,13 @@ const scene = new THREE.Scene();
 scene.background = FOG.color.clone();
 scene.fog = new THREE.FogExp2(FOG.color.clone(), FOG.density);
 const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 2000);
+let baseFov = 55;
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setPixelRatio(BASE_DPR * renderScale);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  camera.fov = w < h ? Math.min(82, 55 / Math.sqrt(w / h)) : 55;
+  baseFov = camera.fov = w < h ? Math.min(82, 55 / Math.sqrt(w / h)) : 55;
   camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
@@ -498,7 +619,7 @@ function setRow(k, frac, text, cls) {
   loadPct.innerHTML = `${Math.round(sum / all.length * 100)}<small>%</small>`;
 }
 const mb = b => (b / 1e6).toFixed(1);
-const LOAD = { spark: 'wait', splat: 'wait', fbx: 'wait', clips: 'wait', col: 'wait' };
+const LOAD = { spark: 'wait', splat: 'wait', fbx: 'wait', clips: 'wait', col: 'wait', actors: 'wait' };
 const WARN = []; // 給面板看的警告
 function warn(msg) { WARN.push(msg); console.warn('[266]', msg); }
 
@@ -673,12 +794,14 @@ async function loadCollider() {
    Spark：Gaussian splat、LoD、依距離剔除、夜色／冷霧／路燈（逐 splat 修飾器）
    ====================================================================== */
 const SPLAT = { S: null, spark: null, mesh: null, total: 0, ready: false, U: null, lastCam: new THREE.Vector3(1e9, 0, 0), lastT: 0, dirty: true, lodScale: 1 };
-function makeNightModifier(S) {
+// actor = true 給喪屍與物件：不做距離剔除、月光稍亮一點，並加上槍口火光（flash：位置＋強度）
+function makeNightModifier(S, actor = false) {
   const { dynoBlock, Gsplat, Dyno, DynoVec3, DynoVec4 } = S.dyno;
   const U = {
     cam: new DynoVec3({ value: new THREE.Vector3() }),
     fog: new DynoVec4({ value: new THREE.Vector4(FOG.density, FOG.cull, 26, FOG.lampGain) }),
     fogColor: new DynoVec3({ value: new THREE.Vector3(FOG.color.r, FOG.color.g, FOG.color.b) }),
+    flash: new DynoVec4({ value: new THREE.Vector4(0, -100, 0, 0) }),
   };
   // FOG.color 是線性值；splat 顏色是顯示用的 sRGB，霧色要換回 sRGB 才會和背景接縫
   const srgb = FOG.color.clone().convertLinearToSRGB(); U.fogColor.value.set(srgb.r, srgb.g, srgb.b);
@@ -686,22 +809,24 @@ function makeNightModifier(S) {
   const lampGlsl = `const vec4 ETN_LAMPS[${n}] = vec4[${n}](${LAMPS.map(L => `vec4(${L.pos.x.toFixed(2)},${L.pos.y.toFixed(2)},${L.pos.z.toFixed(2)},${L.power.toFixed(2)})`).join(',')});`;
   const mod = dynoBlock({ gsplat: Gsplat }, { gsplat: Gsplat }, ({ gsplat }) => {
     const d = new Dyno({
-      inTypes: { gsplat: Gsplat, cam: 'vec3', fog: 'vec4', fogColor: 'vec3' },
+      inTypes: { gsplat: Gsplat, cam: 'vec3', fog: 'vec4', fogColor: 'vec3', flash: 'vec4' },
       outTypes: { gsplat: Gsplat },
-      inputs: { gsplat, cam: U.cam, fog: U.fog, fogColor: U.fogColor },
+      inputs: { gsplat, cam: U.cam, fog: U.fog, fogColor: U.fogColor, flash: U.flash },
       globals: () => [lampGlsl],
       statements: ({ inputs: i, outputs: o }) => [
         `${o.gsplat} = ${i.gsplat};`,
         `vec3 etP = ${o.gsplat}.center;`,
         `float etD = distance(etP, ${i.cam});`,
-        `if (etD > ${i.fog}.y) { ${o.gsplat}.flags &= ~GSPLAT_FLAG_ACTIVE; }`,
+        actor ? '' : `if (etD > ${i.fog}.y) { ${o.gsplat}.flags &= ~GSPLAT_FLAG_ACTIVE; }`,
         `vec3 etC = ${o.gsplat}.rgba.rgb;`,
         `float etL = dot(etC, vec3(0.299, 0.587, 0.114));`,
         // 夜色：去飽和、壓暗、偏冷藍（雪地變成月光下的藍灰）
-        `vec3 etN = mix(vec3(etL), etC, 0.45) * vec3(0.15, 0.2, 0.31);`,
+        actor ? `vec3 etN = mix(vec3(etL), etC, 0.55) * vec3(0.3, 0.34, 0.45);` : `vec3 etN = mix(vec3(etL), etC, 0.45) * vec3(0.15, 0.2, 0.31);`,
         `float etW = 0.0;`,
         `for (int k = 0; k < ${n}; k++) { vec3 etV = ETN_LAMPS[k].xyz - etP; float dd = dot(etV, etV); if (dd < 240.0) etW += ETN_LAMPS[k].w * 6.0 / (6.0 + dd) * (1.0 - smoothstep(70.0, 240.0, dd)); }`,
         `vec3 etLit = etN + etC * vec3(1.0, 0.6, 0.29) * min(etW * ${i.fog}.w, 1.25) * 1.05;`,
+        // 槍口火光：近距離短暫的暖光
+        actor ? `vec3 etF0 = ${i.flash}.xyz - etP; etLit += etC * vec3(1.0, 0.72, 0.42) * min(${i.flash}.w * 3.0 / (1.0 + dot(etF0, etF0)), 1.6);` : '',
         // 冷色霧：指數衰減，越遠越融進背景
         `float etF = 1.0 - exp(-${i.fog}.x * max(etD - 2.0, 0.0));`,
         `etLit = mix(etLit, ${i.fogColor}, clamp(etF, 0.0, 0.97));`,
@@ -756,12 +881,18 @@ async function loadSplat(S) {
   }
 }
 function updateSplatUniforms(now) {
-  const U = SPLAT.U; if (!U || !SPLAT.mesh) return;
   const cam = camera.position;
+  if (ACT.U) {
+    ACT.U.cam.value.copy(cam); ACT.U.flash.value.set(FLASH.pos.x, FLASH.pos.y, FLASH.pos.z, FLASH.power);
+    if (FLASH.power > 0 || FLASH.was) for (const m of ACT.items) m.updateVersion(); // 喪屍每格都因骨架更新而重算
+    FLASH.was = FLASH.power > 0;
+  }
+  const U = SPLAT.U; if (!U || !SPLAT.mesh) return;
   U.cam.value.copy(cam);
   // 只在鏡頭明顯移動時重新跑修飾器，霧與剔除不需要每格都精確
   if (SPLAT.dirty || (cam.distanceToSquared(SPLAT.lastCam) > 0.36 && now - SPLAT.lastT > 90)) {
     SPLAT.lastCam.copy(cam); SPLAT.lastT = now; SPLAT.dirty = false; SPLAT.mesh.updateVersion();
+    for (const m of ACT.items) m.updateVersion();
   }
 }
 
@@ -793,6 +924,7 @@ function fixHips(clip, mode) {
   for (let i = 0; i < n; i++) {
     const f = tr.times[i] / (clip.duration || 1);
     if (mode === 'flat') { v[i * 3] = x0; v[i * 3 + 1] = y0; v[i * 3 + 2] = z0; }
+    else if (mode === 'xz') { v[i * 3] = x0; v[i * 3 + 2] = z0; } // 一次性動作：留住高度（倒地），去掉水平位移
     else { v[i * 3] -= dx * f; v[i * 3 + 2] -= dz * f; }
   }
 }
@@ -869,7 +1001,7 @@ async function loadCharacter(clipsTask) {
   const walk = model.animations.find(c => !isStaticClip(c));
   if (walk) { clips.walk = clean(walk); fixHips(clips.walk, 'loop'); player.clipInfo.walk = { ok: true, name: walk.name, dur: walk.duration, src: 'FBX 內嵌', note: '' }; }
   for (const [st, r] of Object.entries(clipRes)) {
-    if (r.clip) { clips[st] = clean(r.clip); fixHips(clips[st], st === 'jump' ? 'flat' : 'loop'); player.clipInfo[st] = { ok: true, name: r.clip.name, dur: r.clip.duration, src: r.src, note: '' }; }
+    if (r.clip) { clips[st] = clean(r.clip); fixHips(clips[st], st === 'jump' ? 'flat' : ONE_SHOTS.includes(st) ? 'xz' : 'loop'); player.clipInfo[st] = { ok: true, name: r.clip.name, dur: r.clip.duration, src: r.src, note: '' }; }
     else player.clipInfo[st] = { ok: false, name: null, dur: 0, src: r.src, note: '下載失敗：' + r.err };
   }
   const mixer = new THREE.AnimationMixer(model); player.mixer = mixer;
@@ -889,6 +1021,27 @@ async function loadCharacter(clipsTask) {
   if (!player.acts.jump) note('jump', '在空中凍結目前姿勢');
   note('fall', player.acts.jump ? '以 jump 片段頂點姿勢代替' : '凍結目前姿勢');
   note('land', '以 idle／walk 交叉淡入代替');
+  // 瞄準：下半身沿用移動片段（只留腿的複本），上半身換成 run-shoot 第一格的持槍姿勢；
+  // 脊椎依兩個片段的骨盆差補正，上身才會朝正前方（同上游 buildAimClip 的作法）
+  const spine = model.getObjectByName('mixamorigSpine'), upper = new Set();
+  spine?.traverse(o => upper.add(o.name));
+  const legsOnly = clip => new THREE.AnimationClip(clip.name + ' (legs)', clip.duration, clip.tracks.filter(t => !upper.has(t.name.split('.')[0])).map(t => t.clone()));
+  player.legs = {};
+  if (spine) for (const n of ['idle', 'walk', 'run']) if (player.acts[n]) { player.legs[n] = act(legsOnly(player.acts[n].getClip())); player.legs[n].timeScale = player.acts[n].timeScale; }
+  if (clips.shoot && spine) {
+    const val = (clip, name) => { const t = clip.tracks.find(tr => tr.name === name); return t ? Array.from(t.createInterpolant().evaluate(0)) : null; };
+    const hipsName = spine.parent.name + '.quaternion', hb = player.acts.idle && val(player.acts.idle.getClip(), hipsName), hs = val(clips.shoot, hipsName);
+    const tracks = [];
+    for (const t of clips.shoot.tracks) {
+      if (!upper.has(t.name.split('.')[0]) || !t.name.endsWith('.quaternion')) continue;
+      const v = Array.from(t.createInterpolant().evaluate(0));
+      if (t.name === spine.name + '.quaternion' && hb && hs) new THREE.Quaternion().fromArray(hb).invert().multiply(new THREE.Quaternion().fromArray(hs)).multiply(new THREE.Quaternion().fromArray(v)).toArray(v);
+      tracks.push(new THREE.QuaternionKeyframeTrack(t.name, [0], v));
+    }
+    player.acts.aim = act(new THREE.AnimationClip('aim', 1, tracks));
+  } else note('shoot', '沒有持槍姿勢，舉槍時沿用移動動作');
+  for (const st of ONE_SHOTS) if (clips[st]) { const a = act(clips[st], false); a.paused = true; player.acts[st] = a; } else note(st, '以短暫延遲直接判定命中代替');
+  player.handR = model.getObjectByName('mixamorigRightHand'); player.foreR = model.getObjectByName('mixamorigRightForeArm');
   for (const s of ANIM_STATES) if (!player.clipInfo[s].ok) warn(`缺少動畫片段「${s}」：${player.clipInfo[s].note}`);
   LOAD.fbx = 'done'; setRow('fbx', 1, `縮放至 1.80 m · ${skinned.length} 蒙皮網格`, 'done');
 }
@@ -901,18 +1054,32 @@ const view = { yaw: CFG.spawnYaw + Math.PI, pitch: 0.2, dist: 4.4, distT: 4.4 };
 let playing = false, jumpQueued = false, touchRun = false;
 const stick = { x: 0, y: 0, id: null };
 addEventListener('keydown', e => {
-  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) jumpQueued = true; }
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { if (overKind) { if (overKind === 'dead') revive(); else closeOver(); lockPointer(); } else jumpQueued = true; } }
   if (e.code === 'KeyP' && !e.repeat) toggleDebug();
-  if (e.code === 'KeyR' && !e.repeat && playing) respawn();
+  if (playing && !e.repeat) {
+    const fn = { KeyR: reload, KeyF: () => melee('punch'), KeyV: () => melee('kick'), KeyE: interact, KeyH: useMedkit, KeyT: useTape, KeyQ: () => cycleWeapon(1), KeyM: toggleMute, Backspace: respawn }[e.code];
+    if (fn) { e.preventDefault(); fn(); }
+    const d = /^Digit([1-4])$/.exec(e.code); if (d) equipSlot(+d[1]);
+  }
   keys.add(e.code);
 });
 addEventListener('keyup', e => keys.delete(e.code));
-addEventListener('blur', () => keys.clear());
+addEventListener('blur', () => { keys.clear(); input.fire = input.aim = false; });
+let lockFailed = false;
 function lockPointer() {
   if (isTouch) return;
-  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch { /* 不支援就用拖曳 */ }
+  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { lockFailed = true; }); } catch { lockFailed = true; /* 不支援就用拖曳 */ }
 }
-canvas.addEventListener('click', () => { if (playing && document.pointerLockElement !== canvas) lockPointer(); });
+canvas.addEventListener('click', () => { if (playing && document.pointerLockElement !== canvas && !overKind) lockPointer(); });
+// 滑鼠：鎖定後左鍵射擊／攻擊、右鍵瞄準；鎖定失敗（例如內嵌框架）時直接用點擊開火
+canvas.addEventListener('mousedown', e => {
+  if (!playing || overKind) return;
+  const live = document.pointerLockElement === canvas || lockFailed;
+  if (e.button === 0 && live) input.fire = true;
+  if (e.button === 2) input.aim = true;
+});
+addEventListener('mouseup', e => { if (e.button === 0) input.fire = false; if (e.button === 2) input.aim = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 document.getElementById('pause').addEventListener('click', () => { document.body.classList.remove('paused'); lockPointer(); });
 document.addEventListener('pointerlockchange', () => {
   const locked = document.pointerLockElement === canvas;
@@ -949,6 +1116,11 @@ document.getElementById('tJump').addEventListener('pointerdown', e => { e.preven
 const tRun = document.getElementById('tRun');
 tRun.addEventListener('pointerdown', e => { e.preventDefault(); touchRun = !touchRun; tRun.classList.toggle('on', touchRun); });
 document.getElementById('tDbg').addEventListener('pointerdown', e => { e.preventDefault(); toggleDebug(); });
+const tFire = document.getElementById('tFire');
+tFire.addEventListener('pointerdown', e => { e.preventDefault(); tFire.setPointerCapture(e.pointerId); input.touchFire = true; });
+for (const ev of ['pointerup', 'pointercancel']) tFire.addEventListener(ev, () => { input.touchFire = false; });
+for (const [id, fn] of [['tReload', () => reload()], ['tSwap', () => cycleWeapon(1)], ['tHeal', () => (player.hp < 100 && player.medkits ? useMedkit() : useTape())], ['tUse', () => interact()]])
+  document.getElementById(id).addEventListener('pointerdown', e => { e.preventDefault(); fn(); });
 
 /* ======================================================================
    角色控制（固定 120 Hz）
@@ -956,12 +1128,15 @@ document.getElementById('tDbg').addEventListener('pointerdown', e => { e.prevent
 const TICK = 1 / 120; let acc = 0;
 const wish = new THREE.Vector3();
 let toastT = 0;
-function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('on'); toastT = 2.2; }
+function toast(msg, dur = 2.2) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('on'); toastT = dur; }
 // 從人站得到的高度往下找（從太高開始會落在碰撞網格裡的樹冠上）
 function groundAt(x, z) { let g = rayDown(x, z, 2.5, 8); if (!g.hit) g = rayDown(x, z, 40, 120); return g.hit ? g.y : -0.2; }
+// 卡住或掉出去時回到任務檢查點（還沒開始任務時是起點）
 function respawn() {
-  player.pos.copy(CFG.spawn); player.pos.y = groundAt(CFG.spawn.x, CFG.spawn.z); player.vel.set(0, 0, 0); player.yaw = CFG.spawnYaw; player.grounded = true; player.airTime = 0;
-  view.yaw = CFG.spawnYaw + Math.PI; view.pitch = 0.2; snapCamera = true; toast('回到起點');
+  const [x, z] = M.i >= 0 ? M.checkpoint : [CFG.spawn.x, CFG.spawn.z];
+  player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); player.grounded = true; player.airTime = 0;
+  if (M.i < 0) { player.yaw = CFG.spawnYaw; view.yaw = CFG.spawnYaw + Math.PI; view.pitch = 0.2; }
+  snapCamera = true; toast(M.i >= 0 ? '回到檢查點' : '回到起點');
 }
 function step(dt) {
   const p = player.pos, v = player.vel;
@@ -974,7 +1149,9 @@ function step(dt) {
   if (stick.id !== null) { ix += stick.x; iz -= stick.y; }
   const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
   const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || touchRun;
-  const sp = (running ? CFG.run : CFG.walk) * Math.min(1, il);
+  const aiming = player.aimW > 0.3;
+  let sp = (running && !aiming ? CFG.run : CFG.walk) * Math.min(1, il);
+  if (!player.alive || overKind) sp = 0; else if (player.oneShot) sp *= player.oneShot.kind === 'kick' ? 0 : 0.35;
   const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw); // 鏡頭前方（水平）
   wish.set(fx * iz - fz * ix, 0, fz * iz + fx * ix);
   if (wish.lengthSq() > 1e-6) wish.normalize().multiplyScalar(sp);
@@ -982,12 +1159,14 @@ function step(dt) {
   const rate = (wish.lengthSq() > 1e-6 ? CFG.accel : CFG.decel) * ctl * dt;
   const ddx = wish.x - v.x, ddz = wish.z - v.z, dl = Math.hypot(ddx, ddz);
   if (dl > 0) { const m = Math.min(1, rate * Math.max(1, sp) / dl); v.x += ddx * m; v.z += ddz * m; }
-  if (wish.lengthSq() > 0.01) {
-    const target = Math.atan2(wish.x, wish.z); let d = target - player.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-    player.yaw += d * Math.min(1, 10 * dt);
+  // 舉槍、剛開火或近戰時面向準心，否則面向移動方向
+  const faceAim = player.alive && (aiming || player.faceT > 0);
+  if (faceAim || wish.lengthSq() > 0.01) {
+    const target = faceAim ? view.yaw + Math.PI : Math.atan2(wish.x, wish.z); let d = target - player.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+    player.yaw += d * Math.min(1, (faceAim ? 16 : 10) * dt);
   }
   // 跳
-  if (jumpQueued && player.grounded) { v.y = CFG.jump; player.grounded = false; player.airTime = 0; }
+  if (jumpQueued && player.grounded && player.alive && !player.oneShot) { v.y = CFG.jump; player.grounded = false; player.airTime = 0; }
   jumpQueued = false;
   v.y -= CFG.gravity * dt; if (v.y < -40) v.y = -40;
   p.addScaledVector(v, dt);
@@ -1013,6 +1192,12 @@ function step(dt) {
         const vn = v.x * nx + v.z * nz; if (vn < 0) { v.x -= nx * vn; v.z -= nz * vn; }
       });
     }
+  }
+  // 喪屍的身體也擋路
+  for (const z of zombies) {
+    if (!z.active || !z.alive) continue;
+    const ex = p.x - z.pos.x, ez = p.z - z.pos.z, e2 = ex * ex + ez * ez;
+    if (e2 < 0.6 * 0.6 && e2 > 1e-6 && Math.abs(z.pos.y - p.y) < 1.5) { const e = Math.sqrt(e2); p.x += ex / e * (0.6 - e); p.z += ez / e * (0.6 - e); }
   }
   // 地面：從腳上 step 高度往下打射線
   const wasGrounded = player.grounded;
@@ -1064,10 +1249,28 @@ function updateAnim(dt) {
   }
   const k = 1 - Math.exp(-dt * (air ? 16 : 10));
   const freeze = air && !A.jump;
+  // 一次性動作（出拳、踢、倒地）蓋過全身；舉槍時上半身換成持槍姿勢、下半身繼續走跑
+  const os = player.oneShot;
+  if (os) {
+    const a = os.A;
+    if (!os.struck && a.time >= os.cfg.hit) { os.struck = true; os.strike?.(); }
+    if (a.time >= Math.min(os.cfg.end, a.getClip().duration - 0.01) && os.kind !== 'die') { player.oneShot = null; }
+  }
+  const gun = !WEAPONS[player.weapon].melee;
+  const aimT = player.alive && !os && gun && (input.aim || input.touchFire || player.faceT > 0 || player.reloadT > 0) ? 1 : 0;
+  player.aimW += (aimT - player.aimW) * (1 - Math.exp(-dt * 12));
+  player.ovW += ((player.oneShot ? 1 : 0) - player.ovW) * (1 - Math.exp(-dt * (player.oneShot ? 14 : 8)));
+  const aw = A.aim ? player.aimW : 0, ov = player.ovW;
   for (const n of ['idle', 'walk', 'run', 'jump']) {
     if (!freeze) W[n] += (T[n] - W[n]) * k;
-    if (A[n]) A[n].setEffectiveWeight(W[n]);
+    const legs = player.legs?.[n];
+    if (A[n]) A[n].setEffectiveWeight(W[n] * (1 - ov) * (legs ? 1 - aw : 1));
+    if (legs) { legs.setEffectiveWeight(W[n] * (1 - ov) * aw); legs.time = A[n].time; legs.timeScale = A[n].timeScale; }
   }
+  if (A.aim) A.aim.setEffectiveWeight(aw * (1 - ov) * (1 - W.jump));
+  for (const n of ONE_SHOTS) if (A[n]) A[n].setEffectiveWeight(player.oneShot?.kind === n || (n === player.lastShot && ov > 0.01) ? ov : 0);
+  if (player.oneShot) player.lastShot = player.oneShot.kind;
+  if (player.oneShot) player.anim = player.oneShot.kind; else if (aw > 0.5) player.anim = 'shoot';
   if (A.walk) A.walk.timeScale = freeze ? 0 : THREE.MathUtils.clamp(Math.max(s, 0.8) / CFG.walkClipSpeed, 0.55, 1.9);
   if (A.run) A.run.timeScale = freeze ? 0 : THREE.MathUtils.clamp(Math.max(s, 2.5) / (player.speedRunFromWalk ? CFG.walkClipSpeed : CFG.runClipSpeed), 0.6, 2.6);
   if (A.idle && player.clipInfo.idle.ok) A.idle.timeScale = freeze ? 0 : 1;
@@ -1084,25 +1287,36 @@ function updateAnim(dt) {
    鏡頭
    ====================================================================== */
 let snapCamera = true;
+const SCOPED = { on: false };
 const pivot = new THREE.Vector3(), camWant = new THREE.Vector3(), lookAt = new THREE.Vector3(), camPos = new THREE.Vector3(), tmp = new THREE.Vector3();
 function updateCamera(dt, t) {
   if (!playing) { // 開場：繞著起點慢慢轉
     view.yaw += dt * 0.06; view.pitch = 0.12; view.distT = 7.5;
   }
   view.dist += (view.distT - view.dist) * (1 - Math.exp(-dt * 10));
-  pivot.set(player.pos.x, player.pos.y + CFG.pivot, player.pos.z);
+  // 舉槍：鏡頭拉近、移到右肩後方，視角依武器放大
+  const aw = player.aimW, wz = WEAPONS[player.weapon].zoom || 1.3;
+  const dist = THREE.MathUtils.lerp(view.dist, Math.min(view.dist, wz > 2 ? 1.7 : 2.3), aw);
+  pivot.set(player.pos.x + Math.cos(view.yaw) * 0.55 * aw, player.pos.y + CFG.pivot + 0.1 * aw, player.pos.z - Math.sin(view.yaw) * 0.55 * aw);
+  if (!player.alive) pivot.y -= Math.min(1, player.deadT) * 0.9;
   const cp = Math.cos(view.pitch);
-  camWant.set(Math.sin(view.yaw) * cp, Math.sin(view.pitch), Math.cos(view.yaw) * cp).multiplyScalar(view.dist).add(pivot);
+  camWant.set(Math.sin(view.yaw) * cp, Math.sin(view.pitch), Math.cos(view.yaw) * cp).multiplyScalar(dist).add(pivot);
   // 鏡頭碰撞：從角色頭部往鏡頭打射線，撞到就拉近
   if (COL.n) {
     const tt = raySegment(pivot, camWant);
-    if (tt < 1) camWant.lerpVectors(pivot, camWant, Math.max(0.08, tt - 0.25 / view.dist));
+    if (tt < 1) camWant.lerpVectors(pivot, camWant, Math.max(0.08, tt - 0.25 / dist));
     const gy = rayDown(camWant.x, camWant.z, camWant.y + 2, 30); if (gy.hit && camWant.y < gy.y + 0.3) camWant.y = gy.y + 0.3;
   }
-  if (snapCamera) { camPos.copy(camWant); snapCamera = false; } else camPos.lerp(camWant, 1 - Math.exp(-dt * 14));
+  if (snapCamera) { camPos.copy(camWant); snapCamera = false; } else camPos.lerp(camWant, 1 - Math.exp(-dt * (14 + aw * 10)));
   camera.position.copy(camPos);
-  lookAt.copy(pivot); lookAt.y += 0.3;
+  lookAt.copy(pivot); lookAt.y += 0.3 * (1 - aw);
   camera.lookAt(lookAt);
+  if (SHAKE.a > 0.001) { camera.rotateX((Math.random() - 0.5) * SHAKE.a * 0.06); camera.rotateY((Math.random() - 0.5) * SHAKE.a * 0.06); SHAKE.a *= Math.exp(-dt * 9); }
+  // 步槍開鏡：角色會擋住半個畫面，改成隱藏角色、蓋上鏡框
+  const scoped = wz > 2 && aw > 0.82 && player.alive;
+  if (scoped !== SCOPED.on) { SCOPED.on = scoped; document.body.classList.toggle('scoped', scoped); if (player.model) player.model.visible = !scoped; }
+  const fov = baseFov / (1 + (wz - 1) * aw);
+  if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
 }
 
 /* ======================================================================
@@ -1171,6 +1385,19 @@ function buildDebug() {
         <div class="kv"><span>來源</span><b id="dColSrc">—</b></div>
         <div class="kv"><span>網格＋簡化體三角形</span><b id="dColTri">—</b></div>
       </section>
+      <section class="grp well">
+        <h3>戰鬥與任務 <em id="dMis">—</em></h3>
+        <div class="tiles" style="margin-top:0">
+          <div class="tile"><span>喪屍（活動／物件池）</span><b id="dZom">—</b></div>
+          <div class="tile"><span>擊倒・爆頭</span><b id="dKill">—</b></div>
+          <div class="tile"><span>喪屍 splat</span><b id="dZs">—</b></div>
+          <div class="tile"><span>命中率</span><b id="dAcc">—</b></div>
+        </div>
+        <label class="sw" style="margin-top:6px">無敵<input type="checkbox" id="cGod"></label>
+        <label class="sw">無限彈藥<input type="checkbox" id="cAmmo"></label>
+        <button class="gbtn glass" id="cZom">在前方召喚一隻喪屍</button>
+        <button class="gbtn glass" id="cSkip">跳到下一個任務</button>
+      </section>
       <section class="grp well" id="dWarnBox" hidden><h3>警告 <em id="dWarnN"></em></h3><div id="dWarn"></div></section>
     </div>`;
   for (const el of dbg.querySelectorAll('[id]')) D[el.id] = el;
@@ -1185,6 +1412,11 @@ function buildDebug() {
   D.cFog.oninput = e => { FOG.density = +e.target.value; D.vFog.textContent = FOG.density.toFixed(3); fill(e.target); syncFog(); };
   D.cLamp.oninput = e => { FOG.lampGain = +e.target.value; D.vLamp.textContent = FOG.lampGain.toFixed(2); fill(e.target); syncFog(); };
   D.cSpawn.onclick = () => respawn();
+  D.cGod.checked = GOD.on; D.cGod.onchange = e => { GOD.on = e.target.checked; };
+  D.cAmmo.onchange = e => { GOD.ammo = e.target.checked; hud(true); };
+  D.cZom.onclick = () => { const a = view.yaw + Math.PI; spawnZombie(player.pos.x + Math.sin(a) * 6, player.pos.z + Math.cos(a) * 6, { aggro: true }); };
+  D.cSkip.onclick = () => { if (M.cur) { for (const p of [...pickups]) if (p.quest || p.kind === 'crate' || p.kind === 'radio') removePickup(p); DIR.waveQueue = 0; startMission(M.i + 1); } };
+  attachLens(D.cZom, { bezel: 12, scale: 20 }); attachLens(D.cSkip, { bezel: 12, scale: 20 });
   attachLens(dbg, { bezel: 30, scale: 54 });
   attachLens(D.dClose, { bezel: 12, scale: 22 });
   attachLens(D.cSpawn, { bezel: 12, scale: 20 });
@@ -1192,6 +1424,7 @@ function buildDebug() {
 function syncFog() {
   scene.fog.density = FOG.density; snowUniforms.uDensity.value = FOG.density;
   if (SPLAT.U) { SPLAT.U.fog.value.set(FOG.density, FOG.cull, Math.min(26, FOG.cull * 0.3), FOG.lampGain); SPLAT.dirty = true; }
+  if (ACT.U) { ACT.U.fog.value.set(FOG.density, FOG.cull, Math.min(26, FOG.cull * 0.3), FOG.lampGain); for (const m of ACT.items) m.updateVersion(); }
   haloCore.opacity = Math.min(1, 0.3 + FOG.lampGain * 0.7); haloHaze.opacity = 0.16 * FOG.lampGain;
   lampLights.forEach(l => l.userData.gain = FOG.lampGain);
 }
@@ -1245,7 +1478,996 @@ function renderDebug() {
     lastWarnN = WARN.length; D.dWarnBox.hidden = !WARN.length; D.dWarnN.textContent = WARN.length || '';
     D.dWarn.innerHTML = WARN.slice(-5).map(w => `<div class="warn">· ${w}</div>`).join('');
   }
+  const act = zombies.filter(z => z.active), alive = act.filter(z => z.alive);
+  D.dZom.textContent = `${alive.length} / ${zombies.length}`;
+  D.dKill.textContent = `${STATS.kills} · ${STATS.heads}`;
+  D.dZs.textContent = ACT.fallback ? '簡易模型' : fmt(act.reduce((a, z) => a + (ACT.man?.zombies[z.variant]?.n || 0), 0));
+  D.dAcc.textContent = STATS.shots ? `${Math.round(STATS.hits / STATS.shots * 100)}% (${STATS.shots})` : '—';
+  D.dMis.textContent = M.cur ? `${M.i + 1}/${MISSIONS.length} ${M.cur.id} · ${M.stage}` : M.endless ? '自由生存' : '—';
   drawSparkline();
+}
+
+/* ======================================================================
+   延伸玩法：喪屍、武器、裝備與任務。所有角色與物件都是 Gaussian splat（.spz）：
+   assets/266/ 由 games/266-eternauta-plaza/tools/bake.mjs 從 CC0 網格烘焙，
+   喪屍以 Spark 的 SplatSkinning 跟著 Quaternius 骨架播放 UAL 動畫。
+   ====================================================================== */
+const FLASH = { pos: new THREE.Vector3(), power: 0, was: false }; // 槍口火光，照亮附近的喪屍 splat
+const ACT = { ready: false, fallback: false, man: null, packed: {}, skin: {}, clips: {}, mod: null, U: null, items: [] };
+const fetchBytes = async url => { const r = await fetch(url); if (!r.ok) throw new Error(`${url.split('/').pop()} HTTP ${r.status}`); return new Uint8Array(await r.arrayBuffer()); };
+const gunzip = async u8 => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+function buildZombieClips(man, body) {
+  const rig = man.rigs[body], ratio = rig.bones.find(b => b.n === 'pelvis').t[2] / man.ualPelvis[2], out = {};
+  for (const [k, c] of Object.entries(man.clips)) {
+    const tracks = c.tracks.map(t => t.name === 'pelvis.position' ? { ...t, values: t.values.map(v => v * ratio) } : t);
+    out[k] = THREE.AnimationClip.parse({ name: c.name, duration: c.duration, tracks, uuid: THREE.MathUtils.generateUUID() });
+  }
+  return out;
+}
+async function loadActors(S) {
+  LOAD.actors = 'load'; setRow('zomb', 0.05, '下載中…'); setRow('items', 0.05, '下載中…');
+  try {
+    const man = await (await fetch(URLS.actors + 'manifest.json')).json(); ACT.man = man;
+    if (S) { const m = makeNightModifier(S, true); ACT.mod = m.mod; ACT.U = m.U; }
+    const zids = Object.keys(man.zombies), iids = Object.keys(man.items); let zd = 0, id = 0;
+    const packedFrom = async bytes => { if (!S) return null; const p = new S.PackedSplats({ fileBytes: bytes }); await p.initialized; return p; };
+    await Promise.all([
+      ...zids.map(async k => {
+        const [spz, skin] = await Promise.all([fetchBytes(URLS.actors + k + '.spz'), fetchBytes(URLS.actors + k + '.skin').then(gunzip)]);
+        ACT.packed[k] = await packedFrom(spz); ACT.skin[k] = new Uint16Array(skin.buffer, skin.byteOffset, skin.byteLength / 2);
+        setRow('zomb', ++zd / zids.length * 0.95, `${zd} / ${zids.length}`);
+      }),
+      ...iids.map(async k => { ACT.packed[k] = await packedFrom(await fetchBytes(URLS.actors + k + '.spz')); setRow('items', ++id / iids.length, `${id} / ${iids.length}`); }),
+    ]);
+    for (const body of Object.keys(man.rigs)) ACT.clips[body] = buildZombieClips(man, body);
+    const zn = zids.reduce((a, k) => a + man.zombies[k].n, 0), inn = iids.reduce((a, k) => a + man.items[k].n, 0);
+    ACT.fallback = !S;
+    setRow('zomb', 1, S ? `${zids.length} 種 · ${(zn / 1e3).toFixed(0)}k splats · 蒙皮` : '沒有 Spark · 簡易模型', S ? 'done' : 'fail');
+    setRow('items', 1, S ? `${iids.length} 件 · ${(inn / 1e3).toFixed(0)}k splats` : '沒有 Spark · 簡易模型', S ? 'done' : 'fail');
+  } catch (e) {
+    ACT.fallback = true; ACT.man = null;
+    warn('喪屍與物件 splat 載入失敗，改用簡易模型：' + (e.message || e));
+    setRow('zomb', 1, '失敗 · 簡易模型', 'fail'); setRow('items', 1, '失敗 · 簡易模型', 'fail');
+  }
+  ACT.ready = true; LOAD.actors = 'done';
+}
+
+/* ---------- 遊戲資料 ---------- */
+const WEAPONS = {
+  fists: { name: '拳腳', slot: 1, melee: true, dmg: 24, range: 1.35, cd: 0.75 },
+  crowbar: { name: '鐵撬', slot: 1, melee: true, dmg: 52, range: 1.8, cd: 0.8, splat: 'crowbar' },
+  pistol: { name: '手槍', slot: 2, dmg: 36, mag: 12, ammo: '9mm', rate: 0.2, spread: 0.03, aimSpread: 0.007, reload: 1.35, range: 70, pellets: 1, splat: 'pistol', recoil: 0.02, loud: 30 },
+  shotgun: { name: '霰彈槍', slot: 3, dmg: 16, mag: 6, ammo: 'shell', rate: 0.85, spread: 0.08, aimSpread: 0.055, reload: 2.3, range: 26, pellets: 9, splat: 'shotgun', recoil: 0.06, loud: 42 },
+  rifle: { name: '步槍', slot: 4, dmg: 130, mag: 5, ammo: '762', rate: 1.05, spread: 0.035, aimSpread: 0.0015, reload: 2.6, range: 170, pellets: 1, splat: 'rifle', recoil: 0.07, zoom: 2.4, loud: 55 },
+};
+const AMMO_NAME = { '9mm': '9 mm', shell: '霰彈', '762': '7.62' };
+const SLOT_ORDER = ['fists', 'crowbar', 'pistol', 'shotgun', 'rifle'];
+// 撿拾物：splat 是烘焙出的物件，scale 是擺在地上的縮放，glow 是光暈顏色
+const PICK = {
+  crowbar: { name: '鐵撬', splat: 'crowbar', scale: 1.15, glow: 0xffc27a, spin: true },
+  pistol: { name: '手槍', splat: 'pistol', scale: 1.9, glow: 0xffc27a, spin: true },
+  shotgun: { name: '霰彈槍', splat: 'shotgun', scale: 1.05, glow: 0xffc27a, spin: true },
+  rifle: { name: '步槍', splat: 'rifle', scale: 0.95, glow: 0xffc27a, spin: true },
+  ammo: { name: '彈藥箱', splat: 'ammo', scale: 1.4, glow: 0xffc27a, auto: true },
+  gasmask: { name: '防毒面罩濾罐', splat: 'gasmask', scale: 0.42, glow: 0x9fe0ff, auto: true },
+  medkit: { name: '醫療箱', splat: 'medkit', scale: 0.8, glow: 0xff9a8a, auto: true },
+  tape: { name: '銀色膠帶', splat: 'tape', scale: 4, glow: 0x9fe0ff, auto: true },
+  food: { name: '罐頭', splat: 'food', scale: 2.2, glow: 0xa8ecb8, auto: true },
+  crate: { name: '軍用木箱', splat: 'crate', scale: 1, glow: 0xffc27a, still: true, use: '撬開' },
+  radio: { name: '軍用無線電', splat: 'radio', scale: 1, glow: 0x9fe0ff, still: true, use: '呼叫救援' },
+};
+// 任務點與出生點（廣場座標，公尺；以 __eter.clear() 檢查過地面與障礙）
+const PTS = {
+  crowbar: [-1.4, 7.8], crate: [7.4, -14.6], filters: [[-23, -28.5], [22.5, -22.5], [-30.5, 2.5]],
+  pyramid: [0.1, -12.5], shotgun: [4.8, -12.2], radio: [32.6, -9], rifle: [31.2, -10.6],
+  food: [[-12, -32], [16, -36], [-34, -14], [26, 6], [-9.5, 12.2]], medkit: [[-17.5, -3.5], [18, -16.5], [-5.8, -31.5]],
+  tape: [[12, 1.5], [-26, -18]], ammo: [[-8.5, -16], [24.5, -2.5], [-20, -33]],
+  spawns: [[-36, -30], [-32, -10], [-35, 8], [-22, 14], [7.5, 11.8], [28, 10], [37, -26], [22, -34], [-8, -40], [-28, -40], [12, -44], [36, 2], [-40, -20], [30, -34]],
+};
+
+/* ---------- 簡易模型（splat 載入失敗時） ---------- */
+function fallbackZombieMesh() {
+  const g = new THREE.Group(), skin = new THREE.MeshStandardMaterial({ color: 0x7d8a80, roughness: 0.9 }), cloth = new THREE.MeshStandardMaterial({ color: 0x3a3430, roughness: 1 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.7, 4, 10), cloth); body.position.y = 1.0; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), skin); head.position.set(0, 1.62, 0.04); g.add(head);
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.5, 4, 8), skin); arm.rotation.x = Math.PI / 2.3; arm.position.set(0.24 * s, 1.3, 0.3); g.add(arm);
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.6, 4, 8), cloth); leg.position.set(0.11 * s, 0.4, 0); g.add(leg);
+  }
+  return g;
+}
+function fallbackItemMesh(def) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.32), new THREE.MeshStandardMaterial({ color: def.glow, emissive: def.glow, emissiveIntensity: 0.25, roughness: 0.6 }));
+  m.position.y = 0.07; const g = new THREE.Group(); g.add(m); return g;
+}
+function itemSplat(id) {
+  const p = ACT.packed[id]; if (!p || !SPLAT.S) return null;
+  const m = new SPLAT.S.SplatMesh({ packedSplats: p, worldModifier: ACT.mod }); ACT.items.push(m); return m;
+}
+
+/* ---------- 喪屍 ---------- */
+const zombies = [];
+const ZB = { q: new THREE.Quaternion(), q2: new THREE.Quaternion(), p: new THREE.Vector3(), s: new THREE.Vector3(), m: new THREE.Matrix4(), a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3(), id: new THREE.Quaternion(), zero: new THREE.Vector3() };
+function makeZombie(variant) {
+  const man = ACT.man, z = {
+    variant, alive: false, active: false, pos: new THREE.Vector3(), yaw: 0, hp: 100, maxHp: 100, state: 'idle', t: 0, speed: 0.8, runner: false, aggro: false, wave: false,
+    target: new THREE.Vector3(), atk: null, hitFlash: 0, deathT: 0, groanT: 2 + Math.random() * 6, lastHit: 0, mixer: null, acts: {}, w: {}, bones: [], byName: {}, inv: [],
+    obj: null, mesh: null, sk: null, root: null, stuck: 0, detourT: 0, detourSide: 1, shamble: 0.85, faceT: 0,
+  };
+  if (!ACT.fallback && man && ACT.packed[variant]) {
+    const S = SPLAT.S, meta = man.zombies[variant], rig = man.rigs[meta.body];
+    const mesh = new S.SplatMesh({ packedSplats: ACT.packed[variant], worldModifier: ACT.mod });
+    const sk = new S.SplatSkinning({ mesh, numSplats: meta.n, numBones: rig.bones.length });
+    sk.skinData.set(ACT.skin[variant]); sk.skinTexture.needsUpdate = true;
+    for (let j = 0; j < rig.bones.length; j++) sk.setRestQuatPos(j, ZB.id, ZB.zero);
+    mesh.skinning = sk;
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; root.matrix.fromArray(rig.root);
+    const bones = rig.bones.map(b => { const o = new THREE.Bone(); o.name = b.n; o.position.fromArray(b.t); o.quaternion.fromArray(b.q); o.scale.fromArray(b.s); return o; });
+    rig.bones.forEach((b, j) => (b.p >= 0 ? bones[b.p] : root).add(bones[j]));
+    for (const b of bones) z.byName[b.name] = b;
+    z.inv = rig.bones.map((_, j) => new THREE.Matrix4().fromArray(rig.inv, j * 16));
+    z.mixer = new THREE.AnimationMixer(root);
+    const clips = ACT.clips[meta.body];
+    for (const [k, c] of Object.entries(clips)) {
+      const a = z.mixer.clipAction(c); const once = ['jab', 'cross', 'hit', 'hitHead', 'die'].includes(k);
+      a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = true; a.setEffectiveWeight(0); a.play(); if (once) a.paused = true;
+      z.acts[k] = a; z.w[k] = 0;
+    }
+    Object.assign(z, { mesh, sk, root, bones, obj: mesh, height: rig.height });
+  } else {
+    z.obj = fallbackZombieMesh(); z.height = 1.75;
+  }
+  z.obj.visible = false; scene.add(z.obj);
+  return z;
+}
+function zombiePlay(z, k, speed = 1) {
+  const a = z.acts[k]; if (!a) return;
+  a.reset(); a.paused = false; a.timeScale = speed; a.setEffectiveWeight(z.w[k] = 0.001);
+}
+function spawnZombie(x, z0, opts = {}) {
+  let z = zombies.find(o => !o.active); if (!z) return null;
+  z.active = true; z.alive = true; z.obj.visible = true;
+  z.pos.set(x, groundAt(x, z0), z0); z.yaw = Math.random() * Math.PI * 2;
+  const lvl = opts.level ?? DIR.level;
+  z.runner = !!opts.runner; z.aggro = !!opts.aggro; z.wave = !!opts.wave;
+  z.maxHp = z.hp = (z.runner ? 70 : 100) + lvl * 12;
+  z.speed = z.runner ? 2.7 + Math.random() * 0.5 : 0.7 + Math.random() * 0.35 + lvl * 0.05;
+  z.shamble = 0.65 + Math.random() * 0.35;
+  z.state = opts.feed ? 'feed' : z.aggro ? 'chase' : 'wander'; z.t = 0; z.atk = null; z.deathT = 0; z.hitFlash = 0; z.stuck = 0; z.detourT = 0; z.lost = 0;
+  z.target.copy(z.pos);
+  if (z.mesh) { z.mesh.opacity = 1; z.mesh.recolor.setRGB(1, 1, 1); }
+  if (z.mixer) { for (const k in z.acts) { z.w[k] = 0; z.acts[k].setEffectiveWeight(0); } z.w.idle = 1; z.mixer.setTime(Math.random() * 3); }
+  return z;
+}
+function despawnZombie(z) { z.active = false; z.alive = false; z.obj.visible = false; }
+function zombieHead(z, out) {
+  const h = z.byName.Head;
+  if (h && z.mesh) return out.setFromMatrixPosition(h.matrixWorld).applyMatrix4(z.mesh.matrixWorld);
+  return out.set(z.pos.x, z.pos.y + (z.height || 1.7) - 0.1, z.pos.z);
+}
+function zombieNeck(z, out) {
+  const h = z.byName.spine_03;
+  if (h && z.mesh) return out.setFromMatrixPosition(h.matrixWorld).applyMatrix4(z.mesh.matrixWorld);
+  return out.set(z.pos.x, z.pos.y + 1.35, z.pos.z);
+}
+// 世界空間把一根骨頭轉到指向 dir（子骨頭位置決定目前方向），w 是混合比例
+const RW = { pq: new THREE.Quaternion(), wq: new THREE.Quaternion(), d0: new THREE.Vector3(), a: new THREE.Vector3(), b: new THREE.Vector3() };
+function aimBone(bone, child, dir, w) {
+  bone.getWorldPosition(RW.a); child.getWorldPosition(RW.b);
+  RW.d0.subVectors(RW.b, RW.a).normalize();
+  ZB.q.setFromUnitVectors(RW.d0, dir); ZB.q.slerp(ZB.id, 1 - w);
+  bone.getWorldQuaternion(RW.wq); bone.parent.getWorldQuaternion(RW.pq);
+  bone.quaternion.copy(RW.pq.invert().multiply(ZB.q).multiply(RW.wq));
+  bone.updateMatrixWorld(true);
+}
+function rotBoneWorld(bone, axis, ang) {
+  ZB.q.setFromAxisAngle(axis, ang);
+  bone.getWorldQuaternion(RW.wq); bone.parent.getWorldQuaternion(RW.pq);
+  bone.quaternion.copy(RW.pq.invert().multiply(ZB.q).multiply(RW.wq));
+  bone.updateMatrixWorld(true);
+}
+const AX = { x: new THREE.Vector3(1, 0, 0), z: new THREE.Vector3(0, 0, 1), dir: new THREE.Vector3() };
+function zombiePose(z, dt, near) {
+  if (!z.mixer) return;
+  const A = z.acts, T = { idle: 0, walk: 0, jog: 0, crouch: 0 };
+  let one = null;
+  if (!z.alive) one = 'die';
+  else if (z.state === 'stagger') one = z.hitClip;
+  else if (z.state === 'attack' && z.atk) one = z.atk.clip;
+  const sp = z.moveSpeed || 0;
+  if (z.state === 'feed') T.crouch = 1;
+  else if (sp < 0.1) T.idle = 1;
+  else if (z.runner && sp > 1.6) T.jog = 1;
+  else T.walk = 1;
+  const k = 1 - Math.exp(-dt * 9);
+  for (const n of ['idle', 'walk', 'jog', 'crouch']) { z.w[n] += ((one ? 0 : T[n]) - z.w[n]) * k; A[n].setEffectiveWeight(z.w[n]); }
+  for (const n of ['jab', 'cross', 'hit', 'hitHead', 'die']) { z.w[n] += ((n === one ? 1 : 0) - z.w[n]) * (n === 'die' ? 1 - Math.exp(-dt * 14) : k); A[n].setEffectiveWeight(z.w[n]); }
+  A.walk.timeScale = THREE.MathUtils.clamp(sp / 1.45, 0.35, 1.3) * (0.9 + z.shamble * 0.15);
+  A.jog.timeScale = THREE.MathUtils.clamp(sp / 3.1, 0.6, 1.3);
+  z.mixer.update(dt);
+  z.root.updateMatrixWorld(true);
+  // 喪屍姿勢：雙臂往前伸、駝背、歪頭（疊在原本的走路動畫上）
+  const reach = (one === 'die' ? 0 : one ? 0.25 : z.state === 'feed' ? 0.1 : 0.82) * (near ? 1 : 0.9);
+  const B = z.byName, t = simTime * (1.3 + z.shamble) + z.speed * 9;
+  if (reach > 0.01) {
+    rotBoneWorld(B.spine_02, AX.x, 0.28 * reach);
+    for (const [s, ua, la, hd] of [[1, 'upperarm_l', 'lowerarm_l', 'hand_l'], [-1, 'upperarm_r', 'lowerarm_r', 'hand_r']]) {
+      AX.dir.set(s * 0.22, -0.18 + Math.sin(t + s) * 0.06, 1).normalize(); aimBone(B[ua], B[la], AX.dir, reach);
+      AX.dir.set(s * 0.06, -0.1 + Math.sin(t * 1.3 + s) * 0.08, 1).normalize(); aimBone(B[la], B[hd], AX.dir, reach * 0.9);
+    }
+    rotBoneWorld(B.Head, AX.z, (0.22 + Math.sin(t * 0.7) * 0.08) * z.shamble * reach);
+  }
+  const M = ZB.m;
+  for (let j = 0; j < z.bones.length; j++) { M.multiplyMatrices(z.bones[j].matrixWorld, z.inv[j]); M.decompose(ZB.p, ZB.q2, ZB.s); z.sk.setBoneQuatPos(j, ZB.q2, ZB.p); }
+  z.sk.updateBones();
+}
+
+/* ---------- 角色移動的共用碰撞（喪屍用：一顆腰部球體＋地面射線） ---------- */
+function actorCollide(p, R) {
+  for (const hgt of [0.7, 1.25]) {
+    const cy = p.y + hgt;
+    forCells(p.x - R, p.z - R, p.x + R, p.z + R, k => {
+      closestOnTri(p.x, cy, p.z, k);
+      const dx = p.x - CP.x, dy = cy - CP.y, dz = p.z - CP.z, d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 >= R * R || Math.abs(COL.nrm[k * 3 + 1]) > CFG.maxSlope) return;
+      const hl = Math.hypot(dx, dz); if (hl < 1e-5) return;
+      const push = (R - Math.sqrt(d2)) * (hl / Math.max(Math.sqrt(d2), 1e-5));
+      p.x += dx / hl * push; p.z += dz / hl * push;
+    });
+  }
+}
+
+/* ---------- 尋路：廣場的可走網格，加上從玩家出發的 BFS 距離場 ----------
+   廣場被花圃、台階和金字塔圍欄切成迷宮，直線追會卡在牆後。網格在開始後分幾幀建好，
+   每 0.4 秒從玩家所在格做一次 BFS，追擊中的喪屍往距離較小的相鄰格走。 */
+const NAV = { cs: 0.75, x0: -50, z0: -82, nx: 148, nz: 166, row: 0, ready: false, walk: null, h: null, dist: null, q: null, t: 0, cell: -1 };
+const NAV_FAR = 65535;
+function navCell(x, z) {
+  const i = Math.floor((x - NAV.x0) / NAV.cs), j = Math.floor((z - NAV.z0) / NAV.cs);
+  return i < 0 || j < 0 || i >= NAV.nx || j >= NAV.nz ? -1 : j * NAV.nx + i;
+}
+function navBuild(rows) {
+  if (NAV.ready || !COL.n) return;
+  if (!NAV.walk) { const n = NAV.nx * NAV.nz; NAV.walk = new Uint8Array(n); NAV.h = new Float32Array(n); NAV.dist = new Uint16Array(n).fill(NAV_FAR); NAV.q = new Int32Array(n); }
+  const R = 0.32;
+  for (let r = 0; r < rows && NAV.row < NAV.nz; r++, NAV.row++) {
+    const j = NAV.row, z = NAV.z0 + (j + 0.5) * NAV.cs;
+    for (let i = 0; i < NAV.nx; i++) {
+      const x = NAV.x0 + (i + 0.5) * NAV.cs, y = groundAt(x, z), g = rayDown(x, z, y + 0.5, 2);
+      let ok = g.hit && g.ny >= CFG.maxSlope;
+      // 和 actorCollide 用同樣的高度與半徑檢查牆面
+      if (ok) for (const hgt of [0.7, 1.25]) forCells(x - R, z - R, x + R, z + R, k => {
+        if (!ok || Math.abs(COL.nrm[k * 3 + 1]) > CFG.maxSlope) return;
+        closestOnTri(x, y + hgt, z, k);
+        if ((CP.x - x) ** 2 + (CP.y - y - hgt) ** 2 + (CP.z - z) ** 2 < R * R) ok = false;
+      });
+      NAV.walk[j * NAV.nx + i] = ok ? 1 : 0; NAV.h[j * NAV.nx + i] = y;
+    }
+  }
+  if (NAV.row >= NAV.nz) NAV.ready = true;
+}
+function navLink(a, b) { return NAV.walk[b] && Math.abs(NAV.h[a] - NAV.h[b]) < 0.4; }
+function navUpdate(dt) {
+  if (!NAV.ready) { navBuild(6); return; }
+  if ((NAV.t -= dt) > 0) return;
+  NAV.t = 0.4;
+  let c = navCell(player.pos.x, player.pos.z);
+  if (c < 0) return;
+  if (!NAV.walk[c]) { // 玩家站在網格判定不可走的邊上：找最近的可走格當起點
+    const i0 = c % NAV.nx, j0 = (c / NAV.nx) | 0; let best = -1;
+    for (let r = 1; r <= 3 && best < 0; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+      const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= NAV.nx || j >= NAV.nz) continue;
+      const k = j * NAV.nx + i; if (NAV.walk[k] && best < 0) best = k;
+    }
+    if (best < 0) return; c = best;
+  }
+  const { dist, q, nx } = NAV; dist.fill(NAV_FAR);
+  let head = 0, tail = 0; dist[c] = 0; q[tail++] = c;
+  while (head < tail) {
+    const a = q[head++], da = dist[a] + 1; if (da > 160) break;
+    const i = a % nx;
+    if (i > 0 && dist[a - 1] === NAV_FAR && navLink(a, a - 1)) { dist[a - 1] = da; q[tail++] = a - 1; }
+    if (i < nx - 1 && dist[a + 1] === NAV_FAR && navLink(a, a + 1)) { dist[a + 1] = da; q[tail++] = a + 1; }
+    if (a >= nx && dist[a - nx] === NAV_FAR && navLink(a, a - nx)) { dist[a - nx] = da; q[tail++] = a - nx; }
+    if (a + nx < dist.length && dist[a + nx] === NAV_FAR && navLink(a, a + nx)) { dist[a + nx] = da; q[tail++] = a + nx; }
+  }
+  NAV.cell = c;
+}
+// 回傳追擊方向（寫進 out）；網格還沒好、或喪屍在網格外就回傳 false，改走直線
+function navSteer(z, out) {
+  if (!NAV.ready || NAV.cell < 0) return false;
+  const c = navCell(z.pos.x, z.pos.z); if (c < 0) return false;
+  const nx = NAV.nx, i0 = c % nx, j0 = (c / nx) | 0;
+  let best = -1, bd = NAV.dist[c];
+  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    if (!di && !dj) continue;
+    const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= nx || j >= NAV.nz) continue;
+    const k = j * nx + i;
+    if (di && dj && (!NAV.walk[j0 * nx + i] || !NAV.walk[j * nx + i0])) continue; // 斜走不切牆角
+    if (NAV.dist[k] < bd) { bd = NAV.dist[k]; best = k; }
+  }
+  if (best < 0) return false;
+  out.x = NAV.x0 + (best % nx + 0.5) * NAV.cs - z.pos.x; out.z = NAV.z0 + (((best / nx) | 0) + 0.5) * NAV.cs - z.pos.z;
+  const l = Math.hypot(out.x, out.z) || 1; out.x /= l; out.z /= l;
+  return true;
+}
+const STEER = { x: 0, z: 0 };
+// 波次用：挑一個「走過來的路程」在 lo～hi 格之間的可走格，盡量在鏡頭背後或側邊
+function navSpawn(lo, hi) {
+  if (!NAV.ready || NAV.cell < 0) return null;
+  const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw); let fallback = null;
+  for (let n = 0; n < 600; n++) {
+    const k = (Math.random() * NAV.dist.length) | 0, d = NAV.dist[k];
+    if (d < lo || d > hi || !NAV.walk[k]) continue;
+    const x = NAV.x0 + (k % NAV.nx + 0.5) * NAV.cs, z = NAV.z0 + (((k / NAV.nx) | 0) + 0.5) * NAV.cs;
+    const dx = x - player.pos.x, dz = z - player.pos.z, l = Math.hypot(dx, dz) || 1;
+    if ((dx * fx + dz * fz) / l < 0.35) return [x, z];
+    fallback = fallback || [x, z];
+  }
+  return fallback;
+}
+function navDist(p) { const c = navCell(p.x, p.z); return NAV.ready && c >= 0 ? NAV.dist[c] : -1; }
+
+/* ---------- 導演：環境喪屍、波次、噪音 ---------- */
+const DIR = { ambient: 0, cap: isTouch ? 9 : 14, spawnT: 0, waveQueue: 0, waveRunners: 0, level: 0, noise: 0, noisePos: new THREE.Vector3(), endlessT: 0 };
+const STATS = { kills: 0, heads: 0, shots: 0, hits: 0, t0: 0, deaths: 0 };
+function pickSpawn(near = false) { // near：波次與無線電的喪屍生得近一點，不用走半張地圖
+  const fwd = tmp.set(-Math.sin(view.yaw), 0, -Math.cos(view.yaw));
+  let best = null, bestS = -Infinity;
+  for (const [x, z] of PTS.spawns) {
+    const dx = x - player.pos.x, dz = z - player.pos.z, d = Math.hypot(dx, dz);
+    if (d < (near ? 13 : 18)) continue;
+    const seen = (dx * fwd.x + dz * fwd.z) / d;
+    const s = -Math.abs(d - (near ? 19 : 30)) * 0.08 - seen * 2 + Math.random() * 1.5;
+    if (s > bestS) { bestS = s; best = [x, z]; }
+  }
+  return best || PTS.spawns[Math.floor(Math.random() * PTS.spawns.length)];
+}
+function makeNoise(pos, radius) { DIR.noise = radius; DIR.noisePos.copy(pos); }
+function directorUpdate(dt) {
+  if (!ACT.ready || !player.alive) return;
+  DIR.noise = Math.max(0, DIR.noise - dt * 30);
+  const alive = zombies.filter(z => z.alive).length, live = zombies.filter(z => z.active).length;
+  const want = Math.min(DIR.cap, DIR.ambient + (DIR.waveQueue > 0 ? DIR.cap : 0));
+  if ((DIR.spawnT -= dt) <= 0 && live < zombies.length && alive < want) {
+    const [x, z] = (DIR.waveQueue > 0 && navSpawn(24, 34)) || pickSpawn(DIR.waveQueue > 0);
+    if (DIR.waveQueue > 0) { const runner = DIR.waveRunners > 0 && Math.random() < 0.5; if (runner) DIR.waveRunners--; spawnZombie(x + Math.random() * 2 - 1, z + Math.random() * 2 - 1, { aggro: true, wave: true, runner }); DIR.waveQueue--; DIR.spawnT = 0.7 + Math.random() * 0.8; }
+    else { spawnZombie(x, z, { feed: Math.random() < 0.25, runner: DIR.level >= 3 && Math.random() < 0.15 }); DIR.spawnT = 1.5 + Math.random() * 2.5; }
+  }
+  // 太遠又沒在追的環境喪屍收回來，換到玩家附近的出生點
+  for (const z of zombies) if (z.active && !z.wave && z.alive && !z.aggro && z.state !== 'chase' && z.pos.distanceTo(player.pos) > 72) despawnZombie(z);
+  // 波次喪屍卡在遠處太久就收回重生，不然最後一隻會讓整波結束不了
+  for (const z of zombies) if (z.active && z.wave && z.alive) { const nd = navDist(z.pos); z.lost = nd < 0 || nd > 44 ? (z.lost || 0) + dt : 0; if (z.lost > 15) { z.lost = 0; despawnZombie(z); DIR.waveQueue++; } }
+  if (M.endless) { DIR.endlessT += dt; DIR.ambient = Math.min(DIR.cap, 8 + Math.floor(DIR.endlessT / 40)); DIR.level = 3 + Math.floor(DIR.endlessT / 90); }
+}
+function zombieUpdate(z, dt) {
+  if (!z.active) return;
+  const p = z.pos, pl = player.pos;
+  const dx = pl.x - p.x, dz = pl.z - p.z, d = Math.hypot(dx, dz);
+  z.t += dt; z.moveSpeed = 0;
+  if (z.hitFlash > 0) { z.hitFlash -= dt; if (z.mesh) { const f = Math.max(0, z.hitFlash) * 5; z.mesh.recolor.setRGB(1 + f * 1.5, 1 - f * 0.3, 1 - f * 0.3); } }
+  if (!z.alive) {
+    z.deathT += dt;
+    if (z.deathT > 4) { const f = Math.min(1, (z.deathT - 4) / 1.5); if (z.mesh) z.mesh.opacity = 1 - f; p.y -= dt * 0.25; if (f >= 1) despawnZombie(z); }
+  } else {
+    const sense = player.alive && (d < (z.state === 'feed' ? 7 : 15) || (DIR.noise > 0 && DIR.noisePos.distanceTo(p) < DIR.noise) || z.aggro);
+    if (z.state === 'stagger') { if (z.t > z.staggerT) { z.state = 'chase'; z.t = 0; } }
+    else if (z.state === 'attack') {
+      const a = z.atk, at = z.acts[a.clip], time = at ? at.time : z.t;
+      turnToward(z, Math.atan2(dx, dz), dt * 6);
+      if (!a.done && time >= a.hit) { a.done = true; if (d < 1.65 && player.alive) { playerHurt(a.dmg, p); sfx('bite', p); } }
+      if (time >= a.end || z.t > 1.6) { z.state = 'chase'; z.t = 0; z.atk = null; }
+    } else if (sense && player.alive) {
+      if (z.state !== 'chase') { z.state = 'chase'; z.t = 0; if (Math.random() < 0.7) sfx('groan', p, 1.2); }
+      if (d < 1.25) {
+        const cl = Math.random() < 0.5 ? 'jab' : 'cross';
+        z.state = 'attack'; z.t = 0; z.atk = { clip: cl, hit: cl === 'jab' ? 0.32 : 0.42, end: z.acts[cl] ? z.acts[cl].getClip().duration * 0.92 : 0.9, done: false, dmg: 9 + DIR.level * 1.5 + (z.runner ? 2 : 0) };
+        zombiePlay(z, cl, 0.9); sfx('snarl', p);
+      } else if (d > 3 && navSteer(z, STEER)) moveZombie(z, STEER.x, STEER.z, z.speed, dt);
+      else moveZombie(z, dx / d, dz / d, z.speed, dt);
+    } else if (z.state === 'feed') { /* 蹲著啃食，直到玩家靠近 */ }
+    else {
+      z.state = 'wander';
+      if (z.t > 6 || p.distanceToSquared(z.target) < 1) { z.t = 0; const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 10; z.target.set(p.x + Math.cos(a) * r, 0, p.z + Math.sin(a) * r); z.idleT = Math.random() < 0.35 ? 2 + Math.random() * 3 : 0; }
+      if (z.idleT > 0) z.idleT -= dt;
+      else { const tx = z.target.x - p.x, tz = z.target.z - p.z, tl = Math.hypot(tx, tz) || 1; moveZombie(z, tx / tl, tz / tl, Math.min(z.speed, 0.65), dt); }
+    }
+    if ((z.groanT -= dt) <= 0) { z.groanT = 4 + Math.random() * 7; if (d < 30) sfx('groan', p, z.runner ? 1.35 : 0.8 + Math.random() * 0.4); }
+  }
+  // 彼此推開、推開玩家
+  if (z.alive) for (const o of zombies) {
+    if (o === z || !o.active || !o.alive) continue;
+    const ex = p.x - o.pos.x, ez = p.z - o.pos.z, e2 = ex * ex + ez * ez;
+    if (e2 < 0.42 && e2 > 1e-6) { const e = Math.sqrt(e2), f = (0.65 - e) * 0.5; p.x += ex / e * f; p.z += ez / e * f; }
+  }
+  z.obj.position.copy(p); z.obj.rotation.set(0, z.yaw, 0);
+  const near = d < 45;
+  if (z.mixer && (near || (z.lodT = (z.lodT || 0) - dt) <= 0)) { z.lodT = 0.12; zombiePose(z, near ? dt : 0.12, near); }
+  else if (!z.mixer) z.obj.position.y = p.y + (z.alive ? Math.abs(Math.sin(simTime * 3 + z.speed * 7)) * 0.05 : -0.6);
+}
+function turnToward(z, target, k) { let a = target - z.yaw; a = Math.atan2(Math.sin(a), Math.cos(a)); z.yaw += a * Math.min(1, k); }
+function moveZombie(z, nx, nz, speed, dt) {
+  const p = z.pos, ox = p.x, oz = p.z;
+  // 卡住後往同一側繞一段路，不然下一幀又轉回原方向撞同一面牆
+  if (z.detourT > 0) { z.detourT -= dt; const a = Math.atan2(nx, nz) + z.detourSide * 1.3; nx = Math.sin(a); nz = Math.cos(a); }
+  turnToward(z, Math.atan2(nx, nz), dt * 5);
+  const fx = Math.sin(z.yaw), fz = Math.cos(z.yaw), al = Math.max(0, fx * nx + fz * nz);
+  const sp = speed * (0.35 + 0.65 * al) * (z.runner ? 1 : 0.75 + 0.25 * Math.sin(simTime * 3.2 + z.speed * 11));
+  p.x += fx * sp * dt; p.z += fz * sp * dt;
+  if (COL.n) {
+    actorCollide(p, 0.3);
+    const ground = (x, zz) => { const g = rayDown(x, zz, p.y + 0.45, 2.5); return g.hit && g.ny >= CFG.maxSlope ? g : null; };
+    // 撞到花圃邊或台階時沿著邊滑，只退回擋住的那個軸
+    let g = ground(p.x, p.z);
+    if (!g && (g = ground(p.x, oz))) p.z = oz;
+    else if (!g && (g = ground(ox, p.z))) p.x = ox;
+    if (g) p.y += (g.y - p.y) * Math.min(1, dt * 14);
+    else { p.x = ox; p.z = oz; }
+  }
+  const moved = Math.hypot(p.x - ox, p.z - oz) / dt;
+  z.stuck = moved < speed * 0.25 ? z.stuck + dt : Math.max(0, z.stuck - dt);
+  if (z.stuck > 0.8) { z.stuck = 0; z.detourSide = z.detourT > 0 ? -z.detourSide : (Math.random() < 0.5 ? -1 : 1); z.detourT = 1.4 + Math.random() * 0.9; }
+  z.moveSpeed = moved;
+}
+function hurtZombie(z, dmg, dir, head) {
+  if (!z.alive) return;
+  z.hp -= dmg * (head ? 2.6 : 1); z.hitFlash = 0.2; z.aggro = true; z.lastHit = simTime;
+  if (dir) { z.pos.x += dir.x * Math.min(0.35, dmg * 0.004); z.pos.z += dir.z * Math.min(0.35, dmg * 0.004); }
+  if (z.hp <= 0) {
+    z.alive = false; z.state = 'dead'; z.deathT = 0; zombiePlay(z, 'die', 1); STATS.kills++; if (head) STATS.heads++;
+    sfx('die', z.pos); hitmark(true);
+    if (Math.random() < 0.16) dropLoot(z.pos);
+    feed(head ? '爆頭擊倒' : '擊倒喪屍');
+  } else {
+    hitmark(false);
+    if (dmg >= 30 || Math.random() < 0.25) { z.state = 'stagger'; z.t = 0; z.hitClip = head ? 'hitHead' : 'hit'; z.staggerT = head ? 0.5 : 0.42; zombiePlay(z, z.hitClip, 1); z.atk = null; }
+  }
+}
+function dropLoot(pos) {
+  const r = Math.random(), kind = r < 0.45 ? 'ammo' : r < 0.7 ? 'food' : r < 0.85 ? 'gasmask' : r < 0.95 ? 'tape' : 'medkit';
+  addPickup(kind, pos.x, pos.z, { drop: true });
+}
+
+/* ---------- 撿拾物與互動 ---------- */
+const pickups = [];
+function addPickup(kind, x, z, opts = {}) {
+  const def = PICK[kind], root = new THREE.Group();
+  const y = groundAt(x, z);
+  let mesh = ACT.fallback ? null : itemSplat(def.splat);
+  if (mesh) { mesh.scale.setScalar(def.scale); root.add(mesh); mesh.recolor.setScalar(def.still ? 1.25 : 1.9); }
+  else root.add(fallbackItemMesh(def));
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: def.glow, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: def.still ? 0.22 : 0.42 }));
+  halo.scale.setScalar(def.still ? 2.2 : 1.1); halo.renderOrder = 5; halo.position.y = def.still ? 0.4 : 0.42;
+  const g = new THREE.Group(); g.add(root, halo); g.position.set(x, y, z); scene.add(g);
+  const p = { kind, def, g, root, mesh, halo, pos: g.position, taken: false, t: Math.random() * 6, quest: !!opts.quest, drop: !!opts.drop, life: opts.drop ? 45 : Infinity, opened: false, onTake: opts.onTake || null };
+  pickups.push(p); return p;
+}
+function removePickup(p) { p.taken = true; scene.remove(p.g); if (p.mesh) { const i = ACT.items.indexOf(p.mesh); if (i >= 0) ACT.items.splice(i, 1); p.mesh.dispose?.(); } pickups.splice(pickups.indexOf(p), 1); }
+let focus = null;
+function pickupsUpdate(dt) {
+  focus = null; let best = 2.1;
+  for (const p of [...pickups]) {
+    p.t += dt;
+    if (!p.def.still) { p.root.position.y = 0.32 + Math.sin(p.t * 2.2) * 0.06; p.root.rotation.y += dt * 0.9; }
+    p.halo.material.opacity = (p.def.still ? 0.2 : 0.38) + Math.sin(p.t * 3) * 0.08;
+    if (p.drop && (p.life -= dt) <= 0) { removePickup(p); continue; }
+    if (!player.alive || !playing) continue;
+    const d = Math.hypot(p.pos.x - player.pos.x, p.pos.z - player.pos.z);
+    if (Math.abs(p.pos.y - player.pos.y) > 2) continue;
+    if (p.def.auto && d < 1.15) { take(p); continue; }
+    if (d < best && !p.opened) { best = d; focus = p; }
+  }
+  const el = document.getElementById('prompt');
+  if (focus && playing) {
+    const verb = focus.def.use || '撿起';
+    el.innerHTML = isTouch ? `${verb} <b>${focus.def.name}</b>` : `<kbd>E</kbd> ${verb} <b>${focus.def.name}</b>`;
+    el.classList.add('on'); document.getElementById('tUse').classList.add('on');
+  } else { el.classList.remove('on'); document.getElementById('tUse').classList.remove('on'); }
+}
+function interact() {
+  if (!focus || !player.alive) return;
+  const p = focus;
+  if (p.kind === 'crate') {
+    p.opened = true; if (p.mesh) p.mesh.recolor.setScalar(0.8); p.halo.visible = false; sfx('crate', p.pos);
+    addPickup('pistol', p.pos.x + 0.9, p.pos.z + 0.6, { quest: true }); addPickup('ammo', p.pos.x - 0.8, p.pos.z + 0.7);
+    toast('木箱撬開了：一把手槍和一盒子彈'); M.data.opened = true; return;
+  }
+  if (p.kind === 'radio') { if (M.cur?.id === 'radio' && M.stage === 0) { M.stage = 1; M.t = 0; p.halo.material.color.set(0xffc27a); toast('無線電打開了。撐住，訊號正在連線'); sfx('radio', p.pos); } return; }
+  take(p);
+}
+function take(p) {
+  const k = p.kind;
+  if (WEAPONS[k]) {
+    const fresh = !player.owned[k]; player.owned[k] = true;
+    const w = WEAPONS[k]; if (w.mag && fresh) player.mag[k] = w.mag;
+    if (w.ammo) player.ammo[w.ammo] += { '9mm': 24, shell: 10, '762': 10 }[w.ammo];
+    equip(k); toast(`撿起${w.name}`); sfx('pickup', p.pos, 1.2);
+  } else if (k === 'ammo') {
+    const got = [];
+    for (const [w, a] of [['pistol', '9mm'], ['shotgun', 'shell'], ['rifle', '762']]) if (player.owned[w]) { const n = { '9mm': 18, shell: 8, '762': 6 }[a]; player.ammo[a] += n; got.push(`${AMMO_NAME[a]} +${n}`); }
+    if (!got.length) { player.ammo['9mm'] += 12; got.push('9 mm +12'); }
+    toast('彈藥：' + got.join('、')); sfx('pickup', p.pos);
+  } else if (k === 'gasmask') {
+    player.filter = Math.min(100, player.filter + 45); toast('換上新的濾罐（+45%）'); sfx('pickup', p.pos, 0.9);
+    if (p.quest) M.data.got = (M.data.got || 0) + 1;
+  } else if (k === 'medkit') { if (player.medkits >= 3) { player.hp = Math.min(100, player.hp + 25); toast('醫療箱滿了，就地包紮（+25）'); } else { player.medkits++; toast('撿起醫療箱（H 使用）'); } sfx('pickup', p.pos, 1.1); }
+  else if (k === 'tape') { if (player.tapes >= 3) { player.armor = Math.min(100, player.armor + 20); toast('膠帶滿了，順手補了雪衣（+20）'); } else { player.tapes++; toast('撿起膠帶（T 修補雪衣）'); } sfx('pickup', p.pos, 1.1); }
+  else if (k === 'food') { player.hp = Math.min(100, player.hp + 12); STATS.food = (STATS.food || 0) + 1; toast('罐頭：生命 +12'); sfx('pickup', p.pos, 1.3); }
+  p.onTake?.(); removePickup(p); hud(true);
+}
+
+/* ---------- 玩家狀態、武器 ---------- */
+Object.assign(player, { alive: true, hp: 100, armor: 60, filter: 80, medkits: 1, tapes: 0, weapon: 'fists', owned: { fists: true }, mag: {}, ammo: { '9mm': 0, shell: 0, '762': 0 }, cool: 0, reloadT: 0, aimW: 0, faceT: 0, oneShot: null, ovW: 0, hurtT: 0, deadT: 0, heal: 0 });
+const input = { fire: false, aim: false, touchFire: false };
+const GOD = { on: QS.has('god'), ammo: false };
+const held = {}; // 手上的武器 splat
+function equip(w) {
+  if (!player.owned[w] || player.oneShot) return;
+  player.weapon = w; player.reloadT = 0; player.cool = Math.max(player.cool, 0.25);
+  for (const [k, m] of Object.entries(held)) m.visible = k === w;
+  const def = WEAPONS[w];
+  if (def.splat && !held[w]) {
+    const m = itemSplat(def.splat) || (() => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, def.slot === 1 ? 0.5 : 0.3), new THREE.MeshStandardMaterial({ color: 0x2a2a2a })); b.position.z = -0.1; g.add(b); return g; })();
+    if (m.recolor) m.recolor.setScalar(1.6);
+    scene.add(m); held[w] = m;
+  }
+  hud(true);
+}
+function cycleWeapon(dir) {
+  const own = SLOT_ORDER.filter(w => player.owned[w] && !(w === 'fists' && player.owned.crowbar));
+  const i = own.indexOf(player.weapon); equip(own[(i + dir + own.length) % own.length]);
+}
+function equipSlot(n) { const w = SLOT_ORDER.filter(k => WEAPONS[k].slot === n && player.owned[k]).pop(); if (w) equip(w); }
+function reload() {
+  const w = WEAPONS[player.weapon]; if (!w.mag || player.reloadT > 0 || !player.alive) return;
+  const need = w.mag - (player.mag[player.weapon] || 0); if (need <= 0 || (player.ammo[w.ammo] <= 0 && !GOD.ammo)) return;
+  player.reloadT = w.reload; sfx('reload', player.pos);
+}
+const HAND = { pos: new THREE.Vector3(), fore: new THREE.Vector3(), dir: new THREE.Vector3(), up: new THREE.Vector3(), x: new THREE.Vector3(), m: new THREE.Matrix4(), muzzle: new THREE.Vector3(), aimPt: new THREE.Vector3() };
+function updateHeld() {
+  const w = player.weapon, m = held[w];
+  if (!m) return;
+  m.visible = (player.alive || player.deadT < 0.6) && !SCOPED.on;
+  const hand = player.handR, fore = player.foreR;
+  if (hand && fore) { hand.getWorldPosition(HAND.pos); fore.getWorldPosition(HAND.fore); }
+  else { HAND.pos.set(player.pos.x + Math.sin(player.yaw) * 0.3, player.pos.y + 1.1, player.pos.z + Math.cos(player.yaw) * 0.3); HAND.fore.copy(HAND.pos).y += 0.25; }
+  HAND.dir.subVectors(HAND.pos, HAND.fore).normalize();
+  HAND.up.set(0, 1, 0);
+  if (w === 'crowbar') {
+    // 鐵撬：桿身（+Y）垂直前臂、往前傾，揮擊時跟著手臂掃過去
+    HAND.up.copy(HAND.dir).multiplyScalar(-HAND.dir.y); HAND.up.y += 1; HAND.up.normalize().lerp(HAND.dir, 0.4).normalize();
+    HAND.x.crossVectors(HAND.up, HAND.dir).normalize(); HAND.dir.crossVectors(HAND.x, HAND.up).normalize();
+    HAND.m.makeBasis(HAND.x, HAND.up, HAND.dir.clone().negate());
+  } else {
+    const long = w !== 'pistol', aim = player.aimW;
+    if (long && aim < 0.99) { tmp.set(Math.sin(player.yaw), -0.75, Math.cos(player.yaw)).normalize(); HAND.dir.lerp(tmp, 0.65).normalize(); }
+    if (aim > 0.01) { tmp.subVectors(HAND.aimPt, HAND.pos).normalize(); HAND.dir.lerp(tmp, aim).normalize(); }
+    HAND.x.crossVectors(HAND.dir, HAND.up).normalize(); HAND.up.crossVectors(HAND.x, HAND.dir).normalize();
+    HAND.m.makeBasis(HAND.x, HAND.up, HAND.dir.clone().negate());
+  }
+  m.quaternion.setFromRotationMatrix(HAND.m);
+  m.position.copy(HAND.pos).addScaledVector(HAND.up, w === 'crowbar' ? -0.03 : 0.02);
+  const len = ACT.man?.items[WEAPONS[w].splat] ? -ACT.man.items[WEAPONS[w].splat].min[2] : 0.3;
+  HAND.muzzle.copy(m.position).addScaledVector(HAND.dir, len);
+}
+
+/* ---------- 射擊與近戰 ---------- */
+const RAY = { o: new THREE.Vector3(), d: new THREE.Vector3(), e: new THREE.Vector3(), a: new THREE.Vector3(), b: new THREE.Vector3(), hit: new THREE.Vector3() };
+// 線段 p0+t*u（t∈[0,1]）與線段 q0+s*v 的最近距離平方，回傳 t
+function segSeg(p0, u, q0, v) {
+  const w0x = p0.x - q0.x, w0y = p0.y - q0.y, w0z = p0.z - q0.z;
+  const a = u.x * u.x + u.y * u.y + u.z * u.z, b = u.x * v.x + u.y * v.y + u.z * v.z, c = v.x * v.x + v.y * v.y + v.z * v.z;
+  const d = u.x * w0x + u.y * w0y + u.z * w0z, e = v.x * w0x + v.y * w0y + v.z * w0z, D = a * c - b * b;
+  const cl = x => x < 0 ? 0 : x > 1 ? 1 : x;
+  let s, t; // Ericson 5.1.9
+  if (c < 1e-9) { s = 0; t = cl(-d / a); }
+  else {
+    t = D > 1e-9 ? cl((b * e - c * d) / D) : 0; s = (b * t + e) / c;
+    if (s < 0) { s = 0; t = cl(-d / a); } else if (s > 1) { s = 1; t = cl((b - d) / a); }
+  }
+  const dx = w0x + u.x * t - v.x * s, dy = w0y + u.y * t - v.y * s, dz = w0z + u.z * t - v.z * s;
+  return { t, d2: dx * dx + dy * dy + dz * dz };
+}
+const HB = { neck: new THREE.Vector3(), head: new THREE.Vector3(), foot: new THREE.Vector3(), v: new THREE.Vector3(), u: new THREE.Vector3() };
+function rayZombies(o, dir, range) {
+  let best = null, bt = 1;
+  HB.u.copy(dir).multiplyScalar(range);
+  for (const z of zombies) {
+    if (!z.active || !z.alive) continue;
+    if (z.pos.distanceToSquared(o) > (range + 3) ** 2) continue;
+    zombieHead(z, HB.head); zombieNeck(z, HB.neck);
+    // 頭：小球；身體：從腳到胸口的膠囊
+    const hs = segSeg(o, HB.u, HB.head, HB.v.set(0, 0, 0));
+    if (hs.d2 < 0.15 * 0.15 && hs.t < bt) { bt = hs.t; best = { z, head: true }; continue; }
+    HB.foot.set(z.pos.x, z.pos.y + 0.12, z.pos.z); HB.v.subVectors(HB.neck, HB.foot);
+    const bs = segSeg(o, HB.u, HB.foot, HB.v);
+    if (bs.d2 < 0.27 * 0.27 && bs.t < bt) { bt = bs.t; best = { z, head: false }; }
+  }
+  return best ? { ...best, t: bt } : null;
+}
+function fire() {
+  const id = player.weapon, w = WEAPONS[id];
+  if (!player.alive || player.cool > 0 || player.oneShot) return;
+  if (w.melee) { melee('punch'); return; }
+  if (player.reloadT > 0) return;
+  if ((player.mag[id] || 0) <= 0) { player.cool = 0.3; sfx('empty', player.pos); reload(); return; }
+  player.mag[id]--; player.cool = w.rate; player.faceT = 0.8; STATS.shots++;
+  camera.getWorldDirection(RAY.d); RAY.o.copy(camera.position);
+  const spread = THREE.MathUtils.lerp(w.spread, w.aimSpread, player.aimW) * (Math.hypot(player.vel.x, player.vel.z) > 2 ? 1.6 : 1);
+  if (isTouch || player.aimW < 0.5) aimAssist(RAY.o, RAY.d, w.range, isTouch ? 0.14 : 0.08, player.aimW < 0.5); // 先校正基準方向，散布照舊
+  let anyHit = false;
+  for (let i = 0; i < w.pellets; i++) {
+    RAY.e.copy(RAY.d);
+    if (spread > 0) { RAY.e.x += (Math.random() - 0.5) * 2 * spread; RAY.e.y += (Math.random() - 0.5) * 2 * spread; RAY.e.z += (Math.random() - 0.5) * 2 * spread; RAY.e.normalize(); }
+    RAY.b.copy(RAY.o).addScaledVector(RAY.e, w.range);
+    const tw = COL.n ? raySegment(RAY.o, RAY.b) : 1;
+    const zh = rayZombies(RAY.o, RAY.e, w.range);
+    if (zh && zh.t <= tw) {
+      RAY.hit.copy(RAY.o).addScaledVector(RAY.e, zh.t * w.range);
+      const fall = w.pellets > 1 ? THREE.MathUtils.clamp(1.25 - zh.t * w.range / 18, 0.35, 1) : 1;
+      hurtZombie(zh.z, w.dmg * fall, RAY.e, zh.head); fx.burst(RAY.hit, 'blood', w.pellets > 1 ? 5 : 12); anyHit = true;
+    } else {
+      RAY.hit.copy(RAY.o).addScaledVector(RAY.e, tw * w.range);
+      if (tw < 1) fx.burst(RAY.hit, 'snow', 6);
+    }
+    if (i < 3) fx.tracer(HAND.muzzle, RAY.hit);
+  }
+  if (anyHit) STATS.hits++;
+  fx.muzzle(HAND.muzzle, w.pellets > 1 ? 1.6 : id === 'rifle' ? 1.4 : 1);
+  sfx(id, player.pos); makeNoise(player.pos, w.loud);
+  view.pitch = THREE.MathUtils.clamp(view.pitch - w.recoil * (1 - player.aimW * 0.4), -0.6, 1.2); view.yaw += (Math.random() - 0.5) * w.recoil * 0.4;
+  shake(w.recoil * 3);
+  if (player.mag[id] <= 0) setTimeout(reload, 250);
+  hud(true);
+}
+function aimAssist(o, dir, range, cone, flat) {
+  // flat（腰射）：鏡頭從頭頂後方看出去，貼身的喪屍會在準星下方，所以 8 m 內只比水平夾角
+  let best = null, bd = cone;
+  const hx = dir.x, hz = dir.z, hl = Math.hypot(hx, hz) || 1;
+  for (const z of zombies) {
+    if (!z.active || !z.alive) continue;
+    zombieNeck(z, HB.neck); HB.neck.y -= 0.3; HB.v.subVectors(HB.neck, o); const l = HB.v.length(); if (l > range) continue; // 瞄胸口
+    let ang;
+    if (flat && z.pos.distanceTo(player.pos) < 8) {
+      const vx = HB.neck.x - player.pos.x, vz = HB.neck.z - player.pos.z, vl = Math.hypot(vx, vz) || 1;
+      ang = Math.acos(Math.min(1, (vx * hx + vz * hz) / (vl * hl))) * 0.6;
+    } else ang = HB.v.clone().normalize().angleTo(dir);
+    if (ang < bd) { bd = ang; best = HB.v.clone().normalize(); }
+  }
+  if (best) dir.lerp(best, 0.85).normalize();
+}
+const MELEE = {
+  punch: { start: 1.25, end: 2.7, speed: 1.55, hit: 1.88 },
+  kick: { start: 0.15, end: 2.3, speed: 1.45, hit: 0.92 },
+};
+function melee(kind) {
+  if (!player.alive || player.cool > 0 || player.oneShot || !player.grounded) return;
+  const w = WEAPONS[player.weapon], cfg = MELEE[kind], A = player.acts[kind];
+  const kick = kind === 'kick', dmg = kick ? 34 : w.melee ? w.dmg : 18, range = kick ? 1.55 : w.melee ? w.range : 1.3;
+  player.cool = kick ? 1.15 : (w.melee ? w.cd : 0.8); player.faceT = 1;
+  const strike = () => {
+    let n = 0; const fx0 = Math.sin(player.yaw), fz0 = Math.cos(player.yaw);
+    for (const z of zombies) {
+      if (!z.active || !z.alive) continue;
+      const dx = z.pos.x - player.pos.x, dz = z.pos.z - player.pos.z, d = Math.hypot(dx, dz);
+      if (d > range + 0.3 || Math.abs(z.pos.y - player.pos.y) > 1.2) continue;
+      if ((dx * fx0 + dz * fz0) / (d || 1) < 0.3) continue;
+      tmp.set(dx / (d || 1), 0, dz / (d || 1));
+      hurtZombie(z, dmg, tmp.multiplyScalar(kick ? 3 : 1.5), false); zombieNeck(z, HB.neck); fx.burst(HB.neck, 'blood', 8); n++;
+    }
+    sfx(n ? 'thud' : 'swing', player.pos); if (n) shake(0.12);
+  };
+  if (A) { player.oneShot = { kind, cfg, A, struck: false, strike }; A.reset(); A.time = cfg.start; A.timeScale = cfg.speed; A.paused = false; A.enabled = true; }
+  else setTimeout(strike, 260);
+  sfx('swing', player.pos, 0.7);
+}
+function useMedkit() {
+  if (!player.alive || player.medkits <= 0 || player.hp >= 100) return;
+  player.medkits--; player.heal = 45; toast('使用醫療箱'); sfx('heal', player.pos); hud(true);
+}
+function useTape() {
+  if (!player.alive || player.tapes <= 0 || player.armor >= 100) return;
+  player.tapes--; player.armor = Math.min(100, player.armor + 40); toast('用膠帶補好雪衣的裂縫（+40）'); sfx('tape', player.pos); hud(true);
+}
+function playerHurt(dmg, from) {
+  if (!player.alive || GOD.on) return;
+  let d = dmg;
+  if (player.armor > 0) { const absorb = Math.min(player.armor, d * 0.55); player.armor -= absorb * 1.3; d -= absorb; player.armor = Math.max(0, player.armor); }
+  player.hp -= d; player.hurtT = 0.6; shake(0.25); sfx('hurt', player.pos);
+  if (from) { player.vel.x += (player.pos.x - from.x) * 1.2; player.vel.z += (player.pos.z - from.z) * 1.2; }
+  if (player.hp <= 0) killPlayer();
+  hud(true);
+}
+function killPlayer() {
+  player.hp = 0; player.alive = false; player.deadT = 0; STATS.deaths++;
+  input.fire = false; input.aim = false;
+  const A = player.acts.die;
+  if (A) { player.oneShot = { kind: 'die', cfg: { start: 0, end: 99, speed: 1, hit: 99 }, A, struck: true }; A.reset(); A.time = 0; A.timeScale = 1; A.paused = false; }
+  sfx('death', player.pos);
+}
+function revive() {
+  closeOver();
+  player.alive = true; player.hp = 100; player.armor = Math.max(player.armor, 35); player.filter = Math.max(player.filter, 50);
+  if (player.oneShot?.A) { player.oneShot.A.setEffectiveWeight(0); player.oneShot.A.paused = true; }
+  player.oneShot = null; player.ovW = 0;
+  const [x, z] = M.checkpoint;
+  for (const zb of zombies) if (zb.active && Math.hypot(zb.pos.x - x, zb.pos.z - z) < 20) despawnZombie(zb);
+  M.cur?.onDeath?.();
+  player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); snapCamera = true;
+  toast('重新站了起來'); hud(true);
+}
+
+/* ---------- 任務 ---------- */
+const M = { i: -1, cur: null, stage: 0, t: 0, data: {}, endless: false, checkpoint: [CFG.spawn.x, CFG.spawn.z], marker: null };
+const MISSIONS = [
+  { id: 'wake', title: '醒來', brief: '雪還在下，廣場上那些人已經不是人了。先找樣東西防身——長椅旁有根鐵撬。',
+    start() { addPickup('crowbar', ...PTS.crowbar, { quest: true }); DIR.ambient = 2; DIR.level = 0; },
+    obj() { return { text: '撿起長椅旁的鐵撬', at: PTS.crowbar }; }, done() { return player.owned.crowbar; } },
+  { id: 'crate', title: '軍用木箱', brief: '金字塔東邊有個軍方留下的木箱。用鐵撬撬開它。',
+    start() { addPickup('crate', ...PTS.crate); DIR.ambient = 4; },
+    obj() { return M.data.opened ? { text: '撿起木箱旁的手槍', at: PTS.crate } : { text: '撬開金字塔旁的軍用木箱', at: PTS.crate }; }, done() { return player.owned.pistol; } },
+  { id: 'filters', title: '濾罐', brief: '面罩的濾罐撐不了多久。倒在廣場上的人身邊還有防毒面罩，拿走他們的濾罐。',
+    start() { M.data.got = 0; M.data.list = PTS.filters.map(([x, z]) => addPickup('gasmask', x, z, { quest: true })); DIR.ambient = 7; DIR.level = 1; },
+    obj() { const left = M.data.list.filter(p => !p.taken); const n = nearest(left.map(p => [p.pos.x, p.pos.z])); return { text: `收集防毒面罩濾罐 ${M.data.got}/3`, at: n }; }, done() { return M.data.got >= 3; } },
+  { id: 'pyramid', title: '守住金字塔', brief: '槍聲把牠們引過來了。到五月金字塔，撐過三波。台座邊有把霰彈槍。',
+    start() { addPickup('shotgun', ...PTS.shotgun); addPickup('ammo', PTS.shotgun[0] + 1.2, PTS.shotgun[1] + 0.4); M.stage = 0; M.data.wave = 0; DIR.ambient = 3; },
+    update(dt) {
+      if (M.stage === 0 && dist2(PTS.pyramid) < 10) { M.stage = 1; M.t = 4; toast('牠們來了。守住金字塔！'); setCheckpoint(PTS.shotgun); }
+      if (M.stage === 1 && (M.t -= dt) <= 0 && DIR.waveQueue === 0 && !waveAlive()) {
+        if (M.data.wave >= 3) { M.stage = 2; return; }
+        M.data.wave++; DIR.level = 1 + M.data.wave; const n = [6, 9, 12][M.data.wave - 1] - (isTouch ? 2 : 0);
+        DIR.waveQueue = n; DIR.waveRunners = M.data.wave === 3 ? 3 : M.data.wave === 2 ? 1 : 0; M.t = 6; sfx('horn'); toast(`第 ${M.data.wave} 波 · ${n} 隻`);
+      }
+    },
+    onDeath() { if (M.stage === 1) { M.stage = 0; M.data.wave = Math.max(0, M.data.wave - 1); DIR.waveQueue = 0; for (const z of zombies) if (z.wave) despawnZombie(z); } },
+    obj() {
+      if (M.stage === 0) return { text: '到五月金字塔集合', at: PTS.pyramid };
+      const left = DIR.waveQueue + zombies.filter(z => z.wave && z.alive).length;
+      return { text: left ? `第 ${M.data.wave}/3 波 · 剩 ${left} 隻` : `第 ${Math.min(3, M.data.wave + 1)}/3 波即將來襲`, at: PTS.pyramid, prog: M.data.wave / 3 };
+    }, done() { return M.stage === 2; } },
+  { id: 'radio', title: '無線電', brief: '玫瑰宮前有台軍用無線電。帶上旁邊的步槍，打開無線電呼叫救援，撐到訊號接通。',
+    start() { addPickup('rifle', ...PTS.rifle); addPickup('ammo', PTS.rifle[0] - 1, PTS.rifle[1] - 0.8); M.data.radio = addPickup('radio', ...PTS.radio); M.stage = 0; M.data.p = 0; DIR.ambient = 6; DIR.level = 3; },
+    update(dt) {
+      if (M.stage !== 1) return;
+      const inRange = dist2(PTS.radio) < 7.5;
+      if (inRange) M.data.p = Math.min(1, M.data.p + dt / 50);
+      if ((M.t -= dt) <= 0) { M.t = isTouch ? 3.4 : 2.4; if (zombies.filter(z => z.alive).length < DIR.cap) { const [x, z] = navSpawn(24, 36) || pickSpawn(true); spawnZombie(x, z, { aggro: true, runner: Math.random() < 0.3, level: 4 }); } }
+      if ((M.data.st = (M.data.st || 0) - dt) <= 0) { M.data.st = 3; sfx('radio', M.data.radio.pos, inRange ? 1 : 0.4); }
+      if (M.data.p >= 1) M.stage = 2;
+    },
+    onDeath() { if (M.stage === 1) M.stage = 0; },
+    obj() {
+      if (M.stage === 0) return { text: '到玫瑰宮前，打開無線電呼叫救援', at: PTS.radio };
+      return { text: dist2(PTS.radio) < 7.5 ? `訊號連線中 ${Math.round(M.data.p * 100)}%` : '回到無線電旁！訊號中斷', at: PTS.radio, prog: M.data.p };
+    }, done() { return M.stage === 2; } },
+];
+const dist2 = ([x, z]) => Math.hypot(player.pos.x - x, player.pos.z - z);
+const nearest = list => list.reduce((b, p) => !b || dist2(p) < dist2(b) ? p : b, null);
+const waveAlive = () => zombies.some(z => z.wave && z.alive);
+function setCheckpoint([x, z]) { M.checkpoint = [x, z]; }
+function startMission(i) {
+  M.i = i; M.stage = 0; M.t = 0; M.data = {}; M.cur = MISSIONS[i] || null;
+  if (!M.cur) { win(); return; }
+  setCheckpoint([player.pos.x, player.pos.z]);
+  M.cur.start(); toast(M.cur.brief, 5.5); sfx('mission');
+  const el = document.getElementById('mission'); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  hud(true);
+}
+function missionUpdate(dt) {
+  if (!M.cur || !player.alive) return;
+  M.cur.update?.(dt);
+  if (M.cur.done()) { feed(`任務完成：${M.cur.title}`); startMission(M.i + 1); }
+}
+function win() {
+  M.cur = null; M.endless = true; DIR.endlessT = 0;
+  for (const p of [...pickups]) if (p.kind === 'radio') removePickup(p);
+  const t = (performance.now() - STATS.t0) / 1000;
+  openOver('win', `<h2>Señal recibida</h2><p>雜訊裡傳來一個聲音：「……這裡是蒙特港的反抗軍。我們聽到了。撐住，天亮前到。」</p>
+    <div class="stats"><div><b>${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</b><span>時間</span></div><div><b>${STATS.kills}</b><span>擊倒</span></div><div><b>${STATS.shots ? Math.round(STATS.hits / STATS.shots * 100) : 0}%</b><span>命中率</span></div></div>
+    <button class="gbtn glass" id="overGo">繼續在廣場生存</button>`);
+}
+
+/* ---------- 特效：槍口火光、彈道、血與雪的粒子、任務光柱 ---------- */
+const fx = (() => {
+  const N = 700, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), size = new Float32Array(N), alpha = new Float32Array(N), vel = new Float32Array(N * 3), life = new Float32Array(N);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('size', new THREE.BufferAttribute(size, 1)); geo.setAttribute('alpha', new THREE.BufferAttribute(alpha, 1));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uPx: snowUniforms.uPx }, transparent: true, depthWrite: false,
+    vertexShader: `attribute float size; attribute float alpha; attribute vec3 color; uniform float uPx; varying vec3 vC; varying float vA;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = clamp(size * uPx / max(-mv.z, 0.1), 1.0, 40.0); vC = color; vA = alpha; }`,
+    fragmentShader: `varying vec3 vC; varying float vA; void main(){ vec2 c = gl_PointCoord - 0.5; float r = dot(c, c); if (r > 0.25) discard; gl_FragColor = vec4(vC, vA * (1.0 - r * 3.2)); }`,
+  });
+  const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 6; scene.add(pts);
+  let head = 0;
+  const flashS = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: 0xffd08a, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }));
+  flashS.visible = false; flashS.renderOrder = 7; scene.add(flashS);
+  const flashL = new THREE.PointLight(0xffb060, 0, 14, 1.5); scene.add(flashL);
+  let flashT = 0;
+  const tracers = [];
+  for (let i = 0; i < 10; i++) {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xffe2b0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    l.frustumCulled = false; l.renderOrder = 7; scene.add(l); tracers.push({ l, t: 0 });
+  }
+  let ti = 0;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.5, 30, 16, 1, true).translate(0, 15, 0), new THREE.MeshBasicMaterial({ color: 0xffc27a, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+  beam.renderOrder = 5; beam.visible = false; scene.add(beam);
+  return {
+    burst(at, kind, n) {
+      for (let i = 0; i < n; i++) {
+        const k = head = (head + 1) % N;
+        pos[k * 3] = at.x; pos[k * 3 + 1] = at.y; pos[k * 3 + 2] = at.z;
+        const sp = kind === 'blood' ? 1.8 : 1.2;
+        vel[k * 3] = (Math.random() - 0.5) * sp; vel[k * 3 + 1] = Math.random() * sp * 0.9 + 0.2; vel[k * 3 + 2] = (Math.random() - 0.5) * sp;
+        if (kind === 'blood') { col[k * 3] = 0.22 + Math.random() * 0.1; col[k * 3 + 1] = 0.02; col[k * 3 + 2] = 0.03; size[k] = 0.03 + Math.random() * 0.04; }
+        else { col[k * 3] = 0.75; col[k * 3 + 1] = 0.8; col[k * 3 + 2] = 0.9; size[k] = 0.04 + Math.random() * 0.06; }
+        life[k] = 0.5 + Math.random() * 0.5; alpha[k] = 0.95;
+      }
+    },
+    tracer(a, b) { const t = tracers[ti = (ti + 1) % tracers.length], p = t.l.geometry.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true; t.t = 0.07; },
+    muzzle(at, s) { flashS.position.copy(at); flashS.scale.setScalar(0.55 * s); flashS.material.rotation = Math.random() * 6; flashS.visible = true; flashL.position.copy(at); flashL.intensity = 30 * s; flashT = 0.06; FLASH.pos.copy(at); FLASH.power = 1.6 * s; },
+    update(dt) {
+      for (let k = 0; k < N; k++) {
+        if (life[k] <= 0) { if (alpha[k]) alpha[k] = 0; continue; }
+        life[k] -= dt; vel[k * 3 + 1] -= 6 * dt;
+        pos[k * 3] += vel[k * 3] * dt; pos[k * 3 + 1] += vel[k * 3 + 1] * dt; pos[k * 3 + 2] += vel[k * 3 + 2] * dt;
+        alpha[k] = Math.max(0, Math.min(0.95, life[k] * 2));
+      }
+      geo.attributes.position.needsUpdate = true; geo.attributes.alpha.needsUpdate = true; geo.attributes.color.needsUpdate = true; geo.attributes.size.needsUpdate = true;
+      for (const t of tracers) { t.t -= dt; t.l.material.opacity = Math.max(0, t.t / 0.07) * 0.85; }
+      if ((flashT -= dt) <= 0) { flashS.visible = false; flashL.intensity = 0; }
+      FLASH.power = Math.max(0, FLASH.power - dt * 22);
+      const o = M.cur && playing ? M.cur.obj() : null;
+      beam.visible = !!(o && o.at);
+      if (beam.visible) { const [x, z] = o.at; beam.position.set(x, groundAt(x, z), z); beam.material.opacity = 0.1 + Math.sin(simTime * 2.4) * 0.04; }
+    },
+  };
+})();
+const SHAKE = { a: 0 };
+function shake(a) { SHAKE.a = Math.min(0.6, SHAKE.a + a); }
+
+/* ---------- 音效：WebAudio 即時合成 ---------- */
+const AU = { ctx: null, master: null, muted: false, noise: null, wind: null };
+function audioInit() {
+  if (AU.ctx) { AU.ctx.resume?.(); return; }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(); AU.ctx = ctx;
+    AU.master = ctx.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.8;
+    const comp = ctx.createDynamicsCompressor(); AU.master.connect(comp); comp.connect(ctx.destination);
+    const len = ctx.sampleRate * 2, b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    AU.noise = b;
+    // 風聲：低通的雜訊，濾波頻率慢慢飄
+    const src = ctx.createBufferSource(); src.buffer = b; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 0.7;
+    const g = ctx.createGain(); g.gain.value = 0.07;
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 260; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
+    src.connect(lp); lp.connect(g); g.connect(AU.master); src.start(); AU.wind = g;
+  } catch { AU.ctx = null; }
+}
+function sfx(name, at, pitch = 1) {
+  const ctx = AU.ctx; if (!ctx || AU.muted) return;
+  const t = ctx.currentTime;
+  let out = AU.master, gainK = 1;
+  if (at && name !== 'mission' && name !== 'horn') {
+    const d = at.distanceTo(camera.position); if (d > 60) return;
+    gainK = 1 / (1 + d * 0.12);
+    if (ctx.createStereoPanner) {
+      const p = ctx.createStereoPanner(); tmp.copy(at).sub(camera.position); const r = tmp.x * Math.cos(view.yaw) - tmp.z * Math.sin(view.yaw);
+      p.pan.value = THREE.MathUtils.clamp(r / (Math.abs(r) + 4), -0.85, 0.85); p.connect(AU.master); out = p;
+    }
+  }
+  const env = (node, a, peak, dec) => { const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak * gainK, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); node.connect(g); g.connect(out); return g; };
+  const noise = (type, f, q, a, peak, dec, rate = 1) => { const s = ctx.createBufferSource(); s.buffer = AU.noise; s.playbackRate.value = rate; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; s.connect(fl); env(fl, a, peak, dec); s.start(t, Math.random()); s.stop(t + a + dec + 0.05); return fl; };
+  const tone = (type, f0, f1, a, peak, dec) => { const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + a + dec); env(o, a, peak, dec); o.start(t); o.stop(t + a + dec + 0.05); return o; };
+  switch (name) {
+    case 'pistol': noise('highpass', 900, 0.5, 0.002, 0.9, 0.16); tone('sine', 160, 45, 0.002, 0.8, 0.14); noise('lowpass', 500, 0.6, 0.01, 0.25, 0.5, 0.5); break;
+    case 'shotgun': noise('lowpass', 2400, 0.4, 0.002, 1.2, 0.32); tone('sine', 110, 35, 0.002, 1.1, 0.26); noise('lowpass', 380, 0.5, 0.02, 0.4, 0.9, 0.4); break;
+    case 'rifle': noise('highpass', 1400, 0.6, 0.001, 1.1, 0.12); tone('triangle', 220, 50, 0.001, 0.9, 0.2); noise('bandpass', 600, 0.6, 0.03, 0.35, 1.4, 0.35); break;
+    case 'empty': tone('square', 1800, 1500, 0.001, 0.08, 0.03); break;
+    case 'reload': tone('square', 900, 700, 0.001, 0.06, 0.03); setTimeout(() => sfx('click2', at), 420); break;
+    case 'click2': tone('square', 1300, 1100, 0.001, 0.07, 0.04); break;
+    case 'swing': noise('bandpass', 900 * pitch, 1.2, 0.03, 0.3, 0.14, 1.4); break;
+    case 'thud': tone('sine', 120, 50, 0.002, 0.9, 0.16); noise('lowpass', 700, 0.8, 0.002, 0.5, 0.12); break;
+    case 'groan': case 'snarl': {
+      const f = (name === 'snarl' ? 150 : 82) * pitch * (0.9 + Math.random() * 0.2), dur = name === 'snarl' ? 0.55 : 1 + Math.random() * 0.8;
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * (0.75 + Math.random() * 0.2), t + dur);
+      const v = ctx.createOscillator(), vg = ctx.createGain(); v.frequency.value = 5 + Math.random() * 4; vg.gain.value = f * 0.06; v.connect(vg); vg.connect(o.frequency);
+      const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 520 + Math.random() * 200; f1.Q.value = 5;
+      const f2 = ctx.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 1200;
+      o.connect(f1); f1.connect(f2); env(f2, name === 'snarl' ? 0.04 : 0.25, name === 'snarl' ? 0.5 : 0.35, dur);
+      o.start(t); v.start(t); o.stop(t + dur + 0.4); v.stop(t + dur + 0.4);
+      if (name === 'snarl') noise('bandpass', 1500, 2, 0.02, 0.15, 0.3);
+      break;
+    }
+    case 'bite': noise('lowpass', 900, 1, 0.002, 0.6, 0.1); tone('sine', 90, 40, 0.002, 0.5, 0.12); break;
+    case 'die': tone('sawtooth', 95, 50, 0.05, 0.25, 0.9); noise('lowpass', 300, 0.7, 0.05, 0.3, 0.6); break;
+    case 'hurt': tone('sine', 70, 40, 0.002, 0.7, 0.2); noise('bandpass', 400, 1, 0.01, 0.25, 0.25); break;
+    case 'death': tone('sine', 140, 40, 0.05, 0.6, 1.6); noise('lowpass', 250, 0.6, 0.1, 0.3, 1.8); break;
+    case 'pickup': tone('sine', 660 * pitch, 680 * pitch, 0.005, 0.18, 0.12); setTimeout(() => { if (AU.ctx) sfxTone(990 * pitch); }, 90); break;
+    case 'heal': case 'tape': noise('bandpass', name === 'tape' ? 2500 : 1200, 1.5, 0.05, 0.22, 0.4); break;
+    case 'crate': noise('lowpass', 900, 0.9, 0.005, 0.7, 0.3); tone('triangle', 180, 90, 0.005, 0.4, 0.3); break;
+    case 'radio': noise('bandpass', 1800, 0.8, 0.05, 0.12 * pitch, 1.2); tone('sine', 1100, 1100, 0.01, 0.04 * pitch, 0.25); break;
+    case 'horn': { for (const f of [98, 103.5]) tone('sawtooth', f, f * 0.98, 0.3, 0.18, 1.6); break; }
+    case 'mission': tone('sine', 523, 523, 0.01, 0.12, 0.25); setTimeout(() => sfxTone(784), 160); break;
+  }
+}
+function sfxTone(f) { const ctx = AU.ctx; if (!ctx || AU.muted) return; const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.14, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); o.connect(g); g.connect(AU.master); o.start(t); o.stop(t + 0.25); }
+function toggleMute() { AU.muted = !AU.muted; if (AU.master) AU.master.gain.value = AU.muted ? 0 : 0.8; toast(AU.muted ? '已靜音（M）' : '聲音開啟（M）'); }
+
+/* ---------- HUD ---------- */
+const H = {}; ['vHp', 'vArm', 'vFil', 'iMed', 'iTape', 'wName', 'wAmmo', 'wSlots', 'mStep', 'mTitle', 'mObj', 'mWp', 'mArrow', 'mDist', 'mProg', 'cross', 'hitmark', 'hurt', 'frost', 'feed', 'tFire', 'tSwap'].forEach(id => H[id] = document.getElementById(id));
+let hudT = 0;
+function bar(el, v) { el.querySelector('i').style.transform = `scaleX(${Math.max(0, Math.min(1, v / 100))})`; el.querySelector('b').textContent = Math.ceil(Math.max(0, v)); el.classList.toggle('low', v < 25); }
+function hud(force) {
+  if (!force && (hudT -= 1 / 60) > 0) return; hudT = 0.1;
+  bar(H.vHp, player.hp); bar(H.vArm, player.armor); bar(H.vFil, player.filter);
+  H.iMed.textContent = player.medkits; H.iTape.textContent = player.tapes;
+  const id = player.weapon, w = WEAPONS[id];
+  H.wName.textContent = player.reloadT > 0 ? `${w.name} · 裝填中` : w.name;
+  const ammoTxt = w.mag ? `${player.mag[id] || 0}<small>/ ${GOD.ammo ? '∞' : player.ammo[w.ammo]} ${AMMO_NAME[w.ammo]}</small>` : '—<small>近戰</small>';
+  H.wAmmo.innerHTML = ammoTxt; H.wAmmo.classList.toggle('empty', !!w.mag && !(player.mag[id] > 0));
+  H.wSlots.innerHTML = [1, 2, 3, 4].map(n => { const k = SLOT_ORDER.filter(x => WEAPONS[x].slot === n && player.owned[x]).pop(); return `<i class="${k ? 'own' : ''} ${k === id ? 'cur' : ''}">${n} ${k ? WEAPONS[k].name : '—'}</i>`; }).join('');
+  H.tFire.innerHTML = w.mag ? `射擊<small>${player.mag[id] || 0}/${player.ammo[w.ammo]}</small>` : '攻擊';
+  H.tSwap.textContent = w.name;
+  const o = M.cur ? M.cur.obj() : null;
+  H.mStep.innerHTML = M.cur ? `<span>任務 ${M.i + 1} / ${MISSIONS.length}</span><span>${STATS.kills} 擊倒</span>` : `<span>${M.endless ? '自由生存' : '準備中'}</span><span>${STATS.kills} 擊倒</span>`;
+  H.mTitle.textContent = M.cur ? M.cur.title : M.endless ? '撐到天亮' : '—';
+  H.mObj.textContent = o ? o.text : M.endless ? `救援在路上。波次越來越密（等級 ${DIR.level}）。` : '';
+  H.mProg.style.transform = `scaleX(${o?.prog ?? 0})`; H.mProg.parentNode.hidden = o?.prog == null;
+  if (o?.at) {
+    const [x, z] = o.at, dx = x - player.pos.x, dz = z - player.pos.z;
+    const ang = Math.atan2(dx, dz) - (view.yaw + Math.PI);
+    H.mArrow.style.transform = `rotate(${-ang}rad)`; H.mDist.textContent = `${Math.round(Math.hypot(dx, dz))} m`; H.mWp.hidden = false;
+  } else H.mWp.hidden = true;
+  document.getElementById('vitals').classList.toggle('warn', player.filter <= 0);
+}
+function hitmark(kill) { H.hitmark.classList.remove('on', 'kill'); void H.hitmark.offsetWidth; H.hitmark.classList.add('on'); if (kill) H.hitmark.classList.add('kill'); }
+function feed(msg) { const d = document.createElement('div'); d.textContent = msg; H.feed.prepend(d); setTimeout(() => d.remove(), 3200); while (H.feed.children.length > 4) H.feed.lastChild.remove(); }
+let overKind = '';
+function openOver(kind, html) {
+  overKind = kind; const o = document.getElementById('over'); o.querySelector('.glass').innerHTML = html; o.classList.add('on'); document.body.classList.add('over');
+  if (document.pointerLockElement) document.exitPointerLock?.();
+  document.getElementById('overGo')?.addEventListener('click', () => { if (overKind === 'dead') revive(); else closeOver(); lockPointer(); });
+}
+function closeOver() { overKind = ''; document.getElementById('over').classList.remove('on'); document.body.classList.remove('over'); }
+
+/* ---------- 每格更新 ---------- */
+function gameUpdate(dt) {
+  if (!playing) return;
+  const live = !document.body.classList.contains('paused') && !overKind;
+  if (live) {
+    player.cool = Math.max(0, player.cool - dt); player.faceT = Math.max(0, player.faceT - dt); player.hurtT = Math.max(0, player.hurtT - dt);
+    if (player.reloadT > 0 && (player.reloadT -= dt) <= 0) {
+      const id = player.weapon, w = WEAPONS[id]; const need = w.mag - (player.mag[id] || 0);
+      const n = GOD.ammo ? need : Math.min(need, player.ammo[w.ammo]); player.mag[id] = (player.mag[id] || 0) + n; if (!GOD.ammo) player.ammo[w.ammo] -= n; player.reloadT = 0; hud(true);
+    }
+    if ((input.fire || input.touchFire) && player.alive && !overKind) fire();
+    if (player.heal > 0) { const h = Math.min(player.heal, dt * 30); player.heal -= h; player.hp = Math.min(100, player.hp + h); }
+    if (player.alive && M.i >= 0) {
+      player.filter = Math.max(0, player.filter - dt * (100 / 330));
+      if (player.filter <= 0 && !GOD.on) { player.hp -= dt * 2.2; if (player.hp <= 0) killPlayer(); }
+    }
+    if (!player.alive) { player.deadT += dt; if (player.deadT > 1.8 && !overKind) openOver('dead', `<h2>Caído</h2><p>你倒在雪裡。雪花落在面罩上，慢慢積起來。</p><div class="stats"><div><b>${STATS.kills}</b><span>擊倒</span></div><div><b>${STATS.heads}</b><span>爆頭</span></div><div><b>${M.i + 1}</b><span>任務</span></div></div><button class="gbtn glass" id="overGo">重新站起來</button>`); }
+    navUpdate(dt); directorUpdate(dt); missionUpdate(dt);
+    for (const z of zombies) zombieUpdate(z, dt);
+    pickupsUpdate(dt);
+  }
+  fx.update(dt);
+  hud();
+  const aimGun = !WEAPONS[player.weapon].melee;
+  H.cross.style.setProperty('--g', `${(aimGun ? THREE.MathUtils.lerp(WEAPONS[player.weapon].spread, WEAPONS[player.weapon].aimSpread, player.aimW) * 220 + 4 : 5).toFixed(1)}px`);
+  H.cross.classList.toggle('melee', !aimGun);
+  H.hurt.style.opacity = Math.min(1, player.hurtT * 1.6 + (player.hp < 30 && player.alive ? 0.25 + Math.sin(simTime * 4) * 0.1 : 0));
+  H.frost.style.opacity = player.filter <= 0 ? 0.85 : player.filter < 15 ? 0.35 : 0;
+}
+// 準心對到的世界點：讓手上的槍對準它（每格算一次）
+function updateAimPoint() {
+  camera.getWorldDirection(RAY.d); RAY.b.copy(camera.position).addScaledVector(RAY.d, 60);
+  const t = COL.n ? raySegment(camera.position, RAY.b) : 1;
+  HAND.aimPt.copy(camera.position).addScaledVector(RAY.d, Math.max(4, t * 60));
 }
 
 /* ======================================================================
@@ -1267,6 +2489,8 @@ function frame(now) {
   blob.position.set(player.pos.x, player.pos.y + 0.03, player.pos.z);
   blob.material.opacity = player.grounded ? 1 : Math.max(0.2, 1 - player.airTime * 1.5);
   updateCamera(dt, now);
+  updateAimPoint(); player.root.updateMatrixWorld(true); updateHeld();
+  gameUpdate(dt);
   // 最近的三盞路燈照在角色身上
   if ((lampT -= dt) <= 0) {
     lampT = 0.25;
@@ -1290,19 +2514,22 @@ requestAnimationFrame(frame);
 const go = document.getElementById('go'), goNote = document.getElementById('goNote');
 function refreshGo() {
   const charReady = LOAD.fbx === 'done' || LOAD.fbx === 'fail';
-  const colReady = LOAD.col === 'done';
+  const colReady = LOAD.col === 'done' && LOAD.actors === 'done';
   const splatSettled = LOAD.splat === 'done' || LOAD.splat === 'fail';
   if (charReady && colReady && splatSettled) { go.disabled = false; go.textContent = '進入廣場'; goNote.textContent = LOAD.splat === 'fail' ? '場景 splat 沒有載入成功，只能在碰撞體與霧裡走動。' : '點按鈕後滑鼠會被鎖定；按 Esc 釋放。'; }
   else if (charReady && colReady && LOAD.splat === 'load') { go.disabled = false; go.textContent = '先進場（場景仍在載入）'; }
 }
 const ticker = setInterval(() => { refreshGo(); if (LOAD.splat === 'done' && !go.disabled && go.textContent === '進入廣場') clearInterval(ticker); }, 300);
 go.addEventListener('click', () => {
+  const first = !playing;
   playing = true; pauseOnUnlock = true; snapCamera = false;
   view.yaw = player.yaw + Math.PI; view.pitch = 0.18; view.distT = 4.4;
   document.body.classList.add('playing');
   document.getElementById('boot').classList.add('gone');
   lockPointer();
   canvas.focus?.();
+  audioInit();
+  if (first) { STATS.t0 = performance.now(); setTimeout(() => startMission(0), 900); }
 });
 if (dbgOn) { dbg.classList.add('on'); buildDebug(); }
 document.querySelectorAll('#boot .glass').forEach(el => attachLens(el, el.classList.contains('sheet') ? { bezel: 34, scale: 62 } : { bezel: 16, scale: 26 }));
@@ -1314,7 +2541,9 @@ attachLens(document.querySelector('#pause .glass'), { bezel: 22, scale: 40 });
   const colTask = loadCollider();
   const S = await loadSpark();
   const splatTask = loadSplat(S);
-  await Promise.all([charTask, colTask, splatTask]);
+  // 喪屍物件池：三種外觀輪流，開場就建好，之後只切換顯示與位置
+  const actorTask = loadActors(S).then(() => { const ids = ACT.man ? Object.keys(ACT.man.zombies) : ['a']; for (let i = 0; i < DIR.cap; i++) zombies.push(makeZombie(ids[i % ids.length])); });
+  await Promise.all([charTask, colTask, splatTask, actorTask]);
   refreshGo();
 })();
 
@@ -1327,6 +2556,23 @@ window.__eter = {
   keys, jump() { jumpQueued = true; },
   showCollider(v) { if (colliderViz) colliderViz.visible = v; },
   probe(x, z, top = 5) { let n = 0; forCells(x, z, x, z, () => n++); const g = rayDown(x, z, top, 60); return { n, hit: g.hit, y: g.y, ny: g.ny }; },
+  // 地面是否平坦、半徑 r 內 0.4–1.6 m 高度沒有牆：用來檢查任務點與出生點
+  clear(x, z, r = 0.5) {
+    const y = groundAt(x, z), g = rayDown(x, z, y + 0.5, 2); let wall = 0;
+    for (const h of [0.45, 0.9, 1.5]) forCells(x - r, z - r, x + r, z + r, k => { closestOnTri(x, y + h, z, k); if (Math.hypot(CP.x - x, CP.y - y - h, CP.z - z) < r && Math.abs(COL.nrm[k * 3 + 1]) < CFG.maxSlope) wall++; });
+    return { y, ny: g.ny, wall, ok: g.hit && g.ny > 0.9 && !wall };
+  },
+  get game() {
+    return { hp: player.hp, armor: player.armor, filter: player.filter, alive: player.alive, weapon: player.weapon, owned: Object.keys(player.owned), mag: { ...player.mag }, ammo: { ...player.ammo }, aimW: player.aimW,
+      mission: M.cur?.id || (M.endless ? 'endless' : null), stage: M.stage, data: { got: M.data.got, wave: M.data.wave, p: M.data.p, opened: M.data.opened },
+      zombies: zombies.filter(z => z.active).map(z => ({ x: +z.pos.x.toFixed(2), z: +z.pos.z.toFixed(2), hp: Math.round(z.hp), state: z.state, alive: z.alive })), pickups: pickups.map(p => ({ kind: p.kind, x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1) })), stats: { ...STATS }, over: overKind, fallback: ACT.fallback };
+  },
+  PTS, NAV, M, input, player, zombies, pickups,
+  spawn(x, z, opts) { return !!spawnZombie(x, z, opts); },
+  give(w) { player.owned[w] = true; if (WEAPONS[w].mag) { player.mag[w] = WEAPONS[w].mag; player.ammo[WEAPONS[w].ammo] += 30; } equip(w); },
+  mission(i) { for (const p of [...pickups]) removePickup(p); for (const z of zombies) despawnZombie(z); DIR.waveQueue = 0; startMission(i); },
+  god(on = true) { GOD.on = on; GOD.ammo = on; },
+  fire() { player.cool = 0; fire(); }, melee, interact, equip, hurtZombie, killPlayer, revive,
 };
 </script>
 </body>

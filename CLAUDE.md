@@ -125,6 +125,12 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - `src/data.js`／`src/econ.js`／`src/port.js` 不碰 DOM 與 three，海灘商家與城市商家共用同一份 `BIZ` 格式與 `arrivalPerMin` → `serve` 流程；物流與海港（供應成本、補給船、岸橋、合約）在 `port.js`，由 `econ.js` 的 `serve`／`tick` 呼叫，`src/portview.js` 只讀狀態畫出來。改存檔欄位要同步 `migrate()`／`sanitizePort()` 與測試；v1 是海灘改版前、v2 是物流改版前的格式，開始畫面的兩個「試玩」按鈕各載入一份舊存檔。
 - 規格、存檔格式與效能策略見同資料夾的 `SPEC.md`，指令與 `window.__bf` 測試 API 見 `README.md`。
 
+## 雪夜五月廣場（266）
+
+- 單檔 `web/266-eternauta-plaza.html`，沒有 build。場景 splat、玩家 FBX 與動畫從上游 santisiri/eternauta-online 的 GitHub 固定版本即時下載（Spark 2.3.1 + Three.js 0.186.0 由 CDN 載入）。
+- 延伸玩法（任務、喪屍、武器、裝備）用到的 `.spz` 在 `assets/266/`：網路上沒有授權清楚的喪屍／武器 splat，所以由 `games/266-eternauta-plaza/tools/bake.mjs` 把 Quaternius 與 Poly Haven 的 CC0 模型在無頭 Chrome 裡烘焙成 SPZ v2；喪屍另有 `.skin`（Spark `SplatSkinning` 權重）與 `manifest.json` 裡的骨架和動畫。改了烘焙參數要重跑並 commit `assets/266/`。`npm start` 的伺服器已能送出 `.spz`、`.skin`。
+- 格式、來源與指令見 `games/266-eternauta-plaza/README.md`；`window.__eter` 的 `spawn`／`give`／`mission(i)`／`god`／`clear(x, z)` 可直接擺場景測試。
+
 ## Groundline 機場停機坪即時調度（267）
 
 - 原始碼在 `games/267-groundline/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`（`node_modules` 連到 201 的）；`npm run build` 輸出單檔 `web/267-groundline.html`，改了 `src/` 或 `blender/out/` 要重新 build 並把產出一起 commit。`npm test` 先跑 `tools/sim.test.mjs`（過站六步驟、車輛指派、優先順序與連鎖延誤傳遞），再跑兩種尺寸的無頭 Chrome 驗收。

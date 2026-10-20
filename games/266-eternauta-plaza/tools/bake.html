@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>266 splat 烘焙</title>
+<script type="importmap">
+{"imports":{"three":"/vendor/three-0.186.0/three.module.js","three/addons/":"/vendor/three-0.186.0/addons/"}}
+</script>
+</head>
+<body>
+<pre id="log"></pre>
+<script type="module">
+/* 把網格模型轉成 Gaussian splat（SPZ v2）：在三角形表面分層取樣，每個取樣點是一片貼著表面的扁平高斯，
+   顏色取自貼圖。角色另外輸出每片 splat 的四根骨頭與權重（Spark SplatSkinning 的 skinData 格式）。 */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const log = (...a) => { document.getElementById('log').textContent += a.join(' ') + '\n'; console.log(...a); };
+const loader = new GLTFLoader();
+const UBC = '/games/197-openworld/.cache/ubc/Universal Base Characters[Standard]/';
+const UAL = '/games/197-openworld/.cache/ual/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb';
+const PH = '/games/266-eternauta-plaza/.cache/polyhaven/';
+
+/* ---------- 可重現的亂數與 3D 雜訊 ---------- */
+function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+function hash3(x, y, z) { let h = (x * 374761393 + y * 668265263 + z * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function noise3(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
+  const s = t => t * t * (3 - 2 * t), u = s(xf), v = s(yf), w = s(zf);
+  const L = (a, b, t) => a + (b - a) * t;
+  const c = (i, j, k) => hash3(xi + i, yi + j, zi + k);
+  return L(L(L(c(0, 0, 0), c(1, 0, 0), u), L(c(0, 1, 0), c(1, 1, 0), u), v), L(L(c(0, 0, 1), c(1, 0, 1), u), L(c(0, 1, 1), c(1, 1, 1), u), v), w);
+}
+const fbm = (x, y, z) => noise3(x, y, z) * 0.55 + noise3(x * 2.1, y * 2.1, z * 2.1) * 0.3 + noise3(x * 4.3, y * 4.3, z * 4.3) * 0.15;
+
+/* ---------- 貼圖取樣（glTF：uv 原點在影像左上角） ---------- */
+const texCache = new Map();
+function sampler(tex) {
+  if (!tex?.image) return null;
+  if (texCache.has(tex)) return texCache.get(tex);
+  const img = tex.image, W = img.width, H = img.height;
+  const c = new OffscreenCanvas(W, H), g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, W, H).data;
+  const fn = (u, v, out) => {
+    u = u - Math.floor(u); v = v - Math.floor(v);
+    const x = Math.min(W - 1, Math.floor(u * W)), y = Math.min(H - 1, Math.floor(v * H)), o = (y * W + x) * 4;
+    out[0] = d[o] / 255; out[1] = d[o + 1] / 255; out[2] = d[o + 2] / 255; return out;
+  };
+  texCache.set(tex, fn); return fn;
+}
+
+/* ---------- splat 累積器 ---------- */
+function Acc() { return { p: [], c: [], a: [], s: [], q: [], bones: [] }; }
+const Z = new THREE.Vector3(0, 0, 1), QT = new THREE.Quaternion(), QR = new THREE.Quaternion();
+function push(acc, p, n, rgb, size, thin, alpha, rnd, bones) {
+  QT.setFromUnitVectors(Z, n); QR.setFromAxisAngle(Z, rnd() * Math.PI); QT.multiply(QR);
+  acc.p.push(p.x, p.y, p.z); acc.c.push(rgb[0], rgb[1], rgb[2]); acc.a.push(alpha);
+  const j = 0.8 + rnd() * 0.4; acc.s.push(size * j, size * (0.75 + rnd() * 0.5), thin); acc.q.push(QT.x, QT.y, QT.z, QT.w);
+  if (bones) acc.bones.push(bones);
+}
+
+/* 在一個網格上取樣。opts.spacing：平均間距（公尺）；opts.shade(ctx) 決定顏色，可回傳 null 略過這一點。
+   skinned 時位置用綁定姿勢（bindMatrix），並插值三個頂點的骨頭權重。 */
+const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), P = new THREE.Vector3(), N = new THREE.Vector3(), NA = new THREE.Vector3(), NB = new THREE.Vector3(), NC = new THREE.Vector3();
+function sampleMesh(acc, mesh, opts) {
+  const g = mesh.geometry, pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv;
+  const si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+  const M = mesh.isSkinnedMesh ? mesh.bindMatrix.clone() : mesh.matrixWorld.clone();
+  if (opts.pre) M.premultiply(opts.pre);
+  const NM = new THREE.Matrix3().getNormalMatrix(M);
+  const idx = g.index ? g.index.array : null, triN = (idx ? idx.length : pos.count) / 3;
+  const rnd = rng(opts.seed || 7), d = opts.spacing, mat = Array.isArray(mesh.material) ? null : mesh.material;
+  const groups = g.groups.length ? g.groups : [{ start: 0, count: triN * 3, materialIndex: 0 }];
+  const col = [0, 0, 0];
+  let carry = 0;
+  for (const gr of groups) {
+    const m = Array.isArray(mesh.material) ? mesh.material[gr.materialIndex] : mat;
+    for (let t = gr.start / 3; t < (gr.start + gr.count) / 3; t++) {
+      const ia = idx ? idx[t * 3] : t * 3, ib = idx ? idx[t * 3 + 1] : t * 3 + 1, ic = idx ? idx[t * 3 + 2] : t * 3 + 2;
+      A.fromBufferAttribute(pos, ia).applyMatrix4(M); B.fromBufferAttribute(pos, ib).applyMatrix4(M); C.fromBufferAttribute(pos, ic).applyMatrix4(M);
+      const area = new THREE.Vector3().subVectors(B, A).cross(new THREE.Vector3().subVectors(C, A)).length() / 2;
+      if (area < 1e-12) continue;
+      carry += area / (d * d); let k = Math.floor(carry); carry -= k;
+      if (!k) continue;
+      if (nor) { NA.fromBufferAttribute(nor, ia).applyMatrix3(NM); NB.fromBufferAttribute(nor, ib).applyMatrix3(NM); NC.fromBufferAttribute(nor, ic).applyMatrix3(NM); }
+      const size = Math.sqrt(area / k) * 0.62;
+      // 分層取樣：把三角形切成 k 個近似等面積的格子
+      const side = Math.ceil(Math.sqrt(k)), cells = [];
+      for (let i = 0; i < side; i++) for (let j = 0; j < side; j++) cells.push([i, j]);
+      for (let s = cells.length - 1; s > 0; s--) { const r = Math.floor(rnd() * (s + 1)); [cells[s], cells[r]] = [cells[r], cells[s]]; }
+      for (let n = 0; n < k; n++) {
+        const [ci, cj] = cells[n % cells.length];
+        let r1 = (ci + rnd()) / side, r2 = (cj + rnd()) / side; if (r1 + r2 > 1) { r1 = 1 - r1; r2 = 1 - r2; }
+        const wa = 1 - r1 - r2, wb = r1, wc = r2;
+        P.set(0, 0, 0).addScaledVector(A, wa).addScaledVector(B, wb).addScaledVector(C, wc);
+        if (nor) N.set(0, 0, 0).addScaledVector(NA, wa).addScaledVector(NB, wb).addScaledVector(NC, wc).normalize();
+        else N.subVectors(B, A).cross(new THREE.Vector3().subVectors(C, A)).normalize();
+        let u = 0, v = 0;
+        if (uv) { u = uv.getX(ia) * wa + uv.getX(ib) * wb + uv.getX(ic) * wc; v = uv.getY(ia) * wa + uv.getY(ib) * wb + uv.getY(ic) * wc; }
+        let bones = null;
+        if (si && sw) {
+          const w = new Map();
+          for (const [vi, f] of [[ia, wa], [ib, wb], [ic, wc]]) for (let c = 0; c < 4; c++) { const bw = sw.getComponent(vi, c) * f; if (bw > 0) { const bi = si.getComponent(vi, c); w.set(bi, (w.get(bi) || 0) + bw); } }
+          bones = [...w.entries()].sort((x, y) => y[1] - x[1]).slice(0, 4);
+          const tot = bones.reduce((s, b) => s + b[1], 0) || 1; bones = bones.map(([b, x]) => [b, x / tot]);
+        } else if (opts.bone != null) bones = [[opts.bone, 1]];
+        const ctx = { p: P, n: N, u, v, m, bones, rnd, col };
+        const res = opts.shade(ctx); if (!res) continue;
+        const off = res.offset || 0;
+        if (off) P.addScaledVector(N, off);
+        push(acc, P, N, res.rgb, size * (res.grow || 1), Math.max(0.0006, size * 0.12), res.alpha ?? 0.96, rnd, bones);
+      }
+    }
+  }
+}
+
+/* ---------- SPZ v2 編碼（Niantic 格式；gzip 後輸出） ---------- */
+async function encodeSpz(acc, fracBits = 12) {
+  const n = acc.a.length, size = 16 + n * (9 + 1 + 3 + 3 + 3), buf = new Uint8Array(size), dv = new DataView(buf.buffer);
+  dv.setUint32(0, 0x5053474e, true); dv.setUint32(4, 2, true); dv.setUint32(8, n, true);
+  buf[12] = 0; buf[13] = fracBits; buf[14] = 0; buf[15] = 0;
+  let o = 16; const F = 1 << fracBits;
+  for (let i = 0; i < n * 3; i++) { let v = Math.round(acc.p[i] * F); v = Math.max(-8388608, Math.min(8388607, v)); buf[o++] = v & 255; buf[o++] = (v >> 8) & 255; buf[o++] = (v >> 16) & 255; }
+  const cl = x => Math.max(0, Math.min(255, Math.round(x)));
+  for (let i = 0; i < n; i++) buf[o++] = cl(acc.a[i] * 255);
+  for (let i = 0; i < n * 3; i++) { const dc = (acc.c[i] - 0.5) / 0.28209479; buf[o++] = cl((dc * 0.15 + 0.5) * 255); }
+  for (let i = 0; i < n * 3; i++) buf[o++] = cl((Math.log(acc.s[i]) + 10) * 16);
+  for (let i = 0; i < n; i++) {
+    let x = acc.q[i * 4], y = acc.q[i * 4 + 1], z = acc.q[i * 4 + 2], w = acc.q[i * 4 + 3]; const l = Math.hypot(x, y, z, w) || 1;
+    if (w < 0) { x = -x; y = -y; z = -z; } buf[o++] = cl(x / l * 127.5 + 127.5); buf[o++] = cl(y / l * 127.5 + 127.5); buf[o++] = cl(z / l * 127.5 + 127.5);
+  }
+  return gzip(buf);
+}
+async function gzip(u8) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()); }
+const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+function skinBytes(acc) {
+  // Spark skinData：每片 4 個 uint16，低 8 位元是權重（0–255），高 8 位元是骨頭編號
+  const n = acc.bones.length, out = new Uint16Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const b = acc.bones[i]; let sum = 0; const ws = b.map(([, w]) => Math.round(w * 255)); sum = ws.reduce((a, x) => a + x, 0);
+    if (ws.length) ws[0] += 255 - sum; // 量化後總和補回 255
+    for (let c = 0; c < 4; c++) out[i * 4 + c] = c < b.length ? (Math.max(0, Math.min(255, ws[c])) | (b[c][0] << 8)) : 0;
+  }
+  return new Uint8Array(out.buffer);
+}
+const srgb = c => { const k = c.clone().convertLinearToSRGB(); return [k.r, k.g, k.b]; };
+
+/* ======================================================================
+   物件：Poly Haven（CC0）與 199 的槍模型
+   ====================================================================== */
+// 手持武器統一成 199 的慣例：-Z 朝槍口、+Y 朝上、原點在握把（grip 是旋轉後包圍盒裡的比例位置）；
+// 其他物件原點在底部中心。rotY 以弧度繞 Y 軸轉。
+const ITEMS = [
+  { id: 'pistol', src: PH + 'service_pistol/service_pistol_1k.gltf', include: /pistol_a|slide_a|hammer_a|trigger_a/, spacing: 0.0028, rotY: Math.PI / 2, grip: [0.5, 0.55, 0.8] },
+  { id: 'rifle', src: PH + 'bolt_action_rifle_7_62/bolt_action_rifle_7_62_1k.gltf', include: /scope|wrap|7_62$|bolt_a|trigger/, spacing: 0.0042, rotY: Math.PI / 2, grip: [0.5, 0.45, 0.66] },
+  { id: 'shotgun', src: '/assets/199/models/guns.glb', include: /^sg$/, spacing: 0.0045, native: true,
+    recolor: { metal: [0.16, 0.16, 0.17], poly: [0.07, 0.07, 0.075], wood: [0.36, 0.2, 0.1], tan: [0.3, 0.25, 0.17], glass: [0.2, 0.25, 0.3] } },
+  { id: 'crowbar', src: PH + 'crowbar_01/crowbar_01_1k.gltf', spacing: 0.0028, grip: [0.5, 0.12, 0.5] },
+  { id: 'gasmask', src: PH + 'old_gas_mask/old_gas_mask_1k.gltf', spacing: 0.0045 },
+  { id: 'medkit', src: PH + 'medical_box/medical_box_1k.gltf', spacing: 0.0055 },
+  { id: 'ammo', src: PH + 'ammo_box/ammo_box_1k.gltf', spacing: 0.0042 },
+  { id: 'tape', src: PH + 'medical_tape/medical_tape_1k.gltf', spacing: 0.0022 },
+  { id: 'radio', src: PH + 'vintage_radio_transceiver/vintage_radio_transceiver_1k.gltf', spacing: 0.0055 },
+  { id: 'food', src: PH + 'russian_food_cans_01/russian_food_cans_01_1k.gltf', spacing: 0.0028 },
+  { id: 'crate', src: PH + 'old_military_crate/old_military_crate_1k.gltf', include: /_a$/, spacing: 0.011 },
+];
+async function bakeItem(it) {
+  const gltf = await loader.loadAsync(it.src);
+  gltf.scene.updateMatrixWorld(true);
+  const meshes = [];
+  gltf.scene.traverse(o => {
+    if (!o.isMesh) return;
+    let ok = !it.include; for (let p = o; p && !ok; p = p.parent) if (it.include.test(p.name)) ok = true;
+    if (ok && !/glass/i.test(o.material?.name || '') ) meshes.push(o);
+  });
+  // 轉向後再定原點：手持物件放在握把，其他放在底部中心
+  const rot = new THREE.Matrix4().makeRotationY(it.rotY || 0), box = new THREE.Box3();
+  for (const m of meshes) { const b = new THREE.Box3().setFromObject(m); b.applyMatrix4(rot); box.union(b); }
+  const sz = box.getSize(new THREE.Vector3()), o = it.grip ? new THREE.Vector3(...it.grip).multiply(sz).add(box.min) : new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2);
+  const pre = it.native ? new THREE.Matrix4().makeTranslation(-meshes[0].getWorldPosition(new THREE.Vector3()).x, -meshes[0].getWorldPosition(new THREE.Vector3()).y, -meshes[0].getWorldPosition(new THREE.Vector3()).z) : new THREE.Matrix4().makeTranslation(-o.x, -o.y, -o.z).multiply(rot);
+  const acc = Acc();
+  for (const m of meshes) {
+    const mats = Array.isArray(m.material) ? m.material : [m.material];
+    sampleMesh(acc, m, {
+      spacing: it.spacing, pre, seed: 11, shade: ({ u, v, m: mat, col, p }) => {
+        const mm = mat || mats[0];
+        const map = sampler(mm.map), arm = sampler(mm.aoMap || mm.roughnessMap);
+        let rgb;
+        if (it.recolor) { const base = it.recolor[mm.name] || [0.2, 0.2, 0.2], k = 0.85 + fbm(p.x * 80, p.y * 80, p.z * 80) * 0.3; return { rgb: base.map(x => x * k) }; }
+        if (map) { map(u, v, col); const k = srgb(mm.color || new THREE.Color(1, 1, 1)); rgb = [col[0] * k[0], col[1] * k[1], col[2] * k[2]]; }
+        else { rgb = srgb(mm.color || new THREE.Color(0.5, 0.5, 0.5)); const k = 0.9 + fbm(p.x * 60, p.y * 60, p.z * 60) * 0.2; rgb = rgb.map(x => x * k); }
+        if (arm && mm.aoMap) { const t = [0, 0, 0]; arm(u, v, t); const ao = 0.35 + 0.65 * t[0]; rgb = rgb.map(x => x * ao); }
+        return { rgb };
+      },
+    });
+  }
+  const P3 = new THREE.Vector3(), lo = new THREE.Vector3(1e9, 1e9, 1e9), hi = new THREE.Vector3(-1e9, -1e9, -1e9);
+  for (let i = 0; i < acc.a.length; i++) { P3.fromArray(acc.p, i * 3); lo.min(P3); hi.max(P3); }
+  const r4 = v => v.toArray().map(x => +x.toFixed(4));
+  return { acc, meta: { n: acc.a.length, size: r4(hi.clone().sub(lo)), min: r4(lo), max: r4(hi) } };
+}
+
+/* ======================================================================
+   喪屍：Quaternius Universal Base Characters（CC0）＋ 依骨頭分區上色
+   ====================================================================== */
+const VARIANTS = [
+  { id: 'zombie-a', body: 'Male', hair: ['Hair_SimpleParted', 'Eyebrows_Regular'], coat: [0.20, 0.17, 0.13], long: true, pants: [0.13, 0.13, 0.14], shoes: [0.06, 0.05, 0.05], hairCol: [0.16, 0.13, 0.11], seed: 3 },
+  { id: 'zombie-b', body: 'Female', hair: ['Hair_Long', 'Eyebrows_Female'], coat: [0.42, 0.13, 0.11], long: false, pants: [0.10, 0.12, 0.19], shoes: [0.09, 0.08, 0.07], hairCol: [0.26, 0.19, 0.12], seed: 5 },
+  { id: 'zombie-c', body: 'Male', hair: ['Hair_Buzzed', 'Hair_Beard', 'Eyebrows_Regular'], coat: [0.36, 0.33, 0.24], long: false, pants: [0.18, 0.22, 0.30], shoes: [0.12, 0.09, 0.07], hairCol: [0.10, 0.09, 0.08], seed: 9 },
+];
+const FINGER = /index|middle|pinky|ring|thumb/;
+function regionOf(name, y, cfg, R) {
+  if (name === 'Head' || name === 'neck_01') return 'skin';
+  if (/^hand_/.test(name) || FINGER.test(name)) return 'skin';
+  if (/^(foot|ball)/.test(name)) return 'shoes';
+  if (/^(thigh|calf)/.test(name)) return cfg.long && y > R.knee + 0.2 ? 'coat' : 'pants';
+  if (name === 'pelvis') return cfg.long || y > R.hip + 0.06 ? 'coat' : 'pants';
+  return 'coat';
+}
+async function bakeZombie(cfg, rigs) {
+  const body = await loader.loadAsync(`${UBC}Base Characters/Godot - UE/Superhero_${cfg.body}_FullBody.gltf`);
+  body.scene.updateMatrixWorld(true);
+  let skinned = null; const meshes = [];
+  body.scene.traverse(o => { if (o.isSkinnedMesh) { meshes.push(o); if (!skinned || o.geometry.attributes.position.count > skinned.geometry.attributes.position.count) skinned = o; } });
+  const sk = skinned.skeleton, bones = sk.bones;
+  const boneName = i => bones[i].name;
+  const world = bones.map(b => new THREE.Vector3().setFromMatrixPosition(b.matrixWorld));
+  const R = { knee: world[bones.findIndex(b => b.name === 'calf_l')].y, hip: world[bones.findIndex(b => b.name === 'pelvis')].y, head: world[bones.findIndex(b => b.name === 'Head')] };
+  if (!rigs[cfg.body]) {
+    const top = bones.find(b => !b.parent?.isBone);
+    rigs[cfg.body] = {
+      root: top.parent.matrixWorld.toArray().map(x => +x.toFixed(6)),
+      bones: bones.map(b => ({ n: b.name, p: bones.indexOf(b.parent), t: b.position.toArray().map(x => +x.toFixed(5)), q: b.quaternion.toArray().map(x => +x.toFixed(6)), s: b.scale.toArray().map(x => +x.toFixed(5)) })),
+      inv: sk.boneInverses.flatMap(m => m.toArray().map(x => +x.toFixed(6))),
+      height: +(R.head.y + 0.12).toFixed(3),
+    };
+  }
+  const acc = Acc();
+  const headBone = bones.findIndex(b => b.name === 'Head');
+  const skinCol = [0, 0, 0];
+  const shadeBody = ({ p, n, u, v, m, bones: bw, rnd, col }) => {
+    const dom = bw && bw.length ? boneName(bw[0][0]) : 'spine_02';
+    const isEye = /Eye/i.test(m?.name || '');
+    const isBrow = /Hair/i.test(m?.name || '');
+    if (isBrow) return { rgb: cfg.hairCol.map(x => x * 0.8), offset: 0.001 };
+    if (isEye) return { rgb: [0.78, 0.80, 0.70], alpha: 1 }; // 混濁的死人眼
+    const reg = regionOf(dom, p.y, cfg, R);
+    const nz = fbm(p.x * 9 + cfg.seed, p.y * 9, p.z * 9), fine = noise3(p.x * 70, p.y * 70, p.z * 70);
+    let rgb, offset = 0, grow = 1;
+    if (reg === 'skin') {
+      const map = sampler(m?.map); if (map) map(u, v, skinCol); else skinCol.fill(0.6);
+      const L = skinCol[0] * 0.3 + skinCol[1] * 0.59 + skinCol[2] * 0.11;
+      // 灰綠、帶屍斑的皮膚：保留貼圖的明暗（五官），去掉血色
+      rgb = [L * 0.78 + skinCol[0] * 0.08, L * 0.86 + skinCol[1] * 0.06, L * 0.80 + skinCol[2] * 0.06];
+      const bruise = Math.max(0, nz - 0.58) * 2.4; rgb = [rgb[0] * (1 - bruise * 0.5) + 0.12 * bruise, rgb[1] * (1 - bruise * 0.6), rgb[2] * (1 - bruise * 0.3) + 0.08 * bruise];
+    } else {
+      const base = cfg[reg];
+      const k = 0.78 + nz * 0.42 + (fine - 0.5) * 0.12;
+      rgb = base.map(x => x * k);
+      // 撕裂處露出皮膚、乾掉的血、肩頭的積雪
+      const tear = fbm(p.x * 14 + 40, p.y * 14, p.z * 14 + cfg.seed);
+      if (reg !== 'shoes' && tear > 0.74) rgb = [0.42, 0.46, 0.43].map(x => x * (0.7 + fine * 0.3));
+      else {
+        offset = reg === 'coat' ? 0.012 : reg === 'pants' ? 0.006 : 0.004; grow = reg === 'coat' ? 1.15 : 1;
+        const blood = fbm(p.x * 6 - 13, p.y * 6 + cfg.seed, p.z * 6);
+        if (blood > 0.7 && p.y > R.knee) { const b = Math.min(1, (blood - 0.7) * 6); rgb = rgb.map((x, i) => x * (1 - b) + [0.2, 0.03, 0.03][i] * b); }
+        if (n.y > 0.55 && reg === 'coat') { const s = Math.min(1, (n.y - 0.55) * 2.6) * (0.5 + nz * 0.5); rgb = rgb.map(x => x * (1 - s) + 0.82 * s); }
+      }
+    }
+    return { rgb, offset, grow };
+  };
+  for (const m of meshes) sampleMesh(acc, m, { spacing: m === skinned ? 0.0072 : 0.004, seed: cfg.seed, shade: shadeBody });
+  // 頭髮：Origin at 0 版本已經擺在頭上，全部綁到 Head
+  for (const h of cfg.hair) {
+    const hg = await loader.loadAsync(`${UBC}Hairstyles/Origin at 0/glTF (Godot)/${h}.gltf`); hg.scene.updateMatrixWorld(true);
+    hg.scene.traverse(o => {
+      if (!o.isMesh) return;
+      const g = o.geometry; g.deleteAttribute('skinIndex'); g.deleteAttribute('skinWeight');
+      const mesh = new THREE.Mesh(g, o.material); mesh.matrixWorld.copy(o.matrixWorld);
+      sampleMesh(acc, mesh, { spacing: 0.005, seed: cfg.seed + 1, bone: headBone, shade: ({ p }) => ({ rgb: cfg.hairCol.map(x => x * (0.7 + fbm(p.x * 40, p.y * 40, p.z * 40) * 0.6)), offset: 0.002, grow: 1.2 }) });
+    });
+  }
+  return { acc, meta: { n: acc.a.length, body: cfg.body } };
+}
+
+/* ---------- 動畫：Universal Animation Library（CC0），只留身體骨頭的旋轉與骨盆位移 ---------- */
+const CLIPS = { walk: 'Walk_Loop', idle: 'Idle_Loop', jog: 'Jog_Fwd_Loop', jab: 'Punch_Jab', cross: 'Punch_Cross', hit: 'Hit_Chest', hitHead: 'Hit_Head', die: 'Death01', crouch: 'Crouch_Idle_Loop' };
+async function bakeClips() {
+  const g = await loader.loadAsync(UAL);
+  let pelvis = null; g.scene.traverse(o => { if (o.isBone && o.name === 'pelvis') pelvis = o; });
+  const out = {};
+  for (const [key, name] of Object.entries(CLIPS)) {
+    const clip = g.animations.find(a => a.name === name); if (!clip) { log('缺少動畫', name); continue; }
+    const tracks = clip.tracks.filter(t => { const [node, prop] = t.name.split('.'); if (FINGER.test(node) || /leaf/.test(node)) return false; return prop === 'quaternion' || (prop === 'position' && node === 'pelvis'); });
+    // 降到 20 fps 並四捨五入，縮小檔案
+    const json = tracks.map(t => {
+      const sz = t.getValueSize(), times = [], values = [];
+      const dur = clip.duration, steps = Math.max(2, Math.round(dur * 20) + 1), interp = t.createInterpolant();
+      for (let i = 0; i < steps; i++) { const tt = Math.min(dur, i / 20); times.push(+tt.toFixed(3)); const r = interp.evaluate(tt); for (let c = 0; c < sz; c++) values.push(+r[c].toFixed(4)); }
+      return { name: t.name, type: t.ValueTypeName, times, values };
+    });
+    out[key] = { name, duration: +clip.duration.toFixed(3), tracks: json };
+  }
+  return { clips: out, pelvis: pelvis.position.toArray().map(x => +x.toFixed(5)) };
+}
+
+window.bakeAll = async (which = 'all') => {
+  const files = {}, manifest = { items: {}, zombies: {}, rigs: {}, clips: null };
+  if (which === 'all' || which === 'items') for (const it of ITEMS) {
+    const { acc, meta } = await bakeItem(it); files[it.id + '.spz'] = b64(await encodeSpz(acc)); manifest.items[it.id] = meta; log(it.id, meta.n, meta.size);
+  }
+  if (which === 'all' || which === 'zombies') {
+    for (const v of VARIANTS) {
+      const { acc, meta } = await bakeZombie(v, manifest.rigs);
+      files[v.id + '.spz'] = b64(await encodeSpz(acc)); files[v.id + '.skin'] = b64(await gzip(skinBytes(acc)));
+      manifest.zombies[v.id] = meta; log(v.id, meta.n);
+    }
+    const c = await bakeClips(); manifest.clips = c.clips; manifest.ualPelvis = c.pelvis;
+  }
+  return { files, manifest };
+};
+log('ready');
+</script>
+</body>
+</html>

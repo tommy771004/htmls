@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>266 splat 預覽</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#555}canvas{display:block;width:100%;height:100%}#t{position:fixed;left:8px;top:6px;color:#fff;font:12px ui-monospace,monospace}</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas><div id="t"></div>
+<script type="module">
+// 檢查烘焙結果：物件排一排、三種喪屍套上 Spark SplatSkinning 播放動畫。?clip=walk&t=0.3&view=items|zombies
+import * as THREE from 'three';
+import { SparkRenderer, SplatMesh, SplatSkinning, PackedSplats } from 'https://cdn.jsdelivr.net/npm/@sparkjsdev/spark@2.3.1/dist/spark.module.min.js';
+const QS = new URLSearchParams(location.search), BASE = '/assets/266/';
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c') });
+renderer.setSize(innerWidth, innerHeight, false);
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#5a5f66');
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 100);
+const spark = new SparkRenderer({ renderer }); scene.add(spark);
+const man = await (await fetch(BASE + 'manifest.json')).json();
+const view = QS.get('view') || 'zombies';
+const gunzip = async buf => new Uint8Array(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+window.__ready = false;
+
+if (view === 'items') {
+  const ids = QS.get('only') ? QS.get('only').split(',') : Object.keys(man.items); let x = 0;
+  for (const id of ids) {
+    const m = new SplatMesh({ url: BASE + id + '.spz' }); await m.initialized;
+    const s = man.items[id].size, w = Math.max(s[0], s[2]);
+    const k = 0.5 / Math.max(...s); m.scale.setScalar(k); m.position.set(x + 0.3, 0, 0); scene.add(m); x += 0.75;
+  }
+  const yaw = +(QS.get('yaw') || 0), d = 0.9 + x * 0.55, el = +(QS.get('el') || 0.5);
+  camera.position.set(x / 2 + Math.sin(yaw) * d, 0.2 + Math.sin(el) * d, Math.cos(yaw) * d * Math.cos(el)); camera.lookAt(x / 2, 0.15, 0);
+} else {
+  const clips = {};
+  for (const [k, c] of Object.entries(man.clips)) clips[k] = THREE.AnimationClip.parse({ name: c.name, duration: c.duration, tracks: c.tracks, uuid: k });
+  const zs = [];
+  let i = 0;
+  for (const [id, meta] of Object.entries(man.zombies)) {
+    const rig = man.rigs[meta.body];
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; root.matrix.fromArray(rig.root);
+    const bones = rig.bones.map(b => { const o = new THREE.Bone(); o.name = b.n; o.position.fromArray(b.t); o.quaternion.fromArray(b.q); o.scale.fromArray(b.s); return o; });
+    rig.bones.forEach((b, j) => (b.p >= 0 ? bones[b.p] : root).add(bones[j]));
+    const inv = rig.bones.map((_, j) => new THREE.Matrix4().fromArray(rig.inv, j * 16));
+    const bytes = new Uint8Array(await (await fetch(BASE + id + '.spz')).arrayBuffer());
+    const packed = new PackedSplats({ fileBytes: bytes }); await packed.initialized;
+    const mesh = new SplatMesh({ packedSplats: packed }); await mesh.initialized;
+    const skin = new Uint16Array((await gunzip(await (await fetch(BASE + id + '.skin')).arrayBuffer())).buffer);
+    const sk = new SplatSkinning({ mesh, numSplats: packed.numSplats, numBones: bones.length });
+    sk.skinData.set(skin); sk.skinTexture.needsUpdate = true;
+    const Q0 = new THREE.Quaternion(), P0 = new THREE.Vector3();
+    for (let j = 0; j < bones.length; j++) sk.setRestQuatPos(j, Q0, P0);
+    mesh.skinning = sk; mesh.updateGenerator();
+    mesh.position.set((i - 1) * 0.9, 0, 0); scene.add(mesh);
+    const mixer = new THREE.AnimationMixer(root);
+    const ratio = rig.bones.find(b => b.n === 'pelvis').t[1] / man.ualPelvis[1];
+    const clip = clips[QS.get('clip') || 'walk'];
+    const a = mixer.clipAction(clip); a.play();
+    zs.push({ root, bones, inv, sk, mixer, mesh, ratio, pelvis: bones.find(b => b.name === 'pelvis') });
+    i++;
+  }
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+  window.pose = t => {
+    for (const z of zs) {
+      z.mixer.setTime(t);
+      z.root.updateMatrixWorld(true);
+      z.bones.forEach((b, j) => { M.multiplyMatrices(b.matrixWorld, z.inv[j]); M.decompose(p, q, s); z.sk.setBoneQuatPos(j, q, p); });
+      z.sk.updateBones();
+    }
+  };
+  window.pose(+(QS.get('t') || 0.3));
+  const yaw = +(QS.get('yaw') || 0);
+  camera.position.set(Math.sin(yaw) * 4.2, 1.1, Math.cos(yaw) * 4.2); camera.lookAt(0, 0.9, 0);
+  document.getElementById('t').textContent = Object.entries(man.zombies).map(([k, v]) => k + ' ' + v.n).join(' · ');
+}
+let frames = 0;
+renderer.setAnimationLoop(() => { renderer.render(scene, camera); if (++frames > 40) window.__ready = true; });
+</script>
+</body>
+</html>
