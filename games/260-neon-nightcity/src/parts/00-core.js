@@ -2,6 +2,18 @@
 // src/parts/*.js 依檔名順序串成同一個模組再打包（tools/build.mjs），彼此共用頂層變數。
 const $ = id => document.getElementById(id);
 const bootMsg = t => { $('bootMsg').textContent = t; };
+// 開始畫面的進度 0–100：「進入雨夜」按鈕本身就是進度條（--p 是填滿的寬度）。每個階段讓出一幀，畫面才看得到數字前進
+function bootProgress(p, msg) {
+  p = bootProgress.p = Math.max(bootProgress.p || 0, Math.min(100, p));
+  const go = $('go'), n = Math.floor(p);
+  go.style.setProperty('--p', p.toFixed(1) + '%');
+  go.setAttribute('aria-valuenow', n);
+  go.dataset.label = go.textContent = `載入中 ${n}%`;
+  if (msg) bootMsg(msg);
+}
+// 各階段開始時的百分比（依桌機實測的耗時分配）；最後一段留給下載座駕與機車的實車模型
+const BOOT = { city: 4, props: 8, vehicles: 14, people: 29, assets: 40, venues: 46, render: 60, dl: 60 };
+const bootStep = (p, msg) => { bootProgress(p, msg); return new Promise(r => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 80); }); };
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 

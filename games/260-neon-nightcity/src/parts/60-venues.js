@@ -1,5 +1,6 @@
 
 // ═══ 可進入的場館：LAZARUS 夜店、AFTERGLOW 酒吧，外加 CHROME WORKS 改裝廠門口 ═══
+await bootStep(BOOT.venues, '布置夜店與酒吧…');
 const ENV = {
   out: { lampOn: 1, wet: 1, fogDen: .016, fog: 0x1a1d26, fogHi: 0x3a2a3a, top: 0x1d2230, bot: 0x241a16 },
   club: { lampOn: 0, wet: 0, fogDen: .05, fog: 0x1c0c26, fogHi: 0x2c1036, top: 0x2c1a3a, bot: 0x180c20 },

@@ -1,6 +1,7 @@
 
 // ═══ Blender 室內道具：解壓內嵌的 GLB，轉成通用材質的頂點色幾何 ═══
 // blender/out/interior_props.glb、street_props.glb 以 gzip＋base64 內嵌在 <script id="glb-名稱">。
+await bootStep(BOOT.assets, '搬進道具…');
 const assetReport = { loaded: [], missing: [], props: [] };
 async function decodeGLB(name) {
   const el = document.getElementById('glb-' + name);

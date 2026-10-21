@@ -1,5 +1,6 @@
 
 // ═══ 渲染管線：路面倒影 → 主畫面 → 泛光 → 動態模糊、色調映射、暗角與顆粒 ═══
+await bootStep(BOOT.render, '點亮霓虹…');
 const camera = new T.PerspectiveCamera(62, innerWidth / innerHeight, .2, 1200);
 camera.layers.enable(LY.NOREFL);
 const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);

@@ -1,5 +1,6 @@
 
 // ═══ 城市：街區、建築立面、路面與人行道 ═══
+await bootStep(BOOT.city, '正在鋪路…');
 const scene = new T.Scene();
 const LY = { MAIN: 0, NOREFL: 1 };     // 1 號圖層不進倒影（雨、蒸氣、小物件）
 const rnd = rng(20261019);

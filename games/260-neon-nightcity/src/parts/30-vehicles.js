@@ -1,6 +1,7 @@
 
 // ═══ 車輛：程序建模、車流 AI、路邊停車、玩家座駕物理 ═══
 // 側面輪廓（z 為車長方向、y 為高度）沿寬度擠出，再把上半部往內收
+await bootStep(BOOT.vehicles, '車流上路…');
 function sideExtrude(kit, pts, width, color, mat, taper, bevel = .035, matrix) {
   const sh = new T.Shape(pts.map(([z, y]) => new T.Vector2(z, y)));
   const d = width - bevel * 2;

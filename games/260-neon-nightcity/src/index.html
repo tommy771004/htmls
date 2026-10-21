@@ -97,6 +97,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 #toast{position:absolute;left:50%;top:96px;transform:translateX(-50%);padding:7px 14px;font-size:13px;background:var(--panel-2);border-radius:7px;opacity:0;transition:opacity var(--dur-exit) var(--ease-out);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 #toast.on{opacity:1}
+/* 實車模型下載進度（走進車行、車庫或走近車行門口時） */
+#dl{position:absolute;left:50%;top:140px;transform:translateX(-50%);display:none;align-items:baseline;gap:10px;padding:7px 14px 11px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+#dl.on{display:flex}
+#dl b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;min-width:3.2em;text-align:right}
+#dl i{position:absolute;left:14px;right:14px;bottom:5px;height:2px;border-radius:2px;background:rgba(236,232,224,.14);overflow:hidden}
+#dl i::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--sodium);clip-path:inset(0 calc(100% - var(--p,0%)) 0 0);transition:clip-path 260ms var(--ease-out)}
 
 /* 對話 */
 #dialog{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:14px 18px 14px;background:var(--panel-2);border-radius:10px;pointer-events:auto;display:none}
@@ -139,7 +145,11 @@ body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #p
 #go{margin-top:22px;border:0;border-radius:3px;padding:12px 26px;background:var(--sodium);color:#1b1206;font-weight:700;font-size:15px;transition:background var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out)}
 #go:hover{background:#ffc07a}
 #go:active{transform:scale(.97)}
-#go:disabled{background:#5a5348;color:#1b1206;cursor:default}
+/* 載入中：按鈕本身是進度條，鈉燈色從左往右填滿；填滿處的字換成深色（::after 疊一層同樣裁切的字） */
+#go:disabled{position:relative;isolation:isolate;min-width:150px;background:#2b2722;color:var(--ink-2);cursor:default;font-variant-numeric:tabular-nums}
+#go:disabled::before,#go:disabled::after{content:"";position:absolute;inset:0;border-radius:inherit;clip-path:inset(0 calc(100% - var(--p,0%)) 0 0);transition:clip-path 260ms var(--ease-out)}
+#go:disabled::before{background:var(--sodium)}
+#go:disabled::after{content:attr(data-label);display:flex;align-items:center;justify-content:center;color:#1b1206}
 #bootMsg{display:block;margin-top:10px;font-size:12px;color:var(--ink-2);min-height:1.2em}
 
 /* 觸控 */
@@ -168,9 +178,10 @@ body.touch #capture{display:none}
   #start{padding-bottom:max(28px,env(safe-area-inset-bottom))}
   #start p{font-size:14px}
   #toast{top:176px}
+  #dl{top:216px}
 }
 @media (prefers-reduced-motion: reduce){
-  #hud,#speedo,#fade,#start.gone{transition-duration:1ms}
+  #hud,#speedo,#fade,#start.gone,#go::before,#go::after,#dl i::after{transition-duration:1ms}
   #obj.flash b,#cash.up{animation:none}
 }
 </style>
@@ -200,6 +211,7 @@ body.touch #capture{display:none}
   <div id="marker"><span class="tag"><b id="mkName">LAZARUS</b><em id="mkDist">0 m</em></span><i></i></div>
   <div id="prompt"><kbd id="promptKey">E</kbd><span id="promptText">上車</span></div>
   <div id="toast"></div>
+  <div id="dl" class="pan" role="progressbar" aria-label="下載實車模型" aria-valuemin="0" aria-valuemax="100"><span>下載實車模型</span><b id="dlPct">0%</b><i></i></div>
   <div id="capture">點畫面鎖定游標，Esc 釋放</div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
@@ -210,8 +222,8 @@ body.touch #capture{display:none}
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>
   <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。甩尾賺錢，再去 VELOCE MOTORS 挑一台夢想中的車。</p>
   <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖</div>
-  <button id="go" disabled>進入雨夜</button>
-  <span id="bootMsg">正在鋪路…</span>
+  <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
+  <span id="bootMsg">正在下載頁面…</span>
 </div></div>
 <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#07080b;color:#ece8e0">這件作品需要 JavaScript 與 WebGL。</p></noscript>
 <p class="sr">可開車探索的雨夜城市：程序生成的街區、霓虹招牌與全息廣告，可下車步行並進入酒吧與夜店。</p>

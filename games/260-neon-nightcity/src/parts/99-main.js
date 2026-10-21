@@ -297,8 +297,19 @@ function loop(now) {
 setWhere('out');
 setQuest(0);
 camState.yaw = player.yaw = 0.35;
-bootMsg('雨正在下。');
+// 等座駕與路邊機車的實車模型下載完再開放進場（手機也一樣等）；以檔案開啟不下載。卡住超過 60 秒就先用替身進場，下載好再換
+if (GLB_ON) {
+  const want = [...new Set([kestrel.carId, hanzo.carId])].filter(id => CARS[id] && CARS[id].glb);
+  await bootStep(BOOT.dl, '下載座駕的實車模型…');
+  let fin = false; Promise.all(want.map(loadGLB)).then(() => { fin = true; });
+  for (const t0 = performance.now(); !fin && performance.now() - t0 < 60000;) {
+    bootProgress(BOOT.dl + (99 - BOOT.dl) * glbFrac(want));
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
+bootProgress(100, '雨正在下。');
 const go = $('go'); go.disabled = false;
+go.textContent = '進入雨夜'; go.removeAttribute('role'); go.removeAttribute('aria-valuenow');
 go.addEventListener('click', () => {
   started = true; sfx.init();
   $('start').classList.add('gone'); $('hud').classList.add('on'); $('touch').classList.add('on');

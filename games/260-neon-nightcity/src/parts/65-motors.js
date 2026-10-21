@@ -335,6 +335,14 @@ ctxHooks.push((p, near) => {
 function updateMotors(dt, t) {
   if (glbWait.length && (player.where === 'show' || player.where === 'home')) glbWake(VENUES[player.where].scene);
   else if (glbWait.length && player.where === 'out' && Math.hypot(player.x - DEAL_X, player.z - DEAL_Z) < 90) glbWake(scene);   // 車行門口的展示車
+  // 這一批實車模型的下載進度
+  const f = glbBatchFrac(), dl = $('dl');
+  if (f == null) { dl.classList.remove('on'); hudCache.dl = -1; }
+  else {
+    const n = Math.floor(f * 100);
+    if (hudCache.dl !== n) { hudCache.dl = n; $('dlPct').textContent = n + '%'; dl.style.setProperty('--p', n + '%'); dl.setAttribute('aria-valuenow', n); }
+    dl.classList.add('on');
+  }
   if (player.where === 'show') for (const s of show.spin) s.g.rotation.y = s.a0 + t * .22;
   const tst = motors.test;
   if (tst) {

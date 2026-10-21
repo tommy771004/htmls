@@ -7,6 +7,7 @@
 // 否則每次 render（倒影＋主畫面）都要重算幾千個骨頭矩陣。
 // 動畫時間不累加，每幀由 uTime／uBeat 換算（舞池對拍）；動畫庫沒有的動作（調酒、DJ、撐傘、抽菸、抱胸）在播放後覆寫手臂骨頭。
 // 角色面向 +z，左手在 +x。
+await bootStep(BOOT.people, '行人出門…');
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 const SLOT = { skin: 0, top: 1, sleeve: 2, bottom: 3, shin: 4, shoe: 5 };   // 6 頭髮 7 眉毛 8 眼睛
 const HAIR_VARS = { Male: ['SimpleParted', 'Buzzed', 'Beard'], Female: ['Long', 'Buns', 'BuzzedFemale'] };

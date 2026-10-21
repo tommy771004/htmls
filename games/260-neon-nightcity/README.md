@@ -13,7 +13,7 @@
 ```bash
 npm run build    # 打包成 ../../web/260-neon-nightcity.html（--dev 不壓縮）
 npm test         # tools/accept.mjs：1440×900 走完整段任務、開車、地圖，390×844 觸控版；SHOT_DIR=… 會存截圖
-npm run thumb    # tools/thumb.mjs → ../../thumbs/260.jpg；THUMB="車 dx,dz,車 yaw,相機 yaw,pitch,遠近" 可調構圖
+npm run thumb    # tools/thumb.mjs（本機 HTTP，座駕是 AE86 實車）→ ../../thumbs/260.jpg；THUMB="車 dx,dz,車 yaw,相機 yaw,pitch,遠近" 可調構圖
 npm run assets   # 用 Blender 重建 blender/out/*.glb（需要 Blender 5.x）
 npm run people   # tools/people.mjs：Blender 跑 blender/people.py（Quaternius 底模與動畫），再用 gltf-transform 壓成 blender/out/people.glb
 node tools/pose-gallery.mjs [資料夾]   # 在大道上排一列人，每人一種動作，正面與側面截圖檢查姿勢
@@ -27,7 +27,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 - 原檔放在 gitignore 的 `.cache/cars/`（檔名對應 `tools/cars.mjs` 的 `MODELS`），處理後的 `assets/260/*.glb`（29 台約 51 MB）與 `cars.json` 有 commit；`cars.json` 在打包時併進頁面（車長、輪距、軸距、輪徑、可否換色、作者與授權）。
 - `tools/cars.mjs` 每台車：依 `len`（真實車長）縮放、長軸轉到 z、`flip` 讓車頭朝 +z、接地；從落地的連通塊找出輪胎，整塊落在輪子圓柱裡的零件（輪框、碟盤、卡鉗）拆成 `wheel_FL`…（機車 `wheel_F`／`wheel_R`），節點原點在輪軸；材質係數寫進頂點屬性（`COLOR_0`、`_PBR` 粗糙／金屬／清漆／車漆旗標、`_EMI` 自發光＋燈種），同一張貼圖的零件合成一個 primitive；最後減面到 `tris`、貼圖轉 1024 WebP、meshopt 壓縮。車漆材質自動挑（名稱有 paint 或面數最多的清漆材質），`paint: [名稱]` 指定、`paint: false` 不換色；有彩繪貼圖的車不能在 CHROME WORKS 換色。
-- 頁面（`26-glb.js`）只有以 http(s) 開啟時才下載，而且是走進展示廳、車庫、走近車行門口（門前兩台展示車與櫥窗剪影）或換成那台車時才下載，座駕 AE86 與路邊的 ZX-6R 開場就下載；以檔案開啟或下載失敗就用 `proxy` 指定的程式建模車身（機車用 Hanzo）頂替。材質是 uber 光照的貼圖版本，金屬度在粗糙表面上壓到 0.5（很多模型把金屬漆標成 metallic 1，在夜城會整台變黑），自發光壓回 0–1 再依燈種隨頭燈與煞車變亮。
+- 頁面（`26-glb.js`）只有以 http(s) 開啟時才下載，而且是走進展示廳、車庫、走近車行門口（門前兩台展示車與櫥窗剪影）或換成那台車時才下載，座駕（新存檔是 AE86）與路邊的 ZX-6R 開場就下載，下載完才開放「進入雨夜」（手機也一樣等，卡住超過 60 秒才先用替身進場）；以檔案開啟或下載失敗就用 `proxy` 指定的程式建模車身（機車用 Hanzo）頂替。開始畫面的「進入雨夜」按鈕本身是 0–100 的進度條（`00-core.js` 的 `bootProgress`／`bootStep`，各段比例在 `BOOT`，最後 40% 是座駕下載的位元組數），展示廳、車庫與車行門口要下載時，HUD 上方顯示這一批的合計進度（`glbBatch`）。材質是 uber 光照的貼圖版本，金屬度在粗糙表面上壓到 0.5（很多模型把金屬漆標成 metallic 1，在夜城會整台變黑），自發光壓回 0–1 再依燈種隨頭燈與煞車變亮。
 - 加新車：把 GLB 放進 `.cache/cars/`，在 `MODELS` 加一列、跑 `node tools/cars.mjs <id>` 與 `car-view.mjs` 確認方向，再到 `26-glb.js` 的 `GLB_CARS`、`25-cars.js` 的 `CAR_ORDER` 與 `65-motors.js` 的 `SHOW_ROWS` 登錄（展示廳深度、燈與車庫格數都依排數與 `CAR_ORDER` 自動算）。原檔有怪癖時在 `MODELS` 加：`opaque`（整台標成 BLEND 但其實不透明）、`noEmi`（底色貼圖也接到自發光的無光照匯出）、`wheelNodes`（輪胎和前叉黏在一起時，依節點名指定輪胎與輪框）。只收 CC0／CC BY（或接受 NC-SA）的模型，並更新 `assets/260/CREDITS.md`。
 
 `node_modules` 連到 `../201-coral-cove/node_modules`（three 0.186.0、esbuild、playwright-core）。

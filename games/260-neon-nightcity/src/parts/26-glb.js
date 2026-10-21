@@ -174,9 +174,27 @@ async function embeddedGLB(name) {
   return glbLoader.parseAsync(ab, '');
 }
 const glbCache = {};
+// 下載進度：每台已收到／總共幾 byte（伺服器沒給長度時用 cars.json 的檔案大小），下載完或失敗就記成完成
+const glbBytes = {}, glbDone = new Set();
+function glbFrac(ids) {
+  let got = 0, all = 0;
+  for (const id of ids) {
+    const tot = (GLB_SPEC[id] ? GLB_SPEC[id].kb : 1000) * 1024, b = glbBytes[id];
+    all += tot; got += glbDone.has(id) ? tot : b ? tot * Math.min(1, b[0] / (b[1] || tot)) : 0;
+  }
+  return all ? got / all : 1;
+}
+// 走進車行、車庫（或走近車行門口）時這一批要下載的車款；HUD 顯示合計進度，全部下載完才清空
+const glbBatch = new Set();
+function glbBatchFrac() {
+  if (!glbBatch.size) return null;
+  for (const id of glbBatch) if (!glbDone.has(id)) return glbFrac(glbBatch);
+  glbBatch.clear(); return null;
+}
 function loadGLB(id) {
   if (!GLB_ON || !CARS[id] || !CARS[id].glb) return null;
-  return glbCache[id] ??= glbLoader.loadAsync(GLB_BASE + id + '.glb').then(g => {
+  const prog = e => { glbBytes[id] = [e.loaded, e.lengthComputable ? e.total : 0]; };
+  return glbCache[id] ??= glbLoader.loadAsync(GLB_BASE + id + '.glb', prog).then(g => {
     const root = g.scene.getObjectByName('car'), spec = GLB_SPEC[id];
     g.scene.updateMatrixWorld(true);
     const inv = root.matrixWorld.clone().invert();
@@ -191,9 +209,9 @@ function loadGLB(id) {
         tpl.wheels.push({ ...w, front: w.name[0] === 'F', list });
       } else tpl.body.push(...list);
     }
-    glbReport.loaded.push(id);
+    glbReport.loaded.push(id); glbDone.add(id);
     return tpl;
-  }, () => { glbReport.failed.push(id); return null; });
+  }, () => { glbReport.failed.push(id); glbDone.add(id); return null; });
 }
 // 一個實例：自己的 uM（頭燈、煞車）與車漆 uniform，網格與材質都是新的、幾何共用
 function glbInstance(tpl, paint, uM) {
@@ -233,6 +251,7 @@ function glbWake(scn) {
     if (top !== scn && e.g.parent) continue;   // 還在別的場景裡；已經被拿掉的直接丟棄
     glbWait.splice(i, 1);
     if (!e.g.parent) continue;
+    if (!glbDone.has(e.id)) glbBatch.add(e.id);
     loadGLB(e.id).then(tpl => {
       if (!tpl || e.fb.parent !== e.g) return;
       const inst = glbInstance(tpl, e.paint);

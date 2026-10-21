@@ -1,5 +1,6 @@
 
 // ═══ 街道設施、招牌、全息廣告、蒸氣、雨與天空 ═══
+await bootStep(BOOT.props, '擺放街道與招牌…');
 const _o = new T.Object3D();
 function instanced(geo, mat, list, layer = 0, extra) {
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
