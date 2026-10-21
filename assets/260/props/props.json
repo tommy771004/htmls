@@ -1,0 +1,788 @@
+{
+ "interior": {
+  "kb": 549,
+  "items": {
+   "jukebox": {
+    "w": 0.95,
+    "d": 0.8,
+    "h": 1.62,
+    "tris": 6332
+   },
+   "arcade": {
+    "w": 0.81,
+    "d": 0.6,
+    "h": 1.86,
+    "tris": 4206
+   },
+   "carlift": {
+    "w": 5.23,
+    "d": 3.78,
+    "h": 2.88,
+    "tris": 3272
+   },
+   "toolcart": {
+    "w": 0.65,
+    "d": 0.97,
+    "h": 0.98,
+    "tris": 850
+   }
+  },
+  "credits": [
+   {
+    "file": "rocket_vinyl_jukebox_game_ready",
+    "title": "Rocket Vinyl Jukebox (GAME READY)",
+    "author": "ZaXx (https://sketchfab.com/Sc00P1)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/rocket-vinyl-jukebox-game-ready-c3bec6bcf7c44bdb9c26ef55a1a39de5"
+   },
+   {
+    "file": "rusty_japanese_arcade",
+    "title": "Rusty Japanese Arcade",
+    "author": "Toni García Vilche (https://sketchfab.com/zul_gv)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/rusty-japanese-arcade-2938ae13a77c46e8afabb41eba18e699"
+   },
+   {
+    "file": "carlift",
+    "title": "Carlift",
+    "author": "3ddominator (https://sketchfab.com/roughdominator)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/carlift-2dfad5340895423b8ec58fc392e4af32"
+   },
+   {
+    "file": "free_drawer_tool_cart_used",
+    "title": "[Free] Drawer Tool Cart (Used)",
+    "author": "Robert Prispilović (https://sketchfab.com/rprispil)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/free-drawer-tool-cart-used-da8955e5c8c448e58b013951f48148a0"
+   }
+  ]
+ },
+ "ramen": {
+  "kb": 231,
+  "items": {
+   "ramen": {
+    "w": 6.13,
+    "d": 2.85,
+    "h": 3.4,
+    "tris": 4616
+   }
+  },
+  "credits": [
+   {
+    "file": "japanese_ramen_stall",
+    "title": "Japanese Ramen Stall",
+    "author": "J. Beltran (https://sketchfab.com/ilchampo)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/japanese-ramen-stall-2e3ea2a141324c29be0a20d3bfe0c90d"
+   }
+  ]
+ },
+ "bld_brown": {
+  "kb": 2499,
+  "items": {
+   "brown_01": {
+    "w": 19.37,
+    "d": 23.05,
+    "h": 13.22,
+    "src": "Brownstone_Classic_1",
+    "tris": 1800
+   },
+   "brown_02": {
+    "w": 30,
+    "d": 22.65,
+    "h": 9.1,
+    "src": "Brownstone_ClassicComplex_1",
+    "tris": 1412
+   },
+   "brown_03": {
+    "w": 30.01,
+    "d": 23.56,
+    "h": 12.86,
+    "src": "Brownstone_ClassicComplex_2",
+    "tris": 3066
+   },
+   "brown_04": {
+    "w": 21.73,
+    "d": 22.91,
+    "h": 10.39,
+    "src": "Brownstone_Commercial_1",
+    "tris": 1699
+   },
+   "brown_05": {
+    "w": 21.28,
+    "d": 22.45,
+    "h": 16.16,
+    "src": "Brownstone_Commercial_1_C",
+    "tris": 2457
+   },
+   "brown_06": {
+    "w": 30,
+    "d": 21.38,
+    "h": 22.77,
+    "src": "Brownstone_FlatFacade_1",
+    "tris": 3978
+   },
+   "brown_07": {
+    "w": 13.32,
+    "d": 20.6,
+    "h": 18.73,
+    "src": "Brownstone_FlatFacade_12",
+    "tris": 2713
+   },
+   "brown_08": {
+    "w": 13.32,
+    "d": 20.6,
+    "h": 18.73,
+    "src": "Brownstone_FlatFacade_12_B",
+    "tris": 2741
+   },
+   "brown_09": {
+    "w": 13.32,
+    "d": 20.6,
+    "h": 18.73,
+    "src": "Brownstone_FlatFacade_12_C",
+    "tris": 2741
+   },
+   "brown_10": {
+    "w": 28.39,
+    "d": 21.4,
+    "h": 21.04,
+    "src": "Brownstone_FlatFacade_2",
+    "tris": 2742
+   },
+   "brown_11": {
+    "w": 20,
+    "d": 21.45,
+    "h": 21.18,
+    "src": "Brownstone_FlatFacade_3",
+    "tris": 3523
+   },
+   "brown_12": {
+    "w": 4.56,
+    "d": 1.37,
+    "h": 11.57,
+    "src": "Brownstone_FlatFacade_3_Brownstone_Maskedstuff_1_0",
+    "tris": 70
+   },
+   "brown_13": {
+    "w": 10,
+    "d": 20.48,
+    "h": 21.04,
+    "src": "Brownstone_FlatFacade_4",
+    "tris": 863
+   },
+   "brown_14": {
+    "w": 20,
+    "d": 21.47,
+    "h": 21.85,
+    "src": "Brownstone_FlatFacade_5",
+    "tris": 3378
+   },
+   "brown_15": {
+    "w": 30,
+    "d": 20.98,
+    "h": 21.06,
+    "src": "Brownstone_FlatFacade_6",
+    "tris": 2180
+   },
+   "brown_16": {
+    "w": 30,
+    "d": 20.48,
+    "h": 13.47,
+    "src": "Brownstone_FlatFacade_6_B",
+    "tris": 1546
+   },
+   "brown_17": {
+    "w": 20,
+    "d": 21.45,
+    "h": 21.04,
+    "src": "Brownstone_FlatFacade_7",
+    "tris": 3456
+   },
+   "brown_18": {
+    "w": 20,
+    "d": 21.43,
+    "h": 13.45,
+    "src": "Brownstone_FlatFacade_7_B",
+    "tris": 1856
+   },
+   "brown_19": {
+    "w": 10,
+    "d": 21.43,
+    "h": 21.04,
+    "src": "Brownstone_FlatFacade_8",
+    "tris": 1367
+   },
+   "brown_20": {
+    "w": 30,
+    "d": 21.69,
+    "h": 20.38,
+    "src": "Brownstone_FlatFacade_9",
+    "tris": 4078
+   },
+   "brown_21": {
+    "w": 30,
+    "d": 21.3,
+    "h": 12.79,
+    "src": "Brownstone_FlatFacade_9_B",
+    "tris": 1778
+   },
+   "brown_22": {
+    "w": 30,
+    "d": 21.69,
+    "h": 20.38,
+    "src": "Brownstone_FlatFacade_9_C",
+    "tris": 4078
+   },
+   "brown_23": {
+    "w": 68.28,
+    "d": 20.56,
+    "h": 16.59,
+    "src": "Brownstone_FlatFacadeComplex_1",
+    "tris": 2333
+   },
+   "brown_24": {
+    "w": 64.66,
+    "d": 20.56,
+    "h": 17.02,
+    "src": "Brownstone_FlatFacadeComplex_2",
+    "tris": 1085
+   },
+   "brown_25": {
+    "w": 10.15,
+    "d": 28.64,
+    "h": 15.5,
+    "src": "Brownstone_Harlem_1",
+    "tris": 1103
+   },
+   "brown_26": {
+    "w": 30.44,
+    "d": 28.64,
+    "h": 15.5,
+    "src": "Brownstone_Harlem_1_B",
+    "tris": 3045
+   },
+   "brown_27": {
+    "w": 30.69,
+    "d": 30.68,
+    "h": 13.94,
+    "src": "Brownstone_Lowrise_1",
+    "tris": 2198
+   },
+   "brown_28": {
+    "w": 30.69,
+    "d": 30.68,
+    "h": 17.77,
+    "src": "Brownstone_Lowrise_1_B",
+    "tris": 2808
+   },
+   "brown_29": {
+    "w": 30.69,
+    "d": 30.68,
+    "h": 13.99,
+    "src": "Brownstone_Lowrise_1_C",
+    "tris": 2262
+   }
+  },
+  "credits": [
+   {
+    "file": "brownstone_building_set_-_low_poly_model",
+    "title": "Brownstone Building Set - Low poly model",
+    "author": "Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/brownstone-building-set-low-poly-model-b15e6344acd844eabc823e1cc8332574"
+   }
+  ]
+ },
+ "bld_down": {
+  "kb": 2177,
+  "items": {
+   "down_01": {
+    "w": 18.02,
+    "d": 31.35,
+    "h": 45.07,
+    "src": "Downtown_ArtDeco_1",
+    "tris": 2418
+   },
+   "down_02": {
+    "w": 52.98,
+    "d": 19.35,
+    "h": 24.71,
+    "src": "Downtown_BrownstoneOffice_1",
+    "tris": 3086
+   },
+   "down_03": {
+    "w": 14.72,
+    "d": 39.83,
+    "h": 26.25,
+    "src": "Downtown_BrownstoneOffice_2",
+    "tris": 3261
+   },
+   "down_04": {
+    "w": 39.22,
+    "d": 38.69,
+    "h": 21.89,
+    "src": "Downtown_Brutal_1",
+    "tris": 3216
+   },
+   "down_05": {
+    "w": 38.81,
+    "d": 31.56,
+    "h": 44.86,
+    "src": "Downtown_ClassicOffice_1",
+    "tris": 2758
+   },
+   "down_06": {
+    "w": 56.53,
+    "d": 40.59,
+    "h": 85.89,
+    "src": "Downtown_Flatiron_1",
+    "tris": 15328
+   },
+   "down_07": {
+    "w": 31.67,
+    "d": 31.59,
+    "h": 17.74,
+    "src": "Downtown_Mall_1",
+    "tris": 1437
+   },
+   "down_08": {
+    "w": 26.18,
+    "d": 23.51,
+    "h": 37.07,
+    "src": "Downtown_ModernOffice_1",
+    "tris": 653
+   },
+   "down_09": {
+    "w": 26.18,
+    "d": 23.51,
+    "h": 64.44,
+    "src": "Downtown_ModernOffice_1_B",
+    "tris": 1133
+   },
+   "down_10": {
+    "w": 25.66,
+    "d": 22.93,
+    "h": 25.3,
+    "src": "Downtown_ModernOffice_1_Downtown_Facade_FLR_7_0",
+    "tris": 36
+   },
+   "down_11": {
+    "w": 10,
+    "d": 21.45,
+    "h": 21.24,
+    "src": "Downtown_ModernOffice_2",
+    "tris": 825
+   },
+   "down_12": {
+    "w": 13.31,
+    "d": 23.03,
+    "h": 18.39,
+    "src": "Downtown_ModernOffice_3",
+    "tris": 466
+   },
+   "down_13": {
+    "w": 38.72,
+    "d": 38.86,
+    "h": 80.74,
+    "src": "Downtown_ModernOffice_4",
+    "tris": 1900
+   },
+   "down_14": {
+    "w": 35.7,
+    "d": 35.7,
+    "h": 102.26,
+    "src": "Downtown_ModernOffice_5",
+    "tris": 2080
+   },
+   "down_15": {
+    "w": 35.7,
+    "d": 35.7,
+    "h": 55.86,
+    "src": "Downtown_ModernOffice_5_B",
+    "tris": 1376
+   },
+   "down_16": {
+    "w": 35.18,
+    "d": 35.18,
+    "h": 25.78,
+    "src": "Downtown_PublicBuilding_1",
+    "tris": 838
+   },
+   "down_17": {
+    "w": 31.62,
+    "d": 31.62,
+    "h": 29.88,
+    "src": "Downtown_Residential_2",
+    "tris": 1369
+   },
+   "down_18": {
+    "w": 36.95,
+    "d": 36.95,
+    "h": 27.88,
+    "src": "Downtown_Residential_3",
+    "tris": 1682
+   },
+   "down_19": {
+    "w": 36.95,
+    "d": 36.95,
+    "h": 27.88,
+    "src": "Downtown_Residential_4",
+    "tris": 1698
+   }
+  },
+  "credits": [
+   {
+    "file": "downtown_buildings_set_-_low_poly_model",
+    "title": "Downtown Buildings Set - Low Poly model",
+    "author": "Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/downtown-buildings-set-low-poly-model-7378e7fb9c914c39880d9913a6f4e1d6"
+   }
+  ]
+ },
+ "bld_ind": {
+  "kb": 1717,
+  "items": {
+   "ind_01": {
+    "w": 27.02,
+    "d": 47.54,
+    "h": 16.63,
+    "src": "Industrial_Building_1",
+    "tris": 1986
+   },
+   "ind_02": {
+    "w": 43.5,
+    "d": 83.27,
+    "h": 25.83,
+    "src": "Industrial_Building_10_Material #2_0",
+    "tris": 2420
+   },
+   "ind_03": {
+    "w": 20.89,
+    "d": 9.47,
+    "h": 8.76,
+    "src": "Industrial_Duplex_1",
+    "tris": 268
+   },
+   "ind_04": {
+    "w": 46.53,
+    "d": 95.3,
+    "h": 24.73,
+    "src": "Industrial_FactoryPlant_1",
+    "tris": 3647
+   },
+   "ind_05": {
+    "w": 33,
+    "d": 135.8,
+    "h": 18.27,
+    "src": "Industrial_FactoryPlant_2",
+    "tris": 864
+   },
+   "ind_06": {
+    "w": 4.9,
+    "d": 4.62,
+    "h": 3.93,
+    "src": "Industrial_GenericBuilding_2",
+    "tris": 162
+   },
+   "ind_07": {
+    "w": 7.88,
+    "d": 9.97,
+    "h": 4.29,
+    "src": "Industrial_GenericBuilding_3",
+    "tris": 149
+   },
+   "ind_08": {
+    "w": 35.14,
+    "d": 14.97,
+    "h": 5.88,
+    "src": "Industrial_GenericBuilding_4",
+    "tris": 678
+   },
+   "ind_09": {
+    "w": 49.78,
+    "d": 59.96,
+    "h": 12.89,
+    "src": "Industrial_Hangar_2",
+    "tris": 1134
+   },
+   "ind_10": {
+    "w": 53.43,
+    "d": 15.84,
+    "h": 7.88,
+    "src": "Industrial_LogisticTerminal_1",
+    "tris": 844
+   },
+   "ind_11": {
+    "w": 11.28,
+    "d": 5.8,
+    "h": 3.93,
+    "src": "Industrial_OfficeTrailer_1",
+    "tris": 188
+   },
+   "ind_12": {
+    "w": 9.43,
+    "d": 20.95,
+    "h": 18.6,
+    "src": "Industrial_PortalCrane_2",
+    "tris": 2558
+   },
+   "ind_13": {
+    "w": 99.29,
+    "d": 191.09,
+    "h": 89.08,
+    "src": "Industrial_Powerplant_1",
+    "tris": 3058
+   },
+   "ind_14": {
+    "w": 4.65,
+    "d": 4.31,
+    "h": 24.06,
+    "src": "Industrial_Radiotower_1",
+    "tris": 1894
+   },
+   "ind_15": {
+    "w": 14.85,
+    "d": 27.77,
+    "h": 9.75,
+    "src": "Industrial_Railroad_Loadbay_Shed_1",
+    "tris": 720
+   },
+   "ind_16": {
+    "w": 3.05,
+    "d": 3.19,
+    "h": 8.9,
+    "src": "Industrial_SiloTank_1",
+    "tris": 231
+   },
+   "ind_17": {
+    "w": 18.34,
+    "d": 11.81,
+    "h": 15.04,
+    "src": "Industrial_Smth_1",
+    "tris": 888
+   },
+   "ind_18": {
+    "w": 28.68,
+    "d": 12.21,
+    "h": 9.71,
+    "src": "Industrial_Smth_2",
+    "tris": 1638
+   },
+   "ind_19": {
+    "w": 17.74,
+    "d": 17.79,
+    "h": 15.22,
+    "src": "Industrial_Tank_1",
+    "tris": 404
+   },
+   "ind_20": {
+    "w": 19.78,
+    "d": 19.78,
+    "h": 17.14,
+    "src": "Industrial_Tank_2",
+    "tris": 1536
+   },
+   "ind_21": {
+    "w": 5.96,
+    "d": 6.75,
+    "h": 7.32,
+    "src": "Industrial_Tank_3_Walls",
+    "tris": 232
+   },
+   "ind_22": {
+    "w": 4.58,
+    "d": 4.6,
+    "h": 18.65,
+    "src": "Industrial_Tank_4",
+    "tris": 492
+   },
+   "ind_23": {
+    "w": 4.66,
+    "d": 4.68,
+    "h": 19.02,
+    "src": "Industrial_Tank_5",
+    "tris": 424
+   },
+   "ind_24": {
+    "w": 11.8,
+    "d": 4.43,
+    "h": 4.23,
+    "src": "Industrial_TsrStation_1",
+    "tris": 988
+   },
+   "ind_25": {
+    "w": 33.83,
+    "d": 13.36,
+    "h": 11.12,
+    "src": "Industrial_Warehouse_1",
+    "tris": 366
+   },
+   "ind_26": {
+    "w": 24.44,
+    "d": 25.22,
+    "h": 12.49,
+    "src": "Industrial_Warehouse_3",
+    "tris": 302
+   },
+   "ind_27": {
+    "w": 42.08,
+    "d": 13.59,
+    "h": 9.38,
+    "src": "Industrial_Warehouse_4",
+    "tris": 344
+   },
+   "ind_28": {
+    "w": 33,
+    "d": 54.94,
+    "h": 11.68,
+    "src": "Industrial_Warehouse_5",
+    "tris": 1192
+   },
+   "ind_29": {
+    "w": 33,
+    "d": 53.38,
+    "h": 5.01,
+    "src": "Industrial_Warehouse_5_Material #140_0",
+    "tris": 248
+   },
+   "ind_30": {
+    "w": 7.48,
+    "d": 10.46,
+    "h": 5.04,
+    "src": "Industrial_WarehouseSmall_4",
+    "tris": 185
+   },
+   "ind_31": {
+    "w": 9.79,
+    "d": 9.75,
+    "h": 24.26,
+    "src": "Industrial_Watertower_1",
+    "tris": 586
+   }
+  },
+  "credits": [
+   {
+    "file": "industrial_buildings_set_-_low_poly_models",
+    "title": "Industrial Buildings Set - Low poly models",
+    "author": "Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/industrial-buildings-set-low-poly-models-e0b0d0342be24e6c923319991a2a4d3d"
+   }
+  ]
+ },
+ "bld_mid": {
+  "kb": 425,
+  "items": {
+   "mid_01": {
+    "w": 24.03,
+    "d": 11.59,
+    "h": 7.02,
+    "src": "MidCity_Commercial_1",
+    "tris": 410
+   },
+   "mid_02": {
+    "w": 12.38,
+    "d": 20.89,
+    "h": 6.57,
+    "src": "MidCity_Commercial_10",
+    "tris": 198
+   },
+   "mid_03": {
+    "w": 12.29,
+    "d": 20.04,
+    "h": 5.67,
+    "src": "MidCity_Commercial_11",
+    "tris": 178
+   },
+   "mid_04": {
+    "w": 8,
+    "d": 19.9,
+    "h": 6,
+    "src": "MidCity_Commercial_12",
+    "tris": 99
+   },
+   "mid_05": {
+    "w": 18.78,
+    "d": 19.9,
+    "h": 5.48,
+    "src": "MidCity_Commercial_13",
+    "tris": 246
+   },
+   "mid_06": {
+    "w": 29.64,
+    "d": 15.64,
+    "h": 10.29,
+    "src": "MidCity_Commercial_14",
+    "tris": 1106
+   },
+   "mid_07": {
+    "w": 8.38,
+    "d": 20.08,
+    "h": 6.08,
+    "src": "MidCity_Commercial_15",
+    "tris": 198
+   },
+   "mid_08": {
+    "w": 12.38,
+    "d": 20,
+    "h": 6.57,
+    "src": "MidCity_Commercial_2",
+    "tris": 117
+   },
+   "mid_09": {
+    "w": 17.39,
+    "d": 8.37,
+    "h": 7.91,
+    "src": "MidCity_Commercial_4",
+    "tris": 172
+   },
+   "mid_10": {
+    "w": 10,
+    "d": 25.77,
+    "h": 6.45,
+    "src": "MidCity_Commercial_5",
+    "tris": 80
+   },
+   "mid_11": {
+    "w": 30,
+    "d": 25.77,
+    "h": 6.45,
+    "src": "MidCity_Commercial_5_B",
+    "tris": 220
+   },
+   "mid_12": {
+    "w": 12,
+    "d": 25.73,
+    "h": 6.75,
+    "src": "MidCity_Commercial_6",
+    "tris": 136
+   },
+   "mid_13": {
+    "w": 12.38,
+    "d": 20.11,
+    "h": 6.15,
+    "src": "MidCity_Commercial_7",
+    "tris": 124
+   },
+   "mid_14": {
+    "w": 15.14,
+    "d": 23.11,
+    "h": 10.68,
+    "src": "MidCity_Commercial_8",
+    "tris": 1649
+   }
+  },
+  "credits": [
+   {
+    "file": "midcity_buildings_set_-_low_poly_model",
+    "title": "Midcity Buildings Set - Low Poly model",
+    "author": "Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/midcity-buildings-set-low-poly-model-d5cbc471d20c4c9da31c3df656648916"
+   }
+  ]
+ }
+}

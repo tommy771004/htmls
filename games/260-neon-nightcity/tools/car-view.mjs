@@ -1,4 +1,4 @@
-// 檢查 assets/260/<id>.glb：側面、正面、俯視、四分之三視角拼成一張圖（輪子節點塗紅、車漆塗藍），確認車頭朝 +z 與輪子拆分
+// 檢查 assets/260/<id>.glb（車流專用的車在 .cache/traffic/<id>.glb）：側面、正面、俯視、四分之三視角拼成一張圖（輪子節點塗紅、車漆塗藍），確認車頭朝 +z 與輪子拆分
 //   node tools/car-view.mjs <id> [out.png]
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -11,6 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(root, '../..');
 const id = process.argv[2], out = process.argv[3] || resolve(root, `.cache/view-${id}.png`);
 const three = resolve(root, 'node_modules/three');
+const rel = existsSync(resolve(repo, 'assets/260', id + '.glb')) ? `assets/260/${id}.glb` : `games/260-neon-nightcity/.cache/traffic/${id}.glb`;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.glb': 'model/gltf-binary', '.json': 'application/json' };
 const page = `<!doctype html><meta charset=utf-8><body style="margin:0;background:#888">
 <script type=importmap>{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
@@ -19,7 +20,7 @@ import * as T from 'three'; import { GLTFLoader } from 'three/addons/loaders/GLT
 const R = new T.WebGLRenderer({ antialias: true }); R.setSize(1600, 900); document.body.appendChild(R.domElement); R.setScissorTest(true);
 const S = new T.Scene(); S.background = new T.Color(0x9aa0a8);
 S.add(new T.HemisphereLight(0xffffff, 0x444444, 2.2)); const d = new T.DirectionalLight(0xffffff, 2); d.position.set(3, 5, 4); S.add(d);
-const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/260/${id}.glb');
+const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/${rel}');
 const car = g.scene.getObjectByName('car'); const spec = car.userData;
 g.scene.traverse(o => { if (!o.isMesh) return; const wheel = /wheel/.test(o.parent.name + o.name);
   const p = o.geometry.attributes._pbr, c = o.geometry.attributes.color, paint = p && p.getW(0) > .5;

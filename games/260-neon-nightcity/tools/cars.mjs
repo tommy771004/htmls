@@ -19,6 +19,7 @@ const sharp = (await imp('sharp')).default;
 
 const SRC = process.env.CARS_SRC || resolve(root, '.cache/cars');
 const OUT = resolve(root, '../../assets/260');
+const OUT_T = resolve(root, '.cache/traffic');   // traffic: true 的車只給 tools/traffic.mjs 烘車流，不進車行（不 commit）
 
 // len：真實車長（公尺）；flip：原檔車頭朝 -z（轉 180°）；tris：減面目標；paint：車漆材質名（沒給就自動挑）
 export const MODELS = [
@@ -53,6 +54,21 @@ export const MODELS = [
   { id: 'v4', file: 'ducati_panigale_v4', len: 2.11, tris: 70000, bike: true, flip: true, paint: false },
   { id: 'zx6r', file: 'kawasaki_ninja_zx-6r', len: 2.025, tris: 70000, bike: true, paint: false, opaque: true, noEmi: true,
     wheelNodes: { F: ['^Front Wheel_', '^Front Rim_'], R: ['^Rear Wheel_', '^Rear Rim_'] } },
+  // 車流專用（DanielZhabotinsky 的虛構廠牌低多邊形車與 French delivery van，CC BY 4.0；原檔車頭都朝 -z，只有廂型車不用轉）：輸出到 .cache/traffic/，再由 tools/traffic.mjs 烘進 traffic.glb
+  { id: 'fh_taxi', file: 'fairheaven_lt_80_taxi_-_low_poly_model', len: 5.07, tris: 30000, traffic: true, flip: true },
+  { id: 'fh_cop', file: 'fairheaven_lt_80_cop_cruiser_-_low_poly_model', len: 5.07, tris: 30000, traffic: true, flip: true },
+  { id: 'il_cop', file: 'illinois_90_police_cruiser_-_low_poly_model', len: 5.21, tris: 30000, traffic: true, flip: true },
+  { id: 'negotiator', file: 'negotiator_80_-_low_poly_model', len: 4.94, tris: 30000, traffic: true, flip: true },
+  { id: 'milano', file: 'milano_95_-_low_poly_model', len: 3.85, tris: 30000, traffic: true, flip: true },
+  { id: 'kiri', file: 'kiri_86_-_low_poly_model', len: 4.31, tris: 30000, traffic: true, flip: true },
+  { id: 'carter', file: 'carter_98_-_low_poly_model', len: 5.02, tris: 30000, traffic: true, flip: true },
+  { id: 'compact', file: 'compact_07_-_low_poly_model', len: 2.69, tris: 30000, traffic: true, flip: true },
+  { id: 'urban', file: 'urban_10_-_low_poly_model', len: 4.29, tris: 30000, traffic: true, flip: true },
+  { id: 'tiara', file: 'tiara_gt_83_-_low_poly_model', len: 4.17, tris: 30000, traffic: true, flip: true },
+  { id: 'shvan', file: 'shvan_92_-_low_poly_model', len: 4.9, tris: 30000, traffic: true, flip: true },
+  { id: 'lct', file: 'lct_3000_95_-_low_poly_model', len: 6.02, tris: 30000, traffic: true, flip: true },
+  { id: 'conquer', file: 'conquer_89_pickup_-_low_poly_model', len: 5.22, tris: 30000, traffic: true, flip: true },
+  { id: 'fvan', file: 'french_delivery_van_-_low_poly_model', len: 4.3, tris: 30000, traffic: true },
 ];
 const CFG = JSON.parse(existsSync(resolve(root, 'tools/cars.cfg.json')) ? readFileSync(resolve(root, 'tools/cars.cfg.json'), 'utf8') : '{}');
 
@@ -326,8 +342,9 @@ async function processModel(M) {
     meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
   );
   let trisOut = 0; for (const m of R.listMeshes()) for (const p of m.listPrimitives()) trisOut += p.getIndices().getCount() / 3;
-  mkdirSync(OUT, { recursive: true });
-  const file = resolve(OUT, M.id + '.glb');
+  const dir = M.traffic ? OUT_T : OUT;
+  mkdirSync(dir, { recursive: true });
+  const file = resolve(dir, M.id + '.glb');
   await io.write(file, doc);
   spec.tris = trisOut; spec.kb = Math.round(statSync(file).size / 1024);
   spec.draws = R.listMeshes().reduce((a, m) => a + m.listPrimitives().length, 0);
@@ -338,9 +355,12 @@ async function processModel(M) {
 const only = process.argv.slice(2);
 const manifestPath = resolve(OUT, 'cars.json');
 const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {};
+const manifestT = resolve(OUT_T, 'cars.json');
+const traffic = existsSync(manifestT) ? JSON.parse(readFileSync(manifestT, 'utf8')) : {};
 for (const M of MODELS) {
-  if (only.length && !only.includes(M.id)) continue;
-  manifest[M.id] = await processModel(M);
+  if (only.length ? !only.includes(M.id) : M.traffic && !process.env.TRAFFIC) continue;   // 車流車型要指名或 TRAFFIC=1 才重做
+  (M.traffic ? traffic : manifest)[M.id] = await processModel(M);
 }
-const ordered = {}; for (const M of MODELS) if (manifest[M.id]) ordered[M.id] = manifest[M.id];
+const ordered = {}; for (const M of MODELS) if (!M.traffic && manifest[M.id]) ordered[M.id] = manifest[M.id];
 writeFileSync(manifestPath, JSON.stringify(ordered, null, 1) + '\n');
+if (Object.keys(traffic).length) writeFileSync(manifestT, JSON.stringify(traffic, null, 1) + '\n');

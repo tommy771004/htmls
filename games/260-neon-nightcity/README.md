@@ -17,7 +17,8 @@ npm run thumb    # tools/thumb.mjs（本機 HTTP，座駕是 AE86 實車）→ .
 npm run assets   # 用 Blender 重建 blender/out/*.glb（需要 Blender 5.x）
 npm run people   # tools/people.mjs：Blender 跑 blender/people.py（Quaternius 底模與動畫），再用 gltf-transform 壓成 blender/out/people.glb
 node tools/pose-gallery.mjs [資料夾]   # 在大道上排一列人，每人一種動作，正面與側面截圖檢查姿勢
-npm run traffic  # tools/traffic.mjs：把 assets/260 的實車烘成車流用的 blender/out/traffic.glb（頂點色＋uber 材質編號，近景約 4k 面、遠景約 1k 面；可只給 id）
+TRAFFIC=1 node tools/cars.mjs  # 先把 .cache/cars/ 裡車流專用的原檔整理到 .cache/traffic/（可只給 id，例如 fh_taxi lct）
+npm run traffic  # tools/traffic.mjs：把 assets/260 與 .cache/traffic 的車烘成車流用的 blender/out/traffic.glb（頂點色＋uber 材質編號，近景約 3–4k 面、遠景約 1k 面；可只給 id）
 npm run cars     # tools/cars.mjs：.cache/cars/ 的 Sketchfab 原檔 → ../../assets/260/<id>.glb 與 cars.json（可只給 id）
 npm run test:glb # tools/glb-check.mjs：本機 HTTP 開頁，檢查實車下載、展示廳、買車開車、機車、換色規則與車庫；CLOSEUPS=1／CITY=1 加拍特寫與街景
 node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、車漆塗藍），確認車頭朝 +z 與輪子拆分
@@ -61,7 +62,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `20-props.js` | 路燈與光錐、紅綠燈、街道設施、行道樹、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空 |
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
 | `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
-| `30-vehicles.js` | 車流車型 `TYPES`（警車、E34、190E 來自內嵌的 `traffic.glb`，40 m 外換遠景模型、相機後方不畫；計程車與貨車仍是程式建模）、程式建模的 Kestrel、Hanzo 等替身；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
+| `30-vehicles.js` | 車流車型 `TYPES`（計程車、兩種警車、九種房車、四種廂型車與貨車都來自內嵌的 `traffic.glb`，40 m 外換遠景模型、相機後方不畫；`traffic.glb` 載入失敗才用程式建模）、程式建模的 Kestrel、Hanzo 等替身；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
 | `40-people.js` | 人物：Quaternius 男女底模（`people.glb`）依髮型合併成蒙皮幾何、每人一個 SkinnedMesh＋AnimationMixer；動畫時間由 `uTime`／`uBeat` 換算（舞池對拍），調酒、DJ、撐傘、抽菸、抱胸、騎機車在播放後覆寫手臂與上身；行人、排隊人龍、玩家與更新 `updateCrowds()` |
 | `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何（`people` 由 40 自己解） |
 | `55-motor-front.js` | 車行落地窗、雨棚與門前展示車、車庫燈條與招牌（要在 60 合併室外招牌之前） |
@@ -76,9 +77,10 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 ### 車流
 
-- `tools/traffic.mjs` 讀 `assets/260/<id>.glb`（cars.mjs 已經整理好車長、方向、輪子節點與材質頂點屬性），貼圖在頂點上取樣成頂點色，依 `_PBR`／`_EMI`／輪子節點分成 uber 材質編號（車漆 0 交給調色盤、玻璃 1、燈 4／5／11、輪胎 6、輪圈 7…），車身與每個輪子分開減面（先依位置＋材質焊接，否則硬邊拆開的面板只能 sloppy 減面、整台被撕碎），輸出近景 `id` 與遠景 `id_far` 兩級。
+- 車型：計程車（Fairheaven LT '80 Taxi）、警車（Fairheaven LT '80、Illinois '90，`police: 1` 會在車頂閃紅藍燈）、房車（車行的 E34、190E 與 Negotiator、Milano、Kiri、Carter、Compact、Urban、Tiara）、廂型車與貨車（Shvan、LCT 3000、Conquer 皮卡、French delivery van）。除了 E34 與 190E，都是 DanielZhabotinsky 的虛構廠牌低多邊形車（CC BY 4.0），原檔放在 gitignore 的 `.cache/cars/`，由 `cars.mjs` 裡標 `traffic: true` 的項目整理到 `.cache/traffic/`（不進車行、不 commit），這批原檔車頭朝 -z，要 `flip`。
+- `tools/traffic.mjs` 讀 `assets/260/<id>.glb` 或 `.cache/traffic/<id>.glb`（cars.mjs 已經整理好車長、方向、輪子節點與材質頂點屬性），貼圖在頂點上取樣成頂點色，依 `_PBR`／`_EMI`／輪子節點分成 uber 材質編號（車漆 0 交給調色盤、玻璃 1、燈 4／5／11、輪胎 6、輪圈 7…），車身與每個輪子分開減面（先依位置＋材質焊接，否則硬邊拆開的面板只能 sloppy 減面、整台被撕碎），輸出近景 `id` 與遠景 `id_far` 兩級。
 - 頁面裡量化的位置是正規化整數，要先轉成浮點再套節點矩陣（直接 `applyMatrix4` 會被截在 ±1）。每幀 `flushTraffic()` 依相機距離把車分進近景／遠景兩個 InstancedMesh。
-- 加車型：在 `TRAFFIC` 加一列（`pal` 決定車漆能不能吃調色盤）、`npm run traffic <id>`，再到 `30-vehicles.js` 的 `TYPES` 與 `pickType()` 登錄。
+- 加車型：原檔放進 `.cache/cars/`、在 `cars.mjs` 的 `MODELS` 加一列 `traffic: true`（`node tools/car-view.mjs <id>` 檢查方向），在 `TRAFFIC` 加一列（`pal` 決定車漆能不能吃調色盤）、`npm run traffic <id>`，再到 `30-vehicles.js` 的 `TYPES` 與 `pickType()` 登錄。
 
 ### 人物
 
@@ -93,9 +95,9 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 ## 已知限制
 
-- 無頭 Chrome（Metal）街上約 120 fps、160 個 draw call、180 萬個三角形；低階手機會自動降低點光數量與解析度。
+- 無頭 Chrome（Metal）街上約 120 fps、150–200 個 draw call、120–190 萬個三角形；低階手機會自動降低點光數量與解析度。
 - 人物的貼圖都換成素色（衣物分區上色），髮型只有男女各三種；調酒、DJ、撐傘、抽菸、抱胸與騎機車是在現成動畫上覆寫手臂方向，動作比較僵；舞池的人跟著拍點跳同一段舞，只有相位與手部覆寫不同。人物每幀多花約 2 ms CPU（街上約 20 人在畫面內）。
 - 程式建模的車型是低多邊形的剪影致敬，比例與輪廓取自線稿，細節（曲面、內裝）都很簡化；車庫一次只開一台出門。
-- 實車模型每台 4–20 萬面（第二批壓在 9 萬左右），展示廳 29 台全部載入時約 170 萬個三角形、365 個 draw call（無頭 Chrome Metal 約 108 fps），整間車行要下載約 51 MB，手機上會很吃力；輪子是用幾何自動拆的，少數卡鉗會跟著輪子轉，機車前叉不隨轉向轉動。車流只借用了退役警車、E34 與 190E 三台（減面版）；計程車與貨車還是程式建模的方塊車，和實車並排時比例與細節落差明顯。
+- 實車模型每台 4–20 萬面（第二批壓在 9 萬左右），展示廳 29 台全部載入時約 170 萬個三角形、365 個 draw call（無頭 Chrome Metal 約 108 fps），整間車行要下載約 51 MB，手機上會很吃力；輪子是用幾何自動拆的，少數卡鉗會跟著輪子轉，機車前叉不隨轉向轉動。車流 16 種車型的 `traffic.glb` 約 1.1 MB，頁面單檔因此約 2.5 MB；計程車是綠色的 Fairheaven（黃色的 Canyon '75 沒有下載到）。
 - 車流是固定車道圖上的跟車模型，不會變換車道；車輛之間只有簡單的圓形碰撞。
 - 城市只有 5×5 個街區，邊緣是一圈遠景剪影。

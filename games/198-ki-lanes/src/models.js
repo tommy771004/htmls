@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { PROPS, buildHeroParts, heroMaterial } from './models-heroes.js';
 import { KEYS, blank, lerpPose, ease, clamp, smooth01, IMPACT, strike } from './pose-kit.js';
 import { HERO_POSES } from './poses/index.js';
-import { GLB, glbGeometry, chainTube, HAIR_KEY } from './glb.js';
+import { GLB, glbGeometry, chainTube, HAIR_KEY, FINGER_CURL } from './glb.js';
 export { IMPACT };
 
 export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
@@ -770,6 +770,7 @@ export function buildHero(id, team = 0) {
   const { hips, torso, head } = J;
   const gs = buildHeroParts(id, d);
   const G = sk.glb;
+  const curlK = G ? FINGER_CURL[id] ?? 1 : 1;
   const rig2 = G || gs.rig >= 2; // 網格有胸、腕、踝權重（第二版骨架烘焙）才分攤扭轉、轉腕踝
   const rig3 = G || gs.rig >= 3; // 第三版：鎖骨、脖子、手指、腳趾
   const pair = (geometry, parent, mat, w = OW) => {
@@ -1080,8 +1081,9 @@ export function buildHero(id, team = 0) {
       const reach = smooth01((-shX - 0.7) / 0.8) * (1 - smooth01((-el - 0.5) / 1.0)) - 0.6 * smooth01((shX - 0.2) / 0.6);
       J['cl' + s].rotation.set(0, -sx * (0.3 * reach + cur['cl' + s]), sx * 0.3 * Math.min(1, raise), 'YXZ');
       const o = clamp(cur['ho' + s], 0, 1);
-      for (let i = 0; i < 3; i++) J[FING[i] + s].rotation.z = -sx * (FIST_CURL[i] + (OPEN_CURL[i] - FIST_CURL[i]) * o);
+      for (let i = 0; i < 3; i++) J[FING[i] + s].rotation.z = -sx * curlK * (FIST_CURL[i] + (OPEN_CURL[i] - FIST_CURL[i]) * o);
       _q.copy(THUMB_Q.wrap).slerp(_q2.copy(THUMB_Q.tuck).slerp(THUMB_Q.spread, clamp(cur['hs' + s], 0, 1)), o);
+      if (curlK < 1) _q.slerp(THUMB_Q.spread, 1 - curlK); // 拇指同樣照倍率收斂回建模的方向
       if (sx < 0) { _q.y = -_q.y; _q.z = -_q.z; } // 右手是左手的鏡像
       J['tb' + s].quaternion.copy(_q);
       const pitch = cur.hipsRX + cur['th' + s + 'X'] + cur['kn' + s] + J['an' + s].rotation.x, up = smooth01((-cur['th' + s + 'X'] - 0.9) / 0.6);

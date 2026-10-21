@@ -47,4 +47,21 @@
 
 ## 車流
 
-街上的警車、BMW E34 與 Mercedes-Benz 190E 是上表 `police`、`e34`、`evo190` 三台模型的減面版本（`tools/traffic.mjs` 烘成頂點色，近景約 4 千面、遠景約 1 千面），內嵌在頁面裡，授權與作者同上表。
+街上的車都是減面版本（`tools/traffic.mjs` 烘成頂點色，近景約 3–4 千面、遠景約 1 千面），內嵌在頁面裡：BMW E34 與 Mercedes-Benz 190E 借用上表 `e34`、`evo190` 兩台（授權與作者同上表），其餘是下表 DanielZhabotinsky 的虛構廠牌車（原檔不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/cars/`）。車身顏色依遊戲的調色盤重新上色，計程車、警車與廂型車保留原本的塗裝。
+
+| 編號 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `fh_taxi` | [Fairheaven LT '80 Taxi - Low poly model](https://sketchfab.com/3d-models/fairheaven-lt-80-taxi-low-poly-model-7da68ec2677f4abd8e31e9998b497a67) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `fh_cop` | [Fairheaven LT '80 Cop Cruiser - Low poly model](https://sketchfab.com/3d-models/fairheaven-lt-80-cop-cruiser-low-poly-model-61766c1e6e1e4b2b803c174f33433a74) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `il_cop` | [Illinois '90 Police cruiser - Low poly model](https://sketchfab.com/3d-models/illinois-90-police-cruiser-low-poly-model-dc81625478a744649b210c7f248b0b6a) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `negotiator` | [Negotiator '80 - Low poly model](https://sketchfab.com/3d-models/negotiator-80-low-poly-model-892b2684fb37442299bfad9222cf331c) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `milano` | [Milano '95 - Low poly model](https://sketchfab.com/3d-models/milano-95-low-poly-model-122a22d210234596ad23623588d0d166) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `kiri` | [Kiri '86 - Low poly model](https://sketchfab.com/3d-models/kiri-86-low-poly-model-5c17c582ef9549798f694b660feea42a) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `carter` | [Carter '98 - Low Poly Model](https://sketchfab.com/3d-models/carter-98-low-poly-model-3af773617c7f481da2ba5d307412ce35) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `compact` | [Compact '07 - Low poly model](https://sketchfab.com/3d-models/compact-07-low-poly-model-25c6874d173a4f6ca63e150bbd505686) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `urban` | [Urban '10 - Low poly model](https://sketchfab.com/3d-models/urban-10-low-poly-model-2866efdfa943484391ef8313768e074d) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `tiara` | [Tiara GT '83 - Low Poly model](https://sketchfab.com/3d-models/tiara-gt-83-low-poly-model-8918b07a427443cd8d1b334d9ad213a5) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `shvan` | [Shvan '92 - Low poly model](https://sketchfab.com/3d-models/shvan-92-low-poly-model-09d718c9cf72401b8534d265a06a803f) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `lct` | [LCT 3000 '95 - Low poly model](https://sketchfab.com/3d-models/lct-3000-95-low-poly-model-663a0953c038434a918cb85725c88ffa) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `conquer` | [Conquer '89 Pickup - Low poly model](https://sketchfab.com/3d-models/conquer-89-pickup-low-poly-model-6c48c94be8974dc7a5932f697c0ba68f) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `fvan` | [French delivery van - Low poly model](https://sketchfab.com/3d-models/french-delivery-van-low-poly-model-a350a422d200485ea57778dc42139edc) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |

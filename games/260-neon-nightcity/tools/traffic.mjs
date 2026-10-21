@@ -19,12 +19,31 @@ const { quantize, meshopt } = await imp('@gltf-transform/functions');
 const { MeshoptSimplifier, MeshoptEncoder, MeshoptDecoder } = await imp('meshoptimizer');
 const sharp = (await imp('sharp')).default;
 
-// src：assets/260/ 下 cars.mjs 的輸出；pal：車漆交給遊戲的調色盤（車漆材質寫成 _MAT 0）
+// src：cars.mjs 的輸出（車行的車在 assets/260/，車流專用的在 .cache/traffic/，要先 TRAFFIC=1 node tools/cars.mjs）；
+// pal：車漆交給遊戲的調色盤（車漆材質寫成 _MAT 0）；彩繪車（計程車、警車）與沒有車漆材質的保留原色
 export const TRAFFIC = [
-  { id: 'police', src: 'police', pal: false, tris: 4500 },
   { id: 'e34', src: 'e34', pal: true, tris: 4000 },
   { id: 'evo190', src: 'evo190', pal: true, tris: 4000 },
+  // DanielZhabotinsky 的虛構廠牌車（原檔約兩萬面）
+  { id: 'fh_taxi', pal: false, tris: 4000 },
+  { id: 'fh_cop', pal: false, tris: 4000 },
+  { id: 'il_cop', pal: false, tris: 4000 },
+  { id: 'negotiator', pal: true, tris: 3600 },
+  { id: 'milano', pal: true, tris: 3600 },
+  { id: 'kiri', pal: true, tris: 3600 },
+  { id: 'carter', pal: true, tris: 3600 },
+  { id: 'compact', pal: true, tris: 3200 },
+  { id: 'urban', pal: true, tris: 3600 },
+  { id: 'tiara', pal: true, tris: 3600 },
+  { id: 'shvan', pal: true, tris: 3600 },
+  { id: 'lct', pal: true, tris: 4000 },
+  { id: 'conquer', pal: true, tris: 3600 },
+  { id: 'fvan', pal: false, tris: 3200 },
 ];
+const srcOf = (cfg) => {
+  const a = resolve(root, '../../assets/260', (cfg.src || cfg.id) + '.glb');
+  return existsSync(a) ? a : resolve(root, '.cache/traffic', (cfg.src || cfg.id) + '.glb');
+};
 const out = resolve(root, 'blender/out/traffic.glb');
 const only = process.argv.slice(2);
 
@@ -67,7 +86,7 @@ function matOf(col, pbr, emi, wheel, pal) {
 // 每台烘兩級：近景 tris（40 m 內）與遠景 FAR_TRIS（節點名加 _far）
 const WHEEL_TRIS = 140, FAR_TRIS = 600, FAR_WHEEL = 24;
 async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
-  const doc = await io.read(resolve(root, '../../assets/260', cfg.src + '.glb'));
+  const doc = await io.read(srcOf(cfg));
   const units = new Map();   // 節點名 → { wheel, pos[], nor[], col[], mat[], idx[] }
   let total = 0;
   for (const node of doc.getRoot().listNodes()) {

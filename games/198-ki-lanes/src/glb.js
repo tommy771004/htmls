@@ -8,6 +8,8 @@ globalThis.__GLB = GLB; // 驗收與除錯用（tools/accept.mjs --http 檢查�
 export const GLB_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
 // 賽亞人的髮色（貼圖 sRGB 值＋容差）：超級賽亞人時著色器把接近這個顏色的部分換成金色
 export const HAIR_KEY = { goku: [0.125, 0.125, 0.125, 0.11], vegeta: [0.17, 0.17, 0.17, 0.11], trunks: [0.45, 0.41, 0.6, 0.26] };
+// 手指彎曲的倍率（遊戲照「綁定時手指伸直」來彎）：原模型的手已經握拳（索隆）再彎會折出手掌外，半彎（魯夫）會捲成一圈
+export const FINGER_CURL = { zoro: 0, luffy: 0.55 };
 const BASE = globalThis.KI_ASSETS || '../assets/198/'; // 開發工具（tools/viewer.mjs）從別的路徑開頁時會先設 KI_ASSETS
 
 // 各 GLB 的位元組數由 tools/build.mjs 在打包時寫入：伺服器有壓縮（Content-Encoding）或沒給 Content-Length 時，進度照這個估

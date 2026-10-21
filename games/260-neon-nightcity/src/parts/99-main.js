@@ -190,7 +190,7 @@ function pickLights(t) {
     for (const { c } of near) {
       const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), L2 = TYPES[c.type].len / 2;
       dynLights.push({ x: c.x + fx * L2, y: .8, z: c.z + fz * L2, col: HEAD_COL, r: 22, i: 2, dir: [fx, -.1, fz], cos: .8 });
-      if (c.type === 'police') dynLights.push({ x: c.x, y: 1.8, z: c.z, col: Math.sin(t * 12) > 0 ? POL_R : POL_B, r: 14, i: 2.2 });
+      if (TYPES[c.type].police) dynLights.push({ x: c.x, y: 1.8, z: c.z, col: Math.sin(t * 12) > 0 ? POL_R : POL_B, r: 14, i: 2.2 });
     }
     const n = Math.max(0, NL - dynLights.length);
     L.push(...dynLights, ...lightPick.slice(0, n));

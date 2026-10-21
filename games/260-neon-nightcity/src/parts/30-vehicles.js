@@ -134,7 +134,7 @@ function bezTan(a, b, c, t) { const u = 1 - t; return [2 * u * (b[0] - a[0]) + 2
 
 // ─── 車流與路邊停車都畫成 InstancedMesh，每種車型一次 draw call ───
 // 實車車型由 tools/traffic.mjs 烘成 blender/out/traffic.glb（頂點色＋uber 材質編號 _MAT，幾千面），內嵌成 #glb-traffic；
-// 載入失敗時退回程式建模的房車。計程車與貨車還沒有模型，暫時沿用程式建模。
+// 載入失敗時退回程式建模的車（計程車、警車、房車、貨車各一種）。
 const TRAFFIC_GEO = await embeddedGLB('traffic').then(g => {
   const o = {};
   g.scene.updateMatrixWorld(true);
@@ -154,22 +154,33 @@ const TRAFFIC_GEO = await embeddedGLB('traffic').then(g => {
   });
   return o;
 }).catch(e => { console.warn('車流模型載入失敗，改用程式建模', e); return {}; });
-const glbType = (id, vmax, fb) => {
+const glbType = (id, vmax, fb, extra) => {
   const t = TRAFFIC_GEO[id], f = TRAFFIC_GEO[id + '_far'];
-  return t ? { geo: () => t.geo, far: f && (() => f.geo), len: t.len, w: t.w, vmax, pal: t.pal ? 1 : 0 } : fb;
+  return { ...(t ? { geo: () => t.geo, far: f && (() => f.geo), len: t.len, w: t.w, vmax, pal: t.pal ? 1 : 0 } : fb), ...extra };
 };
-const TYPES = {
+const FB = {
   taxi: { kit: () => sedanKit('taxi'), len: 4.9, w: 1.9, vmax: 13 },
+  police: { kit: () => sedanKit('police'), len: 4.9, w: 1.9, vmax: 14 },
+  sedan: { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 13, pal: 1 },
   truck: { kit: truckKit, len: 6.8, w: 2.4, vmax: 10 },
-  police: glbType('police', 14, { kit: () => sedanKit('police'), len: 4.9, w: 1.9, vmax: 14 }),
-  e34: glbType('e34', 12.5, { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 12.5, pal: 1 }),
-  evo190: glbType('evo190', 13.5, { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 13.5, pal: 1 }),
+};
+// 車型：計程車、兩種警車（police: 車頂警示燈）、九種房車、四種廂型車與貨車；模型都在時每種一組近遠兩個 InstancedMesh
+const TYPES = {
+  fh_taxi: glbType('fh_taxi', 13, FB.taxi),
+  fh_cop: glbType('fh_cop', 14, FB.police, { police: 1 }),
+  il_cop: glbType('il_cop', 14.5, FB.police, { police: 1 }),
+  e34: glbType('e34', 12.5, FB.sedan), evo190: glbType('evo190', 13.5, FB.sedan),
+  negotiator: glbType('negotiator', 12.5, FB.sedan), milano: glbType('milano', 12, FB.sedan), kiri: glbType('kiri', 13.5, FB.sedan),
+  carter: glbType('carter', 13, FB.sedan), compact: glbType('compact', 11.5, FB.sedan), urban: glbType('urban', 12.5, FB.sedan),
+  tiara: glbType('tiara', 14, FB.sedan),
+  shvan: glbType('shvan', 11, FB.truck), lct: glbType('lct', 10, FB.truck), conquer: glbType('conquer', 12, FB.truck), fvan: glbType('fvan', 10, FB.truck),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
-const SEDANS = ['e34', 'evo190'];
-function pickType() { const r = rT(); return r < .3 ? 'taxi' : r < .4 ? 'truck' : r < .46 ? 'police' : SEDANS[Math.floor((r - .46) / .54 * SEDANS.length)]; }
+const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara'], COPS = ['fh_cop', 'il_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan'];
+const pick = (a, u) => a[Math.min(a.length - 1, Math.floor(u * a.length))];
+function pickType() { const r = rT(); return r < .24 ? 'fh_taxi' : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : pick(SEDANS, (r - .44) / .56); }
 // 停車：每段路兩側的停車格，避開路口、消防栓、施工區與夜店門口
 const CLUB_X = avX(1) + 36, CLUB_Z = stZ(3) - HR - SW;
 const BAR_X = lerp(avX(3) + HR + SW, avX(4) - HR - SW, SPECIAL.bar.at), BAR_Z = stZ(1) - HR - SW;
