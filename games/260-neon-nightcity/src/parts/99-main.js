@@ -278,7 +278,7 @@ function step(dt) {
 // 騎機車時人物坐在座墊上、跟著車身壓車
 function placeRider(v) {
   const m = new T.Matrix4().compose(V3(v.x, v.y, v.z), new T.Quaternion().setFromEuler(new T.Euler(v.pitch, v.yaw, v.lean, 'YXZ')), V3(1, 1, 1));
-  m.multiply(new T.Matrix4().makeTranslation(0, .02, -.32));
+  m.multiply(new T.Matrix4().makeTranslation(0, v.seat ? v.seat[0] : .02, v.seat ? v.seat[1] : -.32));   // 實車機車的座位高低前後不同
   me.mesh.setMatrixAt(0, m); me.flush();
   player.x = v.x; player.z = v.z;
 }
@@ -317,11 +317,12 @@ window.__nc = {
   look(yaw, pitch = camState.pitch, far = camState.far) { camState.yaw = yaw; camState.pitch = pitch; camState.far = far; camState.idle = 0; camState.snap = true; },
   setQuest, talk: { marlo: talkMarlo, juno: talkJuno }, dialog: dlg, closeDialog,
   spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 },
-    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z })), seller: SELLER },
+    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw })), seller: SELLER },
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   rain(v) { U.uRain.value = v; }, flash() { weather.next = 0; },
   keys, inp, nitro, livery: cycleLivery,
+  me, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),
   getStats: () => ({ fps: Math.round(fps), drawCalls: R.info.render.calls, triangles: R.info.render.triangles, mode: player.mode, where: player.where, quest: quest.n, pos: { x: +(player.mode === 'drive' ? player.veh.x : player.x).toFixed(2), z: +(player.mode === 'drive' ? player.veh.z : player.z).toFixed(2) }, scale: post.scale }),
 };

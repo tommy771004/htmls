@@ -39,28 +39,31 @@ const carStats = id => {
   return `極速 ${Math.round(c.vmax * 3.6)} km/h · 加速 ${dots(c.eng, 6.5, 22)} · 抓地 ${dots(c.grip, 6.8, 11)}`;
 };
 
-// ─── 展示廳：門在 z = 0，室內 x -16..16、z 0..30、挑高 7 m ───
+// ─── 展示廳：門在 z = 0，室內 x -16..16、z 0..50、挑高 7 m；前兩排是程式建模的車，後兩排是實車模型 ───
 const showScene = new T.Scene();
 const show = { boxes: [], circles: [], lights: [], cars: [], spin: [], people: null };
 const SHOW_ROWS = [
   ['doodle', 'kanto', 'bulldog', 'ronin', 'mamba', 'lucerna'],
   ['duchess', 'saetta', 'halcyon', 'solenne', 'furia', 'meridian'],
+  ['e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3'],
+  ['s1krr', 'gt3rs', 'gt3r', 's1krr19'],
 ];
-const SELLER = { x: 11, z: 27.4 };
+const SD = 50, BK = SD - 30;   // 展示廳深度；後牆區（業務桌、休息區、招牌）比原本的 30 m 廳往後移 BK
+const SELLER = { x: 11, z: 27.4 + BK };
 {
   const k = new Kit(), B = show.boxes, S = showScene, gold = 0xffcf6a;
   const wall = (x0, x1, z0, z1, h, col, mat = 2) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
   // 地板：拋光深灰石材與淺色石縫；天花板三條長燈帶
-  k.box(0, -.05, 15, 32.4, .1, 30.4, 0x2a2b2f, 10);
-  for (let x = -14; x <= 14; x += 2) k.box(x, .002, 15, .025, .004, 30, 0x45464c, 10);
-  for (let z = 2; z < 30; z += 2) k.box(0, .002, z, 32, .004, .025, 0x45464c, 10);
-  k.box(0, 7.05, 15, 32.4, .1, 30.4, 0x141518, 2);
-  for (const x of [-10, 0, 10]) { k.box(x, 6.97, 15, .5, .05, 27, 0xfff4e4, 11); k.box(x, 6.99, 15, .8, .02, 27.4, 0x2a2b30, 15); }
+  k.box(0, -.05, SD / 2, 32.4, .1, SD + .4, 0x2a2b2f, 10);
+  for (let x = -14; x <= 14; x += 2) k.box(x, .002, SD / 2, .025, .004, SD, 0x45464c, 10);
+  for (let z = 2; z < SD; z += 2) k.box(0, .002, z, 32, .004, .025, 0x45464c, 10);
+  k.box(0, 7.05, SD / 2, 32.4, .1, SD + .4, 0x141518, 2);
+  for (const x of [-10, 0, 10]) { k.box(x, 6.97, SD / 2, .5, .05, SD - 3, 0xfff4e4, 11); k.box(x, 6.99, SD / 2, .8, .02, SD - 2.6, 0x2a2b30, 15); }
   // 側牆：暖灰石材牆＋金色腰線；後牆：深色木格柵
-  wall(-16.4, -16, 0, 30, 7.05, 0x9a948a); wall(16, 16.4, 0, 30, 7.05, 0x9a948a);
-  for (const s of [-1, 1]) { k.box(s * 15.97, 1.1, 15, .04, .04, 30, gold, 8); k.box(s * 15.95, .06, 15, .06, .12, 30, 0x111214, 2); }
-  wall(-16.4, 16.4, 30, 30.4, 7.05, 0x24180f);
-  for (let x = -15.6; x <= 15.6; x += .52) k.box(x, 3.5, 29.96, .3, 7, .07, 0x5e3c22, 10);
+  wall(-16.4, -16, 0, SD, 7.05, 0x9a948a); wall(16, 16.4, 0, SD, 7.05, 0x9a948a);
+  for (const s of [-1, 1]) { k.box(s * 15.97, 1.1, SD / 2, .04, .04, SD, gold, 8); k.box(s * 15.95, .06, SD / 2, .06, .12, SD, 0x111214, 2); }
+  wall(-16.4, 16.4, SD, SD + .4, 7.05, 0x24180f);
+  for (let x = -15.6; x <= 15.6; x += .52) k.box(x, 3.5, SD - .04, .3, 7, .07, 0x5e3c22, 10);
   // 前牆：兩片雨窗、玻璃門、上方門楣
   k.box(0, 6.1, -.2, 32.8, 1.9, .4, 0x15161a, 2);
   for (const s of [-1, 1]) k.box(s * 8.9, .15, -.2, 15, .3, .4, 0x15161a, 2);
@@ -72,13 +75,13 @@ const SELLER = { x: 11, z: 27.4 };
   k.box(0, 5.15, -.02, 32, .08, .08, 0xc8ccd2, 3);
   // 展示台：圓形台座與金色燈環；台前一支規格立牌
   SHOW_ROWS.forEach((row, r) => row.forEach((id, i) => {
-    const x = -12.5 + i * 5, z = r ? 19 : 9, yaw = Math.PI + Math.sign(x) * .5, spin = r === 1 && (i === 2 || i === 3);
+    const x = (i - (row.length - 1) / 2) * 5, z = 9 + r * 10, yaw = Math.PI + Math.sign(x) * .5, spin = (r === 1 || r === 3) && Math.abs(x) < 3;
     if (!spin) {
       k.cyl(x, .06, z, 2.35, 2.4, .12, 44, 0x1c1d21, 10);
       k.add(new T.TorusGeometry(2.37, .022, 4, 56), gold, 8, tf(x, .12, z, Math.PI / 2, 0, 0));
     }
     const px = x + Math.sin(yaw) * 2.95, pz = z + Math.cos(yaw) * 2.95;
-    if (r === 0 || spin) {
+    if (r === 0 || r === 2 || spin) {
       k.box(px, .4, pz, .04, .8, .04, 0xc8ccd2, 3).box(px, .02, pz, .26, .04, .26, 0x111214, 2);
       k.box(px, .82, pz, .4, .26, .03, 0x15161a, 2, -.6, yaw).box(px + Math.sin(yaw) * .012, .83, pz + Math.cos(yaw) * .012, .34, .2, .02, 0x4a4438, 11, -.6, yaw);
       show.circles.push({ x: px, z: pz, r: .18 });
@@ -87,26 +90,26 @@ const SELLER = { x: 11, z: 27.4 };
     show.circles.push({ x, z, r: 2.3, car: 1 });
   }));
   // 業務的桌子（右後）、休息區沙發與茶几（左後）、盆栽
-  k.box(11, .5, 26.4, 4.2, 1, 1.1, 0xe6e0d4, 10).box(11, 1.03, 26.4, 4.4, .06, 1.3, 0x2a2420, 10).box(11, .5, 25.84, 4.2, .9, .02, gold, 11);
-  k.box(10.2, 1.2, 26.6, .5, .32, .03, 0x0a0c10, 1, -.2).box(10.2, 1.07, 26.4, .5, .02, .34, 0x1a1b1e, 2);
-  k.box(11.3, .5, 28.1, .55, .1, .55, 0x1a1b1e, 2).box(11.3, .9, 28.4, .55, .7, .1, 0x1a1b1e, 2);
-  B.push({ x0: 8.8, x1: 13.2, z0: 25.75, z1: 27.05 });
-  for (const [x, z, w, d] of [[-12.6, 27.6, 4.6, 1.0], [-14.6, 25.2, 1.0, 3.8]]) {
+  k.box(11, .5, 26.4 + BK, 4.2, 1, 1.1, 0xe6e0d4, 10).box(11, 1.03, 26.4 + BK, 4.4, .06, 1.3, 0x2a2420, 10).box(11, .5, 25.84 + BK, 4.2, .9, .02, gold, 11);
+  k.box(10.2, 1.2, 26.6 + BK, .5, .32, .03, 0x0a0c10, 1, -.2).box(10.2, 1.07, 26.4 + BK, .5, .02, .34, 0x1a1b1e, 2);
+  k.box(11.3, .5, 28.1 + BK, .55, .1, .55, 0x1a1b1e, 2).box(11.3, .9, 28.4 + BK, .55, .7, .1, 0x1a1b1e, 2);
+  B.push({ x0: 8.8, x1: 13.2, z0: 25.75 + BK, z1: 27.05 + BK });
+  for (const [x, z, w, d] of [[-12.6, 27.6 + BK, 4.6, 1.0], [-14.6, 25.2 + BK, 1.0, 3.8]]) {
     k.box(x, .25, z, w, .5, d, 0x4a2a1c, 2);
     k.box(x + (d > w ? -.4 : 0), .7, z + (d > w ? 0 : .4), d > w ? .2 : w, .5, d > w ? d : .2, 0x4a2a1c, 2);
     B.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
   }
-  k.cyl(-12, .38, 25, .7, .7, .04, 24, 0x1a1b1e, 10).cyl(-12, .19, 25, .08, .1, .38, 8, 0xd8dce2, 3);
-  show.circles.push({ x: -12, z: 25, r: .7 });
-  for (const [x, z] of [[-15.2, 1.2], [15.2, 1.2], [-15.2, 29], [7.6, 29]]) {
+  k.cyl(-12, .38, 25 + BK, .7, .7, .04, 24, 0x1a1b1e, 10).cyl(-12, .19, 25 + BK, .08, .1, .38, 8, 0xd8dce2, 3);
+  show.circles.push({ x: -12, z: 25 + BK, r: .7 });
+  for (const [x, z] of [[-15.2, 1.2], [15.2, 1.2], [-15.2, 29 + BK], [7.6, 29 + BK], [-15.2, 24], [15.2, 24]]) {
     k.cyl(x, .35, z, .32, .26, .7, 14, 0x1a1b1e, 10);
     for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; k.add(new T.ConeGeometry(.12, 1.1, 5), 0x2a4a2c, 2, tf(x + Math.cos(a) * .12, 1.15, z + Math.sin(a) * .12, Math.sin(a) * .3, 0, -Math.cos(a) * .3)); }
     show.circles.push({ x, z, r: .4 });
   }
   S.add(new T.Mesh(k.build(), MAT.uber));
-  // 車：固定的直接擺上台，中間兩台放在轉盤上慢慢轉
+  // 車：固定的直接擺上台，中間兩台放在轉盤上慢慢轉；實車模型先放替身，下載好再換
   for (const c of show.cars) {
-    const m = new T.Mesh(carKit(c.id).build(), MAT.uber);
+    const m = carObject(c.id);
     if (c.spin) {
       const g = new T.Group(); g.position.set(c.x, 0, c.z); g.rotation.y = c.yaw;
       const tk = new Kit().cyl(0, .06, 0, 2.35, 2.4, .12, 44, 0x1c1d21, 10).add(new T.TorusGeometry(2.37, .022, 4, 56), gold, 8, tf(0, .12, 0, Math.PI / 2, 0, 0));
@@ -120,7 +123,7 @@ const SELLER = { x: 11, z: 27.4 };
   const sg = new T.PlaneGeometry(9, 2.25); const uv = sg.attributes.uv; const c = cells.VELOCE;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, lerp(c.u0, c.u1, uv.getX(i)), lerp(c.v0, c.v1, uv.getY(i)));
   sg.setAttribute('aS', new T.Float32BufferAttribute(new Array(uv.count).fill(0).flatMap(() => [.6, 0, 1.6, 0]), 4));
-  const sm = new T.Mesh(sg, MAT_SIGN); sm.position.set(0, 4.7, 29.88); sm.rotation.y = Math.PI; S.add(sm);
+  const sm = new T.Mesh(sg, MAT_SIGN); sm.position.set(0, 4.7, SD - .12); sm.rotation.y = Math.PI; S.add(sm);
   // 前窗：雨夜街景
   for (const s of [-1, 1]) {
     const m = new T.Mesh(new T.PlaneGeometry(14.8, 4.85), new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
@@ -132,41 +135,43 @@ const SELLER = { x: 11, z: 27.4 };
   const list = [
     [ANIM.talk, SELLER.x, 0, SELLER.z, Math.PI, { top: lin(0x1b2230), bot: lin(0x15171c), skin: SKINS[1], hair: lin(0x1a1410), longHair: 0, coat: 1, skirt: 0, hat: 0, glowI: 0 }],
     [ANIM.idle, -3.2, 0, 13.6, Math.PI - .4], [ANIM.talk, -2.2, 0, 13.9, -2.2],
-    [ANIM.sit, -12.6, -.12, 27.3, Math.PI],
+    [ANIM.sit, -12.6, -.12, 27.3 + BK, Math.PI],
   ];
   list.forEach(([a, x, y, z, yaw, look], k) => { cr.look(k, look || { r: rc, glowI: 0 }); cr.anim(k, a, rc() * 10, 1); cr.place(k, x, y, z, yaw); if (k === 1 || k === 2) show.circles.push({ x, z, r: .3 }); });
   cr.flush(); showScene.add(cr.mesh); show.people = cr;
 }
 show.lights.push(
-  ...[[-10, 9], [0, 9], [10, 9], [-10, 19], [0, 19], [10, 19]].map(([x, z]) => ({ x, y: 6.4, z, col: lin(0xfff2e0), r: 14, i: 2.1 })),
-  { x: 0, y: 4.6, z: 28, col: lin(0xffcf6a), r: 9, i: 1.1 }, { x: 0, y: 4, z: 2, col: lin(0xd8e4ff), r: 12, i: .9 },
-  { x: 11, y: 2.6, z: 25.6, col: lin(0xffe0b8), r: 6, i: 1 }, { x: -12, y: 2.6, z: 26, col: lin(0xffc890), r: 6, i: .9 },
+  ...[9, 19, 29, 39].flatMap(z => [-10, 0, 10].map(x => ({ x, y: 6.4, z, col: lin(0xfff2e0), r: 14, i: 2.1 }))),
+  { x: 0, y: 4.6, z: 28 + BK, col: lin(0xffcf6a), r: 9, i: 1.1 }, { x: 0, y: 4, z: 2, col: lin(0xd8e4ff), r: 12, i: .9 },
+  { x: 11, y: 2.6, z: 25.6 + BK, col: lin(0xffe0b8), r: 6, i: 1 }, { x: -12, y: 2.6, z: 26 + BK, col: lin(0xffc890), r: 6, i: .9 },
   { x: -14, y: 5, z: 14, col: lin(0xfff2e0), r: 10, i: .7 }, { x: 14, y: 5, z: 14, col: lin(0xfff2e0), r: 10, i: .7 },
+  { x: -14, y: 5, z: 34, col: lin(0xfff2e0), r: 10, i: .7 }, { x: 14, y: 5, z: 34, col: lin(0xfff2e0), r: 10, i: .7 },
 );
 
-// ─── GARAGE 07：門在 z = 0，室內 x -9..9、z 0..27、高 4.6 m；兩側各六格、最裡面一格 ───
+// ─── GARAGE 07：門在 z = 0，室內 x -9..9、z 0..GD、高 4.6 m；兩側各 GN 格、最裡面一格（共 23 格，對應 CAR_ORDER） ───
 const homeScene = new T.Scene();
 const home = { boxes: [], circles: [], lights: [], baseN: 0, cars: new T.Group(), bayCars: [] };
+const GN = 11, GD = 27 + (GN - 6) * 3.3, GK = GD - 27;   // GK：後牆區比原本 27 m 的車庫往後移的距離
 const BAYS = [];
-for (let n = 0; n < 6; n++) for (const s of [-1, 1]) BAYS.push({ x: s * 6.2, z: 4.6 + n * 3.3, yaw: -s * Math.PI / 2 });
-BAYS.push({ x: 0, z: 24.2, yaw: Math.PI });
+for (let n = 0; n < GN; n++) for (const s of [-1, 1]) BAYS.push({ x: s * 6.2, z: 4.6 + n * 3.3, yaw: -s * Math.PI / 2 });
+BAYS.push({ x: 0, z: 24.2 + GK, yaw: Math.PI });
 const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
 {
   const k = new Kit(), B = home.boxes, S = homeScene, amber = 0xd89a2a;
   const wall = (x0, x1, z0, z1, h, col, mat = 2) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
   // 環氧樹脂地板、車格線、天花板鋼樑與日光燈管
-  k.box(0, -.05, 13.5, 18.4, .1, 27.4, 0x3c3f44, 10);
-  for (let n = 0; n <= 6; n++) for (const s of [-1, 1]) k.box(s * 6.3, .003, 2.95 + n * 3.3, 5.4, .006, .1, amber, 2);
-  for (const s of [-1, 1]) k.box(s * 3.65, .003, 12.85, .1, .006, 19.8, amber, 2);
-  for (const s of [-1, 1]) for (let n = 0; n < 6; n++) k.box(s * 8.55, .06, 4.6 + n * 3.3, .14, .12, 1.8, 0xc8a02a, 15);
-  k.box(0, 4.65, 13.5, 18.4, .1, 27.4, 0x1c1e22, 2);
-  for (let z = 2; z < 27; z += 3) k.box(0, 4.42, z, 18, .3, .16, 0x2a2c30, 2);
-  for (const z of [4, 9, 14, 19, 24]) { k.box(0, 4.22, z, .14, .06, 2.6, 0xf0f6ff, 11); k.box(0, 4.27, z, .26, .05, 2.7, 0x2a2c30, 15); }
-  for (const s of [-1, 1]) for (const z of [6.2, 12.8, 19.4]) { k.box(s * 6.2, 4.22, z, 2.4, .06, .12, 0xf0f6ff, 11); k.box(s * 6.2, 4.27, z, 2.5, .05, .24, 0x2a2c30, 15); }
+  k.box(0, -.05, GD / 2, 18.4, .1, GD + .4, 0x3c3f44, 10);
+  for (let n = 0; n <= GN; n++) for (const s of [-1, 1]) k.box(s * 6.3, .003, 2.95 + n * 3.3, 5.4, .006, .1, amber, 2);
+  for (const s of [-1, 1]) k.box(s * 3.65, .003, 2.95 + GN * 3.3 / 2, .1, .006, GN * 3.3, amber, 2);
+  for (const s of [-1, 1]) for (let n = 0; n < GN; n++) k.box(s * 8.55, .06, 4.6 + n * 3.3, .14, .12, 1.8, 0xc8a02a, 15);
+  k.box(0, 4.65, GD / 2, 18.4, .1, GD + .4, 0x1c1e22, 2);
+  for (let z = 2; z < GD; z += 3) k.box(0, 4.42, z, 18, .3, .16, 0x2a2c30, 2);
+  for (let z = 4; z < GD; z += 5) { k.box(0, 4.22, z, .14, .06, 2.6, 0xf0f6ff, 11); k.box(0, 4.27, z, .26, .05, 2.7, 0x2a2c30, 15); }
+  for (const s of [-1, 1]) for (let z = 6.2; z < GD - 4; z += 6.6) { k.box(s * 6.2, 4.22, z, 2.4, .06, .12, 0xf0f6ff, 11); k.box(s * 6.2, 4.27, z, 2.5, .05, .24, 0x2a2c30, 15); }
   // 水泥磚牆、黃黑腰帶
-  wall(-9.4, -9, 0, 27, 4.6, 0x5a5d61); wall(9, 9.4, 0, 27, 4.6, 0x5a5d61); wall(-9.4, 9.4, 27, 27.4, 4.6, 0x55585c);
-  for (const s of [-1, 1]) k.box(s * 8.97, 1.2, 13.5, .04, .16, 27, 0xc8a02a, 2);
-  for (let x = -8.6; x < 8.6; x += .8) k.box(x + .2, 1.2, 26.97, .4, .16, .04, 0xc8a02a, 2);
+  wall(-9.4, -9, 0, GD, 4.6, 0x5a5d61); wall(9, 9.4, 0, GD, 4.6, 0x5a5d61); wall(-9.4, 9.4, GD, GD + .4, 4.6, 0x55585c);
+  for (const s of [-1, 1]) k.box(s * 8.97, 1.2, GD / 2, .04, .16, GD, 0xc8a02a, 2);
+  for (let x = -8.6; x < 8.6; x += .8) k.box(x + .2, 1.2, GD - .03, .4, .16, .04, 0xc8a02a, 2);
   // 前牆與捲門（室內側）
   wall(-9.4, -3.2, -.4, 0, 4.6, 0x4a4d52); wall(3.2, 9.4, -.4, 0, 4.6, 0x4a4d52);
   B.push({ x0: -3.2, x1: 3.2, z0: -.6, z1: -.25 });
@@ -175,15 +180,15 @@ const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
   for (const s of [-1, 1]) k.box(s * 3.25, 2.2, -.15, .12, 4.4, .16, 0x2a2c30, 15);
   k.box(0, .9, -.1, .5, .06, .1, 0xd8dce2, 3);
   // 後牆：工作台、洞洞板與工具、紅色工具車、輪胎架、油桶、小冰箱
-  k.box(-6.2, .9, 26.3, 4.2, .08, 1.1, 0x5a3a20, 10).box(-6.2, .45, 26.3, 4.0, .9, 1.0, 0x2a2c30, 15);
-  k.box(-6.2, 2.4, 26.95, 4.2, 1.8, .04, 0x8a7a5a, 2);
-  for (let i = 0; i < 9; i++) k.box(-7.9 + i * .42, 2.3 + (i % 3) * .3, 26.9, .05, .38 - (i % 2) * .1, .03, 0xb8bcc2, 3, 0, 0, (i % 3 - 1) * .3);
-  for (const [x, w] of [[-3.6, .9], [-2.6, .9]]) { k.box(x, .55, 26.5, w * .95, 1.1, .6, 0xa8141a, 10); for (let d = 0; d < 4; d++) k.box(x, .2 + d * .24, 26.19, w * .85, .02, .02, 0xd8dce2, 3); }
-  B.push({ x0: -8.4, x1: -2.1, z0: 25.7, z1: 27 });
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) k.add(new T.TorusGeometry(.3, .12, 8, 18), 0x141414, 6, tf(6.4 + i * .82, .45 + j * .82, 26.4, 0, 0, 0));
-  k.box(7.2, .02, 26.4, 2.8, .04, .6, 0x2a2c30, 15);
-  for (const [x, z, c] of [[3.4, 26.3, 0x1c4a7a], [4.2, 26.4, 0x7a1c1c]]) k.cyl(x, .45, z, .3, .3, .9, 16, c, 10).cyl(x, .9, z, .3, .3, .02, 16, 0x1a1a1a, 15);
-  B.push({ x0: 2.9, x1: 8.8, z0: 25.9, z1: 27 });
+  k.box(-6.2, .9, 26.3 + GK, 4.2, .08, 1.1, 0x5a3a20, 10).box(-6.2, .45, 26.3 + GK, 4.0, .9, 1.0, 0x2a2c30, 15);
+  k.box(-6.2, 2.4, 26.95 + GK, 4.2, 1.8, .04, 0x8a7a5a, 2);
+  for (let i = 0; i < 9; i++) k.box(-7.9 + i * .42, 2.3 + (i % 3) * .3, 26.9 + GK, .05, .38 - (i % 2) * .1, .03, 0xb8bcc2, 3, 0, 0, (i % 3 - 1) * .3);
+  for (const [x, w] of [[-3.6, .9], [-2.6, .9]]) { k.box(x, .55, 26.5 + GK, w * .95, 1.1, .6, 0xa8141a, 10); for (let d = 0; d < 4; d++) k.box(x, .2 + d * .24, 26.19 + GK, w * .85, .02, .02, 0xd8dce2, 3); }
+  B.push({ x0: -8.4, x1: -2.1, z0: 25.7 + GK, z1: 27 + GK });
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) k.add(new T.TorusGeometry(.3, .12, 8, 18), 0x141414, 6, tf(6.4 + i * .82, .45 + j * .82, 26.4 + GK, 0, 0, 0));
+  k.box(7.2, .02, 26.4 + GK, 2.8, .04, .6, 0x2a2c30, 15);
+  for (const [x, z, c] of [[3.4, 26.3 + GK, 0x1c4a7a], [4.2, 26.4 + GK, 0x7a1c1c]]) k.cyl(x, .45, z, .3, .3, .9, 16, c, 10).cyl(x, .9, z, .3, .3, .02, 16, 0x1a1a1a, 15);
+  B.push({ x0: 2.9, x1: 8.8, z0: 25.9 + GK, z1: 27 + GK });
   // 牆上的旗子與時鐘、入口旁的開關箱
   k.box(-8.94, 3.2, 8, .03, .9, 2.4, 0x14243a, 2).box(-8.93, 3.2, 8, .02, .12, 2.4, 0xd8a02a, 2);
   k.cyl(8.94, 3.2, 12, .35, .35, .04, 24, 0xe8e4dc, 10, 0, 0, Math.PI / 2).box(8.91, 3.25, 12, .02, .22, .03, 0x111111, 2).box(8.91, 3.2, 11.92, .02, .03, .16, 0x111111, 2);
@@ -193,16 +198,17 @@ const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
   home.baseN = home.circles.length;
 }
 home.lights.push(
-  ...[4, 9, 14, 19, 24].map(z => ({ x: 0, y: 3.9, z, col: lin(0xe8f2ff), r: 11, i: 2 })),
-  { x: -6.2, y: 2.4, z: 25.6, col: lin(0xffd0a0), r: 5, i: 1 }, { x: -6.2, y: 3.8, z: 12.8, col: lin(0xe8f2ff), r: 10, i: 1.2 }, { x: 6.2, y: 3.8, z: 12.8, col: lin(0xe8f2ff), r: 10, i: 1.2 },
+  ...[4, 9, 14, 19, 24, 29, 34, 39].map(z => ({ x: 0, y: 3.9, z, col: lin(0xe8f2ff), r: 11, i: 2 })),
+  { x: -6.2, y: 2.4, z: 25.6 + GK, col: lin(0xffd0a0), r: 5, i: 1 },
+  ...[12.8, 29].flatMap(z => [-6.2, 6.2].map(x => ({ x, y: 3.8, z, col: lin(0xe8f2ff), r: 10, i: 1.2 }))),
 );
 // 車庫裡擺出擁有的車（目前開在街上的那台不在）
 function rebuildGarage() {
-  for (const m of home.cars.children) m.geometry.dispose();
+  for (const m of home.cars.children) disposeKit(m);
   home.cars.clear(); home.bayCars.length = 0; home.circles.length = home.baseN;
   for (const id of motors.owned) {
     if (id === motors.cur && !motors.stowed) continue;
-    const b = bayOf(id), m = new T.Mesh(carKit(id, motors.paint[id]).build(), MAT.uber);
+    const b = bayOf(id), m = carObject(id, motors.paint[id]);
     m.position.set(b.x, 0, b.z); m.rotation.y = b.yaw; home.cars.add(m);
     home.bayCars.push({ id, x: b.x, z: b.z });
     const L = CARS[id].len * .28;
@@ -223,7 +229,7 @@ function carDialog(id) {
   else if (short <= 0) opts.push({ t: `買下（${money(c.price)}）`, fn: () => confirmBuy(id) });
   else opts.push({ t: `還差 ${money(short)}`, fn: () => dialog(WHO_SELL, `${c.name} 要 ${money(c.price)}。你現在有 ${money(motors.cash)}。去街上甩幾圈尾再回來，這台車不會跑掉。`, [{ t: '試駕看看', fn: () => testDrive(id) }, { t: '好吧', fn: closeDialog }]) });
   opts.push({ t: '試駕 60 秒', fn: () => testDrive(id) }, { t: '再看看', fn: closeDialog });
-  dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${money(c.price)} · ${carStats(id)}`, opts);
+  dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${money(c.price)} · ${carStats(id)}` + (c.credit ? `\n${c.credit}` : ''), opts);
 }
 function confirmBuy(id) {
   const c = CARS[id];
@@ -271,7 +277,7 @@ function bayDialog(id) {
   const opts = [{ t: '開出去', fn: () => driveOut(id) }];
   if (id !== 'kestrel') opts.push({ t: `賣回車行（${money(sellPrice(id))}）`, fn: () => dialog('GARAGE 07', `把 ${c.name} 用 ${money(sellPrice(id))} 賣回 VELOCE MOTORS？`, [{ t: '賣', fn: () => sellCar(id) }, { t: '不賣了', fn: closeDialog }]) });
   opts.push({ t: '離開', fn: closeDialog });
-  dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${carStats(id)}`, opts);
+  dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${carStats(id)}` + (c.credit ? `\n${c.credit}` : ''), opts);
 }
 function driveOut(id) {
   closeDialog();
@@ -326,6 +332,7 @@ ctxHooks.push((p, near) => {
 
 // ─── 每幀：轉盤、試駕倒數 ───
 function updateMotors(dt, t) {
+  if (glbWait.length && (player.where === 'show' || player.where === 'home')) glbWake(VENUES[player.where].scene);
   if (player.where === 'show') for (const s of show.spin) s.g.rotation.y = s.a0 + t * .22;
   const tst = motors.test;
   if (tst) {

@@ -502,7 +502,9 @@ function contextAction() {
 // CHROME WORKS 換色：第一個選項是這台車的原廠色，換完記在車庫存檔裡
 const LIVERIES = [[0x8a1018, '酒紅'], [0x3c4148, '槍灰'], [0x0d3b5c, '午夜藍'], [0xd8d4c8, '珍珠白'], [0x1b1c1f, '消光黑'], [0xc9a227, '香檳金'], [0x2f6a3a, '賽車綠']];
 function cycleLivery() {
-  const id = kestrel.carId, opts = [[CARS[id].paint, '原廠色'], ...LIVERIES.filter(l => l[0] !== CARS[id].paint)];
+  const id = kestrel.carId;
+  if (CARS[id].glb && !CARS[id].paintable) return toast(`${CARS[id].name} 是原廠彩繪，CHROME WORKS 不敢動`);
+  const opts = [[CARS[id].paint, '原廠色'], ...LIVERIES.filter(l => l[0] !== CARS[id].paint)];
   const k = (opts.findIndex(o => o[0] === kestrel.paint) + 1) % opts.length;
   applyCar(kestrel, id, opts[k][0]); poseVehicle(kestrel);
   motors.paint[id] = opts[k][0]; saveMotors();

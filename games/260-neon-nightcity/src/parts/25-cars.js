@@ -427,7 +427,9 @@ car('duchess', {
 
 // 組一台完整的車：wheels 2 = 細緻輪框（展示、車庫）、1 = 簡化輪子（車流的 InstancedMesh）、0 = 不含輪子（玩家座駕另外掛）
 function carKit(id, paint, wheels = 2) {
-  const c = CARS[id], k = new Kit();
+  const c = CARS[id];
+  if (c.glb) return carKit(c.proxy, paint ?? c.fb, wheels);   // 實車模型還沒下載好（或以檔案開啟）時的替身
+  const k = new Kit();
   c.body(k, paint ?? c.paint);
   if (wheels) for (const s of [-1, 1]) for (const [z, f] of [[c.fa, 0], [c.ra, 1]]) {
     if (wheels === 2) carWheel(k, s * c.track, c.wr, z, c.wr, c.ww[f], c.rim[0], c.rim[1], c.wall, c.cal);
@@ -438,8 +440,10 @@ function carKit(id, paint, wheels = 2) {
 // 玩家座駕的輪子：單獨的幾何，外側朝 +x，轉動軸在原點
 const wheelGeoCache = {};
 function carWheelGeo(id, f) {
+  if (CARS[id].glb) id = CARS[id].proxy;
   const key = id + f;
   if (!wheelGeoCache[key]) { const c = CARS[id], k = new Kit(); carWheel(k, .001, 0, 0, c.wr, c.ww[f], c.rim[0], c.rim[1], c.wall, c.cal); wheelGeoCache[key] = k.build(); }
   return wheelGeoCache[key];
 }
-const CAR_ORDER = ['kestrel', 'doodle', 'kanto', 'bulldog', 'ronin', 'mamba', 'lucerna', 'duchess', 'saetta', 'furia', 'meridian', 'solenne', 'halcyon'];
+const CAR_ORDER = ['kestrel', 'doodle', 'kanto', 'bulldog', 'ronin', 'mamba', 'lucerna', 'duchess', 'saetta', 'furia', 'meridian', 'solenne', 'halcyon',
+  'e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3', 'gt3rs', 'gt3r', 's1krr', 's1krr19'];   // 後十台是 26-glb.js 的實車模型

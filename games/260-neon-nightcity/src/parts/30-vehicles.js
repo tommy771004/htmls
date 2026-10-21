@@ -343,17 +343,37 @@ function mkVehicle(kind) {
   return v;
 }
 function applyCar(v, id, paint) {
-  const c = CARS[id];
-  for (const m of v.body.children) m.geometry.dispose();
-  v.body.clear();
-  for (const w of v.wheels) v.g.remove(w.piv);
+  const c = CARS[id], f = c.glb && !c.bike ? CARS[c.proxy] : c;
+  disposeKit(v.body); v.body.clear();
+  for (const w of v.wheels) w.piv.parent && w.piv.parent.remove(w.piv);
   v.wheels.length = 0;
-  v.body.add(new T.Mesh(carKit(id, paint, 0).build(), v.mat));
-  for (const s of [-1, 1]) for (const [z, f] of [[c.fa, 0], [c.ra, 1]]) {
-    const piv = new T.Group(); piv.position.set(s * c.track, c.wr, z); v.g.add(piv);
-    const w = new T.Mesh(carWheelGeo(id, f), v.mat); if (s < 0) w.rotation.y = Math.PI; piv.add(w); v.wheels.push({ piv, w, front: f === 0 });
+  v.isCar = !c.bike; v.glbTok = (v.glbTok || 0) + 1;
+  // 機車的輪子掛在車身上（跟著壓車），汽車的掛在車架上
+  if (c.bike) {
+    const m = new T.Mesh(hanzoKit().build(), v.mat); m.userData.kit = 1; v.body.add(m);
+    for (const z of [.8, -.72]) {
+      const piv = new T.Group(); piv.position.set(0, .33, z); v.body.add(piv);
+      const w = new T.Mesh(BIKE_WHEEL, v.mat); w.position.x = -.07; piv.add(w); v.wheels.push({ piv, w, front: z > 0 });
+    }
+  } else {
+    const m = new T.Mesh(carKit(id, paint, 0).build(), v.mat); m.userData.kit = 1; v.body.add(m);
+    for (const s of [-1, 1]) for (const [z, fr] of [[f.fa, 0], [f.ra, 1]]) {
+      const piv = new T.Group(); piv.position.set(s * f.track, f.wr, z); v.g.add(piv);
+      const w = new T.Mesh(carWheelGeo(id, fr), v.mat); if (s < 0) w.rotation.y = Math.PI; piv.add(w); v.wheels.push({ piv, w, front: fr === 0 });
+    }
   }
-  Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name });
+  Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name, seat: c.seat || null });
+  // 實車模型：下載好就把替身換掉（期間又換了車就作罷）
+  const p = c.glb && loadGLB(id), tok = v.glbTok;
+  if (p) p.then(tpl => {
+    if (!tpl || v.glbTok !== tok) return;
+    const inst = glbInstance(tpl, paint, v.mat.uniforms.uM);
+    disposeKit(v.body); v.body.clear();
+    for (const w of v.wheels) w.piv.parent && w.piv.parent.remove(w.piv);
+    v.wheels.length = 0;
+    v.body.add(inst.body);
+    for (const w of inst.wheels) { (c.bike ? v.body : v.g).add(w.piv); v.wheels.push(w); }
+  });
 }
 const kestrel = mkVehicle('kestrel'), hanzo = mkVehicle('hanzo');
 const vehicles = [kestrel, hanzo];

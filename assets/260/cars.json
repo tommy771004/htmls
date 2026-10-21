@@ -1,0 +1,488 @@
+{
+ "e92": {
+  "id": "e92",
+  "title": "2010 BMW M3 (E92)",
+  "author": "ilvskf (https://sketchfab.com/ilvskf)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2010-bmw-m3-e92-1b61f48d5ebc4d9d94ac5f76ef1aede4",
+  "bike": false,
+  "len": 4.615,
+  "w": 1.986,
+  "h": 1.364,
+  "wr": 0.308,
+  "fa": 1.475,
+  "ra": -1.27,
+  "track": 0.762,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.767,
+    "y": 0.308,
+    "z": 1.475,
+    "r": 0.308
+   },
+   {
+    "name": "FR",
+    "x": -0.767,
+    "y": 0.308,
+    "z": 1.475,
+    "r": 0.308
+   },
+   {
+    "name": "RL",
+    "x": 0.757,
+    "y": 0.308,
+    "z": -1.27,
+    "r": 0.308
+   },
+   {
+    "name": "RR",
+    "x": -0.757,
+    "y": 0.308,
+    "z": -1.27,
+    "r": 0.308
+   }
+  ],
+  "paint": [
+   "Paint"
+  ],
+  "paintable": true,
+  "tris": 202090,
+  "kb": 3669,
+  "draws": 74
+ },
+ "m3c": {
+  "id": "m3c",
+  "title": "BMW M3 Competition",
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-m3-competition-641603169bfa4285a297a59883c653de",
+  "bike": false,
+  "len": 4.794,
+  "w": 2.036,
+  "h": 1.354,
+  "wr": 0.341,
+  "fa": 1.501,
+  "ra": -1.171,
+  "track": 0.823,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.837,
+    "y": 0.335,
+    "z": 1.501,
+    "r": 0.335
+   },
+   {
+    "name": "FR",
+    "x": -0.836,
+    "y": 0.335,
+    "z": 1.501,
+    "r": 0.335
+   },
+   {
+    "name": "RL",
+    "x": 0.81,
+    "y": 0.347,
+    "z": -1.171,
+    "r": 0.347
+   },
+   {
+    "name": "RR",
+    "x": -0.809,
+    "y": 0.347,
+    "z": -1.171,
+    "r": 0.347
+   }
+  ],
+  "paint": [
+   "Material.032"
+  ],
+  "paintable": true,
+  "tris": 183281,
+  "kb": 3475,
+  "draws": 69
+ },
+ "m4wb": {
+  "id": "m4wb",
+  "title": "BMW M4 Modified Widebody",
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-m4-modified-widebody-61b1259b14ae4840ba1b0e9d819e60c1",
+  "bike": false,
+  "len": 4.85,
+  "w": 2.059,
+  "h": 1.37,
+  "wr": 0.335,
+  "fa": 1.474,
+  "ra": -1.346,
+  "track": 0.811,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.811,
+    "y": 0.335,
+    "z": 1.474,
+    "r": 0.335
+   },
+   {
+    "name": "FR",
+    "x": -0.811,
+    "y": 0.335,
+    "z": 1.474,
+    "r": 0.335
+   },
+   {
+    "name": "RL",
+    "x": 0.811,
+    "y": 0.335,
+    "z": -1.346,
+    "r": 0.335
+   },
+   {
+    "name": "RR",
+    "x": -0.811,
+    "y": 0.335,
+    "z": -1.346,
+    "r": 0.335
+   }
+  ],
+  "paint": [
+   "bBMW_M4CompetitionG82TNR0_2021PaintTNR_Material_004"
+  ],
+  "paintable": true,
+  "tris": 138608,
+  "kb": 1943,
+  "draws": 17
+ },
+ "m3gtr": {
+  "id": "m3gtr",
+  "title": "BMW M3 GTR GT2",
+  "author": "Dave Love SketchFab (https://sketchfab.com/Tyler_Dave)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-m3-gtr-gt2-b6b0370337a04499973e435a66b22d5b",
+  "bike": false,
+  "len": 4.55,
+  "w": 1.854,
+  "h": 1.723,
+  "wr": 0.325,
+  "fa": 1.444,
+  "ra": -1.213,
+  "track": 0.757,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.76,
+    "y": 0.325,
+    "z": 1.444,
+    "r": 0.325
+   },
+   {
+    "name": "FR",
+    "x": -0.758,
+    "y": 0.325,
+    "z": 1.444,
+    "r": 0.325
+   },
+   {
+    "name": "RL",
+    "x": 0.75,
+    "y": 0.325,
+    "z": -1.213,
+    "r": 0.325
+   },
+   {
+    "name": "RR",
+    "x": -0.758,
+    "y": 0.325,
+    "z": -1.213,
+    "r": 0.325
+   }
+  ],
+  "paint": [
+   "body.014"
+  ],
+  "paintable": false,
+  "tris": 126056,
+  "kb": 2082,
+  "draws": 34
+ },
+ "m3t24": {
+  "id": "m3t24",
+  "title": "2026 BMW M3 Touring 24H Shell Helix",
+  "author": "Dave Love SketchFab (https://sketchfab.com/Tyler_Dave)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2026-bmw-m3-touring-24h-shell-helix-6828c91db6a34d1ca6bc204f064e28c1",
+  "bike": false,
+  "len": 4.9,
+  "w": 2.01,
+  "h": 1.401,
+  "wr": 0.336,
+  "fa": 1.545,
+  "ra": -1.215,
+  "track": 0.82,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.823,
+    "y": 0.336,
+    "z": 1.546,
+    "r": 0.336
+   },
+   {
+    "name": "FR",
+    "x": -0.821,
+    "y": 0.336,
+    "z": 1.544,
+    "r": 0.336
+   },
+   {
+    "name": "RL",
+    "x": 0.817,
+    "y": 0.337,
+    "z": -1.214,
+    "r": 0.337
+   },
+   {
+    "name": "RR",
+    "x": -0.821,
+    "y": 0.337,
+    "z": -1.215,
+    "r": 0.337
+   }
+  ],
+  "paint": [
+   "Paint"
+  ],
+  "paintable": false,
+  "tris": 167131,
+  "kb": 2361,
+  "draws": 25
+ },
+ "m4gt3": {
+  "id": "m4gt3",
+  "title": "2025 BMW M4 GT3 EVO G82",
+  "author": "Ddiaz Design (https://sketchfab.com/ddiaz-design)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2025-bmw-m4-gt3-evo-g82-113f83dd87064697a5ec2511d280b9d5",
+  "bike": false,
+  "len": 5.02,
+  "w": 2.06,
+  "h": 1.386,
+  "wr": 0.35,
+  "fa": 1.569,
+  "ra": -1.346,
+  "track": 0.845,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.856,
+    "y": 0.343,
+    "z": 1.569,
+    "r": 0.343
+   },
+   {
+    "name": "FR",
+    "x": -0.856,
+    "y": 0.343,
+    "z": 1.569,
+    "r": 0.343
+   },
+   {
+    "name": "RL",
+    "x": 0.834,
+    "y": 0.358,
+    "z": -1.346,
+    "r": 0.358
+   },
+   {
+    "name": "RR",
+    "x": -0.834,
+    "y": 0.358,
+    "z": -1.346,
+    "r": 0.358
+   }
+  ],
+  "paint": [
+   "BMWMAT_GT3_EVO_car_paint1"
+  ],
+  "paintable": true,
+  "tris": 107980,
+  "kb": 1562,
+  "draws": 41
+ },
+ "gt3rs": {
+  "id": "gt3rs",
+  "title": "Porsche 992 GT3 RS",
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/porsche-992-gt3-rs-80bf174857414a57ac9741567d3c4534",
+  "bike": false,
+  "len": 4.572,
+  "w": 2.028,
+  "h": 1.33,
+  "wr": 0.348,
+  "fa": 1.242,
+  "ra": -1.211,
+  "track": 0.77,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.798,
+    "y": 0.349,
+    "z": 1.242,
+    "r": 0.349
+   },
+   {
+    "name": "FR",
+    "x": -0.798,
+    "y": 0.349,
+    "z": 1.242,
+    "r": 0.349
+   },
+   {
+    "name": "RL",
+    "x": 0.742,
+    "y": 0.348,
+    "z": -1.211,
+    "r": 0.348
+   },
+   {
+    "name": "RR",
+    "x": -0.742,
+    "y": 0.348,
+    "z": -1.211,
+    "r": 0.348
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 165144,
+  "kb": 5659,
+  "draws": 72
+ },
+ "gt3r": {
+  "id": "gt3r",
+  "title": "2024 Porsche 992 GT3 R",
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2024-porsche-992-gt3-r-6b690bc63c8040c791d25a060ab20e1b",
+  "bike": false,
+  "len": 4.619,
+  "w": 1.985,
+  "h": 1.214,
+  "wr": 0.336,
+  "fa": 1.261,
+  "ra": -1.177,
+  "track": 0.808,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.809,
+    "y": 0.33,
+    "z": 1.261,
+    "r": 0.33
+   },
+   {
+    "name": "FR",
+    "x": -0.82,
+    "y": 0.33,
+    "z": 1.261,
+    "r": 0.33
+   },
+   {
+    "name": "RL",
+    "x": 0.803,
+    "y": 0.341,
+    "z": -1.177,
+    "r": 0.341
+   },
+   {
+    "name": "RR",
+    "x": -0.8,
+    "y": 0.341,
+    "z": -1.177,
+    "r": 0.341
+   }
+  ],
+  "paint": [
+   "EXT_Carpaint_Inst"
+  ],
+  "paintable": false,
+  "tris": 163179,
+  "kb": 3273,
+  "draws": 50
+ },
+ "s1krr": {
+  "id": "s1krr",
+  "title": "BMW S1000 RR",
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-s1000-rr-1873aed292d6465694119bd81860a0c2",
+  "bike": true,
+  "len": 2.056,
+  "w": 0.805,
+  "h": 1.177,
+  "wr": 0.302,
+  "fa": 0.736,
+  "ra": -0.717,
+  "track": 0.008,
+  "wheels": [
+   {
+    "name": "F",
+    "x": 0.008,
+    "y": 0.292,
+    "z": 0.736,
+    "r": 0.292
+   },
+   {
+    "name": "R",
+    "x": 0.008,
+    "y": 0.311,
+    "z": -0.717,
+    "r": 0.311
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 135255,
+  "kb": 1888,
+  "draws": 37
+ },
+ "s1krr19": {
+  "id": "s1krr19",
+  "title": "BMW S1000RR 2019",
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-s1000rr-2019-f842e86791ae4820aa7d45f76ecc94dc",
+  "bike": true,
+  "len": 2.073,
+  "w": 0.822,
+  "h": 1.148,
+  "wr": 0.317,
+  "fa": 0.737,
+  "ra": -0.703,
+  "track": 0,
+  "wheels": [
+   {
+    "name": "F",
+    "x": 0,
+    "y": 0.3,
+    "z": 0.737,
+    "r": 0.3
+   },
+   {
+    "name": "R",
+    "x": 0,
+    "y": 0.334,
+    "z": -0.703,
+    "r": 0.334
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 112508,
+  "kb": 1910,
+  "draws": 30
+ }
+}

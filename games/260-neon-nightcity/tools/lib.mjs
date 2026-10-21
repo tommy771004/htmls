@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { existsSync, readdirSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
-function chromePath() {
+export function chromePath() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
   const base = resolve(homedir(), 'Library/Caches/ms-playwright');
   const dirs = existsSync(base) ? readdirSync(base).filter((d) => /^chromium-\d+$/.test(d)).sort().reverse() : [];
