@@ -174,13 +174,18 @@ const TYPES = {
   carter: glbType('carter', 13, FB.sedan), compact: glbType('compact', 11.5, FB.sedan), urban: glbType('urban', 12.5, FB.sedan),
   tiara: glbType('tiara', 14, FB.sedan),
   shvan: glbType('shvan', 11, FB.truck), lct: glbType('lct', 10, FB.truck), conquer: glbType('conquer', 12, FB.truck), fvan: glbType('fvan', 10, FB.truck),
+  // 第二階段（69-police.js）：執法車也會被派出去追捕；運鈔裝甲車與救護車偶爾出現在車流
+  urban_cop: glbType('urban_cop', 14, FB.police, { police: 1 }), md84: glbType('md84', 9.5, FB.truck, { armored: 1 }),
+  ambulance: glbType('ambulance', 11.5, FB.truck), canyon_taxi: glbType('canyon_taxi', 13, FB.taxi),
+  fh: glbType('fh', 13, FB.sedan), il: glbType('il', 13.5, FB.sedan),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
-const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara'], COPS = ['fh_cop', 'il_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan'];
+const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84'];
+const TAXIS = ['fh_taxi', 'fh_taxi', 'canyon_taxi'];
 const pick = (a, u) => a[Math.min(a.length - 1, Math.floor(u * a.length))];
-function pickType() { const r = rT(); return r < .24 ? 'fh_taxi' : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : pick(SEDANS, (r - .44) / .56); }
+function pickType() { const r = rT(); return r < .24 ? pick(TAXIS, r / .24) : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : pick(SEDANS, (r - .44) / .56); }
 // 停車：每段路兩側的停車格，避開路口、消防栓、施工區與夜店門口
 const CLUB_X = avX(1) + 36, CLUB_Z = stZ(3) - HR - SW;
 const BAR_X = lerp(avX(3) + HR + SW, avX(4) - HR - SW, SPECIAL.bar.at), BAR_Z = stZ(1) - HR - SW;
@@ -190,6 +195,9 @@ const HANZO_SPOT = { x: BAR_X + 9, z: stZ(1) - PARK, yaw: -Math.PI / 2 };
 // 車行交車、車庫門口：都在門前的停車道上，車頭順著車流
 const DEAL_SPOT = { x: DEAL_X, z: stZ(3) - PARK, yaw: -Math.PI / 2 };
 const HOME_SPOT = { x: HOME_X, z: stZ(2) + PARK, yaw: Math.PI / 2 };
+// 醫院與警察局（69-combat.js 的 WASTED／BUSTED 在門口重生）：沒有建築，門前的人行道就是重生點，路邊停著救護車與警車
+const HOSP = { x: avX(4) + HR + SW * .5, z: stZ(1) + 30, yaw: -Math.PI / 2, name: '聖瑪格麗特醫院', cars: ['ambulance', 'ambulance'] };
+const PD = { x: avX(1) - HR - SW * .5, z: stZ(4) + 30, yaw: Math.PI / 2, name: '第九分局', cars: ['il_cop', 'urban_cop', 'fh_cop'] };
 for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) for (const d of [0, 2]) {
   // 大道（沿 z），右駕：往 +z 的車停在 x 負側
   const side = d === 0 ? -1 : 1;
@@ -215,6 +223,12 @@ for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3
     if (Math.abs(z - HOME_SPOT.z) < 3 && Math.abs(x - HOME_X) < 9) continue;
     parked.push({ type: pickType(), x, z, yaw: d === 1 ? Math.PI / 2 : -Math.PI / 2, pal: Math.floor(rT() * PAL.length) });
   }
+}
+for (const S of [HOSP, PD]) {
+  // 大道（沿 z）邊的停車格：先清掉那一段原本的車，再依序停進去
+  const side = S === HOSP ? 1 : -1, x = avX(S === HOSP ? 4 : 1) + side * PARK;
+  for (let i = parked.length - 1; i >= 0; i--) if (Math.abs(parked[i].x - x) < 1 && Math.abs(parked[i].z - S.z) < 14) parked.splice(i, 1);
+  S.cars.forEach((type, n) => parked.push({ type, x, z: S.z - 6.5 + n * 6.2, yaw: side > 0 ? Math.PI : 0, pal: 0 }));
 }
 for (const p of parked) { const L = TYPES[p.type].len * .3; p.circ = [-1, 1].map(s => ({ x: p.x + Math.sin(p.yaw) * L * s, z: p.z + Math.cos(p.yaw) * L * s, r: TYPES[p.type].w * .5, car: 1 })); circles.push(...p.circ); }
 

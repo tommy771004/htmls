@@ -183,5 +183,38 @@ const sfx = (() => {
     punch() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 420, 1, .35, .14); tone(t, master, 'sine', 95, .3, .002, .12); },
     whoosh() { if (!ac) return; const t = ac.currentTime; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'bandpass'; fl.Q.value = 2; fl.frequency.setValueAtTime(1400, t); fl.frequency.exponentialRampToValueAtTime(350, t + .2); env(g, t, .02, .12, .2); s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + .3); },
     thunder(d) { if (!ac) return; const t = ac.currentTime + d; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.value = 160; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .15); g.gain.exponentialRampToValueAtTime(0.0001, t + 4); s.playbackRate.value = .5; s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 4.2); },
+    // 69-combat.js／69-police.js：各種槍聲（k 音量、f 音色：1 手槍、.7 衝鋒槍、1.3 步槍、2 霰彈、2.6 狙擊、.5 機槍）、火箭、受傷、WASTED／BUSTED
+    gun(k = 1, f = 1) {
+      if (!ac || k < .02) return; const t = ac.currentTime, lo = f >= 2 ? 1.6 : 1;
+      nz(t, master, 'highpass', 1600 / lo, .7, .5 * k, .05 + f * .025); nz(t, master, 'lowpass', 1100 / lo, .8, .32 * k, .2 + f * .14);
+      const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160 / lo, t); o.frequency.exponentialRampToValueAtTime(44, t + .1 + f * .03); env(g, t, .001, .55 * k * Math.min(1.4, f), .12 + f * .05); o.connect(g); g.connect(master); o.start(t); o.stop(t + .4);
+      if (f >= 1) nz(t + .12, master, 'bandpass', 500, .6, .12 * k * f, .5 + f * .35);   // 街道回音
+    },
+    launch() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 600, .7, .45, .35); const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'bandpass'; fl.Q.value = 1.5; fl.frequency.setValueAtTime(2200, t); fl.frequency.exponentialRampToValueAtTime(600, t + .9); env(g, t, .01, .25, .9); s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 1); },
+    hurt() { if (!ac) return; const t = ac.currentTime; tone(t, master, 'sine', 70, .45, .002, .18); nz(t, master, 'lowpass', 300, 1, .2, .1); },
+    bounce() { if (!ac) return; const t = ac.currentTime; tone(t, master, 'triangle', 1500 + Math.random() * 400, .05, .001, .06); },
+    beep() { if (!ac) return; tone(ac.currentTime, master, 'square', 1760, .03, .001, .05); },
+    wasted() { if (!ac) return; const t = ac.currentTime; kick(t, master); tone(t, master, 'sine', 196, .25, .01, 2.2, 900, 120); tone(t + .05, master, 'sine', 98, .3, .01, 2.6); },
+    busted() { if (!ac) return; const t = ac.currentTime; for (const d of [0, .32]) { kick(t + d, master); tone(t + d, master, 'square', 130, .07, .005, .25, 700, 200); } },
+    // 持續音：警笛（n 台、最近的距離）與直升機旋翼（距離），每幀更新
+    loops(siren, sd, heli, hd) {
+      if (!ac) return;
+      const t = ac.currentTime;
+      if (!st.sir) {
+        const g = ac.createGain(); g.gain.value = 0; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2400; g.connect(fl); fl.connect(master);
+        const o = ac.createOscillator(); o.type = 'sawtooth'; const o2 = ac.createOscillator(); o2.type = 'square'; o2.detune.value = 9;
+        const og = ac.createGain(); og.gain.value = .5; o.connect(g); o2.connect(og); og.connect(g); o.start(); o2.start();
+        const hg = ac.createGain(); hg.gain.value = 0; const hs = brown(), hf = ac.createBiquadFilter(); hf.type = 'lowpass'; hf.frequency.value = 260;
+        const am = ac.createGain(); am.gain.value = 0; const lfo = ac.createOscillator(); lfo.frequency.value = 17; const lg = ac.createGain(); lg.gain.value = .9; lfo.connect(lg); lg.connect(am.gain); lfo.start();
+        hs.connect(hf); hf.connect(am); am.connect(hg); hg.connect(master); hs.start();
+        st.sir = { g, o, o2, hg };
+      }
+      const S = st.sir, k = siren ? clamp(1 - sd / 160, 0, 1) : 0;
+      // 兩段式：慢速上下滑的 wail，近距離改成急促的 yelp
+      const ph = (t * (sd < 30 ? 3.2 : .55)) % 1, f = 620 + 560 * (sd < 30 ? (ph < .5 ? ph * 2 : 2 - ph * 2) : Math.sin(ph * Math.PI));
+      S.o.frequency.setTargetAtTime(f, t, .02); S.o2.frequency.setTargetAtTime(f * 1.005, t, .02);
+      S.g.gain.setTargetAtTime(k * k * .09, t, .1);
+      S.hg.gain.setTargetAtTime(heli ? clamp(1 - hd / 220, 0, 1) ** 1.5 * .55 : 0, t, .2);
+    },
   };
 })();

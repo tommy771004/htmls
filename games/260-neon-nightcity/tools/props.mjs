@@ -33,6 +33,28 @@ export const SETS = [
     { id: 'toolcart', file: 'free_drawer_tool_cart_used', h: .98, rot: 1 },
   ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
+  // 武器（69-combat.js）：orient 是「哪個原檔軸變成槍口方向 +z、哪個變成上方 +y」，center 是包圍盒中心放原點（握把位置由頁面的 ARMS 表另外給）
+  { out: 'arms', tex: 512, src: '.cache/arms', items: [
+    { id: 'pistol', file: 'heckler__koch_usp_pistol', len: .194, orient: ['z', 'y'], center: 1 },
+    // 原檔並排擺了兩把：只取右邊那把（摺疊槍托），再用主軸轉正
+    { id: 'smg', file: 'mac-11', len: .3, pick: (x, y) => x > -.2 && y > .2, pca: 1, orient: ['-z', 'y'], center: 1 },
+    { id: 'rifle', file: 'm4a1_sopmod_remaster', len: .84, orient: ['x', 'y'], center: 1 },
+    { id: 'shotgun', file: 'remington_870_shotgun', len: 1.0, yaw: -14, orient: ['z', 'y'], center: 1 },
+    { id: 'sniper', file: 'usmc_m40a5_sniper', len: 1.12, yaw: -35, pitch: 12, orient: ['z', 'y'], center: 1 },
+    { id: 'rpg', file: 'rpg-7', len: 1.2, orient: ['z', 'y'], center: 1 },
+    { id: 'minigun', file: 'minigun_improved', len: .95, orient: ['-z', 'y'], center: 1 },
+    { id: 'grenade', file: 'm67_fragmentation_grenade', len: .075, orient: ['z', 'y'], center: 1 },
+    { id: 'c4', file: 'c4_explosive', len: .22, orient: ['z', 'y'], center: 1 },
+    { id: 'bat', file: 'baseball_bat', len: .84, orient: ['-x', 'y'], center: 1 },
+    { id: 'katana', file: 'cyberpunk_katana', len: 1.0, orient: ['-x', 'y'], center: 1 },
+    { id: 'baton', file: 'police_baton_game_ready_-_pbr', len: .5, orient: ['-z', 'y'], center: 1 },
+  ] },
+  // 街道物件：消防栓、配電箱、加油機
+  { out: 'street', tex: 512, src: '.cache/raw', items: [
+    { id: 'hydrant', file: 'fire_hydrant', h: .78 },
+    { id: 'ebox', file: 'electrical_box_-_free', h: 1.62 },
+    { id: 'pump', file: 'gas_pump', h: 2.1 },
+  ] },
   { out: 'bld_brown', file: 'brownstone_building_set_-_low_poly_model', split: byBuilding, win: true, prefix: 'brown' },
   { out: 'bld_down', file: 'downtown_buildings_set_-_low_poly_model', split: byBuilding, win: true, prefix: 'down' },
   { out: 'bld_ind', file: 'industrial_buildings_set_-_low_poly_models', split: byBuilding, win: true, prefix: 'ind' },
@@ -88,7 +110,48 @@ const bbox = (prims) => {
   return { mn, mx };
 };
 // 擺正一組 primitive（就地改）：轉 rot×90°、縮放、底面中心移到原點
+// 3×3 對稱矩陣的特徵向量（Jacobi），由大到小
+function eigen3(A) {
+  const a = A.map((r) => r.slice()), V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (let it = 0; it < 50; it++) {
+    let p = 0, q = 1; for (const [i, j] of [[0, 1], [0, 2], [1, 2]]) if (Math.abs(a[i][j]) > Math.abs(a[p][q])) { p = i; q = j; }
+    if (Math.abs(a[p][q]) < 1e-12) break;
+    const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+    for (let k = 0; k < 3; k++) { const x = a[k][p], y = a[k][q]; a[k][p] = c * x - s * y; a[k][q] = s * x + c * y; }
+    for (let k = 0; k < 3; k++) { const x = a[p][k], y = a[q][k]; a[p][k] = c * x - s * y; a[q][k] = s * x + c * y; }
+    for (let k = 0; k < 3; k++) { const x = V[k][p], y = V[k][q]; V[k][p] = c * x - s * y; V[k][q] = s * x + c * y; }
+  }
+  return [0, 1, 2].map((i) => ({ l: a[i][i], v: [V[0][i], V[1][i], V[2][i]] })).sort((x, y) => y.l - x.l).map((e) => e.v);
+}
+const remap = (prims, r, u, f) => {
+  const dot = (a, p, i) => a[0] * p[i] + a[1] * p[i + 1] + a[2] * p[i + 2];
+  for (const p of prims) for (const arr of [p.pos, p.nor]) for (let i = 0; i < p.cnt * 3; i += 3) { const x = dot(r, arr, i), y = dot(u, arr, i), z = dot(f, arr, i); arr[i] = x; arr[i + 1] = y; arr[i + 2] = z; }
+};
 function place(prims, cfg, scale0) {
+  if (cfg.yaw) {   // 原檔斜放：先繞 y 轉正（度）
+    const a = cfg.yaw * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    remap(prims, [c, 0, s], [0, 1, 0], [-s, 0, c]);
+  }
+  if (cfg.pitch) {   // 再繞 x 壓平（度，+z 那端往下）
+    const a = cfg.pitch * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    remap(prims, [1, 0, 0], [0, c, -s], [0, s, c]);
+  }
+  if (cfg.pca) {
+    // 原檔歪斜擺放：主軸（最長）→ z、次軸 → y、最短 → x
+    let m = [0, 0, 0], n = 0;
+    for (const p of prims) for (let i = 0; i < p.cnt; i++) { for (let k = 0; k < 3; k++) m[k] += p.pos[i * 3 + k]; n++; }
+    m = m.map((v) => v / n);
+    const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (const p of prims) for (let i = 0; i < p.cnt; i++) { const d = [0, 1, 2].map((k) => p.pos[i * 3 + k] - m[k]); for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) C[a][b] += d[a] * d[b]; }
+    const [f, u] = eigen3(C), r = [u[1] * f[2] - u[2] * f[1], u[2] * f[0] - u[0] * f[2], u[0] * f[1] - u[1] * f[0]];
+    remap(prims, r, u, f);
+  }
+  if (cfg.orient) {
+    // 軸重排：orient[0] 的原檔軸 → +z，orient[1] → +y，右手系補出 +x
+    const ax = (a) => { const v = [0, 0, 0]; v['xyz'.indexOf(a.slice(-1))] = a[0] === '-' ? -1 : 1; return v; };
+    const f = ax(cfg.orient[0]), u = ax(cfg.orient[1]), r = [u[1] * f[2] - u[2] * f[1], u[2] * f[0] - u[0] * f[2], u[0] * f[1] - u[1] * f[0]];
+    remap(prims, r, u, f);
+  }
   const q = ((cfg.rot || 0) % 4 + 4) % 4;
   const rot = (x, z) => (q === 0 ? [x, z] : q === 1 ? [z, -x] : q === 2 ? [-x, -z] : [-z, x]);
   for (const p of prims) for (let i = 0; i < p.cnt; i++) {
@@ -97,8 +160,8 @@ function place(prims, cfg, scale0) {
   }
   let { mn, mx } = bbox(prims);
   const s = scale0 ?? (cfg.h ? cfg.h / (mx[1] - mn[1]) : cfg.len ? cfg.len / Math.max(mx[0] - mn[0], mx[2] - mn[2]) : cfg.scale ?? 1);
-  const cx = (mn[0] + mx[0]) / 2, cz = (mn[2] + mx[2]) / 2;
-  for (const p of prims) for (let i = 0; i < p.cnt; i++) { p.pos[i * 3] = (p.pos[i * 3] - cx) * s; p.pos[i * 3 + 1] = (p.pos[i * 3 + 1] - mn[1]) * s; p.pos[i * 3 + 2] = (p.pos[i * 3 + 2] - cz) * s; }
+  const cx = (mn[0] + mx[0]) / 2, cz = (mn[2] + mx[2]) / 2, cy = cfg.center ? (mn[1] + mx[1]) / 2 : mn[1];
+  for (const p of prims) for (let i = 0; i < p.cnt; i++) { p.pos[i * 3] = (p.pos[i * 3] - cx) * s; p.pos[i * 3 + 1] = (p.pos[i * 3 + 1] - cy) * s; p.pos[i * 3 + 2] = (p.pos[i * 3 + 2] - cz) * s; }
   ({ mn, mx } = bbox(prims));
   return { w: +(mx[0] - mn[0]).toFixed(2), d: +(mx[2] - mn[2]).toFixed(2), h: +(mx[1] - mn[1]).toFixed(2) };
 }
@@ -198,11 +261,12 @@ async function build(set) {
     items[id] = { ...dims, tris: prims.reduce((a, p) => a + p.idx.length / 3, 0) };
   };
   for (const src of sources) {
-    const doc = await io.read(resolve(SRC, src.file + '.glb'));
+    const doc = await io.read(resolve(set.src ? resolve(root, set.src) : SRC, src.file + '.glb'));
     const info = doc.getRoot().getAsset().extras || {};
     credits.push({ file: src.file, title: info.title, author: info.author, license: info.license, source: info.source });
     let prims = collect(doc);
     if (src.drop) prims = prims.filter((p) => !src.drop.test(p.node) && !src.drop.test(p.mat ? p.mat.getName() : ''));
+    if (src.pick) prims = prims.filter((p) => { const { mn, mx } = bbox([p]); return src.pick((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2); });
     if (!set.split) { await emit(src.id, prims, place(prims, src)); continue; }
     // 拆成多棟：依建築名分組，各自置中接地（原檔已是公尺、正面朝 +z）
     const groups = new Map();

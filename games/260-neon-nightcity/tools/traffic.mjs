@@ -39,6 +39,24 @@ export const TRAFFIC = [
   { id: 'lct', pal: true, tris: 4000 },
   { id: 'conquer', pal: true, tris: 3600 },
   { id: 'fvan', pal: false, tris: 3200 },
+  // 第二階段：執法、救護、計程車與房車（同一位作者）
+  { id: 'urban_cop', pal: false, tris: 4000 },
+  { id: 'md84', pal: false, tris: 4400 },
+  { id: 'ambulance', pal: false, tris: 4000 },
+  { id: 'canyon_taxi', pal: false, tris: 4000 },
+  { id: 'fh', pal: true, tris: 3600 },
+  { id: 'il', pal: true, tris: 3600 },
+  // 直接讀原檔（raw，.cache/raw/）：不是車，不走 cars.mjs。scale 縮放、rot 繞 y 轉（度，轉完車頭朝 +z）、nodes 只取哪些節點；
+  // 同一個原檔的各部件共用同一個原點（整檔或 center 指定節點的底面中心），part: true 的部件再把自己的中心移到原點（轉軸），偏移記在 extras.piv
+  { id: 'heli', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^(cabine|patins|tuyere|moyeu)/, pal: false, tris: 3600 },
+  { id: 'heli_rotor', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^rotor_pales/, part: true, pal: false, tris: 300, noFar: true },
+  { id: 'heli_tail', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^rotor_anticouple/, part: true, pal: false, tris: 120, noFar: true },
+  // 坦克：原點在車體（Hull）的中心；砲塔轉軸量自砲塔寬的部分（不含砲管）的中心
+  { id: 'tank', raw: 'low_poly_abrams_free_model', scale: 1, rot: -90, center: /^Abrams_Hull_/, nodes: /^(?!Abrams_Tower)/, pal: false, tris: 3600 },
+  { id: 'tank_turret', raw: 'low_poly_abrams_free_model', scale: 1, rot: -90, center: /^Abrams_Hull_/, nodes: /^Abrams_Tower/, part: true, pivot: [0, 1.53, -.69], pal: false, tris: 1600 },
+  { id: 'barricade', raw: 'barricade_set_low_poly_game_ready', scale: 1, rot: 0, nodes: /^(Barricade3L|Light[789]_)/, part: true, pal: false, tris: 500, noFar: true },
+  { id: 'cone', raw: 'barricade_set_low_poly_game_ready', scale: 1, rot: 0, nodes: /^ConeTraffic/, part: true, pal: false, tris: 120, noFar: true },
+  { id: 'spike', raw: 'spike_strip', scale: 1, rot: 90, part: true, pal: false, tris: 500, noFar: true },
 ];
 const srcOf = (cfg) => {
   const a = resolve(root, '../../assets/260', (cfg.src || cfg.id) + '.glb');
@@ -86,32 +104,52 @@ function matOf(col, pbr, emi, wheel, pal) {
 // 每台烘兩級：近景 tris（40 m 內）與遠景 FAR_TRIS（節點名加 _far）
 const WHEEL_TRIS = 140, FAR_TRIS = 600, FAR_WHEEL = 24;
 async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
-  const doc = await io.read(srcOf(cfg));
+  const doc = await io.read(cfg.raw ? resolve(root, '.cache/raw', cfg.raw + '.glb') : srcOf(cfg));
+  // raw：縮放＋繞 y 轉，原點移到整檔（不只選到的節點）的底面中心
+  let xf = (p) => p, xfN = (n) => n;
+  if (cfg.raw) {
+    const a = -cfg.rot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), k = cfg.scale;
+    const rot = ([x, y, z]) => [x * c - z * s, y, x * s + z * c];
+    let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (const node of doc.getRoot().listNodes()) {
+      const mesh = node.getMesh(); if (!mesh) continue;
+      const wm = node.getWorldMatrix(), xz = !cfg.center || cfg.center.test(node.getName());   // 高度一律看整檔
+      for (const prim of mesh.listPrimitives()) {
+        const P = prim.getAttribute('POSITION'), e = [];
+        for (let i = 0; i < P.getCount(); i++) { P.getElement(i, e); const q = rot(mulP(wm, e[0], e[1], e[2]).map((v) => v * k)); for (let j = 0; j < 3; j++) { if (j !== 1 && !xz) continue; lo[j] = Math.min(lo[j], q[j]); hi[j] = Math.max(hi[j], q[j]); } }
+      }
+    }
+    const o = [(lo[0] + hi[0]) / 2, lo[1], (lo[2] + hi[2]) / 2];
+    xf = (p) => { const q = rot(p.map((v) => v * k)); return [q[0] - o[0], q[1] - o[1], q[2] - o[2]]; };
+    xfN = rot;
+  }
   const units = new Map();   // 節點名 → { wheel, pos[], nor[], col[], mat[], idx[] }
   let total = 0;
   for (const node of doc.getRoot().listNodes()) {
     const mesh = node.getMesh();
     if (!mesh) continue;
-    const wm = node.getWorldMatrix(), wheel = /^wheel_/.test(node.getName());
-    let u = units.get(node.getName());
-    if (!u) units.set(node.getName(), (u = { wheel, pos: [], nor: [], col: [], mat: [], idx: [] }));
+    if (cfg.nodes && !cfg.nodes.test(node.getName())) continue;
+    const wm = node.getWorldMatrix(), wheel = !cfg.raw && /^wheel_/.test(node.getName()), un = cfg.raw ? 'body' : node.getName();   // raw 的零件全部合成一個單元一起減面
+    let u = units.get(un);
+    if (!u) units.set(un, (u = { wheel, pos: [], nor: [], col: [], mat: [], idx: [] }));
     for (const prim of mesh.listPrimitives()) {
       const P = prim.getAttribute('POSITION'), N = prim.getAttribute('NORMAL'), C = prim.getAttribute('COLOR_0');
       const PB = prim.getAttribute('_PBR'), E = prim.getAttribute('_EMI'), UV = prim.getAttribute('TEXCOORD_0');
-      const tex = prim.getMaterial()?.getBaseColorTexture();
+      const mat = prim.getMaterial(), tex = mat?.getBaseColorTexture(), bcf = cfg.raw && mat ? mat.getBaseColorFactor() : [1, 1, 1, 1];
+      const rawPbr = cfg.raw && mat ? [mat.getRoughnessFactor(), mat.getMetallicFactor(), 0, 0] : null;
       const px = tex && UV ? await texPixels(tex) : null;
       const n = P.getCount(), base = u.pos.length / 3;
       const a = [], b = [], c = [], d = [], e = [], uv = [];
       for (let i = 0; i < n; i++) {
         P.getElement(i, a); N.getElement(i, b); C ? C.getElement(i, c) : c.splice(0, 4, 1, 1, 1, 1);
-        PB ? PB.getElement(i, d) : d.splice(0, 4, .6, 0, 0, 0); E ? E.getElement(i, e) : e.splice(0, 4, 0, 0, 0, 0);
-        let rgb = [c[0], c[1], c[2]];
+        PB ? PB.getElement(i, d) : d.splice(0, 4, ...(rawPbr || [.6, 0, 0, 0])); E ? E.getElement(i, e) : e.splice(0, 4, 0, 0, 0, 0);
+        let rgb = [c[0] * bcf[0], c[1] * bcf[1], c[2] * bcf[2]];
         if (px) { UV.getElement(i, uv); const s = sample(px, uv[0], uv[1]); rgb = [rgb[0] * s[0], rgb[1] * s[1], rgb[2] * s[2]]; }
         const m = matOf([...rgb, c[3]], d, e, wheel, cfg.pal);
         // 燈：頂點色換成燈光的顏色（亮度交給 shader）；柔和自發光（燈條、儀表）壓暗，免得泛光整台爆白
         if (m === 4 || m === 11) { const l = Math.max(e[0], e[1], e[2]); if (l > .05) rgb = [e[0] / l, e[1] / l, e[2] / l]; if (m === 11) rgb = rgb.map((v) => v * .45); }
         u.mat.push(m);
-        u.pos.push(...mulP(wm, a[0], a[1], a[2])); u.nor.push(...mulN(wm, b[0], b[1], b[2])); u.col.push(...rgb);
+        u.pos.push(...xf(mulP(wm, a[0], a[1], a[2]))); u.nor.push(...xfN(mulN(wm, b[0], b[1], b[2]))); u.col.push(...rgb);
       }
       const I = prim.getIndices();
       if (I) for (const v of I.getArray()) u.idx.push(base + v);
@@ -167,10 +205,17 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
       }
     }
   }
-  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, y1 = 0;
-  for (let i = 0; i < P.length; i += 3) { x0 = Math.min(x0, P[i]); x1 = Math.max(x1, P[i]); y1 = Math.max(y1, P[i + 1]); z0 = Math.min(z0, P[i + 2]); z1 = Math.max(z1, P[i + 2]); }
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, y0 = Infinity, y1 = 0;
+  for (let i = 0; i < P.length; i += 3) { x0 = Math.min(x0, P[i]); x1 = Math.max(x1, P[i]); y0 = Math.min(y0, P[i + 1]); y1 = Math.max(y1, P[i + 1]); z0 = Math.min(z0, P[i + 2]); z1 = Math.max(z1, P[i + 2]); }
+  // 部件：轉軸移到原點（pivot 給的是轉軸在整檔座標裡的 x、y、z，沒給就用部件自己的中心），原本的位置記在 piv
+  let piv = null;
+  if (cfg.part) {
+    piv = cfg.pivot || [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+    for (let i = 0; i < P.length; i += 3) { P[i] -= piv[0]; P[i + 1] -= piv[1]; P[i + 2] -= piv[2]; }
+    piv = piv.map((v) => +v.toFixed(3));
+  }
   console.log(`${id}: ${total} → ${IDX.length / 3} 面（輪子 ${nWheel} 個），${P.length / 3} 頂點，${(x1 - x0).toFixed(2)}×${y1.toFixed(2)}×${(z1 - z0).toFixed(2)} m`);
-  return { id, P, N, C, M, IDX, len: +(z1 - z0).toFixed(2), w: +(x1 - x0).toFixed(2) };
+  return { id, P, N, C, M, IDX, len: +(z1 - z0).toFixed(2), w: +(x1 - x0).toFixed(2), h: +(y1 - y0).toFixed(2), piv };
 }
 
 // 只重烘部分車型時，其他車型從舊的 traffic.glb 讀回來
@@ -183,20 +228,20 @@ const doc = new Document();
 const buf = doc.createBuffer();
 const scene = doc.createScene();
 const acc = (arr, type, Ctor) => doc.createAccessor().setType(type).setArray(new Ctor(arr)).setBuffer(buf);
-for (const [cfg, id, tris, wt] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS], [c, c.id + '_far', FAR_TRIS, FAR_WHEEL]])) {
+for (const [cfg, id, tris, wt] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS], ...(c.noFar ? [] : [[c, c.id + '_far', FAR_TRIS, FAR_WHEEL]])])) {
   let r;
   if (keep.has(id)) {
     const n = keep.get(id), p = n.getMesh().listPrimitives()[0], ex = n.getExtras();
     const get = (a) => { const o = []; const e = []; for (let i = 0; i < a.getCount(); i++) o.push(...a.getElement(i, e)); return o; };
     const wm = n.getWorldMatrix(), raw = get(p.getAttribute('POSITION')), P = [];
     for (let i = 0; i < raw.length; i += 3) P.push(...mulP(wm, raw[i], raw[i + 1], raw[i + 2]));
-    r = { id, P, N: get(p.getAttribute('NORMAL')), C: get(p.getAttribute('COLOR_0')), M: get(p.getAttribute('_MAT')), IDX: Array.from(p.getIndices().getArray()), len: ex.len, w: ex.w };
+    r = { id, P, N: get(p.getAttribute('NORMAL')), C: get(p.getAttribute('COLOR_0')), M: get(p.getAttribute('_MAT')), IDX: Array.from(p.getIndices().getArray()), len: ex.len, w: ex.w, h: ex.h, piv: ex.piv };
   } else r = await bake(cfg, tris, wt, id);
   const prim = doc.createPrimitive()
     .setAttribute('POSITION', acc(r.P, 'VEC3', Float32Array)).setAttribute('NORMAL', acc(r.N, 'VEC3', Float32Array))
     .setAttribute('COLOR_0', acc(r.C, 'VEC3', Float32Array)).setAttribute('_MAT', acc(r.M, 'SCALAR', Float32Array))
     .setIndices(acc(r.IDX, 'SCALAR', Uint32Array));
-  const node = doc.createNode(r.id).setMesh(doc.createMesh(r.id).addPrimitive(prim)).setExtras({ len: r.len, w: r.w, pal: cfg.pal });
+  const node = doc.createNode(r.id).setMesh(doc.createMesh(r.id).addPrimitive(prim)).setExtras({ len: r.len, w: r.w, h: r.h, pal: cfg.pal, ...(r.piv ? { piv: r.piv } : {}) });
   scene.addChild(node);
 }
 await doc.transform(quantize({ pattern: /^(POSITION|NORMAL|COLOR_0)$/ }), meshopt({ encoder: MeshoptEncoder, level: 'high' }));

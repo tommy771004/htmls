@@ -51,10 +51,11 @@ export function createFigureStage({ base = '../assets/jade-table/figures/', redu
   }
   function prepare(gltf) {
     const root = gltf.scene, rig = root.userData.rig || {}, by = (n) => n && root.getObjectByName(n);
-    const outline = new THREE.MeshBasicMaterial({ color: '#0d1d17', side: THREE.BackSide }), uInk = { value: 0 };
+    // Ink: an inverted hull pushed out along the view-space normal, so its width (world units) ignores the model's own scale.
+    const outline = new THREE.MeshBasicMaterial({ color: '#0d1d17', side: THREE.BackSide }), uInk = { value: rig.ink ?? .004 };
     outline.onBeforeCompile = (s) => {
       s.uniforms.uInk = uInk;
-      s.vertexShader = 'uniform float uInk;\n' + s.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n#ifdef USE_SKINNING\ntransformed += normalize(objectNormal) * uInk;\n#else\ntransformed += normalize(normal) * uInk;\n#endif');
+      s.vertexShader = 'uniform float uInk;\n' + s.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nmvPosition.xyz += normalize(transformedNormal) * uInk;\ngl_Position = projectionMatrix * mvPosition;');
     };
     const inks = [], noInk = rig.noInk ? new RegExp(rig.noInk, 'i') : null;
     root.traverse((o) => {
@@ -75,9 +76,6 @@ export function createFigureStage({ base = '../assets/jade-table/figures/', redu
     const wrap = new THREE.Group(); wrap.add(root); root.rotation.y += rig.yaw || 0; wrap.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root, true), s = H / (box.max.y - box.min.y), c = box.getCenter(new THREE.Vector3());
     root.scale.multiplyScalar(s); root.position.set(-c.x * s, -box.min.y * s, -c.z * s);
-    // Ink width is in object units, so undo the model's own scale.
-    wrap.updateMatrixWorld(true);
-    uInk.value = (rig.ink ?? .0035) / (inks[0] ? inks[0].matrixWorld.getMaxScaleOnAxis() : 1);
     const bones = {}; for (const k of ['armL', 'armR', 'foreL', 'foreR', 'handL', 'handR', 'spine', 'chest', 'neck', 'head']) bones[k] = by(rig[k]);
     const lids = (rig.lids || []).map(([u, d]) => [by(u), by(d)]).filter(([u, d]) => u && d && u.parent === d.parent).map(([u, d]) => [u, u.position.clone(), d.position.clone()]);
     const rest = []; root.traverse((o) => { if (o.isBone) rest.push([o, o.quaternion.clone()]); });

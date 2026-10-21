@@ -7,7 +7,8 @@ const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);
 groundGroup.traverse(o => o.layers.set(LY.NOREFL));
 const DPR = Math.min(devicePixelRatio || 1, LOW ? 1.25 : 1.5);
 R.setPixelRatio(DPR);
-const post = { scale: 1, blur: reduceMotion ? 0 : .5, exposure: 1.18, wobble: 0, ft: 16, slow: 0, fast: 0 };
+// gray／vig／hurt：69-combat.js 的 WASTED／BUSTED 去色與暗角、受傷時畫面邊緣泛紅
+const post = { scale: 1, blur: reduceMotion ? 0 : .5, exposure: 1.18, wobble: 0, ft: 16, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0 };
 const rtOpts = { type: T.HalfFloatType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true };
 let rtScene, rtRefl, rtB = [], rtU = [];
 function makeTargets() {
@@ -70,7 +71,7 @@ const mUp = pass(`uniform sampler2D tSrc, tAdd; uniform vec2 uTexel; uniform flo
     s += texture2D(tSrc, vUv + t).rgb + texture2D(tSrc, vUv - t).rgb + texture2D(tSrc, vUv + vec2(t.x, -t.y)).rgb + texture2D(tSrc, vUv + vec2(-t.x, t.y)).rgb;
     gl_FragColor = vec4(texture2D(tAdd, vUv).rgb + s / 16. * uK, 1.);
   }`, { tSrc: { value: null }, tAdd: { value: null }, uTexel: { value: new T.Vector2() }, uK: { value: 1 } });
-const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK; uniform vec2 uRes;
+const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec2 uRes;
   varying vec2 vUv;
   float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   vec3 aces(vec3 x){ return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
@@ -104,11 +105,17 @@ const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvV
     c = mix(c, c * vec3(.86, 1.02, 1.08), (1. - l) * .35);
     c = mix(c, c * vec3(1.06, 1., .9), l * .25);
     c *= 1. - edge * .9;
+    if (uGray + uVig + uHurt > 0.) {
+      float r = length(cc * vec2(uRes.x / uRes.y, 1.)) * 1.25;
+      c = mix(c, vec3(dot(c, vec3(.2126, .7152, .0722))) * vec3(1.02, 1., .97), uGray);
+      c *= 1. - uVig * smoothstep(.25, 1.05, r) * .92;
+      c = mix(c, vec3(.42, .02, .03), uHurt * smoothstep(.45, 1.15, r) * .85);
+    }
     c = pow(c, vec3(1. / 2.2));
     c += (h(uv * uRes + fract(uTime * 7.)) - .5) * .035;
     gl_FragColor = vec4(c, 1.);
   }`, { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
-  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uRes: { value: new T.Vector2() } });
+  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uRes: { value: new T.Vector2() } });
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
 const prevVP = new T.Matrix4(), curVP = new T.Matrix4();
@@ -159,6 +166,7 @@ function renderFrame(dt, t) {
   u.uInvVP.value.copy(curVP).invert(); u.uPrevVP.value.copy(prevVP);
   u.uBlur.value = post.blur; u.uExp.value = post.exposure; u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
   u.uBloomK.value = outdoors ? .85 : 1.0;
+  u.uGray.value = post.gray; u.uVig.value = post.vig; u.uHurt.value = post.hurt;
   u.uRes.value.set(w, h);
   blit(mComp, null);
   prevVP.copy(curVP);

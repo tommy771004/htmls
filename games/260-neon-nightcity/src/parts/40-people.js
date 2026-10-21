@@ -159,7 +159,7 @@ const charMat = () => new T.ShaderMaterial({
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22 };
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -171,6 +171,9 @@ const ACLIP = {
   [ANIM.die]: { c: 'Death01', once: 1, rate: 1.3 }, [ANIM.getup]: { c: 'Death01', once: 1, rev: 1, rate: 1.9 }, [ANIM.jab]: { c: 'Punch_Jab', once: 1, rate: 1.3 },
   [ANIM.interact]: { c: 'Interact', once: 1, rate: 1.2 }, [ANIM.crouch]: { c: 'Crouch_Idle_Loop' },
   [ANIM.aimIdle]: { c: 'Pistol_Idle_Loop' }, [ANIM.aimWalk]: { c: 'Walk_Loop', rate: 1.3 },
+  // 69-combat.js：揮砍（近戰武器）、投降舉手、跪下雙手抱頭（被捕）、丟擲、持槍跑（警察）
+  [ANIM.swing]: { c: 'Sword_Attack', once: 1, rate: 1.5 }, [ANIM.handsUp]: { c: 'Idle_Loop' }, [ANIM.kneel]: { c: 'Crouch_Idle_Loop' },
+  [ANIM.throw]: { c: 'Punch_Cross', once: 1, rate: 1.2 }, [ANIM.aimRun]: { c: 'Jog_Fwd_Loop', rate: .93 },
 };
 const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
@@ -236,7 +239,17 @@ const OVR = {
     aim(p, 'lowerarm_l', -.2 + k, 1, .2); aim(p, 'lowerarm_r', .2 + k, 1, .2);
   },
   // 持槍瞄準：右臂沿準星的俯仰伸直，左手過來托住（p.aimP 是俯仰角、p.aimK 是瞄準的混合比例，68-gta.js 每幀設定）
-  [ANIM.aimIdle]: p => aimArms(p), [ANIM.aimWalk]: p => aimArms(p),
+  [ANIM.aimIdle]: p => aimArms(p), [ANIM.aimWalk]: p => aimArms(p), [ANIM.aimRun]: p => aimArms(p),
+  // 投降：雙手舉過頭；被捕：跪著、雙手抱在腦後
+  [ANIM.handsUp]: (p, t) => {
+    const s = .04 * Math.sin(t * 9);
+    aim(p, 'upperarm_l', .55, .82, .1); aim(p, 'upperarm_r', -.55, .82, .1);
+    aim(p, 'lowerarm_l', .08 + s, 1, .05); aim(p, 'lowerarm_r', -.08 - s, 1, .05);
+  },
+  [ANIM.kneel]: p => {
+    aim(p, 'upperarm_l', .85, .45, -.2); aim(p, 'upperarm_r', -.85, .45, -.2);
+    aim(p, 'lowerarm_l', -.75, .45, -.45); aim(p, 'lowerarm_r', .75, .45, -.45);
+  },
   [ANIM.danceC]: (p, t, b) => {
     const k = Math.sin(b * Math.PI);
     aim(p, 'upperarm_l', .9, -.2 + .6 * Math.max(0, k), .4); aim(p, 'upperarm_r', -.9, -.2 + .6 * Math.max(0, -k), .4);
@@ -432,6 +445,8 @@ function updatePeds(dt) {
   let u = 0;
   pedState.forEach((ps, k) => {
     // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
+    // 69-combat.js：被槍指著投降、抱頭蹲下、脾氣差的人反擊（pedFsm 接手這一幀就 return）
+    if (ps.fsm && !(ps.down > 0) && pedFsm(k, ps, dt)) return;
     if (ps.down > 0) {
       ps.down -= dt;
       peds.place(k, ps.dpos[0], groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);

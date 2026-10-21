@@ -69,6 +69,13 @@ export const MODELS = [
   { id: 'lct', file: 'lct_3000_95_-_low_poly_model', len: 6.02, tris: 30000, traffic: true, flip: true },
   { id: 'conquer', file: 'conquer_89_pickup_-_low_poly_model', len: 5.22, tris: 30000, traffic: true, flip: true },
   { id: 'fvan', file: 'french_delivery_van_-_low_poly_model', len: 4.3, tris: 30000, traffic: true },
+  // 第二階段（通緝與追捕）：執法、救護與更多計程車、房車
+  { id: 'urban_cop', file: 'urban_10_cop_enforcer_-_low_poly_model', len: 4.36, tris: 30000, traffic: true, flip: true },
+  { id: 'md84', file: 'md_84_armored_-_low_poly_model', len: 6.34, tris: 30000, traffic: true, flip: true },
+  { id: 'ambulance', file: 'shvan_92_ambulance_-_low_poly_model', len: 5.02, tris: 30000, traffic: true, flip: true },
+  { id: 'canyon_taxi', file: 'canyon_75_taxi_-_low_poly_model', len: 5.31, tris: 30000, traffic: true, flip: true },
+  { id: 'fh', file: 'fairheaven_lt_80_-_low_poly_model', len: 5.0, tris: 30000, traffic: true, flip: true },
+  { id: 'il', file: 'illinois_90_-_low_poly_model', len: 5.17, tris: 30000, traffic: true, flip: true },
 ];
 const CFG = JSON.parse(existsSync(resolve(root, 'tools/cars.cfg.json')) ? readFileSync(resolve(root, 'tools/cars.cfg.json'), 'utf8') : '{}');
 

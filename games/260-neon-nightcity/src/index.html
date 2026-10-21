@@ -69,8 +69,52 @@ button{font:inherit;color:inherit;cursor:pointer}
 #wReload{display:block;height:2px;margin-top:5px;background:rgba(236,232,224,.14);border-radius:1px;overflow:hidden}
 #wReload span{display:block;height:100%;width:var(--r,0%);background:var(--sodium)}
 
-/* 左下：小地圖 */
-#mapBox{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));width:132px;height:132px;padding:6px;border-radius:14px}
+/* 左下：小地圖，正下方是生命（綠）與護甲（藍）兩條（69-combat.js） */
+#mapBox{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 12px);width:132px;height:132px;padding:6px;border-radius:14px}
+#vitals{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));width:132px;height:6px;display:grid;grid-template-columns:1fr 1fr;gap:3px}
+#vitals i{display:block;height:100%;border-radius:2px;background:rgba(12,14,18,.7);overflow:hidden}
+#vitals span{display:block;height:100%;width:var(--v,100%);transition:width var(--dur-hover) linear}
+#hpBar span{background:#62b56c}
+#hpBar.low span{background:#d65a48;animation:lowHp 1s steps(2) infinite}
+@keyframes lowHp{50%{opacity:.45}}
+#arBar span{background:#5c8ed6}
+
+/* 右上：通緝星級（69-police.js）。星形是自己畫的鈍角五芒星；躲起來時 2 Hz 閃爍 */
+#wanted{position:absolute;right:max(16px,env(safe-area-inset-right));top:calc(max(14px,env(safe-area-inset-top)) + 102px);display:flex;gap:3px;opacity:0;transition:opacity var(--dur-enter) var(--ease-out)}
+#wanted.on{opacity:1}
+#wanted svg{width:24px;height:23px;display:block}
+#wanted path{fill:rgba(12,14,18,.55);stroke:rgba(236,232,224,.32);stroke-width:1.4;stroke-linejoin:round}
+#wanted svg.lit path{fill:#f2ede2;stroke:#0c0d10}
+#wanted.cool svg.lit{animation:starBlink .5s steps(2) infinite}
+@keyframes starBlink{50%{opacity:.25}}
+
+/* 中央：WASTED／BUSTED 橫帶 */
+#death{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);padding:18px 16px 16px;background:rgba(5,6,8,.74);text-align:center;opacity:0;transition:opacity 600ms var(--ease-out)}
+#death.on{opacity:1}
+#deathW{display:block;font-family:var(--cond);font-size:clamp(46px,9vw,92px);font-weight:700;letter-spacing:.08em;line-height:1;color:#c9352e}
+#death.busted #deathW{color:#4f8ee0}
+#deathS{display:block;margin-top:8px;font-size:13px;color:var(--ink-2)}
+
+/* 武器轉盤（按住 Tab）：八格扇形，選中的那格填滿琥珀色 */
+#wheel{position:absolute;left:50%;top:50%;width:min(460px,92vw);aspect-ratio:1;transform:translate(-50%,-50%);display:none;pointer-events:auto}
+#wheel.on{display:block}
+#wheel svg{width:100%;height:100%;display:block;overflow:visible}
+#wheel .sec{fill:rgba(10,12,16,.78);stroke:rgba(236,232,224,.16);stroke-width:1;cursor:pointer}
+#wheel .sec.sel{fill:rgba(255,174,87,.86)}
+#wheel .sec.none{fill:rgba(10,12,16,.45)}
+#wheel text{fill:var(--ink);font-size:13px;font-weight:600;text-anchor:middle;pointer-events:none}
+#wheel text.sm{font-size:10.5px;font-weight:500;fill:var(--ink-2)}
+#wheel g.sel text{fill:#1b1206}
+#wheel #wC{fill:rgba(10,12,16,.86)}
+#wheel #wcName{font-size:16px}
+#wheel #wcAmmo{font-family:var(--cond);font-size:22px}
+
+/* 狙擊鏡：黑色外框裡一個圓形視野與細十字線 */
+#scope{position:absolute;inset:0;display:none;background:radial-gradient(circle at 50% 50%,transparent 0 min(36vh,36vw),#030405 calc(min(36vh,36vw) + 1px))}
+#scope.on{display:block}
+#scope::before,#scope::after{content:"";position:absolute;left:50%;top:50%;background:rgba(10,10,10,.9)}
+#scope::before{width:min(72vh,72vw);height:1px;transform:translate(-50%,-50%)}
+#scope::after{width:1px;height:min(72vh,72vw);transform:translate(-50%,-50%)}
 #mini{width:120px;height:120px;display:block}
 
 /* 右下：速度 */
@@ -125,7 +169,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* 對話 */
 #dialog{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:14px 18px 14px;background:var(--panel-2);border-radius:10px;pointer-events:auto;display:none}
 #dialog.on{display:block}
-body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #prompt{display:none!important}
+body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #vitals,body.talking #prompt{display:none!important}
 #dlgWho{display:block;font-size:12px;color:var(--sodium);margin-bottom:5px}
 #dlgText{margin:0;font-size:15px;line-height:1.6;white-space:pre-line}
 #dlgOpts{display:flex;flex-direction:column;gap:6px;margin-top:11px}
@@ -191,6 +235,9 @@ body.touch #capture{display:none}
   #clock{font-size:21px}
   #clockBox{padding:6px 11px 7px}
   #mapBox{width:104px;height:104px;padding:5px;border-radius:12px}
+  #vitals{width:104px}
+  #wanted{top:calc(max(14px,env(safe-area-inset-top)) + 94px)}
+  #wanted svg{width:19px;height:18px}
   #mini{width:94px;height:94px}
   #speedo{width:142px;padding:6px 10px 8px}
   #spd{font-size:32px}
@@ -219,18 +266,24 @@ body.touch #capture{display:none}
     <dt>Shift</dt><dd>步行奔跑／開車氮氣</dd>
     <dt>Space</dt><dd>手煞車甩尾</dd>
     <dt>F</dt><dd>上車／下車；靠近車流或路邊車：搶車、撬車</dd>
-    <dt>Tab</dt><dd>徒手／手槍</dd>
-    <dt>右鍵</dt><dd>瞄準（越肩視角）</dd>
-    <dt>左鍵</dt><dd>開槍／出拳（先點畫面鎖定游標）</dd>
+    <dt>Tab</dt><dd>按住：武器轉盤（時間放慢），移動滑鼠選格、滾輪換同類武器</dd>
+    <dt>滾輪</dt><dd>不開轉盤時：依序換武器</dd>
+    <dt>右鍵</dt><dd>瞄準（越肩視角；狙擊槍開鏡）</dd>
+    <dt>左鍵</dt><dd>開火、揮擊、丟擲（先點畫面鎖定游標）</dd>
     <dt>R</dt><dd>換彈匣</dd>
     <dt>V</dt><dd>把座駕叫到身邊</dd>
     <dt>E</dt><dd>交談、開門、看車、改裝廠換色、停進車庫</dd>
-    <dt>G</dt><dd>跳舞</dd>
+    <dt>G</dt><dd>跳舞；丟出黏彈後：引爆</dd>
     <dt>C</dt><dd>切換鏡頭距離</dd>
     <dt>M</dt><dd>全區地圖與傳送</dd>
     <dt>1–6</dt><dd>夜店門口／夜店裡／酒吧／改裝廠／車行／車庫</dd>
   </dl></div>
   <div id="mapBox" class="pan"><canvas id="mini" width="240" height="240"></canvas></div>
+  <div id="vitals" aria-label="生命與護甲"><i id="hpBar"><span></span></i><i id="arBar"><span></span></i></div>
+  <div id="wanted" aria-label="通緝等級"></div>
+  <div id="scope" aria-hidden="true"></div>
+  <div id="death"><b id="deathW">WASTED</b><small id="deathS"></small></div>
+  <div id="wheel" aria-label="武器轉盤"></div>
   <div id="speedo" class="pan"><small id="vehName">Kestrel</small><div id="spRow"><span id="gear">1</span><b id="spd">0</b><em>km/h</em></div><i id="rpm"><span></span></i><i id="nitro"><span></span></i></div>
   <div id="marker"><span class="tag"><b id="mkName">LAZARUS</b><em id="mkDist">0 m</em></span><i></i></div>
   <div id="prompt"><kbd id="promptKey">E</kbd><span id="promptText">上車</span></div>
@@ -247,10 +300,10 @@ body.touch #capture{display:none}
 <div id="start"><div id="startIn">
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>
   <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。甩尾賺錢，再去 VELOCE MOTORS 挑一台夢想中的車。</p>
-  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火</div>
+  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
-  <small id="fanNote">搶車、槍戰與車損玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。</small>
+  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。</small>
 </div></div>
 <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#07080b;color:#ece8e0">這件作品需要 JavaScript 與 WebGL。</p></noscript>
 <p class="sr">可開車探索的雨夜城市：程序生成的街區、霓虹招牌與全息廣告，可下車步行並進入酒吧與夜店。</p>
