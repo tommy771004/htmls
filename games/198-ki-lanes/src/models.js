@@ -154,7 +154,9 @@ for (const id in HERO) {
   d.neck = d.neck || 0; // 脖子長度（照參考圖量：下巴到肩線的距離）
   d.torso = d.H - d.L - d.hr * 1.95 - 0.04 - d.neck;
   d.upper = d.torso * 0.5 * (d.armK || 1); d.lower = d.torso * 0.47 * (d.armK || 1);
-  d.thighLen = d.L * 0.5; d.shinLen = d.L * 0.44;
+  // thighK：大腿占髖關節高 L 的比例（預設 0.5；大腿＋小腿固定 0.94 L）。膝蓋高度照參考圖量的角色才給（悟空）
+  const tk = d.thighK || 0.5;
+  d.thighLen = d.L * tk; d.shinLen = d.thighK ? d.L * (0.94 - tk) : d.L * 0.44;
 }
 
 /* ---------------- 姿勢 ---------------- */
@@ -536,7 +538,7 @@ function skinOutlineMat(w) {
 // 次級擺動鏈（骨頭，參與蒙皮）：parent 是掛點骨、pos 是掛點在該骨的位置、n 節、每節長 len
 export function chainSpecs(id, d) {
   const out = [];
-  if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [id === 'goku' ? -0.035 : 0.13, 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
+  if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [id === 'goku' ? -0.035 : 0.13, id === 'goku' ? 0.07 : 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
   // 腰帶尾端（魯夫、索隆左腰垂下的布條）
   if (id === 'luffy' || id === 'zoro') out.push({ name: 'sash', parent: 'hips', pos: [d.waist * (id === 'zoro' ? 1.05 : 1.0), id === 'zoro' ? 0.08 : 0.06, d.chest[2] * (id === 'zoro' ? 1.0 : 0.72)], n: 2, len: id === 'zoro' ? 0.31 : 0.28, base: 0, lift: 0.55, flutter: 0.3 });
   // 長下襬的後片（索隆大衣、佐助腰布、18 號長裙）：跑動時往後飄，前片仍跟著雙腿

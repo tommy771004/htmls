@@ -24,9 +24,11 @@ const rigs = ids.map((id, i) => {
 });
 // dbg=ao｜ndl｜lit｜rim｜mat｜base：角色材質改輸出烘焙遮蔽、N·L（0.5＋0.5×）或明暗門檻（查卡通明暗的斑塊是遮蔽還是法線造成的）
 if (q.get('dbg')) {
-  const out = { ao: 'vec3(ao)', ndl: 'vec3(ndl * 0.5 + 0.5)', lit: 'vec3(lit)', rim: 'vec3(rim)', mat: 'vec3(mt / 5.0)', base: 'base' }[q.get('dbg')];
+  const out = { ao: 'vec3(ao)', ndl: 'vec3(ndl * 0.5 + 0.5)', lit: 'vec3(lit)', rim: 'vec3(rim)', mat: 'vec3(mt / 5.0)', base: 'base', nrm: 'N * 0.5 + 0.5' }[q.get('dbg')];
   for (const r of rigs) r.root.traverse((o) => { const m = o.material; if (m && m.isShaderMaterial && m.fragmentShader.includes('gl_FragColor = vec4(c, 1.0);') && !m.__dbg) { m.__dbg = 1; m.fragmentShader = m.fragmentShader.replace('gl_FragColor = vec4(c, 1.0);', `gl_FragColor = vec4(${out}, 1.0);`); m.needsUpdate = true; } });
 }
+// hide=hair：隱藏頭髮（綁在兩根骨 head／hairBone 的蒙皮網格），看耳朵與頭形
+if (q.get('hide') === 'hair') for (const r of rigs) r.root.traverse((o) => { if (o.isSkinnedMesh && o.skeleton && o.skeleton.bones.length === 2) o.visible = false; });
 if (q.get('nool')) for (const r of rigs) r.root.traverse((o) => { if (o.material && o.material.side === THREE.BackSide) o.visible = false; });
 const anim = q.get('anim') || 'idle', t = +(q.get('t') || 0.4), ang = (+(q.get('ang') || 0) * Math.PI) / 180;
 for (const r of rigs) r.root.rotation.y = ang;

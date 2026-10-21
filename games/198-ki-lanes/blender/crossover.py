@@ -446,7 +446,6 @@ def build_kakashi(R):
     # 背心背面正中、兩片肩胛骨之間的大紅漩渦（參考 k3、k4：直徑約 0.6 頭高）
     yc_b = F.y(0.7)
     back_f = lambda co: max(math.hypot(co.x, co.y - yc_b) - 0.064, co.z * 20)
-    realbody.refine_near(vs, lambda co: back_f(co) * 40, 1)
     kit.paint_field(vs, back_f, red, 0)
     body.append(vs)
     from heroes import tree_of
@@ -480,8 +479,8 @@ def build_kakashi(R):
         s = arm_s(F, co)
         rel = co - F.arm_pt(s)
         return max(math.hypot(s - s_mark, rel.dot(fr_d)) - r_mark, -rel.dot(out_d) * 20)
-    # 袖子的面約 1.5 cm，直接切線是一個八角形：交界附近（±1 cm）先細分一次
-    realbody.refine_near(sl, lambda co: mark_f(co) * 40, 1)
+    # 不先細分交界（試過 refine_near：細分後的細長三角形在色界切開處留下細縫，外框殼從縫裡穿出黑色細刺）；
+    # 袖子的面約 1.5 cm，圓的邊是多邊形，遊戲鏡頭下（約 8 px）看不出來
     kit.paint_field(sl, mark_f, red, 0)
     arm = arm_skin(F, skin, muscle=0.8)
     kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), navy, 0)  # 袖子下的手臂染成衣服色：彎肘時戳出來也不會露膚色

@@ -26,6 +26,7 @@ G_FA_L, G_FB_L, G_FC_L, G_TB_L, G_FA_R, G_FB_R, G_FC_R, G_TB_R = range(40, 48)
 FINGER_BONE = {G_FA_L: 'faL', G_FB_L: 'fbL', G_FC_L: 'fcL', G_TB_L: 'tbL', G_FA_R: 'faR', G_FB_R: 'fbR', G_FC_R: 'fcR', G_TB_R: 'tbR'}
 G_CHAIN = 30
 G_SKIRT = 31  # 長下襬：骨熱同骨盆群組，再由 skirt_chain_weights 把後片分給擺動鏈
+G_RIDE = 32   # 貼在軀幹衣物表面的貼片（悟空的圓章）：build_heroes 最後照最近的 G_TORSO 頂點抄權重，和底下的布一起變形
 ALLOW = {
     G_TORSO: {'hips', 'torso', 'ribs', 'clL', 'clR', 'shL', 'shR', 'neck'},
     G_ARM_L: {'torso', 'ribs', 'clL', 'shL', 'elL'}, G_ARM_R: {'torso', 'ribs', 'clR', 'shR', 'elR'},
@@ -44,6 +45,7 @@ ALLOW = {
     realbody.G_HUG_L: {'clL', 'shL', 'elL', 'wrL'}, realbody.G_HUG_R: {'clR', 'shR', 'elR', 'wrR'},
 }
 ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
+ALLOW[G_RIDE] = ALLOW[G_TORSO]
 MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R,
               G_FA_L: G_FA_R, G_FB_L: G_FB_R, G_FC_L: G_FC_R, G_TB_L: G_TB_R, G_DELT_L: G_DELT_R, realbody.G_HUG_L: realbody.G_HUG_R}
 
@@ -478,12 +480,13 @@ def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_s
     return head
 
 
-def hair_cap(name, F, pal, scale=1.07, hairline=0.3, temple=0.0, nape=-0.55, side_cut=True, mat=1, thick=0.08, peak=None, fit=None):
+def hair_cap(name, F, pal, scale=1.07, hairline=0.3, temple=0.0, nape=-0.55, side_cut=True, mat=1, thick=0.08, peak=None, fit=None, side_y=-0.05):
     """髮帽：顱骨放大一點的殼，前額依 hairline 開口。
     peak＝(深度, 半寬[, 指數])：額頭中央的美人尖（貝吉塔的 M 字髮際）。指數 1 是直邊的寬 V 字，越大尖端越細。有 peak 時前額開口改沿等值線切開，
     髮際線是平滑的曲線；只刪頂點的話，球面網格約 0.15 hr 一格，V 字邊緣會切成一階一階的鋸齒。
     fit＝間隙（公尺）：換成底模的頭時，埋進頭顱的部分沿頭心往外推到貼著表面（底模的額頭比動畫頭顱高、往前凸，
-    髮帽的前緣整段埋在額頭裡看不到，只剩外框的反殼從皮膚裡穿出幾道黑線）。由 finish() 在換好頭之後處理。"""
+    髮帽的前緣整段埋在額頭裡看不到，只剩外框的反殼從皮膚裡穿出幾道黑線）。由 finish() 在換好頭之後處理。
+    side_y：side_cut 在頭側（耳朵附近）切掉的高度上限（單位球的 y）；預設 −0.05 只開到耳垂，悟空加大到露出整個耳朵。"""
     c, hr = F.c, F.hr
     # 有美人尖時網格加密一倍：尖端只有 0.2 hr 寬，10 等分的球面切出來是一塊平底的方塊
     cap = kit.quad_sphere(name, 1.0, cuts=20 if peak is not None else 10)
@@ -502,7 +505,7 @@ def hair_cap(name, F, pal, scale=1.07, hairline=0.3, temple=0.0, nape=-0.55, sid
     for v in bm.verts:
         x, y, z = v.co
         hl = hairline + temple * abs(x)
-        if (peak is None and z > 0.2 and y < hl) or y < nape or (side_cut and abs(x) > 0.7 and y < -0.05 and z > -0.35):
+        if (peak is None and z > 0.2 and y < hl) or y < nape or (side_cut and abs(x) > 0.7 and y < side_y and z > -0.35):
             kill.append(v)
     bmesh.ops.delete(bm, geom=kill, context='VERTS')
     bm.to_mesh(cap.data)
@@ -705,12 +708,18 @@ def build_goku(R):
     P = kit.Palette()
     skin = P(0xf6c9a0)
     gi = P(0xff7d1f)
-    blue, blueD = P(0x22409e), P(0x152a68)
-    red, yellow = P(0xc8302a), P(0xf0c43a)
+    # 內衣、腰帶、護腕、靴子：FighterZ 立繪是偏灰的深藍（取樣約 #3b4a75～#2c367a），舊版 0x22409e 經材質的彩度加強後
+    # 亮成寶藍色（#2242a0 → 畫面 #002bb0），這裡先降彩度
+    blue = P(0x464e78)
+    gold = P(0xc09a4a)   # 靴子正面中線與鞋底邊的金褐色（立繪 #9f824c，受光後偏亮）
+    white, ink = P(0xf4f1ea), P(0x15110e)
     team = P(-1)
     body, proxy = [], []
+    # 腰帶中線：參考腰帶在頭頂下 2.5（FighterZ 立繪）～2.9 頭（S.H.Figuarts）；舊版 L＋0.085 低在 3.1 頭，上身顯得長、腰帶和手腕一樣高。
+    # 抬到頭頂下約 2.8 頭（L＋0.175），褲頭（骨盆部件的上緣）跟著抬到腰帶裡；擺動鏈 sash 的掛點（models.js chainSpecs）同步抬高
+    yb = F.L + 0.175
 
-    # ---- 內衣（藍）：從 V 領露出
+    # ---- 內衣（藍）：從 V 領露出，領口是貼著頸根的圓領（脖子的 proj_y0 抬高，見下方 neck）
     under = kit.loft('under', torso_rows(F, e=0.004, u0=0.3), n=16, cap0=None, cap1=None)
     under = kit.subsurf(under, 2)
     kit.tag(under, blue, grp=G_TORSO)
@@ -719,45 +728,118 @@ def build_goku(R):
     body.append(realbody.skin(under))
     proxy.append(under)
 
-    # ---- 道服上衣：腰帶下垂出一截衣襬、V 領開口（開口弧放樣，邊緣乾淨）
-    rows = [(-0.2, ('w', 1.28), 0.98, 0.02), (-0.08, ('w', 1.2), 0.9, 0.01)] + TORSO_ROWS
-    sts = torso_rows(F, e=0.018, rows=rows, pec=0.075, lat=0.09)
-    uv0 = 0.48
+    # ---- 道服上衣：V 領開口（開口弧放樣，邊緣乾淨）
+    # 參考（FighterZ 立繪）：衣襬塞在腰帶裡，只在兩側腰帶下露出約 0.2 頭（舊版垂到腰帶下 13 cm，正面像一塊圍裙）；
+    # 腰帶上方蓬起一圈（blouse）；V 領尖在肩線下約 0.75 頭，領口兩側的道服蓋到頸側。
+    # 腰帶（u 約 0.22～0.37）那段收在腰帶裡（半寬比腰帶小 1 cm 以上），腰帶上緣以上才張開成胸寬
+    rows = [(0.06, ('w', 1.3), 0.98, 0.02), (0.14, ('w', 1.22), 0.92, 0.01), (0.22, ('w', 1.16), 0.86, 0.02), (0.3, ('w', 1.2), 0.84, 0.03),
+            (0.36, ('w', 1.28), 0.86, 0.04)] + TORSO_ROWS[2:]
+    # 胸口以上每兩列中間再插一列：下面的肩線披覆（drape）要把肩頭的布往外推到三角肌上，原本 u 0.8～1.07 只有 5 列，推出來是一階一階的
+    dense = []
+    for r0, r1 in zip(rows, rows[1:]):
+        dense.append(r0)
+        if r0[0] >= 0.6 and r0[1][0] == r1[1][0]:
+            dense.append(((r0[0] + r1[0]) / 2, (r0[1][0], (r0[1][1] + r1[1][1]) / 2), (r0[2] + r1[2]) / 2, (r0[3] + r1[3]) / 2))
+    rows = dense + [rows[-1]]
+    sts = torso_rows(F, e=lambda u: 0.018 + 0.008 * bump(u, 0.46, 0.1), rows=rows, pec=0.075, lat=0.09)
+    uv0 = 0.56
     us = [r[0] for r in rows]
-    gapf = lambda i: 0.0 if us[i] <= uv0 else min(1.25, 0.06 + (us[i] - uv0) * 1.9)
-    top = kit.loft('gi_top', sts, n=20, cap0=None, cap1=None, gap=gapf)
+    # 開口緣離中線的距離（公尺）照立繪：V 尖往上張開，到頸根約 ±0.15（藍色內衣在領口露出約 1.15 頭寬），往後頸收成貼著頸根的領圈。
+    # 換算成開口半角（超橢圓 p＝2.3：|x|＝a·sin(g)^(2/p)）。舊版半角隨 u 線性增加，最上兩圈（斜方肌往脖子收窄）的開口反而往內縮 3～6 cm，
+    # 領口兩側各折出一個往內指的尖角，像西裝的缺角領
+    xt = [(uv0, 0.0), (0.67, 0.05), (0.8, 0.105), (0.9, 0.145), (0.96, 0.15), (1.02, 0.136), (1.07, 0.09)]
+
+    def gapf(i):
+        if us[i] <= uv0:
+            return 0.0
+        x = next(x0 + (x1 - x0) * (us[i] - u0) / (u1 - u0) for (u0, x0), (u1, x1) in zip(xt, xt[1:]) if u0 <= us[i] <= u1)
+        return math.asin(min(0.985, (x / sts[i].a) ** (2.3 / 2)))
+    top = kit.loft('gi_top', sts, n=28, cap0=None, cap1=None, gap=gapf)
+    # 肩線披覆：參考（三視圖 03、S.H.Figuarts 04）的道服肩線從軀幹的布直接往外下斜、蓋住三角肌，沒有另外一顆肩罩。
+    # 道服軀幹原本只到肩關節內側，三角肌從肩頂冒出來（上一版另外罩一顆封頂的圓殼：俯視是兩顆橘色半球、背面和背片之間一道凹縫）。
+    # 這裡把肩頭附近、在上臂骨軸上方與前後的布沿骨軸徑向推到 r_drape 外（平滑的 max，不會折出稜線），往脖子漸弱；
+    # 骨軸下方（腋下）不推，布在那裡斜斜地穿進手臂、被下面的短袖蓋住
+    r_sl = 0.1 * F.k_arm + 0.005   # 藍袖貼著三角肌（舊版 +0.012，再罩一層肩罩就像墊了肩墊）
+    r_c = r_sl + 0.005             # 道服短袖（橘）的半徑：比藍袖大一點（再大，甩臂時肩頭像一顆氣球）
+    r_drape = r_c + 0.005
+    up_dir = V((0, 0, 1)).cross(F.da).normalized()   # 垂直上臂、朝上外
+
+    def drape_w(q):
+        """肩線披覆的權重與骨軸資料（q 已取 |x|）。"""
+        s = (q - F.sh).dot(F.da)
+        a = F.arm_pt(max(-0.05, min(0.03, s)))
+        rv = q - a
+        d = rv.length
+        if d < 1e-5:
+            return 0.0, a, rv, d
+        # 只推骨軸上方（往前後各約 70 度內漸弱）：前後也推的話，胸前與肩胛的布被推離身體 5 cm，跑步甩臂時胸前鼓成一塊大墊肩
+        w = smooth((rv.dot(up_dir) / d + 0.15) / 0.5) * smooth((s + 0.09) / 0.05)
+        return w, a, rv, d
+
+    def drape(p):
+        q = V((abs(p.x), p.y, p.z))
+        w, a, rv, d = drape_w(q)
+        if w <= 0.0:
+            return p
+        sm = 0.5 * (d + r_drape + math.sqrt((d - r_drape) ** 2 + 0.02 ** 2))
+        q = a + rv * ((d + (sm - d) * w) / d)
+        return V((math.copysign(q.x, p.x) if p.x else q.x, q.y, q.z))
+    kit.deform(top, drape)
+    # 衣襬：前後中央收在腰帶裡（剛好在腰帶下緣上方），兩側垂出腰帶下約 4 cm（立繪的衣襬只在兩側露出一點）。
+    # 舊版整圈平平垂到腰帶下 7 cm，正面在垂帶兩側各是一塊方形的衣襬，下緣一條橫線，像褲子的口袋
+    hem = lambda co: co.y - (yb - 0.034 - 0.045 * smooth(abs(co.x) / (F.w * 1.25)))
+    kit.iso_cut(top, hem)
+    kit.cut(top, lambda co, nn: hem(co) < 0)
     top = kit.subsurf(top, 2, solidify=0.011)
     kit.tag(top, gi, grp=G_TORSO)
+    # 推到三角肌上的那片布改照底下皮膚綁骨（realbody.hug_weights 抄最近的真人皮膚頂點，和短袖 capL 同一套）：
+    # 留在道服的骨熱權重時，跑步往後甩臂，三角肌連同短袖轉到後面，那片布還留在原地，肩頭鼓成一顆橘色的大包
+    G = top.data.attributes['grp'].data
+    for v in top.data.vertices:
+        q = V((abs(v.co.x), v.co.y, v.co.z))
+        w, a, rv, d = drape_w(q)
+        # 只限真的蓋在三角肌上的那片（離上臂骨軸 r_drape＋1.5 cm 內、在骨軸上方）：範圍再大，胸前的布也抄到上臂的權重，往前甩臂時胸口整片跟著鼓出來
+        if w > 0.5 and (q - F.sh).dot(F.da) > -0.04 and d < r_drape + 0.015 and rv.dot(up_dir) > 0.3 * d:
+            G[v.index].value = realbody.G_HUG_L if v.co.x >= 0 else realbody.G_HUG_R
     body.append(top)
     proxy.append(top)
-    # 衣襟滾邊：沿開口邊界（前方 V 字＋後頸）
-    yv = F.y(uv0)
-    edge = kit.boundary_chains(top, lambda co: co.y > yv - 0.02)
-    for sx in (1, -1):
-        side = [p for p in edge if (p.x * sx > 0.0005 or p.z < 0) and p.z > -1]
-        # 前方依高度排序，再接後頸（依角度）
-        fr = sorted([p for p in side if p.z > F.cz * 0.2], key=lambda p: p.y)
-        bk = sorted([p for p in side if p.z <= F.cz * 0.2 and p.y > F.y(0.93)], key=lambda p: -math.atan2(p.z, abs(p.x)))
-        pts = fr[::3] + bk[::2]
-        if len(pts) < 3:
-            continue
-        pts = [p + V((0, 0, 0.004)) for p in pts]
-        col = path_loft('collar', pts, [0.015] * len(pts), n=6, flat=0.5, cap0='pole', cap1='pole')
-        col = kit.subsurf(col, 1)
-        kit.tag(col, gi, grp=G_TORSO, ol=0.6)
-        body.append(col)
+    body += goku_emblem(F, top, white, ink)
+    # 衣襟：道服開口的厚邊（solidify）加上外框就是一條清楚的領緣。舊版另外沿邊界頂點分前後兩段放樣一條滾邊，
+    # 前後交接處（肩頸之間）折出一塊三角形，正面看像西裝的缺角領
 
-    body.append(neck(F, skin, r=0.064))
+    # 脖子：參考的脖子粗（約 0.6 頭寬）、幾乎被內衣的圓領蓋住（露出 0.1～0.2 頭）。
+    # 圓領用解析場在底模上切一條水平的領口線（脖子周圍 10 cm 內：y(1.06) 以下藍、以上膚色，同 18 號的做法）；
+    # 舊版靠逐頂點投影（脖子部件 y(1.0) 以下不當顏色來源），內衣上緣是一條低在鎖骨下的弧線，下巴到內衣之間露出一大片脖子與上胸，
+    # 交界還沿底模頸根的大面成鋸齒
+    # 領口是圓領：立繪的領口線貼著頸根、前方中央往下彎（約低 0.07 頭），兩側往後頸升高；上一版是一條水平的直線（像塗色的分界）。
+    # 前方下彎 0.03 時正面可見的脖子從 0.17 頭變 0.25 頭（立繪內衣領口高、脖子短粗），收到 0.018
+    nk_y = lambda co: F.y(1.075) - 0.018 * smooth(max(0.0, co.z + 0.01) / 0.09) ** 1.4
+    nk_r = lambda co: math.hypot(co.x, co.z + 0.006) - 0.1
+    realbody.paint(under, F, lambda co: max(nk_r(co), co.y - nk_y(co), F.y(0.85) - co.y) / 0.01, blue, 0, refine=1)
+    realbody.paint(under, F, lambda co: max(nk_r(co), nk_y(co) - co.y) / 0.01, skin, 4, refine=1)
+    # 脖子粗一點：參考的頸寬約 0.6 頭高（realbody 的 NECK_W 上限），0.074 時只到 0.55
+    body.append(neck(F, skin, r=0.082))
     proxy.append(body[-1])
 
     # ---- 手臂、袖、護腕、拳
     arm_mu, arm_k = 1.25, 1.12
     arm = arm_skin(F, skin, muscle=arm_mu, k=arm_k)
-    # 短袖要罩住加大的三角肌（肩頂約 10.7 cm）：半徑加大、殼變薄，抬手時肩頂才不會從袖口上方冒出來
-    slv = sleeve(F, blue, s1=0.09, r=0.1 * F.k_arm + 0.021, flare=1.0, thick=0.006, s0=-0.06)  # 道服無袖，肩頭露出藍色內衣的短袖（參考 3D 實機影片）
+    # 道服無袖，肩頭露出藍色內衣的短袖。參考（FighterZ 立繪、三視圖）：道服的肩線落在三角肌上，軟布包著肩頭往下垂，
+    # 藍袖只在道服肩口下露出約 0.3 頭。舊版把藍袖靠肩的一段塗成橘色當道服肩口：同一個筒子上下兩色、上緣是筒子的平切口，
+    # 正面看是兩層方形的硬殼肩墊。改成另一層道服的肩罩（比藍袖粗一圈、往外張），藍袖整條藍色，從肩罩下緣露出 8 cm
+    slv = sleeve(F, blue, s1=0.13, r=r_sl, flare=1.02, thick=0.006, s0=-0.015)   # 上端藏在肩罩的圓頂裡（從 −0.06 起會從圓頂上緣穿出一條藍線）
     # 袖根朝向身體的那一側（腋下）埋在道服裡，舉手時兩層外框殼互相穿出黑點：那一圈不描外框（肩頂的輪廓保留）
-    up_dir = V((0, 0, 1)).cross(F.da).normalized()
     kit.paint_ol(slv, lambda co: 0.0 if (co - F.sh).dot(F.da) < 0.02 and (co - F.sh).dot(up_dir) < -0.02 else None)
+    # 道服的短袖：兩端開口的短筒（不封頂），上半截的根部藏在上面推出來的肩線布底下，只露出蓋住三角肌下半、往外下斜的袖口。
+    # 斷面中段最粗、下緣往手臂收一點（布往內垂），不是往外張的平切口
+    capL = limb('gi_capL', F.sh, F.da, [(-0.045, r_c * 0.8, r_c * 0.78), (-0.01, r_c * 0.97, r_c * 0.95), (0.03, r_c * 1.01, r_c * 0.98), (0.06, r_c * 0.97, r_c * 0.95)],
+                n=16, cap0=None, cap1=None)
+    capL = kit.subsurf(capL, 2, solidify=0.007)
+    # 綁骨照底下的皮膚（realbody.hug_weights 抄最近的真人皮膚頂點）：骨熱把整個圓頂都給上臂骨，跑步甩臂時圓頂的內端跟著手臂轉出來，
+    # 肩上像頂著一顆橘色的球；照皮膚的權重，內端跟著鎖骨與胸廓、外端跟著上臂，和肩膀的皮膚一起變形
+    kit.tag(capL, gi, grp=realbody.G_HUG_L, ol=0.8)
+    # 短袖的根部埋在道服軀幹裡：出拳、舉手時兩層的外框殼在交界互相穿出黑刺，外框從肩關節往袖口才漸漸描上
+    kit.paint_ol(capL, lambda co: 0.8 * smooth(((co - F.sh).dot(F.da) + 0.0) / 0.04))
     # 護腕：前臂肌群（k＝1.12、肌肉 1.25）在靠肘端比原本的環帶粗，起點往腕側挪、半徑加大，皮膚才不會穿出來
     wb_s0 = F.up + 0.16
     wb = band('wristL', F.sh, F.da, wb_s0, F.up + F.lo - 0.005, 0.068 * F.k_fore, 0.055 * F.k_fore, blue, G_FORE_L, thick=0.009, rb=0.92)
@@ -768,45 +850,43 @@ def build_goku(R):
     # 袖子底下的肩頭皮膚塗成內衣的藍：側平舉、前平舉時道服肩口和袖口之間會被拉開一條縫，露出來的是「內衣」而不是一塊皮膚
     kit.paint(arm, lambda co, n: (blue, 0) if arm_s(co) < 0.045 else None)
     hand = fist(F, skin, scale=1.08)
-    pair_add(body, proxy, [arm, slv, wb, hand], proxy_set=(arm, hand))
+    pair_add(body, proxy, [arm, slv, capL, wb, hand], proxy_set=(arm, hand))
     body.append(goku_team_band(F, team, arm_mu, arm_k))
 
     # ---- 褲子、靴
-    yb = F.L + 0.085   # 腰帶中線
-    pel = pelvis(F, gi, e=0.012)   # 上端開口，不進骨熱替身（finish 只收封閉部件，替身用 core_proxy 的骨盆）
+    pel = pelvis(F, gi, e=0.012, top_u=0.33)   # 上端開口，不進骨熱替身（finish 只收封閉部件，替身用 core_proxy 的骨盆）
     # 褲頭在腰帶高度往內收（燈籠褲在腰帶下才鼓起來）：原本最寬處正好在腰帶下緣，兩側會把腰帶整段蓋掉
     kit.deform(pel, lambda p: V((p.x * (1 - 0.16 * smooth((p.y - (yb - 0.077)) / 0.04)), p.y, p.z)))
-    # 腰帶與上衣下襬蓋住的褲頭不描外框
-    kit.paint_ol(pel, lambda co: 1.0 - smooth((co.y - (yb - 0.06)) / 0.03))
+    # 襠底往後上收：骨盆的圓底比褲管頂端往前凸 2 cm，正面在兩條褲管之間是一顆鼓起的圓底，加上褲管交界的線，像一件三角褲
+    # 只收前半：後半也往上收的話，背面兩條褲管之間的襠底露出底下真人身體的胯下（塗成內衣的藍，背面是一個藍色的小倒三角）
+    kit.deform(pel, lambda p: V((p.x, p.y + 0.5 * max(0.0, F.L + 0.01 - p.y) * smooth(0.5 + p.z / 0.08), p.z * (1 - 0.18 * smooth((F.L + 0.04 - p.y) / 0.1)))))
+    # 腰帶與上衣下襬蓋住的褲頭不描外框；褲襠底（褲管之間、往下收成圓底的那段）也不描外框：背面看褲頭底緣的外框是一圈 U 字形的黑線，像一件內褲
+    kit.paint_ol(pel, lambda co: (1.0 - smooth((co.y - (yb - 0.06)) / 0.03)) * smooth((co.y - (F.L - 0.075)) / 0.05))
     body.append(pel)
-    leg = baggy_leg(F, gi, bag=1.06, blouse=1.12, s_end=F.tl + 0.1)  # 寬燈籠褲，褲管收進到小腿中段的靴子
+    leg = goku_pants(F, gi)
     # 褲管頂端藏在褲頭裡：外框漸細，踢腿時才不會從褲頭穿出黑刺
     kit.paint_ol(leg, lambda co: 1.0 - smooth((co.y - (F.th.y + 0.0)) / 0.05))
-    bt = boot(F, blue, F.tl + 0.04, 0.082, pal_sole=blueD)
-    rim = band('bootRimL', F.th, F.dl, F.tl + 0.025, F.tl + 0.065, 0.086 * F.k_shin + 0.01, 0.084 * F.k_shin + 0.01, yellow, G_FOOT_L, thick=0.009)
-    fx = F.sole.x + 0.004
-    strap = kit.loft('strapL', [S(V((fx, 0.33, 0.072)), 0.022, 0.008), S(V((fx, 0.245, 0.078)), 0.024, 0.008), S(V((fx + 0.002, 0.15, 0.084)), 0.022, 0.008)], n=6)
-    strap = kit.subsurf(strap, 1)
-    kit.tag(strap, yellow, grp=G_FOOT_L, ol=0.5)
-    pair_add(body, proxy, [leg] + bt + [rim, strap], proxy_set=[leg] + bt)
+    bt = goku_boot(F, blue, gold)
+    pair_add(body, proxy, [leg] + bt, proxy_set=[leg] + bt)
 
     # ---- 腰帶、結、垂帶
-    # 腰帶下緣放寬成繫在胯上的錐形，罩住收進來的褲頭（兩側原本被褲頭蓋掉）
-    belt = limb('belt', V((0, yb - 0.04, 0)), V((0, 1, 0)), [(0.0, F.w * 1.43, F.cz * 0.95, None, 2.3), (0.04, F.w * 1.41, F.cz * 0.98, None, 2.3), (0.08, F.w * 1.37, F.cz * 0.94, None, 2.3)], n=18, cap0=None, cap1=None)
+    # 參考腰帶寬約 1.33 頭（FighterZ）：舊版 F.w×1.5（1.1 頭）。下緣放寬成繫在胯上的錐形，罩住收進來的褲頭
+    belt = limb('belt', V((0, yb - 0.04, 0)), V((0, 1, 0)), [(0.0, F.w * 1.64, F.cz * 1.04, None, 2.3), (0.04, F.w * 1.63, F.cz * 1.07, None, 2.3), (0.08, F.w * 1.6, F.cz * 1.04, None, 2.3)], n=18, cap0=None, cap1=None)
     belt = kit.subsurf(belt, 2, solidify=0.014)
     kit.tag(belt, blue, grp=G_BELT)
     body.append(belt)
-    kz = F.cz * 0.98 + 0.008
+    kz = F.cz * 1.07 + 0.008
     knot = kit.quad_sphere('knot', 1, cuts=3)
     kx = -0.035  # 結打在正前方偏角色右側（參考 3D 實機影片）
     kit.deform(knot, lambda p: V((kx + p.x * 0.036, yb + p.y * 0.032, kz + p.z * 0.022)))
     knot = kit.subsurf(knot, 1)
     kit.tag(knot, blue, grp=G_BELT)
     body.append(knot)
-    for k, (dx, w0, ln) in enumerate(((-0.014, 0.032, 0.4), (0.03, 0.029, 0.34))):
+    # 垂帶：參考立繪兩條帶尾從結垂到大腿中段（約 1.4 頭、一長一短），貼著褲子前面往下
+    for k, (dx, w0, ln, dz) in enumerate(((-0.014, 0.034, 0.34, -0.004), (0.03, 0.03, 0.28, 0.0))):
         # 垂帶離上衣下襬前緣留 0.5 cm 以上（原本有一段埋進下襬裡）
         t0 = V((kx + dx, yb - 0.01, kz + 0.006 + 0.006 * k))
-        f = kit.loft('flap%d' % k, [S(t0, w0, 0.007), S(t0 + V((0.004, -ln * 0.5, 0.014)), w0 * 1.12, 0.007), S(t0 + V((0.01, -ln, 0.018)), w0 * 0.92, 0.006)], n=8)
+        f = kit.loft('flap%d' % k, [S(t0, w0, 0.007), S(t0 + V((-0.004, -ln * 0.5, dz + 0.004)), w0 * 1.1, 0.007), S(t0 + V((-0.006 + 0.016 * k, -ln, dz)), w0 * 0.95, 0.006)], n=8)
         f = kit.subsurf(f, 2)
         kit.tag(f, blue, grp=G_CHAIN, ol=0.7)
         body.append(f)
@@ -814,11 +894,29 @@ def build_goku(R):
     # ---- 頭
     heads = {}
     for form in ('base', 'ssj'):
-        h = anime_head('head_' + form, F, skin, jaw=1.06, cheek=1.0, square=0.4)  # 成熟的方下巴
+        # 成熟的方下巴；鼻子與嘴唇壓平：底模真人嘴唇的唇縫（遮蔽與明暗都是一條黑線）在貼花的嘴下方 1 cm 外又一條，
+        # 兩條線加上嘴角的凹點，遠看像咬著牙
+        # face_len 0.88：立繪的臉寬約是眼睛到下巴的 2.6 倍（舊版 1.6 倍，下半臉長、臉窄），下半臉縮短、頭寬 hx 加大（PROPS）
+        # 第三輪：正面量眼睛到下巴 1、眼高處臉寬（不含耳朵）1.52，立繪約 1.9（含耳朵約 2.6）。下半臉再縮短（face_len 0.8）、
+        # 下顎與下巴放寬（jaw 1.2：下半臉寬度從眼線往下巴漸增到 cheek×jaw 倍），頭寬 hx 1.04（PROPS）；
+        # relax 2：底模臉頰的法令紋凹線讓外框的反殼從嘴角兩側穿出兩撇黑色鋸齒（nool 時消失），把眼線以下的臉頰平滑兩輪
+        h = anime_head('head_' + form, F, skin, jaw=1.2, cheek=1.04, square=0.5, chin=1.2, nose=0.75, muzzle=0.75, face_len=0.8, relax=2)
+        # 嘴（貼花在頭心下約 0.6 hr）附近的外框變細：底模嘴唇的凹線讓外框的反殼從嘴縫透出來，正面是一撇黑鬍子似的黑塊。
+        # 外框倍率由 realbody.dress_head 從這顆動畫頭顱投影到底模的頭
+        c0, hr0 = F.c, F.hr
+        kit.paint_ol(h, lambda co: 0.0 if abs(co.x - c0.x) < hr0 * 0.42 and abs(co.y - (c0.y - hr0 * 0.6)) < hr0 * 0.2 and co.z > c0.z + hr0 * 0.3 else None)
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
-        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.42, temple=0.15)] + hair(F, hc, goku_hair(form), grow=1.12 if form == 'base' else 1.05, wmul=1.3)
+        # 頭髮的尖端位置直接照參考量（單位 hr），不再放大：頭（hr）加大到 7.2 頭身後，舊的 1.12 倍會讓頭髮高出頭頂 1.25 頭（參考約 1.0）
+        # 髮尖的 x 照 hx＝0.88 量的：頭寬改成 0.94 後尖端往內收回同樣的絕對位置（髮根照頭寬走）
+        hx = F.R.get('hx', 1.0)
+        # 往外伸的長尖刺（|x|＞1.4）尖端乘 kx／hx：頭寬 hx 只放大髮根，尖端留在原本的絕對位置（finish 會再乘 hx）；
+        # 貼著頭的瀏海、鬢角（|x|＜0.9）跟著頭寬一起放大，中間漸變（只乘 1／hx 的話鬢角尖端會陷進臉頰）
+        kx = 0.8 if form == 'base' else 0.88
+        tipx = lambda x: x * lerp(1.0, kx / hx, smooth((abs(x) - 0.9) / 0.5))
+        cl = [(c[0], (tipx(c[1][0]),) + tuple(c[1][1:])) + tuple(c[2:]) for c in goku_hair(form)]
+        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.42, temple=0.15, side_y=0.15 if form == 'base' else -0.05)] + hair(F, hc, cl, grow=1.0 / HAIR_GROW if form == 'base' else 0.95, wmul=1.05)
     W = goku_waist_weights(F, yb)
-    custom = {G_CHAIN: sash_chain_weights(F, 'sash'), G_PELVIS: W['pelvis'], G_BELT: W['belt'], G_TORSO: W['top'], G_LEG_L: W['legL'], G_LEG_R: W['legR']}
+    custom = {G_CHAIN: sash_chain_weights(F, 'sash'), G_PELVIS: W['pelvis'], G_BELT: W['belt'], G_TORSO: W['top'], G_LEG_L: W['legL'], G_LEG_R: W['legR'], realbody.G_REAL: W['real']}
     return finish(F, P, body, proxy, heads, custom=custom)
 
 
@@ -860,7 +958,187 @@ def goku_waist_weights(F, yb):
             return [(b, w * (1 - m)) for b, w in old] + [(b, w * m) for b, w in new]
         fn.blend = True
         return fn
-    return {'pelvis': pelvis_fn, 'belt': lambda co: base(co), 'top': top_fn, 'legL': leg_fn('L'), 'legR': leg_fn('R')}
+    def real_fn(co, old):
+        # 道服底下的真人軀幹（腰帶上緣附近）和道服用同一套腰部權重：只有道服換成腰部權重、底下的皮膚（塗成藍色內衣）
+        # 還是骨熱時，扭腰出拳兩者錯開 1～2 cm，內衣的藍從道服腰帶上方一塊塊穿出來
+        if abs(co.x) > F.w * 1.7 or co.y < yb - 0.05 or co.y > yb + 0.1:
+            return old
+        return top_fn(co, old)
+    real_fn.blend = True
+    return {'pelvis': pelvis_fn, 'belt': lambda co: base(co), 'top': top_fn, 'legL': leg_fn('L'), 'legR': leg_fn('R'), 'real': real_fn}
+
+
+def goku_pants(F, pal):
+    """燈籠褲管（左）。參考（FighterZ 立繪、S.H.Figuarts）：褲頭到大腿上段收窄，膝下到小腿最寬（單腳約 1.2 頭），在靴口收緊、蓋住靴口。
+    舊版（共用的 baggy_leg）最寬處在胯下、往下一路變細，雙腳的內側從胯下到膝蓋整段交疊，正面看褲襠垂到膝上（胯下 2.5 頭高）。
+    這裡每個斷面分開給內側／外側半寬（中心往外移），內側緣離中線至少 1 cm，雙腿從胯下就分開；外側往外鼓。"""
+    tl = F.tl
+    bg = lambda th: 1 + 0.05 * ang_bump(th, FRONT, 1.1) + 0.04 * ang_bump(th, BACK, 1.1)
+    # 參考雙腿合寬：FighterZ 2.8 頭、S.H.Figuarts 3.0 頭（舊版 2.1 頭，從腰往下幾乎線性變寬）。
+    # 第三輪：上一版最寬 2.58 頭，外側半寬再加到 0.25（膝下）；膝蓋抬到約 2.2 頭（PROPS thighK 0.4）。
+    # 褲管末端：上一版從最寬處 3.5 cm 內收到靴口，側面看像一截圓柱被切掉；改成多三列、圓圓地往下收進靴口（布垂在靴口上）
+    rows = [  # s, 內側半寬, 外側半寬, 前後半徑
+        (-0.07, 0.085, 0.12, 0.13),
+        (0.04, 0.077, 0.13, 0.142),
+        (0.14, 0.082, 0.15, 0.15),
+        (0.26, 0.09, 0.18, 0.152),
+        (tl - 0.04, 0.1, 0.215, 0.16),
+        (tl + 0.03, 0.11, 0.245, 0.17),
+        (tl + 0.08, 0.11, 0.25, 0.172),
+        (tl + 0.125, 0.1, 0.228, 0.16),
+        (tl + 0.15, 0.088, 0.18, 0.136),
+        (tl + 0.168, 0.074, 0.13, 0.106),
+        (tl + 0.185, 0.064, 0.086, 0.08),
+    ]
+    # 每 1.8 cm 一個斷面（線性內插）：下面的橫向皺褶要靠斷面的密度才刻得出來（再密的話身體超過 build_heroes 的減面上限，圓章的字會被減面打碎）
+    dense = []
+    for r0, r1 in zip(rows, rows[1:]):
+        k = max(1, round((r1[0] - r0[0]) / 0.018))
+        dense += [tuple(x0 + (x1 - x0) * j / k for x0, x1 in zip(r0, r1)) for j in range(k)]
+    rows = dense + [rows[-1]]
+    side = V((1, 0, 0))
+    u = (side - F.dl * side.dot(F.dl)).normalized()
+    sts = [S(F.leg_pt(s) + u * ((o - i) / 2), (o + i) / 2, b, p=2.2, mod=bg if 0.1 < s < tl + 0.13 else None) for s, i, o, b in rows]
+    o = kit.loft('legL', sts, n=16, cap0='pole', cap1='pole')
+    # 橫向大皺褶（立繪 01、S.H.Figuarts 02、05 的燈籠褲一層層往下疊）：沿褲管的徑向起伏，波長約 9 cm、相位隨方位角偏移成斜斜的摺，
+    # 深淺也隨方位角變（不是一圈圈等深的環，那樣像輪胎人）；大腿上段沒有，膝下到靴口上方最深（布在那裡堆起來），收進靴口的最後幾列不動
+    fw = u.cross(F.dl).normalized()
+    if fw.z < 0:
+        fw = -fw
+    ss = [r[0] for r in rows]
+    ctr = lambda t: F.leg_pt(t) + u * lerp_rows(rows, t, 2, 1)
+
+    def lerp_rows(rs, t, io, ii):
+        t = max(rs[0][0], min(rs[-1][0], t))
+        for r0, r1 in zip(rs, rs[1:]):
+            if t <= r1[0]:
+                k = (t - r0[0]) / max(1e-6, r1[0] - r0[0])
+                return ((r0[io] + (r1[io] - r0[io]) * k) - (r0[ii] + (r1[ii] - r0[ii]) * k)) / 2
+        return (rs[-1][io] - rs[-1][ii]) / 2
+
+    def folds(p):
+        t = (p - F.th).dot(F.dl)
+        if t < ss[0] or t > ss[-1]:
+            return p
+        a = ctr(t)
+        r = p - a - F.dl * (p - a).dot(F.dl)
+        d = r.length
+        if d < 1e-5:
+            return p
+        th = math.atan2(r.dot(fw), r.dot(u))
+        amp = 0.0095 * smooth((t - 0.2) / 0.12) * (1 - smooth((t - (tl + 0.13)) / 0.035)) * (1 + 0.4 * smooth((t - tl) / 0.1))
+        amp *= 0.55 + 0.45 * math.sin(th * 2.0 + t * 25.0)
+        ph = (t + 0.035 * math.cos(th * 1.5) + 0.02 * math.sin(th * 3.0 + 1.0)) / 0.09
+        return p + r / d * (amp * math.sin(2 * math.pi * ph))
+    kit.deform(o, folds)
+    o = kit.subsurf(o, 1)
+    return kit.tag(o, pal, grp=G_LEG_L)
+
+
+def goku_boot(F, pal, trim):
+    """靴子（左）：參考立繪的靴子寬口、平頂、筒身直，露出約 1.4 頭高，
+    正面中線一條金褐色直線、鞋底邊一圈同色。共用的 boot() 筒身往腳踝收到 5 cm 半徑，這裡把中段往外撐成直筒，腳踝處再收回去接腳掌。"""
+    tl, sl = F.tl, F.sl
+    top_s = tl + 0.16   # 靴口離地約 1.4 頭（thighK 0.43 讓膝蓋抬高後，靴口在膝下 16 cm）
+    bt = boot(F, pal, top_s, 0.104, toe=1.06)
+
+    def widen(p):
+        s = (p - F.th).dot(F.dl)
+        a = F.leg_pt(s)
+        k = 1 + 0.26 * smooth((s - top_s - 0.04) / 0.14) * (1 - 0.55 * smooth((s - (tl + sl - 0.1)) / 0.06))
+        return a + (p - a) * k
+    kit.deform(bt[0], widen)
+    # 正面中線：沿小腿的中心線（腳掌段沿腳背中線），寬 1.6 cm；鞋底邊 1.6 cm 高
+    fx = F.sole.x + 0.004
+
+    def line(co):
+        s = max(0.0, min(F.tl + F.sl, (co - F.th).dot(F.dl)))
+        cx = F.leg_pt(s).x if co.y > 0.1 else fx + 0.005
+        return abs(co.x - cx) - 0.008 if co.z > 0.03 else 1.0
+    for o in bt:
+        kit.paint_field(o, line, trim, 0)
+    kit.paint_field(bt[1], lambda co: co.y - 0.017, trim, 0)
+    return bt
+
+
+def goku_patch(name, top, cx, cy, R, back=False, n=26):
+    """貼在道服表面的圓形貼片：XY 平面上的細格子（約 2 mm），切成半徑 R 的圓，再沿 z 射線投影到道服外層、往外浮一點。
+    直接在道服上切色界的話，道服的面約 1.7 cm，圓章只切成一個六角形；把道服局部細分再切，細分邊緣的法線不連續，
+    外框的反殼從圓章旁邊穿出一道道黑刮痕。貼片不描外框（黑框本身就是顏色），換真人身體時跟著道服一起挪（ride_on）；
+    浮 4 mm：道服被 retarget 平滑挪動，貼片照最近頂點挪，弧面兩側差 1～2 mm，扭腰時布摺起來又差 1～2 mm，浮太低會被道服蓋掉一角。"""
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=n, y_segments=n, size=R * 1.1)
+    ob = kit.to_object(name, bm)
+    xs = [v.co.x for v in ob.data.vertices]
+    k = R * 1.1 / max(abs(min(xs)), abs(max(xs)))   # create_grid 的 size 在不同版本是半寬或全寬：量出來再縮放
+    kit.deform(ob, lambda p: V((cx + p.x * k * (-1 if back else 1), cy + p.y * k, 0.0)))
+    f = lambda co: math.hypot(co.x - cx, co.y - cy) - R
+    kit.iso_cut(ob, f)
+    kit.cut(ob, lambda co, nn: f(co) > 0)
+    tree = tree_of(top)
+    sgn = -1 if back else 1
+
+    def proj(p):
+        hit = tree.ray_cast(V((p.x, p.y, sgn * 0.5)), V((0, 0, -sgn)), 1.0)
+        if hit[0] is None:
+            return p
+        nrm = hit[1] if hit[1].z * sgn > 0 else -hit[1]
+        return hit[0] + nrm * 0.004
+    kit.deform(ob, proj)
+    # 開放的面片沒有內外之分，recalc 會隨機翻面：一律朝外（正面朝 +z、背面朝 −z）
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bm.normal_update()
+    if sum(f.normal.z for f in bm.faces) * sgn < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.update()
+    return ob
+
+
+def goku_emblem(F, top, white, ink):
+    """胸前的「亀」字圓章（角色左胸）與背後的「界王」圓章：白底、黑框。字用膠囊筆畫的場畫在白底上（單位＝圓章半徑）。
+    亀：上方的「ク」（撇＋橫折）和下面的「田」分開留一道空隙，中間的直筆只在田裡、往下接右勾的「乚」；
+    舊版的直筆從田的上緣再往上伸、ク又小，整個字讀起來像「电」。
+    界王（FighterZ 版悟空背後）：上下疊兩個字，界＝田＋人字頂＋兩隻腳，王＝三橫一直。回傳要加進身體的貼片。"""
+    kame = [((-0.06, 0.9), (-0.4, 0.6)), ((-0.2, 0.76), (0.26, 0.76)), ((0.26, 0.76), (0.04, 0.52)),
+            ((-0.38, 0.4), (0.38, 0.4)), ((-0.38, 0.4), (-0.38, -0.16)), ((0.38, 0.4), (0.38, -0.16)), ((-0.38, -0.16), (0.38, -0.16)),
+            ((-0.38, 0.12), (0.38, 0.12)), ((0.0, 0.4), (0.0, -0.5)), ((0.0, -0.5), (0.42, -0.5)), ((0.42, -0.5), (0.5, -0.32))]
+    k = 0.86
+    kaio = [((-0.3, 0.84), (0.3, 0.84)), ((-0.3, 0.84), (-0.3, 0.5)), ((0.3, 0.84), (0.3, 0.5)), ((-0.3, 0.5), (0.3, 0.5)),
+            ((-0.3, 0.67), (0.3, 0.67)), ((0.0, 0.84), (0.0, 0.5)),
+            ((0.0, 0.45), (-0.5, 0.2)), ((0.0, 0.45), (0.5, 0.2)), ((-0.15, 0.28), (-0.3, 0.02)), ((0.17, 0.28), (0.17, 0.02)),
+            ((-0.38, -0.12), (0.38, -0.12)), ((-0.3, -0.44), (0.3, -0.44)), ((-0.46, -0.76), (0.46, -0.76)), ((0.0, -0.12), (0.0, -0.76))]
+    kaio = [((a[0] * k, a[1] * k), (b[0] * k, b[1] * k)) for a, b in kaio]
+
+    def glyph(strokes, cx, cy, R, w, flip):
+        def f(co):
+            p = V(((co.x - cx) / R * flip, (co.y - cy) / R))
+            d = 9.0
+            for a, b in strokes:
+                a, b = V(a), V(b)
+                ab = b - a
+                t = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared))
+                d = min(d, (p - (a + ab * t)).length)
+            return d - w
+        return f
+    out = []
+    cx, cy = 0.118, F.y(0.5)
+    # 背章：立繪 04 與 FighterZ 背面的圓章大（約背寬的 0.45）、在上背中央；上一版半徑 0.075 m（背寬的 0.29）、圓心在肩線與腰帶之間 55% 的高度，又小又低。
+    # 貼片格子：字的邊界是沿等值線切的（kit.paint_field），格子只要比筆畫細就好；上一版 44×44、64×64 讓悟空的面數是其他角色的 1.5 倍
+    for nm, x, y, r, back, strokes, w, n in (('emblemF', cx, cy, 0.046, False, kame, 0.07, 26), ('emblemB', 0.0, F.y(0.73), 0.11, True, kaio, 0.06, 34)):
+        o = goku_patch(nm, top, x, y, r, back=back, n=n)
+        # 綁骨群組 G_RIDE：權重抄底下道服最近的頂點。和道服各自從骨熱代理體轉移的話，貼片的頂點比道服密，兩者內插出來的權重
+        # 差一點點，扭腰出拳時道服從圓章的邊緣穿出橘紅色的斑點
+        kit.tag(o, ink, grp=G_RIDE, ol=0.0)
+        kit.paint_field(o, lambda co, x=x, y=y, r=r: math.hypot(co.x - x, co.y - y) - (r - 0.0055), white, 0)
+        # 背面從背後看：畫面的右邊是角色的 −x，字的 x 要反過來
+        kit.paint_field(o, glyph(strokes, x, y, r, w, -1 if back else 1), ink, 0)
+        o['ride_on'] = top.name
+        o['trim'] = 1
+        out.append(o)
+    return out
 
 
 def goku_team_band(F, pal, muscle, k):
@@ -886,24 +1164,54 @@ def goku_team_band(F, pal, muscle, k):
 
 def goku_hair(form):
     if form == 'base':
-        return sym([
-            # (根部 頭心相對, 尖端, 半寬, 半厚, 彎曲)  單位 hr
-            ((0.0, 0.95, 0.15), (0.15, 2.45, -0.25), 0.58, 0.26, (0.05, 0.1, 0)),
-            ((0.42, 0.85, 0.1), (1.55, 1.95, -0.25), 0.56, 0.25, (0, 0.18, 0)),
-            ((0.72, 0.55, -0.05), (2.0, 1.0, -0.3), 0.52, 0.24, (0, 0.15, 0)),
-            ((0.8, 0.12, -0.25), (1.85, -0.2, -0.6), 0.46, 0.22, (0, 0.1, 0)),
-            ((0.3, 0.75, -0.55), (1.0, 1.7, -1.4), 0.55, 0.25, (0, 0.1, 0)),
-            ((0.0, 0.55, -0.8), (0.1, 1.2, -2.0), 0.55, 0.25, (0, 0.1, 0)),
-            ((0.45, 0.2, -0.82), (1.1, -0.15, -1.75), 0.5, 0.23, (0, 0.05, 0)),
-            ((0.0, -0.15, -0.9), (0.05, -0.85, -1.55), 0.45, 0.22, (0, 0, 0)),
-            ((0.65, 0.65, 0.35), (1.35, 1.35, 0.25), 0.4, 0.2, (0, 0.1, 0)),
-            # 瀏海
-            ((0.08, 0.82, 0.56), (-0.02, 0.32, 1.02), 0.34, 0.16, (0, 0.05, 0.12)),
-            ((-0.3, 0.8, 0.52), (-0.42, 0.28, 0.98), 0.3, 0.15, (0, 0.05, 0.1)),
-            ((0.42, 0.76, 0.5), (0.56, 0.3, 0.92), 0.28, 0.14, (0, 0.05, 0.1)),
-            ((0.66, 0.6, 0.44), (0.84, 0.05, 0.72), 0.26, 0.13, (0, 0.03, 0.08)),
-            ((0.78, 0.15, 0.2), (0.86, -0.4, 0.3), 0.16, 0.08, (0, 0, 0.04)),
-        ])
+        # 照 FighterZ 立繪（正面）量的尖端位置（單位 hr，頭心相對；+x 是角色左側＝正面畫面右側）。尖端的 x 在 build_goku 裡再乘 0.8／hx
+        # （頭寬 hx 只放大髮根，尖端留在同樣的絕對位置；第三輪從 0.88 收到 0.8：整團寬 2.59 頭 → 約 2.4 頭）。
+        # 左右不對稱：頭頂最高的一撮往角色右上斜；角色右側三根長尖刺在額頭到眼睛的高度幾乎水平往外伸，角色左側兩根較短。
+        # 第三輪：
+        # - 頭頂最高的尖端 2.6 → 2.35：含髮總高 8.3～8.6 頭，立繪約 8.2（髮尖高出頭頂約 1 頭）。
+        # - 耳朵露出來：立繪兩耳明顯露在臉側，上一版耳朵高度有一對往正側方伸的髮束（側面看是一團 C 字形的圓鼓黑髮）和粗鬢角整片蓋住。
+        #   耳朵高度的髮束拿掉，改成根部在耳後上方、往後下方伸的短尖刺；眼睛高度的長尖刺根部抬高到耳朵上緣、尖端往後收（側面才不是一個正對鏡頭的圓錐）；
+        #   鬢角改成耳前細細的一撮。
+        # - 太陽穴的瀏海尖端原本伸到臉前 0.7 hr（側面看是一片蓋在眼睛與顴骨前的黑色楔形），收回貼著太陽穴。
+        # - 後腦：原本三撮的根部擠在後腦中央、尖端正對後方，背面看是一顆圓鈕放射出一圈髮束（像一朵花）。
+        #   參考 03、04 是幾排往後下方垂的尖刺：根部沿後腦分三排（上排往後、中排往後下、下排往下貼著後頸），每排左右散開
+        return [
+            # (根部, 尖端, 半寬, 半厚, 彎曲)
+            ((-0.05, 0.95, 0.1), (-0.9, 2.35, -0.25), 0.6, 0.24, (0.15, 0.05, 0)),        # 頭頂最高的一撮，根部寬、往角色右上
+            ((0.3, 0.9, 0.0), (0.85, 1.45, -0.3), 0.46, 0.2, (0.05, 0.05, 0)),            # 頭頂偏左：從大尖刺往右下的斜坡
+            ((-0.45, 0.85, 0.05), (-1.95, 2.0, -0.35), 0.56, 0.23, (0, 0.2, 0)),          # 角色右上方的長尖刺
+            ((-0.72, 0.6, -0.05), (-2.55, 1.15, -0.5), 0.52, 0.22, (0, 0.12, 0)),         # 角色右側，最遠的一根
+            ((-0.78, 0.48, -0.22), (-2.15, 0.4, -0.85), 0.32, 0.17, (0, 0.06, 0)),         # 角色右側，眉眼高度（根部在耳朵上方、根部窄，尖端往後）
+            ((0.7, 0.6, -0.05), (2.05, 0.95, -0.45), 0.48, 0.21, (0, 0.1, 0)),            # 角色左側，較平
+            ((0.78, 0.48, -0.22), (2.1, 0.45, -0.85), 0.32, 0.17, (0, 0.06, 0)),
+            ((-0.68, 0.05, -0.5), (-1.3, -0.3, -1.05), 0.28, 0.14, (0, 0.02, 0)),        # 耳後上方，往後下方的短尖刺
+            ((0.68, 0.05, -0.5), (1.2, -0.35, -1.0), 0.28, 0.14, (0, 0.02, 0)),
+            ((-0.3, 0.8, -0.45), (-1.0, 1.15, -1.35), 0.46, 0.21, (0, 0.1, 0)),           # 頭頂往後
+            ((0.3, 0.8, -0.45), (0.95, 0.95, -1.35), 0.44, 0.2, (0, 0.1, 0)),
+            # 後腦上排：往後、略往下
+            # （中央不放：正中往後的一撮從背面看是正對鏡頭的圓錐，又成了一顆圓鈕）
+            ((-0.4, 0.58, -0.62), (-1.1, 0.05, -1.7), 0.42, 0.19, (0, 0.06, 0)),
+            ((0.4, 0.58, -0.62), (1.05, 0.0, -1.65), 0.42, 0.19, (0, 0.06, 0)),
+            # 後腦中排：往後下
+            ((-0.55, 0.15, -0.72), (-1.05, -0.5, -1.6), 0.36, 0.17, (0, 0.03, 0)),
+            ((-0.18, 0.2, -0.82), (-0.3, -0.5, -1.75), 0.36, 0.17, (0, 0.03, 0)),
+            ((0.18, 0.2, -0.82), (0.32, -0.55, -1.7), 0.36, 0.17, (0, 0.03, 0)),
+            ((0.55, 0.15, -0.72), (1.0, -0.55, -1.55), 0.36, 0.17, (0, 0.03, 0)),
+            # 後腦下排：往下貼著後頸
+            ((-0.35, -0.3, -0.75), (-0.62, -1.1, -1.25), 0.3, 0.15, (0, 0, 0)),
+            ((0.0, -0.32, -0.8), (0.0, -1.15, -1.3), 0.3, 0.15, (0, 0, 0)),
+            ((0.35, -0.3, -0.75), (0.62, -1.1, -1.25), 0.3, 0.15, (0, 0, 0)),
+            # 瀏海：四撮垂到眉上，往兩側散開
+            ((0.08, 0.82, 0.56), (0.0, 0.2, 1.0), 0.3, 0.14, (0, 0.05, 0.12)),
+            ((-0.3, 0.8, 0.52), (-0.44, 0.16, 0.95), 0.28, 0.14, (0, 0.05, 0.1)),
+            ((0.42, 0.76, 0.5), (0.56, 0.26, 0.92), 0.26, 0.13, (0, 0.05, 0.1)),
+            # 太陽穴：尖端貼著太陽穴往下（眼尾外側），不伸到臉前
+            ((-0.64, 0.62, 0.38), (-0.84, 0.2, 0.28), 0.2, 0.1, (0, 0.03, 0.04)),
+            ((0.66, 0.62, 0.36), (0.84, 0.24, 0.27), 0.18, 0.1, (0, 0.03, 0.04)),
+            # 鬢角：耳前細細一撮
+            ((0.74, 0.3, 0.34), (0.82, -0.2, 0.38), 0.09, 0.045, (0, 0, 0.02)),
+            ((-0.74, 0.3, 0.34), (-0.82, -0.2, 0.38), 0.09, 0.045, (0, 0, 0.02)),
+        ]
     return sym([
         ((0.0, 0.92, 0.25), (0.1, 2.9, 0.0), 0.56, 0.25, (0, 0, 0)),
         ((0.38, 0.85, 0.1), (0.95, 2.7, -0.2), 0.54, 0.25, (0, 0, 0)),

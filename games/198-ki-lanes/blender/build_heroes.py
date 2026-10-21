@@ -283,6 +283,34 @@ def build_one(hid, R, opt):
             elif g in heroes.FINGER_BONE and heroes.FINGER_BONE[g] in bidx:
                 W[i] = [(bidx[heroes.FINGER_BONE[g]], 1.0)]   # 手指每節剛性跟著自己的骨頭
 
+    # 貼在軀幹衣物表面的貼片（grp＝G_RIDE）：權重照底下軀幹衣物（G_TORSO）最近的三角形，用重心座標內插那三個頂點的權重，
+    # 和底下的布一起變形（只抄最近頂點的話，貼片比道服密，權重一格一格跳，布摺起來時道服從貼片中間穿出一條線）
+    G = body.data.attributes['grp'].data
+    me = body.data
+    ride = [i for i in range(len(me.vertices)) if G[i].value == heroes.G_RIDE]
+    if ride:
+        from mathutils.bvhtree import BVHTree
+        from mathutils.geometry import barycentric_transform
+        me.calc_loop_triangles()
+        tris = [t.vertices[:] for t in me.loop_triangles if all(G[k].value == heroes.G_TORSO for k in t.vertices)]
+        tree = BVHTree.FromPolygons([V(v.co) for v in me.vertices], tris)
+        for i in ride:
+            co = V(me.vertices[i].co)
+            hit = tree.find_nearest(co)
+            if hit[0] is None:
+                continue
+            a_, b_, c_ = tris[hit[2]]
+            pa, pb, pc = (V(me.vertices[k].co) for k in (a_, b_, c_))
+            bc = barycentric_transform(hit[0], pa, pb, pc, V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1)))
+            acc = {}
+            for k, t in zip((a_, b_, c_), bc):
+                for bn, w in W[k]:
+                    acc[bn] = acc.get(bn, 0.0) + w * max(0.0, t)
+            ws = sorted(acc.items(), key=lambda bw: -bw[1])[:4]
+            tot = sum(w for _, w in ws) or 1.0
+            W[i] = [(bn, w / tot) for bn, w in ws]
+        print('  貼片：%d 頂點照底下衣物的三角形內插權重' % len(ride))
+
     if H.get('real'):
         print('  真人身體：%d 頂點改用底模權重' % realbody.weights_for(body, H['real'][1], bone_names, W))
         print('  貼手臂的環帶：%d 頂點抄皮膚權重' % realbody.hug_weights(body, W))

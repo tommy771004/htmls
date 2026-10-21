@@ -1,6 +1,7 @@
 # 貝吉塔、特南克斯、比克、弗利沙、18 號（悟空與共用工具在 heroes.py）。
 import math
 
+import bmesh
 from mathutils import Matrix
 
 import kit
@@ -94,13 +95,254 @@ def plate(name, center, ax_u, ax_v, ax_n, ru, rv, rn, pal, grp, mat=2, ol=0.7):
 
 
 # ================================================================ 貝吉塔
+# 賽亞人篇戰鬥服（參考 01 FighterZ 立繪為準，04／05 GK 原型看甲片分片與位置）：
+#   藍色緊身衣包住手臂與腿、白色胸背甲（從肩頂繞過腋下的 U 字袖孔）、往外上方翹的金色大肩甲（56° 俯視時頭以外最大的色塊）、
+#   從胸下收成尖舌、蓋到胯前的金色橫紋腹甲、背後腰上的金色橫紋帶、兩側垂到大腿的金色側腰甲、棕色毛皮腰帶（尾巴，左後打結）、
+#   白手套（手套口在前臂中段）、白靴（膝下喇叭口、金色鞋頭與鞋底包邊）。
+# 舊版是一個白色的桶（甲片離緊身衣 2.8 cm、上緣開在肩線，脖子周圍一圈黑縫）加兩條像提把的金色背帶，沒有肩甲、腰帶與側腰甲，
+# 上臂與前臂露出皮膚，靴口一圈金色。
+
+def _tree_multi(objs):
+    """多個物件合成一棵 BVH（射線貼合用）。"""
+    import bpy
+    tmp = kit.join([kit.duplicate(t, 'tmp') for t in objs], 'tmp_target')
+    tr = tree_of(tmp)
+    bpy.data.objects.remove(tmp, do_unlink=True)
+    return tr
+
+
+def _grid(name, nu, nv, fn, out):
+    """(nu+1)×(nv+1) 的四邊形網格：fn(u, v) → 座標（u、v 都是 0..1）；out(co) 是希望的法線方向（中央那一格照它決定繞序）。"""
+    bm = bmesh.new()
+    vs = [[bm.verts.new(fn(i / nu, j / nv)) for j in range(nv + 1)] for i in range(nu + 1)]
+    for i in range(nu):
+        for j in range(nv):
+            bm.faces.new((vs[i][j], vs[i + 1][j], vs[i + 1][j + 1], vs[i][j + 1]))
+    bm.normal_update()
+    bm.faces.ensure_lookup_table()
+    f = bm.faces[(nu // 2) * nv + nv // 2]
+    if f.normal.dot(out(f.calc_center_median())) < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    return kit.to_object(name, bm)
+
+
+def _hash(i, k):
+    """格點的偽亂數（−1..1），毛皮腰帶的起伏用；固定種子，每次建模結果一樣。"""
+    x = math.sin(i * 12.9898 + k * 78.233) * 43758.5453
+    return (x - math.floor(x)) * 2 - 1
+
+
+def _bands(x, centers, hw):
+    """一組條紋（凹紋、橫紋）的場：離最近的條紋中心不到 hw 時＜0。"""
+    return min(abs(x - c) for c in centers) - hw
+
+
+# 貝吉塔專屬的綁骨群組（權重全由自訂函式決定，左右共用一個群組、依 x 正負選骨頭）
+G_VPAD = 76      # 肩甲：剛性，六成跟胸廓、四成跟鎖骨（舉手聳肩時肩甲跟著抬一點，不會壓進三角肌）
+G_VTONGUE = 78   # 腹甲尖舌：腰帶以上和胸甲一樣（骨熱只取胸廓），腰帶以下漸漸交給骨盆與兩條大腿
+G_VTAS = 79      # 側腰甲：上緣跟骨盆，往下漸漸交一半給同側大腿
+ALLOW[G_VTONGUE] = ALLOW[G_CHEST]
+
+
+def vegeta_pad_w(co):
+    s = 'L' if co.x >= 0 else 'R'
+    return [('ribs', 0.6), ('cl' + s, 0.4)]
+
+
+def vegeta_tongue_w(F, yb, ytip):
+    def fn(co, old):
+        k = smooth((yb + 0.02 - co.y) / 0.1)
+        if k <= 0.001:
+            return old
+        # 腰帶以下：左半片跟左大腿、右半片跟右大腿（中線兩側 4 cm 內漸變），往尖端漸增到八成。
+        # 兩條大腿平分時，跑步、弓步抬起的那條大腿前緣整個從尖舌中段頂出來（間隙 3.6 cm 也擋不住）
+        q = smooth((yb - co.y) / (yb - ytip))
+        tk = 0.8 * q
+        sl = smooth((co.x + 0.04) / 0.08)
+        new = [('hips', 1 - tk), ('thL', tk * sl), ('thR', tk * (1 - sl))]
+        return [(b, w * (1 - k)) for b, w in old] + [(b, w * k) for b, w in new]
+    fn.blend = True
+    return fn
+
+
+def vegeta_tasset_w(yt, yb):
+    def fn(co):
+        s = 'L' if co.x >= 0 else 'R'
+        k = 0.8 * smooth((yt - co.y) / (yt - yb))
+        return [('hips', 1 - k), ('th' + s, k)]
+    return fn
+
+
+def vegeta_pad(F, gold, goldD, white):
+    """左肩甲（參考 01／04）：從脖子旁的肩頂往外上方翹的翅膀形硬殼，尖端略高於下巴，兩片尖端距約 3.2 頭高；
+    前後緣往下垂成拱頂（正面看根部高約 0.35 頭，蓋住三角肌頂），往尖端收窄；表面有 9 條從根部放射到尖端的凹紋，前後緣是白色滾邊。
+    參數：u 從根部到尖端、v 從前緣（+z）到後緣。殼的下緣離三角肌頂約 4 cm，出拳、舉手時手臂不會頂進去。"""
+    hh = F.hr * 1.667                          # 頭顱高（PROPS 的 hr 與量測的換算）
+    x0, x1 = 0.4 * F.cx, 1.6 * hh              # 根部（頸側）與尖端的 x
+    y0 = F.y(1.05) + 0.025                     # 根部上緣：斜方肌頂上 2.5 cm
+    y1 = y0 + 0.08                             # 尖端：往外上方翹約 13°（參考 02 的上緣 15～25°，01 的尖端在下巴高度）
+    zc = -0.008
+    D = lambda u: 0.122 * (1 - 0.8 * u ** 1.8)          # 前後半深：根部蓋住肩頂的前後，尖端收成窄尖
+    # 前後緣下垂量：參考 01 正面看得到肩甲朝前的一整片斜面（根部從頸根垂到三角肌頂、高約 0.5 頭），
+    # 0.088 m 時正面只剩一條細細的弧帶
+    Hg = lambda u: 0.13 * (1 - 0.7 * u ** 1.3)
+
+    def pt(u, v):
+        v = v * 2 - 1
+        x = x0 + (x1 - x0) * u
+        y = y0 + (y1 - y0) * u + 0.016 * math.sin(PI * u) - Hg(u) * abs(v) ** 1.6
+        return V((x, y, zc + D(u) * v * (1 - 0.06 * v * v)))
+    o = _grid('padL', 12, 10, pt, lambda co: V((0, 1, 0)))
+    o = kit.subsurf(o, 2, solidify=0.012)
+
+    def vpar(co):
+        u = max(0.0, min(1.0, (co.x - x0) / (x1 - x0)))
+        return (co.z - zc) / max(1e-4, D(u))
+    kit.tag(o, gold, mat=2, grp=G_VPAD, ol=0.8)
+    kit.paint_field(o, lambda co: _bands(vpar(co), [-0.72 + 1.44 * k / 8 for k in range(9)], 0.028), goldD, 2)
+    kit.paint_field(o, lambda co: 0.86 - abs(vpar(co)), white, 2)
+    o['trim'] = 1   # 不算「蓋住身體」：肩甲浮在肩頂上 4 cm，底下的皮膚不必收進去
+    return o
+
+
+def vegeta_tongue(F, targets, gold, goldD, yt, yb, ytip, W=0.088):
+    """前方的金色腹甲（參考 01／04）：上緣圓弧在胸肌下緣正中，往下穿過腰帶、收成尖舌蓋到胯前；表面 10 多條橫紋。
+    以射線從正前方貼到胸甲／緊身衣表面，再沿縱向往外撫平（胸甲下緣到緊身衣的台階變成斜坡，不會陷進去）。"""
+    tr = _tree_multi(targets)
+    nu, nv = 8, 26
+
+    def half_w(t):
+        if t < 0.15:
+            return W * (0.6 + 0.4 * math.sqrt(max(0.0, 1 - ((0.15 - t) / 0.15) ** 2)))
+        return W * (1 - 0.9 * ((t - 0.15) / 0.85) ** 1.5)
+    rows = []
+    for j in range(nv + 1):
+        t = j / nv
+        row = []
+        for i in range(nu + 1):
+            s = i / nu * 2 - 1
+            x = s * half_w(t)
+            y = yt - t * (yt - ytip)   # 上緣的圓弧由 half_w 收窄做出來（往下壓 y 會讓第一排越過第二排、細分加厚後折出尖刺）
+            hit = tr.ray_cast(V((x, y, 0.6)), V((0, 0, -1)), 1.0)
+            # 腰帶以下很快離開緊身衣（腰帶下 15 cm 起 3.6 cm）：尖舌蓋在小腹與兩條大腿根部前面，
+            # 出拳弓步、跑步抬腿時大腿根部連同小腹往前鼓（底模的權重），間隙 2.4 cm 時從甲片中段頂出一塊塊藍色
+            z = (hit[0].z if hit[0] is not None else F.cz) + 0.008 + 0.028 * smooth((yb + 0.015 - y) / 0.12)
+            row.append([x, y, z])
+        rows.append(row)
+    base = [[p[2] for p in r] for r in rows]
+    for _ in range(10):   # 沿縱向撫平、只往外推（取 max），台階變成斜坡
+        for j in range(1, nv):
+            for i in range(nu + 1):
+                rows[j][i][2] = max(base[j][i], (rows[j - 1][i][2] + rows[j][i][2] + rows[j + 1][i][2]) / 3)
+    o = _grid('tongue', nu, nv, lambda u, v: V(rows[round(v * nv)][round(u * nu)]), lambda co: V((0, 0, 1)))
+    o = kit.subsurf(o, 2, solidify=0.007)
+    kit.tag(o, gold, mat=0, grp=G_VTONGUE, ol=0.7)   # 霧面：亮面材質在這片朝前的平面上打出一整塊白色反光，看起來像破洞
+    ys = [yt - 0.045 - 0.031 * k for k in range(int((yt - ytip - 0.06) / 0.031))]
+    kit.paint_field(o, lambda co: _bands(co.y, ys, 0.0035), goldD, 2)
+    # 不標 pin_bones：腰帶以上底下是胸甲（骨軸射線先碰到胸甲，已經釘住）；腰帶以下蓋著小腹與胯，釘到胸廓會讓那片皮膚不跟骨盆走
+    return o
+
+
+def vegeta_tasset(F, targets, gold, goldD, yt, yb, phc=0.24, hw=0.066):
+    """左側腰甲（參考 01／04／05）：從腰帶垂到大腿上段、貼在大腿外側略偏前的金色甲片，寬約 0.5 頭，有橫紋；正前方與臀部沒有。
+    沿水平射線從外側貼到骨盆／大腿表面，離表面的間隙往下漸大（2 cm），抬腿時才不會被大腿頂穿。"""
+    tr = _tree_multi(targets)
+    nu, nv = 6, 14
+    pts = {}
+    rr = []
+    for j in range(nv + 1):
+        t = j / nv
+        y = yt - t * (yt - yb)
+        row = []
+        for i in range(nu + 1):
+            s = i / nu * 2 - 1
+            ph = phc + s * hw * (1 + 0.15 * t) / 0.16
+            d = V((math.cos(ph), 0, math.sin(ph)))
+            a = V((0, y, 0))
+            hit = tr.ray_cast(a + d * 0.6, -d, 0.6)
+            r = (0.6 - hit[3]) if hit[0] is not None else 0.16
+            row.append((d, a, r + 0.008 + 0.014 * t))
+        rr.append(row)
+    base = [[c[2] for c in r] for r in rr]
+    R = [[c[2] for c in r] for r in rr]
+    # 縱橫兩向撫平、只往外推：射線打在骨盆與大腿上的起伏（臀部、大腿外側的肌肉）會讓甲片和橫紋扭成波浪
+    for _ in range(24):
+        R2 = [r[:] for r in R]
+        for j in range(1, nv + 1):
+            for i in range(nu + 1):
+                nb = [R[j - 1][i]] + ([R[j + 1][i]] if j < nv else []) + ([R[j][i - 1]] if i > 0 else []) + ([R[j][i + 1]] if i < nu else [])
+                R2[j][i] = max(base[j][i], (R[j][i] + sum(nb) / len(nb)) / 2)
+        R = R2
+    for j in range(nv + 1):
+        for i in range(nu + 1):
+            d, a, _r = rr[j][i]
+            pts[(i, j)] = a + d * R[j][i]
+    o = _grid('tassetL', nu, nv, lambda u, v: pts[(round(u * nu), round(v * nv))], lambda co: V((co.x, 0, co.z)))
+    o = kit.subsurf(o, 2, solidify=0.007)
+    kit.tag(o, gold, mat=0, grp=G_VTAS, ol=0.7)
+    ys = [yt - 0.05 - 0.032 * k for k in range(int((yt - yb - 0.06) / 0.032))]
+    kit.paint_field(o, lambda co: _bands(co.y, ys, 0.0035), goldD, 2)
+    return o
+
+
+def vegeta_fur_belt(F, targets, fur, y, r=0.017):
+    """毛皮腰帶（尾巴，參考 01／04／05）：粗而毛糙的一圈，繞在腰最細處、壓住腹甲；左後腰打結，結尾垂下約 0.4 頭。
+    中心線以水平射線貼到腰上（胸甲下緣與腹甲的外面），斷面加偽亂數起伏，輪廓毛糙。"""
+    import bmesh as _bm
+    tr = _tree_multi(targets)
+    N, n = 72, 10
+    cs = []
+    for i in range(N):
+        a = 2 * PI * i / N
+        d = V((math.cos(a), 0, math.sin(a)))
+        hit = tr.ray_cast(V((0, y, 0)) + d * 0.6, -d, 0.6)
+        rr = (0.6 - hit[3]) if hit[0] is not None else F.w * 1.2
+        cs.append(V((0, y, 0)) + d * (rr + r * 0.75))
+    bm = _bm.new()
+    rings = []
+    up = V((0, 1, 0))
+    for i in range(N):
+        T = (cs[(i + 1) % N] - cs[i - 1]).normalized()
+        out = T.cross(up).normalized()
+        if out.dot(V((cs[i].x, 0, cs[i].z))) < 0:
+            out = -out
+        ring = []
+        for k in range(n):
+            th = 2 * PI * k / n
+            fr = r * (1 + 0.16 * _hash(i, k))
+            ring.append(bm.verts.new(cs[i] + out * (math.cos(th) * fr) + up * (math.sin(th) * fr * 1.15)))
+        rings.append(ring)
+    for i in range(N):
+        a, b = rings[i], rings[(i + 1) % N]
+        for k in range(n):
+            bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    _bm.ops.recalc_face_normals(bm, faces=bm.faces)
+    belt = kit.subsurf(kit.to_object('furBelt', bm), 1)
+    kit.tag(belt, fur, grp=G_BELT, ol=0.8)
+    # 左後腰的結：扁圓的一團＋往下垂的結尾（剛性跟著骨盆，夠短、離開臀部，跑步時不會被大腿頂穿）
+    ia = int(round(N * (2 * PI - 0.95) / (2 * PI))) % N
+    kc = cs[ia] + V((cs[ia].x, 0, cs[ia].z)).normalized() * 0.012
+    knot = kit.quad_sphere('furKnot', 1.0, cuts=5)
+    kit.deform(knot, lambda p: kc + V((p.x * 0.03, p.y * 0.026, p.z * 0.03)) * (1 + 0.12 * _hash(int(p.x * 7 + 9), int(p.y * 7 + p.z * 13 + 9))))
+    knot = kit.subsurf(knot, 1)
+    kit.tag(knot, fur, grp=G_BELT, ol=0.8)
+    od = V((kc.x, 0, kc.z)).normalized()
+    tip = kc + V((0, -0.11, 0)) + od * 0.03
+    tail = path_loft('furEnd', [kc, (kc + tip) * 0.5 + od * 0.012, tip], [0.017, 0.015, 0.007], n=8, front=od, side=V((0, 1, 0)).cross(od))
+    kit.deform(tail, lambda p: p + od * 0.003 * _hash(int(p.y * 300), int(p.x * 300 + p.z * 200)))
+    tail = kit.subsurf(tail, 1)
+    kit.tag(tail, fur, grp=G_BELT, ol=0.8)
+    return [belt, knot, tail]
+
+
 def build_vegeta(R):
     F = Fig(R)
     P = kit.Palette()
     skin = P(0xf2c69e)
-    suit, suitD = P(0x2a4cc0), P(0x1d3790)
+    suit = P(0x2a4cc0)
     white = P(0xf5f2e8)
-    gold, goldD = P(0xe6ae2e), P(0xb98418)
+    gold, goldD = P(0xe6b84a), P(0xa07a2c)
+    fur = P(0x77452b)
     team = P(-1)
     body, proxy = [], []
 
@@ -110,8 +352,9 @@ def build_vegeta(R):
     kit.tag(st, suit, grp=G_TORSO)
     body.append(realbody.skin(st))
     proxy.append(st)
-    # 高領
-    col = limb('collar', V((0, F.y(0.93), -0.008)), V((0, 1, 0)), [(0, 0.075, 0.07), (0.05, 0.068, 0.064), (0.085, 0.066, 0.062)], n=14, cap0=None, cap1=None)
+    # 高領（參考 01：緊身衣的高領一路到下巴下方，露出的脖子只有約 0.1 頭）
+    ycl = 0.105
+    col = limb('collar', V((0, F.y(0.93), -0.008)), V((0, 1, 0)), [(0, 0.075, 0.07), (0.05, 0.068, 0.064), (ycl, 0.066, 0.062)], n=14, cap0=None, cap1=None)
     col = kit.subsurf(col, 2, solidify=0.006)
     kit.tag(col, suit, grp=G_NECK, ol=0.7)
     body.append(col)
@@ -120,11 +363,12 @@ def build_vegeta(R):
     # 底模的脖子根部比舊的斜方肌細好幾公分，高領下緣兩側的頂點離脖子皮膚管比離緊身衣近，會被塗成一條條膚色
     body[-1]['proj_under'] = 1
     # 脖子在高領口上方 3 cm 內外框漸細：脖子的外框反殼比「脖子到高領內壁」的間隙還厚，從領口裡面穿出一圈黑色虛線
-    ycol = F.y(0.93) + 0.085
+    ycol = F.y(0.93) + ycl
     kit.paint_ol(body[-1], lambda co: smooth((co.y - ycol) / 0.03))
     proxy.append(body[-1])
-    body.append(realbody.skin(pelvis(F, suit, e=0.004)))
-    proxy.append(body[-1])
+    pel = realbody.skin(pelvis(F, suit, e=0.004))
+    body.append(pel)
+    proxy.append(pel)
     kl = F.k_leg
     quad = lambda th: 1 + 0.06 * ang_bump(th, FRONT - 0.3, 1.0)
     calf = lambda th: 1 + 0.08 * ang_bump(th, BACK, 1.0)
@@ -138,89 +382,91 @@ def build_vegeta(R):
         (F.tl + 0.2, 0.05 * kl, 0.052 * kl),
     ])
     realbody.skin(leg)
-    # 戰鬥服胸甲：一體成形，胸口白色、腹部金色分節（亮面），肩上金色背帶
-    ar = kit.loft('armor', torso_rows(F, e=lambda u: 0.028 - 0.02 * smooth((u - 0.8) / 0.13) - 0.008 * smooth((0.3 - u) / 0.15), u0=0.15, u1=0.93, pec=0.126, lat=0.054, p=2.5), n=20, cap0=None, cap1=None)
-    # 袖孔：沿上臂骨軸挖掉離骨軸 10 cm 以內的甲片，邊緣從肩頂繞過腋下成 U 字（參考圖的胸甲）。
-    # 原本的甲片是一整個桶，側面一路包到肩關節外，站著時三角肌就從甲片側面穿出藍色，抬手往前時整片上臂陷進白甲裡。
-    # 先細分一次、沿等值線切開再加厚，孔緣才平滑且有厚度（加厚之後才挖，孔緣會露出殼的內側）
+
+    # 胸背甲：貼著緊身衣（離表面 1.6 cm，上緣收到 0.5 cm 貼住高領），從腰最細處（腰帶）包到頸根；
+    # 肩頂由 cut_armholes 沿上臂骨軸挖掉，留下從頸根繞過腋下的 U 字甲緣（參考 04）。
+    # 舊版離表面 2.8 cm、上緣停在肩線（u 0.9），是一個白色的桶，頸根一圈寬開口露出外框殼的黑縫
+    yb = F.y(0.4)   # 腰帶（腰最細處；參考 01 腰帶在胸甲下緣下約 0.25 頭、GK 04 在肚臍上方）
+    ar = kit.loft('armor', torso_rows(F, e=lambda u: 0.016 - 0.011 * smooth((u - 0.9) / 0.15) - 0.003 * smooth((0.55 - u) / 0.15),
+                                      u0=0.38, u1=1.08, pec=0.15, lat=0.06, p=2.3), n=20, cap0=None, cap1=None)
     ar = kit.subsurf(ar, 1)
     heroes.cut_armholes(ar, F, 0.1 * F.k_arm)
-    ar = kit.subsurf(ar, 1, solidify=0.014)
+    ar = kit.subsurf(ar, 1, solidify=0.012)
     kit.tag(ar, white, grp=G_CHEST, mat=2)
-    yab = F.y(0.47)
-    kit.paint_field(ar, lambda co: co.y - yab, gold, 2)
-    # 分節溝：細到比三角形還窄，用兩道單邊切割（先塗深色到溝上緣，再把溝下緣以下塗回金色），由上往下
-    for u in (0.36, 0.25):
-        yy = F.y(u)
-        kit.paint_field(ar, lambda co, yy=yy: co.y - (yy + 0.0045), goldD, 2)
-        kit.paint_field(ar, lambda co, yy=yy: co.y - (yy - 0.0045), gold, 2)
+    # 背後腰上的金色橫紋帶（參考 05：背甲白色只到肩胛下，下背到腰帶是橫紋帶）；前方與兩側維持白色（04 的腹甲是另一片尖舌）
+    ybk = F.y(0.66)
+    kit.paint_field(ar, lambda co: max(co.y - ybk, co.z + 0.02 - 0.1 * max(0.0, 1 - abs(co.x) / F.cx)), gold, 2)
+    nb = int((ybk - F.y(0.38)) / 0.03)
+    kit.paint_field(ar, lambda co: max(_bands(co.y, [ybk - 0.03 * (k + 1) for k in range(nb)], 0.0035), co.z + 0.02 - 0.1 * max(0.0, 1 - abs(co.x) / F.cx)), goldD, 2)
     # 胸甲是硬殼、綁骨群組只跟胸廓（G_CHEST）：底下被它蓋住的皮膚也釘在胸廓上（realbody.weights_for 的 pin_bones）。
     # 原本皮膚照骨熱分到鎖骨與上臂，一抬手（出拳、施法）胸口整片皮膚往前上方走、從白甲裡穿出藍色，只剩外圈一道白邊
     ar['pin_bones'] = ('torso', 'ribs')
     body.append(ar)
-    for sx in (1, -1):
-        s_ = strap_around(F, [ar, st], V((sx * F.cx * 0.62, F.y(0.72), 0)), V((1, 0, 0)), 0.026, 0.01, gold, off=0.004, steps=20, arc=(1.25, -1.25))
-        kit.tag(s_, gold, grp=G_CHEST, mat=2, ol=0.6)
-        # 背帶跨過肩頂那段直接貼在緊身衣上：底下的皮膚一樣釘在胸廓，否則抬手時肩頂的皮膚隆起、把背帶從中間蓋掉，看起來分成兩股
-        s_['pin_bones'] = ('torso', 'ribs')
-        body.append(s_)
-    # 手臂：短袖（同色緊身衣）、白手套
-    arm = arm_skin(F, skin, muscle=1.3, k=1.1, grp=G_VARM_L)
-    kit.paint_field(arm, lambda co: arm_s(F, co) - 0.15, suit, 0)
-    # 換成底模時，逐頂點投影的色界在底模手臂（面約 2 cm）上是鋸齒，從袖口下緣露出一排藍色齒：
-    # 袖口上下各 10 cm 再用解析場直接切在底模上（上面塗緊身衣、下面塗回皮膚），色界就是袖口裡的一條平滑環線
-    # 範圍用離上臂骨軸 8 cm 以內限制（舊手臂比底模粗，用離舊表面的距離 reach 截斷會切出一排齒）
-    if realbody.enabled(R.get('id', '')):
-        def ax_d(co):
-            s = arm_s(F, co)
-            return (co - F.arm_pt(s)).length - 0.08 * F.k_arm
-        realbody.paint(arm, F, lambda co: max(arm_s(F, co) - 0.15, 0.05 - arm_s(F, co), ax_d(co)), suit, 0)
-        realbody.paint(arm, F, lambda co: max(0.15 - arm_s(F, co), arm_s(F, co) - 0.25, ax_d(co)), skin, 4)
-    # 袖口、臂章、手套都貼合手臂斷面（fit_band），並和底下的手臂皮膚同一個綁骨群組（G_ARM_L）：
-    # 權重相同才會一起變形；原本袖口／臂章只跟上臂（G_UPPER_L）、手套只跟前臂（G_FORE_L），彎肘時皮膚會從手套口穿出來
-    hem = fit_band(F, arm, 'hemL', [(0.136, 0, 0, 0.005), (0.146, 0, 0, 0.007), (0.156, 0, 0, 0.005)], suit, G_ARM_L, thick=0.006, ol=0.6)
+    # 腹甲尖舌：上緣在胸肌下緣正中，尖端到胯前（參考 01 的尖端約在胯高、04 在胯下）
+    ytip = F.L - 0.1
+    tg = vegeta_tongue(F, [ar, st, pel], gold, goldD, F.y(0.64), yb, ytip)
+    body.append(tg)
+    # 側腰甲（左右）
+    tas = vegeta_tasset(F, [pel, leg], gold, goldD, yb + 0.005, F.L - 0.13)
+    # 毛皮腰帶
+    body += vegeta_fur_belt(F, [ar, tg, st, pel], fur, yb)
+    # 肩甲（左右）
+    pad = vegeta_pad(F, gold, goldD, white)
+    pair_add(body, proxy, [pad, tas])
+
+    # 手臂：整條藍色緊身衣（參考 01：藍色一路到手套口）；白手套（手套口在前臂中段）
+    arm = arm_skin(F, suit, muscle=1.3, k=1.1, grp=G_VARM_L, mat=0)
+    # 手套、臂章都貼合手臂斷面（fit_band），並和底下的手臂皮膚同一個綁骨群組（G_ARM_L）：
+    # 權重相同才會一起變形；原本手套只跟前臂（G_FORE_L），彎肘時皮膚會從手套口穿出來
     kf = F.k_fore
     se = F.up + F.lo - 0.005
     glove = fit_band(F, arm, 'gloveL', [
-        (F.up + 0.1, 0.072 * kf, 0.066 * kf, 0.009),
-        (F.up + 0.15, 0.067 * kf, 0.062 * kf, 0.008),
-        (F.up + 0.205, 0.058 * kf, 0.053 * kf, 0.007),
+        (F.up + 0.45 * F.lo, 0.072 * kf, 0.066 * kf, 0.009),
+        (F.up + 0.62 * F.lo, 0.064 * kf, 0.06 * kf, 0.008),
+        (F.up + 0.82 * F.lo, 0.058 * kf, 0.053 * kf, 0.007),
         (se, 0.054 * kf, 0.05 * kf, 0.006),
-    ], white, G_ARM_L, thick=0.007)   # 換真人身體時內壁貼到前臂外（hug），厚度照留：1.2 cm 時手套口比拳頭寬、前臂比上臂粗一圈（大力水手）
+    ], white, G_ARM_L, thick=0.007)   # 換真人身體時內壁貼到前臂外（hug），厚度照留
     hand = fist(F, white, mat=0, scale=1.1, glove=True)
-    # 白靴、金色靴尖與靴口
-    bt = boot(F, white, F.tl + 0.06, 0.078, toe=1.04)
+    # 白靴：膝下喇叭口（參考 01：靴口寬約 0.8 頭、往外翻），金色鞋頭與鞋底包邊；舊版靴口一圈金色（參考沒有）
+    top_s = F.tl + 0.06
+    bt = boot(F, white, top_s, 0.078, toe=1.04)
     kit.paint_field(bt[1], lambda co: 0.085 - co.z, gold, 2)
-    ytop = F.leg_pt(F.tl + 0.085).y
-    kit.paint_field(bt[0], lambda co: ytop - co.y + 0.012 * abs(co.x - F.sole.x) / 0.07 - 0.02 * max(0, co.z) / 0.07, gold, 2)
-    pair_add(body, proxy, [arm, hem, glove, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
+    kit.paint_field(bt[1], lambda co: co.y - 0.022, gold, 2)
+    rt = 0.078 * F.k_shin
+    cuff = limb('bootCuffL', F.th, F.dl, [(top_s - 0.02, rt * 1.52, rt * 1.55), (top_s + 0.0, rt * 1.36, rt * 1.4), (top_s + 0.03, rt * 1.12, rt * 1.16), (top_s + 0.075, rt * 0.9, rt * 0.94)], n=16, cap0=None, cap1=None)
+    cuff = kit.subsurf(cuff, 2, solidify=0.006)
+    kit.tag(cuff, white, grp=heroes.G_FOOT_L, ol=0.8)
+    pair_add(body, proxy, [arm, glove, hand, leg, cuff] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(fit_band(F, arm, 'teamL', [(0.158, 0, 0, 0.005), (0.169, 0, 0, 0.0065), (0.18, 0, 0, 0.005)], team, G_ARM_L, thick=0.006, mat=5, ol=0.5))
 
     heads = {}
     for form in ('base', 'ssj'):
         h = anime_head('head_' + form, F, skin, jaw=1.08, chin=0.98, brow=0.6, square=0.4)
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
-        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.5, temple=0.55, scale=1.06, peak=(0.3, 0.62, 1.0), fit=0.002)] + hair(F, hc, vegeta_hair(form), wmul=1.15)  # M 字高髮際線，額頭露出；美人尖直接切在髮帽上
-    return finish(F, P, body, proxy, heads, custom={G_VARM_L: vegeta_armpit(F, 'L'), G_VARM_R: vegeta_armpit(F, 'R')})
+        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.5, temple=0.55, scale=1.06, peak=(0.3, 0.62, 1.0), fit=0.002)] + hair(F, hc, vegeta_hair(form), wmul=1.1)  # M 字高髮際線，額頭露出；美人尖直接切在髮帽上
+    custom = {G_VARM_L: vegeta_armpit(F, 'L'), G_VARM_R: vegeta_armpit(F, 'R'), G_VPAD: vegeta_pad_w,
+              G_VTONGUE: vegeta_tongue_w(F, yb, ytip), G_VTAS: vegeta_tasset_w(yb + 0.005, F.L - 0.13)}
+    return finish(F, P, body, proxy, heads, custom=custom)
 
 
 def vegeta_hair(form):
-    k = 1.0 if form == 'base' else 1.1
+    """參考 01：整束往上豎成收尖的火焰（像倒過來的大蒜），最寬在耳上、往頭頂收成一點，高出頭頂約 1.1 頭、從側面看往後上方傾約 15°。
+    舊版的髮尖高到 3.0 hr（髮長乘上 HAIR_GROW 後高出頭頂約 1.5 頭）、兩側的髮尖往外張，正面是一顆蓬開的球。"""
+    k = 1.0 if form == 'base' else 1.08
     return sym([
-        ((0.0, 0.95, 0.25), (0.05, 3.0 * k, -0.15), 0.56, 0.26, (0, 0, 0.1)),
-        ((0.28, 0.9, 0.18), (0.42, 2.85 * k, -0.25), 0.5, 0.24, (0.05, 0, 0.05)),
-        ((0.55, 0.75, 0.05), (0.95, 2.45 * k, -0.3), 0.48, 0.23, (0.1, 0, 0)),
-        ((0.75, 0.45, -0.1), (1.3, 1.85 * k, -0.4), 0.45, 0.22, (0.1, 0, 0)),
-        ((0.8, 0.1, -0.3), (1.25, 1.0 * k, -0.7), 0.4, 0.2, (0.1, 0, 0)),
-        ((0.3, 0.75, -0.55), (0.42, 2.7 * k, -0.85), 0.5, 0.24, (0, 0, 0)),
-        ((0.0, 0.6, -0.8), (0.0, 2.45 * k, -1.05), 0.52, 0.24, (0, 0, 0)),
-        ((0.5, 0.4, -0.75), (0.85, 2.05 * k, -1.0), 0.45, 0.22, (0, 0, 0)),
-        ((0.0, 0.1, -0.95), (0.0, 1.45 * k, -1.3), 0.45, 0.22, (0, 0, 0)),
+        ((0.0, 0.95, 0.25), (0.0, 2.28 * k, -0.22), 0.54, 0.25, (0, 0, 0.1)),
+        ((0.28, 0.9, 0.18), (0.32, 2.14 * k, -0.3), 0.5, 0.24, (0.06, 0, 0.05)),
+        ((0.55, 0.75, 0.05), (0.84, 2.0 * k, -0.36), 0.48, 0.23, (0.1, 0, 0)),
+        ((0.75, 0.45, -0.1), (1.24, 1.55 * k, -0.45), 0.45, 0.22, (0.1, 0, 0)),
+        ((0.8, 0.1, -0.3), (1.3, 0.9 * k, -0.65), 0.4, 0.2, (0.08, 0, 0)),
+        ((0.3, 0.75, -0.55), (0.32, 2.08 * k, -0.95), 0.5, 0.24, (0, 0, 0)),
+        ((0.0, 0.6, -0.8), (0.0, 1.98 * k, -1.15), 0.52, 0.24, (0, 0, 0)),
+        ((0.5, 0.4, -0.75), (0.84, 1.75 * k, -1.05), 0.45, 0.22, (0, 0, 0)),
+        ((0.0, 0.1, -0.95), (0.0, 1.25 * k, -1.32), 0.45, 0.22, (0, 0, 0)),
     ])
     # 額頭中央的美人尖改由 hair_cap 的 peak 切出來：原本是一撮往下的細髮束，寬只有 0.12 hr、四周描黑框，
     # 在額頭上看起來像一道裂痕。參考 01（FighterZ 立繪）：美人尖是一個寬的 V 字，尖端在兩眉之間上方，
     # 兩條直邊往外上方斜到太陽穴（頂端寬約額頭的七成），兩側的額角往後退，整體是 M 字；peak 取半寬 0.62、指數 1（直邊）
-
 
 # 貝吉塔的手臂皮膚（含同色短袖）：允許的骨頭和 G_ARM 相同，但腋下根部改用自訂權重（vegeta_armpit）
 G_VARM_L, G_VARM_R = 62, 63
