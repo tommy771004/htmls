@@ -43,6 +43,7 @@ ALLOW = {
     G_DELT_L: {'shL'}, G_DELT_R: {'shR'},
     # 貼在真人手臂上的環帶：實際權重由 realbody.hug_weights 照底下皮膚指定，這裡只是骨熱的暫時範圍
     realbody.G_HUG_L: {'clL', 'shL', 'elL', 'wrL'}, realbody.G_HUG_R: {'clR', 'shR', 'elR', 'wrR'},
+    realbody.G_RIDE_REAL: {'hips', 'torso', 'ribs'},   # 疊在真人身體上的殼：實際權重由 realbody.ride_weights 照底下皮膚指定
 }
 ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
 ALLOW[G_RIDE] = ALLOW[G_TORSO]
@@ -179,10 +180,11 @@ def neck(F, pal, r=0.062, top=None):
 
 
 # ================================================================ 四肢
-def arm_skin(F, pal, muscle=1.0, k=1.0, s0=-0.07, name='armL', grp=G_ARM_L, mat=4):
-    """肩到手腕的手臂（左）：三角肌、二頭／三頭肌、前臂肌群、扁的手腕。"""
+def arm_skin(F, pal, muscle=1.0, k=1.0, s0=-0.07, name='armL', grp=G_ARM_L, mat=4, k_fore=None):
+    """肩到手腕的手臂（左）：三角肌、二頭／三頭肌、前臂肌群、扁的手腕。
+    k_fore：前臂另外的倍率（預設和 k 相同）；換真人身體時上臂、前臂的粗細各照這裡的半徑縮放。"""
     up, lo = F.up, F.lo
-    ka, kf = F.k_arm * k, F.k_fore * k
+    ka, kf = F.k_arm * k, F.k_fore * (k if k_fore is None else k_fore)
     mu = muscle * FZ['muscle']
     # 肌肉起伏參考 GK 雕像：二頭、三頭、三角肌與前臂肌群都明顯隆起。
     # FighterZ 式加強只加在二頭、三頭：三角肌在袖子底下、前臂在護腕底下，加粗會從衣物裡穿出來

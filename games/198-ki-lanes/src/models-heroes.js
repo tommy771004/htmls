@@ -7,8 +7,8 @@ import { BAKED } from './models-baked.js';
 // 比例照各角色的官方全身設定圖量（tools/refcmp.sh 正交正面並排比對）：L 髖關節高、hr 頭半徑、hx 頭部橫向比例、neck 脖子長、sw 肩關節距中線、handK 手掌倍率（含 FighterZ 式放大；女性 1.45：原本 1.0 時手掌寬只有 5.7 cm、腕到拳端 0.27 頭高，比真人還小一截；卡卡西 1.4：參考的拳長約 0.6 頭高，1.16 時只有 0.47；鳴人、佐助、香吉士 1.3；男主角群照「腕到拳端」的長度調：悟空 1.37、貝吉塔 1.39、特南克斯 1.33（FighterZ 立繪腕到拳端約 0.63 頭高，1.25 時 0.58）、比克 1.33（S.H.Figuarts 約 0.6 頭高）、魯夫 1.3（0.55）、索隆 1.32。拳頭的寬厚另由 realbody.py 的 MALE_FIT hand_t 加大）
 export const PROPS = {
   goku: { H: 1.85, hr: 0.1636, L: 0.962, sw: 0.22, chest: [0.219, 0.3, 0.162], waist: 0.1068, arm: 0.0703, fore: 0.06566, fist: 0.09126, thigh: 0.09522, shin: 0.07258, hip: 0.1178, hx: 1.04, neck: 0.012, armK: 0.98, handK: 1.6, thighK: 0.4 }, // hr 0.158（下半臉縮短 face_len 0.88 後仍維持頭顱高 0.255 m、7.2 頭身）、hx 0.88→0.94：立繪的臉寬是眼到下巴的 2.6 倍，舊版只有 1.6 倍（臉窄長）。頭顱高 0.255 m（FighterZ 立繪約 7.2、S.H.Figuarts 7.4～7.7；舊值 0.1303 是 8.5 頭身，頭小、上身長）。頭加大使軀幹（d.torso）變短，armK 0.9→0.98 讓肩到拳底維持約 2.5 頭（立繪 2.4～2.6）。handK 1.37→1.6：拳頭寬只有護腕外徑的 7 成（立繪的拳約 0.55 頭見方、和護腕一樣寬）。thighK 0.43：膝蓋從離地 1.8 頭抬到約 2.0 頭（立繪約 2.2、S.H.Figuarts 約 2.5），燈籠褲才有膝下到靴口那段鼓起來的空間。第三輪：thighK 0.43→0.4（膝高約 2.2 頭）；臉照立繪再縮短加寬（heroes.py 的 face_len 0.8、jaw 1.2），hr 0.158→0.1636 讓頭顱高維持約 0.244 m（7.2 頭身）、hx 0.94→1.04；下巴因此抬高約 1 cm，neck 0.0222→0.012 把頭放回原本的高度（軀幹長度不變）；sw 0.2098→0.22：道服肩線改成貼著三角肌往下斜之後，肩寬量到 2.39 頭高（立繪三角肌外緣約 2.6）
-  vegeta: { H: 1.72, hr: 0.156, L: 0.86, sw: 0.1984, chest: [0.2096, 0.29, 0.1561], waist: 0.1006, arm: 0.06845, fore: 0.06376, fist: 0.08835, thigh: 0.08124, shin: 0.06998, hip: 0.1102, hx: 0.96, neck: 0.0206, armK: 1.06, handK: 1.55 }, // hr 0.124→0.156：頭顱高 0.206→0.26 m、8.3→6.6 頭身（FighterZ 立繪約 6.0，雙腳張開站、低角度；頭和悟空 0.258 m 差不多大，比悟空矮所以頭身較少）。頭加大使軀幹（d.torso）變短，armK 0.92→1.06 讓上臂、前臂長度維持原值。hx 0.88→0.96：臉寬／頭高 0.80→0.85（立繪的臉偏方）。handK 1.39→1.55：拳頭和手套口一樣寬（參考 01／04）
-  trunks: { H: 1.86, hr: 0.1267, L: 0.9672, sw: 0.1735, chest: [0.1795, 0.28, 0.1421], waist: 0.1004, arm: 0.05861, fore: 0.05522, fist: 0.08115, thigh: 0.08237, shin: 0.0653, hip: 0.1064, hx: 0.88, neck: 0.0223, armK: 0.94, handK: 1.33 },
+  vegeta: { H: 1.72, hr: 0.156, L: 0.86, sw: 0.1984, chest: [0.2096, 0.29, 0.1561], waist: 0.1006, arm: 0.06845, fore: 0.06376, fist: 0.08835, thigh: 0.1072, shin: 0.06998, hip: 0.1102, hx: 0.96, neck: 0.0206, armK: 1.06, handK: 1.55 }, // hr 0.124→0.156：頭顱高 0.206→0.26 m、8.3→6.6 頭身（FighterZ 立繪約 6.0，雙腳張開站、低角度；頭和悟空 0.258 m 差不多大，比悟空矮所以頭身較少）。頭加大使軀幹（d.torso）變短，armK 0.92→1.06 讓上臂、前臂長度維持原值。hx 0.88→0.96：臉寬／頭高 0.80→0.85（立繪的臉偏方）。handK 1.39→1.55：拳頭和手套口一樣寬（參考 01／04）。thigh 0.08124→0.1072：大腿最粗 0.49→約 0.7 頭（參考 01 約 0.75 頭；cast.py 腿管照 k_leg 放大，真人身體照它縮放）
+  trunks: { H: 1.838, hr: 0.168, L: 1.02, sw: 0.27, chest: [0.21, 0.28, 0.1421], waist: 0.1004, arm: 0.05861, fore: 0.05522, fist: 0.08115, thigh: 0.08237, shin: 0.0653, hip: 0.1064, hx: 0.88, neck: 0, armK: 1.218, handK: 1.6, thighK: 0.47 }, // GK 第三輪：H 1.86→1.838、neck 0.0223→0（軀幹長度不變、整顆頭往下 2.2 cm）：cast.py 的臉縮短（face_len 0.75）讓下巴上移約 3.3 cm，頭不放低的話脖子會露出約 0.28 頭（03 GK 約 0.15 頭）。 GK 第一輪（參考 03 GK 正面、01 FighterZ 立繪，以總高對齊量）：hr 0.1267→0.168，頭顱高 0.211→約 0.28 m、8.8→約 6.6 頭身（GK 6.5、立繪 6.7）。L 0.9672→1.02、thighK 0.47：兩張參考的腰帶都在下巴下方只 1.2 頭、胯在總高 48%、膝離地約 1.9 頭（舊版腰帶低 0.17 m、膝 1.7 頭），肩與下巴高度兩邊本來就一致，所以只把髖關節抬高、軀幹相應變短。armK 0.94→1.218：頭加大、髖抬高使軀幹（d.torso）變短，上臂、前臂長度維持原值。sw 0.1735→0.21、chest 寬 0.1795→0.19：外套三角肌外緣寬只有 1.9 頭、0.51 m（03 GK 以總高對齊量約 0.6 m）。handK 1.33→1.6：拳頭只有袖口的 7 成寬（GK 的拳和袖口一樣寬）。GK 第二輪：sw 0.21→0.27、chest 寬 0.19→0.21：三角肌外緣寬量到 0.58 m＝2.07 頭（03 GK 2.4 頭、02 SHF 2.5 頭）；外套袖的上臂同時縮細（cast.py），肩寬靠肩線往外，不靠粗手臂
   piccolo: { H: 2.12, hr: 0.1327, L: 1.124, sw: 0.2216, chest: [0.2337, 0.31, 0.1658], waist: 0.1078, arm: 0.07122, fore: 0.06756, fist: 0.09504, thigh: 0.09837, shin: 0.07603, hip: 0.1197, hx: 0.88, neck: 0.0254, armK: 0.92, handK: 1.33 },
   frieza: { H: 1.55, hr: 0.1555, L: 0.7595, sw: 0.155, chest: [0.168, 0.24, 0.135], waist: 0.106, arm: 0.048, fore: 0.046, fist: 0.06223, thigh: 0.068, shin: 0.054, hip: 0.118, hx: 1.0, neck: -0.022, handK: 1.6, top: 1.59 }, // 脖子極短（參考 S.H.F.：下巴幾乎貼著肩甲上緣），負值把肩線抬高、頭的高度不變；頭大（約 5 頭身、頭寬 0.88 頭高，hx 1.0 不再橫向壓窄），蛋形頭殼頂到 1.59（top，給氣場與 height 用；H 仍決定軀幹長度）。
   // 頭放大到約 5 頭身之後，肩、胸、腰、臀、四肢一起放寬約 1.3 倍（參考 02：含肩甲肩寬 1.64 頭高、腰 0.76、臀 1.0；只放大頭會變成大頭娃娃）；手是攤開的大手（手連手指約 0.54 頭高）
@@ -82,6 +82,7 @@ function decodeHero(id, d) {
     g.setAttribute('aAO', new THREE.BufferAttribute(ao, 1)); g.setAttribute('aOl', new THREE.BufferAttribute(ol, 1));
     if (skinned) { g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4, true)); }
     g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeBoundingSphere();
+    if (name === 'skull') seamFade(pos, mat, idx);
     if (name.startsWith('hair_')) out.hair[name.slice(5)] = g;
     else out[name] = g;
   }
@@ -95,6 +96,36 @@ function decodeHero(id, d) {
   out.faces = { base: out.face('base') };
   if (out.hair.ssj) out.faces.ssj = out.face('ssj');
   return out;
+}
+
+// 頭顱的頸部接縫：頭的材質給皮膚加 uSkinBias（明暗交界往暗側推，臉大多是亮面），身體的皮膚沒有。
+// 真人底模的頭在下顎底下和身體接起來，接縫兩側一邊加了偏移、一邊沒有，明暗交界正好沿接縫的折線切開，
+// 脖子側面是一條兩色鋸齒（貝吉塔高領上方只露出 2～3 cm，整段都是這條線）。
+// 這裡把離接縫開口 SEAM_R 內的皮膚頂點的偏移漸漸收掉：寫進 aMat 的小數（4＋0.45×(1−b)，著色器 floor 後仍是 4），接縫上 b＝0，和身體一致
+const SEAM_R = 0.035;
+function seamFade(pos, mat, idx) {
+  const key = (v) => `${Math.round(pos[v * 3] * 1e4)},${Math.round(pos[v * 3 + 1] * 1e4)},${Math.round(pos[v * 3 + 2] * 1e4)}`;
+  const gid = new Int32Array(pos.length / 3), ids = new Map();
+  for (let v = 0; v < gid.length; v++) { const k = key(v); if (!ids.has(k)) ids.set(k, ids.size); gid[v] = ids.get(k); }
+  // 以位置併點後只被一個三角形用到的邊＝開口（crisp_split 在色界切開的重複頂點算同一點）
+  const ec = new Map();
+  for (let t = 0; t < idx.length; t += 3) for (let e = 0; e < 3; e++) {
+    const a = gid[idx[t + e]], b = gid[idx[t + (e + 1) % 3]];
+    if (a === b) continue;
+    const k = a < b ? a * 1e6 + b : b * 1e6 + a; ec.set(k, (ec.get(k) || 0) + 1);
+  }
+  const ring = new Set();
+  for (const [k, c] of ec) if (c === 1) { ring.add(Math.floor(k / 1e6)); ring.add(k % 1e6); }
+  if (!ring.size) return;
+  const rp = [];
+  for (let v = 0; v < gid.length; v++) if (ring.has(gid[v])) rp.push(pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]);
+  for (let v = 0; v < gid.length; v++) {
+    if (mat[v] !== 4) continue;
+    let d2 = Infinity;
+    for (let i = 0; i < rp.length; i += 3) { const dx = pos[v * 3] - rp[i], dy = pos[v * 3 + 1] - rp[i + 1], dz = pos[v * 3 + 2] - rp[i + 2]; d2 = Math.min(d2, dx * dx + dy * dy + dz * dz); }
+    const t = Math.min(1, Math.sqrt(d2) / SEAM_R), b = t * t * (3 - 2 * t);
+    mat[v] = 4 + 0.45 * (1 - b);
+  }
 }
 
 /* ---------------- 動畫質感材質 ---------------- */
@@ -137,7 +168,7 @@ void main(){
   // 參考影片的配色比較濃（色調映射會把亮面洗淡）：先把固有色的彩度拉高一點
   base = clamp(mix(vec3(dot(base, vec3(0.3, 0.59, 0.11))), base, 1.28), 0.0, 1.0);
   float ndl = dot(N, L);
-  if (mt > 3.5 && mt < 4.5) ndl += uSkinBias; // 臉：明暗交界往暗側推，臉大多是亮面
+  if (mt > 3.5 && mt < 4.5) ndl += uSkinBias * (1.0 - clamp((vMat - 4.0) / 0.45, 0.0, 1.0)); // 臉：明暗交界往暗側推，臉大多是亮面；頸部接縫附近漸漸收掉（seamFade）
   float ao = vAO;
   // 遮蔽把明暗交界往亮部推：凹處更早進入陰影
   float lit = smoothstep(-0.03, 0.04, ndl - (1.0 - ao) * 0.48);

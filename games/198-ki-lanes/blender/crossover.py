@@ -111,10 +111,11 @@ def open_jacket(F, pal, rows, e=0.02, gap0=0.3, gap1=0.55, name='jacket', thick=
     return kit.tag(jk, pal, grp=G_TORSO)
 
 
-def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.007, e=0.008, cuff=1.0):
+def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.007, e=0.008, cuff=1.0, k_up=1.0, k_lo=1.0):
     """貼合手臂的長袖：照 arm_skin 的斷面（三角肌→上臂→手肘→前臂收細）外擴 e，不是一根等粗的管子。
-    起點在肩關節內側、半徑接近三角肌，開口藏進軀幹殼裡，手臂放下時不會露出方形袖口。"""
-    ka, kf = F.k_arm * k, F.k_fore * k
+    起點在肩關節內側、半徑接近三角肌，開口藏進軀幹殼裡，手臂放下時不會露出方形袖口。
+    k_up／k_lo：只放大縮小上臂段（含肩頭）／前臂段的斷面（特南克斯的外套袖：上臂比照肌肉的斷面細、前臂寬鬆，預設 1 不變）。"""
+    ka, kf = F.k_arm * k * k_up, F.k_fore * k * k_lo
     up, lo = F.up, F.lo
     s_end = s_end if s_end is not None else up + lo - 0.05
     st = [

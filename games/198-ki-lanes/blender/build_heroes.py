@@ -314,6 +314,7 @@ def build_one(hid, R, opt):
     if H.get('real'):
         print('  真人身體：%d 頂點改用底模權重' % realbody.weights_for(body, H['real'][1], bone_names, W))
         print('  貼手臂的環帶：%d 頂點抄皮膚權重' % realbody.hug_weights(body, W))
+        print('  疊在身體上的殼：%d 頂點抄底下皮膚的權重' % realbody.ride_weights(body, W))
 
     # 遮蔽（各髮型分開算，避免超級賽亞人的頭髮被基本髮型遮到）
     t1 = time.time()

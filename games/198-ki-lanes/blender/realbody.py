@@ -28,6 +28,8 @@ BODY = os.path.join(CACHE, 'ubc/Universal Base Characters[Standard]/Base Charact
 G_REAL = 90
 # 貼在真人手臂上的環帶（hug_fit 處理過的護腕、臂章、手套）：權重直接抄底下皮膚的底模權重（hug_weights），左右各一個群組
 G_HUG_L, G_HUG_R = 50, 51
+# 疊在真人身體上的硬殼（貝吉塔的胸背甲、腹甲）：權重照底下真人皮膚最近的三角形內插（ride_weights），和皮膚一起變形
+G_RIDE_REAL = 52
 FEMALE = {'a18', 'sakura', 'nami'}
 # 量不到皮膚部件時，四肢粗細以這兩名英雄的比例當作底模原本的體型
 REF = {'Male': 'trunks', 'Female': 'a18'}
@@ -77,6 +79,20 @@ MALE_FIT = {'fore_e': 0.9, 'fore_belly': 0.05, 'fore_kb': 0.25, 'wrist_k': 0.82,
 # 手的加厚倍率只給 FighterZ 的角色（參考立繪的拳頭約放大 1.2 倍、和護腕一樣寬）。
 # 火影與航海王的參考（S.H.Figuarts）是正常比例的手：1.3 倍在遊戲鏡頭下像攤平的大掌（卡卡西的右手寬度接近大腿），只稍微加厚。
 # 弗利沙的手是細長的外星人手指（S.H.Figuarts 參考），handK 1.6 已經夠大，不再加厚
+# 各英雄的上臂半徑上限（覆寫 MALE_FIT 的 arm_cap）：貝吉塔的參考（01 FighterZ、04 GK）二頭肌和手套口一樣寬、約腰帶寬的 0.45，
+# 0.56 hr 時上臂只有 0.119 m 寬，比手套口（0.137 m）還細，撐不起肩甲
+ARM_CAP_HERO = {'vegeta': 0.64}
+# 男性的肩線下壓（Fitter.shoulder_slope，參數同 FEMALE_FIT 的 slope／neck_drop；沒列的英雄不壓）：
+# 特南克斯（GK 第三輪）：底模的斜方肌與三角肌頂比肩關節高 8 cm，外套袖照「真人身體−舊手臂」往外挪時袖根被頂成兩顆比外套肩線高的圓球，
+# 正面肩頂只比下巴低 0.15 頭（03 GK 約 0.3 頭、肩線從立領往外下斜）
+MALE_SLOPE_HERO = {'trunks': {'slope': 0.03, 'neck_drop': 0.0}}
+# 上臂根部（肩關節到沿骨 0.1）的徑向縮放上限（倍數）：沿骨 0.1～0.4 漸變到 arm_r 全量（Fitter.fit）。
+# 上臂的徑向縮放以骨軸為中心，腋下、背闊肌邊緣這些混了上臂權重的軀幹頂點也被往外推：
+# 貝吉塔上臂 1.44 倍時腋下後方鼓出 2～3 cm，站著就從背甲側緣頂出一排藍色階梯。二頭肌照全量，肩根只到 1.2 倍
+ARM_ROOT_HERO = {'vegeta': 1.2}
+# 四肢肌肉起伏的加強倍率（Fitter.relief）：底模的三角肌、二頭／三頭肌、前臂肌群、股四頭肌與小腿肚的起伏再放大幾倍。
+# 貝吉塔的藍色緊身衣在參考裡肌肉分塊明顯（01、04），只照底模縮放時整條手臂與腿是平滑的圓管
+RELIEF_HERO = {'vegeta': 1.0}
 HAND_T_HERO = {'frieza': 1.0, 'naruto': 1.1, 'sasuke': 1.1, 'kakashi': 1.08, 'luffy': 1.1, 'zoro': 1.12, 'sanji': 1.05}
 # 前臂斷面的扁平度：底模的前臂肌群（肱橈肌、伸肌）在肘下往外側鼓，A 字站姿正面看前臂寬度是前後厚度的 1.3 倍，
 # 徑向等比縮放（fore_profile 只看到距骨軸的中位數）縮不掉這個扁度，正面看前臂仍比上臂中段寬（比克 14.3 cm 對 12.5 cm）。
@@ -739,13 +755,18 @@ class Fitter:
                 fore_r *= ff['fore']
             else:
                 rs = self.src_radius('upperarm_' + q)
-                cap = MALE_FIT['arm_cap'] * self.R['hr'] / rs if rs else arm_r
+                cap = ARM_CAP_HERO.get(self.R.get('id', ''), MALE_FIT['arm_cap']) * self.R['hr'] / rs if rs else arm_r
                 if os.environ.get('REAL_DEBUG') and arm_r > cap:
                     print('  上臂半徑 %s：%.2f 倍 → 上限 %.2f 倍（%.4f m）' % (q, arm_r, cap, cap * rs))
                 arm_r = min(arm_r, cap)
             th_r = self.limb_rad('thigh_' + q, 'th' + s, 'thigh')
             sh_r = self.limb_rad('calf_' + q, 'kn' + s, 'shin')
-            X['upperarm_' + q] = seg_xf(J['upperarm_' + q][0], J['lowerarm_' + q][0], B['sh' + s][0], B['el' + s][0], arm_r)
+            r_root = ARM_ROOT_HERO.get(self.R.get('id', ''))
+            if r_root and arm_r > r_root:
+                X['upperarm_' + q] = radial_xf(seg_xf(J['upperarm_' + q][0], J['lowerarm_' + q][0], B['sh' + s][0], B['el' + s][0], r_root),
+                                               B['sh' + s][0], B['el' + s][0], lambda k, g=arm_r / r_root: 1 + (g - 1) * smooth((k - 0.1) / 0.3))
+            else:
+                X['upperarm_' + q] = seg_xf(J['upperarm_' + q][0], J['lowerarm_' + q][0], B['sh' + s][0], B['el' + s][0], arm_r)
             if fem and ff['delt'] > 0:
                 X['upperarm_' + q] = taper_xf(X['upperarm_' + q], B['sh' + s][0], B['el' + s][0], ff['delt'], ff['delt_k'])
             X['lowerarm_' + q] = seg_xf(J['lowerarm_' + q][0], J['hand_' + q][0], B['el' + s][0], B['wr' + s][0], fore_r)
@@ -850,11 +871,57 @@ class Fitter:
                 acc += p * w
                 tot += w
             out.append(acc / (tot or 1.0))
-        if self.ff and (self.ff['slope'] > 0 or self.ff['neck_drop'] > 0):
-            self.shoulder_slope(out)
+        sp = self.ff or MALE_SLOPE_HERO.get(self.R.get('id', ''))
+        if sp and (sp['slope'] > 0 or sp['neck_drop'] > 0):
+            self.shoulder_slope(out, sp)
+        amt = RELIEF_HERO.get(self.R.get('id', ''))
+        if amt:
+            self.relief(out, amt)
         if os.environ.get('REAL_DEBUG'):
             self.arm_section_debug(out)
         return out
+
+    def relief(self, out, amt, near=3, far=10, lim=0.006):
+        """四肢的肌肉起伏放大 amt 倍（帶通）：每個頂點沿法線離「近鄰平滑 near 輪」的距離是起伏＋整體的弧度，
+        再減掉它在更大範圍（far 輪）的平均，只留肌肉尺度的起伏（圓管本身的弧度不會被放大成整條變粗）。
+        只作用在上臂、前臂、大腿、小腿的權重上（依權重比例漸變），軀幹、手、脖子與頸部接縫不動；每點最多挪 lim。"""
+        S = self.S
+        bu = S['used']
+        polys = [tuple(bu[i] for i in p) for p in S['polys']]
+        nb = neighbors(len(out), polys)
+        LIMB = ('upperarm_', 'lowerarm_', 'thigh_', 'calf_')
+        seam = {bu[i] for i, f in enumerate(S['seam']) if f}
+        wl = [0.0] * len(out)
+        for i in bu:
+            if i not in seam:
+                wl[i] = sum(w for n, w in S['W'][i] if n.startswith(LIMB))
+        idx = [i for i in bu if wl[i] > 0.01]
+        # 頂點法線（面法線面積加權）
+        nrm = [V((0, 0, 0)) for _ in out]
+        for p in polys:
+            c0 = out[p[0]]
+            fn = V((0, 0, 0))
+            for a, b in zip(p[1:-1], p[2:]):
+                fn += (out[a] - c0).cross(out[b] - c0)
+            for i in p:
+                nrm[i] += fn
+        for i in idx:
+            if nrm[i].length > 1e-12:
+                nrm[i].normalize()
+        ps = list(out)
+        for _ in range(near):
+            ps = [(ps[i] + sum((ps[j] for j in nb[i]), V((0, 0, 0))) / len(nb[i])) * 0.5 if nb[i] else ps[i] for i in range(len(ps))]
+        dn = [(out[i] - ps[i]).dot(nrm[i]) for i in range(len(out))]
+        ds = list(dn)
+        for _ in range(far):
+            ds = [(ds[i] + sum(ds[j] for j in nb[i]) / len(nb[i])) * 0.5 if nb[i] else ds[i] for i in range(len(ds))]
+        mv = 0.0
+        for i in idx:
+            d = max(-lim, min(lim, (dn[i] - ds[i]) * amt * wl[i]))
+            out[i] = out[i] + nrm[i] * d
+            mv = max(mv, abs(d))
+        if os.environ.get('REAL_DEBUG'):
+            print('  肌肉起伏 ×%.1f：%d 頂點，最多挪 %.1f mm' % (amt, len(idx), mv * 1000))
 
     def arm_section_debug(self, out):
         """除錯：左上臂、左前臂沿骨每 0.1 一段，正面看的寬度（垂直骨軸、在 xy 平面內）與前後厚度（z），單位公分。"""
@@ -873,14 +940,14 @@ class Fitter:
             print('  斷面 %s：' % qb + ' '.join('%d:%.1f/%.1f' % (i, 100 * (max(a for a, _ in r) - min(a for a, _ in r)), 100 * (max(z for _, z in r) - min(z for _, z in r)))
                                            for i, r in sorted(rows.items())))
 
-    def shoulder_slope(self, out):
+    def shoulder_slope(self, out, sp=None):
         """女性的頸肩線（就地改 out）：底模 Superhero 女性的斜方肌是一塊平台，從頸根平平地伸到 |x|≈0.15 才折下三角肌，
         正面看頸根到肩頭幾乎水平、肩頭一個直角（方肩）。anchor 只能整塊上下挪這個平台，挪低時（頸根放低、脖子變長）平台被壓扁，
         和脖子交界成一階台階。所以改在混合完的位置上直接整形，只依位置、不依權重（鎖骨／上臂混合的頂點和旁邊的頂點一起動，不會裂開）：
           neck_drop：離頸軸（xz 距離）超過脖子半徑 rn 的地方，在 rn～rn＋3.5 cm 內漸增地往下壓，頸根往下退、脖子露出更長；
           slope：再依 |x| 從 rn 到肩關節 x 漸增地往下壓，頸根到肩頭成一條下斜的肩線，肩頭的頂也一起壓圓。
         壓的量在肩關節下 7 cm 到肩關節高度之間由 0 漸增到全量（腋下與胸側不動）；頭（含頸部接縫那一圈，Head 權重 > 0）不動。"""
-        ff, B, W = self.ff, self.B, self.S['W']
+        ff, B, W = sp or self.ff, self.B, self.S['W']
         nh, nt = B['neck']
         zc = nh.z
         ys, xs = B['shL'][0].y, abs(B['shL'][0].x)
@@ -972,6 +1039,9 @@ def make(F, body_parts, name='realbody', hargs=None):
     covered, under, pin = conform(ob, [o for o in rest if not (o.get('trim') or o.get('wrap') or o.get('hug') is not None)], F, dom, seam)
     weights, dom, covered, seam, under, pin = drop_covered(ob, skin_tree, covered, weights, dom, seam, hollow=hollow_mask(ob, rest, F, dom, covered), under=under, pin=pin)
     sy = sum(v.co.y for v, f in zip(ob.data.vertices, seam) if f) / max(1, sum(1 for f in seam if f))   # 頸部接縫的平均高度
+    if os.environ.get('REAL_DEBUG') and any(seam):
+        sys_ = [v.co.y for v, f in zip(ob.data.vertices, seam) if f]
+        print('  頸部接縫高度：%.3f～%.3f m（平均 %.3f）' % (min(sys_), max(sys_), sy))
     cov = spread(ob, covered)
     pin = spread_pin(ob, pin, dom, F)
     # 權重查表要在上色切線之前建立（切線會在邊上插入新頂點，新頂點取最近的舊頂點權重）
@@ -1484,6 +1554,7 @@ def seam_normals(body, skull):
     print('  頸部接縫：%d 頂點對齊法線' % k)
 
 
+
 # 手臂（sh／el）也平滑：底模手臂一圈只有十來個頂點，上臂與前臂的卡通明暗交界沿三角形切成一段段折線，
 # 再加上底模的肌肉分塊（肱二頭、肱橈肌）各自一塊亮暗，整隻手臂看起來是稜面的。
 # 手（wr）與手指也平滑：底模的手一節手指一圈只有 4～6 個頂點，握拳時手背、手腕到手背之間是一階一階的亮暗斑，拳頭像一塊有稜角的積木。
@@ -1668,6 +1739,7 @@ def retarget(garments, F, skin_tree, real_tree, kd, dom, reach=0.025, fade=0.03,
     hosts = [o for o in garments if not (o.get('ride_on') in names)]
     riders = [o for o in garments if o.get('ride_on') in names]
     moved = {}
+    host_polys = {}
     for o in hosts:
         me = o.data
         n = len(me.vertices)
@@ -1707,6 +1779,7 @@ def retarget(garments, F, skin_tree, real_tree, kd, dom, reach=0.025, fade=0.03,
                     D2[i] = (D[i] + m) * 0.5 if hit[i] else m * 0.9
             D = D2
         moved[o.name] = [(V(v.co), D[v.index]) for v in me.vertices]
+        host_polys[o.name] = [tuple(pl.vertices) for pl in me.polygons]
         for v in me.vertices:
             v.co = V(v.co) + D[v.index]
         me.update()
@@ -1716,6 +1789,40 @@ def retarget(garments, F, skin_tree, real_tree, kd, dom, reach=0.025, fade=0.03,
     for o in riders:
         src = moved.get(o['ride_on'])
         if not src:
+            continue
+        if o.get('ride_bary'):
+            # ride_bary：照宿主表面上最近一點的位移（所在面的頂點位移按重心座標內插）。
+            # 宿主是有厚度的殼時，最近頂點會在內外殼之間跳（同一格裡一半抄內殼、一半抄外殼），貼片一格格參差；
+            # 最近的「面」一定是朝向貼片的那層外殼，位移連續
+            pl = host_polys[o['ride_on']]
+            bt = BVHTree.FromPolygons([p for p, _d in src], pl)
+            me = o.data
+            D = [V((0, 0, 0))] * len(me.vertices)
+            for v in me.vertices:
+                loc, _n, fi, _dd = bt.find_nearest(v.co)
+                if loc is None:
+                    continue
+                ids = pl[fi]
+                w = poly_3d_calc([src[i][0] for i in ids], loc)
+                D[v.index] = sum((src[i][1] * wi for i, wi in zip(ids, w)), V((0, 0, 0)))
+            # ride_rigid：整個部件照平均位移平移（方扣這種小硬件跨在宿主的兩片衣襟之間時，左右半邊的最近面位移不同，方扣被撕成兩半）
+            # ride_smooth＝k：位移在部件網格上平滑 k 輪（長帶子跨過衣襟邊緣時，最近面在外層與切邊之間跳，帶子折出小缺角）
+            if o.get('ride_rigid') and D:
+                m = sum(D, V((0, 0, 0))) / len(D)
+                D = [m] * len(D)
+            elif o.get('ride_smooth'):
+                nb = [[] for _ in range(len(me.vertices))]
+                for e in me.edges:
+                    a, b = e.vertices
+                    nb[a].append(b)
+                    nb[b].append(a)
+                for _ in range(int(o['ride_smooth'])):
+                    D = [(D[i] + sum((D[j] for j in nb[i]), V((0, 0, 0))) / len(nb[i])) * 0.5 if nb[i] else D[i] for i in range(len(D))]
+            for v in me.vertices:
+                v.co = V(v.co) + D[v.index]
+            me.update()
+            if os.environ.get('REAL_DEBUG'):
+                print('    %-14s 跟著 %s 的表面挪' % (o.name, o['ride_on']))
             continue
         hk = KDTree(len(src))
         for k, (p, _d) in enumerate(src):
@@ -1872,8 +1979,13 @@ def conform(ob, garments, F, dom, seam, gap=0.003):
             continue   # 和頭顱共用的接縫不動
         p = V(v.co)
         # 沿法線往外 8 cm 內碰到衣物：從外面看不到（胯下、腋下這種骨軸射線打不準的地方）
-        if dom[i] not in HAND_BONES and tree.ray_cast(p + v.normal * 0.001, v.normal, 0.08)[0] is not None:
+        nh = tree.ray_cast(p + v.normal * 0.001, v.normal, 0.08) if dom[i] not in HAND_BONES else (None,)
+        if nh[0] is not None:
             covered[i] = True
+            # 緊貼在釘住的硬殼底下（沿法線 3 cm 內）也釘住：腋下、側腰這些主導骨是上臂的皮膚，骨軸射線從袖孔穿出去碰不到殼，
+            # 原本不釘、跟著上臂走，手往前抬（出拳的護架）時從胸甲側面穿出藍色碎片與外框黑塊（貝吉塔 atk2）
+            if nh[3] < 0.03:
+                pin[i] = pin_of(nh[2])
         a = axis_point(F, dom[i], p, wrist=True)
         if a is None:
             continue
@@ -2170,6 +2282,71 @@ def weights_for(body, real_lookup, bone_names, W):
             if (V(v.co) - V(px[:3])).length < px[3]:
                 inv = {b: nm for nm, b in bidx.items()}
                 print('    探針 (%.3f,%.3f,%.3f) 蓋住 %.2f：%s' % (v.co.x, v.co.y, v.co.z, c, ' '.join('%s:%.2f' % (inv[b], w) for b, w in W[i])))
+    return n
+
+
+def ride_weights(body, W, iters=80):
+    """疊在真人身體上的殼（grp＝G_RIDE_REAL）：權重照底下真人皮膚（weights_for 之後的最終權重）最近的三角形，用重心座標內插，
+    再在殼自己的網格上平滑 iters 輪：殼是硬的，權重要比底下的皮膚平順得多（只平滑幾輪時，跑步抬腿那一側的腹甲跟著胯下的皺摺折成一段段，
+    橫紋斷成鋸齒）；相鄰頂點的最近三角形落在不同肌肉上時權重也不會一格一格跳。
+    殼本身用骨熱（只允許胸廓與軀幹）時是剛體，底下的皮膚在袖孔、胯前卻漸漸交給上臂與大腿（spread_pin、底模權重）：
+    出拳時上臂根部的皮膚往前移、從胸甲的袖孔前緣穿出藍色碎片和外框黑縫；弓步、跑步時大腿根部往前頂穿腹甲。
+    權重抄皮膚之後，殼和底下的皮膚一起動，間隙（胸甲 1.6 cm、腹甲 1～3.6 cm）始終保持。"""
+    from mathutils.geometry import barycentric_transform
+    me = body.data
+    G = me.attributes['grp'].data
+    vs = me.vertices
+    rid = [i for i in range(len(vs)) if G[i].value == G_RIDE_REAL]
+    if not rid:
+        return 0
+    me.calc_loop_triangles()
+    tris = [t.vertices[:] for t in me.loop_triangles if all(G[k].value == G_REAL for k in t.vertices)]
+    tree = BVHTree.FromPolygons([V(v.co) for v in vs], tris)
+    acc_all = {}
+    for i in rid:
+        co = V(vs[i].co)
+        hit = tree.find_nearest(co)
+        if hit[0] is None:
+            continue
+        a, b, c = tris[hit[2]]
+        bc = barycentric_transform(hit[0], V(vs[a].co), V(vs[b].co), V(vs[c].co), V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1)))
+        acc = {}
+        for k, t in zip((a, b, c), bc):
+            for bn, w in W[k]:
+                acc[bn] = acc.get(bn, 0.0) + w * max(0.0, t)
+        acc_all[i] = acc
+    # 殼在 crisp_split 時沿色界（橫紋邊）切開，同一位置有兩個頂點、網格斷成一條條：只沿邊平滑時每條橫紋各自平滑，
+    # 色界兩側權重不同，一擺動橫紋就沿邊錯開成鋸齒、整片像揉皺。同一位置的頂點併成一個節點一起平滑
+    rep, key_of = {}, {}
+    for i in rid:
+        k = tuple(round(c * 1e5) for c in vs[i].co)
+        rep[i] = key_of.setdefault(k, i)
+    acc_all = {i: acc for i, acc in acc_all.items() if rep[i] == i} | {rep[i]: acc for i, acc in acc_all.items() if rep[i] not in acc_all}
+    nb = {i: set() for i in rid if rep[i] == i}
+    for e in me.edges:
+        x, y = e.vertices
+        if x in rep and y in rep and rep[x] != rep[y]:
+            nb[rep[x]].add(rep[y])
+            nb[rep[y]].add(rep[x])
+    for _ in range(iters):
+        nxt = {}
+        for i, acc in acc_all.items():
+            m = dict(acc)
+            ns = [acc_all[j] for j in nb[i] if j in acc_all]
+            for d in ns:
+                for bn, w in d.items():
+                    m[bn] = m.get(bn, 0.0) + w / len(ns)
+            nxt[i] = m
+        acc_all = nxt
+    n = 0
+    for i in rid:
+        acc = acc_all.get(rep[i])
+        if acc is None:
+            continue
+        ws = sorted(acc.items(), key=lambda bw: -bw[1])[:4]
+        tot = sum(w for _, w in ws) or 1.0
+        W[i] = [(bn, w / tot) for bn, w in ws]
+        n += 1
     return n
 
 

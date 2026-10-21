@@ -731,7 +731,15 @@ export function buildHero(id, team = 0) {
       backSocket.position.set(-d.waist * 0.9, 0.04, -d.chest[2] * 0.95);
       backSocket.rotation.set(0, 0, -1.75);
       hips.add(backSocket);
-    } else {
+    } else if (id === 'trunks') {
+      // 特南克斯（GK 第一輪，參考 03／04 GK、01 立繪）：劍柄在右肩上方、護手約在耳朵高度，鞘斜過背後約 37°（離垂直），
+      // 銀色鞘尾從左腰外側伸出身體輪廓。舊版劍座在肩線、斜 31°，柄頭只到下巴、鞘尾垂到左膝
+      // GK 第二輪：鞘的斜率改成和斜背帶相同（cast.py 的 TRUNKS_SLOPE＝0.97 → −π＋atan(1/0.97)≈−2.341），背後帶子壓在鞘底下；
+      // 劍座往右下、往外各挪一點：跑步時十字護手原本在耳朵高度插進右側頭髮，鞘加厚到 5.6 cm 後也要離外套遠一點
+      backSocket.position.set(-0.24, d.torso * (0.98 - RIBS_K) + 0.16, -d.chest[2] * 1.02 - 0.016);
+      backSocket.rotation.set(0, 0, -2.341);
+      J.ribs.add(backSocket);
+    } else { // 娜美的天候棒：背在背上
       backSocket.position.set(-0.11, d.torso * (0.98 - RIBS_K), -d.chest[2] * 1.02);
       backSocket.rotation.set(0, 0, -2.6);
       J.ribs.add(backSocket);
