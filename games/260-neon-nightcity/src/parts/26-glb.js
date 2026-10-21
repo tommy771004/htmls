@@ -164,6 +164,15 @@ function glbMaterial(src, inst) {
 
 // ─── 下載與拆件：body 的網格、每個輪子的網格（相對輪軸）；幾何與貼圖所有實例共用 ───
 const glbLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+// 打包時內嵌的 meshopt 壓縮 GLB（#glb-名稱，gzip＋base64）：人物與車流
+async function embeddedGLB(name) {
+  const el = document.getElementById('glb-' + name);
+  if (!el) throw new Error('缺少內嵌模型 ' + name);
+  const bin = Uint8Array.from(atob(el.textContent.trim()), c => c.charCodeAt(0));
+  const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  await MeshoptDecoder.ready;
+  return glbLoader.parseAsync(ab, '');
+}
 const glbCache = {};
 function loadGLB(id) {
   if (!GLB_ON || !CARS[id] || !CARS[id].glb) return null;

@@ -132,24 +132,36 @@ function bez(a, b, c, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * b
 function bezTan(a, b, c, t) { const u = 1 - t; return [2 * u * (b[0] - a[0]) + 2 * t * (c[0] - b[0]), 2 * u * (b[1] - a[1]) + 2 * t * (c[1] - b[1])]; }
 
 // ─── 車流與路邊停車都畫成 InstancedMesh，每種車型一次 draw call ───
+// 實車車型由 tools/traffic.mjs 烘成 blender/out/traffic.glb（頂點色＋uber 材質編號 _MAT，幾千面），內嵌成 #glb-traffic；
+// 載入失敗時退回程式建模的房車。計程車與貨車還沒有模型，暫時沿用程式建模。
+const TRAFFIC_GEO = await embeddedGLB('traffic').then(g => {
+  const o = {};
+  g.scene.updateMatrixWorld(true);
+  g.scene.traverse(m => {
+    if (!m.isMesh) return;
+    const geo = m.geometry.clone().applyMatrix4(m.matrixWorld);   // 量化的位移與縮放在節點上
+    geo.setAttribute('aMat', geo.getAttribute('_mat')); geo.deleteAttribute('_mat');
+    geo.computeBoundingSphere();
+    o[m.name] = { geo, ...m.parent.userData, ...m.userData };
+  });
+  return o;
+}).catch(e => { console.warn('車流模型載入失敗，改用程式建模', e); return {}; });
+const glbType = (id, vmax, fb) => {
+  const t = TRAFFIC_GEO[id];
+  return t ? { geo: () => t.geo, len: t.len, w: t.w, vmax, pal: t.pal ? 1 : 0 } : fb;
+};
 const TYPES = {
   taxi: { kit: () => sedanKit('taxi'), len: 4.9, w: 1.9, vmax: 13 },
-  sedan: { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 12.5, pal: 1 },
-  police: { kit: () => sedanKit('police'), len: 4.9, w: 1.9, vmax: 14 },
   truck: { kit: truckKit, len: 6.8, w: 2.4, vmax: 10 },
-  kestrel: { kit: () => kestrelKit(0x888888, true), len: 4.4, w: 1.9, vmax: 15, pal: 1 },
-  // 車行目錄裡比較常見的幾款也會上街（車身色交給調色盤）
-  doodle: { kit: () => carKit('doodle', 0x888888, 1), len: 4.05, w: 1.6, vmax: 11, pal: 1 },
-  kanto: { kit: () => carKit('kanto', 0x888888, 1), len: 4.3, w: 1.84, vmax: 14.5, pal: 1 },
-  bulldog: { kit: () => carKit('bulldog', 0x888888, 1), len: 4.8, w: 1.96, vmax: 14, pal: 1 },
-  ronin: { kit: () => carKit('ronin', 0x888888, 1), len: 4.7, w: 1.92, vmax: 15, pal: 1 },
-  lucerna: { kit: () => carKit('lucerna', 0x888888, 1), len: 4.65, w: 1.98, vmax: 14.5, pal: 1 },
+  police: glbType('police', 14, { kit: () => sedanKit('police'), len: 4.9, w: 1.9, vmax: 14 }),
+  e34: glbType('e34', 12.5, { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 12.5, pal: 1 }),
+  evo190: glbType('evo190', 13.5, { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 13.5, pal: 1 }),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
-const SPORTY = ['doodle', 'kanto', 'bulldog', 'ronin', 'lucerna', 'kestrel'];
-function pickType() { const r = rT(); return r < .32 ? 'taxi' : r < .6 ? 'sedan' : r < .68 ? 'truck' : r < .73 ? 'police' : SPORTY[Math.floor((r - .73) / .27 * SPORTY.length)]; }
+const SEDANS = ['e34', 'evo190'];
+function pickType() { const r = rT(); return r < .3 ? 'taxi' : r < .4 ? 'truck' : r < .46 ? 'police' : SEDANS[Math.floor((r - .46) / .54 * SEDANS.length)]; }
 // 停車：每段路兩側的停車格，避開路口、消防栓、施工區與夜店門口
 const CLUB_X = avX(1) + 36, CLUB_Z = stZ(3) - HR - SW;
 const BAR_X = lerp(avX(3) + HR + SW, avX(4) - HR - SW, SPECIAL.bar.at), BAR_Z = stZ(1) - HR - SW;
@@ -197,7 +209,7 @@ for (let n = 0; n < TRAFFIC_N; n++) {
 const typeMesh = {};
 for (const [name, ty] of Object.entries(TYPES)) {
   const list = [...traffic.filter(c => c.type === name), ...parked.filter(c => c.type === name)];
-  const g = ty.kit().build();
+  const g = ty.geo ? ty.geo() : ty.kit().build();
   const cap = Math.max(1, list.length);
   const m = new T.InstancedMesh(g, MAT.uberI, cap);
   g.setAttribute('aIns', new T.InstancedBufferAttribute(new Float32Array(cap * 4), 4));

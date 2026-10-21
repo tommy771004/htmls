@@ -1,19 +1,17 @@
 
 // ═══ 人物：Quaternius Universal Base Characters 男女底模＋ Universal Animation Library 動畫（CC0） ═══
 // blender/people.py 分好衣物材質與髮型、tools/people.mjs 以 meshopt 壓縮成 blender/out/people.glb，打包時內嵌成 #glb-people。
-// 男女各把身體、眉毛、眼睛與三種髮型合併成一份蒙皮幾何（aSlot 分區、aVar 髮型），每人一個 SkeletonUtils 複製的
+// 男女各依三種髮型，把身體、眉毛、眼睛與那頂頭髮合併成一份蒙皮幾何（aSlot 分區），每人一個 SkeletonUtils 複製的
 // SkinnedMesh＋自己的 AnimationMixer，一人一次 draw；衣服、膚色、髮色是每人材質的 uniform。
+// 骨架（65 根骨頭）不放進場景圖：網格用 detached 綁定掛在每人的外層節點下，骨頭只在角色空間裡、擺姿勢時才更新，
+// 否則每次 render（倒影＋主畫面）都要重算幾千個骨頭矩陣。
 // 動畫時間不累加，每幀由 uTime／uBeat 換算（舞池對拍）；動畫庫沒有的動作（調酒、DJ、撐傘、抽菸、抱胸）在播放後覆寫手臂骨頭。
 // 角色面向 +z，左手在 +x。
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 const SLOT = { skin: 0, top: 1, sleeve: 2, bottom: 3, shin: 4, shoe: 5 };   // 6 頭髮 7 眉毛 8 眼睛
 const HAIR_VARS = { Male: ['SimpleParted', 'Buzzed', 'Beard'], Female: ['Long', 'Buns', 'BuzzedFemale'] };
 const PEOPLE = await (async () => {
-  const el = document.getElementById('glb-people');
-  const bin = Uint8Array.from(atob(el.textContent.trim()), c => c.charCodeAt(0));
-  const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
-  await MeshoptDecoder.ready;
-  const gltf = await glbLoader.parseAsync(ab, '');
+  const gltf = await embeddedGLB('people');
   // 兩副骨架的骨頭同名，載入器會把後面那副改成「名稱_1」；統一改回原名，動畫軌道也一樣
   const names = new Set();
   gltf.scene.traverse(o => names.add(o.name));
@@ -26,7 +24,7 @@ const PEOPLE = await (async () => {
     c.tracks = c.tracks.filter(t => t.name.endsWith('.quaternion') || /^(pelvis|root)\.position$/.test(t.name));
     clips.set(c.name, c);
   }
-  const tpl = {};
+  const tpl = {}, geos = {};
   const P = V3(), N = V3(), M = new T.Matrix4(), A = new T.Matrix4(), NM = new T.Matrix3();
   for (const g of ['Male', 'Female']) {
     const grp = gltf.scene.getObjectByName(g);
@@ -34,39 +32,50 @@ const PEOPLE = await (async () => {
     grp.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
     const body = meshes.find(m => m.material.name.endsWith('_skin'));
     const sk = body.skeleton, bi = new Map(sk.bones.map((b, i) => [b.name, i])), jb = bi.get('pelvis');
-    const pos = [], nor = [], si = [], sw = [], slot = [], vari = [], idx = [];
+    const parts = [];   // 每個網格一段；v 是髮型編號（-1 = 每個人都有）
     for (const m of meshes) {
       const own = m.name + ' ' + (m.parent ? m.parent.name : '');
       const hair = /_Hair_([A-Za-z]+)/.exec(own);
       const s = hair ? 6 : /_Brows/.test(own) ? 7 : /_Eyes/.test(own) ? 8 : SLOT[m.material.name.split('_').pop()] ?? 0;
-      const v = hair ? HAIR_VARS[g].indexOf(hair[1]) : -1;
+      const c = { v: hair ? HAIR_VARS[g].indexOf(hair[1]) : -1, pos: [], nor: [], si: [], sw: [], slot: [], idx: [] };
       // 各網格的 inverse bind 可能差一個量化變換：把頂點換到身體那副骨架的綁定空間
       const ms = m.skeleton, jm = ms.bones.findIndex(b => b.name === 'pelvis');
       M.copy(body.bindMatrixInverse).multiply(A.copy(sk.boneInverses[jb]).invert()).multiply(ms.boneInverses[jm]).multiply(m.bindMatrix);
       NM.getNormalMatrix(M);
-      const ga = m.geometry.attributes, base = pos.length / 3;
+      const ga = m.geometry.attributes;
       const remap = ms.bones.map(b => bi.get(b.name) ?? 0);
       for (let i = 0; i < ga.position.count; i++) {
-        P.fromBufferAttribute(ga.position, i).applyMatrix4(M); pos.push(P.x, P.y, P.z);
-        N.fromBufferAttribute(ga.normal, i).applyMatrix3(NM).normalize(); nor.push(N.x, N.y, N.z);
-        for (let c = 0; c < 4; c++) { si.push(remap[ga.skinIndex.getComponent(i, c)]); sw.push(ga.skinWeight.getComponent(i, c)); }
-        slot.push(s); vari.push(v);
+        P.fromBufferAttribute(ga.position, i).applyMatrix4(M); c.pos.push(P.x, P.y, P.z);
+        N.fromBufferAttribute(ga.normal, i).applyMatrix3(NM).normalize(); c.nor.push(N.x, N.y, N.z);
+        for (let k = 0; k < 4; k++) { c.si.push(remap[ga.skinIndex.getComponent(i, k)]); c.sw.push(ga.skinWeight.getComponent(i, k)); }
+        c.slot.push(s);
       }
       const ix = m.geometry.index;
-      if (ix) for (let i = 0; i < ix.count; i++) idx.push(base + ix.getX(i));
-      else for (let i = 0; i < ga.position.count; i++) idx.push(base + i);
+      if (ix) for (let i = 0; i < ix.count; i++) c.idx.push(ix.getX(i));
+      else for (let i = 0; i < ga.position.count; i++) c.idx.push(i);
+      parts.push(c);
     }
-    const geo = new T.BufferGeometry();
-    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
-    geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4));
-    geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
-    geo.setAttribute('aSlot', new T.Float32BufferAttribute(slot, 1));
-    geo.setAttribute('aVar', new T.Float32BufferAttribute(vari, 1));
-    geo.setIndex(idx);
+    // 每種髮型一份幾何（身體＋那頂頭髮），沒戴的頭髮不必跑頂點 shader
+    geos[g] = HAIR_VARS[g].map((_, h) => {
+      const pos = [], nor = [], si = [], sw = [], slot = [], idx = [];
+      for (const c of parts) {
+        if (c.v >= 0 && c.v !== h) continue;
+        const base = pos.length / 3;
+        pos.push(...c.pos); nor.push(...c.nor); si.push(...c.si); sw.push(...c.sw); slot.push(...c.slot);
+        for (const i of c.idx) idx.push(base + i);
+      }
+      const geo = new T.BufferGeometry();
+      geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+      geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4));
+      geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
+      geo.setAttribute('aSlot', new T.Float32BufferAttribute(slot, 1));
+      geo.setIndex(idx);
+      return geo;
+    });
     const t = new T.Group();
     t.add(grp.getObjectByName('root'));
-    const sm = new T.SkinnedMesh(geo);
+    const sm = new T.SkinnedMesh(geos[g][0]);
     // 女性骨架在檔案裡平移了 1.2 m（男女並排），inverse bind 帶著這段位移；骨頭移出群組後要補回去
     sm.bind(new T.Skeleton(sk.bones, sk.boneInverses.map(m => m.clone().multiply(grp.matrix))), body.bindMatrix);
     sm.name = 'body';
@@ -82,8 +91,8 @@ const PEOPLE = await (async () => {
     probe.updateMatrixWorld(true);
     seat[c] = h - pel.getWorldPosition(P).y;
   }
-  return { tpl, clips, seat };
-})();
+  return { tpl, geos, clips, seat };
+})().catch(e => { console.warn('人物模型載入失敗，街上不放人', e); return null; });
 
 // 動畫庫的待機是握拳、雙臂外張的備戰姿勢：手指往靜止姿勢放鬆，待機的手肘伸直一些、上臂往下收（同 268）
 function relaxClips(clips, tpl) {
@@ -116,9 +125,8 @@ function relaxClips(clips, tpl) {
 const CHAR_VS = /* glsl */`
 ${GL_LIB}
 #include <skinning_pars_vertex>
-attribute float aSlot, aVar;
+attribute float aSlot;
 uniform vec3 uC[9];
-uniform float uHair;
 uniform vec4 uGlow;
 varying vec3 vW, vN, vCol, vEmi;
 void main(){
@@ -127,7 +135,6 @@ void main(){
   #include <skinnormal_vertex>
   #include <skinning_vertex>
   int s = int(aSlot + .5);
-  if (s == 6 && abs(aVar - uHair) > .5) transformed = vec3(0.);
   vec4 w = modelMatrix * vec4(transformed, 1.); vW = w.xyz;
   vN = normalize(mat3(modelMatrix) * objectNormal);
   vCol = uC[s];
@@ -147,7 +154,7 @@ void main(){
 }`;
 // 每人一份材質（uniform 不同），共用同一個 program；不能用 clone()，會把共用的 U 也複製掉
 const charMat = () => new T.ShaderMaterial({
-  uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uHair: { value: 0 }, uGlow: { value: new T.Vector4() } },
+  uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uGlow: { value: new T.Vector4() } },
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15 };
@@ -159,20 +166,20 @@ const ACLIP = {
   [ANIM.dj]: { c: 'Idle_Loop' }, [ANIM.cross]: { c: 'Idle_Loop' }, [ANIM.talk]: { c: 'Idle_Talking_Loop' }, [ANIM.ride]: { c: 'Driving_Loop' },
   [ANIM.punch]: { c: 'Punch_Cross', beat: 2, alt: 'Punch_Jab' }, [ANIM.smoke]: { c: 'Idle_Loop' },
 };
-const clipOf = (id, ph) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && (ph * 7.31) % 1 < .5 ? a.alt : a.c; };
+const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
   const a = ACLIP[id] || ACLIP[0], d = PEOPLE.clips.get(name).duration;
   const u = a.beat ? (b + (a.off || 0)) / a.beat * d : t * (a.rate || 1);
   return ((u % d) + d) % d;
 }
-// 讓骨頭（指向第一個子骨）轉向角色空間的方向；w 是和動畫原姿勢的混合比例
+// 讓骨頭（指向第一個子骨）轉向角色空間的方向（骨架不在場景裡，世界空間就是角色空間）；w 是和動畫原姿勢的混合比例
 const _q1 = new T.Quaternion(), _q2 = new T.Quaternion(), _q3 = new T.Quaternion(), _qi = new T.Quaternion(), _v1 = V3(), _v2 = V3();
 function aim(p, name, x, y, z, w = 1) {
   const bone = p.bones[name];
   bone.parent.getWorldQuaternion(_q1);
   _q2.multiplyQuaternions(_q1, bone.quaternion);
   _v1.copy(bone.children[0].position).normalize().applyQuaternion(_q2);
-  _v2.set(x, y, z).normalize().applyQuaternion(p.h.quaternion);
+  _v2.set(x, y, z).normalize();
   _q3.setFromUnitVectors(_v1, _v2);
   if (w < 1) _q3.slerp(_qi, 1 - w);
   bone.quaternion.copy(_q1.invert().multiply(_q3.multiply(_q2)));
@@ -181,7 +188,7 @@ const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * 
 const frac = x => x - Math.floor(x);
 // 動畫庫沒有的動作：t 是相位時間、b 是拍點
 const OVR = {
-  [ANIM.umbrella]: p => { aim(p, 'upperarm_r', -.22, -.75, .5); aim(p, 'lowerarm_r', .08, .85, .5); },
+  [ANIM.umbrella]: p => { aim(p, 'upperarm_r', -.25, -.85, .45); aim(p, 'lowerarm_r', 0, .7, .7); },
   [ANIM.cross]: p => {
     aim(p, 'upperarm_l', .2, -.9, .3); aim(p, 'upperarm_r', -.2, -.9, .3);
     aim(p, 'lowerarm_l', -1, .12, .3); aim(p, 'lowerarm_r', 1, .02, .38);
@@ -193,8 +200,8 @@ const OVR = {
   [ANIM.bartend]: (p, t) => {
     if (frac(t * .08) < .5) {
       const sh = .25 * Math.sin(t * 19);
-      aim(p, 'upperarm_l', .35, -.25, .9); aim(p, 'upperarm_r', -.35, -.25, .9);
-      aim(p, 'lowerarm_l', -.45, .75 + sh, .45); aim(p, 'lowerarm_r', .45, .75 + sh, .45);
+      aim(p, 'upperarm_l', .3, -.45, .85); aim(p, 'upperarm_r', -.3, -.45, .85);
+      aim(p, 'lowerarm_l', -.35, .55 + sh, .75); aim(p, 'lowerarm_r', .35, .55 + sh, .75);
     } else { aim(p, 'upperarm_r', -.2, -.75, .6); aim(p, 'lowerarm_r', .1 + .3 * Math.cos(t * 4), -.15, 1); }
   },
   [ANIM.smoke]: (p, t) => {
@@ -204,6 +211,12 @@ const OVR = {
   [ANIM.sit]: (p, t) => {
     const u = frac(t * .07), k = sst(0, .08, u) * sst(.2, .12, u);
     if (k > .01) { aim(p, 'upperarm_r', -.15, -.55, .8, k); aim(p, 'lowerarm_r', .3, .95, .25, k); }
+  },
+  // 機車：動畫庫只有開車的坐姿，改成上身前傾、手伸向把手
+  [ANIM.ride]: p => {
+    aim(p, 'spine_01', 0, .82, .55); aim(p, 'neck_01', 0, .9, .45);
+    aim(p, 'upperarm_l', .3, -.3, .9); aim(p, 'upperarm_r', -.3, -.3, .9);
+    aim(p, 'lowerarm_l', -.05, -.45, 1); aim(p, 'lowerarm_r', .05, -.45, 1);
   },
   [ANIM.danceB]: (p, t, b) => {
     const k = .3 * Math.sin(b * Math.PI * 2);
@@ -227,27 +240,34 @@ const CROWDS = [];
 function crowd(n, cap = n) {
   const group = new T.Group();
   const people = [];
-  for (let k = 0; k < cap; k++) people.push({ k, x: 0, y: 0, z: 0, yaw: 0, s: 1, obj: null, a: [0, 0, 1, 0], a2: [0, 0, 1], handL: V3(-.25, 1.2, .3) });
+  for (let k = 0; k < cap; k++) people.push({ k, x: 0, y: 0, z: 0, yaw: 0, s: 1, rig: null, a: [0, 0, 1, 0], a2: [0, 0, 1], handL: V3(-.25, 1.2, .3) });
   const api = {
     mesh: group, people,
     look(k, o = {}) {
       const r = o.r || Math.random;
       const pick = arr => arr[Math.floor(r() * arr.length)];
       const p = people[k];
+      if (!PEOPLE) return;
       const fem = o.female ?? (o.longHair ? true : o.longHair === 0 ? false : r() < .45);
       const sex = fem ? 'Female' : 'Male';
-      if (p.obj && p.sex !== sex) { p.h.remove(p.obj); p.obj = null; }
-      if (!p.obj) {
+      if (p.rig && p.sex !== sex) { p.h.remove(p.sm); p.rig = null; }
+      const fresh = !p.rig;
+      if (fresh) {
         p.sex = sex;
         p.h ||= group.add(new T.Group()).children.at(-1);
-        p.obj = cloneSkinned(PEOPLE.tpl[sex]);
-        p.h.add(p.obj);
-        p.sm = p.obj.getObjectByName('body');
+        p.rig = cloneSkinned(PEOPLE.tpl[sex]);
+        p.sm = p.rig.getObjectByName('body');
+        p.rig.remove(p.sm);
+        p.sm.bindMode = T.DetachedBindMode;
+        p.h.add(p.sm);
         p.sm.material = charMat();
         p.sm.boundingSphere = new T.Sphere(V3(0, 1, 0), 1.3);
+        // 骨頭矩陣只在擺過姿勢後重算（倒影與主畫面各 render 一次，遠處的人隔幀才擺）
+        const sk = p.sm.skeleton;
+        sk.update = () => { if (sk.dirty) { T.Skeleton.prototype.update.call(sk); sk.dirty = false; } };
         p.bones = {};
-        p.obj.traverse(b => { if (b.isBone) p.bones[b.name] = b; });
-        p.mixer = new T.AnimationMixer(p.obj);
+        p.rig.traverse(b => { if (b.isBone) p.bones[b.name] = b; });
+        p.mixer = new T.AnimationMixer(p.rig);
         p.acts = new Map();
       }
       const u = p.sm.material.uniforms, C = u.uC.value;
@@ -255,10 +275,12 @@ function crowd(n, cap = n) {
       const long = o.coat ?? (r() < .6 ? 1 : 0), bare = fem && (o.skirt ?? (r() < .3 ? 1 : 0));
       C[0].copy(skin); C[1].copy(top); C[2].copy(long ? top : skin); C[3].copy(bot); C[4].copy(bare ? skin : bot);
       C[5].copy(o.shoe || pick(SHOES)); C[6].copy(hair); C[7].copy(hair).multiplyScalar(.8); C[8].copy(EYES);
-      u.uHair.value = fem ? (o.longHair ? 0 : o.longHair === 0 ? 1 + Math.floor(r() * 2) : Math.floor(r() * 3)) : (o.hat ? 1 : Math.floor(r() * 3));
+      p.sm.geometry = PEOPLE.geos[sex][fem ? (o.longHair ? 0 : o.longHair === 0 ? 1 + Math.floor(r() * 2) : Math.floor(r() * 3)) : (o.hat ? 1 : Math.floor(r() * 3))];
       const gc = o.glow || pick(GLOWS);
       u.uGlow.value.set(gc.r, gc.g, gc.b, o.glowI ?? (r() < .3 ? 1.6 : 0));
       p.s = o.scale || ((fem ? .95 : 1) * (.94 + r() * .1));
+      p.alt = r() < .5;   // 有兩段動畫的動作（坐、出拳）固定用哪一段
+      if (fresh) poseOne(p, 0, 0);   // 先擺一次待機，畫面外（倒影裡）的人才不會是 T 字
     },
     anim(k, id, phase = Math.random() * 10, speed = 1, beatOff = 0) { const a = people[k].a; a[0] = id; a[1] = phase; a[2] = speed; a[3] = beatOff; },
     anim2(k, id, w, speed = 1) { const a = people[k].a2; a[0] = id; a[1] = w; a[2] = speed; },
@@ -269,6 +291,7 @@ function crowd(n, cap = n) {
     // 直接給整個變換（騎機車時跟著車身壓車）
     placeM(k, m) {
       const p = people[k];
+      if (!p.h) return;
       m.decompose(p.h.position, p.h.quaternion, p.h.scale);
       p.h.scale.multiplyScalar(p.s);
       p.x = p.h.position.x; p.y = p.h.position.y; p.z = p.h.position.z;
@@ -286,16 +309,18 @@ function act(p, name) {
 }
 function poseOne(p, t, b) {
   const [id, ph, sp, bo] = p.a, [id2, w2, sp2] = p.a2;
-  const n1 = clipOf(id, ph), n2 = w2 > .01 ? clipOf(id2, ph) : null, mix2 = n2 && n2 !== n1;
+  const n1 = clipOf(id, p), n2 = w2 > .01 ? clipOf(id2, p) : null, mix2 = n2 && n2 !== n1;
   for (const [n, a] of p.acts) if (n !== n1 && !(mix2 && n === n2) && a.isRunning()) a.stop();
   const a1 = act(p, n1);
   a1.time = clipTime(id, n1, t * sp + ph, b + bo); a1.weight = mix2 ? 1 - w2 : 1;
   if (mix2) { const a2 = act(p, n2); a2.time = clipTime(id2, n2, t * sp2 + ph, b + bo); a2.weight = w2; }
   p.mixer.update(0);
-  p.obj.position.y = PEOPLE.seat[n1] || 0;
+  p.sm.position.y = PEOPLE.seat[n1] || 0;
   const f = OVR[id];
   if (f && (!mix2 || w2 < .5)) f(p, t * sp + ph, b + bo);
-  if (id === ANIM.umbrella) p.h.worldToLocal(p.bones.hand_r.getWorldPosition(p.handL));
+  p.rig.updateMatrixWorld(true);
+  p.sm.skeleton.dirty = true;
+  if (id === ANIM.umbrella) p.handL.setFromMatrixPosition(p.bones.hand_r.matrixWorld).y += p.sm.position.y;
 }
 // 每幀更新目前場景裡、在畫面內的人；遠處的人隔幀更新
 const _fr = new T.Frustum(), _pm = new T.Matrix4(), _sph = new T.Sphere(V3(), 1.4);
@@ -308,7 +333,7 @@ function updateCrowds(scn) {
   for (const c of CROWDS) {
     if (c.mesh.parent !== scn || !c.mesh.visible) continue;
     for (const p of c.people) {
-      if (!p.obj) continue;
+      if (!p.rig) continue;
       _sph.center.set(p.x, p.y + 1, p.z);
       if (!_fr.intersectsSphere(_sph)) continue;
       const d = cp.distanceTo(_sph.center);
@@ -420,7 +445,7 @@ function updatePeds(dt) {
 
 // ─── 玩家 ───
 const me = crowd(1);
-me.look(0, { female: false, top: lin(0x2b2420), bot: lin(0x17181c), skin: SKINS[1], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[0], glow: lin(0xffae57), glowI: 1.4, scale: 1 });
+me.look(0, { r: rng(9), female: false, top: lin(0x2b2420), bot: lin(0x17181c), skin: SKINS[1], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[0], glow: lin(0xffae57), glowI: 1.4, scale: 1 });
 me.anim(0, ANIM.idle, 0, 1);
 scene.add(me.mesh);
 const player = { mode: 'walk', x: avX(1) - 9.6, z: stZ(2) + 18, y: .15, yaw: 0, v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };

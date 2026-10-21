@@ -9,25 +9,31 @@ const ids = await page.evaluate(() => {
   const { crowd, ANIM, scene, player } = __nc;
   const list = Object.entries(ANIM);
   const cr = crowd(list.length);
-  const x0 = player.x, z0 = player.z - 4;
+  // 出生點在 avX(1) 西邊 9.6 m：人沿著大道中線排成一列，面向 -x
+  const x0 = player.x + 9.6, z0 = player.z - 8;
   list.forEach(([n, id], k) => {
-    cr.look(k, { female: k % 2 === 1, glowI: 0, top: undefined });
-    cr.anim(k, id, 0, n === 'walk' || n === 'umbrella' ? 1 : n === 'run' ? 1.4 : 1);
-    cr.place(k, x0 - 7 + k * 1.1, n === 'sit' ? .5 : .15, z0, Math.PI);
+    cr.look(k, { female: k % 2 === 1, glowI: 0 });
+    cr.anim(k, id, 0, n === 'run' ? 1.4 : 1);
+    cr.place(k, x0, n === 'sit' ? .5 : n === 'ride' ? .6 : 0, z0 + k * 1.1, -Math.PI / 2);
   });
   scene.add(cr.mesh);
   window.__gal = { cr, x0, z0 };
   return list.map(([n]) => n);
 });
 console.log(ids.join(' '));
-for (const [name, yaw] of [['front', 0], ['side', Math.PI / 2]]) {
-  await page.evaluate((yaw) => {
-    const { x0, z0 } = __gal; __nc.me.mesh.visible = false;
-    __nc.player.x = x0 + 1; __nc.player.z = z0 - (yaw ? 0 : 6); __nc.look(yaw ? -Math.PI / 2 : 0, .05, 1);
-    if (yaw) { __nc.player.x = x0 + 10; }
-  }, yaw);
-  await page.waitForTimeout(700); await raf(page);
-  await page.screenshot({ path: `${out}/gallery-${name}.png` });
+// 一次拍五個人：相機在那五人正前方（+z 看向 -z 的人群 → 從 -z 往 +z 看人臉）
+for (let g = 0; g < 3; g++) {
+  for (const side of [0, 1]) {
+    await page.evaluate(([g, side]) => {
+      const { x0, z0 } = __gal; __nc.me.mesh.visible = false;
+      const cz = z0 + (g * 5 + 2) * 1.1;
+      __nc.traffic.length = 0;
+      if (side) { __nc.player.x = x0 - 1.5; __nc.player.z = cz - 4.6; __nc.look(.3, .02, 2); }
+      else { __nc.player.x = x0 - 3.6; __nc.player.z = cz; __nc.look(Math.PI / 2, .02, 2); }
+    }, [g, side]);
+    await page.waitForTimeout(500); await raf(page);
+    await page.screenshot({ path: `${out}/gallery-${g}${side ? 's' : ''}.png`, clip: { x: 220, y: 150, width: 1000, height: 650 } });
+  }
 }
 console.log('errors', log.pageerrors, log.errors.slice(0, 5));
 await browser.close();

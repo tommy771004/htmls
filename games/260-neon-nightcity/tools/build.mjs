@@ -11,7 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const minify = !process.argv.includes('--dev');
 const outArg = process.argv.find((a) => a.startsWith('--out='));
 const outFile = outArg ? resolve(process.cwd(), outArg.slice(6)) : resolve(root, '../../web/260-neon-nightcity.html');
-const GLBS = ['interior_props', 'street_props', 'people'];   // 車流改由程式建模；人物是 Quaternius 底模（blender/people.py）
+const GLBS = ['interior_props', 'street_props', 'people', 'traffic'];   // 人物：blender/people.py；車流：tools/traffic.mjs
 
 const partsDir = resolve(root, 'src/parts');
 const parts = readdirSync(partsDir).filter((f) => f.endsWith('.js')).sort();

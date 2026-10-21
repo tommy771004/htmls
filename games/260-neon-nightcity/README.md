@@ -15,6 +15,8 @@ npm run build    # 打包成 ../../web/260-neon-nightcity.html（--dev 不壓縮
 npm test         # tools/accept.mjs：1440×900 走完整段任務、開車、地圖，390×844 觸控版；SHOT_DIR=… 會存截圖
 npm run thumb    # tools/thumb.mjs → ../../thumbs/260.jpg；THUMB="車 dx,dz,車 yaw,相機 yaw,pitch,遠近" 可調構圖
 npm run assets   # 用 Blender 重建 blender/out/*.glb（需要 Blender 5.x）
+npm run people   # tools/people.mjs：Blender 跑 blender/people.py（Quaternius 底模與動畫），再用 gltf-transform 壓成 blender/out/people.glb
+node tools/pose-gallery.mjs [資料夾]   # 在大道上排一列人，每人一種動作，正面與側面截圖檢查姿勢
 npm run cars     # tools/cars.mjs：.cache/cars/ 的 Sketchfab 原檔 → ../../assets/260/<id>.glb 與 cars.json（可只給 id）
 npm run test:glb # tools/glb-check.mjs：本機 HTTP 開頁，檢查實車下載、展示廳、買車開車、機車、換色規則與車庫；CLOSEUPS=1／CITY=1 加拍特寫與街景
 node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、車漆塗藍），確認車頭朝 +z 與輪子拆分
@@ -59,8 +61,8 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
 | `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
 | `30-vehicles.js` | 程式建模的 Kestrel、計程車、房車、警車、貨車、Hanzo（車流與替身用）；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
-| `40-people.js` | 11 根骨頭在 vertex shader 裡程序動畫的人物（走、跑、三種舞、坐、調酒、撐傘、DJ…），行人、排隊人龍與玩家 |
-| `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何 |
+| `40-people.js` | 人物：Quaternius 男女底模（`people.glb`）依髮型合併成蒙皮幾何、每人一個 SkinnedMesh＋AnimationMixer；動畫時間由 `uTime`／`uBeat` 換算（舞池對拍），調酒、DJ、撐傘、抽菸、抱胸、騎機車在播放後覆寫手臂與上身；行人、排隊人龍、玩家與更新 `updateCrowds()` |
+| `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何（`people` 由 40 自己解） |
 | `55-motor-front.js` | 車行落地窗、雨棚與門前展示車、車庫燈條與招牌（要在 60 合併室外招牌之前） |
 | `60-venues.js` | 三座場館門面、夜店與酒吧室內場景、任務、對話、場館登錄 `VENUES` 與進出、互動掛鉤 `ctxHooks` |
 | `65-motors.js` | 車行展示廳與車庫室內、看車／買車／試駕／出庫／賣車對話、停進車庫、甩尾打賞、存檔 |
@@ -69,16 +71,23 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `90-hud.js` | 羅盤與街名、時鐘、小地圖、大地圖與傳送、目標標記、時速表 |
 | `99-main.js` | 輸入、相機（防穿牆、遮擋物抖動淡出）、每幀挑燈、天氣、主迴圈、`window.__nc` |
 
-`blender/vehicles.py`、`blender/characters.py` 是舊版用的模型，現在車輛與人物都由程式建模，打包時不內嵌。
+`blender/vehicles.py`、`blender/characters.py` 是舊版用的模型，打包時不內嵌；車流仍是程式建模。
+
+### 人物
+
+- `blender/people.py`（改自 268）從 197 的 `.cache/` 讀 Quaternius Universal Base Characters 與 Universal Animation Library（CC0），把身體依面分成 skin／top／sleeve／bottom／shin／shoe 六個材質、男女各掛三種髮型，留下 12 段動畫（見 `KEEP`）；`npm run people` 再用 gltf-transform 去重、量化與 meshopt 壓縮（不用 gltfpack：它會清掉網格名稱；也不去重材質：上衣／袖子同色會被合併）。輸出約 1 MB，打包時內嵌成 `#glb-people`。
+- 前端把每種「性別×髮型」合併成一份蒙皮幾何（`aSlot` 分區），衣服、膚色、髮色與鞋子霓虹是每人材質的 uniform，一人一次 draw。骨架不在場景圖裡（網格用 detached 綁定），只有在畫面內的人每幀擺姿勢，35 m 外隔幀、70 m 外每四幀；骨頭矩陣也只在擺過姿勢後重算。
+- 女性骨架在檔案裡平移了 1.2 m（男女並排），inverse bind 要乘回那段位移，否則手臂會被甩成長條。坐與騎車的骨盆高度在載入時量出來，對齊舊版的座位高度。
 
 ## 測試 API
 
 `window.__nc`：`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home')`、`exit()`、`look(yaw, pitch, far)`、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
-車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家網格，截圖時可隱藏）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
+車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家，`me.mesh.visible` 截圖時可隱藏）、`peds`／`pedState`（行人）、`crowd(n)`／`ANIM`（另建一群人測動作）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
 
 ## 已知限制
 
-- 無頭 Chrome（Metal）約 120 fps、150 個 draw call、220 萬個三角形；低階手機會自動降低點光數量與解析度。
+- 無頭 Chrome（Metal）約 120 fps、170 個 draw call、260–300 萬個三角形；低階手機會自動降低點光數量與解析度。
+- 人物的貼圖都換成素色（衣物分區上色），髮型只有男女各三種；調酒、DJ、撐傘、抽菸、抱胸與騎機車是在現成動畫上覆寫手臂方向，動作比較僵；舞池的人跟著拍點跳同一段舞，只有相位與手部覆寫不同。人物每幀多花約 2 ms CPU（街上約 20 人在畫面內）。
 - 程式建模的車型是低多邊形的剪影致敬，比例與輪廓取自線稿，細節（曲面、內裝）都很簡化；車庫一次只開一台出門。
 - 實車模型每台 4–20 萬面（第二批壓在 9 萬左右），展示廳 29 台全部載入時約 170 萬個三角形、365 個 draw call（無頭 Chrome Metal 約 108 fps），整間車行要下載約 51 MB，手機上會很吃力；輪子是用幾何自動拆的，少數卡鉗會跟著輪子轉，機車前叉不隨轉向轉動。實車只出現在車行、車庫與玩家座駕，不會進車流。
 - 車流是固定車道圖上的跟車模型，不會變換車道；車輛之間只有簡單的圓形碰撞。

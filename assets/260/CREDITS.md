@@ -40,3 +40,7 @@
 - CC-BY-NC-SA-4.0：https://creativecommons.org/licenses/by-nc-sa/4.0/ ——不可商用；這些衍生檔案以同一授權釋出。
 
 遊戲裡的看車與車庫對話也會顯示作者與授權。
+
+## 人物（內嵌在頁面裡，不在這個資料夾）
+
+街上、夜店、酒吧與車行裡的人物是 Quaternius 的 [Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) 男女底模與 [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) 動作（CC0），由 `games/260-neon-nightcity/blender/people.py` 重新分區材質、掛上髮型後壓縮成 `blender/out/people.glb`，打包時內嵌。
