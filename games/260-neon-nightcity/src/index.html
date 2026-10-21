@@ -51,6 +51,24 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes cashUp{0%{color:#fff;transform:scale(1.18)}100%{color:#ffcf6a;transform:none}}
 #cash.up{animation:cashUp .6s var(--ease-out);transform-origin:right center}
 
+/* 中央準星與右下武器欄（68-gta.js）：手槍在手才出現，瞄準時四條刻度收攏 */
+#xhair{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;opacity:0;transition:opacity var(--dur-hover) var(--ease-out)}
+#xhair.on{opacity:1}
+#xhair i{position:absolute;background:var(--ink);box-shadow:0 0 0 1px rgba(0,0,0,.55);transition:transform var(--dur-hover) var(--ease-out)}
+#xhair i:nth-child(1),#xhair i:nth-child(2){left:12px;width:2px;height:6px}
+#xhair i:nth-child(3),#xhair i:nth-child(4){top:12px;width:6px;height:2px}
+#xhair i:nth-child(1){top:0;transform:translateY(-4px)}#xhair i:nth-child(2){bottom:0;transform:translateY(4px)}
+#xhair i:nth-child(3){left:0;transform:translateX(-4px)}#xhair i:nth-child(4){right:0;transform:translateX(4px)}
+#xhair.aim i{transform:none}
+#xhair b{position:absolute;left:12px;top:12px;width:2px;height:2px;background:var(--ink);box-shadow:0 0 0 1px rgba(0,0,0,.55)}
+#weap{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));min-width:120px;padding:7px 12px 8px;text-align:right;display:none}
+#weap.on{display:block}
+#wName{display:block;font-size:11px;color:var(--ink-2)}
+#wAmmo{font-family:var(--cond);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.05}
+#wAmmo small{font-size:13px;color:var(--ink-2);font-weight:500}
+#wReload{display:block;height:2px;margin-top:5px;background:rgba(236,232,224,.14);border-radius:1px;overflow:hidden}
+#wReload span{display:block;height:100%;width:var(--r,0%);background:var(--sodium)}
+
 /* 左下：小地圖 */
 #mapBox{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));width:132px;height:132px;padding:6px;border-radius:14px}
 #mini{width:120px;height:120px;display:block}
@@ -151,13 +169,15 @@ body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #p
 #go:disabled::before{background:var(--sodium)}
 #go:disabled::after{content:attr(data-label);display:flex;align-items:center;justify-content:center;color:#1b1206}
 #bootMsg{display:block;margin-top:10px;font-size:12px;color:var(--ink-2);min-height:1.2em}
+#fanNote{display:block;margin-top:14px;font-size:11px;line-height:1.6;color:rgba(169,164,154,.75)}
 
 /* 觸控 */
 #touch{position:fixed;inset:0;pointer-events:none;display:none}
 body.touch #touch.on{display:block}
 #joy{position:absolute;left:max(22px,env(safe-area-inset-left));bottom:max(162px,calc(env(safe-area-inset-bottom) + 162px));width:116px;height:116px;border-radius:50%;background:rgba(12,14,18,.38);border:2px solid rgba(236,232,224,.18);pointer-events:auto;touch-action:none}
 #joyK{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(236,232,224,.32)}
-#tbtn{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(150px,calc(env(safe-area-inset-bottom) + 150px));display:grid;grid-template-columns:repeat(2,58px);gap:8px;pointer-events:auto}
+#tbtn{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(150px,calc(env(safe-area-inset-bottom) + 150px));display:grid;grid-template-columns:repeat(3,58px);gap:8px;pointer-events:auto}
+#tbtn button[data-k="Fire"]{background:rgba(120,24,30,.6)}
 #tbtn button{height:52px;border:0;border-radius:12px;background:rgba(12,14,18,.55);font-size:13px;font-weight:600;touch-action:none}
 #tbtn button.act{background:rgba(255,174,87,.42)}
 body.touch #capture{display:none}
@@ -198,7 +218,11 @@ body.touch #capture{display:none}
     <dt>滑鼠</dt><dd>環顧（點畫面鎖定游標）</dd>
     <dt>Shift</dt><dd>步行奔跑／開車氮氣</dd>
     <dt>Space</dt><dd>手煞車甩尾</dd>
-    <dt>F</dt><dd>上車／下車</dd>
+    <dt>F</dt><dd>上車／下車；靠近車流或路邊車：搶車、撬車</dd>
+    <dt>Tab</dt><dd>徒手／手槍</dd>
+    <dt>右鍵</dt><dd>瞄準（越肩視角）</dd>
+    <dt>左鍵</dt><dd>開槍／出拳（先點畫面鎖定游標）</dd>
+    <dt>R</dt><dd>換彈匣</dd>
     <dt>V</dt><dd>把座駕叫到身邊</dd>
     <dt>E</dt><dd>交談、開門、看車、改裝廠換色、停進車庫</dd>
     <dt>G</dt><dd>跳舞</dd>
@@ -211,19 +235,22 @@ body.touch #capture{display:none}
   <div id="marker"><span class="tag"><b id="mkName">LAZARUS</b><em id="mkDist">0 m</em></span><i></i></div>
   <div id="prompt"><kbd id="promptKey">E</kbd><span id="promptText">上車</span></div>
   <div id="toast"></div>
+  <div id="xhair" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="weap" class="pan" aria-label="武器"><small id="wName">手槍</small><b id="wAmmo">12 <small>/ 240</small></b><i id="wReload"><span></span></i></div>
   <div id="dl" class="pan" role="progressbar" aria-label="下載實車模型" aria-valuemin="0" aria-valuemax="100"><span>下載實車模型</span><b id="dlPct">0%</b><i></i></div>
   <div id="capture">點畫面鎖定游標，Esc 釋放</div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
-<div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button></div></div>
+<div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Aim">瞄準</button><button data-k="Fire">開火</button></div></div>
 <div id="map"><div id="mapIn"><canvas id="bigmap"></canvas><div id="mapList"><b>傳送</b><button data-t="club"><kbd>1</kbd>LAZARUS 門口</button><button data-t="clubIn"><kbd>2</kbd>LAZARUS 舞池</button><button data-t="barIn"><kbd>3</kbd>AFTERGLOW 酒吧</button><button data-t="garage"><kbd>4</kbd>CHROME WORKS</button><button data-t="dealer"><kbd>5</kbd>VELOCE MOTORS 車行</button><button data-t="home"><kbd>6</kbd>GARAGE 07 車庫</button><button data-t="car">回到座駕旁</button><small>M 或 Esc 關閉</small></div></div></div>
 <div id="fade"></div>
 <div id="start"><div id="startIn">
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>
   <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。甩尾賺錢，再去 VELOCE MOTORS 挑一台夢想中的車。</p>
-  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖</div>
+  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
+  <small id="fanNote">搶車、槍戰與車損玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。</small>
 </div></div>
 <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#07080b;color:#ece8e0">這件作品需要 JavaScript 與 WebGL。</p></noscript>
 <p class="sr">可開車探索的雨夜城市：程序生成的街區、霓虹招牌與全息廣告，可下車步行並進入酒吧與夜店。</p>

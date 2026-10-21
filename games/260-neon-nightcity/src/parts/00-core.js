@@ -196,7 +196,7 @@ void main(){
 }`;
 const UBER_FS = /* glsl */`
 ${GL_LIB}
-uniform vec4 uM;     // x 頭燈、y 煞車、z 自發光倍率、w 方向燈
+uniform vec4 uM;     // x 頭燈、y 煞車、z 自發光倍率、w 燒毀程度（爆炸後的殘骸）
 varying vec3 vW, vN, vCol; varying float vMat; varying vec4 vIns;
 void main(){
   if (vW.y < uClipY) discard;
@@ -227,6 +227,7 @@ void main(){
   else if (m == 11) { emi = vCol * 1.1 * uM.z; alb *= .3; }                  // 柔和自發光
   else if (m >= 12 && m <= 14) { float on = abs(vIns.x - float(m - 12)) < .5 ? 1. : 0.; emi = vCol * (.04 + on * 3.4); alb *= .15; } // 號誌燈
   else if (m == 15) { rough = .5; metal = .8; envK = .3; }                   // 生鐵
+  alb = mix(alb, vec3(.025, .022, .02), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; envK *= 1. - uM.w; emi *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y) * (1. - step(4., float(m)) * step(float(m), 9.));
   rough = mix(rough, rough*.35, wet); alb *= 1. - .3*wet;
   vec3 c = shade(vW, n, v, alb, rough, metal);

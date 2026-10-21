@@ -1,6 +1,7 @@
 
 // ═══ 城市：街區、建築立面、路面與人行道 ═══
 await bootStep(BOOT.city, '正在鋪路…');
+import PROPS_SPEC from '../../../../assets/260/props/props.json';
 const scene = new T.Scene();
 const LY = { MAIN: 0, NOREFL: 1 };     // 1 號圖層不進倒影（雨、蒸氣、小物件）
 const rnd = rng(20261019);
@@ -116,6 +117,50 @@ function backTowers(x0, x1, z0, z1, along) {
   }
 }
 blocks.forEach(makeLots);
+
+// ─── 實體建築：以 http(s) 開啟時，部分連續地塊合併換成 DanielZhabotinsky 建築組的模型（tools/props.mjs → assets/260/props/bld_*.glb，
+// 規格在 props.json）。這些地塊不建程式立面、不開店面；模型由 27-props.js 下載擺放，下載失敗再補回程式立面（lotFallback）。
+const BLD_ON = /^https?:$/.test(location.protocol);
+const bldPlace = [];   // { set, id, x, z, ry, s, lots }
+if (BLD_ON) {
+  const rb = rng(5150), pool = {};
+  for (const [set, v] of Object.entries(PROPS_SPEC)) if (set.startsWith('bld_')) pool[set] = Object.entries(v.items).map(([id, it]) => ({ id, ...it }));
+  const SETS = { 紅磚: ['bld_brown', 'bld_brown', 'bld_mid'], 舊碼: ['bld_ind', 'bld_ind', 'bld_brown'], 中城: ['bld_down', 'bld_down', 'bld_brown'], 霓虹: ['bld_brown', 'bld_down'] };
+  const PROB = { 紅磚: .6, 舊碼: .55, 中城: .55, 霓虹: .22 };
+  const rows = new Map();
+  for (const L of lots) { if (L.back) continue; const k = blocks.indexOf(L.b) + '|' + L.face + '|' + L.axis; if (!rows.has(k)) rows.set(k, []); rows.get(k).push(L); }
+  for (const row of rows.values()) {
+    const ax = row[0].axis, len = L => ax === 'z' ? L.x1 - L.x0 : L.z1 - L.z0, dep = ax === 'z' ? row[0].z1 - row[0].z0 : row[0].x1 - row[0].x0;
+    for (let i = 0; i < row.length; i++) {
+      if (row[i].special) continue;
+      const dk = district((row[i].x0 + row[i].x1) / 2, (row[i].z0 + row[i].z1) / 2).slice(0, 2), sets = SETS[dk] || SETS.中城;
+      if (rb() > (PROB[dk] ?? .45)) continue;
+      const list = pool[sets[Math.floor(rb() * sets.length)]];
+      if (!list) continue;
+      // 往後併入最多四塊地，找寬度比例最接近、深度放得下的一棟（等比縮放 0.85–1.18）
+      let best = null;
+      for (let j = i, W = 0; j < row.length && !row[j].special && j - i < 4; j++) {
+        W += len(row[j]);
+        for (const b of list) {
+          const s = W / b.w;
+          if (s < .85 || s > 1.18 || b.d * s > dep + 1.5 || b.d * s < dep * .5 || b.h < 4.5) continue;
+          const sc = Math.abs(Math.log(s)) + rb() * .2;
+          if (!best || sc < best.sc) best = { b, s, j, sc };
+        }
+      }
+      if (!best) continue;
+      const span = row.slice(i, best.j + 1), b = best.b, s = best.s, f = row[i].face, dd = b.d * s / 2;
+      const a0 = ax === 'z' ? span[0].x0 : span[0].z0, a1 = ax === 'z' ? span.at(-1).x1 : span.at(-1).z1, am = (a0 + a1) / 2;
+      const P = ax === 'z'
+        ? { x: am, z: f > 0 ? row[i].z1 - dd : row[i].z0 + dd, ry: f > 0 ? 0 : Math.PI }
+        : { x: f > 0 ? row[i].x1 - dd : row[i].x0 + dd, z: am, ry: f > 0 ? Math.PI / 2 : -Math.PI / 2 };
+      const set = Object.keys(pool).find(k => pool[k] === list);
+      bldPlace.push({ set, id: b.id, ...P, s, h: b.h * s, lots: span });
+      for (const L of span) L.glb = bldPlace.at(-1);
+      i = best.j;
+    }
+  }
+}
 
 // ─── 建築幾何：每個面一個四邊形，帶面寬、樣式、店面遮罩 ───
 const FACADE_VS = /* glsl */`
@@ -400,6 +445,7 @@ function boxFaces(B, x0, x1, z0, z1, y0, y1, seed, style, shopFaces, h, masks, r
 const shopSigns = [];      // 之後由招牌模組使用：{x,z,nx,nz,w,unit}
 const winSpots = [];       // 窗型冷氣、逃生梯
 for (const L of lots) {
+  if (L.glb) continue;
   const key = L.b && !L.b.outer ? `${L.b.i},${L.b.j}` : `o${Math.floor((L.x0 + 400) / 120)},${Math.floor((L.z0 + 400) / 120)}`;
   const B = buf(key);
   const shopF = {};
@@ -445,7 +491,7 @@ for (const L of lots) {
   if (L.style <= 2 && !L.back) winSpots.push(L);
 }
 const cityChunks = [];
-for (const [key, B] of chunkBuf) {
+function chunkMesh(B) {
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3));
   g.setAttribute('normal', new T.Float32BufferAttribute(B.n, 3));
@@ -456,6 +502,14 @@ for (const [key, B] of chunkBuf) {
   g.computeBoundingSphere();
   const m = new T.Mesh(g, MAT_FACADE); m.matrixAutoUpdate = false;
   scene.add(m); cityChunks.push(m);
+  return m;
+}
+for (const B of chunkBuf.values()) chunkMesh(B);
+// 實體建築下載失敗：那幾塊地補回程式立面（沒有店面與招牌）
+function lotFallback(list) {
+  const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [] };
+  for (const L of list) { L.glb = null; boxFaces(B, L.x0, L.x1, L.z0, L.z1, 0, L.h, L.seed, L.style, null, L.h, null); }
+  if (B.idx.length) chunkMesh(B);
 }
 
 // 遠方天際線：一圈更高的塔樓

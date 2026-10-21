@@ -169,6 +169,41 @@ async function desktop() {
     });
     check(dr.won > 0 && dr.lost === 0, `甩尾 1.5 秒打賞 $${dr.won}，撞車那段不算`);
 
+    // GTA 式擴充第一階段：換武器、撬車、搶車、開槍與換彈、打到冒煙與爆炸、路人倒地與逃跑
+    await nc(() => window.__nc.walk());
+    await page.keyboard.press('Tab');
+    check((await nc(() => window.__nc.gta.state.weapon)) === 'pistol', 'Tab 換成手槍');
+    const pk = await nc(() => { const nc = window.__nc, c = nc.parked[0]; nc.tp(c.x + Math.cos(c.yaw) * 2.1, c.z - Math.sin(c.yaw) * 2.1, 0); return c.type; });
+    await page.waitForTimeout(150);
+    check(/撬車/.test((await nc(() => window.__nc.ctx())) || ''), `路邊車旁出現「撬車」（${pk}）`);
+    await page.keyboard.press('KeyF');
+    await page.waitForTimeout(2300);
+    const j1 = await nc(() => ({ mode: window.__nc.player.mode, kind: window.__nc.player.veh && window.__nc.player.veh.kind, parts: window.__nc.gta.parts.length }));
+    check(j1.mode === 'drive' && j1.kind === 'jack', `撬開路邊車開走 ${JSON.stringify(j1)}`);
+    await nc(() => window.__nc.walk());
+    const j2 = await nc(() => { const nc = window.__nc, c = nc.traffic.find(o => !o.turn) || nc.traffic[0]; c.v = 0; c.hit = 5; return nc.gta.jack(false); });
+    await page.waitForTimeout(700);
+    check((await nc(() => window.__nc.gta.extras.some(e => e.on))), `搶車流的車，駕駛被拖下車（${j2}）`);
+    await page.waitForTimeout(900);
+    check((await nc(() => window.__nc.player.mode)) === 'drive', '搶到車並坐進駕駛座');
+    await nc(() => window.__nc.walk());
+    await page.waitForTimeout(100);
+    await nc(() => { window.__nc.gta.fire(); });
+    const g1 = await nc(() => ({ mag: window.__nc.gta.state.mag, fx: window.__nc.gta.fxLights.length + window.__nc.gta.parts.length }));
+    check(g1.mag === 11 && g1.fx > 0, `開一槍：彈匣 ${g1.mag}、粒子與閃光 ${g1.fx}`);
+    await page.keyboard.press('KeyR');
+    await page.waitForTimeout(1500);
+    check((await nc(() => window.__nc.gta.state.mag)) === 12, '按 R 換彈匣');
+    const boom = await nc(() => new Promise((r) => {
+      const nc = window.__nc, v = nc.gta.jacked[0];
+      nc.gta.damage(v, 600);
+      setTimeout(() => { const smoke = nc.gta.parts.filter(p => p.kind === 'smoke').length; nc.gta.damage(v, 900); setTimeout(() => r({ smoke, dead: !!v.dead, burn: v.burn, dark: nc.gta.parts.filter(p => p.kind === 'dark').length }), 300); }, 800);
+    }));
+    check(boom.smoke > 0 && boom.dead && boom.burn === 1 && boom.dark > 0, `打到冒煙再爆炸 ${JSON.stringify(boom)}`);
+    const ped = await nc(() => { const nc = window.__nc; nc.gta.knockPed(0, 1, 0); return { down: nc.pedState[0].down > 0, panic: nc.pedState.filter(p => p.panic > 0).length }; });
+    check(ped.down, `路人中彈倒地，附近 ${ped.panic} 人逃跑`);
+    await shot(page, 'd-gta');
+
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
     console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);
     check(!log.pageerrors.length && !log.errors.length, `無錯誤 ${[...log.pageerrors, ...log.errors].slice(0, 3).join(' | ')}`);

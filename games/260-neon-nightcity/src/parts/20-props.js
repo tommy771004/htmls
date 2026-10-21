@@ -438,7 +438,7 @@ for (const su of shopUnits) {
 // 屋頂與牆面大型廣告
 const billboards = [];
 {
-  const cand = lots.filter(L => !L.back && !L.special && L.style !== 3 && L.h < 30 && L.b && !L.b.outer && (L.x1 - L.x0) > 9);
+  const cand = lots.filter(L => !L.back && !L.special && !L.glb && L.style !== 3 && L.h < 30 && L.b && !L.b.outer && (L.x1 - L.x0) > 9);
   const neonC = cand.filter(L => district((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2).startsWith('霓虹'));
   const pick = [...neonC.sort(() => r3() - .5).slice(0, 9), ...cand.sort(() => r3() - .5).slice(0, 5)];
   pick.forEach((L, k) => {

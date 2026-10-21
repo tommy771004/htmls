@@ -198,6 +198,11 @@ const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
   S.add(home.cars);
   home.baseN = home.circles.length;
 }
+// 最裡面那一格的雙柱升降機與旁邊的工具推車（http(s) 下走進車庫才下載，27-props.js）
+propSwap('home', null, 'carlift', [{ x: 0, z: 24.2 + GK, ry: Math.PI / 2 }], homeScene,
+  () => home.boxes.push({ x0: -2.1, x1: -1.45, z0: 23.7 + GK, z1: 24.7 + GK }, { x0: 1.45, x1: 2.1, z0: 23.7 + GK, z1: 24.7 + GK }));
+propSwap('home', null, 'toolcart', [{ x: 2.3, z: 22.6 + GK, ry: -Math.PI / 2 }], homeScene,
+  () => home.boxes.push({ x0: 1.8, x1: 2.8, z0: 22.25 + GK, z1: 22.95 + GK }));
 home.lights.push(
   ...Array.from({ length: Math.ceil((GD - 4) / 5) }, (_, i) => ({ x: 0, y: 3.9, z: 4 + i * 5, col: lin(0xe8f2ff), r: 11, i: 2 })),
   { x: -6.2, y: 2.4, z: 25.6 + GK, col: lin(0xffd0a0), r: 5, i: 1 },

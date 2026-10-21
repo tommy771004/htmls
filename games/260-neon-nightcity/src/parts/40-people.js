@@ -158,7 +158,8 @@ const charMat = () => new T.ShaderMaterial({
   uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uGlow: { value: new T.Vector4() } },
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
-const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15 };
+const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -166,10 +167,15 @@ const ACLIP = {
   [ANIM.sit]: { c: 'Sitting_Idle_Loop', alt: 'Sitting_Talking_Loop' }, [ANIM.bartend]: { c: 'Idle_Loop' }, [ANIM.umbrella]: { c: 'Walk_Loop', rate: 1.3 },
   [ANIM.dj]: { c: 'Idle_Loop' }, [ANIM.cross]: { c: 'Idle_Loop' }, [ANIM.talk]: { c: 'Idle_Talking_Loop' }, [ANIM.ride]: { c: 'Driving_Loop' },
   [ANIM.punch]: { c: 'Punch_Cross', beat: 2, alt: 'Punch_Jab' }, [ANIM.smoke]: { c: 'Idle_Loop' },
+  // 68-gta.js 用的單次動作（once：相位是開始的時刻，播完停在最後一格；rev：倒著播，倒地動畫倒放當作爬起來）
+  [ANIM.die]: { c: 'Death01', once: 1, rate: 1.3 }, [ANIM.getup]: { c: 'Death01', once: 1, rev: 1, rate: 1.9 }, [ANIM.jab]: { c: 'Punch_Jab', once: 1, rate: 1.3 },
+  [ANIM.interact]: { c: 'Interact', once: 1, rate: 1.2 }, [ANIM.crouch]: { c: 'Crouch_Idle_Loop' },
+  [ANIM.aimIdle]: { c: 'Pistol_Idle_Loop' }, [ANIM.aimWalk]: { c: 'Walk_Loop', rate: 1.3 },
 };
 const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
   const a = ACLIP[id] || ACLIP[0], d = PEOPLE.clips.get(name).duration;
+  if (a.once) { const u = clamp(t * (a.rate || 1), 0, d - 1e-3); return a.rev ? d - 1e-3 - u : u; }
   const u = a.beat ? (b + (a.off || 0)) / a.beat * d : t * (a.rate || 1);
   return ((u % d) + d) % d;
 }
@@ -184,6 +190,11 @@ function aim(p, name, x, y, z, w = 1) {
   _q3.setFromUnitVectors(_v1, _v2);
   if (w < 1) _q3.slerp(_qi, 1 - w);
   bone.quaternion.copy(_q1.invert().multiply(_q3.multiply(_q2)));
+}
+function aimArms(p) {
+  const k = p.aimK ?? 1, P = p.aimP ?? 0, sy = Math.sin(P), cz = Math.cos(P);
+  aim(p, 'upperarm_r', -.1, sy, cz, k); aim(p, 'lowerarm_r', -.02, sy, cz, k);
+  aim(p, 'upperarm_l', -.42, sy - .32, .85, k); aim(p, 'lowerarm_l', -.8, sy * .6 + .05, .6, k);
 }
 const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const frac = x => x - Math.floor(x);
@@ -224,6 +235,8 @@ const OVR = {
     aim(p, 'upperarm_l', .35, 1, .1); aim(p, 'upperarm_r', -.35, 1, .1);
     aim(p, 'lowerarm_l', -.2 + k, 1, .2); aim(p, 'lowerarm_r', .2 + k, 1, .2);
   },
+  // 持槍瞄準：右臂沿準星的俯仰伸直，左手過來托住（p.aimP 是俯仰角、p.aimK 是瞄準的混合比例，68-gta.js 每幀設定）
+  [ANIM.aimIdle]: p => aimArms(p), [ANIM.aimWalk]: p => aimArms(p),
   [ANIM.danceC]: (p, t, b) => {
     const k = Math.sin(b * Math.PI);
     aim(p, 'upperarm_l', .9, -.2 + .6 * Math.max(0, k), .4); aim(p, 'upperarm_r', -.9, -.2 + .6 * Math.max(0, -k), .4);
@@ -418,7 +431,15 @@ function pedPos(ps) {
 function updatePeds(dt) {
   let u = 0;
   pedState.forEach((ps, k) => {
-    ps.s += ps.v * ps.dir * dt;
+    // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
+    if (ps.down > 0) {
+      ps.down -= dt;
+      peds.place(k, ps.dpos[0], groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);
+      if (ps.down <= 0) { ps.s = rP() * ps.per; ps.dx = ps.dz = 0; ps.panic = 0; peds.anim(k, ps.um ? ANIM.umbrella : ANIM.walk, rP() * 10, ps.v * .78); }
+      return;
+    }
+    if (ps.panic > 0) { ps.panic -= dt; if (ps.panic <= 0) peds.anim(k, ps.um ? ANIM.umbrella : ANIM.walk, rP() * 10, ps.v * .78); }
+    ps.s += (ps.panic > 0 ? 4.4 : ps.v) * ps.dir * dt;
     let [x, z, tx, tz] = pedPos(ps);
     tx *= ps.dir; tz *= ps.dir;
     // 被玩家逼近時往旁邊閃
@@ -432,7 +453,7 @@ function updatePeds(dt) {
     x += ps.dx; z += ps.dz;
     const yaw = Math.atan2(tx, tz);
     peds.place(k, x, .15, z, yaw);
-    if (ps.um) {
+    if (ps.um && !(ps.panic > 0)) {
       // 傘柄握在右手（手的位置在上次擺姿勢時記在角色空間）
       const p = peds.people[k], h = p.handL, sc = p.s, c = Math.cos(yaw), s = Math.sin(yaw);
       _o.position.set(x + (h.x * c + h.z * s) * sc, .15 + h.y * sc + .92, z + (h.z * c - h.x * s) * sc);
@@ -458,14 +479,21 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 相機的前方 = (sin yaw, cos yaw)；右方 = (-cos, sin)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw), rx = -fz, rz = fx;
   const wx = fx * mz + rx * mx, wz = fz * mz + rz * mx;
-  const run = inp.run && ml > .1;
-  const target = ml > .05 ? (run ? 4.6 : 1.7) * Math.min(1, ml) : 0;
+  const aimM = gta.aiming, run = inp.run && ml > .1 && !aimM;
+  const target = ml > .05 ? (run ? 4.6 : aimM ? 1.5 : 1.7) * Math.min(1, ml) : 0;
   player.v = damp(player.v, target, target > player.v ? 6 : 10, dt);
-  if (ml > .05) {
+  let mdx = Math.sin(player.yaw), mdz = Math.cos(player.yaw);
+  if (aimM) {
+    // 瞄準時身體對著準星，移動方向照搖桿（側移、後退）
+    player.yaw += wrapA(camYaw - player.yaw) * (1 - Math.exp(-18 * dt));
+    if (ml > .05) { const l = Math.hypot(wx, wz); player.mvx = wx / l; player.mvz = wz / l; }
+    mdx = player.mvx || 0; mdz = player.mvz || 0;
+  } else if (ml > .05) {
     const ty = Math.atan2(wx, wz);
     player.yaw += wrapA(ty - player.yaw) * (1 - Math.exp(-12 * dt));
+    mdx = Math.sin(player.yaw); mdz = Math.cos(player.yaw);
   }
-  const nx = player.x + Math.sin(player.yaw) * player.v * dt, nz = player.z + Math.cos(player.yaw) * player.v * dt;
+  const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
   let r = collideCircle(nx, nz, .32, false);
   let x = r.x, z = r.z;
   // 車流與座駕也會擋路
@@ -478,16 +506,18 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 動作混合
   const sp = player.v;
   let a = sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][player.dance - 1] : ANIM.idle;
+  if (aimM) a = sp > .25 ? ANIM.aimWalk : ANIM.aimIdle;
   if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }
   player.blend = Math.max(0, player.blend - dt * 5);
-  const rate = a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk ? sp / 1.7 * .9 : 1;
+  const back = aimM && mdx * Math.sin(player.yaw) + mdz * Math.cos(player.yaw) < -.3 ? -1 : 1;   // 瞄準時往後退：走路動畫倒著播
+  const rate = a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * .9 * back : 1;
   player.walkPh += dt * rate;
   me.anim(0, a, player.walkPh - uTimeNow(), 1, 0);
   me.anim2(0, player.prevAnim, player.blend, 1);
   me.place(0, player.x, player.y, player.z, player.yaw);
   me.flush();
   // 腳步聲
-  if (a === ANIM.walk || a === ANIM.run) {
+  if (a === ANIM.walk || a === ANIM.run || a === ANIM.aimWalk) {
     const ph = player.walkPh * 2;
     if (Math.floor(ph) !== Math.floor(player.stepT)) sfx.step(a === ANIM.run, player.where !== 'out');
     player.stepT = ph;

@@ -84,11 +84,11 @@ for (const [id, o] of GLB_CARS) {
 
 // ─── 材質 ───
 const GLB_VS = /* glsl */`
-attribute vec4 color; attribute vec4 _pbr; attribute vec4 _emi;
-varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv;
+attribute vec4 color; attribute vec4 _pbr; attribute vec4 _emi; attribute float _win;
+varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying float vWin;
 void main(){
   vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);
-  vCol = color; vPbr = _pbr; vEmi = _emi;
+  vCol = color; vPbr = _pbr; vEmi = _emi; vWin = _win;
   #ifdef USE_MAP
   vUv = uv;
   #else
@@ -98,8 +98,8 @@ void main(){
 }`;
 const GLB_FS = /* glsl */`
 ${GL_LIB}
-uniform vec4 uM, uPaint; uniform sampler2D uMap, uEmiMap;
-varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv;
+uniform vec4 uM, uPaint; uniform sampler2D uMap, uEmiMap, uWinMap;
+varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying float vWin;
 void main(){
   if (vW.y < uClipY) discard;
   if (uFocus.w > 0.) {
@@ -124,6 +124,8 @@ void main(){
   float rough = clamp(vPbr.x, .05, 1.), metal = clamp(vPbr.y, 0., 1.), coat = vPbr.z;
   // 很多模型把金屬漆標成 metallic 1；夜城的環境光很暗，全金屬會整台變黑，所以只有很光滑的（鍍鉻）才保留全金屬
   metal = min(metal, mix(.5, 1., step(rough, .15)));
+  // uM.w：燒毀程度（68-gta.js 的爆炸），車身變成焦黑、不再反光發光
+  base.rgb = mix(base.rgb, vec3(.03, .026, .022), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; coat *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y);
   rough = mix(rough, rough * .4, wet);
   vec3 c = shade(vW, n, v, base.rgb, rough, metal);
@@ -137,12 +139,23 @@ void main(){
     float rr = coat > .3 ? min(rough, .25) : rough;
     c += envMap(r) * envK * mix(vec3(max(F, coat * .1)), base.rgb, metal) * (1. - rr * .9);
   }
+  #ifdef USE_WINMAP
+  // 建築組的窗戶編號貼圖（props.mjs 的 winTex：R＝玻璃、G＝這扇窗的編號）：每扇窗依編號、貼圖重複的第幾格與 _WIN（同一面牆同一層）
+  // 決定亮不亮，顏色和程式立面的窗燈同一套。編號取第 0 層 mip，遠處不會混到隔壁窗的編號
+  if (texture2D(uWinMap, vUv).r > .5) {
+    vec2 cell = vec2(floor(textureLod(uWinMap, vUv, 0.).g * 255. + .5), dot(floor(vUv), vec2(7., 13.)));
+    float hs = h21(cell + vWin * 97.13), hs2 = h21(cell * 1.7 + vWin * 31.7);
+    vec3 lc = hs2 < .55 ? vec3(1.,.66,.36) : hs2 < .8 ? vec3(.8,.86,1.) : hs2 < .92 ? vec3(1.,.4,.65) : vec3(.4,.6,1.);
+    float lit = step(hs, uLit * 1.1);
+    c = c * .4 + lc * (.25 + .9 * dot(base.rgb, vec3(.33))) * (lit * 1.6 + .015);
+  }
+  #endif
   vec3 emi = vEmi.rgb / max(1., max(vEmi.r, max(vEmi.g, vEmi.b)));   // 有些模型的 emissive_strength 很大，壓回 0–1 再交給燈種倍率
   #ifdef USE_EMIMAP
   emi *= texture2D(uEmiMap, vUv).rgb;
   #endif
   float k = vEmi.a;
-  c += emi * 1.6 * (k > 1.5 ? .5 + uM.y * 2.4 : k > .5 ? .35 + uM.x * 1.4 : uM.z);
+  c += emi * 1.6 * (k > 1.5 ? .5 + uM.y * 2.4 : k > .5 ? .35 + uM.x * 1.4 : uM.z) * (1. - uM.w);
   #ifdef BLEND
   gl_FragColor = vec4(applyFog(c, vW), clamp(base.a + (1. - max(dot(n, v), 0.)) * .25, 0., 1.));
   #else
@@ -155,8 +168,9 @@ function glbMaterial(src, inst) {
   if (src.emissiveMap) defines.USE_EMIMAP = '';
   if (src.transparent) defines.BLEND = ''; else if (src.alphaTest > 0) defines.MASK = '';
   if (src.side === T.DoubleSide) defines.DOUBLE = '';
+  if (src.metalnessMap) defines.USE_WINMAP = '';   // 只有 props.mjs 的建築組會留金屬粗糙貼圖（窗戶遮罩）
   return new T.ShaderMaterial({
-    uniforms: { ...shared(ALLU), uM: inst.uM, uPaint: inst.uPaint, uMap: { value: src.map || null }, uEmiMap: { value: src.emissiveMap || null } },
+    uniforms: { ...shared(ALLU), uM: inst.uM, uPaint: inst.uPaint, uMap: { value: src.map || null }, uEmiMap: { value: src.emissiveMap || null }, uWinMap: { value: src.metalnessMap || null } },
     vertexShader: GLB_VS, fragmentShader: GLB_FS, defines, side: src.side,
     transparent: !!src.transparent, depthWrite: !src.transparent,
   });
@@ -179,7 +193,7 @@ const glbBytes = {}, glbDone = new Set();
 function glbFrac(ids) {
   let got = 0, all = 0;
   for (const id of ids) {
-    const tot = (GLB_SPEC[id] ? GLB_SPEC[id].kb : 1000) * 1024, b = glbBytes[id];
+    const tot = (GLB_SPEC[id] ? GLB_SPEC[id].kb : PROPS_SPEC[id.slice(2)] ? PROPS_SPEC[id.slice(2)].kb : 1000) * 1024, b = glbBytes[id];
     all += tot; got += glbDone.has(id) ? tot : b ? tot * Math.min(1, b[0] / (b[1] || tot)) : 0;
   }
   return all ? got / all : 1;

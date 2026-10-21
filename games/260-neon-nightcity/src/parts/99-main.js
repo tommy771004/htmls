@@ -10,7 +10,7 @@ const touch = { jx: 0, jz: 0, look: null };
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   keys[e.code] = true;
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
   if (e.repeat || !started) return;
   sfx.init();
   onKey(e.code);
@@ -27,6 +27,7 @@ function onKey(code) {
   if (code === 'KeyM') { toggleMap(); return; }
   if (code === 'Escape') { toggleMap(false); return; }
   if ($('map').classList.contains('on')) return;
+  if (gtaKey(code)) return;
   if (code === 'KeyH') $('help').classList.toggle('on');
   if (code === 'KeyC') camState.far = (camState.far + 1) % 3;
   if (code === 'Digit1') teleport('club');
@@ -48,6 +49,7 @@ function onKey(code) {
 // V：把目前的座駕叫到最近的車道上並直接上車（停在車庫裡的也會開出來）
 function summonCar() {
   motors.stowed = false; kestrel.g.visible = true;
+  if (kestrel.dead) { kestrel.dead = 0; kestrel.burn = 0; kestrel.hp = 1000; toast(`${kestrel.name} 修好送過來了`); }
   let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(player.x - avX(i)); if (d < bd) { bd = d; bi = i; } }
   let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(player.z - stZ(j)); if (d < be) { be = d; bj = j; } }
   if (bd < be) { const s = player.x < avX(bi) ? -1 : 1; kestrel.x = avX(bi) + s * LANE; kestrel.z = clamp(player.z, stZ(0) + 12, stZ(NZ) - 12); kestrel.yaw = s < 0 ? 0 : Math.PI; }
@@ -89,8 +91,8 @@ if (isTouch) {
   cvs.addEventListener('pointerup', lend); cvs.addEventListener('pointercancel', lend);
   document.querySelectorAll('#tbtn button').forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = true; else onKey(k); });
-    const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = true; else if (k === 'Fire') { gta.hold = true; if (gta.weapon === 'fist' && canFight()) punch(); } else onKey(k); });
+    const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; if (k === 'Fire') gta.hold = false; };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
   });
 }
@@ -139,10 +141,11 @@ function updateCamera(dt, spd) {
     tx = p.x; ty = p.y + 1.55; tz = p.z;
     dist = [3.4, 5.2, 2.4][camState.far];
     if (p.where !== 'out') dist = Math.min(dist, 3.2);
+    dist = lerp(dist, 1.75, gta.aimK);   // 瞄準：拉近成越肩視角（68-gta.js）
   }
   const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
   _cd.set(Math.sin(camState.yaw) * cp, -sp, Math.cos(camState.yaw) * cp);
-  const sx = inV ? 0 : .38;
+  const sx = inV ? 0 : .38 + gta.aimK * .3;
   const rx = -Math.cos(camState.yaw), rz = Math.sin(camState.yaw);
   let wx = tx - _cd.x * dist + rx * sx, wz = tz - _cd.z * dist + rz * sx, wy = ty - _cd.y * dist;
   // 撞牆就把相機往角色拉近
@@ -164,7 +167,7 @@ function updateCamera(dt, spd) {
   _ct.set(tx, ty + (inV ? .2 : 0), tz);
   U.uFocus.value.set(tx, ty, tz, inV ? 0 : 1);
   camera.lookAt(_ct.x + rx * sx * .6, _ct.y, _ct.z + rz * sx * .6);
-  const fov = 62 + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0);
+  const fov = 62 + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12;
   camState.fov = damp(camState.fov, fov, 4, dt);
   if (Math.abs(camera.fov - camState.fov) > .01) { camera.fov = camState.fov; camera.updateProjectionMatrix(); }
 }
@@ -192,6 +195,8 @@ function pickLights(t) {
       dynLights.push({ x: c.x + fx * L2, y: .8, z: c.z + fz * L2, col: HEAD_COL, r: 22, i: 2, dir: [fx, -.1, fz], cos: .8 });
       if (TYPES[c.type].police) dynLights.push({ x: c.x, y: 1.8, z: c.z, col: Math.sin(t * 12) > 0 ? POL_R : POL_B, r: 14, i: 2.2 });
     }
+    // 爆炸、起火與槍口閃光（68-gta.js），亮度隨時間衰減
+    for (const l of fxLights.slice(-3)) dynLights.push({ x: l.x, y: l.y, z: l.z, col: l.col, r: l.r, i: l.i * (1 - l.life / l.max) });
     const n = Math.max(0, NL - dynLights.length);
     L.push(...dynLights, ...lightPick.slice(0, n));
   } else {
@@ -230,6 +235,7 @@ function step(dt) {
   U.uTime.value = t;
   U.uBeat.value = sfx.beat();
   readInput();
+  gtaPre(dt);
   let spd = 0;
   const out = player.where === 'out';
   if (out) {
@@ -247,6 +253,7 @@ function step(dt) {
     const r = driveVehicle(v, inp, dt);
     v.vmax = vmax0; v.eng = eng0;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
+    gta.lastImp = r.imp;
     spd = Math.abs(r.vF) * 3.6;
     driftTick(dt, v, r.imp, spd);
     if (!v.isCar) { me.anim(0, ANIM.ride, 0, 1); me.anim2(0, 0, 0); _o.position.set(0, 0, 0); placeRider(v); }
@@ -260,6 +267,7 @@ function step(dt) {
     sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: 0, gear: 1, thr: 0, slip: 0, nitro: false });
   }
   updateMotors(dt, t);
+  gtaUpdate(dt);
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {
     quest.danceT += dt;
@@ -268,6 +276,7 @@ function step(dt) {
   updateWeather(dt, t);
   updateCamera(dt, spd);
   updateCrowds(curScene);
+  gtaLate();
   // 雨絲依相機速度傾斜
   if (step.lastCam) rainU.uVel.value.subVectors(camera.position, step.lastCam).divideScalar(Math.max(dt, 1e-3)).clampLength(0, 40);
   (step.lastCam ||= V3()).copy(camera.position);
@@ -297,11 +306,13 @@ function loop(now) {
 setWhere('out');
 setQuest(0);
 camState.yaw = player.yaw = 0.35;
-// 等座駕與路邊機車的實車模型下載完再開放進場（手機也一樣等）；以檔案開啟不下載。卡住超過 60 秒就先用替身進場，下載好再換
+// 等座駕與路邊機車的實車模型、街上的實體建築與拉麵攤下載完再開放進場（手機也一樣等）；以檔案開啟不下載。
+// 卡住超過 60 秒就先用替身進場，下載好再換
 if (GLB_ON) {
-  const want = [...new Set([kestrel.carId, hanzo.carId])].filter(id => CARS[id] && CARS[id].glb);
-  await bootStep(BOOT.dl, '下載座駕的實車模型…');
-  let fin = false; Promise.all(want.map(loadGLB)).then(() => { fin = true; });
+  const cars = [...new Set([kestrel.carId, hanzo.carId])].filter(id => CARS[id] && CARS[id].glb);
+  const want = [...cars, ...bldSets.map(s => 'p:' + s), ...(ramenSpots.length ? ['p:ramen'] : [])];
+  await bootStep(BOOT.dl, '下載座駕與街區建築的模型…');
+  let fin = false; Promise.all([...cars.map(loadGLB), bldReady, ramenReady]).then(() => { fin = true; });
   for (const t0 = performance.now(); !fin && performance.now() - t0 < 60000;) {
     bootProgress(BOOT.dl + (99 - BOOT.dl) * glbFrac(want));
     await new Promise(r => setTimeout(r, 100));
@@ -321,7 +332,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
-  ready: true, scene, camera, renderer: R, player, quest, traffic, vehicles, U, post, assets: assetReport,
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots }, gta: gtaApi,
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },

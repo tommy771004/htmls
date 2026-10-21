@@ -306,8 +306,10 @@ const bar = { boxes: [], circles: [], lights: [], people: null };
   k.box(6.9, 1.9, 8, .05, 2.4, 9.6, 0xffa040, 11);
   instancedIn(S, prop('bar_stool'), MAT.uber, [3.8, 5.2, 6.6, 8, 9.4, 10.8, 12.2].map(z => ({ x: 2.9, z })));
   for (const z of [3.8, 5.2, 6.6, 9.4, 10.8, 12.2]) bar.circles.push({ x: 2.9, z, r: .28 });
-  instancedIn(S, prop('jukebox'), MAT.uber, [{ x: -5.2, z: 15.4, ry: Math.PI }]);
-  instancedIn(S, prop('arcade_cab'), MAT.uber, [{ x: -6.4, z: 12.4, ry: Math.PI / 2 }, { x: -6.4, z: 13.6, ry: Math.PI / 2 }]);
+  // 點唱機與街機：http(s) 下走進來才換成實體模型（27-props.js）
+  const JUKE = [{ x: -5.2, z: 15.4, ry: Math.PI }], ARC = [{ x: -6.4, z: 12.4, ry: Math.PI / 2 }, { x: -6.4, z: 13.6, ry: Math.PI / 2 }];
+  propSwap('bar', instancedIn(S, prop('jukebox'), MAT.uber, JUKE), 'jukebox', JUKE);
+  propSwap('bar', instancedIn(S, prop('arcade_cab'), MAT.uber, ARC), 'arcade', ARC);
   B.push({ x0: -6, x1: -4.4, z0: 14.8, z1: 16 }, { x0: -7, x1: -5.8, z0: 11.8, z1: 14.2 });
   // 小圓桌與椅子
   for (const [x, z] of [[-4.6, 4], [-4.6, 8], [-1.4, 11]]) {
@@ -439,6 +441,7 @@ function setWhere(w) {
   curScene = w === 'out' ? scene : VENUES[w].scene;
   curScene.add(me.mesh);
   applyEnv(ENV[w]);
+  propWake(w);
   if (w === 'out') { activeBoxes = colliders; activeCircles = circles; }
   else { const v = VENUES[w].data; activeBoxes = v.boxes; activeCircles = v.circles; }
   rainMesh.visible = splashMesh.visible = w === 'out';
@@ -489,7 +492,7 @@ function contextAction() {
     if (near(BOUNCER.x, BOUNCER.z, 2.4)) return { key: 'E', text: '跟 Marlo 說話', fn: talkMarlo };
     if (near(CLUB_X, CLUB_Z + .6, 1.6)) return quest.n >= 3 ? { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') } : { key: 'E', text: '門鎖著 <i>· 先跟門口的人談</i>', fn: () => toast('Marlo 擋在門前') };
     if (near(BAR_X - 4.6, BAR_Z + .6, 1.6)) return { key: 'E', text: '進入 AFTERGLOW', fn: () => enterVenue('bar') };
-    for (const v of vehicles) if (Math.hypot(p.x - v.x, p.z - v.z) < (v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `上車 <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
+    for (const v of vehicles) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < (v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `上車 <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
   } else if (p.where === 'bar') {
     if (near(BAR_EXIT.x, BAR_EXIT.z, 1.5)) return { key: 'E', text: '回到街上', fn: exitVenue };
     if (near(JUNO.x, JUNO.z, 1.8)) return { key: 'E', text: '跟 Juno 說話', fn: talkJuno };

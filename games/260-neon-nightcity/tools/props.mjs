@@ -81,6 +81,7 @@ function collect(doc) {
   });
   return prims;
 }
+const seedOf = (id) => [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7) / 9973;
 const bbox = (prims) => {
   const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
   for (const p of prims) for (let i = 0; i < p.cnt; i++) for (let k = 0; k < 3; k++) { const v = p.pos[i * 3 + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; }
@@ -116,18 +117,46 @@ async function build(set) {
     if (!texCache.has(t)) texCache.set(t, out.createTexture(t.getName()).setImage(t.getImage()).setMimeType(t.getMimeType()));
     return texCache.get(t);
   };
-  const mkMat = (m, win) => {
+  const mkMat = async (m, win) => {
     if (matCache.has(m)) return matCache.get(m);
     const blend = m && m.getAlphaMode() === 'BLEND', mask = m && m.getAlphaMode() === 'MASK';
     const n = out.createMaterial(m ? m.getName() : 'flat').setBaseColorFactor([1, 1, 1, 1]).setMetallicFactor(0).setRoughnessFactor(1).setDoubleSided(!!(m && m.getDoubleSided()));
     if (blend) n.setAlphaMode('BLEND'); else if (mask) n.setAlphaMode('MASK').setAlphaCutoff(m.getAlphaCutoff());
     if (m && m.getBaseColorTexture()) n.setBaseColorTexture(copyTex(m.getBaseColorTexture()));
     if (m && m.getEmissiveTexture()) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);
-    if (win && m && m.getMetallicRoughnessTexture()) n.setMetallicRoughnessTexture(copyTex(m.getMetallicRoughnessTexture()));
+    // 窗戶遮罩只給不透明的牆面材質（逃生梯欄杆之類的鏤空貼圖也是洋紅，會被誤點亮）
+    if (win && !blend && !mask && m && m.getMetallicRoughnessTexture()) n.setMetallicRoughnessTexture(await winTex(m.getMetallicRoughnessTexture()));
     matCache.set(m, n); return n;
   };
+  // 窗戶編號貼圖：R＝玻璃（原遮罩的洋紅），G＝這扇窗的亂數。遮罩膨脹 2 px 再找連通區，同一扇窗的上下兩片玻璃算同一扇；
+  // G 填滿膨脹後的整塊，玻璃邊緣做雙線性取樣時編號也不會混到隔壁
+  const winTex = async (t) => {
+    if (texCache.has(t)) return texCache.get(t);
+    const S = 256, { data } = await sharp(Buffer.from(t.getImage())).resize(S, S, { fit: 'fill' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const glass = new Uint8Array(S * S), dil = new Uint8Array(S * S), lab = new Int32Array(S * S).fill(-1);
+    for (let i = 0; i < S * S; i++) glass[i] = data[i * 4] > 128 && data[i * 4 + 2] > 128 && data[i * 4 + 1] < 128 ? 1 : 0;
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      if (!glass[y * S + x]) continue;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < S && Y < S) dil[Y * S + X] = 1; }
+    }
+    let n = 0;
+    for (let i = 0; i < S * S; i++) {
+      if (!dil[i] || lab[i] >= 0) continue;
+      const st = [i]; lab[i] = n;
+      while (st.length) {
+        const j = st.pop(), x = j % S, y = (j / S) | 0;
+        for (const k of [x > 0 ? j - 1 : -1, x < S - 1 ? j + 1 : -1, y > 0 ? j - S : -1, y < S - 1 ? j + S : -1]) if (k >= 0 && dil[k] && lab[k] < 0) { lab[k] = n; st.push(k); }
+      }
+      n++;
+    }
+    const px = Buffer.alloc(S * S * 3);
+    for (let i = 0; i < S * S; i++) { px[i * 3] = glass[i] ? 255 : 0; px[i * 3 + 1] = lab[i] < 0 ? 0 : 1 + ((lab[i] * 157 + 61) % 254); }
+    const png = await sharp(px, { raw: { width: S, height: S, channels: 3 } }).png().toBuffer();
+    const nt = out.createTexture(t.getName() + '_win').setImage(new Uint8Array(png)).setMimeType('image/png');
+    texCache.set(t, nt); return nt;
+  };
   const acc = (arr, type, Ctor) => out.createAccessor().setType(type).setArray(new Ctor(arr)).setBuffer(out.getRoot().listBuffers()[0]);
-  const emit = (id, prims, dims) => {
+  const emit = async (id, prims, dims) => {
     const node = out.createNode(id).setExtras(dims), mesh = out.createMesh(id);
     const groups = new Map();
     for (const p of prims) { if (!groups.has(p.mat)) groups.set(p.mat, []); groups.get(p.mat).push(p); }
@@ -135,22 +164,34 @@ async function build(set) {
       const bc = m ? m.getBaseColorFactor() : [.6, .6, .6, 1], es = m?.getExtension('KHR_materials_emissive_strength')?.getEmissiveStrength() ?? 1;
       const ef = m ? m.getEmissiveFactor().map((v) => v * es) : [0, 0, 0];
       const pbr = [m ? m.getRoughnessFactor() : .8, set.win ? 0 : m ? m.getMetallicFactor() : 0, 0, 0];
-      const P = [], N = [], U = [], C = [], B = [], E = [], I = [];
+      const P = [], N = [], U = [], C = [], B = [], E = [], I = [], W = [];
+      const vert = (p, i, w) => {
+        P.push(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]); N.push(p.nor[i * 3], p.nor[i * 3 + 1], p.nor[i * 3 + 2]);
+        U.push(p.uv ? p.uv[i * 2] : 0, p.uv ? p.uv[i * 2 + 1] : 0);
+        C.push(bc[0], bc[1], bc[2], m && m.getAlphaMode() === 'BLEND' ? bc[3] : 1); B.push(...pbr); E.push(...ef, 0);
+        if (w != null) W.push(w);
+      };
       let base = 0;
       for (const p of ps) {
-        for (let i = 0; i < p.cnt; i++) {
-          P.push(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]); N.push(p.nor[i * 3], p.nor[i * 3 + 1], p.nor[i * 3 + 2]);
-          U.push(p.uv ? p.uv[i * 2] : 0, p.uv ? p.uv[i * 2 + 1] : 0);
-          C.push(bc[0], bc[1], bc[2], m && m.getAlphaMode() === 'BLEND' ? bc[3] : 1); B.push(...pbr); E.push(...ef, 0);
+        if (set.win) {
+          // 窗燈亂數（_WIN）：同一面牆的同一層（三角形最低點的高度相同）共用一個值，頁面再依貼圖格子分到每扇窗
+          for (let t = 0; t < p.idx.length; t += 3) {
+            const y = Math.min(p.pos[p.idx[t] * 3 + 1], p.pos[p.idx[t + 1] * 3 + 1], p.pos[p.idx[t + 2] * 3 + 1]);
+            const w = (Math.sin(Math.round(y * 10) * 12.9898 + seedOf(id) * 78.233) * 43758.5453) % 1;
+            for (let k = 0; k < 3; k++) { vert(p, p.idx[t + k], Math.abs(w)); I.push(base++); }
+          }
+          continue;
         }
+        for (let i = 0; i < p.cnt; i++) vert(p, i);
         for (const v of p.idx) I.push(base + v);
         base += p.cnt;
       }
-      const prim = out.createPrimitive().setMaterial(mkMat(m, set.win))
+      const prim = out.createPrimitive().setMaterial(await mkMat(m, set.win))
         .setAttribute('POSITION', acc(P, 'VEC3', Float32Array)).setAttribute('NORMAL', acc(N, 'VEC3', Float32Array))
         .setAttribute('COLOR_0', acc(C, 'VEC4', Float32Array)).setAttribute('_PBR', acc(B, 'VEC4', Float32Array)).setAttribute('_EMI', acc(E, 'VEC4', Float32Array))
         .setIndices(acc(I, 'SCALAR', Uint32Array));
       if (ps.some((p) => p.uv)) prim.setAttribute('TEXCOORD_0', acc(U, 'VEC2', Float32Array));
+      if (W.length) prim.setAttribute('_WIN', acc(W, 'SCALAR', Float32Array));
       mesh.addPrimitive(prim);
     }
     node.setMesh(mesh); scene.addChild(node);
@@ -162,7 +203,7 @@ async function build(set) {
     credits.push({ file: src.file, title: info.title, author: info.author, license: info.license, source: info.source });
     let prims = collect(doc);
     if (src.drop) prims = prims.filter((p) => !src.drop.test(p.node) && !src.drop.test(p.mat ? p.mat.getName() : ''));
-    if (!set.split) { emit(src.id, prims, place(prims, src)); continue; }
+    if (!set.split) { await emit(src.id, prims, place(prims, src)); continue; }
     // 拆成多棟：依建築名分組，各自置中接地（原檔已是公尺、正面朝 +z）
     const groups = new Map();
     for (const p of prims) { const k = set.split(p.node, p.mat ? p.mat.getName() : ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
@@ -170,13 +211,13 @@ async function build(set) {
     for (const [k, ps] of [...groups].sort((a, b) => a[0].localeCompare(b[0]))) {
       const dims = place(ps, set, set.scale ?? 1);
       if (dims.h < 2.5 || Math.max(dims.w, dims.d) < 3) continue;   // 零件（路燈、管線）不當成建築
-      emit(`${set.prefix}_${String(++n).padStart(2, '0')}`, ps, { ...dims, src: k });
+      await emit(`${set.prefix}_${String(++n).padStart(2, '0')}`, ps, { ...dims, src: k });
     }
   }
   await out.transform(
     dedup(), weld(), prune(),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^baseColor|^emissive/, resize: [set.tex ?? 1024, set.tex ?? 1024], quality: 80 }),
-    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^metallicRoughness/, resize: [256, 256], quality: 90 }),
+    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^metallicRoughness/, lossless: true }),   // 窗戶編號不能有失真
     meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
   );
   mkdirSync(OUT, { recursive: true });

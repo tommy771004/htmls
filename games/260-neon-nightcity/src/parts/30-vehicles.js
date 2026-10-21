@@ -216,7 +216,7 @@ for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3
     parked.push({ type: pickType(), x, z, yaw: d === 1 ? Math.PI / 2 : -Math.PI / 2, pal: Math.floor(rT() * PAL.length) });
   }
 }
-for (const p of parked) { const L = TYPES[p.type].len * .3; for (const s of [-1, 1]) circles.push({ x: p.x + Math.sin(p.yaw) * L * s, z: p.z + Math.cos(p.yaw) * L * s, r: TYPES[p.type].w * .5, car: 1 }); }
+for (const p of parked) { const L = TYPES[p.type].len * .3; p.circ = [-1, 1].map(s => ({ x: p.x + Math.sin(p.yaw) * L * s, z: p.z + Math.cos(p.yaw) * L * s, r: TYPES[p.type].w * .5, car: 1 })); circles.push(...p.circ); }
 
 // 生成行駛中的車：均勻撒在各路段
 for (let n = 0; n < TRAFFIC_N; n++) {
@@ -267,7 +267,7 @@ const QUAD_VS = /* glsl */`varying vec2 vUv; varying vec3 vW; void main(){ vUv =
 const allCars = () => [...traffic, ...parked];
 const shadowMesh = (() => {
   const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2);
-  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 4);
+  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 24);
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 2; scene.add(m); return m;
 })();
 const poolMesh = (() => {
@@ -357,7 +357,7 @@ function updateTraffic(dt, t) {
   const putShadow = (x, z, yaw, L, W, y = .02) => { _o.position.set(x, y, z); _o.rotation.set(0, yaw, 0); _o.scale.set(W * 1.25, 1, L * 1.12); _o.updateMatrix(); shadowMesh.setMatrixAt(k++, _o.matrix); };
   for (const c of traffic) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w);
   for (const c of parked) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w, groundH(c.x, c.z) + .02);
-  for (const v of [kestrel, hanzo]) putShadow(v.x, v.z, v.yaw, v.len, v.w, v.y + .02);
+  for (const v of vehicles) putShadow(v.x, v.z, v.yaw, v.len, v.w, v.y + .02);
   shadowMesh.count = k; shadowMesh.instanceMatrix.needsUpdate = true;
   let q = 0;
   for (const c of traffic) {
@@ -531,6 +531,7 @@ function poseVehicle(v) {
     if (v.isCar) { w.piv.rotation.set(0, w.front ? v.steer : 0, 0); w.w.rotation.x = v.spin; }
     else { w.piv.rotation.set(0, w.front ? v.steer * .6 : 0, 0); w.w.rotation.x = v.spin; }
   }
-  v.mat.uniforms.uM.value.set(v.lights, v.brakeOn || 0, 1, 0);
+  v.mat.uniforms.uM.value.set(v.lights, v.brakeOn || 0, 1, v.burn || 0);
+  if (v.ins) { v.ins.array[0] = v.brakeOn || 0; v.ins.needsUpdate = true; }   // 搶來的車流車（68-gta.js）：煞車燈在 aIns
 }
 vehicles.forEach(v => { v.y = groundH(v.x, v.z); poseVehicle(v); });

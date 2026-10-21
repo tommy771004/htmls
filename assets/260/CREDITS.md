@@ -65,3 +65,19 @@
 | `lct` | [LCT 3000 '95 - Low poly model](https://sketchfab.com/3d-models/lct-3000-95-low-poly-model-663a0953c038434a918cb85725c88ffa) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `conquer` | [Conquer '89 Pickup - Low poly model](https://sketchfab.com/3d-models/conquer-89-pickup-low-poly-model-6c48c94be8974dc7a5932f697c0ba68f) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `fvan` | [French delivery van - Low poly model](https://sketchfab.com/3d-models/french-delivery-van-low-poly-model-a350a422d200485ea57778dc42139edc) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+
+## 街區建築與道具（`props/`）
+
+`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `bld_brown` | [Brownstone Building Set - Low poly model](https://sketchfab.com/3d-models/brownstone-building-set-low-poly-model-b15e6344acd844eabc823e1cc8332574) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `bld_down` | [Downtown Buildings Set - Low Poly model](https://sketchfab.com/3d-models/downtown-buildings-set-low-poly-model-7378e7fb9c914c39880d9913a6f4e1d6) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `bld_ind` | [Industrial Buildings Set - Low poly models](https://sketchfab.com/3d-models/industrial-buildings-set-low-poly-models-e0b0d0342be24e6c923319991a2a4d3d) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `bld_mid` | [Midcity Buildings Set - Low Poly model](https://sketchfab.com/3d-models/midcity-buildings-set-low-poly-model-d5cbc471d20c4c9da31c3df656648916) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `ramen` | [Japanese Ramen Stall](https://sketchfab.com/3d-models/japanese-ramen-stall-2e3ea2a141324c29be0a20d3bfe0c90d) | [J. Beltran](https://sketchfab.com/ilchampo) | CC BY 4.0 |
+| `interior`（點唱機） | [Rocket Vinyl Jukebox (GAME READY)](https://sketchfab.com/3d-models/rocket-vinyl-jukebox-game-ready-c3bec6bcf7c44bdb9c26ef55a1a39de5) | [ZaXx](https://sketchfab.com/Sc00P1) | CC BY 4.0 |
+| `interior`（街機） | [Rusty Japanese Arcade](https://sketchfab.com/3d-models/rusty-japanese-arcade-2938ae13a77c46e8afabb41eba18e699) | [Toni García Vilche](https://sketchfab.com/zul_gv) | CC BY 4.0 |
+| `interior`（升降機） | [Carlift](https://sketchfab.com/3d-models/carlift-2dfad5340895423b8ec58fc392e4af32) | [3ddominator](https://sketchfab.com/roughdominator) | CC BY 4.0 |
+| `interior`（工具推車） | [[Free] Drawer Tool Cart (Used)](https://sketchfab.com/3d-models/free-drawer-tool-cart-used-da8955e5c8c448e58b013951f48148a0) | [Robert Prispilović](https://sketchfab.com/rprispil) | CC BY 4.0 |

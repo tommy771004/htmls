@@ -19,6 +19,7 @@ npm run people   # tools/people.mjs：Blender 跑 blender/people.py（Quaternius
 node tools/pose-gallery.mjs [資料夾]   # 在大道上排一列人，每人一種動作，正面與側面截圖檢查姿勢
 TRAFFIC=1 node tools/cars.mjs  # 先把 .cache/cars/ 裡車流專用的原檔整理到 .cache/traffic/（可只給 id，例如 fh_taxi lct）
 npm run traffic  # tools/traffic.mjs：把 assets/260 與 .cache/traffic 的車烘成車流用的 blender/out/traffic.glb（頂點色＋uber 材質編號，近景約 3–4k 面、遠景約 1k 面；可只給 id）
+npm run props    # tools/props.mjs：.cache/props/ 的原檔 → ../../assets/260/props/*.glb 與 props.json（建築組、拉麵攤、室內道具）
 npm run cars     # tools/cars.mjs：.cache/cars/ 的 Sketchfab 原檔 → ../../assets/260/<id>.glb 與 cars.json（可只給 id）
 npm run test:glb # tools/glb-check.mjs：本機 HTTP 開頁，檢查實車下載、展示廳、買車開車、機車、換色規則與車庫；CLOSEUPS=1／CITY=1 加拍特寫與街景
 node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、車漆塗藍），確認車頭朝 +z 與輪子拆分
@@ -61,7 +62,9 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `10-city.js` | 街區與地塊、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
 | `20-props.js` | 路燈與光錐、紅綠燈、街道設施、行道樹、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空 |
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
-| `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
+| `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質（建築組另有窗戶編號貼圖 `USE_WINMAP`）、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
+| `68-gta.js` | GTA 式擴充第一階段：搶車／撬車（`detachCar` 把車流車變成獨立載具）、手槍與徒手、準星射線（`castRay`）、車損（白煙 → 黑煙 → 起火 → 爆炸、燒毀殘骸）、路人倒地與逃跑、被拖下車的駕駛（`extras`）、火焰煙霧粒子與閃光燈、準星與武器欄 |
+| `27-props.js` | 實體建築與道具（`assets/260/props/`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車 |
 | `30-vehicles.js` | 車流車型 `TYPES`（計程車、兩種警車、九種房車、四種廂型車與貨車都來自內嵌的 `traffic.glb`，40 m 外換遠景模型、相機後方不畫；`traffic.glb` 載入失敗才用程式建模）、程式建模的 Kestrel、Hanzo 等替身；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
 | `40-people.js` | 人物：Quaternius 男女底模（`people.glb`）依髮型合併成蒙皮幾何、每人一個 SkinnedMesh＋AnimationMixer；動畫時間由 `uTime`／`uBeat` 換算（舞池對拍），調酒、DJ、撐傘、抽菸、抱胸、騎機車在播放後覆寫手臂與上身；行人、排隊人龍、玩家與更新 `updateCrowds()` |
 | `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何（`people` 由 40 自己解） |
@@ -88,14 +91,30 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 - 前端把每種「性別×髮型」合併成一份蒙皮幾何（`aSlot` 分區），衣服、膚色、髮色與鞋子霓虹是每人材質的 uniform，一人一次 draw。骨架不在場景圖裡（網格用 detached 綁定），只有在畫面內的人每幀擺姿勢，35 m 外隔幀、70 m 外每四幀；骨頭矩陣也只在擺過姿勢後重算。
 - 女性骨架在檔案裡平移了 1.2 m（男女並排），inverse bind 要乘回那段位移，否則手臂會被甩成長條。坐與騎車的骨盆高度在載入時量出來，對齊舊版的座位高度。
 
+### GTA 式擴充（第一階段）
+
+依 `neon_nightcity_gta_v.md` 的路線圖先做 Phase 1；這部分是非官方致敬，開始畫面有「與 Rockstar Games 無關」的聲明，不用原作的字型、圖示或音效。
+- 操作：Tab 徒手／手槍、右鍵瞄準（越肩視角，身體對準星、可側移後退）、左鍵開槍或出拳（要先鎖定游標）、R 換彈；靠近車流（慢於 6 m/s）或路邊車按 F：車流是拉開車門把駕駛拖下來，路邊車是敲破車窗接線（1.9 秒）。觸控多了「武器」「瞄準」「開火」三顆按鈕。
+- 被搶、打到冒煙或被爆炸波及的車流車由 `detachCar()` 脫離車流（從 `traffic`／`parked`／`typeMesh` 移除），換成自己一份 `TYPES` 幾何的獨立載具加進 `vehicles`（`kind: 'jack'`，最多留 8 台，離遠的舊車會收掉）；不進車行存檔，玩家座駕仍只走 `applyCar`。
+- 車損：每台載具 `hp` 1000，撞擊（`driveVehicle` 的 `imp`）與子彈扣血；600 以下白煙、350 以下黑煙、150 以下起火並持續扣血，歸零爆炸：火球、黑煙、閃光燈（進 `pickLights`）、震動、半徑 7–8 m 內的路人倒地、車輛連鎖受損，坐在車裡的玩家被炸飛。燒毀程度寫在 `uM.w`（uber 與實車材質都會變焦黑）。座駕燒毀後按 V 會修好送來。
+- 動畫：`blender/people.py` 的 `KEEP` 加了持槍、瞄準、射擊、換彈、中彈、倒地、蹲、翻滾、揮砍；`ACLIP` 的 `once` 是單次動作（相位＝開始時刻，播完停在最後一格），`rev` 倒放（倒地動畫倒放當爬起來）。瞄準的手臂由 `aimArms()` 依 `p.aimP` 覆寫。
+- 還沒做（第二到四階段）：通緝星級與警方、生命與護甲、WASTED／BUSTED、武器轉盤與其他武器、三主角切換、手機、GPS、隨機事件、搶劫任務。
+
+### 街區建築與道具
+
+- `tools/props.mjs` 把 `.cache/props/` 的 Sketchfab 原檔（DanielZhabotinsky 的四套建築組、拉麵攤、點唱機、街機、升降機、工具推車，見 `assets/260/CREDITS.md`）擺正、縮放、接地，依材質寫成 `COLOR_0`／`_PBR`／`_EMI` 頂點屬性（和實車同一套 `glbMaterial`），貼圖轉 1024 WebP、meshopt 壓縮，輸出 `assets/260/props/*.glb` 與 `props.json`（每件的寬、深、高與作者）。建築組依「建築名_材質名_0」的節點名拆成一棟一棟，太小的零件（h < 2.5 m）不收。
+- 建築組的金屬粗糙貼圖是窗戶遮罩（洋紅＝玻璃）。`winTex` 把它膨脹 2 px 找連通區，改寫成 R＝玻璃、G＝窗戶編號的無損貼圖；`_WIN` 頂點屬性是同一棟同一層的亂數。頁面依編號（取第 0 層 mip）、貼圖重複格與 `_WIN` 決定每扇窗亮不亮，顏色和程式立面的窗燈同一套。逃生梯欄杆之類的鏤空（MASK／BLEND）材質不給遮罩，否則會被當成窗戶點亮。
+- `10-city.js` 在地塊排好後挑建築：同一街區同一面的連續地塊（最多四塊、不含場館）依區域機率換成一棟寬度最接近的模型（等比縮放 0.85–1.18、深度要放得下），標上 `L.glb`，這些地塊不建程式立面與店面；`27-props.js` 下載後把同一組同一材質的建築合併成一個網格。以檔案開啟不換；下載失敗由 `lotFallback()` 補回程式立面（沒有店面）。開始畫面會等建築與拉麵攤下載完（約 7 MB）。
+- 室內道具走進酒吧或車庫時才下載（HUD 顯示進度），下載好就把 Blender 版的點唱機與街機藏起來換上；車庫最裡面那格加上雙柱升降機與工具推車（碰撞箱在下載後才加）。
+
 ## 測試 API
 
-`window.__nc`：`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home')`、`exit()`、`look(yaw, pitch, far)`、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
+`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home')`、`exit()`、`look(yaw, pitch, far)`、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
 車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家，`me.mesh.visible` 截圖時可隱藏）、`peds`／`pedState`（行人）、`crowd(n)`／`ANIM`（另建一群人測動作）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
 
 ## 已知限制
 
-- 無頭 Chrome（Metal）街上約 120 fps、150–200 個 draw call、120–190 萬個三角形；低階手機會自動降低點光數量與解析度。
+- 無頭 Chrome（Metal）街上約 120 fps、150–320 個 draw call、100–280 萬個三角形（以 http(s) 開啟、有實體建築時；以檔案開啟約 150–200 個、120–190 萬）；低階手機會自動降低點光數量與解析度。
 - 人物的貼圖都換成素色（衣物分區上色），髮型只有男女各三種；調酒、DJ、撐傘、抽菸、抱胸與騎機車是在現成動畫上覆寫手臂方向，動作比較僵；舞池的人跟著拍點跳同一段舞，只有相位與手部覆寫不同。人物每幀多花約 2 ms CPU（街上約 20 人在畫面內）。
 - 程式建模的車型是低多邊形的剪影致敬，比例與輪廓取自線稿，細節（曲面、內裝）都很簡化；車庫一次只開一台出門。
 - 實車模型每台 4–20 萬面（第二批壓在 9 萬左右），展示廳 29 台全部載入時約 170 萬個三角形、365 個 draw call（無頭 Chrome Metal 約 108 fps），整間車行要下載約 51 MB，手機上會很吃力；輪子是用幾何自動拆的，少數卡鉗會跟著輪子轉，機車前叉不隨轉向轉動。車流 16 種車型的 `traffic.glb` 約 1.1 MB，頁面單檔因此約 2.5 MB；計程車是綠色的 Fairheaven（黃色的 Canyon '75 沒有下載到）。

@@ -13,7 +13,8 @@
     "cars": "node tools/cars.mjs",
     "thumb": "node tools/thumb.mjs",
     "people": "node tools/people.mjs",
-    "traffic": "node tools/traffic.mjs"
+    "traffic": "node tools/traffic.mjs",
+    "props": "node tools/props.mjs"
   },
   "dependencies": {
     "three": "0.186.0"
