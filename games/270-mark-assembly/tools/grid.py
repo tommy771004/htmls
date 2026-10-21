@@ -13,7 +13,7 @@ cx, cy = (mn.x + mx.x) / 2, (mn.y + mx.y) / 2
 print('BOUNDS', key, [round(v, 3) for v in mn], [round(v, 3) for v in mx], 'H', round(H, 3))
 
 sc = bpy.data.scenes.new('grid'); bpy.context.window.scene = sc
-for name, bm, mats in meshes:
+for name, bm, mats, *_ in meshes:
     me = bpy.data.meshes.new(name); bm.to_mesh(me)
     for m in mats: me.materials.append(bpy.data.materials.get(m))
     sc.collection.objects.link(bpy.data.objects.new(name, me))

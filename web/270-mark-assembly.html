@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>裝甲進化殿堂 · Mark 1–85</title>
-<meta name="description" content="鋼鐵人 Mark 1–85 的 3D 裝甲殿堂：用三套 Blend Swap 授權模型（Mk.3 兩套、Mk.7 一套）依各型號參考圖換色，滑過零件看部位與組裝順序，可播放 288 幀自組裝、爆炸圖、全息線框、尺寸與兩座機庫。非官方同人作品。">
+<meta name="description" content="鋼鐵人 Mark 1–85 的 3D 裝甲殿堂：用八套授權模型（Blend Swap 三套、Sketchfab 五套，其中 Mark 1、3、7、38、46、47、85 是實體模型）依各型號參考圖換色，滑過零件看部位與組裝順序，可播放 288 幀自組裝、爆炸圖、全息線框、尺寸與兩座機庫。非官方同人作品。">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230b0d10%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22none%22 stroke=%22%23bfefff%22 stroke-width=%222.6%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%223.4%22 fill=%22%23e9fbff%22/%3E%3C/svg%3E">
 <script type="importmap">
@@ -335,13 +335,17 @@ body.asm .panel,body.asm .legend,body.asm .brand{opacity:0;visibility:hidden}
 </aside>
 <aside class="panel" id="creditsPanel" aria-label="模型授權">
   <div class="ph"><div><b>CREDITS</b><h2>模型與授權<small>非官方同人作品，與 Marvel、Disney 無關</small></h2></div><button type="button" class="px" data-close>關閉</button></div>
-  <p>裝甲網格來自 Blend Swap 的三套同人模型，經 <code>games/270-mark-assembly/tools/bake.py</code> 拆件、命名部位、換成塗裝角色後輸出 GLB；顏色、反應爐形狀與配件依各型號參考圖在頁面上即時套用。</p>
+  <p>裝甲網格來自 Blend Swap 與 Sketchfab 的八套同人模型，經 <code>games/270-mark-assembly/tools/bake.py</code> 拆件、命名部位、換成塗裝角色後輸出 GLB；顏色、反應爐形狀與配件依各型號參考圖在頁面上即時套用。</p>
   <ul class="lst">
     <li><b>Iron Man</b> · BrunoIkari · <a href="https://www.blendswap.com/blend/43745" target="_blank" rel="noopener">Blend Swap #43745</a><br>CC-BY-SA 3.0，標示為同人作品、不得商用。本頁轉出的 <code>bruno.glb</code> 同樣以 CC-BY-SA 3.0 釋出。用於 Mark 3、6。</li>
     <li><b>Iron man MK3</b> · 2iemniak · <a href="https://www.blendswap.com/blend/4749" target="_blank" rel="noopener">Blend Swap #4749</a><br>CC0。用於 Mark 1、2、4、5。</li>
-    <li><b>Iron man Mark 7 armors</b> · 2iemniak · <a href="https://www.blendswap.com/blend/55303" target="_blank" rel="noopener">Blend Swap #55303</a><br>CC-BY 3.0，標示為同人作品、不得商用。用於 Mark 7–85。</li>
+    <li><b>Iron man Mark 7 armors</b> · 2iemniak · <a href="https://www.blendswap.com/blend/55303" target="_blank" rel="noopener">Blend Swap #55303</a><br>CC-BY 3.0，標示為同人作品、不得商用。用於 Mark 7–44、48、49、51–84。</li>
+    <li><b>Iron Man - Mark 1</b> · Nathang30 · <a href="https://sketchfab.com/models/57b18282c1a84c5899fcc7f67762a386" target="_blank" rel="noopener">Sketchfab</a><br>CC BY-NC-SA 4.0。本頁轉出的 <code>mk1.glb</code> 同樣以 CC BY-NC-SA 4.0 釋出（未沿用原貼圖）。用於 Mark 1。</li>
+    <li><b>MK-38 Armour: IGOR</b> · JorelPaul · <a href="https://sketchfab.com/models/ea7d93f269aa42f090d0f3fb42d98b68" target="_blank" rel="noopener">Sketchfab</a><br>CC-BY 4.0。用於 Mark 38。</li>
+    <li><b>Iron Man Mark 46</b>／<b>Mark 47</b> · Gource · <a href="https://sketchfab.com/models/99b32a84c0d04a88b3d1c0ca8eecd354" target="_blank" rel="noopener">Sketchfab 46</a>、<a href="https://sketchfab.com/models/c6c675b3b6ed47f188408815f284c0e2" target="_blank" rel="noopener">47</a><br>CC-BY 4.0。原檔是 T 字站姿，轉出時依骨架權重把手臂放下。用於 Mark 45–47。</li>
+    <li><b>Iron Man Mark 85</b> · LLIypuk（Harlow fx） · <a href="https://sketchfab.com/models/8da781aa74024366844b36444c650d69" target="_blank" rel="noopener">Sketchfab</a><br>CC-BY 4.0。轉出時減面到約 31 萬面。用於 Mark 50、85。</li>
   </ul>
-  <p class="note">只有 Mark 3 與 Mark 7 是對應型號的實體模型；其餘型號以最接近的骨架換色近似，規格面板上都有標示。配色參考 MCU Wiki 與 Hot Toys 的公開圖片（只連結、不轉載）。</p>
+  <p class="note">Mark 1、3、7、38、46、47、85 是對應型號的實體模型；其餘型號以最接近的骨架換色近似，規格面板上都有標示。配色參考 MCU Wiki 與 Hot Toys 的公開圖片（只連結、不轉載）。</p>
 </aside>
 
 <div class="hud" id="hud" aria-live="polite">
@@ -410,15 +414,19 @@ const BASES = {
   bruno: { file: 'bruno.glb', name: 'Mk.3 實模（BrunoIkari）', short: 'BrunoIkari 的 Mk.3', mb: 3.9 },
   mk3: { file: 'mk3.glb', name: 'Mk.3 實模（2iemniak）', short: '2iemniak 的 Mk.3', mb: .3 },
   mk7: { file: 'mk7.glb', name: 'Mk.7 實模（2iemniak）', short: '2iemniak 的 Mk.7', mb: .9 },
+  mk1: { file: 'mk1.glb', name: 'Mk.1 實模（Nathang30）', short: 'Nathang30 的 Mk.1', mb: .6 },
+  mk38: { file: 'mk38.glb', name: 'Mk.38 實模（JorelPaul）', short: 'JorelPaul 的 Igor', mb: 1.5 },
+  mk46: { file: 'mk46.glb', name: 'Mk.46 實模（Gource）', short: 'Gource 的 Mk.46', mb: 2.5 },
+  mk47: { file: 'mk47.glb', name: 'Mk.47 實模（Gource）', short: 'Gource 的 Mk.47', mb: 2.7 },
+  mk85: { file: 'mk85.glb', name: 'Mk.85 實模（LLIypuk）', short: 'LLIypuk 的 Mk.85', mb: 2.9 },
 };
 const ROLE_NAME = { p: '主色', s: '副色', t: '金屬', k: '關節', g: '發光' };
 const RX_NAME = { circle: '圓形', tri: '倒三角', trap: '梯形', hex: '六角形', big: '巨型圓形' };
 const IM3 = '鋼鐵人3（2013）';
 /* c：主色、副色、金屬、關節；ov：部位換角色（例如 85 的手臂主色改用副色金）；rx：反應爐形狀；att：配件；pat：塗裝圖樣 */
 const MARKS = [
-  { n: 1, nm: '原始裝甲', en: 'Original', film: '鋼鐵人（2008）', base: 'mk3', c: ['#5e5953', '#716a60', '#8a8378', '#2b2724'], fin: { m: .82, r: .66, cc: 0 }, pat: { id: 7 }, att: ['flame'], bulk: 'mk1', eye: '#ffd8a0',
+  { n: 1, nm: '原始裝甲', en: 'Original', film: '鋼鐵人（2008）', base: 'mk1', real: true, h: 2.06, c: ['#5e5953', '#716a60', '#8a8378', '#2b2724'], fin: { m: .82, r: .66, cc: 0 }, pat: { id: 7 }, eye: '#ffd8a0',
     d: '東尼與伊森在阿富汗山洞用史塔克飛彈殘骸手工鍛造：不對稱厚重鑄鐵、外露皮帶與齒輪、背後氣瓶與雙臂火焰噴射器。',
-    note: '沒有 Mark 1 的實體模型：以 Mk.3 骨架加粗、換鑄鐵與焊痕質感近似，原作不對稱的廢鐵板無法 1:1 重現。',
     pr: 'Iron Man Mark 1 armor, crude welded scrap metal, asymmetrical heavy iron plates, exposed leather straps, hydraulic pistons, welding scars, glowing circular chest arc reactor, gritty dieselpunk mecha', pbr: '鑄鐵 Metallic 0.9、Roughness 0.65，搭配 Bump 焊接紋理與煙燻髒舊貼圖。' },
   { n: 2, nm: '銀色原型機', en: 'Prototype', film: '鋼鐵人（2008）', base: 'mk3', c: ['#c8ced4', '#bcc3ca', '#9aa1a8', '#3a3d40'], fin: { m: 1, r: .22, cc: .3 },
     d: '未塗裝的拉絲鈦合金，全身鉚釘，背部與小腿首次出現可動襟翼；後來被羅德上校改成戰爭機器。',
@@ -501,9 +509,8 @@ const MARKS = [
   { n: 36, nm: '和平使者', en: 'Peacemaker', film: IM3, base: 'mk7', c: ['#d0661c', '#3b3d40', '#8e9398', '#1d1d1e'], d: '橘色重裝鎮暴機，肩部有大型能量砲座。' },
   { n: 37, nm: '雙髻鯊', en: 'Hammerhead', film: IM3, base: 'mk7', c: ['#6aa58a', '#b9a253', '#8e9398', '#203229'], att: ['flood'],
     d: '深海高壓潛水裝甲，海神綠配亮黃，胸口兩側有探照燈。', pr: 'Iron Man Mark 37 Hammerhead deep sea diving armor, seafoam teal green and yellow, heavy pressure-resistant rounded plates, chest floodlights' },
-  { n: 38, nm: '伊格爾', en: 'Igor', film: IM3, base: 'mk7', c: ['#1d4f9e', '#d9dde2', '#8e9398', '#15233b'], bulk: 'igor', pat: { id: 3, parts: ['forearm', 'thigh'] },
+  { n: 38, nm: '伊格爾', en: 'Igor', film: IM3, base: 'mk38', real: true, h: 2.6, cam: 1.5, c: ['#1d4f9e', '#d9dde2', '#8e9398', '#15233b'],
     d: '重型舉重裝甲，駝背巨漢體型，背部有外露的液壓脊椎頂桿，用來撐住坍塌建築。',
-    note: '以 Mk.7 骨架放大近似：駝背巨漢體型與脊椎液壓桿無法 1:1 重現。',
     pr: 'Iron Man Mark 38 Igor heavy lifting suit, massive hunched muscular silhouette, industrial blue and white stripes with silver hydraulic spine piston, turtle-like low head' },
   { n: 39, nm: '雙子星', en: 'Gemini / Starboost', film: IM3, base: 'mk7', c: ['#dfe4ea', '#9aa6b3', '#c49a45', '#2a2c30'], ov: { helmet: { s: 't' } }, att: ['booster'],
     d: '亞軌道太空裝甲（Hot Toys 名 Starboost）：白色航太陶瓷、黑金內構、金色防輻射面罩，背部有可分離的次軌道推進器。',
@@ -525,13 +532,13 @@ const MARKS = [
     d: '由維羅妮卡衛星空投模組組裝的 3.3 公尺巨型重裝甲，全身多顆反應爐，半圓頭盔可像引擎蓋一樣收合。',
     note: '以 Mk.7 骨架放大近似：真正的浩克毀滅者是包住 Mark 43 的外骨骼。',
     pr: 'Iron Man Mark 44 Hulkbuster colossal heavy mech armor, dome helmet, massive hydraulic shoulders, multiple glowing blue arc reactors on chest knees and back, red and gold heavy plating' },
-  { n: 45, nm: '索科維亞決戰機', film: '復仇者聯盟2（2015）', base: 'mk7', c: ['#b2161c', '#d2a64e', '#b9c0c7', '#2b2e31'], fin: { r: .1 }, rx: 'hex',
+  { n: 45, nm: '索科維亞決戰機', film: '復仇者聯盟2（2015）', base: 'mk46', c: ['#b2161c', '#d2a64e', '#b9c0c7', '#2b2e31'], fin: { r: .1 }, rx: 'hex',
     d: '設計轉向流線肌肉感，胸口反應爐外框是六角形，小腿有能量導管。',
     pr: 'Iron Man Mark 45 armor, sleek muscular contoured red and gold chrome plates, hexagonal chest reactor housing, glowing blue energy lines on calves, high-gloss finish' },
-  { n: 46, nm: '內戰裝甲', en: 'Civil War', film: '美國隊長3：英雄內戰（2016）', base: 'mk7', c: ['#6d0d14', '#c19a4c', '#9aa1a8', '#231417'], rx: 'trap', pat: { id: 6 },
+  { n: 46, nm: '內戰裝甲', en: 'Civil War', film: '美國隊長3：英雄內戰（2016）', base: 'mk46', real: true, rxOwn: true, c: ['#6d0d14', '#c19a4c', '#9aa1a8', '#231417'], rx: 'trap',
     d: '致敬漫畫出血邊緣裝甲，全身散布微型藍色反應爐節點，頭盔可往後摺疊，胸口是梯形反應爐。',
     pr: 'Iron Man Mark 46 Civil War armor, dozens of small glowing blue micro-arc reactor lights scattered across shoulders ribs and legs, trapezoidal chest reactor, sleek mechanical panels' },
-  { n: 47, nm: '返校日遙控機', film: '蜘蛛人：返校日（2017）', base: 'mk7', c: ['#b0141b', '#c9a54f', '#9ea4aa', '#2b2e31'], rx: 'trap', ov: { abdomen: { p: 't' }, pelvis: { p: 't' }, thigh: { p: 't' } },
+  { n: 47, nm: '返校日遙控機', film: '蜘蛛人：返校日（2017）', base: 'mk47', real: true, rxOwn: true, c: ['#b0141b', '#c9a54f', '#b4bac0', '#2b2e31'], fin: { tm: .85, tr: .4 }, rx: 'trap', ov: { abdomen: { p: 't', k: 't' }, pelvis: { p: 't', k: 't' }, thigh: { p: 't', k: 't' } },
     d: '與 Mark 46 同結構，致敬終極鋼鐵人配色：胸部以下到大腿中段是大面積銀灰鈦金屬。',
     pr: 'Iron Man Mark 47 Homecoming armor, Ultimate Iron Man color scheme, silver-grey metallic torso waist and upper thighs, red and gold chest shoulders and boots' },
   { n: 48, nm: '浩克毀滅者 2.0', film: '復仇者聯盟3：無限之戰（2018）', base: 'mk7', c: ['#a3141a', '#c49a45', '#8f969c', '#2b2e31'], bulk: 'hulk', h: 3.0,
@@ -539,14 +546,14 @@ const MARKS = [
   { n: 49, nm: '救援裝甲', en: 'Rescue', film: '復仇者聯盟4：終局之戰（2019）', base: 'mk7', c: ['#1f43a8', '#b8c2cf', '#9aa1a8', '#16203a'], bulk: 'slim',
     d: '東尼替小辣椒打造的救援裝甲，背部有懸浮無人機陣列。', fix: '企劃書寫藍紫金；參考圖是寶藍配銀，這裡依參考圖，並以 Mk.7 骨架收窄近似。',
     pr: 'Iron Man Mark 49 Rescue armor, metallic sapphire blue and silver, sleek feminine aerodynamic silhouette, floating back drone fins' },
-  { n: 50, nm: '出血邊緣奈米裝甲', en: 'Bleeding Edge', film: '復仇者聯盟3：無限之戰（2018）', base: 'mk7', c: ['#9a0f14', '#c49a45', '#a9afb5', '#2b2e31'], rx: 'tri', fin: { r: .14 },
+  { n: 50, nm: '出血邊緣奈米裝甲', en: 'Bleeding Edge', film: '復仇者聯盟3：無限之戰（2018）', base: 'mk85', c: ['#9a0f14', '#c49a45', '#a9afb5', '#2b2e31'], rx: 'tri', fin: { r: .14 },
     d: '首套全奈米裝甲，沒有機械螺絲接縫，可任意變形出推進翼與能量重砲。', tip: '組裝時讓裝甲板邊緣帶六角形網格消散遮罩。',
     pr: 'Iron Man Mark 50 nanotech armor, Avengers Infinity War, seamless organic-mechanical red and gold plates, glowing blue nano-circuit lines, futuristic triangular chest reactor' },
   { n: 51, label: '51–84', nm: '五年空白期概念型', film: '終局之戰前的五年', base: 'mk7', c: ['#62d6ff', '#62d6ff', '#62d6ff', '#62d6ff'], holo: true,
     d: '《無限之戰》到《終局之戰》之間，東尼以全息投影迭代了 34 個奈米與重裝混合概念。企劃建議放在機庫背景的全息工作桌上，以藍色線框展示。',
     note: '這 34 套沒有正式外觀，本頁以 Mk.7 線框全息呈現。',
     pr: 'Iron Man conceptual Mark [51-84] hybrid nanotech-mechanical armor, Stark hologram lab prototype, intricate sci-fi panel lines' },
-  { n: 85, nm: '終局之戰最終裝甲', en: 'Endgame', film: '復仇者聯盟4：終局之戰（2019）', base: 'mk7', c: ['#a3121a', '#c9a24e', '#a9afb5', '#2b2e31'], rx: 'tri', ov: { upperArm: { p: 's' }, forearm: { p: 's' }, hand: { p: 's' }, pauldron: { p: 's' }, thigh: { p: 's' } }, stones: true,
+  { n: 85, nm: '終局之戰最終裝甲', en: 'Endgame', film: '復仇者聯盟4：終局之戰（2019）', base: 'mk85', real: true, rxOwn: true, c: ['#a3121a', '#c9a24e', '#a9afb5', '#2b2e31'], rx: 'tri', stones: true,
     d: '電影宇宙鋼鐵人的最後一套：奈米科技加上硬朗的肌肉稜角，配色致敬 1960 年代漫畫，手臂、肩膀與大腿全金，軀幹與小腿深紅。',
     tip: '流光階段讓右手背依序閃過六色能量脈衝，致敬無限手套。',
     pr: 'Iron Man Mark 85 Endgame armor, classic comic-accurate golden arms shoulders and thighs with crimson red torso and boots, muscular angular hard-surface nano-plates, glowing blue chest reactor, optional glowing Infinity Stones on right gauntlet' },
@@ -558,7 +565,7 @@ for (const m of MARKS) {
   m.ai = m.n <= 45 ? 'J.A.R.V.I.S.' : 'F.R.I.D.A.Y.';
   m.hangar = m.n <= 42 ? 'A' : 'B';
   m.rx = m.rx || 'circle';
-  m.h = m.h || (m.bulk === 'mk1' ? 2.06 : m.bulk === 'igor' ? 2.6 : m.bulk === 'slim' ? 1.75 : 1.98);
+  m.h = m.h || (m.bulk === 'slim' ? 1.75 : 1.98);
   if (!m.pr) m.pr = `Iron Man Mark ${m.n}${m.en ? ' ' + m.en : ''} armor, custom ${m.c[0]} and ${m.c[1]} color scheme on the Mark 7 silhouette, modular hard-surface plates, Stark Industries hangar suit, glowing blue circular chest reactor`;
   if (!m.pbr) { const f = m.fin || {}; m.pbr = `主色 ${m.c[0].toUpperCase()}、副色 ${m.c[1].toUpperCase()}；Metallic ${f.m ?? .82}、Roughness ${f.r ?? .26}、Coat ${f.cc ?? 1}。`; }
   m.ref = m.holo ? null : `https://marvelcinematicuniverse.fandom.com/wiki/Iron_Man_Armor:_Mark_${roman(m.n)}`;
@@ -737,6 +744,9 @@ function patchMat(m) {
     sh.vertexShader = 'varying vec3 vOp;\nvarying vec3 vWp2;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvOp = position;\nvWp2 = (modelMatrix * vec4(position, 1.0)).xyz;');
     sh.fragmentShader = `varying vec3 vOp;\nvarying vec3 vWp2;\nuniform float uPat;\nuniform vec3 uPC1;\nuniform vec3 uPC2;\nuniform vec3 uPC3;\nuniform float uPulse;\nuniform vec3 uPulseC;\nuniform vec3 uRx;\nuniform float uNodes;\nuniform float uGlowRole;
 float h31(vec3 p){ p = fract(p * .1031); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
+float vn(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); vec2 e = vec2(1., 0.);
+  return mix(mix(mix(h31(i), h31(i + e.xyy), f.x), mix(h31(i + e.yxy), h31(i + e.xxy), f.x), f.y),
+             mix(mix(h31(i + e.yyx), h31(i + e.xyx), f.x), mix(h31(i + e.yxx), h31(i + e.xxx), f.x), f.y), f.z); }
 ` + sh.fragmentShader
       .replace('#include <color_fragment>', `#include <color_fragment>
       if (uPat > .5 && uPat < 1.5) { /* 數位迷彩 */
@@ -755,9 +765,9 @@ float h31(vec3 p){ p = fract(p * .1031); p += dot(p, p.yzx + 33.33); return frac
         vec2 f = abs(fract(q) - .5);
         if (max(f.x * 1.3, f.y) < .36) discard;
       } else if (uPat > 6.5) { /* 鑄鐵：煙燻與焊痕 */
-        float n = h31(floor(vOp * 90.)) * .4 + h31(floor(vOp * 31.)) * .6;
-        diffuseColor.rgb *= .8 + .32 * n;
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.3, .19, .11), step(.93, h31(floor(vOp * 23.) + 3.)) * .45);
+        float n = vn(vOp * 46.) * .4 + vn(vOp * 13.) * .6;
+        diffuseColor.rgb *= .78 + .36 * n;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.3, .19, .11), smoothstep(.66, .8, vn(vOp * 8. + 3.)) * .4);
       }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       { float d = distance(vWp2, uRx);
@@ -795,11 +805,13 @@ function prepSuit(k, root) {
   root.traverse(o => { if (o.isMesh) list.push(o); });
   for (const o of list) {
     const part = partName(o);
-    const role = (o.material.name || 'role_p').replace('role_', '').slice(0, 1);
+    const mn = o.material.name || 'role_p', role = mn.replace('role_', '').slice(0, 1), gem = mn.match(/^role_g_([0-9a-f]{6})/);
     o.material = roleMat(role);
     o.castShadow = o.receiveShadow = true;
     o.geometry.computeBoundingBox();
-    o.userData = { part, role, mat: o.material, rest: o.position.clone() };
+    /* role_g_<色碼>：85 手套上的寶石，不跟著全身換成冰藍光 */
+    o.userData = { part, role, mat: o.material, rest: o.position.clone(), gem: gem ? new THREE.Color('#' + gem[1]) : null };
+    if (gem) suit.gems = true;
     suit.meshes.push(o);
     (suit.parts[part] ||= { name: part, meshes: [], box: new THREE.Box3(), c: V(0, 0, 0) }).meshes.push(o);
   }
@@ -868,8 +880,10 @@ function buildExtras(suit, mk) {
   const R = suit.reactor, big = mk.rx === 'big', rid = suit.parts.reactor ? 'reactor' : 'chest';
   /* 反應爐：圓形沿用模型，其他形狀蓋上新的發光片 */
   const rp = R.pos.clone(), rr = Math.max(.035, R.r) * (big ? 1.65 : 1);
-  if (suit.parts.reactor) suit.parts.reactor.hidden = mk.rx !== 'circle';
-  if (mk.rx !== 'circle') {
+  /* rxOwn：實體模型本身就是這個形狀的反應爐 */
+  const overlay = mk.rx !== 'circle' && !mk.rxOwn;
+  if (suit.parts.reactor) suit.parts.reactor.hidden = overlay;
+  if (overlay) {
     /* 原本的反應爐凹在胸甲裡，新的發光片要浮到胸甲表面才看得到 */
     const g = new THREE.Group(); g.position.copy(rp); g.position.z = lerp(rp.z, suit.chestFront, .7) + .004;
     const sh = reactorShape(big ? 'circle' : mk.rx, rr * .82);
@@ -935,17 +949,15 @@ function buildExtras(suit, mk) {
       extra.add(g);
     }
   }
-  /* 85：右手背的六顆寶石 */
-  if (mk.stones) { const h = P('hand.R'); if (h) {
+  /* 85：右手背的六顆寶石（實體模型自己有寶石時不補） */
+  if (mk.stones && !suit.gems) { const h = P('hand.R'); if (h) {
     [0xff3030, 0xa040ff, 0x3080ff, 0x30ff70, 0xffd030, 0xff8a20].forEach((c, i) => { const s = new THREE.Mesh(new THREE.SphereGeometry(.009, 12, 8), new THREE.MeshBasicMaterial({ color: c })); s.position.set(h.box.min.x - .002, h.box.max.y - .02 - i * .014, h.c.z + (i % 2 ? .012 : -.012)); s.userData.follow = 'hand.R'; extra.add(s); }); } }
   for (const g of extra.children) { g.userData.base = g.position.clone(); const id = g.userData.part || 'attach'; g.traverse(o => { if (o.isMesh) { o.userData.part = id; o.castShadow = true; } }); }
 }
 
-/* ---------------- 體型：浩克毀滅者、伊格爾、救援 ---------------- */
+/* ---------------- 體型：浩克毀滅者、救援 ---------------- */
 const BULK = {
   hulk: { g: V(1.36, 1.5, 1.36), part: { helmet: .78, chest: 1.22, abdomen: 1.15, pelvis: 1.1, pauldron: 1.45, upperArm: 1.35, forearm: 1.5, hand: 1.55, thigh: 1.22, shin: 1.25, boot: 1.35 }, spread: 1.18 },
-  igor: { g: V(1.3, 1.25, 1.36), part: { helmet: .8, chest: 1.25, pauldron: 1.4, upperArm: 1.3, forearm: 1.45, hand: 1.5, thigh: 1.15, shin: 1.15, boot: 1.25 }, spread: 1.12 },
-  mk1: { g: V(1.1, 1.04, 1.12), part: { chest: 1.08, pauldron: 1.12, forearm: 1.1 }, spread: 1.04 },
   slim: { g: V(.9, .9, .92), part: {}, spread: 1 },
 };
 function applyBulk(suit, mk) {
@@ -969,7 +981,7 @@ const ptr = { x: 0, y: 0, inside: false, type: 'mouse', down: null, dragging: fa
 
 function paint(suit, mk) {
   const fin = mk.fin || {};
-  const F = { p: { m: fin.m ?? .82, r: fin.r ?? .26, cc: fin.cc ?? 1 }, s: { m: 1, r: Math.min(.3, (fin.r ?? .26) + .02), cc: (fin.cc ?? 1) * .6 }, t: { m: 1, r: .22, cc: .3 }, k: { m: .75, r: .45, cc: 0 } };
+  const F = { p: { m: fin.m ?? .82, r: fin.r ?? .26, cc: fin.cc ?? 1 }, s: { m: 1, r: Math.min(.3, (fin.r ?? .26) + .02), cc: (fin.cc ?? 1) * .6 }, t: { m: fin.tm ?? 1, r: fin.tr ?? .22, cc: .3 }, k: { m: .75, r: .45, cc: 0 } };
   const pat = mk.pat || {}, idx = { p: 0, s: 1, t: 2, k: 3 };
   for (const m of suit.meshes) {
     const { part, role, mat } = m.userData, pk = partKey(part), u = mat.userData.u;
@@ -1015,7 +1027,7 @@ async function setMark(n, opts = {}) {
 const mkBtn = $('mkBtn'), mkPop = $('mkPop'), specPanel = $('specPanel'), legend = $('legend');
 mkPop.innerHTML = Object.entries(GEN).map(([g, G]) => `<h3>${G.n}<small>${G.s}</small></h3><div class="grid">` +
   MARKS.filter(m => m.gen === +g).map(m => `<button type="button" role="menuitem" data-mk="${m.n}"${m.real ? ' class="real"' : ''} title="Mark ${m.label} ${m.nm}"><b>${m.label}</b><span><i style="--c:${m.c[0]}"></i><i style="--c:${m.c[1]}"></i></span><em>${m.real ? '實體模型' : m.en || m.nm}</em></button>`).join('') + '</div>').join('')
-  + '<p class="foot">只有 Mark 3、Mark 7 是對應型號的實體模型，其餘以最接近的骨架依參考圖換色。←／→ 鍵也能換型號。</p>';
+  + '<p class="foot">Mark 1、3、7、38、46、47、85 是對應型號的實體模型，其餘以最接近的骨架依參考圖換色。←／→ 鍵也能換型號。</p>';
 mkPop.addEventListener('click', e => { const b = e.target.closest('[data-mk]'); if (!b) return; closePops(); if (st.asm) stopAsm(); setMark(+b.dataset.mk); });
 const order = MARKS.map(m => m.n);
 const stepMark = d => { if (st.asm) stopAsm(); const i = order.indexOf(st.mark.n); setMark(order[(i + d + order.length) % order.length]); };
@@ -1363,7 +1375,8 @@ function asmCam(f) {
   let i = 0; while (i < CAMK.length - 2 && f > CAMK[i + 1][0]) i++;
   const a = CAMK[i], b = CAMK[i + 1], k = ease(clamp((f - a[0]) / (b[0] - a[0]), 0, 1)), s = sz();
   const t = a[2].clone().lerp(b[2], k).multiplyScalar(s);
-  const p = a[1].clone().lerp(b[1], k).multiplyScalar(s).sub(t).multiplyScalar(fitScale()).add(t);
+  /* cam：體型特別寬的實體模型（38）鏡頭再拉遠 */
+  const p = a[1].clone().lerp(b[1], k).multiplyScalar(s).sub(t).multiplyScalar(fitScale() * (st.mark.cam || 1)).add(t);
   if (st.shake > 0) { p.x += (Math.random() - .5) * st.shake * .02; p.y += (Math.random() - .5) * st.shake * .02; }
   camera.position.copy(p); controls.target.copy(t); camera.lookAt(t);
 }
@@ -1477,7 +1490,7 @@ function updateParts() {
   const ig = st.asm ? st.ignite : 1;
   const flashRed = st.mark.eyeFlash && st.asm && st.asm.f >= 157 && st.asm.f < 166;
   st.glowCol.set(flashRed ? st.mark.eyeFlash : (st.mark.eye || 0x9feaff));
-  for (const m of s.meshes) if (m.userData.role === 'g') { m.userData.mat.emissive.copy(st.glowCol); m.userData.mat.emissiveIntensity = .05 + 2.2 * ig; }
+  for (const m of s.meshes) if (m.userData.role === 'g') { m.userData.mat.emissive.copy(m.userData.gem || st.glowCol); m.userData.mat.emissiveIntensity = .05 + 2.2 * ig; }
   coreMat.color.copy(st.glowCol).lerp(WHITE, .5).multiplyScalar(.15 + .85 * Math.min(1, ig));
   if (reactorHalo) { reactorHalo.material.opacity = Math.min(1.4, ig) * .85; reactorHalo.material.color.copy(st.glowCol); reactorHalo.visible &&= !holo; }
   for (const h of eyeHalo) { h.material.opacity = Math.min(1.4, ig) * .6; h.material.color.copy(st.glowCol); h.visible &&= !holo; }
@@ -1619,8 +1632,8 @@ await setMark(first, { quiet: true });
 camera.position.set(-4.5, 2.6, 6.5).multiplyScalar(fitScale() * sz());
 camera.lookAt(0, 1, 0);
 goView('q', reduce ? .001 : 2.2, true);
-/* 其餘骨架在背景預先載入，換型號時不用等 */
-setTimeout(() => { for (const k of Object.keys(BASES)) loadBase(k).catch(err => console.warn(err)); }, 1500);
+/* 小檔骨架在背景預先載入；兩三 MB 的實體模型等選到再載 */
+setTimeout(() => { for (const k of Object.keys(BASES)) if (BASES[k].mb <= 1) loadBase(k).catch(err => console.warn(err)); }, 1500);
 
 window.__mk = {
   st, camera, controls, MARKS, setMark, goView, startAsm, stopAsm, setMode, frames: () => frameNo, tris: () => renderer.info.render.triangles,

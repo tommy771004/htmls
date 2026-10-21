@@ -151,8 +151,8 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 
 ## 裝甲進化殿堂（270）
 
-- 單檔 `web/270-mark-assembly.html`（本地 Three.js 0.186.0，介面沿用 182），沒有 build；裝甲網格是 `assets/270/{bruno,mk3,mk7}.glb`（meshopt 壓縮，解碼器在 `vendor/three-0.186.0/addons/libs/`），要透過網站伺服器開啟。
-- GLB 由 `games/270-mark-assembly/tools/bake.py`（Blender 無頭）從三套 Blend Swap 同人模型拆成十九個部位、材質換成 `role_p／s／t／k／g` 塗裝角色；原始 `.blend` 在 gitignore 的 `.cache/`。three 會把節點名的「.」拿掉，頁面用 `PART_RE` 還原。只有 Mark 3、7 是實體模型，其他型號換色近似，頁面要維持「實體模型／近似」標示、授權面板與「非官方同人作品」聲明；`bruno.glb` 是 CC-BY-SA 3.0 衍生作品。
+- 單檔 `web/270-mark-assembly.html`（本地 Three.js 0.186.0，介面沿用 182），沒有 build；裝甲網格是 `assets/270/{bruno,mk3,mk7,mk1,mk38,mk46,mk47,mk85}.glb`（meshopt 壓縮，解碼器在 `vendor/three-0.186.0/addons/libs/`），要透過網站伺服器開啟。
+- GLB 由 `games/270-mark-assembly/tools/bake.py`（Blender 無頭）從 Blend Swap 的三個 `.blend` 與 Sketchfab 的五個 GLB（`MODELS` 裡 `glb=` 的項目，不必先開 .blend）拆成十九個部位、材質換成 `role_p／s／t／k／g` 塗裝角色（85 的寶石是 `role_g_<色碼>`，保留原色）；來源檔在 gitignore 的 `.cache/`。Mark 46／47 是 T 字站姿，依骨架權重分部位並把手臂放下。three 會把節點名的「.」拿掉，頁面用 `PART_RE` 還原。Mark 1、3、7、38、46、47、85 是實體模型，其他型號換色近似，頁面要維持「實體模型／近似」標示、授權面板與「非官方同人作品」聲明；`bruno.glb` 是 CC-BY-SA 3.0、`mk1.glb` 是 CC BY-NC-SA 4.0 衍生作品，要維持同樣授權。
 - 型號資料 `MARKS`、部位與自組裝幀區間 `PART`、`window.__mk` 測試 API 與重新烘焙指令見 `games/270-mark-assembly/README.md`，授權見同資料夾的 `CREDITS.md`。
 
 ## 青雀真人麻將（127）架構
