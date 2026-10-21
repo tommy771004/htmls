@@ -27,7 +27,8 @@ HEROES = {
     'vegeta': {'src': 'vegeta/thesaiyajin_-_vegeta_bodyguard.glb', 'rig': 'mixamo', 'height': 1.72},
     'luffy': {'src': 'Luffy/monkey_d._luffy.glb', 'rig': 'mixamo', 'height': 1.74},
     'zoro': {'src': 'Roronoa/roronoa_zoro_post_timeskip.glb', 'rig': 'bip001', 'height': 1.81, 'drop': r'Weapon'},
-    'sanji': {'src': 'Vinsmoke/vinsmoke_sanji_post_timeskip.glb', 'rig': 'bountyrush', 'height': 1.8},
+    # 原檔把多個型態疊在同一處：三張臉、握拳與張開兩套手、一般褲管與惡魔風腳（火焰）兩套腿；只留臉 10、張手 16／22、褲管 18／24
+    'sanji': {'src': 'Vinsmoke/vinsmoke_sanji_post_timeskip.glb', 'rig': 'bountyrush', 'height': 1.8, 'drop': r'^Object_(11|12|14|20|26|28)$'},
     'nami': {'src': 'nami/nami (1).glb', 'rig': 'ccbase', 'height': 1.7, 'drop': r'^material_[67]$'},
     'piccolo': {'src': 'Piccolo/piccolo_dbxv2.glb', 'rig': 'xv2', 'height': 2.12},
     'frieza': {'src': 'Freezer/frieza_-_emperor_of_the_universe.glb', 'rig': 'ue', 'height': 1.59, 'bind': False},
@@ -53,7 +54,7 @@ HEROES = {
         'hips': 0.49, 'torso': 0.56, 'ribs': 0.67, 'neck': 0.82, 'head': 0.847, 'cl': (0.02, 0.79),
         'sh': (0.095, 0.789), 'el': (0.189, 0.679), 'wr': (0.278, 0.579), 'ft': (0.357, 0.51),
         'th': (0.053, 0.479), 'kn': (0.084, 0.264), 'an': (0.116, 0.043)}},
-    'trunks': {'src': 'trunks/jump_force___future_trunks_by_petventh_dd3369z.glb', 'rig': 'jumpforce', 'height': 1.838, 'drop': r'^Mat\.5$'},
+    'trunks': {'src': 'trunks/jump_force___future_trunks_by_petventh_dd3369z.glb', 'rig': 'jumpforce', 'height': 1.838, 'drop': r'^(Mat\.5|NM_Eye\.1)$'},  # 劍；NM_Eye.1 是和 Mat.4 重疊的第二組眼白
 }
 
 # 骨架家族：清理過的骨名 → 遊戲骨頭（可分給兩根）。清理：去掉 mixamorig: 之類的前綴與匯入時加上的 _數字、.數字 尾碼。
