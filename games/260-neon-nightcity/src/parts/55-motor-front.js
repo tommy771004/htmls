@@ -21,19 +21,19 @@
   k.box(dx, 4.47, dz + 1.9, 22, .05, .04, gold, 8);
   k.box(dx, 5.65, dz + .12, 9.2, 2.1, .2, 0x0b0a08, 2);
   // 展示台：低矮的黑色台座、金色燈邊
-  const show = [['saetta', dx - 6.5, -Math.PI / 2 + .3], ['furia', dx + 6.5, Math.PI / 2 - .3]];
+  const show = [['f40', dx - 6.5, -Math.PI / 2 + .3], ['sf90', dx + 6.5, Math.PI / 2 - .3]];
   for (const [, x] of show) {
     k.box(x, .21, dz + 2.1, 5.4, .12, 2.7, 0x1a1a1e, 10);
     k.box(x, .275, dz + 3.46, 5.4, .02, .03, gold, 8).box(x, .275, dz + .74, 5.4, .02, .03, gold, 8);
   }
   scene.add(new T.Mesh(k.build(), MAT.uber));
   // 店內的車：壓扁的側面剪影貼在亮著的窗後
-  for (const [id, x] of [['kanto', dx - 8.8], ['ronin', dx - 3.6], ['lucerna', dx + 3.7], ['meridian', dx + 8.8]]) {
-    const m = new T.Mesh(carKit(id, 0x2a2c30).build(), MAT.uber);
+  for (const [id, x] of [['r34', dx - 8.8], ['supra', dx - 3.6], ['nsx', dx + 3.7], ['zr1', dx + 8.8]]) {
+    const m = carObject(id);
     m.position.set(x, .2, dz + .05); m.rotation.y = x < dx ? Math.PI / 2 : -Math.PI / 2; m.scale.set(.02, .92, .92); scene.add(m);
   }
   for (const [id, x, yaw] of show) {
-    const m = new T.Mesh(carKit(id).build(), MAT.uber);
+    const m = carObject(id);   // 實車模型：走近車行才下載（65-motors 的 glbWake）
     m.position.set(x, .27, dz + 2.1); m.rotation.y = yaw; scene.add(m);
     const L = CARS[id].len * .28;
     for (const s of [-1, 1]) circles.push({ x: x + Math.sin(yaw) * L * s, z: dz + 2.1 + Math.cos(yaw) * L * s, r: 1.15 });

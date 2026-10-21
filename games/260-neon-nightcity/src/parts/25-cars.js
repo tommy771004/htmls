@@ -445,5 +445,6 @@ function carWheelGeo(id, f) {
   if (!wheelGeoCache[key]) { const c = CARS[id], k = new Kit(); carWheel(k, .001, 0, 0, c.wr, c.ww[f], c.rim[0], c.rim[1], c.wall, c.cal); wheelGeoCache[key] = k.build(); }
   return wheelGeoCache[key];
 }
-const CAR_ORDER = ['kestrel', 'doodle', 'kanto', 'bulldog', 'ronin', 'mamba', 'lucerna', 'duchess', 'saetta', 'furia', 'meridian', 'solenne', 'halcyon',
-  'e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3', 'gt3rs', 'gt3r', 's1krr', 's1krr19'];   // 後十台是 26-glb.js 的實車模型
+// 車庫車格的順序（車行與車庫只放 26-glb.js 的實車模型；上面程式建模的車留給車流與沒下載到模型時的替身）
+const CAR_ORDER = ['e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3', 'gt3rs', 'gt3r', 's1krr', 's1krr19',
+  'ae86', 'rx7', 'supra', 'r34', 'nsx', 'r35', 'p930', 'rwb', 'e34', 'evo190', 'm4csl', 'chall', 'police', 'zr1', 'f40', 'sf90', 'p1', 'zx6r', 'v4'];

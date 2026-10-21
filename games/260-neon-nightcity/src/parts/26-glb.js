@@ -7,6 +7,7 @@ import GLB_SPEC from '../../../../assets/260/cars.json';
 const GLB_ON = /^https?:$/.test(location.protocol);
 const GLB_BASE = new URL('../assets/260/', location.href).href;
 const glbReport = { on: GLB_ON, loaded: [], failed: [] };
+const STARTER = 'ae86', STREET_BIKE = 'zx6r';   // 開場的座駕與停在路邊的機車；車行與車庫只賣實車模型
 
 // price 美元；vmax m/s、eng 加速、grip 抓地（同 CARS）；proxy 是沒下載到模型時的替身；fb 是替身的車色
 const GLB_CARS = [
@@ -30,6 +31,45 @@ const GLB_CARS = [
     tag: '兩百匹的四缸超跑機車，壓車過彎比任何一台車都快，只是下雨天要小心。' }],
   ['s1krr19', { name: 'BMW S1000RR (2019)', cls: 'M 套件 · 千 cc 超跑機車', price: 29000, fb: 0xd8d8dc, proxy: 'hanzo', bike: true, vmax: 82, eng: 18, grip: 7.6, seat: [-.06, -.2],
     tag: '第二代 S1000RR，M 套件的白藍紅塗裝、碳纖維輪框與 Akrapovič 排氣管。' }],
+  // 第二批：日系、歐系、超跑、美式與機車
+  ['ae86', { name: 'Toyota Sprinter Trueno (AE86)', cls: '1983 · 4A-G 後驅掀背', price: 38000, fb: 0xe8e8e4, proxy: 'kestrel', vmax: 62, eng: 10, grip: 8.4,
+    tag: '黑白熊貓配色、可升降頭燈，門上印著豆腐店的字樣。馬力不大，但輕、後驅、好甩。原廠塗裝，不能換色。' }],
+  ['rx7', { name: 'Mazda RX-7 (FD3S)', cls: '1992 · 13B 雙渦輪轉子', price: 85000, fb: 0x1f5fa8, proxy: 'ronin', vmax: 79, eng: 15.5, grip: 9.6,
+    tag: '整台車只有曲線沒有直線，轉子引擎小到可以塞在前軸後面，前後配重五五開。' }],
+  ['supra', { name: 'Toyota Supra (A80)', cls: '1993 · 2JZ 雙渦輪直六', price: 110000, fb: 0xd86a1a, proxy: 'ronin', vmax: 82, eng: 16, grip: 9.2,
+    tag: '圓潤的長車頭、拱形尾翼與四顆圓尾燈。2JZ 引擎出了名的耐操，改到上千匹也不會散。' }],
+  ['r34', { name: 'Nissan Skyline GT-R (R34)', cls: '1999 · RB26 雙渦輪四驅', price: 135000, fb: 0x1f4fb8, proxy: 'ronin', vmax: 80, eng: 16.5, grip: 9.8,
+    tag: '方正的肩線、可調尾翼與四顆圓尾燈，ATTESA 四驅讓它在雨夜的街上照樣出得了彎。' }],
+  ['nsx', { name: 'Honda NSX', cls: '1990 · 中置 V6', price: 140000, fb: 0xf0f0ee, proxy: 'meridian', vmax: 80, eng: 15, grip: 9.8,
+    tag: '全鋁車身、戰鬥機座艙般的低矮視野，中置 V6 轉到八千轉。這台換了一組粉紫色的網狀輪框。' }],
+  ['r35', { name: 'Nissan GT-R (R35) 寬體', cls: '雙渦輪 V6 四驅 · 寬體套件', price: 180000, fb: 0x6a6e74, proxy: 'ronin', vmax: 86, eng: 18, grip: 10.2,
+    tag: '外擴的鉚釘葉子板、前下巴與高腳尾翼。四驅雙離合起步，紅燈一跳綠就已經在下個路口了。' }],
+  ['p930', { name: 'Porsche 911 Turbo (930)', cls: '1975 · 水平對臥六缸渦輪', price: 160000, fb: 0x1f5fa8, proxy: 'kanto', vmax: 78, eng: 15, grip: 8.6,
+    tag: '鯨尾尾翼、外擴後葉子板，七〇年代的渦輪遲滯：先是什麼都沒有，然後一口氣全部來。' }],
+  ['rwb', { name: 'Porsche 911 RAUH-Welt', cls: '964 · RWB 寬體改裝', price: 260000, fb: 0xf0f0ee, proxy: 'kanto', vmax: 82, eng: 16.5, grip: 9.8,
+    tag: '手工切開的葉子板、鉚上去的寬體與兩層的巨大尾翼，彩虹條紋的復古賽車彩繪。原廠彩繪，不能換色。' }],
+  ['e34', { name: 'BMW 5 系列 (E34) 低趴', cls: '1990 · 直六四門房車', price: 28000, fb: 0x1f5fa8, proxy: 'lucerna', vmax: 66, eng: 11, grip: 8.6,
+    tag: '九〇年代的四門房車，降到幾乎貼地、外傾的網狀輪框。整間車行最便宜的一台實車。' }],
+  ['evo190', { name: 'Mercedes-Benz 190E EVO', cls: '四門房車 · 房車賽認證版', price: 120000, fb: 0x1a1b1e, proxy: 'lucerna', vmax: 76, eng: 14.5, grip: 9.4,
+    tag: '為了房車賽而生的四門車：寬體、可調尾翼與十六氣門直四。黑色原廠塗裝，不能換色。' }],
+  ['m4csl', { name: 'BMW M4 CSL', cls: '2023 G82 · 輕量化直六', price: 190000, fb: 0x1f5fa8, proxy: 'ronin', vmax: 84, eng: 18, grip: 10.2,
+    tag: '拆掉後座、換上碳纖維引擎蓋與車頂，比一般 M4 輕一百公斤，雷射尾燈在夜裡是兩道紅色的刀。' }],
+  ['chall', { name: 'Dodge Challenger SRT', cls: '機械增壓 HEMI V8', price: 72000, fb: 0x4a2a7a, proxy: 'bulldog', vmax: 74, eng: 16, grip: 7.8,
+    tag: '紫色車身、消光黑引擎蓋，增壓器的嘯聲隔兩條街都聽得到。後輪很愛冒煙。原廠塗裝，不能換色。' }],
+  ['police', { name: '退役警車', cls: '前置 V8 巡邏車', price: 45000, fb: 0x1a1b1e, proxy: 'lucerna', vmax: 70, eng: 13, grip: 8.2,
+    tag: '從市警局標售出來的巡邏車，推撞桿、警示燈條和車頂編號都還在。開出去路人會自動讓路。原廠塗裝，不能換色。' }],
+  ['zr1', { name: 'Chevrolet Corvette ZR1', cls: '2019 C7 · 增壓 V8', price: 210000, fb: 0x1f5fa8, proxy: 'mamba', vmax: 90, eng: 18.5, grip: 9.8,
+    tag: '引擎蓋中間開了一個洞讓增壓器探出頭來，後面是高腳碳纖維尾翼。美國最後一代前置引擎的 Corvette。' }],
+  ['f40', { name: 'Ferrari F40', cls: '1987 · 雙渦輪 V8 中置', price: 900000, fb: 0xc8141c, proxy: 'saetta', vmax: 90, eng: 18.5, grip: 9.6,
+    tag: '壓克力百葉後窗、拉索開門、沒有音響也沒有地毯。創辦人生前最後一台親自批准的車。' }],
+  ['sf90', { name: 'Ferrari SF90 XX Stradale', cls: '2024 · 插電 V8 四驅', price: 980000, fb: 0xc8141c, proxy: 'furia', vmax: 98, eng: 21, grip: 10.8,
+    tag: '一千多匹的油電動力、前軸兩顆電動馬達，車尾一片固定式大尾翼。整間車行加速最暴力的一台。' }],
+  ['p1', { name: 'McLaren P1', cls: '2013 · 油電 V8 超跑', price: 1100000, fb: 0xe8782a, proxy: 'halcyon', vmax: 100, eng: 21.5, grip: 10.6,
+    tag: '油電三雄之一，車身像被風吹出來的一層皮，賽道模式下車身會降低、尾翼會升起。' }],
+  ['zx6r', { name: 'Kawasaki Ninja ZX-6R', cls: '636 cc 四缸仿賽', price: 16000, fb: 0x3aa83a, proxy: 'hanzo', bike: true, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
+    tag: '萊姆綠的中量級仿賽，轉速拉到一萬六。比千 cc 好駕馭，在窄巷裡也鑽得進去。' }],
+  ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, fb: 0xc8141c, proxy: 'hanzo', bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
+    tag: '從 MotoGP 賽車下放的 V4 引擎、單搖臂與紅色車殼。兩百多匹，比很多跑車都快。' }],
 ];
 const shortLic = l => (l || '').replace(/\s*\(.*\)/, '').replace(/^CC-/, 'CC ').replace(/-(\d)/, ' $1');
 const shortAuthor = a => (a || '').replace(/\s*\(.*\)/, '');

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { PROPS, buildHeroParts, heroMaterial } from './models-heroes.js';
 import { KEYS, blank, lerpPose, ease, clamp, smooth01, IMPACT, strike } from './pose-kit.js';
 import { HERO_POSES } from './poses/index.js';
+import { GLB, glbGeometry } from './glb.js';
 export { IMPACT };
 
 export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
@@ -517,6 +518,7 @@ const _heroMats = new Map();
 // 各英雄亮面（材質 2）的高光門檻：弗利沙（GK 第二輪）的紫色圓頂、肩甲是大面積的低曲率曲面，預設門檻下高光是一大塊不規則的白紫斑，
 // 遠看像破洞；參考 02／06 的亮漆高光小而圓滑
 const SPEC = { frieza: 0.988 };
+function glbMat(id, p) { const k = id + ':glb:' + p.map?.uuid; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ map: p.map, alphaTest: p.alpha, spec: SPEC[id] })); return _heroMats.get(k); }
 function heroMat(id, team) { const k = id + ':' + team; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ team: TEAM[team], spec: SPEC[id] })); return _heroMats.get(k); }
 function headMat(id, form, tex, rect) { const k = id + ':' + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35, spec: SPEC[id] })); return _heroMats.get(k); }
 // 蒙皮網格的外框：法線取蒙皮後的 transformedNormal；aOl 是逐頂點的外框粗細倍率（臉、手指較細）
@@ -580,6 +582,7 @@ export const handScale = (d) => (d.fist * (d.handK || 1)) / 0.086;
 export function heroSkeleton(id) {
   const d = HERO[id];
   if (!d) throw new Error('unknown hero ' + id);
+  if (GLB[id]) return glbSkeleton(id, d, GLB[id]);
   const root = new THREE.Group(); root.name = 'hero-' + id;
   const body = new THREE.Group(); root.add(body);
   const bone = (name, parent, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; };
@@ -620,6 +623,72 @@ export function heroSkeleton(id) {
   for (const n of BONE_EXTRA) bones.push(J[n]);
   const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66 - ry, d.chest[2] * 0.5); ribs.add(chest);
   return { d, root, body, J, hands, chest, chains, bones };
+}
+// Sketchfab 模型（glb.js）的骨架：骨頭位置照 glb_heroes.py 在 A 字綁定姿勢下量的關節（遊戲座標），
+// 手臂、腿的骨頭仍是沿局部 −y、只靠綁定時肩與髖的轉角擺成 A 字，所以肘、腕、膝、踝只取到上一節的距離
+const _sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], _len = (a, b) => Math.hypot(...a.map((v, i) => v - b[i]));
+function glbDims(d, G) {
+  if (d.__glb) return;
+  const j = G.joints;
+  d.__glb = true;
+  d.L = j.hips[1];
+  d.torso = j.neck[1] - d.L - 0.02 + 0.035;
+  d.upper = _len(j.shL, j.elL); d.lower = _len(j.elL, j.wrL);
+  d.thighLen = _len(j.thL, j.knL); d.shinLen = _len(j.knL, j.anL) + 0.055;
+  d.sw = Math.abs(j.shL[0]); d.hip = Math.abs(j.thL[0]) / 0.62;
+  d.fist = _len(j.wrL, j.ftL) * 0.9;
+  if (G.height) d.top = G.height;
+}
+function glbSkeleton(id, d, G) {
+  glbDims(d, G);
+  const j = G.joints;
+  const root = new THREE.Group(); root.name = 'hero-' + id;
+  const body = new THREE.Group(); root.add(body);
+  const bone = (name, parent, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; };
+  const hips = bone('hips', body, 0, j.hips[1], j.hips[2]);
+  const torso = bone('torso', hips, ..._sub(j.torso, j.hips));
+  const ribs = bone('ribs', torso, ..._sub(j.ribs, j.torso));
+  const neck = bone('neck', ribs, ..._sub(j.neck, j.ribs));
+  const head = bone('head', neck, ..._sub(j.head, j.neck));
+  const J = { hips, torso, ribs, neck, head };
+  const hands = {};
+  for (const side of ['L', 'R']) {
+    const q = (n) => j[n + side];
+    const cl = bone('cl' + side, ribs, ..._sub(q('cl'), j.ribs));
+    const sh = bone('sh' + side, cl, ..._sub(q('sh'), q('cl')));
+    const el = bone('el' + side, sh, 0, -_len(q('sh'), q('el')), 0);
+    const wr = bone('wr' + side, el, 0, -_len(q('el'), q('wr')), 0);
+    const hand = new THREE.Object3D(); hand.position.y = -_len(q('wr'), q('ft')) * 0.5; wr.add(hand); hands[side] = hand;
+    const th = bone('th' + side, hips, ..._sub(q('th'), j.hips));
+    const kn = bone('kn' + side, th, 0, -_len(q('th'), q('kn')), 0);
+    const an = bone('an' + side, kn, 0, -_len(q('kn'), q('an')), 0);
+    Object.assign(J, { ['cl' + side]: cl, ['sh' + side]: sh, ['el' + side]: el, ['wr' + side]: wr, ['th' + side]: th, ['kn' + side]: kn, ['an' + side]: an });
+  }
+  const bones = BONE_ORDER.map((n) => J[n]);
+  const chains = chainSpecs(id, d).map((c) => {
+    let par = J[c.parent]; const segs = [];
+    for (let i = 0; i < c.n; i++) {
+      const b = i === 0 ? bone(c.name + i, par, ...c.pos) : bone(c.name + i, par, 0, -c.len, 0);
+      segs.push(b); bones.push(b); par = b;
+    }
+    return { ...c, segs };
+  });
+  // 手指、拇指、腳趾：先擺成綁定姿勢，照量到的世界座標放，再換回父骨的局部座標
+  J.shL.rotation.z = BIND.shZ; J.shR.rotation.z = -BIND.shZ; J.thL.rotation.z = BIND.thZ; J.thR.rotation.z = -BIND.thZ;
+  root.updateMatrixWorld(true);
+  const at = (name, parent, p) => { const b = bone(name, parent, 0, 0, 0); b.position.copy(new THREE.Vector3(...p).applyMatrix4(_m4.copy(parent.matrixWorld).invert())); b.updateMatrixWorld(true); return b; };
+  for (const s of ['L', 'R']) {
+    let par = J['wr' + s];
+    for (const n of ['fa', 'fb', 'fc']) { J[n + s] = at(n + s, par, j[n + s]); par = J[n + s]; }
+    J['tb' + s] = at('tb' + s, J['wr' + s], j['tb' + s]);
+    J['to' + s] = at('to' + s, J['an' + s], j['to' + s]);
+  }
+  J.shL.rotation.z = J.shR.rotation.z = J.thL.rotation.z = J.thR.rotation.z = 0;
+  root.updateMatrixWorld(true);
+  J._thumbDir = new THREE.Vector3(..._sub(j.tbL, j.wrL)).normalize();
+  for (const n of BONE_EXTRA) bones.push(J[n]);
+  const chest = new THREE.Object3D(); chest.position.set(0, (j.neck[1] - j.ribs[1]) * 0.6, d.chest[2] * 0.5); ribs.add(chest);
+  return { d, root, body, J, hands, chest, chains, bones, glb: G };
 }
 // 手指與腳趾的骨頭：在 A 字綁定姿勢下照 Blender 建模的世界座標擺好，再換回各自父骨的局部座標
 const _m4 = new THREE.Matrix4(), _v = new THREE.Vector3();
@@ -696,8 +765,9 @@ export function buildHero(id, team = 0) {
   const { d, root, body, J, hands, chest } = sk;
   const { hips, torso, head } = J;
   const gs = buildHeroParts(id, d);
-  const rig2 = gs.rig >= 2; // 網格有胸、腕、踝權重（第二版骨架烘焙）才分攤扭轉、轉腕踝
-  const rig3 = gs.rig >= 3; // 第三版：鎖骨、脖子、手指、腳趾
+  const G = sk.glb;
+  const rig2 = G || gs.rig >= 2; // 網格有胸、腕、踝權重（第二版骨架烘焙）才分攤扭轉、轉腕踝
+  const rig3 = G || gs.rig >= 3; // 第三版：鎖骨、脖子、手指、腳趾
   const pair = (geometry, parent, mat, w = OW) => {
     const m = new THREE.Mesh(geometry, mat); m.castShadow = true; parent.add(m);
     if (w) { const o = new THREE.Mesh(geometry, skinOutlineMat(w)); o.raycast = () => {}; parent.add(o); m.userData.outline = o; }
@@ -708,21 +778,26 @@ export function buildHero(id, team = 0) {
   // 身體：一張蒙皮網格，以 A 字姿勢綁定到骨架
   bindPose(sk);
   const skeleton = new THREE.Skeleton(sk.bones);
-  const skin = new THREE.SkinnedMesh(gs.body, heroMat(id, team));
-  skin.castShadow = true; skin.frustumCulled = false; root.add(skin);
-  const skinO = new THREE.SkinnedMesh(gs.body, skinOutlineMat(OW));
-  skinO.frustumCulled = false; skinO.raycast = () => {}; root.add(skinO);
+  const skins = [];
+  const addSkin = (geo, mat) => {
+    const m = new THREE.SkinnedMesh(geo, mat); m.castShadow = true; m.frustumCulled = false; root.add(m);
+    const o = new THREE.SkinnedMesh(geo, skinOutlineMat(OW)); o.frustumCulled = false; o.raycast = () => {}; root.add(o);
+    skins.push(m, o);
+  };
+  // Sketchfab 模型：每個材質一張蒙皮網格（固有色取自貼圖）；臉、頭髮都在模型裡，不另外掛頭顱與髮型
+  if (G) for (const p of G.parts) addSkin(glbGeometry(p, sk.bones), glbMat(id, p));
+  else addSkin(gs.body, heroMat(id, team));
   root.updateMatrixWorld(true);
-  skin.bind(skeleton, skin.matrixWorld); skinO.bind(skeleton, skinO.matrixWorld);
+  for (const m of skins) m.bind(skeleton, m.matrixWorld);
 
   // 頭顱共用、髮型依型態切換；臉部貼圖（眼睛顏色）也隨型態換材質
-  const skull = pair(gs.skull, head, headMat(id, 'base', gs.faces.base, gs.faceRect));
+  const skull = G ? new THREE.Mesh() : pair(gs.skull, head, headMat(id, 'base', gs.faces.base, gs.faceRect));
   // 頭髮二次擺動：頭心下方、偏後的髮束（長髮、馬尾、護額綁帶）綁到 hairBone，跑動時往後甩、急停時回盪
   const hairBone = new THREE.Bone(); hairBone.position.set(0, d.hr * 0.9, 0); head.add(hairBone);
   root.updateMatrixWorld(true);
   const hairSkel = new THREE.Skeleton([head, hairBone]);
   const hairForms = {};
-  for (const f in gs.hair) {
+  for (const f in G ? {} : gs.hair) {
     const g = hairWeights(gs.hair[f], d.hr);
     const m = new THREE.SkinnedMesh(g, heroMat(id, team)), o = new THREE.SkinnedMesh(g, skinOutlineMat(OW));
     m.castShadow = true; m.frustumCulled = o.frustumCulled = false; o.raycast = () => {};
@@ -805,7 +880,7 @@ export function buildHero(id, team = 0) {
     // 待機時每 2.5～5 秒眨一次眼；勝利姿勢換招牌笑臉
     if (name === 'idle' || name === 'run') { blinkT -= dt; if (blinkT < -0.12) blinkT = 2.5 + Math.random() * 2.5; }
     const ex = name === 'win' ? 'happy' : SHOUT.has(name) ? 'shout' : HURT.has(name) ? 'hurt' : (name === 'idle' || name === 'run') && blinkT < 0 ? 'blink' : '';
-    if (ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''), tex = gs.face(key); if (tex) skull.material = headMat(id, key, tex, gs.faceRect); }
+    if (!G && ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''), tex = gs.face(key); if (tex) skull.material = headMat(id, key, tex, gs.faceRect); }
     // 角色專屬動作（src/poses）照影格時間設計，也走快速跟隨；衝刺本來就短，一起加快
     const own = tgt.__own;
     const fast = own || name === 'warpOut' || name === 'warpIn' || name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || name === 'dash' || (name === 'beam' && t > 0.3);
@@ -1020,7 +1095,7 @@ export function buildHero(id, team = 0) {
     form = f === 'ssj' ? 'ssj' : 'base';
     for (const k in hairForms) show(hairForms[k], k === form);
     expr = '';
-    if (gs.faces[form]) skull.material = headMat(id, form, gs.faces[form], gs.faceRect);
+    if (!G && gs.faces[form]) skull.material = headMat(id, form, gs.faces[form], gs.faceRect);
   }
 
   function setAura(level, color) {

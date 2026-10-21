@@ -332,7 +332,7 @@ function mkVehicle(kind) {
   const sp = isCar ? KESTREL_SPOT : HANZO_SPOT;
   const v = { kind, isCar, g, body, mat, wheels, x: sp.x, z: sp.z, y: 0, yaw: sp.yaw, vx: 0, vz: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0,
     len: 2.1, w: .7, rad: .45, off: .55, vmax: 47, eng: 12.5, grip: 7, wb: 1.5, wr: .33, name: 'Hanzo', rpm: 0, gear: 1, slip: 0, lights: 0 };
-  if (isCar) applyCar(v, 'kestrel');
+  if (isCar) applyCar(v, STARTER);
   else {
     body.add(new T.Mesh(hanzoKit().build(), mat));
     for (const z of [.8, -.72]) {
@@ -375,7 +375,8 @@ function applyCar(v, id, paint) {
     for (const w of inst.wheels) { (c.bike ? v.body : v.g).add(w.piv); v.wheels.push(w); }
   });
 }
-const kestrel = mkVehicle('kestrel'), hanzo = mkVehicle('hanzo');
+const kestrel = mkVehicle('kestrel'), hanzo = mkVehicle('hanzo');   // kestrel：玩家座駕（換車都走 applyCar）；hanzo：路邊的機車
+applyCar(hanzo, STREET_BIKE);
 const vehicles = [kestrel, hanzo];
 
 // 碰撞：圓對 AABB、圓對圓；回傳推出量與法線

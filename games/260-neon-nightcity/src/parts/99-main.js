@@ -194,7 +194,10 @@ function pickLights(t) {
     }
     const n = Math.max(0, NL - dynLights.length);
     L.push(...dynLights, ...lightPick.slice(0, n));
-  } else L.push(...VENUES[player.where].data.lights);
+  } else {
+    const VL = VENUES[player.where].data.lights;   // 車行、車庫的燈比 NL 多：挑離相機最近的
+    L.push(...(VL.length <= NL ? VL : VL.map(l => ({ l, d: (l.x - cx) ** 2 + (l.z - cz) ** 2 - l.r * l.r })).sort((a, b) => a.d - b.d).slice(0, NL).map(o => o.l)));
+  }
   for (let k = 0; k < NL; k++) {
     const l = L[k];
     if (!l) { U.uLP.value[k].set(0, -999, 0, 0); continue; }

@@ -24,7 +24,7 @@ const rigs = ids.map((id, i) => {
 });
 // dbg=ao｜ndl｜lit｜rim｜mat｜base：角色材質改輸出烘焙遮蔽、N·L（0.5＋0.5×）或明暗門檻（查卡通明暗的斑塊是遮蔽還是法線造成的）
 if (q.get('dbg')) {
-  const out = { ao: 'vec3(ao)', ndl: 'vec3(ndl * 0.5 + 0.5)', lit: 'vec3(lit)', rim: 'vec3(rim)', mat: 'vec3(mt / 5.0)', base: 'base', nrm: 'N * 0.5 + 0.5' }[q.get('dbg')];
+  const out = { ao: 'vec3(ao)', ndl: 'vec3(ndl * 0.5 + 0.5)', lit: 'vec3(lit)', rim: 'vec3(rim)', mat: 'vec3(mt / 5.0)', base: 'base', nrm: 'N * 0.5 + 0.5', uv: 'vec3(fract(vTex), 0.0)', tex: 'texture2D(uMap, vTex).rgb' }[q.get('dbg')];
   for (const r of rigs) r.root.traverse((o) => { const m = o.material; if (m && m.isShaderMaterial && m.fragmentShader.includes('gl_FragColor = vec4(c, 1.0);') && !m.__dbg) { m.__dbg = 1; m.fragmentShader = m.fragmentShader.replace('gl_FragColor = vec4(c, 1.0);', `gl_FragColor = vec4(${out}, 1.0);`); m.needsUpdate = true; } });
 }
 // hide=hair：隱藏頭髮（綁在兩根骨 head／hairBone 的蒙皮網格），看耳朵與頭形

@@ -1,4 +1,4 @@
-// 打包：src/main.js（含 three）→ 內嵌進 src/index.html。
+// 打包：src/boot.js → main.js（含 three）→ 內嵌進 src/index.html。
 // 預設輸出 ../../web/198-ki-lanes.html（只有主模型會這樣打）；--out=<資料夾> 輸出 <資料夾>/index.html；--dev 不壓縮。
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -11,7 +11,7 @@ const outArg = process.argv.find((a) => a.startsWith('--out='));
 const outFile = outArg ? resolve(root, outArg.slice(6), 'index.html') : resolve(root, '../../web/198-ki-lanes.html');
 
 const result = await build({
-  entryPoints: [resolve(root, 'src/main.js')], bundle: true, format: 'iife', target: 'es2020', minify,
+  entryPoints: [resolve(root, 'src/boot.js')], bundle: true, format: 'iife', target: 'es2020', minify,
   sourcemap: false, write: false, legalComments: 'none', logLevel: 'warning',
 });
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');

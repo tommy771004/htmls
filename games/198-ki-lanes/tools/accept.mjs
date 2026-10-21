@@ -1,12 +1,13 @@
-// 驗收：node tools/accept.mjs <html> [--out dir]
+// 驗收：node tools/accept.mjs <html> [--out dir] [--http]（--http：經本機 HTTP 開啟網站版，會載入 assets/198 的 GLB 角色並檢查）
 // 兩種尺寸（1440×900、390×844 觸控）：選角 → 開場 → 兵線 → 普攻連段 → QWER → 升級 → 死亡復活 → 推塔 → 勝利 / 敗北。
 // 檢查：無 uncaught exception、無 console.error、無外部請求、有 viewport meta、390 寬無水平溢出。
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { open } from './lib.mjs';
+import { open, serveSite } from './lib.mjs';
 
 const a = process.argv.slice(2);
-const html = a.find((x) => !x.startsWith('--') && a[a.indexOf(x) - 1] !== '--out') || '../../web/198-ki-lanes.html';
+const http = a.includes('--http'), site = http ? await serveSite() : null;
+const html = http ? site.url('web/198-ki-lanes.html') : a.find((x) => !x.startsWith('--') && a[a.indexOf(x) - 1] !== '--out') || '../../web/198-ki-lanes.html';
 const oi = a.indexOf('--out');
 const outDir = resolve(oi >= 0 ? a[oi + 1] : 'dist/accept');
 mkdirSync(outDir, { recursive: true });
@@ -20,6 +21,7 @@ async function run(name, w, h, touch) {
   const raf = () => ev(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
   const shot = async (s) => { await raf(); await page.screenshot({ path: resolve(outDir, `${name}-${s}.png`) }); };
   check('viewport meta', await ev(() => !!document.querySelector('meta[name=viewport]')));
+  if (http) check('載入 GLB 角色', await ev(() => Object.keys(globalThis.__GLB || {}).length > 0));
   await page.waitForTimeout(1200); await shot('1-select');
   // 用真的點擊選角並出戰
   if (touch) { await page.tap('.card[data-id="frieza"]'); await page.tap('[data-rtab="dom"]'); await page.tap('[data-rune="electrocute"]'); await shot('1b-rune'); await page.tap('#go'); } else { await page.click('.card[data-id="frieza"]'); await page.click('[data-rtab="dom"]'); await page.click('[data-rune="electrocute"]'); await shot('1b-rune'); await page.click('#go'); }

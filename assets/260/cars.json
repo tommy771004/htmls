@@ -484,5 +484,953 @@
   "tris": 112508,
   "kb": 1910,
   "draws": 30
+ },
+ "r34": {
+  "id": "r34",
+  "title": "Nissan Skyline R34 GT-R",
+  "author": "Lexyc16 (https://sketchfab.com/Lexyc16)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/nissan-skyline-r34-gt-r-ff8fb2251dfa4bb9979e7022c5a6666c",
+  "bike": false,
+  "len": 4.6,
+  "w": 1.883,
+  "h": 1.341,
+  "wr": 0.324,
+  "fa": 1.376,
+  "ra": -1.284,
+  "track": 0.713,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.706,
+    "y": 0.324,
+    "z": 1.376,
+    "r": 0.324
+   },
+   {
+    "name": "FR",
+    "x": -0.72,
+    "y": 0.324,
+    "z": 1.376,
+    "r": 0.324
+   },
+   {
+    "name": "RL",
+    "x": 0.706,
+    "y": 0.324,
+    "z": -1.284,
+    "r": 0.324
+   },
+   {
+    "name": "RR",
+    "x": -0.72,
+    "y": 0.324,
+    "z": -1.284,
+    "r": 0.324
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": true,
+  "tris": 62468,
+  "kb": 762,
+  "draws": 17
+ },
+ "r35": {
+  "id": "r35",
+  "title": "Nissan Skyline GTR r35",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/nissan-skyline-gtr-r35-7b142ea3376e4811a326256c59bbc7a2",
+  "bike": false,
+  "len": 4.71,
+  "w": 2.205,
+  "h": 1.316,
+  "wr": 0.354,
+  "fa": 1.47,
+  "ra": -1.252,
+  "track": 0.836,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.821,
+    "y": 0.354,
+    "z": 1.47,
+    "r": 0.354
+   },
+   {
+    "name": "FR",
+    "x": -0.821,
+    "y": 0.354,
+    "z": 1.47,
+    "r": 0.354
+   },
+   {
+    "name": "RL",
+    "x": 0.851,
+    "y": 0.354,
+    "z": -1.252,
+    "r": 0.354
+   },
+   {
+    "name": "RR",
+    "x": -0.852,
+    "y": 0.354,
+    "z": -1.252,
+    "r": 0.354
+   }
+  ],
+  "paint": [
+   "r35_paint"
+  ],
+  "paintable": true,
+  "tris": 128303,
+  "kb": 2055,
+  "draws": 31
+ },
+ "supra": {
+  "id": "supra",
+  "title": "Toyota Supra mk4",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/toyota-supra-mk4-8bebdee25b774067929bb33e648533ac",
+  "bike": false,
+  "len": 4.52,
+  "w": 2.001,
+  "h": 1.275,
+  "wr": 0.359,
+  "fa": 1.283,
+  "ra": -1.247,
+  "track": 0.733,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.733,
+    "y": 0.359,
+    "z": 1.283,
+    "r": 0.359
+   },
+   {
+    "name": "FR",
+    "x": -0.733,
+    "y": 0.359,
+    "z": 1.283,
+    "r": 0.359
+   },
+   {
+    "name": "RL",
+    "x": 0.733,
+    "y": 0.359,
+    "z": -1.247,
+    "r": 0.359
+   },
+   {
+    "name": "RR",
+    "x": -0.733,
+    "y": 0.359,
+    "z": -1.247,
+    "r": 0.359
+   }
+  ],
+  "paint": [
+   "esta80"
+  ],
+  "paintable": true,
+  "tris": 93246,
+  "kb": 1425,
+  "draws": 19
+ },
+ "rx7": {
+  "id": "rx7",
+  "title": "Mazda RX-7 FD",
+  "author": "Lexyc16 (https://sketchfab.com/Lexyc16)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mazda-rx-7-fd-d35ff630df614771b82e7b2f59035b1e",
+  "bike": false,
+  "len": 4.285,
+  "w": 1.852,
+  "h": 1.267,
+  "wr": 0.326,
+  "fa": 1.3,
+  "ra": -1.136,
+  "track": 0.728,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.729,
+    "y": 0.326,
+    "z": 1.301,
+    "r": 0.326
+   },
+   {
+    "name": "FR",
+    "x": -0.728,
+    "y": 0.326,
+    "z": 1.3,
+    "r": 0.326
+   },
+   {
+    "name": "RL",
+    "x": 0.729,
+    "y": 0.326,
+    "z": -1.136,
+    "r": 0.326
+   },
+   {
+    "name": "RR",
+    "x": -0.728,
+    "y": 0.326,
+    "z": -1.137,
+    "r": 0.326
+   }
+  ],
+  "paint": [
+   "Material.007"
+  ],
+  "paintable": true,
+  "tris": 37112,
+  "kb": 523,
+  "draws": 13
+ },
+ "nsx": {
+  "id": "nsx",
+  "title": "Honda NSX 1990",
+  "author": "Lexyc16 (https://sketchfab.com/Lexyc16)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/honda-nsx-1990-1cc15628a00a4739a6b6c01128927c8d",
+  "bike": false,
+  "len": 4.405,
+  "w": 1.951,
+  "h": 1.158,
+  "wr": 0.295,
+  "fa": 1.293,
+  "ra": -1.233,
+  "track": 0.777,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.779,
+    "y": 0.295,
+    "z": 1.293,
+    "r": 0.295
+   },
+   {
+    "name": "FR",
+    "x": -0.775,
+    "y": 0.295,
+    "z": 1.292,
+    "r": 0.295
+   },
+   {
+    "name": "RL",
+    "x": 0.779,
+    "y": 0.295,
+    "z": -1.232,
+    "r": 0.295
+   },
+   {
+    "name": "RR",
+    "x": -0.775,
+    "y": 0.295,
+    "z": -1.233,
+    "r": 0.295
+   }
+  ],
+  "paint": [
+   "Material.023"
+  ],
+  "paintable": true,
+  "tris": 90022,
+  "kb": 924,
+  "draws": 13
+ },
+ "ae86": {
+  "id": "ae86",
+  "title": "Toyota Trueno AE86 (Initial D)",
+  "author": "Flamestroke (https://sketchfab.com/Flamestroke)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/toyota-trueno-ae86-initial-d-40c0a445f8fa42568c7ecf208b6d97bd",
+  "bike": false,
+  "len": 4.205,
+  "w": 1.755,
+  "h": 1.384,
+  "wr": 0.33,
+  "fa": 1.27,
+  "ra": -1.138,
+  "track": 0.694,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.696,
+    "y": 0.33,
+    "z": 1.27,
+    "r": 0.33
+   },
+   {
+    "name": "FR",
+    "x": -0.696,
+    "y": 0.33,
+    "z": 1.27,
+    "r": 0.33
+   },
+   {
+    "name": "RL",
+    "x": 0.691,
+    "y": 0.33,
+    "z": -1.138,
+    "r": 0.33
+   },
+   {
+    "name": "RR",
+    "x": -0.691,
+    "y": 0.33,
+    "z": -1.138,
+    "r": 0.33
+   }
+  ],
+  "paint": [
+   "aiCarPaint3"
+  ],
+  "paintable": false,
+  "tris": 90037,
+  "kb": 974,
+  "draws": 16
+ },
+ "p930": {
+  "id": "p930",
+  "title": "Porsche 911 (930) Turbo 1975",
+  "author": "Lexyc16 (https://sketchfab.com/Lexyc16)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/porsche-911-930-turbo-1975-de1ffd344c41481892511f7fd332c136",
+  "bike": false,
+  "len": 4.291,
+  "w": 1.765,
+  "h": 1.282,
+  "wr": 0.318,
+  "fa": 1.224,
+  "ra": -1.053,
+  "track": 0.721,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.715,
+    "y": 0.318,
+    "z": 1.224,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.713,
+    "y": 0.318,
+    "z": 1.224,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.731,
+    "y": 0.318,
+    "z": -1.053,
+    "r": 0.318
+   },
+   {
+    "name": "RR",
+    "x": -0.726,
+    "y": 0.318,
+    "z": -1.053,
+    "r": 0.318
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": true,
+  "tris": 61218,
+  "kb": 630,
+  "draws": 9
+ },
+ "rwb": {
+  "id": "rwb",
+  "title": "Porsche 911 RAUH-Welt [FREE]",
+  "author": "autoNgraphic (https://sketchfab.com/autoNgraphic)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/porsche-911-rauh-welt-free-0e1f5e1c0ddc4c3f88b8484461146a79",
+  "bike": false,
+  "len": 4.6,
+  "w": 1.995,
+  "h": 1.338,
+  "wr": 0.313,
+  "fa": 1.337,
+  "ra": -0.874,
+  "track": 0.786,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.749,
+    "y": 0.313,
+    "z": 1.337,
+    "r": 0.313
+   },
+   {
+    "name": "FR",
+    "x": -0.749,
+    "y": 0.313,
+    "z": 1.337,
+    "r": 0.313
+   },
+   {
+    "name": "RL",
+    "x": 0.822,
+    "y": 0.313,
+    "z": -0.874,
+    "r": 0.313
+   },
+   {
+    "name": "RR",
+    "x": -0.822,
+    "y": 0.313,
+    "z": -0.874,
+    "r": 0.313
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 102054,
+  "kb": 2368,
+  "draws": 50
+ },
+ "e34": {
+  "id": "e34",
+  "title": "BMW E34 [stance style]",
+  "author": "Myedsu (https://sketchfab.com/myedsu)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-e34-stance-style-ffe1a3a1bcb34e0bb80f1aa41c9edb46",
+  "bike": false,
+  "len": 4.72,
+  "w": 1.873,
+  "h": 1.425,
+  "wr": 0.333,
+  "fa": 1.532,
+  "ra": -1.26,
+  "track": 0.748,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.743,
+    "y": 0.333,
+    "z": 1.532,
+    "r": 0.333
+   },
+   {
+    "name": "FR",
+    "x": -0.757,
+    "y": 0.333,
+    "z": 1.532,
+    "r": 0.333
+   },
+   {
+    "name": "RL",
+    "x": 0.734,
+    "y": 0.333,
+    "z": -1.26,
+    "r": 0.333
+   },
+   {
+    "name": "RR",
+    "x": -0.757,
+    "y": 0.333,
+    "z": -1.26,
+    "r": 0.333
+   }
+  ],
+  "paint": [
+   "body_paint"
+  ],
+  "paintable": true,
+  "tris": 90100,
+  "kb": 1081,
+  "draws": 15
+ },
+ "m4csl": {
+  "id": "m4csl",
+  "title": "BMW m4 CSL 2023",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-m4-csl-2023-26d05968e63b4fc28205cbb9abb0ea41",
+  "bike": false,
+  "len": 4.8,
+  "w": 2.083,
+  "h": 1.501,
+  "wr": 0.368,
+  "fa": 1.527,
+  "ra": -1.324,
+  "track": 0.777,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.778,
+    "y": 0.368,
+    "z": 1.527,
+    "r": 0.368
+   },
+   {
+    "name": "FR",
+    "x": -0.776,
+    "y": 0.368,
+    "z": 1.527,
+    "r": 0.368
+   },
+   {
+    "name": "RL",
+    "x": 0.778,
+    "y": 0.368,
+    "z": -1.324,
+    "r": 0.368
+   },
+   {
+    "name": "RR",
+    "x": -0.776,
+    "y": 0.368,
+    "z": -1.324,
+    "r": 0.368
+   }
+  ],
+  "paint": [
+   "M4xNME_Paint"
+  ],
+  "paintable": true,
+  "tris": 163227,
+  "kb": 2054,
+  "draws": 7
+ },
+ "evo190": {
+  "id": "evo190",
+  "title": "Mercedes 190E EVO 1982 3D Model Free",
+  "author": "Betier Models (https://sketchfab.com/betier)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-190e-evo-1982-3d-model-free-15e5576f4b724f2db357165caed3492b",
+  "bike": false,
+  "len": 4.49,
+  "w": 1.916,
+  "h": 1.52,
+  "wr": 0.313,
+  "fa": 1.482,
+  "ra": -1.22,
+  "track": 0.735,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.732,
+    "y": 0.313,
+    "z": 1.482,
+    "r": 0.313
+   },
+   {
+    "name": "FR",
+    "x": -0.739,
+    "y": 0.313,
+    "z": 1.482,
+    "r": 0.313
+   },
+   {
+    "name": "RL",
+    "x": 0.732,
+    "y": 0.313,
+    "z": -1.22,
+    "r": 0.313
+   },
+   {
+    "name": "RR",
+    "x": -0.739,
+    "y": 0.313,
+    "z": -1.22,
+    "r": 0.313
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 95779,
+  "kb": 1253,
+  "draws": 21
+ },
+ "f40": {
+  "id": "f40",
+  "title": "Ferrari f40",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ferrari-f40-52a66c41cfcd4f999fb1b1c49bf24d70",
+  "bike": false,
+  "len": 4.358,
+  "w": 2.031,
+  "h": 1.127,
+  "wr": 0.322,
+  "fa": 1.127,
+  "ra": -1.301,
+  "track": 0.775,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.778,
+    "y": 0.322,
+    "z": 1.127,
+    "r": 0.322
+   },
+   {
+    "name": "FR",
+    "x": -0.773,
+    "y": 0.322,
+    "z": 1.127,
+    "r": 0.322
+   },
+   {
+    "name": "RL",
+    "x": 0.777,
+    "y": 0.322,
+    "z": -1.301,
+    "r": 0.322
+   },
+   {
+    "name": "RR",
+    "x": -0.772,
+    "y": 0.322,
+    "z": -1.301,
+    "r": 0.322
+   }
+  ],
+  "paint": [
+   "material"
+  ],
+  "paintable": true,
+  "tris": 97991,
+  "kb": 838,
+  "draws": 6
+ },
+ "sf90": {
+  "id": "sf90",
+  "title": "2023 Ferrari SF90 XX Stradale",
+  "author": "Ddiaz Design (https://sketchfab.com/ddiaz-design)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2023-ferrari-sf90-xx-stradale-2c80c667232544649328cf3589921bcd",
+  "bike": false,
+  "len": 4.85,
+  "w": 2.309,
+  "h": 1.218,
+  "wr": 0.348,
+  "fa": 1.174,
+  "ra": -1.48,
+  "track": 0.831,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.845,
+    "y": 0.345,
+    "z": 1.174,
+    "r": 0.345
+   },
+   {
+    "name": "FR",
+    "x": -0.845,
+    "y": 0.345,
+    "z": 1.174,
+    "r": 0.345
+   },
+   {
+    "name": "RL",
+    "x": 0.817,
+    "y": 0.352,
+    "z": -1.48,
+    "r": 0.352
+   },
+   {
+    "name": "RR",
+    "x": -0.817,
+    "y": 0.352,
+    "z": -1.48,
+    "r": 0.352
+   }
+  ],
+  "paint": [
+   "Ferrari_SF90XXStradale_2024Paint_Material"
+  ],
+  "paintable": true,
+  "tris": 113080,
+  "kb": 1617,
+  "draws": 36
+ },
+ "p1": {
+  "id": "p1",
+  "title": "Mclaren P1 | www.vecarz.com",
+  "author": "vecarz (https://sketchfab.com/heynic)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mclaren-p1-wwwvecarzcom-adae2edc721e4ce7b31c1d06a581e30a",
+  "bike": false,
+  "len": 4.588,
+  "w": 2.144,
+  "h": 1.188,
+  "wr": 0.336,
+  "fa": 1.203,
+  "ra": -1.466,
+  "track": 0.812,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.822,
+    "y": 0.325,
+    "z": 1.203,
+    "r": 0.325
+   },
+   {
+    "name": "FR",
+    "x": -0.822,
+    "y": 0.325,
+    "z": 1.203,
+    "r": 0.325
+   },
+   {
+    "name": "RL",
+    "x": 0.802,
+    "y": 0.347,
+    "z": -1.466,
+    "r": 0.347
+   },
+   {
+    "name": "RR",
+    "x": -0.802,
+    "y": 0.347,
+    "z": -1.466,
+    "r": 0.347
+   }
+  ],
+  "paint": [
+   "Carpaint"
+  ],
+  "paintable": true,
+  "tris": 97945,
+  "kb": 1784,
+  "draws": 50
+ },
+ "chall": {
+  "id": "chall",
+  "title": "( FREE ) Dodge Challenger SRT",
+  "author": "SDC PERFORMANCE™️ (https://sketchfab.com/Lambo_SC04)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/free-dodge-challenger-srt-38a1fd572beb433fa2d26d8c1070c8fa",
+  "bike": false,
+  "len": 5.02,
+  "w": 2.143,
+  "h": 1.424,
+  "wr": 0.371,
+  "fa": 1.551,
+  "ra": -1.412,
+  "track": 0.753,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.753,
+    "y": 0.371,
+    "z": 1.551,
+    "r": 0.371
+   },
+   {
+    "name": "FR",
+    "x": -0.753,
+    "y": 0.371,
+    "z": 1.551,
+    "r": 0.371
+   },
+   {
+    "name": "RL",
+    "x": 0.753,
+    "y": 0.371,
+    "z": -1.412,
+    "r": 0.371
+   },
+   {
+    "name": "RR",
+    "x": -0.753,
+    "y": 0.371,
+    "z": -1.412,
+    "r": 0.371
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 90136,
+  "kb": 1116,
+  "draws": 12
+ },
+ "zr1": {
+  "id": "zr1",
+  "title": "2019 Chevrolet Corvette ZR1",
+  "author": "Ddiaz Design (https://sketchfab.com/ddiaz-design)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2019-chevrolet-corvette-zr1-92b1b185b0d44847b0d099a787f8ed12",
+  "bike": false,
+  "len": 4.49,
+  "w": 2.081,
+  "h": 1.168,
+  "wr": 0.326,
+  "fa": 1.334,
+  "ra": -1.286,
+  "track": 0.792,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.797,
+    "y": 0.318,
+    "z": 1.334,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.797,
+    "y": 0.318,
+    "z": 1.334,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.787,
+    "y": 0.333,
+    "z": -1.286,
+    "r": 0.333
+   },
+   {
+    "name": "RR",
+    "x": -0.787,
+    "y": 0.333,
+    "z": -1.286,
+    "r": 0.333
+   }
+  ],
+  "paint": [
+   "cChevrolet_CorvetteZR1SH1_2018Paint_Material1"
+  ],
+  "paintable": true,
+  "tris": 94613,
+  "kb": 1383,
+  "draws": 34
+ },
+ "police": {
+  "id": "police",
+  "title": "Police car",
+  "author": "Mateusz Woliński (https://sketchfab.com/jeandiz)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/police-car-9166b13b6ae341f4bfc093edb71d74f4",
+  "bike": false,
+  "len": 5.3,
+  "w": 1.958,
+  "h": 1.568,
+  "wr": 0.314,
+  "fa": 1.543,
+  "ra": -1.297,
+  "track": 0.742,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.749,
+    "y": 0.314,
+    "z": 1.543,
+    "r": 0.314
+   },
+   {
+    "name": "FR",
+    "x": -0.736,
+    "y": 0.314,
+    "z": 1.543,
+    "r": 0.314
+   },
+   {
+    "name": "RL",
+    "x": 0.749,
+    "y": 0.314,
+    "z": -1.297,
+    "r": 0.314
+   },
+   {
+    "name": "RR",
+    "x": -0.736,
+    "y": 0.314,
+    "z": -1.297,
+    "r": 0.314
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 90472,
+  "kb": 1048,
+  "draws": 14
+ },
+ "v4": {
+  "id": "v4",
+  "title": "Ducati Panigale V4",
+  "author": "ROY (https://sketchfab.com/roy.gearloft.in)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ducati-panigale-v4-47f87e3d70f644289e34cbff91255d0c",
+  "bike": true,
+  "len": 2.11,
+  "w": 0.772,
+  "h": 1.134,
+  "wr": 0.31,
+  "fa": 0.766,
+  "ra": -0.723,
+  "track": 0.045,
+  "wheels": [
+   {
+    "name": "F",
+    "x": 0,
+    "y": 0.289,
+    "z": 0.766,
+    "r": 0.289
+   },
+   {
+    "name": "R",
+    "x": 0.09,
+    "y": 0.332,
+    "z": -0.723,
+    "r": 0.332
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 117154,
+  "kb": 1388,
+  "draws": 8
+ },
+ "zx6r": {
+  "id": "zx6r",
+  "title": "Kawasaki ninja ZX-6R",
+  "author": "valvetin (https://sketchfab.com/valvetin)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/kawasaki-ninja-zx-6r-4af2b6840b8045a5af5e8df8a85f04fa",
+  "bike": true,
+  "len": 2.025,
+  "w": 0.871,
+  "h": 1.109,
+  "wr": 0.303,
+  "fa": 0.715,
+  "ra": -0.703,
+  "track": 0,
+  "wheels": [
+   {
+    "name": "F",
+    "x": 0,
+    "y": 0.297,
+    "z": 0.715,
+    "r": 0.297
+   },
+   {
+    "name": "R",
+    "x": 0,
+    "y": 0.309,
+    "z": -0.703,
+    "r": 0.309
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 76970,
+  "kb": 1131,
+  "draws": 6
  }
 }

@@ -1,4 +1,4 @@
-// 實車模型驗收：以本機 HTTP 伺服器開頁（assets/260/ 要能下載），檢查 10 台 GLB 都載入、展示廳與車庫換成實車、
+// 實車模型驗收：以本機 HTTP 伺服器開頁（assets/260/ 要能下載），檢查 cars.json 的每台 GLB 都載入、展示廳與車庫換成實車、
 // 買一台實車開上街（輪子轉動、轉向）、騎實車機車、CHROME WORKS 換色規則，並且沒有錯誤與外部請求。
 //   node tools/glb-check.mjs        SHOT_DIR=… 會存截圖
 import { createServer } from 'node:http';
@@ -9,6 +9,7 @@ import { open, raf } from './lib.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(root, '../..');
+const IDS = Object.keys(JSON.parse(readFileSync(resolve(repo, 'assets/260/cars.json'), 'utf8')));
 const shotDir = process.env.SHOT_DIR ? resolve(process.env.SHOT_DIR) : null;
 if (shotDir) mkdirSync(shotDir, { recursive: true });
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.glb': 'model/gltf-binary', '.json': 'application/json', '.svg': 'image/svg+xml' };
@@ -35,7 +36,7 @@ try {
   const t0 = Date.now();
   await ev(page, () => window.__nc.loadAllGLB());
   const g = await ev(page, () => window.__nc.glb);
-  check(g.on && g.loaded.length === 10 && !g.failed.length, `GLB 下載 ${g.loaded.length}/10（${((Date.now() - t0) / 1000).toFixed(1)} s）${g.failed.length ? '，失敗 ' + g.failed.join(',') : ''}`);
+  check(g.on && g.loaded.length === IDS.length && !g.failed.length, `GLB 下載 ${g.loaded.length}/${IDS.length}（${((Date.now() - t0) / 1000).toFixed(1)} s）${g.failed.length ? '，失敗 ' + g.failed.join(',') : ''}`);
 
   // 展示廳：後兩排的實車
   await ev(page, () => window.__nc.enter('show'));
@@ -51,7 +52,7 @@ try {
   }
   // 看車對話：實車有授權標示
   const cars = await ev(page, () => window.__nc.spots.showCars);
-  if (process.env.CLOSEUPS) for (const c of cars.filter(c => /e92|m3c|m4wb|m3gtr|m3t24|m4gt3|gt3rs|gt3r|s1krr/.test(c.id))) {
+  if (process.env.CLOSEUPS) for (const c of cars.filter(c => IDS.includes(c.id) && (!process.env.ONLY || process.env.ONLY.split(',').includes(c.id)))) {
     // 站在車子斜前方、相機拉遠看整台車
     await ev(page, (c) => { const nc = window.__nc, p = nc.player, a = c.yaw + .75; nc.me.mesh.visible = false; p.x = c.x + Math.sin(a) * 2.2; p.z = c.z + Math.cos(a) * 2.2; p.yaw = a + Math.PI; nc.look(a + Math.PI, -.22, 1); }, c);
     await page.waitForTimeout(350); await hideHud(page); await shot(page, 'c-' + c.id);
@@ -104,7 +105,7 @@ try {
   await page.waitForTimeout(250); await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw + 1.9, .05, 0); });
   await shot(page, 'g-bike');
   // 街景：每台實車停在 LAZARUS 門口拍一張（CITY=1）
-  if (process.env.CITY) for (const id of ['e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3', 'gt3rs', 'gt3r', 's1krr', 's1krr19']) {
+  if (process.env.CITY) for (const id of IDS.filter(id => !process.env.ONLY || process.env.ONLY.split(',').includes(id))) {
     await ev(page, (id) => { const nc = window.__nc, d = nc.spots.clubDoor; nc.walk(); nc.applyCar(id); nc.drive(); const v = nc.player.veh; v.x = d.x + 10; v.z = d.z + 8.9; v.yaw = 1.57; v.vx = v.vz = 0; nc.look(v.yaw - 3.6, .02, 0); }, id);
     await page.waitForTimeout(900);
     await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw - 3.6, .02, 0); });

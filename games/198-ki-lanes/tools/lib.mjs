@@ -22,7 +22,7 @@ export const SOFT_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable
 export const toUrl = (p) => (/^(https?|file):/.test(p) ? p : pathToFileURL(resolve(p)).href);
 
 export const isFont = (u) => /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(u);
-export const isLocal = (u) => /^(file|data|blob|about):/.test(u);
+export const isLocal = (u) => /^(file|data|blob|about):/.test(u) || /^http:\/\/127\.0\.0\.1:\d+\//.test(u);
 
 // 開頁；回傳 { browser, page, log }。log 收集 pageerror / console.error / 外部請求
 export async function open(html, { w = 1440, h = 900, touch = false } = {}) {
@@ -43,4 +43,20 @@ export async function open(html, { w = 1440, h = 900, touch = false } = {}) {
     } catch (e) { lastErr = e; await browser.close(); }
   }
   throw lastErr;
+}
+
+// 靜態檔伺服器（根目錄是整個網站 htmls/）：要載入 ../assets/198/ 的 GLB 角色時，頁面得經 HTTP 開啟。回傳 { url(path), close() }
+export async function serveSite() {
+  const http = await import('node:http');
+  const { readFile } = await import('node:fs/promises');
+  const { extname, join, normalize } = await import('node:path');
+  const site = resolve(new URL('.', import.meta.url).pathname, '../../..');
+  const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.glb': 'model/gltf-binary', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
+  const srv = http.createServer(async (q, s) => {
+    const p = normalize(decodeURIComponent(new URL(q.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
+    try { const b = await readFile(join(site, p)); s.writeHead(200, { 'content-type': types[extname(p)] || 'application/octet-stream' }); s.end(b); } catch (_) { s.writeHead(404); s.end(); }
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srv.address().port}/`;
+  return { url: (p) => base + p.replace(/^\//, ''), close: () => srv.close() };
 }

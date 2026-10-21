@@ -32,6 +32,27 @@ export const MODELS = [
   { id: 'gt3r', file: '2024_porsche_992_gt3_r', len: 4.619, tris: 140000 },
   { id: 's1krr', file: 'bmw_s1000_rr', len: 2.056, tris: 90000, bike: true, flip: true, paint: false },
   { id: 's1krr19', file: 'bmw_s1000rr_2019', len: 2.073, tris: 90000, bike: true, flip: true, paint: false },
+  // 第二批：日系、歐系、超跑與美式肌肉車，減面目標壓低（展示廳一次擺 29 台實車）
+  { id: 'r34', file: 'nissan_skyline_r34_gt-r', len: 4.6, tris: 90000 },
+  { id: 'r35', file: 'nissan_skyline_gtr_r35', len: 4.71, tris: 90000 },
+  { id: 'supra', file: 'toyota_supra_mk4', len: 4.52, tris: 90000 },
+  { id: 'rx7', file: 'mazda_rx-7_fd', len: 4.285, tris: 90000 },
+  { id: 'nsx', file: 'honda_nsx_1990', len: 4.405, tris: 90000 },
+  { id: 'ae86', file: 'toyota_trueno_ae86_initial_d', len: 4.205, tris: 90000, flip: true },
+  { id: 'p930', file: 'porsche_911_930_turbo_1975', len: 4.291, tris: 90000 },
+  { id: 'rwb', file: 'porsche_911_rauh-welt_free', len: 4.6, tris: 90000, flip: true },
+  { id: 'e34', file: 'bmw_e34_stance_style', len: 4.72, tris: 90000, flip: true },
+  { id: 'm4csl', file: 'bmw_m4_csl_2023', len: 4.8, tris: 90000 },
+  { id: 'evo190', file: 'mercedes_190e_evo_1982_3d_model_free', len: 4.49, tris: 90000 },
+  { id: 'f40', file: 'ferrari_f40', len: 4.358, tris: 90000 },
+  { id: 'sf90', file: '2023_ferrari_sf90_xx_stradale', len: 4.85, tris: 90000 },
+  { id: 'p1', file: 'mclaren_p1__www.vecarz.com', len: 4.588, tris: 90000 },
+  { id: 'chall', file: 'free__dodge_challenger_srt', len: 5.02, tris: 90000 },
+  { id: 'zr1', file: '2019_chevrolet_corvette_zr1', len: 4.49, tris: 90000 },
+  { id: 'police', file: 'police_car', len: 5.3, tris: 90000 },
+  { id: 'v4', file: 'ducati_panigale_v4', len: 2.11, tris: 70000, bike: true, flip: true, paint: false },
+  { id: 'zx6r', file: 'kawasaki_ninja_zx-6r', len: 2.025, tris: 70000, bike: true, paint: false, opaque: true, noEmi: true,
+    wheelNodes: { F: ['^Front Wheel_', '^Front Rim_'], R: ['^Rear Wheel_', '^Rear Rim_'] } },
 ];
 const CFG = JSON.parse(existsSync(resolve(root, 'tools/cars.cfg.json')) ? readFileSync(resolve(root, 'tools/cars.cfg.json'), 'utf8') : '{}');
 
@@ -91,7 +112,7 @@ async function processModel(M) {
       const ia = p.getIndices();
       let idx = ia ? Uint32Array.from(ia.getArray()) : Uint32Array.from({ length: cnt }, (_, i) => i);
       if (det < 0) for (let i = 0; i < idx.length; i += 3) { const s = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = s; }
-      prims.push({ mat, pos, nor, uv, idx, cnt });
+      prims.push({ mat, pos, nor, uv, idx, cnt, node: node.getName() });
     }
   });
 
@@ -138,7 +159,16 @@ async function processModel(M) {
   const slots = M.bike ? [['F', (c) => (c.mn[2] + c.mx[2]) > 0], ['R', (c) => (c.mn[2] + c.mx[2]) <= 0]]
     : [['FL', (c) => c.mx[0] + c.mn[0] > 0 && c.mn[2] + c.mx[2] > 0], ['FR', (c) => c.mx[0] + c.mn[0] <= 0 && c.mn[2] + c.mx[2] > 0], ['RL', (c) => c.mx[0] + c.mn[0] > 0 && c.mn[2] + c.mx[2] <= 0], ['RR', (c) => c.mx[0] + c.mn[0] <= 0 && c.mn[2] + c.mx[2] <= 0]];
   const wheels = [];
-  for (const [name, inSlot] of slots) {
+  // wheelNodes：{ 輪位: [輪胎節點名, 輪框等節點名] } 直接依原檔節點名拆輪子（輪胎和前叉、擋泥板黏在一起時用）
+  const WN = cfg.wheelNodes && Object.entries(cfg.wheelNodes).map(([name, [tire, parts]]) => ({ name, tire: new RegExp(tire), parts: new RegExp(parts || '^$') }));
+  if (WN) for (const { name, tire } of WN) {
+    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    for (const c of comps) if (tire.test(c.prim.node)) for (let j = 0; j < 3; j++) { mn[j] = Math.min(mn[j], c.mn[j]); mx[j] = Math.max(mx[j], c.mx[j]); }
+    if (mn[0] > mx[0]) { console.log(`  ${M.id} ${name}：找不到節點 ${tire}`); continue; }
+    const r = (mx[1] - mn[1]) / 2;
+    wheels.push({ name, x: (mn[0] + mx[0]) / 2, y: ground + r, z: (mn[2] + mx[2]) / 2, r, x0: mn[0], x1: mx[0], front: name[0] === 'F', re: [tire, WN.find((w) => w.name === name).parts] });
+  }
+  for (const [name, inSlot] of WN ? [] : slots) {
     // 落地的連通塊（輪胎可能拆成好幾段胎面）→ 同材質、同一個前後位置的塊合起來就是整顆輪胎
     const g = comps.filter((c) => !c.shadow && c.mn[1] < ground + .03 && inSlot(c) && c.mx[2] - c.mn[2] < 1.2 && c.mx[0] - c.mn[0] < .6);
     if (!g.length) continue;
@@ -160,6 +190,7 @@ async function processModel(M) {
   for (const c of comps) {
     c.slot = -1;
     if (c.shadow) continue;
+    if (WN) { c.slot = wheels.findIndex((w) => w.re.some((re) => re.test(c.prim.node))); continue; }
     wheels.forEach((w, k) => {
       if (c.slot >= 0) return;
       const R1 = w.r * 1.03;
@@ -188,13 +219,13 @@ async function processModel(M) {
   const matInfo = (m) => {
     if (!m) return { col: [.6, .6, .6, 1], pbr: [.6, 0, 0, 0], emi: [0, 0, 0], key: 'flat|OPAQUE|0', tex: null, etex: null, blend: false, double: false };
     const bc = m.getBaseColorFactor();
-    let a = bc[3], blend = m.getAlphaMode() === 'BLEND';
+    let a = bc[3], blend = m.getAlphaMode() === 'BLEND' && !(cfg.opaque && bc[3] > .99);   // opaque：原檔整台標成 BLEND 但其實不透明
     const tr = m.getExtension('KHR_materials_transmission');
     if (tr && tr.getTransmissionFactor() > .1) { blend = true; a = Math.min(a, 1 - tr.getTransmissionFactor() * .8); }
     const es = m.getExtension('KHR_materials_emissive_strength')?.getEmissiveStrength() ?? 1;
-    const ef = m.getEmissiveFactor().map((v) => v * es);
+    const ef = cfg.noEmi ? [0, 0, 0] : m.getEmissiveFactor().map((v) => v * es);   // noEmi：原檔把底色貼圖也接到自發光（無光照的匯出）
     const coat = m.getExtension('KHR_materials_clearcoat')?.getClearcoatFactor() || 0;
-    const tex = m.getBaseColorTexture(), etex = m.getEmissiveTexture();
+    const tex = m.getBaseColorTexture(), etex = cfg.noEmi ? null : m.getEmissiveTexture();
     const mask = m.getAlphaMode() === 'MASK';
     const ti = tex ? m.getBaseColorTextureInfo() : null;
     const key = [tex ? tex.getName() + tex.getURI() + (R.listTextures().indexOf(tex)) : 'flat', etex ? R.listTextures().indexOf(etex) : '-', blend ? 'BLEND' : mask ? 'MASK' : 'OPAQUE', m.getDoubleSided() ? 1 : 0, ti ? ti.getWrapS() + ':' + ti.getWrapT() : ''].join('|');
@@ -233,6 +264,8 @@ async function processModel(M) {
   }
 
   // ─── 6. 重建文件：car（含 extras 規格）→ body、wheel_* ───
+  for (const a of R.listAnimations()) a.dispose();   // 原檔的動畫（開門、轉輪）指向已拆掉的節點
+  for (const k of R.listSkins()) k.dispose();
   for (const n of R.listNodes()) n.dispose();
   for (const m of R.listMeshes()) m.dispose();
   const oldMats = R.listMaterials();

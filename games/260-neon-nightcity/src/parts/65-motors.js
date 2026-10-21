@@ -8,13 +8,14 @@ const sellPrice = id => Math.round(CARS[id].price * .6 / 1000) * 1000;
 
 // ─── 車庫存檔：現金、擁有的車、各車塗裝、目前開在街上的那台 ───
 const MOTOR_KEY = 'nc260.motors';
-const motors = { cash: 180000, owned: ['kestrel'], paint: {}, cur: 'kestrel', stowed: false, test: null };
+const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null };
 try {
   const d = JSON.parse(localStorage.getItem(MOTOR_KEY) || 'null');
   if (d && typeof d === 'object') {
     if (Number.isFinite(d.cash)) motors.cash = clamp(Math.round(d.cash), 0, 1e9);
-    if (Array.isArray(d.owned)) motors.owned = ['kestrel', ...d.owned.filter((id, i, a) => CARS[id] && id !== 'kestrel' && a.indexOf(id) === i)];
-    if (d.paint && typeof d.paint === 'object') for (const id in d.paint) if (CARS[id] && Number.isInteger(d.paint[id])) motors.paint[id] = d.paint[id];
+    // 舊存檔裡程式建模的車（含原本的 Kestrel）已經下架：只留實車模型
+    if (Array.isArray(d.owned)) motors.owned = [STARTER, ...d.owned.filter((id, i, a) => CARS[id] && CARS[id].glb && id !== STARTER && a.indexOf(id) === i)];
+    if (d.paint && typeof d.paint === 'object') for (const id in d.paint) if (CARS[id] && CARS[id].glb && Number.isInteger(d.paint[id])) motors.paint[id] = d.paint[id];
     if (motors.owned.includes(d.cur)) motors.cur = d.cur;
   }
 } catch (e) { /* 私密視窗或封鎖儲存空間：用預設值 */ }
@@ -26,7 +27,7 @@ function earn(n, why) {
   toast(`${why} +${money(n)}`);
   const el = $('cash'); el.classList.remove('up'); void el.offsetWidth; el.classList.add('up');
 }
-if (motors.cur !== 'kestrel' || motors.paint.kestrel != null) { applyCar(kestrel, motors.cur, motors.paint[motors.cur]); poseVehicle(kestrel); }
+if (motors.cur !== STARTER || motors.paint[STARTER] != null) { applyCar(kestrel, motors.cur, motors.paint[motors.cur]); poseVehicle(kestrel); }
 function placeCarAt(sp) {
   const v = kestrel;
   v.x = sp.x; v.z = sp.z; v.yaw = sp.yaw; v.vx = v.vz = v.yr = v.steer = 0; v.y = groundH(v.x, v.z); v.g.visible = true;
@@ -39,16 +40,17 @@ const carStats = id => {
   return `極速 ${Math.round(c.vmax * 3.6)} km/h · 加速 ${dots(c.eng, 6.5, 22)} · 抓地 ${dots(c.grip, 6.8, 11)}`;
 };
 
-// ─── 展示廳：門在 z = 0，室內 x -16..16、z 0..50、挑高 7 m；前兩排是程式建模的車，後兩排是實車模型 ───
+// ─── 展示廳：門在 z = 0，室內 x -16..16、z 0..SD、挑高 7 m；一排六台實車模型，奇數排中間兩台在轉盤上 ───
 const showScene = new T.Scene();
 const show = { boxes: [], circles: [], lights: [], cars: [], spin: [], people: null };
 const SHOW_ROWS = [
-  ['doodle', 'kanto', 'bulldog', 'ronin', 'mamba', 'lucerna'],
-  ['duchess', 'saetta', 'halcyon', 'solenne', 'furia', 'meridian'],
   ['e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3'],
-  ['s1krr', 'gt3rs', 'gt3r', 's1krr19'],
+  ['s1krr', 'zx6r', 'gt3rs', 'gt3r', 'v4', 's1krr19'],
+  ['ae86', 'rx7', 'supra', 'r34', 'nsx', 'r35'],
+  ['e34', 'evo190', 'p930', 'rwb', 'm4csl', 'f40'],
+  ['police', 'chall', 'zr1', 'sf90', 'p1'],
 ];
-const SD = 50, BK = SD - 30;   // 展示廳深度；後牆區（業務桌、休息區、招牌）比原本的 30 m 廳往後移 BK
+const SD = 20 + SHOW_ROWS.length * 10, BK = SD - 30;   // 展示廳深度；後牆區（業務桌、休息區、招牌）比原本的 30 m 廳往後移 BK
 const SELLER = { x: 11, z: 27.4 + BK };
 {
   const k = new Kit(), B = show.boxes, S = showScene, gold = 0xffcf6a;
@@ -75,13 +77,13 @@ const SELLER = { x: 11, z: 27.4 + BK };
   k.box(0, 5.15, -.02, 32, .08, .08, 0xc8ccd2, 3);
   // 展示台：圓形台座與金色燈環；台前一支規格立牌
   SHOW_ROWS.forEach((row, r) => row.forEach((id, i) => {
-    const x = (i - (row.length - 1) / 2) * 5, z = 9 + r * 10, yaw = Math.PI + Math.sign(x) * .5, spin = (r === 1 || r === 3) && Math.abs(x) < 3;
+    const x = (i - (row.length - 1) / 2) * 5, z = 9 + r * 10, yaw = Math.PI + Math.sign(x) * .5, spin = r % 2 === 1 && Math.abs(x) < 3;
     if (!spin) {
       k.cyl(x, .06, z, 2.35, 2.4, .12, 44, 0x1c1d21, 10);
       k.add(new T.TorusGeometry(2.37, .022, 4, 56), gold, 8, tf(x, .12, z, Math.PI / 2, 0, 0));
     }
     const px = x + Math.sin(yaw) * 2.95, pz = z + Math.cos(yaw) * 2.95;
-    if (r === 0 || r === 2 || spin) {
+    if (r % 2 === 0 || spin) {
       k.box(px, .4, pz, .04, .8, .04, 0xc8ccd2, 3).box(px, .02, pz, .26, .04, .26, 0x111214, 2);
       k.box(px, .82, pz, .4, .26, .03, 0x15161a, 2, -.6, yaw).box(px + Math.sin(yaw) * .012, .83, pz + Math.cos(yaw) * .012, .34, .2, .02, 0x4a4438, 11, -.6, yaw);
       show.circles.push({ x: px, z: pz, r: .18 });
@@ -141,17 +143,16 @@ const SELLER = { x: 11, z: 27.4 + BK };
   cr.flush(); showScene.add(cr.mesh); show.people = cr;
 }
 show.lights.push(
-  ...[9, 19, 29, 39].flatMap(z => [-10, 0, 10].map(x => ({ x, y: 6.4, z, col: lin(0xfff2e0), r: 14, i: 2.1 }))),
+  ...SHOW_ROWS.flatMap((_, r) => [-10, 0, 10].map(x => ({ x, y: 6.4, z: 9 + r * 10, col: lin(0xfff2e0), r: 14, i: 2.1 }))),
   { x: 0, y: 4.6, z: 28 + BK, col: lin(0xffcf6a), r: 9, i: 1.1 }, { x: 0, y: 4, z: 2, col: lin(0xd8e4ff), r: 12, i: .9 },
   { x: 11, y: 2.6, z: 25.6 + BK, col: lin(0xffe0b8), r: 6, i: 1 }, { x: -12, y: 2.6, z: 26 + BK, col: lin(0xffc890), r: 6, i: .9 },
-  { x: -14, y: 5, z: 14, col: lin(0xfff2e0), r: 10, i: .7 }, { x: 14, y: 5, z: 14, col: lin(0xfff2e0), r: 10, i: .7 },
-  { x: -14, y: 5, z: 34, col: lin(0xfff2e0), r: 10, i: .7 }, { x: 14, y: 5, z: 34, col: lin(0xfff2e0), r: 10, i: .7 },
-);
+  ...SHOW_ROWS.filter((_, r) => r % 2 === 0 && r < SHOW_ROWS.length - 1).flatMap((_, k) => [-14, 14].map(x => ({ x, y: 5, z: 14 + k * 20, col: lin(0xfff2e0), r: 10, i: .7 }))),
+);   // 燈比 NL 多：pickLights 每幀挑離相機最近的
 
-// ─── GARAGE 07：門在 z = 0，室內 x -9..9、z 0..GD、高 4.6 m；兩側各 GN 格、最裡面一格（共 23 格，對應 CAR_ORDER） ───
+// ─── GARAGE 07：門在 z = 0，室內 x -9..9、z 0..GD、高 4.6 m；兩側各 GN 格、最裡面一格（共 2·GN+1 格，對應 CAR_ORDER） ───
 const homeScene = new T.Scene();
 const home = { boxes: [], circles: [], lights: [], baseN: 0, cars: new T.Group(), bayCars: [] };
-const GN = 11, GD = 27 + (GN - 6) * 3.3, GK = GD - 27;   // GK：後牆區比原本 27 m 的車庫往後移的距離
+const GN = Math.ceil((CAR_ORDER.length - 1) / 2), GD = 27 + (GN - 6) * 3.3, GK = GD - 27;   // GK：後牆區比原本 27 m 的車庫往後移的距離
 const BAYS = [];
 for (let n = 0; n < GN; n++) for (const s of [-1, 1]) BAYS.push({ x: s * 6.2, z: 4.6 + n * 3.3, yaw: -s * Math.PI / 2 });
 BAYS.push({ x: 0, z: 24.2 + GK, yaw: Math.PI });
@@ -198,9 +199,9 @@ const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
   home.baseN = home.circles.length;
 }
 home.lights.push(
-  ...[4, 9, 14, 19, 24, 29, 34, 39].map(z => ({ x: 0, y: 3.9, z, col: lin(0xe8f2ff), r: 11, i: 2 })),
+  ...Array.from({ length: Math.ceil((GD - 4) / 5) }, (_, i) => ({ x: 0, y: 3.9, z: 4 + i * 5, col: lin(0xe8f2ff), r: 11, i: 2 })),
   { x: -6.2, y: 2.4, z: 25.6 + GK, col: lin(0xffd0a0), r: 5, i: 1 },
-  ...[12.8, 29].flatMap(z => [-6.2, 6.2].map(x => ({ x, y: 3.8, z, col: lin(0xe8f2ff), r: 10, i: 1.2 }))),
+  ...Array.from({ length: Math.floor((GD - 8) / 16) + 1 }, (_, i) => 12.8 + i * 16).filter(z => z < GD - 4).flatMap(z => [-6.2, 6.2].map(x => ({ x, y: 3.8, z, col: lin(0xe8f2ff), r: 10, i: 1.2 }))),
 );
 // 車庫裡擺出擁有的車（目前開在街上的那台不在）
 function rebuildGarage() {
@@ -268,14 +269,14 @@ function talkSeller() {
   const n = motors.owned.length - 1;
   dialog(WHO_SELL, n ? `又見面了。你車庫裡已經有 ${n} 台我們的車，要不要湊滿一整排？` : '歡迎光臨。每一台都可以先試駕一分鐘，看上哪台跟我說。', [
     { t: '錢要怎麼賺？', fn: () => dialog(WHO_SELL, '這座城的有錢人都靠兩件事：甩尾跟人情。在街上拉手煞甩出一段漂亮的側滑，觀眾會打賞；幫 LAZARUS 那邊的人一個忙，也不會讓你白跑。', [{ t: '知道了', fn: closeDialog }]) },
-    { t: '舊車可以收嗎？', fn: () => dialog(WHO_SELL, `可以，開回你的 GARAGE 07，在車旁跟我們聯絡，用牌價六成收。Kestrel 除外，那台我們不敢收。`, [{ t: '好', fn: closeDialog }]) },
+    { t: '舊車可以收嗎？', fn: () => dialog(WHO_SELL, `可以，開回你的 GARAGE 07，在車旁跟我們聯絡，用牌價六成收。那台 AE86 除外，豆腐店的車我們不敢收。`, [{ t: '好', fn: closeDialog }]) },
     { t: '隨便看看', fn: closeDialog },
   ]);
 }
 function bayDialog(id) {
   const c = CARS[id];
   const opts = [{ t: '開出去', fn: () => driveOut(id) }];
-  if (id !== 'kestrel') opts.push({ t: `賣回車行（${money(sellPrice(id))}）`, fn: () => dialog('GARAGE 07', `把 ${c.name} 用 ${money(sellPrice(id))} 賣回 VELOCE MOTORS？`, [{ t: '賣', fn: () => sellCar(id) }, { t: '不賣了', fn: closeDialog }]) });
+  if (id !== STARTER) opts.push({ t: `賣回車行（${money(sellPrice(id))}）`, fn: () => dialog('GARAGE 07', `把 ${c.name} 用 ${money(sellPrice(id))} 賣回 VELOCE MOTORS？`, [{ t: '賣', fn: () => sellCar(id) }, { t: '不賣了', fn: closeDialog }]) });
   opts.push({ t: '離開', fn: closeDialog });
   dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${carStats(id)}` + (c.credit ? `\n${c.credit}` : ''), opts);
 }
@@ -289,10 +290,10 @@ function driveOut(id) {
   });
 }
 function sellCar(id) {
-  if (id === 'kestrel' || !motors.owned.includes(id) || (id === motors.cur && !motors.stowed)) return closeDialog();
+  if (id === STARTER || !motors.owned.includes(id) || (id === motors.cur && !motors.stowed)) return closeDialog();
   const v = sellPrice(id);
   motors.owned = motors.owned.filter(o => o !== id);
-  if (motors.cur === id) { motors.cur = 'kestrel'; applyCar(kestrel, 'kestrel', motors.paint.kestrel); }
+  if (motors.cur === id) { motors.cur = STARTER; applyCar(kestrel, STARTER, motors.paint[STARTER]); }
   delete motors.paint[id];
   closeDialog(); rebuildGarage(); earn(v, `賣掉 ${CARS[id].name}`); sfx.click();
 }
@@ -333,6 +334,7 @@ ctxHooks.push((p, near) => {
 // ─── 每幀：轉盤、試駕倒數 ───
 function updateMotors(dt, t) {
   if (glbWait.length && (player.where === 'show' || player.where === 'home')) glbWake(VENUES[player.where].scene);
+  else if (glbWait.length && player.where === 'out' && Math.hypot(player.x - DEAL_X, player.z - DEAL_Z) < 90) glbWake(scene);   // 車行門口的展示車
   if (player.where === 'show') for (const s of show.spin) s.g.rotation.y = s.a0 + t * .22;
   const tst = motors.test;
   if (tst) {
