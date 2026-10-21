@@ -32,7 +32,8 @@ try {
   await ev(page, () => { try { localStorage.removeItem('nc260.motors'); } catch (e) {} });
   await ev(page, () => window.__nc.start());
   await page.waitForTimeout(800);
-  check((await ev(page, () => window.__nc.glb.loaded.length)) === 0, '開頁時不下載實車模型（進展示廳或車庫才下載）');
+  const early = await ev(page, () => window.__nc.glb.loaded.slice());
+  check(early.every(id => id === 'ae86' || id === 'zx6r'), `開頁時只下載座駕與路邊機車（${early.join(', ') || '還沒下載完'}），其他進車行或車庫才下載`);
   const t0 = Date.now();
   await ev(page, () => window.__nc.loadAllGLB());
   const g = await ev(page, () => window.__nc.glb);
@@ -112,7 +113,7 @@ try {
     await hideHud(page); await shot(page, 'city-' + id);
   }
   // 車庫：擁有的實車停在車格裡
-  await ev(page, () => { const nc = window.__nc; nc.walk(); nc.motors.owned.push('gt3rs', 's1krr', 'm4gt3', 'gt3r', 's1krr19', 'm3t24', 'halcyon'); nc.applyCar('kestrel'); nc.motors.cur = 'kestrel'; nc.garage(); nc.enter('home'); });
+  await ev(page, () => { const nc = window.__nc; nc.walk(); nc.motors.owned.push('gt3rs', 's1krr', 'm4gt3', 'gt3r', 's1krr19', 'm3t24', 'r34', 'f40', 'v4', 'police'); nc.applyCar('ae86'); nc.motors.cur = 'ae86'; nc.garage(); nc.enter('home'); });
   await page.waitForTimeout(600);
   await ev(page, () => { const nc = window.__nc; nc.player.x = 0; nc.player.z = 30; nc.player.yaw = Math.PI; nc.look(Math.PI, -.15, 1); });
   await page.waitForTimeout(500); await hideHud(page);

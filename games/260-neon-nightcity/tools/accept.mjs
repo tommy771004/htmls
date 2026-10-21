@@ -97,7 +97,7 @@ async function desktop() {
     await shot(page, 'd-drive');
     await ev(page, () => window.__nc.drive('hanzo'));
     await page.waitForTimeout(300);
-    check((await ev(page, () => window.__nc.player.veh.name)) === 'Hanzo', '換騎 Hanzo 機車');
+    check((await ev(page, () => window.__nc.player.veh.name)) === 'Kawasaki Ninja ZX-6R', '換騎路邊的 ZX-6R 機車');
 
     // 地圖
     await page.keyboard.press('KeyM');
@@ -115,10 +115,10 @@ async function desktop() {
     await page.keyboard.press('KeyE');
     await page.waitForTimeout(800);
     check((await nc(() => window.__nc.player.where)) === 'show', '進入 VELOCE MOTORS 展示廳');
-    const ronin = s.showCars.find((c) => c.id === 'ronin');
-    await nc((c) => { const p = window.__nc.player; p.x = c.x; p.z = c.z - 2.9; }, ronin);
+    const r34 = s.showCars.find((c) => c.id === 'r34');
+    await nc((c) => { const p = window.__nc.player; p.x = c.x; p.z = c.z - 2.9; }, r34);
     await page.waitForTimeout(200);
-    check(/Ronin GT/.test((await nc(() => window.__nc.ctx())) || ''), '走到車旁出現看車提示');
+    check(/Skyline GT-R/.test((await nc(() => window.__nc.ctx())) || ''), '走到車旁出現看車提示');
     await shot(page, 'd-show');
     await page.keyboard.press('KeyE');
     await page.waitForTimeout(200);
@@ -128,16 +128,16 @@ async function desktop() {
     await nc(() => window.__nc.pick(0));
     await page.waitForTimeout(900);
     const b = await nc(() => ({ mode: window.__nc.player.mode, name: window.__nc.player.veh && window.__nc.player.veh.name, cash: window.__nc.motors.cash, owned: window.__nc.motors.owned.slice(), where: window.__nc.player.where }));
-    check(b.mode === 'drive' && b.name === 'Ronin GT' && b.where === 'out' && cash0 - b.cash === 128000 && b.owned.includes('ronin'), `買下 Ronin GT 開出車行（${b.name}、扣款 $${(cash0 - b.cash).toLocaleString()}）`);
+    check(b.mode === 'drive' && b.name === 'Nissan Skyline GT-R (R34)' && b.where === 'out' && cash0 - b.cash === 135000 && b.owned.includes('r34'), `買下 R34 開出車行（${b.name}、扣款 $${(cash0 - b.cash).toLocaleString()}）`);
     await shot(page, 'd-bought');
     await nc(() => window.__nc.enter('show'));
-    await nc(() => window.__nc.testDrive('furia'));
+    await nc(() => window.__nc.testDrive('f40'));
     await page.waitForTimeout(900);
-    check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Furia V12' && (await nc(() => !!window.__nc.motors.test)), '試駕 Furia V12');
+    check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Ferrari F40' && (await nc(() => !!window.__nc.motors.test)), '試駕 Ferrari F40');
     await hold(page, 'KeyW', 800);
     await nc(() => window.__nc.walk());
     await page.waitForTimeout(200);
-    check((await nc(() => window.__nc.vehicles[0].carId)) === 'ronin' && !(await nc(() => window.__nc.motors.test)), '下車結束試駕，座駕換回 Ronin GT');
+    check((await nc(() => window.__nc.vehicles[0].carId)) === 'r34' && !(await nc(() => window.__nc.motors.test)), '下車結束試駕，座駕換回 R34');
     await nc((sp) => { const nc = window.__nc, v = nc.vehicles[0]; v.x = sp.x; v.z = sp.z; v.yaw = sp.yaw; nc.drive(); }, s.homeSpot);
     await page.waitForTimeout(200);
     check(/停進車庫/.test((await nc(() => window.__nc.ctx())) || ''), '開到車庫門口出現停車提示');
@@ -146,12 +146,12 @@ async function desktop() {
     check((await nc(() => window.__nc.player.where)) === 'home' && (await nc(() => window.__nc.motors.stowed)), '停進 GARAGE 07');
     await nc(() => { const p = window.__nc.player; p.x = -3.4; p.z = 4.6; window.__nc.look(-Math.PI / 2 + .5, .2, 1); });
     await page.waitForTimeout(300);
-    check(/Kestrel/.test((await nc(() => window.__nc.ctx())) || ''), '車庫裡 Kestrel 車格旁出現提示');
+    check(/AE86/.test((await nc(() => window.__nc.ctx())) || ''), '車庫裡 AE86 車格旁出現提示');
     await shot(page, 'd-garage');
-    await nc(() => window.__nc.garageInfo('kestrel'));
+    await nc(() => window.__nc.garageInfo('r34'));
     await nc(() => window.__nc.pick(0));
     await page.waitForTimeout(900);
-    check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Kestrel' && (await nc(() => window.__nc.player.where)) === 'out', '從車庫把 Kestrel 開出去');
+    check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Nissan Skyline GT-R (R34)' && (await nc(() => window.__nc.player.where)) === 'out', '從車庫把 R34 開出去');
     await nc((g) => { const v = window.__nc.vehicles[0]; v.x = g.x; v.z = g.z; v.vx = v.vz = 0; }, s.garage);
     await page.waitForTimeout(100);
     const p0c = await nc(() => window.__nc.vehicles[0].paint);
@@ -192,7 +192,7 @@ async function mobile() {
     check(await ev(page, () => getComputedStyle(document.getElementById('touch')).display === 'none'), '對話時隱藏觸控按鈕');
     await shot(page, 'm-dialog');
     await ev(page, () => window.__nc.closeDialog());
-    await ev(page, () => { window.__nc.enter('show'); window.__nc.player.z = 3; window.__nc.look(0, .2, 1); window.__nc.carInfo('halcyon'); });
+    await ev(page, () => { window.__nc.enter('show'); window.__nc.player.z = 3; window.__nc.look(0, .2, 1); window.__nc.carInfo('p1'); });
     await page.waitForTimeout(500);
     await shot(page, 'm-show');
     check(await ev(page, () => document.documentElement.scrollWidth <= innerWidth && document.getElementById('dialog').getBoundingClientRect().right <= innerWidth), '車行看車對話框不溢出');
