@@ -15,6 +15,8 @@
 
 轉出時做的修改：拆件並依部位重新命名、套用修改器、減面（Bruno、Mark 46／47／85）、Mark 46／47 依骨架權重把 T 字站姿的手臂放下、原始材質與貼圖換成五種塗裝角色（Mark 1 的貼圖未沿用；Mark 85 的寶石保留原色）、去掉地板等雜物、以 meshopt 壓縮。頁面再依各型號參考圖換色、加上反應爐形狀與配件。
 
+`mk16.glb`、`mk17.glb`、`mk25.glb`、`mk33.glb`、`mk39.glb`、`mk44.glb` 由 `mk7` 的來源（2iemniak，CC-BY 3.0）改造，`mk41.glb` 由 Gource 的 Mark 46（CC-BY 4.0）改造，`mk49.glb`、`mk50.glb` 由 LLIypuk 的 Mark 85（CC-BY 4.0）改造，授權沿用各自的來源。改造時參考 GK 與設定圖的比例，只取比例，不描圖、不轉載圖片。
+
 各型號配色參考 [MCU Wiki](https://marvelcinematicuniverse.fandom.com/wiki/Iron_Man_Armor) 與 Hot Toys 的公開產品圖，只用來取色與核對，頁面只放連結、不轉載圖片。
 
 `vendor/three-0.186.0/addons/libs/meshopt_decoder.module.js` 來自 three 0.186.0（meshoptimizer，MIT）。

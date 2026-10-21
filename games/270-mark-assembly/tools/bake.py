@@ -272,35 +272,44 @@ for part, faces in parts.items():
     for poly in me.polygons: poly.use_smooth = True
     me.set_sharp_from_angle(angle=math.radians(38))
 
-tot = sum(len(o.data.polygons) for o in objs)
-print('TOTAL_FACES', tot, 'objects', len(objs))
+def export(objs, out, debug=None, dbg_roles=False):
+    """匯出 bake 場景裡的部位物件；debug 另外輸出除錯圖（預設依部位上色，dbg_roles 時保留塗裝角色色）。derive.py 也用這個。"""
+    sc = bpy.context.scene
+    tot = sum(len(o.data.polygons) for o in objs)
+    print('TOTAL_FACES', tot, 'objects', len(objs))
 
-os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-# 原始場景的物件也可能是選取狀態，只匯出 bake 場景
-for s2 in list(bpy.data.scenes):
-    if s2 != sc: bpy.data.scenes.remove(s2)
-bpy.ops.object.select_all(action='DESELECT')
-for o in objs: o.select_set(True)
-bpy.context.view_layer.objects.active = objs[0]
-bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, use_active_scene=True, export_texcoords=False, export_normals=True,
-                          export_materials='EXPORT', export_yup=True, export_apply=False, export_extras=False, export_cameras=False, export_lights=False,
-                          export_meshopt_compression_enable=True, export_meshopt_extension='EXT_meshopt_compression')
-print('WROTE', out, os.path.getsize(out))
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    # 原始場景的物件也可能是選取狀態，只匯出 bake 場景
+    for s2 in list(bpy.data.scenes):
+        if s2 != sc: bpy.data.scenes.remove(s2)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in objs: o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, use_active_scene=True, export_texcoords=False, export_normals=True,
+                              export_materials='EXPORT', export_yup=True, export_apply=False, export_extras=False, export_cameras=False, export_lights=False,
+                              export_meshopt_compression_enable=True, export_meshopt_extension='EXT_meshopt_compression')
+    print('WROTE', out, os.path.getsize(out))
 
-if debug:
-    PAL = {'helmet': (.9, .1, .1), 'chest': (.95, .85, .1), 'abdomen': (1, .5, 0), 'pelvis': (.45, .25, .1), 'pauldron': (0, .9, .9), 'upperArm': (.1, .3, 1),
-           'forearm': (.6, .1, .9), 'hand': (1, .4, .7), 'thigh': (.1, .8, .1), 'shin': (0, .45, .4), 'boot': (.95, .95, .95), 'reactor': (1, 0, 1)}
-    for o in objs:
-        base, _, side = o.name.partition('.')
-        c = PAL.get(base, (.3, .3, .3)); k = .45 if side == 'R' else 1
-        m = bpy.data.materials.new('dbg_' + o.name); m.diffuse_color = (c[0] * k, c[1] * k, c[2] * k, 1)
-        o.data.materials.clear(); o.data.materials.append(m)
-    sc.render.engine = 'BLENDER_WORKBENCH'
-    sh = sc.display.shading; sh.light = 'STUDIO'; sh.color_type = 'MATERIAL'
-    sc.render.resolution_x, sc.render.resolution_y = 1400, 900
-    cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
-    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 3.3
-    # 前視與 3/4 後視拼在一起：用兩台相機分兩張
-    for tag, loc, rot in [('front', (0, -6, .98), (math.pi / 2, 0, 0)), ('back', (4.2, 4.2, .98), (math.pi / 2, 0, math.radians(135)))]:
-        cam.location = loc; cam.rotation_euler = rot
-        sc.render.filepath = debug.replace('.png', '_' + tag + '.png'); bpy.ops.render.render(write_still=True)
+    if debug:
+        PAL = {'helmet': (.9, .1, .1), 'chest': (.95, .85, .1), 'abdomen': (1, .5, 0), 'pelvis': (.45, .25, .1), 'pauldron': (0, .9, .9), 'upperArm': (.1, .3, 1),
+               'forearm': (.6, .1, .9), 'hand': (1, .4, .7), 'thigh': (.1, .8, .1), 'shin': (0, .45, .4), 'boot': (.95, .95, .95), 'reactor': (1, 0, 1)}
+        for o in ([] if dbg_roles else objs):
+            base, _, side = o.name.partition('.')
+            c = PAL.get(base, (.3, .3, .3)); k = .45 if side == 'R' else 1
+            m = bpy.data.materials.new('dbg_' + o.name); m.diffuse_color = (c[0] * k, c[1] * k, c[2] * k, 1)
+            o.data.materials.clear(); o.data.materials.append(m)
+        sc.render.engine = 'BLENDER_WORKBENCH'
+        sh = sc.display.shading; sh.light = 'STUDIO'; sh.color_type = 'MATERIAL'
+        sc.render.resolution_x, sc.render.resolution_y = 1400, 900
+        cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
+        cam.data.type = 'ORTHO'; cam.data.ortho_scale = 3.3
+        # 前視與 3/4 後視拼在一起：用兩台相機分兩張
+        for tag, loc, rot in [('front', (0, -6, .98), (math.pi / 2, 0, 0)), ('back', (4.2, 4.2, .98), (math.pi / 2, 0, math.radians(135))),
+                              ('side', (6, 0, .98), (math.pi / 2, 0, math.pi / 2))]:
+            cam.location = loc; cam.rotation_euler = rot
+            sc.render.filepath = debug.replace('.png', '_' + tag + '.png'); bpy.ops.render.render(write_still=True)
+
+
+# derive.py 會設 BAKE_NOEXPORT，拿走 objs 自己改完再匯出
+if not os.environ.get('BAKE_NOEXPORT'):
+    export(objs, out, debug)
