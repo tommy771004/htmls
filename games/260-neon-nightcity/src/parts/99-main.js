@@ -24,6 +24,8 @@ function onKey(code) {
     if (code === 'Escape') closeDialog();
     return;
   }
+  if (phoneKey(code)) return;   // 69-phone.js：P 開關手機，開著時數字鍵選列、Esc 返回
+  if (heistKey(code)) return;   // 69-heist.js：G 引爆金庫門、關掉結算畫面
   if (code === 'KeyM') { toggleMap(); return; }
   if (code === 'Escape') { toggleMap(false); return; }
   if ($('map').classList.contains('on')) return;
@@ -50,11 +52,12 @@ function onKey(code) {
 function summonCar() {
   motors.stowed = false; kestrel.g.visible = true;
   if (kestrel.dead) { kestrel.dead = 0; kestrel.burn = 0; kestrel.hp = 1000; toast(`${kestrel.name} 修好送過來了`); }
+  if (kestrel.flatBase) { kestrel.vmax = kestrel.flatBase.vmax; kestrel.grip = kestrel.flatBase.grip; kestrel.flatBase = null; kestrel.flat = 0; kestrel.hp = Math.max(kestrel.hp, 1000); }
   let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(player.x - avX(i)); if (d < bd) { bd = d; bi = i; } }
   let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(player.z - stZ(j)); if (d < be) { be = d; bj = j; } }
   if (bd < be) { const s = player.x < avX(bi) ? -1 : 1; kestrel.x = avX(bi) + s * LANE; kestrel.z = clamp(player.z, stZ(0) + 12, stZ(NZ) - 12); kestrel.yaw = s < 0 ? 0 : Math.PI; }
   else { const s = player.z < stZ(bj) ? -1 : 1; kestrel.z = stZ(bj) + s * LANE; kestrel.x = clamp(player.x, avX(0) + 12, avX(NX) - 12); kestrel.yaw = s > 0 ? Math.PI / 2 : -Math.PI / 2; }
-  kestrel.vx = kestrel.vz = 0; kestrel.y = 0; poseVehicle(kestrel);
+  kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.air = null; poseVehicle(kestrel);
   enterVehicle(kestrel); camState.yaw = kestrel.yaw; camState.snap = true;
   toast(`${kestrel.name} 開過來了`);
 }
@@ -74,7 +77,10 @@ addEventListener('mousemove', e => {
   look(dx, dy);
 });
 function look(dx, dy) {
-  camState.yaw -= dx * .0024; camState.pitch = clamp(camState.pitch + dy * .0022, -.45, 1.15); camState.idle = 0;
+  if (arm.wheel.open) { wheelMove(dx, dy); return; }   // 武器轉盤開著：滑鼠移動選格（69-combat.js）
+  if (crew.wheel.open) { crewWheelMove(dx, dy); return; }   // 角色轉盤（69-crew.js）
+  const k = camera.fov / 62;   // 狙擊鏡放大時降低靈敏度
+  camState.yaw -= dx * .0024 * k; camState.pitch = clamp(camState.pitch + dy * .0022 * k, -.45, 1.15); camState.idle = 0;
 }
 // 觸控：左邊搖桿、右半邊拖曳環顧、按鈕對應按鍵
 if (isTouch) {
@@ -91,8 +97,8 @@ if (isTouch) {
   cvs.addEventListener('pointerup', lend); cvs.addEventListener('pointercancel', lend);
   document.querySelectorAll('#tbtn button').forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = true; else if (k === 'Fire') { gta.hold = true; if (gta.weapon === 'fist' && canFight()) punch(); } else onKey(k); });
-    const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; if (k === 'Fire') gta.hold = false; };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = true; else if (k === 'Fire') triggerDown(); else onKey(k); });
+    const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; if (k === 'Fire') triggerUp(); };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
   });
 }
@@ -141,11 +147,12 @@ function updateCamera(dt, spd) {
     tx = p.x; ty = p.y + 1.55; tz = p.z;
     dist = [3.4, 5.2, 2.4][camState.far];
     if (p.where !== 'out') dist = Math.min(dist, 3.2);
-    dist = lerp(dist, 1.75, gta.aimK);   // 瞄準：拉近成越肩視角（68-gta.js）
+    dist = lerp(dist, 1.75, gta.aimK);   // 瞄準：拉近成越肩視角（69-combat.js）
+    dist = lerp(dist, .05, arm.zoomK); ty += arm.zoomK * .1;   // 狙擊鏡：鏡頭進到眼睛
   }
   const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
   _cd.set(Math.sin(camState.yaw) * cp, -sp, Math.cos(camState.yaw) * cp);
-  const sx = inV ? 0 : .38 + gta.aimK * .3;
+  const sx = inV ? 0 : (.38 + gta.aimK * .3) * (1 - arm.zoomK);
   const rx = -Math.cos(camState.yaw), rz = Math.sin(camState.yaw);
   let wx = tx - _cd.x * dist + rx * sx, wz = tz - _cd.z * dist + rz * sx, wy = ty - _cd.y * dist;
   // 撞牆就把相機往角色拉近
@@ -167,8 +174,8 @@ function updateCamera(dt, spd) {
   _ct.set(tx, ty + (inV ? .2 : 0), tz);
   U.uFocus.value.set(tx, ty, tz, inV ? 0 : 1);
   camera.lookAt(_ct.x + rx * sx * .6, _ct.y, _ct.z + rz * sx * .6);
-  const fov = 62 + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12;
-  camState.fov = damp(camState.fov, fov, 4, dt);
+  const fov = lerp(62 + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12, 13, arm.zoomK);
+  camState.fov = arm.zoomK > .02 ? fov : damp(camState.fov, fov, 4, dt);
   if (Math.abs(camera.fov - camState.fov) > .01) { camera.fov = camState.fov; camera.updateProjectionMatrix(); }
 }
 
@@ -195,6 +202,7 @@ function pickLights(t) {
       dynLights.push({ x: c.x + fx * L2, y: .8, z: c.z + fz * L2, col: HEAD_COL, r: 22, i: 2, dir: [fx, -.1, fz], cos: .8 });
       if (TYPES[c.type].police) dynLights.push({ x: c.x, y: 1.8, z: c.z, col: Math.sin(t * 12) > 0 ? POL_R : POL_B, r: 14, i: 2.2 });
     }
+    dynLights.push(...policeLights(t));   // 警車閃燈、直升機探照燈（69-police.js）
     // 爆炸、起火與槍口閃光（68-gta.js），亮度隨時間衰減
     for (const l of fxLights.slice(-3)) dynLights.push({ x: l.x, y: l.y, z: l.z, col: l.col, r: l.r, i: l.i * (1 - l.life / l.max) });
     const n = Math.max(0, NL - dynLights.length);
@@ -250,8 +258,10 @@ function step(dt) {
     nitro.v = clamp(nitro.v + (nitro.on ? -.32 : .1) * dt, 0, 1);
     const vmax0 = v.vmax, eng0 = v.eng;
     if (nitro.on) { v.vmax *= 1.25; v.eng *= 1.6; }
-    const r = driveVehicle(v, inp, dt);
-    v.vmax = vmax0; v.eng = eng0;
+    const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
+    const r = v.air ? stuntFly(v, dt) : driveVehicle(v, inp, dt);   // 69-stunt.js：跳台斜面與飛行
+    if (!v.air) stuntGround(v, r.vF);
+    v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
     gta.lastImp = r.imp;
     spd = Math.abs(r.vF) * 3.6;
@@ -268,6 +278,7 @@ function step(dt) {
   }
   updateMotors(dt, t);
   gtaUpdate(dt);
+  if (out) policeUpdate(dt);
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {
     quest.danceT += dt;
@@ -297,7 +308,14 @@ function placeRider(v) {
 }
 function loop(now) {
   requestAnimationFrame(loop);
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const raw = Math.min(.05, (now - last) / 1000); last = now;
+  // 子彈時間（武器轉盤、WASTED／BUSTED）：遊戲時間放慢，uTime 也跟著慢（T0 往後推）
+  slowmo.raw = raw;
+  const sw = Math.min(slowmo.want, slowmo.ab, slowmo.st);   // 轉盤／死亡、特殊能力、特技跳台取最慢的
+  slowmo.k = damp(slowmo.k, sw, sw < slowmo.k ? 14 : 5, raw);
+  if (Math.abs(slowmo.k - 1) < .002) slowmo.k = 1;
+  T0 += raw * 1000 * (1 - slowmo.k);
+  const dt = raw * slowmo.k;
   step(dt);
   frames++; fpsT += dt; if (fpsT > .5) { fps = frames / fpsT; frames = 0; fpsT = 0; }
 }
@@ -332,7 +350,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots }, gta: gtaApi,
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, market: marketApi, heist: heistApi, apt: aptApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },
@@ -340,11 +358,12 @@ window.__nc = {
   walk() { if (player.mode === 'drive') exitVehicle(); },
   enter(w) { if (player.mode === 'drive') exitVehicle(); const sp = VENUES[w].spawn; setWhere(w); player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.snap = true; },
   exit() { const w = player.where; setWhere('out'); const o = VENUES[w].out; player.x = o.x; player.z = o.z; player.yaw = o.yaw; camState.snap = true; },
-  look(yaw, pitch = camState.pitch, far = camState.far) { camState.yaw = yaw; camState.pitch = pitch; camState.far = far; camState.idle = 0; camState.snap = true; },
+  look(yaw, pitch = camState.pitch, far = camState.far) { camState.yaw = yaw; camState.pitch = pitch; camState.far = Math.max(0, Math.min(2, Math.round(far))) || 0; camState.idle = 0; camState.snap = true; },
   setQuest, talk: { marlo: talkMarlo, juno: talkJuno }, dialog: dlg, closeDialog,
   spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 },
     dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw })), seller: SELLER },
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
+  act() { const c = contextAction(); if (c) c.fn(); return c ? c.text : null; },   // 直接執行目前的互動提示
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   rain(v) { U.uRain.value = v; }, flash() { weather.next = 0; },
   keys, inp, nitro, livery: cycleLivery,

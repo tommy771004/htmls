@@ -49,7 +49,7 @@ export const TRAFFIC = [
   // 直接讀原檔（raw，.cache/raw/）：不是車，不走 cars.mjs。scale 縮放、rot 繞 y 轉（度，轉完車頭朝 +z）、nodes 只取哪些節點；
   // 同一個原檔的各部件共用同一個原點（整檔或 center 指定節點的底面中心），part: true 的部件再把自己的中心移到原點（轉軸），偏移記在 extras.piv
   { id: 'heli', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^(cabine|patins|tuyere|moyeu)/, pal: false, tris: 3600 },
-  { id: 'heli_rotor', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^rotor_pales/, part: true, pal: false, tris: 300, noFar: true },
+  { id: 'heli_rotor', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^rotor_pales/, part: true, pivot: [0, 2.988, 1.95], pal: false, tris: 300, noFar: true },
   { id: 'heli_tail', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^rotor_anticouple/, part: true, pal: false, tris: 120, noFar: true },
   // 坦克：原點在車體（Hull）的中心；砲塔轉軸量自砲塔寬的部分（不含砲管）的中心
   { id: 'tank', raw: 'low_poly_abrams_free_model', scale: 1, rot: -90, center: /^Abrams_Hull_/, nodes: /^(?!Abrams_Tower)/, pal: false, tris: 3600 },

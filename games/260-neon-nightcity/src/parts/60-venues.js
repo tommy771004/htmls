@@ -482,6 +482,7 @@ function contextAction() {
   for (const h of ctxHooks) { const r = h(p, near); if (r) return r; }
   if (p.mode === 'drive') {
     const v = p.veh;
+    const rs = resprayCtx(v); if (rs) return rs;   // 通緝中：CHROME WORKS 噴漆消星（69-crew.js）
     if (v === kestrel && !motors.test && Math.hypot(v.x - GAR_X, v.z - (GAR_Z + SW + 4)) < 6 && Math.hypot(v.vx, v.vz) < 2)
       return { key: 'E', text: '換一套塗裝 <i>· CHROME WORKS</i>', fn: cycleLivery };
     return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: '下車', fn: exitVehicle } : null;

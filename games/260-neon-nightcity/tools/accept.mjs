@@ -171,8 +171,13 @@ async function desktop() {
 
     // GTA 式擴充第一階段：換武器、撬車、搶車、開槍與換彈、打到冒煙與爆炸、路人倒地與逃跑
     await nc(() => window.__nc.walk());
-    await page.keyboard.press('Tab');
-    check((await nc(() => window.__nc.gta.state.weapon)) === 'pistol', 'Tab 換成手槍');
+    // 第二階段：按住 Tab 開武器轉盤（子彈時間），往右上移到「手槍」格放開
+    await page.keyboard.down('Tab');
+    await page.waitForTimeout(400);
+    const wh = await nc(() => { const g = window.__nc.gta; g.wheelMove(70, -70); return { open: g.arm.wheel.open, slot: g.arm.wheel.slot, k: g.slowmo.k, svg: document.querySelectorAll('#wheel .sec').length }; });
+    await page.keyboard.up('Tab');
+    check(wh.open && wh.slot === 1 && wh.k < .6 && wh.svg === 8, `武器轉盤八格、子彈時間 ×${wh.k.toFixed(2)}、選到手槍格`);
+    check((await nc(() => window.__nc.gta.state.weapon)) === 'pistol', '放開 Tab 換成手槍');
     const pk = await nc(() => { const nc = window.__nc, c = nc.parked[0]; nc.tp(c.x + Math.cos(c.yaw) * 2.1, c.z - Math.sin(c.yaw) * 2.1, 0); return c.type; });
     await page.waitForTimeout(150);
     check(/撬車/.test((await nc(() => window.__nc.ctx())) || ''), `路邊車旁出現「撬車」（${pk}）`);
@@ -189,11 +194,11 @@ async function desktop() {
     await nc(() => window.__nc.walk());
     await page.waitForTimeout(100);
     await nc(() => { window.__nc.gta.fire(); });
-    const g1 = await nc(() => ({ mag: window.__nc.gta.state.mag, fx: window.__nc.gta.fxLights.length + window.__nc.gta.parts.length }));
-    check(g1.mag === 11 && g1.fx > 0, `開一槍：彈匣 ${g1.mag}、粒子與閃光 ${g1.fx}`);
+    const g1 = await nc(() => ({ mag: window.__nc.gta.arm.ammo.pistol.mag, fx: window.__nc.gta.fxLights.length + window.__nc.gta.parts.length }));
+    check(g1.mag === 15 && g1.fx > 0, `開一槍：彈匣 ${g1.mag}、粒子與閃光 ${g1.fx}`);
     await page.keyboard.press('KeyR');
     await page.waitForTimeout(1500);
-    check((await nc(() => window.__nc.gta.state.mag)) === 12, '按 R 換彈匣');
+    check((await nc(() => window.__nc.gta.arm.ammo.pistol.mag)) === 16, '按 R 換彈匣');
     const boom = await nc(() => new Promise((r) => {
       const nc = window.__nc, v = nc.gta.jacked[0];
       nc.gta.damage(v, 600);
@@ -202,7 +207,206 @@ async function desktop() {
     check(boom.smoke > 0 && boom.dead && boom.burn === 1 && boom.dark > 0, `打到冒煙再爆炸 ${JSON.stringify(boom)}`);
     const ped = await nc(() => { const nc = window.__nc; nc.gta.knockPed(0, 1, 0); return { down: nc.pedState[0].down > 0, panic: nc.pedState.filter(p => p.panic > 0).length }; });
     check(ped.down, `路人中彈倒地，附近 ${ped.panic} 人逃跑`);
+    // 電擊槍：倒地抽搐、原地爬起來逃跑（不瞬移）；車內射擊：汽車上可用手槍，霰彈槍只有機車
+    const st0 = await nc(() => { const nc = window.__nc, g = nc.gta, p = nc.peds.people[1]; g.stunPed(1, .8, 1, 0); return { x: p.x, z: p.z, down: nc.pedState[1].down > 0, stun: nc.pedState[1].stun }; });
+    await page.waitForTimeout(1600);
+    const st1 = await nc(() => { const nc = window.__nc, p = nc.peds.people[1], s = nc.pedState[1]; return { x: p.x, z: p.z, down: s.down > 0, panic: s.panic > 0 }; });
+    check(st0.down && st0.stun && !st1.down && st1.panic && Math.hypot(st1.x - st0.x, st1.z - st0.z) < 6, `電擊槍：路人倒地後原地爬起逃跑 ${JSON.stringify({ moved: +Math.hypot(st1.x - st0.x, st1.z - st0.z).toFixed(1), panic: st1.panic })}`);
+    const db = await nc(() => { const nc = window.__nc, g = nc.gta; nc.drive(); g.wanted.clear('reset'); g.fill(); g.equip('pistol', true); g.state.fireT = g.state.reloadT = 0; g.fire(); return { mode: nc.player.mode, mag: g.arm.ammo.pistol.mag, sg: g.canDriveBy('shotgun'), rf: g.canDriveBy('rifle') }; });
+    check(db.mode === 'drive' && db.mag === 15 && !db.sg && !db.rf, `車內射擊：手槍可開火、霰彈槍與步槍不行 ${JSON.stringify(db)}`);
+    await nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); window.__nc.walk(); });
     await shot(page, 'd-gta');
+
+    // 第二階段：火箭與爆炸、生命與護甲、通緝星級（警車調度、下車逮捕）、BUSTED／WASTED 重生、脫離視線消星、直升機與路障
+    const rk = await nc(() => new Promise((r) => {
+      const g = window.__nc.gta, p = window.__nc.player;
+      g.wanted.clear('reset'); g.fill(); g.equip('rpg', true);
+      const n0 = g.parts.length;
+      g.launch('rocket', p.x, 1.6, p.z + 13, 0, -30, 8, 'npc');
+      setTimeout(() => r({ fx: g.parts.length - n0, proj: g.proj.length, hp: Math.round(g.life.hp), ar: Math.round(g.life.armor) }), 900);
+    }));
+    check(rk.fx > 40 && rk.proj === 0, `火箭命中爆炸：粒子 +${rk.fx}`);
+    const hp = await nc(() => { const g = window.__nc.gta; g.fill(); g.hurt(60); return { hp: Math.round(g.life.hp), ar: Math.round(g.life.armor), bar: getComputedStyle(document.getElementById('hpBar').firstElementChild).width }; });
+    check(hp.ar === 60 && hp.hp === 80, `受傷先扣護甲：生命 ${hp.hp}、護甲 ${hp.ar}`);
+    await nc(() => { const g = window.__nc.gta; g.fill(); g.equip('fist', true); g.wanted.set(1); });
+    let bust = null;
+    for (let i = 0; i < 70 && !bust; i++) { await page.waitForTimeout(500); bust = await nc(() => window.__nc.gta.life.dead); }
+    const w1 = await nc(() => ({ stars: document.querySelectorAll('#wanted svg.lit').length, units: window.__nc.gta.wanted.W.units.length }));
+    check(bust === 'busted', `1 星：警車沿路網趕到、警員下車逮捕 → ${bust}（${w1.units} 台警車）`);
+    await shot(page, 'd-busted');
+    await page.waitForTimeout(5200);
+    const rs = await nc(() => { const nc = window.__nc, g = nc.gta; return { dead: g.life.dead, stars: g.wanted.W.stars, d: Math.round(Math.hypot(nc.player.x - g.pd.x, nc.player.z - g.pd.z)), units: g.wanted.W.units.length }; });
+    check(!rs.dead && rs.stars === 0 && rs.d < 3 && rs.units === 0, `BUSTED 後在警察局門口重生、通緝清除 ${JSON.stringify(rs)}`);
+    await nc(() => window.__nc.gta.hurt(999));
+    await page.waitForTimeout(1500);
+    const wd = await nc(() => ({ dead: window.__nc.gta.life.dead, gray: window.__nc.post.gray, k: window.__nc.gta.slowmo.k, text: document.getElementById('deathW').textContent }));
+    check(wd.dead === 'wasted' && wd.gray > .9 && wd.k < .5 && wd.text === 'WASTED', `WASTED：灰階 ${wd.gray.toFixed(2)}、慢動作 ×${wd.k.toFixed(2)}`);
+    await shot(page, 'd-wasted');
+    await page.waitForTimeout(4500);
+    const rh = await nc(() => { const nc = window.__nc, g = nc.gta; return { dead: g.life.dead, hp: g.life.hp, d: Math.round(Math.hypot(nc.player.x - g.hosp.x, nc.player.z - g.hosp.z)) }; });
+    check(!rh.dead && rh.hp === 100 && rh.d < 3, `WASTED 後在醫院門口重生 ${JSON.stringify(rh)}`);
+    const ev1 = await nc(() => new Promise((r) => {
+      const g = window.__nc.gta, W = g.wanted.W;
+      g.wanted.set(1); W.spawnT = 99; W.seen = false; W.visT = 99; W.evade = 14.2;   // 留 .8 秒遊戲時間：慢一點的機器 1.2 秒真實時間跑不滿 1.2 秒
+      setTimeout(() => { const cool = document.getElementById('wanted').classList.contains('cool'); W.visT = 99; setTimeout(() => r({ cool, stars: W.stars }), 900); }, 300);
+    }));
+    check(ev1.cool && ev1.stars === 0, `脫離視線星星閃爍，15 秒後消星 ${JSON.stringify(ev1)}`);
+    const h3 = await nc(() => new Promise((r) => {
+      const nc = window.__nc, g = nc.gta; g.god.on = true;
+      nc.drive(); g.wanted.set(3);
+      setTimeout(() => { const b = g.wanted.roadblock(); r({ heli: !!g.wanted.W.heli, block: !!b && b.spikes.length === 2 && b.units.length === 2 }); }, 1500);
+    }));
+    check(h3.heli && h3.block, `3 星：直升機出動、前方路口擺路障與釘刺帶 ${JSON.stringify(h3)}`);
+    await page.waitForTimeout(6000);
+    await shot(page, 'd-heli');
+    await nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); g.god.on = false; g.fill(); window.__nc.walk(); });
+
+    // 第三階段：切換到 Jax（高空鏡頭約 2.7 秒）→ 狂暴減傷與鎖血；切到 Vance → 子彈時間
+    const ab = await nc(() => new Promise((r) => {
+      const nc = window.__nc, g = nc.gta, c = g.crew;
+      c.sw(2);
+      const until = (f, fn) => { const id = setInterval(() => { if (f()) { clearInterval(id); fn(); } }, 100); };
+      until(() => !c.crew.sw, () => {
+        const max = g.life.max, cur = c.crew.cur; c.sp(100); c.on();
+        const hp0 = g.life.hp, ar0 = g.life.armor; g.hurt(100); const took = hp0 + ar0 - g.life.hp - g.life.armor;
+        g.hurt(999); const alive = !g.life.dead && g.life.hp >= 1;
+        setTimeout(() => { const tint = nc.post.tint.w; c.off(); g.fill(); r({ cur, max, took: Math.round(took), alive, tint: +tint.toFixed(2) }); }, 400);
+      });
+    }));
+    check(ab.cur === 2 && ab.max === 120 && ab.took <= 16 && ab.alive && ab.tint > .3, `切換到 Jax、狂暴受傷 ×0.15 並鎖血、畫面轉橘紅 ${JSON.stringify(ab)}`);
+    const bt = await nc(() => new Promise((r) => {
+      const g = window.__nc.gta, c = g.crew;
+      c.sw(0);
+      const until = (f, fn) => { const id = setInterval(() => { if (f()) { clearInterval(id); fn(); } }, 100); };
+      until(() => !c.crew.sw, () => { c.sp(100); c.on(); setTimeout(() => { const k = g.slowmo.k, sp = c.crew.st[0].sp, spread = c.abil.spread; c.off(); r({ cur: c.crew.cur, k: +k.toFixed(2), sp: Math.round(sp), spread }); }, 800); });
+    }));
+    check(bt.cur === 0 && bt.k < .5 && bt.sp < 100 && bt.sp > 80, `切換到 Vance、子彈時間 ×0.4、能力條每秒耗 12.5 ${JSON.stringify(bt)}`);
+    await shot(page, 'd-vance');
+    await nc(() => new Promise((r) => { const c = window.__nc.gta.crew; c.sw(1); const id = setInterval(() => { if (!c.crew.sw) { clearInterval(id); r(); } }, 100); }));
+
+    // 手機：P 滑出、Zero 消星（$500 × 星數²）、雷達隱形時路人不報案、空投彈藥箱、快速存檔與讀檔
+    await page.keyboard.press('KeyP');
+    await page.waitForTimeout(400);
+    const ph = await nc(() => { const r = document.getElementById('phone').getBoundingClientRect(); return { open: window.__nc.gta.phone.phone.open, b: Math.round(r.bottom), h: innerHeight, w: Math.round(r.width), rows: document.querySelectorAll('#phScr li').length }; });
+    check(ph.open && ph.b <= ph.h && ph.w === 280 && ph.rows === 5, `按 P 滑出手機 ${JSON.stringify(ph)}`);
+    await shot(page, 'd-phone');
+    const zw = await nc(() => { const nc = window.__nc, g = nc.gta, p = g.phone; nc.motors.cash = 100000; g.wanted.set(2); p.pick(0); p.pick(0); const c0 = nc.motors.cash; p.pick(0); return { cost: 100000 - nc.motors.cash, stars: g.wanted.W.stars, cd: Math.round(p.phone.cd.wipe), c0 }; });
+    check(zw.cost === 2000 && zw.stars === 0 && zw.cd === 180, `Zero 消除 2 星通緝 ${JSON.stringify(zw)}`);
+    const gh = await nc(() => { const nc = window.__nc, g = nc.gta, p = g.phone; p.pick(1); const n0 = g.wanted.W.reports.length; window.__nc.gta.wanted.crime('kill'); return { ghost: Math.round(p.phone.ghostT), reports: g.wanted.W.reports.length - n0, stars: g.wanted.W.stars }; });
+    check(gh.ghost === 60 && gh.reports === 0, `雷達隱形 60 秒：犯罪沒有路人報案 ${JSON.stringify(gh)}`);
+    const air = await nc(() => new Promise((r) => {
+      const nc = window.__nc, g = nc.gta, p = g.phone, c0 = nc.motors.cash;
+      p.back(); p.pick(2); p.pick(0);
+      const c = p.phone.crates[0]; g.arm.ammo.rifle.res = 0; g.life.armor = 0;
+      c.y = 0; nc.player.x = c.x; nc.player.z = c.z;
+      setTimeout(() => r({ cost: c0 - nc.motors.cash, left: p.phone.crates.length, rifle: g.arm.ammo.rifle.res, armor: g.life.armor }), 400);
+    }));
+    check(air.cost === 1200 && air.left === 0 && air.rifle === 240 && air.armor === 100, `鐵幕保全空投彈藥箱，撿起來全部補滿 ${JSON.stringify(air)}`);
+    const qs = await nc(() => new Promise((r) => {
+      const nc = window.__nc, g = nc.gta, p = g.phone;
+      p.phone.ghostT = 0; g.wanted.clear('reset');
+      p.save(); const saved = JSON.parse(localStorage.getItem('nc260.motors')); const x0 = nc.player.x;
+      g.arm.ammo.pistol.res = 3; nc.player.x += 20;
+      p.load();
+      setTimeout(() => r({ v: saved.v, game: !!saved.game, pistol: g.arm.ammo.pistol.res, dx: +Math.abs(nc.player.x - x0).toFixed(2), open: p.phone.open }), 1600);
+    }));
+    check(qs.v >= 2 && qs.game && qs.pistol === 96 && qs.dx < .5 && !qs.open, `快速存檔寫進同一個存檔、讀檔還原彈藥與位置 ${JSON.stringify(qs)}`);
+
+    // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
+    await nc(() => { window.__nc.gta.god.on = true; });
+    const sj = await nc(() => new Promise((r) => {
+      const nc = window.__nc, s = nc.gta.stunt, rp = s.RAMPS[0];
+      nc.drive(); const v = nc.player.veh, c0 = nc.motors.cash;
+      v.x = rp.x - rp.dx * 16; v.z = rp.z - rp.dz * 16; v.yaw = Math.atan2(rp.dx, rp.dz); v.vx = rp.dx * 26; v.vz = rp.dz * 26;
+      let cam = false, air = 0;
+      const id = setInterval(() => { cam ||= !!s.stunt.cam; air = Math.max(air, v.y); }, 50);
+      setTimeout(() => { clearInterval(id); r({ cam, air: +air.toFixed(1), landed: !v.air, done: nc.motors.stunts.includes(rp.i), got: nc.motors.cash - c0 }); }, 6000);
+    }));
+    check(sj.cam && sj.air > 2 && sj.landed && sj.done && sj.got > 1000, `特技跳台：慢動作機位、落地領首次加倍獎金 ${JSON.stringify(sj)}`);
+    await shot(page, 'd-stunt');
+    // 運鈔車：Zero 標記叫出來、炸後車門掉三袋現金（3 星）、IVLT 下跌 SNTL 上漲
+    const tr = await nc(() => new Promise((r) => {
+      const nc = window.__nc, g = nc.gta, e = g.ev, px0 = { ...nc.motors.stk.px };
+      nc.walk(); g.wanted.clear('reset');
+      if (!e.spawn('zero')) return r({ spawn: false });
+      const name = e.ev.truck.v.name;
+      e.open();
+      const bags = e.ev.bags.map(b => ({ x: b.x, z: b.z, amt: b.amt })), stars = g.wanted.W.stars, c0 = nc.motors.cash;
+      g.wanted.clear('reset');
+      let k = 0;
+      const id = setInterval(() => {
+        if (k < bags.length) { nc.player.x = bags[k].x; nc.player.z = bags[k].z; k++; return; }
+        clearInterval(id);
+        r({ name, n: bags.length, stars, got: nc.motors.cash - c0, sum: bags.reduce((a, b) => a + b.amt, 0), left: e.ev.bags.length, ivlt: nc.motors.stk.px.IVLT < px0.IVLT, sntl: nc.motors.stk.px.SNTL > px0.SNTL });
+      }, 250);
+    }));
+    check(tr.n === 3 && tr.stars === 3 && tr.got === tr.sum && tr.got > 0 && !tr.left && tr.ivlt && tr.sntl, `運鈔車：炸開掉三袋現金、立刻 3 星、IVLT 跌 SNTL 漲 ${JSON.stringify(tr)}`);
+    // 流明電訊的藍色電訊箱：打兩下才爛，爛掉讓 LMNT 跌、PLSW 漲
+    const bx = await nc(() => {
+      const nc = window.__nc, m = nc.gta.market, px = nc.motors.stk.px, a = px.LMNT, b = px.PLSW, k = m.boxHp.findIndex(h => h > 0);
+      m.boxHit(k, 30, true); const half = m.boxHp[k]; m.boxHit(k, 999, true);
+      nc.gta.wanted.clear('reset');
+      return { half, dead: m.boxHp[k] <= 0, lmnt: px.LMNT < a, plsw: px.PLSW > b };
+    });
+    check(bx.half === 30 && bx.dead && bx.lmnt && bx.plsw, `電訊箱打爛：LMNT 跌、PLSW 漲 ${JSON.stringify(bx)}`);
+    const sk = await nc(() => { const nc = window.__nc, m = nc.gta.market; nc.motors.cash = 500000; const n = m.buy('SNTL', 100000), c1 = nc.motors.cash, got = m.sell('SNTL'); return { n, spent: Math.round(500000 - c1), back: Math.round(got), sh: nc.motors.stk.sh.SNTL }; });
+    check(sk.n > 0 && sk.spent <= 100000 && sk.back === sk.spent && sk.sh === 0, `買進賣出股票 ${JSON.stringify(sk)}`);
+    const es = await nc(() => new Promise((r) => {
+      const nc = window.__nc, m = nc.gta.market, c0 = nc.motors.cash, ok = m.estBuy('afterglow'), again = m.estBuy('afterglow'), cost = c0 - nc.motors.cash;
+      setTimeout(() => {
+        const safe = nc.motors.props.safe.afterglow, c1 = nc.motors.cash, got = m.estCollect('afterglow');
+        r({ ok, again, cost, safe: Math.round(safe), got, paid: nc.motors.cash - c1, own: JSON.parse(localStorage.getItem('nc260.motors')).props.own });
+      }, 1500);
+    }));
+    check(es.ok && !es.again && es.cost === 120000 && es.safe > 3 && es.got > 3 && es.paid === es.got && es.own.includes('afterglow'), `買下 AFTERGLOW、保險箱累積收入、收取後存檔 ${JSON.stringify(es)}`);
+
+    // 搶銀行（潛行）：籌備費 → 偷鑽機廂型車 → 進銀行 → C4 → 鑽金庫 → Vance 出門（2 星）→ Kael 開回倉庫 → 結算
+    const hs = (fn, ms = 1300) => nc(fn).then(async (v) => { await page.waitForTimeout(ms); return v; });
+    await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist; nc.motors.cash = 50000; h.go('smart'); const v = h.heist.van; nc.tp(v.x + 2.6, v.z, 0); });
+    const hz1 = await hs(() => { const nc = window.__nc; return { fee: 50000 - nc.motors.cash, act: nc.act() }; });
+    await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = h.heist.van; v.x = h.SAFE.x; v.z = h.SAFE.z + 2; v.vx = v.vz = 0; g.wanted.clear('reset'); });
+    const hz2 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; nc.tp(h.BANK.x, h.BANK.z + 1.2, Math.PI); return { st, act: nc.act() }; });
+    const hz3 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const r = { where: nc.player.where, st: h.heist.st }; h.heist.t = .05; return r; }, 400);
+    const hz4 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; h.blow(); h.drill(); return { st, t: Math.round(h.heist.t), alarm: h.heist.alarm }; }, 300);
+    await hs(() => { window.__nc.gta.heist.heist.t = .05; }, 1600);
+    const hz5 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, car = h.heist.car; const r = { st: h.heist.st, cur: g.crew.crew.cur, stars: g.wanted.W.stars, take: h.heist.take }; nc.tp(car.x + 2.5, car.z, 0); r.act = nc.act(); return r; }, 1600);
+    const hz6 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = nc.player.veh; const r = { st: h.heist.st, cur: g.crew.crew.cur, drive: nc.player.mode }; v.x = h.SAFE.x; v.z = h.SAFE.z; v.vx = v.vz = 0; g.wanted.clear('reset'); window.__c0 = nc.motors.cash; return r; });
+    const hz7 = await nc(() => { const nc = window.__nc, h = nc.gta.heist; return { st: h.heist.st, got: nc.motors.cash - window.__c0, on: document.getElementById('heistDone').classList.contains('on') }; });
+    check(hz1.fee === 10000 && hz2.st === 'go' && hz3.where === 'bank' && hz3.st === 'lobby', `搶劫前置：籌備費、廂型車開回倉庫、進銀行大廳 ${JSON.stringify({ h1: hz1, h2: hz2, h3: hz3 })}`);
+    check(hz4.st === 'c4' && hz4.t === 40 && !hz4.alarm && hz5.st === 'escape' && hz5.cur === 0 && hz5.stars === 2 && hz5.take === 2000000, `潛行：鑽 40 秒不響警報、Vance 帶 $2,000,000 出門（2 星）${JSON.stringify({ h4: hz4, h5: hz5 })}`);
+    check(hz6.st === 'drive' && hz6.cur === 1 && hz6.drive === 'drive' && hz7.st === 'off' && hz7.got === 1800000 && hz7.on, `Kael 開回倉庫、扣 Zero 一成實得 $1,800,000 ${JSON.stringify({ h6: hz6, h7: hz7 })}`);
+    await shot(page, 'd-heist');
+    await nc(() => { document.getElementById('heistDone').classList.remove('on'); window.__nc.gta.god.on = false; });
+
+    // 安全屋（69-safehouse.js）：門口看房 → 買下 → 進去 → 睡一覺存檔（存在門口）→ 出門
+    const sa1 = await nc(() => {
+      const nc = window.__nc, d = nc.gta.apt.APT.loft.door;
+      nc.walk(); nc.gta.wanted.clear('reset'); nc.earn(400000, '測試');
+      nc.tp(d.x, d.z + .8, Math.PI);
+      const c = nc.ctx(); nc.act(); nc.pick(0);
+      return { c, own: nc.motors.props.own.includes('loft'), c2: nc.ctx() };
+    });
+    await nc(() => window.__nc.act());
+    await page.waitForTimeout(900);
+    const sa2 = await nc(() => {
+      const nc = window.__nc, a = nc.gta.apt.APT.loft, p = nc.player;
+      window.__g0 = nc.motors.game ? nc.motors.game.t : 0;
+      const w = p.where; p.x = a.nap.x; p.z = a.nap.z + .2; nc.gta.life.hp = 40;
+      return { w, c: nc.ctx(), st: document.getElementById('stName').textContent };
+    });
+    await nc(() => window.__nc.act());
+    await page.waitForTimeout(900);
+    const sa3 = await nc(() => {
+      const nc = window.__nc, a = nc.gta.apt.APT.loft, g = nc.motors.game, s = g && g.st[g.cur], p = nc.player;
+      const r = { saved: !!g && g.t > window.__g0, atDoor: !!s && Math.hypot(s.x - a.door.x, s.z - a.door.z) < 2, hp: nc.gta.life.hp === nc.gta.life.max };
+      p.x = a.exit.x; p.z = a.exit.z; r.c = nc.ctx(); nc.act();
+      return r;
+    });
+    await page.waitForTimeout(900);
+    const sa4 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.loft.door; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
+    check(/看房/.test(sa1.c) && sa1.own && /進入/.test(sa1.c2), `安全屋：門口看房、買下後變成進入 ${JSON.stringify(sa1)}`);
+    check(sa2.w === 'loft' && /睡一覺/.test(sa2.c) && sa2.st === '冠石頂層公寓', `進入冠石頂層公寓、沙發可以睡覺 ${JSON.stringify(sa2)}`);
+    check(sa3.saved && sa3.atDoor && sa3.hp && /回到街上/.test(sa3.c) && sa4.w === 'out' && sa4.d < 3, `睡一覺存檔在門口、補滿生命，出門回到街上 ${JSON.stringify({ ...sa3, ...sa4 })}`);
 
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
     console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);
@@ -235,6 +439,62 @@ async function mobile() {
     await ev(page, () => window.__nc.drive());
     await page.waitForTimeout(500);
     await shot(page, 'm-drive');
+    // 第二階段：點「武器」開轉盤、點扇形選武器；通緝星級與生命條不擋到其他 HUD
+    await ev(page, () => window.__nc.walk());
+    await page.tap('#tbtn button[data-k="Tab"]');
+    await page.waitForTimeout(300);
+    const mw = await ev(page, () => { const r = document.getElementById('wheel').getBoundingClientRect(); return { open: window.__nc.gta.arm.wheel.open, l: Math.round(r.left), r: Math.round(r.right), w: innerWidth }; });
+    check(mw.open && mw.l >= 0 && mw.r <= mw.w, `觸控開武器轉盤、不超出畫面 ${JSON.stringify(mw)}`);
+    await shot(page, 'm-wheel');
+    await page.tap('#wheel path[data-s="2"]');
+    await page.waitForTimeout(200);
+    check((await ev(page, () => window.__nc.gta.state.weapon)) === 'smg' && !(await ev(page, () => window.__nc.gta.arm.wheel.open)), '點扇形換成衝鋒槍並關閉轉盤');
+    await ev(page, () => { window.__nc.gta.god.on = true; window.__nc.gta.wanted.set(2); });
+    await page.waitForTimeout(800);
+    const mh = await ev(page, () => {
+      const box = id => document.getElementById(id).getBoundingClientRect(), w = box('wanted'), v = box('vitals'), m = box('mapBox'), t = box('tbtn');
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return { stars: document.querySelectorAll('#wanted svg.lit').length, inside: w.right <= innerWidth && w.left >= 0, overlap: hit(v, t) || hit(v, box('joy')) || hit(w, t), vm: hit(v, m) };
+    });
+    check(mh.stars === 2 && mh.inside && !mh.overlap && !mh.vm, `手機上的通緝星級與生命條 ${JSON.stringify(mh)}`);
+    await shot(page, 'm-wanted');
+    await ev(page, () => { window.__nc.gta.wanted.clear('reset'); window.__nc.gta.god.on = false; });
+    await page.tap('#tbtn button[data-k="Crew"]');
+    await page.waitForTimeout(300);
+    const mc = await ev(page, () => { const r = document.getElementById('crewW').getBoundingClientRect(), v = document.getElementById('spBar').getBoundingClientRect(); return { open: window.__nc.gta.crew.crew.wheel.open, l: Math.round(r.left), r: Math.round(r.right), w: innerWidth, sp: v.width > 10 }; });
+    check(mc.open && mc.l >= 0 && mc.r <= mc.w && mc.sp, `觸控開角色轉盤、不超出畫面，生命條旁有能力條 ${JSON.stringify(mc)}`);
+    await shot(page, 'm-crew');
+    await page.tap('#crewW path[data-c="2"]');
+    await page.waitForTimeout(3300);
+    check((await ev(page, () => window.__nc.gta.crew.crew.cur)) === 2, '點扇形切換到 Jax');
+    await page.tap('#bPhone');
+    await page.waitForTimeout(400);
+    const mp = await ev(page, () => { const r = document.getElementById('phone').getBoundingClientRect(); return { open: window.__nc.gta.phone.phone.open, l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), w: innerWidth, h: innerHeight }; });
+    check(mp.open && mp.l >= 0 && mp.r <= mp.w && mp.t > 120 && mp.b <= mp.h, `觸控開手機、不超出畫面 ${JSON.stringify(mp)}`);
+    await page.tap('#phScr li:nth-child(2) button');
+    await page.waitForTimeout(200);
+    check((await ev(page, () => window.__nc.gta.phone.phone.scr)) === 'arms', '點列表進入暗網軍火');
+    await shot(page, 'm-phone');
+    await page.tap('#phBack');
+    await page.tap('#phScr li:nth-child(3) button');
+    await page.tap('#phScr li:nth-child(1) button');
+    await page.waitForTimeout(200);
+    const ms = await ev(page, () => { const r = document.getElementById('phScr').getBoundingClientRect(); return { scr: window.__nc.gta.phone.phone.scr, rows: document.querySelectorAll('#phScr li').length, b: Math.round(r.bottom), h: innerHeight, sw: document.getElementById('phScr').scrollWidth <= document.getElementById('phScr').clientWidth }; });
+    check(ms.scr === 'stock' && ms.rows >= 4 && ms.b <= ms.h && ms.sw, `點證交所→個股，買賣列不溢出 ${JSON.stringify(ms)}`);
+    await shot(page, 'm-stock');
+    await page.tap('#phBack'); await page.tap('#phBack'); await page.tap('#phBack');
+    await page.waitForTimeout(300);
+    check(!(await ev(page, () => window.__nc.gta.phone.phone.open)), '返回、再按關閉收起手機');
+    // 搶劫的任務框（標題＋威懾／計時條）在手機上不壓到小地圖與觸控按鈕
+    await ev(page, () => { const nc = window.__nc, h = nc.gta.heist; nc.gta.god.on = true; nc.motors.cash = 50000; h.go('loud'); h.stage('drill', 60); h.heist.t = 58; });
+    await page.waitForTimeout(400);
+    const mo = await ev(page, () => {
+      const box = id => document.getElementById(id).getBoundingClientRect(), o = box('obj'), s = box('objSub');
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return { inside: o.left >= 0 && o.right <= innerWidth && o.top >= 0, bar: s.width > 40 && s.bottom <= o.bottom, overlap: hit(o, box('mapBox')) || hit(o, box('tbtn')) || hit(o, box('wanted')) || hit(o, box('tools')) || hit(o, box('compass')) };
+    });
+    check(mo.inside && mo.bar && !mo.overlap, `手機上的搶劫任務框 ${JSON.stringify(mo)}`);
+    await shot(page, 'm-heist');
     check(await ev(page, () => document.documentElement.scrollWidth <= innerWidth), '無水平溢出');
     check(!log.pageerrors.length && !log.errors.length, `無錯誤 ${[...log.pageerrors, ...log.errors].slice(0, 3).join(' | ')}`);
     check(!log.external.length, '無外部請求');

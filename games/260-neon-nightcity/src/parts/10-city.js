@@ -10,8 +10,10 @@ const circles = [];                     // 靜態圓柱：{x,z,r}
 let activeBoxes = colliders, activeCircles = circles;   // 室內時換成室內的碰撞表
 const blocks = [], lots = [], shopUnits = [];
 
-for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++)
-  blocks.push({ i, j, x0: avX(i) + HR, x1: avX(i + 1) - HR, z0: stZ(j) + HR, z1: stZ(j + 1) - HR, outer: 0 });
+// 原本的 5×5 先建（亂數序列和擴建前一樣，舊城區的地塊與立面不變），再建往東、往南擴出去的新區
+const CORE = 5, isCore = (i, j) => i < CORE && j < CORE;
+for (const core of [true, false]) for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++)
+  if (isCore(i, j) === core) blocks.push({ i, j, x0: avX(i) + HR, x1: avX(i + 1) - HR, z0: stZ(j) + HR, z1: stZ(j + 1) - HR, outer: 0 });
 { // 外圍：一整圈連續的樓牆，背後再一圈高樓
   const D = 50, ax0 = avX(0) - HR, ax1 = avX(NX) + HR, sz0 = stZ(0) - HR, sz1 = stZ(NZ) + HR;
   blocks.push({ x0: ax0 - D, x1: ax1 + D, z0: sz1, z1: sz1 + D, outer: 'n' });
@@ -22,6 +24,10 @@ for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++)
 const district = (x, z) => {
   const i = (x - X0) / P, j = (z - Z0) / Q;
   if (i < 0 || i > NX || j < 0 || j > NZ) return '城郊 Outskirts';
+  // 擴建區（World 整合）：東邊三排是金融區、南邊兩排是住宅坡、東南角是貨場
+  if (i > CORE && j > CORE) return '鐵灣貨場 Ironbay Yards';
+  if (i > CORE) return '冠石金融區 Crownstone';
+  if (j > CORE) return '雲杉坡 Spruce Hill';
   if (i >= 1 && i <= 3.4 && j >= 1.5 && j <= 4) return '霓虹區 Neon District';
   if (i < 1.6) return '舊碼頭 Old Docks';
   if (j < 1.5) return '紅磚巷 Brick Row';
@@ -90,7 +96,7 @@ function addLot(axis, a0, a1, x0, x1, z0, z1, face, b, special) {
   const L = axis === 'z' ? { x0: a0, x1: a1, z0, z1 } : { x0, x1, z0: a0, z1: a1 };
   const cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2;
   const dist = district(cx, cz);
-  const neon = dist.startsWith('霓虹'), mid = dist.startsWith('中城'), docks = dist.startsWith('舊碼頭');
+  const neon = dist.startsWith('霓虹'), mid = dist.startsWith('中城'), fin = dist.startsWith('冠石'), res = dist.startsWith('雲杉'), docks = dist.startsWith('舊碼頭') || dist.startsWith('鐵灣');
   let style, floors;
   const r = rnd();
   if (special === 'club') { style = 5; floors = 3; }
@@ -99,12 +105,13 @@ function addLot(axis, a0, a1, x0, x1, z0, z1, face, b, special) {
   else if (special === 'dealer') { style = 3; floors = 0; }
   else if (special === 'home') { style = 2; floors = 3; }
   else if (b.outer) { style = r < .5 ? 0 : r < .75 ? 1 : 2; floors = 5 + Math.floor(rnd() * 6); }
-  else if (mid && r < .35) { style = 3; floors = 0; }
+  else if (mid && r < .35 || fin && r < .6) { style = 3; floors = 0; }
+  else if (res) { style = r < .75 ? 0 : 2; floors = 4 + Math.floor(rnd() * 5); }
   else if (neon && r < .3) { style = 4; floors = 4 + Math.floor(rnd() * 5); }
   else if (neon && r < .4) { style = 3; floors = 0; }
   else { style = docks ? (r < .7 ? 1 : 0) : r < .55 ? 0 : r < .8 ? 1 : 2; floors = 3 + Math.floor(rnd() * (docks ? 3 : 6)); }
   const fh = style === 3 ? 3.7 : style === 2 ? 3.4 : 3.1;
-  const h = style === 3 ? 38 + rnd() * (mid ? 70 : 40) : 4.6 + floors * fh + .7;
+  const h = style === 3 ? 38 + rnd() * (mid || fin ? 70 : 40) : 4.6 + floors * fh + .7;
   lots.push({ ...L, h, style, seed: rnd() * 1000, face, axis, special, fh, b });
 }
 function backTowers(x0, x1, z0, z1, along) {
@@ -125,21 +132,23 @@ const bldPlace = [];   // { set, id, x, z, ry, s, lots }
 if (BLD_ON) {
   const rb = rng(5150), pool = {};
   for (const [set, v] of Object.entries(PROPS_SPEC)) if (set.startsWith('bld_')) pool[set] = Object.entries(v.items).map(([id, it]) => ({ id, ...it }));
-  const SETS = { 紅磚: ['bld_brown', 'bld_brown', 'bld_mid'], 舊碼: ['bld_ind', 'bld_ind', 'bld_brown'], 中城: ['bld_down', 'bld_down', 'bld_brown'], 霓虹: ['bld_brown', 'bld_down'] };
-  const PROB = { 紅磚: .6, 舊碼: .55, 中城: .55, 霓虹: .22 };
+  const SETS = { 紅磚: ['bld_brown', 'bld_brown', 'bld_mid'], 舊碼: ['bld_ind', 'bld_ind', 'bld_brown'], 中城: ['bld_down', 'bld_down', 'bld_brown'], 霓虹: ['bld_brown', 'bld_down'],
+    冠石: ['bld_down'], 雲杉: ['bld_res', 'bld_brown', 'bld_res', 'bld_mid'], 鐵灣: ['bld_ind'] };
+  const PROB = { 紅磚: .6, 舊碼: .55, 中城: .55, 霓虹: .22, 冠石: .3, 雲杉: .55, 鐵灣: .7 };
+  finBlocks(pool.bld_fin);
   const rows = new Map();
   for (const L of lots) { if (L.back) continue; const k = blocks.indexOf(L.b) + '|' + L.face + '|' + L.axis; if (!rows.has(k)) rows.set(k, []); rows.get(k).push(L); }
   for (const row of rows.values()) {
     const ax = row[0].axis, len = L => ax === 'z' ? L.x1 - L.x0 : L.z1 - L.z0, dep = ax === 'z' ? row[0].z1 - row[0].z0 : row[0].x1 - row[0].x0;
     for (let i = 0; i < row.length; i++) {
-      if (row[i].special) continue;
+      if (row[i].special || row[i].glb) continue;
       const dk = district((row[i].x0 + row[i].x1) / 2, (row[i].z0 + row[i].z1) / 2).slice(0, 2), sets = SETS[dk] || SETS.中城;
       if (rb() > (PROB[dk] ?? .45)) continue;
       const list = pool[sets[Math.floor(rb() * sets.length)]];
       if (!list) continue;
       // 往後併入最多四塊地，找寬度比例最接近、深度放得下的一棟（等比縮放 0.85–1.18）
       let best = null;
-      for (let j = i, W = 0; j < row.length && !row[j].special && j - i < 4; j++) {
+      for (let j = i, W = 0; j < row.length && !row[j].special && !row[j].glb && j - i < 4; j++) {
         W += len(row[j]);
         for (const b of list) {
           const s = W / b.w;
@@ -159,6 +168,30 @@ if (BLD_ON) {
       for (const L of span) L.glb = bldPlace.at(-1);
       i = best.j;
     }
+  }
+}
+
+// 冠石金融區：整個街區換成 bld_fin 的一群建築（golukumar 的紐約街區拆出來的 12 群，tools/props.mjs）。
+// 一群或兩群並排，等比縮放（最多 1.08 倍）塞進人行道內 47×37 m 的地塊範圍，能轉 90° 放得更大就轉；整個街區的地塊都不建程式立面，
+// 下載失敗由第一筆補回。排列是固定的：最高的兩群（fin_02、fin_07）在中間。
+function finBlocks(list) {
+  if (!list) return;
+  const by = Object.fromEntries(list.map(b => [b.id, b]));
+  const PLAN = [[6, 2, ['fin_07']], [6, 1, ['fin_02']], [5, 1, ['fin_01']], [7, 1, ['fin_12']], [5, 2, ['fin_05', 'fin_08']], [7, 2, ['fin_04']],
+    [6, 3, ['fin_09']], [5, 0, ['fin_03']], [6, 0, ['fin_06']], [7, 3, ['fin_10']], [5, 3, ['fin_11']]];
+  const AW = P - 2 * HR - 2 * SW, AD = Q - 2 * HR - 2 * SW;
+  for (const [bi, bj, ids] of PLAN) {
+    const b = blocks.find(o => o.i === bi && o.j === bj && !o.outer), its = ids.map(id => by[id]);
+    if (!b || its.some(o => !o)) continue;
+    const W = its.reduce((a, o) => a + o.w, 0), D = Math.max(...its.map(o => o.d));
+    const s0 = Math.min(AW / W, AD / D, 1.08), s1 = its.length === 1 ? Math.min(AW / D, AD / W, 1.08) : 0, rot = s1 > s0, s = Math.max(s0, s1);
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, mine = lots.filter(L => L.b === b);
+    let x = cx - W * s / 2;
+    its.forEach((o, k) => {
+      const e = { set: 'bld_fin', id: o.id, x: rot ? cx : x + o.w * s / 2, z: cz, ry: rot ? Math.PI / 2 : (bi + bj) % 2 ? Math.PI : 0, s, h: o.h * s, lots: k ? [] : mine };
+      bldPlace.push(e); x += o.w * s;
+      if (!k) for (const L of mine) L.glb = e;
+    });
   }
 }
 

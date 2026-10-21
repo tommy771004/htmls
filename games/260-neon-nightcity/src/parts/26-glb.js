@@ -142,9 +142,12 @@ void main(){
   #ifdef USE_WINMAP
   // 建築組的窗戶編號貼圖（props.mjs 的 winTex：R＝玻璃、G＝這扇窗的編號）：每扇窗依編號、貼圖重複的第幾格與 _WIN（同一面牆同一層）
   // 決定亮不亮，顏色和程式立面的窗燈同一套。編號取第 0 層 mip，遠處不會混到隔壁窗的編號
-  if (texture2D(uWinMap, vUv).r > .5) {
-    vec2 cell = vec2(floor(textureLod(uWinMap, vUv, 0.).g * 255. + .5), dot(floor(vUv), vec2(7., 13.)));
-    float hs = h21(cell + vWin * 97.13), hs2 = h21(cell * 1.7 + vWin * 31.7);
+  // 遮罩也取第 0 層：遠處的牆一個像素蓋好幾扇窗，mip 平均下來會小於 .5，整面窗燈就消失了
+  if (textureLod(uWinMap, vUv, 0.).r > .5) {
+    // 帷幕牆的 UV 是公尺換算的格數（幾百格）：h21 先乘一百多再取 fract，數字大了精度不夠、整面牆會同一個值，
+    // 規律的格數也會排成條紋；這裡改用 Dave Hoskins 的 hash（輸入在千以內都穩）
+    vec2 cell = vec2(floor(textureLod(uWinMap, vUv, 0.).g * 255. + .5), dot(mod(floor(vUv), 256.), vec2(1., 257.))) + vWin * 997.;
+    float hs = hw(cell), hs2 = hw(cell + 71.3);
     vec3 lc = hs2 < .55 ? vec3(1.,.66,.36) : hs2 < .8 ? vec3(.8,.86,1.) : hs2 < .92 ? vec3(1.,.4,.65) : vec3(.4,.6,1.);
     float lit = step(hs, uLit * 1.1);
     c = c * .4 + lc * (.25 + .9 * dot(base.rgb, vec3(.33))) * (lit * 1.6 + .015);

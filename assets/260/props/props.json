@@ -993,5 +993,192 @@
     "source": "https://sketchfab.com/3d-models/midcity-buildings-set-low-poly-model-d5cbc471d20c4c9da31c3df656648916"
    }
   ]
+ },
+ "bld_fin": {
+  "kb": 4608,
+  "items": {
+   "fin_01": {
+    "w": 38.81,
+    "d": 43.52,
+    "h": 93.66,
+    "src": "-82,-42,-52,-8",
+    "tris": 9179
+   },
+   "fin_02": {
+    "w": 58.98,
+    "d": 35.26,
+    "h": 111.13,
+    "src": "-165,-105,-51,-15",
+    "tris": 23746
+   },
+   "fin_03": {
+    "w": 61.15,
+    "d": 37.36,
+    "h": 68.06,
+    "src": "-20,42,-51,-13",
+    "tris": 35680
+   },
+   "fin_04": {
+    "w": 41.8,
+    "d": 34.27,
+    "h": 72.43,
+    "src": "-144,-101,13,48",
+    "tris": 17389
+   },
+   "fin_05": {
+    "w": 28.16,
+    "d": 31.76,
+    "h": 53.27,
+    "src": "-20,7.5,13,45",
+    "tris": 13167
+   },
+   "fin_06": {
+    "w": 34.62,
+    "d": 37.3,
+    "h": 60.26,
+    "src": "7.5,43,13,52",
+    "tris": 12143
+   },
+   "fin_07": {
+    "w": 27.6,
+    "d": 31.87,
+    "h": 112.1,
+    "src": "-77,-49,14,46",
+    "tris": 12348
+   },
+   "fin_08": {
+    "w": 15.37,
+    "d": 32.24,
+    "h": 61.54,
+    "src": "-163,-147,15,48",
+    "tris": 4354
+   },
+   "fin_09": {
+    "w": 33.9,
+    "d": 40.35,
+    "h": 80.95,
+    "src": "-79,-45,73,114",
+    "tris": 17995
+   },
+   "fin_10": {
+    "w": 34.3,
+    "d": 35.8,
+    "h": 58.22,
+    "src": "-20,16,73,110",
+    "tris": 11549
+   },
+   "fin_11": {
+    "w": 23.58,
+    "d": 35.88,
+    "h": 57.58,
+    "src": "16,42,73,110",
+    "tris": 9877
+   },
+   "fin_12": {
+    "w": 61.12,
+    "d": 33.05,
+    "h": 93.73,
+    "src": "-165,-103,74,108",
+    "tris": 12182
+   }
+  },
+  "credits": [
+   {
+    "file": "new_york_city",
+    "title": "New York City",
+    "author": "golukumar (https://sketchfab.com/mortalityrexotable)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/new-york-city-4737b6ee73ed4634ad5b414558fdfa45"
+   }
+  ]
+ },
+ "bld_res": {
+  "kb": 1097,
+  "items": {
+   "res_01": {
+    "w": 10.97,
+    "d": 9.27,
+    "h": 22.06,
+    "src": "-20.5,-13.85,-18.6,-10.89",
+    "tris": 2225
+   },
+   "res_02": {
+    "w": 10.97,
+    "d": 9.89,
+    "h": 22.06,
+    "src": "-20.5,-13.85,-10.88,-3.15",
+    "tris": 2230
+   },
+   "res_03": {
+    "w": 9.02,
+    "d": 11.75,
+    "h": 29.13,
+    "src": "-28.6,-20.55,-8.85,-2.4",
+    "tris": 5594
+   },
+   "res_04": {
+    "w": 11.87,
+    "d": 9.93,
+    "h": 29.15,
+    "src": "-20.3,-13.85,6.3,14.2",
+    "tris": 5611
+   },
+   "res_05": {
+    "w": 10.97,
+    "d": 9.27,
+    "h": 22.06,
+    "src": "-20.9,-14.3,14.21,21.95",
+    "tris": 2178
+   }
+  },
+  "credits": [
+   {
+    "file": "city_abhayexe",
+    "title": "city",
+    "author": "abhayexe (https://sketchfab.com/abhayexe)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/city-a694ac17a90a45f89f6b588de65fadc6"
+   }
+  ]
+ },
+ "apt_loft": {
+  "kb": 2160,
+  "items": {
+   "loft": {
+    "w": 37.19,
+    "d": 33.93,
+    "h": 19.26,
+    "tris": 45420
+   }
+  },
+  "credits": [
+   {
+    "file": "loft17",
+    "title": "free Loft 17 interior floors, view of the city.",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/free-loft-17-interior-floors-view-of-the-city-1bc27584241b4078975b31dd4610d6e0"
+   }
+  ]
+ },
+ "apt_villa": {
+  "kb": 1447,
+  "items": {
+   "villa": {
+    "w": 47.32,
+    "d": 41.37,
+    "h": 13.3,
+    "tris": 11511
+   }
+  },
+  "credits": [
+   {
+    "file": "interior15",
+    "title": "interior (15)  minimalist panoramic viem",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/interior-15-minimalist-panoramic-viem-5d25be96aca842f18b9cda266e20716b"
+   }
+  ]
  }
 }

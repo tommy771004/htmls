@@ -2,10 +2,11 @@
 // ═══ GTA 式擴充，第一階段（/Users/tommy/Downloads/neon_nightcity_gta_v.md 的 Phase 1）：搶車與撬車、步行瞄準射擊與徒手、
 // 車損（白煙 → 黑煙 → 起火 → 爆炸）、被撞或中彈的路人倒地與四散逃跑。非官方同人致敬，與 Rockstar 無關。
 // 車流與路邊的車被搶、被打壞時「脫離」車流（detachCar），變成和座駕一樣的獨立載具加進 vehicles（不進車行存檔）。
-// 每幀的順序：gtaPre（凍結輸入）→ 原本的開車／走路 → gtaUpdate（射擊、車損、路人、粒子模擬）→ updateCrowds → gtaLate（槍的位置、粒子上傳）
-const gta = { weapon: 'fist', aiming: false, aimK: 0, fireT: 0, mag: 12, reserve: 240, reloadT: 0, jack: null, punchT: 0, hold: false, rmb: false, pitch: 0 };
-const WEAPONS = { fist: { name: '徒手' }, pistol: { name: '手槍', dmg: 90, rate: .2, mag: 12, range: 150 } };
-const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車' };
+// 每幀的順序：gtaPre（凍結輸入）→ 原本的開車／走路 → gtaUpdate（車損、路人、粒子模擬；武器在 69-combat.js 的 combatUpdate）
+// → policeUpdate（69-police.js）→ updateCrowds → gtaLate（武器擺到手上、粒子上傳）
+const gta = { weapon: 'fist', aiming: false, aimK: 0, fireT: 0, reloadT: 0, jack: null, punchT: 0, punchPh: 0, actAnim: 0, hold: false, rmb: false, pitch: 0 };
+const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車',
+  urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克' };
 const HP = 1000, SMOKE_W = 600, SMOKE_B = 350, FIRE = 150;
 const _gm = new T.Matrix4(), _gv = V3(), _gv2 = V3(), _gq = new T.Quaternion();
 
@@ -115,26 +116,35 @@ function fireball(x, y, z, big = 1) {
 
 // ─── 車流脫離：被搶、被打壞或被波及的車流與路邊車變成獨立載具 ───
 const jacked = [];   // detachCar 建出來的載具（最多保留 8 台，舊的離得遠就收掉）
-function detachCar(c) {
-  const ty = TYPES[c.type], sp = traffic.includes(c) ? c.v || 0 : 0;
-  let i = traffic.indexOf(c); if (i >= 0) traffic.splice(i, 1);
-  i = parked.indexOf(c);
-  if (i >= 0) { parked.splice(i, 1); for (const q of c.circ || []) { const j = circles.indexOf(q); if (j >= 0) circles.splice(j, 1); } }
-  const L = typeMesh[c.type].list; i = L.indexOf(c); if (i >= 0) L.splice(i, 1);
+// 一台獨立載具：車流車型的幾何複製一份、自己的材質（煞車燈與燒毀程度各自設定），69-police.js 的警車也用這個建
+function buildVeh(type, x, z, yaw, sp = 0, seed = 0, palI = 0, kind = 'jack') {
+  const ty = TYPES[type];
   const geo = (ty.geo ? ty.geo() : ty.kit().build()).clone();
-  const ins = new T.InstancedBufferAttribute(new Float32Array([0, c.seed || 0, c.palI || 0, 0]), 4);
+  const ins = new T.InstancedBufferAttribute(new Float32Array([0, seed, palI, 0]), 4);
   geo.setAttribute('aIns', ins);
   const mat = mkUber({ inst: true }); mat.fragmentShader = MAT.uberI.fragmentShader;
   const mesh = new T.InstancedMesh(geo, mat, 1); mesh.setMatrixAt(0, new T.Matrix4()); mesh.computeBoundingSphere();
   const g = new T.Group(), body = new T.Group(); g.add(body); body.add(mesh); scene.add(g);
-  const truck = TRUCKS.includes(c.type);
+  const truck = TRUCKS.includes(type), heavy = ty.armored;
   const v = {
-    kind: 'jack', type: c.type, isCar: true, g, body, mat, ins, wheels: [], x: c.x, z: c.z, y: 0, yaw: c.yaw, vx: Math.sin(c.yaw) * sp, vz: Math.cos(c.yaw) * sp,
+    kind, type, isCar: true, g, body, mat, ins, wheels: [], x, z, y: 0, yaw, vx: Math.sin(yaw) * sp, vz: Math.cos(yaw) * sp,
     yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0, rpm: 0, gear: 1, slip: 0, lights: 0,
-    len: ty.len, w: ty.w, rad: ty.w / 2 + .05, off: ty.len * .28, vmax: truck ? 31 : 40, eng: truck ? 8 : 10.5, grip: truck ? 5.5 : 6.8, wb: ty.len * .58, wr: .34,
-    name: TYPE_NAME[c.type] || c.type, hp: c.hp ?? HP, police: !!ty.police, seat: null,
+    len: ty.len, w: ty.w, rad: ty.w / 2 + .05, off: ty.len * .28, vmax: heavy ? 30 : truck ? 31 : 40, eng: heavy ? 7 : truck ? 8 : 10.5, grip: truck ? 5.5 : 6.8, wb: ty.len * .58, wr: .34,
+    name: TYPE_NAME[type] || type, hp: heavy ? 3500 : HP, mass: heavy ? 4800 : truck ? 2600 : 1600, police: !!ty.police, seat: null,
   };
-  vehicles.push(v); jacked.push(v);
+  vehicles.push(v);
+  return v;
+}
+function detachCar(c) {
+  const sp = traffic.includes(c) ? c.v || 0 : 0;
+  let i = traffic.indexOf(c); if (i >= 0) traffic.splice(i, 1);
+  i = parked.indexOf(c);
+  if (i >= 0) { parked.splice(i, 1); for (const q of c.circ || []) { const j = circles.indexOf(q); if (j >= 0) circles.splice(j, 1); } }
+  const L = typeMesh[c.type].list; i = L.indexOf(c); if (i >= 0) L.splice(i, 1);
+  const v = buildVeh(c.type, c.x, c.z, c.yaw, sp, c.seed || 0, c.palI || 0);
+  if (c.hp != null) v.hp = Math.min(v.hp, c.hp);
+  if (c.byP) v.byP = c.byP;
+  jacked.push(v);
   poseVehicle(v);
   // 太多台時收掉最舊、離玩家遠、沒人坐的
   if (jacked.length > 8) {
@@ -199,6 +209,7 @@ function knockPed(k, fx = 0, fz = 0) {
   const ps = pedState[k];
   if (!ps || ps.down > 0) return;
   const p = peds.people[k];
+  if (ps.fsm) { p.x = ps.fx; p.z = ps.fz; ps.fsm = null; }   // 69-combat.js 的投降、反擊中被打倒
   ps.down = 14; ps.dpos = [p.x + fx * .6, p.z + fz * .6, Math.atan2(-fx, -fz) || p.yaw];
   peds.anim(k, ANIM.die, -uTimeNow(), 1);
   panic(p.x, p.z, 22, 9);
@@ -211,6 +222,10 @@ function panic(x, z, r, t) {
     // 往遠離危險的方向跑：沿著人行道的切線方向判斷
     const [, , tx, tz] = pedPos(ps);
     ps.dir = tx * dx + tz * dz >= 0 ? 1 : -1;
+    if (ps.fsm === 'fight') return;
+    // 離得近的人有三成當場抱頭蹲下（69-combat.js 的 pedFsm），其他人跑開
+    if (!ps.fsm && !ps.tough && dx * dx + dz * dz < r * r * .3 && Math.random() < .3) { pedEnter(k, 'cower', t + 2 + Math.random() * 3); return; }
+    if (ps.fsm) return;
     if (!(ps.panic > 0)) peds.anim(k, ANIM.run, Math.random() * 9, 1.2);
     ps.panic = t + Math.random() * 3;
   });
@@ -237,6 +252,7 @@ function stepJack(dt) {
     if (j.moving) { sfx.doorCar(true); spawnExtra(j.dx + lx * .3, j.dz + lz * .3, Math.atan2(lx, lz), lx, lz); toast('把駕駛拖下車'); }
     else { sfx.glassBreak(); glassBurst(j.dx - lx * .3, 1.05, j.dz - lz * .3); toast('敲破車窗，接線發動…'); }
     panic(v.x, v.z, 14, 6);
+    crime('jack', v.x, v.z);
   }
   if (j.t >= j.dur) { gta.jack = null; enterVehicle(v); toast(`搶到 ${v.name}`); }
 }
@@ -249,29 +265,13 @@ ctxHooks.push(p => {
   return { key: 'F', text: `${moving ? '搶車' : '撬車'} <i>· ${TYPE_NAME[c.type] || c.type}</i>`, fn: () => startJack(c) };
 });
 
-// ─── 武器：Tab 換武器、右鍵瞄準、左鍵開火（徒手是出拳）、R 換彈 ───
-const gunMesh = (() => {
-  const k = new Kit();
-  k.box(0, .045, .06, .032, .034, .2, 0x1a1b1e, 15);          // 滑套
-  k.box(0, .02, .045, .028, .02, .16, 0x111214, 2);            // 槍身
-  k.box(0, -.035, 0, .028, .1, .045, 0x161616, 2, -.25);      // 握把
-  k.box(0, .002, .03, .006, .03, .03, 0x111214, 2);            // 扳機護弓
-  k.cyl(0, .045, .165, .007, .007, .012, 8, 0x050505, 2, Math.PI / 2);
-  const g = k.build(); g.scale(1.25, 1.25, 1.25);
-  const m = new T.Mesh(g, MAT.uber); m.matrixAutoUpdate = false; m.visible = false;
-  scene.add(m); return m;
-})();
-function setWeapon(w) {
-  if (gta.weapon === w) return;
-  gta.weapon = w; sfx.click();
-  if (w === 'fist') gta.aiming = false;
-  toast(`武器：${WEAPONS[w].name}`);
-}
-function canFight() { return started && player.where === 'out' && player.mode === 'walk' && !gta.jack && !(player.down > 0) && !dlg.open && !fading; }
+// ─── 武器（69-combat.js）：這裡只留共用的射線工具 ───
+function canFight() { return started && (player.where === 'out' || player.where === 'bank') && player.mode === 'walk' && !gta.jack && !(player.down > 0) && !dlg.open && !fading; }
 // 準星射線：從相機穿過畫面中央，起點移到玩家所在的平面（避免打到相機和玩家之間的東西）
 function aimRay() {
   camera.getWorldDirection(_gv);
-  const o = camera.position, t0 = Math.max(0, (player.x - o.x) * _gv.x + (player.z - o.z) * _gv.z);
+  const q = player.mode === 'drive' ? player.veh : player;   // 車內射擊：起點移到車子所在的平面
+  const o = camera.position, t0 = Math.max(0, (q.x - o.x) * _gv.x + (q.z - o.z) * _gv.z);
   return { ox: o.x + _gv.x * t0, oy: o.y + _gv.y * t0, oz: o.z + _gv.z * t0, dx: _gv.x, dy: _gv.y, dz: _gv.z };
 }
 function rayOBB(R, cx, cz, yaw, hw, hl, h) {
@@ -292,21 +292,24 @@ function rayCyl(R, cx, cz, r, y0, y1) {
   const t = (-b - Math.sqrt(disc)) / a; if (t < 0) return Infinity;
   const y = R.oy + R.dy * t; return y >= y0 && y <= y1 ? t : Infinity;
 }
-// 射線最先打到的東西：{ t, kind: 'ped'|'extra'|'car'|'veh'|'wall'|'ground', ref }
-function castRay(R, maxT) {
+// 射線最先打到的東西：{ t, kind: 'ped'|'extra'|'car'|'veh'|'wall'|'ground'（69-police.js 的 rayHooks 再加上 'cop'|'heli'）, ref }
+const rayHooks = [];
+function castRay(R, maxT, skip = player.veh) {
   let best = { t: maxT, kind: null, ref: null };
   const hit = (t, kind, ref) => { if (t < best.t) best = { t, kind, ref }; };
+  for (const f of rayHooks) f(R, hit);
   for (let k = 0; k < PED_N; k++) { const ps = pedState[k]; if (ps.down > 0) continue; const p = peds.people[k]; hit(rayCyl(R, p.x, p.z, .32, .1, 1.95), 'ped', k); }
   extraSt.forEach((s, k) => { if (s.on && s.st === 'run') hit(rayCyl(R, s.x, s.z, .32, .1, 1.95), 'extra', k); });
   for (const c of traffic) hit(rayOBB(R, c.x, c.z, c.yaw, TYPES[c.type].w / 2, TYPES[c.type].len / 2, 1.5), 'car', c);
   for (const c of parked) { if ((c.x - R.ox) ** 2 + (c.z - R.oz) ** 2 > (maxT + 5) ** 2) continue; hit(rayOBB(R, c.x, c.z, c.yaw, TYPES[c.type].w / 2, TYPES[c.type].len / 2, 1.5), 'car', c); }
-  for (const v of vehicles) if (v !== player.veh) hit(rayOBB(R, v.x, v.z, v.yaw, v.w / 2, v.len / 2, v.isCar ? 1.45 : 1.2), 'veh', v);
+  for (const v of vehicles) if (v !== skip) hit(rayOBB({ ...R, oy: R.oy - v.y }, v.x, v.z, v.yaw, v.w / 2, v.len / 2, v.h || (v.isCar ? 1.45 : 1.2)), 'veh', v);
   for (const b of activeBoxes) { const t = rayBox(R.ox, R.oz, R.dx * best.t, R.dz * best.t, b); if (t < 1) hit(t * best.t, 'wall', b); }
   if (R.dy < -1e-4) hit(-R.oy / R.dy, 'ground', null);
   return best;
 }
-function damageCar(c, n) {
+function damageCar(c, n, byP = false) {
   c.hp = (c.hp ?? HP) - n;
+  if (byP) c.byP = uTimeNow();
   if (traffic.includes(c)) { c.hit = 3 + Math.random() * 2; if (c.honk <= 0) { sfx.horn(c); c.honk = 3; } }
   // 打到冒煙就脫離車流：駕駛下車逃跑，之後和其他載具一樣冒煙、起火、爆炸
   if (c.hp < SMOKE_W) {
@@ -316,66 +319,23 @@ function damageCar(c, n) {
   }
   return null;
 }
-function damageVeh(v, n) { if (v.dead) return; v.hp -= n; if (v.hp <= 0) explode(v); }
-function fire() {
-  const W = WEAPONS[gta.weapon];
-  if (gta.weapon === 'fist') return punch();
-  if (gta.reloadT > 0 || gta.fireT > 0) return;
-  if (gta.mag <= 0) { if (gta.reserve > 0) reload(); else { sfx.dry(); toast('沒子彈了'); } return; }
-  gta.mag--; gta.fireT = W.rate;
-  if (!gta.aiming) player.yaw = camState.yaw;   // 沒瞄準就開槍：先轉向準星
-  const R = aimRay(), h = castRay(R, W.range);
-  const x = R.ox + R.dx * h.t, y = R.oy + R.dy * h.t, z = R.oz + R.dz * h.t;
-  // 槍口閃光與彈道
-  gunMesh.updateMatrixWorld(); _gv2.set(0, .045, .2).applyMatrix4(gunMesh.matrixWorld);
-  emit('flash', _gv2.x, _gv2.y, _gv2.z, { max: .06, s0: .35, s1: .5, c: [3, 2, 1] });
-  fxLights.push({ x: _gv2.x, y: _gv2.y, z: _gv2.z, col: COL.muzzle, r: 9, i: 3, life: 0, max: .06 });
-  const n = Math.max(1, Math.min(12, Math.floor(h.t / 4)));
-  for (let i = 1; i <= n; i++) { const u = i / (n + 1); emit('spark', lerp(_gv2.x, x, u), lerp(_gv2.y, y, u), lerp(_gv2.z, z, u), { max: .05, s0: .05, s1: .05, c: [2.4, 2, 1.4], a: .6 }); }
-  sfx.shot(); camState.shake = Math.max(camState.shake, .12);
-  panic(player.x, player.z, 30, 8);
-  if (h.kind === 'ped') knockPed(h.ref, R.dx, R.dz);
-  else if (h.kind === 'extra') { const s = extraSt[h.ref]; s.st = 'fall'; s.t = -12; s.vx = R.dx * 2; s.vz = R.dz * 2; extras.anim(h.ref, ANIM.die, -uTimeNow(), 1); }
-  else if (h.kind === 'car') { sparks(x, y, z, 6, 3); damageCar(h.ref, W.dmg); }
-  else if (h.kind === 'veh') { sparks(x, y, z, 6, 3); damageVeh(h.ref, W.dmg); }
-  else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); }
-  if (gta.mag === 0 && gta.reserve > 0) setTimeout(() => gta.mag === 0 && reload(), 250);
-}
-function reload() {
-  if (gta.weapon !== 'pistol' || gta.reloadT > 0 || gta.mag >= WEAPONS.pistol.mag || gta.reserve <= 0) return;
-  gta.reloadT = 1.3; sfx.reload();
-}
-function punch() {
-  if (gta.punchT > 0) return;
-  gta.punchT = .55; gta.punchPh = -uTimeNow();
-  const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
-  setTimeout(() => {
-    for (let k = 0; k < PED_N; k++) {
-      const p = peds.people[k], dx = p.x - player.x, dz = p.z - player.z, d = Math.hypot(dx, dz);
-      if (d < 1.5 && dx * fx + dz * fz > d * .5 && !(pedState[k].down > 0)) { sfx.punch(); knockPed(k, fx, fz); return; }
-    }
-    sfx.whoosh();
-  }, 180);
-}
-
+// byP：玩家造成的（之後爆炸算玩家的罪，69-police.js 的 crime）
+function damageVeh(v, n, byP = false) { if (v.dead || !(n > 0)) return; if (byP) v.byP = uTimeNow(); v.hp -= n; if (v.unit) unitHit(v, byP); if (v.hp <= 0) explode(v); }
 // ─── 車損：冒煙、起火、爆炸；撞到路人 ───
 function explode(v) {
   if (v.dead) return;
   v.dead = 1; v.hp = 0; v.burn = 1; v.lights = 0; v.burnT = 0;
-  fireball(v.x, v.y, v.z, v.isCar ? 1 : .6);
-  sfx.boom(Math.hypot(v.x - camera.position.x, v.z - camera.position.z));
-  const dc = Math.hypot(v.x - camera.position.x, v.z - camera.position.z);
-  camState.shake = Math.max(camState.shake, clamp(1.2 - dc / 40, 0, 1));
+  const mine = v.byP && uTimeNow() - v.byP < 25;
   if (player.veh === v) { exitVehicle(); knockPlayer(player.x - v.x, player.z - v.z); toast(`${v.name} 爆炸了`); }
-  // 波及：路人、玩家、附近的車（連鎖爆炸）
-  for (let k = 0; k < PED_N; k++) { const p = peds.people[k], dx = p.x - v.x, dz = p.z - v.z, d = Math.hypot(dx, dz); if (d < 8) knockPed(k, dx / (d || 1), dz / (d || 1)); }
-  panic(v.x, v.z, 40, 12);
-  if (player.mode === 'walk') { const d = Math.hypot(player.x - v.x, player.z - v.z); if (d < 6) knockPlayer(player.x - v.x, player.z - v.z); }
-  for (const c of [...traffic, ...parked]) { const d = Math.hypot(c.x - v.x, c.z - v.z); if (d < 7) { const nv = damageCar(c, 900 * (1 - d / 7)); if (nv) nv.hp = Math.min(nv.hp, FIRE + 40 * Math.random()); } }
-  for (const o of vehicles) if (o !== v && !o.dead) { const d = Math.hypot(o.x - v.x, o.z - v.z); if (d < 7) o.hp = Math.min(o.hp, o.hp - 900 * (1 - d / 7)); }
+  // 波及（69-combat.js 的 blast）：路人、警察、玩家、附近的車（連鎖爆炸）
+  blast(v.x, v.y, v.z, 8, v.mass > 4000 ? 520 : 420, mine ? 'player' : null, v);
+  if (mine) crime(v.unit ? 'killcop' : 'explode', v.x, v.z);
+  marketExplode(v, mine);   // 69-market.js：凡托車款被炸，股價下跌
+  if (v.unit) unitDead(v);
   if (v === kestrel) toast(`${v.name} 燒毀了 · 按 V 叫修好的車`);
 }
 function knockPlayer(dx, dz) {
+  if (player.mode !== 'walk' || life.dead) return;
   const l = Math.hypot(dx, dz) || 1;
   player.down = 2.6; player.kx = dx / l * 5; player.kz = dz / l * 5; player.downPh = -uTimeNow(); player.gotUp = 0;
   gta.aiming = false;
@@ -404,38 +364,47 @@ function vehDamage(v, dt) {
 }
 // 開車撞人：前後兩個碰撞圓附近的路人倒地；撞擊扣血
 function vehHits(v, imp) {
-  if (imp > 5) damageVeh(v, (imp - 5) * 30);
+  // 撞擊扣血（neon_nightcity_gta_v_2.md：超過 3.5 m/s 的部分 ×18）
+  if (imp > 3.5) damageVeh(v, (imp - 3.5) * 18, v === player.veh && false);
   const sp = Math.hypot(v.vx, v.vz);
   if (sp < 2.5) return;
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
   for (let k = 0; k < PED_N; k++) {
     if (pedState[k].down > 0) continue;
     const p = peds.people[k];
-    for (const s of [1, -1]) { const cx = v.x + fx * v.off * s, cz = v.z + fz * v.off * s; if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { knockPed(k, v.vx / sp, v.vz / sp); sfx.impact(sp * .6); break; } }
+    for (const s of [1, -1]) {
+      const cx = v.x + fx * v.off * s, cz = v.z + fz * v.off * s;
+      if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { knockPed(k, v.vx / sp, v.vz / sp); sfx.impact(sp * .6); if (v === player.veh) crime(sp > 8 ? 'kill' : 'assault', p.x, p.z); break; }
+    }
   }
 }
 
 // ─── 每幀 ───
 function gtaPre(dt) {
-  if (gta.jack || player.down > 0) { inp.mx = inp.mz = 0; inp.run = false; }
+  crewPre();
+  if (gta.jack || player.down > 0 || life.dead) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }
 }
 function gtaUpdate(dt) {
   const out = player.where === 'out';
   gta.fireT = Math.max(0, gta.fireT - dt); gta.punchT = Math.max(0, gta.punchT - dt);
-  if (gta.reloadT > 0) { gta.reloadT -= dt; if (gta.reloadT <= 0) { const n = Math.min(WEAPONS.pistol.mag - gta.mag, gta.reserve); gta.mag += n; gta.reserve -= n; } }
-  if (!canFight()) gta.aiming = false;
-  else gta.aiming = gta.weapon === 'pistol' && (gta.rmb || gta.touchAim);
-  gta.aimK = damp(gta.aimK, gta.aiming ? 1 : 0, 12, dt);
-  if (gta.hold && canFight() && gta.weapon === 'pistol') fire();
   if (gta.jack) stepJack(dt);
+  combatUpdate(dt);
+  crewUpdate(dt);
+  gpsUpdate();
+  phoneUpdate();
+  evUpdate();
+  marketUpdate(dt);
+  heistUpdate(dt);
+  aptUpdate();
   if (out) {
     for (const v of [...vehicles]) vehDamage(v, dt);
     if (player.mode === 'drive') vehHits(player.veh, gta.lastImp || 0);
     updateExtras(dt);
   }
   gta.lastImp = 0;
-  // 玩家倒地：被炸飛後躺著，再爬起來
-  if (player.down > 0 && player.mode === 'walk') {
+  // 玩家倒地：被炸飛後躺著，再爬起來（死亡與被捕的姿勢在 69-combat.js）
+  if (life.dead) { /* combatUpdate 擺好了 */ }
+  else if (player.down > 0 && player.mode === 'walk') {
     player.down -= dt;
     const r = collideCircle(player.x + player.kx * dt, player.z + player.kz * dt, .32, false);
     player.x = r.x; player.z = r.z; player.kx *= Math.exp(-4 * dt); player.kz *= Math.exp(-4 * dt);
@@ -447,62 +416,25 @@ function gtaUpdate(dt) {
     me.anim(0, gta.jack.moving ? ANIM.interact : (gta.jack.t < .6 ? ANIM.jab : ANIM.crouch), gta.jack.moving ? -uTimeNow() + gta.jack.t : 0, 1);
     me.anim2(0, 0, 0); me.place(0, player.x, player.y, player.z, player.yaw);
   } else if (player.mode === 'walk' && gta.punchT > 0) {
-    me.anim(0, ANIM.jab, gta.punchPh, 1); me.anim2(0, 0, 0);
+    // 出拳、揮砍、丟擲（69-combat.js 設定 actAnim 與起始相位）
+    me.anim(0, gta.actAnim || ANIM.jab, gta.punchPh, 1); me.anim2(0, 0, 0);
   }
   me.people[0].aimP = gta.aimK > .05 ? -camState.pitch * .9 + .1 : null;
   me.people[0].aimK = gta.aimK;
   stepFx(dt);
 }
 function gtaLate() {
-  // 手槍掛在右手：槍管沿著前臂（瞄準時沿著準星方向）
-  const p = me.people[0];
-  const show = gta.weapon === 'pistol' && player.mode === 'walk' && player.where === 'out' && me.mesh.visible && p.rig && !(player.down > 0);
-  gunMesh.visible = !!show;
-  if (show) {
-    p.h.updateMatrixWorld(true);
-    _gm.multiplyMatrices(p.h.matrixWorld, p.sm.matrix);
-    const hand = _gv.setFromMatrixPosition(_gm.clone().multiply(p.bones.hand_r.matrixWorld));
-    const elbow = _gv2.setFromMatrixPosition(_gm.clone().multiply(p.bones.lowerarm_r.matrixWorld));
-    const dir = hand.clone().sub(elbow).normalize();
-    if (gta.aimK > .5) camera.getWorldDirection(dir);
-    const m = new T.Matrix4().lookAt(V3(), dir.clone().negate(), V3(0, 1, 0));
-    const pos = hand.clone().addScaledVector(dir, .05);
-    gunMesh.matrix.copy(m).setPosition(pos); gunMesh.matrixWorldNeedsUpdate = true;
-  }
+  combatLate();
+  crewLate();
+  stuntLate();
   uploadFx();
-  // HUD：準星、武器欄
-  const armed = gta.weapon === 'pistol' && player.mode === 'walk' && player.where === 'out' && started;
-  const xs = armed ? (gta.aimK > .5 ? 2 : 1) : 0;
-  if (hudCache.xh !== xs) { hudCache.xh = xs; const x = $('xhair'); x.classList.toggle('on', xs > 0); x.classList.toggle('aim', xs === 2); $('weap').classList.toggle('on', xs > 0); }
-  if (armed) {
-    const am = `${gta.mag}|${gta.reserve}`;
-    if (hudCache.ammo !== am) { hudCache.ammo = am; $('wAmmo').innerHTML = `${gta.mag} <small>/ ${gta.reserve}</small>`; }
-    const rl = gta.reloadT > 0 ? Math.round((1 - gta.reloadT / 1.3) * 100) : 0;
-    if (hudCache.rl !== rl) { hudCache.rl = rl; $('wReload').style.setProperty('--r', rl + '%'); }
-  }
-}
-
-// ─── 輸入：滑鼠按鍵（鎖定游標後）與鍵盤 ───
-cvs0().addEventListener('pointerdown', e => {
-  if (e.pointerType !== 'mouse' || !document.pointerLockElement) return;
-  if (e.button === 2) gta.rmb = true;
-  if (e.button === 0 && canFight()) { if (gta.weapon === 'fist') punch(); else { fire(); } }
-});
-addEventListener('pointerup', e => { if (e.pointerType === 'mouse' && e.button === 2) gta.rmb = false; });
-addEventListener('contextmenu', e => { if (started) e.preventDefault(); });
-function cvs0() { return R.domElement; }
-function gtaKey(code) {
-  if (code === 'Tab') { if (canFight() || player.mode === 'drive') setWeapon(gta.weapon === 'fist' ? 'pistol' : 'fist'); return true; }
-  if (code === 'KeyR') { reload(); return true; }
-  if (code === 'Aim') { if (canFight() && gta.weapon !== 'pistol') setWeapon('pistol'); gta.touchAim = !gta.touchAim; return true; }
-  return false;
 }
 for (const v of vehicles) v.hp ??= HP;
 
-// 測試 API（window.__nc.gta）
+// 測試 API（window.__nc.gta；69-combat.js 的 combatApi 與 69-police.js 的 wantedApi 在 99-main 合併進來）
 const gtaApi = {
   state: gta, parts, fxLights, jacked, extras: extraSt,
-  weapon: setWeapon, fire, punch, reload, aim(on = true) { gta.touchAim = on; },
+  weapon: w => equip(w), fire: () => { triggerDown(); triggerUp(); }, punch: () => { equip('fist', true); triggerDown(); triggerUp(); }, aim(on = true) { gta.touchAim = on; },
   // 走到最近的車流或路邊車旁並開始搶（parked：只找路邊車）
   jack(parkedOnly = false) {
     if (player.mode === 'drive') exitVehicle();

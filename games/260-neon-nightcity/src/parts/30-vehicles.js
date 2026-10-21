@@ -178,6 +178,8 @@ const TYPES = {
   urban_cop: glbType('urban_cop', 14, FB.police, { police: 1 }), md84: glbType('md84', 9.5, FB.truck, { armored: 1 }),
   ambulance: glbType('ambulance', 11.5, FB.truck), canyon_taxi: glbType('canyon_taxi', 13, FB.taxi),
   fh: glbType('fh', 13, FB.sedan), il: glbType('il', 13.5, FB.sedan),
+  // 五星才出動的坦克（不進車流；砲塔是 traffic.glb 的 tank_turret，69-police.js 另外掛）
+  tank: glbType('tank', 9, FB.truck, { armored: 1, tank: 1 }),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
@@ -204,7 +206,7 @@ for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) for (const d of [0, 2
   for (let s = 6; s < Q - 2 * HR - 6; s += 6.2) {
     if (rT() > .5) continue;
     const x = avX(i) + side * PARK, z = stZ(j) + HR + s;
-    if (hydrants.some(h => Math.hypot(h.x - x, h.z - z) < 3.5) || works.some(w => Math.hypot(w.x - x, w.z - z) < 9)) continue;
+    if (hydrants.some(h => Math.hypot(h.x - x, h.z - z) < 3.5) || works.some(w => Math.hypot(w.x - x, w.z - z) < 9) || rampBlock(x, z)) continue;
     if (Math.hypot(x - KESTREL_SPOT.x, z - KESTREL_SPOT.z) < 7) continue;
     parked.push({ type: pickType(), x, z, yaw: d === 0 ? 0 : Math.PI, pal: Math.floor(rT() * PAL.length) });
   }
@@ -214,7 +216,7 @@ for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3
   for (let s = 6; s < P - 2 * HR - 6; s += 6.2) {
     if (rT() > .5) continue;
     const x = avX(i) + HR + s, z = stZ(j) + side * PARK;
-    if (hydrants.some(h => Math.hypot(h.x - x, h.z - z) < 3.5)) continue;
+    if (hydrants.some(h => Math.hypot(h.x - x, h.z - z) < 3.5) || rampBlock(x, z)) continue;
     if (Math.abs(z - (CLUB_Z + 4.5)) < 3 && Math.abs(x - CLUB_X) < 16) continue;
     if (Math.abs(z - (BAR_Z + 4.5)) < 3 && Math.abs(x - BAR_X) < 12) continue;
     if (Math.hypot(x - HANZO_SPOT.x, z - HANZO_SPOT.z) < 5) continue;
@@ -281,7 +283,7 @@ const QUAD_VS = /* glsl */`varying vec2 vUv; varying vec3 vW; void main(){ vUv =
 const allCars = () => [...traffic, ...parked];
 const shadowMesh = (() => {
   const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2);
-  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 24);
+  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 48);
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 2; scene.add(m); return m;
 })();
 const poolMesh = (() => {
@@ -499,7 +501,7 @@ function driveVehicle(v, inp, dt) {
   let vF = v.vx * fx + v.vz * fz, vR = v.vx * rx + v.vz * rz;
   const spd = Math.abs(vF);
   const maxSt = lerp(v.isCar ? .55 : .5, v.isCar ? .12 : .1, clamp(spd / 45, 0, 1));
-  v.steer = damp(v.steer, inp.steer * maxSt, inp.steer ? 6 : 9, dt);
+  v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1), inp.steer ? 6 : 9, dt);
   let aF = 0;
   if (inp.thr > 0) aF += v.eng * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);
   if (inp.brk > 0) aF += vF > .8 ? -16 * inp.brk : -6 * inp.brk * (vF > -9 ? 1 : 0);

@@ -45,11 +45,11 @@ const C3 = h => new T.Color(h);
 // ─── 城市格線 ───
 // 南北向的大道沿 z，東西向的街沿 x；道路中心線在 avX(i)、stZ(j)。
 const P = 72, Q = 62, HR = 8, SW = 4.5;     // 大道間距、街距、半路寬、人行道寬
-const NX = 5, NZ = 5;
-const X0 = -NX * P / 2, Z0 = -NZ * Q / 2;
+const NX = 8, NZ = 7;
+const X0 = -180, Z0 = -155;                 // 原本 5×5 的城市不動，新區往東、往南長
 const avX = i => X0 + i * P, stZ = j => Z0 + j * Q;
-const AVE = ['Harbor Av', 'Atlas Av', 'Bishop Av', 'Cinder Av', 'Delmar Av', 'Foundry Av'];
-const STR = ['6 St', '7 St', '8 St', '9 St', '10 St', '11 St'];
+const AVE = ['Harbor Av', 'Atlas Av', 'Bishop Av', 'Cinder Av', 'Delmar Av', 'Foundry Av', 'Granite Av', 'Hollis Av', 'Ironside Av'];
+const STR = ['6 St', '7 St', '8 St', '9 St', '10 St', '11 St', '12 St', '13 St'];
 const LANE = 3.0, PARK = 6.6;               // 車道與停車格中心離路中心的距離
 
 // ─── 共用 uniform ───
@@ -76,6 +76,7 @@ uniform vec4 uLP[${NL}]; uniform vec4 uLC[${NL}]; uniform vec4 uLD[${NL}];
 uniform vec4 uCity; uniform vec2 uGrid;
 float h11(float n){ return fract(sin(n)*43758.5453123); }
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+float hw(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 float n2(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
   return mix(mix(h21(i),h21(i+vec2(1,0)),f.x), mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x), f.y); }
 float fbm(vec2 p){ float a=.5, s=0.; for(int i=0;i<4;i++){ s+=a*n2(p); p=p*2.03+17.1; a*=.5; } return s; }

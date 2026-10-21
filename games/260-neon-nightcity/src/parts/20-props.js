@@ -150,7 +150,7 @@ instanced(new Kit()
   .cyl(0, .4, 0, .05, .05, .42, 6, 0x9a9a9a, 3, 0, 0, Math.PI / 2).build(), MAT.uber, hydrants, LY.NOREFL);
 instanced(new Kit()
   .cyl(0, .48, 0, .3, .26, .96, 12, 0x2f3a33, 15).cyl(0, .98, 0, .32, .32, .06, 12, 0x232a26, 15).build(), MAT.uber, bins, LY.NOREFL);
-instanced(new Kit()
+const boxesMesh = instanced(new Kit()   // 藍色電訊箱：69-market.js 打爛時把該格縮成 0
   .box(0, .62, 0, .5, .9, .45, 0x1c4f9a, 10).box(0, 1.1, 0, .5, .08, .45, 0x163f7a, 10).box(0, .7, -.23, .38, .3, .02, 0xeeeeee, 11)
   .box(.18, .1, 0, .04, .2, .4, 0x222222, 15).box(-.18, .1, 0, .04, .2, .4, 0x222222, 15).build(), MAT.uber, boxesN, LY.NOREFL);
 instanced(new Kit().cyl(0, .45, 0, .1, .11, .9, 10, 0x34383d, 15).cyl(0, .82, 0, .115, .115, .06, 10, 0xd8a020, 10).build(), MAT.uber, bollards, LY.NOREFL);
@@ -229,6 +229,29 @@ const works = [];
   for (let k = 0; k < 7; k++) works.push({ t: 'cone', x: x - 1.5 + (k % 2) * .25, z: zc - 14 + k * 1.6 });
   works.push({ t: 'jersey', x: x + 1.05, z: zc - 2, ry: 0 }, { t: 'jersey', x: x + 1.05, z: zc + 2.1, ry: 0 });
   for (const w of works) circles.push({ x: w.x, z: w.z, r: w.t === 'jersey' ? 1 : .35 });
+}
+// 飛車特技跳台（69-stunt.js）：放在路口前的停車道上，順著車流方向朝路口飛過去；(x, z) 是跳台邊緣，yaw 是車頭方向。
+// 30-vehicles.js 擺路邊車時用 rampBlock() 讓開跳台與落地區
+const RAMP_L = 10, RAMP_H = 1.5, RAMP_W = 3.2;
+const RAMPS = [
+  { x: avX(2) - PARK, z: stZ(1) - HR - 1, yaw: 0 },
+  { x: avX(4) - PARK, z: stZ(3) - HR - 1, yaw: 0 },
+  { x: avX(5) - PARK, z: stZ(2) - HR - 1, yaw: 0 },
+  { x: avX(0) + PARK, z: stZ(3) + HR + 1, yaw: Math.PI },
+  { x: avX(3) - HR - 1, z: stZ(1) + PARK, yaw: Math.PI / 2 },
+  { x: avX(2) + HR + 1, z: stZ(4) - PARK, yaw: -Math.PI / 2 },
+].map((r, i) => ({ ...r, i, dx: Math.sin(r.yaw), dz: Math.cos(r.yaw) }));
+const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 2.5 && a > -RAMP_L - 26 && a < 36; });   // 前面留 26 m 助跑
+{
+  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L);
+  for (const r of RAMPS) {
+    const cx = r.x - r.dx * RAMP_L / 2, cz = r.z - r.dz * RAMP_L / 2, rx = r.dz, rz = -r.dx;
+    k.box(cx, RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 15, -th, r.yaw);   // 斜板
+    for (const s of [-1, 1]) k.box(cx + rx * s * (RAMP_W / 2 - .08), RAMP_H / 2 - .02, cz + rz * s * (RAMP_W / 2 - .08), .16, .14, sl, 0xd9b42a, 10, -th, r.yaw);   // 兩側黃邊
+    k.box(r.x - r.dx * .1, RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 15, 0, r.yaw);   // 邊緣的立板
+    for (const s of [-1, 1]) for (const f of [.35, .7]) k.box(r.x - r.dx * RAMP_L * (1 - f) + rx * s * 1.2, RAMP_H * f / 2, r.z - r.dz * RAMP_L * (1 - f) + rz * s * 1.2, .14, RAMP_H * f, .14, 0x2a2c2f, 15, 0, r.yaw);   // 支架
+  }
+  instanced(k.build(), MAT.uber, [{ x: 0, z: 0 }]);
 }
 {
   const d = new Kit();

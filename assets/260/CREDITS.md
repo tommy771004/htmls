@@ -65,6 +65,12 @@
 | `lct` | [LCT 3000 '95 - Low poly model](https://sketchfab.com/3d-models/lct-3000-95-low-poly-model-663a0953c038434a918cb85725c88ffa) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `conquer` | [Conquer '89 Pickup - Low poly model](https://sketchfab.com/3d-models/conquer-89-pickup-low-poly-model-6c48c94be8974dc7a5932f697c0ba68f) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `fvan` | [French delivery van - Low poly model](https://sketchfab.com/3d-models/french-delivery-van-low-poly-model-a350a422d200485ea57778dc42139edc) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `fh` | [Fairheaven LT '80 - Low poly model](https://sketchfab.com/3d-models/fairheaven-lt-80-low-poly-model-e2678da920cc4be68dbc193727919ffb) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `il` | [Illinois '90 - Low poly model](https://sketchfab.com/3d-models/illinois-90-low-poly-model-d604871eee5b4181bb298163b0b675b7) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `canyon_taxi` | [Canyon '75 Taxi - Low poly model](https://sketchfab.com/3d-models/canyon-75-taxi-low-poly-model-9e8f92a215784f3d8aaaaeab1bef54c4) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `urban_cop` | [Urban '10 Cop Enforcer - Low poly model](https://sketchfab.com/3d-models/urban-10-cop-enforcer-low-poly-model-745830362bb342128ef6509345606ffe) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `ambulance` | [Shvan '92 Ambulance - Low Poly model](https://sketchfab.com/3d-models/shvan-92-ambulance-low-poly-model-2856dd3c61f940909dced9a5c0379484) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `md84` | [MD '84 Armored - Low poly model（SWAT 裝甲車）](https://sketchfab.com/3d-models/md-84-armored-low-poly-model-26e809cce40e4359a3199649f12ef295) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 
 ## 街區建築與道具（`props/`）
 
@@ -81,3 +87,40 @@
 | `interior`（街機） | [Rusty Japanese Arcade](https://sketchfab.com/3d-models/rusty-japanese-arcade-2938ae13a77c46e8afabb41eba18e699) | [Toni García Vilche](https://sketchfab.com/zul_gv) | CC BY 4.0 |
 | `interior`（升降機） | [Carlift](https://sketchfab.com/3d-models/carlift-2dfad5340895423b8ec58fc392e4af32) | [3ddominator](https://sketchfab.com/roughdominator) | CC BY 4.0 |
 | `interior`（工具推車） | [[Free] Drawer Tool Cart (Used)](https://sketchfab.com/3d-models/free-drawer-tool-cart-used-da8955e5c8c448e58b013951f48148a0) | [Robert Prispilović](https://sketchfab.com/rprispil) | CC BY 4.0 |
+
+### 新城區與安全屋（World 整合）
+
+原檔放在 gitignore 的 `games/260-neon-nightcity/.cache/world/`。`bld_fin` 只取紐約街區的建築，依原檔座標拆成 12 群，整群擺進冠石金融區的街區；照片立面的暗色窗格（或手量的窗框）自動做成窗戶編號貼圖，帷幕牆改成沿牆投影的格狀窗。`bld_res` 取左側五棟公寓，放大 1.45 倍，擺在雲杉坡。兩個室內保留原檔座標，`apt_villa` 拿掉白天的天空半球，鏡面地板與落地窗改成霧面。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `bld_fin` | [New York City](https://sketchfab.com/3d-models/new-york-city-4737b6ee73ed4634ad5b414558fdfa45) | [golukumar](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
+| `bld_res` | [city](https://sketchfab.com/3d-models/city-a694ac17a90a45f89f6b588de65fadc6) | [abhayexe](https://sketchfab.com/abhayexe) | CC BY 4.0 |
+| `apt_loft`（冠石頂層公寓） | [free Loft 17 interior floors, view of the city.](https://sketchfab.com/3d-models/free-loft-17-interior-floors-view-of-the-city-1bc27584241b4078975b31dd4610d6e0) | [dasy444](https://sketchfab.com/dasy444) | CC BY 4.0 |
+| `apt_villa`（雲杉坡崖邊別墅） | [interior (15) minimalist panoramic viem](https://sketchfab.com/3d-models/interior-15-minimalist-panoramic-viem-5d25be96aca842f18b9cda266e20716b) | [dasy444](https://sketchfab.com/dasy444) | CC BY 4.0 |
+
+## 武器、警方載具與路障（第二階段）
+
+`tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 目前還沒擺進城裡。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `traffic` `heli` | [AS350 B2](https://sketchfab.com/3d-models/as350-b2-76cf31c232bf4514ab1794d28a2b0ee1) | [ArcheoteryxFr](https://sketchfab.com/Archeopteryxfr) | CC BY 4.0 |
+| `traffic` `tank` | [Low Poly Abrams Free Model](https://sketchfab.com/3d-models/low-poly-abrams-free-model-ee925340fd0249bfac6f766c7eb81abd) | [Lasha-Georgy Bajadze](https://sketchfab.com/gsr19891) | CC BY 4.0 |
+| `traffic` `barricade` `cone` | [Barricade Set (low poly, game ready)](https://sketchfab.com/3d-models/barricade-set-low-poly-game-ready-209e7dc032de483cae12eb5c3e7f1bcf) | [TampaJoey](https://sketchfab.com/TampaJoey) | CC BY 4.0 |
+| `traffic` `spike` | [Spike Strip](https://sketchfab.com/3d-models/spike-strip-2c8370fccfbf4a7f9b9d9729112b8e61) | [ericzilic176](https://sketchfab.com/ericzilic176) | CC BY 4.0 |
+| `arms` `pistol` | [Heckler & Koch USP Pistol](https://sketchfab.com/3d-models/heckler-koch-usp-pistol-972e3643000246e8959a6df509557bcc) | [Urpo](https://sketchfab.com/Urpo) | CC BY 4.0 |
+| `arms` `smg` | [MAC-11](https://sketchfab.com/3d-models/mac-11-9f0dbab63c6c4ab2bee9b141ed58383e) | [SK3D](https://sketchfab.com/SplashKid) | CC BY 4.0 |
+| `arms` `rifle` | [M4A1 Sopmod Remaster](https://sketchfab.com/3d-models/m4a1-sopmod-remaster-c417b8a56e4447fe9d627000dd305f32) | [minghauLoh](https://sketchfab.com/minghau) | CC BY 4.0 |
+| `arms` `shotgun` | [Remington 870 Shotgun](https://sketchfab.com/3d-models/remington-870-shotgun-05a6a02909ee4fcfa5cde3d76cb067f0) | [Urpo](https://sketchfab.com/Urpo) | CC BY 4.0 |
+| `arms` `sniper` | [USMC M40A5 Sniper](https://sketchfab.com/3d-models/usmc-m40a5-sniper-f724d89f40db46b0afce2b57ac6d4823) | [Urpo](https://sketchfab.com/Urpo) | CC BY 4.0 |
+| `arms` `rpg` | [RPG-7](https://sketchfab.com/3d-models/rpg-7-23d13d69b7ab4ea1a438c57ca3a234b4) | [ArtEast.](https://sketchfab.com/ArtEast.) | CC BY 4.0 |
+| `arms` `minigun` | [Minigun (improved)](https://sketchfab.com/3d-models/minigun-improved-c13b38ae618e4e32b6be646b4ea98e20) | [ArtEast.](https://sketchfab.com/ArtEast.) | CC BY 4.0 |
+| `arms` `grenade` | [M67 Fragmentation Grenade](https://sketchfab.com/3d-models/m67-fragmentation-grenade-05e2a29118c3408eaa574bcec6997aba) | [Vextin](https://sketchfab.com/vextin) | CC BY 4.0 |
+| `arms` `c4` | [C4 Explosive](https://sketchfab.com/3d-models/c4-explosive-617d754683114b6a8244ececbd03365e) | [_Vadim2020_](https://sketchfab.com/Maha_Knox) | CC BY 4.0 |
+| `arms` `bat` | [Baseball Bat](https://sketchfab.com/3d-models/baseball-bat-30b41d95e3cc4f53afb4bac3f71fd821) | [CGunwale](https://sketchfab.com/cgunwale) | CC BY 4.0 |
+| `arms` `katana` | [Cyberpunk Katana](https://sketchfab.com/3d-models/cyberpunk-katana-aa5505c8bd9c41c692159fa79e0e1693) | [Mikołaj Michalak](https://sketchfab.com/M_Michalak) | CC BY 4.0 |
+| `arms` `baton` | [Police Baton (Game ready - PBR)](https://sketchfab.com/3d-models/police-baton-game-ready-pbr-8ed437ccdead4fe4a69f2026d4d81057) | [mahyarhdri](https://sketchfab.com/mahyarhdri) | CC BY 4.0 |
+| `street` `hydrant` | [Fire Hydrant](https://sketchfab.com/3d-models/fire-hydrant-d012d05e8bca49928a2944e043d93fb7) | [TraianDumbrava](https://sketchfab.com/TraianDumbrava) | CC BY 4.0 |
+| `street` `ebox` | [Electrical box - FREE](https://sketchfab.com/3d-models/electrical-box-free-383a234d6d80421fbe67080048cbbc70) | [Mathieu Godard](https://sketchfab.com/Mathieu.Godard) | CC BY 4.0 |
+| `street` `pump` | [gas pump](https://sketchfab.com/3d-models/gas-pump-add0f902b9164718bd0540e88bf9927e) | [打螺丝](https://sketchfab.com/youoyouyou) | CC BY 4.0 |

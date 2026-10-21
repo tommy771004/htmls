@@ -39,7 +39,7 @@ const clockSt = { min: 2 * 60 + 14, acc: 0 };
 const hudCache = {};
 const setText = (id, t) => { if (hudCache[id] !== t) { hudCache[id] = t; $(id).textContent = t; } };
 const _pv = V3();
-function drawCompass(h, mk) {
+function drawCompass(h, mk, wp) {
   const W = cmp.width, H = cmp.height; cctx.clearRect(0, 0, W, H);
   const span = 150, px = d => W / 2 + d / span * W;
   cctx.strokeStyle = 'rgba(236,232,224,.5)'; cctx.lineWidth = 2;
@@ -51,10 +51,11 @@ function drawCompass(h, mk) {
     if (a % 45 === 0) { cctx.fillStyle = a === 0 ? '#ffae57' : 'rgba(236,232,224,.9)'; cctx.fillText(DIRN[a / 45], x, y - H * .02); }
     else { cctx.fillStyle = 'rgba(236,232,224,.45)'; cctx.fillRect(x - 1, y - H * .06, 2, H * .14); }
   }
-  if (mk) {
-    let d = ((mk - h + 540) % 360) - 180; d = clamp(d, -span / 2, span / 2);
+  for (const [a, col] of [[wp, GPS_WP], [mk, '#ffae57']]) {
+    if (a == null) continue;
+    let d = ((a - h + 540) % 360) - 180; d = clamp(d, -span / 2, span / 2);
     const x = px(d), y = H * .82 + (d / span) ** 2 * H * .5;
-    cctx.fillStyle = '#ffae57'; cctx.beginPath(); cctx.arc(x, y, H * .1, 0, 7); cctx.fill();
+    cctx.fillStyle = col; cctx.beginPath(); cctx.arc(x, y, H * .1, 0, 7); cctx.fill();
   }
   cctx.fillStyle = 'rgba(236,232,224,.95)'; cctx.beginPath(); cctx.moveTo(W / 2 - 6, 2); cctx.lineTo(W / 2 + 6, 2); cctx.lineTo(W / 2, 10); cctx.fill();
 }
@@ -67,10 +68,13 @@ function drawMini(px, pz, yaw, mk) {
   mctx.translate(R2, R2); mctx.rotate(yaw - Math.PI); mctx.scale(zoom, zoom);
   mctx.drawImage(mapImg, -(px - MAP_X0) * MAP_S, -(pz - MAP_Z0) * MAP_S);
   const P2 = (x, z) => [(x - px) * MAP_S, (z - pz) * MAP_S];
+  gpsMini(mctx, P2, zoom);   // 導航路線（69-gps.js）
   for (const v of VENUE_PINS) { const [x, y] = P2(v.x, v.z); mctx.fillStyle = v.col; mctx.beginPath(); mctx.arc(x, y, 5 / zoom * 1.4, 0, 7); mctx.fill(); }
   for (const v of vehicles) if (v !== player.veh) { const [x, y] = P2(v.x, v.z); mctx.fillStyle = '#e9e5dc'; mctx.fillRect(x - 3, y - 3, 6, 6); }
   mctx.fillStyle = 'rgba(255,215,90,.75)';
   for (const c of traffic) { const [x, y] = P2(c.x, c.z); if (Math.abs(x) < 140 && Math.abs(y) < 140) mctx.fillRect(x - 1.5, y - 1.5, 3, 3); }
+  if (player.where === 'out') policeMini(mctx, P2, zoom);   // 警車、警員、直升機、視線錐（69-police.js）
+  evMini(mctx, P2, zoom);   // 運鈔車藍點與錢袋（69-events.js）
   mctx.restore();
   // 目標：在圓內就畫點，超出就貼在圓周
   if (mk && mk.where === 'out') {
@@ -91,11 +95,12 @@ function updateHud(dt) {
   const px = inV ? p.veh.x : p.x, pz = inV ? p.veh.z : p.z;
   const yawView = camState.yaw;
   const h = headingOf(Math.sin(yawView), Math.cos(yawView));
-  const mk = QUEST[quest.n].mk();
+  const mk = missionMark();   // 69-heist.js：搶劫進行中換成搶劫目標
   const mkVisible = mk && mk.where === p.where;
   let mkH = null;
   if (mkVisible) mkH = headingOf(mk.x - (p.where === 'out' ? px : p.x), mk.z - (p.where === 'out' ? pz : p.z));
-  drawCompass(h, mkH);
+  const wpH = gps.wp && p.where === 'out' ? headingOf(gps.wp.x - px, gps.wp.z - pz) : null;
+  drawCompass(h, mkH, wpH);
   if (p.where === 'out') {
     setText('stName', streetName(px, pz));
     setText('district', district(px, pz));
@@ -145,6 +150,9 @@ function drawBigMap() {
   c.save(); c.translate((W - mapImg.width * s) / 2, (H - mapImg.height * s) / 2); c.scale(s, s);
   c.drawImage(mapImg, 0, 0);
   const X = x => (x - MAP_X0) * MAP_S, Z = z => (z - MAP_Z0) * MAP_S;
+  gpsBig(c, X, Z, s);
+  stuntBig(c, X, Z, s);   // 特技跳台（69-stunt.js）
+  evBig(c, X, Z, s);
   c.font = `600 ${13 / s}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'middle';
   for (const v of VENUE_PINS) { c.fillStyle = v.col; c.beginPath(); c.arc(X(v.x), Z(v.z), 7 / s, 0, 7); c.fill(); c.fillStyle = '#ece8e0'; c.fillText(v.name, X(v.x) + 11 / s, Z(v.z)); }
   c.fillStyle = 'rgba(236,232,224,.55)'; c.font = `500 ${10 / s}px system-ui`; c.textAlign = 'center';

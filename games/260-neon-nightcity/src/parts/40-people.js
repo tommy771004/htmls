@@ -450,6 +450,7 @@ function updatePeds(dt) {
     if (ps.down > 0) {
       ps.down -= dt;
       peds.place(k, ps.dpos[0], groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);
+      if (ps.down <= 0 && ps.stun) { ps.stun = 0; ps.panic = 6; peds.anim(k, ANIM.run, rP() * 10, 1); return; }   // 電擊槍：原地爬起來逃跑
       if (ps.down <= 0) { ps.s = rP() * ps.per; ps.dx = ps.dz = 0; ps.panic = 0; peds.anim(k, ps.um ? ANIM.umbrella : ANIM.walk, rP() * 10, ps.v * .78); }
       return;
     }
