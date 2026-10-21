@@ -6,9 +6,9 @@
 
 | 類別 | 型號 | 網格 |
 | --- | --- | --- |
-| 實體模型（`real: true`） | 1、3、7、38、46、47、85 | `bake.py` 從 Blend Swap／Sketchfab 的授權模型轉出 |
-| 改造模型（`kit: true`） | 16、17、25、33、39、41、44、49、50 | `derive.py` 從實體模型改造 |
-| 沿用改造模型 | 48 | 用 `mk44.glb` 換色 |
+| 實體模型（`real: true`） | 1、3、7、38、44、46、47、85 | `bake.py` 從 Blend Swap／Sketchfab 的授權模型轉出 |
+| 改造模型（`kit: true`） | 16、17、25、33、39、41、49、50 | `derive.py` 從實體模型改造 |
+| 沿用實體模型 | 48 | 用 `mk44.glb` 換色 |
 | 近似 | 其餘 | 最接近的模型換色＋頁面幾何配件 |
 
 兩種尺寸（1440×900、390×844）的無頭 Chrome 驗收通過：沒有例外、`console.error`、外部請求或手機水平溢出。
@@ -38,42 +38,32 @@
 2. `MARKS` 對應型號改 `base`，加 `kit: true`。模型本身已有的形狀要拿掉頁面配件（例如 25 的 `hammer`、39 的 `booster`）。模型自帶的反應爐形狀不要再蓋發光片，加 `rxOwn: true`。體型很大的設 `h`（身高）與 `cam`（自組裝鏡頭拉遠倍數）。
 3. 選單頁尾、授權面板（「用於」與「改造成」）、兩份 `CREDITS.md`、`README.md` 的表格與重建迴圈，以及根目錄 `CLAUDE.md`、`README.md`、`index.html`、`llms.txt` 的型號清單都要一起改。根目錄的登錄檔混用 CRLF／LF，要以位元組方式局部替換，改完看 `git diff --stat`。
 
+## 浩克毀滅者實體模型（2026-10-21 完成）
+
+用的是先前篩選的首選：[Shreyash〈Hulkbuster〉](https://sketchfab.com/3d-models/hulkbuster-9f6e426a7bda4da2bc7137bbd8e541e3)（CC-BY 4.0，約 26 萬三角形，GLB 內的 `asset.extras` 也寫著這位作者與網址）。來源檔在 `.cache/shreyash-mk44.glb`，`MODELS['mk44']` 用 `split=True`，材質 `BODY`／`GOLD`／`GREY`／`EMISSIVE` 對應 `p`／`s`／`t`／`g`，原貼圖不沿用。關節在 `LM['mk44']`，另外新增 `RPART`：頭盔陷在兩肩之間，要放大頭盔骨段才不會被胸甲吃掉；胯部很窄，骨盆骨段要縮小，否則會吃進大腿內側。輸出約 2.5 MB，超過 1 MB，不在背景預先載入。
+
+- Mark 48 沿用這個模型換色，另外補了專屬的提示詞（原本的預設提示詞寫「Mark 7 silhouette」）。
+- `derive.py` 的 `hulkbuster()` 留作備案，README 的重建迴圈不再跑它，跑的話要換輸出檔名。
+- 使用者也下載了 el_robotto 的頭盔（`.cache/elrobotto-hb-helmet.glb`）和 admehta550 的完整模型（`.cache/dl/hb_b.glb`）。Shreyash 的模型本身就有完整頭盔，所以兩者都沒有用；admehta550 那份原本就不建議用（來源不可靠）。
+- 順手修掉一個舊問題：機庫 B 的蜂巢牆是半徑 6.2 m 的弧，身高 3 m 以上的型號切到「背面」時相機會跑到牆外，整個畫面被牆擋住。現在相機在牆那一側（z < 0）且離中心超過 5.9 m 時把牆藏起來（`hexWall`）；手機的鏡頭會拉得很遠，只看距離會連正面視角的牆都藏掉。
+
 ## 還沒做的事
 
-### 1. 浩克毀滅者換成實體模型（等使用者下載）
-
-已在 Sketchfab 篩過候選。授權標籤幾乎都是 CC-BY，所以改看來源可不可靠：
-
-| 建議 | 模型 | 授權 | 理由 |
-| --- | --- | --- | --- |
-| 首選 | [Shreyaxh〈Hulkbuster〉](https://sketchfab.com/3d-models/hulkbuster-9f6e426a7bda4da2bc7137bbd8e541e3)（約 26 萬面） | CC-BY 4.0 | 說明寫了製作工具（3ds Max、Vray、Substance），面數沒有重複，作者其他作品是自己做的載具與機甲 |
-| 補頭盔 | [el_robotto〈Hulkbuster's helmet MCU version〉](https://sketchfab.com/3d-models/hulkbusters-helmet-mcu-version-63e0d0c4b342413eaeb9528fdd851311) | CC-BY 4.0 | 2017 年原創，只有頭盔，可換掉 `mk44.glb` 的圓頂頭盔 |
-| 不建議 | [admehta550〈Hulkbuster〉](https://sketchfab.com/3d-models/hulkbuster-aa7e2b8214a74432b86d6a7223c77a74)（約 130 萬面） | CC-BY 4.0 | 沒有說明，作者只上傳過這一件 |
-
-排除的：同一份網格被多個帳號重複上傳的（695,316 面那份有十個以上帳號，另有 538,396、540,464 面兩份）。el_robotto 自己的完整浩克毀滅者是付費商品，這些免費重傳很可能是盜版。另外也排除 Disney Infinity 遊戲拆檔、Minecraft、LEGO，以及原創的 Gamma 改版。
-
-使用者下載後，檔案放 `.cache/shreyaxh-mk44.glb`，接著：
-
-1. `common.py` 的 `MODELS` 加一項（`glb=`、保留物件、減面比例）。用 `tools/grid.py` 量關節，寫進 `bake.py` 的 `LM`，也要設 `ROLE_MAP`。
-2. 轉出成 `assets/270/mk44.glb`。Mark 44 改成 `real: true`，拿掉 `kit`，48 跟著用。`derive.py` 的 `hulkbuster()` 可以留著當備案，或改從新模型做 Mark 48 的差異。
-3. 授權面板、`CREDITS.md`、README 表格補上作者與連結。
-
-我們不能代為登入或下載，也不能繞過 CAPTCHA。下載的檔案一律當不可信資料處理：放進獨立資料夾，用 Python 讀取時加 `-I`。
-
-### 2. 可以再改造的型號
+### 1. 可以再改造的型號
 
 Mark 26 伽瑪（目前是頁面的灰色重錘配件）、40 霰彈槍、42（目前沿用 mk7 換色）都可以照同樣方法做。開工前先對照參考比例，挑出和現有網格差最多的部位。
 
-### 3. 小瑕疵
+### 2. 小瑕疵
 
 - Mark 25 的攻城錘在正面看靠腕部那段和前臂之間還有一點縫，只靠兩道固定架連著。
 - Mark 39 的推進器整支是主色，參考圖上有更多金色環。
 - 改造模型的面板細節做不到 GK 那樣 1:1，README 的「已知限制」有寫。
+- Mark 44 的分件是依骨段距離自動分類，大腿和小腿的交界在背面有一點鋸齒；腿部的反應爐片歸在小腿。
 
 ## 驗收方式
 
 這個 session 的截圖與驗收腳本放在暫存資料夾，沒有收進 repo。重做時：
 
 - 用任何靜態伺服器開 repo 根目錄（`npm start` 也可以，白名單已含 `assets/` 與 `.glb`），用 Playwright（`PLAYWRIGHT_MODULE`）開 `web/270-mark-assembly.html#mkN`。
-- 等 `__mk.loaded()` 載入完，再 `__mk.snap()`、`__mk.goView('q'|'back')` 截圖。
+- 等 `__mk.st.suit` 有值、`__mk.st.mark.n` 是目標型號（`__mk.loaded()` 回傳陣列，空陣列也是真值，不能直接拿來等），再 `__mk.snap()`、`__mk.goView('q'|'back')` 截圖。
 - 在 1440×900 與 390×844 收集 `pageerror`、`console.error` 與非 127.0.0.1 的請求，並比對 `scrollWidth` 與 `innerWidth`。

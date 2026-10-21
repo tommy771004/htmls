@@ -51,7 +51,12 @@ LM.update({
                  hip=(.05, 0, .48), knee=(.06, 0, .28), ankle=(.07, 0, .05), toe=(.07, -.05, .01)),
 })
 LM['mk47'] = LM['mk46']
-RSCALE = {'mk1': 1.4, 'mk38': 2}  # 體型粗壯的模型骨段半徑放大
+# Mark 44 浩克毀滅者：頭盔陷在兩肩之間、巨型肩甲、手臂垂到大腿中段
+LM['mk44'] = dict(neck=(0, -.06, .86), top=(0, -.07, .97), chestTop=(0, .02, .8), chestLow=(0, 0, .7), waist=(0, 0, .61), pelvis=(0, 0, .53),
+                  shoulder=(.22, .03, .75), elbow=(.24, .04, .63), wrist=(.26, .04, .47), tip=(.25, .02, .4), pad=(.27, .03, .85),
+                  hip=(.1, 0, .56), knee=(.1, .02, .37), ankle=(.11, .06, .11), toe=(.11, -.1, .01))
+RSCALE = {'mk1': 1.4, 'mk38': 2, 'mk44': 2}  # 體型粗壯的模型骨段半徑放大
+RPART = {'mk44': {'helmet': 1.15, 'pelvis': .85, 'pauldron': 1.3, 'boot': 1.4}}  # 個別部位再放大或縮小（部位名去掉 .L/.R）
 FLIP = {'bruno': True}  # 原檔面向 +Y，轉 180°
 
 ROLE_MAP = {
@@ -69,6 +74,7 @@ ROLE_MAP.update({
     # 右手套的六顆寶石保留原色：角色寫成 g_<色碼>，頁面讀材質名 role_g_<色碼>
     'mk85': {'Mat.1': 'p', 'Mat.2': 's', 'material': 'k', 'material_3': 'g', 'material_4': 'g', 'material_5': 'g_30ff70', 'material_6': 'g_ffd030',
              'material_7': 'g_ff3030', 'material_8': 'g_a040ff', 'material_9': 'g_3080ff', 'material_10': 'g_ff8a20'},
+    'mk44': {'BODY': 'p', 'GOLD': 's', 'GREY': 't', 'EMISSIVE': 'g'},
 })
 # swat_ 骨架（Mixamo 命名）→ 部位
 BONE_PART = {'Hips': 'pelvis', 'rootJoint': 'pelvis', '': 'pelvis', 'Spine': 'abdomen', 'Spine1': 'chest', 'Spine2': 'chest', 'Neck': 'helmet', 'Neck1': 'helmet', 'Head': 'helmet',
@@ -133,7 +139,8 @@ for s, sg in (('L', 1), ('R', -1)):
     segs += [('pauldron.' + s, pad, pad, .045),
              ('upperArm.' + s, J['shoulder'], J['elbow'], .035), ('forearm.' + s, J['elbow'], J['wrist'], .035), ('hand.' + s, J['wrist'], J['tip'], .025),
              ('thigh.' + s, J['hip'], J['knee'], .05), ('shin.' + s, J['knee'], J['ankle'], .045), ('boot.' + s, J['ankle'], J['toe'], .045)]
-segs = [(p, a, b, r * RS) for p, a, b, r in segs]
+RP = RPART.get(key, {})
+segs = [(p, a, b, r * RS * RP.get(p.split('.')[0], 1)) for p, a, b, r in segs]
 
 
 def seg_dist(p, a, b):

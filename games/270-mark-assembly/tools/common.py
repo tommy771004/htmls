@@ -24,6 +24,8 @@ MODELS = {
     'mk47': dict(glb='gource-mk47.glb', keep=lambda o: o.name != 'Icosphere', subsurf=0, bones=True, arms=64, decimate=.45),
     # CC-BY 4.0，LLIypuk（Harlow fx）；225 萬面，先減到約 30 萬
     'mk85': dict(glb='lliypuk-mk85.glb', keep=lambda o: True, subsurf=0, split=True, predecimate=.14),
+    # CC-BY 4.0，Shreyash；浩克毀滅者，約 26 萬三角形、330 個網格
+    'mk44': dict(glb='shreyash-mk44.glb', keep=lambda o: True, subsurf=0, split=True),
 }
 
 

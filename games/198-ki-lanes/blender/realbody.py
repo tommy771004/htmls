@@ -82,10 +82,24 @@ MALE_FIT = {'fore_e': 0.9, 'fore_belly': 0.05, 'fore_kb': 0.25, 'wrist_k': 0.82,
 # 各英雄的上臂半徑上限（覆寫 MALE_FIT 的 arm_cap）：貝吉塔的參考（01 FighterZ、04 GK）二頭肌和手套口一樣寬、約腰帶寬的 0.45，
 # 0.56 hr 時上臂只有 0.119 m 寬，比手套口（0.137 m）還細，撐不起肩甲
 ARM_CAP_HERO = {'vegeta': 0.64}
+# 各英雄的前臂輪廓覆寫（蓋在 MALE_FIT 上，見 Fitter.fore_profile）：弗利沙（GK 第一輪）的參考 02／04 前臂比上臂粗
+# （上臂約 0.28 頭高、前臂約 0.35），肘部接上臂下端的 1.15 倍、肘下肌腹再鼓 12%；底模的前臂本來就收得細，所以 build_frieza 另把前臂部件加粗（k_fore）
+FORE_FIT_HERO = {'frieza': {'fore_e': 1.15, 'fore_belly': 0.12, 'fore_kb': 0.4, 'wrist_k': 0.75}}
 # 男性的肩線下壓（Fitter.shoulder_slope，參數同 FEMALE_FIT 的 slope／neck_drop；沒列的英雄不壓）：
 # 特南克斯（GK 第三輪）：底模的斜方肌與三角肌頂比肩關節高 8 cm，外套袖照「真人身體−舊手臂」往外挪時袖根被頂成兩顆比外套肩線高的圓球，
 # 正面肩頂只比下巴低 0.15 頭（03 GK 約 0.3 頭、肩線從立領往外下斜）
-MALE_SLOPE_HERO = {'trunks': {'slope': 0.03, 'neck_drop': 0.0}}
+# 弗利沙（GK 第一輪）：肩甲改小、降到肩關節後，底模水平的斜方肌與三角肌頂從肩甲內側穿出成一排白色鋸齒；
+# 參考 02／04 的頸側到肩甲是往下斜的斜方肌，肩頭壓低後收進肩甲裡
+MALE_SLOPE_HERO = {'trunks': {'slope': 0.03, 'neck_drop': 0.0}, 'frieza': {'slope': 0.035, 'neck_drop': 0.0}}
+# 軀幹左右寬度的逐高度倍率（Fitter.torso_map）：[(u, 倍率)]，u 是 F.y 的軀幹高度（0＝髖、1＝頸根），中間平滑內插、範圍外為 1。
+# 弗利沙（GK 第二輪）：軀幹皮膚和四肢融成一張（G_FREE），斷面表只能照 waist／chest 估計，胸廓到肋下一樣寬
+# （量真人身體軀幹頂點：頭頂下 1.6 頭 0.94 頭寬、1.85 頭 0.90、2.0 頭 0.74、2.1 頭 0.67）；
+# 參考 02 S.H.Figuarts：胸肌（1.6 頭，含背闊肌）1.04、寶石處（1.85 頭）0.79、寶石下（2.0 頭）0.72、腰（2.1 頭）0.70，
+# 胸肌以下很快收窄成倒三角。腰本來就夠細，只放寬胸肌、收窄肋下
+TORSO_PROF_HERO = {'frieza': [(0.12, 1.0), (0.24, 0.9), (0.42, 0.84), (0.52, 0.9), (0.62, 1.06), (0.75, 1.05), (0.88, 1.0)]}
+# 膝蓋的徑向放大比例（Fitter.fit：大腿下段與小腿上段在膝關節處最大）。弗利沙（GK 第二輪）：大腿到腳踝一路直直收細、沒有膝蓋
+# （正面量得膝寬 0.31 頭），參考 02／04 的膝蓋是一顆明顯的關節（約 0.45 頭）
+KNEE_HERO = {'frieza': 0.42}
 # 上臂根部（肩關節到沿骨 0.1）的徑向縮放上限（倍數）：沿骨 0.1～0.4 漸變到 arm_r 全量（Fitter.fit）。
 # 上臂的徑向縮放以骨軸為中心，腋下、背闊肌邊緣這些混了上臂權重的軀幹頂點也被往外推：
 # 貝吉塔上臂 1.44 倍時腋下後方鼓出 2～3 cm，站著就從背甲側緣頂出一排藍色階梯。二頭肌照全量，肩根只到 1.2 倍
@@ -168,6 +182,15 @@ def skin(ob):
     """標記為要被真人身體取代的部件（皮膚與緊身衣）。"""
     ob['skin'] = 1
     return ob
+
+
+_SCULPT = {}   # 英雄 id → fn(co) → 沿法線的位移（公尺）；Fitter.fit 擬合完之後套在軀幹上（見 sculpt()）
+
+
+def sculpt(F, fn):
+    """登錄英雄專屬的軀幹肌肉起伏：fn(co) 回傳該點沿法線往外推的距離（公尺，負值往內凹）。
+    只作用在軀幹的權重上（骨盆、脊椎、鎖骨，依權重比例），頭（含頸部接縫那一圈）、手臂與腿不動，脖子與軀幹交界照權重比例漸變。"""
+    _SCULPT[F.R.get('id', '')] = fn
 
 
 _PAINT = {}   # paint_id → [(field, pal, mat, reach, refine)]；id 全域唯一（全量建模時各英雄的部件會同名）
@@ -604,6 +627,14 @@ class Fitter:
         # 女性收腰：上面的斷面表只有 6 列，腰身被英雄（198 的直筒軀幹）的寬度拉直（18 號從皮帶到胸下 16 cm 一樣寬，背面看是一根直筒）。
         # 在腰最細處（waist_u）再收 waist／waist_z：往上 waist_up 內漸寬回胸廓（倒三角），往下 waist_dn 內很快張開到髖
         ff = self.ff
+        prof = TORSO_PROF_HERO.get(self.R.get('id', ''))
+
+        def prof_k(y):
+            u = (y - F.yT) / F.T
+            for (u0, k0), (u1, k1) in zip(prof, prof[1:]):
+                if u0 <= u <= u1:
+                    return k0 + (k1 - k0) * smooth((u - u0) / (u1 - u0))
+            return 1.0
         if ff and ff['waist'] > 0:
             yw, hu, hd = F.y(ff['waist_u']), ff['waist_up'] * F.T, ff['waist_dn'] * F.T
             wx, wz = ff['waist'], ff['waist_z']
@@ -622,6 +653,9 @@ class Fitter:
                 b = 1 - smooth((y - yw) / hu if y > yw else (yw - y) / hd)
                 sx *= 1 - wx * b
                 sz *= 1 - wz * b
+
+            if prof:
+                sx *= prof_k(y)
             return V((p.x * sx, y, bzc + (p.z - azc) * sz))
         return xf, ymap, ky
 
@@ -679,7 +713,7 @@ class Fitter:
         底模的前臂在肘下 0.1～0.3 有一團前臂肌群（女性中位半徑 0.047 m，比上臂下端的 0.040 m 粗），整段等比縮放後前臂仍比上臂粗（背面看手肘下往外鼓）。
         改成畫一條目標輪廓：肘部接上臂下端的粗細（arm_r × 上臂輪廓在 k＝0.95 × fore_e），上段只微鼓 fore_belly，
         從 fore_kb 開始平滑收到手腕（fore_r × 底模手腕，手環、手套口照舊）；倍率＝目標 ÷（fore_r × 底模輪廓），最多 1。"""
-        ff = self.ff or MALE_FIT
+        ff = self.ff or dict(MALE_FIT, **FORE_FIT_HERO.get(self.R.get('id', ''), {}))
         sU, sF = self.src_profile('upperarm_' + q), self.src_profile('lowerarm_' + q)
         r_e, r_w = arm_r * sU(0.95) * ff['fore_e'], fore_r * sF(1.0)
         if 'wrist_k' in ff:
@@ -806,6 +840,11 @@ class Fitter:
             X['clavicle_' + q] = seg_xf(J['clavicle_' + q][0], J['upperarm_' + q][0], cl0, B['sh' + s][0], 1.0)
             X['thigh_' + q] = seg_xf(J['thigh_' + q][0], J['calf_' + q][0], B['th' + s][0], B['kn' + s][0], th_r)
             X['calf_' + q] = seg_xf(J['calf_' + q][0], J['foot_' + q][0], B['kn' + s][0], B['an' + s][0], sh_r)
+            kb = KNEE_HERO.get(self.R.get('id', ''))
+            if kb:
+                # 膝蓋鼓起：大腿下段（沿骨 0.75 以後）與小腿上段（0.28 以前）徑向放大，膝關節處最大
+                X['thigh_' + q] = radial_xf(X['thigh_' + q], B['th' + s][0], B['kn' + s][0], lambda k, kb=kb: 1 + kb * smooth((k - 0.75) / 0.25))
+                X['calf_' + q] = radial_xf(X['calf_' + q], B['kn' + s][0], B['an' + s][0], lambda k, kb=kb: 1 + kb * (1 - smooth(k / 0.28)))
             # 腳：腳踝→腳掌對到 an→to；寬度照小腿的比例
             fr = max(0.8, min(1.4, (sh_r + 1) / 2 * self.R['toe']['s'] / 1.05))
             X['foot_' + q] = seg_xf(J['foot_' + q][0], J['ball_' + q][0], B['an' + s][0], B['to' + s][0], fr)
@@ -877,6 +916,9 @@ class Fitter:
         amt = RELIEF_HERO.get(self.R.get('id', ''))
         if amt:
             self.relief(out, amt)
+        fn = _SCULPT.get(self.R.get('id', ''))
+        if fn:
+            self.sculpt_torso(out, fn)
         if os.environ.get('REAL_DEBUG'):
             self.arm_section_debug(out)
         return out
@@ -922,6 +964,40 @@ class Fitter:
             mv = max(mv, abs(d))
         if os.environ.get('REAL_DEBUG'):
             print('  肌肉起伏 ×%.1f：%d 頂點，最多挪 %.1f mm' % (amt, len(idx), mv * 1000))
+
+    def sculpt_torso(self, out, fn):
+        """軀幹的肌肉起伏（就地改 out）：沿頂點法線位移 fn(co) × 軀幹權重（脖子的權重不算，純脖子的頂點不動）。
+        頸部接縫與帶頭權重的頂點不動（頭身才不會裂開）。"""
+        S = self.S
+        bu = S['used']
+        polys = [tuple(bu[i] for i in p) for p in S['polys']]
+        seam = {bu[i] for i, f in enumerate(S['seam']) if f}
+        TB = ('pelvis', 'spine_01', 'spine_02', 'spine_03', 'clavicle_l', 'clavicle_r')
+        nrm = [V((0, 0, 0)) for _ in out]
+        for p in polys:
+            c0 = out[p[0]]
+            fn_ = V((0, 0, 0))
+            for a, b in zip(p[1:-1], p[2:]):
+                fn_ += (out[a] - c0).cross(out[b] - c0)
+            for i in p:
+                nrm[i] += fn_
+        n, mv = 0, 0.0
+        for i in bu:
+            if i in seam:
+                continue
+            ws = S['W'][i]
+            if any(nm == 'Head' and w > 0 for nm, w in ws):
+                continue
+            wt = sum(w for nm, w in ws if nm in TB)
+            if wt < 0.02 or nrm[i].length < 1e-12:
+                continue
+            d = fn(out[i]) * wt
+            if d:
+                out[i] = out[i] + nrm[i].normalized() * d
+                n += 1
+                mv = max(mv, abs(d))
+        if os.environ.get('REAL_DEBUG'):
+            print('  軀幹肌肉起伏：%d 頂點，最多挪 %.1f mm' % (n, mv * 1000))
 
     def arm_section_debug(self, out):
         """除錯：左上臂、左前臂沿骨每 0.1 一段，正面看的寬度（垂直骨軸、在 xy 平面內）與前後厚度（z），單位公分。"""

@@ -514,8 +514,11 @@ function makeAura(H) {
 
 /* ---------------- 英雄材質 ---------------- */
 const _heroMats = new Map();
-function heroMat(id, team) { const k = id + ':' + team; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ team: TEAM[team] })); return _heroMats.get(k); }
-function headMat(id, form, tex, rect) { const k = id + ':' + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35 })); return _heroMats.get(k); }
+// 各英雄亮面（材質 2）的高光門檻：弗利沙（GK 第二輪）的紫色圓頂、肩甲是大面積的低曲率曲面，預設門檻下高光是一大塊不規則的白紫斑，
+// 遠看像破洞；參考 02／06 的亮漆高光小而圓滑
+const SPEC = { frieza: 0.988 };
+function heroMat(id, team) { const k = id + ':' + team; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ team: TEAM[team], spec: SPEC[id] })); return _heroMats.get(k); }
+function headMat(id, form, tex, rect) { const k = id + ':' + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35, spec: SPEC[id] })); return _heroMats.get(k); }
 // 蒙皮網格的外框：法線取蒙皮後的 transformedNormal；aOl 是逐頂點的外框粗細倍率（臉、手指較細）
 const _skinOutline = {};
 function skinOutlineMat(w) {
@@ -542,9 +545,21 @@ export function chainSpecs(id, d) {
   // 腰帶尾端（魯夫、索隆左腰垂下的布條）
   if (id === 'luffy' || id === 'zoro') out.push({ name: 'sash', parent: 'hips', pos: [d.waist * (id === 'zoro' ? 1.05 : 1.0), id === 'zoro' ? 0.08 : 0.06, d.chest[2] * (id === 'zoro' ? 1.0 : 0.72)], n: 2, len: id === 'zoro' ? 0.31 : 0.28, base: 0, lift: 0.55, flutter: 0.3 });
   // 長下襬的後片（索隆大衣、佐助腰布、18 號長裙）：跑動時往後飄，前片仍跟著雙腿
-  if (id === 'zoro' || id === 'sasuke' || id === 'a18') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : id === 'a18' ? 0.04 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : id === 'a18' ? 0.19 : 0.28, base: 0, lift: id === 'a18' ? 0.3 : 0.4, flutter: 0.14 });
-  // 弗利沙的尾巴：從臀部正後方往後下垂，往一側（yaw）偏開、後段每節往側面捲（coil），在地上繞成弧（參考 01／02／03：尾巴繞到身側，不是夾在兩腿之間的第三條腿）
-  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.226, base: 1.0, lift: 0.22, flutter: 0.1, curl: 0.08, sway: 0.4, yaw: 0.8, coil: 0.7 });
+  if (id === 'zoro' || id === 'sasuke' || id === 'a18') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : id === 'a18' ? 0.04 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : id === 'a18' ? 0.13 : 0.28, base: 0, lift: id === 'a18' ? 0.3 : 0.4, flutter: 0.14 });
+  // 弗利沙的尾巴：從臀部正後方往後下垂，落到地面後在地上往身側繞成大弧、尾尖往上勾（參考 02／04：尾巴從身後繞到右腳外側、尾尖翹起；
+  // 03 背面：往下垂、甩到一側在地上繞圈；不是夾在兩腿之間的第三條腿）。
+  // GK 第二輪：改成「貼地」鏈（ground，見 groundChain）：每一節的方向在世界座標裡解出來：離地越近越平（最後平貼地面）、
+  // 貼地後的節依 turn 逐節轉向、尾端 tip 往上勾。舊版是對骨盆的相對旋轉（curl／coil），只對得上一種骨盆高度：
+  // 站姿時中段直直斜插進地面再折成 J 字（側面像第三條腿）、倒地時整條穿進地面。
+  // 長度 8 節 × 0.32 m＝2.56 m（約 1.65 倍身高；參考 03 拉直約 1.6～1.8 倍身高，舊版 1.5 m 只有約 1 倍）。
+  // rad 是各節起點的尾巴半徑（和 blender/cast.py 的 TAIL_R 一致），貼地的節以它當離地高度，尾巴底面剛好碰到地面
+  // GK 第三輪：12 節 × 0.2 m（2.4 m）：貼地那一圈的折角變小；尾尖往上勾的量改小（舊版 0.4／0.7 讓最後兩節幾乎垂直，像天線）。
+  // arch：前幾節先往後、往外甩出去再垂下（參考 03 背面從尾根甩出一個大弧），不是從尾根直直斜到地面的支架
+  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 12, len: 0.2, base: 0, lift: 1, flutter: 0.1, sway: 0.4,
+    ground: { rad: [0.067, 0.063, 0.059, 0.055, 0.051, 0.047, 0.043, 0.039, 0.035, 0.031, 0.027, 0.023], lc: 0.6, b: 0.12, c0: 0.86, head0: 1.15,
+      arch: [0.4, 0.25, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      turn: [0, -0.2, -0.38, -0.55, -0.68, -0.75, -0.75, -0.7, -0.62, -0.55, -0.45, -0.35], tip: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0.08, 0.2, 0.35],
+      dead: 0.7 } });
   return out;
 }
 // 綁定姿勢（A 字）：模型在 Blender 以這個姿勢建模與刷權重
@@ -574,7 +589,8 @@ export function heroSkeleton(id) {
   const ribs = bone('ribs', torso, 0, ry, 0);
   const ny = d.torso - 0.035 - ry; // 脖子根（鎖骨窩的高度）
   const neck = bone('neck', ribs, 0, ny, 0);
-  const head = bone('head', neck, 0, d.torso + 0.04 + d.neck - ry - ny, 0);
+  // headZ：頭骨相對頸根往前挪（公尺，預設 0）。頸骨從頸根斜向前上方接到頭，側面看頭頸往前探（比克）
+  const head = bone('head', neck, 0, d.torso + 0.04 + d.neck - ry - ny, d.headZ || 0);
   const J = { hips, torso, ribs, neck, head };
   const hands = {};
   for (const side of ['L', 'R']) {
@@ -716,7 +732,7 @@ export function buildHero(id, team = 0) {
   }
   const hs = { x: 0, z: 0, vx: 0, vz: 0, yaw: root.rotation.y };
 
-  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, coil: c.coil || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6, hang: c.name !== 'tail' }));
+  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, coil: c.coil || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6, hang: c.name !== 'tail', ground: c.ground || null, dir: null, len: c.len, pos: c.pos }));
 
   // 特南克斯的劍：背上的鞘與在手上的劍
   let sword = null, swordState = 'back', backSocket = null, handSocket = null;
@@ -825,24 +841,31 @@ export function buildHero(id, team = 0) {
     const lift = clamp(speed * 0.13, 0, 1.25) + (name === 'dash' || name === 'rush' ? 0.6 : 0) + (name === 'air' ? -0.4 : 0) + (name === 'charge' ? 0.5 : 0);
     for (const c of chains) {
       c.phase += dt * (6 + speed * 1.3);
+      if (c.ground) { groundChain(c, dt, lift, name === 'dead'); continue; }
       c.segs.forEach((s, i) => {
         const fl = Math.sin(c.phase - i * 1.1) * c.flutter * (0.25 + clamp(speed / 7, 0, 1)) * (name === 'charge' ? 2 : 1);
         // 布條受重力：身體前後大幅傾斜（重踢、衝刺、被打飛）時往下垂，不跟著骨盆翹出去
         // 躺在地上時地面擋著，不再往下垂；尾巴比布條硬，只順著身體傾斜一部分，躺下時平貼地面往外伸
         const dead = name === 'dead';
         const g = i !== 0 ? 0 : c.hang ? (dead ? 0 : -clamp(pelvisPitch, -1.2, 1.2) * 0.85) : dead ? -c.base - lift * c.lift + 0.05 : -clamp(pelvisPitch, -1.2, 1.2) * 0.45;
-        const target = (i === 0 ? c.base + lift * c.lift + g : lift * 0.18 * c.lift + c.curl * (dead ? 0.3 : 1)) + fl;
+        const curl = Array.isArray(c.curl) ? c.curl[i] || 0 : c.curl; // curl／coil 可以給每節各自的值（陣列，第 0 節不用）
+        const target = (i === 0 ? c.base + lift * c.lift + g : lift * 0.18 * c.lift + curl * (dead ? 0.3 : 1)) + fl;
         c.cur[i] += (target - c.cur[i]) * (1 - Math.exp(-(9 - i * 1.5) * dt));
         s.rotation.x = c.cur[i];
         if (i === 0) s.rotation.y = c.yaw + (c.sway ? Math.sin(time * 1.7) * c.sway : 0);
-        else if (c.sway) s.rotation.z = Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.35;
+        else {
+          // y 每格歸零：coil 是在四元數上左乘的，Euler 會把它換算成 y／z 留到下一格；只覆寫 x 的話上一格的 coil 留在 y 裡、每格再疊一次，
+          // 尾巴越轉越歪（播得越久姿勢越不同，站姿下尾巴甚至繞回來直直插進地面）
+          s.rotation.y = 0;
+          s.rotation.z = c.sway ? Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.35 : 0;
+        }
         if (c.coil) {
           // coil：後段每節繞「骨盆的上方」轉一個固定角度，尾巴在水平面上繞成弧（繞各節自己的 z 軸轉的話，往下垂的節會往側上方翹，尾尖翹到胸口）。
           // _cq 累積鏈上各節的旋轉，把骨盆的上方換到這一節父骨的座標
           if (i === 0) _cq.copy(s.quaternion);
           else {
             _cax.set(0, 1, 0).applyQuaternion(_cqi.copy(_cq).invert());
-            _cqa.setFromAxisAngle(_cax, c.coil * (dead ? 0.3 : 1) + Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.12);
+            _cqa.setFromAxisAngle(_cax, (Array.isArray(c.coil) ? c.coil[i] || 0 : c.coil) * (dead ? 0.3 : 1) + Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.12);
             s.quaternion.premultiply(_cqa);
             _cq.multiply(s.quaternion);
           }
@@ -864,6 +887,58 @@ export function buildHero(id, team = 0) {
     if (name === 'charge') { body.position.x = (Math.random() - 0.5) * 0.02; body.position.z = (Math.random() - 0.5) * 0.02; }
     else if (hit.t < 0.16) body.position.x = Math.sin(hit.t * 140) * 0.028 * hit.p * (1 - hit.t / 0.16); // 挨打瞬間的震顫（格鬥遊戲的頓幀感）
     else { body.position.x = 0; }
+  }
+  // 貼地鏈（弗利沙的尾巴，chainSpecs 的 ground）：在世界座標裡逐節解出方向，再換回各節對父骨的局部旋轉。
+  //   基準方向 hb：骨盆後方（−z）與下方（−y）投影到水平面相加：站著時是正後方，仰躺時（骨盆的後方朝下）換成腳的方向，不會鑽到身體底下。
+  //   俯仰：這一節起點離「休息高度」（地面＋該節半徑；跑動時 lift 讓它浮起來拖在身後）越近越平，
+  //         cos（和正下方的夾角）＝ 高度差 ÷ lc ＋ b，夾在 −1～c0：高的地方近乎下垂、接近地面時漸漸放平；
+  //         另外不超過「這一節剛好落到休息高度」的斜率，落地後就平貼地面（只靠前一項會一直懸在半空、慢慢逼近），掉到休息高度以下會往上抬。
+  //         tip 再把尾端幾節往上勾。
+  //   水平方向：head0（第一節偏向左後）＋ turn 逐節累加（負＝往右轉，貼地後在地上繞成弧），轉向量乘上貼地的程度，垂直下垂的節不轉。
+  //   世界方向再做平滑（身體轉向、跑起來時尾巴慢一拍拖著）；換回局部旋轉用 setFromUnitVectors（最小旋轉，相鄰節不會扭成麻花）
+  const _gq = new THREE.Quaternion(), _gqi = new THREE.Quaternion(), _gv = new THREE.Vector3(), _gp = new THREE.Vector3(), _gs = new THREE.Vector3();
+  const _gb = new THREE.Vector3(), _gl = new THREE.Vector3(), _gd = new THREE.Vector3(), _gm = new THREE.Matrix4(), _gdown = new THREE.Vector3(0, -1, 0), _gup = new THREE.Vector3(0, 1, 0);
+  function groundChain(c, dt, lift, dead) {
+    const G = c.ground, n = c.segs.length;
+    hips.updateWorldMatrix(true, false);
+    hips.matrixWorld.decompose(_gp, _gq, _gs);
+    const sc = _gs.y, gy = root.getWorldPosition(_gv).y;
+    // 基準方向：骨盆的後方＋下方，投影到水平面
+    _gb.set(0, 0, -1).applyQuaternion(_gq); _gd.set(0, -1, 0).applyQuaternion(_gq);
+    _gb.add(_gd); _gb.y = 0;
+    if (_gb.lengthSq() < 1e-6) _gb.set(-Math.sin(root.rotation.y), 0, -Math.cos(root.rotation.y));
+    _gb.normalize();
+    _gl.crossVectors(_gb, _gup).normalize(); // 角色的左手方向（站姿時 +x）：後方 × 上方
+    const p = _gp.copy(c.segs[0].position).applyMatrix4(hips.matrixWorld);
+    const lf = Math.min(1, Math.max(0, lift));
+    if (!c.dir) c.dir = c.segs.map(() => new THREE.Vector3(0, -1, 0)), c.fresh = true;
+    let psi = (G.head0 + (dead ? G.dead : 0)) * (1 - lf) + Math.sin(time * 1.7) * c.sway * 0.25; // 跑起來時不偏向身側、直直拖在身後
+    for (let i = 0; i < n; i++) {
+      const r = G.rad[i] * sc, rest = r + lf * 0.4 * sc;
+      const dh = p.y - gy - rest;
+      let cs = Math.max(-1, Math.min(G.c0, dh / (G.lc * sc) + G.b, dh / (c.len * sc)));
+      const flat = Math.sqrt(Math.max(0, 1 - cs * cs));
+      // 轉向乘上這一節的貼地程度；跑動時捲曲收掉、改成左右擺（拖在身後）
+      psi += (G.turn[i] * (dead ? 0.6 : 1) * (1 - lf) * flat) + Math.sin(c.phase - i * 1.1) * c.flutter * (0.3 + lf) * 0.8;
+      cs -= (G.tip[i] + (G.arch ? G.arch[i] : 0)) * (1 - lf * 0.7);
+      cs = Math.max(-1, Math.min(G.c0, cs));
+      const hz = Math.sqrt(Math.max(0, 1 - cs * cs));
+      _gd.copy(_gb).multiplyScalar(Math.cos(psi)).addScaledVector(_gl, Math.sin(psi)).multiplyScalar(hz);
+      _gd.y = -cs;
+      _gd.normalize();
+      const v = c.dir[i];
+      if (c.fresh) v.copy(_gd);
+      else v.lerp(_gd, 1 - Math.exp(-Math.max(3, 12 - i * 0.9 * 8 / n) * dt)).normalize(); // 尾端慢一拍；節數多時照比例分配（係數不能變負）
+      p.addScaledVector(v, c.len * sc);
+    }
+    c.fresh = false;
+    // 世界方向 → 各節的局部旋轉（父骨的世界旋轉逐節累乘）
+    for (let i = 0; i < n; i++) {
+      _gv.copy(c.dir[i]).applyQuaternion(_gqi.copy(_gq).invert());
+      const s = c.segs[i];
+      s.quaternion.setFromUnitVectors(_gdown, _gv);
+      _gq.multiply(s.quaternion);
+    }
   }
   const _hp = {};
   let pelvisPitch = 0;

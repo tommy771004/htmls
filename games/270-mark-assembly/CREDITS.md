@@ -12,10 +12,11 @@
 | Iron Man Mark 46 | Gource | [Sketchfab](https://sketchfab.com/models/99b32a84c0d04a88b3d1c0ca8eecd354) | CC-BY 4.0 | `assets/270/mk46.glb` |
 | Iron Man Mark 47 | Gource | [Sketchfab](https://sketchfab.com/models/c6c675b3b6ed47f188408815f284c0e2) | CC-BY 4.0 | `assets/270/mk47.glb` |
 | Iron Man Mark 85 | LLIypuk（Harlow fx） | [Sketchfab](https://sketchfab.com/models/8da781aa74024366844b36444c650d69) | CC-BY 4.0 | `assets/270/mk85.glb` |
+| Hulkbuster | Shreyash | [Sketchfab](https://sketchfab.com/3d-models/hulkbuster-9f6e426a7bda4da2bc7137bbd8e541e3) | CC-BY 4.0 | `assets/270/mk44.glb` |
 
-轉出時做的修改：拆件並依部位重新命名、套用修改器、減面（Bruno、Mark 46／47／85）、Mark 46／47 依骨架權重把 T 字站姿的手臂放下、原始材質與貼圖換成五種塗裝角色（Mark 1 的貼圖未沿用；Mark 85 的寶石保留原色）、去掉地板等雜物、以 meshopt 壓縮。頁面再依各型號參考圖換色、加上反應爐形狀與配件。
+轉出時做的修改：拆件並依部位重新命名、套用修改器、減面（Bruno、Mark 46／47／85）、Mark 46／47 依骨架權重把 T 字站姿的手臂放下、原始材質與貼圖換成五種塗裝角色（Mark 1、浩克毀滅者的貼圖未沿用；Mark 85 的寶石保留原色）、去掉地板等雜物、以 meshopt 壓縮。頁面再依各型號參考圖換色、加上反應爐形狀與配件。
 
-`mk16.glb`、`mk17.glb`、`mk25.glb`、`mk33.glb`、`mk39.glb`、`mk44.glb` 由 `mk7` 的來源（2iemniak，CC-BY 3.0）改造，`mk41.glb` 由 Gource 的 Mark 46（CC-BY 4.0）改造，`mk49.glb`、`mk50.glb` 由 LLIypuk 的 Mark 85（CC-BY 4.0）改造，授權沿用各自的來源。改造時參考 GK 與設定圖的比例，只取比例，不描圖、不轉載圖片。
+`mk16.glb`、`mk17.glb`、`mk25.glb`、`mk33.glb`、`mk39.glb` 由 `mk7` 的來源（2iemniak，CC-BY 3.0）改造，`mk41.glb` 由 Gource 的 Mark 46（CC-BY 4.0）改造，`mk49.glb`、`mk50.glb` 由 LLIypuk 的 Mark 85（CC-BY 4.0）改造，授權沿用各自的來源。改造時參考 GK 與設定圖的比例，只取比例，不描圖、不轉載圖片。
 
 各型號配色參考 [MCU Wiki](https://marvelcinematicuniverse.fandom.com/wiki/Iron_Man_Armor) 與 Hot Toys 的公開產品圖，只用來取色與核對，頁面只放連結、不轉載圖片。
 

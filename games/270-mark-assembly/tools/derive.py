@@ -459,6 +459,7 @@ def bleeding_edge():
 
 
 DERIVE = {
+    # Mark 44 已改用 Shreyash 的實體模型（bake.py）；這個改造版留作備案，輸出時不要蓋掉 assets/270/mk44.glb
     'mk44': dict(src='mk7', fn=hulkbuster),
     'mk41': dict(src='mk46', fn=bones),
     'mk49': dict(src='mk85', fn=rescue),

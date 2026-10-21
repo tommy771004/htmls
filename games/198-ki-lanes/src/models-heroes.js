@@ -9,10 +9,13 @@ export const PROPS = {
   goku: { H: 1.85, hr: 0.1636, L: 0.962, sw: 0.22, chest: [0.219, 0.3, 0.162], waist: 0.1068, arm: 0.0703, fore: 0.06566, fist: 0.09126, thigh: 0.09522, shin: 0.07258, hip: 0.1178, hx: 1.04, neck: 0.012, armK: 0.98, handK: 1.6, thighK: 0.4 }, // hr 0.158（下半臉縮短 face_len 0.88 後仍維持頭顱高 0.255 m、7.2 頭身）、hx 0.88→0.94：立繪的臉寬是眼到下巴的 2.6 倍，舊版只有 1.6 倍（臉窄長）。頭顱高 0.255 m（FighterZ 立繪約 7.2、S.H.Figuarts 7.4～7.7；舊值 0.1303 是 8.5 頭身，頭小、上身長）。頭加大使軀幹（d.torso）變短，armK 0.9→0.98 讓肩到拳底維持約 2.5 頭（立繪 2.4～2.6）。handK 1.37→1.6：拳頭寬只有護腕外徑的 7 成（立繪的拳約 0.55 頭見方、和護腕一樣寬）。thighK 0.43：膝蓋從離地 1.8 頭抬到約 2.0 頭（立繪約 2.2、S.H.Figuarts 約 2.5），燈籠褲才有膝下到靴口那段鼓起來的空間。第三輪：thighK 0.43→0.4（膝高約 2.2 頭）；臉照立繪再縮短加寬（heroes.py 的 face_len 0.8、jaw 1.2），hr 0.158→0.1636 讓頭顱高維持約 0.244 m（7.2 頭身）、hx 0.94→1.04；下巴因此抬高約 1 cm，neck 0.0222→0.012 把頭放回原本的高度（軀幹長度不變）；sw 0.2098→0.22：道服肩線改成貼著三角肌往下斜之後，肩寬量到 2.39 頭高（立繪三角肌外緣約 2.6）
   vegeta: { H: 1.72, hr: 0.156, L: 0.86, sw: 0.1984, chest: [0.2096, 0.29, 0.1561], waist: 0.1006, arm: 0.06845, fore: 0.06376, fist: 0.08835, thigh: 0.1072, shin: 0.06998, hip: 0.1102, hx: 0.96, neck: 0.0206, armK: 1.06, handK: 1.55 }, // hr 0.124→0.156：頭顱高 0.206→0.26 m、8.3→6.6 頭身（FighterZ 立繪約 6.0，雙腳張開站、低角度；頭和悟空 0.258 m 差不多大，比悟空矮所以頭身較少）。頭加大使軀幹（d.torso）變短，armK 0.92→1.06 讓上臂、前臂長度維持原值。hx 0.88→0.96：臉寬／頭高 0.80→0.85（立繪的臉偏方）。handK 1.39→1.55：拳頭和手套口一樣寬（參考 01／04）。thigh 0.08124→0.1072：大腿最粗 0.49→約 0.7 頭（參考 01 約 0.75 頭；cast.py 腿管照 k_leg 放大，真人身體照它縮放）
   trunks: { H: 1.838, hr: 0.168, L: 1.02, sw: 0.27, chest: [0.21, 0.28, 0.1421], waist: 0.1004, arm: 0.05861, fore: 0.05522, fist: 0.08115, thigh: 0.08237, shin: 0.0653, hip: 0.1064, hx: 0.88, neck: 0, armK: 1.218, handK: 1.6, thighK: 0.47 }, // GK 第三輪：H 1.86→1.838、neck 0.0223→0（軀幹長度不變、整顆頭往下 2.2 cm）：cast.py 的臉縮短（face_len 0.75）讓下巴上移約 3.3 cm，頭不放低的話脖子會露出約 0.28 頭（03 GK 約 0.15 頭）。 GK 第一輪（參考 03 GK 正面、01 FighterZ 立繪，以總高對齊量）：hr 0.1267→0.168，頭顱高 0.211→約 0.28 m、8.8→約 6.6 頭身（GK 6.5、立繪 6.7）。L 0.9672→1.02、thighK 0.47：兩張參考的腰帶都在下巴下方只 1.2 頭、胯在總高 48%、膝離地約 1.9 頭（舊版腰帶低 0.17 m、膝 1.7 頭），肩與下巴高度兩邊本來就一致，所以只把髖關節抬高、軀幹相應變短。armK 0.94→1.218：頭加大、髖抬高使軀幹（d.torso）變短，上臂、前臂長度維持原值。sw 0.1735→0.21、chest 寬 0.1795→0.19：外套三角肌外緣寬只有 1.9 頭、0.51 m（03 GK 以總高對齊量約 0.6 m）。handK 1.33→1.6：拳頭只有袖口的 7 成寬（GK 的拳和袖口一樣寬）。GK 第二輪：sw 0.21→0.27、chest 寬 0.19→0.21：三角肌外緣寬量到 0.58 m＝2.07 頭（03 GK 2.4 頭、02 SHF 2.5 頭）；外套袖的上臂同時縮細（cast.py），肩寬靠肩線往外，不靠粗手臂
-  piccolo: { H: 2.12, hr: 0.1327, L: 1.124, sw: 0.2216, chest: [0.2337, 0.31, 0.1658], waist: 0.1078, arm: 0.07122, fore: 0.06756, fist: 0.09504, thigh: 0.09837, shin: 0.07603, hip: 0.1197, hx: 0.88, neck: 0.0254, armK: 0.92, handK: 1.33 },
-  frieza: { H: 1.55, hr: 0.1555, L: 0.7595, sw: 0.155, chest: [0.168, 0.24, 0.135], waist: 0.106, arm: 0.048, fore: 0.046, fist: 0.06223, thigh: 0.068, shin: 0.054, hip: 0.118, hx: 1.0, neck: -0.022, handK: 1.6, top: 1.59 }, // 脖子極短（參考 S.H.F.：下巴幾乎貼著肩甲上緣），負值把肩線抬高、頭的高度不變；頭大（約 5 頭身、頭寬 0.88 頭高，hx 1.0 不再橫向壓窄），蛋形頭殼頂到 1.59（top，給氣場與 height 用；H 仍決定軀幹長度）。
+  piccolo: { H: 2.12, hr: 0.172, L: 1.124, sw: 0.26, chest: [0.26, 0.31, 0.1658], waist: 0.1078, arm: 0.0785, fore: 0.0745, fist: 0.09504, thigh: 0.105, shin: 0.07603, hip: 0.17, hx: 0.88, neck: 0.0254, armK: 0.92, handK: 1.5, thighK: 0.45, headZ: 0.03 }, // GK 第三輪：headZ 0.03，頭往前挪 3 cm、頸骨前傾約 17°（參考 02 右側：頭頸往前探，後腦勺懸在脖子後方）。GK 第二輪：hip 0.1197→0.17，髖關節 x 0.074→0.105（2.12 m 的身高照真人比例），參考 02 正面兩條燈籠褲管從胯下分成倒 V、褲管中心在小腿高度約離中線 0.21 m、兩腳張成 A 字（腳寬 2.1～2.5 頭）；舊版褲管從胯下黏到膝下。GK 第一輪（參考 02 S.H.Figuarts 正側背三視圖，以頭頂到腳底的總高對齊量）：hr 0.1327→0.172，頭顱高 0.227→約 0.29 m、9.3→約 7.2 頭身（SHF 實量 7.1～7.2、FighterZ 立繪 6.6；比悟空高 15%，頭也大一些）。頭加大使軀幹（d.torso）變短 7.7 cm，肩關節從 1.77 降到約 1.70（參考肩環頂在總高 18% 處、下巴下方只 0.45 頭），armK 維持 0.92：上臂、前臂變成 0.28／0.26 m（參考 0.27／0.26，舊版 0.31／0.29 手臂過長）。sw 0.2216→0.26、chest 寬 0.2337→0.26：粉紅肩環外緣寬 0.63→約 0.71 m（參考 2.45 頭）。arm／fore／thigh 各加約 10%：頭放大後上臂、前臂、褲管換算成頭高都變細。handK 1.33→1.5：參考拳頭約 0.45 頭寬、和紅腕環一樣寬。thighK 0.45：膝離地約 0.6 m（參考 0.61；預設 0.5 時 0.54）
+  frieza: { H: 1.55, hr: 0.1555, L: 0.84, sw: 0.168, chest: [0.19, 0.24, 0.135], waist: 0.094, arm: 0.048, fore: 0.046, fist: 0.06223, thigh: 0.088, shin: 0.07, hip: 0.124, hx: 1.0, neck: -0.022, handK: 1.6, top: 1.59, armK: 1.24, thighK: 0.4 }, // GK 第一輪（參考 02 S.H.Figuarts、04 SEW 正面，以頭頂到腳底的總高對齊量，H＝頭頂到下巴）：L 0.7595→0.84、thighK 0.4：參考胯下在頭頂下 2.74 頭（腿占身高 45%）、膝在 3.45～3.5 頭，舊版胯下 2.99 頭、腿只有 40%；頸根與頭的高度不變，只把髖抬高、腹部相應變短。armK 1.24：軀幹（d.torso）短了 9 cm，上臂、前臂長度維持原值。thigh 0.068→0.088、shin 0.054→0.07：參考大腿中段單腿寬約 0.5 頭、小腿肚約 0.42 頭（舊版 0.37／0.3 頭，俯視像兩根細管；腳也跟著 footScale 放大）。chest 寬 0.168→0.19、sw 0.155→0.168、hip 0.118→0.124、waist 0.106→0.094：參考 02 在頭頂下 1.6 頭胸寬約 0.97 頭（04 約 1.18）、2.0 頭只剩 0.64、腰最細 0.6～0.7，胸到腰是明顯的倒三角（舊版 2.0 頭處還有 0.82 頭寬，正面是一根直筒）。弗利沙的軀幹皮膚和四肢融成一張（G_FREE），realbody 量不到軀幹部件，軀幹寬度照 waist／chest 估計，所以收腰要改 waist。 舊註： 脖子極短（參考 S.H.F.：下巴幾乎貼著肩甲上緣），負值把肩線抬高、頭的高度不變；頭大（約 5 頭身、頭寬 0.88 頭高，hx 1.0 不再橫向壓窄），蛋形頭殼頂到 1.59（top，給氣場與 height 用；H 仍決定軀幹長度）。
   // 頭放大到約 5 頭身之後，肩、胸、腰、臀、四肢一起放寬約 1.3 倍（參考 02：含肩甲肩寬 1.64 頭高、腰 0.76、臀 1.0；只放大頭會變成大頭娃娃）；手是攤開的大手（手連手指約 0.54 頭高）
-  a18: { H: 1.72, hr: 0.1332, L: 0.9116, sw: 0.1166, chest: [0.1224, 0.26, 0.1066], waist: 0.09486, arm: 0.0373, fore: 0.03604, fist: 0.05632, thigh: 0.06065, shin: 0.05386, hip: 0.1102, hx: 0.88, neck: 0.0206, handK: 1.45 },
+  // a18 依 GK 參考比例：約 5.6 頭身（hr 加大）、腿長 L 與大腿 thighK 加長、腿較粗，手臂 armK 1.1 讓手垂到裙中段。
+  // GK 第二輪：handK 1.45→1.75：頭放大 24% 後拳頭只剩髮頂到下巴的 0.25（參考 02 FRS 張開的手約 0.49、握拳約 0.3），也比袖口窄；
+  // 底模女性的手被擬合縮成徑向 0.89、長度 0.84 倍（REAL_DEBUG 的「手」那行），1.2 倍剛好把長度拉回原尺寸
+  a18: { H: 1.72, hr: 0.165, L: 0.98, sw: 0.1166, chest: [0.1224, 0.26, 0.1066], waist: 0.09486, arm: 0.0373, fore: 0.03604, fist: 0.05632, thigh: 0.082, shin: 0.066, hip: 0.1102, hx: 0.88, neck: -0.01, handK: 1.75, armK: 1.1, thighK: 0.47 },
   naruto: { H: 1.66, hr: 0.1211, L: 0.8632, sw: 0.155, chest: [0.1627, 0.26, 0.1296], waist: 0.1056, arm: 0.04884, fore: 0.0468, fist: 0.0792, thigh: 0.0792, shin: 0.0624, hip: 0.1007, hx: 0.88, neck: 0.0199, handK: 1.3 },
   sasuke: { H: 1.68, hr: 0.1202, L: 0.8904, sw: 0.1392, chest: [0.157, 0.26, 0.1246], waist: 0.1012, arm: 0.05402, fore: 0.0507, fist: 0.07568, thigh: 0.06804, shin: 0.0608, hip: 0.0988, hx: 0.88, neck: 0.0202, handK: 1.3 },
   kakashi: { H: 1.81, hr: 0.1237, L: 0.9593, sw: 0.16, chest: [0.167, 0.28, 0.1337], waist: 0.11, arm: 0.04736, fore: 0.04524, fist: 0.0792, thigh: 0.06854, shin: 0.0576, hip: 0.1045, hx: 0.88, neck: 0.0217, handK: 1.4 },
@@ -149,7 +152,7 @@ void main(){
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
 const FS = `
-uniform vec3 uKey; uniform vec3 uKeyCol; uniform vec3 uShadeCol; uniform vec3 uRimCol; uniform float uFlash; uniform vec3 uTeam; uniform float uSkinBias;
+uniform vec3 uKey; uniform vec3 uKeyCol; uniform vec3 uShadeCol; uniform vec3 uRimCol; uniform float uFlash; uniform vec3 uTeam; uniform float uSkinBias; uniform float uSpec;
 uniform sampler2D uFace; uniform float uHasFace; uniform vec4 uFaceRect;
 varying vec3 vCol; varying float vMat; varying float vAO; varying vec3 vN; varying vec3 vV; varying vec3 vObj; varying vec3 vObjN;
 void main(){
@@ -197,7 +200,8 @@ void main(){
   // 髮：沿頭形的一圈光澤帶
   if (mt > 0.5 && mt < 1.5) { float ny = N.y; c += (base * 0.9 + vec3(0.07)) * smoothstep(0.5, 0.56, ny) * (1.0 - smoothstep(0.7, 0.76, ny)) * 0.5 * (0.4 + 0.6 * lit) * smoothstep(0.3, 0.6, ao); c -= c * rim * 0.4; }
   // 亮面：小而銳利的點高光
-  if (mt > 1.5 && mt < 2.5) c += vec3(1.0) * smoothstep(0.955, 0.97, nh) * 0.6;
+  // 亮面門檻 uSpec（預設 0.955）：越接近 1 高光越小（弗利沙的紫色亮漆甲片，大面積的低曲率圓頂在 0.955 時是一大塊不規則的白斑）
+  if (mt > 1.5 && mt < 2.5) c += vec3(1.0) * smoothstep(uSpec, uSpec + 0.015 * (1.0 - uSpec) / 0.045, nh) * 0.6;
   if (mt > 2.5 && mt < 3.5) c = base * 1.2;
   c = mix(c, vec3(1.0), uFlash);
   gl_FragColor = vec4(c, 1.0);
@@ -205,12 +209,12 @@ void main(){
   #include <colorspace_fragment>
 }`;
 const KEY_DIR = new THREE.Vector3(0.52, 0.8, 0.3).normalize(); // 右上、略偏鏡頭側
-export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, skinBias = 0 } = {}) {
+export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, skinBias = 0, spec = 0.955 } = {}) {
   return new THREE.ShaderMaterial({
     vertexShader: VS, fragmentShader: FS, vertexColors: true,
     uniforms: {
       uKey: { value: KEY_DIR }, uKeyCol: { value: new THREE.Color(1.08, 1.0, 0.92) }, uShadeCol: { value: new THREE.Color(0.58, 0.56, 0.72) },
-      uRimCol: { value: new THREE.Color(0.55, 0.72, 0.95) }, uFlash: { value: 0 }, uTeam: { value: new THREE.Color(team) }, uSkinBias: { value: skinBias },
+      uRimCol: { value: new THREE.Color(0.55, 0.72, 0.95) }, uFlash: { value: 0 }, uTeam: { value: new THREE.Color(team) }, uSkinBias: { value: skinBias }, uSpec: { value: spec },
       uFace: { value: face }, uHasFace: { value: face ? 1 : 0 }, uFaceRect: { value: new THREE.Vector4(...(faceRect || [0, 0, 1, 1])) },
     },
   });
@@ -222,9 +226,17 @@ const FACE = {
   goku: { iris: '#2a1d16', irisL: '#4a3426', brow: '#1a1614', browTilt: 0.36, eyeW: 0.329, eyeH: 0.159, eyeX: 0.36, eyeY: 0.01, sharp: 0.78, mouth: 'set', heavy: 1 },
   vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.6, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.05, mouth: 'frown', heavy: 1, happyMouth: 'smirk', cool: true },
   trunks: { iris: '#3b5fb5', irisL: '#7fa2e6', brow: '#8a74c0', browTilt: 0.3, eyeW: 0.329, eyeH: 0.165, eyeX: 0.36, eyeY: 0.01, sharp: 0.72, mouth: 'set', heavy: 0.7 },
-  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.329, eyeH: 0.13, eyeX: 0.36, eyeY: 0.03, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1, happyMouth: 'smirk', cool: true },
-  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.329, eyeH: 0.153, eyeX: 0.35, eyeY: 0.02, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4, happyMouth: 'smirk', cool: true },
-  a18: { iris: '#4c98d6', irisL: '#a6d6ff', brow: '#c9a24a', browTilt: 0.05, eyeW: 0.339, eyeH: 0.236, eyeX: 0.36, eyeY: 0.01, sharp: 0.3, mouth: 'lips', lashes: true },
+  // 比克（GK 第三輪，參考 02 頭部特寫）：眼睛細長、靠中間（內眼角離中線 0.09 hr、外眼角 0.44 hr），舊版 eyeX 0.36／eyeW 0.329 的外眼角在 0.6 hr，
+  // 比頭在眼線的半寬（約 0.52 hr）還外面，貼花沿太陽穴的側面被平面投影拉成好幾條水平條紋「≡」。lowK：下半臉縮短（cast.py 的 face_len 0.82）後，嘴與五官陰影跟著往眼線收
+  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.27, eyeH: 0.11, eyeX: 0.255, eyeY: 0.03, sharp: 1.1, mouth: 'frown', noPupil: true, dot: 0.32, sclera: '#fffbe8', heavy: 1, happyMouth: 'smirk', cool: true, lowK: 0.835 },
+  // 弗利沙（GK 第一輪，參考 04／05 SEW、06 FighterZ 頭部特寫）：細長、外眼角上挑的眼睛，紅色小虹膜；舊版 eyeH 0.153 是和人類角色一樣的圓杏眼
+  // GK 第二輪：白皮膚上的白眼白和皮膚分不出來，上眼線離眼睛一段距離、看起來像一道眉毛（弗利沙沒有眉毛），虹膜又大又圓像人類的動畫眼。
+  // 參考 04／06：上眼線緊貼眼形、紅虹膜小而貼著上眼瞼，下緣有一條細線把眼白框出來；兩眼內角往下沿顴骨各有一條細的臉紋（cheekLines）
+  frieza: { iris: '#d0203a', irisL: '#ff5a6a', brow: null, browTilt: 0, eyeW: 0.3, eyeH: 0.1, eyeX: 0.34, eyeY: 0.02, sharp: 1.45, mouth: 'smirk', lips: '#3a1838', lid: '#2e1430', heavy: 0.4, happyMouth: 'smirk', cool: true,
+    irisK: 0.66, irisY: -0.12, hug: true, lowLine: true, cheekLines: 'rgba(110,80,130,.7)' },
+  // 18 號（GK 第一輪，參考 02 FRS、05 SEW、06 立繪）：冷淡的半瞇杏眼、冰藍虹膜貼著上眼瞼、細眉；舊版 eyeH 0.236 是驚訝的圓眼。
+  // lowK 0.82：cast.py 的 face_len 0.8 把下半臉縮短，嘴跟著往眼線收
+  a18: { iris: '#3a86cc', irisL: '#a8dcff', brow: '#c9a24a', browTilt: 0.14, eyeW: 0.33, eyeH: 0.165, eyeX: 0.35, eyeY: 0.01, sharp: 0.85, mouth: 'lips', lashes: true, irisK: 0.85, irisY: -0.04, cool: true, happyMouth: 'smirk', lowK: 0.82 },
   naruto: { iris: '#1f6fd8', irisL: '#7fc4ff', brow: '#c98a1a', browTilt: 0.3, eyeW: 0.329, eyeH: 0.177, eyeX: 0.36, eyeY: 0.01, sharp: 0.7, mouth: 'grin', heavy: 0.6, whiskers: true, happyMouth: 'big' },
   sasuke: { iris: '#141018', irisL: '#3a3044', brow: '#121018', browTilt: 0.42, eyeW: 0.318, eyeH: 0.136, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 0.8, happyMouth: 'smirk', cool: true },
   kakashi: { iris: '#1e1a1a', irisL: '#3a3434', brow: '#8a8a94', browTilt: 0.05, eyeW: 0.318, eyeH: 0.09, eyeX: 0.35, eyeY: 0.01, sharp: 0.5, mouth: 'none', heavy: 0.5, mask: '#2b3346', hideL: true, happyMouth: 'none' },
@@ -252,9 +264,11 @@ function drawFace(id, ssj, hr, expr = '') {
   const S = N; // 單位：hr*1.9 → N
   const X = (u) => N / 2 + (u / 1.9) * S, Y = (v) => N / 2 - ((v + 0.12) / 1.9) * S; // v 以 hr 為單位、相對頭心
   const ink = f.lid || '#1a110c';
+  // 眼線以下的高度照 lowK 往眼線收（下半臉比較短的頭；預設 1＝不變）
+  const lo = (v) => (f.lowK && v < f.eyeY ? f.eyeY + (v - f.eyeY) * f.lowK : v);
   // GK 式的五官陰影：眉骨下壓的陰影、鼻側、顴骨下與下顎的暗面（右上主光，所以左側較深）
   if (f.heavy) {
-    const sh = (x, y, rx, ry, a, rot = 0) => { const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1); gr.addColorStop(0, `rgba(120,60,50,${a})`); gr.addColorStop(1, 'rgba(120,60,50,0)'); g.save(); g.translate(X(x), Y(y)); g.rotate(rot); g.scale(rx * S / 1.9, ry * S / 1.9); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore(); };
+    const sh = (x, y, rx, ry, a, rot = 0) => { const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1); gr.addColorStop(0, `rgba(120,60,50,${a})`); gr.addColorStop(1, 'rgba(120,60,50,0)'); g.save(); g.translate(X(x), Y(lo(y))); g.rotate(rot); g.scale(rx * S / 1.9, ry * S / 1.9); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore(); };
     for (const sx of [-1, 1]) {
       const k = sx < 0 ? 1 : 0.7;
       sh(sx * 0.36, f.eyeY + 0.2, 0.3, 0.1, 0.32 * f.heavy * k);         // 眉骨下
@@ -294,13 +308,16 @@ function drawFace(id, ssj, hr, expr = '') {
     g.save(); shape(); g.clip();
     if (!f.noPupil) {
       // 虹膜：上深下亮的漸層、瞳孔、兩點反光
-      const ir = style === 'op' ? eh * 0.5 : style === 'naruto' ? eh * 0.8 : eh * 0.95, ix = -ew * 0.02, iy = style === 'op' ? 0 : eh * 0.08;
+      const ir = (style === 'op' ? eh * 0.5 : style === 'naruto' ? eh * 0.8 : eh * 0.95) * (f.irisK || 1), ix = -ew * 0.02, iy = f.irisY != null ? eh * f.irisY : style === 'op' ? 0 : eh * 0.08;
       const gr = g.createLinearGradient(0, iy - ir, 0, iy + ir);
       gr.addColorStop(0, f.iris); gr.addColorStop(1, f.irisL);
       g.fillStyle = gr; g.beginPath(); g.ellipse(ix, iy, ir * (style === 'op' ? 0.92 : 0.78), ir, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = 'rgba(10,6,4,.85)'; g.beginPath(); g.ellipse(ix, iy + ir * 0.1, ir * 0.36, ir * 0.48, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#fff'; g.beginPath(); g.ellipse(ix + ir * 0.28, iy - ir * 0.38, ir * 0.22, ir * 0.26, 0, 0, Math.PI * 2); g.fill();
       g.beginPath(); g.ellipse(ix - ir * 0.3, iy + ir * 0.45, ir * 0.1, ir * 0.1, 0, 0, Math.PI * 2); g.fill();
+    } else if (f.dot) {
+      // 沒有虹膜、只有小黑點瞳孔（比克，參考 SHF 02：黃白眼白中間一顆小黑瞳孔，略往內看）
+      g.fillStyle = f.iris; g.beginPath(); g.ellipse(-ew * 0.06, eh * 0.06, eh * f.dot * 0.85, eh * f.dot, 0, 0, Math.PI * 2); g.fill();
     }
     // 上眼瞼的陰影
     g.fillStyle = 'rgba(80,50,40,.25)'; g.fillRect(-ew, -eh * 2, ew * 2, eh * 1.55);
@@ -310,11 +327,15 @@ function drawFace(id, ssj, hr, expr = '') {
     g.lineWidth = eh * (style === 'op' ? 0.16 : 0.32);
     if (style === 'op') { g.beginPath(); g.ellipse(0, 0, ew * 0.5, eh * 0.62, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); }
     g.beginPath(); if (style === 'op') g.moveTo(9e9, 9e9); else g.moveTo(-ew * 0.6, eh * 0.05);
-    g.bezierCurveTo(-ew * 0.35, -eh * (0.82 + f.sharp * 0.1), ew * 0.35, -eh * (0.92 + f.sharp * 0.25), ew * 0.72, -eh * (0.25 + f.sharp * 0.5));
+    // hug：上眼線照眼形的上緣畫（不往上偏），外眼角再延伸一點
+    if (f.hug) g.bezierCurveTo(-ew * 0.35, -eh * (0.75 + f.sharp * 0.1), ew * 0.35, -eh * (0.85 + f.sharp * 0.25), ew * 0.7, -eh * (0.22 + f.sharp * 0.47));
+    else g.bezierCurveTo(-ew * 0.35, -eh * (0.82 + f.sharp * 0.1), ew * 0.35, -eh * (0.92 + f.sharp * 0.25), ew * 0.72, -eh * (0.25 + f.sharp * 0.5));
     g.stroke();
+    // lowLine：整條下眼線（細），白皮膚上把眼白框出來
+    if (f.lowLine) { g.lineWidth = eh * 0.12; g.beginPath(); g.moveTo(-ew * 0.55, eh * 0.15); g.bezierCurveTo(-ew * 0.3, eh * 0.65, ew * 0.45, eh * 0.55, ew * 0.6, -eh * (0.2 + f.sharp * 0.45)); g.stroke(); }
     if (f.lashes) { g.lineWidth = eh * 0.16; g.beginPath(); g.moveTo(ew * 0.55, -eh * 0.5); g.lineTo(ew * 0.85, -eh * 0.65); g.moveTo(ew * 0.62, -eh * 0.25); g.lineTo(ew * 0.88, -eh * 0.25); g.stroke(); }
     // 下眼線（細、只畫外側）
-    g.lineWidth = eh * 0.1; g.beginPath(); g.moveTo(ew * 0.1, eh * 0.55); g.quadraticCurveTo(ew * 0.42, eh * 0.45, ew * 0.58, -eh * 0.05); g.stroke();
+    if (!f.lowLine) { g.lineWidth = eh * 0.1; g.beginPath(); g.moveTo(ew * 0.1, eh * 0.55); g.quadraticCurveTo(ew * 0.42, eh * 0.45, ew * 0.58, -eh * 0.05); g.stroke(); }
     // 眉毛：粗而銳利，往眉心壓低
     if (f.brow) {
       g.fillStyle = f.brow;
@@ -329,7 +350,7 @@ function drawFace(id, ssj, hr, expr = '') {
     g.restore();
   }
   // 嘴
-  const my = Y(-0.5), mw = S * (f.smileEyes ? 0.09 : 0.07); // 下半臉縮短後嘴跟著上移
+  const my = Y(lo(-0.5)), mw = S * (f.smileEyes ? 0.09 : 0.07); // 下半臉縮短後嘴跟著上移
   g.strokeStyle = f.lips || '#5a2a1e'; g.lineWidth = S * 0.011;
   g.beginPath();
   if (f.mouth === 'grin') { g.moveTo(X(0) - mw, my - S * 0.004); g.quadraticCurveTo(X(0), my + S * 0.02, X(0) + mw, my - S * 0.012); }
@@ -352,8 +373,10 @@ function drawFace(id, ssj, hr, expr = '') {
   if (f.curl) line([[-0.62, 0.28], [-0.2, 0.36], [-0.12, 0.3], [-0.17, 0.25]], 0.012, f.brow);
   if (f.gem) { g.fillStyle = f.gem; g.beginPath(); g.moveTo(X(0), Y(0.5)); g.lineTo(X(0.05), Y(0.43)); g.lineTo(X(0), Y(0.36)); g.lineTo(X(-0.05), Y(0.43)); g.closePath(); g.fill(); }
   if (f.mask) { g.fillStyle = f.mask; g.beginPath(); g.moveTo(X(-1), Y(-0.18)); g.quadraticCurveTo(X(0), Y(-0.08), X(1), Y(-0.18)); g.lineTo(X(1), Y(-1)); g.lineTo(X(-1), Y(-1)); g.closePath(); g.fill(); line([[-0.05, -0.12], [0.02, -0.32]], 0.006, 'rgba(0,0,0,.35)'); }
+  // 弗利沙（GK 第二輪，參考 04 SEW、06 FighterZ）：兩眼內角往下、沿顴骨內側往外下斜的細臉紋（不是鼻樑：從眼角開始、往外撇，不在中線會合）
+  if (f.cheekLines) for (const sx of [-1, 1]) line([[sx * (f.eyeX - f.eyeW * 0.42), f.eyeY - 0.07], [sx * (f.eyeX - f.eyeW * 0.3), f.eyeY - 0.22], [sx * (f.eyeX - f.eyeW * 0.08), f.eyeY - 0.36]], 0.006, f.cheekLines);
   // 弗利沙：參考 02／04／06 的臉沒有鼻樑或法令紋（舊版從兩眼內角往下到嘴角的兩條灰線，看起來就是鼻樑），不畫額外記號
-  if (id === 'piccolo') { g.strokeStyle = 'rgba(40,90,25,.6)'; g.lineWidth = S * 0.008; for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(X(sx * 0.4), Y(-0.28)); g.lineTo(X(sx * 0.3), Y(-0.5)); g.stroke(); } }
+  if (id === 'piccolo') { g.strokeStyle = 'rgba(40,90,25,.6)'; g.lineWidth = S * 0.008; for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(X(sx * 0.4), Y(lo(-0.28))); g.lineTo(X(sx * 0.3), Y(lo(-0.5))); g.stroke(); } }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }
