@@ -154,7 +154,7 @@ void main(){
 const FS = `
 uniform vec3 uKey; uniform vec3 uKeyCol; uniform vec3 uShadeCol; uniform vec3 uRimCol; uniform float uFlash; uniform vec3 uTeam; uniform float uSkinBias; uniform float uSpec;
 uniform sampler2D uFace; uniform float uHasFace; uniform vec4 uFaceRect;
-uniform sampler2D uMap; uniform float uHasMap; uniform float uAlphaTest;
+uniform sampler2D uMap; uniform float uHasMap; uniform float uAlphaTest; uniform vec4 uHairKey; uniform float uSuper; uniform float uHairY;
 varying vec3 vCol; varying float vMat; varying float vAO; varying vec3 vN; varying vec3 vV; varying vec3 vObj; varying vec3 vObjN; varying vec2 vTex;
 void main(){
   vec3 N = normalize(vN), V = normalize(vV), L = normalize(uKey);
@@ -162,7 +162,16 @@ void main(){
   float mt = floor(vMat + 0.5);
   vec3 base = mt > 4.5 ? uTeam : vCol;
   // Sketchfab 模型（glb.js）：固有色取自貼圖，鏤空的部分（睫毛、髮片）照 alphaTest 丟掉
-  if (uHasMap > 0.5) { vec4 tx = texture2D(uMap, vTex); if (tx.a < uAlphaTest) discard; base *= tx.rgb; }
+  if (uHasMap > 0.5) {
+    vec4 tx = texture2D(uMap, vTex); if (tx.a < uAlphaTest) discard;
+    // 超級賽亞人：脖子以上（綁定姿勢的高度 uHairY）、貼圖上接近髮色（uHairKey，sRGB＋容差）的部分換成金色，保留原本的明暗筆觸
+    if (uSuper > 0.5) {
+      vec3 sr = pow(tx.rgb, vec3(1.0 / 2.2));
+      float h = (1.0 - smoothstep(uHairKey.w * 0.6, uHairKey.w, distance(sr, uHairKey.rgb))) * step(uHairY, vObj.y);
+      tx.rgb = mix(tx.rgb, vec3(1.0, 0.74, 0.2) * (0.7 + 0.9 * dot(sr, vec3(0.333))), h);
+    }
+    base *= tx.rgb;
+  }
   // 臉部貼花（正面半球，以頭部物件座標平面投影）
   if (uHasFace > 0.5) {
     vec2 uv = (vObj.xy - uFaceRect.xy) / uFaceRect.zw + 0.5;
@@ -213,7 +222,7 @@ void main(){
   #include <colorspace_fragment>
 }`;
 const KEY_DIR = new THREE.Vector3(0.52, 0.8, 0.3).normalize(); // 右上、略偏鏡頭側
-export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, skinBias = 0, spec = 0.955, map = null, alphaTest = 0 } = {}) {
+export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, skinBias = 0, spec = 0.955, map = null, alphaTest = 0, hairKey = null, hairY = 0 } = {}) {
   return new THREE.ShaderMaterial({
     vertexShader: VS, fragmentShader: FS, vertexColors: true, side: map ? THREE.DoubleSide : THREE.FrontSide,
     uniforms: {
@@ -221,6 +230,7 @@ export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, sk
       uRimCol: { value: new THREE.Color(0.55, 0.72, 0.95) }, uFlash: { value: 0 }, uTeam: { value: new THREE.Color(team) }, uSkinBias: { value: skinBias }, uSpec: { value: spec },
       uFace: { value: face }, uHasFace: { value: face ? 1 : 0 }, uFaceRect: { value: new THREE.Vector4(...(faceRect || [0, 0, 1, 1])) },
       uMap: { value: map }, uHasMap: { value: map ? 1 : 0 }, uAlphaTest: { value: alphaTest },
+      uHairKey: { value: new THREE.Vector4(...(hairKey || [0, 0, 0, 0])) }, uSuper: { value: 0 }, uHairY: { value: hairY },
     },
   });
 }

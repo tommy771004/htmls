@@ -323,9 +323,9 @@ body.camfree #camHint { display: block; }
 #select { position: fixed; inset: 0; display: none; pointer-events: none; }
 #select.on { display: block; }
 #select > * { pointer-events: auto; }
-#title { position: absolute; left: calc(var(--safe-l) + 2.4em); top: calc(var(--safe-t) + 2em); writing-mode: vertical-rl; display: flex; align-items: flex-start; gap: .6em; pointer-events: none; }
-#title b { font-size: 5.6em; font-weight: 900; letter-spacing: .06em; line-height: 1; color: var(--bone); -webkit-text-stroke: .045em var(--ink); paint-order: stroke fill; }
-#title span { font: italic 900 1.5em var(--num); letter-spacing: .35em; color: var(--ki); -webkit-text-stroke: .06em var(--ink); paint-order: stroke fill; }
+#title, #bootTitle { position: absolute; left: calc(var(--safe-l) + 2.4em); top: calc(var(--safe-t) + 2em); writing-mode: vertical-rl; display: flex; align-items: flex-start; gap: .6em; pointer-events: none; }
+#title b, #bootTitle b { font-size: 5.6em; font-weight: 900; letter-spacing: .06em; line-height: 1; color: var(--bone); -webkit-text-stroke: .045em var(--ink); paint-order: stroke fill; }
+#title span, #bootTitle span { font: italic 900 1.5em var(--num); letter-spacing: .35em; color: var(--ki); -webkit-text-stroke: .06em var(--ink); paint-order: stroke fill; }
 #pickInfo { position: absolute; left: calc(var(--safe-l) + 11em); top: calc(var(--safe-t) + 2.4em); width: min(33em, 42vw); padding: 1.4em 1.9em 1.4em 1.5em; }
 #pickInfo::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(14, 18, 30, .84); clip-path: polygon(0 0, calc(100% - 1.6em) 0, 100% 1.6em, 100% 100%, 0 100%); }
 #pickInfo h2 { margin: 0; display: flex; align-items: baseline; gap: .7em; }
@@ -395,8 +395,8 @@ body.camfree #camHint { display: block; }
 #go kbd { display: block; font-size: .45em; letter-spacing: .1em; text-indent: 0; opacity: .7; }
 @media (max-width: 760px) {
   #select { overflow-y: auto; }
-  #title { writing-mode: horizontal-tb; left: calc(var(--safe-l) + 1.2em); top: calc(var(--safe-t) + 1.4em); flex-direction: column; gap: .1em; }
-  #title b { font-size: 2.8em; } #title span { font-size: 1em; letter-spacing: .25em; }
+  #title, #bootTitle { writing-mode: horizontal-tb; left: calc(var(--safe-l) + 1.2em); top: calc(var(--safe-t) + 1.4em); flex-direction: column; gap: .1em; }
+  #title b, #bootTitle b { font-size: 2.8em; } #title span, #bootTitle span { font-size: 1em; letter-spacing: .25em; }
   #pickInfo { left: .8em; right: .8em; width: auto; top: auto; bottom: calc(var(--safe-b) + 19.2em); padding: .9em 1.1em; }
   #pickInfo h2 b { font-size: 1.8em; } #pickInfo p { font-size: .92em; margin: .3em 0 .6em; }
   #pickInfo ul { gap: .35em; } #pickInfo li span { display: none; } #pickInfo .runes { margin-top: .6em; grid-template-columns: 1fr; } #pickInfo .rtabs, #pickInfo .runes .rb, #pickInfo .rpage { grid-column: 1; } #pickInfo .runes > b { display: none; } #pickInfo .runes p { grid-column: 1; font-size: .8em; } #pickInfo .runes button { font-size: .8em; padding: .3em .5em; } #pickInfo li { grid-template-columns: 2em 1.2em 1fr; } #pickInfo li i { width: 2em; height: 2em; padding: .25em; }
@@ -630,6 +630,31 @@ body.camfree #camHint { display: block; }
   #recallbar { bottom: calc(var(--safe-b) + 17.2em); }
   #bushTag { bottom: calc(var(--safe-b) + 19em); }
 }
+/* 開場載入層：標題與選角畫面同位置，淡出後無縫接上；數字與五格氣力條沿用 HUD 的氣力語彙 */
+#boot { position: fixed; inset: 0; z-index: 60; background: var(--ink); transition: opacity .5s var(--ease), visibility 0s .5s; }
+#boot.done { opacity: 0; visibility: hidden; pointer-events: none; }
+#boot .bt { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 17vh); width: min(36em, 100% - 3em); transform: translateX(-50%); }
+#boot .pct { display: flex; align-items: baseline; gap: .12em; font: italic 900 1em/1 var(--num); }
+#boot .pct b { width: 1.78em; text-align: right; font-size: 7.2em; letter-spacing: .02em; font-variant-numeric: tabular-nums; color: var(--bone); -webkit-text-stroke: .03em var(--ink); paint-order: stroke fill; }
+#boot .pct i { font-size: 2.4em; color: var(--ki); }
+#boot .pct small { margin-left: auto; font: 700 1.05em var(--cjk); color: var(--bone3); letter-spacing: .12em; }
+#boot .gauge { display: flex; gap: .45em; margin: .9em .4em 0; }
+#boot .gauge span { flex: 1; height: 1em; background: var(--ink3); transform: skewX(-24deg); overflow: hidden; }
+#boot .gauge i { display: block; width: 0; height: 100%; background: var(--ki); }
+#boot .gauge span.full i { animation: kiCell .4s ease-out; }
+@keyframes kiCell { from { background: #fff0b8; } }
+#boot .cast { display: flex; flex-wrap: wrap; gap: .35em 1.1em; margin: 1.3em 0 0; padding: 0; list-style: none; font-size: 1.05em; font-weight: 700; color: var(--bone3); }
+#boot .cast li { transition: color .25s; }
+#boot .cast li.ok { color: var(--bone); }
+#boot .cast li.miss { color: var(--ink3); }
+#boot.local .cast { display: none; }
+@media (max-width: 760px) {
+  #boot .bt { bottom: calc(var(--safe-b) + 12vh); width: calc(100% - 2.8em); }
+  #boot .pct b { font-size: 5.4em; }
+  #boot .pct i { font-size: 1.9em; }
+  #boot .cast { gap: .3em .9em; font-size: .95em; }
+}
+@media (prefers-reduced-motion: reduce) { #boot { transition: none; } #boot .gauge span.full i { animation: none; } #boot .cast li { transition: none; } }
 </style>
 </head>
 <body>
@@ -693,7 +718,7 @@ body.camfree #camHint { display: block; }
 
 <div id="select">
   <div id="title"><b>氣鬥三路</b><span>KI LANES</span></div>
-  <p id="fanNote">非官方同人作品（七龍珠、火影忍者、海賊王）・角色與招式版權屬各原作者・模型與特效皆以程式繪製<small>語音：VOICEVOX:九州そら、VOICEVOX:剣崎雌雄、VOICEVOX:玄野武宏、VOICEVOX:白上虎太郎、VOICEVOX:青山龍星、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:満別花丸、VOICEVOX:黒沢冴白、VOICEVOX:離途、VOICEVOX:四国めたん、VOICEVOX:猫使アル、VOICEVOX:雀松朱司、VOICEVOX:麒ヶ島宗麟、VOICEVOX:春日部つむぎ</small></p>
+  <p id="fanNote">非官方同人作品（七龍珠、火影忍者、海賊王）・角色與招式版權屬各原作者・角色模型取自 Sketchfab（CC BY 4.0，見 CREDITS.md）・特效以程式繪製<small>模型：Nemix、schischu、Chris、20062020year、HorrorKingMario、giakogiako01、#Anime resource!!!、langifoaga、danigamer495channel、nitwit.friends、Cyrone™、lev1953</small><small>語音：VOICEVOX:九州そら、VOICEVOX:剣崎雌雄、VOICEVOX:玄野武宏、VOICEVOX:白上虎太郎、VOICEVOX:青山龍星、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:満別花丸、VOICEVOX:黒沢冴白、VOICEVOX:離途、VOICEVOX:四国めたん、VOICEVOX:猫使アル、VOICEVOX:雀松朱司、VOICEVOX:麒ヶ島宗麟、VOICEVOX:春日部つむぎ</small></p>
   <div id="pickInfo"></div>
   <div id="runeEd"><div class="reCard"><div class="reHead"><b>符文頁</b><button type="button" class="reReset">恢復推薦</button><button type="button" class="reX" aria-label="關閉">×</button></div><div class="reBody"></div><button type="button" class="reOk">完成</button></div></div>
   <div id="pickBar">
@@ -734,6 +759,68 @@ body.camfree #camHint { display: block; }
   <p>打人、被打、普攻命中與集氣都會累積氣力（最多 5 格）。小兵在你附近倒下、擊倒英雄、推倒塔都會給經驗；每升一級得到 1 個技能點，R 在 4、8、12 級各能升一次。每路外塔倒了內塔才會受傷，任何一路的內塔倒了主堡才會受傷。</p>
   <button id="helpClose" type="button">回到戰場</button>
 </div></div>
+<div id="boot" role="progressbar" aria-label="載入角色模型" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+  <div id="bootTitle"><b>氣鬥三路</b><span>KI LANES</span></div>
+  <div class="bt">
+    <div class="pct"><b>0</b><i>%</i><small>下載遊戲程式</small></div>
+    <div class="gauge"><span><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span></div>
+    <ol class="cast"><li data-id="goku">悟空</li><li data-id="vegeta">貝吉塔</li><li data-id="trunks">特南克斯</li><li data-id="piccolo">比克</li><li data-id="frieza">弗利沙</li><li data-id="a18">18 號</li><li data-id="naruto">鳴人</li><li data-id="sasuke">佐助</li><li data-id="sakura">小櫻</li><li data-id="luffy">魯夫</li><li data-id="zoro">索隆</li><li data-id="sanji">香吉士</li><li data-id="nami">娜美</li></ol>
+  </div>
+</div>
+<script>
+// 開場載入層控制器。遊戲程式有 16 MB，下載完之前就要能動，所以不打包進 bundle：
+// tools/build.mjs 把程式切成多段、每段後面呼叫 page(i / n)，weigh() 給頁面與 GLB 的位元組數；boot.js 再回報 glb()，main.js 跑完呼叫 done()。
+// 顯示值追著實際進度跑（指數趨近＋最低速度）；全部就緒後加速衝到 100 再淡出。
+window.__kiBoot = (function () {
+  var boot = document.getElementById('boot'), num = boot.querySelector('.pct b'), cap = boot.querySelector('.pct small'), cells = [].slice.call(boot.querySelectorAll('.gauge span'));
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches, local = location.protocol === 'file:';
+  var split = 0.97, target = 0, shown = 0, last = performance.now(), finished = false, gone = false;
+  if (local) { boot.classList.add('local'); cap.textContent = '讀取遊戲程式'; } // 以檔案開啟不載 GLB，名單沒有意義
+  function paint(v) {
+    var n = Math.floor(v * 100 + 1e-6);
+    num.textContent = n;
+    boot.setAttribute('aria-valuenow', n);
+    cells.forEach(function (c, i) {
+      var f = Math.min(1, Math.max(0, v * cells.length - i));
+      c.firstChild.style.width = f * 100 + '%';
+      c.classList.toggle('full', f >= 1);
+    });
+  }
+  function hide() {
+    if (gone) return;
+    gone = true;
+    paint(1);
+    boot.classList.add('done');
+    setTimeout(function () { boot.remove(); }, still ? 0 : 600);
+  }
+  function tick(now) {
+    if (gone) return;
+    var dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    shown = still ? target : Math.min(target, shown + Math.max((target - shown) * (1 - Math.exp(-dt * 5)), dt * (finished ? 1.8 : 0.05)));
+    paint(shown);
+    if (finished && shown >= 1) hide(); else requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  var up = function (v) { target = Math.max(target, v); };
+  return {
+    weigh: function (page, glb) { split = local ? 0.97 : 0.97 * page / (page + glb); },
+    page: function (f) { up(f * split); },
+    glb: function (p, id, ok) {
+      up(split + p * (0.97 - split)); // 最後 3% 留給 main.js 建場景
+      cap.textContent = '載入角色模型';
+      var li = id && boot.querySelector('[data-id="' + id + '"]');
+      if (li) li.className = ok ? 'ok' : 'miss';
+    },
+    done: function () {
+      finished = true;
+      target = 1;
+      cap.textContent = '佈置戰場';
+      setTimeout(hide, 1500); // 分頁在背景時 requestAnimationFrame 不跑，照樣收掉
+    },
+  };
+})();
+</script>
 <!--BUNDLE-->
 </body>
 </html>

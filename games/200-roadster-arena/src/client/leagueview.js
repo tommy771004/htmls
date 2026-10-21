@@ -245,7 +245,7 @@ export class LeagueView {
     let c = this.cars.get(id);
     if (c && c.team !== team) { this.scene.remove(c.model.group); this.cars.delete(id); c = null; }
     if (!c) {
-      const model = new Roadster({ paint: TEAM_PAINT[team], livery: 'stripe', lights });
+      const model = new Roadster({ paint: TEAM_PAINT[team], lights });
       if (lights) model.setLights(1);
       if (tag) model.group.add(nameTag(name, team));
       this.scene.add(model.group);

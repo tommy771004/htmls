@@ -1,6 +1,6 @@
 # Roadster Stunt Arena（作品 200）
 
-**非官方同人作品，與任何車廠無關。** 車子「RSA Roadster」是原創造型的雙座電動跑車：鷗翼門、主動尾翼兼空氣煞車、四個冷氣推進噴口。名字、標誌、造型都不使用任何品牌素材。
+**非官方同人作品，與任何車廠無關。** 車子「RSA Roadster」的模型是 Sketchfab 上 asiphy007 的同人模型 [“Tesla Roadtser 2026”](https://sketchfab.com/3d-models/tesla-roadtser-2026-7630c9fe842d4f5ea86fc1f122753b89)（[CC BY 4.0](http://creativecommons.org/licenses/by/4.0/)），由 `tools/car.mjs` 減面、拆出四個輪子、重算法線後內嵌；主動尾翼兼空氣煞車、四個冷氣推進噴口的火焰與頭燈條是程式加上的。頁面主選單與展示間都標有作者與授權（另見 `assets/CREDITS.md`）；不使用車廠的標誌。
 
 瀏覽器裡的夜間特技場：自由駕駛、計時賽與幽靈車、最多 20 人的車球聯賽、展示間、排行榜。頁面是打包後的單檔 `web/200-roadster-arena.html`；舊的「車球碗」（`web/200-carball.html`）由這個作品取代，`vercel.json` 會把舊網址轉過來。
 
@@ -13,7 +13,7 @@
 | FREE RIDE | 940 m 見方的夜間特技場：THE CURL 巨型曲牆、聯結車與整排車的飛越跳台、U 形牆、300 m 騎牆、大迴圈、天空跳台、加速墊、6 個紅環。10 個任務（0–60 mph 1.1 秒、飛越聯結車、Kickflip、騎牆 3 秒、連續飛行 5 秒、衝上 88 mph…），進度存在本機。 |
 | TIME ATTACK | CIRCUIT 01：5 個檢查點環＋終點拱門。3 秒倒數、分段時間與個人紀錄比較（綠快紅慢）、逆向提示。作者 50 秒／金 58／銀 70／銅 90。個人最佳會存幽靈車軌跡（30 Hz），下一次一起跑。有伺服器時成績上傳排行榜。 |
 | ROADSTER LEAGUE | 圓角室內球場（128×184 m、高 36 m，牆與天花板都開得上去）、直徑 8.4 m 的巨型足球、紅隊 vs 冰藍隊。一場 3 分鐘，平手延長、先進球勝。線上一房最多 20 人（兩人到齊開賽，只有一人時是熱身）；離線是和 AI 的 3 對 3 練習賽。 |
-| SHOWROOM | 轉台上的車：拖曳環繞、滾輪／雙指縮放；鷗翼門開關、燈光（關／近光／遠光）、主動空力（收起／下壓／空氣煞車）、6 種烤漆與 3 種塗裝（存進設定，開車時也是這台）。 |
+| SHOWROOM | 轉台上的車：拖曳環繞、滾輪／雙指縮放；燈光（關／近光／遠光）、主動空力（收起／下壓／空氣煞車）、6 種烤漆（存進設定，開車時也是這台）。 |
 | LEADERBOARD | 世界紀錄、本週最佳（ISO 週，週一起算，UTC）、我的紀錄（本機前 50 次）。 |
 
 主選單顯示在線人數（大廳連線）；沒有伺服器時顯示「離線模式」，聯賽的快速配對會停用。
@@ -49,6 +49,7 @@ node tools/mp.mjs      # 起本機伺服器、開兩個分頁：快速配對 →
 node tools/perf.mjs 1440 900 high     # 量幀率與 draw call
 node tools/league-sim.mjs 120 3 pro   # Node 跑一場 AI 對戰
 npm run thumb          # 產生 ../../thumbs/200.jpg
+npm run car            # 重做車輛模型：.cache/tesla_roadtser_2026.glb（原檔 27 MB 不進 repo，從 Sketchfab 下載）→ assets/roadster.glb（gltf-transform、meshoptimizer、sharp 借 197 的 node_modules）
 node tools/shot.mjs out.png "mode=ta" "" 2000 390x844 touch   # 開發用截圖
 ```
 
@@ -97,4 +98,5 @@ cd .. && RSA_SERVER=wss://roadster-stunt-arena.<帳號>.workers.dev npm run buil
 - 本機 Node 伺服器的房間與排行榜只存在單一行程（排行榜另寫入暫存資料夾的 `rsa200-board.json`）；Cloudflare 版存在 Durable Object。
 - 排行榜只檢查成績格式（30–600 秒、6 個遞增分段、最後一段等於總時間），沒有重播驗證，防不了刻意偽造。
 - 計時賽獎牌時間是依路線長度估的，不是實際跑出來的紀錄。
-- 車身是程式產生的 loft 曲面，輪拱附近有細小皺折。
+- 車輛模型原檔是 AI 生成風格的網格（單一貼圖、烘焙明暗、輪子和車身黏在一起）：輪子以「三角形重心在輪胎圓柱內」切出，輪拱內側留著深色內襯；車身表面的低頻起伏靠法線濾波（半徑 8 cm）抹平，擋風玻璃在強光下仍看得到一點波紋。車門打不開（原本的鷗翼門與塗裝選項已拿掉）。
+- 車漆換色是在著色器裡把「亮而不飽和」的貼圖像素乘上烤漆色；尾燈是貼圖裡偏紅的像素自發光。

@@ -1,204 +1,137 @@
 
-// ═══ 人物：一份幾何、一個 InstancedMesh，骨架動作全在頂點 shader 裡算 ═══
-// 骨頭：0 骨盆 1 脊椎 2 頭 3/4 左上臂/前臂 5/6 右上臂/前臂 7/8 左大腿/小腿 9/10 右大腿/小腿（左手在 +x）
-// 部位：0 上衣 1 褲子 2 皮膚 3 頭髮 4 鞋 5 發光飾條 6 長外套 7 長髮 8 帽子 9 裙子
-const charGeo = (() => {
-  const P = [], N = [], B = [], K = [];
-  const push = (g, bone, part, m) => {
-    const gg = g.index ? g.toNonIndexed() : g; if (m) gg.applyMatrix4(m);
-    gg.computeVertexNormals();
-    const p = gg.attributes.position.array, n = gg.attributes.normal.array;
-    for (let i = 0; i < p.length; i += 3) { P.push(p[i], p[i + 1], p[i + 2]); N.push(n[i], n[i + 1], n[i + 2]); B.push(bone); K.push(part); }
-  };
-  // 上下不同寬的盒子
-  const tbox = (cx, cy, cz, h, wB, dB, wT, dT, bone, part, sh = 0) => {
-    const g = new T.BoxGeometry(1, 1, 1, 1, 1, 1);
-    const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const top = p.getY(i) > 0;
-      p.setXYZ(i, p.getX(i) * (top ? wT : wB), p.getY(i) * h, p.getZ(i) * (top ? dT : dB) + (top ? sh : 0));
-    }
-    push(g, bone, part, tf(cx, cy, cz));
-  };
-  const ball = (cx, cy, cz, sx, sy, sz, bone, part, det = 1) => push(new T.IcosahedronGeometry(1, det), bone, part, tf(cx, cy, cz, 0, 0, 0, sx, sy, sz));
-  tbox(0, .95, 0, .22, .33, .21, .34, .22, 0, 1);
-  tbox(0, 1.13, 0, .18, .31, .2, .32, .21, 1, 0);
-  tbox(0, 1.32, .005, .22, .33, .22, .41, .24, 1, 0, .01);
-  tbox(0, 1.465, 0, .07, .41, .23, .3, .2, 1, 0);
-  tbox(0, 1.535, 0, .09, .1, .1, .09, .09, 2, 2);
-  ball(0, 1.665, .012, .102, .122, .112, 2, 2);
-  ball(0, 1.7, -.012, .112, .108, .122, 2, 3);
-  tbox(0, 1.6, .105, .03, .1, .02, .1, .02, 2, 3);
-  tbox(0, 1.5, -.075, .3, .2, .06, .21, .08, 2, 7);
-  push(new T.CylinderGeometry(.13, .13, .07, 14), 2, 8, tf(0, 1.79, -.005));
-  push(new T.CylinderGeometry(.2, .2, .012, 16), 2, 8, tf(0, 1.755, .03));
-  for (const s of [1, -1]) {
-    const ua = s > 0 ? 3 : 5, fa = s > 0 ? 4 : 6, th = s > 0 ? 7 : 9, sn = s > 0 ? 8 : 10;
-    tbox(s * .245, 1.29, 0, .3, .09, .1, .115, .12, ua, 0);
-    tbox(s * .25, 1.005, .005, .28, .08, .085, .09, .1, fa, 0);
-    tbox(s * .255, .82, .012, .1, .065, .035, .075, .045, fa, 2);
-    tbox(s * .1, .715, 0, .42, .12, .13, .155, .16, th, 1);
-    tbox(s * .1, .3, 0, .42, .1, .11, .12, .13, sn, 1);
-    tbox(s * .1, .045, .045, .09, .11, .27, .1, .2, sn, 4);
-    tbox(s * .105, 1.3, .118, .2, .018, .01, .018, .01, 1, 5);
+// ═══ 人物：Quaternius Universal Base Characters 男女底模＋ Universal Animation Library 動畫（CC0） ═══
+// blender/people.py 分好衣物材質與髮型、tools/people.mjs 以 meshopt 壓縮成 blender/out/people.glb，打包時內嵌成 #glb-people。
+// 男女各把身體、眉毛、眼睛與三種髮型合併成一份蒙皮幾何（aSlot 分區、aVar 髮型），每人一個 SkeletonUtils 複製的
+// SkinnedMesh＋自己的 AnimationMixer，一人一次 draw；衣服、膚色、髮色是每人材質的 uniform。
+// 動畫時間不累加，每幀由 uTime／uBeat 換算（舞池對拍）；動畫庫沒有的動作（調酒、DJ、撐傘、抽菸、抱胸）在播放後覆寫手臂骨頭。
+// 角色面向 +z，左手在 +x。
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+const SLOT = { skin: 0, top: 1, sleeve: 2, bottom: 3, shin: 4, shoe: 5 };   // 6 頭髮 7 眉毛 8 眼睛
+const HAIR_VARS = { Male: ['SimpleParted', 'Buzzed', 'Beard'], Female: ['Long', 'Buns', 'BuzzedFemale'] };
+const PEOPLE = await (async () => {
+  const el = document.getElementById('glb-people');
+  const bin = Uint8Array.from(atob(el.textContent.trim()), c => c.charCodeAt(0));
+  const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  await MeshoptDecoder.ready;
+  const gltf = await glbLoader.parseAsync(ab, '');
+  // 兩副骨架的骨頭同名，載入器會把後面那副改成「名稱_1」；統一改回原名，動畫軌道也一樣
+  const names = new Set();
+  gltf.scene.traverse(o => names.add(o.name));
+  const canon = n => { const m = /^(.*)_\d+$/.exec(n); return m && names.has(m[1]) ? m[1] : n; };
+  gltf.scene.traverse(o => { if (o.isBone) o.name = canon(o.name); });
+  // 動畫只留旋轉（加上骨盆位移）：男女骨架長度不同，不能套用其他骨頭的位移
+  const clips = new Map();
+  for (const c of gltf.animations) {
+    for (const t of c.tracks) { const i = t.name.lastIndexOf('.'); t.name = canon(t.name.slice(0, i)) + t.name.slice(i); }
+    c.tracks = c.tracks.filter(t => t.name.endsWith('.quaternion') || /^(pelvis|root)\.position$/.test(t.name));
+    clips.set(c.name, c);
   }
-  tbox(0, .74, -.01, .56, .48, .31, .37, .25, 0, 6);
-  tbox(0, 1.47, -.04, .12, .36, .2, .3, .16, 1, 6);
-  tbox(0, .78, 0, .36, .44, .33, .34, .23, 0, 9);
-  const g = new T.BufferGeometry();
-  g.setAttribute('position', new T.Float32BufferAttribute(P, 3));
-  g.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
-  g.setAttribute('aBone', new T.Float32BufferAttribute(B, 1));
-  g.setAttribute('aPart', new T.Float32BufferAttribute(K, 1));
-  g.boundingSphere = new T.Sphere(V3(0, 1, 0), 1.4);
-  return g;
+  const tpl = {};
+  const P = V3(), N = V3(), M = new T.Matrix4(), A = new T.Matrix4(), NM = new T.Matrix3();
+  for (const g of ['Male', 'Female']) {
+    const grp = gltf.scene.getObjectByName(g);
+    const meshes = [];
+    grp.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
+    const body = meshes.find(m => m.material.name.endsWith('_skin'));
+    const sk = body.skeleton, bi = new Map(sk.bones.map((b, i) => [b.name, i])), jb = bi.get('pelvis');
+    const pos = [], nor = [], si = [], sw = [], slot = [], vari = [], idx = [];
+    for (const m of meshes) {
+      const own = m.name + ' ' + (m.parent ? m.parent.name : '');
+      const hair = /_Hair_([A-Za-z]+)/.exec(own);
+      const s = hair ? 6 : /_Brows/.test(own) ? 7 : /_Eyes/.test(own) ? 8 : SLOT[m.material.name.split('_').pop()] ?? 0;
+      const v = hair ? HAIR_VARS[g].indexOf(hair[1]) : -1;
+      // 各網格的 inverse bind 可能差一個量化變換：把頂點換到身體那副骨架的綁定空間
+      const ms = m.skeleton, jm = ms.bones.findIndex(b => b.name === 'pelvis');
+      M.copy(body.bindMatrixInverse).multiply(A.copy(sk.boneInverses[jb]).invert()).multiply(ms.boneInverses[jm]).multiply(m.bindMatrix);
+      NM.getNormalMatrix(M);
+      const ga = m.geometry.attributes, base = pos.length / 3;
+      const remap = ms.bones.map(b => bi.get(b.name) ?? 0);
+      for (let i = 0; i < ga.position.count; i++) {
+        P.fromBufferAttribute(ga.position, i).applyMatrix4(M); pos.push(P.x, P.y, P.z);
+        N.fromBufferAttribute(ga.normal, i).applyMatrix3(NM).normalize(); nor.push(N.x, N.y, N.z);
+        for (let c = 0; c < 4; c++) { si.push(remap[ga.skinIndex.getComponent(i, c)]); sw.push(ga.skinWeight.getComponent(i, c)); }
+        slot.push(s); vari.push(v);
+      }
+      const ix = m.geometry.index;
+      if (ix) for (let i = 0; i < ix.count; i++) idx.push(base + ix.getX(i));
+      else for (let i = 0; i < ga.position.count; i++) idx.push(base + i);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4));
+    geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
+    geo.setAttribute('aSlot', new T.Float32BufferAttribute(slot, 1));
+    geo.setAttribute('aVar', new T.Float32BufferAttribute(vari, 1));
+    geo.setIndex(idx);
+    const t = new T.Group();
+    t.add(grp.getObjectByName('root'));
+    const sm = new T.SkinnedMesh(geo);
+    // 女性骨架在檔案裡平移了 1.2 m（男女並排），inverse bind 帶著這段位移；骨頭移出群組後要補回去
+    sm.bind(new T.Skeleton(sk.bones, sk.boneInverses.map(m => m.clone().multiply(grp.matrix))), body.bindMatrix);
+    sm.name = 'body';
+    t.add(sm);
+    tpl[g] = t;
+  }
+  relaxClips(clips, tpl.Male);
+  // 坐姿與騎車的骨盆高度：和舊版程序人物對齊（坐在 y 處的人髖部在 y＋.78，騎士在座位原點上 .87）
+  const seat = {};
+  const probe = cloneSkinned(tpl.Male), mx = new T.AnimationMixer(probe), pel = probe.getObjectByName('pelvis');
+  for (const [c, h] of [['Sitting_Idle_Loop', .78], ['Sitting_Talking_Loop', .78], ['Driving_Loop', .87]]) {
+    mx.stopAllAction(); mx.clipAction(clips.get(c)).play(); mx.update(0);
+    probe.updateMatrixWorld(true);
+    seat[c] = h - pel.getWorldPosition(P).y;
+  }
+  return { tpl, clips, seat };
 })();
+
+// 動畫庫的待機是握拳、雙臂外張的備戰姿勢：手指往靜止姿勢放鬆，待機的手肘伸直一些、上臂往下收（同 268）
+function relaxClips(clips, tpl) {
+  const rest = new Map();
+  tpl.traverse(o => o.isBone && rest.set(o.name, o.quaternion.clone()));
+  const q = new T.Quaternion();
+  const each = (t, f) => { for (let i = 0; i < t.values.length; i += 4) f(q.fromArray(t.values, i)).toArray(t.values, i); };
+  for (const [name, c] of clips) {
+    if (name === 'Driving_Loop') continue;
+    for (const t of c.tracks) {
+      const bone = t.name.slice(0, t.name.lastIndexOf('.'));
+      if (/^(thumb|index|middle|ring|pinky)_/.test(bone)) each(t, v => v.slerp(rest.get(bone), .6));
+      else if (name === 'Idle_Loop' && /^lowerarm_/.test(bone)) each(t, v => v.slerp(rest.get(bone), .3));
+    }
+  }
+  const idle = clips.get('Idle_Loop');
+  const body = cloneSkinned(tpl), mixer = new T.AnimationMixer(body);
+  mixer.clipAction(idle).play(); mixer.update(0); body.updateMatrixWorld(true);
+  for (const s of ['l', 'r']) {
+    const ua = body.getObjectByName(`upperarm_${s}`), la = body.getObjectByName(`lowerarm_${s}`);
+    const track = idle.tracks.find(t => t.name === `upperarm_${s}.quaternion`);
+    const dir = la.position.clone().applyQuaternion(ua.quaternion).normalize();
+    const down = V3(0, -1, 0).applyQuaternion(ua.parent.getWorldQuaternion(new T.Quaternion()).invert());
+    const fix = new T.Quaternion().setFromUnitVectors(dir, dir.clone().lerp(down, .4).normalize());
+    each(track, v => v.premultiply(fix));
+  }
+  mixer.stopAllAction();
+}
 
 const CHAR_VS = /* glsl */`
 ${GL_LIB}
-attribute float aBone, aPart;
-attribute vec4 aAnim, aAnim2, aTop, aBot, aSkin, aHair, aGlow;
+#include <skinning_pars_vertex>
+attribute float aSlot, aVar;
+uniform vec3 uC[9];
+uniform float uHair;
+uniform vec4 uGlow;
 varying vec3 vW, vN, vCol, vEmi;
-const vec3 PIV[11] = vec3[](vec3(0.,.95,0.), vec3(0.,1.05,0.), vec3(0.,1.5,0.), vec3(.21,1.43,0.), vec3(.25,1.15,0.), vec3(-.21,1.43,0.), vec3(-.25,1.15,0.), vec3(.1,.93,0.), vec3(.1,.51,0.), vec3(-.1,.93,0.), vec3(-.1,.51,0.));
-const int PAR[11] = int[](-1, 0, 1, 1, 3, 1, 5, 0, 7, 0, 9);
-mat3 rx(float a){ float c = cos(a), s = sin(a); return mat3(1.,0.,0., 0.,c,s, 0.,-s,c); }
-mat3 ry(float a){ float c = cos(a), s = sin(a); return mat3(c,0.,-s, 0.,1.,0., s,0.,c); }
-mat3 rz(float a){ float c = cos(a), s = sin(a); return mat3(c,s,0., -s,c,0., 0.,0.,1.); }
-mat3 eul(vec3 a){ return ry(a.y) * rx(a.x) * rz(a.z); }
-const float PI2 = 6.2831853;
-void walkLegs(inout vec3 A[11], float w, float amp, float knee){
-  A[7].x = -amp * sin(w);           A[9].x = amp * sin(w);
-  A[8].x = .06 + knee * max(0., sin(w + 1.2));
-  A[10].x = .06 + knee * max(0., sin(w + 1.2 + 3.14159));
-}
-void pose(float id, float t, float b, float v, out vec3 A[11], out vec3 root){
-  for (int i = 0; i < 11; i++) A[i] = vec3(0.);
-  root = vec3(0.);
-  A[3].z = .07; A[5].z = -.07; A[4].x = -.12; A[6].x = -.12;
-  float bp = b * PI2;
-  float bounce = .5 + .5 * cos(bp);
-  if (id < .5) {                                         // 待機
-    A[1].x = .02 * sin(t * 1.4); A[2].y = .35 * sin(t * .23 + v * 9.); A[2].x = .04 * sin(t * .7);
-    A[0].z = .03 * sin(t * .4 + v); A[7].z = .03; A[9].z = -.03;
-  } else if (id < 1.5 || abs(id - 8.) < .5) {            // 走路（8：一手撐傘）
-    float w = t * PI2;
-    walkLegs(A, w, .42, .62);
-    A[3].x = .34 * sin(w); A[5].x = -.34 * sin(w);
-    A[4].x = -.22 - .22 * max(0., -sin(w)); A[6].x = -.22 - .22 * max(0., sin(w));
-    A[0].y = .1 * sin(w); A[1].y = -.14 * sin(w); A[1].x = .04;
-    root.y = .03 * (1. - abs(sin(w))) - .02;
-    if (id > 7.5) { A[5] = vec3(-.55, .25, -.12); A[6] = vec3(-1.35, -.3, 0.); A[1].y *= .4; }
-  } else if (id < 2.5) {                                 // 跑步
-    float w = t * PI2;
-    walkLegs(A, w, .8, 1.35);
-    A[3].x = .7 * sin(w); A[5].x = -.7 * sin(w);
-    A[4].x = -1.25; A[6].x = -1.25;
-    A[1].x = .2; A[0].y = .15 * sin(w); A[1].y = -.2 * sin(w);
-    root.y = .07 * abs(cos(w)) - .05;
-  } else if (id < 3.5) {                                 // 跳舞：彈膝兩步
-    A[7].x = -.18 - .25 * bounce; A[9].x = -.18 - .25 * bounce;
-    A[8].x = .45 * bounce + .1; A[10].x = .45 * bounce + .1;
-    root.y = -.07 * bounce; root.x = .12 * sin(bp * .5);
-    A[7].z = .06; A[9].z = -.06;
-    A[3] = vec3(-.55 + .3 * sin(bp), 0., .3); A[5] = vec3(-.55 - .3 * sin(bp), 0., -.3);
-    A[4].x = -1.5; A[6].x = -1.5;
-    A[2].x = .15 * bounce; A[1].y = .28 * sin(bp * .5); A[1].x = .08;
-  } else if (id < 4.5) {                                 // 跳舞：雙手舉高
-    float k = sin(bp * 2.);
-    A[3] = vec3(-.25, 0., 2.55 + .25 * sin(bp)); A[5] = vec3(-.25, 0., -2.55 - .25 * sin(bp + 1.));
-    A[4].x = -.3 - .3 * k; A[6].x = -.3 + .3 * k;
-    root.y = -.06 * bounce + .05 * max(0., sin(bp * .25)) ;
-    A[0].z = .1 * sin(bp * .5); A[1].z = -.08 * sin(bp * .5);
-    A[7].x = -.12 * bounce; A[9].x = -.12 * bounce; A[8].x = .25 * bounce; A[10].x = .25 * bounce;
-    A[2].x = -.15 + .1 * bounce;
-  } else if (id < 5.5) {                                 // 跳舞：左右搖擺、輪流抬膝
-    float s = sin(bp * .5);
-    A[0].z = .14 * s; A[1].z = -.12 * s; root.x = .14 * s;
-    A[3].x = .5 * sin(bp); A[5].x = -.5 * sin(bp); A[3].z = .25; A[5].z = -.25;
-    A[4].x = -.9; A[6].x = -.9;
-    A[7].x = -.45 * max(0., s); A[8].x = .9 * max(0., s);
-    A[9].x = -.45 * max(0., -s); A[10].x = .9 * max(0., -s);
-    A[2].z = .12 * s; A[2].x = .1 * bounce; root.y = -.04 * bounce;
-  } else if (id < 6.5) {                                 // 坐在吧台高腳椅
-    A[7] = vec3(-1.45, 0., .08); A[9] = vec3(-1.45, 0., -.08);
-    A[8].x = 1.35; A[10].x = 1.5;
-    A[1].x = .12; A[3] = vec3(-.75, 0., .12); A[5] = vec3(-.75, 0., -.12); A[4].x = -.85; A[6].x = -.85;
-    float drink = smoothstep(.0, .08, fract(t * .07 + v)) * smoothstep(.2, .12, fract(t * .07 + v));
-    A[5].x = mix(-.75, -1.0, drink); A[6].x = mix(-.85, -2.0, drink); A[2].x = mix(.05, -.25, drink);
-    A[2].y = .3 * sin(t * .3 + v * 7.);
-    root.y = -.17;
-  } else if (id < 7.5) {                                 // 調酒：搖雪克杯或擦杯
-    if (fract(t * .08 + v) < .5) {
-      float sh = sin(t * 19.);
-      A[3] = vec3(-1.25 + .12 * sh, 0., .25); A[5] = vec3(-1.25 + .12 * sh, 0., -.25);
-      A[4].x = -1.5; A[6].x = -1.5; A[4].y = -.6; A[6].y = .6;
-    } else {
-      A[5] = vec3(-.7 + .1 * sin(t * 4.), .2 * cos(t * 4.), -.1); A[6].x = -1.1;
-      A[3] = vec3(-.6, 0., .1); A[4].x = -1.2;
-      A[1].x = .15;
-    }
-    A[2].y = .25 * sin(t * .4);
-  } else if (id < 9.5) {                                 // DJ：一手扶耳機、一手刷盤
-    A[3] = vec3(-.35, 0., 2.05); A[4].x = -2.3;
-    A[5] = vec3(-.75, .15 * sin(t * 7.), -.15); A[6].x = -.75;
-    A[2].x = .25 * bounce; A[1].x = .15 + .05 * bounce; root.y = -.03 * bounce;
-  } else if (id < 10.5) {                                // 雙手抱胸
-    A[3] = vec3(-.35, 0., -.12); A[5] = vec3(-.35, 0., .12);
-    A[4] = vec3(-1.6, -.85, 0.); A[6] = vec3(-1.6, .85, 0.);
-    A[2].y = .5 * sin(t * .17 + v * 4.); A[0].z = .02 * sin(t * .3);
-    A[7].z = .08; A[9].z = -.08;
-  } else if (id < 11.5) {                                // 站著講話、比手勢
-    A[5] = vec3(-.4 - .15 * sin(t * 2.6), 0., -.15); A[6].x = -1.2 - .3 * sin(t * 3.3);
-    A[2].z = .08 * sin(t * 1.3); A[2].y = .2 * sin(t * .5); A[0].z = .04;
-  } else if (id < 12.5) {                                // 騎機車
-    A[7] = vec3(-1.15, 0., .2); A[9] = vec3(-1.15, 0., -.2);
-    A[8].x = 1.45; A[10].x = 1.45;
-    A[1].x = .5; A[2].x = -.4;
-    A[3] = vec3(-1.05, 0., .3); A[5] = vec3(-1.05, 0., -.3); A[4].x = -.35; A[6].x = -.35;
-    root.y = -.08;
-  } else if (id < 14.5) {                                // 跳舞：交替揮拳
-    float k = sin(bp);
-    A[3] = vec3(-1.4 - .9 * max(0., k), 0., .35); A[4].x = -.6 * (1. - max(0., k));
-    A[5] = vec3(-1.4 - .9 * max(0., -k), 0., -.35); A[6].x = -.6 * (1. - max(0., -k));
-    root.y = -.08 * bounce; A[8].x = .35 * bounce; A[10].x = .35 * bounce; A[7].x = -.18 * bounce; A[9].x = -.18 * bounce;
-    A[2].x = .2 * bounce;
-  } else {                                               // 靠牆抽菸
-    A[9] = vec3(-.55, 0., -.05); A[10].x = 1.15;
-    float puff = smoothstep(.0, .1, fract(t * .1 + v)) * smoothstep(.25, .15, fract(t * .1 + v));
-    A[5] = vec3(mix(-.3, -.6, puff), 0., mix(-.1, .2, puff)); A[6].x = mix(-.9, -2.25, puff);
-    A[3] = vec3(.1, 0., .12); A[4].x = -.2;
-    A[1].x = -.08; A[2].x = mix(.05, -.12, puff);
-  }
-}
 void main(){
-  int b = int(aBone + .5); float part = aPart;
-  vec3 A[11]; vec3 root;
-  float t = uTime * aAnim.z + aAnim.y;
-  pose(aAnim.x, t, uBeat + aAnim.w, aAnim.y, A, root);
-  if (aAnim2.y > .01) {
-    vec3 A2[11]; vec3 root2;
-    pose(aAnim2.x, uTime * aAnim2.z + aAnim.y, uBeat + aAnim.w, aAnim.y, A2, root2);
-    for (int i = 0; i < 11; i++) A[i] = mix(A[i], A2[i], aAnim2.y);
-    root = mix(root, root2, aAnim2.y);
-  }
-  vec3 p = position, n = normal;
-  bool hide = (part > 5.5 && part < 6.5 && aTop.w < .5) || (part > 6.5 && part < 7.5 && aSkin.w < .5) ||
-              (part > 7.5 && part < 8.5 && aHair.w < .5) || (part > 8.5 && aBot.w < .5) || (part > 4.5 && part < 5.5 && aGlow.w < .01);
-  if (hide) p = PIV[0];
-  int k = b;
-  for (int s = 0; s < 4; s++) {
-    if (k < 0) break;
-    mat3 R = eul(A[k]);
-    p = R * (p - PIV[k]) + PIV[k]; n = R * n;
-    k = PAR[k];
-  }
-  p += root;
-  vec4 lp = instanceMatrix * vec4(p, 1.);
-  vec4 w = modelMatrix * lp; vW = w.xyz;
-  vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * n);
-  vec3 col = part < .5 ? aTop.rgb : part < 1.5 ? aBot.rgb : part < 2.5 ? aSkin.rgb : part < 3.5 ? aHair.rgb : part < 4.5 ? vec3(.025) :
-             part < 5.5 ? vec3(0.) : part < 6.5 ? aTop.rgb * .7 : part < 7.5 ? aHair.rgb : part < 8.5 ? aTop.rgb * .5 : aBot.rgb;
-  vCol = col; vEmi = part > 4.5 && part < 5.5 ? aGlow.rgb * aGlow.w : vec3(0.);
+  vec3 objectNormal = normal, transformed = position;
+  #include <skinbase_vertex>
+  #include <skinnormal_vertex>
+  #include <skinning_vertex>
+  int s = int(aSlot + .5);
+  if (s == 6 && abs(aVar - uHair) > .5) transformed = vec3(0.);
+  vec4 w = modelMatrix * vec4(transformed, 1.); vW = w.xyz;
+  vN = normalize(mat3(modelMatrix) * objectNormal);
+  vCol = uC[s];
+  vEmi = s == 5 ? uGlow.rgb * uGlow.w * .3 : vec3(0.);   // 鞋子的霓虹飾條
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 const CHAR_FS = /* glsl */`
@@ -212,41 +145,177 @@ void main(){
   c += vEmi;
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
-const MAT_CHAR = new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: CHAR_VS, fragmentShader: CHAR_FS });
+// 每人一份材質（uniform 不同），共用同一個 program；不能用 clone()，會把共用的 U 也複製掉
+const charMat = () => new T.ShaderMaterial({
+  uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uHair: { value: 0 }, uGlow: { value: new T.Vector4() } },
+  vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
+});
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15 };
+// 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
+const ACLIP = {
+  [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
+  [ANIM.danceA]: { c: 'Dance_Loop', beat: 2 }, [ANIM.danceB]: { c: 'Dance_Loop', beat: 2, off: .5 }, [ANIM.danceC]: { c: 'Dance_Loop', beat: 4 },
+  [ANIM.sit]: { c: 'Sitting_Idle_Loop', alt: 'Sitting_Talking_Loop' }, [ANIM.bartend]: { c: 'Idle_Loop' }, [ANIM.umbrella]: { c: 'Walk_Loop', rate: 1.3 },
+  [ANIM.dj]: { c: 'Idle_Loop' }, [ANIM.cross]: { c: 'Idle_Loop' }, [ANIM.talk]: { c: 'Idle_Talking_Loop' }, [ANIM.ride]: { c: 'Driving_Loop' },
+  [ANIM.punch]: { c: 'Punch_Cross', beat: 2, alt: 'Punch_Jab' }, [ANIM.smoke]: { c: 'Idle_Loop' },
+};
+const clipOf = (id, ph) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && (ph * 7.31) % 1 < .5 ? a.alt : a.c; };
+function clipTime(id, name, t, b) {
+  const a = ACLIP[id] || ACLIP[0], d = PEOPLE.clips.get(name).duration;
+  const u = a.beat ? (b + (a.off || 0)) / a.beat * d : t * (a.rate || 1);
+  return ((u % d) + d) % d;
+}
+// 讓骨頭（指向第一個子骨）轉向角色空間的方向；w 是和動畫原姿勢的混合比例
+const _q1 = new T.Quaternion(), _q2 = new T.Quaternion(), _q3 = new T.Quaternion(), _qi = new T.Quaternion(), _v1 = V3(), _v2 = V3();
+function aim(p, name, x, y, z, w = 1) {
+  const bone = p.bones[name];
+  bone.parent.getWorldQuaternion(_q1);
+  _q2.multiplyQuaternions(_q1, bone.quaternion);
+  _v1.copy(bone.children[0].position).normalize().applyQuaternion(_q2);
+  _v2.set(x, y, z).normalize().applyQuaternion(p.h.quaternion);
+  _q3.setFromUnitVectors(_v1, _v2);
+  if (w < 1) _q3.slerp(_qi, 1 - w);
+  bone.quaternion.copy(_q1.invert().multiply(_q3.multiply(_q2)));
+}
+const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const frac = x => x - Math.floor(x);
+// 動畫庫沒有的動作：t 是相位時間、b 是拍點
+const OVR = {
+  [ANIM.umbrella]: p => { aim(p, 'upperarm_r', -.22, -.75, .5); aim(p, 'lowerarm_r', .08, .85, .5); },
+  [ANIM.cross]: p => {
+    aim(p, 'upperarm_l', .2, -.9, .3); aim(p, 'upperarm_r', -.2, -.9, .3);
+    aim(p, 'lowerarm_l', -1, .12, .3); aim(p, 'lowerarm_r', 1, .02, .38);
+  },
+  [ANIM.dj]: (p, t) => {
+    aim(p, 'upperarm_l', .75, .3, .1); aim(p, 'lowerarm_l', -.55, .8, -.1);
+    aim(p, 'upperarm_r', -.25, -.6, .75); aim(p, 'lowerarm_r', .15 + .25 * Math.sin(t * 7), -.25, 1);
+  },
+  [ANIM.bartend]: (p, t) => {
+    if (frac(t * .08) < .5) {
+      const sh = .25 * Math.sin(t * 19);
+      aim(p, 'upperarm_l', .35, -.25, .9); aim(p, 'upperarm_r', -.35, -.25, .9);
+      aim(p, 'lowerarm_l', -.45, .75 + sh, .45); aim(p, 'lowerarm_r', .45, .75 + sh, .45);
+    } else { aim(p, 'upperarm_r', -.2, -.75, .6); aim(p, 'lowerarm_r', .1 + .3 * Math.cos(t * 4), -.15, 1); }
+  },
+  [ANIM.smoke]: (p, t) => {
+    const u = frac(t * .1), k = sst(0, .1, u) * sst(.25, .15, u);
+    aim(p, 'upperarm_r', -.2, -.9 + .4 * k, .35 + .3 * k); aim(p, 'lowerarm_r', .05 + .3 * k, -.1 + 1.1 * k, 1 - .6 * k);
+  },
+  [ANIM.sit]: (p, t) => {
+    const u = frac(t * .07), k = sst(0, .08, u) * sst(.2, .12, u);
+    if (k > .01) { aim(p, 'upperarm_r', -.15, -.55, .8, k); aim(p, 'lowerarm_r', .3, .95, .25, k); }
+  },
+  [ANIM.danceB]: (p, t, b) => {
+    const k = .3 * Math.sin(b * Math.PI * 2);
+    aim(p, 'upperarm_l', .35, 1, .1); aim(p, 'upperarm_r', -.35, 1, .1);
+    aim(p, 'lowerarm_l', -.2 + k, 1, .2); aim(p, 'lowerarm_r', .2 + k, 1, .2);
+  },
+  [ANIM.danceC]: (p, t, b) => {
+    const k = Math.sin(b * Math.PI);
+    aim(p, 'upperarm_l', .9, -.2 + .6 * Math.max(0, k), .4); aim(p, 'upperarm_r', -.9, -.2 + .6 * Math.max(0, -k), .4);
+  },
+};
 const SKINS = [0xf1c8a8, 0xd9a07a, 0xb57a52, 0x8a5636, 0x5e3a24, 0xe8b894].map(lin);
 const HAIRS = [0x15110e, 0x2b1d14, 0x5a3a22, 0xb08a5a, 0x777777, 0x1a1a2a, 0x8a2a3a, 0x3a6a8a].map(lin);
 const TOPS = [0x2a2c30, 0x3b2a22, 0x5a1d22, 0x1f2f45, 0x6d6a60, 0x23352a, 0x8a6a3a, 0x111215, 0x4a2a4a, 0x9a9a92, 0x2a4a5a].map(lin);
 const BOTS = [0x1a1c22, 0x2a2d35, 0x3a3228, 0x101012, 0x2f3a4a, 0x4a4038].map(lin);
+const SHOES = [0x141416, 0x1e1c1a, 0x2a2420, 0xb8b6b0].map(lin);
 const GLOWS = [0x2cf2d8, 0xff3fa0, 0xffae57, 0x7af0ff, 0xd6ff3a].map(lin);
-// 建一群人：每人一組外觀與動作
+const EYES = lin(0x0c0b0a);
+const CROWDS = [];
+// 建一群人：每人一組外觀與動作。look 的 coat＝長袖、skirt＝露腿、longHair＝長髮女性、glow＝鞋子的霓虹飾條
 function crowd(n, cap = n) {
-  const g = charGeo.clone();
-  const attrs = {};
-  for (const k of ['aAnim', 'aAnim2', 'aTop', 'aBot', 'aSkin', 'aHair', 'aGlow']) { attrs[k] = new T.InstancedBufferAttribute(new Float32Array(cap * 4), 4); g.setAttribute(k, attrs[k]); }
-  const m = new T.InstancedMesh(g, MAT_CHAR, cap);
-  m.count = n; m.frustumCulled = false;
+  const group = new T.Group();
   const people = [];
-  for (let k = 0; k < cap; k++) people.push({ k, x: 0, y: 0, z: 0, yaw: 0, s: 1 });
+  for (let k = 0; k < cap; k++) people.push({ k, x: 0, y: 0, z: 0, yaw: 0, s: 1, obj: null, a: [0, 0, 1, 0], a2: [0, 0, 1], handL: V3(-.25, 1.2, .3) });
   const api = {
-    mesh: m, people, attrs,
+    mesh: group, people,
     look(k, o = {}) {
       const r = o.r || Math.random;
-      const pick = (arr) => arr[Math.floor(r() * arr.length)];
-      const set = (name, c, w) => attrs[name].setXYZW(k, c.r, c.g, c.b, w);
-      set('aTop', o.top || pick(TOPS), o.coat ?? (r() < .35 ? 1 : 0));
-      set('aBot', o.bot || pick(BOTS), o.skirt ?? (r() < .2 ? 1 : 0));
-      set('aSkin', o.skin || pick(SKINS), o.longHair ?? (r() < .4 ? 1 : 0));
-      set('aHair', o.hair || pick(HAIRS), o.hat ?? (r() < .15 ? 1 : 0));
-      const gc = o.glow || pick(GLOWS); set('aGlow', gc, o.glowI ?? (r() < .3 ? 1.6 : 0));
-      people[k].s = o.scale || (.92 + r() * .14);
+      const pick = arr => arr[Math.floor(r() * arr.length)];
+      const p = people[k];
+      const fem = o.female ?? (o.longHair ? true : o.longHair === 0 ? false : r() < .45);
+      const sex = fem ? 'Female' : 'Male';
+      if (p.obj && p.sex !== sex) { p.h.remove(p.obj); p.obj = null; }
+      if (!p.obj) {
+        p.sex = sex;
+        p.h ||= group.add(new T.Group()).children.at(-1);
+        p.obj = cloneSkinned(PEOPLE.tpl[sex]);
+        p.h.add(p.obj);
+        p.sm = p.obj.getObjectByName('body');
+        p.sm.material = charMat();
+        p.sm.boundingSphere = new T.Sphere(V3(0, 1, 0), 1.3);
+        p.bones = {};
+        p.obj.traverse(b => { if (b.isBone) p.bones[b.name] = b; });
+        p.mixer = new T.AnimationMixer(p.obj);
+        p.acts = new Map();
+      }
+      const u = p.sm.material.uniforms, C = u.uC.value;
+      const skin = o.skin || pick(SKINS), top = o.top || pick(TOPS), bot = o.bot || pick(BOTS), hair = o.hair || pick(HAIRS);
+      const long = o.coat ?? (r() < .6 ? 1 : 0), bare = fem && (o.skirt ?? (r() < .3 ? 1 : 0));
+      C[0].copy(skin); C[1].copy(top); C[2].copy(long ? top : skin); C[3].copy(bot); C[4].copy(bare ? skin : bot);
+      C[5].copy(o.shoe || pick(SHOES)); C[6].copy(hair); C[7].copy(hair).multiplyScalar(.8); C[8].copy(EYES);
+      u.uHair.value = fem ? (o.longHair ? 0 : o.longHair === 0 ? 1 + Math.floor(r() * 2) : Math.floor(r() * 3)) : (o.hat ? 1 : Math.floor(r() * 3));
+      const gc = o.glow || pick(GLOWS);
+      u.uGlow.value.set(gc.r, gc.g, gc.b, o.glowI ?? (r() < .3 ? 1.6 : 0));
+      p.s = o.scale || ((fem ? .95 : 1) * (.94 + r() * .1));
     },
-    anim(k, id, phase = Math.random() * 10, speed = 1, beatOff = 0) { attrs.aAnim.setXYZW(k, id, phase, speed, beatOff); },
-    anim2(k, id, w, speed = 1) { attrs.aAnim2.setXYZW(k, id, w, speed, 0); },
-    place(k, x, y, z, yaw) { const p = people[k]; p.x = x; p.y = y; p.z = z; p.yaw = yaw; _o.position.set(x, y, z); _o.rotation.set(0, yaw, 0); _o.scale.setScalar(p.s); _o.updateMatrix(); m.setMatrixAt(k, _o.matrix); },
-    flush() { m.instanceMatrix.needsUpdate = true; for (const k in attrs) attrs[k].needsUpdate = true; },
+    anim(k, id, phase = Math.random() * 10, speed = 1, beatOff = 0) { const a = people[k].a; a[0] = id; a[1] = phase; a[2] = speed; a[3] = beatOff; },
+    anim2(k, id, w, speed = 1) { const a = people[k].a2; a[0] = id; a[1] = w; a[2] = speed; },
+    place(k, x, y, z, yaw) {
+      const p = people[k]; p.x = x; p.y = y; p.z = z; p.yaw = yaw;
+      if (p.h) { p.h.position.set(x, y, z); p.h.rotation.set(0, yaw, 0); p.h.scale.setScalar(p.s); }
+    },
+    // 直接給整個變換（騎機車時跟著車身壓車）
+    placeM(k, m) {
+      const p = people[k];
+      m.decompose(p.h.position, p.h.quaternion, p.h.scale);
+      p.h.scale.multiplyScalar(p.s);
+      p.x = p.h.position.x; p.y = p.h.position.y; p.z = p.h.position.z;
+    },
+    flush() {},
   };
+  CROWDS.push(api);
   return api;
+}
+function act(p, name) {
+  let a = p.acts.get(name);
+  if (!a) { a = p.mixer.clipAction(PEOPLE.clips.get(name)); p.acts.set(name, a); }
+  if (!a.isRunning()) a.play();
+  return a;
+}
+function poseOne(p, t, b) {
+  const [id, ph, sp, bo] = p.a, [id2, w2, sp2] = p.a2;
+  const n1 = clipOf(id, ph), n2 = w2 > .01 ? clipOf(id2, ph) : null, mix2 = n2 && n2 !== n1;
+  for (const [n, a] of p.acts) if (n !== n1 && !(mix2 && n === n2) && a.isRunning()) a.stop();
+  const a1 = act(p, n1);
+  a1.time = clipTime(id, n1, t * sp + ph, b + bo); a1.weight = mix2 ? 1 - w2 : 1;
+  if (mix2) { const a2 = act(p, n2); a2.time = clipTime(id2, n2, t * sp2 + ph, b + bo); a2.weight = w2; }
+  p.mixer.update(0);
+  p.obj.position.y = PEOPLE.seat[n1] || 0;
+  const f = OVR[id];
+  if (f && (!mix2 || w2 < .5)) f(p, t * sp + ph, b + bo);
+  if (id === ANIM.umbrella) p.h.worldToLocal(p.bones.hand_r.getWorldPosition(p.handL));
+}
+// 每幀更新目前場景裡、在畫面內的人；遠處的人隔幀更新
+const _fr = new T.Frustum(), _pm = new T.Matrix4(), _sph = new T.Sphere(V3(), 1.4);
+let crowdFrame = 0;
+function updateCrowds(scn) {
+  crowdFrame++;
+  camera.updateMatrixWorld();
+  _fr.setFromProjectionMatrix(_pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  const t = U.uTime.value, b = U.uBeat.value, cp = camera.position;
+  for (const c of CROWDS) {
+    if (c.mesh.parent !== scn || !c.mesh.visible) continue;
+    for (const p of c.people) {
+      if (!p.obj) continue;
+      _sph.center.set(p.x, p.y + 1, p.z);
+      if (!_fr.intersectsSphere(_sph)) continue;
+      const d = cp.distanceTo(_sph.center);
+      if (d > 35 && (crowdFrame + p.k) % (d > 70 ? 4 : 2)) continue;
+      poseOne(p, t, b);
+    }
+  }
 }
 
 // ─── 街上的行人：沿著街區人行道繞圈，多數撐傘 ───
@@ -338,8 +407,9 @@ function updatePeds(dt) {
     const yaw = Math.atan2(tx, tz);
     peds.place(k, x, .15, z, yaw);
     if (ps.um) {
-      const sc = peds.people[k].s;
-      _o.position.set(x + Math.cos(yaw) * -.1 * sc + Math.sin(yaw) * .05, .15 + 2.02 * sc, z - Math.sin(yaw) * -.1 * sc + Math.cos(yaw) * .05);
+      // 傘柄握在右手（手的位置在上次擺姿勢時記在角色空間）
+      const p = peds.people[k], h = p.handL, sc = p.s, c = Math.cos(yaw), s = Math.sin(yaw);
+      _o.position.set(x + (h.x * c + h.z * s) * sc, .15 + h.y * sc + .92, z + (h.z * c - h.x * s) * sc);
       _o.rotation.set(.08, yaw, 0); _o.scale.setScalar(1); _o.updateMatrix();
       umbMesh.setMatrixAt(u++, _o.matrix);
     }
@@ -350,7 +420,7 @@ function updatePeds(dt) {
 
 // ─── 玩家 ───
 const me = crowd(1);
-me.look(0, { top: lin(0x2b2420), bot: lin(0x17181c), skin: SKINS[1], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, glow: lin(0xffae57), glowI: 1.4, scale: 1 });
+me.look(0, { female: false, top: lin(0x2b2420), bot: lin(0x17181c), skin: SKINS[1], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[0], glow: lin(0xffae57), glowI: 1.4, scale: 1 });
 me.anim(0, ANIM.idle, 0, 1);
 scene.add(me.mesh);
 const player = { mode: 'walk', x: avX(1) - 9.6, z: stZ(2) + 18, y: .15, yaw: 0, v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };

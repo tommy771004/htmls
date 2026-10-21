@@ -10,7 +10,7 @@ import { Hud, fmtTime } from './hud.js';
 import { Sound } from './audio.js';
 import { Lobby } from './net.js';
 import { store } from './store.js';
-import { PAINTS, LIVERIES } from './roadster.js';
+import { PAINTS, loadRoadster } from './roadster.js';
 import { emptyInput } from '../core/car.js';
 import { TA } from '../core/park.js';
 import { OBJECTIVES, medalFor } from '../core/stunt.js';
@@ -36,7 +36,7 @@ async function main() {
   const q = new URLSearchParams(location.search);
   const settings = store.settings();
   if (!settings.name) { settings.name = '車手' + Math.floor(Math.random() * 9000 + 1000); store.saveSettings(settings); }
-  const R = await loadRapier();
+  const [R] = await Promise.all([loadRapier(), loadRoadster()]);
   const gfx = new Gfx($('view'), q.get('q') || pickQuality(settings.quality));
   const input = new Input();
   input.bindTouch($('touch'));
@@ -207,10 +207,7 @@ async function main() {
   function bindShowroom() {
     $('specs').innerHTML = SPECS.map(([v, u, l]) => `<div><b>${v}<small>${u}</small></b><span>${l}</span></div>`).join('');
     $('paints').innerHTML = PAINTS.map((p) => `<button data-v="${p.id}" title="${p.name}" style="background:${p.color}"></button>`).join('');
-    $('liveries').innerHTML = LIVERIES.map((l) => `<button data-v="${l.id}">${l.name}</button>`).join('');
     $('paints').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; sound.play('click'); settings.paint = b.dataset.v; store.saveSettings(settings); applyPaint(); syncShowUI(); };
-    segPick('liveries', settings.livery, (v) => { settings.livery = v; store.saveSettings(settings); applyPaint(); });
-    segPick('sDoors', 1, (v) => { show.doorTarget = Number(v); });
     segPick('sLights', 1, (v) => { show.car.setLights(Number(v)); });
     segPick('sAero', 'stowed', (v) => show.setAero(v));
     $('showBack').onclick = () => { sound.play('click'); go('menu'); };
@@ -238,8 +235,8 @@ async function main() {
     cv.addEventListener('wheel', (e) => { if (screen === 'show') { e.preventDefault(); show.zoom(Math.exp(e.deltaY * 0.001)); } }, { passive: false });
   }
   function applyPaint() {
-    if (show) show.car.setPaint(settings.paint, settings.livery);
-    drive.model.setPaint(settings.paint, settings.livery);
+    if (show) show.car.setPaint(settings.paint);
+    drive.model.setPaint(settings.paint);
   }
   function syncShowUI() {
     document.querySelectorAll('#paints button').forEach((b) => b.classList.toggle('on', b.dataset.v === settings.paint));

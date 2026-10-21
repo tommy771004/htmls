@@ -2,9 +2,9 @@
 
 《七龍珠 FighterZ》的連段手感 × 三路推塔。14 名角色分三組：七龍珠（悟空、貝吉塔、特南克斯、比克、弗利沙、人造人18號）、火影忍者（鳴人、佐助、卡卡西、小櫻）、海賊王（魯夫、索隆、香吉士、娜美）。選一名，和兩名 AI 隊友對上三名 AI 敵人，推倒敵方主堡就獲勝。機制分析、角色技能表、地圖座標與模組契約見 [SPEC.md](SPEC.md)。
 
-非官方同人作品：角色與招式名稱版權屬各原作者；角色的身體與頭部以 Quaternius 的 CC0 人體底模擬合到本作骨架，衣物、臉部五官（貼花）、頭髮、特效、地圖與音效以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
+非官方同人作品：角色與招式名稱版權屬各原作者。透過網站開啟時，13 名英雄（卡卡西以外）的模型取自 Sketchfab 的 CC BY 4.0 模型（`assets/198/*.glb`，作者與來源見 [CREDITS.md](CREDITS.md)，其中不少看起來是遊戲模型的拆檔）；以檔案開啟或載不到時退回程式建模（身體與頭部是 Quaternius 的 CC0 人體底模，衣物、臉部貼花、頭髮由腳本建模）。特效、地圖與音效以程式產生。
 
-- 成品：`web/198-ki-lanes.html`（單檔約 5.6 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
+- 成品：`web/198-ki-lanes.html`（單檔約 16 MB，Three.js 0.186.0 與程式建模的備援網格一起打包）＋`assets/198/*.glb`（13 個，共約 8 MB，開場一次載完）
 - 一場約 10～16 分鐘（叢林改成連續石牆後，全 AI 模擬 5 場在 9.5～16 分鐘結束）
 - 畫面與 HUD 參考 [這支 LoL × FighterZ 的影片](https://x.com/GamefxAI/status/2106670299731149160)的構圖與手感（石板路、塔下廣場、白色天線塔、格鬥遊戲式技能列、連段字、漫畫對話框、龍珠獵人），但全部自己用程式建構，沒有使用影片裡的任何素材
 
@@ -32,6 +32,8 @@ node tools/dragonshot.mjs # 開發截圖：龍珠面板、召喚、神龍升起�
 sh tools/refcmp.sh <參考圖資料夾> goku naruto …  # 角色立正的正交正面圖與官方設定圖等高並排（每 5% 一條格線），用來校比例；參考圖不進 repo，資料夾放 <id>/<nn>.img 與 picks.txt
 node tools/perf.mjs    # 開打 4 分鐘後的實際幀率
 node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
+blender -b --factory-startup --python blender/glb_heroes.py -- [--only goku,vegeta] [--src ~/Downloads]   # 把 Sketchfab 原檔轉成 ../../assets/198/<id>.glb（見下方「Sketchfab 模型」）
+node tools/accept.mjs --http --out dist/accept-http   # 經網站伺服器開頁驗收（會載 GLB 角色），npm test 是以檔案開啟（程式建模）
 npm run models         # 重建 14 名英雄的網格（需要 Blender 5.2 與 Quaternius 素材包；約 80 秒），寫入 src/models-baked.js，再 npm run build
 npm run models -- --only goku,vegeta   # 只重建部分英雄（其他沿用快取或現有的 models-baked.js）
 node tools/viewer.mjs name "ids=goku&anim=atk1&t=0.1&ang=30&zoom=3&focus=handR"   # 開發截圖：角色檢視頁（參數見 tools/viewer-entry.js）
@@ -92,6 +94,16 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 | `blender/crossover.py` | 火影忍者、海賊王 8 名客串角色的 Blender 建模（護額、草帽、日本刀等配件） |
 | `map-props.js` | 地圖裝飾（樹、岩石、懸崖、河道、基地） |
 | `main.js` | 迴圈、場景同步、頭像算圖、測試 API |
+
+## Sketchfab 模型（GLB）
+
+`src/boot.js` 是打包入口：先 `loadGlbHeroes()`（`src/glb.js`）抓 `../assets/198/<id>.glb`，再動態載入 `main.js`。以 `file:` 開啟時直接跳過；某個檔載不到就只有那名英雄用程式建模。開發工具從別的路徑開頁時先設 `window.KI_ASSETS`（`tools/viewer.mjs` 設成 `/assets/198/`）。
+
+- 轉檔：`blender/glb_heroes.py` 的 `HEROES` 表列出每名英雄的原檔、骨架家族、身高與要刪的網格（`drop`，物件或材質名的正規式）。流程是匯入 → 骨架擺成遊戲的 A 字綁定姿勢（`BIND`：肩 0.75、髖 0.1 弧度）後套用 → 合併重複頂點、統一法線、依夾角切銳邊 → 減面到 12000 三角形（`tris`）→ 縮放到身高、髖部在原點、腳踩地 → 原骨架的權重依 `RIGS` 對照表併到遊戲骨頭 → 輸出只有遊戲骨名的 `KI` 骨架，節點 extras 帶 `ki_joints`（遊戲座標的關節位置）與 `ki_height`。貼圖縮到 512、JPEG。
+- 骨架家族：`mixamo`（貝吉塔、魯夫）、`bip001`（索隆）、`bountyrush`（香吉士，沒有指骨，依前臂長度補手指關節）、`ccbase`（娜美）、`xv2`（比克）、`ue`（弗利沙，要 `bind: False`：匯入器猜的綁定姿勢會讓手臂爆開）、`jumpforce`（特南克斯）。目標 `SKIRT` 是衣襬：一半跟髖、一半跟同側大腿。
+- 沒有骨架的模型（`rig: 'auto'`：悟空、18 號、鳴人、佐助、小櫻）：`lm` 是在正面正交圖上量的關節（u＝x／身高、v＝離地高／身高，只量 +x 側），前後深度取網格切片中點；建好遊戲骨架後，用體素重建的封閉代理網格（只留範圍內有關節的連通塊）算 Blender 的熱擴散權重，再以最近面內插轉回原網格。熱擴散要放大十倍才解得出來；越過肩關節的鎖骨權重漸進移給上臂。
+- 執行時（`src/models.js`）：`heroSkeleton` 照 `ki_joints` 擺骨頭（`glbSkeleton`），每個材質一張 SkinnedMesh＋外框殼；頭顱與程式髮型不建。材質用同一套卡通著色（`heroMaterial` 的 `map`），貼圖材質雙面畫、背面翻法線。弗利沙的尾巴不在 GLB 裡，沿尾巴骨鏈生一條錐管（`chainTube`）。賽亞人變身時著色器把脖子以上、接近髮色（`glb.js` 的 `HAIR_KEY`）的貼圖換成金色。
+- 換模型：原檔放到 `--src` 底下，改 `HEROES`，轉檔後用 `node tools/viewer.mjs`（站著、`anim=run`、`anim=atk2`、`pitch=56` 遊戲俯角）檢查，把 id 加進 `glb.js` 的 `GLB_IDS`，更新 CREDITS.md 與選角畫面的 `#fanNote`。
 
 ## 角色模型（Blender）
 
@@ -176,9 +188,14 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 素材來源
 
+- 角色模型（透過網站開啟時）：Sketchfab 上 13 個 CC BY 4.0 模型，作者、標題、網址與修改內容見 [CREDITS.md](CREDITS.md)；選角畫面右上角 `#fanNote` 列出作者名。
 - 角色身體與頭部的底模：Quaternius「Universal Base Characters」（CC0），只取網格與權重，眼球、眉毛與貼圖不用；衣物、臉部五官貼花與頭髮都是本作腳本建模。
 
 ## 已知限制
+
+- Sketchfab 模型的品質與比例不一：香吉士（Bounty Rush）褲管下段是火焰（惡魔風腳）的貼圖、面數只有約 4400；18 號、小櫻的貼圖偏淡；自動綁骨的五名角色（悟空、18 號、鳴人、佐助、小櫻）跨步大時褲襠會拉扯；卡卡西還沒有模型。
+- GLB 版的臉沒有表情與眨眼（臉畫在模型貼圖上）；只有賽亞人變身會換髮色。
+- 開場一次載完 13 個 GLB（約 8 MB），慢速網路下選角畫面會晚幾秒出現。
 
 - 角色比原本的 SDF 版多約 1 萬面（每名身體約 2.5 萬面），桌機實測幀率約 110（原本頂到 120 的垂直同步）。
 

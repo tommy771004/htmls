@@ -111,12 +111,11 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true]]) {
     await page.evaluate(() => window.__rsa.go('menu'));
     await press('#modes button[data-mode=show]');
     ok(await wait(page, () => window.__rsa.screen === 'show' && window.__rsa.show, 3000), `${tag} 展示間`);
-    await press('#sDoors [data-v="0"]');
     await press('#paints button:nth-child(3)');
     await press('#sAero [data-v=airbrake]');
     await page.waitForTimeout(1500);
-    const sh = await page.evaluate(() => ({ paint: window.__rsa.settings.paint, doors: document.querySelector('#sDoors [data-v="0"]').classList.contains('on') }));
-    ok(sh.doors && sh.paint !== 'pearl', `${tag} 關門、換烤漆（${sh.paint}）`);
+    const sh = await page.evaluate(() => ({ paint: window.__rsa.settings.paint, wing: window.__rsa.show.state.wingH }));
+    ok(sh.wing > 0.5 && sh.paint !== 'pearl', `${tag} 升尾翼、換烤漆（${sh.paint}）`);
     await shot('show');
     ok(await overflow(), `${tag} 展示間沒有水平溢出`);
 

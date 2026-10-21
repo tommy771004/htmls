@@ -59,6 +59,7 @@ kbd { font: 600 10px/1 var(--text); padding: 3px 5px 2px; border: 1px solid var(
 #online.live i { background: #4fe08a; box-shadow: 0 0 0 3px rgba(79, 224, 138, .16); }
 #online b { font: italic 600 22px/1 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
 #fan { margin-left: auto; max-width: 360px; text-align: right; color: var(--faint); line-height: 1.5; }
+#fan a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
 /* 共用面板（暫停、結算、設定、操作、排行榜） */
 .sheet { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(4, 4, 4, .72); padding: 20px var(--pad); }
@@ -317,12 +318,12 @@ body.touch #touch { display: block; }
     <li><button data-mode="free"><i class="bar"></i><span class="t">FREE RIDE</span><span class="z"><b>自由駕駛</b>夜間特技場、10 個任務、收集紅環</span></button></li>
     <li><button data-mode="ta"><i class="bar"></i><span class="t">TIME ATTACK</span><span class="z"><b>計時賽</b>5 個檢查點、金銀銅牌、和自己的幽靈車比</span></button></li>
     <li><button data-mode="league"><i class="bar"></i><span class="t">ROADSTER LEAGUE</span><span class="z"><b>車球聯賽</b>巨型足球，分隊對戰，一房最多 20 人</span></button></li>
-    <li><button data-mode="show"><i class="bar"></i><span class="t">SHOWROOM</span><span class="z"><b>展示間</b>環繞鏡頭、鷗翼門、燈光、主動空力與烤漆</span></button></li>
+    <li><button data-mode="show"><i class="bar"></i><span class="t">SHOWROOM</span><span class="z"><b>展示間</b>環繞鏡頭、燈光、主動空力與烤漆</span></button></li>
     <li><button data-mode="board"><i class="bar"></i><span class="t">LEADERBOARD</span><span class="z"><b>排行榜</b>計時賽的世界紀錄與本週最佳</span></button></li>
   </ul>
   <footer>
     <div id="online"><i></i><b id="onlineN">0</b><span id="onlineL">連線中…</span></div>
-    <p id="fan">非官方同人作品，與任何汽車製造商無關。車款、場地與音效都是程式即時生成的原創設計。</p>
+    <p id="fan">非官方同人作品，與任何汽車製造商無關。車輛模型：<a href="https://sketchfab.com/3d-models/tesla-roadtser-2026-7630c9fe842d4f5ea86fc1f122753b89" target="_blank" rel="noopener">“Tesla Roadtser 2026”</a> by <a href="https://sketchfab.com/asiphy007" target="_blank" rel="noopener">asiphy007</a>，<a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>（已減面、拆出輪子）；場地與音效是程式即時生成的。</p>
   </footer>
 </section>
 
@@ -383,12 +384,10 @@ body.touch #touch { display: block; }
 
 <section id="show" class="hide">
   <button class="chipBtn" id="showBack">← 返回選單</button>
-  <div id="showTitle"><h1>RSA Roadster</h1><p>雙座電動跑車的原創設計：鷗翼門、四噴口冷氣推進、主動尾翼兼空氣煞車。拖曳環繞，滾輪縮放。</p></div>
+  <div id="showTitle"><h1>RSA Roadster</h1><p>雙座電動跑車：四噴口冷氣推進、主動尾翼兼空氣煞車。模型 asiphy007（Sketchfab，CC BY 4.0）。拖曳環繞，滾輪縮放。</p></div>
   <div id="specs"></div>
   <div id="showCtl">
     <div><h3>烤漆</h3><div id="paints"></div></div>
-    <div><h3>塗裝</h3><div class="seg" id="liveries"></div></div>
-    <div><h3>鷗翼門</h3><div class="seg" id="sDoors"><button data-v="1">打開</button><button data-v="0">關上</button></div></div>
     <div><h3>燈光</h3><div class="seg" id="sLights"><button data-v="0">關</button><button data-v="1">近光</button><button data-v="2">遠光</button></div></div>
     <div><h3>主動空力</h3><div class="seg" id="sAero"><button data-v="stowed">收起</button><button data-v="deployed">下壓</button><button data-v="airbrake">空氣煞車</button></div></div>
   </div>
@@ -479,6 +478,7 @@ body.touch #touch { display: block; }
 </section>
 
 <script id="rapier-wasm" type="application/octet-stream"><!--WASM--></script>
+<script id="roadster-glb" type="application/octet-stream"><!--CAR--></script>
 <!--BUNDLE-->
 </body>
 </html>

@@ -105,6 +105,18 @@ try {
   await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw + 1.9, .05, 0); });
   await page.waitForTimeout(250); await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw + 1.9, .05, 0); });
   await shot(page, 'g-bike');
+  // 新機車的騎乘姿勢
+  for (const id of ['zx6r', 'v4']) {
+    await ev(page, (id) => { const nc = window.__nc; nc.walk(); nc.applyCar(id); nc.drive(); const v = nc.player.veh; v.vx = v.vz = 0; nc.look(v.yaw + 1.6, .05, 0); }, id);
+    await page.waitForTimeout(500); await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw + 1.6, .05, 0); });
+    await hideHud(page); await shot(page, 'g-ride-' + id);
+  }
+  // 車行門口：門前兩台展示車與櫥窗剪影，走近才下載
+  await ev(page, () => { const nc = window.__nc, d = nc.spots.dealerDoor; nc.walk(); nc.tp(d.x, d.z + 9, Math.PI); nc.look(Math.PI, .05, 1); });
+  await page.waitForTimeout(2500); await hideHud(page);
+  const front = await ev(page, () => ({ loaded: window.__nc.glb.loaded.slice(), st: window.__nc.getStats() }));
+  check(['f40', 'sf90', 'r34', 'supra', 'nsx', 'zr1'].every(id => front.loaded.includes(id)), `車行門口的實車已下載，${front.st.triangles} 個三角形、${front.st.drawCalls} 個 draw call、${front.st.fps} fps`);
+  await shot(page, 'g-storefront');
   // 街景：每台實車停在 LAZARUS 門口拍一張（CITY=1）
   if (process.env.CITY) for (const id of IDS.filter(id => !process.env.ONLY || process.env.ONLY.split(',').includes(id))) {
     await ev(page, (id) => { const nc = window.__nc, d = nc.spots.clubDoor; nc.walk(); nc.applyCar(id); nc.drive(); const v = nc.player.veh; v.x = d.x + 10; v.z = d.z + 8.9; v.yaw = 1.57; v.vx = v.vz = 0; nc.look(v.yaw - 3.6, .02, 0); }, id);

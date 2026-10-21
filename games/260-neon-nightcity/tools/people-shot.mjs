@@ -1,0 +1,32 @@
+// 人物截圖檢查：node tools/people-shot.mjs [輸出資料夾]
+import { open, raf } from './lib.mjs';
+import { mkdirSync } from 'node:fs';
+const out = process.argv[2] || 'dist/people';
+mkdirSync(out, { recursive: true });
+const { browser, page, log } = await open('../../web/260-neon-nightcity.html');
+await page.evaluate(() => __nc.start());
+const shot = async (name, js, wait = 600) => {
+  await page.evaluate(js);
+  await page.waitForTimeout(wait); await raf(page);
+  const s = await page.evaluate(() => __nc.getStats());
+  await page.screenshot({ path: `${out}/${name}.png` });
+  console.log(name, JSON.stringify(s));
+};
+const sp = await page.evaluate(() => __nc.spots);
+await shot('bouncer', `__nc.tp(${sp.bouncer.x - 4}, ${sp.bouncer.z + 3}, ${-Math.PI * .7}); __nc.look(${Math.PI * .3}, .12, 1)`, 1500);
+await shot('street', `__nc.look(${Math.PI}, .25, 1)`, 800);
+const um = await page.evaluate(() => { const k = __nc.pedState.findIndex((s, i) => s.um && __nc.peds.people[i].x); const p = __nc.peds.people[k]; return { x: p.x, z: p.z, yaw: p.yaw }; });
+await shot('umbrella', `__nc.tp(${um.x} + Math.sin(${um.yaw}) * 2.2 + Math.cos(${um.yaw}) * .8, ${um.z} + Math.cos(${um.yaw}) * 2.2 - Math.sin(${um.yaw}) * .8, ${um.yaw}); __nc.me.mesh.visible = false; __nc.look(${um.yaw + Math.PI}, .05, 2)`, 250);
+await page.evaluate(() => { __nc.me.mesh.visible = true; });
+await shot('me', `__nc.look(${Math.PI}, .1, 2)`, 600);
+await shot('club', `__nc.enter('club'); __nc.player.z = 10; __nc.look(0, .2, 0)`, 1500);
+await shot('club2', `__nc.look(Math.PI * .5, .15, 1)`, 800);
+await shot('dj', `__nc.player.x = 0; __nc.player.z = 26.5; __nc.me.mesh.visible = false; __nc.look(0, .1, 2)`, 600);
+await shot('sit', `__nc.player.x = 8.3; __nc.player.z = 10; __nc.look(Math.PI * .5, .1, 2)`, 600);
+await shot('bartend', `__nc.player.x = -8.9; __nc.player.z = 12.5; __nc.look(-Math.PI * .5, .1, 2)`, 600);
+await shot('smoke', `__nc.player.x = 2.9; __nc.player.z = 8.8; __nc.look(Math.PI, .1, 2)`, 600);
+await page.evaluate(() => { __nc.me.mesh.visible = true; });
+await shot('bar', `__nc.enter('bar'); __nc.look(Math.PI * .5, .15, 0)`, 1500);
+await shot('ride', `__nc.exit(); __nc.drive('hanzo'); __nc.look(-Math.PI/2, .1, 0)`, 2500);
+console.log('errors', log.pageerrors, log.errors.slice(0, 5));
+await browser.close();

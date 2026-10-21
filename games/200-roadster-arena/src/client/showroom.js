@@ -57,7 +57,7 @@ export class Showroom {
     this.table.add(this.car.group);
     this.car.group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.state = { spin: 0, steerVis: 0, wingH: 0, wingA: 0.05, aero: 'AUTO', boosting: false, hovering: false };
-    this.doors = 0; this.doorTarget = 1; this.aeroMode = 'stowed'; this.lights = 1;
+    this.aeroMode = 'stowed'; this.lights = 1;
     this.orbit = { yaw: 0.7, pitch: 0.16, dist: 9.5, auto: true, idle: 0 };
     this.car.setLights(1);
     if (this.car.spots) for (const sp of this.car.spots) sp.visible = false;
@@ -70,8 +70,6 @@ export class Showroom {
   zoom(k) { const o = this.orbit; o.dist = Math.max(5.2, Math.min(16, o.dist * k)); o.idle = 0; }
 
   update(dt, time) {
-    this.doors += Math.sign(this.doorTarget - this.doors) * Math.min(Math.abs(this.doorTarget - this.doors), dt * 0.9);
-    this.car.setDoors(this.doors);
     const st = this.state;
     const tgt = this.aeroMode === 'stowed' ? [0, 0.05] : this.aeroMode === 'deployed' ? [1, 0.3] : [1, 1];
     st.wingH += (tgt[0] - st.wingH) * Math.min(1, dt * 3);

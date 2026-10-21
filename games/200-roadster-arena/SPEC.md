@@ -11,6 +11,7 @@
 | `src/core/arena.js`、`league.js` | 聯賽球場網格與距離場、`League`（本機車、遠端運動學車、球、規則）、`Bot`（AI）、`kickoffSpot` | three、Rapier |
 | `src/net/core.js` | `BoardCore`、`LobbyCore`、`RoomCore`：連線的純邏輯，不碰網路與儲存 | `const.js` |
 | `src/client/*` | 畫面（`gfx`、`parkview`、`leagueview`、`roadster`、`showroom`、`fx`、`camera`）、輸入、HUD、音效、`drive`（Free Ride／計時賽）、`match`（聯賽）、`net`、`store`、`main` | DOM、three |
+| `assets/roadster.glb` | 車輛模型（`tools/car.mjs` 產生、有 commit）：節點 `body`、`wheel_FL`／`FR`／`RL`／`RR`，地面 y=0、車頭 +z，前後軸對齊 `CAR.WHEELS` 的 z；meshopt 量化把縮放寫進節點矩陣，原點另存在節點 extras `c`（輪心）。打包時 gzip＋base64 放進 `#roadster-glb`，`main.js` 和 Rapier 一起 `loadRoadster()` 後才建車 | 無 |
 | `../../server/roadster/server.mjs` | Node 轉接：`createRoadster()` 把 `core.js` 接到 `ws`，掛在 `npm start` 的 8127 埠 | ws |
 | `worker/index.js` | Cloudflare 轉接：`Lobby`、`Room` 兩個 Durable Object，同一份 `core.js` | Workers runtime |
 

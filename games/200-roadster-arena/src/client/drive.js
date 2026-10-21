@@ -27,7 +27,7 @@ export class Drive {
     this.rayGroups = groups(0xffff, G_WORLD);
     this.view = new ParkView(gfx, this.park);
     const scene = this.scene = this.view.scene;
-    this.model = new Roadster({ lights: true, paint: settings.paint, livery: settings.livery });
+    this.model = new Roadster({ lights: true, paint: settings.paint });
     scene.add(this.model.group);
     this.ghost = new Roadster({ ghost: true });
     this.ghost.group.visible = false;
@@ -46,11 +46,10 @@ export class Drive {
     this.mode = null;
   }
 
-  // 主選單背景：車停在起終點拱門前，鷗翼門打開，不推進物理
+  // 主選單背景：車停在起終點拱門前，尾翼升起，不推進物理
   menuPose() {
     this.mode = 'menu';
     this.reset(-4, CAR.REST_Y, -262, 0.5);
-    this.model.setDoors(1);
     this.model.setLights(1);
     this.view.setGates(0, false);
     this.ghost.group.visible = false;
@@ -69,7 +68,6 @@ export class Drive {
 
   start(mode) {
     this.mode = mode;
-    this.model.setDoors(0);
     this.model.setLights(this.car.state.lights);
     const s = this.car.state;
     s.gas = CAR.GAS_MAX; s.frozen = false;

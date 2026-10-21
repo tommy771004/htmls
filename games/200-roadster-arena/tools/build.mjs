@@ -1,5 +1,6 @@
 // 打包：src/client/main.js（含 three、Rapier 與 core）→ 內嵌進 src/index.html → ../../web/200-roadster-arena.html
 // Rapier 的 WASM 原本以 base64 寫在 JS 裡（4 MB），這裡改成 gzip 後的 base64 另外放，瀏覽器用 DecompressionStream 解開。
+// 車輛模型 assets/roadster.glb（tools/car.mjs 產生）同樣 gzip＋base64 內嵌。
 // --dev 不壓縮；--out=<檔案> 改輸出位置
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -35,9 +36,10 @@ const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const wasm = readFileSync(resolve(rapierDir, 'dist/rapier_wasm3d_bg.wasm'));
 const wasmB64 = gzipSync(wasm, { level: 9 }).toString('base64');
 const template = readFileSync(resolve(root, 'src/index.html'), 'utf8');
-for (const k of ['<!--BUNDLE-->', '<!--WASM-->']) if (!template.includes(k)) throw new Error(`src/index.html 缺少 ${k} 佔位符`);
-const full = template.replace('<!--WASM-->', () => wasmB64).replace('<!--BUNDLE-->', () => `<script>${js}</script>`);
+const carB64 = gzipSync(readFileSync(resolve(root, 'assets/roadster.glb')), { level: 9 }).toString('base64');
+for (const k of ['<!--BUNDLE-->', '<!--WASM-->', '<!--CAR-->']) if (!template.includes(k)) throw new Error(`src/index.html 缺少 ${k} 佔位符`);
+const full = template.replace('<!--WASM-->', () => wasmB64).replace('<!--CAR-->', () => carB64).replace('<!--BUNDLE-->', () => `<script>${js}</script>`);
 mkdirSync(dirname(outFile), { recursive: true });
 writeFileSync(outFile, full, 'utf8');
 const kb = (s) => (Buffer.byteLength(s) / 1024).toFixed(0);
-console.log(`${outFile}: ${kb(full)} KB（程式 ${kb(js)} KB、WASM ${kb(wasmB64)} KB）`);
+console.log(`${outFile}: ${kb(full)} KB（程式 ${kb(js)} KB、WASM ${kb(wasmB64)} KB、車輛模型 ${kb(carB64)} KB）`);

@@ -267,6 +267,7 @@ function step(dt) {
   }
   updateWeather(dt, t);
   updateCamera(dt, spd);
+  updateCrowds(curScene);
   // 雨絲依相機速度傾斜
   if (step.lastCam) rainU.uVel.value.subVectors(camera.position, step.lastCam).divideScalar(Math.max(dt, 1e-3)).clampLength(0, 40);
   (step.lastCam ||= V3()).copy(camera.position);
@@ -282,7 +283,7 @@ function step(dt) {
 function placeRider(v) {
   const m = new T.Matrix4().compose(V3(v.x, v.y, v.z), new T.Quaternion().setFromEuler(new T.Euler(v.pitch, v.yaw, v.lean, 'YXZ')), V3(1, 1, 1));
   m.multiply(new T.Matrix4().makeTranslation(0, v.seat ? v.seat[0] : .02, v.seat ? v.seat[1] : -.32));   // 實車機車的座位高低前後不同
-  me.mesh.setMatrixAt(0, m); me.flush();
+  me.placeM(0, m);
   player.x = v.x; player.z = v.z;
 }
 function loop(now) {
@@ -325,7 +326,7 @@ window.__nc = {
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   rain(v) { U.uRain.value = v; }, flash() { weather.next = 0; },
   keys, inp, nitro, livery: cycleLivery,
-  me, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
+  me, peds, pedState, crowd, ANIM, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),
   getStats: () => ({ fps: Math.round(fps), drawCalls: R.info.render.calls, triangles: R.info.render.triangles, mode: player.mode, where: player.where, quest: quest.n, pos: { x: +(player.mode === 'drive' ? player.veh.x : player.x).toFixed(2), z: +(player.mode === 'drive' ? player.veh.z : player.z).toFixed(2) }, scale: post.scale }),
 };

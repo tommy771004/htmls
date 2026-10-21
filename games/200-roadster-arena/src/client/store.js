@@ -8,7 +8,7 @@ function set(k, v) {
   try { localStorage.setItem(KEY + k, JSON.stringify(v)); return true; } catch { return false; }
 }
 
-export const DEFAULTS = { name: '', quality: 'auto', volume: 0.7, units: 'mph', paint: 'pearl', livery: 'stripe', cam: 'chase' };
+export const DEFAULTS = { name: '', quality: 'auto', volume: 0.7, units: 'mph', paint: 'pearl', cam: 'chase' };
 
 export const store = {
   settings() { return { ...DEFAULTS, ...get('settings', {}) }; },

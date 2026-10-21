@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { PROPS, buildHeroParts, heroMaterial } from './models-heroes.js';
 import { KEYS, blank, lerpPose, ease, clamp, smooth01, IMPACT, strike } from './pose-kit.js';
 import { HERO_POSES } from './poses/index.js';
-import { GLB, glbGeometry } from './glb.js';
+import { GLB, glbGeometry, chainTube, HAIR_KEY } from './glb.js';
 export { IMPACT };
 
 export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
@@ -518,7 +518,11 @@ const _heroMats = new Map();
 // 各英雄亮面（材質 2）的高光門檻：弗利沙（GK 第二輪）的紫色圓頂、肩甲是大面積的低曲率曲面，預設門檻下高光是一大塊不規則的白紫斑，
 // 遠看像破洞；參考 02／06 的亮漆高光小而圓滑
 const SPEC = { frieza: 0.988 };
-function glbMat(id, p) { const k = id + ':glb:' + p.map?.uuid; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ map: p.map, alphaTest: p.alpha, spec: SPEC[id] })); return _heroMats.get(k); }
+// 賽亞人的 GLB 材質每個角色實例各一份（變身只換自己的頭髮），其他英雄共用
+function glbMat(id, p, own = false) {
+  if (own) return heroMaterial({ map: p.map, alphaTest: p.alpha, spec: SPEC[id], hairKey: HAIR_KEY[id], hairY: GLB[id].joints.neck[1] });
+  const k = id + ':glb:' + p.map?.uuid; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ map: p.map, alphaTest: p.alpha, spec: SPEC[id] })); return _heroMats.get(k);
+}
 function heroMat(id, team) { const k = id + ':' + team; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ team: TEAM[team], spec: SPEC[id] })); return _heroMats.get(k); }
 function headMat(id, form, tex, rect) { const k = id + ':' + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35, spec: SPEC[id] })); return _heroMats.get(k); }
 // 蒙皮網格的外框：法線取蒙皮後的 transformedNormal；aOl 是逐頂點的外框粗細倍率（臉、手指較細）
@@ -785,7 +789,11 @@ export function buildHero(id, team = 0) {
     skins.push(m, o);
   };
   // Sketchfab 模型：每個材質一張蒙皮網格（固有色取自貼圖）；臉、頭髮都在模型裡，不另外掛頭顱與髮型
-  if (G) for (const p of G.parts) addSkin(glbGeometry(p, sk.bones), glbMat(id, p));
+  const glbMats = [];
+  if (G) for (const p of G.parts) { const m = glbMat(id, p, !!d.saiyan); glbMats.push(m); addSkin(glbGeometry(p, sk.bones), m); }
+  // 弗利沙的尾巴不在 GLB 裡（原檔是另一副骨架）：沿尾巴骨鏈生一條錐管
+  const tailSpec = G && sk.chains.find((c) => c.name === 'tail');
+  if (tailSpec) addSkin(chainTube(tailSpec.segs, tailSpec.len, tailSpec.ground.rad, sk.bones, root, [0.93, 0.92, 0.96]), glbMat(id, {}));
   else addSkin(gs.body, heroMat(id, team));
   root.updateMatrixWorld(true);
   for (const m of skins) m.bind(skeleton, m.matrixWorld);
@@ -1096,6 +1104,7 @@ export function buildHero(id, team = 0) {
     for (const k in hairForms) show(hairForms[k], k === form);
     expr = '';
     if (!G && gs.faces[form]) skull.material = headMat(id, form, gs.faces[form], gs.faceRect);
+    for (const m of glbMats) m.uniforms.uSuper.value = form === 'ssj' ? 1 : 0;
   }
 
   function setAura(level, color) {
