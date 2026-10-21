@@ -76,8 +76,6 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `90-hud.js` | 羅盤與街名、時鐘、小地圖、大地圖與傳送、目標標記、時速表 |
 | `99-main.js` | 輸入、相機（防穿牆、遮擋物抖動淡出）、每幀挑燈、天氣、主迴圈、`window.__nc` |
 
-`blender/vehicles.py`、`blender/characters.py` 是舊版用的模型，打包時不內嵌。
-
 ### 車流
 
 - 車型：計程車（Fairheaven LT '80 Taxi）、警車（Fairheaven LT '80、Illinois '90，`police: 1` 會在車頂閃紅藍燈）、房車（車行的 E34、190E 與 Negotiator、Milano、Kiri、Carter、Compact、Urban、Tiara）、廂型車與貨車（Shvan、LCT 3000、Conquer 皮卡、French delivery van）。除了 E34 與 190E，都是 DanielZhabotinsky 的虛構廠牌低多邊形車（CC BY 4.0），原檔放在 gitignore 的 `.cache/cars/`，由 `cars.mjs` 裡標 `traffic: true` 的項目整理到 `.cache/traffic/`（不進車行、不 commit），這批原檔車頭朝 -z，要 `flip`。

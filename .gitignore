@@ -12,3 +12,8 @@ games/*/playwright-report/
 games/155-tally-crm/shots/
 reports/*
 
+
+# macOS 與 Python 暫存
+.DS_Store
+__pycache__/
+*.pyc
