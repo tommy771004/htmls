@@ -345,15 +345,3 @@ export class Terrain {
 }
 
 export const HEIGHTMAP_SIZE = SEGMENTS + 1;
-
-const srgb = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.SRGBColorSpace);
-
-export const TERRAIN_COLORS = {
-  grassA: srgb(0.30, 0.43, 0.16),
-  grassB: srgb(0.40, 0.50, 0.20),
-  sand: srgb(0.78, 0.71, 0.52),
-  mud: srgb(0.33, 0.31, 0.24),
-  rock: srgb(0.52, 0.5, 0.47),
-  snow: srgb(0.93, 0.95, 0.97),
-  dirt: srgb(0.42, 0.34, 0.24),
-};

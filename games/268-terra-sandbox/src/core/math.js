@@ -91,12 +91,6 @@ export function localToLatLon(origin, x, z) {
   const lon = origin.lon + x / (111320 * Math.cos((origin.lat * Math.PI) / 180));
   return { lat, lon };
 }
-export function latLonToLocal(origin, lat, lon) {
-  return {
-    x: (lon - origin.lon) * 111320 * Math.cos((origin.lat * Math.PI) / 180),
-    z: (origin.lat - lat) * 111320,
-  };
-}
 
 // 點是否在多邊形內（[lon,lat] 陣列）
 export function pointInRing(ring, lon, lat) {

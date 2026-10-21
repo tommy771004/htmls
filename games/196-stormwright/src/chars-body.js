@@ -30,7 +30,6 @@ const PALETTES = [
 ];
 const SHOES = ['#f4f4f4', '#2b2b33', '#ff5a5a', '#ffd33d', '#3d9bff', '#fffaf0'];
 export const HAIR_STYLES = ['spiky', 'bob', 'ponytail', 'buzz', 'curly', 'beanie', 'cap', 'mohawk', 'long'];
-export const OUTFIT_TYPES = ['hoodie', 'jacket', 'overalls', 'tracksuit'];
 
 export function makePlayerOutfit() {
   return {

@@ -552,8 +552,6 @@ hh.hhhhhhhhhh.hh
   },
 };
 
-export const CHARACTER_IDS = Object.keys(SPECS);
-
 function drawLegsFront(c: Canvas, s: CharSpec, frame: number): void {
   const { rows: cols, shade, y, x } = s.legs;
   const n = cols.length;

@@ -280,7 +280,6 @@ def main():
         f.write('// 由 tools/voices/build_voices.py 產生，請勿手改。角色語音（VOICEVOX 離線合成、MP3、base64）。\n')
         f.write('// 使用的 VOICEVOX 角色：%s\n' % '、'.join(credits))
         f.write('export const VOICES = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';\n')
-        f.write('export const VOICE_CREDITS = ' + json.dumps(['VOICEVOX:' + c for c in credits], ensure_ascii=False) + ';\n')
     print('寫入', OUT, '%d KB（MP3 合計 %d KB）' % (os.path.getsize(OUT) // 1024, total // 1024))
 
 

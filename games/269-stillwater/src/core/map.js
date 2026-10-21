@@ -25,7 +25,6 @@ const CTRL = [
   [0, -656, 33, 5.6, 0.12, 0.9, 13, 6],     // 17 潭心
   [2, -694, 27, 5.0, 0.14, 1.6, 18, 4],     // 18 瀑布下
 ];
-export const CTRL_ZONE = [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5];
 export const BOUNDS = { x0: -180, x1: 180, z0: -800, z1: 110 };
 export const FALLS = { x: 2, z: -722, top: 17, width: 13 };
 
@@ -64,7 +63,6 @@ const S = { x: [], z: [], w: [], D: [], cur: [], slope: [], cap: [], hill: [], t
 }
 export const SAMPLES = S;
 export const N = S.x.length;
-export const LENGTH = S.s[N - 1];
 
 // 最近的中心線樣本（中心線的 z 大致單調遞減，先二分搜尋 z 再往兩邊找）
 export function nearest(x, z) {

@@ -69,4 +69,3 @@ export function findPath(ax, az, bx, bz) {
   }
   return out;
 }
-export const navGrid = { walk, N, HALF };

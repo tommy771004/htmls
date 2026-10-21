@@ -78,4 +78,3 @@ export function seen(G, team, u) {
   const k = cellOf(u.x, u.z);
   return k >= 0 && G.vision.grids[team][k] === 1;
 }
-export const visionGrid = { block, bushCell };

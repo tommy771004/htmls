@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `src/core/const.js` | 物理常數：`TICK`（1/120 s）、`GRAVITY`、`CAR`（懸吊、油門表、轉向曲率、冷氣推進、空力三檔）、`ARENA`、`BALL`、`LEAGUE`、碰撞群組 | 無 |
 | `src/core/car.js` | `makeCar`／`placeCar`／`stepCar`：Rapier 只管碰撞，懸吊射線、抓地、甩尾、跳躍、懸停、空中姿態、吸附都逐 tick 寫進速度 | three（向量）、Rapier |
-| `src/core/geom.js`、`park.js`、`world.js` | 特技場幾何（掃掠跳台、通道、迴圈）、物件表（`RINGS`、`PADS`、`TA`、`SIGNS`）、建 Rapier 世界 | three |
+| `src/core/geom.js`、`park.js`、`world.js` | 特技場幾何（掃掠跳台、通道、迴圈）、物件表（`RINGS`、`PADS`、`TA`）、建 Rapier 世界 | three |
 | `src/core/stunt.js`、`tricks.js` | `FreeRide`（任務、紅環、分數）、`TimeAttack`（倒數、檢查點、分段、逆向、幽靈車）、`medalFor`、特技判定 | three |
 | `src/core/arena.js`、`league.js` | 聯賽球場網格與距離場、`League`（本機車、遠端運動學車、球、規則）、`Bot`（AI）、`kickoffSpot` | three、Rapier |
 | `src/net/core.js` | `BoardCore`、`LobbyCore`、`RoomCore`：連線的純邏輯，不碰網路與儲存 | `const.js` |

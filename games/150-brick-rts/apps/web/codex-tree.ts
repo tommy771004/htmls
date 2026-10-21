@@ -2,7 +2,7 @@
 // (packages/content/tree-layout.ts: a block per building, rows Dark → Imperial, a column per line with its upgrades
 // below it, the site's arrows), and the marks a match puts on it. Availability, costs and prerequisites come from
 // rules.ts and civ.ts; the layout only says where things sit.
-import {civDefs,neutralCiv,uniqueUnitOwner,civById} from '../../packages/content/civs.ts';
+import {neutralCiv,uniqueUnitOwner,civById} from '../../packages/content/civs.ts';
 import {rules,resources} from '../../packages/content/rules.ts';
 import type {Resource} from '../../packages/content/rules.ts';
 import {lineUpgrades} from '../../packages/sim/stats.ts';
@@ -109,7 +109,6 @@ export function civTree(civ:string,refs=true):CivTree{
  const c=civById(civ)??civById(neutralCiv)!,d=civDetail(c.id),placed=new Set<string>();
  const t=blocks.map(b=>block(b,c.id,refs,placed));appendRest(t,c.id,placed);
  return {civ:c.id,name:c.name,type:c.type,bonuses:d.bonuses,team:d.team,blocks:t};}
-export const treeCivs=()=>[...civDefs.filter(c=>c.id!==neutralCiv),...civDefs.filter(c=>c.id===neutralCiv)].map(c=>({id:c.id,name:c.name,type:c.type}));
 // Every node of a tree, in block order.
 export const treeNodes=(t:CivTree)=>t.blocks.flatMap(b=>[...(b.head?[b.head]:[]),...b.columns.flat().flatMap(c=>c.nodes)]);
 // ── Match marks ───────────────────────────────────────────────────────────────────────────────────────────────────────

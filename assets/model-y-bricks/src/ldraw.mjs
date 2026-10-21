@@ -87,10 +87,6 @@ export function det3(M) {
 
 // 凸點類原始檔：上方的公凸點；stug 是凸點群組，會再展開成 stud
 const MALE_STUD = /^(stud|stud2|stud2a|stud10|stud15|stud17a|stud18a|studp01|studel|stud-logo\d*)\.dat$/;
-export function isStudPrimitive(name) {
-  const n = normName(name);
-  return MALE_STUD.test(n) || /^stug/.test(n);
-}
 
 // 展開零件：visit(kind, data)；kind = 'tri' | 'line' | 'cond' | 'stud'
 // opts.skipStuds：凸點不輸出幾何，只回報 'stud'（位置與朝上方向）

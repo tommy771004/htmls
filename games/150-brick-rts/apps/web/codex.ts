@@ -740,4 +740,3 @@ export function openCodex(host:HTMLElement,ctx:CodexContext){
 export function closeCodex(){
  if(!open)return;mapObserver?.disconnect();mapObserver=null;const {host,ctx,prev}=open;open=null;host.replaceChildren();host.hidden=true;
  if(prev instanceof HTMLElement&&prev.isConnected)prev.focus();ctx.onClose();}
-export const codexOpen=()=>!!open;

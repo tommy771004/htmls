@@ -70,8 +70,6 @@ export const DIR_VEC: Record<Dir, readonly [number, number]> = {
   right: [1, 0],
 };
 
-export const OPPOSITE: Record<Dir, Dir> = { up: 'down', down: 'up', left: 'right', right: 'left' };
-
 export function stepFrom(x: number, y: number, dir: Dir): { x: number; y: number } {
   const [dx, dy] = DIR_VEC[dir];
   return { x: x + dx, y: y + dy };

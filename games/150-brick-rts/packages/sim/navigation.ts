@@ -34,7 +34,6 @@ const tables=new WeakMap<MapData,{list:number[];length:number;revision:number;ta
 export function blockedTable(map:MapData):Uint8Array{let t=tables.get(map);
  if(!t||t.list!==map.blocked||t.length!==map.blocked.length||t.revision!==map.navigationRevision){const table=new Uint8Array(nodeTotal(map));for(const n of map.blocked)table[n]=1;t={list:map.blocked,length:map.blocked.length,revision:map.navigationRevision,table};tables.set(map,t);}
  return t.table;}
-export const isBlocked=(map:MapData,n:number)=>blockedTable(map)[n]===1;
 // Node ids whose position lies inside box expanded by pad, in ascending id order (the same order a full scan gives).
 export function nodesNear(map:{size:number},box:readonly number[],pad:number):number[]{const side=sideOf(map),out:number[]=[];
  const x0=Math.max(0,Math.ceil((box[0]-pad-50)/50)),x1=Math.min(side-1,Math.floor((box[2]+pad-50)/50)),y0=Math.max(0,Math.ceil((box[1]-pad-50)/50)),y1=Math.min(side-1,Math.floor((box[3]+pad-50)/50));
@@ -43,7 +42,6 @@ export function nodesNear(map:{size:number},box:readonly number[],pad:number):nu
 // Kept as a log so each movement layer (land, water) can catch up from its own cursor (see movement.ts graph).
 const dirtyAreas=new WeakMap<MapData,[number,number,number,number][]>();
 export function dirtyLog(map:MapData){return dirtyAreas.get(map)??dirtyAreas.set(map,[]).get(map)!;}
-export function takeDirtyAreas(map:MapData){const list=dirtyAreas.get(map)??[];dirtyAreas.delete(map);return list;}
 // Nodes ships cannot stand on: off water, or inside an obstacle (a dock, a fish trap). A node with no water or
 // shallow tile round it is closed without the full segment test. Rebuilt per navigation revision.
 const waterTables=new WeakMap<MapData,{revision:number;table:Uint8Array}>();
@@ -60,7 +58,6 @@ export const blockedFor=(map:MapData,layer:'land'|'water')=>layer==='water'?wate
 export const searchBudget=(map:{size:number})=>Math.round(navigationRules.expansionsPerTick*nodeTotal(map)/961);
 export const sideOf=(map:{size:number})=>map.size*2-1;
 export const nodeTotal=(map:{size:number})=>sideOf(map)**2;
-export const worldOf=(map:{size:number})=>map.size*100;
 export type PathJob={movement?:'land'|'water';unitId:number;start:number;goal:number;target:Point;frontier:number[];head:number;parents:number[];status:'searching'|'found'|'unreachable';path:Point[]};
 export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
  if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('地圖 seed 必須為 uint32');

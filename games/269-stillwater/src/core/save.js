@@ -1,5 +1,4 @@
 // 存檔格式與漁獲紀錄（不碰 DOM；load/store 由呼叫端提供 localStorage 之類的存取）
-import { byId } from './fishdb.js';
 import { ensureBoard, speciesCount, MILESTONES } from './quests.js';
 
 export const SAVE_KEY = 'st269.save';
@@ -89,4 +88,3 @@ export function makeCatch(fish, judged, ctx) {
     time: ctx.time, zone: fish.zone, perfect: !!ctx.perfect, flawless: !!judged.flawless, day: ctx.day,
   };
 }
-export const fishOf = (c) => byId(c.id);

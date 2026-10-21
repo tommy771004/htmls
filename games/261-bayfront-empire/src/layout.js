@@ -19,7 +19,6 @@ export const SIDEWALK = 3;
 export const PROM = { z0: 7, z1: 17, y: 0.45 }; // 沿海步道
 export const SAND_Y = 0.12;
 export const SEA_Z0 = 34; // 海面網格從這裡開始（前段在 shader 裡畫成濕沙）
-export const SHORE_Z = 44; // 平均水線
 export const STAIRS_X = [-96, -44, 40, 100];
 export const RAIL_Z = 16.6;
 

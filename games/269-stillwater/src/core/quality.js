@@ -8,7 +8,6 @@ export const TIERS = [
   { id: 3, key: 'gold', zh: '金星', en: 'Gold', mark: '★★', size: [1.31, 1.50], value: 2.6, struggle: 0.30 },
   { id: 4, key: 'crown', zh: '王冠', en: 'Crown', mark: '♛', size: [1.51, 1.85], value: 4.5, struggle: 0.45 },
 ];
-export const THRESH = [45, 65, 82, 95];
 
 export const tierOfScore = (s) => (s >= 95 ? 4 : s >= 82 ? 3 : s >= 65 ? 2 : s >= 45 ? 1 : 0);
 

@@ -915,10 +915,6 @@ export const eagleOpeningInfobox={age:2,power:'強',difficulty:'普',pros:'弱�
 // ── 科技樹 (the 科技樹 round) ───────────────────────────────────────────────────────────────────────────────────────
 export const treeIntro='科技樹照 aoetw.com 各文明的科技樹頁排列：每座建築一塊，由上往下是黑暗、封建、城堡、帝王時代，同一欄由上往下是升級的先後。這個文明沒有的項目變暗並標「沒有」，本作沒有的參考項目（例如鷹斥候、攻城塔）可以顯示成淡色。對局中打開時，會標出你已研究、已擁有、正在進行，以及現在就能做的項目。';
 export const treeNote='科技樹的排列取自 aoetw.com 的文明科技樹頁；每個項目能不能用、費用與前置都即時取自本作的規則，點項目會打開它在百科的那一頁。';
-// Reference items the game lacks, placed in the site's tree by age (aoetw.com tree pages): the ages of each line's
-// steps, and the technology a reference technology follows in its column.
-export const treeRefAges:Readonly<Record<string,readonly number[]>>={'eagle-scout':[2,3,4],'battle-elephant':[3,4],'steppe-lancer':[3,4],'xolotl-warrior':[3],'siege-tower':[3]};
-export const treeRefChains:Readonly<Record<string,string>>={banking:'coinage'};
 // ── 地圖 (the 地圖 round) ─────────────────────────────────────────────────────────────────────────────────────────────
 // aoetw.com's random-map list (maps/index.vue) with the site's descriptions (packages/content/maps.ts), the strategy each
 // page suggests for the maps this game plays (condensed, no numbers: the summaries on the page carry the site's own),

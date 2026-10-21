@@ -14,7 +14,6 @@ const MID = [[-58, 58], [58, -58]];
 const BOT = TOP.map(([x, z]) => [-x, -z]).reverse();
 // LANES[i] = 從青隊（team 0）往赤隊的路點；赤隊使用反向
 export const LANES = [TOP, MID, BOT].map((pts) => pts.map(([x, z]) => ({ x, z })));
-export const LANE_NAMES = ['上路', '中路', '下路'];
 export function lanePath(lane, team) { return team === 0 ? LANES[lane] : LANES[lane].slice().reverse(); }
 
 function polyLen(p) { let L = 0; for (let i = 1; i < p.length; i++) L += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return L; }
@@ -33,7 +32,6 @@ export function distToSeg(px, pz, a, b) {
 }
 export function distToLane(px, pz, lane) { const p = LANES[lane]; let d = 1e9; for (let i = 1; i < p.length; i++) d = Math.min(d, distToSeg(px, pz, p[i - 1], p[i])); return d; }
 export function distToLanes(px, pz) { return Math.min(distToLane(px, pz, 0), distToLane(px, pz, 1), distToLane(px, pz, 2)); }
-export function nearestLane(px, pz) { let b = 0, bd = 1e9; for (let i = 0; i < 3; i++) { const d = distToLane(px, pz, i); if (d < bd) { bd = d; b = i; } } return b; }
 // 路線上離 (px,pz) 最近點的弧長
 export function laneProgress(path, px, pz) {
   let best = 1e9, bestD = 0, acc = 0;

@@ -9,10 +9,6 @@ export interface Roster {
   box: MonsterInstance[];
 }
 
-export function hasStorageFor(roster: Roster): boolean {
-  return roster.party.length < PARTY_MAX || roster.box.length < BOX_MAX;
-}
-
 /**
  * 新怪獸入隊：隊伍未滿放隊伍，滿了送收納箱。
  * 絕不覆蓋既有個體；同一個 uid 已存在時拒絕，避免重複新增。

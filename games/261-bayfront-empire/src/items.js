@@ -52,7 +52,6 @@ export function giveItems(s, items) {
 }
 
 export const buffOf = (s, id, t) => (s.buffs || []).find((b) => b.id === id && (t === undefined || b.t === t) && b.until > absMin(s));
-export const buffLeft = (s, id, t) => { const b = buffOf(s, id, t); return b ? b.until - absMin(s) : 0; };
 // 可以用在哪些店（指定店家的道具）
 export function itemTargets(s, id) {
   const it = ITEM_BY_ID[id];
@@ -120,8 +119,6 @@ export function buyGear(s, bizId, gid) {
   (s.gear[bizId] = s.gear[bizId] || []).push(gid);
   return true;
 }
-export const gearCount = (s) => Object.values(s.gear).reduce((t, v) => t + v.length, 0);
-export const gearCountOf = (s, gid) => Object.values(s.gear).filter((v) => v.includes(gid)).length;
 
 // ───────── 全城建設與外觀 ─────────
 export const hasCivic = (s, id) => !!(s.civic && s.civic[id]);

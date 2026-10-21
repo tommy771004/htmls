@@ -215,11 +215,6 @@ export function nextCost(s, id) {
   return null;
 }
 
-export function canAfford(s, id) {
-  const c = nextCost(s, id);
-  return c !== null && s.money >= c;
-}
-
 // 買下（lv 0→1）或升級（→2、→3）。成功回傳新等級
 export function buyOrUpgrade(s, id) {
   const c = nextCost(s, id);

@@ -4,7 +4,6 @@ export const DT = 1 / 60;            // 固定模擬步長
 export const MAP = 90;               // 地圖半寬
 export const TEAM_COLOR = ['#24a38f', '#d9472b'];
 export const TEAM_LIGHT = ['#8fe8d4', '#ffa184'];
-export const TEAM_NAME = ['青隊', '赤隊'];
 export const BASE = [[-72, 72], [72, -72]];
 export const FOUNTAIN = [[-81, 81], [81, -81]];
 

@@ -36,12 +36,6 @@ export const CONSUMABLES = {
 let UID = 1;
 export const PICKAXE = { uid: 0, defId: 'pickaxe', kind: 'weapon', rarity: 0, mag: 0, count: 1 };
 
-export function defOf(item) {
-  if (!item) return null;
-  if (item.kind === 'weapon') return WEAPONS[item.defId];
-  if (item.kind === 'consumable') return CONSUMABLES[item.defId];
-  return null;
-}
 export function makeItem(defId, rarity = 0, count) {
   if (WEAPONS[defId]) {
     const w = WEAPONS[defId];

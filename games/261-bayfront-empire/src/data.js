@@ -307,7 +307,6 @@ export const QUESTS = [
 ];
 export const FIRST_BEACH_QUEST = 4;
 export const FIRST_PORT_QUEST = 11;
-export const FIRST_LIFE_QUEST = 15;
 
 // ── 物流與海港 ──
 // 每位客人消費會用掉 1 單位貨；單位成本 = 客單價 × supply。沒有港口時全部向城市批發商以市價進貨。

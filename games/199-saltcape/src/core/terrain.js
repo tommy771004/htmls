@@ -5,7 +5,6 @@ import { fbm, vnoise, clamp, lerp, smooth } from './rng.js';
 export const EXT = 1260;          // 地圖半寬（公尺），海面延伸到此
 export const CELL = 6;            // 高度場格距
 export const N = Math.round((EXT * 2) / CELL) + 1;
-export const SEA = 0;
 
 // 命名地點：中心、半徑、類型；h 指定整地高度（null 依原地形）
 export const TOWNS = [

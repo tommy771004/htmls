@@ -55,12 +55,6 @@ export function rampProfile(t) {
   return c * c * (0.35 + 0.65 * c);
 }
 
-// 剖面在 t 的斜率（d profile / dt），給需要唇口角度的人用
-export function rampProfileSlope(t) {
-  const c = t < 0 ? 0 : t > 1 ? 1 : t;
-  return 0.7 * c + 1.95 * c * c;
-}
-
 export function clamp(v, a, b) {
   return v < a ? a : v > b ? b : v;
 }

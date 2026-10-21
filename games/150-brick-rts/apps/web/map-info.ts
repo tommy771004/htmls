@@ -29,7 +29,6 @@ export function mapChoices():MapChoiceGroup[]{
  out.push({label:'本作地圖',maps:ownMaps},{label:'練習地圖',maps:practiceMaps});
  return out;}
 export const allChoices=()=>mapChoices().flatMap(g=>g.maps);
-export const mapName=(layout:MapLayout)=>allChoices().find(m=>m.layout===layout)?.zh??layout;
 // Relics lie on every full-size match map (sim.ts createState); a start without town centres has none to space them from.
 export function mapRelics(map:MapData,seed:number){if(map.size!==32)return [];try{return placeRelics(map,seed);}catch{return [];}}
 // ── What a generated map holds ─────────────────────────────────────────────────────────────────────────────────────

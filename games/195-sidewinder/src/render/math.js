@@ -1,9 +1,5 @@
 // 最小的 4×4 矩陣工具（列主序給 WebGL：m[col*4+row]）。
 
-export function ident(o = new Float32Array(16)) {
-  o.fill(0); o[0] = o[5] = o[10] = o[15] = 1; return o;
-}
-
 export function mul(a, b, o = new Float32Array(16)) {
   const r = o === a || o === b ? new Float32Array(16) : o;
   for (let c = 0; c < 4; c++) {

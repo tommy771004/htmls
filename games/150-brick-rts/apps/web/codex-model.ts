@@ -197,7 +197,6 @@ const techSources=(id:string)=>{const p=refTech.get(id)?.page;return p?[`aoetw.c
 // numbers are the unit's) and the civilizations' Castle content (unique technologies, listed by civilization).
 const lineIds=new Set(lineUpgrades.map(u=>u.id));
 export const genericTechIds=()=>rules.entries.filter(e=>e.kind==='technology'&&!e.id.startsWith('age-')&&!lineIds.has(e.id)&&!uniqueUnitOwner[e.id]).map(e=>e.id);
-export const lineUpgradeCount=()=>lineUpgrades.length;
 const stripName=(text:string,name:string)=>text.startsWith(`${name}：`)?text.slice(name.length+1):text;
 const labels=(ids:readonly string[])=>ids.map(x=>classLabel[x]??x).join('、');
 // A blacksmith line as one sentence, from stats.ts's table (range in tiles of 100 units).
