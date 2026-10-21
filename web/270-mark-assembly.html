@@ -1,0 +1,1639 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>裝甲進化殿堂 · Mark 1–85</title>
+<meta name="description" content="鋼鐵人 Mark 1–85 的 3D 裝甲殿堂：用三套 Blend Swap 授權模型（Mk.3 兩套、Mk.7 一套）依各型號參考圖換色，滑過零件看部位與組裝順序，可播放 288 幀自組裝、爆炸圖、全息線框、尺寸與兩座機庫。非官方同人作品。">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230b0d10%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22none%22 stroke=%22%23bfefff%22 stroke-width=%222.6%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%223.4%22 fill=%22%23e9fbff%22/%3E%3C/svg%3E">
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three-0.186.0/three.module.js",
+  "three/addons/": "../vendor/three-0.186.0/addons/"
+} }
+</script>
+<style>
+:root{
+  --bg:#000;
+  --glass:rgba(16,19,22,.74);
+  --glass-2:rgba(22,26,30,.92);
+  --edge:rgba(226,242,255,.075);
+  --ink:#e8edf0; --ink-2:#a3acb3; --ink-3:#737d85;
+  --act:#13394a; --act-ink:#e6f8ff;
+  --acc:#62d6ff;
+  --sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease-out:cubic-bezier(.22,.8,.3,1);
+  --dur-hover:140ms; --dur-enter:220ms; --dur-exit:140ms;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+code{font-family:var(--mono);font-size:12px;color:#bfe9ff}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+/* 上下兩條工具列 */
+.bar{position:fixed;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:2px;padding:5px;
+  background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);
+  border-radius:12px;box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(236,248,255,.05),0 2px 6px rgba(0,0,0,.35);white-space:nowrap}
+.bar.top{top:14px}
+.bar.bottom{bottom:16px}
+.bar button{border:0;background:transparent;color:var(--ink-2);font-size:13.5px;line-height:1;padding:9px 11px;border-radius:8px;cursor:pointer;
+  transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.bar button:hover{color:var(--ink);background:rgba(226,242,255,.055)}
+.bar button[aria-pressed="true"]{background:var(--act);color:var(--act-ink)}
+.bar button:focus-visible,.legend button:focus-visible,.pop button:focus-visible,.panel button:focus-visible{outline:2px solid #cfeeff;outline-offset:1px}
+.bar .sep{flex:none;width:1px;height:18px;margin:0 7px;background:rgba(226,242,255,.11);border-radius:1px}
+.bar .menu{display:inline-flex;align-items:center;gap:6px}
+.bar .menu svg{width:9px;height:6px;opacity:.7;transition:transform var(--dur-hover) var(--ease-out)}
+.bar .menu[aria-expanded="true"]{color:var(--ink);background:rgba(226,242,255,.07)}
+.bar .menu[aria-expanded="true"] svg{transform:rotate(180deg)}
+.bar .grp{display:contents}
+.bar .mob{display:none}
+.bar .mk{min-width:132px;justify-content:center;gap:8px}
+.bar .mk i{width:9px;height:9px;border-radius:50%;background:var(--p,#7a0b0b);box-shadow:5px 0 0 -1px var(--s,#c49a45);margin-right:4px}
+.bar .mk b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.bar .step{padding:9px 8px}
+.bar .play{display:inline-flex;align-items:center;gap:7px}
+.bar .play svg{width:10px;height:10px}
+
+.slide{display:flex;align-items:center;gap:10px;padding:0 6px 0 10px}
+.slide input{--p:0%;-webkit-appearance:none;appearance:none;width:96px;height:22px;margin:0;background:transparent;cursor:pointer}
+.slide input::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:linear-gradient(90deg,var(--acc) 0 var(--p),rgba(226,242,255,.15) var(--p) 100%)}
+.slide input::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-6px;border-radius:50%;background:#f0f6fa;border:0;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.slide input::-moz-range-track{height:3px;border-radius:3px;background:rgba(226,242,255,.15)}
+.slide input::-moz-range-progress{height:3px;border-radius:3px;background:var(--acc)}
+.slide input::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#f0f6fa;border:0}
+.slide output{width:36px;text-align:right;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* 左上：作品名 */
+.brand{position:fixed;top:18px;left:22px;z-index:4;pointer-events:none}
+.brand b{display:block;font-size:15px;font-weight:650;letter-spacing:.02em}
+.brand span{display:block;margin-top:4px;font-size:12px;color:var(--ink-3)}
+
+/* 右上：目前型號的塗裝角色 */
+.legend{position:fixed;top:14px;right:14px;z-index:4;display:flex;flex-direction:column;gap:1px;padding:4px;min-width:150px;border-radius:12px;
+  background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:inset 0 0 0 1px var(--edge)}
+.legend .lg-h{padding:4px 8px 6px;font-size:11.5px;color:var(--ink-3)}
+.legend button{display:flex;align-items:center;gap:9px;white-space:nowrap;border:0;background:transparent;color:var(--ink-2);font-size:12.5px;padding:4px 8px;border-radius:6px;cursor:default;text-align:left;
+  transition:color var(--dur-hover) var(--ease-out),background-color var(--dur-hover) var(--ease-out)}
+.legend button i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.legend button small{margin-left:auto;padding-left:10px;font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.legend button:hover{color:var(--ink);background:rgba(226,242,255,.05)}
+
+/* 型號選單 */
+.pop{position:fixed;z-index:8;min-width:220px;max-height:min(70vh,640px);overflow:auto;padding:6px;border-radius:12px;
+  background:var(--glass-2);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  box-shadow:inset 0 0 0 1px var(--edge),0 6px 18px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(-4px);pointer-events:none;visibility:hidden;
+  transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit)}
+.pop.on{opacity:1;transform:none;pointer-events:auto;visibility:visible;transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.pop h3{display:flex;align-items:baseline;gap:8px;margin:10px 8px 6px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.pop h3 small{font-weight:400;color:var(--ink-3)}
+.pop .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:3px;padding:0 2px}
+.pop .grid button{display:flex;flex-direction:column;align-items:flex-start;gap:5px;border:0;background:rgba(226,242,255,.04);color:var(--ink-2);padding:7px 8px 8px;border-radius:8px;cursor:pointer;text-align:left;min-width:0;
+  transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.pop .grid button:hover{background:rgba(226,242,255,.09);color:var(--ink)}
+.pop .grid button[aria-current="true"]{background:var(--act);color:var(--act-ink)}
+.pop .grid b{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.pop .grid span{display:flex;gap:3px}
+.pop .grid span i{width:12px;height:5px;border-radius:2px;background:var(--c)}
+.pop .grid em{font-style:normal;font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pop .grid button.real em{color:#9fdcff}
+.pop .foot{margin:12px 8px 6px;font-size:11px;line-height:1.55;color:var(--ink-3)}
+
+/* 尺寸標註 */
+#dims{position:fixed;inset:0;z-index:2;pointer-events:none}
+.dim{position:absolute;left:0;top:0;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6);white-space:nowrap;will-change:transform,opacity}
+.dim b{display:block;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
+.dim span{display:block;margin-top:2px;font-size:11px;color:var(--ink-3)}
+
+/* 滑過零件時的說明卡與引線 */
+#lead{position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}
+#lead line{stroke:rgba(236,246,252,.62);stroke-width:1}
+#lead circle{fill:#0b0d10;stroke:#eef8ff;stroke-width:1.4}
+.card{position:fixed;left:0;top:0;z-index:6;width:340px;padding:17px 19px 18px;border-radius:14px;
+  background:rgba(15,18,21,.82);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);
+  box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(236,248,255,.05),0 4px 14px rgba(0,0,0,.4);
+  opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(var(--x,0),var(--y,0),0) scale(.985);transform-origin:var(--ox,0) 50%;
+  transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit);max-height:calc(100vh - 150px);overflow:auto;scrollbar-width:thin}
+.card.on{opacity:1;visibility:visible;transform:translate3d(var(--x,0),var(--y,0),0);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.card.pinned{pointer-events:auto}
+.card .hd{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.card .hd i{width:7px;height:7px;border-radius:50%;background:var(--c,#62d6ff)}
+.card .hd em{margin-left:auto;font-style:normal;font-weight:400;color:var(--ink-3)}
+.card h2{margin:10px 0 9px;font-size:21px;font-weight:650;letter-spacing:.01em;line-height:1.25}
+.card p{margin:0 0 9px;font-size:13.5px;line-height:1.6;color:#d2d9de}
+.card p b{color:var(--ink);font-weight:600}
+.card .row{display:flex;align-items:center;gap:12px;margin:12px 0;padding:11px 0;font-size:13px;color:var(--ink-3);
+  background:linear-gradient(var(--edge),var(--edge)) top/100% 1px no-repeat,linear-gradient(var(--edge),var(--edge)) bottom/100% 1px no-repeat}
+.card .row b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.card .sw{display:flex;gap:4px;margin-left:auto}
+.card .sw i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.card .x{display:none}
+
+/* 左側面板：型號規格／企劃書／授權 */
+.panel{position:fixed;left:22px;top:78px;z-index:5;width:322px;max-height:calc(100vh - 170px);overflow:auto;scrollbar-width:thin;padding:15px 16px 14px;border-radius:14px;
+  background:rgba(15,18,21,.8);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);
+  box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(236,248,255,.05),0 4px 14px rgba(0,0,0,.4);
+  opacity:0;visibility:hidden;transform:translate3d(-8px,0,0);
+  transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit)}
+.panel.on{opacity:1;visibility:visible;transform:none;transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ph b{display:block;font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.04em}
+.ph h2{margin:4px 0 0;font-size:22px;font-weight:650;line-height:1.2}
+.ph h2 small{display:block;margin-top:5px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.px{flex:none;border:0;background:transparent;color:var(--ink-3);font-size:12px;padding:4px 6px;border-radius:6px;cursor:pointer;transition:color var(--dur-hover)}
+.px:hover{color:var(--ink)}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 10px}
+.tags span{font-size:11.5px;padding:4px 8px;border-radius:6px;background:rgba(226,242,255,.06);color:var(--ink-2)}
+.tags span.real{background:rgba(98,214,255,.14);color:#cdeffd}
+.tags span.approx{background:rgba(211,169,85,.14);color:#f0dcb1}
+.panel p{margin:0 0 10px;font-size:13.5px;line-height:1.62;color:#d2d9de}
+.panel .note{font-size:12.5px;color:var(--ink-2);padding:9px 10px;border-radius:9px;background:rgba(226,242,255,.04)}
+.panel h4{margin:14px 0 6px;font-size:11.5px;font-weight:600;color:var(--ink-3)}
+.prompt{position:relative;margin:0;padding:10px 11px 34px;border-radius:9px;background:rgba(0,0,0,.35);font-family:var(--mono);font-size:11.5px;line-height:1.55;color:#c9e9f7;white-space:pre-wrap;word-break:break-word}
+.copy{position:absolute;right:7px;bottom:7px;border:0;border-radius:7px;padding:5px 9px;background:var(--act);color:var(--act-ink);font-size:11.5px;cursor:pointer}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:12.5px}
+.kv dt{color:var(--ink-3)}
+.kv dd{margin:0;color:var(--ink-2)}
+.panel a{color:#9fdcff;text-decoration:none;border-bottom:1px solid rgba(159,220,255,.3)}
+.panel a:hover{border-color:#9fdcff}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;margin:4px 0 12px;border-radius:9px;background:rgba(226,242,255,.05)}
+.seg button{border:0;background:transparent;color:var(--ink-2);font-size:12.5px;padding:7px 0;border-radius:7px;cursor:pointer;transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--act);color:var(--act-ink)}
+.tl{margin:0;padding:0;list-style:none}
+.tl li{position:relative;padding:0 0 12px 16px;font-size:12.8px;line-height:1.58;color:#d2d9de}
+.tl li::before{content:"";position:absolute;left:3px;top:.55em;width:6px;height:6px;border-radius:50%;background:var(--acc)}
+.tl li::after{content:"";position:absolute;left:5.5px;top:1.3em;bottom:2px;width:1px;background:rgba(226,242,255,.12)}
+.tl li:last-child::after{display:none}
+.tl b{display:block;color:var(--ink);font-weight:600}
+.tl small{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.lst{margin:0 0 10px;padding:0;list-style:none}
+.lst li{position:relative;padding-left:15px;margin:0 0 7px;font-size:13px;line-height:1.58;color:#d2d9de}
+.lst li::before{content:"";position:absolute;left:2px;top:.78em;width:6px;height:1.5px;background:var(--ink-3)}
+.lst b{color:var(--ink);font-weight:600}
+
+/* 自組裝播放時的字幕列 */
+.hud{position:fixed;left:50%;bottom:calc(var(--botH,70px) + 14px);z-index:5;transform:translate3d(-50%,8px,0);width:min(560px,calc(100vw - 32px));padding:11px 14px 12px;border-radius:12px;
+  background:rgba(10,13,16,.78);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px var(--edge);
+  opacity:0;visibility:hidden;transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit)}
+.hud.on{opacity:1;visibility:visible;transform:translate3d(-50%,0,0);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.hud .t{display:flex;align-items:baseline;gap:10px;font-size:12px;color:var(--ink-3)}
+.hud .t b{font-family:var(--mono);font-size:13px;color:var(--acc);font-weight:600}
+.hud .t em{font-style:normal;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud .t button{margin-left:auto;border:0;background:rgba(226,242,255,.08);color:var(--ink-2);font-size:12px;padding:5px 9px;border-radius:7px;cursor:pointer}
+.hud p{margin:7px 0 8px;font-size:13px;line-height:1.55;color:#d2d9de}
+.hud .bar2{height:3px;border-radius:2px;background:rgba(226,242,255,.1);overflow:hidden}
+.hud .bar2 i{display:block;height:100%;width:var(--k,0%);background:var(--acc)}
+
+.toast{position:fixed;left:50%;top:calc(var(--topB,56px) + 12px);z-index:9;max-width:min(520px,calc(100vw - 32px));padding:9px 14px;border-radius:10px;
+  background:rgba(20,24,28,.92);box-shadow:inset 0 0 0 1px var(--edge),0 3px 10px rgba(0,0,0,.4);font-size:13px;line-height:1.5;color:var(--ink);
+  opacity:0;transform:translate3d(-50%,-6px,0);pointer-events:none;transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out)}
+.toast.on{opacity:1;transform:translate3d(-50%,0,0);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+
+body.asm .panel,body.asm .legend,body.asm .brand{opacity:0;visibility:hidden}
+#boot{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--bg);transition:opacity .5s var(--ease-out)}
+#boot div{max-width:340px;padding:0 24px;text-align:center;font-size:14px;line-height:1.7;color:var(--ink-2)}
+#boot b{display:block;margin-bottom:6px;font-size:16px;color:var(--ink)}
+#boot.gone{opacity:0;pointer-events:none}
+
+@media (max-width:1180px){ .brand{display:none} .legend{top:66px} }
+@media (max-width:760px){
+  .bar{left:8px;right:8px;transform:none;flex-wrap:wrap;justify-content:center;row-gap:2px;border-radius:11px}
+  .bar .sep{display:none}
+  .bar.top{top:max(8px,env(safe-area-inset-top))}
+  .bar.bottom{bottom:max(10px,env(safe-area-inset-bottom))}
+  .bar button{font-size:13px;padding:9px 9px}
+  .bar .mk{min-width:0}
+  .bar .mob{display:inline-flex}
+  .bar .grp{display:none;position:absolute;left:0;right:0;bottom:calc(100% + 8px);flex-wrap:wrap;justify-content:center;gap:2px;padding:5px;border-radius:11px;
+    background:var(--glass-2);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+  .bar .grp.on{display:flex}
+  .slide input{width:74px}
+  .legend{top:calc(var(--topB,92px) + 6px);left:50%;right:auto;transform:translateX(-50%);flex-direction:row;flex-wrap:nowrap;justify-content:center;gap:0 2px;padding:2px 4px;min-width:0;border-radius:9px}
+  .legend .lg-h{display:none}
+  .legend button{font-size:11px;padding:3px 6px;gap:5px}
+  .legend button small{display:none}
+  .card{width:auto;left:8px;right:8px;top:auto;bottom:calc(var(--botH,94px) + 8px);max-height:46vh;transform:translate3d(0,10px,0);padding:15px 16px 16px}
+  .card.on{transform:none}
+  .card .x{display:block;position:absolute;right:8px;top:8px;border:0;background:transparent;color:var(--ink-2);font-size:13px;padding:6px 8px;border-radius:6px;cursor:pointer}
+  .card .hd em{display:none}
+  .card h2{font-size:19px}
+  .panel{left:8px;right:8px;top:auto;width:auto;bottom:calc(var(--botH,94px) + 8px);max-height:46vh;padding:13px 14px}
+  .ph h2{font-size:19px}
+  body.sheet .panel{opacity:0;visibility:hidden}
+  .hud{bottom:calc(var(--botH,94px) + 8px)}
+  .dim b{font-size:12px}
+  .dim span{font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  .card,.card.on,.pop,.pop.on,.panel,.panel.on,.hud,.hud.on,.toast,.toast.on{transition-duration:1ms}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="可旋轉的鋼鐵人裝甲 3D 模型，滑過零件查看部位"></canvas>
+<div id="dims" aria-hidden="true"></div>
+<svg id="lead" aria-hidden="true"><line id="leadLine" x1="0" y1="0" x2="0" y2="0" opacity="0"/><circle id="leadDot" r="4.5" cx="-20" cy="-20" opacity="0"/></svg>
+
+<div class="brand"><b>裝甲進化殿堂</b><span>Mark 1–85 · 滑過零件、拖曳旋轉、←→ 換型號</span></div>
+
+<div class="bar top" role="toolbar" aria-label="裝甲狀態">
+  <button type="button" data-mode="assembled" aria-pressed="true">組裝</button>
+  <button type="button" data-mode="exploded" aria-pressed="false">爆炸</button>
+  <label class="slide"><input id="ex" type="range" min="0" max="100" step="1" value="0" aria-label="爆炸程度"><output id="exOut">0%</output></label>
+  <button type="button" class="play" id="playBtn" aria-pressed="false"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg>自組裝</button>
+  <span class="sep"></span>
+  <button type="button" class="step" id="prevBtn" aria-label="上一套">‹</button>
+  <button type="button" class="menu mk" id="mkBtn" aria-haspopup="true" aria-expanded="false" aria-controls="mkPop"><i></i><b id="mkLabel">Mark 3</b><svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="step" id="nextBtn" aria-label="下一套">›</button>
+  <span class="sep"></span>
+  <button type="button" data-panel="spec" aria-pressed="true">規格</button>
+  <button type="button" data-panel="plan" aria-pressed="false">企劃書</button>
+</div>
+
+<div class="legend" id="legend" aria-label="塗裝角色"></div>
+
+<div class="bar bottom" role="toolbar" aria-label="視角與顯示">
+  <button type="button" class="menu mob" id="viewBtn" aria-haspopup="true" aria-expanded="false" aria-controls="viewGrp">視角<svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="menu mob" id="showBtn" aria-haspopup="true" aria-expanded="false" aria-controls="showGrp">顯示<svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <span class="grp" id="viewGrp" role="group" aria-label="視角">
+  <button type="button" data-view="q" aria-pressed="true">3/4</button>
+  <button type="button" data-view="front" aria-pressed="false">正面</button>
+  <button type="button" data-view="side" aria-pressed="false">側面</button>
+  <button type="button" data-view="back" aria-pressed="false">背面</button>
+  <button type="button" data-view="hero" aria-pressed="false">仰角</button>
+  <button type="button" data-view="face" aria-pressed="false">頭盔</button>
+  </span>
+  <span class="sep"></span>
+  <span class="grp" id="showGrp" role="group" aria-label="顯示">
+  <button type="button" data-tog="holo" aria-pressed="false">全息線框</button>
+  <button type="button" data-tog="dim" aria-pressed="true">尺寸</button>
+  <button type="button" data-tog="spin" aria-pressed="false">轉盤</button>
+  <button type="button" data-tog="sound" aria-pressed="true">音效</button>
+  </span>
+  <button type="button" id="hangarBtn">機庫 A</button>
+  <button type="button" data-panel="credits" aria-pressed="false">授權</button>
+</div>
+
+<aside class="panel on" id="specPanel" aria-label="型號規格"></aside>
+<aside class="panel" id="planPanel" aria-label="企劃書">
+  <div class="ph"><div><b>PROJECT · HALL OF EVOLUTION</b><h2>自組裝企劃書<small>Blender 電影感自我組裝 · 24 fps × 12 秒 = 288 幀</small></h2></div><button type="button" class="px" data-close>關閉</button></div>
+  <div class="seg" role="group" aria-label="企劃書章節"><button type="button" data-tab="story" aria-pressed="true">分鏡</button><button type="button" data-tab="lore" aria-pressed="false">考據</button><button type="button" data-tab="blender" aria-pressed="false">Blender</button><button type="button" data-tab="video" aria-pressed="false">影片</button></div>
+  <div data-pane="story">
+    <ol class="tl">
+      <li><b>1　序幕：破空飛入與足部錨定</b><small>001–048 f · 0–2 s · 35 mm 低角度特寫</small><br>兩隻戰靴帶著藍色斥力尾焰從後方飛入，砸在地板上磁吸鎖死；小腿、膝甲與液壓減震桿從兩側卡入腳踝。音效：低頻破空、液壓金屬撞擊、磁力鎖死。</li>
+      <li><b>2　向上組裝：軀幹與四肢</b><small>049–120 f · 2–5 s · 50 mm 螺旋環繞上升</small><br>大腿、骨盆、脊椎龍骨與胸腔主框架依序就位；肩關節、上臂、前臂與五指機械手從四面八方扣合，最後胸甲與背部擾流板撞擊鎖定。</li>
+      <li><b>3　封頂：頭部與面罩</b><small>121–156 f · 5–6.5 s · 胸上特寫＋微推</small><br>頸部護甲就位，頭盔從後方扣合；金色面罩從鏡頭正前方飛來「鏘」一聲鎖死，全身靜止 0.5 秒。</li>
+      <li><b>4　覺醒：核心點亮、流光、排氣</b><small>157–204 f · 6.5–8.5 s · 後拉中景＋變形眩光</small><br>反應爐與雙眼同時亮起，一道藍白光沿著裝甲流遍全身；肩後、背部與小腿的氣密閥噴出短促的白色冷卻氣霧。</li>
+      <li><b>5　終幕：重量感與英雄姿勢</b><small>205–288 f · 8.5–12 s · 24–28 mm 低角度仰拍</small><br>企劃原案是踏出三步後定格三點落地或雙掌備戰；本頁的模型沒有骨架，改以下沉緩衝與仰角推鏡收尾。</li>
+    </ol>
+    <p class="note">按上方「自組裝」播放：零件依高度由腳到頭飛入，頭盔最後扣下，第 157 幀點亮、第 165 幀排氣。</p>
+  </div>
+  <div data-pane="lore" hidden>
+    <ul class="lst">
+      <li><b>最契合飛片組裝的型號：</b>Mark 42 與 43。《鋼鐵人3》的自主推進飛片技術讓每個部位內建微型斥力推進器；漫畫對應 Model 29（絕境）、Model 42（黑金模組化）與 Model 49（共生體）。</li>
+      <li><b>古典世代（Mark 2–7）：</b>原設定靠機庫地板伸出的龍門架機械臂鎖螺絲，純飛入組裝時建議在背景加機械臂做雷射焊接。</li>
+      <li><b>奈米世代（Mark 50、85）：</b>原設定是奈米粒子從胸口蔓延；企劃建議混合演繹，大塊裝甲板飛入後再由六角形奈米流填縫。</li>
+      <li><b>排氣不是蒸氣：</b>鋼鐵人沒有鍋爐，扣合後的白霧是高壓氣密鎖死與液態氮除冰閥排出的氣體，應該短促（0.5–1.2 秒）、帶冰晶感。</li>
+      <li><b>裝甲閃過光線：</b>反應爐導能迴路把電漿送往四肢與掌心，或 Mark 42 最後一塊零件到位時全身電磁鎖通電的微弧光。</li>
+      <li><b>AI 語音：</b>Mark 2–45 是 J.A.R.V.I.S.，Mark 46–85 是 F.R.I.D.A.Y.；無人自主組裝對應「狂歡派對協議」或「哨兵模式」。</li>
+      <li><b>機庫 A 馬里布地下工作坊</b>（Mark 1–42）：弧形水泥柱、地板嵌冷光、裝甲殿堂透明格納庫。</li>
+      <li><b>機庫 B 復仇者新基地</b>（Mark 43–85）：深色金屬桁架、六角蜂巢吸音牆、地板黃黑警示線與導引燈。</li>
+    </ul>
+  </div>
+  <div data-pane="blender" hidden>
+    <h4>逆向拆解法</h4>
+    <ul class="lst">
+      <li>先在<b>組裝完成</b>的狀態拆件並設軸心：Foot、Shin、Thigh、Pelvis、Spine_Inner、Chest_Plate、Back_Flaps、Shoulder、UpperArm、Forearm、Hand、Helmet_Base、Faceplate。</li>
+      <li><b>方法 A 幾何節點：</b>Collection Info（Separate Children）＋以 Z 高度當延遲權重，Random Value 打散後用 Map Range 與 Ease-Out Back 插回原位。</li>
+      <li><b>方法 B 逆向 K 幀：</b>第 150 幀全選插入位置與旋轉，回到第 1 幀 Randomize Transform，再在 Dope Sheet 依腳→腿→臀→軀幹→手臂→頭部錯開，結尾加微幅回彈。</li>
+    </ul>
+    <h4>發光與流光</h4>
+    <ul class="lst">
+      <li>眼睛與反應爐用 Emission <code>#40E0FF</code>，第 157 幀 Strength 0 → 50，再穩定在 25，加一點 Noise 閃爍。</li>
+      <li>流光：胸口放一個 Empty，材質用 Texture Coordinate（Object）→ Length → 窄 ColorRamp，第 158–180 幀把 Empty 從 0.1 放大到 5。</li>
+    </ul>
+    <h4>排氣與場景</h4>
+    <ul class="lst">
+      <li>粒子：Normal Velocity 8 m/s、Drag 0.8、Lifetime 15 幀；或 Mantaflow Domain 128–256，只在 165–185 幀開 Use Flow。</li>
+      <li>地板 Roughness 0.15–0.35 加 Noise；頂光 6500 K 窄角、地板格柵 <code>#00E5FF</code> 底光、體積霧 Density 0.015–0.03。</li>
+    </ul>
+  </div>
+  <div data-pane="video" hidden>
+    <h4>Prompt 1 · 零件飛入組裝</h4>
+    <pre class="prompt" id="vp1">Cinematic VFX shot inside a dark futuristic Stark Industries underground hangar, wet reflective epoxy floor with subtle volumetric fog. Scattered metallic red and gold mecha armor parts fly rapidly from all directions, magnetically snapping and locking together from the ground up: heavy boots slamming down, shin guards, hydraulic knee joints, thighs, pelvis, spine core, muscular chest plate, articulated arms, and finally the golden faceplate slamming shut with a heavy metallic clank. Low-angle tracking camera rising up, photorealistic ILM CGI, 8k, Unreal Engine 5 path tracing.<button type="button" class="copy" data-copy="vp1">複製</button></pre>
+    <h4>Prompt 2 · 啟動、排氣與英雄姿勢</h4>
+    <pre class="prompt" id="vp2">Medium close-up transitioning to low-angle wide shot of a towering Iron Man mecha standing in a dark hangar. Suddenly, its glowing icy-blue eyes and chest arc reactor ignite with intense anamorphic lens flare. Blue energy conduits flash rapidly across the seams of the red and gold armor plates. High-pressure white cooling steam hisses violently from shoulder and back vents. The mecha takes three heavy, confident metallic strides forward, water ripples on the floor, and strikes a powerful superhero pose. Photorealistic Marvel movie VFX, dramatic chiaroscuro rim lighting.<button type="button" class="copy" data-copy="vp2">複製</button></pre>
+    <h4>3D 生成通用尾綴</h4>
+    <pre class="prompt" id="vp3">full body A-pose, orthographic front view, isolated on solid dark grey background, clean hard-surface panel lines, symmetrical mechanical design, studio rim lighting, 8k, Unreal Engine 5 PBR render --ar 9:16 --no motion blur, cape, weapons obscuring body<button type="button" class="copy" data-copy="vp3">複製</button></pre>
+  </div>
+</aside>
+<aside class="panel" id="creditsPanel" aria-label="模型授權">
+  <div class="ph"><div><b>CREDITS</b><h2>模型與授權<small>非官方同人作品，與 Marvel、Disney 無關</small></h2></div><button type="button" class="px" data-close>關閉</button></div>
+  <p>裝甲網格來自 Blend Swap 的三套同人模型，經 <code>games/270-mark-assembly/tools/bake.py</code> 拆件、命名部位、換成塗裝角色後輸出 GLB；顏色、反應爐形狀與配件依各型號參考圖在頁面上即時套用。</p>
+  <ul class="lst">
+    <li><b>Iron Man</b> · BrunoIkari · <a href="https://www.blendswap.com/blend/43745" target="_blank" rel="noopener">Blend Swap #43745</a><br>CC-BY-SA 3.0，標示為同人作品、不得商用。本頁轉出的 <code>bruno.glb</code> 同樣以 CC-BY-SA 3.0 釋出。用於 Mark 3、6。</li>
+    <li><b>Iron man MK3</b> · 2iemniak · <a href="https://www.blendswap.com/blend/4749" target="_blank" rel="noopener">Blend Swap #4749</a><br>CC0。用於 Mark 1、2、4、5。</li>
+    <li><b>Iron man Mark 7 armors</b> · 2iemniak · <a href="https://www.blendswap.com/blend/55303" target="_blank" rel="noopener">Blend Swap #55303</a><br>CC-BY 3.0，標示為同人作品、不得商用。用於 Mark 7–85。</li>
+  </ul>
+  <p class="note">只有 Mark 3 與 Mark 7 是對應型號的實體模型；其餘型號以最接近的骨架換色近似，規格面板上都有標示。配色參考 MCU Wiki 與 Hot Toys 的公開圖片（只連結、不轉載）。</p>
+</aside>
+
+<div class="hud" id="hud" aria-live="polite">
+  <div class="t"><b id="hudF">F 001</b><em id="hudPh">序幕</em><span id="hudS">0.0 s</span><button type="button" id="hudX">停止</button></div>
+  <p id="hudTx"></p>
+  <div class="bar2"><i id="hudK"></i></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="pop" id="mkPop" role="menu" aria-label="選擇型號"></div>
+
+<div class="card" id="card" role="dialog" aria-live="polite" aria-label="部位說明">
+  <button type="button" class="x" id="cardX">關閉</button>
+  <div class="hd"><i></i><span id="cCat"></span><em id="cPin">點擊釘選</em></div>
+  <h2 id="cName"></h2>
+  <p id="cDesc"></p>
+  <div class="row"><span>組裝順序</span><b id="cOrd"></b><span class="sw" id="cSw"></span></div>
+  <p id="cTip"></p>
+  <p id="cObj"></p>
+</div>
+
+<div id="boot"><div><b>裝甲進化殿堂</b><span id="bootTx">正在載入 Three.js 與裝甲模型…</span></div></div>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+let THREE, OrbitControls, GLTFLoader, MeshoptDecoder;
+try {
+  THREE = await import('three');
+  ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+  ({ GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js'));
+  ({ MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js'));
+} catch (e) {
+  $('boot').innerHTML = '<div><b>3D 模組載入失敗</b>無法載入本機 3D 模組，請透過網站伺服器開啟此頁。</div>';
+}
+if (THREE) {
+  try { await init(); $('boot').classList.add('gone'); }
+  catch (err) { console.warn(err); $('boot').innerHTML = '<div><b>無法顯示裝甲</b>這個瀏覽器無法建立 WebGL，或模型檔沒有載入（請透過網站伺服器開啟）。</div>'; }
+}
+
+async function init() {
+/* ------------------------------------------------------------------ *
+ *  座標：1 單位 = 1 公尺，地面 y = 0，裝甲面向 +Z，角色左手為 +X。
+ *  模型來自 assets/270/*.glb（games/270-mark-assembly/tools/bake.py 輸出）：
+ *  每個節點是一個部位（helmet、chest、upperArm.L…），頂點已在世界座標；
+ *  材質名 role_p／s／t／k／g 是塗裝角色，頁面依型號換色。
+ * ------------------------------------------------------------------ */
+const TAU = Math.PI * 2;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const backOut = t => { const c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const touchOnly = matchMedia('(hover: none)').matches;
+const mobile = () => innerWidth <= 760;
+const roman = n => { let s = ''; for (const [v, r] of [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) while (n >= v) { s += r; n -= v; } return s; };
+
+/* ---------------- 型號資料 ---------------- */
+const GEN = {
+  1: { n: '第一世代', s: '起源與古典重機械', c: '#d3a955' },
+  2: { n: '第二世代', s: '狂歡派對協議 · 鋼鐵軍團', c: '#e0645c' },
+  3: { n: '第三世代', s: '自主飛片組裝', c: '#62d6ff' },
+  4: { n: '第四世代', s: '奈米科技與終局', c: '#b493ff' },
+};
+const BASES = {
+  bruno: { file: 'bruno.glb', name: 'Mk.3 實模（BrunoIkari）', short: 'BrunoIkari 的 Mk.3', mb: 3.9 },
+  mk3: { file: 'mk3.glb', name: 'Mk.3 實模（2iemniak）', short: '2iemniak 的 Mk.3', mb: .3 },
+  mk7: { file: 'mk7.glb', name: 'Mk.7 實模（2iemniak）', short: '2iemniak 的 Mk.7', mb: .9 },
+};
+const ROLE_NAME = { p: '主色', s: '副色', t: '金屬', k: '關節', g: '發光' };
+const RX_NAME = { circle: '圓形', tri: '倒三角', trap: '梯形', hex: '六角形', big: '巨型圓形' };
+const IM3 = '鋼鐵人3（2013）';
+/* c：主色、副色、金屬、關節；ov：部位換角色（例如 85 的手臂主色改用副色金）；rx：反應爐形狀；att：配件；pat：塗裝圖樣 */
+const MARKS = [
+  { n: 1, nm: '原始裝甲', en: 'Original', film: '鋼鐵人（2008）', base: 'mk3', c: ['#5e5953', '#716a60', '#8a8378', '#2b2724'], fin: { m: .82, r: .66, cc: 0 }, pat: { id: 7 }, att: ['flame'], bulk: 'mk1', eye: '#ffd8a0',
+    d: '東尼與伊森在阿富汗山洞用史塔克飛彈殘骸手工鍛造：不對稱厚重鑄鐵、外露皮帶與齒輪、背後氣瓶與雙臂火焰噴射器。',
+    note: '沒有 Mark 1 的實體模型：以 Mk.3 骨架加粗、換鑄鐵與焊痕質感近似，原作不對稱的廢鐵板無法 1:1 重現。',
+    pr: 'Iron Man Mark 1 armor, crude welded scrap metal, asymmetrical heavy iron plates, exposed leather straps, hydraulic pistons, welding scars, glowing circular chest arc reactor, gritty dieselpunk mecha', pbr: '鑄鐵 Metallic 0.9、Roughness 0.65，搭配 Bump 焊接紋理與煙燻髒舊貼圖。' },
+  { n: 2, nm: '銀色原型機', en: 'Prototype', film: '鋼鐵人（2008）', base: 'mk3', c: ['#c8ced4', '#bcc3ca', '#9aa1a8', '#3a3d40'], fin: { m: 1, r: .22, cc: .3 },
+    d: '未塗裝的拉絲鈦合金，全身鉚釘，背部與小腿首次出現可動襟翼；後來被羅德上校改成戰爭機器。',
+    note: '以 Mk.3 實模換成未塗裝鈦合金，鉚釘細節沒有建模。',
+    pr: 'Iron Man Mark 2 armor, unpainted brushed silver titanium, aircraft rivet details along panel seams, sleek aerodynamic mecha, glowing icy-blue circular chest reactor and eyes', pbr: 'Base Color #C8CED4、Metallic 1.0、Roughness 0.22、Anisotropic 0.5（拉絲）。' },
+  { n: 3, nm: '經典紅金', en: 'Classic Red & Gold', film: '鋼鐵人（2008）', base: 'bruno', real: true, c: ['#7a0b0b', '#c49a45', '#8f969c', '#2b2e31'],
+    d: '首次改用金鈦合金解決高空結冰，塗上熱血跑車紅與金色；圓形反應爐，電影史上最經典的厚重比例。',
+    note: 'BrunoIkari 的 Mk.3 實體模型，姿勢沿用原檔的掌心衝擊波待機。',
+    pr: 'Iron Man Mark 3 armor, classic hot-rod crimson red and brushed gold titanium alloy, heavy mechanical panel seams, circular glowing blue chest arc reactor, ILM photorealistic CGI style', pbr: '紅烤漆 #7A0B0B、Metallic 0.9、Roughness 0.25、Coat Weight 1.0（汽車清漆層）。' },
+  { n: 4, nm: '改良流線型', film: '鋼鐵人2（2010）', base: 'mk3', c: ['#8c1013', '#caa24f', '#9aa1a8', '#2b2e31'], fin: { r: .18 },
+    d: '外觀與 Mark 3 相近，腰部、大腿與肩甲稜角更銳利，適應更高 G 力飛行。',
+    note: '以 2iemniak 的 Mk.3 實模呈現；Mark 4 與 Mark 3 的肩甲稜角差異沒有另外建模。',
+    pr: 'Iron Man Mark 4 armor, refined angular red and gold titanium plates, sharper shoulder pads and waist armor, circular chest reactor, sleek industrial mecha', pbr: '同 Mark 3，邊緣磨損減少，烤漆更亮（Roughness 0.18）。' },
+  { n: 5, nm: '手提箱裝甲', en: 'Suitcase', film: '鋼鐵人2（2010）', base: 'mk3', c: ['#a3141a', '#c9cfd5', '#aab1b8', '#2b2e31'], pat: { id: 3 },
+    d: '摩納哥賽道危機使用，紅銀雙色沒有金色，由數百片百葉窗式摺疊葉片構成。',
+    note: '以 Mk.3 骨架近似：摺疊葉片以銀色條紋示意。',
+    pr: 'Iron Man Mark 5 suitcase armor, crimson red and chrome silver segmented plates, hundreds of interlocking folding metallic strips and vents, circular chest reactor', pbr: '紅與亮銀交錯，大量 Normal Map 表現條狀摺疊接縫。' },
+  { n: 6, nm: '新元素三角核心', film: '鋼鐵人2（2010）· 復仇者聯盟（2012）', base: 'bruno', c: ['#7d0c10', '#c49a45', '#3a3d40', '#232528'], rx: 'tri',
+    d: '東尼合成新元素後的裝甲，胸口改成倒三角形反應爐，大腿與前臂多了槍鐵灰散熱塊。',
+    note: '以 BrunoIkari 的 Mk.3 實模換上倒三角反應爐與槍鐵灰金屬件。',
+    pr: 'Iron Man Mark 6 armor, iconic glowing inverted TRIANGULAR chest arc reactor, red gold and gunmetal grey accents on thighs and forearms, battle-tested heavy mecha', pbr: '紅烤漆＋鈦金＋槍鐵灰 #3A3D40（Roughness 0.4），三角核心高亮度發光。' },
+  { n: 7, nm: '重武裝空投倉裝甲', film: '復仇者聯盟（2012）', base: 'mk7', real: true, c: ['#7c0d12', '#c39a48', '#a9afb5', '#2b2e31'], att: ['pods'],
+    d: '紐約大戰主力，由柱狀空投倉雷射導引組裝；回到圓形反應爐，雙肩有多管微型飛彈艙，胸甲兩側銀色護翼。',
+    note: '2iemniak 的 Mk.7 實體模型；肩部飛彈艙為本頁補上的示意配件。',
+    pr: 'Iron Man Mark 7 armor, bulky heavy combat silhouette, large back thruster pack, silver accents flanking circular chest reactor, shoulder missile pods, Avengers 2012 CGI', pbr: '厚重戰鬥塗裝，手肘、膝蓋與胸口加戰損刮痕（Scratch Maps）。' },
+  { n: 8, nm: '過渡強化型', film: IM3, base: 'mk7', c: ['#6e0d10', '#b58a3c', '#7f858a', '#26282b'], d: 'Mark 7 的細部強化版，逐步改良推進器向量噴嘴與胸甲防彈層，配色更深。' },
+  { n: 9, nm: '過渡強化型', film: IM3, base: 'mk7', c: ['#8c1114', '#c9a04a', '#8f969c', '#2b2e31'], d: '延續 Mark 8，加強腿部穩定翼，紅色更亮。' },
+  { n: 10, nm: '過渡強化型', film: IM3, base: 'mk7', c: ['#7a0e12', '#bf9a4a', '#5d6166', '#26282b'], ov: { thigh: { p: 's' } }, d: '大腿改成整塊金色裝甲的過渡型。' },
+  { n: 11, nm: '高光澤實驗機', film: IM3, base: 'mk7', c: ['#b01418', '#c79a3e', '#9aa1a8', '#2b2e31'], fin: { r: .16 }, d: '測試更亮的烤漆與輕量化，紅金比例接近 Mark 7。' },
+  { n: 12, nm: '槍鐵黑測試機', film: IM3, base: 'mk7', c: ['#2a2b2d', '#b89a5a', '#6e7175', '#18191b'], ov: { abdomen: { p: 's' } }, d: '槍鐵黑主體配金色腹甲，鋼鐵軍團中最早脫離紅金的塗裝之一。' },
+  { n: 13, nm: '銀灰輕量機', film: IM3, base: 'mk7', c: ['#9da3a8', '#6b7076', '#c4cad0', '#2a2c30'], d: '銀灰色輕量化機，前臂可加裝外掛武器架。' },
+  { n: 14, nm: '軍規測試機', film: IM3, base: 'mk7', c: ['#4a4b4c', '#6e7175', '#8e9398', '#1f2022'], d: '深槍鐵灰的軍規測試機，胸口反應爐外框加厚。' },
+  { n: 15, nm: '鬼祟', en: 'Sneaky', film: IM3, base: 'mk7', c: ['#3b4352', '#9aa4b2', '#c3cbd4', '#20242b'], fin: { m: .7, r: .34, cc: .2 },
+    d: '雷達匿蹤裝甲，前臂兩側有鯊魚鰓般的折角匿蹤板，面罩下巴呈尖角。',
+    fix: '企劃書寫消光黑配深鉻銀；MCU Wiki 與 Hot Toys 的 Mark 15 是藍灰配亮銀，這裡依參考圖。',
+    pr: 'Iron Man Mark 15 Sneaky stealth armor, slate blue-grey and bright silver, angular F-117 stealth fighter geometry, sharp jawline helmet' },
+  { n: 16, nm: '夜店', en: 'Nightclub', film: IM3, base: 'mk7', c: ['#9e1218', '#c49a45', '#3a3c40', '#16171a'], ov: { abdomen: { p: 't' }, pelvis: { p: 't' } },
+    d: '高機動近戰裝甲，流線緊湊、沒有重型肩砲；與基連決戰時被撕裂。',
+    fix: '企劃書寫全黑消光；參考圖是紅金配黑色腰部，這裡依參考圖。',
+    pr: 'Iron Man Mark 16 Nightclub suit, red and gold upper armor with black waist section, agile slim mecha silhouette, glowing blue eyes' },
+  { n: 17, nm: '碎心者', en: 'Heartbreaker', film: IM3, base: 'mk7', c: ['#a3141b', '#c8a04f', '#b9c0c7', '#2b2e31'], rx: 'big', att: ['cage'],
+    d: '砲擊型反應爐裝甲，全系列最大的圓形胸口衝擊波核心，胸前有金色交錯框架與高領護頸。',
+    pr: 'Iron Man Mark 17 Heartbreaker Artillery Level RT suit, oversized glowing chest reactor with heavy gold structural cage struts, high collar armor, bulky red and gold' },
+  { n: 18, nm: '卡薩諾瓦', en: 'Casanova', film: IM3, base: 'mk7', c: ['#3c3b3a', '#6a6866', '#8d8b88', '#1d1d1c'], d: '深槍鐵灰的近戰型，胸口環狀反應爐外框，造型接近 Mark 7。' },
+  { n: 19, nm: '猛虎', en: 'Tiger', film: IM3, base: 'mk7', c: ['#b3161c', '#c3c9cf', '#8f969c', '#2b2e31'], pat: { id: 3 },
+    d: '高速超音速原型機，縱向條紋塗裝與低風阻頭盔。', fix: '企劃書寫紅金條紋；參考圖是紅配銀，這裡依參考圖。',
+    pr: 'Iron Man Mark 19 Tiger high-velocity prototype armor, aerodynamic red and silver racing stripes, sleek supersonic mecha' },
+  { n: 20, nm: '蟒蛇', en: 'Python', film: IM3, base: 'mk7', c: ['#1e1f21', '#c49a3f', '#6e7175', '#121314'],
+    d: '長距離巡航裝甲，黑金雙色，腿部配備增程燃料與大型推進器，神似漫畫 Model 42。',
+    pr: 'Iron Man Mark 20 Python long-distance armor, striking black and metallic gold color scheme, heavy leg thrusters' },
+  { n: 21, nm: '米達斯', en: 'Midas', film: IM3, base: 'mk7', c: ['#b8863b', '#9c6d2e', '#d0a35a', '#4a3a22'], fin: { m: 1, r: .22, cc: .4 },
+    d: '高空平流層測試機，全身純金鈦合金，致敬漫畫初登場的金色裝甲。',
+    pr: 'Iron Man Mark 21 Midas armor, entirely gleaming brushed gold and bronze titanium plates, Mark 7 silhouette in pure gold' },
+  { n: 22, nm: '熱血跑車', en: 'Hot Rod', film: IM3, base: 'mk7', c: ['#2f3134', '#a8adb2', '#8e9398', '#18191b'], pat: { id: 2, parts: ['shin', 'boot'], c: ['#b3141a', '#e8a33a'] },
+    d: '戰爭機器 Mark 2 的輕量化原型，深灰與亮銀，小腿畫著美式火焰拉花。',
+    pr: 'Iron Man Mark 22 Hot Rod armor, dark gunmetal grey and silver with red flame decals on lower legs, sleek War Machine prototype' },
+  { n: 23, nm: '暗影', en: 'Shades', film: IM3, base: 'mk7', c: ['#5f6a6e', '#8d8a6c', '#3e4446', '#25292a'], pat: { id: 1, c: ['#5f6a6e', '#8d8a6c', '#3b3f37'] },
+    d: '極端高溫裝甲，可承受絕境病毒高熱，雙眼是連體式太陽眼鏡造型護目鏡。', fix: '企劃書寫沙漠迷彩；參考圖是灰綠數位迷彩，這裡依參考圖。',
+    pr: 'Iron Man Mark 23 Shades extreme heat armor, grey-green digital camo pattern, visor-style glowing eyes, heat-resistant ceramic plates' },
+  { n: 24, nm: '坦克', en: 'Tank', film: IM3, base: 'mk7', c: ['#3d3328', '#c9b48a', '#6c6458', '#1f1a15'], d: '深棕色重裝甲，米金色護板，胸口大型反應爐。' },
+  { n: 25, nm: '衝擊者', en: 'Striker', film: IM3, base: 'mk7', c: ['#2b2c2f', '#b39445', '#6e7175', '#161719'], att: ['hammer'],
+    d: '重型工程裝甲，雙前臂改裝成巨大的黃黑條紋氣動攻城重錘。',
+    pr: 'Iron Man Mark 25 Striker heavy construction suit, massive yellow-and-black striped pneumatic jackhammer gauntlets on forearms, industrial charcoal armor' },
+  { n: 26, nm: '伽瑪', en: 'Gamma', film: IM3, base: 'mk7', c: ['#2f6b3d', '#6d7378', '#8e9398', '#1a2a1f'], att: ['hammerGrey'],
+    d: '抗伽瑪射線的重工程裝甲，前臂同樣是氣動重錘。', fix: '企劃書把 25、26 合寫；Mark 26 實際是綠色配灰色氣動錘。' },
+  { n: 27, nm: '迪斯可', en: 'Disco', film: IM3, base: 'mk7', c: ['#2c5bb5', '#d5642a', '#9aa1a8', '#1d2433'],
+    d: '光學偽裝機，亮寶藍與亮橘高反差塗裝。', pr: 'Iron Man Mark 27 Disco camouflage armor, vibrant metallic blue and bright orange plates, dual-tone sci-fi mecha' },
+  { n: 28, nm: '傑克', en: 'Jack', film: IM3, base: 'mk7', c: ['#e08a1e', '#3a3b3d', '#8e9398', '#1d1d1e'],
+    d: '防輻射裝甲，黑橘相間的高警示塗裝。', pr: 'Iron Man Mark 28 Jack radiation zone suit, black and bright hazard orange geometric armor plates, industrial protective mecha' },
+  { n: 29, nm: '提琴手', en: 'Fiddler', film: IM3, base: 'mk7', c: ['#6c6f72', '#8e1a1f', '#9aa1a8', '#202124'], att: ['cannon'], d: '槍鐵灰拆除機，左前臂掛著加大的紅色工業砲管。' },
+  { n: 30, nm: '藍鋼', en: 'Blue Steel', film: IM3, base: 'mk7', c: ['#2f7fd0', '#b8c0c8', '#9aa1a8', '#18263a'], d: '寶藍與亮銀的高速巡航機，胸甲有 V 形銀色護板。' },
+  { n: 31, nm: '活塞', en: 'Piston', film: IM3, base: 'mk7', c: ['#1f9a85', '#a9b1b6', '#8e9398', '#163a33'], d: '高速機，青綠與亮銀，腿部有強化液壓活塞。' },
+  { n: 32, nm: '羅密歐', en: 'Romeo', film: IM3, base: 'mk7', c: ['#3a3836', '#7c7a76', '#9a9894', '#1b1a19'], d: '抗衝擊重型機，深槍鐵灰配大型胸口反應爐。' },
+  { n: 33, nm: '銀色百夫長', en: 'Silver Centurion', film: IM3, base: 'mk7', c: ['#b0141c', '#c9cfd5', '#aab1b8', '#2b2e31'], rx: 'tri', ov: { pauldron: { p: 's' } },
+    d: '致敬漫畫 Model 8 銀色百夫長：寶石紅與拉絲亮銀，層疊式銀色騎士肩甲，三角反應爐。',
+    pr: 'Iron Man Mark 33 Silver Centurion armor, iconic crimson red and bright brushed silver, layered knight-like shoulder pauldrons, triangular diamond chest reactor, forearm energy blade' },
+  { n: 34, nm: '左撇子', en: 'Southpaw', film: IM3, base: 'mk7', c: ['#5a5c5e', '#8e9296', '#a8acb0', '#1e1f20'], att: ['bigArm'], d: '左臂特化的拆除機，左前臂與手掌加大。' },
+  { n: 35, nm: '紅鯛魚', en: 'Red Snapper', film: IM3, base: 'mk7', c: ['#b3121a', '#d1ad45', '#a9afb5', '#2b2e31'], att: ['claw'],
+    d: '災難搜救裝甲，雙臂是加長型可伸縮液壓機械夾爪。', pr: 'Iron Man Mark 35 Red Snapper disaster rescue suit, extended mechanical hydraulic claw arms, red and industrial yellow plates, roll-cage visor' },
+  { n: 36, nm: '和平使者', en: 'Peacemaker', film: IM3, base: 'mk7', c: ['#d0661c', '#3b3d40', '#8e9398', '#1d1d1e'], d: '橘色重裝鎮暴機，肩部有大型能量砲座。' },
+  { n: 37, nm: '雙髻鯊', en: 'Hammerhead', film: IM3, base: 'mk7', c: ['#6aa58a', '#b9a253', '#8e9398', '#203229'], att: ['flood'],
+    d: '深海高壓潛水裝甲，海神綠配亮黃，胸口兩側有探照燈。', pr: 'Iron Man Mark 37 Hammerhead deep sea diving armor, seafoam teal green and yellow, heavy pressure-resistant rounded plates, chest floodlights' },
+  { n: 38, nm: '伊格爾', en: 'Igor', film: IM3, base: 'mk7', c: ['#1d4f9e', '#d9dde2', '#8e9398', '#15233b'], bulk: 'igor', pat: { id: 3, parts: ['forearm', 'thigh'] },
+    d: '重型舉重裝甲，駝背巨漢體型，背部有外露的液壓脊椎頂桿，用來撐住坍塌建築。',
+    note: '以 Mk.7 骨架放大近似：駝背巨漢體型與脊椎液壓桿無法 1:1 重現。',
+    pr: 'Iron Man Mark 38 Igor heavy lifting suit, massive hunched muscular silhouette, industrial blue and white stripes with silver hydraulic spine piston, turtle-like low head' },
+  { n: 39, nm: '雙子星', en: 'Gemini / Starboost', film: IM3, base: 'mk7', c: ['#dfe4ea', '#9aa6b3', '#c49a45', '#2a2c30'], ov: { helmet: { s: 't' } }, att: ['booster'],
+    d: '亞軌道太空裝甲（Hot Toys 名 Starboost）：白色航太陶瓷、黑金內構、金色防輻射面罩，背部有可分離的次軌道推進器。',
+    pr: 'Iron Man Mark 39 Starboost sub-orbital space armor, white ceramic spacecraft plating, black carbon fiber and gold visor helmet, back booster pack' },
+  { n: 40, nm: '霰彈槍', en: 'Shotgun', film: IM3, base: 'mk7', c: ['#6f8193', '#b6bec6', '#8e9398', '#1e242b'], fin: { r: .2 },
+    d: '超音速極速飛行裝甲，藍銀灰戰機塗裝，高速時把全身鎖成無縫風洞構型。', pr: 'Iron Man Mark 40 Shotgun hyper-velocity suit, sleek fighter-jet silver and dark slate blue, streamlined angular helmet, aerodynamic vents' },
+  { n: 41, nm: '骷髏', en: 'Bones', film: IM3, base: 'mk7', c: ['#16171a', '#b48a3e', '#6e5a33', '#0d0d0e'], pat: { id: 4 },
+    d: '黑金外露鏤空骨架，每節骨骼都有獨立磁吸推進器，曾自行拆成數十塊飛片同時擊倒五名絕境士兵。',
+    note: '以 Mk.7 外殼鏤空近似骨架；原作外露的內骨骼沒有對應模型。',
+    pr: 'Iron Man Mark 41 Bones skeleton suit, exposed black and gold mechanical endoskeleton, intricate magnetic joints, hollow ribcage structure revealing glowing cables and chest reactor' },
+  { n: 42, nm: '浪子', en: 'Prodigal Son', film: IM3, base: 'mk7', c: ['#c8a35c', '#8a1218', '#a9afb5', '#2b2e31'],
+    d: '自主飛片組裝始祖，罕見的金多紅少（約七成香檳金），全身細分成數十塊獨立飛片。',
+    tip: '企劃首選主角機：最後一塊面罩飛入時可以稍微翻轉碰撞再鎖死，致敬《鋼鐵人3》。',
+    pr: 'Iron Man Mark 42 Prodigal Son armor, predominantly champagne gold titanium with dark crimson red accents, highly segmented prehensile flying armor plates, intricate mechanical seams, circular chest reactor' },
+  { n: 43, nm: '奧創紀元主力機', film: '復仇者聯盟2（2015）', base: 'mk7', c: ['#9a1015', '#cfa75a', '#a9afb5', '#2b2e31'], eyeFlash: '#ff3b30',
+    d: 'Mark 42 的成熟版，配色回到紅多金少；可進入哨兵模式，也是穿戴 Mark 44 的內層核心。', tip: '啟動時雙眼先閃一下紅光（奧創彩蛋）再轉回冰藍。',
+    pr: 'Iron Man Mark 43 armor, Avengers Age of Ultron, deep metallic crimson red with champagne gold panels, intricate multi-piece mechanical armor, glowing circular reactor' },
+  { n: 44, nm: '浩克毀滅者', en: 'Hulkbuster', film: '復仇者聯盟2（2015）', base: 'mk7', c: ['#9e1a14', '#c49a45', '#8f969c', '#2b2e31'], bulk: 'hulk', h: 3.3,
+    d: '由維羅妮卡衛星空投模組組裝的 3.3 公尺巨型重裝甲，全身多顆反應爐，半圓頭盔可像引擎蓋一樣收合。',
+    note: '以 Mk.7 骨架放大近似：真正的浩克毀滅者是包住 Mark 43 的外骨骼。',
+    pr: 'Iron Man Mark 44 Hulkbuster colossal heavy mech armor, dome helmet, massive hydraulic shoulders, multiple glowing blue arc reactors on chest knees and back, red and gold heavy plating' },
+  { n: 45, nm: '索科維亞決戰機', film: '復仇者聯盟2（2015）', base: 'mk7', c: ['#b2161c', '#d2a64e', '#b9c0c7', '#2b2e31'], fin: { r: .1 }, rx: 'hex',
+    d: '設計轉向流線肌肉感，胸口反應爐外框是六角形，小腿有能量導管。',
+    pr: 'Iron Man Mark 45 armor, sleek muscular contoured red and gold chrome plates, hexagonal chest reactor housing, glowing blue energy lines on calves, high-gloss finish' },
+  { n: 46, nm: '內戰裝甲', en: 'Civil War', film: '美國隊長3：英雄內戰（2016）', base: 'mk7', c: ['#6d0d14', '#c19a4c', '#9aa1a8', '#231417'], rx: 'trap', pat: { id: 6 },
+    d: '致敬漫畫出血邊緣裝甲，全身散布微型藍色反應爐節點，頭盔可往後摺疊，胸口是梯形反應爐。',
+    pr: 'Iron Man Mark 46 Civil War armor, dozens of small glowing blue micro-arc reactor lights scattered across shoulders ribs and legs, trapezoidal chest reactor, sleek mechanical panels' },
+  { n: 47, nm: '返校日遙控機', film: '蜘蛛人：返校日（2017）', base: 'mk7', c: ['#b0141b', '#c9a54f', '#9ea4aa', '#2b2e31'], rx: 'trap', ov: { abdomen: { p: 't' }, pelvis: { p: 't' }, thigh: { p: 't' } },
+    d: '與 Mark 46 同結構，致敬終極鋼鐵人配色：胸部以下到大腿中段是大面積銀灰鈦金屬。',
+    pr: 'Iron Man Mark 47 Homecoming armor, Ultimate Iron Man color scheme, silver-grey metallic torso waist and upper thighs, red and gold chest shoulders and boots' },
+  { n: 48, nm: '浩克毀滅者 2.0', film: '復仇者聯盟3：無限之戰（2018）', base: 'mk7', c: ['#a3141a', '#c49a45', '#8f969c', '#2b2e31'], bulk: 'hulk', h: 3.0,
+    d: '更流線的二代浩克毀滅者，在瓦干達對抗薩諾斯大軍。', note: '以 Mk.7 骨架放大近似。' },
+  { n: 49, nm: '救援裝甲', en: 'Rescue', film: '復仇者聯盟4：終局之戰（2019）', base: 'mk7', c: ['#1f43a8', '#b8c2cf', '#9aa1a8', '#16203a'], bulk: 'slim',
+    d: '東尼替小辣椒打造的救援裝甲，背部有懸浮無人機陣列。', fix: '企劃書寫藍紫金；參考圖是寶藍配銀，這裡依參考圖，並以 Mk.7 骨架收窄近似。',
+    pr: 'Iron Man Mark 49 Rescue armor, metallic sapphire blue and silver, sleek feminine aerodynamic silhouette, floating back drone fins' },
+  { n: 50, nm: '出血邊緣奈米裝甲', en: 'Bleeding Edge', film: '復仇者聯盟3：無限之戰（2018）', base: 'mk7', c: ['#9a0f14', '#c49a45', '#a9afb5', '#2b2e31'], rx: 'tri', fin: { r: .14 },
+    d: '首套全奈米裝甲，沒有機械螺絲接縫，可任意變形出推進翼與能量重砲。', tip: '組裝時讓裝甲板邊緣帶六角形網格消散遮罩。',
+    pr: 'Iron Man Mark 50 nanotech armor, Avengers Infinity War, seamless organic-mechanical red and gold plates, glowing blue nano-circuit lines, futuristic triangular chest reactor' },
+  { n: 51, label: '51–84', nm: '五年空白期概念型', film: '終局之戰前的五年', base: 'mk7', c: ['#62d6ff', '#62d6ff', '#62d6ff', '#62d6ff'], holo: true,
+    d: '《無限之戰》到《終局之戰》之間，東尼以全息投影迭代了 34 個奈米與重裝混合概念。企劃建議放在機庫背景的全息工作桌上，以藍色線框展示。',
+    note: '這 34 套沒有正式外觀，本頁以 Mk.7 線框全息呈現。',
+    pr: 'Iron Man conceptual Mark [51-84] hybrid nanotech-mechanical armor, Stark hologram lab prototype, intricate sci-fi panel lines' },
+  { n: 85, nm: '終局之戰最終裝甲', en: 'Endgame', film: '復仇者聯盟4：終局之戰（2019）', base: 'mk7', c: ['#a3121a', '#c9a24e', '#a9afb5', '#2b2e31'], rx: 'tri', ov: { upperArm: { p: 's' }, forearm: { p: 's' }, hand: { p: 's' }, pauldron: { p: 's' }, thigh: { p: 's' } }, stones: true,
+    d: '電影宇宙鋼鐵人的最後一套：奈米科技加上硬朗的肌肉稜角，配色致敬 1960 年代漫畫，手臂、肩膀與大腿全金，軀幹與小腿深紅。',
+    tip: '流光階段讓右手背依序閃過六色能量脈衝，致敬無限手套。',
+    pr: 'Iron Man Mark 85 Endgame armor, classic comic-accurate golden arms shoulders and thighs with crimson red torso and boots, muscular angular hard-surface nano-plates, glowing blue chest reactor, optional glowing Infinity Stones on right gauntlet' },
+];
+const genOf = n => n <= 7 ? 1 : n <= 41 ? 2 : n <= 47 ? 3 : 4;
+for (const m of MARKS) {
+  m.gen = genOf(m.n);
+  m.label = m.label || String(m.n);
+  m.ai = m.n <= 45 ? 'J.A.R.V.I.S.' : 'F.R.I.D.A.Y.';
+  m.hangar = m.n <= 42 ? 'A' : 'B';
+  m.rx = m.rx || 'circle';
+  m.h = m.h || (m.bulk === 'mk1' ? 2.06 : m.bulk === 'igor' ? 2.6 : m.bulk === 'slim' ? 1.75 : 1.98);
+  if (!m.pr) m.pr = `Iron Man Mark ${m.n}${m.en ? ' ' + m.en : ''} armor, custom ${m.c[0]} and ${m.c[1]} color scheme on the Mark 7 silhouette, modular hard-surface plates, Stark Industries hangar suit, glowing blue circular chest reactor`;
+  if (!m.pbr) { const f = m.fin || {}; m.pbr = `主色 ${m.c[0].toUpperCase()}、副色 ${m.c[1].toUpperCase()}；Metallic ${f.m ?? .82}、Roughness ${f.r ?? .26}、Coat ${f.cc ?? 1}。`; }
+  m.ref = m.holo ? null : `https://marvelcinematicuniverse.fandom.com/wiki/Iron_Man_Armor:_Mark_${roman(m.n)}`;
+}
+const byN = n => MARKS.find(m => m.n === n);
+
+/* 部位說明；ord 為自組裝時的幀區間 */
+const PART = {
+  boot: { n: '戰靴', cat: '下肢', ord: [6, 30], d: '帶著藍色斥力尾焰從後方飛入，重重砸在地板上啟動磁吸鎖死，足底是主要的飛行推進器。', obj: 'Foot_L / Foot_R' },
+  shin: { n: '小腿與膝甲', cat: '下肢', ord: [24, 52], d: '脛骨裝甲、膝甲與液壓減震桿從兩側高速飛來卡入腳踝；小腿肚有冷卻排氣口。', obj: 'Shin_L / Shin_R', vent: true },
+  thigh: { n: '大腿甲', cat: '下肢', ord: [49, 76], d: '大腿內構與外裝甲在第二階段最先就位，金色大腿板是 Mark 3 的招牌。', obj: 'Thigh_L / Thigh_R' },
+  pelvis: { n: '骨盆與臀甲', cat: '軀幹', ord: [66, 88], d: '護襠與臀甲把雙腿和軀幹連成一體，內側是精密的銀色機械轉軸。', obj: 'Pelvis' },
+  abdomen: { n: '腹甲', cat: '軀幹', ord: [80, 98], d: '分段腹甲讓軀幹能前後彎曲，Mark 42 之後細分得最明顯。', obj: 'Spine_Inner' },
+  chest: { n: '胸甲與背甲', cat: '軀幹', ord: [92, 118], d: '厚重的胸甲板與背部擾流板在第二階段最後高速撞擊鎖定，裡面是脊椎龍骨與肋骨內構。', obj: 'Chest_Plate / Back_Flaps', vent: true },
+  reactor: { n: '弧形反應爐', cat: '能源', ord: [110, 120], d: '整套裝甲的能源。點亮時藍白電漿順著內骨骼導線流向四肢與掌心的衝擊波發射器。', obj: 'Emission #40E0FF', glow: true },
+  pauldron: { n: '肩甲', cat: '上肢', ord: [100, 116], d: '球型肩關節外的護甲，後側是氣密閥，扣合後噴出冷卻氣霧。', obj: 'Shoulder_L / Shoulder_R', vent: true },
+  upperArm: { n: '上臂', cat: '上肢', ord: [102, 116], d: 'Mark 3 的上臂是金色，Mark 85 連同肩膀整條改成金色。', obj: 'UpperArm_L / UpperArm_R' },
+  forearm: { n: '前臂', cat: '上肢', ord: [106, 118], d: '前臂護甲內藏導能管線與武器艙，特化型裝甲常在這裡換裝重錘、夾爪或砲管。', obj: 'Forearm_L / Forearm_R' },
+  hand: { n: '手掌', cat: '上肢', ord: [110, 120], d: '五指靈巧機械手，掌心是衝擊波核心，終幕的雙掌備戰姿勢會亮起。', obj: 'Hand_L / Hand_R' },
+  helmet: { n: '頭盔與面罩', cat: '頭部', ord: [121, 156], d: '頭盔從後方扣合，最後面罩從正前方飛來「鏘」一聲鎖死；雙眼在第 157 幀與反應爐同時亮起。', obj: 'Helmet_Base / Faceplate' },
+  attach: { n: '特化配件', cat: '配件', ord: [112, 120], d: '本頁依參考圖補上的示意配件，用基本幾何組成。', obj: '—' },
+};
+const SIDE = { L: '左', R: '右' };
+const partKey = name => name.split('.')[0];
+/* three 會把節點名的「.」拿掉（upperArm.L → upperArmL），這裡還原 */
+const PART_RE = /^(helmet|chest|abdomen|pelvis|reactor|pauldron|upperArm|forearm|hand|thigh|shin|boot)(L|R)?/;
+
+/* ---------------- 渲染器、場景、相機 ---------------- */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const PR = Math.min(devicePixelRatio || 1, mobile() ? 1.5 : 1.75);
+renderer.setPixelRatio(PR);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(30, 1, .05, 80);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .085;
+controls.minDistance = .9; controls.maxDistance = 16;
+const POLAR_MAX = Math.PI * .6;
+controls.maxPolarAngle = POLAR_MAX;
+controls.rotateSpeed = .7;
+controls.target.set(0, 1, 0);
+
+/* 攝影棚環境：頭頂柔光箱與長條燈，讓烤漆與金屬有反光 */
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = new THREE.Scene();
+  env.add(new THREE.Mesh(new THREE.BoxGeometry(30, 14, 30), new THREE.MeshBasicMaterial({ color: 0x030405, side: THREE.BackSide })));
+  const soft = (w, h, p, r, k, tint = [1, .97, .93]) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k * tint[0], k * tint[1], k * tint[2]), side: THREE.DoubleSide }));
+    m.position.set(...p); m.rotation.set(...r); env.add(m);
+  };
+  soft(8, 3, [0, 6.8, 0], [Math.PI / 2, 0, 0], 3.2);
+  soft(16, .6, [0, 2.4, -9], [0, 0, 0], 2.0, [.9, .97, 1.05]);
+  soft(16, .6, [0, 3.2, 9], [0, Math.PI, 0], 1.25);
+  soft(.8, 6, [9, 3, 0], [0, -Math.PI / 2, 0], 1.6);
+  soft(.8, 6, [-9, 3, 2], [0, Math.PI / 2, 0], 1.0, [.85, .95, 1.1]);
+  scene.environment = pmrem.fromScene(env, .035).texture;
+  scene.environmentIntensity = 1.15;
+  pmrem.dispose();
+}
+scene.add(new THREE.HemisphereLight(0xeef4ff, 0x080706, .22));
+const key = new THREE.SpotLight(0xfff3e8, 300, 16, Math.PI / 6.5, .75, 2);
+key.position.set(1.3, 6.4, 3.0);
+key.castShadow = true;
+key.shadow.mapSize.set(mobile() ? 1024 : 2048, mobile() ? 1024 : 2048);
+key.shadow.camera.near = 3; key.shadow.camera.far = 11;
+key.shadow.bias = -.0002; key.shadow.normalBias = .02; key.shadow.radius = 4;
+scene.add(key, key.target); key.target.position.set(0, 1, 0);
+const fill = new THREE.DirectionalLight(0xfff0e6, .7); fill.position.set(2.5, 1.6, 4); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xcfe6ff, 2.4); rim.position.set(-3, 3.2, -4); scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0xffe2c8, 1.1); rim2.position.set(3.5, 2.4, -3); scene.add(rim2);
+/* 地板底光：反應爐點亮時一起變亮 */
+/* 用偏白的冷光：飽和的青色照在金色上會變成綠色 */
+const under = new THREE.PointLight(0xc4e8ff, 0, 3.2, 2); under.position.set(0, .12, .35); scene.add(under);
+
+/* 地板：聚光燈光圈＋手作平面倒影（同 182 的做法），A／B 機庫各有自己的地面圖樣 */
+const reflRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+const reflMatrix = new THREE.Matrix4();
+const mirrorCam = new THREE.PerspectiveCamera();
+const floorU = { tRefl: { value: reflRT.texture }, uReflMat: { value: reflMatrix }, uGlow: { value: 0 }, uHangar: { value: 0 } };
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f1012, roughness: .78, metalness: .1 });
+floorMat.onBeforeCompile = sh => {
+  Object.assign(sh.uniforms, floorU);
+  sh.vertexShader = 'uniform mat4 uReflMat;\nvarying vec4 vRefl;\nvarying vec3 vWp;\n' + sh.vertexShader.replace('#include <project_vertex>',
+    '#include <project_vertex>\nvRefl = uReflMat * vec4(position, 1.0);\nvWp = (modelMatrix * vec4(position, 1.0)).xyz;\n');
+  sh.fragmentShader = 'uniform sampler2D tRefl;\nuniform float uGlow;\nuniform float uHangar;\nvarying vec4 vRefl;\nvarying vec3 vWp;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', `
+    vec2 ruv = vRefl.xy / vRefl.w;
+    vec3 rc = texture2D(tRefl, ruv).rgb * .36;
+    rc += texture2D(tRefl, ruv + vec2(.003, 0.)).rgb * .16;
+    rc += texture2D(tRefl, ruv - vec2(.003, 0.)).rgb * .16;
+    rc += texture2D(tRefl, ruv + vec2(0., .005)).rgb * .16;
+    rc += texture2D(tRefl, ruv - vec2(0., .005)).rgb * .16;
+    float r = length(vWp.xz);
+    outgoingLight += rc * .42 * (1. - smoothstep(1.2, 4.5, r));
+    float ring = smoothstep(.02, 0., abs(r - 1.05)) + smoothstep(.012, 0., abs(r - 1.18)) * .6;
+    vec2 g = abs(fract(vWp.xz * 2.) - .5);
+    float grid = smoothstep(.485, .5, max(g.x, g.y)) * (1. - smoothstep(1.5, 5., r));
+    vec3 cyan = vec3(.12, .7, 1.);
+    float ang = atan(vWp.z, vWp.x);
+    float hz = step(.5, fract(ang / 6.2831853 * 48.)) * smoothstep(.06, .0, abs(r - 1.6));
+    outgoingLight += mix(cyan * (ring * (.35 + uGlow * 1.4) + grid * .05), vec3(.95, .72, .1) * hz * .55 + cyan * ring * uGlow * .9, uHangar);
+    outgoingLight *= 1. - smoothstep(3.5, 9., r);
+    #include <opaque_fragment>`);
+};
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), floorMat);
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+const rig = new THREE.Group(); scene.add(rig);     // 轉盤
+const holder = new THREE.Group(); rig.add(holder); // 裝甲（整體下沉、放大都在這層）
+const contact = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'); const gr = g.createRadialGradient(128, 128, 4, 128, 128, 127);
+  gr.addColorStop(0, 'rgba(0,0,0,.8)'); gr.addColorStop(.5, 'rgba(0,0,0,.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.0), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = .003; rig.add(m); return m;
+})();
+
+/* ---------------- 機庫 A／B ---------------- */
+const HANGAR = { A: new THREE.Group(), B: new THREE.Group() };
+scene.add(HANGAR.A, HANGAR.B);
+{
+  const concrete = new THREE.MeshStandardMaterial({ color: 0x2a2b2d, roughness: .9, metalness: 0 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x0d1a20, roughness: .08, metalness: 0, transparent: true, opacity: .35, depthWrite: false });
+  const strip = new THREE.MeshBasicMaterial({ color: 0x2f5866 });
+  /* A：弧形排列的裝甲殿堂格納庫與水泥柱 */
+  for (let i = 0; i < 7; i++) {
+    const a = (i - 3) * .3, R = 5.4, g = new THREE.Group();
+    g.position.set(Math.sin(a) * R, 0, -Math.cos(a) * R); g.rotation.y = -a;
+    const pod = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.7, .9), glass); pod.position.y = 1.35; g.add(pod);
+    for (const x of [-.575, .575]) { const s = new THREE.Mesh(new THREE.BoxGeometry(.016, 2.7, .016), strip); s.position.set(x, 1.35, .45); g.add(s); }
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.15, .02, .9), strip); top.position.y = 2.72; g.add(top);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(.42, .46, .08, 32), concrete); base.position.y = .04; g.add(base);
+    HANGAR.A.add(g);
+    if (i < 6) {
+      const b = (i - 2.5) * .3, col = new THREE.Mesh(new THREE.CylinderGeometry(.22, .26, 4.4, 24), concrete);
+      col.position.set(Math.sin(b) * 6.3, 2.2, -Math.cos(b) * 6.3); HANGAR.A.add(col);
+    }
+  }
+  /* 背景的初代反應爐玻璃罩 */
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, .9, 24), concrete); ped.position.set(2.6, .45, -1.8); HANGAR.A.add(ped);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16, 0, TAU, 0, Math.PI / 2), glass); dome.position.set(2.6, .9, -1.8); HANGAR.A.add(dome);
+  const heart = new THREE.Mesh(new THREE.TorusGeometry(.05, .012, 12, 32), new THREE.MeshBasicMaterial({ color: 0x9fe9ff })); heart.position.set(2.6, .96, -1.8); HANGAR.A.add(heart);
+
+  /* B：六角蜂巢牆、桁架與導引燈 */
+  const hexM = new THREE.MeshStandardMaterial({ color: 0x1b1e22, roughness: .55, metalness: .7 });
+  const hexG = new THREE.CylinderGeometry(.26, .26, .08, 6); hexG.rotateX(Math.PI / 2);
+  const cols = 30, rows = 9, inst = new THREE.InstancedMesh(hexG, hexM, cols * rows), o = new THREE.Object3D();
+  const lit = new THREE.MeshBasicMaterial({ color: 0x8fe6ff });
+  let k = 0;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const a = (c - cols / 2 + (r % 2) * .5) * .085, R = 6.2;
+    o.position.set(Math.sin(a) * R, .3 + r * .39, -Math.cos(a) * R); o.rotation.set(0, -a, 0); o.updateMatrix(); inst.setMatrixAt(k++, o.matrix);
+    if ((r * 7 + c * 13) % 23 === 0) { const l = new THREE.Mesh(new THREE.CircleGeometry(.06, 6), lit); l.position.copy(o.position).multiplyScalar(.985); l.rotation.y = -a; HANGAR.B.add(l); }
+  }
+  HANGAR.B.add(inst);
+  const truss = new THREE.MeshStandardMaterial({ color: 0x2c3036, roughness: .5, metalness: .8 });
+  for (let i = -3; i <= 3; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, 9), truss); b.position.set(i * 1.3, 4.3, -1.5); HANGAR.B.add(b); }
+  for (let i = 0; i < 5; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(9, .1, .1), truss); b.position.set(0, 4.2, -5 + i * 1.6); HANGAR.B.add(b); }
+  for (let i = 0; i < 16; i++) { const a = i / 16 * TAU, d = new THREE.Mesh(new THREE.CircleGeometry(.025, 12), lit); d.rotation.x = -Math.PI / 2; d.position.set(Math.cos(a) * 2.1, .004, Math.sin(a) * 2.1); HANGAR.B.add(d); }
+}
+
+/* ---------------- 材質與塗裝 ---------------- */
+/* 每個網格一個材質：換型號時只改顏色與圖樣，不重建幾何 */
+const SH = { uPulse: { value: -1 }, uPulseC: { value: new THREE.Color(.55, .9, 1) }, uRx: { value: V(0, 1.4, .2) }, uNodes: { value: 0 } };
+function patchMat(m) {
+  m.userData.u = { uPat: { value: 0 }, uPC1: { value: new THREE.Color() }, uPC2: { value: new THREE.Color() }, uPC3: { value: new THREE.Color() }, uGlowRole: { value: 0 } };
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, SH, m.userData.u);
+    sh.vertexShader = 'varying vec3 vOp;\nvarying vec3 vWp2;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvOp = position;\nvWp2 = (modelMatrix * vec4(position, 1.0)).xyz;');
+    sh.fragmentShader = `varying vec3 vOp;\nvarying vec3 vWp2;\nuniform float uPat;\nuniform vec3 uPC1;\nuniform vec3 uPC2;\nuniform vec3 uPC3;\nuniform float uPulse;\nuniform vec3 uPulseC;\nuniform vec3 uRx;\nuniform float uNodes;\nuniform float uGlowRole;
+float h31(vec3 p){ p = fract(p * .1031); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
+` + sh.fragmentShader
+      .replace('#include <color_fragment>', `#include <color_fragment>
+      if (uPat > .5 && uPat < 1.5) { /* 數位迷彩 */
+        float a = h31(floor(vOp * 26.)), b = h31(floor(vOp * 9.) + 7.);
+        diffuseColor.rgb = b > .62 ? uPC2 : a > .55 ? uPC3 : uPC1;
+      } else if (uPat > 1.5 && uPat < 2.5) { /* 火焰拉花：從腳往上 */
+        float edge = .34 + .06 * sin(vOp.x * 70. + vOp.z * 50.) + .045 * sin(vOp.x * 23. - vOp.z * 31.);
+        float f = smoothstep(edge + .012, edge - .012, vOp.y);
+        float inner = smoothstep(edge - .05, edge - .1, vOp.y);
+        diffuseColor.rgb = mix(diffuseColor.rgb, mix(uPC2, uPC1, inner), f);
+      } else if (uPat > 2.5 && uPat < 3.5) { /* 條紋 */
+        float s = step(.62, fract(vOp.y * 11. + vOp.x * 2.));
+        diffuseColor.rgb = mix(diffuseColor.rgb, uPC1, s);
+      } else if (uPat > 3.5 && uPat < 4.5) { /* 骷髏：外殼鏤空成肋骨格 */
+        vec2 q = vec2(vOp.y * 34., (abs(vOp.x) + vOp.z) * 22.);
+        vec2 f = abs(fract(q) - .5);
+        if (max(f.x * 1.3, f.y) < .36) discard;
+      } else if (uPat > 6.5) { /* 鑄鐵：煙燻與焊痕 */
+        float n = h31(floor(vOp * 90.)) * .4 + h31(floor(vOp * 31.)) * .6;
+        diffuseColor.rgb *= .8 + .32 * n;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.3, .19, .11), step(.93, h31(floor(vOp * 23.) + 3.)) * .45);
+      }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      { float d = distance(vWp2, uRx);
+        float band = exp(-pow((d - uPulse) / .045, 2.)) * step(0., uPulse);
+        totalEmissiveRadiance += uPulseC * band * 3.2;
+        if (uNodes > .5 && uGlowRole < .5) { vec3 c = floor(vOp * 9.); float hh = h31(c); vec3 cc = (c + .5) / 9.;
+          if (hh > .955) totalEmissiveRadiance += vec3(.3, .85, 1.) * smoothstep(.024, .008, distance(vOp, cc)) * 3.; } }`);
+  };
+  m.customProgramCacheKey = () => 'mk270';
+  return m;
+}
+function roleMat(role) {
+  const m = new THREE.MeshPhysicalMaterial({ color: 0x888888, metalness: .85, roughness: .28, clearcoat: role === 'p' ? 1 : .5, clearcoatRoughness: .07 });
+  if (role === 'g') { m.emissive = new THREE.Color(0x9feaff); m.emissiveIntensity = 2; m.metalness = 0; m.roughness = .3; m.clearcoat = 0; }
+  return patchMat(m);
+}
+const holoMat = new THREE.MeshBasicMaterial({ color: 0x46c9ff, wireframe: true, transparent: true, opacity: .32, blending: THREE.AdditiveBlending, depthWrite: false });
+
+/* ---------------- 載入模型 ---------------- */
+const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder);
+const SUITS = {}, LOADED = new Set();
+function loadBase(k, onProgress) {
+  if (!SUITS[k]) SUITS[k] = new Promise((res, rej) => loader.load('../assets/270/' + BASES[k].file, gl => { LOADED.add(k); res(prepSuit(k, gl.scene)); }, onProgress, rej));
+  return SUITS[k];
+}
+function partName(o) {
+  for (let n = o; n; n = n.parent) { const m = n.name.match(PART_RE); if (m) return m[1] + (m[2] ? '.' + m[2] : ''); }
+  return 'chest';
+}
+function prepSuit(k, root) {
+  const suit = { key: k, root, meshes: [], parts: {}, reactor: null };
+  root.updateMatrixWorld(true);
+  const list = [];
+  root.traverse(o => { if (o.isMesh) list.push(o); });
+  for (const o of list) {
+    const part = partName(o);
+    const role = (o.material.name || 'role_p').replace('role_', '').slice(0, 1);
+    o.material = roleMat(role);
+    o.castShadow = o.receiveShadow = true;
+    o.geometry.computeBoundingBox();
+    o.userData = { part, role, mat: o.material, rest: o.position.clone() };
+    suit.meshes.push(o);
+    (suit.parts[part] ||= { name: part, meshes: [], box: new THREE.Box3(), c: V(0, 0, 0) }).meshes.push(o);
+  }
+  for (const p of Object.values(suit.parts)) { for (const m of p.meshes) p.box.union(m.geometry.boundingBox); p.box.getCenter(p.c); }
+  /* 反應爐半徑上限 5.5 cm：mk3 的反應爐部位連著胸口一圈零件 */
+  if (suit.parts.reactor) { const b = suit.parts.reactor.box; suit.reactor = { pos: V((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.max.z), r: Math.min(.055, Math.max(b.max.x - b.min.x, b.max.y - b.min.y) / 2) }; }
+  else { const b = suit.parts.chest.box; suit.reactor = { pos: V(0, lerp(b.min.y, b.max.y, .62), b.max.z - .02), r: .05 }; }
+  suit.chestFront = suit.parts.chest.box.max.z;
+  /* 眼睛：頭盔裡發光材質的範圍（Bruno 的頭是側轉的，所以不假設在正中央） */
+  const eb = new THREE.Box3();
+  for (const m of suit.parts.helmet.meshes) if (m.userData.role === 'g') eb.union(m.geometry.boundingBox);
+  const hb = suit.parts.helmet.box;
+  suit.eyes = eb.isEmpty() ? [V(-.032, lerp(hb.min.y, hb.max.y, .52), hb.max.z), V(.032, lerp(hb.min.y, hb.max.y, .52), hb.max.z)]
+    : [-1, 1].map(sx => { const c = eb.getCenter(V(0, 0, 0)); c.x += sx * (eb.max.x - eb.min.x) * .28; c.z = eb.max.z + .005; return c; });
+  suit.box = new THREE.Box3(); for (const p of Object.values(suit.parts)) suit.box.union(p.box);
+  /* 爆炸方向：從軀幹中心往外，四肢多推一點 */
+  const core = V(0, lerp(suit.box.min.y, suit.box.max.y, .55), 0);
+  for (const p of Object.values(suit.parts)) {
+    const d = p.c.clone().sub(core); d.x *= 1.9; d.y *= .4; d.z = d.z * 1.4 + .12;
+    if (p.name === 'helmet') d.y += .06;
+    if (p.name === 'reactor') d.z += .35;
+    if (p.name === 'chest') d.z += .18;
+    p.ex = d;
+  }
+  /* 自組裝起點：每個部位一個固定的飛入方向與翻滾 */
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (const p of Object.values(suit.parts)) {
+    const side = p.name.endsWith('.L') ? 1 : p.name.endsWith('.R') ? -1 : (rnd() < .5 ? -1 : 1);
+    const pk = partKey(p.name);
+    const from = pk === 'boot' ? V(side * .3, .5, -2.6) : pk === 'helmet' ? V(0, .3, -1.6) : V(side * (1.2 + rnd() * 1.4), (rnd() - .25) * 1.8, (rnd() - .5) * 2.2);
+    p.fly = { from, rot: new THREE.Euler((rnd() - .5) * 2.4, (rnd() - .5) * 3, (rnd() - .5) * 2.4) };
+  }
+  return suit;
+}
+
+/* ---------------- 反應爐與配件 ---------------- */
+const glowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.2, 'rgba(170,235,255,.55)'); gr.addColorStop(.55, 'rgba(70,180,255,.12)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const halo = (s, c = 0x9fe6ff) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: c, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); m.scale.setScalar(s); return m; };
+const extra = new THREE.Group(); holder.add(extra);
+let reactorHalo = null, eyeHalo = [];
+const coreMat = new THREE.MeshBasicMaterial({ color: 0xe6fbff });
+const metal = (c, r = .3, mt = 1) => new THREE.MeshPhysicalMaterial({ color: c, roughness: r, metalness: mt, clearcoat: .4, clearcoatRoughness: .1 });
+function stripeTex(a, b) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = a; g.fillRect(0, 0, 128, 128); g.fillStyle = b;
+  for (let i = -128; i < 256; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 16, 0); g.lineTo(i + 16 + 128, 128); g.lineTo(i + 128, 128); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 2); return t;
+}
+function reactorShape(kind, r) {
+  const s = new THREE.Shape();
+  if (kind === 'tri') { s.moveTo(-r * 1.25, r * .75); s.lineTo(0, -r * 1.25); s.lineTo(r * 1.25, r * .75); s.closePath(); }
+  else if (kind === 'trap') { s.moveTo(-r * 1.2, r * .7); s.lineTo(-r * .7, -r * .9); s.lineTo(r * .7, -r * .9); s.lineTo(r * 1.2, r * .7); s.closePath(); }
+  else if (kind === 'hex') { for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + Math.PI / 6, x = Math.cos(a) * r * 1.15, y = Math.sin(a) * r * 1.15; i ? s.lineTo(x, y) : s.moveTo(x, y); } s.closePath(); }
+  else s.absarc(0, 0, r, 0, TAU);
+  return s;
+}
+function buildExtras(suit, mk) {
+  for (const o of [...extra.children]) { extra.remove(o); o.traverse(q => { if (q.geometry) q.geometry.dispose(); }); }
+  eyeHalo = [];
+  const R = suit.reactor, big = mk.rx === 'big', rid = suit.parts.reactor ? 'reactor' : 'chest';
+  /* 反應爐：圓形沿用模型，其他形狀蓋上新的發光片 */
+  const rp = R.pos.clone(), rr = Math.max(.035, R.r) * (big ? 1.65 : 1);
+  if (suit.parts.reactor) suit.parts.reactor.hidden = mk.rx !== 'circle';
+  if (mk.rx !== 'circle') {
+    /* 原本的反應爐凹在胸甲裡，新的發光片要浮到胸甲表面才看得到 */
+    const g = new THREE.Group(); g.position.copy(rp); g.position.z = lerp(rp.z, suit.chestFront, .7) + .004;
+    const sh = reactorShape(big ? 'circle' : mk.rx, rr * .82);
+    const rimG = new THREE.ExtrudeGeometry(sh, { depth: .012, bevelEnabled: true, bevelSize: .006, bevelThickness: .004, bevelSegments: 2 });
+    const rimM = new THREE.Mesh(rimG, metal(0x9aa2aa, .25)); rimM.position.z = -.012; rimM.scale.set(1.18, 1.18, 1); g.add(rimM);
+    const core = new THREE.Mesh(new THREE.ShapeGeometry(sh), coreMat); core.position.z = .009; g.add(core);
+    g.userData.part = 'reactor'; g.userData.follow = rid; extra.add(g);
+    if (big) {
+      const gold = metal(mk.c[1], .25);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * TAU, b = new THREE.Mesh(new THREE.BoxGeometry(.018, rr * 1.6, .02), gold); b.position.set(Math.cos(a) * rr * 1.45, Math.sin(a) * rr * 1.45, .01); b.rotation.z = a + Math.PI / 2; g.add(b); }
+    }
+  }
+  reactorHalo = halo(Math.min(.42, rr * 7)); reactorHalo.position.copy(rp); reactorHalo.position.z = Math.max(rp.z, suit.chestFront) + .03; reactorHalo.userData.follow = rid; extra.add(reactorHalo);
+  for (const e of suit.eyes) { const h = halo(.07, 0xbfefff); h.position.copy(e); h.userData.follow = 'helmet'; eyeHalo.push(h); extra.add(h); }
+  /* 配件：用基本幾何貼在前臂、肩甲或胸甲上 */
+  const P = n => suit.parts[n];
+  const atArm = (side, fn) => { const f = P('forearm.' + side), h = P('hand.' + side); if (!f || !h) return; const g = fn(f, h, side === 'L' ? 1 : -1); g.userData.follow ||= 'forearm.' + side; extra.add(g); };
+  for (const a of mk.att || []) {
+    if (a === 'hammer' || a === 'hammerGrey') for (const s of ['L', 'R']) atArm(s, (f, h, sx) => {
+      const g = new THREE.Group(), b = f.box, len = (b.max.y - b.min.y) * 1.25, rad = .075;
+      const mat = a === 'hammer' ? new THREE.MeshPhysicalMaterial({ map: stripeTex('#d8b12c', '#141414'), roughness: .45, metalness: .3, clearcoat: .5 }) : metal(0x7c8288, .4);
+      g.add(new THREE.Mesh(new THREE.CylinderGeometry(rad, rad * 1.08, len, 28), mat));
+      const tip = new THREE.Mesh(new THREE.CylinderGeometry(rad * .38, rad * .3, .2, 16), metal(0x9aa0a6, .3)); tip.position.y = -len / 2 - .09; g.add(tip);
+      g.position.set(f.c.x + sx * .03, f.c.y - .06, f.c.z); return g;
+    });
+    if (a === 'claw') for (const s of ['L', 'R']) atArm(s, (f, h) => {
+      const g = new THREE.Group(), m = metal(0xa9afb5, .3);
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .55, 16), m); tube.position.y = -.27; g.add(tube);
+      for (const d of [-1, 1]) { const j = new THREE.Mesh(new THREE.BoxGeometry(.03, .22, .05), metal(0xd1ad45, .3)); j.position.set(d * .06, -.6, 0); j.rotation.z = d * .35; g.add(j); }
+      g.position.set(h.c.x, h.box.min.y + .02, h.c.z); g.userData.follow = 'hand.' + (h.name.endsWith('.L') ? 'L' : 'R'); return g;
+    });
+    if (a === 'cannon') atArm('L', f => {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(new THREE.BoxGeometry(.16, (f.box.max.y - f.box.min.y) * 1.3, .2), metal(0x8e1a1f, .35)));
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .18, 16), metal(0x2a2b2d, .4)); bar.rotation.x = Math.PI / 2; bar.position.set(0, -.12, .16); g.add(bar);
+      g.position.set(f.c.x + .07, f.c.y - .03, f.c.z); return g;
+    });
+    if (a === 'bigArm') atArm('L', f => {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, (f.box.max.y - f.box.min.y) * 1.1, 20), metal(0x5a5c5e, .35)));
+      const fist = new THREE.Mesh(new THREE.BoxGeometry(.17, .17, .17), metal(0x8e9296, .35)); fist.position.y = -.27; g.add(fist);
+      g.position.set(f.c.x + .02, f.c.y - .02, f.c.z); return g;
+    });
+    if (a === 'flame') for (const s of ['L', 'R']) atArm(s, (f, h, sx) => {
+      const g = new THREE.Group(), m = metal(0x4a4540, .6, .9);
+      for (const dz of [-.03, .03]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.018, .02, .32, 12), m); t.position.set(0, 0, dz); g.add(t); }
+      g.position.set(f.c.x + sx * .07, f.c.y - .02, f.c.z + .02); return g;
+    });
+    if (a === 'pods' || a === 'booster' || a === 'cage' || a === 'flood') {
+      const g = new THREE.Group(), ch = P('chest').box;
+      g.userData.follow = 'chest';
+      if (a === 'pods') for (const s of ['L', 'R']) { const pa = P('pauldron.' + s); if (!pa) continue;
+        const gp = new THREE.Group(); gp.userData.follow = 'pauldron.' + s; extra.add(gp);
+        const pod = new THREE.Mesh(new THREE.BoxGeometry(.11, .07, .16), metal(mk.c[2], .3)); pod.position.set(pa.c.x, pa.box.max.y + .02, pa.c.z - .02); gp.add(pod);
+        for (let i = 0; i < 6; i++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .02, 10), metal(0x222222, .5)); t.rotation.x = Math.PI / 2; t.position.set(pa.c.x - .03 + (i % 3) * .03, pa.box.max.y + .008 + Math.floor(i / 3) * .028, pa.c.z + .065); gp.add(t); } }
+      if (a === 'booster') { const b = new THREE.Mesh(new THREE.CylinderGeometry(.09, .11, .62, 24), metal(0xc49a45, .25)); b.position.set(0, (ch.min.y + ch.max.y) / 2 + .02, ch.min.z - .1); g.add(b);
+        for (const s of [-1, 1]) { const n = new THREE.Mesh(new THREE.CylinderGeometry(.05, .07, .12, 18), metal(0x2a2c30, .4)); n.position.set(s * .12, (ch.min.y + ch.max.y) / 2 - .2, ch.min.z - .08); g.add(n); } }
+      if (a === 'cage') { const gold = metal(mk.c[1], .25), y = lerp(ch.min.y, ch.max.y, .92);
+        const col = new THREE.Mesh(new THREE.TorusGeometry(.13, .018, 10, 32, Math.PI), gold); col.position.set(0, y, (ch.min.z + ch.max.z) / 2 + .03); col.rotation.x = -Math.PI / 2; g.add(col); }
+      if (a === 'flood') for (const s of [-1, 1]) { const y = lerp(ch.min.y, ch.max.y, .72);
+        const l = new THREE.Mesh(new THREE.CylinderGeometry(.035, .04, .05, 20), metal(0xb9a253, .3)); l.rotation.x = Math.PI / 2; l.position.set(s * .13, y, ch.max.z - .02); g.add(l);
+        const lens = new THREE.Mesh(new THREE.CircleGeometry(.03, 20), coreMat); lens.position.set(s * .13, y, ch.max.z + .007); g.add(lens); }
+      extra.add(g);
+    }
+  }
+  /* 85：右手背的六顆寶石 */
+  if (mk.stones) { const h = P('hand.R'); if (h) {
+    [0xff3030, 0xa040ff, 0x3080ff, 0x30ff70, 0xffd030, 0xff8a20].forEach((c, i) => { const s = new THREE.Mesh(new THREE.SphereGeometry(.009, 12, 8), new THREE.MeshBasicMaterial({ color: c })); s.position.set(h.box.min.x - .002, h.box.max.y - .02 - i * .014, h.c.z + (i % 2 ? .012 : -.012)); s.userData.follow = 'hand.R'; extra.add(s); }); } }
+  for (const g of extra.children) { g.userData.base = g.position.clone(); const id = g.userData.part || 'attach'; g.traverse(o => { if (o.isMesh) { o.userData.part = id; o.castShadow = true; } }); }
+}
+
+/* ---------------- 體型：浩克毀滅者、伊格爾、救援 ---------------- */
+const BULK = {
+  hulk: { g: V(1.36, 1.5, 1.36), part: { helmet: .78, chest: 1.22, abdomen: 1.15, pelvis: 1.1, pauldron: 1.45, upperArm: 1.35, forearm: 1.5, hand: 1.55, thigh: 1.22, shin: 1.25, boot: 1.35 }, spread: 1.18 },
+  igor: { g: V(1.3, 1.25, 1.36), part: { helmet: .8, chest: 1.25, pauldron: 1.4, upperArm: 1.3, forearm: 1.45, hand: 1.5, thigh: 1.15, shin: 1.15, boot: 1.25 }, spread: 1.12 },
+  mk1: { g: V(1.1, 1.04, 1.12), part: { chest: 1.08, pauldron: 1.12, forearm: 1.1 }, spread: 1.04 },
+  slim: { g: V(.9, .9, .92), part: {}, spread: 1 },
+};
+function applyBulk(suit, mk) {
+  const b = BULK[mk.bulk];
+  holder.scale.copy(b ? b.g : V(1, 1, 1)).multiplyScalar(mk.h / (b ? 1.95 * b.g.y : 1.95));
+  for (const p of Object.values(suit.parts)) {
+    const f = b ? (b.part[partKey(p.name)] || 1) : 1, sp = b ? b.spread : 1;
+    p.scale = f;
+    /* 以部位中心縮放，四肢再往外推 */
+    p.off = p.c.clone().multiplyScalar(1 - f).add(V(p.c.x * (sp - 1), 0, 0));
+  }
+}
+
+/* ---------------- 狀態 ---------------- */
+const st = {
+  mark: null, suit: null, e: 0, exTween: null, mode: 'assembled', holo: { v: 0, to: 0 }, holoUser: false, dim: { v: 0, to: 1 }, spin: false, spinV: 0,
+  hover: null, pin: null, legendRole: null, outlineA: 0, view: 'q', hangar: 'A', hangarUser: false, hangarV: 0, sound: true,
+  asm: null, ignite: 1, glowCol: new THREE.Color(0x9feaff), shake: 0, sink: 0,
+};
+const ptr = { x: 0, y: 0, inside: false, type: 'mouse', down: null, dragging: false, moved: false };
+
+function paint(suit, mk) {
+  const fin = mk.fin || {};
+  const F = { p: { m: fin.m ?? .82, r: fin.r ?? .26, cc: fin.cc ?? 1 }, s: { m: 1, r: Math.min(.3, (fin.r ?? .26) + .02), cc: (fin.cc ?? 1) * .6 }, t: { m: 1, r: .22, cc: .3 }, k: { m: .75, r: .45, cc: 0 } };
+  const pat = mk.pat || {}, idx = { p: 0, s: 1, t: 2, k: 3 };
+  for (const m of suit.meshes) {
+    const { part, role, mat } = m.userData, pk = partKey(part), u = mat.userData.u;
+    if (role === 'g') { mat.color.set(0x111417); u.uGlowRole.value = 1; continue; }
+    const r2 = (mk.ov && mk.ov[pk] && mk.ov[pk][role]) || role;
+    mat.color.set(mk.c[idx[r2]]);
+    const f = F[r2] || F.p;
+    mat.metalness = f.m; mat.roughness = f.r; mat.clearcoat = f.cc;
+    const on = pat.id && (!pat.parts || pat.parts.includes(pk)) && (pat.id === 4 ? role === 'p' : pat.id === 7 ? true : (role === 'p' || role === 's'));
+    u.uPat.value = on ? pat.id : 0;
+    const pc = pat.c || [mk.c[1], mk.c[0], mk.c[2]];
+    u.uPC1.value.set(pc[0]); u.uPC2.value.set(pc[1] || pc[0]); u.uPC3.value.set(pc[2] || pc[0]);
+    const side = pat.id === 4 && on ? THREE.DoubleSide : THREE.FrontSide;
+    if (mat.side !== side) { mat.side = side; mat.needsUpdate = true; }
+  }
+  SH.uNodes.value = pat.id === 6 ? 1 : 0;
+}
+
+async function setMark(n, opts = {}) {
+  const mk = byN(n); if (!mk) return;
+  const same = st.mark === mk;
+  st.mark = mk;
+  syncMarkUI();
+  const fresh = !LOADED.has(mk.base);
+  const suit = await loadBase(mk.base, e => { if (fresh && e.total && !opts.quiet) toast(`載入 ${BASES[mk.base].name}… ${Math.round(e.loaded / e.total * 100)}%`, 1500); });
+  if (st.mark !== mk) return; /* 載入期間又換了型號 */
+  if (st.suit !== suit) {
+    if (st.suit) holder.remove(st.suit.root);
+    holder.add(suit.root); st.suit = suit;
+    unpin(); st.hover = null;
+  }
+  applyBulk(suit, mk);
+  paint(suit, mk);
+  buildExtras(suit, mk);
+  st.holo.to = mk.holo || st.holoUser ? 1 : 0;
+  if (!st.hangarUser) setHangar(mk.hangar);
+  updateParts(0);
+  buildDims(mk);
+  if (!same && !opts.quiet) toast(`Mark ${mk.label}　${mk.nm}　· ${mk.real ? '實體模型' : '以 ' + BASES[mk.base].short + ' 換色近似'}`, 2200);
+}
+
+/* ---------------- UI：型號 ---------------- */
+const mkBtn = $('mkBtn'), mkPop = $('mkPop'), specPanel = $('specPanel'), legend = $('legend');
+mkPop.innerHTML = Object.entries(GEN).map(([g, G]) => `<h3>${G.n}<small>${G.s}</small></h3><div class="grid">` +
+  MARKS.filter(m => m.gen === +g).map(m => `<button type="button" role="menuitem" data-mk="${m.n}"${m.real ? ' class="real"' : ''} title="Mark ${m.label} ${m.nm}"><b>${m.label}</b><span><i style="--c:${m.c[0]}"></i><i style="--c:${m.c[1]}"></i></span><em>${m.real ? '實體模型' : m.en || m.nm}</em></button>`).join('') + '</div>').join('')
+  + '<p class="foot">只有 Mark 3、Mark 7 是對應型號的實體模型，其餘以最接近的骨架依參考圖換色。←／→ 鍵也能換型號。</p>';
+mkPop.addEventListener('click', e => { const b = e.target.closest('[data-mk]'); if (!b) return; closePops(); if (st.asm) stopAsm(); setMark(+b.dataset.mk); });
+const order = MARKS.map(m => m.n);
+const stepMark = d => { if (st.asm) stopAsm(); const i = order.indexOf(st.mark.n); setMark(order[(i + d + order.length) % order.length]); };
+$('prevBtn').addEventListener('click', () => stepMark(-1));
+$('nextBtn').addEventListener('click', () => stepMark(1));
+function syncMarkUI() {
+  const mk = st.mark, G = GEN[mk.gen], base = BASES[mk.base];
+  $('mkLabel').textContent = 'Mark ' + mk.label;
+  mkBtn.style.setProperty('--p', mk.c[0]); mkBtn.style.setProperty('--s', mk.c[1]);
+  mkBtn.setAttribute('aria-label', `型號：Mark ${mk.label} ${mk.nm}（按下選擇）`);
+  mkPop.querySelectorAll('[data-mk]').forEach(b => b.setAttribute('aria-current', +b.dataset.mk === mk.n));
+  history.replaceState(null, '', '#mk' + mk.n);
+  specPanel.innerHTML = `<div class="ph"><div><b style="color:${G.c}">${G.n} · ${G.s}</b><h2>Mark ${mk.label}　${mk.nm}<small>${mk.en ? mk.en + ' · ' : ''}${mk.film}</small></h2></div><button type="button" class="px" data-close>收合</button></div>
+    <div class="tags"><span class="${mk.real ? 'real' : 'approx'}">${mk.real ? '實體模型' : '近似：' + base.short + ' 換色'}</span><span>${mk.ai}</span><span>機庫 ${mk.hangar}</span><span>${RX_NAME[mk.rx]}反應爐</span><span>身高 ${mk.h.toFixed(2)} m</span></div>
+    <p>${mk.d}</p>
+    ${mk.note ? `<p class="note">${mk.note}</p>` : mk.real ? '' : `<p class="note">以 ${base.short} 換色近似；配色依 MCU Wiki 與 Hot Toys 參考圖。</p>`}
+    ${mk.fix ? `<p class="note">${mk.fix}</p>` : ''}
+    ${mk.tip ? `<h4>組裝動畫建議</h4><p>${mk.tip}</p>` : ''}
+    <h4>AI 生成提示詞</h4><pre class="prompt" id="mkPr">${mk.pr}<button type="button" class="copy" data-copy="mkPr">複製</button></pre>
+    <h4>Blender PBR</h4><p>${mk.pbr}</p>
+    <dl class="kv"><dt>網格</dt><dd>${base.name}</dd>${mk.ref ? `<dt>參考圖</dt><dd><a href="${mk.ref}" target="_blank" rel="noopener">MCU Wiki · Mark ${roman(mk.n)}</a></dd>` : ''}</dl>`;
+  const roles = mk.holo ? [] : [['p', mk.c[0]], ['s', mk.c[1]], ['t', mk.c[2]], ['k', mk.c[3]], ['g', '#9feaff']];
+  legend.innerHTML = roles.length ? '<div class="lg-h">塗裝角色 · 滑過標出</div>' + roles.map(([r, c]) => `<button type="button" data-role="${r}" style="--c:${c}"><i></i>${ROLE_NAME[r]}<small>${c.toUpperCase()}</small></button>`).join('') : '<div class="lg-h">全息線框</div>';
+}
+legend.addEventListener('pointerover', e => { const b = e.target.closest('[data-role]'); st.legendRole = b ? b.dataset.role : null; });
+legend.addEventListener('pointerleave', () => { st.legendRole = null; });
+legend.addEventListener('focusin', e => { const b = e.target.closest('[data-role]'); st.legendRole = b ? b.dataset.role : null; });
+legend.addEventListener('focusout', () => { st.legendRole = null; });
+
+/* 面板切換 */
+const PANELS = { spec: specPanel, plan: $('planPanel'), credits: $('creditsPanel') };
+function showPanel(k) {
+  for (const [n, el] of Object.entries(PANELS)) el.classList.toggle('on', n === k);
+  document.querySelectorAll('[data-panel]').forEach(b => b.setAttribute('aria-pressed', b.dataset.panel === k));
+}
+document.querySelectorAll('[data-panel]').forEach(b => b.addEventListener('click', () => showPanel(b.getAttribute('aria-pressed') === 'true' ? null : b.dataset.panel)));
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-close]')) showPanel(null);
+  const cp = e.target.closest('[data-copy]');
+  if (cp) {
+    const el = $(cp.dataset.copy), txt = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('已複製提示詞'), () => toast('無法存取剪貼簿，請手動選取'));
+  }
+  const tb = e.target.closest('[data-tab]');
+  if (tb) { document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b === tb)); document.querySelectorAll('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== tb.dataset.tab; }); }
+});
+
+/* 下拉選單 */
+const POPS = [[mkBtn, mkPop]];
+function closePops() { for (const [b, p] of POPS) { b.setAttribute('aria-expanded', 'false'); p.classList.remove('on'); } }
+mkBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = mkBtn.getAttribute('aria-expanded') !== 'true';
+  closePops(); if (!open) return;
+  const r = mkBtn.getBoundingClientRect(), w = Math.min(470, innerWidth - 16), left = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8);
+  mkPop.style.left = left + 'px'; mkPop.style.top = (r.bottom + 12) + 'px'; mkPop.style.width = w + 'px';
+  mkPop.style.maxHeight = Math.max(260, innerHeight - r.bottom - (mobile() ? 120 : 40)) + 'px';
+  mkBtn.setAttribute('aria-expanded', 'true'); mkPop.classList.add('on');
+});
+for (const [btn, grp] of [[$('viewBtn'), $('viewGrp')], [$('showBtn'), $('showGrp')]]) {
+  POPS.push([btn, grp]);
+  btn.addEventListener('click', e => { e.stopPropagation(); const open = btn.getAttribute('aria-expanded') !== 'true'; closePops(); if (open) { btn.setAttribute('aria-expanded', 'true'); grp.classList.add('on'); } });
+}
+$('viewGrp').addEventListener('click', e => { if (e.target.closest('[data-view]')) closePops(); });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.pop') && !e.target.closest('.grp') && !e.target.closest('.menu')) closePops(); });
+
+/* ---------------- 相機預設與過場 ---------------- */
+const VIEWS = {
+  q: { p: V(2.55, 1.85, 4.35), t: V(0, 1.06, 0) },
+  front: { p: V(0, 1.2, 5.1), t: V(0, 1.04, 0) },
+  side: { p: V(5.1, 1.2, 0), t: V(0, 1.04, 0) },
+  back: { p: V(-1.3, 1.55, -4.9), t: V(0, 1.08, 0) },
+  hero: { p: V(1.2, .3, 3.0), t: V(0, 1.15, 0) },
+  face: { p: V(.55, 1.78, 1.3), t: V(0, 1.68, 0) },
+};
+let camTween = null, rigTween = null;
+const sz = () => (st.mark ? st.mark.h : 1.98) / 1.98;
+function fitScale() { const a = camera.aspect; return a >= 1.25 ? 1 : a >= 1 ? 1.12 : 1 + (1 - a) * 1.5; }
+function goView(name, dur = 1.25, keepSpin) {
+  st.view = name;
+  if (!keepSpin) {
+    if (st.spin) { st.spin = false; document.querySelector('[data-tog=spin]').setAttribute('aria-pressed', 'false'); }
+    const r0 = rig.rotation.y; rigTween = { from: r0, to: Math.round(r0 / TAU) * TAU, start: performance.now(), dur: reduce ? 1 : dur * 1000 };
+  }
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === name));
+  const v = VIEWS[name], s = sz(), tgt = v.t.clone().multiplyScalar(s);
+  if (mobile() && name !== 'face') tgt.y -= .22 * s;
+  const to = v.p.clone().sub(v.t).multiplyScalar(s * (name === 'face' ? 1 : fitScale())).add(tgt);
+  startCam(to, tgt, dur);
+}
+function startCam(toPos, toTgt, dur) {
+  controls.maxPolarAngle = Math.PI - .01;
+  const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+  const s1 = new THREE.Spherical().setFromVector3(toPos.clone().sub(toTgt));
+  let dt = s1.theta - s0.theta; if (dt > Math.PI) dt -= TAU; if (dt < -Math.PI) dt += TAU;
+  camTween = { s0, s1, dTheta: dt, t0: controls.target.clone(), t1: toTgt.clone(), start: performance.now(), dur: reduce ? .001 : dur * 1000 };
+  controls.enabled = false;
+}
+function stepCam(now) {
+  if (!camTween) return;
+  const k = clamp((now - camTween.start) / camTween.dur, 0, 1), e = ease(k), { s0, s1 } = camTween;
+  const s = new THREE.Spherical(lerp(s0.radius, s1.radius, e), lerp(s0.phi, s1.phi, e), s0.theta + camTween.dTheta * e);
+  controls.target.lerpVectors(camTween.t0, camTween.t1, e);
+  camera.position.setFromSpherical(s).add(controls.target);
+  camera.lookAt(controls.target);
+  if (k >= 1) { camTween = null; controls.enabled = !st.asm; controls.maxPolarAngle = POLAR_MAX; controls.update(); }
+}
+controls.addEventListener('start', () => {
+  ptr.dragging = true;
+  if (st.view) { st.view = null; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+});
+controls.addEventListener('end', () => { ptr.dragging = false; });
+
+/* ---------------- UI：模式、滑桿、切換 ---------------- */
+const exIn = $('ex'), exOut = $('exOut');
+function setMode(m, fromSlider) {
+  st.mode = m;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+  if (!fromSlider) { const to = m === 'exploded' ? 1 : 0; st.exTween = { from: st.e, to, start: performance.now(), dur: reduce ? 1 : 1400 * Math.max(.35, Math.abs(to - st.e)) }; }
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { if (st.asm) stopAsm(); setMode(b.dataset.mode); }));
+exIn.addEventListener('input', () => { if (st.asm) stopAsm(); st.exTween = null; st.e = exIn.value / 100; const m = st.e > 0 ? 'exploded' : 'assembled'; if (m !== st.mode) setMode(m, true); });
+function syncSlider() {
+  const p = Math.round(st.e * 100);
+  if (document.activeElement !== exIn || st.exTween) exIn.value = p;
+  exIn.style.setProperty('--p', p + '%'); exOut.textContent = p + '%';
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { if (st.asm) stopAsm(); goView(b.dataset.view); }));
+document.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.tog, on = b.getAttribute('aria-pressed') !== 'true';
+  b.setAttribute('aria-pressed', on);
+  if (k === 'spin') st.spin = on;
+  else if (k === 'sound') { st.sound = on; if (!on && AC) AC.suspend(); }
+  else if (k === 'holo') { st.holoUser = on; st.holo.to = on || st.mark.holo ? 1 : 0; }
+  else st[k].to = on ? 1 : 0;
+}));
+const hangarBtn = $('hangarBtn');
+function setHangar(h) { st.hangar = h; hangarBtn.textContent = '機庫 ' + h; hangarBtn.title = h === 'A' ? '馬里布地下工作坊（Mark 1–42）' : '復仇者新基地機庫（Mark 43–85）'; }
+hangarBtn.addEventListener('click', () => { st.hangarUser = true; setHangar(st.hangar === 'A' ? 'B' : 'A'); toast(st.hangar === 'A' ? '機庫 A · 馬里布地下工作坊：弧形水泥柱與裝甲殿堂格納庫' : '機庫 B · 復仇者新基地：六角蜂巢牆、桁架與黃黑警示環'); });
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === 'Escape') { closePops(); unpin(); if (st.asm) stopAsm(); }
+  if (e.key === 'ArrowRight') stepMark(1);
+  if (e.key === 'ArrowLeft') stepMark(-1);
+});
+
+/* ---------------- 尺寸標註 ---------------- */
+const DIMS = [];
+const dimLine = new THREE.LineBasicMaterial({ color: 0xe6f2f8, transparent: true, opacity: 0, depthTest: false });
+const dimDash = new THREE.LineDashedMaterial({ color: 0xe6f2f8, dashSize: .03, gapSize: .025, transparent: true, opacity: 0, depthTest: false });
+const dimGroup = new THREE.Group(); rig.add(dimGroup);
+function dimension(a, b, v, c, at, ext = []) {
+  const mid = a.clone().add(b).multiplyScalar(.5), grp = new THREE.Group(); grp.position.copy(mid);
+  const la = a.clone().sub(mid), lb = b.clone().sub(mid), u = lb.clone().sub(la).normalize();
+  const side = Math.abs(u.y) > .9 ? V(1, 0, 0) : V(0, 1, 0);
+  const p = new THREE.Vector3().crossVectors(u, side).normalize().multiplyScalar(.022), hd = u.clone().multiplyScalar(.05);
+  const pts = [la, lb, la, la.clone().add(hd).add(p), la, la.clone().add(hd).sub(p), lb, lb.clone().sub(hd).add(p), lb, lb.clone().sub(hd).sub(p)];
+  const ls = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), dimLine); ls.renderOrder = 20; grp.add(ls);
+  if (ext.length) { const e = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ext.flat().map(q => q.clone().sub(mid))), dimDash); e.computeLineDistances(); e.renderOrder = 20; grp.add(e); }
+  dimGroup.add(grp);
+  const el = document.createElement('div'); el.className = 'dim'; el.innerHTML = `<b>${v}</b><span>${c}</span>`; $('dims').appendChild(el);
+  DIMS.push({ grp, el, at: (at || mid).clone(), delay: DIMS.length * .08 });
+}
+/* 標註都在 rig 的座標系裡（轉盤轉動時跟著轉） */
+function buildDims(mk) {
+  for (const d of DIMS) { dimGroup.remove(d.grp); d.grp.traverse(o => o.geometry && o.geometry.dispose()); d.el.remove(); }
+  DIMS.length = 0;
+  const s = st.suit; if (!s || mk.holo) return;
+  holder.updateMatrix();
+  const toRig = b => b.clone().applyMatrix4(holder.matrix);
+  const partBox = names => { const b = new THREE.Box3(); for (const n of names) { const p = s.parts[n]; if (p) b.union(p.box.clone().translate(p.off).applyMatrix4(holder.matrix)); } return b; };
+  const box = toRig(s.box), H = mk.h, x = box.max.x + .32;
+  dimension(V(x, 0, 0), V(x, H, 0), `${(H * 100).toFixed(0)} cm`, '全高', V(x + .05, H * .55, 0), [[V(box.max.x - .15, H, 0), V(x + .04, H, 0)], [V(box.max.x - .15, 0, 0), V(x + .04, 0, 0)]]);
+  const wb = partBox(['pauldron.L', 'pauldron.R']);
+  if (!wb.isEmpty()) {
+    const y = H + .14, w = wb.max.x - wb.min.x;
+    dimension(V(wb.min.x, y, 0), V(wb.max.x, y, 0), `${(w * 100).toFixed(0)} cm`, '肩寬', V(0, y + .08, 0), [[V(wb.min.x, wb.max.y, 0), V(wb.min.x, y + .03, 0)], [V(wb.max.x, wb.max.y, 0), V(wb.max.x, y + .03, 0)]]);
+  }
+}
+
+/* ---------------- 描邊 ---------------- */
+const maskRT = new THREE.WebGLRenderTarget(1, 1);
+const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+const outlineMat = new THREE.ShaderMaterial({
+  uniforms: { tMask: { value: maskRT.texture }, uTexel: { value: new THREE.Vector2(1, 1) }, uAlpha: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `uniform sampler2D tMask; uniform vec2 uTexel; uniform float uAlpha; varying vec2 vUv;
+    void main(){
+      float c = texture2D(tMask, vUv).r, n1 = 0., n2 = 0.;
+      for (int i = 0; i < 12; i++) { float a = float(i) * .5235988; vec2 d = vec2(cos(a), sin(a));
+        n1 = max(n1, texture2D(tMask, vUv + d * uTexel * 1.7).r); n2 = max(n2, texture2D(tMask, vUv + d * uTexel * 4.5).r); }
+      float a = max(n1 * (1. - c) * .95, n2 * (1. - c) * .22) + c * .06;
+      gl_FragColor = vec4(vec3(1.), a * uAlpha);
+    }`,
+  transparent: true, depthTest: false, depthWrite: false,
+});
+const fsScene = new THREE.Scene(), fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+fsScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), outlineMat));
+
+/* ---------------- 說明卡 ---------------- */
+const card = $('card');
+let cardFor = null, hideTimer = 0;
+function fillCard(id) {
+  const k = partKey(id), inf = PART[k] || PART.attach, side = id.split('.')[1], mk = st.mark;
+  card.style.setProperty('--c', GEN[mk.gen].c);
+  $('cCat').textContent = inf.cat + ' · Mark ' + mk.label;
+  $('cName').textContent = (side ? SIDE[side] : '') + inf.n;
+  $('cDesc').textContent = inf.d;
+  $('cOrd').textContent = `第 ${String(inf.ord[0]).padStart(3, '0')}–${String(inf.ord[1]).padStart(3, '0')} 幀`;
+  const roles = new Set((st.suit.parts[id] ? st.suit.parts[id].meshes : []).map(m => m.userData.role));
+  const idx = { p: 0, s: 1, t: 2, k: 3 }, ov = (mk.ov && mk.ov[k]) || {};
+  $('cSw').innerHTML = [...roles].filter(r => r !== 'g').map(r => `<i style="--c:${mk.c[idx[ov[r] || r]]}" title="${ROLE_NAME[ov[r] || r]}"></i>`).join('');
+  const tips = [];
+  if (inf.vent) tips.push('這裡有氣密排氣閥：自組裝第 165 幀起會噴出白色冷卻氣霧。');
+  if (inf.glow) tips.push(`${mk.ai} 啟動時從 0 衝到 50 再穩定在 25，${RX_NAME[mk.rx]}核心。`);
+  if (k === 'helmet' && mk.eyeFlash) tips.push('Mark 43 啟動時雙眼先閃紅光再轉冰藍（奧創彩蛋）。');
+  if (k === 'hand' && mk.stones) tips.push('右手背嵌著六顆寶石，致敬無限手套。');
+  $('cTip').textContent = tips.join(' ');
+  $('cTip').style.display = tips.length ? '' : 'none';
+  $('cObj').innerHTML = `<b>Blender 物件：</b><code>${inf.obj}</code>`;
+  cardFor = id;
+}
+function placeCard(sx, sy) {
+  if (mobile()) { card.style.setProperty('--x', '0px'); card.style.setProperty('--y', '0px'); return; }
+  const W = card.offsetWidth, H = card.offsetHeight, gap = 64;
+  let x = sx + gap, side = 'left';
+  if (x + W > innerWidth - 16) { x = sx - gap - W; side = 'right'; }
+  x = clamp(x, 16, innerWidth - W - 16);
+  const y = clamp(sy - H * .42, 64, innerHeight - H - 76);
+  card.style.setProperty('--x', x + 'px'); card.style.setProperty('--y', y + 'px'); card.style.setProperty('--ox', side === 'left' ? '0%' : '100%');
+}
+function showCard(id, sx, sy) {
+  clearTimeout(hideTimer);
+  if (cardFor !== id) { fillCard(id); placeCard(sx, sy); }
+  card.classList.add('on');
+}
+function hideCard() { clearTimeout(hideTimer); hideTimer = setTimeout(() => { if (!st.pin && !st.hover) { card.classList.remove('on'); cardFor = null; } }, 90); }
+function pin(hit, sx, sy) {
+  st.pin = hit; showCard(hit.id, sx, sy); placeCard(sx, sy);
+  card.classList.add('pinned'); document.body.classList.add('sheet'); $('cPin').textContent = '已釘選 · 點空白處取消';
+}
+function unpin() { st.pin = null; card.classList.remove('pinned'); document.body.classList.remove('sheet'); $('cPin').textContent = '點擊釘選'; if (!st.hover) hideCard(); }
+$('cardX').addEventListener('click', () => unpin());
+
+/* ---------------- 指標與點選 ---------------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(x, y) {
+  if (!st.suit) return null;
+  ndc.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const objs = st.suit.meshes.filter(m => m.visible);
+  extra.traverse(o => { if (o.isMesh && o.visible) objs.push(o); });
+  const hits = ray.intersectObjects(objs, false);
+  if (!hits.length) return null;
+  const h = hits[0], o = h.object;
+  return { id: o.userData.part || 'attach', mesh: o, local: o.worldToLocal(h.point.clone()) };
+}
+canvas.addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true; ptr.type = e.pointerType; ptr.moved = true; });
+canvas.addEventListener('pointerleave', () => { ptr.inside = false; });
+canvas.addEventListener('pointerdown', e => { ptr.down = { x: e.clientX, y: e.clientY }; ptr.type = e.pointerType; closePops(); });
+canvas.addEventListener('pointerup', e => {
+  const d = ptr.down; ptr.down = null;
+  if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6 || st.asm) return;
+  const h = pick(e.clientX, e.clientY);
+  if (!h) { unpin(); return; }
+  if (st.pin && st.pin.id === h.id && e.pointerType === 'mouse') { unpin(); return; }
+  pin(h, e.clientX, e.clientY);
+});
+
+/* ---------------- 音效（WebAudio 即時合成） ---------------- */
+let AC = null, master = null, noiseBuf = null;
+function audio() {
+  if (!st.sound) return null;
+  if (!AC) {
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+    AC = new C(); master = AC.createGain(); master.gain.value = .55; master.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function noise(t, dur, f0, f1, q, g0, type = 'bandpass') {
+  const a = audio(); if (!a) return; const s = a.createBufferSource(); s.buffer = noiseBuf;
+  const f = a.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(g0, t + Math.min(.03, dur * .2)); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + dur + .05);
+}
+function tone(t, dur, f0, f1, g0, type = 'sine') {
+  const a = audio(); if (!a) return; const o = a.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(g0, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g).connect(master); o.start(t); o.stop(t + dur + .05);
+}
+const SFX = {
+  whoosh(heavy) { const a = audio(); if (!a) return; noise(a.currentTime, heavy ? .5 : .32, heavy ? 300 : 700, heavy ? 2400 : 3200, 1.2, heavy ? .35 : .18); },
+  clank(big) { const a = audio(); if (!a) return; const t = a.currentTime; noise(t, .09, 3800, 900, 4, big ? .5 : .28);
+    for (const [f, g] of [[big ? 180 : 320, .25], [big ? 431 : 760, .12], [big ? 1130 : 1880, .06]]) tone(t, big ? .6 : .32, f, f * .97, g * (big ? 1.2 : .8), 'triangle');
+    if (big) tone(t, .35, 60, 38, .5); },
+  servo() { const a = audio(); if (!a) return; tone(a.currentTime, .22, 900, 1500, .05, 'sawtooth'); },
+  face() { const a = audio(); if (!a) return; SFX.clank(true); tone(a.currentTime + .02, .9, 240, 232, .18, 'triangle'); },
+  power() { const a = audio(); if (!a) return; const t = a.currentTime; tone(t, 1.6, 180, 2400, .12); tone(t, 1.6, 360, 4800, .04); noise(t + .1, .5, 5000, 8000, 2, .05, 'highpass'); },
+  hiss() { const a = audio(); if (!a) return; const t = a.currentTime; noise(t, 1.0, 6000, 3500, .7, .2, 'highpass'); noise(t + .12, .8, 5000, 3000, .7, .14, 'highpass'); },
+  boom() { const a = audio(); if (!a) return; const t = a.currentTime; tone(t, 2.2, 55, 38, .5); noise(t, 1.2, 200, 80, 1, .2, 'lowpass'); },
+};
+
+/* ---------------- 自組裝（288 幀） ---------------- */
+const PH = [
+  { f: 1, n: '序幕：破空飛入與足部錨定', t: '戰靴帶著藍色斥力尾焰從後方飛入，砸在地板上磁吸鎖死；小腿與膝甲從兩側卡入腳踝。' },
+  { f: 49, n: '向上組裝：軀幹與四肢', t: '大腿、骨盆、脊椎龍骨與胸腔主框架依序就位，肩、臂與五指機械手從四面八方扣合。' },
+  { f: 121, n: '封頂：頭部與面罩', t: '頭盔先停在臉前，再「鏘」一聲扣上鎖死，全身靜止 0.5 秒。' },
+  { f: 157, n: '覺醒：核心點亮、流光、排氣', t: '反應爐與雙眼同時亮起，藍白光沿著裝甲流遍全身；肩後、背部與小腿噴出冷卻氣霧。' },
+  { f: 205, n: '終幕：重量感與英雄姿勢', t: '裝甲下沉緩衝、站穩，鏡頭以低角度仰拍緩緩推近。' },
+];
+const hud = $('hud'), playBtn = $('playBtn');
+function startAsm() {
+  if (!st.suit) return;
+  unpin(); st.hover = null; card.classList.remove('on'); cardFor = null;
+  setMode('assembled', true); st.e = 0; st.exTween = null;
+  if (st.spin) { st.spin = false; document.querySelector('[data-tog=spin]').setAttribute('aria-pressed', 'false'); }
+  rig.rotation.y = 0; rigTween = null;
+  audio();
+  st.asm = { t0: performance.now(), f: 0, done: new Set(), ev: new Set() };
+  playBtn.setAttribute('aria-pressed', 'true'); hud.classList.add('on'); document.body.classList.add('asm');
+  controls.enabled = false; camTween = null; st.view = null;
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+}
+function stopAsm(finished) {
+  if (!st.asm) return;
+  st.asm = null; st.ignite = 1; SH.uPulse.value = -1; st.sink = 0;
+  if (st.suit) for (const p of Object.values(st.suit.parts)) p.asm = null;
+  playBtn.setAttribute('aria-pressed', 'false'); hud.classList.remove('on'); document.body.classList.remove('asm');
+  controls.enabled = true;
+  for (const p of STEAM) p.life = 0;
+  if (!finished) goView('q', 1);
+}
+playBtn.addEventListener('click', () => st.asm ? stopAsm() : startAsm());
+$('hudX').addEventListener('click', () => stopAsm());
+/* 鏡頭腳本：[幀, 相機位置, 目標]（以 1.98 m 身高為準） */
+const CAMK = [
+  [0, V(.9, .18, 1.25), V(0, .25, 0)], [48, V(.7, .3, 1.5), V(0, .45, 0)],
+  [84, V(-1.6, .9, 2.0), V(0, .8, 0)], [120, V(-.4, 1.55, 2.3), V(0, 1.25, 0)],
+  [146, V(.3, 1.82, 1.75), V(0, 1.68, 0)], [156, V(.22, 1.8, 1.5), V(0, 1.7, 0)],
+  [204, V(.9, 1.45, 2.6), V(0, 1.3, 0)], [288, V(1.4, .35, 3.2), V(0, 1.12, 0)],
+];
+function asmCam(f) {
+  let i = 0; while (i < CAMK.length - 2 && f > CAMK[i + 1][0]) i++;
+  const a = CAMK[i], b = CAMK[i + 1], k = ease(clamp((f - a[0]) / (b[0] - a[0]), 0, 1)), s = sz();
+  const t = a[2].clone().lerp(b[2], k).multiplyScalar(s);
+  const p = a[1].clone().lerp(b[1], k).multiplyScalar(s).sub(t).multiplyScalar(fitScale()).add(t);
+  if (st.shake > 0) { p.x += (Math.random() - .5) * st.shake * .02; p.y += (Math.random() - .5) * st.shake * .02; }
+  camera.position.copy(p); controls.target.copy(t); camera.lookAt(t);
+}
+function updateAsm(now) {
+  const A = st.asm, f = Math.min(288, (now - A.t0) / 1000 * 24);
+  A.f = f;
+  const ev = (k, at, fn) => { if (f >= at && !A.ev.has(k)) { A.ev.add(k); fn(); } };
+  for (const p of Object.values(st.suit.parts)) {
+    const pk = partKey(p.name), inf = PART[pk] || PART.attach;
+    let [s0, s1] = inf.ord;
+    if (pk === 'helmet') s1 = 146;
+    const lag = p.name.endsWith('.R') ? 4 : 0; s0 += lag; s1 += lag;
+    const t = clamp((f - s0) / (s1 - s0), 0, 1);
+    p.asm = { t, k: backOut(t) };
+    if (t > 0 && !A.done.has(p.name + 'w')) { A.done.add(p.name + 'w'); if (pk === 'boot' || pk === 'chest' || pk === 'helmet') SFX.whoosh(true); else if (Math.random() < .5) SFX.whoosh(false); }
+    if (t >= 1 && !A.done.has(p.name)) { A.done.add(p.name); if (pk === 'boot') { SFX.clank(true); st.shake = 1; } else if (pk !== 'helmet' && pk !== 'reactor') SFX.clank(false); }
+  }
+  ev('servo1', 100, () => SFX.servo()); ev('servo2', 112, () => SFX.servo());
+  ev('face', 150, () => { SFX.face(); st.shake = .7; });
+  /* 點亮與流光 */
+  st.ignite = f < 157 ? 0 : f < 162 ? (f - 157) / 5 * 2 : Math.max(1, 2 - (f - 162) / 20);
+  ev('power', 157, () => SFX.power());
+  SH.uPulse.value = f >= 158 && f <= 186 ? (f - 158) / 28 * 1.6 * sz() : -1;
+  ev('hiss', 165, () => { SFX.hiss(); emitSteam(); });
+  st.sink = f >= 205 ? Math.sin(clamp((f - 205) / 30, 0, 1) * Math.PI) * .035 : 0;
+  ev('boom', 240, () => SFX.boom());
+  let ph = PH[0]; for (const q of PH) if (f >= q.f) ph = q;
+  $('hudF').textContent = 'F ' + String(Math.max(1, Math.floor(f))).padStart(3, '0');
+  $('hudPh').textContent = ph.n; $('hudS').textContent = (f / 24).toFixed(1) + ' s';
+  if ($('hudTx').textContent !== ph.t) $('hudTx').textContent = ph.t;
+  $('hudK').style.setProperty('--k', (f / 288 * 100) + '%');
+  asmCam(f);
+  if (f >= 288) stopAsm(true);
+}
+
+/* ---------------- 排氣粒子 ---------------- */
+const steamTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const STEAM = [];
+for (let i = 0; i < 90; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: steamTex, color: 0xe8f6ff, transparent: true, opacity: 0, depthWrite: false })); s.visible = false; holder.add(s); STEAM.push({ s, life: 0, max: 1, delay: 0, v: V(0, 0, 0) }); }
+function emitSteam() {
+  const P = st.suit.parts, vents = [];
+  for (const sd of ['L', 'R']) {
+    const pa = P['pauldron.' + sd], sh = P['shin.' + sd];
+    if (pa) vents.push([V(pa.c.x, pa.box.max.y - .03, pa.box.min.z + .02), V(Math.sign(pa.c.x) * .6, .8, -1.2)]);
+    if (sh) vents.push([V(sh.c.x, lerp(sh.box.min.y, sh.box.max.y, .65), sh.box.min.z + .01), V(Math.sign(sh.c.x) * .5, .2, -1.4)]);
+  }
+  const ch = P.chest.box; vents.push([V(-.08, lerp(ch.min.y, ch.max.y, .4), ch.min.z), V(-.3, .1, -1.5)], [V(.08, lerp(ch.min.y, ch.max.y, .4), ch.min.z), V(.3, .1, -1.5)]);
+  let i = 0;
+  for (const p of STEAM) {
+    const [o, d] = vents[i++ % vents.length];
+    p.s.position.copy(o); p.v.copy(d).multiplyScalar(1.4 + Math.random() * 1.6).add(V((Math.random() - .5) * .6, (Math.random() - .3) * .5, (Math.random() - .5) * .6));
+    p.life = p.max = .5 + Math.random() * .7; p.s.visible = true; p.delay = Math.random() * .35;
+  }
+}
+function updateSteam(dt) {
+  for (const p of STEAM) {
+    if (p.life <= 0) { p.s.visible = false; continue; }
+    if (p.delay > 0) { p.delay -= dt; p.s.material.opacity = 0; continue; }
+    p.life -= dt; const k = 1 - p.life / p.max;
+    p.v.multiplyScalar(Math.exp(-dt * 3.2)); p.s.position.addScaledVector(p.v, dt);
+    p.s.scale.setScalar(.04 + k * .24); p.s.material.opacity = .42 * (1 - k) * Math.min(1, k * 8);
+  }
+}
+
+/* ---------------- 每幀更新 ---------------- */
+const smooth = (o, dt, k = 7) => { o.v += (o.to - o.v) * (1 - Math.exp(-dt * (reduce ? 60 : k))); if (Math.abs(o.to - o.v) < 1e-4) o.v = o.to; };
+const proj = new THREE.Vector3(), wtmp = new THREE.Vector3(), vtmp = new THREE.Vector3(), eTmp = new THREE.Euler(), WHITE = new THREE.Color(1, 1, 1);
+function toScreen(v) { proj.copy(v).project(camera); return { x: (proj.x + 1) / 2 * innerWidth, y: (1 - proj.y) / 2 * innerHeight, ok: proj.z < 1 && proj.z > -1 }; }
+const EX = .45; /* 爆炸距離倍率 */
+function updateParts() {
+  const s = st.suit; if (!s) return;
+  const e = ease(st.e);
+  holder.position.y = e * .04 - st.sink;
+  contact.material.opacity = 1 - clamp(st.e * 1.4, 0, .85);
+  const holo = st.holo.v > .5;
+  for (const p of Object.values(s.parts)) {
+    const a = p.asm, f = p.scale || 1;
+    for (const m of p.meshes) {
+      if (p.hidden) { m.visible = false; continue; }
+      m.scale.setScalar(f);
+      m.position.copy(m.userData.rest).add(p.off).addScaledVector(p.ex, e * EX);
+      m.quaternion.identity();
+      if (a) {
+        if (a.t <= 0) { m.visible = false; continue; }
+        const k = a.k;
+        if (partKey(p.name) === 'helmet' && st.asm && st.asm.f < 156) {
+          /* 頭盔先停在臉前，再在第 150–156 幀扣下 */
+          const fr = st.asm.f, hold = V(0, .05, .28);
+          if (fr >= 146) m.position.addScaledVector(hold, 1 - easeOut(clamp((fr - 150) / 6, 0, 1)));
+          else m.position.addScaledVector(p.fly.from, 1 - k).addScaledVector(hold, k);
+        } else m.position.addScaledVector(p.fly.from, 1 - k);
+        eTmp.set(p.fly.rot.x * (1 - k), p.fly.rot.y * (1 - k), p.fly.rot.z * (1 - k)); m.quaternion.setFromEuler(eTmp);
+        /* 繞部位中心翻滾 */
+        wtmp.copy(p.c).multiplyScalar(f); m.position.add(wtmp).sub(vtmp.copy(wtmp).applyQuaternion(m.quaternion));
+      }
+      m.visible = true;
+      m.material = holo ? holoMat : m.userData.mat;
+    }
+  }
+  /* 配件、反應爐片與光暈跟著各自綁定的部位爆炸與飛入 */
+  for (const g of extra.children) {
+    const p = s.parts[g.userData.follow];
+    g.position.copy(g.userData.base); g.visible = true;
+    if (!p) continue;
+    g.position.add(p.off).addScaledVector(p.ex, e * EX);
+    if (p.asm) { if (p.asm.t <= 0) g.visible = false; else g.position.addScaledVector(p.fly.from, 1 - p.asm.k); }
+  }
+  extra.traverse(o => { if (o.isMesh) o.visible = !holo || o.userData.part === 'reactor'; });
+  /* 發光 */
+  const ig = st.asm ? st.ignite : 1;
+  const flashRed = st.mark.eyeFlash && st.asm && st.asm.f >= 157 && st.asm.f < 166;
+  st.glowCol.set(flashRed ? st.mark.eyeFlash : (st.mark.eye || 0x9feaff));
+  for (const m of s.meshes) if (m.userData.role === 'g') { m.userData.mat.emissive.copy(st.glowCol); m.userData.mat.emissiveIntensity = .05 + 2.2 * ig; }
+  coreMat.color.copy(st.glowCol).lerp(WHITE, .5).multiplyScalar(.15 + .85 * Math.min(1, ig));
+  if (reactorHalo) { reactorHalo.material.opacity = Math.min(1.4, ig) * .85; reactorHalo.material.color.copy(st.glowCol); reactorHalo.visible &&= !holo; }
+  for (const h of eyeHalo) { h.material.opacity = Math.min(1.4, ig) * .6; h.material.color.copy(st.glowCol); h.visible &&= !holo; }
+  under.intensity = (holo ? 0 : .9) * Math.min(1, ig);
+  floorU.uGlow.value = Math.min(1, ig) * (holo ? .3 : 1);
+  holder.updateMatrixWorld();
+  SH.uRx.value.copy(s.reactor.pos).applyMatrix4(holder.matrixWorld);
+}
+function updateDims() {
+  const show = st.dim.v * (1 - clamp(st.e * 3, 0, 1)) * (st.asm ? 0 : 1);
+  for (const d of DIMS) {
+    const k = ease(clamp((show - d.delay) / .7, 0, 1));
+    d.grp.visible = k > .01; d.grp.scale.setScalar(Math.max(.001, k));
+    rig.localToWorld(wtmp.copy(d.at)); const s = toScreen(wtmp), o = s.ok ? k : 0;
+    d.el.style.opacity = o; if (o > 0 && !d.w) d.w = d.el.offsetWidth;
+    const hw = (d.w || 120) / 2, lx = clamp(s.x, hw + 8, innerWidth - hw - 8);
+    d.el.style.transform = `translate3d(${lx}px,${s.y}px,0) translate(-50%,-50%) translateY(${(1 - k) * 6}px)`;
+  }
+  dimLine.opacity = .55 * show; dimDash.opacity = .38 * show;
+}
+const leadLine = $('leadLine'), leadDot = $('leadDot');
+function updateLeader() {
+  const target = st.pin || st.hover;
+  if (!target || !card.classList.contains('on') || !target.mesh.visible || mobile()) { leadLine.setAttribute('opacity', 0); leadDot.setAttribute('opacity', 0); return; }
+  const s = toScreen(target.mesh.localToWorld(wtmp.copy(target.local)));
+  if (!s.ok) { leadLine.setAttribute('opacity', 0); leadDot.setAttribute('opacity', 0); return; }
+  const r = card.getBoundingClientRect(), cx = clamp(s.x, r.left, r.right), cy = clamp(s.y, r.top, r.bottom), inside = cx === s.x && cy === s.y;
+  leadDot.setAttribute('cx', s.x); leadDot.setAttribute('cy', s.y); leadDot.setAttribute('opacity', 1);
+  leadLine.setAttribute('x1', s.x); leadLine.setAttribute('y1', s.y); leadLine.setAttribute('x2', cx); leadLine.setAttribute('y2', cy); leadLine.setAttribute('opacity', inside ? 0 : 1);
+}
+function updateHover() {
+  if (st.asm || !ptr.inside || ptr.dragging || camTween || ptr.type === 'touch' || touchOnly) {
+    if (st.hover && !st.hover.api) { st.hover = null; if (!st.pin) hideCard(); }
+    return;
+  }
+  if (!ptr.moved && Math.abs(st.spinV) < 1e-3 && !st.exTween && !rigTween) return;
+  ptr.moved = false;
+  const h = pick(ptr.x, ptr.y);
+  if (!h) { if (st.hover) { st.hover = null; if (!st.pin) hideCard(); } canvas.style.cursor = ''; return; }
+  canvas.style.cursor = 'pointer';
+  const changed = !st.hover || st.hover.id !== h.id;
+  st.hover = h;
+  if (!st.pin && changed) showCard(h.id, ptr.x, ptr.y); else if (!st.pin) clearTimeout(hideTimer);
+}
+function outlineSet() {
+  const s = new Set(); if (!st.suit) return s;
+  const addPart = id => { if (st.suit.parts[id]) { for (const m of st.suit.parts[id].meshes) if (m.visible) s.add(m); } extra.traverse(o => { if (o.isMesh && o.userData.part === id) s.add(o); }); };
+  if (st.hover) addPart(st.hover.id);
+  if (st.pin) addPart(st.pin.id);
+  if (st.legendRole) for (const m of st.suit.meshes) if (m.userData.role === st.legendRole && m.visible) s.add(m);
+  return s;
+}
+const rN = V(0, 1, 0), rWorld = new THREE.Vector3(), rCam = new THREE.Vector3(), rView = new THREE.Vector3(), rLook = new THREE.Vector3(), rTgt = new THREE.Vector3(), rRot = new THREE.Matrix4();
+function renderReflection() {
+  rCam.setFromMatrixPosition(camera.matrixWorld);
+  rView.copy(rWorld).sub(rCam).reflect(rN).negate().add(rWorld);
+  rRot.extractRotation(camera.matrixWorld);
+  rLook.set(0, 0, -1).applyMatrix4(rRot).add(rCam);
+  rTgt.copy(rWorld).sub(rLook).reflect(rN).negate().add(rWorld);
+  mirrorCam.position.copy(rView); mirrorCam.up.set(0, 1, 0).applyMatrix4(rRot).reflect(rN); mirrorCam.lookAt(rTgt);
+  mirrorCam.far = camera.far; mirrorCam.updateMatrixWorld(); mirrorCam.projectionMatrix.copy(camera.projectionMatrix);
+  reflMatrix.set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
+  reflMatrix.multiply(mirrorCam.projectionMatrix).multiply(mirrorCam.matrixWorldInverse).multiply(floor.matrixWorld);
+  floor.visible = false; contact.visible = false; dimGroup.visible = false;
+  renderer.setRenderTarget(reflRT); renderer.clear(); renderer.render(scene, mirrorCam); renderer.setRenderTarget(null);
+  floor.visible = true; contact.visible = true; dimGroup.visible = true;
+}
+function renderMask(set) {
+  const saved = [];
+  scene.traverse(o => { if (o.isMesh || o.isLine || o.isPoints || o.isSprite) { saved.push([o, o.visible]); o.visible = o.visible && set.has(o); } });
+  const bg = scene.background; scene.background = null; scene.overrideMaterial = maskMat;
+  renderer.setRenderTarget(maskRT); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, camera); renderer.setRenderTarget(null);
+  scene.overrideMaterial = null; scene.background = bg;
+  for (const [o, v] of saved) o.visible = v;
+}
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = camera.aspect < 1 ? 40 : 30; camera.updateProjectionMatrix();
+  const bw = Math.floor(w * PR), bh = Math.floor(h * PR);
+  reflRT.setSize(Math.max(1, bw >> (mobile() ? 2 : 1)), Math.max(1, bh >> (mobile() ? 2 : 1)));
+  maskRT.setSize(bw, bh); outlineMat.uniforms.uTexel.value.set(PR / bw, PR / bh);
+}
+function layoutVars() {
+  const t = document.querySelector('.bar.top').getBoundingClientRect(), b = document.querySelector('.bar.bottom').getBoundingClientRect();
+  document.documentElement.style.setProperty('--topB', Math.round(t.bottom) + 'px');
+  document.documentElement.style.setProperty('--botH', Math.round(innerHeight - b.top) + 'px');
+}
+addEventListener('resize', () => { DIMS.forEach(d => { d.w = 0; }); resize(); layoutVars(); if (st.view && !st.asm) goView(st.view, .5, true); });
+resize(); layoutVars();
+
+let toastT = 0;
+function toast(msg, ms = 2600) { const el = $('toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), ms); }
+
+let last = performance.now(), frameNo = 0, lastSet = new Set(), shadowSig = '';
+renderer.shadowMap.autoUpdate = false;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (st.asm) updateAsm(now); else { stepCam(now); if (!camTween) controls.update(); }
+  if (st.exTween) { const k = clamp((now - st.exTween.start) / st.exTween.dur, 0, 1); st.e = lerp(st.exTween.from, st.exTween.to, ease(k)); if (k >= 1) st.exTween = null; }
+  syncSlider();
+  smooth(st.holo, dt, 6); smooth(st.dim, dt, 4);
+  st.shake = Math.max(0, st.shake - dt * 3);
+  const busy = !!(st.hover || st.pin);
+  st.spinV += ((st.spin && !reduce ? (busy ? .025 : .2) : 0) - st.spinV) * (1 - Math.exp(-dt * 3));
+  if (rigTween) { const k = clamp((now - rigTween.start) / rigTween.dur, 0, 1); rig.rotation.y = lerp(rigTween.from, rigTween.to, ease(k)); if (k >= 1) rigTween = null; st.spinV = 0; }
+  else rig.rotation.y += st.spinV * dt;
+  /* 機庫切換：沉到地板下再升起 */
+  st.hangarV += ((st.hangar === 'B' ? 1 : 0) - st.hangarV) * (1 - Math.exp(-dt * (reduce ? 60 : 4)));
+  if (Math.abs(st.hangarV - (st.hangar === 'B' ? 1 : 0)) < 1e-3) st.hangarV = st.hangar === 'B' ? 1 : 0;
+  HANGAR.A.visible = st.hangarV < .98; HANGAR.B.visible = st.hangarV > .02;
+  HANGAR.A.position.y = -st.hangarV * 5; HANGAR.B.position.y = -(1 - st.hangarV) * 5;
+  floorU.uHangar.value = st.hangarV;
+  updateParts();
+  updateSteam(dt);
+  scene.updateMatrixWorld();
+  updateHover();
+  const sig = st.suit ? `${st.mark.n}|${st.e.toFixed(3)}|${rig.rotation.y.toFixed(3)}|${st.asm ? st.asm.f.toFixed(1) : ''}|${st.holo.v > .5}|${st.hangarV.toFixed(3)}` : '';
+  if (sig !== shadowSig) { shadowSig = sig; renderer.shadowMap.needsUpdate = true; }
+  floor.visible = camera.position.y > .02;
+  if (floor.visible && frameNo % (mobile() ? 3 : 2) === 0) renderReflection();
+  renderer.setClearColor(0x000000, 1);
+  renderer.render(scene, camera);
+  const set = outlineSet();
+  st.outlineA += ((set.size ? 1 : 0) - st.outlineA) * (1 - Math.exp(-dt * (reduce ? 60 : 14)));
+  if (set.size) lastSet = set;
+  if (st.outlineA > .01 && lastSet.size) { renderMask(lastSet); outlineMat.uniforms.uAlpha.value = st.outlineA; renderer.autoClear = false; renderer.render(fsScene, fsCam); renderer.autoClear = true; }
+  updateDims(); updateLeader();
+  frameNo++;
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- 開場 ---------------- */
+if (mobile()) { st.dim.to = 0; document.querySelector('[data-tog=dim]').setAttribute('aria-pressed', 'false'); showPanel(null); }
+const want = +(location.hash.match(/^#mk(\d+)/) || [])[1];
+const first = byN(want) ? want : 3;
+st.mark = byN(first);
+$('bootTx').textContent = `正在載入 ${BASES[st.mark.base].name}（約 ${BASES[st.mark.base].mb} MB）…`;
+await setMark(first, { quiet: true });
+camera.position.set(-4.5, 2.6, 6.5).multiplyScalar(fitScale() * sz());
+camera.lookAt(0, 1, 0);
+goView('q', reduce ? .001 : 2.2, true);
+/* 其餘骨架在背景預先載入，換型號時不用等 */
+setTimeout(() => { for (const k of Object.keys(BASES)) loadBase(k).catch(err => console.warn(err)); }, 1500);
+
+window.__mk = {
+  st, camera, controls, MARKS, setMark, goView, startAsm, stopAsm, setMode, frames: () => frameNo, tris: () => renderer.info.render.triangles,
+  set(p, t) { camTween = null; st.view = null; camera.position.set(...p); controls.target.set(...t); controls.update(); },
+  snap() { if (camTween) { camTween.start = -1e9; stepCam(performance.now()); } st.holo.v = st.holo.to; st.dim.v = st.dim.to; st.hangarV = st.hangar === 'B' ? 1 : 0; if (st.exTween) { st.e = st.exTween.to; st.exTween = null; } },
+  hover(id) { const p = st.suit.parts[id]; st.hover = { id, mesh: p.meshes[0], local: p.c.clone(), api: true }; showCard(id, innerWidth * .5, innerHeight * .45); },
+  seek(f) { if (!st.asm) startAsm(); st.asm.t0 = performance.now() - f / 24 * 1000; },
+  loaded: () => [...LOADED],
+  pick: (x, y) => { const h = pick(x, y); return h && { id: h.id, name: h.mesh.name, role: h.mesh.userData.role, color: h.mesh.material.color && h.mesh.material.color.getHexString(), mat: h.mesh.material.type }; },
+  ready: true,
+};
+requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>

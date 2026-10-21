@@ -149,6 +149,12 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - `src/core/`（魚種表、品質、收線、地圖、船的物理、主線與委託、存檔）不碰 DOM 與 three；`src/view/` 是畫面，`src/game.js` 串起迴圈、面板動作與 `window.__st` 測試 API（`toSpot(k)`、`toCp(k)`、`setTime(min)`、`unlockAll()`、`fillBook(n)`、`give(id, tier)`、`act(type, down)`），`src/ui/` 是 HUD 與面板。座標：北方 −Z、船頭 = (sin yaw, cos yaw)，漁夫面向船尾坐，釣魚時整艘船轉成船尾朝釣點。存檔在 `localStorage` 的 `st269.save`。
 - 指令、操作與已知限制見同資料夾的 `README.md`。
 
+## 裝甲進化殿堂（270）
+
+- 單檔 `web/270-mark-assembly.html`（本地 Three.js 0.186.0，介面沿用 182），沒有 build；裝甲網格是 `assets/270/{bruno,mk3,mk7}.glb`（meshopt 壓縮，解碼器在 `vendor/three-0.186.0/addons/libs/`），要透過網站伺服器開啟。
+- GLB 由 `games/270-mark-assembly/tools/bake.py`（Blender 無頭）從三套 Blend Swap 同人模型拆成十九個部位、材質換成 `role_p／s／t／k／g` 塗裝角色；原始 `.blend` 在 gitignore 的 `.cache/`。three 會把節點名的「.」拿掉，頁面用 `PART_RE` 還原。只有 Mark 3、7 是實體模型，其他型號換色近似，頁面要維持「實體模型／近似」標示、授權面板與「非官方同人作品」聲明；`bruno.glb` 是 CC-BY-SA 3.0 衍生作品。
+- 型號資料 `MARKS`、部位與自組裝幀區間 `PART`、`window.__mk` 測試 API 與重新烘焙指令見 `games/270-mark-assembly/README.md`，授權見同資料夾的 `CREDITS.md`。
+
 ## 青雀真人麻將（127）架構
 
 - `assets/jade-table/engine.mjs`：台灣十六張規則引擎（`MahjongGame`、`scoreHand`、台表），**瀏覽器單人模式與伺服器共用同一份**。改規則時兩邊會一起受影響。
