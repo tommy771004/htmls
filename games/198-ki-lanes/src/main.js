@@ -51,6 +51,7 @@ const portraits = {}, busts = {};
       const rig = buildHero(id, 0); ps.add(rig.root);
       if (form && rig.setForm) rig.setForm(form);
       for (let i = 0; i < 6; i++) rig.update(1 / 30, { name: 'idle', t: i / 30, k: 0 });
+      rig.portraitPose();
       rig.root.updateMatrixWorld(true);
       const hp = new THREE.Vector3(); rig.head.getWorldPosition(hp);
       const c = sh.cam(hp); pc.position.set(c[0], c[1], c[2]); pc.lookAt(c[3], c[4], c[5]);

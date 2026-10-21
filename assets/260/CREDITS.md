@@ -44,3 +44,7 @@
 ## 人物（內嵌在頁面裡，不在這個資料夾）
 
 街上、夜店、酒吧與車行裡的人物是 Quaternius 的 [Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) 男女底模與 [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) 動作（CC0），由 `games/260-neon-nightcity/blender/people.py` 重新分區材質、掛上髮型後壓縮成 `blender/out/people.glb`，打包時內嵌。
+
+## 車流
+
+街上的警車、BMW E34 與 Mercedes-Benz 190E 是上表 `police`、`e34`、`evo190` 三台模型的減面版本（`tools/traffic.mjs` 烘成頂點色，近景約 4 千面、遠景約 1 千面），內嵌在頁面裡，授權與作者同上表。

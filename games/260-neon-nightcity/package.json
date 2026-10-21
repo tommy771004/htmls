@@ -12,7 +12,8 @@
     "test:glb": "node tools/glb-check.mjs",
     "cars": "node tools/cars.mjs",
     "thumb": "node tools/thumb.mjs",
-    "people": "node tools/people.mjs"
+    "people": "node tools/people.mjs",
+    "traffic": "node tools/traffic.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

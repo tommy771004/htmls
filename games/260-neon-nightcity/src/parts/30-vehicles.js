@@ -139,16 +139,23 @@ const TRAFFIC_GEO = await embeddedGLB('traffic').then(g => {
   g.scene.updateMatrixWorld(true);
   g.scene.traverse(m => {
     if (!m.isMesh) return;
-    const geo = m.geometry.clone().applyMatrix4(m.matrixWorld);   // 量化的位移與縮放在節點上
+    // 量化的位移與縮放在節點上；正規化整數屬性直接 applyMatrix4 會被截在 ±1，先轉成浮點
+    const geo = m.geometry.clone();
+    for (const k of ['position', 'normal']) {
+      const at = geo.getAttribute(k), f = new Float32Array(at.count * 3);
+      for (let i = 0; i < at.count; i++) for (let c = 0; c < 3; c++) f[i * 3 + c] = at.getComponent(i, c);
+      geo.setAttribute(k, new T.BufferAttribute(f, 3));
+    }
+    geo.applyMatrix4(m.matrixWorld);
     geo.setAttribute('aMat', geo.getAttribute('_mat')); geo.deleteAttribute('_mat');
     geo.computeBoundingSphere();
-    o[m.name] = { geo, ...m.parent.userData, ...m.userData };
+    o[m.name] = { geo, ...m.userData };
   });
   return o;
 }).catch(e => { console.warn('車流模型載入失敗，改用程式建模', e); return {}; });
 const glbType = (id, vmax, fb) => {
-  const t = TRAFFIC_GEO[id];
-  return t ? { geo: () => t.geo, len: t.len, w: t.w, vmax, pal: t.pal ? 1 : 0 } : fb;
+  const t = TRAFFIC_GEO[id], f = TRAFFIC_GEO[id + '_far'];
+  return t ? { geo: () => t.geo, far: f && (() => f.geo), len: t.len, w: t.w, vmax, pal: t.pal ? 1 : 0 } : fb;
 };
 const TYPES = {
   taxi: { kit: () => sedanKit('taxi'), len: 4.9, w: 1.9, vmax: 13 },
@@ -206,17 +213,38 @@ for (let n = 0; n < TRAFFIC_N; n++) {
   const type = pickType();
   traffic.push({ type, i, j, d, s: rT() * segLen(d), v: 8, turn: null, x: 0, z: 0, yaw: 0, brake: 0, pal: Math.floor(rT() * PAL.length), seed: rT(), stuck: 0, ghost: 0, hit: 0, honk: 0 });
 }
+// 實車車型有近景與遠景兩級（traffic.glb 的 id／id_far）：每幀依與相機的距離把車分進兩個 InstancedMesh，
+// 相機後方的車不畫；路邊停了三百台車，全用近景模型會多出兩三百萬面
 const typeMesh = {};
-for (const [name, ty] of Object.entries(TYPES)) {
-  const list = [...traffic.filter(c => c.type === name), ...parked.filter(c => c.type === name)];
-  const g = ty.geo ? ty.geo() : ty.kit().build();
-  const cap = Math.max(1, list.length);
+const LOD_NEAR = 40;
+const mkInst = (g, cap) => {
   const m = new T.InstancedMesh(g, MAT.uberI, cap);
   g.setAttribute('aIns', new T.InstancedBufferAttribute(new Float32Array(cap * 4), 4));
-  m.frustumCulled = false;
+  m.frustumCulled = false; m.count = 0;
   scene.add(m);
-  typeMesh[name] = { mesh: m, list, geo: g };
-  list.forEach((c, k) => { c.mk = k; g.attributes.aIns.array[k * 4 + 1] = c.seed ?? rT(); g.attributes.aIns.array[k * 4 + 2] = ty.pal ? c.pal + 1 : 0; });
+  return m;
+};
+for (const [name, ty] of Object.entries(TYPES)) {
+  const list = [...traffic.filter(c => c.type === name), ...parked.filter(c => c.type === name)];
+  const cap = Math.max(1, list.length);
+  typeMesh[name] = { near: mkInst(ty.geo ? ty.geo() : ty.kit().build(), cap), far: ty.far ? mkInst(ty.far(), cap) : null, list };
+  list.forEach(c => { c.m = new Float32Array(16); c.seed ??= rT(); c.palI = ty.pal ? c.pal + 1 : 0; });
+}
+function flushTraffic() {
+  const e = camera.matrixWorld.elements, cx = camera.position.x, cz = camera.position.z;
+  let fx = -e[8], fz = -e[10]; const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+  for (const name in typeMesh) {
+    const { near, far, list } = typeMesh[name];
+    const n = [0, 0];
+    for (const c of list) {
+      const dx = c.x - cx, dz = c.z - cz, d2 = dx * dx + dz * dz;
+      if (d2 > 64 && dx * fx + dz * fz < -8) continue;
+      const lod = far && d2 > LOD_NEAR * LOD_NEAR ? 1 : 0, m = lod ? far : near, k = n[lod]++;
+      m.instanceMatrix.array.set(c.m, k * 16);
+      const ia = m.geometry.attributes.aIns.array; ia[k * 4] = c.brake; ia[k * 4 + 1] = c.seed; ia[k * 4 + 2] = c.palI;
+    }
+    for (const [m, k] of [[near, n[0]], [far, n[1]]]) if (m) { m.count = k; m.instanceMatrix.needsUpdate = true; m.geometry.attributes.aIns.needsUpdate = true; }
+  }
 }
 // 車底陰影與頭燈照地
 const SHADOW_FS = /* glsl */`varying vec2 vUv; void main(){ vec2 q = (vUv - .5) * 2.; float a = (1. - smoothstep(.35, 1., length(q * vec2(1., .9)))) * .82; gl_FragColor = vec4(0., 0., 0., a); }`;
@@ -239,8 +267,7 @@ const poolMesh = (() => {
 })();
 function placeCar(c, k, y = 0) {
   _o.position.set(c.x, y + (c.bob || 0), c.z); _o.rotation.set(c.pitch || 0, c.yaw, c.roll || 0, 'YXZ'); _o.scale.set(1, 1, 1); _o.updateMatrix();
-  const tm = typeMesh[c.type]; tm.mesh.setMatrixAt(c.mk, _o.matrix);
-  tm.geo.attributes.aIns.array[c.mk * 4] = c.brake;
+  _o.matrix.toArray(c.m);
 }
 parked.forEach(c => { c.brake = 0; placeCar(c, 0, groundH(c.x, c.z) > 0 ? .15 : 0); });
 
@@ -312,7 +339,7 @@ function updateTraffic(dt, t) {
     placeCar(c, 0);
     if (c.honk > 0) c.honk -= dt;
   }
-  for (const name in typeMesh) { typeMesh[name].mesh.instanceMatrix.needsUpdate = true; typeMesh[name].geo.attributes.aIns.needsUpdate = true; }
+  flushTraffic();
   // 陰影與頭燈
   let k = 0;
   const putShadow = (x, z, yaw, L, W, y = .02) => { _o.position.set(x, y, z); _o.rotation.set(0, yaw, 0); _o.scale.set(W * 1.25, 1, L * 1.12); _o.updateMatrix(); shadowMesh.setMatrixAt(k++, _o.matrix); };

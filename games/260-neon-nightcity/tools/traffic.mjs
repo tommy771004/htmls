@@ -21,9 +21,9 @@ const sharp = (await imp('sharp')).default;
 
 // src：assets/260/ 下 cars.mjs 的輸出；pal：車漆交給遊戲的調色盤（車漆材質寫成 _MAT 0）
 export const TRAFFIC = [
-  { id: 'police', src: 'police', pal: false, tris: 7000 },
-  { id: 'e34', src: 'e34', pal: true, tris: 6000 },
-  { id: 'evo190', src: 'evo190', pal: true, tris: 6000 },
+  { id: 'police', src: 'police', pal: false, tris: 4500 },
+  { id: 'e34', src: 'e34', pal: true, tris: 4000 },
+  { id: 'evo190', src: 'evo190', pal: true, tris: 4000 },
 ];
 const out = resolve(root, 'blender/out/traffic.glb');
 const only = process.argv.slice(2);
@@ -59,25 +59,29 @@ function matOf(col, pbr, emi, wheel, pal) {
   if (col[3] < .99) return 1;
   if (wheel) return lum < .04 && pbr[1] < .5 ? 6 : 7;
   if (pbr[3] > .5 && pal) return 0;
-  if (pbr[1] > .5 && pbr[0] < .35) return 3;
+  if (pbr[1] > .5 && pbr[0] < .35 && lum > .3) return 3;   // 暗色的金屬漆當成光滑漆面，不然整台像鍍鉻
   return pbr[0] < .4 || pbr[2] > .3 ? 10 : 2;
 }
 
-async function bake(cfg) {
+// 每台車分成幾個單元（車身、各個輪子）各自減面：輪框細節多、平面少，按比例分的話面數全被輪框吃掉。
+// 每台烘兩級：近景 tris（40 m 內）與遠景 FAR_TRIS（節點名加 _far）
+const WHEEL_TRIS = 140, FAR_TRIS = 600, FAR_WHEEL = 24;
+async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
   const doc = await io.read(resolve(root, '../../assets/260', cfg.src + '.glb'));
-  const parts = [];   // { mat, pos[], nor[], col[], idx[] }，每個 primitive × 材質編號一段
+  const units = new Map();   // 節點名 → { wheel, pos[], nor[], col[], mat[], idx[] }
   let total = 0;
   for (const node of doc.getRoot().listNodes()) {
     const mesh = node.getMesh();
     if (!mesh) continue;
     const wm = node.getWorldMatrix(), wheel = /^wheel_/.test(node.getName());
+    let u = units.get(node.getName());
+    if (!u) units.set(node.getName(), (u = { wheel, pos: [], nor: [], col: [], mat: [], idx: [] }));
     for (const prim of mesh.listPrimitives()) {
       const P = prim.getAttribute('POSITION'), N = prim.getAttribute('NORMAL'), C = prim.getAttribute('COLOR_0');
       const PB = prim.getAttribute('_PBR'), E = prim.getAttribute('_EMI'), UV = prim.getAttribute('TEXCOORD_0');
       const tex = prim.getMaterial()?.getBaseColorTexture();
       const px = tex && UV ? await texPixels(tex) : null;
-      const n = P.getCount(), mats = new Int8Array(n), byMat = new Map();
-      const pos = [], nor = [], col = [];
+      const n = P.getCount(), base = u.pos.length / 3;
       const a = [], b = [], c = [], d = [], e = [], uv = [];
       for (let i = 0; i < n; i++) {
         P.getElement(i, a); N.getElement(i, b); C ? C.getElement(i, c) : c.splice(0, 4, 1, 1, 1, 1);
@@ -85,68 +89,90 @@ async function bake(cfg) {
         let rgb = [c[0], c[1], c[2]];
         if (px) { UV.getElement(i, uv); const s = sample(px, uv[0], uv[1]); rgb = [rgb[0] * s[0], rgb[1] * s[1], rgb[2] * s[2]]; }
         const m = matOf([...rgb, c[3]], d, e, wheel, cfg.pal);
-        if (m === 4 || m === 11) { const l = Math.max(e[0], e[1], e[2]); if (l > .05) rgb = [e[0] / l, e[1] / l, e[2] / l]; }
-        mats[i] = m;
-        pos.push(...mulP(wm, a[0], a[1], a[2])); nor.push(...mulN(wm, b[0], b[1], b[2])); col.push(...rgb);
+        // 燈：頂點色換成燈光的顏色（亮度交給 shader）；柔和自發光（燈條、儀表）壓暗，免得泛光整台爆白
+        if (m === 4 || m === 11) { const l = Math.max(e[0], e[1], e[2]); if (l > .05) rgb = [e[0] / l, e[1] / l, e[2] / l]; if (m === 11) rgb = rgb.map((v) => v * .45); }
+        u.mat.push(m);
+        u.pos.push(...mulP(wm, a[0], a[1], a[2])); u.nor.push(...mulN(wm, b[0], b[1], b[2])); u.col.push(...rgb);
       }
       const I = prim.getIndices();
-      const idx = I ? Array.from(I.getArray()) : [...Array(n).keys()];
-      // 三角形歸到頭一個頂點的材質
-      for (let t = 0; t < idx.length; t += 3) {
-        const m = mats[idx[t]];
-        let g = byMat.get(m);
-        if (!g) byMat.set(m, (g = []));
-        g.push(idx[t], idx[t + 1], idx[t + 2]);
-      }
-      for (const [m, tri] of byMat) { parts.push({ mat: m, pos, nor, col, idx: tri }); total += tri.length / 3; }
+      if (I) for (const v of I.getArray()) u.idx.push(base + v);
+      else for (let i = 0; i < n; i++) u.idx.push(base + i);
+      total += (I ? I.getCount() : n) / 3;
     }
   }
-  // 依面數比例減面（不鎖邊界：零件多、邊界一鎖就減不下來；車流看的距離看不出接縫）
-  const ratio = Math.min(1, cfg.tris / total);
+  const nWheel = [...units.values()].filter((u) => u.wheel).length;
+  const bodyTris = Math.max(300, tris - nWheel * wheelTris);
   const P = [], N = [], C = [], M = [], IDX = [];
-  for (const p of parts) {
-    let ix = new Uint32Array(p.idx);
-    if (ratio < 1 && ix.length > 30) {
-      const target = Math.max(12, Math.floor(ix.length * ratio / 3) * 3);
-      [ix] = MeshoptSimplifier.simplify(ix, new Float32Array(p.pos), 3, target, .04);
-      if (ix.length > target * 1.5) [ix] = MeshoptSimplifier.simplifySloppy(ix, new Float32Array(p.pos), 3, null, target, .04);
+  for (const u of units.values()) {
+    // 依「位置（1 mm）＋材質」焊接：原檔的硬邊把面板拆成互不相連的小片，不焊接的話減面只能退回 sloppy，整台會被撕碎
+    const wid = new Map(), wsrc = [], wpos = [], ix = new Uint32Array(u.idx.length);
+    u.idx.forEach((v, i) => {
+      const key = `${Math.round(u.pos[v * 3] * 1000)},${Math.round(u.pos[v * 3 + 1] * 1000)},${Math.round(u.pos[v * 3 + 2] * 1000)},${u.mat[v]}`;
+      let w = wid.get(key);
+      if (w == null) { w = wsrc.length; wid.set(key, w); wsrc.push(v); wpos.push(u.pos[v * 3], u.pos[v * 3 + 1], u.pos[v * 3 + 2]); }
+      ix[i] = w;
+    });
+    const pos = new Float32Array(wpos), target = (u.wheel ? wheelTris : bodyTris) * 3;
+    let out = ix;
+    if (ix.length > target) {
+      // Prune：整塊小零件（螺絲、徽章）在誤差內可以直接拿掉
+      [out] = MeshoptSimplifier.simplify(ix, pos, 3, target, u.wheel ? .1 : .025, ['Prune']);
+      if (out.length > target * 1.5) [out] = MeshoptSimplifier.simplifySloppy(out, pos, 3, null, target, u.wheel ? 1 : .03);
     }
-    const remap = new Map();
-    for (const v of ix) {
-      let o = remap.get(v);
-      if (o == null) {
-        o = P.length / 3; remap.set(v, o);
-        P.push(p.pos[v * 3], p.pos[v * 3 + 1], p.pos[v * 3 + 2]); N.push(p.nor[v * 3], p.nor[v * 3 + 1], p.nor[v * 3 + 2]);
-        C.push(p.col[v * 3], p.col[v * 3 + 1], p.col[v * 3 + 2]); M.push(p.mat);
+    // 法線：相鄰面夾角 40° 內平滑，其餘保留硬邊
+    const fn = [], adj = new Map();
+    for (let t = 0; t < out.length; t += 3) {
+      const [i0, i1, i2] = [out[t] * 3, out[t + 1] * 3, out[t + 2] * 3];
+      const e1 = [pos[i1] - pos[i0], pos[i1 + 1] - pos[i0 + 1], pos[i1 + 2] - pos[i0 + 2]], e2 = [pos[i2] - pos[i0], pos[i2 + 1] - pos[i0 + 1], pos[i2 + 2] - pos[i0 + 2]];
+      const f = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+      const l = Math.hypot(...f) || 1;
+      fn.push(f.map((x) => x / l));
+      for (let k = 0; k < 3; k++) { const w = out[t + k]; if (!adj.has(w)) adj.set(w, []); adj.get(w).push(t / 3); }
+    }
+    const vmap = new Map();
+    for (let t = 0; t < out.length; t += 3) {
+      const f = fn[t / 3];
+      for (let k = 0; k < 3; k++) {
+        const w = out[t + k], src = wsrc[w];
+        const n = [0, 0, 0];
+        for (const g of adj.get(w)) { const h = fn[g]; if (h[0] * f[0] + h[1] * f[1] + h[2] * f[2] > .766) { n[0] += h[0]; n[1] += h[1]; n[2] += h[2]; } }
+        const l = Math.hypot(...n) || 1;
+        const key = `${w}|${Math.round(n[0] / l * 20)},${Math.round(n[1] / l * 20)},${Math.round(n[2] / l * 20)}`;
+        let o = vmap.get(key);
+        if (o == null) {
+          o = P.length / 3; vmap.set(key, o);
+          P.push(pos[w * 3], pos[w * 3 + 1], pos[w * 3 + 2]); N.push(n[0] / l, n[1] / l, n[2] / l);
+          C.push(u.col[src * 3], u.col[src * 3 + 1], u.col[src * 3 + 2]); M.push(u.mat[src]);
+        }
+        IDX.push(o);
       }
-      IDX.push(o);
     }
   }
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, y1 = 0;
   for (let i = 0; i < P.length; i += 3) { x0 = Math.min(x0, P[i]); x1 = Math.max(x1, P[i]); y1 = Math.max(y1, P[i + 1]); z0 = Math.min(z0, P[i + 2]); z1 = Math.max(z1, P[i + 2]); }
-  console.log(`${cfg.id}: ${total} → ${IDX.length / 3} 面，${P.length / 3} 頂點，${(x1 - x0).toFixed(2)}×${y1.toFixed(2)}×${(z1 - z0).toFixed(2)} m`);
-  return { id: cfg.id, P, N, C, M, IDX, len: +(z1 - z0).toFixed(2), w: +(x1 - x0).toFixed(2) };
+  console.log(`${id}: ${total} → ${IDX.length / 3} 面（輪子 ${nWheel} 個），${P.length / 3} 頂點，${(x1 - x0).toFixed(2)}×${y1.toFixed(2)}×${(z1 - z0).toFixed(2)} m`);
+  return { id, P, N, C, M, IDX, len: +(z1 - z0).toFixed(2), w: +(x1 - x0).toFixed(2) };
 }
 
 // 只重烘部分車型時，其他車型從舊的 traffic.glb 讀回來
 const keep = new Map();
 if (only.length && existsSync(out)) {
   const old = await io.read(out);
-  for (const node of old.getRoot().listNodes()) if (!only.includes(node.getName())) keep.set(node.getName(), node);
+  for (const node of old.getRoot().listNodes()) if (!only.includes(node.getName().replace(/_far$/, ''))) keep.set(node.getName(), node);
 }
 const doc = new Document();
 const buf = doc.createBuffer();
 const scene = doc.createScene();
 const acc = (arr, type, Ctor) => doc.createAccessor().setType(type).setArray(new Ctor(arr)).setBuffer(buf);
-for (const cfg of TRAFFIC) {
+for (const [cfg, id, tris, wt] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS], [c, c.id + '_far', FAR_TRIS, FAR_WHEEL]])) {
   let r;
-  if (keep.has(cfg.id)) {
-    const n = keep.get(cfg.id), p = n.getMesh().listPrimitives()[0], ex = n.getExtras();
+  if (keep.has(id)) {
+    const n = keep.get(id), p = n.getMesh().listPrimitives()[0], ex = n.getExtras();
     const get = (a) => { const o = []; const e = []; for (let i = 0; i < a.getCount(); i++) o.push(...a.getElement(i, e)); return o; };
     const wm = n.getWorldMatrix(), raw = get(p.getAttribute('POSITION')), P = [];
     for (let i = 0; i < raw.length; i += 3) P.push(...mulP(wm, raw[i], raw[i + 1], raw[i + 2]));
-    r = { id: cfg.id, P, N: get(p.getAttribute('NORMAL')), C: get(p.getAttribute('COLOR_0')), M: get(p.getAttribute('_MAT')), IDX: Array.from(p.getIndices().getArray()), len: ex.len, w: ex.w };
-  } else r = await bake(cfg);
+    r = { id, P, N: get(p.getAttribute('NORMAL')), C: get(p.getAttribute('COLOR_0')), M: get(p.getAttribute('_MAT')), IDX: Array.from(p.getIndices().getArray()), len: ex.len, w: ex.w };
+  } else r = await bake(cfg, tris, wt, id);
   const prim = doc.createPrimitive()
     .setAttribute('POSITION', acc(r.P, 'VEC3', Float32Array)).setAttribute('NORMAL', acc(r.N, 'VEC3', Float32Array))
     .setAttribute('COLOR_0', acc(r.C, 'VEC3', Float32Array)).setAttribute('_MAT', acc(r.M, 'SCALAR', Float32Array))

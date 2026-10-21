@@ -308,8 +308,8 @@ body.camfree #camHint { display: block; }
 .item:disabled { opacity: .45; cursor: default; }
 .item.owned { box-shadow: inset 0 0 0 2px rgba(63, 199, 164, .6); opacity: .8; }
 #fanNote small { display: block; font-size: .82em; opacity: .8; margin-top: .15em; }
-#fanNote { position: absolute; right: calc(var(--safe-r) + 1.4em); top: calc(var(--safe-t) + 1em); margin: 0; font-size: .8em; color: var(--bone2); background: rgba(14, 18, 30, .7); padding: .3em .9em; pointer-events: none; border-radius: var(--r-s); }
-@media (max-width: 760px) { #fanNote { right: auto; left: 1.4em; top: calc(var(--safe-t) + 8.6em); font-size: .72em; } }
+#fanNote { position: absolute; right: calc(var(--safe-r) + 1.4em); top: calc(var(--safe-t) + 1em); max-width: calc(100vw - var(--safe-r) - 58em); margin: 0; /* 寬度限在左側資訊面板（約 44 個 --u ＝ 55em）右邊，不壓到標題與面板 */ font-size: .8em; color: var(--bone2); background: rgba(14, 18, 30, .7); padding: .3em .9em; pointer-events: none; border-radius: var(--r-s); }
+@media (max-width: 760px) { #fanNote { right: 1.4em; left: 1.4em; max-width: none; top: calc(var(--safe-t) + 8.6em); font-size: .72em; } }
 @media (pointer: coarse) {
   #dock .invbar { margin-top: .35em; gap: .3em; }
   #dock .slots .slot:not(.senzu) { display: none; }

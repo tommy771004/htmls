@@ -794,7 +794,8 @@ export function buildHero(id, team = 0) {
   // 弗利沙的尾巴不在 GLB 裡（原檔是另一副骨架）：沿尾巴骨鏈生一條錐管
   const tailSpec = G && sk.chains.find((c) => c.name === 'tail');
   if (tailSpec) addSkin(chainTube(tailSpec.segs, tailSpec.len, tailSpec.ground.rad, sk.bones, root, [0.93, 0.92, 0.96]), glbMat(id, {}));
-  else addSkin(gs.body, heroMat(id, team));
+  // 程式建模的身體只在沒有 GLB 時才掛（有 GLB 還掛會兩套疊在一起：佐助的淡紫高領會蓋住 GLB 的臉）
+  if (!G) addSkin(gs.body, heroMat(id, team));
   root.updateMatrixWorld(true);
   for (const m of skins) m.bind(skeleton, m.matrixWorld);
 
@@ -1122,6 +1123,14 @@ export function buildHero(id, team = 0) {
   return {
     root, height: d.top || d.H, element: d.element, update, setAura, setForm, sword, hitReact,
     handL: hands.L, handR: hands.R, chest, head,
+    // 頭像用：GLB 角色的備戰架勢會把拳頭、肩甲擋在臉前，上身扭轉加頭部回轉也對不準正面，
+    // 改成正面站直、手臂放回綁定姿勢。程式建模的角色維持原樣
+    portraitPose() {
+      if (!G) return;
+      for (const b of [J.hips, J.torso, J.ribs, J.neck, head]) if (b) b.rotation.set(0, 0, 0);
+      J.shL.rotation.set(0, 0, BIND.shZ); J.shR.rotation.set(0, 0, -BIND.shZ);
+      J.elL.rotation.x = J.elR.rotation.x = 0;
+    },
     get form() { return form; },
     get speed() { return speed; }, get forwardSpeed() { return fwd; },
     dispose() { if (root.parent) root.parent.remove(root); for (const m of aura.mats) m.dispose(); },
