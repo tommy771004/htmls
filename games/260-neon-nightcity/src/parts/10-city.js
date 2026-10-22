@@ -54,7 +54,16 @@ const PIERS = [
   { x0: avX(4) - 5, x1: avX(4) + 5, z0: SHORE_Z, z1: SHORE_Z + 190, h: .4, name: 'coral' },   // 珊瑚灘棧橋（盡頭是摩天輪）
   ...[1, 3].map(j => ({ x0: CITY_X0 - OUT_D - 64, x1: CITY_X0 - OUT_D, z0: stZ(j) + 24, z1: stZ(j) + 38, h: .15, name: 'dock' })),   // 舊碼頭伸進河裡的兩座木棧
 ];
-const LANDS = [{ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: -1e5, z1: SHORE_Z }, BEACH, QUAY, BRIDGE, ISLE, ...PIERS];
+// 對岸（21-coast.js 的遠景）：灰鷺河西岸、東灣東岸的堤岸線
+const FAR_BANK_X = CITY_X0 - OUT_D - 300, EAST_BANK_X = CITY_X1 + OUT_D + 300;
+// 對岸的濱水步道：灰鷺河對岸（A 區，London City 模型前）與東灣對岸（C 區，舊港城模型前）各一條 20 m 寬，中間一座渡船碼頭。
+// back 那一邊靠著遠景模型，不做低擋牆，換成一道高牆（21-coast.js 在那裡蓋一排近景的樓面）
+const BANK_WALKS = [
+  { x0: FAR_BANK_X - 20, x1: FAR_BANK_X, z0: CITY_Z0 - 60, z1: stZ(7) - 30, h: .15, back: 'x0', name: '鷺岸步道' },
+  { x0: EAST_BANK_X, x1: EAST_BANK_X + 20, z0: stZ(7) + 30, z1: CITY_CZ + 180, h: .15, back: 'x1', name: '舊港步道' },
+];
+const FERRY = BANK_WALKS.map((B, i) => { const zc = Math.round((B.z0 + B.z1) / 2); return i ? { x0: B.x0 - 30, x1: B.x0, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '舊港渡口' } : { x0: B.x1, x1: B.x1 + 30, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '鷺岸渡口' }; });
+const LANDS = [{ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: -1e5, z1: SHORE_Z }, BEACH, QUAY, BRIDGE, ISLE, ...PIERS, ...BANK_WALKS, ...FERRY];
 const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
 // ─── 岬角：從岸邊伸進灰鷺河與東灣的草地公園（世界座標的多邊形），海岸線就不是一條直線 ───
 // 只往水裡加，不切進原本的陸地矩形。兩區在岸邊交會的地方（縫的兩端）各有一塊順著兩邊岸線把錯開的岸角接起來，
@@ -256,10 +265,13 @@ const LADDERS = [
   ...[BRIDGE_X - 34, BRIDGE_X + 34].map(x => ({ x, z: ISLE.z0, nx: 0, nz: -1 })), { x: BRIDGE_X + 60, z: ISLE.z1, nx: 0, nz: 1 },   // 灰鷗島
   ...[5, 9, 13].map(j => ({ x: CITY_X0 - OUT_D, z: stZ(j) + 31, nx: -1, nz: 0 })),                                // 灰鷺河濱步道
   ...[2, 6, 10].map(j => ({ x: CITY_X1 + OUT_D, z: stZ(j) + 31, nx: 1, nz: 0 })),                                 // 東灣步道
+  ...BANK_WALKS.flatMap((B, i) => [.2, .8].map(t => ({ x: i ? B.x0 : B.x1, z: B.z0 + (B.z1 - B.z0) * t, nx: i ? -1 : 1, nz: 0 }))),   // 對岸步道
+  ...FERRY.map((F, i) => ({ x: i ? F.x0 : F.x1, z: (F.z0 + F.z1) / 2, nx: i ? -1 : 1, nz: 0 })),                   // 渡船碼頭的盡頭
 ].filter(L => !landL(L.x + L.nx * 1.5, L.z + L.nz * 1.5) && !landL(L.x + L.nx * 1.5 + L.nz * 2, L.z + L.nz * 1.5 + L.nx * 2) && !landL(L.x + L.nx * 1.5 - L.nz * 2, L.z + L.nz * 1.5 - L.nx * 2));
 for (const r of LANDS) {
-  for (const [ax, fixed, a0, a1, out] of [['x', r.z0, r.x0, r.x1, -1], ['x', r.z1, r.x0, r.x1, 1], ['z', r.x0, r.z0, r.z1, -1], ['z', r.x1, r.z0, r.z1, 1]]) {
+  for (const [ax, fixed, a0, a1, out, side] of [['x', r.z0, r.x0, r.x1, -1, 'z0'], ['x', r.z1, r.x0, r.x1, 1, 'z1'], ['z', r.x0, r.z0, r.z1, -1, 'x0'], ['z', r.x1, r.z0, r.z1, 1, 'x1']]) {
     if (fixed < -1e4) continue;
+    if (r.back === side) { colliders.push({ x0: out < 0 ? fixed - 1 : fixed, x1: out < 0 ? fixed : fixed + 1, z0: a0, z1: a1 }); continue; }   // 對岸步道靠樓那一邊：高牆
     let run = null;
     const flush = (end) => {
       if (!run) return;
@@ -1056,6 +1068,8 @@ const groundHL = (x, z) => {
   if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
     if (x > CITY_X0 - OUT_D && x < CITY_X1 + OUT_D && z > CITY_Z0 - OUT_D && z < SHORE_Z) return .15;   // 濱海步道、北面樓牆前
     for (const r of PIERS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
+    for (const r of FERRY) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
+    for (const r of BANK_WALKS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
     if (x >= BEACH.x0 && x <= BEACH.x1 && z > BEACH.z0) return -Math.min(1, (z - BEACH.z0) / BEACH.len) * BEACH.drop;   // 沙灘
     return 0;
   }

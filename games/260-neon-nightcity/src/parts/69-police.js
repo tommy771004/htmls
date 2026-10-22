@@ -306,9 +306,8 @@ function spawnUnit(kind, at) {
   const type = kind === 'swat' ? 'md84' : kind === 'tank' ? 'tank' : COPS[Math.floor(Math.random() * COPS.length)];
   const v = buildVeh(type, sp.x, sp.z, sp.yaw, at ? 0 : 12, Math.random(), 0, 'unit');
   v.police = true; v.lights = 1; v.y = groundH(v.x, v.z);
-  if (kind === 'tank') { v.mass = 12000; v.hp = 6000; v.vmax = 15; v.eng = 6; v.grip = 9; v.h = 2.4; }
-  else if (kind === 'swat') { v.vmax = 34; v.eng = 9; }
-  else { v.vmax = 38 + W.stars * 1.5; v.eng = 11.5; }
+  // 質量、極速、加速、抓地與耐久照級距表（buildVeh 已套上：警車 215 km/h、SWAT 裝甲車是重型 130 km/h、坦克 75 km/h 與 10000 耐久）
+  if (kind === 'tank') v.h = 2.4;
   const u = { v, kind: kind || 'car', state: at ? 'block' : 'chase', crew: kind === 'swat' ? 4 : kind === 'tank' ? 0 : 2, drive: !at, stuck: 0, rev: 0, revS: 1, search: null, searchT: 0, out: false, t: 0, gunT: 4 };
   v.unit = u;
   if (kind === 'tank') {

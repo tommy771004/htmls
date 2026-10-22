@@ -117,7 +117,7 @@
 | `far_london` | 灰鷺河對岸的城區（遠景） | [London City](https://sketchfab.com/3d-models/london-city-e57d7a04837d44fdb60f78b3f5a0066d) | [golukumar](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
 | `far_golu` | 東灣對岸的舊港城（遠景） | [City](https://sketchfab.com/3d-models/city-b3dcef1c31e04dcd883f682f21617381) | [golukumar](https://sketchfab.com/mortalityrexotable) | Sketchfab Standard |
 | `far_s7` | 舊港城後排的板樓群（遠景） | [street city (7) for games FREE](https://sketchfab.com/3d-models/street-city-7-for-games-free-493a69b451284ff88346c7b3e4e1b5a7) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
-| `isle_ruin` | 灰鷗島西側的廢墟街區 | [abandoned city street for games](https://sketchfab.com/3d-models/abandoned-city-street-for-games-0232bce6a27d477c947b6ef4e985fff2) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `isle_ruin` | 灰鷗島西側的廢墟街區（原檔一圈樓圍起來的街，拿掉東面一棟樓的南半當入口） | [abandoned city street for games](https://sketchfab.com/3d-models/abandoned-city-street-for-games-0232bce6a27d477c947b6ef4e985fff2) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
 | `isle_office` | 灰鷗島的辦公園區（外觀） | [Loft 18 mini office v.environment](https://sketchfab.com/3d-models/loft-18-mini-office-venvironment-00f610a2e4504ba59aad766e705c395e) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
 | `apt_office` | 安全屋：灰鷗島辦公室 | [free Loft 18 mini office v.optimization](https://sketchfab.com/3d-models/free-loft-18-mini-office-voptimization-e434caaeaa4a4347a3c45eac6c138c30) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
 | `apt_mini` | 安全屋：楓林里迷你閣樓 | [interior (15) mini loft](https://sketchfab.com/3d-models/interior-15-mini-loft-ace0229c6a9d4d7d9cbf709b53964f13) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |

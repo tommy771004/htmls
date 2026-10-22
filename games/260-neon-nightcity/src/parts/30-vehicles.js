@@ -437,6 +437,8 @@ function applyCar(v, id, paint) {
     }
   }
   Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name, seat: c.seat || null });
+  vehClass(v, carClass(id), false);   // 25-cars.js：質量、耐久、轉向與手煞車照級距表，極速與抓地保留這台車自己的
+  v.tires = null; v.flatBase = null; v.flat = 0; v.flatSide = 0;   // 換車就是新輪胎（68-wreck.js）
   // 實車模型：下載好就把替身換掉（期間又換了車就作罷）
   const p = c.glb && loadGLB(id), tok = v.glbTok;
   if (p) p.then(tpl => {
@@ -517,15 +519,15 @@ function driveVehicle(v, inp, dt) {
   let vF = v.vx * fx + v.vz * fz, vR = v.vx * rx + v.vz * rz;
   const spd = Math.abs(vF);
   const maxSt = lerp(v.isCar ? .55 : .5, v.isCar ? .12 : .1, clamp(spd / 45, 0, 1));
-  v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1), inp.steer ? 6 : 9, dt);
+  v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）
   let aF = 0;
-  if (inp.thr > 0) aF += v.eng * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);
+  if (inp.thr > 0) aF += v.eng * (v.engK ?? 1) * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
   if (inp.brk > 0) aF += vF > .8 ? -16 * inp.brk * (v.brkK || 1) : -6 * inp.brk * (vF > -9 ? 1 : 0);
   aF -= vF * .12 + Math.sign(vF) * .35;
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
   if (!inp.thr && !inp.brk && Math.abs(vF) < .3) vF = 0;
-  const grip = inp.hb ? 1.4 : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6));
+  const grip = inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6));
   vR *= Math.exp(-grip * dt);
   const wb = v.wb;
   let targetYr = vF * Math.tan(v.steer) / wb;

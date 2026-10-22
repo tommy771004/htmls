@@ -138,7 +138,8 @@ export const SETS = [
   { out: 'far_london', src: '.cache/world', far: 1, win: true, winAuto: /^WorldCityBuildings\dMat$/, items: [{ id: 'london', file: 'london_city', clip: [-300, 410, -40, 400, -1180, 120], groundY: -17.5,
     drop: /Lightmap|Collision|InvisibleWall|Parking|CitySea/ }] },
   // 灰鷗島：dasy444 的 abandoned city street（廢墟街區，放大 2.3 倍）與 Loft 18 environment（辦公室與一圈板樓，公尺）
-  { out: 'isle_ruin', src: '.cache/world', items: [{ id: 'ruin', file: 'abandoned', scale: 2.3, groundY: -.1 }] },
+  // 原檔是一圈樓圍著的遊戲關卡，外面進不去：拿掉東面中段那棟樓的南半（上下兩層），留一個朝跨海橋那條路的 7 m 缺口當入口
+  { out: 'isle_ruin', src: '.cache/world', items: [{ id: 'ruin', file: 'abandoned', scale: 2.3, groundY: -.1, drop: /^Cube\.02[02]_/ }] },
   { out: 'isle_office', src: '.cache/world', win: true, winAuto: /^Material\.0(18|20)$/, items: [{ id: 'office', file: 'loft18env', groundY: 0 }] },
   // 第三輪的安全屋室內（dasy444，Standard）：島上辦公室（Loft 18 本體）、迷你閣樓（拿掉天空球）、Loft 16、Interior 14（拿掉兩個天空球）
   { out: 'apt_office', src: '.cache/world', items: [{ id: 'office', file: 'loft18', origin: [0, 0, 0] }] },

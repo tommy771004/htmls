@@ -634,6 +634,14 @@ async function desktop() {
       const l1 = await nc((l) => { const p = window.__nc.player; return { swim: !!p.swim, y: +p.y.toFixed(2), d: +Math.hypot(p.x - l.top.x, p.z - l.top.z).toFixed(1) }; }, L[0]);
       check(L.length >= 10 && l0 && !l1.swim && l1.y > 0 && l1.d < 3, `從梯子爬上岸（${L.length} 座梯子）${JSON.stringify(l1)}`);
     }
+    // 灰鷗島的廢墟（tools/foot.mjs 量的佔地）：從東面拿掉一棟樓的缺口跑進圍起來的街道
+    {
+      await nc(() => { const n = window.__nc, R = n.sea.sites.ruin; n.walk(); n.tpL(R.x + 30, R.z + 1.2, -Math.PI / 2); });
+      await page.waitForTimeout(300);
+      await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(3500); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft');
+      const ru = await nc(() => { const n = window.__nc, R = n.sea.sites.ruin, [x, z] = n.L(n.player.x, n.player.z); return { x: +(x - R.x).toFixed(1), z: +(z - R.z).toFixed(1), rects: n.sea.foot('ruin').length, office: n.sea.foot('office').length }; });
+      check(ru.x < 17 && ru.rects > 50 && ru.office > 50, `從東面的缺口走進廢墟街區 ${JSON.stringify(ru)}`);
+    }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {
       const b0 = await nc(() => { const n = window.__nc, b = n.boat; n.time(780); const name = b.board(0), v = n.player.veh; return { name, boat: !!(v && v.boat), x: v.x, z: v.z, n: b.boats.length }; });

@@ -7,7 +7,9 @@
 const gta = { weapon: 'fist', aiming: false, guard: false, aimK: 0, fireT: 0, reloadT: 0, jack: null, punchT: 0, punchPh: 0, actAnim: 0, hold: false, rmb: false, pitch: 0 };
 const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車',
   urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克' };
-const HP = 1000, SMOKE_W = 600, SMOKE_B = 350, FIRE = 150;
+// 車損階段（neon_nightcity_gta_v_2.md 第一節第 3 點，耐久的比例）：70% 以上只有火花、碎窗淡白煙、40% 濃黑煙且動力少兩成五、15% 起火每秒 −25、歸零爆炸
+const HP = 1000, STAGE = { white: .7, black: .4, fire: .15 }, BURN_HP = 25, BOOM_R = 12;
+const hpMaxOf = c => c.hpMax || (c.type ? VCLASS[typeClass(c.type)].hp : HP);   // 車流車沒有 hpMax：照車型的級距
 const _gm = new T.Matrix4(), _gv = V3(), _gv2 = V3(), _gq = new T.Quaternion();
 
 // ─── 粒子：火、煙、火花、碎玻璃、閃光（兩組 instanced 公告板：加色與半透明） ───
@@ -134,6 +136,7 @@ function buildVeh(type, x, z, yaw, sp = 0, seed = 0, palI = 0, kind = 'jack') {
     len: ty.len, w: ty.w, rad: ty.w / 2 + .05, off: ty.len * .28, vmax: heavy ? 30 : truck ? 31 : 40, eng: heavy ? 7 : truck ? 8 : 10.5, grip: truck ? 5.5 : 6.8, wb: ty.len * .58, wr: .34,
     name: TYPE_NAME[type] || type, hp: heavy ? 3500 : HP, mass: heavy ? 4800 : truck ? 2600 : 1600, police: !!ty.police, seat: null,
   };
+  vehClass(v, typeClass(type), true);   // 25-cars.js 的級距表：質量、極速、加速、抓地、耐久（之後各模組再依用途覆寫）
   vehicles.push(v);
   return v;
 }
@@ -144,6 +147,7 @@ function detachCar(c) {
   if (i >= 0) { parked.splice(i, 1); for (const q of c.circ || []) { const j = circles.indexOf(q); if (j >= 0) circles.splice(j, 1); } colDirty(); }
   const L = typeMesh[c.type].list; i = L.indexOf(c); if (i >= 0) L.splice(i, 1);
   const v = buildVeh(c.type, c.x, c.z, c.yaw, sp, c.seed || 0, c.palI || 0);
+  v.hpLock = 1;   // 耐久上限就是級距表的（68-wreck.js 的 hpLock：之後被改的 hp 不算上限）
   if (c.hp != null) v.hp = Math.min(v.hp, c.hp);
   if (c.byP) v.byP = c.byP;
   jacked.push(v);
@@ -310,11 +314,11 @@ function castRay(R, maxT, skip = player.veh) {
   return best;
 }
 function damageCar(c, n, byP = false) {
-  c.hp = (c.hp ?? HP) - n;
+  c.hp = (c.hp ?? hpMaxOf(c)) - n;
   if (byP) c.byP = uTimeNow();
   if (traffic.includes(c)) { c.hit = 3 + Math.random() * 2; if (c.honk <= 0) { sfx.horn(c); c.honk = 3; } }
   // 打到冒煙就脫離車流：駕駛下車逃跑，之後和其他載具一樣冒煙、起火、爆炸
-  if (c.hp < SMOKE_W) {
+  if (c.hp < hpMaxOf(c) * STAGE.white) {
     const had = traffic.includes(c), v = detachCar(c);
     if (had) { const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw); const k = spawnExtra(v.x + lx * 1.4, v.z + lz * 1.4, Math.atan2(lx, lz), lx * .4, lz * .4); extraSt[k].st = 'up'; extras.anim(k, ANIM.getup, -uTimeNow() - .6, 1); }
     return v;
@@ -322,7 +326,7 @@ function damageCar(c, n, byP = false) {
   return null;
 }
 // byP：玩家造成的（之後爆炸算玩家的罪，69-police.js 的 crime）
-function damageVeh(v, n, byP = false) { if (v.dead || !(n > 0)) return; if (byP) v.byP = uTimeNow(); v.hp -= n; if (v.unit) unitHit(v, byP); if (v.hp <= 0) explode(v); }
+function damageVeh(v, n, byP = false) { if (v.dead || !(n > 0)) return; hpLockOf(v); if (byP) v.byP = uTimeNow(); v.hp -= n; if (v.unit) unitHit(v, byP); if (v.hp <= 0) explode(v); }
 // ─── 車損：冒煙、起火、爆炸；撞到路人 ───
 function explode(v) {
   if (v.dead) return;
@@ -330,7 +334,7 @@ function explode(v) {
   const mine = v.byP && uTimeNow() - v.byP < 25;
   if (player.veh === v) { exitVehicle(); if (!v.boat) knockPlayer(player.x - v.x, player.z - v.z); toast(`${v.name} 爆炸了`); }
   // 波及（69-combat.js 的 blast）：路人、警察、玩家、附近的車（連鎖爆炸）
-  blast(v.x, v.y, v.z, 8, v.mass > 4000 ? 520 : 420, mine ? 'player' : null, v);
+  blast(v.x, v.y, v.z, BOOM_R, v.mass > 4000 ? 520 : 420, mine ? 'player' : null, v);
   if (mine) crime(v.unit ? 'killcop' : 'explode', v.x, v.z);
   marketExplode(v, mine);   // 69-market.js：凡托車款被炸，股價下跌
   if (v.unit) unitDead(v);

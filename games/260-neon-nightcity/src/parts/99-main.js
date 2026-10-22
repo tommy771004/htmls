@@ -182,6 +182,7 @@ function updateCamera(dt, spd) {
   const fov = lerp(62 + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12, 13, arm.zoomK);
   camState.fov = arm.zoomK > .02 ? fov : damp(camState.fov, fov, 4, dt);
   if (Math.abs(camera.fov - camState.fov) > .01) { camera.fov = camState.fov; camera.updateProjectionMatrix(); }
+  if (camState.over) { const o = camState.over; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); }   // __nc.camAt：截圖用的固定相機
 }
 
 // ─── 每幀挑出離相機最近的幾盞燈送進 shader ───
@@ -352,6 +353,8 @@ window.__nc = {
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },
   // 邏輯座標（方格；spots 裡的門口、sea 的矩形、APT 的 door 都是）：換成世界座標再傳送，朝向一起轉
+  // 截圖用：相機固定在世界座標 (px, py, pz) 看向 (tx, ty, tz)；camAt() 還原
+  camAt(...o) { camState.over = o.length ? o : null; },
   tpL(x, z, yaw = 0) { const s = spotW({ x, z, yaw }); this.tp(s.x, s.z, s.yaw); },
   W: (x, z) => toW(x, z), L: (x, z) => toL(x, z), Ws: (x, z, yaw = 0) => spotW({ x, z, yaw }), zones: ZONES, roads: RN, capes: CAPES,
   drive(name = 'kestrel') { const v = name === 'hanzo' ? hanzo : kestrel; if (player.mode === 'drive') exitVehicle(); setWhere('out'); enterVehicle(v); camState.yaw = v.yaw; camState.snap = true; },
@@ -368,7 +371,7 @@ window.__nc = {
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   // 天氣與時間（28-sky.js）：rain(v) 依雨量挑最接近的天氣並立刻套用；weather(id, snap)；time(分鐘)
   rain(v) { setWeather(v > .85 ? 'storm' : v > .45 ? 'rain' : v > .12 ? 'drizzle' : 'overcast', true); wx.rain = v; }, flash() { wx.next = 0; wx.force = true; },
-  weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y },
+  weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y, sites: ISLE_SITES, foot: isleFoot },
   keys, inp, nitro, livery: cycleLivery,
   me, peds, pedState, crowd, ANIM, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),

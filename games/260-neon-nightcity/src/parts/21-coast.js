@@ -96,12 +96,14 @@ const FAR_ZN = ZONES[0];
 const FAR_ZM = stZ(ZONES[0].nj1);
 const FAR_PARTS = [{ zn: ZONES[0], z0: -1e5, z1: FAR_ZM + 60 }, { zn: ZONES[2], z0: FAR_ZM - 60, z1: 1e5 }];
 const EAST_PARTS = [{ zn: ZONES[1], z0: -1e5, z1: FAR_ZM + 60 }, { zn: ZONES[2], z0: FAR_ZM - 60, z1: 1e5 }];
-// 游泳與開船到不了對岸：世界座標的點擋在西岸、東灣對岸 30 m 外（換到那一段堤岸所在的區裡比）
+// 游泳與開船：世界座標的點擋在西岸、東灣對岸的堤岸外 4 m（換到那一段堤岸所在的區裡比）。
+// 對岸步道（10-city.js 的 BANK_WALKS）那一段擋到岸邊為止，前面有擋牆與梯子，靠得了岸
 function farClamp(X, Z) {
   for (const [L, east] of [[FAR_PARTS, 0], [EAST_PARTS, 1]]) {
     const P = L[toL(X, Z, L[0].zn)[1] < FAR_ZM ? 0 : 1];
     let [x, z] = toL(X, Z, P.zn);
-    if (east ? x > EAST_BANK_X - 30 && z > CITY_CZ - 860 && z < CITY_CZ + 860 : x < FAR_BANK_X + 30) { x = east ? EAST_BANK_X - 30 : FAR_BANK_X + 30; [X, Z] = toW(x, z, P.zn); }
+    const B = BANK_WALKS[east], lim = z > B.z0 - 4 && z < B.z1 + 4 ? 0 : 4;
+    if (east ? x > EAST_BANK_X - lim && z > CITY_CZ - 860 && z < CITY_CZ + 860 : x < FAR_BANK_X + lim) { x = east ? EAST_BANK_X - lim : FAR_BANK_X + lim; [X, Z] = toW(x, z, P.zn); }
   }
   return [X, Z];
 }
@@ -266,6 +268,8 @@ let benchMesh, planterShrubMesh;
   };
   for (let x = CITY_X0 - OUT_D + 18; x < BEACH_X1 - 10; x += 21) if (Math.abs(x - avX(4)) > 10) put(x, SHORE_Z - 2.4, 0, true);
   for (let z = CITY_Z0 - OUT_D + 24; z < SHORE_Z - 16; z += 23) put(CITY_X0 - OUT_D + 2.4, z, -Math.PI / 2, false);
+  // 對岸步道（BANK_WALKS）：靠水那側面向水，渡船碼頭前後讓開
+  for (const [i, B] of BANK_WALKS.entries()) for (let z = B.z0 + 14; z < B.z1 - 10; z += 23) if (Math.abs(z - (FERRY[i].z0 + FERRY[i].z1) / 2) > 9) put(i ? B.x0 + 2.4 : B.x1 - 2.4, z, i ? -Math.PI / 2 : Math.PI / 2, false);
   // 岬角（世界座標）：碎石步道內側面向水，兩盞路燈中間一張
   for (const h of CAPES) {
     const n = h.pts.length, area = polyArea(h.pts) > 0 ? 1 : -1;
@@ -564,6 +568,17 @@ const ISLE_SITES = {
   ruin: { x: ISLE.x0 + 70, z: ISLE.z0 + 150, ry: 0, w: 52, d: 64 },        // dasy444 的 abandoned city street，放大 2.3 倍
   office: { x: BRIDGE_X + 8, z: ISLE.z0 + 160, ry: Math.PI, w: 62, d: 63 },  // dasy444 的 Loft 18 environment（辦公室與一圈板樓）；北面的門是安全屋（69-safehouse.js）
 };
+// 基地裡每棟樓的佔地：tools/foot.mjs 從模型量出來寫進 props.json 的 foot（模型座標），換成邏輯座標的矩形 [x0, x1, z0, z1, 高]。
+// 樓與樓之間的巷子、中庭走得進去；沒有量過就退回整塊
+function isleFoot(id) {
+  const s = ISLE_SITES[id], ft = PROPS_SPEC['isle_' + id]?.items[id]?.foot, c = Math.cos(s.ry), n = Math.sin(s.ry);
+  if (!ft) return [[s.x - s.w * .42, s.x + s.w * .42, s.z - s.d * .42, s.z + s.d * .42, 12]];
+  return ft.map(([a, b, p, q, h]) => {
+    const xs = [], zs = [];
+    for (const [x, z] of [[a, p], [b, p], [a, q], [b, q]]) { xs.push(s.x + x * c + z * n); zs.push(s.z - x * n + z * c); }
+    return [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs), h];
+  });
+}
 const LIGHTHOUSE = { x: ISLE.x1 - 26, z: ISLE.z0 + 120 }, ISLE_PROXY = {};
 let isleTreeMesh, ISLE_TREES = [];   // 島上的樹（World 第四輪之二換成模型）   // 替身：模型下載好就藏起來
 const beacon = new T.Group();
@@ -608,15 +623,12 @@ const beacon = new T.Group();
     fragmentShader: `uniform float uFogDen; varying float vT; varying vec3 vW; void main(){ float a = pow(1. - clamp(vT, 0., 1.), 2.4) * smoothstep(0., .03, vT) * .07; gl_FragColor = vec4(vec3(1., .93, .75) * a, 1.); }` });
   for (const s of [0, Math.PI]) { const b = new T.Mesh(bg, bm); b.rotation.y = s; b.layers.set(LY.NOREFL); b.frustumCulled = false; beacon.add(b); }
   beacon.position.set(x, 33, z); cityAdd(beacon);
-  // 以檔案開啟（或模型下載失敗）時的替身：兩個基地上的程式方塊
+  // 以檔案開啟（或模型下載失敗）時的替身：照碰撞佔地（isleFoot）一格一個方塊，矮的是瓦礫與圍籬，高的面北牆上點幾扇窗
   const pk = new Kit();
-  for (const s of sites) {
-    const n = 6;
-    for (let i = 0; i < n; i++) {
-      const a = i / n * Math.PI * 2, bx = s.x + Math.cos(a) * s.w * .32, bz = s.z + Math.sin(a) * s.d * .32, h = 10 + r2() * 14;
-      pk.box(bx, h / 2, bz, 12, h, 12, 0x3a3836, 2);
-      for (let f = 1; f < h / 3.2; f++) if (r2() < .4) pk.box(bx, f * 3.2, bz + 6.02, 2.2, 1.3, .05, 0xffd8a0, 11);
-    }
+  for (const id in ISLE_SITES) for (const [x0, x1, z0, z1, h0] of isleFoot(id)) {
+    const h = Math.max(h0, 1.2), w = x1 - x0, d = z1 - z0;
+    pk.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, w, h, d, h > 4 ? 0x3a3836 : 0x4a443c, 2);
+    if (h > 6 && w > 3) for (let f = 1; f < h / 3.2; f++) if (r2() < .35) pk.box((x0 + x1) / 2, f * 3.2, z0 - .02, Math.min(2.2, w * .5), 1.3, .05, 0xffd8a0, 11);
   }
   const proxy = new T.Mesh(pk.build(), MAT.uber); cityAdd(proxy); cullAdd(proxy, 700);
   // 兩個基地的燈：辦公園區四角的投光燈、廢墟裡幾堆營火（模型和替身都用得到）
@@ -626,18 +638,18 @@ const beacon = new T.Group();
     lk.cyl(lx, 4, lz, .1, .14, 8, 8, 0x22252a, 15).box(lx, 8.1, lz, .9, .3, .6, 0xe8f0ff, 11);
     coastLight(lx, 7.5, lz, 0xe0ecff, 24, 1.1);
   }
-  for (const [dx, dz] of [[-8, -14], [10, 6], [-4, 20]]) {
+  for (const [dx, dz] of [[-8, -14], [14, 0], [-4, 20]]) {
     lk.cyl(R.x + dx, .25, R.z + dz, .6, .7, .5, 8, 0x2a2420, 2).box(R.x + dx, .6, R.z + dz, .5, .4, .5, 0xff8a30, 11);
     coastLight(R.x + dx, 1.2, R.z + dz, 0xff9040, 11, 1);
   }
   const lm = new T.Mesh(lk.build(), MAT.uber); cityAdd(lm); cullAdd(lm, 700);
   ISLE_PROXY.isle = proxy;
-  for (const s of sites) colliders.push({ x0: s.x - s.w * .42, x1: s.x + s.w * .42, z0: s.z - s.d * .42, z1: s.z + s.d * .42 });
+  for (const id in ISLE_SITES) for (const [x0, x1, z0, z1] of isleFoot(id)) colliders.push({ x0, x1, z0, z1 });
 }
 
 // ─── 遠景：北面的山（國家公園）、西岸的對岸城區（以 http(s) 開啟時換成 golukumar 的 London City）、外海的小島、
 // 東灣對岸的舊港城（換成 golukumar 的 City）。模型由 27-props.js 的 COAST_MODELS 下載擺放，擺好就把 ISLE_PROXY 的替身藏起來 ───
-const FAR_BANK_X = CITY_X0 - OUT_D - 300, EAST_BANK_X = CITY_X1 + OUT_D + 300, PEAKS = [];
+const PEAKS = [];   // FAR_BANK_X、EAST_BANK_X 在 10-city.js
 const FAR_SITES = {
   london: { x: FAR_BANK_X - 380, z: CITY_CZ, ry: 0 },    // 模型 719×1265 m，東緣貼著河岸，最高的塔在北端
   golu: { x: EAST_BANK_X + 110, z: CITY_CZ, ry: 0 },     // 模型 172×387 m，西排是倉庫與棚屋（背面朝城市）、東排是沿街立面
@@ -732,6 +744,44 @@ const FAR_SITES = {
   const goluProxy = new T.Mesh(gk.build(), MAT.far); cityAdd(goluProxy);
   ISLE_PROXY.golu = goluProxy;
 }
+// ─── 對岸的濱水步道（10-city.js 的 BANK_WALKS、FERRY）：石板步道、靠樓那一側一排近景的樓面（一樓店面、樓上窗格，擋住後面遠景模型
+// 糊掉的底層）、渡船碼頭與售票亭。臨水的欄杆與路燈由上面的擋牆迴圈自動加，長椅在 benches ───
+{
+  const r3 = rng(6161), COLS = [0x6a4a3a, 0x8a7a66, 0x5a5650, 0x7a5a48, 0x4a4e54, 0x80705e], AWN = [0x8a2a24, 0x24506a, 0x2e5a3a, 0x6a5a2a];
+  for (const [i, B] of BANK_WALKS.entries()) {
+    const zn = zoneAtL((B.x0 + B.x1) / 2, (B.z0 + B.z1) / 2), k = new Kit(), out = B.back === 'x0' ? -1 : 1, bx = out < 0 ? B.x0 : B.x1, F = FERRY[i];
+    const pv = new T.BoxGeometry(B.x1 - B.x0, .5, B.z1 - B.z0); pv.translate((B.x0 + B.x1) / 2, B.h - .25, (B.z0 + B.z1) / 2);
+    groundAdd(new T.Mesh(pv, groundMat(LAWN_FS, { uPath: { value: 1 } })), zn);
+    // 樓面：沿岸一段段 11–22 m 寬、9–21 m 高、8 m 深
+    for (let z = B.z0 - 6; z < B.z1 + 6;) {
+      const w = 11 + r3() * 11, z1 = Math.min(B.z1 + 6, z + w), d = z1 - z, h = 9 + Math.floor(r3() * 4) * 3.2, cz = (z + z1) / 2, col = COLS[Math.floor(r3() * COLS.length)];
+      k.box(bx + out * 4, h / 2, cz, 8, h, d - .3, col, 2).box(bx + out * .1, h + .25, cz, .5, .5, d - .1, 0x2a2826, 2);   // 樓身、簷口
+      // 一樓店面：櫥窗、門、遮雨棚（一半的店亮著）
+      const lit = r3() < .6;
+      k.box(bx - out * .02, 1.7, cz, .06, 2.4, d - 2.4, lit ? 0xffd0a0 : 0x2a3036, lit ? 11 : 1).box(bx - out * .02, 3.15, cz, .08, .5, d - 1.6, 0x1a1a1c, 2);
+      k.box(bx - out * .9, 3.6, cz, 1.8, .1, d - 1.4, AWN[Math.floor(r3() * AWN.length)], 2, 0, 0, out * -.18);
+      if (lit) coastLight(bx - out * 1.5, 2.4, cz, 0xffc890, 7, .5);
+      // 樓上的窗：每層 3.2 m、每 2.6 m 一扇，亮的暖色、暗的深色玻璃
+      for (let y = 5.6; y < h - 1; y += 3.2) for (let a = z + 1.6; a < z1 - 1.2; a += 2.6) k.box(bx - out * .02, y, a, .05, 1.5, 1.2, r3() < .35 ? 0xffd8a0 : 0x1c2228, r3() < .35 ? 11 : 1);
+      z = z1;
+    }
+    // 步道兩端的圍籬（和遠景的堤岸接起來）
+    for (const z of [B.z0, B.z1]) k.box((B.x0 + B.x1) / 2, .7, z, B.x1 - B.x0, 1.4, .12, 0x3a3c40, 15);
+    // 渡船碼頭：木板、樁、繫纜柱，盡頭一盞燈；岸邊一座售票亭
+    const fz = (F.z0 + F.z1) / 2, fx0 = F.x0, fx1 = F.x1;
+    const dg = new T.BoxGeometry(fx1 - fx0, .3, F.z1 - F.z0); dg.translate((fx0 + fx1) / 2, F.h - .15, fz); groundAdd(new T.Mesh(dg, MAT_PLANK), zn);
+    for (let x = fx0 + 3; x < fx1; x += 6) for (const z of [F.z0 + .6, F.z1 - .6]) k.cyl(x, (F.h + SEA_Y - 3) / 2, z, .2, .2, F.h - SEA_Y + 3, 8, 0x2a221c, 2);
+    const tip = i ? fx0 + 1.5 : fx1 - 1.5;
+    k.cyl(tip, F.h + 2.2, fz, .07, .09, 4.4, 8, 0x22252a, 15).box(tip, F.h + 4.5, fz, .4, .25, .4, 0xffd8a0, 11);
+    coastLight(tip, F.h + 4.2, fz, 0xffc890, 12, .8);
+    const kx = (i ? B.x0 + 5 : B.x1 - 5), kz = F.z1 + 4.5;
+    k.box(kx, 1.3, kz, 2.6, 2.6, 2.2, 0x2c4a5a, 2).box(kx, 2.75, kz, 3, .3, 2.6, 0x1a2a34, 2).box(kx - out * 1.32, 1.5, kz, .05, 1, 1.6, 0xffe2b0, 11).box(kx, 3.3, kz, 2.4, .5, .08, 0x5ae8ff, 8);
+    colliders.push({ x0: kx - 1.3, x1: kx + 1.3, z0: kz - 1.1, z1: kz + 1.1 });
+    coastLight(kx - out * 2, 2.6, kz, 0xffe2b0, 8, .7);
+    cityAdd(new T.Mesh(k.build(), MAT.uber), zn);
+  }
+}
+
 // 每幀：摩天輪轉、車廂保持朝下；燈塔光束轉；貨櫃船進出港、岸橋與集卡
 // 貨櫃船的一輪（秒）：靠港作業 → 拖離碼頭 → 原地轉向朝南 → 開出外海 → 不在 → 開回來 → 轉向朝東 → 推進碼頭
 const SHIP_T = { dock: 300, push: 70, turn: 55, sail: 240, away: 150 };
