@@ -159,7 +159,7 @@ const charMat = () => new T.ShaderMaterial({
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30 };
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -178,6 +178,8 @@ const ACLIP = {
   [ANIM.driveBy]: { c: 'Driving_Loop' },
   // 下水：踩水與自由式（40-people.js 的 updatePlayerWalk）
   [ANIM.swimIdle]: { c: 'Swim_Idle_Loop' }, [ANIM.swim]: { c: 'Swim_Fwd_Loop', rate: 1.1 },
+  // 蹲下（Z）：蹲著走、蹲著瞄準（手臂照持槍瞄準覆寫）
+  [ANIM.crouchWalk]: { c: 'Crouch_Fwd_Loop' }, [ANIM.crouchAim]: { c: 'Crouch_Idle_Loop' }, [ANIM.crouchAimWalk]: { c: 'Crouch_Fwd_Loop' },
 };
 const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
@@ -198,19 +200,105 @@ function aim(p, name, x, y, z, w = 1) {
   if (w < 1) _q3.slerp(_qi, 1 - w);
   bone.quaternion.copy(_q1.invert().multiply(_q3.multiply(_q2)));
 }
+// 兩節骨 IK：把 side 這隻手的手腕送到 T（骨架空間），手肘往 pole 那一側彎；上臂、前臂長度取目前姿勢的骨距
+const _ikS = V3(), _ikL = V3(), _ikH = V3(), _ikU = V3(), _ikN = V3(), _ikE = V3(), _ikT = V3();
+function ikArm(p, side, T, pole, k) {
+  const up = p.bones['upperarm_' + side], lo = p.bones['lowerarm_' + side];
+  up.getWorldPosition(_ikS); lo.getWorldPosition(_ikL); p.bones['hand_' + side].getWorldPosition(_ikH);
+  const a = _ikS.distanceTo(_ikL), b = _ikL.distanceTo(_ikH);
+  _ikU.subVectors(T, _ikS);
+  const d = clamp(_ikU.length(), Math.abs(a - b) + 1e-4, (a + b) * .999);
+  _ikU.normalize();
+  const ca = clamp((a * a + d * d - b * b) / (2 * a * d), -1, 1), sa = Math.sqrt(1 - ca * ca);
+  _ikN.copy(pole).addScaledVector(_ikU, -pole.dot(_ikU)).normalize();
+  _ikE.copy(_ikS).addScaledVector(_ikU, a * ca).addScaledVector(_ikN, a * sa);
+  _ikT.copy(_ikS).addScaledVector(_ikU, d);
+  aim(p, 'upperarm_' + side, _ikE.x - _ikS.x, _ikE.y - _ikS.y, _ikE.z - _ikS.z, k);
+  aim(p, 'lowerarm_' + side, _ikT.x - _ikE.x, _ikT.y - _ikE.y, _ikT.z - _ikE.z, k);
+}
+// ─── 持槍姿勢：先依瞄準方向擺好槍，再用兩節骨 IK 把雙手送到這把槍的握把與護木，手掌轉向、手指彎起來握住 ───
+// 座標是 arms.glb 擺正後的模型座標（公尺；槍口 +z、上方 +y、+x 是持槍者的左邊），照模型側面量的。
+// k：long 槍托抵右肩、上身側轉；pistol 雙手前伸（只在瞄準時，平常照動畫單手拿）；hip 架在右腰；shoulder 扛在右肩
+// r 右手掌心、l 左手掌心、b 抵肩（槍托底板）或靠肩（筒身）的點；lh 是左手的握法（HAND，右手一律握手槍式握把）
+const GUN_HOLD = {
+  pistol: { k: 'pistol', r: [0, -.012, -.055], l: [.035, -.03, -.045], lh: 'cup' },
+  stun: { k: 'pistol', r: [0, -.015, -.05], l: [.035, -.035, -.04], lh: 'cup' },
+  smg: { k: 'pistol', r: [0, .01, -.02], l: [.035, -.01, -.015], lh: 'cup' },
+  rifle: { k: 'long', r: [0, -.03, -.175], l: [0, .075, .15], b: [0, .035, -.41], lh: 'guard' },
+  shotgun: { k: 'long', r: [0, 0, -.235], l: [0, .045, .23], b: [0, -.005, -.49], lh: 'guard' },
+  sniper: { k: 'long', r: [0, -.045, -.29], l: [0, .0, .12], b: [0, -.015, -.54], lh: 'guard' },
+  rpg: { k: 'shoulder', r: [0, -.06, -.04], l: [0, -.065, .09], b: [0, .035, -.24], lh: 'gripL' },
+  minigun: { k: 'hip', r: [0, .085, -.4], l: [0, .06, -.1], lh: 'bar' },
+};
+// 手掌的方向（槍的座標）：y 手腕到指根、n 掌心朝向（掌心貼著握的東西）、c 手指彎曲的程度、t 拇指指的方向、o 手腕離握點往手背退幾公尺
+// 骨頭的局部軸（綁定姿勢量的）：y 沿著手指、z 是拇指那一側；右手掌心是 −x、左手掌心是 +x，手指繞局部 x 往掌心彎
+const HAND = {
+  grip: { y: [.35, -.55, .55], n: [.8, 0, .3], c: 1, t: [.75, -.25, .6] },        // 右手握手槍式握把：指根在握把前下方，掌心朝左前包住握把
+  gripL: { y: [-.35, -.55, .55], n: [-.8, 0, .3], c: 1, t: [-.75, -.25, .6] },     // 左手握直立的前握把
+  guard: { y: [-.75, .4, .35], n: [0, 1, 0], c: 1.05, o: .012, t: [.15, .15, 1] },        // 左手從下面托住護木，手指繞過右側
+  cup: { y: [-.3, -.6, .6], n: [-.8, .4, 0], c: .85, o: .015, t: [-.2, .2, 1] },         // 左手包住右手
+  bar: { y: [-.8, -.3, .4], n: [0, -1, 0], c: .9, t: [.2, -.7, -.5] },           // 左手從上面抓提把
+};
+const FINGER_CURL = [.9, 1.2, .8];
+const _hgf = V3(), _hgu = V3(), _hgx = V3(), _hgo = V3(), _hgs = V3(), _hgT = V3(), _hgP = V3(), _hgY = V3(), _hgN = V3(), _hgv = V3(), _hgw = V3(), _hgM = new T.Matrix4(), _hgq = new T.Quaternion(), _hgq2 = new T.Quaternion();
+const hgv = (o, a, s = 1) => o.set(0, 0, 0).addScaledVector(_hgx, a[0] * s).addScaledVector(_hgu, a[1] * s).addScaledVector(_hgf, a[2] * s);   // 槍的座標 → 角色空間的方向
+// 骨頭繞角色空間的 y 軸轉 a（上身側轉、頭轉回來）
+function twistY(p, name, a) {
+  const b = p.bones[name];
+  b.parent.getWorldQuaternion(_hgq); _hgq2.setFromAxisAngle(_v2.set(0, 1, 0), a);
+  b.quaternion.premultiply(_hgq).premultiply(_hgq2).premultiply(_hgq.invert());
+}
+// 手掌轉到 Y（手腕到指根）、掌心朝 N（角色空間，N 已經和 Y 垂直），w 是混合比例；手指彎曲 curl
+function orientHand(p, side, Y, N, curl, w) {
+  const b = p.bones['hand_' + side];
+  _hgv.copy(N).multiplyScalar(side === 'r' ? -1 : 1);   // 局部 x
+  _hgw.crossVectors(_hgv, Y).normalize();
+  _hgM.makeBasis(_hgv, Y, _hgw); _hgq2.setFromRotationMatrix(_hgM);
+  b.parent.getWorldQuaternion(_hgq); _hgq.invert().multiply(_hgq2);
+  b.quaternion.slerp(_hgq, w);
+  for (const f of ['index', 'middle', 'ring', 'pinky']) for (let j = 1; j <= 3; j++) {
+    const fb = p.bones[`${f}_0${j}_${side}`];
+    if (fb) fb.quaternion.multiply(_hgq2.setFromAxisAngle(_v1.set(1, 0, 0), FINGER_CURL[j - 1] * curl * w));
+  }
+}
+const HOLD_ANIM = new Set([ANIM.idle, ANIM.walk, ANIM.run, ANIM.crouch, ANIM.crouchWalk, ANIM.aimIdle, ANIM.aimWalk, ANIM.aimRun, ANIM.crouchAim, ANIM.crouchAimWalk, ANIM.talk]);
+// 69-combat.js 的 holdAt 每幀把 p.hold 設成手上的槍；這裡算出槍在角色空間的矩陣 p.gunM（holdAt 下一次就照它擺）
+function gunPose(p) {
+  const G = GUN_HOLD[p.hold];
+  if (!G || !p.sm) return false;
+  const m2b = 1 / (p.m2b ||= V3().setFromMatrixScale(p.sm.matrix).x), k = p.aimK ?? 1, P = p.aimP ?? 0;
+  if (G.k === 'pistol' && k < .05) return false;
+  // 槍身方向：瞄準時沿瞄準俯仰；長槍沒瞄準時槍口朝前下、略往左（低姿戒備），重武器略朝下
+  const pitch = G.k === 'pistol' ? P : lerp(G.k === 'long' ? -.62 : -.3, P, k), yaw = G.k === 'long' ? .38 * (1 - k) : 0;
+  _hgf.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
+  _hgx.set(Math.cos(yaw), 0, -Math.sin(yaw)); _hgu.crossVectors(_hgf, _hgx).normalize();
+  // 上身側轉（右肩往後、左肩往前），頭轉回來看前面
+  const tw = G.k === 'long' ? -lerp(.3, .55, k) : G.k === 'pistol' ? -.12 * k : -.25;
+  twistY(p, 'spine_02', tw * .4); twistY(p, 'spine_03', tw * .6); twistY(p, 'neck_01', -tw * .85);
+  p.bones.upperarm_r.getWorldPosition(_hgs); p.bones.upperarm_l.getWorldPosition(_hgT);
+  if (G.k === 'long') { _hgo.copy(_hgs).addScaledVector(_v1.set(.06, -.035, .05), m2b); hgv(_v2, G.b, m2b); _hgo.sub(_v2); }   // 槍托底板在右肩窩
+  else if (G.k === 'shoulder') { _hgo.copy(_hgs).addScaledVector(_v1.set(.03, .11, 0), m2b); hgv(_v2, G.b, m2b); _hgo.sub(_v2); }   // 筒身扛在右肩上
+  else if (G.k === 'hip') { _hgo.copy(_hgs).addScaledVector(_v1.set(.1, -.38, .14), m2b); hgv(_v2, G.r, m2b); _hgo.sub(_v2); }   // 後握把在右腰前
+  else { _hgo.lerpVectors(_hgs, _hgT, .4).addScaledVector(_v1.set(0, -.05, 0), m2b).addScaledVector(_hgf, .46 * m2b); hgv(_v2, G.r, m2b); _hgo.sub(_v2); }   // 手槍：兩肩之間偏右、往前伸直
+  const w = G.k === 'pistol' ? k : 1;
+  // 手腕的位置：掌心中央往手腕退 7.5 cm、往手背退 o（預設 3 cm）；拇指另外擺
+  for (const side of ['r', 'l']) {
+    const H = HAND[side === 'r' ? 'grip' : G.lh];
+    hgv(_hgY, H.y).normalize(); hgv(_hgN, H.n); _hgN.addScaledVector(_hgY, -_hgN.dot(_hgY)).normalize();
+    hgv(_hgP, side === 'r' ? G.r : G.l, m2b).add(_hgo).addScaledVector(_hgY, -.075 * m2b).addScaledVector(_hgN, -(H.o ?? .03) * m2b);
+    ikArm(p, side, _hgP, side === 'r' ? _v1.set(-1, -1.1, -.3) : _v1.set(.5, -1.2, 0), w);
+    orientHand(p, side, _hgY, _hgN, H.c, w);
+    hgv(_hgv, H.t); aim(p, 'thumb_02_' + side, _hgv.x, _hgv.y, _hgv.z, w); aim(p, 'thumb_03_' + side, _hgv.x, _hgv.y, _hgv.z, w);
+    (p.ikErr ||= {})[side] = p.bones['hand_' + side].getWorldPosition(_v2).distanceTo(_hgP) / m2b;   // 手腕離目標幾公尺（測試 API 的 held().ik）
+  }
+  if (G.k === 'pistol' && k < .5) return true;   // 舉到一半：槍還跟著右手（holdAt 照手腕擺）
+  _hgM.makeBasis(_hgx, _hgu, _hgf).scale(_v1.set(m2b, m2b, m2b)).setPosition(_hgo);
+  (p.gunM ||= new T.Matrix4()).copy(_hgM); p.gunF = crowdFrame; p.gunId = p.hold;
+  return true;
+}
 function aimArms(p) {
   const k = p.aimK ?? 1, P = p.aimP ?? 0, sy = Math.sin(P), cz = Math.cos(P);
-  // 重型武器（68-gta.js 設定 p.heavy）：轉管機槍抱在腰間，右手握後把、左手托槍管；火箭筒扛在右肩，左手往前扶住筒身
-  if (p.heavy === 'hip') {   // 方向是兩節骨 IK 對著握把（腰間）與提把解出來的
-    aim(p, 'upperarm_r', -.23, -.82, .52, k); aim(p, 'lowerarm_r', .59, sy * .6 - .35, .73, k);
-    aim(p, 'upperarm_l', -.46, -.58, .67, k); aim(p, 'lowerarm_l', -.58, sy * .6 - .39, .71, k);
-    return;
-  }
-  if (p.heavy === 'shoulder') {
-    aim(p, 'upperarm_r', -.62, -.43, .66, k); aim(p, 'lowerarm_r', .74, .39 + sy * .6, .55, k);
-    aim(p, 'upperarm_l', -.63, sy * .5, .77, k); aim(p, 'lowerarm_l', -.66, .11 + sy * .6, .74, k);
-    return;
-  }
+  if (p.hold && crowdFrame - p.holdT <= 2 && GUN_HOLD[p.hold]) return;   // 持槍姿勢在 poseOne 最後做（gunPose）
   aim(p, 'upperarm_r', -.1, sy, cz, k); aim(p, 'lowerarm_r', -.02, sy, cz, k);
   aim(p, 'upperarm_l', -.42, sy - .32, .85, k); aim(p, 'lowerarm_l', -.8, sy * .6 + .05, .6, k);
 }
@@ -263,6 +351,7 @@ const OVR = {
   },
   // 持槍瞄準：右臂沿準星的俯仰伸直，左手過來托住（p.aimP 是俯仰角、p.aimK 是瞄準的混合比例，68-gta.js 每幀設定）
   [ANIM.aimIdle]: p => aimArms(p), [ANIM.aimWalk]: p => aimArms(p), [ANIM.aimRun]: p => aimArms(p),
+  [ANIM.crouchAim]: p => aimArms(p), [ANIM.crouchAimWalk]: p => aimArms(p),
   // 投降：雙手舉過頭；被捕：跪著、雙手抱在腦後
   [ANIM.handsUp]: (p, t) => {
     const s = .04 * Math.sin(t * 9);
@@ -368,6 +457,7 @@ function poseOne(p, t, b) {
   p.sm.position.y = PEOPLE.seat[n1] || 0;
   const f = OVR[id];
   if (f && (!mix2 || w2 < .5)) f(p, t * sp + ph, b + bo);
+  if (p.hold && crowdFrame - p.holdT <= 2 && HOLD_ANIM.has(id) && (!mix2 || w2 < .5)) gunPose(p);
   p.rig.updateMatrixWorld(true);
   p.sm.skeleton.dirty = true;
   if (id === ANIM.umbrella) p.handL.setFromMatrixPosition(p.bones.hand_r.matrixWorld).y += p.sm.position.y;
@@ -562,7 +652,10 @@ function updatePlayerWalk(inp, dt, camYaw) {
   player.swim = depth > (player.swim ? 1.05 : 1.25);
   if (player.swim !== wasSwim && depth > 0) { sfx.splash(player.swim ? 1 : .5); if (player.swim) { player.dance = 0; arm.trig = false; } }
   const wade = player.swim ? 1 : clamp(1 - depth * .5, .45, 1);
-  const target = ml > .05 ? (player.swim ? (run ? 2.3 : 1.3) : (run ? 4.6 : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
+  // 蹲下（69-combat.js 的 Z 鍵）：跑起來或水深過膝就站起來；crouchK 給相機降低高度
+  if (player.crouch && (run || depth > .4)) player.crouch = false;
+  player.crouchK = damp(player.crouchK || 0, player.crouch ? 1 : 0, 10, dt);
+  const target = ml > .05 ? (player.swim ? (run ? 2.3 : 1.3) : (run ? 4.6 : player.crouch ? (aimM ? 1.1 : 1.3) : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
   player.v = damp(player.v, target, target > player.v ? 6 : 10, dt);
   let mdx = Math.sin(player.yaw), mdz = Math.cos(player.yaw);
   if (aimM) {
@@ -591,10 +684,11 @@ function updatePlayerWalk(inp, dt, camYaw) {
   const sp = player.v;
   let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][player.dance - 1] : ANIM.idle;
   if (aimM) a = sp > .25 ? ANIM.aimWalk : ANIM.aimIdle;
+  if (player.crouch) a = aimM ? (sp > .25 ? ANIM.crouchAimWalk : ANIM.crouchAim) : sp > .25 ? ANIM.crouchWalk : ANIM.crouch;
   if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }
   player.blend = Math.max(0, player.blend - dt * 5);
   const back = aimM && mdx * Math.sin(player.yaw) + mdz * Math.cos(player.yaw) < -.3 ? -1 : 1;   // 瞄準時往後退：走路動畫倒著播
-  const rate = a === ANIM.swim ? .6 + sp * .35 : a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * .9 * back : 1;
+  const rate = a === ANIM.swim ? .6 + sp * .35 : a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * .9 * back : a === ANIM.crouchWalk || a === ANIM.crouchAimWalk ? sp * .75 * back : 1;
   player.walkPh += dt * rate;
   me.anim(0, a, player.walkPh - uTimeNow(), 1, 0);
   me.anim2(0, player.prevAnim, player.blend, 1);

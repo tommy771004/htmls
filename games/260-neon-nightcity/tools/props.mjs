@@ -195,7 +195,7 @@ export const SETS = [
   { out: 'far_cement', src: '.cache/world1', far: 1, sloppy: .04, items: [{ id: 'plant', file: 'cement_plant', scale: .45 }, { id: 'tank', file: 'cement_tank', scale: .45 }, { id: 'ruin', file: 'cement_ruin', scale: .45 }] },
   // ─── World 第四輪之二（使用者提供的 ~/Downloads/world_2，21 個 Sketchfab 模型，全部 CC BY 4.0；複製到 .cache/world2/，短檔名；來源與拿掉的部分見 CREDITS.md）───
   // 街道設施、植物與海岸，頁面在 27-props.js 檔尾（World 第四輪之二那段）下載後換掉 20-props／21-coast 的程式建模；大量重複的用 InstancedMesh。
-  // 用到這一輪加的選項：metalMax（金屬度上限）、noEmi（拿掉自發光）、mask（改成 MASK）、keyWhite（白底當透明）、simplifyMat（只減某些材質；第四項 'sloppy'／'permissive' 允許不管拓撲或跨 UV 接縫收合）。
+  // 用到這一輪加的選項：metalMax（金屬度上限）、noEmi（拿掉自發光）、mask（改成 MASK）、keyWhite（白底當透明）、simplifyMat（只減某些材質；第四項 'sloppy'／'permissive' 允許不管拓撲或跨 UV 接縫收合）、soften（提亮並壓低貼圖對比）。
   // fire_hydrant 和 street.glb 的消防栓是同一個模型，不再處理一次，頁面直接用 street.glb 的 hydrant
   // 街道設施：長椅兩款、野餐桌、垃圾桶（原檔三個並排，拆成三個；Recology 的商標模糊掉）、有輪子的垃圾桶、電話亭、報紙箱
   { out: 'st2_street', src: '.cache/world2', tex: 512, metalMax: .2, simplifyMat: [[/^phone_tex$/, .25, .01]],
@@ -240,7 +240,7 @@ export const SETS = [
   ] },
   // 錨灣港：岸橋（吊在下面的小車、鋼索、吊具與貨櫃是另外幾個材質，拿掉，頁面的小車照舊會動；吊臂原檔沿 +x，轉成朝海 +z）、
   // 貨櫃船、20 呎貨櫃（跨接縫減到約 700 面、改霧面，堆場用一千多份）
-  { out: 'cst_port', src: '.cache/world2', tex: 1024, metalMax: .2, tint: { BODY: [1, .8, 0] }, simplifyMat: [[/^100[123]$/, .35, .005], [/^BODY$/, .04, .015, 'permissive']], items: [
+  { out: 'cst_port', src: '.cache/world2', tex: 1024, metalMax: .2, tint: { BODY: [1, .8, 0] }, soften: { BODY: [150, .45] }, simplifyMat: [[/^100[123]$/, .35, .005], [/^BODY$/, .04, .015, 'permissive']], items: [
     { id: 'crane', file: 'sts_crane', scale: .0857, rot: 3, drop: /Material\.00[4-8]/ },
     { id: 'ship', file: 'cargo_ship', scale: 1.85 },
     { id: 'box', file: 'container', len: 6.06 },
@@ -521,6 +521,14 @@ async function build(set) {
       const png = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
       n.setBaseColorTexture(out.createTexture(m.getName() + '_key').setImage(new Uint8Array(png)).setMimeType('image/png'));
       if (m.getEmissiveTexture() && !noEmi) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);
+    } else if (set.soften && m && m.getBaseColorTexture() && set.soften[m.getName()]) {
+      // soften（第四輪）：{ 材質名: [目標亮度 0–255, 對比倍率] }。深色舊化貼圖（貨櫃）提亮、壓低刮痕對比，頁面再乘上顏色才不會一片亮紋
+      const [tgt, k] = set.soften[m.getName()];
+      const { data, info } = await sharp(Buffer.from(m.getBaseColorTexture().getImage())).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      const mean = [0, 1, 2].map((c) => { let t = 0; for (let i = c; i < data.length; i += 3) t += data[i]; return t / (data.length / 3); });
+      for (let i = 0; i < data.length; i++) data[i] = Math.max(0, Math.min(255, tgt + (data[i] - mean[i % 3]) * k));
+      const png = await sharp(data, { raw: { width: info.width, height: info.height, channels: 3 } }).png().toBuffer();
+      n.setBaseColorTexture(out.createTexture(m.getName() + '_soft').setImage(new Uint8Array(png)).setMimeType('image/png'));
     } else {
       if (m && m.getBaseColorTexture()) n.setBaseColorTexture(copyTex(m.getBaseColorTexture()));
       if (m && m.getEmissiveTexture() && !noEmi) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);

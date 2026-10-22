@@ -190,7 +190,7 @@ function heistMark() {
   return null;
 }
 // 90-hud.js 與 69-gps.js 用這個取代 QUEST[quest.n].mk()
-function missionMark() { return heist.st !== 'off' && heist.st !== 'plan' ? heistMark() : SQ.def ? defMark() : QUEST[quest.n].mk(); }   // 資產防守在 69-squads.js
+function missionMark() { return heist.st !== 'off' && heist.st !== 'plan' ? heistMark() : SQ.def ? defMark() : side.act ? sideMark() : QUEST[quest.n].mk(); }   // 資產防守在 69-squads.js、支線活動在 69-side.js
 const HEIST_TEXT = {
   setup: () => heist.van && player.veh === heist.van ? '把鑽機廂型車開回舊碼頭倉庫' + (W.stars ? '（先甩掉警察）' : '') : '前置：偷走舊碼頭的鑽機廂型車',
   go: () => '到中央霓虹銀行門口',
@@ -351,6 +351,7 @@ function heistPass() {
   if (heist.car) { exitVehicle(); heist.car = null; }
   motors.cash += net; saveMotors();
   $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ['駭客 Zero 分紅（10%）', '−' + money(cut)], ['最終實得淨利', money(net)], ['三位主角各得', money(Math.floor(net / 3))]].map(([a, b], i) => `<dt${i === 3 ? ' class="net"' : ''}>${a}</dt><dd${i === 3 ? ' class="net"' : ''}>${b}</dd>`).join('');
+  $('heistDone').querySelector('b').textContent = 'HEIST PASSED'; $('heistDone').querySelector('small').textContent = '中央霓虹銀行';   // 69-side.js 的 sideDone 也用這個畫面
   $('heistDone').classList.add('on'); heist.doneT = 7; sfx.ability(true);
 }
 

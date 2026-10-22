@@ -13,9 +13,9 @@ const ARMS = {
   pistol: { slot: 1, name: '手槍', gun: 1, dmg: 28, rpm: 240, mag: 16, rel: 1.2, range: 60, spread: 1.5, head: 2.5, db: 1, f: 1, res: 96, grip: [0, -.035, -.05], muzzle: [0, .035, .1] },
   stun: { slot: 1, name: '電擊槍', gun: 1, stun: 5, dmg: 10, rpm: 20, mag: 1, rel: 3, range: 12, spread: .5, head: 1, db: 1, f: .35, res: 24, grip: [0, -.035, -.05], muzzle: [0, .03, .09] },
   smg: { slot: 2, name: '衝鋒槍', gun: 1, auto: 1, dmg: 22, rpm: 750, mag: 30, rel: 1.6, range: 55, spread: 4.2, head: 2, db: 1, f: .7, res: 240, grip: [0, -.02, -.03], muzzle: [0, .08, .15] },
-  rifle: { slot: 3, name: '突擊步槍', gun: 1, auto: 1, dmg: 36, rpm: 650, mag: 40, rel: 2, range: 110, spread: 1.8, head: 2.2, f: 1.3, res: 240, grip: [0, -.06, -.06], muzzle: [0, .07, .42] },
+  rifle: { slot: 3, name: '突擊步槍', gun: 1, auto: 1, dmg: 36, rpm: 650, mag: 40, rel: 2, range: 110, spread: 1.8, head: 2.2, f: 1.3, res: 240, grip: [0, -.03, -.175], muzzle: [0, .07, .42] },
   shotgun: { slot: 4, name: '霰彈槍', gun: 1, dmg: 18, pel: 8, rpm: 70, mag: 8, rel: 2.8, range: 25, spread: 8.5, head: 1.5, db: 'bike', f: 2, res: 48, grip: [0, -.02, -.2], muzzle: [0, .04, .5] },
-  sniper: { slot: 5, name: '狙擊槍', gun: 1, scope: 1, dmg: 165, rpm: 45, mag: 6, rel: 2.5, range: 300, spread: .1, head: 3, f: 2.6, res: 30, grip: [0, -.03, -.33], muzzle: [0, .02, .56] },
+  sniper: { slot: 5, name: '狙擊槍', gun: 1, scope: 1, dmg: 165, rpm: 45, mag: 6, rel: 2.5, range: 300, spread: .1, head: 3, f: 2.6, res: 30, grip: [0, -.045, -.29], muzzle: [0, -.015, .56] },
   rpg: { slot: 6, name: '火箭筒', gun: 1, rocket: 1, dmg: 500, blast: 10, rpm: 20, mag: 1, rel: 3.5, range: 200, spread: .5, f: 2, res: 8, shoulder: 1, grip: [0, .05, -.15], muzzle: [0, .05, .62] },
   minigun: { slot: 6, name: '轉管機槍', gun: 1, auto: 1, spin: .5, dmg: 30, rpm: 1800, mag: 500, rel: 4.5, range: 90, spread: 3.5, head: 1.5, f: .5, res: 1000, grip: [0, .08, -.38], muzzle: [0, 0, .48] },
   grenade: { slot: 7, name: '手榴彈', throw: 1, dmg: 400, blast: 8, fuse: 3, n: 10 },
@@ -85,6 +85,14 @@ const _hm = new T.Matrix4(), _hb = new T.Matrix4(), _hp = V3(), _he = V3(), _hd 
 function boneW(p, name, out) { _hb.multiplyMatrices(_hm, p.bones[name].matrixWorld); return out.setFromMatrixPosition(_hb); }
 function holdAt(h, p, A, dir) {
   p.h.updateMatrixWorld(true); _hm.multiplyMatrices(p.h.matrixWorld, p.sm.matrix);
+  // 持槍姿勢（40-people.js 的 gunPose）：下一次擺姿勢時雙手握上來；這一幀已經算好槍的位置就照它擺
+  const id = h.userData.id;
+  p.hold = id; p.holdT = crowdFrame;
+  if (p.gunM && p.gunId === id && crowdFrame - p.gunF <= 2) {
+    const g = A.grip || [0, 0, 0];
+    h.matrix.multiplyMatrices(_hm, p.gunM).multiply(_hl.makeTranslation(g[0], g[1], g[2])); h.matrixWorldNeedsUpdate = true; h.visible = true;
+    return;
+  }
   boneW(p, 'hand_r', _hp); boneW(p, 'lowerarm_r', _he);
   _hd.subVectors(_hp, _he).normalize();
   if (A.shoulder) { boneW(p, 'upperarm_r', _hp); _hp.y += .14; _hd.set(Math.sin(p.yaw), 0, Math.cos(p.yaw)); }
@@ -628,7 +636,7 @@ function npcGunOf(p) {
 function npcShoot(ox, oy, oz, acc, dmg, f = 1, by = 'npc') {
   const inV = player.mode === 'drive', tx = inV ? player.veh.x : player.x, tz = inV ? player.veh.z : player.z, ty = inV ? player.veh.y + 1 : player.y + 1.2;
   const d = Math.hypot(tx - ox, tz - oz), sp = inV ? Math.hypot(player.veh.vx, player.veh.vz) : player.v;
-  const pHit = acc * clamp(1.1 - d / 70, .12, 1) * (sp > 8 ? .55 : sp > 3 ? .8 : 1) * (player.down > 0 ? .5 : 1);
+  const pHit = acc * clamp(1.1 - d / 70, .12, 1) * (sp > 8 ? .55 : sp > 3 ? .8 : 1) * (player.down > 0 ? .5 : 1) * (inV || !player.crouch ? 1 : crouchCover(ox, oz) ? .12 : .8);
   const hit = Math.random() < pHit && !life.dead;
   const ex = hit ? 0 : (Math.random() - .5) * 3, ey = hit ? 0 : (Math.random() - .3) * 1.5, ez = hit ? 0 : (Math.random() - .5) * 3;
   muzzleFx(ox, oy, oz, .8);
@@ -638,6 +646,24 @@ function npcShoot(ox, oy, oz, acc, dmg, f = 1, by = 'npc') {
   if (inV) { damageVeh(player.veh, dmg * VEH_K * .6, false); sparks(tx, ty, tz, 4, 2); if (Math.random() < .3) hurtPlayer(dmg * .5, ox, oz); }
   else { hurtPlayer(dmg, ox, oz); blood(tx, ty, tz); }
   return true;
+}
+// 蹲在車或矮牆後面（Z）：射手到玩家的連線，在玩家身前 2.6 m 內被車（車流、路邊車、載具）或碰撞框擋住。
+// 69-police.js 的 coverClear 也問這裡：蹲在掩護後面，警察看不到
+function crouchCover(ox, oz) {
+  if (!player.crouch || player.mode !== 'walk' || player.where !== 'out') return false;
+  const px = player.x, pz = player.z, d = Math.hypot(ox - px, oz - pz);
+  if (d < 2.2) return false;
+  const ex = px + (ox - px) / d * 2.6, ez = pz + (oz - pz) / d * 2.6;
+  const car = (x, z, w, L, yaw) => {
+    if (Math.abs(x - px) > 6 || Math.abs(z - pz) > 6) return false;
+    for (const s of [-1, 0, 1]) if (segHit(px, pz, ex, ez, x + Math.sin(yaw) * L * .3 * s, z + Math.cos(yaw) * L * .3 * s, w * .55 + .1)) return true;
+    return false;
+  };
+  for (const c of traffic) if (car(c.x, c.z, TYPES[c.type].w, TYPES[c.type].len, c.yaw)) return true;
+  for (const c of parked) if (car(c.x, c.z, TYPES[c.type].w, TYPES[c.type].len, c.yaw)) return true;
+  for (const v of vehicles) if (!v.dead && v.g.visible !== false && car(v.x, v.z, v.w, v.len, v.yaw)) return true;
+  for (const b of boxesNear(px, pz, 3)) if (rayBox(px, pz, ex - px, ez - pz, b) < 1) return true;
+  return false;
 }
 // NPC 朝任意目標開一槍（69-squads.js 的幫派、傭兵與隊友互射，警察打傭兵）：pHit 是命中率，打中就呼叫 onHit
 function npcShootAt(ox, oy, oz, tx, ty, tz, pHit, f, onHit) {
@@ -791,6 +817,7 @@ function gtaKey(code) {
   if (code === 'Tab') { if (arm.wheel.open) wheelClose(true); else wheelOpen(); return true; }
   if (life.dead) return true;
   if (code === 'KeyR') { reload(); return true; }
+  if (code === 'KeyZ' && player.mode === 'walk' && !player.swim && !(player.down > 0)) { player.crouch = !player.crouch; return true; }
   if (code === 'KeyG' && arm.stickies.length) { detonate(); return true; }
   if (code === 'Aim') { if (canFight() && !ARMS[arm.sel].gun) equip(arm.last[1]); gta.touchAim = !gta.touchAim; return true; }
   return false;
@@ -807,7 +834,7 @@ const combatApi = {
     const p = me.people[0], h = myGun[arm.sel]; if (!h || !h.visible) return null;
     _hm.multiplyMatrices(p.h.matrixWorld, p.sm.matrix);
     const f = v => [+v.x.toFixed(3), +v.y.toFixed(3), +v.z.toFixed(3)];
-    return { gun: f(V3().setFromMatrixPosition(h.matrixWorld)), hand: f(boneW(p, 'hand_r', V3())), handL: f(boneW(p, 'hand_l', V3())), neck: f(boneW(p, 'neck_01', V3())), muzzle: f(muzzleOf(h, ARMS[arm.sel], V3())) };
+    return { gun: f(V3().setFromMatrixPosition(h.matrixWorld)), hand: f(boneW(p, 'hand_r', V3())), handL: f(boneW(p, 'hand_l', V3())), neck: f(boneW(p, 'neck_01', V3())), muzzle: f(muzzleOf(h, ARMS[arm.sel], V3())), ik: p.ikErr && { r: +p.ikErr.r.toFixed(3), l: +p.ikErr.l.toFixed(3) } };
   },
   fill() { for (const id of ARM_IDS) { const A = ARMS[id]; if (A.gun) { arm.ammo[id].mag = A.mag; arm.ammo[id].res = A.res; } else if (A.throw) arm.ammo[id].mag = A.n; } life.hp = life.max; life.armor = 100; },
 };

@@ -8,7 +8,7 @@ const sellPrice = id => Math.round(CARS[id].price * .6 / 1000) * 1000;
 
 // ─── 車庫存檔：現金、擁有的車、各車塗裝、目前開在街上的那台 ───
 const MOTOR_KEY = 'nc260.motors';
-const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0 };
+const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {} } };
 try {
   const d = JSON.parse(localStorage.getItem(MOTOR_KEY) || 'null');
   if (d && typeof d === 'object') {
@@ -23,6 +23,11 @@ try {
     if (d.props && typeof d.props === 'object') motors.props = { own: Array.isArray(d.props.own) ? d.props.own.filter(s => typeof s === 'string') : [], safe: num(d.props.safe, v => v >= 0 && v < 1e9), pause: num(d.props.pause, v => v > 0 && v < 1e14) };
     // 第 4 版：上次存檔的時間（69-market.js 補算關著遊戲期間的股價與資產收入）、資產防守失敗的停業時間（props.pause）
     if (Number.isFinite(d.ts) && d.ts > 0 && d.ts <= Date.now() + 6e4) motors.ts = d.ts;
+    // 第 6 版：支線活動（69-side.js）：街頭賽最佳成績（秒）與贏過的賽道、生存模式最高波數、拿下的幫派地盤、委託進度。這裡只檢查形狀，代號由各模組自己對照
+    if (d.side && typeof d.side === 'object') {
+      const S = d.side, ids = a => Array.isArray(a) ? a.filter((s, k) => typeof s === 'string' && s.length < 24 && a.indexOf(s) === k) : [];
+      motors.side = { race: num(S.race, v => v > 0 && v < 3600), win: ids(S.win), surv: Number.isInteger(S.surv) ? clamp(S.surv, 0, 999) : 0, turf: ids(S.turf), tale: num(S.tale, v => Number.isInteger(v) && v >= 0 && v < 20) };
+    }
     if (Array.isArray(d.stunts)) motors.stunts = d.stunts.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < RAMPS.length && a.indexOf(i) === k);
     // 第 2 版：手機快速存檔（69-phone.js）。舊存檔沒有這個欄位；讀檔時再逐項檢查範圍
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
@@ -33,7 +38,7 @@ try {
 const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
   motors.ts = Date.now();
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 5, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props })); } catch (e) { /* 存不了就算了 */ }
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 6, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();

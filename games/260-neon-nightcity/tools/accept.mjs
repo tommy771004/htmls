@@ -213,6 +213,17 @@ async function desktop() {
     await page.keyboard.press('KeyR');
     await page.waitForTimeout(1500);
     check((await nc(() => window.__nc.gta.arm.ammo.pistol.mag)) === 16, '按 R 換彈匣');
+    // 持槍姿勢（40-people.js 的 gunPose）：瞄準時雙手的手腕都送到槍上的握點；長槍沒瞄準時也雙手握著
+    const grip = {};
+    await nc(() => window.__nc.gta.fill());
+    for (const [w, a] of [['pistol', 1], ['rifle', 1], ['rifle', 0], ['shotgun', 1], ['rpg', 1], ['minigun', 1]]) {
+      await nc(([w, a]) => { window.__nc.gta.weapon(w); window.__nc.gta.aim(!!a); }, [w, a]);
+      await page.waitForTimeout(700);
+      const h = await nc(() => { const h = window.__nc.gta.held(); return h && h.ik; });
+      grip[w + (a ? '' : '低姿')] = h ? Math.max(h.r, h.l) : null;
+    }
+    await nc(() => { window.__nc.gta.aim(false); window.__nc.gta.weapon('pistol'); });
+    check(Object.values(grip).every(e => e != null && e < .03), `雙手握在槍上（手腕離握點的最大距離，公尺）${JSON.stringify(grip)}`);
     const boom = await nc(() => new Promise((r) => {
       const nc = window.__nc, v = nc.gta.jacked[0];
       nc.gta.damage(v, 600);
@@ -340,7 +351,7 @@ async function desktop() {
       p.load();
       setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
     }));
-    check(qv.ok && qv.v === 5 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    check(qv.ok && qv.v === 6 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
     await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
@@ -601,6 +612,98 @@ async function desktop() {
       check(c1.on && c1.d === 0 && !c1.swim, `岬尖臨水的擋牆擋住，不會走進水裡 ${JSON.stringify(c1)}`);
     }
     await nc(() => { const nc = window.__nc; nc.time(134); nc.weather('rain'); });
+
+    // 第五階段（69-side／race／street／turf／survival／tale）：每項走完一次，最後重新載入確認 motors.side 存得住
+    {
+      const W = ms => page.waitForTimeout(ms);
+      const reset = () => nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); g.squad.clear(); g.ev.end(); g.side.end(); g.god.on = true; window.__nc.closeDialog(); });
+      const banner = () => nc(() => document.querySelector('#heistDone b').textContent + ' ' + document.getElementById('hpRows').textContent);
+      await reset();
+      // 街頭賽：開車停進起點 → 報名 → 一路跳檢查點
+      const rs = await nc(() => { const nc = window.__nc, G = nc.gta.race.geo('neon'); nc.drive(); const v = nc.player.veh; v.x = G.start[0]; v.z = G.start[1]; v.vx = v.vz = 0; return nc.gta.race.start('neon'); });
+      await W(4200);
+      for (let i = 0; i < 40 && await nc(() => !!window.__nc.gta.race.act()); i++) { await nc(() => window.__nc.gta.race.skip()); await W(250); }
+      const rb = await banner();
+      check(rs !== false && /RACE WON|FINISHED/.test(rb), `街頭賽跑完一場：${rb}`);
+      await nc(() => window.__nc.walk && window.__nc.walk());
+      await reset();
+      // 街頭事件：搶包賊打倒掉包、撿包選「還給失主」；逃犯車打到熄火後逮捕
+      const th = await nc(() => window.__nc.gta.ev.street('thief'));
+      await W(600);
+      const dn = await nc(() => window.__nc.gta.ev.down());
+      await W(300);
+      await nc(() => { const nc = window.__nc, b = nc.gta.ev.ev.cur.bag; nc.tp(b.x, b.z); });
+      await W(500);
+      const dlg = await nc(() => document.getElementById('dialog').classList.contains('on') && document.getElementById('dlgOpts').textContent);
+      await nc(() => document.querySelector('#dlgOpts button').click());
+      check(th && dn && /還給失主/.test(dlg || '') && await nc(() => !window.__nc.gta.ev.ev.cur), `搶包賊：打倒、撿包、還給失主 ${JSON.stringify({ th, dn, dlg })}`);
+      const bo = await nc(() => window.__nc.gta.ev.street('bounty'));
+      await W(800);
+      await nc(() => { const e = window.__nc.gta.ev.ev.cur; e.v.hp = e.v.hp0 * .2; });
+      await W(1500);
+      await nc(() => { const nc = window.__nc, v = nc.gta.ev.ev.cur.v; nc.tp(v.x + 3.5, v.z); });
+      await W(600);
+      const bb = await banner();
+      check(bo && /BOUNTY/.test(bb) && await nc(() => !window.__nc.gta.ev.ev.cur), `懸賞逃犯車：熄火後逮捕 ${bb}`);
+      await reset();
+      // 幫派地盤：據點的人站著聊天 → 被看到開戰 → 三波打完搶下 → 反攻守住
+      await nc(() => { const a = window.__nc.gta.turf.at('maple'); window.__nc.tp(a.x + 70, a.z + 20); });
+      await W(1200);
+      const calm = await nc(() => window.__nc.gta.squad.SQ.f.filter(f => f.on && f.calm).length);
+      await nc(() => { const a = window.__nc.gta.turf.at('maple'), p = window.__nc.player; p.x = a.x + 12; p.z = a.z + 2; });
+      await W(1200);
+      const war = await nc(() => { const a = window.__nc.gta.turf.act(); return a && a.name; });
+      for (let w = 0; w < 3; w++) { await nc(() => window.__nc.gta.turf.wipe()); await W(4200); }
+      const tb = await banner(), own = await nc(() => window.__nc.gta.turf.owned());
+      check(calm === 5 && war === '地盤戰' && /TURF TAKEN/.test(tb) && own.includes('maple'), `幫派地盤：據點五人、開戰、搶下楓林里 ${JSON.stringify({ calm, war, own })}`);
+      await nc(() => window.__nc.gta.turf.start('maple', true));
+      await W(800);
+      for (let w = 0; w < 2; w++) { await nc(() => window.__nc.gta.turf.wipe()); await W(4200); }
+      const hb = await banner();
+      check(/TURF HELD/.test(hb) && (await nc(() => window.__nc.gta.turf.owned())).includes('maple'), `幫派地盤：反攻守住 ${hb}`);
+      await reset();
+      // 生存模式：霓虹圈按 E → 開始 → 清一波 → 走出貨場結算
+      await nc(() => { const s = window.__nc.gta.surv.at().s; window.__nc.tp(s.x, s.z); });
+      await W(400);
+      const sc = await nc(() => window.__nc.ctx());
+      await nc(() => window.__nc.act());
+      await W(200);
+      await nc(() => document.querySelector('#dlgOpts button').click());
+      await W(9000);
+      await nc(() => window.__nc.gta.surv.wipe());
+      await W(800);
+      const sv = await nc(() => { const a = window.__nc.gta.surv.act(); return a && { wave: a.wave, cleared: a.cleared, pay: a.pay }; });
+      await nc(() => { window.__nc.player.x += 120; });
+      await W(600);
+      const sb = await banner();
+      check(/生存模式/.test(sc) && sv && sv.cleared >= 1 && /SURVIVAL/.test(sb), `生存模式：撐過一波、走出貨場結算 ${JSON.stringify(sv)} ${sb}`);
+      await reset();
+      // 支線委託：找奧斯卡接第一段（打架）、米卡接第一段（撿畫稿）
+      const tl = [];
+      for (const id of ['oskar', 'mika']) {
+        await nc((id) => { const P = window.__nc.gta.tale.at(id); window.__nc.tp(P.x + 1.2, P.z + (id === 'oskar' ? 1 : -1)); }, id);
+        await W(300);
+        const c = await nc(() => window.__nc.ctx());
+        await nc(() => window.__nc.act());
+        await W(200);
+        await nc(() => document.querySelector('#dlgOpts button').click());
+        await W(400);
+        const ty = await nc(() => { const a = window.__nc.gta.tale.act(); return a && a.S.type; });
+        const pr = await nc(() => window.__nc.gta.tale.probe());
+        await nc(() => window.__nc.gta.tale.skip());
+        await W(700);
+        tl.push({ c: c.replace(/<[^>]+>/g, ''), ty, items: pr.every(q => q.push < .05), stage: await nc((id) => window.__nc.gta.tale.stage(id), id) });
+      }
+      check(tl.every(t => t.ty && t.items && t.stage === 1), `支線委託：接下、完成第一段 ${JSON.stringify(tl)}`);
+      // 存檔第 6 版：重新載入後街頭賽、地盤、生存、委託的進度都還在
+      const side0 = await nc(() => JSON.stringify(window.__nc.motors.side));
+      await page.reload();
+      await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 60000 });
+      await nc(() => window.__nc.start());
+      await W(800);
+      const side1 = await nc(() => JSON.stringify(window.__nc.motors.side));
+      check(side0 === side1 && /maple/.test(side1) && /"oskar":1/.test(side1), `存檔第 6 版 motors.side 重新載入後一樣 ${side1}`);
+    }
 
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
     console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);

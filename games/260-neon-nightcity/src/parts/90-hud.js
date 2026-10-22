@@ -125,6 +125,7 @@ function drawMini(px, pz, yaw, mk) {
   if (player.where === 'out') policeMini(mctx, P2, zoom);   // 警車、警員、直升機、視線錐（69-police.js）
   evMini(mctx, P2, zoom);   // 運鈔車藍點與錢袋（69-events.js）
   if (player.where === 'out') squadMini(mctx, P2, zoom);   // 幫派紅點、傭兵綠點、被盯上的資產（69-squads.js）
+  if (player.where === 'out') sideMini(mctx, P2, zoom);   // 街頭賽對手、生存模式、幫派地盤（69-side.js）
   mctx.restore();
   // 目標：在圓內就畫點，超出就貼在圓周
   if (mk && mk.where === 'out') {

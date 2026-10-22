@@ -40,6 +40,10 @@ const MAP_CAT = [
   { id: 'ramen', name: '拉麵攤', col: '#ff7a52', icon: 'ramen' },
   { id: 'shop', name: '便利商店', col: '#5ad8ff' },
   { id: 'ramp', name: '特技跳台', col: '#d9b42a', icon: 'ramp' },
+  { id: 'race', name: '街頭賽', col: '#ff3fd2' },
+  { id: 'surv', name: '生存擂台', col: '#ff8a3a' },
+  { id: 'tale', name: '委託', col: '#ffe066' },
+  { id: 'turf', name: '幫派據點', col: '#ff4a3a' },
 ];
 const MAP_CATS = Object.fromEntries(MAP_CAT.map(c => [c.id, c]));
 const estOf = id => ESTATES.find(e => e.id === id);
@@ -63,6 +67,7 @@ function mapBlips() {
   add('pd', { name: PD.name, x: PD.x, z: PD.z, type: '警察局', desc: 'BUSTED 之後在這裡交保釋金出來。' });
   add('hosp', { name: HOSP.name, x: HOSP.x, z: HOSP.z, type: '醫院', desc: 'WASTED 之後在這裡出院。' });
   for (const o of ramenSpots) add('ramen', { name: '路邊拉麵攤', ...WP(o.x, o.z), type: '小吃', desc: '霓虹區人行道上的拉麵攤。' });
+  sideBlips(add);   // 69-side.js：街頭賽起點、生存擂台、委託人、幫派據點
   for (const r of RAMPS) { const done = motors.stunts.includes(r.i); add('ramp', { name: `特技跳台 #${r.i + 1}`, x: r.x, z: r.z, type: '特技跳台', done, rows: [['狀態', done ? '已完成' : '未完成（首次加倍獎金）']], desc: '加速衝上跳台，落地前在空中翻滾可以拿加成。' }); }
   return B;
 }
@@ -225,6 +230,7 @@ function mapDraw() {
   gpsBig(c, X, Z, s);
   evBig(c, X, Z, s);
   squadBig(c, X, Z, s);
+  sideBig(c, X, Z, s);
   // 地點圖示
   const sz = (MV.zoom > 2.5 ? 24 : 20) * dpr;
   MV.blips.forEach((b, i) => {

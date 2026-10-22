@@ -18,7 +18,8 @@ function crime(kind, x = player.x, z = player.z) {
   if (player.where !== 'out' || life.dead) return;
   const t = uTimeNow(), n = CRIME[kind];
   if (!n) return;
-  if (kind === 'shots') { if (t - W.shotsT < 5) return; W.shotsT = t; }
+  if ((kind === 'shots' || kind === 'blast' || kind === 'explode') && (evBountyNear(x, z) || side.act && side.act.noCrime && side.act.noCrime(x, z))) return;   // 69-street.js 攔逃犯車、69-survival.js 的貨場不算罪
+  if (kind === 'shots') { W.bangT = t; if (t - W.shotsT < 5) return; W.shotsT = t; }
   // 對警察動手、警察親眼看到、已經在追：直接加熱度；否則要有路人目擊，三秒後報案（槍聲與爆炸六十公尺內都聽得到）
   if (kind === 'ramcop' || kind === 'resist' || kind === 'killcop' || kind === 'heli' || W.stars > 0 && W.seen || copSees(x, z, 0)) { addHeat(n, FLOOR[kind] || 0); return; }
   const loud = kind === 'shots' || kind === 'blast' || kind === 'explode';
@@ -71,6 +72,7 @@ function segHit(ax, az, bx, bz, cx, cz, r) {
   return ex * ex + ez * ez < r * r;
 }
 function coverClear(ax, az, bx, bz) {
+  if (player.crouch && Math.hypot(bx - pX(), bz - pZ()) < 1.5 && crouchCover(ax, az)) return false;   // 蹲在車或牆後面（69-combat.js）
   for (let i = Math.floor((bx - 10) / TG); i <= Math.floor((bx + 10) / TG); i++) for (let j = Math.floor((bz - 10) / TG); j <= Math.floor((bz + 10) / TG); j++) {
     const L = treeGrid.get(i * 4096 + j); if (!L) continue;
     for (const t of L) if (Math.hypot(t.x - bx, t.z - bz) < 10 && segHit(ax, az, bx, bz, t.x, t.z, 1.7 * t.s)) return false;

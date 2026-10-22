@@ -376,6 +376,11 @@ function vehHits(v, imp) {
       const cx = v.x + fx * v.off * s, cz = v.z + fz * v.off * s;
       if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { knockPed(k, v.vx / sp, v.vz / sp); sfx.impact(sp * .6); if (v === player.veh) crime(sp > 8 ? 'kill' : 'assault', p.x, p.z); break; }
     }
+  }  // 69-squads.js 的戰鬥員（敵方與搶包賊）：玩家開車撞到就倒
+  if (v !== player.veh) return;
+  for (const f of SQ.f) {
+    if (!fUp(f) || fAlly(f)) continue;
+    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { fHit(f, sp * 14, v.vx / sp, v.vz / sp, true); sfx.impact(sp * .6); break; }
   }
 }
 
@@ -386,6 +391,7 @@ function gtaPre(dt) {
 }
 function gtaUpdate(dt) {
   const out = player.where === 'out';
+  if (player.mode !== 'walk') player.crouch = false;
   gta.fireT = Math.max(0, gta.fireT - dt); gta.punchT = Math.max(0, gta.punchT - dt);
   if (gta.jack) stepJack(dt);
   combatUpdate(dt);
@@ -396,6 +402,7 @@ function gtaUpdate(dt) {
   marketUpdate(dt);
   heistUpdate(dt);
   squadUpdate(dt);   // 69-squads.js：幫派、傭兵、資產防守、搶劫隊友
+  sideUpdate(dt);    // 69-side.js：街頭賽、生存模式、委託、幫派地盤
   aptUpdate();
   if (out) {
     for (const v of [...vehicles]) vehDamage(v, dt);
@@ -420,9 +427,9 @@ function gtaUpdate(dt) {
     // 出拳、揮砍、丟擲（69-combat.js 設定 actAnim 與起始相位）
     me.anim(0, gta.actAnim || ANIM.jab, gta.punchPh, 1); me.anim2(0, 0, 0);
   }
-  me.people[0].aimP = gta.aimK > .05 ? -camState.pitch * .9 + .1 : null;
+  // 瞄準的俯仰：和相機一樣（40-people.js 的 gunPose 照它擺槍，槍口才會對著準星）
+  me.people[0].aimP = gta.aimK > .05 ? Math.asin(clamp(camera.getWorldDirection(_gv).y, -1, 1)) : null;
   me.people[0].aimK = gta.aimK;
-  me.people[0].heavy = ARMS[arm.sel].spin ? 'hip' : ARMS[arm.sel].shoulder ? 'shoulder' : null;
   stepFx(dt);
 }
 function gtaLate() {

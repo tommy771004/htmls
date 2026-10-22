@@ -147,7 +147,7 @@ function updateCamera(dt, spd) {
       camState.pitch = damp(camState.pitch, .13, 2, dt);
     }
   } else {
-    tx = p.x; ty = p.swim ? SEA_Y + .75 : p.y + 1.55; tz = p.z;
+    tx = p.x; ty = p.swim ? SEA_Y + .75 : p.y + 1.55 - (p.crouchK || 0) * .5; tz = p.z;
     dist = [3.4, 5.2, 2.4][camState.far];
     if (p.where !== 'out') dist = Math.min(dist, 3.2);
     dist = lerp(dist, 1.75, gta.aimK);   // 瞄準：拉近成越肩視角（69-combat.js）
@@ -344,7 +344,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi }),
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },

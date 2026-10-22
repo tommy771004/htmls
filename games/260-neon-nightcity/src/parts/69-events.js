@@ -5,10 +5,11 @@
 // 搶過或炸毀都會讓 69-market.js 的 IVLT（鐵庫保全）股價重挫、競爭對手 SNTL 上漲。Zero 的「標記運鈔車」直接叫一台出來。
 // 排在 69-crew 之後、69-gps 之前：routeTo、spawnSpot、addHeat、stockShock 只在函式裡用。
 
-const ev = { truck: null, t: 150, bags: [] };   // TRUCK_PAL 是 30-vehicles.js 的 PAL 索引 +1（0 是原色）：6 = 深綠
+const ev = { truck: null, cur: null, t: 150, bags: [] };   // TRUCK_PAL 是 30-vehicles.js 的 PAL 索引 +1（0 是原色）：6 = 深綠
 const TRUCK_PAL = 6, TRUCK_NAME = '鐵庫保全運鈔車', EV_BLUE = '#5aa9ff';
 function truckSpawn(why) {
   if (ev.truck) return false;
+  if (ev.cur) { if (why !== 'zero') return false; streetEnd(); }   // Zero 叫的運鈔車優先：收掉手上的街頭事件
   const sp = spawnSpot(110, 200);
   if (!sp) return false;
   const v = buildVeh('shvan', sp.x, sp.z, sp.yaw, 8, Math.random(), TRUCK_PAL, 'cash');
@@ -21,8 +22,10 @@ function truckSpawn(why) {
 // 隨便挑一個 150–400 m 外的路口當目的地（城市 20×15，不設上限會開到一公里外）
 function truckRoute(tk) {
   const v = tk.v, c = [];
+  let tx, tz;
+  if (tk.flee) { [tx, tz] = fleeNode(v.x, v.z, 150, 400); tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1; return; }   // 69-street.js 的逃犯車：往遠離玩家的路口開
   for (const n of RN.nodes) { const d = Math.hypot(n.x - v.x, n.z - v.z); if (d > 150 && d < 400) c.push([n.x, n.z]); }
-  const [tx, tz] = c[Math.floor(Math.random() * c.length)];
+  [tx, tz] = c[Math.floor(Math.random() * c.length)];
   tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1;
 }
 function truckDrive(tk, dt) {
@@ -38,7 +41,7 @@ function truckDrive(tk, dt) {
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), vF = v.vx * fx + v.vz * fz;
   const da = wrapA(Math.atan2(tx - v.x, tz - v.z) - v.yaw), ad = Math.abs(da);
   let steer = clamp(da * 2.4, -1, 1), thr = 1, brk = 0;
-  const want = ad > 1.1 ? 6 : ad > .45 ? 10 : 17;
+  const want = (ad > 1.1 ? 6 : ad > .45 ? 10 : 17) * (tk.spd || 1);   // spd：69-street.js 的逃犯車開得比較猛
   if (vF > want + 1.5) { thr = 0; brk = clamp((vF - want) / 7, .35, 1); }
   if (tk.rev > 0) { tk.rev -= dt; thr = 0; brk = 1; steer = -Math.sign(da) || 1; }
   else if (thr > .3 && Math.abs(vF) < 1.2) { tk.stuck += dt; if (tk.stuck > 1.5) { tk.rev = 1.2; tk.stuck = 0; } }
@@ -89,12 +92,12 @@ function evUpdate() {
       if (player.veh !== tk.v) { const i = vehicles.indexOf(tk.v); if (i >= 0) vehicles.splice(i, 1); scene.remove(tk.v.g); tk.v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
       ev.truck = null; ev.t = 150 + Math.random() * 90;
     }
-  } else if (out && !W.stars && started && !life.dead && (ev.t -= slowmo.raw) <= 0) { if (!truckSpawn()) ev.t = 20; }
+  } else if (out && !W.stars && !side.act && !ev.cur && started && !life.dead && (ev.t -= slowmo.raw) <= 0) { if (!evPick()) ev.t = 20; }   // 69-street.js 挑運鈔車或街頭事件
   for (const b of [...ev.bags]) {
     b.t += dt; b.m.rotation.y += dt * .6;
     if (player.mode === 'walk' && !life.dead && out && Math.hypot(player.x - b.x, player.z - b.z) < 1.4) { earn(b.amt, '運鈔車錢袋'); b.t = 999; if (ev.gang) { ev.gang = 0; gangChase('truck'); } }
     if (b.t > 150) { scene.remove(b.m); ev.bags.splice(ev.bags.indexOf(b), 1); }
-  }
+  }  streetStep(dt);
 }
 // 小地圖（90-hud.js 的 drawMini 在警力之後呼叫）：運鈔車閃藍點、錢袋綠點
 function evMini(ctx, P2, zoom) {
@@ -102,11 +105,13 @@ function evMini(ctx, P2, zoom) {
   if (tk && tk.state === 'drive' && Math.sin(uTimeNow() * 6) > -.4) { const [x, y] = P2(tk.v.x, tk.v.z); ctx.fillStyle = EV_BLUE; ctx.beginPath(); ctx.arc(x, y, 8 / zoom, 0, 7); ctx.fill(); }
   ctx.fillStyle = '#7fe08a';
   for (const b of ev.bags) { const [x, y] = P2(b.x, b.z); ctx.beginPath(); ctx.arc(x, y, 4 / zoom, 0, 7); ctx.fill(); }
+  streetMini(ctx, P2, zoom);
 }
 function evBig(c, X, Z, s) {
   const tk = ev.truck;
   if (tk && tk.state === 'drive') { c.fillStyle = EV_BLUE; c.beginPath(); c.arc(X(tk.v.x), Z(tk.v.z), 8 / s, 0, 7); c.fill(); }
+  streetBig(c, X, Z, s);
 }
 
 // 測試 API（window.__nc.gta.ev）
-const evApi = { ev, spawn: why => truckSpawn(why), open: () => ev.truck && truckOpen(ev.truck, 1, true) };
+const evApi = { ev, spawn: why => truckSpawn(why), open: () => ev.truck && truckOpen(ev.truck, 1, true), street: k => streetSpawn(k), end: () => streetEnd(), down: () => !!(ev.cur && ev.cur.f && fHit(ev.cur.f, 999, 0, 1, true)) };

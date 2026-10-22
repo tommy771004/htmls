@@ -276,7 +276,7 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       // 堆場：原本一格 40 呎的位置擺兩個 20 呎（門對門，打開的那頭藏在中間），沿 z 壓窄成 2.5 m；顏色用頂點色乘上原本的六色
       const pairs = harbor.boxLists.map(L => L.flatMap(t => [{ x: t.x - 3.05, y: t.y, z: t.z, ry: 0, sx: 1, sy: 1.066, sz: .82 }, { x: t.x + 3.05, y: t.y, z: t.z, ry: Math.PI, sx: 1, sy: 1.066, sz: .82 }]));
       harbor.COLS.forEach((col, k) => {
-        const tint = new T.Color(lin(col)); tint.multiplyScalar(Math.min(3.2, 1.3 / Math.max(tint.r, tint.g, tint.b, .01)));   // 貼圖是深灰：深色放大 3.2 倍，白、灰的不要過曝
+        const tint = new T.Color(lin(col)); tint.multiplyScalar(Math.min(2.4, 1.2 / Math.max(tint.r, tint.g, tint.b, .01)));   // 貼圖提亮成中灰（props.mjs 的 soften）：深色最多放大 2.4 倍，白、灰的不要過曝
         w2Inst(it.box, pairs[k], 0, undefined, g => {
           const c = g.clone(), a = c.attributes.color;
           if (a) { for (let i = 0; i < a.count; i++) a.setXYZ(i, a.getX(i) * tint.r, a.getY(i) * tint.g, a.getZ(i) * tint.b); a.needsUpdate = true; }

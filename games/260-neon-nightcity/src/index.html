@@ -370,6 +370,7 @@ body.touch #capture{display:none}
     <dt>右鍵</dt><dd>瞄準（越肩視角；狙擊槍開鏡）</dd>
     <dt>左鍵</dt><dd>開火、揮擊、丟擲（先點畫面鎖定游標）</dd>
     <dt>R</dt><dd>換彈匣</dd>
+    <dt>Z</dt><dd>蹲下／站起（蹲在車或矮牆後面，子彈多半打不到、警察也看不到你）</dd>
     <dt>Q</dt><dd>按住：角色轉盤（Vance／Kael／Jax，通緝中不能換）</dd>
     <dt>X</dt><dd>特殊能力（也可按 Caps Lock）：Vance 子彈時間、Kael 反射駕駛、Jax 狂暴</dd>
     <dt>P</dt><dd>手機：聯絡人、暗網軍火、快速存檔（數字鍵選、Esc 返回）</dd>
@@ -398,7 +399,7 @@ body.touch #capture{display:none}
   <div id="capture">點畫面鎖定游標，Esc 釋放</div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
-<div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="Fire">開火</button></div></div>
+<div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="KeyZ">蹲下</button><button data-k="Fire">開火</button></div></div>
 <section id="phone" aria-label="NeonPhone 手機" aria-hidden="true"><div id="phBar"><span id="phT">02:14</span><b id="phCash">$0</b></div><div id="phScr"></div></section>
 <div id="map" role="dialog" aria-label="全區地圖"><canvas id="bigmap" aria-label="城市地圖：拖曳平移、滾輪縮放、點圖示看資訊、點道路設定導航點"></canvas><div id="mapCard"></div><div id="mapLegend"></div><div id="mapScale"><i id="mapBar"></i><span><b>0</b><b id="mapScaleT">200 m</b></span></div><div id="mapLoc"></div><div id="mapKeys"><span>縮放<kbd>滾輪</kbd><kbd>＋</kbd><kbd>－</kbd></span><span>平移<kbd>拖曳</kbd><kbd>WASD</kbd></span><span>選擇地點<kbd>↑</kbd><kbd>↓</kbd></span><span>導航點<kbd>點道路</kbd><kbd>Enter</kbd></span><span>回到自己<kbd>C</kbd></span><span>返回<kbd>M</kbd></span></div><button id="mapX" aria-label="關閉地圖">×</button></div>
 <div id="fade"></div>
@@ -408,7 +409,7 @@ body.touch #capture{display:none}
   <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
-  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、直升機與戰車模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景與安全屋的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。</small>
+  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、直升機與戰車模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋與酒館的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。</small>
 </div></div>
 <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#07080b;color:#ece8e0">這件作品需要 JavaScript 與 WebGL。</p></noscript>
 <p class="sr">可開車探索的雨夜城市：程序生成的街區、霓虹招牌與全息廣告，可下車步行並進入酒吧與夜店。</p>
