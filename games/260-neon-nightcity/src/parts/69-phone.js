@@ -222,15 +222,17 @@ function phoneRows() {
   if (phone.scr === 'who') return CONTACTS[phone.who].rows();
   if (phone.scr === 'arms') return shopRows();
   if (phone.scr === 'save') return saveRows();
+  if (phone.scr === 'news') return news.length ? news.slice(0, 10).map(n => ({ t: n.h, sub: `${n.when}${n.b ? ' · ' + n.b : ''}`, val: '', ok: true, fn: () => { phone.msg = n.b || n.h; } })) : [{ t: '目前沒有新聞', sub: '城裡今晚很安靜', val: '', ok: false }];
   return [
     { t: '聯絡人', sub: phone.ghostT > 0 ? `雷達隱形 · 剩 ${secs(phone.ghostT)}` : 'Zero、鐵手、鐵幕保全', val: '', ok: true, fn: () => { phone.scr = 'contacts'; phone.msg = ''; } },
     { t: '暗網軍火', sub: '彈藥、投擲物、防彈衣', val: '', ok: true, fn: () => { phone.scr = 'arms'; phone.msg = ''; } },
     { t: '霓虹證交所', sub: motors.stk && STOCKS.some(s => motors.stk.sh[s.id]) ? `持股市值 ${money(STOCKS.reduce((a, s) => a + motors.stk.sh[s.id] * motors.stk.px[s.id], 0))}` : '六檔股票，破壞對手的資產讓股價波動', val: '', ok: true, fn: () => { phone.scr = 'stocks'; phone.msg = ''; } },
     { t: '天際置業', sub: motors.props.own.length ? `${motors.props.own.length} 處資產 · 保險箱 ${money(ESTATES.reduce((a, e) => a + (estOwned(e.id) ? motors.props.safe[e.id] : 0), 0))}` : '買下夜店、酒吧、改裝廠或安全屋', val: '', ok: true, fn: () => { phone.scr = 'estates'; phone.msg = ''; } },
     { t: '快速存檔', sub: motors.game ? `上次 ${ago(motors.game.t)}` : '還沒有存檔', val: '', ok: true, fn: () => { phone.scr = 'save'; phone.msg = ''; } },
+    { t: '霓虹新聞台', sub: news.length ? news[0].h : '城裡今晚很安靜', val: news.length ? `${Math.min(news.length, 10)} 則` : '', ok: true, fn: () => { phone.scr = 'news'; phone.msg = ''; } },
   ];
 }
-const PH_TITLE = { home: 'NeonPhone', contacts: '聯絡人', arms: '暗網軍火', save: '快速存檔', stocks: '霓虹證交所', estates: '天際置業' };
+const PH_TITLE = { news: '霓虹新聞台', home: 'NeonPhone', contacts: '聯絡人', arms: '暗網軍火', save: '快速存檔', stocks: '霓虹證交所', estates: '天際置業' };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 function drawPhone() {
   const rows = phone.rows = phoneRows();

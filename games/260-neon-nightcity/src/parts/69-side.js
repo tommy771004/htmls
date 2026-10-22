@@ -62,8 +62,9 @@ function sideBig(c, X, Z, s) { turfBig(c, X, Z, s); raceBig(c, X, Z, s); }
 // 戰鬥員池（69-squads.js）的空位；不夠 n 個就先收倒地最久的（倒地的人佔著位置 20 秒）
 const fFreeN = () => SQ.f.filter(f => !f.on).length;
 function fRoom(n) {
-  const dn = SQ.f.filter(f => f.on && f.state === 'down').sort((p, q) => p.downT - q.downT);
-  while (fFreeN() < n && dn.length) fFree(dn.shift());
+  // 先收畫面外的，再收倒地最久的；畫面裡的身體交給 69-squads.js 的 bodyKeep 留在原地
+  const dn = SQ.f.filter(f => f.on && f.state === 'down').map(f => ({ f, s: onScreen(f.x, f.z) })).sort((p, q) => p.s - q.s || p.f.downT - q.f.downT);
+  while (fFreeN() < n && dn.length) { const { f, s } = dn.shift(); if (s) bodyKeep(f); fFree(f); }
 }
 // 立在地上的霓虹圈（街頭賽的檢查點、各活動的起點）：圓環法線沿 (dx, dz)
 let ringGeo = null;
@@ -76,4 +77,4 @@ function neonRing(col, r = 6) {
 function ringAt(m, x, z, dx, dz, y) { m.position.set(x, groundH(x, z) + (y ?? m.scale.x * .8), z); m.rotation.set(0, Math.atan2(dx, dz), 0); m.visible = true; }
 
 // 測試 API（window.__nc.gta.side）
-const sideApi = { side, busy: sideBusy, end: sideEnd };
+const sideApi = { side, busy: sideBusy, end: sideEnd, room: fRoom, bodies: () => bodySt.filter(b => b.on).length };

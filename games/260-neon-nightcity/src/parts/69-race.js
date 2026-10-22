@@ -167,14 +167,29 @@ function rivalStep(a, r, pp, dt) {
   // 橡皮筋：落後玩家 250 m 以上最多快兩成，領先 250 m 以上最多慢一成五
   v.vmax = r.base * (1 + clamp((pp - r.s) / 1250, -.15, .2));
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), vF = v.vx * fx + v.vz * fz, sp = Math.max(0, vF);
+  // 閃避：前方 6 m＋1.2 秒內、左右 2.4 m 內有車流、路邊車、玩家或其他對手，就往空的那一側偏一個車道；太近就踩煞車
+  const look = 6 + sp * 1.2;
+  let blk = 1e9, side = 0;
+  const test = (x, z, w) => {
+    const dx = x - v.x, dz = z - v.z, f = dx * fx + dz * fz;
+    if (f < 1 || f > look || f > blk) return;
+    const l = dx * -fz + dz * fx;
+    if (Math.abs(l) < 2.4 + w) { blk = f; side = l > 0 ? -1 : 1; }
+  };
+  for (const t of traffic) test(t.x, t.z, 0);
+  for (const p of parked) test(p.x, p.z, -.6);
+  for (const o of a.rivals) if (o !== r && !o.v.dead) test(o.v.x, o.v.z, 0);
+  if (player.where === 'out') test(pX(), pZ(), player.mode === 'drive' ? 0 : -1);
+  r.dg = damp(r.dg || 0, blk < look ? side * 3.4 : 0, 3, dt);
   const T = polyAt(G, r.s + 7 + sp * .42, r.k), rx = -T.dz, rz = T.dx;
-  const tx = T.x + rx * r.lane, tz = T.z + rz * r.lane;
+  const tx = T.x + rx * (r.lane + r.dg), tz = T.z + rz * (r.lane + r.dg);
   const da = wrapA(Math.atan2(tx - v.x, tz - v.z) - v.yaw);
   // 前方路線轉多急：比較現在與 15 m＋1.6 秒後的方向
   const A = polyAt(G, r.s + 4, r.k), B = polyAt(G, r.s + 15 + sp * 1.6, r.k), turn = Math.abs(wrapA(Math.atan2(B.dx, B.dz) - Math.atan2(A.dx, A.dz)));
   const want = turn > 1.2 ? 12 : turn > .7 ? 16 : turn > .35 ? 23 : v.vmax;
   let thr = 1, brk = 0, steer = clamp(da * 2.2, -1, 1);
   if (vF > want + 1) { thr = 0; brk = clamp((vF - want) / 6, .3, 1); }
+  if (blk < 3 + sp * .3) { thr = 0; brk = Math.max(brk, .7); }
   if (r.rev > 0) { r.rev -= dt; thr = 0; brk = 1; steer = -(Math.sign(da) || 1); }
   else if (Math.abs(vF) < 1.5) { r.stuck += dt; if (r.stuck > 1.6) { r.rev = 1.1; r.stuck = 0; r.lost++; } }
   else { r.stuck = 0; if (vF > 8) r.lost = 0; }

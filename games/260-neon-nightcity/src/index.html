@@ -240,6 +240,16 @@ body.touch #mapKeys{display:none}
 #dl i::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--sodium);clip-path:inset(0 calc(100% - var(--p,0%)) 0 0);transition:clip-path 260ms var(--ease-out)}
 
 /* 對話 */
+#cine{position:absolute;inset:0;pointer-events:none}
+#cine::before,#cine::after{content:'';position:absolute;left:0;right:0;height:0;background:#000;transition:height 520ms var(--ease-out)}
+#cine::before{top:0}#cine::after{bottom:0}
+#cine.on::before,#cine.on::after{height:min(11vh,96px)}
+#cineSub{position:absolute;z-index:1;left:50%;bottom:calc(min(11vh,96px) + 14px);transform:translateX(-50%);width:min(680px,calc(100vw - 32px));margin:0;text-align:center;font-size:clamp(14px,1.6vw,17px);line-height:1.55;color:var(--ink);text-shadow:0 1px 2px #000,0 0 12px rgba(0,0,0,.8);opacity:0;transition:opacity 260ms var(--ease-out)}
+#cineSub b{color:#ffe066;font-weight:600;margin-right:.5em}
+#cine.sub #cineSub{opacity:1}
+#cineSkip{position:absolute;z-index:1;right:16px;bottom:calc(min(11vh,96px) / 2 - 9px);font-size:11px;color:var(--ink-2);opacity:0;transition:opacity 260ms}
+#cine.sub #cineSkip{opacity:.8}
+body.cine #obj,body.cine #compass,body.cine #clockBox,body.cine #tools,body.cine #mapBox,body.cine #vitals,body.cine #prompt,body.cine #speedo,body.cine #wanted,body.cine #weap,body.cine #xhair,body.cine #marker,body.cine #touch.on{visibility:hidden}
 #dialog{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:14px 18px 14px;background:var(--panel-2);border-radius:10px;pointer-events:auto;display:none}
 #dialog.on{display:block}
 body.wheel #tbtn,body.wheel #joy,body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #vitals,body.talking #prompt{display:none!important}
@@ -397,6 +407,7 @@ body.touch #capture{display:none}
   <div id="weap" class="pan" aria-label="武器"><small id="wName">手槍</small><b id="wAmmo">12 <small>/ 240</small></b><i id="wReload"><span></span></i></div>
   <div id="dl" class="pan" role="progressbar" aria-label="下載實車模型" aria-valuemin="0" aria-valuemax="100"><span>下載實車模型</span><b id="dlPct">0%</b><i></i></div>
   <div id="capture">點畫面鎖定游標，Esc 釋放</div>
+  <div id="cine" aria-live="polite"><p id="cineSub"></p><small id="cineSkip">E · 空白鍵 略過</small></div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
 <div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="KeyZ">蹲下</button><button data-k="Fire">開火</button></div></div>

@@ -16,6 +16,7 @@ function evPick(force) {
   if (!k) {
     let r = Math.random() * EV_W.reduce((s, w) => s + w[1], 0);
     for (const [n, w] of EV_W) if ((r -= w) < 0) { k = n; break; }
+    if (k === 'deal' && turfMine()) k = 'thief';   // 69-turf.js：搶下來的地盤沒有幫派交易
   }
   if (k === 'truck') return truckSpawn();
   return streetSpawn(k || 'thief');
@@ -60,6 +61,7 @@ function wakeGroup(g) {
   g.awake = true;
   for (const f of SQ.f) if (f.on && f.grp === g) { f.calm = false; f.tgtT = 0; }
   if (g.kind === 'deal') toast(`${GANG_NAME}發現你了`);
+  else if (g.kind === 'lurk') toast(`${GANG_NAME}盯梢的人動手了`);
 }
 let caseGeo = null;
 function lootMesh(x, z, kind) {
@@ -161,6 +163,7 @@ function evBountyNear(x, z) {
 }
 function bountyPaid(e, how) {
   earn(e.cash, `${PD.name}懸賞`);
+  newsAdd('懸賞逃犯落網', `${PD.name}懸賞的逃犯在街頭被民眾攔下，警方表示感謝。`);
   sideDone('BOUNTY', `${PD.name}懸賞`, [['逃犯', how], ['懸賞', `$${e.cash.toLocaleString()}`]], 1);
   streetEnd();
 }

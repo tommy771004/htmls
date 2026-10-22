@@ -320,7 +320,7 @@ async function desktop() {
     await page.keyboard.press('KeyP');
     await page.waitForTimeout(400);
     const ph = await nc(() => { const r = document.getElementById('phone').getBoundingClientRect(); return { open: window.__nc.gta.phone.phone.open, b: Math.round(r.bottom), h: innerHeight, w: Math.round(r.width), rows: document.querySelectorAll('#phScr li').length }; });
-    check(ph.open && ph.b <= ph.h && ph.w === 280 && ph.rows === 5, `按 P 滑出手機 ${JSON.stringify(ph)}`);
+    check(ph.open && ph.b <= ph.h && ph.w === 280 && ph.rows === 6, `按 P 滑出手機 ${JSON.stringify(ph)}`);
     await shot(page, 'd-phone');
     const zw = await nc(() => { const nc = window.__nc, g = nc.gta, p = g.phone; nc.motors.cash = 100000; g.wanted.set(2); p.pick(0); p.pick(0); const c0 = nc.motors.cash; p.pick(0); return { cost: 100000 - nc.motors.cash, stars: g.wanted.W.stars, cd: Math.round(p.phone.cd.wipe), c0 }; });
     check(zw.cost === 2000 && zw.stars === 0 && zw.cd === 180, `Zero 消除 2 星通緝 ${JSON.stringify(zw)}`);
@@ -424,6 +424,12 @@ async function desktop() {
     // 傭兵小隊：鐵幕保全派皮卡載四個人過來；資產防守：AFTERGLOW 被盯上，守住領賞
     const mc = await nc(() => { const q = window.__nc.gta.squad, ok = q.merc(); const r = { ok, merc: q.count('merc'), car: !!(q.SQ.merc && q.SQ.merc.c) }; q.clear(); return r; });
     check(mc.ok && mc.merc === 4 && mc.car, `叫傭兵小隊：一台車四個人 ${JSON.stringify(mc)}`);
+    // 倒地的身體：池子要騰位置時，畫面裡的身體搬到 bodies 留在原地，走遠了才收
+    const bd = await nc(() => new Promise((r) => { const nc = window.__nc, q = nc.gta.squad, p = nc.player, fx = Math.sin(p.yaw), fz = Math.cos(p.yaw); nc.look(p.yaw, .05, 0); for (let i = 0; i < 3; i++) q.spawn('gang', p.x + fx * 7 + (i - 1) * 1.6, p.z + fz * 7, 'pistol'); for (const f of q.SQ.f) if (f.on && f.team === 'gang') { f.calm = true; f.state = 'down'; f.downT = 20; } setTimeout(() => { nc.gta.side.room(14); const a = { left: q.SQ.f.filter((f) => f.on).length, bodies: nc.gta.side.bodies() }; nc.player.x += 120; setTimeout(() => { a.gone = nc.gta.side.bodies(); nc.player.x -= 120; r(a); }, 500); }, 300); }));
+    check(bd.left === 0 && bd.bodies === 3 && bd.gone === 0, `倒地的身體騰位置後留在畫面裡、走遠才收 ${JSON.stringify(bd)}`);
+    // 掩蔽：站在電話亭後面，警察的視線被擋住；換個方向就看得到
+    const cv = await nc(() => { const g = window.__nc.gta.wanted, b = g.booth(); if (!b) return null; const px = b.x + 1, pz = b.z; return { behind: g.cover(b.x - 12, b.z, px, pz), side: g.cover(px, pz + 9, px, pz) || g.cover(px, pz - 9, px, pz) }; });
+    check(cv && !cv.behind && cv.side, `躲在電話亭後面擋住警察視線 ${JSON.stringify(cv)}`);
     const df = await nc(() => { const nc = window.__nc, q = nc.gta.squad, ok = q.defend('afterglow'), st = q.SQ.def && q.SQ.def.st, obj = document.getElementById('obj').textContent, c0 = nc.motors.cash; q.win(); const r = { ok, st, obj: /資產防守/.test(obj), got: nc.motors.cash - c0, off: !q.SQ.def }; q.clear(); return r; });
     check(df.ok && df.st === 'go' && df.obj && df.got >= 6000 && df.off, `資產防守：任務列顯示、守住領賞 ${JSON.stringify(df)}`);
 
@@ -443,12 +449,34 @@ async function desktop() {
     const hz4 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; h.blow(); h.drill(); return { st, t: Math.round(h.heist.t), alarm: h.heist.alarm }; }, 300);
     await hs(() => { window.__nc.gta.heist.heist.t = .05; }, 1600);
     const hz5 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, car = h.heist.car; const r = { st: h.heist.st, cur: g.crew.crew.cur, stars: g.wanted.W.stars, take: h.heist.take, crew: g.squad.count('crew') }; nc.tp(car.x + 2.5, car.z, 0); r.act = nc.act(); return r; }, 1600);
-    const hz6 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = nc.player.veh; const r = { st: h.heist.st, cur: g.crew.crew.cur, drive: nc.player.mode }; v.x = h.SAFE.x; v.z = h.SAFE.z; v.vx = v.vz = 0; g.wanted.clear('reset'); window.__c0 = nc.motors.cash; return r; });
+    const hz6 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = nc.player.veh; const r = { st: h.heist.st, cur: g.crew.crew.cur, drive: nc.player.mode }; v.x = h.YARD.x; v.z = h.YARD.z; v.vx = v.vz = 0; g.wanted.clear('reset'); window.__c0 = nc.motors.cash; return r; });
     const hz7 = await nc(() => { const nc = window.__nc, h = nc.gta.heist; return { st: h.heist.st, got: nc.motors.cash - window.__c0, on: document.getElementById('heistDone').classList.contains('on') }; });
     check(hz1.fee === 10000 && hz2.st === 'go' && hz3.where === 'bank' && hz3.st === 'lobby', `搶劫前置：籌備費、廂型車開回倉庫、進銀行大廳 ${JSON.stringify({ h1: hz1, h2: hz2, h3: hz3 })}`);
     check(hz4.st === 'c4' && hz4.t === 40 && !hz4.alarm && hz5.st === 'escape' && hz5.cur === 0 && hz5.stars === 2 && hz5.take === 2000000 && hz5.crew === 2, `潛行：鑽 40 秒不響警報、Vance 帶 $2,000,000 出門（2 星）、Jax 與 Kael 跟著出來 ${JSON.stringify({ h4: hz4, h5: hz5 })}`);
-    check(hz6.st === 'drive' && hz6.cur === 1 && hz6.drive === 'drive' && hz7.st === 'off' && hz7.got === 1800000 && hz7.on, `Kael 開回倉庫、扣 Zero 一成實得 $1,800,000 ${JSON.stringify({ h6: hz6, h7: hz7 })}`);
+    check(hz6.st === 'drive' && hz6.cur === 1 && hz6.drive === 'drive' && hz7.st === 'off' && hz7.got === 1800000 && hz7.on, `Kael 開到鐵灣貨場、扣 Zero 一成實得 $1,800,000 ${JSON.stringify({ h6: hz6, h7: hz7 })}`);
     await shot(page, 'd-heist');
+    await nc(() => { document.getElementById('heistDone').classList.remove('on'); window.__nc.gta.god.on = false; });
+    // 強攻：鑽金庫時人質從正門跑出來（跑遠了就多一台 SWAT）→ 逃亡車上路 3.5 秒後兩台「鐵砧」戰車封住往貨場的路、斷橋下排空車封鎖線
+    // → 飛過鐵灣高架斷橋就降到最多 3 星、警察失去視線 → 開進貨櫃安全屋結算
+    await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist; g.god.on = true; nc.motors.cash = 50000; h.go('loud'); h.stage('drill', 60); h.heist.alarm = true; h.drill(); }, 1800);
+    await hs(() => { window.__nc.gta.heist.heist.runOutT = .05; }, 700);
+    // 先推到人行道外（7 m 外會轉向沿街跑），再沿街推到 32 m 外：直接往門外推 40 m 會卡進對面的樓
+    const hr = await hs(() => { const h = window.__nc.gta.heist, r = h.runSt.find((o) => o.on), q = { st: r && r.st, sw: window.__nc.gta.wanted.W.units.filter((u) => u.kind === 'swat').length }; if (r) { r.x += r.dx * 9; r.z += r.dz * 9; } return q; }, 300);
+    await hs(() => { const r = window.__nc.gta.heist.runSt.find((o) => o.on); if (r) { r.x += r.dx * 36; r.z += r.dz * 36; } }, 600);
+    const hr2 = await nc(() => { const g = window.__nc.gta, h = g.heist; return { leaks: h.heist.leaks, sw: g.wanted.W.units.filter((u) => u.kind === 'swat').length, on: h.runSt.filter((o) => o.on).length }; });
+    check(hr.st === 'run' && hr2.leaks === 1 && hr2.sw === hr.sw + 1 && hr2.on === 0, `強攻守門：人質跑出正門、跑遠了多派一台 SWAT ${JSON.stringify({ hr, hr2 })}`);
+    await hs(() => window.__nc.gta.heist.escape(), 1500);
+    await hs(() => window.__nc.gta.heist.getaway(), 4500);
+    const am = await nc(() => { const g = window.__nc.gta, h = g.heist, W = g.wanted.W; return { st: h.heist.st, amb: h.heist.amb, tanks: W.units.filter((u) => u.kind === 'tank' && u.heist).length, block: W.units.filter((u) => u.heist && u.kind !== 'tank' && u.crew === 0).length, mark: (h.mark() || {}).name }; });
+    check(am.st === 'drive' && am.amb < 0 && am.tanks === 2 && am.block === 4 && am.mark === '鐵灣高架斷橋', `逃亡埋伏：兩台戰車封路、GPS 改指斷橋 ${JSON.stringify(am)}`);
+    await nc(() => { const nc = window.__nc, B = nc.gta.heist.BROKEN, v = nc.player.veh; v.x = B.x - B.dx * (B.L + 6); v.z = B.z - B.dz * (B.L + 6); v.yaw = B.yaw; v.vx = B.dx * 32; v.vz = B.dz * 32; });
+    await page.keyboard.down('KeyW'); await page.waitForTimeout(500); await page.keyboard.up('KeyW');
+    await page.waitForTimeout(6500);
+    const bj = await nc(() => { const nc = window.__nc, g = nc.gta, h = g.heist, B = h.BROKEN, v = nc.player.veh; return { jumped: h.heist.jumped, stars: g.wanted.W.stars, seen: g.wanted.W.seen, air: !!v.air, a: Math.round((v.x - B.x) * B.dx + (v.z - B.z) * B.dz), mark: (h.mark() || {}).name }; });
+    check(bj.jumped && bj.stars <= 3 && !bj.seen && !bj.air && bj.a > 20 && bj.mark === '貨櫃安全屋', `飛過斷橋：降到 3 星以下、甩開視線，GPS 指回貨場 ${JSON.stringify(bj)}`);
+    await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = nc.player.veh; v.x = h.YARD.x; v.z = h.YARD.z; v.vx = v.vz = 0; g.wanted.clear('reset'); });
+    const yd = await nc(() => { const h = window.__nc.gta.heist; return { st: h.heist.st, on: document.getElementById('heistDone').classList.contains('on') }; });
+    check(yd.st === 'off' && yd.on, `強攻路線開進貨櫃安全屋結算 ${JSON.stringify(yd)}`);
     await nc(() => { document.getElementById('heistDone').classList.remove('on'); window.__nc.gta.god.on = false; });
 
     // 安全屋（69-safehouse.js）：門口看房 → 買下 → 進去 → 睡一覺存檔（存在門口）→ 出門
@@ -661,6 +689,22 @@ async function desktop() {
       for (let w = 0; w < 2; w++) { await nc(() => window.__nc.gta.turf.wipe()); await W(4200); }
       const hb = await banner();
       check(/TURF HELD/.test(hb) && (await nc(() => window.__nc.gta.turf.owned())).includes('maple'), `幫派地盤：反攻守住 ${hb}`);
+      // 地盤影響街頭：赤蠍幫的地盤（琥珀工業區）路人少、街角有盯梢的，7 m 外不動手、靠近就動手；搶下來的楓林里沒有
+      await reset();
+      await nc(() => window.__nc.tpL(-180 + 14 * 72 + 10.4, -155 + 8 * 62 + 30, 0));
+      await W(400);
+      const lk = await nc(() => { const t = window.__nc.gta.turf; return { here: t.here() && t.here().id, share: t.share(), n: t.lurk() }; });
+      await nc(() => { const nc = window.__nc, g = nc.gta.turf.lurkG(), f = g && nc.gta.squad.SQ.f.find((f) => f.on && f.grp === g); if (f) nc.tp(f.x + 10, f.z); });
+      await W(900);
+      const lk1 = await nc(() => { const g = window.__nc.gta.turf.lurkG(); return !!(g && !g.awake); });
+      await nc(() => { const nc = window.__nc, g = nc.gta.turf.lurkG(), f = g && nc.gta.squad.SQ.f.find((f) => f.on && f.grp === g); if (f) nc.tp(f.x + 4, f.z); });
+      await W(700);
+      const lk2 = await nc(() => { const g = window.__nc.gta.turf.lurkG(); return !!(g && g.awake); });
+      await reset();
+      await nc(() => window.__nc.tpL(-180 + 2 * 72 + 10.4, -155 + 8 * 62 + 30, 0));
+      await W(400);
+      const lk3 = await nc(() => { const t = window.__nc.gta.turf; return { here: t.here() && t.here().id, share: t.share(), n: t.lurk() }; });
+      check(lk.here === 'amber' && lk.share < 1 && lk.n >= 2 && lk1 && lk2 && lk3.here === 'maple' && lk3.share === 1 && !lk3.n, `地盤影響街頭：盯梢與路人密度 ${JSON.stringify({ lk, lk1, lk2, lk3 })}`);
       await reset();
       // 生存模式：霓虹圈按 E → 開始 → 清一波 → 走出貨場結算
       await nc(() => { const s = window.__nc.gta.surv.at().s; window.__nc.tp(s.x, s.z); });
@@ -677,6 +721,16 @@ async function desktop() {
       await W(600);
       const sb = await banner();
       check(/生存模式/.test(sc) && sv && sv.cleared >= 1 && /SURVIVAL/.test(sb), `生存模式：撐過一波、走出貨場結算 ${JSON.stringify(sv)} ${sb}`);
+      // 其他擂台：灰石圍城直接跳到第 5 波，有開車來的打手與幫派直升機（不報警），清空後紀錄存在 svb
+      await nc(() => { const S = window.__nc.gta.surv, s = S.at('grey').s; window.__nc.gta.god.on = true; window.__nc.tp(s.x, s.z); S.start('grey'); S.wave(5); });
+      await W(1500);
+      const sg = await nc(() => { const g = window.__nc.gta, a = g.surv.act(), h = g.wanted.W.heli; return a && { arenas: g.surv.SURVS.length, w: a.wave, car: g.squad.SQ.cars.some((c) => c.grp === a && c.go), heli: !!(h && h.gang && h === a.heli), stars: g.wanted.W.stars }; });
+      await nc(() => window.__nc.gta.surv.wipe());
+      await W(800);
+      const sg2 = await nc(() => { const a = window.__nc.gta.surv.act(); return { cl: a && a.cleared, rec: window.__nc.motors.side.svb.grey }; });
+      await nc(() => { window.__nc.player.x += 120; window.__nc.gta.god.on = false; });
+      await W(600);
+      check(sg && sg.arenas === 3 && sg.w === 5 && sg.car && sg.heli && !sg.stars && sg2.cl === 5 && sg2.rec === 5, `生存模式第二座擂台：增援車、幫派直升機、紀錄 ${JSON.stringify({ sg, sg2 })}`);
       await reset();
       // 支線委託：找奧斯卡接第一段（打架）、米卡接第一段（撿畫稿）
       const tl = [];
@@ -686,15 +740,31 @@ async function desktop() {
         const c = await nc(() => window.__nc.ctx());
         await nc(() => window.__nc.act());
         await W(200);
+        const talk = await nc(() => window.__nc.gta.tale.cine() === 'talk' && document.body.classList.contains('cine'));
         await nc(() => document.querySelector('#dlgOpts button').click());
         await W(400);
         const ty = await nc(() => { const a = window.__nc.gta.tale.act(); return a && a.S.type; });
         const pr = await nc(() => window.__nc.gta.tale.probe());
         await nc(() => window.__nc.gta.tale.skip());
         await W(700);
-        tl.push({ c: c.replace(/<[^>]+>/g, ''), ty, items: pr.every(q => q.push < .05), stage: await nc((id) => window.__nc.gta.tale.stage(id), id) });
+        // 完成：委託人打電話來，上下黑邊、字幕逐句播；播完才跳結算畫面
+        const call = await nc(() => window.__nc.gta.tale.cine() === 'call' && /📞/.test(document.getElementById('cineSub').textContent));
+        await nc(() => { const t = window.__nc.gta.tale; for (let i = 0; i < 9 && t.cine() === 'call'; i++) t.next(); });
+        await W(200);
+        const banner = await nc(() => !window.__nc.gta.tale.cine() && !document.body.classList.contains('cine') && document.getElementById('heistDone').classList.contains('on'));
+        tl.push({ c: c.replace(/<[^>]+>/g, ''), ty, talk, call, banner, items: pr.every(q => q.push < .05), stage: await nc((id) => window.__nc.gta.tale.stage(id), id) });
       }
-      check(tl.every(t => t.ty && t.items && t.stage === 1), `支線委託：接下、完成第一段 ${JSON.stringify(tl)}`);
+      check(tl.every(t => t.ty && t.items && t.talk && t.call && t.banner && t.stage === 1), `支線委託：聽委託的側拍、接下、完成第一段、電話過場後結算 ${JSON.stringify(tl)}`);
+      // 第四段跟蹤：靠近 70 m 內目標車上路，跟太近疑心會漲；開到終點完成，最後一段的結算是 STORY COMPLETE
+      await nc(() => { const t = window.__nc.gta.tale; t.start('oskar', 3); const v = t.act().tk.v; window.__nc.tp(v.x + 15, v.z + 4); });
+      await W(1500);
+      const tk = await nc(() => { const a = window.__nc.gta.tale.act(); return a && { ty: a.S.type, st: a.tk.state, sus: a.sus, hud: document.getElementById('obj').textContent }; });
+      await nc(() => window.__nc.gta.tale.skip());
+      await W(600);
+      await nc(() => { const t = window.__nc.gta.tale; for (let i = 0; i < 9 && t.cine() === 'call'; i++) t.next(); });
+      await W(200);
+      const tk2 = await nc(() => ({ stage: window.__nc.gta.tale.stage('oskar'), done: document.querySelector('#heistDone b').textContent, act: !!window.__nc.gta.tale.act() }));
+      check(tk && tk.ty === 'tail' && tk.st === 'drive' && tk.sus > 0 && tk2.stage === 4 && tk2.done === 'STORY COMPLETE' && !tk2.act, `支線委託第四段：跟蹤目標車 ${JSON.stringify({ tk, tk2 })}`);
       // 存檔第 6 版：重新載入後街頭賽、地盤、生存、委託的進度都還在
       const side0 = await nc(() => JSON.stringify(window.__nc.motors.side));
       await page.reload();
@@ -702,7 +772,7 @@ async function desktop() {
       await nc(() => window.__nc.start());
       await W(800);
       const side1 = await nc(() => JSON.stringify(window.__nc.motors.side));
-      check(side0 === side1 && /maple/.test(side1) && /"oskar":1/.test(side1), `存檔第 6 版 motors.side 重新載入後一樣 ${side1}`);
+      check(side0 === side1 && /maple/.test(side1) && /"oskar":4/.test(side1), `存檔第 6 版 motors.side 重新載入後一樣 ${side1}`);
     }
 
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));

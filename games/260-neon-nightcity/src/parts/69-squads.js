@@ -4,7 +4,8 @@
 // 敵方打玩家和友軍，友軍打敵方；通緝中傭兵和隊友也會對警察開火（他們打倒的警察不算你的罪，69-police.js 的 copHit 第五個參數）。
 // 車上的人（state 'car'）不畫出來，只從車窗開火；車炸了人就跟著倒下。
 //   幫派追殺：搶運鈔車後第一次撿錢袋、或搶劫前置偷到鑽機廂型車時，兩台赤蠍幫的車從看不到的路口追來，近了下車圍攻。
-//            全部解決、或離他們 280 m 以上超過 20 秒就結束；不會改變通緝星級。
+//            全部解決、或離他們 280 m 以上超過 20 秒就結束。他們在你 70 m 內開槍，有人目擊就報警（算你捲進槍戰，加熱度）；
+//            警察到了會和赤蠍幫互打（幫派也會先打離得近的警察）。
 //   資產防守：擁有 LAZARUS、AFTERGLOW、CHROME WORKS 或島上辦公室時，開場 6 分鐘後起每 6–9 分鐘（真實時間，沒被通緝、在戶外）
 //            一處被赤蠍幫盯上：180 秒內趕到，打退兩波人。守住給獎金；資產被打爛就搶走保險箱、停業 10 分鐘（motors.props.pause）。
 //   傭兵小隊：手機打給鐵幕保全（$3,000），一台皮卡載四名傭兵過來跟著你 3 分鐘；你上車他們也上車跟車。
@@ -19,18 +20,36 @@ const GANG_NAME = '赤蠍幫', GANG_COL = '#ff4a3a', ALLY_COL = '#7fe08a';
 // hp、對 NPC 的命中率、每發傷害；對玩家的命中率另外乘上距離與速度（npcShoot）
 const TEAM = { gang: { hp: 90, acc: .26, dmg: 8 }, merc: { hp: 240, acc: .46, dmg: 13 }, crew: { hp: 600, acc: .5, dmg: 16 }, thief: { hp: 45, acc: 0, dmg: 0 } };   // thief：69-street.js 的搶包賊（不開槍）
 const GUN_CD = { pistol: [.6, .7, 1], smg: [.08, 1.1, 4], rifle: [.11, 1.1, 3], shotgun: [1.3, .5, 1] };   // [連發間隔, 停頓 + 隨機, 一輪幾發]
-function fLook(f) {
+function fLook(f) { fighters.look(f.k, fLookOf(f)); }
+function fLookOf(f) {
   const k = f.k, r = rng(400 + k * 7);
-  if (f.team === 'crew') return fighters.look(k, { r: rng(31 + f.ci), ...CREW[f.ci].look });
-  if (f.team === 'thief') return fighters.look(k, { r, female: false, top: lin(0x3a3f4a), bot: lin(0x22252b), skin: SKINS[(k + 1) % SKINS.length], hair: HAIRS[k % 3], coat: 0, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0], scale: .97 });
-  if (f.team === 'merc') return fighters.look(k, { r, female: false, top: lin(0x3a3e34), bot: lin(0x262822), skin: SKINS[(k + 2) % SKINS.length], hair: HAIRS[k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[2], scale: 1.04 });
-  fighters.look(k, { r, female: false, top: lin(k % 3 ? 0x5a1418 : 0x2a1012), bot: lin(0x17181c), skin: SKINS[k % SKINS.length], hair: HAIRS[(k + 1) % 3], coat: k % 2, skirt: 0, longHair: 0, hat: k % 2, glow: lin(0xff3a2a), glowI: 1.2, shoe: SHOES[k % 2], scale: .98 + (k % 3) * .03 });
+  if (f.team === 'crew') return { r: rng(31 + f.ci), ...CREW[f.ci].look };
+  if (f.team === 'thief') return { r, female: false, top: lin(0x3a3f4a), bot: lin(0x22252b), skin: SKINS[(k + 1) % SKINS.length], hair: HAIRS[k % 3], coat: 0, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0], scale: .97 };
+  if (f.team === 'merc') return { r, female: false, top: lin(0x3a3e34), bot: lin(0x262822), skin: SKINS[(k + 2) % SKINS.length], hair: HAIRS[k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[2], scale: 1.04 };
+  return { r, female: false, top: lin(k % 3 ? 0x5a1418 : 0x2a1012), bot: lin(0x17181c), skin: SKINS[k % SKINS.length], hair: HAIRS[(k + 1) % 3], coat: k % 2, skirt: 0, longHair: 0, hat: k % 2, glow: lin(0xff3a2a), glowI: 1.2, shoe: SHOES[k % 2], scale: .98 + (k % 3) * .03 };
+}
+// 倒地的身體：戰鬥員池要騰位置（69-side.js 的 fRoom）時，畫面裡的身體搬到這組 crowd 留著，離開畫面又離玩家 40 m 以上、或過了 90 秒才收
+const BODY_N = LOW ? 4 : 8, bodies = crowd(BODY_N), bodySt = [];
+scene.add(bodies.mesh);
+for (let k = 0; k < BODY_N; k++) { bodies.place(k, 0, -60, 0, 0); bodySt.push({ k, on: false, x: 0, z: 0, y: 0, yaw: 0, t: 0 }); }
+function bodyKeep(f) {
+  const b = bodySt.find(o => !o.on) || bodySt.reduce((a, o) => o.t > a.t ? o : a);
+  Object.assign(b, { on: true, x: f.x, z: f.z, y: fGround(f), yaw: f.yaw, t: 0 });
+  bodies.look(b.k, fLookOf(f)); bodies.anim(b.k, ANIM.die, -uTimeNow() + 8, 1);
+}
+function bodyStep(dt) {
+  for (const b of bodySt) {
+    if (!b.on) continue;
+    b.t += dt;
+    if (b.t > 90 || player.where !== 'out' || Math.hypot(b.x - pX(), b.z - pZ()) > 40 && !onScreen(b.x, b.z)) { b.on = false; bodies.place(b.k, 0, -60, 0, 0); continue; }
+    bodies.place(b.k, b.x, b.y, b.z, b.yaw);
+  }
 }
 function fSpawn(team, x, z, yaw, o = {}) {
   const f = SQ.f.find(q => !q.on);
   if (!f) return null;
   const r = collideCircle(x, z, .32, false);
-  Object.assign(f, { on: true, team, x: r.x, z: r.z, yaw, hp: TEAM[team].hp, gun: o.gun || 'pistol', shotT: .6 + Math.random(), burst: 0, ph: Math.random() * 9, state: o.state || 'act', downT: 0, stunT: 0, car: o.car || null, ci: o.ci ?? -1, slot: o.slot ?? 0, tgt: null, tgtT: 0, goal: o.goal || null, rt: null, def: false, calm: false, grp: null, onDown: null });
+  Object.assign(f, { on: true, team, x: r.x, z: r.z, yaw, hp: TEAM[team].hp, gun: o.gun || 'pistol', shotT: .6 + Math.random(), burst: 0, ph: Math.random() * 9, state: o.state || 'act', downT: 0, stunT: 0, car: o.car || null, ci: o.ci ?? -1, slot: o.slot ?? 0, tgt: null, tgtT: 0, goal: o.goal || null, rt: null, def: false, calm: false, lurk: false, grp: null, onDown: null });
   fLook(f);
   return f;
 }
@@ -72,6 +91,14 @@ function squadAlly(x, z, dMax) {
   for (const f of SQ.f) if (fUp(f) && fAlly(f)) { const d = Math.hypot(f.x - x, f.z - z); if (d < bd && losClear(x, z, f.x, f.z)) { bd = d; best = f; } }
   return best;
 }
+// 警察眼中的另一個敵人：離得近、正在開打（不是站著聊天）的赤蠍幫
+function squadGang(x, z, dMax) {
+  let best = null, bd = dMax;
+  for (const f of SQ.f) if (fUp(f) && f.team === 'gang' && !f.calm) { const d = Math.hypot(f.x - x, f.z - z); if (d < bd && losClear(x, z, f.x, f.z)) { bd = d; best = f; } }
+  return best;
+}
+// 赤蠍幫在你附近開槍（追殺）：有人目擊就報警，警察趕到後連你一起追
+function gangShots(x, z) { if (SQ.chase && Math.hypot(x - pX(), z - pZ()) < 70) crime('shots', x, z); }
 
 // ─── 找目標、開槍 ───
 function pickTarget(f) {
@@ -80,6 +107,7 @@ function pickTarget(f) {
   if (f.team === 'gang') {
     if (!life.dead && player.where === 'out') tryT('player', null, pX(), pZ());
     for (const o of SQ.f) if (fUp(o) && fAlly(o)) tryT('f', o, o.x, o.z);
+    if (W.stars) { bd *= .8; for (const c of W.cops) if (c.on && c.state !== 'down' && !(c.stunT > 0)) tryT('cop', c, c.x, c.z); }   // 警察要比玩家近兩成才換目標
   } else {
     for (const o of SQ.f) if (o.on && !fAlly(o) && o.team !== 'thief') { if (o.state === 'act') tryT('f', o, o.x, o.z); else if (o.state === 'car' && o.car && !o.car.v.dead) tryT('veh', o.car.v, o.car.v.x, o.car.v.z); }
     if (W.stars) for (const c of W.cops) if (c.on && c.state !== 'down') tryT('cop', c, c.x, c.z);
@@ -112,6 +140,7 @@ function fShoot(f, dt) {
   if ((f.shotT -= dt) > 0) return;
   const cd = GUN_CD[f.gun] || GUN_CD.pistol, g = npcGunOf(fighters.people[f.k]);
   fireAt(f.tgt, g ? g.x : f.x, g ? g.y : 1.4, g ? g.z : f.z, f.team, ARMS[f.gun].f);
+  if (f.team === 'gang') gangShots(f.x, f.z);
   f.burst = (f.burst + 1) % cd[2];
   f.shotT = f.burst ? cd[0] : cd[1] + Math.random() * .6;
 }
@@ -134,7 +163,7 @@ function fStep(f, dt) {
   if (f.state === 'car') { if (f.car) { f.x = f.car.v.x; f.z = f.car.v.z; } fighters.place(f.k, 0, -60, 0, 0); return; }
   if (f.state === 'down') {
     f.downT -= dt; fighters.place(f.k, f.x, fGround(f), f.z, f.yaw);
-    if (f.downT <= 0 || Math.hypot(f.x - pX(), f.z - pZ()) > 200) fFree(f);
+    if (f.downT <= 0 || Math.hypot(f.x - pX(), f.z - pZ()) > 200) { if (f.downT <= 0 && player.where === 'out' && onScreen(f.x, f.z)) bodyKeep(f); fFree(f); }
     return;
   }
   // 電擊槍（69-combat.js 的 hitWith 設 stunT）：倒地抽搐，時間到了爬起來；站著聊天的那群人會被驚動
@@ -145,11 +174,11 @@ function fStep(f, dt) {
     return;
   }
   if (f.team === 'thief') return thiefStep(f, dt);   // 69-street.js
-  // 還沒察覺的幫派（69-street.js 的交易）：站著聊天，玩家靠近、看得到，或有人中槍、附近有槍聲才動手
+  // 還沒察覺的幫派（69-street.js 的交易）：站著聊天，玩家靠近、看得到，或有人中槍、附近有槍聲才動手；69-turf.js 盯梢的（lurk）要靠到 7 m 內或拔槍
   if (f.calm) {
     const d = Math.hypot(pX() - f.x, pZ() - f.z);
     const slow = player.mode !== 'drive' || !player.veh || Math.hypot(player.veh.vx, player.veh.vz) < 6;   // 開車呼嘯而過不會被盯上
-    if (d < 22 && slow && losClear(f.x, f.z, pX(), pZ()) || f.hp < TEAM[f.team].hp || d < 60 && uTimeNow() - (W.bangT || -9) < .3) wakeGroup(f.grp);
+    if (d < (f.lurk && !gta.aiming ? 7 : 22) && slow && losClear(f.x, f.z, pX(), pZ()) || f.hp < TEAM[f.team].hp || d < 60 && uTimeNow() - (W.bangT || -9) < .3) wakeGroup(f.grp);
     else {
       p.aimK = 0; fighters.anim(f.k, ANIM.talk, f.ph += dt, 1); fighters.place(f.k, f.x, fGround(f), f.z, f.yaw);
       return;
@@ -265,6 +294,7 @@ const GANG_TYPES = ['e34', 'evo190', 'carter'];
 function gangChase(why, n = 2) {
   if (SQ.chase || player.where !== 'out') return false;
   const ch = SQ.chase = { why, cars: [], t: 0, farT: 0 };
+  fRoom(n * 3);
   for (let i = 0; i < n; i++) {
     const sp = spawnSpot(90, 170);
     if (!sp) break;
@@ -292,7 +322,7 @@ function chaseStep(dt) {
     const walk = player.mode === 'walk';
     squadDrive(c, px + (walk ? 0 : player.veh.vx * .4), pz + (walk ? 0 : player.veh.vz * .4), walk ? 10 : 0, dt);
     const sp = Math.hypot(v.vx, v.vz), los = d < 40 && losClear(v.x, v.z, px, pz);
-    if (los && !life.dead && (c.shotT -= dt) <= 0) { c.shotT = .45 + Math.random() * .5; windowShot(c, { kind: 'player' }, 'gang'); }
+    if (los && !life.dead && (c.shotT -= dt) <= 0) { c.shotT = .45 + Math.random() * .5; windowShot(c, { kind: 'player' }, 'gang'); gangShots(v.x, v.z); }
     if (sp < 2.5 && (walk ? d < 18 : d < 9 && Math.hypot(player.veh.vx, player.veh.vz) < 3)) unload(c);
   }
   for (const f of SQ.f) if (f.on && f.team === 'gang' && (f.state === 'act' || f.state === 'car')) { alive++; if (f.state === 'act') near = Math.min(near, Math.hypot(f.x - px, f.z - pz)); }
@@ -327,10 +357,23 @@ function defStart(id) {
   sfx.busted(); gps.t = 0;
   return true;
 }
-// 從資產外 32–40 m、看不到資產的方向冒出一波人
+// 一波人開車過來：從看不到的路口（90–160 m 外）沿路網開到資產前 14 m 放人；第二波兩台車。找不到路口就從 32–40 m 外冒出來
 function defWave(n) {
   const D = SQ.def;
   D.wave++;
+  const guns = ['smg', 'pistol', 'shotgun', 'pistol', 'smg'], nc = n > 4 ? 2 : 1;
+  fRoom(n);
+  let left = n;
+  for (let i = 0; i < nc && left > 0; i++) {
+    const sp = spawnSpot(90, 160);
+    if (!sp) break;
+    const back = i * 9, c = squadCar('gang', GANG_TYPES[(D.wave + i) % 3], sp.x - Math.sin(sp.yaw) * back, sp.z - Math.cos(sp.yaw) * back, sp.yaw, 10);
+    const m = Math.ceil(left / (nc - i));
+    carRiders(c, m, guns.slice(i * 3));
+    for (const f of c.riders) { f.def = true; f.goal = { x: D.x, z: D.z }; }
+    c.def = true; c.t = 0; left -= m;
+  }
+  if (left < n) { toast(D.wave === 1 ? `${GANG_NAME}的車往${D.name}開過來了（小地圖紅點）` : `${GANG_NAME}的援兵開車來了`); return; }
   for (let i = 0; i < n; i++) {
     let x = D.x, z = D.z;
     for (let tries = 0; tries < 12; tries++) {
@@ -340,7 +383,7 @@ function defWave(n) {
       if (!blocks.some(b => lx > b.x0 && lx < b.x1 && lz > b.z0 && lz < b.z1)) break;
     }
     const f = fSpawn('gang', x, z, Math.atan2(D.x - x, D.z - z), { gun: i % 3 === 0 ? 'smg' : i % 4 === 1 ? 'shotgun' : 'pistol', goal: { x: D.x, z: D.z } });
-    if (f) f.def = true;
+    if (f) f.def = true; else D.pend = (D.pend || 0) + 1;   // 池子滿了：排隊，有空位再從看不到的地方補上
   }
   toast(D.wave === 1 ? `第一波：${GANG_NAME}在砸${D.name}` : `第二波：${GANG_NAME}的援兵到了`);
 }
@@ -361,7 +404,22 @@ function defStep(dt) {
     else if (D.t <= 0) return defLose('來不及趕到');
   } else if (D.st === 'fight') {
     let up = 0, at = 0;
+    for (const f of SQ.f) if (f.def && f.on && f.state === 'car') up++;
     for (const f of SQ.f) if (f.def && fUp(f)) { up++; if (Math.hypot(f.x - D.x, f.z - D.z) < 6) at++; }
+    // 進攻的車：開到門口 14 m 放人；卡太久（40 秒）就地下車
+    for (const c of SQ.cars) if (c.def && !c.v.dead && ridersIn(c) && player.veh !== c.v) {
+      c.t += dt;
+      squadDrive(c, D.x, D.z, 14, dt);
+      const dc = Math.hypot(c.v.x - D.x, c.v.z - D.z);
+      if (Math.hypot(c.v.vx, c.v.vz) < 2 && dc < 26 || c.t > 40) unload(c);
+      if ((c.shotT -= dt) <= 0 && dc < 50 && Math.hypot(c.v.x - pX(), c.v.z - pZ()) < 40) { c.shotT = .6 + Math.random() * .5; windowShot(c, { kind: 'player' }, 'gang'); }
+    }
+    // 排隊的人：有空位就從 32–40 m 外、畫面外的地方補上
+    if (D.pend > 0 && fFreeN() > 0) {
+      const a = Math.random() * 6.283, r = 32 + Math.random() * 8, x = D.x + Math.sin(a) * r, z = D.z + Math.cos(a) * r;
+      if (!onScreen(x, z)) { const f = fSpawn('gang', x, z, Math.atan2(D.x - x, D.z - z), { gun: 'pistol', goal: { x: D.x, z: D.z } }); if (f) { f.def = true; D.pend--; up++; } }
+    }
+    if (D.pend > 0) up++;
     D.hp = Math.max(0, D.hp - at * 1.6 * dt);
     if (D.hp <= 0) return defLose('被砸爛了');
     if (!up) {
@@ -374,6 +432,7 @@ function defWin() {
   const D = SQ.def, n = Math.round(defReward(D.id) * (.5 + D.hp / 200) / 100) * 100;
   defEnd();
   earn(n, `守住${D.name}`);
+  newsAdd(`${D.name}門口爆發槍戰`, `${GANG_NAME}砸店未遂，店家表示「有人幫忙擋下來了」。`);
   sfx.ability(true);
 }
 function defLose(why) {
@@ -384,6 +443,7 @@ function defLose(why) {
 }
 function defEnd() {
   for (const f of SQ.f) if (f.on && f.def) { if (f.state === 'down') f.def = false; else fFree(f); }
+  for (const c of SQ.cars) c.def = false;
   SQ.def = null; heistObjLabel(null);
   gps.t = 0;
 }
@@ -473,13 +533,13 @@ function squadHeist(s) {
     for (let i = 0; i < 3; i++) if (i !== crew.cur) crew.st[i].where = 'heist';
     SQ.hc = { shotT: 1.5 };
   } else {
-    // 結束（成功、失敗）：另外兩人回到現身的位置（成功就在倉庫門口，失敗回家）
+    // 結束（成功、失敗）：另外兩人回到現身的位置（成功就在貨櫃安全屋，失敗回家）
     const pass = s === 'off';
     for (let i = 0; i < 3; i++) {
       const st = crew.st[i];
       if (i === crew.cur || st.where !== 'heist') continue;
       st.where = 'out';
-      if (pass) { const [lx, lz] = toL(SAFE.x, SAFE.z); Object.assign(st, spotW({ x: lx + (i - 1) * 2.4, z: lz + 3, yaw: Math.PI })); }
+      if (pass) { const [lx, lz] = toL(YARD.x, YARD.z); Object.assign(st, spotW({ x: lx + (i - 1) * 2.4, z: lz + 3, yaw: Math.PI })); }
       else { st.x = CREW[i].home.x; st.z = CREW[i].home.z; st.yaw = CREW[i].home.yaw; }
     }
   }
@@ -500,13 +560,22 @@ function heistCarStep(dt) {
 function squadUpdate(dt) {
   const out = player.where === 'out';
   defStep(dt);
+  bodyStep(dt);
   if (out) { chaseStep(dt); mercStep(dt); heistCarStep(dt); }
+  // 開往指定地點放人的車（c.go，69-survival.js 的增援車）：開到 26 m 內停下就下車，卡太久（40 秒）就地下車
+  if (out) for (const c of SQ.cars) if (c.go && !c.v.dead && player.veh !== c.v && ridersIn(c)) {
+    c.t += dt;
+    squadDrive(c, c.go.x, c.go.z, 14, dt);
+    const dc = Math.hypot(c.v.x - c.go.x, c.v.z - c.go.z);
+    if (Math.hypot(c.v.vx, c.v.vz) < 2 && dc < 26 || c.t > 40) unload(c);
+    if ((c.shotT -= dt) <= 0 && Math.hypot(c.v.x - pX(), c.v.z - pZ()) < 40) { c.shotT = .6 + Math.random() * .5; windowShot(c, { kind: 'player' }, 'gang'); }
+  }
   // 車：炸了就把車上的人放倒在旁邊；被玩家開走就變成一般搶來的車；沒事做的車遠了收掉
   for (const c of [...SQ.cars]) {
     const v = c.v;
     if (v.dead) { v.ai = false; for (const f of SQ.f) if (f.on && f.state === 'car' && f.car === c) { f.x = v.x + (Math.random() - .5) * 3; f.z = v.z + (Math.random() - .5) * 3; fDown(f); } }
     if (player.veh === v) { unload(c); dropCar(c); continue; }
-    const idle = !c.chase && !(SQ.merc && SQ.merc.c === c);
+    const idle = !c.chase && !c.def && !(c.go && ridersIn(c)) && !(SQ.merc && SQ.merc.c === c);
     v.ai = !v.dead && !idle && ridersIn(c) > 0;   // 有人開才由這裡推進，否則交給 69-combat.js 的 coast 滑行停下
     if (idle && Math.hypot(v.x - pX(), v.z - pZ()) > 150 || Math.hypot(v.x - pX(), v.z - pZ()) > 420) { for (const f of SQ.f) if (f.on && f.car === c) fFree(f); dropCar(c); }
   }

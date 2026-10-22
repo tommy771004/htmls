@@ -34,7 +34,7 @@ function addHeat(n, floor = 0) {
   const s = Math.min(5, Math.max(W.stars, floor, HEAT_STAR.filter(h => W.heat >= h).length));
   if (s > W.stars) {
     const first = !W.stars;
-    W.stars = s; W.seen = true; W.evade = 0; W.lkp = { x: pX(), z: pZ() }; W.lastVeh = player.veh;
+    W.stars = s; W.peak = Math.max(W.peak || 0, s); W.seen = true; W.evade = 0; W.lkp = { x: pX(), z: pZ() }; W.lastVeh = player.veh;
     W.spawnT = first ? 1.5 : Math.min(W.spawnT, 2);
     if (s >= 3) W.blockT = Math.min(W.blockT, 6);
     toast(first ? `有人報警了 · 通緝 ${s} 星` : `通緝 ${s} 星`);
@@ -45,8 +45,9 @@ function wantedClear(why) {
   const had = W.stars > 0;
   W.heat = 0; W.stars = 0; W.seen = false; W.evade = 0; W.lkp = null; W.reports.length = 0; W.bustT = 0;
   for (const u of W.units) u.state = 'leave';
-  if (W.heli) W.heli.leave = true;
-  if (why === 'evaded' && had) toast('甩掉警察了');
+  if (W.heli && !W.heli.gang) W.heli.leave = true;
+  if (why === 'evaded' && had) { toast('甩掉警察了'); if (W.peak >= 4) newsAdd('警方追捕失手', `${W.peak} 星級的全城圍捕落空，嫌犯在${district(...toL(pX(), pZ())).split(' ')[0]}一帶消失。`); }
+  W.peak = 0;
   if (why === 'reset') { for (const u of [...W.units]) dropUnit(u); for (const c of W.cops) freeCop(c); if (W.heli) dropHeli(); for (const b of [...W.blocks]) dropBlock(b); }
 }
 const pX = () => (player.mode === 'drive' ? player.veh.x : player.x), pZ = () => (player.mode === 'drive' ? player.veh.z : player.z);
@@ -59,7 +60,8 @@ function coneSees(ox, oz, yaw, x, z, r) {
   if ((dx * Math.sin(yaw) + dz * Math.cos(yaw)) / d < CONE_COS) return false;
   return losClear(ox, oz, x, z) && coverClear(ox, oz, x, z);
 }
-// 掩護（只影響警察找人，子彈還是照 castRay）：目標 10 m 內的樹冠、路上任何地方的貨車與廂型車（轎車擋不住站著的人；警方自己的車不算）
+// 掩護（只影響警察找人，子彈還是照 castRay）：目標 10 m 內的樹冠、路上任何地方的貨車與廂型車（轎車擋不住站著的人；警方自己的車不算）、
+// 牆與實體建築、躲在後面的柱子與電話亭（coverClear 的後半）
 const TG = 20, treeGrid = new Map();
 for (const t0 of trees) {   // trees 是邏輯座標（20-props.js），這裡存世界座標的副本
   const [x, z] = toW(t0.x, t0.z), t = { x, z, s: t0.s }, key = Math.floor(x / TG) * 4096 + Math.floor(z / TG);
@@ -82,6 +84,11 @@ function coverClear(ax, az, bx, bz) {
   for (const c of traffic) if (TRUCKS.includes(c.type) && car(c.x, c.z, TYPES[c.type].w)) return false;
   for (const c of parked) if (TRUCKS.includes(c.type) && car(c.x, c.z, TYPES[c.type].w)) return false;
   for (const v of vehicles) if (v !== player.veh && !v.dead && v.isCar && !v.police && (v.mass || 1600) > 2400 && car(v.x, v.z, v.w)) return false;
+  // 牆、實體建築與道具的碰撞盒（losClear 只看街區）：一般的整個擋住；矮牆（low）只擋蹲在後面的人
+  const cr = player.crouch && Math.hypot(bx - pX(), bz - pZ()) < 1.5;
+  for (const b of boxesNear(ax, az, .1, bx, bz)) if ((!b.low || cr) && rayBox(ax, az, bx - ax, bz - az, b) < .97) return false;
+  // 柱子：路燈、號誌、垃圾桶、電訊箱（蹲在後面 1.4 m 內）與電話亭（站著也行）
+  for (const c of circlesNear(bx, bz, 1.6)) if (c.r >= .2 && (cr || c.r >= .5) && Math.hypot(c.x - bx, c.z - bz) < 1.4 && segHit(ax, az, bx, bz, c.x, c.z, c.r + .25)) return false;
   return true;
 }
 // 直升機：探照燈照到的地方還要看得到人（中間有樓擋、或人站在樹冠下就看不到）
@@ -110,7 +117,7 @@ function sees() {
   if (copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
   if (player.swim && copNear(x, z, SWIM_WATCH)) return true;   // 游泳沒辦法換裝也跑不快：岸上的人盯著水面
   const h = W.heli;
-  if (h && !h.fall && !h.leave && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR && heliSees(h, x, z)) return true;
+  if (h && !h.fall && !h.leave && !h.gang && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR && heliSees(h, x, z)) return true;
   return false;
 }
 
@@ -239,7 +246,7 @@ function copStep(c, dt) {
   if (!W.stars) { freeCop(c); return; }
   const los = d < (player.swim ? SWIM_SHOT : 60) && losClear(c.x, c.z, tx, tz);
   const shoot = W.stars >= 2 && los && !life.dead;
-  const al = W.stars >= 2 ? squadAlly(c.x, c.z, Math.min(los ? d : 60, 45)) : null;   // 69-squads.js：比你更近、看得到的傭兵或隊友
+  const al = (W.stars >= 2 ? squadAlly(c.x, c.z, Math.min(los ? d : 60, 45)) : null) || squadGang(c.x, c.z, Math.min(los ? d : 60, 40));   // 69-squads.js：比你更近、看得到的傭兵或隊友，或正在開打的赤蠍幫
   const want = shoot ? (c.gun === 'shotgun' ? 7 : c.swat ? 12 : 14) : 1.3;
   let sp = 0;
   const target = W.seen || d < 15 ? [tx, tz] : W.lkp ? [W.lkp.x, W.lkp.z] : [tx, tz];
@@ -352,6 +359,7 @@ function driveUnit(u, dt) {
     else if (dT > 28 || !losClear(v.x, v.z, tx, tz)) [tx, tz] = routeTarget(u, tx, tz);
     // 玩家走路：停在附近讓警員下車；坦克停在 25 m 外開砲
     const stopD = 9 + Math.max(0, vF) ** 2 / 26;   // 煞得住的距離
+    if (u.hold) { if (W.cops.some(c => c.on && c.unit === u && c.state !== 'down')) stop = true; else u.hold = false; }   // 卡住後讓警員下車跑：等他們回來再開
     if (u.kind === 'tank' ? dP < 25 && W.seen : player.mode === 'walk' && dP < stopD && W.seen) stop = true;
     if (player.mode === 'drive' && dP < stopD + 2 && Math.hypot(player.veh.vx, player.veh.vz) < 2 && W.seen && u.kind !== 'tank') stop = true;
   }
@@ -361,8 +369,14 @@ function driveUnit(u, dt) {
   if (vF > want + 1.5) { thr = 0; brk = clamp((vF - want) / 7, .35, 1); }
   else thr = stop ? 0 : ad > 1.8 ? .5 : 1;
   if (u.rev > 0) { u.rev -= dt; thr = 0; brk = 1; steer = -u.revS; }
-  else if (thr > .3 && Math.abs(vF) < 1.2) { u.stuck += dt; if (u.stuck > 1.3) { u.rev = 1.2; u.revS = Math.sign(da) || 1; u.stuck = 0; } }
-  else u.stuck = 0;
+  else if (thr > .3 && Math.abs(vF) < 1.2) { u.stuck += dt; if (u.stuck > 1.3) { u.rev = 1.2; u.revS = Math.sign(da) || 1; u.stuck = 0; u.revN = (u.revN || 0) + 1; } }
+  else { u.stuck = 0; if (vF > 6) u.revN = 0; }
+  // 被車流或路邊的東西卡住倒車兩次以上：近了就下車用跑的；遠了而且玩家看不到，就換到另一個路口重新開進來
+  if (u.revN >= 2 && u.state === 'chase') {
+    if (dP < 70 && u.crew > 0 && player.mode === 'walk') { u.revN = 0; u.hold = true; crewOut(u); return; }
+    const sp2 = dP >= 70 && !onScreen(v.x, v.z) && spawnSpot(60, 130);
+    if (sp2 && !onScreen(sp2.x, sp2.z)) { u.revN = 0; u.rev = 0; v.x = sp2.x; v.z = sp2.z; v.yaw = sp2.yaw; v.vx = Math.sin(sp2.yaw) * 10; v.vz = Math.cos(sp2.yaw) * 10; v.y = groundH(v.x, v.z); poseVehicle(v); return; }
+  }
   driveVehicle(v, { thr, brk, steer, hb: false }, dt);
   v.lights = 1;
   if (stop && sp < 2.5 && u.crew > 0) crewOut(u);
@@ -404,7 +418,8 @@ const POOL_M = (() => {
   const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
   return new T.MeshBasicMaterial({ map: t, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -2 });
 })();
-function spawnHeli() {
+// gang：69-survival.js 的幫派直升機（同一個槽位 W.heli，沒有探照燈、不報警，機槍手一直打玩家）
+function spawnHeli(gang = false) {
   const a = Math.random() * 6.28, px = pX(), pz = pZ();
   const g = new T.Group();
   const body = partMesh('heli', 1, true), rotor = partMesh('heli_rotor', 1, true), tail = partMesh('heli_tail', 1, true);
@@ -415,7 +430,8 @@ function spawnHeli() {
   const beam = new T.Mesh(beamG, new T.MeshBasicMaterial({ color: 0x8c96a8, transparent: true, opacity: .085, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
   beam.layers.set(LY.NOREFL); beam.renderOrder = 6; scene.add(beam);
   const pool = new T.Mesh(POOL_G, POOL_M); pool.layers.set(LY.NOREFL); pool.renderOrder = 3; scene.add(pool);
-  W.heli = { g, body, rotor, tail, beam, pool, x: px + Math.cos(a) * 160, z: pz + Math.sin(a) * 160, y: 70, vx: 0, vz: 0, yaw: 0, hp: 1500, ang: a, sx: px, sz: pz, spotR: SPOT_R, rot: 0, snipeT: 3, fall: null, dead: false, leave: false };
+  W.heli = { g, body, rotor, tail, beam, pool, x: px + Math.cos(a) * 160, z: pz + Math.sin(a) * 160, y: 70, vx: 0, vz: 0, yaw: 0, hp: 1500, ang: a, sx: px, sz: pz, spotR: SPOT_R, rot: 0, snipeT: 3, fall: null, dead: false, leave: false, gang };
+  return W.heli;
 }
 function dropHeli() {
   const h = W.heli; if (!h) return;
@@ -427,7 +443,7 @@ function dropHeli() {
 function heliHit(dmg, mine) {
   const h = W.heli; if (!h || h.fall) return;
   h.hp -= dmg;
-  if (mine) crime('resist', h.x, h.z);
+  if (mine && !h.gang) crime('resist', h.x, h.z);
   if (h.hp <= 0) { h.fall = { vy: 0, spin: 2.5 + Math.random() * 2 }; h.mine = mine; sparks(h.x, h.y + 1, h.z, 20, 6); fxLights.push({ x: h.x, y: h.y, z: h.z, col: COL.boom, r: 30, i: 6, life: 0, max: .5 }); }
 }
 function heliBlast(x, y, z, r, dmg, mine) {
@@ -463,22 +479,31 @@ function heliStep(dt) {
     if (Math.random() < dt * 20) emit('fire', h.x, h.y + 1, h.z, { vy: 1, max: .5, s0: .8, s1: .3 });
     if (h.y <= Math.max(groundH(h.x, h.z), roofAt(h.x, h.z, 0))) {
       blast(h.x, h.y, h.z, 10, 520, h.mine ? 'player' : null, null);
-      if (h.mine) crime('heli', h.x, h.z);
+      if (h.mine && !h.gang) crime('heli', h.x, h.z);
       dropHeli(); return;
     }
   } else if (!h.pin) {   // pin：測試時固定位置截圖
     // 盤旋：繞著目標（看到玩家就是玩家，否則是最後已知位置）半徑 55 m 轉圈，探照燈斜斜照下來
-    const tgt = h.leave ? null : W.seen ? [px, pz] : W.lkp ? [W.lkp.x, W.lkp.z] : [px, pz];
+    const tgt = h.leave ? null : W.seen || h.gang ? [px, pz] : W.lkp ? [W.lkp.x, W.lkp.z] : [px, pz], orb = h.gang ? 34 : 55;
     let gx, gz;
-    if (tgt) { h.ang += dt * .16; gx = tgt[0] + Math.cos(h.ang) * 55; gz = tgt[1] + Math.sin(h.ang) * 55; }
+    if (tgt) { h.ang += dt * (h.gang ? .22 : .16); gx = tgt[0] + Math.cos(h.ang) * orb; gz = tgt[1] + Math.sin(h.ang) * orb; }
     else { gx = h.x + (h.x - px) * 2; gz = h.z + (h.z - pz) * 2; }
     const dx = gx - h.x, dz = gz - h.z, d = Math.hypot(dx, dz) || 1, vmax = 24;
     h.vx = damp(h.vx, dx / d * Math.min(vmax, d * .8), 1.2, dt); h.vz = damp(h.vz, dz / d * Math.min(vmax, d * .8), 1.2, dt);
+    // 橫向避樓：前方 3 秒的屋頂比現在飛得還高，就往左右各試 35°／70°，挑屋頂低最多的方向轉過去
+    const hs = Math.hypot(h.vx, h.vz), a0 = Math.atan2(h.vx, h.vz), ahead = a => roofAt(h.x + Math.sin(a) * hs * 3, h.z + Math.cos(a) * hs * 3, 1);
+    if (hs > 4 && ahead(a0) + 10 > h.y) {
+      let best = a0, bh = ahead(a0) - 4;
+      for (const o of [.6, -.6, 1.2, -1.2]) { const r = ahead(a0 + o); if (r < bh) { bh = r; best = a0 + o; } }
+      const k = 1 - Math.exp(-2.5 * dt);
+      if (best !== a0) { h.vx += (Math.sin(best) * hs - h.vx) * k; h.vz += (Math.cos(best) * hs - h.vz) * k; }
+      else { h.vx *= 1 - k * .6; h.vz *= 1 - k * .6; }   // 四面都高：放慢等爬升
+    }
     h.x += h.vx * dt; h.z += h.vz * dt;
     // 往前看 3 秒的樓高先爬升；還是擦到屋頂（太快衝進高樓區）就失控墜毀
-    const alt = Math.max(40, roofAt(h.x, h.z, 1) + 12, roofAt(h.x + h.vx * 3, h.z + h.vz * 3, 1) + 12) + (h.leave ? 30 : 0);
+    const alt = Math.max(h.gang ? 26 : 40, roofAt(h.x, h.z, 1) + 12, roofAt(h.x + h.vx * 3, h.z + h.vz * 3, 1) + 12) + (h.leave ? 30 : 0);
     h.y = damp(h.y, alt, alt > h.y ? 1.6 : .8, dt);
-    if (h.y < roofAt(h.x, h.z, 0) + 1.5) { h.vx *= .3; h.vz *= .3; heliHit(1e5, false); toast('警用直升機撞上大樓了'); }
+    if (h.y < roofAt(h.x, h.z, 0) + 1.5) { h.vx *= .3; h.vz *= .3; heliHit(1e5, false); toast(h.gang ? '直升機撞上大樓了' : '警用直升機撞上大樓了'); }
     const look = tgt ? Math.atan2(tgt[0] - h.x, tgt[1] - h.z) : Math.atan2(h.vx, h.vz);
     h.yaw += wrapA(look - h.yaw) * (1 - Math.exp(-1.5 * dt));
     // 探照燈：看到玩家就鎖住，否則在最後已知位置附近掃
@@ -491,7 +516,10 @@ function heliStep(dt) {
     if (sd > ms) { sx = h.sx + (sx - h.sx) / sd * ms; sz = h.sz + (sz - h.sz) / sd * ms; }
     h.sx = sx; h.sz = sz;
     // 狙擊手
-    if (W.stars >= 4 && W.seen && !h.leave && !life.dead) {
+    if (h.gang && !h.leave && !life.dead) {   // 幫派的機槍手：側門掃射
+      h.snipeT -= dt;
+      if (h.snipeT <= 0) { h.snipeT = 1.1 + Math.random() * .6; npcShoot(h.x, h.y - .5, h.z, .45, 9, 1.4, 'gang'); }
+    } else if (W.stars >= 4 && W.seen && !h.leave && !life.dead) {
       h.snipeT -= dt;
       if (h.snipeT <= 0) { h.snipeT = 2.5 + Math.random(); npcShoot(h.x, h.y - .5, h.z, .3, 20, 2.6, 'cop'); }
     }
@@ -509,7 +537,7 @@ function heliStep(dt) {
   const by = h.y - .6;
   _hb2.set(h.sx - h.x, groundH(h.sx, h.sz) - by, h.sz - h.z);
   const L = _hb2.length(); _hb2.divideScalar(L);
-  h.beam.visible = !h.fall && !h.leave;
+  h.beam.visible = !h.fall && !h.leave && !h.gang;
   h.beam.position.set(h.x, by, h.z); h.beam.quaternion.setFromUnitVectors(_hy, _hb2); h.beam.scale.set(h.spotR * .3, L, h.spotR * .3);
   // 地上的光圈：半徑就是偵測範圍（35 m，5 星 ×1.5），中間最亮
   h.pool.visible = h.beam.visible; h.pool.position.set(h.sx, groundH(h.sx, h.sz) + .06, h.sz); h.pool.scale.setScalar(h.spotR);
@@ -629,7 +657,7 @@ function policeUpdate(dt) {
     W.bustT = bust ? W.bustT + dt : Math.max(0, W.bustT - dt * 2);
     if (W.bustT > (player.mode === 'walk' ? 1 : 1.5)) die('busted');
   }
-  if (W.heli && (s < 3 || life.dead) && !W.heli.leave) W.heli.leave = true;
+  if (W.heli && !W.heli.gang && (s < 3 || life.dead) && !W.heli.leave) W.heli.leave = true;
   // 警車
   const px = pX(), pz = pZ();
   sirenNear = 999;
@@ -702,8 +730,8 @@ function policeMini(ctx, P2, zoom) {
   const h = W.heli;
   if (h && !h.fall) {
     const [x, y] = P2(h.x, h.z), [sx, sy] = P2(h.sx, h.sz);
-    ctx.strokeStyle = 'rgba(230,236,255,.5)'; ctx.lineWidth = 1.5 / zoom; ctx.beginPath(); ctx.arc(sx, sy, h.spotR * MAP_S, 0, 7); ctx.stroke();
-    ctx.fillStyle = blink ? '#ff3a48' : '#f2ede2'; ctx.beginPath(); ctx.arc(x, y, 5 / zoom * 1.4, 0, 7); ctx.fill();
+    if (!h.gang) { ctx.strokeStyle = 'rgba(230,236,255,.5)'; ctx.lineWidth = 1.5 / zoom; ctx.beginPath(); ctx.arc(sx, sy, h.spotR * MAP_S, 0, 7); ctx.stroke(); }
+    ctx.fillStyle = h.gang ? '#ff5a3a' : blink ? '#ff3a48' : '#f2ede2'; ctx.beginPath(); ctx.arc(x, y, 5 / zoom * 1.4, 0, 7); ctx.fill();
   }
   // 最後已知位置：沒被看到時畫一個虛線圈
   if (W.stars && !W.seen && W.lkp) {
@@ -718,7 +746,7 @@ function policeLights(t) {
   const near = W.units.filter(u => !u.v.dead && u.state !== 'leave').map(u => ({ u, d: (u.v.x - cx) ** 2 + (u.v.z - cz) ** 2 })).sort((a, b) => a.d - b.d).slice(0, 2);
   for (const { u } of near) out.push({ x: u.v.x, y: u.v.y + 1.9, z: u.v.z, col: Math.sin(t * 13 + u.t) > 0 ? POL_R : POL_B, r: 16, i: 2.6 });
   const h = W.heli;
-  if (h && !h.fall && !h.leave) {
+  if (h && !h.fall && !h.leave && !h.gang) {
     const by = h.y - .6, dx = h.sx - h.x, dy = groundH(h.sx, h.sz) - by, dz = h.sz - h.z, L = Math.hypot(dx, dy, dz);
     if (Math.sin(t * 7) > .6) out.push({ x: h.x, y: h.y + .2, z: h.z, col: POL_R, r: 9, i: 3 });   // 機腹的紅色閃燈
     // 衰減是 8/(2+d²)：強度跟著距離平方放大，地面中心才照得亮
@@ -729,7 +757,8 @@ function policeLights(t) {
 
 // 測試 API（window.__nc.gta.wanted）
 const wantedApi = {
-  W, crime, addHeat, clear: wantedClear, sees,
+  W, crime, addHeat, clear: wantedClear, sees, cover: coverClear,
+  booth: () => { const c = circles.find(o => o.r >= .5 && o.r < .6); return c && { x: c.x, z: c.z }; },
   set(s) { if (s <= 0) return wantedClear('reset'); W.heat = HEAT_STAR[s - 1]; W.stars = 0; addHeat(0, s); W.spawnT = 0; },
   unit: spawnUnit, heli: spawnHeli, roadblock: placeRoadblock, cops: copsCrowd,
 };

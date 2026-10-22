@@ -74,6 +74,7 @@ for (const e of RN.edges) {
     for (let u = HR + 10; u < e.len - HR - 6; u += 20) for (const s of [-1, 1]) {
       const [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1)), l = Math.hypot(xb - xa, zb - za) || 1;
       const nx = (zb - za) / l * s, nz = -(xb - xa) / l * s;   // 往路外
+      if (brokenNear(x + nx * 9.6, z + nz * 9.6, 3)) continue;   // 鐵灣高架斷橋的跑道與飛越的路段（06-roads.js）
       lampsC.push({ x: x + nx * 9.6, z: z + nz * 9.6, ry: Math.atan2(-nz, nx), hx: x + nx * 7.4, hz: z + nz * 7.4, zn: null });
     }
     continue;
@@ -268,7 +269,7 @@ for (const b of blocks) {
   for (const [x, z] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
   for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
-    if (r5() > .55 || !inPoly(P, tx, tz) || edgeD(tx, tz) < 4 || toL(tx, tz)[1] < CITY_Z0 + 4) continue;
+    if (r5() > .55 || !inPoly(P, tx, tz) || edgeD(tx, tz) < 4 || toL(tx, tz)[1] < CITY_Z0 + 4 || brokenNear(tx, tz, 6)) continue;
     if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
     trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
   }

@@ -143,3 +143,15 @@ function rnLaneSpot(x, z, minS = 4) {
   const [lx, lz, fx, fz] = laneAt(e, dir, s);
   return { x: lx, z: lz, yaw: Math.atan2(fx, fz), e, dir, s };
 }
+// ─── 鐵灣高架斷橋（69-heist.js 的逃亡路線，平常也能當特技跳台）：A、C 之間的縫裡、Cinder 與 Delmar／Foundry Av 的連接道路之間 ───
+// 從 Cinder Av 的連接道路旁往東爬升的半截高架橋，斷口停在 Delmar Av 的連接道路前 14 m；飛過那條路落在下一段草地（廢棄的鐵軌）。
+// 世界座標；(x, z) 是斷口，L、H、W 是斜坡長、斷口高與橋面寬（69-stunt.js 的跳台判斷吃這幾個欄位）
+const BROKEN = (() => {
+  const zA = ZONES[0], conn = i => RN.edges.find(e => e.kind === 'c' && e.a.zn === zA && e.a.i === i && e.a.j === zA.nj1);
+  const mid = i => { const e = conn(i); return edgeAt(e, e.len / 2); };
+  const [ax, az] = mid(3), [bx, bz] = mid(4), [cx, cz] = mid(5), l = Math.hypot(cx - ax, cz - az), dx = (cx - ax) / l, dz = (cz - az) / l;
+  const L = 38, H = 5.6, W = 7.6, gap = 14, x = bx - dx * gap, z = bz - dz * gap;
+  return { x, z, yaw: Math.atan2(dx, dz), dx, dz, L, H, W, i: null, broken: 1, road: conn(4), mid: [bx, bz], land: Math.hypot(cx - bx, cz - bz) - 12 };
+})();
+// 斷橋的跑道、斜坡與落地區（縫裡的樹與連接道路的路燈讓開）：a 從斷口量起，往前是正
+const brokenNear = (x, z, pad = 4) => { const B = BROKEN, a = (x - B.x) * B.dx + (z - B.z) * B.dz, b = (x - B.x) * B.dz - (z - B.z) * B.dx; return a > -B.L - 16 && a < B.land + 16 && Math.abs(b) < B.W / 2 + pad; };

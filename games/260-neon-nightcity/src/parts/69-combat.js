@@ -47,8 +47,14 @@ function armKit(id) {
     const L = m[2] - g[2] + .1, z = (m[2] + g[2]) / 2;
     k.box(0, m[1] - .01, z - L * .1, .035, .06, L * .7, ARM_COL.dark, 15);
     k.cyl(0, m[1], m[2] - L * .2, .012, .012, L * .45, 8, ARM_COL.mid, 15, Math.PI / 2);
-    k.box(0, g[1] - .03, g[2], .03, .1, .04, ARM_COL.dark, 2, -.25);
-    if (L > .5) k.box(0, g[1] - .01, g[2] - .2, .04, .08, .22, id === 'shotgun' || id === 'sniper' ? ARM_COL.wood : ARM_COL.dark, 2);
+    // 握把、護木與槍托擺在 40-people.js 的 GUN_HOLD 量的手與肩的位置（握點相對 grip），雙手 IK 才會剛好握在替身上
+    const H = GUN_HOLD[id], r = H ? H.r : [0, 0, 0];
+    k.box(0, g[1] + r[1], g[2] + r[2], .03, .1, .04, ARM_COL.dark, 2, -.25);
+    const wood = id === 'shotgun' || id === 'sniper' ? ARM_COL.wood : ARM_COL.dark;
+    if (H && H.lh === 'guard') k.box(0, g[1] + H.l[1] + .01, g[2] + H.l[2], .045, .05, .16, wood, 2);
+    if (H && H.b) { const z0 = g[2] + H.b[2], z1 = g[2] + r[2]; k.box(0, g[1] + H.b[1] + .025, (z0 + z1) / 2, .04, .085, Math.abs(z1 - z0), wood, 2); }
+    else if (L > .5) k.box(0, g[1] - .01, g[2] - .2, .04, .08, .22, wood, 2);
+    if (H && H.lh === 'gripL') k.box(0, g[1] + H.l[1], g[2] + H.l[2], .03, .1, .04, ARM_COL.dark, 2, -.25);   // 火箭筒的前握把
     if (id === 'sniper') k.cyl(0, m[1] + .06, g[2] + .15, .02, .02, .3, 8, ARM_COL.dark, 15, Math.PI / 2);
     if (id === 'stun') k.box(0, m[1] + .025, z, .037, .012, L * .5, 0xd9b42a, 2);
     if (id === 'minigun') for (let i = 0; i < 6; i++) k.cyl(Math.cos(i) * .03, Math.sin(i) * .03, z + .1, .008, .008, L * .8, 6, ARM_COL.steel, 15, Math.PI / 2);
@@ -209,11 +215,13 @@ function driveByPlace(v) {
   me.mesh.visible = true;
   me.anim(0, ANIM.driveBy, 0, 1); me.anim2(0, 0, 0);
   _dbm.compose(_mz.set(v.x, v.y, v.z), _dbq.setFromEuler(_dbe.set(v.pitch, v.yaw, v.roll, 'YXZ')), _dbs);
-  _dbm.multiply(_dbt.makeTranslation(-side * (v.w / 2 - .5), DB_SEAT, v.len * .2));   // 駕駛座大約在車身中心往前兩成
+  // 實車用 tools/seats.mjs 量的座椅高度與前後位置；程式建模的車流車沒有資料，估在車身中心往前兩成
+  const db = v.carId && CARS[v.carId] && CARS[v.carId].db;
+  _dbm.multiply(db ? _dbt.makeTranslation(-side * (v.w / 2 - .5), db[0] - DB_HIP, db[1]) : _dbt.makeTranslation(-side * (v.w / 2 - .5), DB_SEAT, v.len * .2));
   me.placeM(0, _dbm);
   player.x = v.x; player.z = v.z;
 }
-const DB_SEAT = -.43;   // 開車動畫的骨盆在原點上 .87（40-people.js），車座離地大約 .44（太高頭會穿出車頂）
+const DB_HIP = .87, DB_SEAT = .44 - DB_HIP;   // 開車動畫的骨盆在原點上 .87（40-people.js），車座離地大約 .44（太高頭會穿出車頂）
 function triggerDown() {
   if (arm.wheel.open || life.dead) return;
   arm.trig = true;
@@ -294,6 +302,7 @@ function hitWith(h, R, dmg, by, head = 2.5, stun = 0) {
   else if (h.kind === 'cop') { blood(x, y, z); const hd = y - (h.ref.y || 0) > 1.55; if (copHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }
   else if (h.kind === 'heli') { sparks(x, y, z, 8, 4); heliHit(dmg, mine); }
   else if (h.kind === 'ebox') boxHit(h.ref, dmg, mine);   // 69-market.js：流明電訊的電訊箱
+  else if (h.kind === 'fn') { blood(x, y, z); h.ref(dmg, R, mine); }   // 其他會中彈的東西自己處理（69-heist.js 跑出銀行的人質）
   else if (h.kind === 'fighter') { blood(x, y, z); const hd = y > 1.55; if (fHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }   // 69-squads.js：幫派
   else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); }
 }
@@ -743,6 +752,7 @@ function combatUpdate(dt) {
   if (gta.reloadT > 0) { gta.reloadT -= dt; if (gta.reloadT <= 0) finishReload(); }
   const fight = (canFight() || canDriveBy(A)) && !life.dead && !arm.wheel.open;
   gta.aiming = fight && !!A.gun && (gta.rmb || !!gta.touchAim);
+  gta.guard = fight && !!A.fist && player.mode === 'walk' && (gta.rmb || !!gta.touchAim);   // 徒手按右鍵：舉拳架式（不拉近鏡頭）
   gta.aimK = damp(gta.aimK, gta.aiming ? 1 : 0, 12, dt);
   arm.zoomK = damp(arm.zoomK, gta.aiming && A.scope ? 1 : 0, 14, dt);
   arm.spin = clamp(arm.spin + (arm.trig && fight && A.spin ? 1 : -1) * dt / (A.spin || .5), 0, 1);

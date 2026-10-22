@@ -49,7 +49,11 @@
   "paintable": true,
   "tris": 202090,
   "kb": 3669,
-  "draws": 74
+  "draws": 74,
+  "db": [
+   0.373,
+   -0.05
+  ]
  },
  "m3c": {
   "id": "m3c",
@@ -101,7 +105,11 @@
   "paintable": true,
   "tris": 183281,
   "kb": 3475,
-  "draws": 69
+  "draws": 69,
+  "db": [
+   0.363,
+   -0.05
+  ]
  },
  "m4wb": {
   "id": "m4wb",
@@ -153,7 +161,11 @@
   "paintable": true,
   "tris": 138608,
   "kb": 1943,
-  "draws": 17
+  "draws": 17,
+  "db": [
+   0.381,
+   -0.05
+  ]
  },
  "m3gtr": {
   "id": "m3gtr",
@@ -205,7 +217,11 @@
   "paintable": false,
   "tris": 126056,
   "kb": 2082,
-  "draws": 34
+  "draws": 34,
+  "db": [
+   0.319,
+   -0.05
+  ]
  },
  "m3t24": {
   "id": "m3t24",
@@ -257,7 +273,11 @@
   "paintable": false,
   "tris": 167131,
   "kb": 2361,
-  "draws": 25
+  "draws": 25,
+  "db": [
+   0.327,
+   -0.05
+  ]
  },
  "m4gt3": {
   "id": "m4gt3",
@@ -309,7 +329,11 @@
   "paintable": true,
   "tris": 107980,
   "kb": 1562,
-  "draws": 41
+  "draws": 41,
+  "db": [
+   0.317,
+   0.05
+  ]
  },
  "gt3rs": {
   "id": "gt3rs",
@@ -359,7 +383,11 @@
   "paintable": false,
   "tris": 165144,
   "kb": 5659,
-  "draws": 72
+  "draws": 72,
+  "db": [
+   0.336,
+   -0.15
+  ]
  },
  "gt3r": {
   "id": "gt3r",
@@ -411,7 +439,11 @@
   "paintable": false,
   "tris": 163179,
   "kb": 3273,
-  "draws": 50
+  "draws": 50,
+  "db": [
+   0.202,
+   0.05
+  ]
  },
  "s1krr": {
   "id": "s1krr",
@@ -535,7 +567,11 @@
   "paintable": true,
   "tris": 62468,
   "kb": 762,
-  "draws": 17
+  "draws": 17,
+  "db": [
+   0.358,
+   -0.05
+  ]
  },
  "r35": {
   "id": "r35",
@@ -587,7 +623,11 @@
   "paintable": true,
   "tris": 128303,
   "kb": 2055,
-  "draws": 31
+  "draws": 31,
+  "db": [
+   0.324,
+   0.05
+  ]
  },
  "supra": {
   "id": "supra",
@@ -639,7 +679,11 @@
   "paintable": true,
   "tris": 93246,
   "kb": 1425,
-  "draws": 19
+  "draws": 19,
+  "db": [
+   0.291,
+   -0.25
+  ]
  },
  "rx7": {
   "id": "rx7",
@@ -691,7 +735,11 @@
   "paintable": true,
   "tris": 37112,
   "kb": 523,
-  "draws": 13
+  "draws": 13,
+  "db": [
+   0.284,
+   -0.25
+  ]
  },
  "nsx": {
   "id": "nsx",
@@ -743,7 +791,11 @@
   "paintable": true,
   "tris": 90022,
   "kb": 924,
-  "draws": 13
+  "draws": 13,
+  "db": [
+   0.174,
+   0.05
+  ]
  },
  "ae86": {
   "id": "ae86",
@@ -795,7 +847,11 @@
   "paintable": false,
   "tris": 90037,
   "kb": 974,
-  "draws": 16
+  "draws": 16,
+  "db": [
+   0.403,
+   -0.25
+  ]
  },
  "p930": {
   "id": "p930",
@@ -847,7 +903,11 @@
   "paintable": true,
   "tris": 61218,
   "kb": 630,
-  "draws": 9
+  "draws": 9,
+  "db": [
+   0.299,
+   -0.15
+  ]
  },
  "rwb": {
   "id": "rwb",
@@ -897,7 +957,11 @@
   "paintable": false,
   "tris": 102054,
   "kb": 2368,
-  "draws": 50
+  "draws": 50,
+  "db": [
+   0.286,
+   -0.05
+  ]
  },
  "e34": {
   "id": "e34",
@@ -949,7 +1013,11 @@
   "paintable": true,
   "tris": 90100,
   "kb": 1081,
-  "draws": 15
+  "draws": 15,
+  "db": [
+   0.443,
+   -0.05
+  ]
  },
  "m4csl": {
   "id": "m4csl",
@@ -1001,7 +1069,11 @@
   "paintable": true,
   "tris": 163227,
   "kb": 2054,
-  "draws": 7
+  "draws": 7,
+  "db": [
+   0.456,
+   -0.05
+  ]
  },
  "evo190": {
   "id": "evo190",
@@ -1051,7 +1123,11 @@
   "paintable": false,
   "tris": 95779,
   "kb": 1253,
-  "draws": 21
+  "draws": 21,
+  "db": [
+   0.408,
+   0.05
+  ]
  },
  "f40": {
   "id": "f40",
@@ -1103,7 +1179,11 @@
   "paintable": true,
   "tris": 97991,
   "kb": 838,
-  "draws": 6
+  "draws": 6,
+  "db": [
+   0.15,
+   -0.15
+  ]
  },
  "sf90": {
   "id": "sf90",
@@ -1155,7 +1235,11 @@
   "paintable": true,
   "tris": 113080,
   "kb": 1617,
-  "draws": 36
+  "draws": 36,
+  "db": [
+   0.215,
+   0.05
+  ]
  },
  "p1": {
   "id": "p1",
@@ -1207,7 +1291,11 @@
   "paintable": true,
   "tris": 97945,
   "kb": 1784,
-  "draws": 50
+  "draws": 50,
+  "db": [
+   0.182,
+   0.15
+  ]
  },
  "chall": {
   "id": "chall",
@@ -1257,7 +1345,11 @@
   "paintable": false,
   "tris": 90136,
   "kb": 1116,
-  "draws": 12
+  "draws": 12,
+  "db": [
+   0.441,
+   0.05
+  ]
  },
  "zr1": {
   "id": "zr1",
@@ -1309,7 +1401,11 @@
   "paintable": true,
   "tris": 94613,
   "kb": 1383,
-  "draws": 34
+  "draws": 34,
+  "db": [
+   0.184,
+   -0.25
+  ]
  },
  "police": {
   "id": "police",
@@ -1359,7 +1455,11 @@
   "paintable": false,
   "tris": 90472,
   "kb": 1048,
-  "draws": 14
+  "draws": 14,
+  "db": [
+   0.5,
+   -0.25
+  ]
  },
  "v4": {
   "id": "v4",

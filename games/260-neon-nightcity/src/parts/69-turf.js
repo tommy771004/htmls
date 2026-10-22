@@ -12,7 +12,7 @@ const TURFS = [
   { id: 'anchor', name: '錨灣港', i: 15, j: 13, prize: 9000 },
 ];
 const TURF_FEE = 600, TURF_INC = 180, TURF_OWN = '#7fe08a';
-const turf = { hang: null, incT: TURF_INC, atkT: 420 };
+const turf = { hang: null, incT: TURF_INC, atkT: 420, lurk: null, lurkT: 12, here: null };
 const turfOwned = T => motors.side.turf.includes(T.id);
 // 據點：路口東南角的人行道（邏輯座標，換到所在區的世界座標）
 function turfAt(T) { return T.at ||= WP(avX(T.i) + HR + 2.4, stZ(T.j) + HR + 2.4); }
@@ -38,8 +38,45 @@ function turfWave(a, n, guns) {
 // 收掉一群人：還站著的直接收，倒地的留到 69-squads.js 自己收
 function turfFree(g) { for (const f of SQ.f) if (f.on && f.grp === g) { if (fUp(f)) fFree(f); else { f.grp = null; f.onDown = null; } } }
 
+// ─── 地盤影響街頭 ───
+// 玩家所在的地盤（DISTRICTS 的邏輯範圍）：赤蠍幫的地盤路人少三成五（40-people.js 的 updatePeds 問 pedTurfShare），
+// 街角三不五時站著兩三個盯梢的（lurk：靠近 7 m 或拔槍才動手，69-squads.js），有時旁邊停著他們的車；
+// 搶下來的地盤沒有盯梢的，街頭交易也不會在這裡發生（69-street.js 的 evPick 問 turfMine）。
+function turfHere(x = pX(), z = pZ()) {
+  const [lx, lz] = toL(x, z);
+  for (const T of TURFS) { const D = T.D ||= DISTRICTS.find(d => d.name.startsWith(T.name)); if (lx >= avX(D.i0) && lx < avX(D.i1) && lz >= stZ(D.j0) && lz < stZ(D.j1)) return T; }
+  return null;
+}
+const turfMine = () => !!turf.here && turfOwned(turf.here);
+function pedTurfShare() { return player.where === 'out' && turf.here && !turfOwned(turf.here) ? .65 : 1; }
+function turfLurk(dt) {
+  const T = turf.here, g = turf.lurk;
+  if (g) {
+    const f0 = SQ.f.find(f => f.on && f.grp === g), d = f0 ? Math.hypot(f0.x - pX(), f0.z - pZ()) : 999;
+    if (!f0 || !g.awake && (d > 140 || T && turfOwned(T)) || g.awake && !turfLeft(g)) { turfFree(g); turf.lurk = null; }
+    return;
+  }
+  if (!T || turfOwned(T) || player.where !== 'out' || side.act || turf.hang || W.stars || (turf.lurkT -= dt) > 0) return;
+  turf.lurkT = 25 + Math.random() * 20;
+  if (fFreeN() < 6 || turfD(T) < 120) return;   // 據點附近已經有一群
+  const sp = spawnSpot(45, 80);
+  if (!sp || turfHere(sp.x, sp.z) !== T) return;
+  // 車道上的點往右手邊挪到人行道，撞到樓就推出來
+  const fx = Math.sin(sp.yaw), fz = Math.cos(sp.yaw), rx = -fz, rz = fx, o = HR + 2.2 - LANE;
+  const c = collideCircle(sp.x + rx * o, sp.z + rz * o, .5, false), n = 2 + (Math.random() < .5 ? 1 : 0);
+  const lg = turf.lurk = { kind: 'lurk', T, awake: false }, guns = ['pistol', 'smg', 'pistol'];
+  for (let i = 0; i < n; i++) {
+    const t = i / n * Math.PI * 2, x = c.x + Math.sin(t) * 1.3, z = c.z + Math.cos(t) * 1.3;
+    const f = fSpawn('gang', x, z, Math.atan2(c.x - x, c.z - z), { gun: guns[i] });
+    if (f) { f.calm = true; f.lurk = true; f.grp = lg; }
+  }
+  if (Math.random() < .5) squadCar('gang', GANG_TYPES[Math.floor(Math.random() * 3)], sp.x + rx * 1.4, sp.z + rz * 1.4, sp.yaw, 0);   // 停在路邊的座車
+}
+
 // ─── 據點、保護費、反攻（69-side.js 的 sideUpdate 每幀呼叫） ───
 function turfIdle(dt) {
+  turf.here = player.where === 'out' ? turfHere() : null;
+  turfLurk(dt);
   const own = TURFS.filter(turfOwned), out = player.where === 'out';
   if (own.length && out && !life.dead && (turf.incT -= dt) <= 0) { turf.incT = TURF_INC; earn(own.length * TURF_FEE, '地盤保護費'); }
   if (own.length && out && !sideBusy() && !ev.cur && !turf.hang && (turf.atkT -= dt) <= 0) { turf.atkT = 420 + Math.random() * 240; turfStart(own[Math.floor(Math.random() * own.length)], true); }
@@ -110,6 +147,7 @@ function turfWin(a) {
   }
   motors.side.turf.push(T.id); saveMotors();
   earn(T.prize, `搶下${T.name}`);
+  newsAdd(`${T.name.split(' ')[0]}幫派火拼`, `${GANG_NAME}在據點與不明人士爆發槍戰，地盤疑似易主。`);
   turf.atkT = Math.max(turf.atkT, 420); turf.incT = TURF_INC;
   sideDone('TURF TAKEN', `幫派地盤 · ${T.name}`, [['擊倒', `${a.kills} 人`], ['獎金', money(T.prize)], ['保護費', `每 3 分鐘 ${money(TURF_FEE)}`], ['地盤', `${motors.side.turf.length} / ${TURFS.length}`]], 1);
 }
@@ -147,6 +185,7 @@ function turfBlips(add) {
 
 // 測試 API（window.__nc.gta.turf）
 const turfApi = {
+  here: () => turfHere(), lurk: () => { turf.lurkT = 0; turfLurk(0); return turf.lurk && SQ.f.filter(f => f.on && f.grp === turf.lurk).length; }, lurkG: () => turf.lurk, share: pedTurfShare,
   TURFS, turf, at: id => turfAt(TURFS.find(T => T.id === id)), owned: () => [...motors.side.turf],
   start: (id, def) => { const T = TURFS.find(q => q.id === id); turfStart(T, !!def); return side.act && side.act.T === T; },
   act: () => side.act && side.act.kind === 'turf' ? side.act : null,

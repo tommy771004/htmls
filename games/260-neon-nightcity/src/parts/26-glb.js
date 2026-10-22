@@ -79,6 +79,7 @@ for (const [id, o] of GLB_CARS) {
     ...o, glb: true, paint: null, paintable: !!s.paintable,
     len: s.len, w: s.w, wr: s.wr || .33, ww: o.bike ? [.12, .19] : [.27, .3], track: s.track || .8, fa: s.fa || 1.3, ra: s.ra || -1.3, rim: ['five', 0x9aa0a6],
     credit: `模型：${shortAuthor(s.author)} · ${shortLic(s.license)} · 非官方同人，與車廠無關`, source: s.source,
+    db: s.db || null,   // tools/seats.mjs 量的駕駛座 [座椅高度, 往前偏移]（69-combat.js 的車窗射擊）
   });
 }
 

@@ -4,7 +4,7 @@
 // 車流與路邊的車被搶、被打壞時「脫離」車流（detachCar），變成和座駕一樣的獨立載具加進 vehicles（不進車行存檔）。
 // 每幀的順序：gtaPre（凍結輸入）→ 原本的開車／走路 → gtaUpdate（車損、路人、粒子模擬；武器在 69-combat.js 的 combatUpdate）
 // → policeUpdate（69-police.js）→ updateCrowds → gtaLate（武器擺到手上、粒子上傳）
-const gta = { weapon: 'fist', aiming: false, aimK: 0, fireT: 0, reloadT: 0, jack: null, punchT: 0, punchPh: 0, actAnim: 0, hold: false, rmb: false, pitch: 0 };
+const gta = { weapon: 'fist', aiming: false, guard: false, aimK: 0, fireT: 0, reloadT: 0, jack: null, punchT: 0, punchPh: 0, actAnim: 0, hold: false, rmb: false, pitch: 0 };
 const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車',
   urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克' };
 const HP = 1000, SMOKE_W = 600, SMOKE_B = 350, FIRE = 150;
@@ -387,6 +387,7 @@ function vehHits(v, imp) {
 // ─── 每幀 ───
 function gtaPre(dt) {
   crewPre();
+  talePre();
   if (gta.jack || player.down > 0 || life.dead) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }
 }
 function gtaUpdate(dt) {
@@ -429,13 +430,15 @@ function gtaUpdate(dt) {
   }
   // 瞄準的俯仰：和相機一樣（40-people.js 的 gunPose 照它擺槍，槍口才會對著準星）
   me.people[0].aimP = gta.aimK > .05 ? Math.asin(clamp(camera.getWorldDirection(_gv).y, -1, 1)) : null;
-  me.people[0].aimK = gta.aimK;
+  me.people[0].aimK = gta.guard ? 1 : gta.aimK;
+  me.people[0].guard = !ARMS[arm.sel].gun;   // 40-people.js 的 aimArms：徒手舉拳
   stepFx(dt);
 }
 function gtaLate() {
   combatLate();
   crewLate();
   stuntLate();
+  taleLate();   // 69-tale.js：委託的過場鏡頭
   bankGunsLate();   // 69-heist.js：大廳裡 Jax、Kael 與警衛的槍
   uploadFx();
 }

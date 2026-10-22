@@ -296,14 +296,42 @@ function gunPose(p) {
   (p.gunM ||= new T.Matrix4()).copy(_hgM); p.gunF = crowdFrame; p.gunId = p.hold;
   return true;
 }
+// 一隻手握到角色空間的點 C（掌心中央）：H 是 HAND 的握法，方向照目前的 _hgx／_hgu／_hgf 基底（gunPose 的右手也是這樣算）
+function gripAt(p, side, C, H, pole, w, m2b) {
+  hgv(_hgY, H.y).normalize(); hgv(_hgN, H.n); _hgN.addScaledVector(_hgY, -_hgN.dot(_hgY)).normalize();
+  _hgP.copy(C).addScaledVector(_hgY, -.075 * m2b).addScaledVector(_hgN, -(H.o ?? .03) * m2b);
+  ikArm(p, side, _hgP, pole, w);
+  orientHand(p, side, _hgY, _hgN, H.c, w);
+}
+// 徒手（或拿近戰武器、投擲物）瞄準：兩拳舉到下巴前，右拳略後（格鬥架式），俯仰跟著瞄準
+const FIST = { y: [0, .2, 1], n: [0, -1, 0], c: 1.25, o: .02, t: [0, .2, 1] };
+function guardArms(p, k) {
+  const m2b = 1 / (p.m2b ||= V3().setFromMatrixScale(p.sm.matrix).x), P = clamp(p.aimP ?? 0, -.5, .5);
+  _hgf.set(0, Math.sin(P), Math.cos(P)); _hgx.set(1, 0, 0); _hgu.crossVectors(_hgf, _hgx).normalize();
+  p.bones.upperarm_r.getWorldPosition(_hgs); p.bones.upperarm_l.getWorldPosition(_hgT);
+  _hgo.lerpVectors(_hgs, _hgT, .5);
+  gripAt(p, 'r', _v2.copy(_hgo).addScaledVector(_hgx, -.07 * m2b).addScaledVector(_hgu, .08 * m2b).addScaledVector(_hgf, .24 * m2b), FIST, _v1.set(-1, -1.2, -.2), k, m2b);
+  gripAt(p, 'l', _v2.copy(_hgo).addScaledVector(_hgx, .09 * m2b).addScaledVector(_hgu, .1 * m2b).addScaledVector(_hgf, .33 * m2b), FIST, _v1.set(1, -1.2, -.2), k, m2b);
+}
 function aimArms(p) {
   const k = p.aimK ?? 1, P = p.aimP ?? 0, sy = Math.sin(P), cz = Math.cos(P);
   if (p.hold && crowdFrame - p.holdT <= 2 && GUN_HOLD[p.hold]) return;   // 持槍姿勢在 poseOne 最後做（gunPose）
+  if (p.guard && p.sm) { guardArms(p, k); return; }   // 68-gta.js：玩家手上不是槍
   aim(p, 'upperarm_r', -.1, sy, cz, k); aim(p, 'lowerarm_r', -.02, sy, cz, k);
   aim(p, 'upperarm_l', -.42, sy - .32, .85, k); aim(p, 'lowerarm_l', -.8, sy * .6 + .05, .6, k);
 }
-// 車內射擊：右臂整隻沿瞄準方向伸直（p.dbDir 是角色空間的方向，69-combat.js 的 driveByPlace 每幀設定）
-function driveByArm(p) { const [x, y, z] = p.dbDir; aim(p, 'upperarm_r', x, y + .4, z); aim(p, 'lowerarm_r', x, y + .08, z); }   // 上臂往上抬，從窗框上伸出去
+// 車內射擊（p.dbDir 是角色空間的方向，69-combat.js 的 driveByPlace 每幀設定）：右手握槍從右肩沿瞄準方向伸出 0.5 m、略往上
+// （從窗框上伸出去，槍由 holdAt 照手腕擺），左手 IK 握在方向盤上；機車兩手都在把手上，只伸右手
+function driveByArm(p, bike) {
+  if (!p.sm) return;
+  const [x, y, z] = p.dbDir, m2b = 1 / (p.m2b ||= V3().setFromMatrixScale(p.sm.matrix).x);
+  _hgf.set(x, y, z).normalize(); _hgx.set(_hgf.z, 0, -_hgf.x).normalize(); _hgu.crossVectors(_hgf, _hgx).normalize();
+  p.bones.upperarm_r.getWorldPosition(_hgs); p.bones.upperarm_l.getWorldPosition(_hgT);
+  gripAt(p, 'r', _hgo.copy(_hgs).addScaledVector(_hgf, .5 * m2b).addScaledVector(_v2.set(0, 1, 0), .08 * m2b), HAND.grip, _v1.set(-1, -1.1, -.3), 1, m2b);
+  if (bike) return;
+  _hgf.set(0, .4, 1).normalize(); _hgx.set(1, 0, 0); _hgu.crossVectors(_hgf, _hgx).normalize();
+  gripAt(p, 'l', _hgo.copy(_hgT).addScaledVector(_v2.set(-.14, -.3, .36), m2b), HAND.gripL, _v1.set(.5, -1.2, 0), 1, m2b);
+}
 const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const frac = x => x - Math.floor(x);
 // 動畫庫沒有的動作：t 是相位時間、b 是拍點
@@ -337,7 +365,7 @@ const OVR = {
     aim(p, 'spine_01', 0, .82, .55); aim(p, 'neck_01', 0, .9, .45);
     aim(p, 'upperarm_l', .3, -.3, .9); aim(p, 'upperarm_r', -.3, -.3, .9);
     aim(p, 'lowerarm_l', -.05, -.45, 1); aim(p, 'lowerarm_r', .05, -.45, 1);
-    if (p.dbDir) driveByArm(p);
+    if (p.dbDir) driveByArm(p, true);
   },
   // 車內射擊：腿往前伸平（收在儀表板下，免得腳從車底露出來）
   [ANIM.driveBy]: p => {
@@ -586,7 +614,7 @@ pedState.forEach((ps, k) => { const h = (k * .6180339887 + .31) % 1; ps.shy = ps
 const PED_AWAY = 2e4;
 function updatePeds(dt) {
   let u = 0;
-  const ppx = pX(), ppz = pZ(), share = 1 - .5 * clamp((wx.rain - .1) / .8, 0, 1);
+  const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare();   // 69-turf.js：赤蠍幫的地盤路人少
   pedState.forEach((ps, k) => {
     if (ps.out) { if (ps.shy >= share) return; ps.out = 0; pedRelocate(ps, ppx, ppz); }
     else if (ps.shy >= share && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
@@ -646,7 +674,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 相機的前方 = (sin yaw, cos yaw)；右方 = (-cos, sin)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw), rx = -fz, rz = fx;
   const wx = fx * mz + rx * mx, wz = fz * mz + rz * mx;
-  const aimM = gta.aiming, run = inp.run && ml > .1 && !aimM;
+  const aimM = gta.aiming || gta.guard, run = inp.run && ml > .1 && !aimM;
   // 水深超過 1.25 m 改游泳（離開時 1.05 m，避免在邊界來回切換）；涉水時走慢一點
   const depth = player.where === 'out' ? waterDepth(player.x, player.z) : 0, wasSwim = player.swim;
   player.swim = depth > (player.swim ? 1.05 : 1.25);

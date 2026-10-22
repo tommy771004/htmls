@@ -26,6 +26,7 @@ function onKey(code) {
     if (code === 'Escape') closeDialog();
     return;
   }
+  if (taleKey(code)) return;    // 69-tale.js：委託完成的電話過場
   if (phoneKey(code)) return;   // 69-phone.js：P 開關手機，開著時數字鍵選列、Esc 返回
   if (heistKey(code)) return;   // 69-heist.js：G 引爆金庫門、關掉結算畫面
   if (mapKey(code)) return;     // 91-map.js：地圖開著時的選擇、縮放與導航點

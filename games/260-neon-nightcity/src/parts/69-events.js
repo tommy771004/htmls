@@ -33,10 +33,11 @@ function truckDrive(tk, dt) {
   if (player.veh === v) { tk.state = 'taken'; return; }   // 玩家自己開走了
   if (tk.state !== 'drive' || v.dead) { if (!v.dead) driveVehicle(v, { thr: 0, brk: 1, steer: 0, hb: false }, dt); return; }
   if (tk.k >= tk.route.length) truckRoute(tk);
-  // 目標點往行車方向的右側（這座城市靠右行駛）偏一條車道
+  // 目標點往行車方向的右側（這座城市靠右行駛）偏一條車道；逃犯車被追時三不五時切到對向車道逆向開
+  if (tk.flee && (tk.wrongT = (tk.wrongT ?? 6) - dt) <= 0) { tk.wrong = !tk.wrong && Math.hypot(v.x - pX(), v.z - pZ()) < 90; tk.wrongT = tk.wrong ? 4 + Math.random() * 3 : 7 + Math.random() * 7; }
   const [ax, az] = tk.route[tk.k - 1], [bx, bz] = tk.route[tk.k];
-  const L = Math.hypot(bx - ax, bz - az) || 1, dx = (bx - ax) / L, dz = (bz - az) / L;
-  const tx = bx - dz * LANE, tz = bz + dx * LANE;
+  const L = Math.hypot(bx - ax, bz - az) || 1, dx = (bx - ax) / L, dz = (bz - az) / L, ln = tk.wrong ? -LANE : LANE;
+  const tx = bx - dz * ln, tz = bz + dx * ln;
   if (Math.hypot(tx - v.x, tz - v.z) < 7) { tk.k++; return truckDrive(tk, 0); }
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), vF = v.vx * fx + v.vz * fz;
   const da = wrapA(Math.atan2(tx - v.x, tz - v.z) - v.yaw), ad = Math.abs(da);
@@ -46,7 +47,10 @@ function truckDrive(tk, dt) {
   if (tk.rev > 0) { tk.rev -= dt; thr = 0; brk = 1; steer = -Math.sign(da) || 1; }
   else if (thr > .3 && Math.abs(vF) < 1.2) { tk.stuck += dt; if (tk.stuck > 1.5) { tk.rev = 1.2; tk.stuck = 0; } }
   else tk.stuck = 0;
-  driveVehicle(v, { thr, brk, steer, hb: false }, dt);
+  // 逃犯車轉彎拉手煞甩尾，不太減速
+  const hb = !!tk.flee && ad > .5 && vF > 12;
+  if (hb) { thr = .8; brk = 0; }
+  driveVehicle(v, { thr, brk, steer, hb }, dt);
   v.lights = 1;
 }
 // 69-combat.js 的 blast() 每次爆炸都問這裡：炸在後車門 4 m 內就打開
@@ -68,6 +72,7 @@ function truckOpen(tk, k, mine) {
   if (mine) { addHeat(CRIME.explode, 3); ev.gang = 1; }   // 搶運鈔車：直接 3 星；撿第一袋時赤蠍幫追來（69-squads.js）
   stockShock('IVLT');
   toast(k < 1 ? '運鈔車炸毀了，燒剩的錢袋掉在路上' : '後車門炸開了：撿錢袋');
+  newsAdd(k < 1 ? '鐵庫保全運鈔車遭炸毀' : '鐵庫保全運鈔車遇劫', `${district(...toL(pX(), pZ())).split(' ')[0]}街頭傳出爆炸，現金散落一地，警方封鎖現場。`);
 }
 let bagGeo = null;
 function bagMesh(x, z) {

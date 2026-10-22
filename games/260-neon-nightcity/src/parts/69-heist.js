@@ -10,7 +10,9 @@
 //   drill 走到金庫門口按 E 裝鋁熱鑽機：潛行而且沒有警報就留在大廳顧人質 40 秒；
 //         強攻（或已經響警報）換成 Jax 到銀行門口，4 星守 60 秒
 //   escape 換成背著錢袋的 Vance 從正門出來（強攻 5 星、潛行 2 星），Jax 與 Kael 跟著掩護（69-squads.js），走到 120 m 外的逃亡車；每受 10 點傷害掉 $15,000
-//   drive 上逃亡車後換成 Kael 駕駛，Vance 與 Jax 從車窗打警車；甩掉通緝、開進安全屋的黃圈 → HEIST PASSED：扣掉中彈損失與 Zero 10% 抽成後入帳
+//   drive 上逃亡車後換成 Kael 駕駛，Vance 與 Jax 從車窗打警車；幾秒後兩台「鐵砧」戰車封住往貨場的路口，GPS 改走縫裡的鐵灣高架斷橋，
+//         飛過底下那條連接道路的四台警車就甩開眼前的追兵（最多留 3 星、警察失去視線）；甩掉通緝、開進鐵灣貨場貨櫃安全屋的黃圈
+//         → HEIST PASSED：扣掉中彈損失與 Zero 10% 抽成後入帳
 // 任何階段 WASTED／BUSTED 就失敗，回到 go（籌備與前置保留）。
 // 排在 69-gps 之後、69-market 之前；W、wantedApi 等後面的東西只在函式裡用。
 
@@ -21,6 +23,8 @@ const PLAN = (([x, z]) => ({ x, z }))(toL(CREW[0].home.x, CREW[0].home.z));   //
 const SAFE = (([x, z]) => WP(x, z - SW * .5 - HR + LANE))(toL(CREW[2].home.x, CREW[2].home.z));   // Jax 倉庫門前的車道（世界座標；home 換回邏輯座標再往路上偏）
 const VAN_AT = spotW({ x: avX(0) + PARK, z: stZ(1) + 30, yaw: Math.PI });   // 世界座標
 const CAR_AT = spotW({ x: avX(4) + PARK, z: stZ(4) + 30, yaw: Math.PI });
+const YARD = spotW({ x: avX(5) + PARK, z: stZ(7) - 26, yaw: Math.PI });   // 鐵灣貨場的貨櫃安全屋：逃亡的終點（世界座標）
+const BRIDGE_IN = { x: BROKEN.x - BROKEN.dx * (BROKEN.L + 12), z: BROKEN.z - BROKEN.dz * (BROKEN.L + 12) };   // 斷橋斜坡前的助跑起點
 const HEIST_FEE = 10000, TAKE = { smart: 2000000, loud: 2500000 }, ZERO_CUT = .1;
 const heist = { st: 'off', how: null, t: 0, intim: 100, alarm: false, take: 0, loss: 0, hpPrev: 0, van: null, car: null, mag: 0, warned: 0, objSmall: '' };
 
@@ -133,6 +137,48 @@ function hostStep(dt) {
     if (guard.t > 3) { sfx.gun(.7, 1.3); hostDie(GUARD, g.x - 1.2, g.z - 2.2); }
   }
 }
+// 強攻（或響了警報）時 Jax 在門口守 60 秒：每 12–18 秒有一名人質從正門衝出來往警察那邊跑——瞄準他就趴下，打死扣錢，
+// 跑出 32 m 就把大廳的情形告訴警察（多派一台 SWAT）；警員衝到門口 3.5 m 內就闖進大廳，Vance 擋下來但鑽機慢 6 秒
+const runners = crowd(2);
+scene.add(runners.mesh);
+const runSt = [0, 1].map(k => { runners.look(k, { r: rng(400 + k), glowI: 0 }); runners.place(k, 0, -60, 0, 0); return { k, on: false, st: '', x: 0, z: 0, yaw: 0, t: 0, dx: 0, dz: 1 }; });
+rayHooks.push((R, hit) => { for (const r of runSt) if (r.on && r.st !== 'dead') hit(rayCyl(R, r.x, r.z, .34, .1, r.st === 'run' ? 1.95 : 1.2), 'fn', (dmg, R2, mine) => runnerHit(r, R2, mine)); });
+function runnerHit(r, R, mine) {
+  r.st = 'dead'; r.t = 0; r.yaw = Math.atan2(-R.dx, -R.dz);
+  runners.anim(r.k, ANIM.die, -uTimeNow(), 1);
+  if (mine) { heist.loss += 40000; toast('打死了跑出來的人質：贓款要扣 $40,000'); }
+}
+function runnerOff(r) { r.on = false; runners.place(r.k, 0, -60, 0, 0); }
+function holdStep(dt) {
+  const door = bankAt(0, .8);
+  if ((heist.runOutT -= dt) <= 0) {
+    heist.runOutT = 12 + Math.random() * 6;
+    const r = runSt.find(o => !o.on);
+    if (r) {
+      const a = (Math.random() - .5) * .5, [dx, dz] = dirW(zoneAtL(BANK.x, BANK.z), Math.sin(a), Math.cos(a));
+      Object.assign(r, { on: true, st: 'run', x: door.x, z: door.z, dx, dz, yaw: Math.atan2(dx, dz), t: 0, turn: Math.random() < .5 ? -1 : 1 });
+      toast('有個人質從正門衝出去了：瞄準他，別讓他跑到警察那邊');
+    }
+  }
+  const R = gta.aiming ? aimRay() : null;
+  for (const r of runSt) {
+    if (!r.on) continue;
+    r.t += dt;
+    if (r.st === 'run') {
+      if (R && rayCyl(R, r.x, r.z, .45, .1, 1.95) < 40) { r.st = 'down'; r.t = 0; toast('人質趴在地上不敢動了'); continue; }
+      if (r.turn && Math.hypot(r.x - door.x, r.z - door.z) > 7) { [r.dx, r.dz] = dirW(zoneAtL(BANK.x, BANK.z), r.turn, .15); r.turn = 0; r.yaw = Math.atan2(r.dx, r.dz); }   // 跑到人行道外就沿著街往警察那邊跑
+      const q = collideCircle(r.x + r.dx * 4.6 * dt, r.z + r.dz * 4.6 * dt, .3, false); r.x = q.x; r.z = q.z;
+      runners.place(r.k, r.x, 0, r.z, r.yaw); runners.anim(r.k, ANIM.run, r.t, 1.15);
+      if (Math.hypot(r.x - door.x, r.z - door.z) > 32) { runnerOff(r); heist.leaks = (heist.leaks || 0) + 1; spawnUnit('swat'); toast('人質跑到警察那邊了：SWAT 知道大廳的情形，又來了一台裝甲車'); }
+    } else if (r.st === 'down') { runners.place(r.k, r.x, 0, r.z, r.yaw); runners.anim(r.k, ANIM.kneel, 0, 1); }
+    else if (r.st === 'dead') runners.place(r.k, r.x, 0, r.z, r.yaw);
+  }
+  // 闖進大廳的警員：收掉，鑽機延後
+  for (const c of W.cops) if (c.on && c.state === 'act' && !(c.stunT > 0) && Math.hypot(c.x - door.x, c.z - door.z) < 3.5) {
+    freeCop(c); heist.t += 6; heist.breach = (heist.breach || 0) + 1; sfx.gun(.6, 1.2);
+    toast('警員闖進大廳了：Vance 擋了下來，但鑽機慢了 6 秒');
+  }
+}
 function heistAlarm(why) {
   if (heist.alarm) return;
   heist.alarm = true; sfx.busted(); toast(why);
@@ -178,6 +224,53 @@ VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, n
   outLights.push({ x, y: 4.2, z: z + 2.4, col: lin(0xffd890), r: 9, i: 1.4 });
 }
 
+// ─── 鐵灣高架斷橋（06-roads.js 的 BROKEN）：半截的高架橋、斷口的鋼筋、對面的斷柱與廢棄鐵軌；世界座標 ───
+// 平常也能衝（69-stunt.js 的 JUMPS，不算跳台收集）；逃亡時兩台戰車封路，GPS 改走這裡，飛過去就把眼前的警察甩在後面
+{
+  const B = BROKEN, k = new Kit(), th = Math.atan2(B.H, B.L), sl = Math.hypot(B.H, B.L), rx = B.dz, rz = -B.dx, yaw = B.yaw;
+  const at = (a, b = 0) => [B.x + B.dx * a + rx * b, B.z + B.dz * a + rz * b];
+  const conc = 0x8a857c, dark = 0x4a4740, rust = 0x7a4426;
+  { const [cx, cz] = at(-B.L / 2); k.box(cx, B.H / 2 - .4, cz, B.W, .8, sl, conc, 2, -th, yaw); }   // 橋面
+  for (const s of [-1, 1]) { const [cx, cz] = at(-B.L / 2, s * (B.W / 2 - .2)); k.box(cx, B.H / 2 + .45, cz, .4, .9, sl, conc, 2, -th, yaw); }   // 護欄
+  for (const f of [.42, .66, .9]) {   // 橋墩：兩根柱子加帽梁（柱子有碰撞，車開在橋面上時不算）
+    const h = f * B.H - .75;
+    for (const s of [-1, 1]) {
+      const [x, z] = at(-B.L * (1 - f), s * (B.W / 2 - 1.3));
+      k.cyl(x, h / 2, z, .5, .55, h, 14, conc, 2);
+      circles.push({ x, z, r: .55, w: 1, hy: f * B.H - 1.2 });
+    }
+    const [x, z] = at(-B.L * (1 - f)); k.box(x, h - .3, z, B.W - .6, .6, 1.1, dark, 2, 0, yaw);
+  }
+  // 斷口：參差的混凝土塊、往前戳出去的鋼筋、兩盞黃色警示燈
+  for (let i = 0; i < 7; i++) { const b = -B.W / 2 + .55 + i * (B.W - 1.1) / 6, [x, z] = at(.25 + (i % 3) * .3, b); k.box(x, B.H - .45 - (i % 2) * .25, z, 1.05, .55 + (i % 3) * .2, .6 + (i % 2) * .4, conc, 2, (i % 2 ? .25 : -.18), yaw, (i % 3 - 1) * .2); }
+  for (let i = 0; i < 9; i++) { const b = -B.W / 2 + .6 + i * (B.W - 1.2) / 8, L = 1.2 + (i * 7 % 5) * .35, [x, z] = at(.3 + L / 2, b); k.cyl(x, B.H - .55 + (i % 3) * .12, z, .035, .035, L, 6, rust, 15, Math.PI / 2 + (i % 2 ? -.35 : .2), yaw, 0); }
+  for (const s of [-1, 1]) { const [x, z] = at(-.4, s * (B.W / 2 - .2)); k.box(x, B.H + 1.05, z, .3, .3, .3, 0xffa020, 9, 0, yaw); }
+  outLights.push({ ...(([x, z]) => ({ x, z }))(at(-1.5)), y: B.H + 1.6, col: lin(0xffa040), r: 9, i: .9, w: 1 });
+  // 工地留下的兩盞燈：立在護欄上，照著橋面
+  for (const [f, s] of [[.25, 1], [.62, -1]]) {
+    const [x, z] = at(-B.L * (1 - f), s * (B.W / 2 - .2)), y = f * B.H + .9, [hx, hz] = at(-B.L * (1 - f), s * (B.W / 2 - 1.6));
+    k.cyl(x, y + 2, z, .07, .09, 4, 8, dark, 15).box(hx, y + 4, hz, .5, .14, 2.8, dark, 15, 0, yaw + Math.PI / 2).box(hx, y + 3.92, hz, .4, .04, .6, 0xffd0a0, 11, 0, yaw);
+    outLights.push({ x: hx, y: y + 3.8, z: hz, col: lin(0xffc890), r: 15, i: 1.1, w: 1 });
+  }
+  // 斜坡起點兩側的封路告示與倒在地上的三角錐（不擋路）
+  for (const s of [-1, 1]) {
+    const [x, z] = at(-B.L - 1.5, s * (B.W / 2 + 1.4));
+    k.box(x, .7, z, .08, 1.4, .08, dark, 15).box(x, 1.55, z, 1.5, .55, .05, 0xd9b42a, 10, 0, yaw).box(x, 1.55, z + .001, 1.2, .1, .052, 0x1a1a1a, 2, 0, yaw);
+  }
+  // 對面：橋斷掉的另一半只剩兩根斷柱，夾著廢棄的鐵軌
+  for (const s of [-1, 1]) {
+    const [x, z] = at(B.land * .55, s * (B.W / 2 + 2.6));
+    k.cyl(x, 1.7, z, .55, .6, 3.4, 14, conc, 2).box(x, 3.5, z, 1.1, .5, 1.1, conc, 2, .3, yaw, .2);
+    circles.push({ x, z, r: .6, w: 1 });
+  }
+  const r0 = 20, r1 = B.land + 8;
+  for (const s of [-1, 1]) { const [x, z] = at((r0 + r1) / 2, s * .72); k.box(x, .09, z, .09, .14, r1 - r0, rust, 15, 0, yaw); }
+  for (let a = r0; a < r1; a += .8) { const [x, z] = at(a, 0); k.box(x, .03, z, 2.3, .07, .26, 0x3a2e24, 2, 0, yaw); }
+  { const [x, z] = at(r1 + .4); k.box(x, .5, z, 2.2, .5, .4, 0x8a2a1a, 10, 0, yaw); }   // 車擋
+  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
+  colDirty();
+}
+
 // ─── 任務目標與 HUD ───
 function heistMark() {
   const s = heist.st;
@@ -186,7 +279,7 @@ function heistMark() {
   if (s === 'lobby' || s === 'c4') return { name: '金庫', x: VAULT.x, y: 2, z: VAULT.z - .4, where: 'bank' };
   if (s === 'drill') return player.where === 'bank' ? { name: '金庫', x: VAULT.x, y: 2, z: VAULT.z - .4, where: 'bank' } : { name: '銀行門口', ...WP(BANK.x, BANK.z + 2), y: 2.6, where: 'out' };
   if (s === 'escape') return heist.car ? { name: '逃亡車', x: heist.car.x, y: 2, z: heist.car.z, where: 'out' } : null;
-  if (s === 'drive') return { name: '安全屋', x: SAFE.x, y: 1.5, z: SAFE.z, where: 'out' };
+  if (s === 'drive') return heist.amb < 0 && !heist.jumped ? { name: '鐵灣高架斷橋', x: BRIDGE_IN.x, y: 2, z: BRIDGE_IN.z, where: 'out' } : { name: '貨櫃安全屋', x: YARD.x, y: 1.5, z: YARD.z, where: 'out' };
   return null;
 }
 // 90-hud.js 與 69-gps.js 用這個取代 QUEST[quest.n].mk()
@@ -196,9 +289,9 @@ const HEIST_TEXT = {
   go: () => '到中央霓虹銀行門口',
   lobby: () => `壓住大廳的人質（瞄準他們）· Jax 正在裝 C4`,
   c4: () => '按 G 引爆金庫門',
-  drill: () => player.where === 'bank' ? (heist.t > 0 && heist.drilling ? '鑽機運作中：繼續壓住人質' : '到金庫門口按 E 裝鋁熱鑽機') : '以 Jax 守住銀行門口',
+  drill: () => player.where === 'bank' ? (heist.t > 0 && heist.drilling ? '鑽機運作中：繼續壓住人質' : '到金庫門口按 E 裝鋁熱鑽機') : `以 Jax 守住銀行門口${heist.breach ? `（警員闖進 ${heist.breach} 次）` : ''}`,
   escape: () => '帶著錢袋走到逃亡車',
-  drive: () => W.stars ? '甩掉警察' : '開回舊碼頭倉庫分贓',
+  drive: () => heist.amb < 0 && !heist.jumped ? '戰車封路：衝上鐵灣高架斷橋飛過去' + (abil.drive ? '' : '（X 反射駕駛）') : W.stars ? '甩掉警察' : '開進鐵灣貨場的貨櫃安全屋分贓',
 };
 const narrowHud = matchMedia('(max-width:640px)');
 function heistHud() {
@@ -309,6 +402,7 @@ function holdStart() {
     crewLoad(2);
     heistGear(); equip('rifle', true);
     heist.t = 60; heistStage('drill', 60);
+    heist.runOutT = 9; heist.leaks = 0; heist.breach = 0;
     wantedApi.set(4);
     toast('警察包圍銀行了：Jax 守住門口 60 秒');
   });
@@ -334,12 +428,46 @@ function getawayEnter() {
   heistFade(() => {
     const s = crew.st[1]; s.x = v.x; s.z = v.z; s.yaw = v.yaw;
     crewLoad(1); enterVehicle(v);
+    heist.amb = 3.5; heist.jumped = false; clearSpot(YARD.x, YARD.z, 8);
     heistStage('drive');
-    toast('Kael 開車：甩掉警察，回舊碼頭倉庫');
+    toast('Kael 開車：甩掉警察，開到鐵灣貨場的貨櫃安全屋');
   });
+}
+// 逃亡途中的封鎖：往貨場那條路上 70 m 外的路口橫兩台戰車；斷橋底下那條連接道路停四台警車。GPS 改指向斷橋
+function heistAmbush() {
+  heist.amb = -1;
+  const v = player.veh || { x: pX(), z: pZ() }, R = routeTo(v.x, v.z, YARD.x, YARD.z);
+  let node = null, prev = null;
+  for (const [x, z] of R) {
+    const n = rnNearest(x, z);
+    if (Math.hypot(n.x - x, n.z - z) < 1 && Math.hypot(x - v.x, z - v.z) > 70 && Math.hypot(x - YARD.x, z - YARD.z) > 40) { node = n; break; }
+    prev = [x, z];
+  }
+  if (node && prev) {
+    const ix = prev[0] - node.x, iz = prev[1] - node.z, l = Math.hypot(ix, iz) || 1, hx = ix / l, hz = iz / l, across = Math.atan2(hx, hz) + Math.PI / 2;
+    for (const s of [-1, 1]) {
+      const u = spawnUnit('tank', { x: node.x + hx * (HR + 7) - hz * s * 3.4, z: node.z + hz * (HR + 7) + hx * s * 3.4, yaw: across + (s > 0 ? Math.PI : 0) });
+      if (u) u.heist = 1;
+    }
+  }
+  const e = BROKEN.road;
+  for (const [o, side] of [[-7, 1], [-1, -1], [5, 1], [11, -1]]) {
+    const [x, z, hx, hz] = edgeAt(e, e.len / 2 + o), u = spawnUnit(null, { x: x - hz * side * 2.6, z: z + hx * side * 2.6, yaw: Math.atan2(hx, hz) + side * .5 });
+    if (u) { u.heist = 1; u.crew = 0; }   // 空車排成的封鎖線，人都在別處（不會下車、也不算視線）
+  }
+  toast('兩台「鐵砧」戰車封住了往貨場的路口：GPS 改走鐵灣高架斷橋，用反射駕駛衝過去');
+}
+// 69-stunt.js 的 stuntLand：從斷橋飛下來（逃亡中第一次飛過那條路）就把眼前的警察甩在後面
+function brokenLanded(v, dist, wreck) {
+  if (heist.st !== 'drive' || heist.jumped || dist < 26) return;
+  heist.jumped = true;
+  if (W.stars > 3) { W.stars = 3; W.heat = Math.min(W.heat, 300); hudCache.wanted = ''; }
+  if (W.stars) { W.seen = false; W.evade = 0; W.visT = 1.2; W.lkp = { x: BRIDGE_IN.x, z: BRIDGE_IN.z }; }
+  toast(wreck ? '摔得很慘，但警察被甩在斷橋另一頭了' : '飛過去了！警察被擋在斷橋另一頭：甩掉剩下的通緝');
 }
 function heistFail(why) {
   heist.busy = false;
+  for (const r of runSt) runnerOff(r);
   if (heist.car) { if (player.veh !== heist.car && vehicles.includes(heist.car)) dropVehicle(heist.car); heist.car = null; }
   heist.drilling = false;
   heistStage('go');
@@ -348,8 +476,10 @@ function heistFail(why) {
 function heistPass() {
   const take = heist.take, loss = Math.min(heist.loss, take), cut = Math.round((take - loss) * ZERO_CUT), net = take - loss - cut;
   heistStage('off');
+  for (const r of runSt) runnerOff(r);
   if (heist.car) { exitVehicle(); heist.car = null; }
   motors.cash += net; saveMotors();
+  newsAdd(`中央霓虹銀行遭搶 ${money(take)}`, `蒙面搶匪炸開金庫${heist.jumped ? '，逃亡車飛越鐵灣高架斷橋' : ''}，警方至今仍未掌握去向。`);
   $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ['駭客 Zero 分紅（10%）', '−' + money(cut)], ['最終實得淨利', money(net)], ['三位主角各得', money(Math.floor(net / 3))]].map(([a, b], i) => `<dt${i === 3 ? ' class="net"' : ''}>${a}</dt><dd${i === 3 ? ' class="net"' : ''}>${b}</dd>`).join('');
   $('heistDone').querySelector('b').textContent = 'HEIST PASSED'; $('heistDone').querySelector('small').textContent = '中央霓虹銀行';   // 69-side.js 的 sideDone 也用這個畫面
   $('heistDone').classList.add('on'); heist.doneT = 7; sfx.ability(true);
@@ -365,6 +495,8 @@ $('heistDone').addEventListener('click', () => $('heistDone').classList.remove('
 
 function heistUpdate(dt) {
   if (heist.doneT > 0 && (heist.doneT -= slowmo.raw) <= 0) $('heistDone').classList.remove('on');
+  if (heist.st === 'drive') { heist.ring ||= neonRing(0xffcc4d, 4.5); ringAt(heist.ring, YARD.x, YARD.z, 0, 1); }   // 貨櫃安全屋的黃圈（69-side.js）
+  else if (heist.ring) heist.ring.visible = false;
   if (vaultDoor.userData.open && vaultDoor.rotation.y > -1.9) vaultDoor.rotation.y -= dt * 1.4;
   const s = heist.st;
   if (s === 'off' || s === 'plan' || heist.busy) return heistHud();
@@ -391,6 +523,8 @@ function heistUpdate(dt) {
   }
   bankCrewStep();
   if (s === 'lobby' && (heist.t -= dt) <= 0) { heistStage('c4'); toast('Jax：C4 裝好了，按 G'); }
+  if (s === 'drill' && heist.drilling && player.where === 'out') holdStep(dt);
+  else for (const r of runSt) if (r.on && s !== 'escape') runnerOff(r);
   if (s === 'drill' && heist.drilling && (heist.t -= dt) <= 0) escapeStart();
   if (s === 'escape') {
     const hp = life.hp + life.armor;
@@ -400,8 +534,9 @@ function heistUpdate(dt) {
   }
   if (s === 'drive') {
     const v = player.veh;
+    if (heist.amb > 0 && (heist.amb -= dt) <= 0) heistAmbush();
     if (player.mode !== 'drive' || !v) { /* 下車了：再上任何一台車都行 */ }
-    else if (Math.hypot(v.x - SAFE.x, v.z - SAFE.z) < 8) {
+    else if (Math.hypot(v.x - YARD.x, v.z - YARD.z) < 8) {
       if (W.stars) { if (!heist.warned) { heist.warned = 1; toast('先甩掉警察，別把他們帶回倉庫'); } }
       else if (Math.hypot(v.vx, v.vz) < 4) heistPass();
     } else heist.warned = 0;
@@ -410,4 +545,4 @@ function heistUpdate(dt) {
 }
 
 // 測試 API（window.__nc.gta.heist）
-const heistApi = { heist, hostSt, BANK, PLAN, SAFE, VAN_AT, CAR_AT, run: (k, kael = false) => { const h = hostSt[k]; h.st = 'run'; h.t = 0; h.c.r = 0; h.kael = kael; }, go: planGo, stage: heistStage, enter: bankEnter, blow: blowVault, drill: drillStart, escape: escapeStart, getaway: getawayEnter, pass: heistPass };
+const heistApi = { heist, hostSt, runSt, hold: holdStep, BANK, PLAN, SAFE, YARD, BRIDGE_IN, BROKEN, VAN_AT, CAR_AT, ambush: heistAmbush, mark: heistMark, run: (k, kael = false) => { const h = hostSt[k]; h.st = 'run'; h.t = 0; h.c.r = 0; h.kael = kael; }, go: planGo, stage: heistStage, enter: bankEnter, blow: blowVault, drill: drillStart, escape: escapeStart, getaway: getawayEnter, pass: heistPass };
