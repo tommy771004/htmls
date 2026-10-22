@@ -249,9 +249,10 @@ function step(dt) {
     const vmax0 = v.vmax, eng0 = v.eng;
     if (nitro.on) { v.vmax *= 1.25; v.eng *= 1.6; }
     const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
+    if (player.where === 'out') { v.grip *= 1 - .3 * wx.wet; v.brkK = 1 - .2 * wx.wet; }   // 濕路面（28-sky.js 的 wx.wet）：側向抓地少三成、煞車距離變長
     const r = v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 69-stunt.js：跳台斜面與飛行
     if (!v.air) stuntGround(v, r.vF);
-    v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1;
+    v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1; v.brkK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
     gta.lastImp = r.imp;
     spd = Math.abs(r.vF) * 3.6;
@@ -284,7 +285,7 @@ function step(dt) {
   (step.lastCam ||= V3()).copy(camera.position);
   pickLights(t);
   if (player.where === 'out') occUpdate();   // 28-sky.js：車與行人在地上的陰影
-  if (player.where === 'out') { distCull(camera.position.x, camera.position.z); instUpdate(camera.position.x, camera.position.z); bldUpdate(); coastModelsUpdate(); }   // 遠處的立面、建築與設施不畫；走近才下載的建築組
+  if (player.where === 'out') { distCull(camera.position.x, camera.position.z); instUpdate(camera.position.x, camera.position.z); bldUpdate(); coastModelsUpdate(); w1Update(); }   // 遠處的立面、建築與設施不畫；走近才下載的建築組
   const ctx = started && !dlg.open && !fading ? contextAction() : null;
   const pr = $('prompt');
   if (ctx) { pr.classList.add('on'); setText('promptKey', ctx.key); if (hudCache.promptText !== ctx.text) { hudCache.promptText = ctx.text; $('promptText').innerHTML = ctx.text; } }
@@ -343,7 +344,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi }),
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },

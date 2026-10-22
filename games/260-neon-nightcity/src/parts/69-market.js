@@ -93,14 +93,15 @@ const ESTATES = [
   { id: 'lazarus', name: 'LAZARUS 夜店', price: 250000, rate: 2400, cap: 48000 },
   { id: 'afterglow', name: 'AFTERGLOW 酒吧', price: 120000, rate: 1100, cap: 22000 },
   { id: 'chrome', name: 'CHROME WORKS 改裝廠', price: 180000, rate: 1700, cap: 34000 },
-  // 安全屋（69-safehouse.js）：沒有收入，買了可以進去睡覺存檔
-  { id: 'loft', name: '冠石頂層公寓', price: 380000, rate: 0, cap: 0, home: true },
-  { id: 'villa', name: '雲杉坡崖邊別墅', price: 600000, rate: 0, cap: 0, home: true },
-  // 第三輪：島上辦公室是安全屋，也有收入（在辦公桌或手機收）；其他三間只是安全屋
+  // 安全屋（69-safehouse.js）：買了可以進去睡覺存檔；不在家時短租出去，租金照售價約 0.16%／遊戲小時存進保險箱（進門時自動收下，或用手機收）
+  { id: 'loft', name: '冠石頂層公寓', price: 380000, rate: 600, cap: 12000, home: true },
+  { id: 'villa', name: '雲杉坡崖邊別墅', price: 600000, rate: 950, cap: 19000, home: true },
+  // 第三輪：島上辦公室的收入是生意（在辦公桌或手機收），其他三間一樣是短租
   { id: 'office', name: '灰鷗島辦公室', price: 520000, rate: 900, cap: 18000, home: true },
-  { id: 'mini', name: '楓林里迷你閣樓', price: 160000, rate: 0, cap: 0, home: true },
-  { id: 'l16', name: '琥珀和室 Loft', price: 340000, rate: 0, cap: 0, home: true },
-  { id: 'i14', name: '公園大道白色大宅', price: 480000, rate: 0, cap: 0, home: true },
+  { id: 'mini', name: '楓林里迷你閣樓', price: 160000, rate: 260, cap: 5200, home: true },
+  { id: 'l16', name: '琥珀和室 Loft', price: 340000, rate: 540, cap: 10800, home: true },
+  { id: 'i14', name: '公園大道白色大宅', price: 480000, rate: 760, cap: 15200, home: true },
+  { id: 'lr', name: '珊瑚灘清水模公寓', price: 220000, rate: 350, cap: 7000, home: true },
 ];
 const GAME_HOUR = 150;   // 90-hud.js 的時鐘：遊戲裡一分鐘 = 2.5 秒
 // motors.props = { own: [id], safe: {id: 金額} }

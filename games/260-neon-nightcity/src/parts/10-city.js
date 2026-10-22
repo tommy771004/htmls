@@ -86,7 +86,8 @@ const CAPES = (() => {
   for (const h of list) {
     const xs = h.pts.map(p => p[0]), zs = h.pts.map(p => p[1]);
     h.bb = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
-    h.inn = polyInset(h.pts, h.wet.map(w => w ? 4.5 : 0));   // 種樹的範圍：離水邊 4.5 m（燈在 1.2 m）
+    h.inn = polyInset(h.pts, h.wet.map(w => w ? 6 : 0));   // 種樹的範圍：離水邊 6 m
+    h.walk = [1, 3.4].map(d => polyInset(h.pts, h.wet.map(w => w ? d : 0)));   // 沿水邊的碎石步道（離水邊 1–3.4 m；燈在 0.6 m、長椅在 4 m）
   }
   return list;
 })();
@@ -273,11 +274,12 @@ const bldPlace = [];   // { set, id, x, z, ry, s, lots }
 if (BLD_ON) {
   const rb = rng(5150), pool = {};
   for (const [set, v] of Object.entries(PROPS_SPEC)) if (set.startsWith('bld_')) pool[set] = Object.entries(v.items).map(([id, it]) => ({ id, ...it }));
-  const SETS = { 紅磚: ['bld_brown', 'bld_brown', 'bld_mid'], 舊碼: ['bld_ind', 'bld_ind', 'bld_brown'], 中城: ['bld_down', 'bld_down', 'bld_brown'], 霓虹: ['bld_brown', 'bld_down'],
-    冠石: ['bld_down'], 雲杉: ['bld_res', 'bld_brown', 'bld_res', 'bld_mid'], 鐵灣: ['bld_ind'],
-    光環: ['bld_down', 'bld_down', 'bld_mid'], 灰石: ['bld_grey', 'bld_grey', 'bld_mid'], 楓林: ['bld_res', 'bld_shop', 'bld_brown', 'bld_mid'], 公園: ['bld_brown', 'bld_res', 'bld_down'],
-    琥珀: ['bld_ind', 'bld_ind', 'bld_grey'], 珊瑚: ['bld_shop', 'bld_shop', 'bld_brown'], 錨灣: ['bld_ind'] };
-  const PROB = { 紅磚: .6, 舊碼: .55, 中城: .55, 霓虹: .22, 冠石: .3, 雲杉: .55, 鐵灣: .7, 光環: .35, 灰石: .6, 楓林: .55, 公園: .5, 琥珀: .65, 珊瑚: .6, 錨灣: .7 };
+  // World 第四輪：bld_grc（各區的辦公樓與公寓）、bld_w1（舊辦公樓、清水模板樓）、bld_rural（海邊的木屋與小店）也加進來
+  const SETS = { 紅磚: ['bld_brown', 'bld_brown', 'bld_mid', 'bld_grc'], 舊碼: ['bld_ind', 'bld_ind', 'bld_brown', 'bld_w1'], 中城: ['bld_down', 'bld_down', 'bld_brown', 'bld_grc', 'bld_grc'], 霓虹: ['bld_brown', 'bld_down'],
+    冠石: ['bld_down', 'bld_grc'], 雲杉: ['bld_res', 'bld_brown', 'bld_res', 'bld_mid'], 鐵灣: ['bld_ind', 'bld_ind', 'bld_rural'],
+    光環: ['bld_down', 'bld_mid', 'bld_grc', 'bld_grc', 'bld_w1'], 灰石: ['bld_grey', 'bld_grey', 'bld_mid', 'bld_w1', 'bld_grc'], 楓林: ['bld_res', 'bld_shop', 'bld_brown', 'bld_mid', 'bld_grc'], 公園: ['bld_brown', 'bld_res', 'bld_down', 'bld_grc'],
+    琥珀: ['bld_ind', 'bld_ind', 'bld_grey', 'bld_w1', 'bld_rural'], 珊瑚: ['bld_shop', 'bld_shop', 'bld_brown', 'bld_rural', 'bld_rural'], 錨灣: ['bld_ind', 'bld_rural', 'bld_rural'] };
+  const PROB = { 紅磚: .6, 舊碼: .55, 中城: .6, 霓虹: .22, 冠石: .4, 雲杉: .55, 鐵灣: .7, 光環: .5, 灰石: .65, 楓林: .6, 公園: .55, 琥珀: .7, 珊瑚: .65, 錨灣: .75 };
   wholeBlocks(pool);
   const rows = new Map();
   for (const L of lots) { if (L.back) continue; const k = blocks.indexOf(L.b) + '|' + L.face + '|' + L.axis; if (!rows.has(k)) rows.set(k, []); rows.get(k).push(L); }
@@ -327,7 +329,13 @@ function wholeBlocks(pool) {
     ...Array.from({ length: 14 }, (_, k) => [9 + k % 4, 1 + Math.floor(k / 4), ['cyber_' + String(k + 1).padStart(2, '0')]]),
     [11, 4, ['fin_07']], [12, 4, ['fin_09']], [9, 5, ['fin_05', 'fin_08']],
     [15, 2, ['grey_18']], [18, 1, ['grey_18']], [16, 5, ['grey_18']], [19, 4, ['grey_31']], [14, 6, ['grey_30']],   // grey_31 是 street8 後面那棟港式大板樓、grey_30 是 70 m 的雙層板樓
-    [1, 8, ['nbh_01']], [5, 7, ['nbh_01']], [3, 10, ['nbh_01']], [7, 9, ['nbh_01']], [8, 7, ['nbh_01']], [12, 10, ['nbh_01']]];
+    [1, 8, ['nbh_01']], [5, 7, ['nbh_01']], [3, 10, ['nbh_01']], [7, 9, ['nbh_01']], [8, 7, ['nbh_01']], [12, 10, ['nbh_01']],
+    // World 第四輪：Procedural City 5 的 14 群玻璃高樓（pc5_10 是兩棟連在一起、放不進一個街區）排滿光環廣場的北排與南段、冠石最南一排；
+    // 公園大道面向燈籠公園的是 modern tower（帶廣場）、希臘神廟遺跡（bld_temple，整塊地圍起來不能進去）與 gameready 的兩棟大樓，琥珀工業區一塊是量販店，灰石國宅加上 Tram Station 的板樓與塔樓
+    [9, 0, ['pc5_02']], [10, 0, ['pc5_13']], [11, 0, ['pc5_01']], [12, 0, ['pc5_04']], [10, 5, ['pc5_05']], [11, 5, ['pc5_06']], [12, 5, ['pc5_03']],
+    [9, 6, ['pc5_08']], [10, 6, ['pc5_07']], [11, 6, ['pc5_11']], [12, 6, ['pc5_09']], [5, 4, ['pc5_12']], [6, 4, ['pc5_14']], [7, 4, ['pc5_15']],
+    [10, 7, ['tower']], [9, 7, ['temple']], [9, 10, ['grc_13']], [11, 10, ['grc_01']], [17, 9, ['pet']],
+    [14, 1, ['tram_05']], [17, 4, ['tram_05']], [19, 6, ['tram_05']], [16, 0, ['tram_03']], [18, 3, ['tram_03']], [13, 4, ['tram_04']]];
   const AW = P - 2 * HR - 2 * SW, AD = Q - 2 * HR - 2 * SW;
   for (const [bi, bj, ids] of PLAN) {
     const b = blocks.find(o => o.i === bi && o.j === bj && !o.outer), its = ids.map(id => by[id]);
@@ -968,6 +976,21 @@ function zoneClip(x0, x1, z0, z1) {
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.computeBoundingSphere();
   groundAdd(new T.Mesh(g, seamMat), null);
+  // 岬角沿水邊的碎石步道：草地 shader 的小徑顏色鋪滿，蓋在草地上
+  const walkMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
+    side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const wp = [], wn = [];
+  for (const h of CAPES) {
+    const [A, B] = h.walk, n = h.pts.length;
+    for (let k = 0; k < n; k++) {
+      if (!h.wet[k]) continue;
+      const k1 = (k + 1) % n;
+      for (const v of [A[k], B[k], B[k1], A[k], B[k1], A[k1]]) { wp.push(v[0], .003, v[1]); wn.push(0, 1, 0); }
+    }
+  }
+  const wg = new T.BufferGeometry();
+  wg.setAttribute('position', new T.Float32BufferAttribute(wp, 3)); wg.setAttribute('normal', new T.Float32BufferAttribute(wn, 3)); wg.computeBoundingSphere();
+  groundAdd(new T.Mesh(wg, walkMat), null);
   const vs = GROUND_VS.replace('uniform mat4 uReflMat;', 'uniform mat4 uReflMat;\nattribute vec2 aUV, aAx;').replace('vL = position.xz; vAx = normalize((modelMatrix * vec4(1., 0., 0., 0.)).xz);', 'vL = aUV; vAx = aAx;');
   const fs = ROAD_FS.replace(/float ia = [^\n]*\n\s*float js = [^\n]*\n\s*bool onA = [^\n]*\n/, 'float dx = p.x, dz = 40.;\n  bool onA = true, onS = false;\n');
   if (vs === GROUND_VS || fs === ROAD_FS) throw new Error('connector shader patch failed');

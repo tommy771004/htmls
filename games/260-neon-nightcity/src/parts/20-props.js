@@ -3,7 +3,9 @@
 await bootStep(BOOT.props, '擺放街道與招牌…');
 const _o = new T.Object3D();
 // 清單是邏輯座標（t.zn 給了就用那一區，否則看位置在哪一區）：每個 instance 的矩陣換成世界座標，InstancedMesh 本身掛在 scene
-function instanced(geo, mat, list, layer = 0, extra) {
+// R：只送相機附近幾公尺內的實例（預設 INST_R；面數多的模型，例如 27-props 檔尾的樹，給小一點）。
+// stream.R0：近處這幾公尺內的不送（27-props 檔尾換成模型後，程式建模的樹只畫在模型的範圍外，當遠景）
+function instanced(geo, mat, list, layer = 0, extra, R) {
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
   const wx = new Float32Array(list.length), wz = new Float32Array(list.length);
   list.forEach((t, k) => {
@@ -19,17 +21,17 @@ function instanced(geo, mat, list, layer = 0, extra) {
   m.computeBoundingSphere();
   m.layers.set(layer);
   scene.add(m);
-  if (list.length > 160) instStreamAdd(m, wx, wz);
+  if (list.length > 160 || R) instStreamAdd(m, wx, wz, R);   // 有給 R 就一定串流（數量少但面數多的模型）
   return m;
 }
 // 20×15 的城市有幾千盞路燈、上千個號誌：數量多的設施只把相機附近 INST_R 內的那幾個搬到 instance 緩衝區前段畫（相機移動 12 m 重排一次）。
 // 原始矩陣與 instance 屬性另存一份；之後要改某一個（打爛電訊箱）用 instSet，依編號更新號誌燈號用 m.userData.map（緩衝區位置 → 原始編號）。
 const INST_R = 380, instStreams = [];
-function instStreamAdd(m, xs, zs) {
+function instStreamAdd(m, xs, zs, R = INST_R) {
   const n = xs.length, attrs = Object.entries(m.geometry.attributes).filter(([, a]) => a.isInstancedBufferAttribute).map(([k, a]) => ({ a, src: a.array.slice(0, n * a.itemSize) }));
-  const S = { m, n, mtx: m.instanceMatrix.array.slice(0, n * 16), xs, zs, attrs, cx: 1e9, cz: 1e9, dirty: true };
+  const S = { m, n, mtx: m.instanceMatrix.array.slice(0, n * 16), xs, zs, attrs, cx: 1e9, cz: 1e9, dirty: true, R };
   m.userData.map = new Int32Array(n); m.userData.stream = S;
-  m.boundingSphere = new T.Sphere(V3(), INST_R + 30);
+  m.boundingSphere = new T.Sphere(V3(), R + 30);
   instStreams.push(S);
 }
 // mtx 是世界座標
@@ -42,10 +44,11 @@ function instUpdate(cx, cz) {
   for (const S of instStreams) {
     if (!S.dirty && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
     S.dirty = false; S.cx = cx; S.cz = cz;
-    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = INST_R * INST_R;
+    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = S.R * S.R, R02 = (S.R0 || 0) ** 2;
     let c = 0;
     for (let k = 0; k < S.n; k++) {
-      if ((S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2 > R2) continue;
+      const d2 = (S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2;
+      if (d2 > R2 || d2 < R02) continue;
       for (let e = 0; e < 16; e++) dst[c * 16 + e] = mtx[k * 16 + e];
       for (const { a, src } of S.attrs) for (let e = 0; e < a.itemSize; e++) a.array[c * a.itemSize + e] = src[k * a.itemSize + e];
       map[c++] = k;
@@ -283,10 +286,46 @@ for (const b of blocks) {
   }
 }
 for (const t of trees) if (!t.park) grates.push({ x: t.x, z: t.z, y: .155 });
-instanced(new Kit()
+// World 第四輪之二：只有換成模型時才擺的東西（人行道的報紙箱、燈籠公園步道旁的長椅與草地上的野餐桌、樹下的灌木）。
+// 用自己的亂數（不動 rnd() 的序列）；兩種開啟方式都先 claim，之後的設施擺放一樣；碰撞等模型下載好才加（27-props.js 檔尾）
+const newsBoxes = [], parkSeats = [], shrubs = [];
+{
+  const r = rng(2602);
+  for (const s of sideSpots) if (r() < .045 && free(s.x, s.z, .6)) { newsBoxes.push({ ...s, y: .15 }); claim(s.x, s.z, .6); }
+  for (const b of blocks) {
+    if (b.outer || !b.park) continue;
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+    // 長椅：十字步道兩側、兩盞燈籠中間，面向步道（模型正面朝 +z）
+    for (const [ax, a0, a1] of [['x', b.x0 + SW + 2, b.x1 - SW - 2], ['z', b.z0 + SW + 2, b.z1 - SW - 2]]) {
+      let k = 0;
+      for (let a = a0 + 6.5; a < a1 - 4; a += 9, k++) {
+        if (Math.abs(a - (ax === 'x' ? cx : cz)) < 6 || r() < .35) continue;
+        const side = k % 2 ? -1 : 1, x = ax === 'x' ? a : cx + side * 2.9, z = ax === 'x' ? cz + side * 2.9 : a;
+        if (!free(x, z, 1.1)) continue;
+        parkSeats.push({ kind: 'bench', x, z, y: .15, ry: ax === 'x' ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2), ax }); claim(x, z, 1.1);
+      }
+    }
+    // 野餐桌：草地上找空位，每座公園最多四張
+    for (let n = 0, tries = 0; n < 4 && tries < 40; tries++) {
+      const x = lerp(b.x0 + SW + 5, b.x1 - SW - 5, r()), z = lerp(b.z0 + SW + 5, b.z1 - SW - 5, r());
+      if (Math.abs(x - cx) < 4.5 || Math.abs(z - cz) < 4.5 || !free(x, z, 2)) continue;
+      parkSeats.push({ kind: 'picnic', x, z, y: .15, ry: Math.floor(r() * 4) * Math.PI / 2 }); claim(x, z, 2); n++;
+    }
+  }
+  // 公園、縫與岬角的樹下：兩三株玉簪或蕨（裝飾，沒有碰撞）
+  for (const t of trees) {
+    if (!t.park || r() > .5) continue;
+    for (let n = 2 + Math.floor(r() * 2); n > 0; n--) {
+      const a = r() * 6.3, d = 1 + r() * 1.4;
+      shrubs.push({ x: t.x + Math.cos(a) * d, z: t.z + Math.sin(a) * d, y: t.y || 0, ry: r() * 6.3, s: .8 + r() * .6, zn: t.zn, kind: Math.floor(r() * 3) });
+    }
+  }
+}
+// World 第四輪之二（27-props.js 檔尾）：以 http(s) 開啟時把下面幾種換成 Sketchfab 模型，所以留住程式建模的網格（下載好才拿掉）
+const hydrantMesh = instanced(new Kit()
   .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)
   .cyl(0, .4, 0, .05, .05, .42, 6, 0x9a9a9a, 3, 0, 0, Math.PI / 2).build(), MAT.uber, hydrants, LY.NOREFL);
-instanced(new Kit()
+const binMesh = instanced(new Kit()
   .cyl(0, .48, 0, .3, .26, .96, 12, 0x2f3a33, 15).cyl(0, .98, 0, .32, .32, .06, 12, 0x232a26, 15).build(), MAT.uber, bins, LY.NOREFL);
 // 電訊箱（69-market.js 射擊、撞爛）：執行時用世界座標，和換過的碰撞圓柱同一個算法，69-market 才比對得到
 worldHooks.push(() => { for (const b of boxesN) { [b.x, b.z] = toW(b.x, b.z); } });
@@ -294,10 +333,11 @@ const boxesMesh = instanced(new Kit()   // 藍色電訊箱：69-market.js 打爛
   .box(0, .62, 0, .5, .9, .45, 0x1c4f9a, 10).box(0, 1.1, 0, .5, .08, .45, 0x163f7a, 10).box(0, .7, -.23, .38, .3, .02, 0xeeeeee, 11)
   .box(.18, .1, 0, .04, .2, .4, 0x222222, 15).box(-.18, .1, 0, .04, .2, .4, 0x222222, 15).build(), MAT.uber, boxesN, LY.NOREFL);
 instanced(new Kit().cyl(0, .45, 0, .1, .11, .9, 10, 0x34383d, 15).cyl(0, .82, 0, .115, .115, .06, 10, 0xd8a020, 10).build(), MAT.uber, bollards, LY.NOREFL);
-instanced(new Kit()
+const boothMesh = instanced(new Kit()
   .box(0, 1.15, 0, .9, 2.3, .9, 0x1d2a2a, 15).box(0, 1.3, -.46, .7, 1.5, .02, 0x88aaaa, 1).box(0, 2.18, -.46, .7, .16, .03, 0x7fe7ff, 8)
   .box(0, 2.35, 0, .96, .1, .96, 0x121818, 15).build(), MAT.uber, booths);
 instanced(new Kit().box(0, 0, 0, 1.3, .02, 1.3, 0x14130f, 15).build(), MAT.uber, grates, LY.NOREFL);
+let treeMesh;
 { // 行道樹：幾團變形的二十面體葉團
   const k = new Kit(); const r2 = rng(5);
   k.cyl(0, 2.1, 0, .1, .17, 4.2, 8, 0x3a2c20, 2);
@@ -311,7 +351,7 @@ instanced(new Kit().box(0, 0, 0, 1.3, .02, 1.3, 0x14130f, 15).build(), MAT.uber,
     const col = new T.Color().setHSL(.24 + r2() * .06, .45, .2 + r2() * .08);
     k.add(g, col, 2, tf(Math.cos(a) * rr, 4.9 + r2() * 1.3 + (i === 0 ? .8 : 0), Math.sin(a) * rr));
   }
-  instanced(k.build(), MAT.uber, trees);
+  treeMesh = instanced(k.build(), MAT.uber, trees);
 }
 
 // ─── 窗型冷氣、逃生梯、水塔、屋頂設備 ───

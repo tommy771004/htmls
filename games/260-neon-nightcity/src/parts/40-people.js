@@ -491,10 +491,18 @@ function pedRelocate(ps, px, pz) {
     return;
   }
 }
+// 下雨天路人變少：雨越大，越多人躲進室內（沒帶傘的先走）。只在離玩家 55 m 外消失、出現，放到遠處就不會被撞、被瞄準或當目擊者
+pedState.forEach((ps, k) => { const h = (k * .6180339887 + .31) % 1; ps.shy = ps.um0 ? h * .6 : .4 + h * .6; });
+const PED_AWAY = 2e4;
 function updatePeds(dt) {
   let u = 0;
-  const ppx = pX(), ppz = pZ();
+  const ppx = pX(), ppz = pZ(), share = 1 - .5 * clamp((wx.rain - .1) / .8, 0, 1);
   pedState.forEach((ps, k) => {
+    if (ps.out) { if (ps.shy >= share) return; ps.out = 0; pedRelocate(ps, ppx, ppz); }
+    else if (ps.shy >= share && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
+      const p = peds.people[k];
+      if ((p.x - ppx) ** 2 + (p.z - ppz) ** 2 > 55 * 55) { ps.out = 1; peds.place(k, PED_AWAY, -50, PED_AWAY, 0); return; }
+    }
     if (!ps.fsm && !(ps.down > 0) && !(ps.panic > 0) && (blkW(ps.b)[0] - ppx) ** 2 + (blkW(ps.b)[1] - ppz) ** 2 > 230 * 230) pedRelocate(ps, ppx, ppz);
     // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
     // 69-combat.js：被槍指著投降、抱頭蹲下、脾氣差的人反擊（pedFsm 接手這一幀就 return）

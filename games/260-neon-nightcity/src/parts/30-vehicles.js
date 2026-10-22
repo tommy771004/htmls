@@ -516,7 +516,7 @@ function driveVehicle(v, inp, dt) {
   v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1), inp.steer ? 6 : 9, dt);
   let aF = 0;
   if (inp.thr > 0) aF += v.eng * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);
-  if (inp.brk > 0) aF += vF > .8 ? -16 * inp.brk : -6 * inp.brk * (vF > -9 ? 1 : 0);
+  if (inp.brk > 0) aF += vF > .8 ? -16 * inp.brk * (v.brkK || 1) : -6 * inp.brk * (vF > -9 ? 1 : 0);
   aF -= vF * .12 + Math.sign(vF) * .35;
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;

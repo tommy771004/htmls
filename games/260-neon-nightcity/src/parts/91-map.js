@@ -38,6 +38,7 @@ const MAP_CAT = [
   { id: 'pd', name: '警察局', col: '#6aa0ff', icon: 'pd' },
   { id: 'hosp', name: '醫院', col: '#ff5a5a', icon: 'hosp' },
   { id: 'ramen', name: '拉麵攤', col: '#ff7a52', icon: 'ramen' },
+  { id: 'shop', name: '便利商店', col: '#5ad8ff' },
   { id: 'ramp', name: '特技跳台', col: '#d9b42a', icon: 'ramp' },
 ];
 const MAP_CATS = Object.fromEntries(MAP_CAT.map(c => [c.id, c]));
@@ -56,6 +57,8 @@ function mapBlips() {
   add('dealer', { name: 'VELOCE MOTORS', ...WP(DEAL_X, DEAL_Z + 2), type: '車行', desc: '29 台實車模型，可以看規格、試駕或買下。', tp: 'dealer' });
   add('garage', { name: 'GARAGE 07', ...WP(HOME_X, HOME_Z - 2), type: '私人車庫', desc: '買來的車停在這裡；開著座駕停在門口按 E 停進去。', tp: 'home' });
   for (const id of APT_IDS) { const a = APT[id]; add('safe', est(id, { name: a.name, x: a.doorW.x, z: a.doorW.z, type: '安全屋', desc: `${a.dist}。買下後可以進去睡覺存檔（時間推進 6 小時）。` })); }
+  add('bar', { name: APT.pub.name, x: APT.pub.doorW.x, z: APT.pub.doorW.z, type: '酒館', desc: `${APT.pub.dist}的木造老酒館，不用買就能進去。` });
+  add('shop', { name: APT.store.name, txt: '24', x: APT.store.doorW.x, z: APT.store.doorW.z, type: '便利商店', desc: `${APT.store.dist}，二十四小時營業；在結帳台花 ${money(SNACK)} 買吃的可以補滿生命。` });
   add('bank', { name: '中央霓虹銀行', ...WP(BANK.x, BANK.z + 2), type: '銀行', desc: '金庫在大廳後面。搶劫從手機的搶劫行動開始籌備。' });
   add('pd', { name: PD.name, x: PD.x, z: PD.z, type: '警察局', desc: 'BUSTED 之後在這裡交保釋金出來。' });
   add('hosp', { name: HOSP.name, x: HOSP.x, z: HOSP.z, type: '醫院', desc: 'WASTED 之後在這裡出院。' });

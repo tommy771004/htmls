@@ -1,10 +1,11 @@
 // ═══ 安全屋：冠石頂層公寓（loft17）、雲杉坡崖邊別墅（interior15），第三輪加上灰鷗島辦公室（loft18）、楓林里迷你閣樓（miniloft）、
-// 琥珀工業區的和室 Loft（loft16）與公園大道的白色大宅（interior14） ═══
+// 琥珀工業區的和室 Loft（loft16）與公園大道的白色大宅（interior14），第四輪加上珊瑚灘的清水模公寓（living_room） ═══
 // 在 69-market.js 的天際置業買下（ESTATES 裡 home 的幾筆），也可以走到門口直接買。買了才進得去；
 // 裡面躺沙發「睡一覺」：時間推進 6 小時、補滿生命、存檔（存檔位置是門口）。島上辦公室另外有收入，在辦公桌收保險箱。
-// 室內是 dasy444 的 Sketchfab 模型（前兩個 CC BY 4.0，第三輪四個是 Standard），tools/props.mjs 輸出 apt_*，保留原檔座標（地板 y＝0）。
+// 室內是 dasy444 的 Sketchfab 模型（前兩個 CC BY 4.0，第三輪四個與第四輪一個是 Standard），tools/props.mjs 輸出 apt_*，保留原檔座標（地板 y＝0）。
 // 門預設在街區南面、朝 +z；face: -1 是朝 −z（島上辦公室的門朝北，對著跨海橋過來的路）。
 // 以 http(s) 開啟時走近門口 70 m 內就先下載；以檔案開啟或下載失敗，用下面的程式建模房間（同一套碰撞框）。
+// 第四輪另有兩間不用買的店（HANG_IDS，open）：舊碼頭的鏽錨酒館（pub）與中城的 BODEGA 夜貓便利店（store），走到門口就能進去，沒有睡覺與收入。
 // 排在 69-police 之後、69-stunt 之前；ESTATES、quickSave、heist、W、life 等只在函式裡用。
 
 ENV.loft = { lampOn: 0, wet: 0, fogDen: .006, fog: 0x0c0a16, fogHi: 0x1a1430, top: 0x5a5470, bot: 0x2a2630 };
@@ -13,7 +14,12 @@ ENV.office = { lampOn: 0, wet: 0, fogDen: .01, fog: 0x101418, fogHi: 0x1c2228, t
 ENV.mini = { lampOn: 0, wet: 0, fogDen: .02, fog: 0x0e0c0a, fogHi: 0x1a1612, top: 0x5a5048, bot: 0x2a2420 };
 ENV.l16 = { lampOn: 0, wet: 0, fogDen: .012, fog: 0x0c0a08, fogHi: 0x1a140e, top: 0x6a5840, bot: 0x2a2018 };
 ENV.i14 = { lampOn: 0, wet: 0, fogDen: .01, fog: 0x12141a, fogHi: 0x1e222a, top: 0x9a968e, bot: 0x5a5650 };
-const APT_IDS = ['loft', 'villa', 'office', 'mini', 'l16', 'i14'];
+ENV.lr = { lampOn: 0, wet: 0, fogDen: .016, fog: 0x0e0e10, fogHi: 0x1a1a1e, top: 0x7a7874, bot: 0x3a3836 };
+ENV.pub = { lampOn: 0, wet: 0, fogDen: .018, fog: 0x0e0a06, fogHi: 0x1c140c, top: 0x6a5238, bot: 0x2a1e14 };
+ENV.store = { lampOn: 0, wet: 0, fogDen: .008, fog: 0x14161a, fogHi: 0x22262c, top: 0xb0b4b8, bot: 0x6a6c70 };
+const APT_IDS = ['loft', 'villa', 'office', 'mini', 'l16', 'i14', 'lr'];
+const HANG_IDS = ['pub', 'store'], ROOM_IDS = [...APT_IDS, ...HANG_IDS];
+const SNACK = 40;   // 便利店買吃的：補滿生命
 const APT = {
   // 冠石金融區 (6,1) 街區的南面，門朝 8 St；地板 x −3.9…10、z −3.9…6，西面整片玻璃牆外是發光的摩天樓
   loft: { door: { x: avX(6) + 44, z: stZ(2) - HR - SW }, spawn: { x: 6.4, z: 5.1, yaw: Math.PI }, exit: { x: 6.4, z: 5.4 }, frame: { x: 6.4, z: 6.02, ry: 0 },
@@ -61,11 +67,35 @@ const APT = {
       [-2.65, 1.3, .75, 1.6], [.45, 1.3, 1.6, 4.75], [-1.45, -.3, 2.15, 3.3]],
     round: [{ x: 1.95, z: -1.95, r: .3 }, { x: 7.3, z: -1, r: .45 }, { x: -2.35, z: 4.55, r: .5 }],
     lights: [{ x: 2, y: 4.4, z: 0, col: lin(0xfff0dc), r: 14, i: 1.3 }, { x: -1, y: 3, z: 2.8, col: lin(0xffd8b0), r: 8, i: .9 }, { x: 5.5, y: 3, z: -2.8, col: lin(0xffd8b0), r: 8, i: .9 }] },
+  // 珊瑚灘 (4,12) 街區的南面，門朝 19 St；清水模的小客廳（原檔放大 0.15 倍），西、北兩面是原檔的牆，東、南兩面開著要補，門在南牆東邊
+  lr: { door: { x: avX(4) + 36, z: stZ(13) - HR - SW }, spawn: { x: 2.4, z: 1.9, yaw: Math.PI }, exit: { x: 2.4, z: 2.2 }, frame: { x: 2.4, z: 2.47, ry: 0 },
+    nap: { x: .17, z: -1.9 }, name: '珊瑚灘清水模公寓', dist: '珊瑚灘 · 19 St', ceil: 3, floor: 0x6a6a68,
+    walls: [[-2.7, -1.99, -3.6, 2.9], [3.26, 3.9, -3.6, 2.9], [-2.7, 3.9, -3.6, -2.96], [-2.7, 3.9, 2.49, 2.9]], add: [1, 3],
+    solid: [[-1.13, 1.47, -2.42, -1.42], [-.29, .59, -1.15, -.3], [-1.99, -1.38, -1.38, .26], [1.51, 1.94, -1.08, .15], [-1.99, -1.8, .72, 1.66], [1.45, 3.26, -2.96, -2.43], [-.82, .87, 1.91, 2.2]],
+    round: [{ x: 1.76, z: -1.82, r: .22 }, { x: -1.5, z: .53, r: .22 }],
+    lights: [{ x: .3, y: 2.8, z: -.6, col: lin(0xffe0bc), r: 9, i: 1.1 }, { x: -1.5, y: 1.7, z: .5, col: lin(0xffc890), r: 5, i: .8 }, { x: 2.3, y: 2.5, z: 1.2, col: lin(0xffd8b0), r: 5, i: .6 }] },
+  // 不用買的店：四面都補牆（貼在原檔的牆外，原檔有牆的那面看不到），門口是街區南面
+  // 舊碼頭 (0,3) 街區的南面，門朝 10 St（倉庫鐵皮牆的小門，避開行道樹）；木造酒館（原檔放大 5 倍）x −4.3…4.3、z −5.5…2.7，北面中間是 U 形吧台，東北角內縮
+  pub: { open: true, door: { x: avX(0) + 35.8, z: stZ(4) - HR - SW }, spawn: { x: -3.1, z: 1.7, yaw: Math.PI }, exit: { x: -3.1, z: 2 }, frame: { x: -3.1, z: 2.5, ry: 0 },
+    bar: { x: -.5, z: -.9 }, name: '鏽錨酒館', dist: '舊碼頭 · 10 St', ceil: 3.2, floor: 0x5a4632,
+    walls: [[-4.9, -4.3, -6, 3.3], [4.3, 4.9, -6, 3.3], [-4.9, 4.9, -6, -5.47], [-4.9, 4.9, 2.72, 3.3]], add: [0, 1, 2, 3],
+    solid: [[-2.24, 1.16, -4.26, -1.37], [-2, 1.36, -5.47, -5.15], [1.43, 2.87, -5.47, -5.1], [2.55, 4.3, -5.47, -3.72], [-4.3, -3.95, -5.47, 2.72], [-4.2, -3.2, -5.47, -5.05],
+      [2.72, 3, -1.46, .25], [-2.1, 2.1, 2.3, 2.72], [-3.96, -3.63, 1.25, 1.63], [3.14, 4.16, 2.26, 2.72], [2.37, 2.57, 1.8, 2.72]],
+    round: [{ x: -1.26, z: 2.08, r: .8 }, { x: 1.13, z: 2.08, r: .8 }, { x: -2.56, z: -3.86, r: .22 }, { x: -2.56, z: -3.23, r: .22 }, { x: -2.56, z: -2.6, r: .22 }, { x: -2.56, z: -1.9, r: .22 }, { x: 1.54, z: -2.6, r: .22 }, { x: 1.54, z: -1.9, r: .22 }],
+    lights: [{ x: -.5, y: 2.9, z: -2.8, col: lin(0xffc890), r: 9, i: 1.2 }, { x: 0, y: 2.7, z: 1.4, col: lin(0xffb070), r: 8, i: .9 }, { x: 3.5, y: 2.7, z: -.6, col: lin(0xffd0a0), r: 6, i: .7 }] },
+  // 中城 (4,2) 街區的南面，門朝 9 St，開在 BODEGA 雜貨店的店面（招牌是 20-props.js 的 FASCIA 依地塊亂數挑的，街區改了要重新對位置）；便利商店（原檔是英寸，裁掉外面的停車場）x −5.35…5.86、z −6.3…6.4，原檔的自動門在西牆，結帳台橫在南邊
+  store: { open: true, door: { x: avX(4) + 37.3, z: stZ(3) - HR - SW }, spawn: { x: -4.4, z: -3.7, yaw: Math.PI / 2 }, exit: { x: -4.8, z: -3.7 }, frame: { x: -5.33, z: -3.7, ry: Math.PI / 2 },
+    till: { x: 1, z: 1.9 }, name: 'BODEGA 夜貓便利店', dist: '中城 · 9 St', ceil: 3.3, floor: 0xd0d0cc,
+    walls: [[-5.95, -5.4, -6.9, 7], [6.08, 6.6, -6.9, 7], [-5.95, 6.6, -6.9, -6.37], [-5.95, 6.6, 6.49, 7]], add: [0, 1, 2, 3],
+    solid: [[-2.88, 4.68, 2.3, 2.91], [4.26, 4.82, .03, 1.16], [-5.4, 5.86, -6.37, -6.1]],
+    // 兩排斜放的貨架：沿中線排一串圓
+    round: [[-2.47, -4.55, .73, -2.62], [-3.25, -3.2, 0, -1.21]].flatMap(([x0, z0, x1, z1]) => Array.from({ length: 9 }, (_, k) => ({ x: lerp(x0, x1, k / 8), z: lerp(z0, z1, k / 8), r: .42 }))),
+    lights: [{ x: -1, y: 3.1, z: -3, col: lin(0xf0f4ff), r: 11, i: 1.3 }, { x: 1, y: 3.1, z: 3, col: lin(0xf0f4ff), r: 11, i: 1.2 }, { x: 4, y: 3, z: -2, col: lin(0xe8f0ff), r: 8, i: .8 }] },
 };
 const aptFace = id => APT[id].face || 1;
 const aptOut = id => spotW({ x: APT[id].door.x, z: APT[id].door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI });   // 出門站的位置（世界座標）
 const aptSet = id => 'apt_' + id;
-for (const id of APT_IDS) {
+for (const id of ROOM_IDS) {
   const a = APT[id], scn = new T.Scene(), data = { boxes: [], circles: [...a.round], lights: a.lights };
   for (const [x0, x1, z0, z1] of [...a.walls, ...a.solid]) data.boxes.push({ x0, x1, z0, z1 });
   // 程式建模的房間：地板、補上的牆、家具方塊。模型下載好之後只留補牆（原檔沒有的那兩面）
@@ -89,13 +119,13 @@ for (const id of APT_IDS) {
 }
 // 街上的門：發光門牌與門板（門在街區南面，朝 +z；face −1 的朝 −z）
 {
-  const k = new Kit(), SIGN = { loft: 0xd9b46a, villa: 0x8ad0c0, office: 0xe8ecf0, mini: 0xe8a060, l16: 0xffb070, i14: 0xf0e8d8 };
-  for (const id of APT_IDS) {
+  const k = new Kit(), SIGN = { loft: 0xd9b46a, villa: 0x8ad0c0, office: 0xe8ecf0, mini: 0xe8a060, l16: 0xffb070, i14: 0xf0e8d8, lr: 0xc8ccd0, pub: 0xff9a3a, store: 0x5ad8ff };
+  for (const id of ROOM_IDS) {
     const { x, z } = APT[id].door, f = aptFace(id);
     k.box(x, 1.2, z - .1 * f, 1.6, 2.4, .2, 0x1c1a18, 10).box(x, 2.62, z - .05 * f, 1.9, .26, .1, SIGN[id], 11);
     if (id === 'office') colliders.push({ x0: x - 1, x1: x + 1, z0: z, z1: z + .3 });   // 島上的門前沒有人行道，門板本身要擋住
   }
-  cityAddAny(new T.Mesh(k.build(), MAT.uber));   // 六扇門分在不同的區
+  cityAddAny(new T.Mesh(k.build(), MAT.uber));   // 九扇門分在不同的區
 }
 // 下載室內模型，換掉程式建模的房間
 function aptLoad(id) {
@@ -111,17 +141,18 @@ function aptLoad(id) {
 function aptUpdate() {
   if (!GLB_ON) return;
   const px = pX(), pz = pZ();
-  for (const id of APT_IDS) if (!APT[id].req && Math.hypot(px - APT[id].doorW.x, pz - APT[id].doorW.z) < 70) aptLoad(id);
+  for (const id of ROOM_IDS) if (!APT[id].req && Math.hypot(px - APT[id].doorW.x, pz - APT[id].doorW.z) < 70) aptLoad(id);
 }
 const aptEstate = id => ESTATES.find(e => e.id === id);
 function aptEnter(id) {
   if (!glbDone.has('p:' + aptSet(id)) && GLB_ON) glbBatch.add('p:' + aptSet(id));
   aptLoad(id);
-  enterVenue(id);
+  // 不在家時的短租收入：進門後收下（earn 會跳入帳提示，晚一點才不會蓋掉場館名稱；島上辦公室是生意，照舊在辦公桌收）
+  enterVenue(id, APT[id].desk || APT[id].open ? null : () => setTimeout(() => { if (player.where === id && estCollect(id)) sfx.pickup(); }, 1600));
 }
 function aptBuyAtDoor(id) {
   const e = aptEstate(id);
-  dialog(`天際置業 · ${e.name}`, `${e.name}，${APT[id].dist}。買下之後可以進去睡覺存檔（時間推進 6 小時、補滿生命）。\n售價 ${money(e.price)}，你身上有 ${money(motors.cash)}。`, [
+  dialog(`天際置業 · ${e.name}`, `${e.name}，${APT[id].dist}。買下之後可以進去睡覺存檔（時間推進 6 小時、補滿生命）${e.rate && !APT[id].desk ? `，不在家時短租出去，每遊戲小時 ${money(e.rate)}` : ''}。\n售價 ${money(e.price)}，你身上有 ${money(motors.cash)}。`, [
     { t: `買下（${money(e.price)}）`, fn: () => { closeDialog(); if (estBuy(id)) { sfx.pickup(); toast(`${e.name}現在是你的了`); } else toast(`現金不夠，還差 ${money(e.price - motors.cash)}`); } },
     { t: '再想想', fn: closeDialog },
   ]);
@@ -138,13 +169,18 @@ function aptNap() {
     toast('睡了一覺：時間推進 6 小時，已存檔');
   });
 }
+function aptSnack() {
+  if (life.hp >= life.max) { toast('你現在不餓'); return; }
+  if (motors.cash < SNACK) { toast(`現金不夠，還差 ${money(SNACK - motors.cash)}`); return; }
+  motors.cash -= SNACK; saveMotors(); life.hp = life.max; sfx.pickup(); toast('買了飯糰和熱咖啡，生命補滿');
+}
 ctxHooks.push((p, near) => {
   if (p.mode !== 'walk') return null;
   if (p.where === 'out') {
-    for (const id of APT_IDS) {
+    for (const id of ROOM_IDS) {
       const d = APT[id].door;
       if (!near(d.x, d.z + .8 * aptFace(id), 1.8)) continue;
-      return estOwned(id) ? { key: 'E', text: `進入${APT[id].name}`, fn: () => aptEnter(id) }
+      return APT[id].open || estOwned(id) ? { key: 'E', text: `進入${APT[id].name}`, fn: () => aptEnter(id) }
         : { key: 'E', text: `看房 <i>· ${APT[id].name} ${money(aptEstate(id).price)}</i>`, fn: () => aptBuyAtDoor(id) };
     }
     return null;
@@ -152,6 +188,9 @@ ctxHooks.push((p, near) => {
   const a = APT[p.where];
   if (!a) return null;
   if (near(a.exit.x, a.exit.z, 1.5)) return { key: 'E', text: '回到街上', fn: exitVenue };
+  if (a.till && near(a.till.x, a.till.z, 1.6)) return { key: 'E', text: `買點吃的 <i>· ${money(SNACK)} 補滿生命</i>`, fn: aptSnack };
+  if (a.bar && near(a.bar.x, a.bar.z, 1.6)) return { key: 'E', text: '點一杯', fn: () => toast(W.stars ? '酒保瞄了一眼窗外的警燈，假裝沒看到你' : '酒保推來一杯黑啤酒，記在你的帳上') };
+  if (a.open) return null;
   if (near(a.nap.x, a.nap.z, 2)) return { key: 'E', text: '睡一覺 <i>· 推進 6 小時並存檔</i>', fn: aptNap };
   if (a.desk && near(a.desk.x, a.desk.z, 1.6)) {   // 島上辦公室：辦公桌收保險箱
     const n = Math.floor(motors.props.safe[p.where] || 0);
@@ -161,4 +200,4 @@ ctxHooks.push((p, near) => {
 });
 
 // 測試 API（window.__nc.gta.apt）
-const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap };
+const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut };

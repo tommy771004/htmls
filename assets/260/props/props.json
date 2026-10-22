@@ -2087,5 +2087,1149 @@
     "source": "https://sketchfab.com/3d-models/the-interior-14-is-spacious-79262bfc39d54fd2a0edc9d80fafdb6d"
    }
   ]
+ },
+ "bld_pc5": {
+  "kb": 5231,
+  "items": {
+   "pc5_01": {
+    "w": 41.13,
+    "d": 34.11,
+    "h": 93.58,
+    "src": "-118,-60,-108,-60",
+    "tris": 14918
+   },
+   "pc5_02": {
+    "w": 30.44,
+    "d": 32.62,
+    "h": 108.55,
+    "src": "-60,0,-108,-60",
+    "tris": 25396
+   },
+   "pc5_03": {
+    "w": 31.31,
+    "d": 33.35,
+    "h": 80.47,
+    "src": "0,60,-108,-60",
+    "tris": 10588
+   },
+   "pc5_04": {
+    "w": 33.35,
+    "d": 33.35,
+    "h": 86.05,
+    "src": "60,108,-108,-60",
+    "tris": 15743
+   },
+   "pc5_05": {
+    "w": 41.82,
+    "d": 32.69,
+    "h": 84.53,
+    "src": "-118,-60,-60,0",
+    "tris": 22564
+   },
+   "pc5_06": {
+    "w": 40.41,
+    "d": 33.21,
+    "h": 81.87,
+    "src": "-60,0,-60,0",
+    "tris": 9552
+   },
+   "pc5_07": {
+    "w": 33.89,
+    "d": 33.35,
+    "h": 66.12,
+    "src": "0,60,-60,0",
+    "tris": 8698
+   },
+   "pc5_08": {
+    "w": 30.58,
+    "d": 32.72,
+    "h": 75.89,
+    "src": "60,108,-60,0",
+    "tris": 16370
+   },
+   "pc5_09": {
+    "w": 43.19,
+    "d": 31.15,
+    "h": 61.83,
+    "src": "-118,-60,0,60",
+    "tris": 7849
+   },
+   "pc5_10": {
+    "w": 94.64,
+    "d": 35.94,
+    "h": 91.32,
+    "src": "-60,60,0,60",
+    "tris": 40037
+   },
+   "pc5_11": {
+    "w": 32.02,
+    "d": 33.53,
+    "h": 62.67,
+    "src": "60,108,0,60",
+    "tris": 9217
+   },
+   "pc5_12": {
+    "w": 45.41,
+    "d": 33.52,
+    "h": 69.48,
+    "src": "-118,-60,60,110",
+    "tris": 9517
+   },
+   "pc5_13": {
+    "w": 33.7,
+    "d": 30.58,
+    "h": 94.54,
+    "src": "-60,0,60,110",
+    "tris": 13846
+   },
+   "pc5_14": {
+    "w": 29.28,
+    "d": 29.28,
+    "h": 79.32,
+    "src": "0,60,60,110",
+    "tris": 7619
+   },
+   "pc5_15": {
+    "w": 29.28,
+    "d": 33.35,
+    "h": 62.59,
+    "src": "60,108,60,110",
+    "tris": 6597
+   }
+  },
+  "credits": [
+   {
+    "file": "pcity5",
+    "title": "Procedural City 5",
+    "author": "abhayexe (https://sketchfab.com/abhayexe)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/procedural-city-5-c2a33cf0165b497cabd5e4a22599277b"
+   }
+  ]
+ },
+ "bld_grc": {
+  "kb": 7488,
+  "items": {
+   "grc_01": {
+    "w": 36.75,
+    "d": 24.7,
+    "h": 63.84,
+    "src": "-89.7,-64.7,-37.8,-20.8",
+    "tris": 9567
+   },
+   "grc_02": {
+    "w": 22.03,
+    "d": 20.53,
+    "h": 43.01,
+    "src": "-81.2,-66.2,-19.8,-5.3",
+    "tris": 9121
+   },
+   "grc_03": {
+    "w": 15.2,
+    "d": 9.86,
+    "h": 23.68,
+    "src": "25.3,32.3,-16.8,-6.3",
+    "tris": 9137
+   },
+   "grc_04": {
+    "w": 19.45,
+    "d": 11.4,
+    "h": 26.37,
+    "src": "-29.7,-16.2,-15.3,-7.3",
+    "tris": 13631
+   },
+   "grc_05": {
+    "w": 10.79,
+    "d": 7.88,
+    "h": 12.4,
+    "src": "46.3,52.3,-15.3,-7.8",
+    "tris": 3794
+   },
+   "grc_06": {
+    "w": 31.89,
+    "d": 8.54,
+    "h": 7.65,
+    "src": "32.3,38.3,-7.3,14.7",
+    "tris": 3159
+   },
+   "grc_07": {
+    "w": 36.76,
+    "d": 23.94,
+    "h": 18.8,
+    "src": "-86.2,-69.7,-4.3,20.7",
+    "tris": 6692
+   },
+   "grc_08": {
+    "w": 50.9,
+    "d": 17.28,
+    "h": 30.01,
+    "src": "64.8,76.8,-4.3,30.2",
+    "tris": 13657
+   },
+   "grc_09": {
+    "w": 19.5,
+    "d": 15.2,
+    "h": 23.92,
+    "src": "17.3,30.8,7.2,17.7",
+    "tris": 22785
+   },
+   "grc_10": {
+    "w": 44.12,
+    "d": 19.43,
+    "h": 32.5,
+    "src": "2.8,16.3,8.2,38.2",
+    "tris": 37106
+   },
+   "grc_11": {
+    "w": 43.42,
+    "d": 19.5,
+    "h": 74.25,
+    "src": "-58.2,-44.7,9.2,38.7",
+    "tris": 15884
+   },
+   "grc_12": {
+    "w": 22.03,
+    "d": 20.53,
+    "h": 40.79,
+    "src": "41.3,55.3,9.2,24.7",
+    "tris": 5477
+   },
+   "grc_13": {
+    "w": 51.88,
+    "d": 35.29,
+    "h": 28.5,
+    "src": "-40.2,-4.7,12.2,36.2",
+    "tris": 15305
+   },
+   "grc_14": {
+    "w": 17.9,
+    "d": 6.15,
+    "h": 24.25,
+    "src": "14.8,27.3,19.7,24.2",
+    "tris": 11294
+   },
+   "grc_15": {
+    "w": 32.2,
+    "d": 17.23,
+    "h": 19.77,
+    "src": "-87.2,-65.2,24.2,36.2",
+    "tris": 4538
+   },
+   "grc_16": {
+    "w": 32.2,
+    "d": 18.45,
+    "h": 19.77,
+    "src": "12.3,34.3,26.2,38.7",
+    "tris": 4966
+   },
+   "grc_17": {
+    "w": 18.46,
+    "d": 7.76,
+    "h": 30.01,
+    "src": "45.8,58.3,32.2,37.7",
+    "tris": 9652
+   },
+   "grc_18": {
+    "w": 22.03,
+    "d": 20.53,
+    "h": 40.79,
+    "src": "-9.7,4.3,46.7,61.7",
+    "tris": 5477
+   },
+   "grc_19": {
+    "w": 36.05,
+    "d": 9.87,
+    "h": 18.33,
+    "src": "32.8,57.3,47.7,54.7",
+    "tris": 1143
+   },
+   "grc_20": {
+    "w": 36.05,
+    "d": 9.82,
+    "h": 18.33,
+    "src": "-36.7,-12.2,48.7,55.7",
+    "tris": 1191
+   },
+   "grc_21": {
+    "w": 37.27,
+    "d": 24.23,
+    "h": 18.9,
+    "src": "6.3,31.3,50.2,66.7",
+    "tris": 6844
+   },
+   "grc_22": {
+    "w": 32.2,
+    "d": 23.15,
+    "h": 32.58,
+    "src": "-60.7,-38.7,51.2,67.2",
+    "tris": 8018
+   }
+  },
+  "credits": [
+   {
+    "file": "gameready_city",
+    "title": "Full Gameready City Buildings [retextured]",
+    "author": "mortalityrexotable (https://sketchfab.com/mortalityrexotable)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/full-gameready-city-buildings-retextured-5fad2351e34f4c069a2eec45cce0824c"
+   }
+  ]
+ },
+ "bld_tram": {
+  "kb": 2527,
+  "items": {
+   "tram_01": {
+    "w": 73.17,
+    "d": 13.19,
+    "h": 19.62,
+    "src": "125.1,139.1,-326.3,-252.3",
+    "tris": 8193
+   },
+   "tram_02": {
+    "w": 73.1,
+    "d": 32.3,
+    "h": 55.22,
+    "src": "-337.9,-263.9,-227.3,-193.3",
+    "tris": 21350
+   },
+   "tram_03": {
+    "w": 57.56,
+    "d": 17.03,
+    "h": 54.47,
+    "src": "225.1,284.1,56.7,74.7",
+    "tris": 15344
+   },
+   "tram_04": {
+    "w": 65.85,
+    "d": 14.54,
+    "h": 33.16,
+    "src": "-346.9,-279.9,68.7,83.7",
+    "tris": 10590
+   },
+   "tram_05": {
+    "w": 28.96,
+    "d": 22.99,
+    "h": 55.22,
+    "src": "-337.9,-313.9,132.7,162.7",
+    "tris": 9339
+   },
+   "tram_06": {
+    "w": 75.62,
+    "d": 17.72,
+    "h": 57.65,
+    "src": "125.1,144.1,305.7,381.7",
+    "tris": 24327
+   }
+  },
+  "credits": [
+   {
+    "file": "tram",
+    "title": "Tram station",
+    "author": "Randonavt (https://sketchfab.com/Randonavt)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/tram-station-5079604f87084b2db1748193816942b9"
+   }
+  ]
+ },
+ "bld_rural": {
+  "kb": 1221,
+  "items": {
+   "rural_01": {
+    "w": 18.3,
+    "d": 8.96,
+    "h": 5.31,
+    "src": "Rural_Diner_1",
+    "tris": 832
+   },
+   "rural_02": {
+    "w": 14.96,
+    "d": 8.76,
+    "h": 5.48,
+    "src": "Rural_Diner_2",
+    "tris": 797
+   },
+   "rural_03": {
+    "w": 7.82,
+    "d": 6.9,
+    "h": 4.79,
+    "src": "Rural_HouseOld_1",
+    "tris": 886
+   },
+   "rural_04": {
+    "w": 12.52,
+    "d": 9.38,
+    "h": 4.81,
+    "src": "Rural_QuonsetHut_1",
+    "tris": 278
+   },
+   "rural_05": {
+    "w": 12.59,
+    "d": 8.32,
+    "h": 6.06,
+    "src": "Rural_StoreSmall_1",
+    "tris": 211
+   },
+   "rural_06": {
+    "w": 21.18,
+    "d": 10.16,
+    "h": 6.24,
+    "src": "Rural_StoreSmall_2",
+    "tris": 299
+   },
+   "rural_07": {
+    "w": 13.59,
+    "d": 6.06,
+    "h": 3.76,
+    "src": "Rural_StoreSmall_3",
+    "tris": 224
+   },
+   "rural_08": {
+    "w": 25.87,
+    "d": 8.03,
+    "h": 10.29,
+    "src": "Rural_StoreSmall_4",
+    "tris": 218
+   },
+   "rural_09": {
+    "w": 20.12,
+    "d": 8.38,
+    "h": 6.06,
+    "src": "Rural_StoreSmall_5",
+    "tris": 163
+   },
+   "rural_10": {
+    "w": 21.44,
+    "d": 12.02,
+    "h": 5.92,
+    "src": "Rural_StoreSmall_6",
+    "tris": 220
+   },
+   "rural_11": {
+    "w": 20.83,
+    "d": 8,
+    "h": 5,
+    "src": "Rural_StoreSmall_7",
+    "tris": 102
+   },
+   "rural_12": {
+    "w": 20.09,
+    "d": 12.38,
+    "h": 7.12,
+    "src": "Rural_StoreSmall_8",
+    "tris": 180
+   },
+   "rural_13": {
+    "w": 9.88,
+    "d": 2.83,
+    "h": 2.98,
+    "src": "Rural_TrailerH_1",
+    "tris": 902
+   },
+   "rural_14": {
+    "w": 7.77,
+    "d": 2.83,
+    "h": 2.98,
+    "src": "Rural_TrailerH_2",
+    "tris": 742
+   },
+   "rural_15": {
+    "w": 11.38,
+    "d": 6.64,
+    "h": 4.39,
+    "src": "Rural_UnmobileHome_1",
+    "tris": 541
+   },
+   "rural_16": {
+    "w": 21.07,
+    "d": 17.26,
+    "h": 10.44,
+    "src": "Rural_WoodenBuilding_1",
+    "tris": 1324
+   },
+   "rural_17": {
+    "w": 15.38,
+    "d": 14.23,
+    "h": 8.66,
+    "src": "Rural_WoodenBuilding_2",
+    "tris": 680
+   },
+   "rural_18": {
+    "w": 19.06,
+    "d": 11.23,
+    "h": 5.69,
+    "src": "Rural_WoodenBuilding_3",
+    "tris": 302
+   },
+   "rural_19": {
+    "w": 27.73,
+    "d": 14.49,
+    "h": 7.64,
+    "src": "Rural_WoodenBuilding_4",
+    "tris": 879
+   },
+   "rural_20": {
+    "w": 16.99,
+    "d": 9.16,
+    "h": 10.47,
+    "src": "Rural_WoodenBuilding_5",
+    "tris": 526
+   }
+  },
+  "credits": [
+   {
+    "file": "rural",
+    "title": "Rural Buildings Set - Low Poly models",
+    "author": "Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/rural-buildings-set-low-poly-models-51ab7e74bac347a89725f1d22b928edf"
+   }
+  ]
+ },
+ "bld_w1": {
+  "kb": 4165,
+  "items": {
+   "real": {
+    "w": 19.16,
+    "d": 11.12,
+    "h": 18,
+    "tris": 13976
+   },
+   "brut": {
+    "w": 24.48,
+    "d": 9.94,
+    "h": 42,
+    "tris": 2200
+   },
+   "tower": {
+    "w": 54.84,
+    "d": 44.54,
+    "h": 43.39,
+    "tris": 144086
+   },
+   "pet": {
+    "w": 45.39,
+    "d": 37.59,
+    "h": 7.45,
+    "tris": 1375
+   }
+  },
+  "credits": [
+   {
+    "file": "realistic",
+    "title": "Realistic Building",
+    "author": "abhayexe (https://sketchfab.com/abhayexe)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/realistic-building-bcd30b0c7aef41c98b204d2a5d622cce"
+   },
+   {
+    "file": "brutalist",
+    "title": "Brutalist Building",
+    "author": "abhayexe (https://sketchfab.com/abhayexe)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/brutalist-building-11bed9877a8b40b2ab1ac983c1c73e9d"
+   },
+   {
+    "file": "modern_tower_mr",
+    "title": "modern tower office apartment house home",
+    "author": "zigurat architecture studio (https://sketchfab.com/ziguratarchitecturestudio)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/modern-tower-office-apartment-house-home-071bda8efe344177a8216ef2de47a784"
+   },
+   {
+    "file": "petstock_mr",
+    "title": "PetStock and Radio Rentals Building (low Poly)",
+    "author": "Jotrain Models (https://sketchfab.com/Jotrain)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/petstock-and-radio-rentals-building-low-poly-b68ad1af1c434e3da706c38560863cab"
+   }
+  ]
+ },
+ "apt_lr": {
+  "kb": 1264,
+  "items": {
+   "lr": {
+    "w": 5.67,
+    "d": 8.36,
+    "h": 3.77,
+    "tris": 23230
+   }
+  },
+  "credits": [
+   {
+    "file": "living_room",
+    "title": "living room interior FREE",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/living-room-interior-free-efeff8e4978e489e82dbb06a86f697f8"
+   }
+  ]
+ },
+ "apt_pub": {
+  "kb": 1342,
+  "items": {
+   "pub": {
+    "w": 9.15,
+    "d": 12.04,
+    "h": 3.48,
+    "tris": 42932
+   }
+  },
+  "credits": [
+   {
+    "file": "pub",
+    "title": "British pub",
+    "author": "katydid (https://sketchfab.com/Katydid.)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/british-pub-b8c7063197404d3d807fe61c790c629a"
+   }
+  ]
+ },
+ "apt_store": {
+  "kb": 2098,
+  "items": {
+   "store": {
+    "w": 12.1,
+    "d": 12.92,
+    "h": 3.58,
+    "tris": 94836
+   }
+  },
+  "credits": [
+   {
+    "file": "store",
+    "title": "Convenience store 2",
+    "author": "Pasha (https://sketchfab.com/Pasha-)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/convenience-store-2-3e9ccca610614bcb84cb3b8390c8a9a0"
+   }
+  ]
+ },
+ "bld_temple": {
+  "kb": 914,
+  "items": {
+   "temple": {
+    "w": 46.97,
+    "d": 38.67,
+    "h": 14.64,
+    "tris": 52796
+   }
+  },
+  "credits": [
+   {
+    "file": "temple",
+    "title": "Greek Temple Scan",
+    "author": "golukumar (https://sketchfab.com/mortalityrexotable)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/greek-temple-scan-666a9d37d09f40afa1c0226379954d42"
+   }
+  ]
+ },
+ "w1_tower": {
+  "kb": 590,
+  "items": {
+   "tower": {
+    "w": 10.39,
+    "d": 10.23,
+    "h": 16,
+    "tris": 47752
+   }
+  },
+  "credits": [
+   {
+    "file": "stone_tower",
+    "title": "[X]_Stone-Tower_II",
+    "author": "-X-ScornGames (https://sketchfab.com/XX-XX)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/x-stone-tower-ii-f4cc0c47eda14f7cb14ad6dca420537b"
+   }
+  ]
+ },
+ "w1_stairs": {
+  "kb": 993,
+  "items": {
+   "stairs": {
+    "w": 12.51,
+    "d": 12.94,
+    "h": 6.96,
+    "tris": 48841
+   }
+  },
+  "credits": [
+   {
+    "file": "mayflower",
+    "title": "Mayflower Stairs 2025",
+    "author": "artfletch (https://sketchfab.com/artfletch)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/mayflower-stairs-2025-12782e9c310842e3acdb1731d1c34cea"
+   }
+  ]
+ },
+ "w1_fence": {
+  "kb": 238,
+  "items": {
+   "wire": {
+    "w": 3.11,
+    "d": 1.09,
+    "h": 4.22,
+    "tris": 8728
+   },
+   "stone": {
+    "w": 4.64,
+    "d": 0.56,
+    "h": 0.65,
+    "tris": 5923
+   }
+  },
+  "credits": [
+   {
+    "file": "wiremesh",
+    "title": "Wiremesh_Fen",
+    "author": "Warh95 (https://sketchfab.com/warh95)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/wiremesh-fen-a906ee2192554c22bdf53a2235dcff6a"
+   },
+   {
+    "file": "stone_fence",
+    "title": "Small stone cubes fence",
+    "author": "Оrрндп ЯТG (https://sketchfab.com/orphanrtg)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/small-stone-cubes-fence-73545b856a9a4aa9acb268e72fbc77ec"
+   }
+  ]
+ },
+ "far_cement": {
+  "kb": 1979,
+  "items": {
+   "plant": {
+    "w": 90.01,
+    "d": 104.45,
+    "h": 90.74,
+    "tris": 39606
+   },
+   "tank": {
+    "w": 102.08,
+    "d": 116.44,
+    "h": 76.91,
+    "tris": 39314
+   },
+   "ruin": {
+    "w": 119.54,
+    "d": 103.2,
+    "h": 37.82,
+    "tris": 39365
+   }
+  },
+  "credits": [
+   {
+    "file": "cement_plant",
+    "title": "Cement plant, RSP tower, production equipment",
+    "author": "Metazeon (https://sketchfab.com/Metazeon)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cement-plant-rsp-tower-production-equipment-456de44e25064ba4b55c17c08ef545c7"
+   },
+   {
+    "file": "cement_tank",
+    "title": "Cement storage tank, production equipment",
+    "author": "Metazeon (https://sketchfab.com/Metazeon)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cement-storage-tank-production-equipment-f3ba7237a79743c786340f1df24e06c7"
+   },
+   {
+    "file": "cement_ruin",
+    "title": "Abandoned building and cement storage tank",
+    "author": "Metazeon (https://sketchfab.com/Metazeon)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/abandoned-building-and-cement-storage-tank-22b1aa5f1a3d4e5d820dd3faffa89ac3"
+   }
+  ],
+  "far": 1
+ },
+ "st2_street": {
+  "kb": 652,
+  "items": {
+   "bench": {
+    "w": 1.9,
+    "d": 0.44,
+    "h": 0.56,
+    "tris": 2924
+   },
+   "bench2": {
+    "w": 1.6,
+    "d": 0.69,
+    "h": 0.56,
+    "tris": 1978
+   },
+   "picnic": {
+    "w": 1.76,
+    "d": 1.8,
+    "h": 0.87,
+    "tris": 224
+   },
+   "bin_k": {
+    "w": 0.85,
+    "d": 0.89,
+    "h": 1.34,
+    "tris": 3628
+   },
+   "bin_g": {
+    "w": 0.65,
+    "d": 0.64,
+    "h": 1.13,
+    "tris": 1028
+   },
+   "bin_b": {
+    "w": 0.65,
+    "d": 0.64,
+    "h": 1.13,
+    "tris": 1028
+   },
+   "wheelie": {
+    "w": 0.6,
+    "d": 0.74,
+    "h": 1.06,
+    "tris": 3952
+   },
+   "booth": {
+    "w": 0.93,
+    "d": 0.93,
+    "h": 2.4,
+    "tris": 8957
+   },
+   "newsbox": {
+    "w": 0.5,
+    "d": 0.53,
+    "h": 1.2,
+    "tris": 1319
+   }
+  },
+  "credits": [
+   {
+    "file": "bench_park",
+    "title": "Park Bench",
+    "author": "RBG_illustrations (https://sketchfab.com/RBG_illustrations)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/park-bench-2ee2bc87756d4bf0932d83ab860ddb8f"
+   },
+   {
+    "file": "bench_modern",
+    "title": "Modern Bench 1",
+    "author": "Elasta Kristya (https://sketchfab.com/luca3d)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/modern-bench-1-caa4515e36444e4c8c100296463e83c1"
+   },
+   {
+    "file": "picnic",
+    "title": "Picnic Table - Low Poly",
+    "author": "Derek Flanagan (https://sketchfab.com/derek_flanagan)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/picnic-table-low-poly-fe35acda3a5245da8459d1a062e28190"
+   },
+   {
+    "file": "garbage_bin",
+    "title": "Garbage Bin",
+    "author": "Glen Ortiz (https://sketchfab.com/roberto_ortiz)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/garbage-bin-fba6b5a8afdd4eb0a43be29aabceb3d6"
+   },
+   {
+    "file": "garbage_bin",
+    "title": "Garbage Bin",
+    "author": "Glen Ortiz (https://sketchfab.com/roberto_ortiz)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/garbage-bin-fba6b5a8afdd4eb0a43be29aabceb3d6"
+   },
+   {
+    "file": "garbage_bin",
+    "title": "Garbage Bin",
+    "author": "Glen Ortiz (https://sketchfab.com/roberto_ortiz)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/garbage-bin-fba6b5a8afdd4eb0a43be29aabceb3d6"
+   },
+   {
+    "file": "public_bin",
+    "title": "Public Bin ( Free )",
+    "author": "Pandurus (https://sketchfab.com/ChubbyPanda)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/public-bin-free-f4440ba1c72f42bb887110ada7dcf3ca"
+   },
+   {
+    "file": "phone_booth",
+    "title": "Phone booth",
+    "author": "YJ_ (https://sketchfab.com/YJ_)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/phone-booth-f52615a329da4908a42f5fae1d0f37d1"
+   },
+   {
+    "file": "newsbox",
+    "title": "Newspaper Box With Mat",
+    "author": "neverfollow81 (https://sketchfab.com/neverfollow81)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/newspaper-box-with-mat-e4dd34bb4e384dee82d80889fa3742b9"
+   }
+  ]
+ },
+ "nat_trees": {
+  "kb": 1227,
+  "items": {
+   "maple": {
+    "w": 5.88,
+    "d": 5.96,
+    "h": 8,
+    "tris": 12427
+   },
+   "willow_a": {
+    "w": 7.94,
+    "d": 8.52,
+    "h": 7.5,
+    "tris": 4708
+   },
+   "willow_b": {
+    "w": 9.03,
+    "d": 7.88,
+    "h": 7,
+    "tris": 4592
+   },
+   "oak": {
+    "w": 9.65,
+    "d": 10.17,
+    "h": 10,
+    "tris": 14475
+   }
+  },
+  "credits": [
+   {
+    "file": "maple",
+    "title": "Maple tree",
+    "author": "atrodler (https://sketchfab.com/atrodler)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/maple-tree-4b27adcf92f644bdabf8ecc6c5bef399"
+   },
+   {
+    "file": "tree_low",
+    "title": "Trees (low-Poly, 4k Tris / Tree)",
+    "author": "Sereib (https://sketchfab.com/Sereib)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/trees-low-poly-4k-tris-tree-6fad6d1b2d7e4b2187ea6e6a721606ff"
+   },
+   {
+    "file": "tree_low",
+    "title": "Trees (low-Poly, 4k Tris / Tree)",
+    "author": "Sereib (https://sketchfab.com/Sereib)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/trees-low-poly-4k-tris-tree-6fad6d1b2d7e4b2187ea6e6a721606ff"
+   },
+   {
+    "file": "oak",
+    "title": "oak trees",
+    "author": "DJMaesen (https://sketchfab.com/bumstrum)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/oak-trees-d841c3bcc5324daebee50f45619e05fc"
+   }
+  ]
+ },
+ "nat_bush": {
+  "kb": 210,
+  "items": {
+   "hosta": {
+    "w": 0.83,
+    "d": 1.11,
+    "h": 0.55,
+    "tris": 12
+   },
+   "fern": {
+    "w": 0.42,
+    "d": 0.52,
+    "h": 0.6,
+    "tris": 8
+   },
+   "fernlong": {
+    "w": 0.85,
+    "d": 0.88,
+    "h": 0.5,
+    "tris": 10
+   }
+  },
+  "credits": [
+   {
+    "file": "bush",
+    "title": "Bush + Ivy Pack LOWPOLY",
+    "author": "EFX (https://sketchfab.com/evan4129)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bush-ivy-pack-lowpoly-8013c47de07d4f96aa5d8b37f05eb4f6"
+   },
+   {
+    "file": "bush",
+    "title": "Bush + Ivy Pack LOWPOLY",
+    "author": "EFX (https://sketchfab.com/evan4129)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bush-ivy-pack-lowpoly-8013c47de07d4f96aa5d8b37f05eb4f6"
+   },
+   {
+    "file": "bush",
+    "title": "Bush + Ivy Pack LOWPOLY",
+    "author": "EFX (https://sketchfab.com/evan4129)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bush-ivy-pack-lowpoly-8013c47de07d4f96aa5d8b37f05eb4f6"
+   }
+  ]
+ },
+ "cst_beach": {
+  "kb": 715,
+  "items": {
+   "palm": {
+    "w": 4.45,
+    "d": 4.14,
+    "h": 10,
+    "tris": 8096
+   },
+   "lifeguard": {
+    "w": 4.35,
+    "d": 6.29,
+    "h": 4.6,
+    "tris": 5969
+   },
+   "umbrella": {
+    "w": 2.04,
+    "d": 2.34,
+    "h": 2.6,
+    "tris": 3832
+   }
+  },
+  "credits": [
+   {
+    "file": "palm",
+    "title": "Realistic Palm Tree 4 Free",
+    "author": "Next Spring (https://sketchfab.com/NextSpring)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/realistic-palm-tree-4-free-917c18d6b2d04d33950dea6e20bc074f"
+   },
+   {
+    "file": "lifeguard",
+    "title": "Lifeguard Tower",
+    "author": "Sololopenko (https://sketchfab.com/Sololopenko)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/lifeguard-tower-2f147eeb428847f7b06244026db6c07e"
+   },
+   {
+    "file": "umbrella",
+    "title": "Beach Umbrella",
+    "author": "stealth86 (https://sketchfab.com/stealth86)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/beach-umbrella-1014ad7c8a4c4aa8ba5e88fc6151aa4f"
+   }
+  ]
+ },
+ "cst_ferris": {
+  "kb": 251,
+  "items": {
+   "base": {
+    "w": 27.24,
+    "d": 12.77,
+    "h": 22.94,
+    "tris": 280
+   },
+   "wheel": {
+    "w": 35.53,
+    "d": 6.64,
+    "h": 35.53,
+    "tris": 4868
+   },
+   "cabin": {
+    "w": 3.6,
+    "d": 5.59,
+    "h": 5.05,
+    "tris": 2578
+   }
+  },
+  "credits": [
+   {
+    "file": "ferris",
+    "title": "Ferris wheel",
+    "author": "PureUgliness (https://sketchfab.com/PureUgliness)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/ferris-wheel-675ab80b477b40f280b7311f81fee730"
+   },
+   {
+    "file": "ferris",
+    "title": "Ferris wheel",
+    "author": "PureUgliness (https://sketchfab.com/PureUgliness)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/ferris-wheel-675ab80b477b40f280b7311f81fee730"
+   },
+   {
+    "file": "ferris",
+    "title": "Ferris wheel",
+    "author": "PureUgliness (https://sketchfab.com/PureUgliness)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/ferris-wheel-675ab80b477b40f280b7311f81fee730"
+   }
+  ]
+ },
+ "cst_port": {
+  "kb": 799,
+  "items": {
+   "crane": {
+    "w": 26.74,
+    "d": 102.71,
+    "h": 51.74,
+    "tris": 6187
+   },
+   "ship": {
+    "w": 235.08,
+    "d": 35.62,
+    "h": 73.53,
+    "tris": 73448
+   },
+   "box": {
+    "w": 6.06,
+    "d": 3.05,
+    "h": 2.42,
+    "tris": 17077
+   }
+  },
+  "credits": [
+   {
+    "file": "sts_crane",
+    "title": "Ship To Shore Crane",
+    "author": "JakeBradley (https://sketchfab.com/JakeBradley)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/ship-to-shore-crane-401069fccf814da7a4f9ce5a51487548"
+   },
+   {
+    "file": "cargo_ship",
+    "title": "Cargo ship",
+    "author": "hungry_drifter (https://sketchfab.com/hungry_drifter)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cargo-ship-b7c97df584824ca682d26daabf401f87"
+   },
+   {
+    "file": "container",
+    "title": "Classic Shipping Container (Free/Gameready)",
+    "author": "Sebastian Webster (https://sketchfab.com/Sebastian.Hamish.Webster)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/classic-shipping-container-freegameready-772f4be391a245f699c54e6cf157c58d"
+   }
+  ]
+ },
+ "cst_mount": {
+  "kb": 134,
+  "items": {
+   "mount": {
+    "w": 143.03,
+    "d": 143.1,
+    "h": 33.42,
+    "tris": 13045
+   }
+  },
+  "credits": [
+   {
+    "file": "mountain",
+    "title": "Snow Mountain",
+    "author": "hkp941111 (https://sketchfab.com/hkp941111)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/snow-mountain-e84a8e5edb2040c591be36350e2536f5"
+   }
+  ],
+  "far": 1
  }
 }

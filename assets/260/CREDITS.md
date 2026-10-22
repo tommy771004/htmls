@@ -133,6 +133,92 @@
 - `isle_ruin`、`isle_office`：整個模型都用上。
 - 四個室內：拿掉白天的天空半球（`Sphere`）；`apt_i14` 的鏡面地板與帶金屬度的牆改成霧面。
 
+### World 第四輪：建築、地標與兩間店（`~/Downloads/world_1`）
+
+使用者提供的 22 個 Sketchfab 模型（作者、授權與來源取自各檔 `asset.extras`），用了 19 個。原檔複製到 gitignore 的 `games/260-neon-nightcity/.cache/world1/`（短檔名），由 `tools/props.mjs` 處理成 `props/` 裡同名的 GLB；頁面只在 http(s) 下載，以檔案開啟或下載失敗時保留程式建模。
+
+| 檔案 | 用在哪裡 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| `bld_pc5` | 光環廣場與冠石東排的十四個整街區 | [Procedural City 5](https://sketchfab.com/3d-models/procedural-city-5-c2a33cf0165b497cabd5e4a22599277b) | [abhayexe](https://sketchfab.com/abhayexe) | Sketchfab Standard |
+| `bld_grc` | 各區沿街地塊的辦公樓與公寓（22 棟），燈籠公園兩側的整街區 | [Full Gameready City Buildings [retextured]](https://sketchfab.com/3d-models/full-gameready-city-buildings-retextured-5fad2351e34f4c069a2eec45cce0824c) | [mortalityrexotable](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
+| `bld_tram` | 灰石國宅的板樓整街區，東灣對岸的三棟長板樓 | [Tram station](https://sketchfab.com/3d-models/tram-station-5079604f87084b2db1748193816942b9) | [Randonavt](https://sketchfab.com/Randonavt) | CC BY 4.0 |
+| `bld_rural` | 鐵灣、琥珀、珊瑚灘、錨灣沿街的木屋與小店（20 棟） | [Rural Buildings Set - Low Poly models](https://sketchfab.com/3d-models/rural-buildings-set-low-poly-models-51ab7e74bac347a89725f1d22b928edf) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `bld_w1` `h18` | 舊碼、光環、灰石、琥珀沿街的舊辦公樓 | [Realistic Building](https://sketchfab.com/3d-models/realistic-building-bcd30b0c7aef41c98b204d2a5d622cce) | [abhayexe](https://sketchfab.com/abhayexe) | Sketchfab Standard |
+| `bld_w1` `h42` | 同上，清水模板樓 | [Brutalist Building](https://sketchfab.com/3d-models/brutalist-building-11bed9877a8b40b2ab1ac983c1c73e9d) | [abhayexe](https://sketchfab.com/abhayexe) | Sketchfab Standard |
+| `bld_w1` `tower` | 公園大道 (10,7) 整街區的白色塔樓 | [modern tower office apartment house home](https://sketchfab.com/3d-models/modern-tower-office-apartment-house-home-071bda8efe344177a8216ef2de47a784) | [zigurat architecture studio](https://sketchfab.com/ziguratarchitecturestudio) | CC BY 4.0 |
+| `bld_w1` `pet` | 琥珀工業區 (17,9) 整街區的兩層商場 | [PetStock and Radio Rentals Building (low Poly)](https://sketchfab.com/3d-models/petstock-and-radio-rentals-building-low-poly-b68ad1af1c434e3da706c38560863cab) | [Jotrain Models](https://sketchfab.com/Jotrain) | Sketchfab Standard |
+| `bld_temple` | 燈籠公園 (9,7) 的希臘神殿 | [Greek Temple Scan](https://sketchfab.com/3d-models/greek-temple-scan-666a9d37d09f40afa1c0226379954d42) | [golukumar](https://sketchfab.com/mortalityrexotable) | Sketchfab Standard |
+| `w1_tower` | 岬角上的石塔 | [[X]_Stone-Tower_II](https://sketchfab.com/3d-models/x-stone-tower-ii-f4cc0c47eda14f7cb14ad6dca420537b) | [-X-ScornGames](https://sketchfab.com/XX-XX) | CC BY 4.0 |
+| `w1_fence` `stone` | 石塔四周的石塊矮牆 | [Small stone cubes fence](https://sketchfab.com/3d-models/small-stone-cubes-fence-73545b856a9a4aa9acb268e72fbc77ec) | [Оrрндп ЯТG](https://sketchfab.com/orphanrtg) | CC BY 4.0 |
+| `w1_fence` `wire` | 舊碼頭兩座木棧橋入口的鐵絲網 | [Wiremesh_Fen](https://sketchfab.com/3d-models/wiremesh-fen-a906ee2192554c22bdf53a2235dcff6a) | [Warh95](https://sketchfab.com/warh95) | CC BY 4.0 |
+| `w1_stairs` | 舊碼頭河岸的木樁階梯 | [Mayflower Stairs 2025](https://sketchfab.com/3d-models/mayflower-stairs-2025-12782e9c310842e3acdb1731d1c34cea) | [artfletch](https://sketchfab.com/artfletch) | CC BY 4.0 |
+| `far_cement` `plant` | 東灣對岸的水泥廠 | [Cement plant, RSP tower, production equipment](https://sketchfab.com/3d-models/cement-plant-rsp-tower-production-equipment-456de44e25064ba4b55c17c08ef545c7) | [Metazeon](https://sketchfab.com/Metazeon) | CC BY 4.0 |
+| `far_cement` `tank` | 東灣對岸的筒倉 | [Cement storage tank, production equipment](https://sketchfab.com/3d-models/cement-storage-tank-production-equipment-f3ba7237a79743c786340f1df24e06c7) | [Metazeon](https://sketchfab.com/Metazeon) | CC BY 4.0 |
+| `far_cement` `ruin` | 東灣對岸的廢棄廠房 | [Abandoned building and cement storage tank](https://sketchfab.com/3d-models/abandoned-building-and-cement-storage-tank-22b1aa5f1a3d4e5d820dd3faffa89ac3) | [Metazeon](https://sketchfab.com/Metazeon) | CC BY 4.0 |
+| `apt_lr` | 安全屋：珊瑚灘清水模公寓 | [living room interior FREE](https://sketchfab.com/3d-models/living-room-interior-free-efeff8e4978e489e82dbb06a86f697f8) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `apt_pub` | 鏽錨酒館（舊碼頭，不用買就能進去） | [British pub](https://sketchfab.com/3d-models/british-pub-b8c7063197404d3d807fe61c790c629a) | [katydid](https://sketchfab.com/Katydid.) | Sketchfab Standard |
+| `apt_store` | BODEGA 夜貓便利店（中城，不用買就能進去） | [Convenience store 2](https://sketchfab.com/3d-models/convenience-store-2-3e9ccca610614bcb84cb3b8390c8a9a0) | [Pasha](https://sketchfab.com/Pasha-) | CC BY 4.0 |
+
+沒有用上的三個：
+
+- [Railway bridge with a feeling of coziness](https://sketchfab.com/3d-models/railway-bridge-with-a-feeling-of-coziness-620a7c96136a4f41974245a04a90be78)（orphanrtg，CC BY 4.0）：連山谷與樹的掃描，城北一圈都是樓，街上看不到，只有空中看得到一條浮在平地上的地皮。
+- [Arq Grid Tron](https://sketchfab.com/3d-models/arq-grid-tron-c3ec6fa4e6734e54a1adbc18c25c20b5)（SpringSociety，CC BY 4.0）：亮線全在自發光貼圖，`tools/props.mjs` 只留底色貼圖，整片是黑色方塊。
+- [Èze Village - France](https://sketchfab.com/3d-models/eze-village-france-a18a1449661643e6ab98640a3e7eafc1)（Azad Balabanian，CC BY 4.0）：白天拍的 360° 全景照片球，不是模型，夜城用不上。
+
+每個檔案拿掉或改掉的部分：
+
+- `pcity5`：地面、路面與街上的車不要（`dropPath`、`dropGround`），依街區切成 15 塊，用了 14 塊（`pc5_10` 太寬，放不進任何街區）。
+- `gameready_city`：路燈與三種路面材質不要，依佔地連通塊拆成單棟，比街區還大的不要；一塊立面照片上的真實招牌模糊成色塊。
+- `tram`：月台、軌道、電車與彎成弧形的街區不要，只用六棟高 28 m 以上的板樓。
+- `petstock`：Petstock 與 Radio Rentals 的真實商標模糊成色塊（九處）；原檔的 specular-glossiness 材質轉成金屬粗糙度。`modern_tower` 同樣轉換。
+- `temple`：掃描減到約 5 萬面，切掉掃描的地面與底下垂著的碎片。
+- `wiremesh`：只用一段網子，頂上的刀片刺網不要。
+- `store`：原檔單位是英寸，切掉店外的停車場與招牌柱，減到約 9.5 萬面。
+- `mayflower`、`stone_fence`、`stone_tower`、`cement_*`：只減面、縮貼圖。
+
+### World 第四輪之二：街道設施、植物與海岸（`~/Downloads/world_2`）
+
+使用者提供的 21 個 Sketchfab 模型，全部 CC BY 4.0（作者與來源取自各檔 `asset.extras`）。原檔複製到 gitignore 的 `games/260-neon-nightcity/.cache/world2/`，由 `tools/props.mjs` 的 `st2_street`、`nat_trees`、`nat_bush`、`cst_beach`、`cst_ferris`、`cst_port`、`cst_mount` 七組處理成 `props/` 裡同名的 GLB；頁面只在 http(s) 下載，以檔案開啟或下載失敗時保留程式建模。
+
+| 檔案 | 用在哪裡 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| `st2_street` `bench` | 公園長椅、海濱與岬角長椅 | [Park Bench](https://sketchfab.com/3d-models/park-bench-2ee2bc87756d4bf0932d83ab860ddb8f) | [RBG_illustrations](https://sketchfab.com/RBG_illustrations) | CC BY 4.0 |
+| `st2_street` `bench2` | 公園長椅（沒有靠背） | [Modern Bench 1](https://sketchfab.com/3d-models/modern-bench-1-caa4515e36444e4c8c100296463e83c1) | [Elasta Kristya](https://sketchfab.com/luca3d) | CC BY 4.0 |
+| `st2_street` `picnic` | 公園與岬角的野餐桌 | [Picnic Table - Low Poly](https://sketchfab.com/3d-models/picnic-table-low-poly-fe35acda3a5245da8459d1a062e28190) | [Derek Flanagan](https://sketchfab.com/derek_flanagan) | CC BY 4.0 |
+| `st2_street` `bin_k`／`bin_g`／`bin_b` | 人行道垃圾桶（三色） | [Garbage Bin](https://sketchfab.com/3d-models/garbage-bin-fba6b5a8afdd4eb0a43be29aabceb3d6) | [Glen Ortiz](https://sketchfab.com/roberto_ortiz) | CC BY 4.0 |
+| `st2_street` `wheelie` | 人行道垃圾桶（有輪子） | [Public Bin ( Free )](https://sketchfab.com/3d-models/public-bin-free-f4440ba1c72f42bb887110ada7dcf3ca) | [Pandurus](https://sketchfab.com/ChubbyPanda) | CC BY 4.0 |
+| `st2_street` `booth` | 電話亭 | [Phone booth](https://sketchfab.com/3d-models/phone-booth-f52615a329da4908a42f5fae1d0f37d1) | [YJ_](https://sketchfab.com/YJ_) | CC BY 4.0 |
+| `st2_street` `newsbox` | 人行道報紙箱 | [Newspaper Box With Mat](https://sketchfab.com/3d-models/newspaper-box-with-mat-e4dd34bb4e384dee82d80889fa3742b9) | [neverfollow81](https://sketchfab.com/neverfollow81) | CC BY 4.0 |
+| `nat_trees` `maple` | 行道樹、公園的樹 | [Maple tree](https://sketchfab.com/3d-models/maple-tree-4b27adcf92f644bdabf8ecc6c5bef399) | [atrodler](https://sketchfab.com/atrodler) | CC BY 4.0 |
+| `nat_trees` `willow_a`／`willow_b` | 公園、岬角與灰鷗島的樹 | [Trees (low-Poly, 4k Tris / Tree)](https://sketchfab.com/3d-models/trees-low-poly-4k-tris-tree-6fad6d1b2d7e4b2187ea6e6a721606ff) | [Sereib](https://sketchfab.com/Sereib) | CC BY 4.0 |
+| `nat_trees` `oak` | 公園、岬角與灰鷗島的樹 | [oak trees](https://sketchfab.com/3d-models/oak-trees-d841c3bcc5324daebee50f45619e05fc) | [DJMaesen](https://sketchfab.com/bumstrum) | CC BY 4.0 |
+| `nat_bush` | 樹下灌木、海濱花台 | [Bush + Ivy Pack LOWPOLY](https://sketchfab.com/3d-models/bush-ivy-pack-lowpoly-8013c47de07d4f96aa5d8b37f05eb4f6) | [EFX](https://sketchfab.com/evan4129) | CC BY 4.0 |
+| `cst_beach` `palm` | 珊瑚灘的椰子樹 | [Realistic Palm Tree 4 Free](https://sketchfab.com/3d-models/realistic-palm-tree-4-free-917c18d6b2d04d33950dea6e20bc074f) | [Next Spring](https://sketchfab.com/NextSpring) | CC BY 4.0 |
+| `cst_beach` `lifeguard` | 救生員塔 | [Lifeguard Tower](https://sketchfab.com/3d-models/lifeguard-tower-2f147eeb428847f7b06244026db6c07e) | [Sololopenko](https://sketchfab.com/Sololopenko) | CC BY 4.0 |
+| `cst_beach` `umbrella` | 海灘陽傘 | [Beach Umbrella](https://sketchfab.com/3d-models/beach-umbrella-1014ad7c8a4c4aa8ba5e88fc6151aa4f) | [stealth86](https://sketchfab.com/stealth86) | CC BY 4.0 |
+| `cst_ferris` | 棧橋摩天輪（支架、輪子、車廂） | [Ferris wheel](https://sketchfab.com/3d-models/ferris-wheel-675ab80b477b40f280b7311f81fee730) | [PureUgliness](https://sketchfab.com/PureUgliness) | CC BY 4.0 |
+| `cst_port` `crane` | 錨灣港岸橋 | [Ship To Shore Crane](https://sketchfab.com/3d-models/ship-to-shore-crane-401069fccf814da7a4f9ce5a51487548) | [JakeBradley](https://sketchfab.com/JakeBradley) | CC BY 4.0 |
+| `cst_port` `ship` | 靠港的貨櫃船 | [Cargo ship](https://sketchfab.com/3d-models/cargo-ship-b7c97df584824ca682d26daabf401f87) | [hungry_drifter](https://sketchfab.com/hungry_drifter) | CC BY 4.0 |
+| `cst_port` `box` | 堆場貨櫃 | [Classic Shipping Container (Free/Gameready)](https://sketchfab.com/3d-models/classic-shipping-container-freegameready-772f4be391a245f699c54e6cf157c58d) | [Sebastian Webster](https://sketchfab.com/Sebastian.Hamish.Webster) | CC BY 4.0 |
+| `cst_mount` | 北嶺後面的雪山（遠景） | [Snow Mountain](https://sketchfab.com/3d-models/snow-mountain-e84a8e5edb2040c591be36350e2536f5) | [hkp941111](https://sketchfab.com/hkp941111) | CC BY 4.0 |
+
+`world_2` 裡的 `fire_hydrant`（[Fire Hydrant](https://sketchfab.com/3d-models/fire-hydrant-d012d05e8bca49928a2944e043d93fb7)，TraianDumbrava）和上面 `street` 的 `hydrant` 是同一個模型，沒有再處理一次，人行道消防栓直接換成 `street.glb` 的那個。
+
+每個檔案拿掉或改掉的部分（貼圖一律縮到 512 或 1024、拿掉金屬粗糙度與法線貼圖、整組減面）：
+
+- `garbage_bin`：原檔三個桶子並排，拆成三個；桶身上的真實清運公司商標（Recology）模糊成色塊（`texEdit.blur`）。
+- `phone_booth`：原檔約 95 MB，貼圖縮到 512、話機主體減到四分之一面數。
+- `maple`：底下的地被與草皮（`Groundcover`、`grass`）不要；葉片貼圖沒有 alpha，白底改成透明（`keyWhite`），樹幹減面。
+- `tree_low`：原檔兩棵並排，依 x 切成兩棵（`clip`）。
+- `bush`：牆面與長春藤（`Ivy`、`wall`）不要，只用玉簪與兩種蕨。
+- `palm`：葉片減到一半面數。
+- `lifeguard`：小屋的半透明材質改成 MASK。
+- `ferris`：地面、底座平台、柵欄、樓梯、垃圾桶與其他小零件不要；拆成支架、輪子、一個車廂（頁面擺十份、保持水平）。
+- `sts_crane`：吊在下面的小車、鋼索、吊具與貨櫃（`Material.004`～`.008`）不要，頁面原本的小車與鋼索照舊會動；吊臂轉成朝海。
+- `cargo_ship`：甲板貨櫃與船身減面。
+- `container`：一萬七千面跨 UV 接縫減到約七百面，改成霧面；頁面依堆場原本的六色乘上頂點色。
+- `mountain`：減面，底色壓到六成、改霧面（夜裡雪不刺眼）。
+
 ## 武器、警方載具與路障（第二階段）
 
 `tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 目前還沒擺進城裡。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。

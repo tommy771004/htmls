@@ -6,6 +6,7 @@ const UNITS = [2, 4, 6, 8, 10];                // 每個星級最多幾台警車
 const SPAWN_IV = [12, 9, 7, 5, 4];             // 派車間隔（秒）
 const CONE_R = 85, CONE_COS = Math.cos(55 * Math.PI / 180), DISGUISE_R = 18, NEAR_R = 10;
 const HELI_R = 140, SPOT_R = 35;
+const SWIM_WATCH = 110, SWIM_SHOT = 85;   // 玩家在水裡：岸上的警察 110 m 內一直盯著（不會因為游遠就消星），85 m 內看得到就開槍
 const CRIME = { jack: 35, assault: 25, shots: 45, aim: 45, kill: 60, blast: 60, ramcop: 100, resist: 100, killcop: 180, explode: 320, heli: 600 };
 const FLOOR = { killcop: 2, explode: 3, heli: 4 };
 const W = { heat: 0, stars: 0, seen: false, evade: 0, lkp: null, lastVeh: null, disg: false, units: [], cops: [], heli: null, blocks: [], pickups: [], reports: [], spawnT: 0, shotsT: -9, visT: 0, fieldT: 0, field: null, goal: -1, bustT: 0, blockT: 8, tankT: 0 };
@@ -95,11 +96,17 @@ function copSees(x, z, r = CONE_R) {
   for (const u of W.units) if (u.crew > 0 && !u.v.dead && u.state !== 'leave' && coneSees(u.v.x, u.v.z, u.v.yaw, x, z, r)) return true;
   return false;
 }
+function copNear(x, z, r) {
+  for (const c of W.cops) if (c.on && c.state !== 'down' && !(c.stunT > 0) && Math.hypot(c.x - x, c.z - z) < r) return true;
+  for (const u of W.units) if (u.crew > 0 && !u.v.dead && u.state !== 'leave' && Math.hypot(u.v.x - x, u.v.z - z) < r) return true;
+  return false;
+}
 function sees() {
   if (player.where !== 'out') return false;
   W.disg = !W.seen && player.veh !== W.lastVeh;
   const x = pX(), z = pZ();
   if (copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
+  if (player.swim && copNear(x, z, SWIM_WATCH)) return true;   // 游泳沒辦法換裝也跑不快：岸上的人盯著水面
   const h = W.heli;
   if (h && !h.fall && !h.leave && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR && heliSees(h, x, z)) return true;
   return false;
@@ -228,7 +235,7 @@ function copStep(c, dt) {
     }
   }
   if (!W.stars) { freeCop(c); return; }
-  const los = d < 60 && losClear(c.x, c.z, tx, tz);
+  const los = d < (player.swim ? SWIM_SHOT : 60) && losClear(c.x, c.z, tx, tz);
   const shoot = W.stars >= 2 && los && !life.dead;
   const al = W.stars >= 2 ? squadAlly(c.x, c.z, Math.min(los ? d : 60, 45)) : null;   // 69-squads.js：比你更近、看得到的傭兵或隊友
   const want = shoot ? (c.gun === 'shotgun' ? 7 : c.swat ? 12 : 14) : 1.3;

@@ -159,3 +159,142 @@ function propWake(where) {
     });
   }
 }
+
+// ═══ World 第四輪之二（使用者提供的 ~/Downloads/world_2，21 個 Sketchfab 模型，CC BY 4.0）：街道設施、植物與海岸 ═══
+// tools/props.mjs 的 st2_／nat_／cst_ 組（消防栓用既有 street.glb 的同一個模型）。以 http(s) 開啟時開場就在背景下載（合計約 4 MB），
+// 下載好才把 20-props.js／21-coast.js 的程式建模拿掉換成模型；以檔案開啟或下載失敗時程式建模原封不動，只有模型版才有的
+// （報紙箱、公園長椅與野餐桌、樹下灌木、雪山）也不擺、不加碰撞。大量重複的每個部件一個 InstancedMesh（20-props 的 instanced()：
+// 清單、zn 與 instUpdate 串流規則和程式建模一樣），材質是 glbMaterial 加上 instanceMatrix 的版本（propMatI）。
+// 狀態放在 window.__nc.props.w2（驗收用）。
+const W2 = { on: GLB_ON, sets: {}, failed: [], swapped: [], n: {} };
+const GLB_VS_I = GLB_VS.replace('vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);',
+  'vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);');
+const propMatsI = new Map();
+function propMatI(mat) {   // 和 propMat 共用 uniforms（時間、相機、天氣都跟著動），只換頂點著色器
+  let m = propMatsI.get(mat);
+  if (!m) { m = new T.ShaderMaterial({ uniforms: mat.uniforms, vertexShader: GLB_VS_I, fragmentShader: mat.fragmentShader, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
+  return m;
+}
+// 一個模型物件擺成清單裡的每一份；geo 可以換成上色過的副本（貨櫃）
+function w2Inst(it, list, layer = 0, R, geoOf = g => g) {
+  if (!it || !list.length) return [];
+  return it.parts.map(p => instanced(geoOf(p.geo), propMatI(p.mat), list, layer, undefined, R));
+}
+const w2Drop = (...ms) => { for (const m of ms) if (m) m.removeFromParent(); };
+const w2Hash = (x, z) => ((Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 + 1) % 1;
+const w2Group = (list, n, f) => { const out = Array.from({ length: n }, () => []); for (const t of list) out[f(t)].push(t); return out; };
+function w2Load(set, fn) {
+  return loadProps(set).then(items => {
+    if (!items) { W2.failed.push(set); return; }
+    try { fn(items); W2.sets[set] = Object.keys(items).length; } catch (e) { console.warn('World 第四輪之二：擺放失敗 ' + set, e); W2.failed.push(set); }
+  });
+}
+let w2Ready = Promise.resolve();
+// ?w2=0：不換這一輪的模型（比較效能、除錯用）
+if (/[?&]w2=0\b/.test(location.search)) W2.on = false;
+if (W2.on && GLB_VS_I !== GLB_VS) {
+  const TREE_R = 200;   // 樹的面數多：只送 200 m 內的實例，外面用程式建模的樹（畫到 380 m）
+  const W2R = { small: 110, mid: 160 };   // 小件（垃圾桶、消防栓、報紙箱、灌木）與中件（長椅、電話亭、陽傘）的串流半徑
+  w2Ready = Promise.all([
+    // ─── 人行道：消防栓（street.glb）、垃圾桶四款、電話亭、報紙箱；公園的長椅與野餐桌；海濱與岬角的長椅、岬角的野餐桌 ───
+    w2Load('street', it => { w2Inst(it.hydrant, hydrants, LY.NOREFL, W2R.small); w2Drop(hydrantMesh); W2.swapped.push('hydrant'); W2.n.hydrant = hydrants.length; }),
+    w2Load('st2_street', it => {
+      const BINS = ['bin_k', 'bin_g', 'bin_b', 'wheelie'];
+      w2Group(bins, 4, t => Math.floor(w2Hash(t.x, t.z) * 4)).forEach((L, k) => w2Inst(it[BINS[k]], L, LY.NOREFL, W2R.small));
+      w2Drop(binMesh);
+      w2Inst(it.booth, booths, 0, W2R.mid); w2Drop(boothMesh);
+      w2Inst(it.newsbox, newsBoxes, LY.NOREFL, W2R.small);
+      for (const t of newsBoxes) addCircleL({ x: t.x, z: t.z, r: .3 });
+      // 公園：長椅（有靠背、沒靠背交錯）與野餐桌，碰撞是軸向的盒（ry 都是 90° 的倍數）
+      const seats = w2Group(parkSeats, 3, t => (t.kind === 'picnic' ? 2 : w2Hash(t.x, t.z) < .5 ? 0 : 1));
+      w2Inst(it.bench, seats[0], LY.NOREFL, W2R.mid); w2Inst(it.bench2, seats[1], LY.NOREFL, W2R.mid); w2Inst(it.picnic, seats[2], LY.NOREFL, W2R.mid);
+      for (const t of parkSeats) {
+        const [hx, hz] = t.kind === 'picnic' ? [.9, .9] : t.ax === 'x' ? [.95, .3] : [.3, .95];
+        addBoxL({ x0: t.x - hx, x1: t.x + hx, z0: t.z - hz, z1: t.z + hz });
+      }
+      // 海濱與岬角：程式建模的長椅換成同一款有靠背的（位置與碰撞不變）
+      w2Inst(it.bench, benches, LY.NOREFL, W2R.mid); w2Drop(benchMesh);
+      // 岬角的野餐桌：避開 27-world1.js 擺的石塔（和它的石牆）
+      let towers = []; try { towers = W1_SITES.filter(o => o.set === 'w1_tower'); } catch (e) { /* 另一段還沒宣告 */ }
+      const cp = capePicnic.filter(t => !towers.some(o => Math.hypot(o.x - t.x, o.z - t.z) < 14));
+      w2Inst(it.picnic, cp, LY.NOREFL, W2R.mid);
+      for (const t of cp) addCircleL({ x: t.x, z: t.z, r: 1.1, w: 1 });
+      W2.swapped.push('bins', 'booth', 'bench'); Object.assign(W2.n, { bins: bins.length, booths: booths.length, news: newsBoxes.length, parkSeats: parkSeats.length, benches: benches.length, capePicnic: cp.length });
+    }),
+    // ─── 樹：行道樹是楓樹，公園、縫、岬角與灰鷗島四種混著（楓樹、兩棵垂柳、三棵一叢的橡樹）；碰撞照舊 ───
+    w2Load('nat_trees', it => {
+      const MIX = ['maple', 'willow_a', 'willow_b', 'oak'];
+      const pick = t => (t.park ? Math.floor(w2Hash(t.x, t.z) * 4) : 0);
+      const isle = ISLE_TREES.map(t => ({ ...t, park: 1 }));
+      w2Group(trees, 4, pick).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, TREE_R));
+      w2Group(isle, 4, pick).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, 700));   // 島上的樹少，從岸邊看得到
+      // 程式建模的行道樹留著當遠景：只畫在 TREE_R 外（20-props 的 stream.R0），近處換成模型
+      if (treeMesh.userData.stream) treeMesh.userData.stream.R0 = TREE_R - 6; else w2Drop(treeMesh);
+      w2Drop(isleTreeMesh);
+      W2.swapped.push('trees'); W2.n.trees = trees.length + isle.length;
+    }),
+    // ─── 灌木：樹下（只有模型版才有）與海濱花台（換掉程式的二十面體） ───
+    w2Load('nat_bush', it => {
+      const KIND = ['hosta', 'fern', 'fernlong'], pl = [];
+      for (const p of planters) for (let i = 0; i < 4; i++) {
+        const ox = -1.1 + i * .73, oz = (i % 2 - .5) * .3, c = Math.cos(p.ry || 0), s = Math.sin(p.ry || 0);
+        pl.push({ x: p.x + ox * c + oz * s, z: p.z - ox * s + oz * c, y: (p.y || 0) + .61, ry: i * 1.9, s: 1.3, kind: i % 3, zn: zoneAtL(p.x, p.z) });
+      }
+      w2Group([...shrubs, ...pl], 3, t => t.kind).forEach((L, k) => w2Inst(it[KIND[k]], L, LY.NOREFL, W2R.small));
+      w2Drop(planterShrubMesh);
+      W2.swapped.push('shrubs'); W2.n.shrubs = shrubs.length + pl.length;
+    }),
+    // ─── 珊瑚灘：椰子樹、救生員塔、陽傘 ───
+    w2Load('cst_beach', it => {
+      w2Inst(it.palm, palms, 0, 600); w2Drop(palmMesh);
+      for (const g of lifeguards) cityAdd(propObject(it.lifeguard, g.x, g.y, g.z, 0));
+      w2Drop(guardMesh);
+      w2Inst(it.umbrella, beachUmbs, 0, W2R.mid); w2Drop(beachUmbMesh);
+      W2.swapped.push('palms', 'lifeguard', 'umbrella'); Object.assign(W2.n, { palms: palms.length, umbrellas: beachUmbs.length });
+    }),
+    // ─── 棧橋摩天輪：支架、輪子、十個車廂（coastUpdate 照舊轉輪子、車廂保持水平；輪軸高度與吊點半徑換成模型的） ───
+    w2Load('cst_ferris', it => {
+      const bg = it.base.parts[0].geo; bg.computeBoundingBox();
+      const hub = -bg.boundingBox.min.y;   // 支架底到輪軸
+      ferris.position.y = FERRIS.h + hub; FERRIS.R = 17.26; FERRIS.wy = hub;
+      cityAdd(propObject(it.base, FERRIS.cx, FERRIS.h + hub, FERRIS.wz), zoneAtL(FERRIS.cx, FERRIS.wz));
+      ferris.add(propObject(it.wheel, 0, 0, 0));
+      w2Drop(FERRIS.base, FERRIS.wheel);
+      const cp = it.cabin.parts;
+      for (const c of cabins) { c.geometry = cp[0].geo; c.material = cp[0].mat; for (const p of cp.slice(1)) c.add(new T.Mesh(p.geo, p.mat)); }
+      W2.swapped.push('ferris');
+    }),
+    // ─── 錨灣港：岸橋（小車、鋼索、吊具照舊會動，高度改成模型吊臂的下緣）、貨櫃船（船艏朝東，隨浪起伏）、堆場的 20 呎貨櫃 ───
+    w2Load('cst_port', it => {
+      for (const cx of [610, 690, 770, 850]) cityAdd(propObject(it.crane, cx - 1.9, 0, QUAY.z1 - 4.3), zoneAtL(cx, QUAY.z1));
+      w2Drop(harbor.craneKit);
+      // 貨櫃船：原檔放大 1.85 倍（235 m）；吃水 11 m，艙蓋頂約在海面上 12 m。吊臂避開船上的吊桿與艉樓
+      const SHIP_X = 727, sy0 = SEA_Y - 11, ship = propObject(it.ship, SHIP_X, sy0, harbor.seaZ);
+      w2Drop(harbor.ship);
+      cityAdd(ship, zoneAtL(SHIP_X, harbor.seaZ)); for (const m of ship.children) cullAdd(m, 1200);   // cullAdd 要網格，船是 Group
+      Object.assign(harbor, { ship, shipY0: sy0, shipY: sy0 + 24.7 + 2.9, trY: 21.6, wireY: 21, hiY: 18.4, shipX0: SHIP_X - it.ship.w / 2, shipX1: SHIP_X + it.ship.w / 2 });
+      // 堆場：原本一格 40 呎的位置擺兩個 20 呎（門對門，打開的那頭藏在中間），沿 z 壓窄成 2.5 m；顏色用頂點色乘上原本的六色
+      const pairs = harbor.boxLists.map(L => L.flatMap(t => [{ x: t.x - 3.05, y: t.y, z: t.z, ry: 0, sx: 1, sy: 1.066, sz: .82 }, { x: t.x + 3.05, y: t.y, z: t.z, ry: Math.PI, sx: 1, sy: 1.066, sz: .82 }]));
+      harbor.COLS.forEach((col, k) => {
+        const tint = new T.Color(lin(col)); tint.multiplyScalar(Math.min(3.2, 1.3 / Math.max(tint.r, tint.g, tint.b, .01)));   // 貼圖是深灰：深色放大 3.2 倍，白、灰的不要過曝
+        w2Inst(it.box, pairs[k], 0, undefined, g => {
+          const c = g.clone(), a = c.attributes.color;
+          if (a) { for (let i = 0; i < a.count; i++) a.setXYZ(i, a.getX(i) * tint.r, a.getY(i) * tint.g, a.getZ(i) * tint.b); a.needsUpdate = true; }
+          return c;
+        });
+      });
+      w2Drop(...harbor.boxMeshes);
+      W2.swapped.push('cranes', 'ship', 'containers'); W2.n.containers = pairs.reduce((a, L) => a + L.length, 0);
+    }),
+    // ─── 北嶺：第三層山脊後面的雪山（遠景材質） ───
+    w2Load('cst_mount', it => { w2Inst(it.mount, PEAKS); W2.n.peaks = PEAKS.length; }),
+  ]);
+}
+// 驗收與截圖用的幾個位置（邏輯座標；cape 是世界座標）
+W2.at = { seat: parkSeats.find(t => t.kind === 'bench'), picnic: parkSeats.find(t => t.kind === 'picnic'), news: newsBoxes[0], booth: booths[0], bin: bins[0], hydrant: hydrants[0],
+  palm: palms[0], guard: lifeguards[0], ferris: { x: FERRIS.cx, z: FERRIS.wz }, crane: { x: 690, z: QUAY.z1 }, yard: harbor.boxLists.flat()[0], cape: capePicnic[0], planter: planters[0], peak: PEAKS[0] };
+// 驗收：程式建模的網格還掛在場景上的有幾個（以檔案開啟時應該全部都在）
+// （清單在這裡先取好：模型還在下載，harbor.ship 之後會換成模型的船）
+const W2_PROC = [hydrantMesh, binMesh, boothMesh, treeMesh, benchMesh, planterShrubMesh, palmMesh, guardMesh, beachUmbMesh, isleTreeMesh, harbor.craneKit, harbor.ship, ...harbor.boxMeshes];
+W2.kept = () => W2_PROC.filter(m => m && m.parent).length;
+{ const iv = setInterval(() => { if (window.__nc && window.__nc.props) { window.__nc.props.w2 = W2; clearInterval(iv); } }, 250); }

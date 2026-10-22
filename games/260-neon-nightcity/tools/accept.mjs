@@ -27,6 +27,9 @@ async function desktop() {
     await ev(page, () => window.__nc.start());
     await page.waitForTimeout(1200);
     await shot(page, 'd-start');
+    // World 第四輪之二（27-props.js 檔尾）：以檔案開啟不下載街道設施、植物與海岸的模型，程式建模全部留著
+    const w2 = await ev(page, () => { const w = window.__nc.props.w2; return w && { on: w.on, sets: Object.keys(w.sets).length, failed: w.failed.length, kept: w.kept() }; });
+    check(w2 && !w2.on && !w2.sets && !w2.failed && w2.kept >= 16, `以檔案開啟不換 world_2 模型、程式建模都在 ${JSON.stringify(w2)}`);
 
     // 走路
     const p0 = await ev(page, () => ({ x: window.__nc.player.x, z: window.__nc.player.z }));
@@ -246,7 +249,14 @@ async function desktop() {
     check(bust === 'busted', `1 星：警車沿路網趕到、警員下車逮捕 → ${bust}（${w1.units} 台警車）`);
     await shot(page, 'd-busted');
     await page.waitForTimeout(5200);
-    const rs = await nc(() => { const nc = window.__nc, g = nc.gta; return { dead: g.life.dead, stars: g.wanted.W.stars, d: Math.round(Math.hypot(nc.player.x - g.pd.x, nc.player.z - g.pd.z)), units: g.wanted.W.units.length }; });
+    // 離開的警車要開到 90 m 外、下車的警員也回到車上才消失：最多再等 10 秒
+    let rs;
+    for (let i = 0; i < 21; i++) {
+      rs = await nc(() => { const nc = window.__nc, g = nc.gta, W = g.wanted.W; return { dead: g.life.dead, stars: W.stars, d: Math.round(Math.hypot(nc.player.x - g.pd.x, nc.player.z - g.pd.z)), units: W.units.length,
+        u: W.units.map(u => ({ st: u.state, d: Math.round(Math.hypot(u.v.x - nc.player.x, u.v.z - nc.player.z)), out: u.out, stuck: +u.stuck.toFixed(1), cops: W.cops.filter(c => c.unit === u && c.on).map(c => c.state) })) }; });
+      if (!rs.units) break;
+      await page.waitForTimeout(500);
+    }
     check(!rs.dead && rs.stars === 0 && rs.d < 3 && rs.units === 0, `BUSTED 後在警察局門口重生、通緝清除 ${JSON.stringify(rs)}`);
     await nc(() => window.__nc.gta.hurt(999));
     await page.waitForTimeout(1500);
@@ -466,6 +476,23 @@ async function desktop() {
     check(sa5.saved === 'loft' && sa5.w === 'loft', `安全屋存的檔讀回室內 ${JSON.stringify(sa5)}`);
     await nc(() => window.__nc.exit());
     await page.waitForTimeout(900);
+    // 不用買的店（HANG_IDS）：便利店門口直接進入，結帳台買吃的補滿生命；酒館裡沒有睡覺
+    const hg1 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.store.door; nc.tpL(d.x, d.z + .8, Math.PI); const c = nc.ctx(); nc.act(); return { c }; });
+    await page.waitForTimeout(900);
+    const hg2 = await nc(() => {
+      const nc = window.__nc, a = nc.gta.apt.APT.store, p = nc.player, w = p.where;
+      p.x = a.till.x; p.z = a.till.z; nc.gta.life.hp = 40; const cash = nc.motors.cash, c = nc.ctx(); nc.act();
+      return { w, c, hp: nc.gta.life.hp === nc.gta.life.max, paid: cash - nc.motors.cash };
+    });
+    await nc(() => window.__nc.exit());
+    await page.waitForTimeout(900);
+    const hg3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.pub.door; nc.tpL(d.x, d.z + .8, Math.PI); const c = nc.ctx(); nc.act(); return { c }; });
+    await page.waitForTimeout(900);
+    const hg4 = await nc(() => { const nc = window.__nc, a = nc.gta.apt.APT.pub, p = nc.player, w = p.where; p.x = a.bar.x; p.z = a.bar.z; const c = nc.ctx(); p.x = a.spawn.x; p.z = a.spawn.z; return { w, c, c2: nc.ctx() }; });
+    check(/進入/.test(hg1.c) && hg2.w === 'store' && /買點吃的/.test(hg2.c) && hg2.hp && hg2.paid === 40, `便利店不用買就能進去，結帳台花 $40 補滿生命 ${JSON.stringify({ ...hg1, ...hg2 })}`);
+    check(/進入/.test(hg3.c) && hg4.w === 'pub' && /點一杯/.test(hg4.c) && !/睡一覺/.test(hg4.c2), `酒館不用買就能進去，吧台點一杯、沒有沙發 ${JSON.stringify({ ...hg3, ...hg4 })}`);
+    await nc(() => window.__nc.exit());
+    await page.waitForTimeout(900);
 
     // 20×15 的新城區：走到最東南的錨灣港與西南的珊瑚灘，車流與路人要跟著過去、HUD 換區名
     const far = [];
@@ -509,6 +536,18 @@ async function desktop() {
     const of3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.doorW; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
     check(/看房/.test(of1.c) && of1.own && /進入/.test(of1.c2) && of2.w === 'office' && of2.got === 1234 && /睡一覺/.test(of2.nap) && /回到街上/.test(of2.exit) && of3.w === 'out' && of3.d < 3,
       `灰鷗島辦公室：門朝北、買下、進去收保險箱、沙發睡覺、出門 ${JSON.stringify({ ...of1, ...of2, ...of3 })}`);
+    // 其他安全屋的短租收入：手機列出租金，進門自動收下
+    const mi1 = await nc(() => {
+      const nc = window.__nc, m = nc.gta.market, e = m.ESTATES.find(o => o.id === 'mini');
+      nc.earn(200000, '測試'); const ok = m.estBuy('mini');
+      nc.motors.props.safe.mini = 777; const c0 = nc.motors.cash; nc.gta.apt.enter('mini');
+      return { ok, rate: e.rate, cap: e.cap, c0 };
+    });
+    await page.waitForTimeout(2400);
+    const mi2 = await nc(() => { const nc = window.__nc, r = { w: nc.player.where, cash: nc.motors.cash, safe: nc.motors.props.safe.mini }; return r; });
+    await nc(() => { const nc = window.__nc, a = nc.gta.apt.APT.mini; nc.player.x = a.exit.x; nc.player.z = a.exit.z; nc.act(); });
+    await page.waitForTimeout(900);
+    check(mi1.ok && mi1.rate > 0 && mi1.cap > mi1.rate && mi2.w === 'mini' && mi2.cash - mi1.c0 >= 777 && mi2.cash - mi1.c0 < 800 && mi2.safe < 5, `迷你閣樓短租收入：進門收下保險箱 ${JSON.stringify({ ...mi1, ...mi2 })}`);
     // 光環廣場（cyberpunk 街廓在 http 下才換模型；這裡是程式立面）、燈籠公園
     const halo = [];
     for (const [x, z] of [[504, 124], [576, 434]]) { await nc((q) => window.__nc.tpL(q[0], q[1], 0), [x, z]); await page.waitForTimeout(700); halo.push(await nc(() => document.getElementById('district').textContent)); }
@@ -522,11 +561,11 @@ async function desktop() {
     await shot(page, 'd-noon');
     await nc(() => { const nc = window.__nc; nc.time(1110); nc.weather('storm'); nc.flash(); });
     await page.waitForTimeout(900);
-    const storm = await nc(() => { const nc = window.__nc, U = nc.U; return { day: +nc.atm.day.toFixed(2), lamp: U.uLampOn.value, rain: U.uRain.value, wx: document.getElementById('wxText').textContent, umb: nc.pedState.filter(p => p.um).length, flash: nc.wx.bolts }; });
-    check(storm.day < .5 && storm.lamp === 1 && storm.rain === 1 && storm.wx === '雷雨' && storm.umb > 0 && storm.flash, `傍晚雷雨：路燈亮、撐傘、打雷 ${JSON.stringify(storm)}`);
+    const storm = await nc(() => { const nc = window.__nc, U = nc.U; return { day: +nc.atm.day.toFixed(2), lamp: U.uLampOn.value, rain: U.uRain.value, wx: document.getElementById('wxText').textContent, umb: nc.pedState.filter(p => p.um).length, out: nc.pedState.filter(p => p.out).length, flash: nc.wx.bolts }; });
+    check(storm.day < .5 && storm.lamp === 1 && storm.rain === 1 && storm.wx === '雷雨' && storm.umb > 0 && storm.out >= 4 && storm.flash, `傍晚雷雨：路燈亮、撐傘、遠處的路人躲雨、打雷 ${JSON.stringify(storm)}`);
     await shot(page, 'd-storm');
-    const dry = await nc(() => new Promise((r) => { const nc = window.__nc; nc.time(720); nc.weather('clear', false); nc.wx.rain = 0; const w0 = nc.wx.wet; for (let i = 0; i < 900; i++) nc.step(1 / 30); r({ w0, w1: +nc.wx.wet.toFixed(2), rain: +nc.wx.rain.toFixed(2), umb: nc.pedState.filter(p => p.um).length }); }));
-    check(dry.w0 === 1 && dry.w1 < .9 && dry.rain < .05 && dry.umb === 0, `雨停後路面慢慢變乾、行人收傘 ${JSON.stringify(dry)}`);
+    const dry = await nc(() => new Promise((r) => { const nc = window.__nc; nc.time(720); nc.weather('clear', false); nc.wx.rain = 0; const w0 = nc.wx.wet; for (let i = 0; i < 900; i++) nc.step(1 / 30); r({ w0, w1: +nc.wx.wet.toFixed(2), rain: +nc.wx.rain.toFixed(2), umb: nc.pedState.filter(p => p.um).length, out: nc.pedState.filter(p => p.out).length }); }));
+    check(dry.w0 === 1 && dry.w1 < .9 && dry.rain < .05 && dry.umb === 0 && dry.out === 0, `雨停後路面慢慢變乾、行人收傘、躲雨的人回到街上 ${JSON.stringify(dry)}`);
     // 下水：從沙灘走過水深 0.3 m 的擋牆、深水游泳、回到沙灘
     {
       await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tpL((B.x0 + B.x1) / 2 + 40, B.z1 - 4, 0); });
@@ -537,6 +576,10 @@ async function desktop() {
       await page.waitForTimeout(800);
       const w1 = await nc(() => { const n = window.__nc, p = n.player; return { swim: !!p.swim, dy: p.y - n.sea.SEA_Y, gun: n.gta.state.aiming }; });
       check(w1.swim && Math.abs(w1.dy) < .3, `深水游泳 ${JSON.stringify(w1)}`);
+      // 通緝中游出去：碼頭上的警車背對著水面，110 m 內照樣算看得到（不會因為游遠就消星）
+      const sw = await nc(() => { const n = window.__nc, Q = n.sea.QUAY, w = n.gta.wanted; w.set(1); const [x, z] = n.W((Q.x0 + Q.x1) / 2, Q.z1 - 8); const u = w.unit('car', { x, z, yaw: Math.PI });
+        const r = { unit: !!u, seen: w.sees(), d: Math.round(Math.hypot(x - n.player.x, z - n.player.z)) }; w.clear(); return r; });
+      check(sw.unit && sw.seen && sw.d < 110, `游泳時岸上的警察盯著水面 ${JSON.stringify(sw)}`);
       await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tpL((B.x0 + B.x1) / 2, B.z0 + 20, 0); });
       await page.waitForTimeout(500);
       check(await nc(() => !window.__nc.player.swim), '回到沙灘就不再游泳');
