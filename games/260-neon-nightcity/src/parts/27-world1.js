@@ -1,19 +1,9 @@
 // ═══ World 第四輪（使用者提供的 ~/Downloads/world_1）：不在街區裡的地標與遠景（街區裡的建築由 10-city.js 的 bldPlace 擺）───
-// 東灣對岸的三座水泥廠與 Tram Station 剩下的三棟長板樓、鷺嘴岬的石塔與石牆、
-// 舊碼頭河岸的木樁階梯與兩座木棧橋入口的鐵絲網。模型是 tools/props.mjs 的 far_／w1_ 組（bld_tram 和街區共用），
+// 鷺嘴岬的石塔與石牆（外緣改成多邊形之後沒有岬角，不擺）、舊碼頭河岸的木樁階梯與兩座木棧橋入口的鐵絲網
+// （東灣改成山之後，對岸的水泥廠與長板樓拿掉了）。模型是 tools/props.mjs 的 far_／w1_ 組（bld_tram 和街區共用），
 // 玩家走近 near 公尺內才下載；以檔案開啟不擺（碰撞也不加）。
 const W1_SITES = [];
 if (GLB_ON) {
-  const E = EAST_BANK_X, C = CITY_CZ;
-  W1_SITES.push(
-    // 東灣對岸：舊港城（golu、s7，z 約 C−190…C+190）的北邊是水泥廠與筒倉，南邊是廢棄的筒倉廠房；後面一排是長板樓
-    { set: 'far_cement', id: 'plant', x: E + 120, z: C - 430, ry: Math.PI / 2, near: 1500 },
-    { set: 'far_cement', id: 'tank', x: E + 140, z: C - 620, ry: 0, near: 1500 },
-    { set: 'far_cement', id: 'ruin', x: E + 90, z: C + 320, ry: Math.PI / 2, near: 1500 },
-    { set: 'bld_tram', id: 'tram_06', x: E + 470, z: C - 470, ry: -Math.PI / 2, near: 1500 },
-    { set: 'bld_tram', id: 'tram_02', x: E + 520, z: C + 280, ry: -Math.PI / 2, near: 1500 },
-    { set: 'bld_tram', id: 'tram_01', x: E + 300, z: C + 440, ry: -Math.PI / 2, near: 1500 },
-  );
   // 舊碼頭的河岸階梯（Mayflower Stairs 掃描）：兩座木棧橋中間，木樁牆面朝河（原檔正面朝 +z，轉成朝 −x），整塊沉到步道面以下，
   // 水面以上只露出牆頂與階梯口
   W1_SITES.push({ set: 'w1_stairs', id: 'stairs', x: CITY_X0 - OUT_D + 4.2, z: stZ(2) + 31, y: -7.02, ry: -Math.PI / 2, near: 500, zn: ZONES[0] });

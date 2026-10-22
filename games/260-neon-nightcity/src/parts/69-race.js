@@ -1,5 +1,5 @@
 // ═══ 第五階段：街頭賽（三條賽道，開車到起點的霓虹圈按 E 報名） ═══
-// 賽道是路網路口（05-zones.js 的區、大道 i、街 j）連成的檢查點，路線用 69-gps.js 的 routeTo 接起來（世界座標，換區、轉城都照算）。
+// 賽道是路網路口（大道 i、街 j；在片的邊界上的路口取第一個有這個路口的片）連成的檢查點，路線用 69-gps.js 的 routeTo 接起來（世界座標，換區、轉城都照算）。
 // 三名對手是獨立載具（buildVeh，kind 'race'），沿路線折線開：前視點跟著速度拉長，前方路線轉得越急就越早煞車；
 // 落後太多會稍微加速、領先太多會放慢（橡皮筋），卡住先倒車，再不行就趁玩家看不到時放回路線上。
 // 玩家只要依序穿過檢查點（不必照路線走），第一名拿獎金、第二名拿四成、第三名退報名費；第一次贏某條賽道多五成。最佳成績存在 motors.side.race。
@@ -8,18 +8,18 @@
 
 const RACE_COL = 0xff3fd2, RACE_HEX = '#ff3fd2', RACE_FIN = 0x3ff2e0;
 const RACES = [
-  { id: 'neon', name: '霓虹環線', en: 'NEON LOOP', laps: 2, fee: 1000, prize: 6000, nodes: [[0, 1, 1], [0, 3, 1], [0, 6, 1], [0, 6, 3], [0, 6, 5], [0, 4, 5], [0, 1, 5], [0, 1, 3]], loop: true,
+  { id: 'neon', name: '霓虹環線', en: 'NEON LOOP', laps: 2, fee: 1000, prize: 6000, nodes: [[1, 1], [3, 1], [6, 1], [6, 3], [6, 5], [4, 5], [1, 5], [1, 3]], loop: true,
     desc: '舊碼頭與霓虹區外圈繞兩圈，四個直角彎。' },
-  { id: 'halo', name: '光環衝刺', en: 'HALO SPRINT', laps: 1, fee: 2000, prize: 12000, nodes: [[1, 9, 1], [1, 12, 1], [1, 12, 4], [1, 15, 4], [1, 15, 1], [1, 18, 1], [1, 18, 6], [1, 13, 6], [1, 10, 6]],
+  { id: 'halo', name: '光環衝刺', en: 'HALO SPRINT', laps: 1, fee: 2000, prize: 12000, nodes: [[9, 1], [12, 1], [12, 4], [15, 4], [15, 1], [18, 1], [18, 6], [13, 6], [10, 6]],
     desc: '光環廣場到灰石國宅的單程衝刺，連續 S 彎。' },
-  { id: 'south', name: '南岸長征', en: 'SOUTH RUN', laps: 1, fee: 3000, prize: 18000, nodes: [[2, 1, 8], [2, 7, 8], [2, 7, 11], [2, 12, 11], [2, 12, 8], [2, 17, 8], [2, 17, 13], [2, 10, 13], [2, 4, 13]],
+  { id: 'south', name: '南岸長征', en: 'SOUTH RUN', laps: 1, fee: 3000, prize: 18000, nodes: [[1, 8], [7, 8], [7, 11], [12, 11], [12, 8], [17, 8], [17, 13], [10, 13], [4, 13]],
     desc: '楓林里穿過公園大道、琥珀工業區，再沿南岸回到珊瑚灘。最長的一條。' },
 ];
 const RIVALS = [['tiara', 'Vex', 9], ['evo190', 'Rin', 3], ['e34', 'Dante', 6]];
 // 檢查點與路線（世界座標；第一次用到才算，?zrot 之後一樣對）
 function raceGeo(R) {
   if (R.geo) return R.geo;
-  const N = R.nodes.map(([z, i, j]) => { const n = rnAt(ZONES[z], i, j); return [n.x, n.z]; });
+  const N = R.nodes.map(([i, j]) => { const n = ZONES.map(zn => rnAt(zn, i, j)).find(Boolean); return [n.x, n.z]; });
   const cps = [];
   for (let lap = 0; lap < R.laps; lap++) { for (let k = 1; k < N.length; k++) cps.push(N[k]); if (R.loop) cps.push(N[0]); }
   // 路線：起點接到每個檢查點，去掉重複的點

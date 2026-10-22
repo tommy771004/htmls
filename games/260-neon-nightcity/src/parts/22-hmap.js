@@ -3,12 +3,10 @@
 // 開場先用地塊、實體建築的外框與島上基地畫一張；實體建築模型下載好（27-props.js 的 bldLoad），
 // 再用它的三角形重畫那一塊，拼成一群的高樓、中庭與退縮的樓頂才對。沒有東西的格子是 HM_NONE（地面不算遮擋物）。
 const HMS = LOW ? 2 : 1.25, HM_NONE = -50;
-// 範圍是各區把城市外框（含島）換到世界座標後的外接框
+// 範圍是城市外緣（CITY_BB）往外 80 m，再包進灰鷗島
 const HM = (() => {
-  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
-  for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, CITY_X0 - OUT_D - 60), Math.min(zn.x1, CITY_X1 + OUT_D + 60), Math.max(zn.z0, CITY_Z0 - 60), Math.min(zn.z1, ISLE.z1 + 40), zn)) {
-    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
-  }
+  let x0 = CITY_BB.x0 - 80, x1 = CITY_BB.x1 + 80, z0 = CITY_BB.z0 - 80, z1 = CITY_BB.z1 + 80;
+  for (const [x, z] of rectW(ISLE.x0 - 40, ISLE.x1 + 40, ISLE.z0 - 40, ISLE.z1 + 40)) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
   const n = Math.ceil(Math.max(x1 - x0, z1 - z0) / HMS);
   return { x0, z0, n, h: new Float32Array(n * n).fill(HM_NONE), max: 0, d: null };
 })();

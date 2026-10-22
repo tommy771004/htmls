@@ -548,11 +548,26 @@ async function desktop() {
     await shot(page, 'e-far');
 
     // 海岸（21-coast.js）：步道往河裡走會被擋牆擋住；跨海橋走得上灰鷗島，HUD 換成島名；島上辦公室安全屋買下、進去、睡覺、收保險箱
-    // 灰鷺河濱步道（x = −238 是河岸擋牆）往西走
-    const sea = await nc(() => { const nc = window.__nc; nc.walk(); nc.gta.wanted.clear('reset'); nc.tpL(-233, 300, -Math.PI / 2); return nc.L(nc.player.x, nc.player.z)[0]; });
-    await hold(page, 'KeyW', 2500);
-    const sea2 = await nc(() => ({ x: window.__nc.L(window.__nc.player.x, window.__nc.player.z)[0], d: document.getElementById('district').textContent }));
-    check(sea2.x < sea - 2 && sea2.x > -238.5 && /灰鷺河濱/.test(sea2.d), `河濱步道往河裡走會停在擋牆 ${JSON.stringify({ x0: sea, ...sea2 })}`);
+    // 外緣臨水的那幾段（10-city.js 的 SHORE）：河邊（最西）與海邊（最南）各挑一段離梯子遠的，從岸上 6 m 往水裡走
+    for (const [side, key] of [['河邊', 'w'], ['海邊', 's']]) {
+      const at = await nc((key) => {
+        const n = window.__nc, S = n.shore, P = S.pts, m = P.length; let A = 0; for (let k = 0; k < m; k++) { const p = P[k], q = P[(k + 1) % m]; A += p[0] * q[1] - q[0] * p[1]; }
+        let best = null;
+        for (let k = 0; k < m; k++) {
+          const p = P[k], q = P[(k + 1) % m], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+          if (!S.wet[k] || L < 24) continue;
+          const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, ux = (q[0] - p[0]) / L, uz = (q[1] - p[1]) / L, sg = A > 0 ? 1 : -1, ox = uz * sg, oz = -ux * sg;
+          if (n.ladders.some((l) => Math.hypot(l.x - x, l.z - z) < 20)) continue;
+          const sc = key === 'w' ? x : -z;
+          if (!best || sc < best.sc) best = { sc, x, z, ox, oz };
+        }
+        n.walk(); n.gta.wanted.clear('reset'); n.tp(best.x - best.ox * 6, best.z - best.oz * 6, Math.atan2(best.ox, best.oz));
+        return best;
+      }, key);
+      await hold(page, 'KeyW', 3000);
+      const r = await nc((b) => { const n = window.__nc, p = n.player; return { out: +((p.x - b.x) * b.ox + (p.z - b.z) * b.oz).toFixed(2), d: n.sea.depth(p.x, p.z), swim: !!p.swim }; }, at);
+      check(r.out > -3.5 && r.out < .5 && r.d === 0 && !r.swim, `${side}的擋牆擋住，不會走進水裡 ${JSON.stringify(r)}`);
+    }
     const isle0 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.door, bx = d.x - 8, iz = d.z - 133.4; nc.tpL(bx, iz - 5, 0); return { z: nc.L(nc.player.x, nc.player.z)[1], iz }; });
     await hold(page, 'KeyW', 5000);
     const isle1 = await nc(() => ({ z: window.__nc.L(window.__nc.player.x, window.__nc.player.z)[1], y: window.__nc.player.y, d: document.getElementById('district').textContent, st: document.getElementById('stName').textContent }));
@@ -645,7 +660,7 @@ async function desktop() {
     // 對岸步道（10-city.js 的 BANK_WALKS）：站得上去、不會游泳；往樓那邊走被高牆擋住；渡口停著船
     {
       const fw = [];
-      for (const i of [0, 1]) {
+      for (let i = 0; i < await nc(() => window.__nc.sea.walks.length); i++) {
         await nc((i) => { const n = window.__nc, B = n.sea.walks[i]; n.walk(); n.tpL((B.x0 + B.x1) / 2, (B.z0 + B.z1) / 2 + 30, i ? Math.PI / 2 : -Math.PI / 2); }, i);
         await page.waitForTimeout(300);
         await page.keyboard.down('KeyW'); await page.waitForTimeout(3000); await page.keyboard.up('KeyW');
@@ -684,22 +699,6 @@ async function desktop() {
       const sm = await nc(() => { const s = window.__nc.seam; return { runs: s.path.length, pts: s.path.reduce((a, r) => a + r.length, 0), sites: s.sites.length, kinds: [...new Set(s.sites.map(x => x.type))].length }; });
       check(sm.runs >= 2 && sm.pts > 30 && sm.sites >= 6 && sm.kinds === 3, `接縫步道與小建築 ${JSON.stringify(sm)}`);
     }
-    // 岬角（10-city.js 的 CAPES）：從東岸步道走上東灣觀景岬（岸邊擋牆在那裡斷開），再從岬尖往外走，被臨水的擋牆擋住
-    {
-      const x0 = await nc(() => { const n = window.__nc, h = n.capes.find(h => h.name.startsWith('東灣觀景岬')), [x0, z0] = n.L(...h.pts[0]), [, z1] = n.L(...h.pts[h.pts.length - 1]); n.tpL(x0 - 3, z0 + (z1 - z0) * .44, Math.PI / 2); return x0; });
-      await page.keyboard.down('KeyW'); await page.waitForTimeout(4000); await page.keyboard.up('KeyW');
-      const onCape = () => { const n = window.__nc, P = n.capes.find(h => h.name.startsWith('東灣觀景岬')).pts, { x, z } = n.player; let c = false; for (let k = 0, m = P.length - 1; k < P.length; m = k++) { const [ax, az] = P[k], [bx, bz] = P[m]; if ((az > z) !== (bz > z) && x < (bx - ax) * (z - az) / (bz - az) + ax) c = !c; } return c; };
-      const c0 = await nc(([x0, src]) => { const n = window.__nc, p = n.player; return { on: (0, eval)(src)(), past: +(n.L(p.x, p.z)[0] - x0).toFixed(1), y: +p.y.toFixed(2) }; }, [x0, `(${onCape})`]);
-      check(c0.on && c0.past > 2 && c0.y === 0, `從步道走上岬角 ${JSON.stringify(c0)}`);
-      // 岬尖：離接岸那條邊最遠的點往裡 5 m，面朝外
-      await nc(() => { const n = window.__nc, P = n.capes.find(h => h.name.startsWith('東灣觀景岬')).pts, [ax, az] = P[0], [bx, bz] = P[P.length - 1], ex = az - bz, ez = bx - ax, l = Math.hypot(ex, ez);
-        let best = -1, tip = P[0]; for (const q of P) { const d = Math.abs((q[0] - ax) * ex + (q[1] - az) * ez); if (d > best) { best = d; tip = q; } }
-        const sg = (tip[0] - ax) * ex + (tip[1] - az) * ez > 0 ? 1 : -1, ux = ex / l * sg, uz = ez / l * sg;
-        n.tp(tip[0] - ux * 5, tip[1] - uz * 5, Math.atan2(ux, uz)); });
-      await page.keyboard.down('KeyW'); await page.waitForTimeout(5000); await page.keyboard.up('KeyW');
-      const c1 = await nc((src) => { const n = window.__nc, p = n.player; return { on: (0, eval)(src)(), d: n.sea.depth(p.x, p.z), swim: !!p.swim }; }, `(${onCape})`);
-      check(c1.on && c1.d === 0 && !c1.swim, `岬尖臨水的擋牆擋住，不會走進水裡 ${JSON.stringify(c1)}`);
-    }
     await nc(() => { const nc = window.__nc; nc.time(134); nc.weather('rain'); });
 
     // 第五階段（69-side／race／street／turf／survival／tale）：每項走完一次，最後重新載入確認 motors.side 存得住
@@ -736,10 +735,10 @@ async function desktop() {
       check(bo && /BOUNTY/.test(bb) && await nc(() => !window.__nc.gta.ev.ev.cur), `懸賞逃犯車：熄火後逮捕 ${bb}`);
       await reset();
       // 幫派地盤：據點的人站著聊天 → 被看到開戰 → 三波打完搶下 → 反攻守住
-      await nc(() => { const a = window.__nc.gta.turf.at('maple'); window.__nc.tp(a.x + 70, a.z + 20); });
+      await nc(() => { const n = window.__nc, a = n.gta.turf.at('maple'), [lx, lz] = n.L(a.x, a.z); n.tp(...n.W(lx + 70, lz + 20)); });   // 位移照據點所在片的邏輯座標（片有轉角度）
       await W(1200);
       const calm = await nc(() => window.__nc.gta.squad.SQ.f.filter(f => f.on && f.calm).length);
-      await nc(() => { const a = window.__nc.gta.turf.at('maple'), p = window.__nc.player; p.x = a.x + 12; p.z = a.z + 2; });
+      await nc(() => { const n = window.__nc, a = n.gta.turf.at('maple'), p = n.player, [lx, lz] = n.L(a.x, a.z); [p.x, p.z] = n.W(lx + 12, lz); });
       await W(1200);
       const war = await nc(() => { const a = window.__nc.gta.turf.act(); return a && a.name; });
       for (let w = 0; w < 3; w++) { await nc(() => window.__nc.gta.turf.wipe()); await W(4200); }

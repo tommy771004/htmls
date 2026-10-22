@@ -549,13 +549,28 @@ function placeRoadblock() {
   if (W.blocks.length >= 2 || player.mode !== 'drive') return null;
   const v = player.veh, sp = Math.hypot(v.vx, v.vz);
   const hx = sp > 3 ? v.vx / sp : Math.sin(v.yaw), hz = sp > 3 ? v.vz / sp : Math.cos(v.yaw);
-  // 前方 70–150 m、就在玩家這條路的延長線上（橫向偏不到 HR）的路口
+  // 前方 70–150 m、就在玩家這條路的延長線上（橫向偏不到 HR＋距離的一成：彎曲的片裡路是彎的）的路口
   let best = null, bs = -1;
   for (const n of RN.nodes) {
     const dx = n.x - v.x, dz = n.z - v.z, d = Math.hypot(dx, dz);
-    if (d < 70 || d > 150 || Math.abs(dx * hz - dz * hx) > HR) continue;
+    if (d < 70 || d > 150 || Math.abs(dx * hz - dz * hx) > HR + d * .1) continue;
     const f = (dx * hx + dz * hz) / d;
     if (f > .9 && f > bs && !W.blocks.some(b => b.n === n)) { bs = f; best = n; }
+  }
+  // 直線上沒有（路彎得多、前面是縫裡的連接道路）：從玩家所在的路段沿路網往前，每個路口挑最直的那條，走到 70–150 m 的路口
+  if (!best) {
+    const p = rnProject(v.x, v.z);
+    if (p) {
+      const [, , tx, tz] = edgeAt(p.e, p.u), dir = tx * hx + tz * hz >= 0 ? 1 : -1;
+      let n = edgeEnd(p.e, dir), d = dir > 0 ? p.e.len - p.u : p.u, ex = tx * dir, ez = tz * dir, from = p.e;
+      for (let k = 0; k < 8 && d < 70; k++) {
+        let bo2 = null, bf = -2;
+        for (const o of n.out) { if (o.e === from) continue; const [gx, gz] = outDir(o.e, o.dir), f = gx * ex + gz * ez; if (f > bf) { bf = f; bo2 = o; } }
+        if (!bo2 || bf < .5) break;
+        [ex, ez] = outDir(bo2.e, bo2.dir); from = bo2.e; d += bo2.e.len; n = edgeEnd(bo2.e, bo2.dir);
+      }
+      if (d >= 70 && d <= 150 && !W.blocks.some(b => b.n === n)) best = n;
+    }
   }
   if (!best) return null;
   // 來車方向（玩家那邊）的路段：從路口出發、方向最朝著玩家的那一段
@@ -669,7 +684,7 @@ function policeUpdate(dt) {
     const d = Math.hypot(u.v.x - px, u.v.z - pz);
     if (!u.v.dead && u.state !== 'leave') sirenNear = Math.min(sirenNear, d);
     const crewBack = !W.cops.some(c => c.on && c.unit === u && c.state !== 'down');
-    if (d > 260 || u.state === 'leave' && d > 90 && crewBack || u.v.dead && d > 120) dropUnit(u);
+    if (d > (u.keep ? 700 : 260) || u.state === 'leave' && d > 90 && crewBack || u.v.dead && d > 120) dropUnit(u);
   }
   for (const c of W.cops) if (c.on) copStep(c, dt);
   heliStep(dt);

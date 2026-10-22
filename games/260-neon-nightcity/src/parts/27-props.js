@@ -66,14 +66,14 @@ function bldLoad(set) {
         const g = p.geo.clone().applyMatrix4(M);
         e.list.push(g); wg.push(g);
       }
-      hmModel(b, wg, zn.m4);   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
+      hmModel(b, wg, frameM4(zn, b.x, b.z));   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
     }
     hmFlush();
     for (const { mat, list, zn } of byKey.values()) {
       const g = mergeGeometries(list);
       for (const x of list) x.dispose();
       if (!g) continue;
-      const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set;
+      const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set; m.userData.noTess = 1;   // 頂點逐一彎曲（不切），貼著彎過的街區
       cityAdd(m, zn); cullAdd(m);
     }
   });
@@ -89,14 +89,12 @@ function bldUpdate() {   // 每半秒看一次：走近還沒下載的組就開�
   for (const set of bldSets) if (!bldReq.has(set) && bldNear(set, x, z, BLD_NEAR + 150)) bldLoad(set);
 }
 
-// ─── 海岸的模型（21-coast.js）：灰鷗島的兩個基地、灰鷺河對岸的 London City、東灣對岸的舊港城與後排板樓。
+// ─── 海岸的模型（21-coast.js）：灰鷗島的兩個基地、灰鷺河對岸的 London City（東灣改成山之後，舊港城與後排板樓不擺了）。
 // 玩家走近 near 公尺內才下載；同一個替身（ISLE_PROXY）的模型都擺好，才把程式替身藏起來 ───
 const COAST_MODELS = [
   { set: 'isle_ruin', id: 'ruin', at: ISLE_SITES.ruin, proxy: 'isle', near: 900, y: .03 },
   { set: 'isle_office', id: 'office', at: ISLE_SITES.office, proxy: 'isle', near: 900, y: .03 },
   { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500, zn: FAR_ZN },
-  { set: 'far_golu', id: 'golu', at: FAR_SITES.golu, proxy: 'golu', near: 1500 },
-  { set: 'far_s7', id: 's7', at: FAR_SITES.s7, proxy: 'golu', near: 1500 },
 ];
 let coastTick = 0;
 function coastModelsUpdate() {
@@ -112,7 +110,7 @@ function coastModelsUpdate() {
       if (o.proxy === 'isle') {   // 島上的基地也畫進日光陰影的高度圖（22-hmap.js）
         const M = new T.Matrix4().compose(V3(o.at.x, o.y || 0, o.at.z), new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), o.at.ry || 0), V3(1, 1, 1));
         const wg = items[o.id].parts.map(p => p.geo.clone().applyMatrix4(M));
-        hmModel({ set: o.set, id: o.id, x: o.at.x, z: o.at.z, ry: o.at.ry || 0, s: 1 }, wg, zn && zn.m4);
+        hmModel({ set: o.set, id: o.id, x: o.at.x, z: o.at.z, ry: o.at.ry || 0, s: 1 }, wg, zn && frameM4(zn, o.at.x, o.at.z));
         wg.forEach(g => g.dispose()); hmFlush();
       }
       o.done = true;

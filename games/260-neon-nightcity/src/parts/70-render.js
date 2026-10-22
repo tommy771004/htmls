@@ -144,7 +144,7 @@ function renderFrame(dt, t) {
   camera.updateMatrixWorld();
   sky.position.copy(camera.position); sky.updateMatrixWorld();   // 天空球跟著相機（城市東西兩端離原點超過半徑）
   U.uCam.value.copy(camera.position);
-  { const zc = zoneAtW(camera.position.x, camera.position.z); if (zc) U.uZone.value.set(zc.ox, zc.oz, zc.c, zc.s); }
+  { const cx = camera.position.x, cz = camera.position.z, zc = zoneAtW(cx, cz); if (zc) { const f = localZone(zc, ...zoneLocal(zc, cx, cz)); U.uZone.value.set(f.ox, f.oz, f.c, f.s); } }   // 相機那一點的剛體框（彎曲的片）
   const outdoors = curScene === scene;
   reflU.uReflOn.value = outdoors ? 1 : 0;
   if (outdoors) renderReflection();

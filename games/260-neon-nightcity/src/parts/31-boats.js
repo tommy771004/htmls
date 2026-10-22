@@ -79,9 +79,9 @@ const BOAT_SPOTS = [
   { type: 'bayhop', x: (PIERS[1].x0 + PIERS[1].x1) / 2, z: PIERS[1].z0 - 5.8, yaw: -Math.PI / 2, where: '舊碼頭' },
   { type: 'wavecut', x: BRIDGE_X - 70, z: ISLE.z0 - 5.8, yaw: Math.PI / 2, where: '灰鷗島' },
   { type: 'bayhop', x: 1230, z: QUAY.z1 + 5.8, yaw: Math.PI / 2, where: '錨灣港' },
-  // 對岸的渡船碼頭（10-city.js 的 FERRY）：開船或游過去之後也有船開回來
+  // 對岸的渡船碼頭（10-city.js 的 FERRY，只剩西岸一座）：南北兩側各停一艘，開船或游過去之後也有船開回來
   { type: 'bayhop', x: FERRY[0].x1 - 10, z: FERRY[0].z1 + 3.2, yaw: Math.PI / 2, where: FERRY[0].name },
-  { type: 'wavecut', x: FERRY[1].x0 + 10, z: FERRY[1].z0 - 3.4, yaw: -Math.PI / 2, where: FERRY[1].name },
+  { type: 'wavecut', x: FERRY[0].x1 - 10, z: FERRY[0].z0 - 3.4, yaw: Math.PI / 2, where: FERRY[0].name },
 ];
 const boats = BOAT_SPOTS.map((S, i) => {
   const T0 = BOAT_TYPES[S.type], mat = mkUber({ double: true });

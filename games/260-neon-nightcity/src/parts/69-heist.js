@@ -453,7 +453,7 @@ function heistAmbush() {
   const e = BROKEN.road;
   for (const [o, side] of [[-7, 1], [-1, -1], [5, 1], [11, -1]]) {
     const [x, z, hx, hz] = edgeAt(e, e.len / 2 + o), u = spawnUnit(null, { x: x - hz * side * 2.6, z: z + hx * side * 2.6, yaw: Math.atan2(hx, hz) + side * .5 });
-    if (u) { u.heist = 1; u.crew = 0; }   // 空車排成的封鎖線，人都在別處（不會下車、也不算視線）
+    if (u) { u.heist = 1; u.crew = 0; u.keep = 1; }   // 空車排成的封鎖線，人都在別處（不會下車、也不算視線）；斷橋離銀行遠，700 m 內不收
   }
   toast('兩台「鐵砧」戰車封住了往貨場的路口：GPS 改走鐵灣高架斷橋，用反射駕駛衝過去');
 }

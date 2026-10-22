@@ -1,8 +1,8 @@
 
 // ═══ 街道設施、招牌、全息廣告、蒸氣、雨與天空 ═══
 await bootStep(BOOT.props, '擺放街道與招牌…');
-const _o = new T.Object3D();
-// 清單是邏輯座標（t.zn 給了就用那一區，否則看位置在哪一區）：每個 instance 的矩陣換成世界座標，InstancedMesh 本身掛在 scene
+const _o = new T.Object3D(), _fm = new T.Matrix4();
+// 清單是邏輯座標（t.zn 給了就用那一片，否則看位置在哪一片；null 是世界座標）：每個 instance 的矩陣乘上所在位置的 frameM4 換成世界座標，InstancedMesh 本身掛在 scene
 // R：只送相機附近幾公尺內的實例（預設 INST_R；面數多的模型，例如 27-props 檔尾的樹，給小一點）。
 // stream.R0：近處這幾公尺內的不送（27-props 檔尾換成模型後，程式建模的樹只畫在模型的範圍外，當遠景）
 function instanced(geo, mat, list, layer = 0, extra, R) {
@@ -12,7 +12,7 @@ function instanced(geo, mat, list, layer = 0, extra, R) {
     _o.position.set(t.x, t.y || 0, t.z); _o.rotation.set(t.rx || 0, t.ry || 0, t.rz || 0, 'YXZ');
     _o.scale.set(t.sx || t.s || 1, t.sy || t.s || 1, t.sz || t.s || 1); _o.updateMatrix();
     const zn = t.zn !== undefined ? t.zn : zoneAtL(t.x, t.z);
-    if (zn) _o.matrix.premultiply(zn.m4);
+    if (zn) _o.matrix.premultiply(frameM4(zn, t.x, t.z, _fm));
     wx[k] = _o.matrix.elements[12]; wz[k] = _o.matrix.elements[14];
     m.setMatrixAt(k, _o.matrix);
   });
@@ -261,54 +261,53 @@ for (const b of blocks) {
   for (const x of [b.x0 + 1.6, b.x1 - 1.6]) for (let z = b.z0 + 12; z < b.z1 - 10; z += 9 + rnd() * 3)
     if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
 }
-// 區之間的縫：沿著縫的中線鋪一條碎石步道（SEAM_PATH，世界座標的折線），夠寬的地方擺涼亭、茶亭、公廁（SEAM_SITES）；
-// 長椅、路燈、建物的樣子在 21-coast.js。步道在連接道路前斷開，縫太窄（草地不到 12 m）、斷橋底下、樓牆後面不鋪
+// 片之間的空地：每一對相鄰的片，沿著共用的邊界走，在這片的邊界路與那片的邊界路中間鋪碎石步道（SEAM_PATH，世界座標的折線，
+// 點上記草地寬 w），夠寬的地方擺涼亭、茶亭、公廁（SEAM_SITES）；長椅、路燈、建物的樣子在 21-coast.js。
+// 步道在連接道路前斷開，草地不到 12 m、斷橋底下、外緣外面不鋪
 const SEAM_PATH = [], SEAM_SITES = [];
 {
-  const [zA, zB, zC] = ZONES, xm = avX(zA.ni1), zm = stZ(zA.nj1), conn = RN.edges.filter(e => e.kind === 'c');
-  const proj = (p, o, d) => { const t = (p[0] - o[0]) * d[0] + (p[1] - o[1]) * d[1]; return [o[0] + d[0] * t, o[1] + d[1] * t]; };
+  const conn = RN.edges.filter(e => e.kind === 'c');
   const nearConn = (x, z, r) => conn.some(e => e.pts.some(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 < r * r));
   const runs = [];
-  // 南北向那條：A 區東緣的邊界路與 B 區西緣的邊界路中間
-  const oB = toW(xm, 0, zB), dB = dirW(zB, 0, 1), ns = [];
-  for (let z = CITY_Z0 + 14; z < zm - HR - 4; z += 5) { const a = toW(xm, z, zA), b = proj(a, oB, dB); ns.push({ a, b }); }
-  // 東西向那條：A、B 區南緣與 C 區北緣中間
-  const oC = toW(0, zm, zC), dC = dirW(zC, 1, 0), ew = [];
-  for (let x = CITY_X0 - OUT_D + 14; x < CITY_X1 + OUT_D - 14; x += 5) { const a = toW(x, zm, x < xm ? zA : zB), b = proj(a, oC, dC); ew.push({ a, b }); }
-  for (const L of [ns, ew]) {
+  for (let a = 0; a < ZONES.length; a++) for (let b = a + 1; b < ZONES.length; b++) {
+    const za = ZONES[a], zb = ZONES[b], L = [];
+    if (za.x1 === zb.x0 || za.x0 === zb.x1) {   // 東西相鄰：共用一條大道
+      const i = za.x1 === zb.x0 ? za.ni1 : za.ni0;
+      for (let z = stZ(Math.max(za.nj0, zb.nj0)) - 40; z <= stZ(Math.min(za.nj1, zb.nj1)) + 40; z += 5) { const p = toW(avX(i), z, za), [, lz] = toL(p[0], p[1], zb); L.push([p, toW(avX(i), lz, zb)]); }
+    } else if (za.z1 === zb.z0 || za.z0 === zb.z1) {   // 南北相鄰：共用一條街
+      const j = za.z1 === zb.z0 ? za.nj1 : za.nj0;
+      for (let x = avX(Math.max(za.ni0, zb.ni0)) - 40; x <= avX(Math.min(za.ni1, zb.ni1)) + 40; x += 5) { const p = toW(x, stZ(j), za), [lx] = toL(p[0], p[1], zb); L.push([p, toW(lx, stZ(j), zb)]); }
+    } else continue;
     let cur = null;
-    for (const { a, b } of L) {
-      const x = (a[0] + b[0]) / 2, z = (a[1] + b[1]) / 2, w = Math.hypot(a[0] - b[0], a[1] - b[1]) - 2 * HR;   // w：草地寬
-      const ok = w >= 12 && inPoly(SEAM_IN, x, z) && !nearConn(x, z, HR + 2) && !brokenNear(x, z, 6);
+    for (const [p, q] of L) {
+      const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, w = Math.hypot(p[0] - q[0], p[1] - q[1]) - 2 * HR;   // w：草地寬
+      const ok = w >= 12 && inCity(x, z) && polyDistPt(CITY_POLY, x, z) > 8 && !zoneNearL(x, z, HR + 2.5) && !nearConn(x, z, HR + 2) && !brokenNear(x, z, 6);
       if (!ok) { if (cur && cur.length > 3) runs.push(cur); cur = null; continue; }
       (cur ||= []).push({ x, z, w });
     }
     if (cur && cur.length > 3) runs.push(cur);
   }
   SEAM_PATH.push(...runs);
-  // 建物：連接道路之間的每一段步道，草地 40 m 以上寬、離上一個建物 140 m 以上，就在中點擺一個（離步道 4 m 起，兩側交錯）
+  // 建物：每一段步道，草地 40 m 以上寬、離上一個建物 140 m 以上，就在中點擺一個（離步道 4 m 起，兩側交錯）
   const KINDS = ['pavilion', 'kiosk', 'restroom'];
-  let n = 0, lx = 1e9, lz = 1e9;
+  let n = 0;
   for (const run of runs) {
     const i = run.length >> 1, p = run[i], q = run[i + 1];
-    if (run.length < 5 || p.w < 40 || Math.hypot(p.x - lx, p.z - lz) < 140) continue;
+    if (run.length < 5 || p.w < 40 || SEAM_SITES.some(o => Math.hypot(p.x - o.x, p.z - o.z) < 140)) continue;
     const ux = q.x - p.x, uz = q.z - p.z, l = Math.hypot(ux, uz) || 1, s = n % 2 ? 1 : -1, nx = -uz / l * s, nz = ux / l * s;
     const type = KINDS[n % 3], R = type === 'pavilion' ? 4.2 : type === 'kiosk' ? 3 : 3.6;
     const x = p.x + nx * (1.2 + 4 + R), z = p.z + nz * (1.2 + 4 + R);
-    if (!inPoly(SEAM_IN, x, z) || nearConn(x, z, HR + R + 3)) continue;
-    SEAM_SITES.push({ type, x, z, R, ry: Math.atan2(-nx, -nz), ux: ux / l, uz: uz / l }); n++; lx = p.x; lz = p.z;   // ry：正面朝步道
+    if (!inCity(x, z) || zoneNearL(x, z, HR + R + 2) || nearConn(x, z, HR + R + 3)) continue;
+    SEAM_SITES.push({ type, x, z, R, ry: Math.atan2(-nx, -nz), ux: ux / l, uz: uz / l }); n++;   // ry：正面朝步道
   }
 }
 const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) ** 2 + (p.z - z) ** 2 < r * r)) && !SEAM_SITES.some(s => (s.x - x) ** 2 + (s.z - z) ** 2 < (s.R + r) ** 2);
-// 區之間的縫（05-zones.js 的 SEAM_IN）：草地上稀疏的樹，世界座標；避開連接道路、草地邊緣、步道與建物，樓牆後面不種
+// 片之間與片外圍到外緣的草地：稀疏的樹，世界座標；避開片的路（zoneNearL）、連接道路、外緣邊上、斷橋與連接道路的路燈
 {
-  const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c'), P = SEAM_IN;
-  const edgeD = (x, z) => { let m = 1e9; for (let k = 0; k < P.length; k++) { const [ax, az] = P[k], [bx, bz] = P[(k + 1) % P.length], dx = bx - ax, dz = bz - az, t = clamp(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1), 0, 1); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
-  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
-  for (const [x, z] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+  const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c'), { x0, x1, z0, z1 } = CITY_BB;
   for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
-    if (r5() > .55 || !inPoly(P, tx, tz) || edgeD(tx, tz) < 4 || toL(tx, tz)[1] < CITY_Z0 + 4 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5)) continue;
+    if (r5() > .55 || !inCity(tx, tz) || zoneNearL(tx, tz, HR + 4) || polyDistPt(CITY_POLY, tx, tz) < 7 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5)) continue;
     if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
     trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
   }
@@ -452,7 +451,7 @@ const works = [];
 }
 // 飛車特技跳台（69-stunt.js）：放在路口前的停車道上，順著車流方向朝路口飛過去；(x, z) 是跳台邊緣，yaw 是車頭方向。
 // 30-vehicles.js 擺路邊車時用 rampBlock() 讓開跳台與落地區
-const RAMP_L = 10, RAMP_H = 1.5, RAMP_W = 3.2;
+const RAMP_L = 10, RAMP_H = 1.5, RAMP_W = 3.2, RAMP_IN = 1;
 const RAMPS = [
   { x: avX(2) - PARK, z: stZ(1) - HR - 1, yaw: 0 },
   { x: avX(4) - PARK, z: stZ(3) - HR - 1, yaw: 0 },
@@ -463,34 +462,39 @@ const RAMPS = [
   // 第二批（第四階段補齊 20 座）：分散在 8×7 與 20×15 擴充的城區；接在後面，存檔裡完成過的編號不變
   { x: avX(7) - PARK, z: stZ(5) - HR - 1, yaw: 0 },
   { x: avX(10) - PARK, z: stZ(3) - HR - 1, yaw: 0 },
-  { x: avX(13) - PARK, z: stZ(7) - HR - 1, yaw: 0 },
+  { x: avX(13) - PARK, z: stZ(6) - HR - 1, yaw: 0 },   // 原本在 stZ(7)：飛過去是光環南與琥珀西之間的縫
   { x: avX(16) - PARK, z: stZ(4) - HR - 1, yaw: 0 },
   { x: avX(18) - PARK, z: stZ(10) - HR - 1, yaw: 0 },
   { x: avX(9) + PARK, z: stZ(9) + HR + 1, yaw: Math.PI },
   { x: avX(12) + PARK, z: stZ(12) + HR + 1, yaw: Math.PI },
-  { x: avX(6) + PARK, z: stZ(11) + HR + 1, yaw: Math.PI },
-  { x: avX(8) - HR - 1, z: stZ(6) + PARK, yaw: Math.PI / 2 },
+  { x: avX(6) + PARK, z: stZ(13) + HR + 1, yaw: Math.PI },   // 原本在 stZ(11)：往北飛會越過珊瑚灘與楓林的縫，兩片的路對不上
+  { x: avX(7) - HR - 1, z: stZ(6) + PARK, yaw: Math.PI / 2 },   // 原本在 avX(8)：冠石與光環南之間的縫
   { x: avX(11) - HR - 1, z: stZ(8) + PARK, yaw: Math.PI / 2 },
   { x: avX(15) - HR - 1, z: stZ(2) + PARK, yaw: Math.PI / 2 },
   { x: avX(14) + HR + 1, z: stZ(13) - PARK, yaw: -Math.PI / 2 },
   { x: avX(19) + HR + 1, z: stZ(6) - PARK, yaw: -Math.PI / 2 },
-  { x: avX(4) + HR + 1, z: stZ(9) - PARK, yaw: -Math.PI / 2 },
+  { x: avX(2) - PARK, z: stZ(9) - HR - 1, yaw: 0 },   // 原本在 avX(4)、往西飛：會越過楓林西與楓林東之間的縫
 ].map((r, i) => ({ ...r, i, dx: Math.sin(r.yaw), dz: Math.cos(r.yaw) }));
-// 生成時（停車避開跳台）用邏輯座標；cityWorld() 之後 RAMPS 是世界座標（69-stunt.js 每幀判斷車有沒有開上去）
-worldHooks.push(() => { for (const r of RAMPS) { const zn = zoneAtL(r.x, r.z); [r.x, r.z] = toW(r.x, r.z, zn); r.yaw = yawW(zn, r.yaw); r.dx = Math.sin(r.yaw); r.dz = Math.cos(r.yaw); } });
-const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 2.5 && a > -RAMP_L - 26 && a < 60; });   // 前面留 26 m 助跑，後面 60 m 內不停車（落地後還會往前滑）
-// 跳台的幾何是邏輯座標：每區合併一份，以一個 instance 掛上該區的變換
-for (const zn of ZONES) {
-  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L), mine = RAMPS.filter(r => zoneAtL(r.x, r.z) === zn);
-  if (!mine.length) continue;
-  for (const r of mine) {
+// 生成時（停車避開跳台）用邏輯座標；cityWorld() 之後 RAMPS 是世界座標（69-stunt.js 每幀判斷車有沒有開上去）。
+// 世界座標的方向取助跑道後 20 m 到落地區前 40 m 的弦：彎曲的片裡路是彎的，車直直飛出去不會偏到路邊的燈柱與樹
+const RAMPS_W = RAMPS.map(r => {
+  const zn = zoneAtL(r.x, r.z), [x, z] = toW(r.x, r.z, zn), [ax, az] = toW(r.x - r.dx * 20, r.z - r.dz * 20, zn), [bx, bz] = toW(r.x + r.dx * 40, r.z + r.dz * 40, zn), yaw = Math.atan2(bx - ax, bz - az);
+  const dx = Math.sin(yaw), dz = Math.cos(yaw);
+  return { x: x + dz * RAMP_IN, z: z - dx * RAMP_IN, yaw, dx, dz };   // 往路中間（車頭的左手邊）挪 RAMP_IN，離路緣的燈柱、樹遠一點
+});
+worldHooks.push(() => { RAMPS.forEach((r, k) => Object.assign(r, RAMPS_W[k])); });
+const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 3.5 && a > -RAMP_L - 26 && a < 60; });   // 前面留 26 m 助跑，後面 60 m 內不停車（落地後還會往前滑）
+// 跳台的幾何直接用世界座標（RAMPS_W，和車判斷的方向一致），合併成一個網格
+{
+  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L);
+  for (const r of RAMPS_W) {
     const cx = r.x - r.dx * RAMP_L / 2, cz = r.z - r.dz * RAMP_L / 2, rx = r.dz, rz = -r.dx;
     k.box(cx, RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 15, -th, r.yaw);   // 斜板
     for (const s of [-1, 1]) k.box(cx + rx * s * (RAMP_W / 2 - .08), RAMP_H / 2 - .02, cz + rz * s * (RAMP_W / 2 - .08), .16, .14, sl, 0xd9b42a, 10, -th, r.yaw);   // 兩側黃邊
     k.box(r.x - r.dx * .1, RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 15, 0, r.yaw);   // 邊緣的立板
     for (const s of [-1, 1]) for (const f of [.35, .7]) k.box(r.x - r.dx * RAMP_L * (1 - f) + rx * s * 1.2, RAMP_H * f / 2, r.z - r.dz * RAMP_L * (1 - f) + rz * s * 1.2, .14, RAMP_H * f, .14, 0x2a2c2f, 15, 0, r.yaw);   // 支架
   }
-  instanced(k.build(), MAT.uber, [{ x: 0, z: 0, zn }]);
+  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
 }
 {
   const d = new Kit();

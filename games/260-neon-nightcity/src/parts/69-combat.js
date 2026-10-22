@@ -619,7 +619,7 @@ function aimPeds(dt) {
 }
 // 視線：只擋建築街區（扣掉人行道），夠便宜，每幀可以跑幾十次
 // 街區是邏輯座標：每塊依所在的區切開、帶上區的框（rayBox 換到框裡算）
-const LOS_B = blocks.flatMap(b => zoneClip(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW).map(r => boxToW({ x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 }, r.zn)));
+const LOS_B = blocks.flatMap(b => zoneClip(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW).flatMap(boxSplitW).map(r => boxToW({ x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 }, r.zn)));   // 彎曲的片切成 ≤ 36 m 的幾段（10-city.js 的 boxSplitW），邊角才準
 function losClear(ax, az, bx, bz) {
   const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx), z0 = Math.min(az, bz), z1 = Math.max(az, bz);
   for (const b of LOS_B) if (b.bx1 >= x0 && b.bx0 <= x1 && b.bz1 >= z0 && b.bz0 <= z1 && rayBox(ax, az, bx - ax, bz - az, b) < 1) return false;
@@ -694,6 +694,7 @@ function vehPairs() {
     const A = L[i], B = L[j];
     if (A.g && !A.g.visible || B.g && !B.g.visible) continue;
     if (Math.hypot(A.x - B.x, A.z - B.z) > (A.len + B.len) / 2 + 1) continue;
+    if (Math.abs((A.y || 0) - (B.y || 0)) > 1.6) continue;   // 高度差過一個車身（從斷橋或跳台上飛過去）不算撞
     const mA = A.mass || (A.isCar ? 1600 : 280), mB = B.mass || (B.isCar ? 1600 : 280);
     let best = null;
     for (const sa of [1, -1]) for (const sb of [1, -1]) {

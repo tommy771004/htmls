@@ -1,68 +1,79 @@
 
 // ═══ HUD：任務卡、羅盤與街名、地區天氣時間、旋轉小地圖、目標標記、速度表、全區地圖 ═══
 // 北方 = -z；地圖上 px = x、py = z。heading 以順時針角度表示，0 為北。
-// 地圖涵蓋對岸、海與灰鷗島；每公尺 1.5 px（小地圖另外放大回原本的比例）。底圖是世界座標（MAP_X0、MAP_Z0 是各區換過去的外接框），
-// 每區用 canvas 的變換照邏輯座標畫原本的矩形，並裁在區的範圍內
-const MAP_L = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: stZ(0) - 60, z1: ISLE.z1 + 40 };   // 邏輯座標的範圍
+// 地圖涵蓋對岸、海與灰鷗島；每公尺 1.5 px（小地圖另外放大回原本的比例）。底圖全部是世界座標：
+// 片裡的街區與地塊照邏輯矩形取點換到世界座標（彎曲的片邊上每 12 m 取一點），路面是路網（06-roads.js）每條邊的折線描粗
 const MAP_BB = (() => {
-  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
-  for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, MAP_L.x0), Math.min(zn.x1, MAP_L.x1), Math.max(zn.z0, MAP_L.z0), Math.min(zn.z1, MAP_L.z1), zn)) {
-    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
-  }
-  return { x0, x1, z0, z1 };
+  const B = { x0: CITY_BB.x0 - 60, x1: CITY_BB.x1 + 60, z0: CITY_BB.z0 - 60, z1: CITY_BB.z1 + 60 };
+  const add = ([x, z]) => { B.x0 = Math.min(B.x0, x - 40); B.x1 = Math.max(B.x1, x + 40); B.z0 = Math.min(B.z0, z - 40); B.z1 = Math.max(B.z1, z + 40); };
+  rectW(ISLE.x0, ISLE.x1, ISLE.z0, ISLE.z1).forEach(add);
+  add(toW(FAR_BANK_X - 120, Math.min(FAR_Z1, CITY_Z0), FAR_ZN));
+  return B;
 })();
 const MAP_X0 = MAP_BB.x0, MAP_Z0 = MAP_BB.z0, MAP_S = 1.5, MINI_K = 2 / MAP_S;
+// 邏輯矩形換成世界座標的多邊形：彎曲的片每條邊每 seg 公尺取一點（矩形小於 seg 時只取四個角）
+function rectPolyW(x0, x1, z0, z1, zn = zoneAtL((x0 + x1) / 2, (z0 + z1) / 2), seg = 12) {
+  if (!zn || !zn.W) return rectW(x0, x1, z0, z1, zn);
+  const nx = Math.max(1, Math.ceil((x1 - x0) / seg)), nz = Math.max(1, Math.ceil((z1 - z0) / seg)), P = [];
+  for (let k = 0; k < nx; k++) P.push(toW(x0 + (x1 - x0) * k / nx, z0, zn));
+  for (let k = 0; k < nz; k++) P.push(toW(x1, z0 + (z1 - z0) * k / nz, zn));
+  for (let k = nx; k > 0; k--) P.push(toW(x0 + (x1 - x0) * k / nx, z1, zn));
+  for (let k = nz; k > 0; k--) P.push(toW(x0, z0 + (z1 - z0) * k / nz, zn));
+  return P;
+}
+const polyBB = P => { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const [x, z] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); } return [x0, x1, z0, z1]; };
+// 地圖要畫的形狀（世界座標，開場算一次）：外緣外的地形是 8 m 一格的點陣（hillH 高於水面的是陸地，越高越亮），
+// 城外的沙灘、碼頭、棧橋、島與橋，街區（外圈人行道、裡面的街廓或公園）與地塊
+const MAP_GEO = (() => {
+  const S = 8, x0 = MAP_X0 - 1500, z0 = MAP_Z0 - 1500, nx = Math.ceil((MAP_BB.x1 + 1500 - x0) / S), nz = Math.ceil((MAP_BB.z1 + 1500 - z0) / S);
+  const ter = document.createElement('canvas'); ter.width = nx; ter.height = nz;
+  const tc = ter.getContext('2d'), img = tc.createImageData(nx, nz), d = img.data;
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const X = x0 + (i + .5) * S, Z = z0 + (j + .5) * S;
+    if (inCity(X, Z)) continue;
+    const h = hillH(X, Z);
+    if (h <= SEA_Y) continue;
+    const t = Math.min(1, h / 320), o = (j * nx + i) * 4;
+    d[o] = 34 + 22 * t; d[o + 1] = 37 + 22 * t; d[o + 2] = 42 + 18 * t; d[o + 3] = 255;
+  }
+  tc.putImageData(img, 0, 0);
+  const shape = (r, zn) => { const pts = rectPolyW(r.x0, r.x1, r.z0, r.z1, zn); return { pts, bb: polyBB(pts) }; };
+  const coast = [
+    { ...shape({ ...BEACH, z0: BEACH.z0 - INLAND, z1: BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop }), c: 'beach' },
+    { ...shape(QUAY), c: 'quay' }, ...PIERS.map(r => ({ ...shape(r), c: 'pier' })), { ...shape(ISLE), c: 'isle' }, { ...shape(BRIDGE), c: 'road' },
+  ];
+  const blk = blocks.map(b => { const zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), o = shape(b, zn); return { ...o, park: b.park, inn: rectPolyW(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW, zn), b, zn }; });
+  const lot = lots.map(L => { const pts = rectW(L.x0, L.x1, L.z0, L.z1, L.zn); return { pts, bb: polyBB(pts), L }; });
+  return { ter, tx0: x0, tz0: z0, tS: S, coast, blk, lot };
+})();
+const lotCol = L => L.special ? '#5a3a52' : L.style === 3 ? '#1b1e24' : '#202329';
+// 畫整座城（底圖與全區地圖共用）：P 把世界座標換成畫布座標，k 是每公尺幾 px，C 是配色，vis(bb) 決定要不要畫，
+// lot 是地塊的顏色（null 不畫地塊），line 是路中心線（null 不畫）
+function drawCity(c, P, k, C, vis, lot, line) {
+  const path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
+  const G = MAP_GEO, [tx, tz] = P(G.tx0, G.tz0);
+  c.imageSmoothingEnabled = true; c.drawImage(G.ter, tx, tz, G.ter.width * G.tS * k, G.ter.height * G.tS * k);
+  c.fillStyle = C.grass; path(CITY_POLY, true); c.fill();   // 外緣裡面：片之間的空地是草地
+  for (const s of G.coast) if (vis(s.bb)) { c.fillStyle = C[s.c]; path(s.pts, true); c.fill(); }
+  c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = C.road; c.lineWidth = 2 * HR * k;
+  for (const e of RN.edges) { path(e.pts); c.stroke(); }
+  for (const s of G.blk) {
+    if (!vis(s.bb)) continue;
+    c.fillStyle = C.walk; path(s.pts, true); c.fill();
+    c.fillStyle = s.park ? C.park : C.block; path(s.inn, true); c.fill();
+  }
+  if (lot) for (const s of G.lot) if (vis(s.bb)) { c.fillStyle = lot(s.L); path(s.pts, true); c.fill(); }
+  if (line) { c.strokeStyle = line; c.lineWidth = 1; for (const e of RN.edges) { path(e.pts); c.stroke(); } }
+}
 const mapImg = document.createElement('canvas');
 mapImg.width = Math.ceil((MAP_BB.x1 - MAP_X0) * MAP_S); mapImg.height = Math.ceil((MAP_BB.z1 - MAP_Z0) * MAP_S);
-// 把 canvas 的座標設成區 zn 的邏輯座標（1 單位 = 1 m），世界座標原點在 (x0, z0)、每公尺 s px
-const zoneCtx = (c, zn, x0, z0, s) => c.setTransform(s * zn.c, -s * zn.s, s * zn.s, s * zn.c, s * (zn.ox - x0), s * (zn.oz - z0));
-mapImg.getContext('2d').fillStyle = '#14202a'; mapImg.getContext('2d').fillRect(0, 0, mapImg.width, mapImg.height);   // 水
-// 對岸與東灣對岸依南北兩段跟著岸這邊的區（21-coast.js 的 FAR_PARTS、EAST_PARTS），不裁在區的範圍內
 {
   const c = mapImg.getContext('2d');
-  for (const P of FAR_PARTS) { const z0 = Math.max(P.z0, MAP_L.z0 - 2000), z1 = Math.min(P.z1, MAP_L.z1 + 2000); c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(MAP_L.x0 - 2000, z0, FAR_BANK_X - MAP_L.x0 + 2000, z1 - z0); c.restore(); }
-  for (const P of EAST_PARTS) { const z0 = Math.max(P.z0, CITY_CZ - 850), z1 = Math.min(P.z1, CITY_CZ + 850); if (z1 > z0) { c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(EAST_BANK_X, z0, 2000, z1 - z0); c.restore(); } }
+  c.fillStyle = '#14202a'; c.fillRect(0, 0, mapImg.width, mapImg.height);   // 水
+  drawCity(c, (x, z) => [(x - MAP_X0) * MAP_S, (z - MAP_Z0) * MAP_S], MAP_S,
+    { grass: '#26321f', walk: '#2a2d33', block: '#2a2d33', park: '#26321f', road: '#4a4e56', beach: '#6a5e46', quay: '#3a3d42', pier: '#5a4632', isle: '#26321f' },
+    () => true, lotCol, 'rgba(255,190,90,.35)');
 }
-// 每區的地塊與縫裡的塔樓（10-city.js 的 seam）；p 是一個像素的長度
-function mapLot(c, L, px, col) { c.fillStyle = col; c.fillRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px); }
-const lotCol = L => L.special ? '#5a3a52' : L.style === 3 ? '#1b1e24' : '#202329';
-for (const zn of ZONES) {
-  const c = mapImg.getContext('2d'), px = 1 / MAP_S;
-  c.save(); zoneCtx(c, zn, MAP_X0, MAP_Z0, MAP_S);
-  c.beginPath(); c.rect(Math.max(zn.x0, MAP_L.x0), Math.max(zn.z0, MAP_L.z0), Math.min(zn.x1, MAP_L.x1) - Math.max(zn.x0, MAP_L.x0), Math.min(zn.z1, MAP_L.z1) - Math.max(zn.z0, MAP_L.z0)); c.clip();
-  const X = x => x, Z = z => z;
-  const rect = (r, col) => { c.fillStyle = col; c.fillRect(r.x0, r.z0, r.x1 - r.x0, r.z1 - r.z0); };
-  rect({ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: MAP_L.z0, z1: SHORE_Z }, '#2a2d33');   // 濱海步道
-  rect({ x0: CITY_X0, x1: CITY_X1, z0: MAP_L.z0, z1: CITY_Z1 }, '#4a4e56');
-  rect({ ...BEACH, z1: BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop }, '#6a5e46');
-  rect(QUAY, '#3a3d42'); rect(BRIDGE, '#4a4e56'); rect(ISLE, '#26321f');
-  for (const r of PIERS) rect(r, '#5a4632');
-  for (const b of blocks) { if (b.outer) continue; c.fillStyle = '#2a2d33'; c.fillRect(b.x0, b.z0, b.x1 - b.x0, b.z1 - b.z0); }
-  for (const L of lots) if (L.zn === zn && !L.seam) mapLot(c, L, px, lotCol(L));
-  c.strokeStyle = 'rgba(255,190,90,.35)'; c.lineWidth = px;
-  for (let i = zn.ni0; i <= zn.ni1; i++) { c.beginPath(); c.moveTo(X(avX(i)), Z(stZ(zn.nj0))); c.lineTo(X(avX(i)), Z(stZ(zn.nj1))); c.stroke(); }
-  for (let j = zn.nj0; j <= zn.nj1; j++) { c.beginPath(); c.moveTo(X(avX(zn.ni0)), Z(stZ(j))); c.lineTo(X(avX(zn.ni1)), Z(stZ(j))); c.stroke(); }
-  c.restore();
-}
-// 區之間的縫（世界座標）：整塊先塗成路面（邊界路外側那半條），再蓋上草地（岬角也是）與連接道路。P 把世界座標換成畫布座標，k 是每公尺幾 px。
-// 地圖上北面的山蓋住樓牆背後，所以 A／B 之間那條縫只畫到樓牆背面（SEAM 的北端在山裡）
-const MAP_SEAM = (() => {
-  const [zA, zB] = ZONES, xm = avX(zA.ni1), zb = CITY_Z0 - OUT_D;
-  const pts = [SEAM.pts[0], toW(xm, zb, zA), toW(xm, zb, zB), ...SEAM.pts.slice(-5)], road = [1, 0, 1, ...SEAM.road.slice(-5)];
-  return { pts, inn: polyInset(pts, road.map(r => r ? HR - .5 : 0)) };
-})();
-function drawSeams(c, P, k, road, park, line) {
-  const path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
-  c.fillStyle = road; path(MAP_SEAM.pts, true); c.fill();
-  c.fillStyle = park; path(MAP_SEAM.inn, true); c.fill();
-  for (const h of CAPES) { path(h.pts, true); c.fill(); }   // 岬角（10-city.js）
-  c.lineJoin = 'round'; c.lineCap = 'butt';
-  c.strokeStyle = road; c.lineWidth = 2 * HR * k;
-  for (const e of RN.edges) if (e.kind === 'c') { path(e.pts); c.stroke(); }
-  if (line) { c.strokeStyle = line; c.lineWidth = 1; for (const e of RN.edges) if (e.kind === 'c') { path(e.pts); c.stroke(); } }
-}
-drawSeams(mapImg.getContext('2d'), (x, z) => [(x - MAP_X0) * MAP_S, (z - MAP_Z0) * MAP_S], MAP_S, '#4a4e56', '#26321f', 'rgba(255,190,90,.35)');
-for (const L of lots) if (L.seam) { const c = mapImg.getContext('2d'); c.save(); zoneCtx(c, L.zn, MAP_X0, MAP_Z0, MAP_S); mapLot(c, L, 1 / MAP_S, lotCol(L)); c.restore(); }
 const VENUE_PINS = [
   { name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + 2), col: '#ff3fa0' },
   { name: 'AFTERGLOW', ...WP(BAR_X - 4.6, BAR_Z + 2), col: '#ffa040' },

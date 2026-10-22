@@ -330,9 +330,10 @@ function tf(x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
   return new T.Matrix4().compose(_v.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz, 'YXZ')), _s.set(sx, sy, sz));
 }
 class Kit {
-  constructor() { this.pos = []; this.nor = []; this.col = []; this.mat = []; this.ext = {}; }
+  constructor() { this.pos = []; this.nor = []; this.col = []; this.mat = []; this.ext = {}; this.parts = []; }
   add(geo, color, mat, matrix, ext) {
     const g = geo.index ? geo.toNonIndexed() : geo;
+    this.parts.push(this.pos.length / 3);   // 每個零件的第一個頂點：cityAdd 依零件所在的片換到世界座標（零件不會被切開）
     if (matrix) g.applyMatrix4(matrix);
     const p = g.attributes.position.array, n = g.attributes.normal.array;
     const c = color instanceof T.Color ? color : lin(color);
@@ -353,6 +354,7 @@ class Kit {
     g.setAttribute('color', new T.Float32BufferAttribute(this.col, 3));
     g.setAttribute('aMat', new T.Float32BufferAttribute(this.mat, 1));
     for (const k in this.ext) g.setAttribute(k, new T.Float32BufferAttribute(this.ext[k], this.ext[k].length / (this.pos.length / 3)));
+    g.userData.parts = Int32Array.from(this.parts);
     g.computeBoundingSphere();
     return g;
   }
