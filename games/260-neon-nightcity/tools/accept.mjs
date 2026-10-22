@@ -623,6 +623,48 @@ async function desktop() {
       await page.waitForTimeout(500);
       check(await nc(() => !window.__nc.player.swim), '回到沙灘就不再游泳');
     }
+    // 擋牆上的梯子（10-city.js 的 LADDERS）：在梯子底下往岸上游，爬上去就不再游泳
+    {
+      const L = await nc(() => window.__nc.boat.ladders());
+      await nc((l) => { const n = window.__nc; n.tp(l.bot.x, l.bot.z, Math.atan2(l.top.x - l.bot.x, l.top.z - l.bot.z)); n.player.y = n.sea.SEA_Y; }, L[0]);
+      await page.waitForTimeout(400);
+      const l0 = await nc(() => !!window.__nc.player.swim);
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(1600); await page.keyboard.up('KeyW');
+      await page.waitForTimeout(500);
+      const l1 = await nc((l) => { const p = window.__nc.player; return { swim: !!p.swim, y: +p.y.toFixed(2), d: +Math.hypot(p.x - l.top.x, p.z - l.top.z).toFixed(1) }; }, L[0]);
+      check(L.length >= 10 && l0 && !l1.swim && l1.y > 0 && l1.d < 3, `從梯子爬上岸（${L.length} 座梯子）${JSON.stringify(l1)}`);
+    }
+    // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
+    {
+      const b0 = await nc(() => { const n = window.__nc, b = n.boat; n.time(780); const name = b.board(0), v = n.player.veh; return { name, boat: !!(v && v.boat), x: v.x, z: v.z, n: b.boats.length }; });
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(3000); await page.keyboard.up('KeyW');
+      const b1 = await nc((b) => { const n = window.__nc, v = n.player.veh; return { d: +Math.hypot(v.x - b.x, v.z - b.z).toFixed(1), y: +(v.y - n.sea.SEA_Y).toFixed(2), wake: n.boat.wake() }; }, b0);
+      check(b0.boat && b0.n >= 4 && b1.d > 12 && Math.abs(b1.y) < 1 && b1.wake > 5, `開遊艇 ${b0.name}：${JSON.stringify(b1)}`);
+      await shot(page, 'd-boat');
+      await nc(() => window.__nc.walk());
+      await page.waitForTimeout(400);
+      const b2 = await nc(() => { const n = window.__nc, p = n.player; return { mode: p.mode, swim: !!p.swim, y: +p.y.toFixed(2), left: n.boat.list()[0].drive }; });
+      check(b2.mode === 'walk' && !b2.left && (b2.swim || b2.y >= 0), `下船 ${JSON.stringify(b2)}`);
+      await nc(() => window.__nc.boat.reset(0));
+    }
+    // 錨灣港（21-coast.js）：貨櫃船靠港→離港→出海，集卡在岸橋與堆場之間跑
+    {
+      const h = await nc(() => { const n = window.__nc, b = n.boat, T = b.SHIP_T, r = b.harbor.root, s = {};
+        n.tpL(560, 936, 0);
+        for (const [k, t] of [['dock', 30], ['push', T.dock + 20], ['turn', T.dock + T.push + 20], ['sail', T.dock + T.push + T.turn + 60]]) { s[k] = b.shipAt(t); n.step(1 / 30); s[k + 'X'] = Math.round(r.position.x); s[k + 'Z'] = Math.round(r.position.z); }
+        b.shipAt(10); n.step(1 / 30); return s; });
+      const moved = Math.hypot(h.sailX - h.dockX, h.sailZ - h.dockZ);
+      check(h.dock === 'dock' && h.push === 'push' && h.turn === 'turn' && h.sail === 'sail' && moved > 60, `貨櫃船靠港→離港→轉向→出海（移動 ${moved.toFixed(0)} m）${JSON.stringify(h)}`);
+      const t0 = await nc(() => window.__nc.boat.trucks());
+      await page.waitForTimeout(2500);
+      const t1 = await nc(() => window.__nc.boat.trucks());
+      check(t0.length === 3 && t1.some((t, i) => Math.abs(t.s - t0[i].s) > 2), `集卡在港區行駛 ${JSON.stringify(t1)}`);
+    }
+    // 區與區之間的縫（20-props.js 的 SEAM_PATH／SEAM_SITES）：碎石步道、涼亭、小賣亭、公廁
+    {
+      const sm = await nc(() => { const s = window.__nc.seam; return { runs: s.path.length, pts: s.path.reduce((a, r) => a + r.length, 0), sites: s.sites.length, kinds: [...new Set(s.sites.map(x => x.type))].length }; });
+      check(sm.runs >= 2 && sm.pts > 30 && sm.sites >= 6 && sm.kinds === 3, `接縫步道與小建築 ${JSON.stringify(sm)}`);
+    }
     // 岬角（10-city.js 的 CAPES）：從東岸步道走上東灣觀景岬（岸邊擋牆在那裡斷開），再從岬尖往外走，被臨水的擋牆擋住
     {
       const x0 = await nc(() => { const n = window.__nc, h = n.capes.find(h => h.name.startsWith('東灣觀景岬')), [x0, z0] = n.L(...h.pts[0]), [, z1] = n.L(...h.pts[h.pts.length - 1]); n.tpL(x0 - 3, z0 + (z1 - z0) * .44, Math.PI / 2); return x0; });

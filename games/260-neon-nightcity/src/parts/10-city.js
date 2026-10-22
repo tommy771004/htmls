@@ -247,6 +247,16 @@ for (let k = colliders.length - 1; k >= 0; k--) if (colliders[k].outer && collid
 for (const L of lots) if (L.zn === undefined) L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
 // 岸邊的擋牆：沿每塊地的邊每 2 m 看外側是不是水（岬角也算陸地），連續的一段變成一個 4 m 厚的盒（low：不擋相機與子彈）
 const landL = (x, z) => inLand(x, z) || !!capeAt(...toW(x, z));
+// 梯子：從水裡爬上岸的地方。擋牆在梯子前留一段 2.2 m 只擋車與船、不擋人的缺口（swim），游進去碰到岸就上岸，從岸上走過去就下水；梯子的樣子在 21-coast.js。
+// { x, z } 是岸邊那一點（邏輯座標），(nx, nz) 朝水面；岸外不是水（岬角、沙灘）的就不放
+const LADDERS = [
+  ...[-1, 1].map(s => ({ x: s < 0 ? PIERS[0].x0 : PIERS[0].x1, z: SHORE_Z + 150, nx: s, nz: 0 })),              // 珊瑚灘棧橋兩側
+  ...PIERS.slice(1).map(P => ({ x: P.x0, z: (P.z0 + P.z1) / 2, nx: -1, nz: 0 })),                                 // 舊碼頭木棧的盡頭
+  ...[560, 940, 1170].map(x => ({ x, z: QUAY.z1, nx: 0, nz: 1 })),                                                // 錨灣港碼頭邊（船的西邊、跨海橋兩側）
+  ...[BRIDGE_X - 34, BRIDGE_X + 34].map(x => ({ x, z: ISLE.z0, nx: 0, nz: -1 })), { x: BRIDGE_X + 60, z: ISLE.z1, nx: 0, nz: 1 },   // 灰鷗島
+  ...[5, 9, 13].map(j => ({ x: CITY_X0 - OUT_D, z: stZ(j) + 31, nx: -1, nz: 0 })),                                // 灰鷺河濱步道
+  ...[2, 6, 10].map(j => ({ x: CITY_X1 + OUT_D, z: stZ(j) + 31, nx: 1, nz: 0 })),                                 // 東灣步道
+].filter(L => !landL(L.x + L.nx * 1.5, L.z + L.nz * 1.5) && !landL(L.x + L.nx * 1.5 + L.nz * 2, L.z + L.nz * 1.5 + L.nx * 2) && !landL(L.x + L.nx * 1.5 - L.nz * 2, L.z + L.nz * 1.5 - L.nx * 2));
 for (const r of LANDS) {
   for (const [ax, fixed, a0, a1, out] of [['x', r.z0, r.x0, r.x1, -1], ['x', r.z1, r.x0, r.x1, 1], ['z', r.x0, r.z0, r.z1, -1], ['z', r.x1, r.z0, r.z1, 1]]) {
     if (fixed < -1e4) continue;
@@ -256,7 +266,14 @@ for (const r of LANDS) {
       const [p0, p1] = [run, end], [f0, f1] = out < 0 ? [fixed - 4, fixed] : [fixed, fixed + 4];
       // 沙灘外緣（水深 0.3 m 處）那段擋車不擋人：人可以涉水、游出去（40-people.js 的 swim）
       const swim = r === BEACH && fixed === r.z1 ? 1 : 0;
-      colliders.push(ax === 'x' ? { x0: p0, x1: p1, z0: f0, z1: f1, low: 1, swim } : { x0: f0, x1: f1, z0: p0, z1: p1, low: 1, swim });
+      const put = (a, b, sw) => { if (b - a > .01) colliders.push(ax === 'x' ? { x0: a, x1: b, z0: f0, z1: f1, low: 1, swim: sw } : { x0: f0, x1: f1, z0: a, z1: b, low: 1, swim: sw }); };
+      let a = p0;
+      for (const L of LADDERS) {   // 梯子前的缺口
+        const along = ax === 'x' ? L.x : L.z, at = ax === 'x' ? L.z : L.x, n = ax === 'x' ? L.nz : L.nx;
+        if (n !== out || Math.abs(at - fixed) > .5 || along - 1.1 < a || along + 1.1 > p1) continue;
+        put(a, along - 1.1, swim); put(along - 1.1, along + 1.1, 1); a = along + 1.1; L.ok = 1;
+      }
+      put(a, p1, swim);
       run = null;
     };
     for (let a = a0; a <= a1 + 1e-6; a += 2) {
@@ -688,7 +705,7 @@ const CULL_R = 420, cullList = [];
 const cullAdd = (obj, R = CULL_R) => {
   obj.geometry.computeBoundingSphere(); obj.updateWorldMatrix(true, false);
   const s = obj.geometry.boundingSphere, c = s.center.clone().applyMatrix4(obj.matrixWorld);
-  cullList.push({ obj, x: c.x, z: c.z, r: s.radius + R }); return obj;
+  const e = { obj, x: c.x, z: c.z, r: s.radius + R }; cullList.push(e); obj.userData.cull = e; return obj;   // userData.cull：會動的東西（21-coast.js 的貨櫃船）移動後用 cullSync 更新中心
 };
 function distCull(cx, cz) { for (const c of cullList) c.obj.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c.r * c.r; }
 function chunkMesh(B) {

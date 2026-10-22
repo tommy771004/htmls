@@ -158,7 +158,7 @@ function occUpdate() {
   const carH = (len, w) => len > 6 ? 3.2 : w > 2.05 ? 2.3 : 1.45;
   for (const c of traffic) { const t = TYPES[c.type]; add(c.x, c.z, c.yaw, t.len * .47, t.w * .46, carH(t.len, t.w)); }
   for (const c of parked) { const t = TYPES[c.type]; if (t) add(c.x, c.z, c.yaw, t.len * .47, t.w * .46, carH(t.len, t.w)); }
-  for (const v of vehicles) if (v.g && v.g.visible && !(v === kestrel && motors.stowed)) add(v.x, v.z, v.yaw, (v.len || 4.4) * .47, (v.isCar ? v.w || 1.9 : .5) * .46, v.isCar ? carH(v.len || 4.4, v.w || 1.9) : 1.25);
+  for (const v of vehicles) if (v.g && v.g.visible && !(v === kestrel && motors.stowed)) add(v.x, v.z, v.yaw, (v.len || 4.4) * .47, (v.isCar || v.boat ? v.w || 1.9 : .5) * .46, v.isCar ? carH(v.len || 4.4, v.w || 1.9) : 1.25);
   if (player.mode === 'walk') add(player.x, player.z, 0, .24, .24, 1.75);
   for (const p of peds.people) if (p.h && p.h.visible !== false) add(p.x, p.z, 0, .22, .22, 1.7);
   L.sort((a, b) => a.d - b.d);

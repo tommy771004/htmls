@@ -490,7 +490,7 @@ function contextAction() {
     const rs = resprayCtx(v); if (rs) return rs;   // 通緝中：CHROME WORKS 噴漆消星（69-crew.js）
     if (v === kestrel && !motors.test && Math.hypot(v.x - toW(GAR_X, GAR_Z + SW + 4)[0], v.z - toW(GAR_X, GAR_Z + SW + 4)[1]) < 6 && Math.hypot(v.vx, v.vz) < 2)
       return { key: 'E', text: '換一套塗裝 <i>· CHROME WORKS</i>', fn: cycleLivery };
-    return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: '下車', fn: exitVehicle } : null;
+    return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: v.boat ? '下船' : '下車', fn: exitVehicle } : null;
   }
   if (p.where === 'out') {
     // 門和 Marlo 只差一步：放行之後門優先，之前 Marlo 優先
@@ -498,7 +498,7 @@ function contextAction() {
     if (near(BOUNCER.x, BOUNCER.z, 2.4)) return { key: 'E', text: '跟 Marlo 說話', fn: talkMarlo };
     if (near(CLUB_X, CLUB_Z + .6, 1.6)) return quest.n >= 3 ? { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') } : { key: 'E', text: '門鎖著 <i>· 先跟門口的人談</i>', fn: () => toast('Marlo 擋在門前') };
     if (near(BAR_X - 4.6, BAR_Z + .6, 1.6)) return { key: 'E', text: '進入 AFTERGLOW', fn: () => enterVenue('bar') };
-    for (const v of vehicles) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < (v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `上車 <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
+    for (const v of vehicles) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `${v.boat ? '上船' : '上車'} <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
   } else if (p.where === 'bar') {
     if (near(BAR_EXIT.x, BAR_EXIT.z, 1.5)) return { key: 'E', text: '回到街上', fn: exitVenue };
     if (near(JUNO.x, JUNO.z, 1.8)) return { key: 'E', text: '跟 Juno 說話', fn: talkJuno };
@@ -533,6 +533,7 @@ function enterVehicle(v) {
 }
 function exitVehicle() {
   const v = player.veh;
+  if (v.boat) return boatExit(v);   // 31-boats.js：站到最近的岸上，沒有就下水
   const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);   // 車身左側（+x 方向轉到世界）
   let x = v.x + lx * (v.isCar ? 1.5 : .9), z = v.z + lz * (v.isCar ? 1.5 : .9);
   const r = collideCircle(x, z, .32, false); x = r.x; z = r.z;

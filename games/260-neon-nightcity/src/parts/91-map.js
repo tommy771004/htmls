@@ -135,12 +135,13 @@ function mapDraw() {
   const vis = (x0, x1, z0, z1) => x1 > vx0 && x0 < vx1 && z1 > vz0 && z0 < vz1;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = MAPC.water; c.fillRect(0, 0, W, H);
-  // 對岸與北面的山跟著 FAR_ZN、東灣對岸跟著 EAST_ZN（90-hud.js），不裁在區的範圍內
+  // 對岸與東灣對岸依南北兩段跟著岸這邊的區（21-coast.js 的 FAR_PARTS、EAST_PARTS），北面的山跟著 FAR_ZN，不裁在區的範圍內
   const zoneT = zn => c.setTransform(k * zn.c, -k * zn.s, k * zn.s, k * zn.c, k * (zn.ox - MV.cx) + W / 2, k * (zn.oz - MV.cz) + H / 2);
-  zoneT(FAR_ZN); c.fillStyle = MAPC.far;
-  c.fillRect(MAP_LB.x0 - 3000, MAP_LB.z0 - 3000, FAR_BANK_X - MAP_LB.x0 + 3000, MAP_LB.z1 - MAP_LB.z0 + 6000);
-  c.fillRect(MAP_LB.x0 - 3000, MAP_LB.z0 - 3000, MAP_LB.x1 - MAP_LB.x0 + 6000, CITY_Z0 - OUT_D - MAP_LB.z0 + 3000);   // 北面的山
-  zoneT(EAST_ZN); c.fillRect(EAST_BANK_X, CITY_CZ - 850, 3000, 1700); c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = MAPC.far;
+  for (const P of FAR_PARTS) { const z0 = Math.max(P.z0, MAP_LB.z0 - 3000), z1 = Math.min(P.z1, MAP_LB.z1 + 3000); zoneT(P.zn); c.fillRect(MAP_LB.x0 - 3000, z0, FAR_BANK_X - MAP_LB.x0 + 3000, z1 - z0); }
+  zoneT(FAR_ZN); c.fillRect(MAP_LB.x0 - 3000, MAP_LB.z0 - 3000, MAP_LB.x1 - MAP_LB.x0 + 6000, CITY_Z0 - OUT_D - MAP_LB.z0 + 3000);   // 北面的山
+  for (const P of EAST_PARTS) { const z0 = Math.max(P.z0, CITY_CZ - 850), z1 = Math.min(P.z1, CITY_CZ + 850); if (z1 > z0) { zoneT(P.zn); c.fillRect(EAST_BANK_X, z0, 3000, z1 - z0); } }
+  c.setTransform(1, 0, 0, 1, 0, 0);
   // 每區用 canvas 的變換照邏輯座標畫（1 單位 = 1 m，px 是一個螢幕像素的長度），裁在區的範圍內；
   // 看得到的範圍（vis）是畫面四角換到區裡的外接框
   for (const zn of ZONES) {

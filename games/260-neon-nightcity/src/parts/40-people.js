@@ -678,7 +678,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 水深超過 1.25 m 改游泳（離開時 1.05 m，避免在邊界來回切換）；涉水時走慢一點
   const depth = player.where === 'out' ? waterDepth(player.x, player.z) : 0, wasSwim = player.swim;
   player.swim = depth > (player.swim ? 1.05 : 1.25);
-  if (player.swim !== wasSwim && depth > 0) { sfx.splash(player.swim ? 1 : .5); if (player.swim) { player.dance = 0; arm.trig = false; } }
+  if (player.swim !== wasSwim && depth > 0) { sfx.splash(player.swim ? 1 : .5); if (player.swim) { player.dance = 0; arm.trig = false; waterSplash(player.x, player.z, .8); } }
   const wade = player.swim ? 1 : clamp(1 - depth * .5, .45, 1);
   // 蹲下（69-combat.js 的 Z 鍵）：跑起來或水深過膝就站起來；crouchK 給相機降低高度
   if (player.crouch && (run || depth > .4)) player.crouch = false;
@@ -699,7 +699,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
   let r = collideCircle(nx, nz, .32, false, true);
   let x = r.x, z = r.z;
-  if (depth > 0) { x = clamp(x, FAR_BANK_X + 30, EAST_BANK_X - 30); z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸
+  if (depth > 0) { [x, z] = farClamp(x, z); z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）
   // 車流與座駕也會擋路
   const pushOut = (ox, oz, rr) => { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { x = ox + dx / d * rr; z = oz + dz / d * rr; } };
   for (const c of traffic) { const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
@@ -707,7 +707,9 @@ function updatePlayerWalk(inp, dt, camYaw) {
   for (let k = 0; k < PED_N; k++) { const p = peds.people[k]; pushOut(p.x, p.z, .55); }
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏
-  player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, player.where === 'out' ? seaFloor(x, z) : groundH(x, z), 20, dt);
+  // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
+  const fy = player.where === 'out' ? seaFloor(x, z) : groundH(x, z);
+  player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;
   let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][player.dance - 1] : ANIM.idle;

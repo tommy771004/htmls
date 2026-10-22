@@ -56,7 +56,7 @@ const COL = { fire: lin(0xffa040), fireHot: lin(0xfff0b0), spark: lin(0xffd080),
 function emit(kind, x, y, z, o = {}) {
   if (parts.length >= FX_N * 1.8) return;
   const r = Math.random;
-  const P = { x, y, z, vx: o.vx ?? 0, vy: o.vy ?? 0, vz: o.vz ?? 0, life: 0, max: o.max ?? 1, s0: o.s0 ?? .3, s1: o.s1 ?? .6, kind, rot: r() * 6.28, vr: (r() - .5) * 2, grav: o.grav ?? 0, drag: o.drag ?? 1.5, a: o.a ?? 1, c: o.c || [1, 1, 1] };
+  const P = { x, y, z, vx: o.vx ?? 0, vy: o.vy ?? 0, vz: o.vz ?? 0, life: 0, max: o.max ?? 1, s0: o.s0 ?? .3, s1: o.s1 ?? .6, kind, rot: r() * 6.28, vr: (r() - .5) * 2, grav: o.grav ?? 0, drag: o.drag ?? 1.5, a: o.a ?? 1, c: o.c || [1, 1, 1], sea: o.sea };
   parts.push(P);
 }
 function stepFx(dt) {
@@ -67,14 +67,15 @@ function stepFx(dt) {
     const k = Math.exp(-p.drag * dt);
     p.vx *= k; p.vz *= k; p.vy = p.vy * k - p.grav * dt;
     p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.rot += p.vr * dt;
-    if (p.y < .05 && p.grav > 0) { p.y = .05; p.vy *= -.25; p.vx *= .5; p.vz *= .5; }
+    if (p.sea && p.y < SEA_Y && p.vy < 0) { p.life = p.max; continue; }   // 水花（31-boats.js）：掉回水面就消失
+    if (p.y < .05 && p.grav > 0 && !p.sea) { p.y = .05; p.vy *= -.25; p.vx *= .5; p.vz *= .5; }
   }
   for (let i = fxLights.length - 1; i >= 0; i--) { const l = fxLights[i]; l.life += dt; if (l.life >= l.max) fxLights.splice(i, 1); }
 }
 function uploadFx() {
   fxAdd.n = fxAlpha.n = 0;
   for (const p of parts) {
-    const add = p.kind !== 'smoke' && p.kind !== 'dark', M = add ? fxAdd : fxAlpha;
+    const add = p.kind !== 'smoke' && p.kind !== 'dark' && p.kind !== 'spray', M = add ? fxAdd : fxAlpha;
     if (M.n >= FX_N) continue;
     const u = p.life / p.max, k = M.n++;
     const s = p.s0 + (p.s1 - p.s0) * u;
@@ -84,6 +85,7 @@ function uploadFx() {
     else if (p.kind === 'spark') a *= 1 - u;
     else if (p.kind === 'smoke' || p.kind === 'dark') a *= Math.min(1, u * 5) * (1 - u);
     else if (p.kind === 'glass') a *= 1 - u * u;
+    else if (p.kind === 'spray') a *= 1 - u;
     M.at.iPos.array.set([p.x, p.y, p.z], k * 3);
     M.at.iCol.array.set([c[0], c[1], c[2], a], k * 4);
     M.at.iSz.array.set([s, p.rot], k * 2);
@@ -258,7 +260,7 @@ function stepJack(dt) {
 }
 ctxHooks.push(p => {
   if (p.mode !== 'walk' || p.where !== 'out' || gta.jack || player.down > 0) return null;
-  for (const v of vehicles) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < (v.isCar ? 3.2 : 2.2)) return null;   // 自己的車與搶過的車照原本的「上車」
+  for (const v of vehicles) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return null;   // 自己的車與搶過的車照原本的「上車」
   const c = nearCar(p.x, p.z);
   if (!c) return null;
   const moving = traffic.includes(c);
@@ -326,7 +328,7 @@ function explode(v) {
   if (v.dead) return;
   v.dead = 1; v.hp = 0; v.burn = 1; v.lights = 0; v.burnT = 0;
   const mine = v.byP && uTimeNow() - v.byP < 25;
-  if (player.veh === v) { exitVehicle(); knockPlayer(player.x - v.x, player.z - v.z); toast(`${v.name} 爆炸了`); }
+  if (player.veh === v) { exitVehicle(); if (!v.boat) knockPlayer(player.x - v.x, player.z - v.z); toast(`${v.name} 爆炸了`); }
   // 波及（69-combat.js 的 blast）：路人、警察、玩家、附近的車（連鎖爆炸）
   blast(v.x, v.y, v.z, 8, v.mass > 4000 ? 520 : 420, mine ? 'player' : null, v);
   if (mine) crime(v.unit ? 'killcop' : 'explode', v.x, v.z);

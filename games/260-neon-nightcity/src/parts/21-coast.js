@@ -91,6 +91,20 @@ const MAT_WATER = groundMat(WATER_FS), MAT_PLANK = groundMat(PLANK_FS);
 }
 // 河對岸與外海的小島（還有對岸的 London City 模型，27-props.js）跟著 A 區：和舊城那段河岸對齊，C 區轉過之後河面變寬一點；北面的山跟著各區（下面）
 const FAR_ZN = ZONES[0];
+// 河對岸與東灣對岸的堤岸、燈與程式剪影依南北切兩段，各跟著岸這邊的區（A、B 區的南緣 stZ(7) 是交界，各多伸 60 m）。
+// 對岸的 London City 模型與東灣的舊港城模型是一整塊，切不開：London 跟著 A 區（FAR_ZN），舊港城跟著 C 區
+const FAR_ZM = stZ(ZONES[0].nj1);
+const FAR_PARTS = [{ zn: ZONES[0], z0: -1e5, z1: FAR_ZM + 60 }, { zn: ZONES[2], z0: FAR_ZM - 60, z1: 1e5 }];
+const EAST_PARTS = [{ zn: ZONES[1], z0: -1e5, z1: FAR_ZM + 60 }, { zn: ZONES[2], z0: FAR_ZM - 60, z1: 1e5 }];
+// 游泳與開船到不了對岸：世界座標的點擋在西岸、東灣對岸 30 m 外（換到那一段堤岸所在的區裡比）
+function farClamp(X, Z) {
+  for (const [L, east] of [[FAR_PARTS, 0], [EAST_PARTS, 1]]) {
+    const P = L[toL(X, Z, L[0].zn)[1] < FAR_ZM ? 0 : 1];
+    let [x, z] = toL(X, Z, P.zn);
+    if (east ? x > EAST_BANK_X - 30 && z > CITY_CZ - 860 && z < CITY_CZ + 860 : x < FAR_BANK_X + 30) { x = east ? EAST_BANK_X - 30 : FAR_BANK_X + 30; [X, Z] = toW(x, z, P.zn); }
+  }
+  return [X, Z];
+}
 // 沙灘：沿 z 切 40 段，高度和 groundH 一樣（往海裡再多延伸一段，讓水面切出岸線）
 {
   const L = BEACH.len + 30, g = new T.PlaneGeometry(BEACH.x1 - BEACH.x0, L, 1, 40); g.rotateX(-Math.PI / 2);
@@ -115,7 +129,7 @@ const coastLight = (x, y, z, col, r, i) => { const l = { x, y, z, col: lin(col),
 {
   const kits = new Map(), posts = [];
   for (const b0 of colliders) {
-    if (!b0.low || b0.zn) continue;   // zn：05-zones 縫端斜放的擋牆，不裝欄杆
+    if (!b0.low || b0.zn || b0.swim) continue;   // zn：05-zones 縫端斜放的擋牆，不裝欄杆；swim：梯子前的缺口（10-city.js 的 LADDERS）
     for (const b of zoneClip(b0.x0, b0.x1, b0.z0, b0.z1)) {   // 跨區的長擋牆切成各區的部分，欄杆與路燈照所在的區掛
       if (!kits.has(b.zn)) kits.set(b.zn, new Kit());
       const k = kits.get(b.zn);
@@ -176,6 +190,27 @@ const coastLight = (x, y, z, col, r, i) => { const l = { x, y, z, col: lin(col),
   instanced(new Kit().box(0, .55, 0, .08, 1.1, .08, 0x2c3036, 15).build(), MAT.uber, posts, LY.NOREFL);
   for (const [zn, k] of kits) cityAdd(new T.Mesh(k.build(), MAT.uber), zn);
   cityAdd(new T.Mesh(hk.build(), MAT.uber), null);
+}
+
+// 梯子（10-city.js 的 LADDERS）：貼著岸邊的鋼梯，從水面下 1 m 到岸上，頂上兩根彎出來的扶手；旁邊一盞小燈
+{
+  const kits = new Map();
+  for (const L of LADDERS) {
+    if (!L.ok) continue;
+    const zn = zoneAtL(L.x, L.z);
+    if (!kits.has(zn)) kits.set(zn, new Kit());
+    const k = kits.get(zn), top = Math.max(0, groundHL(L.x - L.nx * .6, L.z - L.nz * .6)), y0 = SEA_Y - 1, h = top - y0;
+    const ry = Math.atan2(L.nx, L.nz), tx = L.nz, tz = -L.nx;   // (tx, tz)：沿著岸
+    const at = (a, o, y) => [L.x + tx * a + L.nx * o, y, L.z + tz * a + L.nz * o];
+    for (const s of [-.24, .24]) {
+      k.box(...at(s, .1, y0 + h / 2), .06, h, .06, 0x8a8e94, 15, 0, ry);
+      k.box(...at(s, -.05, top + .55), .05, 1.1, .05, 0x8a8e94, 15, 0, ry).box(...at(s, .03, top + 1.08), .05, .05, .2, 0x8a8e94, 15, 0, ry);
+    }
+    for (let y = y0 + .25; y < top; y += .3) k.box(...at(0, .1, y), .48, .04, .04, 0x9a9ea4, 15, 0, ry);
+    k.box(...at(.75, -.3, top + .45), .12, .9, .12, 0x22252a, 15, 0, ry).box(...at(.75, -.3, top + .95), .2, .1, .2, 0x9ae0ff, 11, 0, ry);
+    coastLight(...at(.75, .2, top + .9), 0x9ad8ff, 6, .5);
+  }
+  for (const [zn, k] of kits) cityAdd(new T.Mesh(k.build(), MAT.uber), zn);
 }
 
 // ─── 珊瑚灘：救生員塔、收起來的陽傘、排球網、步道上的椰子樹；棧橋盡頭的霓虹摩天輪 ───
@@ -250,6 +285,13 @@ let benchMesh, planterShrubMesh;
       run -= len;
     }
   }
+  // 區之間的縫（20-props.js 的 SEAM_PATH）：步道兩側每 36 m 一張，面向步道，兩側交錯
+  for (const run of SEAM_PATH) for (let i = 4, k = 0; i < run.length - 2; i += 7, k++) {
+    const p = run[i], q = run[i + 1], l = Math.hypot(q.x - p.x, q.z - p.z) || 1, ux = (q.x - p.x) / l, uz = (q.z - p.z) / l, s = k % 2 ? 1 : -1;
+    const x = p.x - uz * s * 2.4, z = p.z + ux * s * 2.4;
+    benches.push({ x, z, y: 0, ry: Math.atan2(uz * s, -ux * s), zn: null });
+    colliders.push({ x0: -1.1, x1: 1.1, z0: -.45, z1: .45, zn: frameW(x, z, ux, uz) });
+  }
   // 長椅：鑄鐵腳、五條木板座面與靠背（正面朝 +z）
   const bk = new Kit();
   for (const sx of [-.85, .85]) bk.box(sx, .22, 0, .07, .44, .5, 0x1e2024, 15).box(sx, .62, -.24, .07, .5, .06, 0x1e2024, 15);
@@ -273,6 +315,59 @@ let benchMesh, planterShrubMesh;
     }
   }
 }
+// 區之間的縫：碎石步道（草地 shader 的小徑顏色）、步道路燈，涼亭、茶亭與公廁（20-props.js 的 SEAM_PATH、SEAM_SITES，世界座標，掛在 scene）
+{
+  const mat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
+    side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const wp = [], wn = [], k = new Kit();
+  for (const run of SEAM_PATH) {
+    const side = run.map((p, i) => { const a = run[Math.max(0, i - 1)], b = run[Math.min(run.length - 1, i + 1)], l = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [-(b.z - a.z) / l * 1.2, (b.x - a.x) / l * 1.2]; });
+    for (let i = 0; i < run.length - 1; i++) {
+      const p = run[i], q = run[i + 1], [ax, az] = side[i], [bx, bz] = side[i + 1];
+      for (const [x, z] of [[p.x - ax, p.z - az], [q.x - bx, q.z - bz], [q.x + bx, q.z + bz], [p.x - ax, p.z - az], [q.x + bx, q.z + bz], [p.x + ax, p.z + az]]) { wp.push(x, .003, z); wn.push(0, 1, 0); }
+    }
+    // 路燈：每 36 m 一盞，和長椅錯開半格、在另一側
+    for (let i = 8, n = 0; i < run.length - 2; i += 7, n++) {
+      const p = run[i], [sx, sz] = side[i], s = n % 2 ? -1 : 1, x = p.x + sx * s * 1.7, z = p.z + sz * s * 1.7;
+      circles.push({ x, z, r: .18, w: 1 });
+      k.cyl(x, 2.1, z, .06, .08, 4.2, 8, 0x22252a, 15).cyl(x, 4.3, z, .24, .16, .28, 10, 0x1a1c20, 15).cyl(x, 4.1, z, .2, .2, .06, 10, 0xffe2b0, 11);
+      coastLight(x, 4, z, 0xffd8a0, 11, .75).w = 1;
+    }
+  }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(wp, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(wn, 3)); g.computeBoundingSphere();
+  groundAdd(new T.Mesh(g, mat), null);
+  // 建物：局部座標正面朝 +z（步道那邊），用 tf 轉到世界
+  for (const S of SEAM_SITES) {
+    const at = (x, y, z) => { const c = Math.cos(S.ry), s = Math.sin(S.ry); return [S.x + x * c + z * s, y, S.z - x * s + z * c]; };
+    const box = (x, y, z, w, h, d, col, m, rx = 0) => k.box(...at(x, y, z), w, h, d, col, m, rx, S.ry);
+    const cyl = (x, y, z, r0, r1, h, seg, col, m) => k.cyl(...at(x, y, z), r0, r1, h, seg, col, m, 0, S.ry);
+    if (S.type === 'pavilion') {   // 涼亭：石台、四根柱、四角攢尖頂、中間一圈長凳
+      box(0, .15, 0, 7.4, .3, 7.4, 0x5a5650, 2);
+      for (const [px, pz] of [[-3.2, -3.2], [3.2, -3.2], [-3.2, 3.2], [3.2, 3.2]]) { cyl(px, 1.75, pz, .14, .16, 2.9, 8, 0x3a2c22, 2); circles.push({ ...(([x, , z]) => ({ x, z }))(at(px, 0, pz)), r: .2, w: 1 }); }
+      k.add(new T.ConeGeometry(5.6, 1.9, 4, 1), lin(0x2a3a34), 2, tf(...at(0, 4.15, 0), 0, S.ry + Math.PI / 4));
+      box(0, 3.25, 0, 7, .2, 7, 0x3a2c22, 2);
+      for (const [px, pz, w, d] of [[0, -2.4, 4.4, .45], [-2.4, 0, .45, 4.4], [2.4, 0, .45, 4.4]]) box(px, .55, pz, w, .12, d, 0x6a4a30, 2).box(px, .35, pz, w * .9, .4, d * .7, 0x4a4844, 2);
+      cyl(0, 3.05, 0, .25, .25, .15, 10, 0xffe2b0, 11);
+      coastLight(...at(0, 2.9, 0), 0xffd8a0, 8, .8).w = 1;
+    } else if (S.type === 'kiosk') {   // 茶亭：小木屋、賣窗（裡面亮著）、遮陽篷、霓虹招牌、兩張高腳凳
+      box(0, 1.35, 0, 3.4, 2.7, 2.6, 0x3a2a20, 2).box(0, 2.85, 0, 3.8, .3, 3, 0x1e1a18, 2);
+      box(0, 1.55, 1.31, 2.4, 1.1, .04, 0x8a6438, 11).box(0, .98, 1.5, 2.6, .08, .45, 0x6a4a30, 2);
+      box(0, 2.4, 1.75, 3.2, .06, 1.1, 0xc84a2a, 2);
+      box(0, 3.25, 1.2, 2.6, .5, .1, 0x10161c, 2).box(0, 3.25, 1.26, 2.2, .3, .02, 0xff6ab0, 8);
+      for (const px of [-.7, .7]) cyl(px, .38, 2.1, .18, .14, .76, 10, 0x22252a, 15);
+      coastLight(...at(0, 2, 2.2), 0xffb070, 8, .9).w = 1;
+    } else {   // 公廁：混凝土盒、兩扇門、門上的燈與標示
+      box(0, 1.5, 0, 6, 3, 3.4, 0x6a6862, 2).box(0, 3.1, 0, 6.4, .2, 3.8, 0x2a2c30, 2);
+      for (const px of [-1.4, 1.4]) box(px, 1.05, 1.71, 1, 2.1, .04, 0x2a3036, 10).box(px, 2.5, 1.72, .5, .5, .02, px < 0 ? 0x5ab0ff : 0xff6a8a, 11);
+      box(0, 2.75, 1.85, 4.4, .08, .3, 0xfff0d8, 11);
+      coastLight(...at(0, 2.6, 2.4), 0xfff0d8, 7, .7).w = 1;
+    }
+    const hw = S.type === 'pavilion' ? 0 : S.type === 'kiosk' ? 1.7 : 3, hd = S.type === 'kiosk' ? 1.3 : 1.7;
+    if (hw) colliders.push({ x0: -hw, x1: hw, z0: -hd, z1: hd, zn: frameW(S.x, S.z, Math.cos(S.ry), -Math.sin(S.ry)) });
+  }
+  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
+}
+
 // 棧橋：木板、樁、欄杆；盡頭的摩天輪（輪面朝北，岸上看得到整圈）
 const ferris = new T.Group(), cabins = [];
 // 換成模型時（27-props.js 檔尾）要動的：程式建模的底座與輪子、輪軸離棧橋面多高（wy）、車廂吊點的半徑（R）
@@ -324,28 +419,33 @@ const FERRIS = { R: 20, wy: 25, base: null, wheel: null, cx: 0, wz: 0, h: 0 };
   cityAdd(new T.Mesh(k.build(), MAT.uber));
 }
 
-// ─── 錨灣港：岸橋、貨櫃堆、高桿燈、靠港的貨櫃船 ───
+// ─── 錨灣港：岸橋、貨櫃堆、高桿燈、靠港的貨櫃船、碼頭上的集卡 ───
+// 船、岸橋與集卡都會動（coastUpdate）：船靠港作業一陣子，由拖船推離碼頭、原地轉向朝南、開出外海，過一陣子再開回來靠港；
+// 岸橋沿兩條軌道換艙位，小車在船與車道之間搬貨櫃；集卡在岸橋底下的車道與堆場之間繞圈，在作業中的岸橋底下停一下。
+// 船掛在 harbor.root（船心、水面高度）底下，root 在所屬區的框裡平移、轉向；岸橋腳與集卡的碰撞是 dynCircles（30-vehicles.js，每幀更新的世界座標圓）。
 const LANE_X0 = BRIDGE.x0 - 14, LANE_X1 = BRIDGE.x1 + 14;   // 碼頭上往跨海橋的車道，不堆貨櫃
-const harbor = { cranes: [], ship: null, shipY0: 0, trY: 41.4, wireY: 40.6, craneKit: null, boxLists: null, boxMeshes: null };   // coastUpdate 每幀動：岸橋小車搬貨櫃、貨櫃船隨浪起伏
+const harbor = { cranes: [], ship: null, root: null, zn: null, shipY0: 0, trY: 41.4, wireY: 40.6, boxLists: null, boxMeshes: null, trucks: [],
+  state: 'dock', st: 0, halfL: 0, halfB: 15 };
+const CRANE_X = [610, 690, 770, 850];
 {
-  const k0 = new Kit(), r2 = rng(808);
-  let k = new Kit();   // 岸橋自己一個網格（換成模型時整個拿掉；高桿燈、警衛亭留著）
-  // 岸橋：腳跨在兩條軌道上（z1-6、z1-30），吊臂往海上伸 48 m
-  for (const cx of [610, 690, 770, 850]) {
-    const z0 = QUAY.z1 - 30, z1 = QUAY.z1 - 6, col = cx % 160 ? 0xc83a24 : 0xe8e2d4;
-    for (const z of [z0, z1]) for (const s of [-1, 1]) { k.box(cx + s * 9, 20, z, 1.4, 40, 1.4, col, 10); circles.push({ x: cx + s * 9, z, r: 1 }); }
-    for (const z of [z0, z1]) k.box(cx, 39.5, z, 20, 1.6, 1.6, col, 10);
-    for (const s of [-1, 1]) k.box(cx + s * 9, 39.5, (z0 + z1) / 2, 1.6, 1.6, z1 - z0, col, 10).box(cx + s * 9, 14, (z0 + z1) / 2, 1, 1, z1 - z0, col, 10);
-    k.box(cx, 43, QUAY.z1 + 5, 6, 2.4, 86, col, 10);                    // 吊臂（往陸側也伸一段）
-    k.box(cx, 47, z1 - 8, 5, 6, 8, 0x30343a, 15).box(cx, 47, z1 - 3.9, 4, 3, .1, 0xffe0a0, 11);   // 機房
-    k.box(cx, 41, QUAY.z1 + 14, 3, 2.6, 3, 0x22262c, 15).box(cx, 41, QUAY.z1 + 15.6, 2.4, 1.6, .1, 0x9ad0ff, 11);   // 駕駛室
-    for (const z of [QUAY.z1 + 47, z0 - 37]) k.box(cx, 44.6, z, .7, .7, .7, 0xff2020, 9);   // 航空警示燈（閃）
-    for (let z = z0 - 30; z < QUAY.z1 + 46; z += 18) k.box(cx + 3.2, 42, z, .3, .3, .3, 0xffd8a0, 11);
-    coastLight(cx, 13.5, QUAY.z1 - 18, 0xffe6c0, 34, 1.5);   // 腳架下的投光燈
-    coastLight(cx, 36, QUAY.z1 + 14, 0xffe6c0, 50, 1);
-    k.box(cx, 13.2, QUAY.z1 - 18, 1.2, .3, 1.2, 0xfff0d8, 11);
+  const k = new Kit(), r2 = rng(808);
+  // 岸橋：腳跨在兩條軌道上（z1-6、z1-30），吊臂往海上伸 48 m；每台自己一個網格（原點在岸橋中心線，沿軌道移動；換成模型時拿掉 proc）
+  for (const cx of CRANE_X) {
+    const ck = new Kit(), z0 = QUAY.z1 - 30, z1 = QUAY.z1 - 6, col = cx % 160 ? 0xc83a24 : 0xe8e2d4;
+    for (const z of [z0, z1]) for (const s of [-1, 1]) ck.box(s * 9, 20, z, 1.4, 40, 1.4, col, 10);
+    for (const z of [z0, z1]) ck.box(0, 39.5, z, 20, 1.6, 1.6, col, 10);
+    for (const s of [-1, 1]) ck.box(s * 9, 39.5, (z0 + z1) / 2, 1.6, 1.6, z1 - z0, col, 10).box(s * 9, 14, (z0 + z1) / 2, 1, 1, z1 - z0, col, 10);
+    for (const s of [-1, 1]) for (const z of [z0, z1]) ck.box(s * 9, .6, z, 2.6, 1.2, 3.4, 0x30343a, 15);   // 行走台車
+    ck.box(0, 43, QUAY.z1 + 5, 6, 2.4, 86, col, 10);                    // 吊臂（往陸側也伸一段）
+    ck.box(0, 47, z1 - 8, 5, 6, 8, 0x30343a, 15).box(0, 47, z1 - 3.9, 4, 3, .1, 0xffe0a0, 11);   // 機房
+    ck.box(0, 41, QUAY.z1 + 14, 3, 2.6, 3, 0x22262c, 15).box(0, 41, QUAY.z1 + 15.6, 2.4, 1.6, .1, 0x9ad0ff, 11);   // 駕駛室
+    for (const z of [QUAY.z1 + 47, z0 - 37]) ck.box(0, 44.6, z, .7, .7, .7, 0xff2020, 9);   // 航空警示燈（閃）
+    for (let z = z0 - 30; z < QUAY.z1 + 46; z += 18) ck.box(3.2, 42, z, .3, .3, .3, 0xffd8a0, 11);
+    ck.box(0, 13.2, QUAY.z1 - 18, 1.2, .3, 1.2, 0xfff0d8, 11);
+    const g = new T.Group(); g.position.x = cx; cityAdd(g, zoneAtL(cx, QUAY.z1));
+    const proc = new T.Mesh(ck.build(), MAT.uber); g.add(proc);
+    harbor.cranes.push({ cx, x: cx, g, proc, lights: [coastLight(cx, 13.5, QUAY.z1 - 18, 0xffe6c0, 34, 1.5), coastLight(cx, 36, QUAY.z1 + 14, 0xffe6c0, 50, 1)] });
   }
-  harbor.craneKit = cityAdd(new T.Mesh(k.build(), MAT.uber)); k = k0;
   // 高桿燈
   for (const x of [580, 760, 940, 1120, 1280]) {
     const z = QUAY.z0 + 40;
@@ -377,36 +477,66 @@ const harbor = { cranes: [], ship: null, shipY0: 0, trY: 41.4, wireY: 40.6, cran
     ck.box(6.11, 1.3, 0, .02, 2.4, 2.3, new T.Color(lin(col)).multiplyScalar(.6), 15);
     return instanced(ck.build(), MAT.uber, lists[k2]);
   });
-  // 貨櫃船：靠在岸橋外側，船艏朝東；船身、甲板上的貨櫃、船尾的駕駛樓
-  const sk = new Kit(), sx0 = 590, sx1 = 820, sz = QUAY.z1 + 22, top = SEA_Y + 9;
-  sk.box((sx0 + sx1) / 2, SEA_Y + 1, sz, sx1 - sx0, 12, 30, 0x1a2430, 2)
-    .box((sx0 + sx1) / 2, SEA_Y - .2, sz, sx1 - sx0 + .1, 2.4, 30.1, 0x6a1a14, 2)
-    .box(sx1 + 6, SEA_Y + 2, sz, 14, 10, 20, 0x1a2430, 2, 0, Math.PI / 4)
-    .box((sx0 + sx1) / 2, top - .9, sz - 15.05, sx1 - sx0, .5, .1, 0xd8d8d8, 10).box((sx0 + sx1) / 2, top - .9, sz + 15.05, sx1 - sx0, .5, .1, 0xd8d8d8, 10);
+  // 貨櫃船：靠在岸橋外側，船艏朝東；船身、甲板上的貨櫃、船尾的駕駛樓。幾何以船心為原點（root 轉向時繞船心轉）
+  const sk = new Kit(), sx0 = 590, sx1 = 820, sz = QUAY.z1 + 22, top = SEA_Y + 9, scx = (sx0 + sx1) / 2;
+  const X = x => x - scx;
+  sk.box(0, SEA_Y + 1, 0, sx1 - sx0, 12, 30, 0x1a2430, 2)
+    .box(0, SEA_Y - .2, 0, sx1 - sx0 + .1, 2.4, 30.1, 0x6a1a14, 2)
+    .box(X(sx1 + 6), SEA_Y + 2, 0, 14, 10, 20, 0x1a2430, 2, 0, Math.PI / 4)
+    .box(0, top - .9, -15.05, sx1 - sx0, .5, .1, 0xd8d8d8, 10).box(0, top - .9, 15.05, sx1 - sx0, .5, .1, 0xd8d8d8, 10);
   for (let x = sx0 + 40; x < sx1 - 12; x += 13) for (let b = -4; b <= 4; b++) {
     const n = 2 + Math.floor(r2() * 4);
-    for (let c = 0; c < n; c++) sk.box(x, top + 1.3 + c * 2.6, sz + b * 2.6, 12.2, 2.5, 2.44, COLS[Math.floor(r2() * COLS.length)], 2);
+    for (let c = 0; c < n; c++) sk.box(X(x), top + 1.3 + c * 2.6, b * 2.6, 12.2, 2.5, 2.44, COLS[Math.floor(r2() * COLS.length)], 2);
   }
-  sk.box(sx0 + 18, top + 9, sz, 16, 18, 26, 0xe8e4dc, 10).box(sx0 + 18, top + 19, sz, 18, 2, 32, 0xe8e4dc, 10)
-    .box(sx0 + 26.05, top + 14, sz, .1, 8, 22, 0x10161c, 1);
-  for (let f = 0; f < 5; f++) for (let w = -4; w <= 4; w++) if (r2() < .45) sk.box(sx0 + 26.1, top + 4 + f * 3, sz + w * 2.6, .05, 1.1, 1.6, 0xffd8a0, 11);
-  sk.cyl(sx0 + 8, top + 24, sz, .7, .9, 8, 10, 0x2a2a2a, 15).box(sx0 + 8, top + 28.3, sz, .5, .5, .5, 0xff2020, 9).box(sx1 + 10, top + 6, sz, .5, .5, .5, 0x20ff60, 11);
-  const ship = harbor.ship = new T.Mesh(sk.build(), MAT.uber); cityAdd(ship); cullAdd(ship);
-  coastLight(sx0 + 30, top + 12, sz, 0xffd8a0, 30, 1);
+  sk.box(X(sx0 + 18), top + 9, 0, 16, 18, 26, 0xe8e4dc, 10).box(X(sx0 + 18), top + 19, 0, 18, 2, 32, 0xe8e4dc, 10)
+    .box(X(sx0 + 26.05), top + 14, 0, .1, 8, 22, 0x10161c, 1);
+  for (let f = 0; f < 5; f++) for (let w = -4; w <= 4; w++) if (r2() < .45) sk.box(X(sx0 + 26.1), top + 4 + f * 3, w * 2.6, .05, 1.1, 1.6, 0xffd8a0, 11);
+  sk.cyl(X(sx0 + 8), top + 24, 0, .7, .9, 8, 10, 0x2a2a2a, 15).box(X(sx0 + 8), top + 28.3, 0, .5, .5, .5, 0xff2020, 9).box(X(sx1 + 10), top + 6, 0, .5, .5, .5, 0x20ff60, 11);
+  const root = harbor.root = new T.Group(); root.position.set(scx, 0, sz); harbor.zn = zoneAtL(scx, sz); cityAdd(root, harbor.zn);
+  const ship = harbor.ship = new T.Mesh(sk.build(), MAT.uber); root.add(ship); cullAdd(ship);
+  harbor.shipLight = coastLight(sx0 + 30, top + 12, sz, 0xffd8a0, 30, 1);
+  Object.assign(harbor, { home: { x: scx, z: sz }, halfL: (sx1 - sx0) / 2 + 12, halfB: 15 });
   // 岸橋的小車、鋼索與吊具：在船上（z = sz）與兩條軌道之間的車道（z1 - 18）來回搬貨櫃；吊具沿 x 和貨櫃同向
   const tg = new Kit().box(0, 0, 0, 4.4, 1.4, 5, 0x30343a, 15).box(0, -.85, 0, 3.6, .3, 4.2, 0x22262c, 15).box(0, .2, 2.51, 2.4, .6, .02, 0x9ad0ff, 11).build();
   const wg = new Kit().box(-1.2, -.5, -.9, .05, 1, .05, 0x202226, 15).box(1.2, -.5, -.9, .05, 1, .05, 0x202226, 15)
     .box(-1.2, -.5, .9, .05, 1, .05, 0x202226, 15).box(1.2, -.5, .9, .05, 1, .05, 0x202226, 15).build();
   const spg = new Kit().box(0, 0, 0, 12.4, .45, 2.6, 0xe0b020, 10).box(0, .6, 0, 3, .8, 2, 0x30343a, 15).build();
   const cgs = COLS.map(col => new Kit().box(0, 0, 0, 12.2, 2.58, 2.44, col, 2).box(6.11, 0, 0, .02, 2.4, 2.3, new T.Color(lin(col)).multiplyScalar(.6), 15).build());
-  [610, 690, 770, 850].forEach((cx, i) => {
-    const c = { cx, off: i * .27, k: i, tr: new T.Mesh(tg, MAT.uber), wire: new T.Mesh(wg, MAT.uber), sp: new T.Mesh(spg, MAT.uber), box: new T.Mesh(cgs[i % cgs.length], MAT.uber), cgs, n: -1 };
-    for (const m of [c.tr, c.wire, c.sp, c.box]) { m.position.x = cx; cityAdd(m, zoneAtL(cx, QUAY.z1)); }
-    harbor.cranes.push(c);
+  harbor.cgs = cgs;
+  harbor.cranes.forEach((c, i) => {
+    Object.assign(c, { off: i * .27, k: i, tr: new T.Mesh(tg, MAT.uber), wire: new T.Mesh(wg, MAT.uber), sp: new T.Mesh(spg, MAT.uber), box: new T.Mesh(cgs[i % cgs.length], MAT.uber), cgs, n: -1, bay: 0, x0: c.cx, x1: c.cx });
+    for (const m of [c.tr, c.wire, c.sp, c.box]) { m.position.x = c.cx; cityAdd(m, zoneAtL(c.cx, QUAY.z1)); }
   });
   Object.assign(harbor, { seaZ: sz, landZ: QUAY.z1 - 18, hiY: 34, shipY: top + 7.2, landY: 3.1, sx0, sx1 });
+  // 集卡：拖頭＋20/40 呎板車，沿碼頭上的一圈路線開（岸橋底下的車道 → 東端 → 堆場北邊的通道 → 西端），貨櫃有時有、有時沒有
+  const yk = new Kit();
+  yk.box(0, 1.15, 1.6, 2.4, 1.6, 2.1, 0xd8a020, 10).box(0, 1.55, 2.66, 2.1, .8, .04, 0x10161c, 1).box(0, .55, .6, 2.3, .5, 4.6, 0x22252a, 15)
+    .box(0, 2.05, 1.6, 2.5, .12, 2.2, 0x22252a, 15).box(.9, 2.2, 1.0, .12, .4, .12, 0xffa020, 9)
+    .box(.85, .95, 2.68, .3, .14, .04, 0xfff0d8, 4).box(-.85, .95, 2.68, .3, .14, .04, 0xfff0d8, 4);
+  for (const s of [-1, 1]) for (const z of [2, -.4]) yk.cyl(s * 1.05, .5, z, .5, .5, .4, 12, 0x15161a, 6, 0, 0, Math.PI / 2);
+  const tk = new Kit();   // 板車（原點在牽引的鞍座，往後 12.5 m）
+  tk.box(0, 1.05, -6.3, 2.4, .25, 12.6, 0x30343a, 15).box(0, .7, -6.3, .4, .5, 12.6, 0x22252a, 15);
+  for (const s of [-1, 1]) for (const z of [-10.4, -11.6]) tk.cyl(s * 1.0, .5, z, .5, .5, .45, 12, 0x15161a, 6, 0, 0, Math.PI / 2);
+  tk.box(0, .9, -12.6, 2.2, .3, .1, 0x8a1010, 5);
+  const ykG = yk.build(), tkG = tk.build();
+  const Z0 = QUAY.z0, LZ = harbor.landZ;
+  const PATH = [[566, LZ], [884, LZ], [896, LZ - 6], [898, Z0 + 74], [890, Z0 + 68], [574, Z0 + 68], [564, Z0 + 74], [562, LZ - 6]];
+  const segs = []; let plen = 0;
+  for (let i = 0; i < PATH.length; i++) { const a = PATH[i], b = PATH[(i + 1) % PATH.length], l = Math.hypot(b[0] - a[0], b[1] - a[1]); segs.push({ a, b, l, s: plen }); plen += l; }
+  harbor.path = { segs, len: plen };
+  for (let i = 0; i < 3; i++) {
+    const tr = new T.Mesh(ykG, MAT.uber), ch = new T.Mesh(tkG, MAT.uber), box = new T.Mesh(cgs[(i * 2 + 1) % cgs.length], MAT.uber);
+    const zn = zoneAtL(700, LZ);
+    for (const m of [tr, ch, box]) cityAdd(m, zn);
+    harbor.trucks.push({ tr, ch, box, s: i * plen / 3, v: 0, wait: 0, load: i % 2 === 0, lastCrane: -1, circ: [{ x: 0, z: 0, r: 1.5 }, { x: 0, z: 0, r: 1.5 }, { x: 0, z: 0, r: 1.5 }] });
+  }
 }
-
+// 集卡路線上 s 處的點（邏輯座標）
+function harborPathAt(s) {
+  const P = harbor.path; s = ((s % P.len) + P.len) % P.len;
+  for (const g of P.segs) if (s <= g.s + g.l) { const u = (s - g.s) / g.l; return [lerp(g.a[0], g.b[0], u), lerp(g.a[1], g.b[1], u)]; }
+  return P.segs[0].a;
+}
 // ─── 跨海橋：斜張橋，兩座 H 形主塔、斜拉索、兩側路燈；橋面 y = 0（和碼頭、島一樣） ───
 {
   const k = new Kit(), x = BRIDGE_X, z0 = BRIDGE.z0, z1 = BRIDGE.z1, L = z1 - z0, zm = (z0 + z1) / 2;
@@ -545,34 +675,48 @@ const FAR_SITES = {
     const x = CITY_X0 - 1800 + i * (CITY_X1 - CITY_X0 + 3600) / 5 + (r8() - .5) * 300, z = CITY_Z0 - 2950 - r8() * 500, s = 11 + r8() * 5;
     PEAKS.push({ x, z, y: -15, ry: r8() * 6.3, sx: s, sz: s * (.8 + r8() * .4), sy: 18 + r8() * 8, zn: north.find(zn => x >= zn.x0 && x < zn.x1) || north[0] });
   }
-  // 外海的小島：低矮的岩丘，有幾盞燈
+  // 外海的小島：低矮的岩丘，有幾盞燈。各掛在離它最近的區（南面兩座跟著 C 區、東北那座跟著 B 區）
+  const ik = new Map(), kOf = (m, zn) => { if (!m.has(zn)) m.set(zn, new Kit()); return m.get(zn); };
   for (const [ix, iz, r, h] of [[CITY_X1 + 1300, SHORE_Z + 900, 260, 70], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90], [CITY_X1 + 2200, CITY_Z0 + 400, 300, 90]]) {
+    const kk = kOf(ik, iz > FAR_ZM ? ZONES[2] : ZONES[1]);
     for (let j = 0; j < 4; j++) {   // 幾個壓扁的圓丘疊成不規則的島
       const rr = r * (.45 + r2() * .45), g = new T.SphereGeometry(rr, 20, 6, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1, h * (.4 + r2() * .6) / rr, .55 + r2() * .3);
-      g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4); k.add(g, 0x0c100c, 2, null);
+      g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4); kk.add(g, 0x0c100c, 2, null);
     }
-    for (let j = 0; j < 6; j++) { const a = r2() * 6.3; k.box(ix + Math.cos(a) * r * .6, SEA_Y + h * .35, iz + Math.sin(a) * r * .4, 2, 2, 2, 0xffd8a0, 11); }
+    for (let j = 0; j < 6; j++) { const a = r2() * 6.3; kk.box(ix + Math.cos(a) * r * .6, SEA_Y + h * .35, iz + Math.sin(a) * r * .4, 2, 2, 2, 0xffd8a0, 11); }
   }
-  // 對岸：沿河的堤岸與一條地面；London City 的模型下載前先用程式剪影
-  const bank = new T.PlaneGeometry(1800, CITY_Z1 - CITY_Z0 + 3000); bank.rotateX(-Math.PI / 2); bank.translate(FAR_BANK_X - 900, 0, CITY_CZ + 600);
-  k.add(bank, 0x0e0f10, 2, null);
-  k.box(FAR_BANK_X + 2, -1, CITY_CZ + 600, 4, 2, CITY_Z1 - CITY_Z0 + 3000, 0x2a2826, 2);
-  for (let z = CITY_Z0 - 400; z < SHORE_Z + 800; z += 30) k.box(FAR_BANK_X - 4, 5, z, .5, .5, .5, 0xffc880, 11);
-  cityAdd(new T.Mesh(k.build(), MAT.far), FAR_ZN);
-  const sk = new Kit();
+  for (const [zn, kk] of ik) cityAdd(new T.Mesh(kk.build(), MAT.far), zn);
+  // 對岸：沿河的堤岸與一條地面，依南北切成兩段跟著岸這邊的區（FAR_PARTS：北段 A 區、南段 C 區，交界各多伸 60 m 疊在一起，南段放低一點免得疊在一起閃）；
+  // London City 的模型下載前先用程式剪影（剪影也照 z 分到兩段）
+  const bk = new Map(), sk = new Map(), part = z => FAR_PARTS.find(P => z < P.z1) || FAR_PARTS[FAR_PARTS.length - 1];
+  const ZA = CITY_Z0 - 900, ZB = CITY_Z1 + 2100;   // 原本整片堤岸的南北範圍
+  for (const [i, P] of FAR_PARTS.entries()) {
+    const z0 = Math.max(ZA, P.z0), z1 = Math.min(ZB, P.z1), dy = i ? -.25 : 0, kk = kOf(bk, P.zn);
+    const bank = new T.PlaneGeometry(1800, z1 - z0); bank.rotateX(-Math.PI / 2); bank.translate(FAR_BANK_X - 900, dy, (z0 + z1) / 2);
+    kk.add(bank, 0x0e0f10, 2, null);
+    kk.box(FAR_BANK_X + 2, -1 + dy, (z0 + z1) / 2, 4, 2, z1 - z0, 0x2a2826, 2);
+  }
+  for (let z = CITY_Z0 - 400; z < SHORE_Z + 800; z += 30) kOf(bk, part(z).zn).box(FAR_BANK_X - 4, 5, z, .5, .5, .5, 0xffc880, 11);
+  for (const [zn, kk] of bk) cityAdd(new T.Mesh(kk.build(), MAT.far), zn);
   for (let i = 0; i < 70; i++) {
-    const x = FAR_BANK_X - 40 - r2() * 700, z = CITY_Z0 - 300 + r2() * (SHORE_Z - CITY_Z0 + 900), w = 18 + r2() * 30, h = 20 + r2() * (r2() < .2 ? 160 : 60);
-    sk.box(x, h / 2, z, w, h, w * (.6 + r2() * .8), 0x181a1e, 2);
-    for (let f = 0; f < 18; f++) if (r2() < .5) sk.box(x + w / 2 + .05, 2 + r2() * (h - 4), z + (r2() - .5) * w * .8, .05, 1.2, 1.8, r2() < .8 ? 0xffd8a0 : 0x9ad0ff, 11);
+    const x = FAR_BANK_X - 40 - r2() * 700, z = CITY_Z0 - 300 + r2() * (SHORE_Z - CITY_Z0 + 900), w = 18 + r2() * 30, h = 20 + r2() * (r2() < .2 ? 160 : 60), kk = kOf(sk, part(z).zn);
+    kk.box(x, h / 2, z, w, h, w * (.6 + r2() * .8), 0x181a1e, 2);
+    for (let f = 0; f < 18; f++) if (r2() < .5) kk.box(x + w / 2 + .05, 2 + r2() * (h - 4), z + (r2() - .5) * w * .8, .05, 1.2, 1.8, r2() < .8 ? 0xffd8a0 : 0x9ad0ff, 11);
   }
-  const farProxy = new T.Mesh(sk.build(), MAT.far); cityAdd(farProxy, FAR_ZN);
+  const farProxy = new T.Group(); cityAdd(farProxy, null);
+  for (const [zn, kk] of sk) { const m = new T.Mesh(kk.build(), MAT.far); m.matrixAutoUpdate = false; m.matrix.copy(zn.m4); m.matrixWorldNeedsUpdate = true; farProxy.add(m); }
   ISLE_PROXY.far = farProxy;
-  // 東灣對岸：一條陸地、堤岸與岸邊的燈；舊港城模型下載前同樣先用程式剪影
-  const ek = new Kit(), eb = new T.PlaneGeometry(900, 1700); eb.rotateX(-Math.PI / 2); eb.translate(EAST_BANK_X + 450, 0, CITY_CZ);
-  ek.add(eb, 0x0e0f10, 2, null);
-  ek.box(EAST_BANK_X - 2, -1, CITY_CZ, 4, 2, 1700, 0x2a2826, 2);
-  for (let z = CITY_CZ - 820; z < CITY_CZ + 820; z += 34) ek.box(EAST_BANK_X + 4, 5, z, .5, .5, .5, 0xffc880, 11);
-  cityAdd(new T.Mesh(ek.build(), MAT.far));
+  // 東灣對岸：一條陸地、堤岸與岸邊的燈，一樣依南北切成兩段（EAST_PARTS：北段 B 區、南段 C 區）；舊港城模型下載前同樣先用程式剪影
+  const ekm = new Map();
+  for (const [i, P] of EAST_PARTS.entries()) {
+    const z0 = Math.max(CITY_CZ - 850, P.z0), z1 = Math.min(CITY_CZ + 850, P.z1), dy = i ? -.25 : 0, kk = kOf(ekm, P.zn);
+    if (z1 <= z0) continue;
+    const eb = new T.PlaneGeometry(900, z1 - z0); eb.rotateX(-Math.PI / 2); eb.translate(EAST_BANK_X + 450, dy, (z0 + z1) / 2);
+    kk.add(eb, 0x0e0f10, 2, null);
+    kk.box(EAST_BANK_X - 2, -1 + dy, (z0 + z1) / 2, 4, 2, z1 - z0, 0x2a2826, 2);
+  }
+  for (let z = CITY_CZ - 820; z < CITY_CZ + 820; z += 34) kOf(ekm, (EAST_PARTS.find(P => z < P.z1) || EAST_PARTS[1]).zn).box(EAST_BANK_X + 4, 5, z, .5, .5, .5, 0xffc880, 11);
+  for (const [zn, kk] of ekm) cityAdd(new T.Mesh(kk.build(), MAT.far), zn);
   const gk = new Kit(), g0 = FAR_SITES.golu;
   for (let i = 0; i < 40; i++) {
     const x = g0.x - 80 + r2() * 160, z = g0.z - 190 + r2() * 380, w = 14 + r2() * 20, h = 8 + r2() * 26;
@@ -588,32 +732,107 @@ const FAR_SITES = {
   const goluProxy = new T.Mesh(gk.build(), MAT.far); cityAdd(goluProxy);
   ISLE_PROXY.golu = goluProxy;
 }
-// 每幀：摩天輪轉、車廂保持朝下；燈塔光束轉
-function coastUpdate(t) {
+// 每幀：摩天輪轉、車廂保持朝下；燈塔光束轉；貨櫃船進出港、岸橋與集卡
+// 貨櫃船的一輪（秒）：靠港作業 → 拖離碼頭 → 原地轉向朝南 → 開出外海 → 不在 → 開回來 → 轉向朝東 → 推進碼頭
+const SHIP_T = { dock: 300, push: 70, turn: 55, sail: 240, away: 150 };
+const SHIP_C = SHIP_T.dock + 2 * (SHIP_T.push + SHIP_T.turn + SHIP_T.sail) + SHIP_T.away;
+const SHIP_OFF = 130, SHIP_FAR = 1800;
+function shipPose(T) {
+  const H = harbor, hx = H.home.x, hz = H.home.z, ss = u => u * u * (3 - 2 * u);
+  let t = ((T % SHIP_C) + SHIP_C) % SHIP_C;
+  const S = SHIP_T;
+  if (t < S.dock) return { state: 'dock', x: hx, z: hz, yaw: 0, vis: 1 };
+  t -= S.dock;
+  const leg = (t, back) => {   // back：回程（時間倒過來走同一條路）
+    if (t < S.push) { const u = ss(t / S.push); return { state: back ? 'berth' : 'push', x: hx, z: hz + SHIP_OFF * u, yaw: 0, vis: 1 }; }
+    t -= S.push;
+    if (t < S.turn) { const u = ss(t / S.turn); return { state: 'turn', x: hx, z: hz + SHIP_OFF, yaw: -Math.PI / 2 * u, vis: 1 }; }
+    t -= S.turn;
+    const u = ss(Math.min(1, t / S.sail));
+    return { state: back ? 'arrive' : 'sail', x: hx, z: hz + SHIP_OFF + SHIP_FAR * u, yaw: -Math.PI / 2, vis: u < .98 ? 1 : 0 };
+  };
+  const L = S.push + S.turn + S.sail;
+  if (t < L) return leg(t, false);
+  t -= L;
+  if (t < S.away) return { state: 'away', x: hx, z: hz + SHIP_OFF + SHIP_FAR, yaw: -Math.PI / 2, vis: 0 };
+  t -= S.away;
+  return leg(L - t, true);
+}
+function cullSync(obj) { obj.traverse(o => { const e = o.userData.cull; if (e) { o.updateWorldMatrix(true, false); const c = o.geometry.boundingSphere.center.clone().applyMatrix4(o.matrixWorld); e.x = c.x; e.z = c.z; } }); }
+const _hc = [];   // 岸橋腳與集卡的碰撞圓（dynCircles）
+function coastUpdate(t, dt = 0) {
   const a0 = t * .06;
   ferris.rotation.z = a0;
   const { x, y, z } = ferris.position;
   for (const c of cabins) { const a = c.userData.a + a0; c.position.set(x + Math.cos(a) * FERRIS.R, y + Math.sin(a) * FERRIS.R, z); }
   beacon.rotation.y = t * .55;
-  // 貨櫃船：慢慢起伏（幾何是世界座標，只平移）
-  if (harbor.ship) harbor.ship.position.y = harbor.shipY0 + Math.sin(t * .35) * .14;
-  // 岸橋：每台 64 秒一輪，彼此錯開；船上放下吊具 → 吊起 → 小車往陸側 → 放到車道上 → 吊起 → 回到船上
   const H = harbor, ss = u => u * u * (3 - 2 * u), seg = (u, a, b) => ss(clamp((u - a) / (b - a), 0, 1));
-  for (const c of H.cranes) {
-    if (H.shipX0 != null && (c.cx < H.shipX0 + 6 || c.cx > H.shipX1 - 6)) {   // 換成模型的船比較短：吊臂底下沒有船的岸橋停在陸側
-      c.tr.position.set(c.cx, H.trY, H.landZ); c.wire.position.set(c.cx, H.wireY, H.landZ); c.wire.scale.y = Math.max(.1, H.wireY - H.hiY - .3);
-      c.sp.position.set(c.cx, H.hiY, H.landZ); c.box.visible = false; continue;
-    }
-    const ph = t / 64 + c.off, u = ph % 1, n = Math.floor(ph);
-    if (n !== c.n) { c.n = n; c.box.geometry = c.cgs[(n * 7 + c.k * 3) % c.cgs.length]; }
-    const go = seg(u, .2, .42) - seg(u, .72, .94);                       // 0 = 船上、1 = 陸側
-    const down = u < .2 ? 1 - Math.abs(u - .1) / .1 : u > .42 && u < .72 ? 1 - Math.abs(u - .57) / .15 : 0;
-    const lowY = u < .3 ? H.shipY + H.ship.position.y - H.shipY0 : H.landY;
-    const y = lerp(H.hiY, lowY, ss(clamp(down * 1.6, 0, 1))), z = lerp(H.seaZ, H.landZ, go);
-    const load = u >= .1 && u < .57;                                     // 船上扣住、到車道放下
-    c.tr.position.set(c.cx, H.trY, z);
-    c.wire.position.set(c.cx, H.wireY, z); c.wire.scale.y = Math.max(.1, H.wireY - y - .3);
-    c.sp.position.set(c.cx, y, z);
-    c.box.visible = load; c.box.position.set(c.cx, y - 1.55, z);
+  // 貨櫃船：位置、朝向、隨浪起伏；移動中就更新距離剔除的中心與船上的燈
+  H.st += dt;
+  const sp = shipPose(H.st), R = H.root;
+  H.state = sp.state;
+  R.visible = !!sp.vis;
+  if (R.position.x !== sp.x || R.position.z !== sp.z || R.rotation.y !== sp.yaw) {
+    R.position.set(sp.x, 0, sp.z); R.rotation.y = sp.yaw;
+    if (R.visible) cullSync(R);
+    const dx = H.shipLightDX ?? -85, c = Math.cos(sp.yaw), s = Math.sin(sp.yaw);
+    [H.shipLight.x, H.shipLight.z] = toW(sp.x + dx * c, sp.z - dx * s, H.zn);
   }
+  H.shipLight.i = R.visible ? 1 : 0;
+  if (H.ship) H.ship.position.y = H.shipY0 + Math.sin(t * .35) * .14;
+  // 岸橋：每台 64 秒一輪，彼此錯開；開頭沿軌道換到下一個艙位，接著船上放下吊具 → 吊起 → 小車往陸側 → 放到車道上 → 吊起 → 回到船上。
+  // 船不在（或吊臂底下沒有船）就把小車收到陸側停著
+  const sx0 = H.shipX0 ?? H.sx0, sx1 = H.shipX1 ?? H.sx1;
+  _hc.length = 0;
+  for (const c of H.cranes) {
+    const ph = t / 64 + c.off, u = ph % 1, n = Math.floor(ph);
+    if (n !== c.n) { c.n = n; c.box.geometry = c.cgs[(n * 7 + c.k * 3) % c.cgs.length]; c.x0 = c.x; c.x1 = clamp(c.cx + [0, 13, 0, -13][(n + c.k) % 4], sx0 + 7, sx1 - 7); }
+    const work = H.state === 'dock' && c.cx > sx0 + 6 && c.cx < sx1 - 6;
+    let ty = H.hiY, tz = H.landZ, load = false;
+    if (work) {
+      c.x = lerp(c.x0, c.x1, seg(u, 0, .08));
+      const w = (u - .08) / .92;
+      const go = seg(w, .2, .42) - seg(w, .72, .94);                       // 0 = 船上、1 = 陸側
+      const down = w < 0 ? 0 : w < .2 ? 1 - Math.abs(w - .1) / .1 : w > .42 && w < .72 ? 1 - Math.abs(w - .57) / .15 : 0;
+      const lowY = w < .3 ? H.shipY + (H.ship ? H.ship.position.y - H.shipY0 : 0) : H.landY;
+      ty = lerp(H.hiY, lowY, ss(clamp(down * 1.6, 0, 1))); tz = lerp(H.seaZ, H.landZ, go);
+      load = w >= .1 && w < .57;                                           // 船上扣住、到車道放下
+      c.trZ = tz; c.spY = ty;
+    } else {
+      c.trZ = damp(c.trZ ?? tz, tz, 1.2, dt); c.spY = damp(c.spY ?? ty, ty, 1.2, dt); tz = c.trZ; ty = c.spY;
+    }
+    c.work = work;
+    c.g.position.x = c.x;
+    c.tr.position.set(c.x, H.trY, tz);
+    c.wire.position.set(c.x, H.wireY, tz); c.wire.scale.y = Math.max(.1, H.wireY - ty - .3);
+    c.sp.position.set(c.x, ty, tz);
+    c.box.visible = load; c.box.position.set(c.x, ty - 1.55, tz);
+    for (const [k, L] of c.lights.entries()) { const lz = k ? QUAY.z1 + 14 : QUAY.z1 - 18; [L.x, L.z] = toW(c.x, lz, H.zn); }
+    for (const s of [-1, 1]) for (const lz of [QUAY.z1 - 30, QUAY.z1 - 6]) { const [wx, wz] = toW(c.x + s * 9, lz, H.zn); _hc.push({ x: wx, z: wz, r: 1 }); }
+  }
+  // 集卡：沿路線開，前面有人、有車或別台集卡就停；開到作業中的岸橋底下停 5 秒裝卸
+  const P = H.path, [plx, plz] = toL(player.x, player.z, H.zn);
+  for (const tk of H.trucks) {
+    const [fx, fz] = harborPathAt(tk.s + 3), [bx, bz] = harborPathAt(tk.s);
+    const hx = fx - bx, hz = fz - bz, hl = Math.hypot(hx, hz) || 1;
+    let want = 5.5;
+    const dpx = plx - bx, dpz = plz - bz, ahead = (dpx * hx + dpz * hz) / hl, side = Math.abs(dpx * hz - dpz * hx) / hl;
+    if (ahead > 0 && ahead < 11 && side < 2.6) want = 0;
+    for (const o of H.trucks) if (o !== tk) { const d = ((o.s - tk.s) % P.len + P.len) % P.len; if (d < 20) want = 0; }
+    if (tk.wait > 0) { tk.wait -= dt; want = 0; }
+    else if (bz > H.landZ - 1 && hx > 0) for (const [ci, c] of H.cranes.entries()) if (c.work && ci !== tk.lastCrane && Math.abs(bx - c.x) < .6) { tk.wait = 5; tk.lastCrane = ci; tk.load = !tk.load; }
+    if (bz < H.landZ - 30) tk.lastCrane = -1;
+    tk.v = damp(tk.v, want, want ? 1.2 : 4, dt);
+    tk.s = (tk.s + tk.v * dt) % P.len;
+    const [cx, cz] = harborPathAt(tk.s), [ax, az] = harborPathAt(tk.s + 2.5), [rx, rz] = harborPathAt(tk.s - 11);
+    const ty = Math.atan2(ax - cx, az - cz), ry = Math.atan2(cx - rx, cz - rz);
+    tk.tr.position.set(cx, 0, cz); tk.tr.rotation.y = ty;
+    tk.ch.position.set(cx, 0, cz); tk.ch.rotation.y = ry;
+    tk.box.visible = tk.load; tk.box.position.set(cx - Math.sin(ry) * 6.3, 2.47, cz - Math.cos(ry) * 6.3); tk.box.rotation.y = ry + Math.PI / 2;
+    for (const [k, d] of [[0, 1.2], [1, -5], [2, -10.5]]) {
+      const [px, pz] = k ? [cx - Math.sin(ry) * -d, cz - Math.cos(ry) * -d] : [cx + Math.sin(ty) * d, cz + Math.cos(ty) * d];
+      const [wx, wz] = toW(px, pz, H.zn); _hc.push({ x: wx, z: wz, r: 1.45, car: 1 });
+    }
+  }
+  dynCircles.length = 0; dynCircles.push(..._hc);
 }

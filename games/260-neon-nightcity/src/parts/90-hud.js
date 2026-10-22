@@ -17,12 +17,11 @@ mapImg.width = Math.ceil((MAP_BB.x1 - MAP_X0) * MAP_S); mapImg.height = Math.cei
 // 把 canvas 的座標設成區 zn 的邏輯座標（1 單位 = 1 m），世界座標原點在 (x0, z0)、每公尺 s px
 const zoneCtx = (c, zn, x0, z0, s) => c.setTransform(s * zn.c, -s * zn.s, s * zn.s, s * zn.c, s * (zn.ox - x0), s * (zn.oz - z0));
 mapImg.getContext('2d').fillStyle = '#14202a'; mapImg.getContext('2d').fillRect(0, 0, mapImg.width, mapImg.height);   // 水
-// 對岸、北面的山跟著 FAR_ZN，東灣對岸跟著它所在的區（和 21-coast.js 一樣，不裁在區的範圍內）
-const EAST_ZN = zoneAtL(EAST_BANK_X + 450, CITY_CZ);
+// 對岸與東灣對岸依南北兩段跟著岸這邊的區（21-coast.js 的 FAR_PARTS、EAST_PARTS），不裁在區的範圍內
 {
   const c = mapImg.getContext('2d');
-  c.save(); zoneCtx(c, FAR_ZN, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(MAP_L.x0 - 2000, MAP_L.z0 - 2000, FAR_BANK_X - MAP_L.x0 + 2000, MAP_L.z1 - MAP_L.z0 + 4000); c.restore();
-  c.save(); zoneCtx(c, EAST_ZN, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(EAST_BANK_X, CITY_CZ - 850, 2000, 1700); c.restore();
+  for (const P of FAR_PARTS) { const z0 = Math.max(P.z0, MAP_L.z0 - 2000), z1 = Math.min(P.z1, MAP_L.z1 + 2000); c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(MAP_L.x0 - 2000, z0, FAR_BANK_X - MAP_L.x0 + 2000, z1 - z0); c.restore(); }
+  for (const P of EAST_PARTS) { const z0 = Math.max(P.z0, CITY_CZ - 850), z1 = Math.min(P.z1, CITY_CZ + 850); if (z1 > z0) { c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(EAST_BANK_X, z0, 2000, z1 - z0); c.restore(); } }
 }
 // 每區的地塊與縫裡的塔樓（10-city.js 的 seam）；p 是一個像素的長度
 function mapLot(c, L, px, col) { c.fillStyle = col; c.fillRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px); }

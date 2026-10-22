@@ -454,6 +454,7 @@ applyCar(hanzo, STREET_BIKE);
 const vehicles = [kestrel, hanzo];
 
 // 碰撞：圓對 AABB、圓對圓；回傳推出量與法線
+const dynCircles = [];   // 會動的圓（世界座標，每幀重建）：21-coast.js 的岸橋腳與集卡
 let colY = 0;   // 正在算碰撞的東西離地多高：高過 hy 的圓不擋（車開在鐵灣高架斷橋上時，橋下的柱子不算）
 function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行，可以穿過沙灘外緣的擋牆下水
   let nx = 0, nz = 0, hit = 0;
@@ -473,7 +474,7 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
       nx += ex; nz += ez; hit = 1;
     }
   }
-  for (const c of circlesNear(x, z, r)) {
+  for (const c of dynCircles.length ? [...circlesNear(x, z, r), ...dynCircles] : circlesNear(x, z, r)) {
     if (skipCar && c.car || c.hy != null && colY > c.hy) continue;
     const dx = x - c.x, dz = z - c.z, rr = r + c.r, d2 = dx * dx + dz * dz;
     if (d2 < rr * rr && d2 > 1e-8) { const d = Math.sqrt(d2); x = c.x + dx / d * rr; z = c.z + dz / d * rr; nx += dx / d; nz += dz / d; hit = 1; }

@@ -140,7 +140,7 @@ function updateCamera(dt, spd) {
   if (inV) {
     const v = p.veh;
     tx = v.x; ty = v.y + (v.isCar ? 1.15 : 1.3); tz = v.z;
-    dist = (v.isCar ? 6.2 + (v.len - 4.4) * .7 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
+    dist = (v.isCar ? 6.2 + (v.len - 4.4) * .7 : v.boat ? 7.4 + (v.len - 6) * .6 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
     if (camState.idle > 1.2) {
       const vf = v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw);
       const want = vf < -1 ? v.yaw : v.yaw + clamp(v.yr * .18, -.3, .3);
@@ -241,7 +241,9 @@ function step(dt) {
     updateTraffic(dt, t);
     updatePeds(dt);
     holo.rotation.y = t * .35;
-    coastUpdate(t);
+    coastUpdate(t, dt);
+    boatsUpdate(dt);
+    wakeUpdate(dt);
   } else if (player.where === 'club') updateClub(t, U.uBeat.value);
   if (player.mode === 'drive') {
     const v = player.veh;
@@ -251,8 +253,8 @@ function step(dt) {
     if (nitro.on) { v.vmax *= 1.25; v.eng *= 1.6; }
     const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
     if (player.where === 'out') { v.grip *= 1 - .3 * wx.wet; v.brkK = 1 - .2 * wx.wet; }   // 濕路面（28-sky.js 的 wx.wet）：側向抓地少三成、煞車距離變長
-    const r = v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 69-stunt.js：跳台斜面與飛行
-    if (!v.air) stuntGround(v, r.vF);
+    const r = v.boat ? driveBoat(v, inp, dt) : v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 31-boats.js：船；69-stunt.js：跳台斜面與飛行
+    if (!v.air && !v.boat) stuntGround(v, r.vF);
     v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1; v.brkK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
     gta.lastImp = r.imp;
@@ -345,7 +347,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },

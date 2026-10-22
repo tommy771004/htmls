@@ -261,7 +261,46 @@ for (const b of blocks) {
   for (const x of [b.x0 + 1.6, b.x1 - 1.6]) for (let z = b.z0 + 12; z < b.z1 - 10; z += 9 + rnd() * 3)
     if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
 }
-// 區之間的縫（05-zones.js 的 SEAM_IN）：草地上稀疏的樹，世界座標；避開連接道路、草地邊緣，樓牆後面不種
+// 區之間的縫：沿著縫的中線鋪一條碎石步道（SEAM_PATH，世界座標的折線），夠寬的地方擺涼亭、茶亭、公廁（SEAM_SITES）；
+// 長椅、路燈、建物的樣子在 21-coast.js。步道在連接道路前斷開，縫太窄（草地不到 12 m）、斷橋底下、樓牆後面不鋪
+const SEAM_PATH = [], SEAM_SITES = [];
+{
+  const [zA, zB, zC] = ZONES, xm = avX(zA.ni1), zm = stZ(zA.nj1), conn = RN.edges.filter(e => e.kind === 'c');
+  const proj = (p, o, d) => { const t = (p[0] - o[0]) * d[0] + (p[1] - o[1]) * d[1]; return [o[0] + d[0] * t, o[1] + d[1] * t]; };
+  const nearConn = (x, z, r) => conn.some(e => e.pts.some(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 < r * r));
+  const runs = [];
+  // 南北向那條：A 區東緣的邊界路與 B 區西緣的邊界路中間
+  const oB = toW(xm, 0, zB), dB = dirW(zB, 0, 1), ns = [];
+  for (let z = CITY_Z0 + 14; z < zm - HR - 4; z += 5) { const a = toW(xm, z, zA), b = proj(a, oB, dB); ns.push({ a, b }); }
+  // 東西向那條：A、B 區南緣與 C 區北緣中間
+  const oC = toW(0, zm, zC), dC = dirW(zC, 1, 0), ew = [];
+  for (let x = CITY_X0 - OUT_D + 14; x < CITY_X1 + OUT_D - 14; x += 5) { const a = toW(x, zm, x < xm ? zA : zB), b = proj(a, oC, dC); ew.push({ a, b }); }
+  for (const L of [ns, ew]) {
+    let cur = null;
+    for (const { a, b } of L) {
+      const x = (a[0] + b[0]) / 2, z = (a[1] + b[1]) / 2, w = Math.hypot(a[0] - b[0], a[1] - b[1]) - 2 * HR;   // w：草地寬
+      const ok = w >= 12 && inPoly(SEAM_IN, x, z) && !nearConn(x, z, HR + 2) && !brokenNear(x, z, 6);
+      if (!ok) { if (cur && cur.length > 3) runs.push(cur); cur = null; continue; }
+      (cur ||= []).push({ x, z, w });
+    }
+    if (cur && cur.length > 3) runs.push(cur);
+  }
+  SEAM_PATH.push(...runs);
+  // 建物：連接道路之間的每一段步道，草地 40 m 以上寬、離上一個建物 140 m 以上，就在中點擺一個（離步道 4 m 起，兩側交錯）
+  const KINDS = ['pavilion', 'kiosk', 'restroom'];
+  let n = 0, lx = 1e9, lz = 1e9;
+  for (const run of runs) {
+    const i = run.length >> 1, p = run[i], q = run[i + 1];
+    if (run.length < 5 || p.w < 40 || Math.hypot(p.x - lx, p.z - lz) < 140) continue;
+    const ux = q.x - p.x, uz = q.z - p.z, l = Math.hypot(ux, uz) || 1, s = n % 2 ? 1 : -1, nx = -uz / l * s, nz = ux / l * s;
+    const type = KINDS[n % 3], R = type === 'pavilion' ? 4.2 : type === 'kiosk' ? 3 : 3.6;
+    const x = p.x + nx * (1.2 + 4 + R), z = p.z + nz * (1.2 + 4 + R);
+    if (!inPoly(SEAM_IN, x, z) || nearConn(x, z, HR + R + 3)) continue;
+    SEAM_SITES.push({ type, x, z, R, ry: Math.atan2(-nx, -nz), ux: ux / l, uz: uz / l }); n++; lx = p.x; lz = p.z;   // ry：正面朝步道
+  }
+}
+const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) ** 2 + (p.z - z) ** 2 < r * r)) && !SEAM_SITES.some(s => (s.x - x) ** 2 + (s.z - z) ** 2 < (s.R + r) ** 2);
+// 區之間的縫（05-zones.js 的 SEAM_IN）：草地上稀疏的樹，世界座標；避開連接道路、草地邊緣、步道與建物，樓牆後面不種
 {
   const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c'), P = SEAM_IN;
   const edgeD = (x, z) => { let m = 1e9; for (let k = 0; k < P.length; k++) { const [ax, az] = P[k], [bx, bz] = P[(k + 1) % P.length], dx = bx - ax, dz = bz - az, t = clamp(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1), 0, 1); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
@@ -269,7 +308,7 @@ for (const b of blocks) {
   for (const [x, z] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
   for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
-    if (r5() > .55 || !inPoly(P, tx, tz) || edgeD(tx, tz) < 4 || toL(tx, tz)[1] < CITY_Z0 + 4 || brokenNear(tx, tz, 6)) continue;
+    if (r5() > .55 || !inPoly(P, tx, tz) || edgeD(tx, tz) < 4 || toL(tx, tz)[1] < CITY_Z0 + 4 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5)) continue;
     if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
     trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
   }

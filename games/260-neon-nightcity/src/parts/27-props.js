@@ -266,13 +266,13 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
     }),
     // ─── 錨灣港：岸橋（小車、鋼索、吊具照舊會動，高度改成模型吊臂的下緣）、貨櫃船（船艏朝東，隨浪起伏）、堆場的 20 呎貨櫃 ───
     w2Load('cst_port', it => {
-      for (const cx of [610, 690, 770, 850]) cityAdd(propObject(it.crane, cx - 1.9, 0, QUAY.z1 - 4.3), zoneAtL(cx, QUAY.z1));
-      w2Drop(harbor.craneKit);
+      for (const c of harbor.cranes) { c.g.add(propObject(it.crane, -1.9, 0, QUAY.z1 - 4.3)); w2Drop(c.proc); }   // 掛在岸橋自己的 Group 底下，照樣沿軌道移動
       // 貨櫃船：原檔放大 1.85 倍（235 m）；吃水 11 m，艙蓋頂約在海面上 12 m。吊臂避開船上的吊桿與艉樓
-      const SHIP_X = 727, sy0 = SEA_Y - 11, ship = propObject(it.ship, SHIP_X, sy0, harbor.seaZ);
+      // 掛在 harbor.root（船心）底下，跟著進出港；模型的中心比程式建模的船偏東 22 m
+      const SHIP_X = 727, sy0 = SEA_Y - 11, ship = propObject(it.ship, SHIP_X - harbor.home.x, sy0, 0);
       w2Drop(harbor.ship);
-      cityAdd(ship, zoneAtL(SHIP_X, harbor.seaZ)); for (const m of ship.children) cullAdd(m, 1200);   // cullAdd 要網格，船是 Group
-      Object.assign(harbor, { ship, shipY0: sy0, shipY: sy0 + 24.7 + 2.9, trY: 21.6, wireY: 21, hiY: 18.4, shipX0: SHIP_X - it.ship.w / 2, shipX1: SHIP_X + it.ship.w / 2 });
+      harbor.root.add(ship); for (const m of ship.children) cullAdd(m, 1200);   // cullAdd 要網格，船是 Group
+      Object.assign(harbor, { ship, shipY0: sy0, shipY: sy0 + 24.7 + 2.9, trY: 21.6, wireY: 21, hiY: 18.4, shipX0: SHIP_X - it.ship.w / 2, shipX1: SHIP_X + it.ship.w / 2, halfL: it.ship.w / 2 + 2, shipDX: SHIP_X - harbor.home.x });
       // 堆場：原本一格 40 呎的位置擺兩個 20 呎（門對門，打開的那頭藏在中間），沿 z 壓窄成 2.5 m；顏色用頂點色乘上原本的六色
       const pairs = harbor.boxLists.map(L => L.flatMap(t => [{ x: t.x - 3.05, y: t.y, z: t.z, ry: 0, sx: 1, sy: 1.066, sz: .82 }, { x: t.x + 3.05, y: t.y, z: t.z, ry: Math.PI, sx: 1, sy: 1.066, sz: .82 }]));
       harbor.COLS.forEach((col, k) => {
@@ -295,6 +295,6 @@ W2.at = { seat: parkSeats.find(t => t.kind === 'bench'), picnic: parkSeats.find(
   palm: palms[0], guard: lifeguards[0], ferris: { x: FERRIS.cx, z: FERRIS.wz }, crane: { x: 690, z: QUAY.z1 }, yard: harbor.boxLists.flat()[0], cape: capePicnic[0], planter: planters[0], peak: PEAKS[0] };
 // 驗收：程式建模的網格還掛在場景上的有幾個（以檔案開啟時應該全部都在）
 // （清單在這裡先取好：模型還在下載，harbor.ship 之後會換成模型的船）
-const W2_PROC = [hydrantMesh, binMesh, boothMesh, treeMesh, benchMesh, planterShrubMesh, palmMesh, guardMesh, beachUmbMesh, isleTreeMesh, harbor.craneKit, harbor.ship, ...harbor.boxMeshes];
+const W2_PROC = [hydrantMesh, binMesh, boothMesh, treeMesh, benchMesh, planterShrubMesh, palmMesh, guardMesh, beachUmbMesh, isleTreeMesh, ...harbor.cranes.map(c => c.proc), harbor.ship, ...harbor.boxMeshes];
 W2.kept = () => W2_PROC.filter(m => m && m.parent).length;
 { const iv = setInterval(() => { if (window.__nc && window.__nc.props) { window.__nc.props.w2 = W2; clearInterval(iv); } }, 250); }
