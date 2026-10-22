@@ -687,7 +687,7 @@ void main(){
   vec3 dif = vec3(0), spc = vec3(0);
   lampGrid(dif, spc, c, normalize(uCam - c), normalize(uCam - c), 4.);
   pointLights(dif, spc, c, normalize(uCam - c), normalize(uCam - c), 4.);
-  vL = dif + uAmbTop*1.5;
+  vL = dif + uAmbTop*1.5 + uSunCol*.4;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
 }`;
 const STEAM_FS = /* glsl */`
@@ -802,7 +802,7 @@ const splashMesh = (() => {
   return m;
 })();
 
-// ─── 天空：低垂的雲被城市燈光從下方照亮 ───
+// ─── 天空：夜裡低垂的雲被城市燈光從下方照亮（雲散了看得到星星與月亮），白天是藍天、太陽與被照亮的雲（28-sky.js 給顏色） ───
 const sky = (() => {
   const g = new T.SphereGeometry(900, 32, 16);
   const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), side: T.BackSide, depthWrite: false,
@@ -815,8 +815,24 @@ const sky = (() => {
       float cl = fbm(q * .5 + vec2(uTime*.01, uTime*.004));
       float cl2 = fbm(q * 1.3 - vec2(uTime*.015, 0.));
       float h = clamp(d.y, 0., 1.);
+      float dens = smoothstep(1. - uCloud, 1.25 - uCloud * .8, cl + cl2 * .45);   // 雲量：uCloud 1 是整片低雲
+      // 夜
       vec3 glow = mix(uFogHi * 2.2, uFogCol * .6, smoothstep(0., .5, h));
-      vec3 c = glow * (.55 + .7*cl*cl2);
+      vec3 overcast = glow * (.55 + .7*cl*cl2);
+      vec3 clear = mix(uFogHi * 1.5, vec3(.003, .005, .012), smoothstep(0., .45, h));
+      vec2 sc = vec2(atan(d.z, d.x) * 140., asin(h) * 140.);
+      float star = pow(h21(floor(sc)), 60.) * smoothstep(.45, .1, length(fract(sc) - .5)) * (.6 + .4*sin(uTime*3. + h21(floor(sc) + 3.)*40.));
+      clear += vec3(.8, .85, 1.) * star * 3. * smoothstep(.12, .5, h) * smoothstep(-.08, -.22, uSun.y);   // 天全黑了才看得到星星
+      float md = dot(d, uMoon);
+      clear += vec3(1., .96, .86) * (smoothstep(.99955, .9997, md) * 2.2 + pow(max(md, 0.), 80.) * .12) * step(0., uMoon.y);
+      vec3 night = mix(clear, overcast, dens);
+      // 白天
+      float sd = max(dot(d, uSun), 0.);
+      vec3 day = mix(uSkyHor, uSkyTop, pow(h, .55));
+      day += uSunCol * (smoothstep(.99962, .9998, sd) * 20. + pow(sd, 14.) * .22 + pow(sd, 3.) * .05);
+      vec3 cloud = (uSkyHor * .85 + uSkyTop * .2 + uSunCol * .32 * (.6 + .6*cl2)) * (.72 + .4*cl2);
+      day = mix(day, cloud, dens * .96);
+      vec3 c = mix(night, day, uDay);
       c += vec3(.75,.8,1.) * uFlash * (.6 + cl) * 1.6;
       if (d.y < 0.) c = uFogCol;
       gl_FragColor = vec4(c, 1.);

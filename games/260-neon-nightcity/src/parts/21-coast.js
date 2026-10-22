@@ -255,6 +255,7 @@ const ferris = new T.Group(), cabins = [];
 
 // ─── 錨灣港：岸橋、貨櫃堆、高桿燈、靠港的貨櫃船 ───
 const LANE_X0 = BRIDGE.x0 - 14, LANE_X1 = BRIDGE.x1 + 14;   // 碼頭上往跨海橋的車道，不堆貨櫃
+const harbor = { cranes: [], ship: null };   // coastUpdate 每幀動：岸橋小車搬貨櫃、貨櫃船隨浪起伏
 {
   const k = new Kit(), r2 = rng(808);
   // 岸橋：腳跨在兩條軌道上（z1-6、z1-30），吊臂往海上伸 48 m
@@ -316,8 +317,20 @@ const LANE_X0 = BRIDGE.x0 - 14, LANE_X1 = BRIDGE.x1 + 14;   // 碼頭上往跨�
     .box(sx0 + 26.05, top + 14, sz, .1, 8, 22, 0x10161c, 1);
   for (let f = 0; f < 5; f++) for (let w = -4; w <= 4; w++) if (r2() < .45) sk.box(sx0 + 26.1, top + 4 + f * 3, sz + w * 2.6, .05, 1.1, 1.6, 0xffd8a0, 11);
   sk.cyl(sx0 + 8, top + 24, sz, .7, .9, 8, 10, 0x2a2a2a, 15).box(sx0 + 8, top + 28.3, sz, .5, .5, .5, 0xff2020, 9).box(sx1 + 10, top + 6, sz, .5, .5, .5, 0x20ff60, 11);
-  const ship = new T.Mesh(sk.build(), MAT.uber); scene.add(ship); cullAdd(ship);
+  const ship = harbor.ship = new T.Mesh(sk.build(), MAT.uber); scene.add(ship); cullAdd(ship);
   coastLight(sx0 + 30, top + 12, sz, 0xffd8a0, 30, 1);
+  // 岸橋的小車、鋼索與吊具：在船上（z = sz）與兩條軌道之間的車道（z1 - 18）來回搬貨櫃；吊具沿 x 和貨櫃同向
+  const tg = new Kit().box(0, 0, 0, 4.4, 1.4, 5, 0x30343a, 15).box(0, -.85, 0, 3.6, .3, 4.2, 0x22262c, 15).box(0, .2, 2.51, 2.4, .6, .02, 0x9ad0ff, 11).build();
+  const wg = new Kit().box(-1.2, -.5, -.9, .05, 1, .05, 0x202226, 15).box(1.2, -.5, -.9, .05, 1, .05, 0x202226, 15)
+    .box(-1.2, -.5, .9, .05, 1, .05, 0x202226, 15).box(1.2, -.5, .9, .05, 1, .05, 0x202226, 15).build();
+  const spg = new Kit().box(0, 0, 0, 12.4, .45, 2.6, 0xe0b020, 10).box(0, .6, 0, 3, .8, 2, 0x30343a, 15).build();
+  const cgs = COLS.map(col => new Kit().box(0, 0, 0, 12.2, 2.58, 2.44, col, 2).box(6.11, 0, 0, .02, 2.4, 2.3, new T.Color(lin(col)).multiplyScalar(.6), 15).build());
+  [610, 690, 770, 850].forEach((cx, i) => {
+    const c = { cx, off: i * .27, k: i, tr: new T.Mesh(tg, MAT.uber), wire: new T.Mesh(wg, MAT.uber), sp: new T.Mesh(spg, MAT.uber), box: new T.Mesh(cgs[i % cgs.length], MAT.uber), cgs, n: -1 };
+    for (const m of [c.tr, c.wire, c.sp, c.box]) { m.position.x = cx; scene.add(m); }
+    harbor.cranes.push(c);
+  });
+  Object.assign(harbor, { seaZ: sz, landZ: QUAY.z1 - 18, hiY: 34, shipY: top + 7.2, landY: 3.1 });
 }
 
 // ─── 跨海橋：斜張橋，兩座 H 形主塔、斜拉索、兩側路燈；橋面 y = 0（和碼頭、島一樣） ───
@@ -490,4 +503,21 @@ function coastUpdate(t) {
   const { x, y, z } = ferris.position;
   for (const c of cabins) { const a = c.userData.a + a0; c.position.set(x + Math.cos(a) * 20, y + Math.sin(a) * 20, z); }
   beacon.rotation.y = t * .55;
+  // 貨櫃船：慢慢起伏（幾何是世界座標，只平移）
+  if (harbor.ship) harbor.ship.position.y = Math.sin(t * .35) * .14;
+  // 岸橋：每台 64 秒一輪，彼此錯開；船上放下吊具 → 吊起 → 小車往陸側 → 放到車道上 → 吊起 → 回到船上
+  const H = harbor, ss = u => u * u * (3 - 2 * u), seg = (u, a, b) => ss(clamp((u - a) / (b - a), 0, 1));
+  for (const c of H.cranes) {
+    const ph = t / 64 + c.off, u = ph % 1, n = Math.floor(ph);
+    if (n !== c.n) { c.n = n; c.box.geometry = c.cgs[(n * 7 + c.k * 3) % c.cgs.length]; }
+    const go = seg(u, .2, .42) - seg(u, .72, .94);                       // 0 = 船上、1 = 陸側
+    const down = u < .2 ? 1 - Math.abs(u - .1) / .1 : u > .42 && u < .72 ? 1 - Math.abs(u - .57) / .15 : 0;
+    const lowY = u < .3 ? H.shipY + H.ship.position.y : H.landY;
+    const y = lerp(H.hiY, lowY, ss(clamp(down * 1.6, 0, 1))), z = lerp(H.seaZ, H.landZ, go);
+    const load = u >= .1 && u < .57;                                     // 船上扣住、到車道放下
+    c.tr.position.set(c.cx, 41.4, z);
+    c.wire.position.set(c.cx, 40.6, z); c.wire.scale.y = Math.max(.1, 40.6 - y - .3);
+    c.sp.position.set(c.cx, y, z);
+    c.box.visible = load; c.box.position.set(c.cx, y - 1.55, z);
+  }
 }

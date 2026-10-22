@@ -26,6 +26,7 @@ function onKey(code) {
   }
   if (phoneKey(code)) return;   // 69-phone.js：P 開關手機，開著時數字鍵選列、Esc 返回
   if (heistKey(code)) return;   // 69-heist.js：G 引爆金庫門、關掉結算畫面
+  if (mapKey(code)) return;     // 91-map.js：地圖開著時的選擇、縮放與導航點
   if (code === 'KeyM') { toggleMap(); return; }
   if (code === 'Escape') { toggleMap(false); return; }
   if ($('map').classList.contains('on')) return;
@@ -144,7 +145,7 @@ function updateCamera(dt, spd) {
       camState.pitch = damp(camState.pitch, .13, 2, dt);
     }
   } else {
-    tx = p.x; ty = p.y + 1.55; tz = p.z;
+    tx = p.x; ty = p.swim ? SEA_Y + .75 : p.y + 1.55; tz = p.z;
     dist = [3.4, 5.2, 2.4][camState.far];
     if (p.where !== 'out') dist = Math.min(dist, 3.2);
     dist = lerp(dist, 1.75, gta.aimK);   // 瞄準：拉近成越肩視角（69-combat.js）
@@ -165,7 +166,7 @@ function updateCamera(dt, spd) {
     if (t < tmin) tmin = t;
   }
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
-  const floor = (p.where === 'out' ? groundH(wx, wz) : 0) + .35;
+  const floor = (p.where === 'out' ? Math.max(seaFloor(wx, wz), SEA_Y) : 0) + .35;
   const ceil = p.where === 'out' ? 999 : VENUES[p.where].ceil;
   wy = clamp(wy, floor, ceil);
   if (camState.snap) camState.pos.set(wx, wy, wz);
@@ -197,7 +198,7 @@ function pickLights(t) {
       const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
       for (const s of v.isCar ? [-1, 1] : [0]) dynLights.push({ x: v.x + fx * v.len * .5 + rx * s * .62, y: v.y + .7, z: v.z + fz * v.len * .5 + rz * s * .62, col: HEAD_COL, r: 34, i: v.isCar ? 3.2 : 4, dir: [fx, -.07, fz], cos: .84 });
     }
-    const near = traffic.map(c => ({ c, d: (c.x - cx) ** 2 + (c.z - cz) ** 2 })).filter(o => o.d < 1600).sort((a, b) => a.d - b.d).slice(0, 3);
+    const near = atm.lamp < .2 ? [] : traffic.map(c => ({ c, d: (c.x - cx) ** 2 + (c.z - cz) ** 2 })).filter(o => o.d < 1600).sort((a, b) => a.d - b.d).slice(0, 3);   // 白天車流不開大燈
     for (const { c } of near) {
       const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), L2 = TYPES[c.type].len / 2;
       dynLights.push({ x: c.x + fx * L2, y: .8, z: c.z + fz * L2, col: HEAD_COL, r: 22, i: 2, dir: [fx, -.1, fz], cos: .8 });
@@ -221,21 +222,6 @@ function pickLights(t) {
   }
 }
 const HEAD_COL = lin(0xfff0d8), POL_R = lin(0xff1030), POL_B = lin(0x2050ff);
-
-// ─── 天氣：雨勢慢慢起伏，偶爾打雷 ───
-const weather = { next: 20 + Math.random() * 25, flash: [] };
-function updateWeather(dt, t) {
-  U.uRain.value = clamp(.62 + .3 * Math.sin(t * .021) + .1 * Math.sin(t * .067), .3, 1);
-  weather.next -= dt;
-  if (weather.next <= 0 && player.where === 'out') {
-    weather.next = 28 + Math.random() * 40;
-    weather.flash = [[0, .9], [.08, 0], [.16, .6], [.3, 0], [.42, .35], [.7, 0]].map(([d, v]) => [t + d, v]);
-    sfx.thunder(1.2 + Math.random() * 2.5);
-  }
-  let f = U.uFlash.value;
-  while (weather.flash.length && weather.flash[0][0] <= t) f = weather.flash.shift()[1];
-  U.uFlash.value = player.where === 'out' ? Math.max(0, f - dt * 2 * (weather.flash.length ? 0 : 1)) : 0;
-}
 
 // ─── 主迴圈 ───
 let last = performance.now(), T0 = last, frames = 0, fpsT = 0, fps = 60;
@@ -280,6 +266,7 @@ function step(dt) {
     sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: 0, gear: 1, thr: 0, slip: 0, nitro: false });
   }
   updateMotors(dt, t);
+  updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
   if (out) policeUpdate(dt);
   vehicles.forEach(poseVehicle);
@@ -287,7 +274,6 @@ function step(dt) {
     quest.danceT += dt;
     if (quest.danceT > 5) { setQuest(5); toast('Marlo 說得對，這裡的低音值得淋一場雨'); earn(250000, 'Juno 托人送來的謝禮'); }
   }
-  updateWeather(dt, t);
   updateCamera(dt, spd);
   updateCrowds(curScene);
   gtaLate();
@@ -295,6 +281,7 @@ function step(dt) {
   if (step.lastCam) rainU.uVel.value.subVectors(camera.position, step.lastCam).divideScalar(Math.max(dt, 1e-3)).clampLength(0, 40);
   (step.lastCam ||= V3()).copy(camera.position);
   pickLights(t);
+  if (player.where === 'out') occUpdate();   // 28-sky.js：車與行人在地上的陰影
   if (player.where === 'out') { distCull(camera.position.x, camera.position.z); instUpdate(camera.position.x, camera.position.z); bldUpdate(); coastModelsUpdate(); }   // 遠處的立面、建築與設施不畫；走近才下載的建築組
   const ctx = started && !dlg.open && !fading ? contextAction() : null;
   const pr = $('prompt');
@@ -369,7 +356,9 @@ window.__nc = {
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
   act() { const c = contextAction(); if (c) c.fn(); return c ? c.text : null; },   // 直接執行目前的互動提示
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
-  rain(v) { U.uRain.value = v; }, flash() { weather.next = 0; },
+  // 天氣與時間（28-sky.js）：rain(v) 依雨量挑最接近的天氣並立刻套用；weather(id, snap)；time(分鐘)
+  rain(v) { setWeather(v > .85 ? 'storm' : v > .45 ? 'rain' : v > .12 ? 'drizzle' : 'overcast', true); wx.rain = v; }, flash() { wx.next = 0; wx.force = true; },
+  weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y },
   keys, inp, nitro, livery: cycleLivery,
   me, peds, pedState, crowd, ANIM, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),

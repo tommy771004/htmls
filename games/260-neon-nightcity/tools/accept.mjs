@@ -103,6 +103,17 @@ async function desktop() {
     await page.keyboard.press('KeyM');
     await page.waitForTimeout(200);
     check(await ev(page, () => document.getElementById('map').classList.contains('on')), 'M 開啟大地圖');
+    {
+      const m0 = await ev(page, () => ({ n: window.__nc.map.blips().length, leg: document.querySelectorAll('#mapLegend button').length, wp: !!window.__nc.gta.gps.gps.wp }));
+      check(m0.n > 20 && m0.leg >= 10, `大地圖有 ${m0.n} 個地點、圖例 ${m0.leg} 類`);
+      await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); await page.waitForTimeout(150);
+      const m1 = await ev(page, () => ({ card: document.getElementById('mapCard').classList.contains('on'), wp: !!window.__nc.gta.gps.gps.wp }));
+      check(m1.card && m1.wp !== m0.wp, '大地圖：↓ 選地點、Enter 切換導航點');
+      if (m1.wp) await page.keyboard.press('Enter');
+      const z0 = await ev(page, () => window.__nc.map.MV.tzoom);
+      await page.mouse.wheel(0, -300); await page.waitForTimeout(300);
+      check(await ev(page, (z) => window.__nc.map.MV.tzoom > z * 1.2, z0), '大地圖：滾輪放大');
+    }
     await page.keyboard.press('Escape');
 
     // 車行與車庫：買車、試駕、停進車庫、開出庫、換色
@@ -502,6 +513,35 @@ async function desktop() {
     const halo = [];
     for (const [x, z] of [[504, 124], [576, 434]]) { await nc((q) => window.__nc.tp(q[0], q[1], 0), [x, z]); await page.waitForTimeout(700); halo.push(await nc(() => document.getElementById('district').textContent)); }
     check(/光環/.test(halo[0]) && /燈籠/.test(halo[1]), `光環廣場、燈籠公園的區名 ${JSON.stringify(halo)}`);
+
+    // 日夜循環與天氣（28-sky.js）：正午放晴、傍晚雷雨、雨停後積水慢慢乾
+    await nc(() => { const nc = window.__nc; nc.tp(nc.spots.bouncer.x + 6, nc.spots.bouncer.z + 4, 0); nc.time(720); nc.weather('clear'); });
+    await page.waitForTimeout(600);
+    const noon = await nc(() => { const nc = window.__nc, U = nc.U; return { day: +nc.atm.day.toFixed(2), sun: +U.uSunCol.value.x.toFixed(2), lamp: U.uLampOn.value, wet: U.uWet.value, rain: U.uRain.value, wx: document.getElementById('wxText').textContent, hm: U.uHM.value.w > 20 }; });
+    check(noon.day > .95 && noon.sun > 1 && noon.lamp === 0 && noon.wet === 0 && noon.rain === 0 && noon.wx === '晴' && noon.hm, `正午放晴：日光、路燈關、路面乾、建築高度圖 ${JSON.stringify(noon)}`);
+    await shot(page, 'd-noon');
+    await nc(() => { const nc = window.__nc; nc.time(1110); nc.weather('storm'); nc.flash(); });
+    await page.waitForTimeout(900);
+    const storm = await nc(() => { const nc = window.__nc, U = nc.U; return { day: +nc.atm.day.toFixed(2), lamp: U.uLampOn.value, rain: U.uRain.value, wx: document.getElementById('wxText').textContent, umb: nc.pedState.filter(p => p.um).length, flash: nc.wx.bolts }; });
+    check(storm.day < .5 && storm.lamp === 1 && storm.rain === 1 && storm.wx === '雷雨' && storm.umb > 0 && storm.flash, `傍晚雷雨：路燈亮、撐傘、打雷 ${JSON.stringify(storm)}`);
+    await shot(page, 'd-storm');
+    const dry = await nc(() => new Promise((r) => { const nc = window.__nc; nc.time(720); nc.weather('clear', false); nc.wx.rain = 0; const w0 = nc.wx.wet; for (let i = 0; i < 900; i++) nc.step(1 / 30); r({ w0, w1: +nc.wx.wet.toFixed(2), rain: +nc.wx.rain.toFixed(2), umb: nc.pedState.filter(p => p.um).length }); }));
+    check(dry.w0 === 1 && dry.w1 < .9 && dry.rain < .05 && dry.umb === 0, `雨停後路面慢慢變乾、行人收傘 ${JSON.stringify(dry)}`);
+    // 下水：從沙灘走過水深 0.3 m 的擋牆、深水游泳、回到沙灘
+    {
+      await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tp((B.x0 + B.x1) / 2 + 40, B.z1 - 4, 0); });
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(4000); await page.keyboard.up('KeyW');
+      const w0 = await nc(() => { const n = window.__nc, B = n.sea.BEACH; return { past: n.player.z - B.z1, d: n.sea.depth(n.player.x, n.player.z) }; });
+      check(w0.past > .5 && w0.d > .3, `走過沙灘外緣涉水（超過 ${w0.past.toFixed(1)} m、水深 ${w0.d.toFixed(2)} m）`);
+      await nc(() => { const n = window.__nc, Q = n.sea.QUAY; n.tp((Q.x0 + Q.x1) / 2, Q.z1 + 60, Math.PI); });
+      await page.waitForTimeout(800);
+      const w1 = await nc(() => { const n = window.__nc, p = n.player; return { swim: !!p.swim, dy: p.y - n.sea.SEA_Y, gun: n.gta.state.aiming }; });
+      check(w1.swim && Math.abs(w1.dy) < .3, `深水游泳 ${JSON.stringify(w1)}`);
+      await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tp((B.x0 + B.x1) / 2, B.z0 + 20, 0); });
+      await page.waitForTimeout(500);
+      check(await nc(() => !window.__nc.player.swim), '回到沙灘就不再游泳');
+    }
+    await nc(() => { const nc = window.__nc; nc.time(134); nc.weather('rain'); });
 
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
     console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);

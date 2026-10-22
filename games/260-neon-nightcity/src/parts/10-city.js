@@ -180,7 +180,9 @@ for (const r of LANDS) {
     const flush = (end) => {
       if (!run) return;
       const [p0, p1] = [run, end], [f0, f1] = out < 0 ? [fixed - 4, fixed] : [fixed, fixed + 4];
-      colliders.push(ax === 'x' ? { x0: p0, x1: p1, z0: f0, z1: f1, low: 1 } : { x0: f0, x1: f1, z0: p0, z1: p1, low: 1 });
+      // 沙灘外緣（水深 0.3 m 處）那段擋車不擋人：人可以涉水、游出去（40-people.js 的 swim）
+      const swim = r === BEACH && fixed === r.z1 ? 1 : 0;
+      colliders.push(ax === 'x' ? { x0: p0, x1: p1, z0: f0, z1: f1, low: 1, swim } : { x0: f0, x1: f1, z0: p0, z1: p1, low: 1, swim });
       run = null;
     };
     for (let a = a0; a <= a1 + 1e-6; a += 2) {
@@ -477,7 +479,7 @@ void main(){
     vec3 lc = hs2 < .55 ? vec3(1.,.66,.36) : hs2 < .8 ? vec3(.8,.86,1.) : hs2 < .92 ? vec3(1.,.4,.65) : vec3(.4,.6,1.);
     if (st == 5) lc = vec3(.9,.2,.6) * (.6 + .4*sin(uBeat*6.283));
     if (hs2 >= .92) lc *= .6 + .4*fract(sin(floor(uTime*5. + hs*20.))*91.);
-    lc *= lit ? 1.5 : .025;
+    lc = lit ? lc * 1.5 : mix(lc * .025, vec3(.42,.43,.45), uDay);   // 白天沒開燈的房間也看得到裡面
     vec3 dim = vec3(ws, fh, st == 3 ? 6. : 3.4);
     vec3 o = vec3(f.x*ws, f.y*fh, 0.);
     vec3 inside = room(o, vd, dim, hs, lc, st == 3 ? 1. : 0.);
@@ -668,7 +670,7 @@ vec2 ripple(vec2 p, float t){
     vec2 off = (vec2(h21(ci + 3.1), h21(ci + 7.7)) - .5) * .5;
     float tt = fract(t*1.2 + hs);
     vec2 d = cf - off; float r = length(d);
-    float ring = exp(-pow((r - tt*.42)*28., 2.)) * (1. - tt) * step(hs, .35 + uRain*.65);
+    float ring = exp(-pow((r - tt*.42)*28., 2.)) * (1. - tt) * step(hs, uRain);   // 沒下雨就沒有漣漪
     acc += d / max(r, 1e-3) * ring;
   }
   return acc;
@@ -683,6 +685,7 @@ vec3 reflSample(vec2 ruv, float blur){
 }
 vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
   vec3 v = normalize(uCam - vW);
+  pud *= smoothstep(.05, .6, uWet); wet *= uWet;   // 雨停後積水慢慢乾掉
   float rough = mix(.75, .08, max(pud, wet*.6));
   vec3 c = shade(vW, n, v, base, rough, 0.);
   float F = .05 + .95*pow(1. - max(dot(n, v), 0.), 5.);
@@ -708,6 +711,7 @@ void main(){
   float n1 = fbm(p*.3), fine = h21(floor(p*37.));
   vec3 alb = vec3(.034,.036,.04) * (.7 + .6*n1) * (.88 + .24*fine);
   float patchv = step(.66, n2(p*.07 + 3.)); alb *= mix(1., .72, patchv);
+  alb *= 1. + uDay * (1.6 - uWet);   // 乾的柏油在白天比夜裡的濕路面亮
   float seam = smoothstep(.04, .0, abs(fract(p.x*.031 + n2(p*.05)*.3) - .5)) * .3; alb *= 1. - seam;
   float paint = 0.; vec3 pc = vec3(.8);
   // 大道上的標線
@@ -843,6 +847,9 @@ const groundH = (x, z) => {   // 人行道高 0.15；查格子，不逐一比對
   return x > avX(i) + HR && x < avX(i + 1) - HR && z > stZ(j) + HR && z < stZ(j + 1) - HR ? .15 : 0;
 };
 const onRoad = (x, z) => groundH(x, z) === 0;
+// 水深（水面在 SEA_Y）：陸地矩形與沙灘外的淺水照 groundH，其他地方當成 8 m 深的海
+const seaFloor = (x, z) => inLand(x, z) || x >= BEACH.x0 && x <= BEACH.x1 && z > BEACH.z0 ? groundH(x, z) : -8;
+const waterDepth = (x, z) => Math.max(0, SEA_Y - seaFloor(x, z));
 
 // ─── 碰撞的空間索引：室外的靜態盒與圓柱放進 24 m 的格子，查詢只看附近幾格（20×15 的城市有上萬個圓柱：路燈、停車、設施）。
 // 陣列長度變了就重建；同一幀先刪後加、長度沒變的地方（搶車、打爛電訊箱、路障）要呼叫 colDirty()。室內的碰撞表很小，直接回傳整個陣列。

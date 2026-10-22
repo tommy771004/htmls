@@ -34,7 +34,7 @@ void main(){
   gl_FragColor = vec4(vCol.rgb * a * vCol.a * exp(-length(vW - uCam) * uFogDen * .6), 1.);
   #else
   // 煙被路燈與霓虹從下方照亮：底色乘上環境光，再加一點暖色的城市光
-  vec3 c = vCol.rgb * (uAmbTop * 3. + .32) + vec3(.05, .035, .03) * (1. - vUv.y) + uFlash * .3;
+  vec3 c = vCol.rgb * (uAmbTop * (3. - uDay * 1.5) + .32 + uSunCol * .5) + vec3(.05, .035, .03) * (1. - vUv.y) * (1. - uDay) + uFlash * .3;
   gl_FragColor = vec4(applyFog(c, vW), a * vCol.a);
   #endif
 }`;
@@ -266,7 +266,7 @@ ctxHooks.push(p => {
 });
 
 // ─── 武器（69-combat.js）：這裡只留共用的射線工具 ───
-function canFight() { return started && (player.where === 'out' || player.where === 'bank') && player.mode === 'walk' && !gta.jack && !(player.down > 0) && !dlg.open && !fading; }
+function canFight() { return started && (player.where === 'out' || player.where === 'bank') && player.mode === 'walk' && !player.swim && !gta.jack && !(player.down > 0) && !dlg.open && !fading; }
 // 準星射線：從相機穿過畫面中央，起點移到玩家所在的平面（避免打到相機和玩家之間的東西）
 function aimRay() {
   camera.getWorldDirection(_gv);

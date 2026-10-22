@@ -128,7 +128,7 @@ function quickSave(at) {
   // 座駕：自己的車（own）、路邊的機車（bike），或搶來的車流車型（TYPES 的名稱與塗裝）
   const vk = !v || v.dead ? null : v === kestrel ? 'own' : v === hanzo ? 'bike' : TYPES[v.type] && v.ins ? v.type : null;
   motors.game = {
-    t: Date.now(), quest: quest.n, cur: crew.cur, min: clockSt.min,
+    t: Date.now(), quest: quest.n, cur: crew.cur, min: clockSt.min, wx: wx.cur,
     veh: vk ? { k: vk, pal: vk === v.type ? v.ins.array[2] : 0 } : null, where: at && APT[player.where] ? player.where : null,
     st: crew.st.map((s, i) => ({ hp: Math.round(s.hp), armor: Math.round(s.armor), sp: Math.round(s.sp), x: +(i === crew.cur ? pos.x : s.x).toFixed(2), z: +(i === crew.cur ? pos.z : s.z).toFixed(2), yaw: +(i === crew.cur ? pos.yaw : s.yaw).toFixed(3) })),
     ammo: Object.fromEntries(ARM_IDS.filter(id => arm.ammo[id]).map(id => [id, [arm.ammo[id].mag, arm.ammo[id].res]])),
@@ -151,6 +151,7 @@ function quickLoad() {
     for (const id in g.ammo) { const a = arm.ammo[id], A = ARMS[id]; if (!a || !Array.isArray(g.ammo[id])) continue; a.mag = clamp(g.ammo[id][0] | 0, 0, A.mag || A.n); a.res = clamp(g.ammo[id][1] | 0, 0, 9999); }
     if (QUEST[g.quest] && g.quest !== quest.n) setQuest(g.quest);
     if (Number.isFinite(g.min)) clockSt.min = clamp(g.min | 0, 0, 1439);
+    if (WX[g.wx]) setWeather(g.wx, true);
     crewApply(clamp(g.cur, 0, CREW.length - 1));
     // 回到存檔時開的那台車上，或存檔的安全屋裡
     const s = crew.st[crew.cur], vk = g.veh && g.veh.k;

@@ -153,7 +153,8 @@ void main(){
     float hs = hw(cell), hs2 = hw(cell + 71.3);
     vec3 lc = hs2 < .55 ? vec3(1.,.66,.36) : hs2 < .8 ? vec3(.8,.86,1.) : hs2 < .92 ? vec3(1.,.4,.65) : vec3(.4,.6,1.);
     float lit = step(hs, uLit * 1.1);
-    c = c * .4 + lc * (.25 + .9 * dot(base.rgb, vec3(.33))) * (lit * 1.6 + .015);
+    vec3 wl = lc * (.25 + .9 * dot(base.rgb, vec3(.33))) * (lit * 1.6 + .015);
+    c = mix(c * .4 + wl, c + wl * .3, uDay);   // 白天保留日照下的貼圖，只疊一點開著燈的窗
   }
   #endif
   vec3 emi = vEmi.rgb / max(1., max(vEmi.r, max(vEmi.g, vEmi.b)));   // 有些模型的 emissive_strength 很大，壓回 0–1 再交給燈種倍率

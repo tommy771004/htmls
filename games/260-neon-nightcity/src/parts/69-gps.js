@@ -77,20 +77,5 @@ function gpsBig(c, X, Z, s) {
     c.fillStyle = '#1a1220'; c.beginPath(); c.arc(x, y - 16 / s, 3 / s, 0, 7); c.fill();
   }
 }
-// 大地圖座標換算（drawBigMap 也用同一套）
-function bigMapXf() {
-  const W = bigmap.width, H = bigmap.height, s = Math.min(W / mapImg.width, H / mapImg.height);
-  return { s, ox: (W - mapImg.width * s) / 2, oy: (H - mapImg.height * s) / 2 };
-}
-// bigmap 在 90-hud.js 才宣告，頂層這裡直接拿元素
-$('bigmap').addEventListener('pointerdown', e => {
-  const r = bigmap.getBoundingClientRect(), k = bigmap.width / r.width, f = bigMapXf();
-  const mx = ((e.clientX - r.left) * k - f.ox) / f.s, my = ((e.clientY - r.top) * k - f.oy) / f.s;
-  const x = mx / MAP_S + MAP_X0, z = my / MAP_S + MAP_Z0;
-  if (x < avX(0) - HR || x > avX(NX) + HR || z < stZ(0) - HR || z > stZ(NZ) + HR) return;
-  if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14) gpsClear(); else gpsSet(x, z);
-  gps.t = 0; gpsUpdate(); drawBigMap();
-});
-
 // 測試 API（window.__nc.gta.gps）
 const gpsApi = { gps, set: gpsSet, clear: gpsClear, route: routeTo };

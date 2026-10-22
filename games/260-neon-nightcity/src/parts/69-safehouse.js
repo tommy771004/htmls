@@ -129,6 +129,7 @@ function aptNap() {
   if (W.stars || heist.st !== 'off' && heist.st !== 'plan' || crew.sw || life.dead) { toast(W.stars ? '外面還有警察在找你，睡不著' : '現在不是睡覺的時候'); return; }
   transition(() => {
     clockSt.min = (clockSt.min + 360) % 1440;
+    setWeather(wxPick(wxPick(wx.cur)), true);   // 28-sky.js：睡醒外面的天氣換過了
     life.hp = life.max;
     quickSave({ x: a.door.x, z: a.door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI });
     toast('睡了一覺：時間推進 6 小時，已存檔');

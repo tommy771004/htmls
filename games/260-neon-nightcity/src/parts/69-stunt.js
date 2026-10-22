@@ -90,17 +90,6 @@ function stuntLate() {
   camera.position.copy(stunt.cam); camera.lookAt(v.x, v.y + .8, v.z);
 }
 function stuntReset(v) { if (v && v.air) { v.air = null; v.y = groundH(v.x, v.z); v.roll = 0; v.lean = 0; v.pitch = 0; if (v === player.veh) { stunt.cam = null; slowmo.st = 1; } } }
-// 大地圖：跳台畫成小箭頭（完成過的變暗）
-function stuntBig(c, X, Z, s) {
-  for (const r of RAMPS) {
-    const x = X(r.x), y = Z(r.z), d = 9 / s, done = motors.stunts.includes(r.i);
-    c.save(); c.translate(x, y); c.rotate(Math.atan2(r.dz, r.dx));
-    c.fillStyle = done ? 'rgba(217,180,42,.45)' : '#d9b42a';
-    c.beginPath(); c.moveTo(d, 0); c.lineTo(-d * .7, -d * .7); c.lineTo(-d * .3, 0); c.lineTo(-d * .7, d * .7); c.closePath(); c.fill();
-    c.restore();
-  }
-}
-
 // 測試 API（window.__nc.gta.stunt）
 const stuntApi = {
   stunt, RAMPS, rampAt, reset: stuntReset,

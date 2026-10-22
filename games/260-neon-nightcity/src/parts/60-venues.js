@@ -10,6 +10,8 @@ function applyEnv(e) {
   U.uLampOn.value = e.lampOn; U.uWet.value = e.wet; U.uFogDen.value = e.fogDen;
   U.uFogCol.value.set(e.fog); U.uFogHi.value.set(e.fogHi);
   U.uAmbTop.value.set(e.top); U.uAmbBot.value.set(e.bot);
+  // 室內沒有日光；戶外交給 28-sky.js 依時間與天氣算
+  if (e === ENV.out) atmApply(); else { U.uDay.value = 0; U.uSunCol.value.set(0, 0, 0); }
 }
 function placeGeo(scn, geo, list, mat = MAT.uber) { const m = instancedIn(scn, geo, mat, list); return m; }
 function instancedIn(scn, geo, mat, list) {

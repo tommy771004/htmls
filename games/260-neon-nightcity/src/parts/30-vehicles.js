@@ -463,9 +463,10 @@ applyCar(hanzo, STREET_BIKE);
 const vehicles = [kestrel, hanzo];
 
 // 碰撞：圓對 AABB、圓對圓；回傳推出量與法線
-function collideCircle(x, z, r, skipCar) {
+function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行，可以穿過沙灘外緣的擋牆下水
   let nx = 0, nz = 0, hit = 0;
   for (const b of boxesNear(x, z, r)) {
+    if (swimmer && b.swim) continue;
     const cx = clamp(x, b.x0, b.x1), cz = clamp(z, b.z0, b.z1);
     let dx = x - cx, dz = z - cz; const d2 = dx * dx + dz * dz;
     if (d2 < r * r) {
@@ -566,7 +567,7 @@ function poseVehicle(v) {
     if (v.isCar) { w.piv.rotation.set(0, w.front ? v.steer : 0, 0); w.w.rotation.x = v.spin; }
     else { w.piv.rotation.set(0, w.front ? v.steer * .6 : 0, 0); w.w.rotation.x = v.spin; }
   }
-  v.mat.uniforms.uM.value.set(v.lights, v.brakeOn || 0, 1, v.burn || 0);
+  v.mat.uniforms.uM.value.set(v.lights * lerp(.3, 1, atm.lamp), v.brakeOn || 0, 1, v.burn || 0);   // 白天大燈暗一點（28-sky.js）
   if (v.ins) { v.ins.array[0] = v.brakeOn || 0; v.ins.needsUpdate = true; }   // 搶來的車流車（68-gta.js）：煞車燈在 aIns
 }
 vehicles.forEach(v => { v.y = groundH(v.x, v.z); poseVehicle(v); });

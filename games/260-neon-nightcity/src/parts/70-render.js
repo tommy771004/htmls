@@ -43,16 +43,16 @@ const fsMesh = new T.Mesh(fsGeo); fsMesh.frustumCulled = false;
 const fsScene = new T.Scene(); fsScene.add(fsMesh);
 const FS_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`;
 const pass = (fs, uniforms) => new T.ShaderMaterial({ vertexShader: FS_VS, fragmentShader: fs, uniforms, depthTest: false, depthWrite: false });
-const mPre = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
+const mPre = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThr; varying vec2 vUv;
   // MSAA 邊緣外插偶爾讓某個 shader 算出 NaN／inf，在這裡擋掉，免得被 bloom 擴散成白斑
   vec3 tap(vec2 o){ vec3 c = texture2D(tSrc, vUv + uTexel * o).rgb; return any(isnan(c)) ? vec3(0.) : min(c, vec3(60.)); }
   void main(){
     vec3 c = tap(vec2(-1., -1.)) + tap(vec2(1., -1.)) + tap(vec2(-1., 1.)) + tap(vec2(1., 1.));
     c *= .25;
     float br = max(c.r, max(c.g, c.b));
-    float w = smoothstep(.7, 1.7, br);
+    float w = smoothstep(.7 * uThr, 1.7 * uThr, br);   // 白天門檻拉高（28-sky.js 的 atm.bloom），不然日照的牆整面發光
     gl_FragColor = vec4(min(c * w, vec3(30.)), 1.);
-  }`, { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
+  }`, { tSrc: { value: null }, uTexel: { value: new T.Vector2() }, uThr: { value: 1 } });
 const mDown = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
   void main(){
     vec2 t = uTexel;
@@ -151,7 +151,7 @@ function renderFrame(dt, t) {
   R.render(curScene, camera);
   // 泛光
   const w = rtScene.width, h = rtScene.height;
-  mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); blit(mPre, rtB[0]);
+  mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : 1; blit(mPre, rtB[0]);
   for (let i = 1; i < rtB.length; i++) { mDown.uniforms.tSrc.value = rtB[i - 1].texture; mDown.uniforms.uTexel.value.set(1 / rtB[i - 1].width, 1 / rtB[i - 1].height); blit(mDown, rtB[i]); }
   const last = rtB.length - 1;
   for (let i = last - 1; i >= 0; i--) {
@@ -166,7 +166,7 @@ function renderFrame(dt, t) {
   const u = mComp.uniforms;
   u.tScene.value = rtScene.texture; u.tDepth.value = rtScene.depthTexture; u.tBloom.value = rtU[0].texture;
   u.uInvVP.value.copy(curVP).invert(); u.uPrevVP.value.copy(prevVP);
-  u.uBlur.value = post.blur; u.uExp.value = post.exposure; u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
+  u.uBlur.value = post.blur; u.uExp.value = post.exposure * (outdoors ? atm.exp : 1); u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
   u.uBloomK.value = outdoors ? .85 : 1.0;
   u.uGray.value = post.gray; u.uVig.value = post.vig; u.uHurt.value = post.hurt; u.uTint.value.copy(post.tint);
   u.uRes.value.set(w, h);

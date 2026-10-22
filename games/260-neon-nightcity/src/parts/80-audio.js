@@ -147,7 +147,7 @@ const sfx = (() => {
       const t = ac.currentTime;
       st.where = s.where; st.dClub = s.dClub; st.dBar = s.dBar;
       const out = s.where === 'out';
-      rainG.gain.setTargetAtTime(out ? .3 * (.4 + s.rain) : s.where === 'bar' ? .06 : .015, t, .3);
+      rainG.gain.setTargetAtTime((out ? .42 : s.where === 'bar' ? .1 : .025) * s.rain, t, .3);   // 雨停了就安靜
       rainF.frequency.setTargetAtTime(out ? 7000 : 500, t, .2);
       cityG.gain.setTargetAtTime(out ? .14 : .02, t, .5);
       clubBus.gain.setTargetAtTime(s.where === 'club' ? .75 : out ? clamp(1 - s.dClub / 55, 0, 1) * .45 : 0, t, .25);
@@ -167,6 +167,7 @@ const sfx = (() => {
     step(run, indoor) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'bandpass', indoor ? 600 : 1400, 1, run ? .1 : .06, indoor ? .06 : .09); if (!indoor) nz(t + .01, master, 'highpass', 4000, .5, .03, .12); },
     horn(c) { if (!ac) return; const t = ac.currentTime; const g = ac.createGain(); for (const k of [1, 1.25]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 370 * k; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1400; o.connect(fl); fl.connect(g); o.start(t); o.stop(t + .45); } g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .45); g.connect(master); },
     impact(k) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 500, 1, clamp(k / 12, .05, .5), .3); kick(t, master); },
+    splash(k = 1) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 900 + 900 * k, .7, .05 + .2 * k, .25 + .45 * k); nz(t + .03, master, 'highpass', 2600, .6, .03 + .07 * k, .2 + .3 * k); },
     door() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 300, 1, .2, .25); tone(t + .05, master, 'sine', 90, .2, .005, .2); },
     doorCar(car) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', car ? 700 : 1500, 1, .15, .12); },
     click() { if (!ac) return; tone(ac.currentTime, master, 'sine', 880, .05, .002, .06); },

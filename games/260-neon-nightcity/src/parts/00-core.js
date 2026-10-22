@@ -65,7 +65,16 @@ const U = {
   uCity: { value: new T.Vector4(X0, Z0, P, Q) }, uGrid: { value: new T.Vector2(NX, NZ) },
   uBeat: { value: 0 }, uRain: { value: .7 }, uLit: { value: .34 }, uLamp: { value: 1 },
   uFocus: { value: new T.Vector4() },   // xyz 角色頭部，w=1 時淡出擋在相機前的東西
+  // 日夜與天氣（28-sky.js 每幀更新）：uDay 是天空與環境反射的白天比例，uSunCol 是雲遮過後的日光（夜裡與室內是 0）
+  uDay: { value: 0 }, uCloud: { value: .9 }, uSun: { value: V3(0, -1, 0) }, uSunCol: { value: V3() },
+  uSkyTop: { value: V3() }, uSkyHor: { value: V3() }, uMoon: { value: V3(0, -1, 0) },
+  // 建築高度圖（28-sky.js）：xy 是西北角的世界座標，z 是 1/邊長，w 是最高的屋頂；日光朝太陽方向在圖上步進求陰影
+  uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) },
+  // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
+  uOccA: { value: Array.from({ length: LOW ? 6 : 12 }, () => new T.Vector4(0, 0, 1, 0)) },
+  uOccB: { value: Array.from({ length: LOW ? 6 : 12 }, () => new T.Vector4()) },
 };
+const NOCC = LOW ? 6 : 12, SH_N = LOW ? 16 : 26;   // 地上陰影的車人數、日光陰影的步數
 const shared = keys => { const o = {}; for (const k of keys) o[k] = U[k]; return o; };
 const ALLU = Object.keys(U);
 
@@ -75,6 +84,9 @@ uniform float uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit,
 uniform vec3 uCam, uFogCol, uFogHi, uAmbTop, uAmbBot; uniform vec4 uFocus;
 uniform vec4 uLP[${NL}]; uniform vec4 uLC[${NL}]; uniform vec4 uLD[${NL}];
 uniform vec4 uCity; uniform vec2 uGrid;
+uniform float uDay, uCloud; uniform vec3 uSun, uSunCol, uSkyTop, uSkyHor, uMoon;
+uniform sampler2D uHMap; uniform vec4 uHM;
+uniform vec4 uOccA[${NOCC}]; uniform vec4 uOccB[${NOCC}];
 float h11(float n){ return fract(sin(n)*43758.5453123); }
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
 float hw(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
@@ -138,12 +150,70 @@ void pointLights(inout vec3 dif, inout vec3 spc, vec3 p, vec3 n, vec3 v, float s
     spc += col * pow(max(dot(n,hv),0.), shin) * (shin + 8.) * .05;
   }
 }
+// 日光陰影：從 p 朝太陽方向在建築高度圖上步進（步長越走越大），光線高度低於屋頂就在陰影裡；
+// 離遮擋物越遠半影越寬。牆面先往外推一點，免得取到自己那棟的高度
+float sunVis(vec3 p, vec3 n){
+  float sl = max(length(uSun.xz), 1e-3);
+  vec2 d = uSun.xz / sl; float k = uSun.y / sl;
+  vec3 q = p + vec3(n.x, 0., n.z) * 1.3 + vec3(0., .2, 0.);
+  float vis = 1., t = .9;
+  for (int i = 0; i < ${SH_N}; i++) {
+    float ry = q.y + t * k;
+    if (ry > uHM.w) break;
+    vec2 uv = (q.xz + d * t - uHM.xy) * uHM.z;
+    if (uv.x < 0. || uv.y < 0. || uv.x > 1. || uv.y > 1.) break;
+    float h = textureLod(uHMap, uv, 0.).r;
+    vis = min(vis, clamp((ry - h) / (.3 + t * .02), 0., 1.));
+    if (vis < .02) return 0.;
+    t = t * 1.18 + .9;
+  }
+  return vis;
+}
+// 車與行人：車底的接觸陰影（夜裡也有）與日光投在地上的影子（車身框沿太陽方向平移到兩個高度）
+void occlude(vec3 p, out float amb, out float sun){
+  amb = 1.; sun = 1.;
+  if (p.y > .4) return;
+  vec2 sd = uSun.y > .06 ? uSun.xz / uSun.y : vec2(0.);
+  bool lit = uSunCol.r + uSunCol.g > .001;
+  for (int i = 0; i < ${NOCC}; i++) {
+    vec4 A = uOccA[i], B = uOccB[i];
+    if (B.x <= 0.) continue;
+    vec2 d = p.xz - A.xy;
+    if (dot(d, d) > 1600.) continue;
+    vec2 f = vec2(A.w, A.z), r = vec2(A.z, -A.w);
+    vec2 l = vec2(dot(d, f), dot(d, r));
+    float ext = length(max(abs(l) - B.xy, 0.));
+    amb = min(amb, mix(.3, 1., smoothstep(0., .35 + B.y * .5, ext)));
+    if (lit) {   // 從 p 往太陽方向的線段（高度 0 到車高）離車身框最近的距離：沿線段是凸函數，三分搜尋
+      vec2 a = vec2(dot(d, f), dot(d, r)), b = a + vec2(dot(sd, f), dot(sd, r)) * B.z;
+      float t0 = 0., t1 = 1.;
+      for (int s = 0; s < 4; s++) {
+        float m1 = mix(t0, t1, .382), m2 = mix(t0, t1, .618);
+        if (length(max(abs(mix(a, b, m1)) - B.xy, 0.)) < length(max(abs(mix(a, b, m2)) - B.xy, 0.))) t1 = m2; else t0 = m1;
+      }
+      sun = min(sun, smoothstep(0., .2, length(max(abs(mix(a, b, (t0 + t1) * .5)) - B.xy, 0.))));
+    }
+  }
+}
+float gSun = -1., gAmb = -1., gOccS = 1.;   // 同一個片段多次呼叫 shade()（立面的窗框、招牌）只算一次陰影
 vec3 shade(vec3 p, vec3 n, vec3 v, vec3 alb, float rough, float metal){
   float shin = mix(300., 5., rough);
+  if (gAmb < 0.) occlude(p, gAmb, gOccS);
   vec3 dif = mix(uAmbBot, uAmbTop, n.y*.5+.5) + uFlash*vec3(.6,.66,.85)*(.35+.65*max(n.y,0.));
   vec3 spc = vec3(0);
   lampGrid(dif, spc, p, n, v, shin);
   pointLights(dif, spc, p, n, v, shin);
+  dif *= gAmb; spc *= gAmb;
+  if (uSunCol.r + uSunCol.g > .001) {
+    float nl = dot(n, uSun);
+    if (nl > 0.) {
+      if (gSun < 0.) gSun = sunVis(p, n) * gOccS;
+      vec3 sc = uSunCol * gSun;
+      dif += sc * nl;
+      vec3 hv = normalize(uSun + v);
+      spc += sc * pow(max(dot(n,hv),0.), shin) * (shin + 8.) * .025 * nl;
+    }
+  }
   float F = .04 + .96*pow(1. - max(dot(n,v),0.), 5.);
   vec3 ks = mix(vec3(F + .02), alb, metal) * (1. - rough*.8);
   return alb*(1.-metal)*dif + ks*spc;
@@ -159,12 +229,19 @@ vec3 envMap(vec3 r){
   vec3 sky = mix(uFogHi*1.6, vec3(.012,.012,.02), smoothstep(.0,.7,y));
   sky += band*(.06 + on*.55*lc*smoothstep(.0,.08,fract(az*22.))*smoothstep(1.,.92,fract(az*22.)));
   if (y < 0.) sky = mix(uFogCol*1.2, vec3(.006), smoothstep(0.,-.35,y)) + band*.25*lc*on;
+  if (uDay > .001) {   // 白天：天空漸層、太陽的反光，地平線那圈霓虹淡掉
+    vec3 dc = mix(uSkyHor, uSkyTop, smoothstep(0., .55, y));
+    dc += uSunCol * (pow(max(dot(r, uSun), 0.), 350.) * 5. + pow(max(dot(r, uSun), 0.), 8.) * .12);
+    if (y < 0.) dc = mix(uFogCol, uFogCol * .3, smoothstep(0., -.35, y));
+    sky = mix(sky, dc, uDay);
+  }
   return sky + uFlash*.6*vec3(.6,.65,.85)*max(y,0.);
 }
 vec3 applyFog(vec3 c, vec3 p){
   vec3 d = p - uCam; float dist = length(d);
   float hf = exp(-max(p.y,0.)*.02);
-  float f = 1. - exp(-dist*uFogDen*(.5 + .5*hf));
+  float x = dist*uFogDen*(.5 + .5*hf);
+  float f = mix(1. - exp(-x), 1. - exp(-x*x), uDay);   // 白天用平方指數：近處清楚、420 m 外（distCull 不畫的地方）照樣全進霧裡
   vec3 dir = d/max(dist,1e-3);
   vec3 fc = mix(uFogCol, uFogHi, smoothstep(-.05, .45, dir.y)) * (1. + uFlash*1.5);
   return mix(c, fc, clamp(f, 0., 1.));

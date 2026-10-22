@@ -134,6 +134,7 @@ const SW_UP = 1, SW_PAN = .7, SW_DOWN = 1, SW_H = 150, CLOUD = lin(0x4e4652);
 function crewSwitch(i) {
   if (i === crew.cur || crew.sw || life.dead || fading || dlg.open) return;
   if (W.stars > 0) { toast('通緝中不能切換角色'); return; }
+  if (player.swim) { toast('在水裡不能切換角色'); return; }
   if (player.where !== 'out') { toast('到室外才能切換角色'); return; }
   abilityOff();
   if (player.mode === 'drive') exitVehicle();

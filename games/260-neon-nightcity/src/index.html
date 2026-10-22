@@ -166,17 +166,54 @@ button{font:inherit;color:inherit;cursor:pointer}
 #rpm span.hi{background:var(--sodium)}
 #nitro{display:block;height:3px;margin-top:4px;background:rgba(98,230,216,.14);border-radius:2px;overflow:hidden}
 #nitro span{display:block;height:100%;width:100%;background:var(--teal)}
-#map{position:fixed;inset:0;display:none;place-items:center;background:rgba(7,8,11,.78);padding:16px;z-index:5}
-#map.on{display:grid}
-#mapIn{display:flex;gap:16px;width:min(1100px,100%);height:min(720px,calc(100vh - 32px))}
-#bigmap{flex:1;min-width:0;height:100%;border-radius:10px;background:#15171b}
-#mapList{width:210px;display:flex;flex-direction:column;gap:6px}
-#mapList b{font-size:13px;color:var(--sodium);margin-bottom:4px}
-#mapList button{text-align:left;border:0;border-radius:6px;padding:9px 11px;background:var(--panel-2);font-size:13.5px;transition:background var(--dur-hover) var(--ease-out)}
-#mapList button:hover{background:rgba(255,174,87,.24)}
-#mapList button kbd{font:inherit;color:var(--sodium);margin-right:8px}
-#mapList small{margin-top:auto;color:var(--ink-2);font-size:11px}
-@media (max-width:640px){#mapIn{flex-direction:column}#bigmap{height:auto;flex:1}#mapList{width:auto;flex-direction:row;flex-wrap:wrap}#mapList button{padding:7px 9px;font-size:12.5px}#mapList small,#mapList b{display:none}}
+/* 全區地圖（91-map.js）：GTA 式暫停地圖：深灰街廓、淺灰道路、地點圖示、右側圖例、左上資訊卡、比例尺與操作列 */
+#map{position:fixed;inset:0;display:none;background:#14171b;z-index:5;overflow:hidden;font-family:var(--cond)}
+#map.on{display:block}
+#bigmap{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#bigmap.grab{cursor:grabbing}
+#mapCard{position:absolute;left:max(24px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));width:330px;background:rgba(10,11,13,.86);display:none}
+#mapCard.on{display:block}
+#mapCard header{display:flex;align-items:center;gap:12px;padding:16px 16px 14px;background:rgba(255,255,255,.04);box-shadow:inset 4px 0 var(--mc,#ffae57)}
+#mapCard header svg{width:34px;height:34px;flex:none}
+#mapCard h3{margin:0;font-size:21px;font-weight:700;letter-spacing:.02em;line-height:1.1}
+#mapCard h3 small{display:block;font-size:12px;font-weight:500;color:var(--ink-2);letter-spacing:.04em;margin-top:3px}
+#mapCard dl{margin:0;padding:4px 0}
+#mapCard dl div{display:flex;justify-content:space-between;gap:12px;padding:7px 16px;font-size:15px;border-top:1px solid rgba(255,255,255,.07)}
+#mapCard dt{color:var(--ink)}#mapCard dd{margin:0;color:var(--ink);text-align:right}
+#mapCard p{margin:0;padding:9px 16px 12px;font-size:14px;color:var(--ink-2);border-top:1px solid rgba(255,255,255,.07);font-family:var(--sans)}
+#mapCard .acts{display:flex;gap:6px;padding:0 12px 12px}
+#mapCard .acts button{flex:1;border:0;padding:8px 6px;background:rgba(255,255,255,.08);font-size:13.5px;font-family:var(--sans);transition:background var(--dur-hover) var(--ease-out)}
+#mapCard .acts button:hover{background:rgba(255,174,87,.28)}
+#mapCard .acts kbd{font:inherit;color:var(--sodium);margin-right:5px}
+#mapLegend{position:absolute;right:max(20px,env(safe-area-inset-right));top:max(20px,env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-height:calc(100% - 110px);overflow-y:auto;scrollbar-width:none}
+#mapLegend::-webkit-scrollbar{display:none}
+#mapLegend button{display:flex;align-items:center;gap:10px;width:212px;border:0;background:rgba(10,11,13,.82);padding:6px 9px 6px 12px;font-size:17px;font-family:var(--cond);letter-spacing:.01em;white-space:nowrap;transition:background var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+#mapLegend button:hover{background:rgba(40,42,46,.92)}
+#mapLegend button.sel{background:#ece8e0;color:#111}
+#mapLegend button svg{width:22px;height:22px;flex:none}
+#mapLegend button span{flex:1;text-align:left}
+#mapLegend button em{font-style:normal;font-size:13px;color:var(--ink-2);min-width:16px;text-align:right}
+#mapLegend button.sel em{color:#555}
+#mapIdx{background:rgba(10,11,13,.82);padding:5px 10px;font-size:16px;display:flex;align-items:center;gap:8px}
+#mapIdx svg{width:12px;height:16px}
+#mapScale{position:absolute;left:max(24px,env(safe-area-inset-left));bottom:76px;font-size:14px;color:#fff;text-shadow:0 1px 2px #000;pointer-events:none}
+#mapScale i{display:block;height:7px;border:2px solid #fff;border-top:0;margin-bottom:3px;box-shadow:0 1px 2px rgba(0,0,0,.6)}
+#mapScale span{display:flex;justify-content:space-between}
+#mapLoc{position:absolute;left:max(24px,env(safe-area-inset-left));bottom:28px;background:rgba(10,11,13,.86);padding:7px 12px;font-size:17px;letter-spacing:.03em;pointer-events:none;white-space:nowrap;max-width:calc(100% - 48px);overflow:hidden;text-overflow:ellipsis}
+#mapKeys{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:28px;display:flex;gap:18px;align-items:center;background:rgba(10,11,13,.86);padding:7px 14px;font-size:15px;white-space:nowrap}
+#mapKeys kbd{display:inline-block;min-width:22px;padding:1px 5px;margin-left:6px;border-radius:4px;background:#ece8e0;color:#111;font:600 12px var(--sans);text-align:center}
+#mapX{position:absolute;right:max(14px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));display:none;width:44px;height:44px;border:0;border-radius:50%;background:rgba(10,11,13,.86);font-size:22px;line-height:1}
+body.touch #mapX{display:block}
+body.touch #mapKeys{display:none}
+@media (max-width:760px){
+  #mapLegend{right:auto;left:0;top:auto;bottom:max(12px,env(safe-area-inset-bottom));width:100%;flex-direction:row;align-items:center;max-height:none;overflow-x:auto;overflow-y:hidden;padding:0 12px;gap:6px}
+  #mapLegend button{width:auto;font-size:14px;padding:6px 8px;gap:6px}#mapLegend button svg{width:18px;height:18px}
+  #mapIdx{display:none}
+  #mapCard{left:12px;right:68px;width:auto;top:max(12px,env(safe-area-inset-top))}
+  #mapCard p{display:none}#mapCard header{padding:10px 12px}#mapCard h3{font-size:17px}#mapCard dl div{padding:5px 12px;font-size:13.5px}#mapCard p{padding:7px 12px 9px;font-size:12.5px}
+  #mapScale{bottom:110px;left:12px}#mapLoc{bottom:66px;left:12px;font-size:14px;max-width:calc(100% - 24px)}
+  #mapKeys{display:none}
+}
 
 /* 世界座標標記 */
 #marker{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:5px;will-change:transform}
@@ -363,7 +400,7 @@ body.touch #capture{display:none}
 </div>
 <div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="Fire">開火</button></div></div>
 <section id="phone" aria-label="NeonPhone 手機" aria-hidden="true"><div id="phBar"><span id="phT">02:14</span><b id="phCash">$0</b></div><div id="phScr"></div></section>
-<div id="map"><div id="mapIn"><canvas id="bigmap"></canvas><div id="mapList"><b>傳送</b><button data-t="club"><kbd>1</kbd>LAZARUS 門口</button><button data-t="clubIn"><kbd>2</kbd>LAZARUS 舞池</button><button data-t="barIn"><kbd>3</kbd>AFTERGLOW 酒吧</button><button data-t="garage"><kbd>4</kbd>CHROME WORKS</button><button data-t="dealer"><kbd>5</kbd>VELOCE MOTORS 車行</button><button data-t="home"><kbd>6</kbd>GARAGE 07 車庫</button><button data-t="car">回到座駕旁</button><small>點地圖設定導航點，再點一次取消 · M 或 Esc 關閉</small></div></div></div>
+<div id="map" role="dialog" aria-label="全區地圖"><canvas id="bigmap" aria-label="城市地圖：拖曳平移、滾輪縮放、點圖示看資訊、點道路設定導航點"></canvas><div id="mapCard"></div><div id="mapLegend"></div><div id="mapScale"><i id="mapBar"></i><span><b>0</b><b id="mapScaleT">200 m</b></span></div><div id="mapLoc"></div><div id="mapKeys"><span>縮放<kbd>滾輪</kbd><kbd>＋</kbd><kbd>－</kbd></span><span>平移<kbd>拖曳</kbd><kbd>WASD</kbd></span><span>選擇地點<kbd>↑</kbd><kbd>↓</kbd></span><span>導航點<kbd>點道路</kbd><kbd>Enter</kbd></span><span>回到自己<kbd>C</kbd></span><span>返回<kbd>M</kbd></span></div><button id="mapX" aria-label="關閉地圖">×</button></div>
 <div id="fade"></div>
 <div id="start"><div id="startIn">
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>

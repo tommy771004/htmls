@@ -58,13 +58,16 @@ function bldLoad(set) {
     const byKey = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
     for (const b of mine) {
       M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
-      const tk = bldTile(b);
+      const tk = bldTile(b), wg = [];
       for (const p of items[b.id].parts) {
         let e = byKey.get(tk + '|' + p.mat.uuid);
         if (!e) byKey.set(tk + '|' + p.mat.uuid, e = { mat: p.mat, list: [] });
-        e.list.push(p.geo.clone().applyMatrix4(M));
+        const g = p.geo.clone().applyMatrix4(M);
+        e.list.push(g); wg.push(g);
       }
+      hmModel(b, wg);   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
     }
+    hmFlush();
     for (const { mat, list } of byKey.values()) {
       const g = mergeGeometries(list);
       for (const x of list) x.dispose();
@@ -104,6 +107,12 @@ function coastModelsUpdate() {
     loadProps(o.set).then(items => {
       if (!items || !items[o.id]) return;
       scene.add(propObject(items[o.id], o.at.x, o.y || 0, o.at.z, o.at.ry || 0));
+      if (o.proxy === 'isle') {   // 島上的基地也畫進日光陰影的高度圖（22-hmap.js）
+        const M = new T.Matrix4().compose(V3(o.at.x, o.y || 0, o.at.z), new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), o.at.ry || 0), V3(1, 1, 1));
+        const wg = items[o.id].parts.map(p => p.geo.clone().applyMatrix4(M));
+        hmModel({ set: o.set, id: o.id, x: o.at.x, z: o.at.z, ry: o.at.ry || 0, s: 1 }, wg);
+        wg.forEach(g => g.dispose()); hmFlush();
+      }
       o.done = true;
       if (COAST_MODELS.every(c => c.proxy !== o.proxy || c.done)) ISLE_PROXY[o.proxy].removeFromParent();   // 島上的替身在 cullList 裡，distCull 每幀會重設 visible，所以直接拿掉
     });

@@ -7,7 +7,7 @@
 - 依每個面的主要骨頭與高度把身體分成 skin／top（上衣）／sleeve（前臂：長袖或露手）／bottom（短褲到膝）／
   shin（小腿：長褲或露腿）／shoe 六個材質，衣物頂點沿法線外推一點做出厚度；前端依路人編號換色、換髮型。
 - 男女各掛三種髮型（男：旁分、平頭、平頭＋鬍子；女：長髮、包頭、短髮），眉毛與眼睛沿用底模。
-- 動畫：從 UAL 挑出待機、說話、行走、慢跑、衝刺、坐、坐著聊天、駕駛、跳舞、出拳，以及持槍瞄準射擊、換彈、中彈、倒地、蹲、翻滾、揮砍（見 KEEP）；
+- 動畫：從 UAL 挑出待機、說話、行走、慢跑、衝刺、坐、坐著聊天、駕駛、跳舞、出拳，以及持槍瞄準射擊、換彈、中彈、倒地、蹲、翻滾、揮砍、游泳（見 KEEP）；
   板子與單車的 IK 烘焙函式沿用 268 的寫法，260 目前沒有用到。
 - 貼圖縮成 512、皮膚存 JPEG；法線與粗糙度貼圖不輸出。
 """
@@ -30,7 +30,9 @@ KEEP = ['Idle_Loop', 'Idle_Talking_Loop', 'Walk_Loop', 'Walk_Formal_Loop', 'Jog_
         'Sitting_Talking_Loop', 'Driving_Loop', 'Dance_Loop', 'Punch_Jab', 'Punch_Cross',
         # GTA 式擴充：持槍、瞄準、射擊、換彈、中彈、倒地、蹲、翻滾、揮砍、開門
         'Pistol_Idle_Loop', 'Pistol_Aim_Neutral', 'Pistol_Aim_Up', 'Pistol_Aim_Down', 'Pistol_Shoot', 'Pistol_Reload',
-        'Hit_Chest', 'Hit_Head', 'Death01', 'Crouch_Idle_Loop', 'Crouch_Fwd_Loop', 'Roll', 'Sword_Attack', 'Interact']
+        'Hit_Chest', 'Hit_Head', 'Death01', 'Crouch_Idle_Loop', 'Crouch_Fwd_Loop', 'Roll', 'Sword_Attack', 'Interact',
+        # 游泳（下水）
+        'Swim_Idle_Loop', 'Swim_Fwd_Loop']
 SLOTS = ['skin', 'top', 'sleeve', 'bottom', 'shin', 'shoe']
 SLIM = {
     'Male': {'upperarm_': 0.78, 'lowerarm_': 0.84, 'thigh_': 0.9, 'calf_': 0.93, 'spine_0': 0.9, 'clavicle_': 0.88, 'neck_01': 0.86},

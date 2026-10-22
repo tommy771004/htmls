@@ -149,7 +149,7 @@ void main(){
   if (vW.y < uClipY) discard;
   vec3 n = normalize(vN), v = normalize(uCam - vW);
   vec3 c = shade(vW, n, v, vCol, .65, 0.);
-  c += vCol * pow(1. - max(dot(n, v), 0.), 3.) * (uFogHi * 1.5 + .02);
+  c += vCol * pow(1. - max(dot(n, v), 0.), 3.) * (uFogHi * (1.5 - uDay * 1.2) + .02);
   c += vEmi;
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
@@ -159,7 +159,7 @@ const charMat = () => new T.ShaderMaterial({
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28 };
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -176,6 +176,8 @@ const ACLIP = {
   [ANIM.throw]: { c: 'Punch_Cross', once: 1, rate: 1.2 }, [ANIM.aimRun]: { c: 'Jog_Fwd_Loop', rate: .93 },
   // 69-combat.js：開車時把手伸出車窗開槍（坐姿沿用開車動畫）
   [ANIM.driveBy]: { c: 'Driving_Loop' },
+  // 下水：踩水與自由式（40-people.js 的 updatePlayerWalk）
+  [ANIM.swimIdle]: { c: 'Swim_Idle_Loop' }, [ANIM.swim]: { c: 'Swim_Fwd_Loop', rate: 1.1 },
 };
 const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
@@ -405,7 +407,7 @@ const umbrellas = [];
     const w = b.x1 - b.x0 - inset * 2, d = b.z1 - b.z0 - inset * 2;
     const per = 2 * (w + d);
     const um = rP() < .62;
-    pedState.push({ b, inset, w, d, per, s: rP() * per, dir: rP() < .5 ? 1 : -1, v: 1.05 + rP() * .5, um, dodge: 0, dx: 0, dz: 0 });
+    pedState.push({ b, inset, w, d, per, s: rP() * per, dir: rP() < .5 ? 1 : -1, v: 1.05 + rP() * .5, um, um0: um, dodge: 0, dx: 0, dz: 0 });
     peds.look(k, { r: rP });
     peds.anim(k, um ? ANIM.umbrella : ANIM.walk, rP() * 10, pedState[k].v * .78);
     if (um) umbrellas.push(k);
@@ -432,6 +434,15 @@ const umbrellas = [];
   scene.add(peds.mesh);
 }
 const BOUNCER = { x: CLUB_X + 1.6, z: CLUB_Z + 1.1 };
+// 雨停了收傘、下雨了撐傘（28-sky.js 的 updateWeather 在雨量跨過門檻時呼叫）；倒地、逃跑或被 69-combat 接手的人等恢復時自己換
+function pedUmbrellas(on) {
+  pedState.forEach((ps, k) => {
+    const want = on && ps.um0;
+    if (ps.um === want) return;
+    ps.um = want;
+    if (!(ps.down > 0) && !(ps.panic > 0) && !ps.fsm) peds.anim(k, want ? ANIM.umbrella : ANIM.walk, rP() * 10, ps.v * .78);
+  });
+}
 const umbMesh = (() => {
   const k = new Kit();
   const cone = new T.ConeGeometry(.62, .32, 10, 1, true);
@@ -520,6 +531,7 @@ me.look(0, { r: rng(9), female: false, top: lin(0x2b2420), bot: lin(0x17181c), s
 me.anim(0, ANIM.idle, 0, 1);
 scene.add(me.mesh);
 const player = { mode: 'walk', x: avX(1) - 9.6, z: stZ(2) + 18, y: .15, yaw: 0, v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
+const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
   let mx = inp.mx, mz = inp.mz;
   const ml = Math.hypot(mx, mz);
@@ -529,7 +541,12 @@ function updatePlayerWalk(inp, dt, camYaw) {
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw), rx = -fz, rz = fx;
   const wx = fx * mz + rx * mx, wz = fz * mz + rz * mx;
   const aimM = gta.aiming, run = inp.run && ml > .1 && !aimM;
-  const target = ml > .05 ? (run ? 4.6 : aimM ? 1.5 : 1.7) * Math.min(1, ml) : 0;
+  // 水深超過 1.25 m 改游泳（離開時 1.05 m，避免在邊界來回切換）；涉水時走慢一點
+  const depth = player.where === 'out' ? waterDepth(player.x, player.z) : 0, wasSwim = player.swim;
+  player.swim = depth > (player.swim ? 1.05 : 1.25);
+  if (player.swim !== wasSwim && depth > 0) { sfx.splash(player.swim ? 1 : .5); if (player.swim) { player.dance = 0; arm.trig = false; } }
+  const wade = player.swim ? 1 : clamp(1 - depth * .5, .45, 1);
+  const target = ml > .05 ? (player.swim ? (run ? 2.3 : 1.3) : (run ? 4.6 : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
   player.v = damp(player.v, target, target > player.v ? 6 : 10, dt);
   let mdx = Math.sin(player.yaw), mdz = Math.cos(player.yaw);
   if (aimM) {
@@ -543,30 +560,36 @@ function updatePlayerWalk(inp, dt, camYaw) {
     mdx = Math.sin(player.yaw); mdz = Math.cos(player.yaw);
   }
   const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
-  let r = collideCircle(nx, nz, .32, false);
+  let r = collideCircle(nx, nz, .32, false, true);
   let x = r.x, z = r.z;
+  if (depth > 0) { x = clamp(x, FAR_BANK_X + 30, EAST_BANK_X - 30); z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸
   // 車流與座駕也會擋路
   const pushOut = (ox, oz, rr) => { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { x = ox + dx / d * rr; z = oz + dz / d * rr; } };
   for (const c of traffic) { const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
   for (const v of vehicles) { const L = v.off; for (const s of [-1, 1]) pushOut(v.x + Math.sin(v.yaw) * L * s, v.z + Math.cos(v.yaw) * L * s, v.rad + .3); }
   for (let k = 0; k < PED_N; k++) { const p = peds.people[k]; pushOut(p.x, p.z, .55); }
   player.x = x; player.z = z;
-  player.y = damp(player.y, groundH(x, z), 20, dt);
+  // 游泳時根骨貼著水面，慢慢上下起伏
+  player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, player.where === 'out' ? seaFloor(x, z) : groundH(x, z), 20, dt);
   // 動作混合
   const sp = player.v;
-  let a = sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][player.dance - 1] : ANIM.idle;
+  let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][player.dance - 1] : ANIM.idle;
   if (aimM) a = sp > .25 ? ANIM.aimWalk : ANIM.aimIdle;
   if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }
   player.blend = Math.max(0, player.blend - dt * 5);
   const back = aimM && mdx * Math.sin(player.yaw) + mdz * Math.cos(player.yaw) < -.3 ? -1 : 1;   // 瞄準時往後退：走路動畫倒著播
-  const rate = a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * .9 * back : 1;
+  const rate = a === ANIM.swim ? .6 + sp * .35 : a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * .9 * back : 1;
   player.walkPh += dt * rate;
   me.anim(0, a, player.walkPh - uTimeNow(), 1, 0);
   me.anim2(0, player.prevAnim, player.blend, 1);
   me.place(0, player.x, player.y, player.z, player.yaw);
   me.flush();
   // 腳步聲
-  if (a === ANIM.walk || a === ANIM.run || a === ANIM.aimWalk) {
+  if (player.swim) {   // 划水聲
+    const ph = player.walkPh * 1.4;
+    if (sp > .25 && Math.floor(ph) !== Math.floor(player.stepT)) sfx.splash(.25);
+    player.stepT = ph;
+  } else if (a === ANIM.walk || a === ANIM.run || a === ANIM.aimWalk) {
     const ph = player.walkPh * 2;
     if (Math.floor(ph) !== Math.floor(player.stepT)) sfx.step(a === ANIM.run, player.where !== 'out');
     player.stepT = ph;

@@ -45,7 +45,6 @@ function streetName(x, z) {
   if (bd < 13 && be < 13) return `${AVE[bi]} · ${STR[bj]}`;
   return bd < be ? AVE[bi] : STR[bj];
 }
-const clockSt = { min: 2 * 60 + 14, acc: 0 };
 const hudCache = {};
 const setText = (id, t) => { if (hudCache[id] !== t) { hudCache[id] = t; $(id).textContent = t; } };
 const _pv = V3();
@@ -123,7 +122,6 @@ function updateHud(dt) {
   clockSt.acc += dt;
   if (clockSt.acc > 2.5) { clockSt.acc = 0; clockSt.min = (clockSt.min + 1) % 1440; }
   setText('clock', `${String(Math.floor(clockSt.min / 60)).padStart(2, '0')}:${String(clockSt.min % 60).padStart(2, '0')}`);
-  setText('wxText', U.uRain.value > .8 ? '大雨' : U.uRain.value > .45 ? '雨' : '小雨');
   drawMini(px, pz, p.where === 'out' ? yawView : yawView, p.where === 'out' ? mk : null);
   // 目標標記
   const m = $('marker');
@@ -152,32 +150,7 @@ function updateHud(dt) {
   setText('cash', money(motors.cash));
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('on'); }
 }
-// ─── 全區地圖（M）：點地點傳送 ───
-const bigmap = $('bigmap');
-function drawBigMap() {
-  const c = bigmap.getContext('2d');
-  const W = bigmap.width, H = bigmap.height, s = Math.min(W / mapImg.width, H / mapImg.height);
-  c.clearRect(0, 0, W, H);
-  c.save(); c.translate((W - mapImg.width * s) / 2, (H - mapImg.height * s) / 2); c.scale(s, s);
-  c.drawImage(mapImg, 0, 0);
-  const X = x => (x - MAP_X0) * MAP_S, Z = z => (z - MAP_Z0) * MAP_S;
-  gpsBig(c, X, Z, s);
-  stuntBig(c, X, Z, s);   // 特技跳台（69-stunt.js）
-  evBig(c, X, Z, s);
-  squadBig(c, X, Z, s);
-  c.font = `600 ${13 / s}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'middle';
-  for (const v of VENUE_PINS) { c.fillStyle = v.col; c.beginPath(); c.arc(X(v.x), Z(v.z), 7 / s, 0, 7); c.fill(); c.fillStyle = '#ece8e0'; c.fillText(v.name, X(v.x) + 11 / s, Z(v.z)); }
-  c.fillStyle = 'rgba(236,232,224,.55)'; c.font = `500 ${10 / s}px system-ui`; c.textAlign = 'center';
-  for (let i = 0; i <= NX; i++) c.fillText(AVE[i], X(avX(i)), Z(stZ(0)) - 14 / s);
-  for (let j = 0; j <= NZ; j++) c.fillText(STR[j], X(avX(0)) - 30 / s, Z(stZ(j)));
-  const p = player.where === 'out' ? (player.mode === 'drive' ? player.veh : player) : VENUES[player.where].door;
-  c.fillStyle = '#ffffff'; c.beginPath(); c.arc(X(p.x), Z(p.z), 6 / s, 0, 7); c.fill();
-  c.restore();
-}
-function toggleMap(on = !$('map').classList.contains('on')) {
-  $('map').classList.toggle('on', on);
-  if (on) { const r = bigmap.getBoundingClientRect(); bigmap.width = r.width * 2; bigmap.height = r.height * 2; drawBigMap(); if (document.pointerLockElement) document.exitPointerLock(); }
-}
+// ─── 傳送（全區地圖的資訊卡與數字鍵；地圖本身在 91-map.js）───
 function teleport(k) {
   toggleMap(false);
   const go = (x, z, yaw) => {
@@ -199,4 +172,3 @@ function teleport(k) {
     transition(fn);
   }
 }
-document.querySelectorAll('#mapList button').forEach(b => b.addEventListener('click', () => { sfx.click(); teleport(b.dataset.t); }));
