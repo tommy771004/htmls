@@ -49,6 +49,7 @@ if (motors.cur !== STARTER || motors.paint[STARTER] != null) { applyCar(kestrel,
 function placeCarAt(sp) {
   const v = kestrel;
   v.x = sp.x; v.z = sp.z; v.yaw = sp.yaw; v.vx = v.vz = v.yr = v.steer = 0; v.y = groundH(v.x, v.z); v.g.visible = true;
+  rollClear(v);   // 68-roll.js
   poseVehicle(v);
 }
 // 規格：極速照實換算，加速與抓地用五格評分（遊戲裡的加速度是街機手感，換成秒數會很怪）
@@ -283,7 +284,7 @@ function endTest(msg) {
   if (player.mode === 'drive' && player.veh === kestrel) exitVehicle();
   const p = tst.prev;
   applyCar(kestrel, p.id, p.paint);
-  kestrel.x = p.x; kestrel.z = p.z; kestrel.yaw = p.yaw; kestrel.vx = kestrel.vz = 0; kestrel.y = p.x < 9000 ? groundH(p.x, p.z) : 0;
+  kestrel.x = p.x; kestrel.z = p.z; kestrel.yaw = p.yaw; kestrel.vx = kestrel.vz = 0; kestrel.y = p.x < 9000 ? groundH(p.x, p.z) : 0; rollClear(kestrel);
   motors.stowed = p.stowed; kestrel.g.visible = !p.stowed;
   poseVehicle(kestrel);
   toast(msg || '試駕結束，車行派人把車開回去了');

@@ -47,9 +47,9 @@
    "Paint"
   ],
   "paintable": true,
-  "tris": 202090,
-  "kb": 3669,
-  "draws": 74,
+  "tris": 204859,
+  "kb": 3699,
+  "draws": 78,
   "db": [
    0.373,
    -0.05
@@ -271,9 +271,9 @@
    "Paint"
   ],
   "paintable": false,
-  "tris": 167131,
-  "kb": 2361,
-  "draws": 25,
+  "tris": 168149,
+  "kb": 2375,
+  "draws": 29,
   "db": [
    0.327,
    -0.05
@@ -437,9 +437,9 @@
    "EXT_Carpaint_Inst"
   ],
   "paintable": false,
-  "tris": 163179,
-  "kb": 3273,
-  "draws": 50,
+  "tris": 163541,
+  "kb": 3289,
+  "draws": 56,
   "db": [
    0.202,
    0.05
@@ -477,9 +477,10 @@
   ],
   "paint": [],
   "paintable": false,
-  "tris": 135255,
-  "kb": 1888,
-  "draws": 37
+  "rake": 24,
+  "tris": 142272,
+  "kb": 1978,
+  "draws": 49
  },
  "s1krr19": {
   "id": "s1krr19",
@@ -513,9 +514,10 @@
   ],
   "paint": [],
   "paintable": false,
-  "tris": 112508,
-  "kb": 1910,
-  "draws": 30
+  "rake": 24,
+  "tris": 115305,
+  "kb": 1948,
+  "draws": 35
  },
  "r34": {
   "id": "r34",
@@ -621,9 +623,9 @@
    "r35_paint"
   ],
   "paintable": true,
-  "tris": 128303,
-  "kb": 2055,
-  "draws": 31,
+  "tris": 129557,
+  "kb": 2075,
+  "draws": 35,
   "db": [
    0.324,
    0.05
@@ -1067,9 +1069,9 @@
    "M4xNME_Paint"
   ],
   "paintable": true,
-  "tris": 163227,
-  "kb": 2054,
-  "draws": 7,
+  "tris": 164951,
+  "kb": 2080,
+  "draws": 11,
   "db": [
    0.456,
    -0.05
@@ -1121,9 +1123,9 @@
   ],
   "paint": [],
   "paintable": false,
-  "tris": 95779,
-  "kb": 1253,
-  "draws": 21,
+  "tris": 96374,
+  "kb": 1268,
+  "draws": 25,
   "db": [
    0.408,
    0.05
@@ -1234,7 +1236,7 @@
   ],
   "paintable": true,
   "tris": 113080,
-  "kb": 1617,
+  "kb": 1620,
   "draws": 36,
   "db": [
    0.215,
@@ -1290,7 +1292,7 @@
   ],
   "paintable": true,
   "tris": 97945,
-  "kb": 1784,
+  "kb": 1785,
   "draws": 50,
   "db": [
    0.182,
@@ -1493,9 +1495,10 @@
   ],
   "paint": [],
   "paintable": false,
-  "tris": 117154,
-  "kb": 1388,
-  "draws": 8
+  "rake": 24,
+  "tris": 120638,
+  "kb": 1431,
+  "draws": 9
  },
  "zx6r": {
   "id": "zx6r",
@@ -1529,8 +1532,9 @@
   ],
   "paint": [],
   "paintable": false,
-  "tris": 76970,
-  "kb": 1131,
-  "draws": 6
+  "rake": 24,
+  "tris": 77037,
+  "kb": 1141,
+  "draws": 9
  }
 }

@@ -42,9 +42,9 @@ function instSet(m, k, mtx) {
 }
 function instUpdate(cx, cz) {
   for (const S of instStreams) {
-    if (!S.dirty && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
-    S.dirty = false; S.cx = cx; S.cz = cz;
-    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = S.R * S.R * SET.dist * SET.dist, R02 = (S.R0 || 0) ** 2;
+    if (!S.dirty && S.dv === detail.v && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
+    S.dirty = false; S.cx = cx; S.cz = cz; S.dv = detail.v;
+    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = S.R * S.R * detailK() ** 2, R02 = (S.R0 || 0) ** 2;
     let c = 0;
     for (let k = 0; k < S.n; k++) {
       const d2 = (S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2;

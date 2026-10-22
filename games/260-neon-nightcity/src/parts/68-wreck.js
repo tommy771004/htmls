@@ -40,7 +40,7 @@ function wreckFix(v) {
   hpLockOf(v);
   v.dead = 0; v.burn = 0; v.hp = v.hpMax;
   v.glass = 0; v.engK = 1; v.stall = 0; v.bail = 0;
-  tireFix(v);
+  tireFix(v); rollClear(v);   // 68-roll.js：翻倒的車也擺正
 }
 
 // ─── 單顆輪胎（第一節第 4 點）：每顆 50 點，子彈打到輪胎附近就扣那一顆；破一顆極速 ×(1 − 0.15)、抓地少一截，車頭往破的那側偏 ───

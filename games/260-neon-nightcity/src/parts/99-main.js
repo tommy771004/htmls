@@ -2,6 +2,7 @@
 // ═══ 輸入、相機、燈光挑選、天氣、主迴圈與測試 API ═══
 const CLUB_W = WP(CLUB_X, CLUB_Z), BAR_W = WP(BAR_X, BAR_Z);   // 音效的距離用世界座標
 cityWorld();   // 10-city.js：生成都跑完了，碰撞表、光源表與錨點一次換成世界座標（05-zones.js 的區）
+W2.boot();     // 27-props.js：配電箱與加油機要等船位（31-boats.js）宣告好才擺
 const keys = {};
 const inp = { mx: 0, mz: 0, run: false, thr: 0, brk: 0, steer: 0, hb: false, nitro: false };
 const camState = { yaw: 0, pitch: .14, dist: 3.6, far: SET.camFar, idle: 9, snap: true, pos: V3(), shake: 0, fov: 62 };
@@ -257,7 +258,7 @@ function step(dt) {
     const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
     if (player.where === 'out') { v.grip *= 1 - .3 * wx.wet; v.brkK = 1 - .2 * wx.wet; }   // 濕路面（28-sky.js 的 wx.wet）：側向抓地少三成、煞車距離變長
     const r = v.fly ? flyHeli(v, inp, dt) : v.boat ? driveBoat(v, inp, dt) : v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 31-boats.js：船；69-stunt.js：跳台斜面與飛行
-    if (!v.air && !v.boat && !v.fly) stuntGround(v, r.vF);
+    if (!v.air && !v.boat && !v.fly && !v.tumble && !v.flipped) stuntGround(v, r.vF);
     v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1; v.brkK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
     gta.lastImp = r.imp;
@@ -353,8 +354,8 @@ requestAnimationFrame(loop);
 
 window.__nc = {
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
-  menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), t: () => U.uTime.value },
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
+  menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },
@@ -379,7 +380,7 @@ window.__nc = {
   rain(v) { setWeather(v > .85 ? 'storm' : v > .45 ? 'rain' : v > .12 ? 'drizzle' : 'overcast', true); wx.rain = v; }, flash() { wx.next = 0; wx.force = true; },
   weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y, sites: ISLE_SITES, foot: isleFoot, walks: BANK_WALKS, ferry: FERRY }, park: { ...NPARK, h: parkH, base: parkBase, district: (x, z) => districtW(x, z) },
   keys, inp, nitro, livery: cycleLivery,
-  me, peds, pedState, crowd, ANIM, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
+  me, peds, pedState, crowd, ANIM, club, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),
   getStats: () => ({ fps: Math.round(fps), drawCalls: R.info.render.calls, triangles: R.info.render.triangles, mode: player.mode, where: player.where, quest: quest.n, pos: { x: +(player.mode === 'drive' ? player.veh.x : player.x).toFixed(2), z: +(player.mode === 'drive' ? player.veh.z : player.z).toFixed(2) }, scale: post.scale }),
 };

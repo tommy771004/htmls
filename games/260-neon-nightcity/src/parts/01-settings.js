@@ -13,7 +13,7 @@ const SET_DEF = {
   // 顯示：safe 是 HUD 往內縮的格數（一格 6 px）
   hud: { d: true }, radar: { d: true }, safe: { d: 0, lo: 0, hi: 8, st: 1 }, units: { d: 'metric', o: ['metric', 'imperial'] }, bright: { d: 1, lo: .7, hi: 1.4, st: .05 },
   // 影像：res 'auto' 是依幀時自動調整（70-render.js），數字是固定的內部解析度比例；fps 0 是不限
-  res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: LOW ? 0 : 4, o: [0, 2, 4, 8] }, fps: { d: 0, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: 1, lo: .6, hi: 1.2, st: .1 },
+  res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: LOW ? 0 : 4, o: [0, 2, 4, 8] }, fps: { d: 0, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: LOW ? .8 : 1, lo: .6, hi: 1.2, st: .1 },
   // 進階影像：refl 0 關、1 低（三分之一解析度）、2 高（一半）
   refl: { d: LOW ? 1 : 2, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
 };
@@ -32,6 +32,10 @@ const SET = (() => {
   if (d && d.binds && typeof d.binds === 'object') for (const k in d.binds) if (typeof d.binds[k] === 'string') s.binds[k] = d.binds[k];
   return s;
 })();
+// 細節距離：選單的 SET.dist 再乘上自動降載的 k（70-render.js：內部解析度降到底還是太慢就縮短，快了再放回來）；
+// 遠處的立面、建築組與街道設施都照它隱藏（10-city.js 的 distCull、20-props.js 的 instUpdate），v 變了要重算
+const detail = { k: 1, v: 0 };
+const detailK = () => SET.dist * detail.k;
 function setSave() { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) { /* 存不了就算了 */ } }
 // 距離與速度依測量系統顯示（90-hud.js、91-map.js）
 const IMPERIAL = () => SET.units === 'imperial';

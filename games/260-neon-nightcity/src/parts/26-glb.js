@@ -243,11 +243,14 @@ function loadGLB(id) {
     for (const n of root.children) {
       const meshes = []; n.traverse(o => { if (o.isMesh) meshes.push(o); });
       const list = meshes.map(m => ({ geo: m.geometry, mat: m.material, rel: new T.Matrix4().multiplyMatrices(inv, m.matrixWorld) }));
-      const w = n.name.startsWith('wheel_') && spec.wheels.find(w => 'wheel_' + w.name === n.name);
+      // wheel_XX 跟著輪子轉；wheel_XX_fix（卡鉗）只跟著轉向
+      const nm = n.name.replace(/_fix$/, ''), w = nm.startsWith('wheel_') && spec.wheels.find(w => 'wheel_' + w.name === nm);
       if (w) {
         const off = new T.Matrix4().makeTranslation(-w.x, -w.y, -w.z);
         for (const e of list) e.rel.premultiply(off);
-        tpl.wheels.push({ ...w, front: w.name[0] === 'F', list });
+        let tw = tpl.wheels.find(t => t.name === w.name);
+        if (!tw) tpl.wheels.push(tw = { ...w, front: w.name[0] === 'F', list: [], fix: [] });
+        (nm === n.name ? tw.list : tw.fix).push(...list);
       } else tpl.body.push(...list);
     }
     glbReport.loaded.push(id); glbDone.add(id);
@@ -269,7 +272,8 @@ function glbInstance(tpl, paint, uM) {
     const piv = new T.Group(); piv.position.set(w.x, w.y, w.z);
     const spin = new T.Group(); piv.add(spin);
     for (const e of w.list) spin.add(mk(e));
-    inst.wheels.push({ piv, w: spin, front: w.front });
+    for (const e of w.fix) piv.add(mk(e));
+    inst.wheels.push({ piv, w: spin, front: w.front, rake: w.front && GLB_SPEC[tpl.id].rake || 0 });   // rake：機車前叉的後傾角（度），前輪繞這條軸轉向
   }
   return inst;
 }

@@ -1,4 +1,4 @@
-// 檢查 assets/260/<id>.glb（車流專用的車在 .cache/traffic/<id>.glb）：側面、正面、俯視、四分之三視角拼成一張圖（輪子節點塗紅、車漆塗藍），確認車頭朝 +z 與輪子拆分
+// 檢查 assets/260/<id>.glb（車流專用的車在 .cache/traffic/<id>.glb）：側面、正面、俯視、四分之三視角拼成一張圖（輪子節點塗紅、卡鉗與前叉（_fix）塗綠、車漆塗藍），確認車頭朝 +z 與輪子拆分
 //   node tools/car-view.mjs <id> [out.png]
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -26,7 +26,7 @@ g.scene.traverse(o => { if (!o.isMesh) return; const wheel = /wheel/.test(o.pare
   const p = o.geometry.attributes._pbr, c = o.geometry.attributes.color, paint = p && p.getW(0) > .5;
   const nc = new Float32Array(c.count * 3); for (let i = 0; i < c.count; i++) { const pt = p.getW(i) > .5; nc[i * 3] = pt ? .05 : c.getX(i); nc[i * 3 + 1] = pt ? .2 : c.getY(i); nc[i * 3 + 2] = pt ? 1 : c.getZ(i); }
   o.geometry.setAttribute('color', new T.BufferAttribute(nc, 3));
-  o.material = new T.MeshStandardMaterial({ vertexColors: true, map: o.material.map, emissive: wheel ? 0xff0000 : 0, emissiveIntensity: .6, roughness: .5, transparent: o.material.transparent, opacity: o.material.transparent ? .5 : 1 });
+  o.material = new T.MeshStandardMaterial({ vertexColors: true, map: o.material.map, emissive: /_fix/.test(o.parent.name + o.name) ? 0x00ff40 : wheel ? 0xff0000 : 0, emissiveIntensity: .6, roughness: .5, transparent: o.material.transparent, opacity: o.material.transparent ? .5 : 1 });
   window.attrs = (window.attrs || []).concat(o.name + ':' + Object.keys(o.geometry.attributes).join(',') + (p ? ' w=' + p.getW(0) : '')); });
 S.add(g.scene); S.add(new T.GridHelper(10, 20, 0x000000, 0x555555)); S.add(new T.AxesHelper(3));
 const L = spec.len;

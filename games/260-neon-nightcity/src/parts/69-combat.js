@@ -476,7 +476,7 @@ function blast(x, y, z, r, dmg, by, skip) {
     const d = Math.hypot(player.x - x, player.z - z, player.y + 1 - y);
     if (d < r) { hurtPlayer(dmg * .3 * fall(d), x, z); if (fall(d) > .2) knockPlayer(player.x - x, player.z - z); }
   }
-  for (const c of [...traffic, ...parked]) { const d = Math.hypot(c.x - x, c.z - z) - TYPES[c.type].len * .35; if (d < r) { const v = damageCar(c, dmg * 2.2 * fall(Math.max(0, d)), mine); if (v) { v.vx += (v.x - x) * .6; v.vz += (v.z - z) * .6; } } }
+  for (const c of [...traffic, ...parked]) { const d = Math.hypot(c.x - x, c.z - z) - TYPES[c.type].len * .35; if (d < r) { const f = fall(Math.max(0, d)), v = damageCar(c, dmg * 2.2 * f, mine); if (v) { v.vx += (v.x - x) * .6; v.vz += (v.z - z) * .6; if (f > .5) rollKick(v, x, z, f); } } }
   for (const v of [...vehicles]) {
     if (v === skip || v.dead) continue;
     const d = Math.max(0, Math.hypot(v.x - x, v.z - z) - v.len * .35);
@@ -484,6 +484,7 @@ function blast(x, y, z, r, dmg, by, skip) {
     const f = fall(d), l = Math.hypot(v.x - x, v.z - z) || 1, m = (v.mass || 1600) / 1600;
     v.vx += (v.x - x) / l * f * 9 / m; v.vz += (v.z - z) / l * f * 9 / m;
     damageVeh(v, dmg * 2.2 * f, mine);
+    if (f > .5 && v.isCar && !v.dead) rollKick(v, x, z, f);   // 68-roll.js：近距離爆炸把車掀翻
   }
   panic(x, z, 45, 10);
   if (mine) crime('blast', x, z);
@@ -704,7 +705,7 @@ function vehPairs() {
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
     const A = L[i], B = L[j];
     if (A.g && !A.g.visible || B.g && !B.g.visible) continue;
-    if (Math.abs(A.y - B.y) > 2.5) continue;   // 69-gunship.js：飛在上面的直升機
+    if (Math.abs(A.y - B.y) > 1.2 || A.under === B || B.under === A) continue;   // 69-gunship.js：飛在上面的直升機；68-roll.js：疊在車頂上、剛從車頂開下來的車
     if (Math.hypot(A.x - B.x, A.z - B.z) > (A.len + B.len) / 2 + 1) continue;
     const mA = A.mass || (A.isCar ? 1600 : 280), mB = B.mass || (B.isCar ? 1600 : 280);
     let best = null;
@@ -724,6 +725,7 @@ function vehPairs() {
     const me = A === player.veh || B === player.veh;
     damageVeh(A, Math.max(0, (J / mA - 3.5) * 18), B === player.veh);
     damageVeh(B, Math.max(0, (J / mB - 3.5) * 18), A === player.veh);
+    rollHit(A, J / mA, nx, nz); rollHit(B, J / mB, -nx, -nz);   // 68-roll.js：側面被撞得夠猛就翻
     if (me) {
       const dv = J / (A === player.veh ? mA : mB);
       if (dv > 2) { sfx.impact(dv); camState.shake = Math.max(camState.shake, Math.min(1, dv / 14)); }
@@ -749,6 +751,7 @@ function vehPairs() {
 function coast(dt) {
   for (const v of vehicles) {
     if (v === player.veh || v.unit && v.unit.drive || v.ai || v.fly) continue;   // ai：69-squads.js 自己開的車
+    if (rollIdle(v, dt)) continue;   // 68-roll.js：翻滾、翻倒，疊在車頂上的車跟著底下的車
     if (Math.abs(v.vx) + Math.abs(v.vz) < .05) { v.vx = v.vz = 0; continue; }
     v.x += v.vx * dt; v.z += v.vz * dt;
     const k = Math.exp(-(v.dead ? 2.5 : 1.6) * dt); v.vx *= k; v.vz *= k;

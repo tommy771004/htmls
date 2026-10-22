@@ -222,8 +222,8 @@ const mirrorBall = (() => {
     do { x = -5.4 + rc() * 10.8; z = 13.6 + rc() * 10.8; tries++; } while (tries < 30 && spots.some(s => Math.hypot(s[0] - x, s[1] - z) < 1.05));
     spots.push([x, z]);
     cr.look(k, { r: rc, glowI: rc() < .45 ? 1.8 : 0 });
-    const a = [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][Math.floor(rc() * 4)];
-    cr.anim(k, a, rc() * 10, 1, rc() < .7 ? 0 : .5);
+    const a = DANCES[Math.floor(rc() * DANCES.length)];
+    cr.anim(k, a, rc() * 10, 1, Math.floor(rc() * 4) / 4);   // 拍點錯開四分之一拍，同一種舞步也不會整齊劃一
     const yaw = Math.atan2(-x * .2, 29 - z) + (rc() - .5) * 1.4;
     cr.place(k, x, 0, z, yaw);
     club.dancers.push(k);
@@ -522,7 +522,7 @@ function cycleLivery() {
 }
 function toggleDance() {
   if (player.mode !== 'walk') return;
-  player.dance = player.dance ? 0 : 1 + Math.floor(Math.random() * 4);
+  player.dance = player.dance ? 0 : 1 + Math.floor(Math.random() * DANCES.length);
   player.v = 0;
 }
 function enterVehicle(v) {

@@ -72,9 +72,9 @@ function setApply(k) {
   if (!k || k === 'units') { const em = document.querySelector('#spRow em'); if (em) em.textContent = IMPERIAL() ? 'mph' : 'km/h'; }
   if (!k || /^v|muteBlur/.test(k)) sfx.mix();
   if (k === 'blur') post.blur = .5 * SET.blur;
-  if (k === 'res') { post.scale = typeof SET.res === 'number' ? SET.res : 1; makeTargets(); }   // 切回自動從 100% 開始，太慢再往下降
+  if (k === 'res') { post.scale = typeof SET.res === 'number' ? SET.res : 1; detail.k = 1; detail.v++; makeTargets(); }   // 切回自動從 100% 開始，太慢再往下降
   if (k === 'msaa' || k === 'refl') makeTargets();
-  if (k === 'dist') for (const S of instStreams) S.dirty = true;
+  if (k === 'dist') detail.v++;
   if (k === 'camFar') camState.far = SET.camFar;
   if (k === 'fov') { const d = SET.fov - menu.fovBase; menu.fovBase = SET.fov; camState.fov += d; camera.fov += d; camera.updateProjectionMatrix(); }
   if (k === 'aimHold') gta.rmb = false;
@@ -193,7 +193,7 @@ function menuDraw() {
   const st = $('mnStat');
   st.hidden = !cats[menu.cat].stat;
   if (cats[menu.cat].stat) {
-    setText('mnStatT', `內部解析度 ${rtScene.width} × ${rtScene.height}${SET.res === 'auto' ? `（自動 ${Math.round(post.scale * 100)}%）` : ''} · 暫停前 ${Math.round(fps)} fps`);
+    setText('mnStatT', `內部解析度 ${rtScene.width} × ${rtScene.height}${SET.res === 'auto' ? `（自動 ${Math.round(post.scale * 100)}%${detail.k < 1 ? `、細節距離 ×${detail.k.toFixed(2)}` : ''}）` : ''} · 暫停前 ${Math.round(fps)} fps`);
     st.style.setProperty('--v', clamp(fps / 60, 0, 1) * 100 + '%');
   }
 }

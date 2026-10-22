@@ -180,6 +180,8 @@ function renderFrame(dt, t) {
   if (post.ft > 19) { post.slow += dt; post.fast = 0; } else if (post.ft < 13) { post.fast += dt; post.slow = 0; } else { post.slow = post.fast = 0; }
   if (SET.res !== 'auto') post.slow = post.fast = 0;   // 固定解析度比例時不自動調整
   if (post.slow > 1.2 && post.scale > .6) { post.scale = Math.max(.6, post.scale - .1); post.slow = 0; makeTargets(); }
-  if (post.fast > 4 && post.scale < 1) { post.scale = Math.min(1, post.scale + .05); post.fast = 0; makeTargets(); }
+  else if (post.slow > 1.2 && detail.k > .6) { detail.k = Math.max(.6, detail.k - .1); detail.v++; post.slow = 0; }   // 解析度降到底還是慢：縮短建築與街道設施的細節距離（01-settings.js）
+  if (post.fast > 4 && detail.k < 1) { detail.k = Math.min(1, detail.k + .05); detail.v++; post.fast = 0; }   // 變快了先把距離放回來，再升解析度
+  else if (post.fast > 4 && post.scale < 1) { post.scale = Math.min(1, post.scale + .05); post.fast = 0; makeTargets(); }
   if (post.wobble > 0) post.wobble = Math.max(0, post.wobble - dt * .08);
 }

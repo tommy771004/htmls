@@ -141,6 +141,33 @@ try {
   const gs = await ev(page, () => window.__nc.getStats());
   check(gs.drawCalls > 0, `車庫 ${gs.triangles} 個三角形、${gs.drawCalls} 個 draw call`);
 
+  // 島上的基地與對岸的遠景（27-props.js 的 COAST_MODELS）：走近就下載，量模型在所在區（邏輯座標）的範圍，
+  // 島上的要整塊落在灰鷗島上、底部在地面附近（原檔有幾公尺的地基）；對岸的要貼著各自的河岸（河岸基礎在水面下二十公尺內）（倫敦的東緣、舊港城的西緣），不能浮在空中或沉到水裡
+  for (const id of ['ruin', 'office', 'london', 'golu', 's7']) {
+    await ev(page, (id) => { const nc = window.__nc, o = nc.props.coast.models.find(o => o.id === id); nc.tpL(o.at.x + (o.proxy === 'isle' ? 0 : o.id === 'london' ? 700 : -600), o.at.z, 0); }, id);
+    let done = false;
+    for (let i = 0; i < 240 && !done; i++) { await page.waitForTimeout(250); done = await ev(page, (id) => !!window.__nc.props.coast.models.find(o => o.id === id).done, id); }
+    const bb = await ev(page, (id) => {
+      const C = window.__nc.props.coast, o = C.models.find(o => o.id === id);
+      if (!o.obj) return null;
+      const inv = o.obj.parent.matrixWorld.clone().invert(), b = { x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9, z0: 1e9, z1: -1e9 };
+      o.obj.updateMatrixWorld(true);
+      o.obj.traverse(m => {
+        if (!m.isMesh) return;
+        m.geometry.boundingBox || m.geometry.computeBoundingBox();
+        const q = m.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld));
+        b.x0 = Math.min(b.x0, q.min.x); b.x1 = Math.max(b.x1, q.max.x); b.y0 = Math.min(b.y0, q.min.y); b.y1 = Math.max(b.y1, q.max.y); b.z0 = Math.min(b.z0, q.min.z); b.z1 = Math.max(b.z1, q.max.z);
+      });
+      for (const k in b) b[k] = Math.round(b[k]);
+      return { b, isle: o.proxy === 'isle' ? C.ISLE : null, far: C.FAR_BANK_X, east: C.EAST_BANK_X };
+    }, id);
+    let ok = !!bb, why = '';
+    if (bb && bb.isle) { const I = bb.isle; ok = bb.b.x0 > I.x0 - 5 && bb.b.x1 < I.x1 + 5 && bb.b.z0 > I.z0 - 5 && bb.b.z1 < I.z1 + 5 && bb.b.y0 > -6 && bb.b.y0 < 2 && bb.b.y1 > 10; why = `島 x ${I.x0}…${I.x1}、z ${I.z0}…${I.z1}`; }
+    else if (bb && id === 'london') { ok = Math.abs(bb.b.x1 - bb.far) < 60 && bb.b.y0 > -25 && bb.b.y0 < 5 && bb.b.y1 > 40; why = `河岸 x ${bb.far}`; }
+    else if (bb) { ok = bb.b.x0 > bb.east - 40 && bb.b.y0 > -25 && bb.b.y0 < 5 && bb.b.y1 > 20; why = `河岸 x ${bb.east}`; }
+    check(done && ok, `${id} 的模型擺在該在的地方（邏輯座標範圍 ${JSON.stringify(bb && bb.b)}，${why}）`);
+  }
+
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間
   for (const id of ['loft', 'villa', 'office', 'mini', 'l16', 'i14']) {
     await ev(page, (id) => { const nc = window.__nc, a = nc.gta.apt.APT[id], d = a.door, f = a.face || 1; nc.motors.props.own.push(id); nc.tpL(d.x, d.z + 6 * f, f > 0 ? Math.PI : 0); }, id);

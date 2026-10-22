@@ -69,7 +69,7 @@ function mechDeliver() {
   // 身後 30 m 最近的那段路，停在那一側的車道、車頭順著車流（離路口至少 8 m）
   const sp = rnLaneSpot(q.x - Math.sin(yaw) * 30, q.z - Math.cos(yaw) * 30, 8);
   kestrel.x = sp.x; kestrel.z = sp.z; kestrel.yaw = sp.yaw;
-  kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.yr = 0; kestrel.air = null; poseVehicle(kestrel);
+  kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.yr = 0; kestrel.air = null; rollClear(kestrel); poseVehicle(kestrel);
   phone.cd.mech = 60; sfx.pickup();
   phoneMsg(`鐵手：${kestrel.name} 停在你後面了，鑰匙插著。`); toast(`${kestrel.name} 送到了`);
 }

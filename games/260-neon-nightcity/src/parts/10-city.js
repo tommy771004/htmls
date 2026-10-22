@@ -34,6 +34,14 @@ const colliders = [];                   // 靜態 AABB：{x0,x1,z0,z1}
 const circles = [];                     // 靜態圓柱：{x,z,r}
 let activeBoxes = colliders, activeCircles = circles;   // 室內時換成室內的碰撞表
 const blocks = [], lots = [], shopUnits = [];
+// 安全屋在街上的門（邏輯座標，都在街區南面朝 +z；69-safehouse.js 的 APT 引用），車庫捲門在門的東邊 GAR_DX 公尺。
+// 程式立面在門與捲門那一段的店面畫成鐵捲門，櫥窗才不會蓋住門板（只改畫面，shopUnits 的 shut 不變，20-props 招牌的亂數序列照舊）
+const APT_DOORS = {
+  loft: { x: avX(6) + 44, z: stZ(2) - HR - SW }, villa: { x: avX(2) + 36, z: stZ(7) - HR - SW }, mini: { x: avX(2) + 36, z: stZ(9) - HR - SW },
+  l16: { x: avX(15) + 36, z: stZ(9) - HR - SW }, i14: { x: avX(12) + 36, z: stZ(8) - HR - SW }, lr: { x: avX(4) + 36, z: stZ(13) - HR - SW },
+};
+const GAR_DX = 3.5;
+const aptDoorOn = (x0, x1, z) => Object.values(APT_DOORS).some(d => Math.abs(d.z - z) < .5 && x1 > d.x - 1.1 && x0 < d.x + GAR_DX + 1.6);
 
 // 依序建：原本的 5×5、World 第一輪的 8×7、第二輪的 20×15（亂數序列和擴建前一樣，舊城區的地塊與立面不變）
 const CORE = 5, isCore = (i, j) => i < CORE && j < CORE, isOld = (i, j) => i < 8 && j < 7;
@@ -775,6 +783,7 @@ for (const L of lots) {
         else if (k === 'px') { x = L.x1; z = L.z1 - along; }
         else { x = L.x0; z = L.z0 + along; }
         shopUnits.push({ x, z, nx: nrm[0], nz: nrm[1], w: uw, shut: (mask >> u) & 1, lot: L, special: L.special });
+        if (k === 'pz' && aptDoorOn(x - uw / 2, x + uw / 2, z)) masks[k][0] |= 1 << u;
       }
     }
   }
@@ -805,7 +814,7 @@ const cullAdd = (obj, R = CULL_R) => {
   const s = obj.geometry.boundingSphere, c = s.center.clone().applyMatrix4(obj.matrixWorld);
   const e = { obj, x: c.x, z: c.z, r: s.radius + R }; cullList.push(e); obj.userData.cull = e; return obj;   // userData.cull：會動的東西（21-coast.js 的貨櫃船）移動後用 cullSync 更新中心
 };
-function distCull(cx, cz) { const k = SET.dist * SET.dist; for (const c of cullList) c.obj.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c.r * c.r * k; }   // SET.dist：Esc 選單的細節距離
+function distCull(cx, cz) { const k = detailK() ** 2; for (const c of cullList) c.obj.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c.r * c.r * k; }   // SET.dist：Esc 選單的細節距離
 function chunkMesh(B) {
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3));

@@ -285,18 +285,42 @@ function placeCar(c, k, y = 0) {
 }
 parked.forEach(c => { c.brake = 0; placeCar(c, 0, groundH(c.x, c.z) > 0 ? .15 : 0); });
 
+// 前方同一條線上最近的東西有多遠；aheadV 是它的速度（給超車判斷：前面停住的才超）
+let aheadV = 0;
 function carAhead(c, fx, fz, maxD) {
   let best = maxD;
-  const test = (ox, oz, w) => {
+  const test = (ox, oz, w, v) => {
     const rx = ox - c.x, rz = oz - c.z;
     const along = rx * fx + rz * fz; if (along <= .5 || along > best) return;
     const lat = Math.abs(rx * fz - rz * fx); if (lat > 1.3 + w) return;
-    best = along;
+    best = along; aheadV = v;
   };
-  for (const o of traffic) if (o !== c) test(o.x, o.z, .4);
-  if (player.mode === 'drive' && player.veh) test(player.veh.x, player.veh.z, .5);
-  else if (player.mode === 'walk' && onRoad(player.x, player.z)) test(player.x, player.z, 0);
+  for (const o of traffic) if (o !== c) test(o.x, o.z, .4, o.v);
+  if (player.mode === 'drive' && player.veh) test(player.veh.x, player.veh.z, .5, Math.hypot(player.veh.vx, player.veh.vz));
+  else if (player.mode === 'walk' && onRoad(player.x, player.z)) test(player.x, player.z, 0, 9);   // 走在路上的人：等他過，不繞
   return best;
+}
+// 超車：前面的車停住（撞壞、玩家停在車道上）而不是在等紅燈時，等兩秒、看對向車道前方 45 m 沒車，就借對向車道繞過去，過了再切回來。
+// c.off 是往路中心偏的距離（0 = 自己的車道，2 × LANE = 對向車道中心）
+const PASS_OFF = 2 * LANE;
+// 讓路：後面 32 m 內有亮著警示燈追上來的警車（69-police.js 的 W.units），靠到車道和路邊停車格之間、減速
+const YIELD_OFF = -1.6;
+function sirenBehind(c, fx, fz) {
+  for (const u of W.units) {
+    const v = u.v;
+    if (!v || v.dead || !v.lights || !u.drive) continue;
+    const dx = v.x - c.x, dz = v.z - c.z, a = dx * fx + dz * fz;
+    if (a < -2 && a > -32 && Math.abs(dx * fz - dz * fx) < 5 && v.vx * fx + v.vz * fz > 3) return true;
+  }
+  return false;
+}
+function oncomingClear(c, fx, fz, d) {
+  for (const o of traffic) {
+    if (o === c) continue;
+    const rx = o.x - c.x, rz = o.z - c.z, along = rx * fx + rz * fz, lat = rx * fz - rz * fx;   // lat > 0：在左手邊（對向）
+    if (along > -8 && along < d && lat > LANE * .6 && lat < PASS_OFF + 2.5) return false;
+  }
+  return true;
 }
 // 車流只有幾十台：離玩家太遠（霧裡看不到）的車搬到玩家附近 140–250 m 的路段，城市再大，眼前的路上都有車
 function trafficRespawn(c, px, pz) {
@@ -306,7 +330,7 @@ function trafficRespawn(c, px, pz) {
     const e = near[Math.floor(rT() * near.length)], dir = rT() < .5 ? 1 : -1;
     const s = rT() * segLenE(e), [x, z] = laneAt(e, dir, s), dd = Math.hypot(x - px, z - pz);
     if (dd < 140 || dd > 250 || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144)) continue;
-    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z });
+    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z, off: 0, offT: 0, blockT: 0, passS: 0, yieldT: 0 });
     return;
   }
 }
@@ -333,9 +357,11 @@ function updateTraffic(dt, t) {
     if (c.turn) { const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, c.turn.t); const l = Math.hypot(tg[0], tg[1]) || 1; fx = tg[0] / l; fz = tg[1] / l; }
     else [, , fx, fz] = laneAt(c.e, c.dir, c.s);
     let want = TYPES[c.type].vmax * (.85 + c.seed * .3);
+    aheadV = 9;
     const gap = c.ghost > 0 ? 99 : carAhead(c, fx, fz, 22);
     const half = TYPES[c.type].len / 2;
     if (gap < 22) want = Math.min(want, Math.max(0, (gap - half - 3.2) * 1.1));
+    let atLight = false;
     if (!c.turn) {
       const L = segLenE(c.e), n = edgeEnd(c.e, c.dir);
       const st = lightState(n.i, n.j, edgeAx(n, c.e), t);
@@ -343,7 +369,19 @@ function updateTraffic(dt, t) {
       if (st !== 2 && c.s < stopS + .5) {
         const dist = stopS - c.s;
         if (st === 0 || dist > c.v * 1.2) want = Math.min(want, Math.max(0, dist * .9));
+        atLight = dist < 30;
       }
+      // 超車
+      c.off ||= 0; c.offT ||= 0;
+      const left = L - c.s;
+      if (!c.offT && gap < 14 && aheadV < .5 && !atLight && c.hit <= 0) {
+        c.blockT = (c.blockT || 0) + dt;
+        if (c.blockT > 2 && left > gap + 22 && oncomingClear(c, fx, fz, 45)) { c.offT = PASS_OFF; c.passS = c.s + gap + 9; c.blockT = 0; }
+      } else c.blockT = 0;
+      if (c.offT > 0 && (c.s > c.passS || left < 14)) c.offT = 0;
+      if (c.offT > 0) want = Math.max(want, Math.min(6, TYPES[c.type].vmax * .5));   // 借道時不理會原本車道上停著的車
+      if (c.hit <= 0 && W.units.length && sirenBehind(c, fx, fz)) c.yieldT = 1.2;
+      if (c.yieldT > 0) { c.yieldT -= dt; c.offT = c.yieldT > 0 ? YIELD_OFF : 0; want = Math.min(want, 2.5); }
     }
     if (c.hit > 0) want = 0;
     c.v = c.v + clamp(want - c.v, -9 * dt, 3.2 * dt);
@@ -362,12 +400,16 @@ function updateTraffic(dt, t) {
       if (c.s >= segLenE(c.e)) {
         const o = trafficNext(c), tp = turnPathE(c.e, c.dir, o.e, o.dir);
         c.turn = { ...tp, t: (c.s - segLenE(c.e)) / tp.len, o };
+        c.off = c.offT = 0;
       }
     }
+    // 往目標偏移量橫移（每秒 2.4 m），車頭跟著偏一點
+    const dOff = c.turn ? 0 : clamp((c.offT || 0) - (c.off || 0), -2.4 * dt, 2.4 * dt);
+    if (!c.turn) c.off = (c.off || 0) + dOff;
     // 世界座標
     let px, pz, yaw;
     if (c.turn) { const q = bez(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); px = q[0]; pz = q[1]; const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); yaw = Math.atan2(tg[0], tg[1]); }
-    else { let fx2, fz2; [px, pz, fx2, fz2] = laneAt(c.e, c.dir, c.s); yaw = Math.atan2(fx2, fz2); }
+    else { let fx2, fz2; [px, pz, fx2, fz2] = laneAt(c.e, c.dir, c.s, LANE - c.off); yaw = Math.atan2(fx2, fz2) + (dOff && c.v > .5 ? Math.atan2(dOff / dt, c.v) : 0); }
     c.x = px; c.z = pz; c.yaw = yaw;
     c.pitch = c.brake && c.v > 1 ? -.012 : 0;
     placeCar(c, 0);
@@ -487,7 +529,7 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
 function vehicleCollide(v, dt) {
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
   const off = v.off;
-  let impact = 0;
+  let impact = 0, ram = null;
   for (const s of [1, -1]) {
     const cx = v.x + fx * off * s, cz = v.z + fz * off * s;
     colY = v.y || 0;
@@ -495,6 +537,7 @@ function vehicleCollide(v, dt) {
     colY = 0;
     let px = r.x - cx, pz = r.z - cz, nx = r.nx, nz = r.nz;
     for (const c of traffic) {
+      if (c === v.under || v.y > 1.1 && v.y > groundH(c.x, c.z) + 1.1) continue;   // 68-roll.js：疊在車頂上、剛從車頂開下來或從上面飛過
       const L = TYPES[c.type].len * .3;
       for (const t of [-1, 1]) {
         const ox = c.x + Math.sin(c.yaw) * L * t, oz = c.z + Math.cos(c.yaw) * L * t;
@@ -502,6 +545,9 @@ function vehicleCollide(v, dt) {
         if (d2 < rr * rr && d2 > 1e-6) {
           const d = Math.sqrt(d2), push = rr - d; px += dx / d * push; pz += dz / d * push; nx += dx / d; nz += dz / d;
           if (c.hit <= 0) { c.hit = 2.5 + Math.random() * 2; c.honk = 0; sfx.horn(c); }
+          // 68-roll.js：高速撞上去（相對速度 18 m/s 以上）就把車流車撞離車道
+          const rel = -((v.vx - Math.sin(c.yaw) * c.v) * dx + (v.vz - Math.cos(c.yaw) * c.v) * dz) / d;
+          if (v.isCar && !v.tumble && rel > 18 && (!ram || rel > ram.rel)) ram = { c, rel, nx: -dx / d, nz: -dz / d };
         }
       }
     }
@@ -512,10 +558,13 @@ function vehicleCollide(v, dt) {
       if (vn < 0) { v.vx -= vn * nx * 1.25; v.vz -= vn * nz * 1.25; v.vx *= .9; v.vz *= .9; impact = Math.max(impact, -vn); }
     }
   }
+  if (ram) rollRam(v, ram.c, ram.rel, ram.nx, ram.nz);
   return impact;
 }
 function driveVehicle(v, inp, dt) {
   if (v.bail && v !== player.veh) inp = BAIL_INP;   // 68-wreck.js：起火後駕駛跳車，車子滑行到停
+  if (v.tumble) return rollStep(v, dt);   // 68-roll.js：翻滾中、側躺或倒扣
+  if (v.flipped) return flipStep(v, v === player.veh ? inp : null, dt);
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
   let vF = v.vx * fx + v.vz * fz, vR = v.vx * rx + v.vz * rz;
   const spd = Math.abs(vF);
@@ -542,7 +591,7 @@ function driveVehicle(v, inp, dt) {
   v.vx = nfx * vF + nrx * vR; v.vz = nfz * vF + nrz * vR;
   v.x += v.vx * dt; v.z += v.vz * dt;
   const imp = vehicleCollide(v, dt);
-  const gh = groundH(v.x, v.z);
+  const gh = v.isCar ? surfaceH(v) : groundH(v.x, v.z);   // 68-roll.js：疊在別台車的車頂上
   v.y = damp(v.y, gh, 18, dt);
   // 車身姿態：側傾、俯仰、機車壓車
   const latA = vF * v.yr;
@@ -558,15 +607,17 @@ function driveVehicle(v, inp, dt) {
   v.brakeOn = inp.brk && vF > .5 ? 1 : 0;
   return { imp, vF, aF };
 }
+const _rake = V3();
 function poseVehicle(v) {
   v.g.position.set(v.x, v.y, v.z);
   v.g.rotation.set(0, v.yaw, 0);
   v.body.rotation.set(v.pitch + (v.sagP || 0), 0, (v.isCar ? v.roll : v.lean) + (v.sagR || 0), 'YXZ');   // sag：68-wreck.js 的破胎下沉
-  // 跳台飛行中（69-stunt.js）繞車身中心翻轉，平常繞著地面
-  if (v.air && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }
+  // 跳台飛行中（69-stunt.js）與翻車（68-roll.js）繞車身中心翻轉，平常繞著地面
+  if ((v.air || v.tumble || v.flipped) && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }
   else if (v.body.position.lengthSq()) v.body.position.set(0, 0, 0);
   for (const w of v.wheels) {
     if (v.isCar) { w.piv.rotation.set(0, w.front ? v.steer : 0, 0); w.w.rotation.x = v.spin; }
+    else if (w.rake) { const r = w.rake * Math.PI / 180; w.piv.quaternion.setFromAxisAngle(_rake.set(0, Math.cos(r), -Math.sin(r)), v.steer * .6); w.w.rotation.x = v.spin; }   // 實車機車：前輪連同前叉、車把繞後傾的轉向軸轉
     else { w.piv.rotation.set(0, w.front ? v.steer * .6 : 0, 0); w.w.rotation.x = v.spin; }
   }
   v.mat.uniforms.uM.value.set(v.lights * lerp(.3, 1, atm.lamp), v.brakeOn || 0, 1, v.burn || 0);   // 白天大燈暗一點（28-sky.js）
