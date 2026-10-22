@@ -158,7 +158,8 @@ function updateCamera(dt, spd) {
   // 撞牆就把相機往角色拉近
   let tmin = 1;
   const ox = tx + rx * sx, oz = tz + rz * sx;
-  for (const b of activeBoxes) {
+  for (const b of boxesNear(ox, oz, dist + 2)) {
+    if (b.low) continue;   // 岸邊擋牆不擋相機
     if (Math.max(b.x0 - ox, ox - b.x1, b.z0 - oz, oz - b.z1) > dist + 2) continue;
     const t = rayBox(ox, oz, wx - ox, wz - oz, { x0: b.x0 - .25, x1: b.x1 + .25, z0: b.z0 - .25, z1: b.z1 + .25 });
     if (t < tmin) tmin = t;
@@ -251,6 +252,7 @@ function step(dt) {
     updateTraffic(dt, t);
     updatePeds(dt);
     holo.rotation.y = t * .35;
+    coastUpdate(t);
   } else if (player.where === 'club') updateClub(t, U.uBeat.value);
   if (player.mode === 'drive') {
     const v = player.veh;
@@ -292,6 +294,7 @@ function step(dt) {
   if (step.lastCam) rainU.uVel.value.subVectors(camera.position, step.lastCam).divideScalar(Math.max(dt, 1e-3)).clampLength(0, 40);
   (step.lastCam ||= V3()).copy(camera.position);
   pickLights(t);
+  if (player.where === 'out') { distCull(camera.position.x, camera.position.z); instUpdate(camera.position.x, camera.position.z); bldUpdate(); coastModelsUpdate(); }   // 遠處的立面、建築與設施不畫；走近才下載的建築組
   const ctx = started && !dlg.open && !fading ? contextAction() : null;
   const pr = $('prompt');
   if (ctx) { pr.classList.add('on'); setText('promptKey', ctx.key); if (hudCache.promptText !== ctx.text) { hudCache.promptText = ctx.text; $('promptText').innerHTML = ctx.text; } }

@@ -1,14 +1,23 @@
 
 // ═══ HUD：任務卡、羅盤與街名、地區天氣時間、旋轉小地圖、目標標記、速度表、全區地圖 ═══
 // 北方 = -z；地圖上 px = x、py = z。heading 以順時針角度表示，0 為北。
-const MAP_X0 = avX(0) - 60, MAP_Z0 = stZ(0) - 60, MAP_S = 2;
+// 地圖涵蓋對岸、海與灰鷗島；每公尺 1.5 px（小地圖另外放大回原本的比例）
+const MAP_X0 = FAR_BANK_X - 40, MAP_Z0 = stZ(0) - 60, MAP_S = 1.5, MINI_K = 2 / MAP_S;
 const mapImg = document.createElement('canvas');
-mapImg.width = Math.ceil((avX(NX) + 60 - MAP_X0) * MAP_S); mapImg.height = Math.ceil((stZ(NZ) + 60 - MAP_Z0) * MAP_S);
+mapImg.width = Math.ceil((EAST_BANK_X + 40 - MAP_X0) * MAP_S); mapImg.height = Math.ceil((ISLE.z1 + 40 - MAP_Z0) * MAP_S);
 {
   const c = mapImg.getContext('2d');
   const X = x => (x - MAP_X0) * MAP_S, Z = z => (z - MAP_Z0) * MAP_S;
-  c.fillStyle = '#4a4e56'; c.fillRect(0, 0, mapImg.width, mapImg.height);
-  for (const b of blocks) { c.fillStyle = '#2a2d33'; c.fillRect(X(b.x0), Z(b.z0), (b.x1 - b.x0) * MAP_S, (b.z1 - b.z0) * MAP_S); }
+  const rect = (r, col) => { c.fillStyle = col; c.fillRect(X(r.x0), Z(r.z0), (r.x1 - r.x0) * MAP_S, (r.z1 - r.z0) * MAP_S); };
+  c.fillStyle = '#14202a'; c.fillRect(0, 0, mapImg.width, mapImg.height);   // 水
+  rect({ x0: MAP_X0, x1: FAR_BANK_X, z0: MAP_Z0, z1: ISLE.z1 + 40 }, '#22252a');   // 對岸
+  rect({ x0: EAST_BANK_X, x1: EAST_BANK_X + 40, z0: CITY_CZ - 850, z1: CITY_CZ + 850 }, '#22252a');   // 東灣對岸
+  rect({ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: MAP_Z0, z1: SHORE_Z }, '#2a2d33');   // 濱海步道
+  rect({ x0: CITY_X0, x1: CITY_X1, z0: MAP_Z0, z1: CITY_Z1 }, '#4a4e56');
+  rect({ ...BEACH, z1: BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop }, '#6a5e46');
+  rect(QUAY, '#3a3d42'); rect(BRIDGE, '#4a4e56'); rect(ISLE, '#26321f');
+  for (const r of PIERS) rect(r, '#5a4632');
+  for (const b of blocks) { if (b.outer) continue; c.fillStyle = '#2a2d33'; c.fillRect(X(b.x0), Z(b.z0), (b.x1 - b.x0) * MAP_S, (b.z1 - b.z0) * MAP_S); }
   for (const L of lots) {
     c.fillStyle = L.special ? '#5a3a52' : L.style === 3 ? '#1b1e24' : '#202329';
     c.fillRect(X(L.x0) + 1, Z(L.z0) + 1, (L.x1 - L.x0) * MAP_S - 2, (L.z1 - L.z0) * MAP_S - 2);
@@ -30,6 +39,7 @@ const DIRN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const headingOf = (dx, dz) => ((180 - Math.atan2(dx, dz) * 180 / Math.PI) % 360 + 360) % 360;
 const dirName = h => DIRN[Math.round(h / 45) % 8];
 function streetName(x, z) {
+  if (x < CITY_X0 - 6 || x > CITY_X1 + 6 || z > CITY_Z1 + 6 || z < CITY_Z0 - 6) return district(x, z).replace(/^\S+ /, '');   // 格網外（海邊、島、河濱）沒有街名，顯示地名
   let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(x - avX(i)); if (d < bd) { bd = d; bi = i; } }
   let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(z - stZ(j)); if (d < be) { be = d; bj = j; } }
   if (bd < 13 && be < 13) return `${AVE[bi]} · ${STR[bj]}`;
@@ -64,7 +74,7 @@ function drawMini(px, pz, yaw, mk) {
   mctx.save(); mctx.clearRect(0, 0, W, W);
   mctx.beginPath(); mctx.arc(R2, R2, R2 - 2, 0, 7); mctx.clip();
   mctx.fillStyle = '#1a1c21'; mctx.fillRect(0, 0, W, W);
-  const zoom = player.mode === 'drive' ? .9 : 1.5;
+  const zoom = (player.mode === 'drive' ? .9 : 1.5) * MINI_K;
   mctx.translate(R2, R2); mctx.rotate(yaw - Math.PI); mctx.scale(zoom, zoom);
   mctx.drawImage(mapImg, -(px - MAP_X0) * MAP_S, -(pz - MAP_Z0) * MAP_S);
   const P2 = (x, z) => [(x - px) * MAP_S, (z - pz) * MAP_S];

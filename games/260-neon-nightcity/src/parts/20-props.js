@@ -14,11 +14,49 @@ function instanced(geo, mat, list, layer = 0, extra) {
   m.computeBoundingSphere();
   m.layers.set(layer);
   scene.add(m);
+  if (list.length > 160) instStreamAdd(m, list);
   return m;
 }
-const nearProp = [];   // 避免設施互相重疊
-const free = (x, z, r) => !nearProp.some(p => (p.x - x) ** 2 + (p.z - z) ** 2 < (p.r + r) ** 2);
-const claim = (x, z, r) => nearProp.push({ x, z, r });
+// 20×15 的城市有幾千盞路燈、上千個號誌：數量多的設施只把相機附近 INST_R 內的那幾個搬到 instance 緩衝區前段畫（相機移動 12 m 重排一次）。
+// 原始矩陣與 instance 屬性另存一份；之後要改某一個（打爛電訊箱）用 instSet，依編號更新號誌燈號用 m.userData.map（緩衝區位置 → 原始編號）。
+const INST_R = 380, instStreams = [];
+function instStreamAdd(m, list) {
+  const n = list.length, attrs = Object.entries(m.geometry.attributes).filter(([, a]) => a.isInstancedBufferAttribute).map(([k, a]) => ({ a, src: a.array.slice(0, n * a.itemSize) }));
+  const S = { m, n, mtx: m.instanceMatrix.array.slice(0, n * 16), xs: Float32Array.from(list, t => t.x), zs: Float32Array.from(list, t => t.z), attrs, cx: 1e9, cz: 1e9, dirty: true };
+  m.userData.map = new Int32Array(n); m.userData.stream = S;
+  m.boundingSphere = new T.Sphere(V3(), INST_R + 30);
+  instStreams.push(S);
+}
+function instSet(m, k, mtx) {
+  const S = m.userData.stream;
+  if (!S) { m.setMatrixAt(k, mtx); m.instanceMatrix.needsUpdate = true; return; }
+  mtx.toArray(S.mtx, k * 16); S.dirty = true;
+}
+function instUpdate(cx, cz) {
+  for (const S of instStreams) {
+    if (!S.dirty && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
+    S.dirty = false; S.cx = cx; S.cz = cz;
+    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = INST_R * INST_R;
+    let c = 0;
+    for (let k = 0; k < S.n; k++) {
+      if ((S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2 > R2) continue;
+      for (let e = 0; e < 16; e++) dst[c * 16 + e] = mtx[k * 16 + e];
+      for (const { a, src } of S.attrs) for (let e = 0; e < a.itemSize; e++) a.array[c * a.itemSize + e] = src[k * a.itemSize + e];
+      map[c++] = k;
+    }
+    m.count = c; m.instanceMatrix.needsUpdate = true;
+    for (const { a } of S.attrs) a.needsUpdate = true;
+    m.boundingSphere.center.set(cx, 0, cz);
+  }
+}
+// 避免設施互相重疊：佔用的圓放進 8 m 的格子（最大半徑 3.4 m），只比對附近幾格
+const nearProp = new Map(), NP_S = 8, npKey = (c, d) => (c + 1024) * 4096 + d + 1024;
+const free = (x, z, r) => {
+  for (let c = Math.floor((x - r - 3.5) / NP_S); c <= Math.floor((x + r + 3.5) / NP_S); c++) for (let d = Math.floor((z - r - 3.5) / NP_S); d <= Math.floor((z + r + 3.5) / NP_S); d++)
+    for (const p of nearProp.get(npKey(c, d)) || []) if ((p.x - x) ** 2 + (p.z - z) ** 2 < (p.r + r) ** 2) return false;
+  return true;
+};
+const claim = (x, z, r) => { const k = npKey(Math.floor(x / NP_S), Math.floor(z / NP_S)); let L = nearProp.get(k); if (!L) nearProp.set(k, L = []); L.push({ x, z, r }); };
 
 // ─── 路燈：位置與 shader 裡的 lampGrid 完全一致 ───
 const lampsA = [], lampsS = [];
@@ -102,8 +140,8 @@ function lightState(i, j, ax, t) {
   return k < 13 ? 0 : k < 24 ? 2 : 1;
 }
 function updateSignals(t) {
-  const a = sigGeo.attributes.aIns;
-  signals.forEach((s, k) => { a.array[k * 4] = lightState(s.i, s.j, s.ax, t); });
+  const a = sigGeo.attributes.aIns, map = sigMesh.userData.map;
+  for (let c = 0; c < sigMesh.count; c++) { const s = signals[map ? map[c] : c]; a.array[c * 4] = lightState(s.i, s.j, s.ax, t); }
   a.needsUpdate = true;
 }
 
@@ -134,9 +172,40 @@ for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) for (const sx of [-1
     if (groundH(x, z) > 0 && free(x, z, .3)) { bollards.push({ x, z, y: .15 }); circles.push({ x, z, r: .14 }); }
   }
 }
-// 行道樹：紅磚巷與舊碼頭比較多
+// 燈籠公園的步道燈籠：十字碎石小徑（10-city.js 的 LAWN_FS，沿街區中線、寬約 3.6 m）兩側每 9 m 一盞，左右交錯，十字口留空。
+// 先擺燈再種樹，樹會避開；燈光在 signLights 宣告之後才推進去（下面 parkLamps 那段）
+const parkLamps = [];
+for (const b of blocks) {
+  if (b.outer || !b.park) continue;
+  const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+  for (const [ax, a0, a1] of [['x', b.x0 + SW + 2, b.x1 - SW - 2], ['z', b.z0 + SW + 2, b.z1 - SW - 2]]) {
+    let k = 0;
+    for (let a = a0 + 2; a < a1 - 2; a += 9, k++) {
+      if (Math.abs(a - (ax === 'x' ? cx : cz)) < 4) continue;
+      const side = k % 2 ? 1 : -1, x = ax === 'x' ? a : cx + side * 2.4, z = ax === 'x' ? cz + side * 2.4 : a;
+      parkLamps.push({ x, z, y: .15, ry: ax === 'x' ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : (side > 0 ? 0 : Math.PI) });
+      claim(x, z, 1.2); circles.push({ x, z, r: .12 });
+    }
+  }
+}
+// 燈柱、往步道伸出的橫臂、吊著的紅燈籠（上下黑色環）
+instanced(new Kit()
+  .cyl(0, .2, 0, .14, .16, .4, 8, 0x1c1a18, 15).cyl(0, 1.7, 0, .06, .07, 3.2, 8, 0x2a2622, 15)
+  .box(-.42, 3.25, 0, .9, .06, .06, 0x2a2622, 15).cyl(-.82, 3.05, 0, .01, .01, .35, 4, 0x1c1a18, 15)
+  .cyl(-.82, 2.94, 0, .09, .09, .05, 10, 0x1c1a18, 15)
+  .cyl(-.82, 2.84, 0, .14, .24, .14, 12, 0xd8401c, 11).cyl(-.82, 2.67, 0, .26, .26, .2, 12, 0xff9a4a, 11).cyl(-.82, 2.5, 0, .24, .14, .14, 12, 0xd8401c, 11)
+  .cyl(-.82, 2.41, 0, .09, .09, .05, 10, 0x1c1a18, 15).cyl(-.82, 2.3, 0, .015, .015, .18, 4, 0xd8401c, 11).build(), MAT.uber, parkLamps, LY.NOREFL);
+
+// 行道樹：紅磚巷與舊碼頭比較多；燈籠公園的草地上種滿樹
 for (const b of blocks) {
   if (b.outer) continue;
+  if (b.park) {
+    const r3 = rng(b.i * 131 + b.j);
+    for (let x = b.x0 + SW + 4; x < b.x1 - SW - 3; x += 7) for (let z = b.z0 + SW + 4; z < b.z1 - SW - 3; z += 7) {
+      const tx = x + (r3() - .5) * 4, tz = z + (r3() - .5) * 4;
+      if (r3() < .55 && free(tx, tz, 2.4)) { trees.push({ x: tx, z: tz, y: .15, ry: r3() * 6.3, s: .95 + r3() * .5, park: 1 }); claim(tx, tz, 2.4); circles.push({ x: tx, z: tz, r: .35 }); }
+    }
+  }
   const dist = district((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2);
   const dens = dist.startsWith('霓虹') ? .35 : dist.startsWith('中城') ? .45 : .8;
   for (const z of [b.z0 + 1.6, b.z1 - 1.6]) for (let x = b.x0 + 12; x < b.x1 - 10; x += 9 + rnd() * 3)
@@ -144,7 +213,7 @@ for (const b of blocks) {
   for (const x of [b.x0 + 1.6, b.x1 - 1.6]) for (let z = b.z0 + 12; z < b.z1 - 10; z += 9 + rnd() * 3)
     if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
 }
-for (const t of trees) grates.push({ x: t.x, z: t.z, y: .155 });
+for (const t of trees) if (!t.park) grates.push({ x: t.x, z: t.z, y: .155 });
 instanced(new Kit()
   .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)
   .cyl(0, .4, 0, .05, .05, .42, 6, 0x9a9a9a, 3, 0, 0, Math.PI / 2).build(), MAT.uber, hydrants, LY.NOREFL);
@@ -431,6 +500,15 @@ function signQuad(cx, cy, cz, nx, nz, w, h, cellName, seed, kind, bright, col, l
   for (const [a, b, u, v] of pts) { signGeo.p.push(cx + tx * a, cy + b, cz + tz * a); signGeo.uv.push(u, v); signGeo.s.push(seed, kind, bright, 0); }
   signGeo.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
   if (col != null) signLights.push({ x: cx + nx * 1.4, y: cy - .3, z: cz + nz * 1.4, col: lin(col), r: lightR, i: bright * .55 });
+}
+// 燈籠公園步道燈籠的光（位置在上面 parkLamps 算好；燈籠在橫臂末端，往步道那側 0.82 m）
+for (const L of parkLamps) signLights.push({ x: L.x - Math.cos(L.ry) * .82, y: 2.6, z: L.z + Math.sin(L.ry) * .82, col: lin(0xff8a44), r: 9, i: 1.1 });
+// 實體建築模型自帶的路燈（props.mjs 的 lightPath，現在只有 Neighbourhood 街區）：燈頭位置換到世界座標補點光
+for (const e of bldPlace) {
+  const L = PROPS_SPEC[e.set]?.items[e.id]?.lights;
+  if (!L) continue;
+  const c = Math.cos(e.ry), sn = Math.sin(e.ry);
+  for (const [lx, ly, lz] of L) signLights.push({ x: e.x + (lx * c + lz * sn) * e.s, y: ly * e.s, z: e.z + (-lx * sn + lz * c) * e.s, col: lin(0xffd8a8), r: 8, i: .8 });
 }
 const signBacks = [];
 const r3 = rng(404);

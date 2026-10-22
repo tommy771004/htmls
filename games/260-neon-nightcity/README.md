@@ -63,8 +63,9 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | 檔案 | 內容 |
 | :-- | :-- |
 | `00-core.js` | renderer、城市尺寸常數、共用 uniform `U`、GLSL 函式庫（路燈格、點光、霧、環境反射）、uber 材質、`Kit` 幾何合併 |
-| `10-city.js` | 8×7 街區（原本的 5×5 在西北角，`district()` 往東是冠石金融區、往南是雲杉坡、東南是鐵灣貨場）與地塊、`finBlocks` 把冠石的整個街區換成 `bld_fin` 建築群、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
-| `20-props.js` | 路燈與光錐、紅綠燈、街道設施（流明電訊的藍色電訊箱 `boxesN` 可以打爛）、特技跳台 `RAMPS`（`rampBlock` 清掉助跑道上的路邊停車）、行道樹、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空 |
+| `10-city.js` | 20×15 街區（原本的 5×5 在西北角，第一輪的 8×7 在它外圍，第二輪的新區由 `DISTRICTS` 表分區）與地塊、`wholeBlocks` 把整個街區換成一個模型或一群建築（冠石的 `bld_fin`、光環的 `bld_cyber` 14 群加 `bld_fin` 三群、灰石的 `grey_18`／`grey_30`／`grey_31`、楓林里與公園大道的 `nbh_01`）、海岸地形（`LANDS`、`BEACH`、`QUAY`、`BRIDGE`、`ISLE`、`PIERS`、`groundH` 與擋牆）、地名 `district()`、距離剔除 `distCull`、碰撞空間索引 `boxesNear`／`circlesNear`、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
+| `20-props.js` | 路燈與光錐、紅綠燈、街道設施（流明電訊的藍色電訊箱 `boxesN` 可以打爛）、特技跳台 `RAMPS`（`rampBlock` 清掉助跑道上的路邊停車）、行道樹、燈籠公園步道的紅燈籠路燈 `parkLamps`、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空；`signLights` 另外收燈籠與實體建築原檔路燈（`props.json` 的 `lights`）的點光 |
+| `21-coast.js` | 海岸：水面 shader（倒影加兩層波紋）、沙灘、碼頭與島面、擋牆欄杆與步道路燈、步道長椅與花台；珊瑚灘的救生員塔、陽傘、排球網、椰子樹與棧橋盡頭的摩天輪；錨灣港的岸橋、貨櫃堆、高桿燈與貨櫃船；斜張跨海橋；灰鷗島的岩岸、樹與燈塔；遠景（北嶺國家公園三層山脊、灰鷺河對岸、東灣對岸 `FAR_SITES`、外海小島）與以檔案開啟時的替身 `ISLE_PROXY` |
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
 | `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質（建築組另有窗戶編號貼圖 `USE_WINMAP`）、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
 | `68-gta.js` | GTA 式擴充第一階段：搶車／撬車（`detachCar` 把車流車變成獨立載具）、準星射線（`castRay`，`rayHooks` 讓 69 加入警察與直升機）、車損（白煙 → 黑煙 → 起火 → 爆炸、燒毀殘骸，撞擊扣血 ΔHP = max(0, (J/M − 3.5)·18)）、路人倒地與逃跑、被拖下車的駕駛（`extras`）、火焰煙霧粒子與閃光燈 |
@@ -76,9 +77,9 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `69-market.js` | 第四階段經濟：霓虹證交所六檔股票 `STOCKS`（三組死對頭、`stockShock` 破壞 A 讓 A 跌 B 漲、每分鐘回歸基準價）、電訊箱的生命與連鎖爆炸、天際置業三處資產 `ESTATES`（每遊戲小時存進保險箱）；寫進存檔第 3 版的 `stk`、`props` |
 | `69-phone.js` | 第三階段 NeonPhone：清單式手機（聯絡人服務、暗網軍火、快速存檔）、空投彈藥箱、雷達隱形；霓虹證交所與天際置業的畫面；快速存檔寫進 `nc260.motors` 的 `game` 欄位 |
 | `69-police.js` | 第二階段通緝：犯罪熱度與星級、目擊報警、視線錐與脫離視線消星、路網追捕（Dijkstra 場）、警車／SWAT 裝甲車／戰車、下車的警察與 SWAT、直升機與探照燈、路障與釘刺帶、掉落彈藥、警笛與旋翼聲、星級 HUD、小地圖上的視線錐 |
-| `69-safehouse.js` | 安全屋：冠石頂層公寓與雲杉坡崖邊別墅（`VENUES.loft`／`villa`，室內是 `apt_loft`／`apt_villa`，走近門口 70 m 就下載，以檔案開啟是程式建模的房間），街上的門與門牌、門口看房買下、沙發睡覺（推進 6 小時、補滿生命、以門口位置快速存檔） |
+| `69-safehouse.js` | 安全屋 `APT`（`APT_IDS` 六間：冠石頂層公寓、雲杉坡崖邊別墅、灰鷗島辦公室、楓林里迷你閣樓、琥珀和室 Loft、公園大道白色大宅；`VENUES.<id>`，室內是 `apt_<id>`，走近門口 70 m 就下載，以檔案開啟是程式建模的房間），街上的門與門牌（`face: -1` 是朝北的門）、門口看房買下、沙發睡覺（推進 6 小時、補滿生命、以門口位置快速存檔）、島上辦公室在辦公桌收保險箱 |
 | `69-stunt.js` | 第四階段特技跳台：斜面高度與俯仰（`stuntGround`）、衝出邊緣後的拋物線飛行（`stuntFly` 代替 `driveVehicle`）、0.4 倍慢動作與側面固定機位、落地獎金（每座第一次加倍，完成的跳台寫進存檔的 `stunts`） |
-| `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車 |
+| `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車；海岸的 `COAST_MODELS`（灰鷗島的 `isle_ruin`／`isle_office`、遠景的 `far_london`／`far_golu`／`far_s7`，擺好就把 `ISLE_PROXY` 的替身 `removeFromParent()`：`distCull` 每幀都會重設 `visible`，只藏起來會被打開） |
 | `30-vehicles.js` | 車流車型 `TYPES`（計程車、兩種警車、九種房車、四種廂型車與貨車都來自內嵌的 `traffic.glb`，40 m 外換遠景模型、相機後方不畫；`traffic.glb` 載入失敗才用程式建模）、程式建模的 Kestrel、Hanzo 等替身；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
 | `40-people.js` | 人物：Quaternius 男女底模（`people.glb`）依髮型合併成蒙皮幾何、每人一個 SkinnedMesh＋AnimationMixer；動畫時間由 `uTime`／`uBeat` 換算（舞池對拍），調酒、DJ、撐傘、抽菸、抱胸、騎機車在播放後覆寫手臂與上身；行人、排隊人龍、玩家與更新 `updateCrowds()` |
 | `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何（`people` 由 40 自己解） |
@@ -87,7 +88,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `65-motors.js` | 車行展示廳與車庫室內、看車／買車／試駕／出庫／賣車對話、停進車庫、甩尾打賞、存檔 |
 | `70-render.js` | 反射相機、MSAA 半浮點渲染目標、5 階泛光、動態模糊、色散、ACES、調色、顆粒、動態解析度 |
 | `80-audio.js` | WebAudio：雨聲、城市低頻、引擎、甩尾、124 BPM 夜店鼓組（拍點驅動舞步與燈光）、酒吧 lo-fi、喇叭、警笛、雷聲 |
-| `90-hud.js` | 羅盤與街名、時鐘、小地圖、大地圖與傳送、目標標記、時速表 |
+| `90-hud.js` | 羅盤與街名（格網外的海邊、島與河濱顯示地名）、時鐘、小地圖、大地圖與傳送（地圖涵蓋兩岸、海、碼頭、跨海橋與灰鷗島，每公尺 1.5 px）、目標標記、時速表 |
 | `99-main.js` | 輸入、相機（防穿牆、遮擋物抖動淡出）、每幀挑燈、天氣、主迴圈、`window.__nc` |
 
 ### 車流
@@ -125,14 +126,14 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 ### 街區建築與道具
 
-- `tools/props.mjs` 把 `.cache/props/` 的 Sketchfab 原檔（DanielZhabotinsky 的四套建築組、拉麵攤、點唱機、街機、升降機、工具推車，見 `assets/260/CREDITS.md`；新城區與安全屋的原檔在 `.cache/world/`，見下面「城區與安全屋」）擺正、縮放、接地，依材質寫成 `COLOR_0`／`_PBR`／`_EMI` 頂點屬性（和實車同一套 `glbMaterial`），貼圖轉 1024 WebP、meshopt 壓縮，輸出 `assets/260/props/*.glb` 與 `props.json`（每件的寬、深、高與作者）。建築組依「建築名_材質名_0」的節點名拆成一棟一棟，太小的零件（h < 2.5 m）不收。
+- `tools/props.mjs` 把 `.cache/props/` 的 Sketchfab 原檔（DanielZhabotinsky 的四套建築組、拉麵攤、點唱機、街機、升降機、工具推車，見 `assets/260/CREDITS.md`；新城區與安全屋的原檔在 `.cache/world/`，見下面「城區與安全屋」）擺正、縮放、接地，依材質寫成 `COLOR_0`／`_PBR`／`_EMI` 頂點屬性（和實車同一套 `glbMaterial`），貼圖轉 1024 WebP、meshopt 壓縮，輸出 `assets/260/props/*.glb` 與 `props.json`（每件的寬、深、高與作者）。`dropPath` 依祖先節點路徑丟掉零件，`simplify` 用 meshopt 減面（誤差上限預設 0.002，`simplifyError` 可放寬），`heavy: [節點名, 比例]` 先把面數很高的小零件單獨減到指定比例（`bld_nbh` 的冷氣室外機、路燈、盆栽、路障減到一成，整組再減一半，約 23.6 萬面）。其他選項：`lightPath` 依節點名記下燈頭位置（寫進 `props.json` 的 `lights`，頁面補點光）、`tint: { 材質: [底色倍率, 最低粗糙度, 最高金屬度] }` 壓掉鏡面、`texEdit` 改貼圖（`ads` 換成原創廣告、`blur` 模糊真實招牌）、`dropBox` 依原檔座標的盒子與材質刪零件、`clip` 切掉盒子外的碎片、`groundY` 指定地面高度、`far` 輸出遠景（小貼圖、頁面用 `FAR` 版材質）、`winWhole` 整棟一個窗燈亂數（立面照片每扇窗都不同時用，避免跨兩個面片的窗只亮一半）。建築組依「建築名_材質名_0」的節點名拆成一棟一棟，太小的零件（h < 2.5 m）不收。
 - 建築組的金屬粗糙貼圖是窗戶遮罩（洋紅＝玻璃）。`winTex` 把它膨脹 2 px 找連通區，改寫成 R＝玻璃、G＝窗戶編號的無損貼圖；`_WIN` 頂點屬性是同一棟同一層的亂數。頁面依編號（取第 0 層 mip）、貼圖重複格與 `_WIN` 決定每扇窗亮不亮，顏色和程式立面的窗燈同一套。逃生梯欄杆之類的鏤空（MASK／BLEND）材質不給遮罩，否則會被當成窗戶點亮。
-- `10-city.js` 在地塊排好後挑建築：同一街區同一面的連續地塊（最多四塊、不含場館）依區域機率換成一棟寬度最接近的模型（等比縮放 0.85–1.18、深度要放得下），標上 `L.glb`，這些地塊不建程式立面與店面；`27-props.js` 下載後把同一組同一材質的建築合併成一個網格。以檔案開啟不換；下載失敗由 `lotFallback()` 補回程式立面（沒有店面）。開始畫面會等建築與拉麵攤下載完（約 13 MB，其中冠石的 `bld_fin` 4.5 MB、雲杉坡的 `bld_res` 1.1 MB）。
+- `10-city.js` 在地塊排好後挑建築：同一街區同一面的連續地塊（最多四塊、不含場館）依區域機率換成一棟寬度最接近的模型（等比縮放 0.85–1.18、深度要放得下），標上 `L.glb`，這些地塊不建程式立面與店面；`27-props.js` 依 4×4 街區一格、同一組同一材質把建築合併成網格，玩家 520 m 內的建築組才下載（`bldUpdate`，每 30 幀檢查一次），合併後的網格交給 `distCull` 依距離隱藏。以檔案開啟不換；下載失敗由 `lotFallback()` 補回程式立面（沒有店面）。開始畫面只等起點附近的建築組與拉麵攤。
 - 室內道具走進酒吧或車庫時才下載（HUD 顯示進度），下載好就把 Blender 版的點唱機與街機藏起來換上；車庫最裡面那格加上雙柱升降機與工具推車（碰撞箱在下載後才加）。
 
 ## 測試 API
 
-`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門）、`market`（`STOCKS`、`ESTATES`、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`）、`heist`（`heist` 狀態、`BANK`／`PLAN`／`SAFE`／`VAN_AT`／`CAR_AT`、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；安全屋：`apt`（`APT` 兩間的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`unit(kind, at)`、`heli()`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
+`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門）、`market`（`STOCKS`、`ESTATES`、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`）、`heist`（`heist` 狀態、`BANK`／`PLAN`／`SAFE`／`VAN_AT`／`CAR_AT`、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；安全屋：`apt`（`APT` 六間的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`unit(kind, at)`、`heli()`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
 車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家，`me.mesh.visible` 截圖時可隱藏）、`peds`／`pedState`（行人）、`crowd(n)`／`ANIM`（另建一群人測動作）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
 
 ### GTA 式擴充（第三階段）
@@ -161,25 +162,31 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 ### 城區與安全屋（World 整合）
 
-使用者提供的 `~/Downloads/World` 裡授權是 CC BY 4.0 的模型才用（複製到 gitignore 的 `.cache/world/`），其他 Sketchfab Standard 授權的不收。地名全部原創。
+使用者提供的 `~/Downloads/World`（複製到 gitignore 的 `.cache/world/`）。第一輪只用 CC BY 4.0 的模型；第二輪城市擴到 20×15，使用者同意連 Sketchfab Standard 授權（可放進作品使用、不能單獨再散布）的三個模型一起用；第三輪把剩下的檔案全部用上，城市四周加上海岸、河、島與山，授權標示見 `assets/260/CREDITS.md` 與開始畫面 `#fanNote`。地名全部原創。
 
-- 城市從 5×5 擴成 8×7 個街區：原本的城區不動（`X0`、`Z0` 不變），新的三欄往東、兩列往南長，街名多了 Granite／Hollis／Ironside Av 與 12、13 St。車流、路燈、紅綠燈、警方路網、小地圖與大地圖都照 `NX`／`NZ` 長出來。
+- 城市從 5×5 擴成 8×7（第一輪），再擴成 20×15 個街區（第二輪，約 1.4 × 0.9 km，面積是 8×7 的 5.4 倍）：原本的城區不動（`X0`、`Z0` 不變），新區往東、往南長，大道一路排到 Union Av、街到 21 St。街區依 0（5×5）、1（8×7）、2（新區）三個階段產生，舊地塊與立面的亂數序列不變。車流、路燈、紅綠燈、警方路網、小地圖與大地圖都照 `NX`／`NZ` 長出來。
+- 第二輪的新區（`DISTRICTS`）：北半往東是光環廣場（golukumar Cyberpunk City 依原檔街廓拆成的 14 群 `bld_cyber`，放大 9 倍，加上重用的 `bld_fin` 三群）與灰石國宅（dasy444 street city buildings (8) 的照片立面板樓 `bld_grey`，放大 11 倍；最高的 `grey_18` 一個街區放一棟，雙層板樓 `grey_30` 與後面那棟大板樓 `grey_31` 各放一處）；中段是楓林里與公園大道（golukumar Neighbourhood 的整個街區 `nbh_01`，帶中庭、樹、原檔的路燈、冷氣機與路障，共六處；只拿掉路邊停的 BMW E46）、燈籠公園（3×2 個街區的草地與步道，沒有地塊；步道每 9 m 一盞紅燈籠路燈）、琥珀工業區；最南一排是珊瑚灘（dasy444 street city (7) 的七間兩層樓店面 `bld_shop`，窗框手量）與錨灣港。
+- 城市變大後的效能：立面與合併網格依距離隱藏（`distCull`，420 m）；超過 160 個的 InstancedMesh 只送 380 m 內的實例（`instUpdate`）；碰撞框與圓用 24 m 格子的空間索引（`boxesNear`／`circlesNear`，增刪碰撞物要呼叫 `colDirty()`）；車流超過 290 m 就重生到玩家 140–250 m 外的路段，路人的街區超過 230 m 就搬到 70–180 m 內的街區；停車只畫 320 m 內、陰影只給 200 m 內。
 - 冠石金融區（Crownstone，東側三欄）：golukumar 的「New York City」只取建築，依原檔座標的矩形拆成 12 群（`bld_fin`），`finBlocks` 把一群或兩群並排塞進一個街區（等比縮到 47×37 m 內，最多 1.08 倍，能轉 90° 放得更大就轉），整個街區不建程式立面。照片立面的暗色窗格自動做成窗戶編號貼圖（`photoWindows`；亮度分不出來的立面用手量的窗框 `winRects`），玻璃帷幕的牆面改成沿牆投影的格狀窗（`curtainUV`，每格 1.6 × 3.5 m）；同一塊窗戶照片被貼在每一層，所以亂數 `_WIN` 取每個三角形外框的最小角，每段牆各自亮燈。
 - 雲杉坡（Spruce Hill，南側兩列）：住宅區，程式立面多半是 4–8 層的磚樓與石材樓，實體建築混入 abhayexe「city」的五棟公寓大樓（`bld_res`，放大 1.45 倍、大門轉成朝街）；藍灰玻璃用藍色比例找窗戶（`winBlue`）。
 - 鐵灣貨場（Ironbay Yards，東南角）：工業區，DanielZhabotinsky 的工業建築組比例最高。
-- 安全屋：天際置業多了兩間沒有收入的房子，也可以走到門口按 E 看房直接買。冠石頂層公寓（$380,000，8 St）是 dasy444 的 loft17，兩層挑高、西面整片玻璃外是一圈發光的摩天樓卡片；雲杉坡崖邊別墅（$600,000，13 St）是同作者的 interior15，拿掉白天的天空半球，鏡面地板改成拋光石材。買了才進得去，沙發旁按 E 睡一覺：時間推進 6 小時、補滿生命、以門口位置快速存檔（人在室內也能存）。手機裡已買的安全屋可以一鍵導航到門口。
-- 沒用的檔案：cyberpunk_city（CC BY，但有 H&M 等真實品牌看板、157 MB）、london_city（CC BY，比例與風格和夜城對不上，還帶著遠處的雜散幾何）；其餘 abandoned_city_street、city.glb、free_loft_18（兩份）、interior_15_mini_loft、loft_16、loft_18_environment、neighbourhood_city_modular_lowpoly、street_city_7、street_city_buildings_8、the_interior_14 是 Sketchfab Standard 授權，不能重新散布，沒有放進專案。
+- 安全屋：天際置業多了六間房子，也可以走到門口按 E 看房直接買。冠石頂層公寓（$380,000，8 St）是 dasy444 的 loft17，兩層挑高、西面整片玻璃外是一圈發光的摩天樓卡片；雲杉坡崖邊別墅（$600,000，13 St）是同作者的 interior15，拿掉白天的天空半球，鏡面地板改成拋光石材。第三輪加上同作者的四間（Sketchfab Standard）：灰鷗島辦公室（$520,000，Loft 18，門朝北對著跨海橋過來的路；唯一有收入的安全屋，每遊戲小時 $900、上限 $18,000，在辦公桌收保險箱）、楓林里迷你閣樓（$160,000，interior 15 mini loft）、琥珀和室 Loft（$340,000，Loft 16）、公園大道白色大宅（$480,000，interior 14，鏡面地板與帶金屬度的牆改成霧面）。買了才進得去，沙發旁按 E 睡一覺：時間推進 6 小時、補滿生命、以門口位置快速存檔（人在室內也能存）。手機裡已買的安全屋可以一鍵導航到門口。
+- 海岸（第三輪，`21-coast.js`）：城市南面是海，西半是珊瑚灘（沙灘、救生員塔、陽傘、排球網、椰子樹，190 m 的棧橋盡頭是霓虹摩天輪），東半是錨灣港（110 m 深的碼頭、岸橋、貨櫃堆、高桿燈與靠港的貨櫃船）；錨灣港碼頭往南的斜張跨海橋（灰鷗大橋）通到 360×250 m 的灰鷗島，島上西側是 dasy444 的廢墟街區（abandoned city street，放大 2.3 倍）、中間是 Loft 18 environment 的辦公園區與一圈板樓（安全屋辦公室的門就在這裡）、東端是燈塔。西面是灰鷺河（步道、欄杆、長椅與花台），對岸是 golukumar 的 London City（遠景，約 720×1270 m）；東面海灣對岸是舊港城（golukumar 的 City 放大 17 倍，後排是 street city (7) 剩下的弧形店屋與板樓 `far_s7`）；北面樓牆後是三層山脊的北嶺國家公園。水面用同一張平面倒影加兩層波紋；遠景材質（`FAR`）不算積水反射，否則大片空地會映出一條條霓虹色塊。擋牆與欄杆擋住人和車，沙灘可以走到水深 0.3 m。以檔案開啟時島上與對岸是程式建模的方塊替身。
+- World 的檔案全部用上了：cyberpunk（`bld_cyber`）、city_golu（`far_golu`）、abandoned（`isle_ruin`）、london_city（`far_london`）、loft18env（`isle_office`）、loft18／miniloft／loft16／interior14（四間安全屋）、street7 剩下的部分（`far_s7`）、street8 剩下的兩棟板樓（`grey_30`／`grey_31`）、Neighbourhood 先前拿掉的路燈與小零件。每個檔案拿掉了什麼見 `assets/260/CREDITS.md`；Cyberpunk City 的真實品牌廣告全部換成原創霓虹廣告、立面照片裡的真實招牌模糊掉、樓頂的服飾品牌立體字刪掉。
 
 ## 已知限制
 
-- 無頭 Chrome（Metal）街上約 120 fps、150–320 個 draw call、150–300 萬個三角形（城市擴成 8×7 之後，以檔案開啟與以 http(s) 開啟都在這個範圍；冠石金融區看得最遠，約 240 個 draw call、275 萬個三角形）；低階手機會自動降低點光數量與解析度。
+還沒做的項目與從哪裡改，整理在 [`HANDOFF.md`](HANDOFF.md)。
+
+- 無頭 Chrome（Metal）街上約 120 fps：起點附近約 165 個 draw call、240 萬個三角形；城市擴成 20×15 並加上第三輪的模型後，以 http(s) 開啟在光環廣場約 660 個 draw call、610 萬個三角形（最重的地方），楓林里約 460／430 萬、燈籠公園旁約 490／570 萬、灰鷗島約 100／43 萬、東灣邊約 270／120 萬，都還在 120 fps（Neighbourhood 街區每個約 23.6 萬面、模型檔 7.5 MB；Cyberpunk City 的 14 群合計 9 MB；遠景三組 1500 m、島上兩組 900 m 內才下載）。第三輪新增的模型檔合計約 26 MB（全部 `assets/260/props/` 約 54 MB），頁面單檔約 3.4 MB。低階手機會自動降低點光數量與解析度。
 - 人物的貼圖都換成素色（衣物分區上色），髮型只有男女各三種；調酒、DJ、撐傘、抽菸、抱胸與騎機車是在現成動畫上覆寫手臂方向，動作比較僵；舞池的人跟著拍點跳同一段舞，只有相位與手部覆寫不同。人物每幀多花約 2 ms CPU（街上約 20 人在畫面內）。
 - 程式建模的車型是低多邊形的剪影致敬，比例與輪廓取自線稿，細節（曲面、內裝）都很簡化；車庫一次只開一台出門。
 - 實車模型每台 4–20 萬面（第二批壓在 9 萬左右），展示廳 29 台全部載入時約 170 萬個三角形、365 個 draw call（無頭 Chrome Metal 約 108 fps），整間車行要下載約 51 MB，手機上會很吃力；輪子是用幾何自動拆的，少數卡鉗會跟著輪子轉，機車前叉不隨轉向轉動。車流 16 種車型的 `traffic.glb` 約 1.1 MB，頁面單檔因此約 2.5 MB；計程車是綠色的 Fairheaven（黃色的 Canyon '75 沒有下載到）。
 - 車流是固定車道圖上的跟車模型，不會變換車道；車輛之間只有簡單的雙圓碰撞（沒有剛體物理，翻車與堆疊都不會發生）。
 - 警察與直升機只用街區方塊判斷視線（不看路燈、樹與車）；直升機不會撞建築，只維持在屋頂上方 12 m。轉管機槍與火箭筒仍用雙手持槍的手臂姿勢，只有武器位置不同。
-- 城市是 8×7 個街區，邊緣是一圈遠景剪影；使用者列的島嶼、河道、山區國家公園這類地形，手上的模型都做不出來（見「城區與安全屋」）。
+- 海岸、河與山是固定的畫面與擋牆：不能下水或開船，貨櫃船、岸橋與摩天輪不會動；北嶺國家公園只是遠景山脊，走不上去；對岸的 London City 與東灣的舊港城只是遠景（沒有碰撞、到不了）。灰鷗島上的廢墟街區與辦公園區只有外觀，除了安全屋辦公室都進不去。
+- 楓林里與公園大道的 Neighbourhood 街區立面是拼貼圖集，自動找窗只會找出滿牆的碎點，所以只有窗簾貼圖的窗戶會亮；夜裡主要靠原檔中庭路燈補的點光，整體仍比程式立面暗。
 - 車內射擊沒有把手臂伸出車窗的動作，只有槍口火光與彈道；快速存檔不存座駕位置與室內場景，讀檔後一律站在戶外。
 - 第四階段沒做規格裡的傭兵小隊、資產被襲擊的防守任務與搶運鈔車後的幫派追殺；搶劫時另外兩位主角不會跟著行動（只在換人時出現在位置上），人質不會逃跑或反抗。跳台只有六座，飛行時車身不會翻滾。股價與資產收入只在遊戲開著時變動。
 - 驗收裡「1 星：警車趕到並逮捕」偶爾失敗（約五次一次），重跑即可。
-- 安全屋只能走一樓：頂層公寓的旋轉樓梯與夾層、別墅的臥室側翼與露台都擋起來了（相機只處理單一天花板高度）；規格裡的換裝沒做，車輛一樣存在 GARAGE 07。別墅的門在雲杉坡街區的南面，門外可能剛好是一棟公寓大樓。
+- 安全屋只能走一樓：頂層公寓的旋轉樓梯與夾層、別墅的臥室側翼與露台、島上辦公室的夾層都擋起來了（相機只處理單一天花板高度）；迷你閣樓原檔只是一個角落，和室 Loft 原檔東面是開著的，缺的牆是補上的素色牆。規格裡的換裝沒做，車輛一樣存在 GARAGE 07。別墅的門在雲杉坡街區的南面，門外可能剛好是一棟公寓大樓。

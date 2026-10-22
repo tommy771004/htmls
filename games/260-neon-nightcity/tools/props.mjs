@@ -77,11 +77,75 @@ export const SETS = [
     winRects: { '01_-_Default_27': [[.32, .055, .695, .234], [.227, .055, .289, .094], [.023, .29, .223, .41], [.578, .305, .625, .383], [.215, .535, .477, .664],
       [.117, .539, .164, .57], [.672, .539, .727, .625], [.117, .78, .164, .812], [.5, .773, .555, .867]] },
     cells: [[-20.5, -13.85, -18.6, -10.89], [-20.5, -13.85, -10.88, -3.15], [-28.6, -20.55, -8.85, -2.4], [-20.3, -13.85, 6.3, 14.2], [-20.9, -14.3, 14.21, 21.95]] },
+  // ─── World 第二輪（城市擴到 20×15）：以下三組是 Sketchfab Standard 授權（可用在作品裡、不能單獨再散布），來源與授權見 CREDITS.md ───
+  // 楓林里的住宅街區：golukumar 的 Neighbourhood City Modular（公尺，42×39 m，剛好一個街區），整塊當一個物件；
+  // 只拿掉停在路邊的 BMW E46（真實車款，而且車流會自己開車進來）與路面；冷氣室外機、路燈、盆栽、路障這些面數很高的小零件（約 17 萬面）
+  // 單獨減到一成（heavy），整組再減一半。路燈的燈頭位置記在 lights，頁面補點光。窗戶是幾何的窗框加上窗簾貼圖（Wall_3.056_5 上方四分之三）
+  { out: 'bld_nbh', file: 'neighbourhood', src: '.cache/world', prefix: 'nbh', win: true, winAuto: /^Wall_3\.056_5$/, winRects: { 'Wall_3.056_5': [[0, 0, 1, .74]] },
+    dropPath: /E46/, lightPath: /streetLights/, heavy: [/Window_AC|Split_Ac|streetLights|Pot_9|TrafficDrum|Barricade/, .12], dropGround: .12, cellMargin: 0, simplify: .5, cells: [[-25, 25, -25, 25]] },
+  // 灰石國宅：dasy444 的 street city buildings (8)，照片立面的蘇聯式板樓。原檔一層約 0.27 單位，放大 11 倍（一層 3 m）；
+  // 疊在下一層上面的算同一棟（Cube.019→018、Plane.011→010、Plane.014→013）；名叫 Plane 的也是板樓（grey_19 起），
+  // Plane.015 是後面那棟磚牆大樓（grey_31，56×53×85 m）；只有 Plane.002 是整片地面
+  { out: 'bld_grey', file: 'street8', src: '.cache/world', prefix: 'grey', scale: 11, win: true, winAuto: /^Material\.0(0[1-579]|11)$/,
+    split: (n, m) => byBuilding(n, m).replace('Cube.019', 'Cube.018').replace('Plane.011', 'Plane.010').replace('Plane.014', 'Plane.013'), drop: /^Plane\.002$/ },
+  // 珊瑚灘的街角小店：dasy444 的 street city (7) 右邊那排七間兩層樓店面（照片立面，有塗鴉與舊招牌），放大 3 倍；彎曲的國宅與高塔不要
+  // 照片窗是多格窗櫺，自動偵測會拆成一格一格的碎點，所以每張立面都手量窗框（貼圖 UV，v 由上往下）
+  // 每間店的立面照片都不一樣（不像板樓把同一塊窗貼在每一層），用 winWhole：整棟一個亂數、靠貼圖的窗編號區分每扇窗。
+  // 不然窗戶跨兩個面片時，兩半各抽各的亂數，會一半亮一半暗
+  { out: 'bld_shop', file: 'street7', src: '.cache/world', prefix: 'shop', scale: 3, win: true, winAuto: /^Material\.00[1-7]$/, winWhole: true, cellMargin: .02,
+    winRects: {
+      'Material.001': [[.17, .7, .3, .85], [.37, .7, .59, .85], [.66, .7, .89, .85], [.37, .5, .59, .63], [.66, .5, .89, .63]],
+      'Material.002': [[.086, .164], [.227, .305], [.398, .477], [.555, .64], [.777, .86]].flatMap(([u0, u1]) => [[u0, .44, u1, .55], [u0, .66, u1, .77]]),
+      'Material.003': [[.13, .13, .36, .42], [.4, .13, .65, .42], [.69, .13, .89, .42], [.27, .6, .39, .78]],
+      'Material.004': Array.from({ length: 9 }, (_, k) => (25 + 23.5 * k) / 256).flatMap((u) => [[.254, .39], [.47, .605], [.7, .84]].map(([v0, v1]) => [u, v0, u + .062, v1])),
+      'Material.005': [[.09, .17], [.26, .34], [.4, .48], [.56, .64], [.83, .94]].flatMap(([u0, u1]) => [[u0, .37, u1, .55], [u0, .65, u1, .8]]),
+      'Material.006': [[.13, .45, .3, .58], [.34, .45, .5, .58], [.67, .45, .83, .58], [.13, .69, .3, .83], [.34, .69, .5, .83], [.55, .69, .61, .83], [.67, .69, .83, .83]],
+      'Material.007': [[.01, .14], [.2, .32], [.39, .52], [.55, .68], [.73, .85]].map(([u0, u1]) => [u0, .23, u1, .45])
+        .concat([[.07, .19], [.31, .44], [.56, .68], [.8, .93]].map(([u0, u1]) => [u0, .56, u1, .86])),
+    },
+    cells: [[17.9, 19.6, -1.7, .2], [19.9, 21.7, -1.8, .7], [21.9, 24.6, -2.6, .5], [24.7, 28.1, -3.2, .2], [28.5, 31, -2.5, .3], [31.7, 34.5, -2.7, .2], [35.4, 38.4, -2.9, .2]] },
   // 安全屋室內（69-safehouse.js）：dasy444 的兩個 Sketchfab 室內（CC BY 4.0），保留原檔座標（地板 y＝0）。
   // loft17 是兩層樓的頂樓公寓，玻璃牆外那圈發光的摩天樓卡片就是窗景；interior15 是崖邊別墅，拿掉白天的天空半球
   { out: 'apt_loft', src: '.cache/world', items: [{ id: 'loft', file: 'loft17', origin: [0, 0, 0] }] },
   // 客廳地板（Material.001）原檔是金屬度 1、粗糙度 0 的鏡面，夜裡整片映出城市環境圖：改成拋光石材；落地窗（material_5）的反射也壓淡
   { out: 'apt_villa', src: '.cache/world', items: [{ id: 'villa', file: 'interior15', origin: [0, 0, 0], drop: /^Sphere/ }], tint: { 'Material.001': [1, .42, 0], material_5: [1, .7, 0] } },
+  // ─── World 第三輪：剩下的檔案全部用上（授權見 CREDITS.md）───
+  // 光環廣場：golukumar 的 Cyberpunk City（CC BY 4.0，時代廣場式街廓）。原檔物件依材質合併、跨整個模型，只能依原檔座標的矩形拆：
+  // 主街（東西向，z −0.7…0.4）兩側、五條南北向小街之間，北排 6 群（正面朝 +z）、南排 8 群（正面朝 −z，轉 180°）；街上的車、人、樹、路面不要。
+  // 原檔一層約 0.35 單位，放大 9 倍（最高的塔約 180 m）。四張廣告圖集全是真實品牌，每塊版面換成原創的霓虹廣告（虛構店名）；
+  // 立面照片圖集（Material.004／.009 同一張）拍到的真實招牌（餐廳、速食、飯店、劇院）模糊成色塊
+  { out: 'bld_cyber', file: 'cyberpunk', src: '.cache/world', prefix: 'cyber', scale: 9, cellMargin: .05, dropGround: .12, simplify: .5, simplifyError: .004, tex: 2048,
+    texEdit: (() => {
+      const blur = [[.132, .068, .334, .13], [.48, .054, .759, .123], [.768, .071, .814, .145], [.877, .3, .993, .354], [.502, .368, .7, .409], [.875, .427, .921, .48],
+        [.384, .454, .464, .486], [.62, .499, .689, .53], [.3, .607, .48, .68], [.873, .607, .987, .699]];
+      return { 'Material.001': { ads: 1 }, 'Material.002': { ads: 2 }, 'Material.007': { ads: 3 }, 'Material.008': { ads: 4 }, 'Material.004': { blur }, 'Material.009': { blur },
+        'Material.005': { blur: [[.886, .888, .984, .989]] } };   // 玻璃帷幕圖集角落的募兵中心招牌
+    })(),
+    dropBox: [[-7.2, -3, 12.4, 14.05, 2.6, 7.8, /^(metal_gray|Material\.007|white_neon)$/]],   // 最高那棟塔頂的服飾品牌立體字招牌
+    cells: [[-12.9, -8, -8.5, -.6, 0], [-7.6, -2.7, -8.5, -.6, 0], [-2.7, 2, -8.5, -.6, 0], [2, 6.8, -8.5, -.6, 0], [6.8, 11.6, -8.5, -.6, 0], [11.6, 16.5, -8.5, -.6, 0],
+      [-12.9, -8, .3, 4.1, 2], [-12.9, -8, 4.1, 8, 2], [-7.6, -2.7, .3, 2.6, 2], [-7.6, -2.7, 2.6, 8, 2], [-2.7, 2, .3, 8, 2], [2, 6.8, .3, 8, 2], [6.8, 11.6, .3, 8, 2], [11.6, 16.5, .3, 8, 2]] },
+  // 東灣對岸的舊港城：golukumar 的 City（Standard，遊戲關卡：沿街的立面殼、背面是空的），整片當遠景，從碼頭、跨海橋與東區看過去。
+  // 原檔一層約 0.17 單位，放大 17 倍（約 250×405 m）；邊緣的天際線紙板、路面箭頭、可破壞的小道具不要
+  { out: 'far_golu', src: '.cache/world', far: 1, tex: 512, winRes: 256, win: true, winAuto: /^material_104_93/, simplify: .5, simplifyError: .004, dropPath: /backdrop_grp|chevron_grp|prop_\d+_mdl/, items: [{ id: 'golu', file: 'city_golu', scale: 17 }] },
+  // 東灣對岸舊港城的後排：dasy444 的 street city (7) 除了已經用在珊瑚灘的七間店面（x > 17）以外的部分——彎成弧形的一圈店屋、
+  // 九棟照片立面的板樓（Cube.012…019）與四棟只有兩面牆的高塔紙板（Plane.027…030，背面朝東、從城裡看不到）。
+  // 原檔一層約 0.56 單位，放大 5 倍（最高約 62 m）；整片地面（Plane、Plane.003／005／006／007）不要
+  { out: 'far_s7', src: '.cache/world', far: 1, tex: 512, winRes: 256, win: true, winAuto: /^Material\.0(09|10|11)$/,
+    items: [{ id: 's7', file: 'street7', scale: 5, clip: [-20, 17.4, -5, 20, -30, 30], drop: /^Plane(\.00[3567])?_Material\.009/ }] },
+  // 遠景兩組都沒有窗戶遮罩：照片立面的暗色區塊自動當成窗（winAuto），夜裡遠看是一片零星的窗燈
+  // 灰鷺河對岸：golukumar 的 London City（CC BY 4.0，遊戲關卡，公尺）。光照貼圖那一份重複的網格、碰撞牆、隱形牆、停車格、水面不要；
+  // 只留城區本體（散在幾百公尺外的碎片用 clip 切掉）。原檔地面高低不平（−17…−4），最低處當地面
+  { out: 'far_london', src: '.cache/world', far: 1, win: true, winAuto: /^WorldCityBuildings\dMat$/, items: [{ id: 'london', file: 'london_city', clip: [-300, 410, -40, 400, -1180, 120], groundY: -17.5,
+    drop: /Lightmap|Collision|InvisibleWall|Parking|CitySea/ }] },
+  // 灰鷗島：dasy444 的 abandoned city street（廢墟街區，放大 2.3 倍）與 Loft 18 environment（辦公室與一圈板樓，公尺）
+  { out: 'isle_ruin', src: '.cache/world', items: [{ id: 'ruin', file: 'abandoned', scale: 2.3, groundY: -.1 }] },
+  { out: 'isle_office', src: '.cache/world', win: true, winAuto: /^Material\.0(18|20)$/, items: [{ id: 'office', file: 'loft18env', groundY: 0 }] },
+  // 第三輪的安全屋室內（dasy444，Standard）：島上辦公室（Loft 18 本體）、迷你閣樓（拿掉天空球）、Loft 16、Interior 14（拿掉兩個天空球）
+  { out: 'apt_office', src: '.cache/world', items: [{ id: 'office', file: 'loft18', origin: [0, 0, 0] }] },
+  { out: 'apt_mini', src: '.cache/world', items: [{ id: 'mini', file: 'miniloft', origin: [0, 0, 0], drop: /^Sphere/ }] },
+  { out: 'apt_l16', src: '.cache/world', items: [{ id: 'l16', file: 'loft16', origin: [0, 0, 0] }] },
+  // 地板（Material.001）是金屬度 .8 的鏡面、牆與櫃子（.002／.006）也帶金屬度，夜裡映出整片城市環境圖：同 villa 改成不反光的石材與漆面
+  { out: 'apt_i14', src: '.cache/world', items: [{ id: 'i14', file: 'interior14', origin: [0, 0, 0], drop: /^Sphere/ }], tint: { 'Material.001': [1, .42, 0], 'Material.002': [1, .5, 0], 'Material.006': [1, .82, 0] } },
 ];
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
@@ -121,7 +185,8 @@ function collect(doc) {
       const ia = p.getIndices();
       const idx = ia ? Uint32Array.from(ia.getArray()) : Uint32Array.from({ length: cnt }, (_, i) => i);
       if (det < 0) for (let i = 0; i < idx.length; i += 3) { const s = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = s; }
-      prims.push({ node: node.getName(), mat, pos, nor, uv, idx, cnt });
+      let path = [], par = node; while (par) { path.unshift(par.getName()); par = par.getParentNode(); }
+      prims.push({ node: node.getName(), path: path.join('/'), mat, pos, nor, uv, idx, cnt });
     }
   });
   return prims;
@@ -188,7 +253,7 @@ function subPrim(p, ix) {
   const map = new Map(), keep = [];
   const idx = Uint32Array.from(ix, (v) => { if (!map.has(v)) { map.set(v, keep.length); keep.push(v); } return map.get(v); });
   const pick = (a, n) => { if (!a) return null; const o = new Float32Array(keep.length * n); keep.forEach((v, i) => { for (let k = 0; k < n; k++) o[i * n + k] = a[v * n + k]; }); return o; };
-  return { node: p.node, mat: p.mat, pos: pick(p.pos, 3), nor: pick(p.nor, 3), uv: pick(p.uv, 2), idx, cnt: keep.length };
+  return { node: p.node, path: p.path, mat: p.mat, pos: pick(p.pos, 3), nor: pick(p.nor, 3), uv: pick(p.uv, 2), idx, cnt: keep.length };
 }
 // 擺正一組 primitive（就地改）：轉 rot×90°、縮放、底面中心移到原點
 // 3×3 對稱矩陣的特徵向量（Jacobi），由大到小
@@ -242,10 +307,74 @@ function place(prims, cfg, scale0) {
   let { mn, mx } = bbox(prims);
   const s = scale0 ?? (cfg.h ? cfg.h / (mx[1] - mn[1]) : cfg.len ? cfg.len / Math.max(mx[0] - mn[0], mx[2] - mn[2]) : cfg.scale ?? 1);
   // origin：室內場景保留原檔座標（頁面的碰撞框照原檔量），只減掉這個點
-  const [cx, cy, cz] = cfg.origin || [(mn[0] + mx[0]) / 2, cfg.center ? (mn[1] + mx[1]) / 2 : mn[1], (mn[2] + mx[2]) / 2];
+  // groundY：原檔有東西沉到地面以下（地基、斜坡）時，指定哪個高度是地面
+  const [cx, cy, cz] = cfg.origin || [(mn[0] + mx[0]) / 2, cfg.center ? (mn[1] + mx[1]) / 2 : cfg.groundY ?? mn[1], (mn[2] + mx[2]) / 2];
   for (const p of prims) for (let i = 0; i < p.cnt; i++) { p.pos[i * 3] = (p.pos[i * 3] - cx) * s; p.pos[i * 3 + 1] = (p.pos[i * 3 + 1] - cy) * s; p.pos[i * 3 + 2] = (p.pos[i * 3 + 2] - cz) * s; }
   ({ mn, mx } = bbox(prims));
   return { w: +(mx[0] - mn[0]).toFixed(2), d: +(mx[2] - mn[2]).toFixed(2), h: +(mx[1] - mn[1]).toFixed(2) };
+}
+
+// ─── 換掉真實商標（texEdit）───
+// ads：整張都是真實廣告的圖集（cyberpunk 的四張），找出每塊非黑的版面，各自畫一張原創的霓虹廣告（虛構店名）蓋上去；
+// blur：照片立面上拍到的真實招牌，把那幾個矩形（UV，v 由上往下）重度模糊成看不出字的色塊
+const AD_PAL = [['#0b0f1a', '#ff3b8d', '#29e0ff'], ['#ffd400', '#141414', '#e4002b'], ['#101820', '#00ffa3', '#f5f5f5'], ['#e4002b', '#ffffff', '#ffd400'],
+  ['#1b0033', '#cc99ff', '#ff6a00'], ['#f2f2f2', '#0a2fff', '#ff2d55'], ['#002b36', '#2aa198', '#fdf6e3'], ['#ff6a00', '#1a1a1a', '#ffffff'], ['#06121f', '#ffb000', '#ff3b8d']];
+const AD_LAT = ['KAGEMORI', 'NOVA DRIFT', 'PULSE/9', 'ORBITAL COLA', 'LUMEN AIR', 'HEXA', 'KITE MOBILE', 'ZEPHYR', 'MIRAGE TV', 'AKIRO', 'VOLTA', 'NEONIX', 'SORA BANK', 'QUILL', 'TANUKI', 'HALO 24', 'RIKKA', 'OMNI-7', 'FERRO', 'CIRRUS'];
+const AD_CJK = ['霓虹拉麵', '夜鷹電機', '雲端酒造', '赤羽鐘錶', '狐火電影', '鐵馬機車', '月光銀行', '電腦書店', '星屑咖啡', '光環劇院', '龍門飯店', '極光通訊', '白鷺藥局', '黑潮唱片', '燈籠茶屋', '電光彈珠'];
+const AD_TAG = ['24H', 'NEW', 'OPEN', '¥980', '-50%', 'SALE', 'LIVE', '2077', 'VR', '4K'];
+const FONT_CJK = 'PingFang TC, Heiti TC, sans-serif', FONT_LAT = 'Avenir Next Condensed, Helvetica Neue, sans-serif';
+function adSvg(x, y, w, h, r) {
+  const [bg, fg, ac] = AD_PAL[Math.floor(r() * AD_PAL.length)], pick = (a) => a[Math.floor(r() * a.length)];
+  let o = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${bg}"/>`;
+  const t = (tx, ty, sz, fill, str, font, anchor = 'middle') => `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-family="${font}" font-weight="800" font-size="${sz.toFixed(1)}" fill="${fill}" text-anchor="${anchor}">${str}</text>`;
+  if (h > w * 2.2) {   // 直立招牌：中文直排
+    const name = pick(AD_CJK), n = Math.min(name.length, Math.max(1, Math.floor(h / (w * .95)))), sz = Math.min(w * .78, h / (n + .4));
+    o += `<rect x="${x + w * .06}" y="${y + w * .06}" width="${w * .88}" height="${h - w * .12}" fill="none" stroke="${ac}" stroke-width="${Math.max(1, w * .05)}"/>`;
+    for (let i = 0; i < n; i++) o += t(x + w / 2, y + (h - n * sz) / 2 + (i + .86) * sz, sz, fg, name[i], FONT_CJK);
+  } else if (w > h * 2.6) {   // 橫幅：店名＋右邊的標籤
+    const cjk = r() < .45, name = cjk ? pick(AD_CJK) : pick(AD_LAT), tag = pick(AD_TAG);
+    const sz = Math.min(h * .58, (w * .7) / (name.length * (cjk ? 1.02 : .62)));
+    o += `<rect x="${x}" y="${y + h * .86}" width="${w}" height="${h * .14}" fill="${ac}"/>`;
+    o += t(x + w * .05, y + h * .5 + sz * .36, sz, fg, name, cjk ? FONT_CJK : FONT_LAT, 'start');
+    o += t(x + w * .93, y + h * .5 + h * .14, h * .36, ac, tag, FONT_LAT, 'end');
+  } else {   // 海報：大色塊圖形＋店名＋角落標籤
+    const cjk = r() < .5, name = cjk ? pick(AD_CJK) : pick(AD_LAT), tag = pick(AD_TAG), k = r();
+    if (k < .33) o += `<circle cx="${x + w * .5}" cy="${y + h * .4}" r="${Math.min(w, h) * .3}" fill="${ac}"/>`;
+    else if (k < .66) for (let i = 0; i < 5; i++) o += `<rect x="${x}" y="${y + h * (.1 + i * .12)}" width="${w}" height="${h * .05}" fill="${ac}" opacity="${1 - i * .16}"/>`;
+    else o += `<polygon points="${x + w * .15},${y + h * .7} ${x + w * .5},${y + h * .1} ${x + w * .85},${y + h * .7}" fill="${ac}"/>`;
+    const sz = Math.min(h * .2, (w * .86) / (name.length * (cjk ? 1.02 : .62)));
+    o += t(x + w / 2, y + h * .86, sz, fg, name, cjk ? FONT_CJK : FONT_LAT);
+    o += t(x + w * .06, y + h * .12 + Math.min(w, h) * .05, Math.min(w, h) * .14, fg, tag, FONT_LAT, 'start');
+  }
+  return o;
+}
+async function adAtlas(img, seed) {
+  const S = 1024, O = 2048, k = O / S;
+  const { data } = await sharp(Buffer.from(img), { limitInputPixels: false }).resize(S, S, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const on = new Uint8Array(S * S), lab = new Int32Array(S * S).fill(-1), boxes = [];
+  for (let i = 0; i < S * S; i++) on[i] = data[i * 3] * .3 + data[i * 3 + 1] * .59 + data[i * 3 + 2] * .11 > 18 ? 1 : 0;
+  for (let i = 0; i < S * S; i++) {
+    if (!on[i] || lab[i] >= 0) continue;
+    const st = [i]; lab[i] = boxes.length; let x0 = S, x1 = 0, y0 = S, y1 = 0;
+    while (st.length) {
+      const j = st.pop(), x = j % S, y = (j / S) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      for (const q of [x > 0 ? j - 1 : -1, x < S - 1 ? j + 1 : -1, y > 0 ? j - S : -1, y < S - 1 ? j + S : -1]) if (q >= 0 && on[q] && lab[q] < 0) { lab[q] = boxes.length; st.push(q); }
+    }
+    boxes.push([x0, y0, x1 + 1, y1 + 1]);
+  }
+  let r0 = seed * 9301 + 49297; const r = () => (r0 = (r0 * 16807) % 2147483647) / 2147483647;
+  const body = boxes.filter(([x0, y0, x1, y1]) => x1 - x0 >= 3 && y1 - y0 >= 3).map(([x0, y0, x1, y1]) => adSvg(x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k, r)).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${O}" height="${O}"><rect width="${O}" height="${O}" fill="#000"/>${body}</svg>`;
+  return { png: await sharp(Buffer.from(svg), { limitInputPixels: false }).png().toBuffer(), n: boxes.length };
+}
+async function blurAtlas(img, rects) {
+  const O = 2048, base = await sharp(Buffer.from(img), { limitInputPixels: false }).resize(O, O, { fit: 'fill' }).removeAlpha().png().toBuffer();
+  const comp = [];
+  for (const [u0, v0, u1, v1] of rects) {
+    const left = Math.round(u0 * O), top = Math.round(v0 * O), width = Math.round((u1 - u0) * O), height = Math.round((v1 - v0) * O);
+    comp.push({ input: await sharp(base).extract({ left, top, width, height }).blur(Math.max(6, Math.min(width, height) / 5)).toBuffer(), left, top });
+  }
+  return sharp(base).composite(comp).png().toBuffer();
 }
 
 async function build(set) {
@@ -272,8 +401,18 @@ async function build(set) {
     const blend = m && m.getAlphaMode() === 'BLEND', mask = m && m.getAlphaMode() === 'MASK';
     const n = out.createMaterial(m ? m.getName() : 'flat').setBaseColorFactor([1, 1, 1, 1]).setMetallicFactor(0).setRoughnessFactor(1).setDoubleSided(!!(m && m.getDoubleSided()));
     if (blend) n.setAlphaMode('BLEND'); else if (mask) n.setAlphaMode('MASK').setAlphaCutoff(m.getAlphaCutoff());
-    if (m && m.getBaseColorTexture()) n.setBaseColorTexture(copyTex(m.getBaseColorTexture()));
-    if (m && m.getEmissiveTexture()) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);
+    const edit = set.texEdit && m && set.texEdit[m.getName()];
+    if (edit && m.getBaseColorTexture()) {
+      // 換掉真實商標：廣告圖集同時當底色與自發光（版面形狀照原檔，內容是原創的）；照片立面只模糊招牌
+      const src = m.getBaseColorTexture(), png = edit.ads != null ? (await adAtlas(src.getImage(), edit.ads)).png : await blurAtlas(src.getImage(), edit.blur);
+      const nt = out.createTexture(m.getName() + (edit.ads != null ? '_ads' : '_clean')).setImage(new Uint8Array(png)).setMimeType('image/png');
+      n.setBaseColorTexture(nt);
+      if (edit.ads != null) n.setEmissiveTexture(nt).setEmissiveFactor([1, 1, 1]);
+      else if (m.getEmissiveTexture()) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);
+    } else {
+      if (m && m.getBaseColorTexture()) n.setBaseColorTexture(copyTex(m.getBaseColorTexture()));
+      if (m && m.getEmissiveTexture()) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);
+    }
     // 窗戶遮罩只給不透明的牆面材質（逃生梯欄杆之類的鏤空貼圖也是洋紅，會被誤點亮）
     if (set.winAuto) { if (!blend && !mask && m && m.getBaseColorTexture() && set.winAuto.test(m.getName())) n.setMetallicRoughnessTexture(await winTex(m.getBaseColorTexture(), m.getName())); }
     else if (win && !blend && !mask && m && m.getMetallicRoughnessTexture()) n.setMetallicRoughnessTexture(await winTex(m.getMetallicRoughnessTexture()));
@@ -287,7 +426,7 @@ async function build(set) {
     if (auto && !autoCache.has(t)) autoCache.set(t, new Map());
     const ck = auto ? auto : t, cache = auto ? autoCache.get(t) : texCache;
     if (cache.has(ck)) return cache.get(ck);
-    const S = auto ? 1024 : 256, { data } = await sharp(Buffer.from(t.getImage())).resize(S, S, { fit: 'fill' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const S = auto ? set.winRes ?? 1024 : 256, { data } = await sharp(Buffer.from(t.getImage())).resize(S, S, { fit: 'fill' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     const glass = new Uint8Array(S * S), dil = new Uint8Array(S * S), lab = new Int32Array(S * S).fill(-1);
     const D = auto ? 0 : 2;   // 照片立面的窗戶彼此很近，膨脹會把整面牆的窗併成同一個編號
     const rects = auto && set.winRects && set.winRects[auto];
@@ -310,6 +449,17 @@ async function build(set) {
         for (const k of [x > 0 ? j - 1 : -1, x < S - 1 ? j + 1 : -1, y > 0 ? j - S : -1, y < S - 1 ? j + S : -1]) if (k >= 0 && dil[k] && lab[k] < 0) { lab[k] = n; st.push(k); }
       }
       n++;
+    }
+    // 編號再往外長 2 px（只填還沒有編號的像素，不會把兩扇窗併起來）：玻璃邊緣雙線性取樣時 G 不會混到牆的 0，
+    // 不然沒亮的窗四周會多一圈亂數不同、自己亮起來的細線
+    for (let pass = 0; pass < 2; pass++) {
+      const grow = [];
+      for (let i = 0; i < S * S; i++) {
+        if (lab[i] >= 0) continue;
+        const x = i % S, y = (i / S) | 0;
+        for (const k of [x > 0 ? i - 1 : -1, x < S - 1 ? i + 1 : -1, y > 0 ? i - S : -1, y < S - 1 ? i + S : -1]) if (k >= 0 && lab[k] >= 0) { grow.push(i, lab[k]); break; }
+      }
+      for (let g = 0; g < grow.length; g += 2) lab[grow[g]] = grow[g + 1];
     }
     const px = Buffer.alloc(S * S * 3);
     for (let i = 0; i < S * S; i++) { px[i * 3] = glass[i] ? 255 : 0; px[i * 3 + 1] = lab[i] < 0 ? 0 : 1 + ((lab[i] * 157 + 61) % 254); }
@@ -355,7 +505,7 @@ async function build(set) {
           }
           continue;
         }
-        if (set.winAuto && !curtain && m && set.winAuto.test(m.getName())) {
+        if (set.winAuto && !set.winWhole && !curtain && m && set.winAuto.test(m.getName())) {
           // 立面照片圖集：模型把同一塊窗戶照片貼在每一層、每一段牆上，只靠貼圖的窗編號會整面牆一起亮。
           // 每個三角形取外框的最小角（長方形拆成的兩個三角形一定共用這個角）當這一塊的亂數
           for (let t = 0; t < p.idx.length; t += 3) {
@@ -387,7 +537,23 @@ async function build(set) {
     credits.push({ file: src.file, title: info.title, author: info.author, license: info.license, source: info.source });
     let prims = collect(doc);
     if (src.drop) prims = prims.filter((p) => !src.drop.test(p.node) && !src.drop.test(p.mat ? p.mat.getName() : ''));
+    if (set.dropPath) prims = prims.filter((p) => !set.dropPath.test(p.path));   // 依祖先節點名（整條路徑）拿掉車、路燈、路面
+    if (set.heavy) prims = prims.map((p) => {   // [路徑, 比例]：面數特別高的小零件（冷氣室外機、路燈）單獨大幅減面，其他照整組的 simplify
+      if (!set.heavy[0].test(p.path) || p.idx.length < 90) return p;
+      const [ix] = MeshoptSimplifier.simplify(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, Math.max(36, Math.floor(p.idx.length * set.heavy[1] / 3) * 3), .08);
+      return ix.length ? subPrim(p, ix) : null;
+    }).filter(Boolean);
     if (set.keep) prims = prims.filter((p) => set.keep(p.node));
+    if (set.dropBox) prims = prims.map((p) => {   // 原檔座標的盒子 [x0, x1, y0, y1, z0, z1, 材質]：做成立體字的真實商標整塊拿掉
+      const boxes = set.dropBox.filter((b) => !b[6] || (p.mat && b[6].test(p.mat.getName())));
+      if (!boxes.length) return p;
+      const ix = [];
+      for (let t = 0; t < p.idx.length; t += 3) {
+        let x = 0, y = 0, z = 0; for (let k = 0; k < 3; k++) { x += p.pos[p.idx[t + k] * 3] / 3; y += p.pos[p.idx[t + k] * 3 + 1] / 3; z += p.pos[p.idx[t + k] * 3 + 2] / 3; }
+        if (!boxes.some((b) => x > b[0] && x < b[1] && y > b[2] && y < b[3] && z > b[4] && z < b[5])) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);
+      }
+      return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
+    }).filter(Boolean);
     if (set.cells) {
       // 每個三角形依重心落在哪個矩形分群（原檔座標，公尺），各群各自置中接地
       const M = set.cellMargin ?? 1, groups = set.cells.map(() => []);
@@ -405,12 +571,33 @@ async function build(set) {
       }
       console.log(`${set.out}：${lost} 個三角形不在任何一群`);
       for (const [c, ps] of groups.entries()) {
-        const dims = place(ps, set, set.scale ?? 1);
+        const dims = place(ps, set.cells[c][4] != null ? { ...set, rot: set.cells[c][4] } : set, set.scale ?? 1);   // 第五個數：這一群轉幾個 90°（正面朝 +z）
         if (set.curtain) curtainUV(ps, set.curtain);
+        if (set.lightPath) {   // 原檔的路燈：每支燈（同一條節點路徑）取包圍盒頂端中心，頁面在那裡補一盞點光（座標是擺正、縮放後的）
+          const at = new Map();
+          for (const p of ps) if (set.lightPath.test(p.path)) { if (!at.has(p.path)) at.set(p.path, []); at.get(p.path).push(p); }
+          dims.lights = [...at.values()].map((g) => { const { mn, mx } = bbox(g); return [(mn[0] + mx[0]) / 2, mx[1] - .2, (mn[2] + mx[2]) / 2].map((v) => +v.toFixed(2)); });
+        }
         await emit(`${set.prefix}_${String(c + 1).padStart(2, '0')}`, ps, { ...dims, src: set.cells[c].join(',') });
       }
       continue;
     }
+    if (src.clip) {   // 只留重心在這個盒子裡的三角形（原檔座標 [x0, x1, y0, y1, z0, z1]）：遊戲關卡模型散在遠處的碎片
+      const [x0, x1, y0, y1, z0, z1] = src.clip;
+      prims = prims.map((p) => {
+        const ix = [];
+        for (let t = 0; t < p.idx.length; t += 3) {
+          let x = 0, y = 0, z = 0; for (let k = 0; k < 3; k++) { x += p.pos[p.idx[t + k] * 3] / 3; y += p.pos[p.idx[t + k] * 3 + 1] / 3; z += p.pos[p.idx[t + k] * 3 + 2] / 3; }
+          if (x > x0 && x < x1 && y > y0 && y < y1 && z > z0 && z < z1) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);
+        }
+        return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
+      }).filter(Boolean);
+    }
+    if (set.split && set.dropGround != null) prims = prims.map((p) => {   // 拆棟的組：整片地面（三角形最高點低於 dropGround）不要
+      const ix = [];
+      for (let t = 0; t < p.idx.length; t += 3) if (Math.max(p.pos[p.idx[t] * 3 + 1], p.pos[p.idx[t + 1] * 3 + 1], p.pos[p.idx[t + 2] * 3 + 1]) >= set.dropGround) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);
+      return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
+    }).filter(Boolean);
     if (src.pick) prims = prims.filter((p) => { const { mn, mx } = bbox([p]); return src.pick((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2); });
     if (!set.split) { await emit(src.id, prims, place(prims, src)); continue; }
     // 拆成多棟：依建築名分組，各自置中接地（原檔已是公尺、正面朝 +z）
@@ -418,13 +605,14 @@ async function build(set) {
     for (const p of prims) { const k = set.split(p.node, p.mat ? p.mat.getName() : ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
     let n = 0;
     for (const [k, ps] of [...groups].sort((a, b) => a[0].localeCompare(b[0]))) {
-      const dims = place(ps, set, set.scale ?? 1);
-      if (dims.h < 2.5 || Math.max(dims.w, dims.d) < 3) continue;   // 零件（路燈、管線）不當成建築
+      const dims = place(ps, set.rotOf ? { ...set, rot: set.rotOf(k, ps) } : set, set.scale ?? 1);
+      if (dims.h < (set.minH ?? 2.5) || Math.max(dims.w, dims.d) < 3) continue;   // 零件（路燈、管線）不當成建築
       await emit(`${set.prefix}_${String(++n).padStart(2, '0')}`, ps, { ...dims, src: k });
     }
   }
   await out.transform(
     dedup(), weld(), prune(),
+    ...(set.simplify ? [simplify({ simplifier: MeshoptSimplifier, ratio: set.simplify, error: set.simplifyError ?? .002 })] : []),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^baseColor|^emissive/, resize: [set.tex ?? 1024, set.tex ?? 1024], quality: 80 }),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^metallicRoughness/, lossless: true }),   // 窗戶編號不能有失真
     meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
@@ -434,7 +622,7 @@ async function build(set) {
   await io.write(file, out);
   const kb = Math.round(statSync(file).size / 1024);
   console.log(`${set.out}: ${Object.keys(items).length} 個物件、${kb} KB；` + Object.entries(items).map(([k, v]) => `${k} ${v.w}×${v.d}×${v.h} ${v.tris}面`).join('；'));
-  return { kb, items, credits };
+  return { kb, items, credits, ...(set.far ? { far: 1 } : {}) };
 }
 
 const only = process.argv.slice(2);

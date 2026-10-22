@@ -377,7 +377,7 @@ const pedState = [];
 const rP = rng(77);
 const umbrellas = [];
 {
-  const inner = blocks.filter(b => !b.outer);
+  const inner = blocks.filter(b => !b.outer && !b.park && isOld(b.i, b.j));   // 開場在舊城區（玩家附近），之後 pedRelocate 跟著玩家搬
   for (let k = 0; k < PED_N; k++) {
     const b = inner[Math.floor(rP() * inner.length)];
     const inset = 1.3 + rP() * 2.4;
@@ -441,9 +441,21 @@ function pedPos(ps) {
   s -= d; if (s < w) return [x0 + w - s, z0 + d, -1, 0];
   s -= w; return [x0, z0 + d - s, 0, -1];
 }
+// 行人繞著一個街區走；那個街區離玩家超過 230 m 就換到玩家附近 70–180 m 的街區（城市放大後人不會散到看不到的地方）
+const pedBlocks = blocks.filter(b => !b.outer && !b.park);
+function pedRelocate(ps, px, pz) {
+  for (let n = 0; n < 30; n++) {
+    const b = pedBlocks[Math.floor(rP() * pedBlocks.length)], d = Math.hypot((b.x0 + b.x1) / 2 - px, (b.z0 + b.z1) / 2 - pz);
+    if (d < 70 || d > 180) continue;
+    ps.b = b; ps.w = b.x1 - b.x0 - ps.inset * 2; ps.d = b.z1 - b.z0 - ps.inset * 2; ps.per = 2 * (ps.w + ps.d); ps.s = rP() * ps.per; ps.dx = ps.dz = 0;
+    return;
+  }
+}
 function updatePeds(dt) {
   let u = 0;
+  const ppx = pX(), ppz = pZ();
   pedState.forEach((ps, k) => {
+    if (!ps.fsm && !(ps.down > 0) && !(ps.panic > 0) && ((ps.b.x0 + ps.b.x1) / 2 - ppx) ** 2 + ((ps.b.z0 + ps.b.z1) / 2 - ppz) ** 2 > 230 * 230) pedRelocate(ps, ppx, ppz);
     // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
     // 69-combat.js：被槍指著投降、抱頭蹲下、脾氣差的人反擊（pedFsm 接手這一幀就 return）
     if (ps.fsm && !(ps.down > 0) && pedFsm(k, ps, dt)) return;

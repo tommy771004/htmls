@@ -139,7 +139,7 @@ function detachCar(c) {
   const sp = traffic.includes(c) ? c.v || 0 : 0;
   let i = traffic.indexOf(c); if (i >= 0) traffic.splice(i, 1);
   i = parked.indexOf(c);
-  if (i >= 0) { parked.splice(i, 1); for (const q of c.circ || []) { const j = circles.indexOf(q); if (j >= 0) circles.splice(j, 1); } }
+  if (i >= 0) { parked.splice(i, 1); for (const q of c.circ || []) { const j = circles.indexOf(q); if (j >= 0) circles.splice(j, 1); } colDirty(); }
   const L = typeMesh[c.type].list; i = L.indexOf(c); if (i >= 0) L.splice(i, 1);
   const v = buildVeh(c.type, c.x, c.z, c.yaw, sp, c.seed || 0, c.palI || 0);
   if (c.hp != null) v.hp = Math.min(v.hp, c.hp);
@@ -303,7 +303,7 @@ function castRay(R, maxT, skip = player.veh) {
   for (const c of traffic) hit(rayOBB(R, c.x, c.z, c.yaw, TYPES[c.type].w / 2, TYPES[c.type].len / 2, 1.5), 'car', c);
   for (const c of parked) { if ((c.x - R.ox) ** 2 + (c.z - R.oz) ** 2 > (maxT + 5) ** 2) continue; hit(rayOBB(R, c.x, c.z, c.yaw, TYPES[c.type].w / 2, TYPES[c.type].len / 2, 1.5), 'car', c); }
   for (const v of vehicles) if (v !== skip) hit(rayOBB({ ...R, oy: R.oy - v.y }, v.x, v.z, v.yaw, v.w / 2, v.len / 2, v.h || (v.isCar ? 1.45 : 1.2)), 'veh', v);
-  for (const b of activeBoxes) { const t = rayBox(R.ox, R.oz, R.dx * best.t, R.dz * best.t, b); if (t < 1) hit(t * best.t, 'wall', b); }
+  for (const b of boxesNear(R.ox, R.oz, 0, R.ox + R.dx * best.t, R.oz + R.dz * best.t)) { if (b.low) continue; const t = rayBox(R.ox, R.oz, R.dx * best.t, R.dz * best.t, b); if (t < 1) hit(t * best.t, 'wall', b); }
   if (R.dy < -1e-4) hit(-R.oy / R.dy, 'ground', null);
   return best;
 }

@@ -127,6 +127,9 @@ void main(){
   // uM.w：燒毀程度（68-gta.js 的爆炸），車身變成焦黑、不再反光發光
   base.rgb = mix(base.rgb, vec3(.03, .026, .022), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; coat *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y);
+  #ifdef FAR
+  wet = 0.;
+  #endif
   rough = mix(rough, rough * .4, wet);
   vec3 c = shade(vW, n, v, base.rgb, rough, metal);
   float envK = max(coat * .75, metal * .9);
@@ -162,11 +165,16 @@ void main(){
   #ifdef BLEND
   gl_FragColor = vec4(applyFog(c, vW), clamp(base.a + (1. - max(dot(n, v), 0.)) * .25, 0., 1.));
   #else
+  #ifdef FAR
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * FAR), 1.);   // 遠景模型（對岸城區）：和 MAT.far 一樣只算一部分距離的霧
+  #else
   gl_FragColor = vec4(applyFog(c, vW), 1.);
   #endif
+  #endif
 }`;
-function glbMaterial(src, inst) {
+function glbMaterial(src, inst, far) {
   const defines = {};
+  if (far) defines.FAR = far.toFixed(3);
   if (src.map) defines.USE_MAP = '';
   if (src.emissiveMap) defines.USE_EMIMAP = '';
   if (src.transparent) defines.BLEND = ''; else if (src.alphaTest > 0) defines.MASK = '';

@@ -258,6 +258,7 @@ for (const [name, ty] of Object.entries(TYPES)) {
   typeMesh[name] = { near: mkInst(ty.geo ? ty.geo() : ty.kit().build(), cap), far: ty.far ? mkInst(ty.far(), cap) : null, list };
   list.forEach(c => { c.m = new Float32Array(16); c.seed ??= rT(); c.palI = ty.pal ? c.pal + 1 : 0; });
 }
+const CAR_FAR = 320;
 function flushTraffic() {
   const e = camera.matrixWorld.elements, cx = camera.position.x, cz = camera.position.z;
   let fx = -e[8], fz = -e[10]; const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
@@ -266,7 +267,7 @@ function flushTraffic() {
     const n = [0, 0];
     for (const c of list) {
       const dx = c.x - cx, dz = c.z - cz, d2 = dx * dx + dz * dz;
-      if (d2 > 64 && dx * fx + dz * fz < -8) continue;
+      if (d2 > 64 && dx * fx + dz * fz < -8 || d2 > CAR_FAR * CAR_FAR) continue;   // 相機後方、霧裡看不到的都不畫
       const lod = far && d2 > LOD_NEAR * LOD_NEAR ? 1 : 0, m = lod ? far : near, k = n[lod]++;
       m.instanceMatrix.array.set(c.m, k * 16);
       const ia = m.geometry.attributes.aIns.array; ia[k * 4] = c.brake; ia[k * 4 + 1] = c.seed; ia[k * 4 + 2] = c.palI;
@@ -312,8 +313,22 @@ function carAhead(c, fx, fz, maxD) {
   else if (player.mode === 'walk' && onRoad(player.x, player.z)) test(player.x, player.z, 0);
   return best;
 }
+// 車流只有幾十台：離玩家太遠（霧裡看不到）的車搬到玩家附近 140–250 m 的路段，城市再大，眼前的路上都有車
+function trafficRespawn(c, px, pz) {
+  const ci = Math.round((px - X0) / P), cj = Math.round((pz - Z0) / Q);
+  for (let n = 0; n < 40; n++) {
+    const i = clamp(ci + Math.floor(rT() * 9) - 4, 0, NX), j = clamp(cj + Math.floor(rT() * 9) - 4, 0, NZ), d = Math.floor(rT() * 4);
+    if (!hasEdge(i, j, d)) continue;
+    const s = rT() * segLen(d), [x, z] = segPoint(i, j, d, s), dd = Math.hypot(x - px, z - pz);
+    if (dd < 140 || dd > 250 || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144)) continue;
+    Object.assign(c, { i, j, d, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z });
+    return;
+  }
+}
 function updateTraffic(dt, t) {
+  const ppx = pX(), ppz = pZ();
   for (const c of traffic) {
+    if (!c.turn && c.hit <= 0 && (c.x - ppx) ** 2 + (c.z - ppz) ** 2 > 290 * 290) trafficRespawn(c, ppx, ppz);
     if (c.hit > 0) { c.hit -= dt; c.v = damp(c.v, 0, 4, dt); }
     let fx, fz;
     if (c.turn) { const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, c.turn.t); const l = Math.hypot(tg[0], tg[1]) || 1; fx = tg[0] / l; fz = tg[1] / l; }
@@ -372,7 +387,8 @@ function updateTraffic(dt, t) {
   let k = 0;
   const putShadow = (x, z, yaw, L, W, y = .02) => { _o.position.set(x, y, z); _o.rotation.set(0, yaw, 0); _o.scale.set(W * 1.25, 1, L * 1.12); _o.updateMatrix(); shadowMesh.setMatrixAt(k++, _o.matrix); };
   for (const c of traffic) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w);
-  for (const c of parked) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w, groundH(c.x, c.z) + .02);
+  const ccx = camera.position.x, ccz = camera.position.z;
+  for (const c of parked) if ((c.x - ccx) ** 2 + (c.z - ccz) ** 2 < 40000) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w, groundH(c.x, c.z) + .02);
   for (const v of vehicles) putShadow(v.x, v.z, v.yaw, v.len, v.w, v.y + .02);
   shadowMesh.count = k; shadowMesh.instanceMatrix.needsUpdate = true;
   let q = 0;
@@ -449,7 +465,7 @@ const vehicles = [kestrel, hanzo];
 // 碰撞：圓對 AABB、圓對圓；回傳推出量與法線
 function collideCircle(x, z, r, skipCar) {
   let nx = 0, nz = 0, hit = 0;
-  for (const b of activeBoxes) {
+  for (const b of boxesNear(x, z, r)) {
     const cx = clamp(x, b.x0, b.x1), cz = clamp(z, b.z0, b.z1);
     let dx = x - cx, dz = z - cz; const d2 = dx * dx + dz * dz;
     if (d2 < r * r) {
@@ -460,7 +476,7 @@ function collideCircle(x, z, r, skipCar) {
       hit = 1;
     }
   }
-  for (const c of activeCircles) {
+  for (const c of circlesNear(x, z, r)) {
     if (skipCar && c.car) continue;
     const dx = x - c.x, dz = z - c.z, rr = r + c.r, d2 = dx * dx + dz * dz;
     if (d2 < rr * rr && d2 > 1e-8) { const d = Math.sqrt(d2); x = c.x + dx / d * rr; z = c.z + dz / d * rr; nx += dx / d; nz += dz / d; hit = 1; }

@@ -138,11 +138,11 @@ try {
   check(gs.drawCalls > 0, `車庫 ${gs.triangles} 個三角形、${gs.drawCalls} 個 draw call`);
 
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間
-  for (const id of ['loft', 'villa']) {
-    await ev(page, (id) => { const nc = window.__nc, d = nc.gta.apt.APT[id].door; nc.motors.props.own.push(id); nc.tp(d.x, d.z + 6, Math.PI); }, id);
+  for (const id of ['loft', 'villa', 'office', 'mini', 'l16', 'i14']) {
+    await ev(page, (id) => { const nc = window.__nc, a = nc.gta.apt.APT[id], d = a.door, f = a.face || 1; nc.motors.props.own.push(id); nc.tp(d.x, d.z + 6 * f, f > 0 ? Math.PI : 0); }, id);
     let ok = false;
     for (let i = 0; i < 60 && !ok; i++) { await page.waitForTimeout(250); ok = await ev(page, (id) => !window.__nc.gta.apt.APT[id].fb.visible, id); }
-    await ev(page, (id) => { const nc = window.__nc; nc.enter(id); nc.look(id === 'loft' ? Math.PI : Math.PI / 2, .15, 1); }, id);
+    await ev(page, (id) => { const nc = window.__nc; nc.enter(id); nc.look(nc.gta.apt.APT[id].spawn.yaw, .15, 1); }, id);
     await page.waitForTimeout(600); await hideHud(page);
     await shot(page, 'g-' + id);
     const as = await ev(page, () => window.__nc.getStats());

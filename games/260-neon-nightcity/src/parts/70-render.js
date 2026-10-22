@@ -1,7 +1,7 @@
 
 // ═══ 渲染管線：路面倒影 → 主畫面 → 泛光 → 動態模糊、色調映射、暗角與顆粒 ═══
 await bootStep(BOOT.render, '點亮霓虹…');
-const camera = new T.PerspectiveCamera(62, innerWidth / innerHeight, .2, 1200);
+const camera = new T.PerspectiveCamera(62, innerWidth / innerHeight, .2, 4200);   // 遠平面要到北面的山與對岸（21-coast.js）
 camera.layers.enable(LY.NOREFL);
 const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);
 groundGroup.traverse(o => o.layers.set(LY.NOREFL));
@@ -142,6 +142,7 @@ R.info.autoReset = false;   // 一幀有很多次 render，統計要整幀累計
 function renderFrame(dt, t) {
   R.info.reset();
   camera.updateMatrixWorld();
+  sky.position.copy(camera.position); sky.updateMatrixWorld();   // 天空球跟著相機（城市東西兩端離原點超過半徑）
   U.uCam.value.copy(camera.position);
   const outdoors = curScene === scene;
   reflU.uReflOn.value = outdoors ? 1 : 0;

@@ -99,6 +99,40 @@
 | `apt_loft`（冠石頂層公寓） | [free Loft 17 interior floors, view of the city.](https://sketchfab.com/3d-models/free-loft-17-interior-floors-view-of-the-city-1bc27584241b4078975b31dd4610d6e0) | [dasy444](https://sketchfab.com/dasy444) | CC BY 4.0 |
 | `apt_villa`（雲杉坡崖邊別墅） | [interior (15) minimalist panoramic viem](https://sketchfab.com/3d-models/interior-15-minimalist-panoramic-viem-5d25be96aca842f18b9cda266e20716b) | [dasy444](https://sketchfab.com/dasy444) | CC BY 4.0 |
 
+城市擴到 20×15 街區（第二輪）時另外用了下面三個模型，授權是 [Sketchfab Standard](https://sketchfab.com/licenses)：可以放進作品裡使用，但不能把模型檔單獨拿去再散布或轉售。`bld_nbh` 取 Neighbourhood 中央一個街區（建築、樹、路燈、冷氣室外機、盆栽、路障；只拿掉停在路邊的 BMW E46 與路面，高面數的小零件單獨減到一成，整組再減一半），整個街區擺進楓林里與公園大道，模型自帶的路燈位置補上點光；`bld_grey` 是 street city buildings (8) 的 30 棟板樓與後面那棟港式大板樓，放大 11 倍擺在灰石國宅（最高的塔樓、70 m 的雙層板樓與大板樓各自佔一整個街區）；`bld_shop` 只取 street city (7) 右邊那排七間兩層樓店面，放大 3 倍，擺在珊瑚灘與楓林里，窗框是手量的。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `bld_nbh` | [Neighbourhood City Modular lowpoly](https://sketchfab.com/3d-models/neighbourhood-city-modular-lowpoly-6a0e3b97a8a54f2a909d351322916293) | [golukumar](https://sketchfab.com/mortalityrexotable) | Sketchfab Standard |
+| `bld_grey` | [street city buildings (8)](https://sketchfab.com/3d-models/street-city-buildings-8-873c5f14ec464966a11a4d772d187270) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `bld_shop` | [street city (7) for games FREE](https://sketchfab.com/3d-models/street-city-7-for-games-free-493a69b451284ff88346c7b3e4e1b5a7) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+
+### World 第三輪：剩下的檔案全部用上
+
+`~/Downloads/World` 裡前兩輪沒用到的檔案。依檔案的授權分兩種：CC BY 4.0 要標作者，Sketchfab Standard 同上面的限制（可以放進作品，不能單獨再散布）。
+
+| 檔案 | 用在哪裡 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| `bld_cyber` | 光環廣場的 14 群街廓 | [Cyberpunk City](https://sketchfab.com/3d-models/cyberpunk-city-3f24e5c5bf924f46b30d9a392afa9624) | [golukumar](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
+| `far_london` | 灰鷺河對岸的城區（遠景） | [London City](https://sketchfab.com/3d-models/london-city-e57d7a04837d44fdb60f78b3f5a0066d) | [golukumar](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
+| `far_golu` | 東灣對岸的舊港城（遠景） | [City](https://sketchfab.com/3d-models/city-b3dcef1c31e04dcd883f682f21617381) | [golukumar](https://sketchfab.com/mortalityrexotable) | Sketchfab Standard |
+| `far_s7` | 舊港城後排的板樓群（遠景） | [street city (7) for games FREE](https://sketchfab.com/3d-models/street-city-7-for-games-free-493a69b451284ff88346c7b3e4e1b5a7) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `isle_ruin` | 灰鷗島西側的廢墟街區 | [abandoned city street for games](https://sketchfab.com/3d-models/abandoned-city-street-for-games-0232bce6a27d477c947b6ef4e985fff2) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `isle_office` | 灰鷗島的辦公園區（外觀） | [Loft 18 mini office v.environment](https://sketchfab.com/3d-models/loft-18-mini-office-venvironment-00f610a2e4504ba59aad766e705c395e) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `apt_office` | 安全屋：灰鷗島辦公室 | [free Loft 18 mini office v.optimization](https://sketchfab.com/3d-models/free-loft-18-mini-office-voptimization-e434caaeaa4a4347a3c45eac6c138c30) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `apt_mini` | 安全屋：楓林里迷你閣樓 | [interior (15) mini loft](https://sketchfab.com/3d-models/interior-15-mini-loft-ace0229c6a9d4d7d9cbf709b53964f13) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `apt_l16` | 安全屋：琥珀和室 Loft | [Loft 16 interior](https://sketchfab.com/3d-models/loft-16-interior-6fcba30b42d94581b068b448b6da85a2) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+| `apt_i14` | 安全屋：公園大道白色大宅 | [The interior (14) is spacious.](https://sketchfab.com/3d-models/the-interior-14-is-spacious-79262bfc39d54fd2a0edc9d80fafdb6d) | [dasy444](https://sketchfab.com/dasy444) | Sketchfab Standard |
+
+每個檔案拿掉或改掉的部分：
+
+- `bld_cyber`：街上的車、人、樹與路面不要；四張廣告圖集全是真實品牌，每塊版面換成原創的霓虹廣告（虛構店名，`tools/props.mjs` 的 `texEdit.ads`）；立面照片拍到的真實招牌（餐廳、速食、飯店、劇院、募兵中心）模糊成色塊；最高那棟樓頂的服飾品牌立體字（金屬字與紅色底板）整塊刪掉（`dropBox`）。
+- `far_golu`：邊緣的天際線紙板、路面箭頭、可破壞的小道具不要。
+- `far_london`：遊戲關卡的光照貼圖重複網格、碰撞牆、隱形牆、停車格、水面不要，散在幾百公尺外的碎片切掉。
+- `far_s7`：整片地面不要；七間店面已經是 `bld_shop`，這裡只用剩下的弧形店屋、九棟板樓與四棟只有兩面牆的高塔紙板（背面朝外，城裡看不到）。
+- `isle_ruin`、`isle_office`：整個模型都用上。
+- 四個室內：拿掉白天的天空半球（`Sphere`）；`apt_i14` 的鏡面地板與帶金屬度的牆改成霧面。
+
 ## 武器、警方載具與路障（第二階段）
 
 `tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 目前還沒擺進城裡。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。

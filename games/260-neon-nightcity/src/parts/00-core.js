@@ -45,11 +45,12 @@ const C3 = h => new T.Color(h);
 // ─── 城市格線 ───
 // 南北向的大道沿 z，東西向的街沿 x；道路中心線在 avX(i)、stZ(j)。
 const P = 72, Q = 62, HR = 8, SW = 4.5;     // 大道間距、街距、半路寬、人行道寬
-const NX = 8, NZ = 7;
-const X0 = -180, Z0 = -155;                 // 原本 5×5 的城市不動，新區往東、往南長
+const NX = 20, NZ = 15;
+const X0 = -180, Z0 = -155;                 // 原本 5×5 的城市不動，新區往東、往南長（8×7 是 World 第一輪，20×15 是第二輪）
 const avX = i => X0 + i * P, stZ = j => Z0 + j * Q;
-const AVE = ['Harbor Av', 'Atlas Av', 'Bishop Av', 'Cinder Av', 'Delmar Av', 'Foundry Av', 'Granite Av', 'Hollis Av', 'Ironside Av'];
-const STR = ['6 St', '7 St', '8 St', '9 St', '10 St', '11 St', '12 St', '13 St'];
+const AVE = ['Harbor Av', 'Atlas Av', 'Bishop Av', 'Cinder Av', 'Delmar Av', 'Foundry Av', 'Granite Av', 'Hollis Av', 'Ironside Av', 'Juniper Av', 'Keystone Av',
+  'Lantern Av', 'Marlow Av', 'Northgate Av', 'Orchard Av', 'Paragon Av', 'Quarry Av', 'Ridgeway Av', 'Seabright Av', 'Tidewater Av', 'Union Av'];
+const STR = Array.from({ length: NZ + 1 }, (_, j) => `${j + 6} St`);
 const LANE = 3.0, PARK = 6.6;               // 車道與停車格中心離路中心的距離
 
 // ─── 共用 uniform ───
@@ -230,6 +231,9 @@ void main(){
   else if (m == 15) { rough = .5; metal = .8; envK = .3; }                   // 生鐵
   alb = mix(alb, vec3(.025, .022, .02), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; envK *= 1. - uM.w; emi *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y) * (1. - step(4., float(m)) * step(float(m), 9.));
+  #ifdef FAR
+  wet = 0.;   // 遠景的大片空地反射 envMap 的霓虹帶會變成一條條色塊
+  #endif
   rough = mix(rough, rough*.35, wet); alb *= 1. - .3*wet;
   vec3 c = shade(vW, n, v, alb, rough, metal);
   if (envK > 0. || wet > .1) {
@@ -237,20 +241,25 @@ void main(){
     c += envMap(r) * max(envK, wet*.5) * mix(m == 0 ? max(F, .1) : F, 1., metal) * (1. - rough*.9);
   }
   c += emi;
+  #ifdef FAR
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * FAR), 1.);   // 遠景（對岸、山、外海的島）：霧只算一部分距離，剪影才看得到
+  #else
   gl_FragColor = vec4(applyFog(c, vW), 1.);
+  #endif
 }`;
 
 function mkUber(o = {}) {
   const defines = {};
   if (o.inst) defines.INST_EXTRA = '';
   if (o.double) defines.DOUBLE = '';
+  if (o.far) defines.FAR = o.far.toFixed(3);
   return new T.ShaderMaterial({
     uniforms: { ...shared(ALLU), uM: { value: new T.Vector4(0, 0, o.emi ?? 1, 0) } },
     vertexShader: UBER_VS, fragmentShader: UBER_FS, defines,
     side: o.double ? T.DoubleSide : T.FrontSide,
   });
 }
-const MAT = { uber: mkUber(), uberI: mkUber({ inst: true }), uberD: mkUber({ double: true }) };
+const MAT = { uber: mkUber(), uberI: mkUber({ inst: true }), uberD: mkUber({ double: true }), far: mkUber({ far: .2 }), far2: mkUber({ far: .09 }) };
 
 // ─── 幾何組合：把多個零件合併成一個帶頂點色與 aMat 的幾何 ───
 const _m4 = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _v = V3(), _s = V3();

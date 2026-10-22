@@ -68,8 +68,8 @@ function boxHit(k, dmg, mine) {
   const b = boxesN[k];
   boxHp[k] -= dmg; sparks(b.x, .9, b.z, 8, 3);
   if (boxHp[k] > 0) return;
-  boxesMesh.setMatrixAt(k, _bm); boxesMesh.instanceMatrix.needsUpdate = true;
-  const ci = circles.findIndex(c => c.x === b.x && c.z === b.z); if (ci >= 0) circles.splice(ci, 1);
+  instSet(boxesMesh, k, _bm);
+  const ci = circles.findIndex(c => c.x === b.x && c.z === b.z); if (ci >= 0) { circles.splice(ci, 1); colDirty(); }
   sparks(b.x, .8, b.z, 40, 7);
   blast(b.x, .6, b.z, 4, 70, mine ? 'player' : null);
   if (mine) stockShock('LMNT');
@@ -94,6 +94,11 @@ const ESTATES = [
   // 安全屋（69-safehouse.js）：沒有收入，買了可以進去睡覺存檔
   { id: 'loft', name: '冠石頂層公寓', price: 380000, rate: 0, cap: 0, home: true },
   { id: 'villa', name: '雲杉坡崖邊別墅', price: 600000, rate: 0, cap: 0, home: true },
+  // 第三輪：島上辦公室是安全屋，也有收入（在辦公桌或手機收）；其他三間只是安全屋
+  { id: 'office', name: '灰鷗島辦公室', price: 520000, rate: 900, cap: 18000, home: true },
+  { id: 'mini', name: '楓林里迷你閣樓', price: 160000, rate: 0, cap: 0, home: true },
+  { id: 'l16', name: '琥珀和室 Loft', price: 340000, rate: 0, cap: 0, home: true },
+  { id: 'i14', name: '公園大道白色大宅', price: 480000, rate: 0, cap: 0, home: true },
 ];
 const GAME_HOUR = 150;   // 90-hud.js 的時鐘：遊戲裡一分鐘 = 2.5 秒
 // motors.props = { own: [id], safe: {id: 金額} }

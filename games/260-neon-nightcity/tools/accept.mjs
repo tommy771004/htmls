@@ -408,6 +408,53 @@ async function desktop() {
     check(sa2.w === 'loft' && /睡一覺/.test(sa2.c) && sa2.st === '冠石頂層公寓', `進入冠石頂層公寓、沙發可以睡覺 ${JSON.stringify(sa2)}`);
     check(sa3.saved && sa3.atDoor && sa3.hp && /回到街上/.test(sa3.c) && sa4.w === 'out' && sa4.d < 3, `睡一覺存檔在門口、補滿生命，出門回到街上 ${JSON.stringify({ ...sa3, ...sa4 })}`);
 
+    // 20×15 的新城區：走到最東南的錨灣港與西南的珊瑚灘，車流與路人要跟著過去、HUD 換區名
+    const far = [];
+    for (const [x, z] of [[1260, 713], [72, 651]]) {
+      await nc((q) => window.__nc.tp(q[0], q[1], 0), [x, z]);
+      await page.waitForTimeout(1500);
+      far.push(await nc((q) => {
+        const nc = window.__nc, near = (a) => a.filter((o) => Math.hypot(o.x - q[0], o.z - q[1]) < 300).length;
+        const peds = nc.pedState.map(({ b }) => ({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2 }));
+        return { d: document.getElementById('district').textContent, cars: near(nc.traffic), peds: near(peds), fps: nc.getStats().fps };
+      }, [x, z]));
+    }
+    check(/錨灣港/.test(far[0].d) && /珊瑚灘/.test(far[1].d) && far.every((f) => f.cars >= 6 && f.peds >= 6), `新城區：錨灣港、珊瑚灘有車流與路人 ${JSON.stringify(far)}`);
+    await shot(page, 'e-far');
+
+    // 海岸（21-coast.js）：步道往河裡走會被擋牆擋住；跨海橋走得上灰鷗島，HUD 換成島名；島上辦公室安全屋買下、進去、睡覺、收保險箱
+    // 灰鷺河濱步道（x = −238 是河岸擋牆）往西走
+    const sea = await nc(() => { const nc = window.__nc; nc.walk(); nc.gta.wanted.clear('reset'); nc.tp(-233, 300, -Math.PI / 2); return nc.player.x; });
+    await hold(page, 'KeyW', 2500);
+    const sea2 = await nc(() => ({ x: window.__nc.player.x, d: document.getElementById('district').textContent }));
+    check(sea2.x < sea - 2 && sea2.x > -238.5 && /灰鷺河濱/.test(sea2.d), `河濱步道往河裡走會停在擋牆 ${JSON.stringify({ x0: sea, ...sea2 })}`);
+    const isle0 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.door, bx = d.x - 8, iz = d.z - 133.4; nc.tp(bx, iz - 5, 0); return { z: nc.player.z, iz }; });
+    await hold(page, 'KeyW', 5000);
+    const isle1 = await nc(() => ({ z: window.__nc.player.z, y: window.__nc.player.y, d: document.getElementById('district').textContent, st: document.getElementById('stName').textContent }));
+    check(isle1.z > isle0.iz + 2 && /灰鷗島/.test(isle1.d) && /Gull Island/.test(isle1.st), `從跨海橋走上灰鷗島，HUD 顯示島名 ${JSON.stringify({ ...isle0, ...isle1 })}`);
+    const of1 = await nc(() => {
+      const nc = window.__nc, d = nc.gta.apt.APT.office.door;
+      nc.earn(600000, '測試'); nc.tp(d.x, d.z - .8, 0);
+      const c = nc.ctx(); nc.act(); nc.pick(0);
+      return { c, own: nc.motors.props.own.includes('office'), c2: nc.ctx() };
+    });
+    await nc(() => window.__nc.act());
+    await page.waitForTimeout(900);
+    const of2 = await nc(() => {
+      const nc = window.__nc, a = nc.gta.apt.APT.office, p = nc.player, r = { w: p.where, st: document.getElementById('stName').textContent };
+      nc.motors.props.safe.office = 1234; p.x = a.desk.x; p.z = a.desk.z - .4; r.desk = nc.ctx(); const c0 = nc.motors.cash; nc.act(); r.got = nc.motors.cash - c0;
+      p.x = a.nap.x; p.z = a.nap.z + .2; r.nap = nc.ctx(); p.x = a.exit.x; p.z = a.exit.z; r.exit = nc.ctx(); nc.act();
+      return r;
+    });
+    await page.waitForTimeout(900);
+    const of3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.door; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
+    check(/看房/.test(of1.c) && of1.own && /進入/.test(of1.c2) && of2.w === 'office' && of2.got === 1234 && /睡一覺/.test(of2.nap) && /回到街上/.test(of2.exit) && of3.w === 'out' && of3.d < 3,
+      `灰鷗島辦公室：門朝北、買下、進去收保險箱、沙發睡覺、出門 ${JSON.stringify({ ...of1, ...of2, ...of3 })}`);
+    // 光環廣場（cyberpunk 街廓在 http 下才換模型；這裡是程式立面）、燈籠公園
+    const halo = [];
+    for (const [x, z] of [[504, 124], [576, 434]]) { await nc((q) => window.__nc.tp(q[0], q[1], 0), [x, z]); await page.waitForTimeout(700); halo.push(await nc(() => document.getElementById('district').textContent)); }
+    check(/光環/.test(halo[0]) && /燈籠/.test(halo[1]), `光環廣場、燈籠公園的區名 ${JSON.stringify(halo)}`);
+
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));
     console.log(`  街道 ${st.fps} fps、${st.drawCalls} draw calls、${(st.triangles / 1e6).toFixed(2)} M 三角形；夜店 ${fpsClub} fps（GPU：${log.gpu}）`);
     check(!log.pageerrors.length && !log.errors.length, `無錯誤 ${[...log.pageerrors, ...log.errors].slice(0, 3).join(' | ')}`);
@@ -482,7 +529,14 @@ async function mobile() {
     const ms = await ev(page, () => { const r = document.getElementById('phScr').getBoundingClientRect(); return { scr: window.__nc.gta.phone.phone.scr, rows: document.querySelectorAll('#phScr li').length, b: Math.round(r.bottom), h: innerHeight, sw: document.getElementById('phScr').scrollWidth <= document.getElementById('phScr').clientWidth }; });
     check(ms.scr === 'stock' && ms.rows >= 4 && ms.b <= ms.h && ms.sw, `點證交所→個股，買賣列不溢出 ${JSON.stringify(ms)}`);
     await shot(page, 'm-stock');
-    await page.tap('#phBack'); await page.tap('#phBack'); await page.tap('#phBack');
+    // 天際置業：資產與兩間安全屋的列（名稱、說明、價格）不溢出
+    await page.tap('#phBack'); await page.tap('#phBack');
+    await page.tap('#phScr li:nth-child(4) button');
+    await page.waitForTimeout(200);
+    const me = await ev(page, () => { const s = document.getElementById('phScr'), r = s.getBoundingClientRect(), li = [...s.querySelectorAll('li')]; return { scr: window.__nc.gta.phone.phone.scr, rows: li.length, home: li.filter(l => /安全屋|公寓|別墅/.test(l.textContent)).length, b: Math.round(r.bottom), h: innerHeight, sw: s.scrollWidth <= s.clientWidth, clip: li.some(l => l.scrollWidth > l.clientWidth + 1) }; });
+    check(me.scr === 'estates' && me.home >= 2 && me.b <= me.h && me.sw && !me.clip, `點天際置業，安全屋列不溢出 ${JSON.stringify(me)}`);
+    await shot(page, 'm-estates');
+    await page.tap('#phBack'); await page.tap('#phBack');
     await page.waitForTimeout(300);
     check(!(await ev(page, () => window.__nc.gta.phone.phone.open)), '返回、再按關閉收起手機');
     // 搶劫的任務框（標題＋威懾／計時條）在手機上不壓到小地圖與觸控按鈕

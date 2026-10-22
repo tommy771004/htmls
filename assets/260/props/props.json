@@ -995,7 +995,7 @@
   ]
  },
  "bld_fin": {
-  "kb": 4608,
+  "kb": 4615,
   "items": {
    "fin_01": {
     "w": 38.81,
@@ -1093,7 +1093,7 @@
   ]
  },
  "bld_res": {
-  "kb": 1097,
+  "kb": 1105,
   "items": {
    "res_01": {
     "w": 10.97,
@@ -1141,6 +1141,618 @@
    }
   ]
  },
+ "bld_nbh": {
+  "kb": 7507,
+  "items": {
+   "nbh_01": {
+    "w": 37.79,
+    "d": 39.18,
+    "h": 14.04,
+    "lights": [
+     [
+      6.59,
+      3.2,
+      11.55
+     ],
+     [
+      9.24,
+      3.2,
+      11.55
+     ],
+     [
+      8.24,
+      3.2,
+      9.44
+     ],
+     [
+      5.59,
+      3.2,
+      9.44
+     ],
+     [
+      -7.41,
+      3.2,
+      9.44
+     ],
+     [
+      -4.76,
+      3.2,
+      9.44
+     ],
+     [
+      -3.76,
+      3.2,
+      11.55
+     ],
+     [
+      -6.41,
+      3.2,
+      11.55
+     ],
+     [
+      3.37,
+      2.9,
+      -0.71
+     ],
+     [
+      6.06,
+      1.68,
+      -14.12
+     ],
+     [
+      -10.49,
+      1.68,
+      -10.09
+     ],
+     [
+      7.82,
+      3.21,
+      -1
+     ],
+     [
+      17.96,
+      3.2,
+      8.57
+     ],
+     [
+      3.86,
+      3.2,
+      -6.56
+     ],
+     [
+      7.47,
+      3.37,
+      -4.38
+     ],
+     [
+      7.47,
+      3.36,
+      -4.13
+     ],
+     [
+      0.73,
+      1.84,
+      1.69
+     ],
+     [
+      8.67,
+      3.2,
+      -6.69
+     ],
+     [
+      11.46,
+      3.2,
+      -6.69
+     ],
+     [
+      10.14,
+      3.37,
+      -4.35
+     ],
+     [
+      10.18,
+      3.36,
+      -4.11
+     ],
+     [
+      10.02,
+      3.21,
+      -1
+     ],
+     [
+      3.83,
+      3.37,
+      -4.29
+     ],
+     [
+      3.99,
+      3.36,
+      -4.16
+     ],
+     [
+      11.33,
+      3.21,
+      -12.77
+     ],
+     [
+      8.94,
+      3.21,
+      -12.77
+     ],
+     [
+      8.94,
+      3.21,
+      -9.89
+     ],
+     [
+      11.33,
+      3.21,
+      -9.89
+     ],
+     [
+      0.73,
+      1.84,
+      5.22
+     ],
+     [
+      11.78,
+      1.84,
+      4.71
+     ],
+     [
+      14.11,
+      1.84,
+      4.71
+     ],
+     [
+      14.11,
+      1.84,
+      2.23
+     ],
+     [
+      11.78,
+      1.84,
+      2.23
+     ],
+     [
+      -10.41,
+      3.2,
+      -6.69
+     ],
+     [
+      -7.41,
+      3.2,
+      -6.56
+     ],
+     [
+      -4.76,
+      3.2,
+      -6.56
+     ],
+     [
+      8.54,
+      1.68,
+      -14.12
+     ],
+     [
+      8.54,
+      1.68,
+      -16.87
+     ],
+     [
+      6.06,
+      1.68,
+      -16.87
+     ],
+     [
+      6.06,
+      1.68,
+      -10.91
+     ],
+     [
+      6.06,
+      1.68,
+      -8.15
+     ],
+     [
+      3.37,
+      2.9,
+      4.47
+     ],
+     [
+      3.37,
+      2.9,
+      6.53
+     ],
+     [
+      -3.76,
+      3.2,
+      -4.45
+     ],
+     [
+      -6.41,
+      3.2,
+      -4.45
+     ],
+     [
+      -13.36,
+      1.68,
+      -10.09
+     ],
+     [
+      -13.36,
+      1.68,
+      -12.14
+     ],
+     [
+      -10.49,
+      1.68,
+      -12.14
+     ],
+     [
+      -10.49,
+      1.68,
+      -14.14
+     ],
+     [
+      -13.36,
+      1.68,
+      -14.14
+     ],
+     [
+      -13.36,
+      1.68,
+      -16.14
+     ],
+     [
+      -10.49,
+      1.68,
+      -16.14
+     ],
+     [
+      18,
+      3.2,
+      12.5
+     ],
+     [
+      13.99,
+      3.2,
+      8.57
+     ],
+     [
+      13.95,
+      3.2,
+      12.49
+     ],
+     [
+      -14.05,
+      3.2,
+      6.49
+     ],
+     [
+      -14.01,
+      3.19,
+      2.57
+     ],
+     [
+      -10,
+      3.2,
+      6.5
+     ],
+     [
+      -10.04,
+      3.2,
+      2.57
+     ]
+    ],
+    "src": "-25,25,-25,25",
+    "tris": 278339
+   }
+  },
+  "credits": [
+   {
+    "file": "neighbourhood",
+    "title": "Neighbourhood City Modular lowpoly",
+    "author": "golukumar (https://sketchfab.com/mortalityrexotable)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/neighbourhood-city-modular-lowpoly-6a0e3b97a8a54f2a909d351322916293"
+   }
+  ]
+ },
+ "bld_grey": {
+  "kb": 1682,
+  "items": {
+   "grey_01": {
+    "w": 38.89,
+    "d": 16.64,
+    "h": 27.28,
+    "src": "Cube.001",
+    "tris": 6815
+   },
+   "grey_02": {
+    "w": 16.64,
+    "d": 38.89,
+    "h": 27.28,
+    "src": "Cube.002",
+    "tris": 6805
+   },
+   "grey_03": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.003",
+    "tris": 2153
+   },
+   "grey_04": {
+    "w": 38.89,
+    "d": 16.64,
+    "h": 27.28,
+    "src": "Cube.004",
+    "tris": 6815
+   },
+   "grey_05": {
+    "w": 20.1,
+    "d": 9.46,
+    "h": 24.33,
+    "src": "Cube.005",
+    "tris": 2080
+   },
+   "grey_06": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.006",
+    "tris": 2153
+   },
+   "grey_07": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.007",
+    "tris": 2153
+   },
+   "grey_08": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.008",
+    "tris": 2153
+   },
+   "grey_09": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.009",
+    "tris": 2153
+   },
+   "grey_10": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.010",
+    "tris": 2153
+   },
+   "grey_11": {
+    "w": 38.89,
+    "d": 16.64,
+    "h": 27.28,
+    "src": "Cube.011",
+    "tris": 6815
+   },
+   "grey_12": {
+    "w": 16.64,
+    "d": 38.89,
+    "h": 27.28,
+    "src": "Cube.012",
+    "tris": 6804
+   },
+   "grey_13": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.013",
+    "tris": 2153
+   },
+   "grey_14": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.014",
+    "tris": 2153
+   },
+   "grey_15": {
+    "w": 20.96,
+    "d": 11.5,
+    "h": 24.33,
+    "src": "Cube.015",
+    "tris": 2111
+   },
+   "grey_16": {
+    "w": 19.31,
+    "d": 18,
+    "h": 24.33,
+    "src": "Cube.016",
+    "tris": 2109
+   },
+   "grey_17": {
+    "w": 9.46,
+    "d": 20.1,
+    "h": 24.33,
+    "src": "Cube.017",
+    "tris": 2153
+   },
+   "grey_18": {
+    "w": 36.62,
+    "d": 36.97,
+    "h": 54.12,
+    "src": "Cube.018",
+    "tris": 13622
+   },
+   "grey_19": {
+    "w": 30.46,
+    "d": 15.27,
+    "h": 35.8,
+    "src": "Plane",
+    "tris": 323
+   },
+   "grey_20": {
+    "w": 35.85,
+    "d": 15.47,
+    "h": 23.86,
+    "src": "Plane.001",
+    "tris": 206
+   },
+   "grey_21": {
+    "w": 30.46,
+    "d": 15.27,
+    "h": 35.8,
+    "src": "Plane.003",
+    "tris": 323
+   },
+   "grey_22": {
+    "w": 30.46,
+    "d": 15.27,
+    "h": 35.8,
+    "src": "Plane.004",
+    "tris": 323
+   },
+   "grey_23": {
+    "w": 15.47,
+    "d": 35.85,
+    "h": 23.86,
+    "src": "Plane.005",
+    "tris": 205
+   },
+   "grey_24": {
+    "w": 15.47,
+    "d": 35.85,
+    "h": 23.86,
+    "src": "Plane.006",
+    "tris": 205
+   },
+   "grey_25": {
+    "w": 15.47,
+    "d": 35.85,
+    "h": 23.86,
+    "src": "Plane.007",
+    "tris": 205
+   },
+   "grey_26": {
+    "w": 30.46,
+    "d": 15.27,
+    "h": 35.8,
+    "src": "Plane.008",
+    "tris": 323
+   },
+   "grey_27": {
+    "w": 35.85,
+    "d": 15.47,
+    "h": 23.86,
+    "src": "Plane.009",
+    "tris": 206
+   },
+   "grey_28": {
+    "w": 35.85,
+    "d": 15.47,
+    "h": 47.44,
+    "src": "Plane.010",
+    "tris": 412
+   },
+   "grey_29": {
+    "w": 15.27,
+    "d": 30.46,
+    "h": 35.8,
+    "src": "Plane.012",
+    "tris": 320
+   },
+   "grey_30": {
+    "w": 29.93,
+    "d": 19.61,
+    "h": 70.8,
+    "src": "Plane.013",
+    "tris": 648
+   },
+   "grey_31": {
+    "w": 56.07,
+    "d": 52.14,
+    "h": 83.47,
+    "src": "Plane.015",
+    "tris": 12
+   }
+  },
+  "credits": [
+   {
+    "file": "street8",
+    "title": "street city buildings (8)",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/street-city-buildings-8-873c5f14ec464966a11a4d772d187270"
+   }
+  ]
+ },
+ "bld_shop": {
+  "kb": 886,
+  "items": {
+   "shop_01": {
+    "w": 4.42,
+    "d": 4.91,
+    "h": 5.45,
+    "src": "17.9,19.6,-1.7,0.2",
+    "tris": 862
+   },
+   "shop_02": {
+    "w": 4.72,
+    "d": 6.87,
+    "h": 7.11,
+    "src": "19.9,21.7,-1.8,0.7",
+    "tris": 1117
+   },
+   "shop_03": {
+    "w": 7.69,
+    "d": 8.59,
+    "h": 7.68,
+    "src": "21.9,24.6,-2.6,0.5",
+    "tris": 5972
+   },
+   "shop_04": {
+    "w": 9.66,
+    "d": 9.48,
+    "h": 7.5,
+    "src": "24.7,28.1,-3.2,0.2",
+    "tris": 2490
+   },
+   "shop_05": {
+    "w": 6.83,
+    "d": 7.9,
+    "h": 7.47,
+    "src": "28.5,31,-2.5,0.3",
+    "tris": 1110
+   },
+   "shop_06": {
+    "w": 7.62,
+    "d": 7.78,
+    "h": 7.67,
+    "src": "31.7,34.5,-2.7,0.2",
+    "tris": 1110
+   },
+   "shop_07": {
+    "w": 8.64,
+    "d": 8.99,
+    "h": 5.33,
+    "src": "35.4,38.4,-2.9,0.2",
+    "tris": 626
+   }
+  },
+  "credits": [
+   {
+    "file": "street7",
+    "title": "street city (7) for games FREE",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/street-city-7-for-games-free-493a69b451284ff88346c7b3e4e1b5a7"
+   }
+  ]
+ },
  "apt_loft": {
   "kb": 2160,
   "items": {
@@ -1178,6 +1790,301 @@
     "author": "dasy444 (https://sketchfab.com/dasy444)",
     "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
     "source": "https://sketchfab.com/3d-models/interior-15-minimalist-panoramic-viem-5d25be96aca842f18b9cda266e20716b"
+   }
+  ]
+ },
+ "bld_cyber": {
+  "kb": 9010,
+  "items": {
+   "cyber_01": {
+    "w": 42.6,
+    "d": 25.97,
+    "h": 102.96,
+    "src": "-12.9,-8,-8.5,-0.6,0",
+    "tris": 21519
+   },
+   "cyber_02": {
+    "w": 41.4,
+    "d": 32.2,
+    "h": 102.67,
+    "src": "-7.6,-2.7,-8.5,-0.6,0",
+    "tris": 29739
+   },
+   "cyber_03": {
+    "w": 42.58,
+    "d": 39.78,
+    "h": 73.94,
+    "src": "-2.7,2,-8.5,-0.6,0",
+    "tris": 80477
+   },
+   "cyber_04": {
+    "w": 43.58,
+    "d": 54.95,
+    "h": 123.07,
+    "src": "2,6.8,-8.5,-0.6,0",
+    "tris": 29374
+   },
+   "cyber_05": {
+    "w": 43.47,
+    "d": 70.01,
+    "h": 95.41,
+    "src": "6.8,11.6,-8.5,-0.6,0",
+    "tris": 139979
+   },
+   "cyber_06": {
+    "w": 46.08,
+    "d": 59.51,
+    "h": 93.67,
+    "src": "11.6,16.5,-8.5,-0.6,0",
+    "tris": 154256
+   },
+   "cyber_07": {
+    "w": 41.72,
+    "d": 35.24,
+    "h": 119.81,
+    "src": "-12.9,-8,0.3,4.1,2",
+    "tris": 44400
+   },
+   "cyber_08": {
+    "w": 39.47,
+    "d": 29.54,
+    "h": 34.32,
+    "src": "-12.9,-8,4.1,8,2",
+    "tris": 4223
+   },
+   "cyber_09": {
+    "w": 41.09,
+    "d": 22.32,
+    "h": 76.2,
+    "src": "-7.6,-2.7,0.3,2.6,2",
+    "tris": 59373
+   },
+   "cyber_10": {
+    "w": 39.97,
+    "d": 43.23,
+    "h": 182.19,
+    "src": "-7.6,-2.7,2.6,8,2",
+    "tris": 14410
+   },
+   "cyber_11": {
+    "w": 37.52,
+    "d": 40.5,
+    "h": 65.46,
+    "src": "-2.7,2,0.3,8,2",
+    "tris": 36375
+   },
+   "cyber_12": {
+    "w": 37.33,
+    "d": 59.43,
+    "h": 84.03,
+    "src": "2,6.8,0.3,8,2",
+    "tris": 66823
+   },
+   "cyber_13": {
+    "w": 37.49,
+    "d": 41.24,
+    "h": 126.4,
+    "src": "6.8,11.6,0.3,8,2",
+    "tris": 49473
+   },
+   "cyber_14": {
+    "w": 37.48,
+    "d": 35.36,
+    "h": 84.44,
+    "src": "11.6,16.5,0.3,8,2",
+    "tris": 161383
+   }
+  },
+  "credits": [
+   {
+    "file": "cyberpunk",
+    "title": "Cyberpunk City",
+    "author": "mortalityrexotable (https://sketchfab.com/mortalityrexotable)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cyberpunk-city-3f24e5c5bf924f46b30d9a392afa9624"
+   }
+  ]
+ },
+ "far_golu": {
+  "kb": 4951,
+  "items": {
+   "golu": {
+    "w": 171.69,
+    "d": 386.56,
+    "h": 36.78,
+    "tris": 180578
+   }
+  },
+  "credits": [
+   {
+    "file": "city_golu",
+    "title": "City",
+    "author": "golukumar (https://sketchfab.com/mortalityrexotable)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/city-b3dcef1c31e04dcd883f682f21617381"
+   }
+  ],
+  "far": 1
+ },
+ "far_s7": {
+  "kb": 1779,
+  "items": {
+   "s7": {
+    "w": 164.4,
+    "d": 264.52,
+    "h": 70.9,
+    "tris": 79506
+   }
+  },
+  "credits": [
+   {
+    "file": "street7",
+    "title": "street city (7) for games FREE",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/street-city-7-for-games-free-493a69b451284ff88346c7b3e4e1b5a7"
+   }
+  ],
+  "far": 1
+ },
+ "far_london": {
+  "kb": 1223,
+  "items": {
+   "london": {
+    "w": 718.89,
+    "d": 1265.11,
+    "h": 351.99,
+    "tris": 28794
+   }
+  },
+  "credits": [
+   {
+    "file": "london_city",
+    "title": "London City",
+    "author": "golukumar (https://sketchfab.com/mortalityrexotable)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/london-city-e57d7a04837d44fdb60f78b3f5a0066d"
+   }
+  ],
+  "far": 1
+ },
+ "isle_ruin": {
+  "kb": 1323,
+  "items": {
+   "ruin": {
+    "w": 52.34,
+    "d": 64.4,
+    "h": 12.68,
+    "tris": 15767
+   }
+  },
+  "credits": [
+   {
+    "file": "abandoned",
+    "title": "abandoned city street for games",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/abandoned-city-street-for-games-0232bce6a27d477c947b6ef4e985fff2"
+   }
+  ]
+ },
+ "isle_office": {
+  "kb": 3797,
+  "items": {
+   "office": {
+    "w": 61.72,
+    "d": 62.71,
+    "h": 13.96,
+    "tris": 115591
+   }
+  },
+  "credits": [
+   {
+    "file": "loft18env",
+    "title": "Loft 18 mini office v.environment",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/loft-18-mini-office-venvironment-00f610a2e4504ba59aad766e705c395e"
+   }
+  ]
+ },
+ "apt_office": {
+  "kb": 1704,
+  "items": {
+   "office": {
+    "w": 15.43,
+    "d": 11.7,
+    "h": 6.13,
+    "tris": 39882
+   }
+  },
+  "credits": [
+   {
+    "file": "loft18",
+    "title": "free Loft 18 mini office v.optimization",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/free-loft-18-mini-office-voptimization-e434caaeaa4a4347a3c45eac6c138c30"
+   }
+  ]
+ },
+ "apt_mini": {
+  "kb": 1037,
+  "items": {
+   "mini": {
+    "w": 5.91,
+    "d": 5.71,
+    "h": 4.23,
+    "tris": 20825
+   }
+  },
+  "credits": [
+   {
+    "file": "miniloft",
+    "title": "interior (15) mini loft",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/interior-15-mini-loft-ace0229c6a9d4d7d9cbf709b53964f13"
+   }
+  ]
+ },
+ "apt_l16": {
+  "kb": 593,
+  "items": {
+   "l16": {
+    "w": 15.95,
+    "d": 16.2,
+    "h": 8.84,
+    "tris": 5860
+   }
+  },
+  "credits": [
+   {
+    "file": "loft16",
+    "title": "Loft 16 interior",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/loft-16-interior-6fcba30b42d94581b068b448b6da85a2"
+   }
+  ]
+ },
+ "apt_i14": {
+  "kb": 1406,
+  "items": {
+   "i14": {
+    "w": 11.54,
+    "d": 12.58,
+    "h": 5.05,
+    "tris": 28957
+   }
+  },
+  "credits": [
+   {
+    "file": "interior14",
+    "title": "The interior (14) is spacious.",
+    "author": "dasy444 (https://sketchfab.com/dasy444)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/the-interior-14-is-spacious-79262bfc39d54fd2a0edc9d80fafdb6d"
    }
   ]
  }

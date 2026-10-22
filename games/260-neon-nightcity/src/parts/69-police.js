@@ -513,6 +513,7 @@ function placeRoadblock() {
 function dropBlock(b) {
   W.blocks.splice(W.blocks.indexOf(b), 1);
   for (const q of b.circ) { const i = circles.indexOf(q); if (i >= 0) circles.splice(i, 1); }
+  colDirty();
   for (const u of b.units) if (W.units.includes(u)) u.state = 'leave', u.drive = true;
   drawBlocks();
 }

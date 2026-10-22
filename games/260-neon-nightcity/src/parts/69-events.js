@@ -17,10 +17,10 @@ function truckSpawn(why) {
   toast(why === 'zero' ? 'Zero：運鈔車位置傳到你小地圖上了（藍點）' : '附近有運鈔車經過（小地圖藍點）');
   return true;
 }
-// 隨便挑一個 150 m 外的路口當目的地
+// 隨便挑一個 150–400 m 外的路口當目的地（城市 20×15，不設上限會開到一公里外）
 function truckRoute(tk) {
   const v = tk.v, c = [];
-  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) if (Math.hypot(avX(i) - v.x, stZ(j) - v.z) > 150) c.push([avX(i), stZ(j)]);
+  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) { const d = Math.hypot(avX(i) - v.x, stZ(j) - v.z); if (d > 150 && d < 400) c.push([avX(i), stZ(j)]); }
   const [tx, tz] = c[Math.floor(Math.random() * c.length)];
   tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1;
 }

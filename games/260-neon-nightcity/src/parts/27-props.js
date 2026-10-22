@@ -6,8 +6,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 const PROP_BASE = new URL('../assets/260/props/', location.href).href;
 const PROP_INST = { uM: { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, 0) } };
-const propCache = {}, propMats = new Map();
-const propMat = src => { let m = propMats.get(src); if (!m) { m = glbMaterial(src, PROP_INST); propMats.set(src, m); } return m; };
+const propCache = {}, propMats = new Map(), FAR_FOG = .2;   // FAR_FOG：props.json 標 far 的遠景組，霧和 MAT.far 一樣只算兩成距離
+const propMat = (src, far) => { let m = propMats.get(src); if (!m) { m = glbMaterial(src, PROP_INST, far); propMats.set(src, m); } return m; };
 // 量化的整數屬性轉成浮點，再套上節點矩陣（量化的位移與縮放在節點上）
 function floatGeo(geo, mtx) {
   const g = new T.BufferGeometry();
@@ -29,7 +29,7 @@ function loadProps(set) {
     const items = {};
     for (const n of g.scene.children) {
       const parts = [];
-      n.traverse(m => { if (m.isMesh) parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material) }); });
+      n.traverse(m => { if (m.isMesh) parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG) }); });
       items[n.name] = { parts, ...PROPS_SPEC[set].items[n.name] };
     }
     glbDone.add(key);
@@ -44,28 +44,71 @@ function propObject(it, x, y, z, ry = 0, s = 1) {
   return g;
 }
 
-// ─── 建築：同一組、同一材質的所有棟合併成一個網格（每組十來個 draw call） ───
+// ─── 建築：同一組、同一材質、同一個 4×4 街區分塊的棟合併成一個網格，遠處的分塊由 distCull 隱藏 ───
+// 開場只等出生點 BLD_NEAR 內用到的組；其他組在玩家走近 BLD_NEAR 時才下載（在霧裡，下載完才出現也看不到）。
+const BLD_TILE = 4, BLD_NEAR = 520;
+const bldTile = b => Math.floor((b.x - X0) / (P * BLD_TILE)) + ',' + Math.floor((b.z - Z0) / (Q * BLD_TILE));
 const bldSets = [...new Set(bldPlace.map(b => b.set))];
-const bldReady = Promise.all(bldSets.map(set => loadProps(set).then(items => {
-  const mine = bldPlace.filter(b => b.set === set);
-  if (!items) { lotFallback(mine.flatMap(b => b.lots)); return; }
-  const byMat = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
-  for (const b of mine) {
-    M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
-    for (const p of items[b.id].parts) {
-      if (!byMat.has(p.mat)) byMat.set(p.mat, []);
-      byMat.get(p.mat).push(p.geo.clone().applyMatrix4(M));
+const bldReq = new Map();   // set → Promise
+function bldLoad(set) {
+  if (bldReq.has(set)) return bldReq.get(set);
+  const pr = loadProps(set).then(items => {
+    const mine = bldPlace.filter(b => b.set === set);
+    if (!items) { lotFallback(mine.flatMap(b => b.lots)); return; }
+    const byKey = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
+    for (const b of mine) {
+      M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
+      const tk = bldTile(b);
+      for (const p of items[b.id].parts) {
+        let e = byKey.get(tk + '|' + p.mat.uuid);
+        if (!e) byKey.set(tk + '|' + p.mat.uuid, e = { mat: p.mat, list: [] });
+        e.list.push(p.geo.clone().applyMatrix4(M));
+      }
     }
+    for (const { mat, list } of byKey.values()) {
+      const g = mergeGeometries(list);
+      for (const x of list) x.dispose();
+      if (!g) continue;
+      const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set;
+      scene.add(m); cullAdd(m);
+    }
+  });
+  bldReq.set(set, pr);
+  return pr;
+}
+const bldNear = (set, x, z, R) => bldPlace.some(b => b.set === set && (b.x - x) ** 2 + (b.z - z) ** 2 < R * R);
+const bldReady = Promise.all(bldSets.filter(set => bldNear(set, avX(1), stZ(2), BLD_NEAR)).map(bldLoad));   // 出生點在 Atlas Av · 8 St 附近（40-people.js 的 player）
+let bldTick = 0;
+function bldUpdate() {   // 每半秒看一次：走近還沒下載的組就開始下載
+  if (!GLB_ON || (bldTick = (bldTick + 1) % 30)) return;
+  const x = pX(), z = pZ();
+  for (const set of bldSets) if (!bldReq.has(set) && bldNear(set, x, z, BLD_NEAR + 150)) bldLoad(set);
+}
+
+// ─── 海岸的模型（21-coast.js）：灰鷗島的兩個基地、灰鷺河對岸的 London City、東灣對岸的舊港城與後排板樓。
+// 玩家走近 near 公尺內才下載；同一個替身（ISLE_PROXY）的模型都擺好，才把程式替身藏起來 ───
+const COAST_MODELS = [
+  { set: 'isle_ruin', id: 'ruin', at: ISLE_SITES.ruin, proxy: 'isle', near: 900, y: .03 },
+  { set: 'isle_office', id: 'office', at: ISLE_SITES.office, proxy: 'isle', near: 900, y: .03 },
+  { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500 },
+  { set: 'far_golu', id: 'golu', at: FAR_SITES.golu, proxy: 'golu', near: 1500 },
+  { set: 'far_s7', id: 's7', at: FAR_SITES.s7, proxy: 'golu', near: 1500 },
+];
+let coastTick = 0;
+function coastModelsUpdate() {
+  if (!GLB_ON || (coastTick = (coastTick + 1) % 30)) return;
+  const x = pX(), z = pZ();
+  for (const o of COAST_MODELS) {
+    if (o.req || Math.hypot(x - o.at.x, z - o.at.z) > o.near) continue;
+    o.req = true;
+    loadProps(o.set).then(items => {
+      if (!items || !items[o.id]) return;
+      scene.add(propObject(items[o.id], o.at.x, o.y || 0, o.at.z, o.at.ry || 0));
+      o.done = true;
+      if (COAST_MODELS.every(c => c.proxy !== o.proxy || c.done)) ISLE_PROXY[o.proxy].removeFromParent();   // 島上的替身在 cullList 裡，distCull 每幀會重設 visible，所以直接拿掉
+    });
   }
-  for (const [mat, list] of byMat) {
-    const g = mergeGeometries(list);
-    for (const x of list) x.dispose();
-    if (!g) continue;
-    g.computeBoundingSphere();
-    const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set;
-    scene.add(m);
-  }
-})));
+}
 
 // ─── 路邊拉麵攤：霓虹區三個地塊門前的人行道上，面向馬路 ───
 const ramenSpots = [];
