@@ -47,7 +47,8 @@ function propObject(it, x, y, z, ry = 0, s = 1) {
 // ─── 建築：同一組、同一材質、同一個 4×4 街區分塊的棟合併成一個網格，遠處的分塊由 distCull 隱藏 ───
 // 開場只等出生點 BLD_NEAR 內用到的組；其他組在玩家走近 BLD_NEAR 時才下載（在霧裡，下載完才出現也看不到）。
 const BLD_TILE = 4, BLD_NEAR = 520;
-const bldTile = b => Math.floor((b.x - X0) / (P * BLD_TILE)) + ',' + Math.floor((b.z - Z0) / (Q * BLD_TILE));
+const bldTile = b => zoneAtL(b.x, b.z).id + ':' + Math.floor((b.x - X0) / (P * BLD_TILE)) + ',' + Math.floor((b.z - Z0) / (Q * BLD_TILE));
+const bldW = new Map(bldPlace.map(b => [b, toW(b.x, b.z)]));   // 走近才下載：比的是世界座標
 const bldSets = [...new Set(bldPlace.map(b => b.set))];
 const bldReq = new Map();   // set → Promise
 function bldLoad(set) {
@@ -58,29 +59,29 @@ function bldLoad(set) {
     const byKey = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
     for (const b of mine) {
       M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
-      const tk = bldTile(b), wg = [];
+      const tk = bldTile(b), wg = [], zn = zoneAtL(b.x, b.z);
       for (const p of items[b.id].parts) {
         let e = byKey.get(tk + '|' + p.mat.uuid);
-        if (!e) byKey.set(tk + '|' + p.mat.uuid, e = { mat: p.mat, list: [] });
+        if (!e) byKey.set(tk + '|' + p.mat.uuid, e = { mat: p.mat, list: [], zn });
         const g = p.geo.clone().applyMatrix4(M);
         e.list.push(g); wg.push(g);
       }
-      hmModel(b, wg);   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
+      hmModel(b, wg, zn.m4);   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
     }
     hmFlush();
-    for (const { mat, list } of byKey.values()) {
+    for (const { mat, list, zn } of byKey.values()) {
       const g = mergeGeometries(list);
       for (const x of list) x.dispose();
       if (!g) continue;
       const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set;
-      scene.add(m); cullAdd(m);
+      cityAdd(m, zn); cullAdd(m);
     }
   });
   bldReq.set(set, pr);
   return pr;
 }
-const bldNear = (set, x, z, R) => bldPlace.some(b => b.set === set && (b.x - x) ** 2 + (b.z - z) ** 2 < R * R);
-const bldReady = Promise.all(bldSets.filter(set => bldNear(set, avX(1), stZ(2), BLD_NEAR)).map(bldLoad));   // 出生點在 Atlas Av · 8 St 附近（40-people.js 的 player）
+const bldNear = (set, x, z, R) => bldPlace.some(b => { if (b.set !== set) return false; const [bx, bz] = bldW.get(b); return (bx - x) ** 2 + (bz - z) ** 2 < R * R; });
+const bldReady = Promise.all(bldSets.filter(set => bldNear(set, ...toW(avX(1), stZ(2)), BLD_NEAR)).map(bldLoad));   // 出生點在 Atlas Av · 8 St 附近（40-people.js 的 player）
 let bldTick = 0;
 function bldUpdate() {   // 每半秒看一次：走近還沒下載的組就開始下載
   if (!GLB_ON || (bldTick = (bldTick + 1) % 30)) return;
@@ -102,15 +103,16 @@ function coastModelsUpdate() {
   if (!GLB_ON || (coastTick = (coastTick + 1) % 30)) return;
   const x = pX(), z = pZ();
   for (const o of COAST_MODELS) {
-    if (o.req || Math.hypot(x - o.at.x, z - o.at.z) > o.near) continue;
+    const zn = zoneAtL(o.at.x, o.at.z), [ax, az] = toW(o.at.x, o.at.z, zn);   // at 是邏輯座標，模型掛進所在的區
+    if (o.req || Math.hypot(x - ax, z - az) > o.near) continue;
     o.req = true;
     loadProps(o.set).then(items => {
       if (!items || !items[o.id]) return;
-      scene.add(propObject(items[o.id], o.at.x, o.y || 0, o.at.z, o.at.ry || 0));
+      cityAdd(propObject(items[o.id], o.at.x, o.y || 0, o.at.z, o.at.ry || 0), zn);
       if (o.proxy === 'isle') {   // 島上的基地也畫進日光陰影的高度圖（22-hmap.js）
         const M = new T.Matrix4().compose(V3(o.at.x, o.y || 0, o.at.z), new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), o.at.ry || 0), V3(1, 1, 1));
         const wg = items[o.id].parts.map(p => p.geo.clone().applyMatrix4(M));
-        hmModel({ set: o.set, id: o.id, x: o.at.x, z: o.at.z, ry: o.at.ry || 0, s: 1 }, wg);
+        hmModel({ set: o.set, id: o.id, x: o.at.x, z: o.at.z, ry: o.at.ry || 0, s: 1 }, wg, zn && zn.m4);
         wg.forEach(g => g.dispose()); hmFlush();
       }
       o.done = true;
@@ -135,8 +137,8 @@ if (GLB_ON) {
 const ramenReady = ramenSpots.length ? loadProps('ramen').then(items => {
   if (!items) return;
   for (const o of ramenSpots) {
-    scene.add(propObject(items.ramen, o.x, 0, o.z, o.ry));
-    colliders.push({ x0: o.x - 2.9, x1: o.x + 2.9, z0: o.z - 1.3, z1: o.z + 1.3 });
+    cityAdd(propObject(items.ramen, o.x, 0, o.z, o.ry));
+    addBoxL({ x0: o.x - 2.9, x1: o.x + 2.9, z0: o.z - 1.3, z1: o.z + 1.3 });
   }
 }) : Promise.resolve();
 

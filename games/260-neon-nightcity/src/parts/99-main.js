@@ -1,5 +1,7 @@
 
 // ═══ 輸入、相機、燈光挑選、天氣、主迴圈與測試 API ═══
+const CLUB_W = WP(CLUB_X, CLUB_Z), BAR_W = WP(BAR_X, BAR_Z);   // 音效的距離用世界座標
+cityWorld();   // 10-city.js：生成都跑完了，碰撞表、光源表與錨點一次換成世界座標（05-zones.js 的區）
 const keys = {};
 const inp = { mx: 0, mz: 0, run: false, thr: 0, brk: 0, steer: 0, hb: false, nitro: false };
 const camState = { yaw: 0, pitch: .14, dist: 3.6, far: 0, idle: 9, snap: true, pos: V3(), shake: 0, fov: 62 };
@@ -54,10 +56,8 @@ function summonCar() {
   motors.stowed = false; kestrel.g.visible = true;
   if (kestrel.dead) { kestrel.dead = 0; kestrel.burn = 0; kestrel.hp = 1000; toast(`${kestrel.name} 修好送過來了`); }
   if (kestrel.flatBase) { kestrel.vmax = kestrel.flatBase.vmax; kestrel.grip = kestrel.flatBase.grip; kestrel.flatBase = null; kestrel.flat = 0; kestrel.hp = Math.max(kestrel.hp, 1000); }
-  let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(player.x - avX(i)); if (d < bd) { bd = d; bi = i; } }
-  let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(player.z - stZ(j)); if (d < be) { be = d; bj = j; } }
-  if (bd < be) { const s = player.x < avX(bi) ? -1 : 1; kestrel.x = avX(bi) + s * LANE; kestrel.z = clamp(player.z, stZ(0) + 12, stZ(NZ) - 12); kestrel.yaw = s < 0 ? 0 : Math.PI; }
-  else { const s = player.z < stZ(bj) ? -1 : 1; kestrel.z = stZ(bj) + s * LANE; kestrel.x = clamp(player.x, avX(0) + 12, avX(NX) - 12); kestrel.yaw = s > 0 ? Math.PI / 2 : -Math.PI / 2; }
+  const sp = rnLaneSpot(player.x, player.z, 8);   // 06-roads.js：最近那段路靠玩家這一側的車道
+  kestrel.x = sp.x; kestrel.z = sp.z; kestrel.yaw = sp.yaw;
   kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.air = null; poseVehicle(kestrel);
   enterVehicle(kestrel); camState.yaw = kestrel.yaw; camState.snap = true;
   toast(`${kestrel.name} 開過來了`);
@@ -121,9 +121,11 @@ function readInput() {
 
 // ─── 相機 ───
 const _ct = V3(), _cd = V3();
-function rayBox(ox, oz, dx, dz, b) {
+// 線段 (ox, oz) → (ox + dx, oz + dz) 第一次碰到盒（往外擴 pad）的比例 t（0–1，碰不到是 1）；盒有所屬的區就換到區的框裡算（t 不變）
+function rayBox(ox, oz, dx, dz, b, pad = 0) {
+  if (b.f) { [ox, oz] = toL(ox, oz, b.f); [dx, dz] = dirL(b.f, dx, dz); }
   let t0 = 0, t1 = 1;
-  for (const [o, d, lo, hi] of [[ox, dx, b.x0, b.x1], [oz, dz, b.z0, b.z1]]) {
+  for (const [o, d, lo, hi] of [[ox, dx, b.x0 - pad, b.x1 + pad], [oz, dz, b.z0 - pad, b.z1 + pad]]) {
     if (Math.abs(d) < 1e-6) { if (o < lo || o > hi) return 1; continue; }
     let a = (lo - o) / d, c = (hi - o) / d; if (a > c) [a, c] = [c, a];
     t0 = Math.max(t0, a); t1 = Math.min(t1, c); if (t0 > t1) return 1;
@@ -161,8 +163,8 @@ function updateCamera(dt, spd) {
   const ox = tx + rx * sx, oz = tz + rz * sx;
   for (const b of boxesNear(ox, oz, dist + 2)) {
     if (b.low) continue;   // 岸邊擋牆不擋相機
-    if (Math.max(b.x0 - ox, ox - b.x1, b.z0 - oz, oz - b.z1) > dist + 2) continue;
-    const t = rayBox(ox, oz, wx - ox, wz - oz, { x0: b.x0 - .25, x1: b.x1 + .25, z0: b.z0 - .25, z1: b.z1 + .25 });
+    if (boxGap(b, ox, oz) > dist + 2) continue;
+    const t = rayBox(ox, oz, wx - ox, wz - oz, b, .25);
     if (t < tmin) tmin = t;
   }
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
@@ -256,13 +258,13 @@ function step(dt) {
     driftTick(dt, v, r.imp, spd);
     if (!v.isCar) { me.anim(0, ANIM.ride, 0, 1); me.anim2(0, 0, 0); _o.position.set(0, 0, 0); placeRider(v); }
     driveByPlace(v);   // 69-combat.js：車內射擊時手伸出車窗
-    sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_X, v.z - CLUB_Z), dBar: Math.hypot(v.x - BAR_X, v.z - BAR_Z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: v.slip, nitro: nitro.on });
+    sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_W.x, v.z - CLUB_W.z), dBar: Math.hypot(v.x - BAR_W.x, v.z - BAR_W.z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: v.slip, nitro: nitro.on });
   } else {
     nitro.on = false; nitro.v = clamp(nitro.v + .1 * dt, 0, 1);
     if (!dlg.open) updatePlayerWalk(inp, dt, camState.yaw);
     else { player.v = 0; updatePlayerWalk({ mx: 0, mz: 0, run: false }, dt, camState.yaw); }
-    const dc = player.where === 'out' ? Math.hypot(player.x - CLUB_X, player.z - CLUB_Z) : 999;
-    const db = player.where === 'out' ? Math.hypot(player.x - BAR_X, player.z - BAR_Z) : 999;
+    const dc = player.where === 'out' ? Math.hypot(player.x - CLUB_W.x, player.z - CLUB_W.z) : 999;
+    const db = player.where === 'out' ? Math.hypot(player.x - BAR_W.x, player.z - BAR_W.z) : 999;
     sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: 0, gear: 1, thr: 0, slip: 0, nitro: false });
   }
   updateMotors(dt, t);
@@ -345,12 +347,16 @@ window.__nc = {
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },
+  // 邏輯座標（方格；spots 裡的門口、sea 的矩形、APT 的 door 都是）：換成世界座標再傳送，朝向一起轉
+  tpL(x, z, yaw = 0) { const s = spotW({ x, z, yaw }); this.tp(s.x, s.z, s.yaw); },
+  W: (x, z) => toW(x, z), L: (x, z) => toL(x, z), zones: ZONES, roads: RN,
   drive(name = 'kestrel') { const v = name === 'hanzo' ? hanzo : kestrel; if (player.mode === 'drive') exitVehicle(); setWhere('out'); enterVehicle(v); camState.yaw = v.yaw; camState.snap = true; },
   walk() { if (player.mode === 'drive') exitVehicle(); },
   enter(w) { if (player.mode === 'drive') exitVehicle(); const sp = VENUES[w].spawn; setWhere(w); player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.snap = true; },
   exit() { const w = player.where; setWhere('out'); const o = VENUES[w].out; player.x = o.x; player.z = o.z; player.yaw = o.yaw; camState.snap = true; },
   look(yaw, pitch = camState.pitch, far = camState.far) { camState.yaw = yaw; camState.pitch = pitch; camState.far = Math.max(0, Math.min(2, Math.round(far))) || 0; camState.idle = 0; camState.snap = true; },
   setQuest, talk: { marlo: talkMarlo, juno: talkJuno }, dialog: dlg, closeDialog,
+  // 門口與人物是邏輯座標（用 tpL）；dealSpot、homeSpot 是車停的位置，世界座標
   spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 },
     dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw })), seller: SELLER },
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },

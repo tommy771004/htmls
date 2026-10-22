@@ -4,7 +4,7 @@ await bootStep(BOOT.render, '點亮霓虹…');
 const camera = new T.PerspectiveCamera(62, innerWidth / innerHeight, .2, 4200);   // 遠平面要到北面的山與對岸（21-coast.js）
 camera.layers.enable(LY.NOREFL);
 const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);
-groundGroup.traverse(o => o.layers.set(LY.NOREFL));
+for (const m of groundMeshes) m.layers.set(LY.NOREFL);
 const DPR = Math.min(devicePixelRatio || 1, LOW ? 1.25 : 1.5);
 R.setPixelRatio(DPR);
 // gray／vig／hurt：69-combat.js 的 WASTED／BUSTED 去色與暗角、受傷時畫面邊緣泛紅
@@ -144,6 +144,7 @@ function renderFrame(dt, t) {
   camera.updateMatrixWorld();
   sky.position.copy(camera.position); sky.updateMatrixWorld();   // 天空球跟著相機（城市東西兩端離原點超過半徑）
   U.uCam.value.copy(camera.position);
+  { const zc = zoneAtW(camera.position.x, camera.position.z); if (zc) U.uZone.value.set(zc.ox, zc.oz, zc.c, zc.s); }
   const outdoors = curScene === scene;
   reflU.uReflOn.value = outdoors ? 1 : 0;
   if (outdoors) renderReflection();

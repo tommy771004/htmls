@@ -1,43 +1,37 @@
 // ═══ 第三階段：GPS 導航（大地圖點一下設導航點，紫線；任務目標黃線） ═══
-// 路線沿車道圖走：終點先投影到最近的路中線，兩端路口各跑一次 fieldTo（69-police.js 的 Dijkstra），
-// 起點從玩家所在路段的兩端路口挑總距離最短的。每 0.4 秒（真實時間）重算一次。
-// 排在 69-crew 之後、69-police 之前：fieldTo、nearI 等只在函式裡用。
+// 路線沿路網圖（06-roads.js 的 RN）走：起點與終點先投影到最近的路中線，終點那段路的兩端路口各跑一次 rnField（結果快取），
+// 起點從所在路段的兩端路口挑總距離最短的，再沿距離遞減的路段走過去（連接道路的折線點也畫出來）。每 0.4 秒（真實時間）重算一次。
+// 排在 69-crew 之後、69-police 之前。
 
 const gps = { wp: null, route: null, mroute: null, t: 0 };
 const GPS_WP = '#c88cff', GPS_MK = '#ffcc4d';
-// 離 (x, z) 最近的路中線上的點，與那一段路兩端的路口
-function roadPoint(x, z) {
-  const i = nearI(x), j = nearJ(z);
-  const zA = clamp(z, stZ(0), stZ(NZ)), xS = clamp(x, avX(0), avX(NX));
-  const dA = Math.abs(x - avX(i)), dS = Math.abs(z - stZ(j));
-  if (dA <= dS) {
-    const jf = (zA - Z0) / Q, j0 = clamp(Math.floor(jf), 0, NZ), j1 = clamp(Math.ceil(jf), 0, NZ);
-    return { x: avX(i), z: zA, ends: j0 === j1 ? [[i, j0]] : [[i, j0], [i, j1]] };
-  }
-  const f = (xS - X0) / P, i0 = clamp(Math.floor(f), 0, NX), i1 = clamp(Math.ceil(f), 0, NX);
-  return { x: xS, z: stZ(j), ends: i0 === i1 ? [[i0, j]] : [[i0, j], [i1, j]] };
-}
-const sameSeg = (a, b) => a.ends.length === 2 && b.ends.length === 2 && a.ends.every(([i, j], k) => b.ends[k][0] === i && b.ends[k][1] === j);
+const rnFieldC = new Map();
+const rnFieldOf = id => { let D = rnFieldC.get(id); if (!D) rnFieldC.set(id, D = rnField(id)); return D; };
+// 離 (x, z) 最近的路中線上的點：{ x, z, e, u }；從那一點沿路走到路段某一端的路程
+function roadPoint(x, z) { const p = rnProject(x, z); return p ? { x: p.x, z: p.z, e: p.e, u: p.u } : { x, z, e: null, u: 0 }; }
+const toEnd = (p, n) => n === p.e.a ? p.u : p.e.len - p.u;
+// 沿路段 e 從節點 n 走到另一端的折線點（不含 n 本身）
+const edgeWalk = (e, n) => (n === e.a ? e.pts.slice(1) : e.pts.slice(0, -1).reverse());
 function routeTo(px, pz, tx, tz) {
   const s = roadPoint(px, pz), g = roadPoint(tx, tz);
-  if (sameSeg(s, g) || Math.hypot(s.x - g.x, s.z - g.z) < 6) return [[px, pz], [s.x, s.z], [g.x, g.z], [tx, tz]];
+  if (!s.e || !g.e || s.e === g.e || Math.hypot(s.x - g.x, s.z - g.z) < 6) return [[px, pz], [s.x, s.z], [g.x, g.z], [tx, tz]];
   let best = null;
-  for (const [gi, gj] of g.ends) {
-    const D = fieldTo(gi, gj), tail = Math.hypot(avX(gi) - g.x, stZ(gj) - g.z);
-    for (const [si, sj] of s.ends) {
-      const c = Math.hypot(avX(si) - s.x, stZ(sj) - s.z) + D[NODE(si, sj)] + tail;
-      if (!best || c < best.c) best = { c, si, sj, gi, gj, D };
+  for (const gn of [g.e.a, g.e.b]) {
+    const D = rnFieldOf(gn.id), tail = toEnd(g, gn);
+    for (const sn of [s.e.a, s.e.b]) {
+      const c = toEnd(s, sn) + D[sn.id] + tail;
+      if (!best || c < best.c) best = { c, sn, gn, D };
     }
   }
   const pts = [[px, pz], [s.x, s.z]];
-  let i = best.si, j = best.sj;
-  for (let n = 0; n < 40; n++) {
-    pts.push([avX(i), stZ(j)]);
-    if (i === best.gi && j === best.gj) break;
-    let bi = i, bj = j, bd = best.D[NODE(i, j)];
-    for (let d = 0; d < 4; d++) if (hasEdge(i, j, d)) { const ni = i + DIRS[d][0], nj = j + DIRS[d][1], v = best.D[NODE(ni, nj)]; if (v < bd) { bd = v; bi = ni; bj = nj; } }
-    if (bi === i && bj === j) break;
-    i = bi; j = bj;
+  let n = best.sn;
+  pts.push([n.x, n.z]);
+  for (let k = 0; k < 400 && n !== best.gn; k++) {
+    let bo = null, bd = best.D[n.id];
+    for (const { e } of n.out) { const m = e.a === n ? e.b : e.a, v = best.D[m.id] + e.len; if (v < bd + .01 && (!bo || v < bo.v)) bo = { e, m, v }; }
+    if (!bo) break;
+    for (const q of edgeWalk(bo.e, n)) pts.push([q[0], q[1]]);
+    n = bo.m;
   }
   pts.push([g.x, g.z], [tx, tz]);
   return pts;

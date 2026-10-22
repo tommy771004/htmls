@@ -234,8 +234,8 @@ function rebuildGarage() {
 }
 rebuildGarage();
 
-VENUES.show = { scene: showScene, data: show, spawn: { x: 0, z: 2.2, yaw: 0 }, name: 'VELOCE MOTORS', toast: 'VELOCE MOTORS 疾風車行', dist: '中城 · 9 St', ceil: 6.6, door: { x: DEAL_X, z: DEAL_Z }, out: { x: DEAL_X, z: DEAL_Z + 1.3, yaw: Math.PI } };
-VENUES.home = { scene: homeScene, data: home, spawn: { x: 0, z: 2.2, yaw: 0 }, name: 'GARAGE 07', toast: 'GARAGE 07 · 你的車庫', dist: '舊碼頭 · 8 St', ceil: 4.2, door: { x: HOME_X, z: HOME_Z }, out: { x: HOME_X - 1.4, z: HOME_Z - 1.3, yaw: 0 } };
+VENUES.show = { scene: showScene, data: show, spawn: { x: 0, z: 2.2, yaw: 0 }, name: 'VELOCE MOTORS', toast: 'VELOCE MOTORS 疾風車行', dist: '中城 · 9 St', ceil: 6.6, door: WP(DEAL_X, DEAL_Z), out: spotW({ x: DEAL_X, z: DEAL_Z + 1.3, yaw: Math.PI }) };
+VENUES.home = { scene: homeScene, data: home, spawn: { x: 0, z: 2.2, yaw: 0 }, name: 'GARAGE 07', toast: 'GARAGE 07 · 你的車庫', dist: '舊碼頭 · 8 St', ceil: 4.2, door: WP(HOME_X, HOME_Z), out: spotW({ x: HOME_X - 1.4, z: HOME_Z - 1.3, yaw: 0 }) };
 
 // ─── 對話：看車、買車、試駕、業務、車庫 ───
 const WHO_SELL = 'Vale · VELOCE MOTORS';
@@ -350,7 +350,7 @@ ctxHooks.push((p, near) => {
 // ─── 每幀：轉盤、試駕倒數 ───
 function updateMotors(dt, t) {
   if (glbWait.length && (player.where === 'show' || player.where === 'home')) glbWake(VENUES[player.where].scene);
-  else if (glbWait.length && player.where === 'out' && Math.hypot(player.x - DEAL_X, player.z - DEAL_Z) < 90) glbWake(scene);   // 車行門口的展示車
+  else if (glbWait.length && player.where === 'out' && Math.hypot(player.x - VENUES.show.door.x, player.z - VENUES.show.door.z) < 90) glbWake(scene);   // 車行門口的展示車
   // 這一批實車模型的下載進度
   const f = glbBatchFrac(), dl = $('dl');
   if (f == null) { dl.classList.remove('on'); hudCache.dl = -1; }

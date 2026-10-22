@@ -53,6 +53,11 @@ function zeroTruck() {
   if (!truckSpawn('zero')) { phoneMsg('Zero：附近路口都看得到你，等一下再叫。'); return; }
   pay(PH_TRUCK); phoneMsg('Zero：鐵庫的車隊排程我改了一台過來，藍點。');
 }
+// 存檔裡的世界座標夾回城市範圍內（在邏輯座標裡夾）
+function cityClamp(x, z) {
+  const zn = zoneAtW(x, z) || ZONES[0], [lx, lz] = toL(x, z, zn);
+  return toW(clamp(lx, avX(zn.ni0) - HR, avX(zn.ni1) + HR), clamp(lz, stZ(zn.nj0) - HR, stZ(zn.nj1) + HR), zn);
+}
 function mechDeliver() {
   if (player.where !== 'out') { phoneMsg('鐵手：你人在室內，我開不進去。'); return; }
   if (player.mode === 'drive' && player.veh === kestrel) { phoneMsg('鐵手：你已經坐在它裡面了。'); return; }
@@ -61,11 +66,9 @@ function mechDeliver() {
   if (kestrel.dead) { kestrel.dead = 0; kestrel.burn = 0; kestrel.hp = 1000; }
   if (kestrel.flatBase) { kestrel.vmax = kestrel.flatBase.vmax; kestrel.grip = kestrel.flatBase.grip; kestrel.flatBase = null; kestrel.flat = 0; kestrel.hp = Math.max(kestrel.hp, 1000); }
   const q = player.mode === 'drive' ? player.veh : player, yaw = q.yaw;
-  const r = roadPoint(q.x - Math.sin(yaw) * 30, q.z - Math.cos(yaw) * 30);
-  // 路段方向：兩端路口 i 不同是東西向的街，否則是南北向的大道；停在靠玩家那一側的車道
-  const street = r.ends.length === 2 ? r.ends[0][0] !== r.ends[1][0] : Math.abs(r.z - stZ(nearJ(r.z))) < 1;
-  if (street) { const s = q.z < r.z ? -1 : 1; kestrel.x = clamp(r.x, avX(0) + 12, avX(NX) - 12); kestrel.z = r.z + s * LANE; kestrel.yaw = s > 0 ? Math.PI / 2 : -Math.PI / 2; }
-  else { const s = q.x < r.x ? -1 : 1; kestrel.z = clamp(r.z, stZ(0) + 12, stZ(NZ) - 12); kestrel.x = r.x + s * LANE; kestrel.yaw = s < 0 ? 0 : Math.PI; }
+  // 身後 30 m 最近的那段路，停在那一側的車道、車頭順著車流（離路口至少 8 m）
+  const sp = rnLaneSpot(q.x - Math.sin(yaw) * 30, q.z - Math.cos(yaw) * 30, 8);
+  kestrel.x = sp.x; kestrel.z = sp.z; kestrel.yaw = sp.yaw;
   kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.yr = 0; kestrel.air = null; poseVehicle(kestrel);
   phone.cd.mech = 60; sfx.pickup();
   phoneMsg(`鐵手：${kestrel.name} 停在你後面了，鑰匙插著。`); toast(`${kestrel.name} 送到了`);
@@ -147,7 +150,7 @@ function quickLoad() {
     if (player.mode === 'drive') exitVehicle();
     squadClear();
     const f = (v, d) => Number.isFinite(v) ? v : d;
-    g.st.forEach((s, i) => { const c = crew.st[i]; if (!c || !s) return; c.hp = clamp(f(s.hp, c.hp), 1, CREW[i].hp); c.armor = clamp(f(s.armor, c.armor), 0, 100); c.sp = clamp(f(s.sp, c.sp), 0, SP_MAX); c.x = clamp(f(s.x, c.x), avX(0) - HR, avX(NX) + HR); c.z = clamp(f(s.z, c.z), stZ(0) - HR, stZ(NZ) + HR); c.yaw = f(s.yaw, 0); c.where = 'out'; });
+    g.st.forEach((s, i) => { const c = crew.st[i]; if (!c || !s) return; c.hp = clamp(f(s.hp, c.hp), 1, CREW[i].hp); c.armor = clamp(f(s.armor, c.armor), 0, 100); c.sp = clamp(f(s.sp, c.sp), 0, SP_MAX); [c.x, c.z] = cityClamp(f(s.x, c.x), f(s.z, c.z)); c.yaw = f(s.yaw, 0); c.where = 'out'; });
     for (const id in g.ammo) { const a = arm.ammo[id], A = ARMS[id]; if (!a || !Array.isArray(g.ammo[id])) continue; a.mag = clamp(g.ammo[id][0] | 0, 0, A.mag || A.n); a.res = clamp(g.ammo[id][1] | 0, 0, 9999); }
     if (QUEST[g.quest] && g.quest !== quest.n) setQuest(g.quest);
     if (Number.isFinite(g.min)) clockSt.min = clamp(g.min | 0, 0, 1439);
@@ -198,7 +201,7 @@ function estateRows() {
     ? estOwned(e.id)
       ? e.rate && motors.props.safe[e.id] >= 1
         ? { t: e.name, sub: `安全屋 · 保險箱 ${money(motors.props.safe[e.id])} / ${money(e.cap)}`, val: '收取', ok: true, fn: () => { const n = estCollect(e.id); phoneMsg(`收了 ${money(n)}。`); } }
-        : { t: e.name, sub: `安全屋 · ${APT[e.id].dist}`, val: '導航', ok: true, fn: () => { const d = APT[e.id].door; gpsSet(d.x, d.z + 1.4 * aptFace(e.id)); phoneMsg(`已設定導航到${e.name}。`); } }
+        : { t: e.name, sub: `安全屋 · ${APT[e.id].dist}`, val: '導航', ok: true, fn: () => { const d = aptOut(e.id); gpsSet(d.x, d.z); phoneMsg(`已設定導航到${e.name}。`); } }
       : { t: e.name, sub: e.rate ? `安全屋 · 每遊戲小時收入 ${money(e.rate)}` : `安全屋 · 睡覺推進時間並存檔`, val: money(e.price), ok: motors.cash >= e.price, fn: () => { if (estBuy(e.id)) { sfx.pickup(); phoneMsg(`${e.name}現在是你的了，門口按 E 進去。`); } } }
     : estOwned(e.id)
     ? { t: e.name, sub: `保險箱 ${money(motors.props.safe[e.id])} / ${money(e.cap)} · 每小時 ${money(e.rate)}`, val: '收取', ok: motors.props.safe[e.id] >= 1, fn: () => { const n = estCollect(e.id); phoneMsg(`收了 ${money(n)}。`); } }

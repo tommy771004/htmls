@@ -395,6 +395,7 @@ function updateCrowds(scn) {
 
 // ─── 街上的行人：沿著街區人行道繞圈，多數撐傘 ───
 const PED_N = LOW ? 18 : 38;
+const xzW = (x, z, y) => { const [X, Z] = toW(x, z); return [X, y, Z]; };   // 邏輯 (x, z) → peds.place 的世界座標 x, y, z
 const peds = crowd(PED_N + 8);
 const pedState = [];
 const rP = rng(77);
@@ -418,22 +419,22 @@ const umbrellas = [];
     peds.look(k, { r: rP, glowI: q % 2 ? 1.6 : 0 });
     const x = CLUB_X - 4.5 - q * 1.05, z = CLUB_Z + 1.5 + (q % 2) * .3;
     peds.anim(k, q % 3 === 0 ? ANIM.talk : q % 3 === 1 ? ANIM.idle : ANIM.smoke, rP() * 10, 1);
-    peds.place(k, x, .15, z, Math.PI / 2 + (rP() - .5) * .8);
+    peds.place(k, ...xzW(x, z, .15), yawW(zoneAtL(x, z), Math.PI / 2 + (rP() - .5) * .8));
     circles.push({ x, z, r: .3 });
   }
   peds.look(PED_N + 6, { top: lin(0x0c0c0e), bot: lin(0x0c0c0e), skin: SKINS[3], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, glowI: 0, scale: 1.12 });
   peds.anim(PED_N + 6, ANIM.cross, 0, 1);
-  peds.place(PED_N + 6, CLUB_X + 1.6, .15, CLUB_Z + 1.1, 0);
+  peds.place(PED_N + 6, ...xzW(CLUB_X + 1.6, CLUB_Z + 1.1, .15), yawW(zoneAtL(CLUB_X, CLUB_Z), 0));
   circles.push({ x: CLUB_X + 1.6, z: CLUB_Z + 1.1, r: .35 });
   // 酒吧門口抽菸的人
   peds.look(PED_N + 7, { r: rP, coat: 1 });
   peds.anim(PED_N + 7, ANIM.smoke, 3, 1);
-  peds.place(PED_N + 7, BAR_X - 3.2, .15, BAR_Z + .45, .2);
+  peds.place(PED_N + 7, ...xzW(BAR_X - 3.2, BAR_Z + .45, .15), yawW(zoneAtL(BAR_X, BAR_Z), .2));
   circles.push({ x: BAR_X - 3.2, z: BAR_Z + .45, r: .3 });
   peds.mesh.count = PED_N + 8;
   scene.add(peds.mesh);
 }
-const BOUNCER = { x: CLUB_X + 1.6, z: CLUB_Z + 1.1 };
+const BOUNCER = { x: CLUB_X + 1.6, z: CLUB_Z + 1.1 };   // 邏輯座標（60-venues.js 用到時換算）
 // 雨停了收傘、下雨了撐傘（28-sky.js 的 updateWeather 在雨量跨過門檻時呼叫）；倒地、逃跑或被 69-combat 接手的人等恢復時自己換
 function pedUmbrellas(on) {
   pedState.forEach((ps, k) => {
@@ -464,7 +465,10 @@ MAT.uberD.vertexShader = MAT.uberD.vertexShader.replace('vCol = color;', `vCol =
   vCol *= instanceColor;
   #endif
   `);
-function pedPos(ps) {
+// 繞街區的路線在邏輯座標算，回傳世界座標的位置與前進方向 [x, z, tx, tz]
+const blkZone = b => b.zn ??= zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2);
+const blkW = b => b.wc ??= toW((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2, blkZone(b));
+function pedPosL(ps) {
   const { b, inset, w, d } = ps;
   let s = ((ps.s % ps.per) + ps.per) % ps.per;
   const x0 = b.x0 + inset, z0 = b.z0 + inset;
@@ -473,11 +477,15 @@ function pedPos(ps) {
   s -= d; if (s < w) return [x0 + w - s, z0 + d, -1, 0];
   s -= w; return [x0, z0 + d - s, 0, -1];
 }
+function pedPos(ps) {
+  const [x, z, tx, tz] = pedPosL(ps), zn = blkZone(ps.b), [X, Z] = toW(x, z, zn), [TX, TZ] = dirW(zn, tx, tz);
+  return [X, Z, TX, TZ];
+}
 // 行人繞著一個街區走；那個街區離玩家超過 230 m 就換到玩家附近 70–180 m 的街區（城市放大後人不會散到看不到的地方）
 const pedBlocks = blocks.filter(b => !b.outer && !b.park);
 function pedRelocate(ps, px, pz) {
   for (let n = 0; n < 30; n++) {
-    const b = pedBlocks[Math.floor(rP() * pedBlocks.length)], d = Math.hypot((b.x0 + b.x1) / 2 - px, (b.z0 + b.z1) / 2 - pz);
+    const b = pedBlocks[Math.floor(rP() * pedBlocks.length)], [bx, bz] = blkW(b), d = Math.hypot(bx - px, bz - pz);
     if (d < 70 || d > 180) continue;
     ps.b = b; ps.w = b.x1 - b.x0 - ps.inset * 2; ps.d = b.z1 - b.z0 - ps.inset * 2; ps.per = 2 * (ps.w + ps.d); ps.s = rP() * ps.per; ps.dx = ps.dz = 0;
     return;
@@ -487,7 +495,7 @@ function updatePeds(dt) {
   let u = 0;
   const ppx = pX(), ppz = pZ();
   pedState.forEach((ps, k) => {
-    if (!ps.fsm && !(ps.down > 0) && !(ps.panic > 0) && ((ps.b.x0 + ps.b.x1) / 2 - ppx) ** 2 + ((ps.b.z0 + ps.b.z1) / 2 - ppz) ** 2 > 230 * 230) pedRelocate(ps, ppx, ppz);
+    if (!ps.fsm && !(ps.down > 0) && !(ps.panic > 0) && (blkW(ps.b)[0] - ppx) ** 2 + (blkW(ps.b)[1] - ppz) ** 2 > 230 * 230) pedRelocate(ps, ppx, ppz);
     // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
     // 69-combat.js：被槍指著投降、抱頭蹲下、脾氣差的人反擊（pedFsm 接手這一幀就 return）
     if (ps.fsm && !(ps.down > 0) && pedFsm(k, ps, dt)) return;
@@ -530,7 +538,7 @@ const me = crowd(1);
 me.look(0, { r: rng(9), female: false, top: lin(0x2b2420), bot: lin(0x17181c), skin: SKINS[1], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[0], glow: lin(0xffae57), glowI: 1.4, scale: 1 });
 me.anim(0, ANIM.idle, 0, 1);
 scene.add(me.mesh);
-const player = { mode: 'walk', x: avX(1) - 9.6, z: stZ(2) + 18, y: .15, yaw: 0, v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
+const player = { mode: 'walk', ...WP(avX(1) - 9.6, stZ(2) + 18), y: .15, yaw: yawW(zoneAtL(avX(1), stZ(2)), 0), v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
 const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
   let mx = inp.mx, mz = inp.mz;

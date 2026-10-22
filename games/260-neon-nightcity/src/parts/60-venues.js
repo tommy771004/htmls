@@ -47,7 +47,7 @@ const ropeGroup = new T.Group();
   k.box(gx, 3.75, gz + .1, 10.4, .08, .05, 0x2cf2d8, 8);
   for (const s of [-1, 1]) k.box(gx + s * 5.2, 1.9, gz + .1, .08, 3.75, .05, 0x2cf2d8, 8);
   k.box(gx, 4.75, gz + .33, 5.8, 1.56, .2, 0x111214, 2);   // 招牌底板
-  scene.add(new T.Mesh(k.build(), MAT.uber));
+  cityAddAny(new T.Mesh(k.build(), MAT.uber));
   signQuad(cx, 5.3, cz + .2, 0, 1, 7.6, 1.9, 'LAZARUS', .7, 0, 1.25, 0xff3fa0, 14);
   signQuad(cx, 3.5, cz + 2.99, 0, 1, 4.6, .86, 'LAZARUS_SMALL', .2, 0, .9, null);
   signQuad(BAR_X + 1.6, 3.95, bz + .14, 0, 1, 5.2, 1.3, 'AFTERGLOW', .4, 0, 1.6, 0xffa040, 10);
@@ -57,13 +57,15 @@ const ropeGroup = new T.Group();
   const rope = new T.CatmullRomCurve3([V3(cx - 1.2, .85, cz + 1.7), V3(cx, .62, cz + 1.75), V3(cx + 1.2, .85, cz + 1.7)]);
   const rk = new Kit().add(new T.TubeGeometry(rope, 16, .03, 6), 0x8a0a1e, 10);
   for (const s of [-1, 1]) rk.cyl(cx + s * 1.2, .5, cz + 1.7, .04, .05, 1, 10, 0xc8ccd2, 3).cyl(cx + s * 1.2, .06, cz + 1.7, .16, .16, .04, 12, 0xc8ccd2, 3);
-  ropeGroup.add(new T.Mesh(rk.build(), MAT.uber)); scene.add(ropeGroup);
+  ropeGroup.add(new T.Mesh(rk.build(), MAT.uber)); cityAdd(ropeGroup, zoneAtL(cx, cz));
   // 停車格標線：改裝廠門前
   const pad = new Kit();
   for (const s of [-1, 1]) pad.box(gx + s * 1.6, .025, gz + SW + 4.4, .12, .01, 5.6, 0x2cf2d8, 11);
   pad.box(gx, .025, gz + SW + 1.6, 3.3, .01, .12, 0x2cf2d8, 11);
-  const pm = new T.Mesh(pad.build(), MAT.uber); pm.layers.set(LY.NOREFL); scene.add(pm);
+  const pm = new T.Mesh(pad.build(), MAT.uber); pm.layers.set(LY.NOREFL); cityAddAny(pm);
 }
+// 室外的點光（店招、場館門口、販賣機……）：生成時是邏輯座標，cityWorld() 換成世界座標；之後加進來的都是世界座標
+worldHooks.push(() => { for (const L of outLights) if (!L.w) { [L.x, L.z] = toW(L.x, L.z); L.w = 1; } });
 const ROPE_CIRCLE = { x: CLUB_X, z: CLUB_Z + 1.7, r: 1.2 };
 circles.push(ROPE_CIRCLE);
 // 販賣機（Blender 模型）
@@ -76,7 +78,7 @@ circles.push(ROPE_CIRCLE);
     list.push({ x, y: .15, z, ry: Math.atan2(su.nx, su.nz) }); circles.push({ x, z, r: .55 });
     outLights.push({ x: x + su.nx * .9, y: 1.4, z: z + su.nz * .9, col: lin(0x7fe7ff), r: 5, i: .7 });
   }
-  instancedIn(scene, vm, MAT.uber, list);
+  instanced(vm, MAT.uber, list);
 }
 // 所有室外招牌（店招、立式招牌、廣告牌、場館招牌）合成一個 mesh
 const signMesh = (() => {
@@ -85,7 +87,7 @@ const signMesh = (() => {
   g.setAttribute('uv', new T.Float32BufferAttribute(signGeo.uv, 2));
   g.setAttribute('aS', new T.Float32BufferAttribute(signGeo.s, 4));
   g.setIndex(signGeo.idx); g.computeBoundingSphere();
-  const m = new T.Mesh(g, MAT_SIGN); scene.add(m); return m;
+  const m = cityAddAny(new T.Mesh(g, MAT_SIGN)); return m;
 })();
 
 // ─── LAZARUS 夜店 ───
@@ -375,11 +377,11 @@ bar.lights.push(
 
 // ─── 任務：門禁 ───
 const QUEST = [
-  { text: '進入 LAZARUS', mk: () => ({ name: 'LAZARUS', x: CLUB_X, y: 2.4, z: CLUB_Z + 1.4, where: 'out' }) },
-  { text: '到 AFTERGLOW 找吧台的 Juno', mk: () => player.where === 'bar' ? { name: 'Juno', x: JUNO.x + 2.7, y: 2.1, z: JUNO.z, where: 'bar' } : { name: 'AFTERGLOW', x: BAR_X - 4.6, y: 2.4, z: BAR_Z + .6, where: 'out' } },
-  { text: '把火柴盒拿給 LAZARUS 門口的 Marlo', mk: () => ({ name: 'Marlo', x: BOUNCER.x, y: 2.3, z: BOUNCER.z, where: 'out' }) },
-  { text: '走進 LAZARUS', mk: () => ({ name: 'LAZARUS', x: CLUB_X, y: 2.4, z: CLUB_Z + .4, where: 'out' }) },
-  { text: '在舞池跳一支舞（G）', mk: () => player.where === 'club' ? { name: '舞池', x: CLUB_FLOOR.x, y: 1.2, z: CLUB_FLOOR.z, where: 'club' } : { name: 'LAZARUS', x: CLUB_X, y: 2.4, z: CLUB_Z + .4, where: 'out' } },
+  { text: '進入 LAZARUS', mk: () => ({ name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + 1.4), y: 2.4, where: 'out' }) },
+  { text: '到 AFTERGLOW 找吧台的 Juno', mk: () => player.where === 'bar' ? { name: 'Juno', x: JUNO.x + 2.7, y: 2.1, z: JUNO.z, where: 'bar' } : { name: 'AFTERGLOW', ...WP(BAR_X - 4.6, BAR_Z + .6), y: 2.4, where: 'out' } },
+  { text: '把火柴盒拿給 LAZARUS 門口的 Marlo', mk: () => ({ name: 'Marlo', ...WP(BOUNCER.x, BOUNCER.z), y: 2.3, where: 'out' }) },
+  { text: '走進 LAZARUS', mk: () => ({ name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + .4), y: 2.4, where: 'out' }) },
+  { text: '在舞池跳一支舞（G）', mk: () => player.where === 'club' ? { name: '舞池', x: CLUB_FLOOR.x, y: 1.2, z: CLUB_FLOOR.z, where: 'club' } : { name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + .4), y: 2.4, where: 'out' } },
   { text: '雨還沒停，城市是你的', mk: () => null },
 ];
 const quest = { n: 0, danceT: 0 };
@@ -431,11 +433,11 @@ function talkJuno() {
 }
 
 // ─── 進出場館 ───
-// 每個室內場館一筆：場景、碰撞與燈光（data）、進門位置、HUD 名稱、相機天花板、街上的門與出門位置
+// 每個室內場館一筆：場景、碰撞與燈光（data）、進門位置、HUD 名稱、相機天花板、街上的門與出門位置（door、out 是世界座標）
 // 車行與車庫在 65-motors.js 加進來
 const VENUES = {
-  club: { scene: clubScene, data: club, spawn: CLUB_SPAWN, name: 'LAZARUS', toast: 'LAZARUS', dist: '霓虹區 · 9 St', ceil: 6.6, door: { x: CLUB_X, z: CLUB_Z }, out: { x: CLUB_X - .2, z: CLUB_Z + 1.0, yaw: Math.PI } },
-  bar: { scene: barScene, data: bar, spawn: BAR_SPAWN, name: 'AFTERGLOW', toast: 'AFTERGLOW 餘燼酒吧', dist: '紅磚巷 · 7 St', ceil: 3.3, door: { x: BAR_X, z: BAR_Z }, out: { x: BAR_X - 4.6, z: BAR_Z + 1.2, yaw: Math.PI } },
+  club: { scene: clubScene, data: club, spawn: CLUB_SPAWN, name: 'LAZARUS', toast: 'LAZARUS', dist: '霓虹區 · 9 St', ceil: 6.6, door: WP(CLUB_X, CLUB_Z), out: spotW({ x: CLUB_X - .2, z: CLUB_Z + 1.0, yaw: Math.PI }) },
+  bar: { scene: barScene, data: bar, spawn: BAR_SPAWN, name: 'AFTERGLOW', toast: 'AFTERGLOW 餘燼酒吧', dist: '紅磚巷 · 7 St', ceil: 3.3, door: WP(BAR_X, BAR_Z), out: spotW({ x: BAR_X - 4.6, z: BAR_Z + 1.2, yaw: Math.PI }) },
 };
 let curScene = scene;
 function setWhere(w) {
@@ -480,12 +482,13 @@ const ctxHooks = [];
 // 依位置找出目前可以做的事，回傳 { key, text, fn }
 function contextAction() {
   const p = player;
-  const near = (x, z, r) => Math.hypot(p.x - x, p.z - z) < r;
+  // 街上的點是邏輯座標（場館門口、車行……），換成世界座標再量；室內的座標本來就是場館自己的
+  const near = (x, z, r) => { if (p.where === 'out') [x, z] = toW(x, z); return Math.hypot(p.x - x, p.z - z) < r; };
   for (const h of ctxHooks) { const r = h(p, near); if (r) return r; }
   if (p.mode === 'drive') {
     const v = p.veh;
     const rs = resprayCtx(v); if (rs) return rs;   // 通緝中：CHROME WORKS 噴漆消星（69-crew.js）
-    if (v === kestrel && !motors.test && Math.hypot(v.x - GAR_X, v.z - (GAR_Z + SW + 4)) < 6 && Math.hypot(v.vx, v.vz) < 2)
+    if (v === kestrel && !motors.test && Math.hypot(v.x - toW(GAR_X, GAR_Z + SW + 4)[0], v.z - toW(GAR_X, GAR_Z + SW + 4)[1]) < 6 && Math.hypot(v.vx, v.vz) < 2)
       return { key: 'E', text: '換一套塗裝 <i>· CHROME WORKS</i>', fn: cycleLivery };
     return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: '下車', fn: exitVehicle } : null;
   }

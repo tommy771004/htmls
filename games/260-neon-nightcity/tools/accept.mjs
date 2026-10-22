@@ -36,11 +36,11 @@ async function desktop() {
 
     // 任務：Marlo → Juno → Marlo → 進門 → 跳舞
     const s = await ev(page, () => window.__nc.spots);
-    await ev(page, (b) => window.__nc.tp(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
+    await ev(page, (b) => window.__nc.tpL(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
     await page.waitForTimeout(300);
-    const club0 = await ev(page, (d) => { const nc = window.__nc; nc.player.x = d.x; nc.player.z = d.z; return nc.ctx(); }, s.clubDoor);
+    const club0 = await ev(page, (d) => { const nc = window.__nc; [nc.player.x, nc.player.z] = nc.W(d.x, d.z); return nc.ctx(); }, s.clubDoor);
     check(/Marlo|門鎖/.test(club0 || ''), `放行前在門口：${club0}`);
-    await ev(page, (b) => window.__nc.tp(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
+    await ev(page, (b) => window.__nc.tpL(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
     await page.waitForTimeout(200);
     check(/Marlo/.test((await ev(page, () => window.__nc.ctx())) || ''), 'Marlo 旁出現對話提示');
     await page.keyboard.press('KeyE');
@@ -51,7 +51,7 @@ async function desktop() {
     await page.keyboard.press('Digit1');
     check((await ev(page, () => window.__nc.quest.n)) === 1, '選項推進到任務 1（找 Juno）');
 
-    await ev(page, (d) => window.__nc.tp(d.x, d.z + 1, Math.PI), s.barDoor);
+    await ev(page, (d) => window.__nc.tpL(d.x, d.z + 1, Math.PI), s.barDoor);
     await page.waitForTimeout(200);
     await page.keyboard.press('KeyE');
     await page.waitForTimeout(1600);
@@ -68,13 +68,13 @@ async function desktop() {
     await page.waitForTimeout(300);
     check((await ev(page, () => window.__nc.player.where)) === 'out', '回到街上');
 
-    await ev(page, (b) => window.__nc.tp(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
+    await ev(page, (b) => window.__nc.tpL(b.x + .3, b.z + 1.6, Math.PI), s.bouncer);
     await page.waitForTimeout(200);
     await page.keyboard.press('KeyE');
     await page.waitForTimeout(150);
     await page.keyboard.press('Digit1');
     check((await ev(page, () => window.__nc.quest.n)) === 3, '出示火柴盒，絨布繩撤開（任務 3）');
-    await ev(page, (d) => window.__nc.tp(d.x, d.z + .4, Math.PI), s.clubDoor);
+    await ev(page, (d) => window.__nc.tpL(d.x, d.z + .4, Math.PI), s.clubDoor);
     await page.waitForTimeout(200);
     await page.keyboard.press('KeyE');
     await page.waitForTimeout(1600);
@@ -120,7 +120,7 @@ async function desktop() {
     const nc = (fn, a) => ev(page, fn, a);
     const cash0 = await nc(() => window.__nc.motors.cash);
     check(cash0 >= 400000, `任務獎金入帳，現金 $${cash0.toLocaleString()}`);
-    await nc((d) => window.__nc.tp(d.x, d.z + .4, Math.PI), s.dealerDoor);
+    await nc((d) => window.__nc.tpL(d.x, d.z + .4, Math.PI), s.dealerDoor);
     await page.waitForTimeout(200);
     check(/VELOCE/.test((await nc(() => window.__nc.ctx())) || ''), '車行門口出現進入提示');
     await page.keyboard.press('KeyE');
@@ -163,7 +163,7 @@ async function desktop() {
     await nc(() => window.__nc.pick(0));
     await page.waitForTimeout(900);
     check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Nissan Skyline GT-R (R34)' && (await nc(() => window.__nc.player.where)) === 'out', '從車庫把 R34 開出去');
-    await nc((g) => { const v = window.__nc.vehicles[0]; v.x = g.x; v.z = g.z; v.vx = v.vz = 0; }, s.garage);
+    await nc((g) => { const v = window.__nc.vehicles[0]; [v.x, v.z] = window.__nc.W(g.x, g.z); v.vx = v.vz = 0; }, s.garage);
     await page.waitForTimeout(100);
     const p0c = await nc(() => window.__nc.vehicles[0].paint);
     await page.keyboard.press('KeyE');
@@ -193,7 +193,7 @@ async function desktop() {
     await page.waitForTimeout(150);
     check(/撬車/.test((await nc(() => window.__nc.ctx())) || ''), `路邊車旁出現「撬車」（${pk}）`);
     await page.keyboard.press('KeyF');
-    await page.waitForTimeout(2300);
+    for (let i = 0; i < 16 && (await nc(() => window.__nc.player.mode)) !== 'drive'; i++) await page.waitForTimeout(250);   // 撬車 1.9 秒（遊戲時間），剛放開子彈時間會慢一點
     const j1 = await nc(() => ({ mode: window.__nc.player.mode, kind: window.__nc.player.veh && window.__nc.player.veh.kind, parts: window.__nc.gta.parts.length }));
     check(j1.mode === 'drive' && j1.kind === 'jack', `撬開路邊車開走 ${JSON.stringify(j1)}`);
     await nc(() => window.__nc.walk());
@@ -411,7 +411,7 @@ async function desktop() {
     await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist; nc.motors.cash = 50000; h.go('smart'); const v = h.heist.van; nc.tp(v.x + 2.6, v.z, 0); });
     const hz1 = await hs(() => { const nc = window.__nc; return { fee: 50000 - nc.motors.cash, act: nc.act() }; });
     await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = h.heist.van; v.x = h.SAFE.x; v.z = h.SAFE.z + 2; v.vx = v.vz = 0; g.wanted.clear('reset'); });
-    const hz2 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; nc.tp(h.BANK.x, h.BANK.z + 1.2, Math.PI); return { st, act: nc.act() }; });
+    const hz2 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; nc.tpL(h.BANK.x, h.BANK.z + 1.2, Math.PI); return { st, act: nc.act() }; });
     // 人質：威懾不夠時有人往門口跑，Kael 會喝止；沒人管、跑出門就響警報（測完把警報關掉，繼續走潛行路線）
     const hg = await nc(() => new Promise((r) => {
       const h = window.__nc.gta.heist, H = h.hostSt; h.heist.t = 15; h.run(0, true);
@@ -434,7 +434,7 @@ async function desktop() {
     const sa1 = await nc(() => {
       const nc = window.__nc, d = nc.gta.apt.APT.loft.door;
       nc.walk(); nc.gta.wanted.clear('reset'); nc.earn(400000, '測試');
-      nc.tp(d.x, d.z + .8, Math.PI);
+      nc.tpL(d.x, d.z + .8, Math.PI);
       const c = nc.ctx(); nc.act(); nc.pick(0);
       return { c, own: nc.motors.props.own.includes('loft'), c2: nc.ctx() };
     });
@@ -450,12 +450,12 @@ async function desktop() {
     await page.waitForTimeout(900);
     const sa3 = await nc(() => {
       const nc = window.__nc, a = nc.gta.apt.APT.loft, g = nc.motors.game, s = g && g.st[g.cur], p = nc.player;
-      const r = { saved: !!g && g.t > window.__g0, atDoor: !!s && Math.hypot(s.x - a.door.x, s.z - a.door.z) < 2, hp: nc.gta.life.hp === nc.gta.life.max };
+      const r = { saved: !!g && g.t > window.__g0, atDoor: !!s && Math.hypot(s.x - a.doorW.x, s.z - a.doorW.z) < 2, hp: nc.gta.life.hp === nc.gta.life.max };
       p.x = a.exit.x; p.z = a.exit.z; r.c = nc.ctx(); nc.act();
       return r;
     });
     await page.waitForTimeout(900);
-    const sa4 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.loft.door; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
+    const sa4 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.loft.doorW; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
     check(/看房/.test(sa1.c) && sa1.own && /進入/.test(sa1.c2), `安全屋：門口看房、買下後變成進入 ${JSON.stringify(sa1)}`);
     check(sa2.w === 'loft' && /睡一覺/.test(sa2.c) && sa2.st === '冠石頂層公寓', `進入冠石頂層公寓、沙發可以睡覺 ${JSON.stringify(sa2)}`);
     check(sa3.saved && sa3.atDoor && sa3.hp && /回到街上/.test(sa3.c) && sa4.w === 'out' && sa4.d < 3, `睡一覺存檔在門口、補滿生命，出門回到街上 ${JSON.stringify({ ...sa3, ...sa4 })}`);
@@ -470,11 +470,11 @@ async function desktop() {
     // 20×15 的新城區：走到最東南的錨灣港與西南的珊瑚灘，車流與路人要跟著過去、HUD 換區名
     const far = [];
     for (const [x, z] of [[1260, 713], [72, 651]]) {
-      await nc((q) => window.__nc.tp(q[0], q[1], 0), [x, z]);
+      await nc((q) => window.__nc.tpL(q[0], q[1], 0), [x, z]);
       await page.waitForTimeout(1500);
       far.push(await nc((q) => {
-        const nc = window.__nc, near = (a) => a.filter((o) => Math.hypot(o.x - q[0], o.z - q[1]) < 300).length;
-        const peds = nc.pedState.map(({ b }) => ({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2 }));
+        const nc = window.__nc, w = nc.W(q[0], q[1]), near = (a) => a.filter((o) => Math.hypot(o.x - w[0], o.z - w[1]) < 300).length;
+        const peds = nc.pedState.map(({ b }) => { const [x, z] = nc.W((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2); return { x, z }; });
         return { d: document.getElementById('district').textContent, cars: near(nc.traffic), peds: near(peds), fps: nc.getStats().fps };
       }, [x, z]));
     }
@@ -483,17 +483,17 @@ async function desktop() {
 
     // 海岸（21-coast.js）：步道往河裡走會被擋牆擋住；跨海橋走得上灰鷗島，HUD 換成島名；島上辦公室安全屋買下、進去、睡覺、收保險箱
     // 灰鷺河濱步道（x = −238 是河岸擋牆）往西走
-    const sea = await nc(() => { const nc = window.__nc; nc.walk(); nc.gta.wanted.clear('reset'); nc.tp(-233, 300, -Math.PI / 2); return nc.player.x; });
+    const sea = await nc(() => { const nc = window.__nc; nc.walk(); nc.gta.wanted.clear('reset'); nc.tpL(-233, 300, -Math.PI / 2); return nc.L(nc.player.x, nc.player.z)[0]; });
     await hold(page, 'KeyW', 2500);
-    const sea2 = await nc(() => ({ x: window.__nc.player.x, d: document.getElementById('district').textContent }));
+    const sea2 = await nc(() => ({ x: window.__nc.L(window.__nc.player.x, window.__nc.player.z)[0], d: document.getElementById('district').textContent }));
     check(sea2.x < sea - 2 && sea2.x > -238.5 && /灰鷺河濱/.test(sea2.d), `河濱步道往河裡走會停在擋牆 ${JSON.stringify({ x0: sea, ...sea2 })}`);
-    const isle0 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.door, bx = d.x - 8, iz = d.z - 133.4; nc.tp(bx, iz - 5, 0); return { z: nc.player.z, iz }; });
+    const isle0 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.door, bx = d.x - 8, iz = d.z - 133.4; nc.tpL(bx, iz - 5, 0); return { z: nc.L(nc.player.x, nc.player.z)[1], iz }; });
     await hold(page, 'KeyW', 5000);
-    const isle1 = await nc(() => ({ z: window.__nc.player.z, y: window.__nc.player.y, d: document.getElementById('district').textContent, st: document.getElementById('stName').textContent }));
+    const isle1 = await nc(() => ({ z: window.__nc.L(window.__nc.player.x, window.__nc.player.z)[1], y: window.__nc.player.y, d: document.getElementById('district').textContent, st: document.getElementById('stName').textContent }));
     check(isle1.z > isle0.iz + 2 && /灰鷗島/.test(isle1.d) && /Gull Island/.test(isle1.st), `從跨海橋走上灰鷗島，HUD 顯示島名 ${JSON.stringify({ ...isle0, ...isle1 })}`);
     const of1 = await nc(() => {
       const nc = window.__nc, d = nc.gta.apt.APT.office.door;
-      nc.earn(600000, '測試'); nc.tp(d.x, d.z - .8, 0);
+      nc.earn(600000, '測試'); nc.tpL(d.x, d.z - .8, 0);
       const c = nc.ctx(); nc.act(); nc.pick(0);
       return { c, own: nc.motors.props.own.includes('office'), c2: nc.ctx() };
     });
@@ -506,16 +506,16 @@ async function desktop() {
       return r;
     });
     await page.waitForTimeout(900);
-    const of3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.door; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
+    const of3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.doorW; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
     check(/看房/.test(of1.c) && of1.own && /進入/.test(of1.c2) && of2.w === 'office' && of2.got === 1234 && /睡一覺/.test(of2.nap) && /回到街上/.test(of2.exit) && of3.w === 'out' && of3.d < 3,
       `灰鷗島辦公室：門朝北、買下、進去收保險箱、沙發睡覺、出門 ${JSON.stringify({ ...of1, ...of2, ...of3 })}`);
     // 光環廣場（cyberpunk 街廓在 http 下才換模型；這裡是程式立面）、燈籠公園
     const halo = [];
-    for (const [x, z] of [[504, 124], [576, 434]]) { await nc((q) => window.__nc.tp(q[0], q[1], 0), [x, z]); await page.waitForTimeout(700); halo.push(await nc(() => document.getElementById('district').textContent)); }
+    for (const [x, z] of [[504, 124], [576, 434]]) { await nc((q) => window.__nc.tpL(q[0], q[1], 0), [x, z]); await page.waitForTimeout(700); halo.push(await nc(() => document.getElementById('district').textContent)); }
     check(/光環/.test(halo[0]) && /燈籠/.test(halo[1]), `光環廣場、燈籠公園的區名 ${JSON.stringify(halo)}`);
 
     // 日夜循環與天氣（28-sky.js）：正午放晴、傍晚雷雨、雨停後積水慢慢乾
-    await nc(() => { const nc = window.__nc; nc.tp(nc.spots.bouncer.x + 6, nc.spots.bouncer.z + 4, 0); nc.time(720); nc.weather('clear'); });
+    await nc(() => { const nc = window.__nc; nc.tpL(nc.spots.bouncer.x + 6, nc.spots.bouncer.z + 4, 0); nc.time(720); nc.weather('clear'); });
     await page.waitForTimeout(600);
     const noon = await nc(() => { const nc = window.__nc, U = nc.U; return { day: +nc.atm.day.toFixed(2), sun: +U.uSunCol.value.x.toFixed(2), lamp: U.uLampOn.value, wet: U.uWet.value, rain: U.uRain.value, wx: document.getElementById('wxText').textContent, hm: U.uHM.value.w > 20 }; });
     check(noon.day > .95 && noon.sun > 1 && noon.lamp === 0 && noon.wet === 0 && noon.rain === 0 && noon.wx === '晴' && noon.hm, `正午放晴：日光、路燈關、路面乾、建築高度圖 ${JSON.stringify(noon)}`);
@@ -529,15 +529,15 @@ async function desktop() {
     check(dry.w0 === 1 && dry.w1 < .9 && dry.rain < .05 && dry.umb === 0, `雨停後路面慢慢變乾、行人收傘 ${JSON.stringify(dry)}`);
     // 下水：從沙灘走過水深 0.3 m 的擋牆、深水游泳、回到沙灘
     {
-      await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tp((B.x0 + B.x1) / 2 + 40, B.z1 - 4, 0); });
+      await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tpL((B.x0 + B.x1) / 2 + 40, B.z1 - 4, 0); });
       await page.keyboard.down('KeyW'); await page.waitForTimeout(4000); await page.keyboard.up('KeyW');
-      const w0 = await nc(() => { const n = window.__nc, B = n.sea.BEACH; return { past: n.player.z - B.z1, d: n.sea.depth(n.player.x, n.player.z) }; });
+      const w0 = await nc(() => { const n = window.__nc, B = n.sea.BEACH; return { past: n.L(n.player.x, n.player.z)[1] - B.z1, d: n.sea.depth(n.player.x, n.player.z) }; });
       check(w0.past > .5 && w0.d > .3, `走過沙灘外緣涉水（超過 ${w0.past.toFixed(1)} m、水深 ${w0.d.toFixed(2)} m）`);
-      await nc(() => { const n = window.__nc, Q = n.sea.QUAY; n.tp((Q.x0 + Q.x1) / 2, Q.z1 + 60, Math.PI); });
+      await nc(() => { const n = window.__nc, Q = n.sea.QUAY; n.tpL((Q.x0 + Q.x1) / 2, Q.z1 + 60, Math.PI); });
       await page.waitForTimeout(800);
       const w1 = await nc(() => { const n = window.__nc, p = n.player; return { swim: !!p.swim, dy: p.y - n.sea.SEA_Y, gun: n.gta.state.aiming }; });
       check(w1.swim && Math.abs(w1.dy) < .3, `深水游泳 ${JSON.stringify(w1)}`);
-      await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tp((B.x0 + B.x1) / 2, B.z0 + 20, 0); });
+      await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tpL((B.x0 + B.x1) / 2, B.z0 + 20, 0); });
       await page.waitForTimeout(500);
       check(await nc(() => !window.__nc.player.swim), '回到沙灘就不再游泳');
     }

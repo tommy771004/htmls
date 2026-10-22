@@ -3,6 +3,31 @@
 await bootStep(BOOT.city, '正在鋪路…');
 import PROPS_SPEC from '../../../../assets/260/props/props.json';
 const scene = new T.Scene();
+// 每區一個 Group（05-zones.js 的變換）：以邏輯座標建好的靜態網格掛進所在的區
+for (const zn of ZONES) { zn.g = new T.Group(); zn.g.position.set(zn.ox, 0, zn.oz); zn.g.rotation.y = zn.ry; zn.g.name = 'zone' + zn.id; scene.add(zn.g); }
+// 以邏輯座標建好的物件掛進區（zn 省略時看物件的位置，沒有位置就看幾何的中心）
+function cityAdd(obj, zn) {
+  if (zn === undefined) {
+    let x = obj.position.x, z = obj.position.z;
+    if (!x && !z && obj.geometry) { obj.geometry.computeBoundingSphere(); x = obj.geometry.boundingSphere.center.x; z = obj.geometry.boundingSphere.center.z; }
+    zn = zoneAtL(x, z);
+  }
+  (zn ? zn.g : scene).add(obj);
+  return obj;
+}
+// 整座城合併成一個網格的（招牌、招牌背板）：頂點都在同一區就掛進那一區，否則把每個頂點依所在的區換成世界座標、網格掛在 scene
+function cityAddAny(m) {
+  const g = m.geometry, p = g.attributes.position, nrm = g.attributes.normal, zs = new Set();
+  for (let k = 0; k < p.count; k++) zs.add(zoneAtL(p.getX(k), p.getZ(k)));
+  if (zs.size === 1) return cityAdd(m, [...zs][0]);
+  for (let k = 0; k < p.count; k++) {
+    const zn = zoneAtL(p.getX(k), p.getZ(k)), [x, z] = toW(p.getX(k), p.getZ(k), zn);
+    p.setXYZ(k, x, p.getY(k), z);
+    if (nrm) { const [nx, nz] = dirW(zn, nrm.getX(k), nrm.getZ(k)); nrm.setXYZ(k, nx, nrm.getY(k), nz); }
+  }
+  p.needsUpdate = true; if (nrm) nrm.needsUpdate = true; g.computeBoundingSphere();
+  scene.add(m); return m;
+}
 const LY = { MAIN: 0, NOREFL: 1 };     // 1 號圖層不進倒影（雨、蒸氣、小物件）
 const rnd = rng(20261019);
 const colliders = [];                   // 靜態 AABB：{x0,x1,z0,z1}
@@ -527,7 +552,7 @@ const MAT_FACADE = new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: 
 
 // 每個街區一個網格，方便視錐剔除
 const chunkBuf = new Map();
-const buf = key => { if (!chunkBuf.has(key)) chunkBuf.set(key, { p: [], n: [], uv: [], b: [], b2: [], idx: [] }); return chunkBuf.get(key); };
+const buf = (key, zn) => { if (!chunkBuf.has(key)) chunkBuf.set(key, { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn }); return chunkBuf.get(key); };
 function quad(B, a, b, c, d, nrm, u0, u1, attrB, attrB2) {
   const base = B.p.length / 3;
   for (const [p, u] of [[a, u0], [b, u1], [c, u1], [d, u0]]) {
@@ -555,8 +580,9 @@ const shopSigns = [];      // 之後由招牌模組使用：{x,z,nx,nz,w,unit}
 const winSpots = [];       // 窗型冷氣、逃生梯
 for (const L of lots) {
   if (L.glb) continue;
-  const key = L.b && !L.b.outer ? `${L.b.i},${L.b.j}` : `o${Math.floor((L.x0 + 400) / 120)},${Math.floor((L.z0 + 400) / 120)}`;
-  const B = buf(key);
+  const zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
+  const key = L.b && !L.b.outer ? `${L.b.i},${L.b.j}` : `o${zn ? zn.id : '-'}:${Math.floor((L.x0 + 400) / 120)},${Math.floor((L.z0 + 400) / 120)}`;
+  const B = buf(key, zn);
   const shopF = {};
   const masks = {};
   // 面向街道的那一面有店面；排尾的地塊在大道那側也有
@@ -602,7 +628,12 @@ for (const L of lots) {
 const cityChunks = [];
 // 距離剔除：霧在 300 m 外已經看不到，城市放大到 20×15 之後，遠處的立面、實體建築與街道設施不畫（每幀依相機位置切換 visible）
 const CULL_R = 420, cullList = [];
-const cullAdd = (obj, R = CULL_R) => { obj.geometry.computeBoundingSphere(); const s = obj.geometry.boundingSphere; cullList.push({ obj, x: s.center.x, z: s.center.z, r: s.radius + R }); return obj; };
+// 物件要先掛好（區的 Group 或 scene）：中心換成世界座標
+const cullAdd = (obj, R = CULL_R) => {
+  obj.geometry.computeBoundingSphere(); obj.updateWorldMatrix(true, false);
+  const s = obj.geometry.boundingSphere, c = s.center.clone().applyMatrix4(obj.matrixWorld);
+  cullList.push({ obj, x: c.x, z: c.z, r: s.radius + R }); return obj;
+};
 function distCull(cx, cz) { for (const c of cullList) c.obj.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c.r * c.r; }
 function chunkMesh(B) {
   const g = new T.BufferGeometry();
@@ -614,20 +645,20 @@ function chunkMesh(B) {
   g.setIndex(B.idx);
   g.computeBoundingSphere();
   const m = new T.Mesh(g, MAT_FACADE); m.matrixAutoUpdate = false;
-  scene.add(m); cityChunks.push(m); cullAdd(m);
+  cityAdd(m, B.zn === undefined ? zoneAtL(B.p[0], B.p[2]) : B.zn); cityChunks.push(m); cullAdd(m);
   return m;
 }
 for (const B of chunkBuf.values()) chunkMesh(B);
 // 實體建築下載失敗：那幾塊地補回程式立面（沒有店面與招牌）
 function lotFallback(list) {
-  const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [] };
+  const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: list.length ? zoneAtL((list[0].x0 + list[0].x1) / 2, (list[0].z0 + list[0].z1) / 2) : null };
   for (const L of list) { L.glb = null; boxFaces(B, L.x0, L.x1, L.z0, L.z1, 0, L.h, L.seed, L.style, null, L.h, null); }
   if (B.idx.length) chunkMesh(B);
 }
 
 // 遠方天際線：一圈更高的塔樓
 {
-  const B = buf('sky'); const r2 = rng(77);
+  const B = buf('sky', ZONES[0]); const r2 = rng(77);
   // 圍著整座城（20×15）的橢圓，離外圍樓牆 120–380 m，只取北半圈
   const hx = (CITY_X1 - CITY_X0) / 2 + OUT_D, hz = (CITY_Z1 - CITY_Z0) / 2 + OUT_D;
   for (let k = 0; k < 120; k++) {
@@ -644,23 +675,27 @@ function lotFallback(list) {
   g.setAttribute('aB', new T.Float32BufferAttribute(B.b, 4));
   g.setAttribute('aB2', new T.Float32BufferAttribute(B.b2, 4));
   g.setIndex(B.idx); g.computeBoundingSphere();
-  const m = new T.Mesh(g, MAT_FACADE); m.matrixAutoUpdate = false; scene.add(m);
+  const m = new T.Mesh(g, MAT_FACADE); m.matrixAutoUpdate = false; cityAdd(m, B.zn);
 }
 
 // ─── 路面：一張大平面，標線、人孔、積水、雨滴漣漪與倒影都在 shader 裡 ───
 const reflU = { tRefl: { value: null }, uReflMat: { value: new T.Matrix4() }, uReflOn: { value: 0 } };
+// 地面網格的幾何是邏輯座標、網格本身不變換（掛在區的 Group 裡）：vL 是邏輯 xz，標線、路緣、磁磚都用它算；
+// vAx 是邏輯 x 軸在世界的方向，用 nW() 把邏輯座標裡算出的法線擾動轉回世界
 const GROUND_VS = /* glsl */`
 uniform mat4 uReflMat;
-varying vec3 vW, vN; varying vec4 vRP;
+varying vec3 vW, vN; varying vec4 vRP; varying vec2 vL, vAx;
 void main(){
   vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);
+  vL = position.xz; vAx = normalize((modelMatrix * vec4(1., 0., 0., 0.)).xz);
   vRP = uReflMat * w;
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 const GROUND_COMMON = /* glsl */`
 ${GL_LIB}
 uniform sampler2D tRefl; uniform float uReflOn;
-varying vec3 vW, vN; varying vec4 vRP;
+varying vec3 vW, vN; varying vec4 vRP; varying vec2 vL, vAx;
+vec3 nW(vec3 n){ return vec3(n.x*vAx.x - n.z*vAx.y, n.y, n.x*vAx.y + n.z*vAx.x); }
 vec2 ripple(vec2 p, float t){
   vec2 acc = vec2(0);
   for (int k=0; k<2; k++){
@@ -702,7 +737,7 @@ vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
 const ROAD_FS = /* glsl */`
 ${GROUND_COMMON}
 void main(){
-  vec2 p = vW.xz;
+  vec2 p = vL;
   float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
   float ia = floor((p.x - X0)/P + .5); float dx = p.x - (X0 + ia*P);
   float js = floor((p.y - Z0)/Q + .5); float dz = p.y - (Z0 + js*Q);
@@ -760,7 +795,7 @@ void main(){
   n.xz -= vec2(hx - h0, hz - h0) * 1.6 * (1. - pud);
   float dist = length(vW - uCam);
   if (dist < 40.) n.xz += ripple(p, uTime) * .5 * (.3 + .7*pud) * (1. - dist/40.);
-  n = normalize(n);
+  n = normalize(nW(n));
   vec3 c = wetSurface(alb * mh, n, .8, pud, paint);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
@@ -768,7 +803,7 @@ const WALK_FS = /* glsl */`
 ${GROUND_COMMON}
 void main(){
   vec3 n = normalize(vN);
-  vec2 p = vW.xz;
+  vec2 p = vL;
   vec3 c;
   if (n.y < .5) {                                         // 路緣石側面
     vec3 alb = vec3(.16,.155,.15) * (.8 + .3*n2(p*3. + vW.y));
@@ -790,7 +825,7 @@ void main(){
     float dist = length(vW - uCam);
     if (dist < 30.) nn.xz += ripple(p, uTime + 3.) * .35 * pud * (1. - dist/30.);
     nn.xz += (vec2(h21(ti), h21(ti + 4.)) - .5) * .04;
-    c = wetSurface(alb, normalize(nn), .6, pud, 0.);
+    c = wetSurface(alb, normalize(nW(nn)), .6, pud, 0.);
   }
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
@@ -798,7 +833,7 @@ void main(){
 const LAWN_FS = /* glsl */`
 ${GROUND_COMMON}
 void main(){
-  vec2 p = vW.xz;
+  vec2 p = vL;
   float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
   float n1 = fbm(p*.35), fine = n2(p*3.1);
   vec3 alb = vec3(.03,.055,.022) * (.65 + .7*n1) * (.8 + .4*fine);
@@ -811,31 +846,54 @@ void main(){
 }`;
 const MAT_ROAD = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: ROAD_FS });
 const MAT_WALK = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS });
-const groundGroup = new T.Group(); scene.add(groundGroup);
-{
-  // 路面只鋪到城市外緣（再外面是步道板、海與河，21-coast.js）；北面往樓牆後多鋪 600 m
-  const g = new T.PlaneGeometry(CITY_X1 - CITY_X0 + 2 * OUT_D, SHORE_Z - (CITY_Z0 - 600)); g.rotateX(-Math.PI / 2);
-  const road = new T.Mesh(g, MAT_ROAD); road.position.set(CITY_CX, 0, (SHORE_Z + CITY_Z0 - 600) / 2); groundGroup.add(road);
-  // 人行道：每個街區一塊高 15 公分的板（建築就坐在上面）
-  const parts = [];
-  for (const b of blocks) {
-    const bg = new T.BoxGeometry(b.x1 - b.x0, .15, b.z1 - b.z0);
-    bg.translate((b.x0 + b.x1) / 2, .075, (b.z0 + b.z1) / 2);
-    parts.push(bg.toNonIndexed());
+// 地面網格（不進倒影，70-render.js）：幾何是邏輯座標，掛進所在的區
+const groundMeshes = [];
+const groundAdd = (m, zn) => { groundMeshes.push(m); return cityAdd(m, zn); };
+// 邏輯矩形切成各區的部分（跨區的外圍步道板、碰撞框）：[{ zn, x0, x1, z0, z1 }]
+function zoneClip(x0, x1, z0, z1) {
+  const out = [];
+  for (const zn of ZONES) {
+    const a0 = Math.max(x0, zn.x0), a1 = Math.min(x1, zn.x1), b0 = Math.max(z0, zn.z0), b1 = Math.min(z1, zn.z1);
+    if (a1 - a0 > 1e-3 && b1 - b0 > 1e-3) out.push({ zn, x0: a0, x1: a1, z0: b0, z1: b1 });
   }
-  const pos = [], nor = [];
-  for (const g2 of parts) { pos.push(...g2.attributes.position.array); nor.push(...g2.attributes.normal.array); }
-  const wg = new T.BufferGeometry();
-  wg.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
-  wg.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
-  wg.computeBoundingSphere();
-  groundGroup.add(new T.Mesh(wg, MAT_WALK));
-  const lawns = blocks.filter(b => b.park).map(b => {
-    const lg = new T.PlaneGeometry(b.x1 - b.x0 - 2 * SW, b.z1 - b.z0 - 2 * SW); lg.rotateX(-Math.PI / 2); lg.translate((b.x0 + b.x1) / 2, .152, (b.z0 + b.z1) / 2); return lg;
-  });
-  if (lawns.length) groundGroup.add(new T.Mesh(mergeGeometries(lawns), new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS })));
+  return out;
 }
-const groundH = (x, z) => {   // 人行道高 0.15；查格子，不逐一比對街區
+{
+  // 路面只鋪到城市外緣（再外面是步道板、海與河，21-coast.js）；北面往樓牆後多鋪 600 m。每區一張，鋪到邊界路的外緣
+  for (const zn of ZONES) {
+    const x0 = zn.ni0 === 0 ? CITY_X0 - OUT_D : avX(zn.ni0) - HR, x1 = zn.ni1 === NX ? CITY_X1 + OUT_D : avX(zn.ni1) + HR;
+    const z0 = zn.nj0 === 0 ? CITY_Z0 - 600 : stZ(zn.nj0) - HR, z1 = zn.nj1 === NZ ? SHORE_Z : stZ(zn.nj1) + HR;
+    const g = new T.PlaneGeometry(x1 - x0, z1 - z0); g.rotateX(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, (z0 + z1) / 2);
+    groundAdd(new T.Mesh(g, MAT_ROAD), zn);
+  }
+  // 人行道：每個街區一塊高 15 公分的板（建築就坐在上面）；每區合併成一個網格
+  const parts = new Map();
+  for (const b of blocks) for (const r of zoneClip(b.x0, b.x1, b.z0, b.z1)) {
+    const bg = new T.BoxGeometry(r.x1 - r.x0, .15, r.z1 - r.z0);
+    bg.translate((r.x0 + r.x1) / 2, .075, (r.z0 + r.z1) / 2);
+    if (!parts.has(r.zn)) parts.set(r.zn, []);
+    parts.get(r.zn).push(bg.toNonIndexed());
+  }
+  for (const [zn, list] of parts) {
+    const pos = [], nor = [];
+    for (const g2 of list) { pos.push(...g2.attributes.position.array); nor.push(...g2.attributes.normal.array); }
+    const wg = new T.BufferGeometry();
+    wg.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    wg.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+    wg.computeBoundingSphere();
+    groundAdd(new T.Mesh(wg, MAT_WALK), zn);
+  }
+  const lawnMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS }), lawns = new Map();
+  for (const b of blocks.filter(b => b.park)) {
+    const lg = new T.PlaneGeometry(b.x1 - b.x0 - 2 * SW, b.z1 - b.z0 - 2 * SW); lg.rotateX(-Math.PI / 2); lg.translate((b.x0 + b.x1) / 2, .152, (b.z0 + b.z1) / 2);
+    const zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2);
+    if (!lawns.has(zn)) lawns.set(zn, []);
+    lawns.get(zn).push(lg);
+  }
+  for (const [zn, list] of lawns) groundAdd(new T.Mesh(mergeGeometries(list), lawnMat), zn);
+}
+// 地面高度（邏輯座標）：人行道高 0.15；查格子，不逐一比對街區。世界座標的 groundH 在下面
+const groundHL = (x, z) => {
   if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
     if (x > CITY_X0 - OUT_D && x < CITY_X1 + OUT_D && z > CITY_Z0 - OUT_D && z < SHORE_Z) return .15;   // 濱海步道、北面樓牆前
     for (const r of PIERS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
@@ -846,14 +904,47 @@ const groundH = (x, z) => {   // 人行道高 0.15；查格子，不逐一比對
   if (i < 0 || j < 0 || i >= NX || j >= NZ) return 0;
   return x > avX(i) + HR && x < avX(i + 1) - HR && z > stZ(j) + HR && z < stZ(j + 1) - HR ? .15 : 0;
 };
-const onRoad = (x, z) => groundH(x, z) === 0;
-// 水深（水面在 SEA_Y）：陸地矩形與沙灘外的淺水照 groundH，其他地方當成 8 m 深的海
-const seaFloor = (x, z) => inLand(x, z) || x >= BEACH.x0 && x <= BEACH.x1 && z > BEACH.z0 ? groundH(x, z) : -8;
-const waterDepth = (x, z) => Math.max(0, SEA_Y - seaFloor(x, z));
+// 執行時（玩家、車、行人、警察）用的是世界座標：先換回邏輯座標
+const groundH = (X, Z) => { const [x, z] = toL(X, Z); return groundHL(x, z); };
+const onRoad = (X, Z) => groundH(X, Z) === 0;
+const districtW = (X, Z) => { const [x, z] = toL(X, Z); return district(x, z); };
+// 水深（水面在 SEA_Y）：陸地矩形與沙灘外的淺水照 groundH，其他地方當成 8 m 深的海（世界座標）
+const seaFloorL = (x, z) => inLand(x, z) || x >= BEACH.x0 && x <= BEACH.x1 && z > BEACH.z0 ? groundHL(x, z) : -8;
+const seaFloor = (X, Z) => { const [x, z] = toL(X, Z); return seaFloorL(x, z); };
+const waterDepth = (X, Z) => Math.max(0, SEA_Y - seaFloor(X, Z));
 
 // ─── 碰撞的空間索引：室外的靜態盒與圓柱放進 24 m 的格子，查詢只看附近幾格（20×15 的城市有上萬個圓柱：路燈、停車、設施）。
 // 陣列長度變了就重建；同一幀先刪後加、長度沒變的地方（搶車、打爛電訊箱、路障）要呼叫 colDirty()。室內的碰撞表很小，直接回傳整個陣列。
 const COL_S = 24;
+// 生成時碰撞表是邏輯座標；開場的 cityWorld()（99-main.js）一次換成世界座標：盒保留邏輯 AABB，f 是所屬的區（null 是世界座標），
+// bx0…bz1 是世界座標的外接框（空間索引與粗篩用）；圓柱直接換成世界座標（w = 1）。之後執行時加進來的盒與圓柱都是世界座標
+let cityIsWorld = false;
+function boxToW(b, zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2)) {
+  b.f = zn;
+  if (!zn) { b.bx0 = b.x0; b.bx1 = b.x1; b.bz0 = b.z0; b.bz1 = b.z1; return b; }
+  const cs = rectW(b.x0, b.x1, b.z0, b.z1, zn);
+  b.bx0 = Math.min(...cs.map(c => c[0])); b.bx1 = Math.max(...cs.map(c => c[0])); b.bz0 = Math.min(...cs.map(c => c[1])); b.bz1 = Math.max(...cs.map(c => c[1]));
+  return b;
+}
+function circleToW(c, zn) { if (!c.w) { [c.x, c.z] = toW(c.x, c.z, zn); c.w = 1; } return c; }
+// 生成之後才加的（27-props.js 下載好的模型）：還沒換成世界座標的話照樣先放邏輯座標
+const worldHooks = [];   // 其他檔案在生成時登記的換算（光源表、錨點……），cityWorld() 依序呼叫
+function cityWorld() {
+  if (cityIsWorld) return;
+  // 跨區的盒（北面樓牆那一整條）切成各區的部分
+  for (let k = colliders.length - 1; k >= 0; k--) {
+    const b = colliders[k], parts = zoneClip(b.x0, b.x1, b.z0, b.z1);
+    if (parts.length > 1) colliders.splice(k, 1, ...parts.map(r => boxToW({ ...b, x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 }, r.zn)));
+    else boxToW(b, parts.length ? parts[0].zn : null);
+  }
+  for (const c of circles) circleToW(c);
+  for (const f of worldHooks) f();
+  cityIsWorld = true; colDirty();
+}
+const addBoxL = b => { colliders.push(cityIsWorld ? boxToW(b) : b); colDirty(); return b; };
+const addCircleL = c => { circles.push(cityIsWorld ? circleToW(c) : c); colDirty(); return c; };
+// 世界座標的點到盒的距離（粗篩）與點在盒的框裡的座標
+const boxGap = (b, x, z) => Math.max((b.bx0 ?? b.x0) - x, x - (b.bx1 ?? b.x1), (b.bz0 ?? b.z0) - z, z - (b.bz1 ?? b.z1));
 let colVer = 0;
 const colDirty = () => { colVer++; };
 const mkIndex = (arr, box) => ({ arr, box, n: -1, v: -1, cells: new Map() });
@@ -862,7 +953,7 @@ const cellKey = (c, d) => (c + 1024) * 4096 + d + 1024;
 function idxBuild(I) {
   I.cells.clear(); I.n = I.arr.length; I.v = colVer;
   for (const o of I.arr) {
-    const x0 = I.box ? o.x0 : o.x - o.r, x1 = I.box ? o.x1 : o.x + o.r, z0 = I.box ? o.z0 : o.z - o.r, z1 = I.box ? o.z1 : o.z + o.r;
+    const x0 = I.box ? o.bx0 ?? o.x0 : o.x - o.r, x1 = I.box ? o.bx1 ?? o.x1 : o.x + o.r, z0 = I.box ? o.bz0 ?? o.z0 : o.z - o.r, z1 = I.box ? o.bz1 ?? o.z1 : o.z + o.r;
     for (let c = Math.floor(x0 / COL_S); c <= Math.floor(x1 / COL_S); c++) for (let d = Math.floor(z0 / COL_S); d <= Math.floor(z1 / COL_S); d++) {
       const k = cellKey(c, d); let L = I.cells.get(k); if (!L) I.cells.set(k, L = []); L.push(o);
     }

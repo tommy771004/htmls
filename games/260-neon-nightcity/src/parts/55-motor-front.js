@@ -26,15 +26,15 @@
     k.box(x, .21, dz + 2.1, 5.4, .12, 2.7, 0x1a1a1e, 10);
     k.box(x, .275, dz + 3.46, 5.4, .02, .03, gold, 8).box(x, .275, dz + .74, 5.4, .02, .03, gold, 8);
   }
-  scene.add(new T.Mesh(k.build(), MAT.uber));
+  cityAdd(new T.Mesh(k.build(), MAT.uber));
   // 店內的車：壓扁的側面剪影貼在亮著的窗後
   for (const [id, x] of [['r34', dx - 8.8], ['supra', dx - 3.6], ['nsx', dx + 3.7], ['zr1', dx + 8.8]]) {
     const m = carObject(id);
-    m.position.set(x, .2, dz + .05); m.rotation.y = x < dx ? Math.PI / 2 : -Math.PI / 2; m.scale.set(.02, .92, .92); scene.add(m);
+    m.position.set(x, .2, dz + .05); m.rotation.y = x < dx ? Math.PI / 2 : -Math.PI / 2; m.scale.set(.02, .92, .92); cityAdd(m);
   }
   for (const [id, x, yaw] of show) {
     const m = carObject(id);   // 實車模型：走近車行才下載（65-motors 的 glbWake）
-    m.position.set(x, .27, dz + 2.1); m.rotation.y = yaw; scene.add(m);
+    m.position.set(x, .27, dz + 2.1); m.rotation.y = yaw; cityAdd(m);
     const L = CARS[id].len * .28;
     for (const s of [-1, 1]) circles.push({ x: x + Math.sin(yaw) * L * s, z: dz + 2.1 + Math.cos(yaw) * L * s, r: 1.15 });
     signLights.push({ x, y: 4.2, z: dz + 2.4, col: lin(0xfff0d8), r: 8, i: 1.1 });
@@ -49,11 +49,11 @@
   for (const s of [-1, 1]) k.box(hx + s * 5.8, 1.9, hz - .1, .08, 3.75, .05, amber, 8);
   k.box(hx, 4.9, hz - .33, 5.8, 1.56, .2, 0x111214, 2);
   for (const s of [-1, 1]) { k.box(hx + s * 3.2, 3.25, hz - .14, .26, .34, .2, 0x1a1b1e, 15); k.box(hx + s * 3.2, 3.25, hz - .25, .18, .24, .02, 0xffc890, 11); }
-  scene.add(new T.Mesh(k.build(), MAT.uber));
+  cityAdd(new T.Mesh(k.build(), MAT.uber));
   const pad = new Kit();
   for (let i = 0; i < 11; i++) pad.box(hx - 5 + i, .158, hz - 2.2, .16, .01, 3.6, 0xd89a2a, 11, 0, .5);
   for (const s of [-1, 1]) pad.box(hx + s * 5.6, .158, hz - 2.2, .1, .01, 3.8, 0xd89a2a, 11);
-  const pm = new T.Mesh(pad.build(), MAT.uber); pm.layers.set(LY.NOREFL); scene.add(pm);
+  const pm = new T.Mesh(pad.build(), MAT.uber); pm.layers.set(LY.NOREFL); cityAdd(pm);
   signQuad(hx, 4.9, hz - .45, 0, -1, 5.6, 1.4, 'GARAGE07', .3, 0, 1.4, amber, 10);
   signLights.push({ x: hx, y: 3.2, z: hz - 2.2, col: lin(amber), r: 10, i: .9 });
 }

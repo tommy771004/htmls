@@ -15,11 +15,12 @@
 // 排在 69-gps 之後、69-market 之前；W、wantedApi 等後面的東西只在函式裡用。
 
 ENV.bank = { lampOn: 0, wet: 0, fogDen: .018, fog: 0x1a1612, fogHi: 0x2a2218, top: 0x8a7a62, bot: 0x3a3026 };
-const BANK = { x: 0, z: stZ(4) - HR - SW };   // 10 St 南側立面，門朝 +z
-const PLAN = { x: CREW[0].home.x, z: CREW[0].home.z };
-const SAFE = { x: CREW[2].home.x, z: CREW[2].home.z - SW * .5 - HR + LANE };   // Jax 倉庫門前的車道
-const VAN_AT = { x: avX(0) + PARK, z: stZ(1) + 30, yaw: Math.PI };
-const CAR_AT = { x: avX(4) + PARK, z: stZ(4) + 30, yaw: Math.PI };
+const BANK = { x: 0, z: stZ(4) - HR - SW };   // 10 St 南側立面，門朝 +z（邏輯座標；執行時用 bankAt 換成世界座標）
+const bankAt = (dx, dz, yaw = 0) => spotW({ x: BANK.x + dx, z: BANK.z + dz, yaw });
+const PLAN = (([x, z]) => ({ x, z }))(toL(CREW[0].home.x, CREW[0].home.z));   // 計畫板在 Vance 家門口（邏輯座標，互動提示的 near 會換算）
+const SAFE = (([x, z]) => WP(x, z - SW * .5 - HR + LANE))(toL(CREW[2].home.x, CREW[2].home.z));   // Jax 倉庫門前的車道（世界座標；home 換回邏輯座標再往路上偏）
+const VAN_AT = spotW({ x: avX(0) + PARK, z: stZ(1) + 30, yaw: Math.PI });   // 世界座標
+const CAR_AT = spotW({ x: avX(4) + PARK, z: stZ(4) + 30, yaw: Math.PI });
 const HEIST_FEE = 10000, TAKE = { smart: 2000000, loud: 2500000 }, ZERO_CUT = .1;
 const heist = { st: 'off', how: null, t: 0, intim: 100, alarm: false, take: 0, loss: 0, hpPrev: 0, van: null, car: null, mag: 0, warned: 0, objSmall: '' };
 
@@ -156,7 +157,7 @@ function bankGunsLate() {
   const who = [bankCrew.people[0], bankCrew.people[1], hostages.people[GUARD]], arms = [ARMS.rifle, ARMS.smg, ARMS.pistol];
   bankGuns.forEach((h, i) => { if (on[i] && who[i].rig) holdAt(h, who[i], arms[i]); else h.visible = false; });
 }
-VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, name: '中央霓虹銀行', toast: '中央霓虹銀行', dist: '中城 · 10 St', ceil: 5.2, door: { x: BANK.x, z: BANK.z }, out: { x: BANK.x, z: BANK.z + 1.4, yaw: 0 } };
+VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, name: '中央霓虹銀行', toast: '中央霓虹銀行', dist: '中城 · 10 St', ceil: 5.2, door: WP(BANK.x, BANK.z), out: bankAt(0, 1.4) };
 
 // ─── 銀行門面：石造門廊、金色門、招牌（Canvas 寫字） ───
 {
@@ -166,14 +167,14 @@ VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, n
   k.box(x, 4.85, z + .8, 9.2, .5, 1.1, 0x8e8574, 2).box(x, 5.3, z + .7, 9.6, .3, 1.3, 0x5a5448, 2);
   k.box(x, 1.4, z + .52, 2.4, 2.8, .06, 0x2a2016, 10).box(x, 1.4, z + .56, 2.1, 2.5, .03, 0xc8a02a, 15);
   for (const s of [-1, 1]) k.box(x + s * 3, .08, z + 1.3, 1.4, .16, 1.2, 0x5a5448, 2);
-  scene.add(new T.Mesh(k.build(), MAT.uber));
+  cityAdd(new T.Mesh(k.build(), MAT.uber));
   const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128;
   const c = cv.getContext('2d'); c.fillStyle = '#1a140c'; c.fillRect(0, 0, 1024, 128);
   c.fillStyle = '#f0d58a'; c.font = '600 58px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillText('CENTRAL NEON BANK · 中央霓虹銀行', 512, 66);
   const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace; tx.anisotropy = 4;
   const sign = new T.Mesh(new T.PlaneGeometry(8, 1), new T.MeshBasicMaterial({ map: tx, toneMapped: false }));
-  sign.position.set(x, 4.85, z + 1.36); scene.add(sign);
+  sign.position.set(x, 4.85, z + 1.36); cityAdd(sign);
   outLights.push({ x, y: 4.2, z: z + 2.4, col: lin(0xffd890), r: 9, i: 1.4 });
 }
 
@@ -181,9 +182,9 @@ VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, n
 function heistMark() {
   const s = heist.st;
   if (s === 'setup') return heist.van && player.veh === heist.van ? { name: '安全屋', x: SAFE.x, y: 1.5, z: SAFE.z, where: 'out' } : heist.van ? { name: '鑽機廂型車', x: heist.van.x, y: 2.4, z: heist.van.z, where: 'out' } : null;
-  if (s === 'go') return { name: '中央霓虹銀行', x: BANK.x, y: 2.6, z: BANK.z + 1, where: 'out' };
+  if (s === 'go') return { name: '中央霓虹銀行', ...WP(BANK.x, BANK.z + 1), y: 2.6, where: 'out' };
   if (s === 'lobby' || s === 'c4') return { name: '金庫', x: VAULT.x, y: 2, z: VAULT.z - .4, where: 'bank' };
-  if (s === 'drill') return player.where === 'bank' ? { name: '金庫', x: VAULT.x, y: 2, z: VAULT.z - .4, where: 'bank' } : { name: '銀行門口', x: BANK.x, y: 2.6, z: BANK.z + 2, where: 'out' };
+  if (s === 'drill') return player.where === 'bank' ? { name: '金庫', x: VAULT.x, y: 2, z: VAULT.z - .4, where: 'bank' } : { name: '銀行門口', ...WP(BANK.x, BANK.z + 2), y: 2.6, where: 'out' };
   if (s === 'escape') return heist.car ? { name: '逃亡車', x: heist.car.x, y: 2, z: heist.car.z, where: 'out' } : null;
   if (s === 'drive') return { name: '安全屋', x: SAFE.x, y: 1.5, z: SAFE.z, where: 'out' };
   return null;
@@ -237,7 +238,7 @@ ctxHooks.push((p, near) => {
   if (p.mode !== 'walk' || p.where !== 'out') return null;
   if (near(PLAN.x, PLAN.z, 2) && (heist.st === 'off' || heist.st === 'plan')) return { key: 'E', text: '看計畫板 <i>· 中央霓虹銀行</i>', fn: planBoard };
   if (heist.st === 'go' && near(BANK.x, BANK.z + 1, 2)) return { key: 'E', text: '開始搶劫 <i>· 中央霓虹銀行</i>', fn: bankEnter };
-  if (heist.st === 'escape' && heist.car && !heist.car.dead && near(heist.car.x, heist.car.z, 3.4)) return { key: 'F', text: '上逃亡車 <i>· 換 Kael 開</i>', fn: getawayEnter };
+  if (heist.st === 'escape' && heist.car && !heist.car.dead && Math.hypot(p.x - heist.car.x, p.z - heist.car.z) < 3.4) return { key: 'F', text: '上逃亡車 <i>· 換 Kael 開</i>', fn: getawayEnter };
   return null;
 });
 function planBoard() {
@@ -275,7 +276,7 @@ function spawnVan() {
 function bankEnter() {
   if (W.stars) { toast('通緝中進不去：先甩掉警察'); return; }
   heistFade(() => {
-    const s = crew.st[0]; s.x = BANK.x; s.z = BANK.z + 1.4; s.yaw = 0;
+    const s = crew.st[0]; Object.assign(s, bankAt(0, 1.4));
     crewLoad(0);
     setWhere('bank');
     const sp = VENUES.bank.spawn; player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.pitch = .12;
@@ -304,7 +305,7 @@ function drillStart() {
 function holdStart() {
   heist.drilling = true; heist.t = 60;
   heistFade(() => {
-    const s = crew.st[2]; s.x = BANK.x + 2.5; s.z = BANK.z + 3; s.yaw = 0;
+    const s = crew.st[2]; Object.assign(s, bankAt(2.5, 3));
     crewLoad(2);
     heistGear(); equip('rifle', true);
     heist.t = 60; heistStage('drill', 60);
@@ -317,7 +318,7 @@ function heistGear() { for (const id of ARM_IDS) { const A = ARMS[id], a = arm.a
 function escapeStart() {
   heistFade(() => {
     heist.drilling = false; heist.take = TAKE[heist.how];
-    const s = crew.st[0]; s.x = BANK.x - 1.5; s.z = BANK.z + 1.6; s.yaw = 0;
+    const s = crew.st[0]; Object.assign(s, bankAt(-1.5, 1.6));
     crewLoad(0); heistGear(); equip('smg', true);
     clearSpot(CAR_AT.x, CAR_AT.z, 7);
     const v = heist.car = buildVeh('tiara', CAR_AT.x, CAR_AT.z, CAR_AT.yaw, 0, .61, 2, 'heist');

@@ -63,6 +63,7 @@ const APT = {
     lights: [{ x: 2, y: 4.4, z: 0, col: lin(0xfff0dc), r: 14, i: 1.3 }, { x: -1, y: 3, z: 2.8, col: lin(0xffd8b0), r: 8, i: .9 }, { x: 5.5, y: 3, z: -2.8, col: lin(0xffd8b0), r: 8, i: .9 }] },
 };
 const aptFace = id => APT[id].face || 1;
+const aptOut = id => spotW({ x: APT[id].door.x, z: APT[id].door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI });   // 出門站的位置（世界座標）
 const aptSet = id => 'apt_' + id;
 for (const id of APT_IDS) {
   const a = APT[id], scn = new T.Scene(), data = { boxes: [], circles: [...a.round], lights: a.lights };
@@ -82,7 +83,9 @@ for (const id of APT_IDS) {
   shell.box(a.frame.x, 1.15, a.frame.z, 1.2, 2.3, .06, 0x4a3a2a, 10, 0, a.frame.ry).box(a.frame.x, 2.38, a.frame.z, 1.4, .12, .1, 0xffd8a0, 11, 0, a.frame.ry);
   scn.add(new T.Mesh(shell.build(), MAT.uber));
   a.fb = fb; a.scn = scn; a.req = false;
-  VENUES[id] = { scene: scn, data, spawn: a.spawn, name: a.name, toast: a.name, dist: a.dist, ceil: a.ceil, door: a.door, out: { x: a.door.x, z: a.door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI } };
+  // door 是邏輯座標（擺門牌、互動提示的 near 會換算）；doorW、VENUES 的 door 與 out 是世界座標
+  a.doorW = WP(a.door.x, a.door.z);
+  VENUES[id] = { scene: scn, data, spawn: a.spawn, name: a.name, toast: a.name, dist: a.dist, ceil: a.ceil, door: a.doorW, out: aptOut(id) };
 }
 // 街上的門：發光門牌與門板（門在街區南面，朝 +z；face −1 的朝 −z）
 {
@@ -92,7 +95,7 @@ for (const id of APT_IDS) {
     k.box(x, 1.2, z - .1 * f, 1.6, 2.4, .2, 0x1c1a18, 10).box(x, 2.62, z - .05 * f, 1.9, .26, .1, SIGN[id], 11);
     if (id === 'office') colliders.push({ x0: x - 1, x1: x + 1, z0: z, z1: z + .3 });   // 島上的門前沒有人行道，門板本身要擋住
   }
-  scene.add(new T.Mesh(k.build(), MAT.uber));
+  cityAdd(new T.Mesh(k.build(), MAT.uber));
 }
 // 下載室內模型，換掉程式建模的房間
 function aptLoad(id) {
@@ -108,7 +111,7 @@ function aptLoad(id) {
 function aptUpdate() {
   if (!GLB_ON) return;
   const px = pX(), pz = pZ();
-  for (const id of APT_IDS) if (!APT[id].req && Math.hypot(px - APT[id].door.x, pz - APT[id].door.z) < 70) aptLoad(id);
+  for (const id of APT_IDS) if (!APT[id].req && Math.hypot(px - APT[id].doorW.x, pz - APT[id].doorW.z) < 70) aptLoad(id);
 }
 const aptEstate = id => ESTATES.find(e => e.id === id);
 function aptEnter(id) {
@@ -131,7 +134,7 @@ function aptNap() {
     clockSt.min = (clockSt.min + 360) % 1440;
     setWeather(wxPick(wxPick(wx.cur)), true);   // 28-sky.js：睡醒外面的天氣換過了
     life.hp = life.max;
-    quickSave({ x: a.door.x, z: a.door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI });
+    quickSave(aptOut(id));
     toast('睡了一覺：時間推進 6 小時，已存檔');
   });
 }

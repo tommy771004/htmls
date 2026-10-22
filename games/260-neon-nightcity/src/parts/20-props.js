@@ -2,11 +2,16 @@
 // ═══ 街道設施、招牌、全息廣告、蒸氣、雨與天空 ═══
 await bootStep(BOOT.props, '擺放街道與招牌…');
 const _o = new T.Object3D();
+// 清單是邏輯座標（t.zn 給了就用那一區，否則看位置在哪一區）：每個 instance 的矩陣換成世界座標，InstancedMesh 本身掛在 scene
 function instanced(geo, mat, list, layer = 0, extra) {
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
+  const wx = new Float32Array(list.length), wz = new Float32Array(list.length);
   list.forEach((t, k) => {
     _o.position.set(t.x, t.y || 0, t.z); _o.rotation.set(t.rx || 0, t.ry || 0, t.rz || 0, 'YXZ');
     _o.scale.set(t.sx || t.s || 1, t.sy || t.s || 1, t.sz || t.s || 1); _o.updateMatrix();
+    const zn = t.zn !== undefined ? t.zn : zoneAtL(t.x, t.z);
+    if (zn) _o.matrix.premultiply(zn.m4);
+    wx[k] = _o.matrix.elements[12]; wz[k] = _o.matrix.elements[14];
     m.setMatrixAt(k, _o.matrix);
   });
   m.count = list.length;
@@ -14,19 +19,20 @@ function instanced(geo, mat, list, layer = 0, extra) {
   m.computeBoundingSphere();
   m.layers.set(layer);
   scene.add(m);
-  if (list.length > 160) instStreamAdd(m, list);
+  if (list.length > 160) instStreamAdd(m, wx, wz);
   return m;
 }
 // 20×15 的城市有幾千盞路燈、上千個號誌：數量多的設施只把相機附近 INST_R 內的那幾個搬到 instance 緩衝區前段畫（相機移動 12 m 重排一次）。
 // 原始矩陣與 instance 屬性另存一份；之後要改某一個（打爛電訊箱）用 instSet，依編號更新號誌燈號用 m.userData.map（緩衝區位置 → 原始編號）。
 const INST_R = 380, instStreams = [];
-function instStreamAdd(m, list) {
-  const n = list.length, attrs = Object.entries(m.geometry.attributes).filter(([, a]) => a.isInstancedBufferAttribute).map(([k, a]) => ({ a, src: a.array.slice(0, n * a.itemSize) }));
-  const S = { m, n, mtx: m.instanceMatrix.array.slice(0, n * 16), xs: Float32Array.from(list, t => t.x), zs: Float32Array.from(list, t => t.z), attrs, cx: 1e9, cz: 1e9, dirty: true };
+function instStreamAdd(m, xs, zs) {
+  const n = xs.length, attrs = Object.entries(m.geometry.attributes).filter(([, a]) => a.isInstancedBufferAttribute).map(([k, a]) => ({ a, src: a.array.slice(0, n * a.itemSize) }));
+  const S = { m, n, mtx: m.instanceMatrix.array.slice(0, n * 16), xs, zs, attrs, cx: 1e9, cz: 1e9, dirty: true };
   m.userData.map = new Int32Array(n); m.userData.stream = S;
   m.boundingSphere = new T.Sphere(V3(), INST_R + 30);
   instStreams.push(S);
 }
+// mtx 是世界座標
 function instSet(m, k, mtx) {
   const S = m.userData.stream;
   if (!S) { m.setMatrixAt(k, mtx); m.instanceMatrix.needsUpdate = true; return; }
@@ -58,12 +64,14 @@ const free = (x, z, r) => {
 };
 const claim = (x, z, r) => { const k = npKey(Math.floor(x / NP_S), Math.floor(z / NP_S)); let L = nearProp.get(k); if (!L) nearProp.set(k, L = []); L.push({ x, z, r }); };
 
-// ─── 路燈：位置與 shader 裡的 lampGrid 完全一致 ───
+// ─── 路燈：沿路網每一段（各區自己的邊界路也有一份）；燈頭的位置寫進 shader 的路燈表（lampTable，lampGrid 查） ───
 const lampsA = [], lampsS = [];
-for (let i = 0; i <= NX; i++) for (const s of [-1, 1]) for (let j = 0; j < NZ; j++) for (const o of [16, 31, 46])
-  lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4 });
-for (let j = 0; j <= NZ; j++) for (const s of [-1, 1]) for (let i = 0; i < NX; i++) for (const o of [18, 36, 54])
-  lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4 });
+for (const e of RN.edges) {
+  if (e.kind === 'c') continue;
+  const { i, j } = e.a, zn = e.zn;
+  if (e.kind === 'z') { for (const s of [-1, 1]) for (const o of [16, 31, 46]) lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4, zn }); }
+  else for (const s of [-1, 1]) for (const o of [18, 36, 54]) lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4, zn });
+}
 function lampKit(col) {
   return new Kit()
     .cyl(0, .35, 0, .16, .2, .7, 10, 0x22252a, 15)
@@ -75,7 +83,33 @@ function lampKit(col) {
 }
 const lampMeshA = instanced(lampKit(0xff8a3a), MAT.uber, lampsA);
 const lampMeshS = instanced(lampKit(0xb8dcff), MAT.uber, lampsS);
-for (const l of [...lampsA, ...lampsS]) { circles.push({ x: l.x, z: l.z, r: .22 }); claim(l.x, l.z, 1.4); }
+for (const l of [...lampsA, ...lampsS]) { circles.push(circleToW({ x: l.x, z: l.z, r: .22 }, l.zn)); claim(l.x, l.z, 1.4); }
+// 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√420 ≈ 20.5 m）蓋到的每一格；一格超過 LAMP_K 盞就留離格子中心最近的
+function lampTable(heads) {
+  const R = Math.sqrt(420) + .5;
+  let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
+  for (const h of heads) { x0 = Math.min(x0, h.x - R); x1 = Math.max(x1, h.x + R); z0 = Math.min(z0, h.z - R); z1 = Math.max(z1, h.z + R); }
+  const nx = Math.ceil((x1 - x0) / LAMP_C), nz = Math.ceil((z1 - z0) / LAMP_C), cells = Array.from({ length: nx * nz }, () => []);
+  for (const h of heads) {
+    for (let c = Math.floor((h.x - R - x0) / LAMP_C); c <= Math.floor((h.x + R - x0) / LAMP_C); c++) for (let d = Math.floor((h.z - R - z0) / LAMP_C); d <= Math.floor((h.z + R - z0) / LAMP_C); d++) {
+      if (c < 0 || d < 0 || c >= nx || d >= nz) continue;
+      const qx = clamp(h.x, x0 + c * LAMP_C, x0 + (c + 1) * LAMP_C), qz = clamp(h.z, z0 + d * LAMP_C, z0 + (d + 1) * LAMP_C);
+      if ((qx - h.x) ** 2 + (qz - h.z) ** 2 < R * R) cells[d * nx + c].push(h);
+    }
+  }
+  const data = new Float32Array(nx * LAMP_K * nz * 4);
+  let over = 0;
+  cells.forEach((L, k) => {
+    const c = k % nx, d = Math.floor(k / nx), cx = x0 + (c + .5) * LAMP_C, cz = z0 + (d + .5) * LAMP_C;
+    if (L.length > LAMP_K) { over++; L.sort((a, b) => (a.x - cx) ** 2 + (a.z - cz) ** 2 - (b.x - cx) ** 2 - (b.z - cz) ** 2); }
+    L.slice(0, LAMP_K).forEach((h, n) => data.set([h.x, h.z, h.t, 1], ((d * nx + c) * LAMP_K + n) * 4));
+  });
+  if (over) console.warn('lamp table: cells over', LAMP_K, over);
+  const tex = new T.DataTexture(data, nx * LAMP_K, nz, T.RGBAFormat, T.FloatType);
+  tex.minFilter = tex.magFilter = T.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
+  U.uLampT.value = tex; U.uLampG.value.set(x0, z0, nx, nz);
+}
+lampTable([...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; })]);
 // 車行門前的兩台展示車與門口、車庫門前的車道：不放人行道設施
 for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
 
@@ -108,18 +142,16 @@ function coneMat(col) {
 }
 {
   const cg = new T.CylinderGeometry(.22, 3.1, 7, 18, 1, true); cg.translate(0, 3.5, 0);
-  instanced(cg, coneMat(0xff9a4c), lampsA.map(l => ({ x: l.hx, z: l.z })), LY.NOREFL);
-  instanced(cg.clone(), coneMat(0xa8d4ff), lampsS.map(l => ({ x: l.x, z: l.hz })), LY.NOREFL);
+  instanced(cg, coneMat(0xff9a4c), lampsA.map(l => ({ x: l.hx, z: l.z, zn: l.zn })), LY.NOREFL);
+  instanced(cg.clone(), coneMat(0xa8d4ff), lampsS.map(l => ({ x: l.x, z: l.hz, zn: l.zn })), LY.NOREFL);
 }
 
-// ─── 紅綠燈：每個路口每個來車方向一支懸臂號誌 ───
+// ─── 紅綠燈：每個路口每個來車方向一支懸臂號誌（立在來車那段路的右前方） ───
 const signals = [];
-for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) {
-  const x = avX(i), z = stZ(j);
-  if (j > 0) signals.push({ x: x - 9.2, z: z - 9.2, ry: 0, i, j, ax: 'z' });            // 往 +z 的來車
-  if (j < NZ) signals.push({ x: x + 9.2, z: z + 9.2, ry: Math.PI, i, j, ax: 'z' });      // 往 -z
-  if (i > 0) signals.push({ x: x - 9.2, z: z + 9.2, ry: Math.PI / 2, i, j, ax: 'x' });  // 往 +x
-  if (i < NX) signals.push({ x: x + 9.2, z: z - 9.2, ry: -Math.PI / 2, i, j, ax: 'x' }); // 往 -x
+for (const n of RN.nodes) for (const { e, dir } of n.out) {
+  if (e.kind === 'c') continue;
+  const ax = e.kind, hx = ax === 'x' ? -dir : 0, hz = ax === 'z' ? -dir : 0;   // 來車的方向（邏輯座標）：和往外的方向相反
+  signals.push({ x: avX(n.i) - hx * 9.2 - hz * 9.2, z: stZ(n.j) - hz * 9.2 + hx * 9.2, ry: Math.atan2(hx, hz), i: n.i, j: n.j, ax, zn: n.zn, node: n });
 }
 const sigGeo = new Kit()
   .cyl(0, 3.1, 0, .11, .13, 6.2, 10, 0x30343a, 15)
@@ -132,7 +164,7 @@ const sigGeo = new Kit()
   .box(.25, 2.6, 0, .3, .5, .25, 0x15171a, 2)
   .build();
 const sigMesh = instanced(sigGeo, MAT.uberI, signals, 0, () => 0);
-for (const s of signals) { circles.push({ x: s.x, z: s.z, r: .2 }); claim(s.x, s.z, 1.2); }
+for (const s of signals) { circles.push(circleToW({ x: s.x, z: s.z, r: .2 }, s.zn)); claim(s.x, s.z, 1.2); }
 const SIGP = 26;
 function lightState(i, j, ax, t) {
   const k = ((t + (i * 7 + j * 11) % SIGP) % SIGP + SIGP) % SIGP;
@@ -164,12 +196,12 @@ for (const s of sideSpots) {
   else if (r < .26 && free(s.x, s.z, .8)) { boxesN.push({ ...s, y: .15 }); claim(s.x, s.z, .8); circles.push({ x: s.x, z: s.z, r: .35 }); }
   else if (r < .3 && free(s.x, s.z, 1.2)) { booths.push({ ...s, y: .15 }); claim(s.x, s.z, 1.2); circles.push({ x: s.x, z: s.z, r: .55 }); }
 }
-// 路口轉角的護柱
-for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+// 路口轉角的護柱（只放在這一區自己的人行道上）
+for (const n of RN.nodes) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
   if (rnd() < .45) continue;
   for (let k = 0; k < 3; k++) {
-    const x = avX(i) + sx * (8.5 + (k === 2 ? 0 : 1.3 + k * 1.3)), z = stZ(j) + sz * (8.5 + (k === 2 ? 1.3 : 0));
-    if (groundH(x, z) > 0 && free(x, z, .3)) { bollards.push({ x, z, y: .15 }); circles.push({ x, z, r: .14 }); }
+    const x = avX(n.i) + sx * (8.5 + (k === 2 ? 0 : 1.3 + k * 1.3)), z = stZ(n.j) + sz * (8.5 + (k === 2 ? 1.3 : 0));
+    if (groundHL(x, z) > 0 && inZoneL(n.zn, x, z) && free(x, z, .3)) { bollards.push({ x, z, y: .15 }); circles.push({ x, z, r: .14 }); }
   }
 }
 // 燈籠公園的步道燈籠：十字碎石小徑（10-city.js 的 LAWN_FS，沿街區中線、寬約 3.6 m）兩側每 9 m 一盞，左右交錯，十字口留空。
@@ -219,6 +251,8 @@ instanced(new Kit()
   .cyl(0, .4, 0, .05, .05, .42, 6, 0x9a9a9a, 3, 0, 0, Math.PI / 2).build(), MAT.uber, hydrants, LY.NOREFL);
 instanced(new Kit()
   .cyl(0, .48, 0, .3, .26, .96, 12, 0x2f3a33, 15).cyl(0, .98, 0, .32, .32, .06, 12, 0x232a26, 15).build(), MAT.uber, bins, LY.NOREFL);
+// 電訊箱（69-market.js 射擊、撞爛）：執行時用世界座標，和換過的碰撞圓柱同一個算法，69-market 才比對得到
+worldHooks.push(() => { for (const b of boxesN) { [b.x, b.z] = toW(b.x, b.z); } });
 const boxesMesh = instanced(new Kit()   // 藍色電訊箱：69-market.js 打爛時把該格縮成 0
   .box(0, .62, 0, .5, .9, .45, 0x1c4f9a, 10).box(0, 1.1, 0, .5, .08, .45, 0x163f7a, 10).box(0, .7, -.23, .38, .3, .02, 0xeeeeee, 11)
   .box(.18, .1, 0, .04, .2, .4, 0x222222, 15).box(-.18, .1, 0, .04, .2, .4, 0x222222, 15).build(), MAT.uber, boxesN, LY.NOREFL);
@@ -325,17 +359,21 @@ const RAMPS = [
   { x: avX(19) + HR + 1, z: stZ(6) - PARK, yaw: -Math.PI / 2 },
   { x: avX(4) + HR + 1, z: stZ(9) - PARK, yaw: -Math.PI / 2 },
 ].map((r, i) => ({ ...r, i, dx: Math.sin(r.yaw), dz: Math.cos(r.yaw) }));
+// 生成時（停車避開跳台）用邏輯座標；cityWorld() 之後 RAMPS 是世界座標（69-stunt.js 每幀判斷車有沒有開上去）
+worldHooks.push(() => { for (const r of RAMPS) { const zn = zoneAtL(r.x, r.z); [r.x, r.z] = toW(r.x, r.z, zn); r.yaw = yawW(zn, r.yaw); r.dx = Math.sin(r.yaw); r.dz = Math.cos(r.yaw); } });
 const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 2.5 && a > -RAMP_L - 26 && a < 60; });   // 前面留 26 m 助跑，後面 60 m 內不停車（落地後還會往前滑）
-{
-  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L);
-  for (const r of RAMPS) {
+// 跳台的幾何是邏輯座標：每區合併一份，以一個 instance 掛上該區的變換
+for (const zn of ZONES) {
+  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L), mine = RAMPS.filter(r => zoneAtL(r.x, r.z) === zn);
+  if (!mine.length) continue;
+  for (const r of mine) {
     const cx = r.x - r.dx * RAMP_L / 2, cz = r.z - r.dz * RAMP_L / 2, rx = r.dz, rz = -r.dx;
     k.box(cx, RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 15, -th, r.yaw);   // 斜板
     for (const s of [-1, 1]) k.box(cx + rx * s * (RAMP_W / 2 - .08), RAMP_H / 2 - .02, cz + rz * s * (RAMP_W / 2 - .08), .16, .14, sl, 0xd9b42a, 10, -th, r.yaw);   // 兩側黃邊
     k.box(r.x - r.dx * .1, RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 15, 0, r.yaw);   // 邊緣的立板
     for (const s of [-1, 1]) for (const f of [.35, .7]) k.box(r.x - r.dx * RAMP_L * (1 - f) + rx * s * 1.2, RAMP_H * f / 2, r.z - r.dz * RAMP_L * (1 - f) + rz * s * 1.2, .14, RAMP_H * f, .14, 0x2a2c2f, 15, 0, r.yaw);   // 支架
   }
-  instanced(k.build(), MAT.uber, [{ x: 0, z: 0 }]);
+  instanced(k.build(), MAT.uber, [{ x: 0, z: 0, zn }]);
 }
 {
   const d = new Kit();
@@ -576,7 +614,7 @@ const venueSigns = [];
     for (const s of [-1, 1]) { bk.box(s * b.w * .35, -(b.y - b.top) / 2, -.6, .18, b.y - b.top, .18, 0x222326, 15); applyLast(bk, { x: b.x, y: b.y, z: b.z, ry: b.ry }); }
     bk.box(0, -b.h / 2 - .2, .1, b.w, .08, .5, 0x222326, 15); applyLast(bk, { x: b.x, y: b.y, z: b.z, ry: b.ry });
   }
-  var signBackMesh = new T.Mesh(bk.build(), MAT.uber); scene.add(signBackMesh);
+  var signBackMesh = cityAddAny(new T.Mesh(bk.build(), MAT.uber));
 }
 // 把 Kit 裡最後加入的零件整個做一次變換（零件先在原點建好）
 function applyLast(k, t) {
@@ -637,12 +675,12 @@ const holo = new T.Group();
 const HOLO_POS = V3(avX(2) - HR - SW - 2.4, 13.5, stZ(3) - HR - SW - 2.4);
 holo.position.copy(HOLO_POS); holo.scale.setScalar(1.6); holo.layers.set(LY.NOREFL);
 holo.traverse(o => o.layers.set(LY.NOREFL));
-scene.add(holo);
+cityAdd(holo);
 signQuad(HOLO_POS.x + 4.5, 9.2, stZ(3) - HR - SW + .14, 0, 1, 7, 3.5, 'w:TOMORROW', .3, 2, 1.3, 0x9ff6ff, 14);
 signLights.push({ x: HOLO_POS.x, y: 9, z: HOLO_POS.z + 3, col: lin(0x6ff0ff), r: 16, i: 1.1 });
 {
   const k = new Kit().box(0, 0, 0, 1.2, .5, 1.2, 0x1a1c20, 15).box(0, .28, 0, .8, .06, .8, 0x7ff6ff, 8);
-  const m = new T.Mesh(k.build(), MAT.uber); m.position.set(HOLO_POS.x, 7.4, HOLO_POS.z); scene.add(m);
+  const m = new T.Mesh(k.build(), MAT.uber); m.position.set(HOLO_POS.x, 7.4, HOLO_POS.z); cityAdd(m);
 }
 
 // ─── 掛在街角的燈串 ───
@@ -783,7 +821,8 @@ const splashMesh = (() => {
       vec2 rr = fract(aR.xy + vec2(h11(cyc + aR.z*91.), h11(cyc*1.3 + aR.z*37.)));
       vec3 c = vec3(uCam.x + (rr.x - .5)*box, 0., uCam.z + (rr.y - .5)*box);
       float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
-      float dx = abs(c.x - (X0 + floor((c.x-X0)/P + .5)*P)), dz = abs(c.z - (Z0 + floor((c.z-Z0)/Q + .5)*Q));
+      vec2 r0 = c.xz - uZone.xy, l = vec2(r0.x*uZone.z - r0.y*uZone.w, r0.x*uZone.w + r0.y*uZone.z);   // 換到相機所在區的邏輯座標
+      float dx = abs(l.x - (X0 + floor((l.x-X0)/P + .5)*P)), dz = abs(l.y - (Z0 + floor((l.y-Z0)/Q + .5)*Q));
       c.y = (dx > 8. && dz > 8.) ? .16 : .01;
       vT = fract(uTime * 2.2 + aR.w * 7.);
       vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);

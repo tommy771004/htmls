@@ -6,13 +6,13 @@
 const SP_MAX = 100, SP_DRAIN = 12.5;
 const CREW = [
   { id: 'vance', name: 'Vance', zh: '范斯', role: '退休特工', ab: 'bullet', abName: '神經時間減緩', col: '#9cb8f0', hp: 100, armor: 100,
-    home: { x: lerp(avX(4) + HR + SW, avX(5) - HR - SW, .35), z: stZ(3) + HR + SW * .5, yaw: Math.PI, name: '中城公寓' }, idle: ANIM.smoke,
+    home: spotW({ x: lerp(avX(4) + HR + SW, avX(5) - HR - SW, .35), z: stZ(3) + HR + SW * .5, yaw: Math.PI, name: '中城公寓' }), idle: ANIM.smoke,
     look: { female: false, top: lin(0x1c2230), bot: lin(0x15171c), skin: SKINS[0], hair: lin(0x5f5a55), coat: 1, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[1], glow: lin(0x9cb8f0), glowI: 1.1, scale: 1.02 } },
   { id: 'kael', name: 'Kael', zh: '凱爾', role: '地下車手', ab: 'reflex', abName: '極限反射駕駛', col: '#62e6d8', hp: 100, armor: 50,
-    home: { x: GAR_X + 5, z: GAR_Z + SW * .5, yaw: Math.PI, name: 'CHROME WORKS' }, idle: ANIM.cross,
+    home: spotW({ x: GAR_X + 5, z: GAR_Z + SW * .5, yaw: Math.PI, name: 'CHROME WORKS' }), idle: ANIM.cross,
     look: { female: false, top: lin(0x2b2420), bot: lin(0x17181c), skin: SKINS[1], hair: HAIRS[0], coat: 1, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[0], glow: lin(0xffae57), glowI: 1.4, scale: 1 } },
   { id: 'jax', name: 'Jax', zh: '賈克斯', role: '軍火走私', ab: 'rage', abName: '腎上腺素狂暴', col: '#ff8a4c', hp: 120, armor: 80,
-    home: { x: lerp(avX(0) + HR + SW, avX(1) - HR - SW, .4), z: stZ(0) + HR + SW * .5, yaw: Math.PI, name: '舊碼頭倉庫' }, idle: ANIM.cross,
+    home: spotW({ x: lerp(avX(0) + HR + SW, avX(1) - HR - SW, .4), z: stZ(0) + HR + SW * .5, yaw: Math.PI, name: '舊碼頭倉庫' }), idle: ANIM.cross,
     look: { female: false, top: lin(0x3a4430), bot: lin(0x2a2620), skin: SKINS[2], hair: HAIRS[1], coat: 0, skirt: 0, longHair: 0, hat: 1, shoe: SHOES[2], glow: lin(0xff8a4c), glowI: 1.3, scale: 1.06 } },
 ];
 const crew = {
@@ -146,7 +146,7 @@ function crewSwitch(i) {
 function crewSave() {
   const s = crew.st[crew.cur];
   s.hp = life.hp; s.armor = life.armor; s.x = player.x; s.z = player.z; s.yaw = player.yaw; s.where = player.where;
-  s.near = district(player.x, player.z).split(' ')[0];
+  s.near = districtW(player.x, player.z).split(' ')[0];
 }
 function crewLoad(i) { crewSave(); crewApply(i); }
 // 換成第 i 位主角（不先存目前這位；快速讀檔直接用）
@@ -267,7 +267,7 @@ addEventListener('keydown', capsToggle); addEventListener('keyup', capsToggle);
 // 60-venues.js 的 contextAction 在開車時先問這裡（ctxHooks 在 60 才宣告，這裡不能在頂層掛）
 const RESPRAY = 1000;
 function resprayCtx(v) {
-  if (!W.stars || Math.hypot(v.x - GAR_X, v.z - (GAR_Z + SW + 4)) > 6 || Math.hypot(v.vx, v.vz) > 2 || motors.test) return null;
+  if (!W.stars || Math.hypot(v.x - toW(GAR_X, GAR_Z + SW + 4)[0], v.z - toW(GAR_X, GAR_Z + SW + 4)[1]) > 6 || Math.hypot(v.vx, v.vz) > 2 || motors.test) return null;
   if (W.seen) return { key: 'E', text: '警察還看得到你 <i>· 先甩開視線</i>', fn: () => toast('被盯著的時候 CHROME WORKS 不開門') };
   return { key: 'E', text: `噴漆換牌、甩掉通緝 <i>· ${money(RESPRAY)}</i>`, fn: () => respray(v) };
 }

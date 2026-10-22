@@ -55,6 +55,7 @@ const LANE = 3.0, PARK = 6.6;               // 車道與停車格中心離路中
 
 // ─── 共用 uniform ───
 const NL = LOW ? 8 : 16;
+const LAMP_C = 16, LAMP_K = 16;   // 路燈表的格子邊長（公尺）與每格最多幾盞
 const U = {
   uTime: { value: 0 }, uLampOn: { value: 1 }, uFlash: { value: 0 }, uClipY: { value: -1e9 }, uWet: { value: 1 },
   uCam: { value: V3() }, uFogCol: { value: C3(0x1a1d26) }, uFogHi: { value: C3(0x3a2a3a) }, uFogDen: { value: .016 },
@@ -63,6 +64,9 @@ const U = {
   uLD: { value: Array.from({ length: NL }, () => new T.Vector4(0, -1, 0, -2)) },
   uAmbTop: { value: C3(0x1d2230) }, uAmbBot: { value: C3(0x241a16) },
   uCity: { value: new T.Vector4(X0, Z0, P, Q) }, uGrid: { value: new T.Vector2(NX, NZ) },
+  // 路燈表（20-props.js 的 lampTable）：世界座標切成 LAMP_C 公尺的格子，每格列出光照範圍蓋到這格的路燈（x, z, 種類, 有沒有）；
+  // uLampG = (西北角 x, z, 格數 x, 格數 z)。uZone 是相機所在區的 (ox, oz, cos, sin)，相機附近的水花用它判斷人行道
+  uLampT: { value: null }, uLampG: { value: new T.Vector4(0, 0, 0, 0) }, uZone: { value: new T.Vector4(0, 0, 1, 0) },
   uBeat: { value: 0 }, uRain: { value: .7 }, uLit: { value: .34 }, uLamp: { value: 1 },
   uFocus: { value: new T.Vector4() },   // xyz 角色頭部，w=1 時淡出擋在相機前的東西
   // 日夜與天氣（28-sky.js 每幀更新）：uDay 是天空與環境反射的白天比例，uSunCol 是雲遮過後的日光（夜裡與室內是 0）
@@ -84,6 +88,7 @@ uniform float uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit,
 uniform vec3 uCam, uFogCol, uFogHi, uAmbTop, uAmbBot; uniform vec4 uFocus;
 uniform vec4 uLP[${NL}]; uniform vec4 uLC[${NL}]; uniform vec4 uLD[${NL}];
 uniform vec4 uCity; uniform vec2 uGrid;
+uniform highp sampler2D uLampT; uniform vec4 uLampG, uZone;
 uniform float uDay, uCloud; uniform vec3 uSun, uSunCol, uSkyTop, uSkyHor, uMoon;
 uniform sampler2D uHMap; uniform vec4 uHM;
 uniform vec4 uOccA[${NOCC}]; uniform vec4 uOccB[${NOCC}];
@@ -107,33 +112,14 @@ void lampOne(inout vec3 dif, inout vec3 spc, vec3 lp, vec3 col, vec3 p, vec3 n, 
 }
 void lampGrid(inout vec3 dif, inout vec3 spc, vec3 p, vec3 n, vec3 v, float shin){
   if (uLampOn < .5) return;
-  float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
   vec3 cs = SODIUM*2.1*uLamp, cl = LEDW*1.5*uLamp;
-  // 大道（南北向）路燈：鈉燈
-  float ia = clamp(floor((p.x - X0)/P + .5), 0., uGrid.x);
-  float ax = X0 + ia*P;
-  float jz = floor((p.z - Z0)/Q);
-  if (abs(p.x - ax) < 26.) for (int s=0; s<2; s++){
-    float lx = ax + (s==0 ? -6.4 : 6.4);
-    if (jz >= 0. && jz < uGrid.y) { float b = Z0 + jz*Q;
-      lampOne(dif, spc, vec3(lx,7.1,b+16.), cs, p, n, v, shin);
-      lampOne(dif, spc, vec3(lx,7.1,b+31.), cs, p, n, v, shin);
-      lampOne(dif, spc, vec3(lx,7.1,b+46.), cs, p, n, v, shin); }
-    if (jz-1. >= 0. && jz-1. < uGrid.y) lampOne(dif, spc, vec3(lx,7.1,Z0+(jz-1.)*Q+46.), cs, p, n, v, shin);
-    if (jz+1. >= 0. && jz+1. < uGrid.y) lampOne(dif, spc, vec3(lx,7.1,Z0+(jz+1.)*Q+16.), cs, p, n, v, shin);
-  }
-  // 街（東西向）路燈：冷白 LED
-  float js = clamp(floor((p.z - Z0)/Q + .5), 0., uGrid.y);
-  float sz = Z0 + js*Q;
-  float ix = floor((p.x - X0)/P);
-  if (abs(p.z - sz) < 26.) for (int s=0; s<2; s++){
-    float lz = sz + (s==0 ? -6.4 : 6.4);
-    if (ix >= 0. && ix < uGrid.x) { float b = X0 + ix*P;
-      lampOne(dif, spc, vec3(b+18.,7.1,lz), cl, p, n, v, shin);
-      lampOne(dif, spc, vec3(b+36.,7.1,lz), cl, p, n, v, shin);
-      lampOne(dif, spc, vec3(b+54.,7.1,lz), cl, p, n, v, shin); }
-    if (ix-1. >= 0. && ix-1. < uGrid.x) lampOne(dif, spc, vec3(X0+(ix-1.)*P+54.,7.1,lz), cl, p, n, v, shin);
-    if (ix+1. >= 0. && ix+1. < uGrid.x) lampOne(dif, spc, vec3(X0+(ix+1.)*P+18.,7.1,lz), cl, p, n, v, shin);
+  // 大道的鈉燈與街的冷白 LED：查片段所在那一格的路燈表
+  ivec2 c = ivec2(floor((p.xz - uLampG.xy) / ${LAMP_C}.));
+  if (c.x < 0 || c.y < 0 || c.x >= int(uLampG.z) || c.y >= int(uLampG.w)) return;
+  for (int k = 0; k < ${LAMP_K}; k++) {
+    vec4 L = texelFetch(uLampT, ivec2(c.x * ${LAMP_K} + k, c.y), 0);
+    if (L.w < .5) break;
+    lampOne(dif, spc, vec3(L.x, 7.1, L.y), L.z < .5 ? cs : cl, p, n, v, shin);
   }
 }
 void pointLights(inout vec3 dif, inout vec3 spc, vec3 p, vec3 n, vec3 v, float shin){

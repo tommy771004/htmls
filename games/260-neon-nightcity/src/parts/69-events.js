@@ -21,7 +21,7 @@ function truckSpawn(why) {
 // 隨便挑一個 150–400 m 外的路口當目的地（城市 20×15，不設上限會開到一公里外）
 function truckRoute(tk) {
   const v = tk.v, c = [];
-  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) { const d = Math.hypot(avX(i) - v.x, stZ(j) - v.z); if (d > 150 && d < 400) c.push([avX(i), stZ(j)]); }
+  for (const n of RN.nodes) { const d = Math.hypot(n.x - v.x, n.z - v.z); if (d > 150 && d < 400) c.push([n.x, n.z]); }
   const [tx, tz] = c[Math.floor(Math.random() * c.length)];
   tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1;
 }

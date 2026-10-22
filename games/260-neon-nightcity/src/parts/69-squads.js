@@ -7,7 +7,7 @@
 //   資產防守：擁有 LAZARUS、AFTERGLOW、CHROME WORKS 或島上辦公室時，開場 6 分鐘後起每 6–9 分鐘（真實時間，沒被通緝、在戶外）
 //            一處被赤蠍幫盯上：180 秒內趕到，打退兩波人。守住給獎金；資產被打爛就搶走保險箱、停業 10 分鐘（motors.props.pause）。
 //   傭兵小隊：手機打給鐵幕保全（$3,000），一台皮卡載四名傭兵過來跟著你 3 分鐘；你上車他們也上車跟車。
-// 排在 69-safehouse 之後、69-stunt 之前：W、copHit、spawnSpot、fieldTo、nextNodes、npcShoot、heist、crew 都已經宣告。
+// 排在 69-safehouse 之後、69-stunt 之前：W、copHit、spawnSpot、fieldTo、roadNext、npcShoot、heist、crew 都已經宣告。
 
 const FIGHT_N = LOW ? 10 : 14;
 const fighters = crowd(FIGHT_N);
@@ -201,16 +201,10 @@ function squadDrive(c, tx, tz, stopD, dt) {
   let ax = tx, az = tz;
   if (d > 30 || !losClear(v.x, v.z, tx, tz)) {
     // 和警車一樣：到目標路口的距離場（目標換路口或每秒重算），往「距離＋掉頭懲罰」最小的相鄰路口開
-    const goal = NODE(nearI(tx), nearJ(tz));
-    if ((c.rT -= dt) <= 0 || c.goal !== goal || !c.field) { c.rT = 1; c.goal = goal; c.field = fieldTo(nearI(tx), nearJ(tz)); }
-    const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
-    let bs = 1e9, bn = -1;
-    for (const [i, j] of nextNodes(v.x, v.z)) {
-      const nx = avX(i), nz = stZ(j), e = Math.hypot(nx - v.x, nz - v.z);
-      const sc = e + c.field[NODE(i, j)] + ((nx - v.x) * fx + (nz - v.z) * fz < 0 && e > 12 ? 45 : 0);
-      if (sc < bs) { bs = sc; bn = NODE(i, j); ax = nx; az = nz; }
-    }
-    if (bn < 0 || bn === goal && Math.hypot(ax - v.x, az - v.z) < 8) { ax = tx; az = tz; }   // 到了目標的路口：直接開過去
+    const gp = rnProject(tx, tz), goal = gp.e.id;
+    if ((c.rT -= dt) <= 0 || c.goal !== goal || !c.field) { c.rT = 1; c.goal = goal; c.field = fieldTo(gp); }
+    [ax, az] = roadNext(v, c.field, gp, tx, tz);
+    if (Math.hypot(ax - gp.x, az - gp.z) < 1 && Math.hypot(gp.x - v.x, gp.z - v.z) < 8) { ax = tx; az = tz; }   // 到了目標路邊：直接開過去
   }
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), vF = v.vx * fx + v.vz * fz;
   const fwd = v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw);
@@ -283,11 +277,12 @@ function chaseEnd(drop) {
 // ─── 資產防守 ───
 const DEF_BIZ = ['lazarus', 'afterglow', 'chrome', 'office'];
 function defSpot(id) {
-  if (id === 'lazarus') return { x: CLUB_X, z: CLUB_Z + 2.5, name: 'LAZARUS 夜店' };
-  if (id === 'afterglow') return { x: BAR_X - 4.6, z: BAR_Z + 2.5, name: 'AFTERGLOW 酒吧' };
-  if (id === 'chrome') return { x: GAR_X, z: GAR_Z + SW + 3, name: 'CHROME WORKS' };
+  // 世界座標（門口的邏輯位置換算過去）
+  if (id === 'lazarus') return { ...WP(CLUB_X, CLUB_Z + 2.5), name: 'LAZARUS 夜店' };
+  if (id === 'afterglow') return { ...WP(BAR_X - 4.6, BAR_Z + 2.5), name: 'AFTERGLOW 酒吧' };
+  if (id === 'chrome') return { ...WP(GAR_X, GAR_Z + SW + 3), name: 'CHROME WORKS' };
   const d = APT.office.door, s = aptFace('office');
-  return { x: d.x, z: d.z + 2.5 * s, name: '灰鷗島辦公室' };
+  return { ...WP(d.x, d.z + 2.5 * s), name: '灰鷗島辦公室' };
 }
 const defReward = id => 6000 + ESTATES.find(e => e.id === id).rate * 4;
 function defStart(id) {
@@ -308,7 +303,8 @@ function defWave(n) {
     for (let tries = 0; tries < 12; tries++) {
       const a = Math.random() * 6.283, r = 32 + Math.random() * 8;
       x = D.x + Math.sin(a) * r; z = D.z + Math.cos(a) * r;
-      if (!blocks.some(b => x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1)) break;
+      const [lx, lz] = toL(x, z);
+      if (!blocks.some(b => lx > b.x0 && lx < b.x1 && lz > b.z0 && lz < b.z1)) break;
     }
     const f = fSpawn('gang', x, z, Math.atan2(D.x - x, D.z - z), { gun: i % 3 === 0 ? 'smg' : i % 4 === 1 ? 'shotgun' : 'pistol', goal: { x: D.x, z: D.z } });
     if (f) f.def = true;
@@ -437,7 +433,8 @@ function squadHeist(s) {
   if (s === 'escape') {
     [2, 1].forEach((ci, j) => {
       crew.st[ci].where = 'heist';
-      fSpawn('crew', BANK.x + 1.5 + j * 1.2, BANK.z + 2.4, 0, { ci, gun: ci === 2 ? 'rifle' : 'smg', slot: j + 1 });
+      const at = bankAt(1.5 + j * 1.2, 2.4);
+      fSpawn('crew', at.x, at.z, at.yaw, { ci, gun: ci === 2 ? 'rifle' : 'smg', slot: j + 1 });
     });
   } else if (s === 'drive') {
     for (let i = 0; i < 3; i++) if (i !== crew.cur) crew.st[i].where = 'heist';
@@ -449,7 +446,7 @@ function squadHeist(s) {
       const st = crew.st[i];
       if (i === crew.cur || st.where !== 'heist') continue;
       st.where = 'out';
-      if (pass) { st.x = SAFE.x + (i - 1) * 2.4; st.z = SAFE.z + 3; st.yaw = Math.PI; }
+      if (pass) { const [lx, lz] = toL(SAFE.x, SAFE.z); Object.assign(st, spotW({ x: lx + (i - 1) * 2.4, z: lz + 3, yaw: Math.PI })); }
       else { st.x = CREW[i].home.x; st.z = CREW[i].home.z; st.yaw = CREW[i].home.yaw; }
     }
   }

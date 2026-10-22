@@ -601,9 +601,11 @@ function aimPeds(dt) {
   }
 }
 // 視線：只擋建築街區（扣掉人行道），夠便宜，每幀可以跑幾十次
-const LOS_B = blocks.map(b => ({ x0: b.x0 + SW, x1: b.x1 - SW, z0: b.z0 + SW, z1: b.z1 - SW }));
+// 街區是邏輯座標：每塊依所在的區切開、帶上區的框（rayBox 換到框裡算）
+const LOS_B = blocks.flatMap(b => zoneClip(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW).map(r => boxToW({ x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 }, r.zn)));
 function losClear(ax, az, bx, bz) {
-  for (const b of LOS_B) if (rayBox(ax, az, bx - ax, bz - az, b) < 1) return false;
+  const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx), z0 = Math.min(az, bz), z1 = Math.max(az, bz);
+  for (const b of LOS_B) if (b.bx1 >= x0 && b.bx0 <= x1 && b.bz1 >= z0 && b.bz0 <= z1 && rayBox(ax, az, bx - ax, bz - az, b) < 1) return false;
   return true;
 }
 

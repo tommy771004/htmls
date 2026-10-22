@@ -109,26 +109,7 @@ const PAL = [0x7a1f22, 0x1e2f4f, 0x5a5e62, 0x111214, 0xd8d6d0, 0x23412e, 0x4d1a2
   const vec3 PAL[${PAL.length}] = vec3[](${s});`).replace('if (m == 0) { rough = .22; envK = .75; }', 'if (m == 0) { rough = .22; envK = .75; if (vIns.z > .5) alb = PAL[int(vIns.z - .5)]; }');
 }
 
-// ─── 車流路網 ───
-const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // +z、+x、-z、-x
-const rightOf = d => DIRS[(d + 3) % 4];             // 前進方向的右手邊（右駕）
-const hasEdge = (i, j, d) => { const ni = i + DIRS[d][0], nj = j + DIRS[d][1]; return ni >= 0 && ni <= NX && nj >= 0 && nj <= NZ; };
-const nodePos = (i, j) => [avX(i), stZ(j)];
-const segLen = d => (d % 2 === 0 ? Q : P) - 2 * HR;
-function segPoint(i, j, d, s, lane = LANE) {
-  const [x, z] = nodePos(i, j), [dx, dz] = DIRS[d], [rx, rz] = rightOf(d);
-  return [x + dx * (HR + s) + rx * lane, z + dz * (HR + s) + rz * lane];
-}
-function turnPath(i, j, d, nd) {
-  const [x, z] = nodePos(i, j);
-  const [dx, dz] = DIRS[d], [rx, rz] = rightOf(d), [ndx, ndz] = DIRS[nd], [nrx, nrz] = rightOf(nd);
-  const p0 = [x - dx * HR + rx * LANE, z - dz * HR + rz * LANE];
-  const p2 = [x + ndx * HR + nrx * LANE, z + ndz * HR + nrz * LANE];
-  const p1 = d === nd ? [(p0[0] + p2[0]) / 2, (p0[1] + p2[1]) / 2] : [x + rx * LANE + nrx * LANE, z + rz * LANE + nrz * LANE];
-  let len = 0, px = p0[0], pz = p0[1];
-  for (let k = 1; k <= 12; k++) { const t = k / 12, q = bez(p0, p1, p2, t); len += Math.hypot(q[0] - px, q[1] - pz); px = q[0]; pz = q[1]; }
-  return { p0, p1, p2, len };
-}
+// ─── 車流路網：06-roads.js 的 RN（路口與路段，世界座標）；車在 (e, dir, s)，轉彎走 turnPathE 的二次貝茲 ───
 function bez(a, b, c, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * b[0] + t * t * c[0], u * u * a[1] + 2 * u * t * b[1] + t * t * c[1]]; }
 function bezTan(a, b, c, t) { const u = 1 - t; return [2 * u * (b[0] - a[0]) + 2 * t * (c[0] - b[0]), 2 * u * (b[1] - a[1]) + 2 * t * (c[1] - b[1])]; }
 
@@ -232,14 +213,18 @@ for (const S of [HOSP, PD]) {
   for (let i = parked.length - 1; i >= 0; i--) if (Math.abs(parked[i].x - x) < 1 && Math.abs(parked[i].z - S.z) < 14) parked.splice(i, 1);
   S.cars.forEach((type, n) => parked.push({ type, x, z: S.z - 6.5 + n * 6.2, yaw: side > 0 ? Math.PI : 0, pal: 0 }));
 }
-for (const p of parked) { const L = TYPES[p.type].len * .3; p.circ = [-1, 1].map(s => ({ x: p.x + Math.sin(p.yaw) * L * s, z: p.z + Math.cos(p.yaw) * L * s, r: TYPES[p.type].w * .5, car: 1 })); circles.push(...p.circ); }
+// 停車位以邏輯座標挑好，這裡一次換成世界座標（車頭方向一起轉）；車身的兩個碰撞圓直接是世界座標
+for (const p of parked) { const zn = zoneAtL(p.x, p.z); [p.x, p.z] = toW(p.x, p.z, zn); p.yaw = yawW(zn, p.yaw); }
+// 停車、出生、交車與重生點：生成時（避開停車格）是邏輯座標，cityWorld() 之後換成世界座標
+worldHooks.push(() => { for (const S of [KESTREL_SPOT, HANZO_SPOT, DEAL_SPOT, HOME_SPOT, HOSP, PD]) Object.assign(S, spotW(S)); });
+for (const p of parked) { const L = TYPES[p.type].len * .3; p.circ = [-1, 1].map(s => ({ x: p.x + Math.sin(p.yaw) * L * s, z: p.z + Math.cos(p.yaw) * L * s, r: TYPES[p.type].w * .5, car: 1, w: 1 })); circles.push(...p.circ); }
 
 // 生成行駛中的車：均勻撒在各路段
+const TRAFFIC_EDGES = RN.edges.filter(e => segLenE(e) > 8);
 for (let n = 0; n < TRAFFIC_N; n++) {
-  let i, j, d;
-  do { i = Math.floor(rT() * (NX + 1)); j = Math.floor(rT() * (NZ + 1)); d = Math.floor(rT() * 4); } while (!hasEdge(i, j, d));
+  const e = TRAFFIC_EDGES[Math.floor(rT() * TRAFFIC_EDGES.length)], dir = rT() < .5 ? 1 : -1;
   const type = pickType();
-  traffic.push({ type, i, j, d, s: rT() * segLen(d), v: 8, turn: null, x: 0, z: 0, yaw: 0, brake: 0, pal: Math.floor(rT() * PAL.length), seed: rT(), stuck: 0, ghost: 0, hit: 0, honk: 0 });
+  traffic.push({ type, e, dir, s: rT() * segLenE(e), v: 8, turn: null, x: 0, z: 0, yaw: 0, brake: 0, pal: Math.floor(rT() * PAL.length), seed: rT(), stuck: 0, ghost: 0, hit: 0, honk: 0 });
 }
 // 實車車型有近景與遠景兩級（traffic.glb 的 id／id_far）：每幀依與相機的距離把車分進兩個 InstancedMesh，
 // 相機後方的車不畫；路邊停了三百台車，全用近景模型會多出兩三百萬面
@@ -315,15 +300,29 @@ function carAhead(c, fx, fz, maxD) {
 }
 // 車流只有幾十台：離玩家太遠（霧裡看不到）的車搬到玩家附近 140–250 m 的路段，城市再大，眼前的路上都有車
 function trafficRespawn(c, px, pz) {
-  const ci = Math.round((px - X0) / P), cj = Math.round((pz - Z0) / Q);
+  const near = TRAFFIC_EDGES.filter(e => { const m = e.pts[0], q = e.pts.at(-1); return Math.min(Math.hypot(m[0] - px, m[1] - pz), Math.hypot(q[0] - px, q[1] - pz)) < 320; });
+  if (!near.length) return;
   for (let n = 0; n < 40; n++) {
-    const i = clamp(ci + Math.floor(rT() * 9) - 4, 0, NX), j = clamp(cj + Math.floor(rT() * 9) - 4, 0, NZ), d = Math.floor(rT() * 4);
-    if (!hasEdge(i, j, d)) continue;
-    const s = rT() * segLen(d), [x, z] = segPoint(i, j, d, s), dd = Math.hypot(x - px, z - pz);
+    const e = near[Math.floor(rT() * near.length)], dir = rT() < .5 ? 1 : -1;
+    const s = rT() * segLenE(e), [x, z] = laneAt(e, dir, s), dd = Math.hypot(x - px, z - pz);
     if (dd < 140 || dd > 250 || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144)) continue;
-    Object.assign(c, { i, j, d, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z });
+    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z });
     return;
   }
+}
+// 到了路口：直行 .55、右轉 .25、左轉 .2（依出路口的方向和進來的方向的夾角分類），沒路才迴轉
+function trafficNext(c) {
+  const n = edgeEnd(c.e, c.dir), [, , fx, fz] = laneAt(c.e, c.dir, segLenE(c.e)), opts = [];
+  for (const o of n.out) {
+    if (o.e === c.e || segLenE(o.e) <= 8) continue;
+    const [gx, gz] = outDir(o.e, o.dir), dot = fx * gx + fz * gz, cr = fx * gz - fz * gx;
+    if (dot < -.5) continue;
+    opts.push([o, dot > .7 ? .55 : cr > 0 ? .25 : .2]);
+  }
+  if (!opts.length) return { e: c.e, dir: -c.dir };
+  let r = rT() * opts.reduce((a, o) => a + o[1], 0);
+  for (const [o, w] of opts) { if (r < w) return o; r -= w; }
+  return opts[0][0];
 }
 function updateTraffic(dt, t) {
   const ppx = pX(), ppz = pZ();
@@ -332,15 +331,14 @@ function updateTraffic(dt, t) {
     if (c.hit > 0) { c.hit -= dt; c.v = damp(c.v, 0, 4, dt); }
     let fx, fz;
     if (c.turn) { const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, c.turn.t); const l = Math.hypot(tg[0], tg[1]) || 1; fx = tg[0] / l; fz = tg[1] / l; }
-    else { fx = DIRS[c.d][0]; fz = DIRS[c.d][1]; }
+    else [, , fx, fz] = laneAt(c.e, c.dir, c.s);
     let want = TYPES[c.type].vmax * (.85 + c.seed * .3);
     const gap = c.ghost > 0 ? 99 : carAhead(c, fx, fz, 22);
     const half = TYPES[c.type].len / 2;
     if (gap < 22) want = Math.min(want, Math.max(0, (gap - half - 3.2) * 1.1));
     if (!c.turn) {
-      const L = segLen(c.d);
-      const ni = c.i + DIRS[c.d][0], nj = c.j + DIRS[c.d][1];
-      const st = lightState(ni, nj, c.d % 2 === 0 ? 'z' : 'x', t);
+      const L = segLenE(c.e), n = edgeEnd(c.e, c.dir);
+      const st = lightState(n.i, n.j, edgeAx(n, c.e), t);
       const stopS = L - 4.4 - half;
       if (st !== 2 && c.s < stopS + .5) {
         const dist = stopS - c.s;
@@ -357,26 +355,19 @@ function updateTraffic(dt, t) {
       c.turn.t += c.v * dt / c.turn.len;
       if (c.turn.t >= 1) {
         const over = (c.turn.t - 1) * c.turn.len;
-        c.i = c.turn.ni; c.j = c.turn.nj; c.d = c.turn.nd; c.s = over; c.turn = null;
+        c.e = c.turn.o.e; c.dir = c.turn.o.dir; c.s = over; c.turn = null;
       }
     } else {
       c.s += c.v * dt;
-      if (c.s >= segLen(c.d)) {
-        const ni = c.i + DIRS[c.d][0], nj = c.j + DIRS[c.d][1];
-        const opts = [];
-        if (hasEdge(ni, nj, c.d)) opts.push([c.d, .55]);
-        if (hasEdge(ni, nj, (c.d + 3) % 4)) opts.push([(c.d + 3) % 4, .25]);
-        if (hasEdge(ni, nj, (c.d + 1) % 4)) opts.push([(c.d + 1) % 4, .2]);
-        let r = rT() * opts.reduce((a, o) => a + o[1], 0), nd = opts[0][0];
-        for (const o of opts) { if (r < o[1]) { nd = o[0]; break; } r -= o[1]; }
-        const tp = turnPath(ni, nj, c.d, nd);
-        c.turn = { ...tp, t: (c.s - segLen(c.d)) / tp.len, ni, nj, nd };
+      if (c.s >= segLenE(c.e)) {
+        const o = trafficNext(c), tp = turnPathE(c.e, c.dir, o.e, o.dir);
+        c.turn = { ...tp, t: (c.s - segLenE(c.e)) / tp.len, o };
       }
     }
     // 世界座標
     let px, pz, yaw;
     if (c.turn) { const q = bez(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); px = q[0]; pz = q[1]; const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); yaw = Math.atan2(tg[0], tg[1]); }
-    else { [px, pz] = segPoint(c.i, c.j, c.d, c.s); yaw = Math.atan2(DIRS[c.d][0], DIRS[c.d][1]); }
+    else { let fx2, fz2; [px, pz, fx2, fz2] = laneAt(c.e, c.dir, c.s); yaw = Math.atan2(fx2, fz2); }
     c.x = px; c.z = pz; c.yaw = yaw;
     c.pitch = c.brake && c.v > 1 ? -.012 : 0;
     placeCar(c, 0);
@@ -412,7 +403,7 @@ function mkVehicle(kind) {
   const body = new T.Group(); g.add(body);
   const wheels = [];
   scene.add(g);
-  const sp = isCar ? KESTREL_SPOT : HANZO_SPOT;
+  const sp0 = isCar ? KESTREL_SPOT : HANZO_SPOT, sp = cityIsWorld ? sp0 : spotW(sp0);   // 開場（cityWorld() 之前）還是邏輯座標
   const v = { kind, isCar, g, body, mat, wheels, x: sp.x, z: sp.z, y: 0, yaw: sp.yaw, vx: 0, vz: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0,
     len: 2.1, w: .7, rad: .45, off: .55, vmax: 47, eng: 12.5, grip: 7, wb: 1.5, wr: .33, name: 'Hanzo', rpm: 0, gear: 1, slip: 0, lights: 0 };
   if (isCar) applyCar(v, STARTER);
@@ -467,14 +458,18 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
   let nx = 0, nz = 0, hit = 0;
   for (const b of boxesNear(x, z, r)) {
     if (swimmer && b.swim) continue;
-    const cx = clamp(x, b.x0, b.x1), cz = clamp(z, b.z0, b.z1);
-    let dx = x - cx, dz = z - cz; const d2 = dx * dx + dz * dz;
+    if (boxGap(b, x, z) > r) continue;
+    // 盒在所屬區的框裡是 AABB：點換進去算，推出後的點與法線再轉回世界
+    let [lx, lz] = b.f ? toL(x, z, b.f) : [x, z], ex = 0, ez = 0;
+    const cx = clamp(lx, b.x0, b.x1), cz = clamp(lz, b.z0, b.z1);
+    let dx = lx - cx, dz = lz - cz; const d2 = dx * dx + dz * dz;
     if (d2 < r * r) {
       if (d2 < 1e-8) { // 圓心在盒內：往最近的邊推
-        const e = [x - b.x0, b.x1 - x, z - b.z0, b.z1 - z]; const m = Math.min(...e);
-        if (m === e[0]) { x = b.x0 - r; nx -= 1; } else if (m === e[1]) { x = b.x1 + r; nx += 1; } else if (m === e[2]) { z = b.z0 - r; nz -= 1; } else { z = b.z1 + r; nz += 1; }
-      } else { const d = Math.sqrt(d2); x = cx + dx / d * r; z = cz + dz / d * r; nx += dx / d; nz += dz / d; }
-      hit = 1;
+        const e = [lx - b.x0, b.x1 - lx, lz - b.z0, b.z1 - lz]; const m = Math.min(...e);
+        if (m === e[0]) { lx = b.x0 - r; ex = -1; } else if (m === e[1]) { lx = b.x1 + r; ex = 1; } else if (m === e[2]) { lz = b.z0 - r; ez = -1; } else { lz = b.z1 + r; ez = 1; }
+      } else { const d = Math.sqrt(d2); lx = cx + dx / d * r; lz = cz + dz / d * r; ex = dx / d; ez = dz / d; }
+      if (b.f) { [x, z] = toW(lx, lz, b.f); [ex, ez] = dirW(b.f, ex, ez); } else { x = lx; z = lz; }
+      nx += ex; nz += ez; hit = 1;
     }
   }
   for (const c of circlesNear(x, z, r)) {

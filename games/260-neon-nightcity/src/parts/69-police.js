@@ -59,7 +59,10 @@ function coneSees(ox, oz, yaw, x, z, r) {
 }
 // 掩護（只影響警察找人，子彈還是照 castRay）：目標 10 m 內的樹冠、路上任何地方的貨車與廂型車（轎車擋不住站著的人；警方自己的車不算）
 const TG = 20, treeGrid = new Map();
-for (const t of trees) { const key = Math.floor(t.x / TG) * 4096 + Math.floor(t.z / TG); if (!treeGrid.has(key)) treeGrid.set(key, []); treeGrid.get(key).push(t); }
+for (const t0 of trees) {   // trees 是邏輯座標（20-props.js），這裡存世界座標的副本
+  const [x, z] = toW(t0.x, t0.z), t = { x, z, s: t0.s }, key = Math.floor(x / TG) * 4096 + Math.floor(z / TG);
+  if (!treeGrid.has(key)) treeGrid.set(key, []); treeGrid.get(key).push(t);
+}
 function segHit(ax, az, bx, bz, cx, cz, r) {
   const dx = bx - ax, dz = bz - az, t = ((cx - ax) * dx + (cz - az) * dz) / (dx * dx + dz * dz || 1);
   if (t < .04 || t > .96) return false;
@@ -102,39 +105,30 @@ function sees() {
   return false;
 }
 
-// ─── 路網：交叉口是節點，每 0.5 秒算一次到目標的最短距離場，警車往距離小的方向開 ───
-const NODE = (i, j) => i * (NZ + 1) + j;
-function fieldTo(gi, gj) {
-  const n = (NX + 1) * (NZ + 1), D = new Float32Array(n).fill(1e9), done = new Uint8Array(n);
-  D[NODE(gi, gj)] = 0;
-  for (let it = 0; it < n; it++) {
-    let b = -1; for (let k = 0; k < n; k++) if (!done[k] && (b < 0 || D[k] < D[b])) b = k;
-    if (b < 0 || D[b] >= 1e9) break;
-    done[b] = 1;
-    const i = Math.floor(b / (NZ + 1)), j = b % (NZ + 1);
-    for (let d = 0; d < 4; d++) if (hasEdge(i, j, d)) { const m = NODE(i + DIRS[d][0], j + DIRS[d][1]); D[m] = Math.min(D[m], D[b] + (d % 2 ? P : Q)); }
-  }
+// ─── 路網（06-roads.js 的 RN）：目標先投影到最近的路（gp），每 0.5 秒算一次各路口到那一點的最短路程（D），
+// 警車往「距離＋掉頭懲罰」最小的相鄰路口開；開到目標那段路（或它兩端的路口）就直接開向投影點 ───
+function fieldTo(gp) {
+  const Da = rnField(gp.e.a.id), Db = rnField(gp.e.b.id), D = new Float32Array(Da.length);
+  for (let k = 0; k < D.length; k++) D[k] = Math.min(Da[k] + gp.u, Db[k] + gp.e.len - gp.u);
   return D;
 }
-const nearI = x => clamp(Math.round((x - X0) / P), 0, NX), nearJ = z => clamp(Math.round((z - Z0) / Q), 0, NZ);
-// 車子現在可以開往的節點：在路口就是相鄰的路口，在路段上就是兩端
-function nextNodes(x, z) {
-  const i = nearI(x), j = nearJ(z), out = [];
-  if (Math.hypot(x - avX(i), z - stZ(j)) < HR + 3) { for (let d = 0; d < 4; d++) if (hasEdge(i, j, d)) out.push([i + DIRS[d][0], j + DIRS[d][1]]); return out; }
-  if (Math.abs(x - avX(i)) < HR + 3) { const jf = (z - Z0) / Q; return [[i, clamp(Math.floor(jf), 0, NZ)], [i, clamp(Math.ceil(jf), 0, NZ)]]; }
-  if (Math.abs(z - stZ(j)) < HR + 3) { const f = (x - X0) / P; return [[clamp(Math.floor(f), 0, NX), j], [clamp(Math.ceil(f), 0, NX), j]]; }
-  return [[i, j]];
-}
-function routeTarget(u, tx, tz) {
-  const v = u.v, fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+// 車子在路網上往目標開的下一個點（D、gp 是 fieldTo 的距離場與投影點）
+function roadNext(v, D, gp, tx, tz) {
+  const n0 = rnNearest(v.x, v.z), atNode = Math.hypot(v.x - n0.x, v.z - n0.z) < HR + 3;
+  const q = atNode ? null : rnProject(v.x, v.z), onRoad = q && q.d < HR + 3;
+  if (atNode ? n0 === gp.e.a || n0 === gp.e.b : onRoad && q.e === gp.e) return [gp.x, gp.z];
+  // 在路口就是相鄰的路口，在路段上就是兩端，都不是就回最近的路口
+  const cand = atNode ? n0.out.map(({ e }) => e.a === n0 ? e.b : e.a) : onRoad ? [q.e.a, q.e.b] : [n0];
+  const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
   let best = null, bs = 1e9;
-  for (const [i, j] of nextNodes(v.x, v.z)) {
-    const nx = avX(i), nz = stZ(j), d = Math.hypot(nx - v.x, nz - v.z);
-    const s = d + W.field[NODE(i, j)] + ((nx - v.x) * fx + (nz - v.z) * fz < 0 && d > 12 ? 45 : 0);
-    if (s < bs) { bs = s; best = [nx, nz]; }
+  for (const n of cand) {
+    const d = Math.hypot(n.x - v.x, n.z - v.z);
+    const s = d + D[n.id] + ((n.x - v.x) * fx + (n.z - v.z) * fz < 0 && d > 12 ? 45 : 0);
+    if (s < bs) { bs = s; best = [n.x, n.z]; }
   }
   return best || [tx, tz];
 }
+const routeTarget = (u, tx, tz) => roadNext(u.v, W.field, W.gp, tx, tz);
 
 // ─── 模型：traffic.glb 的直升機、坦克砲塔、路障、釘刺帶（以檔案開啟也有，因為整包內嵌） ───
 function partMesh(id, n = 1, own = false) {
@@ -275,18 +269,20 @@ function spawnSpot(minD, maxD) {
   const px = pX(), pz = pZ();
   camera.getWorldDirection(_pp);
   const c = [];
-  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) {
-    const x = avX(i), z = stZ(j), d = Math.hypot(x - px, z - pz);
+  for (const n of RN.nodes) {
+    const d = Math.hypot(n.x - px, n.z - pz);
     if (d < minD || d > maxD) continue;
-    const front = ((x - camera.position.x) * _pp.x + (z - camera.position.z) * _pp.z) / d;
-    c.push({ i, j, x, z, s: front + Math.random() * .6 });
+    const front = ((n.x - camera.position.x) * _pp.x + (n.z - camera.position.z) * _pp.z) / d;
+    c.push({ n, s: front + Math.random() * .6 });
   }
   if (!c.length) return null;
   c.sort((a, b) => a.s - b.s);
-  const n = c[0];
-  let bd = 0, bs = -9;
-  for (let d = 0; d < 4; d++) if (hasEdge(n.i, n.j, d)) { const s = DIRS[d][0] * (px - n.x) + DIRS[d][1] * (pz - n.z); if (s > bs) { bs = s; bd = d; } }
-  return { x: n.x + DIRS[bd][0] * (HR + 4) + rightOf(bd)[0] * LANE, z: n.z + DIRS[bd][1] * (HR + 4) + rightOf(bd)[1] * LANE, yaw: Math.atan2(DIRS[bd][0], DIRS[bd][1]) };
+  const n = c[0].n;
+  let bo = null, bs = -1e9;   // 往玩家那邊的路段，從路口邊緣往裡 4 m 的車道上出發
+  for (const o of n.out) { const [gx, gz] = outDir(o.e, o.dir), s = gx * (px - n.x) + gz * (pz - n.z); if (s > bs) { bs = s; bo = o; } }
+  if (!bo) return null;
+  const [x, z, fx, fz] = laneAt(bo.e, bo.dir, 4);
+  return { x, z, yaw: Math.atan2(fx, fz) };
 }
 function spawnUnit(kind, at) {
   const sp = at || spawnSpot(85, 170);
@@ -337,7 +333,7 @@ function driveUnit(u, dt) {
       // 到了最後已知位置就在附近繞：每 6 秒換一個搜尋點
       if (Math.hypot(W.lkp.x - v.x, W.lkp.z - v.z) < 20 || u.search) {
         u.searchT -= dt;
-        if (!u.search || u.searchT <= 0 || Math.hypot(u.search[0] - v.x, u.search[1] - v.z) < 10) { u.searchT = 6; const n = [nearI(W.lkp.x + (Math.random() - .5) * 150), nearJ(W.lkp.z + (Math.random() - .5) * 130)]; u.search = [avX(n[0]), stZ(n[1])]; }
+        if (!u.search || u.searchT <= 0 || Math.hypot(u.search[0] - v.x, u.search[1] - v.z) < 10) { u.searchT = 6; const n = rnNearest(W.lkp.x + (Math.random() - .5) * 150, W.lkp.z + (Math.random() - .5) * 130); u.search = [n.x, n.z]; }
         [tx, tz] = u.search;
       } else { tx = W.lkp.x; tz = W.lkp.z; }
     } else { tx = px; tz = pz; }
@@ -431,12 +427,14 @@ function heliBlast(x, y, z, r, dmg, mine) {
   if (d < r + 2) heliHit(dmg * clamp(1 - d / (r + 2), .3, 1), mine);
 }
 // 鄰近建築的高度（直升機至少飛在屋頂上 14 m）
-const HG = 16, HGX = X0 - 80, HGZ = Z0 - 80, HGN = Math.ceil((NX * P + 160) / HG), HGM = Math.ceil((NZ * Q + 160) / HG);
+// 世界座標的格子，範圍和日光陰影的高度圖一樣（22-hmap.js 的 HM）；地塊換成世界座標後取外接框（只是飛行高度，寬一點沒關係）
+const HG = 16, HGX = HM.x0, HGZ = HM.z0, HGN = Math.ceil(HM.n * HMS / HG), HGM = HGN;
 const hGrid = new Float32Array(HGN * HGM);
 for (const L of lots) {
   if (!(L.h > 0)) continue;
-  for (let i = Math.max(0, Math.floor((L.x0 - HGX) / HG)); i <= Math.min(HGN - 1, Math.floor((L.x1 - HGX) / HG)); i++)
-    for (let j = Math.max(0, Math.floor((L.z0 - HGZ) / HG)); j <= Math.min(HGM - 1, Math.floor((L.z1 - HGZ) / HG)); j++) hGrid[i * HGM + j] = Math.max(hGrid[i * HGM + j], L.h);
+  const cs = rectW(L.x0, L.x1, L.z0, L.z1), x0 = Math.min(...cs.map(c => c[0])), x1 = Math.max(...cs.map(c => c[0])), z0 = Math.min(...cs.map(c => c[1])), z1 = Math.max(...cs.map(c => c[1]));
+  for (let i = Math.max(0, Math.floor((x0 - HGX) / HG)); i <= Math.min(HGN - 1, Math.floor((x1 - HGX) / HG)); i++)
+    for (let j = Math.max(0, Math.floor((z0 - HGZ) / HG)); j <= Math.min(HGM - 1, Math.floor((z1 - HGZ) / HG)); j++) hGrid[i * HGM + j] = Math.max(hGrid[i * HGM + j], L.h);
 }
 function roofAt(x, z, r = 2) {
   const ci = Math.floor((x - HGX) / HG), cj = Math.floor((z - HGZ) / HG);
@@ -515,20 +513,23 @@ function placeRoadblock() {
   if (W.blocks.length >= 2 || player.mode !== 'drive') return null;
   const v = player.veh, sp = Math.hypot(v.vx, v.vz);
   const hx = sp > 3 ? v.vx / sp : Math.sin(v.yaw), hz = sp > 3 ? v.vz / sp : Math.cos(v.yaw);
-  const alongX = Math.abs(hx) > Math.abs(hz);   // 玩家沿著哪個方向的路開
+  // 前方 70–150 m、就在玩家這條路的延長線上（橫向偏不到 HR）的路口
   let best = null, bs = -1;
-  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) {
-    const x = avX(i), z = stZ(j), dx = x - v.x, dz = z - v.z, d = Math.hypot(dx, dz);
-    if (d < 70 || d > 150) continue;
-    if (alongX ? Math.abs(dz) > HR : Math.abs(dx) > HR) continue;
+  for (const n of RN.nodes) {
+    const dx = n.x - v.x, dz = n.z - v.z, d = Math.hypot(dx, dz);
+    if (d < 70 || d > 150 || Math.abs(dx * hz - dz * hx) > HR) continue;
     const f = (dx * hx + dz * hz) / d;
-    if (f > .9 && f > bs && !W.blocks.some(b => b.i === i && b.j === j)) { bs = f; best = { i, j, x, z }; }
+    if (f > .9 && f > bs && !W.blocks.some(b => b.n === n)) { bs = f; best = n; }
   }
   if (!best) return null;
-  // 來車方向（玩家那邊）的路段上：釘刺帶在路口前 16 m，警車橫在 7 m，拒馬在兩側
-  const ix = alongX ? -Math.sign(hx) : 0, iz = alongX ? 0 : -Math.sign(hz), yawAcross = alongX ? 0 : Math.PI / 2;
-  const b = { i: best.i, j: best.j, x: best.x, z: best.z, units: [], spikes: [], bars: [], circ: [], t: 0 };
-  const lat = (k, s) => [best.x + ix * k + (alongX ? 0 : s), best.z + iz * k + (alongX ? s : 0)];
+  // 來車方向（玩家那邊）的路段：從路口出發、方向最朝著玩家的那一段
+  let bo = null, bd = 1e9;
+  for (const o of best.out) { const [gx, gz] = outDir(o.e, o.dir), d = gx * hx + gz * hz; if (d < bd) { bd = d; bo = o; } }
+  if (!bo) return null;
+  // 那段路上：釘刺帶在路口前 16 m，警車橫在 7 m，拒馬在兩側
+  const [ix, iz] = outDir(bo.e, bo.dir), ax = -iz, az = ix, yawAcross = Math.atan2(ix, iz) - Math.PI / 2;
+  const b = { n: best, x: best.x, z: best.z, units: [], spikes: [], bars: [], circ: [], t: 0 };
+  const lat = (k, s) => [best.x + ix * k + ax * s, best.z + iz * k + az * s];
   for (const s of [-3.1, 3.1]) { const [x, z] = lat(HR + 16, s); b.spikes.push({ x, z, yaw: yawAcross }); }
   for (const s of [-3.4, 3.4]) {
     const [x, z] = lat(HR + 7, s);
@@ -538,7 +539,7 @@ function placeRoadblock() {
   for (const s of [-7.2, 7.2]) {
     const [x, z] = lat(HR + 9, s);
     b.bars.push({ x, z, yaw: yawAcross });
-    for (const o of [-1, 0, 1]) { const q = { x: x + (alongX ? 0 : o * .95), z: z + (alongX ? o * .95 : 0), r: .45, rb: 1 }; circles.push(q); b.circ.push(q); }
+    for (const o of [-1, 0, 1]) { const q = { x: x + ax * o * .95, z: z + az * o * .95, r: .45, rb: 1, w: 1 }; circles.push(q); b.circ.push(q); }
   }
   W.blocks.push(b);
   drawBlocks();
@@ -594,8 +595,9 @@ function policeUpdate(dt) {
   if (s > 0 && !life.dead) {
     // 路網距離場
     W.fieldT -= dt;
-    const tg = W.seen || !W.lkp ? [pX(), pZ()] : [W.lkp.x, W.lkp.z], goal = NODE(nearI(tg[0]), nearJ(tg[1]));
-    if (W.fieldT <= 0 || goal !== W.goal || !W.field) { W.fieldT = .5; W.goal = goal; W.field = fieldTo(nearI(tg[0]), nearJ(tg[1])); }
+    const tg = W.seen || !W.lkp ? [pX(), pZ()] : [W.lkp.x, W.lkp.z], gp = rnProject(tg[0], tg[1]), goal = gp.e.id;
+    if (W.fieldT <= 0 || goal !== W.goal || !W.field) { W.fieldT = .5; W.goal = goal; W.field = fieldTo(gp); }
+    W.gp = gp;
     // 派車
     W.spawnT -= dt;
     const active = W.units.filter(u => u.state === 'chase' && !u.v.dead).length;

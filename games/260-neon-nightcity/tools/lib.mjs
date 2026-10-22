@@ -29,7 +29,8 @@ export const SOFT_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable
 export const toUrl = (p) => (/^(https?|file):/.test(p) ? p : pathToFileURL(resolve(p)).href);
 const isLocal = (u) => /^(file|data|blob|about):/.test(u) || /^(https?|wss?):\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(u);
 
-export async function open(url, { w = 1440, h = 900, touch = false, soft = false, query = '' } = {}) {
+// NC_QUERY：每次開頁都加上的網址參數（例如 ?zrot=25 把整座城轉 25° 驗證分區的座標換算）
+export async function open(url, { w = 1440, h = 900, touch = false, soft = false, query = process.env.NC_QUERY || '' } = {}) {
   let lastErr;
   for (const args of soft ? [SOFT_ARGS] : [GPU_ARGS, SOFT_ARGS]) {
     const browser = await chromium.launch({ headless: true, args, executablePath: chromePath() });

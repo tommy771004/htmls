@@ -50,23 +50,31 @@ function mapBlips() {
   if (!motors.stowed && !kestrel.dead) add('car', { name: kestrel.name, x: kestrel.x, z: kestrel.z, type: '座駕', desc: '停在路邊的座駕；按 V 可以叫到身邊。', tp: 'car' });
   CREW.forEach((c, i) => { if (i !== crew.cur) add('crew', { name: `${c.name}（${c.zh}）`, txt: c.name[0], col: c.col, x: crew.st[i].x, z: crew.st[i].z, type: c.role, desc: `${c.home.name}附近。按 Q 開角色轉盤切換過去。` }); });
   const est = (id, base) => { const e = estOf(id); if (!e) return base; const own = estOwned(id); return { ...base, own, rows: [['產權', own ? '已擁有' : `待售 ${money(e.price)}`], ...(e.rate ? [['收入', `${money(e.rate)}／遊戲小時`]] : [])] }; };
-  add('club', est('lazarus', { name: 'LAZARUS', x: CLUB_X, z: CLUB_Z + 2, type: '夜店', desc: '9 St 的夜店。今晚只放名單上的人進去。', tp: 'club' }));
-  add('bar', est('afterglow', { name: 'AFTERGLOW', x: BAR_X - 4.6, z: BAR_Z + 2, type: '酒吧', desc: '7 St 的酒吧，調酒師 Juno 在吧台後面。', tp: 'barIn' }));
-  add('chrome', est('chrome', { name: 'CHROME WORKS', x: GAR_X, z: GAR_Z + 4, type: '改裝廠', desc: '把車停進門口的停車格可以換塗裝。', tp: 'garage' }));
-  add('dealer', { name: 'VELOCE MOTORS', x: DEAL_X, z: DEAL_Z + 2, type: '車行', desc: '29 台實車模型，可以看規格、試駕或買下。', tp: 'dealer' });
-  add('garage', { name: 'GARAGE 07', x: HOME_X, z: HOME_Z - 2, type: '私人車庫', desc: '買來的車停在這裡；開著座駕停在門口按 E 停進去。', tp: 'home' });
-  for (const id of APT_IDS) { const a = APT[id]; add('safe', est(id, { name: a.name, x: a.door.x, z: a.door.z, type: '安全屋', desc: `${a.dist}。買下後可以進去睡覺存檔（時間推進 6 小時）。` })); }
-  add('bank', { name: '中央霓虹銀行', x: BANK.x, z: BANK.z + 2, type: '銀行', desc: '金庫在大廳後面。搶劫從手機的搶劫行動開始籌備。' });
+  add('club', est('lazarus', { name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + 2), type: '夜店', desc: '9 St 的夜店。今晚只放名單上的人進去。', tp: 'club' }));
+  add('bar', est('afterglow', { name: 'AFTERGLOW', ...WP(BAR_X - 4.6, BAR_Z + 2), type: '酒吧', desc: '7 St 的酒吧，調酒師 Juno 在吧台後面。', tp: 'barIn' }));
+  add('chrome', est('chrome', { name: 'CHROME WORKS', ...WP(GAR_X, GAR_Z + 4), type: '改裝廠', desc: '把車停進門口的停車格可以換塗裝。', tp: 'garage' }));
+  add('dealer', { name: 'VELOCE MOTORS', ...WP(DEAL_X, DEAL_Z + 2), type: '車行', desc: '29 台實車模型，可以看規格、試駕或買下。', tp: 'dealer' });
+  add('garage', { name: 'GARAGE 07', ...WP(HOME_X, HOME_Z - 2), type: '私人車庫', desc: '買來的車停在這裡；開著座駕停在門口按 E 停進去。', tp: 'home' });
+  for (const id of APT_IDS) { const a = APT[id]; add('safe', est(id, { name: a.name, x: a.doorW.x, z: a.doorW.z, type: '安全屋', desc: `${a.dist}。買下後可以進去睡覺存檔（時間推進 6 小時）。` })); }
+  add('bank', { name: '中央霓虹銀行', ...WP(BANK.x, BANK.z + 2), type: '銀行', desc: '金庫在大廳後面。搶劫從手機的搶劫行動開始籌備。' });
   add('pd', { name: PD.name, x: PD.x, z: PD.z, type: '警察局', desc: 'BUSTED 之後在這裡交保釋金出來。' });
   add('hosp', { name: HOSP.name, x: HOSP.x, z: HOSP.z, type: '醫院', desc: 'WASTED 之後在這裡出院。' });
-  for (const o of ramenSpots) add('ramen', { name: '路邊拉麵攤', x: o.x, z: o.z, type: '小吃', desc: '霓虹區人行道上的拉麵攤。' });
+  for (const o of ramenSpots) add('ramen', { name: '路邊拉麵攤', ...WP(o.x, o.z), type: '小吃', desc: '霓虹區人行道上的拉麵攤。' });
   for (const r of RAMPS) { const done = motors.stunts.includes(r.i); add('ramp', { name: `特技跳台 #${r.i + 1}`, x: r.x, z: r.z, type: '特技跳台', done, rows: [['狀態', done ? '已完成' : '未完成（首次加倍獎金）']], desc: '加速衝上跳台，落地前在空中翻滾可以拿加成。' }); }
   return B;
 }
 
 // ─── 視角與狀態 ───
 const MV = { cx: 0, cz: 0, zoom: 1, tx: 0, tz: 0, tzoom: 1, dirty: true, blips: [], sel: -1, hover: -1, mx: -1, my: -1, raf: 0, ptr: new Map(), drag: null, pinch: null, t: 0 };
-const MAP_BOUNDS = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: stZ(0) - 120, z1: ISLE.z1 + 40 };
+// MAP_LB 是邏輯座標的範圍（各區照它畫），MAP_BOUNDS 是換到世界座標的外接框（平移、縮放的限制）
+const MAP_LB = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: stZ(0) - 120, z1: ISLE.z1 + 40 };
+const MAP_BOUNDS = (() => {
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, MAP_LB.x0), Math.min(zn.x1, MAP_LB.x1), Math.max(zn.z0, MAP_LB.z0), Math.min(zn.z1, MAP_LB.z1), zn)) {
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+  }
+  return { x0, x1, z0, z1 };
+})();
 const mapDpr = () => Math.min(devicePixelRatio || 1, 2);
 function mapFitZoom() { const r = bigmap.getBoundingClientRect(); return Math.min(r.width / (MAP_BOUNDS.x1 - MAP_BOUNDS.x0), r.height / (MAP_BOUNDS.z1 - MAP_BOUNDS.z0)); }
 const MAP_ZMAX = 7;
@@ -104,7 +112,7 @@ const MAP_LABELS = (() => {
     { zh: '東灣', en: 'EAST BAY', x: (EAST_BANK_X + CITY_X1 + OUT_D) / 2, z: CITY_CZ, water: 1 },
     { zh: '舊港城', en: 'OLD HARBOUR', x: EAST_BANK_X + 140, z: CITY_CZ - 220 },
     { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 200, z: CITY_CZ - 220 });
-  return L;
+  return L.map(o => ({ ...o, ...WP(o.x, o.z) }));   // 上面是邏輯座標，畫的時候用世界座標
 })();
 
 // ─── 繪製 ───
@@ -119,43 +127,56 @@ function mapDraw() {
   const vis = (x0, x1, z0, z1) => x1 > vx0 && x0 < vx1 && z1 > vz0 && z0 < vz1;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = MAPC.water; c.fillRect(0, 0, W, H);
-  // 對岸、城外的濱海步道、碼頭、沙灘、棧橋、橋與島
-  rect(MAP_BOUNDS.x0 - 2000, FAR_BANK_X, MAP_BOUNDS.z0 - 2000, MAP_BOUNDS.z1 + 2000, MAPC.far);
-  rect(EAST_BANK_X, MAP_BOUNDS.x1 + 2000, CITY_CZ - 850, CITY_CZ + 850, MAPC.far);
-  rect(CITY_X0 - OUT_D, CITY_X1 + OUT_D, CITY_Z0 - OUT_D, SHORE_Z, MAPC.walk);
-  rect(MAP_BOUNDS.x0 - 2000, MAP_BOUNDS.x1 + 2000, MAP_BOUNDS.z0 - 2000, CITY_Z0 - OUT_D, MAPC.far);   // 北面的山
-  rect(BEACH.x0, BEACH.x1, BEACH.z0, BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop, MAPC.beach);
-  rect(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1, MAPC.quay);
-  for (const p of PIERS) rect(p.x0, p.x1, p.z0, p.z1, MAPC.pier);
-  rect(ISLE.x0, ISLE.x1, ISLE.z0, ISLE.z1, MAPC.isle);
-  rect(BRIDGE.x0, BRIDGE.x1, BRIDGE.z0, BRIDGE.z1, MAPC.road);
-  // 城市：整片先塗成道路，再蓋上街區（人行道）與地塊（建築）
-  rect(CITY_X0, CITY_X1, CITY_Z0, CITY_Z1, MAPC.road);
-  for (const b of blocks) {
-    if (!vis(b.x0, b.x1, b.z0, b.z1)) continue;
-    if (b.outer) { rect(b.x0, b.x1, b.z0, b.z1, b.outer === 's' ? MAPC.block : MAPC.walk); continue; }   // 北面（-z）是樓牆，其他三面是濱海步道
-    rect(b.x0, b.x1, b.z0, b.z1, MAPC.walk);
-    rect(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW, b.park ? MAPC.park : MAPC.block);
-    if (b.park && k > .9) {   // 燈籠公園的十字步道
-      const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
-      rect(cx - 1.8, cx + 1.8, b.z0 + SW, b.z1 - SW, '#3a3a33'); rect(b.x0 + SW, b.x1 - SW, cz - 1.8, cz + 1.8, '#3a3a33');
+  // 每區用 canvas 的變換照邏輯座標畫（1 單位 = 1 m，px 是一個螢幕像素的長度），裁在區的範圍內；
+  // 看得到的範圍（vis）是畫面四角換到區裡的外接框
+  for (const zn of ZONES) {
+    c.save();
+    c.setTransform(k * zn.c, -k * zn.s, k * zn.s, k * zn.c, k * (zn.ox - MV.cx) + W / 2, k * (zn.oz - MV.cz) + H / 2);
+    const px = 1 / k, cs = [[vx0, vz0], [vx1, vz0], [vx1, vz1], [vx0, vz1]].map(([x, z]) => toL(x, z, zn));
+    const lx0 = Math.min(...cs.map(q => q[0])), lx1 = Math.max(...cs.map(q => q[0])), lz0 = Math.min(...cs.map(q => q[1])), lz1 = Math.max(...cs.map(q => q[1]));
+    const vis = (x0, x1, z0, z1) => x1 > lx0 && x0 < lx1 && z1 > lz0 && z0 < lz1;
+    const rect = (x0, x1, z0, z1, col) => { c.fillStyle = col; c.fillRect(x0, z0, x1 - x0, z1 - z0); };
+    const B = { x0: Math.max(zn.x0, MAP_LB.x0 - 3000), x1: Math.min(zn.x1, MAP_LB.x1 + 3000), z0: Math.max(zn.z0, MAP_LB.z0 - 3000), z1: Math.min(zn.z1, MAP_LB.z1 + 3000) };
+    c.beginPath(); c.rect(B.x0, B.z0, B.x1 - B.x0, B.z1 - B.z0); c.clip();
+    // 對岸、城外的濱海步道、碼頭、沙灘、棧橋、橋與島
+    rect(MAP_LB.x0 - 2000, FAR_BANK_X, MAP_LB.z0 - 2000, MAP_LB.z1 + 2000, MAPC.far);
+    rect(EAST_BANK_X, MAP_LB.x1 + 2000, CITY_CZ - 850, CITY_CZ + 850, MAPC.far);
+    rect(CITY_X0 - OUT_D, CITY_X1 + OUT_D, CITY_Z0 - OUT_D, SHORE_Z, MAPC.walk);
+    rect(MAP_LB.x0 - 2000, MAP_LB.x1 + 2000, MAP_LB.z0 - 2000, CITY_Z0 - OUT_D, MAPC.far);   // 北面的山
+    rect(BEACH.x0, BEACH.x1, BEACH.z0, BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop, MAPC.beach);
+    rect(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1, MAPC.quay);
+    for (const p of PIERS) rect(p.x0, p.x1, p.z0, p.z1, MAPC.pier);
+    rect(ISLE.x0, ISLE.x1, ISLE.z0, ISLE.z1, MAPC.isle);
+    rect(BRIDGE.x0, BRIDGE.x1, BRIDGE.z0, BRIDGE.z1, MAPC.road);
+    // 城市：整片先塗成道路，再蓋上街區（人行道）與地塊（建築）
+    rect(CITY_X0, CITY_X1, CITY_Z0, CITY_Z1, MAPC.road);
+    for (const b of blocks) {
+      if (!vis(b.x0, b.x1, b.z0, b.z1)) continue;
+      if (b.outer) { rect(b.x0, b.x1, b.z0, b.z1, b.outer === 's' ? MAPC.block : MAPC.walk); continue; }   // 北面（-z）是樓牆，其他三面是濱海步道
+      rect(b.x0, b.x1, b.z0, b.z1, MAPC.walk);
+      rect(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW, b.park ? MAPC.park : MAPC.block);
+      if (b.park && k > .9) {   // 燈籠公園的十字步道
+        const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+        rect(cx - 1.8, cx + 1.8, b.z0 + SW, b.z1 - SW, '#3a3a33'); rect(b.x0 + SW, b.x1 - SW, cz - 1.8, cz + 1.8, '#3a3a33');
+      }
     }
-  }
-  const edge = k > 1.3;
-  c.lineWidth = Math.max(1, k * .35); c.strokeStyle = MAPC.lotEdge;
-  if (k > .8) for (const L of lots) {   // 拉遠時只畫街廓，不畫一棟棟的地塊
-    if (!vis(L.x0, L.x1, L.z0, L.z1)) continue;
-    c.fillStyle = L.special ? '#3a2a36' : MAPC.lot;
-    c.fillRect(X(L.x0) + 1, Z(L.z0) + 1, (L.x1 - L.x0) * k - 2, (L.z1 - L.z0) * k - 2);
-    if (edge) c.strokeRect(X(L.x0) + 1, Z(L.z0) + 1, (L.x1 - L.x0) * k - 2, (L.z1 - L.z0) * k - 2);
-  }
-  // 車道中線（放大時）
-  if (k > 2.4) {
-    c.strokeStyle = 'rgba(40,40,40,.55)'; c.lineWidth = Math.max(1, k * .2); c.setLineDash([3 * k, 3 * k]);
-    c.beginPath();
-    for (let i = 0; i <= NX; i++) { c.moveTo(X(avX(i)), Z(stZ(0) - HR)); c.lineTo(X(avX(i)), Z(stZ(NZ) + HR)); }
-    for (let j = 0; j <= NZ; j++) { c.moveTo(X(avX(0) - HR), Z(stZ(j))); c.lineTo(X(avX(NX) + HR), Z(stZ(j))); }
-    c.stroke(); c.setLineDash([]);
+    const edge = k > 1.3;
+    c.lineWidth = Math.max(1, k * .35) * px; c.strokeStyle = MAPC.lotEdge;
+    if (k > .8) for (const L of lots) {   // 拉遠時只畫街廓，不畫一棟棟的地塊
+      if (!vis(L.x0, L.x1, L.z0, L.z1)) continue;
+      c.fillStyle = L.special ? '#3a2a36' : MAPC.lot;
+      c.fillRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px);
+      if (edge) c.strokeRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px);
+    }
+    // 車道中線（放大時）
+    if (k > 2.4) {
+      c.strokeStyle = 'rgba(40,40,40,.55)'; c.lineWidth = Math.max(1, k * .2) * px; c.setLineDash([3, 3]);
+      c.beginPath();
+      for (let i = zn.ni0; i <= zn.ni1; i++) { c.moveTo(avX(i), stZ(zn.nj0) - HR); c.lineTo(avX(i), stZ(zn.nj1) + HR); }
+      for (let j = zn.nj0; j <= zn.nj1; j++) { c.moveTo(avX(zn.ni0) - HR, stZ(j)); c.lineTo(avX(zn.ni1) + HR, stZ(j)); }
+      c.stroke(); c.setLineDash([]);
+    }
+    c.restore();
   }
   // 地名：拉遠時是區名，拉近時是街名
   c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -175,15 +196,18 @@ function mapDraw() {
   if (MV.zoom > 1.5) {
     const a = clamp((MV.zoom - 1.5) / .5, 0, 1);
     c.fillStyle = `rgba(20,20,20,${.9 * a})`; c.shadowBlur = 0; c.font = `700 ${Math.min(11, 5 + MV.zoom * 1.6) * dpr}px system-ui`;
-    for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) {
-      const x = avX(i), z = (stZ(j) + stZ(j + 1)) / 2;
-      if (!vis(x, x, z, z) || (j % 2 && MV.zoom < 3)) continue;
-      c.save(); c.translate(X(x), Z(z)); c.rotate(-Math.PI / 2); c.fillText(AVE[i].toUpperCase(), 0, 0); c.restore();
-    }
-    for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) {
-      const x = (avX(i) + avX(i + 1)) / 2, z = stZ(j);
-      if (!vis(x, x, z, z) || (i % 2 && MV.zoom < 3)) continue;
-      c.fillText(STR[j].toUpperCase(), X(x), Z(z));
+    // 街名沿著路的方向：區的邏輯 x 軸在畫面上的角度是 −ry
+    for (const zn of ZONES) {
+      for (let i = zn.ni0; i <= zn.ni1; i++) for (let j = zn.nj0; j < zn.nj1; j++) {
+        const [x, z] = toW(avX(i), (stZ(j) + stZ(j + 1)) / 2, zn);
+        if (!vis(x, x, z, z) || (j % 2 && MV.zoom < 3)) continue;
+        c.save(); c.translate(X(x), Z(z)); c.rotate(-Math.PI / 2 - zn.ry); c.fillText(AVE[i].toUpperCase(), 0, 0); c.restore();
+      }
+      for (let j = zn.nj0; j <= zn.nj1; j++) for (let i = zn.ni0; i < zn.ni1; i++) {
+        const [x, z] = toW((avX(i) + avX(i + 1)) / 2, stZ(j), zn);
+        if (!vis(x, x, z, z) || (i % 2 && MV.zoom < 3)) continue;
+        c.save(); c.translate(X(x), Z(z)); c.rotate(-zn.ry); c.fillText(STR[j].toUpperCase(), 0, 0); c.restore();
+      }
     }
   }
   c.shadowBlur = 0;
@@ -239,13 +263,13 @@ function mapDraw() {
   const w = MV.mx >= 0 && !isTouch ? mapToWorld(MV.mx, MV.my) : { x: MV.cx, z: MV.cz };
   setText('mapLoc', mapPlaceName(w.x, w.z));
 }
-function mapPlaceName(x, z) {
-  const d = district(x, z), zh = d.split(' ')[0];
+function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在區的邏輯座標
+  const [x, z] = toL(X, Z), d = district(x, z), zh = d.split(' ')[0];
   if (x > EAST_BANK_X) return '舊港城 · 東灣對岸';
   if (x < FAR_BANK_X) return '倫敦城 · 灰鷺河對岸';
   const inCity = x > CITY_X0 - 6 && x < CITY_X1 + 6 && z > CITY_Z0 - 6 && z < CITY_Z1 + 6;
   if (!inCity) return x < CITY_X0 - OUT_D ? '灰鷺河' : x > CITY_X1 + OUT_D ? '東灣' : z > SHORE_Z && !(z > ISLE.z0 && x > ISLE.x0 && x < ISLE.x1) && !(x > QUAY.x0 && z < QUAY.z1) && !(x > BRIDGE.x0 && x < BRIDGE.x1) && !(x < BEACH.x1 && z < BEACH.z0 + 30) ? '外海' : zh;
-  return `${zh} / ${streetName(x, z)}`;
+  return `${zh} / ${streetName(X, Z)}`;
 }
 
 // ─── 資訊卡與圖例 ───
@@ -254,7 +278,7 @@ function mapCard() {
   if (!b) { el.classList.remove('on'); return; }
   const cat = MAP_CATS[b.cat], col = b.col || cat.col, me = mapPlayer();
   const dist = Math.hypot(b.x - me.x, b.z - me.z);
-  const rows = [['類型', b.type], ['地區', district(b.x, b.z).split(' ')[0]], ['距離', dist > 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`], ...(b.rows || [])];
+  const rows = [['類型', b.type], ['地區', districtW(b.x, b.z).split(' ')[0]], ['距離', dist > 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`], ...(b.rows || [])];
   const canTp = b.tp && !W.stars && !fading;
   el.style.setProperty('--mc', col);
   el.innerHTML = `<header>${iconSvg(cat.icon, col, b.txt)}<h3>${b.name}<small>${cat.name}</small></h3></header><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${b.desc ? `<p>${b.desc}</p>` : ''}<div class="acts"><button data-a="wp"><kbd>Enter</kbd>${gps.wp && Math.hypot(gps.wp.x - b.x, gps.wp.z - b.z) < 3 ? '取消導航點' : '設為導航點'}</button>${b.tp ? `<button data-a="tp"${canTp ? '' : ' disabled'}><kbd>T</kbd>${canTp ? '傳送' : '通緝中不能傳送'}</button>` : ''}</div>`;
@@ -332,7 +356,7 @@ function mapClick(sx, sy) {
   const hit = mapHit(sx, sy);
   if (hit >= 0) { sfx.click(); mapSelect(hit, false); return; }
   const { x, z } = mapToWorld(sx, sy);
-  if (x < avX(0) - HR || x > avX(NX) + HR || z < stZ(0) - HR || z > stZ(NZ) + HR) return;
+  { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (!zn || lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR) return; }
   if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14 / Math.max(.5, MV.zoom)) gpsClear(); else gpsSet(x, z);
   gps.t = 0; gpsUpdate(); mapCard(); MV.dirty = true;
 }
