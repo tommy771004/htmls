@@ -395,6 +395,7 @@ function gtaUpdate(dt) {
   evUpdate();
   marketUpdate(dt);
   heistUpdate(dt);
+  squadUpdate(dt);   // 69-squads.js：幫派、傭兵、資產防守、搶劫隊友
   aptUpdate();
   if (out) {
     for (const v of [...vehicles]) vehDamage(v, dt);
@@ -421,12 +422,14 @@ function gtaUpdate(dt) {
   }
   me.people[0].aimP = gta.aimK > .05 ? -camState.pitch * .9 + .1 : null;
   me.people[0].aimK = gta.aimK;
+  me.people[0].heavy = ARMS[arm.sel].spin ? 'hip' : ARMS[arm.sel].shoulder ? 'shoulder' : null;
   stepFx(dt);
 }
 function gtaLate() {
   combatLate();
   crewLate();
   stuntLate();
+  bankGunsLate();   // 69-heist.js：大廳裡 Jax、Kael 與警衛的槍
   uploadFx();
 }
 for (const v of vehicles) v.hp ??= HP;

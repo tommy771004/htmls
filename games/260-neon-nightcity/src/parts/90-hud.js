@@ -85,6 +85,7 @@ function drawMini(px, pz, yaw, mk) {
   for (const c of traffic) { const [x, y] = P2(c.x, c.z); if (Math.abs(x) < 140 && Math.abs(y) < 140) mctx.fillRect(x - 1.5, y - 1.5, 3, 3); }
   if (player.where === 'out') policeMini(mctx, P2, zoom);   // 警車、警員、直升機、視線錐（69-police.js）
   evMini(mctx, P2, zoom);   // 運鈔車藍點與錢袋（69-events.js）
+  if (player.where === 'out') squadMini(mctx, P2, zoom);   // 幫派紅點、傭兵綠點、被盯上的資產（69-squads.js）
   mctx.restore();
   // 目標：在圓內就畫點，超出就貼在圓周
   if (mk && mk.where === 'out') {
@@ -163,6 +164,7 @@ function drawBigMap() {
   gpsBig(c, X, Z, s);
   stuntBig(c, X, Z, s);   // 特技跳台（69-stunt.js）
   evBig(c, X, Z, s);
+  squadBig(c, X, Z, s);
   c.font = `600 ${13 / s}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'middle';
   for (const v of VENUE_PINS) { c.fillStyle = v.col; c.beginPath(); c.arc(X(v.x), Z(v.z), 7 / s, 0, 7); c.fill(); c.fillStyle = '#ece8e0'; c.fillText(v.name, X(v.x) + 11 / s, Z(v.z)); }
   c.fillStyle = 'rgba(236,232,224,.55)'; c.font = `500 ${10 / s}px system-ui`; c.textAlign = 'center';

@@ -309,8 +309,23 @@ const RAMPS = [
   { x: avX(0) + PARK, z: stZ(3) + HR + 1, yaw: Math.PI },
   { x: avX(3) - HR - 1, z: stZ(1) + PARK, yaw: Math.PI / 2 },
   { x: avX(2) + HR + 1, z: stZ(4) - PARK, yaw: -Math.PI / 2 },
+  // 第二批（第四階段補齊 20 座）：分散在 8×7 與 20×15 擴充的城區；接在後面，存檔裡完成過的編號不變
+  { x: avX(7) - PARK, z: stZ(5) - HR - 1, yaw: 0 },
+  { x: avX(10) - PARK, z: stZ(3) - HR - 1, yaw: 0 },
+  { x: avX(13) - PARK, z: stZ(7) - HR - 1, yaw: 0 },
+  { x: avX(16) - PARK, z: stZ(4) - HR - 1, yaw: 0 },
+  { x: avX(18) - PARK, z: stZ(10) - HR - 1, yaw: 0 },
+  { x: avX(9) + PARK, z: stZ(9) + HR + 1, yaw: Math.PI },
+  { x: avX(12) + PARK, z: stZ(12) + HR + 1, yaw: Math.PI },
+  { x: avX(6) + PARK, z: stZ(11) + HR + 1, yaw: Math.PI },
+  { x: avX(8) - HR - 1, z: stZ(6) + PARK, yaw: Math.PI / 2 },
+  { x: avX(11) - HR - 1, z: stZ(8) + PARK, yaw: Math.PI / 2 },
+  { x: avX(15) - HR - 1, z: stZ(2) + PARK, yaw: Math.PI / 2 },
+  { x: avX(14) + HR + 1, z: stZ(13) - PARK, yaw: -Math.PI / 2 },
+  { x: avX(19) + HR + 1, z: stZ(6) - PARK, yaw: -Math.PI / 2 },
+  { x: avX(4) + HR + 1, z: stZ(9) - PARK, yaw: -Math.PI / 2 },
 ].map((r, i) => ({ ...r, i, dx: Math.sin(r.yaw), dz: Math.cos(r.yaw) }));
-const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 2.5 && a > -RAMP_L - 26 && a < 36; });   // 前面留 26 m 助跑
+const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 2.5 && a > -RAMP_L - 26 && a < 60; });   // 前面留 26 m 助跑，後面 60 m 內不停車（落地後還會往前滑）
 {
   const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L);
   for (const r of RAMPS) {

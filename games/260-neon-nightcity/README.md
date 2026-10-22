@@ -38,14 +38,14 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 | 按鍵 | 開車 | 走路 |
 | :-- | :-- | :-- |
-| W A S D／方向鍵 | 油門、煞車倒車、轉向 | 移動 |
+| W A S D／方向鍵 | 油門、煞車倒車、轉向；飛離跳台後左右是翻滾、油門／煞車是前後空翻 | 移動 |
 | Shift | 氮氣 | 跑步 |
 | Space | 手煞車甩尾 | |
 | F | 停穩後下車 | 靠近車輛時上車 |
 | E | 停在 CHROME WORKS 門口時換塗裝、停在 GARAGE 07 門口時停進車庫 | 對話、進出場館、點酒、看車、開車出庫；搶劫的計畫板、銀行門口、金庫鑽機、上逃亡車；安全屋門口看房或進入、沙發睡覺 |
 | G | 引爆黏性炸彈 | 跳舞（舞池上跳滿 5 秒完成任務）、引爆黏性炸彈、搶劫時引爆金庫門 |
 | V | | 把目前的座駕叫到最近的車道（停在車庫裡也會開出來） |
-| Tab／滑鼠左右鍵／R | 車內射擊（手槍、電擊槍、衝鋒槍、黏性炸彈；機車另可用霰彈槍與武士刀） | 武器轉盤、開槍與瞄準、換彈 |
+| Tab／滑鼠左右鍵／R | 車內射擊（手槍、電擊槍、衝鋒槍、黏性炸彈；機車另可用霰彈槍與武士刀；瞄準時手臂從瞄準那側的車窗伸出去） | 武器轉盤、開槍與瞄準、換彈 |
 | Q | 角色轉盤（換主角） | 同左 |
 | X／Caps Lock | 特殊能力：Kael 反射駕駛、Jax 狂暴 | 特殊能力：Vance 子彈時間、Jax 狂暴 |
 | P | 手機 | 同左 |
@@ -73,12 +73,13 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | `69-crew.js` | 第三階段三主角：`CREW`（Vance／Kael／Jax 的生命、護甲、家門口、外觀）、能力條充能事件（`spEvent`）與特殊能力（倍率寫進 69-combat 的 `abil`）、角色轉盤、高空切換鏡頭（`crewSwitch`／`crewCam`，`crewApply` 直接換人）、CHROME WORKS 噴漆消星（`resprayCtx`） |
 | `69-events.js` | 第四階段隨機事件：鐵庫保全運鈔車（`truckSpawn` 從看不到的路口沿 `routeTo` 開、靠右偏一條車道；`evBlast` 後車門 4 m 內爆炸就打開、掉三袋現金），小地圖閃藍點 |
 | `69-gps.js` | 第三階段 GPS：大地圖點選導航點、沿路網算路線（`routeTo`，用 69-police 的 `fieldTo`），小地圖與大地圖畫紫色導航線、黃色任務線 |
-| `69-heist.js` | 第四階段搶劫《中央霓虹銀行》：流程狀態 `heist.st`（plan → setup → go → lobby → c4 → drill → escape → drive）、銀行大廳與金庫（`VENUES.bank`、人質與威懾條）、街上的銀行門面、三主角在各階段之間換人（`heistFade` 等轉場結束才換）、任務框計時條與 HEIST PASSED 結算 |
-| `69-market.js` | 第四階段經濟：霓虹證交所六檔股票 `STOCKS`（三組死對頭、`stockShock` 破壞 A 讓 A 跌 B 漲、每分鐘回歸基準價）、電訊箱的生命與連鎖爆炸、天際置業三處資產 `ESTATES`（每遊戲小時存進保險箱）；寫進存檔第 3 版的 `stk`、`props` |
-| `69-phone.js` | 第三階段 NeonPhone：清單式手機（聯絡人服務、暗網軍火、快速存檔）、空投彈藥箱、雷達隱形；霓虹證交所與天際置業的畫面；快速存檔寫進 `nc260.motors` 的 `game` 欄位 |
-| `69-police.js` | 第二階段通緝：犯罪熱度與星級、目擊報警、視線錐與脫離視線消星、路網追捕（Dijkstra 場）、警車／SWAT 裝甲車／戰車、下車的警察與 SWAT、直升機與探照燈、路障與釘刺帶、掉落彈藥、警笛與旋翼聲、星級 HUD、小地圖上的視線錐 |
+| `69-heist.js` | 第四階段搶劫《中央霓虹銀行》：流程狀態 `heist.st`（plan → setup → go → lobby → c4 → drill → escape → drive）、銀行大廳與金庫（`VENUES.bank`、人質與威懾條）、街上的銀行門面、三主角在各階段之間換人（`heistFade` 等轉場結束才換）、人質逃跑與警衛拔槍（`hostSt`／`hostStep`，大廳裡的 Jax 與 Kael 是 `bankCrew`）、任務框計時條與 HEIST PASSED 結算 |
+| `69-market.js` | 第四階段經濟：霓虹證交所六檔股票 `STOCKS`（三組死對頭、`stockShock` 破壞 A 讓 A 跌 B 漲、每分鐘回歸基準價）、電訊箱的生命與連鎖爆炸、天際置業三處資產 `ESTATES`（每遊戲小時存進保險箱）、離線補算（`marketOffline`：依存檔的 `ts` 補上關掉遊戲那段時間的股價與資產收入，最多一天）；寫進存檔的 `stk`、`props`（第 4 版多了停業時間 `props.pause` 與 `ts`） |
+| `69-phone.js` | 第三階段 NeonPhone：清單式手機（聯絡人服務、暗網軍火、快速存檔）、空投彈藥箱、雷達隱形；霓虹證交所與天際置業的畫面；快速存檔寫進 `nc260.motors` 的 `game` 欄位（含座駕 `veh` 與所在的安全屋 `where`），鐵幕保全可以叫傭兵小隊 |
+| `69-police.js` | 第二階段通緝：犯罪熱度與星級、目擊報警、視線錐與脫離視線消星（`coverClear` 看樹與貨車擋住、直升機 `heliSees` 看樹冠與屋頂）、路網追捕（Dijkstra 場）、警車／SWAT 裝甲車／戰車、下車的警察與 SWAT、直升機與探照燈（看前方 3 秒的屋頂爬升，低於屋頂就撞毀）、路障與釘刺帶、掉落彈藥、警笛與旋翼聲、星級 HUD、小地圖上的視線錐 |
+| `69-squads.js` | 第四階段的小隊：共用的戰鬥人員池 `fighters`（`SQ.f`，幫派 `gang`、傭兵 `merc`、搶劫隊友 `crew` 三隊，`TEAM` 是生命／命中／傷害）、找目標與開槍（`pickTarget`／`fireAt`，幫派打玩家與隊友，隊友打幫派與有星級時的警察）、小隊的車（`squadCar` 照警察的路網場開、`windowShot` 從車窗開火、到了就 `unload`）；搶運鈔車與鑽機廂型車後的幫派追殺（`gangChase`）、資產防守任務（`DEF_BIZ`、`defStep` 兩波進攻與資產耐久、輸了清空保險箱並停業 10 分鐘）、鐵幕保全傭兵（`mercCall`，$3,000、180 秒合約）、搶劫撤離時 Jax 與 Kael 跟著出來、上車後從車窗開火（`squadHeist`） |
 | `69-safehouse.js` | 安全屋 `APT`（`APT_IDS` 六間：冠石頂層公寓、雲杉坡崖邊別墅、灰鷗島辦公室、楓林里迷你閣樓、琥珀和室 Loft、公園大道白色大宅；`VENUES.<id>`，室內是 `apt_<id>`，走近門口 70 m 就下載，以檔案開啟是程式建模的房間），街上的門與門牌（`face: -1` 是朝北的門）、門口看房買下、沙發睡覺（推進 6 小時、補滿生命、以門口位置快速存檔）、島上辦公室在辦公桌收保險箱 |
-| `69-stunt.js` | 第四階段特技跳台：斜面高度與俯仰（`stuntGround`）、衝出邊緣後的拋物線飛行（`stuntFly` 代替 `driveVehicle`）、0.4 倍慢動作與側面固定機位、落地獎金（每座第一次加倍，完成的跳台寫進存檔的 `stunts`） |
+| `69-stunt.js` | 第四階段特技跳台：斜面高度與俯仰（`stuntGround`）、衝出邊緣後的拋物線飛行（`stuntFly` 代替 `driveVehicle`）、飛行中翻滾與空翻（`v.air` 的 `rr`／`pr`／`rolls`／`flips`）、0.4 倍慢動作與側面固定機位、落地判定（歪太多失敗、翻過頭翻車）與獎金（每座第一次加倍、每轉一圈多五成，完成的跳台寫進存檔的 `stunts`） |
 | `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車；海岸的 `COAST_MODELS`（灰鷗島的 `isle_ruin`／`isle_office`、遠景的 `far_london`／`far_golu`／`far_s7`，擺好就把 `ISLE_PROXY` 的替身 `removeFromParent()`：`distCull` 每幀都會重設 `visible`，只藏起來會被打開） |
 | `30-vehicles.js` | 車流車型 `TYPES`（計程車、兩種警車、九種房車、四種廂型車與貨車都來自內嵌的 `traffic.glb`，40 m 外換遠景模型、相機後方不畫；`traffic.glb` 載入失敗才用程式建模）、程式建模的 Kestrel、Hanzo 等替身；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
 | `40-people.js` | 人物：Quaternius 男女底模（`people.glb`）依髮型合併成蒙皮幾何、每人一個 SkinnedMesh＋AnimationMixer；動畫時間由 `uTime`／`uBeat` 換算（舞池對拍），調酒、DJ、撐傘、抽菸、抱胸、騎機車在播放後覆寫手臂與上身；行人、排隊人龍、玩家與更新 `updateCrowds()` |
@@ -133,7 +134,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 ## 測試 API
 
-`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門）、`market`（`STOCKS`、`ESTATES`、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`）、`heist`（`heist` 狀態、`BANK`／`PLAN`／`SAFE`／`VAN_AT`／`CAR_AT`、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；安全屋：`apt`（`APT` 六間的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`unit(kind, at)`、`heli()`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
+`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`、`probe()` 回傳每座跳台助跑道與落地區被擋住的距離）、`squad`（`SQ`、`fighters`、`chase(why)`、`merc()` 免費叫傭兵、`defend(id)`、`win()`／`lose()`、`spawn(team, x, z, gun)`、`count(team)`、`clear()`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門）、`market`（`STOCKS`、`ESTATES`、`offline(ms)` 假裝離開了 ms 毫秒、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`）、`heist`（`heist` 狀態、`hostSt`（人質）、`run(k, kael)` 讓人質 k 逃跑、`BANK`／`PLAN`／`SAFE`／`VAN_AT`／`CAR_AT`、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；安全屋：`apt`（`APT` 六間的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`unit(kind, at)`、`heli()`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`、`flash()`、`livery()`、`getStats()`。
 車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家，`me.mesh.visible` 截圖時可隱藏）、`peds`／`pedState`（行人）、`crowd(n)`／`ANIM`（另建一群人測動作）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
 
 ### GTA 式擴充（第三階段）
@@ -143,22 +144,29 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 - GPS：大地圖點一下設導航點（紫線），再點一次取消，12 m 內抵達自動清除；任務目標在戶外且超過 25 m 時畫黃線。
 - 噴漆消星：通緝中、警察看不到你時，開車停到 CHROME WORKS 門口按 E 付 $1,000，換色換牌並清除通緝。
 - NeonPhone：P 或右上角的手機按鈕，從右下滑出 280×520 的清單式手機（數字鍵選列、0 是第 10 列、Esc／Backspace 返回；開著時游標會釋放，可直接點）。聯絡人：駭客 Zero（消除通緝 $500 × 星數²、冷卻 180 秒；雷達隱形 60 秒 $1,500，期間路人看到犯罪不報警）、技工鐵手（把座駕送到身後約 30 m 的路上，免費、冷卻 60 秒）、鐵幕保全（空投彈藥箱 $1,200：從 40 m 高落在前方路上、冒紅色信號煙，走過去撿起來彈藥全滿＋防彈衣）。暗網軍火：防彈衣 $500、各槍備彈補滿 $200–3,000、投擲物補滿 $1,500，直接進背包。快速存檔：在戶外、沒被通緝時存下三位主角的生命／護甲／能力條／位置、目前主角、任務進度、時間與彈藥；讀檔要下車。
-- 原規格書手機是方向鍵 ↑ 開啟、九宮格圖示；這裡方向鍵是開車與走路，所以改用 P 與清單式介面。規格裡的股市、資產管理與運鈔車標記在第四階段加進手機；傳奇車業（買車）沿用 VELOCE MOTORS 車行，傭兵小隊沒做。
+- 原規格書手機是方向鍵 ↑ 開啟、九宮格圖示；這裡方向鍵是開車與走路，所以改用 P 與清單式介面。規格裡的股市、資產管理與運鈔車標記在第四階段加進手機；傳奇車業（買車）沿用 VELOCE MOTORS 車行，傭兵小隊在第四階段加進鐵幕保全。
 
 ### GTA 式擴充（第四階段）
 
 - 運鈔車（藍點事件）：沒被通緝、在戶外時每 2.5–4 分鐘從看不到的路口開出一台鐵庫保全運鈔車（深綠廂型車、生命 2600），沿路網在城裡繞，小地圖閃藍點；手機找 Zero 付 $1,000 可以直接叫一台。用黏性炸彈、手榴彈或火箭在後車門 4 m 內引爆：停車、掉三袋現金（合計 $18,000–40,000），立刻 3 星；整台炸毀也會掉錢，但燒掉四成。錢袋走過去就撿起來，150 秒沒撿會消失。
-- 特技跳台：六座灰色鋼板、兩側黃邊的跳台（大地圖上的黃色箭頭）擺在路口前的停車道，前面 26 m 不停車當助跑道。時速 60 以上衝出去：時間放慢到 0.4 倍、鏡頭換成跳台旁的固定機位；落地車頭沒歪就領獎金（200 + 距離 × 25 + 最高點 × 150），每座跳台第一次完成加倍。飛行中不能轉向或加速，落地衝擊太大會傷車。
+- 特技跳台：二十座灰色鋼板、兩側黃邊的跳台（大地圖上的黃色箭頭）擺在路口前的停車道，前面 26 m 不停車當助跑道；原本的六座在舊城區，新的十四座分散在 20×15 的新區。時速 60 以上衝出去：時間放慢到 0.4 倍、鏡頭換成跳台旁的固定機位。飛行中左右（A／D）翻滾、油門／煞車（W／S）前後空翻，放開就慢慢回正；落地車身歪不到 0.5 rad、車頭方向沒偏就領獎金（200 + 距離 × 25 + 最高點 × 150，每轉滿一圈多五成），每座跳台第一次完成加倍；歪超過 0.5 rad 算失敗並傷車，翻過 1.3 rad 就是翻車（重損、車速剩四成）。落地衝擊太大也會傷車。
 - 霓虹證交所（手機）：三組死對頭共六檔股票（鐵庫保全 IVLT ↔ 哨衛防務 SNTL、凡托超跑 VNTR ↔ 蛟重工 MZCH、流明電訊 LMNT ↔ 脈線科技 PLSW）。你破壞 A 企業的東西（搶或炸運鈔車、炸掉路上的 Milano 與 Tiara GT、打爛路邊的藍色電訊箱）時 A 跌約 8%、B 漲約 7%；每分鐘（真實時間）隨機 ±1% 並向基準價回歸（半衰期 10 分鐘），價格限制在基準的 0.2–3.5 倍。個股畫面可以買 $10,000、$100,000、全部現金或全部賣出。
 - 電訊箱：生命 60，射擊、爆炸或開車以時速 30 以上撞上就爛，爛掉時會炸開（可能連鎖）。
-- 天際置業（手機）：買下 LAZARUS 夜店（$250,000）、AFTERGLOW 酒吧（$120,000）或 CHROME WORKS 改裝廠（$180,000），每遊戲小時（150 秒）把 $2,400／$1,100／$1,700 存進各自的保險箱（上限 20 小時的量），從手機收取。只在遊戲開著時累積。
+- 天際置業（手機）：買下 LAZARUS 夜店（$250,000）、AFTERGLOW 酒吧（$120,000）或 CHROME WORKS 改裝廠（$180,000），每遊戲小時（150 秒）把 $2,400／$1,100／$1,700 存進各自的保險箱（上限 20 小時的量），從手機收取。關掉遊戲的期間也照真實時間補算（最多一天）：股價往基準回歸並帶一點雜訊、資產收入補進保險箱，開場 4 秒後跳出提示。
 - 搶劫《中央霓虹銀行》：Vance 公寓門口的計畫板付 $10,000 籌備費，選潛行（贓款 $2,000,000）或強攻（$2,500,000）。
   - 前置：偷舊碼頭路邊的黑色鑽機廂型車（上車即 2 星），甩掉警察後開回 Jax 的舊碼頭倉庫。
   - 進場：到 10 St 的銀行門口按 E，Vance 進大廳；8 名人質，威懾條每秒掉 7%，瞄準時回升、開槍大幅回升，掉到 0 有行員按警報（潛行就變強攻）。15 秒後 C4 裝好，按 G 炸開金庫門，走到門口按 E 裝鑽機。
   - 鑽金庫：潛行而且沒響警報時 Vance 留在大廳顧人質 40 秒；強攻或響了警報就換成 Jax 帶步槍到門口，4 星守 60 秒。
   - 撤離：換成背錢袋的 Vance 從正門出來（強攻 5 星、潛行 2 星），走到 120 m 外的逃亡車（Tiara GT），每受 10 點傷害掉 $15,000；上車後換 Kael 開，甩掉通緝、停進倉庫門口的黃圈就是 HEIST PASSED：扣掉中彈損失與 Zero 一成分紅後入帳，結算表列出三人各得多少。
   - 任何階段 WASTED 或 BUSTED 就失敗，回到「到銀行門口」重來（籌備費與前置保留）；搶劫中不能快速存檔或讀檔。
-- 存檔第 3 版：`nc260.motors` 多了 `stunts`（完成的跳台）、`stk`（股價、持股、成本）、`props`（擁有的資產與保險箱金額），讀檔時對照 `STOCKS`／`ESTATES` 檢查。
+- 幫派追殺：搶了運鈔車（撿起第一袋錢）或偷了鑽機廂型車 4 秒後，赤蠍幫開兩台車（車型從 BMW E34、190E EVO、Carter 依序取，每台三人：衝鋒槍、手槍、手槍）從 90–170 m 外照路網追過來，邊開邊從車窗開槍，追上你停住後下車來打（小地圖上是紅色方塊與紅點）；全部倒下，或你在 280 m 外超過 20 秒就結束。幫派成員倒下有機會掉彈藥。
+- 資產防守：擁有夜店、酒吧、改裝廠或島上辦公室時，開場 6 分鐘後起每 6–9 分鐘有一處被盯上（任務框改成「資產防守」、小地圖與大地圖畫紅圈）：180 秒內趕到 60 m 內，接著兩波（4 人、5 人）從 32–40 m 外圍過來，每個貼在門口 6 m 內的人每秒扣資產耐久 1.6%。全部打倒就領 $6,000＋每小時收入 × 4；逾時或耐久歸零則保險箱被搬空、停業 10 分鐘（停業期間不累積，離線補算也扣掉這段）。
+- 傭兵小隊：手機 → 鐵幕保全 → 傭兵小隊（$3,000，冷卻 240 秒）。一台皮卡載四名傭兵（步槍兩名、衝鋒槍、霰彈槍）從 60–130 m 外開過來（小地圖綠點），下車後跟在你身邊 180 秒，打幫派與追你的警察；你上車時他們也上皮卡跟著，從車窗開火。
+- 搶劫的隊友與人質：大廳裡 Jax 蹲在金庫門口、Kael 守大門。威懾低於 40% 時每 6–10 秒有一名人質往門口跑：瞄準他就趴回去，Kael 有四成機會喝止；跑出門就響警報（潛行變強攻）。威懾低於 25% 超過 2 秒，警衛會站起來拔槍朝你開槍，3 秒後被 Kael 放倒；打死無辜人質扣 $40,000。撤離時 Jax（步槍）與 Kael（衝鋒槍）跟著 Vance 出來掩護（生命不會低於 50），上逃亡車後不在操作中的那位從車窗開火。
+- 車內射擊的手臂：瞄準時駕駛靠向瞄準那側的前門、右臂整隻伸出車窗握著槍；轉管機槍抱在腰間（右手握把、左手扶提把），火箭筒扛在右肩、左手往前扶住筒身（`aimArms` 的 `p.heavy`，手的位置用兩節骨 IK 對過）。
+- 快速存檔：開車時存檔會記下座駕（自己的車、路邊機車或搶來的車流車型與塗裝），讀檔後坐回那台車上；在安全屋睡覺存檔會記下房間，讀檔後回到室內。
+- 視線：警察的視線錐被樹（目標 10 m 內）與貨車、廂型車擋住就看不到（轎車擋不住站著的人，警方自己的車不算）；直升機的視線被樹冠與途中的屋頂擋住。直升機往前看 3 秒的屋頂高度爬升，掉到屋頂以下就撞毀。
+- 存檔第 4 版：`nc260.motors` 第 3 版多了 `stunts`（完成的跳台）、`stk`（股價、持股、成本）、`props`（擁有的資產與保險箱金額），讀檔時對照 `STOCKS`／`ESTATES` 檢查；第 4 版加上存檔時間 `ts`（離線補算用）與 `props.pause`（停業到什麼時候）。
 
 ### 城區與安全屋（World 整合）
 

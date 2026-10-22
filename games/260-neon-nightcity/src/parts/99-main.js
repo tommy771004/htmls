@@ -261,7 +261,7 @@ function step(dt) {
     const vmax0 = v.vmax, eng0 = v.eng;
     if (nitro.on) { v.vmax *= 1.25; v.eng *= 1.6; }
     const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
-    const r = v.air ? stuntFly(v, dt) : driveVehicle(v, inp, dt);   // 69-stunt.js：跳台斜面與飛行
+    const r = v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 69-stunt.js：跳台斜面與飛行
     if (!v.air) stuntGround(v, r.vF);
     v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
@@ -269,6 +269,7 @@ function step(dt) {
     spd = Math.abs(r.vF) * 3.6;
     driftTick(dt, v, r.imp, spd);
     if (!v.isCar) { me.anim(0, ANIM.ride, 0, 1); me.anim2(0, 0, 0); _o.position.set(0, 0, 0); placeRider(v); }
+    driveByPlace(v);   // 69-combat.js：車內射擊時手伸出車窗
     sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_X, v.z - CLUB_Z), dBar: Math.hypot(v.x - BAR_X, v.z - BAR_Z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: v.slip, nitro: nitro.on });
   } else {
     nitro.on = false; nitro.v = clamp(nitro.v + .1 * dt, 0, 1);
@@ -353,7 +354,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, market: marketApi, heist: heistApi, apt: aptApi }),
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },

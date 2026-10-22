@@ -1,6 +1,7 @@
 // ═══ 第四階段：藍點隨機事件：鐵庫保全運鈔車 ═══
 // 沒被通緝、在戶外時每 2.5–4 分鐘（真實時間）從看不到的路口開出一台，沿路網（69-gps.js 的 routeTo）在城裡繞；小地圖閃藍點。
 // 用黏性炸彈、手榴彈或火箭炸後車門（後方 4 m 內爆炸）→ 停車、掉三袋現金，立刻 3 星；整台炸毀也會掉錢但燒掉四成。
+// 你炸開的運鈔車，撿第一袋錢時兩台赤蠍幫的車追過來（69-squads.js 的 gangChase）。
 // 搶過或炸毀都會讓 69-market.js 的 IVLT（鐵庫保全）股價重挫、競爭對手 SNTL 上漲。Zero 的「標記運鈔車」直接叫一台出來。
 // 排在 69-crew 之後、69-gps 之前：routeTo、spawnSpot、addHeat、stockShock 只在函式裡用。
 
@@ -61,7 +62,7 @@ function truckOpen(tk, k, mine) {
     ev.bags.push({ x, z, amt: each, t: 0, m: bagMesh(x, z) });
   }
   sparks(v.x - fx * v.len / 2, 1.2, v.z - fz * v.len / 2, 30, 6);
-  if (mine) addHeat(CRIME.explode, 3);   // 搶運鈔車：直接 3 星
+  if (mine) { addHeat(CRIME.explode, 3); ev.gang = 1; }   // 搶運鈔車：直接 3 星；撿第一袋時赤蠍幫追來（69-squads.js）
   stockShock('IVLT');
   toast(k < 1 ? '運鈔車炸毀了，燒剩的錢袋掉在路上' : '後車門炸開了：撿錢袋');
 }
@@ -91,7 +92,7 @@ function evUpdate() {
   } else if (out && !W.stars && started && !life.dead && (ev.t -= slowmo.raw) <= 0) { if (!truckSpawn()) ev.t = 20; }
   for (const b of [...ev.bags]) {
     b.t += dt; b.m.rotation.y += dt * .6;
-    if (player.mode === 'walk' && !life.dead && out && Math.hypot(player.x - b.x, player.z - b.z) < 1.4) { earn(b.amt, '運鈔車錢袋'); b.t = 999; }
+    if (player.mode === 'walk' && !life.dead && out && Math.hypot(player.x - b.x, player.z - b.z) < 1.4) { earn(b.amt, '運鈔車錢袋'); b.t = 999; if (ev.gang) { ev.gang = 0; gangChase('truck'); } }
     if (b.t > 150) { scene.remove(b.m); ev.bags.splice(ev.bags.indexOf(b), 1); }
   }
 }

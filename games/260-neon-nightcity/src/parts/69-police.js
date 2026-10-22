@@ -55,7 +55,36 @@ function coneSees(ox, oz, yaw, x, z, r) {
   if (d < NEAR_R) return true;
   if (d > r) return false;
   if ((dx * Math.sin(yaw) + dz * Math.cos(yaw)) / d < CONE_COS) return false;
-  return losClear(ox, oz, x, z);
+  return losClear(ox, oz, x, z) && coverClear(ox, oz, x, z);
+}
+// 掩護（只影響警察找人，子彈還是照 castRay）：目標 10 m 內的樹冠、路上任何地方的貨車與廂型車（轎車擋不住站著的人；警方自己的車不算）
+const TG = 20, treeGrid = new Map();
+for (const t of trees) { const key = Math.floor(t.x / TG) * 4096 + Math.floor(t.z / TG); if (!treeGrid.has(key)) treeGrid.set(key, []); treeGrid.get(key).push(t); }
+function segHit(ax, az, bx, bz, cx, cz, r) {
+  const dx = bx - ax, dz = bz - az, t = ((cx - ax) * dx + (cz - az) * dz) / (dx * dx + dz * dz || 1);
+  if (t < .04 || t > .96) return false;
+  const ex = ax + dx * t - cx, ez = az + dz * t - cz;
+  return ex * ex + ez * ez < r * r;
+}
+function coverClear(ax, az, bx, bz) {
+  for (let i = Math.floor((bx - 10) / TG); i <= Math.floor((bx + 10) / TG); i++) for (let j = Math.floor((bz - 10) / TG); j <= Math.floor((bz + 10) / TG); j++) {
+    const L = treeGrid.get(i * 4096 + j); if (!L) continue;
+    for (const t of L) if (Math.hypot(t.x - bx, t.z - bz) < 10 && segHit(ax, az, bx, bz, t.x, t.z, 1.7 * t.s)) return false;
+  }
+  const x0 = Math.min(ax, bx) - 4, x1 = Math.max(ax, bx) + 4, z0 = Math.min(az, bz) - 4, z1 = Math.max(az, bz) + 4;
+  const car = (x, z, w) => x > x0 && x < x1 && z > z0 && z < z1 && segHit(ax, az, bx, bz, x, z, w * .6);
+  for (const c of traffic) if (TRUCKS.includes(c.type) && car(c.x, c.z, TYPES[c.type].w)) return false;
+  for (const c of parked) if (TRUCKS.includes(c.type) && car(c.x, c.z, TYPES[c.type].w)) return false;
+  for (const v of vehicles) if (v !== player.veh && !v.dead && v.isCar && !v.police && (v.mass || 1600) > 2400 && car(v.x, v.z, v.w)) return false;
+  return true;
+}
+// 直升機：探照燈照到的地方還要看得到人（中間有樓擋、或人站在樹冠下就看不到）
+function heliSees(h, x, z) {
+  if (player.mode === 'walk') for (let i = Math.floor((x - 4) / TG); i <= Math.floor((x + 4) / TG); i++) for (let j = Math.floor((z - 4) / TG); j <= Math.floor((z + 4) / TG); j++) {
+    const L = treeGrid.get(i * 4096 + j); if (L && L.some(t => Math.hypot(t.x - x, t.z - z) < 1.9 * t.s)) return false;
+  }
+  for (let k = 1; k <= 6; k++) { const u = .15 + k * .1, px = lerp(h.x, x, u), pz = lerp(h.z, z, u), py = lerp(h.y, 1.2, u); if (roofAt(px, pz, 0) > py) return false; }
+  return true;
 }
 function copSees(x, z, r = CONE_R) {
   r ||= CONE_R;
@@ -69,7 +98,7 @@ function sees() {
   const x = pX(), z = pZ();
   if (copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
   const h = W.heli;
-  if (h && !h.fall && !h.leave && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR) return true;
+  if (h && !h.fall && !h.leave && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR && heliSees(h, x, z)) return true;
   return false;
 }
 
@@ -207,6 +236,7 @@ function copStep(c, dt) {
   if (!W.stars) { freeCop(c); return; }
   const los = d < 60 && losClear(c.x, c.z, tx, tz);
   const shoot = W.stars >= 2 && los && !life.dead;
+  const al = W.stars >= 2 ? squadAlly(c.x, c.z, Math.min(los ? d : 60, 45)) : null;   // 69-squads.js：比你更近、看得到的傭兵或隊友
   const want = shoot ? (c.gun === 'shotgun' ? 7 : c.swat ? 12 : 14) : 1.3;
   let sp = 0;
   const target = W.seen || d < 15 ? [tx, tz] : W.lkp ? [W.lkp.x, W.lkp.z] : [tx, tz];
@@ -214,6 +244,7 @@ function copStep(c, dt) {
   if (gd > want + (shoot ? 1.5 : .3) || !los && gd > 2) sp = shoot || gd > 6 ? 4.3 : 2.2;
   else if (shoot && gd < want - 4) sp = -1.6;
   c.yaw += wrapA(Math.atan2(sp > 0 && !los ? gx : dx, sp > 0 && !los ? gz : dz) - c.yaw) * (1 - Math.exp(-9 * dt));
+  if (al && !sp) c.yaw += wrapA(Math.atan2(al.x - c.x, al.z - c.z) - c.yaw) * (1 - Math.exp(-12 * dt));
   if (sp) {
     const mx = sp > 0 ? gx / gd : dx / d, mz = sp > 0 ? gz / gd : dz / d;
     let nx = c.x + mx * Math.abs(sp) * dt * (sp > 0 ? 1 : -1), nz = c.z + mz * Math.abs(sp) * dt * (sp > 0 ? 1 : -1);
@@ -224,13 +255,14 @@ function copStep(c, dt) {
   p.aimK = sp ? .85 : 1; p.aimP = Math.atan2((player.mode === 'drive' ? .9 : 1.2) - 1.45, Math.max(d, 1)) * .9;
   copsCrowd.anim(c.k, sp ? (armed ? ANIM.aimRun : ANIM.run) : armed ? ANIM.aimIdle : ANIM.idle, c.ph += dt * (sp ? 1 : 0), 1);
   copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
-  if (shoot) {
+  if (shoot || al) {
     c.shotT -= dt;
     if (c.shotT <= 0) {
       const g = npcGunOf(p), ox = g ? g.x : c.x, oy = g ? g.y : 1.4, oz = g ? g.z : c.z;
-      if (c.gun === 'rifle') { npcShoot(ox, oy, oz, .32, 9, 1.3, 'cop'); c.burst = (c.burst + 1) % 3; c.shotT = c.burst ? .11 : 1.1 + Math.random() * .6; }
-      else if (c.gun === 'shotgun') { npcShoot(ox, oy, oz, d < 15 ? .55 : .1, 14, 2, 'cop'); c.shotT = 1.3 + Math.random() * .6; }
-      else { npcShoot(ox, oy, oz, .3 + W.stars * .03, 8, 1, 'cop'); c.shotT = .55 + Math.random() * .7; }
+      const fire = (acc, dmg, f) => al ? npcShootAt(ox, oy, oz, al.x, 1.2, al.z, acc, f, () => { blood(al.x, 1.2, al.z); fHit(al, dmg, al.x - c.x, al.z - c.z, false); }) : npcShoot(ox, oy, oz, acc, dmg, f, 'cop');
+      if (c.gun === 'rifle') { fire(.32, 9, 1.3); c.burst = (c.burst + 1) % 3; c.shotT = c.burst ? .11 : 1.1 + Math.random() * .6; }
+      else if (c.gun === 'shotgun') { fire((al ? Math.hypot(al.x - c.x, al.z - c.z) : d) < 15 ? .55 : .1, 14, 2); c.shotT = 1.3 + Math.random() * .6; }
+      else { fire(.3 + W.stars * .03, 8, 1); c.shotT = .55 + Math.random() * .7; }
     }
   }
 }
@@ -436,8 +468,10 @@ function heliStep(dt) {
     const dx = gx - h.x, dz = gz - h.z, d = Math.hypot(dx, dz) || 1, vmax = 24;
     h.vx = damp(h.vx, dx / d * Math.min(vmax, d * .8), 1.2, dt); h.vz = damp(h.vz, dz / d * Math.min(vmax, d * .8), 1.2, dt);
     h.x += h.vx * dt; h.z += h.vz * dt;
-    const alt = Math.max(40, roofAt(h.x, h.z, 1) + 12) + (h.leave ? 30 : 0);
-    h.y = damp(h.y, alt, .8, dt);
+    // 往前看 3 秒的樓高先爬升；還是擦到屋頂（太快衝進高樓區）就失控墜毀
+    const alt = Math.max(40, roofAt(h.x, h.z, 1) + 12, roofAt(h.x + h.vx * 3, h.z + h.vz * 3, 1) + 12) + (h.leave ? 30 : 0);
+    h.y = damp(h.y, alt, alt > h.y ? 1.6 : .8, dt);
+    if (h.y < roofAt(h.x, h.z, 0) + 1.5) { h.vx *= .3; h.vz *= .3; heliHit(1e5, false); toast('警用直升機撞上大樓了'); }
     const look = tgt ? Math.atan2(tgt[0] - h.x, tgt[1] - h.z) : Math.atan2(h.vx, h.vz);
     h.yaw += wrapA(look - h.yaw) * (1 - Math.exp(-1.5 * dt));
     // 探照燈：看到玩家就鎖住，否則在最後已知位置附近掃

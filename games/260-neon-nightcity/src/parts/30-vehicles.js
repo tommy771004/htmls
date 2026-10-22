@@ -559,6 +559,9 @@ function poseVehicle(v) {
   v.g.position.set(v.x, v.y, v.z);
   v.g.rotation.set(0, v.yaw, 0);
   v.body.rotation.set(v.pitch, 0, v.isCar ? v.roll : v.lean, 'YXZ');
+  // 跳台飛行中（69-stunt.js）繞車身中心翻轉，平常繞著地面
+  if (v.air && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }
+  else if (v.body.position.lengthSq()) v.body.position.set(0, 0, 0);
   for (const w of v.wheels) {
     if (v.isCar) { w.piv.rotation.set(0, w.front ? v.steer : 0, 0); w.w.rotation.x = v.spin; }
     else { w.piv.rotation.set(0, w.front ? v.steer * .6 : 0, 0); w.w.rotation.x = v.spin; }

@@ -5,6 +5,8 @@
 //   流明電訊 LMNT（路邊的藍色電訊箱，射擊、爆炸或開車撞爛；爛掉時會炸開）↔ 脈線科技 PLSW。
 // 資產：LAZARUS、AFTERGLOW、CHROME WORKS 三處可以從手機買下，每遊戲小時（150 秒）把收入存進各自的保險箱（有上限），從手機收取。
 // 股價、持股與資產都跟現金一樣即時寫進 nc260.motors（存檔第 3 版的 stk、props 欄位）。
+// 關著遊戲的期間（第 4 版的 ts 到現在，最多算 24 小時）開場時補算：股價照同樣的規則回歸與漂移，資產照遊戲時間累積收入。
+// 資產防守失敗（69-squads.js）會停業 10 分鐘：props.pause 記著停到什麼時候（真實時間），期間不累積收入。
 // 排在 69-heist 之後、69-phone 之前；頂層只用到 68 以前的東西（rayHooks、boxesN、boxesMesh）。
 
 const STOCKS = [
@@ -102,7 +104,7 @@ const ESTATES = [
 ];
 const GAME_HOUR = 150;   // 90-hud.js 的時鐘：遊戲裡一分鐘 = 2.5 秒
 // motors.props = { own: [id], safe: {id: 金額} }
-function estInit() { const p = motors.props ||= { own: [], safe: {} }; p.own = p.own.filter((id, i, a) => ESTATES.some(e => e.id === id) && a.indexOf(id) === i); for (const e of ESTATES) p.safe[e.id] = Math.min(e.cap, p.safe[e.id] || 0); }
+function estInit() { const p = motors.props ||= { own: [], safe: {} }; p.pause ||= {}; for (const id in p.pause) if (p.pause[id] < Date.now()) delete p.pause[id]; p.own = p.own.filter((id, i, a) => ESTATES.some(e => e.id === id) && a.indexOf(id) === i); for (const e of ESTATES) p.safe[e.id] = Math.min(e.cap, p.safe[e.id] || 0); }
 const estOwned = id => motors.props.own.includes(id);
 function estBuy(id) {
   const e = ESTATES.find(o => o.id === id);
@@ -116,12 +118,38 @@ function estCollect(id) {
   motors.props.safe[id] = 0; earn(n, `${ESTATES.find(o => o.id === id).name}收入`);
   return n;
 }
+const paused = id => motors.props.pause[id] > Date.now();
+const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += Math.random(); return (u - 3) / Math.SQRT1_2; };
+function marketOffline(ts, now = Date.now()) {
+  const min = Math.min(1440, (now - ts) / 60000);
+  if (!(ts > 0) || !(min >= 1)) return null;
+  const px = motors.stk.px, k = Math.pow(.5, min / 10), n = Math.min(min, 60);
+  for (const s of STOCKS) { mk.prev[s.id] = px[s.id]; px[s.id] = pxClamp(s.id, (s.base + (px[s.id] - s.base) * k) * Math.exp(gauss() * .01 * Math.sqrt(n))); }
+  const P = motors.props, sec = min * 60;
+  let cash = 0;
+  for (const e of ESTATES) {
+    if (!estOwned(e.id) || !e.rate) continue;
+    const off = P.pause[e.id] > ts ? Math.min(sec, (P.pause[e.id] - ts) / 1000) : 0;   // 停業的那段不算
+    const add = Math.min(e.cap - P.safe[e.id], e.rate * Math.max(0, sec - off) / GAME_HOUR);
+    if (add > 0) { P.safe[e.id] += add; cash += add; }
+  }
+  saveMotors();
+  return { min, cash: Math.floor(cash) };
+}
 stkInit(); estInit();
+mk.away = marketOffline(lastTs); mk.awayT = 4;
+const awayText = m => m < 60 ? `${Math.round(m)} 分鐘` : m < 1440 ? `${Math.round(m / 60)} 小時` : '一整天';
 function marketUpdate(dt) {
+  // 開場 4 秒後告訴玩家離開期間的變化（有持股或資產才說）
+  if (mk.away && started && (mk.awayT -= slowmo.raw) <= 0) {
+    const a = mk.away, sh = STOCKS.some(s => motors.stk.sh[s.id] > 0);
+    mk.away = null;
+    if (a.cash || sh) toast(`離開了${awayText(a.min)}${a.cash ? `：資產保險箱多了 ${money(a.cash)}` : ''}${sh ? `${a.cash ? '，' : '：'}股價也動了` : ''}`);
+  }
   if ((mk.t -= slowmo.raw) <= 0) { mk.t = 60; stockTick(); }
-  for (const e of ESTATES) if (estOwned(e.id)) motors.props.safe[e.id] = Math.min(e.cap, motors.props.safe[e.id] + e.rate * dt / GAME_HOUR);
+  for (const e of ESTATES) if (estOwned(e.id) && !paused(e.id)) motors.props.safe[e.id] = Math.min(e.cap, motors.props.safe[e.id] + e.rate * dt / GAME_HOUR);
   if (player.mode === 'drive' && player.where === 'out') boxRam(player.veh);
 }
 
 // 測試 API（window.__nc.gta.market）
-const marketApi = { STOCKS, ESTATES, mk, shock: stockShock, tick: stockTick, buy: stockBuy, sell: stockSell, estBuy, estCollect, boxHp, boxHit };
+const marketApi = { STOCKS, ESTATES, mk, offline: ms => marketOffline(Date.now() - ms), shock: stockShock, tick: stockTick, buy: stockBuy, sell: stockSell, estBuy, estCollect, boxHp, boxHit };

@@ -311,6 +311,16 @@ async function desktop() {
       setTimeout(() => r({ v: saved.v, game: !!saved.game, pistol: g.arm.ammo.pistol.res, dx: +Math.abs(nc.player.x - x0).toFixed(2), open: p.phone.open }), 1600);
     }));
     check(qs.v >= 2 && qs.game && qs.pistol === 96 && qs.dx < .5 && !qs.open, `快速存檔寫進同一個存檔、讀檔還原彈藥與位置 ${JSON.stringify(qs)}`);
+    // 開著車存檔：讀檔後回到同一台車上（存檔第 4 版帶時間戳）
+    const qv = await nc(() => new Promise((r) => {
+      const nc = window.__nc, p = nc.gta.phone;
+      nc.drive(); const v0 = nc.player.veh, ok = p.save(), saved = JSON.parse(localStorage.getItem('nc260.motors'));
+      nc.walk(); nc.player.x += 25;
+      p.load();
+      setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
+    }));
+    check(qv.ok && qv.v === 4 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
     await nc(() => { window.__nc.gta.god.on = true; });
@@ -324,6 +334,20 @@ async function desktop() {
     }));
     check(sj.cam && sj.air > 2 && sj.landed && sj.done && sj.got > 1000, `特技跳台：慢動作機位、落地領首次加倍獎金 ${JSON.stringify(sj)}`);
     await shot(page, 'd-stunt');
+    // 空中操控：按住右轉向翻滾一圈再放開，落地算「翻滾 ×1」加成；20 座跳台的助跑道與落地區沒被擋住
+    await nc(() => {
+      const nc = window.__nc, rp = nc.gta.stunt.RAMPS[1];
+      nc.drive(); const v = nc.player.veh; window.__c0 = nc.motors.cash;
+      v.x = rp.x - rp.dx * 16; v.z = rp.z - rp.dz * 16; v.yaw = Math.atan2(rp.dx, rp.dz); v.vx = rp.dx * 30; v.vz = rp.dz * 30;
+    });
+    for (let k = 0; k < 100 && !(await nc(() => !!window.__nc.player.veh.air)); k++) await page.waitForTimeout(40);
+    await page.keyboard.down('KeyD');
+    for (let k = 0; k < 200; k++) { const q = await nc(() => { const v = window.__nc.player.veh; return { air: !!v.air, a: Math.abs(v.roll) }; }); if (!q.air || q.a > 5.6) break; await page.waitForTimeout(20); }
+    await page.keyboard.up('KeyD');
+    await page.waitForTimeout(5000);
+    const sr = await nc(() => ({ got: window.__nc.motors.cash - window.__c0, toast: document.getElementById('toast').textContent }));
+    const sp = await nc(() => window.__nc.gta.stunt.probe().filter((r) => r.bad.some((a) => a > -32)));
+    check(sr.got > 0 && /翻滾 ×1/.test(sr.toast) && !sp.length && (await nc(() => window.__nc.gta.stunt.RAMPS.length)) === 20, `空中翻滾一圈落地拿加成、20 座跳台路線淨空 ${JSON.stringify({ ...sr, blocked: sp })}`);
     // 運鈔車：Zero 標記叫出來、炸後車門掉三袋現金（3 星）、IVLT 下跌 SNTL 上漲
     const tr = await nc(() => new Promise((r) => {
       const nc = window.__nc, g = nc.gta, e = g.ev, px0 = { ...nc.motors.stk.px };
@@ -341,6 +365,9 @@ async function desktop() {
       }, 250);
     }));
     check(tr.n === 3 && tr.stars === 3 && tr.got === tr.sum && tr.got > 0 && !tr.left && tr.ivlt && tr.sntl, `運鈔車：炸開掉三袋現金、立刻 3 星、IVLT 跌 SNTL 漲 ${JSON.stringify(tr)}`);
+    // 搶運鈔車後幫派開兩台車追殺過來（每台三人）
+    const gc = await nc(() => { const q = window.__nc.gta.squad, c = q.SQ.chase; const r = { why: c && c.why, cars: c ? c.cars.length : 0, gang: q.count('gang') }; q.clear(); return r; });
+    check(gc.why === 'truck' && gc.cars === 2 && gc.gang === 6, `搶完運鈔車：幫派兩台車追殺 ${JSON.stringify(gc)}`);
     // 流明電訊的藍色電訊箱：打兩下才爛，爛掉讓 LMNT 跌、PLSW 漲
     const bx = await nc(() => {
       const nc = window.__nc, m = nc.gta.market, px = nc.motors.stk.px, a = px.LMNT, b = px.PLSW, k = m.boxHp.findIndex(h => h > 0);
@@ -359,6 +386,14 @@ async function desktop() {
       }, 1500);
     }));
     check(es.ok && !es.again && es.cost === 120000 && es.safe > 3 && es.got > 3 && es.paid === es.got && es.own.includes('afterglow'), `買下 AFTERGLOW、保險箱累積收入、收取後存檔 ${JSON.stringify(es)}`);
+    // 離線：離開兩小時，股價往基準回歸並帶雜訊、資產保險箱補上這段時間的收入
+    const of = await nc(() => { const nc = window.__nc, m = nc.gta.market, px0 = { ...nc.motors.stk.px }, s0 = nc.motors.props.safe.afterglow; const a = m.offline(2 * 3600e3); return { min: Math.round(a.min), cash: a.cash, moved: Object.keys(px0).some((k) => nc.motors.stk.px[k] !== px0[k]), safe: Math.round(nc.motors.props.safe.afterglow - s0) }; });
+    check(of.min === 120 && of.cash > 0 && Math.abs(of.safe - of.cash) <= 1 && of.moved, `離線兩小時：股價變動、保險箱補收入 ${JSON.stringify(of)}`);
+    // 傭兵小隊：鐵幕保全派皮卡載四個人過來；資產防守：AFTERGLOW 被盯上，守住領賞
+    const mc = await nc(() => { const q = window.__nc.gta.squad, ok = q.merc(); const r = { ok, merc: q.count('merc'), car: !!(q.SQ.merc && q.SQ.merc.c) }; q.clear(); return r; });
+    check(mc.ok && mc.merc === 4 && mc.car, `叫傭兵小隊：一台車四個人 ${JSON.stringify(mc)}`);
+    const df = await nc(() => { const nc = window.__nc, q = nc.gta.squad, ok = q.defend('afterglow'), st = q.SQ.def && q.SQ.def.st, obj = document.getElementById('obj').textContent, c0 = nc.motors.cash; q.win(); const r = { ok, st, obj: /資產防守/.test(obj), got: nc.motors.cash - c0, off: !q.SQ.def }; q.clear(); return r; });
+    check(df.ok && df.st === 'go' && df.obj && df.got >= 6000 && df.off, `資產防守：任務列顯示、守住領賞 ${JSON.stringify(df)}`);
 
     // 搶銀行（潛行）：籌備費 → 偷鑽機廂型車 → 進銀行 → C4 → 鑽金庫 → Vance 出門（2 星）→ Kael 開回倉庫 → 結算
     const hs = (fn, ms = 1300) => nc(fn).then(async (v) => { await page.waitForTimeout(ms); return v; });
@@ -366,14 +401,20 @@ async function desktop() {
     const hz1 = await hs(() => { const nc = window.__nc; return { fee: 50000 - nc.motors.cash, act: nc.act() }; });
     await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = h.heist.van; v.x = h.SAFE.x; v.z = h.SAFE.z + 2; v.vx = v.vz = 0; g.wanted.clear('reset'); });
     const hz2 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; nc.tp(h.BANK.x, h.BANK.z + 1.2, Math.PI); return { st, act: nc.act() }; });
+    // 人質：威懾不夠時有人往門口跑，Kael 會喝止；沒人管、跑出門就響警報（測完把警報關掉，繼續走潛行路線）
+    const hg = await nc(() => new Promise((r) => {
+      const h = window.__nc.gta.heist, H = h.hostSt; h.heist.t = 15; h.run(0, true);
+      setTimeout(() => { const kael = H[0].st; h.run(1); H[1].x = 0; H[1].z = 1.7; setTimeout(() => { const q = { kael, out: H[1].st, alarm: h.heist.alarm }; h.heist.alarm = false; r(q); }, 700); }, 1600);
+    }));
+    check(hg.kael === 'down' && hg.out === 'out' && hg.alarm, `人質逃跑：Kael 喝止、跑出門就響警報 ${JSON.stringify(hg)}`);
     const hz3 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const r = { where: nc.player.where, st: h.heist.st }; h.heist.t = .05; return r; }, 400);
     const hz4 = await hs(() => { const nc = window.__nc, h = nc.gta.heist; const st = h.heist.st; h.blow(); h.drill(); return { st, t: Math.round(h.heist.t), alarm: h.heist.alarm }; }, 300);
     await hs(() => { window.__nc.gta.heist.heist.t = .05; }, 1600);
-    const hz5 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, car = h.heist.car; const r = { st: h.heist.st, cur: g.crew.crew.cur, stars: g.wanted.W.stars, take: h.heist.take }; nc.tp(car.x + 2.5, car.z, 0); r.act = nc.act(); return r; }, 1600);
+    const hz5 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, car = h.heist.car; const r = { st: h.heist.st, cur: g.crew.crew.cur, stars: g.wanted.W.stars, take: h.heist.take, crew: g.squad.count('crew') }; nc.tp(car.x + 2.5, car.z, 0); r.act = nc.act(); return r; }, 1600);
     const hz6 = await hs(() => { const nc = window.__nc, g = nc.gta, h = g.heist, v = nc.player.veh; const r = { st: h.heist.st, cur: g.crew.crew.cur, drive: nc.player.mode }; v.x = h.SAFE.x; v.z = h.SAFE.z; v.vx = v.vz = 0; g.wanted.clear('reset'); window.__c0 = nc.motors.cash; return r; });
     const hz7 = await nc(() => { const nc = window.__nc, h = nc.gta.heist; return { st: h.heist.st, got: nc.motors.cash - window.__c0, on: document.getElementById('heistDone').classList.contains('on') }; });
     check(hz1.fee === 10000 && hz2.st === 'go' && hz3.where === 'bank' && hz3.st === 'lobby', `搶劫前置：籌備費、廂型車開回倉庫、進銀行大廳 ${JSON.stringify({ h1: hz1, h2: hz2, h3: hz3 })}`);
-    check(hz4.st === 'c4' && hz4.t === 40 && !hz4.alarm && hz5.st === 'escape' && hz5.cur === 0 && hz5.stars === 2 && hz5.take === 2000000, `潛行：鑽 40 秒不響警報、Vance 帶 $2,000,000 出門（2 星）${JSON.stringify({ h4: hz4, h5: hz5 })}`);
+    check(hz4.st === 'c4' && hz4.t === 40 && !hz4.alarm && hz5.st === 'escape' && hz5.cur === 0 && hz5.stars === 2 && hz5.take === 2000000 && hz5.crew === 2, `潛行：鑽 40 秒不響警報、Vance 帶 $2,000,000 出門（2 星）、Jax 與 Kael 跟著出來 ${JSON.stringify({ h4: hz4, h5: hz5 })}`);
     check(hz6.st === 'drive' && hz6.cur === 1 && hz6.drive === 'drive' && hz7.st === 'off' && hz7.got === 1800000 && hz7.on, `Kael 開回倉庫、扣 Zero 一成實得 $1,800,000 ${JSON.stringify({ h6: hz6, h7: hz7 })}`);
     await shot(page, 'd-heist');
     await nc(() => { document.getElementById('heistDone').classList.remove('on'); window.__nc.gta.god.on = false; });
@@ -407,6 +448,13 @@ async function desktop() {
     check(/看房/.test(sa1.c) && sa1.own && /進入/.test(sa1.c2), `安全屋：門口看房、買下後變成進入 ${JSON.stringify(sa1)}`);
     check(sa2.w === 'loft' && /睡一覺/.test(sa2.c) && sa2.st === '冠石頂層公寓', `進入冠石頂層公寓、沙發可以睡覺 ${JSON.stringify(sa2)}`);
     check(sa3.saved && sa3.atDoor && sa3.hp && /回到街上/.test(sa3.c) && sa4.w === 'out' && sa4.d < 3, `睡一覺存檔在門口、補滿生命，出門回到街上 ${JSON.stringify({ ...sa3, ...sa4 })}`);
+    // 在安全屋睡覺存的檔：出門後讀檔回到室內
+    await nc(() => window.__nc.gta.phone.load());
+    await page.waitForTimeout(1800);
+    const sa5 = await nc(() => ({ w: window.__nc.player.where, saved: window.__nc.motors.game.where }));
+    check(sa5.saved === 'loft' && sa5.w === 'loft', `安全屋存的檔讀回室內 ${JSON.stringify(sa5)}`);
+    await nc(() => window.__nc.exit());
+    await page.waitForTimeout(900);
 
     // 20×15 的新城區：走到最東南的錨灣港與西南的珊瑚灘，車流與路人要跟著過去、HUD 換區名
     const far = [];

@@ -8,7 +8,7 @@ const sellPrice = id => Math.round(CARS[id].price * .6 / 1000) * 1000;
 
 // ─── 車庫存檔：現金、擁有的車、各車塗裝、目前開在街上的那台 ───
 const MOTOR_KEY = 'nc260.motors';
-const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null };
+const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0 };
 try {
   const d = JSON.parse(localStorage.getItem(MOTOR_KEY) || 'null');
   if (d && typeof d === 'object') {
@@ -20,14 +20,18 @@ try {
     // 第 3 版：完成過的特技跳台（69-stunt.js）、股市（69-market.js 的 stkInit 再依代號補齊與檢查）、資產
     const num = (o, ok) => o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).filter(([, v]) => Number.isFinite(v) && ok(v))) : {};
     if (d.stk && typeof d.stk === 'object') motors.stk = { px: num(d.stk.px, v => v > 0 && v < 1e6), sh: num(d.stk.sh, v => v >= 0 && v < 1e9 && Number.isInteger(v)), cost: num(d.stk.cost, v => v >= 0 && v < 1e12) };
-    if (d.props && typeof d.props === 'object') motors.props = { own: Array.isArray(d.props.own) ? d.props.own.filter(s => typeof s === 'string') : [], safe: num(d.props.safe, v => v >= 0 && v < 1e9) };
+    if (d.props && typeof d.props === 'object') motors.props = { own: Array.isArray(d.props.own) ? d.props.own.filter(s => typeof s === 'string') : [], safe: num(d.props.safe, v => v >= 0 && v < 1e9), pause: num(d.props.pause, v => v > 0 && v < 1e14) };
+    // 第 4 版：上次存檔的時間（69-market.js 補算關著遊戲期間的股價與資產收入）、資產防守失敗的停業時間（props.pause）
+    if (Number.isFinite(d.ts) && d.ts > 0 && d.ts <= Date.now() + 6e4) motors.ts = d.ts;
     if (Array.isArray(d.stunts)) motors.stunts = d.stunts.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < RAMPS.length && a.indexOf(i) === k);
     // 第 2 版：手機快速存檔（69-phone.js）。舊存檔沒有這個欄位；讀檔時再逐項檢查範圍
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
   }
 } catch (e) { /* 私密視窗或封鎖儲存空間：用預設值 */ }
+const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 3, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props })); } catch (e) { /* 存不了就算了 */ }
+  motors.ts = Date.now();
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 4, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();

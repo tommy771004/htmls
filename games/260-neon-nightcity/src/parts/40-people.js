@@ -159,7 +159,7 @@ const charMat = () => new T.ShaderMaterial({
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27 };
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -174,6 +174,8 @@ const ACLIP = {
   // 69-combat.js：揮砍（近戰武器）、投降舉手、跪下雙手抱頭（被捕）、丟擲、持槍跑（警察）
   [ANIM.swing]: { c: 'Sword_Attack', once: 1, rate: 1.5 }, [ANIM.handsUp]: { c: 'Idle_Loop' }, [ANIM.kneel]: { c: 'Crouch_Idle_Loop' },
   [ANIM.throw]: { c: 'Punch_Cross', once: 1, rate: 1.2 }, [ANIM.aimRun]: { c: 'Jog_Fwd_Loop', rate: .93 },
+  // 69-combat.js：開車時把手伸出車窗開槍（坐姿沿用開車動畫）
+  [ANIM.driveBy]: { c: 'Driving_Loop' },
 };
 const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
@@ -196,9 +198,22 @@ function aim(p, name, x, y, z, w = 1) {
 }
 function aimArms(p) {
   const k = p.aimK ?? 1, P = p.aimP ?? 0, sy = Math.sin(P), cz = Math.cos(P);
+  // 重型武器（68-gta.js 設定 p.heavy）：轉管機槍抱在腰間，右手握後把、左手托槍管；火箭筒扛在右肩，左手往前扶住筒身
+  if (p.heavy === 'hip') {   // 方向是兩節骨 IK 對著握把（腰間）與提把解出來的
+    aim(p, 'upperarm_r', -.23, -.82, .52, k); aim(p, 'lowerarm_r', .59, sy * .6 - .35, .73, k);
+    aim(p, 'upperarm_l', -.46, -.58, .67, k); aim(p, 'lowerarm_l', -.58, sy * .6 - .39, .71, k);
+    return;
+  }
+  if (p.heavy === 'shoulder') {
+    aim(p, 'upperarm_r', -.62, -.43, .66, k); aim(p, 'lowerarm_r', .74, .39 + sy * .6, .55, k);
+    aim(p, 'upperarm_l', -.63, sy * .5, .77, k); aim(p, 'lowerarm_l', -.66, .11 + sy * .6, .74, k);
+    return;
+  }
   aim(p, 'upperarm_r', -.1, sy, cz, k); aim(p, 'lowerarm_r', -.02, sy, cz, k);
   aim(p, 'upperarm_l', -.42, sy - .32, .85, k); aim(p, 'lowerarm_l', -.8, sy * .6 + .05, .6, k);
 }
+// 車內射擊：右臂整隻沿瞄準方向伸直（p.dbDir 是角色空間的方向，69-combat.js 的 driveByPlace 每幀設定）
+function driveByArm(p) { const [x, y, z] = p.dbDir; aim(p, 'upperarm_r', x, y + .4, z); aim(p, 'lowerarm_r', x, y + .08, z); }   // 上臂往上抬，從窗框上伸出去
 const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const frac = x => x - Math.floor(x);
 // 動畫庫沒有的動作：t 是相位時間、b 是拍點
@@ -232,6 +247,12 @@ const OVR = {
     aim(p, 'spine_01', 0, .82, .55); aim(p, 'neck_01', 0, .9, .45);
     aim(p, 'upperarm_l', .3, -.3, .9); aim(p, 'upperarm_r', -.3, -.3, .9);
     aim(p, 'lowerarm_l', -.05, -.45, 1); aim(p, 'lowerarm_r', .05, -.45, 1);
+    if (p.dbDir) driveByArm(p);
+  },
+  // 車內射擊：腿往前伸平（收在儀表板下，免得腳從車底露出來）
+  [ANIM.driveBy]: p => {
+    aim(p, 'thigh_l', .05, -.12, 1); aim(p, 'thigh_r', -.05, -.12, 1); aim(p, 'calf_l', 0, -.25, 1); aim(p, 'calf_r', 0, -.25, 1);
+    if (p.dbDir) driveByArm(p);
   },
   [ANIM.danceB]: (p, t, b) => {
     const k = .3 * Math.sin(b * Math.PI * 2);

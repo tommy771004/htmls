@@ -3,12 +3,14 @@
 //   plan  Vance 公寓門口的計畫板付 $10,000 籌備費，選潛行（贓款上限 $2,000,000）或強攻（$2,500,000）
 //   setup 前置：偷舊碼頭路邊的黑色鑽機廂型車（上車即 2 星），甩掉警察後開回 Jax 的舊碼頭倉庫（安全屋）
 //   go    到 10 St 的中央霓虹銀行門口按 E，換成 Vance 進大廳
-//   lobby 大廳：8 名人質，威懾條每秒掉 7%，瞄準時回升、開槍大幅回升；掉到 0 行員按警報（潛行就變強攻）。15 秒後 Jax 裝好 C4
+//   lobby 大廳：8 名人質（第 8 位是警衛），威懾條每秒掉 7%，瞄準時回升、開槍大幅回升；掉到 0 行員按警報（潛行就變強攻）。
+//         威懾低於 40% 時人質會一個個往門口跑（跑到門口就報警；瞄準他或 Kael 喝住才停），低於 25% 警衛 2 秒後拔槍反抗。
+//         打死人質扣贓款 $40,000。Jax 蹲在金庫門口裝 C4（15 秒），Kael 守著大門用步槍指著人質
 //   c4    按 G 引爆金庫門
 //   drill 走到金庫門口按 E 裝鋁熱鑽機：潛行而且沒有警報就留在大廳顧人質 40 秒；
 //         強攻（或已經響警報）換成 Jax 到銀行門口，4 星守 60 秒
-//   escape 換成背著錢袋的 Vance 從正門出來（強攻 5 星、潛行 2 星），走到 120 m 外的逃亡車；每受 10 點傷害掉 $15,000
-//   drive 上逃亡車後換成 Kael 駕駛，甩掉通緝、開進安全屋的黃圈 → HEIST PASSED：扣掉中彈損失與 Zero 10% 抽成後入帳
+//   escape 換成背著錢袋的 Vance 從正門出來（強攻 5 星、潛行 2 星），Jax 與 Kael 跟著掩護（69-squads.js），走到 120 m 外的逃亡車；每受 10 點傷害掉 $15,000
+//   drive 上逃亡車後換成 Kael 駕駛，Vance 與 Jax 從車窗打警車；甩掉通緝、開進安全屋的黃圈 → HEIST PASSED：扣掉中彈損失與 Zero 10% 抽成後入帳
 // 任何階段 WASTED／BUSTED 就失敗，回到 go（籌備與前置保留）。
 // 排在 69-gps 之後、69-market 之前；W、wantedApi 等後面的東西只在函式裡用。
 
@@ -57,10 +59,102 @@ let vaultDoor = null;
   bank.boxes.push({ x0: -1.6, x1: 1.6, z0: 19.6, z1: 20.1, door: 1 });
 }
 const hostages = crowd(8);
+const GUARD = 7, BANK_DOOR_Z = 1.2;
+const hostSt = [];   // { x, z, x0, z0, yaw0, st: 'down'|'run'|'out'|'dead'|'arm', t, c: 碰撞圓, kael: Kael 會不會喝住 }
 {
   const rc = rng(2024), spots = [[-6, 7], [-3.5, 6], [-1, 8], [2, 6.5], [4.5, 8], [6.5, 6], [-4.5, 10], [3.5, 10.5]];
-  spots.forEach(([x, z], k) => { hostages.look(k, { r: rc, glowI: 0 }); hostages.place(k, x, 0, z, Math.PI + (rc() - .5)); hostages.anim(k, ANIM.idle, rc() * 10, 1); bank.circles.push({ x, z, r: .35 }); });
+  spots.forEach(([x, z], k) => {
+    hostages.look(k, k === GUARD ? { r: rc, female: false, top: lin(0x2a3346), bot: lin(0x1a1e28), coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0] } : { r: rc, glowI: 0 });
+    const yaw0 = Math.PI + (rc() - .5), c = { x, z, r: .35 };
+    hostages.place(k, x, 0, z, yaw0); hostages.anim(k, ANIM.idle, rc() * 10, 1); bank.circles.push(c);
+    hostSt.push({ x, z, x0: x, z0: z, yaw0, st: 'down', t: 0, c, kael: false });
+  });
   hostages.flush(); bankScene.add(hostages.mesh);
+}
+// 大廳裡的 Jax（金庫門口）與 Kael（大門），手上的槍另外放進銀行場景
+const bankCrew = crowd(2);
+bankScene.add(bankCrew.mesh);
+bankCrew.look(0, { r: rng(33), ...CREW[2].look }); bankCrew.look(1, { r: rng(32), ...CREW[1].look });
+const bankGuns = [wModel('rifle'), wModel('smg'), wModel('pistol')];   // Jax、Kael、警衛
+for (const h of bankGuns) { scene.remove(h); bankScene.add(h); }
+const guard = { t: 0, shotT: 1.2 };
+function hostReset() {
+  hostSt.forEach((h, k) => { h.x = h.c.x = h.x0; h.z = h.c.z = h.z0; h.c.r = .35; h.st = 'down'; h.t = 0; hostages.place(k, h.x, 0, h.z, h.yaw0); hostages.anim(k, ANIM.kneel, k * 1.3, 1); });
+  heist.runT = 4; guard.t = 0; guard.shotT = 1.2;
+}
+// 69-combat.js 的 shoot()：銀行裡的子彈只算人質（打死要扣錢；跑的人、拔槍的警衛打倒就停）
+function bankShot(R, dmg) {
+  let best = -1, bt = 40;
+  hostSt.forEach((h, k) => { if (h.st === 'out' || h.st === 'dead') return; const t = rayCyl(R, h.x, h.z, .34, .1, h.st === 'down' ? 1.2 : 1.95); if (t < bt) { bt = t; best = k; } });
+  if (best < 0) return;
+  hostDie(best, R.dx, R.dz);
+}
+function hostDie(k, fx = 0, fz = 1) {
+  const h = hostSt[k];
+  const inno = k !== GUARD || h.st !== 'arm';
+  h.st = 'dead'; h.c.r = 0;
+  hostages.place(k, h.x, 0, h.z, Math.atan2(-fx, -fz)); hostages.anim(k, ANIM.die, -uTimeNow(), 1);
+  heist.intim = Math.min(100, heist.intim + 25);
+  if (inno) { heist.loss += 40000; toast('打死了人質：贓款要扣 $40,000'); }
+  else toast('警衛倒下了');
+}
+// 威懾低就有人往門口跑；警衛拔槍。gta.aiming 時看準星指著誰
+function hostStep(dt) {
+  const s = heist.st, low = heist.intim < 40 && !heist.alarm;
+  const R = gta.aiming ? aimRay() : null;
+  const aimed = k => { if (!R) return false; const h = hostSt[k]; return rayCyl(R, h.x, h.z, .4, .1, 1.95) < 30; };
+  if (low && !hostSt.some(h => h.st === 'run') && (heist.runT -= dt) <= 0) {
+    const c = hostSt.map((h, k) => k).filter(k => k !== GUARD && hostSt[k].st === 'down');
+    if (c.length) { const k = c[Math.floor(Math.random() * c.length)], h = hostSt[k]; h.st = 'run'; h.t = 0; h.c.r = 0; h.kael = Math.random() < .4; toast('有個人質往門口跑了：瞄準他'); }
+    heist.runT = 6 + Math.random() * 4;
+  }
+  hostSt.forEach((h, k) => {
+    if (h.st === 'run') {
+      h.t += dt;
+      if (aimed(k) || h.kael && h.t > 1.1) { h.st = 'down'; h.c.x = h.x; h.c.z = h.z; h.c.r = .35; heist.intim = Math.min(100, heist.intim + 12); toast(aimed(k) ? '人質又趴回去了' : 'Kael：趴下！'); return; }
+      const dx = 0 - h.x, dz = BANK_DOOR_Z - .6 - h.z, d = Math.hypot(dx, dz) || 1;
+      const r = collideCircle(h.x + dx / d * 2.8 * dt, h.z + dz / d * 2.8 * dt, .3, false); h.x = r.x; h.z = r.z;
+      hostages.place(k, h.x, 0, h.z, Math.atan2(dx, dz)); hostages.anim(k, ANIM.run, h.t, 1.1);
+      if (h.z < BANK_DOOR_Z) { h.st = 'out'; hostages.place(k, 0, -60, 0, 0); heistAlarm('人質跑出去報警了'); }
+      return;
+    }
+    if (h.st === 'down') hostages.anim(k, heist.intim > 40 || k % 3 ? ANIM.kneel : ANIM.idle, k * 1.3, 1);
+  });
+  // 警衛：威懾低於 25% 超過 2 秒就站起來拔槍，每 1.2 秒朝你開一槍；Kael 3 秒後會開槍放倒他
+  const g = hostSt[GUARD];
+  if (g.st === 'down') { guard.t = heist.intim < 25 ? guard.t + dt : 0; if (guard.t > 2) { g.st = 'arm'; guard.t = 0; g.c.r = .35; toast('警衛拔槍了'); } }
+  else if (g.st === 'arm') {
+    guard.t += dt;
+    const p = hostages.people[GUARD];
+    hostages.place(GUARD, g.x, 0, g.z, Math.atan2(player.x - g.x, player.z - g.z));
+    p.aimK = 1; p.aimP = 0; hostages.anim(GUARD, ANIM.aimIdle, 0, 1);
+    if ((guard.shotT -= dt) <= 0 && !life.dead) { guard.shotT = 1.2 + Math.random() * .5; npcShoot(g.x, 1.4, g.z, .4, 9, 1, 'npc'); }
+    if (guard.t > 3) { sfx.gun(.7, 1.3); hostDie(GUARD, g.x - 1.2, g.z - 2.2); }
+  }
+}
+function heistAlarm(why) {
+  if (heist.alarm) return;
+  heist.alarm = true; sfx.busted(); toast(why);
+  if (heist.st === 'drill' && heist.drilling) holdStart();
+}
+// 大廳的 Jax 與 Kael：C4 階段 Jax 蹲在金庫門口，之後站開；Kael 一直守著大門
+function bankCrewStep() {
+  const s = heist.st, lobby = s === 'lobby' || s === 'c4' || s === 'drill';
+  if (!lobby) { bankCrew.place(0, 0, -60, 0, 0); bankCrew.place(1, 0, -60, 0, 0); return; }
+  const jx = s === 'lobby' ? .7 : -2.6, jz = s === 'lobby' ? 18.9 : 17.2;
+  bankCrew.place(0, jx, 0, jz, s === 'lobby' ? 0 : Math.PI * .8);
+  bankCrew.anim(0, s === 'lobby' ? ANIM.crouch : ANIM.aimIdle, 0, 1);
+  const kp = bankCrew.people[1], run = hostSt.find(h => h.st === 'run'), gd = hostSt[GUARD], look = gd.st === 'arm' ? gd : run || { x: 0, z: 8 };
+  bankCrew.place(1, 1.3, 0, 2.4, Math.atan2(look.x - 1.3, look.z - 2.4));
+  kp.aimK = 1; kp.aimP = -.08; bankCrew.anim(1, ANIM.aimIdle, 0, 1);
+  bankCrew.people[0].aimK = s === 'lobby' ? 0 : .6; bankCrew.people[0].aimP = -.2;
+}
+// 68-gta.js 的 gtaLate：大廳裡的槍擺到手上
+function bankGunsLate() {
+  const inBank = player.where === 'bank';
+  const on = [inBank && bankCrew.people[0].y > -1, inBank && bankCrew.people[1].y > -1, inBank && hostSt[GUARD].st === 'arm'];
+  const who = [bankCrew.people[0], bankCrew.people[1], hostages.people[GUARD]], arms = [ARMS.rifle, ARMS.smg, ARMS.pistol];
+  bankGuns.forEach((h, i) => { if (on[i] && who[i].rig) holdAt(h, who[i], arms[i]); else h.visible = false; });
 }
 VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, name: '中央霓虹銀行', toast: '中央霓虹銀行', dist: '中城 · 10 St', ceil: 5.2, door: { x: BANK.x, z: BANK.z }, out: { x: BANK.x, z: BANK.z + 1.4, yaw: 0 } };
 
@@ -95,7 +189,7 @@ function heistMark() {
   return null;
 }
 // 90-hud.js 與 69-gps.js 用這個取代 QUEST[quest.n].mk()
-function missionMark() { return heist.st !== 'off' && heist.st !== 'plan' ? heistMark() : QUEST[quest.n].mk(); }
+function missionMark() { return heist.st !== 'off' && heist.st !== 'plan' ? heistMark() : SQ.def ? defMark() : QUEST[quest.n].mk(); }   // 資產防守在 69-squads.js
 const HEIST_TEXT = {
   setup: () => heist.van && player.veh === heist.van ? '把鑽機廂型車開回舊碼頭倉庫' + (W.stars ? '（先甩掉警察）' : '') : '前置：偷走舊碼頭的鑽機廂型車',
   go: () => '到中央霓虹銀行門口',
@@ -131,6 +225,7 @@ function heistStage(s, t = 0) {
   else if (heist.objSmall) { $('obj').querySelector('small').innerHTML = heist.objSmall; heist.objSmall = ''; setText('objText', QUEST[quest.n].text); }
   const o = $('obj'); o.classList.remove('flash'); void o.offsetWidth; o.classList.add('flash');
   gps.t = 0;
+  squadHeist(s);   // 69-squads.js：逃出銀行時隊友跟上、上車後從車窗開火
 }
 
 // ─── 計畫板與各階段的互動 ───
@@ -148,6 +243,7 @@ ctxHooks.push((p, near) => {
 function planBoard() {
   const who = 'Vance 的計畫板';
   if (W.stars) return dialog(who, '外面還有警察在找你，先處理掉再來。');
+  if (SQ.def) return dialog(who, `${SQ.def.name}被盯上了，先去處理。`);
   dialog(who, `中央霓虹銀行，10 St。金庫裡的現金最多兩百五十萬。籌備費 ${money(HEIST_FEE)}，Zero 抽一成。\n潛行：壓住人質不讓警報響，出來只有 2 星，但上限兩百萬。\n強攻：炸門、守門口、5 星突圍，上限兩百五十萬。`, [
     { t: `潛行（${money(HEIST_FEE)}）`, fn: () => planGo('smart') },
     { t: `強攻（${money(HEIST_FEE)}）`, fn: () => planGo('loud') },
@@ -185,6 +281,7 @@ function bankEnter() {
     const sp = VENUES.bank.spawn; player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.pitch = .12;
     arm.ammo.pistol.mag = ARMS.pistol.mag; equip('pistol', true);
     heist.intim = 100; heist.mag = arm.ammo.pistol.mag; vaultDoor.rotation.y = 0; vaultDoor.userData.open = 0;
+    hostReset();
     const b = bank.boxes.find(o => o.door); b.x0 = -1.6; b.x1 = 1.6;
     heistStage('lobby', 15);
     toast('所有人趴下！');
@@ -274,7 +371,7 @@ function heistUpdate(dt) {
     const v = heist.van;
     if (!v || v.dead) { toast('鑽機廂型車毀了，換一台'); spawnVan(); }
     else if (player.veh === v) {
-      if (!heist.vanHot) { heist.vanHot = true; wantedApi.set(2); toast('有人報警了：甩掉 2 星，再開回倉庫'); }
+      if (!heist.vanHot) { heist.vanHot = true; wantedApi.set(2); toast('有人報警了：甩掉 2 星，再開回倉庫'); setTimeout(() => { if (heist.st === 'setup') gangChase('van'); }, 4000); }
       if (Math.hypot(v.x - SAFE.x, v.z - SAFE.z) < 7) {
         if (W.stars) { if (!heist.warned) { heist.warned = 1; toast('先甩掉警察，別把他們帶回倉庫'); } }
         else if (Math.hypot(v.vx, v.vz) < 3) { exitVehicle(); dropVehicle(v); heist.van = null; heistStage('go'); toast('鑽機到手：去中央霓虹銀行'); }
@@ -287,9 +384,10 @@ function heistUpdate(dt) {
     if (a && mag < heist.mag && ARMS[arm.sel].gun) heist.intim += 35;
     heist.mag = mag;
     heist.intim = clamp(heist.intim + (gta.aiming ? 28 : -7) * dt, 0, 100);
-    if (heist.intim <= 0 && !heist.alarm) { heist.alarm = true; sfx.busted(); toast('有行員按下了桌底警報'); if (s === 'drill' && heist.drilling) holdStart(); }
-    hostages.people.forEach((p, k) => hostages.anim(k, heist.intim > 40 || k % 3 ? ANIM.kneel : ANIM.idle, k * 1.3, 1));
+    if (heist.intim <= 0) heistAlarm('有行員按下了桌底警報');
+    hostStep(dt);
   }
+  bankCrewStep();
   if (s === 'lobby' && (heist.t -= dt) <= 0) { heistStage('c4'); toast('Jax：C4 裝好了，按 G'); }
   if (s === 'drill' && heist.drilling && (heist.t -= dt) <= 0) escapeStart();
   if (s === 'escape') {
@@ -310,4 +408,4 @@ function heistUpdate(dt) {
 }
 
 // 測試 API（window.__nc.gta.heist）
-const heistApi = { heist, BANK, PLAN, SAFE, VAN_AT, CAR_AT, go: planGo, stage: heistStage, enter: bankEnter, blow: blowVault, drill: drillStart, escape: escapeStart, getaway: getawayEnter, pass: heistPass };
+const heistApi = { heist, hostSt, BANK, PLAN, SAFE, VAN_AT, CAR_AT, run: (k, kael = false) => { const h = hostSt[k]; h.st = 'run'; h.t = 0; h.c.r = 0; h.kael = kael; }, go: planGo, stage: heistStage, enter: bankEnter, blow: blowVault, drill: drillStart, escape: escapeStart, getaway: getawayEnter, pass: heistPass };

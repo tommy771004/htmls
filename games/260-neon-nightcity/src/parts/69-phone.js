@@ -2,11 +2,12 @@
 // 第四階段加上霓虹證交所（股票清單→個股買賣）與天際置業（買資產、收保險箱），資料與規則在 69-market.js。
 // 清單式介面（不是圖示九宮格），數字鍵選列、Esc／Backspace 返回。方向鍵在這個遊戲是開車與走路，所以不拿來操作手機。
 // 聯絡人：駭客 Zero（消星 $500×星數²、冷卻 180 秒；雷達隱形 60 秒 $1,500，期間路人不報警）、
-// 技工鐵手（把座駕送到身後 30 公尺的路上，免費、冷卻 60 秒）、鐵幕保全（空投彈藥箱 $1,200：全部彈藥補滿＋護甲）。
+// 技工鐵手（把座駕送到身後 30 公尺的路上，免費、冷卻 60 秒）、鐵幕保全（空投彈藥箱 $1,200：全部彈藥補滿＋護甲；
+// 傭兵小隊 $3,000：四人跟著你 3 分鐘，冷卻 4 分鐘，69-squads.js）。
 // 冷卻與倒數都用真實時間（slowmo.raw）。快速存檔寫進 65-motors.js 的同一個存檔（nc260.motors 的 game 欄位）。
 // 排在 69-gps 之後、69-police 之前：W、wantedClear 只在函式裡用。
 
-const phone = { open: false, scr: 'home', who: 0, cd: { wipe: 0, ghost: 0, mech: 0, drop: 0 }, ghostT: 0, crates: [], msg: '', t: 0, html: '' };
+const phone = { open: false, scr: 'home', who: 0, cd: { wipe: 0, ghost: 0, mech: 0, drop: 0, merc: 0 }, ghostT: 0, crates: [], msg: '', t: 0, html: '' };
 const PH_SHOP = { pistol: 300, stun: 200, smg: 600, rifle: 900, shotgun: 500, sniper: 1200, rpg: 2500, minigun: 3000 };
 const PH_ARMOR = 500, PH_THROW = 1500, PH_TRUCK = 1000, PH_GHOST = 1500, PH_DROP = 1200;
 const wipeCost = () => 500 * W.stars * W.stars;
@@ -32,6 +33,7 @@ const CONTACTS = [
   ] },
   { name: '鐵幕保全', role: '傭兵', rows: () => [
     { t: '空投彈藥箱', sub: phone.cd.drop > 0 ? `準備中 · ${secs(phone.cd.drop)}` : '投在前方路上：彈藥全滿＋防彈衣', val: money(PH_DROP), ok: phone.cd.drop <= 0 && !phone.crates.length, fn: mercDrop },
+    { t: '傭兵小隊（3 分鐘）', sub: SQ.merc ? `跟著你 · 合約剩 ${secs(Math.max(0, SQ.merc.t))}` : phone.cd.merc > 0 ? `下一組人 · ${secs(phone.cd.merc)}` : '四名傭兵開皮卡過來掩護你，你上車他們跟車', val: money(MERC_FEE), ok: !SQ.merc && phone.cd.merc <= 0, fn: mercCall },
   ] },
 ];
 function zeroWipe() {
@@ -116,15 +118,18 @@ function shopRows() {
   return rows;
 }
 
-// ─── 快速存檔：現金與車庫本來就即時存；這裡多存主角、任務、彈藥與位置 ───
-// at：安全屋睡覺時存在門口（69-safehouse.js），人在室內也能存。回傳有沒有存成
+// ─── 快速存檔：現金與車庫本來就即時存；這裡多存主角、任務、彈藥、位置、正在開的車（veh）與所在的安全屋（where） ───
+// at：安全屋睡覺時存在門口（69-safehouse.js），人在室內也能存，讀檔時回到那間屋子裡。回傳有沒有存成
 function quickSave(at) {
   if (heist.st !== 'off' && heist.st !== 'plan') { phoneMsg('搶劫進行中不能存檔。'); return false; }
   if (!at && player.where !== 'out' || W.stars || crew.sw || life.dead) { phoneMsg(W.stars ? '通緝中不能存檔。' : '要在戶外才能存檔。'); return false; }
   crewSave();
-  const pos = at || (player.mode === 'drive' ? player.veh : player);
+  const pos = at || (player.mode === 'drive' ? player.veh : player), v = !at && player.mode === 'drive' ? player.veh : null;
+  // 座駕：自己的車（own）、路邊的機車（bike），或搶來的車流車型（TYPES 的名稱與塗裝）
+  const vk = !v || v.dead ? null : v === kestrel ? 'own' : v === hanzo ? 'bike' : TYPES[v.type] && v.ins ? v.type : null;
   motors.game = {
     t: Date.now(), quest: quest.n, cur: crew.cur, min: clockSt.min,
+    veh: vk ? { k: vk, pal: vk === v.type ? v.ins.array[2] : 0 } : null, where: at && APT[player.where] ? player.where : null,
     st: crew.st.map((s, i) => ({ hp: Math.round(s.hp), armor: Math.round(s.armor), sp: Math.round(s.sp), x: +(i === crew.cur ? pos.x : s.x).toFixed(2), z: +(i === crew.cur ? pos.z : s.z).toFixed(2), yaw: +(i === crew.cur ? pos.yaw : s.yaw).toFixed(3) })),
     ammo: Object.fromEntries(ARM_IDS.filter(id => arm.ammo[id]).map(id => [id, [arm.ammo[id].mag, arm.ammo[id].res]])),
   };
@@ -135,16 +140,27 @@ function quickLoad() {
   const g = motors.game;
   if (!g) return;
   if (heist.st !== 'off' && heist.st !== 'plan') { phoneMsg('搶劫進行中不能讀檔。'); return; }
-  if (player.mode !== 'walk' || player.where !== 'out' || W.stars || crew.sw || life.dead || fading) { phoneMsg(W.stars ? '通緝中不能讀檔。' : '下車、在戶外才能讀檔。'); return; }
+  if (player.where !== 'out' || W.stars || crew.sw || life.dead || fading || motors.test) { phoneMsg(W.stars ? '通緝中不能讀檔。' : motors.test ? '試駕中不能讀檔。' : '在戶外才能讀檔。'); return; }
   closePhone();
   transition(() => {
     abilityOff();
+    if (player.mode === 'drive') exitVehicle();
+    squadClear();
     const f = (v, d) => Number.isFinite(v) ? v : d;
     g.st.forEach((s, i) => { const c = crew.st[i]; if (!c || !s) return; c.hp = clamp(f(s.hp, c.hp), 1, CREW[i].hp); c.armor = clamp(f(s.armor, c.armor), 0, 100); c.sp = clamp(f(s.sp, c.sp), 0, SP_MAX); c.x = clamp(f(s.x, c.x), avX(0) - HR, avX(NX) + HR); c.z = clamp(f(s.z, c.z), stZ(0) - HR, stZ(NZ) + HR); c.yaw = f(s.yaw, 0); c.where = 'out'; });
     for (const id in g.ammo) { const a = arm.ammo[id], A = ARMS[id]; if (!a || !Array.isArray(g.ammo[id])) continue; a.mag = clamp(g.ammo[id][0] | 0, 0, A.mag || A.n); a.res = clamp(g.ammo[id][1] | 0, 0, 9999); }
     if (QUEST[g.quest] && g.quest !== quest.n) setQuest(g.quest);
     if (Number.isFinite(g.min)) clockSt.min = clamp(g.min | 0, 0, 1439);
     crewApply(clamp(g.cur, 0, CREW.length - 1));
+    // 回到存檔時開的那台車上，或存檔的安全屋裡
+    const s = crew.st[crew.cur], vk = g.veh && g.veh.k;
+    if (vk === 'own' && !kestrel.dead) { motors.stowed = false; kestrel.g.visible = true; placeCarAt({ x: s.x, z: s.z, yaw: s.yaw }); enterVehicle(kestrel); }
+    else if (vk === 'bike' && !hanzo.dead) { hanzo.x = s.x; hanzo.z = s.z; hanzo.yaw = s.yaw; hanzo.vx = hanzo.vz = 0; hanzo.y = groundH(s.x, s.z); poseVehicle(hanzo); enterVehicle(hanzo); }
+    else if (vk && TYPES[vk] && !TYPES[vk].police) { const v = buildVeh(vk, s.x, s.z, s.yaw, 0, Math.random(), clamp(g.veh.pal | 0, 0, PAL.length)); v.y = groundH(v.x, v.z); jacked.push(v); poseVehicle(v); enterVehicle(v); }
+    if (g.where && APT[g.where] && estOwned(g.where)) {
+      aptLoad(g.where); setWhere(g.where);
+      const sp = VENUES[g.where].spawn; player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; player.v = 0; camState.yaw = sp.yaw; camState.pitch = .12;
+    }
     toast('已讀取快速存檔');
   });
 }
