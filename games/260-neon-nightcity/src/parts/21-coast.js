@@ -751,7 +751,7 @@ const FAR_SITES = {
   for (const [i, B] of BANK_WALKS.entries()) {
     const zn = zoneAtL((B.x0 + B.x1) / 2, (B.z0 + B.z1) / 2), k = new Kit(), out = B.back === 'x0' ? -1 : 1, bx = out < 0 ? B.x0 : B.x1, F = FERRY[i];
     const pv = new T.BoxGeometry(B.x1 - B.x0, .5, B.z1 - B.z0); pv.translate((B.x0 + B.x1) / 2, B.h - .25, (B.z0 + B.z1) / 2);
-    groundAdd(new T.Mesh(pv, groundMat(LAWN_FS, { uPath: { value: 1 } })), zn);
+    groundAdd(new T.Mesh(pv, MAT_WALK), zn);
     // 樓面：沿岸一段段 11–22 m 寬、9–21 m 高、8 m 深
     for (let z = B.z0 - 6; z < B.z1 + 6;) {
       const w = 11 + r3() * 11, z1 = Math.min(B.z1 + 6, z + w), d = z1 - z, h = 9 + Math.floor(r3() * 4) * 3.2, cz = (z + z1) / 2, col = COLS[Math.floor(r3() * COLS.length)];

@@ -642,6 +642,17 @@ async function desktop() {
       const ru = await nc(() => { const n = window.__nc, R = n.sea.sites.ruin, [x, z] = n.L(n.player.x, n.player.z); return { x: +(x - R.x).toFixed(1), z: +(z - R.z).toFixed(1), rects: n.sea.foot('ruin').length, office: n.sea.foot('office').length }; });
       check(ru.x < 17 && ru.rects > 50 && ru.office > 50, `從東面的缺口走進廢墟街區 ${JSON.stringify(ru)}`);
     }
+    // 對岸步道（10-city.js 的 BANK_WALKS）：站得上去、不會游泳；往樓那邊走被高牆擋住；渡口停著船
+    {
+      const fw = [];
+      for (const i of [0, 1]) {
+        await nc((i) => { const n = window.__nc, B = n.sea.walks[i]; n.walk(); n.tpL((B.x0 + B.x1) / 2, (B.z0 + B.z1) / 2 + 30, i ? Math.PI / 2 : -Math.PI / 2); }, i);
+        await page.waitForTimeout(300);
+        await page.keyboard.down('KeyW'); await page.waitForTimeout(3000); await page.keyboard.up('KeyW');
+        fw.push(await nc((i) => { const n = window.__nc, B = n.sea.walks[i], p = n.player, [x] = n.L(p.x, p.z); return { swim: !!p.swim, y: +p.y.toFixed(2), inside: x >= B.x0 - .1 && x <= B.x1 + .1, boat: n.boat.list().some(b => b.where === n.sea.ferry[i].name) }; }, i));
+      }
+      check(fw.every(f => !f.swim && f.y > .1 && f.inside && f.boat), `對岸步道走得上去、靠樓那側擋住、渡口有船 ${JSON.stringify(fw)}`);
+    }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {
       const b0 = await nc(() => { const n = window.__nc, b = n.boat; n.time(780); const name = b.board(0), v = n.player.veh; return { name, boat: !!(v && v.boat), x: v.x, z: v.z, n: b.boats.length }; });

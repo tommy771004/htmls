@@ -59,8 +59,8 @@ const FAR_BANK_X = CITY_X0 - OUT_D - 300, EAST_BANK_X = CITY_X1 + OUT_D + 300;
 // 對岸的濱水步道：灰鷺河對岸（A 區，London City 模型前）與東灣對岸（C 區，舊港城模型前）各一條 20 m 寬，中間一座渡船碼頭。
 // back 那一邊靠著遠景模型，不做低擋牆，換成一道高牆（21-coast.js 在那裡蓋一排近景的樓面）
 const BANK_WALKS = [
-  { x0: FAR_BANK_X - 20, x1: FAR_BANK_X, z0: CITY_Z0 - 60, z1: stZ(7) - 30, h: .15, back: 'x0', name: '鷺岸步道' },
-  { x0: EAST_BANK_X, x1: EAST_BANK_X + 20, z0: stZ(7) + 30, z1: CITY_CZ + 180, h: .15, back: 'x1', name: '舊港步道' },
+  { x0: FAR_BANK_X - 20, x1: FAR_BANK_X, z0: CITY_Z0 - 60, z1: stZ(7) - 30, h: .15, back: 'x0', name: '鷺岸步道', en: 'Heron Quay' },
+  { x0: EAST_BANK_X, x1: EAST_BANK_X + 20, z0: stZ(7) + 30, z1: CITY_CZ + 180, h: .15, back: 'x1', name: '舊港步道', en: 'Old Harbour Quay' },
 ];
 const FERRY = BANK_WALKS.map((B, i) => { const zc = Math.round((B.z0 + B.z1) / 2); return i ? { x0: B.x0 - 30, x1: B.x0, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '舊港渡口' } : { x0: B.x1, x1: B.x1 + 30, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '鷺岸渡口' }; });
 const LANDS = [{ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: -1e5, z1: SHORE_Z }, BEACH, QUAY, BRIDGE, ISLE, ...PIERS, ...BANK_WALKS, ...FERRY];
@@ -127,6 +127,7 @@ const district = (x, z) => {
     if (z > QUAY.z1 && x > BRIDGE.x0 - 30 && x < BRIDGE.x1 + 30) return '灰鷗大橋 Gullwing Bridge';
     return x < BEACH_X1 ? '珊瑚灘 Coral Beach' : '錨灣港 Anchor Bay';
   }
+  for (const B of [...BANK_WALKS, ...FERRY]) if (x >= B.x0 - 2 && x <= B.x1 + 2 && z >= B.z0 - 2 && z <= B.z1 + 2) return `${B.name} ${B.en || (B.x0 < CITY_X0 ? 'Heron Ferry' : 'Old Harbour Ferry')}`;
   if (x < CITY_X0) return '灰鷺河濱 Heron Riverside';
   if (i < 0 || i > NX || j < 0 || j > NZ) return '城郊 Outskirts';
   if (i >= 8 || j >= 7) { for (const d of DISTRICTS) if (i >= d.i0 && i <= d.i1 && j >= d.j0 && j <= d.j1) return d.name; return '城郊 Outskirts'; }
