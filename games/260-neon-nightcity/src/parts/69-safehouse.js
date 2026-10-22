@@ -95,7 +95,7 @@ for (const id of APT_IDS) {
     k.box(x, 1.2, z - .1 * f, 1.6, 2.4, .2, 0x1c1a18, 10).box(x, 2.62, z - .05 * f, 1.9, .26, .1, SIGN[id], 11);
     if (id === 'office') colliders.push({ x0: x - 1, x1: x + 1, z0: z, z1: z + .3 });   // 島上的門前沒有人行道，門板本身要擋住
   }
-  cityAdd(new T.Mesh(k.build(), MAT.uber));
+  cityAddAny(new T.Mesh(k.build(), MAT.uber));   // 六扇門分在不同的區
 }
 // 下載室內模型，換掉程式建模的房間
 function aptLoad(id) {

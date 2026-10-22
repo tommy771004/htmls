@@ -96,7 +96,7 @@ function hmFlush() {
   U.uHM.value.w = HM.max + 1;
 }
 {
-  for (const L of lots) if (!L.glb) hmRectL(L.x0, L.x1, L.z0, L.z1, L.h);
+  for (const L of lots) if (!L.glb) hmRectL(L.x0, L.x1, L.z0, L.z1, L.h, false, L.zn);
   for (const b of bldPlace) { const it = PROPS_SPEC[b.set]?.items[b.id]; if (!it) continue; const [w, d] = hmFoot(b, it); hmRectL(b.x - w / 2, b.x + w / 2, b.z - d / 2, b.z + d / 2, b.h); }
   for (const [id, s] of Object.entries(ISLE_SITES)) { const it = PROPS_SPEC['isle_' + id]?.items[id]; hmRectL(s.x - s.w * .42, s.x + s.w * .42, s.z - s.d * .42, s.z + s.d * .42, it ? it.h : 12); }
   hmRectL(LIGHTHOUSE.x - 4, LIGHTHOUSE.x + 4, LIGHTHOUSE.z - 4, LIGHTHOUSE.z + 4, 36);

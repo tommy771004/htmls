@@ -26,12 +26,14 @@ try {
     if (Array.isArray(d.stunts)) motors.stunts = d.stunts.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < RAMPS.length && a.indexOf(i) === k);
     // 第 2 版：手機快速存檔（69-phone.js）。舊存檔沒有這個欄位；讀檔時再逐項檢查範圍
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
+    // 第 5 版：城市切成三區（05-zones.js）之後存的是世界座標；之前的存檔是方格座標（那時兩者一樣），讀進來換一次
+    if (motors.game && !(d.v >= 5)) for (const s of motors.game.st) if (s && Number.isFinite(s.x) && Number.isFinite(s.z)) Object.assign(s, spotW({ x: s.x, z: s.z, yaw: Number.isFinite(s.yaw) ? s.yaw : 0 }));
   }
 } catch (e) { /* 私密視窗或封鎖儲存空間：用預設值 */ }
 const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
   motors.ts = Date.now();
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 4, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props })); } catch (e) { /* 存不了就算了 */ }
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 5, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();

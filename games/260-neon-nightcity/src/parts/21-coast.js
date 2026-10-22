@@ -84,15 +84,13 @@ void main(){
 const groundMat = (fs, u = {}) => new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...u }, vertexShader: GROUND_VS, fragmentShader: fs });
 const MAT_WATER = groundMat(WATER_FS), MAT_PLANK = groundMat(PLANK_FS);
 {
-  const W0 = CITY_X0 - OUT_D, W1 = CITY_X1 + OUT_D, FAR_X0 = W0 - 300, BIG = 5200, N = CITY_Z0 - 650;
-  const rects = [
-    [FAR_X0, W0, N, SHORE_Z],                   // 灰鷺河
-    [FAR_X0 - BIG, W1 + BIG, SHORE_Z, SHORE_Z + BIG],   // 南面的海
-    [W1, W1 + BIG, N - BIG, SHORE_Z],           // 東面的海灣
-  ];
-  const gs = rects.map(([x0, x1, z0, z1]) => { const g = new T.PlaneGeometry(x1 - x0, z1 - z0); g.rotateX(-Math.PI / 2); g.translate((x0 + x1) / 2, SEA_Y, (z0 + z1) / 2); return g; });
-  const water = new T.Mesh(mergeGeometries(gs), MAT_WATER); water.frustumCulled = false; groundAdd(water);
+  // 灰鷺河、南面的海、東面的海灣：一整張世界座標的水面（各區轉過、拉開之後，岸線與區之間的縫都還在水上；陸地蓋在上面）。
+  // 最後才畫，被陸地擋住的部分不必算
+  const g = new T.PlaneGeometry(14000, 14000); g.rotateX(-Math.PI / 2); g.translate(CITY_CX, SEA_Y, CITY_CZ + 3000);
+  const water = new T.Mesh(g, MAT_WATER); water.frustumCulled = false; water.renderOrder = 1; groundAdd(water, null);
 }
+// 河對岸、北面的山與外海的小島（還有對岸的 London City 模型，27-props.js）跟著 A 區：和舊城那段河岸對齊，C 區轉過之後河面變寬一點
+const FAR_ZN = ZONES[0];
 // 沙灘：沿 z 切 40 段，高度和 groundH 一樣（往海裡再多延伸一段，讓水面切出岸線）
 {
   const L = BEACH.len + 30, g = new T.PlaneGeometry(BEACH.x1 - BEACH.x0, L, 1, 40); g.rotateX(-Math.PI / 2);
@@ -115,35 +113,69 @@ const MAT_WATER = groundMat(WATER_FS), MAT_PLANK = groundMat(PLANK_FS);
 const coastLights = [];   // 也放進 signLights（60-venues 會複製成 outLights）
 const coastLight = (x, y, z, col, r, i) => { const l = { x, y, z, col: lin(col), r, i }; signLights.push(l); coastLights.push(l); return l; };
 {
-  const k = new Kit(), posts = [];
-  for (const b of colliders) {
-    if (!b.low) continue;
-    // 擋牆貼著地的那一面：外側 0.6 m 是陸地的那一邊
-    const sides = [['z0', (b.x0 + b.x1) / 2, b.z0 - .6], ['z1', (b.x0 + b.x1) / 2, b.z1 + .6], ['x0', b.x0 - .6, (b.z0 + b.z1) / 2], ['x1', b.x1 + .6, (b.z0 + b.z1) / 2]];
-    const s = sides.find(([, x, z]) => inLand(x, z));
-    if (!s) continue;
-    const [f, lx, lz] = s, h = groundHL(lx, lz);
-    const onBridge = lx >= BRIDGE.x0 && lx <= BRIDGE.x1 && lz >= BRIDGE.z0 && lz <= BRIDGE.z1;
-    if (h < .1 && !onBridge) continue;   // 沙灘、碼頭邊、島的岩岸不裝欄杆
-    const alongX = f === 'z0' || f === 'z1', y0 = Math.max(h, 0);
-    const ex = f === 'x0' ? b.x0 - .15 : f === 'x1' ? b.x1 + .15 : 0, ez = f === 'z0' ? b.z0 - .15 : f === 'z1' ? b.z1 + .15 : 0;
-    const a0 = alongX ? b.x0 + 1 : b.z0 + 1, a1 = alongX ? b.x1 - 1 : b.z1 - 1, len = a1 - a0;
-    if (len < 1) continue;
-    const mid = (a0 + a1) / 2;
-    if (alongX) k.box(mid, y0 + 1.05, ez, len, .07, .07, 0x2c3036, 15).box(mid, y0 + .55, ez, len, .04, .04, 0x2c3036, 15);
-    else k.box(ex, y0 + 1.05, mid, .07, .07, len, 0x2c3036, 15).box(ex, y0 + .55, mid, .04, .04, len, 0x2c3036, 15);
-    for (let a = a0; a <= a1; a += 2.4) posts.push(alongX ? { x: a, y: y0, z: ez } : { x: ex, y: y0, z: a });
-    // 步道路燈：每 30 m 一盞，暖白
-    if (h > .1 && !onBridge) for (let a = a0 + 12; a < a1 - 6; a += 30) {
-      const x = alongX ? a : ex + (f === 'x0' ? -1.2 : 1.2), z = alongX ? ez + (f === 'z0' ? -1.2 : 1.2) : a;
-      if (!free(x, z, .6)) continue;
-      claim(x, z, 1); circles.push({ x, z, r: .18 });
-      k.cyl(x, y0 + 2.6, z, .07, .09, 5.2, 8, 0x22252a, 15).cyl(x, y0 + 5.3, z, .26, .18, .32, 10, 0x1a1c20, 15).cyl(x, y0 + 5.08, z, .22, .22, .08, 10, 0xffe2b0, 11);
-      coastLight(x, y0 + 5, z, 0xffd8a0, 13, .85);
+  const kits = new Map(), posts = [];
+  for (const b0 of colliders) {
+    if (!b0.low || b0.zn) continue;   // zn：05-zones 縫端斜放的擋牆，不裝欄杆
+    for (const b of zoneClip(b0.x0, b0.x1, b0.z0, b0.z1)) {   // 跨區的長擋牆切成各區的部分，欄杆與路燈照所在的區掛
+      if (!kits.has(b.zn)) kits.set(b.zn, new Kit());
+      const k = kits.get(b.zn);
+      // 擋牆貼著地的那一面：外側 0.6 m 是陸地的那一邊
+      const sides = [['z0', (b.x0 + b.x1) / 2, b.z0 - .6], ['z1', (b.x0 + b.x1) / 2, b.z1 + .6], ['x0', b.x0 - .6, (b.z0 + b.z1) / 2], ['x1', b.x1 + .6, (b.z0 + b.z1) / 2]];
+      const s = sides.find(([, x, z]) => inLand(x, z));
+      if (!s) continue;
+      const [f, lx, lz] = s, h = groundHL(lx, lz);
+      const onBridge = lx >= BRIDGE.x0 && lx <= BRIDGE.x1 && lz >= BRIDGE.z0 && lz <= BRIDGE.z1;
+      if (h < .1 && !onBridge) continue;   // 沙灘、碼頭邊、島的岩岸不裝欄杆
+      const alongX = f === 'z0' || f === 'z1', y0 = Math.max(h, 0);
+      const ex = f === 'x0' ? b.x0 - .15 : f === 'x1' ? b.x1 + .15 : 0, ez = f === 'z0' ? b.z0 - .15 : f === 'z1' ? b.z1 + .15 : 0;
+      const a0 = alongX ? b.x0 + 1 : b.z0 + 1, a1 = alongX ? b.x1 - 1 : b.z1 - 1, len = a1 - a0;
+      if (len < 1) continue;
+      const mid = (a0 + a1) / 2;
+      if (alongX) k.box(mid, y0 + 1.05, ez, len, .07, .07, 0x2c3036, 15).box(mid, y0 + .55, ez, len, .04, .04, 0x2c3036, 15);
+      else k.box(ex, y0 + 1.05, mid, .07, .07, len, 0x2c3036, 15).box(ex, y0 + .55, mid, .04, .04, len, 0x2c3036, 15);
+      for (let a = a0; a <= a1; a += 2.4) posts.push(alongX ? { x: a, y: y0, z: ez } : { x: ex, y: y0, z: a });
+      // 步道路燈：每 30 m 一盞，暖白
+      if (h > .1 && !onBridge) for (let a = a0 + 12; a < a1 - 6; a += 30) {
+        const x = alongX ? a : ex + (f === 'x0' ? -1.2 : 1.2), z = alongX ? ez + (f === 'z0' ? -1.2 : 1.2) : a;
+        if (!free(x, z, .6)) continue;
+        claim(x, z, 1); circles.push({ x, z, r: .18 });
+        k.cyl(x, y0 + 2.6, z, .07, .09, 5.2, 8, 0x22252a, 15).cyl(x, y0 + 5.3, z, .26, .18, .32, 10, 0x1a1c20, 15).cyl(x, y0 + 5.08, z, .22, .22, .08, 10, 0xffe2b0, 11);
+        coastLight(x, y0 + 5, z, 0xffd8a0, 13, .85);
+      }
     }
   }
+  // 岬角（10-city.js 的 CAPES，世界座標）：臨水的邊裝一樣的欄杆，邊緣是往下到水裡的石砌護岸，每 30 m 一盞步道路燈
+  const hk = new Kit(), stone = new T.BufferGeometry();
+  const sp = [], sn = [];
+  for (const h of CAPES) {
+    const n = h.pts.length, area = polyArea(h.pts) > 0 ? 1 : -1;
+    let run = 12;
+    for (let k = 0; k < n; k++) {
+      if (!h.wet[k]) continue;
+      const p = h.pts[k], q = h.pts[(k + 1) % n], dx = q[0] - p[0], dz = q[1] - p[1], len = Math.hypot(dx, dz);
+      if (len < .01) continue;
+      const ux = dx / len, uz = dz / len, ix = -uz * area, iz = ux * area;   // (ix, iz)：往岬角裡面
+      const ry = Math.atan2(-uz, ux), mx = (p[0] + q[0]) / 2 + ix * .15, mz = (p[1] + q[1]) / 2 + iz * .15;
+      hk.box(mx, 1.05, mz, len + .08, .07, .07, 0x2c3036, 15, 0, ry).box(mx, .55, mz, len + .08, .04, .04, 0x2c3036, 15, 0, ry);
+      for (let a = 0; a < len; a += 2.4) posts.push({ x: p[0] + ux * a + ix * .15, y: 0, z: p[1] + uz * a + iz * .15, zn: null });
+      // 護岸：從地面（0）直直往下到水面以下，法線朝外
+      const y0 = .02, y1 = SEA_Y - 2.4, ox = -ix, oz = -iz, [a0, b0] = area > 0 ? [p, q] : [q, p];   // 繞向依多邊形的方向，正面朝外
+      for (const [a, b, c] of [[[a0[0], y0, a0[1]], [b0[0], y0, b0[1]], [b0[0], y1, b0[1]]], [[a0[0], y0, a0[1]], [b0[0], y1, b0[1]], [a0[0], y1, a0[1]]]]) { sp.push(...a, ...b, ...c); sn.push(ox, 0, oz, ox, 0, oz, ox, 0, oz); }
+      for (let a = run; a < len; a += 30) {
+        const x = p[0] + ux * a + ix * 1.2, z = p[1] + uz * a + iz * 1.2;
+        circles.push({ x, z, r: .18, w: 1 });
+        hk.cyl(x, 2.6, z, .07, .09, 5.2, 8, 0x22252a, 15).cyl(x, 5.3, z, .26, .18, .32, 10, 0x1a1c20, 15).cyl(x, 5.08, z, .22, .22, .08, 10, 0xffe2b0, 11);
+        coastLight(x, 5, z, 0xffd8a0, 13, .85).w = 1;
+        run = a + 30;
+      }
+      run -= len;
+    }
+  }
+  stone.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); stone.setAttribute('normal', new T.Float32BufferAttribute(sn, 3));
+  hk.add(stone, 0x3a3832, 2, null);
   instanced(new Kit().box(0, .55, 0, .08, 1.1, .08, 0x2c3036, 15).build(), MAT.uber, posts, LY.NOREFL);
-  cityAdd(new T.Mesh(k.build(), MAT.uber));
+  for (const [zn, k] of kits) cityAdd(new T.Mesh(k.build(), MAT.uber), zn);
+  cityAdd(new T.Mesh(hk.build(), MAT.uber), null);
 }
 
 // ─── 珊瑚灘：救生員塔、收起來的陽傘、排球網、步道上的椰子樹；棧橋盡頭的霓虹摩天輪 ───
@@ -466,14 +498,14 @@ const FAR_SITES = {
   k.add(bank, 0x0e0f10, 2, null);
   k.box(FAR_BANK_X + 2, -1, CITY_CZ + 600, 4, 2, CITY_Z1 - CITY_Z0 + 3000, 0x2a2826, 2);
   for (let z = CITY_Z0 - 400; z < SHORE_Z + 800; z += 30) k.box(FAR_BANK_X - 4, 5, z, .5, .5, .5, 0xffc880, 11);
-  cityAdd(new T.Mesh(k.build(), MAT.far));
+  cityAdd(new T.Mesh(k.build(), MAT.far), FAR_ZN);
   const sk = new Kit();
   for (let i = 0; i < 70; i++) {
     const x = FAR_BANK_X - 40 - r2() * 700, z = CITY_Z0 - 300 + r2() * (SHORE_Z - CITY_Z0 + 900), w = 18 + r2() * 30, h = 20 + r2() * (r2() < .2 ? 160 : 60);
     sk.box(x, h / 2, z, w, h, w * (.6 + r2() * .8), 0x181a1e, 2);
     for (let f = 0; f < 18; f++) if (r2() < .5) sk.box(x + w / 2 + .05, 2 + r2() * (h - 4), z + (r2() - .5) * w * .8, .05, 1.2, 1.8, r2() < .8 ? 0xffd8a0 : 0x9ad0ff, 11);
   }
-  const farProxy = new T.Mesh(sk.build(), MAT.far); cityAdd(farProxy);
+  const farProxy = new T.Mesh(sk.build(), MAT.far); cityAdd(farProxy, FAR_ZN);
   ISLE_PROXY.far = farProxy;
   // 東灣對岸：一條陸地、堤岸與岸邊的燈；舊港城模型下載前同樣先用程式剪影
   const ek = new Kit(), eb = new T.PlaneGeometry(900, 1700); eb.rotateX(-Math.PI / 2); eb.translate(EAST_BANK_X + 450, 0, CITY_CZ);

@@ -112,14 +112,14 @@ try {
     await hideHud(page); await shot(page, 'g-ride-' + id);
   }
   // 車行門口：門前兩台展示車與櫥窗剪影，走近才下載
-  await ev(page, () => { const nc = window.__nc, d = nc.spots.dealerDoor; nc.walk(); nc.tp(d.x, d.z + 9, Math.PI); nc.look(Math.PI, .05, 1); });
+  await ev(page, () => { const nc = window.__nc, d = nc.spots.dealerDoor; nc.walk(); nc.tpL(d.x, d.z + 9, Math.PI); nc.look(nc.player.yaw, .05, 1); });
   await page.waitForTimeout(2500); await hideHud(page);
   const front = await ev(page, () => ({ loaded: window.__nc.glb.loaded.slice(), st: window.__nc.getStats() }));
   check(['f40', 'sf90', 'r34', 'supra', 'nsx', 'zr1'].every(id => front.loaded.includes(id)), `車行門口的實車已下載，${front.st.triangles} 個三角形、${front.st.drawCalls} 個 draw call、${front.st.fps} fps`);
   await shot(page, 'g-storefront');
   // 街景：每台實車停在 LAZARUS 門口拍一張（CITY=1）
   if (process.env.CITY) for (const id of IDS.filter(id => !process.env.ONLY || process.env.ONLY.split(',').includes(id))) {
-    await ev(page, (id) => { const nc = window.__nc, d = nc.spots.clubDoor; nc.walk(); nc.applyCar(id); nc.drive(); const v = nc.player.veh; v.x = d.x + 10; v.z = d.z + 8.9; v.yaw = 1.57; v.vx = v.vz = 0; nc.look(v.yaw - 3.6, .02, 0); }, id);
+    await ev(page, (id) => { const nc = window.__nc, d = nc.spots.clubDoor; nc.walk(); nc.applyCar(id); nc.drive(); const v = nc.player.veh, s = nc.Ws(d.x + 10, d.z + 8.9, 1.57); v.x = s.x; v.z = s.z; v.yaw = s.yaw; v.vx = v.vz = 0; nc.look(v.yaw - 3.6, .02, 0); }, id);
     await page.waitForTimeout(900);
     await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw - 3.6, .02, 0); });
     await hideHud(page); await shot(page, 'city-' + id);
@@ -139,7 +139,7 @@ try {
 
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間
   for (const id of ['loft', 'villa', 'office', 'mini', 'l16', 'i14']) {
-    await ev(page, (id) => { const nc = window.__nc, a = nc.gta.apt.APT[id], d = a.door, f = a.face || 1; nc.motors.props.own.push(id); nc.tp(d.x, d.z + 6 * f, f > 0 ? Math.PI : 0); }, id);
+    await ev(page, (id) => { const nc = window.__nc, a = nc.gta.apt.APT[id], d = a.door, f = a.face || 1; nc.motors.props.own.push(id); nc.tpL(d.x, d.z + 6 * f, f > 0 ? Math.PI : 0); }, id);
     let ok = false;
     for (let i = 0; i < 60 && !ok; i++) { await page.waitForTimeout(250); ok = await ev(page, (id) => !window.__nc.gta.apt.APT[id].fb.visible, id); }
     await ev(page, (id) => { const nc = window.__nc; nc.enter(id); nc.look(nc.gta.apt.APT[id].spawn.yaw, .15, 1); }, id);

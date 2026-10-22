@@ -432,7 +432,7 @@ const HG = 16, HGX = HM.x0, HGZ = HM.z0, HGN = Math.ceil(HM.n * HMS / HG), HGM =
 const hGrid = new Float32Array(HGN * HGM);
 for (const L of lots) {
   if (!(L.h > 0)) continue;
-  const cs = rectW(L.x0, L.x1, L.z0, L.z1), x0 = Math.min(...cs.map(c => c[0])), x1 = Math.max(...cs.map(c => c[0])), z0 = Math.min(...cs.map(c => c[1])), z1 = Math.max(...cs.map(c => c[1]));
+  const cs = rectW(L.x0, L.x1, L.z0, L.z1, L.zn), x0 = Math.min(...cs.map(c => c[0])), x1 = Math.max(...cs.map(c => c[0])), z0 = Math.min(...cs.map(c => c[1])), z1 = Math.max(...cs.map(c => c[1]));
   for (let i = Math.max(0, Math.floor((x0 - HGX) / HG)); i <= Math.min(HGN - 1, Math.floor((x1 - HGX) / HG)); i++)
     for (let j = Math.max(0, Math.floor((z0 - HGZ) / HG)); j <= Math.min(HGM - 1, Math.floor((z1 - HGZ) / HG)); j++) hGrid[i * HGM + j] = Math.max(hGrid[i * HGM + j], L.h);
 }

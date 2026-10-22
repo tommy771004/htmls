@@ -29,7 +29,7 @@ try {
     for (const id of ['hud', 'touch', 'toast', 'prompt', 'marker']) { const el = document.getElementById(id); if (el) el.style.visibility = 'hidden'; }
     nc.drive();
     const v = nc.player.veh;
-    v.x = d.x + dx; v.z = d.z + dz; v.yaw = vyaw; v.vx = v.vz = 0;
+    const s = nc.Ws(d.x + dx, d.z + dz, vyaw); v.x = s.x; v.z = s.z; v.yaw = s.yaw; v.vx = v.vz = 0;
     nc.rain(.85);
     nc.look(v.yaw + cyaw, cpitch, far);
   }, [dx, dz, vyaw, cyaw, cpitch, far]);

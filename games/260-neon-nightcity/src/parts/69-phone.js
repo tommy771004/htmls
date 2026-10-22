@@ -53,9 +53,10 @@ function zeroTruck() {
   if (!truckSpawn('zero')) { phoneMsg('Zero：附近路口都看得到你，等一下再叫。'); return; }
   pay(PH_TRUCK); phoneMsg('Zero：鐵庫的車隊排程我改了一台過來，藍點。');
 }
-// 存檔裡的世界座標夾回城市範圍內（在邏輯座標裡夾）
+// 存檔裡的世界座標夾回城市範圍內（在所在區或最近那一區的邏輯座標裡夾；區之間的縫與岬角照原位置）
 function cityClamp(x, z) {
-  const zn = zoneAtW(x, z) || ZONES[0], [lx, lz] = toL(x, z, zn);
+  if (capeAt(x, z) || !zoneAtW(x, z) && seamAt(x, z)) return [x, z];
+  const zn = zoneOfW(x, z) || ZONES[0], [lx, lz] = toL(x, z, zn);
   return toW(clamp(lx, avX(zn.ni0) - HR, avX(zn.ni1) + HR), clamp(lz, stZ(zn.nj0) - HR, stZ(zn.nj1) + HR), zn);
 }
 function mechDeliver() {

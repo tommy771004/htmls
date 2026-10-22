@@ -12,7 +12,7 @@
 
 ```bash
 npm run build    # 打包成 ../../web/260-neon-nightcity.html（--dev 不壓縮）
-npm test         # tools/accept.mjs：1440×900 走完整段任務、開車、地圖，390×844 觸控版；SHOT_DIR=… 會存截圖
+npm test         # tools/accept.mjs：1440×900 走完整段任務、開車、地圖，390×844 觸控版；SHOT_DIR=… 會存截圖，NC_QUERY='?zrot=25' 帶網址參數（test:glb 也吃）
 npm run thumb    # tools/thumb.mjs（本機 HTTP，座駕是 AE86 實車）→ ../../thumbs/260.jpg；THUMB="車 dx,dz,車 yaw,相機 yaw,pitch,遠近" 可調構圖
 npm run assets   # 用 Blender 重建 blender/out/*.glb（需要 Blender 5.x）
 npm run people   # tools/people.mjs：Blender 跑 blender/people.py（Quaternius 底模與動畫），再用 gltf-transform 壓成 blender/out/people.glb（gltf-transform 借 197 的 node_modules，要先在 197 跑 npm ci）
@@ -63,7 +63,9 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 | 檔案 | 內容 |
 | :-- | :-- |
 | `00-core.js` | renderer、城市尺寸常數、共用 uniform `U`、GLSL 函式庫（路燈格、點光、霧、環境反射）、uber 材質、`Kit` 幾何合併 |
-| `10-city.js` | 20×15 街區（原本的 5×5 在西北角，第一輪的 8×7 在它外圍，第二輪的新區由 `DISTRICTS` 表分區）與地塊、`wholeBlocks` 把整個街區換成一個模型或一群建築（冠石的 `bld_fin`、光環的 `bld_cyber` 14 群加 `bld_fin` 三群、灰石的 `grey_18`／`grey_30`／`grey_31`、楓林里與公園大道的 `nbh_01`）、海岸地形（`LANDS`、`BEACH`、`QUAY`、`BRIDGE`、`ISLE`、`PIERS`、`groundH` 與擋牆）、地名 `district()`、距離剔除 `distCull`、碰撞空間索引 `boxesNear`／`circlesNear`、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
+| `05-zones.js` | 分區：邏輯座標（方格）到世界座標的剛體變換 `ZONES`、換算 `toW`／`toL`／`dirW`／`yawW`／`spotW`／`rectW`、`zoneAtW`／`zoneOfW`、斜放的座標框 `frameW`；區之間的縫 `SEAM`（世界座標的多邊形）與 `seamAt`；`?zrot=N` 把整座城再轉 N° 並平移（除錯用） |
+| `06-roads.js` | 路網圖 `RN`：各區的路口（世界座標）與路段，加上縫裡把兩區同一個路口接起來的三次貝茲連接道路（`kind: 'c'`）；車流、警車、GPS、路障、叫車都走這張圖（`edgeAt`、`rnAt`、Dijkstra 的 `rnField`） |
+| `10-city.js` | 20×15 街區（原本的 5×5 在西北角，第一輪的 8×7 在它外圍，第二輪的新區由 `DISTRICTS` 表分區）與地塊、`wholeBlocks` 把整個街區換成一個模型或一群建築（冠石的 `bld_fin`、光環的 `bld_cyber` 14 群加 `bld_fin` 三群、灰石的 `grey_18`／`grey_30`／`grey_31`、楓林里與公園大道的 `nbh_01`）、海岸地形（`LANDS`、`BEACH`、`QUAY`、`BRIDGE`、`ISLE`、`PIERS`、伸進河與東灣的岬角 `CAPES`、`groundH` 與擋牆）、縫的草地與連接道路、補北面樓牆缺口的塔樓、地名 `district()`、距離剔除 `distCull`、碰撞空間索引 `boxesNear`／`circlesNear`、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
 | `20-props.js` | 路燈與光錐、紅綠燈、街道設施（流明電訊的藍色電訊箱 `boxesN` 可以打爛）、特技跳台 `RAMPS`（`rampBlock` 清掉助跑道上的路邊停車）、行道樹、燈籠公園步道的紅燈籠路燈 `parkLamps`、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空；`signLights` 另外收燈籠與實體建築原檔路燈（`props.json` 的 `lights`）的點光 |
 | `22-hmap.js` | 日照陰影用的建物高度圖：開場把地塊、`bldPlace` 建築、島上建物與燈塔的外框光柵化成 1.25 m 一格的半浮點貼圖（`uHMap`），建築組載入後再用實際三角形重畫（`hmModel`） |
 | `21-coast.js` | 海岸：水面 shader（倒影加兩層波紋）、沙灘、碼頭與島面、擋牆欄杆與步道路燈、步道長椅與花台；珊瑚灘的救生員塔、陽傘、排球網、椰子樹與棧橋盡頭的摩天輪；錨灣港的岸橋（小車在船與車道間搬貨櫃，`harbor`）、貨櫃堆、高桿燈與隨浪起伏的貨櫃船；斜張跨海橋；灰鷗島的岩岸、樹與燈塔；遠景（北嶺國家公園三層山脊、灰鷺河對岸、東灣對岸 `FAR_SITES`、外海小島）與以檔案開啟時的替身 `ISLE_PROXY` |
@@ -137,7 +139,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 
 ## 測試 API
 
-`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`、`probe()` 回傳每座跳台助跑道與落地區被擋住的距離）、`squad`（`SQ`、`fighters`、`chase(why)`、`merc()` 免費叫傭兵、`defend(id)`、`win()`／`lose()`、`spawn(team, x, z, gun)`、`count(team)`、`clear()`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門）、`market`（`STOCKS`、`ESTATES`、`offline(ms)` 假裝離開了 ms 毫秒、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`）、`heist`（`heist` 狀態、`hostSt`（人質）、`run(k, kael)` 讓人質 k 逃跑、`BANK`／`PLAN`／`SAFE`／`VAN_AT`／`CAR_AT`、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；安全屋：`apt`（`APT` 六間的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`unit(kind, at)`、`heli()`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`（依雨量換天氣）、`flash()`（下一幀打雷）、`weather(id, snap)`（`clear`／`cloudy`／`overcast`／`drizzle`／`rain`／`storm`／`fog`，`snap` 為 false 時慢慢轉變）、`time(min)`（設定或讀取一天中的分鐘）、`wx`（天氣狀態：`cur`、`rain`、`cloud`、`fog`、`wet`、`bolts`）、`atm`（曝光、泛光、`day`、`lamp`、`sunK`）、`map`（大地圖：`MV` 視角、`blips()`、`select(i)`、`key(code)`、`zoom(f)`、`click(x, y)`）、`livery()`、`getStats()`。
+`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`、`probe()` 回傳每座跳台助跑道與落地區被擋住的距離）、`squad`（`SQ`、`fighters`、`chase(why)`、`merc()` 免費叫傭兵、`defend(id)`、`win()`／`lose()`、`spawn(team, x, z, gun)`、`count(team)`、`clear()`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門）、`market`（`STOCKS`、`ESTATES`、`offline(ms)` 假裝離開了 ms 毫秒、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`）、`heist`（`heist` 狀態、`hostSt`（人質）、`run(k, kael)` 讓人質 k 逃跑、`BANK`／`PLAN`／`SAFE`／`VAN_AT`／`CAR_AT`、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；安全屋：`apt`（`APT` 六間的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`unit(kind, at)`、`heli()`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置）、`start()`、`tp(x, z, yaw)`（世界座標）、`tpL(x, z, yaw)`（邏輯座標，換到所在的區）、`W(x, z)`／`L(x, z)`（邏輯↔世界）、`Ws(x, z, yaw)`（邏輯的位置與朝向換成世界的 `{x, z, yaw}`）、`zones`、`roads`（路網 `RN`）、`capes`（岬角）、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`（依雨量換天氣）、`flash()`（下一幀打雷）、`weather(id, snap)`（`clear`／`cloudy`／`overcast`／`drizzle`／`rain`／`storm`／`fog`，`snap` 為 false 時慢慢轉變）、`time(min)`（設定或讀取一天中的分鐘）、`wx`（天氣狀態：`cur`、`rain`、`cloud`、`fog`、`wet`、`bolts`）、`atm`（曝光、泛光、`day`、`lamp`、`sunK`）、`map`（大地圖：`MV` 視角、`blips()`、`select(i)`、`key(code)`、`zoom(f)`、`click(x, y)`）、`livery()`、`getStats()`。
 車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家，`me.mesh.visible` 截圖時可隱藏）、`peds`／`pedState`（行人）、`crowd(n)`／`ANIM`（另建一群人測動作）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
 
 ### GTA 式擴充（第三階段）
@@ -169,7 +171,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 - 車內射擊的手臂：瞄準時駕駛靠向瞄準那側的前門、右臂整隻伸出車窗握著槍；轉管機槍抱在腰間（右手握把、左手扶提把），火箭筒扛在右肩、左手往前扶住筒身（`aimArms` 的 `p.heavy`，手的位置用兩節骨 IK 對過）。
 - 快速存檔：開車時存檔會記下座駕（自己的車、路邊機車或搶來的車流車型與塗裝），讀檔後坐回那台車上；在安全屋睡覺存檔會記下房間，讀檔後回到室內。
 - 視線：警察的視線錐被樹（目標 10 m 內）與貨車、廂型車擋住就看不到（轎車擋不住站著的人，警方自己的車不算）；直升機的視線被樹冠與途中的屋頂擋住。直升機往前看 3 秒的屋頂高度爬升，掉到屋頂以下就撞毀。
-- 存檔第 4 版：`nc260.motors` 第 3 版多了 `stunts`（完成的跳台）、`stk`（股價、持股、成本）、`props`（擁有的資產與保險箱金額），讀檔時對照 `STOCKS`／`ESTATES` 檢查；第 4 版加上存檔時間 `ts`（離線補算用）與 `props.pause`（停業到什麼時候）。
+- 存檔第 5 版：快速存檔的位置（`game.st`）改成世界座標，讀第 4 版以前的存檔時用 `spotW` 換過去。第 4 版：`nc260.motors` 第 3 版多了 `stunts`（完成的跳台）、`stk`（股價、持股、成本）、`props`（擁有的資產與保險箱金額），讀檔時對照 `STOCKS`／`ESTATES` 檢查；第 4 版加上存檔時間 `ts`（離線補算用）與 `props.pause`（停業到什麼時候）。
 
 ### 城區與安全屋（World 整合）
 
@@ -191,6 +193,17 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 - 路燈在天色亮度 0.32–0.62 之間熄滅與點亮，窗戶亮燈比例依時刻變化（凌晨兩點約三分之一），車頭燈白天變暗、車流白天不挑頭燈光源。
 - 日照陰影：建物用高度圖（`22-hmap.js`）沿太陽方向步進取樣，帶半影；車與人用最近 12 個（低階 6 個）方盒算接觸陰影與太陽投影。
 - 天氣是馬可夫鏈：每種狀態持續數十到一百多遊戲分鐘，再依權重換到下一種（凌晨三點半到八點半起霧的機率三倍）；雨量與雲量平滑過渡，地面積水在雨停後依日照慢慢變乾，行人在雨量超過 0.12 時撐傘。只有雷雨會打雷。睡覺會換一次天氣，快速存檔記下目前天氣。
+
+### 不規則城市（分區與岬角）
+
+照 Los Santos 的樣子讓整體地圖不規則（計畫與進度見 `../../plans/260-irregular-city.md`）。生成程式都不動，仍在方格的「邏輯座標」裡跑（亂數序列、舊城立面不變），上面多一層分區的剛體變換：
+
+- 三區（`05-zones.js` 的 `ZONES`）：A 舊城＋冠石（Harbor Av 到 Ironside Av、6 St 到 13 St，不動，舊存檔與任務座標照舊）、B 光環＋灰石（Ironside Av 到 Union Av、6 St 到 13 St，往東拉開 36 m 再轉 8°）、C 南面整排含海岸（13 St 以南，往南 39 m、往東 48 m 再轉 4°）。區的邊界在道路中心線上，邊界那條路兩區各有一份。室內場館（x ≥ 9000）不屬於任何區。
+- 靜態資料（地塊、碰撞框、路燈、停車位、場館錨點）保留邏輯座標；網格掛在各區的 `Group`，碰撞盒帶所屬區的框 `f`，開場的 `cityWorld()` 把碰撞表、光源與錨點換成世界座標。玩家、車流、行人、警察、相機、地圖上的點都是世界座標。
+- 區之間的縫（`SEAM`）是草地、樹與路燈，三次貝茲的連接道路把兩區同一個路口接起來（S 形彎道，車流、警車、GPS 照走）；縫通到河與東灣的那兩端接著岬角。A、B 之間北面樓牆的缺口由 A 區多蓋一棟 96 m 的塔樓補上（地塊帶 `seam: 1`，地圖在縫之後才畫它）。
+- 岬角（`10-city.js` 的 `CAPES`）：世界座標的多邊形，從岸邊伸進水裡，不切進原本的陸地。灰鷺河濱公園與東灣岸角公園順著兩區的岸線把錯開的岸角接起來，另外有鷺嘴岬（C 區西岸）與東灣觀景岬（B 區東岸）。草地上有樹、臨水的邊有欄杆、步道路燈與往下到水裡的石砌護岸；岸邊擋牆在接岸的地方斷開，兩端各補一段順著岸的擋牆。高度 0、水深 0，地名與 HUD 顯示岬角的名字。
+- 地圖：每區用 canvas 的變換照邏輯座標畫原本的矩形；對岸與北面的山跟著 A 區（`FAR_ZN`）、東灣對岸跟著所在的區畫，不裁在區的範圍內；縫與岬角在最後補上。
+- 天際線那圈塔樓跟著 A 區擺，碰到其他區樓牆或落到水上的不蓋。
 
 ### 下水
 

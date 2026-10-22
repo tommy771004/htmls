@@ -56,6 +56,41 @@ const PIERS = [
 ];
 const LANDS = [{ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: -1e5, z1: SHORE_Z }, BEACH, QUAY, BRIDGE, ISLE, ...PIERS];
 const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
+// ─── 岬角：從岸邊伸進灰鷺河與東灣的草地公園（世界座標的多邊形），海岸線就不是一條直線 ───
+// 只往水裡加，不切進原本的陸地矩形。兩區在岸邊交會的地方（縫的兩端）各有一塊順著兩邊岸線把錯開的岸角接起來，
+// 另外 C 區西岸、B 區東岸各凸出一個岬。wet[k]：pts[k] → pts[k + 1] 臨水（擋牆、欄杆、路燈、護岸只做這些邊）；
+// caps 是臨水那串邊接回岸邊的兩端（各補一小段順著岸的擋牆，不留縫）。地面高度 0（和縫一樣）
+const CAPES = (() => {
+  const [zA, zB, zC] = ZONES, zm = stZ(zA.nj1), L0 = CITY_X0 - OUT_D, L1 = CITY_X1 + OUT_D;
+  const bez = (a, b, c, d, n) => {
+    const out = [];
+    for (let k = 1; k < n; k++) { const t = k / n, u = 1 - t, w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t]; out.push([0, 1].map(i => w[0] * a[i] + w[1] * b[i] + w[2] * c[i] + w[3] * d[i])); }
+    return out;
+  };
+  // 兩區的岸角之間：p 是上一區（zp）的岸角，沿下一區（zn）的岸往南 len 公尺，臨水的是順著兩邊岸線的三次曲線
+  const fillet = (zp, zn, x, out, len, name) => {
+    const p = toW(x, zm, zp), c0 = toW(x, zm, zn), c1 = toW(x, zm + len, zn), dp = dirW(zp, 0, 1), dn = dirW(zn, 0, 1), h = len * .5;
+    const curve = bez(c1, [c1[0] - dn[0] * h, c1[1] - dn[1] * h], [p[0] + dp[0] * h, p[1] + dp[1] * h], p, 16);
+    return { name, pts: [p, c0, c1, ...curve], wet: [0, 0, ...curve.map(() => 1), 1], caps: [[p, zp, out], [c1, zn, out]] };
+  };
+  // 岸邊凸出去的岬：沿 zn 的岸（邏輯 x 固定、z 從 a0 到 a1），往 out（−1 西、+1 東）最多 depth 公尺，外緣帶一點起伏
+  const point = (zn, x, out, a0, a1, depth, seed, name) => {
+    const n = 20, pts = [];
+    for (let k = 0; k <= n; k++) { const t = k / n, d = depth * Math.sin(Math.PI * t ** .85) ** .7 * (1 + .12 * Math.sin(t * 9 + seed)); pts.push(toW(x + out * d, a0 + (a1 - a0) * t, zn)); }
+    return { name, pts, wet: pts.map((_, k) => k < n ? 1 : 0), caps: [[pts[0], zn, out], [pts[n], zn, out]] };
+  };
+  const list = [
+    fillet(zA, zC, L0, -1, 210, '灰鷺河濱公園 Heron Riverside'), fillet(zB, zC, L1, 1, 190, '東灣岸角公園 Bayside Green'),
+    point(zC, L0, -1, 600, 730, 42, 1.3, '鷺嘴岬 Heron Point'), point(zB, L1, 1, -40, 90, 46, 4.1, '東灣觀景岬 Bay Lookout'),
+  ];
+  for (const h of list) {
+    const xs = h.pts.map(p => p[0]), zs = h.pts.map(p => p[1]);
+    h.bb = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+    h.inn = polyInset(h.pts, h.wet.map(w => w ? 4.5 : 0));   // 種樹的範圍：離水邊 4.5 m（燈在 1.2 m）
+  }
+  return list;
+})();
+const capeAt = (X, Z) => { for (const h of CAPES) if (X >= h.bb[0] && X <= h.bb[1] && Z >= h.bb[2] && Z <= h.bb[3] && inPoly(h.pts, X, Z)) return h; return null; };
 { // 外圍：一整圈連續的樓牆，背後再一圈高樓
   const D = OUT_D, ax0 = CITY_X0, ax1 = CITY_X1, sz0 = CITY_Z0, sz1 = CITY_Z1;
   blocks.push({ x0: ax0 - D, x1: ax1 + D, z0: sz1, z1: sz1 + D, outer: 'n' });
@@ -197,7 +232,20 @@ blocks.forEach(makeLots);
 const shoreSide = b => b && b.outer && b.outer !== 's';
 for (let k = lots.length - 1; k >= 0; k--) { const L = lots[k]; if (L.b ? shoreSide(L.b) : L.z1 > CITY_Z0) lots.splice(k, 1); }
 for (let k = colliders.length - 1; k >= 0; k--) if (colliders[k].outer && colliders[k].outer !== 's') colliders.splice(k, 1);
-// 岸邊的擋牆：沿每塊地的邊每 2 m 看外側是不是水，連續的一段變成一個 4 m 厚的盒（low：不擋相機與子彈）
+// A、B 兩區的北面樓牆中間被縫隔開（05-zones.js 的 SEAM）：A 區的樓牆往東多蓋一棟塔樓補上缺口（地塊與碰撞框指定 A 區，伸進縫裡）
+{
+  const zA = ZONES[0], zB = ZONES[1], xm = avX(zA.ni1);
+  let w = 0; for (const z of [CITY_Z0, CITY_Z0 - OUT_D]) w = Math.max(w, toL(...toW(xm, z, zB), zA)[0] - xm);
+  if (w > 1) {
+    const L = { x0: xm - 2, x1: xm + w + 6, z0: CITY_Z0 - OUT_D, z1: CITY_Z0 - SW, h: 96, style: 3, seed: 517, face: 0, axis: 'z', back: 1, fh: 3.7, zn: zA, seam: 1 };   // seam：地圖在縫之後才畫它
+    lots.push(L);
+    colliders.push({ x0: L.x0, x1: L.x1, z0: L.z0, z1: L.z1, zn: zA });   // cityWorld() 不切到各區
+  }
+}
+// 地塊所在的區（立面、陰影高度圖、直升機的屋頂高度都照這個）
+for (const L of lots) if (L.zn === undefined) L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
+// 岸邊的擋牆：沿每塊地的邊每 2 m 看外側是不是水（岬角也算陸地），連續的一段變成一個 4 m 厚的盒（low：不擋相機與子彈）
+const landL = (x, z) => inLand(x, z) || !!capeAt(...toW(x, z));
 for (const r of LANDS) {
   for (const [ax, fixed, a0, a1, out] of [['x', r.z0, r.x0, r.x1, -1], ['x', r.z1, r.x0, r.x1, 1], ['z', r.x0, r.z0, r.z1, -1], ['z', r.x1, r.z0, r.z1, 1]]) {
     if (fixed < -1e4) continue;
@@ -211,7 +259,7 @@ for (const r of LANDS) {
       run = null;
     };
     for (let a = a0; a <= a1 + 1e-6; a += 2) {
-      const wet = ax === 'x' ? !inLand(a, fixed + out * .6) : !inLand(fixed + out * .6, a);
+      const wet = ax === 'x' ? !landL(a, fixed + out * .6) : !landL(fixed + out * .6, a);
       if (wet && run === null) run = a - 1; else if (!wet) flush(a - 1);
     }
     flush(a1 + 1);
@@ -580,7 +628,7 @@ const shopSigns = [];      // 之後由招牌模組使用：{x,z,nx,nz,w,unit}
 const winSpots = [];       // 窗型冷氣、逃生梯
 for (const L of lots) {
   if (L.glb) continue;
-  const zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
+  const zn = L.zn;
   const key = L.b && !L.b.outer ? `${L.b.i},${L.b.j}` : `o${zn ? zn.id : '-'}:${Math.floor((L.x0 + 400) / 120)},${Math.floor((L.z0 + 400) / 120)}`;
   const B = buf(key, zn);
   const shopF = {};
@@ -651,7 +699,7 @@ function chunkMesh(B) {
 for (const B of chunkBuf.values()) chunkMesh(B);
 // 實體建築下載失敗：那幾塊地補回程式立面（沒有店面與招牌）
 function lotFallback(list) {
-  const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: list.length ? zoneAtL((list[0].x0 + list[0].x1) / 2, (list[0].z0 + list[0].z1) / 2) : null };
+  const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: list.length ? list[0].zn : null };
   for (const L of list) { L.glb = null; boxFaces(B, L.x0, L.x1, L.z0, L.z1, 0, L.h, L.seed, L.style, null, L.h, null); }
   if (B.idx.length) chunkMesh(B);
 }
@@ -661,12 +709,26 @@ function lotFallback(list) {
   const B = buf('sky', ZONES[0]); const r2 = rng(77);
   // 圍著整座城（20×15）的橢圓，離外圍樓牆 120–380 m，只取北半圈
   const hx = (CITY_X1 - CITY_X0) / 2 + OUT_D, hz = (CITY_Z1 - CITY_Z0) / 2 + OUT_D;
+  // 塔樓跟著 A 區擺；其他區轉過之後，碰到它的樓牆（含背後的高樓）或不在任何一區樓牆正後方（落到水上）的就不蓋
+  const skyHit = (cx, cz, m) => {
+    const [X, Z] = toW(cx, cz, ZONES[0]);
+    let back = seamAt(X, Z);
+    for (const zn of ZONES) {
+      const [x, z] = toL(X, Z, zn), lx0 = Math.max(zn.x0, CITY_X0 - OUT_D), lx1 = Math.min(zn.x1, CITY_X1 + OUT_D);
+      if (z >= zn.z1) continue;
+      if (zn !== ZONES[0] && x > lx0 - m && x < lx1 + m && z > CITY_Z0 - OUT_D - m) return true;
+      if (x > lx0 && x < lx1) back = true;
+    }
+    return !back;
+  };
   for (let k = 0; k < 120; k++) {
     const a = k / 120 * Math.PI * 2 + r2() * .03, rr = 120 + r2() * 260;
     const cx = CITY_CX + Math.cos(a) * (hx + rr), cz = CITY_CZ + Math.sin(a) * (hz + rr);
     const w = 20 + r2() * 30, d = 20 + r2() * 30, h = 70 + r2() * 200;
     if (cz > CITY_Z0 - OUT_D) continue;   // 只留北面（其他三面是水，對岸另外做）
-    boxFaces(B, cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, 0, h, r2() * 1000, r2() < .75 ? 3 : 2, null, h, null);
+    const sd = r2() * 1000, st = r2() < .75 ? 3 : 2;
+    if (skyHit(cx, cz, Math.max(w, d) / 2 + 8)) continue;
+    boxFaces(B, cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, 0, h, sd, st, null, h, null);
   }
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3));
@@ -892,6 +954,63 @@ function zoneClip(x0, x1, z0, z1) {
   }
   for (const [zn, list] of lawns) groundAdd(new T.Mesh(mergeGeometries(list), lawnMat), zn);
 }
+// ─── 區之間的縫（05-zones.js 的 SEAM）：草地與連接道路（06-roads.js 的 kind 'c'），幾何是世界座標、掛在 scene ───
+// 草地往裡縮到邊界路外緣、比路面低一點；連接道路從路口範圍（HR）外面鋪起，蓋過邊界路那一小段。
+// 連接道路的 shader 是路面那一套，vL = (橫向, 沿路的距離)，大道的標線（中央雙黃線、車道虛線、人孔）照畫，沒有路口
+{
+  const seamMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 0.;'),
+    side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
+  const pos = [], nor = [];
+  for (const P of [SEAM_IN, ...CAPES.map(h => h.pts)]) {   // 岬角的草地也在這裡（同一個材質）
+    const tri = T.ShapeUtils.triangulateShape(P.map(([x, z]) => new T.Vector2(x, z)), []);
+    for (const t of tri) for (const k of t) { pos.push(P[k][0], -.01, P[k][1]); nor.push(0, 1, 0); }
+  }
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.computeBoundingSphere();
+  groundAdd(new T.Mesh(g, seamMat), null);
+  const vs = GROUND_VS.replace('uniform mat4 uReflMat;', 'uniform mat4 uReflMat;\nattribute vec2 aUV, aAx;').replace('vL = position.xz; vAx = normalize((modelMatrix * vec4(1., 0., 0., 0.)).xz);', 'vL = aUV; vAx = aAx;');
+  const fs = ROAD_FS.replace(/float ia = [^\n]*\n\s*float js = [^\n]*\n\s*bool onA = [^\n]*\n/, 'float dx = p.x, dz = 40.;\n  bool onA = true, onS = false;\n');
+  if (vs === GROUND_VS || fs === ROAD_FS) throw new Error('connector shader patch failed');
+  const connMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const P = [], N = [], UV = [], AX = [], I = [];
+  for (const e of RN.edges) {
+    if (e.kind !== 'c') continue;
+    const u0 = HR - .4, u1 = e.len - HR + .4, n = Math.max(2, Math.ceil((u1 - u0) / 2.5)), base = P.length / 3;
+    for (let k = 0; k <= n; k++) {
+      const u = u0 + (u1 - u0) * k / n, [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1.2)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1.2));
+      const l = Math.hypot(xb - xa, zb - za) || 1, ax = (zb - za) / l, az = -(xb - xa) / l;   // 橫向：沿路方向轉成「邏輯 x 軸」那一側（和 nW() 的慣例一樣）
+      for (const s of [-1, 1]) { P.push(x + ax * HR * s, .004, z + az * HR * s); N.push(0, 1, 0); UV.push(HR * s, u); AX.push(ax, az); }
+      if (k) I.push(base + 2 * k - 2, base + 2 * k - 1, base + 2 * k + 1, base + 2 * k - 2, base + 2 * k + 1, base + 2 * k);
+    }
+  }
+  const cg = new T.BufferGeometry();
+  cg.setAttribute('position', new T.Float32BufferAttribute(P, 3)); cg.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
+  cg.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); cg.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2));
+  cg.setIndex(I); cg.computeBoundingSphere();
+  groundAdd(new T.Mesh(cg, connMat), null);
+}
+// 縫的兩端接到河與東灣（岸角之間那條邊）：擋牆照樣 4 m 厚，用斜放的座標框（low：不擋相機與子彈；21-coast.js 的欄杆不裝）。
+// 外面接著岬角的那條不擋
+for (let k = 0; k < SEAM.pts.length; k++) {
+  if (SEAM.road[k]) continue;
+  const p = SEAM.pts[k], q = SEAM.pts[(k + 1) % SEAM.pts.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]), f = frameW(p[0], p[1], q[0] - p[0], q[1] - p[1]);
+  const out = inPoly(SEAM.pts, (p[0] + q[0]) / 2 + f.s * 2, (p[1] + q[1]) / 2 + f.c * 2) ? -1 : 1;   // 局部 +z（世界的 (s, c)）指向縫外就是 1
+  if (capeAt((p[0] + q[0]) / 2 + f.s * 2 * out, (p[1] + q[1]) / 2 + f.c * 2 * out)) continue;
+  colliders.push({ x0: -3, x1: L + 3, z0: out > 0 ? 0 : -4, z1: out > 0 ? 4 : 0, low: 1, zn: f });
+}
+// 岬角臨水的邊（21-coast.js 沿這些邊裝欄杆）；兩端各補一段順著岸的擋牆，蓋住岸邊擋牆每 2 m 取樣留下的空隙
+for (const h of CAPES) {
+  for (let k = 0; k < h.pts.length; k++) {
+    if (!h.wet[k]) continue;
+    const p = h.pts[k], q = h.pts[(k + 1) % h.pts.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]), f = frameW(p[0], p[1], q[0] - p[0], q[1] - p[1]);
+    const out = inPoly(h.pts, (p[0] + q[0]) / 2 + f.s * .5, (p[1] + q[1]) / 2 + f.c * .5) ? -1 : 1;
+    colliders.push({ x0: -.6, x1: L + .6, z0: out > 0 ? 0 : -4, z1: out > 0 ? 4 : 0, low: 1, zn: f });
+  }
+  for (const [p, zn, out] of h.caps) {   // 岸的 +z 方向當局部 x；局部 +z 是岸的西側（out −1 的那一邊）
+    const [ux, uz] = dirW(zn, 0, 1), f = frameW(p[0], p[1], ux, uz);
+    colliders.push({ x0: -2.5, x1: 2.5, z0: out < 0 ? 0 : -4, z1: out < 0 ? 4 : 0, low: 1, zn: f });
+  }
+}
 // 地面高度（邏輯座標）：人行道高 0.15；查格子，不逐一比對街區。世界座標的 groundH 在下面
 const groundHL = (x, z) => {
   if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
@@ -905,12 +1024,12 @@ const groundHL = (x, z) => {
   return x > avX(i) + HR && x < avX(i + 1) - HR && z > stZ(j) + HR && z < stZ(j + 1) - HR ? .15 : 0;
 };
 // 執行時（玩家、車、行人、警察）用的是世界座標：先換回邏輯座標
-const groundH = (X, Z) => { const [x, z] = toL(X, Z); return groundHL(x, z); };
+const groundH = (X, Z) => { if (capeAt(X, Z) || !zoneAtW(X, Z) && seamAt(X, Z)) return 0; const [x, z] = toL(X, Z); return groundHL(x, z); };   // 縫裡是草地與連接道路，高度 0
 const onRoad = (X, Z) => groundH(X, Z) === 0;
-const districtW = (X, Z) => { const [x, z] = toL(X, Z); return district(x, z); };
+const districtW = (X, Z) => { const h = capeAt(X, Z); if (h) return h.name; const [x, z] = toL(X, Z); return district(x, z); };   // 岬角有自己的名字
 // 水深（水面在 SEA_Y）：陸地矩形與沙灘外的淺水照 groundH，其他地方當成 8 m 深的海（世界座標）
 const seaFloorL = (x, z) => inLand(x, z) || x >= BEACH.x0 && x <= BEACH.x1 && z > BEACH.z0 ? groundHL(x, z) : -8;
-const seaFloor = (X, Z) => { const [x, z] = toL(X, Z); return seaFloorL(x, z); };
+const seaFloor = (X, Z) => { if (capeAt(X, Z) || !zoneAtW(X, Z) && seamAt(X, Z)) return 0; const [x, z] = toL(X, Z); return seaFloorL(x, z); };
 const waterDepth = (X, Z) => Math.max(0, SEA_Y - seaFloor(X, Z));
 
 // ─── 碰撞的空間索引：室外的靜態盒與圓柱放進 24 m 的格子，查詢只看附近幾格（20×15 的城市有上萬個圓柱：路燈、停車、設施）。
@@ -933,7 +1052,9 @@ function cityWorld() {
   if (cityIsWorld) return;
   // 跨區的盒（北面樓牆那一整條）切成各區的部分
   for (let k = colliders.length - 1; k >= 0; k--) {
-    const b = colliders[k], parts = zoneClip(b.x0, b.x1, b.z0, b.z1);
+    const b = colliders[k];
+    if (b.zn) { boxToW(b, b.zn); continue; }   // 指定了區的（補樓牆缺口那棟）
+    const parts = zoneClip(b.x0, b.x1, b.z0, b.z1);
     if (parts.length > 1) colliders.splice(k, 1, ...parts.map(r => boxToW({ ...b, x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 }, r.zn)));
     else boxToW(b, parts.length ? parts[0].zn : null);
   }
@@ -947,13 +1068,15 @@ const addCircleL = c => { circles.push(cityIsWorld ? circleToW(c) : c); colDirty
 const boxGap = (b, x, z) => Math.max((b.bx0 ?? b.x0) - x, x - (b.bx1 ?? b.x1), (b.bz0 ?? b.z0) - z, z - (b.bz1 ?? b.z1));
 let colVer = 0;
 const colDirty = () => { colVer++; };
-const mkIndex = (arr, box) => ({ arr, box, n: -1, v: -1, cells: new Map() });
+// 跨很多格的（海岸、城外延伸到 1e5 的擋牆，轉了角度之後外接框兩個方向都很大）不進格子，放進 big，每次查詢都附上
+const mkIndex = (arr, box) => ({ arr, box, n: -1, v: -1, cells: new Map(), big: [] });
 const IDX_B = mkIndex(colliders, true), IDX_C = mkIndex(circles, false);
 const cellKey = (c, d) => (c + 1024) * 4096 + d + 1024;
 function idxBuild(I) {
-  I.cells.clear(); I.n = I.arr.length; I.v = colVer;
+  I.cells.clear(); I.big.length = 0; I.n = I.arr.length; I.v = colVer;
   for (const o of I.arr) {
     const x0 = I.box ? o.bx0 ?? o.x0 : o.x - o.r, x1 = I.box ? o.bx1 ?? o.x1 : o.x + o.r, z0 = I.box ? o.bz0 ?? o.z0 : o.z - o.r, z1 = I.box ? o.bz1 ?? o.z1 : o.z + o.r;
+    if ((x1 - x0) * (z1 - z0) > 256 * COL_S * COL_S || x1 - x0 > 1000 * COL_S || z1 - z0 > 1000 * COL_S) { I.big.push(o); continue; }
     for (let c = Math.floor(x0 / COL_S); c <= Math.floor(x1 / COL_S); c++) for (let d = Math.floor(z0 / COL_S); d <= Math.floor(z1 / COL_S); d++) {
       const k = cellKey(c, d); let L = I.cells.get(k); if (!L) I.cells.set(k, L = []); L.push(o);
     }
@@ -963,6 +1086,7 @@ let _qStamp = 0;
 function idxQuery(I, x0, z0, x1, z1, out) {
   if (I.n !== I.arr.length || I.v !== colVer) idxBuild(I);
   out.length = 0; const st = ++_qStamp;
+  for (const o of I.big) { o._q = st; out.push(o); }
   for (let c = Math.floor(x0 / COL_S); c <= Math.floor(x1 / COL_S); c++) for (let d = Math.floor(z0 / COL_S); d <= Math.floor(z1 / COL_S); d++) {
     const L = I.cells.get(cellKey(c, d)); if (!L) continue;
     for (const o of L) if (o._q !== st) { o._q = st; out.push(o); }

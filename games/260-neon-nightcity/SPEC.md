@@ -8,6 +8,7 @@
 ## 城市
 
 - 20×15 個街區（`NX`、`NZ`；原本 5×5 的城區在西北角，第一輪的 8×7 包在外圍，第二輪的新區往東、往南長，約 1.4 × 0.9 km），大道間距 `P = 72`、街道間距 `Q = 62`，路寬 `2 × HR = 16`、人行道 `SW = 4.5`，原點偏移 `X0 = -180`、`Z0 = -155`。北方是 -z。
+- 分區（`05-zones.js`，計畫在 `../../plans/260-irregular-city.md`）：上面的方格是「邏輯座標」，生成都在這裡跑；三區 A（Harbor Av 到 Ironside Av、6 St 到 13 St，不動）、B（Ironside Av 到 Union Av、6 St 到 13 St，東移 36 m、轉 8°）、C（13 St 以南，南移 39 m、東移 48 m、轉 4°）各有一個剛體變換，世界 = (ox + x·c + z·s, oz − x·s + z·c)，朝向 yaw_world = yaw + ry。區之間的縫 `SEAM` 是世界座標的草地，`06-roads.js` 的連接道路（三次貝茲，切線垂直於邊界）把兩區同一個路口接起來；伸進河與東灣的岬角 `CAPES` 也是世界座標。存檔第 5 版的位置是世界座標。
 - `avX(i)`／`stZ(j)` 是道路中線；車道中心距中線 `LANE = 3.0`，路邊停車格 `PARK = 6.6`。
 - 大道名稱 Harbor、Atlas、Bishop、Cinder、Delmar、Foundry、Granite、Hollis、Ironside、Juniper……一路到 Union（`AVE`）；街道 6 St 到 21 St。
 - 十五個區域：原城區的舊碼頭、紅磚巷、霓虹區、中城，第一輪的冠石金融區（整個街區換成 `bld_fin` 高樓群）、雲杉坡（住宅，4–8 層磚樓與 `bld_res` 公寓大樓）、鐵灣貨場（工業建築組），以及第二輪 `DISTRICTS` 表的光環廣場（第三輪換成 `bld_cyber` 14 群加 `bld_fin` 三群）、灰石國宅（`bld_grey` 板樓、`grey_18` 塔樓、`grey_30`／`grey_31` 大板樓）、燈籠公園（只有草地與步道，步道每 9 m 一盞紅燈籠 `parkLamps`）、楓林里與公園大道（`bld_nbh` 整個街區、`bld_shop` 店面）、琥珀工業區、珊瑚灘（`bld_shop`）、錨灣港。整個街區換模型的位置寫死在 `wholeBlocks()` 的 `PLAN`。區域影響立面樣式、窗光、招牌密度與實體建築的組別和比例（`10-city.js` 的 `SETS`／`PROB`）。

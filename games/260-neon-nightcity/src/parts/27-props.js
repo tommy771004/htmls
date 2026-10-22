@@ -94,7 +94,7 @@ function bldUpdate() {   // 每半秒看一次：走近還沒下載的組就開�
 const COAST_MODELS = [
   { set: 'isle_ruin', id: 'ruin', at: ISLE_SITES.ruin, proxy: 'isle', near: 900, y: .03 },
   { set: 'isle_office', id: 'office', at: ISLE_SITES.office, proxy: 'isle', near: 900, y: .03 },
-  { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500 },
+  { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500, zn: FAR_ZN },
   { set: 'far_golu', id: 'golu', at: FAR_SITES.golu, proxy: 'golu', near: 1500 },
   { set: 'far_s7', id: 's7', at: FAR_SITES.s7, proxy: 'golu', near: 1500 },
 ];
@@ -103,7 +103,7 @@ function coastModelsUpdate() {
   if (!GLB_ON || (coastTick = (coastTick + 1) % 30)) return;
   const x = pX(), z = pZ();
   for (const o of COAST_MODELS) {
-    const zn = zoneAtL(o.at.x, o.at.z), [ax, az] = toW(o.at.x, o.at.z, zn);   // at 是邏輯座標，模型掛進所在的區
+    const zn = o.zn || zoneAtL(o.at.x, o.at.z), [ax, az] = toW(o.at.x, o.at.z, zn);   // at 是邏輯座標，模型掛進所在的區（對岸的跟著 FAR_ZN）
     if (o.req || Math.hypot(x - ax, z - az) > o.near) continue;
     o.req = true;
     loadProps(o.set).then(items => {

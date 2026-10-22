@@ -65,9 +65,16 @@ const free = (x, z, r) => {
 const claim = (x, z, r) => { const k = npKey(Math.floor(x / NP_S), Math.floor(z / NP_S)); let L = nearProp.get(k); if (!L) nearProp.set(k, L = []); L.push({ x, z, r }); };
 
 // ─── 路燈：沿路網每一段（各區自己的邊界路也有一份）；燈頭的位置寫進 shader 的路燈表（lampTable，lampGrid 查） ───
-const lampsA = [], lampsS = [];
+const lampsA = [], lampsS = [], lampsC = [];
 for (const e of RN.edges) {
-  if (e.kind === 'c') continue;
+  if (e.kind === 'c') {   // 區之間的連接道路（世界座標）：兩側每 20 m 一盞，路口範圍內不放
+    for (let u = HR + 10; u < e.len - HR - 6; u += 20) for (const s of [-1, 1]) {
+      const [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1)), l = Math.hypot(xb - xa, zb - za) || 1;
+      const nx = (zb - za) / l * s, nz = -(xb - xa) / l * s;   // 往路外
+      lampsC.push({ x: x + nx * 9.6, z: z + nz * 9.6, ry: Math.atan2(-nz, nx), hx: x + nx * 7.4, hz: z + nz * 7.4, zn: null });
+    }
+    continue;
+  }
   const { i, j } = e.a, zn = e.zn;
   if (e.kind === 'z') { for (const s of [-1, 1]) for (const o of [16, 31, 46]) lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4, zn }); }
   else for (const s of [-1, 1]) for (const o of [18, 36, 54]) lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4, zn });
@@ -83,7 +90,9 @@ function lampKit(col) {
 }
 const lampMeshA = instanced(lampKit(0xff8a3a), MAT.uber, lampsA);
 const lampMeshS = instanced(lampKit(0xb8dcff), MAT.uber, lampsS);
+const lampMeshC = instanced(lampKit(0xff8a3a), MAT.uber, lampsC);
 for (const l of [...lampsA, ...lampsS]) { circles.push(circleToW({ x: l.x, z: l.z, r: .22 }, l.zn)); claim(l.x, l.z, 1.4); }
+for (const l of lampsC) circles.push({ x: l.x, z: l.z, r: .22, w: 1 });
 // 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√420 ≈ 20.5 m）蓋到的每一格；一格超過 LAMP_K 盞就留離格子中心最近的
 function lampTable(heads) {
   const R = Math.sqrt(420) + .5;
@@ -109,7 +118,8 @@ function lampTable(heads) {
   tex.minFilter = tex.magFilter = T.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
   U.uLampT.value = tex; U.uLampG.value.set(x0, z0, nx, nz);
 }
-lampTable([...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; })]);
+lampTable([...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; }),
+  ...lampsC.map(l => ({ x: l.hx, z: l.hz, t: 0 }))]);
 // 車行門前的兩台展示車與門口、車庫門前的車道：不放人行道設施
 for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
 
@@ -144,13 +154,15 @@ function coneMat(col) {
   const cg = new T.CylinderGeometry(.22, 3.1, 7, 18, 1, true); cg.translate(0, 3.5, 0);
   instanced(cg, coneMat(0xff9a4c), lampsA.map(l => ({ x: l.hx, z: l.z, zn: l.zn })), LY.NOREFL);
   instanced(cg.clone(), coneMat(0xa8d4ff), lampsS.map(l => ({ x: l.x, z: l.hz, zn: l.zn })), LY.NOREFL);
+  instanced(cg.clone(), coneMat(0xff9a4c), lampsC.map(l => ({ x: l.hx, z: l.hz, zn: null })), LY.NOREFL);
 }
 
 // ─── 紅綠燈：每個路口每個來車方向一支懸臂號誌（立在來車那段路的右前方） ───
+// 往外的方向換到路口所在區的邏輯座標再對齊軸（連接道路垂直離開邊界路，也落在軸上）；ax 和車流用的 edgeAx() 一樣
 const signals = [];
 for (const n of RN.nodes) for (const { e, dir } of n.out) {
-  if (e.kind === 'c') continue;
-  const ax = e.kind, hx = ax === 'x' ? -dir : 0, hz = ax === 'z' ? -dir : 0;   // 來車的方向（邏輯座標）：和往外的方向相反
+  const [ox, oz] = dirL(n.zn, ...outDir(e, dir)), ax = edgeAx(n, e), sg = ax === 'x' ? Math.sign(ox) : Math.sign(oz);
+  const hx = ax === 'x' ? -sg : 0, hz = ax === 'z' ? -sg : 0;   // 來車的方向（邏輯座標）：和往外的方向相反
   signals.push({ x: avX(n.i) - hx * 9.2 - hz * 9.2, z: stZ(n.j) - hz * 9.2 + hx * 9.2, ry: Math.atan2(hx, hz), i: n.i, j: n.j, ax, zn: n.zn, node: n });
 }
 const sigGeo = new Kit()
@@ -244,6 +256,31 @@ for (const b of blocks) {
     if (rnd() < dens && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
   for (const x of [b.x0 + 1.6, b.x1 - 1.6]) for (let z = b.z0 + 12; z < b.z1 - 10; z += 9 + rnd() * 3)
     if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
+}
+// 區之間的縫（05-zones.js 的 SEAM_IN）：草地上稀疏的樹，世界座標；避開連接道路、草地邊緣，樓牆後面不種
+{
+  const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c'), P = SEAM_IN;
+  const edgeD = (x, z) => { let m = 1e9; for (let k = 0; k < P.length; k++) { const [ax, az] = P[k], [bx, bz] = P[(k + 1) % P.length], dx = bx - ax, dz = bz - az, t = clamp(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1), 0, 1); m = Math.min(m, Math.hypot(x - ax - dx * t, z - az - dz * t)); } return m; };
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const [x, z] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+  for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
+    const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
+    if (r5() > .55 || !inPoly(P, tx, tz) || edgeD(tx, tz) < 4 || toL(tx, tz)[1] < CITY_Z0 + 4) continue;
+    if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
+    trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
+  }
+}
+// 岬角（10-city.js 的 CAPES）：草地上一叢一叢的樹，世界座標
+{
+  const r6 = rng(8282);
+  for (const h of CAPES) {
+    const [x0, x1, z0, z1] = h.bb;
+    for (let x = x0; x < x1; x += 9) for (let z = z0; z < z1; z += 9) {
+      const tx = x + (r6() - .5) * 6, tz = z + (r6() - .5) * 6, s = .85 + r6() * .55, ry = r6() * 6.3;
+      if (r6() > .5 || !inPoly(h.inn, tx, tz)) continue;
+      trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
+    }
+  }
 }
 for (const t of trees) if (!t.park) grates.push({ x: t.x, z: t.z, y: .155 });
 instanced(new Kit()

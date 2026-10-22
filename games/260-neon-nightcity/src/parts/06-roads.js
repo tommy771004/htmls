@@ -25,6 +25,36 @@ for (const zn of ZONES) {
   for (let j = zn.nj0; j <= zn.nj1; j++) for (let i = zn.ni0; i < zn.ni1; i++) rnAddEdge(rnNode.get(`${zn.id}:${i},${j}`), rnNode.get(`${zn.id}:${i + 1},${j}`), 'x', zn);
 }
 const rnAt = (zn, i, j) => rnNode.get(`${zn.id}:${i},${j}`);
+// 區之間的連接道路（kind 'c'）：兩區共有的邊界路口（同一個 i、j）各有一份，用三次貝茲曲線接起來，兩端順著各自的區垂直離開邊界路。
+// 三區交會的路口，同一端同一個方向只接一條（先接到的那對區）
+{
+  const used = new Set();
+  for (let a = 0; a < ZONES.length; a++) for (let b = a + 1; b < ZONES.length; b++) {
+    const za = ZONES[a], zb = ZONES[b];
+    let da, db, nodes = [];
+    if (za.x1 === zb.x0 || za.x0 === zb.x1) {   // 東西相鄰：共用一條大道
+      const i = za.x1 === zb.x0 ? za.ni1 : za.ni0, s = za.x1 === zb.x0 ? 1 : -1;
+      da = [s, 0]; db = [-s, 0];
+      for (let j = Math.max(za.nj0, zb.nj0); j <= Math.min(za.nj1, zb.nj1); j++) nodes.push([i, j]);
+    } else if (za.z1 === zb.z0 || za.z0 === zb.z1) {   // 南北相鄰：共用一條街
+      const j = za.z1 === zb.z0 ? za.nj1 : za.nj0, s = za.z1 === zb.z0 ? 1 : -1;
+      da = [0, s]; db = [0, -s];
+      for (let i = Math.max(za.ni0, zb.ni0); i <= Math.min(za.ni1, zb.ni1); i++) nodes.push([i, j]);
+    } else continue;
+    for (const [i, j] of nodes) {
+      const na = rnAt(za, i, j), nb = rnAt(zb, i, j), ka = `${na.id}:${da}`, kb = `${nb.id}:${db}`;
+      if (used.has(ka) || used.has(kb)) continue;
+      used.add(ka); used.add(kb);
+      const [tax, taz] = dirW(za, ...da), [tbx, tbz] = dirW(zb, ...db), L = Math.hypot(nb.x - na.x, nb.z - na.z), h = L * .42;
+      const p1 = [na.x + tax * h, na.z + taz * h], p2 = [nb.x + tbx * h, nb.z + tbz * h], n = Math.max(6, Math.ceil(L / 3)), pts = [];
+      for (let k = 0; k <= n; k++) {
+        const t = k / n, u = 1 - t;
+        pts.push([u * u * u * na.x + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * nb.x, u * u * u * na.z + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * nb.z]);
+      }
+      rnAddEdge(na, nb, 'c', null, pts);
+    }
+  }
+}
 const segLenE = e => e.len - 2 * HR;
 // 邊上的點：u 是從 a 量起的弧長，回傳 [x, z, 前進方向 x, z]（a → b 的方向）
 function edgeAt(e, u) {

@@ -349,7 +349,7 @@ window.__nc = {
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },
   // 邏輯座標（方格；spots 裡的門口、sea 的矩形、APT 的 door 都是）：換成世界座標再傳送，朝向一起轉
   tpL(x, z, yaw = 0) { const s = spotW({ x, z, yaw }); this.tp(s.x, s.z, s.yaw); },
-  W: (x, z) => toW(x, z), L: (x, z) => toL(x, z), zones: ZONES, roads: RN,
+  W: (x, z) => toW(x, z), L: (x, z) => toL(x, z), Ws: (x, z, yaw = 0) => spotW({ x, z, yaw }), zones: ZONES, roads: RN, capes: CAPES,
   drive(name = 'kestrel') { const v = name === 'hanzo' ? hanzo : kestrel; if (player.mode === 'drive') exitVehicle(); setWhere('out'); enterVehicle(v); camState.yaw = v.yaw; camState.snap = true; },
   walk() { if (player.mode === 'drive') exitVehicle(); },
   enter(w) { if (player.mode === 'drive') exitVehicle(); const sp = VENUES[w].spawn; setWhere(w); player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.snap = true; },

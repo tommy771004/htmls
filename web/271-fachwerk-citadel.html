@@ -1,0 +1,2530 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>山城晨曦 · FACHWERK CITADEL — 歐式半木構山城 3D 走讀與影片深度拆解</title>
+<meta name="description" content="依 @xikhar 的 Unreal Engine 5 × Blender × ImageGen 歐式山城影片與提示詞重建的 Three.js 第三人稱 3D 互動山城：完整還原下城半木構坡道、圓形市集廣場、上城大階梯、聖女雕像噴泉廣場（含白鴿啄食與驚飛）、雙塔大教堂與藍頂要塞城堡，內建 41 秒四幕運鏡重現與人物／物件／載具動線／動畫／畫質／提示詞深度分析。">
+<meta name="theme-color" content="#1c1510">
+<link rel="icon" href="../favicon.svg">
+<script type="importmap">
+{
+  "imports": {
+    "three": "../vendor/three-0.186.0/three.module.js",
+    "three/addons/": "../vendor/three-0.186.0/addons/"
+  }
+}
+</script>
+<style>
+:root {
+  --ink: #1b140e;
+  --ink-panel: rgba(24, 18, 13, 0.84);
+  --ink-card: rgba(36, 27, 20, 0.88);
+  --parchment: #f5ebd6;
+  --parchment-2: #d8c7a8;
+  --parchment-3: #9e8c70;
+  --terracotta: #d46238;
+  --gold: #e6ae48;
+  --slate-blue: #4c6e91;
+  --verdigris: #469c8e;
+  --border: rgba(245, 235, 214, 0.16);
+  --border-strong: rgba(230, 174, 72, 0.42);
+  --serif: "Palatino Linotype", "Book Antiqua", Palatino, "Songti TC", "Noto Serif TC", serif;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #14100c;
+  color: var(--parchment);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* 頂部左：山城徽章與目前區域 */
+.brand-hud {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: min(410px, calc(100vw - 32px));
+  padding: 12px 16px;
+  background: var(--ink-panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+}
+.brand-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.brand-kicker {
+  font: 600 10px/1.2 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.brand-badge {
+  font: 600 11px/1 var(--mono);
+  padding: 3px 7px;
+  border-radius: 99px;
+  background: rgba(212, 98, 56, 0.22);
+  border: 1px solid rgba(212, 98, 56, 0.5);
+  color: #ffbfa3;
+}
+.brand-hud h1 {
+  margin: 0;
+  font: 700 clamp(17px, 2vw, 22px)/1.2 var(--serif);
+  letter-spacing: 0.02em;
+  color: var(--parchment);
+  text-wrap: balance;
+}
+.brand-sub {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--parchment-2);
+}
+.telemetry-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(245, 235, 214, 0.1);
+  font: 500 11px/1.3 var(--mono);
+  color: var(--parchment-3);
+}
+.telemetry-row b { color: var(--parchment); font-weight: 600; }
+
+/* 頂部右：工具與檢視切換 */
+.top-tools {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 14;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: min(620px, calc(100vw - 32px));
+}
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--ink-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--parchment-2);
+  transition: background-color 140ms, border-color 140ms, color 140ms, transform 100ms;
+  white-space: nowrap;
+}
+.pill-btn:hover {
+  background: rgba(48, 36, 26, 0.92);
+  color: var(--parchment);
+  border-color: rgba(245, 235, 214, 0.32);
+}
+.pill-btn:active { transform: scale(0.97); }
+.pill-btn[aria-pressed="true"], .pill-btn.active {
+  background: linear-gradient(135deg, rgba(212, 98, 56, 0.9), rgba(182, 72, 34, 0.92));
+  color: #fff9f0;
+  border-color: var(--gold);
+  box-shadow: 0 4px 14px rgba(212, 98, 56, 0.35);
+}
+.pill-btn kbd {
+  font: 600 10px/1 var(--mono);
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 實機旁白字幕卡 */
+.shot-banner {
+  position: fixed;
+  left: calc(50% - 140px);
+  bottom: max(124px, calc(env(safe-area-inset-bottom) + 118px));
+  transform: translateX(-50%);
+  z-index: 11;
+  width: min(500px, calc(100vw - 520px));
+  padding: 7px 15px;
+  background: rgba(20, 15, 11, 0.86);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+.shot-banner.hidden {
+  opacity: 0;
+  transform: translate(-50%, -10px);
+}
+.shot-banner b {
+  display: block;
+  font-size: 12.5px;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+}
+.shot-banner span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--parchment-2);
+}
+
+/* 左下：同心圓山城雷達小地圖与操控說明 */
+.minimap-card {
+  position: fixed;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(92px, calc(env(safe-area-inset-bottom) + 84px));
+  z-index: 12;
+  width: 210px;
+  padding: 10px;
+  background: var(--ink-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+.minimap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--parchment-2);
+}
+.minimap-head span { font-family: var(--mono); color: var(--gold); }
+#minimapCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: #141a16;
+  border: 1px solid rgba(245, 235, 214, 0.14);
+  cursor: pointer;
+}
+.controls-hint {
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--parchment-3);
+}
+.controls-hint kbd {
+  font: 600 10px/1 var(--mono);
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(245, 235, 214, 0.12);
+  color: var(--parchment);
+}
+
+/* 底部：41.5 秒四幕運鏡時間軸與分鏡切換 */
+.act-dock {
+  position: fixed;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 13;
+  width: min(940px, calc(100vw - 24px));
+  padding: 8px 12px 10px;
+  background: var(--ink-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.52);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.timeline-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.play-tour-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 99px;
+  background: var(--gold);
+  color: #19120b;
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+  transition: filter 140ms, transform 100ms;
+}
+.play-tour-btn:hover { filter: brightness(1.08); }
+.play-tour-btn:active { transform: scale(0.97); }
+.timeline-slider {
+  flex: 1;
+  accent-color: var(--gold);
+  height: 6px;
+  cursor: pointer;
+}
+.time-readout {
+  font: 600 11.5px/1 var(--mono);
+  color: var(--parchment-2);
+  min-width: 86px;
+  text-align: right;
+}
+.act-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.act-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(245, 235, 214, 0.1);
+  text-align: left;
+  transition: background-color 140ms, border-color 140ms;
+}
+.act-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(245, 235, 214, 0.25);
+}
+.act-btn[aria-current="true"] {
+  background: rgba(230, 174, 72, 0.16);
+  border-color: var(--gold);
+}
+.act-btn small {
+  font: 600 10px/1.1 var(--mono);
+  color: var(--gold);
+}
+.act-btn b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--parchment);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* 右側：影片五維度深度拆解 × 提示詞 × PBR 檢視抽屜 */
+.analysis-drawer {
+  position: fixed;
+  top: max(60px, calc(env(safe-area-inset-top) + 52px));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(92px, calc(env(safe-area-inset-bottom) + 84px));
+  z-index: 15;
+  width: min(470px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  background: rgba(22, 16, 12, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  transition: transform 260ms var(--ease-out), opacity 220ms var(--ease-out);
+}
+.analysis-drawer.closed {
+  transform: translateX(calc(100% + 28px));
+  opacity: 0;
+  pointer-events: none;
+}
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-header h2 {
+  margin: 2px 0 0;
+  font: 700 17px/1.25 var(--serif);
+  color: var(--parchment);
+}
+.drawer-header small {
+  font: 600 10.5px/1.2 var(--mono);
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+.close-drawer-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--parchment-2);
+}
+.close-drawer-btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+
+.drawer-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  padding: 7px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--parchment-3);
+  text-align: center;
+  transition: background-color 140ms, color 140ms;
+}
+.tab-btn:hover { color: var(--parchment); background: rgba(255, 255, 255, 0.05); }
+.tab-btn[aria-selected="true"] {
+  background: rgba(230, 174, 72, 0.2);
+  color: var(--gold);
+  border: 1px solid rgba(230, 174, 72, 0.45);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 20px;
+  user-select: text;
+  line-height: 1.65;
+  font-size: 13px;
+}
+.drawer-body::-webkit-scrollbar { width: 6px; }
+.drawer-body::-webkit-scrollbar-thumb { background: rgba(245, 235, 214, 0.22); border-radius: 3px; }
+
+.analysis-card {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.analysis-card h3 {
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.analysis-card h3 .tag {
+  font: 600 10.5px/1 var(--mono);
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgba(70, 156, 142, 0.22);
+  color: #8ee8d8;
+  border: 1px solid rgba(70, 156, 142, 0.4);
+}
+.analysis-card p {
+  margin: 0 0 8px;
+  color: var(--parchment-2);
+  text-wrap: pretty;
+}
+.analysis-card p:last-child { margin-bottom: 0; }
+.analysis-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--parchment-2);
+}
+.analysis-list li { margin-bottom: 5px; }
+.analysis-list li b { color: var(--parchment); }
+
+.jump-shot-btn {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(212, 98, 56, 0.22);
+  border: 1px solid rgba(212, 98, 56, 0.5);
+  color: #ffcbb5;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.jump-shot-btn:hover { background: rgba(212, 98, 56, 0.38); color: #fff; }
+
+.prompt-box {
+  position: relative;
+  margin: 8px 0 12px;
+  padding: 12px 12px 12px;
+  background: #100c08;
+  border: 1px solid rgba(230, 174, 72, 0.32);
+  border-radius: 8px;
+  font: 400 12px/1.6 var(--mono);
+  color: #f3e5c8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(230, 174, 72, 0.22);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font: 600 11px/1.2 var(--sans);
+}
+.copy-btn:hover { background: var(--gold); color: #19120b; }
+
+.pbr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pbr-swatch {
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.pbr-swatch canvas {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex: none;
+}
+.pbr-swatch div b { display: block; font-size: 12px; color: var(--parchment); }
+.pbr-swatch div small { display: block; font-size: 11px; color: var(--parchment-3); line-height: 1.35; }
+
+/* 手機虛擬搖桿與跳躍鈕 */
+.touch-controls {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 108px;
+  z-index: 12;
+  display: none;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.joy-zone {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(24, 18, 13, 0.55);
+  border: 1.5px solid rgba(245, 235, 214, 0.28);
+  position: relative;
+  pointer-events: auto;
+  touch-action: none;
+}
+.joy-knob {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(230, 174, 72, 0.85);
+  position: absolute;
+  left: 28px;
+  top: 28px;
+  pointer-events: none;
+}
+.touch-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+.touch-act {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(212, 98, 56, 0.82);
+  border: 1.5px solid var(--gold);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 100px;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 8px 16px;
+  border-radius: 99px;
+  background: rgba(230, 174, 72, 0.95);
+  color: #19120b;
+  font-size: 12.5px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 900px) {
+  .shot-banner { display: none; }
+  .minimap-card { width: 148px; padding: 7px; bottom: 112px; }
+  .controls-hint { display: none; }
+}
+@media (max-width: 680px) {
+  .brand-hud { max-width: calc(100vw - 24px); padding: 8px 12px; }
+  .brand-sub { display: none; }
+  .top-tools { top: auto; bottom: 112px; right: 12px; flex-direction: column; align-items: flex-end; }
+  .pill-btn kbd { display: none; }
+  .act-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analysis-drawer { top: 12px; bottom: 12px; right: 12px; width: calc(100vw - 24px); z-index: 25; }
+  .minimap-card { display: none; }
+  .touch-controls { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="stage" aria-label="歐式半木構山城 3D 互動場景"></div>
+
+<!-- 左上：山城區域與即時座標 -->
+<header class="brand-hud">
+  <div class="brand-top">
+    <span class="brand-kicker">UE5 × BLENDER × IMAGEGEN MCP RECREATION</span>
+    <span class="brand-badge" id="zoneBadge">第 1 區 · 下城半木構坡道</span>
+  </div>
+  <h1>山城晨曦 · FACHWERK CITADEL</h1>
+  <p class="brand-sub">依 @xikhar（Opus 5.5）實機預覽與提示詞重建：半木構民居、圓形市集、聖女噴泉白鴿與雙塔要塞</p>
+  <div class="telemetry-row">
+    <span>座標 <b id="telPos">0, -58</b></span>
+    <span>海拔 <b id="telAlt">+2.4 m</b></span>
+    <span>移動 <b id="telMode">斗篷旅人</b></span>
+    <span>白鴿 <b id="telDoves">18 隻棲息</b></span>
+  </div>
+</header>
+
+<!-- 頂部中央：分鏡即時解說字幕 -->
+<div class="shot-banner" id="shotBanner" aria-live="polite">
+  <b id="shotTitle">Act I（00:00–00:06）· 下城鵝卵石陡坡與半木構街角</b>
+  <span id="shotDesc">橘棚攤位、鐵箍木桶與三只麻布糧袋旁起跑，沿常春藤擋土牆與斜撐灰泥屋奔向遠方雙峰雪山</span>
+</div>
+
+<!-- 右上：工具列 -->
+<nav class="top-tools" aria-label="場景工具列">
+  <button type="button" class="pill-btn" id="btnLight" title="切換太陽仰角與山谷霧氣 (L)">
+    <span>☀ 斜陽：16:30 Lumen</span><kbd>L</kbd>
+  </button>
+  <button type="button" class="pill-btn" id="btnVehicle" title="切換斗篷旅人／木輪手推車／無人機空拍 (V)">
+    <span>🏃 模式：斗篷旅人</span><kbd>V</kbd>
+  </button>
+  <button type="button" class="pill-btn" id="btnSound" aria-pressed="false" title="切換魯特琴與環境音效 (M)">
+    <span>🔇 音效</span><kbd>M</kbd>
+  </button>
+  <button type="button" class="pill-btn active" id="btnDrawer" aria-pressed="true" title="開啟／收合影片五維度分析與提示詞抽屜 (I)">
+    <span>📜 影片分析 &amp; 提示詞</span><kbd>I</kbd>
+  </button>
+</nav>
+
+<!-- 左下：同心圓山城雷達圖 -->
+<aside class="minimap-card" aria-label="山城分區小地圖">
+  <div class="minimap-head">
+    <strong>同心圓山城平面（點擊瞬移）</strong>
+    <span id="miniHeading">N ↑</span>
+  </div>
+  <canvas id="minimapCanvas" width="200" height="200" title="點擊地圖任一區域瞬移"></canvas>
+  <div class="controls-hint">
+    <kbd>WASD</kbd> 奔跑 · <kbd>Shift</kbd> 衝刺 · <kbd>Space</kbd> 跳躍展袍<br>
+    <kbd>1–4</kbd> 切換影片四幕機位 · 拖曳畫面環視
+  </div>
+</aside>
+
+<!-- 手機觸控控制 -->
+<div class="touch-controls" id="touchControls">
+  <div class="joy-zone" id="joyZone"><div class="joy-knob" id="joyKnob"></div></div>
+  <div class="touch-btns">
+    <button type="button" class="touch-act" id="btnTouchJump">跳躍</button>
+  </div>
+</div>
+
+<!-- 底部：41.5 秒四幕運鏡時間軸 -->
+<section class="act-dock" aria-label="原片 41.5 秒四幕運鏡控制器">
+  <div class="timeline-ctrl">
+    <button type="button" class="play-tour-btn" id="btnPlayTour" aria-pressed="false">▶ 播放原片 41s 運鏡</button>
+    <input type="range" class="timeline-slider" id="tourSlider" min="0" max="41.5" step="0.1" value="0" aria-label="影片時間軸秒數">
+    <span class="time-readout" id="timeReadout">00.0 / 41.5s</span>
+  </div>
+  <div class="act-grid" role="group" aria-label="四幕分鏡快速切換">
+    <button type="button" class="act-btn" data-act="0" aria-current="true">
+      <small>ACT I · 00:00–00:06</small>
+      <b>1. 下城石板坡與半木構屋</b>
+    </button>
+    <button type="button" class="act-btn" data-act="1" aria-current="false">
+      <small>ACT II · 00:07–00:15</small>
+      <b>2. 圓形市集與全城高空俯瞰</b>
+    </button>
+    <button type="button" class="act-btn" data-act="2" aria-current="false">
+      <small>ACT III · 00:16–00:23</small>
+      <b>3. 雙塔大教堂與藍頂城堡空拍</b>
+    </button>
+    <button type="button" class="act-btn" data-act="3" aria-current="false">
+      <small>ACT IV · 00:24–00:41</small>
+      <b>4. 大階梯、聖女噴泉驚鴿與大道</b>
+    </button>
+  </div>
+</section>
+
+<!-- 右側抽屜：影片進行 × 五維度深度分析 × PBR 資產 × 提示詞 -->
+<aside class="analysis-drawer" id="analysisDrawer" aria-label="影片分析與提示詞面板">
+  <div class="drawer-header">
+    <div>
+      <small>VIDEO BREAKDOWN · @xikhar / status / 2112709928771277158</small>
+      <h2>歐式山城實機影片深度分析與 MCP 提示詞</h2>
+    </div>
+    <button type="button" class="close-drawer-btn" id="btnCloseDrawer">收合 ✕</button>
+  </div>
+
+  <div class="drawer-tabs" role="tablist" aria-label="分析章節">
+    <button type="button" class="tab-btn" role="tab" aria-selected="true" data-tab="timeline">進行分鏡</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="dimensions">五維度拆解</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="pbr">PBR 與資產</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="prompts">提示詞管線</button>
+  </div>
+
+  <!-- Tab 1: 影片進行分鏡 -->
+  <div class="drawer-body" data-pane="timeline">
+    <div class="analysis-card">
+      <h3><span>幕一：下城半木構陡坡起跑</span><span class="tag">00:00 – 00:06</span></h3>
+      <p><b>鏡頭與走位：</b>第三人稱低角度越肩跟拍（焦段約 28mm）。角色自下城石井／噴泉邊起跑，前景地面擺放<b>三只紮口麻布糧袋</b>，左側為<b>橘色波浪雨棚市集攤位、鐵箍木桶、陶罐與木長凳</b>；右側緊貼一棟大型<b>半木構（Fachwerk）民居</b>（深褐木樑含 K 型斜撐、窗下 X 型交叉木架、菱格鉛條窗、藍色木百葉窗與斑駁灰泥牆）。</p>
+      <p><b>地形與遠景：</b>腳下為高起伏鵝卵石上坡道，左側有多層爬滿常春藤的石砌擋土牆與石階，路緣盛開黃花與紫薰衣草，正前方視覺盡頭鎖定高聳的<b>純白雙峰雪山</b>。</p>
+      <button type="button" class="jump-shot-btn" data-jump-act="0">🎥 跳至幕一（00:00 下城坡道起點）</button>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>幕二：圓形市集與同心圓全城空拍</span><span class="tag">00:07 – 00:15</span></h3>
+      <p><b>鏡頭運動：</b>瞬間切換為高空鳥瞰鏡頭（Drone Pull-Back），由高度 45m 垂直拉升並後退至 160m，完整揭示山城的<b>同心圓階梯式都市計畫</b>。</p>
+      <p><b>空間結構：</b>正中央為<b>圓形市集廣場</b>——中心設圓形雙層噴泉，外圍環繞兩圈共 24 座紅、藍、綠、白、橘色頂篷攤位；廣場外圈由一環紅瓦半木構屋圍合，北側開出寬闊石階通往上城。外圍百餘棟紅瓦民居沿山坡等高線排開，最外圈有帶圓塔的垛口石城牆與西側引水橋，四周環繞針葉松林、金橙秋葉林與東側山谷的<b>低空體積晨霧</b>。</p>
+      <button type="button" class="jump-shot-btn" data-jump-act="1">🎥 跳至幕二（00:07 圓形市集高空俯瞰）</button>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>幕三：雙塔大教堂與藍頂要塞環繞</span><span class="tag">00:16 – 00:23</span></h3>
+      <p><b>鏡頭運動：</b>空拍機向北推進並以順時針弧線環繞北側制高點的<b>衛城要塞區（Citadel）</b>，展現下城「暖橘紅瓦」與上城「冷藍灰板岩頂」的階級色彩對比。</p>
+      <p><b>建築細節：</b>衛城分上下兩層石垣：前層平台矗立<b>哥德式雙尖塔大教堂</b>（藍灰板岩尖頂、正面玫瑰花窗、尖拱門廊與大階梯），兩側為藍頂石造貴族宅邸；最高處內城牆內為<b>領主主堡（Keep）</b>，包含高聳方塔、多座圓錐藍頂角樓與完整雉堞垛口。</p>
+      <button type="button" class="jump-shot-btn" data-jump-act="2">🎥 跳至幕三（00:16 雙塔大教堂與要塞空拍）</button>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>幕四：大階梯、聖女噴泉驚鴿與教堂大道</span><span class="tag">00:24 – 00:41</span></h3>
+      <p><b>00:24–00:26（石造大階梯）：</b>切回第三人稱角色，奮力跑上長滿石縫青草的寬闊石階，兩側為厚重石護欄與垛口城牆。</p>
+      <p><b>00:27–00:32（聖女雕像與青銅噴泉廣場）：</b>登上觀景廣場，左側立著高底座<b>聖女祈禱石雕像</b>，旁有結果實的<b>黃檸檬樹紅陶盆栽</b>與石花箱；中央為八角青綠水面噴泉與<b>持盾青銅孩童雕像</b>。地面聚集近 20 隻灰白廣場鴿，角色在 00:29–00:31 繞噴泉奔跑並<b>縱身跳躍</b>，斗篷大幅展翼。</p>
+      <p><b>00:33–00:41（大教堂石板大道）：</b>轉入北向斜坡大道（中央有深色排水石槽与散落碎石落葉），左側為黑鐵尖欄、義大利絲柏、紅花叢與大教堂尖拱窗，右側為爬滿常春藤與橙紅秋樹的城堡高牆，一路奔向雪山。</p>
+      <button type="button" class="jump-shot-btn" data-jump-act="3">🎥 跳至幕四（00:24 大階梯與聖女噴泉廣場）</button>
+    </div>
+  </div>
+
+  <!-- Tab 2: 人物 / 物件 / 汽車 / 動畫 / 畫面 五維度深度拆解 -->
+  <div class="drawer-body" data-pane="dimensions" hidden>
+    <div class="analysis-card">
+      <h3><span>1. 人物（Character）</span><span class="tag">刺客斗篷 × 階梯碰撞</span></h3>
+      <ul class="analysis-list">
+        <li><b>服裝造型：</b>身穿深藍灰／墨黑連帽斗篷與開衩長風衣，右肩斜掛淺灰披肩垂帶；斗篷下擺背面印有醒目的<b>銀白色三環圓形家徽</b>與雙道銀白滾邊。</li>
+        <li><b>武器配件：</b>背部斜揹一把長劍（劍柄高出右肩，深色劍鞘斜出左腰下方），奔跑時隨軀幹微幅晃動。</li>
+        <li><b>碰撞與接地（Collision &amp; IK）：</b>角色膠囊碰撞體（Capsule）精準貼合鵝卵石坡度與 00:24 大階梯每階高度，無穿模或浮空；斜陽下投射出清晰銳利的動態人體與斗篷陰影。</li>
+      </ul>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>2. 物件（Objects &amp; Modular Kit）</span><span class="tag">Blender 模組化資產</span></h3>
+      <ul class="analysis-list">
+        <li><b>半木構與城堡建築群：</b>下城橘紅瓦 Fachwerk 民居（K/X 斜撐木樑、菱格窗、藍百葉窗）、上城藍灰板岩頂石屋、雙尖塔大教堂（玫瑰窗、扶壁）、雉堞城牆、圓塔與領主方塔。</li>
+        <li><b>廣場與市集陳設：</b>24 座五色布棚市集攤位、鐵箍木桶、紮口麻布糧袋、陶罐、市集圓形雙層噴泉、上城持盾青銅雕像噴泉、聖女祈禱石雕像、結果實的黃檸檬樹紅陶盆、石造花箱、木石長椅、黑鐵尖頭圍欄與鍛鐵街燈。</li>
+        <li><b>自然地景：</b>雙峰白雪山、針葉松、柱狀義大利絲柏、橙紅秋葉大樹、爬牆常春藤、黃紫路邊野花與鵝卵石排水溝路面。</li>
+      </ul>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>3. 汽車／載具與交通動線（Vehicles &amp; Mobility）</span><span class="tag">0 現代汽車 · 徒步山城</span></h3>
+      <ul class="analysis-list">
+        <li><b>關鍵實測結論：</b>原片設定於<b>純中世紀／文藝復興歐式奇幻山城，畫面中完全沒有任何現代汽車（0 輛機動車）</b>。</li>
+        <li><b>分級無車路網設計：</b>
+          <br>① <b>下城鵝卵石坡道與環道（獸力／手推車尺度）：</b>寬約 4–5 公尺，坡度平緩蜿蜒，路旁設有麻布袋與木桶裝卸點（00:00）。
+          <br>② <b>垂直石階斷層（純徒步阻車）：</b>市集北側與上城入口（00:24）以陡峭大階梯連接高低台地，物理上阻絕輪式車輛進入上城廣場。
+          <br>③ <b>上城石板大道（儀仗與排水槽）：</b>00:34 大道中央嵌有深色石砌排水槽（Gutter），路面散落碎石與秋葉。</li>
+        <li><b>本頁互動對照：</b>按右上角 <kbd>V</kbd> 可在「斗篷旅人奔跑（原片）」、「中世紀木輪手推車巡禮」與「無人機空拍載具」三種移動模式間切換體驗。</li>
+      </ul>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>4. 動畫與細膩動作（Animation &amp; Micro-Motions）</span><span class="tag">布料物理 × 廣場白鴿</span></h3>
+      <ul class="analysis-list">
+        <li><b>斗篷與披肩布料物理（Cloth Sim）：</b>全片最吸睛的細膩動態——角色奔跑時斗篷下擺呈波浪狀翻飛，左右急轉彎時有明顯離心甩尾延遲；<b>00:29–00:31 跳躍滯空時，斗篷與肩帶隨氣流大幅張開</b>，落地時自然垂落收攏。</li>
+        <li><b>角色步態：</b>衝刺時軀幹前傾約 14°、雙臂前後擺動，爬階梯時膝蓋抬高跨步。</li>
+        <li><b>環境生物（00:28–00:31 廣場白鴿）：</b>上城噴泉旁有十餘隻灰白鴿子低頭啄食、小步走動（本頁實作了完整 AI：角色跑近或跳躍時，白鴿會受驚拍翅飛起並在空中盤旋後落回廣場！）。</li>
+      </ul>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>5. 畫面畫質與渲染（Visual Quality &amp; UE5 Lumen）</span><span class="tag">斜陽 GI × PBR 貼圖</span></h3>
+      <ul class="analysis-list">
+        <li><b>Lumen 全域光照與晴天斜陽：</b>低角度暖金陽光（色溫約 4200K）拉出長影，受光灰泥牆與紅瓦溫暖飽滿，背光處由天空光（Sky Light）與間接反彈光補上冷藍紫色調，明暗過渡自然不死黑。</li>
+        <li><b>ImageGen PBR 材質表現：</b>半木構灰泥牆帶有真實的水漬與風化斑駁（Roughness 變化）、鵝卵石路面具備立體法線凹凸（Normal Bump）與接縫泥土、噴泉水面呈青綠半透明折射與波紋高光。</li>
+        <li><b>大氣透視：</b>東側山谷指數高度霧（Exponential Height Fog）與遠方雪山形成深邃的冷暖空氣透視層次。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Tab 3: PBR 材質與模組化資產圖鑑 -->
+  <div class="drawer-body" data-pane="pbr" hidden>
+    <div class="analysis-card">
+      <h3><span>ImageGen → 程序化無縫 PBR 材質預覽</span><span class="tag">4 組核心貼圖</span></h3>
+      <p>原片透過圖像生成工具產出無縫貼圖並轉為 Albedo／Normal／Roughness 通道；本頁以 Canvas 即時生成對應的四組 PBR 紋理並套用至 3D 場景：</p>
+      <div class="pbr-grid">
+        <div class="pbr-swatch">
+          <canvas id="swPlaster" width="64" height="64"></canvas>
+          <div><b>斑駁灰泥與木樑</b><small>Fachwerk Stucco · 風化水漬與 K/X 斜撐黑木</small></div>
+        </div>
+        <div class="pbr-swatch">
+          <canvas id="swCobble" width="64" height="64"></canvas>
+          <div><b>山城鵝卵石鋪面</b><small>Cobblestone · 扇形石塊凹凸法線與泥縫</small></div>
+        </div>
+        <div class="pbr-swatch">
+          <canvas id="swTile" width="64" height="64"></canvas>
+          <div><b>下城赤陶／上城藍板岩</b><small>Roof Tiles · 魚鱗紅瓦與要塞藍灰板岩</small></div>
+        </div>
+        <div class="pbr-swatch">
+          <canvas id="swStone" width="64" height="64"></canvas>
+          <div><b>常春藤擋土石牆</b><small>Ashlar Wall · 層疊切石、青苔與垂掛藤蔓</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>Blender 模組化資產清單（12 類）</span><span class="tag">Modular Kit</span></h3>
+      <ul class="analysis-list">
+        <li><b>Fachwerk_House_A/B/C：</b>二至三層半木構民居（石砌基座、外凸二樓 Jettying、斜撐木架、紅瓦陡頂、煙囪）。</li>
+        <li><b>Market_Stall_Canopy：</b>五色波浪邊布棚木攤位（含木箱、陶罐與展示台）。</li>
+        <li><b>Prop_Barrel_Sack_Pot：</b>鐵箍橡木桶、紮口麻布糧袋（00:00 前景三只）、雙耳紅陶罐與黃檸檬樹盆栽。</li>
+        <li><b>Fountain_Market &amp; Fountain_Child：</b>市集雙層圓形噴泉、上城八角青銅持盾孩童噴泉。</li>
+        <li><b>Statue_Praying_Saint：</b>上城高台座聖女祈禱石雕像（00:25–00:31 視覺焦點）。</li>
+        <li><b>Citadel_Cathedral &amp; Keep：</b>哥德雙塔大教堂（玫瑰窗、尖拱窗）與上層圓塔垛口主堡。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Tab 4: 提示詞與 MCP 管線 -->
+  <div class="drawer-body" data-pane="prompts" hidden>
+    <div class="analysis-card">
+      <h3><span>原推文背景（@xikhar · Shikhar）</span><span class="tag">Opus 5.5 + MCP</span></h3>
+      <p>「Making a city inside the game with Opus 5.5. Built in Unreal Engine from scratch using Blender and ImageGen. Weekly limit ran out, so here's an early preview.」——作者以 Claude Opus 5.5 透過 MCP 串聯 Blender（建模）、ImageGen（生成 PBR 材質貼圖）與 Unreal Engine 5（地形、Lumen 光照與第三人稱角色），以「每完成一區先截圖確認再擴建」的迭代方式從零蓋出整座山城。</p>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>主提示詞（Master Prompt · 繁體中文）</span><span class="tag">一鍵複製</span></h3>
+      <div class="prompt-box" id="prMaster">你可以透過 MCP 操作 Unreal Engine 5 與 Blender，並能呼叫圖像生成工具做貼圖。請從零為我的第三人稱遊戲蓋一座歐式山城小鎮：1) 用 Blender 建模半木構（Fachwerk）房屋、石牆、市集攤位、木桶、陶罐、噴泉等模組化資產，貼圖用圖像生成做出灰泥、木樑、石板的 PBR 材質；2) 匯入 Unreal，依山坡地形擺放：蜿蜒石板路、階梯、擋土牆、遠方雪山；3) 打 Lumen 全域光與晴天斜陽，加植被、花草與噴泉水面；4) 放入斗篷角色可自由奔跑，碰撞正確。每完成一區先截圖給我確認再繼續擴建。<button type="button" class="copy-btn" data-copy="prMaster">複製</button></div>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>階段 1 · Blender MCP 模組化建築與道具提示詞</span><span class="tag">Blender Python</span></h3>
+      <div class="prompt-box" id="prBlender">Use Blender MCP to procedurally model a medieval European hilltop town modular kit at real-world scale (1 unit = 1m), pivot at bottom-center:
+1. 3 variants of 2-to-3 story German/Alsace half-timbered (Fachwerk) houses with stone plinths, dark timber posts, diagonal K-braces, X-braces under diamond-lattice windows, blue wooden shutters, and steep terracotta gable roofs.
+2. Twin-spired Gothic stone cathedral (blue slate spires, rose window, pointed arches) and crenellated castle keep with cylindrical corner towers.
+3. Circular 2-tier market fountain, octagonal plaza fountain with a bronze child-with-shield statue, praying saint stone statue on tall pedestal, market stalls with scalloped cloth canopies, iron-hooped barrels, tied burlap grain sacks, and terracotta pots with lemon trees.
+Auto-unwrap UVs and export to FBX/glTF for Unreal Engine 5.<button type="button" class="copy-btn" data-copy="prBlender">複製</button></div>
+    </div>
+
+    <div class="analysis-card">
+      <h3><span>階段 2 · ImageGen 無縫 PBR 材質生成提示詞</span><span class="tag">Seamless Texture</span></h3>
+      <div class="prompt-box" id="prTex">Seamless tileable PBR texture set, 2K orthographic flat surface, no directional shadows:
+1) Weathered medieval lime plaster wall with subtle damp stains and hairline cracks, warm cream #E8DCC4.
+2) Hand-hewn dark aged oak timber beam, rough wood grain, deep espresso brown #23170F.
+3) European hillside cobblestone pavement with扇形 (fan-pattern) rounded granite stones, dirt and moss in crevices, high depth normal map.
+4) Terracotta clay roof tiles with warm orange-red variation #C85A32, and dark blue-grey castle slate tiles #3B526B.<button type="button" class="copy-btn" data-copy="prTex">複製</button></div>
+    </div>
+  </div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+let THREE;
+try {
+  THREE = await import('three');
+} catch {
+  THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js');
+}
+
+/* ============================================================================
+   1. 程序化無縫 PBR 紋理生成器（對應 ImageGen 灰泥、木樑、鵝卵石、紅瓦、藍板岩）
+   ============================================================================ */
+function makeCanvasTex(size, drawFn, repeatX = 1, repeatY = 1) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  drawFn(ctx, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  return { tex, canvas: c };
+}
+
+// 1) 半木構灰泥與木樑立面貼圖
+const fachwerkFacade = makeCanvasTex(256, (g, s) => {
+  // 暖米白斑駁灰泥底
+  g.fillStyle = '#e7dac2';
+  g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 420; i++) {
+    const x = (i * 73) % s, y = (i * 137) % s, r = 6 + (i % 18);
+    g.fillStyle = i % 2 ? 'rgba(168,145,115,0.12)' : 'rgba(255,248,235,0.14)';
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  // 深褐黑木樑框架（橫樑、立柱、斜撐 K-brace 與窗下 X 架）
+  g.fillStyle = '#24170f';
+  g.fillRect(0, 0, s, 14);
+  g.fillRect(0, s - 14, s, 14);
+  g.fillRect(0, Math.floor(s * 0.5), s, 12);
+  for (const x of [0, 82, 170, s - 12]) g.fillRect(x, 0, 12, s);
+  // 斜撐
+  g.strokeStyle = '#24170f';
+  g.lineWidth = 10;
+  g.beginPath();
+  g.moveTo(10, s - 10); g.lineTo(82, s * 0.52);
+  g.moveTo(s - 10, s - 10); g.lineTo(176, s * 0.52);
+  g.moveTo(10, s * 0.5); g.lineTo(82, 12);
+  g.moveTo(s - 10, s * 0.5); g.lineTo(176, 12);
+  g.stroke();
+  // 菱格鉛條窗 + 藍色木百葉窗
+  const drawWin = (wx, wy) => {
+    g.fillStyle = '#2d4b6e'; // 藍色百葉窗
+    g.fillRect(wx - 14, wy, 12, 42);
+    g.fillRect(wx + 38, wy, 12, 42);
+    g.fillStyle = '#382c22';
+    g.fillRect(wx, wy, 36, 42);
+    g.fillStyle = '#8faec4';
+    g.fillRect(wx + 3, wy + 3, 13, 36);
+    g.fillRect(wx + 20, wy + 3, 13, 36);
+    g.strokeStyle = 'rgba(30,22,16,0.65)';
+    g.lineWidth = 1.5;
+    for (let d = -20; d < 40; d += 9) {
+      g.beginPath();
+      g.moveTo(wx + 3, wy + 3 + d); g.lineTo(wx + 33, wy + 33 + d);
+      g.moveTo(wx + 33, wy + 3 + d); g.lineTo(wx + 3, wy + 33 + d);
+      g.stroke();
+    }
+  };
+  drawWin(108, 34);
+  drawWin(108, 156);
+}, 1, 1);
+
+// 2) 鵝卵石鋪面貼圖
+const cobblePBR = makeCanvasTex(256, (g, s) => {
+  g.fillStyle = '#7e705c';
+  g.fillRect(0, 0, s, s);
+  const rows = 12, cols = 10;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const ox = (r % 2) * (s / cols * 0.5);
+      const cx = ((c + 0.5) * (s / cols) + ox) % s;
+      const cy = (r + 0.5) * (s / rows);
+      const rx = (s / cols) * 0.42, ry = (s / rows) * 0.39;
+      const shade = 148 + ((r * 31 + c * 17) % 46) - 23;
+      const warm = ((r * 13 + c * 7) % 18);
+      g.fillStyle = `rgb(${shade + warm}, ${shade + Math.floor(warm * 0.5)}, ${shade - 12})`;
+      g.beginPath();
+      g.ellipse(cx, cy, rx, ry, ((r + c) % 3 - 1) * 0.12, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = 'rgba(42,34,25,0.55)';
+      g.lineWidth = 1.8;
+      g.stroke();
+    }
+  }
+}, 14, 14);
+
+// 3) 紅瓦與藍灰板岩屋頂貼圖
+const roofTilePBR = makeCanvasTex(128, (g, s) => {
+  g.fillStyle = '#c4552c';
+  g.fillRect(0, 0, s, s);
+  for (let r = 0; r < 8; r++) {
+    const y = r * (s / 8);
+    g.fillStyle = r % 2 ? 'rgba(140,42,16,0.35)' : 'rgba(235,120,72,0.22)';
+    g.fillRect(0, y, s, s / 16);
+    for (let c = 0; c < 8; c++) {
+      const x = c * (s / 8) + (r % 2) * 8;
+      g.strokeStyle = 'rgba(70,22,10,0.45)';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.arc(x, y + 12, 8, 0, Math.PI);
+      g.stroke();
+    }
+  }
+}, 4, 3);
+
+// 4) 擋土石牆與常春藤貼圖
+const stoneWallPBR = makeCanvasTex(256, (g, s) => {
+  g.fillStyle = '#9b8e78';
+  g.fillRect(0, 0, s, s);
+  const rows = 10;
+  for (let r = 0; r < rows; r++) {
+    const y = r * (s / rows), h = (s / rows) - 2;
+    let x = (r % 2) * -18;
+    while (x < s) {
+      const w = 34 + ((r * 19 + Math.floor(x)) % 22);
+      const v = 136 + ((r * 23 + Math.floor(x)) % 36);
+      g.fillStyle = `rgb(${v + 12}, ${v + 4}, ${v - 10})`;
+      g.fillRect(x + 1, y + 1, w - 2, h);
+      x += w;
+    }
+  }
+  // 頂部垂掛常春藤
+  for (let i = 0; i < 65; i++) {
+    const ix = (i * 29) % s;
+    const ih = 28 + ((i * 43) % 95);
+    g.fillStyle = i % 3 === 0 ? '#3f6b29' : '#2d521c';
+    g.beginPath();
+    g.arc(ix, (i * 19) % ih, 7 + (i % 6), 0, Math.PI * 2);
+    g.fill();
+  }
+}, 4, 2);
+
+// 將 PBR 預覽畫到抽屜的 4 個小畫布上
+function paintSwatches() {
+  const pairs = [
+    ['swPlaster', fachwerkFacade.canvas],
+    ['swCobble', cobblePBR.canvas],
+    ['swTile', roofTilePBR.canvas],
+    ['swStone', stoneWallPBR.canvas],
+  ];
+  for (const [id, src] of pairs) {
+    const el = document.getElementById(id);
+    if (el) el.getContext('2d').drawImage(src, 0, 0, el.width, el.height);
+  }
+}
+paintSwatches();
+
+/* ============================================================================
+   2. THREE.JS 場景、Lumen 斜陽光照與山城地形高度函數
+   ============================================================================ */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x88b4dc);
+scene.fog = new THREE.FogExp2(0xc9d9e8, 0.0028);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.4, 900);
+
+// Lumen 風全域環境光（暖地反光 + 冷藍天空光）+ 晴天斜陽平行光
+const hemiLight = new THREE.HemisphereLight(0x9ec6f5, 0xc79e6b, 0.85);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xffe1a8, 2.5);
+sunLight.position.set(-85, 78, -45);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.near = 10;
+sunLight.shadow.camera.far = 320;
+const dCam = 135;
+sunLight.shadow.camera.left = -dCam;
+sunLight.shadow.camera.right = dCam;
+sunLight.shadow.camera.top = dCam;
+sunLight.shadow.camera.bottom = -dCam;
+sunLight.shadow.bias = -0.0005;
+scene.add(sunLight);
+
+// 定義山城地形高度函數 getGroundY(x, z)
+// 座標系：
+//   圓形市集廣場中心在 (0, 0)，半徑 26m，高度 y = 0.2
+//   南側（z < -26，對應 Act 1 下城坡道）：從 z = -70 (y = -5.5) 緩坡上升至 z = -26 (y = 0.2)
+//   北側（z > 24）：
+//     z = 24..42：上城大階梯（Act 4 00:24），高度從 0.2 爬升至 10.5
+//     z = 42..68：聖女雕像與青銅噴泉觀景廣場（Act 4 00:27–00:32），高度 y = 10.5
+//     z = 68..112：大教堂石板大道（Act 4 00:33–00:41），高度從 10.5 爬升至 19.5
+//     z > 112：北側藍頂要塞主堡（Keep）高台，高度 y = 22.0
+function getGroundY(x, z) {
+  const rMarket = Math.hypot(x, z);
+  if (rMarket < 25 && z <= 24) return 0.2;
+  // Act 1 下城南側蜿蜒石板坡道 (x 約 -14..14, z = -75..-24)
+  if (z < -24) {
+    const t = Math.max(0, Math.min(1, (-z - 24) / 48));
+    const terrace = Math.abs(x) > 10 ? 2.6 : 0;
+    return 0.2 - t * 5.8 + terrace;
+  }
+  // 北側上城階梯、聖女噴泉廣場與大教堂大道
+  if (z > 24 && Math.abs(x) < 48) {
+    if (z <= 42) {
+      const k = (z - 24) / 18;
+      // 階梯踏階感
+      const steps = Math.floor(k * 18) / 18;
+      return 0.2 + steps * 10.3;
+    }
+    if (z <= 68) return 10.5;
+    if (z <= 112) {
+      const k = (z - 68) / 44;
+      return 10.5 + k * 9.0;
+    }
+    return 22.0;
+  }
+  // 左右山坡梯田
+  const dist = Math.max(0, rMarket - 26);
+  const northLift = z > 0 ? z * 0.16 : z * 0.05;
+  return Math.max(-6, 0.2 + northLift + Math.sin(x * 0.06) * 1.2 + Math.min(14, dist * 0.08));
+}
+
+/* ============================================================================
+   3. 碰撞體註冊表與程序化幾何建構器
+   ============================================================================ */
+const colliders = []; // { x, z, r } 圓柱碰撞或 { minX, maxX, minZ, maxZ } 盒碰撞
+function addBoxCollider(cx, cz, hw, hd) {
+  colliders.push({ type: 'box', minX: cx - hw, maxX: cx + hw, minZ: cz - hd, maxZ: cz + hd });
+}
+function addCircleCollider(cx, cz, r) {
+  colliders.push({ type: 'circle', x: cx, z: cz, r });
+}
+
+const worldGroup = new THREE.Group();
+scene.add(worldGroup);
+
+// 共用材質
+const matGrass = new THREE.MeshStandardMaterial({ color: 0x5c7d37, roughness: 0.92 });
+const matCobble = new THREE.MeshStandardMaterial({ map: cobblePBR.tex, roughness: 0.82, bumpMap: cobblePBR.tex, bumpScale: 0.08 });
+const matFachwerk = new THREE.MeshStandardMaterial({ map: fachwerkFacade.tex, roughness: 0.75 });
+const matPlasterPlain = new THREE.MeshStandardMaterial({ color: 0xe6d8be, roughness: 0.82 });
+const matTimber = new THREE.MeshStandardMaterial({ color: 0x24160e, roughness: 0.85 });
+const matRoofRed = new THREE.MeshStandardMaterial({ map: roofTilePBR.tex, roughness: 0.68 });
+const matRoofSlate = new THREE.MeshStandardMaterial({ color: 0x384d69, roughness: 0.52, metalness: 0.12 });
+const matStoneWall = new THREE.MeshStandardMaterial({ map: stoneWallPBR.tex, roughness: 0.86 });
+const matCastleStone = new THREE.MeshStandardMaterial({ color: 0xcbbfa6, roughness: 0.82 });
+const matWater = new THREE.MeshStandardMaterial({ color: 0x2f8f83, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.88 });
+const matBronze = new THREE.MeshStandardMaterial({ color: 0x4c4332, roughness: 0.38, metalness: 0.72 });
+
+// 3.1 地形網格與鋪面道路
+(function buildTerrainAndRoads() {
+  const geo = new THREE.PlaneGeometry(340, 340, 120, 120);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const vx = pos.getX(i), vz = pos.getZ(i);
+    const vy = getGroundY(vx, vz);
+    pos.setY(i, vy);
+    // 判斷是否為石板路／廣場區或草坡
+    const inMarket = Math.hypot(vx, vz) < 25.5;
+    const inSouthRoad = vz < -22 && vz > -74 && Math.abs(vx - Math.sin(vz * 0.08) * 2.2) < 6.2;
+    const inUpperPlaza = vz >= 24 && vz <= 68 && Math.abs(vx) < 18;
+    const inAve = vz > 68 && vz <= 114 && Math.abs(vx) < 6.5;
+    const c = new THREE.Color();
+    if (inMarket || inSouthRoad || inUpperPlaza || inAve) {
+      c.setHex(0x9a8b74);
+    } else {
+      c.setHex(vy > 14 ? 0x6f7a52 : 0x5c7e36);
+    }
+    colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const terrainMesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
+  terrainMesh.receiveShadow = true;
+  worldGroup.add(terrainMesh);
+
+  // 圓形市集鵝卵石鋪面圓盤
+  const marketDisc = new THREE.Mesh(new THREE.CylinderGeometry(25.2, 25.5, 0.26, 48), matCobble);
+  marketDisc.position.set(0, 0.12, 0);
+  marketDisc.receiveShadow = true;
+  worldGroup.add(marketDisc);
+
+  // Act 1 下城鵝卵石坡道鋪面分段
+  for (let z = -70; z <= -24; z += 3) {
+    const nextZ = z + 3;
+    const x0 = Math.sin(z * 0.06) * 1.4, x1 = Math.sin(nextZ * 0.06) * 1.4;
+    const y0 = getGroundY(0, z), y1 = getGroundY(0, nextZ);
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.22, 3.3), matCobble);
+    seg.position.set((x0 + x1) * 0.5, (y0 + y1) * 0.5 + 0.04, (z + nextZ) * 0.5);
+    seg.rotation.x = -Math.atan2(y1 - y0, 3);
+    seg.receiveShadow = true;
+    worldGroup.add(seg);
+  }
+
+  // Act 4 寬闊石造大階梯（z = 24..42，共 18 階，兩側厚重石護欄與石縫青草）
+  for (let i = 0; i < 18; i++) {
+    const sz = 24.5 + i * 1.0;
+    const sy = 0.2 + (i + 0.5) * (10.3 / 18);
+    const step = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.65, 1.08), matCastleStone);
+    step.position.set(0, sy, sz);
+    step.castShadow = step.receiveShadow = true;
+    worldGroup.add(step);
+    // 階梯石縫青草叢（對應 frame_25）
+    if (i % 2 === 0) {
+      const grassTuft = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.55, 6), matGrass);
+      grassTuft.position.set((i % 4 === 0 ? -3.6 : 3.2), sy + 0.4, sz - 0.3);
+      worldGroup.add(grassTuft);
+    }
+  }
+  // 階梯兩側斜坡石護欄
+  for (const sx of [-6.2, 6.2]) {
+    const parapet = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.35, 19.5), matCastleStone);
+    parapet.position.set(sx, 5.8, 33.2);
+    parapet.rotation.x = -Math.atan2(10.3, 18);
+    parapet.castShadow = parapet.receiveShadow = true;
+    worldGroup.add(parapet);
+    addBoxCollider(sx, 33.2, 0.7, 9.5);
+  }
+
+  // 上城聖女雕像噴泉廣場鋪面（z = 42..68）
+  const upperPlaza = new THREE.Mesh(new THREE.BoxGeometry(34, 0.3, 26), matCobble);
+  upperPlaza.position.set(0, 10.42, 55);
+  upperPlaza.receiveShadow = true;
+  worldGroup.add(upperPlaza);
+
+  // Act 4 大教堂石板大道（z = 68..112，中央有深色石砌排水溝槽 Gutter 與散落落葉）
+  for (let z = 68; z < 112; z += 4) {
+    const y0 = getGroundY(0, z), y1 = getGroundY(0, z + 4);
+    const road = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.24, 4.2), matCobble);
+    road.position.set(0, (y0 + y1) * 0.5 + 0.04, z + 2);
+    road.rotation.x = -Math.atan2(y1 - y0, 4);
+    road.receiveShadow = true;
+    worldGroup.add(road);
+    // 中央深色排水溝槽（對應 frame_35, frame_41）
+    const gutter = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.26, 4.22), new THREE.MeshStandardMaterial({ color: 0x5c4f3e, roughness: 0.9 }));
+    gutter.position.copy(road.position);
+    gutter.position.y += 0.01;
+    gutter.rotation.copy(road.rotation);
+    worldGroup.add(gutter);
+  }
+})();
+
+// 3.2 半木構房屋（Fachwerk House）模組化生成器
+function buildFachwerkHouse(x, z, w, d, floors, rotY = 0, roofType = 'red') {
+  const y = getGroundY(x, z);
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+  g.rotation.y = rotY;
+
+  // 石砌基座 Plinth
+  const plinthH = 1.3;
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w, plinthH, d), matStoneWall);
+  plinth.position.y = plinthH * 0.5;
+  plinth.castShadow = plinth.receiveShadow = true;
+  g.add(plinth);
+
+  // 樓層主體（二樓微幅外凸 Jettying）
+  const bodyH = floors * 3.1;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, bodyH, d + 0.25), roofType === 'slate' ? matCastleStone : matFachwerk);
+  body.position.y = plinthH + bodyH * 0.5;
+  body.castShadow = body.receiveShadow = true;
+  g.add(body);
+
+  // 陡斜山牆屋頂（Gable Roof）
+  const roofH = Math.max(2.6, w * 0.52);
+  const roofGeo = new THREE.ConeGeometry(Math.hypot(w, d) * 0.58, roofH, 4);
+  roofGeo.rotateY(Math.PI / 4);
+  const roof = new THREE.Mesh(roofGeo, roofType === 'slate' ? matRoofSlate : matRoofRed);
+  roof.scale.set(w / Math.hypot(w, d) * 1.48, 1, d / Math.hypot(w, d) * 1.48);
+  roof.position.y = plinthH + bodyH + roofH * 0.48;
+  roof.castShadow = roof.receiveShadow = true;
+  g.add(roof);
+
+  // 磚石煙囪
+  const chim = new THREE.Mesh(new THREE.BoxGeometry(0.65, roofH * 0.85, 0.65), matCastleStone);
+  chim.position.set(w * 0.24, plinthH + bodyH + roofH * 0.55, -d * 0.18);
+  chim.castShadow = true;
+  g.add(chim);
+
+  worldGroup.add(g);
+  addBoxCollider(x, z, w * 0.52, d * 0.52);
+  return g;
+}
+
+// 3.3 建立 Act 1 下城街道、擋土牆、攤位、木桶與前景三只麻布糧袋（00:00–00:06）
+(function buildAct1LowerStreet() {
+  // 00:00 右側近景大棟半木構民居（含藍百葉窗與 K/X 斜撐）
+  buildFachwerkHouse(8.2, -55, 7.6, 8.8, 2, -0.08, 'red');
+  // 00:02–00:06 坡道右側一路往上的半木構屋群
+  buildFachwerkHouse(8.8, -41, 6.8, 7.4, 2, 0.06, 'red');
+  buildFachwerkHouse(8.4, -29, 6.4, 6.8, 2, -0.05, 'red');
+
+  // 00:00 左側多層常春藤石砌擋土牆與上層紅瓦石屋（對應 frame_01..frame_06）
+  for (let z = -62; z <= -28; z += 11) {
+    const wy = getGroundY(-8.5, z);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.6, 10.8), matStoneWall);
+    wall.position.set(-7.2, wy + 0.8, z);
+    wall.castShadow = wall.receiveShadow = true;
+    worldGroup.add(wall);
+    addBoxCollider(-7.2, z, 1.8, 5.4);
+  }
+  buildFachwerkHouse(-12.5, -54, 7.2, 7.6, 2, 0.05, 'red');
+  buildFachwerkHouse(-11.8, -40, 7.5, 8.2, 2, 0, 'red');
+  buildFachwerkHouse(-11.2, -27, 6.8, 7.2, 2, 0.1, 'red');
+
+  // 00:00 左前景：橘色波浪雨棚市集攤位 + 鐵箍木桶 + 陶罐
+  const stallY = getGroundY(-3.6, -58);
+  const stall = buildMarketStall(-3.8, stallY, -58.5, 0xe86125, 0.15);
+  worldGroup.add(stall);
+  addBoxCollider(-3.8, -58.5, 1.6, 1.4);
+
+  // 00:00 鐵箍木桶兩只（角色左後方）
+  for (const [bx, bz, br] of [[-2.1, -55.2, 0], [-2.85, -54.6, 0.3]]) {
+    const by = getGroundY(bx, bz);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.42, 1.05, 14), new THREE.MeshStandardMaterial({ color: 0x4b2e19, roughness: 0.8 }));
+    barrel.position.set(bx, by + 0.52, bz);
+    barrel.rotation.y = br;
+    barrel.castShadow = barrel.receiveShadow = true;
+    worldGroup.add(barrel);
+    addCircleCollider(bx, bz, 0.55);
+  }
+
+  // 00:00 前景正中央偏右：三只紮口米黃麻布糧袋（對應 frame_01 畫面下方極具辨識度的三個麻袋！）
+  const matSack = new THREE.MeshStandardMaterial({ color: 0xdfd0a8, roughness: 0.92 });
+  for (const [sx, sz, sc] of [[-0.35, -58.8, 1.0], [0.52, -58.9, 0.96], [-0.18, -57.9, 0.9]]) {
+    const sy = getGroundY(sx, sz);
+    const sackGrp = new THREE.Group();
+    sackGrp.position.set(sx, sy, sz);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.46 * sc, 12, 10), matSack);
+    body.scale.set(1, 1.18, 0.92);
+    body.position.y = 0.42 * sc;
+    body.castShadow = body.receiveShadow = true;
+    sackGrp.add(body);
+    const tie = new THREE.Mesh(new THREE.ConeGeometry(0.18 * sc, 0.25 * sc, 8), matSack);
+    tie.position.y = 0.92 * sc;
+    tie.rotation.z = 0.12;
+    sackGrp.add(tie);
+    worldGroup.add(sackGrp);
+  }
+
+  // 00:00 右下角：圓形石井／噴泉護緣
+  const wellY = getGroundY(3.6, -59.2);
+  const wellRim = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.28, 10, 24), matCastleStone);
+  wellRim.rotation.x = Math.PI / 2;
+  wellRim.position.set(3.6, wellY + 0.55, -59.2);
+  wellRim.castShadow = wellRim.receiveShadow = true;
+  worldGroup.add(wellRim);
+  addCircleCollider(3.6, -59.2, 1.7);
+})();
+
+// 3.4 市集攤位生成函式與 Act 2 圓形市集廣場（24 座五色雨棚攤位 + 中央雙層噴泉 + 同心圓百棟民居）
+function buildMarketStall(x, y, z, canopyHex, rotY = 0) {
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+  g.rotation.y = rotY;
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.9, 1.5), new THREE.MeshStandardMaterial({ color: 0x694628, roughness: 0.85 }));
+  counter.position.y = 0.45;
+  counter.castShadow = counter.receiveShadow = true;
+  g.add(counter);
+  for (const px of [-1.15, 1.15]) {
+    for (const pz of [-0.62, 0.62]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.3, 6), matTimber);
+      post.position.set(px, 1.15, pz);
+      g.add(post);
+    }
+  }
+  const canopy = new THREE.Mesh(
+    new THREE.BoxGeometry(2.95, 0.28, 1.85),
+    new THREE.MeshStandardMaterial({ color: canopyHex, roughness: 0.65 })
+  );
+  canopy.position.y = 2.32;
+  canopy.rotation.x = 0.14;
+  canopy.castShadow = true;
+  g.add(canopy);
+  return g;
+}
+
+const fountainRipples = [];
+(function buildAct2CircularMarketAndTown() {
+  // 中央雙層圓形噴泉 (0, 0)
+  const fGroup = new THREE.Group();
+  fGroup.position.set(0, 0.2, 0);
+  const basin = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.1, 0.95, 28), matCastleStone);
+  basin.position.y = 0.48;
+  basin.castShadow = basin.receiveShadow = true;
+  fGroup.add(basin);
+  const water = new THREE.Mesh(new THREE.CylinderGeometry(3.45, 3.45, 0.1, 28), matWater);
+  water.position.y = 0.88;
+  fGroup.add(water);
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.68, 2.8, 16), matCastleStone);
+  pillar.position.y = 1.4;
+  pillar.castShadow = true;
+  fGroup.add(pillar);
+  const topBowl = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 0.6, 0.55, 20), matCastleStone);
+  topBowl.position.y = 2.65;
+  topBowl.castShadow = true;
+  fGroup.add(topBowl);
+  worldGroup.add(fGroup);
+  addCircleCollider(0, 0, 4.2);
+  fountainRipples.push({ x: 0, y: 1.12, z: 0, r: 3.1 });
+
+  // 兩圈共 24 座紅、藍、綠、白、橘色頂篷市集攤位（對應 frame_08..frame_10）
+  const colors = [0xc93b2b, 0x2f5f9e, 0x3b7a42, 0xe8dec8, 0xe06a2b];
+  for (let i = 0; i < 10; i++) {
+    const ang = (i / 10) * Math.PI * 2;
+    if (Math.abs(Math.sin(ang)) < 0.28 && Math.cos(ang) < 0) continue;
+    const r = 9.2;
+    const sx = Math.sin(ang) * r, sz = Math.cos(ang) * r;
+    worldGroup.add(buildMarketStall(sx, 0.2, sz, colors[i % colors.length], ang + Math.PI));
+    addCircleCollider(sx, sz, 1.45);
+  }
+  for (let i = 0; i < 14; i++) {
+    const ang = (i / 14) * Math.PI * 2 + 0.12;
+    // 預留南北出入口
+    if (Math.abs(Math.sin(ang)) < 0.24) continue;
+    const r = 15.6;
+    const sx = Math.sin(ang) * r, sz = Math.cos(ang) * r;
+    worldGroup.add(buildMarketStall(sx, 0.2, sz, colors[(i + 2) % colors.length], ang));
+    addCircleCollider(sx, sz, 1.45);
+  }
+
+  // 廣場第一環圍合的半木構房屋（對應 frame_08..frame_10 圓形廣場周圍的 18 棟紅瓦屋）
+  const innerCount = 16;
+  for (let i = 0; i < innerCount; i++) {
+    const ang = (i / innerCount) * Math.PI * 2;
+    // 留出南向坡道口 (ang ≈ π) 與北向大階梯口 (ang ≈ 0)
+    if (Math.abs(Math.sin(ang)) < 0.26) continue;
+    const r = 28.5;
+    const hx = Math.sin(ang) * r, hz = Math.cos(ang) * r;
+    buildFachwerkHouse(hx, hz, 6.6 + (i % 3) * 0.8, 7.2, 2 + (i % 2), ang + Math.PI, 'red');
+  }
+
+  // 中外環梯田半木構民居群（共約 56 棟，形成壯觀的同心圓山城鳥瞰！）
+  for (const [radius, count] of [[46, 22], [66, 26]]) {
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + (radius * 0.03);
+      const hx = Math.sin(ang) * radius, hz = Math.cos(ang) * radius;
+      // 避開北側衛城與南側主坡道
+      if (hz > 20 && Math.abs(hx) < 38) continue;
+      if (hz < -18 && Math.abs(hx) < 15) continue;
+      buildFachwerkHouse(hx, hz, 6.2 + (i % 3) * 1.1, 6.8 + (i % 2) * 1.2, 2, ang + Math.PI * 0.5, 'red');
+    }
+  }
+})();
+
+// 3.5 建立 Act 3 & Act 4 上城：聖女祈禱雕像、持盾青銅孩童噴泉、檸檬樹陶盆、雙塔大教堂与藍頂要塞主堡
+const pigeons = [];
+(function buildAct3And4UpperCitadel() {
+  // 1) 上城觀景廣場中央：八角青綠噴泉 + 持盾青銅孩童雕像 (0, 10.5, 55)（對應 frame_28..frame_32）
+  const uf = new THREE.Group();
+  uf.position.set(0, 10.5, 55);
+  const octBasin = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.4, 0.9, 8), matCastleStone);
+  octBasin.position.y = 0.45;
+  octBasin.castShadow = octBasin.receiveShadow = true;
+  uf.add(octBasin);
+  const octWater = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 3.8, 0.12, 8), matWater);
+  octWater.position.y = 0.85;
+  uf.add(octWater);
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.82, 1.9, 8), matCastleStone);
+  ped.position.y = 1.2;
+  ped.castShadow = true;
+  uf.add(ped);
+  // 持盾青銅孩童／騎士雕像
+  const cherub = new THREE.Group();
+  cherub.position.y = 2.25;
+  const cTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.95, 10), matBronze);
+  cTorso.position.y = 0.48;
+  cherub.add(cTorso);
+  const cHead = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), matBronze);
+  cHead.position.y = 1.15;
+  cherub.add(cHead);
+  const cShield = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.08, 12), matBronze);
+  cShield.rotation.z = Math.PI / 2;
+  cShield.position.set(-0.36, 0.72, 0.15);
+  cherub.add(cShield);
+  uf.add(cherub);
+  worldGroup.add(uf);
+  addCircleCollider(0, 55, 4.5);
+  fountainRipples.push({ x: 0, y: 11.42, z: 55, r: 3.4 });
+
+  // 2) 聖女祈禱石雕像與方形高底座 (-7.5, 10.5, 51.5)（對應 frame_25..frame_31）
+  const saintGrp = new THREE.Group();
+  saintGrp.position.set(-7.5, 10.5, 51.5);
+  const sBase = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.2, 2.1), matCastleStone);
+  sBase.position.y = 1.1;
+  sBase.castShadow = sBase.receiveShadow = true;
+  saintGrp.add(sBase);
+  const sRobe = new THREE.Mesh(new THREE.ConeGeometry(0.68, 2.45, 14), matPlasterPlain);
+  sRobe.position.y = 3.4;
+  sRobe.castShadow = true;
+  saintGrp.add(sRobe);
+  const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), matPlasterPlain);
+  sHead.position.y = 4.72;
+  saintGrp.add(sHead);
+  const sArm = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.75, 8), matPlasterPlain);
+  sArm.position.set(0.32, 4.15, 0.25);
+  sArm.rotation.z = -0.35;
+  saintGrp.add(sArm);
+  worldGroup.add(saintGrp);
+  addBoxCollider(-7.5, 51.5, 1.2, 1.2);
+
+  // 3) 結果實的黃檸檬樹紅陶盆栽與石造花箱（對應 frame_27, frame_28）
+  const matTerracottaPot = new THREE.MeshStandardMaterial({ color: 0xb84c27, roughness: 0.75 });
+  const matLemon = new THREE.MeshStandardMaterial({ color: 0xf5d130, roughness: 0.4 });
+  for (const [lx, lz] of [[-5.2, 48.2], [-5.2, 55.2], [5.4, 49.0], [5.4, 57.5]]) {
+    const potGrp = new THREE.Group();
+    potGrp.position.set(lx, 10.5, lz);
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.36, 0.78, 12), matTerracottaPot);
+    pot.position.y = 0.39;
+    pot.castShadow = true;
+    potGrp.add(pot);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.9, 6), matTimber);
+    trunk.position.y = 1.1;
+    potGrp.add(trunk);
+    const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(0.78, 1), matGrass);
+    crown.position.y = 1.75;
+    crown.castShadow = true;
+    potGrp.add(crown);
+    // 黃檸檬果實點綴
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2;
+      const lem = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), matLemon);
+      lem.position.set(Math.cos(a) * 0.62, 1.65 + (k % 2) * 0.22, Math.sin(a) * 0.62);
+      potGrp.add(lem);
+    }
+    worldGroup.add(potGrp);
+    addCircleCollider(lx, lz, 0.65);
+  }
+
+  // 4) 廣場 18 隻灰白鴿子（對應 frame_29..frame_31：地面啄食，角色靠近或跳躍時振翅飛起！）
+  const matPigeonBody = new THREE.MeshStandardMaterial({ color: 0xd8dce0, roughness: 0.6 });
+  const matPigeonWing = new THREE.MeshStandardMaterial({ color: 0x7b848f, roughness: 0.65 });
+  for (let i = 0; i < 18; i++) {
+    const ang = (i / 18) * Math.PI * 2 + (i % 3) * 0.2;
+    const rad = 5.2 + (i % 4) * 1.45;
+    const px = Math.cos(ang) * rad - 1.2;
+    const pz = 54.5 + Math.sin(ang) * rad * 0.75;
+    const dGrp = new THREE.Group();
+    dGrp.position.set(px, 10.52, pz);
+    dGrp.rotation.y = ang * 1.7;
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), matPigeonBody);
+    body.scale.set(0.85, 0.85, 1.45);
+    body.position.y = 0.16;
+    body.castShadow = true;
+    dGrp.add(body);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), matPigeonWing);
+    head.position.set(0, 0.28, 0.18);
+    dGrp.add(head);
+
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.03, 0.22), matPigeonWing);
+    wingL.position.set(0.14, 0.2, 0);
+    const wingR = wingL.clone();
+    wingR.position.x = -0.14;
+    dGrp.add(wingL, wingR);
+
+    worldGroup.add(dGrp);
+    pigeons.push({
+      mesh: dGrp, head, wingL, wingR,
+      homeX: px, homeZ: pz, baseY: 10.52,
+      state: 'peck', timer: i * 0.37, flyVelY: 0, angle: ang
+    });
+  }
+
+  // 5) 哥德／羅馬式雙尖塔石造大教堂（Act 3 00:16–00:23 & Act 4 00:34–00:41 左側）
+  const cath = new THREE.Group();
+  const cy = getGroundY(-14.5, 86);
+  cath.position.set(-14.5, cy, 86);
+  // 中殿 Nave
+  const nave = new THREE.Mesh(new THREE.BoxGeometry(13.5, 13.5, 24), matCastleStone);
+  nave.position.y = 6.75;
+  nave.castShadow = nave.receiveShadow = true;
+  cath.add(nave);
+  // 中殿藍灰板岩陡屋頂
+  const naveRoofGeo = new THREE.ConeGeometry(14, 7.5, 4);
+  naveRoofGeo.rotateY(Math.PI / 4);
+  const naveRoof = new THREE.Mesh(naveRoofGeo, matRoofSlate);
+  naveRoof.scale.set(0.72, 1, 1.32);
+  naveRoof.position.y = 13.5 + 3.6;
+  naveRoof.castShadow = true;
+  cath.add(naveRoof);
+  // 玫瑰花窗
+  const roseWin = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.4, 20), new THREE.MeshStandardMaterial({ color: 0x2c3e55, roughness: 0.3, metalness: 0.4 }));
+  roseWin.rotation.x = Math.PI / 2;
+  roseWin.position.set(0, 9.4, -12.05);
+  cath.add(roseWin);
+  // 左右雙鐘塔與藍灰尖頂（Twin Spires）
+  for (const tx of [-5.2, 5.2]) {
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(4.4, 19.5, 4.6), matCastleStone);
+    tower.position.set(tx, 9.75, -10.5);
+    tower.castShadow = tower.receiveShadow = true;
+    cath.add(tower);
+    const spire = new THREE.Mesh(new THREE.ConeGeometry(3.3, 8.8, 4), matRoofSlate);
+    spire.rotation.y = Math.PI / 4;
+    spire.position.set(tx, 19.5 + 4.4, -10.5);
+    spire.castShadow = true;
+    cath.add(spire);
+  }
+  worldGroup.add(cath);
+  addBoxCollider(-14.5, 86, 7.2, 12.5);
+
+  // 大教堂南側藍灰板岩頂貴族石屋（對應 frame_39 左側藍頂石屋）
+  buildFachwerkHouse(-14.2, 66, 7.4, 8.2, 2, 0, 'slate');
+
+  // 6) 大教堂大道右側高聳垛口城牆、圓塔與領主主堡（Keep）
+  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(4.5, 13.5, 58), matStoneWall);
+  rightWall.position.set(11.5, 16.5, 78);
+  rightWall.castShadow = rightWall.receiveShadow = true;
+  worldGroup.add(rightWall);
+  addBoxCollider(11.5, 78, 2.5, 29);
+
+  // 城牆圓塔（對應 frame_25 右側藍頂圓塔 & frame_35 大道盡頭右側圓塔）
+  for (const [tx, ty, tz, r, h] of [[12.5, 10.5, 44, 3.6, 12.5], [9.2, 17.5, 102, 3.4, 15.0], [-22, 18.0, 114, 3.8, 14.0], [24, 20.0, 118, 4.0, 15.0]]) {
+    const tGrp = new THREE.Group();
+    tGrp.position.set(tx, ty, tz);
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.06, h, 20), matCastleStone);
+    cyl.position.y = h * 0.5;
+    cyl.castShadow = cyl.receiveShadow = true;
+    tGrp.add(cyl);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(r * 1.22, h * 0.52, 20), matRoofSlate);
+    cone.position.y = h + h * 0.25;
+    cone.castShadow = true;
+    tGrp.add(cone);
+    worldGroup.add(tGrp);
+    addCircleCollider(tx, tz, r * 1.05);
+  }
+
+  // 最高處領主主堡（Keep + 高聳方塔，對應 frame_16..frame_23）
+  const keepGrp = new THREE.Group();
+  keepGrp.position.set(4, 21.5, 126);
+  const keepPalace = new THREE.Mesh(new THREE.BoxGeometry(24, 14, 15), matCastleStone);
+  keepPalace.position.y = 7;
+  keepPalace.castShadow = keepPalace.receiveShadow = true;
+  keepGrp.add(keepPalace);
+  const keepRoof = new THREE.Mesh(new THREE.ConeGeometry(16, 7.5, 4), matRoofSlate);
+  keepRoof.rotation.y = Math.PI / 4;
+  keepRoof.scale.set(1.15, 1, 0.75);
+  keepRoof.position.y = 14 + 3.6;
+  keepGrp.add(keepRoof);
+  // 主堡東側高聳方塔（Donjon）
+  const donjon = new THREE.Mesh(new THREE.BoxGeometry(8.5, 26, 8.5), matCastleStone);
+  donjon.position.set(14.5, 13, 2);
+  donjon.castShadow = donjon.receiveShadow = true;
+  keepGrp.add(donjon);
+  const donjonSpire = new THREE.Mesh(new THREE.ConeGeometry(5.6, 8.0, 4), matRoofSlate);
+  donjonSpire.rotation.y = Math.PI / 4;
+  donjonSpire.position.set(14.5, 26 + 4.0, 2);
+  keepGrp.add(donjonSpire);
+  worldGroup.add(keepGrp);
+
+  // 7) 遠方高聳阿爾卑斯雙峰大雪山（對應 frame_01..frame_06, frame_35, frame_41 正前方視覺焦點！）
+  const matSnow = new THREE.MeshStandardMaterial({ color: 0xf7fbff, roughness: 0.48, fog: false });
+  const matRockPeak = new THREE.MeshStandardMaterial({ color: 0x7b8999, roughness: 0.82, fog: false });
+  for (const [mx, mz, mr, mh, mat] of [
+    [-10, 210, 88, 185, matSnow],
+    [38, 225, 82, 168, matSnow],
+    [-85, 215, 72, 130, matRockPeak],
+    [102, 215, 68, 125, matRockPeak],
+  ]) {
+    const mountain = new THREE.Mesh(new THREE.ConeGeometry(mr, mh, 7), mat);
+    mountain.position.set(mx, mh * 0.48, mz);
+    mountain.rotation.y = 0.4;
+    worldGroup.add(mountain);
+  }
+})();
+
+// 3.6 植被：義大利絲柏、金橙秋葉大樹、鮮紅花叢与外圍針葉松林
+(function buildFoliage() {
+  const matCypress = new THREE.MeshStandardMaterial({ color: 0x264a22, roughness: 0.88 });
+  const matAutumn = new THREE.MeshStandardMaterial({ color: 0xd96518, roughness: 0.78 });
+  const matRedBush = new THREE.MeshStandardMaterial({ color: 0xc91e1e, roughness: 0.75 });
+  const matYellowFlower = new THREE.MeshStandardMaterial({ color: 0xf0c420, roughness: 0.7 });
+  const matPurpleFlower = new THREE.MeshStandardMaterial({ color: 0x7a42b8, roughness: 0.7 });
+
+  // 大教堂大道左側義大利絲柏與鮮紅花叢、右側金橙秋葉大樹（對應 frame_35..frame_41）
+  for (let z = 70; z <= 102; z += 7.5) {
+    const ly = getGroundY(-6.5, z);
+    const cyp = new THREE.Mesh(new THREE.ConeGeometry(1.15, 7.8, 10), matCypress);
+    cyp.position.set(-6.8, ly + 3.9, z);
+    cyp.castShadow = true;
+    worldGroup.add(cyp);
+    if (z % 15 === 2.5) {
+      const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(1.45, 1), matRedBush);
+      bush.position.set(-8.2, ly + 1.1, z + 2.5);
+      bush.castShadow = true;
+      worldGroup.add(bush);
+    }
+  }
+  // 右側城牆邊金橙色秋葉喬木（frame_28, frame_35）
+  for (const [ax, az] of [[-12, 58], [7.8, 69], [8.2, 84], [18, 96], [-24, 92]]) {
+    const ay = getGroundY(ax, az);
+    const tGrp = new THREE.Group();
+    tGrp.position.set(ax, ay, az);
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 3.6, 7), matTimber);
+    tr.position.y = 1.8;
+    tGrp.add(tr);
+    const cr = new THREE.Mesh(new THREE.DodecahedronGeometry(3.1, 1), matAutumn);
+    cr.position.y = 4.6;
+    cr.castShadow = true;
+    tGrp.add(cr);
+    worldGroup.add(tGrp);
+  }
+  // Act 1 路邊黃花與紫花叢（frame_01..frame_06）
+  for (let z = -56; z <= -28; z += 4.5) {
+    const fy = getGroundY(4.2, z);
+    const fl = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(0.62, 0),
+      z % 9 === 0 ? matPurpleFlower : matYellowFlower
+    );
+    fl.position.set(3.8 + (z % 2) * 0.5, fy + 0.35, z);
+    worldGroup.add(fl);
+  }
+  // 城外四周針葉松林（InstancedMesh 220 棵，對應 frame_11..frame_23）
+  const pineCount = 220;
+  const pineGeo = new THREE.ConeGeometry(2.6, 11.5, 7);
+  const pineInst = new THREE.InstancedMesh(pineGeo, matCypress, pineCount);
+  pineInst.castShadow = true;
+  const dummy = new THREE.Object3D();
+  for (let i = 0; i < pineCount; i++) {
+    const ang = (i / pineCount) * Math.PI * 2;
+    const rad = 86 + (i % 7) * 9.5;
+    const px = Math.sin(ang) * rad, pz = Math.cos(ang) * rad;
+    const py = getGroundY(px, pz);
+    dummy.position.set(px, py + 5.2, pz);
+    const sc = 0.75 + (i % 5) * 0.14;
+    dummy.scale.set(sc, sc, sc);
+    dummy.updateMatrix();
+    pineInst.setMatrixAt(i, dummy.matrix);
+  }
+  worldGroup.add(pineInst);
+})();
+
+/* ============================================================================
+   4. 主角：連帽深藍灰斗篷旅人（含三環銀白家徽、背負長劍、四肢骨架與斗篷布料物理）
+      以及可切換的「中世紀木輪手推車」載具
+   ============================================================================ */
+const player = {
+  x: 0.4,
+  y: getGroundY(0.4, -56),
+  z: -56,
+  vy: 0,
+  yaw: 0, // 0 = 朝北 (+Z)
+  speed: 0,
+  onGround: true,
+  mode: 'walker', // 'walker' | 'cart' | 'drone'
+  walkPhase: 0,
+  capeFlutter: 0,
+};
+
+const playerRoot = new THREE.Group();
+scene.add(playerRoot);
+
+// 建立斗篷刺客／旅人模型（對應 frame_01, frame_25, frame_30）
+const walkerGroup = new THREE.Group();
+playerRoot.add(walkerGroup);
+
+const matCloak = new THREE.MeshStandardMaterial({ color: 0x222936, roughness: 0.78, side: THREE.DoubleSide });
+const matScarf = new THREE.MeshStandardMaterial({ color: 0x7e8796, roughness: 0.72, side: THREE.DoubleSide });
+const matBoot = new THREE.MeshStandardMaterial({ color: 0x181310, roughness: 0.65 });
+
+// 斗篷下擺銀白三環家徽貼圖（對應原片角色斗篷背面的銀白圓形圖騰與雙滾邊）
+const capeCrestTex = makeCanvasTex(256, (g, s) => {
+  g.fillStyle = '#222936';
+  g.fillRect(0, 0, s, s);
+  // 下擺雙道銀白滾邊
+  g.fillStyle = '#cfd8e3';
+  g.fillRect(0, s - 18, s, 5);
+  g.fillRect(0, s - 8, s, 4);
+  // 中央銀白三環圓形家徽
+  g.strokeStyle = '#d8e0eb';
+  g.lineWidth = 5;
+  const cx = s * 0.5, cy = s * 0.64;
+  g.beginPath(); g.arc(cx, cy, 34, 0, Math.PI * 2); g.stroke();
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+    g.beginPath();
+    g.arc(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12, 11, 0, Math.PI * 2);
+    g.stroke();
+  }
+}, 1, 1).tex;
+const matCapeHem = new THREE.MeshStandardMaterial({ map: capeCrestTex, roughness: 0.76, side: THREE.DoubleSide });
+
+const torsoPivot = new THREE.Group();
+torsoPivot.position.y = 0.92;
+walkerGroup.add(torsoPivot);
+
+const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.28, 0.72, 12), matCloak);
+torsoMesh.position.y = 0.24;
+torsoMesh.castShadow = true;
+torsoPivot.add(torsoMesh);
+
+// 連帽兜帽 Hood
+const hoodMesh = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.42, 12), matCloak);
+hoodMesh.position.set(0, 0.78, 0.02);
+hoodMesh.rotation.x = -0.18;
+hoodMesh.castShadow = true;
+torsoPivot.add(hoodMesh);
+
+// 背負長劍與劍鞘（右肩露出劍柄、左腰斜出劍鞘，對應 frame_02, frame_35）
+const swordGroup = new THREE.Group();
+swordGroup.position.set(-0.04, 0.22, -0.19);
+swordGroup.rotation.z = -0.58;
+const scabbard = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.18, 0.03), matBoot);
+swordGroup.add(scabbard);
+const crossguard = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.05), matBronze);
+crossguard.position.y = 0.58;
+swordGroup.add(crossguard);
+const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.22, 8), matBronze);
+hilt.position.y = 0.7;
+swordGroup.add(hilt);
+torsoPivot.add(swordGroup);
+
+// 多段動態斗篷下擺與肩部灰披肩（Cloth Simulation Strips）
+const capePivot = new THREE.Group();
+capePivot.position.set(0, 0.12, -0.14);
+torsoPivot.add(capePivot);
+const capeSkirt = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.58, 0.96, 16, 4, true, -Math.PI * 0.75, Math.PI * 1.5), matCapeHem);
+capeSkirt.rotation.y = Math.PI;
+capeSkirt.position.y = -0.42;
+capeSkirt.castShadow = true;
+capePivot.add(capeSkirt);
+
+const scarfPivot = new THREE.Group();
+scarfPivot.position.set(0.14, 0.56, -0.16);
+torsoPivot.add(scarfPivot);
+const scarfStrip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.78, 0.03), matScarf);
+scarfStrip.position.y = -0.36;
+scarfStrip.castShadow = true;
+scarfPivot.add(scarfStrip);
+
+// 四肢關節
+const legLPivot = new THREE.Group(); legLPivot.position.set(-0.12, 0.82, 0);
+const legRPivot = new THREE.Group(); legRPivot.position.set(0.12, 0.82, 0);
+const legGeo = new THREE.CylinderGeometry(0.085, 0.065, 0.82, 8);
+legGeo.translate(0, -0.41, 0);
+const legL = new THREE.Mesh(legGeo, matBoot); legL.castShadow = true; legLPivot.add(legL);
+const legR = new THREE.Mesh(legGeo, matBoot); legR.castShadow = true; legRPivot.add(legR);
+walkerGroup.add(legLPivot, legRPivot);
+
+const armLPivot = new THREE.Group(); armLPivot.position.set(-0.28, 0.52, 0);
+const armRPivot = new THREE.Group(); armRPivot.position.set(0.28, 0.52, 0);
+const armGeo = new THREE.CylinderGeometry(0.068, 0.055, 0.58, 8);
+armGeo.translate(0, -0.26, 0);
+const armL = new THREE.Mesh(armGeo, matCloak); armLPivot.add(armL);
+const armR = new THREE.Mesh(armGeo, matCloak); armRPivot.add(armR);
+torsoPivot.add(armLPivot, armRPivot);
+
+// 可切換的中世紀木輪手推車模型（對應「汽車／載具」分析對照體驗）
+const cartGroup = new THREE.Group();
+cartGroup.visible = false;
+const cartBed = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 2.2), new THREE.MeshStandardMaterial({ color: 0x6b4728, roughness: 0.86 }));
+cartBed.position.y = 0.72;
+cartBed.castShadow = true;
+cartGroup.add(cartBed);
+const cartWheels = [];
+for (const wx of [-0.82, 0.82]) {
+  const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.07, 8, 16), matTimber);
+  wheel.rotation.y = Math.PI / 2;
+  wheel.position.set(wx, 0.52, 0);
+  wheel.castShadow = true;
+  cartGroup.add(wheel);
+  cartWheels.push(wheel);
+}
+playerRoot.add(cartGroup);
+
+/* ============================================================================
+   5. 影片四幕運鏡腳本（41.5 秒完整重現 @xikhar 實機預覽）
+   ============================================================================ */
+const ACT_META = [
+  {
+    title: 'Act I（00:00–00:06）· 下城鵝卵石陡坡與半木構街角',
+    desc: '橘棚攤位、鐵箍木桶與三只麻布糧袋旁起跑，沿常春藤擋土牆與斜撐灰泥屋奔向遠方雙峰雪山',
+    zone: '第 1 區 · 下城半木構坡道',
+    start: 0, end: 6.8
+  },
+  {
+    title: 'Act II（00:07–00:15）· 圓形市集廣場與同心圓山城高空拉升',
+    desc: '切換高空無人機視角，俯瞰中央雙層噴泉、24 座五色布棚攤位、百棟紅瓦民居與山谷晨霧',
+    zone: '第 2 區 · 圓形市集與全城鳥瞰',
+    start: 6.8, end: 15.8
+  },
+  {
+    title: 'Act III（00:16–00:23）· 雙塔大教堂與藍頂要塞城堡環繞空拍',
+    desc: '推進環繞北側制高點衛城：哥德式雙尖塔大教堂、藍灰板岩頂貴族石屋與領主方塔主堡',
+    zone: '第 3 區 · 雙塔大教堂與藍頂要塞',
+    start: 15.8, end: 23.8
+  },
+  {
+    title: 'Act IV（00:24–00:41）· 上城大階梯、聖女噴泉驚鴿與大教堂大道',
+    desc: '跑上石階，在聖女雕像、檸檬樹陶盆與持盾青銅噴泉間縱身起跳（驚起白鴿），再沿排水槽大道奔向雪山',
+    zone: '第 4 區 · 聖女噴泉與教堂大道',
+    start: 23.8, end: 41.5
+  }
+];
+
+let tourPlaying = false;
+let tourTime = 0;
+let tourCameraLocked = true;
+
+// 相機軌道控制狀態
+const camOrbit = { yaw: 0, pitch: 0.06, dist: 5.4, dragging: false, lastX: 0, lastY: 0 };
+
+function applyTourAtTime(t) {
+  tourTime = Math.max(0, Math.min(41.5, t));
+  document.getElementById('tourSlider').value = tourTime.toFixed(1);
+  document.getElementById('timeReadout').textContent = `${tourTime.toFixed(1).padStart(4, '0')} / 41.5s`;
+
+  const actIdx = tourTime < 6.8 ? 0 : tourTime < 15.8 ? 1 : tourTime < 23.8 ? 2 : 3;
+  updateActUI(actIdx);
+
+  if (actIdx === 0) {
+    // 00:00–00:06：角色從 z = -56 沿下城坡道跑到 z = -26
+    const u = tourTime / 6.8;
+    player.x = 0.4 + Math.sin(u * Math.PI) * 0.5;
+    player.z = -56 + u * 29;
+    player.y = getGroundY(player.x, player.z);
+    player.yaw = 0;
+    player.speed = 6.2;
+    player.walkPhase = tourTime * 9.5;
+    camera.position.set(player.x - 0.55, player.y + 1.95, player.z - 4.6);
+    camera.lookAt(player.x + 0.2, player.y + 4.8, player.z + 24);
+  } else if (actIdx === 1) {
+    // 00:07–00:15：圓形市集廣場正上方高空拉升鳥瞰
+    const u = (tourTime - 6.8) / 9.0;
+    const h = 38 + u * 96;
+    const backZ = -32 - u * 64;
+    camera.position.set(-8 + u * 12, h, backZ);
+    camera.lookAt(0, 4 + u * 6, 18 + u * 22);
+  } else if (actIdx === 2) {
+    // 00:16–00:23：北側雙塔大教堂與藍頂要塞環繞空拍
+    const u = (tourTime - 15.8) / 8.0;
+    const ang = -0.35 + u * 0.68;
+    const rad = 76;
+    camera.position.set(Math.sin(ang) * rad, 52 + u * 8, 98 - Math.cos(ang) * rad);
+    camera.lookAt(0, 18, 102);
+  } else {
+    // 00:24–00:41：上城大階梯 → 聖女雕像噴泉起跳驚鴿 → 大教堂石板大道
+    const localT = tourTime - 23.8; // 0..17.7
+    if (localT < 3.6) {
+      // 跑上大階梯 (z = 25..43)
+      const u = localT / 3.6;
+      player.x = -0.4;
+      player.z = 25 + u * 18;
+      player.y = getGroundY(player.x, player.z);
+      player.yaw = 0;
+      player.speed = 6.5;
+      camera.position.set(player.x - 0.4, player.y + 2.2, player.z - 4.6);
+      camera.lookAt(player.x, player.y + 2.4, player.z + 14);
+    } else if (localT < 8.6) {
+      // 00:28–00:32：繞聖女雕像與青銅噴泉奔跑並在 00:29.5 縱身跳躍（仰角鏡頭！）
+      const u = (localT - 3.6) / 5.0;
+      const jumpArc = Math.sin(Math.max(0, Math.min(1, (u - 0.25) / 0.45)) * Math.PI);
+      player.x = -3.8 + u * 3.8;
+      player.z = 46 + u * 18;
+      player.y = getGroundY(player.x, player.z) + jumpArc * 1.65;
+      player.yaw = 0.28 - u * 0.35;
+      player.speed = 6.8;
+      player.capeFlutter = jumpArc * 1.2;
+      // 仰角環繞鏡頭（對應 frame_29..frame_31 聖女雕像與噴泉同框）
+      camera.position.set(player.x + 2.9, 11.2, player.z - 2.6);
+      camera.lookAt(-2.5, 12.8, 53.5);
+    } else {
+      // 00:33–00:41：沿大教堂中央排水槽大道奔向雪山 (z = 66..106)
+      const u = (localT - 8.6) / 9.1;
+      player.x = -0.6 + Math.sin(u * Math.PI * 2) * 0.4;
+      player.z = 66 + u * 38;
+      player.y = getGroundY(player.x, player.z);
+      player.yaw = 0;
+      player.speed = 6.4;
+      camera.position.set(player.x - 0.3, player.y + 2.35, player.z - 4.9);
+      camera.lookAt(player.x, player.y + 2.4, player.z + 25);
+    }
+    player.walkPhase = tourTime * 10.2;
+  }
+}
+
+function updateActUI(actIdx) {
+  const m = ACT_META[actIdx];
+  document.getElementById('shotTitle').textContent = m.title;
+  document.getElementById('shotDesc').textContent = m.desc;
+  document.getElementById('zoneBadge').textContent = m.zone;
+  document.querySelectorAll('.act-btn').forEach((b, i) => {
+    b.setAttribute('aria-current', i === actIdx ? 'true' : 'false');
+  });
+}
+
+function jumpToAct(actIdx) {
+  tourPlaying = false;
+  tourCameraLocked = true;
+  document.getElementById('btnPlayTour').setAttribute('aria-pressed', 'false');
+  document.getElementById('btnPlayTour').textContent = '▶ 播放原片 41s 運鏡';
+  const starts = [0.2, 8.5, 17.5, 24.5];
+  applyTourAtTime(starts[actIdx] || 0);
+  if (actIdx === 0 || actIdx === 3) {
+    camOrbit.yaw = 0;
+    camOrbit.pitch = 0.06;
+  }
+}
+
+/* ============================================================================
+   6. 鍵盤、滑鼠、觸控與 UI 事件綁定
+   ============================================================================ */
+const keys = {};
+window.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea')) return;
+  keys[e.code] = true;
+  if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+    tourCameraLocked = false;
+    if (tourPlaying) {
+      tourPlaying = false;
+      document.getElementById('btnPlayTour').setAttribute('aria-pressed', 'false');
+      document.getElementById('btnPlayTour').textContent = '▶ 播放原片 41s 運鏡';
+    }
+  }
+  if (e.code === 'Space' && player.onGround && player.mode !== 'drone') {
+    player.vy = 6.8;
+    player.onGround = false;
+    playJumpSound();
+  }
+  if (e.code === 'Digit1') jumpToAct(0);
+  if (e.code === 'Digit2') jumpToAct(1);
+  if (e.code === 'Digit3') jumpToAct(2);
+  if (e.code === 'Digit4') jumpToAct(3);
+  if (e.code === 'KeyL') document.getElementById('btnLight').click();
+  if (e.code === 'KeyV') document.getElementById('btnVehicle').click();
+  if (e.code === 'KeyM') document.getElementById('btnSound').click();
+  if (e.code === 'KeyI') document.getElementById('btnDrawer').click();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// 滑鼠拖曳旋轉視角
+renderer.domElement.addEventListener('pointerdown', e => {
+  camOrbit.dragging = true;
+  camOrbit.lastX = e.clientX;
+  camOrbit.lastY = e.clientY;
+});
+window.addEventListener('pointermove', e => {
+  if (!camOrbit.dragging) return;
+  tourCameraLocked = false;
+  const dx = e.clientX - camOrbit.lastX;
+  const dy = e.clientY - camOrbit.lastY;
+  camOrbit.lastX = e.clientX;
+  camOrbit.lastY = e.clientY;
+  camOrbit.yaw -= dx * 0.0055;
+  camOrbit.pitch = Math.max(-0.15, Math.min(1.15, camOrbit.pitch + dy * 0.0045));
+});
+window.addEventListener('pointerup', () => { camOrbit.dragging = false; });
+renderer.domElement.addEventListener('wheel', e => {
+  camOrbit.dist = Math.max(3.2, Math.min(42, camOrbit.dist + e.deltaY * 0.01));
+}, { passive: true });
+
+// 手機觸控搖桿
+const joyState = { active: false, dx: 0, dy: 0 };
+const joyZone = document.getElementById('joyZone');
+const joyKnob = document.getElementById('joyKnob');
+joyZone.addEventListener('pointerdown', e => {
+  joyState.active = true;
+  joyZone.setPointerCapture(e.pointerId);
+});
+joyZone.addEventListener('pointermove', e => {
+  if (!joyState.active) return;
+  const r = joyZone.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const dx = Math.max(-32, Math.min(32, e.clientX - cx));
+  const dy = Math.max(-32, Math.min(32, e.clientY - cy));
+  joyState.dx = dx / 32;
+  joyState.dy = dy / 32;
+  joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+});
+joyZone.addEventListener('pointerup', () => {
+  joyState.active = false;
+  joyState.dx = joyState.dy = 0;
+  joyKnob.style.transform = 'translate(0,0)';
+});
+document.getElementById('btnTouchJump').addEventListener('click', () => {
+  if (player.onGround) { player.vy = 6.8; player.onGround = false; playJumpSound(); }
+});
+
+// 光照預設切換
+const LIGHT_PRESETS = [
+  { label: '☀ 斜陽：16:30 Lumen', pos: [-85, 78, -45], col: 0xffe1a8, int: 2.5, sky: 0x88b4dc, fog: 0xc9d9e8, density: 0.0028 },
+  { label: '🌫 晨霧：07:15 山谷', pos: [95, 42, -30], col: 0xffc68a, int: 1.9, sky: 0xa8c2d6, fog: 0xd8e2ea, density: 0.0052 },
+  { label: '☀️ 正午：12:00 晴空', pos: [-20, 130, 10], col: 0xfff6e5, int: 2.8, sky: 0x6ea6dc, fog: 0xbfd6ec, density: 0.0018 },
+  { label: '🌇 暮色：18:20 金光', pos: [-110, 32, -60], col: 0xff944d, int: 2.3, sky: 0x52688f, fog: 0xc99c7e, density: 0.0038 },
+];
+let lightIdx = 0;
+document.getElementById('btnLight').addEventListener('click', () => {
+  lightIdx = (lightIdx + 1) % LIGHT_PRESETS.length;
+  const p = LIGHT_PRESETS[lightIdx];
+  document.getElementById('btnLight').querySelector('span').textContent = p.label;
+  sunLight.position.set(...p.pos);
+  sunLight.color.setHex(p.col);
+  sunLight.intensity = p.int;
+  scene.background.setHex(p.sky);
+  scene.fog.color.setHex(p.fog);
+  scene.fog.density = p.density;
+  showToast(`已切換光照：${p.label}`);
+});
+
+// 移動／載具模式切換（對應汽車／載具分析）
+const MODES = [
+  { id: 'walker', label: '🏃 模式：斗篷旅人', tel: '斗篷旅人' },
+  { id: 'cart', label: '🛞 模式：木輪手推車', tel: '木輪手推車' },
+  { id: 'drone', label: '🛸 模式：空拍無人機', tel: '空拍無人機' },
+];
+let modeIdx = 0;
+document.getElementById('btnVehicle').addEventListener('click', () => {
+  modeIdx = (modeIdx + 1) % MODES.length;
+  const m = MODES[modeIdx];
+  player.mode = m.id;
+  document.getElementById('btnVehicle').querySelector('span').textContent = m.label;
+  document.getElementById('telMode').textContent = m.tel;
+  walkerGroup.visible = m.id !== 'drone';
+  cartGroup.visible = m.id === 'cart';
+  if (m.id === 'drone') {
+    player.y = Math.max(player.y + 18, 36);
+  }
+  showToast(m.id === 'cart' ? '已切換中世紀木輪手推車（對照原片無現代汽車之山城路網）' : `已切換移動模式：${m.tel}`);
+});
+
+// 抽屜與分頁切換
+const drawer = document.getElementById('analysisDrawer');
+const btnDrawer = document.getElementById('btnDrawer');
+function toggleDrawer(force) {
+  const open = typeof force === 'boolean' ? force : drawer.classList.contains('closed');
+  drawer.classList.toggle('closed', !open);
+  btnDrawer.classList.toggle('active', open);
+  btnDrawer.setAttribute('aria-pressed', String(open));
+}
+btnDrawer.addEventListener('click', () => toggleDrawer());
+document.getElementById('btnCloseDrawer').addEventListener('click', () => toggleDrawer(false));
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.setAttribute('aria-selected', String(b === btn)));
+    document.querySelectorAll('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== target; });
+  });
+});
+
+// 分鏡按鈕與時間軸控制
+document.querySelectorAll('.act-btn').forEach(btn => {
+  btn.addEventListener('click', () => jumpToAct(Number(btn.dataset.act)));
+});
+document.querySelectorAll('[data-jump-act]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    jumpToAct(Number(btn.dataset.jumpAct));
+    if (window.innerWidth <= 680) toggleDrawer(false);
+  });
+});
+
+const btnPlayTour = document.getElementById('btnPlayTour');
+btnPlayTour.addEventListener('click', () => {
+  tourPlaying = !tourPlaying;
+  btnPlayTour.setAttribute('aria-pressed', String(tourPlaying));
+  btnPlayTour.textContent = tourPlaying ? '⏸ 暫停運鏡' : '▶ 播放原片 41s 運鏡';
+  if (tourPlaying && tourTime >= 41.2) tourTime = 0;
+});
+document.getElementById('tourSlider').addEventListener('input', e => {
+  tourPlaying = false;
+  tourCameraLocked = true;
+  btnPlayTour.setAttribute('aria-pressed', 'false');
+  btnPlayTour.textContent = '▶ 播放原片 41s 運鏡';
+  applyTourAtTime(Number(e.target.value));
+});
+
+// 複製提示詞
+document.querySelectorAll('[data-copy]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const box = document.getElementById(btn.dataset.copy);
+    const text = Array.from(box.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => showToast('已複製提示詞到剪貼簿'));
+    }
+  });
+});
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), 2100);
+}
+
+/* ============================================================================
+   7. 同心圓山城 2D 小地圖繪製與點擊瞬移
+   ============================================================================ */
+const miniCanvas = document.getElementById('minimapCanvas');
+const miniCtx = miniCanvas.getContext('2d');
+
+function drawMinimap() {
+  const w = miniCanvas.width, h = miniCanvas.height;
+  miniCtx.fillStyle = '#182219';
+  miniCtx.fillRect(0, 0, w, h);
+
+  // 座標映射：世界 x (-90..90) -> 0..w, 世界 z (135..-75) -> 0..h（北朝上）
+  const toX = x => w * 0.5 + (x / 180) * w;
+  const toY = z => h * 0.62 - (z / 210) * h;
+
+  // 外環紅瓦鎮區圓環
+  miniCtx.strokeStyle = 'rgba(212,98,56,0.35)';
+  miniCtx.lineWidth = 10;
+  miniCtx.beginPath();
+  miniCtx.arc(toX(0), toY(0), 28, 0, Math.PI * 2);
+  miniCtx.stroke();
+
+  // 中央圓形市集廣場
+  miniCtx.fillStyle = '#8b7d66';
+  miniCtx.beginPath();
+  miniCtx.arc(toX(0), toY(0), 14, 0, Math.PI * 2);
+  miniCtx.fill();
+
+  // 南向坡道、北向大階梯與大教堂大道
+  miniCtx.fillStyle = '#a39378';
+  miniCtx.fillRect(toX(-4), toY(0), 8, toY(-68) - toY(0));
+  miniCtx.fillRect(toX(-6), toY(112), 12, toY(0) - toY(112));
+
+  // 上城噴泉廣場與雙塔大教堂、主堡
+  miniCtx.fillStyle = '#469c8e';
+  miniCtx.beginPath();
+  miniCtx.arc(toX(0), toY(55), 4.5, 0, Math.PI * 2);
+  miniCtx.fill();
+
+  miniCtx.fillStyle = '#4c6e91';
+  miniCtx.fillRect(toX(-22), toY(98), 10, 14);
+  miniCtx.fillRect(toX(-8), toY(132), 24, 10);
+
+  // 玩家位置與朝向箭頭
+  const px = toX(player.x), py = toY(player.z);
+  miniCtx.save();
+  miniCtx.translate(px, py);
+  miniCtx.rotate(player.yaw);
+  miniCtx.fillStyle = '#e6ae48';
+  miniCtx.beginPath();
+  miniCtx.moveTo(0, -6);
+  miniCtx.lineTo(4.5, 5);
+  miniCtx.lineTo(-4.5, 5);
+  miniCtx.closePath();
+  miniCtx.fill();
+  miniCtx.restore();
+}
+
+miniCanvas.addEventListener('click', e => {
+  const r = miniCanvas.getBoundingClientRect();
+  const u = (e.clientX - r.left) / r.width;
+  const v = (e.clientY - r.top) / r.height;
+  const wx = (u - 0.5) * 180;
+  const wz = (0.62 - v) * 210;
+  tourPlaying = false;
+  player.x = Math.max(-65, Math.min(65, wx));
+  player.z = Math.max(-64, Math.min(108, wz));
+  player.y = getGroundY(player.x, player.z);
+  showToast(`已瞬移至座標 (${Math.round(player.x)}, ${Math.round(player.z)})`);
+});
+
+/* ============================================================================
+   8. WEBAUDIO 即時合成音效（魯特琴古調 + 鵝卵石腳步 + 跳躍展袍 + 白鴿振翅）
+   ============================================================================ */
+let audioCtx = null;
+let soundOn = false;
+let stepSoundTimer = 0;
+let luteTimer = 0;
+const LUTE_NOTES = [293.66, 349.23, 440.0, 523.25, 440.0, 392.0, 329.63, 293.66];
+let luteIdx = 0;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+document.getElementById('btnSound').addEventListener('click', () => {
+  soundOn = !soundOn;
+  const btn = document.getElementById('btnSound');
+  btn.setAttribute('aria-pressed', String(soundOn));
+  btn.querySelector('span').textContent = soundOn ? '🔊 音效：開' : '🔇 音效';
+  if (soundOn) {
+    ensureAudio();
+    showToast('已開啟山城魯特琴與環境音效');
+  }
+});
+
+function playStepSound() {
+  if (!soundOn || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(110 + Math.random() * 35, now);
+  osc.frequency.exponentialRampToValueAtTime(42, now + 0.065);
+  gain.gain.setValueAtTime(0.08, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.075);
+}
+
+function playJumpSound() {
+  if (!soundOn || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(340, now + 0.14);
+  gain.gain.setValueAtTime(0.09, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.17);
+}
+
+function playLutePluck(freq) {
+  if (!soundOn || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, now);
+  gain.gain.setValueAtTime(0.045, now);
+  gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.55);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.58);
+}
+
+/* ============================================================================
+   9. 主迴圈：角色物理、碰撞解決、斗篷布料擺動、白鴿驚飛 AI 與鏡頭跟隨
+   ============================================================================ */
+let lastTime = performance.now();
+
+function resolveCollisions(nx, nz) {
+  let x = nx, z = nz;
+  const pr = 0.48;
+  for (const c of colliders) {
+    if (c.type === 'circle') {
+      const dx = x - c.x, dz = z - c.z;
+      const d = Math.hypot(dx, dz), minD = c.r + pr;
+      if (d < minD && d > 0.001) {
+        x = c.x + (dx / d) * minD;
+        z = c.z + (dz / d) * minD;
+      }
+    } else {
+      const cx = Math.max(c.minX, Math.min(c.maxX, x));
+      const cz = Math.max(c.minZ, Math.min(c.maxZ, z));
+      const dx = x - cx, dz = z - cz;
+      const d = Math.hypot(dx, dz);
+      if (d < pr && d > 0.0001) {
+        x = cx + (dx / d) * pr;
+        z = cz + (dz / d) * pr;
+      }
+    }
+  }
+  return { x, z };
+}
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+
+  if (tourPlaying) {
+    tourTime += dt;
+    if (tourTime >= 41.5) tourTime = 0;
+    applyTourAtTime(tourTime);
+  } else {
+    // 玩家手動控制
+    let f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+    let s = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+    if (joyState.active) {
+      f = -joyState.dy;
+      s = joyState.dx;
+    }
+    const len = Math.hypot(f, s);
+    const sprint = keys.ShiftLeft || keys.ShiftRight ? 1.48 : 1.0;
+    const maxSpd = (player.mode === 'drone' ? 24 : player.mode === 'cart' ? 9.5 : 7.2) * sprint;
+
+    if (len > 0.05) {
+      const moveAngle = camOrbit.yaw + Math.atan2(-s, f);
+      const vx = Math.sin(moveAngle) * maxSpd;
+      const vz = Math.cos(moveAngle) * maxSpd;
+      let nx = player.x + vx * dt;
+      let nz = player.z + vz * dt;
+      if (player.mode !== 'drone') {
+        const res = resolveCollisions(nx, nz);
+        nx = res.x; nz = res.z;
+      }
+      player.x = Math.max(-110, Math.min(110, nx));
+      player.z = Math.max(-72, Math.min(125, nz));
+      player.yaw = moveAngle;
+      player.speed = maxSpd;
+      player.walkPhase += dt * (sprint > 1 ? 12.5 : 9.2);
+      stepSoundTimer += dt;
+      if (stepSoundTimer > (sprint > 1 ? 0.26 : 0.36) && player.onGround && player.mode === 'walker') {
+        stepSoundTimer = 0;
+        playStepSound();
+      }
+    } else {
+      player.speed *= 0.82;
+    }
+
+    // 高度與跳躍重力
+    if (player.mode === 'drone') {
+      const up = (keys.Space ? 1 : 0) - (keys.KeyC ? 1 : 0);
+      player.y = Math.max(getGroundY(player.x, player.z) + 4, player.y + up * 16 * dt);
+    } else {
+      const gy = getGroundY(player.x, player.z);
+      player.vy -= 18.5 * dt;
+      player.y += player.vy * dt;
+      if (player.y <= gy) {
+        player.y = gy;
+        player.vy = 0;
+        player.onGround = true;
+      }
+    }
+
+    // 第三人稱彈簧臂跟隨鏡頭（當處於分鏡定格時保留分鏡機位）
+    if (!tourCameraLocked) {
+      const camTargetY = player.y + (player.mode === 'drone' ? 0 : 1.75);
+      const hDist = camOrbit.dist * Math.cos(camOrbit.pitch);
+      const vDist = camOrbit.dist * Math.sin(camOrbit.pitch);
+      camera.position.set(
+        player.x - Math.sin(camOrbit.yaw) * hDist,
+        camTargetY + vDist,
+        player.z - Math.cos(camOrbit.yaw) * hDist
+      );
+      camera.lookAt(
+        player.x + Math.sin(camOrbit.yaw) * 8,
+        camTargetY + 1.15,
+        player.z + Math.cos(camOrbit.yaw) * 8
+      );
+    }
+  }
+
+  // 更新角色骨架動畫與斗篷布料物理（對應動畫與細膩動作分析）
+  playerRoot.position.set(player.x, player.y, player.z);
+  playerRoot.rotation.y = player.yaw;
+
+  const spdRatio = Math.min(1.4, player.speed / 7.0);
+  const swing = Math.sin(player.walkPhase) * 0.68 * spdRatio;
+  legLPivot.rotation.x = swing;
+  legRPivot.rotation.x = -swing;
+  armLPivot.rotation.x = -swing * 0.75;
+  armRPivot.rotation.x = swing * 0.75;
+  torsoPivot.rotation.x = 0.16 * spdRatio; // 衝刺前傾
+  torsoPivot.position.y = 0.92 + Math.abs(Math.cos(player.walkPhase)) * 0.055 * spdRatio;
+
+  // 斗篷與披肩隨奔跑速度、跳躍垂直速度展開擺動
+  const airLift = !player.onGround ? Math.min(0.65, Math.abs(player.vy) * 0.08 + 0.32) : 0;
+  capePivot.rotation.x = 0.12 + spdRatio * 0.42 + airLift + Math.sin(player.walkPhase * 2) * 0.08 * spdRatio;
+  capePivot.rotation.z = Math.cos(player.walkPhase) * 0.09 * spdRatio;
+  scarfPivot.rotation.x = 0.18 + spdRatio * 0.55 + airLift * 1.1 + Math.cos(player.walkPhase * 2) * 0.12;
+
+  if (cartGroup.visible) {
+    for (const w of cartWheels) w.rotation.x += player.speed * dt * 1.5;
+  }
+
+  // 更新上城廣場 18 隻白鴿 AI（啄食 vs 受驚振翅飛起）
+  let flyingCount = 0;
+  for (const d of pigeons) {
+    d.timer += dt;
+    const distToPlayer = Math.hypot(player.x - d.mesh.position.x, player.z - d.mesh.position.z);
+    if (d.state === 'peck') {
+      if (distToPlayer < 4.8 && player.speed > 1.5) {
+        d.state = 'fly';
+        d.flyVelY = 4.5 + (d.timer % 2.5);
+      } else {
+        // 低頭啄食與小步轉向
+        d.head.position.y = 0.25 + Math.sin(d.timer * 7) * 0.05;
+        d.wingL.rotation.z = 0;
+        d.wingR.rotation.z = 0;
+      }
+    } else if (d.state === 'fly') {
+      flyingCount++;
+      d.mesh.position.y += d.flyVelY * dt;
+      d.flyVelY -= 1.9 * dt;
+      d.angle += dt * 1.8;
+      d.mesh.position.x = d.homeX + Math.cos(d.angle) * 2.2;
+      d.mesh.position.z = d.homeZ + Math.sin(d.angle) * 2.2;
+      d.mesh.rotation.y = -d.angle;
+      const flap = Math.sin(now * 0.035) * 0.75;
+      d.wingL.rotation.z = flap;
+      d.wingR.rotation.z = -flap;
+      if (d.mesh.position.y <= d.baseY) {
+        d.mesh.position.y = d.baseY;
+        d.state = 'peck';
+      }
+    }
+  }
+
+  // 魯特琴背景古調
+  if (soundOn) {
+    luteTimer += dt;
+    if (luteTimer > 0.65) {
+      luteTimer = 0;
+      playLutePluck(LUTE_NOTES[luteIdx % LUTE_NOTES.length]);
+      luteIdx++;
+    }
+  }
+
+  // 更新左上角遙測數據與小地圖
+  document.getElementById('telPos').textContent = `${Math.round(player.x)}, ${Math.round(player.z)}`;
+  document.getElementById('telAlt').textContent = `${player.y >= 0 ? '+' : ''}${player.y.toFixed(1)} m`;
+  document.getElementById('telDoves').textContent = flyingCount > 0 ? `${flyingCount} 隻驚飛！` : '18 隻棲息';
+  if (!tourPlaying) {
+    const zName = player.z < -20 ? '第 1 區 · 下城半木構坡道' : player.z < 24 ? '第 2 區 · 圓形市集廣場' : player.z < 68 ? '第 3 區 · 聖女噴泉觀景台' : '第 4 區 · 雙塔大教堂大道';
+    document.getElementById('zoneBadge').textContent = zName;
+  }
+  drawMinimap();
+
+  renderer.render(scene, camera);
+}
+
+// 初始定位於 Act 1 (00:00 下城坡道起點)
+applyTourAtTime(0.2);
+requestAnimationFrame(animate);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// 暴露測試與除錯介面
+window.__citadel = { player, jumpToAct, applyTourAtTime, pigeons };
+</script>
+</body>
+</html>

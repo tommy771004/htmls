@@ -127,22 +127,25 @@ function mapDraw() {
   const vis = (x0, x1, z0, z1) => x1 > vx0 && x0 < vx1 && z1 > vz0 && z0 < vz1;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = MAPC.water; c.fillRect(0, 0, W, H);
+  // 對岸與北面的山跟著 FAR_ZN、東灣對岸跟著 EAST_ZN（90-hud.js），不裁在區的範圍內
+  const zoneT = zn => c.setTransform(k * zn.c, -k * zn.s, k * zn.s, k * zn.c, k * (zn.ox - MV.cx) + W / 2, k * (zn.oz - MV.cz) + H / 2);
+  zoneT(FAR_ZN); c.fillStyle = MAPC.far;
+  c.fillRect(MAP_LB.x0 - 3000, MAP_LB.z0 - 3000, FAR_BANK_X - MAP_LB.x0 + 3000, MAP_LB.z1 - MAP_LB.z0 + 6000);
+  c.fillRect(MAP_LB.x0 - 3000, MAP_LB.z0 - 3000, MAP_LB.x1 - MAP_LB.x0 + 6000, CITY_Z0 - OUT_D - MAP_LB.z0 + 3000);   // 北面的山
+  zoneT(EAST_ZN); c.fillRect(EAST_BANK_X, CITY_CZ - 850, 3000, 1700); c.setTransform(1, 0, 0, 1, 0, 0);
   // 每區用 canvas 的變換照邏輯座標畫（1 單位 = 1 m，px 是一個螢幕像素的長度），裁在區的範圍內；
   // 看得到的範圍（vis）是畫面四角換到區裡的外接框
   for (const zn of ZONES) {
     c.save();
-    c.setTransform(k * zn.c, -k * zn.s, k * zn.s, k * zn.c, k * (zn.ox - MV.cx) + W / 2, k * (zn.oz - MV.cz) + H / 2);
+    zoneT(zn);
     const px = 1 / k, cs = [[vx0, vz0], [vx1, vz0], [vx1, vz1], [vx0, vz1]].map(([x, z]) => toL(x, z, zn));
     const lx0 = Math.min(...cs.map(q => q[0])), lx1 = Math.max(...cs.map(q => q[0])), lz0 = Math.min(...cs.map(q => q[1])), lz1 = Math.max(...cs.map(q => q[1]));
     const vis = (x0, x1, z0, z1) => x1 > lx0 && x0 < lx1 && z1 > lz0 && z0 < lz1;
     const rect = (x0, x1, z0, z1, col) => { c.fillStyle = col; c.fillRect(x0, z0, x1 - x0, z1 - z0); };
     const B = { x0: Math.max(zn.x0, MAP_LB.x0 - 3000), x1: Math.min(zn.x1, MAP_LB.x1 + 3000), z0: Math.max(zn.z0, MAP_LB.z0 - 3000), z1: Math.min(zn.z1, MAP_LB.z1 + 3000) };
     c.beginPath(); c.rect(B.x0, B.z0, B.x1 - B.x0, B.z1 - B.z0); c.clip();
-    // 對岸、城外的濱海步道、碼頭、沙灘、棧橋、橋與島
-    rect(MAP_LB.x0 - 2000, FAR_BANK_X, MAP_LB.z0 - 2000, MAP_LB.z1 + 2000, MAPC.far);
-    rect(EAST_BANK_X, MAP_LB.x1 + 2000, CITY_CZ - 850, CITY_CZ + 850, MAPC.far);
+    // 城外的濱海步道、碼頭、沙灘、棧橋、橋與島
     rect(CITY_X0 - OUT_D, CITY_X1 + OUT_D, CITY_Z0 - OUT_D, SHORE_Z, MAPC.walk);
-    rect(MAP_LB.x0 - 2000, MAP_LB.x1 + 2000, MAP_LB.z0 - 2000, CITY_Z0 - OUT_D, MAPC.far);   // 北面的山
     rect(BEACH.x0, BEACH.x1, BEACH.z0, BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop, MAPC.beach);
     rect(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1, MAPC.quay);
     for (const p of PIERS) rect(p.x0, p.x1, p.z0, p.z1, MAPC.pier);
@@ -163,7 +166,7 @@ function mapDraw() {
     const edge = k > 1.3;
     c.lineWidth = Math.max(1, k * .35) * px; c.strokeStyle = MAPC.lotEdge;
     if (k > .8) for (const L of lots) {   // 拉遠時只畫街廓，不畫一棟棟的地塊
-      if (!vis(L.x0, L.x1, L.z0, L.z1)) continue;
+      if (L.zn !== zn || L.seam || !vis(L.x0, L.x1, L.z0, L.z1)) continue;
       c.fillStyle = L.special ? '#3a2a36' : MAPC.lot;
       c.fillRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px);
       if (edge) c.strokeRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px);
@@ -178,6 +181,9 @@ function mapDraw() {
     }
     c.restore();
   }
+  drawSeams(c, (x, z) => [X(x), Z(z)], k, MAPC.road, MAPC.park, null);   // 90-hud.js：區之間的縫與連接道路
+  for (const L of lots) if (L.seam) { zoneT(L.zn); mapLot(c, L, 1 / k, k > .8 ? MAPC.lot : MAPC.block); }   // 補在縫上的塔樓
+  c.setTransform(1, 0, 0, 1, 0, 0);
   // 地名：拉遠時是區名，拉近時是街名
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.shadowColor = 'rgba(0,0,0,.85)'; c.shadowBlur = 4 * dpr;
@@ -264,6 +270,7 @@ function mapDraw() {
   setText('mapLoc', mapPlaceName(w.x, w.z));
 }
 function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在區的邏輯座標
+  const h = capeAt(X, Z); if (h) return h.name.split(' ')[0];
   const [x, z] = toL(X, Z), d = district(x, z), zh = d.split(' ')[0];
   if (x > EAST_BANK_X) return '舊港城 · 東灣對岸';
   if (x < FAR_BANK_X) return '倫敦城 · 灰鷺河對岸';
@@ -356,7 +363,7 @@ function mapClick(sx, sy) {
   const hit = mapHit(sx, sy);
   if (hit >= 0) { sfx.click(); mapSelect(hit, false); return; }
   const { x, z } = mapToWorld(sx, sy);
-  { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (!zn || lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR) return; }
+  { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (zn ? lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR : !seamAt(x, z)) if (!capeAt(x, z)) return; }   // 城裡、區之間的縫或岬角
   if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14 / Math.max(.5, MV.zoom)) gpsClear(); else gpsSet(x, z);
   gps.t = 0; gpsUpdate(); mapCard(); MV.dirty = true;
 }

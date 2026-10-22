@@ -322,7 +322,7 @@ async function desktop() {
       setTimeout(() => r({ v: saved.v, game: !!saved.game, pistol: g.arm.ammo.pistol.res, dx: +Math.abs(nc.player.x - x0).toFixed(2), open: p.phone.open }), 1600);
     }));
     check(qs.v >= 2 && qs.game && qs.pistol === 96 && qs.dx < .5 && !qs.open, `快速存檔寫進同一個存檔、讀檔還原彈藥與位置 ${JSON.stringify(qs)}`);
-    // 開著車存檔：讀檔後回到同一台車上（存檔第 4 版帶時間戳）
+    // 開著車存檔：讀檔後回到同一台車上（存檔第 4 版起帶時間戳，第 5 版的位置是世界座標）
     const qv = await nc(() => new Promise((r) => {
       const nc = window.__nc, p = nc.gta.phone;
       nc.drive(); const v0 = nc.player.veh, ok = p.save(), saved = JSON.parse(localStorage.getItem('nc260.motors'));
@@ -330,7 +330,7 @@ async function desktop() {
       p.load();
       setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
     }));
-    check(qv.ok && qv.v === 4 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    check(qv.ok && qv.v === 5 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
     await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
@@ -540,6 +540,22 @@ async function desktop() {
       await nc(() => { const n = window.__nc, B = n.sea.BEACH; n.tpL((B.x0 + B.x1) / 2, B.z0 + 20, 0); });
       await page.waitForTimeout(500);
       check(await nc(() => !window.__nc.player.swim), '回到沙灘就不再游泳');
+    }
+    // 岬角（10-city.js 的 CAPES）：從東岸步道走上東灣觀景岬（岸邊擋牆在那裡斷開），再從岬尖往外走，被臨水的擋牆擋住
+    {
+      const x0 = await nc(() => { const n = window.__nc, h = n.capes.find(h => h.name.startsWith('東灣觀景岬')), [x0, z0] = n.L(...h.pts[0]), [, z1] = n.L(...h.pts[h.pts.length - 1]); n.tpL(x0 - 3, z0 + (z1 - z0) * .44, Math.PI / 2); return x0; });
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(4000); await page.keyboard.up('KeyW');
+      const onCape = () => { const n = window.__nc, P = n.capes.find(h => h.name.startsWith('東灣觀景岬')).pts, { x, z } = n.player; let c = false; for (let k = 0, m = P.length - 1; k < P.length; m = k++) { const [ax, az] = P[k], [bx, bz] = P[m]; if ((az > z) !== (bz > z) && x < (bx - ax) * (z - az) / (bz - az) + ax) c = !c; } return c; };
+      const c0 = await nc(([x0, src]) => { const n = window.__nc, p = n.player; return { on: (0, eval)(src)(), past: +(n.L(p.x, p.z)[0] - x0).toFixed(1), y: +p.y.toFixed(2) }; }, [x0, `(${onCape})`]);
+      check(c0.on && c0.past > 2 && c0.y === 0, `從步道走上岬角 ${JSON.stringify(c0)}`);
+      // 岬尖：離接岸那條邊最遠的點往裡 5 m，面朝外
+      await nc(() => { const n = window.__nc, P = n.capes.find(h => h.name.startsWith('東灣觀景岬')).pts, [ax, az] = P[0], [bx, bz] = P[P.length - 1], ex = az - bz, ez = bx - ax, l = Math.hypot(ex, ez);
+        let best = -1, tip = P[0]; for (const q of P) { const d = Math.abs((q[0] - ax) * ex + (q[1] - az) * ez); if (d > best) { best = d; tip = q; } }
+        const sg = (tip[0] - ax) * ex + (tip[1] - az) * ez > 0 ? 1 : -1, ux = ex / l * sg, uz = ez / l * sg;
+        n.tp(tip[0] - ux * 5, tip[1] - uz * 5, Math.atan2(ux, uz)); });
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(5000); await page.keyboard.up('KeyW');
+      const c1 = await nc((src) => { const n = window.__nc, p = n.player; return { on: (0, eval)(src)(), d: n.sea.depth(p.x, p.z), swim: !!p.swim }; }, `(${onCape})`);
+      check(c1.on && c1.d === 0 && !c1.swim, `岬尖臨水的擋牆擋住，不會走進水裡 ${JSON.stringify(c1)}`);
     }
     await nc(() => { const nc = window.__nc; nc.time(134); nc.weather('rain'); });
 
