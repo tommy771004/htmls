@@ -23,7 +23,7 @@ const SNACK = 40;   // 便利店買吃的：補滿生命
 const APT = {
   // 冠石金融區 (6,1) 街區的南面，門朝 8 St；地板 x −3.9…10、z −3.9…6，西面整片玻璃牆外是發光的摩天樓
   loft: { door: { x: avX(6) + 44, z: stZ(2) - HR - SW }, spawn: { x: 6.4, z: 5.1, yaw: Math.PI }, exit: { x: 6.4, z: 5.4 }, frame: { x: 6.4, z: 6.02, ry: 0 },
-    nap: { x: .4, z: 1.7 }, name: '冠石頂層公寓', dist: '冠石金融區 · 8 St', ceil: 6.6,
+    robe: { x: 2.95, z: 5.75, ry: 0 }, nap: { x: .4, z: 1.7 }, name: '冠石頂層公寓', dist: '冠石金融區 · 8 St', ceil: 6.6,
     // 牆：西、東、北、南。原檔的東、南兩面是開著的（給 Sketchfab 取景），add 是模型版也要補上的牆
     walls: [[-4.5, -3.85, -4.5, 6.6], [9.95, 10.6, -4.5, 6.6], [-4.5, 10.6, -4.5, -3.85], [-4.5, 10.6, 6.05, 6.6]], add: [1, 3],
     solid: [[-3.1, 1.8, -2, 1.1], [-2.6, -1.1, 1.2, 6.25], [4, 6.9, -2.95, -1.6], [5.55, 8.45, -3.85, -3.05], [1.2, 2.75, -3.6, -2.95], [8.55, 9.2, -3.6, -2.95], [-3.65, -3, 2.1, 2.75]],
@@ -40,7 +40,7 @@ const APT = {
   // 雲杉坡 (2,6) 街區的南面，門朝 13 St（j = 7，城市擴到 20×15 前是最南邊的街）；挑高客廳 x −3.9…21.7、z −1…6（北半部與廚房上面是 4.1 m 的樓板），
   // 西面原檔的門洞（z −4.6…−2.95）通到西側翼（餐廳與 L 形沙發，x −23.1…−4.1），北面是廚房，南面落地窗拉開一扇（cut）通到露台
   villa: { door: { x: avX(2) + 36, z: stZ(7) - HR - SW }, spawn: { x: -2.6, z: 2.4, yaw: Math.PI / 2 }, exit: { x: -3, z: 2.4 }, frame: { x: -3.83, z: 2.4, ry: Math.PI / 2 },
-    nap: { x: 16.4, z: -1.3 }, name: '雲杉坡崖邊別墅', dist: '雲杉坡 · 13 St', ceil: 8.2,
+    robe: { x: -3.6, z: -.95, ry: Math.PI / 2 }, nap: { x: 16.4, z: -1.3 }, name: '雲杉坡崖邊別墅', dist: '雲杉坡 · 13 St', ceil: 8.2,
     // 外圈：側翼西牆、東面（原檔開著要補）、北牆、露台外緣（原檔是岩坡，只留碰撞）；碰撞框照原檔量（俯視 0.15 m 格子）
     walls: [[-23.7, -23.1, -12.6, 10.4], [21.75, 22.5, -12.6, 10.4], [-23.7, 22.5, -12.6, -12.05], [-23.7, 22.5, 9.95, 10.4]], add: [1],
     solid: [[13.8, 19.3, -.5, 2.35], [14.9, 17, 1.65, 3.75],
@@ -60,7 +60,7 @@ const APT = {
       { x: -11.5, y: 4.2, z: -6.5, col: lin(0xffd2a0), r: 13, i: 1.2 }, { x: 9, y: 3.7, z: -8, col: lin(0xfff0dc), r: 12, i: 1 }, { x: 13.9, y: 3.6, z: 8.4, col: lin(0xffc890), r: 9, i: .8 }] },
   // 灰鷗島辦公園區（21-coast.js 的 ISLE_SITES.office）北面的門；室內 x −8…8.8、z −3.1…7.2，L 形，夾層下天花板 2.4 m
   office: { door: { x: BRIDGE_X + 8, z: ISLE.z0 + 133.4 }, face: -1, spawn: { x: 4.2, z: -2.3, yaw: 0 }, exit: { x: 4.2, z: -2.55 }, frame: { x: 4.2, z: -3.14, ry: 0 },
-    nap: { x: -4.3, z: 5.5 }, desk: { x: -.5, z: 5.7 }, name: '灰鷗島辦公室', dist: '灰鷗島 · 辦公園區', ceil: 4.75, floor: 0xd8d4cc,
+    robe: { x: 8.45, z: .38, ry: Math.PI / 2 }, nap: { x: -4.3, z: 5.5 }, desk: { x: -.5, z: 5.7 }, name: '灰鷗島辦公室', dist: '灰鷗島 · 辦公園區', ceil: 4.75, floor: 0xd8d4cc,
     under: [[-8.1, -1.53, -3.2, 2.45, 2.4], [-8.1, 8.8, 2.45, 7.3, 2.4], [-8.1, -4.73, .85, 3.45, 2.4]],   // 夾層下面
     // L 形夾層（地板 2.6 m）：西邊一條、北邊一排辦公桌與圓桌；西牆邊的白色小間當電梯（走進去、淡出淡入、從夾層那側走出來）
     up: { y: 2.6, ceil: 4.75, lift: true, rects: [[-4.73, -1.53, -2.65, 2.45], [-4.73, 5.87, 2.45, 7.15]],
@@ -75,19 +75,19 @@ const APT = {
       { x: -5.8, y: 2.2, z: 5.4, col: lin(0xffd0a0), r: 7, i: .9 }, { x: 1.2, y: 2.2, z: 5.6, col: lin(0xe8f0ff), r: 8, i: .9 }] },
   // 楓林里 (2,8) 街區的南面，門朝 15 St；原檔只是一個角落（西牆與北面的書架），東、南兩面要補牆
   mini: { door: { x: avX(2) + 36, z: stZ(9) - HR - SW }, spawn: { x: 2.2, z: 1.8, yaw: -Math.PI / 2 }, exit: { x: 2.45, z: 1.8 }, frame: { x: 2.93, z: 1.8, ry: Math.PI / 2 },
-    nap: { x: -1.3, z: .25 }, name: '楓林里迷你閣樓', dist: '楓林里 · 15 St', ceil: 3.8, floor: 0x5a3e2c,
+    robe: { x: 2.6, z: -1.7, ry: Math.PI / 2 }, nap: { x: -1.3, z: .25 }, name: '楓林里迷你閣樓', dist: '楓林里 · 15 St', ceil: 3.8, floor: 0x5a3e2c,
     walls: [[-3.7, -2.9, -3.2, 3.5], [2.95, 3.6, -3.2, 3.5], [-3.7, 3.6, -3.2, -2.6], [-3.7, 3.6, 2.95, 3.5]], add: [1, 3],
     solid: [[-2.9, -1.75, -2, .8], [-1.6, -.85, -1.5, -.2], [-.8, .65, -2.05, -.65], [-1.6, -.45, .55, 1.6]], round: [],
     lights: [{ x: -.5, y: 3.2, z: -.5, col: lin(0xffc890), r: 7, i: 1.1 }, { x: 1.8, y: 2.6, z: 2, col: lin(0xffd8b0), r: 5, i: .7 }] },
   // 琥珀工業區 (15,8) 街區的南面，門朝 15 St；和室風的 Loft，西、北兩面是一整排矮沙發，南面是架高的平台，東面開著要補牆
   l16: { door: { x: avX(15) + 36, z: stZ(9) - HR - SW }, spawn: { x: 6.6, z: 2, yaw: -Math.PI / 2 }, exit: { x: 6.9, z: 2 }, frame: { x: 7.42, z: 2, ry: Math.PI / 2 },
-    nap: { x: -3.4, z: 2.8 }, name: '琥珀和室 Loft', dist: '琥珀工業區 · 15 St', ceil: 7.8, floor: 0x3a2c22,
+    robe: { x: 7.05, z: -1.45, ry: Math.PI / 2 }, nap: { x: -3.4, z: 2.8 }, name: '琥珀和室 Loft', dist: '琥珀工業區 · 15 St', ceil: 7.8, floor: 0x3a2c22,
     walls: [[-8.3, -7.45, -8.1, 7.1], [7.4, 8.1, -8.1, 7.1], [-8.3, 8.1, -8.1, -7.45], [-8.3, 8.1, 6.45, 7.1]], add: [1],
     solid: [[-7.45, -4, -5, 3.8], [-7.45, 2, -7.45, -5], [-2.9, .5, -3, 1.9], [-4.3, 6.7, 4.8, 6.45], [-7.45, -6.5, 4.7, 5.5]], round: [{ x: -5.4, z: 5.6, r: .6 }],
     lights: [{ x: 0, y: 6, z: 0, col: lin(0xffd09a), r: 16, i: 1.2 }, { x: -6.9, y: 1.2, z: 5.1, col: lin(0xffc070), r: 6, i: 1 }, { x: -2, y: 2.5, z: -6, col: lin(0xffc890), r: 9, i: .8 }] },
   // 公園大道 (12,7) 街區的南面，門朝 14 St；白色挑高大宅，西面的玻璃門當出入口
   i14: { door: { x: avX(12) + 36, z: stZ(8) - HR - SW }, spawn: { x: -2.3, z: 0, yaw: Math.PI / 2 }, exit: { x: -2.6, z: 0 }, frame: { x: -3.12, z: 0, ry: Math.PI / 2 },
-    nap: { x: -1, z: 1.9 }, name: '公園大道白色大宅', dist: '公園大道 · 14 St', ceil: 4.7, floor: 0xe8e2d8,
+    robe: { x: -2.8, z: 3.25, ry: Math.PI / 2 }, nap: { x: -1, z: 1.9 }, name: '公園大道白色大宅', dist: '公園大道 · 14 St', ceil: 4.7, floor: 0xe8e2d8,
     walls: [[-3.8, -3.1, -5.6, 6.7], [7.75, 8.4, -5.6, 6.7], [-3.8, 8.4, -5.6, -4.95], [-3.8, 8.4, 6.05, 6.7]], add: [3],
     solid: [[-1.85, .2, -4.6, -3.3], [-3.1, -2, -4.95, -2], [-1.9, -.25, -2.55, -1.15], [1.65, 2.75, -4.75, -1], [4.1, 7, -4, -1.7], [3, 4.25, -4.95, -4.2],
       [-2.65, 1.3, .75, 1.6], [.45, 1.3, 1.6, 4.75], [-1.45, -.3, 2.15, 3.3]],
@@ -95,7 +95,7 @@ const APT = {
     lights: [{ x: 2, y: 4.4, z: 0, col: lin(0xfff0dc), r: 14, i: 1.3 }, { x: -1, y: 3, z: 2.8, col: lin(0xffd8b0), r: 8, i: .9 }, { x: 5.5, y: 3, z: -2.8, col: lin(0xffd8b0), r: 8, i: .9 }] },
   // 珊瑚灘 (4,12) 街區的南面，門朝 19 St；清水模的小客廳（原檔放大 0.15 倍），西、北兩面是原檔的牆，東、南兩面開著要補，門在南牆東邊
   lr: { door: { x: avX(4) + 36, z: stZ(13) - HR - SW }, spawn: { x: 2.4, z: 1.9, yaw: Math.PI }, exit: { x: 2.4, z: 2.2 }, frame: { x: 2.4, z: 2.47, ry: 0 },
-    nap: { x: .17, z: -1.9 }, name: '珊瑚灘清水模公寓', dist: '珊瑚灘 · 19 St', ceil: 3, floor: 0x6a6a68,
+    robe: { x: 3, z: .3, ry: Math.PI / 2 }, nap: { x: .17, z: -1.9 }, name: '珊瑚灘清水模公寓', dist: '珊瑚灘 · 19 St', ceil: 3, floor: 0x6a6a68,
     walls: [[-2.7, -1.99, -3.6, 2.9], [3.26, 3.9, -3.6, 2.9], [-2.7, 3.9, -3.6, -2.96], [-2.7, 3.9, 2.49, 2.9]], add: [1, 3],
     solid: [[-1.13, 1.47, -2.42, -1.42], [-.29, .59, -1.15, -.3], [-1.99, -1.38, -1.38, .26], [1.51, 1.94, -1.08, .15], [-1.99, -1.8, .72, 1.66], [1.45, 3.26, -2.96, -2.43], [-.82, .87, 1.91, 2.2]],
     round: [{ x: 1.76, z: -1.82, r: .22 }, { x: -1.5, z: .53, r: .22 }],
@@ -122,6 +122,39 @@ const APT = {
 function aptHelix(cx, cz, r, a0, a1, y0, y1, n) {
   return Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + Math.cos(a) * r, y0 + (y1 - y0) * i / n, cz + Math.sin(a) * r]; });
 }
+// ─── 換裝（原始規格：安全屋可以更換服裝外觀）───
+// 三位主角各四套，第一套是原本的樣子；只換衣服、鞋子、帽子與鞋子的霓虹飾條，膚色與髮色不變。選擇存在 localStorage 的 nc260.outfit（不進存檔）
+const OUTFITS = {
+  vance: [{ name: '深藍西裝' }, { name: '炭灰長風衣', look: { top: 0x2e2e30, bot: 0x1a1a1c, coat: 1, glow: 0xd8dcff, glowI: .6 } },
+    { name: '白襯衫捲袖', look: { top: 0xd8d6d0, bot: 0x1a1c22, coat: 0, shoe: 0x1e1c1a } }, { name: '黑色戰術背心', look: { top: 0x23262a, bot: 0x2f3a2a, coat: 1, shoe: 0x141416, glow: 0x7af0ff, glowI: 1.4 } }],
+  kael: [{ name: '舊皮衣' }, { name: '橘紅賽車服', look: { top: 0xb8402a, bot: 0xb8402a, coat: 1, shoe: 0x141416, glow: 0xffae57, glowI: 1.8 } },
+    { name: '霓虹帽T', look: { top: 0x1f2f45, bot: 0x101012, coat: 1, hat: 1, glow: 0x2cf2d8, glowI: 1.8 } }, { name: '白T牛仔褲', look: { top: 0xe0ddd5, bot: 0x2f3a4a, coat: 0, shoe: 0xb8b6b0, glowI: 0 } }],
+  jax: [{ name: '軍綠工作服' }, { name: '沙色迷彩長袖', look: { top: 0x6a6046, bot: 0x4a4434, coat: 1, hat: 1 } },
+    { name: '黑背心', look: { top: 0x111215, bot: 0x2a2d35, coat: 0, hat: 0, glow: 0xff3fa0, glowI: 1.2 } }, { name: '橘色工裝連身服', look: { top: 0xc0662a, bot: 0xc0662a, coat: 1, hat: 0, shoe: 0x2a2420 } }],
+};
+const ROBE_COLS = [0x2e2e30, 0xb8402a, 0xd8d6d0, 0x1f2f45, 0x6a6046];
+const OUTFIT_KEY = 'nc260.outfit', CREW_LOOK0 = CREW.map(c => ({ ...c.look }));
+const outfit = (() => { try { const o = JSON.parse(localStorage.getItem(OUTFIT_KEY)); if (o && typeof o === 'object') return o; } catch {} return {}; })();
+// 第 i 位主角換上第 k 套：顏色是 sRGB 十六進位，換成線性值再蓋在原本的外觀上
+function outfitApply(i, k, save) {
+  const c = CREW[i], O = OUTFITS[c.id];
+  k = clamp(Math.floor(+k) || 0, 0, O.length - 1);
+  const l = { ...O[k].look };
+  for (const key of ['top', 'bot', 'shoe', 'glow']) if (l[key] !== undefined) l[key] = lin(l[key]);
+  c.look = { ...CREW_LOOK0[i], ...l };
+  outfit[c.id] = k;
+  if (save) try { localStorage.setItem(OUTFIT_KEY, JSON.stringify(outfit)); } catch {}
+  if (i === crew.cur) me.look(0, { r: rng(9), ...c.look });
+  crewLook();
+}
+CREW.forEach((c, i) => outfitApply(i, outfit[c.id]));
+function aptRobe() {
+  const i = crew.cur, c = CREW[i], O = OUTFITS[c.id], cur = outfit[c.id] || 0;
+  dialog(`衣架 · ${c.name}`, `${c.name} 的衣服都掛在這裡（每間安全屋的衣架掛的是同一批）。現在穿的是「${O[cur].name}」。`, [
+    ...O.map((o, k) => ({ t: k === cur ? `${o.name}（現在穿的）` : o.name, fn: () => { closeDialog(); if (k !== cur) { outfitApply(i, k, true); toast(`${c.name} 換上${o.name}`); } } })),
+    { t: '算了', fn: closeDialog },
+  ]);
+}
 const aptFace = id => APT[id].face || 1;
 const aptOut = id => spotW({ x: APT[id].door.x, z: APT[id].door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI });   // 出門站的位置（世界座標）
 const aptSet = id => 'apt_' + id;
@@ -130,7 +163,7 @@ for (const id of ROOM_IDS) {
   for (const [x0, x1, z0, z1] of [...a.walls, ...a.solid]) data.boxes.push({ x0, x1, z0, z1 });
   // 程式建模的房間：地板、補上的牆、家具方塊。模型下載好之後只留補牆（原檔沒有的那兩面）
   const k = new Kit(), shell = new Kit();
-  const [fx0, fx1, fz0, fz1] = [a.walls[0][1], a.walls[1][0], Math.min(a.walls[2][1], a.walls[3][1]), Math.max(a.walls[2][0], a.walls[3][0])];
+  const [fx0, fx1, fz0, fz1] = [a.walls[0][1], a.walls[1][0], Math.min(a.walls[2][3], a.walls[3][3]), Math.max(a.walls[2][2], a.walls[3][2])];
   k.box((fx0 + fx1) / 2, -.05, (fz0 + fz1) / 2, fx1 - fx0, .1, fz1 - fz0, a.floor ?? (id === 'loft' ? 0x8a8072 : 0x9a9488), 10);
   k.box((fx0 + fx1) / 2, a.ceil + .05, (fz0 + fz1) / 2, fx1 - fx0, .1, fz1 - fz0, 0x1a1a1c, 2);
   a.walls.forEach(([x0, x1, z0, z1], i) => (a.add.includes(i) ? shell : k).box((x0 + x1) / 2, a.ceil / 2, (z0 + z1) / 2, x1 - x0, a.ceil, z1 - z0, 0x4a4c54, 2));
@@ -149,6 +182,14 @@ for (const id of ROOM_IDS) {
   if (a.cut) {   // 拉開的落地窗：框滑到隔壁那扇的內側
     const [cx0, cx1, cz0] = a.cut, w = cx1 - cx0, x = cx0 - w / 2 + .1, z = cz0 - .02;
     shell.box(x - w / 2, 1.3, z, .06, 2.6, .06, 0x2a2c30, 15).box(x + w / 2, 1.3, z, .06, 2.6, .06, 0x2a2c30, 15).box(x, 2.6, z, w, .06, .06, 0x2a2c30, 15).box(x, .03, z, w, .06, .06, 0x2a2c30, 15);
+  }
+  if (a.robe) {   // 衣架（換裝）：兩根立柱、橫桿、腳座與五件掛著的衣服；ry 只有 0 或 90°
+    const { x, z, ry } = a.robe, at = u => [x + Math.cos(ry) * u, z - Math.sin(ry) * u];
+    for (const u of [-.62, .62]) { const [px, pz] = at(u); shell.box(px, .875, pz, .04, 1.75, .04, 0x2a2a2c, 15, 0, ry).box(px, .02, pz, .06, .04, .45, 0x2a2a2c, 15, 0, ry); }
+    shell.box(x, 1.72, z, 1.3, .03, .03, 0x8a8c90, 15, 0, ry);
+    ROBE_COLS.forEach((c, i) => { const [px, pz] = at(-.44 + i * .22); shell.box(px, 1.69, pz, .01, .06, .01, 0x8a8c90, 15).box(px, 1.6, pz, .05, .1, .42, c, 2, 0, ry).box(px, 1.24, pz, .05, .64, .34, c, 2, 0, ry); });   // 掛鉤、肩線、衣身
+    const [hx, hz] = Math.abs(Math.sin(ry)) > .5 ? [.25, .7] : [.7, .25];
+    data.boxes.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz });
   }
   shell.box(a.frame.x, 1.15, a.frame.z, 1.2, 2.3, .06, 0x4a3a2a, 10, 0, a.frame.ry).box(a.frame.x, 2.38, a.frame.z, 1.4, .12, .1, 0xffd8a0, 11, 0, a.frame.ry);
   scn.add(new T.Mesh(shell.build(), MAT.uber));
@@ -308,6 +349,7 @@ ctxHooks.push((p, near) => {
   if (a.till && near(a.till.x, a.till.z, 1.6)) return { key: 'E', text: `買點吃的 <i>· ${money(SNACK)} 補滿生命</i>`, fn: aptSnack };
   if (a.bar && near(a.bar.x, a.bar.z, 1.6)) return { key: 'E', text: '點一杯', fn: () => toast(W.stars ? '酒保瞄了一眼窗外的警燈，假裝沒看到你' : '酒保推來一杯黑啤酒，記在你的帳上') };
   if (a.open) return null;
+  if (a.robe && near(a.robe.x, a.robe.z, 1.5)) return { key: 'E', text: '換裝 <i>· 衣架</i>', fn: aptRobe };
   if (near(a.nap.x, a.nap.z, 2)) return { key: 'E', text: '睡一覺 <i>· 推進 6 小時並存檔</i>', fn: aptNap };
   if (a.desk && near(a.desk.x, a.desk.z, 1.6)) {   // 島上辦公室：辦公桌收保險箱
     const n = Math.floor(motors.props.safe[p.where] || 0);
@@ -317,4 +359,4 @@ ctxHooks.push((p, near) => {
 });
 
 // 測試 API（window.__nc.gta.apt）
-const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut, level: aptLevel, climb: aptClimb };
+const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut, level: aptLevel, climb: aptClimb, OUTFITS, outfit, wear: (k, i = crew.cur) => outfitApply(i, k, true) };

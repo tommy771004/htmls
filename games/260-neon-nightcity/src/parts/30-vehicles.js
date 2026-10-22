@@ -438,7 +438,7 @@ function applyCar(v, id, paint) {
   }
   Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name, seat: c.seat || null });
   vehClass(v, carClass(id), false);   // 25-cars.js：質量、耐久、轉向與手煞車照級距表，極速與抓地保留這台車自己的
-  v.tires = null; v.flatBase = null; v.flat = 0; v.flatSide = 0;   // 換車就是新輪胎（68-wreck.js）
+  tireReset(v);   // 換車就是新輪胎（68-wreck.js）
   // 實車模型：下載好就把替身換掉（期間又換了車就作罷）
   const p = c.glb && loadGLB(id), tok = v.glbTok;
   if (p) p.then(tpl => {
@@ -515,6 +515,7 @@ function vehicleCollide(v, dt) {
   return impact;
 }
 function driveVehicle(v, inp, dt) {
+  if (v.bail && v !== player.veh) inp = BAIL_INP;   // 68-wreck.js：起火後駕駛跳車，車子滑行到停
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
   let vF = v.vx * fx + v.vz * fz, vR = v.vx * rx + v.vz * rz;
   const spd = Math.abs(vF);
@@ -530,7 +531,7 @@ function driveVehicle(v, inp, dt) {
   const grip = inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6));
   vR *= Math.exp(-grip * dt);
   const wb = v.wb;
-  let targetYr = vF * Math.tan(v.steer) / wb;
+  let targetYr = vF * Math.tan(v.steer) / wb + (v.flatYr || 0) * clamp(vF / 12, -1, 1);   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
   v.yr = damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
   v.yaw += v.yr * dt;
@@ -560,7 +561,7 @@ function driveVehicle(v, inp, dt) {
 function poseVehicle(v) {
   v.g.position.set(v.x, v.y, v.z);
   v.g.rotation.set(0, v.yaw, 0);
-  v.body.rotation.set(v.pitch, 0, v.isCar ? v.roll : v.lean, 'YXZ');
+  v.body.rotation.set(v.pitch + (v.sagP || 0), 0, (v.isCar ? v.roll : v.lean) + (v.sagR || 0), 'YXZ');   // sag：68-wreck.js 的破胎下沉
   // 跳台飛行中（69-stunt.js）繞車身中心翻轉，平常繞著地面
   if (v.air && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }
   else if (v.body.position.lengthSq()) v.body.position.set(0, 0, 0);

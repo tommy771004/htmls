@@ -17,8 +17,10 @@ const ARMS = {
   shotgun: { slot: 4, name: '霰彈槍', gun: 1, dmg: 18, pel: 8, rpm: 70, mag: 8, rel: 2.8, range: 25, spread: 8.5, head: 1.5, db: 'bike', f: 2, res: 48, grip: [0, -.02, -.2], muzzle: [0, .04, .5] },
   sniper: { slot: 5, name: '狙擊槍', gun: 1, scope: 1, dmg: 165, rpm: 45, mag: 6, rel: 2.5, range: 300, spread: .1, head: 3, f: 2.6, res: 30, grip: [0, -.045, -.29], muzzle: [0, -.015, .56] },
   rpg: { slot: 6, name: '火箭筒', gun: 1, rocket: 1, dmg: 500, blast: 10, rpm: 20, mag: 1, rel: 3.5, range: 200, spread: .5, f: 2, res: 8, shoulder: 1, grip: [0, .05, -.15], muzzle: [0, .05, .62] },
+  launcher: { slot: 6, name: '榴彈發射器', gun: 1, lob: 1, dmg: 300, blast: 7, rpm: 60, mag: 6, rel: 3.2, range: 90, spread: .8, f: 2, res: 18, grip: [0, -.07, -.15], muzzle: [0, .028, .39] },   // 69-tactics.js：曲射、碰到東西就炸（neon_nightcity_gta_v_2.md 的搶劫 Stage 3，Jax 守大廳）
   minigun: { slot: 6, name: '轉管機槍', gun: 1, auto: 1, spin: .5, dmg: 30, rpm: 1800, mag: 500, rel: 4.5, range: 90, spread: 3.5, head: 1.5, f: .5, res: 1000, grip: [0, .08, -.38], muzzle: [0, 0, .48] },
   grenade: { slot: 7, name: '手榴彈', throw: 1, dmg: 400, blast: 8, fuse: 3, n: 10 },
+  gas: { slot: 7, name: '催淚瓦斯', throw: 1, dmg: 0, gas: 1, n: 6 },   // 69-tactics.js 的 gasCloud：1.2 秒後冒煙，煙裡的警察與敵人嗆到動不了
   sticky: { slot: 7, name: '黏性炸彈', throw: 1, dmg: 420, blast: 8, max: 5, n: 8, db: 1, model: 'c4' },
 };
 const ARM_IDS = Object.keys(ARMS);
@@ -36,7 +38,8 @@ const slowmo = { k: 1, want: 1, ab: 1, st: 1, raw: 1 / 60 };   // want：轉盤�
 const ARM_COL = { dark: 0x17181b, mid: 0x2b2d31, wood: 0x5a3a22, steel: 0x8a8d92, olive: 0x3a4430 };
 function armKit(id) {
   const k = new Kit(), A = ARMS[id] || {}, g = A.grip || [0, 0, 0], m = A.muzzle || [0, 0, .2];
-  if (id === 'grenade') { k.cyl(0, 0, 0, .032, .032, .07, 8, ARM_COL.olive, 2); k.box(0, .045, 0, .012, .02, .03, ARM_COL.steel, 15); }
+  if (id === 'gas') { k.cyl(0, 0, 0, .033, .033, .12, 10, 0x59614c, 2); k.cyl(0, .072, 0, .013, .013, .025, 8, ARM_COL.steel, 15); k.box(0, .07, .02, .01, .012, .04, ARM_COL.steel, 15); }
+  else if (id === 'grenade') { k.cyl(0, 0, 0, .032, .032, .07, 8, ARM_COL.olive, 2); k.box(0, .045, 0, .012, .02, .03, ARM_COL.steel, 15); }
   else if (id === 'c4' || id === 'sticky') { k.box(0, 0, 0, .1, .04, .2, 0x8a8058, 2); k.box(0, .022, .03, .05, .01, .05, 0x1a1a1a, 2); }
   else if (id === 'rocket') { k.cyl(0, 0, 0, .04, .04, .5, 8, ARM_COL.olive, 2, Math.PI / 2); k.cyl(0, 0, .3, .0, .045, .14, 8, 0x3c3c34, 2, -Math.PI / 2); }
   else if (A.melee) {
@@ -57,6 +60,7 @@ function armKit(id) {
     if (H && H.lh === 'gripL') k.box(0, g[1] + H.l[1], g[2] + H.l[2], .03, .1, .04, ARM_COL.dark, 2, -.25);   // 火箭筒的前握把
     if (id === 'sniper') k.cyl(0, m[1] + .06, g[2] + .15, .02, .02, .3, 8, ARM_COL.dark, 15, Math.PI / 2);
     if (id === 'stun') k.box(0, m[1] + .025, z, .037, .012, L * .5, 0xd9b42a, 2);
+    if (id === 'launcher') k.cyl(0, m[1] - .045, g[2] + .17, .055, .055, .13, 12, ARM_COL.olive, 2, Math.PI / 2);   // 轉輪彈巢
     if (id === 'minigun') for (let i = 0; i < 6; i++) k.cyl(Math.cos(i) * .03, Math.sin(i) * .03, z + .1, .008, .008, L * .8, 6, ARM_COL.steel, 15, Math.PI / 2);
   }
   return k.build();
@@ -192,7 +196,7 @@ $('wheel').addEventListener('pointerdown', e => {
 const _mz = V3(), _ad = V3();
 function canDriveBy(A) {
   const v = player.veh;
-  return started && player.where === 'out' && player.mode === 'drive' && !!A && !!A.db && (A.db === 1 || !v.isCar) && !dlg.open && !fading && !life.dead;
+  return started && player.where === 'out' && player.mode === 'drive' && !!A && !!A.db && (A.db === 1 || !v.isCar) && !v.fly && !dlg.open && !fading && !life.dead;
 }
 function windowMuzzle(out) {
   const v = player.veh, fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
@@ -225,6 +229,7 @@ const DB_HIP = .87, DB_SEAT = .44 - DB_HIP;   // 開車動畫的骨盆在原點�
 function triggerDown() {
   if (arm.wheel.open || life.dead) return;
   arm.trig = true;
+  if (player.mode === 'drive' && player.veh.fly) return gunshipFire();   // 69-gunship.js：直升機的火箭莢
   const A = ARMS[arm.sel];
   if (!canFight() && !canDriveBy(A)) return;
   if (A.melee) swing();
@@ -275,7 +280,8 @@ function shoot() {
     const hit = castRay(R0, 300), tx = R0.ox + R0.dx * hit.t, ty = R0.oy + R0.dy * hit.t, tz = R0.oz + R0.dz * hit.t;
     _ad.set(tx - _mz.x, ty - _mz.y, tz - _mz.z).normalize();
     launch('rocket', _mz.x, _mz.y, _mz.z, _ad.x * 48, _ad.y * 48, _ad.z * 48, 'player'); sfx.launch();
-  } else {
+  } else if (A.lob) lobShot(R0, A);   // 69-tactics.js
+  else {
     const moving = player.v > .5 ? 1.4 : 1, deg = (A.spread * (gta.aimK > .5 ? .6 : 1.2) * moving + arm.bloom) * abil.spread;
     for (let i = 0; i < (A.pel || 1); i++) {
       const R = spreadDir(R0, deg), hit = castRay(R, A.range);
@@ -297,10 +303,11 @@ function hitWith(h, R, dmg, by, head = 2.5, stun = 0) {
   if (stun && h.kind === 'fighter') { const f = h.ref; f.stunT = stun; f.stunPh = -uTimeNow(); sparks(x, y, z, 6, 2); return; }
   if (h.kind === 'ped') { if (hitPed(h.ref, dmg * (y > 1.55 ? head : 1), R.dx, R.dz, mine, x, y, z) && mine) spEvent('kill', y > 1.55); }
   else if (h.kind === 'extra') { const s = extraSt[h.ref]; s.st = 'fall'; s.t = -12; s.vx = R.dx * 2; s.vz = R.dz * 2; extras.anim(h.ref, ANIM.die, -uTimeNow(), 1); blood(x, y, z); if (mine) { crime('kill', x, z); spEvent('kill', y > 1.55); } }
-  else if (h.kind === 'car') { sparks(x, y, z, 6, 3); damageCar(h.ref, dmg * VEH_K, mine); }
-  else if (h.kind === 'veh') { sparks(x, y, z, 6, 3); damageVeh(h.ref, dmg * VEH_K, mine); }
+  else if (h.kind === 'car') { sparks(x, y, z, 6, 3); if (!tireShot(h.ref, x, y, z, dmg, mine)) damageCar(h.ref, dmg * VEH_K, mine); }   // tireShot：68-wreck.js 的單顆輪胎
+  else if (h.kind === 'veh') { sparks(x, y, z, 6, 3); if (!tireShot(h.ref, x, y, z, dmg, mine)) damageVeh(h.ref, dmg * VEH_K, mine); }
   else if (h.kind === 'cop') { blood(x, y, z); const hd = y - (h.ref.y || 0) > 1.55; if (copHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }
   else if (h.kind === 'heli') { sparks(x, y, z, 8, 4); heliHit(dmg, mine); }
+  else if (h.kind === 'rap') { sparks(x, y, z, 8, 4); rapHit(dmg, mine); }   // 69-tactics.js 的垂降直升機
   else if (h.kind === 'ebox') boxHit(h.ref, dmg, mine);   // 69-market.js：流明電訊的電訊箱
   else if (h.kind === 'fn') { blood(x, y, z); h.ref(dmg, R, mine); }   // 其他會中彈的東西自己處理（69-heist.js 跑出銀行的人質）
   else if (h.kind === 'fighter') { blood(x, y, z); const hd = y > 1.55; if (fHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }   // 69-squads.js：幫派
@@ -380,7 +387,7 @@ function detonate() {
 // ─── 投射物：火箭、坦克砲彈、手榴彈、黏性炸彈 ───
 const proj = [];
 function launch(kind, x, y, z, vx, vy, vz, by = 'player', skip = null) {
-  const h = wModel(kind === 'rocket' || kind === 'shell' ? 'rocket' : kind === 'sticky' ? 'sticky' : 'grenade');
+  const h = wModel(kind === 'rocket' || kind === 'shell' ? 'rocket' : kind === 'sticky' ? 'sticky' : kind === 'gas' ? 'gas' : 'grenade');
   const p = { kind, x, y, z, vx, vy, vz, t: 0, h, by, skip, att: null, ax: 0, ay: 0, az: 0, spin: Math.random() * 6 };
   proj.push(p);
   if (kind === 'sticky') arm.stickies.push(p);
@@ -395,18 +402,20 @@ const _jq = new T.Quaternion(), _je = new T.Euler(), _js = V3(1, 1, 1), _jv = V3
 function stepProj(dt) {
   for (const p of [...proj]) {
     p.t += dt;
-    if (p.kind === 'rocket' || p.kind === 'shell') {
+    if (p.kind === 'rocket' || p.kind === 'shell' || p.kind === 'gl') {
+      if (p.kind === 'gl') p.vy -= 9.8 * dt;   // 榴彈：曲射
       const sp = Math.hypot(p.vx, p.vy, p.vz), R = { ox: p.x, oy: p.y, oz: p.z, dx: p.vx / sp, dy: p.vy / sp, dz: p.vz / sp };
       const h = castRay(R, sp * dt, p.skip);
       const nearMe = p.by !== 'player' && Math.hypot(player.x - p.x, player.z - p.z, player.y + 1 - p.y) < 1.3;
       if (h.kind || nearMe || p.t > 6) {
         const t = h.kind ? h.t : 0;
-        blast(p.x + R.dx * t, p.y + R.dy * t, p.z + R.dz * t, p.kind === 'shell' ? 9 : ARMS.rpg.blast, p.kind === 'shell' ? 450 : ARMS.rpg.dmg, p.by, null);
+        const A = ARMS[p.kind === 'gl' ? 'launcher' : 'rpg'];
+        blast(p.x + R.dx * t, p.y + R.dy * t, p.z + R.dz * t, p.kind === 'shell' ? 9 : A.blast, p.kind === 'shell' ? 450 : A.dmg, p.by, null);
         dropProj(p); continue;
       }
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
       if (Math.random() < dt * 60) emit('smoke', p.x, p.y, p.z, { vx: (Math.random() - .5) * .4, vy: .3, vz: (Math.random() - .5) * .4, max: 1.2, s0: .15, s1: .9, a: .55, c: [.6, .6, .62] });
-      if (Math.random() < dt * 40) emit('fire', p.x - R.dx * .3, p.y - R.dy * .3, p.z - R.dz * .3, { max: .12, s0: .25, s1: .1, drag: 1 });
+      if (Math.random() < dt * 40 && p.kind !== 'gl') emit('fire', p.x - R.dx * .3, p.y - R.dy * .3, p.z - R.dz * .3, { max: .12, s0: .25, s1: .1, drag: 1 });
       _jq.setFromUnitVectors(_jv.set(0, 0, 1), _ad.set(R.dx, R.dy, R.dz));
     } else {
       // 手榴彈與黏性炸彈：拋物線，落地彈跳（黏性的直接黏住）；黏在車上就跟著車走
@@ -420,7 +429,7 @@ function stepProj(dt) {
         const gh = groundH(nx, nz) + .05;
         const r = collideCircle(nx, nz, .08, false);
         let car = null;
-        for (const v of vehicles) if (!v.dead && Math.abs((nx - v.x) * Math.sin(v.yaw) + (nz - v.z) * Math.cos(v.yaw)) < v.len / 2 && Math.abs((nx - v.x) * Math.cos(v.yaw) - (nz - v.z) * Math.sin(v.yaw)) < v.w / 2 && ny < v.y + 1.5) { car = v; break; }
+        for (const v of vehicles) if (!v.dead && Math.abs((nx - v.x) * Math.sin(v.yaw) + (nz - v.z) * Math.cos(v.yaw)) < v.len / 2 && Math.abs((nx - v.x) * Math.cos(v.yaw) - (nz - v.z) * Math.sin(v.yaw)) < v.w / 2 && ny < v.y + 1.5 && ny > v.y - .3) { car = v; break; }
         if (p.kind === 'sticky' && (ny <= gh || r.hit || car)) {
           if (car) { const dx = nx - car.x, dz = nz - car.z, c = Math.cos(car.yaw), s = Math.sin(car.yaw); p.att = car; p.ax = dx * c - dz * s; p.az = dx * s + dz * c; p.ay = Math.max(.5, ny - car.y); }
           else { p.stuck = 1; nx = r.x; nz = r.z; ny = Math.max(ny, gh); }
@@ -433,7 +442,8 @@ function stepProj(dt) {
         p.x = nx; p.y = ny; p.z = nz;
         p.spin += dt * Math.hypot(p.vx, p.vz) * 3;
       }
-      const due = p.kind === 'grenade' ? p.t >= ARMS.grenade.fuse : p.t > 1e8;
+      const due = p.kind === 'grenade' ? p.t >= ARMS.grenade.fuse : p.kind === 'gas' ? p.t >= 1.2 : p.t > 1e8;
+      if (due && p.kind === 'gas') { gasCloud(p.x, p.z, p.by); dropProj(p); continue; }   // 69-tactics.js
       if (due) { const A = ARMS[p.kind]; blast(p.x, p.y, p.z, A.blast, A.dmg, p.by, null); dropProj(p); continue; }
       if (p.kind === 'sticky' && Math.random() < dt * 1.5) emit('flash', p.x, p.y + .05, p.z, { max: .1, s0: .08, s1: .08, c: [3, .3, .2] });
       _jq.setFromEuler(_je.set(p.spin, p.spin * .7, 0));
@@ -460,6 +470,7 @@ function blast(x, y, z, r, dmg, by, skip) {
   evBlast(x, z, r, mine);   // 69-events.js：炸運鈔車後車門
   boxBlast(x, z, r, mine);   // 69-market.js：電訊箱連鎖
   heliBlast(x, y, z, r, dmg, mine);
+  rapBlast(x, y, z, r, dmg, mine);   // 69-tactics.js：垂降直升機
   fighterBlast(x, y, z, r, dmg, mine);   // 69-squads.js
   if (player.mode === 'walk' && player.where === 'out') {
     const d = Math.hypot(player.x - x, player.z - z, player.y + 1 - y);
@@ -693,6 +704,7 @@ function vehPairs() {
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
     const A = L[i], B = L[j];
     if (A.g && !A.g.visible || B.g && !B.g.visible) continue;
+    if (Math.abs(A.y - B.y) > 2.5) continue;   // 69-gunship.js：飛在上面的直升機
     if (Math.hypot(A.x - B.x, A.z - B.z) > (A.len + B.len) / 2 + 1) continue;
     const mA = A.mass || (A.isCar ? 1600 : 280), mB = B.mass || (B.isCar ? 1600 : 280);
     let best = null;
@@ -724,7 +736,7 @@ function vehPairs() {
   if (player.mode === 'walk' && !life.dead && life.hitCd <= 0) {
     for (const v of L) {
       const sp = Math.hypot(v.vx, v.vz);
-      if (sp < 4 || v.dead) continue;
+      if (sp < 4 || v.dead || v.y > player.y + 1.5) continue;
       for (const s of [1, -1]) {
         const cx = v.x + Math.sin(v.yaw) * v.off * s, cz = v.z + Math.cos(v.yaw) * v.off * s;
         if (Math.hypot(player.x - cx, player.z - cz) < v.rad + .35) { life.hitCd = .8; sfx.impact(sp * .6); knockPlayer(v.vx, v.vz); hurtPlayer(sp * 3.2, v.x, v.z); break; }
@@ -736,7 +748,7 @@ function vehPairs() {
 // 沒人開的載具：撞開、炸飛後滑行停下
 function coast(dt) {
   for (const v of vehicles) {
-    if (v === player.veh || v.unit && v.unit.drive || v.ai) continue;   // ai：69-squads.js 自己開的車
+    if (v === player.veh || v.unit && v.unit.drive || v.ai || v.fly) continue;   // ai：69-squads.js 自己開的車
     if (Math.abs(v.vx) + Math.abs(v.vz) < .05) { v.vx = v.vz = 0; continue; }
     v.x += v.vx * dt; v.z += v.vz * dt;
     const k = Math.exp(-(v.dead ? 2.5 : 1.6) * dt); v.vx *= k; v.vz *= k;

@@ -277,7 +277,7 @@ function mapDraw() {
   const steps = [25, 50, 100, 200, 250, 500, 1000, 2000];
   const d = steps.find(m => m * MV.zoom >= 70) || 2000;
   $('mapBar').style.width = `${Math.round(d * MV.zoom)}px`;
-  setText('mapScaleT', d >= 1000 ? `${d / 1000} km` : `${d} m`);
+  setText('mapScaleT', IMPERIAL() ? fmtDist(d) : d >= 1000 ? `${d / 1000} km` : `${d} m`);
   const w = MV.mx >= 0 && !isTouch ? mapToWorld(MV.mx, MV.my) : { x: MV.cx, z: MV.cz };
   setText('mapLoc', mapPlaceName(w.x, w.z));
 }
@@ -297,7 +297,7 @@ function mapCard() {
   if (!b) { el.classList.remove('on'); return; }
   const cat = MAP_CATS[b.cat], col = b.col || cat.col, me = mapPlayer();
   const dist = Math.hypot(b.x - me.x, b.z - me.z);
-  const rows = [['類型', b.type], ['地區', districtW(b.x, b.z).split(' ')[0]], ['距離', dist > 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`], ...(b.rows || [])];
+  const rows = [['類型', b.type], ['地區', districtW(b.x, b.z).split(' ')[0]], ['距離', fmtDist(dist)], ...(b.rows || [])];
   const canTp = b.tp && !W.stars && !fading;
   el.style.setProperty('--mc', col);
   el.innerHTML = `<header>${iconSvg(cat.icon, col, b.txt)}<h3>${b.name}<small>${cat.name}</small></h3></header><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${b.desc ? `<p>${b.desc}</p>` : ''}<div class="acts"><button data-a="wp"><kbd>Enter</kbd>${gps.wp && Math.hypot(gps.wp.x - b.x, gps.wp.z - b.z) < 3 ? '取消導航點' : '設為導航點'}</button>${b.tp ? `<button data-a="tp"${canTp ? '' : ' disabled'}><kbd>T</kbd>${canTp ? '傳送' : '通緝中不能傳送'}</button>` : ''}</div>`;

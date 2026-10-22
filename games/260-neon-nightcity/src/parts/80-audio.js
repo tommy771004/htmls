@@ -1,8 +1,8 @@
 
 // ═══ 聲音：雨、城市低頻、引擎、甩尾、夜店 124 BPM 與酒吧 84 BPM 音樂，全部即時合成 ═══
 const sfx = (() => {
-  let ac = null, master, noiseBuf, rainG, rainF, cityG, eng = null, skidG, clubBus, clubF, barBus, barF, sched = null;
-  const st = { muted: false, clubT0: 0, barT0: 0, nextClub: 0, nextBar: 0, clubStep: 0, barStep: 0, where: 'out', dClub: 999, dBar: 999 };
+  let ac = null, out, master, musicG, ambG, noiseBuf, rainG, rainF, cityG, eng = null, skidG, clubBus, clubF, barBus, barF, sched = null;
+  const st = { muted: false, duck: false, hidden: false, clubT0: 0, barT0: 0, nextClub: 0, nextBar: 0, clubStep: 0, barStep: 0, where: 'out', dClub: 999, dBar: 999 };
   const CLUB_BPM = 124, BAR_BPM = 84;
   const t0perf = performance.now();
   function now() { return ac ? ac.currentTime : (performance.now() - t0perf) / 1000; }
@@ -17,12 +17,21 @@ const sfx = (() => {
     for (let i = 0; i < d.length; i++) { l = (l + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; }
     const s = ac.createBufferSource(); s.buffer = b; s.loop = true; return s;
   }
+  function outGain() { return st.muted || st.hidden && SET.muteBlur ? 0 : .8 * SET.vMaster * (st.duck ? .25 : 1); }
+  function mix() {
+    if (!ac) return;
+    const t = ac.currentTime;
+    out.gain.setTargetAtTime(outGain(), t, .05); master.gain.setTargetAtTime(SET.vSfx, t, .05);
+    musicG.gain.setTargetAtTime(SET.vMusic, t, .05); ambG.gain.setTargetAtTime(SET.vAmb, t, .05);
+  }
   function init() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
     try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-    master = ac.createGain(); master.gain.value = st.muted ? 0 : .8;
+    // 匯流排（95-menu.js 的音量）：master 是音效，音樂（夜店、酒吧）與環境（雨、城市低頻）各一條，最後匯到 out 做總音量、靜音與暫停壓低
+    out = ac.createGain(); out.gain.value = outGain();
+    master = ac.createGain(); master.gain.value = SET.vSfx; musicG = ac.createGain(); musicG.gain.value = SET.vMusic; ambG = ac.createGain(); ambG.gain.value = SET.vAmb;
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
-    master.connect(comp); comp.connect(ac.destination);
+    master.connect(out); musicG.connect(out); ambG.connect(out); out.connect(comp); comp.connect(ac.destination);
     noiseBuf = mkNoise();
     // 雨：兩層濾波噪音，一層沙沙聲、一層高頻的滴答
     rainF = ac.createBiquadFilter(); rainF.type = 'lowpass'; rainF.frequency.value = 7000;
@@ -32,20 +41,20 @@ const sfx = (() => {
     const r2 = noiseSrc(), bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = .8;
     const r2g = ac.createGain(); r2g.gain.value = .5; r2.playbackRate.value = .7;
     r2.connect(bp); bp.connect(r2g); r2g.connect(rainF);
-    rainF.connect(rainG); rainG.connect(master);
+    rainF.connect(rainG); rainG.connect(ambG);
     r1.start(); r2.start();
     // 城市低頻
     const cb = brown(), cl = ac.createBiquadFilter(); cl.type = 'lowpass'; cl.frequency.value = 220;
     cityG = ac.createGain(); cityG.gain.value = 0;
-    cb.connect(cl); cl.connect(cityG); cityG.connect(master); cb.start();
+    cb.connect(cl); cl.connect(cityG); cityG.connect(ambG); cb.start();
     // 甩尾
     const sk = noiseSrc(), skf = ac.createBiquadFilter(); skf.type = 'bandpass'; skf.frequency.value = 1150; skf.Q.value = 3;
     skidG = ac.createGain(); skidG.gain.value = 0; sk.connect(skf); skf.connect(skidG); skidG.connect(master); sk.start();
     // 音樂匯流排：牆外時用低通悶住
     clubF = ac.createBiquadFilter(); clubF.type = 'lowpass'; clubF.frequency.value = 300;
-    clubBus = ac.createGain(); clubBus.gain.value = 0; clubBus.connect(clubF); clubF.connect(master);
+    clubBus = ac.createGain(); clubBus.gain.value = 0; clubBus.connect(clubF); clubF.connect(musicG);
     barF = ac.createBiquadFilter(); barF.type = 'lowpass'; barF.frequency.value = 800;
-    barBus = ac.createGain(); barBus.gain.value = 0; barBus.connect(barF); barF.connect(master);
+    barBus = ac.createGain(); barBus.gain.value = 0; barBus.connect(barF); barF.connect(musicG);
     st.clubT0 = ac.currentTime + .1; st.nextClub = st.clubT0; st.barT0 = ac.currentTime + .1; st.nextBar = st.barT0;
     sched = setInterval(schedule, 25);
     ambientLoop();
@@ -111,19 +120,19 @@ const sfx = (() => {
   // 遠處喇叭與警笛
   function ambientLoop() {
     setTimeout(ambientLoop, 4000 + Math.random() * 9000);
-    if (!ac || st.where !== 'out') return;
+    if (!ac || st.where !== 'out' || st.duck) return;   // 暫停選單開著時不放
     const t = ac.currentTime + .05;
     if (Math.random() < .7) {
       const f = 330 + Math.random() * 120, g = ac.createGain(), p = ac.createStereoPanner(); p.pan.value = Math.random() * 2 - 1;
       for (const k of [1, 1.26]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * k; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 900; o.connect(fl); fl.connect(g); o.start(t); o.stop(t + .5); }
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.03, t + .02); g.gain.setValueAtTime(.03, t + .35); g.gain.exponentialRampToValueAtTime(0.0001, t + .5);
-      g.connect(p); p.connect(master);
+      g.connect(p); p.connect(ambG);
     } else {
       const o = ac.createOscillator(), g = ac.createGain(), p = ac.createStereoPanner(); p.pan.value = Math.random() * 2 - 1;
       o.type = 'triangle';
       for (let k = 0; k < 8; k++) { o.frequency.setValueAtTime(650, t + k * .7); o.frequency.linearRampToValueAtTime(1150, t + k * .7 + .35); o.frequency.linearRampToValueAtTime(650, t + k * .7 + .7); }
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.025, t + 1.5); g.gain.exponentialRampToValueAtTime(0.0001, t + 5.6);
-      o.connect(g); g.connect(p); p.connect(master); o.start(t); o.stop(t + 5.7);
+      o.connect(g); g.connect(p); p.connect(ambG); o.start(t); o.stop(t + 5.7);
     }
   }
   function startEngine(v) {
@@ -140,7 +149,9 @@ const sfx = (() => {
     init,
     get ready() { return !!ac; },
     beat() { return (now() - (ac ? st.clubT0 : 0)) * CLUB_BPM / 60; },
-    setMuted(m) { st.muted = m; if (master) master.gain.setTargetAtTime(m ? 0 : .8, ac.currentTime, .05); },
+    setMuted(m) { st.muted = m; mix(); },
+    // 95-menu.js：音量滑桿、暫停時壓低（duck）、切到別的分頁時靜音（hidden）
+    mix(o) { if (o) Object.assign(st, o); mix(); },
     get muted() { return st.muted; },
     update(dt, s) {
       if (!ac) return;
@@ -184,7 +195,7 @@ const sfx = (() => {
     reload() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'bandpass', 2400, 2, .12, .05); tone(t + .02, master, 'square', 900, .03, .001, .04); nz(t + .75, master, 'bandpass', 1800, 2, .16, .06); tone(t + .78, master, 'square', 1300, .04, .001, .05); },
     punch() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 420, 1, .35, .14); tone(t, master, 'sine', 95, .3, .002, .12); },
     whoosh() { if (!ac) return; const t = ac.currentTime; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'bandpass'; fl.Q.value = 2; fl.frequency.setValueAtTime(1400, t); fl.frequency.exponentialRampToValueAtTime(350, t + .2); env(g, t, .02, .12, .2); s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + .3); },
-    thunder(d) { if (!ac) return; const t = ac.currentTime + d; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.value = 160; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .15); g.gain.exponentialRampToValueAtTime(0.0001, t + 4); s.playbackRate.value = .5; s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 4.2); },
+    thunder(d) { if (!ac) return; const t = ac.currentTime + d; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.value = 160; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .15); g.gain.exponentialRampToValueAtTime(0.0001, t + 4); s.playbackRate.value = .5; s.connect(fl); fl.connect(g); g.connect(ambG); s.start(t); s.stop(t + 4.2); },
     // 69-combat.js／69-police.js：各種槍聲（k 音量、f 音色：1 手槍、.7 衝鋒槍、1.3 步槍、2 霰彈、2.6 狙擊、.5 機槍）、火箭、受傷、WASTED／BUSTED
     gun(k = 1, f = 1) {
       if (!ac || k < .02) return; const t = ac.currentTime, lo = f >= 2 ? 1.6 : 1;

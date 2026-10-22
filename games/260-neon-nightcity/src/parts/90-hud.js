@@ -188,13 +188,13 @@ function updateHud(dt) {
     m.classList.toggle('edge', edge);
     setText('mkName', mk.name);
     const d = Math.hypot(mk.x - (p.where === 'out' ? px : p.x), mk.z - (p.where === 'out' ? pz : p.z));
-    setText('mkDist', `${Math.round(d)} m`);
+    setText('mkDist', fmtDist(d));
   } else m.style.display = 'none';
   // 速度表
   $('speedo').classList.toggle('on', inV);
   if (inV) {
     const v = p.veh, kmh = Math.round(Math.abs(v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw)) * 3.6);
-    setText('spd', String(kmh)); setText('gear', String(v.gear)); setText('vehName', motors.test && v === kestrel ? `試駕 ${v.name} · ${Math.ceil(motors.test.t)}s` : v.name);
+    setText('spd', String(IMPERIAL() ? Math.round(kmh * .621371) : kmh)); setText('gear', String(v.gear)); setText('vehName', motors.test && v === kestrel ? `試駕 ${v.name} · ${Math.ceil(motors.test.t)}s` : v.name);
     const r = $('rpm').firstElementChild; r.style.width = `${Math.round(v.rpm * 100)}%`; r.classList.toggle('hi', v.rpm > .86);
     const nb = $('nitro').firstElementChild; nb.style.width = `${Math.round(nitro.v * 100)}%`;
   }

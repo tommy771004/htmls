@@ -297,6 +297,99 @@ body.wheel #tbtn,body.wheel #joy,body.talking #touch.on,body.talking #speedo,bod
 #help dt{color:var(--sodium);font-weight:600}
 #help dd{margin:0;color:var(--ink)}
 
+/* Esc 暫停與設定（95-menu.js）：仿 GTA V 的暫停畫面。背景是停住的那一幀，模糊、去飽和後染上目前主角的顏色（--mc，69-crew.js 的 CREW.col）；
+   選中的分頁、類別與設定列反白成墨色，和全區地圖的圖例同一套 */
+#menu{position:fixed;inset:0;z-index:6;display:none;font-family:var(--cond);--mc:#ffae57;background:rgba(7,8,11,.5);-webkit-backdrop-filter:blur(9px) saturate(.35);backdrop-filter:blur(9px) saturate(.35);overflow:hidden;user-select:none;-webkit-user-select:none}
+#menu.on{display:block}
+#menu::before{content:"";position:absolute;inset:0;background:var(--mc);opacity:.13;pointer-events:none}
+#mnIn{position:relative;display:flex;flex-direction:column;width:min(1060px,calc(100% - 48px));height:calc(100% - clamp(20px,7vh,72px) - max(18px,env(safe-area-inset-bottom)));margin:clamp(20px,7vh,72px) auto 0}
+#mnHead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:0 2px 12px}
+#mnHead h2{margin:0;font-size:clamp(30px,4.2vw,50px);font-weight:700;line-height:1;letter-spacing:.02em}
+#mnWho{display:grid;justify-items:end;gap:2px;font-size:16px;line-height:1.2;font-variant-numeric:tabular-nums}
+#mnWho b{font-size:22px;font-weight:600;color:var(--mc)}
+#mnWho span{color:var(--ink-2)}
+#mnWho #mnCash{color:#ffcf6a;font-weight:600}
+#mnTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+#mnTabs button{border:0;padding:10px 8px 9px;background:rgba(10,11,13,.84);font-size:17px;letter-spacing:.03em;box-shadow:inset 0 4px transparent;transition:background var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+#mnTabs button:hover{background:rgba(40,42,46,.92)}
+#mnTabs button[aria-selected="true"]{background:var(--ink);color:#111;box-shadow:inset 0 4px var(--mc)}
+#mnBody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(190px,29%) 1fr;gap:3px;margin-top:6px;align-items:start}
+#mnBody ol{list-style:none;margin:0;padding:0}
+#mnCats{display:flex;flex-direction:column;gap:3px}
+#mnCats button,#mnRows button{width:100%;display:flex;align-items:center;gap:12px;border:0;text-align:left;font-size:18px;letter-spacing:.01em;transition:background var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+#mnCats button{padding:7px 12px;background:rgba(10,11,13,.84)}
+#mnCats button:hover{background:rgba(40,42,46,.92)}
+#mnCats button.cur{background:rgba(236,232,224,.2)}
+#mnCats button.sel{background:var(--ink);color:#111}
+#mnPane{display:flex;flex-direction:column;max-height:100%;min-height:0;background:rgba(10,11,13,.84)}
+#mnStat{display:flex;align-items:center;gap:16px;padding:10px 14px;font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums;border-bottom:1px solid rgba(255,255,255,.07)}
+#mnStat[hidden]{display:none}
+#mnStat span{flex:1}
+#mnStat i{width:150px;height:6px;background:rgba(236,232,224,.14)}
+#mnStat i::before{content:"";display:block;height:100%;width:var(--v,0%);background:var(--mc)}
+#mnRows{overflow-y:auto;min-height:0;scrollbar-width:thin;touch-action:pan-y}
+#mnRows button{justify-content:space-between;min-height:36px;padding:5px 14px;background:none}
+#mnRows button:hover{background:rgba(236,232,224,.06)}
+#mnRows button.sel{background:var(--ink);color:#111}
+#mnRows button.off{color:rgba(236,232,224,.32);cursor:default}
+#mnRows button.off.sel{background:rgba(236,232,224,.24);color:rgba(236,232,224,.6)}
+#mnRows button.info{cursor:default}
+#mnRows button.reset{margin-top:8px;color:var(--ink-2)}
+#mnRows button.reset.sel{color:#111}
+.mnOpt,.mnNum{display:flex;align-items:center;gap:10px;flex:none;font-variant-numeric:tabular-nums}
+.mnOpt i{font-style:normal;width:16px;text-align:center;opacity:0;transition:opacity var(--dur-hover) var(--ease-out)}
+#mnRows .sel .mnOpt i{opacity:1}
+.mnOpt em,.mnNum em{font-style:normal;min-width:44px;text-align:right}
+.mnOpt kbd{font:inherit;min-width:44px;margin-right:26px;text-align:right}
+.mnOpt kbd.mine{color:var(--mc)}
+#mnRows .sel .mnOpt kbd.mine{color:#111}
+.mnNum em{font-size:15px;color:var(--ink-2)}
+#mnRows .sel .mnNum em{color:#444}
+.mnBar{display:block;width:150px;height:6px;margin:0 26px 0 0;background:rgba(236,232,224,.16);cursor:ew-resize;position:relative}
+.mnBar::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--v);background:var(--mc)}
+#mnRows .sel .mnBar{background:rgba(17,17,17,.2)}
+#mnRows .sel .mnBar::before{background:#111}
+#mnRows .off .mnBar::before{background:rgba(236,232,224,.3)}
+.mnInfo{color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums}
+#mnRows .sel .mnInfo{color:#333}
+.mnWait{color:#111;animation:mnWait 1s steps(2) infinite}
+@keyframes mnWait{50%{opacity:.35}}
+#mnDesc{margin:0;padding:11px 14px 12px;min-height:3.9em;font-family:var(--sans);font-size:13.5px;line-height:1.55;color:var(--ink-2);border-top:1px solid rgba(255,255,255,.07)}
+#mnDesc:empty{display:none}
+#mnKeys{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px 18px;padding:12px 2px 0;font-size:15px;color:var(--ink)}
+#mnKeys button,#mnKeys span{display:flex;align-items:center;gap:6px;border:0;padding:0;background:none}
+#mnKeys kbd{font:600 13px var(--cond);color:var(--mc);padding:1px 6px;background:rgba(10,11,13,.84)}
+#mnKeys button:hover kbd{background:rgba(40,42,46,.92)}
+body.touch #mnKeys span{display:none}
+body.touch #mnKeys{justify-content:center}
+body.touch #mnKeys button{font-size:17px;padding:8px 14px;background:rgba(10,11,13,.84)}
+body.touch #mnKeys button kbd{display:none}
+@media (max-width:700px){
+  #mnIn{width:calc(100% - 24px);margin-top:max(14px,env(safe-area-inset-top));height:calc(100% - max(14px,env(safe-area-inset-top)) - max(14px,env(safe-area-inset-bottom)))}
+  #mnHead{padding-bottom:9px}
+  #mnHead h2{font-size:28px}
+  #mnWho{font-size:13px}
+  #mnWho b{font-size:17px}
+  #mnTabs button{font-size:15px;padding:8px 6px 7px}
+  #mnBody{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);align-items:stretch}
+  #mnCats{flex-direction:row;overflow-x:auto;scrollbar-width:none;gap:3px}
+  #mnCats::-webkit-scrollbar{display:none}
+  #mnCats li{flex:none}
+  #mnCats button{font-size:15px;padding:8px 12px;white-space:nowrap}
+  #mnPane{align-self:start}
+  #mnRows button{font-size:16px;min-height:42px;padding:5px 12px;gap:8px}
+  .mnBar{width:88px;margin-right:22px}
+  .mnNum em{min-width:38px;font-size:13px}
+  .mnOpt{gap:6px}
+  #mnStat{font-size:12px;padding:8px 12px}
+  #mnStat i{display:none}
+}
+@media (prefers-reduced-motion: reduce){ .mnWait{animation:none} }
+/* Esc 選單的顯示設定：HUD、小地圖開關與安全區域（--safe，HUD 整體往內縮） */
+body.noHud #hud > :not(#tools):not(#prompt):not(#toast):not(#dialog):not(#cine):not(#death):not(#heistDone):not(#wheel):not(#crewW){visibility:hidden}
+body.noHud:not(.touch) #tools{visibility:hidden}
+body.noRadar #mapBox,body.noRadar #vitals{visibility:hidden}
+#hud{inset:var(--safe,0px)}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 380ms var(--ease-out)}
 #fade.on{opacity:1}
 
@@ -368,7 +461,7 @@ body.touch #capture{display:none}
   <div id="obj" class="pan"><small>門禁 <i>· 今夜</i></small><b id="objText">進入 LAZARUS</b><span id="objSub"><i></i><em id="objNum"></em></span></div>
   <div id="compass"><canvas id="cmp" width="560" height="56"></canvas><div id="street" class="pan"><b id="stName">Atlas Av</b><span id="stHead">N 0°</span></div></div>
   <div id="clockBox" class="pan"><small id="district">霓虹區</small><div id="clockRow"><span id="weather"><svg viewBox="0 0 10 12"><path d="M5 1C3.5 4 2 5.6 2 7.6a3 3 0 0 0 6 0C8 5.6 6.5 4 5 1z" fill="#a9a49a"/></svg><span id="wxText">小雨</span></span><b id="clock">02:14</b></div></div>
-  <div id="tools"><b id="cash" aria-label="現金">$180,000</b><button id="bPhone" aria-label="手機（P）"><svg viewBox="0 0 16 16"><rect x="4.2" y="1.6" width="7.6" height="12.8" rx="1.8"/><path d="M7.1 12h1.8"/></svg></button><button id="bMap" aria-label="全區地圖"><svg viewBox="0 0 16 16"><path d="M1.8 3.6 5.6 2l4.8 1.8L14.2 2.4v10L10.4 14l-4.8-1.8-3.8 1.6z"/><path d="M5.6 2v10.2M10.4 3.8V14"/></svg></button><button id="bHelp" aria-label="操作說明"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4M8 11.6v.1"/></svg></button><button id="bMute" aria-label="靜音"><svg viewBox="0 0 16 16"><path d="M2.5 6h2.6L8.6 3v10L5.1 10H2.5z"/><path id="muteWave" d="M11 5.4a3.6 3.6 0 0 1 0 5.2M12.8 3.6a6.2 6.2 0 0 1 0 8.8"/></svg></button></div>
+  <div id="tools"><b id="cash" aria-label="現金">$180,000</b><button id="bPhone" aria-label="手機（P）"><svg viewBox="0 0 16 16"><rect x="4.2" y="1.6" width="7.6" height="12.8" rx="1.8"/><path d="M7.1 12h1.8"/></svg></button><button id="bMap" aria-label="全區地圖"><svg viewBox="0 0 16 16"><path d="M1.8 3.6 5.6 2l4.8 1.8L14.2 2.4v10L10.4 14l-4.8-1.8-3.8 1.6z"/><path d="M5.6 2v10.2M10.4 3.8V14"/></svg></button><button id="bMenu" aria-label="暫停與設定（Esc）"><svg viewBox="0 0 16 16"><path d="M2.4 4.4h11.2M2.4 8h11.2M2.4 11.6h11.2"/><circle cx="5.4" cy="4.4" r="1.5" fill="#0c0e12"/><circle cx="10.6" cy="8" r="1.5" fill="#0c0e12"/><circle cx="7" cy="11.6" r="1.5" fill="#0c0e12"/></svg></button><button id="bHelp" aria-label="操作說明"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4M8 11.6v.1"/></svg></button><button id="bMute" aria-label="靜音"><svg viewBox="0 0 16 16"><path d="M2.5 6h2.6L8.6 3v10L5.1 10H2.5z"/><path id="muteWave" d="M11 5.4a3.6 3.6 0 0 1 0 5.2M12.8 3.6a6.2 6.2 0 0 1 0 8.8"/></svg></button></div>
   <div id="help"><dl>
     <dt>WASD</dt><dd>移動／油門與轉向</dd>
     <dt>滑鼠</dt><dd>環顧（點畫面鎖定游標）</dd>
@@ -389,6 +482,7 @@ body.touch #capture{display:none}
     <dt>G</dt><dd>跳舞；丟出黏彈後：引爆</dd>
     <dt>C</dt><dd>切換鏡頭距離</dd>
     <dt>M</dt><dd>全區地圖與傳送</dd>
+    <dt>Esc</dt><dd>暫停與設定：靈敏度、按鍵綁定、音量、畫質</dd>
     <dt>1–6</dt><dd>夜店門口／夜店裡／酒吧／改裝廠／車行／車庫</dd>
   </dl></div>
   <div id="mapBox" class="pan"><canvas id="mini" width="240" height="240"></canvas></div>
@@ -406,18 +500,24 @@ body.touch #capture{display:none}
   <div id="xhair" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
   <div id="weap" class="pan" aria-label="武器"><small id="wName">手槍</small><b id="wAmmo">12 <small>/ 240</small></b><i id="wReload"><span></span></i></div>
   <div id="dl" class="pan" role="progressbar" aria-label="下載實車模型" aria-valuemin="0" aria-valuemax="100"><span>下載實車模型</span><b id="dlPct">0%</b><i></i></div>
-  <div id="capture">點畫面鎖定游標，Esc 釋放</div>
+  <div id="capture">點畫面鎖定游標 · Esc 暫停與設定</div>
   <div id="cine" aria-live="polite"><p id="cineSub"></p><small id="cineSkip">E · 空白鍵 略過</small></div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
 <div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="KeyZ">蹲下</button><button data-k="Fire">開火</button></div></div>
 <section id="phone" aria-label="NeonPhone 手機" aria-hidden="true"><div id="phBar"><span id="phT">02:14</span><b id="phCash">$0</b></div><div id="phScr"></div></section>
 <div id="map" role="dialog" aria-label="全區地圖"><canvas id="bigmap" aria-label="城市地圖：拖曳平移、滾輪縮放、點圖示看資訊、點道路設定導航點"></canvas><div id="mapCard"></div><div id="mapLegend"></div><div id="mapScale"><i id="mapBar"></i><span><b>0</b><b id="mapScaleT">200 m</b></span></div><div id="mapLoc"></div><div id="mapKeys"><span>縮放<kbd>滾輪</kbd><kbd>＋</kbd><kbd>－</kbd></span><span>平移<kbd>拖曳</kbd><kbd>WASD</kbd></span><span>選擇地點<kbd>↑</kbd><kbd>↓</kbd></span><span>導航點<kbd>點道路</kbd><kbd>Enter</kbd></span><span>回到自己<kbd>C</kbd></span><span>返回<kbd>M</kbd></span></div><button id="mapX" aria-label="關閉地圖">×</button></div>
+<div id="menu" role="dialog" aria-modal="true" aria-label="暫停與設定" aria-hidden="true"><div id="mnIn">
+  <header id="mnHead"><h2>霓虹夜城</h2><div id="mnWho"><b id="mnName">Vance</b><span id="mnTime">02:14</span><span id="mnCash">$0</span></div></header>
+  <nav id="mnTabs" role="tablist" aria-label="分頁"></nav>
+  <div id="mnBody"><ol id="mnCats" aria-label="類別"></ol><section id="mnPane"><div id="mnStat" hidden><span id="mnStatT"></span><i></i></div><ol id="mnRows"></ol><p id="mnDesc" aria-live="polite"></p></section></div>
+  <footer id="mnKeys"><button data-k="Escape"><kbd>Esc</kbd>返回</button><button data-k="Enter"><kbd>Enter</kbd>選擇</button><span><kbd>← →</kbd>調整</span><span><kbd>Q</kbd><kbd>E</kbd>分頁</span></footer>
+</div></div>
 <div id="fade"></div>
 <div id="start"><div id="startIn">
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>
   <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。甩尾賺錢，再去 VELOCE MOTORS 挑一台夢想中的車。</p>
-  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火</div>
+  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火 · <b>Esc</b> 暫停與設定</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
   <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、直升機與戰車模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋與酒館的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。</small>

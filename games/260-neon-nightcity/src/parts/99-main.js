@@ -4,7 +4,7 @@ const CLUB_W = WP(CLUB_X, CLUB_Z), BAR_W = WP(BAR_X, BAR_Z);   // 音效的距�
 cityWorld();   // 10-city.js：生成都跑完了，碰撞表、光源表與錨點一次換成世界座標（05-zones.js 的區）
 const keys = {};
 const inp = { mx: 0, mz: 0, run: false, thr: 0, brk: 0, steer: 0, hb: false, nitro: false };
-const camState = { yaw: 0, pitch: .14, dist: 3.6, far: 0, idle: 9, snap: true, pos: V3(), shake: 0, fov: 62 };
+const camState = { yaw: 0, pitch: .14, dist: 3.6, far: SET.camFar, idle: 9, snap: true, pos: V3(), shake: 0, fov: 62 };
 const nitro = { v: 1, on: false };
 let started = false;
 const touch = { jx: 0, jz: 0, look: null };
@@ -31,11 +31,11 @@ function onKey(code) {
   if (heistKey(code)) return;   // 69-heist.js：G 引爆金庫門、關掉結算畫面
   if (mapKey(code)) return;     // 91-map.js：地圖開著時的選擇、縮放與導航點
   if (code === 'KeyM') { toggleMap(); return; }
-  if (code === 'Escape') { toggleMap(false); return; }
+  if (code === 'Escape') { if ($('map').classList.contains('on')) toggleMap(false); else menuOpen(); return; }   // 95-menu.js：暫停與設定選單
   if ($('map').classList.contains('on')) return;
   if (gtaKey(code)) return;
   if (code === 'KeyH') $('help').classList.toggle('on');
-  if (code === 'KeyC') camState.far = (camState.far + 1) % 3;
+  if (code === 'KeyC') { SET.camFar = camState.far = (camState.far + 1) % 3; setSave(); }   // 和 Esc 選單的「預設鏡頭距離」同一個值
   if (code === 'Digit1') teleport('club');
   if (code === 'Digit2') teleport('clubIn');
   if (code === 'Digit3') teleport('barIn');
@@ -45,7 +45,7 @@ function onKey(code) {
   if (fading) return;
   const ctx = contextAction();
   if (code === 'KeyF') {
-    if (player.mode === 'drive') { if (Math.hypot(player.veh.vx, player.veh.vz) < 4) exitVehicle(); else toast('先把車速降下來'); }
+    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) toast('先降落到地面'); else if (Math.hypot(player.veh.vx, player.veh.vz) < 4) exitVehicle(); else toast('先把車速降下來'); }   // 69-gunship.js：直升機在半空或屋頂上不能下
     else if (ctx && ctx.key === 'F') ctx.fn();
   }
   if (code === 'KeyE' && ctx && ctx.key === 'E') ctx.fn();
@@ -55,8 +55,8 @@ function onKey(code) {
 // V：把目前的座駕叫到最近的車道上並直接上車（停在車庫裡的也會開出來）
 function summonCar() {
   motors.stowed = false; kestrel.g.visible = true;
-  if (kestrel.dead) { kestrel.dead = 0; kestrel.burn = 0; kestrel.hp = 1000; toast(`${kestrel.name} 修好送過來了`); }
-  if (kestrel.flatBase) { kestrel.vmax = kestrel.flatBase.vmax; kestrel.grip = kestrel.flatBase.grip; kestrel.flatBase = null; kestrel.flat = 0; kestrel.hp = Math.max(kestrel.hp, 1000); }
+  if (kestrel.dead) toast(`${kestrel.name} 修好送過來了`);
+  if (kestrel.dead || kestrel.flat) wreckFix(kestrel);   // 68-wreck.js：耐久、車窗、引擎、輪胎
   const sp = rnLaneSpot(player.x, player.z, 8);   // 06-roads.js：最近那段路靠玩家這一側的車道
   kestrel.x = sp.x; kestrel.z = sp.z; kestrel.yaw = sp.yaw;
   kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.air = null; poseVehicle(kestrel);
@@ -78,11 +78,11 @@ addEventListener('mousemove', e => {
   else return;
   look(dx, dy);
 });
-function look(dx, dy) {
+function look(dx, dy, sens = SET.sens) {
   if (arm.wheel.open) { wheelMove(dx, dy); return; }   // 武器轉盤開著：滑鼠移動選格（69-combat.js）
   if (crew.wheel.open) { crewWheelMove(dx, dy); return; }   // 角色轉盤（69-crew.js）
-  const k = camera.fov / 62;   // 狙擊鏡放大時降低靈敏度
-  camState.yaw -= dx * .0024 * k; camState.pitch = clamp(camState.pitch + dy * .0022 * k, -.45, 1.15); camState.idle = 0;
+  const k = camera.fov / SET.fov * sens * (gta.aimK > .5 ? SET.aimSens : 1);   // 狙擊鏡放大時降低靈敏度；靈敏度與反轉 Y 軸在 Esc 選單
+  camState.yaw -= dx * .0024 * k; camState.pitch = clamp(camState.pitch + dy * .0022 * k * (SET.invY ? -1 : 1), -.45, 1.15); camState.idle = 0;
 }
 // 觸控：左邊搖桿、右半邊拖曳環顧、按鈕對應按鍵
 if (isTouch) {
@@ -94,7 +94,7 @@ if (isTouch) {
   const end = e => { if (e.pointerId !== jid) return; jid = null; touch.jx = touch.jz = 0; knob.style.transform = ''; };
   joy.addEventListener('pointerup', end); joy.addEventListener('pointercancel', end);
   cvs.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' && e.clientX > innerWidth * .4) { touch.look = { id: e.pointerId, x: e.clientX, y: e.clientY }; } });
-  cvs.addEventListener('pointermove', e => { const l = touch.look; if (l && l.id === e.pointerId) { look((e.clientX - l.x) * 1.6, (e.clientY - l.y) * 1.2); l.x = e.clientX; l.y = e.clientY; } });
+  cvs.addEventListener('pointermove', e => { const l = touch.look; if (l && l.id === e.pointerId) { look((e.clientX - l.x) * 1.6, (e.clientY - l.y) * 1.2, SET.touchSens); l.x = e.clientX; l.y = e.clientY; } });
   const lend = e => { if (touch.look && touch.look.id === e.pointerId) touch.look = null; };
   cvs.addEventListener('pointerup', lend); cvs.addEventListener('pointercancel', lend);
   document.querySelectorAll('#tbtn button').forEach(b => {
@@ -139,13 +139,13 @@ function updateCamera(dt, spd) {
   let tx, ty, tz, dist;
   if (inV) {
     const v = p.veh;
-    tx = v.x; ty = v.y + (v.isCar ? 1.15 : 1.3); tz = v.z;
-    dist = (v.isCar ? 6.2 + (v.len - 4.4) * .7 : v.boat ? 7.4 + (v.len - 6) * .6 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
-    if (camState.idle > 1.2) {
+    tx = v.x; ty = v.y + (v.fly ? 1.8 : v.isCar ? 1.15 : 1.3); tz = v.z;
+    dist = (v.fly ? 13 : v.isCar ? 6.2 + (v.len - 4.4) * .7 : v.boat ? 7.4 + (v.len - 6) * .6 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
+    if (SET.recenter && camState.idle > 1.2) {
       const vf = v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw);
       const want = vf < -1 ? v.yaw : v.yaw + clamp(v.yr * .18, -.3, .3);
       camState.yaw += wrapA(want - camState.yaw) * (1 - Math.exp(-3.2 * dt));
-      camState.pitch = damp(camState.pitch, .13, 2, dt);
+      camState.pitch = damp(camState.pitch, v.fly ? .24 : .13, 2, dt);
     }
   } else {
     tx = p.x; ty = p.swim ? SEA_Y + .75 : p.y + 1.55 - (p.crouchK || 0) * .5; tz = p.z;
@@ -177,11 +177,11 @@ function updateCamera(dt, spd) {
   if (camState.snap) camState.pos.set(wx, wy, wz);
   else { const k = 1 - Math.exp(-(inV ? 14 : 18) * dt); camState.pos.x += (wx - camState.pos.x) * k; camState.pos.y += (wy - camState.pos.y) * k; camState.pos.z += (wz - camState.pos.z) * k; }
   camera.position.copy(camState.pos);
-  if (camState.shake > 0) { camState.shake = Math.max(0, camState.shake - dt * 2.5); const s = camState.shake * .15; camera.position.x += (Math.random() - .5) * s; camera.position.y += (Math.random() - .5) * s; }
+  if (camState.shake > 0) { camState.shake = Math.max(0, camState.shake - dt * 2.5); const s = camState.shake * .15 * SET.shake; camera.position.x += (Math.random() - .5) * s; camera.position.y += (Math.random() - .5) * s; }
   _ct.set(tx, ty + (inV ? .2 : 0), tz);
   U.uFocus.value.set(tx, ty, tz, inV ? 0 : 1);
   camera.lookAt(_ct.x + rx * sx * .6, _ct.y, _ct.z + rz * sx * .6);
-  const fov = lerp(62 + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12, 13, arm.zoomK);
+  const fov = lerp(SET.fov + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12, 13, arm.zoomK);
   camState.fov = arm.zoomK > .02 ? fov : damp(camState.fov, fov, 4, dt);
   if (Math.abs(camera.fov - camState.fov) > .01) { camera.fov = camState.fov; camera.updateProjectionMatrix(); }
   if (camState.over) { const o = camState.over; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); }   // __nc.camAt：截圖用的固定相機
@@ -250,14 +250,14 @@ function step(dt) {
   } else if (player.where === 'club') updateClub(t, U.uBeat.value);
   if (player.mode === 'drive') {
     const v = player.veh;
-    nitro.on = inp.nitro && inp.thr > 0 && nitro.v > .02;
+    nitro.on = inp.nitro && inp.thr > 0 && nitro.v > .02 && !v.fly;   // 直升機的 Shift 是下降
     nitro.v = clamp(nitro.v + (nitro.on ? -.32 : .1) * dt, 0, 1);
     const vmax0 = v.vmax, eng0 = v.eng;
     if (nitro.on) { v.vmax *= 1.25; v.eng *= 1.6; }
     const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
     if (player.where === 'out') { v.grip *= 1 - .3 * wx.wet; v.brkK = 1 - .2 * wx.wet; }   // 濕路面（28-sky.js 的 wx.wet）：側向抓地少三成、煞車距離變長
-    const r = v.boat ? driveBoat(v, inp, dt) : v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 31-boats.js：船；69-stunt.js：跳台斜面與飛行
-    if (!v.air && !v.boat) stuntGround(v, r.vF);
+    const r = v.fly ? flyHeli(v, inp, dt) : v.boat ? driveBoat(v, inp, dt) : v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 31-boats.js：船；69-stunt.js：跳台斜面與飛行
+    if (!v.air && !v.boat && !v.fly) stuntGround(v, r.vF);
     v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1; v.brkK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
     gta.lastImp = r.imp;
@@ -308,6 +308,8 @@ function placeRider(v) {
 }
 function loop(now) {
   requestAnimationFrame(loop);
+  if (menu.on) { T0 += now - last; last = now; menuIdle(); return; }   // 95-menu.js：暫停時世界停住（uTime 也不走），只在改了畫面設定時重畫
+  if (SET.fps && now - last < 1000 / SET.fps - 2) return;   // 幀率上限
   const raw = Math.min(.05, (now - last) / 1000); last = now;
   // 子彈時間（武器轉盤、WASTED／BUSTED）：遊戲時間放慢，uTime 也跟著慢（T0 往後推）
   slowmo.raw = raw;
@@ -350,6 +352,8 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
+  // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
+  menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), t: () => U.uTime.value },
   ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),

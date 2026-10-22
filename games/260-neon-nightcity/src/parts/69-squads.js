@@ -24,6 +24,7 @@ function fLook(f) { fighters.look(f.k, fLookOf(f)); }
 function fLookOf(f) {
   const k = f.k, r = rng(400 + k * 7);
   if (f.team === 'crew') return { r: rng(31 + f.ci), ...CREW[f.ci].look };
+  if (f.esc) return { r, female: false, top: lin(0x16181c), bot: lin(0x101114), skin: SKINS[(k + 3) % SKINS.length], hair: HAIRS[k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[2], scale: 1.04 };   // 69-heist2.js 的押車特警（一身黑）
   if (f.team === 'thief') return { r, female: false, top: lin(0x3a3f4a), bot: lin(0x22252b), skin: SKINS[(k + 1) % SKINS.length], hair: HAIRS[k % 3], coat: 0, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0], scale: .97 };
   if (f.team === 'merc') return { r, female: false, top: lin(0x3a3e34), bot: lin(0x262822), skin: SKINS[(k + 2) % SKINS.length], hair: HAIRS[k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[2], scale: 1.04 };
   return { r, female: false, top: lin(k % 3 ? 0x5a1418 : 0x2a1012), bot: lin(0x17181c), skin: SKINS[k % SKINS.length], hair: HAIRS[(k + 1) % 3], coat: k % 2, skirt: 0, longHair: 0, hat: k % 2, glow: lin(0xff3a2a), glowI: 1.2, shoe: SHOES[k % 2], scale: .98 + (k % 3) * .03 };
@@ -49,7 +50,7 @@ function fSpawn(team, x, z, yaw, o = {}) {
   const f = SQ.f.find(q => !q.on);
   if (!f) return null;
   const r = collideCircle(x, z, .32, false);
-  Object.assign(f, { on: true, team, x: r.x, z: r.z, yaw, hp: TEAM[team].hp, gun: o.gun || 'pistol', shotT: .6 + Math.random(), burst: 0, ph: Math.random() * 9, state: o.state || 'act', downT: 0, stunT: 0, car: o.car || null, ci: o.ci ?? -1, slot: o.slot ?? 0, tgt: null, tgtT: 0, goal: o.goal || null, rt: null, def: false, calm: false, lurk: false, grp: null, onDown: null });
+  Object.assign(f, { on: true, team, x: r.x, z: r.z, yaw, hp: TEAM[team].hp, gun: o.gun || 'pistol', shotT: .6 + Math.random(), burst: 0, ph: Math.random() * 9, state: o.state || 'act', downT: 0, stunT: 0, car: o.car || null, ci: o.ci ?? -1, slot: o.slot ?? 0, tgt: null, tgtT: 0, goal: o.goal || null, rt: null, def: false, calm: false, lurk: false, grp: null, onDown: null, esc: !!o.esc });
   fLook(f);
   return f;
 }
@@ -94,7 +95,7 @@ function squadAlly(x, z, dMax) {
 // 警察眼中的另一個敵人：離得近、正在開打（不是站著聊天）的赤蠍幫
 function squadGang(x, z, dMax) {
   let best = null, bd = dMax;
-  for (const f of SQ.f) if (fUp(f) && f.team === 'gang' && !f.calm) { const d = Math.hypot(f.x - x, f.z - z); if (d < bd && losClear(x, z, f.x, f.z)) { bd = d; best = f; } }
+  for (const f of SQ.f) if (fUp(f) && f.team === 'gang' && !f.calm && !f.esc) { const d = Math.hypot(f.x - x, f.z - z); if (d < bd && losClear(x, z, f.x, f.z)) { bd = d; best = f; } }
   return best;
 }
 // 赤蠍幫在你附近開槍（追殺）：有人目擊就報警，警察趕到後連你一起追
@@ -107,7 +108,7 @@ function pickTarget(f) {
   if (f.team === 'gang') {
     if (!life.dead && player.where === 'out') tryT('player', null, pX(), pZ());
     for (const o of SQ.f) if (fUp(o) && fAlly(o)) tryT('f', o, o.x, o.z);
-    if (W.stars) { bd *= .8; for (const c of W.cops) if (c.on && c.state !== 'down' && !(c.stunT > 0)) tryT('cop', c, c.x, c.z); }   // 警察要比玩家近兩成才換目標
+    if (W.stars && !f.esc) { bd *= .8; for (const c of W.cops) if (c.on && c.state !== 'down' && !(c.stunT > 0)) tryT('cop', c, c.x, c.z); }   // 警察要比玩家近兩成才換目標
   } else {
     for (const o of SQ.f) if (o.on && !fAlly(o) && o.team !== 'thief') { if (o.state === 'act') tryT('f', o, o.x, o.z); else if (o.state === 'car' && o.car && !o.car.v.dead) tryT('veh', o.car.v, o.car.v.x, o.car.v.z); }
     if (W.stars) for (const c of W.cops) if (c.on && c.state !== 'down') tryT('cop', c, c.x, c.z);

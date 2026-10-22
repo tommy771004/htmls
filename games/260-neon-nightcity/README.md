@@ -41,9 +41,9 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | 按鍵 | 開車 | 走路 |
 | :-- | :-- | :-- |
 | W A S D／方向鍵 | 油門、煞車倒車、轉向；飛離跳台後左右是翻滾、油門／煞車是前後空翻 | 移動 |
-| Shift | 氮氣 | 跑步 |
-| Space | 手煞車甩尾 | |
-| F | 停穩後下車；開船時下船（近岸就上岸） | 靠近車輛或遊艇時上車上船 |
+| Shift | 氮氣；開直升機時下降 | 跑步 |
+| Space | 手煞車甩尾；開直升機時爬升 | |
+| F | 停穩後下車；開船時下船（近岸就上岸）；直升機要降落到地面才能下 | 靠近車輛或遊艇時上車上船、5 m 內登上直升機 |
 | E | 停在 CHROME WORKS 門口時換塗裝、停在 GARAGE 07 門口時停進車庫 | 對話、進出場館、點酒、看車、開車出庫；搶劫的計畫板、銀行門口、金庫鑽機、上逃亡車；安全屋門口看房或進入、沙發睡覺 |
 | G | 引爆黏性炸彈 | 跳舞（舞池上跳滿 5 秒完成任務）、引爆黏性炸彈、搶劫時引爆金庫門 |
 | V | | 把目前的座駕叫到最近的車道（停在車庫裡也會開出來） |
@@ -52,7 +52,8 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | X／Caps Lock | 特殊能力：Kael 反射駕駛、Jax 狂暴 | 特殊能力：Vance 子彈時間、Jax 狂暴 |
 | P | 手機 | 同左 |
 | C | 切換相機遠近 | 同左 |
-| M／Esc | 大地圖：滾輪或＋／－縮放、拖曳或 WASD 平移、↑↓ 選地點、Enter 設導航點、T 傳送、C 回到自己 | 同左（雙指縮放、點圖例跳到該類地點） |
+| M | 大地圖：滾輪或＋／－縮放、拖曳或 WASD 平移、↑↓ 選地點、Enter 設導航點、T 傳送、C 回到自己，Esc 關閉 | 同左（雙指縮放、點圖例跳到該類地點） |
+| Esc | 暫停與設定選單（游標鎖定時按 Esc 先解除鎖定，同時打開選單）；右上角的滑桿按鈕也能開 | 同左 |
 | 1–6 | 傳送：LAZARUS 門口、舞池、AFTERGLOW、CHROME WORKS、VELOCE MOTORS、GARAGE 07 | 同左 |
 | 滑鼠 | 點畫面鎖定游標環顧，沒鎖定時拖曳 | 同左 |
 
@@ -75,11 +76,14 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
 | `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質（建築組另有窗戶編號貼圖 `USE_WINMAP`）、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
 | `68-gta.js` | GTA 式擴充第一階段：搶車／撬車（`detachCar` 把車流車變成獨立載具）、準星射線（`castRay`，`rayHooks` 讓 69 加入警察與直升機）、車損（白煙 → 黑煙 → 起火 → 爆炸、燒毀殘骸，撞擊扣血 ΔHP = max(0, (J/M − 3.5)·18)）、路人倒地與逃跑、被拖下車的駕駛（`extras`）、火焰煙霧粒子與閃光燈 |
+| `68-wreck.js` | `neon_nightcity_gta_v_2.md` 的車損補完：損壞階段（70% 碎窗、40% 動力 ×0.75 並偶爾熄火、15% 起火每秒 −25、AI 下車逃跑；`hpLockOf` 第一次受損時鎖定耐久上限）、單顆輪胎（每顆 50 HP，`tireShot`／`tireApply`：極速、抓地、往破胎側偏與車身傾斜）、撞人（傷害 1.8·v²、擊飛 1.15·v 與往上 min(12, .45v) 的拋物線、`wreckUpdate`）、`wreckFix` |
 | `69-combat.js` | 第二階段戰鬥：武器表 `ARMS`（近戰 4、槍 7、投擲 2）、武器模型（`arms.glb`，握把 `grip`／槍口 `muzzle` 是模型座標，`holdAt` 擺到右手骨）、武器轉盤與子彈時間（`slowmo`）、射擊與換彈、火箭／手榴彈／黏性炸彈（`launch`／`stepProj`／`blast`）、生命與護甲、WASTED／BUSTED 與醫院／警察局重生、路人反應（投降、蹲下、還手、持槍路人開槍）、NPC 的槍、載具互撞 |
 | `69-crew.js` | 第三階段三主角：`CREW`（Vance／Kael／Jax 的生命、護甲、家門口、外觀）、能力條充能事件（`spEvent`）與特殊能力（倍率寫進 69-combat 的 `abil`）、角色轉盤、高空切換鏡頭（`crewSwitch`／`crewCam`，`crewApply` 直接換人）、CHROME WORKS 噴漆消星（`resprayCtx`） |
 | `69-events.js` | 第四階段隨機事件：鐵庫保全運鈔車（`truckSpawn` 從看不到的路口沿 `routeTo` 開、靠右偏一條車道；`evBlast` 後車門 4 m 內爆炸就打開、掉三袋現金），小地圖閃藍點；藍點事件的排程（`ev.t` 到了就問 69-street 的 `evPick`），`truckDrive` 的 `spd`／`flee` 也給逃犯車用 |
 | `69-gps.js` | 第三階段 GPS：大地圖點選導航點、沿路網算路線（`routeTo`，用 69-police 的 `fieldTo`），小地圖與大地圖畫紫色導航線、黃色任務線 |
+| `69-gunship.js` | 武裝直升機（`fly: true` 的載具，99-main 開的時候換成 `flyHeli`）：旋翼轉速、爬升下降、前傾加速、用 22-hmap 的 `HM` 高度圖撞樓與降落在屋頂、左右火箭莢（`gunshipFire`，16 發、4 秒裝填）；灰鷺河濱的停機坪 `HELIPAD` 與登機提示。模型是 `traffic.glb` 的 AH-64（`gunship`、`gunship_rotor`、`gunship_tail`），沒有時退回警用直升機機身加程式建模的火箭莢 |
 | `69-heist.js` | 第四階段搶劫《中央霓虹銀行》：流程狀態 `heist.st`（plan → setup → go → lobby → c4 → drill → escape → drive）、銀行大廳與金庫（`VENUES.bank`、人質與威懾條）、街上的銀行門面、三主角在各階段之間換人（`heistFade` 等轉場結束才換）、人質逃跑與警衛拔槍（`hostSt`／`hostStep`，大廳裡的 Jax 與 Kael 是 `bankCrew`）、強攻守門時衝出正門的人質（`runSt`／`holdStep`）、逃亡的戰車埋伏（`heistAmbush`）與鐵灣高架斷橋的模型（位置在 06 的 `BROKEN`，飛越在 69-stunt、`brokenLanded` 降星）、終點貨櫃安全屋 `YARD`、任務框計時條與 HEIST PASSED 結算 |
+| `69-heist2.js` | 搶劫補完：強攻的前置 B（`setupB`：Jax 埋伏 NCPD 移防車隊、`f.esc` 押車特警、CHROME WORKS 改裝 `enfRefit`）、金庫電子鎖破譯 `HACK`（三組波形、20 秒，`hackKey` 排在 `heistKey` 最前面）、依路線的逃亡載具 `getawayCar`（強攻：防彈輪胎 `bpTires`、偽裝 `disguise` 的裝甲車＋停機坪直升機，`heist.air`） |
 | `69-market.js` | 第四階段經濟：霓虹證交所六檔股票 `STOCKS`（三組死對頭、`stockShock` 破壞 A 讓 A 跌 B 漲、每分鐘回歸基準價）、電訊箱的生命與連鎖爆炸、天際置業三處資產 `ESTATES`（每遊戲小時存進保險箱）、離線補算（`marketOffline`：依存檔的 `ts` 補上關掉遊戲那段時間的股價與資產收入，最多一天）；寫進存檔的 `stk`、`props`（第 4 版多了停業時間 `props.pause` 與 `ts`）；霓虹新聞台 `news`／`newsAdd`，離線期間補一到四則（`newsOffline`，有的帶股價變動，不進存檔） |
 | `69-phone.js` | 第三階段 NeonPhone：清單式手機（聯絡人服務、暗網軍火、快速存檔）、空投彈藥箱、雷達隱形；霓虹證交所與天際置業的畫面；快速存檔寫進 `nc260.motors` 的 `game` 欄位（含座駕 `veh` 與所在的安全屋 `where`），鐵幕保全可以叫傭兵小隊；霓虹新聞台頁面（最新 10 則） |
 | `69-police.js` | 第二階段通緝：犯罪熱度與星級、目擊報警、視線錐與脫離視線消星（`coverClear` 看樹與貨車擋住、直升機 `heliSees` 看樹冠與屋頂）、路網追捕（Dijkstra 場）、警車／SWAT 裝甲車／戰車、下車的警察與 SWAT、直升機與探照燈（看前方 3 秒的屋頂爬升，低於屋頂就撞毀）、路障與釘刺帶、掉落彈藥、警笛與旋翼聲、星級 HUD、小地圖上的視線錐；`coverClear` 另外看碰撞盒（矮牆只擋蹲著的人）、柱子與電話亭，直升機前方屋頂太高就往左右挑低的方向轉；`spawnHeli(true)` 是生存模式的幫派直升機（沒有探照燈、不報警）；甩掉 4 星以上發新聞 |
@@ -89,6 +93,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `69-street.js` | 第五階段街頭事件（和運鈔車共用排程，一次一件 `ev.cur`）：搶包賊（`thiefStep` 沿 `fNav` 往遠離你的路口跑、倒下掉包 → 還給失主或自己留著）、赤蠍幫交易（路邊廂型車與四個 `calm` 的人、車尾的箱子）、懸賞逃犯車（`truckDrive` 的 `flee`、打到三成熄火後逮捕或炸毀領懸賞，`evBountyNear` 讓附近的槍聲不算罪）；`wakeGroup(g)` 叫醒整群人 |
 | `69-stunt.js` | 第四階段特技跳台：斜面高度與俯仰（`stuntGround`）、衝出邊緣後的拋物線飛行（`stuntFly` 代替 `driveVehicle`）、飛行中翻滾與空翻（`v.air` 的 `rr`／`pr`／`rolls`／`flips`）、0.4 倍慢動作與側面固定機位、落地判定（歪太多失敗、翻過頭翻車）與獎金（每座第一次加倍、每轉一圈多五成，完成的跳台寫進存檔的 `stunts`） |
 | `69-survival.js` | 第五階段生存模式：三座擂台 `SURVS`（鐵灣夜戰、灰石圍城、光環死鬥），路口的橘色霓虹圈按 E 開始，一波比一波多的赤蠍幫（`survGuns` 依波數換槍、生命每波 +10%），第 3 波起有開車來放人的座車（69-squads 的 `c.go`），第 5 波起的單數波有幫派直升機（69-police 的 `spawnHeli(true)`）；清一波給 $400 × n × 擂台倍率、補生命護甲、每兩波丟彈藥；走出擂台或倒下結算，最佳波數寫進 `motors.side.surv`（鐵灣）與 `svb`；`noCrime` 讓擂台裡的槍聲不報警 |
+| `69-tactics.js` | 警察戰術：2 星以上的 PIT 擦撞（`pitAim`／`pitStep`）、催淚瓦斯（`gasCloud`，4 星警員往躲著不動的玩家丟、玩家丟的會嗆暈警察與敵人，`#gasFx` 畫面泛灰綠）、4 星的垂降直升機（`spawnRap`，四名特警沿繩滑下、可打下來）、榴彈發射器的拋射（`lobShot`）；每幀也跑 69-gunship 的 `gunshipStep` |
 | `69-tale.js` | 第五階段支線委託 `TALES`：紅磚巷的老鐘錶匠奧斯卡、中城的街頭畫家米卡（自己的 `crowd(2)`），各四段 `fight`／`deliver`／`collect`／`tail`（跟蹤目標車）；進度寫進 `motors.side.tale`。過場 `cine`：聽委託的兩人側拍（`cineTalk`）、完成時的電話字幕（`cineCall`），`taleLate` 在 68 的 `gtaLate` 裡覆寫鏡頭、`talePre` 鎖輸入、`taleKey` 吃按鍵 |
 | `69-turf.js` | 第五階段幫派地盤 `TURFS`（楓林里、琥珀工業區、灰石國宅、錨灣港）：所在地盤 `turfHere` 影響街頭（赤蠍幫的地盤路人少、`turfLurk` 盯梢的；`pedTurfShare` 給 40 的行人、`turfMine` 給 69-street 的事件挑選）；路口人行道的據點（`turfAt`）走近才生成 `calm` 的五個人，開戰後三波、搶下寫進 `motors.side.turf`；保護費每 3 分鐘、之後不定時反攻（`turfStart(T, true)` 150 秒內趕回去打退兩波）；大地圖依 `DISTRICTS` 每個街區各自 `rectW` 塗色 |
 | `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車；海岸的 `COAST_MODELS`（灰鷗島的 `isle_ruin`／`isle_office`、遠景的 `far_london`／`far_golu`／`far_s7`，擺好就把 `ISLE_PROXY` 的替身 `removeFromParent()`：`distCull` 每幀都會重設 `visible`，只藏起來會被打開） |
@@ -149,7 +154,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 
 ## 測試 API
 
-`window.__nc`：`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`、`probe()` 回傳每座跳台助跑道與落地區被擋住的距離）、`squad`（`SQ`、`fighters`、`chase(why)`、`merc()` 免費叫傭兵、`defend(id)`、`win()`／`lose()`、`spawn(team, x, z, gun)`、`count(team)`、`clear()`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門、`street('thief'|'deal'|'bounty')` 生一件街頭事件、`end()` 收掉、`down()` 直接打倒搶包賊）、`market`（`STOCKS`、`ESTATES`、`offline(ms)` 假裝離開了 ms 毫秒、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`、`news`、`newsAdd(h, b)`、`newsOffline(min)`）、`heist`（`heist` 狀態、`hostSt`（人質）、`run(k, kael)` 讓人質 k 逃跑、`runSt`（守門時衝出去的人質）、`hold(dt)`、`BANK`／`PLAN`／`SAFE`／`YARD`（貨櫃安全屋）／`BROKEN`／`BRIDGE_IN`（斷橋與入口）／`VAN_AT`／`CAR_AT`、`ambush()` 立刻埋伏、`mark()` 目前的任務標記、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；第五階段：`side`（`side.act`、`busy()`、`end()`、`room(n)` 騰出戰鬥員池、`bodies()` 留在畫面裡的身體數）、`race`（`RACES`、`geo(id)`、`start(id)`、`act()`、`skip()` 把車放到下一個檢查點）、`turf`（`TURFS`、`turf`、`at(id)`、`owned()`、`start(id, def)`、`act()`、`wipe()` 打倒場上這一波、`here()` 目前所在的地盤、`lurk()` 立刻生一群盯梢的、`lurkG()`、`share()` 路人密度倍率）、`surv`（`SURV`／`SURVS`、`at(id)` 的 `c` 是場地中心、`s` 是起點、`start(id)`、`act()`、`wave(n)` 跳到第 n 波、`wipe()`）、`tale`（`TALES`、`at(id)`、`stage(id)`、`start(id, n)`、`act()`、`skip()`、`probe()` 撿東西的位置會不會被碰撞推開、`cine()` 目前的過場（`talk`／`call`）、`next()` 下一句字幕）；安全屋：`apt`（`APT` 七間安全屋與兩間店的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺、`out(id)` 出門站的位置）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`cover(ax, az, bx, bz)` 兩點間有沒有掩蔽、`booth()` 一座電話亭的位置、`unit(kind, at)`、`heli(gang)`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置、`w1` 第四輪地標的擺放清單，`at` 是算好的世界座標）、`start()`、`tp(x, z, yaw)`（世界座標）、`tpL(x, z, yaw)`（邏輯座標，換到所在的區）、`W(x, z)`／`L(x, z)`（邏輯↔世界）、`Ws(x, z, yaw)`（邏輯的位置與朝向換成世界的 `{x, z, yaw}`）、`zones`、`roads`（路網 `RN`）、`capes`（岬角）、`camAt(px, py, pz, tx, ty, tz)` 截圖用的固定相機（世界座標，`camAt()` 還原）、`sea.sites`／`sea.foot(id)`（灰鷗島基地與量出來的佔地矩形）、`sea.walks`／`sea.ferry`（對岸步道與渡口，邏輯座標）、`park`（北嶺公園，邏輯座標：`walk` 圍籬範圍、`trail` 步道點、`look` 觀景台平台與高度、`cabin` 管理站、`gx`／`gw` 門的中線與半寬、`h(x, z)` 坡面高度、`district(X, Z)` 世界座標的地名）、`boat`（`boats`、`list()`、`board(i)`、`place(i, x, z, yaw)`、`reset(i)`、`harbor`、`SHIP_T`、`shipAt(T)` 把貨櫃船跳到這一輪第 T 秒並回傳狀態、`trucks()`、`wake()` 航跡數、`ladders()` 梯子的上下位置）、`seam`（`path` 接縫步道、`sites` 小建築）、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14'|'lr'|'pub'|'store')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`（依雨量換天氣）、`flash()`（下一幀打雷）、`weather(id, snap)`（`clear`／`cloudy`／`overcast`／`drizzle`／`rain`／`storm`／`fog`，`snap` 為 false 時慢慢轉變）、`time(min)`（設定或讀取一天中的分鐘）、`wx`（天氣狀態：`cur`、`rain`、`cloud`、`fog`、`wet`、`bolts`）、`atm`（曝光、泛光、`day`、`lamp`、`sunK`）、`map`（大地圖：`MV` 視角、`blips()`、`select(i)`、`key(code)`、`zoom(f)`、`click(x, y)`）、`livery()`、`getStats()`。
+`window.__nc`：`menu`（Esc 選單：`st` 狀態、`SET` 設定值、`open(tab)`／`close()`、`set(k, v)`、`key(code)`、`rt()` 渲染目標大小與 MSAA、`t()` 著色器時間）、`gta`（`state`、`weapon(w)`、`fire()`、`punch()`、`reload()`、`aim(on)`、`jack(parkedOnly)`、`damage(v, n)`、`hitCar(c, n)`、`explode(v)`、`knockPed(k)`、`castRay()`、`parts`／`fxLights`／`jacked`／`extras`；第二階段：`arm`（目前武器與彈藥）、`life`、`ARMS`、`slowmo`、`fill()` 補滿彈藥生命護甲、`god.on`、`hurt(n)`、`die(kind)`、`respawn()`、`hosp`／`pd`（重生點）、`blast(x, y, z, r, dmg)`、`launch(...)`、`wheelOpen()`／`wheelMove(x, y)`／`wheelClose(apply)`、`held()`（手上武器與右手骨的世界座標）、`pedEnter(k, state)`、`stunPed(k, t, fx, fz)`／`stunCop(c, t)`、`canDriveBy(id)`；第三階段：`crew`（`crew` 狀態、`sw(i)` 切換、`sp(n)`、`on()`／`off()` 特殊能力、`wheelOpen()`／`wheelMove()`／`wheelClose()`、`event(kind)`、`respray()`／`resprayCtx()`）、`gps`（`gps`、`set(x, z)`、`clear()`、`route(px, pz, tx, tz)`）、`phone`（`phone` 狀態、`open()`／`close()`、`pick(i)`、`back()`、`key(code)`、`save()`／`load()`）；第四階段：`stunt`（`stunt` 狀態、`RAMPS`、`rampAt(x, z)`、`reset(v)`、`probe()` 回傳每座跳台助跑道與落地區被擋住的距離）、`squad`（`SQ`、`fighters`、`chase(why)`、`merc()` 免費叫傭兵、`defend(id)`、`win()`／`lose()`、`spawn(team, x, z, gun)`、`count(team)`、`clear()`）、`ev`（`ev` 狀態、`spawn(why)` 叫運鈔車、`open()` 炸開後車門、`street('thief'|'deal'|'bounty')` 生一件街頭事件、`end()` 收掉、`down()` 直接打倒搶包賊）、`market`（`STOCKS`、`ESTATES`、`offline(ms)` 假裝離開了 ms 毫秒、`shock(id)`、`tick()`、`buy(id, amt)`、`sell(id)`、`estBuy(id)`、`estCollect(id)`、`boxHp`、`boxHit(k, dmg, mine)`、`news`、`newsAdd(h, b)`、`newsOffline(min)`）、`heist`（`heist` 狀態、`hostSt`（人質）、`run(k, kael)` 讓人質 k 逃跑、`runSt`（守門時衝出去的人質）、`hold(dt)`、`BANK`／`PLAN`／`SAFE`／`YARD`（貨櫃安全屋）／`BROKEN`／`BRIDGE_IN`（斷橋與入口）／`VAN_AT`／`CAR_AT`、`ambush()` 立刻埋伏、`mark()` 目前的任務標記、`go('smart'|'loud')`、`stage(st, t)`、`enter()`、`blow()`、`drill()`、`escape()`、`getaway()`、`pass()`）；第五階段：`side`（`side.act`、`busy()`、`end()`、`room(n)` 騰出戰鬥員池、`bodies()` 留在畫面裡的身體數）、`race`（`RACES`、`geo(id)`、`start(id)`、`act()`、`skip()` 把車放到下一個檢查點）、`turf`（`TURFS`、`turf`、`at(id)`、`owned()`、`start(id, def)`、`act()`、`wipe()` 打倒場上這一波、`here()` 目前所在的地盤、`lurk()` 立刻生一群盯梢的、`lurkG()`、`share()` 路人密度倍率）、`surv`（`SURV`／`SURVS`、`at(id)` 的 `c` 是場地中心、`s` 是起點、`start(id)`、`act()`、`wave(n)` 跳到第 n 波、`wipe()`）、`tale`（`TALES`、`at(id)`、`stage(id)`、`start(id, n)`、`act()`、`skip()`、`probe()` 撿東西的位置會不會被碰撞推開、`cine()` 目前的過場（`talk`／`call`）、`next()` 下一句字幕）；安全屋：`apt`（`APT` 七間安全屋與兩間店的門、出口、沙發、碰撞與 `fb` 程式建模房間、`load(id)` 先下載室內、`enter(id)`、`nap()` 在室內睡覺、`out(id)` 出門站的位置）；`wanted`：`W`（星級、熱度、單位、直升機、路障）、`set(stars)`、`crime(kind, x, z)`、`addHeat(n)`、`clear()`、`sees()`、`cover(ax, az, bx, bz)` 兩點間有沒有掩蔽、`booth()` 一座電話亭的位置、`unit(kind, at)`、`heli(gang)`、`roadblock()`）、`parked`、`props`（`bld` 擺放清單、`ramen` 拉麵攤位置、`w1` 第四輪地標的擺放清單，`at` 是算好的世界座標）、`start()`、`tp(x, z, yaw)`（世界座標）、`tpL(x, z, yaw)`（邏輯座標，換到所在的區）、`W(x, z)`／`L(x, z)`（邏輯↔世界）、`Ws(x, z, yaw)`（邏輯的位置與朝向換成世界的 `{x, z, yaw}`）、`zones`、`roads`（路網 `RN`）、`capes`（岬角）、`camAt(px, py, pz, tx, ty, tz)` 截圖用的固定相機（世界座標，`camAt()` 還原）、`sea.sites`／`sea.foot(id)`（灰鷗島基地與量出來的佔地矩形）、`sea.walks`／`sea.ferry`（對岸步道與渡口，邏輯座標）、`park`（北嶺公園，邏輯座標：`walk` 圍籬範圍、`trail` 步道點、`look` 觀景台平台與高度、`cabin` 管理站、`gx`／`gw` 門的中線與半寬、`h(x, z)` 坡面高度、`district(X, Z)` 世界座標的地名）、`boat`（`boats`、`list()`、`board(i)`、`place(i, x, z, yaw)`、`reset(i)`、`harbor`、`SHIP_T`、`shipAt(T)` 把貨櫃船跳到這一輪第 T 秒並回傳狀態、`trucks()`、`wake()` 航跡數、`ladders()` 梯子的上下位置）、`seam`（`path` 接縫步道、`sites` 小建築）、`drive('kestrel'|'hanzo')`、`walk()`、`enter('club'|'bar'|'show'|'home'|'bank'|'loft'|'villa'|'office'|'mini'|'l16'|'i14'|'lr'|'pub'|'store')`（`tp` 會先回到戶外，室內要擺位置直接改 `player.x`／`z`）、`exit()`、`look(yaw, pitch, far)`（`far` 是相機遠近檔位 0–2）、`setQuest(n)`、`talk.marlo()`／`talk.juno()`、`pick(n)`（選對話選項）、`ctx()`（目前的互動提示）、`act()`（直接執行目前的互動提示）、`spots`（Marlo、場館門口、Juno、舞池、改裝廠、車行與車庫門口、交車位置、展示車的座標）、`rain(v)`（依雨量換天氣）、`flash()`（下一幀打雷）、`weather(id, snap)`（`clear`／`cloudy`／`overcast`／`drizzle`／`rain`／`storm`／`fog`，`snap` 為 false 時慢慢轉變）、`time(min)`（設定或讀取一天中的分鐘）、`wx`（天氣狀態：`cur`、`rain`、`cloud`、`fog`、`wet`、`bolts`）、`atm`（曝光、泛光、`day`、`lamp`、`sunK`）、`map`（大地圖：`MV` 視角、`blips()`、`select(i)`、`key(code)`、`zoom(f)`、`click(x, y)`）、`livery()`、`getStats()`。
 車行與車庫：`glb`（實車下載紀錄）、`loadGLB(id)`／`loadAllGLB()`、`me`（玩家，`me.mesh.visible` 截圖時可隱藏）、`peds`／`pedState`（行人）、`crowd(n)`／`ANIM`（另建一群人測動作）、`motors`（現金、擁有的車、塗裝、目前座駕、試駕狀態）、`cars`（車型目錄）、`applyCar(id, paint)`、`carInfo(id)`／`garageInfo(id)`（開看車與車庫對話）、`testDrive(id)`、`endTest()`、`garage()`（重排車庫）、`stow()`、`earn(n, why)`、`driftTick(dt, car, impact, kmh)`。
 
 ### GTA 式擴充（第三階段）
@@ -212,6 +217,20 @@ HANDOFF 先前列為未做的項目：
 - 街頭賽對手會閃前方的車流、路邊車、玩家與其他對手（往空的一側偏一條車道、太近就煞車）。懸賞逃犯車在你 90 m 內會不時逆向、轉彎拉手煞甩尾。
 - 地盤影響街頭：赤蠍幫的地盤路人少三成五，街角會站著兩三個盯梢的（有時旁邊停著座車），靠近 7 m 或拔槍就動手；搶下來的地盤沒有盯梢，也不會出現幫派交易。
 
+### GTA 式擴充（v2 規格補完）
+
+對照使用者的 `neon_nightcity_gta_v_2.md` 補上的部分（`node tools/check-gta-v2.mjs [html]` 驗收）：
+
+- 車輛級距（`25-cars.js` 的 `VCLASS`）：超跑 240、肌肉車 205、轎車 180、機車 225、重型 130、警車 215、坦克 75 km/h，質量、加速、抓地、轉向、手煞車與耐久照表；`vmaxFor` 讓終端速度剛好等於表上的數字。
+- 車損（`68-wreck.js`）：70% 碎窗、40% 動力打七五折並偶爾熄火、15% 起火每秒 −25（AI 下車逃跑），爆炸半徑 12 m。子彈打輪胎（每顆 50 HP）會爆胎：極速每顆 −15%、抓地下降、往破胎那側偏、車身下沉。開車撞人：傷害 1.8·v²，被撞飛的人沿拋物線飛出去、撞牆反彈、落地翻滾。
+- 警察戰術（`69-tactics.js`）：2 星起警車會瞄準你的車尾一角做 PIT；4 星起警員會往躲著不動的你丟催淚瓦斯（站在煙裡每秒 −6、畫面泛灰綠），並有直升機在 18–55 m 外的路口垂降四名特警（直升機可以打下來，繩上的人跟著摔）。路障擺在前方 70–200 m 內最接近 150 m 的路口。
+- 榴彈發射器（武器轉盤第 6 格，暗網軍火 $2,800）：拋物線、落地爆炸半徑 7 m；催淚瓦斯（第 7 格）丟出去嗆暈警察與敵人。
+- 強攻的前置 B：交完鑽機廂型車後換成 Jax，到 7 號大道的路口埋伏 NCPD 移防車隊（鎮暴裝甲車、護送警車、四名押車特警）。電擊槍或催淚瓦斯放倒的特警癱瘓 14 秒；有人站著盯你 2.5 秒就呼叫支援（2 星）。搶到裝甲車即 3 星，甩開視線後開進 CHROME WORKS 按 E 改裝防彈輪胎與偽裝塗裝（通緝清掉）。
+- 金庫電子鎖破譯：炸開金庫門後自動開啟，20 秒內用 A／D 調頻率、W／S 調振幅，三組波形各對齊 0.6 秒（手機有按鈕）；按 E 改裝鋁熱鑽機。破譯時 Kael 接手壓人質，威懾不會掉。成功：潛行沒響警報就直接開金庫撤離；響了警報（強攻炸門一定響）Jax 只守 30 秒。逾時：潛行觸發警報。
+- 潛行路線響警報（行員按鈕、人質跑出去、破譯逾時）立刻 4 星。
+- 逃亡載具：潛行照舊是銀行附近路邊的 Tiara GT（城裡沒有能開車的暗巷）。強攻是改裝過的鎮暴裝甲車（防彈輪胎、釘刺帶無效，市政工程塗裝讓沒盯著你的警察視錐縮小），開到灰鷺河濱的停機坪換武裝直升機：Space 爬升、Shift 下降、左鍵發射火箭；飛到離地 30 m 以上地面的警察就看不到你，只剩警用直升機跟得住。降落在鐵灣貨場的黃圈（停在地面）才算 HEIST PASSED，強攻不會再有戰車封路。
+- 測試 API：`__nc.gta.wreck`（`VCLASS`、`tires(v)`、`shootTire(v, i)`、`fix(v)`、`ram(k, sp)`）、`gta.tac`（`gas(x, z, by)`、`rap()`／`rapState()`、`pitAim(u)`、`cops()`）、`gta.gunship`（`HELIPAD`、`build(x, z, yaw)`、`fire()`、`roofH(x, z)`、`GS`）、`gta.heist` 多了 `setupB()`、`enf()`、`escorts()`、`refit()`、`garDoor()`、`HACK`、`hackOpen()`、`hackInput(k)`（`f-`／`f+`／`a-`／`a+`／`drill`）、`hackSolve()`、`heli()`、`getawayCar()`。
+
 ### 城區與安全屋（World 整合）
 
 使用者提供的 `~/Downloads/World`（複製到 gitignore 的 `.cache/world/`）。第一輪只用 CC BY 4.0 的模型；第二輪城市擴到 20×15，使用者同意連 Sketchfab Standard 授權（可放進作品使用、不能單獨再散布）的三個模型一起用；第三輪把剩下的檔案全部用上，城市四周加上海岸、河、島與山，授權標示見 `assets/260/CREDITS.md` 與開始畫面 `#fanNote`。地名全部原創。
@@ -266,6 +285,14 @@ HANDOFF 先前列為未做的項目：
 - 仿 GTA 暫停地圖：近黑的街廓與地塊、淺灰道路、深藍水面，北面是山、兩側是對岸；拉遠顯示區名，拉近顯示街名與車道線。
 - 地點：任務目標、座駕、其他兩位主角、三座場館、車行、車庫、六間安全屋（擁有是綠色）、銀行、警察局、醫院、拉麵攤、二十座特技跳台（已完成的變淡）。右側圖例按類別列出與計數，點一下跳到該類的下一個；左上資訊卡顯示類型、地區、距離、產權與收入，可設導航點或傳送（通緝中不能傳送）。
 - 左下是比例尺與游標所在的「地區 / 街名」，滑鼠移動時有十字線。手機版圖例改成底部橫向捲動條、資訊卡縮小並收起說明。
+
+### 暫停與設定（Esc，`01-settings.js`／`95-menu.js`）
+
+- 仿 GTA V 的暫停畫面：上方「地圖／遊戲／設定」分頁（Q／E 切換，地圖分頁直接打開全區地圖），左邊類別、右邊設定列（↑↓ 選列、←→ 調整、Enter 選擇、Esc／Backspace 返回），選中的列反白，滑桿可以點或拖。背景是停住的那一幀，模糊、去飽和後染上目前主角的顏色。開著時世界完全停住（`loop` 不跑 `step`，`uTime` 也不走），改了畫面設定只重畫一張預覽。
+- 遊戲：繼續、快速存檔／讀取（同手機的規則）、操作說明（照目前的按鍵綁定列出）。
+- 設定對照 GTA V 的類別：鍵盤／滑鼠（滑鼠與瞄準靈敏度、反轉 Y 軸、瞄準按住／切換、觸控環顧靈敏度）、按鍵綁定（18 個動作，新鍵已被占用時兩邊對調；方向鍵、數字鍵、Enter、Esc、Backspace 另有用途不給綁）、聲音（主、音效、音樂、環境四條匯流排，切到其他分頁時靜音）、攝影機（視野、預設鏡頭距離、開車自動回正、鏡頭晃動）、顯示（HUD、小地圖、安全區域、公制／英制、亮度）、影像（內部解析度自動或固定 50–100%、MSAA 關／X2／X4／X8（依顯示卡上限）、幀率上限、失焦時暫停、人口密集程度、細節距離）、進階影像（路面倒影關／低／高、泛光、動態模糊、雨絲與水花、鏡頭色散、底片顆粒）。每一頁最後一列是「恢復預設值」。
+- GTA V 有但這裡沒做的：控制器（沒有手把輸入）、語音聊天、Rockstar 編輯器與社群（沒有對應功能）、全螢幕／解析度／更新頻率／垂直同步（瀏覽器管，改以內部解析度與幀率上限代替）、紋理與陰影品質（貼圖烘在 GLB 裡、場景沒有即時陰影）、車流密度（車流同時是搶車、警察追逐與碰撞的對象，隱藏要動五個系統）、字幕與語言（沒有語音台詞）、通知（只有一行提示訊息，沒有可分類開關的通知）。GTA V 的「儲存與啟動」對應到遊戲分頁的快速存檔／讀取。
+- 設定存在 `localStorage` 的 `nc260.settings`（和遊戲存檔 `nc260.motors` 分開，讀檔時逐項檢查範圍）。按鍵綁定是在 window 的捕獲階段把實體鍵換成遊戲的 code 再轉送，其他 part 的按鍵處理不用改。
 
 ## 已知限制
 

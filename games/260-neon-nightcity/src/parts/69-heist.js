@@ -182,6 +182,7 @@ function holdStep(dt) {
 function heistAlarm(why) {
   if (heist.alarm) return;
   heist.alarm = true; sfx.busted(); toast(why);
+  if (heist.how === 'smart') wantedApi.set(4);   // 潛行失誤：直接 4 星（neon_nightcity_gta_v_2.md 第 3 節）
   if (heist.st === 'drill' && heist.drilling) holdStart();
 }
 // 大廳的 Jax 與 Kael：C4 階段 Jax 蹲在金庫門口，之後站開；Kael 一直守著大門
@@ -274,6 +275,7 @@ VENUES.bank = { scene: bankScene, data: bank, spawn: { x: 0, z: 1.6, yaw: 0 }, n
 // ─── 任務目標與 HUD ───
 function heistMark() {
   const s = heist.st;
+  if (s === 'setupB' || s === 'drive' && heist.air) return heist2Mark();   // 69-heist2.js
   if (s === 'setup') return heist.van && player.veh === heist.van ? { name: '安全屋', x: SAFE.x, y: 1.5, z: SAFE.z, where: 'out' } : heist.van ? { name: '鑽機廂型車', x: heist.van.x, y: 2.4, z: heist.van.z, where: 'out' } : null;
   if (s === 'go') return { name: '中央霓虹銀行', ...WP(BANK.x, BANK.z + 1), y: 2.6, where: 'out' };
   if (s === 'lobby' || s === 'c4') return { name: '金庫', x: VAULT.x, y: 2, z: VAULT.z - .4, where: 'bank' };
@@ -301,7 +303,7 @@ function heistHud() {
   setText('objText', HEIST_TEXT[heist.st]());
   let bar = -1, num = '';
   if (player.where === 'bank' && (heist.st === 'lobby' || heist.st === 'c4' || heist.st === 'drill')) { bar = heist.intim; num = heist.drilling ? `威懾 · 鑽機 ${Math.ceil(heist.t)} 秒` : '威懾'; }
-  else if (heist.st === 'drill') { bar = 100 * heist.t / 60; num = `守住 ${Math.ceil(heist.t)} 秒`; }
+  else if (heist.st === 'drill') { bar = 100 * heist.t / (heist.holdT || 60); num = `守住 ${Math.ceil(heist.t)} 秒`; }
   else if (heist.st === 'lobby') num = '';
   if (heist.st === 'escape' || heist.st === 'drive') num = `贓款 ${money(heist.take - heist.loss)}`;
   const sub = $('objSub');
@@ -348,7 +350,7 @@ function planGo(how) {
   closeDialog();
   if (motors.cash < HEIST_FEE) { toast(`籌備費不夠，還差 ${money(HEIST_FEE - motors.cash)}`); return; }
   motors.cash -= HEIST_FEE; saveMotors();
-  heist.how = how; heist.alarm = false; heist.loss = 0; heist.take = 0;
+  heist.how = how; heist.alarm = false; heist.loss = 0; heist.take = 0; heist.enfReady = false;
   spawnVan(); heistStage('setup');
   toast('前置：鑽機廂型車停在舊碼頭（地圖黃點）');
 }
@@ -396,15 +398,16 @@ function drillStart() {
 }
 // 強攻或響了警報：換成 Jax 到門口守 60 秒（4 星）
 function holdStart() {
-  heist.drilling = true; heist.t = 60;
+  const T0 = heist.holdT || 60;   // 69-heist2.js：破譯成功省下鑽機，只守 30 秒
+  heist.drilling = true; heist.t = T0;
   heistFade(() => {
     const s = crew.st[2]; Object.assign(s, bankAt(2.5, 3));
     crewLoad(2);
     heistGear(); equip('rifle', true);
-    heist.t = 60; heistStage('drill', 60);
+    heist.t = T0; heistStage('drill', T0);
     heist.runOutT = 9; heist.leaks = 0; heist.breach = 0;
     wantedApi.set(4);
-    toast('警察包圍銀行了：Jax 守住門口 60 秒');
+    toast(`警察包圍銀行了：Jax 守住門口 ${T0} 秒`);
   });
 }
 function heistGear() { for (const id of ARM_IDS) { const A = ARMS[id], a = arm.ammo[id]; if (A.gun) { a.mag = A.mag; a.res = A.res; } else if (A.throw) a.mag = A.n; } life.armor = 100; }
@@ -414,9 +417,7 @@ function escapeStart() {
     heist.drilling = false; heist.take = TAKE[heist.how];
     const s = crew.st[0]; Object.assign(s, bankAt(-1.5, 1.6));
     crewLoad(0); heistGear(); equip('smg', true);
-    clearSpot(CAR_AT.x, CAR_AT.z, 7);
-    const v = heist.car = buildVeh('tiara', CAR_AT.x, CAR_AT.z, CAR_AT.yaw, 0, .61, 2, 'heist');
-    v.name = '逃亡車 · Tiara GT'; v.vmax = 47; v.eng = 13; v.hp = 2400; v.y = groundH(v.x, v.z); poseVehicle(v);
+    heist.car = getawayCar();   // 69-heist2.js：潛行是 Tiara GT，強攻是改裝過的鎮暴裝甲車（另在河濱停機坪放好武裝直升機）
     heistStage('escape');
     heist.hpPrev = life.hp + life.armor;
     wantedApi.set(heist.alarm ? 5 : 2);
@@ -428,9 +429,9 @@ function getawayEnter() {
   heistFade(() => {
     const s = crew.st[1]; s.x = v.x; s.z = v.z; s.yaw = v.yaw;
     crewLoad(1); enterVehicle(v);
-    heist.amb = 3.5; heist.jumped = false; clearSpot(YARD.x, YARD.z, 8);
+    heist.amb = heist.air ? 0 : 3.5; heist.jumped = false; clearSpot(YARD.x, YARD.z, 8);   // 強攻改搭直升機，沒有戰車封路
     heistStage('drive');
-    toast('Kael 開車：甩掉警察，開到鐵灣貨場的貨櫃安全屋');
+    toast(heist.air ? 'Kael 開裝甲車：到灰鷺河濱的停機坪換武裝直升機' : 'Kael 開車：甩掉警察，開到鐵灣貨場的貨櫃安全屋');
   });
 }
 // 逃亡途中的封鎖：往貨場那條路上 70 m 外的路口橫兩台戰車；斷橋底下那條連接道路停四台警車。GPS 改指向斷橋
@@ -468,7 +469,7 @@ function brokenLanded(v, dist, wreck) {
 function heistFail(why) {
   heist.busy = false;
   for (const r of runSt) runnerOff(r);
-  if (heist.car) { if (player.veh !== heist.car && vehicles.includes(heist.car)) dropVehicle(heist.car); heist.car = null; }
+  if (heist.car) { if (player.veh !== heist.car) heistVehGone(heist.car); heist.car = null; }   // 69-heist2.js：搶劫用的車不在 jacked 裡
   heist.drilling = false;
   heistStage('go');
   toast(`搶劫失敗（${why}）：回銀行門口再來一次`);
@@ -477,7 +478,7 @@ function heistPass() {
   const take = heist.take, loss = Math.min(heist.loss, take), cut = Math.round((take - loss) * ZERO_CUT), net = take - loss - cut;
   heistStage('off');
   for (const r of runSt) runnerOff(r);
-  if (heist.car) { exitVehicle(); heist.car = null; }
+  if (heist.car) { if (player.veh) exitVehicle(); if (heist.air) heistVehGone(heist.car); heist.car = null; }   // 強攻是坐直升機到的，裝甲車留在半路
   motors.cash += net; saveMotors();
   newsAdd(`中央霓虹銀行遭搶 ${money(take)}`, `蒙面搶匪炸開金庫${heist.jumped ? '，逃亡車飛越鐵灣高架斷橋' : ''}，警方至今仍未掌握去向。`);
   $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ['駭客 Zero 分紅（10%）', '−' + money(cut)], ['最終實得淨利', money(net)], ['三位主角各得', money(Math.floor(net / 3))]].map(([a, b], i) => `<dt${i === 3 ? ' class="net"' : ''}>${a}</dt><dd${i === 3 ? ' class="net"' : ''}>${b}</dd>`).join('');
@@ -487,6 +488,7 @@ function heistPass() {
 
 // 99-main.js 的 onKey：G 引爆金庫門
 function heistKey(code) {
+  if (hackKey(code)) return true;   // 69-heist2.js：金庫電子鎖破譯
   if ($('heistDone').classList.contains('on')) { if (heist.doneT < 6) { $('heistDone').classList.remove('on'); } return true; }
   if (code === 'KeyG' && heist.st === 'c4' && player.where === 'bank') { blowVault(); return true; }
   return false;
@@ -500,7 +502,8 @@ function heistUpdate(dt) {
   if (vaultDoor.userData.open && vaultDoor.rotation.y > -1.9) vaultDoor.rotation.y -= dt * 1.4;
   const s = heist.st;
   if (s === 'off' || s === 'plan' || heist.busy) return heistHud();
-  if (life.dead && s !== 'setup') { heistFail(life.dead === 'busted' ? '被捕' : '陣亡'); return heistHud(); }
+  if (life.dead && s !== 'setup' && s !== 'setupB') { heistFail(life.dead === 'busted' ? '被捕' : '陣亡'); return heistHud(); }
+  heist2Update(dt);   // 69-heist2.js：前置 B、破譯、直升機逃亡
   if (s === 'setup') {
     const v = heist.van;
     if (!v || v.dead) { toast('鑽機廂型車毀了，換一台'); spawnVan(); }
@@ -508,7 +511,7 @@ function heistUpdate(dt) {
       if (!heist.vanHot) { heist.vanHot = true; wantedApi.set(2); toast('有人報警了：甩掉 2 星，再開回倉庫'); setTimeout(() => { if (heist.st === 'setup') gangChase('van'); }, 4000); }
       if (Math.hypot(v.x - SAFE.x, v.z - SAFE.z) < 7) {
         if (W.stars) { if (!heist.warned) { heist.warned = 1; toast('先甩掉警察，別把他們帶回倉庫'); } }
-        else if (Math.hypot(v.vx, v.vz) < 3) { exitVehicle(); dropVehicle(v); heist.van = null; heistStage('go'); toast('鑽機到手：去中央霓虹銀行'); }
+        else if (Math.hypot(v.vx, v.vz) < 3) { exitVehicle(); heistVehGone(v); heist.van = null; if (heist.how === 'loud' && !heist.enfReady) setupBStart(); else { heistStage('go'); toast('鑽機到手：去中央霓虹銀行'); } }   // 強攻還要前置 B（69-heist2.js）
       }
     }
   }
@@ -517,7 +520,7 @@ function heistUpdate(dt) {
     const a = arm.ammo[arm.sel], mag = a ? a.mag : 0;
     if (a && mag < heist.mag && ARMS[arm.sel].gun) heist.intim += 35;
     heist.mag = mag;
-    heist.intim = clamp(heist.intim + (gta.aiming ? 28 : -7) * dt, 0, 100);
+    heist.intim = clamp(heist.intim + (gta.aiming ? 28 : HACK.on ? 0 : -7) * dt, 0, 100);   // 破譯時 Kael 接手壓人質
     if (heist.intim <= 0) heistAlarm('有行員按下了桌底警報');
     hostStep(dt);
   }
@@ -536,7 +539,7 @@ function heistUpdate(dt) {
     const v = player.veh;
     if (heist.amb > 0 && (heist.amb -= dt) <= 0) heistAmbush();
     if (player.mode !== 'drive' || !v) { /* 下車了：再上任何一台車都行 */ }
-    else if (Math.hypot(v.x - YARD.x, v.z - YARD.z) < 8) {
+    else if (Math.hypot(v.x - YARD.x, v.z - YARD.z) < (v.fly ? 10 : 8) && !(v.fly && v.y - groundH(v.x, v.z) > 1.5)) {   // 直升機要降落在地上
       if (W.stars) { if (!heist.warned) { heist.warned = 1; toast('先甩掉警察，別把他們帶回倉庫'); } }
       else if (Math.hypot(v.vx, v.vz) < 4) heistPass();
     } else heist.warned = 0;

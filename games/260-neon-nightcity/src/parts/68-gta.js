@@ -354,15 +354,17 @@ function vehDamage(v, dt) {
     if (v.burnT < 18 && Math.random() < dt * 2) fxLights.push({ x: v.x, y: v.y + 1.5, z: v.z, col: COL.fire, r: 14, i: 2.2, life: 0, max: .6 });
     return;
   }
-  if (v.hp >= SMOKE_W) return;
+  const k = v.hp / hpLockOf(v);
+  wreckStage(v, k, dt);   // 68-wreck.js：碎窗、動力衰減與熄火、跳車
+  if (k >= STAGE.white) return;
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), hx = v.x + fx * v.len * .38, hz = v.z + fz * v.len * .38, hy = v.y + (v.isCar ? 1 : .8);
-  const rate = v.hp < SMOKE_B ? 26 : 12;
+  const rate = k < STAGE.black ? 26 : 12;
   if (Math.random() < dt * rate) {
-    const dark = v.hp < SMOKE_B;
+    const dark = k < STAGE.black;
     emit('smoke', hx, hy, hz, { vx: (Math.random() - .5) * .5 - v.vx * .4, vy: 1.4 + Math.random(), vz: (Math.random() - .5) * .5 - v.vz * .4, max: 1.6 + Math.random(), s0: .35, s1: 1.8, drag: .8, a: dark ? .75 : .5, c: dark ? [.06, .055, .05] : [.7, .7, .72] });
   }
-  if (v.hp < FIRE) {
-    v.hp -= 28 * dt;
+  if (k < STAGE.fire) {
+    v.hp -= BURN_HP * dt;
     if (Math.random() < dt * 34) emit('fire', hx + (Math.random() - .5) * .6, hy - .1, hz + (Math.random() - .5) * .6, { vy: 1.8, max: .5, s0: .45, s1: .15, drag: 1 });
     if (Math.random() < dt * 4) fxLights.push({ x: hx, y: hy + .4, z: hz, col: COL.fire, r: 10, i: 1.8, life: 0, max: .4 });
     if (v.hp <= 0) explode(v);
@@ -370,8 +372,9 @@ function vehDamage(v, dt) {
 }
 // 開車撞人：前後兩個碰撞圓附近的路人倒地；撞擊扣血
 function vehHits(v, imp) {
-  // 撞擊扣血（neon_nightcity_gta_v_2.md：超過 3.5 m/s 的部分 ×18）
-  if (imp > 3.5) damageVeh(v, (imp - 3.5) * 18, v === player.veh && false);
+  // 撞牆扣血（neon_nightcity_gta_v_2.md：ΔHP = (J/M − 3.5)·18；牆的質量無限大，J/M = (1+e)·v法向，e = .25 和 vehicleCollide 的反彈一致）
+  const jm = 1.25 * imp;
+  if (jm > 3.5) { damageVeh(v, (jm - 3.5) * 18, false); if (jm > 6) sparks(v.x + Math.sin(v.yaw) * v.len * .45, v.y + .5, v.z + Math.cos(v.yaw) * v.len * .45, Math.min(24, jm * 1.5 | 0), 3 + jm * .3); }
   const sp = Math.hypot(v.vx, v.vz);
   if (sp < 2.5) return;
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
@@ -380,13 +383,13 @@ function vehHits(v, imp) {
     const p = peds.people[k];
     for (const s of [1, -1]) {
       const cx = v.x + fx * v.off * s, cz = v.z + fz * v.off * s;
-      if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { knockPed(k, v.vx / sp, v.vz / sp); sfx.impact(sp * .6); if (v === player.veh) crime(sp > 8 ? 'kill' : 'assault', p.x, p.z); break; }
+      if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { const dead = pedRam(k, v, sp); sfx.impact(sp * .6); if (v === player.veh) crime(dead ? 'kill' : 'assault', p.x, p.z); break; }   // pedRam：68-wreck.js 的撞擊傷害與擊飛
     }
   }  // 69-squads.js 的戰鬥員（敵方與搶包賊）：玩家開車撞到就倒
   if (v !== player.veh) return;
   for (const f of SQ.f) {
     if (!fUp(f) || fAlly(f)) continue;
-    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { fHit(f, sp * 14, v.vx / sp, v.vz / sp, true); sfx.impact(sp * .6); break; }
+    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { fHit(f, RAM_K * sp * sp, v.vx / sp, v.vz / sp, true); sfx.impact(sp * .6); break; }
   }
 }
 
@@ -394,7 +397,7 @@ function vehHits(v, imp) {
 function gtaPre(dt) {
   crewPre();
   talePre();
-  if (gta.jack || player.down > 0 || life.dead) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }
+  if (gta.jack || player.down > 0 || life.dead || HACK.on) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }   // HACK：69-heist2.js 的金庫破譯（WASD 用來調波形）
 }
 function gtaUpdate(dt) {
   const out = player.where === 'out';
@@ -412,8 +415,9 @@ function gtaUpdate(dt) {
   sideUpdate(dt);    // 69-side.js：街頭賽、生存模式、委託、幫派地盤
   aptUpdate();
   if (out) {
+    wreckUpdate(dt);   // 68-wreck.js：被撞飛的路人
     for (const v of [...vehicles]) vehDamage(v, dt);
-    if (player.mode === 'drive') vehHits(player.veh, gta.lastImp || 0);
+    if (player.mode === 'drive' && !player.veh.fly) vehHits(player.veh, gta.lastImp || 0);   // 69-gunship.js 的直升機自己算撞樓
     updateExtras(dt);
   }
   gta.lastImp = 0;

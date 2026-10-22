@@ -1,0 +1,41 @@
+// ═══ 設定值（95-menu.js 的 Esc 選單）：預設值、讀檔與存檔 ═══
+// 排在最前面，後面每個 part 開場就讀得到（70-render.js 開場就依 MSAA 與倒影建渲染目標）。
+// 存在 localStorage 的 nc260.settings，和遊戲存檔 nc260.motors 分開，不動存檔版本。
+// 數值：d 預設、lo–hi 範圍、st 一格；開關：d 是 true／false；選項：o 是可選的值
+const SET_KEY = 'nc260.settings';
+const SET_DEF = {
+  // 鍵盤／滑鼠
+  sens: { d: 1, lo: .3, hi: 2.5, st: .1 }, aimSens: { d: 1, lo: .3, hi: 1.5, st: .05 }, invY: { d: false }, aimHold: { d: 'hold', o: ['hold', 'toggle'] }, touchSens: { d: 1, lo: .4, hi: 2, st: .1 },
+  // 聲音
+  vMaster: { d: 1, lo: 0, hi: 1, st: .1 }, vSfx: { d: 1, lo: 0, hi: 1, st: .1 }, vMusic: { d: 1, lo: 0, hi: 1, st: .1 }, vAmb: { d: 1, lo: 0, hi: 1, st: .1 }, muteBlur: { d: false },
+  // 攝影機：camFar 是 camState.far 的檔位（0 標準、1 遠、2 近）
+  fov: { d: 62, lo: 50, hi: 80, st: 2 }, camFar: { d: 0, o: [2, 0, 1] }, recenter: { d: true }, shake: { d: 1, lo: 0, hi: 1, st: .1 },
+  // 顯示：safe 是 HUD 往內縮的格數（一格 6 px）
+  hud: { d: true }, radar: { d: true }, safe: { d: 0, lo: 0, hi: 8, st: 1 }, units: { d: 'metric', o: ['metric', 'imperial'] }, bright: { d: 1, lo: .7, hi: 1.4, st: .05 },
+  // 影像：res 'auto' 是依幀時自動調整（70-render.js），數字是固定的內部解析度比例；fps 0 是不限
+  res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: LOW ? 0 : 4, o: [0, 2, 4, 8] }, fps: { d: 0, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: 1, lo: .6, hi: 1.2, st: .1 },
+  // 進階影像：refl 0 關、1 低（三分之一解析度）、2 高（一半）
+  refl: { d: LOW ? 1 : 2, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
+};
+function setValid(k, v) {
+  const D = SET_DEF[k];
+  if (D.o) return D.o.includes(v);
+  if (typeof D.d === 'boolean') return typeof v === 'boolean';
+  return Number.isFinite(v) && v >= D.lo - 1e-6 && v <= D.hi + 1e-6;
+}
+// binds：按鍵綁定（動作預設的鍵 → 玩家改成的鍵），由 95-menu.js 檢查
+const SET = (() => {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); } catch (e) { /* 讀不到就用預設 */ }
+  const s = { binds: {} };
+  for (const k in SET_DEF) s[k] = d && k in d && setValid(k, d[k]) ? d[k] : SET_DEF[k].d;
+  if (d && d.binds && typeof d.binds === 'object') for (const k in d.binds) if (typeof d.binds[k] === 'string') s.binds[k] = d.binds[k];
+  return s;
+})();
+function setSave() { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) { /* 存不了就算了 */ } }
+// 距離與速度依測量系統顯示（90-hud.js、91-map.js）
+const IMPERIAL = () => SET.units === 'imperial';
+function fmtDist(m) {
+  if (IMPERIAL()) { const mi = m / 1609.34; return mi < .1 ? `${Math.round(m * 3.28084 / 10) * 10} ft` : `${mi.toFixed(mi < 10 ? 2 : 1)} mi`; }
+  return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
+}

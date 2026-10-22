@@ -614,7 +614,7 @@ pedState.forEach((ps, k) => { const h = (k * .6180339887 + .31) % 1; ps.shy = ps
 const PED_AWAY = 2e4;
 function updatePeds(dt) {
   let u = 0;
-  const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare();   // 69-turf.js：赤蠍幫的地盤路人少
+  const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare() * SET.ped;   // SET.ped：Esc 選單的人口密集程度   // 69-turf.js：赤蠍幫的地盤路人少
   pedState.forEach((ps, k) => {
     if (ps.out) { if (ps.shy >= share) return; ps.out = 0; pedRelocate(ps, ppx, ppz); }
     else if (ps.shy >= share && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
@@ -627,7 +627,7 @@ function updatePeds(dt) {
     if (ps.fsm && !(ps.down > 0) && pedFsm(k, ps, dt)) return;
     if (ps.down > 0) {
       ps.down -= dt;
-      peds.place(k, ps.dpos[0], groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);
+      peds.place(k, ps.dpos[0], ps.fly ? ps.fly.y : groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);   // fly：68-wreck.js 被車撞飛
       if (ps.down <= 0 && ps.stun) { ps.stun = 0; ps.panic = 6; peds.anim(k, ANIM.run, rP() * 10, 1); return; }   // 電擊槍：原地爬起來逃跑
       if (ps.down <= 0) { ps.s = rP() * ps.per; ps.dx = ps.dz = 0; ps.panic = 0; peds.anim(k, ps.um ? ANIM.umbrella : ANIM.walk, rP() * 10, ps.v * .78); }
       return;

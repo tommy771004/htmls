@@ -34,7 +34,8 @@ export const SETS = [
   ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
   // 武器（69-combat.js）：orient 是「哪個原檔軸變成槍口方向 +z、哪個變成上方 +y」，center 是包圍盒中心放原點（握把位置由頁面的 ARMS 表另外給）
-  { out: 'arms', tex: 512, src: '.cache/arms', items: [
+  // heavy：瓦斯罐原檔兩萬多面（拉環、保險桿都很細），單獨減到兩成
+  { out: 'arms', tex: 512, src: '.cache/arms', heavy: [/Smoke Grenade/, .2], items: [
     { id: 'pistol', file: 'heckler__koch_usp_pistol', len: .194, orient: ['z', 'y'], center: 1 },
     // 原檔並排擺了兩把：只取右邊那把（摺疊槍托），再用主軸轉正
     { id: 'smg', file: 'mac-11', len: .3, pick: (x, y) => x > -.2 && y > .2, pca: 1, orient: ['-z', 'y'], center: 1 },
@@ -44,6 +45,9 @@ export const SETS = [
     { id: 'rpg', file: 'rpg-7', len: 1.2, orient: ['z', 'y'], center: 1 },
     { id: 'minigun', file: 'minigun_improved', len: .95, orient: ['-z', 'y'], center: 1 },
     { id: 'grenade', file: 'm67_fragmentation_grenade', len: .075, orient: ['z', 'y'], center: 1 },
+    // 69-tactics.js 的榴彈發射器（M32，原檔槍口朝 +x）與催淚瓦斯罐（直立，保留原檔的 SMOKE 字樣）
+    { id: 'launcher', file: 'm32_greande_launcher_low_poly', len: .78, orient: ['x', 'y'], center: 1 },
+    { id: 'gas', file: 'smoke_grenade', h: .14, orient: ['z', 'y'], center: 1 },
     { id: 'c4', file: 'c4_explosive', len: .22, orient: ['z', 'y'], center: 1 },
     { id: 'bat', file: 'baseball_bat', len: .84, orient: ['-x', 'y'], center: 1 },
     { id: 'katana', file: 'cyberpunk_katana', len: 1.0, orient: ['-x', 'y'], center: 1 },

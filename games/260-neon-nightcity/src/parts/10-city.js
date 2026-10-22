@@ -805,7 +805,7 @@ const cullAdd = (obj, R = CULL_R) => {
   const s = obj.geometry.boundingSphere, c = s.center.clone().applyMatrix4(obj.matrixWorld);
   const e = { obj, x: c.x, z: c.z, r: s.radius + R }; cullList.push(e); obj.userData.cull = e; return obj;   // userData.cull：會動的東西（21-coast.js 的貨櫃船）移動後用 cullSync 更新中心
 };
-function distCull(cx, cz) { for (const c of cullList) c.obj.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c.r * c.r; }
+function distCull(cx, cz) { const k = SET.dist * SET.dist; for (const c of cullList) c.obj.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c.r * c.r * k; }   // SET.dist：Esc 選單的細節距離
 function chunkMesh(B) {
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3));

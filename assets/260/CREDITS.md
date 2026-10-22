@@ -229,6 +229,7 @@
 | `traffic` `tank` | [Low Poly Abrams Free Model](https://sketchfab.com/3d-models/low-poly-abrams-free-model-ee925340fd0249bfac6f766c7eb81abd) | [Lasha-Georgy Bajadze](https://sketchfab.com/gsr19891) | CC BY 4.0 |
 | `traffic` `barricade` `cone` | [Barricade Set (low poly, game ready)](https://sketchfab.com/3d-models/barricade-set-low-poly-game-ready-209e7dc032de483cae12eb5c3e7f1bcf) | [TampaJoey](https://sketchfab.com/TampaJoey) | CC BY 4.0 |
 | `traffic` `spike` | [Spike Strip](https://sketchfab.com/3d-models/spike-strip-2c8370fccfbf4a7f9b9d9729112b8e61) | [ericzilic176](https://sketchfab.com/ericzilic176) | CC BY 4.0 |
+| `traffic` `gunship` | [AH-64 Apache Attack Helicopter Low Poly](https://sketchfab.com/3d-models/ah-64-apache-attack-helicopter-low-poly-34986214decd4b3db90e91f12e624d78) | [PolyDucky](https://sketchfab.com/salphytheunemployed) | CC BY 4.0 |
 | `arms` `pistol` | [Heckler & Koch USP Pistol](https://sketchfab.com/3d-models/heckler-koch-usp-pistol-972e3643000246e8959a6df509557bcc) | [Urpo](https://sketchfab.com/Urpo) | CC BY 4.0 |
 | `arms` `smg` | [MAC-11](https://sketchfab.com/3d-models/mac-11-9f0dbab63c6c4ab2bee9b141ed58383e) | [SK3D](https://sketchfab.com/SplashKid) | CC BY 4.0 |
 | `arms` `rifle` | [M4A1 Sopmod Remaster](https://sketchfab.com/3d-models/m4a1-sopmod-remaster-c417b8a56e4447fe9d627000dd305f32) | [minghauLoh](https://sketchfab.com/minghau) | CC BY 4.0 |
@@ -237,6 +238,8 @@
 | `arms` `rpg` | [RPG-7](https://sketchfab.com/3d-models/rpg-7-23d13d69b7ab4ea1a438c57ca3a234b4) | [ArtEast.](https://sketchfab.com/ArtEast.) | CC BY 4.0 |
 | `arms` `minigun` | [Minigun (improved)](https://sketchfab.com/3d-models/minigun-improved-c13b38ae618e4e32b6be646b4ea98e20) | [ArtEast.](https://sketchfab.com/ArtEast.) | CC BY 4.0 |
 | `arms` `grenade` | [M67 Fragmentation Grenade](https://sketchfab.com/3d-models/m67-fragmentation-grenade-05e2a29118c3408eaa574bcec6997aba) | [Vextin](https://sketchfab.com/vextin) | CC BY 4.0 |
+| `arms` `launcher` | [M32 Greande Launcher Low Poly](https://sketchfab.com/3d-models/m32-greande-launcher-low-poly-f583d2be3ca6474cb2c32cb485656d7b) | [aBraM_](https://sketchfab.com/aBraM_) | CC BY 4.0 |
+| `arms` `gas` | [Smoke Grenade](https://sketchfab.com/3d-models/smoke-grenade-3f88783a9e974a21bd43fef96c9ef54c) | [polyowlstudios](https://sketchfab.com/SairamJ) | CC BY 4.0 |
 | `arms` `c4` | [C4 Explosive](https://sketchfab.com/3d-models/c4-explosive-617d754683114b6a8244ececbd03365e) | [_Vadim2020_](https://sketchfab.com/Maha_Knox) | CC BY 4.0 |
 | `arms` `bat` | [Baseball Bat](https://sketchfab.com/3d-models/baseball-bat-30b41d95e3cc4f53afb4bac3f71fd821) | [CGunwale](https://sketchfab.com/cgunwale) | CC BY 4.0 |
 | `arms` `katana` | [Cyberpunk Katana](https://sketchfab.com/3d-models/cyberpunk-katana-aa5505c8bd9c41c692159fa79e0e1693) | [Mikołaj Michalak](https://sketchfab.com/M_Michalak) | CC BY 4.0 |
