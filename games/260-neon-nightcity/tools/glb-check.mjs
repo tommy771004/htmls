@@ -41,7 +41,7 @@ try {
   // World 第四輪之二（27-props.js 檔尾）：街道設施、植物與海岸的 8 組模型下載好、換掉程式建模
   await page.waitForFunction(() => { const w = window.__nc.props.w2; return w && Object.keys(w.sets).length + w.failed.length >= 8; }, null, { timeout: 60000 }).catch(() => {});
   const w2 = await ev(page, () => { const w = window.__nc.props.w2; return { sets: Object.keys(w.sets).length, failed: w.failed, swapped: w.swapped.length, kept: w.kept(), n: w.n }; });
-  check(w2.sets === 8 && !w2.failed.length && w2.swapped >= 12 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500, `world_2 模型 ${w2.sets}/8 組、換掉 ${w2.swapped} 類、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
+  check(w2.sets === 8 && !w2.failed.length && w2.swapped >= 12 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500 && w2.n.ebox > 20 && w2.n.pump >= 4, `world_2 模型 ${w2.sets}/8 組、換掉 ${w2.swapped} 類、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
 
   // 展示廳：後兩排的實車
   await ev(page, () => window.__nc.enter('show'));
@@ -140,6 +140,35 @@ try {
   await ev(page, () => { window.__nc.me.mesh.visible = true; });
   const gs = await ev(page, () => window.__nc.getStats());
   check(gs.drawCalls > 0, `車庫 ${gs.triangles} 個三角形、${gs.drawCalls} 個 draw call`);
+
+  // 島上的基地與對岸的遠景（27-props.js 的 COAST_MODELS）：走近就下載，量模型在所在區（邏輯座標）的範圍，
+  // 島上的要整塊落在灰鷗島上、底部在地面附近（原檔有幾公尺的地基）；對岸的要貼著各自的河岸（河岸基礎在水面下二十公尺內）（倫敦的東緣、舊港城的西緣），不能浮在空中或沉到水裡
+  // 十五片版圖拿掉了東灣對岸（golu、s7），只測頁面還有的模型
+  const coastIds = await ev(page, () => window.__nc.props.coast.models.map(o => o.id));
+  for (const id of ['ruin', 'office', 'london', 'golu', 's7'].filter(id => coastIds.includes(id))) {
+    await ev(page, (id) => { const nc = window.__nc, o = nc.props.coast.models.find(o => o.id === id); nc.tpL(o.at.x + (o.proxy === 'isle' ? 0 : o.id === 'london' ? 700 : -600), o.at.z, 0); }, id);
+    let done = false;
+    for (let i = 0; i < 240 && !done; i++) { await page.waitForTimeout(250); done = await ev(page, (id) => !!window.__nc.props.coast.models.find(o => o.id === id).done, id); }
+    const bb = await ev(page, (id) => {
+      const C = window.__nc.props.coast, o = C.models.find(o => o.id === id);
+      if (!o.obj) return null;
+      const inv = o.obj.parent.matrixWorld.clone().invert(), b = { x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9, z0: 1e9, z1: -1e9 };
+      o.obj.updateMatrixWorld(true);
+      o.obj.traverse(m => {
+        if (!m.isMesh) return;
+        m.geometry.boundingBox || m.geometry.computeBoundingBox();
+        const q = m.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld));
+        b.x0 = Math.min(b.x0, q.min.x); b.x1 = Math.max(b.x1, q.max.x); b.y0 = Math.min(b.y0, q.min.y); b.y1 = Math.max(b.y1, q.max.y); b.z0 = Math.min(b.z0, q.min.z); b.z1 = Math.max(b.z1, q.max.z);
+      });
+      for (const k in b) b[k] = Math.round(b[k]);
+      return { b, isle: o.proxy === 'isle' ? C.ISLE : null, far: C.FAR_BANK_X, east: C.EAST_BANK_X };
+    }, id);
+    let ok = !!bb, why = '';
+    if (bb && bb.isle) { const I = bb.isle; ok = bb.b.x0 > I.x0 - 5 && bb.b.x1 < I.x1 + 5 && bb.b.z0 > I.z0 - 5 && bb.b.z1 < I.z1 + 5 && bb.b.y0 > -6 && bb.b.y0 < 2 && bb.b.y1 > 10; why = `島 x ${I.x0}…${I.x1}、z ${I.z0}…${I.z1}`; }
+    else if (bb && id === 'london') { ok = Math.abs(bb.b.x1 - bb.far) < 60 && bb.b.y0 > -25 && bb.b.y0 < 5 && bb.b.y1 > 40; why = `河岸 x ${bb.far}`; }
+    else if (bb) { ok = bb.b.x0 > bb.east - 40 && bb.b.y0 > -25 && bb.b.y0 < 5 && bb.b.y1 > 20; why = `河岸 x ${bb.east}`; }
+    check(done && ok, `${id} 的模型擺在該在的地方（邏輯座標範圍 ${JSON.stringify(bb && bb.b)}，${why}）`);
+  }
 
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間
   for (const id of ['loft', 'villa', 'office', 'mini', 'l16', 'i14']) {

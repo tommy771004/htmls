@@ -112,9 +112,10 @@ function copNear(x, z, r) {
 }
 function sees() {
   if (player.where !== 'out') return false;
-  W.disg = !W.seen && player.veh !== W.lastVeh;
+  W.disg = !W.seen && (player.veh !== W.lastVeh || !!(player.veh && player.veh.disguise));   // disguise：69-heist2.js 改過塗裝的鎮暴裝甲車
   const x = pX(), z = pZ();
-  if (copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
+  const high = player.veh && player.veh.fly && player.veh.y - groundH(x, z) > 30;   // 69-gunship.js：飛高了只有警用直升機跟得住
+  if (!high && copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
   if (player.swim && copNear(x, z, SWIM_WATCH)) return true;   // 游泳沒辦法換裝也跑不快：岸上的人盯著水面
   const h = W.heli;
   if (h && !h.fall && !h.leave && !h.gang && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR && heliSees(h, x, z)) return true;
@@ -172,7 +173,7 @@ function spawnCop(u, side, swat) {
   if (!c) return null;
   const v = u.v, lx = Math.cos(v.yaw) * side, lz = -Math.sin(v.yaw) * side;
   const r = collideCircle(v.x + lx * (v.w / 2 + .7), v.z + lz * (v.w / 2 + .7), .32, false);
-  Object.assign(c, { on: true, unit: u, x: r.x, z: r.z, yaw: v.yaw, state: 'act', hp: swat ? 160 : 100, swat, gun: swat ? 'rifle' : W.stars >= 3 && Math.random() < .4 ? 'shotgun' : 'pistol', shotT: .8 + Math.random(), burst: 0, ph: Math.random() * 9, downT: 0 });
+  Object.assign(c, { on: true, unit: u, x: r.x, z: r.z, y: 0, rope: null, yaw: v.yaw, state: 'act', hp: swat ? 160 : 100, swat, gun: swat ? 'rifle' : W.stars >= 3 && Math.random() < .4 ? 'shotgun' : 'pistol', shotT: .8 + Math.random(), burst: 0, ph: Math.random() * 9, downT: 0 });
   copsCrowd.look(c.k, { female: false, top: lin(swat ? 0x121315 : 0x1d2840), bot: lin(swat ? 0x101113 : 0x151a26), skin: SKINS[c.k % SKINS.length], hair: HAIRS[c.k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0], scale: 1.02 });
   return c;
 }
@@ -202,7 +203,7 @@ function copMelee(x, z, fx, fz, reach, dmg) {
 }
 // 射線可以打到警員與直升機（68-gta.js 的 castRay）
 rayHooks.push((R, hit) => {
-  for (const c of W.cops) if (c.on && c.state !== 'down') hit(rayCyl(R, c.x, c.z, .34, .1, 1.95), 'cop', c);
+  for (const c of W.cops) if (c.on && c.state !== 'down') hit(rayCyl(R, c.x, c.z, .34, (c.y || 0) + .1, (c.y || 0) + 1.95), 'cop', c);   // y：69-tactics.js 垂降中的特警
   const h = W.heli;
   if (h && !h.dead) { const t = rayCyl({ ...R }, h.x, h.z, 2.6, h.y - .4, h.y + 3); hit(t, 'heli', h); }
 });
@@ -214,16 +215,17 @@ function dropPickup(x, z, kind) {
 }
 function dropPick(p) { W.pickups.splice(W.pickups.indexOf(p), 1); scene.remove(p.h); wModels.splice(wModels.indexOf(p.h), 1); }
 function copStep(c, dt) {
+  if (c.rope) { ropeStep(c, dt); return; }   // 69-tactics.js：從直升機垂降
   const p = copsCrowd.people[c.k], t = uTimeNow();
   if (c.stunT > 0) {   // 電擊槍：倒地抽搐，時間到了起身繼續
     c.stunT -= dt;
     copsCrowd.anim(c.k, ANIM.die, c.stunPh, 1);
-    copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+    copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
     return;
   }
   if (c.state === 'down') {
     c.downT -= dt;
-    copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+    copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
     if (c.downT <= 0) freeCop(c);
     return;
   }
@@ -239,7 +241,7 @@ function copStep(c, dt) {
       c.yaw = Math.atan2(bx, bz);
       const r = collideCircle(c.x + bx / bd * 4.4 * dt, c.z + bz / bd * 4.4 * dt, .32, true); c.x = r.x; c.z = r.z;
       copsCrowd.anim(c.k, ANIM.run, c.ph += dt, 1.1);
-      copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+      copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
       return;
     }
   }
@@ -264,7 +266,7 @@ function copStep(c, dt) {
   const armed = W.stars >= 2 || d < 12;
   p.aimK = sp ? .85 : 1; p.aimP = Math.atan2((player.mode === 'drive' ? .9 : 1.2) - 1.45, Math.max(d, 1)) * .9;
   copsCrowd.anim(c.k, sp ? (armed ? ANIM.aimRun : ANIM.run) : armed ? ANIM.aimIdle : ANIM.idle, c.ph += dt * (sp ? 1 : 0), 1);
-  copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+  copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
   if (shoot || al) {
     c.shotT -= dt;
     if (c.shotT <= 0) {
@@ -354,7 +356,7 @@ function driveUnit(u, dt) {
     } else { tx = px; tz = pz; }
     const dT = Math.hypot(tx - v.x, tz - v.z);
     // 衝撞：兩星以上看到玩家開車，就瞄準玩家前方一點直接撞
-    if (W.stars >= 2 && W.seen && player.mode === 'drive' && dT < 30 && u.kind !== 'tank') { tx = px + player.veh.vx * .5; tz = pz + player.veh.vz * .5; }
+    if (W.stars >= 2 && W.seen && player.mode === 'drive' && dT < 30 && u.kind !== 'tank') { const a = pitAim(u); if (a) [tx, tz] = a; else { tx = px + player.veh.vx * .5; tz = pz + player.veh.vz * .5; } }   // pitAim：69-tactics.js 高速時改成 PIT 推尾
     else if (dT > 28 || !losClear(v.x, v.z, tx, tz)) [tx, tz] = routeTarget(u, tx, tz);
     // 玩家走路：停在附近讓警員下車；坦克停在 25 m 外開砲
     const stopD = 9 + Math.max(0, vF) ** 2 / 26;   // 煞得住的距離
@@ -429,7 +431,9 @@ function spawnHeli(gang = false) {
   const beam = new T.Mesh(beamG, new T.MeshBasicMaterial({ color: 0x8c96a8, transparent: true, opacity: .085, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
   beam.layers.set(LY.NOREFL); beam.renderOrder = 6; scene.add(beam);
   const pool = new T.Mesh(POOL_G, POOL_M); pool.layers.set(LY.NOREFL); pool.renderOrder = 3; scene.add(pool);
-  W.heli = { g, body, rotor, tail, beam, pool, x: px + Math.cos(a) * 160, z: pz + Math.sin(a) * 160, y: 70, vx: 0, vz: 0, yaw: 0, hp: 1500, ang: a, sx: px, sz: pz, spotR: SPOT_R, rot: 0, snipeT: 3, fall: null, dead: false, leave: false, gang };
+  // 出生高度至少高過那裡的屋頂 15 m：城北的樓牆與山坡比 70 m 還高，生在裡面會當場判定撞樓墜毀
+  const hx = px + Math.cos(a) * 160, hz = pz + Math.sin(a) * 160;
+  W.heli = { g, body, rotor, tail, beam, pool, x: hx, z: hz, y: Math.max(70, roofAt(hx, hz, 1) + 15), vx: 0, vz: 0, yaw: 0, hp: 1500, ang: a, sx: px, sz: pz, spotR: SPOT_R, rot: 0, snipeT: 3, fall: null, dead: false, leave: false, gang };
   return W.heli;
 }
 function dropHeli() {
@@ -549,27 +553,27 @@ function placeRoadblock() {
   if (W.blocks.length >= 2 || player.mode !== 'drive') return null;
   const v = player.veh, sp = Math.hypot(v.vx, v.vz);
   const hx = sp > 3 ? v.vx / sp : Math.sin(v.yaw), hz = sp > 3 ? v.vz / sp : Math.cos(v.yaw);
-  // 前方 70–150 m、就在玩家這條路的延長線上（橫向偏不到 HR＋距離的一成：彎曲的片裡路是彎的）的路口
-  let best = null, bs = -1;
+  // 前方約 150 m（70–200 m 裡最接近 150 的；neon_nightcity_gta_v_2.md 的三星路障）、就在玩家這條路的延長線上（橫向偏不到 HR＋距離的一成：彎曲的片裡路是彎的）的路口
+  let best = null, bs = -1e9;
   for (const n of RN.nodes) {
     const dx = n.x - v.x, dz = n.z - v.z, d = Math.hypot(dx, dz);
-    if (d < 70 || d > 150 || Math.abs(dx * hz - dz * hx) > HR + d * .1) continue;
-    const f = (dx * hx + dz * hz) / d;
-    if (f > .9 && f > bs && !W.blocks.some(b => b.n === n)) { bs = f; best = n; }
+    if (d < 70 || d > 200 || Math.abs(dx * hz - dz * hx) > HR + d * .1) continue;
+    const f = (dx * hx + dz * hz) / d, sc = -Math.abs(d - 150);
+    if (f > .9 && sc > bs && !W.blocks.some(b => b.n === n)) { bs = sc; best = n; }
   }
-  // 直線上沒有（路彎得多、前面是縫裡的連接道路）：從玩家所在的路段沿路網往前，每個路口挑最直的那條，走到 70–150 m 的路口
+  // 直線上沒有（路彎得多、前面是縫裡的連接道路）：從玩家所在的路段沿路網往前，每個路口挑最直的那條，走到 70–200 m 的路口
   if (!best) {
     const p = rnProject(v.x, v.z);
     if (p) {
       const [, , tx, tz] = edgeAt(p.e, p.u), dir = tx * hx + tz * hz >= 0 ? 1 : -1;
       let n = edgeEnd(p.e, dir), d = dir > 0 ? p.e.len - p.u : p.u, ex = tx * dir, ez = tz * dir, from = p.e;
-      for (let k = 0; k < 8 && d < 70; k++) {
+      for (let k = 0; k < 8 && d < 130; k++) {
         let bo2 = null, bf = -2;
         for (const o of n.out) { if (o.e === from) continue; const [gx, gz] = outDir(o.e, o.dir), f = gx * ex + gz * ez; if (f > bf) { bf = f; bo2 = o; } }
         if (!bo2 || bf < .5) break;
         [ex, ez] = outDir(bo2.e, bo2.dir); from = bo2.e; d += bo2.e.len; n = edgeEnd(bo2.e, bo2.dir);
       }
-      if (d >= 70 && d <= 150 && !W.blocks.some(b => b.n === n)) best = n;
+      if (d >= 70 && d <= 200 && !W.blocks.some(b => b.n === n)) best = n;
     }
   }
   if (!best) return null;
@@ -612,16 +616,16 @@ function drawBlocks() {
   rbMesh.barricade.count = nb; rbMesh.spike.count = ns;
   rbMesh.barricade.instanceMatrix.needsUpdate = rbMesh.spike.instanceMatrix.needsUpdate = true;
 }
-// 釘刺帶：輪胎全破，極速 ×(1 − 0.15·N)、抓地 ×0.45（V 叫車會送修好的來）
+// 釘刺帶：還沒破的輪胎全部扎破（極速與抓地照 68-wreck.js 的 tireApply；V 叫車會送修好的來）
 function spikeCheck(v) {
-  if (!v || v.flatBase || v.dead) return;
+  if (!v || v.dead || v.boat || v.bpTires) return;   // bpTires：69-heist2.js 改裝過的防彈輪胎
+  const T = tireList(v);
+  if (T.every(t => t.flat)) return;
   for (const b of W.blocks) for (const s of b.spikes) {
     const dx = v.x - s.x, dz = v.z - s.z, c = Math.cos(s.yaw), sn = Math.sin(s.yaw);
     const lx = dx * c - dz * sn, lz = dx * sn + dz * c;
     if (Math.abs(lx) < 3.1 + v.w / 2 && Math.abs(lz) < 1 + v.len / 2) {
-      const n = v.isCar ? 4 : 2;
-      v.flatBase = { vmax: v.vmax, grip: v.grip }; v.flat = n;
-      v.vmax *= 1 - .15 * n; v.grip *= .45;
+      for (const t of T) if (!t.flat) tireBurst(v, t, true);
       sfx.impact(7); sparks(v.x, .3, v.z, 16, 5);
       if (v === player.veh) toast('輪胎被釘刺帶扎破了');
       return;
@@ -688,6 +692,7 @@ function policeUpdate(dt) {
   }
   for (const c of W.cops) if (c.on) copStep(c, dt);
   heliStep(dt);
+  tacticsUpdate(dt);   // 69-tactics.js：PIT、催淚瓦斯、垂降直升機
   // 路障：遠離或過了一分鐘、通緝解除就收掉；釘刺帶
   for (const b of [...W.blocks]) { b.t += dt; if (!W.stars || b.t > 70 || Math.hypot(b.x - px, b.z - pz) > 230) dropBlock(b); }
   if (W.blocks.length) { if (player.mode === 'drive') spikeCheck(player.veh); for (const u of W.units) if (u.drive) spikeCheck(u.v); }

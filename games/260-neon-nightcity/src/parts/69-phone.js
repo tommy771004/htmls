@@ -8,7 +8,7 @@
 // 排在 69-gps 之後、69-police 之前：W、wantedClear 只在函式裡用。
 
 const phone = { open: false, scr: 'home', who: 0, cd: { wipe: 0, ghost: 0, mech: 0, drop: 0, merc: 0 }, ghostT: 0, crates: [], msg: '', t: 0, html: '' };
-const PH_SHOP = { pistol: 300, stun: 200, smg: 600, rifle: 900, shotgun: 500, sniper: 1200, rpg: 2500, minigun: 3000 };
+const PH_SHOP = { pistol: 300, stun: 200, smg: 600, rifle: 900, shotgun: 500, sniper: 1200, rpg: 2500, launcher: 2800, minigun: 3000 };
 const PH_ARMOR = 500, PH_THROW = 1500, PH_TRUCK = 1000, PH_GHOST = 1500, PH_DROP = 1200;
 const wipeCost = () => 500 * W.stars * W.stars;
 const secs = t => `${Math.ceil(t)} 秒`;
@@ -64,13 +64,12 @@ function mechDeliver() {
   if (player.mode === 'drive' && player.veh === kestrel) { phoneMsg('鐵手：你已經坐在它裡面了。'); return; }
   if (motors.test) { phoneMsg('鐵手：先把試駕車還回去。'); return; }
   motors.stowed = false; kestrel.g.visible = true;
-  if (kestrel.dead) { kestrel.dead = 0; kestrel.burn = 0; kestrel.hp = 1000; }
-  if (kestrel.flatBase) { kestrel.vmax = kestrel.flatBase.vmax; kestrel.grip = kestrel.flatBase.grip; kestrel.flatBase = null; kestrel.flat = 0; kestrel.hp = Math.max(kestrel.hp, 1000); }
+  if (kestrel.dead || kestrel.flat) wreckFix(kestrel);   // 68-wreck.js：耐久、車窗、引擎、輪胎
   const q = player.mode === 'drive' ? player.veh : player, yaw = q.yaw;
   // 身後 30 m 最近的那段路，停在那一側的車道、車頭順著車流（離路口至少 8 m）
   const sp = rnLaneSpot(q.x - Math.sin(yaw) * 30, q.z - Math.cos(yaw) * 30, 8);
   kestrel.x = sp.x; kestrel.z = sp.z; kestrel.yaw = sp.yaw;
-  kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.yr = 0; kestrel.air = null; poseVehicle(kestrel);
+  kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.yr = 0; kestrel.air = null; rollClear(kestrel); poseVehicle(kestrel);
   phone.cd.mech = 60; sfx.pickup();
   phoneMsg(`鐵手：${kestrel.name} 停在你後面了，鑰匙插著。`); toast(`${kestrel.name} 送到了`);
 }
@@ -107,7 +106,7 @@ function crateStep(dt) {
   }
 }
 
-// ─── 暗網軍火：防彈衣、各槍備彈補滿、投擲物（手榴彈與黏性炸彈一起）補滿，直接進背包；最多十列（數字鍵 1–9、0） ───
+// ─── 暗網軍火：防彈衣、各槍備彈補滿、投擲物（手榴彈、催淚瓦斯與黏性炸彈一起）補滿，直接進背包；最多十列（數字鍵 1–9、0） ───
 const THROWS = ARM_IDS.filter(id => ARMS[id].throw);
 function shopRows() {
   const rows = [{ t: '防彈衣', sub: `護甲 ${Math.round(life.armor)} / 100`, val: life.armor >= 100 ? '已滿' : money(PH_ARMOR), ok: life.armor < 100, fn: () => { if (pay(PH_ARMOR)) { life.armor = 100; sfx.pickup(); phoneMsg('防彈衣已經換上。'); } } }];
@@ -118,7 +117,7 @@ function shopRows() {
     rows.push({ t: `${A.name}彈藥`, sub: `備彈 ${a.res} / ${A.res}`, val: full ? '已滿' : money(p), ok: !full, fn: () => { if (!pay(p)) return; a.res = A.res; sfx.reload(); phoneMsg(`${A.name}彈藥已經放進背包。`); } });
   }
   const tFull = THROWS.every(id => arm.ammo[id].mag >= ARMS[id].n);
-  rows.push({ t: '投擲物', sub: THROWS.map(id => `${ARMS[id].name} ${arm.ammo[id].mag}`).join(' · '), val: tFull ? '已滿' : money(PH_THROW), ok: !tFull, fn: () => { if (!pay(PH_THROW)) return; for (const id of THROWS) arm.ammo[id].mag = ARMS[id].n; sfx.reload(); phoneMsg('手榴彈與黏性炸彈補滿了。'); } });
+  rows.push({ t: '投擲物', sub: THROWS.map(id => `${ARMS[id].name} ${arm.ammo[id].mag}`).join(' · '), val: tFull ? '已滿' : money(PH_THROW), ok: !tFull, fn: () => { if (!pay(PH_THROW)) return; for (const id of THROWS) arm.ammo[id].mag = ARMS[id].n; sfx.reload(); phoneMsg('手榴彈、催淚瓦斯與黏性炸彈補滿了。'); } });
   return rows;
 }
 

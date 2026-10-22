@@ -57,6 +57,11 @@ export const TRAFFIC = [
   { id: 'barricade', raw: 'barricade_set_low_poly_game_ready', scale: 1, rot: 0, nodes: /^(Barricade3L|Light[789]_)/, part: true, pal: false, tris: 500, noFar: true },
   { id: 'cone', raw: 'barricade_set_low_poly_game_ready', scale: 1, rot: 0, nodes: /^ConeTraffic/, part: true, pal: false, tris: 120, noFar: true },
   { id: 'spike', raw: 'spike_strip', scale: 1, rot: 90, part: true, pal: false, tris: 500, noFar: true },
+  // 武裝直升機（69-gunship.js）：PolyDucky 的 AH-64 低面數模型，原檔機頭已朝 +z；原點以機身（Object_4）置中，主旋翼與尾旋翼各自拆出來轉。
+  // flat：原檔是低面數＋色塊迷彩，焊接時連顏色一起比，色塊才不會在相鄰面之間糊開（面數本來就在 tris 內，不必減面）
+  { id: 'gunship', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(?!(8|10|11|37|39)$)/, pal: false, tris: 4000, noFar: true, flat: true },
+  { id: 'gunship_rotor', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(8|10|11)$/, part: true, pal: false, tris: 400, noFar: true, flat: true },
+  { id: 'gunship_tail', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(37|39)$/, part: true, pal: false, tris: 300, noFar: true, flat: true },
 ];
 const srcOf = (cfg) => {
   const a = resolve(root, '../../assets/260', (cfg.src || cfg.id) + '.glb');
@@ -164,7 +169,7 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     // 依「位置（1 mm）＋材質」焊接：原檔的硬邊把面板拆成互不相連的小片，不焊接的話減面只能退回 sloppy，整台會被撕碎
     const wid = new Map(), wsrc = [], wpos = [], ix = new Uint32Array(u.idx.length);
     u.idx.forEach((v, i) => {
-      const key = `${Math.round(u.pos[v * 3] * 1000)},${Math.round(u.pos[v * 3 + 1] * 1000)},${Math.round(u.pos[v * 3 + 2] * 1000)},${u.mat[v]}`;
+      const key = `${Math.round(u.pos[v * 3] * 1000)},${Math.round(u.pos[v * 3 + 1] * 1000)},${Math.round(u.pos[v * 3 + 2] * 1000)},${u.mat[v]}` + (cfg.flat ? `,${u.col.slice(v * 3, v * 3 + 3).map((c) => Math.round(c * 255)).join(',')}` : '');
       let w = wid.get(key);
       if (w == null) { w = wsrc.length; wid.set(key, w); wsrc.push(v); wpos.push(u.pos[v * 3], u.pos[v * 3 + 1], u.pos[v * 3 + 2]); }
       ix[i] = w;

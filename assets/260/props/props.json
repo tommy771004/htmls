@@ -79,7 +79,7 @@
   ]
  },
  "arms": {
-  "kb": 1166,
+  "kb": 1266,
   "items": {
    "pistol": {
     "w": 0.03,
@@ -128,6 +128,18 @@
     "d": 0.08,
     "h": 0.1,
     "tris": 1610
+   },
+   "launcher": {
+    "w": 0.16,
+    "d": 0.78,
+    "h": 0.28,
+    "tris": 1902
+   },
+   "gas": {
+    "w": 0.07,
+    "d": 0.06,
+    "h": 0.14,
+    "tris": 4801
    },
    "c4": {
     "w": 0.15,
@@ -212,6 +224,20 @@
     "source": "https://sketchfab.com/3d-models/m67-fragmentation-grenade-05e2a29118c3408eaa574bcec6997aba"
    },
    {
+    "file": "m32_greande_launcher_low_poly",
+    "title": "M32 GREANDE LAUNCHER Low Poly",
+    "author": "aBraM_ (https://sketchfab.com/aBraM_)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/m32-greande-launcher-low-poly-f583d2be3ca6474cb2c32cb485656d7b"
+   },
+   {
+    "file": "smoke_grenade",
+    "title": "Smoke Grenade",
+    "author": "polyowlstudios (https://sketchfab.com/SairamJ)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/smoke-grenade-3f88783a9e974a21bd43fef96c9ef54c"
+   },
+   {
     "file": "c4_explosive",
     "title": "C4 Explosive",
     "author": "_Vadim2020_ (https://sketchfab.com/Maha_Knox)",
@@ -242,7 +268,7 @@
   ]
  },
  "street": {
-  "kb": 392,
+  "kb": 385,
   "items": {
    "hydrant": {
     "w": 0.37,
@@ -1142,7 +1168,7 @@
   ]
  },
  "bld_nbh": {
-  "kb": 7507,
+  "kb": 7033,
   "items": {
    "nbh_01": {
     "w": 37.79,
@@ -1794,7 +1820,7 @@
   ]
  },
  "bld_cyber": {
-  "kb": 9010,
+  "kb": 7834,
   "items": {
    "cyber_01": {
     "w": 42.6,

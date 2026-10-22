@@ -42,9 +42,9 @@ function instSet(m, k, mtx) {
 }
 function instUpdate(cx, cz) {
   for (const S of instStreams) {
-    if (!S.dirty && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
-    S.dirty = false; S.cx = cx; S.cz = cz;
-    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = S.R * S.R, R02 = (S.R0 || 0) ** 2;
+    if (!S.dirty && S.dv === detail.v && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
+    S.dirty = false; S.cx = cx; S.cz = cz; S.dv = detail.v;
+    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = S.R * S.R * detailK() ** 2, R02 = (S.R0 || 0) ** 2;
     let c = 0;
     for (let k = 0; k < S.n; k++) {
       const d2 = (S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2;
@@ -66,11 +66,13 @@ const free = (x, z, r) => {
   return true;
 };
 const claim = (x, z, r) => { const k = npKey(Math.floor(x / NP_S), Math.floor(z / NP_S)); let L = nearProp.get(k); if (!L) nearProp.set(k, L = []); L.push({ x, z, r }); };
+// 斜的大道（06-roads.js 的 PLAZA）先佔掉：街區邊的設施（消防栓、樹、報箱……）照樣抽亂數，只是擺不進路面
+for (const p of PLAZA.values()) for (let a = 0; a <= p.len; a += 2) claim(p.ax + p.ux * a, p.az + p.uz * a, HR + .8);
 
 // ─── 路燈：沿路網每一段（各區自己的邊界路也有一份）；燈頭的位置寫進 shader 的路燈表（lampTable，lampGrid 查） ───
 const lampsA = [], lampsS = [], lampsC = [];
 for (const e of RN.edges) {
-  if (e.kind === 'c') {   // 區之間的連接道路（世界座標）：兩側每 20 m 一盞，路口範圍內不放
+  if (e.kind === 'c' || e.kind === 'd' || e.kind === 'f') {   // 區之間的連接道路、斜的大道與快速道路（世界座標）：兩側每 20 m 一盞，路口範圍內不放
     for (let u = HR + 10; u < e.len - HR - 6; u += 20) for (const s of [-1, 1]) {
       const [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1)), l = Math.hypot(xb - xa, zb - za) || 1;
       const nx = (zb - za) / l * s, nz = -(xb - xa) / l * s;   // 往路外
@@ -80,8 +82,9 @@ for (const e of RN.edges) {
     continue;
   }
   const { i, j } = e.a, zn = e.zn;
-  if (e.kind === 'z') { for (const s of [-1, 1]) for (const o of [16, 31, 46]) lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4, zn }); }
-  else for (const s of [-1, 1]) for (const o of [18, 36, 54]) lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4, zn });
+  // 斜的大道切過廣場街區的轉角：落在大道路面上的燈不放（plazaD）
+  if (e.kind === 'z') { for (const s of [-1, 1]) for (const o of [16, 31, 46]) if (plazaD(avX(i) + s * 8.6, stZ(j) + o) > HR + 1) lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4, zn }); }
+  else for (const s of [-1, 1]) for (const o of [18, 36, 54]) if (plazaD(avX(i) + o, stZ(j) + s * 8.6) > HR + 1) lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4, zn });
 }
 function lampKit(col) {
   return new Kit()
@@ -165,6 +168,12 @@ function coneMat(col) {
 // 往外的方向換到路口所在區的邏輯座標再對齊軸（連接道路垂直離開邊界路，也落在軸上）；ax 和車流用的 edgeAx() 一樣
 const signals = [];
 for (const n of RN.nodes) for (const { e, dir } of n.out) {
+  if (e.kind === 'd') continue;   // 斜的大道跟著方向比較接近的那一相（edgeAx），不另外立號誌
+  if (n.free) {   // 快速道路與連接道路的交叉口（06-roads.js，世界座標）：立在來車那段路的右前方
+    const [gx, gz] = outDir(e, dir), hx = -gx, hz = -gz;   // 來車方向
+    signals.push({ x: n.x + gx * 9.2 - hz * 9.2, z: n.z + gz * 9.2 + hx * 9.2, ry: Math.atan2(hx, hz), i: n.i, j: n.j, ax: edgeAx(n, e), zn: null, node: n });
+    continue;
+  }
   const [ox, oz] = dirL(n.zn, ...outDir(e, dir)), ax = edgeAx(n, e), sg = ax === 'x' ? Math.sign(ox) : Math.sign(oz);
   const hx = ax === 'x' ? -sg : 0, hz = ax === 'z' ? -sg : 0;   // 來車的方向（邏輯座標）：和往外的方向相反
   signals.push({ x: avX(n.i) - hx * 9.2 - hz * 9.2, z: stZ(n.j) - hz * 9.2 + hx * 9.2, ry: Math.atan2(hx, hz), i: n.i, j: n.j, ax, zn: n.zn, node: n });
@@ -180,7 +189,7 @@ const sigGeo = new Kit()
   .box(.25, 2.6, 0, .3, .5, .25, 0x15171a, 2)
   .build();
 const sigMesh = instanced(sigGeo, MAT.uberI, signals, 0, () => 0);
-for (const s of signals) { circles.push(circleToW({ x: s.x, z: s.z, r: .2 }, s.zn)); claim(s.x, s.z, 1.2); }
+for (const s of signals) { circles.push(circleToW({ x: s.x, z: s.z, r: .2 }, s.zn)); if (s.zn) claim(s.x, s.z, 1.2); }
 const SIGP = 26;
 function lightState(i, j, ax, t) {
   const k = ((t + (i * 7 + j * 11) % SIGP) % SIGP + SIGP) % SIGP;
@@ -194,7 +203,7 @@ function updateSignals(t) {
 }
 
 // ─── 人行道小物：消防栓、垃圾桶、報箱、護柱、電話亭 ───
-const hydrants = [], bins = [], boxesN = [], bollards = [], booths = [], grates = [], trees = [];
+const hydrants = [], bins = [], boxesN = [], bollards = [], booths = [], grates = [], trees = [], fountains = [];
 const sideSpots = [];  // 人行道上沿路緣的位置
 for (const b of blocks) {
   if (b.outer) continue;
@@ -214,6 +223,7 @@ for (const s of sideSpots) {
 }
 // 路口轉角的護柱（只放在這一區自己的人行道上）
 for (const n of RN.nodes) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+  if (n.free) continue;   // 快速道路的交叉口沒有人行道（亂數序列和以前一樣：這些路口排在最後）
   if (rnd() < .45) continue;
   for (let k = 0; k < 3; k++) {
     const x = avX(n.i) + sx * (8.5 + (k === 2 ? 0 : 1.3 + k * 1.3)), z = stZ(n.j) + sz * (8.5 + (k === 2 ? 1.3 : 0));
@@ -247,6 +257,15 @@ instanced(new Kit()
 // 行道樹：紅磚巷與舊碼頭比較多；燈籠公園的草地上種滿樹
 for (const b of blocks) {
   if (b.outer) continue;
+  if (b.plaza) {   // 廣場：大道一側的三角形中間是噴水池（相鄰的街區左右輪流），其他鋪面上種樹（離大道 4 m 以上）
+    const p = b.plaza, r3 = rng(b.i * 173 + b.j * 7 + 5), sg = (b.i + b.j) % 2 ? 1 : -1, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+    const fx = cx + p.uz * sg * (HR + 10.5), fz = cz - p.ux * sg * (HR + 10.5);
+    fountains.push({ x: fx, z: fz }); claim(fx, fz, 6); circles.push({ x: fx, z: fz, r: 3.3 });
+    for (let x = b.x0 + SW + 3; x < b.x1 - SW - 2; x += 6.5) for (let z = b.z0 + SW + 3; z < b.z1 - SW - 2; z += 6.5) {
+      const tx = x + (r3() - .5) * 2, tz = z + (r3() - .5) * 2, d = plazaD(tx, tz);
+      if (r3() < .6 && d > HR + 4 && free(tx, tz, 2.2)) { trees.push({ x: tx, z: tz, y: .15, ry: r3() * 6.3, s: .9 + r3() * .4 }); claim(tx, tz, 2.2); circles.push({ x: tx, z: tz, r: .35 }); }
+    }
+  }
   if (b.park) {
     const r3 = rng(b.i * 131 + b.j);
     for (let x = b.x0 + SW + 4; x < b.x1 - SW - 3; x += 7) for (let z = b.z0 + SW + 4; z < b.z1 - SW - 3; z += 7) {
@@ -266,7 +285,7 @@ for (const b of blocks) {
 // 步道在連接道路前斷開，草地不到 12 m、斷橋底下、外緣外面不鋪
 const SEAM_PATH = [], SEAM_SITES = [];
 {
-  const conn = RN.edges.filter(e => e.kind === 'c');
+  const conn = RN.edges.filter(e => e.kind === 'c' || e.kind === 'f');   // 快速道路經過的縫不鋪步道
   const nearConn = (x, z, r) => conn.some(e => e.pts.some(([px, pz]) => (px - x) ** 2 + (pz - z) ** 2 < r * r));
   const runs = [];
   for (let a = 0; a < ZONES.length; a++) for (let b = a + 1; b < ZONES.length; b++) {
@@ -304,7 +323,7 @@ const SEAM_PATH = [], SEAM_SITES = [];
 const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) ** 2 + (p.z - z) ** 2 < r * r)) && !SEAM_SITES.some(s => (s.x - x) ** 2 + (s.z - z) ** 2 < (s.R + r) ** 2);
 // 片之間與片外圍到外緣的草地：稀疏的樹，世界座標；避開片的路（zoneNearL）、連接道路、外緣邊上、斷橋與連接道路的路燈
 {
-  const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c'), { x0, x1, z0, z1 } = CITY_BB;
+  const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c' || e.kind === 'f'), { x0, x1, z0, z1 } = CITY_BB;
   for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
     if (r5() > .55 || !inCity(tx, tz) || zoneNearL(tx, tz, HR + 4) || polyDistPt(CITY_POLY, tx, tz) < 7 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5)) continue;
@@ -360,6 +379,12 @@ const newsBoxes = [], parkSeats = [], shrubs = [];
     }
   }
 }
+// street.glb 的配電箱（同樣只有模型版才擺）：沿路緣、長邊順著街；另一個亂數，上面那段的序列不變
+const eboxes = [];
+{
+  const r = rng(2604);
+  for (const s of sideSpots) if (r() < .022 && free(s.x, s.z, 1.3)) { eboxes.push({ ...s, y: .15 }); claim(s.x, s.z, 1.3); }
+}
 // World 第四輪之二（27-props.js 檔尾）：以 http(s) 開啟時把下面幾種換成 Sketchfab 模型，所以留住程式建模的網格（下載好才拿掉）
 const hydrantMesh = instanced(new Kit()
   .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)
@@ -392,9 +417,18 @@ let treeMesh;
   }
   treeMesh = instanced(k.build(), MAT.uber, trees);
 }
+// 廣場的噴水池：石砌圓池、深色水面、中間兩層的盤與水柱（水柱是淡藍的自發光），池邊一圈低矮的燈
+instanced(new Kit()
+  .cyl(0, .25, 0, 3.2, 3.3, .5, 28, 0x6e6a62, 2).cyl(0, .52, 0, 3.25, 3.25, .06, 28, 0x8a8478, 2)
+  .cyl(0, .4, 0, 2.95, 2.95, .04, 28, 0x0e2230, 2)
+  .cyl(0, 1, 0, .35, .45, 1.2, 12, 0x6e6a62, 2).cyl(0, 1.65, 0, 1.4, .5, .25, 20, 0x8a8478, 2)
+  .cyl(0, 2.3, 0, .18, .22, 1.1, 10, 0x6e6a62, 2).cyl(0, 2.85, 0, .7, .25, .16, 16, 0x8a8478, 2)
+  .cyl(0, 3.5, 0, .06, .12, 1.2, 8, 0x9fd8ff, 11).cyl(0, 1.95, 0, 1.1, 1.3, .5, 20, 0x9fd8ff, 11)
+  .build(), MAT.uber, fountains.map(f => ({ ...f, y: .15 })), LY.NOREFL);
 
 // ─── 窗型冷氣、逃生梯、水塔、屋頂設備 ───
 const acs = [], escapes = [], towers = [], roofBits = [];
+const rndG = rnd;
 function facePoint(L, k, along, y, out) {
   // 依 boxFaces 的 u 方向，把面上的 (u, y) 轉成世界座標，並往外推 out 公尺
   if (k === 'pz') return { x: L.x0 + along, y, z: L.z1 + out, ry: 0 };
@@ -403,6 +437,8 @@ function facePoint(L, k, along, y, out) {
   return { x: L.x0 - out, y, z: L.z0 + along, ry: -Math.PI / 2 };
 }
 for (const L of winSpots) {
+  // 自己有亂數的地塊（L.rng）用自己的；ghost 是改成廣場的街區原本的地塊（10-city.js），只抽亂數不放東西
+  const rnd = L.rng || rndG, G = L.ghost ? { push() {} } : null;
   const k = L.axis === 'z' ? (L.face > 0 ? 'pz' : 'nz') : (L.face > 0 ? 'px' : 'nx');
   const fw = k === 'pz' || k === 'nz' ? L.x1 - L.x0 : L.z1 - L.z0;
   const ws = L.style === 2 ? 2.2 : 2.5, fh = L.fh, gH = 4.6;
@@ -412,11 +448,11 @@ for (const L of winSpots) {
   if (cols >= 3 && rnd() < .45 && L.style !== 2) escCol = 1 + Math.floor(rnd() * (cols - 2));
   for (let fi = 0; fi < nF; fi++) for (let ci = 0; ci < cols; ci++) {
     if (escCol >= 0 && (ci === escCol || ci === escCol - 1)) continue;
-    if (rnd() < .14) acs.push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
+    if (rnd() < .14) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
   }
-  if (escCol >= 0) for (let fi = 0; fi < nF; fi++) escapes.push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
-  if (L.h < 32 && rnd() < .28) towers.push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
-  for (let n = 0; n < 2; n++) if (rnd() < .5) roofBits.push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
+  if (escCol >= 0) for (let fi = 0; fi < nF; fi++) (G || escapes).push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
+  if (L.h < 32 && rnd() < .28) (G || towers).push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
+  for (let n = 0; n < 2; n++) if (rnd() < .5) (G || roofBits).push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
 }
 instanced(new Kit().box(0, .22, .02, .66, .42, .5, 0xbab5a8, 10).box(0, .22, .28, .58, .3, .02, 0x55534e, 2).box(0, -.04, .05, .5, .06, .4, 0x2a2a2a, 15).build(), MAT.uber, acs);
 {

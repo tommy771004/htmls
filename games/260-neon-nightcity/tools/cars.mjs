@@ -135,7 +135,8 @@ async function processModel(M) {
       const ia = p.getIndices();
       let idx = ia ? Uint32Array.from(ia.getArray()) : Uint32Array.from({ length: cnt }, (_, i) => i);
       if (det < 0) for (let i = 0; i < idx.length; i += 3) { const s = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = s; }
-      prims.push({ mat, pos, nor, uv, idx, cnt, node: node.getName() });
+      let path = '', up = node; while (up) { path = up.getName() + '/' + path; up = up.getParentNode(); }   // 連同上層節點名（卡鉗常是上層群組的名字）
+      prims.push({ mat, pos, nor, uv, idx, cnt, node: node.getName(), path });
     }
   });
 
@@ -228,6 +229,28 @@ async function processModel(M) {
     });
   }
 
+  // 卡鉗：落在輪子裡、但材質或原檔節點名有 calip 的塊不跟著輪子轉，只跟著轉向（輸出成 wheel_XX_fix）
+  const FIX = cfg.fix ?? /calip/i;
+  for (const c of comps) c.fix = c.slot >= 0 && (FIX.test(c.prim.mat?.getName() || '') || FIX.test(c.prim.path || ''));
+  if (comps.some((c) => c.fix)) console.log(`  ${M.id}：卡鉗 ${comps.filter((c) => c.fix).length} 塊不跟著輪子轉`);
+  // 機車前叉與車把：轉向軸過前輪軸心、往後傾 rake 度；整塊落在軸周圍細圓柱裡（下段，前叉管）或上端軸後方較粗的範圍（車把）的塊
+  // 也放進 wheel_F_fix，遊戲裡繞這條軸轉（spec.rake）
+  const fi = M.bike && cfg.fork !== false ? wheels.findIndex((w) => w.name === 'F') : -1;
+  const F = { rake: 24, r: .14, top: .78, bar: .44, barH: .18, ...(cfg.fork || {}) };
+  if (fi >= 0) {
+    const w = wheels[fi], th = F.rake * Math.PI / 180, ay = Math.cos(th), az = -Math.sin(th);   // 軸：往上、往後（車頭朝 +z）
+    const bad = new Uint8Array(comps.length);
+    for (const p of prims) for (let i = 0; i < p.cnt; i++) {
+      const k = p.comp[i]; if (bad[k]) continue;
+      const x = p.pos[i * 3], y = p.pos[i * 3 + 1] - w.y, z = p.pos[i * 3 + 2] - w.z, t = y * ay + z * az;
+      const d = Math.hypot(x, y - t * ay, z - t * az), f = y * -az + z * ay;   // d：離軸的距離；f：往前（垂直於軸）的距離
+      if (t < -.12 || t > F.top + .12 || (t < F.top - F.barH ? d > F.r : d > F.bar || f > .06)) bad[k] = 1;
+    }
+    let n = 0;
+    comps.forEach((c, k) => { if (!bad[k] && !c.shadow && c.slot < 0) { c.slot = fi; c.fix = true; n++; } });
+    console.log(`  ${M.id}：前叉與車把 ${n} 塊跟著轉向`);
+  }
+
   // ─── 4. 材質 → 頂點屬性；車漆材質 ───
   const mats = [...new Set(prims.map((p) => p.mat))];
   const triOf = new Map(); for (const p of prims) triOf.set(p.mat, (triOf.get(p.mat) || 0) + p.idx.length / 3);
@@ -264,9 +287,9 @@ async function processModel(M) {
     for (let i = 0; i < p.idx.length; i += 3) {
       const comp = comps[p.comp[p.idx[i]]];
       if (comp.shadow) continue;
-      const gk = mi.key + '#' + comp.slot;
+      const gk = mi.key + '#' + comp.slot + (comp.fix ? 'f' : '');
       let g = groups.get(gk);
-      if (!g) { g = { mi, slot: comp.slot, pos: [], nor: [], uv: [], col: [], pbr: [], emi: [], idx: [], n: 0 }; groups.set(gk, g); }
+      if (!g) { g = { mi, slot: comp.slot, fix: comp.fix, pos: [], nor: [], uv: [], col: [], pbr: [], emi: [], idx: [], n: 0 }; groups.set(gk, g); }
       for (let k = 0; k < 3; k++) {
         const v = p.idx[i + k], rk = gk + ':' + v;
         let o = remap.get(rk);
@@ -308,12 +331,13 @@ async function processModel(M) {
   const meshes = new Map();
   for (const g of groups.values()) {
     if (!g.idx.length) continue;
-    let mesh = meshes.get(g.slot);
+    const mk = g.slot + (g.fix ? 'f' : '');
+    let mesh = meshes.get(mk);
     if (!mesh) {
-      mesh = doc.createMesh(g.slot < 0 ? 'body' : 'wheel_' + wheels[g.slot].name);
+      mesh = doc.createMesh(g.slot < 0 ? 'body' : 'wheel_' + wheels[g.slot].name + (g.fix ? '_fix' : ''));
       const node = doc.createNode(mesh.getName()).setMesh(mesh);
       if (g.slot >= 0) { const w = wheels[g.slot]; node.setTranslation([w.x, w.y, w.z]); }
-      out.addChild(node); meshes.set(g.slot, mesh);
+      out.addChild(node); meshes.set(mk, mesh);
     }
     const prim = doc.createPrimitive().setMaterial(mkMat(g.mi))
       .setAttribute('POSITION', acc(g.pos, 'VEC3', Float32Array)).setAttribute('NORMAL', acc(g.nor, 'VEC3', Float32Array))
@@ -338,6 +362,7 @@ async function processModel(M) {
     wheels: wheels.map((w) => ({ name: w.name, x: +w.x.toFixed(3), y: +w.y.toFixed(3), z: +w.z.toFixed(3), r: +w.r.toFixed(3) })),
     paint: paint.map((m) => m.getName()), paintable,
   };
+  if (fi >= 0) spec.rake = F.rake;   // 機車前輪與 wheel_F_fix 繞這個後傾角的軸轉向
   out.setExtras(spec);
   R.getAsset().extras = { title: info.title, author: info.author, license: info.license, source: info.source };
 
@@ -366,7 +391,10 @@ const manifestT = resolve(OUT_T, 'cars.json');
 const traffic = existsSync(manifestT) ? JSON.parse(readFileSync(manifestT, 'utf8')) : {};
 for (const M of MODELS) {
   if (only.length ? !only.includes(M.id) : M.traffic && !process.env.TRAFFIC) continue;   // 車流車型要指名或 TRAFFIC=1 才重做
-  (M.traffic ? traffic : manifest)[M.id] = await processModel(M);
+  // 其他工具寫進來的欄位（tools/seats.mjs 的 db）保留
+  const tbl = M.traffic ? traffic : manifest, prev = tbl[M.id] || {}, spec = await processModel(M);
+  for (const k in prev) if (!(k in spec)) spec[k] = prev[k];
+  tbl[M.id] = spec;
 }
 const ordered = {}; for (const M of MODELS) if (!M.traffic && manifest[M.id]) ordered[M.id] = manifest[M.id];
 writeFileSync(manifestPath, JSON.stringify(ordered, null, 1) + '\n');

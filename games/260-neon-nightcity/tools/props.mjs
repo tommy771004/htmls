@@ -34,7 +34,8 @@ export const SETS = [
   ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
   // 武器（69-combat.js）：orient 是「哪個原檔軸變成槍口方向 +z、哪個變成上方 +y」，center 是包圍盒中心放原點（握把位置由頁面的 ARMS 表另外給）
-  { out: 'arms', tex: 512, src: '.cache/arms', items: [
+  // heavy：瓦斯罐原檔兩萬多面（拉環、保險桿都很細），單獨減到兩成
+  { out: 'arms', tex: 512, src: '.cache/arms', heavy: [/Smoke Grenade/, .2], items: [
     { id: 'pistol', file: 'heckler__koch_usp_pistol', len: .194, orient: ['z', 'y'], center: 1 },
     // 原檔並排擺了兩把：只取右邊那把（摺疊槍托），再用主軸轉正
     { id: 'smg', file: 'mac-11', len: .3, pick: (x, y) => x > -.2 && y > .2, pca: 1, orient: ['-z', 'y'], center: 1 },
@@ -44,13 +45,17 @@ export const SETS = [
     { id: 'rpg', file: 'rpg-7', len: 1.2, orient: ['z', 'y'], center: 1 },
     { id: 'minigun', file: 'minigun_improved', len: .95, orient: ['-z', 'y'], center: 1 },
     { id: 'grenade', file: 'm67_fragmentation_grenade', len: .075, orient: ['z', 'y'], center: 1 },
+    // 69-tactics.js 的榴彈發射器（M32，原檔槍口朝 +x）與催淚瓦斯罐（直立，保留原檔的 SMOKE 字樣）
+    { id: 'launcher', file: 'm32_greande_launcher_low_poly', len: .78, orient: ['x', 'y'], center: 1 },
+    { id: 'gas', file: 'smoke_grenade', h: .14, orient: ['z', 'y'], center: 1 },
     { id: 'c4', file: 'c4_explosive', len: .22, orient: ['z', 'y'], center: 1 },
     { id: 'bat', file: 'baseball_bat', len: .84, orient: ['-x', 'y'], center: 1 },
     { id: 'katana', file: 'cyberpunk_katana', len: 1.0, orient: ['-x', 'y'], center: 1 },
     { id: 'baton', file: 'police_baton_game_ready_-_pbr', len: .5, orient: ['-z', 'y'], center: 1 },
   ] },
-  // 街道物件：消防栓、配電箱、加油機
-  { out: 'street', tex: 512, src: '.cache/raw', items: [
+  // 街道物件：消防栓、配電箱、加油機（加油機側板的店名、頂蓋的油品標語與一堆貼紙看不出是不是真實品牌，模糊掉）
+  { out: 'street', tex: 512, src: '.cache/raw', texEdit: { 'Material.001': { blur: [[0, .1, .11, .33], [.79, .46, .83, .74], [.12, 0, .19, .08], [.41, 0, .5, .12], [.41, .14, .46, .24],
+    [.82, 0, .86, .1], [.82, .15, .86, .25], [.1, .33, .18, .42], [.79, .72, .87, .95], [.15, .9, .22, 1], [.52, .88, .63, 1], [.17, .9, .25, .96], [.8, .88, .86, 1], [.92, .88, .96, 1]] } }, items: [
     { id: 'hydrant', file: 'fire_hydrant', h: .78 },
     { id: 'ebox', file: 'electrical_box_-_free', h: 1.62 },
     { id: 'pump', file: 'gas_pump', h: 2.1 },
@@ -81,7 +86,7 @@ export const SETS = [
   // 楓林里的住宅街區：golukumar 的 Neighbourhood City Modular（公尺，42×39 m，剛好一個街區），整塊當一個物件；
   // 只拿掉停在路邊的 BMW E46（真實車款，而且車流會自己開車進來）與路面；冷氣室外機、路燈、盆栽、路障這些面數很高的小零件（約 17 萬面）
   // 單獨減到一成（heavy），整組再減一半。路燈的燈頭位置記在 lights，頁面補點光。窗戶是幾何的窗框加上窗簾貼圖（Wall_3.056_5 上方四分之三）
-  { out: 'bld_nbh', file: 'neighbourhood', src: '.cache/world', prefix: 'nbh', win: true, winAuto: /^Wall_3\.056_5$/, winRects: { 'Wall_3.056_5': [[0, 0, 1, .74]] },
+  { out: 'bld_nbh', file: 'neighbourhood', src: '.cache/world', prefix: 'nbh', meshopt: 'high', win: true, winAuto: /^Wall_3\.056_5$/, winRects: { 'Wall_3.056_5': [[0, 0, 1, .74]] },
     dropPath: /E46/, lightPath: /streetLights/, heavy: [/Window_AC|Split_Ac|streetLights|Pot_9|TrafficDrum|Barricade/, .12], dropGround: .12, cellMargin: 0, simplify: .5, cells: [[-25, 25, -25, 25]] },
   // 灰石國宅：dasy444 的 street city buildings (8)，照片立面的蘇聯式板樓。原檔一層約 0.27 單位，放大 11 倍（一層 3 m）；
   // 疊在下一層上面的算同一棟（Cube.019→018、Plane.011→010、Plane.014→013）；名叫 Plane 的也是板樓（grey_19 起），
@@ -114,7 +119,7 @@ export const SETS = [
   // 主街（東西向，z −0.7…0.4）兩側、五條南北向小街之間，北排 6 群（正面朝 +z）、南排 8 群（正面朝 −z，轉 180°）；街上的車、人、樹、路面不要。
   // 原檔一層約 0.35 單位，放大 9 倍（最高的塔約 180 m）。四張廣告圖集全是真實品牌，每塊版面換成原創的霓虹廣告（虛構店名）；
   // 立面照片圖集（Material.004／.009 同一張）拍到的真實招牌（餐廳、速食、飯店、劇院）模糊成色塊
-  { out: 'bld_cyber', file: 'cyberpunk', src: '.cache/world', prefix: 'cyber', scale: 9, cellMargin: .05, dropGround: .12, simplify: .5, simplifyError: .004, tex: 2048,
+  { out: 'bld_cyber', file: 'cyberpunk', src: '.cache/world', prefix: 'cyber', meshopt: 'high', scale: 9, cellMargin: .05, dropGround: .12, simplify: .5, simplifyError: .004, tex: 2048,
     texEdit: (() => {
       const blur = [[.132, .068, .334, .13], [.48, .054, .759, .123], [.768, .071, .814, .145], [.877, .3, .993, .354], [.502, .368, .7, .409], [.875, .427, .921, .48],
         [.384, .454, .464, .486], [.62, .499, .689, .53], [.3, .607, .48, .68], [.873, .607, .987, .699]];
@@ -799,7 +804,7 @@ async function build(set) {
     ...(set.simplify ? [simplify({ simplifier: MeshoptSimplifier, ratio: set.simplify, error: set.simplifyError ?? .002 })] : []),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^baseColor|^emissive/, resize: [set.tex ?? 1024, set.tex ?? 1024], quality: 80 }),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^metallicRoughness/, lossless: true }),   // 窗戶編號不能有失真
-    meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+    meshopt({ encoder: MeshoptEncoder, level: set.meshopt ?? 'medium' }),   // 'high'：法線與位置用 meshopt 的濾波量化，檔案小三到四成
   );
   mkdirSync(OUT, { recursive: true });
   const file = resolve(OUT, set.out + '.glb');
@@ -820,4 +825,5 @@ for (const set of SETS) {
 const manifest = { ...(existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {}), ...built };
 const ordered = {}; for (const s of SETS) if (manifest[s.out]) ordered[s.out] = manifest[s.out];
 for (const k of Object.keys(manifest)) if (!ordered[k]) ordered[k] = manifest[k];   // 另一個程序剛加、這份 SETS 還沒有的組也留著
-writeFileSync(manifestPath, JSON.stringify(ordered, null, 1) + '\n');
+// foot（tools/foot.mjs 量的碰撞矩形）每個矩形寫成一行，和 foot.mjs 寫出來的格式一樣
+writeFileSync(manifestPath, JSON.stringify(ordered, null, 1).replace(/\[\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+)\n\s*\]/g, '[$1, $2, $3, $4, $5]') + '\n');

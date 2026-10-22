@@ -363,6 +363,47 @@ let benchMesh, planterShrubMesh;
   }
   cityAdd(new T.Mesh(k.build(), MAT.uber), null);
 }
+// ─── 快速道路（06-roads.js 的 FWY，世界座標）：中央的混凝土護欄（交叉口前後 HR + 6 m 斷開，碰撞是一段段自己的座標框），
+// 每條長的路段中間一座門架，兩面各掛一塊綠底白字的指示牌（面向那一邊的來車）───
+{
+  const k = new Kit(), font = '"Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif';
+  const signMat = new Map();
+  const sign = F => {
+    if (signMat.has(F)) return signMat.get(F);
+    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 320;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0d5a32'; c.fillRect(0, 0, 1024, 320); c.strokeStyle = '#e8efe8'; c.lineWidth = 10; c.strokeRect(14, 14, 996, 292);
+    c.fillStyle = '#f2f6f2'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = `700 112px ${font}`; c.fillText(F.name.toUpperCase(), 512, 120);
+    c.font = `600 72px ${font}`; c.fillText(F.zh, 512, 236);
+    const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace; tx.anisotropy = 4;
+    const m = new T.MeshBasicMaterial({ map: tx, toneMapped: false, color: 0xb8b8b8 });
+    signMat.set(F, m); return m;
+  };
+  for (const F of FWY) for (const e of F.edges || []) {
+    const u0 = HR + 6, u1 = e.len - HR - 6;
+    for (let u = u0; u < u1 - .5; u += 6) {
+      const [x0, z0] = edgeAt(e, u), [x1, z1] = edgeAt(e, Math.min(u + 6, u1)), l = Math.hypot(x1 - x0, z1 - z0);
+      if (l < .3) continue;
+      const ry = Math.atan2(-(z1 - z0), x1 - x0);
+      k.box((x0 + x1) / 2, .42, (z0 + z1) / 2, l + .06, .84, .32, 0x9a968c, 2, 0, ry).box((x0 + x1) / 2, .1, (z0 + z1) / 2, l + .06, .2, .62, 0x8a867c, 2, 0, ry);
+      colliders.push({ x0: -.03, x1: l + .03, z0: -.31, z1: .31, low: 1, zn: frameW(x0, z0, x1 - x0, z1 - z0) });
+    }
+    if (e.len < 140) continue;
+    // 門架：兩根柱子在路肩外、橫樑 7 m 高；牌子在橫樑兩面，各在那一邊車道的上方
+    const [mx, mz, hx, hz] = edgeAt(e, e.len / 2), nx = -hz, nz = hx, ry = Math.atan2(hx, hz);
+    for (const sd of [-1, 1]) { const px = mx + nx * sd * (HR + 1.6), pz = mz + nz * sd * (HR + 1.6); k.cyl(px, 3.6, pz, .22, .26, 7.2, 10, 0x6a6e74, 15); circles.push({ x: px, z: pz, r: .3, w: 1 }); }
+    k.box(mx, 7.1, mz, 2 * HR + 3.6, .5, .5, 0x6a6e74, 15, 0, Math.atan2(-nz, nx)).box(mx, 7.6, mz, 2 * HR + 3.6, .16, .16, 0x6a6e74, 15, 0, Math.atan2(-nz, nx));
+    for (const sd of [-1, 1]) {
+      const pl = new T.Mesh(new T.PlaneGeometry(6.4, 2), sign(F));
+      // 右駕：沿 +h 開的車在 n = (−hz, hx) 那一側；牌子掛在那半邊上方、正面朝來車（−h）
+      const side = sd, fx = -sd * hx, fz = -sd * hz;
+      pl.position.set(mx + nx * side * 3.4 + fx * .3, 7.1, mz + nz * side * 3.4 + fz * .3); pl.rotation.y = Math.atan2(fx, fz);
+      cityAdd(pl, null);
+    }
+  }
+  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
+}
 
 // 棧橋：木板、樁、欄杆；盡頭的摩天輪（輪面朝北，岸上看得到整圈）
 const ferris = new T.Group(), cabins = [];
@@ -652,7 +693,7 @@ const FAR_SITES = {
   // 山：以 CITY_C 為中心的極座標網格，第 0 圈就是外緣的頂點（外緣每 2° 一點），往外 3.5 km；高度照 hillH，整格在水面下的不建。
   // 林線以下深綠、往上轉成岩色，山頂零星幾盞管理站與山屋的燈
   {
-    const P = CITY_POLY, n = P.length, [cx, cz] = CITY_C, D = [0, 3, 8, 16, 30, 55, 90, 140, 210, 300, 420, 580, 800, 1100, 1500, 2000, 2700, 3500], m = D.length;
+    const P = CITY_POLY, n = P.length, [cx, cz] = CITY_C, D = HILL_D, m = D.length;   // HILL_D：10-city.js（hillMeshH 照同一組圈算網格上的高度）
     const pos = new Float32Array(n * m * 3), col = new Float32Array(n * m * 3), H = new Float32Array(n * m), cA = new T.Color(0x0e170c), cB = new T.Color(0x1c1a16), cC = new T.Color(0x2a2a2c), c = new T.Color();
     for (let k = 0; k < n; k++) {
       const R = Math.hypot(P[k][0] - cx, P[k][1] - cz), ux = (P[k][0] - cx) / R, uz = (P[k][1] - cz) / R;
@@ -677,7 +718,7 @@ const FAR_SITES = {
     const lk = new Kit();
     for (let i = 0; i < 60; i++) {
       const k = Math.floor(r2() * n), d = 150 + r2() * 1800, R = Math.hypot(P[k][0] - cx, P[k][1] - cz), X = cx + (P[k][0] - cx) / R * (R + d), Z = cz + (P[k][1] - cz) / R * (R + d), h = hillH(X, Z);
-      if (h < 20) continue;
+      if (h < 20 || parkGround(X, Z) !== null) continue;   // 北嶺公園裡另外有步道燈
       lk.box(X, h + 2, Z, 3, 3, 3, 0xffc880, 11);
     }
     cityAdd(new T.Mesh(lk.build(), MAT.far), null);

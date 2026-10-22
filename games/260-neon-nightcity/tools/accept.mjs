@@ -28,8 +28,8 @@ async function desktop() {
     await page.waitForTimeout(1200);
     await shot(page, 'd-start');
     // World 第四輪之二（27-props.js 檔尾）：以檔案開啟不下載街道設施、植物與海岸的模型，程式建模全部留著
-    const w2 = await ev(page, () => { const w = window.__nc.props.w2; return w && { on: w.on, sets: Object.keys(w.sets).length, failed: w.failed.length, kept: w.kept() }; });
-    check(w2 && !w2.on && !w2.sets && !w2.failed && w2.kept >= 16, `以檔案開啟不換 world_2 模型、程式建模都在 ${JSON.stringify(w2)}`);
+    const w2 = await ev(page, () => { const w = window.__nc.props.w2; return w && { on: w.on, sets: Object.keys(w.sets).length, failed: w.failed.length, kept: w.kept(), proc: w.proc, ebox: w.n.ebox, pump: w.n.pump }; });
+    check(w2 && !w2.on && !w2.sets && !w2.failed && w2.kept >= 16 && w2.proc && w2.ebox > 20 && w2.pump >= 4, `以檔案開啟不換 world_2 模型、程式建模都在（配電箱與加油機用替身） ${JSON.stringify(w2)}`);
 
     // 走路
     const p0 = await ev(page, () => ({ x: window.__nc.player.x, z: window.__nc.player.z }));
@@ -87,7 +87,24 @@ async function desktop() {
     await page.keyboard.press('KeyG');
     await page.waitForTimeout(5800);
     check((await ev(page, () => window.__nc.quest.n)) === 5, '舞池跳滿 5 秒，任務完成');
+    // 舞池：動畫庫只有一段舞，另外三種舞步是上身覆寫；拍點錯開，路人上衣有花樣
+    const dz = await ev(page, () => { const nc = window.__nc, A = nc.ANIM, D = [A.danceA, A.danceB, A.danceC, A.punch, A.danceD, A.danceE, A.danceF];
+      const ds = nc.club.people.people.filter((p, i) => nc.club.dancers.includes(i));
+      return { kinds: new Set(ds.map(p => p.a[0]).filter(a => D.includes(a))).size, offs: new Set(ds.map(p => p.a[3])).size, n: ds.length,
+        pats: new Set(nc.peds.people.filter(p => p.sm).map(p => p.sm.material.uniforms.uPat.value.x)).size, me: nc.player.dance };
+    });
+    check(dz.kinds >= 6 && dz.offs >= 3 && dz.pats >= 4 && dz.me >= 1 && dz.me <= 7, `舞池 ${dz.n} 人跳 ${dz.kinds} 種舞步、${dz.offs} 種拍點，路人上衣 ${dz.pats} 種花樣（含素面）`);
     await shot(page, 'd-club');
+    // 自動降載：內部解析度降到 60% 還是慢就縮短細節距離（01-settings.js 的 detail），變快了先放回來
+    const dk = await ev(page, () => new Promise((r) => {
+      const nc = window.__nc, P = nc.post, d0 = nc.menu.detail();
+      nc.menu.set('res', 'auto'); P.scale = .6; P.ft = 60; P.slow = 2;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const d1 = nc.menu.detail(); P.ft = 4; P.fast = 5;
+        requestAnimationFrame(() => requestAnimationFrame(() => r({ d0: d0.k, d1: d1.k, d2: nc.menu.detail().k, scale: P.scale })));
+      }));
+    }));
+    check((dk.d1 < dk.d0 || dk.d0 <= .6) && dk.d2 > dk.d1 && dk.scale === .6, `太慢時縮短細節距離、變快先放回來 ${JSON.stringify(dk)}`);
     const fpsClub = (await ev(page, () => window.__nc.getStats())).fps;
 
     // 開車
@@ -237,7 +254,7 @@ async function desktop() {
     await page.waitForTimeout(1600);
     const st1 = await nc(() => { const nc = window.__nc, p = nc.peds.people[1], s = nc.pedState[1]; return { x: p.x, z: p.z, down: s.down > 0, panic: s.panic > 0 }; });
     check(st0.down && st0.stun && !st1.down && st1.panic && Math.hypot(st1.x - st0.x, st1.z - st0.z) < 6, `電擊槍：路人倒地後原地爬起逃跑 ${JSON.stringify({ moved: +Math.hypot(st1.x - st0.x, st1.z - st0.z).toFixed(1), panic: st1.panic })}`);
-    const db = await nc(() => { const nc = window.__nc, g = nc.gta; nc.drive(); g.wanted.clear('reset'); g.fill(); g.equip('pistol', true); g.state.fireT = g.state.reloadT = 0; g.fire(); return { mode: nc.player.mode, mag: g.arm.ammo.pistol.mag, sg: g.canDriveBy('shotgun'), rf: g.canDriveBy('rifle') }; });
+    const db = await nc(() => { const nc = window.__nc, g = nc.gta; nc.drive(); g.wanted.clear('reset'); g.fill(); g.equip('pistol', true); g.state.fireT = g.state.reloadT = 0; g.fire(); return { mode: nc.player.mode, mag: g.arm.ammo.pistol.mag, sg: g.canDriveBy('shotgun'), rf: g.canDriveBy('rifle'), dead: g.life.dead, god: g.god.on, where: nc.player.where, pist: g.canDriveBy('pistol') }; });
     check(db.mode === 'drive' && db.mag === 15 && !db.sg && !db.rf, `車內射擊：手槍可開火、霰彈槍與步槍不行 ${JSON.stringify(db)}`);
     await nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); window.__nc.walk(); });
     await shot(page, 'd-gta');
@@ -370,6 +387,7 @@ async function desktop() {
     await nc(() => {
       const nc = window.__nc, rp = nc.gta.stunt.RAMPS[1];
       nc.drive(); const v = nc.player.veh; window.__c0 = nc.motors.cash;
+      nc.gta.roll.fix(v); // 上一跳落地的車損會隨機熄火，「引擎熄火」的提示會蓋掉翻滾加成
       v.x = rp.x - rp.dx * 16; v.z = rp.z - rp.dz * 16; v.yaw = Math.atan2(rp.dx, rp.dz); v.vx = rp.dx * 30; v.vz = rp.dz * 30;
     });
     for (let k = 0; k < 100 && !(await nc(() => !!window.__nc.player.veh.air)); k++) await page.waitForTimeout(40);
@@ -380,6 +398,42 @@ async function desktop() {
     const sr = await nc(() => ({ got: window.__nc.motors.cash - window.__c0, toast: document.getElementById('toast').textContent }));
     const sp = await nc(() => window.__nc.gta.stunt.probe().filter((r) => r.bad.some((a) => a > -32)));
     check(sr.got > 0 && /翻滾 ×1/.test(sr.toast) && !sp.length && (await nc(() => window.__nc.gta.stunt.RAMPS.length)) === 20, `空中翻滾一圈落地拿加成、20 座跳台路線淨空 ${JSON.stringify({ ...sr, blocked: sp })}`);
+    // 翻車與堆疊（68-roll.js）：爆炸掀翻滾到停、側翻按住方向鍵推回、倒扣 4 秒起火、從上面落到車流車的車頂、開下來
+    const ro1 = await nc(() => new Promise((r) => {
+      const nc = window.__nc, R = nc.gta.roll; nc.drive(); const v = nc.player.veh;
+      R.fix(v); v.vx = v.vz = 0; R.kick(v, 1, 1);
+      const out = { kick: !!v.tumble, top: 0 };
+      let t = 0;
+      const id = setInterval(() => { t += .1; out.top = Math.max(out.top, +v.y.toFixed(1)); if (!v.tumble || t > 9) { clearInterval(id); out.settled = !v.tumble; out.st = R.st; r(out); } }, 100);
+    }));
+    await nc(() => { const v = window.__nc.player.veh; window.__nc.gta.roll.fix(v); v.roll = Math.PI / 2; v.flipped = { t: 0, side: 1, push: 0 }; });
+    await page.waitForTimeout(200);
+    await page.keyboard.down('KeyA'); await page.waitForTimeout(900); await page.keyboard.up('KeyA');
+    await page.waitForTimeout(2200);
+    const ro2 = await nc(() => window.__nc.gta.roll.st);
+    await nc(() => { const v = window.__nc.player.veh; window.__nc.gta.roll.fix(v); v.roll = Math.PI; v.flipped = { t: 0, side: 0, push: 0 }; });
+    await page.waitForTimeout(4600);
+    const ro3 = await nc(() => { const v = window.__nc.player.veh, k = v.hp / v.hpMax; window.__nc.gta.roll.fix(v); return +k.toFixed(2); });
+    const ro4 = await nc(() => new Promise((r) => {
+      const nc = window.__nc, v = nc.player.veh, T = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84'];
+      const c = nc.traffic.filter((c) => !T.includes(c.type) && !c.turn).sort((a, b) => Math.hypot(a.x - v.x, a.z - v.z) - Math.hypot(b.x - v.x, b.z - v.z))[0];
+      const dbg = { type: c.type, d0: Math.round(Math.hypot(c.x - v.x, c.z - v.z)), ys: [] };
+      c.hit = 3; c.v = 0; v.x = c.x; v.z = c.z; v.yaw = c.yaw; v.y = 3.5;   // 先停住：從 3.5 m 掉向開著的車，落下時它已經開走了
+      v.vx = v.vz = 0; nc.gta.roll.start(v, 0, 0); window.__rc = c;
+      const id = setInterval(() => dbg.ys.push(+v.y.toFixed(2), +Math.hypot(v.x - c.x, v.z - c.z).toFixed(1)), 500);
+      setTimeout(() => {   // 落穩後讓下面那台往前滑 2 m（煞停前還在動）：上面的車要跟著走
+        clearInterval(id); const st = { ...nc.gta.roll.st, stopped: c.v < .5, dbg }, x0 = c.x, z0 = c.z;
+        const mv = setInterval(() => { c.s += .1; }, 25);
+        setTimeout(() => { clearInterval(mv); r({ ...st, moved: +Math.hypot(c.x - x0, c.z - z0).toFixed(1), carry: +Math.hypot(v.x - c.x, v.z - c.z).toFixed(2), on2: !!v.onCar }); }, 500);
+      }, 2500);
+    }));
+    await page.keyboard.down('KeyW'); await page.waitForTimeout(1600); await page.keyboard.up('KeyW');
+    await page.waitForTimeout(600);
+    const ro5 = await nc(() => { const v = window.__nc.player.veh, c = window.__rc; return { ...window.__nc.gta.roll.st, d: +Math.hypot(v.x - c.x, v.z - c.z).toFixed(1) }; });
+    check(ro1.kick && ro1.settled && ro1.top > 1 && ro2 && !ro2.flipped && !ro2.tumble && Math.abs(ro2.roll) < .1 && ro3 <= .15
+      && ro4.onCar && ro4.y > 1.3 && ro4.stopped && ro4.moved > 1 && ro4.carry < .3 && ro4.on2 && !ro5.onCar && ro5.y < .3 && ro5.d > 4,
+      `翻車：爆炸掀翻滾到停、側翻推回、倒扣起火（耐久 ${ro3}）、落在車流車車頂跟著走再開下來 ${JSON.stringify({ ro1, ro2, ro4, ro5 })}`);
+
     // 運鈔車：Zero 標記叫出來、炸後車門掉三袋現金（3 星）、IVLT 下跌 SNTL 上漲
     const tr = await nc(() => new Promise((r) => {
       const nc = window.__nc, g = nc.gta, e = g.ev, px0 = { ...nc.motors.stk.px };
@@ -513,6 +567,26 @@ async function desktop() {
     await page.waitForTimeout(1800);
     const sa5 = await nc(() => ({ w: window.__nc.player.where, saved: window.__nc.motors.game.where }));
     check(sa5.saved === 'loft' && sa5.w === 'loft', `安全屋存的檔讀回室內 ${JSON.stringify(sa5)}`);
+    // 分層的安全屋：閣樓按 E 沿旋轉樓梯走上夾層，上面的提示變成下樓
+    const lf1 = await nc(() => { const nc = window.__nc, s = nc.gta.apt.APT.loft.up.path[0], p = nc.player; p.x = s[0]; p.z = s[2] + .5; const c = nc.ctx(); nc.act(); return { c }; });
+    await page.waitForTimeout(6500);
+    const lf2 = await nc(() => {
+      const nc = window.__nc, p = nc.player, a = nc.gta.apt.APT.loft, r = { y: +p.y.toFixed(2), ride: !!p.ride, c: nc.ctx() };
+      nc.gta.apt.level('loft', 0); p.y = 0; p.x = a.spawn.x; p.z = a.spawn.z;
+      return r;
+    });
+    // 換裝：衣架按 E，選第二套（顏色換掉、記在 localStorage），再換回原本那套
+    const wr = await nc(() => {
+      const nc = window.__nc, a = nc.gta.apt.APT.loft, p = nc.player, c = nc.gta.crew.CREW[nc.gta.crew.crew.cur], top0 = c.look.top.getHex();
+      p.x = a.robe.x; p.z = a.robe.z - 1.3; const ctx = nc.ctx(); nc.act();
+      const opts = nc.gta.apt.OUTFITS[c.id].length; nc.pick(1);
+      let saved = null; try { saved = JSON.parse(localStorage.getItem('nc260.outfit'))[c.id]; } catch {}
+      const r = { ctx, opts, k: nc.gta.apt.outfit[c.id], saved, changed: c.look.top.getHex() !== top0 };
+      nc.gta.apt.wear(0); r.back = c.look.top.getHex() === top0;
+      return r;
+    });
+    check(/換裝/.test(wr.ctx) && wr.opts === 4 && wr.k === 1 && wr.saved === 1 && wr.changed && wr.back, `安全屋衣架換裝、記住選擇、換回原本那套 ${JSON.stringify(wr)}`);
+    check(/上樓/.test(lf1.c) && !lf2.ride && Math.abs(lf2.y - 3.85) < .1 && /下樓/.test(lf2.c), `閣樓沿旋轉樓梯走上夾層 ${JSON.stringify({ ...lf1, ...lf2 })}`);
     await nc(() => window.__nc.exit());
     await page.waitForTimeout(900);
     // 不用買的店（HANG_IDS）：便利店門口直接進入，結帳台買吃的補滿生命；酒館裡沒有睡覺
@@ -580,6 +654,11 @@ async function desktop() {
     });
     await nc(() => window.__nc.act());
     await page.waitForTimeout(900);
+    // 辦公室的夾層沒有樓梯：西牆邊的小間當電梯，淡出淡入後從夾層那側走出來
+    const ol1 = await nc(() => { const nc = window.__nc, s = nc.gta.apt.APT.office.up.path[0], p = nc.player; p.x = s[0]; p.z = s[2]; const c = nc.ctx(); nc.act(); return { c }; });
+    await page.waitForTimeout(3500);
+    const ol2 = await nc(() => { const nc = window.__nc, p = nc.player, r = { y: +p.y.toFixed(2), ride: !!p.ride, c: nc.ctx() }; nc.gta.apt.level('office', 0); p.y = 0; return r; });
+    check(/搭電梯上樓/.test(ol1.c) && !ol2.ride && Math.abs(ol2.y - 2.6) < .1 && /搭電梯下樓/.test(ol2.c), `辦公室搭電梯上夾層 ${JSON.stringify({ ...ol1, ...ol2 })}`);
     const of2 = await nc(() => {
       const nc = window.__nc, a = nc.gta.apt.APT.office, p = nc.player, r = { w: p.where, st: document.getElementById('stName').textContent };
       nc.motors.props.safe.office = 1234; p.x = a.desk.x; p.z = a.desk.z - .4; r.desk = nc.ctx(); const c0 = nc.motors.cash; nc.act(); r.got = nc.motors.cash - c0;
@@ -590,6 +669,41 @@ async function desktop() {
     const of3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.doorW; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
     check(/看房/.test(of1.c) && of1.own && /進入/.test(of1.c2) && of2.w === 'office' && of2.got === 1234 && /睡一覺/.test(of2.nap) && /回到街上/.test(of2.exit) && of3.w === 'out' && of3.d < 3,
       `灰鷗島辦公室：門朝北、買下、進去收保險箱、沙發睡覺、出門 ${JSON.stringify({ ...of1, ...of2, ...of3 })}`);
+    // 別墅：客廳西牆的門洞走得進側翼，南面落地窗拉開的那段走得到露台，其他段的玻璃擋住
+    const vw0 = await nc(() => { const nc = window.__nc; if (!nc.motors.props.own.includes('villa')) nc.motors.props.own.push('villa'); nc.enter('villa'); return nc.player.where; });
+    await page.waitForTimeout(900);
+    const vwalk = async (x, z, yaw, ms) => {
+      await nc(([x, z, yaw]) => { const nc = window.__nc, p = nc.player; p.x = x; p.z = z; nc.look(yaw, .15); }, [x, z, yaw]);
+      await hold(page, 'KeyW', ms);
+      return nc(() => [+window.__nc.player.x.toFixed(2), +window.__nc.player.z.toFixed(2)]);
+    };
+    const vw1 = await vwalk(-2, -3.8, -Math.PI / 2, 2400), vw2 = await vwalk(13.4, 4.6, 0, 1500), vw3 = await vwalk(9, 4.6, 0, 1500);
+    check(vw0 === 'villa' && vw1[0] < -4.5 && vw2[1] > 6.8 && vw3[1] < 5.9, `別墅走進側翼、從拉開的落地窗走上露台、其他段玻璃擋住 ${JSON.stringify({ vw0, vw1, vw2, vw3 })}`);
+    await nc(() => window.__nc.exit());
+    await page.waitForTimeout(900);
+    // 安全屋車庫：開自己的車停到買下的頂層公寓門口，停進去直接進門；出門後從捲門把車開出來
+    const gr1 = await nc(() => { const nc = window.__nc, v = nc.vehicles[0], c = nc.gta.apt.curb('loft'); nc.walk(); v.x = c.x; v.z = c.z; v.yaw = c.yaw; v.vx = v.vz = 0; nc.drive(); return { c: nc.ctx() }; });
+    await nc(() => window.__nc.act());
+    await page.waitForTimeout(900);
+    const gr2 = await nc(() => ({ w: window.__nc.player.where, stowed: window.__nc.motors.stowed }));
+    await nc(() => window.__nc.exit());
+    await page.waitForTimeout(900);
+    const gr3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.loft.door; nc.tpL(d.x + 3.5, d.z + .8, Math.PI); const c = nc.ctx(); nc.act(); nc.pick(0); return { c }; });
+    await page.waitForTimeout(600);
+    const gr4 = await nc(() => { const nc = window.__nc, p = nc.player, c = nc.gta.apt.curb('loft'), r = { mode: p.mode, d: p.veh ? Math.round(Math.hypot(p.veh.x - c.x, p.veh.z - c.z)) : -1, stowed: nc.motors.stowed }; nc.walk(); return r; });
+    check(/停進車庫/.test(gr1.c) && gr2.w === 'loft' && gr2.stowed && /開車出門/.test(gr3.c) && gr4.mode === 'drive' && gr4.d === 0 && !gr4.stowed,
+      `安全屋車庫：停進頂層公寓、從捲門開出來 ${JSON.stringify({ ...gr1, ...gr2, c3: gr3.c, ...gr4 })}`);
+    // 車庫清單一頁六台，多的翻頁（暫時把九台車算成自己的）
+    const gr5 = await nc(() => {
+      const nc = window.__nc, m = nc.motors, own = m.owned.slice(), opts = () => [...document.querySelectorAll('#dlgOpts button')].map(b => b.textContent.slice(1));
+      m.owned = [m.cur, ...Object.keys(nc.cars).filter(c => c !== m.cur).slice(0, 8)];
+      nc.gta.apt.garage('loft'); const p1 = opts(), t1 = document.getElementById('dlgWho').textContent;
+      nc.pick(6); const p2 = opts(), t2 = document.getElementById('dlgWho').textContent;
+      nc.pick(p2.length - 2); const p3 = opts();
+      nc.gta.apt.garage('loft', 0); nc.pick(p1.length - 1); m.owned = own;
+      return { n1: p1.length, n2: p2.length, t1, t2, back: p3[0] === p1[0], open: !!document.querySelector('#dialog.on') };
+    });
+    check(gr5.n1 === 8 && gr5.n2 === 5 && /1\/2/.test(gr5.t1) && /2\/2/.test(gr5.t2) && gr5.back && !gr5.open, `安全屋車庫清單翻頁 ${JSON.stringify(gr5)}`);
     // 其他安全屋的短租收入：手機列出租金，進門自動收下
     const mi1 = await nc(() => {
       const nc = window.__nc, m = nc.gta.market, e = m.ESTATES.find(o => o.id === 'mini');
@@ -668,6 +782,41 @@ async function desktop() {
       }
       check(fw.every(f => !f.swim && f.y > .1 && f.inside && f.boat), `對岸步道走得上去、靠樓那側擋住、渡口有船 ${JSON.stringify(fw)}`);
     }
+    // 北嶺公園（10-city.js 的 NPARK、21-park.js；公園自己的座標框，park.W／park.L 換算）：從外緣的牌樓門走進去、在坡上貼著地、
+    // 觀景台站在平台上、圍籬擋住、車被門口的路樁擋住
+    {
+      const run = async (ms) => { await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
+      const at = () => nc(() => { const n = window.__nc, p = n.player, [x, z] = n.park.L(p.x, p.z); return { x: +x.toFixed(1), z: +z.toFixed(1), y: +p.y.toFixed(2), h: +n.park.h(x, z).toFixed(2), swim: !!p.swim, d: n.park.district(p.x, p.z).split(' ')[0] }; });
+      // 局部方向 (dx, dz) 的世界朝向
+      const yawOf = (dx, dz) => nc(([dx, dz]) => { const K = window.__nc.park, a = K.W(0, 0), b = K.W(dx, dz); return Math.atan2(b.x - a.x, b.z - a.z); }, [dx, dz]);
+      const up = await yawOf(0, -1), west = await yawOf(-1, 0);
+      await nc((up) => { const n = window.__nc, K = n.park, w = K.W(0, K.edgeZ(0) + 12); n.walk(); n.tp(w.x, w.z, up); }, up);
+      await page.waitForTimeout(300); await run(5000);
+      const gate = await at();
+      await nc((up) => { const n = window.__nc, P = n.park.trail[200], w = n.park.W(P[0], P[1]); n.tp(w.x, w.z, up); }, up);
+      await page.waitForTimeout(300); await run(2500);
+      const slope = await at();
+      await nc((west) => { const n = window.__nc, W = n.park.walk, w = n.park.W(W.x0 + 6, (W.z0 + W.z1) / 2); n.tp(w.x, w.z, west); }, west);
+      await page.waitForTimeout(300); await run(3000);
+      const fence = await at();
+      await nc(() => { const n = window.__nc, L = n.park.look, w = n.park.W(L.cx, L.cz); n.tp(w.x, w.z); });
+      await page.waitForTimeout(2200);   // 從坡上傳送過去，往上爬 0.8 m 以上是慢慢升（40-people.js 的 damp 4）
+      const look = { ...(await at()), deck: await nc(() => window.__nc.park.look.h) };
+      await nc(() => window.__nc.drive());
+      await page.waitForFunction(() => window.__nc.player.veh, null, { timeout: 15000 });
+      // 先修車：前面的撞擊累積下來，撞上路樁可能起火燒毀（68-wreck.js）
+      // 從外緣內 16 m 的草地出發（再遠就在外緣那條街上，等紅燈的車流會擋住）
+      await nc((up) => { const n = window.__nc, K = n.park, v = n.player.veh, w = K.W(0, K.edgeZ(0) + 16); v.x = w.x; v.z = w.z; v.yaw = up; v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v); }, up);
+      await page.waitForTimeout(300);
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(4500); await page.keyboard.up('KeyW');
+      const car = await nc(() => { const n = window.__nc, v = n.player.veh, [, z] = n.park.L(v.x, v.z); return +z.toFixed(1); });
+      await nc(() => window.__nc.walk());
+      const zf = await nc(() => { const K = window.__nc.park; return Math.min(K.edgeZ(-K.gw), K.edgeZ(K.gw)) - 1.5; });
+      const pk = { gate, slope, fence, look, car, zf: +zf.toFixed(1) };
+      const W0 = await nc(() => window.__nc.park.walk.x0);
+      check(gate.z < zf && gate.d === '北嶺公園' && !gate.swim && slope.y > 5 && Math.abs(slope.y - slope.h) < .3 && fence.x > W0 && Math.abs(look.y - look.deck) < .05 && car > zf + 1 && car < zf + 12,
+        `北嶺公園：走進門、坡上貼地、圍籬擋住、觀景台平台、車擋在門口 ${JSON.stringify(pk)}`);
+    }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {
       const b0 = await nc(() => { const n = window.__nc, b = n.boat; n.time(780); const name = b.board(0), v = n.player.veh; return { name, boat: !!(v && v.boat), x: v.x, z: v.z, n: b.boats.length }; });
@@ -693,6 +842,33 @@ async function desktop() {
       await page.waitForTimeout(2500);
       const t1 = await nc(() => window.__nc.boat.trucks());
       check(t0.length === 3 && t1.some((t, i) => Math.abs(t.s - t0[i].s) > 2), `集卡在港區行駛 ${JSON.stringify(t1)}`);
+    }
+    // 斜穿片的大道與沿縫的快速道路（06-roads.js 的 DIAG／FWY）：路網有斜的路段與快速道路、交叉口有號誌；廣場街區沒有樓、大道上是路面；
+    // 開車沿斜的大道與快速道路各開 3.5 秒，車留在路面上、往前走了
+    {
+      const net = await nc(() => { const n = window.__nc, E = n.roads.edges; return { d: E.filter(e => e.kind === 'd').length, f: E.filter(e => e.kind === 'f').length, free: n.roads.nodes.filter(m => m.free).length, fwys: n.ways.fwy.map(F => (F.edges || []).length), plaza: n.ways.plaza() }; });
+      const ride = async kind => {
+        const st = await nc((kind) => {
+          const n = window.__nc, e = n.roads.edges.filter(e => e.kind === kind).sort((a, b) => b.len - a.len)[0], p = e.pts, k = Math.min(3, p.length - 2);
+          const [x0, z0] = p[k], [x1, z1] = p[k + 1], l = Math.hypot(x1 - x0, z1 - z0), hx = (x1 - x0) / l, hz = (z1 - z0) / l;
+          const v = n.player.veh; v.x = x0 - hz * 3; v.z = z0 + hx * 3; v.yaw = Math.atan2(hx, hz); v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v);
+          return { id: e.id, x: v.x, z: v.z };
+        }, kind);
+        await page.waitForTimeout(200);
+        await page.keyboard.down('KeyW'); await page.waitForTimeout(3500); await page.keyboard.up('KeyW');
+        return nc((st) => {
+          const n = window.__nc, v = n.player.veh, e = n.roads.edges[st.id];
+          let d = 1e9; for (let k = 1; k < e.pts.length; k++) { const [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((v.x - ax) * dx + (v.z - az) * dz) / (dx * dx + dz * dz))); d = Math.min(d, Math.hypot(v.x - ax - dx * t, v.z - az - dz * t)); }
+          return { moved: +Math.hypot(v.x - st.x, v.z - st.z).toFixed(1), off: +d.toFixed(1), y: +v.y.toFixed(2) };
+        }, st);
+      };
+      await nc(() => window.__nc.drive());
+      await page.waitForFunction(() => window.__nc.player.veh, null, { timeout: 15000 });
+      const rd = await ride('d'), rf = await ride('f');
+      await nc(() => window.__nc.walk());
+      check(net.d >= 10 && net.f >= 8 && net.free >= 8 && net.fwys.every(k => k >= 3) && net.plaza.blocks >= 10 && net.plaza.lots === 0 && net.plaza.road === 0 && net.plaza.walk > 0
+        && rd.moved > 25 && rd.off < 8 && Math.abs(rd.y) < .05 && rf.moved > 25 && rf.off < 8 && Math.abs(rf.y) < .05,
+        `斜的大道與快速道路 ${JSON.stringify({ net, rd, rf })}`);
     }
     // 區與區之間的縫（20-props.js 的 SEAM_PATH／SEAM_SITES）：碎石步道、涼亭、小賣亭、公廁
     {

@@ -71,6 +71,13 @@ const PEOPLE = await (async () => {
       geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4));
       geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
       geo.setAttribute('aSlot', new T.Float32BufferAttribute(slot, 1));
+      // 上衣花樣用的座標（公尺）：離腳底的高度、左右、前後；綁定姿勢的高度軸取 y、z 中較長的一邊，以 1.75 m 身高換算
+      const bb = new T.Box3().setFromArray(pos), ext = bb.getSize(V3()), up = ext.y >= ext.z ? 1 : 2, sc = 1.75 / Math.max(ext.y, ext.z);
+      const pat = new Float32Array(pos.length);
+      for (let i = 0; i < pos.length; i += 3) {
+        pat[i] = (pos[i + up] - bb.min.getComponent(up)) * sc; pat[i + 1] = pos[i] * sc; pat[i + 2] = pos[i + 3 - up] * sc;
+      }
+      geo.setAttribute('aPat', new T.BufferAttribute(pat, 3));
       geo.setIndex(idx);
       return geo;
     });
@@ -127,9 +134,11 @@ const CHAR_VS = /* glsl */`
 ${GL_LIB}
 #include <skinning_pars_vertex>
 attribute float aSlot;
+attribute vec3 aPat;
 uniform vec3 uC[9];
-uniform vec4 uGlow;
-varying vec3 vW, vN, vCol, vEmi;
+uniform vec4 uGlow, uPat;
+varying vec3 vW, vN, vCol, vEmi, vP;
+varying float vTop;
 void main(){
   vec3 objectNormal = normal, transformed = position;
   #include <skinbase_vertex>
@@ -140,30 +149,46 @@ void main(){
   vN = normalize(mat3(modelMatrix) * objectNormal);
   vCol = uC[s];
   vEmi = s == 5 ? uGlow.rgb * uGlow.w * .3 : vec3(0.);   // 鞋子的霓虹飾條
+  vP = aPat; vTop = s == 1 || (s == 2 && uPat.w > .5) ? 1. : 0.;
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 const CHAR_FS = /* glsl */`
 ${GL_LIB}
-varying vec3 vW, vN, vCol, vEmi;
+uniform vec4 uPat;
+uniform vec3 uPatC;
+varying vec3 vW, vN, vCol, vEmi, vP;
+varying float vTop;
 void main(){
   if (vW.y < uClipY) discard;
-  vec3 n = normalize(vN), v = normalize(uCam - vW);
-  vec3 c = shade(vW, n, v, vCol, .65, 0.);
-  c += vCol * pow(1. - max(dot(n, v), 0.), 3.) * (uFogHi * (1.5 - uDay * 1.2) + .02);
+  vec3 n = normalize(vN), v = normalize(uCam - vW), col = vCol;
+  // 上衣花樣（uPat.x）：1 橫條紋、2 格紋、3 胸前一道寬條、4 肩膀以上拼色（長袖連袖子）；y 是每公尺幾條、z 是濃淡
+  if (vTop > .5 && uPat.x > .5) {
+    float f = uPat.y, m;
+    if (uPat.x < 1.5) m = step(.55, fract(vP.x * f));
+    else if (uPat.x < 2.5) m = max(step(.8, fract(vP.x * f)), max(step(.8, fract(vP.y * f)), step(.8, fract(vP.z * f))));
+    else if (uPat.x < 3.5) m = step(abs(vP.x - 1.27), .06);
+    else m = step(1.36, vP.x);
+    col = mix(col, uPatC, m * uPat.z);
+  }
+  vec3 c = shade(vW, n, v, col, .65, 0.);
+  c += col * pow(1. - max(dot(n, v), 0.), 3.) * (uFogHi * (1.5 - uDay * 1.2) + .02);
   c += vEmi;
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
 // 每人一份材質（uniform 不同），共用同一個 program；不能用 clone()，會把共用的 U 也複製掉
 const charMat = () => new T.ShaderMaterial({
-  uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uGlow: { value: new T.Vector4() } },
+  uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uGlow: { value: new T.Vector4() },
+    uPat: { value: new T.Vector4() }, uPatC: { value: new T.Color() } },
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33 };
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33, danceD: 34, danceE: 35, danceF: 36 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
   [ANIM.danceA]: { c: 'Dance_Loop', beat: 2 }, [ANIM.danceB]: { c: 'Dance_Loop', beat: 2, off: .5 }, [ANIM.danceC]: { c: 'Dance_Loop', beat: 4 },
+  // 動畫庫只有一段舞：另外三種舞步是在待機或同一段舞上覆寫上身（OVR），單雙號的人左右相反
+  [ANIM.danceD]: { c: 'Idle_Loop' }, [ANIM.danceE]: { c: 'Dance_Loop', beat: 4, off: .25 }, [ANIM.danceF]: { c: 'Dance_Loop', beat: 2, off: .75 },
   [ANIM.sit]: { c: 'Sitting_Idle_Loop', alt: 'Sitting_Talking_Loop' }, [ANIM.bartend]: { c: 'Idle_Loop' }, [ANIM.umbrella]: { c: 'Walk_Loop', rate: 1.3 },
   [ANIM.dj]: { c: 'Idle_Loop' }, [ANIM.cross]: { c: 'Idle_Loop' }, [ANIM.talk]: { c: 'Idle_Talking_Loop' }, [ANIM.ride]: { c: 'Driving_Loop' },
   [ANIM.punch]: { c: 'Punch_Cross', beat: 2, alt: 'Punch_Jab' }, [ANIM.smoke]: { c: 'Idle_Loop' },
@@ -336,10 +361,12 @@ const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * 
 const frac = x => x - Math.floor(x);
 // 動畫庫沒有的動作：t 是相位時間、b 是拍點
 const OVR = {
-  [ANIM.umbrella]: p => { aim(p, 'upperarm_r', -.25, -.85, .45); aim(p, 'lowerarm_r', 0, .7, .7); },
-  [ANIM.cross]: p => {
-    aim(p, 'upperarm_l', .2, -.9, .3); aim(p, 'upperarm_r', -.2, -.9, .3);
-    aim(p, 'lowerarm_l', -1, .12, .3); aim(p, 'lowerarm_r', 1, .02, .38);
+  // 撐傘的手隨步伐晃一點；抱胸的人呼吸時手臂跟著起伏（每人相位不同）
+  [ANIM.umbrella]: (p, t) => { const w = .05 * Math.sin(t * 8.4); aim(p, 'upperarm_r', -.25, -.85, .45 + w); aim(p, 'lowerarm_r', w * .6, .7, .7); },
+  [ANIM.cross]: (p, t) => {
+    const br = .04 * Math.sin(t * 1.6 + p.k);
+    aim(p, 'upperarm_l', .2, -.9, .3 + br); aim(p, 'upperarm_r', -.2, -.9, .3 + br);
+    aim(p, 'lowerarm_l', -1, .12 + br, .3); aim(p, 'lowerarm_r', 1, .02 + br, .38);
   },
   [ANIM.dj]: (p, t) => {
     aim(p, 'upperarm_l', .75, .3, .1); aim(p, 'lowerarm_l', -.55, .8, -.1);
@@ -361,10 +388,12 @@ const OVR = {
     if (k > .01) { aim(p, 'upperarm_r', -.15, -.55, .8, k); aim(p, 'lowerarm_r', .3, .95, .25, k); }
   },
   // 機車：動畫庫只有開車的坐姿，改成上身前傾、手伸向把手
+  // 雙手跟著龍頭：向左轉時左把往後、右把往前（30-vehicles.js 的前叉繞轉向軸轉 steer×0.6）
   [ANIM.ride]: p => {
-    aim(p, 'spine_01', 0, .82, .55); aim(p, 'neck_01', 0, .9, .45);
-    aim(p, 'upperarm_l', .3, -.3, .9); aim(p, 'upperarm_r', -.3, -.3, .9);
-    aim(p, 'lowerarm_l', -.05, -.45, 1); aim(p, 'lowerarm_r', .05, -.45, 1);
+    const v = player.veh, s = v && !v.isCar ? v.steer * .6 : 0;
+    aim(p, 'spine_01', 0, .82, .55); aim(p, 'neck_01', s * .3, .9, .45);
+    aim(p, 'upperarm_l', .3, -.3, .9 - .5 * s); aim(p, 'upperarm_r', -.3, -.3, .9 + .5 * s);
+    aim(p, 'lowerarm_l', -.05, -.45, 1 - .6 * s); aim(p, 'lowerarm_r', .05, -.45, 1 + .6 * s);
     if (p.dbDir) driveByArm(p, true);
   },
   // 車內射擊：腿往前伸平（收在儀表板下，免得腳從車底露出來）
@@ -394,7 +423,29 @@ const OVR = {
     const k = Math.sin(b * Math.PI);
     aim(p, 'upperarm_l', .9, -.2 + .6 * Math.max(0, k), .4); aim(p, 'upperarm_r', -.9, -.2 + .6 * Math.max(0, -k), .4);
   },
+  // 兩步擺：上身兩拍左右擺一次、每拍點頭，手肘彎著輪流往上頂
+  [ANIM.danceD]: (p, t, b) => {
+    const m = p.k & 1 ? -1 : 1, [A, B] = m > 0 ? ['l', 'r'] : ['r', 'l'];
+    const s = Math.sin(b * Math.PI), h = Math.abs(Math.sin(b * Math.PI * 2));
+    aim(p, 'spine_01', .14 * s * m, 1, .06); aim(p, 'spine_02', -.08 * s * m, 1, .08); aim(p, 'neck_01', 0, 1, .1 + .25 * h);
+    aim(p, 'upperarm_' + A, m * .45, -.6, .35); aim(p, 'lowerarm_' + A, -m * .15, .15 + .7 * Math.max(0, s), .9);
+    aim(p, 'upperarm_' + B, -m * .45, -.6, .35); aim(p, 'lowerarm_' + B, m * .15, .15 + .7 * Math.max(0, -s), .9);
+  },
+  // 雙手舉高，四拍左右揮一輪
+  [ANIM.danceE]: (p, t, b) => {
+    const w = Math.sin(b * Math.PI / 2) * (p.k & 1 ? -1 : 1);
+    aim(p, 'upperarm_l', .3 + .12 * w, 1, .15); aim(p, 'upperarm_r', -.3 + .12 * w, 1, .15);
+    aim(p, 'lowerarm_l', .05 + .45 * w, 1, .05); aim(p, 'lowerarm_r', -.05 + .45 * w, 1, .05);
+  },
+  // 一手叉腰，另一手前一拍指天、後一拍收回胸前
+  [ANIM.danceF]: (p, t, b) => {
+    const m = p.k & 1 ? -1 : 1, [A, B] = m > 0 ? ['l', 'r'] : ['r', 'l'];
+    const u = frac(b / 2), up = sst(0, .12, u) * sst(.62, .5, u);
+    aim(p, 'upperarm_' + B, -m * .35, -.2 + 1.1 * up, .7 - .4 * up); aim(p, 'lowerarm_' + B, -m * .15, .3 + .7 * up, .6 - .5 * up);
+    aim(p, 'upperarm_' + A, m * .65, -.65, -.25); aim(p, 'lowerarm_' + A, -m * .55, -.35, .35);
+  },
 };
+const DANCES = [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch, ANIM.danceD, ANIM.danceE, ANIM.danceF];
 const SKINS = [0xf1c8a8, 0xd9a07a, 0xb57a52, 0x8a5636, 0x5e3a24, 0xe8b894].map(lin);
 const HAIRS = [0x15110e, 0x2b1d14, 0x5a3a22, 0xb08a5a, 0x777777, 0x1a1a2a, 0x8a2a3a, 0x3a6a8a].map(lin);
 const TOPS = [0x2a2c30, 0x3b2a22, 0x5a1d22, 0x1f2f45, 0x6d6a60, 0x23352a, 0x8a6a3a, 0x111215, 0x4a2a4a, 0x9a9a92, 0x2a4a5a].map(lin);
@@ -442,6 +493,12 @@ function crowd(n, cap = n) {
       const long = o.coat ?? (r() < .6 ? 1 : 0), bare = fem && (o.skirt ?? (r() < .3 ? 1 : 0));
       C[0].copy(skin); C[1].copy(top); C[2].copy(long ? top : skin); C[3].copy(bot); C[4].copy(bare ? skin : bot);
       C[5].copy(o.shoe || pick(SHOES)); C[6].copy(hair); C[7].copy(hair).multiplyScalar(.8); C[8].copy(EYES);
+      // 花樣不從 r() 取亂數（不改動既有的亂數序列）：依編號與上衣顏色雜湊；指定上衣顏色的人（主角）預設素面
+      const hv = frac(Math.sin((p.k + 1) * 12.9898 + top.r * 78.233 + top.b * 37.719) * 43758.5453);
+      const pat = o.pat ?? (o.top || hv < .5 ? 0 : 1 + Math.floor(hv * 8) % 4);
+      u.uPat.value.set(pat, [0, 11, 8, 1, 1][pat], .85, long);
+      u.uPatC.value.copy(TOPS[(TOPS.indexOf(top) + 3 + Math.floor(hv * 40) % 5) % TOPS.length] || TOPS[0]);
+      if (u.uPatC.value.equals(top)) u.uPatC.value.copy(top).multiplyScalar(.4);
       p.sm.geometry = PEOPLE.geos[sex][fem ? (o.longHair ? 0 : o.longHair === 0 ? 1 + Math.floor(r() * 2) : Math.floor(r() * 3)) : (o.hat ? 1 : Math.floor(r() * 3))];
       const gc = o.glow || pick(GLOWS);
       u.uGlow.value.set(gc.r, gc.g, gc.b, o.glowI ?? (r() < .3 ? 1.6 : 0));
@@ -614,7 +671,7 @@ pedState.forEach((ps, k) => { const h = (k * .6180339887 + .31) % 1; ps.shy = ps
 const PED_AWAY = 2e4;
 function updatePeds(dt) {
   let u = 0;
-  const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare();   // 69-turf.js：赤蠍幫的地盤路人少
+  const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare() * SET.ped;   // SET.ped：Esc 選單的人口密集程度   // 69-turf.js：赤蠍幫的地盤路人少
   pedState.forEach((ps, k) => {
     if (ps.out) { if (ps.shy >= share) return; ps.out = 0; pedRelocate(ps, ppx, ppz); }
     else if (ps.shy >= share && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
@@ -627,7 +684,7 @@ function updatePeds(dt) {
     if (ps.fsm && !(ps.down > 0) && pedFsm(k, ps, dt)) return;
     if (ps.down > 0) {
       ps.down -= dt;
-      peds.place(k, ps.dpos[0], groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);
+      peds.place(k, ps.dpos[0], ps.fly ? ps.fly.y : groundH(ps.dpos[0], ps.dpos[1]) > 0 ? .15 : 0, ps.dpos[1], ps.dpos[2]);   // fly：68-wreck.js 被車撞飛
       if (ps.down <= 0 && ps.stun) { ps.stun = 0; ps.panic = 6; peds.anim(k, ANIM.run, rP() * 10, 1); return; }   // 電擊槍：原地爬起來逃跑
       if (ps.down <= 0) { ps.s = rP() * ps.per; ps.dx = ps.dz = 0; ps.panic = 0; peds.anim(k, ps.um ? ANIM.umbrella : ANIM.walk, rP() * 10, ps.v * .78); }
       return;
@@ -667,6 +724,7 @@ scene.add(me.mesh);
 const player = { mode: 'walk', ...WP(avX(1) - 9.6, stZ(2) + 18), y: .15, yaw: yawW(zoneAtL(avX(1), stZ(2)), 0), v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
 const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
+  if (player.ride) { aptRide(dt); return; }   // 69-safehouse.js：走樓梯、搭電梯（照路徑走，不受碰撞）
   let mx = inp.mx, mz = inp.mz;
   const ml = Math.hypot(mx, mz);
   if (ml > 1) { mx /= ml; mz /= ml; }
@@ -708,11 +766,11 @@ function updatePlayerWalk(inp, dt, camYaw) {
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
-  const fy = player.where === 'out' ? seaFloor(x, z) : groundH(x, z);
+  const fy = player.where === 'out' ? seaFloor(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板
   player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;
-  let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch][player.dance - 1] : ANIM.idle;
+  let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? DANCES[player.dance - 1] : ANIM.idle;
   if (aimM) a = sp > .25 ? ANIM.aimWalk : ANIM.aimIdle;
   if (player.crouch) a = aimM ? (sp > .25 ? ANIM.crouchAimWalk : ANIM.crouchAim) : sp > .25 ? ANIM.crouchWalk : ANIM.crouch;
   if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }

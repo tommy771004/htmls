@@ -304,7 +304,10 @@ void main(){
     c += envMap(r) * max(envK, wet*.5) * mix(m == 0 ? max(F, .1) : F, 1., metal) * (1. - rough*.9);
   }
   c += emi;
-  #ifdef FAR
+  #if defined(FAR) && defined(FARD)
+  float fd = length(vW - uCam);   // 北嶺（21-park.js）：FARD 公尺內照一般的霧，再遠才和遠景一樣只算一部分距離，走得到的山坡接上遠景山脊
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * (fd > FARD ? (FARD + (fd - FARD) * FAR) / fd : 1.)), 1.);
+  #elif defined(FAR)
   gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * FAR), 1.);   // 遠景（對岸、山、外海的島）：霧只算一部分距離，剪影才看得到
   #else
   gl_FragColor = vec4(applyFog(c, vW), 1.);
@@ -316,13 +319,14 @@ function mkUber(o = {}) {
   if (o.inst) defines.INST_EXTRA = '';
   if (o.double) defines.DOUBLE = '';
   if (o.far) defines.FAR = o.far.toFixed(3);
+  if (o.fard) defines.FARD = o.fard.toFixed(1);
   return new T.ShaderMaterial({
     uniforms: { ...shared(ALLU), uM: { value: new T.Vector4(0, 0, o.emi ?? 1, 0) } },
     vertexShader: UBER_VS, fragmentShader: UBER_FS, defines,
     side: o.double ? T.DoubleSide : T.FrontSide,
   });
 }
-const MAT = { uber: mkUber(), uberI: mkUber({ inst: true }), uberD: mkUber({ double: true }), far: mkUber({ far: .2 }), far2: mkUber({ far: .09 }) };
+const MAT = { uber: mkUber(), uberI: mkUber({ inst: true }), uberD: mkUber({ double: true }), far: mkUber({ far: .2 }), far2: mkUber({ far: .09 }), ridge: mkUber({ far: .2, fard: 150 }) };
 
 // ─── 幾何組合：把多個零件合併成一個帶頂點色與 aMat 的幾何 ───
 const _m4 = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _v = V3(), _s = V3();

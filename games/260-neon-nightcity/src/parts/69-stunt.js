@@ -3,7 +3,7 @@
 // 在斜面上把 v.y、v.pitch 換成斜面高度；衝出邊緣時給垂直速度，之後由 stuntFly() 代替 driveVehicle()（99-main.js）積分到落地。
 // 時速 60 以上衝出去算特技：0.4 倍慢動作＋側面固定機位，落地車頭沒歪就依距離與高度給獎金，每座跳台第一次完成加倍。
 // 空中可以操控車身：左右＝翻滾、油門／煞車＝前後空翻（沒按就慢慢回正、車頭跟著拋物線）。每轉滿一圈獎金多五成；
-// 落地時車身歪超過 0.5 rad 算失敗，翻過 1.3 rad（側翻、倒栽蔥）就是翻車：重損，車速剩四成。
+// 落地時車身歪超過 0.5 rad 算失敗，翻過 1.3 rad（側翻、倒栽蔥）就是翻車：重損，汽車照落地的姿勢滾到停（68-roll.js），可能側躺或倒扣。
 // 排在 69-police 之後；slowmo.st 由 99-main.js 的 loop 和轉盤、特殊能力取最慢的。
 
 const STUNT_MIN = 60 / 3.6;
@@ -62,7 +62,7 @@ function stuntFly(v, inp, dt) {
   if (!v.isCar) v.lean = v.roll;
   v.spin += vF * dt / v.wr;
   v.rpm = Math.min(1, v.rpm + dt * .6);
-  const gh = groundH(v.x, v.z);
+  const gh = v.isCar ? surfaceH(v) : groundH(v.x, v.z);   // 68-roll.js：可以落在別台車的車頂上
   let imp = 0;
   if (v.y <= gh) { imp = stuntLand(v, gh); }
   return { imp, vF, aF: 0 };
@@ -70,8 +70,11 @@ function stuntFly(v, inp, dt) {
 function stuntLand(v, gh) {
   const A = v.air, hit = -A.vy, rw = Math.abs(wrapA(v.roll)), pw = Math.abs(wrapA(v.pitch));
   const wreck = rw > 1.3 || pw > 1.2, rolls = Math.floor((A.rolls + .8) / 6.283), flips = Math.floor((A.flips + .8) / 6.283);
-  v.air = null; v.y = gh; v.pitch = .05; v.roll = 0; v.lean = 0; v.rampA = null;
-  v.vx *= wreck ? .4 : .82; v.vz *= wreck ? .4 : .82;
+  v.air = null; v.rampA = null;
+  // 翻車的汽車照落地時的姿勢繼續滾到停（68-roll.js），其他的直接擺正
+  if (wreck && v.isCar) { v.y = gh - ROLL_H + rollExt(v) + .05; rollStart(v, Math.min(5, hit * .3), A.rr * .5 + Math.sign(wrapA(v.roll) || 1) * 1.5, A.pr * .4); }
+  else { v.y = gh; v.pitch = .05; v.roll = 0; v.lean = 0; }
+  v.vx *= wreck ? .55 : .82; v.vz *= wreck ? .55 : .82;
   camState.shake = Math.max(camState.shake, wreck ? 1 : clamp(hit / 16, .2, .8)); sfx.impact(wreck ? 20 : hit);
   if (wreck) { damageVeh(v, 520); sparks(v.x, .4, v.z, 30, 6); glassBurst(v.x, 1.1, v.z); }
   else if (hit > 12 || rw > .5) damageVeh(v, Math.max(0, hit - 12) * 40 + (rw > .5 ? 120 : 0));

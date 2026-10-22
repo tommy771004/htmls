@@ -42,26 +42,40 @@ const MAP_GEO = (() => {
     { ...shape({ ...BEACH, z0: BEACH.z0 - INLAND, z1: BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop }), c: 'beach' },
     { ...shape(QUAY), c: 'quay' }, ...PIERS.map(r => ({ ...shape(r), c: 'pier' })), { ...shape(ISLE), c: 'isle' }, { ...shape(BRIDGE), c: 'road' },
   ];
-  const blk = blocks.map(b => { const zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), o = shape(b, zn); return { ...o, park: b.park, inn: rectPolyW(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW, zn), b, zn }; });
+  const blk = blocks.map(b => { const zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), o = shape(b, zn); return { ...o, park: b.park, plaza: !!b.plaza, inn: rectPolyW(b.x0 + SW, b.x1 - SW, b.z0 + SW, b.z1 - SW, zn), b, zn }; });
   const lot = lots.map(L => { const pts = rectW(L.x0, L.x1, L.z0, L.z1, L.zn); return { pts, bb: polyBB(pts), L }; });
   return { ter, tx0: x0, tz0: z0, tS: S, coast, blk, lot };
 })();
 const lotCol = L => L.special ? '#5a3a52' : L.style === 3 ? '#1b1e24' : '#202329';
 // 畫整座城（底圖與全區地圖共用）：P 把世界座標換成畫布座標，k 是每公尺幾 px，C 是配色，vis(bb) 決定要不要畫，
 // lot 是地塊的顏色（null 不畫地塊），line 是路中心線（null 不畫）
+// 北嶺公園（10-city.js 的 NPARK，公園自己的座標框）：圍籬範圍、步道、觀景台與管理站，換成世界座標的多邊形
+const MAP_PARK = (() => {
+  const W = NPARK.walk, L = NPARK.look, C = NPARK.cabin, w = (x, z) => toW(x, z, NPARK.f), walk = [];
+  for (let i = 0; i <= 40; i++) { const x = W.x0 + (W.x1 - W.x0) * i / 40; walk.push(w(x, NPARK.edgeZ(x))); }
+  walk.push(w(W.x1, W.z0), w(W.x0, W.z0));
+  const box = (x0, x1, z0, z1) => [w(x0, z0), w(x1, z0), w(x1, z1), w(x0, z1)];
+  return { walk, trail: NPARK.trail.map(([x, z]) => w(x, z)), look: box(L.x0, L.x1, L.z0, L.z1), cabin: box(C.x - 4, C.x + 4, C.z - 3, C.z + 3) };
+})();
 function drawCity(c, P, k, C, vis, lot, line) {
   const path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
   const G = MAP_GEO, [tx, tz] = P(G.tx0, G.tz0);
   c.imageSmoothingEnabled = true; c.drawImage(G.ter, tx, tz, G.ter.width * G.tS * k, G.ter.height * G.tS * k);
   c.fillStyle = C.grass; path(CITY_POLY, true); c.fill();   // 外緣裡面：片之間的空地是草地
   for (const s of G.coast) if (vis(s.bb)) { c.fillStyle = C[s.c]; path(s.pts, true); c.fill(); }
+  { const K = MAP_PARK; c.fillStyle = C.park; path(K.walk, true); c.fill(); c.strokeStyle = C.trail || '#8a7050'; c.lineWidth = Math.max(1.4, 2.6 * k); c.lineJoin = c.lineCap = 'round'; path(K.trail); c.stroke(); c.fillStyle = C.trail || '#8a7050'; path(K.look, true); c.fill(); path(K.cabin, true); c.fill(); }   // 北嶺公園
   c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = C.road; c.lineWidth = 2 * HR * k;
   for (const e of RN.edges) { path(e.pts); c.stroke(); }
   for (const s of G.blk) {
     if (!vis(s.bb)) continue;
     c.fillStyle = C.walk; path(s.pts, true); c.fill();
+    if (s.plaza) continue;   // 廣場：整塊是鋪面
     c.fillStyle = s.park ? C.park : C.block; path(s.inn, true); c.fill();
   }
+  c.strokeStyle = C.road; c.lineWidth = 2 * HR * k;
+  for (const e of RN.edges) if (e.kind === 'd') { path(e.pts); c.stroke(); }   // 斜的大道蓋在廣場上
+  c.strokeStyle = C.fwy || '#b08a3a'; c.lineWidth = 2 * HR * k;
+  for (const e of RN.edges) if (e.kind === 'f') { path(e.pts); c.stroke(); }   // 快速道路（GTA 地圖的黃色）
   if (lot) for (const s of G.lot) if (vis(s.bb)) { c.fillStyle = lot(s.L); path(s.pts, true); c.fill(); }
   if (line) { c.strokeStyle = line; c.lineWidth = 1; for (const e of RN.edges) { path(e.pts); c.stroke(); } }
 }
@@ -88,7 +102,9 @@ const headingOf = (dx, dz) => ((180 - Math.atan2(dx, dz) * 180 / Math.PI) % 360 
 const dirName = h => DIRN[Math.round(h / 45) % 8];
 // 世界座標 → 所在區的邏輯座標，再照方格找最近的大道與街
 function streetName(X, Z) {
+  for (const F of FWY) if (F.edges) for (const e of F.edges) for (const p of e.pts) if (Math.abs(p[0] - X) < HR + 2 && Math.abs(p[1] - Z) < HR + 2) return F.name;   // 快速道路（世界座標，點每 4 m 一個）
   const [x, z] = toL(X, Z);
+  { const p = plazaAt(x, z); if (p && plazaD(x, z) < HR + SW) return p.D.name; }   // 廣場裡斜的大道（06-roads.js）
   if (x < CITY_X0 - 6 || x > CITY_X1 + 6 || z > CITY_Z1 + 6 || z < CITY_Z0 - 6) return district(x, z).replace(/^\S+ /, '');   // 格網外（海邊、島、河濱）沒有街名，顯示地名
   let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(x - avX(i)); if (d < bd) { bd = d; bi = i; } }
   let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(z - stZ(j)); if (d < be) { be = d; bj = j; } }
@@ -188,13 +204,13 @@ function updateHud(dt) {
     m.classList.toggle('edge', edge);
     setText('mkName', mk.name);
     const d = Math.hypot(mk.x - (p.where === 'out' ? px : p.x), mk.z - (p.where === 'out' ? pz : p.z));
-    setText('mkDist', `${Math.round(d)} m`);
+    setText('mkDist', fmtDist(d));
   } else m.style.display = 'none';
   // 速度表
   $('speedo').classList.toggle('on', inV);
   if (inV) {
     const v = p.veh, kmh = Math.round(Math.abs(v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw)) * 3.6);
-    setText('spd', String(kmh)); setText('gear', String(v.gear)); setText('vehName', motors.test && v === kestrel ? `試駕 ${v.name} · ${Math.ceil(motors.test.t)}s` : v.name);
+    setText('spd', String(IMPERIAL() ? Math.round(kmh * .621371) : kmh)); setText('gear', String(v.gear)); setText('vehName', motors.test && v === kestrel ? `試駕 ${v.name} · ${Math.ceil(motors.test.t)}s` : v.name);
     const r = $('rpm').firstElementChild; r.style.width = `${Math.round(v.rpm * 100)}%`; r.classList.toggle('hi', v.rpm > .86);
     const nb = $('nitro').firstElementChild; nb.style.width = `${Math.round(nitro.v * 100)}%`;
   }

@@ -103,7 +103,7 @@ function atmApply() {
   U.uWet.value = wx.wet;
   atm.exp = lerp(1, .74, day) * (1 + .25 * oc * day);
   atm.bloom = lerp(1, 2.4, day);
-  rainMesh.visible = splashMesh.visible = r > .01;
+  rainMesh.visible = splashMesh.visible = r > .01 && SET.rainFx;   // 01-settings.js：雨絲可以關掉
 }
 // 每幀：天氣過渡、積水、打雷（取代原本 99-main 的雨勢正弦起伏）
 function updateWeather(dt, t) {

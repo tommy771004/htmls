@@ -110,11 +110,11 @@ const MAP_LABELS = (() => {
   L.push({ zh: '灰鷗島', en: 'GULL ISLAND', x: (ISLE.x0 + ISLE.x1) / 2, z: (ISLE.z0 + ISLE.z1) / 2 },
     { zh: '灰鷺河', en: 'HERON RIVER', x: (FAR_BANK_X + RIVER_E) / 2, z: FAR_Z1 - 260, water: 1 },
     { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 260, z: FAR_Z1 - 520 });
-  return L.map(o => ({ ...o, ...WP(o.x, o.z) }));   // 上面是邏輯座標，畫的時候用世界座標
+  return [...L.map(o => ({ ...o, ...WP(o.x, o.z) })), { zh: '北嶺公園', en: 'NORTH RIDGE PARK', ...parkW(0, (NPARK.walk.z0 + NPARK.walk.z1) / 2) }];   // 上面是邏輯座標，畫的時候用世界座標；北嶺公園是它自己的座標框（10-city.js）
 })();
 
 // ─── 繪製 ───
-const MAPC = { water: '#1d2a33', land: '#202020', grass: '#1f261c', far: '#1b1d1e', road: '#8a8a8a', walk: '#3c3c3c', block: '#191919', lot: '#272727', lotEdge: '#323232', park: '#243022', beach: '#4a4333', quay: '#2a2a2a', pier: '#4a3d2e', isle: '#222b1e' };
+const MAPC = { water: '#1d2a33', land: '#202020', grass: '#1f261c', far: '#1b1d1e', road: '#8a8a8a', walk: '#3c3c3c', block: '#191919', lot: '#272727', lotEdge: '#323232', park: '#243022', trail: '#7a6446', beach: '#4a4333', quay: '#2a2a2a', pier: '#4a3d2e', isle: '#222b1e' };
 function mapDraw() {
   const c = mctx2, r = bigmap.getBoundingClientRect(), dpr = mapDpr();
   const W = Math.max(2, Math.round(r.width * dpr)), H = Math.max(2, Math.round(r.height * dpr));
@@ -153,15 +153,15 @@ function mapDraw() {
   if (MV.zoom > 1.5) {
     const a = clamp((MV.zoom - 1.5) / .5, 0, 1);
     c.fillStyle = `rgba(20,20,20,${.9 * a})`; c.shadowBlur = 0; c.font = `700 ${Math.min(11, 5 + MV.zoom * 1.6) * dpr}px system-ui`;
-    // 街名沿著路的方向（路段中點那一小段的角度，字頭朝上）；大道（kind 'z'）用 AVE、街（kind 'x'）用 STR
+    // 街名沿著路的方向（路段中點那一小段的角度，字頭朝上）；大道（kind 'z'）用 AVE、街（kind 'x'）用 STR、斜的大道（kind 'd'）與快速道路（'f'）用 DIAG／FWY 的名字
     for (const e of RN.edges) {
       if (e.kind === 'c') continue;
       const m = e.pts.length >> 1, p = e.pts[Math.max(0, m - 1)], q = e.pts[Math.min(e.pts.length - 1, m)];
-      const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, alt = e.kind === 'z' ? e.a.j : e.a.i;
+      const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, alt = e.kind === 'z' ? e.a.j : e.kind === 'x' ? e.a.i : 0;
       if (!vis(x, x, z, z) || (alt % 2 && MV.zoom < 3)) continue;
       let a = Math.atan2(q[1] - p[1], q[0] - p[0]);
       if (a > Math.PI / 2) a -= Math.PI; else if (a < -Math.PI / 2) a += Math.PI;
-      c.save(); c.translate(X(x), Z(z)); c.rotate(a); c.fillText((e.kind === 'z' ? AVE[e.a.i] : STR[e.a.j]).toUpperCase(), 0, 0); c.restore();
+      c.save(); c.translate(X(x), Z(z)); c.rotate(a); c.fillText((e.kind === 'f' ? e.fwy.name : e.kind === 'd' ? e.diag.name : e.kind === 'z' ? AVE[e.a.i] : STR[e.a.j]).toUpperCase(), 0, 0); c.restore();
     }
   }
   c.shadowBlur = 0;
@@ -214,7 +214,7 @@ function mapDraw() {
   const steps = [25, 50, 100, 200, 250, 500, 1000, 2000];
   const d = steps.find(m => m * MV.zoom >= 70) || 2000;
   $('mapBar').style.width = `${Math.round(d * MV.zoom)}px`;
-  setText('mapScaleT', d >= 1000 ? `${d / 1000} km` : `${d} m`);
+  setText('mapScaleT', IMPERIAL() ? fmtDist(d) : d >= 1000 ? `${d / 1000} km` : `${d} m`);
   const w = MV.mx >= 0 && !isTouch ? mapToWorld(MV.mx, MV.my) : { x: MV.cx, z: MV.cz };
   setText('mapLoc', mapPlaceName(w.x, w.z));
 }
@@ -237,7 +237,7 @@ function mapCard() {
   if (!b) { el.classList.remove('on'); return; }
   const cat = MAP_CATS[b.cat], col = b.col || cat.col, me = mapPlayer();
   const dist = Math.hypot(b.x - me.x, b.z - me.z);
-  const rows = [['類型', b.type], ['地區', districtW(b.x, b.z).split(' ')[0]], ['距離', dist > 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`], ...(b.rows || [])];
+  const rows = [['類型', b.type], ['地區', districtW(b.x, b.z).split(' ')[0]], ['距離', fmtDist(dist)], ...(b.rows || [])];
   const canTp = b.tp && !W.stars && !fading;
   el.style.setProperty('--mc', col);
   el.innerHTML = `<header>${iconSvg(cat.icon, col, b.txt)}<h3>${b.name}<small>${cat.name}</small></h3></header><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${b.desc ? `<p>${b.desc}</p>` : ''}<div class="acts"><button data-a="wp"><kbd>Enter</kbd>${gps.wp && Math.hypot(gps.wp.x - b.x, gps.wp.z - b.z) < 3 ? '取消導航點' : '設為導航點'}</button>${b.tp ? `<button data-a="tp"${canTp ? '' : ' disabled'}><kbd>T</kbd>${canTp ? '傳送' : '通緝中不能傳送'}</button>` : ''}</div>`;

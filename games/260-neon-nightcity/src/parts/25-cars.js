@@ -127,7 +127,7 @@ const typeClass = type => Object.keys(TYPE_CLS).find(k => TYPE_CLS[k].includes(t
 function vehClass(v, cls, full) {
   const C = VCLASS[cls], k = v.hpMax ? clamp(v.hp / v.hpMax, 0, 1) : 1;
   v.cls = cls; v.mass = C.m; v.turn = C.turn; v.hbGrip = C.drift * 10 * DRIFT_K;
-  v.hpMax = C.hp; v.hp = C.hp * k;
+  v.hpMax = C.hp; v.hp = C.hp * k; v.hpLock = full ? 0 : 1;   // full（車流造的車）：各模組之後還會改 hp，第一次受損時才鎖上限（68-wreck.js 的 hpLockOf）
   if (full) { v.vmax = vmaxFor(C.kmh, C.acc); v.eng = C.acc; v.grip = C.lat * 10; }
 }
 
