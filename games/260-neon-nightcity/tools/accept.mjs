@@ -351,7 +351,7 @@ async function desktop() {
       p.load();
       setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
     }));
-    check(qv.ok && qv.v === 6 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    check(qv.ok && qv.v === 7 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
     await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
@@ -833,6 +833,28 @@ async function desktop() {
       await W(800);
       const side1 = await nc(() => JSON.stringify(window.__nc.motors.side));
       check(side0 === side1 && /maple/.test(side1) && /"oskar":4/.test(side1), `存檔第 6 版 motors.side 重新載入後一樣 ${side1}`);
+      // 存檔第 7 版（照 GTA V 地圖重排）：第 6 版的位置是舊三區的世界座標。光環（舊 B 區）路口上的存檔要回到同一個路口；
+      // 舊的東邊濱海步道（現在是山與外緣外）要挪到最近的車道上，不在水裡
+      const mig = [];
+      for (const [i, j, off] of [[10, 2, 0], [20, 3, 30]]) {
+        await nc(([i, j, off]) => {
+          const raw = JSON.parse(localStorage.getItem('nc260.motors')), ry = 8 * Math.PI / 180, c = Math.cos(ry), sn = Math.sin(ry);
+          const px = -180 + 8 * 72, pz = -155, ox = px + 36 - (px * c + pz * sn), oz = pz - (-px * sn + pz * c), x = -180 + i * 72 + off, z = -155 + j * 62;
+          const p = window.__nc.player, g = raw.game || { t: Date.now(), quest: 0, cur: 0, min: 600, wx: 'clear', veh: null, where: null, ammo: {}, st: [] };
+          g.veh = null; g.where = null; g.st = [0, 1, 2].map(() => ({ hp: 100, armor: 0, sp: 50, x: +(ox + x * c + z * sn).toFixed(2), z: +(oz - x * sn + z * c).toFixed(2), yaw: 0 }));
+          raw.v = 6; raw.game = g; localStorage.setItem('nc260.motors', JSON.stringify(raw)); void p;
+        }, [i, j, off]);
+        await page.reload();
+        await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 60000 });
+        await nc(() => window.__nc.start());
+        await W(600);
+        await nc(() => { window.__nc.gta.wanted.clear('reset'); window.__nc.gta.phone.load(); });
+        await W(1400);
+        mig.push(await nc(([i, j]) => { const n = window.__nc, p = n.player, nd = n.roads.nodes.find(o => o.i === i && o.j === j);
+          let near = 1e9; for (const o of n.roads.nodes) near = Math.min(near, Math.hypot(o.x - p.x, o.z - p.z));
+          return { d: nd ? +Math.hypot(nd.x - p.x, nd.z - p.z).toFixed(1) : null, near: +near.toFixed(1), depth: n.sea.depth(p.x, p.z), swim: !!p.swim }; }, [i, j]));
+      }
+      check(mig[0].d !== null && mig[0].d < 1 && mig[1].near < 60 && !mig[1].depth && !mig[1].swim, `存檔第 6 版的位置換到新版面：路口照舊、城外的挪到車道 ${JSON.stringify(mig)}`);
     }
 
     const st = await ev(page, () => new Promise((r) => setTimeout(() => r(window.__nc.getStats()), 1500)));

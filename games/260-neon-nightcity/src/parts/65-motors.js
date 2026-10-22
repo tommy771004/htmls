@@ -33,12 +33,22 @@ try {
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
     // 第 5 版：城市切成三區（05-zones.js）之後存的是世界座標；之前的存檔是方格座標（那時兩者一樣），讀進來換一次
     if (motors.game && !(d.v >= 5)) for (const s of motors.game.st) if (s && Number.isFinite(s.x) && Number.isFinite(s.z)) Object.assign(s, spotW({ x: s.x, z: s.z, yaw: Number.isFinite(s.yaw) ? s.yaw : 0 }));
+    // 第 7 版：照 GTA V 地圖重排成十五片（05-zones.js）。第 5、6 版是舊三區（ZONES_V6）的世界座標：先換回邏輯座標，再用新的片換到世界；
+    // 生成在邏輯座標裡沒變，所以多半還在同一條街上。落在拿掉的格子、水裡或外緣外（舊的外圍步道、岬角、東灣對岸）的，挪到最近的車道
+    if (motors.game && d.v >= 5 && d.v < 7) for (const s of motors.game.st) {
+      if (!s || !Number.isFinite(s.x) || !Number.isFinite(s.z)) continue;
+      const zo = ZONES_V6.find(zn => { const dx = s.x - zn.ox, dz = s.z - zn.oz, x = dx * zn.c - dz * zn.s, z = dx * zn.s + dz * zn.c; return x >= zn.x0 && x < zn.x1 && z >= zn.z0 && z < zn.z1; }) || ZONES_V6[0];
+      const dx = s.x - zo.ox, dz = s.z - zo.oz, x = dx * zo.c - dz * zo.s, z = dx * zo.s + dz * zo.c, yaw = (Number.isFinite(s.yaw) ? s.yaw : 0) - zo.ry;
+      let w = spotW({ x, z, yaw });
+      if (cellDropped(Math.floor((x - X0) / P), Math.floor((z - Z0) / Q)) || !landW(w.x, w.z)) w = rnLaneSpot(w.x, w.z);
+      s.x = +w.x.toFixed(2); s.z = +w.z.toFixed(2); s.yaw = +w.yaw.toFixed(3);
+    }
   }
 } catch (e) { /* 私密視窗或封鎖儲存空間：用預設值 */ }
 const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
   motors.ts = Date.now();
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 6, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side })); } catch (e) { /* 存不了就算了 */ }
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 7, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();
