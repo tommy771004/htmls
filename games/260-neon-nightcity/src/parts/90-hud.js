@@ -3,7 +3,7 @@
 // 北方 = -z；地圖上 px = x、py = z。heading 以順時針角度表示，0 為北。
 // 地圖涵蓋對岸、海與灰鷗島；每公尺 1.5 px（小地圖另外放大回原本的比例）。底圖是世界座標（MAP_X0、MAP_Z0 是各區換過去的外接框），
 // 每區用 canvas 的變換照邏輯座標畫原本的矩形，並裁在區的範圍內
-const MAP_L = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: stZ(0) - 60, z1: ISLE.z1 + 40 };   // 邏輯座標的範圍
+const MAP_L = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: NPARK.walk.z0 - 40, z1: ISLE.z1 + 40 };   // 北邊含北嶺公園   // 邏輯座標的範圍
 const MAP_BB = (() => {
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, MAP_L.x0), Math.min(zn.x1, MAP_L.x1), Math.max(zn.z0, MAP_L.z0), Math.min(zn.z1, MAP_L.z1), zn)) {
@@ -23,6 +23,15 @@ mapImg.getContext('2d').fillStyle = '#14202a'; mapImg.getContext('2d').fillRect(
   for (const P of FAR_PARTS) { const z0 = Math.max(P.z0, MAP_L.z0 - 2000), z1 = Math.min(P.z1, MAP_L.z1 + 2000); c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(MAP_L.x0 - 2000, z0, FAR_BANK_X - MAP_L.x0 + 2000, z1 - z0); c.restore(); }
   for (const P of EAST_PARTS) { const z0 = Math.max(P.z0, CITY_CZ - 850), z1 = Math.min(P.z1, CITY_CZ + 850); if (z1 > z0) { c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(EAST_BANK_X, z0, 2000, z1 - z0); c.restore(); } }
 }
+// 北嶺公園（10-city.js 的 NPARK，A 區邏輯座標）：圍籬範圍的草地、門的通道、步道與觀景台、管理站；px 是一個像素的長度
+function parkMap(c, px, grass, gate, trail) {
+  const W = NPARK.walk, L = NPARK.look, C = NPARK.cabin;
+  c.fillStyle = grass; c.fillRect(W.x0, W.z0, W.x1 - W.x0, W.z1 - W.z0);
+  c.fillStyle = gate; c.fillRect(NPARK.gx - NPARK.gw, CITY_Z0 - OUT_D, 2 * NPARK.gw, OUT_D);
+  c.strokeStyle = trail; c.lineWidth = Math.max(2.6, 2.2 * px); c.lineJoin = c.lineCap = 'round';
+  c.beginPath(); NPARK.trail.forEach(([x, z], n) => n ? c.lineTo(x, z) : c.moveTo(x, z)); c.stroke();
+  c.fillStyle = trail; c.fillRect(L.x0, L.z0, L.x1 - L.x0, L.z1 - L.z0); c.fillRect(C.x - 4, C.z - 3, 8, 6);
+}
 // 每區的地塊與縫裡的塔樓（10-city.js 的 seam）；p 是一個像素的長度
 function mapLot(c, L, px, col) { c.fillStyle = col; c.fillRect(L.x0 + px, L.z0 + px, L.x1 - L.x0 - 2 * px, L.z1 - L.z0 - 2 * px); }
 const lotCol = L => L.special ? '#5a3a52' : L.style === 3 ? '#1b1e24' : '#202329';
@@ -32,8 +41,10 @@ for (const zn of ZONES) {
   c.beginPath(); c.rect(Math.max(zn.x0, MAP_L.x0), Math.max(zn.z0, MAP_L.z0), Math.min(zn.x1, MAP_L.x1) - Math.max(zn.x0, MAP_L.x0), Math.min(zn.z1, MAP_L.z1) - Math.max(zn.z0, MAP_L.z0)); c.clip();
   const X = x => x, Z = z => z;
   const rect = (r, col) => { c.fillStyle = col; c.fillRect(r.x0, r.z0, r.x1 - r.x0, r.z1 - r.z0); };
-  rect({ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: MAP_L.z0, z1: SHORE_Z }, '#2a2d33');   // 濱海步道
-  rect({ x0: CITY_X0, x1: CITY_X1, z0: MAP_L.z0, z1: CITY_Z1 }, '#4a4e56');
+  rect({ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: MAP_L.z0, z1: CITY_Z0 - OUT_D }, '#1b2019');   // 樓牆後面的山
+  rect({ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: CITY_Z0 - OUT_D, z1: SHORE_Z }, '#2a2d33');   // 濱海步道
+  rect({ x0: CITY_X0, x1: CITY_X1, z0: CITY_Z0 - OUT_D, z1: CITY_Z1 }, '#4a4e56');
+  if (zn === ZONES[0]) parkMap(c, px, '#26321f', '#3a3d42', '#8a7050');   // 北嶺公園
   rect({ ...BEACH, z1: BEACH.z0 + BEACH.len * SEA_Y / -BEACH.drop }, '#6a5e46');
   rect(QUAY, '#3a3d42'); rect(BRIDGE, '#4a4e56'); rect(ISLE, '#26321f');
   for (const r of PIERS) rect(r, '#5a4632');

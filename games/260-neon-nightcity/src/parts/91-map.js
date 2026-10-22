@@ -75,7 +75,7 @@ function mapBlips() {
 // ─── 視角與狀態 ───
 const MV = { cx: 0, cz: 0, zoom: 1, tx: 0, tz: 0, tzoom: 1, dirty: true, blips: [], sel: -1, hover: -1, mx: -1, my: -1, raf: 0, ptr: new Map(), drag: null, pinch: null, t: 0 };
 // MAP_LB 是邏輯座標的範圍（各區照它畫），MAP_BOUNDS 是換到世界座標的外接框（平移、縮放的限制）
-const MAP_LB = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: stZ(0) - 120, z1: ISLE.z1 + 40 };
+const MAP_LB = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: NPARK.walk.z0 - 60, z1: ISLE.z1 + 40 };   // 北邊含北嶺公園
 const MAP_BOUNDS = (() => {
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, MAP_LB.x0), Math.min(zn.x1, MAP_LB.x1), Math.max(zn.z0, MAP_LB.z0), Math.min(zn.z1, MAP_LB.z1), zn)) {
@@ -119,7 +119,8 @@ const MAP_LABELS = (() => {
     { zh: '灰鷺河', en: 'HERON RIVER', x: (FAR_BANK_X + CITY_X0 - OUT_D) / 2, z: CITY_CZ, water: 1 },
     { zh: '東灣', en: 'EAST BAY', x: (EAST_BANK_X + CITY_X1 + OUT_D) / 2, z: CITY_CZ, water: 1 },
     { zh: '舊港城', en: 'OLD HARBOUR', x: EAST_BANK_X + 140, z: CITY_CZ - 220 },
-    { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 200, z: CITY_CZ - 220 });
+    { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 200, z: CITY_CZ - 220 },
+    { zh: '北嶺公園', en: 'NORTH RIDGE PARK', x: NPARK.gx, z: (NPARK.walk.z0 + NPARK.walk.z1) / 2 });
   return L.map(o => ({ ...o, ...WP(o.x, o.z) }));   // 上面是邏輯座標，畫的時候用世界座標
 })();
 
@@ -172,6 +173,7 @@ function mapDraw() {
         rect(cx - 1.8, cx + 1.8, b.z0 + SW, b.z1 - SW, '#3a3a33'); rect(b.x0 + SW, b.x1 - SW, cz - 1.8, cz + 1.8, '#3a3a33');
       }
     }
+    if (zn === ZONES[0]) parkMap(c, px, MAPC.park, MAPC.walk, '#7a6446');   // 北嶺公園（90-hud.js）
     const edge = k > 1.3;
     c.lineWidth = Math.max(1, k * .35) * px; c.strokeStyle = MAPC.lotEdge;
     if (k > .8) for (const L of lots) {   // 拉遠時只畫街廓，不畫一棟棟的地塊

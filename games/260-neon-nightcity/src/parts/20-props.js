@@ -396,6 +396,7 @@ let treeMesh;
 
 // ─── 窗型冷氣、逃生梯、水塔、屋頂設備 ───
 const acs = [], escapes = [], towers = [], roofBits = [];
+const rndG = rnd;
 function facePoint(L, k, along, y, out) {
   // 依 boxFaces 的 u 方向，把面上的 (u, y) 轉成世界座標，並往外推 out 公尺
   if (k === 'pz') return { x: L.x0 + along, y, z: L.z1 + out, ry: 0 };
@@ -404,6 +405,8 @@ function facePoint(L, k, along, y, out) {
   return { x: L.x0 - out, y, z: L.z0 + along, ry: -Math.PI / 2 };
 }
 for (const L of winSpots) {
+  // 北嶺公園門口（10-city.js）：切剩的地塊用自己的亂數；ghost 是切開前的原地塊，只抽亂數不放東西
+  const rnd = L.rng || rndG, G = L.ghost ? { push() {} } : null;
   const k = L.axis === 'z' ? (L.face > 0 ? 'pz' : 'nz') : (L.face > 0 ? 'px' : 'nx');
   const fw = k === 'pz' || k === 'nz' ? L.x1 - L.x0 : L.z1 - L.z0;
   const ws = L.style === 2 ? 2.2 : 2.5, fh = L.fh, gH = 4.6;
@@ -413,11 +416,11 @@ for (const L of winSpots) {
   if (cols >= 3 && rnd() < .45 && L.style !== 2) escCol = 1 + Math.floor(rnd() * (cols - 2));
   for (let fi = 0; fi < nF; fi++) for (let ci = 0; ci < cols; ci++) {
     if (escCol >= 0 && (ci === escCol || ci === escCol - 1)) continue;
-    if (rnd() < .14) acs.push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
+    if (rnd() < .14) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
   }
-  if (escCol >= 0) for (let fi = 0; fi < nF; fi++) escapes.push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
-  if (L.h < 32 && rnd() < .28) towers.push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
-  for (let n = 0; n < 2; n++) if (rnd() < .5) roofBits.push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
+  if (escCol >= 0) for (let fi = 0; fi < nF; fi++) (G || escapes).push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
+  if (L.h < 32 && rnd() < .28) (G || towers).push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
+  for (let n = 0; n < 2; n++) if (rnd() < .5) (G || roofBits).push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
 }
 instanced(new Kit().box(0, .22, .02, .66, .42, .5, 0xbab5a8, 10).box(0, .22, .28, .58, .3, .02, 0x55534e, 2).box(0, -.04, .05, .5, .06, .4, 0x2a2a2a, 15).build(), MAT.uber, acs);
 {

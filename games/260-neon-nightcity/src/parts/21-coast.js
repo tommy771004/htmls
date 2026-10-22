@@ -670,7 +670,8 @@ const FAR_SITES = {
       for (let i = 0; i < p.count; i++) {
         const x = (x0 + x1) / 2 + p.getX(i), zz = p.getZ(i), u = (450 - zz) / 900;   // u：0 前緣（城市那邊）→ 1 後緣
         const ridge = (.55 + .45 * Math.sin(x * .0021 + ph) * Math.sin(x * .0057 + ph * 2)) * (.75 + .25 * Math.sin(x * .013 + ph));
-        p.setXYZ(i, x, Math.max(0, Math.sin(Math.min(1, u * 1.15) * Math.PI * .5)) * hmax * ridge, zr - 450 + zz);
+        const z = zr - 450 + zz, sink = zn === ZONES[0] && hmax === 140 && x > NPARK.x0 + 1 && x < NPARK.x1 - 1 && z > NPARK.z0 + 1 ? 80 : 0;   // 北嶺公園的山坡（21-park.js）蓋住的頂點壓到地下
+        p.setXYZ(i, x, Math.max(0, Math.sin(Math.min(1, u * 1.15) * Math.PI * .5)) * hmax * ridge - sink, z);
       }
       g.computeVertexNormals();
       nk.get(zn).add(g, col, 2, null);
@@ -678,9 +679,10 @@ const FAR_SITES = {
   }
   for (let i = 0; i < 26; i++) {
     const x = CITY_X0 - 1200 + r2() * (CITY_X1 - CITY_X0 + 2400), z = CITY_Z0 - 900 - r2() * 700, y = 40 + r2() * 120;
+    if (inParkMesh(x, z)) continue;   // 公園山坡上另外有步道燈
     nk.get(north.find(zn => x >= zn.x0 && x < zn.x1) || north[0]).box(x, y, z, 3, 3, 3, 0xffc880, 11);
   }
-  for (const [zn, kk] of nk) cityAdd(new T.Mesh(kk.build(), MAT.far), zn);
+  for (const [zn, kk] of nk) cityAdd(new T.Mesh(kk.build(), MAT.ridge), zn);   // MAT.ridge：150 m 內照一般的霧，和公園山坡一致
   // 雪山（World 第四輪之二：只有換成模型時才擺）：第三層山脊後面一排，拉伸成 1.6–2.3 km 寬、600–870 m 高，跟著北面各區
   const r8 = rng(4343);
   for (let i = 0; i < 6; i++) {

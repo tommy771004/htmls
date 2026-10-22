@@ -65,6 +65,65 @@ const BANK_WALKS = [
 const FERRY = BANK_WALKS.map((B, i) => { const zc = Math.round((B.z0 + B.z1) / 2); return i ? { x0: B.x0 - 30, x1: B.x0, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '舊港渡口' } : { x0: B.x1, x1: B.x1 + 30, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '鷺岸渡口' }; });
 const LANDS = [{ x0: CITY_X0 - OUT_D, x1: CITY_X1 + OUT_D, z0: -1e5, z1: SHORE_Z }, BEACH, QUAY, BRIDGE, ISLE, ...PIERS, ...BANK_WALKS, ...FERRY];
 const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
+// ─── 北嶺公園（畫面在 21-park.js）：北面樓牆在 Cinder Av（avX(3)）北端開一道門，門外是一片走得上去的山坡，A 區邏輯座標 ───
+// 山坡網格的範圍（x0…x1、z0…z1）對齊 21-coast.js 第一層遠景山脊的格線：邊界上的高度照山脊頂點線性內插，接得起來；
+// 範圍裡的山脊頂點壓到地下，被山坡蓋住。walk 是圍籬圈起來、走得到的範圍；車被門口的路樁擋住
+const NPARK = (() => {
+  const zr = CITY_Z0 - 700, RX0 = CITY_X0 - 2600, RX1 = CITY_X1 + 2600, ax1 = Math.min(RX1, avX(8) + 60);   // 21-coast.js 第一層山脊（A 區那一段）
+  const n = Math.max(4, Math.round(90 * (ax1 - RX0) / (RX1 - RX0))), dx = (ax1 - RX0) / n, gx = avX(3);
+  const ka = Math.round((gx - 240 - RX0) / dx), kb = Math.round((gx + 270 - RX0) / dx);
+  return {
+    zr, RX0, dx, ph: rng(4242)() * 100,   // ph：21-coast.js 的 rng(4242) 第一個值就是第一層山脊的相位
+    x0: RX0 + ka * dx, x1: RX0 + kb * dx, z0: zr - 300, z1: CITY_Z0 - OUT_D, gx, gw: 10,
+    walk: { x0: gx - 120, x1: gx + 120, z0: CITY_Z0 - OUT_D - 620, z1: CITY_Z0 - OUT_D },
+    name: '北嶺公園 North Ridge Park',
+  };
+})();
+// 第一層山脊的高度（21-coast.js 的頂點公式）
+const ridgeAt = (x, z) => {
+  const u = (NPARK.zr - z) / 900; if (u <= 0) return 0;
+  const ph = NPARK.ph, ridge = (.55 + .45 * Math.sin(x * .0021 + ph) * Math.sin(x * .0057 + ph * 2)) * (.75 + .25 * Math.sin(x * .013 + ph));
+  return Math.max(0, Math.sin(Math.min(1, u * 1.15) * Math.PI * .5)) * 140 * ridge;
+};
+// 山坡的底：山脊頂點之間的雙線性內插（邊界線上和山脊的三角形一樣是兩頂點之間的直線）
+const parkBase = (x, z) => {
+  if (z >= NPARK.zr) return 0;
+  const k = (x - NPARK.RX0) / NPARK.dx, m = (NPARK.zr - z) / 150, k0 = Math.floor(k), m0 = Math.floor(m), a = k - k0, b = m - m0;
+  const V = (kk, mm) => ridgeAt(NPARK.RX0 + kk * NPARK.dx, NPARK.zr - mm * 150);
+  return (V(k0, m0) * (1 - a) + V(k0 + 1, m0) * a) * (1 - b) + (V(k0, m0 + 1) * (1 - a) + V(k0 + 1, m0 + 1) * a) * b;
+};
+// 山坡本身：門口一片平地，往北 600 m 爬到約 55 m；沿步道那一帶略低，兩側與後面在網格邊界前降回山脊
+const parkHill = (x, z) => {
+  const W = NPARK.walk, d = NPARK.z1 - z, main = 55 * sstep(30, 600, d);
+  const side = x < W.x0 - 20 ? sstep(NPARK.x0, W.x0 - 20, x) : x > W.x1 + 20 ? sstep(NPARK.x1, W.x1 + 20, x) : 1, back = sstep(NPARK.z0, W.z0 - 40, z);
+  const vale = 1 - .3 * Math.exp(-(((x - NPARK.gx - 15) / 110) ** 2));
+  const nz = Math.sin(x * .029 + z * .013 + 1.7) * Math.sin(z * .037 - x * .011) * .6 + Math.sin(x * .071 - z * .053) * .4;
+  return side * back * (.15 + main * (vale + .12 * nz));
+};
+const inParkMesh = (x, z) => x >= NPARK.x0 && x <= NPARK.x1 && z >= NPARK.z0 && z <= NPARK.z1;
+const parkH = (x, z) => parkBase(x, z) + parkHill(x, z);
+// 步道：門口往北蜿蜒到山頂的觀景台（控制點：離門中線的 x、離樓牆背面的距離），每 2 m 取一點
+NPARK.trail = (() => {
+  const C = [[0, -2], [0, 45], [-22, 110], [18, 185], [-26, 260], [8, 335], [44, 400], [26, 465], [52, 530], [60, 588]].map(([x, d]) => [NPARK.gx + x, NPARK.z1 - d]);
+  const out = [];
+  for (let i = 0; i < C.length - 1; i++) {
+    const p0 = C[Math.max(0, i - 1)], p1 = C[i], p2 = C[i + 1], p3 = C[Math.min(C.length - 1, i + 2)];
+    const n = Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 2);
+    for (let k = 0; k < n; k++) {
+      const t = k / n, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(j => .5 * (2 * p1[j] + (p2[j] - p0[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (3 * p1[j] - p0[j] - 3 * p2[j] + p3[j]) * t3)));
+    }
+  }
+  out.push(C[C.length - 1]);
+  return out;
+})();
+// 觀景台（步道盡頭）與管理站：平台高度固定，站上去不跟著坡
+{
+  const [lx, lz] = NPARK.trail[NPARK.trail.length - 1], cx = lx, cz = lz - 5;
+  let h = 0; for (const [dx, dz] of [[-4.5, -4.5], [4.5, -4.5], [-4.5, 4.5], [4.5, 4.5], [0, 0]]) h = Math.max(h, parkH(cx + dx, cz + dz));
+  NPARK.look = { x0: cx - 4.5, x1: cx + 4.5, z0: cz - 4.5, z1: cz + 4.5, h: h + .35, cx, cz };
+  NPARK.cabin = { x: NPARK.gx - 36, z: NPARK.z1 - 48 };
+}
 // ─── 岬角：從岸邊伸進灰鷺河與東灣的草地公園（世界座標的多邊形），海岸線就不是一條直線 ───
 // 只往水裡加，不切進原本的陸地矩形。兩區在岸邊交會的地方（縫的兩端）各有一塊順著兩邊岸線把錯開的岸角接起來，
 // 另外 C 區西岸、B 區東岸各凸出一個岬。wet[k]：pts[k] → pts[k + 1] 臨水（擋牆、欄杆、路燈、護岸只做這些邊）；
@@ -128,6 +187,7 @@ const district = (x, z) => {
     return x < BEACH_X1 ? '珊瑚灘 Coral Beach' : '錨灣港 Anchor Bay';
   }
   for (const B of [...BANK_WALKS, ...FERRY]) if (x >= B.x0 - 2 && x <= B.x1 + 2 && z >= B.z0 - 2 && z <= B.z1 + 2) return `${B.name} ${B.en || (B.x0 < CITY_X0 ? 'Heron Ferry' : 'Old Harbour Ferry')}`;
+  if (z < CITY_Z0 && x >= NPARK.gx - NPARK.gw - 2 && x <= NPARK.gx + NPARK.gw + 2 || z < NPARK.z1 && inParkMesh(x, z)) return NPARK.name;
   if (x < CITY_X0) return '灰鷺河濱 Heron Riverside';
   if (i < 0 || i > NX || j < 0 || j > NZ) return '城郊 Outskirts';
   if (i >= 8 || j >= 7) { for (const d of DISTRICTS) if (i >= d.i0 && i <= d.i1 && j >= d.j0 && j <= d.j1) return d.name; return '城郊 Outskirts'; }
@@ -344,6 +404,25 @@ if (BLD_ON) {
       i = best.j;
     }
   }
+}
+// 北嶺公園的門（NPARK.gx ± gw）：樓牆被門切到的地塊換成切剩的兩段（piece，用自己的亂數）；原地塊留著當 ghost，
+// 立面迴圈（下面）與 20-props.js 的窗台設施照原本的寬度抽掉 rnd()，不蓋東西，後面地塊與街道設施的亂數序列和開門前一樣。
+// 換成模型的那幾塊（bldPlace）整組退回程式立面，同樣用自己的亂數（原本就不抽 rnd）。碰撞框拆成兩段，門口一排路樁擋車（人走得過，警察也追得進去）
+{
+  const g0 = NPARK.gx - NPARK.gw, g1 = NPARK.gx + NPARK.gw, hit = L => L.z1 <= CITY_Z0 + .01 && L.z0 >= CITY_Z0 - OUT_D - .01 && !L.seam && L.x0 < g1 && L.x1 > g0;
+  for (const L of lots) if (hit(L) && L.glb) {
+    const e = L.glb; bldPlace.splice(bldPlace.indexOf(e), 1);
+    for (const M of e.lots) { M.glb = null; M.rng = rng(Math.floor(M.seed * 1000) + 7); }
+  }
+  const pieces = [];
+  for (const L of lots) {
+    if (!hit(L)) continue;
+    for (const [a, b] of [[L.x0, g0], [g1, L.x1]]) if (b - a >= 4) pieces.push({ ...L, x0: a, x1: b, piece: 1, rng: rng(Math.floor(L.seed * 1000) + (a < g0 ? 1 : 2)) });
+    L.ghost = L.rng ? 2 : 1;   // 2：本來是模型，從來不抽 rnd，迴圈直接跳過
+  }
+  lots.push(...pieces);
+  for (const c of colliders) if (c.outer === 's' && c.x0 < g0 && c.x1 > g1) { colliders.push({ ...c, x0: g1 }); c.x1 = g0; break; }
+  for (let x = g0 + .5; x < g1; x += 1) circles.push({ x, z: CITY_Z0 - 3, r: .12 });   // 路樁：間隔 1 m，人（半徑 0.32）走得過，機車（0.45）與汽車過不去
 }
 
 // 整個街區換成一個模型或一群建築：冠石金融區是 bld_fin（golukumar 的紐約街區拆出來的 12 群，tools/props.mjs），
@@ -665,10 +744,10 @@ function boxFaces(B, x0, x1, z0, z1, y0, y1, seed, style, shopFaces, h, masks, r
 const shopSigns = [];      // 之後由招牌模組使用：{x,z,nx,nz,w,unit}
 const winSpots = [];       // 窗型冷氣、逃生梯
 for (const L of lots) {
-  if (L.glb) continue;
+  if (L.glb || L.ghost === 2) continue;
+  const R = L.rng || rnd;   // 北嶺公園門口切剩的地塊用自己的亂數；ghost 只抽 rnd、不蓋（見上面開門那段）
   const zn = L.zn;
   const key = L.b && !L.b.outer ? `${L.b.i},${L.b.j}` : `o${zn ? zn.id : '-'}:${Math.floor((L.x0 + 400) / 120)},${Math.floor((L.z0 + 400) / 120)}`;
-  const B = buf(key, zn);
   const shopF = {};
   const masks = {};
   // 面向街道的那一面有店面；排尾的地塊在大道那側也有
@@ -683,8 +762,9 @@ for (const L of lots) {
       const fw = k === 'pz' || k === 'nz' ? L.x1 - L.x0 : L.z1 - L.z0;
       const units = Math.max(1, Math.round(fw / 6.5));
       let mask = 0;
-      for (let u = 0; u < units; u++) if ((rnd() < .28 && !L.special) || L.special === 'garage' || L.special === 'home') mask |= 1 << u;
+      for (let u = 0; u < units; u++) if ((R() < .28 && !L.special) || L.special === 'garage' || L.special === 'home') mask |= 1 << u;
       masks[k] = [mask, units];
+      if (L.ghost) continue;
       const nrm = { pz: [0, 1], nz: [0, -1], px: [1, 0], nx: [-1, 0] }[k];
       for (let u = 0; u < units; u++) {
         const uw = fw / units, along = (u + .5) * uw;
@@ -698,19 +778,24 @@ for (const L of lots) {
       }
     }
   }
+  // 高樓退縮頂的亂數先抽（和以前一樣排在店面之後）
+  const h2 = L.style === 3 && R() < .5 && L.h > 50 ? L.h + 8 + R() * 20 : 0;
+  if (L.ghost) { if (L.style <= 2 && !L.back) winSpots.push(L); continue; }   // 20-props.js 的窗台設施也照原本的寬度抽亂數
+  const B = buf(key, zn);
   boxFaces(B, L.x0, L.x1, L.z0, L.z1, 0, L.h, L.seed, L.style, shopF, L.h, masks);
   // 簷口與女兒牆（磚樓、石樓）
   if (L.style !== 3) {
     const o = .35, y = L.h;
     boxFaces(B, L.x0 - o, L.x1 + o, L.z0 - o, L.z1 + o, y - .55, y + .06, L.seed, 7, null, L.h, null);
     boxFaces(B, L.x0 - .18, L.x1 + .18, L.z0 - .18, L.z1 + .18, 4.45, 4.75, L.seed, 7, null, L.h, null);
-  } else if (rnd() < .5 && L.h > 50) {   // 高樓退縮頂
-    const ix = (L.x1 - L.x0) * .18, iz = (L.z1 - L.z0) * .18, h2 = L.h + 8 + rnd() * 20;
+  } else if (h2) {   // 高樓退縮頂
+    const ix = (L.x1 - L.x0) * .18, iz = (L.z1 - L.z0) * .18;
     boxFaces(B, L.x0 + ix, L.x1 - ix, L.z0 + iz, L.z1 - iz, L.h, h2, L.seed + 1, 3, null, h2, null);
     L.h2 = h2;
   }
   if (L.style <= 2 && !L.back) winSpots.push(L);
 }
+for (let k = lots.length - 1; k >= 0; k--) if (lots[k].ghost) lots.splice(k, 1);   // ghost 只留在 winSpots 裡抽亂數
 const cityChunks = [];
 // 距離剔除：霧在 300 m 外已經看不到，城市放大到 20×15 之後，遠處的立面、實體建築與街道設施不畫（每幀依相機位置切換 visible）
 const CULL_R = 420, cullList = [];
@@ -766,6 +851,7 @@ function lotFallback(list) {
     if (cz > CITY_Z0 - OUT_D) continue;   // 只留北面（其他三面是水，對岸另外做）
     const sd = r2() * 1000, st = r2() < .75 ? 3 : 2;
     if (skyHit(cx, cz, Math.max(w, d) / 2 + 8)) continue;
+    if (cx + w / 2 > NPARK.x0 - 20 && cx - w / 2 < NPARK.x1 + 20 && cz - d / 2 < NPARK.z1) continue;   // 北嶺公園的山坡上不蓋
     boxFaces(B, cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, 0, h, sd, st, null, h, null);
   }
   const g = new T.BufferGeometry();
@@ -1067,6 +1153,7 @@ for (const h of CAPES) {
 // 地面高度（邏輯座標）：人行道高 0.15；查格子，不逐一比對街區。世界座標的 groundH 在下面
 const groundHL = (x, z) => {
   if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
+    if (z < NPARK.z1 && inParkMesh(x, z)) { const L = NPARK.look; return x >= L.x0 && x <= L.x1 && z >= L.z0 && z <= L.z1 ? L.h : parkH(x, z); }   // 北嶺公園的山坡與觀景台
     if (x > CITY_X0 - OUT_D && x < CITY_X1 + OUT_D && z > CITY_Z0 - OUT_D && z < SHORE_Z) return .15;   // 濱海步道、北面樓牆前
     for (const r of PIERS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
     for (const r of FERRY) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;

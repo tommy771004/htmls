@@ -157,7 +157,7 @@ function fNav(f, gx, gz, dt) {
 }
 
 // ─── 每個戰鬥員每幀 ───
-function fGround(f) { return groundH(f.x, f.z) > 0 ? .15 : 0; }
+function fGround(f) { return footY(f.x, f.z); }
 function fStep(f, dt) {
   const p = fighters.people[f.k];
   if (f.state === 'car') { if (f.car) { f.x = f.car.v.x; f.z = f.car.v.z; } fighters.place(f.k, 0, -60, 0, 0); return; }

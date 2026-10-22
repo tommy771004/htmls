@@ -371,7 +371,7 @@ window.__nc = {
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   // 天氣與時間（28-sky.js）：rain(v) 依雨量挑最接近的天氣並立刻套用；weather(id, snap)；time(分鐘)
   rain(v) { setWeather(v > .85 ? 'storm' : v > .45 ? 'rain' : v > .12 ? 'drizzle' : 'overcast', true); wx.rain = v; }, flash() { wx.next = 0; wx.force = true; },
-  weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y, sites: ISLE_SITES, foot: isleFoot, walks: BANK_WALKS, ferry: FERRY },
+  weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y, sites: ISLE_SITES, foot: isleFoot, walks: BANK_WALKS, ferry: FERRY }, park: { ...NPARK, h: parkH, base: parkBase, district: (x, z) => districtW(x, z) },
   keys, inp, nitro, livery: cycleLivery,
   me, peds, pedState, crowd, ANIM, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),

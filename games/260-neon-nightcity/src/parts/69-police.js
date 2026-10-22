@@ -218,12 +218,12 @@ function copStep(c, dt) {
   if (c.stunT > 0) {   // 電擊槍：倒地抽搐，時間到了起身繼續
     c.stunT -= dt;
     copsCrowd.anim(c.k, ANIM.die, c.stunPh, 1);
-    copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+    copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
     return;
   }
   if (c.state === 'down') {
     c.downT -= dt;
-    copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+    copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
     if (c.downT <= 0) freeCop(c);
     return;
   }
@@ -239,7 +239,7 @@ function copStep(c, dt) {
       c.yaw = Math.atan2(bx, bz);
       const r = collideCircle(c.x + bx / bd * 4.4 * dt, c.z + bz / bd * 4.4 * dt, .32, true); c.x = r.x; c.z = r.z;
       copsCrowd.anim(c.k, ANIM.run, c.ph += dt, 1.1);
-      copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+      copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
       return;
     }
   }
@@ -264,7 +264,7 @@ function copStep(c, dt) {
   const armed = W.stars >= 2 || d < 12;
   p.aimK = sp ? .85 : 1; p.aimP = Math.atan2((player.mode === 'drive' ? .9 : 1.2) - 1.45, Math.max(d, 1)) * .9;
   copsCrowd.anim(c.k, sp ? (armed ? ANIM.aimRun : ANIM.run) : armed ? ANIM.aimIdle : ANIM.idle, c.ph += dt * (sp ? 1 : 0), 1);
-  copsCrowd.place(c.k, c.x, groundH(c.x, c.z) > 0 ? .15 : 0, c.z, c.yaw);
+  copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
   if (shoot || al) {
     c.shotT -= dt;
     if (c.shotT <= 0) {

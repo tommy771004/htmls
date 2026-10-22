@@ -653,6 +653,35 @@ async function desktop() {
       }
       check(fw.every(f => !f.swim && f.y > .1 && f.inside && f.boat), `對岸步道走得上去、靠樓那側擋住、渡口有船 ${JSON.stringify(fw)}`);
     }
+    // 北嶺公園（10-city.js 的 NPARK、21-park.js）：從樓牆的門走進去、在坡上貼著地、觀景台站在平台上、圍籬擋住、車被門口的路樁擋住
+    {
+      const run = async (ms) => { await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
+      const at = () => nc(() => { const n = window.__nc, p = n.player, [x, z] = n.L(p.x, p.z); return { x: +x.toFixed(1), z: +z.toFixed(1), y: +p.y.toFixed(2), h: +n.park.h(x, z).toFixed(2), swim: !!p.swim, d: n.park.district(p.x, p.z).split(' ')[0] }; });
+      await nc(() => { const n = window.__nc; n.walk(); n.tpL(n.park.gx, n.park.z1 + 12, Math.PI); });
+      await page.waitForTimeout(300); await run(5000);
+      const gate = await at();
+      await nc(() => { const n = window.__nc, P = n.park.trail[200]; n.tpL(P[0], P[1], Math.PI); });
+      await page.waitForTimeout(300); await run(2500);
+      const slope = await at();
+      await nc(() => { const n = window.__nc, W = n.park.walk; n.tpL(W.x0 + 6, (W.z0 + W.z1) / 2, -Math.PI / 2); });
+      await page.waitForTimeout(300); await run(3000);
+      const fence = await at();
+      await nc(() => { const n = window.__nc, L = n.park.look; n.tpL(L.cx, L.cz, 0); });
+      await page.waitForTimeout(2200);   // 從坡上傳送過去，往上爬 0.8 m 以上是慢慢升（40-people.js 的 damp 4）
+      const look = { ...(await at()), deck: await nc(() => window.__nc.park.look.h) };
+      await nc(() => window.__nc.drive());
+      await page.waitForFunction(() => window.__nc.player.veh, null, { timeout: 15000 });
+      // 先修車：前面的撞擊累積下來，撞上路樁可能起火燒毀（68-wreck.js）
+      await nc(() => { const n = window.__nc, v = n.player.veh, s = n.Ws(n.park.gx, n.park.z1 + 70, Math.PI); v.x = s.x; v.z = s.z; v.yaw = s.yaw; v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v); });
+      await page.waitForTimeout(300);
+      await page.keyboard.down('KeyW'); await page.waitForTimeout(4500); await page.keyboard.up('KeyW');
+      const car = await nc(() => { const n = window.__nc, v = n.player.veh, [, z] = n.L(v.x, v.z); return +z.toFixed(1); });
+      await nc(() => window.__nc.walk());
+      const pk = { gate, slope, fence, look, car };
+      const W0 = await nc(() => window.__nc.park.walk.x0), Z1 = await nc(() => window.__nc.park.z1);
+      check(gate.z < Z1 && gate.d === '北嶺公園' && !gate.swim && slope.y > 5 && Math.abs(slope.y - slope.h) < .3 && fence.x > W0 && Math.abs(look.y - look.deck) < .05 && car > Z1 + 40,
+        `北嶺公園：走進門、坡上貼地、圍籬擋住、觀景台平台、車擋在門口 ${JSON.stringify(pk)}`);
+    }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {
       const b0 = await nc(() => { const n = window.__nc, b = n.boat; n.time(780); const name = b.board(0), v = n.player.veh; return { name, boat: !!(v && v.boat), x: v.x, z: v.z, n: b.boats.length }; });
