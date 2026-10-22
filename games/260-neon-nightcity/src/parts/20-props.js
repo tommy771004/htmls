@@ -361,6 +361,12 @@ const newsBoxes = [], parkSeats = [], shrubs = [];
     }
   }
 }
+// street.glb 的配電箱（同樣只有模型版才擺）：沿路緣、長邊順著街；另一個亂數，上面那段的序列不變
+const eboxes = [];
+{
+  const r = rng(2604);
+  for (const s of sideSpots) if (r() < .022 && free(s.x, s.z, 1.3)) { eboxes.push({ ...s, y: .15 }); claim(s.x, s.z, 1.3); }
+}
 // World 第四輪之二（27-props.js 檔尾）：以 http(s) 開啟時把下面幾種換成 Sketchfab 模型，所以留住程式建模的網格（下載好才拿掉）
 const hydrantMesh = instanced(new Kit()
   .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)

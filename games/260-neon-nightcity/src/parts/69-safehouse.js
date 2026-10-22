@@ -27,19 +27,45 @@ const APT = {
     // 牆：西、東、北、南。原檔的東、南兩面是開著的（給 Sketchfab 取景），add 是模型版也要補上的牆
     walls: [[-4.5, -3.85, -4.5, 6.6], [9.95, 10.6, -4.5, 6.6], [-4.5, 10.6, -4.5, -3.85], [-4.5, 10.6, 6.05, 6.6]], add: [1, 3],
     solid: [[-3.1, 1.8, -2, 1.1], [-2.6, -1.1, 1.2, 6.25], [4, 6.9, -2.95, -1.6], [5.55, 8.45, -3.85, -3.05], [1.2, 2.75, -3.6, -2.95], [8.55, 9.2, -3.6, -2.95], [-3.65, -3, 2.1, 2.75]],
-    round: [{ x: 3.18, z: -1, r: 1.35 }],   // 旋轉樓梯：上面的夾層相機天花板處理不了，不讓上去
-    lights: [{ x: 3, y: 5.6, z: 1, col: lin(0xffd2a0), r: 13, i: 1.3 }, { x: -2.6, y: 2.6, z: 3.5, col: lin(0xa0b4ff), r: 8, i: .7 }, { x: 7.6, y: 2.8, z: -2.2, col: lin(0xffc890), r: 7, i: .8 }] },
-  // 雲杉坡 (2,6) 街區的南面，門朝 13 St（j = 7，城市擴到 20×15 前是最南邊的街）；挑高客廳 x −3.9…21.7、z −5.3…6，南面玻璃外是露台與岩坡
+    round: [{ x: 3.18, z: -1, r: 1.35 }],   // 旋轉樓梯：一樓不能穿過，按 E 沿著踏階繞一圈上夾層
+    // 夾層（地板 3.85 m）：北面那間比一樓的北牆還深，有弧形沙發、斜放的床與西北角的弧形欄杆
+    under: [[-3.9, 3.25, -3.9, -1.75, 3.6]],   // 一樓在夾層下面的天花板（相機）
+    up: { y: 3.85, ceil: 6.6, rects: [[-3.85, 3.2, -7.65, -1.82]],
+      boxes: [[-2.25, 2.4, -7.65, -5.45], [-3.9, -3.2, -7.7, -4.4], [-3.2, -2.4, -7.7, -6]],
+      round: [{ x: -2.95, z: -2.55, r: .5 }, { x: -2.45, z: -3.3, r: .5 }, { x: -1.85, z: -4.1, r: .5 }, { x: -1.45, z: -4.6, r: .45 }],
+      // 踏階從北面（−130°）起步、順時針繞一圈，最上面一階在起步點的正上方，往北跨上夾層
+      path: [[2.12, 0, -2.23], ...aptHelix(3.15, -1, .78, -130, 230, 0, 3.85, 24), [2.45, 3.85, -2.35]] },
+    lights: [{ x: 3, y: 5.6, z: 1, col: lin(0xffd2a0), r: 13, i: 1.3 }, { x: -2.6, y: 2.6, z: 3.5, col: lin(0xa0b4ff), r: 8, i: .7 }, { x: 7.6, y: 2.8, z: -2.2, col: lin(0xffc890), r: 7, i: .8 },
+      { x: 0, y: 6.3, z: -4.8, col: lin(0xffd8b0), r: 10, i: 1.1 }] },   // 最後一盞照夾層
+  // 雲杉坡 (2,6) 街區的南面，門朝 13 St（j = 7，城市擴到 20×15 前是最南邊的街）；挑高客廳 x −3.9…21.7、z −1…6（北半部與廚房上面是 4.1 m 的樓板），
+  // 西面原檔的門洞（z −4.6…−2.95）通到西側翼（餐廳與 L 形沙發，x −23.1…−4.1），北面是廚房，南面落地窗拉開一扇（cut）通到露台
   villa: { door: { x: avX(2) + 36, z: stZ(7) - HR - SW }, spawn: { x: -2.6, z: 2.4, yaw: Math.PI / 2 }, exit: { x: -3, z: 2.4 }, frame: { x: -3.83, z: 2.4, ry: Math.PI / 2 },
     nap: { x: 16.4, z: -1.3 }, name: '雲杉坡崖邊別墅', dist: '雲杉坡 · 13 St', ceil: 8.2,
-    // 西面是原檔的實牆、南面是原檔的玻璃；東面開著要補；北面是廚房凹室前緣，模型版只留碰撞
-    walls: [[-4.6, -3.85, -6, 6.7], [21.75, 22.5, -6, 6.7], [-4.6, 22.5, 6.05, 6.7], [-4.6, 22.5, -6, -5.3]], add: [1],
-    solid: [[13.8, 19.3, -.5, 2.35], [14.9, 17, 1.65, 3.75]],
+    // 外圈：側翼西牆、東面（原檔開著要補）、北牆、露台外緣（原檔是岩坡，只留碰撞）；碰撞框照原檔量（俯視 0.15 m 格子）
+    walls: [[-23.7, -23.1, -12.6, 10.4], [21.75, 22.5, -12.6, 10.4], [-23.7, 22.5, -12.6, -12.05], [-23.7, 22.5, 9.95, 10.4]], add: [1],
+    solid: [[13.8, 19.3, -.5, 2.35], [14.9, 17, 1.65, 3.75],
+      // 客廳西牆（門洞兩側）、西北角的壁爐柱、南面的落地窗（12.0…15.8 拉開）
+      [-4.25, -3.85, -7.2, -4.6], [-4.25, -3.85, -2.95, 6.1], [-5.7, -3.6, -12.6, -7], [-4.25, 12, 5.88, 6.12], [15.8, 22.5, 5.88, 6.12],
+      // 側翼：南面玻璃外是岩坡、長餐桌、L 形沙發
+      [-23.7, -4.25, -1.15, 6.1], [-23.7, -7.4, 6.1, 10.4], [-15.5, -7.6, -8.7, -4.9], [-22.2, -20.1, -6.9, -2.5], [-21.3, -18.9, -7.15, -5.8],
+      // 廚房：後面的長流理台、L 形的短邊、中島與高腳椅
+      [3.2, 22.4, -9.4, -8.8], [4, 4.4, -8.8, -5.2], [5.4, 14.2, -7.4, -5.6],
+      // 露台：三組桌椅
+      [-2.2, 2.6, 6.12, 7.7], [6.2, 11, 6.12, 7.7], [14.4, 19.2, 6.12, 7.7]],
     round: [],
-    lights: [{ x: 9, y: 7.4, z: 1.5, col: lin(0xffd8a8), r: 18, i: 1.6 }, { x: 16.5, y: 3.2, z: 1, col: lin(0xffc890), r: 9, i: 1.2 }, { x: 1, y: 3.4, z: -2.5, col: lin(0xffe0b8), r: 9, i: 1 }, { x: 9, y: 2.4, z: 7.5, col: lin(0x8ab4d8), r: 10, i: .6 }] },
+    // 天花板（相機）：客廳北半部與廚房、露台的雨遮是 4.1 m 的樓板，側翼 4.9 m
+    under: [[-5.3, 21.8, -9.7, -.97, 3.95], [-4.1, 22.5, 5.65, 10.4, 3.95], [-23.7, -4.3, -12.6, -.4, 4.7]],
+    cut: [12.02, 15.78, 5.8, 6.25],   // 落地窗拉開的那一扇：這塊玻璃不畫，框滑到隔壁那扇後面
+    lights: [{ x: 9, y: 7.4, z: 1.5, col: lin(0xffd8a8), r: 18, i: 1.6 }, { x: 16.5, y: 3.2, z: 1, col: lin(0xffc890), r: 9, i: 1.2 }, { x: 1, y: 3.4, z: -2.5, col: lin(0xffe0b8), r: 9, i: 1 }, { x: 9, y: 2.4, z: 7.5, col: lin(0x8ab4d8), r: 10, i: .6 },
+      { x: -11.5, y: 4.2, z: -6.5, col: lin(0xffd2a0), r: 13, i: 1.2 }, { x: 9, y: 3.7, z: -8, col: lin(0xfff0dc), r: 12, i: 1 }, { x: 13.9, y: 3.6, z: 8.4, col: lin(0xffc890), r: 9, i: .8 }] },
   // 灰鷗島辦公園區（21-coast.js 的 ISLE_SITES.office）北面的門；室內 x −8…8.8、z −3.1…7.2，L 形，夾層下天花板 2.4 m
   office: { door: { x: BRIDGE_X + 8, z: ISLE.z0 + 133.4 }, face: -1, spawn: { x: 4.2, z: -2.3, yaw: 0 }, exit: { x: 4.2, z: -2.55 }, frame: { x: 4.2, z: -3.14, ry: 0 },
-    nap: { x: -4.3, z: 5.5 }, desk: { x: -.5, z: 5.7 }, name: '灰鷗島辦公室', dist: '灰鷗島 · 辦公園區', ceil: 2.4, floor: 0xd8d4cc,
+    nap: { x: -4.3, z: 5.5 }, desk: { x: -.5, z: 5.7 }, name: '灰鷗島辦公室', dist: '灰鷗島 · 辦公園區', ceil: 4.75, floor: 0xd8d4cc,
+    under: [[-8.1, -1.53, -3.2, 2.45, 2.4], [-8.1, 8.8, 2.45, 7.3, 2.4], [-8.1, -4.73, .85, 3.45, 2.4]],   // 夾層下面
+    // L 形夾層（地板 2.6 m）：西邊一條、北邊一排辦公桌與圓桌；西牆邊的白色小間當電梯（走進去、淡出淡入、從夾層那側走出來）
+    up: { y: 2.6, ceil: 4.75, lift: true, rects: [[-4.73, -1.53, -2.65, 2.45], [-4.73, 5.87, 2.45, 7.15]],
+      boxes: [[-3.35, -.6, 3.7, 7.15], [-3.65, -3.35, 4.2, 5.2], [-4.7, -3.55, 5.4, 6.55], [1.05, 2.7, 3.7, 7.1], [3.05, 5.3, 4.3, 6.7], [1.05, 5.7, 3.7, 4.15], [-4.55, -3.5, -2.6, -.9], [-4.55, -3.5, -.3, 1.3], [-2.65, -1.7, -.7, 1]],
+      round: [], path: [[-3.9, 0, 2], [-4.4, 0, 2], 'fade', [-5.7, 2.6, 2], [-3.75, 2.6, 2]] },
     walls: [[-8.7, -8.05, -3.7, 7.8], [8.75, 9.4, -3.7, 7.8], [-8.7, 9.4, -3.7, -3.12], [-8.7, 9.4, 7.22, 7.8]], add: [],
     solid: [[-5.9, -5.25, -3.12, .75], [6.15, 6.8, 3.1, 7.22], [6.15, 8.75, 3.1, 3.7], [-3.3, -1.05, -1, 2.25], [.45, 3.75, -.1, 3.2], [-.9, 2.85, -3.12, -1.75], [-1.7, 1.55, -2.6, -1.4],
       [0, .9, -1.3, -.5], [5.3, 8.1, -2.6, 0], [-4.3, -3.15, -2.6, -1.6], [-5.25, -4.25, -1.4, .65], [-8.05, -4.6, .75, 3.6], [-7.3, -4.8, 3.9, 7.22], [-2.8, -.95, 3.9, 7.22],
@@ -92,6 +118,10 @@ const APT = {
     round: [[-2.47, -4.55, .73, -2.62], [-3.25, -3.2, 0, -1.21]].flatMap(([x0, z0, x1, z1]) => Array.from({ length: 9 }, (_, k) => ({ x: lerp(x0, x1, k / 8), z: lerp(z0, z1, k / 8), r: .42 }))),
     lights: [{ x: -1, y: 3.1, z: -3, col: lin(0xf0f4ff), r: 11, i: 1.3 }, { x: 1, y: 3.1, z: 3, col: lin(0xf0f4ff), r: 11, i: 1.2 }, { x: 4, y: 3, z: -2, col: lin(0xe8f0ff), r: 8, i: .8 }] },
 };
+// 旋轉樓梯的路徑：圓心 (cx, cz)、半徑 r，角度 a0→a1（度，x 軸往 z 軸轉）、高度 y0→y1，分 n 段
+function aptHelix(cx, cz, r, a0, a1, y0, y1, n) {
+  return Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + Math.cos(a) * r, y0 + (y1 - y0) * i / n, cz + Math.sin(a) * r]; });
+}
 const aptFace = id => APT[id].face || 1;
 const aptOut = id => spotW({ x: APT[id].door.x, z: APT[id].door.z + 1.4 * aptFace(id), yaw: aptFace(id) > 0 ? 0 : Math.PI });   // 出門站的位置（世界座標）
 const aptSet = id => 'apt_' + id;
@@ -106,16 +136,89 @@ for (const id of ROOM_IDS) {
   a.walls.forEach(([x0, x1, z0, z1], i) => (a.add.includes(i) ? shell : k).box((x0 + x1) / 2, a.ceil / 2, (z0 + z1) / 2, x1 - x0, a.ceil, z1 - z0, 0x4a4c54, 2));
   for (const [x0, x1, z0, z1] of a.solid) k.box((x0 + x1) / 2, .4, (z0 + z1) / 2, x1 - x0, .8, z1 - z0, 0x5a4e44, 2);
   for (const c of a.round) k.cyl(c.x, a.ceil / 2, c.z, .12, .12, a.ceil, 8, 0x2a2a2a, 15);
+  if (a.up) {   // 第二層的樓板、欄杆與踏階（電梯是一個箱子）
+    const y = a.up.y;
+    for (const [x0, x1, z0, z1] of a.up.rects) k.box((x0 + x1) / 2, y - .12, (z0 + z1) / 2, x1 - x0, .24, z1 - z0, 0x6a625a, 10);
+    if (a.up.lift) { const [lx, , lz] = a.up.path[1]; k.box(lx, y / 2, lz, 1.6, y, 1.6, 0x3a3c42, 15); }
+    else for (const P of a.up.path.slice(1, -1)) if (P[1] > .05) k.box(P[0], P[1] - .06, P[2], .8, .12, .5, 0x6a625a, 10);
+  }
   // 窗景：一片發光的城市剪影（只在程式建模版）
-  if (id === 'loft') k.box(-3.8, 3, 1, .05, 6, 9.8, 0x3a4a8a, 11); else if (id === 'villa') k.box(9, 3.5, 6, 25, 7, .05, 0x2a3a5a, 11);
+  if (id === 'loft') k.box(-3.8, 3, 1, .05, 6, 9.8, 0x3a4a8a, 11); else if (id === 'villa') k.box(3.9, 3.5, 6, 16.2, 7, .05, 0x2a3a5a, 11).box(19.1, 3.5, 6, 6.6, 7, .05, 0x2a3a5a, 11);
   const fb = new T.Mesh(k.build(), MAT.uber); scn.add(fb);
   // 出口的門板（兩種版本都要看得到）
+  if (a.cut) {   // 拉開的落地窗：框滑到隔壁那扇的內側
+    const [cx0, cx1, cz0] = a.cut, w = cx1 - cx0, x = cx0 - w / 2 + .1, z = cz0 - .02;
+    shell.box(x - w / 2, 1.3, z, .06, 2.6, .06, 0x2a2c30, 15).box(x + w / 2, 1.3, z, .06, 2.6, .06, 0x2a2c30, 15).box(x, 2.6, z, w, .06, .06, 0x2a2c30, 15).box(x, .03, z, w, .06, .06, 0x2a2c30, 15);
+  }
   shell.box(a.frame.x, 1.15, a.frame.z, 1.2, 2.3, .06, 0x4a3a2a, 10, 0, a.frame.ry).box(a.frame.x, 2.38, a.frame.z, 1.4, .12, .1, 0xffd8a0, 11, 0, a.frame.ry);
   scn.add(new T.Mesh(shell.build(), MAT.uber));
   a.fb = fb; a.scn = scn; a.req = false;
   // door 是邏輯座標（擺門牌、互動提示的 near 會換算）；doorW、VENUES 的 door 與 out 是世界座標
   a.doorW = WP(a.door.x, a.door.z);
   VENUES[id] = { scene: scn, data, spawn: a.spawn, name: a.name, toast: a.name, dist: a.dist, ceil: a.ceil, door: a.doorW, out: aptOut(id) };
+  // 天花板依位置（99-main.js 的相機）：under 是一樓天花板比較低的範圍 [x0, x1, z0, z1, 高]；在第二層用 up.ceil
+  if (a.under || a.up) VENUES[id].ceilAt = (x, z) => {
+    const V = VENUES[id];
+    if (V.lv) return a.up.ceil;
+    for (const [ux0, ux1, uz0, uz1, c] of a.under || []) if (x > ux0 && x < ux1 && z > uz0 && z < uz1) return c;
+    return a.ceil;
+  };
+  if (a.up) {
+    // 第二層：自己一套碰撞（夾層四周用 low 的盒圍起來：欄杆擋人不擋相機），lvs[V.lv] 是目前這層；ceilAt 給相機
+    // 走得到的是 rects 的聯集：外框往外 0.6 m 的範圍裡、不在聯集內的 0.25 m 格子逐列合併成 low 的盒
+    const u = a.up, lv1 = { boxes: [], circles: [...u.round], lights: a.lights }, G = .25, inU = (x, z) => u.rects.some(([rx0, rx1, rz0, rz1]) => x > rx0 && x < rx1 && z > rz0 && z < rz1);
+    const X0 = Math.min(...u.rects.map(r => r[0])) - .6, X1 = Math.max(...u.rects.map(r => r[1])) + .6, Z0 = Math.min(...u.rects.map(r => r[2])) - .6, Z1 = Math.max(...u.rects.map(r => r[3])) + .6;
+    for (let z = Z0; z < Z1 - 1e-6; z += G) for (let x = X0; x < X1 - 1e-6;) {
+      if (inU(x + G / 2, z + G / 2)) { x += G; continue; }
+      let e = x + G; while (e < X1 - 1e-6 && !inU(e + G / 2, z + G / 2)) e += G;
+      lv1.boxes.push({ x0: x, x1: e, z0: z, z1: z + G, low: 1 }); x = e;
+    }
+    for (const [bx0, bx1, bz0, bz1] of u.boxes) lv1.boxes.push({ x0: bx0, x1: bx1, z0: bz0, z1: bz1 });
+    Object.assign(VENUES[id], { lvs: [data, lv1], lv: 0, lvY: 0 });
+  }
+}
+// 換層：碰撞表、地板高度（40-people.js 的 fy、99-main.js 的相機地板）
+function aptLevel(id, k) {
+  const V = VENUES[id];
+  if (!V.lvs) return;
+  V.lv = k; V.lvY = k ? APT[id].up.y : 0;
+  if (player.where === id) { activeBoxes = V.lvs[k].boxes; activeCircles = V.lvs[k].circles; colDirty(); }
+}
+// 上下樓：照 up.path 走（下樓倒著走），走完才換層；水平移動時播走路動畫，垂直的那段（電梯）站著
+function aptClimb(id, k) {
+  const path = k ? APT[id].up.path : [...APT[id].up.path].reverse();
+  player.ride = { id, k, pts: [[player.x, player.y, player.z], ...path], i: 0, d: 0, sp: 1.5 };
+  player.v = 0; player.dance = 0; player.crouch = false;
+}
+function aptRide(dt) {
+  const R = player.ride, P = R.pts;
+  let step = R.fade ? 0 : R.sp * dt;
+  while (step > 0 && R.i < P.length - 1) {
+    if (P[R.i + 1] === 'fade') {   // 電梯：淡出時換到下一個點（另一層），淡入後接著走
+      R.fade = true; step = 0;
+      transition(() => { R.i += 2; R.d = 0; R.fade = false; camState.snap = true; });
+      break;
+    }
+    const A = P[R.i], B = P[R.i + 1], left = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]) - R.d;
+    if (step < left) { R.d += step; step = 0; } else { step -= left; R.i++; R.d = 0; }
+  }
+  const A = P[R.i], B = P[Math.min(R.i + 1, P.length - 1)] === 'fade' ? A : P[Math.min(R.i + 1, P.length - 1)], L = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]), t = L > 1e-4 ? R.d / L : 0;
+  player.x = A[0] + (B[0] - A[0]) * t; player.y = A[1] + (B[1] - A[1]) * t; player.z = A[2] + (B[2] - A[2]) * t;
+  const hx = B[0] - A[0], hz = B[2] - A[2], walk = !R.fade && Math.hypot(hx, hz) > .05;
+  if (walk) player.yaw += wrapA(Math.atan2(hx, hz) - player.yaw) * (1 - Math.exp(-10 * dt));
+  player.v = 0;
+  if (walk) player.walkPh += dt * R.sp * .55;
+  const a = walk ? ANIM.walk : ANIM.idle;
+  if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }
+  player.blend = Math.max(0, player.blend - dt * 5);
+  me.anim(0, a, player.walkPh - uTimeNow(), 1, 0);
+  me.anim2(0, player.prevAnim, player.blend, 1);
+  me.place(0, player.x, player.y, player.z, player.yaw);
+  me.flush();
+  const ph = player.walkPh * 2;
+  if (walk && Math.floor(ph) !== Math.floor(player.stepT)) sfx.step(false, true);
+  player.stepT = ph;
+  if (R.i >= P.length - 1) { player.ride = null; aptLevel(R.id, R.k); }
 }
 // 街上的門：發光門牌與門板（門在街區南面，朝 +z；face −1 的朝 −z）
 {
@@ -135,8 +238,15 @@ function aptLoad(id) {
   loadProps(aptSet(id)).then(items => {
     if (!items || !items[id]) return;
     a.fb.visible = false;
-    a.scn.add(propObject(items[id], 0, 0, 0));
+    const o = propObject(items[id], 0, 0, 0);
+    if (a.cut) o.traverse(m => { if (m.isMesh && m.material.transparent) m.material = aptCutMat(m.material, a.cut); });
+    a.scn.add(o);
   });
+}
+// 拉開的落地窗：原檔的玻璃是橫跨整面牆的幾個大三角形，拿不掉一扇，改用透明材質的副本（26-glb.js 的 CUT，共用 uniforms）丟掉那一扇範圍裡的像素
+function aptCutMat(m, [x0, x1, z0, z1]) {
+  return new T.ShaderMaterial({ uniforms: m.uniforms, vertexShader: m.vertexShader, fragmentShader: m.fragmentShader, side: m.side, transparent: true, depthWrite: m.depthWrite,
+    defines: { ...m.defines, CUT: `vec4(${x0.toFixed(2)}, ${x1.toFixed(2)}, ${z0.toFixed(2)}, ${z1.toFixed(2)})` } });
 }
 function aptUpdate() {
   if (!GLB_ON) return;
@@ -146,6 +256,7 @@ function aptUpdate() {
 const aptEstate = id => ESTATES.find(e => e.id === id);
 function aptEnter(id) {
   if (!glbDone.has('p:' + aptSet(id)) && GLB_ON) glbBatch.add('p:' + aptSet(id));
+  aptLevel(id, 0); player.ride = null;   // 從門口進來一定在一樓
   aptLoad(id);
   // 不在家時的短租收入：進門後收下（earn 會跳入帳提示，晚一點才不會蓋掉場館名稱；島上辦公室是生意，照舊在辦公桌收）
   enterVenue(id, APT[id].desk || APT[id].open ? null : () => setTimeout(() => { if (player.where === id && estCollect(id)) sfx.pickup(); }, 1600));
@@ -186,7 +297,13 @@ ctxHooks.push((p, near) => {
     return null;
   }
   const a = APT[p.where];
-  if (!a) return null;
+  if (!a || p.ride) return null;
+  // 第二層：樓梯口上下樓；在樓上只有下樓這一項
+  if (a.up) {
+    const V = VENUES[p.where], P = a.up.path, e = V.lv ? P[P.length - 1] : P[0];
+    if (near(e[0], e[2], 1.3)) return { key: 'E', text: V.lv ? (a.up.lift ? '搭電梯下樓' : '下樓') : (a.up.lift ? '搭電梯上樓' : '上樓'), fn: () => aptClimb(p.where, V.lv ? 0 : 1) };
+    if (V.lv) return null;
+  }
   if (near(a.exit.x, a.exit.z, 1.5)) return { key: 'E', text: '回到街上', fn: exitVenue };
   if (a.till && near(a.till.x, a.till.z, 1.6)) return { key: 'E', text: `買點吃的 <i>· ${money(SNACK)} 補滿生命</i>`, fn: aptSnack };
   if (a.bar && near(a.bar.x, a.bar.z, 1.6)) return { key: 'E', text: '點一杯', fn: () => toast(W.stars ? '酒保瞄了一眼窗外的警燈，假裝沒看到你' : '酒保推來一杯黑啤酒，記在你的帳上') };
@@ -200,4 +317,4 @@ ctxHooks.push((p, near) => {
 });
 
 // 測試 API（window.__nc.gta.apt）
-const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut };
+const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut, level: aptLevel, climb: aptClimb };

@@ -667,6 +667,7 @@ scene.add(me.mesh);
 const player = { mode: 'walk', ...WP(avX(1) - 9.6, stZ(2) + 18), y: .15, yaw: yawW(zoneAtL(avX(1), stZ(2)), 0), v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
 const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
+  if (player.ride) { aptRide(dt); return; }   // 69-safehouse.js：走樓梯、搭電梯（照路徑走，不受碰撞）
   let mx = inp.mx, mz = inp.mz;
   const ml = Math.hypot(mx, mz);
   if (ml > 1) { mx /= ml; mz /= ml; }
@@ -708,7 +709,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
-  const fy = player.where === 'out' ? seaFloor(x, z) : groundH(x, z);
+  const fy = player.where === 'out' ? seaFloor(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板
   player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;

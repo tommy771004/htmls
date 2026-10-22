@@ -49,8 +49,9 @@ export const SETS = [
     { id: 'katana', file: 'cyberpunk_katana', len: 1.0, orient: ['-x', 'y'], center: 1 },
     { id: 'baton', file: 'police_baton_game_ready_-_pbr', len: .5, orient: ['-z', 'y'], center: 1 },
   ] },
-  // 街道物件：消防栓、配電箱、加油機
-  { out: 'street', tex: 512, src: '.cache/raw', items: [
+  // 街道物件：消防栓、配電箱、加油機（加油機側板的店名、頂蓋的油品標語與一堆貼紙看不出是不是真實品牌，模糊掉）
+  { out: 'street', tex: 512, src: '.cache/raw', texEdit: { 'Material.001': { blur: [[0, .1, .11, .33], [.79, .46, .83, .74], [.12, 0, .19, .08], [.41, 0, .5, .12], [.41, .14, .46, .24],
+    [.82, 0, .86, .1], [.82, .15, .86, .25], [.1, .33, .18, .42], [.79, .72, .87, .95], [.15, .9, .22, 1], [.52, .88, .63, 1], [.17, .9, .25, .96], [.8, .88, .86, 1], [.92, .88, .96, 1]] } }, items: [
     { id: 'hydrant', file: 'fire_hydrant', h: .78 },
     { id: 'ebox', file: 'electrical_box_-_free', h: 1.62 },
     { id: 'pump', file: 'gas_pump', h: 2.1 },
@@ -820,4 +821,5 @@ for (const set of SETS) {
 const manifest = { ...(existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {}), ...built };
 const ordered = {}; for (const s of SETS) if (manifest[s.out]) ordered[s.out] = manifest[s.out];
 for (const k of Object.keys(manifest)) if (!ordered[k]) ordered[k] = manifest[k];   // 另一個程序剛加、這份 SETS 還沒有的組也留著
-writeFileSync(manifestPath, JSON.stringify(ordered, null, 1) + '\n');
+// foot（tools/foot.mjs 量的碰撞矩形）每個矩形寫成一行，和 foot.mjs 寫出來的格式一樣
+writeFileSync(manifestPath, JSON.stringify(ordered, null, 1).replace(/\[\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+)\n\s*\]/g, '[$1, $2, $3, $4, $5]') + '\n');

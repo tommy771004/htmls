@@ -41,7 +41,7 @@ try {
   // World 第四輪之二（27-props.js 檔尾）：街道設施、植物與海岸的 8 組模型下載好、換掉程式建模
   await page.waitForFunction(() => { const w = window.__nc.props.w2; return w && Object.keys(w.sets).length + w.failed.length >= 8; }, null, { timeout: 60000 }).catch(() => {});
   const w2 = await ev(page, () => { const w = window.__nc.props.w2; return { sets: Object.keys(w.sets).length, failed: w.failed, swapped: w.swapped.length, kept: w.kept(), n: w.n }; });
-  check(w2.sets === 8 && !w2.failed.length && w2.swapped >= 12 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500, `world_2 模型 ${w2.sets}/8 組、換掉 ${w2.swapped} 類、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
+  check(w2.sets === 8 && !w2.failed.length && w2.swapped >= 12 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500 && w2.n.ebox > 20 && w2.n.pump >= 4, `world_2 模型 ${w2.sets}/8 組、換掉 ${w2.swapped} 類、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
 
   // 展示廳：後兩排的實車
   await ev(page, () => window.__nc.enter('show'));

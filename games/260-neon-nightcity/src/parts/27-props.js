@@ -7,7 +7,9 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 const PROP_BASE = new URL('../assets/260/props/', location.href).href;
 const PROP_INST = { uM: { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, 0) } };
 const propCache = {}, propMats = new Map(), FAR_FOG = .2;   // FAR_FOG：props.json 標 far 的遠景組，霧和 MAT.far 一樣只算兩成距離
-const propMat = (src, far) => { let m = propMats.get(src); if (!m) { m = glbMaterial(src, PROP_INST, far); propMats.set(src, m); } return m; };
+// WASH_SETS：立面是拼貼圖集、量不出窗戶的組，夜裡在 shader 依高度打一層路燈光（26-glb.js 的 WASH）
+const WASH_SETS = new Set(['bld_nbh']);
+const propMat = (src, far, wash) => { let m = propMats.get(src); if (!m) { m = glbMaterial(src, PROP_INST, far, wash); propMats.set(src, m); } return m; };
 // 量化的整數屬性轉成浮點，再套上節點矩陣（量化的位移與縮放在節點上）
 function floatGeo(geo, mtx) {
   const g = new T.BufferGeometry();
@@ -29,7 +31,7 @@ function loadProps(set) {
     const items = {};
     for (const n of g.scene.children) {
       const parts = [];
-      n.traverse(m => { if (m.isMesh) parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG) }); });
+      n.traverse(m => { if (m.isMesh) parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)) }); });
       items[n.name] = { parts, ...PROPS_SPEC[set].items[n.name] };
     }
     glbDone.add(key);
@@ -197,7 +199,34 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
   const W2R = { small: 110, mid: 160 };   // 小件（垃圾桶、消防栓、報紙箱、灌木）與中件（長椅、電話亭、陽傘）的串流半徑
   w2Ready = Promise.all([
     // ─── 人行道：消防栓（street.glb）、垃圾桶四款、電話亭、報紙箱；公園的長椅與野餐桌；海濱與岬角的長椅、岬角的野餐桌 ───
-    w2Load('street', it => { w2Inst(it.hydrant, hydrants, LY.NOREFL, W2R.small); w2Drop(hydrantMesh); W2.swapped.push('hydrant'); W2.n.hydrant = hydrants.length; }),
+    w2Load('street', it => {
+      w2Inst(it.hydrant, hydrants, LY.NOREFL, W2R.small); w2Drop(hydrantMesh); W2.swapped.push('hydrant'); W2.n.hydrant = hydrants.length;
+      // 配電箱（20-props.js 的 eboxes）：碰撞是順著街的盒
+      w2Inst(it.ebox, eboxes, LY.NOREFL, W2R.small);
+      for (const t of eboxes) { const [hx, hz] = t.ax === 'z' ? [1, .28] : [.28, 1]; addBoxL({ x0: t.x - hx, x1: t.x + hx, z0: t.z - hz, z1: t.z + hz }); }
+      // 加油機：每個船位（31-boats.js 的 BOAT_SPOTS）上岸那一側、離船頭三公尺多，面向水面
+      const pumps = [];
+      for (const S of BOAT_SPOTS) {
+        let best = null;
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (let d = 1.5; d <= 9; d += .5) {
+          if (!inLand(S.x + dx * d, S.z + dz * d)) continue;
+          if (!best || d < best.d) best = { d, dx, dz };
+          break;
+        }
+        if (!best) continue;
+        const { d, dx, dz } = best, x0 = S.x + dx * (d + 1.1), z0 = S.z + dz * (d + 1.1);
+        for (const o of [3.6, -3.6, 6, -6]) {
+          const x = x0 + dz * o, z = z0 + dx * o;
+          if (!inLand(x, z) || !free(x, z, 1)) continue;
+          pumps.push({ x, z, y: groundHL(x, z), ry: Math.atan2(-dx, -dz), zn: zoneAtL(S.x, S.z) }); claim(x, z, 1);
+          const [hx, hz] = dx ? [.4, .85] : [.85, .4]; addBoxL({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz });
+          break;
+        }
+      }
+      w2Inst(it.pump, pumps, 0, W2R.mid);
+      W2.swapped.push('ebox', 'pump'); Object.assign(W2.n, { ebox: eboxes.length, pump: pumps.length });
+      W2.pumps = pumps;
+    }),
     w2Load('st2_street', it => {
       const BINS = ['bin_k', 'bin_g', 'bin_b', 'wheelie'];
       w2Group(bins, 4, t => Math.floor(w2Hash(t.x, t.z) * 4)).forEach((L, k) => w2Inst(it[BINS[k]], L, LY.NOREFL, W2R.small));
@@ -291,7 +320,7 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
   ]);
 }
 // 驗收與截圖用的幾個位置（邏輯座標；cape 是世界座標）
-W2.at = { seat: parkSeats.find(t => t.kind === 'bench'), picnic: parkSeats.find(t => t.kind === 'picnic'), news: newsBoxes[0], booth: booths[0], bin: bins[0], hydrant: hydrants[0],
+W2.at = { seat: parkSeats.find(t => t.kind === 'bench'), picnic: parkSeats.find(t => t.kind === 'picnic'), news: newsBoxes[0], ebox: eboxes[0], booth: booths[0], bin: bins[0], hydrant: hydrants[0],
   palm: palms[0], guard: lifeguards[0], ferris: { x: FERRIS.cx, z: FERRIS.wz }, crane: { x: 690, z: QUAY.z1 }, yard: harbor.boxLists.flat()[0], cape: capePicnic[0], planter: planters[0], peak: PEAKS[0] };
 // 驗收：程式建模的網格還掛在場景上的有幾個（以檔案開啟時應該全部都在）
 // （清單在這裡先取好：模型還在下載，harbor.ship 之後會換成模型的船）

@@ -513,6 +513,15 @@ async function desktop() {
     await page.waitForTimeout(1800);
     const sa5 = await nc(() => ({ w: window.__nc.player.where, saved: window.__nc.motors.game.where }));
     check(sa5.saved === 'loft' && sa5.w === 'loft', `安全屋存的檔讀回室內 ${JSON.stringify(sa5)}`);
+    // 分層的安全屋：閣樓按 E 沿旋轉樓梯走上夾層，上面的提示變成下樓
+    const lf1 = await nc(() => { const nc = window.__nc, s = nc.gta.apt.APT.loft.up.path[0], p = nc.player; p.x = s[0]; p.z = s[2] + .5; const c = nc.ctx(); nc.act(); return { c }; });
+    await page.waitForTimeout(6500);
+    const lf2 = await nc(() => {
+      const nc = window.__nc, p = nc.player, a = nc.gta.apt.APT.loft, r = { y: +p.y.toFixed(2), ride: !!p.ride, c: nc.ctx() };
+      nc.gta.apt.level('loft', 0); p.y = 0; p.x = a.spawn.x; p.z = a.spawn.z;
+      return r;
+    });
+    check(/上樓/.test(lf1.c) && !lf2.ride && Math.abs(lf2.y - 3.85) < .1 && /下樓/.test(lf2.c), `閣樓沿旋轉樓梯走上夾層 ${JSON.stringify({ ...lf1, ...lf2 })}`);
     await nc(() => window.__nc.exit());
     await page.waitForTimeout(900);
     // 不用買的店（HANG_IDS）：便利店門口直接進入，結帳台買吃的補滿生命；酒館裡沒有睡覺
@@ -565,6 +574,11 @@ async function desktop() {
     });
     await nc(() => window.__nc.act());
     await page.waitForTimeout(900);
+    // 辦公室的夾層沒有樓梯：西牆邊的小間當電梯，淡出淡入後從夾層那側走出來
+    const ol1 = await nc(() => { const nc = window.__nc, s = nc.gta.apt.APT.office.up.path[0], p = nc.player; p.x = s[0]; p.z = s[2]; const c = nc.ctx(); nc.act(); return { c }; });
+    await page.waitForTimeout(3500);
+    const ol2 = await nc(() => { const nc = window.__nc, p = nc.player, r = { y: +p.y.toFixed(2), ride: !!p.ride, c: nc.ctx() }; nc.gta.apt.level('office', 0); p.y = 0; return r; });
+    check(/搭電梯上樓/.test(ol1.c) && !ol2.ride && Math.abs(ol2.y - 2.6) < .1 && /搭電梯下樓/.test(ol2.c), `辦公室搭電梯上夾層 ${JSON.stringify({ ...ol1, ...ol2 })}`);
     const of2 = await nc(() => {
       const nc = window.__nc, a = nc.gta.apt.APT.office, p = nc.player, r = { w: p.where, st: document.getElementById('stName').textContent };
       nc.motors.props.safe.office = 1234; p.x = a.desk.x; p.z = a.desk.z - .4; r.desk = nc.ctx(); const c0 = nc.motors.cash; nc.act(); r.got = nc.motors.cash - c0;
@@ -575,6 +589,18 @@ async function desktop() {
     const of3 = await nc(() => { const nc = window.__nc, d = nc.gta.apt.APT.office.doorW; return { w: nc.player.where, d: Math.round(Math.hypot(nc.player.x - d.x, nc.player.z - d.z)) }; });
     check(/看房/.test(of1.c) && of1.own && /進入/.test(of1.c2) && of2.w === 'office' && of2.got === 1234 && /睡一覺/.test(of2.nap) && /回到街上/.test(of2.exit) && of3.w === 'out' && of3.d < 3,
       `灰鷗島辦公室：門朝北、買下、進去收保險箱、沙發睡覺、出門 ${JSON.stringify({ ...of1, ...of2, ...of3 })}`);
+    // 別墅：客廳西牆的門洞走得進側翼，南面落地窗拉開的那段走得到露台，其他段的玻璃擋住
+    const vw0 = await nc(() => { const nc = window.__nc; if (!nc.motors.props.own.includes('villa')) nc.motors.props.own.push('villa'); nc.enter('villa'); return nc.player.where; });
+    await page.waitForTimeout(900);
+    const vwalk = async (x, z, yaw, ms) => {
+      await nc(([x, z, yaw]) => { const nc = window.__nc, p = nc.player; p.x = x; p.z = z; nc.look(yaw, .15); }, [x, z, yaw]);
+      await hold(page, 'KeyW', ms);
+      return nc(() => [+window.__nc.player.x.toFixed(2), +window.__nc.player.z.toFixed(2)]);
+    };
+    const vw1 = await vwalk(-2, -3.8, -Math.PI / 2, 2400), vw2 = await vwalk(13.4, 4.6, 0, 1500), vw3 = await vwalk(9, 4.6, 0, 1500);
+    check(vw0 === 'villa' && vw1[0] < -4.5 && vw2[1] > 6.8 && vw3[1] < 5.9, `別墅走進側翼、從拉開的落地窗走上露台、其他段玻璃擋住 ${JSON.stringify({ vw0, vw1, vw2, vw3 })}`);
+    await nc(() => window.__nc.exit());
+    await page.waitForTimeout(900);
     // 其他安全屋的短租收入：手機列出租金，進門自動收下
     const mi1 = await nc(() => {
       const nc = window.__nc, m = nc.gta.market, e = m.ESTATES.find(o => o.id === 'mini');

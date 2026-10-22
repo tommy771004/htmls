@@ -103,6 +103,9 @@ uniform vec4 uM, uPaint; uniform sampler2D uMap, uEmiMap, uWinMap;
 varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying float vWin;
 void main(){
   if (vW.y < uClipY) discard;
+  #ifdef CUT
+  if (vW.x > CUT.x && vW.x < CUT.y && vW.z > CUT.z && vW.z < CUT.w && vW.y < 3.9) discard;   // 拉開的落地窗（69-safehouse.js 的 cut）
+  #endif
   if (uFocus.w > 0.) {
     vec3 ab = uFocus.xyz - uCam; float tt = clamp(dot(vW - uCam, ab) / dot(ab, ab), 0., 1.);
     float dd = length(vW - uCam - ab * tt), cd = length(vW - uCam);
@@ -158,6 +161,16 @@ void main(){
     c = mix(c * .4 + wl, c + wl * .3, uDay);   // 白天保留日照下的貼圖，只疊一點開著燈的窗
   }
   #endif
+  #ifdef WASH
+  // 沒有窗戶遮罩的拼貼立面（Neighbourhood）：夜裡依高度打一層路燈的暖光（一樓最亮、往上淡掉，屋頂與地面不打），
+  // 再依樓層與 3 m 一格的開間疊一點室內透出的光，整面牆不會黑成一片
+  {
+    float wv = uLamp * (1. - smoothstep(.45, .8, abs(n.y)));
+    vec2 bay = floor(vec2(dot(vW.xz, normalize(vec2(-n.z, n.x) + 1e-4)) / 3.1, vW.y / 3.2));
+    float room = step(hw(bay + floor(vW.xz / 40.) * 13.), uLit * .9) * smoothstep(1.2, 3., vW.y);
+    c += base.rgb * wv * (vec3(1., .72, .45) * (.06 + .7 * exp(-max(vW.y - .8, 0.) / 3.5)) + vec3(1., .8, .6) * room * .35);
+  }
+  #endif
   vec3 emi = vEmi.rgb / max(1., max(vEmi.r, max(vEmi.g, vEmi.b)));   // 有些模型的 emissive_strength 很大，壓回 0–1 再交給燈種倍率
   #ifdef USE_EMIMAP
   emi *= texture2D(uEmiMap, vUv).rgb;
@@ -174,9 +187,10 @@ void main(){
   #endif
   #endif
 }`;
-function glbMaterial(src, inst, far) {
+function glbMaterial(src, inst, far, wash) {
   const defines = {};
   if (far) defines.FAR = far.toFixed(3);
+  if (wash) defines.WASH = '';
   if (src.map) defines.USE_MAP = '';
   if (src.emissiveMap) defines.USE_EMIMAP = '';
   if (src.transparent) defines.BLEND = ''; else if (src.alphaTest > 0) defines.MASK = '';

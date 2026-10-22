@@ -169,8 +169,10 @@ function updateCamera(dt, spd) {
     if (t < tmin) tmin = t;
   }
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
-  const floor = (p.where === 'out' ? Math.max(seaFloor(wx, wz), SEA_Y) : 0) + .35;
-  const ceil = p.where === 'out' ? 999 : VENUES[p.where].ceil;
+  // 室內：有第二層的安全屋（69-safehouse.js）地板跟著所在的層，天花板依位置（夾層下比較低，相機與角色兩處取低的）
+  const V = p.where === 'out' ? null : VENUES[p.where];
+  const floor = (V ? V.lvY || 0 : Math.max(seaFloor(wx, wz), SEA_Y)) + .35;
+  const ceil = !V ? 999 : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
   wy = clamp(wy, floor, ceil);
   if (camState.snap) camState.pos.set(wx, wy, wz);
   else { const k = 1 - Math.exp(-(inV ? 14 : 18) * dt); camState.pos.x += (wx - camState.pos.x) * k; camState.pos.y += (wy - camState.pos.y) * k; camState.pos.z += (wz - camState.pos.z) * k; }
