@@ -1546,7 +1546,7 @@ const COL_S = 24;
 // bx0…bz1 是世界座標的外接框（空間索引與粗篩用）；圓柱直接換成世界座標（w = 1）。之後執行時加進來的盒與圓柱都是世界座標
 let cityIsWorld = false;
 // 彎曲的片：盒換成自己的仿射座標框（frameA，盒中心那一點的伸縮與斜切，和 frameM4 同一個 R·J；盒變成以中心為原點、邏輯尺寸不變，世界裡是平行四邊形），
-// 長的盒先切成 ≤ 24 m 的幾段（boxSplitW），剩下的誤差只有彎曲（24 m 的盒角落約 0.2 m）。以前的框只照 x 軸，斜切 20° 的片沿 z 的牆會偏 3 m（空氣牆）
+// 長的盒先切成 ≤ 24 m 的幾段（boxSplitW），剩下的誤差只有彎曲（24 m 的盒角落約 0.4 m）。以前的框只照 x 軸，斜切 20° 的片沿 z 的牆會偏 3 m（空氣牆）
 function boxToW(b, zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2)) {
   if (zn && zn.W) {
     const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, o = warpJ(zn.W, cx, cz), c = zn.c, s = zn.s;

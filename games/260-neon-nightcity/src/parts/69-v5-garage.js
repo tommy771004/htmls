@@ -49,7 +49,7 @@ if (FAC.gar) {
   bx(SX0, SX1, 0, Y(N) + 1.05, SZ1, 21.5, CONC);
   bx(13, 18.5, 0, Y(N) + 3, 44.2, 49, 0x7b7771);
   bx(12.9, 18.6, Y(N) + 3, Y(N) + 3.2, 44.1, 49.1, 0x4a4844);
-  // 碰撞盒切段：這一片有剪切，盒的座標框（10-city.js 的 boxToW）只照 x 軸的方向，沿 z 的長牆每 6 m 會歪 0.6 m，所以沿 z 的切成 2 m、沿 x 的切成 12 m
+  // 碰撞盒切段：這一片有剪切，以前盒的座標框（10-city.js 的 boxToW）只照 x 軸的方向，沿 z 的長牆每 6 m 會歪 0.6 m，所以沿 z 的切成 2 m、沿 x 的切成 12 m（現在是仿射框，不切也對，留著不影響）
   const pkBox = (x0, x1, z0, z1, o) => {
     const alongX = x1 - x0 > z1 - z0, n = Math.ceil(Math.max(x1 - x0, z1 - z0) / (alongX ? 12 : 2));
     for (let i = 0; i < n; i++) { const a = i / n, c = (i + 1) / n; if (alongX) v5Box(F, x0 + (x1 - x0) * a, x0 + (x1 - x0) * c + (i < n - 1 ? .1 : 0), z0, z1, o); else v5Box(F, x0, x1, z0 + (z1 - z0) * a, z0 + (z1 - z0) * c + (i < n - 1 ? .1 : 0), o); }
