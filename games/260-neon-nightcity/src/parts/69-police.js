@@ -179,13 +179,13 @@ function spawnCop(u, side, swat) {
   copsCrowd.look(c.k, { female: false, top: lin(swat ? 0x121315 : 0x1d2840), bot: lin(swat ? 0x101113 : 0x151a26), skin: SKINS[c.k % SKINS.length], hair: HAIRS[c.k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0], scale: 1.02 });
   return c;
 }
-function freeCop(c) { c.on = false; c.unit = null; c.stunT = 0; copsCrowd.place(c.k, 0, -60, 0, 0); copsCrowd.people[c.k].gunH = null; }
+function freeCop(c) { c.on = false; c.unit = null; c.stunT = 0; c.kx = c.kz = c.ky = c.kvy = 0; copsCrowd.place(c.k, 0, -60, 0, 0); copsCrowd.people[c.k].gunH = null; }
 function copHit(c, dmg, fx, fz, mine) {
   if (!c.on || c.state === 'down') return;
   c.hp -= dmg;
   if (mine) crime(c.hp <= 0 ? 'killcop' : 'resist', c.x, c.z);
   if (c.hp > 0) return;
-  c.state = 'down'; c.downT = 18; c.yaw = Math.atan2(-fx, -fz) || c.yaw;
+  c.state = 'down'; c.downT = 18; c.yaw = Math.atan2(-fx, -fz) || c.yaw; kinLaunch(c, fx * 2.8, fz * 2.8);   // 往中彈方向倒、滑 0.6 m（69-kinema.js）
   copsCrowd.anim(c.k, ANIM.die, -uTimeNow(), 1);
   if (c.unit) c.unit.lost = (c.unit.lost || 0) + 1;
   dropPickup(c.x, c.z, c.gun);
@@ -193,13 +193,13 @@ function copHit(c, dmg, fx, fz, mine) {
 }
 function stunCop(c, t) { if (!c.on || c.state === 'down') return; c.stunT = t; c.stunPh = -uTimeNow(); sparks(c.x, 1.1, c.z, 6, 2); }
 function copBlast(x, y, z, r, dmg, mine) {
-  for (const c of W.cops) if (c.on && c.state !== 'down') { const d = Math.hypot(c.x - x, c.z - z); if (d < r) copHit(c, dmg * clamp(1 - d / r, .3, 1), (c.x - x) / (d || 1), (c.z - z) / (d || 1), mine); }
+  for (const c of W.cops) if (c.on && c.state !== 'down') { const d = Math.hypot(c.x - x, c.z - z); if (d < r && copHit(c, dmg * clamp(1 - d / r, .3, 1), (c.x - x) / (d || 1), (c.z - z) / (d || 1), mine)) kinBlast(c, x, z, r); }
 }
 function copMelee(x, z, fx, fz, reach, dmg) {
   for (const c of W.cops) {
     if (!c.on || c.state === 'down') continue;
     const dx = c.x - x, dz = c.z - z, d = Math.hypot(dx, dz);
-    if (d < reach && dx * fx + dz * fz > d * .5) { copHit(c, dmg, fx, fz, true); return true; }
+    if (d < reach && dx * fx + dz * fz > d * .5) { copHit(c, dmg, fx, fz, true); return c; }   // 回傳被打到的警員（69-kinema.js 的 kinPunch）
   }
   return false;
 }
@@ -225,9 +225,10 @@ function copStep(c, dt) {
     copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
     return;
   }
+  if (!c.rope) kinSlide(c, dt);   // 69-kinema.js：擊飛、被撞開；rope：69-tactics.js 垂降中
   if (c.state === 'down') {
     c.downT -= dt;
-    copsCrowd.place(c.k, c.x, footY(c.x, c.z), c.z, c.yaw);
+    copsCrowd.place(c.k, c.x, footY(c.x, c.z) + (c.ky || 0), c.z, c.yaw);
     if (c.downT <= 0) freeCop(c);
     return;
   }

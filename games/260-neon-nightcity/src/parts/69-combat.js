@@ -290,7 +290,11 @@ function shoot() {
       const R = spreadDir(R0, deg), hit = castRay(R, A.range);
       const x = R.ox + R.dx * hit.t, y = R.oy + R.dy * hit.t, z = R.oz + R.dz * hit.t;
       if (i < 3) tracer(_mz.x, _mz.y, _mz.z, x, y, z);
-      if (player.where === 'out') hitWith(hit, R, A.dmg * abil.out, 'player', A.head, A.stun);
+      if (player.where === 'out') {
+        hitWith(hit, R, A.dmg * abil.out, 'player', A.head, A.stun);
+        if (hit.kind === 'veh') kinBullet(hit.ref, R, A.dmg);   // 69-kinema.js：子彈推動沒人開的車
+        if ((A.pel || 1) > 1 && hit.t < 6 && !A.stun) kinBlow(hit, R);   // 霰彈近距離把人轟飛
+      }
       else if (player.where === 'bank') bankShot(R, A.dmg * abil.out);   // 銀行大廳：射線只算人質與警衛（69-heist.js）
     }
     arm.bloom = Math.min(A.spread * 1.5, arm.bloom + A.spread * .25);
@@ -345,6 +349,7 @@ function swing() {
   const A = ARMS[arm.sel];
   gta.punchT = A.cd; gta.punchPh = -uTimeNow(); gta.actAnim = A.fist ? ANIM.jab : ANIM.swing;
   arm.pend.push({ t: A.fist ? .18 : .3, fn: () => meleeHit(A) });
+  kinLunge(A);   // 69-kinema.js：出手前吸附到打得到的距離
 }
 function meleeHit(A) {
   const bike = player.mode === 'drive' && !player.veh.isCar;
@@ -358,12 +363,16 @@ function meleeHit(A) {
       sfx.punch(); skillEvent('melee');
       // 近戰：一般路人一下就倒，脾氣差的會吃掉傷害再反擊；武士刀一刀斃命
       if (A.kill || !ps.tough || abil.melee || behind(p.x, p.z, p.yaw)) { knockPed(k, fx * abil.knock, fz * abil.knock); crime(A.kill || A.dmg >= 60 || abil.melee ? 'kill' : 'assault', p.x, p.z); if (A.kill || abil.melee) spEvent('kill', false, true); }
-      else hitPed(k, dmg, fx, fz, mine, p.x, 1.3, p.z);
+      else { hitPed(k, dmg, fx, fz, mine, p.x, 1.3, p.z); kinStumble(k, fx, fz); }   // 打不倒：退 0.45 m（69-kinema.js）
+      if (ps.down > 0) pedFly(k, fx * 3.2 * abil.knock, fz * 3.2 * abil.knock, .6, true);   // 打倒：往後摔
       return;
     }
   }
-  if (copMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee ? 999 : dmg)) { sfx.punch(); skillEvent('melee'); return; }
-  if (fighterMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee || sneak ? 999 : dmg)) { sfx.punch(); skillEvent('melee'); if (sneak) skUp('stl', .8); return; }
+  // copMelee／fighterMelee 回傳被打到的人：倒了往後摔、沒倒退 0.45 m（69-kinema.js 的 kinPunch）
+  let o = copMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee ? 999 : dmg);
+  if (o) { sfx.punch(); skillEvent('melee'); kinPunch(o, fx, fz); return; }
+  o = fighterMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee || sneak ? 999 : dmg);
+  if (o) { sfx.punch(); skillEvent('melee'); if (sneak) skUp('stl', .8); kinPunch(o, fx, fz); return; }
   for (const v of vehicles) if (v !== player.veh && !v.dead && Math.hypot(v.x - player.x - fx, v.z - player.z - fz) < v.len / 2 + .6 && !A.fist) { sfx.impact(4); damageVeh(v, A.dmg * 1.2, true); return; }
   sfx.whoosh();
 }
@@ -472,7 +481,7 @@ function blast(x, y, z, r, dmg, by, skip) {
   const fall = d => clamp(1 - d / r, 0, 1);
   for (let k = 0; k < PED_N; k++) {
     const p = peds.people[k], d = Math.hypot(p.x - x, p.z - z);
-    if (d < r && !(pedState[k].down > 0)) knockPed(k, (p.x - x) / (d || 1), (p.z - z) / (d || 1));
+    if (d < r && !(pedState[k].down > 0)) { knockPed(k, (p.x - x) / (d || 1), (p.z - z) / (d || 1)); kinBlastPed(k, x, z, r); }   // 69-kinema.js：依距離拋飛
   }
   extraSt.forEach((s, k) => { if (s.on && Math.hypot(s.x - x, s.z - z) < r) { s.st = 'fall'; s.t = -12; s.vx = (s.x - x) * .8; s.vz = (s.z - z) * .8; extras.anim(k, ANIM.die, -uTimeNow(), 1); } });
   copBlast(x, y, z, r, dmg, mine);
@@ -483,7 +492,7 @@ function blast(x, y, z, r, dmg, by, skip) {
   fighterBlast(x, y, z, r, dmg, mine);   // 69-squads.js
   if (player.mode === 'walk' && player.where === 'out') {
     const d = Math.hypot(player.x - x, player.z - z, player.y + 1 - y);
-    if (d < r) { hurtPlayer(dmg * .3 * fall(d), x, z); if (fall(d) > .2) knockPlayer(player.x - x, player.z - z); }
+    if (d < r) { hurtPlayer(dmg * .3 * fall(d), x, z); if (fall(d) > .2 && !kinBlastMe(x, z, r)) knockPlayer(player.x - x, player.z - z); }   // kinBlastMe：近距離拋到半空（69-kinema.js）
   }
   for (const c of [...traffic, ...parked]) { const d = Math.hypot(c.x - x, c.z - z) - TYPES[c.type].len * .35; if (d < r) { const f = fall(Math.max(0, d)), v = damageCar(c, dmg * 2.2 * f, mine); if (v) { v.vx += (v.x - x) * .6; v.vz += (v.z - z) * .6; if (f > .5) rollKick(v, x, z, f); } } }
   for (const v of [...vehicles]) {
@@ -711,38 +720,7 @@ function npcShootAt(ox, oy, oz, tx, ty, tz, pHit, f, onHit) {
 // 兩圓近似車身；ΔHP = max(0, (J/M − 3.5)·18)，恢復係數 0.25（neon_nightcity_gta_v_2.md）
 function vehPairs() {
   const L = vehicles;
-  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
-    const A = L[i], B = L[j];
-    if (A.g && !A.g.visible || B.g && !B.g.visible) continue;
-    if (Math.abs(A.y - B.y) > 1.2 || A.under === B || B.under === A) continue;   // 69-gunship.js：飛在上面的直升機；68-roll.js：疊在車頂上、剛從車頂開下來的車
-    if (Math.hypot(A.x - B.x, A.z - B.z) > (A.len + B.len) / 2 + 1) continue;
-    if (Math.abs((A.y || 0) - (B.y || 0)) > 1.6) continue;   // 高度差過一個車身（從斷橋或跳台上飛過去）不算撞
-    const mA = A.mass || (A.isCar ? 1600 : 280), mB = B.mass || (B.isCar ? 1600 : 280);
-    let best = null;
-    for (const sa of [1, -1]) for (const sb of [1, -1]) {
-      const ax = A.x + Math.sin(A.yaw) * A.off * sa, az = A.z + Math.cos(A.yaw) * A.off * sa;
-      const bx = B.x + Math.sin(B.yaw) * B.off * sb, bz = B.z + Math.cos(B.yaw) * B.off * sb;
-      const dx = ax - bx, dz = az - bz, d = Math.hypot(dx, dz), rr = A.rad + B.rad;
-      if (d < rr && d > 1e-4 && (!best || rr - d > best.pen)) best = { nx: dx / d, nz: dz / d, pen: rr - d };
-    }
-    if (!best) continue;
-    const { nx, nz, pen } = best, wA = mB / (mA + mB), wB = mA / (mA + mB);
-    A.x += nx * pen * wA; A.z += nz * pen * wA; B.x -= nx * pen * wB; B.z -= nz * pen * wB;
-    const vn = (A.vx - B.vx) * nx + (A.vz - B.vz) * nz;
-    if (vn >= 0) continue;
-    const J = -(1 + .25) * vn / (1 / mA + 1 / mB);
-    A.vx += J / mA * nx; A.vz += J / mA * nz; B.vx -= J / mB * nx; B.vz -= J / mB * nz;
-    const me = A === player.veh || B === player.veh;
-    damageVeh(A, Math.max(0, (J / mA - 3.5) * 18), B === player.veh);
-    damageVeh(B, Math.max(0, (J / mB - 3.5) * 18), A === player.veh);
-    rollHit(A, J / mA, nx, nz); rollHit(B, J / mB, -nx, -nz);   // 68-roll.js：側面被撞得夠猛就翻
-    if (me) {
-      const dv = J / (A === player.veh ? mA : mB);
-      if (dv > 2) { sfx.impact(dv); camState.shake = Math.max(camState.shake, Math.min(1, dv / 14)); }
-      const other = A === player.veh ? B : A;
-      if (other.unit && dv > 2) crime('ramcop', other.x, other.z);
-    }
-  }
+  kinVehicles(L);   // 69-kinema.js：迭代位置修正（連牆一起）、法線＋切向衝量、PIT 打轉、夾扁
   // 被車撞到的玩家（行走時）
   life.hitCd -= slowmo.raw;
   if (player.mode === 'walk' && !life.dead && life.hitCd <= 0) {
@@ -762,6 +740,7 @@ function coast(dt) {
   for (const v of vehicles) {
     if (v === player.veh || v.unit && v.unit.drive || v.ai || v.fly) continue;   // ai：69-squads.js 自己開的車
     if (rollIdle(v, dt)) continue;   // 68-roll.js：翻滾、翻倒，疊在車頂上的車跟著底下的車
+    kinYaw(v, dt);   // 69-kinema.js：被撞得打轉
     if (Math.abs(v.vx) + Math.abs(v.vz) < .05) { v.vx = v.vz = 0; continue; }
     v.x += v.vx * dt; v.z += v.vz * dt;
     const k = Math.exp(-(v.dead ? 2.5 : 1.6) * dt); v.vx *= k; v.vz *= k;

@@ -781,11 +781,8 @@ function updatePlayerWalk(inp, dt, camYaw) {
   colY = 0;
   let x = r.x, z = r.z;
   if (depth > 0) { [x, z] = farClamp(x, z); if (!tronNear(x, z)) z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）；光格島附近（21-tron.js）可以游到碼頭的梯子
-  // 車流與座駕也會擋路
-  const pushOut = (ox, oz, rr) => { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { x = ox + dx / d * rr; z = oz + dz / d * rr; } };
-  for (const c of traffic) { if (Math.abs((c.y || 0) - player.y) > 2.5) continue; const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
-  for (const v of vehicles) { const L = v.off; for (const s of [-1, 1]) pushOut(v.x + Math.sin(v.yaw) * L * s, v.z + Math.cos(v.yaw) * L * s, v.rad + .3); }
-  for (let k = 0; k < PED_N; k++) { const p = peds.people[k]; pushOut(p.x, p.z, .55); }
+  // 車流、載具與路人（69-kinema.js：停著的車推得動一點、被車夾在牆上、和路人互相讓開、衝刺撞人）
+  [x, z] = kinWalk(x, z);
   if (player.where === 'out') [x, z] = walkStep(player.x, player.z, x, z, player.y);   // 北嶺鐵道橋的護欄、洞壁、橋墩（20-walk.js）
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏

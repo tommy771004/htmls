@@ -46,7 +46,7 @@ function onKey(code) {
   if (fading) return;
   const ctx = contextAction();
   if (code === 'KeyF') {
-    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < 4) exitVehicle(); else toast('先把車速降下來'); }   // 69-gunship.js：直升機在半空或屋頂上不能下
+    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < KIN.jump) exitVehicle(); else if (!jumpOut(player.veh)) toast('先把車速降下來'); }   // jumpOut：69-kinema.js 的跳車；69-gunship.js：直升機在半空或屋頂上不能下
     else if (ctx && ctx.key === 'F') ctx.fn();
   }
   if (code === 'KeyE' && ctx && ctx.key === 'E') ctx.fn();

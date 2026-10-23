@@ -244,8 +244,8 @@ function startJack(c) {
   const moving = traffic.includes(c);
   const v = detachCar(c);
   v.vx = v.vz = 0;
-  const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);   // 駕駛座在車身左側
-  gta.jack = { v, t: 0, dur: moving ? 1.25 : 1.9, moving, x0: player.x, z0: player.z, dx: v.x + lx * (v.w / 2 + .55) + Math.sin(v.yaw) * .35, dz: v.z + lz * (v.w / 2 + .55) + Math.cos(v.yaw) * .35, done: 0 };
+  const side = kinDoorSide(v), lx = Math.cos(v.yaw) * side, lz = -Math.sin(v.yaw) * side;   // 駕駛座在車身左側；左邊貼牆就從副駕側（69-kinema.js）
+  gta.jack = { v, t: 0, dur: moving ? 1.25 : 1.9, moving, side, x0: player.x, z0: player.z, dx: v.x + lx * (v.w / 2 + .55) + Math.sin(v.yaw) * .35, dz: v.z + lz * (v.w / 2 + .55) + Math.cos(v.yaw) * .35, done: 0 };
   gta.aiming = false;
 }
 function stepJack(dt) {
@@ -254,10 +254,13 @@ function stepJack(dt) {
   const u = Math.min(1, j.t / .3);
   player.x = lerp(j.x0, j.dx, u); player.z = lerp(j.z0, j.dz, u);
   player.yaw = Math.atan2(v.x - player.x, v.z - player.z);
+  const w = clamp((j.t - j.dur + .25) / .25, 0, 1);   // 最後 0.25 秒滑進駕駛座（69-kinema.js）
+  if (w > 0) { player.x = lerp(j.dx, v.x, w * .55); player.z = lerp(j.dz, v.z, w * .55); }
   if (!j.done && j.t > .35) {
     j.done = 1;
-    const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);
-    if (j.moving) { sfx.doorCar(true); spawnExtra(j.dx + lx * .3, j.dz + lz * .3, Math.atan2(lx, lz), lx, lz); toast('把駕駛拖下車'); }
+    const lx = Math.cos(v.yaw) * j.side, lz = -Math.sin(v.yaw) * j.side, fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+    // 駕駛被拽出車外，摔在車門外側後方約 1.4 m（落點在牆裡就推出來）
+    if (j.moving) { sfx.doorCar(true); colY = v.y || 0; const r = collideCircle(j.dx + lx * .5 - fx * .6, j.dz + lz * .5 - fz * .6, .32, false); colY = 0; spawnExtra(r.x, r.z, Math.atan2(lx, lz), lx * 1.1 - fx * .4, lz * 1.1 - fz * .4); toast('把駕駛拖下車'); }
     else { sfx.glassBreak(); glassBurst(j.dx - lx * .3, 1.05, j.dz - lz * .3); toast('敲破車窗，接線發動…'); }
     panic(v.x, v.z, 14, 6);
     crime('jack', v.x, v.z);
@@ -391,7 +394,7 @@ function vehHits(v, imp) {
   if (v !== player.veh) return;
   for (const f of SQ.f) {
     if (!fUp(f) || fAlly(f)) continue;
-    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { fHit(f, RAM_K * sp * sp, v.vx / sp, v.vz / sp, true); sfx.impact(sp * .6); break; }
+    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { if (fHit(f, RAM_K * sp * sp, v.vx / sp, v.vz / sp, true)) kinLaunch(f, v.vx * 1.15, v.vz * 1.15, Math.min(12, .45 * sp)); sfx.impact(sp * .6); break; }   // kinLaunch：和 pedRam 一樣飛出去
   }
 }
 
@@ -417,6 +420,7 @@ function gtaUpdate(dt) {
   sideUpdate(dt);    // 69-side.js：街頭賽、生存模式、委託、幫派地盤
   aptUpdate();
   if (out) {
+    kinUpdate(dt);   // 69-kinema.js：近戰吸附、踉蹌、保齡球、跳車後滑出去的車
     wreckUpdate(dt);   // 68-wreck.js：被撞飛的路人
     for (const v of [...vehicles]) vehDamage(v, dt);
     if (player.mode === 'drive' && !player.veh.fly) vehHits(player.veh, gta.lastImp || 0);   // 69-gunship.js 的直升機自己算撞樓

@@ -597,13 +597,14 @@ function driveVehicle(v, inp, dt) {
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
   if (!inp.thr && !inp.brk && Math.abs(vF) < .3) vF = 0;
-  const grip = inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6));
+  const grip = (inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6))) * (v.slideT > 0 ? .25 : 1);   // slideT：被撞得打轉（69-kinema.js）
   vR *= Math.exp(-grip * dt);
   const wb = v.wb;
   let targetYr = vF * Math.tan(v.steer) / wb + (v.flatYr || 0) * clamp(vF / 12, -1, 1);   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
   v.yr = damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
   v.yaw += v.yr * dt;
+  kinYaw(v, dt);
   // 甩尾時把一部分前進速度轉成側滑
   if (inp.hb && spd > 6) vR += v.yr * vF * .045 * dt * 60 * .016;
   v.slip = Math.abs(vR);
