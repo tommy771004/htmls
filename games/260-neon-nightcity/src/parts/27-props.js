@@ -69,8 +69,10 @@ function bldLoad(set) {
         e.list.push(g); wg.push(g);
       }
       hmModel(b, wg, frameM4(zn, b.x, b.z));   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
+      if (b.blk && b.blk.ents) bldCut(b, wg);   // 27-bldfoot.js：模型在人的高度的外形
     }
     hmFlush();
+    for (const blk of new Set(mine.map(b => b.blk).filter(k => k && k.ents))) blkFoot(blk);   // 照模型的外形換掉街區的碰撞盒
     for (const { mat, list, zn } of byKey.values()) {
       const g = mergeGeometries(list);
       for (const x of list) x.dispose();

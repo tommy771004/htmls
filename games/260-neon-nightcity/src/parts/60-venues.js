@@ -66,8 +66,9 @@ const ropeGroup = new T.Group();
 }
 // 室外的點光（店招、場館門口、販賣機……）：生成時是邏輯座標，cityWorld() 換成世界座標；之後加進來的都是世界座標
 worldHooks.push(() => { for (const L of outLights) if (!L.w) { [L.x, L.z] = toW(L.x, L.z); L.w = 1; } });
-const ROPE_CIRCLE = { x: CLUB_X, z: CLUB_Z + 1.7, r: 1.2 };
-circles.push(ROPE_CIRCLE);
+// 紅絨布繩的碰撞：沿繩子排五個小圓（間距 0.6、半徑 0.3，人擠不過去；以前是一個半徑 1.2 的圓，繩子前後各擋 1.2 m）
+const ROPE_CIRCLES = [-1.2, -.6, 0, .6, 1.2].map(d => ({ x: CLUB_X + d, z: CLUB_Z + 1.7, r: .3 }));
+circles.push(...ROPE_CIRCLES);
 // 販賣機（Blender 模型）
 {
   const vm = prop('vending_machine', 1.1, 2.2, .9);
@@ -389,7 +390,7 @@ function setQuest(n) {
   quest.n = n;
   $('objText').textContent = QUEST[n].text;
   const o = $('obj'); o.classList.remove('flash'); void o.offsetWidth; o.classList.add('flash');
-  if (n >= 3) { ropeGroup.visible = false; ROPE_CIRCLE.r = 0; }
+  if (n >= 3) { ropeGroup.visible = false; for (const c of ROPE_CIRCLES) c.r = 0; }
 }
 // ─── 對話框 ───
 const dlg = { open: false, opts: [] };

@@ -537,7 +537,34 @@ try {
     check(s9.hit === 1 && s9.hp <= s9.hm * .2 + 1 && s9.mode === 'walk' && s9.air === 'eject', `時速 70 撞上：耐久 ${s9.hm} → ${s9.hp}、繫著安全帶仍從擋風玻璃飛出去（${s9.air}）`);
   }
 
-  console.log('35. 主控台');
+  // 空氣牆：彎曲的片裡的碰撞盒是仿射框（05-zones.js 的 frameA，含斜切），四個角要貼著彎曲後的地塊角（以前只照 x 軸，斜切 20° 的片會偏 3 m）；
+  // 圓對平行四邊形（30-vehicles.js 的 quadPush）推出去剛好離邊一個半徑；樹與夜店門口紅絨布繩的碰撞照實物大小
+  const s10 = await sec('35. 碰撞形狀（空氣牆）', () => {
+    const N = window.__nc, C = N.col, A = C.colliders.filter(b => b.f && b.f.lc && !b.low && b.ly == null && b.x1 - b.x0 < 24.6 && b.z1 - b.z0 < 24.6);
+    let err = 0, n = 0, push = 0, pn = 0;
+    for (let k = 0; k < A.length; k += Math.max(1, Math.floor(A.length / 400))) {
+      const b = A[k], [cx, cz, zn] = b.f.lc;
+      for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        const [qx, qz] = C.toW(sx > 0 ? b.x1 : b.x0, sz > 0 ? b.z1 : b.z0, b.f), [ex, ez] = C.toW(cx + (sx > 0 ? b.x1 : b.x0), cz + (sz > 0 ? b.z1 : b.z0), zn);
+        err = Math.max(err, Math.hypot(qx - ex, qz - ez)); n++;
+      }
+      // 邊的中點往裡 5 cm 推出去：只看旁邊沒有別的盒的
+      const [mx, mz] = C.toW(0, b.z0 + .05, b.f), [ox, oz] = C.toW(0, b.z0, b.f), [ax, az] = C.toW(1, b.z0, b.f);
+      const near = C.colliders.some(o => o !== b && (o.bx0 ?? o.x0) < mx + 1 && (o.bx1 ?? o.x1) > mx - 1 && (o.bz0 ?? o.z0) < mz + 1 && (o.bz1 ?? o.z1) > mz - 1);
+      if (near) continue;
+      const r = C.collide(mx, mz, .32), lx = ax - ox, lz = az - oz, d = Math.abs((r.x - ox) * lz - (r.z - oz) * lx) / Math.hypot(lx, lz);
+      pn++; if (Math.abs(d - .32) < .02 && C.toL(r.x, r.z, b.f)[1] < b.z0) push++;
+    }
+    const trees = C.circles.filter(c => c.r === .2).length, rope = C.circles.filter(c => c.r === .3 && C.circles.some(o => o !== c && o.r === .3 && Math.abs(Math.hypot(o.x - c.x, o.z - c.z) - .6) < .05)).length;
+    return { boxes: A.length, n, err: +err.toFixed(3), pn, push, trees, rope };
+  });
+  if (s10) {
+    check(s10.boxes > 1000 && s10.err < .5, `彎曲片裡 ${s10.boxes} 個碰撞盒是仿射框，${s10.n} 個角離彎曲後的位置最多 ${s10.err} m`);
+    check(s10.pn >= 20 && s10.push >= s10.pn * .9, `圓從平行四邊形的邊推出去剛好離邊 0.32 m（${s10.push}/${s10.pn}）`);
+    check(s10.trees > 1000 && s10.rope >= 4, `樹的碰撞半徑 0.2（${s10.trees} 棵）、紅絨布繩沿繩子排小圓（${s10.rope}）`);
+  }
+
+  console.log('36. 主控台');
   check(log.pageerrors.length === 0, `沒有 uncaught exception（${log.pageerrors.slice(0, 2).join(' | ')}）`);
   check(log.errors.length === 0, `沒有 console.error（${log.errors.slice(0, 2).join(' | ')}）`);
 } finally { await browser.close(); }

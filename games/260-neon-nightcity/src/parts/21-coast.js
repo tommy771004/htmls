@@ -714,7 +714,7 @@ const beacon = new T.Group();
     const tx = ISLE.x0 + 8 + r2() * (ISLE.x1 - ISLE.x0 - 16), tz = ISLE.z0 + 8 + r2() * (ISLE.z1 - ISLE.z0 - 16);
     if (sites.some(s => Math.abs(tx - s.x) < s.w / 2 + 5 && Math.abs(tz - s.z) < s.d / 2 + 5)) continue;
     if (Math.abs(tx - BRIDGE_X) < 8 && tz < ISLE.z0 + 124 || Math.abs(tz - (ISLE.z0 + 120)) < 7 && tx > BRIDGE_X || Math.hypot(tx - x, tz - z) < 16) continue;
-    isleTrees.push({ x: tx, z: tz, y: 0, ry: r2() * 6.3, s: .9 + r2() * .6 }); circles.push({ x: tx, z: tz, r: .35 });
+    isleTrees.push({ x: tx, z: tz, y: 0, ry: r2() * 6.3, s: .9 + r2() * .6 }); circles.push({ x: tx, z: tz, r: TREE_COL });
   }
   const tk = new Kit(); tk.cyl(0, 2.1, 0, .1, .17, 4.2, 8, 0x3a2c20, 2);
   for (let i = 0; i < 5; i++) { const g = new T.IcosahedronGeometry(1.4 + r2() * .5, 1); const a = i / 5 * 6.28, rr = i ? 1.2 : 0; tk.add(g, new T.Color().setHSL(.27, .4, .14 + r2() * .06), 2, tf(Math.cos(a) * rr, 5 + r2() * 1.4 + (i ? 0 : .9), Math.sin(a) * rr)); }

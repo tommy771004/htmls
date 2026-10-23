@@ -382,7 +382,7 @@ if (BLD_ON) {
         ? { x: am, z: f > 0 ? row[i].z1 - dd : row[i].z0 + dd, ry: f > 0 ? 0 : Math.PI }
         : { x: f > 0 ? row[i].x1 - dd : row[i].x0 + dd, z: am, ry: f > 0 ? Math.PI / 2 : -Math.PI / 2 };
       const set = Object.keys(pool).find(k => pool[k] === list);
-      bldPlace.push({ set, id: b.id, ...P, s, h: b.h * s, lots: span });
+      bldPlace.push({ set, id: b.id, ...P, s, h: b.h * s, lots: span, blk: row[i].b });
       for (const L of span) L.glb = bldPlace.at(-1);
       i = best.j;
     }
@@ -438,6 +438,7 @@ const FAC = (() => {
         bldPlace.push(L.glb = { set: o.glb[0], id: o.glb[1], x: gx === undefined ? (L.x0 + L.x1) / 2 : F.ax + gx, z: gz === undefined ? (L.z0 + L.z1) / 2 : F.az + gz,
           ry: o.axis === 'x' ? o.face * Math.PI / 2 : o.face > 0 ? 0 : Math.PI, s: 1, h: it.h, lots: [L] });
         L.col.hy = Math.max(L.col.hy, it.h);
+        L.glb.blk = b; L.col.blk = b; b.fac = 1; (b.ents || (b.ents = [])).push(L.glb);   // 27-bldfoot.js 照模型的外形換掉這塊地的盒（只換這塊，屋頂高度照舊）
       }
       return L;
     });
@@ -445,6 +446,8 @@ const FAC = (() => {
   }
   return S;
 })();
+// 有實體建築的街區（設施街區除外）：街區的碰撞盒標上 blk，模型下載好之後 27-bldfoot.js 照模型的外形重算、換掉它（b.ents 是街區裡的模型）
+for (const e of bldPlace) { const b = e.blk; if (!b || !b.col || !colliders.includes(b.col)) continue; b.col.blk = b; (b.ents || (b.ents = [])).push(e); }
 // 整個街區換成一個模型或一群建築：冠石金融區是 bld_fin（golukumar 的紐約街區拆出來的 12 群，tools/props.mjs），
 // 光環廣場是 Cyberpunk City 拆出的 14 群（bld_cyber）加上金融區的三群、灰石國宅放 grey_18 塔樓、grey_30 雙層板樓與 grey_31 大板樓、楓林里與公園大道放 golukumar 的 Neighbourhood 整個街區（nbh_01，帶中庭與樹）。
 // 一群或兩群並排，等比縮放（最多 1.08 倍）塞進人行道內 47×37 m 的地塊範圍，能轉 90° 放得更大就轉；整個街區的地塊都不建程式立面，
@@ -474,7 +477,7 @@ function wholeBlocks(pool) {
     const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, mine = lots.filter(L => L.b === b);
     let x = cx - W * s / 2;
     its.forEach((o, k) => {
-      const e = { set: o.set, id: o.id, x: rot ? cx : x + o.w * s / 2, z: cz, ry: rot ? Math.PI / 2 : (bi + bj) % 2 ? Math.PI : 0, s, h: o.h * s, lots: k ? [] : mine };
+      const e = { set: o.set, id: o.id, x: rot ? cx : x + o.w * s / 2, z: cz, ry: rot ? Math.PI / 2 : (bi + bj) % 2 ? Math.PI : 0, s, h: o.h * s, lots: k ? [] : mine, blk: b };
       bldPlace.push(e); x += o.w * s;
       if (!k) for (const L of mine) L.glb = e;
     });
@@ -1542,13 +1545,15 @@ const COL_S = 24;
 // 生成時碰撞表是邏輯座標；開場的 cityWorld()（99-main.js）一次換成世界座標：盒保留邏輯 AABB，f 是所屬的區（null 是世界座標），
 // bx0…bz1 是世界座標的外接框（空間索引與粗篩用）；圓柱直接換成世界座標（w = 1）。之後執行時加進來的盒與圓柱都是世界座標
 let cityIsWorld = false;
-// 彎曲的片：盒換成自己的座標框（frameW，盒中心那一點的局部方向與伸縮，盒變成以中心為原點），長的盒先切成 ≤ 36 m 的幾段（boxSplitW）
+// 彎曲的片：盒換成自己的仿射座標框（frameA，盒中心那一點的伸縮與斜切，和 frameM4 同一個 R·J；盒變成以中心為原點、邏輯尺寸不變，世界裡是平行四邊形），
+// 長的盒先切成 ≤ 24 m 的幾段（boxSplitW），剩下的誤差只有彎曲（24 m 的盒角落約 0.2 m）。以前的框只照 x 軸，斜切 20° 的片沿 z 的牆會偏 3 m（空氣牆）
 function boxToW(b, zn = zoneAtL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2)) {
   if (zn && zn.W) {
-    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, o = warpJ(zn.W, cx, cz), a = o[2], c = o[4], bb = o[3], d = o[5];
-    const [X, Z] = toW(cx, cz, zn), [ux, uz] = dirW(zn, 1, 0, cx, cz), sx = Math.hypot(a, c), sz = Math.hypot(bb, d);
-    const hx = (b.x1 - b.x0) / 2 * sx, hz = (b.z1 - b.z0) / 2 * sz;
-    b.x0 = -hx; b.x1 = hx; b.z0 = -hz; b.z1 = hz; zn = frameW(X, Z, ux, uz);
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, o = warpJ(zn.W, cx, cz), c = zn.c, s = zn.s;
+    const [X, Z] = toW(cx, cz, zn), hx = (b.x1 - b.x0) / 2, hz = (b.z1 - b.z0) / 2;
+    b.x0 = -hx; b.x1 = hx; b.z0 = -hz; b.z1 = hz;
+    const z0 = zn; zn = frameA(X, Z, c * o[2] + s * o[4], c * o[3] + s * o[5], -s * o[2] + c * o[4], -s * o[3] + c * o[5]);
+    zn.lc = [cx, cz, z0];   // 盒中心的邏輯座標與所屬的片（驗收比對用；片的接縫附近 toL 可能猜到隔壁片）
   }
   b.f = zn;
   if (!zn) { b.bx0 = b.x0; b.bx1 = b.x1; b.bz0 = b.z0; b.bz1 = b.z1; return b; }
@@ -1576,7 +1581,7 @@ function cityWorld() {
 // 彎曲的片裡，長的盒切成幾段（每段各自一個座標框，相鄰兩段重疊 0.3 m）；城外很遠的（1e5）不切
 function boxSplitW(r) {
   if (!r.zn || !r.zn.W) return [r];
-  const L = 36, w = r.x1 - r.x0, h = r.z1 - r.z0;
+  const L = 24, w = r.x1 - r.x0, h = r.z1 - r.z0;
   if (w > 4000 || h > 4000) return [r];
   const nx = Math.max(1, Math.ceil(w / L)), nz = Math.max(1, Math.ceil(h / L)), out = [];
   if (nx * nz === 1) return [r];

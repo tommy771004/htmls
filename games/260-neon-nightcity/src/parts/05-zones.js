@@ -78,7 +78,7 @@ function unwarp(W, u, v) {
 const inZoneL = (zn, x, z) => x >= zn.x0 && x < zn.x1 && z >= zn.z0 && z < zn.z1;
 const zoneAtL = (x, z) => { for (const zn of ZONES) if (inZoneL(zn, x, z)) return zn; return null; };
 // 世界 → 片的邏輯座標（不檢查在不在片裡）
-const zoneLocal = (zn, X, Z) => { const dx = X - zn.ox, dz = Z - zn.oz; return unwarp(zn.W, dx * zn.c - dz * zn.s, dx * zn.s + dz * zn.c); };
+const zoneLocal = (zn, X, Z) => { const dx = X - zn.ox, dz = Z - zn.oz; if (zn.I) { const I = zn.I; return [I[0] * dx + I[1] * dz, I[2] * dx + I[3] * dz]; } return unwarp(zn.W, dx * zn.c - dz * zn.s, dx * zn.s + dz * zn.c); };
 // 世界座標的點在哪一片（縫裡、室內是 null）。先用剛體反算粗篩（彎曲最多位移約 40 m），再精算
 function zoneAtW(X, Z) {
   if (X > 8500) return null;
@@ -119,6 +119,7 @@ function zoneNearL(X, Z, m) {
 // 邏輯 → 世界；zn 省略時依點所在的片（邊界路上的東西要明確給片）。zn 也可以是只有 ox、oz、c、s 的座標框（frameW，沒有彎曲）
 const toW = (x, z, zn = zoneAtL(x, z)) => {
   if (!zn) return [x, z];
+  if (zn.A) { const A = zn.A; return [zn.ox + A[0] * x + A[1] * z, zn.oz + A[2] * x + A[3] * z]; }
   if (zn.W) { const o = warpJ(zn.W, x, z); x = o[0]; z = o[1]; }
   return [zn.ox + x * zn.c + z * zn.s, zn.oz - x * zn.s + z * zn.c];
 };
@@ -126,6 +127,7 @@ const toL = (X, Z, zn = zoneOfW(X, Z)) => zn ? zoneLocal(zn, X, Z) : [X, Z];
 // 方向：邏輯的 (dx, dz) 在邏輯點 (x, z) 換到世界（長度不變）；沒給點就只轉剛體（片的平均方向，只能用在不在乎幾度誤差的地方）
 function dirW(zn, dx, dz, x, z) {
   if (!zn) return [dx, dz];
+  if (zn.A) { const A = zn.A, l0 = Math.hypot(dx, dz), ax = A[0] * dx + A[1] * dz, az = A[2] * dx + A[3] * dz, l1 = Math.hypot(ax, az) || 1; return [ax * l0 / l1, az * l0 / l1]; }
   if (zn.W && x !== undefined) {
     const o = warpJ(zn.W, x, z), l0 = Math.hypot(dx, dz), ax = o[2] * dx + o[3] * dz, az = o[4] * dx + o[5] * dz, l1 = Math.hypot(ax, az) || 1;
     dx = ax * l0 / l1; dz = az * l0 / l1;
@@ -135,6 +137,7 @@ function dirW(zn, dx, dz, x, z) {
 // 世界的方向在邏輯點 (x, z) 換回邏輯（長度不變）
 function dirL(zn, dX, dZ, x, z) {
   if (!zn) return [dX, dZ];
+  if (zn.I) { const I = zn.I, l0 = Math.hypot(dX, dZ), ax = I[0] * dX + I[1] * dZ, az = I[2] * dX + I[3] * dZ, l1 = Math.hypot(ax, az) || 1; return [ax * l0 / l1, az * l0 / l1]; }
   let dx = dX * zn.c - dZ * zn.s, dz = dX * zn.s + dZ * zn.c;
   if (zn.W && x !== undefined) {
     const o = warpJ(zn.W, x, z), det = o[2] * o[5] - o[3] * o[4], l0 = Math.hypot(dx, dz), ax = (o[5] * dx - o[3] * dz) / det, az = (-o[4] * dx + o[2] * dz) / det, l1 = Math.hypot(ax, az) || 1;
@@ -178,6 +181,9 @@ const rectW = (x0, x1, z0, z1, zn = zoneAtL((x0 + x1) / 2, (z0 + z1) / 2)) => [t
 const WP = (x, z, zn) => { const [X, Z] = toW(x, z, zn); return { x: X, z: Z }; };
 // 世界座標裡的座標框：原點 (ox, oz)、局部 +x 朝 (ux, uz)。縫裡斜放的碰撞盒用它當 f（和片一樣有 ox、oz、c、s，沒有彎曲）
 const frameW = (ox, oz, ux, uz) => { const l = Math.hypot(ux, uz) || 1, c = ux / l, s = -uz / l; return { ox, oz, c, s, ry: Math.atan2(s, c) }; };
+// 仿射的座標框：框裡的 (x, z) 乘上 A = [[a, b], [c, d]] 再加 (ox, oz) 就是世界座標（彎曲的片裡的碰撞盒：伸縮與斜切照盒中心那一點，盒在世界裡是平行四邊形）。
+// toW／toL／dirW／dirL 都認得它（I 是 A 的反矩陣）；c、s、ry 是局部 +x 的方向，給只要大概朝向的地方用
+const frameA = (ox, oz, a, b, c, d) => { const det = a * d - b * c, f = frameW(ox, oz, a, c); f.A = [a, b, c, d]; f.I = [d / det, -b / det, -c / det, a / det]; return f; };
 
 // ─── 多邊形工具 ───
 function segCross(p, q, r, s) {   // 兩條線段的交點（不相交回傳 null）

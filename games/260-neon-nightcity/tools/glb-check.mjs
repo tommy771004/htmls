@@ -45,6 +45,18 @@ try {
   check(w2.sets === 11 && !w2.failed.length && w2.swapped >= 16 && w2.has.length === 3 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500 && w2.n.ebox > 20 && w2.n.pump >= 4 && w2.n.lamps > 3000 && w2.n.pier > 20 && w2.board, `world_2 模型與橋墩 ${w2.sets}/11 組、換掉 ${w2.swapped} 類（含 ${w2.has.join('、')}）、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
   const grc = await ev(page, () => ['grc_sedan', 'grc_stepvan', 'grc_mailvan'].map(t => window.__nc.parked.filter(p => p.type === t).length));
   check(grc.every(n => n > 10), `gameready_city 的三台車混進路邊停車（轎車 ${grc[0]}、廂型貨車 ${grc[1]}、郵務車 ${grc[2]}）`);
+  // 空氣牆（27-bldfoot.js）：模型下載好的街區照模型在人的高度的外形換掉整塊的碰撞盒；舊碼頭紅磚樓的水塔腳之間、醫院急診樓前的空地（都在原本的地塊裡）走得過去
+  const foot = await ev(page, async () => {
+    const N = window.__nc, out = {};
+    for (const [k, x, z] of [['水塔腳之間', -118.7, -42], ['醫院急診樓前', 117.9, -76.8]]) {
+      N.tp(x + 6, z + 6);
+      for (let t = 0; t < 60; t++) { const [lx, lz] = N.L(x, z), e = N.props.bld.find(e => e.lots.some(L => lx > L.x0 && lx < L.x1 && lz > L.z0 && lz < L.z1)); if (e && e.cut) { out[k] = { id: e.id, hit: N.col.collide(x, z, .32).hit }; break; } await new Promise(r => setTimeout(r, 250)); }
+    }
+    const B = [...new Set(N.props.bld.map(e => e.blk).filter(Boolean))];
+    out.blocks = B.filter(b => b.footN != null).length; out.all = B.length; out.boxes = N.col.colliders.filter(c => c.blk).length;
+    return out;
+  });
+  check(foot['水塔腳之間'] && !foot['水塔腳之間'].hit && foot['醫院急診樓前'] && !foot['醫院急診樓前'].hit && foot.blocks > 50, `實體建築照模型外形換掉碰撞盒：${foot.blocks}/${foot.all} 個街區、${foot.boxes} 個盒；${['水塔腳之間', '醫院急診樓前'].map(k => k + (foot[k] ? `（${foot[k].id}）${foot[k].hit ? '擋住' : '走得過去'}` : '模型沒下載')).join('、')}`);
 
   // 展示廳：後兩排的實車
   await ev(page, () => window.__nc.enter('show'));

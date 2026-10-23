@@ -518,6 +518,7 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
   for (const b of boxesNear(x, z, r)) {
     if (swimmer && b.swim || b.ly != null && colY < b.ly || b.hy != null && colY > b.hy) continue;
     if (boxGap(b, x, z) > r) continue;
+    if (b.f && b.f.A) { const o = quadPush(b, x, z, r); if (o) { x = o[0]; z = o[1]; nx += o[2]; nz += o[3]; hit = 1; } continue; }
     // 盒在所屬區的框裡是 AABB：點換進去算，推出後的點與法線再轉回世界
     let [lx, lz] = b.f ? toL(x, z, b.f) : [x, z], ex = 0, ez = 0;
     const cx = clamp(lx, b.x0, b.x1), cz = clamp(lz, b.z0, b.z1);
@@ -537,6 +538,27 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
     if (d2 < rr * rr && d2 > 1e-8) { const d = Math.sqrt(d2); x = c.x + dx / d * rr; z = c.z + dz / d * rr; nx += dx / d; nz += dz / d; hit = 1; }
   }
   return { x, z, nx, nz, hit };
+}
+// 仿射框的盒（彎曲的片，10-city.js 的 boxToW）在世界裡是平行四邊形：直接在世界座標算圓對凸四邊形（框裡的距離被斜切拉歪了，不能在框裡算）。
+// 圓心在裡面就從最近的邊推出去，在外面就推離最近點；回傳 [x, z, 法線 x, 法線 z]，沒碰到是 null
+function quadPush(b, x, z, r) {
+  const q = b.q || (b.q = rectW(b.x0, b.x1, b.z0, b.z1, b.f)), [lx, lz] = toL(x, z, b.f), inside = lx > b.x0 && lx < b.x1 && lz > b.z0 && lz < b.z1;
+  const ox = b.f.ox, oz = b.f.oz;
+  let best = Infinity, px = 0, pz = 0, k = 0;
+  for (let i = 0; i < 4; i++) {
+    const [ax, az] = q[i], [bx, bz] = q[(i + 1) & 3], ex = bx - ax, ez = bz - az, t = clamp(((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1);
+    const cx = ax + ex * t, cz = az + ez * t, d2 = (x - cx) ** 2 + (z - cz) ** 2;
+    if (d2 < best) { best = d2; px = cx; pz = cz; k = i; }
+  }
+  if (inside) {
+    const [ax, az] = q[k], [bx, bz] = q[(k + 1) & 3], l = Math.hypot(bx - ax, bz - az) || 1;
+    let ex = (bz - az) / l, ez = -(bx - ax) / l;
+    if (ex * (ax - ox) + ez * (az - oz) < 0) { ex = -ex; ez = -ez; }   // 法線朝外（盒心在框的原點）
+    return [px + ex * r, pz + ez * r, ex, ez];
+  }
+  if (best >= r * r || best < 1e-12) return null;
+  const d = Math.sqrt(best), ex = (x - px) / d, ez = (z - pz) / d;
+  return [px + ex * r, pz + ez * r, ex, ez];
 }
 // 兩個圓代表車身前後，跟靜態物、停車與車流碰撞
 // 擦牆：入射角 30° 以內算擦過（SCRAPE_SIN = sin 30°），擦著時速度每秒衰減 SCRAPE_DRAG，車頭每秒往牆的方向轉 SCRAPE_ALIGN 的比例

@@ -211,6 +211,7 @@ function updateSignals(t) {
 
 // ─── 人行道小物：消防栓、垃圾桶、報箱、護柱、電話亭 ───
 const hydrants = [], bins = [], boxesN = [], bollards = [], booths = [], grates = [], trees = [], fountains = [];
+const TREE_COL = .2;   // 樹的碰撞半徑：樹幹（街樹、公園、World 第二輪換上的模型）底部半徑約 0.13–0.19 m；以前 0.3–0.35，人在樹幹前 20 cm 就被擋住
 const sideSpots = [];  // 人行道上沿路緣的位置
 for (const b of blocks) {
   if (b.outer) continue;
@@ -270,22 +271,22 @@ for (const b of blocks) {
     fountains.push({ x: fx, z: fz }); claim(fx, fz, 6); circles.push({ x: fx, z: fz, r: 3.3 });
     for (let x = b.x0 + SW + 3; x < b.x1 - SW - 2; x += 6.5) for (let z = b.z0 + SW + 3; z < b.z1 - SW - 2; z += 6.5) {
       const tx = x + (r3() - .5) * 2, tz = z + (r3() - .5) * 2, d = plazaD(tx, tz);
-      if (r3() < .6 && d > HR + 4 && free(tx, tz, 2.2)) { trees.push({ x: tx, z: tz, y: .15, ry: r3() * 6.3, s: .9 + r3() * .4 }); claim(tx, tz, 2.2); circles.push({ x: tx, z: tz, r: .35 }); }
+      if (r3() < .6 && d > HR + 4 && free(tx, tz, 2.2)) { trees.push({ x: tx, z: tz, y: .15, ry: r3() * 6.3, s: .9 + r3() * .4 }); claim(tx, tz, 2.2); circles.push({ x: tx, z: tz, r: TREE_COL }); }
     }
   }
   if (b.park) {
     const r3 = rng(b.i * 131 + b.j);
     for (let x = b.x0 + SW + 4; x < b.x1 - SW - 3; x += 7) for (let z = b.z0 + SW + 4; z < b.z1 - SW - 3; z += 7) {
       const tx = x + (r3() - .5) * 4, tz = z + (r3() - .5) * 4;
-      if (r3() < .55 && free(tx, tz, 2.4)) { trees.push({ x: tx, z: tz, y: .15, ry: r3() * 6.3, s: .95 + r3() * .5, park: 1 }); claim(tx, tz, 2.4); circles.push({ x: tx, z: tz, r: .35 }); }
+      if (r3() < .55 && free(tx, tz, 2.4)) { trees.push({ x: tx, z: tz, y: .15, ry: r3() * 6.3, s: .95 + r3() * .5, park: 1 }); claim(tx, tz, 2.4); circles.push({ x: tx, z: tz, r: TREE_COL }); }
     }
   }
   const dist = district((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2);
   const dens = dist.startsWith('霓虹') ? .35 : dist.startsWith('中城') ? .45 : .8;
   for (const z of [b.z0 + 1.6, b.z1 - 1.6]) for (let x = b.x0 + 12; x < b.x1 - 10; x += 9 + rnd() * 3)
-    if (rnd() < dens && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
+    if (rnd() < dens && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: TREE_COL }); }
   for (const x of [b.x0 + 1.6, b.x1 - 1.6]) for (let z = b.z0 + 12; z < b.z1 - 10; z += 9 + rnd() * 3)
-    if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: .3 }); }
+    if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: TREE_COL }); }
 }
 // 片之間的空地：每一對相鄰的片，沿著共用的邊界走，在這片的邊界路與那片的邊界路中間鋪碎石步道（SEAM_PATH，世界座標的折線，
 // 點上記草地寬 w），夠寬的地方擺涼亭、茶亭、公廁（SEAM_SITES）；長椅、路燈、建物的樣子在 21-coast.js。
@@ -335,7 +336,7 @@ const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) **
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
     if (r5() > .55 || !inCity(tx, tz) || zoneNearL(tx, tz, HR + 4) || polyDistPt(CITY_POLY, tx, tz) < 7 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5)) continue;
     if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
-    trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
+    trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: TREE_COL, w: 1 });
   }
 }
 // 岬角（10-city.js 的 CAPES）：草地上一叢一叢的樹，世界座標
@@ -346,7 +347,7 @@ const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) **
     for (let x = x0; x < x1; x += 9) for (let z = z0; z < z1; z += 9) {
       const tx = x + (r6() - .5) * 6, tz = z + (r6() - .5) * 6, s = .85 + r6() * .55, ry = r6() * 6.3;
       if (r6() > .5 || !inPoly(h.inn, tx, tz)) continue;
-      trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: .35, w: 1 });
+      trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: TREE_COL, w: 1 });
     }
   }
 }
