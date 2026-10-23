@@ -1,6 +1,6 @@
 // ═══ 北嶺鐵道橋（10-city.js 的 VIADUCT）：走得上去的橋面、兩端的平台與隧道、夜燈、往返的電聯車 ═══
 // 地形（山溝、平台、隧道上的山頭）在 10-city.js 的 viaCarve；這裡是畫面、20-walk.js 的步行面（橋面、橋下的橋墩、洞門與隧道）與列車。
-// 座標都是 A 區的邏輯座標；端點座標系 V.frame(e, x, z) → [o 往外（進山）, d 往左]，洞門在 o = A，洞底在 o = A + BORE。
+// 座標都是北嶺公園的座標框（VIADUCT.zn = NPARK.f）；端點座標系 V.frame(e, x, z) → [o 往外（進山）, d 往左]，洞門在 o = A，洞底在 o = A + BORE。
 // 列車：tools/props.mjs 的 w1_train（tiunov.se 的 Lastochka electric train，CC BY 4.0）拆成的車頭 cab、中間車 mid、無駕駛室的 tail，
 // 編成 車頭＋中間＋tail＋中間＋反向的車頭（約 104 m）。以 http(s) 開啟、走近 RAIL_NEAR 公尺才下載；以檔案開啟或下載失敗用程式替身。
 // 一趟從一端的洞底開到另一端的洞底（車身過了洞底就藏起來），停一陣子再反方向開回來；白天車窗暗、夜裡亮，頭燈一直開著
@@ -29,11 +29,16 @@ const RAIL = VIADUCT ? (() => {
   return { V, D, pts, S, len, at, cars, EXT, trainL: off - .4, uM: { value: new T.Vector4(1, 0, 1, 0) },
     t: 0, speed: 17, wait: 38, dir: 1, s: -1e9, state: 'wait', tw: 12, hornCd: 0, joint: 0, hitCd: 0, loaded: false, req: false, snd: false };
 })() : null;
-const RAIL_NEAR = 1100, RAIL_ZN = ZONES[0];
+const RAIL_NEAR = 1100, RAIL_ZN = VIADUCT ? VIADUCT.zn : null;
+// 山頭蓋板的高度（公園框的座標，d：離鐵軌中心的橫向距離）：沒挖溝的山坡，比山頭的輪廓低就照輪廓
+const railLid = (x, z, d) => Math.max(VIADUCT.deck + 17 - .7 * Math.max(0, Math.abs(d) - 10), parkLidH(x, z));
 
 if (RAIL) {
   const L0 = coastLights.length, V = VIADUCT, D = V.deck, R = RAIL, k = new Kit(), con = 0x8c877e, con2 = 0x66625b, dark = 0x050506, steel = 0x3e4a52, warm = 0xffcf8a, wood = 0x4a3a2a;
-  const P = (e, o, d) => [e.x + e.ux * o - e.uz * d, e.z + e.uz * o + e.ux * d];   // 端點座標系 → 邏輯座標
+  const P = (e, o, d) => [e.x + e.ux * o - e.uz * d, e.z + e.uz * o + e.ux * d];   // 端點座標系 → 公園框的座標
+  // 燈與圓柱碰撞換成世界座標（w: 1），開場的 cityWorld 不會再照區換一次
+  const railLight = (x, y, z, col, r, i) => { const [X, Z] = toW(x, z, RAIL_ZN), l = coastLight(X, y, Z, col, r, i); l.w = 1; return l; };
+  const circle = (x, z, r) => { const [X, Z] = toW(x, z, RAIL_ZN); circles.push({ x: X, z: Z, r, w: 1 }); };
   // 沿端點方向擺一個盒：中心 (o, d)、y，長（沿 o）、高、寬（沿 d）
   const ebox = (e, o, d, y, lo, h, wd, col, mat = 2) => { const [x, z] = P(e, o, d); k.box(x, y, z, lo, h, wd, col, mat, 0, Math.atan2(-e.uz, e.ux), 0); };
   for (const e of V.ends) {
@@ -51,11 +56,20 @@ if (RAIL) {
       const g = new T.ExtrudeGeometry(sh, { depth: 1.2, bevelEnabled: false }); g.translate(0, 0, -.6);
       k.add(g, con, 2, tf(x0, 0, z0, 0, Math.atan2(-(z1 - z0), x1 - x0), 0));
     }
-    // ─── 山頭蓋板：10-city.js 在隧道經過的地方挖了一條溝，這塊草地從洞門後面蓋到洞底後面；斷面照山頭的輪廓（|d| ≤ 10 平頂，再往外每公尺降 0.7 m 到 |d| = 16）───
+    // ─── 山頭蓋板：10-city.js 在隧道經過的地方挖了一條溝，這塊從洞門後面蓋到洞底後面（|d| ≤ 12，2 m 一格）；高度是沒挖溝的山坡（parkLidH），
+    // 山坡比山頭的輪廓（|d| ≤ 10 平頂 D + 17，再往外每公尺降 0.7 m）低的地方照輪廓；頂點色和山一樣，高 8 cm 蓋住溝邊的三角形 ───
     {
-      const sh = new T.Shape([[-16, 7.2], [16, 7.2], [16, 12.8], [10, 17], [-10, 17], [-16, 12.8]].map(([a, b]) => new T.Vector2(a, D + b)));
-      const g = new T.ExtrudeGeometry(sh, { depth: B - 2, bevelEnabled: false }), [x, z] = P(e, A + 8, 0);
-      k.add(g, 0x3c5426, 2, new T.Matrix4().makeBasis(V3(e.uz, 0, -e.ux), V3(0, 1, 0), V3(e.ux, 0, e.uz)).setPosition(x, 0, z));
+      const no = Math.ceil((B - 6) / 2), nd = 12, pos = [], col = [], idx = [], c = new T.Color();
+      for (let i = 0; i <= no; i++) for (let j = 0; j <= nd; j++) {
+        const o = A + 8 + (B - 6) * i / no, d = -12 + 24 * j / nd, [x, z] = P(e, o, d), y = railLid(x, z, d) + .08, [X, Z] = toW(x, z, RAIL_ZN);
+        pos.push(x, y, z); hillColor(c, X, Z, y); col.push(c.r, c.g, c.b);
+        if (i && j) { const a = (i - 1) * (nd + 1) + j - 1, b = i * (nd + 1) + j - 1; idx.push(...(e.s > 0 ? [a, a + 1, b, b, a + 1, b + 1] : [a, b, a + 1, a + 1, b, b + 1])); }
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(new Array(pos.length / 3).fill(2), 1));
+      g.setIndex(idx); g.computeVertexNormals();
+      if (g.attributes.normal.array[1] < 0) { g.setIndex(idx.map((v, n) => idx[n - n % 3 + [0, 2, 1][n % 3]])); g.computeVertexNormals(); }   // 繞序朝下就翻過來
+      const lm = new T.Mesh(g, MAT.uber); lm.name = 'railLid'; cityAdd(lm, RAIL_ZN);
     }
     ebox(e, A + 4 + B / 2, 0, D - .24, B - 8, .1, 6.1, 0x46423c, 2);   // 洞裡的地面（溝底）
     // ─── 隧道：兩面洞壁、拱頂、黑色的洞底，洞壁上每 12 m 一盞燈 ───
@@ -65,7 +79,7 @@ if (RAIL) {
     for (let o = A + 12, i = 0; o < A + B - 4; o += 12, i++) {
       const s = i % 2 ? 1 : -1, [x, z] = P(e, o, s * 2.7);
       ebox(e, o, s * 2.72, D + 4.6, .5, .18, .14, 0xffe2b0, 11);
-      coastLight(x, D + 4.4, z, 0xffd8a0, 7, .7);
+      railLight(x, D + 4.4, z, 0xffd8a0, 7, .7);
     }
     // ─── 平台：道碴、枕木、兩條鋼軌，從橋端接到洞底；兩側矮的混凝土路緣 ───
     for (let o = -1; o < A + B; o += .65) ebox(e, o, 0, D - .12, .24, .14, 2.6, wood, 2);
@@ -75,19 +89,19 @@ if (RAIL) {
     // ─── 洞門上的燈、號誌（綠＝可以過、紅＝列車進站）、隧道名牌 ───
     for (const s of [-1, 1]) {
       ebox(e, A - .4, s * 4.6, D + 7.6, .5, .4, .5, 0xffe2b0, 11);
-      const [x, z] = P(e, A - 1.4, s * 4.6); coastLight(x, D + 7.2, z, warm, 16, 1.4);
+      const [x, z] = P(e, A - 1.4, s * 4.6); railLight(x, D + 7.2, z, warm, 16, 1.4);
     }
     {
       const sd = e.s > 0 ? -4.4 : 4.4, [x, z] = P(e, A - 7, sd);   // 號誌桿：列車出洞的右手邊
       k.cyl(x, D + 2.6, z, .09, .11, 5.2, 8, 0x2a2c30, 15); ebox(e, A - 7.12, sd, D + 5.2, .14, 1.4, .6, 0x16181a, 15);
-      coastLight(x, D + 1.2, z, warm, 6, .4);
-      circles.push({ x, z, r: .2 });
+      railLight(x, D + 1.2, z, warm, 6, .4);
+      circle(x, z, .2);
     }
     // 平台邊的燈：南側緩坡上來的地方兩盞
     for (const o of [2, A - 10]) {
       const sd = e.ux > 0 ? 7.6 : -7.6, [x, z] = P(e, o, sd), y = parkWalkH(x, z);
       k.cyl(x, y + 2.1, z, .07, .09, 4.2, 6, 0x2a2c30, 15).box(x, y + 4.25, z, .34, .3, .34, warm, 11);
-      coastLight(x, y + 4, z, warm, 14, 1.2); circles.push({ x, z, r: .14 });
+      railLight(x, y + 4, z, warm, 14, 1.2); circle(x, z, .14);
     }
   }
   // ─── 橋上的燈：兩側護欄外每 16 m 一對（圓燈罩，遠遠看是兩串光點），橋墩頂兩盞紅色航空障礙燈，谷底的橋墩各兩盞往上打的投光燈 ───
@@ -97,14 +111,14 @@ if (RAIL) {
       const px = x + nx * 6.2 * s, pz = V.zc(x) + nz * 6.2 * s, hx = px - nx * .55 * s, hz = pz - nz * .55 * s;
       k.cyl(px, D + 2, pz, .06, .08, 4, 6, 0x2a2c30, 15).box(px - nx * .3 * s, D + 4.05, pz - nz * .3 * s, .7, .08, .14, 0x2a2c30, 15, 0, Math.atan2(-nz, nx), 0);   // 燈臂朝橋面伸出去
       k.add(new T.SphereGeometry(.3, 10, 8), 0xfff0d0, 8, tf(hx, D + 3.8, hz));
-      coastLight(hx, D + 3.6, hz, 0xffe8c0, 12, 1.1);
+      railLight(hx, D + 3.6, hz, 0xffe8c0, 12, 1.1);
     }
   }
   for (const p of V.piers) {
     const x = (p.x0 + p.x1) / 2, z = (p.z0 + p.z1) / 2, g = V.at(x - V.x - V.lx0, z - V.z - V.lz0) + V.y;
     for (const s of [-1, 1]) k.box(x, D - 4.2, z + s * (p.z1 - p.z0) * .32, .55, .55, .55, 0xff2a1a, 8);
-    coastLight(x, D - 4.8, z, 0xff3020, 12, 1);
-    if (D - g > 12) for (const s of [-1, 1]) { k.box(x + s * 5, g + .4, z + 7, .7, .8, .7, 0xfff2d8, 8); coastLight(x + s * 3, g + 4, z + 5, 0xffe6c0, 30, 2); }
+    railLight(x, D - 4.8, z, 0xff3020, 12, 1);
+    if (D - g > 12) for (const s of [-1, 1]) { k.box(x + s * 5, g + .4, z + 7, .7, .8, .7, 0xfff2d8, 8); railLight(x + s * 3, g + 4, z + 5, 0xffe6c0, 30, 2); }
   }
   const m = new T.Mesh(k.build(), MAT.ridge); m.name = 'railPortals'; cityAdd(m, RAIL_ZN);
   R.lights = coastLights.length - L0;   // 夜燈的數量（測試用）
@@ -162,7 +176,7 @@ if (RAIL) {
           }
           if (ad > 14 && segD(o, ad, A, 16, A - 12, 24) < .55) return cam ? undefined : null;   // 翼牆
         } else if (o >= A && o <= A + 8 && ad <= 16 && y0 > D + 12) return D + 17.5;   // 站在洞門頂上
-        else if (o > A + 8 && o < A + V.BORE + 6 && ad <= 16) return D + 17 - .7 * Math.max(0, ad - 10);   // 山頭蓋板上（底下是隧道的溝）
+        else if (o > A + 8 && o < A + V.BORE + 6 && ad <= 16) return railLid(x, z, d);   // 山頭蓋板上（底下是隧道的溝）
       }
       if (Math.abs(x - V.x) <= V.W / 2 + .5) {
         const dz = Math.abs(z - V.zc(x));
@@ -295,4 +309,7 @@ const railApi = {
   go(dir = 1, s) { if (!RAIL) return; RAIL.dir = dir; RAIL.state = 'run'; RAIL.s = s ?? (dir > 0 ? 0 : RAIL.len); RAIL.horned = false; },
   hold() { if (!RAIL) return; RAIL.state = 'wait'; RAIL.tw = 1e9; },
   walk: (X, Z, y0) => walkAt(X, Z, y0),
+  // 鐵道橋的座標（公園框）和世界座標互換、擺位置（驗收腳本用，不寫死世界座標）
+  W: (x, z) => toW(x, z, RAIL_ZN), L: (X, Z) => toL(X, Z, RAIL_ZN), yaw: y => yawW(RAIL_ZN, y),
+  tp(x, z, yaw = 0) { const [X, Z] = toW(x, z, RAIL_ZN); window.__nc.tp(X, Z, yawW(RAIL_ZN, yaw)); },
 };

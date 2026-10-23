@@ -175,9 +175,9 @@ try {
   }
 
   // 北嶺鐵道橋（10-city.js 的 VIADUCT）：走近就下載，擺好拿掉程式替身；山坡在模型範圍中間貼著模型地面下 1.5 m（hf 雙線性）。
-  // 十五片版圖還沒擺鐵道橋（VIADUCT 是 null）時跳過
+  // 座標是公園框（VIADUCT.zn），擺位置走 __nc.props.rail 的 tp／W；沒有掃描資料（VIADUCT 是 null）時跳過
   if (await ev(page, () => !!window.__nc.props.viaduct)) {
-    await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; nc.tpL(V.x - 40, V.z + 120, Math.PI); });
+    await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; nc.props.rail.tp(V.x - 40, V.z + 120, Math.PI); });
     let done = false;
     for (let i = 0; i < 240 && !done; i++) { await page.waitForTimeout(250); done = await ev(page, () => !!window.__nc.props.w1.find(o => o.set === 'far_rail').obj); }
     const vr = await ev(page, () => {
@@ -185,7 +185,7 @@ try {
       for (const [fx, fz] of [[.25, .5], [.5, .5], [.75, .5], [.5, .2], [.5, .8]]) { const x = V.x + V.lx0 + V.W * fx, z = V.z + V.lz0 + V.D * fz; d.push(nc.park.h(x, z) - (V.at(V.W * fx, V.D * fz) + V.y - 1.5)); }
       return { proxy: !!(V.proxy && V.proxy.parent), d: d.map(v => +v.toFixed(2)), deck: +V.deck.toFixed(1) };
     });
-    await page.waitForTimeout(800); await hideHud(page); await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct, [x, z] = nc.W(V.x, V.z); nc.look(Math.atan2(x - nc.player.x, z - nc.player.z), .12, 0); });
+    await page.waitForTimeout(800); await hideHud(page); await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct, [x, z] = nc.props.rail.W(V.x, V.z); nc.look(Math.atan2(x - nc.player.x, z - nc.player.z), .12, 0); });
     await page.waitForTimeout(400); await shot(page, 'g-viaduct');
     check(done && !vr.proxy && vr.d.every(v => Math.abs(v) < .05), `北嶺鐵道橋模型已擺上、替身拿掉，山溝貼著模型地面（差 ${vr.d.join('、')} m，橋面 y ${vr.deck}）`);
   }
@@ -197,7 +197,7 @@ try {
     const t0 = await ev(page, () => { const nc = window.__nc, R = nc.props.rail.R, t = nc.time(); nc.time(21 * 60 + 30); nc.props.rail.go(1, R.len / 2 + 50); R.speed = 0; return t; });
     await page.waitForTimeout(1500); await hideHud(page);
     const tr = await ev(page, () => {
-      const nc = window.__nc, V = nc.props.viaduct, R = nc.props.rail.R, [cx, cz] = nc.W(V.x + 25, V.z + 48), [tx, tz] = nc.W(V.x - 15, V.zc(V.x - 15));
+      const nc = window.__nc, V = nc.props.viaduct, R = nc.props.rail.R, [cx, cz] = nc.props.rail.W(V.x + 25, V.z + 48), [tx, tz] = nc.props.rail.W(V.x - 15, V.zc(V.x - 15));
       nc.camAt(cx, V.deck + 9, cz, tx, V.deck + 2, tz);
       return { on: R.cars.filter(c => c.on && c.obj.visible).length, mesh: R.cars.reduce((a, c) => a + c.obj.children.length, 0), win: +R.uM.value.z.toFixed(2) };
     });

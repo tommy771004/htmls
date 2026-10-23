@@ -122,6 +122,10 @@ function farClamp(X, Z) {
   slab(ISLE, groundMat(ISLE_FS, { uIsle: { value: new T.Vector4(BRIDGE_X, ISLE.z0 + 120, ISLE.z0 + 120, 0) } }), 6);
 }
 
+// 山的頂點色：林線以下深綠、往上轉成岩色（21-rail.js 的山頭蓋板也照它，接得上山坡）
+const HILL_CA = new T.Color(0x0e170c), HILL_CB = new T.Color(0x1c1a16), HILL_CC = new T.Color(0x2a2a2c);
+const hillColor = (c, X, Z, h) => c.copy(HILL_CA).lerp(HILL_CB, clamp((h - 60) / 160, 0, 1)).lerp(HILL_CC, clamp((h - 260) / 200, 0, 1)).multiplyScalar(.85 + .3 * Math.sin(X * .013 + Z * .009));
+
 // ─── 擋牆旁的欄杆、步道路燈 ───
 const coastLights = [];   // 也放進 signLights（60-venues 會複製成 outLights）
 const coastLight = (x, y, z, col, r, i) => { const l = { x, y, z, col: lin(col), r, i }; signLights.push(l); coastLights.push(l); return l; };
@@ -766,21 +770,52 @@ const FAR_SITES = {
   // 林線以下深綠、往上轉成岩色，山頂零星幾盞管理站與山屋的燈
   {
     const P = CITY_POLY, n = P.length, [cx, cz] = CITY_C, D = HILL_D, m = D.length;   // HILL_D：10-city.js（hillMeshH 照同一組圈算網格上的高度）
-    const pos = new Float32Array(n * m * 3), col = new Float32Array(n * m * 3), H = new Float32Array(n * m), cA = new T.Color(0x0e170c), cB = new T.Color(0x1c1a16), cC = new T.Color(0x2a2a2c), c = new T.Color();
+    const pos = new Float32Array(n * m * 3), col = new Float32Array(n * m * 3), H = new Float32Array(n * m), c = new T.Color(), hillCol = (X, Z, h) => hillColor(c, X, Z, h);
     for (let k = 0; k < n; k++) {
       const R = Math.hypot(P[k][0] - cx, P[k][1] - cz), ux = (P[k][0] - cx) / R, uz = (P[k][1] - cz) / R;
       for (let j = 0; j < m; j++) {
-        const X = cx + ux * (R + D[j]), Z = cz + uz * (R + D[j]), h = hillH(X, Z), v = (k * m + j) * 3, nz = .85 + .3 * Math.sin(X * .013 + Z * .009);
+        const X = cx + ux * (R + D[j]), Z = cz + uz * (R + D[j]), h = hillH(X, Z), v = (k * m + j) * 3;
         pos[v] = X; pos[v + 1] = h; pos[v + 2] = Z; H[k * m + j] = h;
-        c.copy(cA).lerp(cB, clamp((h - 60) / 160, 0, 1)).lerp(cC, clamp((h - 260) / 200, 0, 1)).multiplyScalar(nz);
-        col[v] = c.r; col[v + 1] = c.g; col[v + 2] = c.b;
+        hillCol(X, Z, h); col[v] = c.r; col[v + 1] = c.g; col[v + 2] = c.b;
       }
     }
+    // 北嶺鐵道橋挖過的山坡（10-city.js 的 NPARK.carve，公園框的範圍）：碰到的三角形另外細分，高度照 parkH
+    const CV = NPARK && NPARK.carve, sub = [];
+    const hitCV = t => {
+      if (!CV) return false;
+      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+      for (const v of t) { const [x, z] = parkL(pos[v * 3], pos[v * 3 + 2]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+      return x1 > CV.x0 && x0 < CV.x1 && z1 > CV.z0 && z0 < CV.z1;
+    };
     const idx = [];
     for (let k = 0; k < n; k++) for (let j = 0; j < m - 1; j++) {
       const a = k * m + j, b = ((k + 1) % n) * m + j;
       if (Math.max(H[a], H[a + 1], H[b], H[b + 1]) < SEA_Y - .5) continue;
-      idx.push(a, b, a + 1, a + 1, b, b + 1);
+      for (const t of [[a, b, a + 1], [a + 1, b, b + 1]]) (hitCV(t) ? sub : idx).push(...t);
+    }
+    // 細分：每個三角形切成 N×N 份（N 全部一樣，相鄰三角形的共用邊上頂點才對得起來），頂點照位置合併；法線照合併後的網格算
+    if (sub.length) {
+      let el = 0;
+      for (let t = 0; t < sub.length; t += 3) for (let q = 0; q < 3; q++) { const a = sub[t + q], b = sub[t + (q + 1) % 3]; el = Math.max(el, Math.hypot(pos[a * 3] - pos[b * 3], pos[a * 3 + 2] - pos[b * 3 + 2])); }
+      const N = Math.ceil(el / 3.6), sp = [], sc = [], si = [], seen = new Map();
+      const vert = (X, Z) => {
+        const key = Math.round(X * 20) + ',' + Math.round(Z * 20); let v = seen.get(key);
+        if (v === undefined) { v = sp.length / 3; seen.set(key, v); const h = parkH(...parkL(X, Z)); sp.push(X, h, Z); hillCol(X, Z, h); sc.push(c.r, c.g, c.b); }
+        return v;
+      };
+      for (let t = 0; t < sub.length; t += 3) {
+        const [ax, az, bx, bz, qx, qz] = [sub[t], sub[t + 1], sub[t + 2]].flatMap(v => [pos[v * 3], pos[v * 3 + 2]]), id = [];
+        for (let i = 0; i <= N; i++) { id.push([]); for (let j = 0; j <= N - i; j++) id[i].push(vert(ax + (bx - ax) * i / N + (qx - ax) * j / N, az + (bz - az) * i / N + (qz - az) * j / N)); }
+        for (let i = 0; i < N; i++) for (let j = 0; j < N - i; j++) {
+          si.push(id[i][j], id[i + 1][j], id[i][j + 1]);
+          if (j < N - i - 1) si.push(id[i + 1][j], id[i + 1][j + 1], id[i][j + 1]);
+        }
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); g.setAttribute('color', new T.Float32BufferAttribute(sc, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(new Array(sp.length / 3).fill(2), 1));
+      g.setIndex(si); g.computeVertexNormals(); g.computeBoundingSphere();
+      const sm = new T.Mesh(g, MAT.uber); sm.name = 'hillCarve'; cityAdd(sm, null);
+      HILL.carveTris = { coarse: sub.length / 3, N, tris: si.length / 3 };
     }
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setAttribute('aMat', new T.BufferAttribute(new Float32Array(n * m).fill(2), 1));
