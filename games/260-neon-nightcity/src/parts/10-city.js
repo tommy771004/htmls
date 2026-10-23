@@ -1259,6 +1259,24 @@ for (const h of CAPES) {
     colliders.push({ x0: -2.5, x1: 2.5, z0: out < 0 ? 0 : -4, z1: out < 0 ? 4 : 0, low: 1, zn: f });
   }
 }
+// 光格島（21-tron.js；遠景在 21-coast.js 的 FAR_SITES.tron）：C 區邏輯座標的島心，模型座標（不轉）加上它就是邏輯座標，島面高 y。
+// TRON_LAND 是 tools/walkgrid.mjs 量的陸地（模型座標、每格 res 公尺的遊程編碼，先取近景 isle_tron 的），pier 是北端那條路往北伸 28 m 的碼頭
+const TRON_SITE = { x: CITY_X1 + 1300, z: SHORE_Z + 900, y: SEA_Y + 1.6 };
+const TRON_LAND = (() => {
+  const it = PROPS_SPEC.isle_tron?.items.tron || PROPS_SPEC.far_tron?.items.tron, L = it?.land; if (!L) return null;
+  const a = new Uint8Array(L.nx * L.nz); let k = 0, v = 0;
+  for (const r of L.rle.split(',')) { const n = parseInt(r, 36); a.fill(v, k, k + n); k += n; v ^= 1; }
+  const d = it.dock;
+  return { x0: L.x0, z0: L.z0, res: L.res, nx: L.nx, nz: L.nz, a, edges: it.edges || [], pier: d ? { x0: d[0] - 4, x1: d[0] + 4, z0: d[1] - 28, z1: d[1] + 1.5 } : null };
+})();
+// 模型座標的一點在不在島上（含碼頭）；世界座標版換到 C 區
+const tronLandL = (x, z) => {
+  const L = TRON_LAND; if (!L) return false;
+  const P = L.pier; if (P && x >= P.x0 && x <= P.x1 && z >= P.z0 && z <= P.z1) return true;
+  const i = Math.floor((x - L.x0) / L.res), j = Math.floor((z - L.z0) / L.res);
+  return i >= 0 && j >= 0 && i < L.nx && j < L.nz && L.a[j * L.nx + i] === 1;
+};
+const tronLandW = (X, Z) => { if (!TRON_LAND) return false; const [x, z] = toL(X, Z, ZONES[2]); return tronLandL(x - TRON_SITE.x, z - TRON_SITE.z); };
 // 地面高度（邏輯座標）：人行道高 0.15；查格子，不逐一比對街區。世界座標的 groundH 在下面
 const groundHL = (x, z) => {
   if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
@@ -1277,10 +1295,10 @@ const groundHL = (x, z) => {
 // 執行時（玩家、車、行人、警察）用的是世界座標：先換回邏輯座標
 const groundH = (X, Z) => { if (capeAt(X, Z) || !zoneAtW(X, Z) && seamAt(X, Z)) return 0; const [x, z] = toL(X, Z); return groundHL(x, z); };   // 縫裡是草地與連接道路，高度 0
 const onRoad = (X, Z) => groundH(X, Z) === 0;
-const districtW = (X, Z) => { const h = capeAt(X, Z); if (h) return h.name; const [x, z] = toL(X, Z); return district(x, z); };   // 岬角有自己的名字
+const districtW = (X, Z) => { const h = capeAt(X, Z); if (h) return h.name; if (tronLandW(X, Z)) return '光格島'; const [x, z] = toL(X, Z); return district(x, z); };   // 岬角有自己的名字
 // 水深（水面在 SEA_Y）：陸地矩形與沙灘外的淺水照 groundH，其他地方當成 8 m 深的海（世界座標）
 const seaFloorL = (x, z) => inLand(x, z) || x >= BEACH.x0 && x <= BEACH.x1 && z > BEACH.z0 ? groundHL(x, z) : -8;
-const seaFloor = (X, Z) => { if (capeAt(X, Z) || !zoneAtW(X, Z) && seamAt(X, Z)) return 0; const [x, z] = toL(X, Z); return seaFloorL(x, z); };
+const seaFloor = (X, Z) => { if (capeAt(X, Z) || !zoneAtW(X, Z) && seamAt(X, Z) || tronLandW(X, Z)) return 0; const [x, z] = toL(X, Z); return seaFloorL(x, z); };   // 光格島上（含下層街區）不算水
 const waterDepth = (X, Z) => Math.max(0, SEA_Y - seaFloor(X, Z));
 
 // ─── 碰撞的空間索引：室外的靜態盒與圓柱放進 24 m 的格子，查詢只看附近幾格（20×15 的城市有上萬個圓柱：路燈、停車、設施）。

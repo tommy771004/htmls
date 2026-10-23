@@ -82,12 +82,14 @@ const BOAT_SPOTS = [
   // 對岸的渡船碼頭（10-city.js 的 FERRY）：開船或游過去之後也有船開回來
   { type: 'bayhop', x: FERRY[0].x1 - 10, z: FERRY[0].z1 + 3.2, yaw: Math.PI / 2, where: FERRY[0].name },
   { type: 'wavecut', x: FERRY[1].x0 + 10, z: FERRY[1].z0 - 3.4, yaw: -Math.PI / 2, where: FERRY[1].name },
+  // 光格島北端的碼頭（10-city.js 的 TRON_LAND.pier，島在 C 區）：以 http(s) 開啟才有島可以上去（21-tron.js）
+  ...(GLB_ON && TRON_LAND && TRON_LAND.pier ? [{ type: 'wavecut', x: TRON_SITE.x + TRON_LAND.pier.x1 + 2.2, z: TRON_SITE.z + TRON_LAND.pier.z0 + 12, yaw: Math.PI, where: '光格島', zn: ZONES[2] }] : []),
 ];
 const boats = BOAT_SPOTS.map((S, i) => {
   const T0 = BOAT_TYPES[S.type], mat = mkUber({ double: true });
   const g = new T.Group(), body = new T.Group(); g.add(body); scene.add(g);
   body.add(new T.Mesh(boatKit(S.type).build(), mat));
-  const home = spotW(S);
+  const home = spotW(S, S.zn);
   const v = { kind: 'boat', boat: true, isCar: false, type: S.type, home, spot: S, g, body, mat, wheels: [], x: home.x, z: home.z, y: SEA_Y, yaw: home.yaw, vx: 0, vz: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0,
     len: T0.len, w: T0.w, h: 1.4, rad: T0.w / 2, off: T0.len * .26, vmax: T0.vmax, eng: T0.eng, grip: 0, wb: T0.len * .6, wr: 1, name: T0.name, rpm: 0, gear: 1, slip: 0, lights: 0,
     seat: [0, S.type === 'wavecut' ? -.5 : -1.1], hp: 900, mass: 1400, ph: i * 1.7, sink: 0, wakeT: 0 };
@@ -173,7 +175,7 @@ function boatExit(v) {
   let best = null, bd = 1e9;
   for (let r = 4.5; r <= 9 && !best; r += 1.5) for (let a = 0; a < 16; a++) {
     const th = a / 16 * Math.PI * 2, x = v.x + Math.sin(th) * r, z = v.z + Math.cos(th) * r;
-    if (seaFloor(x, z) < -.3 || waterDepth(x, z) > .3) continue;
+    if (seaFloor(x, z) < -.3 || waterDepth(x, z) > .3 || walkAt(x, z, 0) === null) continue;   // walkAt：光格島的樓與護欄（21-tron.js）
     const q = collideCircle(x, z, .32, false);
     if (Math.hypot(q.x - x, q.z - z) > .6) continue;
     const d = Math.hypot(x - player.x, z - player.z);
@@ -182,7 +184,7 @@ function boatExit(v) {
   const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);
   const x = best ? best.x : v.x + lx * (v.w / 2 + .9), z = best ? best.z : v.z + lz * (v.w / 2 + .9);
   player.x = x; player.z = z; player.yaw = v.yaw; player.mode = 'walk'; player.veh = null; player.v = 0;
-  player.y = best ? groundH(x, z) : SEA_Y - SWIM_Y;
+  player.y = best ? walkY(x, z, 0, groundH(x, z)) : SEA_Y - SWIM_Y;
   v.lights = 0; v.brakeOn = 0; v.steer = 0;
   me.mesh.visible = true;
   sfx.doorCar(false); sfx.engineOff();

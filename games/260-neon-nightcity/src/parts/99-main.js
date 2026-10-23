@@ -254,6 +254,7 @@ function step(dt) {
     holo.rotation.y = t * .35;
     coastUpdate(t, dt);
     railUpdate(dt);   // 北嶺鐵道橋的列車（21-rail.js）
+    tronUpdate(dt);   // 光格島的近景、車流與光速機車（21-tron.js）
     boatsUpdate(dt);
     wakeUpdate(dt);
   } else if (player.where === 'club') updateClub(t, U.uBeat.value);
@@ -364,7 +365,7 @@ requestAnimationFrame(loop);
 window.__nc = {
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },

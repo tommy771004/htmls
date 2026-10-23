@@ -10,7 +10,7 @@
 - **Neighbourhood（`bld_nbh`）拿掉的 BMW E46**：真實車款，而且車流會開進中庭。要放回就拿掉 `dropPath: /E46/`（面數會再增加）。
 - **world_1 的 PetStock 商場（`bld_w1` 的 `pet`）**：Petstock 與 Radio Rentals 是真實品牌，九處商標模糊成色塊（`texEdit.Material`）。要保留原貌就拿掉那段 `texEdit`，再跑 `node tools/props.mjs bld_w1`。
 - **world_1 的 gameready_city（`bld_grc`）**：一塊立面照片（`Concrete_u2SEBuild7_1_26`）上的真實招牌模糊成色塊；當初拿掉的三台車（藍色舊轎車、白色廂型貨車、藍色郵務車）與路燈在第二批補用（`w1_grc`），車頭徽章與車門上的公司名一樣模糊掉。
-- **world_1 第二批放的位置**：Èze Village 是外海西南的「鷹巖村」（珊瑚灘正前方，山城那面朝北），Arq Grid Tron 是錨灣港外的「光格島」，鐵道橋是北嶺公園觀景台正北的山谷（`10-city.js` 的 `VIADUCT`，公園山坡挖成山溝接上掃描地面，圍籬把橋圈進公園，火車與隧道在 `21-rail.js`）；地名都是自己取的，要換位置改 `21-coast.js` 的 `FAR_SITES` 與 `VIADUCT` 的 x／z。
+- **world_1 第二批放的位置**：Èze Village 是外海西南的「鷹巖村」（珊瑚灘正前方，山城那面朝北），Arq Grid Tron 是錨灣港外的「光格島」，鐵道橋是北嶺公園觀景台正北的山谷（`10-city.js` 的 `VIADUCT`，公園山坡挖成山溝接上掃描地面，圍籬把橋圈進公園，火車與隧道在 `21-rail.js`）；地名都是自己取的，要換位置改 `21-coast.js` 的 `FAR_SITES` 與 `VIADUCT` 的 x／z（光格島是 `10-city.js` 的 `TRON_SITE`，上岸、步行格與光速機車在 `21-tron.js`）。
 - **第三部曲規格書的數字**：原文的數字全部遺失（只剩佔位符），README「GTA 式擴充（第三部曲）」列的值都是自己挑的具名常數（`SK_*`、`NOISE`、`FUEL_*`、`CR_*`、`SKY_*`／`CHUTE_*`、`TAXI_*`、`BRK_V`、`ALARM_*`、`PED_DIVE_*`、`SCRAPE_*`），要對回原規格就改那些常數。
 - **安全帶**：規格只說「沒繫安全帶會飛出去」，沒說怎麼繫；做成停車 2 秒自動繫上（`CR_BELT_T`），上車後馬上高速撞才會飛出去。要改成按鍵就在 `69-v3-crash.js` 的 `crashStep` 換掉自動繫上那段。
 - **沒有另外寫 `CollisionEngine.js`**：規格第四節的程式碼區塊是空的，而第二、三節的兩階段碰撞（空間索引、圓／盒、CCD、撞人分級、PIT、輪胎、爆頭）前兩部曲大多已經有了，重寫成一個模組風險大、得不到新玩法；只補了子步、擦牆、撞斷、弱點與撲開。
@@ -29,7 +29,7 @@
 | 灰鷗島的廢墟街區與辦公園區走得進去（樓與樓之間的街、中庭），但樓本身是空殼、進不去；辦公園區中間那塊有圍籬的花園也進不去。碰撞是 0.5 m 格子量出來的矩形，斜牆邊緣有半格的鋸齒 | 佔地由 `tools/foot.mjs` 量模型寫進 `props.json` 的 `foot`，21 的 `isleFoot()` 換成碰撞、替身方塊與日照高度圖；廢墟的入口是 `tools/props.mjs` 的 `drop`（拿掉一棟樓） |
 | 不規則只到「區」的層級：每區裡的街道仍是直的方格，彎道只在區之間的連接道路；縫上的涼亭、小賣亭、公廁是程式建模的小房子，進不去、小賣亭沒有買賣 | `05-zones.js` 的 `ZONES`（加一區要在 `SEAM` 補上它的縫、`06-roads.js` 會自動接起邊界上同編號的路口）；縫的步道與小建築位置在 `20-props.js`（`SEAM_PATH`、`SEAM_SITES`），幾何在 `21-coast.js`；岬角是 `10-city.js` 的 `CAPES` |
 | 北嶺鐵道橋：隧道各只有 60 m、洞底封死；火車只是來回跑（不載人、不能上車、車廂裡沒有座位），撞到人只會擊倒，不會撞壞車；谷底沒有路接進城（只有公園步道下到谷底）；掃描底下的地面是用 `hf` 每格最低點雙線性內插接起來的，近看邊上會有一點錯位；掃描的樹梢有些伸到公園的山坡上；山頭側面是岩石灰 | `10-city.js` 的 `VIADUCT`／`viaCarve()`、`21-rail.js`（`RAIL`、隧道、燈、`WALKS`）、`20-walk.js`；`tools/props.mjs` 的 `far_rail`（`line`、`hf` 格數）與 `w1_train` |
-| 鷹巖村與光格島是遠景島，上不去；光格島的街道家具、樹、車與光速機車都拿掉了（只剩街區與亮線），晚上島緣的霓虹護岸燈是頁面加的；鷹巖村夜裡的窗燈是照屋頂顏色撒的點，不是真的窗戶 | `tools/props.mjs` 的 `far_eze`／`far_tron`（`drop`、`skirt`、`glow`），27 的 `COAST_MODELS` 的 `after` |
+| 鷹巖村是遠景島，上不去，夜裡的窗燈是照屋頂顏色撒的點，不是真的窗戶。光格島只有以 http(s) 開啟才上得去（以檔案開啟是岩丘替身）；島上沒有行人；街上的光速機車與車只沿車道圖跑、彼此不碰撞，看到前面有人會停；能騎的光速機車只在島上（騎到岸邊、樓前就撞停，沒有翻車）；升降梯是淡出換位置；原檔停在人行道車格裡的光速機車改停到路邊；樹（原檔全白自發光）壓成淡青色；夜裡路面斜看還有一點環境圖的彩色方格反光 | `tools/props.mjs` 的 `far_eze`／`far_tron`／`isle_tron`（`drop`、`glow`、`tron`、`emi`、`tint`、`metalMax`）、`tools/walkgrid.mjs`、`21-tron.js`、27 的 `COAST_MODELS` 的 `after` |
 | 河岸、東灣的岸線、燈、程式建模的天際線與外海小島已依區拆段（`FAR_PARTS`／`EAST_PARTS`），但 London City 與舊港城的模型是一整組，仍跟著 `FAR_ZN` 一個區 | 27 的 `COAST_MODELS`（`zn: FAR_ZN`）；要拆得在 `tools/props.mjs` 依 z 把原檔切成兩段 |
 
 ## 建築與夜景

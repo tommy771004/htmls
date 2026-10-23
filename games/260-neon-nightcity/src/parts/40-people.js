@@ -740,6 +740,7 @@ scene.add(me.mesh);
 const player = { mode: 'walk', ...WP(avX(1) - 9.6, stZ(2) + 18), y: .15, yaw: yawW(zoneAtL(avX(1), stZ(2)), 0), v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
 const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
+  if (player.ride && player.ride.tron) { tronRide(inp, dt, camYaw); return; }   // 21-tron.js：騎光格島的光速機車、坐長椅
   if (player.ride) { aptRide(dt); return; }   // 69-safehouse.js：走樓梯、搭電梯（照路徑走，不受碰撞）
   if (player.air3) { airStep(inp, dt, camYaw); return; }   // 69-v3-crash.js：被拋出車外、自由落體、開傘
   if (vaultStep(dt)) return;                               // 69-v3-crash.js：翻越矮牆與停著的車
@@ -777,7 +778,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
   let r = collideCircle(nx, nz, .32, false, true);
   let x = r.x, z = r.z;
-  if (depth > 0) { [x, z] = farClamp(x, z); z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）
+  if (depth > 0) { [x, z] = farClamp(x, z); if (!tronNear(x, z)) z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）；光格島附近（21-tron.js）可以游到碼頭的梯子
   // 車流與座駕也會擋路
   const pushOut = (ox, oz, rr) => { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { x = ox + dx / d * rr; z = oz + dz / d * rr; } };
   for (const c of traffic) { const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }

@@ -833,6 +833,11 @@ async function desktop() {
         && hit && hit.down && Math.abs(after.y - after.deck) < .3 && Math.abs(after.dz) <= 4.5,
         `北嶺鐵道橋：橋面、護欄、谷底與橋墩、隧道、列車進出洞、撞人留在橋面、夜燈 ${JSON.stringify(rk)}`);
     }
+    // 光格島（21-tron.js）：以檔案開啟沒有近景可以下載，不擺島上的碼頭與遊艇（上岸、騎光速機車的驗收在 glb-check.mjs，要 http）
+    {
+      const tr = await nc(() => { const n = window.__nc; return { T: n.props.tron.T, boat: n.boat.list().some(o => o.where === '光格島') }; });
+      check(tr.T === null && !tr.boat, `光格島以檔案開啟只有遠景替身 ${JSON.stringify(tr)}`);
+    }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {
       const b0 = await nc(() => { const n = window.__nc, b = n.boat; n.time(780); const name = b.board(0), v = n.player.veh; return { name, boat: !!(v && v.boat), x: v.x, z: v.z, n: b.boats.length }; });

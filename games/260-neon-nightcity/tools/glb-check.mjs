@@ -109,8 +109,8 @@ try {
   check(!bk.isCar && bk.wheels === 2, `騎實車機車 ${JSON.stringify(bk)}`);
   await page.keyboard.down('KeyW'); await page.keyboard.down('KeyD'); await page.waitForTimeout(1500); await page.keyboard.up('KeyD'); await page.keyboard.up('KeyW');
   await hideHud(page);
-  await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw + 1.9, .05, 0); });
-  await page.waitForTimeout(250); await ev(page, () => { const nc = window.__nc; nc.look(nc.player.veh.yaw + 1.9, .05, 0); });
+  await ev(page, () => { const nc = window.__nc; nc.look((nc.player.veh || nc.player).yaw + 1.9, .05, 0); });
+  await page.waitForTimeout(250); await ev(page, () => { const nc = window.__nc; nc.look((nc.player.veh || nc.player).yaw + 1.9, .05, 0); });
   await shot(page, 'g-bike');
   // 新機車的騎乘姿勢
   for (const id of ['zx6r', 'v4']) {
@@ -202,6 +202,76 @@ try {
     await page.waitForTimeout(500); await shot(page, 'g-train');
     await ev(page, (t) => { const nc = window.__nc, R = nc.props.rail.R; nc.camAt(); nc.time(t); R.speed = 17; R.state = 'wait'; R.tw = 30; }, t0);
     check(ok && tr.on === 5 && tr.mesh > 5 && tr.win > .5, `北嶺鐵道橋的列車換成 Lastochka 模型，五節都在橋上、夜裡車窗亮（${JSON.stringify(tr)}）`);
+  }
+
+  // 光格島（21-tron.js）：走近碼頭下載近景（isle_tron 與步行格）、遠景拿掉；開船靠岸下到碼頭；步行格（車道站得上去、樓擋住）、島上（含低於海面的下層街區）不算水；
+  // 騎光速機車往前衝、光牆拉長、下車；販賣機、長椅、升降梯；走遠換回遠景。座標都走 tpL／TR.W，zrot 也能跑
+  {
+    const W = (ms) => page.waitForTimeout(ms);
+    await ev(page, () => { const nc = window.__nc, T = nc.props.tron.T, P = T.P; nc.walk(); nc.tpL(T.S.x + (P.x0 + P.x1) / 2, T.S.z + P.z0 + 6, 0); });
+    let built = false;
+    for (let i = 0; i < 200 && !built; i++) { await W(250); built = await ev(page, () => window.__nc.props.tron.T.built); }
+    await W(600);
+    const st = await ev(page, () => {
+      const nc = window.__nc, TR = nc.props.tron, T = TR.T, D = T.D, far = nc.props.coast.models.find(o => o.id === 'tron'), wk = T.walk, rd = T.edges[0].pts[1], lo = D.lift[1];
+      let bld = null;   // 樓裡：陸地上、步行格沒有任何一層
+      for (let k = 0; k < wk.nx * wk.nz && !bld; k += 97) { const x = wk.x0 + (k % wk.nx + .5) * wk.res, z = wk.z0 + (Math.floor(k / wk.nx) + .5) * wk.res; if (wk.L[0][k] === -32768 && TR.land(x, z)) bld = [x, z]; }
+      return { near: T.nearOn, far: !!(far.obj && far.obj.parent), agents: T.agents.length, parked: T.parked.length, road: TR.y(rd[0], rd[2], rd[1]), rdY: rd[1],
+        bld: bld && [TR.y(bld[0], bld[1], 0), TR.open(bld[0], bld[1], 1)], dRoad: nc.sea.depth(...TR.W(rd[0], rd[2])), dPit: nc.sea.depth(...TR.W(lo[0], lo[2])), pitY: lo[1], mask: T.masked };
+    });
+    check(built && st.near && !st.far && st.agents === 8 && st.parked >= 4 && Math.abs(st.road - st.rdY) < .6 && st.bld && st.bld[0] === null && st.bld[1] === false && st.dRoad === 0 && st.dPit === 0 && st.pitY < -8 && st.mask,
+      `光格島近景下載、遠景拿掉，步行格：車道站得上去、樓擋住，島上與下層街區不算水 ${JSON.stringify(st)}`);
+    // 開船：島上那艘遊艇，按 F 下到碼頭
+    const bd = await ev(page, () => { const nc = window.__nc, b = nc.boat, i = b.list().findIndex(o => o.where === '光格島'); b.board(i); return { i, boat: !!(nc.player.veh && nc.player.veh.boat) }; });
+    await W(600); await page.keyboard.press('KeyF'); await W(800);
+    const off = await ev(page, () => { const nc = window.__nc, p = nc.player, T = nc.props.tron.T, P = T.P, [x, z] = nc.L(p.x, p.z), rx = x - T.S.x, rz = z - T.S.z;
+      return { mode: p.mode, swim: !!p.swim, y: +p.y.toFixed(2), d: nc.park.district(p.x, p.z), pier: rx >= P.x0 && rx <= P.x1 && rz >= P.z0 && rz <= P.z1 }; });
+    check(bd.i >= 0 && bd.boat && off.mode === 'walk' && !off.swim && Math.abs(off.y) < .1 && off.d === '光格島' && off.pier, `開光格島的遊艇、按 F 下到碼頭 ${JSON.stringify({ ...bd, ...off })}`);
+    // 光速機車：停在路邊那台，按 F 騎上去，按住 W 兩秒，光牆拉長；停下來按 F 下車
+    await ev(page, () => { const nc = window.__nc, T = nc.props.tron.T, c = T.parked[0]; nc.time(23 * 60); nc.tpL(T.S.x + c.x + Math.cos(c.yaw) * 1.2, T.S.z + c.z - Math.sin(c.yaw) * 1.2, 0); });
+    await W(500);
+    const c0 = await ev(page, () => window.__nc.ctx());
+    await page.keyboard.press('KeyF'); await W(400);
+    const r0 = await ev(page, () => { const c = window.__nc.props.tron.T.parked[0]; return [c.x, c.z]; });
+    await ev(page, () => { const nc = window.__nc; nc.look(nc.player.yaw, .1, 1); });
+    await page.keyboard.down('KeyW'); await W(2000); await hideHud(page); await shot(page, 'g-tron-ride'); await page.keyboard.up('KeyW');
+    const r1 = await ev(page, (r0) => { const nc = window.__nc, c = nc.props.tron.T.parked[0]; return { ride: !!(nc.player.ride && nc.player.ride.tron), d: +Math.hypot(c.x - r0[0], c.z - r0[1]).toFixed(1), v: +c.v.toFixed(1), trail: c.trail ? c.trail.pts.length : 0 }; }, r0);
+    // 按住 S 煞到快停（再按下去會倒車，倒車超過 4 m/s 就不能下車）
+    await page.keyboard.down('KeyS');
+    for (let i = 0; i < 40; i++) { await W(100); if (await ev(page, () => Math.abs(window.__nc.props.tron.T.parked[0].v) < 1.5)) break; }
+    await page.keyboard.up('KeyS'); await W(200);
+    await page.keyboard.press('KeyF'); await W(400);
+    const r2 = await ev(page, () => { const nc = window.__nc, p = nc.player; return { ride: !!p.ride, mode: p.mode, y: +p.y.toFixed(2) }; });
+    check(/騎上光速機車/.test(c0 || '') && r1.ride && r1.d > 20 && r1.trail > 10 && !r2.ride && r2.mode === 'walk' && Math.abs(r2.y) < .6, `騎光速機車：${c0}，衝 ${r1.d} m、光牆 ${r1.trail} 點，下車 ${JSON.stringify(r2)}`);
+    // 販賣機（買飲料回血）、長椅（坐下、一動就站起來）、升降梯（到下層街區）：找每樣東西旁邊站得上去的一點
+    const near = (it, r) => ev(page, ([it, r]) => {
+      const nc = window.__nc, TR = nc.props.tron, T = TR.T;
+      for (const o of T.D[it]) for (let a = 0; a < 16; a++) { const x = o[0] + Math.sin(a / 16 * Math.PI * 2) * r, z = o[2] + Math.cos(a / 16 * Math.PI * 2) * r, y = TR.y(x, z, o[1]); if (y != null && Math.abs(y - o[1]) < .6) { nc.tpL(T.S.x + x, T.S.z + z, 0); nc.player.y = T.S.y + y; return true; } }
+      return false;
+    }, [it, r]);
+    const v0 = await near('vend', 1.3); await W(300);
+    const vc = await ev(page, () => { const nc = window.__nc; nc.gta.life.hp = 40; return { t: nc.ctx(), cash: nc.motors.cash }; });
+    await page.keyboard.press('KeyE'); await W(300);
+    const v1 = await ev(page, () => { const nc = window.__nc; return { cash: nc.motors.cash, hp: Math.round(nc.gta.life.hp) }; });
+    check(v0 && /光能飲料/.test(vc.t || '') && v1.cash === vc.cash - 20 && v1.hp >= 70, `販賣機：${vc.t}，$${vc.cash} → $${v1.cash}、生命 40 → ${v1.hp}`);
+    const b0 = await near('bench', 1); await W(300);
+    const bc = await ev(page, () => window.__nc.ctx());
+    await page.keyboard.press('KeyE'); await W(500);
+    const b1 = await ev(page, () => { const r = window.__nc.player.ride; return r && r.tron; });
+    await page.keyboard.down('KeyW'); await W(400); await page.keyboard.up('KeyW');
+    const b2 = await ev(page, () => !!window.__nc.player.ride);   // ride 帶著整台車的 three 物件，直接回傳會把分頁撐爆
+    check(b0 && /坐一下/.test(bc || '') && b1 === 'sit' && !b2, `長椅：${bc}，坐下 ${b1}、一動就站起來`);
+    const l0 = await ev(page, () => { const nc = window.__nc, T = nc.props.tron.T, L = T.D.lift[0]; nc.tpL(T.S.x + L[0], T.S.z + L[2], 0); nc.player.y = T.S.y + L[1]; return T.D.lift[1][1]; });
+    await W(400);
+    const lc = await ev(page, () => window.__nc.ctx());
+    await page.keyboard.press('KeyE'); await W(2200);
+    const l1 = await ev(page, () => { const nc = window.__nc, p = nc.player; return { y: +p.y.toFixed(2), d: nc.park.district(p.x, p.z), swim: !!p.swim }; });
+    check(/下層街區/.test(lc || '') && Math.abs(l1.y - l0) < .6 && l1.d === '光格島' && !l1.swim, `升降梯：${lc} → y ${l1.y}（下層 ${l0}），不算水`);
+    // 走遠：近景拿掉、換回遠景
+    await ev(page, () => { const nc = window.__nc, T = nc.props.tron.T; nc.tpL(T.S.x, T.S.z - 1400, 0); });
+    await W(800);
+    const fr = await ev(page, () => { const nc = window.__nc, T = nc.props.tron.T, far = nc.props.coast.models.find(o => o.id === 'tron'); return { near: T.nearOn, far: !!(far.obj && far.obj.parent), nearIn: !!T.near.parent }; });
+    check(!fr.near && fr.far && !fr.nearIn, `走遠換回光格島遠景 ${JSON.stringify(fr)}`);
   }
 
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間

@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, mkdirSync, statSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { tronData } from './walkgrid.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const req = createRequire(resolve(root, '../197-openworld/package.json'));
@@ -208,10 +209,24 @@ export const SETS = [
   // 掃描單位一格約 100 m：橋長約 290 m、橋墩約 40 m），連山谷、樹與谷底的路；不補裙邊，hf 給頁面把公園山坡貼到掃描的地面底下、在邊上接起來；
   // line 量橋面的中心線與高度（橋面約 y 64.3、護欄頂約 66.7）與四座橋墩的佔地，列車、橋面步道、護欄與山溝底的碰撞都照它（21-rail.js）
   { out: 'far_rail', src: '.cache/world1', far: 1, tex: 1024, sloppy: .06, items: [{ id: 'rail', file: 'railway', scale: 100, hf: [60, 22], line: { y: [63.4, 65.4], step: 4, x: [-140, 140], piers: [40, 48] } }] },
-  // 光格島（外海東南那座島）：SpringSociety 的 Arq Grid Tron（CC BY 4.0，公尺；霓虹格線的未來街區，亮線全在自發光貼圖），縮成六成；
-  // 水面、街道家具、樹與車不要；街區之間原本是空的，cap 補一片島面，外緣往下長成黑色岸壁，ring 給頁面沿外緣擺護岸燈
-  { out: 'far_tron', src: '.cache/world1', far: 1, tex: 1024, sloppy: .3, items: [{ id: 'tron', file: 'tron', scale: .6, groundY: 0, drop: /Water|Bench|Vending|Crate|Planter|Postbox|StreetBin|SignPost|Dumpster|Hydrant|BikeRack|Barrel|TrafficCone|Door_Maintenance|Table|Glasses|Spanner|Console|LightOrnament|Tree|Foliage|GodRay|CarPipeline|TronCycle|Lit\.|UnlitPureBlack/,
-    skirt: { d: 30, cap: -.25, col: [.02, .022, .028], ring: 4 } }] },
+  // 光格島（外海東南那座島）：SpringSociety 的 Arq Grid Tron（CC BY 4.0，公尺；霓虹格線的未來街區，亮線全在自發光貼圖），縮成 0.85、
+  // 原點放在島心（原檔 [32, 0, 91]）。遠景（far_tron）不要水面、街道家具、樹與車；tron 選項（tools/walkgrid.mjs）把街區之間封閉的洞補上島面、
+  // 外緣長出黑色岸壁，land（陸地遊程編碼）、edges（岸線）、dock（北端那條路的盡頭）給頁面放碼頭、護岸燈與海底
+  { out: 'far_tron', src: '.cache/world1', far: 1, tex: 1024, sloppy: .3, metalMax: .3, items: [{ id: 'tron', file: 'tron', scale: .85, origin: [32, 0, 91], drop: /Water|Bench|Vending|Crate|Planter|Postbox|StreetBin|SignPost|Dumpster|Hydrant|BikeRack|Barrel|TrafficCone|Door_Maintenance|Table|Glasses|Spanner|Console|LightOrnament|Tree|Foliage|GodRay|CarPipeline|TronCycle|Blocker_|Lit\.|UnlitPureBlack/,
+    tron: {} }] },
+  // 光格島的近景（21-tron.js：開船靠岸、走進街區時才下載）：整個街區含長椅、販賣機、樹、停著的車；光速機車、水面、光束拆成自己的物件，
+  // 頁面自己畫（水面與光束換成 shader、光速機車可以騎）。tron 選項另外寫步行格 isle_tron.walk.bin、車道圖、家具與升降梯的位置。
+  // only：只留路徑符合的原件、inst 取第幾份；beam 保留島的座標（和 tron 同一個原點）
+  // emi：原檔的樹是全白自發光（強度 2），夜裡泛光糊成一團白，壓成淡青色的發光樹；metalMax：路面原檔是金屬度 1、粗糙度 0.3，
+  // 照出來是城市環境圖裡一格格的彩色窗燈，壓到 0.3；tint 把路面與鋪面的粗糙度拉到 0.8（斜看時的反射也糊開）
+  { out: 'isle_tron', src: '.cache/world1', tex: 1024, metalMax: .3, tint: Object.fromEntries(['M_Hexagon_Ground_01', 'M_Decal_Road', 'M_Pavement_Tiles_03', 'M_Pavement_Tiles_2'].map((k) => [k, [1, .8, .3]])), emi: [[/^M_(Tree|Foliage)/, [.07, .19, .24], 0]], items: [
+    { id: 'tron', file: 'tron', scale: .85, origin: [32, 0, 91], drop: /Blocker_|Lit\.|UnlitPureBlack/, tron: { walk: true, cut: /(^|\/)(PF_TronCycle|Water_Plane|SM_GodRayBeam)/ } },
+    { id: 'beam', file: 'tron', scale: .85, origin: [32, 0, 91], only: /^SM_GodRayBeam/ },
+    { id: 'cycle', file: 'tron', scale: 1.1, rot: 1, only: /^PF_TronCycle/, inst: 0 },   // 原檔比人小（2.2 m），放大到 2.4 m 長讓人騎得上去；長邊轉到 z
+    { id: 'car_conv', file: 'tron', scale: .85, rot: 1, only: /^PF_Car_Convertible/, inst: 0 },
+    { id: 'car_pod', file: 'tron', scale: .85, only: /^PF_Car_Podcar/, inst: 0 },
+    { id: 'car_tuc', file: 'tron', scale: .85, only: /^SM_Commercial_TucTuc/, inst: 0 },
+  ] },
   // gameready_city 當初拿掉的部分：路上的三台車（深藍轎車、白色廂型貨車、藍色郵務車，tools/traffic.mjs 從這個檔烘進車流）與路燈（彎臂燈桿，
   // 20-props.js 換掉支路的程式路燈）。車與路燈在原檔是和別的東西合併的網格，用 clip 依位置切出來；車頭的徽章、車門上的公司名模糊掉
   { out: 'w1_grc', src: '.cache/world1', tex: 512,
@@ -896,6 +911,11 @@ async function build(set) {
     credits.push({ file: src.file, title: info.title, author: info.author, license: info.license, source: info.source });
     let prims = collect(doc);
     if (src.drop) prims = prims.filter((p) => !src.drop.test(p.node) && !src.drop.test(p.mat ? p.mat.getName() : ''));
+    if (src.only) {   // 只留路徑裡有節點符合的 primitive；inst：同一個原件擺了好幾份時只取第幾份（照路徑到那個節點為止分）
+      const key = (p) => { const seg = p.path.split('/'); return seg.slice(0, seg.findIndex((n) => src.only.test(n)) + 1).join('/'); };
+      prims = prims.filter((p) => p.path.split('/').some((n) => src.only.test(n)));
+      if (src.inst != null) { const ks = [...new Set(prims.map(key))]; prims = prims.filter((p) => key(p) === ks[src.inst]); }
+    }
     if (set.dropPath) prims = prims.filter((p) => !set.dropPath.test(p.path));   // 依祖先節點名（整條路徑）拿掉車、路燈、路面
     if (set.heavy) prims = prims.map((p) => {   // [路徑, 比例]：面數特別高的小零件（冷氣室外機、路燈）單獨大幅減面，其他照整組的 simplify
       if (!set.heavy[0].test(p.path) || p.idx.length < 90) return p;
@@ -1012,6 +1032,11 @@ async function build(set) {
       if (src.hf) dims.hf = heightField(prims, ...src.hf);   // 崖壁之前量：只量掃描本身的地面
       if (src.line) dims.line = trackLine(prims, src.line);
       if (src.skirt) { prims = addSkirt(prims, src.skirt); if (src.skirt.ring) dims.ring = prims.ring; }
+      if (src.tron) {   // 光格島：島面、岸壁、步行格與車道圖（tools/walkgrid.mjs）
+        const mat = (n, c) => new Document().createMaterial(n).setBaseColorFactor([...c, 1]).setRoughnessFactor(1).setMetallicFactor(0).setDoubleSided(true);
+        const r = tronData(prims, { ...src.tron, file: resolve(OUT, set.out + '.walk.bin'), mat });
+        prims = r.prims; Object.assign(dims, r.dims);
+      }
       if (src.glow) dims.glow = await glowPts(prims, src.glow);
       await emit(src.id, prims, dims); continue;
     }
@@ -1052,4 +1077,7 @@ const manifest = { ...(existsSync(manifestPath) ? JSON.parse(readFileSync(manife
 const ordered = {}; for (const s of SETS) if (manifest[s.out]) ordered[s.out] = manifest[s.out];
 for (const k of Object.keys(manifest)) if (!ordered[k]) ordered[k] = manifest[k];   // 另一個程序剛加、這份 SETS 還沒有的組也留著
 // foot（tools/foot.mjs 量的碰撞矩形）每個矩形寫成一行，和 foot.mjs 寫出來的格式一樣
-writeFileSync(manifestPath, JSON.stringify(ordered, null, 1).replace(/\[\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+)\n\s*\]/g, '[$1, $2, $3, $4, $5]') + '\n');
+// 光格島（tools/walkgrid.mjs）的大陣列：岸線、車道圖、家具位置整個擠成一行，不然 props.json 會多上萬行
+const TIGHT = new Set(['edges', 'graph', 'vend', 'bench', 'tree', 'lamp', 'cycle', 'pool', 'shop', 'lift']), tight = [];
+const tightOf = (k, v) => { if (!TIGHT.has(k) || !(Array.isArray(v) || k === 'graph' && v && v.nodes)) return v; tight.push(JSON.stringify(v)); return `@@tight${tight.length - 1}@@`; };
+writeFileSync(manifestPath, JSON.stringify(ordered, tightOf, 1).replace(/"@@tight(\d+)@@"/g, (_, i) => tight[i]).replace(/\[\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+)\n\s*\]/g, '[$1, $2, $3, $4, $5]') + '\n');

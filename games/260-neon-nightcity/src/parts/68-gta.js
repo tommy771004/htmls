@@ -427,7 +427,8 @@ function gtaUpdate(dt) {
   else if (player.down > 0 && player.mode === 'walk') {
     player.down -= dt;
     const r = collideCircle(player.x + player.kx * dt, player.z + player.kz * dt, .32, false);
-    [player.x, player.z] = player.where === 'out' ? walkStep(player.x, player.z, r.x, r.z, player.y) : [r.x, r.z];   // 被列車撞飛也不會穿過橋的護欄（20-walk.js） player.kx *= Math.exp(-4 * dt); player.kz *= Math.exp(-4 * dt);
+    [player.x, player.z] = player.where === 'out' ? walkStep(player.x, player.z, r.x, r.z, player.y) : [r.x, r.z];   // 被列車撞飛也不會穿過橋的護欄（20-walk.js）
+    player.kx *= Math.exp(-4 * dt); player.kz *= Math.exp(-4 * dt);
     if (player.down <= 1 && !player.gotUp) { player.gotUp = 1; player.upPh = -uTimeNow(); }
     if (player.down <= 0) { player.gotUp = 0; player.anim = -1; }
     me.anim(0, player.gotUp ? ANIM.getup : ANIM.die, player.gotUp ? player.upPh : player.downPh, 1);
