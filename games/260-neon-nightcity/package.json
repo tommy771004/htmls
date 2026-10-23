@@ -10,6 +10,7 @@
     "dev": "node tools/build.mjs --dev",
     "test": "node tools/accept.mjs",
     "test:glb": "node tools/glb-check.mjs",
+    "test:gpu": "node tools/check-gpu.mjs",
     "cars": "node tools/cars.mjs",
     "thumb": "node tools/thumb.mjs",
     "people": "node tools/people.mjs",

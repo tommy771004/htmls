@@ -103,11 +103,11 @@ async function desktop() {
       const nc = window.__nc, P = nc.post, d0 = nc.menu.detail();
       nc.menu.set('res', 'auto'); P.scale = .6; P.ft = 60; P.slow = 2;
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        const d1 = nc.menu.detail(); P.ft = 4; P.fast = 5;
-        requestAnimationFrame(() => requestAnimationFrame(() => r({ d0: d0.k, d1: d1.k, d2: nc.menu.detail().k, scale: P.scale })));
+        const d1 = nc.menu.detail(), cool = P.cool; P.ft = 4; P.fast = 5; P.cool = 0;   // 降過一次 15 秒內不升（70-render.js）：確認有冷卻，再跳過冷卻看會放回來
+        requestAnimationFrame(() => requestAnimationFrame(() => r({ d0: d0.k, d1: d1.k, d2: nc.menu.detail().k, scale: P.scale, cool: +cool.toFixed(1) })));
       }));
     }));
-    check((dk.d1 < dk.d0 || dk.d0 <= .6) && dk.d2 > dk.d1 && dk.scale === .6, `太慢時縮短細節距離、變快先放回來 ${JSON.stringify(dk)}`);
+    check((dk.d1 < dk.d0 || dk.d0 <= .6) && dk.cool > 10 && dk.d2 > dk.d1 && dk.scale === .6, `太慢時縮短細節距離（之後 15 秒不升）、變快先放回來 ${JSON.stringify(dk)}`);
     const fpsClub = (await ev(page, () => window.__nc.getStats())).fps;
 
     // 開車

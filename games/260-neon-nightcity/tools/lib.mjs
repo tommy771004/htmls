@@ -47,7 +47,9 @@ export async function open(url, { w = 1440, h = 900, touch = false, soft = false
         const u = r.url();
         if (!isLocal(u)) log.external.push(u);
       });
-      await page.goto(toUrl(url) + query, { waitUntil: 'load', timeout: 60000 });
+      // 畫質等級固定用 high（原本桌機的設定；觸控用 low，原本觸控裝置的設定），軟體繪圖退回時也一樣，驗收結果才不會因顯示卡而變；要測別的等級就在 NC_QUERY 帶 gpu=
+      const u = toUrl(url) + query;
+      await page.goto(/[?&]gpu=/.test(u) ? u : u + (u.includes('?') ? '&' : '?') + 'gpu=' + (touch ? 'low' : 'high'), { waitUntil: 'load', timeout: 60000 });
       await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 40000 });
       return { browser, page, log };
     } catch (e) {

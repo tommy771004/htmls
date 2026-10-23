@@ -5,11 +5,12 @@ const camera = new T.PerspectiveCamera(62, innerWidth / innerHeight, .2, 4200); 
 camera.layers.enable(LY.NOREFL);
 const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);
 for (const m of groundMeshes) m.layers.set(LY.NOREFL);
-const DPR = Math.min(devicePixelRatio || 1, LOW ? 1.25 : 1.5);
+let DPR = Math.min(devicePixelRatio || 1, GT().dpr);   // 00-core.js 的畫質等級：解析度上限
 R.setPixelRatio(DPR);
 // gray／vig／hurt：69-combat.js 的 WASTED／BUSTED 去色與暗角、受傷時畫面邊緣泛紅
-const post = { scale: typeof SET.res === 'number' ? SET.res : 1, blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
-const rtOpts = { type: T.HalfFloatType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true };
+const post = { scale: typeof SET.res === 'number' ? SET.res : 1, blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
+// 沒有浮點渲染目標的擴充（少數舊驅動、部分 Android）就退回 8 位元：畫得出來，只是霓虹的泛光與高光會被截在 1（00-core.js 的 GPU.hdr）
+const rtOpts = { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true };
 let rtScene, rtRefl, rtB = [], rtU = [];
 function makeTargets() {
   const w = Math.max(2, Math.floor(innerWidth * DPR * post.scale)), h = Math.max(2, Math.floor(innerHeight * DPR * post.scale));
@@ -33,6 +34,11 @@ function resize() {
 }
 resize();
 addEventListener('resize', resize);
+// 換畫質等級（01-settings.js 的 tierSet）：解析度上限跟著換
+function tierDpr() { DPR = Math.min(devicePixelRatio || 1, GT().dpr); R.setPixelRatio(DPR); resize(); }
+// 驅動重置後 three 會重建 GL 狀態並重新上傳材質與貼圖，渲染目標在這裡重做；沒恢復前遊戲照跑、畫面停在最後一幀
+R.domElement.addEventListener('webglcontextlost', () => { GPU.lost++; toast('顯示卡重置中…'); }, false);
+R.domElement.addEventListener('webglcontextrestored', () => { makeTargets(); firstFrame = true; toast('畫面已恢復'); }, false);
 
 // 全螢幕三角形
 const fsCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -123,6 +129,16 @@ const prevVP = new T.Matrix4(), curVP = new T.Matrix4();
 let firstFrame = true;
 const _rp = V3(), _rt = V3(), _ru = V3(), _fw = V3();
 const reflBias = new T.Matrix4().set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
+// 倒影的遠平面（00-core.js 畫質等級的 rf）：倒影那一趟要把整個場景再畫一次，中低階只畫到霧差不多蓋滿的距離
+// （夜裡指數霧剩 8%、白天平方指數霧剩 8% 的地方，鏡頭越高霧越淡、畫越遠），再遠的建築在倒影裡換成天空。
+// high 不縮（對岸與遠景在海面上的倒影照舊）；__nc.reflFar(m) 可以固定成 m 公尺量測
+let reflFarT = null;
+function reflFar() {
+  if (reflFarT) return reflFarT;
+  const k = GT().rf; if (!k) return camera.far;
+  const D = U.uFogDen.value * .6, d = lerp(2.5 / D, 1.58 / D, U.uDay.value);
+  return clamp(d * k + Math.max(0, camera.position.y) * 3, 160, camera.far);
+}
 function renderReflection() {
   // 虛擬相機：位置、注視點與上方向都對 y=0 平面鏡射
   camera.getWorldDirection(_fw);
@@ -130,7 +146,9 @@ function renderReflection() {
   _rt.copy(camera.position).add(_fw); _rt.y = -_rt.y;
   _ru.set(0, 1, 0).applyQuaternion(camera.quaternion); _ru.y = -_ru.y;
   reflCam.position.copy(_rp); reflCam.up.copy(_ru); reflCam.lookAt(_rt);
-  reflCam.projectionMatrix.copy(camera.projectionMatrix); reflCam.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+  reflCam.projectionMatrix.copy(camera.projectionMatrix);
+  { const e = reflCam.projectionMatrix.elements, n = camera.near, f = reflFar(); e[10] = -(f + n) / (f - n); e[14] = -2 * f * n / (f - n); }   // 只改遠平面：xy 的投影不變，倒影貼圖的座標照舊
+  reflCam.projectionMatrixInverse.copy(reflCam.projectionMatrix).invert();
   reflCam.updateMatrixWorld();
   reflU.uReflMat.value.multiplyMatrices(reflBias, reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse);
   U.uClipY.value = 0; U.uCam.value.copy(_rp); const fw = U.uFocus.value.w; U.uFocus.value.w = 0;
@@ -144,13 +162,13 @@ function renderFrame(dt, t) {
   camera.updateMatrixWorld();
   sky.position.copy(camera.position); sky.updateMatrixWorld();   // 天空球跟著相機（城市東西兩端離原點超過半徑）
   U.uCam.value.copy(camera.position);
+  { const a = 1 + Math.round(sstep(60, 220, camera.position.y) * 6) / 10; if (a !== detail.alt) { detail.alt = a; detail.v++; } U.uCullR.value = INST_R * detailK(); }   // 高處看得更遠（01-settings.js 的 detail.alt）
   { const cx = camera.position.x, cz = camera.position.z, zc = zoneAtW(cx, cz); if (zc) { const f = localZone(zc, ...zoneLocal(zc, cx, cz)); U.uZone.value.set(f.ox, f.oz, f.c, f.s); } }   // 相機那一點的剛體框（彎曲的片）
   const outdoors = curScene === scene;
   reflU.uReflOn.value = outdoors && SET.refl ? 1 : 0;
   if (outdoors && SET.refl) renderReflection();
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
   R.render(curScene, camera);
-  { const a = 1 + Math.round(sstep(60, 220, camera.position.y) * 6) / 10; if (a !== detail.alt) { detail.alt = a; detail.v++; } U.uCullR.value = INST_R * detailK(); }   // 高處看得更遠（01-settings.js 的 detail.alt）
   // 泛光
   const w = rtScene.width, h = rtScene.height;
   mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : 1; blit(mPre, rtB[0]);
@@ -177,11 +195,16 @@ function renderFrame(dt, t) {
   prevVP.copy(curVP);
   // 依幀時調整內部解析度
   // 子彈時間時 dt 是放慢後的遊戲時間，幀時要用真實時間量
-  post.ft = lerp(post.ft, slowmo.raw * 1000, .05);
-  if (post.ft > 19) { post.slow += dt; post.fast = 0; } else if (post.ft < 13) { post.fast += dt; post.slow = 0; } else { post.slow = post.fast = 0; }
-  if (SET.res !== 'auto') post.slow = post.fast = 0;   // 固定解析度比例時不自動調整
-  if (post.slow > 1.2 && post.scale > .6) { post.scale = Math.max(.6, post.scale - .1); post.slow = 0; makeTargets(); }
-  else if (post.slow > 1.2 && detail.k > .6) { detail.k = Math.max(.6, detail.k - .1); detail.v++; post.slow = 0; }   // 解析度降到底還是慢：縮短建築與街道設施的細節距離（01-settings.js）
+  // 目標幀時：螢幕更新間隔（取最近最短的幀間隔，慢慢往上漂）與幀率上限取長的。60 Hz 螢幕的幀時不會低於 16.7 ms，
+  // 所以「夠快」是貼著更新間隔；30 fps 上限時不能拿 19 ms 當太慢（不然一直降）。降過一次 15 秒內不升，免得在兩檔之間來回重建渲染目標
+  const ms = slowmo.raw * 1000, rd = slowmo.raw;
+  post.ft = lerp(post.ft, ms, .05); post.vs = Math.min(post.vs + .01, Math.max(ms, 4)); post.cool = Math.max(0, post.cool - rd);
+  const tgt = Math.max(post.vs, SET.fps ? 1000 / SET.fps : 0);
+  if (post.ft > Math.max(19, tgt * 1.15)) { post.slow += rd; post.fast = 0; } else if (post.ft < Math.max(13, tgt * 1.04)) { post.fast += rd; post.slow = 0; } else { post.slow = post.fast = 0; }
+  if (SET.res !== 'auto' || post.cool > 0) post.fast = 0;
+  if (SET.res !== 'auto') post.slow = 0;   // 固定解析度比例時不自動調整
+  if (post.slow > 1.2 && post.scale > .6) { post.scale = Math.max(.6, post.scale - .1); post.slow = 0; post.cool = 15; makeTargets(); }
+  else if (post.slow > 1.2 && detail.k > .6) { detail.k = Math.max(.6, detail.k - .1); detail.v++; post.slow = 0; post.cool = 15; }   // 解析度降到底還是慢：縮短建築與街道設施的細節距離（01-settings.js）
   if (post.fast > 4 && detail.k < 1) { detail.k = Math.min(1, detail.k + .05); detail.v++; post.fast = 0; }   // 變快了先把距離放回來，再升解析度
   else if (post.fast > 4 && post.scale < 1) { post.scale = Math.min(1, post.scale + .05); post.fast = 0; makeTargets(); }
   if (post.wobble > 0) post.wobble = Math.max(0, post.wobble - dt * .08);

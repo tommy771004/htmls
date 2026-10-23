@@ -13,9 +13,11 @@ const SET_DEF = {
   // 顯示：safe 是 HUD 往內縮的格數（一格 6 px）
   hud: { d: true }, radar: { d: true }, safe: { d: 0, lo: 0, hi: 8, st: 1 }, units: { d: 'metric', o: ['metric', 'imperial'] }, bright: { d: 1, lo: .7, hi: 1.4, st: .05 },
   // 影像：res 'auto' 是依幀時自動調整（70-render.js），數字是固定的內部解析度比例；fps 0 是不限
-  res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: LOW ? 0 : 4, o: [0, 2, 4, 8] }, fps: { d: 0, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: LOW ? .8 : 1, lo: .6, hi: 1.2, st: .1 },
+  // gpu：畫質等級（00-core.js 的 GPU_TIERS），'auto' 照顯示卡名稱；msaa、fps、dist、refl 的預設值跟著等級
+  gpu: { d: 'auto', o: ['auto', 'soft', 'low', 'mid', 'high'] },
+  res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: GT().msaa, o: [0, 2, 4, 8] }, fps: { d: GT().fps, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: GT().dist, lo: .6, hi: 1.2, st: .1 },
   // 進階影像：refl 0 關、1 低（三分之一解析度）、2 高（一半）
-  refl: { d: LOW ? 1 : 2, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
+  refl: { d: GT().refl, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
 };
 function setValid(k, v) {
   const D = SET_DEF[k];
@@ -28,6 +30,8 @@ const SET = (() => {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); } catch (e) { /* 讀不到就用預設 */ }
   const s = { binds: {} };
+  // 第 1 版把每一項都存下來（連預設值），畫質的預設值就被凍結了：和當時預設一樣的那幾項當成沒改過，改照等級
+  if (d && !d.v) for (const [k, v] of [['msaa', LOW ? 0 : 4], ['fps', 0], ['dist', LOW ? .8 : 1], ['refl', LOW ? 1 : 2]]) if (d[k] === v) delete d[k];
   for (const k in SET_DEF) s[k] = d && k in d && setValid(k, d[k]) ? d[k] : SET_DEF[k].d;
   if (d && d.binds && typeof d.binds === 'object') for (const k in d.binds) if (typeof d.binds[k] === 'string') s.binds[k] = d.binds[k];
   return s;
@@ -37,7 +41,18 @@ const SET = (() => {
 // alt：鏡頭升高（直升機、霓峰塔的塔吊）時看得更遠，70-render.js 依鏡頭高度設 1–1.6（霧也跟著鏡頭高度變淡，邊緣照 uCullR 全進霧裡）
 const detail = { k: 1, v: 0, alt: 1 };
 const detailK = () => SET.dist * detail.k * detail.alt;
-function setSave() { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) { /* 存不了就算了 */ } }
+// 只存改過的項目（第 2 版），預設值留給等級決定：換了顯示卡或等級，沒動過的畫質設定跟著走
+function setSave() {
+  const o = { v: 2, binds: SET.binds };
+  for (const k in SET_DEF) if (SET[k] !== SET_DEF[k].d) o[k] = SET[k];
+  try { localStorage.setItem(SET_KEY, JSON.stringify(o)); } catch (e) { /* 存不了就算了 */ }
+}
+// 換畫質等級（Esc 選單）：解析度上限、MSAA、幀率上限、細節距離與倒影換成那一級的預設值；燈數與陰影步數重新整理才生效
+const TIER_KEYS = ['msaa', 'fps', 'dist', 'refl'];
+function tierSet(v) {
+  GPU.tier = v === 'auto' ? GPU.auto : v;
+  for (const k of TIER_KEYS) SET[k] = SET_DEF[k].d = GT()[k];
+}
 // 距離與速度依測量系統顯示（90-hud.js、91-map.js）
 const IMPERIAL = () => SET.units === 'imperial';
 function fmtDist(m) {

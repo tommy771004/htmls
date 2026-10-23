@@ -32,6 +32,46 @@ $('stage').appendChild(R.domElement);
 R.domElement.setAttribute('aria-label', '霓虹夜城遊戲畫面');
 R.domElement.tabIndex = 0;
 
+// ─── 顯示卡分級：WebGL 只回報 GPU 名稱與 ANGLE 的繪圖後端，碰不到驅動程式，所以照名稱給起始畫質 ───
+// dpr 解析度上限；msaa、refl、dist、fps 是 01-settings.js 的預設值（玩家改過的照玩家的）；
+// rf 倒影的遠平面倍率（70-render.js 的 reflFar，0 是不縮）；nl 燈數、sh 日光陰影步數、occ 地上陰影的車人數是 shader 常數，開場定下，選單換等級要重新整理才生效。
+// 原本的桌機設定就是 high，觸控與小螢幕（LOW）原本的設定就是 low
+const GPU_TIERS = {
+  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6 },
+  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8 },
+  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .9, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1 },
+  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0 },
+};
+const GPU = (() => {
+  const gl = R.getContext(); let name = '';
+  try { const x = gl.getExtension('WEBGL_debug_renderer_info'); name = String(gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || ''); } catch (e) { /* 有些瀏覽器不給名稱 */ }
+  // 沒有硬體加速（遠端桌面、驅動被瀏覽器列入黑名單）時，要求 failIfMajorPerformanceCaveat 的 context 會被拒絕
+  let caveat = false;
+  try { const c = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true }); caveat = !c; c?.getExtension('WEBGL_lose_context')?.loseContext(); } catch (e) { /* 當成有硬體加速 */ }
+  const n = name.toLowerCase();
+  let auto = caveat || /swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/.test(n) ? 'soft'
+    : /apple m\d+ (pro|max|ultra)|geforce (rtx|gtx (9[6-9]0|1[0-9]))|nvidia (rtx|quadro|tesla|a\d)|radeon (rx|pro|r9)|arc\(tm\) a|\barc a\d/.test(n) ? 'high'
+    : /apple m\d|apple gpu|geforce|nvidia|radeon|\bamd\b|iris\(r\) xe|iris xe|arc|adreno.{0,8}7\d\d|mali-g7\d/.test(n) ? 'mid'
+    : /intel|mali|adreno|powervr|apple a\d|uhd|hd graphics/.test(n) ? 'low'
+    : 'mid';
+  if (LOW && auto !== 'soft') auto = 'low';   // 手機與平板會降頻，維持原本觸控裝置的設定
+  // ANGLE 字串裡的繪圖後端：Mac 是 Metal、Windows 是 Direct3D 11、Linux 多半是 OpenGL 或 Vulkan；Firefox 與 Safari 只給大概的名稱
+  const api = /metal/i.test(name) ? 'Metal' : /direct3d|d3d11/i.test(name) ? 'Direct3D 11' : /vulkan/i.test(name) ? 'Vulkan' : /opengl/i.test(name) ? 'OpenGL' : '';
+  const vendor = /apple/.test(n) ? 'Apple' : /nvidia|geforce|quadro/.test(n) ? 'NVIDIA' : /amd|radeon|ati /.test(n) ? 'AMD' : /intel/.test(n) ? 'Intel' : /swiftshader|llvmpipe|software/.test(n) ? '軟體' : /adreno|qualcomm/.test(n) ? 'Qualcomm' : /mali|arm/.test(n) ? 'ARM' : '';
+  // 面板上只留型號：ANGLE (廠商, 型號 + 後端細節, 後端) → 型號
+  const short = (name.match(/^ANGLE \([^,]*, (.*?)(?:, [^,]*)?\)$/)?.[1] || name).replace(/^ANGLE \w+ Renderer: /, '').replace(/ \(0x[0-9a-f]+\)| Direct3D.*| vs_\d.*/gi, '').trim();
+  // 半浮點渲染目標（泛光與曝光要超過 1 的亮度）：WebGL2 要 EXT_color_buffer_float 或 _half_float，沒有就退回 8 位元（70-render.js）
+  const hdr = R.extensions.has('EXT_color_buffer_float') || R.extensions.has('EXT_color_buffer_half_float');
+  // 等級：網址 ?gpu=soft|low|mid|high（驗收工具固定用 high）＞ 選單（01-settings.js 的 SET.gpu）＞ 自動
+  const qs = new URLSearchParams(location.search), q = qs.get('gpu');
+  let pick = null; try { pick = JSON.parse(localStorage.getItem('nc260.settings') || 'null')?.gpu; } catch (e) { /* 沒存過 */ }
+  const tier = GPU_TIERS[q] ? q : GPU_TIERS[pick] ? pick : auto;
+  return { name: name || '未知', short: short || '未知', vendor, api, auto, tier, boot: tier, url: !!GPU_TIERS[q], hdr: qs.get('hdr') === '0' ? false : hdr, lost: 0 };
+})();
+const GT = () => GPU_TIERS[GPU.tier];
+// 驅動重置（Windows 的 TDR、Mac 切換內顯與獨顯、分頁在背景太久）：three 會擋下預設行為並在恢復時重建狀態，
+// 70-render.js 補上提示與重建渲染目標（材質與貼圖由 three 重新上傳）
+
 // ─── 小工具 ───
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -54,7 +94,7 @@ const STR = Array.from({ length: NZ + 1 }, (_, j) => `${j + 6} St`);
 const LANE = 3.0, PARK = 6.6;               // 車道與停車格中心離路中心的距離
 
 // ─── 共用 uniform ───
-const NL = LOW ? 8 : 16;
+const NL = GT().nl;
 const LAMP_C = 16, LAMP_K = 16;   // 路燈表的格子邊長（公尺）與每格最多幾盞
 const U = {
   uTime: { value: 0 }, uLampOn: { value: 1 }, uFlash: { value: 0 }, uClipY: { value: -1e9 }, uWet: { value: 1 },
@@ -75,10 +115,10 @@ const U = {
   // 建築高度圖（28-sky.js）：xy 是西北角的世界座標，z 是 1/邊長，w 是最高的屋頂；日光朝太陽方向在圖上步進求陰影
   uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) }, uCityM: { value: null },
   // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
-  uOccA: { value: Array.from({ length: LOW ? 6 : 12 }, () => new T.Vector4(0, 0, 1, 0)) },
-  uOccB: { value: Array.from({ length: LOW ? 6 : 12 }, () => new T.Vector4()) },
+  uOccA: { value: Array.from({ length: GT().occ }, () => new T.Vector4(0, 0, 1, 0)) },
+  uOccB: { value: Array.from({ length: GT().occ }, () => new T.Vector4()) },
 };
-const NOCC = LOW ? 6 : 12, SH_N = LOW ? 16 : 26;   // 地上陰影的車人數、日光陰影的步數
+const NOCC = GT().occ, SH_N = GT().sh;   // 地上陰影的車人數、日光陰影的步數
 const shared = keys => { const o = {}; for (const k of keys) o[k] = U[k]; return o; };
 const ALLU = Object.keys(U);
 
@@ -235,10 +275,15 @@ vec3 applyFog(vec3 c, vec3 p){
   #endif
   float x = dist*uFogDen*D;
   float f = mix(1. - exp(-x), 1. - exp(-x*x), uDay);   // 白天用平方指數：近處清楚、420 m 外（distCull 不畫的地方）照樣全進霧裡
+  #ifndef FAR
+  f = max(f, hk * smoothstep(.6, .97, length(d.xz)/uCullR));
+  #endif
   vec3 dir = d/max(dist,1e-3);
   vec3 fc = mix(uFogCol, uFogHi, smoothstep(-.05, .45, dir.y)) * (1. + uFlash*1.5);
   return mix(c, fc, clamp(f, 0., 1.));
 }
+// 遠景只算一部分距離的霧（FAR）：鏡頭升到 40–180 m（直升機、霓峰塔的塔吊）時慢慢回到完整的霧，不然中間的城區都在霧裡、遠處的對岸與山坡像浮在空中
+float farK(float k){ return mix(k, 1., smoothstep(40., 180., uCam.y)); }
 `;
 
 const VS_HEAD = /* glsl */`
@@ -275,15 +320,10 @@ void main(){
   if (uFocus.w > 0.) {   // 貼著相機或擋在相機與角色之間的東西用抖動淡掉
     vec3 ab = uFocus.xyz - uCam; float tt = clamp(dot(vW - uCam, ab) / dot(ab, ab), 0., 1.);
     float dd = length(vW - uCam - ab * tt), cd = length(vW - uCam);
-  #ifndef FAR
-  f = max(f, hk * smoothstep(.6, .97, length(d.xz)/uCullR));
-  #endif
     float fade = max(1. - smoothstep(.5, 1.6, cd), (1. - smoothstep(.45, 1., dd)) * step(tt, .8) * .8);
     if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < fade) discard;
   }
   vec3 n = normalize(vN);
-// 遠景只算一部分距離的霧（FAR）：鏡頭升到 40–180 m（直升機、霓峰塔的塔吊）時慢慢回到完整的霧，不然中間的城區都在霧裡、遠處的對岸與山坡像浮在空中
-float farK(float k){ return mix(k, 1., smoothstep(40., 180., uCam.y)); }
   #ifdef DOUBLE
   if (!gl_FrontFacing) n = -n;
   #endif

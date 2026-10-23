@@ -73,6 +73,7 @@ function setApply(k) {
   if (!k || /^v|muteBlur/.test(k)) sfx.mix();
   if (k === 'blur') post.blur = .5 * SET.blur;
   if (k === 'res') { post.scale = typeof SET.res === 'number' ? SET.res : 1; detail.k = 1; detail.v++; makeTargets(); }   // 切回自動從 100% 開始，太慢再往下降
+  if (k === 'gpu') { tierSet(SET.gpu); tierDpr(); detail.v++; setSave(); }   // 00-core.js 的畫質等級：MSAA、幀率、距離、倒影換成那一級，tierDpr 重做渲染目標；menuSet 是先存檔再套用，換完要再存一次，舊等級下改過的值才不會留在設定檔裡
   if (k === 'msaa' || k === 'refl') makeTargets();
   if (k === 'dist') detail.v++;
   if (k === 'camFar') camState.far = SET.camFar;
@@ -136,13 +137,15 @@ const MENU = {
       { reset: ['hud', 'radar', 'safe', 'units', 'bright'] },
     ] },
     { n: '影像', stat: true, rows: () => [
+      { k: 'gpu', n: '畫質等級', o: { auto: `自動（${GPU_TIERS[GPU.auto].name}）`, soft: '最低', low: '低', mid: '中', high: '高' },
+        d: `顯示卡：${GPU.short}${GPU.api ? ' · ' + GPU.api : ''}。換等級會一起換掉 MSAA、幀率上限、細節距離與路面倒影；燈光數與陰影精細度重新整理後生效${GPU.hdr ? '' : '。這張顯示卡不支援浮點渲染目標，泛光會比較弱'}。` },
       { k: 'res', n: '內部解析度', o: { auto: '自動', .5: '50%', .6: '60%', .75: '75%', .85: '85%', 1: '100%' }, d: '自動：幀時太長就降、夠快再升回來（60%–100%）。固定比例不再自動調整。' },
       { k: 'msaa', n: 'MSAA', o: { 0: '關閉', 2: 'X2', 4: 'X4', 8: 'X8' }, lim: v => v <= (R.capabilities.maxSamples || 0), d: `多重取樣抗鋸齒。這張顯示卡最多 X${R.capabilities.maxSamples || 0}。` },
       { k: 'fps', n: '幀率上限', o: { 30: '30', 60: '60', 0: '不限' }, d: '螢幕更新率高於 60 Hz 時可以限在 60 省電；筆電可以限在 30。' },
       { k: 'pauseBlur', n: '失焦時暫停遊戲', d: '切到其他視窗或分頁時自動打開這個選單。' },
       { k: 'ped', n: '人口密集程度', f: pct, d: '街上路人的數量；在玩家 55 m 外慢慢增減。' },
       { k: 'dist', n: '細節距離', f: pct, d: '遠處立面、招牌與街道道具出現的距離。調低可以省下繪製量。' },
-      { reset: ['res', 'msaa', 'fps', 'pauseBlur', 'ped', 'dist'] },
+      { reset: ['gpu', 'res', 'msaa', 'fps', 'pauseBlur', 'ped', 'dist'] },
     ] },
     { n: '進階影像', stat: true, rows: () => [
       { k: 'refl', n: '路面倒影', o: { 0: '關閉', 1: '低', 2: '高' }, d: '積水路面上的霓虹倒影：低是三分之一解析度、高是一半。關掉最省，但雨夜會失色不少。' },
@@ -194,7 +197,7 @@ function menuDraw() {
   const st = $('mnStat');
   st.hidden = !cats[menu.cat].stat;
   if (cats[menu.cat].stat) {
-    setText('mnStatT', `內部解析度 ${rtScene.width} × ${rtScene.height}${SET.res === 'auto' ? `（自動 ${Math.round(post.scale * 100)}%${detail.k < 1 ? `、細節距離 ×${detail.k.toFixed(2)}` : ''}）` : ''} · 暫停前 ${Math.round(fps)} fps`);
+    setText('mnStatT', `${GPU.short} · 等級${GT().name} · 內部解析度 ${rtScene.width} × ${rtScene.height}${SET.res === 'auto' ? `（自動 ${Math.round(post.scale * 100)}%${detail.k < 1 ? `、細節距離 ×${detail.k.toFixed(2)}` : ''}）` : ''} · 暫停前 ${Math.round(fps)} fps`);
     st.style.setProperty('--v', clamp(fps / 60, 0, 1) * 100 + '%');
   }
 }
