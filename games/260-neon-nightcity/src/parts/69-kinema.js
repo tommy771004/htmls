@@ -400,7 +400,22 @@ function kinUpdate(dt) {
 gtaApi.kin = {
   KIN, kin, massOf, jump: () => !!player.veh && jumpOut(player.veh), door: kinDoorSide,
   hit: (x, z, r = .5) => collideCircle(x, z, r, false).hit,
-  // 從 (x, z) 往四周找最近的一面牆：回傳貼牆的點（離牆 r）與牆的法線（從牆往外）
+  // 從 (x, z) 往外找一塊 R 公尺內沒有碰撞物的空地，並回傳最空的方向（往前 L 公尺都碰不到東西）
+  open(x, z, R = 6, L = 30) {
+    for (let s = 0; s < 200; s += 2) for (let a = 0; a < 16; a++) {
+      const px = x + Math.sin(a / 16 * 6.2832) * s, pz = z + Math.cos(a / 16 * 6.2832) * s;
+      if (collideCircle(px, pz, R, false).hit || waterDepth(px, pz) > 0) continue;
+      for (let b = 0; b < 16; b++) {
+        const yaw = b / 16 * 6.2832, fx = Math.sin(yaw), fz = Math.cos(yaw);
+        let ok = true;
+        for (let t = 0; t <= L && ok; t += 1) ok = !collideCircle(px + fx * t, pz + fz * t, 1.4, false).hit;
+        if (ok) return { x: px, z: pz, yaw };
+      }
+      if (s === 0) break;
+    }
+    return null;
+  },
+  // 從 (x, z) 往四周找最近的一面平牆：回傳貼牆的點（離牆 r）與牆的法線（從牆往外）
   wall(x, z, r = 1.1, R = 60) {
     let best = null;
     for (let a = 0; a < 32; a++) {
@@ -408,8 +423,10 @@ gtaApi.kin = {
       for (let s = 0; s < R && (!best || s < best.s); s += .25) {
         const c = collideCircle(x + dx * s, z + dz * s, r, false);
         if (!c.hit) continue;
-        const l = Math.hypot(c.nx, c.nz) || 1;
-        if (!best || s < best.s) best = { s, x: c.x, z: c.z, nx: c.nx / l, nz: c.nz / l };
+        const l = Math.hypot(c.nx, c.nz) || 1, nx = c.nx / l, nz = c.nz / l;
+        if (![1, -1].every(t => collideCircle(c.x - nz * t * 1.5, c.z + nx * t * 1.5, r + .05, false).hit)) continue;   // 左右 1.5 m 也碰得到才是平牆（不是路燈柱）
+        if (![.15, 1].every(d => collideCircle(c.x - nx * (r + d), c.z - nz * (r + d), .3, false).hit)) continue;   // 人的大小也擋得住、有 1 m 厚（不是只擋車的東西或薄圍欄）
+        best = { s, x: c.x, z: c.z, nx, nz };
         break;
       }
     }

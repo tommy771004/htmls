@@ -291,7 +291,7 @@ HANDOFF 先前列為未做的項目：
 - **劫車**：駕駛座那側（左）0.55 m 外貼著牆或設施就從副駕側拉人；駕駛被拖到車門外後方約 1.4 m，玩家最後 0.25 秒滑進駕駛座。
 - **跳車**：時速 15 km/h（`KIN.jump` 4 m/s）以上按 F，人往車門那側滾出去（車速的七成 + 側向 2.6 m/s、往上 2.2），落地扣 (v − 6)·1.3（乘上力量的承傷倍率）；車沒人開，照 `coast` 滑到停，滑出去的 8 秒內撞到路人一樣撞飛。
 - 沒做：消防車水砲（沒有消防車）、玩家站在車頂隨車移動（玩家不會站上車頂，翻越是直接翻過去）。
-- 測試 API：`__nc.gta.kin`：`KIN`、`kin`（計數器 `crush`／`crushWalk`／`barge`／`jump`／`door`／`bowl` 與 `last` 吸附距離）、`massOf`、`jump()`、`door(v)`、`hit(x, z, r)`、`wall(x, z, r)`（最近的牆與法線）、`spawn(type, x, z, yaw)`、`drop(v)`、`me()`。
+- 測試 API：`__nc.gta.kin`：`KIN`、`kin`（計數器 `crush`／`crushWalk`／`barge`／`jump`／`door`／`bowl` 與 `last` 吸附距離）、`massOf`、`jump()`、`door(v)`、`hit(x, z, r)`、`open(x, z, R, L)`（附近的空地與往前 L 公尺沒有東西的方向）、`wall(x, z, r)`（最近的平牆與法線）、`spawn(type, x, z, yaw)`、`drop(v)`、`me()`。
 
 ### 城區與安全屋（World 整合）
 
