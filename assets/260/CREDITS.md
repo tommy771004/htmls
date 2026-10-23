@@ -74,7 +74,7 @@
 
 ## 街區建築與道具（`props/`）
 
-`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。
+`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -90,6 +90,8 @@
 | `v5shop`（縫線服飾的店面） | [Storefronts with opening doors (empty stores)](https://sketchfab.com/3d-models/storefronts-with-opening-doors-empty-stores-151b488b26dd4ff4b15c4c03dc0711e6) | [Jungle Jim](https://sketchfab.com/jungle_jim) | CC BY 4.0 |
 | `v5shop`（掛衣架） | [Wardrobe Rack](https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855) | [Khoa Nguyen](https://sketchfab.com/ngdkh) | CC BY 4.0 |
 | `v5shop`（射擊場的吊靶與射擊位） | [Gun Targets](https://sketchfab.com/3d-models/gun-targets-eb9fbe283faa41ef8685359a0769d303) | [FrodoUndead](https://sketchfab.com/FrodoUndead) | CC BY 4.0 |
+| `v5pd`（第九分局的老分局） | [Southern District Police Station](https://sketchfab.com/3d-models/southern-district-police-station-3353cf5bfbda4b8797e845594b0cbfa7) | [Katie Wolfe](https://sketchfab.com/katiewolfe) | CC BY 4.0 |
+| `v5hosp`（聖瑪格麗特醫院的舊院區正面） | [Samaritan Hospital Frontage](https://sketchfab.com/3d-models/samaritan-hospital-frontage-316005d0b39b4791b1f54d50594d51ca) | [artfletch](https://sketchfab.com/artfletch) | CC BY 4.0 |
 
 ### 新城區與安全屋（World 整合）
 

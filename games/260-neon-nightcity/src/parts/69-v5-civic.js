@@ -135,11 +135,14 @@ function v5HeliSpawn(H) {
 
 // ═══ 聖瑪格麗特醫院 ═══
 if (FAC.hosp) {
-  const F = FAC.hosp, [E, Tw] = F.L, k = new Kit();
-  // 急診入口：人行道上的雨遮與兩根柱子、自動門的燈框
-  k.box(F.ax + 10.4, 3.75, F.az + 31, 4.6, .28, 12, 0xd8dcdc, 10).box(F.ax + 10.4, 3.6, F.az + 31, 4.5, .04, 11.8, 0xfff4e0, 11);
-  for (const z of [25.6, 36.4]) k.cyl(F.ax + 8.6, 1.8, F.az + z, .14, .14, 3.6, 10, 0xb8bcbe, 3);
-  k.box(F.ax + 12.45, 1.4, F.az + 31, .08, 2.8, 3.4, 0x9ad8ff, 1).box(F.ax + 12.42, 2.9, F.az + 31, .1, .16, 3.8, 0xffffff, 11);
+  const F = FAC.hosp, [E, Tw] = F.L, k = new Kit(), G = !!E.glb;
+  // 急診入口：人行道上的雨遮與兩根柱子、自動門的燈框。急診樓換成掃描的舊院區正面（G）時，雨遮伸到正門（z 28.7）的台階上、牆面在 x 16.1，
+  // 模型背後是空的，補一個磚色量體與屋頂蓋住
+  const ez = G ? 28.7 : 31, cx0 = 8.1, cx1 = G ? 16 : 12.7, cy = G ? 4.6 : 3.75, cl = G ? 7.6 : 12;
+  k.box(F.ax + (cx0 + cx1) / 2, cy, F.az + ez, cx1 - cx0, .28, cl, 0xd8dcdc, 10).box(F.ax + (cx0 + cx1) / 2, cy - .15, F.az + ez, cx1 - cx0 - .1, .04, cl - .2, 0xfff4e0, 11);
+  for (const z of [ez - cl * .45, ez + cl * .45]) k.cyl(F.ax + 8.6, cy / 2, F.az + z, .14, .14, cy - .15, 10, 0xb8bcbe, 3);
+  if (G) k.box(F.ax + 23.8, 5.95, F.az + 31.5, 8.4, 11.9, 26, 0x6e4636, 2).box(F.ax + 23.8, 11.95, F.az + 31.5, 8.2, .1, 25.8, 0x55585a, 2);   // 立面最深退到 x 19.1；簷口（12 m）以下、左邊樓梯塔與右邊附樓之間
+  else k.box(F.ax + 12.45, 1.4, F.az + 31, .08, 2.8, 3.4, 0x9ad8ff, 1).box(F.ax + 12.42, 2.9, F.az + 31, .1, .16, 3.8, 0xffffff, 11);
   // 主樓北牆的員工電梯門、屋頂的電梯機房
   k.box(F.ax + 50, 1.25, F.az + 12.42, 1.6, 2.5, .08, 0x8a9096, 3).box(F.ax + 50, 2.75, F.az + 12.4, 2, .3, .1, 0x30a0ff, 11);
   const hy = Tw.h;
@@ -148,11 +151,11 @@ if (FAC.hosp) {
   v5Pad(F, 44, 31, hy, k);
   // 醫療包：急診入口左邊牆角，綠色十字的箱子（下面 V5.medkits）
   cityAdd(new T.Mesh(k.build(), MAT.uber), facZn(F));
-  v5Put(F, v5Sign([['急診 EMERGENCY', .62, '#ffffff', .52]], 6.4, 1.2, { bg: '#c81e2c', dim: 0xffffff }), 12.38, 5.4, 31, -Math.PI / 2);
+  v5Put(F, v5Sign([['急診 EMERGENCY', .62, '#ffffff', .52]], 6.4, 1.2, { bg: '#c81e2c', dim: 0xffffff }), G ? cx0 - .05 : 12.38, G ? cy + .75 : 5.4, ez, -Math.PI / 2);
   v5Put(F, v5Sign([['聖瑪格麗特醫院', .4, '#1c3a5c', .38], ['ST. MARGARET HOSPITAL', .22, '#2c5a8c', .76]], 11, 2.6, { bg: '#f2f4f4', cross: .08, dim: 0xe8e8e8 }), 27.9, hy - 4.2, 31, -Math.PI / 2);
   v5Put(F, v5Sign([['', .1, '#fff', .5]], 2.6, 2.6, { bg: '#f4f4f4', cross: .5 }), 30, hy - 2.2, 12.38, Math.PI);
   v5Put(F, v5Sign([['員工電梯 · 屋頂停機坪', .42, '#ffffff', .5]], 2.6, .5, { bg: '#1c3a5c' }), 50, 3.25, 12.35, Math.PI);
-  v5Light(F, 10.4, 3.4, 27, 0xfff0d8, 9, 1.1); v5Light(F, 10.4, 3.4, 35, 0xfff0d8, 9, 1.1); v5Light(F, 11.6, 5.4, 31, 0xff4050, 8, .9);
+  v5Light(F, 10.4, cy - .35, ez - cl / 3, 0xfff0d8, 9, 1.1); v5Light(F, 10.4, cy - .35, ez + cl / 3, 0xfff0d8, 9, 1.1); v5Light(F, G ? 7.4 : 11.6, cy + 1.6, ez, 0xff4050, 8, .9);
   v5Light(F, 44, hy + 2, 31, 0xd0ffe0, 14, .8);
   V5.medkits.push({ F, x: 12.1, z: 24.4, t: 0, m: null });
   V5.helis.push({ F, kind: 'med', x: 44, z: 31, y: hy + .1, yaw: -Math.PI / 2, v: null, gone: 0 });
@@ -163,9 +166,10 @@ if (FAC.hosp) {
 
 // ═══ 第九分局與拖吊場 ═══
 if (FAC.pd) {
-  const F = FAC.pd, [B] = F.L, Y = F.yard, k = new Kit(), hy = B.h, x0 = Y.x0 - F.ax, x1 = Y.x1 - F.ax, z0 = Y.z0 - F.az, z1 = Y.z1 - F.az;
-  // 大門：藍色燈箱與兩盞藍色球燈
-  for (const z of [28.6, 33.4]) { k.cyl(F.ax + 59.9, 2.6, F.az + z, .05, .05, .5, 6, 0x222222, 15, 0, 0, Math.PI / 2).cyl(F.ax + 60.2, 2.6, F.az + z, .2, .2, .36, 12, 0x3a7cff, 8); }
+  // 北半的老分局是模型（10-city.js 的 FAC.pd），停機坪、逃生梯與招牌都在南半的附樓 B
+  const F = FAC.pd, B = F.L.find(L => L.o.roof), Y = F.yard, k = new Kit(), hy = B.h, x0 = Y.x0 - F.ax, x1 = Y.x1 - F.ax, z0 = Y.z0 - F.az, z1 = Y.z1 - F.az;
+  // 老分局大門（z 22.25）兩側的燈柱，頂上藍色球燈
+  for (const z of [19.9, 24.6]) k.cyl(F.ax + 60.1, 1.4, F.az + z, .06, .08, 2.8, 8, 0x1e2226, 15).cyl(F.ax + 60.1, 2.98, F.az + z, .22, .22, .4, 12, 0x3a7cff, 8);
   // 拖吊場：深色柏油、停車格線、鐵絲網（柱子、上下橫管、網面）與頂上的刺絲
   k.box((Y.x0 + Y.x1) / 2, .165, (Y.z0 + Y.z1) / 2, Y.x1 - Y.x0, .04, Y.z1 - Y.z0, 0x2c2e31, 2);   // 人行道板高 0.15，柏油鋪在上面
   for (let x = x0 + 3; x < x1 - 2; x += 3.2) for (const z of [z0 + 22, z1 - 2.6]) k.box(F.ax + x, .19, F.az + z, .1, .01, 5, 0xd8d4c4, 2);
@@ -203,14 +207,14 @@ if (FAC.pd) {
   v5Box(F, x0 + booth.x0, x0 + booth.x1, booth.z0, booth.z1);
   // 投光燈兩支
   for (const [x, z] of [[x0 + 1, z0 + 1], [x0 + 1, z1 - 1]]) { k.cyl(F.ax + x, 3.5, F.az + z, .07, .09, 7, 8, 0x3a3c3e, 15).box(F.ax + x + .4, 7, F.az + z, .5, .3, .4, 0xfff4d8, 11); v5Light(F, x + 2, 6.4, z + (z < 30 ? 2 : -2), 0xfff0d0, 22, 1.2); }
-  // 北牆逃生梯（地面到屋頂）、屋頂停機坪
-  F.lad = v5Ladder(F, 56, 12.5, 0, -1, hy, [56, 14.4], k);
-  v5Pad(F, 48.5, 33, hy, k);
+  // 附樓南牆的逃生梯（地面到屋頂）、屋頂停機坪
+  F.lad = v5Ladder(F, 44, 49.5, 0, 1, hy, [44, 47.6], k);
+  v5Pad(F, 48.5, 40.75, hy, k);
   cityAdd(new T.Mesh(k.build(), MAT.uber), facZn(F));
-  v5Put(F, v5Sign([['NCPD', .5, '#ffffff', .4], ['霓虹市警 第九分局', .26, '#cfe0ff', .8]], 6.2, 1.6, { bg: '#13306a', edge: '#6aa0ff', dim: 0xffffff }), 59.62, 5.4, 31, Math.PI / 2);
+  v5Put(F, v5Sign([['NCPD', .5, '#ffffff', .4], ['霓虹市警 第九分局', .26, '#cfe0ff', .8]], 6.2, 1.6, { bg: '#13306a', edge: '#6aa0ff', dim: 0xffffff }), 59.62, 5.4, 40.75, Math.PI / 2);
   v5Put(F, v5Sign([['拖吊場 IMPOUND', .42, '#1a1a1a', .36], [`贖車 ${money(IMP_FEE)} · 守衛亭`, .3, '#3a3a3a', .76]], 3.4, 1, { bg: '#f0c830' }), x0 + (gate.x0 + gate.x1) / 2, FENCE_H + .9, z0 - .08, Math.PI);
-  v5Light(F, 60.4, 2.8, 31, 0x6a9cff, 8, 1); v5Light(F, x0 + 15.7, 2.4, z0 - 1, 0xfff0d0, 6, .8);
-  V5.helis.push({ F, kind: 'police', x: 48.5, z: 33, y: hy + .1, yaw: Math.PI / 2, v: null, gone: 0 });
+  v5Light(F, 60.6, 2.8, 22.25, 0x6a9cff, 8, 1); v5Light(F, x0 + 15.7, 2.4, z0 - 1, 0xfff0d0, 6, .8);
+  V5.helis.push({ F, kind: 'police', x: 48.5, z: 40.75, y: hy + .1, yaw: Math.PI / 2, v: null, gone: 0 });
   v5Roof(F, B);
   V5.imp.slot = { x: x0 + 10, z: z0 + 20, yaw: Math.PI };
 }

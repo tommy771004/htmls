@@ -72,7 +72,7 @@ try {
 
   const c5 = await sec('5. 逃生梯：爬上屋頂、往下滑', () => {
     const N = window.__nc, V = N.gta.v5, L = V.LADS[0]; __t.reset();
-    const [x, z] = V.w('pd', L.x, L.z - .5); N.tp(x, z, V.yaw('pd', 0)); __t.step(2);
+    const [x, z] = V.w('pd', L.x + L.nx * .5, L.z + L.nz * .5); N.tp(x, z, V.yaw('pd', Math.atan2(-L.nx, -L.nz))); __t.step(2);
     const t0 = N.ctx(); N.act();
     N.keys.KeyW = true; N.keys.ShiftLeft = true; let n = 0;
     while (V.V5.lad && n < 900) { __t.step(1); n++; }
@@ -89,7 +89,7 @@ try {
   }
 
   const c6 = await sec('6. 從屋頂邊緣跳下去', () => {
-    const N = window.__nc, V = N.gta.v5, F = V.FAC.pd, B = F.L[0]; __t.reset();
+    const N = window.__nc, V = N.gta.v5, F = V.FAC.pd, B = F.L.find(L => L.o.roof); __t.reset();
     const [x, z] = V.w('pd', 50, B.z1 - F.az - .9); N.tp(x, z); N.player.y = B.h; N.player.yaw = V.yaw('pd', 0); __t.step(10);
     const on = +N.player.y.toFixed(2), j = V.roofJump(), air = N.player.air3 && N.player.air3.kind;
     __t.reset(); return { on, j, air, h: B.h };

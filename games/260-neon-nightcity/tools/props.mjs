@@ -45,6 +45,12 @@ export const SETS = [
     { id: 'target', file: 'gun_targets', h: 1, only: /^Moving Target_6$/ },
     { id: 'booth', file: 'gun_targets', h: 1.9, only: /^(BoothTable_8|BoothWall_9)$/ },
   ] },
+  // 第九分局（69-v5-civic.js；10-city.js 的 FAC.pd 前半塊地當實體建築 bldPlace 擺）：katiewolfe 的 Southern District Police Station（CC BY 4.0，照片掃描，公尺，
+  // 正面朝 +z、右側有原本的逃生梯）。21 塊切塊先縫合再減到 6%，8K 貼圖縮成 4K
+  { out: 'v5pd', src: '.cache/v5', tex: 4096, items: [{ id: 'pd', file: 'southern_district_police_station', sloppy: .06, seam: .06, renorm: 1 }] },
+  // 聖瑪格麗特醫院的舊院區正面（10-city.js 的 FAC.hosp 急診那塊地）：artfletch 的 Samaritan Hospital Frontage（CC BY 4.0，照片掃描，公尺，
+  // 只掃了正面與右側轉角，背後是空的，頁面在後面補一個量體）。正面朝 +z、牆面在 z≈10，原檔 y 3.5 是人行道（下面的地下室採光井埋進人行道板）
+  { out: 'v5hosp', src: '.cache/v5', tex: 4096, items: [{ id: 'front', file: 'samaritan_hospital_frontage', groundY: 3.5, sloppy: .12, seam: .06, renorm: 1 }] },
   // 武器（69-combat.js）：orient 是「哪個原檔軸變成槍口方向 +z、哪個變成上方 +y」，center 是包圍盒中心放原點（握把位置由頁面的 ARMS 表另外給）
   // heavy：瓦斯罐原檔兩萬多面（拉環、保險桿都很細），單獨減到兩成
   { out: 'arms', tex: 512, src: '.cache/arms', heavy: [/Smoke Grenade/, .2], items: [

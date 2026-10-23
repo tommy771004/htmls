@@ -404,10 +404,11 @@ for (const b of blocks) {
 // 街區的碰撞盒換成每棟樓自己的，帶屋頂高度 hy（站上屋頂的人不被擋）。座標相對於街區的西北角（avX(i)、stZ(j)），人行道內是 12.5–59.5 × 12.5–49.5
 const FAC = (() => {
   const S = {
-    // 急診樓（2 層，面向西邊的大道）＋主樓（8 層，屋頂停機坪）
-    hosp: { i: 4, j: 1, lots: [{ x0: 12.5, x1: 28, z0: 12.5, z1: 49.5, style: 8, floors: 2, axis: 'x', face: -1, er: 1 }, { x0: 28, x1: 59.5, z0: 12.5, z1: 49.5, style: 8, floors: 8, axis: 'x', face: -1, back: 1, roof: 1 }] },
-    // 分局（4 層紅磚，面向東邊的大道，屋頂停機坪、北牆逃生梯）；西邊是圍起來的拖吊場
-    pd: { i: 0, j: 4, lots: [{ x0: 37.5, x1: 59.5, z0: 12.5, z1: 49.5, style: 0, floors: 4, axis: 'x', face: 1, roof: 1 }], yard: { x0: 12.5, x1: 36.5, z0: 12.5, z1: 49.5 } },
+    // 急診樓（2 層，面向西邊的大道；以 http(s) 開啟時換成 artfletch 掃描的紅磚舊院區正面 v5hosp，模型中心擺在 (19.65, 31)）＋主樓（8 層，屋頂停機坪）
+    hosp: { i: 4, j: 1, lots: [{ x0: 12.5, x1: 28, z0: 12.5, z1: 49.5, style: 8, floors: 2, axis: 'x', face: -1, er: 1, glb: ['v5hosp', 'front', 19.65, 31] }, { x0: 28, x1: 59.5, z0: 12.5, z1: 49.5, style: 8, floors: 8, axis: 'x', face: -1, back: 1, roof: 1 }] },
+    // 分局：北半是 katiewolfe 掃描的紅磚老分局（v5pd，以 http(s) 開啟時換模型，面向東邊的大道），南半是 4 層的附樓（屋頂停機坪、南牆逃生梯）；西邊是圍起來的拖吊場
+    pd: { i: 0, j: 4, lots: [{ x0: 37.5, x1: 59.5, z0: 12.5, z1: 32, style: 0, floors: 4, axis: 'x', face: 1, glb: ['v5pd', 'pd'] }, { x0: 37.5, x1: 59.5, z0: 32, z1: 49.5, style: 0, floors: 4, axis: 'x', face: 1, roof: 1 }],
+      yard: { x0: 12.5, x1: 36.5, z0: 12.5, z1: 49.5 } },
     // 楓林里的商店街（69-v5-shops.js）：槍店（店面往後退，騎樓下是櫃台）與後面的露天射擊場、服飾店（樓房往後退，前面是一層樓的店面）、停車場、東側的洗車隧道（南北穿過街區）
     mall: { i: 3, j: 7, lots: [{ x0: 12.5, x1: 30, z0: 15.5, z1: 25, style: 4, floors: 1, axis: 'z', face: -1 }, { x0: 31, x1: 44, z0: 20.3, z1: 27, style: 2, floors: 2, axis: 'z', face: -1 }],
       range: { x0: 12.5, x1: 30, z0: 25, z1: 49.5 }, lot: { x0: 31, x1: 46, z0: 27, z1: 49.5 }, wash: { x0: 47, x1: 55, z0: 18, z1: 42 } },
@@ -428,6 +429,14 @@ const FAC = (() => {
       L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
       lots.push(L);
       colliders.push(L.col = { x0: L.x0, x1: L.x1, z0: L.z0, z1: L.z1, hy: h - .05 });
+      // 換成模型的設施樓（正面朝 +z 的模型轉成面向 face；glb[2..3] 是模型中心的設施座標，沒給就是地塊中心）：下載失敗由 lotFallback 補回程式立面
+      const it = BLD_ON && o.glb && PROPS_SPEC[o.glb[0]] && PROPS_SPEC[o.glb[0]].items[o.glb[1]];
+      if (it) {
+        const [, , gx, gz] = o.glb;
+        bldPlace.push(L.glb = { set: o.glb[0], id: o.glb[1], x: gx === undefined ? (L.x0 + L.x1) / 2 : F.ax + gx, z: gz === undefined ? (L.z0 + L.z1) / 2 : F.az + gz,
+          ry: o.axis === 'x' ? o.face * Math.PI / 2 : o.face > 0 ? 0 : Math.PI, s: 1, h: it.h, lots: [L] });
+        L.col.hy = Math.max(L.col.hy, it.h);
+      }
       return L;
     });
     for (const k of ['yard', 'range', 'lot', 'wash']) if (F[k]) F[k] = { x0: F.ax + F[k].x0, x1: F.ax + F[k].x1, z0: F.az + F[k].z0, z1: F.az + F[k].z1 };

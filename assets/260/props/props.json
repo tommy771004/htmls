@@ -150,6 +150,46 @@
    }
   ]
  },
+ "v5pd": {
+  "kb": 7902,
+  "items": {
+   "pd": {
+    "w": 19.4,
+    "d": 21.65,
+    "h": 17.45,
+    "tris": 217842
+   }
+  },
+  "credits": [
+   {
+    "file": "southern_district_police_station",
+    "title": "Southern District Police Station",
+    "author": "Katie Wolfe (https://sketchfab.com/katiewolfe)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/southern-district-police-station-3353cf5bfbda4b8797e845594b0cbfa7"
+   }
+  ]
+ },
+ "v5hosp": {
+  "kb": 6988,
+  "items": {
+   "front": {
+    "w": 32.29,
+    "d": 14.3,
+    "h": 18.98,
+    "tris": 241005
+   }
+  },
+  "credits": [
+   {
+    "file": "samaritan_hospital_frontage",
+    "title": "Samaritan Hospital Frontage",
+    "author": "artfletch (https://sketchfab.com/artfletch)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/samaritan-hospital-frontage-316005d0b39b4791b1f54d50594d51ca"
+   }
+  ]
+ },
  "arms": {
   "kb": 1266,
   "items": {
