@@ -31,7 +31,7 @@ for (const [W, H] of [[1440, 900], [390, 844]]) {
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('request', r => { if (!ALLOWED.test(r.url())) errors.push('外部請求：' + r.url().slice(0, 100)); });
   await page.goto(`http://127.0.0.1:${server.address().port}/web/266-eternauta-plaza.html`);
-  await page.waitForFunction(() => { const s = window.__eter?.state; return s && s.load.actors === 'done' && s.load.col === 'done' && s.load.splat === 'done'; }, null, { timeout: 240000, polling: 500 });
+  await page.waitForFunction(() => { const s = window.__eter?.state; return s && s.load.actors === 'done' && s.load.col === 'done' && s.load.splat === 'done'; }, null, { timeout: 480000, polling: 500 }); // 上游 GitHub 慢的時候 65 MB splat＋27 MB FBX 要三四分鐘
   await page.evaluate(() => __eter.start());
   await page.waitForTimeout(2500);
   const G = () => page.evaluate(() => __eter.game);
@@ -87,7 +87,8 @@ for (const [W, H] of [[1440, 900], [390, 844]]) {
     await page.evaluate(() => __eter.interact()); await page.waitForTimeout(500);
     check((await G()).data.opened, 'metro：撬開車廂走道上的補給箱');
     await takeQuest(4);
-  }, 'radio');
+  }, 'store');
+  await room('store', [8.9, -46.6], () => takeQuest(4), 'radio');
 
   // 金屬人
   await page.evaluate(() => { __eter.mission('robots'); const [x, z] = __eter.PTS.aksu; __eter.place(x, z + 1.2, Math.PI); });

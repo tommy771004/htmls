@@ -1,6 +1,6 @@
 # 266 雪夜五月廣場 · 素材來源
 
-`assets/266/` 裡的 `.spz`／`.skin` 都是由 `tools/bake.mjs` 從下列網格模型取樣烘焙出來的 Gaussian splat；`metro.glb` 是 `tools/room-glb.mjs` 把地鐵站與車廂的原始網格合併、壓縮後的版本。烘焙時改了顏色（喪屍化的膚色、軍服壓暗、金屬鏽斑、積雪），並重新綁到 Quaternius 的骨架上；原始模型不在 repo 裡（放在 gitignore 的 `.cache/`）。
+`assets/266/` 裡的 `.spz`／`.skin` 都是由 `tools/bake.mjs` 從下列網格模型取樣烘焙出來的 Gaussian splat；`metro.glb`、`store.glb` 是 `tools/room-glb.mjs` 把地鐵站與車廂、便利店的網格合併、壓縮後的版本。烘焙時改了顏色（喪屍化的膚色、軍服壓暗、金屬鏽斑、積雪），並重新綁到 Quaternius 的骨架上；原始模型不在 repo 裡（放在 gitignore 的 `.cache/`）。
 
 ## CC0
 
@@ -32,5 +32,26 @@
 | `metro.glb` 的車站（拿掉原本的列車，站名牌與販賣機換素色，發車資訊板與零食貨架模糊） | [Lowpoly Berlin U-bahn Station](https://sketchfab.com/models/2a02d3f2eccf4cd29bbaa1348787395e) | n-malmberg |
 | `metro.glb` 的車廂（停在月台邊，拿掉車門） | [Subway Car](https://sketchfab.com/models/16099d2bf71c4e0698a119879eae55f9) | crow（crow.bite） |
 | `subway`（廣場上的地鐵入口，只取欄杆，招牌抹成素板） | [Subway Entrance V2](https://sketchfab.com/models/9bf519fd97ec4685a5d171442494c2a6) | johhny3D |
+| `taxi` | [Canyon '75 Taxi - Low poly model](https://sketchfab.com/3d-models/canyon-75-taxi-low-poly-model-9e8f92a215784f3d8aaaaeab1bef54c4) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) |
+| `sedan` | [Fairheaven LT '80 - Low poly model](https://sketchfab.com/3d-models/fairheaven-lt-80-low-poly-model-e2678da920cc4be68dbc193727919ffb) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) |
+| `hatch` | [Milano '95 - Low poly model](https://sketchfab.com/3d-models/milano-95-low-poly-model-122a22d210234596ad23623588d0d166) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) |
+| `ambulance` | [Shvan '92 Ambulance - Low Poly model](https://sketchfab.com/3d-models/shvan-92-ambulance-low-poly-model-2856dd3c61f940909dced9a5c0379484) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) |
+| `armored` | [MD '84 Armored - Low poly model](https://sketchfab.com/3d-models/md-84-armored-low-poly-model-26e809cce40e4359a3199649f12ef295) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) |
+| `tank`（原檔 146 MB，貼圖先縮成 2K 再烘焙） | [Low Poly Abrams Free Model](https://sketchfab.com/3d-models/low-poly-abrams-free-model-ee925340fd0249bfac6f766c7eb81abd) | [Lasha-Georgy Bajadze](https://sketchfab.com/gsr19891) |
+| `barrier`、`fence`、`cone` | [Barricade Set (low poly, game ready)](https://sketchfab.com/3d-models/barricade-set-low-poly-game-ready-209e7dc032de483cae12eb5c3e7f1bcf) | [TampaJoey](https://sketchfab.com/TampaJoey) |
+| `booth`（玻璃不烘焙） | [Phone booth](https://sketchfab.com/3d-models/phone-booth-f52615a329da4908a42f5fae1d0f37d1) | [YJ_](https://sketchfab.com/YJ_) |
+| `newsbox` | [Newspaper Box With Mat](https://sketchfab.com/3d-models/newspaper-box-with-mat-e4dd34bb4e384dee82d80889fa3742b9) | [neverfollow81](https://sketchfab.com/neverfollow81) |
+| `bin` | [Garbage Bin](https://sketchfab.com/3d-models/garbage-bin-fba6b5a8afdd4eb0a43be29aabceb3d6) | [Glen Ortiz](https://sketchfab.com/roberto_ortiz) |
+| `wheelie` | [Public Bin ( Free )](https://sketchfab.com/3d-models/public-bin-free-f4440ba1c72f42bb887110ada7dcf3ca) | [Pandurus](https://sketchfab.com/ChubbyPanda) |
+| `hydrant` | [Fire Hydrant](https://sketchfab.com/3d-models/fire-hydrant-d012d05e8bca49928a2944e043d93fb7) | [TraianDumbrava](https://sketchfab.com/TraianDumbrava) |
+| `ebox` | [Electrical box - FREE](https://sketchfab.com/3d-models/electrical-box-free-383a234d6d80421fbe67080048cbbc70) | [Mathieu Godard](https://sketchfab.com/Mathieu.Godard) |
+| `bat` | [Baseball Bat](https://sketchfab.com/3d-models/baseball-bat-30b41d95e3cc4f53afb4bac3f71fd821) | [CGunwale](https://sketchfab.com/cgunwale) |
+| `grenade` | [M67 Fragmentation Grenade](https://sketchfab.com/3d-models/m67-fragmentation-grenade-05e2a29118c3408eaa574bcec6997aba) | [Vextin](https://sketchfab.com/vextin) |
+| `sniper` | [USMC M40A5 Sniper](https://sketchfab.com/3d-models/usmc-m40a5-sniper-f724d89f40db46b0afce2b57ac6d4823) | [Urpo](https://sketchfab.com/Urpo) |
+| `store.glb`（街角便利店；商品包裝、冰箱與汽水機的真實品牌照片模糊或換素色，店招與立體字標誌拿掉，門洞裡減面減碎的門框剪掉） | [Convenience store 2](https://sketchfab.com/3d-models/convenience-store-2-3e9ccca610614bcb84cb3b8390c8a9a0) | [Pasha](https://sketchfab.com/Pasha-) |
+
+上面從 `taxi` 到 `store.glb` 的十七項借自 260 霓虹夜城：車、戰車與路障的原檔從 `games/260-neon-nightcity/.cache/` 複製到本資料夾的 `.cache/sketchfab/`；人行道設施、武器與便利店改用 260 已處理過的 `assets/260/props/{street,st2_street,arms,apt_store}.glb`（原檔已不在，解開 meshopt 成 `*_plain.glb`），作者與連結照抄 `assets/260/CREDITS.md`。
+
+任務的英文無線電導引語音（`assets/266/voice/`）由 [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)（hexgrad，Apache-2.0）以 `am_michael` 與 `bm_george` 兩個聲音離線合成，台詞是原創的。
 
 頁面 Esc 選單「關於」分頁的 `.credit-full` 段落列出同樣的作者，改模型時兩邊要一起更新。
