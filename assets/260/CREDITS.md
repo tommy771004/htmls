@@ -219,6 +219,16 @@
 - `container`：一萬七千面跨 UV 接縫減到約七百面，改成霧面；頁面依堆場原本的六色乘上頂點色。
 - `mountain`：減面，底色壓到六成、改霧面（夜裡雪不刺眼）。
 
+### 快速道路的橋墩（`props/hwy.glb`）
+
+尋找匝道與立體交流道模型時下載的四個 Sketchfab 檔案，原檔放在 gitignore 的 `games/260-neon-nightcity/.cache/hwy/`。匝道與交流道本身照路網程式產生（模型的橋面是固定形狀，接不上城裡的路），只用到下表這一件：`tools/props.mjs` 的 `hwy` 組取出混凝土柱與側面的黃色飾條，長邊轉成橫跨橋面；頁面依每座橋墩的高度拉長柱身，帽梁仍是程式建模。只在 http(s) 下載，以檔案開啟或下載失敗時用程式建模的圓柱。
+
+| 物件 | 用途 | 原檔 | 作者 | 授權 |
+|---|---|---|---|---|
+| `hwy` `pier` | 高架快速道路與匝道的橋墩柱身 | [Cyberpunk HIghway](https://sketchfab.com/3d-models/cyberpunk-highway-ccf1812cc8b14a77b11525f3f746dc91) | [PolyDavid](https://sketchfab.com/PolyDavid) | CC BY 4.0 |
+
+沒有用到的三個：[Highway (Modular) [Street Assets Vol. 04]](https://sketchfab.com/3d-models/highway-modular-street-assets-vol-04-6776eeb54b7c45bfa51dd0fa7edc2830)（Alt，CC BY 4.0；路面寬 8.4 m 的套件，門架與隔音牆要拉長一倍多、玻璃是半透明點陣）、[Modular Bridge ( low Poly ) Game Ready.](https://sketchfab.com/3d-models/modular-bridge-low-poly-game-ready-0d7261538b4e4433b230f083a0cef38f)（Salah3D，CC BY 4.0；橋墩和橋面連成一整塊）、American Road Overpass（jimbogies；410 MB、公分單位的整座場景）。
+
 ## 武器、警方載具與路障（第二階段）
 
 `tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 的消防栓換掉人行道的程式建模消防栓，電箱擺在人行道、加油機擺在遊艇碼頭岸上（只在 http(s) 下），加油機貼圖上的品牌字樣與貼紙模糊成色塊（`texEdit`）。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。

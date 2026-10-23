@@ -155,7 +155,7 @@ function mapDraw() {
     c.fillStyle = `rgba(20,20,20,${.9 * a})`; c.shadowBlur = 0; c.font = `700 ${Math.min(11, 5 + MV.zoom * 1.6) * dpr}px system-ui`;
     // 街名沿著路的方向（路段中點那一小段的角度，字頭朝上）；大道（kind 'z'）用 AVE、街（kind 'x'）用 STR、斜的大道（kind 'd'）與快速道路（'f'）用 DIAG／FWY 的名字
     for (const e of RN.edges) {
-      if (e.kind === 'c') continue;
+      if (e.kind === 'c' || e.ramp) continue;   // 匝道不標名字
       const m = e.pts.length >> 1, p = e.pts[Math.max(0, m - 1)], q = e.pts[Math.min(e.pts.length - 1, m)];
       const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, alt = e.kind === 'z' ? e.a.j : e.kind === 'x' ? e.a.i : 0;
       if (!vis(x, x, z, z) || (alt % 2 && MV.zoom < 3)) continue;

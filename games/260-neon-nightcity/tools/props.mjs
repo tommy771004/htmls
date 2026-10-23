@@ -53,6 +53,9 @@ export const SETS = [
     { id: 'katana', file: 'cyberpunk_katana', len: 1.0, orient: ['-x', 'y'], center: 1 },
     { id: 'baton', file: 'police_baton_game_ready_-_pbr', len: .5, orient: ['-z', 'y'], center: 1 },
   ] },
+  // 快速道路的橋墩柱身（21-coast.js 的 FWY_PIERS，27-props.js 依橋面高度拉長）：PolyDavid 的 Cyberpunk Highway（CC BY 4.0）裡的混凝土柱（Object_63）與側面的黃色飾條（Object_65），
+  // 原檔單位公尺、柱高 8.1 m，長邊（2.9 m）轉成橫跨橋面。其他部件（橋面、路燈、指示牌）不用；原檔放在 .cache/hwy/
+  { out: 'hwy', tex: 512, src: '.cache/hwy', items: [{ id: 'pier', file: 'cyberhwy', only: /^Object_(63|65)$/, scale: 1, rot: 1 }] },
   // 街道物件：消防栓、配電箱、加油機（加油機側板的店名、頂蓋的油品標語與一堆貼紙看不出是不是真實品牌，模糊掉）
   { out: 'street', tex: 512, src: '.cache/raw', texEdit: { 'Material.001': { blur: [[0, .1, .11, .33], [.79, .46, .83, .74], [.12, 0, .19, .08], [.41, 0, .5, .12], [.41, .14, .46, .24],
     [.82, 0, .86, .1], [.82, .15, .86, .25], [.1, .33, .18, .42], [.79, .72, .87, .95], [.15, .9, .22, 1], [.52, .88, .63, 1], [.17, .9, .25, .96], [.8, .88, .86, 1], [.92, .88, .96, 1]] } }, items: [
@@ -677,6 +680,7 @@ async function build(set) {
     credits.push({ file: src.file, title: info.title, author: info.author, license: info.license, source: info.source });
     let prims = collect(doc);
     if (src.drop) prims = prims.filter((p) => !src.drop.test(p.node) && !src.drop.test(p.mat ? p.mat.getName() : ''));
+    if (src.only) prims = prims.filter((p) => src.only.test(p.node));   // 只取這些節點（整個場景的套件只要其中一件）
     if (set.dropPath) prims = prims.filter((p) => !set.dropPath.test(p.path));   // 依祖先節點名（整條路徑）拿掉車、路燈、路面
     if (set.heavy) prims = prims.map((p) => {   // [路徑, 比例]：面數特別高的小零件（冷氣室外機、路燈）單獨大幅減面，其他照整組的 simplify
       if (!set.heavy[0].test(p.path) || p.idx.length < 90) return p;

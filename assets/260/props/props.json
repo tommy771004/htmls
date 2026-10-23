@@ -267,6 +267,26 @@
    }
   ]
  },
+ "hwy": {
+  "kb": 7,
+  "items": {
+   "pier": {
+    "w": 2.94,
+    "d": 1.74,
+    "h": 8.08,
+    "tris": 136
+   }
+  },
+  "credits": [
+   {
+    "file": "cyberhwy",
+    "title": "Cyberpunk HIghway",
+    "author": "PolyDavid (https://sketchfab.com/PolyDavid)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cyberpunk-highway-ccf1812cc8b14a77b11525f3f746dc91"
+   }
+  ]
+ },
  "street": {
   "kb": 385,
   "items": {

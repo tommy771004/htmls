@@ -844,18 +844,21 @@ async function desktop() {
       check(t0.length === 3 && t1.some((t, i) => Math.abs(t.s - t0[i].s) > 2), `集卡在港區行駛 ${JSON.stringify(t1)}`);
     }
     // 斜穿片的大道與沿縫的快速道路（06-roads.js 的 DIAG／FWY）：路網有斜的路段與快速道路；廣場街區沒有樓、大道上是路面；
-    // 快速道路是高架：有從上面越過的連接道路、橋面 7.5 m 以上；開車沿斜的大道開 3.5 秒、從快速道路的銜接點開上坡道 7 秒，車貼著路面（坡道上是坡道的高度）；
-    // 走在越過的連接道路上從橋下穿過去，人留在地面
+    // 快速道路是高架：有從上面越過的連接道路、橋面 7.5 m 以上；兩條快速道路在高架上分合流（共線段兩端的路口在橋面高度、沒有號誌），
+    // 至少有 3 條單向匝道（出口與入口都有），落地點在連接道路上；開車沿斜的大道開 3.5 秒、從快速道路的銜接點開上坡道 7 秒、沿出口匝道往下開 8 秒，
+    // 車貼著路面（坡道上是坡道的高度）；走在越過的連接道路上從橋下穿過去，人留在地面
     {
-      const net = await nc(() => { const n = window.__nc, E = n.roads.edges; return { d: E.filter(e => e.kind === 'd').length, f: E.filter(e => e.kind === 'f').length, free: n.roads.nodes.filter(m => m.free).length, fwys: n.ways.fwy.map(F => (F.edges || []).length), over: n.ways.fwy.reduce((a, F) => a + (F.over || []).length, 0), top: Math.max(...n.ways.fwy.flatMap(F => F.segs.map(g => F.h((g.a0 + g.a1) / 2)))), plaza: n.ways.plaza() }; });
+      const net = await nc(() => { const n = window.__nc, E = n.roads.edges; return { d: E.filter(e => e.kind === 'd').length, f: E.filter(e => e.kind === 'f').length, free: n.roads.nodes.filter(m => m.free).length, fwys: n.ways.fwy.map(F => (F.edges || []).length), over: n.ways.fwy.reduce((a, F) => a + (F.over || []).length, 0), joins: n.ways.fwy.flatMap(F => (F.joins || []).map(j => [+(j.n.y || 0).toFixed(1), !!j.n.nosig])), ramps: n.ways.ramps.map(r => [r.on ? 'on' : 'off', r.edge.oneway, r.edge.b.y || 0, r.edge.a.y || 0, r.e.kind]), top: Math.max(...E.filter(e => e.kind === 'f' && !e.ramp).map(e => e.fwy.h(e.a0 + e.len / 2))), plaza: n.ways.plaza() }; });
       // keep：開快速道路時每 0.1 秒把車頭對準前方 14 m、中心線右邊 4 m 的車道（快速道路彎，放著不管會撞上中央護欄）
-      const ride = async (kind, ms = 3500, keep = false) => {
-        const st = await nc((kind) => {
-          const n = window.__nc, e = n.roads.edges.filter(e => e.kind === kind).sort((a, b) => b.len - a.len)[0], p = e.pts, k = Math.min(3, p.length - 2);
+      // kind 是 'ramp' 時開第一條出口匝道，從分流點往下開、車道在路中間（lat 0）
+      const ride = async (kind, ms = 3500, keep = false, lat = 4) => {
+        const st = await nc(([kind, lat]) => {
+          const n = window.__nc, e = kind === 'ramp' ? n.ways.ramps.find(r => !r.on).edge : n.roads.edges.filter(e => e.kind === kind && !e.ramp).sort((a, b) => b.len - a.len)[0], p = e.pts, k = Math.min(3, p.length - 2);
           const [x0, z0] = p[k], [x1, z1] = p[k + 1], l = Math.hypot(x1 - x0, z1 - z0), hx = (x1 - x0) / l, hz = (z1 - z0) / l;
-          const v = n.player.veh; v.x = x0 - hz * 3; v.z = z0 + hx * 3; v.yaw = Math.atan2(hx, hz); v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v);
-          return { id: e.id, x: v.x, z: v.z };
-        }, kind);
+          const v = n.player.veh; v.x = x0 - hz * Math.min(3, lat); v.z = z0 + hx * Math.min(3, lat); v.yaw = Math.atan2(hx, hz); v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v);
+          if (e.fwy) v.y = e.fwy.h(e.a0 + e.cum[k]);
+          return { id: e.id, x: v.x, z: v.z, lat };
+        }, [kind, lat]);
         await page.waitForTimeout(200);
         await page.keyboard.down('KeyW');
         if (!keep) await page.waitForTimeout(ms);
@@ -864,7 +867,7 @@ async function desktop() {
             const n = window.__nc, v = n.player.veh, e = n.roads.edges[st.id];
             let d = 1e9, u = 0; for (let k = 1; k < e.pts.length; k++) { const [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((v.x - ax) * dx + (v.z - az) * dz) / (dx * dx + dz * dz))), dd = Math.hypot(v.x - ax - dx * t, v.z - az - dz * t); if (dd < d) { d = dd; u = e.cum[k - 1] + Math.hypot(dx, dz) * t; } }
             const at = w => { let k = 1; while (k < e.pts.length - 1 && e.cum[k] < w) k++; const p = e.pts[k - 1], q = e.pts[k], L = e.cum[k] - e.cum[k - 1] || 1, f = Math.min(1, (w - e.cum[k - 1]) / L); return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f, (q[0] - p[0]) / L, (q[1] - p[1]) / L]; };
-            const [x, z, hx, hz] = at(Math.min(e.len, u + 14)), tx = x - hz * 4, tz = z + hx * 4, yaw = Math.atan2(tx - v.x, tz - v.z), sp = Math.hypot(v.vx, v.vz);
+            const [x, z, hx, hz] = at(Math.min(e.len, u + 14)), tx = x - hz * st.lat, tz = z + hx * st.lat, yaw = Math.atan2(tx - v.x, tz - v.z), sp = Math.hypot(v.vx, v.vz);
             v.yaw = yaw; v.vx = Math.sin(yaw) * sp; v.vz = Math.cos(yaw) * sp;
           }, st);
           await page.waitForTimeout(100);
@@ -873,19 +876,22 @@ async function desktop() {
         return nc((st) => {
           const n = window.__nc, v = n.player.veh, e = n.roads.edges[st.id];
           let d = 1e9, u = 0; for (let k = 1; k < e.pts.length; k++) { const [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((v.x - ax) * dx + (v.z - az) * dz) / (dx * dx + dz * dz))), dd = Math.hypot(v.x - ax - dx * t, v.z - az - dz * t); if (dd < d) { d = dd; u = e.cum[k - 1] + Math.hypot(dx, dz) * t; } }
-          return { moved: +Math.hypot(v.x - st.x, v.z - st.z).toFixed(1), off: +d.toFixed(1), y: +v.y.toFixed(2), h: +(e.fwy ? e.fwy.h(e.a0 + u) : 0).toFixed(2) };
+          return { moved: +Math.hypot(v.x - st.x, v.z - st.z).toFixed(1), off: +d.toFixed(1), y: +v.y.toFixed(2), h: +(e.fwy ? e.fwy.h(e.a0 + u) : 0).toFixed(2), u: Math.round(u), len: Math.round(e.len) };
         }, st);
       };
       await nc(() => window.__nc.drive());
       await page.waitForFunction(() => window.__nc.player.veh, null, { timeout: 15000 });
-      const rd = await ride('d'), rf = await ride('f', 7000, true);
+      const rd = await ride('d'), rf = await ride('f', 7000, true), rr = await ride('ramp', 8000, true, 0);
       await nc(() => window.__nc.walk());
-      const ug = await nc(() => { const n = window.__nc, o = n.ways.fwy[0].over[0], [px, pz] = o.e.pts[0], l = Math.hypot(px - o.x, pz - o.z), ux = (px - o.x) / l, uz = (pz - o.z) / l; n.tp(o.x + ux * 12, o.z + uz * 12, Math.atan2(-ux, -uz)); return { x: n.player.x, z: n.player.z, y0: n.player.y }; });
+      const ug = await nc(() => { const n = window.__nc, o = n.ways.fwy.find(F => F.over && F.over.length).over[0], [px, pz] = o.e.pts[0], l = Math.hypot(px - o.x, pz - o.z), ux = (px - o.x) / l, uz = (pz - o.z) / l; n.tp(o.x + ux * 12, o.z + uz * 12, Math.atan2(-ux, -uz)); return { x: n.player.x, z: n.player.z, y0: n.player.y }; });
       await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(5500); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft');
       Object.assign(ug, await nc((ug) => { const p = window.__nc.player; return { moved: +Math.hypot(p.x - ug.x, p.z - ug.z).toFixed(1), y: +p.y.toFixed(2) }; }, ug));
-      check(net.d >= 10 && net.f >= 5 && net.free >= 5 && net.fwys.every(k => k >= 2) && net.over >= 4 && net.top > 7.5 && net.plaza.blocks >= 10 && net.plaza.lots === 0 && net.plaza.road === 0 && net.plaza.walk > 0
-        && rd.moved > 25 && rd.off < 8 && Math.abs(rd.y) < .05 && rf.moved > 60 && rf.off < 8 && rf.h > 3 && Math.abs(rf.y - rf.h) < .6 && ug.moved > 22 && ug.y < .3,
-        `斜的大道與高架快速道路 ${JSON.stringify({ net, rd, rf, ug })}`);
+      check(net.d >= 10 && net.f >= 5 && net.free >= 5 && net.fwys.every(k => k >= 1) && net.fwys.reduce((a, k) => a + k, 0) >= 8 && net.over >= 4 && net.top > 7.5 && net.plaza.blocks >= 10 && net.plaza.lots === 0 && net.plaza.road === 0 && net.plaza.walk > 0
+        && net.joins.length >= 2 && net.joins.every(([y, ns]) => y > 7 && ns)
+        && net.ramps.length >= 3 && net.ramps.some(r => r[0] === 'on') && net.ramps.some(r => r[0] === 'off') && net.ramps.every(r => r[1] === 1 && r[4] === 'c' && (r[0] === 'off' ? r[3] > 3.9 && r[2] === 0 : r[2] > 3.9 && r[3] === 0))
+        && rd.moved > 25 && rd.off < 8 && Math.abs(rd.y) < .05 && rf.moved > 60 && rf.off < 8 && rf.h > 3 && Math.abs(rf.y - rf.h) < .6
+        && rr.moved > 60 && rr.off < 3 && rr.u > rr.len * .45 && Math.abs(rr.y - rr.h) < .6 && ug.moved > 22 && ug.y < .3,
+        `斜的大道、高架快速道路與匝道 ${JSON.stringify({ net, rd, rf, rr, ug })}`);
     }
     // 區與區之間的縫（20-props.js 的 SEAM_PATH／SEAM_SITES）：碎石步道、涼亭、小賣亭、公廁
     {

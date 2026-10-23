@@ -1088,15 +1088,21 @@ function zoneClip(x0, x1, z0, z1) {
   const fs = ROAD_FS.replace(/float ia = [^\n]*\n\s*float js = [^\n]*\n\s*bool onA = [^\n]*\n/, 'float dx = p.x, dz = 40.;\n  bool onA = true, onS = false;\n');
   if (vs === GROUND_VS || fs === ROAD_FS) throw new Error('connector shader patch failed');
   const connMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  // 匝道是單向：不畫中央雙黃線與車道虛線，改成兩側的白色實線邊線
+  const fsR = fs.replace(/float yel = [^;]*;/, 'float yel = 0.;').replace(/paint = max\(paint, step\(abs\(ax - 5\.1\), \.07\) \* step\(\.42, fract\(p\.y\*\.25\)\)\);/, `paint = max(paint, step(abs(ax - ${(RAMP_HW - .45).toFixed(2)}), .08));`);
+  if (fsR === fs) throw new Error('ramp shader patch failed');
+  const rampMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: vs, fragmentShader: fsR, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  for (const ramp of [false, true]) {
   const P = [], N = [], UV = [], AX = [], I = [];
   for (const e of RN.edges) {
-    if (e.kind !== 'c' && e.kind !== 'd' && e.kind !== 'f') continue;   // 連接道路、斜的大道與快速道路（06-roads.js）
+    if (e.kind !== 'c' && e.kind !== 'd' && e.kind !== 'f' || !!e.ramp !== ramp) continue;   // 連接道路、斜的大道與快速道路（06-roads.js）
     const u0 = HR - .4, u1 = e.len - HR + .4, n = Math.max(2, Math.ceil((u1 - u0) / 2.5)), base = P.length / 3;
     for (let k = 0; k <= n; k++) {
       const u = u0 + (u1 - u0) * k / n, [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1.2)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1.2));
       const l = Math.hypot(xb - xa, zb - za) || 1, ax = (zb - za) / l, az = -(xb - xa) / l;   // 橫向：沿路方向轉成「邏輯 x 軸」那一側（和 nW() 的慣例一樣）
       const y = .004 + (e.kind === 'f' ? fwyH(e, u) : 0);   // 快速道路的上下坡與橋面（06-roads.js）
-      for (const s of [-1, 1]) { P.push(x + ax * HR * s, y, z + az * HR * s); N.push(0, 1, 0); UV.push(HR * s, u); AX.push(ax, az); }
+      const w = e.hw || HR;   // 匝道窄一點（06-roads.js 的 RAMP_HW）
+      for (const s of [-1, 1]) { P.push(x + ax * w * s, y, z + az * w * s); N.push(0, 1, 0); UV.push(w * s, u); AX.push(ax, az); }
       if (k) I.push(base + 2 * k - 2, base + 2 * k - 1, base + 2 * k + 1, base + 2 * k - 2, base + 2 * k + 1, base + 2 * k);
     }
   }
@@ -1104,7 +1110,8 @@ function zoneClip(x0, x1, z0, z1) {
   cg.setAttribute('position', new T.Float32BufferAttribute(P, 3)); cg.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
   cg.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); cg.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2));
   cg.setIndex(I); cg.computeBoundingSphere();
-  groundAdd(new T.Mesh(cg, connMat), null);
+  groundAdd(new T.Mesh(cg, ramp ? rampMat : connMat), null);
+  }
 }
 // 岬角臨水的邊（21-coast.js 沿這些邊裝欄杆）；兩端各補一段順著岸的擋牆，蓋住岸邊擋牆每 2 m 取樣留下的空隙
 for (const h of CAPES) {

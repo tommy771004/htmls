@@ -95,8 +95,8 @@ for (const D of DIAG) {
 // 邏輯座標的點在廣場格子裡的話，到那段斜線中心線的距離（不在廣場格子裡是 Infinity）
 const plazaAt = (x, z) => PLAZA.get(Math.floor((x - X0) / P) + ',' + Math.floor((z - Z0) / Q));
 const plazaD = (x, z) => { const p = plazaAt(x, z); return p ? Math.abs((x - p.ax) * p.uz - (z - p.az) * p.ux) : Infinity; };
-// ─── 沿縫的快速道路（kind 'f'）：沿著幾對相鄰片之間的縫（兩片邊界路的中線）一路接下去的長路，和穿過縫的連接道路平面交叉
-// （交叉點是新的路口 free：沒有片、沒有 i／j，號誌照 edgeAx 分兩相，快速道路一相、連接道路一相）。兩端停在最外面那條連接道路上，沒有死路。
+// ─── 沿縫的快速道路（kind 'f'）：沿著幾對相鄰片之間的縫（兩片邊界路的中線）一路接下去的長路，架在橋上越過穿過縫的連接道路；
+// 兩端停在最外面那條連接道路上（平面號誌路口），中間用匝道上下（見下面的 FWY_RAMPS），兩條快速道路共用一段橋面（共線段）。
 // pairs 依序是縫的兩片（片的 key）；中線每 4 m 取一點，換片的地方平滑接過去
 const FWY = [
   { name: 'Ridgeline Fwy', zh: '北嶺快速道路', pairs: [['A2', 'B1'], ['A2', 'B2'], ['D2', 'E'], ['E', 'G2'], ['G2', 'H1']] },
@@ -187,87 +187,192 @@ for (const F of FWY) {
   for (let it = 0; it < 3; it++) P = P.map((_, k) => { let x = 0, z = 0, n = 0; for (let d = -8; d <= 8; d++) { const q = P[clamp(k + d, 0, P.length - 1)]; x += q[0]; z += q[1]; n++; } return [x / n, z / n]; });
   F.P = fwyClear(P);
 }
-// 交點：和連接道路（一條只切一次，兩次以上是沿著縫走、不是穿過；太靠近片的路口的不切），以及快速道路彼此（共用同一個路口，先列的那條是主線 maj）
-const fwyNode = (x, z) => { const m = { id: RN.nodes.length, zn: null, i: 1000 + RN.nodes.length % 13, j: 1000 + RN.nodes.length % 7, x, z, out: [], free: 1 }; RN.nodes.push(m); return m; };
-for (const F of FWY) F.X = [];
-for (const F of FWY) for (const e of RN.edges) if (e.kind === 'c') {
-  const cs = polyCross(F.P, e.pts);
-  if (cs.length !== 1) continue;
-  const c = cs[0], u = e.cum[c.j] + Math.hypot(c.x - e.pts[c.j][0], c.z - e.pts[c.j][1]);
-  if (u > HR + 8 && u < e.len - HR - 8) F.X.push({ e, c, u, s: c.i + c.t });
-}
-FWY.forEach((F, a) => FWY.slice(a + 1).forEach(G => {
-  for (const c of polyCross(F.P, G.P)) {
-    const h = { c, maj: F, fs: [F, G] };   // 路口要用到才建（被剪掉的端點外就不建，免得留下沒有路的節點）
-    F.X.push({ h, s: c.i + c.t }); G.X.push({ h, s: c.j + c.u });
+const fwyArc = F => { F.S = [0]; for (let k = 1; k < F.P.length; k++) F.S.push(F.S[k - 1] + Math.hypot(F.P[k][0] - F.P[k - 1][0], F.P[k][1] - F.P[k - 1][1])); };
+// 弧長 a 的點與單位切線
+function fwyAt(F, a) { const { P, S } = F; let k = 1; while (k < P.length - 1 && S[k] < a) k++; const L = S[k] - S[k - 1] || 1, t = clamp((a - S[k - 1]) / L, 0, 1); return [P[k - 1][0] + (P[k][0] - P[k - 1][0]) * t, P[k - 1][1] + (P[k][1] - P[k - 1][1]) * t, (P[k][0] - P[k - 1][0]) / L, (P[k][1] - P[k - 1][1]) / L]; }
+// 點投影到快速道路：a 是弧長，l 是側向距離（往弧長增加的方向看，右手邊為正），d 是距離
+function fwyProj(F, x, z) {
+  const { P, S } = F; let best = null;
+  for (let k = 1; k < P.length; k++) {
+    const p = P[k - 1], q = P[k], dx = q[0] - p[0], dz = q[1] - p[1], L2 = dx * dx + dz * dz || 1, t = clamp(((x - p[0]) * dx + (z - p[1]) * dz) / L2, 0, 1), px = p[0] + dx * t, pz = p[1] + dz * t, d = Math.hypot(x - px, z - pz);
+    if (!best || d < best.d) { const L = Math.sqrt(L2); best = { a: S[k - 1] + L * t, l: ((x - px) * -dz + (z - pz) * dx) / L, d }; }
   }
-}));
-// ─── 高架：快速道路大多架在橋上，從上面越過連接道路；只在「銜接點」下到地面，和連接道路以號誌路口相交（匝道就是快速道路本身的上下坡）。
-// 銜接點：兩端、兩條快速道路的交點，以及離銜接點不到 FWY_CLR 的交點（坡還沒爬到能從路上越過的高度）；其他交點都從上面越過，連接道路不切開。
-// 兩個銜接點之間有越過的交點就整段架高：出路口 FWY_PAD 平的，緩和曲線爬 FWY_LR 到 DECK_H，橋面平的，再降下來；沒有越過的交點就留在地面
+  return best;
+}
+const bez3 = (p0, p1, p2, p3) => { const n = Math.max(8, Math.ceil(Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) / 4)), out = []; for (let k = 0; k <= n; k++) { const t = k / n, u = 1 - t, a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t; out.push([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]); } return out; };
+// ─── 共線段：北嶺快速道路沿港灣快速道路那道縫走了一段（兩條中心線只差十幾公尺，擠在同一座橋寬裡），拆成北段與南段：
+// 北段在 Y1 斜著（和港灣差 FWY_ANG）併入港灣，南段在 Y2 從港灣分出去往南，中間開在港灣的橋面上。
+// Y1、Y2 是高架上的分合流點（不設號誌）；北段的 tail、南段的 head 和港灣的 joins 是同一個物件 { host, a, n }
+const FWY_ANG = .4;
+{
+  const R = FWY[0], H = FWY[1];
+  fwyArc(R); fwyArc(H);
+  const D = R.P.map(([x, z]) => fwyProj(H, x, z)), iA = D.findIndex(o => o.d < 30), iB = D.length - 1 - [...D].reverse().findIndex(o => o.d < 30);
+  const dirH = Math.sign(D[iB].a - D[iA].a) || 1, aY1 = D[iA].a + dirH * 30, aY2 = D[iB].a - dirH * 30;
+  if (iA > 0 && iB > iA && (aY2 - aY1) * dirH > 80) {
+    const turn = ([x, z], r) => [x * Math.cos(r) - z * Math.sin(r), x * Math.sin(r) + z * Math.cos(r)];
+    const at = a => { const [x, z, hx, hz] = fwyAt(H, a); return [[x, z], [hx * dirH, hz * dirH]]; };
+    const tanR = k => { const p = R.P[Math.max(0, k - 1)], q = R.P[Math.min(R.P.length - 1, k + 1)], l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; return [(q[0] - p[0]) / l, (q[1] - p[1]) / l]; };
+    const side = ([x, z], [px, pz], [tx, tz]) => Math.sign((x - px) * -tz + (z - pz) * tx) || 1;
+    const kQ = R.S.findIndex(s => s > R.S[iA] - 120), kR = R.S.findIndex(s => s > R.S[iB] + 120);
+    const [Y1, T1] = at(aY1), [Y2, T2] = at(aY2), Q = R.P[kQ], Rp = R.P[kR], tQ = tanR(kQ), tR = tanR(kR);
+    const tE = turn(T1, -side(Q, Y1, T1) * FWY_ANG), tS = turn(T2, side(Rp, Y2, T2) * FWY_ANG);
+    const h1 = Math.hypot(Y1[0] - Q[0], Y1[1] - Q[1]) * .38, h2 = Math.hypot(Rp[0] - Y2[0], Rp[1] - Y2[1]) * .38;
+    const j1 = { host: H, a: aY1 }, j2 = { host: H, a: aY2 };
+    const N = { name: R.name, zh: R.zh, tail: j1, P: [...R.P.slice(0, kQ), ...bez3(Q, [Q[0] + tQ[0] * h1, Q[1] + tQ[1] * h1], [Y1[0] - tE[0] * h1, Y1[1] - tE[1] * h1], Y1)] };
+    const S2 = { name: R.name, zh: R.zh, head: j2, P: [...bez3(Y2, [Y2[0] + tS[0] * h2, Y2[1] + tS[1] * h2], [Rp[0] - tR[0] * h2, Rp[1] - tR[1] * h2], Rp), ...R.P.slice(kR + 1)] };
+    H.joins = [j1, j2];
+    FWY.splice(0, 1, N, S2);
+  }
+}
+// ─── 高架：快速道路除了兩端都架在橋上，從上面越過穿過縫的連接道路（連接道路不切開）。
+// 兩端停在最外面的連接道路上（平面號誌路口），出路口 FWY_PAD 平的，緩和曲線爬 FWY_LR 到 DECK_H；下一條連接道路離端點不到 FWY_CLR（坡還沒爬到能從路上越過的高度）
+// 就把端點往內移到那一條。接到另一條快速道路的那一端（head／tail）本來就在橋面上
 // FWY_LR 140 m 的緩和曲線最陡 8.6%；FWY_CLR：出平路段後 101 m 爬到 6.4 m（橋下淨高 5.2 m）
 const DECK_H = 8, DECK_T = 1.2, FWY_PAD = HR + 4, FWY_LR = 140, FWY_CLR = FWY_PAD + 101, DECK_W = HR + 1.2;
 const fwyEase = t => t * t * (3 - 2 * t);
+// 快速道路自己的路口：沒有片、沒有 i／j（號誌照 edgeAx 分兩相，快速道路一相、連接道路一相）；y 是高架上的分合流點，不設號誌
+const fwyNode = (x, z, y = 0) => { const m = { id: RN.nodes.length, zn: null, i: 1000 + RN.nodes.length % 13, j: 1000 + RN.nodes.length % 7, x, z, out: [], free: 1 }; if (y) Object.assign(m, { y, nosig: 1 }); RN.nodes.push(m); return m; };
 for (const F of FWY) {
-  const { P, X } = F;
-  X.sort((p, q) => p.s - q.s);
-  // 兩端停在最外面的連接道路交點（快速道路彼此的交點不當端點）
-  while (X.length && !X[0].e) X.shift();
-  while (X.length && !X.at(-1).e) X.pop();
-  if (X.length < 2) continue;
-  // 弧長（fwyClear 推過之後點距不再是 4 m）
-  F.S = [0]; for (let k = 1; k < P.length; k++) F.S.push(F.S[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]));
-  const arc = s => { const k = Math.min(Math.floor(s), P.length - 2); return F.S[k] + (F.S[k + 1] - F.S[k]) * (s - k); };
-  // 兩條快速道路的交點：兩條路分開（坡道的護欄碰不到另一條的車道：中心線相距 DECK_W + HR + 1.5 以上）之後才開始爬坡
-  const atA = a => { let k = 1; while (k < P.length - 1 && F.S[k] < a) k++; const t = clamp((a - F.S[k - 1]) / (F.S[k] - F.S[k - 1] || 1), 0, 1); return [P[k - 1][0] + (P[k][0] - P[k - 1][0]) * t, P[k - 1][1] + (P[k][1] - P[k - 1][1]) * t]; };
-  const sep = (o, a, dir) => { for (let d = 0; d < 300; d += 4) { const [x, z] = atA(a + dir * d); if (o.P.every(q => (q[0] - x) ** 2 + (q[1] - z) ** 2 > (DECK_W + HR + 1.5) ** 2)) return d; } return 300; };
-  for (const x of X) { x.a = arc(x.s); x.g = !!x.h; x.padF = x.padB = FWY_PAD; }
-  for (const x of X) if (x.h) { const o = x.h.fs.find(G => G !== F); x.padF = Math.max(FWY_PAD, sep(o, x.a, 1) + 6); x.padB = Math.max(FWY_PAD, sep(o, x.a, -1) + 6); }
-  X[0].g = X.at(-1).g = true;
-  // 離銜接點（含它的平路段）不到 FWY_CLR − FWY_PAD 的交點也要銜接
-  const near = (x, y) => y.a <= x.a ? x.a - y.a < y.padF + FWY_CLR - FWY_PAD : y.a - x.a < y.padB + FWY_CLR - FWY_PAD;
-  for (let ch = true; ch;) { ch = false; for (const x of X) if (!x.g && X.some(y => y.g && near(x, y))) x.g = ch = true; }
-  F.segs = [];
-  const G = X.filter(x => x.g);
-  for (let k = 1; k < G.length; k++) if (X.some(x => !x.g && x.a > G[k - 1].a && x.a < G[k].a)) F.segs.push({ a0: G[k - 1].a, a1: G[k].a, p0: G[k - 1].padF, p1: G[k].padB });
-  F.h = a => { for (const g of F.segs) if (a > g.a0 && a < g.a1) return DECK_H * fwyEase(clamp(Math.min(a - g.a0 - g.p0, g.a1 - g.p1 - a) / FWY_LR, 0, 1)); return 0; };
-  F.over = X.filter(x => !x.g).map(x => ({ e: x.e, a: x.a, x: x.c.x, z: x.c.z }));   // 從上面越過的連接道路
-  F.nodes = []; F.edges = [];
-  let prev = null;
-  for (const x of G) {
-    const m = x.h ? (x.h.n ||= Object.assign(fwyNode(x.h.c.x, x.h.c.z), { maj: x.h.maj })) : fwyNode(x.c.x, x.c.z);
-    if (x.e) rnSplit(x.e, x.u, m);   // 連接道路在銜接點切開
-    if (prev) {
-      const pts = [[prev.n.x, prev.n.z]];
-      for (let k2 = Math.ceil(prev.s); k2 <= Math.floor(x.s); k2++) if (k2 > prev.s && k2 < x.s) pts.push(P[k2]);
-      pts.push([m.x, m.z]);
-      F.edges.push(Object.assign(rnAddEdge(prev.n, m, 'f', null, pts), { fwy: F, a0: prev.a }));
+  fwyArc(F);
+  // 和連接道路的交點（一條只算一次：兩次以上是沿著縫走、不是穿過；太靠近片的路口的不算）
+  const X = [];
+  for (const e of RN.edges) if (e.kind === 'c') {
+    const cs = polyCross(F.P, e.pts);
+    if (cs.length !== 1) continue;
+    const c = cs[0], u = e.cum[c.j] + Math.hypot(c.x - e.pts[c.j][0], c.z - e.pts[c.j][1]);
+    if (u > HR + 8 && u < e.len - HR - 8) X.push({ e, c, u, a: F.S[c.i] + (F.S[c.i + 1] - F.S[c.i]) * c.t });
+  }
+  X.sort((p, q) => p.a - q.a);
+  if (!F.head) while (X.length > 2 && X[1].a - X[0].a < FWY_CLR) X.shift();
+  if (!F.tail) while (X.length > 2 && X.at(-1).a - X.at(-2).a < FWY_CLR) X.pop();
+  F.a0 = F.head ? 0 : X[0].a; F.a1 = F.tail ? F.S.at(-1) : X.at(-1).a;
+  F.ends = [F.head ? null : X[0], F.tail ? null : X.at(-1)];
+  F.h = a => a < F.a0 - .01 || a > F.a1 + .01 ? 0 : DECK_H * fwyEase(clamp(Math.min(F.head ? 1e9 : a - F.a0 - FWY_PAD, F.tail ? 1e9 : F.a1 - FWY_PAD - a) / FWY_LR, 0, 1));
+  F.X = X.filter(x => x.a > F.a0 + 1 && x.a < F.a1 - 1);   // 從上面越過的連接道路
+}
+// ─── 匝道（單向，kind 'f'、ramp）：出口匝道在行車方向的右手邊從主線分出，RAMP_DIV 公尺內岔開到 RAMP_D（放不下就試 26 m）外，
+// 岔開的那段跟著主線的高度（兩座橋面還疊在一起），再下坡，在下一條從橋下穿過的連接道路上以 T 字路口（號誌，匝道一相、連接道路一相）落地；
+// 入口匝道反過來，從同一個路口上去，在越過那條路之後併入主線。分合流點要在主線至少 4 m 高的地方、離別的分合流點 30 m 以上；岔開段不能在主線急彎內側折回；
+// 整條匝道離片的路與人行道、別的快速道路與匝道都要夠遠，越過別的連接道路的地方要有 6.6 m 高。下坡最陡約 11%
+const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, FWY_RAMPS = [];
+{
+  const CD = RN.edges.filter(e => e.kind === 'c' || e.kind === 'd');
+  const segD = (pts, x, z) => { let b = 1e9; for (let k = 1; k < pts.length; k++) { const a = pts[k - 1], q = pts[k], dx = q[0] - a[0], dz = q[1] - a[1], t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1); b = Math.min(b, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t)); } return b; };
+  const busy = F => [...(F.joins || []).map(j => j.a), ...FWY_RAMPS.filter(r => r.F === F).map(r => r.aM)];
+  // 連接道路和主線右手邊 l 那條線的交點
+  const landing = (F, e, l) => {
+    for (let k = 1; k < e.pts.length; k++) {
+      const p = fwyProj(F, ...e.pts[k - 1]), q = fwyProj(F, ...e.pts[k]);
+      if ((p.l - l) * (q.l - l) > 0 || Math.abs(q.l - p.l) < 1e-6) continue;
+      const t = (l - p.l) / (q.l - p.l), [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k];
+      return { x: ax + (bx - ax) * t, z: az + (bz - az) * t, a: p.a + (q.a - p.a) * t, u: e.cum[k - 1] + (e.cum[k] - e.cum[k - 1]) * t };
     }
-    F.nodes.push(m); prev = { n: m, s: x.s, a: x.a };
+    return null;
+  };
+  function tryRamp(F, x, dl, on) {
+    const e = x.e, sg = on ? dl : -dl;   // sg：分合流點在落地點的哪一邊（弧長方向）
+    if (e.kind !== 'c') return null;   // 落地只接連接道路（splitConn 只切 'c'）
+    const mate = FWY_RAMPS.find(r => r.e === e && r.dl === dl);   // 同一個路口的出口與入口共用落地點
+    for (const D of mate ? [mate.D] : [18, 26]) {
+      const want = dl * D, T = landing(F, e, want);
+      if (!T || T.u < HR + 8 || T.u > e.len - HR - 8) continue;
+      for (let Lr = 130; Lr <= 320; Lr += 10) {
+        const aM = T.a + sg * Lr;
+        if (aM < F.a0 || aM > F.a1 || busy(F).some(b => Math.abs(b - aM) < 30)) continue;
+        // 中心線：從分合流點沿主線往落地點，側向距離緩和地岔開；高度先跟著主線，再降到地面（落地點前 FWY_PAD 是平的）
+        const pts = [], hs = [], n = Math.ceil(Lr / 4), span = Lr - FWY_PAD - RAMP_DIV + 10;
+        for (let k = 0; k <= n; k++) {
+          const w = Lr * k / n, al = aM - sg * w, l = want * fwyEase(clamp(w / RAMP_DIV, 0, 1)), [px, pz, hx, hz] = fwyAt(F, al);
+          pts.push(k === n ? [T.x, T.z] : [px - hz * l, pz + hx * l]);
+          hs.push(F.h(al) * (1 - fwyEase(clamp((w - RAMP_DIV + 10) / span, 0, 1))));
+        }
+        if (hs[0] < 4 || hs.some((h, k) => k && Math.abs(h - hs[k - 1]) > .11 * Lr / n)) continue;
+        // 主線急彎的內側，平移出去的線會折回來：每 4 m 轉向不能超過 .25 rad（岔開段本身約 .15）
+        const hd = k => Math.atan2(pts[k][1] - pts[k - 1][1], pts[k][0] - pts[k - 1][0]);
+        let bend = 0; for (let k = 2; k < n; k++) { const d = hd(k) - hd(k - 1); bend = Math.max(bend, Math.abs(Math.atan2(Math.sin(d), Math.cos(d)))); }
+        if (bend > .25) continue;
+        let ok = true;
+        for (let k = 0; k < pts.length && ok; k++) {
+          const w = Lr * k / n, [px, pz] = pts[k], toT = Lr - w;
+          if (w < RAMP_DIV - 8) continue;   // 還疊在主線的橋面上
+          ok = inCity(px, pz) && !zoneNearL(px, pz, RAMP_DW + HR + SW)
+            && !(hs[k] < 6.6 && CD.some(o => (o !== e || toT > HR + RAMP_DW + 14) && segD(o.pts, px, pz) < RAMP_DW + HR + 1))
+            && !FWY.some(G => G !== F && G.S && segD(G.P, px, pz) < RAMP_DW + DECK_W + 1)
+            && !FWY_RAMPS.some(r => !(r === mate && toT < HR + 30) && segD(r.pts, px, pz) < 2 * RAMP_DW + 1);
+        }
+        if (!ok) continue;
+        const [mx, mz] = fwyAt(F, aM);
+        return { F, e, x, dl, on, D, T, aM, mx, mz, pts: on ? pts.reverse() : pts, hs: on ? hs.reverse() : hs };
+      }
+    }
+    return null;
+  }
+  for (const F of FWY) for (const x of F.X) for (const dl of [1, -1]) for (const on of [false, true]) { const r = tryRamp(F, x, dl, on); if (r) FWY_RAMPS.push(r); }
+}
+// ─── 路網：每條快速道路依弧長排好它的路口（兩端的平面路口、分合流點、匝道的分合流點），一段一段接成邊；
+// 連接道路在端點與匝道落地處切開
+function splitConn(x, z, m) {   // 連接道路（可能已經切過）在 (x, z) 切開，接到路口 m
+  let best = null;
+  for (const e of RN.edges) if (e.kind === 'c') for (let k = 1; k < e.pts.length; k++) {
+    const p = e.pts[k - 1], q = e.pts[k], dx = q[0] - p[0], dz = q[1] - p[1], L2 = dx * dx + dz * dz || 1, t = clamp(((x - p[0]) * dx + (z - p[1]) * dz) / L2, 0, 1), d = Math.hypot(x - p[0] - dx * t, z - p[1] - dz * t);
+    if (!best || d < best.d) best = { e, u: e.cum[k - 1] + Math.sqrt(L2) * t, d };
+  }
+  rnSplit(best.e, best.u, m);
+}
+for (const F of FWY) {
+  const ns = [];
+  for (const x of F.ends) if (x) { const m = fwyNode(x.c.x, x.c.z); splitConn(x.c.x, x.c.z, m); ns.push({ a: x.a, n: m }); }
+  for (const j of [F.head, F.tail, ...(F.joins || [])]) if (j) { if (!j.n) { const [x, z] = fwyAt(j.host, j.a); j.n = fwyNode(x, z, DECK_H); } ns.push({ a: j.host === F ? j.a : j === F.head ? 0 : F.S.at(-1), n: j.n }); }
+  for (const r of FWY_RAMPS) if (r.F === F) ns.push({ a: r.aM, n: r.M = fwyNode(r.mx, r.mz, F.h(r.aM)) });
+  ns.sort((p, q) => p.a - q.a);
+  F.nodes = ns.map(o => o.n); F.edges = [];
+  for (let k = 1; k < ns.length; k++) {
+    const A = ns[k - 1], B = ns[k], pts = [[A.n.x, A.n.z]];
+    for (let i = 0; i < F.P.length; i++) if (F.S[i] > A.a + .5 && F.S[i] < B.a - .5) pts.push(F.P[i]);
+    pts.push([B.n.x, B.n.z]);
+    F.edges.push(Object.assign(rnAddEdge(A.n, B.n, 'f', null, pts), { fwy: F, a0: A.a }));
   }
 }
-// 快速道路邊上 u（從 a 量起的弧長）的路面高度
+// 匝道的邊：出口 M → T、入口 T → M（oneway 1：只能從 a 開到 b）；落地的 T 兩條匝道共用；高度照 tryRamp 算好的 hs 內插
+{
+  const Ts = new Map();
+  for (const r of FWY_RAMPS) {
+    const key = r.e.id + ':' + r.dl;
+    let T = Ts.get(key);
+    if (!T) { T = fwyNode(r.T.x, r.T.z); splitConn(r.T.x, r.T.z, T); Ts.set(key, T); }
+    const e = rnAddEdge(r.on ? T : r.M, r.on ? r.M : T, 'f', null, r.pts), { cum } = e, hs = r.hs;
+    const h = u => { let k = 1; while (k < cum.length - 1 && cum[k] < u) k++; const t = clamp((u - cum[k - 1]) / (cum[k] - cum[k - 1] || 1), 0, 1); return hs[k - 1] + (hs[k] - hs[k - 1]) * t; };
+    r.edge = Object.assign(e, { fwy: { name: r.F.name, zh: r.F.zh, ramp: 1, h }, a0: 0, ramp: 1, oneway: 1, hw: RAMP_HW, dw: RAMP_DW });
+    r.F.edges.push(e);
+  }
+}
+// 從上面越過的連接道路（切過之後的那一段）
+for (const F of FWY) F.over = F.X.map(x => { const { x: px, z: pz } = x.c; let e = null, bd = 1e9; for (const o of RN.edges) if (o.kind === 'c') for (const [qx, qz] of o.pts) { const d = (qx - px) ** 2 + (qz - pz) ** 2; if (d < bd) { bd = d; e = o; } } return { e, a: x.a, x: px, z: pz }; });
+// 快速道路邊上 u（從 a 量起的弧長）的路面高度（主線、共線段、匝道都是 fwy.h）
 const fwyH = (e, u) => e.fwy ? e.fwy.h(e.a0 + u) : 0;
-// 橋面範圍（世界座標）：32 m 一格分桶的中心線線段；deckAt 只在東西已經在橋面附近或上面時回傳橋面高度（橋下的人車照地面），
-// deckTop 不看高度（生成、傳送到快速道路上的時候用）
+// 橋面範圍（世界座標）：所有快速道路的邊（含匝道）的折線，32 m 一格分桶；deckAt 只在東西已經在橋面附近或上面時回傳橋面高度（橋下的人車照地面），
+// deckTop 不看高度（生成、傳送到快速道路上的時候用）；deckOn 回傳那段邊（21-coast.js 判斷護欄是不是在別條路的橋面上）
 const deckGrid = new Map();
-for (const F of FWY) if (F.segs && F.segs.length) for (let k = 1; k < F.P.length; k++) {
-  const a = F.P[k - 1], b = F.P[k];
-  if (F.h(F.S[k - 1]) <= 0 && F.h(F.S[k]) <= 0) continue;
-  for (let x = Math.floor((Math.min(a[0], b[0]) - DECK_W) / 32); x <= Math.floor((Math.max(a[0], b[0]) + DECK_W) / 32); x++) for (let z = Math.floor((Math.min(a[1], b[1]) - DECK_W) / 32); z <= Math.floor((Math.max(a[1], b[1]) + DECK_W) / 32); z++) {
-    const key = x + ',' + z; (deckGrid.get(key) || deckGrid.set(key, []).get(key)).push([F, k]);
+for (const e of RN.edges) if (e.kind === 'f') for (let k = 1; k < e.pts.length; k++) {
+  const a = e.pts[k - 1], b = e.pts[k], w = e.dw || DECK_W;
+  if (fwyH(e, e.cum[k - 1]) <= .05 && fwyH(e, e.cum[k]) <= .05) continue;
+  for (let x = Math.floor((Math.min(a[0], b[0]) - w) / 32); x <= Math.floor((Math.max(a[0], b[0]) + w) / 32); x++) for (let z = Math.floor((Math.min(a[1], b[1]) - w) / 32); z <= Math.floor((Math.max(a[1], b[1]) + w) / 32); z++) {
+    const key = x + ',' + z; (deckGrid.get(key) || deckGrid.set(key, []).get(key)).push([e, k]);
   }
 }
-function deckTop(X, Z) {
-  let top = null;
-  for (const [F, k] of deckGrid.get(Math.floor(X / 32) + ',' + Math.floor(Z / 32)) || []) {
-    const a = F.P[k - 1], b = F.P[k], dx = b[0] - a[0], dz = b[1] - a[1], L = F.S[k] - F.S[k - 1] || 1, t = clamp(((X - a[0]) * dx + (Z - a[1]) * dz) / (L * L), 0, 1);
-    if (Math.hypot(X - a[0] - dx * t, Z - a[1] - dz * t) > DECK_W) continue;
-    const h = F.h(F.S[k - 1] + L * t);
-    if (h > .05 && (top === null || h > top)) top = h;
+function deckOn(X, Z, skip, pad = 0) {
+  let top = null, te = null;
+  for (const [e, k] of deckGrid.get(Math.floor(X / 32) + ',' + Math.floor(Z / 32)) || []) {
+    if (e === skip) continue;
+    const a = e.pts[k - 1], b = e.pts[k], dx = b[0] - a[0], dz = b[1] - a[1], L = e.cum[k] - e.cum[k - 1] || 1, t = clamp(((X - a[0]) * dx + (Z - a[1]) * dz) / (L * L), 0, 1);
+    if (Math.hypot(X - a[0] - dx * t, Z - a[1] - dz * t) > (e.dw || DECK_W) + pad) continue;
+    const h = fwyH(e, e.cum[k - 1] + L * t);
+    if (h > .05 && (top === null || h > top)) { top = h; te = e; }
   }
-  return top;
+  return te && { h: top, e: te };
 }
+function deckTop(X, Z) { const o = deckOn(X, Z); return o ? o.h : null; }
 const deckAt = (X, Z, y) => { const h = deckTop(X, Z); return h !== null && y > h - 2.2 ? h : null; };
 const segLenE = e => e.len - 2 * HR;
 // 邊上的點：u 是從 a 量起的弧長，回傳 [x, z, 前進方向 x, z]（a → b 的方向）
@@ -280,6 +385,7 @@ function edgeAt(e, u) {
 // 車道上的點：(e, dir, s) 往右偏 lane；回傳 [x, z, fx, fz]（fx、fz 是車頭方向）
 function laneAt(e, dir, s, lane = LANE) {
   const u = dir > 0 ? HR + s : e.len - HR - s, [x, z, hx, hz] = edgeAt(e, u), fx = hx * dir, fz = hz * dir;
+  if (e.oneway) lane -= LANE;   // 單向的匝道：車走路中間
   return [x - fz * lane, z + fx * lane, fx, fz];
 }
 const edgeEnd = (e, dir) => dir > 0 ? e.b : e.a;
@@ -287,7 +393,7 @@ const edgeStart = (e, dir) => dir > 0 ? e.a : e.b;
 // 從節點 n 沿 (e, dir) 出發的方向（世界座標的單位向量）
 const outDir = (e, dir) => { const [, , hx, hz] = edgeAt(e, dir > 0 ? Math.min(HR, e.len / 2) : Math.max(e.len - HR, e.len / 2)); return [hx * dir, hz * dir]; };
 // 號誌分兩相：邊在路口所在區的方向沿邏輯 z 是 'z'（大道），沿 x 是 'x'（街）；連接道路與斜的大道照離開路口的方向歸到比較接近的那一相
-function edgeAx(n, e) { if (n.free) return e.kind === 'f' && (!n.maj || e.fwy === n.maj) ? 'z' : 'x'; if (e.kind === 'z' || e.kind === 'x') return e.kind; const [hx, hz] = outDir(e, e.a === n ? 1 : -1), [lx, lz] = dirL(n.zn, hx, hz, avX(n.i), stZ(n.j)); return Math.abs(lz) > Math.abs(lx) ? 'z' : 'x'; }
+function edgeAx(n, e) { if (n.free) return e.kind === 'f' ? 'z' : 'x'; if (e.kind === 'z' || e.kind === 'x') return e.kind; const [hx, hz] = outDir(e, e.a === n ? 1 : -1), [lx, lz] = dirL(n.zn, hx, hz, avX(n.i), stZ(n.j)); return Math.abs(lz) > Math.abs(lx) ? 'z' : 'x'; }
 // 轉彎：進路口前的車道終點 p0、出路口後的車道起點 p2，控制點 p1 是兩條車道線的交點（直行或幾乎平行就取中點）
 function turnPathE(eIn, dIn, eOut, dOut) {
   const [ax, az, fx, fz] = laneAt(eIn, dIn, segLenE(eIn)), [bx, bz, gx, gz] = laneAt(eOut, dOut, 0);
@@ -298,7 +404,7 @@ function turnPathE(eIn, dIn, eOut, dOut) {
   for (let k = 1; k <= 12; k++) { const t = k / 12, q = bez(p0, p1, p2, t); len += Math.hypot(q[0] - px, q[1] - pz); px = q[0]; pz = q[1]; }
   return { p0, p1, p2, len };
 }
-// 到節點 goal 的最短路程（無向，邊長就是路程）
+// 到節點 goal 的最短路程（邊長就是路程；單向的匝道只算順向）
 function rnField(goal) {
   const n = RN.nodes.length, D = new Float32Array(n).fill(1e9), done = new Uint8Array(n);
   D[goal] = 0;
@@ -306,7 +412,7 @@ function rnField(goal) {
     let b = -1; for (let k = 0; k < n; k++) if (!done[k] && (b < 0 || D[k] < D[b])) b = k;
     if (b < 0 || D[b] >= 1e9) break;
     done[b] = 1;
-    for (const { e } of RN.nodes[b].out) { const m = e.a.id === b ? e.b.id : e.a.id; if (D[b] + e.len < D[m]) D[m] = D[b] + e.len; }
+    for (const { e } of RN.nodes[b].out) { const m = e.a.id === b ? e.b.id : e.a.id; if (e.oneway && e.b.id === m) continue; if (D[b] + e.len < D[m]) D[m] = D[b] + e.len; }   // 單向的匝道只能從 a 開到 b
   }
   return D;
 }

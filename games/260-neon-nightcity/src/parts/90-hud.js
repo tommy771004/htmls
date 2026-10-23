@@ -75,7 +75,7 @@ function drawCity(c, P, k, C, vis, lot, line) {
   c.strokeStyle = C.road; c.lineWidth = 2 * HR * k;
   for (const e of RN.edges) if (e.kind === 'd') { path(e.pts); c.stroke(); }   // 斜的大道蓋在廣場上
   c.strokeStyle = C.fwy || '#b08a3a'; c.lineWidth = 2 * HR * k;
-  for (const e of RN.edges) if (e.kind === 'f') { path(e.pts); c.stroke(); }   // 快速道路（GTA 地圖的黃色）
+  for (const e of RN.edges) if (e.kind === 'f') { c.lineWidth = 2 * (e.hw || HR) * k; path(e.pts); c.stroke(); }   // 快速道路（GTA 地圖的黃色；匝道窄一點）
   if (lot) for (const s of G.lot) if (vis(s.bb)) { c.fillStyle = lot(s.L); path(s.pts, true); c.fill(); }
   if (line) { c.strokeStyle = line; c.lineWidth = 1; for (const e of RN.edges) { path(e.pts); c.stroke(); } }
 }

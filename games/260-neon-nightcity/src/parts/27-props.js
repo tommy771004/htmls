@@ -201,6 +201,12 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       w2Inst(it.hydrant, hydrants, LY.NOREFL, W2R.small); w2Drop(hydrantMesh); W2.swapped.push('hydrant'); W2.n.hydrant = hydrants.length;
       streetLater(it);
     }, () => streetLater(null)),
+    // ─── 快速道路的橋墩柱身（hwy.glb，21-coast.js 的 FWY_PIERS）：柱高照橋面拉長，帽梁還是程式建模 ───
+    w2Load('hwy', it => {
+      const H = it.pier.h || 8;
+      w2Inst(it.pier, FWY_PIERS.map(t => ({ x: t.x, z: t.z, ry: t.ry, sy: t.h / H, zn: null })), 0, W2R.mid * 2);
+      w2Drop(fwyPierMesh); W2.swapped.push('pier'); W2.n.pier = FWY_PIERS.length;
+    }),
     w2Load('st2_street', it => {
       const BINS = ['bin_k', 'bin_g', 'bin_b', 'wheelie'];
       w2Group(bins, 4, t => Math.floor(w2Hash(t.x, t.z) * 4)).forEach((L, k) => w2Inst(it[BINS[k]], L, LY.NOREFL, W2R.small));

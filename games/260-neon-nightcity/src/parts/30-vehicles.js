@@ -224,7 +224,7 @@ for (const p of parked) { const L = TYPES[p.type].len * .3; p.circ = [-1, 1].map
 // 生成行駛中的車：均勻撒在各路段
 const TRAFFIC_EDGES = RN.edges.filter(e => segLenE(e) > 8);
 for (let n = 0; n < TRAFFIC_N; n++) {
-  const e = TRAFFIC_EDGES[Math.floor(rT() * TRAFFIC_EDGES.length)], dir = rT() < .5 ? 1 : -1;
+  const e = TRAFFIC_EDGES[Math.floor(rT() * TRAFFIC_EDGES.length)], dir = rT() < .5 || e.oneway ? 1 : -1;   // 單向的匝道只能從 a 開到 b
   const type = pickType();
   traffic.push({ type, e, dir, s: rT() * segLenE(e), v: 8, turn: null, x: 0, z: 0, yaw: 0, brake: 0, pal: Math.floor(rT() * PAL.length), seed: rT(), stuck: 0, ghost: 0, hit: 0, honk: 0 });
 }
@@ -330,7 +330,7 @@ function trafficRespawn(c, px, pz) {
   const near = TRAFFIC_EDGES.filter(e => { const m = e.pts[0], q = e.pts.at(-1); return Math.min(Math.hypot(m[0] - px, m[1] - pz), Math.hypot(q[0] - px, q[1] - pz)) < 320; });
   if (!near.length) return;
   for (let n = 0; n < 40; n++) {
-    const e = near[Math.floor(rT() * near.length)], dir = rT() < .5 ? 1 : -1;
+    const e = near[Math.floor(rT() * near.length)], dir = rT() < .5 || e.oneway ? 1 : -1;
     const s = rT() * segLenE(e), [x, z] = laneAt(e, dir, s), dd = Math.hypot(x - px, z - pz);
     if (dd < 140 || dd > 250 || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144)) continue;
     Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z, off: 0, offT: 0, blockT: 0, passS: 0, yieldT: 0 });
@@ -341,7 +341,7 @@ function trafficRespawn(c, px, pz) {
 function trafficNext(c) {
   const n = edgeEnd(c.e, c.dir), [, , fx, fz] = laneAt(c.e, c.dir, segLenE(c.e)), opts = [];
   for (const o of n.out) {
-    if (o.e === c.e || segLenE(o.e) <= 8) continue;
+    if (o.e === c.e || segLenE(o.e) <= 8 || o.e.oneway && o.dir !== o.e.oneway) continue;
     const [gx, gz] = outDir(o.e, o.dir), dot = fx * gx + fz * gz, cr = fx * gz - fz * gx;
     if (dot < -.5) continue;
     opts.push([o, dot > .7 ? .55 : cr > 0 ? .25 : .2]);
@@ -359,7 +359,7 @@ function updateTraffic(dt, t) {
     let fx, fz;
     if (c.turn) { const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, c.turn.t); const l = Math.hypot(tg[0], tg[1]) || 1; fx = tg[0] / l; fz = tg[1] / l; }
     else [, , fx, fz] = laneAt(c.e, c.dir, c.s);
-    let want = TYPES[c.type].vmax * (.85 + c.seed * .3) * (!c.turn && c.e.kind === 'f' ? 1.35 : 1);   // 快速道路開快一點
+    let want = TYPES[c.type].vmax * (.85 + c.seed * .3) * (!c.turn && c.e.kind === 'f' && !c.e.ramp ? 1.35 : 1);   // 快速道路開快一點（匝道不算）
     aheadV = 9;
     const gap = c.ghost > 0 ? 99 : carAhead(c, fx, fz, 22);
     const half = TYPES[c.type].len / 2;
@@ -367,7 +367,7 @@ function updateTraffic(dt, t) {
     let atLight = false;
     if (!c.turn) {
       const L = segLenE(c.e), n = edgeEnd(c.e, c.dir);
-      const st = lightState(n.i, n.j, edgeAx(n, c.e), t);
+      const st = n.nosig ? 2 : lightState(n.i, n.j, edgeAx(n, c.e), t);   // 高架上的分合流點沒有號誌
       const stopS = L - 4.4 - half;
       if (st !== 2 && c.s < stopS + .5) {
         const dist = stopS - c.s;
@@ -414,8 +414,8 @@ function updateTraffic(dt, t) {
     if (c.turn) { const q = bez(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); px = q[0]; pz = q[1]; const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); yaw = Math.atan2(tg[0], tg[1]); }
     else { let fx2, fz2; [px, pz, fx2, fz2] = laneAt(c.e, c.dir, c.s, LANE - c.off); yaw = Math.atan2(fx2, fz2) + (dOff && c.v > .5 ? Math.atan2(dOff / dt, c.v) : 0); }
     c.x = px; c.z = pz; c.yaw = yaw;
-    // 快速道路的上下坡（06-roads.js 的 fwyH）：路口裡都是地面
-    let cy = 0, cp = 0;
+    // 快速道路的上下坡（06-roads.js 的 fwyH）：路口裡是路口的高度（高架上的分合流點 n.y，其他是地面）
+    let cy = c.turn ? edgeEnd(c.e, c.dir).y || 0 : 0, cp = 0;
     if (!c.turn && c.e.kind === 'f') { const u = c.dir > 0 ? HR + c.s : c.e.len - HR - c.s; cy = fwyH(c.e, u); cp = -Math.atan((fwyH(c.e, u + c.dir) - cy)); }
     c.y = cy;
     c.pitch = cp + (c.brake && c.v > 1 ? -.012 : 0);

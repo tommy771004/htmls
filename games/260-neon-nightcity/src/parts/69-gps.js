@@ -28,7 +28,7 @@ function routeTo(px, pz, tx, tz) {
   pts.push([n.x, n.z]);
   for (let k = 0; k < 400 && n !== best.gn; k++) {
     let bo = null, bd = best.D[n.id];
-    for (const { e } of n.out) { const m = e.a === n ? e.b : e.a, v = best.D[m.id] + e.len; if (v < bd + .01 && (!bo || v < bo.v)) bo = { e, m, v }; }
+    for (const { e } of n.out) { if (e.oneway && e.b === n) continue; const m = e.a === n ? e.b : e.a, v = best.D[m.id] + e.len; if (v < bd + .01 && (!bo || v < bo.v)) bo = { e, m, v }; }
     if (!bo) break;
     for (const q of edgeWalk(bo.e, n)) pts.push([q[0], q[1]]);
     n = bo.m;

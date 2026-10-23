@@ -78,7 +78,7 @@ for (const e of RN.edges) {
       const nx = (zb - za) / l * s, nz = -(xb - xa) / l * s;   // 往路外
       if (brokenNear(x + nx * 9.6, z + nz * 9.6, 3)) continue;   // 鐵灣高架斷橋的跑道與飛越的路段（06-roads.js）
       if (e.kind === 'f') {   // 快速道路：燈柱立在護欄上（DECK_W 內 0.3 m），跟著上下坡；燈頭伸到路肩上方
-        const y = fwyH(e, u), o = DECK_W - .3;
+        const y = fwyH(e, u), o = (e.dw || DECK_W) - .3;
         lampsC.push({ x: x + nx * o, z: z + nz * o, y, ry: Math.atan2(-nz, nx), hx: x + nx * (o - 2.2), hz: z + nz * (o - 2.2), zn: null });
         continue;
       }
@@ -175,6 +175,7 @@ function coneMat(col) {
 const signals = [];
 for (const n of RN.nodes) for (const { e, dir } of n.out) {
   if (e.kind === 'd') continue;   // 斜的大道跟著方向比較接近的那一相（edgeAx），不另外立號誌
+  if (n.nosig || e.oneway && dir === e.oneway) continue;   // 高架上的分合流點沒有號誌；單向的匝道從這裡出去就沒有來車
   if (n.free) {   // 快速道路與連接道路的交叉口（06-roads.js，世界座標）：立在來車那段路的右前方
     const [gx, gz] = outDir(e, dir), hx = -gx, hz = -gz;   // 來車方向
     signals.push({ x: n.x + gx * 9.2 - hz * 9.2, z: n.z + gz * 9.2 + hx * 9.2, ry: Math.atan2(hx, hz), i: n.i, j: n.j, ax: edgeAx(n, e), zn: null, node: n });
