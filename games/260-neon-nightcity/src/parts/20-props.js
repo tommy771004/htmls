@@ -77,6 +77,12 @@ for (const e of RN.edges) {
       const [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1)), l = Math.hypot(xb - xa, zb - za) || 1;
       const nx = (zb - za) / l * s, nz = -(xb - xa) / l * s;   // 往路外
       if (brokenNear(x + nx * 9.6, z + nz * 9.6, 3)) continue;   // 鐵灣高架斷橋的跑道與飛越的路段（06-roads.js）
+      if (e.kind === 'f') {   // 快速道路：燈柱立在護欄上（DECK_W 內 0.3 m），跟著上下坡；燈頭伸到路肩上方
+        const y = fwyH(e, u), o = DECK_W - .3;
+        lampsC.push({ x: x + nx * o, z: z + nz * o, y, ry: Math.atan2(-nz, nx), hx: x + nx * (o - 2.2), hz: z + nz * (o - 2.2), zn: null });
+        continue;
+      }
+      if (deckTop(x + nx * 9.6, z + nz * 9.6) !== null) continue;   // 從快速道路橋下穿過的那一段不放（燈頭會頂到橋面）
       lampsC.push({ x: x + nx * 9.6, z: z + nz * 9.6, ry: Math.atan2(-nz, nx), hx: x + nx * 7.4, hz: z + nz * 7.4, zn: null });
     }
     continue;
@@ -99,7 +105,7 @@ const lampMeshA = instanced(lampKit(0xff8a3a), MAT.uber, lampsA);
 const lampMeshS = instanced(lampKit(0xb8dcff), MAT.uber, lampsS);
 const lampMeshC = instanced(lampKit(0xff8a3a), MAT.uber, lampsC);
 for (const l of [...lampsA, ...lampsS]) { circles.push(circleToW({ x: l.x, z: l.z, r: .22 }, l.zn)); claim(l.x, l.z, 1.4); }
-for (const l of lampsC) circles.push({ x: l.x, z: l.z, r: .22, w: 1 });
+for (const l of lampsC) if (!(l.y > .3)) circles.push({ x: l.x, z: l.z, r: .22, w: 1 });   // 橋上的燈柱在護欄上，護欄就擋住了
 // 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√420 ≈ 20.5 m）蓋到的每一格；一格超過 LAMP_K 盞就留離格子中心最近的
 function lampTable(heads) {
   const R = Math.sqrt(420) + .5;
@@ -118,7 +124,7 @@ function lampTable(heads) {
   cells.forEach((L, k) => {
     const c = k % nx, d = Math.floor(k / nx), cx = x0 + (c + .5) * LAMP_C, cz = z0 + (d + .5) * LAMP_C;
     if (L.length > LAMP_K) { over++; L.sort((a, b) => (a.x - cx) ** 2 + (a.z - cz) ** 2 - (b.x - cx) ** 2 - (b.z - cz) ** 2); }
-    L.slice(0, LAMP_K).forEach((h, n) => data.set([h.x, h.z, h.t, 1], ((d * nx + c) * LAMP_K + n) * 4));
+    L.slice(0, LAMP_K).forEach((h, n) => data.set([h.x, h.z, h.t, 1 + (h.y || 0)], ((d * nx + c) * LAMP_K + n) * 4));
   });
   if (over) console.warn('lamp table: cells over', LAMP_K, over);
   const tex = new T.DataTexture(data, nx * LAMP_K, nz, T.RGBAFormat, T.FloatType);
@@ -126,7 +132,7 @@ function lampTable(heads) {
   U.uLampT.value = tex; U.uLampG.value.set(x0, z0, nx, nz);
 }
 lampTable([...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; }),
-  ...lampsC.map(l => ({ x: l.hx, z: l.hz, t: 0 }))]);
+  ...lampsC.map(l => ({ x: l.hx, z: l.hz, t: 0, y: l.y }))]);
 // 車行門前的兩台展示車與門口、車庫門前的車道：不放人行道設施
 for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
 
@@ -161,7 +167,7 @@ function coneMat(col) {
   const cg = new T.CylinderGeometry(.22, 3.1, 7, 18, 1, true); cg.translate(0, 3.5, 0);
   instanced(cg, coneMat(0xff9a4c), lampsA.map(l => ({ x: l.hx, z: l.z, zn: l.zn })), LY.NOREFL);
   instanced(cg.clone(), coneMat(0xa8d4ff), lampsS.map(l => ({ x: l.x, z: l.hz, zn: l.zn })), LY.NOREFL);
-  instanced(cg.clone(), coneMat(0xff9a4c), lampsC.map(l => ({ x: l.hx, z: l.hz, zn: null })), LY.NOREFL);
+  instanced(cg.clone(), coneMat(0xff9a4c), lampsC.map(l => ({ x: l.hx, y: l.y, z: l.hz, zn: null })), LY.NOREFL);
 }
 
 // ─── 紅綠燈：每個路口每個來車方向一支懸臂號誌（立在來車那段路的右前方） ───

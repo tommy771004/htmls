@@ -160,7 +160,7 @@ function quickLoad() {
     const s = crew.st[crew.cur], vk = g.veh && g.veh.k;
     if (vk === 'own' && !kestrel.dead) { motors.stowed = false; kestrel.g.visible = true; placeCarAt({ x: s.x, z: s.z, yaw: s.yaw }); enterVehicle(kestrel); }
     else if (vk === 'bike' && !hanzo.dead) { hanzo.x = s.x; hanzo.z = s.z; hanzo.yaw = s.yaw; hanzo.vx = hanzo.vz = 0; hanzo.y = groundH(s.x, s.z); poseVehicle(hanzo); enterVehicle(hanzo); }
-    else if (vk && TYPES[vk] && !TYPES[vk].police) { const v = buildVeh(vk, s.x, s.z, s.yaw, 0, Math.random(), clamp(g.veh.pal | 0, 0, PAL.length)); v.y = groundH(v.x, v.z); jacked.push(v); poseVehicle(v); enterVehicle(v); }
+    else if (vk && TYPES[vk] && !TYPES[vk].police) { const v = buildVeh(vk, s.x, s.z, s.yaw, 0, Math.random(), clamp(g.veh.pal | 0, 0, PAL.length)); v.y = spawnY(v.x, v.z); jacked.push(v); poseVehicle(v); enterVehicle(v); }
     if (g.where && APT[g.where] && estOwned(g.where)) {
       aptLoad(g.where); setWhere(g.where);
       const sp = VENUES[g.where].spawn; player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; player.v = 0; camState.yaw = sp.yaw; camState.pitch = .12;

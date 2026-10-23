@@ -101,8 +101,8 @@ const DIRN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const headingOf = (dx, dz) => ((180 - Math.atan2(dx, dz) * 180 / Math.PI) % 360 + 360) % 360;
 const dirName = h => DIRN[Math.round(h / 45) % 8];
 // 世界座標 → 所在區的邏輯座標，再照方格找最近的大道與街
-function streetName(X, Z) {
-  for (const F of FWY) if (F.edges) for (const e of F.edges) for (const p of e.pts) if (Math.abs(p[0] - X) < HR + 2 && Math.abs(p[1] - Z) < HR + 2) return F.name;   // 快速道路（世界座標，點每 4 m 一個）
+function streetName(X, Z, Y) {
+  if (Y === undefined || deckTop(X, Z) === null || deckAt(X, Z, Y) !== null) for (const F of FWY) if (F.edges) for (const e of F.edges) for (const p of e.pts) if (Math.abs(p[0] - X) < HR + 2 && Math.abs(p[1] - Z) < HR + 2) return F.name;   // 快速道路（世界座標，點每 4 m 一個；在橋下就照地面的路名）
   const [x, z] = toL(X, Z);
   { const p = plazaAt(x, z); if (p && plazaD(x, z) < HR + SW) return p.D.name; }   // 廣場裡斜的大道（06-roads.js）
   if (x < CITY_X0 - 6 || x > CITY_X1 + 6 || z > CITY_Z1 + 6 || z < CITY_Z0 - 6) return district(x, z).replace(/^\S+ /, '');   // 格網外（海邊、島、河濱）沒有街名，顯示地名
@@ -179,7 +179,7 @@ function updateHud(dt) {
   const wpH = gps.wp && p.where === 'out' ? headingOf(gps.wp.x - px, gps.wp.z - pz) : null;
   drawCompass(h, mkH, wpH);
   if (p.where === 'out') {
-    setText('stName', streetName(px, pz));
+    setText('stName', streetName(px, pz, p.mode === 'drive' && p.veh ? p.veh.y : p.y));
     setText('district', districtW(px, pz));
   } else {
     setText('stName', VENUES[p.where].name);

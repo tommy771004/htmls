@@ -124,7 +124,7 @@ function dealSpawn() {
   const fx = Math.sin(sp.yaw), fz = Math.cos(sp.yaw), rx = -fz, rz = fx;   // 行車方向的右側是路邊
   const cx = sp.x + fx * 12 + rx * (PARK - LANE), cz = sp.z + fz * 12 + rz * (PARK - LANE);
   const v = buildVeh('fvan', cx, cz, sp.yaw, 0, Math.random(), 4, 'deal');
-  v.y = groundH(v.x, v.z); poseVehicle(v);
+  v.y = spawnY(v.x, v.z); poseVehicle(v);
   const e = { kind: ST.deal, v, grp: null, bag: null, awake: false };
   e.grp = e;
   // 車尾放箱子，四個人圍在車尾和人行道上
@@ -148,7 +148,7 @@ function bountySpawn() {
   const sp = spawnSpot(90, 170);
   if (!sp) return null;
   const v = buildVeh(Math.random() < .5 ? 'evo190' : 'tiara', sp.x, sp.z, sp.yaw, 10, Math.random(), 1 + Math.floor(Math.random() * 4), 'bounty');
-  v.bounty = true; v.ai = true; v.y = groundH(v.x, v.z); v.hp0 = v.hp;
+  v.bounty = true; v.ai = true; v.y = spawnY(v.x, v.z); v.hp0 = v.hp;
   v.name = '懸賞逃犯車';
   const tk = { v, route: null, k: 1, state: 'drive', t: 0, stuck: 0, rev: 0, spd: 1.35, flee: true };
   truckRoute(tk); poseVehicle(v);

@@ -13,7 +13,7 @@ function truckSpawn(why) {
   const sp = spawnSpot(110, 200);
   if (!sp) return false;
   const v = buildVeh('shvan', sp.x, sp.z, sp.yaw, 8, Math.random(), TRUCK_PAL, 'cash');
-  v.name = TRUCK_NAME; v.hp = 2600; v.mass = 3800; v.vmax = 22; v.eng = 7.5; v.y = groundH(v.x, v.z);
+  v.name = TRUCK_NAME; v.hp = 2600; v.mass = 3800; v.vmax = 22; v.eng = 7.5; v.y = spawnY(v.x, v.z);
   const tk = ev.truck = { v, route: null, k: 1, state: 'drive', t: 0, stuck: 0, rev: 0, cash: 18000 + Math.round(Math.random() * 22) * 1000 };
   truckRoute(tk); poseVehicle(v);
   toast(why === 'zero' ? 'Zero：運鈔車位置傳到你小地圖上了（藍點）' : '附近有運鈔車經過（小地圖藍點）');

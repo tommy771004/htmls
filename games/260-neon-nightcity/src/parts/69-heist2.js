@@ -35,7 +35,7 @@ function enfSpawn() {
   enfDrop();
   clearSpot(ENF_AT.x, ENF_AT.z, 9); clearSpot(ENF_ESC.x, ENF_ESC.z, 7);
   const v = heist.enf = buildVeh('md84', ENF_AT.x, ENF_AT.z, ENF_AT.yaw, 0, .2, 0, 'heist');
-  v.name = 'NCPD 鎮暴裝甲車'; v.lights = 1; v.y = groundH(v.x, v.z); poseVehicle(v);
+  v.name = 'NCPD 鎮暴裝甲車'; v.lights = 1; v.y = spawnY(v.x, v.z); poseVehicle(v);
   const c = heist.escCar = buildVeh('fh_cop', ENF_ESC.x, ENF_ESC.z, ENF_ESC.yaw, 0, .5, 0, 'heist');
   c.name = 'NCPD 護送警車'; c.lights = 1; c.y = groundH(c.x, c.z); poseVehicle(c);
   fRoom(ENF_MEN.length);
@@ -102,12 +102,12 @@ function getawayCar() {
   heist.air = heist.how === 'loud' && !!heist.enfReady;   // 強攻而且做完前置 B：裝甲車＋直升機
   if (!heist.air) {
     const v = buildVeh('tiara', CAR_AT.x, CAR_AT.z, CAR_AT.yaw, 0, .61, 2, 'heist');
-    v.name = '逃亡車 · Tiara GT'; v.vmax = 47; v.eng = 13; v.hp = 2400; v.y = groundH(v.x, v.z); poseVehicle(v);
+    v.name = '逃亡車 · Tiara GT'; v.vmax = 47; v.eng = 13; v.hp = 2400; v.y = spawnY(v.x, v.z); poseVehicle(v);
     return v;
   }
   const v = buildVeh('md84', CAR_AT.x, CAR_AT.z, CAR_AT.yaw, 0, .2, 6, 'heist');   // palI 6 = PAL[5] 墨綠（市政工程車）
   v.name = '改裝裝甲車 · 市政工程塗裝'; v.bpTires = 1; v.disguise = 1;
-  v.hp = v.hpMax = 6000; v.hpLock = 1; v.y = groundH(v.x, v.z); disguiseKit(v); poseVehicle(v);
+  v.hp = v.hpMax = 6000; v.hpLock = 1; v.y = spawnY(v.x, v.z); disguiseKit(v); poseVehicle(v);
   // 每次都在停機坪放一架新的（上一輪的可能停在貨場或炸毀了）
   if (heist.heli && GS.list.includes(heist.heli) && player.veh !== heist.heli) dropGunship(heist.heli);
   clearSpot(HELIPAD.x, HELIPAD.z, 10);

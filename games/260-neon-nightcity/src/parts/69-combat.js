@@ -739,7 +739,7 @@ function vehPairs() {
   if (player.mode === 'walk' && !life.dead && life.hitCd <= 0) {
     for (const v of L) {
       const sp = Math.hypot(v.vx, v.vz);
-      if (sp < 4 || v.dead || v.y > player.y + 1.5) continue;
+      if (sp < 4 || v.dead || v.y > player.y + 1.5 || player.y > v.y + 2.5) continue;   // 快速道路橋上橋下
       for (const s of [1, -1]) {
         const cx = v.x + Math.sin(v.yaw) * v.off * s, cz = v.z + Math.cos(v.yaw) * v.off * s;
         if (Math.hypot(player.x - cx, player.z - cz) < v.rad + .35) { life.hitCd = .8; sfx.impact(sp * .6); knockPlayer(v.vx, v.vz); hurtPlayer(sp * 3.2, v.x, v.z); break; }

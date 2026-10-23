@@ -755,18 +755,20 @@ function updatePlayerWalk(inp, dt, camYaw) {
     mdx = Math.sin(player.yaw); mdz = Math.cos(player.yaw);
   }
   const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
+  colY = player.y;   // 快速道路橋面上的護欄只擋橋上的人、橋下的柱子只擋地面的人（30-vehicles.js）
   let r = collideCircle(nx, nz, .32, false, true);
+  colY = 0;
   let x = r.x, z = r.z;
   if (depth > 0) { [x, z] = farClamp(x, z); z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）
   // 車流與座駕也會擋路
   const pushOut = (ox, oz, rr) => { const dx = x - ox, dz = z - oz, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { x = ox + dx / d * rr; z = oz + dz / d * rr; } };
-  for (const c of traffic) { const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
+  for (const c of traffic) { if (Math.abs((c.y || 0) - player.y) > 2.5) continue; const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
   for (const v of vehicles) { const L = v.off; for (const s of [-1, 1]) pushOut(v.x + Math.sin(v.yaw) * L * s, v.z + Math.cos(v.yaw) * L * s, v.rad + .3); }
   for (let k = 0; k < PED_N; k++) { const p = peds.people[k]; pushOut(p.x, p.z, .55); }
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
-  const fy = player.where === 'out' ? seaFloor(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板
+  const fy = player.where === 'out' ? deckAt(x, z, player.y) ?? seaFloor(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板
   player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;

@@ -366,7 +366,7 @@ function spawnVan() {
   if (heist.van && !heist.van.dead && vehicles.includes(heist.van)) return;
   clearSpot(VAN_AT.x, VAN_AT.z, 7);
   const v = heist.van = buildVeh('shvan', VAN_AT.x, VAN_AT.z, VAN_AT.yaw, 0, .37, 4, 'heist');   // PAL[3] 黑色
-  v.name = '鑽機廂型車'; v.y = groundH(v.x, v.z); heist.vanHot = false; poseVehicle(v);
+  v.name = '鑽機廂型車'; v.y = spawnY(v.x, v.z); heist.vanHot = false; poseVehicle(v);
 }
 function bankEnter() {
   if (W.stars) { toast('通緝中進不去：先甩掉警察'); return; }

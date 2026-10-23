@@ -119,7 +119,7 @@ void lampGrid(inout vec3 dif, inout vec3 spc, vec3 p, vec3 n, vec3 v, float shin
   for (int k = 0; k < ${LAMP_K}; k++) {
     vec4 L = texelFetch(uLampT, ivec2(c.x * ${LAMP_K} + k, c.y), 0);
     if (L.w < .5) break;
-    lampOne(dif, spc, vec3(L.x, 7.1, L.y), L.z < .5 ? cs : cl, p, n, v, shin);
+    lampOne(dif, spc, vec3(L.x, 6.1 + L.w, L.y), L.z < .5 ? cs : cl, p, n, v, shin);   // w = 1 + 燈柱底的高度（快速道路橋面上的燈）
   }
 }
 void pointLights(inout vec3 dif, inout vec3 spc, vec3 p, vec3 n, vec3 v, float shin){

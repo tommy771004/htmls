@@ -226,7 +226,7 @@ function squadGuns() {
 function squadCar(team, type, x, z, yaw, sp) {
   const v = buildVeh(type, x, z, yaw, sp, Math.random(), team === 'gang' ? (Math.random() < .5 ? 4 : 2) : 4, team);
   v.name = team === 'gang' ? `${GANG_NAME}座車` : '鐵幕保全皮卡';
-  v.y = groundH(v.x, v.z); v.ai = true;
+  v.y = spawnY(v.x, v.z); v.ai = true;
   if (team === 'gang') { v.vmax = 37; v.eng = 11.5; v.hp = 1500; } else { v.vmax = 36; v.eng = 11; v.hp = 2600; v.mass = 2800; }
   poseVehicle(v);
   const c = { v, team, field: null, goal: -1, rT: 0, stuck: 0, rev: 0, shotT: 1.5, riders: [] };

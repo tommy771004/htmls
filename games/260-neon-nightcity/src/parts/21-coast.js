@@ -363,8 +363,11 @@ let benchMesh, planterShrubMesh;
   }
   cityAdd(new T.Mesh(k.build(), MAT.uber), null);
 }
-// ─── 快速道路（06-roads.js 的 FWY，世界座標）：中央的混凝土護欄（交叉口前後 HR + 6 m 斷開，碰撞是一段段自己的座標框），
-// 每條長的路段中間一座門架，兩面各掛一塊綠底白字的指示牌（面向那一邊的來車）───
+// ─── 快速道路（06-roads.js 的 FWY，世界座標）：高架橋與上下坡。路面在 10-city.js 的連接道路網格裡（跟著 fwyH 抬高），這裡是橋的結構：
+// 橋面兩側的路肩與護欄、橋面板（厚 DECK_T）、橋下的單柱橋墩與帽梁（離連接道路 HR + 3 m 以內不立）、坡道低於 PIER_H 的部分是實心的擋土牆；
+// 中央的混凝土護欄（銜接點的路口前後 HR + 6 m 斷開）；每條長的路段中間一座門架，兩面各掛一塊綠底白字的指示牌（面向那一邊的來車）。
+// 碰撞：橋面夠高的地方，護欄只擋橋上的（ly），橋墩只擋地面的（hy）；坡道低的地方，兩側的牆什麼都擋（從旁邊上不去）───
+const PIER_H = 4.5;
 {
   const k = new Kit(), font = '"Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif';
   const signMat = new Map();
@@ -380,27 +383,80 @@ let benchMesh, planterShrubMesh;
     const m = new T.MeshBasicMaterial({ map: tx, toneMapped: false, color: 0xb8b8b8 });
     signMat.set(F, m); return m;
   };
+  // 掃掠的四邊形：a、b、c、d 依序繞一圈，want 是該朝外的法線方向（繞錯就翻過來）
+  const pos = [], nor = [], col = [];
+  const quad = (a, b, c, d, want, color) => {
+    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = d[0] - a[0], vy = d[1] - a[1], vz = d[2] - a[2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+    let q = [a, b, c, a, c, d];
+    if (nx * want[0] + ny * want[1] + nz * want[2] < 0) { q = [a, c, b, a, d, c]; nx = -nx; ny = -ny; nz = -nz; }
+    const cc = lin(color);
+    for (const p of q) { pos.push(...p); nor.push(nx, ny, nz); col.push(cc.r, cc.g, cc.b); }
+  };
+  const CONC = 0x8e8a82, CONC_D = 0x6e6a64, ROADSIDE = 0x4a4a4c;
+  const conn = RN.edges.filter(e => e.kind === 'c' || e.kind === 'd');
+  const segDist = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1); return Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t); };
+  const nearRoad = (x, z, r) => conn.some(e => e.pts.some(([px, pz], i) => i && segDist(x, z, e.pts[i - 1], [px, pz]) < r));
   for (const F of FWY) for (const e of F.edges || []) {
+    const n = Math.max(2, Math.ceil(e.len / 3)), S = [];
+    for (let i = 0; i <= n; i++) {
+      const u = e.len * i / n, [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1.2)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1.2)), l = Math.hypot(xb - xa, zb - za) || 1;
+      S.push({ u, x, z, hx: (xb - xa) / l, hz: (zb - za) / l, h: fwyH(e, u) });
+    }
+    for (let i = 1; i <= n; i++) {
+      const A = S[i - 1], B = S[i];
+      if (A.h <= .05 && B.h <= .05) continue;
+      const up = A.h >= PIER_H && B.h >= PIER_H;   // 橋（下面空的）還是坡道（實心）
+      for (const sd of [-1, 1]) {
+        const P = (s, o, y) => [s.x - s.hz * o * sd, y, s.z + s.hx * o * sd], out = [-A.hz * sd, 0, A.hx * sd], inn = [A.hz * sd, 0, -A.hx * sd];
+        const bA = up ? A.h - DECK_T : 0, bB = up ? B.h - DECK_T : 0;
+        quad(P(A, DECK_W, bA), P(B, DECK_W, bB), P(B, DECK_W, B.h + 1), P(A, DECK_W, A.h + 1), out, CONC);   // 外側面（橋面板＋護欄，坡道到地面）
+        quad(P(A, DECK_W - .4, A.h), P(B, DECK_W - .4, B.h), P(B, DECK_W - .4, B.h + 1), P(A, DECK_W - .4, A.h + 1), inn, CONC);   // 護欄內側
+        quad(P(A, DECK_W - .4, A.h + 1), P(B, DECK_W - .4, B.h + 1), P(B, DECK_W, B.h + 1), P(A, DECK_W, A.h + 1), [0, 1, 0], CONC_D);   // 護欄頂
+        quad(P(A, HR - .05, A.h + .006), P(B, HR - .05, B.h + .006), P(B, DECK_W - .4, B.h + .006), P(A, DECK_W - .4, A.h + .006), [0, 1, 0], ROADSIDE);   // 路肩
+        if (up) quad(P(A, 0, A.h - DECK_T), P(B, 0, B.h - DECK_T), P(B, DECK_W, B.h - DECK_T), P(A, DECK_W, A.h - DECK_T), [0, -1, 0], CONC_D);   // 橋面板底
+      }
+      // 碰撞：每 3 m 一段、兩側各一個盒（局部 x 沿路，z 橫向；兩側對稱，不用管哪邊是正）
+      const f = frameW(A.x, A.z, B.x - A.x, B.z - A.z), L = Math.hypot(B.x - A.x, B.z - A.z), lo = Math.min(A.h, B.h);
+      for (const [z0, z1] of [[DECK_W - .5, DECK_W + .3], [-DECK_W - .3, -DECK_W + .5]]) colliders.push(Object.assign({ x0: -.05, x1: L + .05, z0, z1, low: 1, zn: f }, up ? { ly: lo - 1.5 } : {}));
+    }
+    // 橋墩：每 26 m 一座，連接道路與斜的大道旁邊不立
+    for (let u = 13; u < e.len - 13; u += 26) {
+      const h = fwyH(e, u); if (h < PIER_H + .5) continue;
+      const [x, z, hx, hz] = edgeAt(e, u);
+      if (nearRoad(x, z, HR + 3)) continue;
+      const top = h - DECK_T, ry = Math.atan2(hx, hz);
+      k.cyl(x, (top - .8) / 2, z, .95, 1.1, top - .8, 14, CONC, 2).box(x, top - .4, z, 1.8, .8, 2 * DECK_W - 2.4, CONC_D, 2, 0, ry);
+      circles.push({ x, z, r: 1.15, w: 1, hy: top - .6 });
+    }
+    // 中央護欄：銜接點的路口前後 HR + 6 m 斷開；橋上只擋橋上的
     const u0 = HR + 6, u1 = e.len - HR - 6;
     for (let u = u0; u < u1 - .5; u += 6) {
-      const [x0, z0] = edgeAt(e, u), [x1, z1] = edgeAt(e, Math.min(u + 6, u1)), l = Math.hypot(x1 - x0, z1 - z0);
+      const ub = Math.min(u + 6, u1), [x0, z0] = edgeAt(e, u), [x1, z1] = edgeAt(e, ub), l = Math.hypot(x1 - x0, z1 - z0);
       if (l < .3) continue;
-      const ry = Math.atan2(-(z1 - z0), x1 - x0);
-      k.box((x0 + x1) / 2, .42, (z0 + z1) / 2, l + .06, .84, .32, 0x9a968c, 2, 0, ry).box((x0 + x1) / 2, .1, (z0 + z1) / 2, l + .06, .2, .62, 0x8a867c, 2, 0, ry);
-      colliders.push({ x0: -.03, x1: l + .03, z0: -.31, z1: .31, low: 1, zn: frameW(x0, z0, x1 - x0, z1 - z0) });
+      const ha = fwyH(e, u), hb = fwyH(e, ub), y = (ha + hb) / 2, ry = Math.atan2(-(z1 - z0), x1 - x0), rz = Math.atan2(hb - ha, l);
+      k.box((x0 + x1) / 2, y + .42, (z0 + z1) / 2, l + .06, .84, .32, 0x9a968c, 2, 0, ry, rz).box((x0 + x1) / 2, y + .1, (z0 + z1) / 2, l + .06, .2, .62, 0x8a867c, 2, 0, ry, rz);
+      colliders.push(Object.assign({ x0: -.03, x1: l + .03, z0: -.31, z1: .31, low: 1, zn: frameW(x0, z0, x1 - x0, z1 - z0) }, Math.min(ha, hb) >= PIER_H ? { ly: Math.min(ha, hb) - 1.5 } : {}));
     }
     if (e.len < 140) continue;
-    // 門架：兩根柱子在路肩外、橫樑 7 m 高；牌子在橫樑兩面，各在那一邊車道的上方
-    const [mx, mz, hx, hz] = edgeAt(e, e.len / 2), nx = -hz, nz = hx, ry = Math.atan2(hx, hz);
-    for (const sd of [-1, 1]) { const px = mx + nx * sd * (HR + 1.6), pz = mz + nz * sd * (HR + 1.6); k.cyl(px, 3.6, pz, .22, .26, 7.2, 10, 0x6a6e74, 15); circles.push({ x: px, z: pz, r: .3, w: 1 }); }
-    k.box(mx, 7.1, mz, 2 * HR + 3.6, .5, .5, 0x6a6e74, 15, 0, Math.atan2(-nz, nx)).box(mx, 7.6, mz, 2 * HR + 3.6, .16, .16, 0x6a6e74, 15, 0, Math.atan2(-nz, nx));
+    // 門架：兩根柱子立在路肩外（橋上立在護欄上）、橫樑離路面 7 m；牌子在橫樑兩面，各在那一邊車道的上方
+    const [mx, mz, hx, hz] = edgeAt(e, e.len / 2), nx = -hz, nz = hx, gy = fwyH(e, e.len / 2), po = gy > .05 ? DECK_W - .2 : HR + 1.6;
+    for (const sd of [-1, 1]) { const px = mx + nx * sd * po, pz = mz + nz * sd * po; k.cyl(px, gy + 3.6, pz, .22, .26, 7.2, 10, 0x6a6e74, 15); if (gy <= .05) circles.push({ x: px, z: pz, r: .3, w: 1 }); }
+    k.box(mx, gy + 7.1, mz, 2 * po + .4, .5, .5, 0x6a6e74, 15, 0, Math.atan2(-nz, nx)).box(mx, gy + 7.6, mz, 2 * po + .4, .16, .16, 0x6a6e74, 15, 0, Math.atan2(-nz, nx));
     for (const sd of [-1, 1]) {
       const pl = new T.Mesh(new T.PlaneGeometry(6.4, 2), sign(F));
       // 右駕：沿 +h 開的車在 n = (−hz, hx) 那一側；牌子掛在那半邊上方、正面朝來車（−h）
       const side = sd, fx = -sd * hx, fz = -sd * hz;
-      pl.position.set(mx + nx * side * 3.4 + fx * .3, 7.1, mz + nz * side * 3.4 + fz * .3); pl.rotation.y = Math.atan2(fx, fz);
+      pl.position.set(mx + nx * side * 3.4 + fx * .3, gy + 7.1, mz + nz * side * 3.4 + fz * .3); pl.rotation.y = Math.atan2(fx, fz);
       cityAdd(pl, null);
     }
+  }
+  if (pos.length) {
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+    k.add(g, 0xffffff, 2);
+    // Kit.add 把整塊塗成同一色：顏色另外寫回去
+    for (let i = 0, o = k.col.length - col.length; i < col.length; i++) k.col[o + i] = col[i];
   }
   cityAdd(new T.Mesh(k.build(), MAT.uber), null);
 }

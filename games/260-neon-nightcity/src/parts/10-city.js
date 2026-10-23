@@ -1095,7 +1095,8 @@ function zoneClip(x0, x1, z0, z1) {
     for (let k = 0; k <= n; k++) {
       const u = u0 + (u1 - u0) * k / n, [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1.2)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1.2));
       const l = Math.hypot(xb - xa, zb - za) || 1, ax = (zb - za) / l, az = -(xb - xa) / l;   // 橫向：沿路方向轉成「邏輯 x 軸」那一側（和 nW() 的慣例一樣）
-      for (const s of [-1, 1]) { P.push(x + ax * HR * s, .004, z + az * HR * s); N.push(0, 1, 0); UV.push(HR * s, u); AX.push(ax, az); }
+      const y = .004 + (e.kind === 'f' ? fwyH(e, u) : 0);   // 快速道路的上下坡與橋面（06-roads.js）
+      for (const s of [-1, 1]) { P.push(x + ax * HR * s, y, z + az * HR * s); N.push(0, 1, 0); UV.push(HR * s, u); AX.push(ax, az); }
       if (k) I.push(base + 2 * k - 2, base + 2 * k - 1, base + 2 * k + 1, base + 2 * k - 2, base + 2 * k + 1, base + 2 * k);
     }
   }
@@ -1138,7 +1139,7 @@ const onRoad = (X, Z) => groundH(X, Z) === 0;
 const districtW = (X, Z) => {
   if (parkHas(X, Z)) return NPARK.name;
   const zn = zoneOfW(X, Z); let [x, z] = toL(X, Z, zn);
-  if (zn && inCity(X, Z)) { x = clamp(x, zn.x0, zn.x1); z = clamp(z, zn.z0, zn.z1); }   // 片之間的縫（快速道路）：算最近那片的地名，不要外插到海邊的地名
+  if (zn && inCity(X, Z)) { x = clamp(x, avX(zn.ni0), avX(zn.ni1)); z = clamp(z, stZ(zn.nj0), stZ(zn.nj1)); }   // 片之間的縫（快速道路）：算最近那片路網範圍裡的地名，不要外插到海邊的地名（離片遠時 unwarp 會發散）
   return district(x, z);
 };
 // ─── 外緣外面的地形（世界座標）：臨水那一側是 8 m 深的海；靠山那一側從外緣往外慢慢升高（21-coast.js 的山照這個建網格），

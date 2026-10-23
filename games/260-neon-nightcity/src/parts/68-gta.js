@@ -150,6 +150,7 @@ function detachCar(c) {
   v.hpLock = 1;   // 耐久上限就是級距表的（68-wreck.js 的 hpLock：之後被改的 hp 不算上限）
   if (c.hp != null) v.hp = Math.min(v.hp, c.hp);
   if (c.byP) v.byP = c.byP;
+  v.y = c.y || 0;   // 快速道路橋面上的車流
   jacked.push(v);
   poseVehicle(v);
   // 太多台時收掉最舊、離玩家遠、沒人坐的
@@ -167,7 +168,7 @@ function dropVehicle(v) {
 function nearCar(x, z, pad = 1.6) {
   let best = null, bd = pad;
   for (const c of [...traffic, ...parked]) {
-    if (traffic.includes(c) && c.v > 6) continue;
+    if (traffic.includes(c) && c.v > 6 || Math.abs((c.y || 0) - player.y) > 2.5) continue;   // 橋上橋下的車搶不到
     const ty = TYPES[c.type], fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), dx = x - c.x, dz = z - c.z;
     const a = Math.abs(dx * fx + dz * fz) - ty.len / 2, l = Math.abs(dx * fz - dz * fx) - ty.w / 2;
     const d = Math.hypot(Math.max(a, 0), Math.max(l, 0));
@@ -461,7 +462,7 @@ const gtaApi = {
   // 走到最近的車流或路邊車旁並開始搶（parked：只找路邊車）
   jack(parkedOnly = false) {
     if (player.mode === 'drive') exitVehicle();
-    const list = parkedOnly ? parked : traffic, px = player.x, pz = player.z;
+    const list = (parkedOnly ? parked : traffic).filter(o => Math.abs((o.y || 0) - player.y) < 2.5), px = player.x, pz = player.z;
     const c = list.reduce((b, o) => (!b || Math.hypot(o.x - px, o.z - pz) < Math.hypot(b.x - px, b.z - pz) ? o : b), null);
     if (!c) return null;
     const lx = Math.cos(c.yaw), lz = -Math.sin(c.yaw);

@@ -307,7 +307,7 @@ function spawnUnit(kind, at) {
   if (!sp) return null;
   const type = kind === 'swat' ? 'md84' : kind === 'tank' ? 'tank' : COPS[Math.floor(Math.random() * COPS.length)];
   const v = buildVeh(type, sp.x, sp.z, sp.yaw, at ? 0 : 12, Math.random(), 0, 'unit');
-  v.police = true; v.lights = 1; v.y = groundH(v.x, v.z);
+  v.police = true; v.lights = 1; v.y = spawnY(v.x, v.z);
   // 質量、極速、加速、抓地與耐久照級距表（buildVeh 已套上：警車 215 km/h、SWAT 裝甲車是重型 130 km/h、坦克 75 km/h 與 10000 耐久）
   if (kind === 'tank') v.h = 2.4;
   const u = { v, kind: kind || 'car', state: at ? 'block' : 'chase', crew: kind === 'swat' ? 4 : kind === 'tank' ? 0 : 2, drive: !at, stuck: 0, rev: 0, revS: 1, search: null, searchT: 0, out: false, t: 0, gunT: 4 };
@@ -376,7 +376,7 @@ function driveUnit(u, dt) {
   if (u.revN >= 2 && u.state === 'chase') {
     if (dP < 70 && u.crew > 0 && player.mode === 'walk') { u.revN = 0; u.hold = true; crewOut(u); return; }
     const sp2 = dP >= 70 && !onScreen(v.x, v.z) && spawnSpot(60, 130);
-    if (sp2 && !onScreen(sp2.x, sp2.z)) { u.revN = 0; u.rev = 0; v.x = sp2.x; v.z = sp2.z; v.yaw = sp2.yaw; v.vx = Math.sin(sp2.yaw) * 10; v.vz = Math.cos(sp2.yaw) * 10; v.y = groundH(v.x, v.z); poseVehicle(v); return; }
+    if (sp2 && !onScreen(sp2.x, sp2.z)) { u.revN = 0; u.rev = 0; v.x = sp2.x; v.z = sp2.z; v.yaw = sp2.yaw; v.vx = Math.sin(sp2.yaw) * 10; v.vz = Math.cos(sp2.yaw) * 10; v.y = spawnY(v.x, v.z); poseVehicle(v); return; }
   }
   driveVehicle(v, { thr, brk, steer, hb: false }, dt);
   v.lights = 1;

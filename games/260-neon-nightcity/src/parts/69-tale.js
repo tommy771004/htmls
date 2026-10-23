@@ -109,7 +109,7 @@ function taleStart(G, n) {
   } else if (S.type === 'tail') {
     // 跟蹤的車：停在目標路口的車道上，等玩家靠近才上路，終點是 320–480 m 外的路口
     const sp = rnLaneSpot(tgt.x, tgt.z, 10), v = buildVeh(S.car, sp.x, sp.z, sp.yaw, 0, Math.random(), 2, 'tail');
-    v.ai = true; v.y = groundH(v.x, v.z); v.hp0 = v.hp; v.name = S.who;
+    v.ai = true; v.y = spawnY(v.x, v.z); v.hp0 = v.hp; v.name = S.who;
     const c = RN.nodes.filter(n => { const d = Math.hypot(n.x - v.x, n.z - v.z); return d > 320 && d < 480; }), end = c[Math.floor(Math.random() * c.length)];
     a.tk = { v, route: routeTo(v.x, v.z, end.x, end.z), k: 1, state: 'stop', t: 0, stuck: 0, rev: 0, spd: .8 };
     a.sus = 0; a.lost = 0;

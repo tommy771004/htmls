@@ -31,14 +31,14 @@ function carTopAt(x, z, skip) {
     if (Math.abs(x - c.x) > 4 || Math.abs(z - c.z) > 4) continue;
     const ty = TYPES[c.type];
     if (!inside(c.x, c.z, c.yaw, ty.len, ty.w)) continue;
-    const t = groundH(c.x, c.z) + (TRUCKS.includes(c.type) ? 2.4 : 1.45);
+    const t = (c.y || groundH(c.x, c.z)) + (TRUCKS.includes(c.type) ? 2.4 : 1.45);   // c.y：快速道路橋面上的車流
     if (t > top) { top = t; roll.ref = c; }
   }
   return top;
 }
 // 車底該在的高度：地面，或從上面落到的車頂（車頂高過車底 0.35 m 以上就是撞上去，不是疊上去）
 function surfaceH(v) {
-  const g = groundH(v.x, v.z), t = carTopAt(v.x, v.z, v);
+  const g = deckAt(v.x, v.z, v.y) ?? groundH(v.x, v.z), t = carTopAt(v.x, v.z, v);   // 06-roads.js：快速道路的橋面
   v.onCar = t > g && t <= v.y + .35;
   if (!v.onCar) {
     v.uP = null;

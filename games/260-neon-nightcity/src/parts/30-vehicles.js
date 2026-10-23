@@ -291,15 +291,16 @@ parked.forEach(c => { c.brake = 0; placeCar(c, 0, groundH(c.x, c.z) > 0 ? .15 : 
 let aheadV = 0;
 function carAhead(c, fx, fz, maxD) {
   let best = maxD;
-  const test = (ox, oz, w, v) => {
+  const test = (ox, oz, w, v, oy = 0) => {
+    if (Math.abs(oy - (c.y || 0)) > 3) return;   // 快速道路的橋上與橋下
     const rx = ox - c.x, rz = oz - c.z;
     const along = rx * fx + rz * fz; if (along <= .5 || along > best) return;
     const lat = Math.abs(rx * fz - rz * fx); if (lat > 1.3 + w) return;
     best = along; aheadV = v;
   };
-  for (const o of traffic) if (o !== c) test(o.x, o.z, .4, o.v);
-  if (player.mode === 'drive' && player.veh) test(player.veh.x, player.veh.z, .5, Math.hypot(player.veh.vx, player.veh.vz));
-  else if (player.mode === 'walk' && onRoad(player.x, player.z)) test(player.x, player.z, 0, 9);   // 走在路上的人：等他過，不繞
+  for (const o of traffic) if (o !== c) test(o.x, o.z, .4, o.v, o.y);
+  if (player.mode === 'drive' && player.veh) test(player.veh.x, player.veh.z, .5, Math.hypot(player.veh.vx, player.veh.vz), player.veh.y);
+  else if (player.mode === 'walk' && onRoad(player.x, player.z)) test(player.x, player.z, 0, 9, player.y);   // 走在路上的人：等他過，不繞
   return best;
 }
 // 超車：前面的車停住（撞壞、玩家停在車道上）而不是在等紅燈時，等兩秒、看對向車道前方 45 m 沒車，就借對向車道繞過去，過了再切回來。
@@ -413,8 +414,12 @@ function updateTraffic(dt, t) {
     if (c.turn) { const q = bez(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); px = q[0]; pz = q[1]; const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, Math.min(c.turn.t, 1)); yaw = Math.atan2(tg[0], tg[1]); }
     else { let fx2, fz2; [px, pz, fx2, fz2] = laneAt(c.e, c.dir, c.s, LANE - c.off); yaw = Math.atan2(fx2, fz2) + (dOff && c.v > .5 ? Math.atan2(dOff / dt, c.v) : 0); }
     c.x = px; c.z = pz; c.yaw = yaw;
-    c.pitch = c.brake && c.v > 1 ? -.012 : 0;
-    placeCar(c, 0);
+    // 快速道路的上下坡（06-roads.js 的 fwyH）：路口裡都是地面
+    let cy = 0, cp = 0;
+    if (!c.turn && c.e.kind === 'f') { const u = c.dir > 0 ? HR + c.s : c.e.len - HR - c.s; cy = fwyH(c.e, u); cp = -Math.atan((fwyH(c.e, u + c.dir) - cy)); }
+    c.y = cy;
+    c.pitch = cp + (c.brake && c.v > 1 ? -.012 : 0);
+    placeCar(c, 0, cy);
     if (c.honk > 0) c.honk -= dt;
   }
   flushTraffic();
@@ -501,11 +506,11 @@ const vehicles = [kestrel, hanzo];
 
 // 碰撞：圓對 AABB、圓對圓；回傳推出量與法線
 const dynCircles = [];   // 會動的圓（世界座標，每幀重建）：21-coast.js 的岸橋腳與集卡
-let colY = 0;   // 正在算碰撞的東西離地多高：高過 hy 的圓不擋（車開在鐵灣高架斷橋上時，橋下的柱子不算）
+let colY = 0;   // 正在算碰撞的東西離地多高：高過 hy 的圓與盒不擋（車開在鐵灣高架斷橋、快速道路橋面上時，橋下的柱子不算），低於 ly 的盒不擋（橋面的護欄只擋橋上的）
 function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行，可以穿過沙灘外緣的擋牆下水
   let nx = 0, nz = 0, hit = 0;
   for (const b of boxesNear(x, z, r)) {
-    if (swimmer && b.swim) continue;
+    if (swimmer && b.swim || b.ly != null && colY < b.ly || b.hy != null && colY > b.hy) continue;
     if (boxGap(b, x, z) > r) continue;
     // 盒在所屬區的框裡是 AABB：點換進去算，推出後的點與法線再轉回世界
     let [lx, lz] = b.f ? toL(x, z, b.f) : [x, z], ex = 0, ez = 0;
@@ -539,7 +544,8 @@ function vehicleCollide(v, dt) {
     colY = 0;
     let px = r.x - cx, pz = r.z - cz, nx = r.nx, nz = r.nz;
     for (const c of traffic) {
-      if (c === v.under || v.y > 1.1 && v.y > groundH(c.x, c.z) + 1.1) continue;   // 68-roll.js：疊在車頂上、剛從車頂開下來或從上面飛過
+      const cy = c.y || groundH(c.x, c.z);
+      if (c === v.under || v.y > 1.1 && v.y > cy + 1.1 || cy > v.y + 2.5) continue;   // 68-roll.js：疊在車頂上、剛從車頂開下來或從上面飛過；快速道路橋上與橋下
       const L = TYPES[c.type].len * .3;
       for (const t of [-1, 1]) {
         const ox = c.x + Math.sin(c.yaw) * L * t, oz = c.z + Math.cos(c.yaw) * L * t;
@@ -593,7 +599,7 @@ function driveVehicle(v, inp, dt) {
   v.vx = nfx * vF + nrx * vR; v.vz = nfz * vF + nrz * vR;
   v.x += v.vx * dt; v.z += v.vz * dt;
   const imp = vehicleCollide(v, dt);
-  const gh = v.isCar ? surfaceH(v) : groundH(v.x, v.z);   // 68-roll.js：疊在別台車的車頂上
+  const gh = v.isCar ? surfaceH(v) : deckAt(v.x, v.z, v.y) ?? groundH(v.x, v.z);   // 68-roll.js：疊在別台車的車頂上；06-roads.js：快速道路的橋面
   v.y = damp(v.y, gh, 18, dt);
   // 車身姿態：側傾、俯仰、機車壓車
   const latA = vF * v.yr;

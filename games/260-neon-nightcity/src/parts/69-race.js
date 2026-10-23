@@ -105,7 +105,7 @@ function raceStart(R) {
   // 玩家的車擺到右後格
   const me = gridSpot(G, 3);
   stuntReset(v);
-  v.x = me.x; v.z = me.z; v.yaw = me.yaw; v.vx = v.vz = v.yr = v.steer = 0; v.y = groundH(v.x, v.z); poseVehicle(v);
+  v.x = me.x; v.z = me.z; v.yaw = me.yaw; v.vx = v.vz = v.yr = v.steer = 0; v.y = spawnY(v.x, v.z); poseVehicle(v);
   const base = clamp((v.vmax || 50) * .93, 30, 70);
   const rivals = RIVALS.map(([type, name, pal], i) => {
     const sp = gridSpot(G, i), c = buildVeh(type, sp.x, sp.z, sp.yaw, 0, Math.random(), pal, 'race');
@@ -196,7 +196,7 @@ function rivalStep(a, r, pp, dt) {
   // 一直卡住或離路線太遠：玩家看不到時放回路線上
   if ((r.lost > 2 || pr.d > 40) && !onScreen(v.x, v.z)) {
     const p = polyAt(G, r.s, r.k);
-    v.x = p.x; v.z = p.z; v.yaw = Math.atan2(p.dx, p.dz); v.vx = p.dx * 8; v.vz = p.dz * 8; v.y = groundH(v.x, v.z); r.lost = 0; r.rev = 0;
+    v.x = p.x; v.z = p.z; v.yaw = Math.atan2(p.dx, p.dz); v.vx = p.dx * 8; v.vz = p.dz * 8; v.y = spawnY(v.x, v.z); r.lost = 0; r.rev = 0;
   }
   driveVehicle(v, { thr, brk, steer, hb: false }, dt);
   v.lights = 1;
