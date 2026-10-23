@@ -34,7 +34,7 @@ for (const [name, data] of Object.entries(files)) {
   const buf = Buffer.from(data, 'base64'); await writeFile(join(OUT, name), buf);
   console.log(name.padEnd(18), (buf.length / 1024).toFixed(0).padStart(6), 'KB');
 }
-const merged = { ...old, ...manifest, items: { ...old.items, ...manifest.items }, zombies: { ...old.zombies, ...manifest.zombies }, rigs: { ...old.rigs, ...manifest.rigs } };
+const merged = { ...old, ...manifest, items: { ...old.items, ...manifest.items }, scenes: { ...old.scenes, ...manifest.scenes }, zombies: { ...old.zombies, ...manifest.zombies }, rigs: { ...old.rigs, ...manifest.rigs } };
 if (!manifest.clips) merged.clips = old.clips;
 await writeFile(join(OUT, 'manifest.json'), JSON.stringify(merged));
 console.log('manifest.json', (JSON.stringify(merged).length / 1024).toFixed(0), 'KB');

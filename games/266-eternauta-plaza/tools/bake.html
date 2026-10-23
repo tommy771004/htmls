@@ -48,8 +48,8 @@ const texCache = new Map();
 function sampler(tex) {
   if (!tex?.image) return null;
   if (texCache.has(tex)) return texCache.get(tex);
-  const img = tex.image, W = img.width, H = img.height;
-  const c = new OffscreenCanvas(W, H), g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const img = tex.image, k = Math.min(1, 4096 / Math.max(img.width, img.height)), W = Math.round(img.width * k), H = Math.round(img.height * k); // 8K 掃描貼圖縮到 4K，省記憶體
+  const c = new OffscreenCanvas(W, H), g = c.getContext('2d'); g.drawImage(img, 0, 0, W, H);
   const d = g.getImageData(0, 0, W, H).data;
   const fn = (u, v, out) => {
     u = u - Math.floor(u); v = v - Math.floor(v);
@@ -90,7 +90,10 @@ function sampleMesh(acc, mesh, opts) {
       A.fromBufferAttribute(pos, ia).applyMatrix4(M); B.fromBufferAttribute(pos, ib).applyMatrix4(M); C.fromBufferAttribute(pos, ic).applyMatrix4(M);
       const area = new THREE.Vector3().subVectors(B, A).cross(new THREE.Vector3().subVectors(C, A)).length() / 2;
       if (area < 1e-12) continue;
-      carry += area / (d * d); let k = Math.floor(carry); carry -= k;
+      const cy = (A.y + B.y + C.y) / 3;
+      if (opts.minY != null && cy < opts.minY) continue;
+      const dd = opts.spacingAt ? opts.spacingAt(cy) : d; // 室內：近地面細、高處粗
+      carry += area / (dd * dd); let k = Math.floor(carry); carry -= k;
       if (!k) continue;
       if (nor) { NA.fromBufferAttribute(nor, ia).applyMatrix3(NM); NB.fromBufferAttribute(nor, ib).applyMatrix3(NM); NC.fromBufferAttribute(nor, ic).applyMatrix3(NM); }
       const size = Math.sqrt(area / k) * 0.62;
@@ -184,6 +187,14 @@ const ITEMS = [
   { id: 'shelter-b', src: SF + 'modern_bus_stop_shelter.glb', size: 3.39, spacing: 0.026, snow: 0.8, dim: 1.15 },
   { id: 'f35', src: SF + 'f-35a_lightning_ii.glb', size: 15.7, spacing: 0.085, dim: 0.9 }, // 夜空飛過的戰機，機頭朝 +Z
   { id: 'can', src: SF + 'soda_cans_3d_pack.glb', include: /crushed_23$/, size: 0.1, spacing: 0.0035, tint: [0.95, 0.32, 0.26] },
+  // 野戰醫院：鐵架病床（床頭朝 −Z）與血袋
+  { id: 'bed', src: SF + 'hospital_bed.glb', rotY: Math.PI / 2, size: 1.9, spacing: 0.014, dim: 0.9 },
+  { id: 'blood', src: SF + 'blood_bag.glb', size: 0.24, spacing: 0.003 },
+  // 廣場上的地鐵入口（只取綠色欄杆與燈柱，往下的樓梯被廣場地面蓋住，頁面另外補一塊暗色開口）
+  { id: 'subway', src: SF + 'subway_entrance_v2.glb', include: /^Tubeway_Entrance/, blank: [[0.7, 0.995, 0.24, 0.99, [0.03, 0.032, 0.036]]], spacing: 0.03, snow: 0.6, dim: 0.85 },
+  // 室內場景（scene: true 寫進 manifest.scenes，頁面進門時才下載）：origin 是原檔裡的地板中心，bands 依高度分段取樣間距
+  // 地鐵站與車廂不烘 splat（低面數貼圖模型烘出來會糊），由 tools/room-glb.mjs 輸出網格
+  { id: 'hall', scene: true, src: SF + 'st_stephen_walbrook_interior.glb', origin: [0.84, -2.3, -9.4], scale: 0.7, minY: -0.3, bands: [[1, 0.06], [3, 0.066], [7, 0.085], [99, 0.11]] },
 ];
 async function bakeItem(it) {
   const gltf = await loader.loadAsync(it.src);
@@ -200,16 +211,22 @@ async function bakeItem(it) {
   for (const m of meshes) { const b = new THREE.Box3().setFromObject(m, true); b.applyMatrix4(rot); box.union(b); }
   if (it.size) { const d = box.getSize(new THREE.Vector3()), k = it.size / Math.max(d.x, d.y, d.z); rot.premultiply(new THREE.Matrix4().makeScale(k, k, k)); box.min.multiplyScalar(k); box.max.multiplyScalar(k); }
   const sz = box.getSize(new THREE.Vector3()), o = it.grip ? new THREE.Vector3(...it.grip).multiply(sz).add(box.min) : new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2);
+  if (it.origin) { // 室內場景：原檔座標平移到 origin、等比縮放，不再依包圍盒定原點
+    rot.copy(new THREE.Matrix4().makeScale(it.scale, it.scale, it.scale).multiply(new THREE.Matrix4().makeRotationY(it.rotY || 0)).multiply(new THREE.Matrix4().makeTranslation(-it.origin[0], -it.origin[1], -it.origin[2])));
+    o.set(0, 0, 0);
+  }
   const pre = it.native ? new THREE.Matrix4().makeTranslation(-meshes[0].getWorldPosition(new THREE.Vector3()).x, -meshes[0].getWorldPosition(new THREE.Vector3()).y, -meshes[0].getWorldPosition(new THREE.Vector3()).z) : new THREE.Matrix4().makeTranslation(-o.x, -o.y, -o.z).multiply(rot);
   const acc = Acc();
   for (const m of meshes) {
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     sampleMesh(acc, m, {
-      spacing: it.spacing, pre, seed: 11, shade: ({ u, v, m: mat, col, p, n }) => {
+      spacing: it.spacing, pre, seed: 11, minY: it.minY, spacingAt: it.bands && (y => (it.bands.find(([top]) => y < top) || it.bands.at(-1))[1]), shade: ({ u, v, m: mat, col, p, n }) => {
         const mm = mat || mats[0];
         const map = sampler(mm.map), arm = sampler(mm.aoMap || mm.roughnessMap);
         let rgb;
         if (it.recolor) { const base = it.recolor[mm.name] || [0.2, 0.2, 0.2], k = 0.85 + fbm(p.x * 80, p.y * 80, p.z * 80) * 0.3; return { rgb: base.map(x => x * k) }; }
+        const bl = it.blank?.find(([u0, u1, v0, v1]) => { const uu = u - Math.floor(u), vv = v - Math.floor(v); return uu > u0 && uu < u1 && vv > v0 && vv < v1; });
+        if (bl) return { rgb: bl[4].map(x => x * (0.9 + fbm(p.x * 40, p.y * 40, p.z * 40) * 0.2)) }; // 抹掉真實品牌招牌：貼圖上這塊 UV 改成素色
         if (map) { map(u, v, col); if ((mm.transparent || mm.alphaTest > 0) && col[3] < 0.5) return null; const k = srgb(mm.color || new THREE.Color(1, 1, 1)); rgb = [col[0] * k[0], col[1] * k[1], col[2] * k[2]]; }
         else { rgb = srgb(mm.color || new THREE.Color(0.5, 0.5, 0.5)); const k = 0.9 + fbm(p.x * 60, p.y * 60, p.z * 60) * 0.2; rgb = rgb.map(x => x * k); }
         if (arm && mm.aoMap) { const t = [0, 0, 0]; arm(u, v, t); const ao = 0.35 + 0.65 * t[0]; rgb = rgb.map(x => x * ao); }
@@ -479,10 +496,10 @@ async function bakeClips() {
 }
 
 window.bakeAll = async (which = 'all', only = null) => {
-  const files = {}, manifest = { items: {}, zombies: {}, rigs: {}, clips: null };
+  const files = {}, manifest = { items: {}, scenes: {}, zombies: {}, rigs: {}, clips: null };
   const want = id => !only || only.includes(id);
   if (which === 'all' || which === 'items') for (const it of ITEMS.filter(x => want(x.id))) {
-    const { acc, meta } = await bakeItem(it); files[it.id + '.spz'] = b64(await encodeSpz(acc)); manifest.items[it.id] = meta; log(it.id, meta.n, meta.size);
+    const { acc, meta } = await bakeItem(it); files[it.id + '.spz'] = b64(await encodeSpz(acc)); (it.scene ? manifest.scenes : manifest.items)[it.id] = meta; log(it.id, meta.n, meta.size);
   }
   if (which === 'all' || which === 'zombies') {
     for (const v of [...VARIANTS, ...HUMANOIDS].filter(x => want(x.id))) {

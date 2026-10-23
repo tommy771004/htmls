@@ -30,7 +30,8 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs \
 
 - Sketchfab 原檔放在 gitignore 的 `games/266-eternauta-plaza/.cache/sketchfab/`（從已登入的 Chrome 下載，見 CREDITS.md 的連結）。`--only` 只重烘指定的 id，`manifest.json` 依 id 合併。
 - `tools/glbview.html?src=<網站路徑>&only=<正規式>&hide=<正規式>` 把原檔拍成四視角，選節點、量尺寸用。
-- `PLAYWRIGHT_MODULE=… node games/266-eternauta-plaza/tools/accept.mjs` 在 1440×900 與 390×844 跑驗收（鐵撬開木箱、巡邏車、金屬人、新槍、錯誤與外部請求、`warn`），截圖寫到 gitignore 的 `.cache/accept/`。
+- `PLAYWRIGHT_MODULE=… node games/266-eternauta-plaza/tools/accept.mjs` 在 1440×900 與 390×844 跑驗收（鐵撬開木箱、巡邏車、聖堂與地鐵站的進出和任務、金屬人、新槍、Esc 選單暫停、錯誤與外部請求、`warn`），截圖寫到 gitignore 的 `.cache/accept/`。
+- `node games/266-eternauta-plaza/tools/room-col.mjs <glb> '<json>' [格寬] [--png out.png]` 把室內場景的網格柵格化成碰撞盒（`b,…` 字串，貼進頁面 `ROOMS.<id>.prims`）：取近乎垂直的三角形，分低帶 0.25–1.7 m 與高帶 2.4–6 m 兩層，兩層都有的格子是 9 m 高的牆、只有低帶的是 1.6 m 的家具，再把連續的格子併成長方體。JSON 是 `origin`、`scale`、`rotY`（和烘焙一致）、`carve`（清開的矩形，門洞與車門用）、`exclude`（略過的節點名正規式）。
 
 - Quaternius 素材包借用 `games/197-openworld/.cache/`（`ubc/`、`ual/`），要先在 197 跑過 `npm run characters`。
 - `tools/preview.html?view=items&only=pistol,rifle` 或 `?view=zombies&clip=walk&t=0.3` 透過網站伺服器開啟，可以檢查烘焙結果；`tools/shot.mjs` 以無頭 Chrome 截圖。
@@ -41,6 +42,8 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs \
 - **`.skin`**：gzip 的 Uint16 陣列，每個 splat 4 組，低 8 位元是權重、高 8 位元是骨頭編號，直接寫進 Spark `SplatSkinning.skinData`。靜止姿勢是單位矩陣，每幀以 `boneWorld × inverseBind` 更新骨頭。
 - **`manifest.json`**：道具的大小與包圍盒、喪屍對應的骨架（男／女，骨頭階層、inverse bind、身高），以及重新取樣成 20 fps 的動畫片段（walk、idle、jog、jab、cross、hit、hitHead、die、crouch）。
 - 道具座標沿用 199 的慣例：−Z 是槍口、+Y 朝上、原點在握把。
+- **室內場景**（`scene: true`）寫進 `manifest.json` 的 `scenes`，頁面第一次進門才下載。烘焙選項：`origin`＋`scale`（＋`rotY`）把原檔換到場景座標（地板 y = 0）、`minY` 切掉地板以下、`bands: [[y 上限, 間距], …]` 依高度給不同取樣間距（近地面細、天花板粗）、`blank: [[u0, u1, v0, v1, [r, g, b]]]` 把貼圖上一塊 UV 換素色（抹掉真實品牌招牌）。
+- **地鐵站不烘 splat**：低面數貼圖模型烘成 splat，近看一定糊（加密取樣、縮小圓片、貼圖 mip 都試過，效果有限），所以 `node games/266-eternauta-plaza/tools/room-glb.mjs metro` 把車站與車廂原檔合成 `assets/266/metro.glb`（座標換成場景局部座標、spec-gloss 轉 metal-rough、貼圖 1K WebP、meshopt），頁面用 `GLTFLoader` 直接畫網格，照明是半球光與最近三盞提燈的點光。原檔的站名牌與販賣機包裝換素色（`flat`）、發車資訊板與零食貨架的真實地名和品牌模糊（`blur`），車廂壓低金屬度（頁面沒有環境貼圖）。
 
 ## 頁面裡的玩法
 
@@ -48,4 +51,7 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs \
 
 - **敵人種類**取自 `manifest.json` 的 `kind`：一般池是三種平民喪屍加士兵（等級 1 以上才會混進來，身體傷害 ×0.7、爆頭 ×1.8），另有 3 具（手機 2 具）金屬人不參與一般出生，只由任務或 `DIR.robotP`（無線電任務與無盡模式）叫出來：血量 300 起、身體 ×0.55、爆頭 ×2.4、只有重擊才會踉蹌，擊毀後掉落衝鋒槍（已有就掉彈藥）。
 - **靜態道具**在頁面的 `PROPS`（位置、地面高度、朝向）與 `PROP_BOX`（道具座標裡的碰撞盒）；碰撞盒由 `propPrims()` 接在 `PRIM_RAW` 後面，所以喪屍尋路也會繞開。位置是在可走網格上找起伏小於 0.3 m、避開出生點與任務點的地方挑的。
-- **任務**共七段：鐵撬 → 軍用木箱 → 濾罐 → 巡邏車後車廂（頭盔＋背心）→ 守住金字塔 → 金屬人（北邊路口的短步槍，擊毀兩具）→ 無線電。
+- **任務**共九段：鐵撬 → 軍用木箱 → 濾罐 → 巡邏車後車廂（頭盔＋背心）→ 野戰醫院（聖堂裡的三個血袋）→ 守住金字塔 → 金屬人（北邊路口的短步槍，擊毀兩具）→ 末班車（地鐵列車裡的補給箱）→ 無線電。`mission()` 可以給編號或 id（`mission('metro')`）。
+- **室內場景**在頁面的 `ROOMS`：和廣場在同一個 three 場景裡，放在 400 m 外（聖堂 `o: [400, 0, 0]`、地鐵站 `[400, 0, 120]`），燈光、霧與剔除都只看距離所以互不干擾。碰撞網格共用一份，尋路網格換場時整個交換（`NAVS`）；`setWorld()` 切換 splat、光暈、雪、道具與鏡頭範圍並收回所有喪屍。門是 `kind: 'door'` 的固定互動點（`buildDoors()`），`useDoor()` 在波次、無線電與金屬人出現時不開門。場景可以是 splat（聖堂，`splat`，可以是幾份共用一個夜色修飾器）或網格（地鐵站，`glb: 'metro'`，`backdrop` 補原檔沒蓋到的牆面）。任務目標在另一個場景時，`objective()` 把導引改指到門口。`__eter.enter(id)` 直接進場景，`ROOMS`／`WORLD`／`roomW(id, x, z)` 可擺位置。
+- **廣場上的地鐵入口**是 `PROPS` 的 `subway`（欄杆 splat＋`stairWell()` 畫的往下樓梯貼圖），樓梯井整塊用碰撞盒擋住，門在南端開口外。
+- **Esc 選單**（`#menu`）：遊戲中按 Esc（游標鎖定時由 `pointerlockchange` 接手）打開、世界暫停；左邊是目前任務與戰績、回到廣場／回到檢查點／除錯面板，右邊三個分頁：設定（滑鼠靈敏度、反轉、視野、亮度、晃動、HUD、準心、音量、自動畫質與解析度、飄雪、失焦暫停）、操作說明、關於（完整的素材來源）。設定存在 `localStorage` 的 `eter266.settings`（`SET_DEF` 是預設值與範圍，`setApply(k)` 套用）。觸控裝置右下的「選單」按鈕打開它。`__eter.menuOpen()`／`menuClose()`／`MENU`／`SET` 可測。

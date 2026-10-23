@@ -1,6 +1,6 @@
 # 266 雪夜五月廣場 · 素材來源
 
-`assets/266/` 裡的 `.spz`／`.skin` 都是由 `tools/bake.mjs` 從下列網格模型取樣烘焙出來的 Gaussian splat。烘焙時改了顏色（喪屍化的膚色、軍服壓暗、金屬鏽斑、積雪），並重新綁到 Quaternius 的骨架上；原始模型不在 repo 裡（放在 gitignore 的 `.cache/`）。
+`assets/266/` 裡的 `.spz`／`.skin` 都是由 `tools/bake.mjs` 從下列網格模型取樣烘焙出來的 Gaussian splat；`metro.glb` 是 `tools/room-glb.mjs` 把地鐵站與車廂的原始網格合併、壓縮後的版本。烘焙時改了顏色（喪屍化的膚色、軍服壓暗、金屬鏽斑、積雪），並重新綁到 Quaternius 的骨架上；原始模型不在 repo 裡（放在 gitignore 的 `.cache/`）。
 
 ## CC0
 
@@ -26,5 +26,11 @@
 | `shelter-b` | [Modern Bus Stop Shelter](https://sketchfab.com/models/2904d92a65b947e7bed44319bc320e84) | Ottto3ds |
 | `f35`（偶爾從夜空掠過的戰機） | [F-35A Lightning II](https://sketchfab.com/models/a06d6113cfb44a0aa7b8f17106aca9c4) | shangus930 |
 | `can` | [Soda Cans 3D Pack](https://sketchfab.com/models/c70973cb0b5a489d9a904fa4766f62b1)（只取一個壓扁的罐子） | SubdivisionProductions |
+| `hall`（聖堂野戰醫院的室內） | [St Stephen Walbrook Interior](https://sketchfab.com/models/1a84318bd1004a45813236392e496567) | artfletch |
+| `bed` | [Hospital Bed](https://sketchfab.com/models/f8c13a19e84343e7b644c19f7b9488d3) | loxfear |
+| `blood` | [Blood bag](https://sketchfab.com/models/30c52cebb12845e482db8bd9d8061e51) | Sousinho |
+| `metro.glb` 的車站（拿掉原本的列車，站名牌與販賣機換素色，發車資訊板與零食貨架模糊） | [Lowpoly Berlin U-bahn Station](https://sketchfab.com/models/2a02d3f2eccf4cd29bbaa1348787395e) | n-malmberg |
+| `metro.glb` 的車廂（停在月台邊，拿掉車門） | [Subway Car](https://sketchfab.com/models/16099d2bf71c4e0698a119879eae55f9) | crow（crow.bite） |
+| `subway`（廣場上的地鐵入口，只取欄杆，招牌抹成素板） | [Subway Entrance V2](https://sketchfab.com/models/9bf519fd97ec4685a5d171442494c2a6) | johhny3D |
 
-頁面底部的 `.credit` 段落列出同樣的作者，改模型時兩邊要一起更新。
+頁面 Esc 選單「關於」分頁的 `.credit-full` 段落列出同樣的作者，改模型時兩邊要一起更新。
