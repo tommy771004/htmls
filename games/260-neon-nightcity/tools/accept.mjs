@@ -437,6 +437,62 @@ async function desktop() {
       && ro4.onCar && ro4.y > 1.3 && ro4.stopped && ro4.moved > 1 && ro4.carry < .3 && ro4.on2 && !ro5.onCar && ro5.y < .3 && ro5.d > 4,
       `翻車：爆炸掀翻滾到停、側翻推回、倒扣起火（耐久 ${ro3}）、落在車流車車頂跟著走再開下來 ${JSON.stringify({ ro1, ro2, ro4, ro5 })}`);
 
+    // 碰撞與位移（69-kinema.js）：車車夾扁、PIT 打轉、被車夾在牆上、近戰吸附、衝刺撞人、劫車門側、高速跳車（逐幀 step，結果不受畫面速度影響）
+    const km = await nc(() => {
+      const nc = window.__nc, k = nc.gta.kin, S = (n) => { for (let i = 0; i < n; i++) nc.step(1 / 60); }, o = {};
+      nc.walk(); nc.gta.wanted.clear('reset');
+      // 小車側面貼牆，貨車從外面 7 m/s 推過來
+      let w = k.wall(nc.player.x, nc.player.z, 1.1);
+      let B = k.spawn('compact', w.x + w.nx * .05, w.z + w.nz * .05, Math.atan2(-w.nz, w.nx)), A = k.spawn('lct', w.x + w.nx * 5.5, w.z + w.nz * 5.5, Math.atan2(-w.nx, -w.nz));
+      A.vx = -w.nx * 7; A.vz = -w.nz * 7;
+      let c0 = k.kin.crush; S(90);
+      o.crush = { n: k.kin.crush - c0, inWall: k.hit(B.x, B.z, .3) };
+      k.drop(A); k.drop(B);
+      // PIT：橫著撞停著那台的車尾，被撞的車打轉
+      const y = nc.vehicles[0].yaw, fx = Math.sin(y), fz = Math.cos(y), lx = Math.cos(y), lz = -Math.sin(y), x = w.x + w.nx * 14, z = w.z + w.nz * 14;
+      B = k.spawn('compact', x, z, y); A = k.spawn('compact', x - lx * 4 - fx * 1.6, z - lz * 4 - fz * 1.6, y + Math.PI / 2);
+      A.vx = lx * 9; A.vz = lz * 9; const y0 = B.yaw; S(60);
+      o.pit = +Math.abs(B.yaw - y0).toFixed(2);
+      k.drop(A); k.drop(B);
+      // 人貼牆，車頭朝人 4 m/s 開過來
+      w = k.wall(nc.player.x, nc.player.z, .34); nc.tp(w.x, w.z, Math.atan2(w.nx, w.nz));
+      const v = k.spawn('compact', w.x + w.nx * 3.4, w.z + w.nz * 3.4, Math.atan2(-w.nx, -w.nz)); v.vx = -w.nx * 4; v.vz = -w.nz * 4;
+      c0 = k.kin.crushWalk; let air = false;
+      for (let i = 0; i < 80; i++) { nc.step(1 / 60); air = air || k.me().air === 'eject'; }
+      o.walk = { n: k.kin.crushWalk - c0, air };
+      k.drop(v); S(240);
+      // 劫車門側：左側貼牆的車從右邊（−1），空曠的照駕駛座（1）
+      w = k.wall(nc.player.x, nc.player.z, 1.15);
+      const d1 = k.spawn('compact', w.x, w.z, Math.atan2(w.nz, -w.nx)), d2 = k.spawn('compact', w.x + w.nx * 8, w.z + w.nz * 8, Math.atan2(w.nz, -w.nx));
+      o.door = [k.door(d1), k.door(d2)]; k.drop(d1); k.drop(d2);
+      // 近戰吸附與衝刺撞人：找最近的路人
+      const pk = nc.peds.people, ps = nc.pedState, near = () => { let b = -1, bd = 60; for (let i = 0; i < ps.length; i++) { if (ps[i].down > 0 || ps[i].out) continue; const d = Math.hypot(pk[i].x - nc.player.x, pk[i].z - nc.player.z); if (d < bd) { bd = d; b = i; } } return b; };
+      let q = near();
+      if (q >= 0) {
+        const P = pk[q], a = Math.atan2(P.x - nc.player.x, P.z - nc.player.z) || 0; nc.tp(P.x - Math.sin(a) * 1.9, P.z - Math.cos(a) * 1.9, a);
+        nc.gta.equip('fist'); k.kin.last = null; nc.gta.swing(); S(30);
+        o.lunge = k.kin.last && { d0: +k.kin.last.d0.toFixed(2), d1: +k.kin.last.d1.toFixed(2) };
+      }
+      S(30); q = near();
+      if (q >= 0) {
+        const P = pk[q], a = Math.atan2(P.x - nc.player.x, P.z - nc.player.z); nc.tp(P.x - Math.sin(a) * 3, P.z - Math.cos(a) * 3, a);
+        nc.player.v = 4.6; const b0 = k.kin.barge;
+        nc.keys.KeyW = true; nc.keys.ShiftLeft = true;
+        for (let i = 0; i < 60 && k.kin.barge === b0; i++) { nc.look(Math.atan2(pk[q].x - nc.player.x, pk[q].z - nc.player.z)); nc.step(1 / 60); }
+        nc.keys.KeyW = false; nc.keys.ShiftLeft = false;
+        o.barge = { n: k.kin.barge - b0, hit: !!ps[q].sv || ps[q].down > 0 };
+      }
+      // 時速 65 按 F：人滾出車外、車繼續滑
+      nc.drive(); const kv = nc.player.veh; kv.vx = Math.sin(kv.yaw) * 18; kv.vz = Math.cos(kv.yaw) * 18;
+      const ok = k.jump(), a0 = k.me().air; S(4);
+      o.jump = { ok, air: a0, mode: nc.player.mode, sp: +Math.hypot(kv.vx, kv.vz).toFixed(1) };
+      S(120);
+      return o;
+    });
+    check(km.crush.n >= 1 && !km.crush.inWall && km.pit > .3 && km.walk.n === 1 && km.walk.air && km.door[0] === -1 && km.door[1] === 1
+      && (!km.lunge || km.lunge.d1 < km.lunge.d0 - .5) && (!km.barge || km.barge.n === 1 && km.barge.hit) && km.jump.ok && km.jump.air === 'eject' && km.jump.mode === 'walk' && km.jump.sp > 10,
+      `碰撞與位移：貨車把貼牆的車夾扁、PIT 打轉 ${km.pit} rad、被車夾在牆上彈起、劫車改走副駕側、近戰吸附、衝刺撞人、高速跳車 ${JSON.stringify(km)}`);
+
     // 運鈔車：Zero 標記叫出來、炸後車門掉三袋現金（3 星）、IVLT 下跌 SNTL 上漲
     const tr = await nc(() => new Promise((r) => {
       const nc = window.__nc, g = nc.gta, e = g.ev, px0 = { ...nc.motors.stk.px };

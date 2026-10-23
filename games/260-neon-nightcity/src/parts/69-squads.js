@@ -54,7 +54,7 @@ function fSpawn(team, x, z, yaw, o = {}) {
   fLook(f);
   return f;
 }
-function fFree(f) { f.on = false; f.car = null; fighters.place(f.k, 0, -60, 0, 0); fighters.people[f.k].gunH = null; }
+function fFree(f) { f.on = false; f.car = null; f.kx = f.kz = f.ky = f.kvy = 0; fighters.place(f.k, 0, -60, 0, 0); fighters.people[f.k].gunH = null; }
 const fAlly = f => f.team === 'merc' || f.team === 'crew';
 const fUp = f => f.on && f.state === 'act';
 // 被打中：敵方倒下會掉彈藥；隊友不會倒（生命鎖在 50），傭兵會
@@ -69,18 +69,18 @@ function fHit(f, dmg, fx, fz, mine) {
   return true;
 }
 function fDown(f, fx = 0, fz = 1) {
-  f.state = 'down'; f.downT = 20; f.car = null; f.yaw = Math.atan2(-fx, -fz) || f.yaw;
+  f.state = 'down'; f.downT = 20; f.car = null; f.yaw = Math.atan2(-fx, -fz) || f.yaw; kinLaunch(f, fx * 2.8, fz * 2.8);   // 往中彈方向倒、滑 0.6 m（69-kinema.js）
   fighters.anim(f.k, ANIM.die, -uTimeNow(), 1);
   if (f.onDown) { const h = f.onDown; f.onDown = null; h(f); }   // 69-street.js：搶包賊掉包、交易的人倒下
 }
 function fighterBlast(x, y, z, r, dmg, mine) {
-  for (const f of SQ.f) if (fUp(f)) { const d = Math.hypot(f.x - x, f.z - z); if (d < r) fHit(f, dmg * clamp(1 - d / r, .3, 1) * (fAlly(f) ? .4 : 1), (f.x - x) / (d || 1), (f.z - z) / (d || 1), mine); }
+  for (const f of SQ.f) if (fUp(f)) { const d = Math.hypot(f.x - x, f.z - z); if (d < r && fHit(f, dmg * clamp(1 - d / r, .3, 1) * (fAlly(f) ? .4 : 1), (f.x - x) / (d || 1), (f.z - z) / (d || 1), mine)) kinBlast(f, x, z, r); }
 }
 function fighterMelee(x, z, fx, fz, reach, dmg) {
   for (const f of SQ.f) {
     if (!fUp(f) || fAlly(f)) continue;
     const dx = f.x - x, dz = f.z - z, d = Math.hypot(dx, dz);
-    if (d < reach && dx * fx + dz * fz > d * .5) { fHit(f, dmg, fx, fz, true); return true; }
+    if (d < reach && dx * fx + dz * fz > d * .5) { fHit(f, dmg, fx, fz, true); return f; }   // 回傳被打到的人（69-kinema.js 的 kinPunch）
   }
   return false;
 }
@@ -162,8 +162,9 @@ function fGround(f) { return footY(f.x, f.z); }
 function fStep(f, dt) {
   const p = fighters.people[f.k];
   if (f.state === 'car') { if (f.car) { f.x = f.car.v.x; f.z = f.car.v.z; } fighters.place(f.k, 0, -60, 0, 0); return; }
+  kinSlide(f, dt);   // 69-kinema.js：擊飛、被撞開
   if (f.state === 'down') {
-    f.downT -= dt; fighters.place(f.k, f.x, fGround(f), f.z, f.yaw);
+    f.downT -= dt; fighters.place(f.k, f.x, fGround(f) + (f.ky || 0), f.z, f.yaw);
     if (f.downT <= 0 || Math.hypot(f.x - pX(), f.z - pZ()) > 200) { if (f.downT <= 0 && player.where === 'out' && onScreen(f.x, f.z)) bodyKeep(f); fFree(f); }
     return;
   }

@@ -532,14 +532,14 @@ function enterVehicle(v) {
   sfx.doorCar(v.isCar); sfx.engineOn(v);
   camState.snap = false;
 }
-function exitVehicle() {
+function exitVehicle(keep) {   // keep：留著車速（69-kinema.js 的跳車）
   const v = player.veh;
   if (v.boat) return boatExit(v);   // 31-boats.js：站到最近的岸上，沒有就下水
   const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);   // 車身左側（+x 方向轉到世界）
   let x = v.x + lx * (v.isCar ? 1.5 : .9), z = v.z + lz * (v.isCar ? 1.5 : .9);
   colY = v.y; const r = collideCircle(x, z, .32, false); colY = 0; x = r.x; z = r.z;
   player.x = x; player.z = z; player.y = v.y; player.yaw = v.yaw; player.mode = 'walk'; player.veh = null; player.v = 0;   // y：在快速道路橋面上下車就站在橋面
-  v.lights = 0; v.vx = v.vz = 0; v.brakeOn = 0; v.steer = 0;
+  v.lights = 0; if (!keep) v.vx = v.vz = 0; v.brakeOn = 0; v.steer = 0;
   me.mesh.visible = true;
   sfx.doorCar(v.isCar); sfx.engineOff();
 }
