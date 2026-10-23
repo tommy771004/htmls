@@ -412,11 +412,13 @@ const FAC = (() => {
     // 楓林里的商店街（69-v5-shops.js）：槍店（店面往後退，騎樓下是櫃台）與後面的露天射擊場、服飾店（樓房往後退，前面是一層樓的店面）、停車場、東側的洗車隧道（南北穿過街區）
     mall: { i: 3, j: 7, lots: [{ x0: 12.5, x1: 30, z0: 15.5, z1: 25, style: 4, floors: 1, axis: 'z', face: -1 }, { x0: 31, x1: 44, z0: 20.3, z1: 27, style: 2, floors: 2, axis: 'z', face: -1 }],
       range: { x0: 12.5, x1: 30, z0: 25, z1: 49.5 }, lot: { x0: 31, x1: 46, z0: 27, z1: 49.5 }, wash: { x0: 47, x1: 55, z0: 18, z1: 42 } },
+    // 公園大道 (8,8) 的五層立體停車場（69-v5-garage.js）：沒有地塊，整塊人行道內是停車場；東邊隔著大道是燈籠公園，頂樓的特技跳台往東飛進公園
+    gar: { i: 8, j: 8, lots: [], gar: { x0: 13, x1: 59, z0: 13, z1: 49 }, lv: 3.6, n: 4, roof: .15 + 4 * 3.6 },   // 層高 3.6 m，頂樓是第 4 層樓板（地面 0.15）
   };
   for (const [id, F] of Object.entries(S)) {
     const b = blocks.find(o => !o.outer && o.i === F.i && o.j === F.j);
     if (!b) { delete S[id]; continue; }
-    F.b = b; F.ax = avX(F.i); F.az = stZ(F.j);
+    F.b = b; F.ax = avX(F.i); F.az = stZ(F.j); F.zn = zoneAtL(F.ax + P / 2, F.az + Q / 2);
     if (b.col) colliders.splice(colliders.indexOf(b.col), 1);
     for (const L of lots) if (L.b === b) {
       if (L.glb) { const k = bldPlace.indexOf(L.glb); if (k >= 0) bldPlace.splice(k, 1); L.glb = null; L.ghost = 2; }
@@ -439,7 +441,7 @@ const FAC = (() => {
       }
       return L;
     });
-    for (const k of ['yard', 'range', 'lot', 'wash']) if (F[k]) F[k] = { x0: F.ax + F[k].x0, x1: F.ax + F[k].x1, z0: F.az + F[k].z0, z1: F.az + F[k].z1 };
+    for (const k of ['yard', 'range', 'lot', 'wash', 'gar']) if (F[k]) F[k] = { x0: F.ax + F[k].x0, x1: F.ax + F[k].x1, z0: F.az + F[k].z0, z1: F.az + F[k].z1 };
   }
   return S;
 })();

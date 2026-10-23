@@ -400,7 +400,7 @@ async function desktop() {
     await page.waitForTimeout(5000);
     const sr = await nc(() => ({ got: window.__nc.motors.cash - window.__c0, toast: document.getElementById('toast').textContent }));
     const sp = await nc(() => window.__nc.gta.stunt.probe().filter((r) => r.bad.some((a) => a > -32)));
-    check(sr.got > 0 && /翻滾 ×1/.test(sr.toast) && !sp.length && (await nc(() => window.__nc.gta.stunt.RAMPS.length)) === 20, `空中翻滾一圈落地拿加成、20 座跳台路線淨空 ${JSON.stringify({ ...sr, blocked: sp })}`);
+    check(sr.got > 0 && /翻滾 ×1/.test(sr.toast) && !sp.length && (await nc(() => window.__nc.gta.stunt.RAMPS.length)) === 21, `空中翻滾一圈落地拿加成、21 座跳台路線淨空 ${JSON.stringify({ ...sr, blocked: sp })}`);
     // 翻車與堆疊（68-roll.js）：爆炸掀翻滾到停、側翻按住方向鍵推回、倒扣 4 秒起火、從上面落到車流車的車頂、開下來
     const ro1 = await nc(() => new Promise((r) => {
       const nc = window.__nc, R = nc.gta.roll; nc.drive(); const v = nc.player.veh;

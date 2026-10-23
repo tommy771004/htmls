@@ -94,7 +94,7 @@ function hmFlush() {
   U.uHM.value.w = HM.max + 1;
 }
 {
-  for (const L of lots) if (!L.glb) hmRectL(L.x0, L.x1, L.z0, L.z1, L.h, false, L.zn);
+  for (const L of lots) if (!L.glb && !L.ghost) hmRectL(L.x0, L.x1, L.z0, L.z1, L.h, false, L.zn);   // ghost：廣場與設施街區原本的地塊，沒蓋樓
   for (const b of bldPlace) { const it = PROPS_SPEC[b.set]?.items[b.id]; if (!it) continue; const [w, d] = hmFoot(b, it); hmRectL(b.x - w / 2, b.x + w / 2, b.z - d / 2, b.z + d / 2, b.h); }
   for (const id in ISLE_SITES) for (const [x0, x1, z0, z1, h] of isleFoot(id)) hmRectL(x0, x1, z0, z1, h);
   hmRectL(LIGHTHOUSE.x - 4, LIGHTHOUSE.x + 4, LIGHTHOUSE.z - 4, LIGHTHOUSE.z + 4, 36);

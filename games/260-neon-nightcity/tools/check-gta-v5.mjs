@@ -1,6 +1,7 @@
 // 第五部曲（城市建築設施藍圖與魔鬼細節）的驗收：醫院（醫藥費、醫療包、救護車、員工電梯、屋頂直升機）、第九分局（逃生梯、屋頂直升機）、
 // 拖吊場（扣車、贖車、翻鐵絲網、撞破柵門）、走得上去的屋頂與從屋頂跳下去、存檔第 9 版；
-// 商業設施：便利店搶劫與第二台收銀機、能量飲料、提款機、酒、槍店（背心、擴充彈匣、射擊場、老闆反擊）、服飾店甩星、車身血跡與洗車、自動捲門
+// 商業設施：便利店搶劫與第二台收銀機、能量飲料、提款機、酒、槍店（背心、擴充彈匣、射擊場、老闆反擊）、服飾店甩星、車身血跡與洗車、自動捲門；
+// 立體停車場：四條坡道開上頂樓、頂樓超跑與「飛躍霓虹大道」跳台、降落傘包與跳車開傘、電梯、入口柵欄桿
 // 用法：node tools/check-gta-v5.mjs [html]（預設 web/260-neon-nightcity.html）
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +20,15 @@ await page.evaluate(() => {
   window.__t = {
     step(n) { for (let i = 0; i < n; i++) window.__nc.step(1 / 60); },
     wait: ms => new Promise(r => setTimeout(r, ms)),
+    // 停車場的設施座標：世界 → 相對街區西北角（V.w 的反函數；這一片有彎曲與剪切，用牛頓法迭代）
+    gar(x, z) {
+      const V = window.__nc.gta.v5; let p = [36, 31];
+      for (let k = 0; k < 6; k++) {
+        const o = V.w('gar', p[0], p[1]), ex = V.w('gar', p[0] + 1, p[1]), ez = V.w('gar', p[0], p[1] + 1), a = ex[0] - o[0], b = ez[0] - o[0], c = ex[1] - o[1], d = ez[1] - o[1], det = a * d - b * c, X = x - o[0], Z = z - o[1];
+        p = [p[0] + (d * X - b * Z) / det, p[1] + (-c * X + a * Z) / det];
+      }
+      return p;
+    },
     reset() { const N = window.__nc; N.gta.wanted.clear('reset'); N.gta.life.hp = 100; if (N.player.mode === 'drive') N.walk(); N.player.air3 = null; N.player.down = 0; N.gta.v5.V5.lad = null; },
   };
 });
@@ -32,7 +42,7 @@ try {
     return { ids: Object.keys(F).join(','), h: F.hosp.L.map(L => +L.h.toFixed(1)), pd: +F.pd.L[0].h.toFixed(1), helis: V.V5.helis.map(h => h.v && h.v.name), lads: V.LADS.length, ghost: F.hosp.b && N.ways ? 1 : 1 };
   });
   if (c1) {
-    check(c1.ids === 'hosp,pd,mall', `醫院、分局與商店街三個街區（${c1.ids}）`);
+    check(c1.ids === 'hosp,pd,mall,gar', `醫院、分局、商店街與立體停車場四個街區（${c1.ids}）`);
     check(c1.h[0] > 10 && c1.h[1] > 30 && c1.pd > 15, `急診樓、主樓、分局的高度 ${c1.h.join('／')}／${c1.pd}`);
     check(c1.helis.length === 2 && c1.helis.every(Boolean), `屋頂停兩架直升機（${c1.helis.join('、')}）`);
   }
@@ -303,7 +313,64 @@ try {
   });
   if (c20) check(c20.open > .9 && c20.shut < .1, `沒被看到時捲門打開 ${c20.open}、被看到時關上 ${c20.shut}`);
 
-  console.log('22. 主控台');
+  const c21 = await sec('22. 立體停車場：四條坡道一層一層開上頂樓', () => {
+    const N = window.__nc, V = N.gta.v5, PK = V.gar.PK; __t.reset(); N.drive(); const v = N.player.veh, out = [];
+    for (let j = 0; j < 4; j++) {
+      const [x, z] = V.w('gar', 17.5, 17.1); v.x = x; v.z = z; v.y = PK.Y(j); v.yaw = V.yaw('gar', Math.PI / 2); v.vx = v.vz = 0; v.hp = 2000; __t.step(2);
+      let n = 0; while (__t.gar(v.x, v.z)[0] < 54 && n < 900) { N.keys.KeyW = Math.hypot(v.vx, v.vz) < 9; __t.step(1); n++; }
+      N.keys.KeyW = false; __t.step(30); out.push(+(v.y - PK.Y(j + 1)).toFixed(2));
+    }
+    N.walk(); return out;
+  });
+  if (c21) check(c21.every(d => Math.abs(d) < .05), `每條坡道開到上一層的樓板（高度差 ${c21.join('／')}）`);
+
+  const c22 = await sec('23. 頂樓的稀有超跑與「飛躍霓虹大道」跳台：飛過大道落進公園', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, PK = V.gar.PK; __t.reset();
+    const [x, z] = V.w('gar', 30, 40.5); N.tp(x, z); N.player.y = PK.Y(4); __t.step(3);
+    const car = PK.car && { name: PK.car.name, y: +PK.car.y.toFixed(2), at: __t.gar(PK.car.x, PK.car.z).map(q => +q.toFixed(1)) };
+    const r = V.gar.ramp(), cash = N.motors.cash, n0 = G.stunt.stunt.n;
+    const [ex, ez] = V.w('gar', 17, 38.4); N.player.x = ex; N.player.z = ez; __t.step(2);   // 走到超跑旁邊上車，從車位直接往東衝
+    const enter = N.ctx(); N.act(); __t.step(2); const v = N.player.veh; if (!v || v !== PK.car) return { car, enter, y0: r && r.y0, fail: 'enter' };
+    let n = 0, air = 0, top = 0; N.keys.KeyW = true;
+    while (n < 900) { __t.step(1); n++; if (v.air) { air = 1; N.keys.KeyW = false; top = Math.max(top, v.y); } if (air && !v.air) break; }
+    const land = __t.gar(v.x, v.z).map(q => +q.toFixed(1)), ly = +v.y.toFixed(2);
+    N.keys.KeyW = false; __t.step(60); N.walk();
+    return { car, enter, ly, y0: r && r.y0, air, top: +top.toFixed(1), land, n: G.stunt.stunt.n - n0, got: N.motors.cash - cash, done: N.motors.stunts.includes(r && r.i), total: G.stunt.RAMPS.length };
+  });
+  if (c22) {
+    check(c22.car && Math.abs(c22.car.y - c22.y0) < .05 && Math.abs(c22.car.at[0] - 17) < .5 && Math.abs(c22.car.at[1] - 40.5) < 1.2, `頂樓停著稀有超跑 ${JSON.stringify(c22.car)}`);
+    check(c22.air && c22.enter && c22.enter.includes('McLaren') && c22.top > c22.y0 + 1 && c22.land[0] > 80 && c22.ly < 1 && c22.n === 1 && c22.got > 0 && c22.done && c22.total === 21, `頂樓跳台起飛（最高 ${c22.top} m）、落在公園 ${c22.land}（${c22.enter}${c22.fail || ''}）、拿到 $${c22.got}（第 ${c22.total} 座跳台）`);
+  }
+
+  const c23 = await sec('24. 降落傘包：撿起來之後，開車飛在半空按 F 跳車開傘', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, PK = V.gar.PK; __t.reset(); V.V5.chute = 0;
+    const [bx, bz] = V.w('gar', 55.5, 46); N.tp(bx, bz); N.player.y = PK.Y(4); __t.step(3);
+    const got = V.V5.chute, hidden = !PK.bag.visible;
+    N.drive(); const v = N.player.veh, r = V.gar.ramp(); v.x = r.x - r.dx * 37; v.z = r.z - r.dz * 37; v.y = PK.Y(4); v.yaw = r.yaw; v.vx = v.vz = 0; v.hp = 2000; __t.step(2);   // 順著跳台、助跑 27 m
+    let n = 0; N.keys.KeyW = true; while (!v.air && n < 600) { __t.step(1); n++; } N.keys.KeyW = false; __t.step(20);
+    const bail = V.gar.bail(), a3 = N.player.air3 && N.player.air3.kind, flying = !!v.air;
+    n = 0; while (v.air && n < 600) { __t.step(1); n++; }
+    return { got, hidden, bail, a3, flying, landed: !v.air, left: V.V5.chute, mode: N.player.mode };
+  });
+  if (c23) check(c23.got === 1 && c23.hidden && c23.bail && c23.a3 === 'fall' && c23.flying && c23.landed && c23.left === 0 && c23.mode === 'walk', `撿傘包 → 半空跳車（${c23.a3}），車自己飛完落地，傘用掉 ${JSON.stringify(c23)}`);
+
+  const c24 = await sec('25. 停車場電梯、入口的柵欄桿一碰就斷', async () => {
+    const N = window.__nc, V = N.gta.v5, PK = V.gar.PK; __t.reset(); N.player.air3 = null;
+    const [x, z] = V.w('gar', ...PK.elev.down); N.tp(x, z); __t.step(2);
+    const t0 = N.ctx(); N.act(); await __t.wait(700); __t.step(2); const up = +N.player.y.toFixed(2);
+    const t1 = N.ctx(); N.act(); await __t.wait(700); __t.step(2); const down = +N.player.y.toFixed(2);
+    N.drive(); const v = N.player.veh, B = PK.bars[1], [sx, sz] = V.w('gar', 4, 33); v.x = sx; v.z = sz; v.y = 0; v.yaw = V.yaw('gar', Math.PI / 2); v.vx = v.vz = 0; v.hp = 2000; __t.step(2);
+    let n = 0, sp = 0; while (!(B.t > 0) && n < 300) { N.keys.KeyW = Math.hypot(v.vx, v.vz) < 4; __t.step(1); n++; sp = Math.hypot(v.vx, v.vz); }
+    N.keys.KeyW = false; __t.step(2);
+    const after = Math.hypot(v.vx, v.vz); __t.step(60); N.walk();
+    return { t0, t1, up, down, roof: PK.Y(4), broke: B.t > 0, sp: +sp.toFixed(2), after: +after.toFixed(2), hp: v.hp, flew: +B.m.position.distanceTo(B.p).toFixed(1) };
+  });
+  if (c24) {
+    check(c24.t0 && c24.t0.includes('頂樓') && Math.abs(c24.up - c24.roof) < .05 && c24.t1 && c24.down < .5, `電梯 ${c24.t0} → y ${c24.up} → ${c24.t1} → y ${c24.down}`);
+    check(c24.broke && c24.hp === 2000 && c24.after > c24.sp * .8 && c24.flew > 1, `柵欄桿斷飛 ${c24.flew} m，車速 ${c24.sp} → ${c24.after}、不扣血`);
+  }
+
+  console.log('26. 主控台');
   check(log.pageerrors.length === 0, `沒有 uncaught exception（${log.pageerrors.slice(0, 2).join(' | ')}）`);
   check(log.errors.length === 0, `沒有 console.error（${log.errors.slice(0, 2).join(' | ')}）`);
 } finally { await browser.close(); }

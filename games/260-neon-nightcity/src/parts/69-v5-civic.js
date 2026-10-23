@@ -8,7 +8,7 @@ const V5 = { lad: null, imp: { slot: null, paid: 0, gateT: 0, broken: 0, aband: 
 const IMP_FEE = 250, FENCE_H = 2.2, LAD_R = .8, LAD_SP = 1.6, LAD_FAST = 3.4, LAD_SLIDE = 8, BAND_T = 300, AMB_HP = 25, MEDKIT_HP = 50, MEDKIT_RE = 90;
 // 醫藥費：總現金的 5%，最多 $5,000（69-combat.js 的 die／respawn 呼叫）
 const hospFee = () => Math.min(5000, Math.round(motors.cash * .05));
-const facZn = F => F.L[0].zn;
+const facZn = F => F.L[0] ? F.L[0].zn : F.zn;   // 立體停車場（FAC.gar）沒有地塊
 const facW = (F, x, z) => toW(F.ax + x, F.az + z, facZn(F));   // 設施座標（相對街區西北角）→ 世界
 const facY = (F, yaw) => yawW(facZn(F), yaw);
 
@@ -319,6 +319,7 @@ ctxHooks.unshift(p => {
 // 按鍵（69-combat.js 的 gtaKey 最前面問這裡）
 function v5Key(code) {
   if (V5.lad) return code === 'Space' || code === 'KeyE' || code === 'KeyF';
+  if (code === 'KeyF' && pkBail()) return true;   // 69-v5-garage.js：揹著傘包時從飛在半空的車上跳下去
   if (code === 'Space' && player.mode === 'walk' && !player.air3) {
     const f = fenceNear(); if (f) { fenceStart(f); return true; }
     if (roofJump()) return true;
@@ -378,6 +379,7 @@ function v5Update(dt) {
   if (V5.band > 0) V5.band -= dt;
   v5Bandage();
   V5.lastVeh = player.mode === 'drive' ? player.veh : null;
+  pkUpdate(dt);   // 69-v5-garage.js
   v5ShopUpdate(dt);   // 69-v5-shops.js
 }
 // 繃帶：出院後 5 分鐘，額頭一圈、左前臂一段

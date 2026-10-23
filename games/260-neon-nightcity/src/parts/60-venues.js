@@ -500,7 +500,7 @@ function contextAction() {
     if (near(BOUNCER.x, BOUNCER.z, 2.4)) return { key: 'E', text: '跟 Marlo 說話', fn: talkMarlo };
     if (near(CLUB_X, CLUB_Z + .6, 1.6)) return quest.n >= 3 ? { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') } : { key: 'E', text: '門鎖著 <i>· 先跟門口的人談</i>', fn: () => toast('Marlo 擋在門前') };
     if (near(BAR_X - 4.6, BAR_Z + .6, 1.6)) return { key: 'E', text: '進入 AFTERGLOW', fn: () => enterVenue('bar') };
-    for (const v of vehicles) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `${v.boat ? '上船' : '上車'} <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
+    for (const v of vehicles) if (!v.dead && (v.boat || Math.abs(p.y - (v.y || 0)) < 2.5) && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `${v.boat ? '上船' : '上車'} <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
   } else if (p.where === 'bar') {
     if (near(BAR_EXIT.x, BAR_EXIT.z, 1.5)) return { key: 'E', text: '回到街上', fn: exitVenue };
     if (near(JUNO.x, JUNO.z, 1.8)) return { key: 'E', text: '跟 Juno 說話', fn: talkJuno };

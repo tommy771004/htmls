@@ -111,6 +111,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `69-v3-world.js` | 第三部曲：計程車（招手、手機叫車、`taxiRide`／`taxiGo`、逃票）、日夜犯罪權重 `evNightW`、雨天 AI 抓地力 `aiDrive`、撬車警報 `alarmStep`；每幀入口 `v3Update`（99-main 在 `gtaUpdate` 之後呼叫） |
 | `69-v5-civic.js` | 第五部曲之一：公共設施。10-city 的 `FAC` 街區（醫院 `FAC.hosp`、第九分局與拖吊場 `FAC.pd`）的雨遮、招牌、停機坪與屋頂直升機（69-gunship 的 `buildGunship(x, z, yaw, { kind })`）、員工電梯、醫療包、繃帶；拖吊場 `impound`／`impPay`／柵門 `gateOpen`／`gateBreak`、翻鐵絲網 `fenceStart`；外牆鐵梯 `V5_LADS`（`ladStep`，40-people 在 `V5.lad` 時交給它）、走得上去的屋頂 `v5Roof`（20-walk 的 `WALKS`）與 `roofJump`；醫藥費 `hospFee`、69-combat 呼叫的 `v5Die`／`v5Respawn`、按鍵 `v5Key`、每幀 `v5Update`（99-main 在 `v3Update` 之後呼叫） |
 | `69-v5-shops.js` | 第五部曲之二：商業設施。BODEGA 的店員與搶劫（`storeStep`：拿槍指著店員 `aimAtClerk`、威嚇條 `SHOP.rob`、抽槍的店員、第二台收銀機、冰櫃飲料）、提款機 `ATM_SPOTS` 與被搶的人（`atmStep`）、酒 `booze`／`drunkStep`、CHROME WORKS 的自動捲門 `shutterStep`；楓林里商店街 `FAC.mall` 的鐵砧槍械（老闆 `ownerStep`、`gunShop`／`shopAmmo`／`shopArmor`／`shopMods`、擴充彈匣 `extApply`）、射擊場 `rangeStart`／`rangeStep`（69-police 的 `crime` 問 `v5Quiet`）、縫線服飾 `clothesShop`、泡泡洗車 `washStart`／`washStep`、車身泥巴與血跡 `carGrime`／`grimeStep`（68-wreck 撞人時呼叫 `v5Blood`）；進度條 `v5Bar`（`#v5bar`），每幀 `v5ShopUpdate`（v5Update 呼叫） |
+| `69-v5-garage.js` | 第五部曲之三：公園大道 `FAC.gar` 的五層立體停車場。樓板與坡道的高度（06-roads 的 `DECKS`）、相機的天花板（20-walk 的 `WALKS`）、每層帶 `ly`／`hy` 的護牆（`pkBox` 把沿 z 的長盒切成 2 m，這一片有剪切）、停著的車、招牌與燈；頂樓超跑 `pkCarSpawn`、傘包與跳車開傘 `pkBail`（v5Key 的 F）、電梯（`ctxHooks`）、入口柵欄桿；每幀 `pkUpdate`（v5Update 呼叫） |
 | `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車；海岸的 `COAST_MODELS`（灰鷗島的 `isle_ruin`／`isle_office`、遠景的 `far_london`／`far_golu`／`far_s7`，擺好就把 `ISLE_PROXY` 的替身 `removeFromParent()`：`distCull` 每幀都會重設 `visible`，只藏起來會被打開） |
 | `27-world1.js` | World 第四輪（`~/Downloads/world_1`）不在街區裡的地標與遠景 `W1_SITES`：東灣對岸的水泥廠（`far_cement`）與三棟長板樓（`bld_tram`）、舊碼頭河岸的木樁階梯（`w1_stairs`）、木棧橋入口的鐵絲網、岬角上的石塔與一圈石塊矮牆（`w1_tower`、`w1_fence`）；`w1Update()` 每 30 幀檢查一次，走近 `near` 公尺才下載，以檔案開啟不擺 |
 | `28-sky.js` | 日夜與天氣：時鐘 `clockSt`、太陽與月亮方向（`sunDir`）、天空與霧的調色盤、天氣狀態機 `WX`（`updateWeather`、`setWeather`）、積水乾濕、撐傘、雷電；`atmApply()` 把結果寫進共用 uniform 與泛光、曝光；`occUpdate()` 每幀挑最近的車與人給地面陰影 |
@@ -184,7 +185,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 ### GTA 式擴充（第四階段）
 
 - 運鈔車（藍點事件）：沒被通緝、在戶外時每 2.5–4 分鐘從看不到的路口開出一台鐵庫保全運鈔車（深綠廂型車、生命 2600），沿路網在城裡繞，小地圖閃藍點；手機找 Zero 付 $1,000 可以直接叫一台。用黏性炸彈、手榴彈或火箭在後車門 4 m 內引爆：停車、掉三袋現金（合計 $18,000–40,000），立刻 3 星；整台炸毀也會掉錢，但燒掉四成。錢袋走過去就撿起來，150 秒沒撿會消失。
-- 特技跳台：二十座灰色鋼板、兩側黃邊的跳台（大地圖上的黃色箭頭）擺在路口前的停車道，前面 26 m 不停車當助跑道；原本的六座在舊城區，新的十四座分散在 20×15 的新區。時速 60 以上衝出去：時間放慢到 0.4 倍、鏡頭換成跳台旁的固定機位。飛行中左右（A／D）翻滾、油門／煞車（W／S）前後空翻，放開就慢慢回正；落地車身歪不到 0.5 rad、車頭方向沒偏就領獎金（200 + 距離 × 25 + 最高點 × 150，每轉滿一圈多五成），每座跳台第一次完成加倍；歪超過 0.5 rad 算失敗並傷車，翻過 1.3 rad 就是翻車（重損、車速剩四成）。落地衝擊太大也會傷車。
+- 特技跳台：二十一座灰色鋼板、兩側黃邊的跳台（大地圖上的黃色箭頭）擺在路口前的停車道，前面 26 m 不停車當助跑道；原本的六座在舊城區，新的十四座分散在 20×15 的新區，第二十一座在公園大道立體停車場的頂樓（第五部曲）。時速 60 以上衝出去：時間放慢到 0.4 倍、鏡頭換成跳台旁的固定機位。飛行中左右（A／D）翻滾、油門／煞車（W／S）前後空翻，放開就慢慢回正；落地車身歪不到 0.5 rad、車頭方向沒偏就領獎金（200 + 距離 × 25 + 最高點 × 150，每轉滿一圈多五成），每座跳台第一次完成加倍；歪超過 0.5 rad 算失敗並傷車，翻過 1.3 rad 就是翻車（重損、車速剩四成）。落地衝擊太大也會傷車。
 - 霓虹證交所（手機）：三組死對頭共六檔股票（鐵庫保全 IVLT ↔ 哨衛防務 SNTL、凡托超跑 VNTR ↔ 蛟重工 MZCH、流明電訊 LMNT ↔ 脈線科技 PLSW）。你破壞 A 企業的東西（搶或炸運鈔車、炸掉路上的 Milano 與 Tiara GT、打爛路邊的藍色電訊箱）時 A 跌約 8%、B 漲約 7%；每分鐘（真實時間）隨機 ±1% 並向基準價回歸（半衰期 10 分鐘），價格限制在基準的 0.2–3.5 倍。個股畫面可以買 $10,000、$100,000、全部現金或全部賣出。
 - 電訊箱：生命 60，射擊、爆炸或開車以時速 30 以上撞上就爛，爛掉時會炸開（可能連鎖）。
 - 天際置業（手機）：買下 LAZARUS 夜店（$250,000）、AFTERGLOW 酒吧（$120,000）或 CHROME WORKS 改裝廠（$180,000），每遊戲小時（150 秒）把 $2,400／$1,100／$1,700 存進各自的保險箱（上限 20 小時的量），從手機收取。關掉遊戲的期間也照真實時間補算（最多一天）：股價往基準回歸並帶一點雜訊、資產收入補進保險箱，開場 4 秒後跳出提示。
@@ -313,8 +314,12 @@ HANDOFF 先前列為未做的項目：
   - 縫線服飾：$150 換一套衣服；通緝中、警察沒看到你時換裝，少一顆星。
   - 模型（只在 http(s)，走近 160 m 才下載 `props/v5shop.glb` 與 `arms.glb`）：服飾店是 jungle_jim 的兩間維多利亞式店面（玻璃後面是假人、ngdkh 的掛衣架與後牆層架），槍牆三排與玻璃展示櫃擺實體武器模型，射擊場是 FrodoUndead 的吊靶（人形靶紙）與五個射擊位；以檔案開啟或下載失敗時是程式建模（`MALL.fb`／`MALL.fg`）。
   - 泡泡隧道洗車：車停到入口按 E 付 $15，輸送帶以 2 m/s 把車拉過 24 m 的隧道（刷子轉、水霧），泥巴與血跡洗掉。車開久了兩側與車尾沾泥（下雨沾得快），撞到人車頭沾血；車頭有血、慢下來時附近的路人看 2.5 秒會報警（1 星）。
+- **霓虹立體停車場**（`69-v5-garage.js`，公園大道 (8,8)，東邊隔著大道是燈籠公園）：整塊人行道內是五層停車場（地面層加四層樓板，層高 3.6 m，第五層是露天頂樓），程式建模（找到的停車場 GLB 都太粗糙）。北側一條螺旋坡道帶（四條坡道疊在一起，`06-roads.js` 的 `DECKS` 回傳車或人腳下那一層），上樓的路線是坡道 → 東側車道往南 → 南側車道往西 → 西側車道往北 → 下一條坡道；每層外牆是護牆加這層顏色的霓虹條（P1 青、P2 琥珀、P3 洋紅、P4 萊姆、P5 藍），中間兩排背對背的車位與南側一排停著程式建模的車，日光燈管、柱子上漆一圈這層的顏色，有頂的部分不算積水反射。地面入口在西邊大道（前面不停路邊車），中間是收費機島，兩支紅白柵欄桿時速 5 公里以上一碰就斷飛（不減速、不扣血，30 秒後人走開 40 m 換新的）。西北角的電梯 E 直達頂樓、從頂樓 E 下到地面層。頂樓：
+  - 稀有超跑 McLaren P1（以檔案開啟是替身）停在西側的金色車格，車頭朝東正對跳台；開走或撞爛之後，人離開 300 m 以上半分鐘再換一台新的。
+  - 「飛躍霓虹大道」特技跳台（`20-props.js` 的第 21 座跳台，`y0` 是頂樓樓板高度；69-stunt 的斜面、起飛高度與機位都加上 `y0`）：從車格直接衝 40 m，時速約 90 公里起飛、最高約 18 m，飛過大道落進燈籠公園，第一次完成約 $8,900。頂樓東側護牆在跳台處開口。
+  - 東南角的降落傘包：撿起來（`V5.chute`，不存檔，60 秒後補回）之後，開車飛在半空（跳台、斷橋）時按 F 跳車變成自由落體，再按 F 或空白鍵開傘；車自己飛完落地。頂樓也算可以往下跳的屋頂（69-v5-civic 的 `roofJump`）。
 - 存檔第 9 版：多了 `v5`（`imp`：座駕在拖吊場；`ext`：擴充彈匣）。
-- 測試 API：`__nc.gta.v5`：`V5`（`lad`、`imp`、`band`、`medkits`、`helis`）、`FAC`、`LADS`、`w(id, x, z)`（設施座標 → 世界）、`yaw(id, a)`、`lad(i, top)`、`impound(why)`、`pay()`、`gateBreak()`、`fenceNear()`、`roofJump()`、`hospFee()`、`inYard(x, z)`；商業設施的 `SHOP`（`rob`、`clerk`、`drunk`、`shutter`）、`ATM_SPOTS`、`MALL`（`owner`、`range`、`wash`、`targets`）、`robStart()`、`aimAtClerk()`、`booze(where)`、`gunShop()`、`shopArmor()`、`shopMods()`、`rangeStart()`／`rangeEnd(quit)`、`clothesShop()`、`washStart(v)`、`carGrime(v)`、`v5Blood(v)`、`mallW(x, z)`、`mallGlb()`（直接下載商店街模型）、`aimRay()`、`rayHitsCyl(R, x, z, y0, y1, r)`、`shutterAt()`、`blockInfo()`（每個街區的區名、特殊地塊、模型地塊數與興趣點，選址用）。
+- 測試 API：`__nc.gta.v5`：`V5`（`lad`、`imp`、`band`、`medkits`、`helis`）、`FAC`、`LADS`、`w(id, x, z)`（設施座標 → 世界）、`yaw(id, a)`、`lad(i, top)`、`impound(why)`、`pay()`、`gateBreak()`、`fenceNear()`、`roofJump()`、`hospFee()`、`inYard(x, z)`；商業設施的 `SHOP`（`rob`、`clerk`、`drunk`、`shutter`）、`ATM_SPOTS`、`MALL`（`owner`、`range`、`wash`、`targets`）、`robStart()`、`aimAtClerk()`、`booze(where)`、`gunShop()`、`shopArmor()`、`shopMods()`、`rangeStart()`／`rangeEnd(quit)`、`clothesShop()`、`washStart(v)`、`carGrime(v)`、`v5Blood(v)`、`mallW(x, z)`、`mallGlb()`（直接下載商店街模型）、`aimRay()`、`rayHitsCyl(R, x, z, y0, y1, r)`、`shutterAt()`、`blockInfo()`（每個街區的區名、特殊地塊、模型地塊數與興趣點，選址用）；停車場的 `gar`（`PK`：`car`、`bag`、`bars`、`elev`、`Y(k)` 每層高度；`spawn()`、`bail()`、`floorAt(x, z, y)`（設施座標）、`ramp()`（頂樓跳台）、`near(X, Z, r)`（附近的碰撞盒，除錯用））。
 
 ### 城區與安全屋（World 整合）
 
@@ -375,7 +380,7 @@ HANDOFF 先前列為未做的項目：
 ### 全區地圖
 
 - 仿 GTA 暫停地圖：近黑的街廓與地塊、淺灰道路、深藍水面，北面是山、兩側是對岸；拉遠顯示區名，拉近顯示街名與車道線。
-- 地點：任務目標、座駕、其他兩位主角、三座場館、車行、車庫、六間安全屋（擁有是綠色）、銀行、警察局、醫院、拉麵攤、二十座特技跳台（已完成的變淡）。右側圖例按類別列出與計數，點一下跳到該類的下一個；左上資訊卡顯示類型、地區、距離、產權與收入，可設導航點或傳送（通緝中不能傳送）。
+- 地點：任務目標、座駕、其他兩位主角、三座場館、車行、車庫、六間安全屋（擁有是綠色）、銀行、警察局、醫院、拉麵攤、二十一座特技跳台（已完成的變淡）。右側圖例按類別列出與計數，點一下跳到該類的下一個；左上資訊卡顯示類型、地區、距離、產權與收入，可設導航點或傳送（通緝中不能傳送）。
 - 左下是比例尺與游標所在的「地區 / 街名」，滑鼠移動時有十字線。手機版圖例改成底部橫向捲動條、資訊卡縮小並收起說明。
 
 ### 暫停與設定（Esc，`01-settings.js`／`95-menu.js`）

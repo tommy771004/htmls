@@ -373,7 +373,9 @@ function deckOn(X, Z, skip, pad = 0) {
   return te && { h: top, e: te };
 }
 function deckTop(X, Z) { const o = deckOn(X, Z); return o ? o.h : null; }
-const deckAt = (X, Z, y) => { const h = deckTop(X, Z); return h !== null && y > h - 2.2 ? h : null; };
+// DECKS：快速道路以外的多層車道（69-v5-garage.js 的立體停車場），f(X, Z, y) 回傳車或人腳下那一層（y 往上 1.2 m 以內最高的面），沒有就 null
+const DECKS = [];
+const deckAt = (X, Z, y) => { const h = deckTop(X, Z); if (h !== null && y > h - 2.2) return h; for (const f of DECKS) { const g = f(X, Z, y); if (g != null) return g; } return null; };
 const segLenE = e => e.len - 2 * HR;
 // 邊上的點：u 是從 a 量起的弧長，回傳 [x, z, 前進方向 x, z]（a → b 的方向）
 function edgeAt(e, u) {

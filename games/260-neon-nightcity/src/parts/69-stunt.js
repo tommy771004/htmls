@@ -8,7 +8,7 @@
 
 const STUNT_MIN = 60 / 3.6;
 const stunt = { cam: null, camT: 0, n: 0 };
-// 二十座跳台加上縫裡的鐵灣高架斷橋（06-roads.js 的 BROKEN，自己的長、高、寬；不算在跳台收集裡）
+// 二十一座跳台（第 21 座在立體停車場頂樓，y0 是樓板高度）加上縫裡的鐵灣高架斷橋（06-roads.js 的 BROKEN，自己的長、高、寬；不算在跳台收集裡）
 const JUMPS = [...RAMPS, BROKEN];
 const rampL = r => r.L || RAMP_L, rampH = r => r.H || RAMP_H, rampW = r => r.W || RAMP_W;
 // 跳台斜面上的位置：a 是從斜坡起點算起的距離（0…斜坡長）
@@ -26,22 +26,23 @@ function stuntGround(v, vF) {
   if (!on) return;
   const along = Math.sin(v.yaw) * on.r.dx + Math.cos(v.yaw) * on.r.dz;
   if (along < .5 || vF < 1) return;   // 倒車或橫著開過去：當成沒有跳台
-  const r = on.r, L = rampL(r), H = rampH(r), th = Math.atan2(H, L);
+  const r = on.r, L = rampL(r), H = rampH(r), th = Math.atan2(H, L), y0 = r.y0 || 0;
+  if (prev == null && Math.abs(v.y - y0) > .8) return;   // 停車場頂樓的跳台：樓下同一個位置的車不算
   if (on.a <= L) {
     v.rampA = on.a;
-    v.y = Math.max(0, on.a / L * H); v.pitch = -th * clamp(on.a, 0, 1);
+    v.y = y0 + Math.max(0, on.a / L * H); v.pitch = -th * clamp(on.a, 0, 1);
     return;
   }
   if (prev == null) return;
   // 衝出邊緣：水平速度不變，垂直速度依斜面角度
   const vy = vF * Math.sin(th) * 1.35 + 1, qual = vF >= STUNT_MIN && v === player.veh;
-  v.air = { vy, t: 0, x0: v.x, z0: v.z, h: H, yaw0: v.yaw, qual, r, rr: 0, pr: 0, rolls: 0, flips: 0 };
-  v.y = H;
+  v.air = { vy, t: 0, x0: v.x, z0: v.z, h: y0 + H, yaw0: v.yaw, qual, r, rr: 0, pr: 0, rolls: 0, flips: 0 };
+  v.y = y0 + H;
   if (qual) {
     slowmo.st = r.broken ? .25 : .4; stunt.n++;
     // 側面固定機位：跳台邊緣往前 12 m、偏右 11 m、高 3.5 m，看著車（斷橋拉遠拉高，看得到底下的路）
     const rx = r.dz, rz = -r.dx, s = (stunt.n % 2) * 2 - 1, f = r.broken ? 24 : 12, o = r.broken ? 19 : 11;
-    stunt.cam = V3(r.x + r.dx * f + rx * s * o, r.broken ? 4.5 : 3.5, r.z + r.dz * f + rz * s * o); stunt.camT = 0;
+    stunt.cam = V3(r.x + r.dx * f + rx * s * o, (r.broken ? 4.5 : 3.5) + y0, r.z + r.dz * f + rz * s * o); stunt.camT = 0;
     sfx.swoosh(true);
   }
 }
@@ -92,21 +93,25 @@ function stuntLand(v, gh) {
 }
 // 鏡頭：crewLate() 之後覆寫，落地後再停 0.5 秒
 function stuntLate() {
-  for (const v of vehicles) if (v.air && v !== player.veh) stuntReset(v);   // 飛到一半換人、死亡或傳送：直接落地
+  for (const v of vehicles) if (v.air && v !== player.veh && !v.air.bail) stuntReset(v);   // bail：69-v5-garage.js 揹傘跳車，車自己飛完   // 飛到一半換人、死亡或傳送：直接落地
   if (!stunt.cam) return;
   const v = player.veh;
   if (!v || player.mode !== 'drive' || stunt.camT > 0 && (stunt.camT -= slowmo.raw) <= 0) { stunt.cam = null; slowmo.st = 1; camState.snap = true; return; }
   camera.position.copy(stunt.cam); camera.lookAt(v.x, v.y + .8, v.z);
 }
-function stuntReset(v) { if (v && v.air) { v.air = null; v.y = groundH(v.x, v.z); v.roll = 0; v.lean = 0; v.pitch = 0; if (v === player.veh) { stunt.cam = null; slowmo.st = 1; } } }
+function stuntReset(v) { if (v && v.air) { v.air = null; v.y = deckAt(v.x, v.z, v.y) ?? groundH(v.x, v.z); v.roll = 0; v.lean = 0; v.pitch = 0; if (v === player.veh) { stunt.cam = null; slowmo.st = 1; } } }
 // 測試 API（window.__nc.gta.stunt）
 const stuntApi = {
   stunt, RAMPS, rampAt, reset: stuntReset,
   // 每座跳台的助跑道（邊緣前 34 m）與落地、滑行區（後 56 m）有沒有被建築、路燈、樹等擋住：回傳被擋的距離
+  // 停車場頂樓的跳台（y0）：助跑道在頂樓的高度量，落地區從 30 m 起（前面是飛過大道的上空）
   probe: () => RAMPS.map(r => {
     const bad = [];
     for (let a = -RAMP_L - 24; a <= 56; a += 2) for (const b of [-1.1, 0, 1.1]) {
+      if (r.y0 && a > 0 && a < 30) continue;
+      colY = a <= 0 ? r.y0 + .5 : 0;
       const x = r.x + r.dx * a + r.dz * b, z = r.z + r.dz * a - r.dx * b, q = collideCircle(x, z, .5, false);
+      colY = 0;
       if (Math.hypot(q.x - x, q.z - z) > .05) { bad.push(a); break; }
     }
     return { i: r.i, bad };

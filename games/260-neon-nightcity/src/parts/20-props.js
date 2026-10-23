@@ -517,25 +517,29 @@ const RAMPS = [
   { x: avX(14) + HR + 1, z: stZ(13) - PARK, yaw: -Math.PI / 2 },
   { x: avX(19) + HR + 1, z: stZ(6) - PARK, yaw: -Math.PI / 2 },
   { x: avX(2) - PARK, z: stZ(9) - HR - 1, yaw: 0 },   // 原本在 avX(4)、往西飛：會越過楓林西與楓林東之間的縫
+  // 第五部曲：公園大道立體停車場的頂樓（69-v5-garage.js）往東飛過大道、落進燈籠公園；y0 是頂樓樓板的高度
+  ...(FAC.gar ? [{ x: FAC.gar.gar.x1, z: FAC.gar.gar.z0 + 28.5, yaw: Math.PI / 2, y0: FAC.gar.roof }] : []),
 ].map((r, i) => ({ ...r, i, dx: Math.sin(r.yaw), dz: Math.cos(r.yaw) }));
 // 生成時（停車避開跳台）用邏輯座標；cityWorld() 之後 RAMPS 是世界座標（69-stunt.js 每幀判斷車有沒有開上去）。
 // 世界座標的方向取助跑道後 20 m 到落地區前 40 m 的弦：彎曲的片裡路是彎的，車直直飛出去不會偏到路邊的燈柱與樹
 const RAMPS_W = RAMPS.map(r => {
   const zn = zoneAtL(r.x, r.z), [x, z] = toW(r.x, r.z, zn), [ax, az] = toW(r.x - r.dx * 20, r.z - r.dz * 20, zn), [bx, bz] = toW(r.x + r.dx * 40, r.z + r.dz * 40, zn), yaw = Math.atan2(bx - ax, bz - az);
   const dx = Math.sin(yaw), dz = Math.cos(yaw);
-  return { x: x + dz * RAMP_IN, z: z - dx * RAMP_IN, yaw, dx, dz };   // 往路中間（車頭的左手邊）挪 RAMP_IN，離路緣的燈柱、樹遠一點
+  return { x: x + dz * RAMP_IN, z: z - dx * RAMP_IN, yaw, dx, dz, y0: r.y0 || 0 };   // 往路中間（車頭的左手邊）挪 RAMP_IN，離路緣的燈柱、樹遠一點
 });
 worldHooks.push(() => { RAMPS.forEach((r, k) => Object.assign(r, RAMPS_W[k])); });
-const rampBlock = (x, z) => RAMPS.some(r => { const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 3.5 && a > -RAMP_L - 26 && a < 60; });   // 前面留 26 m 助跑，後面 60 m 內不停車（落地後還會往前滑）
+const rampBlock = (x, z) => RAMPS.some(r => { if (r.y0) return false; const a = (x - r.x) * r.dx + (z - r.z) * r.dz, b = (x - r.x) * r.dz - (z - r.z) * r.dx; return Math.abs(b) < 3.5 && a > -RAMP_L - 26 && a < 60; });   // 前面留 26 m 助跑，後面 60 m 內不停車（落地後還會往前滑）
+// 立體停車場（69-v5-garage.js）入口前的路邊不停車（生成時的邏輯座標）
+const garDrive = (x, z) => !!FAC.gar && x > FAC.gar.ax - 1 && x < FAC.gar.ax + 13 && z > FAC.gar.az + 20 && z < FAC.gar.az + 40;
 // 跳台的幾何直接用世界座標（RAMPS_W，和車判斷的方向一致），合併成一個網格
 {
   const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L);
   for (const r of RAMPS_W) {
-    const cx = r.x - r.dx * RAMP_L / 2, cz = r.z - r.dz * RAMP_L / 2, rx = r.dz, rz = -r.dx;
-    k.box(cx, RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 15, -th, r.yaw);   // 斜板
-    for (const s of [-1, 1]) k.box(cx + rx * s * (RAMP_W / 2 - .08), RAMP_H / 2 - .02, cz + rz * s * (RAMP_W / 2 - .08), .16, .14, sl, 0xd9b42a, 10, -th, r.yaw);   // 兩側黃邊
-    k.box(r.x - r.dx * .1, RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 15, 0, r.yaw);   // 邊緣的立板
-    for (const s of [-1, 1]) for (const f of [.35, .7]) k.box(r.x - r.dx * RAMP_L * (1 - f) + rx * s * 1.2, RAMP_H * f / 2, r.z - r.dz * RAMP_L * (1 - f) + rz * s * 1.2, .14, RAMP_H * f, .14, 0x2a2c2f, 15, 0, r.yaw);   // 支架
+    const cx = r.x - r.dx * RAMP_L / 2, cz = r.z - r.dz * RAMP_L / 2, rx = r.dz, rz = -r.dx, y0 = r.y0;   // y0：停車場頂樓的跳台
+    k.box(cx, y0 + RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 15, -th, r.yaw);   // 斜板
+    for (const s of [-1, 1]) k.box(cx + rx * s * (RAMP_W / 2 - .08), y0 + RAMP_H / 2 - .02, cz + rz * s * (RAMP_W / 2 - .08), .16, .14, sl, 0xd9b42a, 10, -th, r.yaw);   // 兩側黃邊
+    k.box(r.x - r.dx * .1, y0 + RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 15, 0, r.yaw);   // 邊緣的立板
+    for (const s of [-1, 1]) for (const f of [.35, .7]) k.box(r.x - r.dx * RAMP_L * (1 - f) + rx * s * 1.2, y0 + RAMP_H * f / 2, r.z - r.dz * RAMP_L * (1 - f) + rz * s * 1.2, .14, RAMP_H * f, .14, 0x2a2c2f, 15, 0, r.yaw);   // 支架
   }
   cityAdd(new T.Mesh(k.build(), MAT.uber), null);
 }

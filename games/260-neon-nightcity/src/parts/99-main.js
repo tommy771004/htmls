@@ -172,6 +172,7 @@ function updateCamera(dt, spd) {
   for (const b of p.air3 && p.air3.kind !== 'eject' ? [] : boxesNear(ox, oz, dist + 2)) {   // 跳傘時不拉近：樓的盒子沒有高度，飛在屋頂上空也會被拉近
     if (b.low) continue;   // 岸邊擋牆不擋相機
     if (b.hy !== undefined && Math.min(ty, wy) > b.hy + .3) continue;   // 站在屋頂上（69-v5-civic.js）：比樓頂高的相機不被那棟樓擋
+    if (b.ly != null && Math.max(ty, wy) < b.ly - .3) continue;   // 樓上那一層的牆（69-v5-garage.js 的立體停車場）
     if (boxGap(b, ox, oz) > dist + 2) continue;
     const t = rayBox(ox, oz, wx - ox, wz - oz, b, .25);
     if (t < tmin) tmin = t;
@@ -179,7 +180,7 @@ function updateCamera(dt, spd) {
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
   // 室內：有第二層的安全屋（69-safehouse.js）地板跟著所在的層，天花板依位置（夾層下比較低，相機與角色兩處取低的）
   const V = p.where === 'out' ? null : VENUES[p.where];
-  let wk = null; if (!V) { wk = walkCam(wx, wz, p.y, Math.max(seaFloor(wx, wz), SEA_Y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
+  let wk = null; if (!V) { wk = walkCam(wx, wz, inV ? p.veh.y : p.y, Math.max(seaFloor(wx, wz), SEA_Y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
   const floor = (V ? V.lvY || 0 : wk[0]) + .35;
   const ceil = !V ? wk[1] : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
   wy = clamp(wy, floor, ceil);
