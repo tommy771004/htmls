@@ -31,8 +31,8 @@ async function desktop() {
     const w2 = await ev(page, () => { const w = window.__nc.props.w2; return w && { on: w.on, sets: Object.keys(w.sets).length, failed: w.failed.length, kept: w.kept(), proc: w.proc, ebox: w.n.ebox, pump: w.n.pump }; });
     check(w2 && !w2.on && !w2.sets && !w2.failed && w2.kept >= 19 && w2.proc && w2.ebox > 20 && w2.pump >= 4, `以檔案開啟不換 world_2 模型、程式建模都在（配電箱與加油機用替身） ${JSON.stringify(w2)}`);
     // world_1 第二批：北嶺鐵道橋以檔案開啟是程式替身（山溝照樣挖），gameready_city 的三台車照樣在路邊（車流 GLB 內嵌）
-    const w1b = await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; return { has: !!V, via: !!(V && V.proxy && V.proxy.parent), deep: V ? +(nc.park.h(V.x + V.lx0 + V.W / 2, V.z + V.lz0 + V.D / 2) - V.deck).toFixed(1) : 0, grc: ['grc_sedan', 'grc_stepvan', 'grc_mailvan'].map(t => nc.parked.filter(p => p.type === t).length) }; });
-    check((w1b.via && w1b.deep < -40 || !w1b.has) && w1b.grc.every(n => n > 10), `北嶺鐵道橋的程式替身在、谷底比橋面低 ${-w1b.deep} m；路邊停著 gameready_city 的三台車（${w1b.grc.join('、')}）`);
+    const w1b = await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; return { has: !!V, via: !!(V && V.proxy && V.proxy.parent && V.ends.every(e => e.proxy && e.proxy.parent)), deep: V ? +(nc.park.h(V.x + V.lx0 + V.W / 2, V.z + V.lz0 + V.D / 2) - V.deck).toFixed(1) : 0, grc: ['grc_sedan', 'grc_stepvan', 'grc_mailvan'].map(t => nc.parked.filter(p => p.type === t).length) }; });
+    check((w1b.via && w1b.deep < -40 || !w1b.has) && w1b.grc.every(n => n > 10), `北嶺鐵道橋與兩端洞門的程式替身在、谷底比橋面低 ${-w1b.deep} m；路邊停著 gameready_city 的三台車（${w1b.grc.join('、')}）`);
 
     // 走路
     const p0 = await ev(page, () => ({ x: window.__nc.player.x, z: window.__nc.player.z }));

@@ -6,6 +6,13 @@ const W1_SITES = [];
 if (GLB_ON) {
   // 北嶺鐵道橋（10-city.js 的 VIADUCT）：北嶺公園後段的山溝，擺好就拿掉 21-rail.js 的程式替身
   if (VIADUCT) W1_SITES.push({ set: 'far_rail', id: 'rail', x: VIADUCT.x, z: VIADUCT.z, y: VIADUCT.y, ry: VIADUCT.ry || 0, near: 1300, zn: VIADUCT.zn, proxy: VIADUCT.proxy });
+  // 兩端的隧道口（w1_tunnel：東端岩壁切口、西端紅砂岩拱洞，兩側與拱洞上方的崖壁）：正面朝橋，擺好洞口就拿掉那一端的替身（e.proxy，崖壁的替身也在裡面）
+  if (VIADUCT) for (const e of VIADUCT.ends) {
+    const P = e.port, M = P.model, ry = Math.atan2(-e.ux, -e.uz), at = (o, d) => [e.x + e.ux * o - e.uz * d, e.z + e.uz * o + e.ux * d];
+    const [x, z] = at(M.o0, M.d0);
+    W1_SITES.push({ set: 'w1_tunnel', id: M.id, x, z, y: VIADUCT.deck + M.y, ry, near: 900, zn: VIADUCT.zn, proxy: e.proxy });
+    for (const [o0, d, y, a] of P.cliffs) { const [cx, cz] = at(o0, d); W1_SITES.push({ set: 'w1_tunnel', id: 'cliff', x: cx, z: cz, y: VIADUCT.deck + y, ry: ry + a, near: 900, zn: VIADUCT.zn }); }
+  }
   // 舊碼頭的河岸階梯（Mayflower Stairs 掃描）：兩座木棧橋中間，木樁牆面朝河（原檔正面朝 +z，轉成朝 −x），整塊沉到步道面以下，
   // 水面以上只露出牆頂與階梯口
   W1_SITES.push({ set: 'w1_stairs', id: 'stairs', x: CITY_X0 - OUT_D + 4.2, z: stZ(2) + 31, y: -7.02, ry: -Math.PI / 2, near: 500, zn: ZONES[0] });

@@ -188,6 +188,11 @@ try {
     await page.waitForTimeout(800); await hideHud(page); await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct, [x, z] = nc.props.rail.W(V.x, V.z); nc.look(Math.atan2(x - nc.player.x, z - nc.player.z), .12, 0); });
     await page.waitForTimeout(400); await shot(page, 'g-viaduct');
     check(done && !vr.proxy && vr.d.every(v => Math.abs(v) < .05), `北嶺鐵道橋模型已擺上、替身拿掉，山溝貼著模型地面（差 ${vr.d.join('、')} m，橋面 y ${vr.deck}）`);
+    // 兩端的洞門與崖壁（w1_tunnel，27-world1.js）：下載好就拿掉那一端的程式替身 e.proxy
+    let tun = false;
+    for (let i = 0; i < 160 && !tun; i++) { await page.waitForTimeout(250); tun = await ev(page, () => window.__nc.props.w1.filter(o => o.set === 'w1_tunnel').every(o => o.obj)); }
+    const tq = await ev(page, () => { const nc = window.__nc; return { n: nc.props.w1.filter(o => o.set === 'w1_tunnel').length, proxy: nc.props.viaduct.ends.filter(e => e.proxy && e.proxy.parent).length }; });
+    check(tun && tq.n === 5 && tq.proxy === 0, `北嶺鐵道兩端的洞門與崖壁已擺上（${tq.n} 件）、替身拿掉（剩 ${tq.proxy} 端）`);
   }
 
   // 北嶺鐵道橋的列車（21-rail.js）：走近就下載 w1_train 換掉程式替身；夜裡停在橋中間截圖（車窗亮著）；沒擺鐵道橋時跳過

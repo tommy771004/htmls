@@ -30,8 +30,15 @@ const RAIL = VIADUCT ? (() => {
     t: 0, speed: 17, wait: 38, dir: 1, s: -1e9, state: 'wait', tw: 12, hornCd: 0, joint: 0, hitCd: 0, loaded: false, req: false, snd: false };
 })() : null;
 const RAIL_NEAR = 1100, RAIL_ZN = VIADUCT ? VIADUCT.zn : null;
-// 山頭蓋板的高度（公園框的座標，d：離鐵軌中心的橫向距離）：沒挖溝的山坡，比山頭的輪廓低就照輪廓
-const railLid = (x, z, d) => Math.max(VIADUCT.deck + 17 - .7 * Math.max(0, Math.abs(d) - 10), parkLidH(x, z));
+// 山頭蓋板的高度（公園框的座標，d：離鐵軌中心的橫向距離）：沒挖溝的山坡，比山頭的輪廓低就照輪廓（平頂是 port.lid）；
+// 岩壁那一端不高過洞口上方削出的斜坡（railRamp）；拱洞那一端在拱洞上面是石欄杆下的填土（port.fill），從拱洞中間起每公尺升 1.2 m 爬到山坡
+const railLid = (e, x, z, d) => {
+  const V = VIADUCT, P = e.port, o = V.frame(e, x, z)[0], hill = Math.max(V.deck + P.lid - .7 * Math.max(0, Math.abs(d) - 10), parkLidH(x, z));
+  if (P.ramp) return Math.min(hill, railRamp(P, o));
+  return P.fill ? Math.min(hill, Math.max(V.deck + P.fill, V.deck + P.fill + 1.2 * (o - V.A - 6))) : hill;
+};
+// 隧道越裡面越暗：o 處洞壁的顏色（洞底前 60 m 起慢慢變黑）、燈只裝到那裡
+const railDark = o => 1 - sstep(VIADUCT.A + VIADUCT.BORE - 66, VIADUCT.A + VIADUCT.BORE - 8, o);
 
 if (RAIL) {
   const L0 = coastLights.length, V = VIADUCT, D = V.deck, R = RAIL, k = new Kit(), con = 0x8c877e, con2 = 0x66625b, dark = 0x050506, steel = 0x3e4a52, warm = 0xffcf8a, wood = 0x4a3a2a;
@@ -40,28 +47,48 @@ if (RAIL) {
   const railLight = (x, y, z, col, r, i) => { const [X, Z] = toW(x, z, RAIL_ZN), l = coastLight(X, y, Z, col, r, i); l.w = 1; return l; };
   const circle = (x, z, r) => { const [X, Z] = toW(x, z, RAIL_ZN); circles.push({ x: X, z: Z, r, w: 1 }); };
   // 沿端點方向擺一個盒：中心 (o, d)、y，長（沿 o）、高、寬（沿 d）
-  const ebox = (e, o, d, y, lo, h, wd, col, mat = 2) => { const [x, z] = P(e, o, d); k.box(x, y, z, lo, h, wd, col, mat, 0, Math.atan2(-e.uz, e.ux), 0); };
+  const ebox = (e, o, d, y, lo, h, wd, col, mat = 2, kit = k) => { const [x, z] = P(e, o, d); kit.box(x, y, z, lo, h, wd, col, mat, 0, Math.atan2(-e.uz, e.ux), 0); };
+  const dim = (c, f) => new T.Color(c).multiplyScalar(f).getHex();
   for (const e of V.ends) {
-    const A = V.A, B = V.BORE;
-    // ─── 洞門：8 m 厚、32 m 寬的混凝土塊，中間留 5.6×6.6 m 的洞口；頂上壓頂、洞口外框、兩側斜出的翼牆 ───
-    for (const s of [-1, 1]) ebox(e, A + 4, s * 9.4, D + 8.1, 8, 18.8, 13.2, con, 2);   // 洞口兩側（頂在橋面上 17.5 m）
-    ebox(e, A + 4, 0, D + 6.6 + (17.5 - 6.6) / 2, 8, 17.5 - 6.6, 5.8, con, 2);   // 洞口上方
-    ebox(e, A + .2, 0, D + 17.85, 1.6, .9, 33.6, con2, 2);   // 壓頂
-    for (const y of [4.2, 8.6, 13]) for (const s of [-1, 1]) ebox(e, A - .04, s * 9.6, D + y, .1, .12, 12.4, con2, 2);   // 混凝土的施工縫
-    for (const s of [-1, 1]) ebox(e, A - .15, s * 3.15, D + 3.3, .3, 6.6, .5, con2, 2);   // 洞口外框
-    ebox(e, A - .15, 0, D + 6.85, .3, .5, 6.8, con2, 2);
-    for (const s of [-1, 1]) {   // 翼牆：從洞門的角（A, ±16）斜到（A − 12, ±24），頂從洞門頂斜降到橋面上 3 m（梯形擠出 1.2 m 厚）
-      const [x0, z0] = P(e, A, s * 16), [x1, z1] = P(e, A - 12, s * 24), L = Math.hypot(x1 - x0, z1 - z0);
-      const sh = new T.Shape([new T.Vector2(0, Math.min(D - 1, parkH(x0, z0) - 1)), new T.Vector2(L, Math.min(D - 1, parkH(x1, z1) - 1)), new T.Vector2(L, D + 3), new T.Vector2(0, D + 17.5)]);
+    const A = V.A, B = V.BORE, Pt = e.port, rock = Pt.kind === 'rock';
+    // ─── 洞口的程式替身：模型（tools/props.mjs 的 w1_tunnel）下載前、以檔案開啟時用；27-world1.js 擺好模型就拿掉 e.proxy ───
+    {
+      const pk = new Kit(), pb = (o, d, y, lo, h, wd, col) => ebox(e, o, d, y, lo, h, wd, col, 2, pk);
+      if (rock) {   // 岩壁切口：兩側岩壁（|d| 從 cw 到 aw + 2）、洞口那面岩壁（中間留 7.2 m 寬、ch 高的洞口），幾塊凸出的岩塊
+        const rc = 0x5c5850, rc2 = 0x4a4741, L = Pt.in - Pt.cut, H = Pt.top + 1.4, hw = 3.6;
+        for (const s of [-1, 1]) {
+          pb((Pt.cut + Pt.in) / 2, s * (Pt.cw + Pt.aw + 2) / 2, D - 1.4 + H / 2, L, H, Pt.aw + 2 - Pt.cw, rc);
+          pb(Pt.in + 1, s * (hw + Pt.aw + 2) / 2, D - 1.4 + H / 2, 2, H, Pt.aw + 2 - hw, rc);
+          for (const [o, y, h] of [[.2, 3, 6], [.55, 9, 5], [.8, 14, 4]]) pb(Pt.cut + L * o, s * (Pt.cw - .4), D + y, 3.2, h, 1.2, rc2);
+        }
+        pb(Pt.in + 1, 0, D + Pt.ch + (Pt.top - Pt.ch) / 2, 2, Pt.top - Pt.ch, 2 * hw, rc);
+      } else {   // 拱洞：正面（寬 2·aw、高 top，中間 2·cw × ch 的洞口）、石欄杆、兩面洞壁、拱頂、背面
+        const sc = 0x9a6450, sc2 = 0xb89a84;
+        for (const s of [-1, 1]) pb(A + .5, s * (Pt.cw + Pt.aw) / 2, D - .5 + (Pt.top + .5) / 2, 1, Pt.top + .5, Pt.aw - Pt.cw, sc);
+        pb(A + .5, 0, D + Pt.ch + (Pt.top - Pt.ch) / 2, 1, Pt.top - Pt.ch, 2 * Pt.cw, sc);
+        pb(A + .3, 0, D + Pt.top - .2, 1.2, .5, 2 * Pt.aw + .6, sc2);
+        for (const s of [-1, 1]) pb((A + Pt.in) / 2, s * (Pt.cw + .4), D + Pt.ch / 2, Pt.in - A, Pt.ch, .8, sc);
+        pb((A + Pt.in) / 2, 0, D + Pt.ch + .4, Pt.in - A, .8, 2 * Pt.cw + 1.6, sc);
+        for (const s of [-1, 1]) pb(Pt.in - .5, s * (Pt.cw + Pt.aw) / 2, D + 3.5, 1, 8, Pt.aw - Pt.cw, sc);
+      }
+      for (const [o0, d, y, a] of Pt.cliffs) {   // 崖壁的替身：稍微往山裡仰的岩板
+        const [x, z] = P(e, o0, d);
+        pk.box(x, D + y + 11, z, 5, 22, 15, 0x5c5850, 2, 0, Math.atan2(-e.uz, e.ux) - a, -.15);
+      }
+      e.proxy = new T.Mesh(pk.build(), MAT.ridge); e.proxy.name = 'railPortalProxy'; cityAdd(e.proxy, RAIL_ZN);
+    }
+    if (Pt.wall) for (const s of [-1, 1]) {   // 翼牆：從洞口兩側（cut, ±(aw + 1)）斜到（cut − 12, ±(aw + 9)），頂從 wall[0] 斜降到 wall[1]（梯形擠出 1.2 m 厚）；牆外的土填到牆頂（10-city.js）
+      const [x0, z0] = P(e, Pt.cut, s * (Pt.aw + 1)), [x1, z1] = P(e, Pt.cut - 12, s * (Pt.aw + 9)), L = Math.hypot(x1 - x0, z1 - z0);
+      const sh = new T.Shape([new T.Vector2(0, D - 1), new T.Vector2(L, D - 1), new T.Vector2(L, D + Pt.wall[1]), new T.Vector2(0, D + Pt.wall[0])]);
       const g = new T.ExtrudeGeometry(sh, { depth: 1.2, bevelEnabled: false }); g.translate(0, 0, -.6);
       k.add(g, con, 2, tf(x0, 0, z0, 0, Math.atan2(-(z1 - z0), x1 - x0), 0));
     }
-    // ─── 山頭蓋板：10-city.js 在隧道經過的地方挖了一條溝，這塊從洞門後面蓋到洞底後面（|d| ≤ 12，2 m 一格）；高度是沒挖溝的山坡（parkLidH），
-    // 山坡比山頭的輪廓（|d| ≤ 10 平頂 D + 17，再往外每公尺降 0.7 m）低的地方照輪廓；頂點色和山一樣，高 8 cm 蓋住溝邊的三角形 ───
+    // ─── 山頭蓋板：10-city.js 在隧道經過的地方挖了一條溝，這塊從洞口（拱洞那一端從拱洞正面後面）蓋到洞底後面（|d| ≤ 12，2 m 一格）；
+    // 高度是 railLid；頂點色和山一樣，高 8 cm 蓋住溝邊的三角形；兩邊再往外 2 m 往下收 1.5 m，塞到溝邊的山坡底下（網格 4 m 一格，溝邊的斜面會露出來）───
     {
-      const no = Math.ceil((B - 6) / 2), nd = 12, pos = [], col = [], idx = [], c = new T.Color();
+      const o0 = rock ? Pt.in : A + .6, no = Math.ceil((A + B + 2 - o0) / 2), nd = 14, pos = [], col = [], idx = [], c = new T.Color();
       for (let i = 0; i <= no; i++) for (let j = 0; j <= nd; j++) {
-        const o = A + 8 + (B - 6) * i / no, d = -12 + 24 * j / nd, [x, z] = P(e, o, d), y = railLid(x, z, d) + .08, [X, Z] = toW(x, z, RAIL_ZN);
+        const o = o0 + (A + B + 2 - o0) * i / no, d = -14 + 28 * j / nd, [x, z] = P(e, o, d), y = railLid(e, x, z, clamp(d, -12, 12)) + .08 - .75 * Math.max(0, Math.abs(d) - 12), [X, Z] = toW(x, z, RAIL_ZN);
         pos.push(x, y, z); hillColor(c, X, Z, y); col.push(c.r, c.g, c.b);
         if (i && j) { const a = (i - 1) * (nd + 1) + j - 1, b = i * (nd + 1) + j - 1; idx.push(...(e.s > 0 ? [a, a + 1, b, b, a + 1, b + 1] : [a, b, a + 1, a + 1, b, b + 1])); }
       }
@@ -71,25 +98,32 @@ if (RAIL) {
       if (g.attributes.normal.array[1] < 0) { g.setIndex(idx.map((v, n) => idx[n - n % 3 + [0, 2, 1][n % 3]])); g.computeVertexNormals(); }   // 繞序朝下就翻過來
       const lm = new T.Mesh(g, MAT.uber); lm.name = 'railLid'; cityAdd(lm, RAIL_ZN);
     }
-    ebox(e, A + 4 + B / 2, 0, D - .24, B - 8, .1, 6.1, 0x46423c, 2);   // 洞裡的地面（溝底）
-    // ─── 隧道：兩面洞壁、拱頂、黑色的洞底，洞壁上每 12 m 一盞燈 ───
-    for (const s of [-1, 1]) ebox(e, A + 8 + (B - 8) / 2, s * 3.05, D + 3.2, B - 8, 7, .5, con2, 2);
-    ebox(e, A + 8 + (B - 8) / 2, 0, D + 6.85, B - 8, .5, 6.6, con2, 2);
-    ebox(e, A + B + .3, 0, D + 3.3, .6, 7, 6.6, dark, 2);
-    for (let o = A + 12, i = 0; o < A + B - 4; o += 12, i++) {
+    ebox(e, (A - 1 + A + B) / 2, 0, D - .24, B + 1, .1, 2 * (rock ? Pt.cw : Pt.cw) + .4, 0x46423c, 2);   // 洞裡的地面（溝底、拱洞裡）
+    // ─── 隧道：洞口（port.in）往裡兩面洞壁、洞頂，洞口那圈擋住模型洞口和洞壁之間的縫；12 m 一段，越裡面越暗，黑色的洞底；
+    // 洞壁上每 12 m 一盞燈，裝到洞底前 60 m（再往裡是黑的，看不到盡頭）───
+    for (const s of [-1, 1]) ebox(e, Pt.in + .3, s * (Pt.cw + 3.05) / 2, D + 2.6, .6, 5.8, Pt.cw - 3.05 + .4, dark, 2);
+    ebox(e, Pt.in + .3, 0, D + 5.6 + 1, .6, 2, 2 * Pt.cw + .4, dark, 2);
+    for (let o = Pt.in; o < A + B; o += 12) {
+      const lo = Math.min(12, A + B - o), f = railDark(o + lo / 2), cw = dim(con2, .25 + .75 * f), cc = dim(con2, .2 + .6 * f);
+      for (const s of [-1, 1]) ebox(e, o + lo / 2, s * 3.05, D + 2.6, lo, 5.8, .5, cw, 2);
+      ebox(e, o + lo / 2, 0, D + 5.75, lo, .5, 6.6, cc, 2);
+    }
+    ebox(e, A + B + .3, 0, D + 2.8, .6, 6, 6.6, dark, 2);
+    for (let o = Pt.in + 4, i = 0; o < A + B - 60; o += 12, i++) {
       const s = i % 2 ? 1 : -1, [x, z] = P(e, o, s * 2.7);
-      ebox(e, o, s * 2.72, D + 4.6, .5, .18, .14, 0xffe2b0, 11);
-      railLight(x, D + 4.4, z, 0xffd8a0, 7, .7);
+      ebox(e, o, s * 2.72, D + 4.2, .5, .18, .14, 0xffe2b0, 11);
+      railLight(x, D + 4, z, 0xffd8a0, 7, .7 * railDark(o));
     }
     // ─── 平台：道碴、枕木、兩條鋼軌，從橋端接到洞底；兩側矮的混凝土路緣 ───
     for (let o = -1; o < A + B; o += .65) ebox(e, o, 0, D - .12, .24, .14, 2.6, wood, 2);
     ebox(e, (A + B - 1) / 2, 0, D - .2, A + B + 1, .16, 3.8, 0x4c4840, 2);
     for (const s of [-1, 1]) ebox(e, (A + B - 1) / 2, s * .72, D + .02, A + B + 1, .14, .08, 0x6c6a66, 15);
-    for (const s of [-1, 1]) ebox(e, A / 2 - .5, s * 6.4, D - .05, A + 1, .4, .35, con2, 2);
-    // ─── 洞門上的燈、號誌（綠＝可以過、紅＝列車進站）、隧道名牌 ───
+    for (const s of [-1, 1]) ebox(e, (Pt.cut - 1) / 2, s * 6.4, D - .05, Pt.cut + 1, .4, .35, con2, 2);
+    // ─── 洞口的燈（岩壁切口：洞口兩角的岩面上；拱洞：拱腳兩側的石牆上）、號誌（綠＝可以過、紅＝列車進站）───
     for (const s of [-1, 1]) {
-      ebox(e, A - .4, s * 4.6, D + 7.6, .5, .4, .5, 0xffe2b0, 11);
-      const [x, z] = P(e, A - 1.4, s * 4.6); railLight(x, D + 7.2, z, warm, 16, 1.4);
+      const [lo, ld, ly] = rock ? [Pt.in - .7, s * 4.4, D + 5.6] : [A - .3, s * (Pt.cw + 1.4), D + 4.8];
+      ebox(e, lo, ld, ly, .5, .4, .5, 0xffe2b0, 11);
+      const [x, z] = P(e, lo - 1, ld); railLight(x, ly - .4, z, warm, 16, 1.4);
     }
     {
       const sd = e.s > 0 ? -4.4 : 4.4, [x, z] = P(e, A - 7, sd);   // 號誌桿：列車出洞的右手邊
@@ -138,10 +172,11 @@ if (RAIL) {
     const c = cv.getContext('2d'); c.fillStyle = '#3c3a36'; c.fillRect(0, 0, 1024, 256); c.strokeStyle = '#8a857c'; c.lineWidth = 10; c.strokeRect(14, 14, 996, 228);
     c.fillStyle = '#e8e2d2'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.font = '700 104px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; c.fillText(`北嶺${i ? '二' : '一'}號隧道`, 512, 100);
-    c.font = '600 46px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; c.fillStyle = '#c8c0ae'; c.fillText(`NORTH RIDGE TUNNEL ${i ? 'II' : 'I'} · ${V.BORE + 8} m`, 512, 196);
+    c.font = '600 46px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; c.fillStyle = '#c8c0ae'; c.fillText(`NORTH RIDGE TUNNEL ${i ? 'II' : 'I'} · ${V.BORE + V.A - e.port.cut} m`, 512, 196);
     const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace; tx.anisotropy = 4;
     const pl = new T.Mesh(new T.PlaneGeometry(5.2, 1.3), new T.MeshBasicMaterial({ map: tx, toneMapped: false, color: 0xa8a8a8 }));
-    const [x, z] = P(e, V.A - .32, 0); pl.position.set(x, D + 9.6, z); pl.rotation.y = Math.atan2(-e.ux, -e.uz); cityAdd(pl, RAIL_ZN);
+    const Pt = e.port, [x, z] = P(e, Pt.kind === 'rock' ? Pt.in - .9 : V.A - .45, 0);   // 岩壁：洞口上方的岩面；拱洞：拱頂和石欄杆之間
+    pl.position.set(x, D + (Pt.kind === 'rock' ? Pt.ch + 2.4 : 7.2), z); pl.rotation.y = Math.atan2(-e.ux, -e.uz); cityAdd(pl, RAIL_ZN);
   });
   // ─── 模型下載前（以檔案開啟就一直是它）的程式替身：沿中心線的鋼梁與護欄、量到的橋墩、兩條鋼軌。27-world1.js 擺好模型就拿掉 ───
   {
@@ -167,16 +202,18 @@ if (RAIL) {
     zn: RAIL_ZN, bb: [R0.x0 - 20, R0.x1 + 20, R0.z0 - 20, R0.z1 + 20],
     y(x, z, y0, cam) {
       for (const e of V.ends) {
-        const [o, d] = V.frame(e, x, z), ad = Math.abs(d), A = V.A;
+        const [o, d] = V.frame(e, x, z), ad = Math.abs(d), A = V.A, Pt = e.port, rock = Pt.kind === 'rock';
         if (o < A - 13 || o > A + V.BORE + 2 || ad > 26) continue;
         if (y0 < D + 4) {
-          if (o >= A - .3) {
+          if (o >= Pt.in - .3) {
             if (ad <= 2.5) return o < A + V.BORE - 1 ? D : cam ? D : null;   // 隧道裡；洞底擋住
-            if (ad <= 16 && o <= A + 8 || ad <= 12) return cam ? D : null;   // 洞門的混凝土、隧道兩邊的山
+            if (ad <= 12) return cam ? D : null;   // 隧道兩邊的山
+          } else if (o >= Pt.cut - .5) {
+            if (ad <= Pt.cw - .7) return D;   // 岩壁切口裡、拱洞裡
+            if (ad <= Pt.aw + 1) return cam ? D : null;   // 切口的岩壁、拱洞的正面
           }
-          if (ad > 14 && segD(o, ad, A, 16, A - 12, 24) < .55) return cam ? undefined : null;   // 翼牆
-        } else if (o >= A && o <= A + 8 && ad <= 16 && y0 > D + 12) return D + 17.5;   // 站在洞門頂上
-        else if (o > A + 8 && o < A + V.BORE + 6 && ad <= 16) return railLid(x, z, d);   // 山頭蓋板上（底下是隧道的溝）
+          if (Pt.wall && ad > Pt.aw && segD(o, ad, Pt.cut, Pt.aw + 1, Pt.cut - 12, Pt.aw + 9) < .55) return cam ? undefined : null;   // 翼牆
+        } else if (o > (rock ? Pt.in : A + .3) && o < A + V.BORE + 6 && ad <= (Pt.fill && o < Pt.in + 4 ? Pt.aw : 16)) return railLid(e, x, z, d);   // 山頭蓋板上（底下是隧道的溝；拱洞上面是石欄杆後面的填土）
       }
       if (Math.abs(x - V.x) <= V.W / 2 + .5) {
         const dz = Math.abs(z - V.zc(x));
@@ -187,15 +224,19 @@ if (RAIL) {
     },
     ceil(x, z, y0) {
       if (y0 >= D + 4) return undefined;
-      for (const e of V.ends) { const [o, d] = V.frame(e, x, z); if (o > V.A - .5 && o < V.A + V.BORE + 1 && Math.abs(d) < 3.2) return D + 6.1; }
+      for (const e of V.ends) {
+        const [o, d] = V.frame(e, x, z), Pt = e.port;
+        if (o > Pt.in - .5 && o < V.A + V.BORE + 1 && Math.abs(d) < 3.2) return D + 5.3;
+        if (Pt.fill && o > V.A - .3 && o <= Pt.in - .5 && Math.abs(d) < Pt.cw) return D + Pt.ch - .2;   // 拱洞裡
+      }
       return undefined;
     },
     clampCam(x, z, y0) {
       if (y0 >= D + 4) return undefined;
       for (const e of V.ends) {
-        const [o, d] = V.frame(e, x, z);
-        if (o < V.A + .2 || o > V.A + V.BORE + 20 || Math.abs(d) > 24) continue;
-        const oc = Math.min(o, V.A + V.BORE - 1.2), dc = clamp(d, -2.2, 2.2);
+        const [o, d] = V.frame(e, x, z), Pt = e.port, o0 = Pt.fill ? V.A : Pt.in;
+        if (o < o0 + .2 || o > V.A + V.BORE + 20 || Math.abs(d) > 24) continue;
+        const w = o < Pt.in ? Pt.cw - .8 : 2.2, oc = Math.min(o, V.A + V.BORE - 1.2), dc = clamp(d, -w, w);
         if (oc !== o || dc !== d) return P(e, oc, dc);
       }
       return undefined;

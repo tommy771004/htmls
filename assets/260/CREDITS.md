@@ -159,6 +159,9 @@
 | `w1_board` | 珊瑚灘步道上鷹巖村的燈箱看板（同一個檔附的空拍全景） | 同上 | 同上 | CC BY 4.0 |
 | `far_rail` | 北嶺公園後面山谷的北嶺鐵道橋 | [Railway bridge with a feeling of coziness](https://sketchfab.com/3d-models/railway-bridge-with-a-feeling-of-coziness-620a7c96136a4f41974245a04a90be78) | [Оrрндп ЯТG](https://sketchfab.com/orphanrtg) | CC BY 4.0 |
 | `w1_train` | 北嶺鐵道橋上來回開的五節電聯車（車頭、中間車、車尾三種車廂） | [Lastochka electric train](https://sketchfab.com/3d-models/lastochka-electric-train-1e2e86e317164b5983a000f79c6fe7a2) | [tiunov.se](https://sketchfab.com/tiunov.se) | CC BY 4.0 |
+| `w1_tunnel` `portal` | 北嶺鐵道東端的岩壁切口與洞門 | [Marshall Tunnel, East Portal, Botetourt Co, VA](https://sketchfab.com/3d-models/marshall-tunnel-east-portal-botetourt-co-va-7e11575729e94658ba60c2ac43dc71d1) | [Florida Public Archaeology Network](https://sketchfab.com/fpan) | CC BY 4.0 |
+| `w1_tunnel` `arch` | 北嶺鐵道西端的石拱洞門 | [stone tunnel at railway](https://sketchfab.com/3d-models/stone-tunnel-at-railway-83bb049c755c4af1ac25a3730ed8a998) | [SPLEEN VISION](https://sketchfab.com/spleen.vision) | CC BY 4.0 |
+| `w1_tunnel` `cliff` | 東端洞門上方的崖壁（三塊） | [Cliff Rock Boulder Field](https://sketchfab.com/3d-models/cliff-rock-boulder-field-d1f2ce6f71aa4c19adbdc541cc888194) | [Per's Scan Collection](https://sketchfab.com/perz_scans) | CC BY 4.0 |
 | `far_tron` `isle_tron` | 外海東南的光格島（遠景；走近換成整個街區，碼頭上岸） | [Arq Grid Tron](https://sketchfab.com/3d-models/arq-grid-tron-c3ec6fa4e6734e54a1adbc18c25c20b5) | [SpringSociety](https://sketchfab.com/jcreadingtutor) | CC BY 4.0 |
 | `w1_grc` `sedan` `stepvan` `mailvan` | 車流與路邊停車的三台車（`traffic.glb` 的 `grc_*`） | [Full Gameready City Buildings [retextured]](https://sketchfab.com/3d-models/full-gameready-city-buildings-retextured-5fad2351e34f4c069a2eec45cce0824c) | [mortalityrexotable](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
 | `w1_grc` `lamp` | 支路的彎臂路燈 | 同上 | 同上 | CC BY 4.0 |
@@ -173,8 +176,9 @@
 - `gameready_city`：路燈與路上的三台車當時不要（第二批補用，見下一條），依佔地連通塊拆成單棟，比街區還大的不要；一塊立面照片上的真實招牌模糊成色塊。
 - `gameready_city`（第二批 `w1_grc`／`w1_asphalt`）：路上的三台車與一根路燈用位置切出來（`clip`），車頭徽章與車門上的公司名模糊；旁邊的垃圾桶、號誌牌與地上的紙屑不要。柏油只取材質的三張貼圖。
 - `far_eze`：天空球不要（另外裁成 `w1_board` 的看板，只留地平線那一帶）；掃描切邊往下補一圈山坡沉進海裡。
-- `far_rail`：整個掃描照用（橋、山谷、樹、谷底的路），沒有加東西；`tools/props.mjs` 量出軌道中心線與四座橋墩（`props.json` 的 `line`）。頁面把公園山坡挖成山溝接上掃描的地面，兩端加路堤、隧道口、隧道（各 60 m，封底）、號誌與夜燈，橋面、橋下、山溝與隧道都走得進去。
+- `far_rail`：整個掃描照用（橋、山谷、樹、谷底的路），沒有加東西；`tools/props.mjs` 量出軌道中心線與四座橋墩（`props.json` 的 `line`）。頁面把公園山坡挖成山溝接上掃描的地面，兩端加路堤、洞門（`w1_tunnel`）、隧道（各 120 m，封底，越深越暗）、號誌與夜燈，橋面、橋下、山溝與隧道都走得進去。
 - `w1_train`：只用車頭、中間車與車尾各一節（頁面重複成五節），車頭目的地字幕（真實地名）不要，車窗與頭燈改成會依夜晚點亮的發光材質。
+- `w1_tunnel`：`portal` 只取洞門與兩側的岩壁切口（範圍外的部分裁掉，切口底部的道床拿掉，換成頁面自己的鐵軌），`arch` 只取拱門正面與拱圈（掃描只有正面，背面與翼牆裁掉，翼牆由頁面補），`cliff` 只取巨石場裡的一塊崖壁、顏色壓暗；三者都重新算法線、縫合貼圖接縫後減面。
 - `far_tron`：縮成 0.85。水面、長椅、販賣機、木箱、花台、郵筒、垃圾桶、路牌、消防栓、單車架、桶子、三角錐、桌子、樹、光束、車、光速機車、遮擋盒（`Blocker_`）與燈光輔助面不要；街區之間封閉的洞補島面、沿陸地邊界長一圈黑色岸壁，頁面沿岸壁加霓虹護岸燈。
 - `isle_tron`：同一個檔案的近景，整個街區（含長椅、販賣機、樹與停著的車）都留著；光速機車、敞篷車、膠囊車、嘟嘟車各取一台拆成自己的物件（光速機車放大到 2.4 m 長、頁面加亮線），光束與水面由頁面重畫；樹的白色自發光壓成淡青色，路面的金屬度與粗糙度調低（不然照出環境圖的彩色方格）。
 - `tram`：月台、軌道、電車與彎成弧形的街區不要，只用六棟高 28 m 以上的板樓。

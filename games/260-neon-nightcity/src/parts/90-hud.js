@@ -8,6 +8,7 @@ const MAP_BB = (() => {
   const add = ([x, z]) => { B.x0 = Math.min(B.x0, x - 40); B.x1 = Math.max(B.x1, x + 40); B.z0 = Math.min(B.z0, z - 40); B.z1 = Math.max(B.z1, z + 40); };
   rectW(ISLE.x0, ISLE.x1, ISLE.z0, ISLE.z1).forEach(add);
   add(toW(FAR_BANK_X - 120, Math.min(FAR_Z1, CITY_Z0), FAR_ZN));
+  if (RAIL) for (const [x, z] of RAIL.pts) add(toW(x, z, RAIL_ZN));   // 北嶺鐵道橋連兩端的隧道
   return B;
 })();
 const MAP_X0 = MAP_BB.x0, MAP_Z0 = MAP_BB.z0, MAP_S = 1.5, MINI_K = 2 / MAP_S;
@@ -57,6 +58,16 @@ const MAP_PARK = (() => {
   const box = (x0, x1, z0, z1) => [w(x0, z0), w(x1, z0), w(x1, z1), w(x0, z1)];
   return { walk, trail: NPARK.trail.map(([x, z]) => w(x, z)), look: box(L.x0, L.x1, L.z0, L.z1), cabin: box(C.x - 4, C.x + 4, C.z - 3, C.z + 3) };
 })();
+// 北嶺鐵道（21-rail.js 的 RAIL）：露天的一段（平台與橋）和兩端的隧道分開，隧道畫虛線
+const MAP_RAIL = RAIL ? (() => {
+  const V = VIADUCT, [w, e] = V.ends, open = [], tun = [[], []];
+  for (const [x, z] of RAIL.pts) {
+    const ew = V.frame(w, x, z)[0], ee = V.frame(e, x, z)[0], t = ew > (w.port.kind === 'rock' ? w.port.in : V.A) ? 0 : ee > (e.port.kind === 'rock' ? e.port.in : V.A) ? 1 : -1, p = toW(x, z, RAIL_ZN);
+    if (t < 0) open.push(p); else tun[t].push(p);
+  }
+  tun[0].push(open[0]); tun[1].unshift(open[open.length - 1]);
+  return { open, tun };
+})() : null;
 function drawCity(c, P, k, C, vis, lot, line) {
   const path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
   const G = MAP_GEO, [tx, tz] = P(G.tx0, G.tz0);
@@ -64,6 +75,12 @@ function drawCity(c, P, k, C, vis, lot, line) {
   c.fillStyle = C.grass; path(CITY_POLY, true); c.fill();   // 外緣裡面：片之間的空地是草地
   for (const s of G.coast) if (vis(s.bb)) { c.fillStyle = C[s.c]; path(s.pts, true); c.fill(); }
   { const K = MAP_PARK; c.fillStyle = C.park; path(K.walk, true); c.fill(); c.strokeStyle = C.trail || '#8a7050'; c.lineWidth = Math.max(1.4, 2.6 * k); c.lineJoin = c.lineCap = 'round'; path(K.trail); c.stroke(); c.fillStyle = C.trail || '#8a7050'; path(K.look, true); c.fill(); path(K.cabin, true); c.fill(); }   // 北嶺公園
+  if (MAP_RAIL) {   // 鐵道：深色道床上一條淺色軌線，隧道是虛線
+    const R = MAP_RAIL, lw = Math.max(1.2, 2.2 * k);
+    c.lineJoin = c.lineCap = 'round'; c.strokeStyle = C.railBed || '#15171b'; c.lineWidth = lw * 2.4; path(R.open); c.stroke();
+    c.strokeStyle = C.rail || '#9aa0aa'; c.lineWidth = lw; path(R.open); c.stroke();
+    c.setLineDash([lw * 2.5, lw * 2]); c.lineCap = 'butt'; c.lineWidth = lw * .9; for (const t of R.tun) { path(t); c.stroke(); } c.setLineDash([]);
+  }
   c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = C.road; c.lineWidth = 2 * HR * k;
   for (const e of RN.edges) { path(e.pts); c.stroke(); }
   for (const s of G.blk) {

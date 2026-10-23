@@ -212,6 +212,16 @@ export const SETS = [
   // 掃描單位一格約 100 m：橋長約 290 m、橋墩約 40 m），連山谷、樹與谷底的路；不補裙邊，hf 給頁面把公園山坡貼到掃描的地面底下、在邊上接起來；
   // line 量橋面的中心線與高度（橋面約 y 64.3、護欄頂約 66.7）與四座橋墩的佔地，列車、橋面步道、護欄與山溝底的碰撞都照它（21-rail.js）
   { out: 'far_rail', src: '.cache/world1', far: 1, tex: 1024, sloppy: .06, items: [{ id: 'rail', file: 'railway', scale: 100, hf: [60, 22], line: { y: [63.4, 65.4], step: 4, x: [-140, 140], piers: [40, 48] } }] },
+  // 北嶺鐵道橋兩端的隧道口（21-rail.js）：fpan 的 Marshall Tunnel（CC BY 4.0，公尺；岩壁上鑿出的 U 形切口，裡面是單線鐵道隧道的洞口，洞身斜 4.7°），
+  // 轉正、放大 1.25 倍（洞口才夠列車過）後只留切口與洞口後面 5 m 的洞身（portal，東端；洞口裡面接 21-rail.js 的隧道），切口裡的碎石地面（dropBox）拿掉，鋪頁面自己的道碴；
+  // spleen.vision 的 stone tunnel at railway（CC BY 4.0，紅砂岩的拱形涵洞，前後兩面石欄杆、兩側斜下的擋土牆；arch，西端）放大 2.2 倍讓列車過得去，
+  // 地面的草皮與泥地（原檔 y < 0.2）與兩側的擋土牆（掃描只有正面，背後是空的）不要；perz_scans 的 Cliff Rock Boulder Field（CC BY 4.0，採石場的碎石坡與一圈崖壁）切一段 12 m 寬的崖壁（cliff，0.75 倍；崖腳的碎石堆只留 2 m；石灰岩太白，底色壓到三分之一），
+  // 蓋在洞口兩側與上方的陡坡上。三個原檔都是照片掃描：seam 減面不跨 UV 接縫（先把切塊併回一塊、對齊接縫兩邊的頂點），renorm 重算法線，ds 雙面
+  { out: 'w1_tunnel', src: '.cache/tunnel', tex: 2048, ds: 1, tint: { rock_field: [.34, 1, 0] }, dropBox: [[90.5, 110, -1, 2.7, 2, 13.5]], items: [
+    { id: 'portal', file: 'marshall', sloppy: .25, seam: .01, renorm: 1, clip: [86, 110, -2, 21, -12, 22], yaw: 4.7, orient: ['x', 'y'], scale: 1.25 },
+    { id: 'arch', file: 'stonearch', sloppy: .05, seam: .01, renorm: 1, clip: [-9, 9, .2, 9, -2.9, 3.7], orient: ['-z', 'y'], scale: 2.2 },
+    { id: 'cliff', file: 'boulders', clip: [309, 322, 18, 50, 0, 18], orient: ['-x', 'y'], scale: .75 },
+  ] },
   // 光格島（外海東南那座島）：SpringSociety 的 Arq Grid Tron（CC BY 4.0，公尺；霓虹格線的未來街區，亮線全在自發光貼圖），縮成 0.85、
   // 原點放在島心（原檔 [32, 0, 91]）。遠景（far_tron）不要水面、街道家具、樹與車；tron 選項（tools/walkgrid.mjs）把街區之間封閉的洞補上島面、
   // 外緣長出黑色岸壁，land（陸地遊程編碼）、edges（岸線）、dock（北端那條路的盡頭）給頁面放碼頭、護岸燈與海底
@@ -413,6 +423,44 @@ function curtainUV(ps, re) {
     }
     ps.splice(ps.indexOf(p), 1, w, ...(rest.length ? [subPrim(p, rest)] : []));
   }
+}
+// 重算頂點法線（renorm）：照面積加權、同一個位置（1 mm）的頂點共用（UV 接縫兩邊一樣平滑）。照片掃描減面後原檔的法線對不上細長的三角形，
+// 打光時會冒出一點一點的亮斑
+function renormal(prims) {
+  const acc = new Map(), key = (p, i) => `${Math.round(p.pos[i * 3] * 1000)},${Math.round(p.pos[i * 3 + 1] * 1000)},${Math.round(p.pos[i * 3 + 2] * 1000)}`;
+  for (const p of prims) {
+    p.keys = Array.from({ length: p.cnt }, (_, i) => key(p, i));
+    for (let t = 0; t < p.idx.length; t += 3) {
+      const [a, b, c] = [p.idx[t], p.idx[t + 1], p.idx[t + 2]], P = (v, k) => p.pos[v * 3 + k];
+      const ux = P(b, 0) - P(a, 0), uy = P(b, 1) - P(a, 1), uz = P(b, 2) - P(a, 2), vx = P(c, 0) - P(a, 0), vy = P(c, 1) - P(a, 1), vz = P(c, 2) - P(a, 2);
+      const n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+      for (const v of [a, b, c]) { const k = p.keys[v], s = acc.get(k) || [0, 0, 0]; s[0] += n[0]; s[1] += n[1]; s[2] += n[2]; acc.set(k, s); }
+    }
+  }
+  for (const p of prims) { for (let i = 0; i < p.cnt; i++) { const s = acc.get(p.keys[i]), l = Math.hypot(...s) || 1; p.nor.set([s[0] / l, s[1] / l, s[2] / l], i * 3); } delete p.keys; }
+}
+// 同一個材質的 primitive 併成一個（節點名取第一個）
+function mergePrims(prims) {
+  const by = new Map();
+  for (const p of prims) { if (!by.has(p.mat)) by.set(p.mat, []); by.get(p.mat).push(p); }
+  return [...by.values()].map((g) => {
+    if (g.length === 1) return g[0];
+    const cnt = g.reduce((a, p) => a + p.cnt, 0), pos = new Float32Array(cnt * 3), nor = new Float32Array(cnt * 3), uv = g.every((p) => p.uv) ? new Float32Array(cnt * 2) : null, idx = [];
+    let o = 0;
+    for (const p of g) { pos.set(p.pos, o * 3); nor.set(p.nor, o * 3); if (uv) uv.set(p.uv, o * 2); for (const v of p.idx) idx.push(v + o); o += p.cnt; }
+    return { node: g[0].node, path: g[0].path, mat: g[0].mat, pos, nor, uv, idx: Uint32Array.from(idx), cnt };
+  });
+}
+// 位置差不到 1 mm 的頂點對齊到同一點（UV 接縫兩邊的頂點位置要完全一樣，減面才認得出是接縫、不當成外緣），位置與 UV 都一樣的併成一個
+function weldPrim(p) {
+  const at = new Map(), first = new Map(), rep = new Uint32Array(p.cnt);
+  for (let i = 0; i < p.cnt; i++) {
+    const pk = [0, 1, 2].map((j) => Math.round(p.pos[i * 3 + j] * 1e3)).join(',');
+    if (!at.has(pk)) at.set(pk, i); else { const j = at.get(pk); for (let k = 0; k < 3; k++) p.pos[i * 3 + k] = p.pos[j * 3 + k]; }
+    const k = pk + (p.uv ? `/${Math.round(p.uv[i * 2] * 1e5)},${Math.round(p.uv[i * 2 + 1] * 1e5)}` : '');
+    if (!first.has(k)) first.set(k, i); rep[i] = first.get(k);
+  }
+  return subPrim(p, Array.from(p.idx, (v) => rep[v]));
 }
 // 取 primitive 的部分三角形，頂點重新編號
 function subPrim(p, ix) {
@@ -742,7 +790,7 @@ async function build(set) {
     // mask（World 第四輪加的選項，沒寫的組不受影響）：材質名符合的改成 MASK（葉片：BLEND 大量實例會排序錯亂、OPAQUE 會看到貼圖的白底）
     const forceMask = !!(set.mask && m && set.mask.test(m.getName()));
     const blend = m && m.getAlphaMode() === 'BLEND' && !forceMask, mask = m && m.getAlphaMode() === 'MASK' || forceMask;
-    const n = out.createMaterial(m ? m.getName() : 'flat').setBaseColorFactor([1, 1, 1, 1]).setMetallicFactor(0).setRoughnessFactor(1).setDoubleSided(!!(m && m.getDoubleSided()));
+    const n = out.createMaterial(m ? m.getName() : 'flat').setBaseColorFactor([1, 1, 1, 1]).setMetallicFactor(0).setRoughnessFactor(1).setDoubleSided(!!(set.ds || m && m.getDoubleSided()));   // ds：照片掃描減面後有翻面的小三角形，背面剔除會透出一點一點的洞
     if (blend) n.setAlphaMode('BLEND'); else if (mask) n.setAlphaMode('MASK').setAlphaCutoff(forceMask ? .5 : m.getAlphaCutoff());
     const noEmi = !!(set.noEmi && m && set.noEmi.test(m.getName()));   // noEmi（第四輪）：原檔把葉子、草標成自發光，夜裡整棵樹會亮
     const edit = set.texEdit && m && set.texEdit[m.getName()];
@@ -925,9 +973,15 @@ async function build(set) {
       const [ix] = MeshoptSimplifier.simplify(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, Math.max(36, Math.floor(p.idx.length * set.heavy[1] / 3) * 3), .08);
       return ix.length ? subPrim(p, ix) : null;
     }).filter(Boolean);
-    if (set.sloppy) prims = prims.map((p) => {   // 照片掃描：UV 接縫多到 simplify 減不下去，允許跨接縫收合（Permissive）減到這個比例（遠景與地標用）
+    const sloppy = src.sloppy ?? set.sloppy;   // 物件自己的比例優先（同一組裡面數差很多的原檔）
+    if (src.seam) prims = mergePrims(prims);   // 原檔照 16 位元索引切成好幾塊、塊與塊之間不共用頂點：先併回一塊，減面才不會沿著切線裂開
+    if (sloppy && sloppy < 1) prims = prims.map((p) => {   // 照片掃描：UV 接縫多到 simplify 減不下去，允許跨接縫收合（Permissive）減到這個比例（遠景與地標用）
       if (p.idx.length < 300) return p;
-      const [ix] = MeshoptSimplifier.simplify(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, Math.max(60, Math.floor(p.idx.length * set.sloppy / 3) * 3), .05, ['Permissive']);
+      // seam：不跨接縫（UV 不同的頂點不收合），近看的掃描不會出現一塊塊貼錯的碎斑，代價是減不到那麼少（誤差放寬到 err）。
+      // 先把位置與 UV 都相同的頂點併成一個（原檔每個三角形各自一份頂點時，減面會把每條邊當成外緣各自收合，裂出一個個小洞）
+      if (src.seam) p = weldPrim(p);
+      const [ix] = src.seam ? MeshoptSimplifier.simplifyWithAttributes(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, p.uv ? Float32Array.from(p.uv) : new Float32Array(p.cnt * 2), 2, [1, 1], null, Math.max(60, Math.floor(p.idx.length * sloppy / 3) * 3), src.seam)
+        : MeshoptSimplifier.simplify(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, Math.max(60, Math.floor(p.idx.length * sloppy / 3) * 3), .05, ['Permissive']);
       return ix.length ? subPrim(p, ix) : null;
     }).filter(Boolean);
     if (set.keep) prims = prims.filter((p) => set.keep(p.node));
@@ -1031,6 +1085,7 @@ async function build(set) {
     }).filter(Boolean);
     if (src.pick) prims = prims.filter((p) => { const { mn, mx } = bbox([p]); return src.pick((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2); });
     if (!set.split) {
+      if (src.renorm) renormal(prims);
       const dims = place(prims, src);
       if (src.hf) dims.hf = heightField(prims, ...src.hf);   // 崖壁之前量：只量掃描本身的地面
       if (src.line) dims.line = trackLine(prims, src.line);

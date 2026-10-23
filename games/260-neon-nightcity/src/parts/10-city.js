@@ -1306,7 +1306,7 @@ NPARK = (() => {
 // 山坡在模型範圍裡貼到模型地面下 1.5 m（畫面；走的時候貼著模型地面），南北兩頭順著模型邊緣的溝底花 80 m 爬回山坡、東西兩頭 40 m。
 // y：模型東西兩端的地面對齊山坡（取中位數），再抬到溝底高過海面（溝底低於 SEA_Y 會變成水）。
 // 兩端：鐵軌出了模型順著切線直走，先是 A 公尺長、和橋面一樣高的平台（南側緩坡接步道），再進山裡的隧道（洞門在 o = A，洞長 BORE）。
-// 洞門、隧道、平台上的軌道、燈與列車在 21-rail.js；模型由 27-world1.js 下載（以檔案開啟時是 21-rail.js 的程式替身），兩種開法地形都一樣。
+// 洞口、隧道、平台上的軌道、燈與列車在 21-rail.js；模型由 27-world1.js 下載（以檔案開啟時是 21-rail.js 的程式替身），兩種開法地形都一樣（照洞口模型挖）。
 // 21-coast.js 把山的網格碰到 NPARK.carve（挖過的範圍）的三角形細分，照 parkH 畫出來
 VIADUCT = (() => {
   const it = PROPS_SPEC.far_rail?.items.rail, hf = it?.hf, ln = it?.line; if (!hf || !ln) return null;
@@ -1338,10 +1338,22 @@ VIADUCT = (() => {
   // 中心線（公園框的座標）：zc(x) 是那個 x 上鐵軌中心的 z
   const [c0, c1, c2] = ln.c, zc = X => z + c0 + c1 * (X - x) + c2 * (X - x) ** 2;
   // 兩端：p 是模型邊緣上的鐵軌中心，(ux, uz) 是往外（進山）的切線；s −1 西、+1 東
-  const A = 24, BORE = 60;
+  const A = 24, BORE = 120;
+  // 洞口（tools/props.mjs 的 w1_tunnel，21-rail.js 擺模型與替身）。東端的山坡約 1:1（洞口上方比切口高十幾公尺）、西端緩（拱洞那裡只高 6 m）：
+  // 東端是岩壁上鑿出的 U 形切口（rock），切口前緣在 o = cut、洞口在 o = in，兩側岩壁內緣 |d| = cw、外緣 aw、頂在橋面上 top；
+  // 洞口上方的陡坡往後削（洞口後 2 m 起每公尺升 ramp），削出的土面蓋三塊崖壁（cliffs）；沒有翼牆，切口兩側的土坡往橋那邊花 slope 公尺降到平台。
+  // 西端是紅砂岩的拱形涵洞（arch），正面在 o = A、拱洞到 o = in，拱內 |d| = cw、淨高 ch，拱頂上的蓋板是填土（fill），兩側寬到 aw；
+  // 翼牆從拱洞兩側（cut, ±(aw + 1)）斜到（cut − 12, ±(aw + 9)），頂從 wall[0] 降到 wall[1]，牆外填土。
+  // side：洞口兩側的土至少填到這麼高；lid：隧道上山頭的平頂高度；都是橋面上多少
   const ends = [-1, 1].map(s => {
     const lx = s * W / 2, m = c1 + 2 * c2 * lx, l = Math.hypot(1, m);
-    return { x: x + lx, z: zc(x + lx), ux: s / l, uz: s * m / l, s };
+    const port = s > 0 ? { kind: 'rock', cut: A - 4.4, in: A + 11, cw: 6.1, ch: 5, top: 20.3, aw: 9.5, side: 20.3, lid: 20, slope: 14, ramp: 5 }
+      : { kind: 'arch', cut: A, in: A + 13, cw: 6, ch: 5.1, top: 9.1, fill: 6.4, aw: 9.2, side: 9.6, lid: 11, wall: [9.6, 2] };
+    // 模型擺法（tools/props.mjs 量的）：模型的 (x, z) 擺到 o = o0 − z、d = d0 + x（正面朝橋），y 是橋面上多少；
+    // 崖壁（cliff）的岩腳在模型 z ≈ 3.5、岩面幾乎垂直（頂在 z ≈ 0），22.6 m 高
+    port.model = s > 0 ? { id: 'portal', o0: A + 6.5, d0: -1.4, y: -1.4 } : { id: 'arch', o0: A + 6.3, d0: 0, y: -.5 };
+    port.cliffs = s > 0 ? [[port.in + 4.5, 0, 13.8, 0], [port.in + 4, 13, 13, .25], [port.in + 4, -13, 13, -.25]] : [];   // [o0, d, y, 轉角]
+    return { x: x + lx, z: zc(x + lx), ux: s / l, uz: s * m / l, s, port };
   });
   const frame = (e, X, Z) => { const dx = X - e.x, dz = Z - e.z; return [dx * e.ux + dz * e.uz, dz * e.ux - dx * e.uz]; };   // [o 往外, d 往左]
   const piers = (ln.piers || []).map(([x0, x1, z0, z1]) => ({ x0: x + x0, x1: x + x1, z0: z + z0, z1: z + z1 }));
@@ -1392,6 +1404,8 @@ if (VIADUCT) {
   NPARK.x0 = Math.min(NPARK.x0, NPARK.carve.x0 - 20); NPARK.x1 = Math.max(NPARK.x1, NPARK.carve.x1 + 20);
   NPARK.z0 = Math.min(NPARK.z0, NPARK.carve.z0 - 20, NPARK.rail.z0 - 40);
 }
+// 岩壁那一端洞口上方的斜坡上限（橋面上多少）：切口頂，洞口後 2 m 起每公尺升 ramp（藏在崖壁後面，很快就接回山坡）
+function railRamp(P, o) { return VIADUCT.deck + P.top + P.ramp * Math.max(0, o - P.in - 2); }
 function viaCarve(x, z, h, walk, lid) {
   const V = VIADUCT; if (!V) return h;
   const lx = x - V.x - V.lx0, lz = z - V.z - V.lz0, ex = Math.max(0, -lx, lx - V.W), ez = Math.max(0, -lz, lz - V.D);
@@ -1404,13 +1418,23 @@ function viaCarve(x, z, h, walk, lid) {
     // 平台：和橋面一樣高（低 0.25 m 的道碴），往橋那邊 22 m 降回山溝（橋端下的路堤），北側 12–34 m、南側 12–70 m 降回山坡（南側是上來的緩坡）
     const wl = 1 - sstep(12, d * e.ux > 0 ? 70 : 34, ad), wo = sstep(-23, -1, o);
     let g = h + (V.deck - .25 - h) * wl * wo;
-    // 隧道上的山頭：洞門那一塊（|d| < 16）在 o = A + 6 之後才隆起（藏在 21-rail.js 的洞門後面），兩側從 A − 14 起爬；過了洞底再慢慢降回山坡
-    const top = V.deck + 17 - .7 * Math.max(0, ad - 10) - .5 * Math.max(0, o - V.A - V.BORE - 5);
-    const k = (sstep(V.A + 6, V.A + 10, o) * (1 - sstep(16, 22, ad)) + sstep(V.A - 14, V.A + 4, o) * sstep(16, 22, ad));
+    // 隧道上的山頭：洞口那一塊（|d| < 16）在洞口（port.in）之後才隆起（藏在洞口模型後面），兩側從洞口前緣前 14 m 起爬回山坡；過了洞底再慢慢降回山坡
+    const P = e.port, top = V.deck + P.lid - .7 * Math.max(0, ad - 10) - .5 * Math.max(0, o - V.A - V.BORE - 5);
+    const k = sstep(P.in - 1, P.in + 3, o) * (1 - sstep(16, 22, ad)) + sstep(P.cut - 14, P.cut + 4, o) * sstep(16, 22, ad);
     if (k > 0) g += (Math.max(top, h) - g) * k;
-    // 隧道經過的地方挖成一條 20 m 寬的溝（網格約 4 m 一格，溝要寬過洞壁 5.7 m 以上，山坡的三角形才不會穿進洞裡），上面蓋著 21-rail.js 的山頭蓋板
-    // （lid：蓋板照沒挖的山坡蓋，山坡比蓋板頂 D + 17 高的地方就貼著山坡）
-    if (!lid && o > V.A - 1 && o < V.A + V.BORE + 1 && ad < 10) g = Math.min(g, V.deck - .3);
+    // 洞口兩側（|d| > aw）：至少填到 side，往外每公尺降 0.4 m；有翼牆的從洞口前緣起，沒有的往橋那邊花 slope 公尺降回平台
+    const ks = sstep(P.aw - .5, P.aw + 1, ad) * sstep(P.cut - (P.wall ? 1 : P.slope), P.cut + .5, o) * (1 - sstep(P.in + 2, P.in + 8, o));
+    if (ks > 0) g = Math.max(g, g + (Math.max(h, V.deck + P.side - .4 * Math.max(0, ad - P.aw - 6)) - g) * ks);
+    // 翼牆外側：牆外填到牆頂下 0.4 m，再往外每公尺降 0.5 m
+    if (P.wall && o > P.cut - 20 && o < P.cut + 4 && ad > P.aw) {
+      const t = clamp((P.cut - o) / 12, 0, 1), out = ad - (P.aw + 1 + 8 * t);
+      if (out > 0) g = Math.max(g, V.deck + P.wall[0] + (P.wall[1] - P.wall[0]) * t - .4 - .5 * out - 1.2 * Math.max(0, P.cut - 12 - o));
+    }
+    // 岩壁那一端：洞口上方的陡坡往後削（railRamp），|d| < 22 以外慢慢接回山坡
+    if (P.ramp && o > P.in - 2 && ad < 30) g = Math.min(g, g + (railRamp(P, o) - g) * (1 - sstep(22, 30, ad)));
+    // 隧道經過的地方挖成一條溝（網格約 4 m 一格，溝要寬過洞壁 5.7 m 以上，山坡的三角形才不會穿進洞裡；洞口前的切口與拱洞裡只挖到 |d| = 8），
+    // 上面蓋著 21-rail.js 的山頭蓋板（lid：蓋板照沒挖的山坡蓋）
+    if (!lid && o > V.A - 1 && o < V.A + V.BORE + 1 && ad < (o < P.in ? 8 : 10)) g = Math.min(g, V.deck - .3);
     h = g;
   }
   return h;

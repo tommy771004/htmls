@@ -5141,6 +5141,52 @@
   ],
   "far": 1
  },
+ "w1_tunnel": {
+  "kb": 3745,
+  "items": {
+   "portal": {
+    "w": 19.87,
+    "d": 21.94,
+    "h": 21.73,
+    "tris": 13182
+   },
+   "arch": {
+    "w": 17.9,
+    "d": 15.56,
+    "h": 9.61,
+    "tris": 15570
+   },
+   "cliff": {
+    "w": 15.95,
+    "d": 11.62,
+    "h": 22.6,
+    "tris": 1123
+   }
+  },
+  "credits": [
+   {
+    "file": "marshall",
+    "title": "Marshall Tunnel, East Portal, Botetourt Co, VA",
+    "author": "Florida Public Archaeology Network (https://sketchfab.com/fpan)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/marshall-tunnel-east-portal-botetourt-co-va-7e11575729e94658ba60c2ac43dc71d1"
+   },
+   {
+    "file": "stonearch",
+    "title": "stone tunnel at railway",
+    "author": "SPLEEN VISION (https://sketchfab.com/spleen.vision)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/stone-tunnel-at-railway-83bb049c755c4af1ac25a3730ed8a998"
+   },
+   {
+    "file": "boulders",
+    "title": "Cliff Rock Boulder Field",
+    "author": "Per's Scan Collection (https://sketchfab.com/perz_scans)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cliff-rock-boulder-field-d1f2ce6f71aa4c19adbdc541cc888194"
+   }
+  ]
+ },
  "far_tron": {
   "kb": 3781,
   "items": {
