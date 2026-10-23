@@ -371,7 +371,7 @@ async function desktop() {
       p.load();
       setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
     }));
-    check(qv.ok && qv.v === 7 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    check(qv.ok && qv.v === 8 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
     await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
@@ -824,7 +824,7 @@ async function desktop() {
     // 從平台走進隧道、洞底擋住、相機在洞裡；列車整列在橋上時五節都在、在洞底時藏起來；站在軌道上被列車撞倒但留在橋面；夜裡有燈。
     // 十五片版圖還沒擺鐵道橋（VIADUCT 是 null）時跳過
     if (await nc(() => !!window.__nc.props.viaduct)) {
-      const run = async (ms, yaw) => { if (yaw != null) await nc((y) => { const n = window.__nc; n.player.yaw = y; n.look(y, .1, 0); }, yaw); await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
+      const run = async (ms, yaw) => { if (yaw != null) await nc((y) => { const n = window.__nc, p = n.player, w = n.Ws(...n.L(p.x, p.z), y).yaw; p.yaw = w; n.look(w, .1, 0); }, yaw); await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
       const at = () => nc(() => { const n = window.__nc, p = n.player, V = n.props.viaduct, [x, z] = n.L(p.x, p.z), o = Math.max(...V.ends.map(e => V.frame(e, x, z)[0])); return { x: +x.toFixed(1), z: +z.toFixed(1), y: +p.y.toFixed(2), deck: +V.deck.toFixed(2), dz: +(z - V.zc(x)).toFixed(2), o: +o.toFixed(1), cam: +n.camera.position.y.toFixed(2), down: p.down > 0, d: n.park.district(p.x, p.z).split(' ')[0] }; });
       await nc(() => { const n = window.__nc, V = n.props.viaduct; n.walk(); n.props.rail.hold(); n.tpL(V.x - 40, V.zc(V.x - 40), Math.PI / 2); n.player.y = V.deck; });
       await page.waitForTimeout(300); await run(2000, Math.PI / 2);
@@ -854,6 +854,11 @@ async function desktop() {
         && bore.o > bore.A + 20 && bore.o < bore.A + bore.B && Math.abs(bore.y - bore.deck) < .05 && bore.cam < bore.deck + 6.2 && vis.mid === 5 && vis.hid === 0 && vis.lights >= 40
         && hit && hit.down && Math.abs(after.y - after.deck) < .3 && Math.abs(after.dz) <= 4.5,
         `北嶺鐵道橋：橋面、護欄、谷底與橋墩、隧道、列車進出洞、撞人留在橋面、夜燈 ${JSON.stringify(rk)}`);
+    }
+    // 光格島（21-tron.js）：以檔案開啟沒有近景可以下載，不擺島上的碼頭與遊艇（上岸、騎光速機車的驗收在 glb-check.mjs，要 http）
+    {
+      const tr = await nc(() => { const n = window.__nc; return { T: n.props.tron.T, boat: n.boat.list().some(o => o.where === '光格島') }; });
+      check(tr.T === null && !tr.boat, `光格島以檔案開啟只有遠景替身 ${JSON.stringify(tr)}`);
     }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {
@@ -893,7 +898,10 @@ async function desktop() {
         const st = await nc(([kind, lat]) => {
           const n = window.__nc, e = kind === 'ramp' ? n.ways.ramps.find(r => !r.on).edge : n.roads.edges.filter(e => e.kind === kind && !e.ramp).sort((a, b) => b.len - a.len)[0], p = e.pts, k = Math.min(3, p.length - 2);
           const [x0, z0] = p[k], [x1, z1] = p[k + 1], l = Math.hypot(x1 - x0, z1 - z0), hx = (x1 - x0) / l, hz = (z1 - z0) / l;
-          const v = n.player.veh; v.x = x0 - hz * Math.min(3, lat); v.z = z0 + hx * Math.min(3, lat); v.yaw = Math.atan2(hx, hz); v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v);
+          const v = n.player.veh, C = n.gta.v3 && n.gta.v3.crash && n.gta.v3.crash.crash;
+          if (C) Object.assign(C, { veh: v, car: v.carId, belt: true, still: 0 });
+          if (n.gta.wanted && n.gta.wanted.clear) n.gta.wanted.clear('reset');   // 前面的測試撞過路人，留著通緝的話警察可能把人拉下車   // 先繫安全帶（69-v3-crash.js）：全油門碰到車流不會飛出車外，這裡量的是路面與高度
+          v.x = x0 - hz * Math.min(3, lat); v.z = z0 + hx * Math.min(3, lat); v.yaw = Math.atan2(hx, hz); v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v);
           if (e.fwy) v.y = e.fwy.h(e.a0 + e.cum[k]);
           return { id: e.id, x: v.x, z: v.z, lat };
         }, [kind, lat]);
@@ -903,6 +911,7 @@ async function desktop() {
         else for (let t = 0; t < ms; t += 100) {
           await nc((st) => {
             const n = window.__nc, v = n.player.veh, e = n.roads.edges[st.id];
+            if (!v) return;
             let d = 1e9, u = 0; for (let k = 1; k < e.pts.length; k++) { const [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((v.x - ax) * dx + (v.z - az) * dz) / (dx * dx + dz * dz))), dd = Math.hypot(v.x - ax - dx * t, v.z - az - dz * t); if (dd < d) { d = dd; u = e.cum[k - 1] + Math.hypot(dx, dz) * t; } }
             const at = w => { let k = 1; while (k < e.pts.length - 1 && e.cum[k] < w) k++; const p = e.pts[k - 1], q = e.pts[k], L = e.cum[k] - e.cum[k - 1] || 1, f = Math.min(1, (w - e.cum[k - 1]) / L); return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f, (q[0] - p[0]) / L, (q[1] - p[1]) / L]; };
             const [x, z, hx, hz] = at(Math.min(e.len, u + 14)), tx = x - hz * st.lat, tz = z + hx * st.lat, yaw = Math.atan2(tx - v.x, tz - v.z), sp = Math.hypot(v.vx, v.vz);
@@ -913,13 +922,14 @@ async function desktop() {
         await page.keyboard.up('KeyW');
         return nc((st) => {
           const n = window.__nc, v = n.player.veh, e = n.roads.edges[st.id];
+          if (!v) { const t = document.getElementById('toast'); return { lost: { mode: n.player.mode, dead: n.gta.life.dead, hp: Math.round(n.gta.life.hp), stars: n.gta.wanted && n.gta.wanted.W.stars, toast: t && t.textContent } }; }
           let d = 1e9, u = 0; for (let k = 1; k < e.pts.length; k++) { const [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k], dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((v.x - ax) * dx + (v.z - az) * dz) / (dx * dx + dz * dz))), dd = Math.hypot(v.x - ax - dx * t, v.z - az - dz * t); if (dd < d) { d = dd; u = e.cum[k - 1] + Math.hypot(dx, dz) * t; } }
           return { moved: +Math.hypot(v.x - st.x, v.z - st.z).toFixed(1), off: +d.toFixed(1), y: +v.y.toFixed(2), h: +(e.fwy ? e.fwy.h(e.a0 + u) : 0).toFixed(2), u: Math.round(u), len: Math.round(e.len) };
         }, st);
       };
       await nc(() => window.__nc.drive());
       await page.waitForFunction(() => window.__nc.player.veh, null, { timeout: 15000 });
-      const rd = await ride('d'), rf = await ride('f', 7000, true), rr = await ride('ramp', 8000, true, 0);
+      const rd = await ride('d'), rf = await ride('f', 7000, true), rr = await ride('ramp', 8000, true, 0);   // rr.off：匝道半寬 5 m（RAMP_HW），扣掉半個車寬還在橋面上；開過匝道末端時量的是離終點的距離
       await nc(() => window.__nc.walk());
       const ug = await nc(() => { const n = window.__nc, o = n.ways.fwy.find(F => F.over && F.over.length).over[0], [px, pz] = o.e.pts[0], l = Math.hypot(px - o.x, pz - o.z), ux = (px - o.x) / l, uz = (pz - o.z) / l; n.tp(o.x + ux * 12, o.z + uz * 12, Math.atan2(-ux, -uz)); return { x: n.player.x, z: n.player.z, y0: n.player.y }; });
       await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(5500); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft');
@@ -928,7 +938,7 @@ async function desktop() {
         && net.joins.length >= 2 && net.joins.every(([y, ns]) => y > 7 && ns)
         && net.ramps.length >= 3 && net.ramps.some(r => r[0] === 'on') && net.ramps.some(r => r[0] === 'off') && net.ramps.every(r => r[1] === 1 && r[4] === 'c' && (r[0] === 'off' ? r[3] > 3.9 && r[2] === 0 : r[2] > 3.9 && r[3] === 0))
         && rd.moved > 25 && rd.off < 8 && Math.abs(rd.y) < .05 && rf.moved > 60 && rf.off < 8 && rf.h > 3 && Math.abs(rf.y - rf.h) < .6
-        && rr.moved > 60 && rr.off < 3 && rr.u > rr.len * .45 && Math.abs(rr.y - rr.h) < .6 && ug.moved > 22 && ug.y < .3,
+        && rr.moved > 60 && rr.off < 4 && rr.u > rr.len * .45 && Math.abs(rr.y - rr.h) < .6 && ug.moved > 22 && ug.y < .3,
         `斜的大道、高架快速道路與匝道 ${JSON.stringify({ net, rd, rf, rr, ug })}`);
     }
     // 區與區之間的縫（20-props.js 的 SEAM_PATH／SEAM_SITES）：碎石步道、涼亭、小賣亭、公廁

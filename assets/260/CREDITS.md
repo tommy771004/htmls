@@ -159,7 +159,7 @@
 | `w1_board` | 珊瑚灘步道上鷹巖村的燈箱看板（同一個檔附的空拍全景） | 同上 | 同上 | CC BY 4.0 |
 | `far_rail` | 北嶺公園後面山谷的北嶺鐵道橋 | [Railway bridge with a feeling of coziness](https://sketchfab.com/3d-models/railway-bridge-with-a-feeling-of-coziness-620a7c96136a4f41974245a04a90be78) | [Оrрндп ЯТG](https://sketchfab.com/orphanrtg) | CC BY 4.0 |
 | `w1_train` | 北嶺鐵道橋上來回開的五節電聯車（車頭、中間車、車尾三種車廂） | [Lastochka electric train](https://sketchfab.com/3d-models/lastochka-electric-train-1e2e86e317164b5983a000f79c6fe7a2) | [tiunov.se](https://sketchfab.com/tiunov.se) | CC BY 4.0 |
-| `far_tron` | 外海東南的光格島（遠景島） | [Arq Grid Tron](https://sketchfab.com/3d-models/arq-grid-tron-c3ec6fa4e6734e54a1adbc18c25c20b5) | [SpringSociety](https://sketchfab.com/jcreadingtutor) | CC BY 4.0 |
+| `far_tron` `isle_tron` | 外海東南的光格島（遠景；走近換成整個街區，碼頭上岸） | [Arq Grid Tron](https://sketchfab.com/3d-models/arq-grid-tron-c3ec6fa4e6734e54a1adbc18c25c20b5) | [SpringSociety](https://sketchfab.com/jcreadingtutor) | CC BY 4.0 |
 | `w1_grc` `sedan` `stepvan` `mailvan` | 車流與路邊停車的三台車（`traffic.glb` 的 `grc_*`） | [Full Gameready City Buildings [retextured]](https://sketchfab.com/3d-models/full-gameready-city-buildings-retextured-5fad2351e34f4c069a2eec45cce0824c) | [mortalityrexotable](https://sketchfab.com/mortalityrexotable) | CC BY 4.0 |
 | `w1_grc` `lamp` | 支路的彎臂路燈 | 同上 | 同上 | CC BY 4.0 |
 | `w1_asphalt_*.webp` | 路面 shader 的重複柏油貼圖（底色、法線、粗糙度） | 同上 | 同上 | CC BY 4.0 |
@@ -175,7 +175,8 @@
 - `far_eze`：天空球不要（另外裁成 `w1_board` 的看板，只留地平線那一帶）；掃描切邊往下補一圈山坡沉進海裡。
 - `far_rail`：整個掃描照用（橋、山谷、樹、谷底的路），沒有加東西；`tools/props.mjs` 量出軌道中心線與四座橋墩（`props.json` 的 `line`）。頁面把公園山坡挖成山溝接上掃描的地面，兩端加路堤、隧道口、隧道（各 60 m，封底）、號誌與夜燈，橋面、橋下、山溝與隧道都走得進去。
 - `w1_train`：只用車頭、中間車與車尾各一節（頁面重複成五節），車頭目的地字幕（真實地名）不要，車窗與頭燈改成會依夜晚點亮的發光材質。
-- `far_tron`：水面、長椅、販賣機、木箱、花台、郵筒、垃圾桶、路牌、消防栓、單車架、桶子、三角錐、桌子、樹、光束、車與光速機車不要；街區之間補一片島面與一圈黑色岸壁，頁面沿岸壁加霓虹護岸燈。
+- `far_tron`：縮成 0.85。水面、長椅、販賣機、木箱、花台、郵筒、垃圾桶、路牌、消防栓、單車架、桶子、三角錐、桌子、樹、光束、車、光速機車、遮擋盒（`Blocker_`）與燈光輔助面不要；街區之間封閉的洞補島面、沿陸地邊界長一圈黑色岸壁，頁面沿岸壁加霓虹護岸燈。
+- `isle_tron`：同一個檔案的近景，整個街區（含長椅、販賣機、樹與停著的車）都留著；光速機車、敞篷車、膠囊車、嘟嘟車各取一台拆成自己的物件（光速機車放大到 2.4 m 長、頁面加亮線），光束與水面由頁面重畫；樹的白色自發光壓成淡青色，路面的金屬度與粗糙度調低（不然照出環境圖的彩色方格）。
 - `tram`：月台、軌道、電車與彎成弧形的街區不要，只用六棟高 28 m 以上的板樓。
 - `petstock`：Petstock 與 Radio Rentals 的真實商標模糊成色塊（九處）；原檔的 specular-glossiness 材質轉成金屬粗糙度。`modern_tower` 同樣轉換。
 - `temple`：掃描減到約 5 萬面，切掉掃描的地面與底下垂著的碎片。

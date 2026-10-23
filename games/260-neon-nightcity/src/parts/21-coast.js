@@ -5,7 +5,11 @@
 // ─── 水面：同一張倒影貼圖，加上兩層移動的波紋法線；城市底下不鋪（四塊環繞的平面） ───
 const WATER_FS = /* glsl */`
 ${GROUND_COMMON}
+uniform sampler2D tTron; uniform vec3 uTronA, uTronB; uniform vec4 uTronG;
 void main(){
+  // 光格島（21-tron.js）：島上的海面不畫（下層街區低於海面），tTron 是陸地遮罩、uTronA／B 把世界座標換成島的模型座標
+  vec2 tq = (vec2(dot(uTronA, vec3(vW.xz, 1.)), dot(uTronB, vec3(vW.xz, 1.))) - uTronG.xy) / uTronG.zw;
+  if (tq.x > 0. && tq.y > 0. && tq.x < 1. && tq.y < 1. && texture2D(tTron, tq).r > .5) discard;
   vec2 p = vL; float t = uTime;
   vec2 g = vec2(n2(p*.045 + vec2(t*.05, t*.03)), n2(p*.05 + vec2(-t*.04, t*.05) + 7.)) - .5;
   vec2 g2 = vec2(n2(p*.33 + vec2(t*.32, -t*.2)), n2(p*.29 + vec2(-t*.26, t*.3) + 3.)) - .5;
@@ -82,7 +86,7 @@ void main(){
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
 const groundMat = (fs, u = {}) => new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...u }, vertexShader: GROUND_VS, fragmentShader: fs });
-const MAT_WATER = groundMat(WATER_FS), MAT_PLANK = groundMat(PLANK_FS);
+const MAT_WATER = groundMat(WATER_FS, { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) } }), MAT_PLANK = groundMat(PLANK_FS);
 {
   // 灰鷺河、南面的海、東面的海灣：一整張世界座標的水面（各區轉過、拉開之後，岸線與區之間的縫都還在水上；陸地蓋在上面）。
   // 最後才畫，被陸地擋住的部分不必算
@@ -754,7 +758,7 @@ const FAR_SITES = {
   london: { x: FAR_BANK_X - 380, z: FAR_Z1 - 660, ry: 0 },    // 模型 719×1265 m，東緣貼著河岸，最高的塔在北端；對岸只到 FAR_Z1，整座往北放
   // 外海的兩座島（World 第一輪剩下的兩個模型，下載前是下面程式建模的岩丘；邏輯座標，跟著 zoneAtL 那一片）：
   eze: { x: CITY_X0 + 500, z: SHORE_Z + 1900, ry: Math.PI / 2, y: SEA_Y - 30 },   // 鷹巖村：珊瑚灘正前方，Èze 的山城掃描（636×553 m、海面上約 230 m），山城那一面（模型 +x）朝北對著城市
-  tron: { x: CITY_X1 + 1300, z: SHORE_Z + 900, ry: 0, y: SEA_Y + 1.6 },        // 光格島：錨灣港外的人工島，Arq Grid Tron 的霓虹街區（422×483 m），島緣是一圈護岸
+  tron: { ...TRON_SITE, ry: 0 },   // 光格島（10-city.js 的 TRON_SITE）：錨灣港外的人工島，Arq Grid Tron 的霓虹街區（598×684 m），近景與上岸在 21-tron.js
 };
 {
   const r2 = rng(4242);
@@ -798,9 +802,9 @@ const FAR_SITES = {
       PEAKS.push({ x: X, z: Z, y: -15, ry: r8() * 6.3, sx: s, sz: s * (.8 + r8() * .4), sy: 18 + r8() * 8, zn: null });
     }
   }
-  // 外海的小島：低矮的岩丘，有幾盞燈（邏輯座標，跟著所在的片）。兩座各自一個網格（ISLE_PROXY.tron／eze）：27-props.js 換成模型後拿掉
-  for (const [ix, iz, r, h, id] of [[CITY_X1 + 1300, SHORE_Z + 900, 260, 70, 'tron'], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90, 'eze']]) {
-    const zn = zoneAtL(ix, iz), kk = new Kit();
+  // 外海的小島：低矮的岩丘，有幾盞燈（SEA_FR 座標，10-city.js）。兩座各自一個網格（ISLE_PROXY.tron／eze）：27-props.js 換成模型後拿掉
+  for (const [ix, iz, r, h, id] of [[TRON_SITE.x, TRON_SITE.z, 330, 70, 'tron'], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90, 'eze']]) {
+    const zn = SEA_FR, kk = new Kit();
     for (let j = 0; j < 4; j++) {   // 幾個壓扁的圓丘疊成不規則的島
       const rr = r * (.45 + r2() * .45), g = new T.SphereGeometry(rr, 20, 6, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1, h * (.4 + r2() * .6) / rr, .55 + r2() * .3);
       g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4); kk.add(g, 0x0c100c, 2, null);

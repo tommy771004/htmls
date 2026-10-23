@@ -129,11 +129,12 @@ try {
     const N = window.__nc, V = N.gta.v3; __t.reset(); N.gta.god.on = false;
     N.drive(); const v = N.player.veh, out = {};
     const hit = () => { for (let i = 0; i < 3; i++) { v.vx = Math.sin(v.yaw) * 26; v.vz = Math.cos(v.yaw) * 26; N.step(1 / 60); } v.vx = v.vz = 0; N.step(1 / 60); };
-    __t.step(2); hit();
+    __t.step(2); const p0 = { x: v.x, z: v.z, yaw: v.yaw }; hit();
     out.ejected = N.player.mode === 'walk' && !!N.player.air3;
     for (let i = 0; i < 300 && N.player.air3; i++) N.step(1 / 60);
     out.landed = !N.player.air3; out.hp = Math.round(N.gta.life.hp);
-    __t.reset(); N.drive(); __t.step(160);
+    // 第二次從同一個起點撞（第一次那 1.3 m 已知是空的；落地的地方前面可能剛好有東西，真的撞上去會翻車爆炸）
+    __t.reset(); N.drive(); Object.assign(v, p0, { vx: 0, vz: 0 }); __t.step(160);
     out.belt = V.crash.crash.belt; hit(); out.stay = N.player.mode === 'drive';
     __t.reset(); return out;
   });
@@ -225,8 +226,17 @@ try {
     out.reg = B.init();
     for (const kind of ['lamp', 'hydrant']) {
       const t = B.nearest(v.x, v.z, kind), n0 = B.brk.n;
-      // 從 12 m 外以 15 m/s 開過去（先把車擺到桿子後方、車頭對準）
-      let a = Math.atan2(t.x - v.x, t.z - v.z); v.x = t.x - Math.sin(a) * 12; v.z = t.z - Math.cos(a) * 12; v.yaw = a;
+      // 從 12 m 外以 15 m/s 開過去（先把車擺到桿子後方、車頭對準）。從最近的平面道路中心線那一側朝桿子開：
+      // 人行道上常有書報攤、長椅擋在桿子前面，從車子原本的位置斜切過去會先撞上它們（每幀都硬推 15 m/s，連撞幾下就燒毀）
+      let best = 1e9, px = v.x, pz = v.z;
+      for (const e of N.roads.edges) {
+        if (e.fwy || e.ramp) continue;
+        for (let k = 1; k < e.pts.length; k++) {
+          const [ax, az] = e.pts[k - 1], [bx, bz] = e.pts[k], dx = bx - ax, dz = bz - az, u = Math.max(0, Math.min(1, ((t.x - ax) * dx + (t.z - az) * dz) / (dx * dx + dz * dz || 1))), qx = ax + dx * u, qz = az + dz * u, d = Math.hypot(t.x - qx, t.z - qz);
+          if (d < best) { best = d; px = qx; pz = qz; }
+        }
+      }
+      let a = Math.atan2(t.x - px, t.z - pz); v.x = t.x - Math.sin(a) * 12; v.z = t.z - Math.cos(a) * 12; v.yaw = a;
       for (let i = 0; i < 60 && B.brk.n === n0; i++) { v.vx = Math.sin(a) * 15; v.vz = Math.cos(a) * 15; N.step(1 / 60); }
       out[kind] = { broke: B.brk.n > n0, moved: t.c.x > 1e6, speed: +Math.hypot(v.vx, v.vz).toFixed(1) };
       v.vx = v.vz = 0; __t.step(5);

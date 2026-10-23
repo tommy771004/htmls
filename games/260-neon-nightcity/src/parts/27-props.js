@@ -98,20 +98,21 @@ const COAST_MODELS = [
   { set: 'isle_office', id: 'office', at: ISLE_SITES.office, proxy: 'isle', near: 900, y: .03 },
   { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500, zn: FAR_ZN },
   // 外海的兩座島（遠景，整個城市南半都看得到，所以 near 比其他遠景大；城北的玩家要往南走才會下載）：鷹巖村的紅瓦屋頂（props.mjs 的 glow 取樣）夜裡點上一盞盞暖色的窗燈
-  { set: 'far_eze', id: 'eze', at: FAR_SITES.eze, proxy: 'eze', near: 3600, y: FAR_SITES.eze.y, zn: zoneAtL(FAR_SITES.eze.x, FAR_SITES.eze.z), after: (it, zn) => {
+  { set: 'far_eze', id: 'eze', at: FAR_SITES.eze, proxy: 'eze', near: 3600, y: FAR_SITES.eze.y, zn: SEA_FR, after: (it, zn) => {
     const k = new Kit(), c = Math.cos(FAR_SITES.eze.ry), s = Math.sin(FAR_SITES.eze.ry), at = FAR_SITES.eze;
     for (const [x, y, z] of it.glow || []) k.box(at.x + x * c + z * s, at.y + y + 2, at.z - x * s + z * c, 4.5, 3.2, 4.5, 0xffc890, 11);   // 兩公里外一盞約兩三個像素
     cityAdd(new T.Mesh(k.build(), MAT.far), zn);
   } },
-  // 光格島的街區是原檔的遮光盒（純黑），只有路面邊線會亮：沿島緣（props.mjs 的 ring）拉一圈青色的護岸燈帶，每隔一段立一支洋紅色的燈柱
-  { set: 'far_tron', id: 'tron', at: FAR_SITES.tron, proxy: 'tron', near: 3600, y: FAR_SITES.tron.y, zn: zoneAtL(FAR_SITES.tron.x, FAR_SITES.tron.z), after: (it, zn) => {
-    const k = new Kit(), at = FAR_SITES.tron, c = Math.cos(at.ry), s = Math.sin(at.ry), R = it.ring || [], y = at.y + .1;
-    const P = R.map(([x, z]) => [at.x + x * c + z * s, at.z - x * s + z * c]);
-    P.forEach((p, i) => {
-      const q = P[(i + 1) % P.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
-      if (L > .5 && L < 30) k.box((p[0] + q[0]) / 2, y + .7, (p[1] + q[1]) / 2, L + .4, .9, .5, 0x46e6ff, 11, 0, -Math.atan2(q[1] - p[1], q[0] - p[0]), 0);
-      if (i % 9 === 0) k.box(p[0], y + 7, p[1], .8, 14, .8, 0x1a1c22, 2).box(p[0], y + 14.6, p[1], 2.2, 1.4, 2.2, 0xff3ad0, 11);
-    });
+  // 光格島的街區是原檔的遮光盒（純黑），只有路面邊線會亮：沿岸線（props.mjs 的 edges，tools/walkgrid.mjs 量的陸地邊界）在岸壁頂下拉一條青色的燈帶，
+  // 每走 40 m 立一支洋紅色的燈柱；近景（21-tron.js）換上來之後這些還留著
+  { set: 'far_tron', id: 'tron', at: FAR_SITES.tron, proxy: 'tron', near: 3600, y: FAR_SITES.tron.y, zn: TRON_SITE.zn, after: (it, zn) => {
+    const k = new Kit(), at = FAR_SITES.tron, y = at.y;
+    let run = 40;
+    for (const [x0, z0, x1, z1] of it.edges || []) {
+      const L = Math.hypot(x1 - x0, z1 - z0); if (L < .5) continue;
+      k.box(at.x + (x0 + x1) / 2, y - .4, at.z + (z0 + z1) / 2, L + .3, .3, .3, 0x46e6ff, 11, 0, -Math.atan2(z1 - z0, x1 - x0), 0);
+      if ((run += L) > 40) { run = 0; k.box(at.x + x0, y + 3, at.z + z0, .5, 6, .5, 0x1a1c22, 2).box(at.x + x0, y + 6.3, at.z + z0, 1, .6, 1, 0xff3ad0, 11); }
+    }
     cityAdd(new T.Mesh(k.build(), MAT.far), zn);
   } },
 ];

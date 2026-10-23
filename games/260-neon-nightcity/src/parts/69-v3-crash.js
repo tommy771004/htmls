@@ -20,11 +20,12 @@ function driveSub(v, inp, dt) {
 }
 
 // ─── 安全帶與撞擊拋出 ───
-const crash = { pvx: 0, pvz: 0, veh: null, still: 0, belt: false };
+const crash = { pvx: 0, pvz: 0, veh: null, car: null, still: 0, belt: false };
 function crashStep(dt) {
   const v = player.mode === 'drive' ? player.veh : null;
   if (!v || v.fly || v.boat || player.where !== 'out') { crash.veh = null; return; }
-  if (crash.veh !== v) { crash.veh = v; crash.still = 0; crash.belt = false; crash.pvx = v.vx; crash.pvz = v.vz; return; }
+  if (crash.veh !== v || crash.car !== v.carId) { crash.veh = v; crash.car = v.carId; crash.still = 0;   // 同一台座駕換了車型（applyCar）也從頭量，不沿用上一台的速度
+    crash.belt = false; crash.pvx = v.vx; crash.pvz = v.vz; return; }
   if (!crash.belt && v.isCar) {
     crash.still = Math.hypot(v.vx, v.vz) < 1 ? crash.still + dt : 0;
     if (crash.still > CR_BELT_T) { crash.belt = true; toast('繫好安全帶了'); sfx.click(); }
@@ -187,6 +188,6 @@ function crashKey(code) {
 }
 function crashUpdate(dt) {
   crashStep(dt);
-  if (player.air3 && (player.mode !== 'walk' || life.dead)) { player.air3 = null; chute.visible = false; }
+  if (player.air3 && (player.mode !== 'walk' || life.dead)) { player.air3 = null; chute.visible = false; if (!life.dead) player.down = 0; }   // 還在空中就上了車：拋出時的 down = 99 不清掉會一直躺著
 }
 const crashApi = { crash, vault, chute, eject: (dv = 26) => { const v = player.veh; if (!v) return false; crash.belt = false; ejectPlayer(v, 25, dv, v.isCar); return true; }, bail: skyBail, open: chuteOpen, tryVault: vaultTry, sub: driveSub };

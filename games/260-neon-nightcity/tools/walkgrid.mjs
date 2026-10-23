@@ -6,6 +6,8 @@
 // 頁面（21-tron.js）照現在的高度 y0 挑「不高於 y0 + 一步」的最高那層；沒有就擋住。牆、樓、護欄靠這個擋，不另外做碰撞盒。
 // road(prim) 為真的面（車道）另外記一張車道高度，給 roadGraph 抽中心線。
 import { gzipSync } from 'node:zlib';
+import { writeFileSync } from 'node:fs';
+import { basename } from 'node:path';
 
 const NONE = -32768;
 
@@ -294,7 +296,8 @@ export function roadGraph(G, { cell = 1, spur = 12, eps = .6, close = 3 } = {}) 
 export function marks(prims, re) {
   const g = new Map();
   for (const p of prims) {
-    const name = p.path.split('/').find((s) => re.test(s)); if (!name) continue;
+    const seg = p.path.split('/'), i = seg.findIndex((s) => re.test(s)); if (i < 0) continue;
+    const name = seg.slice(0, i + 1).join('/');   // 同名的原件有好幾份：照整條路徑分
     if (!g.has(name)) g.set(name, []);
     g.get(name).push(p);
   }
@@ -309,4 +312,50 @@ export function marks(prims, re) {
     const mid = [cx + ux * (l0 + l1) / 2 - uz * (w0 + w1) / 2, cz + uz * (l0 + l1) / 2 + ux * (w0 + w1) / 2];
     return [mid[0], mn[1], mid[1], Math.atan2(ux, uz), l1 - l0, w1 - w0, mx[1] - mn[1]].map((v) => +v.toFixed(2));
   });
+}
+
+// props.mjs 的 tron 選項：擺正縮放之後的整座島。回傳 { prims, dims }：prims 補上島面與岸壁、拿掉 cut 的部分（光速機車、水面、光束另外放）；
+// dims 給 props.json：land（陸地遊程編碼）、edges（岸線）、dock（北端那條路的盡頭）；walk 為真時另外寫步行格檔、車道圖與家具位置
+export function tronData(prims, { walk, cut, file, mat }) {
+  const skip = (p) => /(^|\/)(SM_TEST_Tree|Point|Icosphere)/.test(p.path) || /M_Foliage|Leaves|^M_Tree/.test(p.mat ? p.mat.getName() : '') || (cut && cut.test(p.path));
+  const G = walkGrid(prims, { skip, road: (p) => /Hexagon_Ground/.test(p.mat ? p.mat.getName() : ''), slots: 20 });
+  const dims = {};
+  if (walk) {
+    const mk = (re) => marks(prims, re);
+    Object.assign(dims, { vend: mk(/^PF_Vending_Machine/), bench: mk(/^PF_(Bench_Street|City_Bench)/), tree: mk(/^(SM_TEST_Tree|Point|Icosphere)/), lamp: mk(/^PF_LampPost/),
+      cycle: mk(/^PF_TronCycle/), pool: mk(/^Water_Plane/), shop: mk(/^PF_Console_Shop_Freestanding/) });
+  }
+  const M = landMask(G, prims), cap = capHoles(G, M, -.2, mat('cap', [.012, .014, .02])), wall = seaWall(M, -.12, -9, mat('seawall', [.02, .022, .028]));
+  const out = (cut ? prims.filter((p) => !cut.test(p.path)) : prims).concat([cap, wall.prim]);
+  // 碼頭：海拔 0 附近的車道格裡最北（z 最小）的那一格
+  let dock = null;
+  for (let j = 0; j < G.nz && !dock; j++) for (let i = 0; i < G.nx; i++) { const y = G.roadY[j * G.nx + i]; if (y > -1 && y < 1) { let n = 0; while (i + n < G.nx && G.roadY[j * G.nx + i + n] > -1) n++; dock = [+(G.x0 + (i + n / 2) * G.res).toFixed(2), +(G.z0 + j * G.res).toFixed(2)]; break; } }
+  Object.assign(dims, { land: { x0: M.x0, z0: M.z0, res: M.res, nx: M.nx, nz: M.nz, rle: M.rle }, edges: wall.edges, dock });
+  if (walk) {
+    writeFileSync(file, packWalk(G));
+    dims.walk = { file: basename(file), x0: G.x0, z0: G.z0, res: G.res, nx: G.nx, nz: G.nz, layers: G.L.length };
+    dims.graph = roadGraph(G);
+    // 升降梯：上層（約 0 m）與下層街區（低於 -5 m）各取最大一塊連通的地面（最低那層、相鄰格高差不到半公尺算連通），
+    // 兩塊之間水平距離最近的一對格子（每 4 m 取一格比）
+    const N = G.nx * G.nz, comp = new Int32Array(N).fill(-1), L0 = G.L[0], best = {};
+    for (let k0 = 0, c = 0; k0 < N; k0++) {
+      const v0 = L0[k0]; if (v0 === NONE || comp[k0] >= 0) continue;
+      const cls = v0 > -10 && v0 < 10 ? 'up' : v0 < -50 ? 'lo' : null; if (!cls) continue;
+      const st = [k0], cells = []; comp[k0] = c;
+      while (st.length) {
+        const k = st.pop(), i = k % G.nx, j = (k / G.nx) | 0; cells.push(k);
+        for (const q of [i > 0 ? k - 1 : -1, i < G.nx - 1 ? k + 1 : -1, j > 0 ? k - G.nx : -1, j < G.nz - 1 ? k + G.nx : -1])
+          if (q >= 0 && comp[q] < 0 && L0[q] !== NONE && Math.abs(L0[q] - L0[k]) <= 5) { comp[q] = c; st.push(q); }
+      }
+      if (!best[cls] || cells.length > best[cls].length) best[cls] = cells;
+      c++;
+    }
+    if (best.up && best.lo) {
+      const pt = (k) => [G.x0 + (k % G.nx + .5) * G.res, L0[k] / 10, G.z0 + (((k / G.nx) | 0) + .5) * G.res], sub = (a) => a.filter((k) => (k % G.nx) % 8 === 0 && ((k / G.nx) | 0) % 8 === 0).map(pt);
+      let bd = 1e9;
+      for (const a of sub(best.up)) for (const b of sub(best.lo)) { const d = (a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2; if (d < bd) { bd = d; dims.lift = [a, b].map((q) => q.map((v) => +v.toFixed(2))); } }
+      console.log(`  升降梯：上層 ${(best.up.length * G.res * G.res / 1e4).toFixed(1)} 公頃、下層 ${(best.lo.length * G.res * G.res / 1e4).toFixed(1)} 公頃，${JSON.stringify(dims.lift)}`);
+    }
+  }
+  return { prims: out, dims };
 }
