@@ -802,7 +802,7 @@ async function desktop() {
     // 北嶺鐵道橋（10-city.js 的 VIADUCT、20-walk.js、21-rail.js）：圍籬圈進來；橋面走得上去、護欄擋住，橋下的谷底是另一層、橋墩擋住；
     // 從平台走進隧道、洞底擋住、相機在洞裡；列車整列在橋上時五節都在、在洞底時藏起來；站在軌道上被列車撞倒但留在橋面；夜裡有燈
     {
-      const run = async (ms, yaw) => { if (yaw != null) await nc((y) => { const n = window.__nc; n.player.yaw = y; n.look(y, .1, 0); }, yaw); await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
+      const run = async (ms, yaw) => { if (yaw != null) await nc((y) => { const n = window.__nc, p = n.player, w = n.Ws(...n.L(p.x, p.z), y).yaw; p.yaw = w; n.look(w, .1, 0); }, yaw); await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
       const at = () => nc(() => { const n = window.__nc, p = n.player, V = n.props.viaduct, [x, z] = n.L(p.x, p.z), o = Math.max(...V.ends.map(e => V.frame(e, x, z)[0])); return { x: +x.toFixed(1), z: +z.toFixed(1), y: +p.y.toFixed(2), deck: +V.deck.toFixed(2), dz: +(z - V.zc(x)).toFixed(2), o: +o.toFixed(1), cam: +n.camera.position.y.toFixed(2), down: p.down > 0, d: n.park.district(p.x, p.z).split(' ')[0] }; });
       await nc(() => { const n = window.__nc, V = n.props.viaduct; n.walk(); n.props.rail.hold(); n.tpL(V.x - 40, V.zc(V.x - 40), Math.PI / 2); n.player.y = V.deck; });
       await page.waitForTimeout(300); await run(2000, Math.PI / 2);
