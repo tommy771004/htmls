@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>雪夜五月廣場 · El Eternauta Online</title>
 <link rel="icon" href="../favicon.svg">
-<meta name="description" content="網頁版第三人稱生存遊戲：以 Spark 在 Three.js 裡渲染布宜諾斯艾利斯五月廣場的 Gaussian splat（約 500 萬個 splat），喪屍、武器與裝備也都是 .spz splat——喪屍用 Spark 的 SplatSkinning 跟著骨架走路、揮拳、倒下。敵人有平民喪屍、戴鋼盔的士兵與金屬人。撿鐵撬、手槍、衝鋒槍、霰彈槍、步槍與短步槍，穿上頭盔與防彈背心，收集濾罐、醫療箱與膠帶，完成七段任務：撬開軍用木箱與巡邏車後車廂、守住五月金字塔三波屍潮、擊毀金屬人、用無線電呼叫救援。">
+<meta name="description" content="網頁版第三人稱生存遊戲：以 Spark 在 Three.js 裡渲染布宜諾斯艾利斯五月廣場的 Gaussian splat（約 500 萬個 splat），喪屍、武器與裝備也都是 .spz splat——喪屍用 Spark 的 SplatSkinning 跟著骨架走路、揮拳、倒下。敵人有平民喪屍、戴鋼盔的士兵與金屬人。撿鐵撬、手槍、衝鋒槍、霰彈槍、步槍與短步槍，穿上頭盔與防彈背心，收集濾罐、醫療箱與膠帶，完成九段任務：撬開軍用木箱與巡邏車後車廂、進入改成野戰醫院的聖堂、守住五月金字塔三波屍潮、擊毀金屬人、下到地鐵站搜列車、用無線電呼叫救援。">
 <style>
 :root{
   --snow:#f3f6fa;--snow-2:rgba(243,246,250,.8);--snow-3:rgba(243,246,250,.54);--snow-4:rgba(243,246,250,.16);
@@ -45,18 +45,13 @@ body.playing.locked canvas#gl{cursor:none}
 
 /* ---------- 開場 ---------- */
 #boot{position:fixed;inset:0;overflow:auto;padding:max(18px,env(safe-area-inset-top)) 20px max(18px,env(safe-area-inset-bottom));
-  display:grid;grid-template-rows:auto 1fr auto;gap:18px;
+  display:grid;grid-template-rows:1fr auto;gap:18px;
   background:radial-gradient(70% 65% at 18% 88%,rgba(5,8,13,.6),rgba(5,8,13,0) 70%),linear-gradient(180deg,rgba(8,11,17,.32),rgba(8,11,17,0) 38%,rgba(8,11,17,.38));
   transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out)}
 #boot.gone{opacity:0;transform:scale(1.03);pointer-events:none}
-.boot-top,.boot-grid,.credit{width:100%;max-width:1240px;margin:0 auto}
-.boot-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.pill{--r:999px;--blur:12px;padding:10px 16px;font:600 11px/1 var(--cond);letter-spacing:.28em;text-transform:uppercase;color:var(--snow-2);white-space:nowrap}
-.pill.live{display:flex;gap:9px;align-items:center;letter-spacing:.16em}
-.pill.live::marker{content:none}
-.pill .blink{width:7px;height:7px;border-radius:50%;background:var(--sodium);box-shadow:0 0 10px var(--sodium);animation:blink 2.4s ease-in-out infinite}
+.boot-grid,.credit{width:100%;max-width:1240px;margin:0 auto}
+.boot-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:48px;align-items:end;align-self:end}
 @keyframes blink{50%{opacity:.35}}
-.boot-grid{display:grid;grid-template-columns:minmax(0,1fr) 410px;gap:36px;align-items:end;align-self:end}
 .hero{padding:0 0 10px 6px}
 .hero h1{font:800 clamp(56px,8.6vw,124px)/.84 var(--cond);letter-spacing:-.025em;text-transform:uppercase;
   background:linear-gradient(178deg,#fff 28%,rgba(196,216,242,.72));-webkit-background-clip:text;background-clip:text;color:transparent;
@@ -64,15 +59,7 @@ body.playing.locked canvas#gl{cursor:none}
 .place{margin-top:18px;font:600 clamp(15px,1.5vw,20px)/1.2 var(--cond);letter-spacing:.16em;text-transform:uppercase;color:var(--frost);text-shadow:0 1px 12px rgba(0,0,0,.6)}
 .place b{color:var(--snow);font-family:var(--tc);letter-spacing:.08em;font-weight:600}
 .zh{max-width:31em;margin-top:16px;font-size:15px;line-height:1.8;color:var(--snow-2);text-shadow:0 1px 10px rgba(0,0,0,.7)}
-.caption{--r:16px;--blur:10px;margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:10px 14px;font:600 13px/1.3 var(--tc)}
-.caption::marker{content:none}
-.caption i{font-style:normal;font:700 10px/1 var(--cond);letter-spacing:.2em;color:var(--sodium)}
-
-.sheet{--r:32px;--blur:18px;padding:20px;display:grid;gap:16px}
-.sheet h2{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px;font:700 11px/1 var(--cond);letter-spacing:.3em;text-transform:uppercase;color:var(--snow-3)}
-.sheet h2 b{font:700 28px/1 var(--cond);letter-spacing:0;color:var(--snow);font-variant-numeric:tabular-nums}
-.sheet h2 b small{font-size:13px;color:var(--snow-3)}
-.assets{list-style:none;padding:4px 14px;margin-top:10px}
+.assets{list-style:none;margin-top:6px}
 .assets li{display:grid;grid-template-columns:10px 1fr auto;align-items:center;gap:6px 10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .assets li:last-child{border-bottom:0}
 .assets .dot{width:8px;height:8px;border-radius:50%;background:var(--snow-4);transition:background var(--dur-hover)}
@@ -86,14 +73,8 @@ body.playing.locked canvas#gl{cursor:none}
 .bar u{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,rgba(255,255,255,.4),#fff);box-shadow:0 0 10px rgba(205,226,255,.7);transition:width .3s linear}
 .assets li.done .bar u{background:linear-gradient(90deg,rgba(180,209,240,.5),var(--frost));box-shadow:none}
 .assets li.fail .bar u{background:var(--alarm);width:100%!important;box-shadow:none}
-.keys{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.keys div{display:flex;align-items:center;gap:9px;padding:8px 10px;font-size:12.5px;color:var(--snow-2)}
-.keys .wide{grid-column:1/-1}
 kbd{display:inline-grid;place-items:center;min-width:30px;height:26px;padding:0 8px;border-radius:9px;font:700 11px/1 var(--cond);letter-spacing:.06em;color:var(--snow);
   background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.25),0 2px 5px rgba(0,0,0,.3)}
-.keys-touch{display:none;margin-top:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:var(--snow-2)}
-body.touch .keys{display:none}
-body.touch .keys-touch{display:block}
 #go{--r:22px;--blur:8px;width:100%;height:60px;border:0;cursor:pointer;font:800 20px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase;color:var(--ink);
   background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(214,229,248,.8));
   transition:transform var(--dur-hover) var(--ease-spring),filter var(--dur-hover),color var(--dur-hover)}
@@ -102,9 +83,29 @@ body.touch .keys-touch{display:block}
 #go:focus-visible{outline:2px solid var(--frost);outline-offset:3px}
 #go:disabled{cursor:progress;color:var(--snow-2);background:linear-gradient(100deg,rgba(255,255,255,.06) 30%,rgba(255,255,255,.2) 50%,rgba(255,255,255,.06) 70%) 0 0/250% 100%;animation:shimmer 2.2s linear infinite}
 @keyframes shimmer{to{background-position:-250% 0}}
-#goNote{margin-top:-4px;padding:0 6px;font-size:12px;line-height:1.6;color:var(--snow-3);min-height:1.6em}
-.credit{--r:18px;--blur:12px;padding:11px 18px;font-size:11.5px;line-height:1.65;color:var(--snow-3)}
+#goNote{margin-top:12px;font-size:12.5px;line-height:1.6;color:var(--snow-2);min-height:1.6em}
+.credit{padding:4px 2px;font-size:11.5px;line-height:1.65;color:var(--snow-2)}
 .credit a{color:var(--snow-2)}
+/* 開始畫面只留標題、一句介紹、開始按鈕（下方一條載入進度）與一行按鍵提示；文字直接壓在場景上，
+   左下與右下各一層很淡的暗角撐住小字。逐項的載入狀態收在「載入明細」裡，操作說明與素材來源在 Esc 選單 */
+#boot{background:radial-gradient(70% 65% at 18% 88%,rgba(5,8,13,.6),rgba(5,8,13,0) 70%),radial-gradient(50% 60% at 90% 86%,rgba(5,8,13,.55),rgba(5,8,13,0) 72%),linear-gradient(180deg,rgba(8,11,17,.32),rgba(8,11,17,0) 38%,rgba(8,11,17,.38))}
+.start,.credit{text-shadow:0 1px 1px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.7),0 0 18px rgba(0,0,0,.45)}
+.start{padding-bottom:10px}
+.goBar{height:3px;margin-top:12px;border-radius:3px;background:rgba(0,0,0,.4);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.goBar u{display:block;height:100%;width:0;background:var(--frost);transition:width .3s linear}
+.start.ready .goBar{visibility:hidden}
+.hint{margin-top:14px;font-size:12.5px;line-height:2;color:var(--snow)}
+.hint kbd{height:22px;min-width:24px;padding:0 6px;font-size:10px;border-radius:6px;text-shadow:none}
+.hint .tc,body.touch .hint .kb{display:none}body.touch .hint .tc{display:inline}
+.loadDetail{margin-top:10px;font-size:12px;color:var(--snow-2)}
+.loadDetail summary{display:flex;justify-content:space-between;cursor:pointer;padding:6px 0;list-style:none}
+.loadDetail summary::-webkit-details-marker{display:none}
+.loadDetail summary::after{content:"＋";margin-left:8px;color:var(--snow-3)}.loadDetail[open] summary::after{content:"－"}
+.loadDetail summary b{margin-left:auto;font:700 12px/1 var(--mono);color:var(--snow)}
+.loadDetail summary b small{font-size:10px}
+.assets li{border-bottom-color:rgba(255,255,255,.14)}
+.assets i{color:var(--snow-2)}
+.bar{background:rgba(0,0,0,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 
 /* ---------- 遊戲中 HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .5s var(--ease-out);text-shadow:0 1px 3px rgba(0,0,0,.8)}
@@ -114,12 +115,54 @@ body.playing #hud{opacity:1}
 #toast{--r:22px;--blur:12px;position:absolute;left:50%;top:16%;transform:translate(-50%,-6px) scale(.96);width:max-content;max-width:min(560px,calc(100vw - 32px));text-align:center;font:600 14px/1.5 var(--tc);padding:10px 18px;opacity:0;text-shadow:none;
   transition:opacity var(--dur-hover),transform var(--dur-enter) var(--ease-spring)}
 #toast.on{opacity:1;transform:translate(-50%,0) scale(1)}
-#pause{position:fixed;inset:0;display:none;place-items:center;background:rgba(6,9,14,.18);cursor:pointer}
-body.playing.paused #pause{display:grid}
-#pause .glass{--r:28px;--blur:16px;padding:22px 30px;text-align:center;animation:pop var(--dur-enter) var(--ease-spring)}
+#fade{position:absolute;inset:0;background:#06080c;opacity:0;pointer-events:none;transition:opacity var(--dur-exit) var(--ease-out)}
+#fade.on{opacity:1}
 @keyframes pop{from{opacity:0;transform:scale(.94)}}
-#pause b{display:block;font:800 28px/1 var(--cond);letter-spacing:.14em;text-transform:uppercase}
-#pause span{display:block;margin-top:10px;font-size:13px;color:var(--snow-2)}
+/* ---------- Esc 選單：和開始畫面同一套版面（左下大標題、右邊一欄），不墊卡片，整個畫面壓暗模糊 ---------- */
+#menu{position:fixed;inset:0;z-index:9;display:none;overflow:auto;padding:max(18px,env(safe-area-inset-top)) 20px max(18px,env(safe-area-inset-bottom));
+  background:radial-gradient(70% 65% at 18% 88%,rgba(5,8,13,.7),rgba(5,8,13,0) 70%),linear-gradient(90deg,rgba(5,8,13,.5),rgba(5,8,13,.72));
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-shadow:0 1px 1px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.6)}
+#menu.on{display:grid}
+.mnWrap{width:100%;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:48px;align-items:end}
+#menu.on .mnWrap{animation:mnIn var(--dur-enter) var(--ease-out)}
+@keyframes mnIn{from{opacity:0;transform:translateY(8px)}}
+.mnHero{padding:0 0 10px 6px}
+.mnHero h2{font:800 clamp(52px,7vw,104px)/.84 var(--cond);letter-spacing:-.02em;text-transform:uppercase;color:var(--snow)}
+.mnHero .place{margin-top:16px}
+#mnObj{max-width:30em;margin-top:10px;font-size:15px;line-height:1.7;color:var(--snow-2)}
+#mnStats{margin-top:6px;font:600 12px/1.6 var(--mono);color:var(--snow-3)}
+.mnAct{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;margin-top:22px}
+#mnResume{--r:18px;--blur:8px;height:52px;padding:0 28px;border:0;cursor:pointer;font:800 17px/1 var(--cond);letter-spacing:.14em;color:var(--ink);text-shadow:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(214,229,248,.8));transition:transform var(--dur-hover) var(--ease-spring)}
+#mnResume:hover{transform:translateY(-1px)}#mnResume:active{transform:scale(.97)}
+.mnLink{border:0;background:none;padding:6px 0;color:var(--snow-2);font:600 13.5px/1 var(--tc);cursor:pointer;text-shadow:inherit}
+.mnLink:hover{color:var(--snow)}
+.mnLink kbd{height:20px;min-width:22px;margin-right:6px;font-size:10px;border-radius:6px;text-shadow:none}
+.mnSide{display:grid;grid-template-rows:auto minmax(0,1fr);height:min(780px,calc(100dvh - 40px));padding-bottom:10px} /* 固定高度：換分頁時標籤列不跳動 */
+#mnTabs{display:flex;gap:24px;border-bottom:1px solid rgba(255,255,255,.16)}
+#mnTabs button{border:0;background:none;padding:10px 0;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--snow-3);font:700 14px/1 var(--tc);cursor:pointer;text-shadow:inherit}
+#mnTabs button:hover{color:var(--snow)}
+#mnTabs button[aria-selected=true]{color:var(--snow);border-bottom-color:var(--sodium)}
+.mnPane{overflow:auto;padding:6px 2px 0;scrollbar-width:thin}
+.mnPane[hidden]{display:none}
+.mnPane h3{margin:16px 0 2px;font:700 10.5px/1 var(--cond);letter-spacing:.26em;text-transform:uppercase;color:var(--snow-3)}
+.mnPane h3:first-child{margin-top:10px}
+.mnPane .sl,.mnPane .sw{font-size:13.5px}
+.mnPane .sl.off{opacity:.45}
+.mnPane .sl input{box-shadow:0 1px 3px rgba(0,0,0,.5)}
+#mnReset{margin-top:10px}
+.mnKeys{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:center;margin-top:10px;font-size:13.5px;color:var(--snow)}
+.mnKeys dt{text-align:right;white-space:nowrap}
+.mnKeys kbd{height:24px;min-width:28px;font-size:10.5px;border-radius:7px;text-shadow:none}
+.mnKeys .tc,body.touch .mnKeys .kb{display:none}body.touch .mnKeys .tc{display:contents}
+#mnAbout p{margin-top:10px;font-size:12.5px;line-height:1.8;color:var(--snow-2)}
+#mnAbout a{color:var(--snow)}
+@media (max-width:860px){
+  .mnWrap{grid-template-columns:1fr;gap:24px;align-items:start}
+  .mnHero{padding:10px 4px 0}
+  .mnSide{height:auto}
+  .mnPane{overflow:visible}
+}
 
 /* ---------- 設定／除錯面板 (P) ---------- */
 #dbg{--r:30px;--blur:20px;position:fixed;right:14px;top:14px;bottom:14px;width:368px;display:none;flex-direction:column;
@@ -197,7 +240,7 @@ body.touch.playing #touch{display:block}
 #tRun{right:112px;bottom:86px;width:58px;height:58px}
 #tReload,#tSwap,#tHeal{width:52px;height:52px;font-size:12px}
 #tReload{right:24px;bottom:122px}#tSwap{right:24px;bottom:184px;font-size:11px}#tHeal{right:176px;bottom:18px}
-#tDbg{right:28px;bottom:246px;width:44px;height:44px;font:700 12px/1 var(--cond)}
+#tDbg{right:22px;bottom:246px;width:52px;height:44px;--r:14px;font:700 12px/1 var(--tc)}
 #tUse{right:176px;bottom:86px;width:58px;height:58px;display:none;background:linear-gradient(180deg,rgba(255,214,160,.9),rgba(255,180,110,.75));color:var(--ink)}
 #tUse.on{display:block}
 #tRun.on{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(214,229,248,.78));color:var(--ink)}
@@ -261,6 +304,24 @@ body.scoped #scope{opacity:1}body.scoped #cross i{opacity:0}
 #prompt.on{opacity:1;transform:translate(-50%,0)}
 #prompt kbd{height:22px;min-width:24px;margin-right:4px;font-size:10px;border-radius:7px}
 #prompt b{color:var(--sodium);font-weight:600}
+/* 遊戲中的面板不墊卡片：拿掉玻璃底、外框與投影，文字直接疊在畫面上，
+   靠貼字的深色描邊＋柔和暗暈撐住可讀性（雪地、燈下、室內暗處都看得到） */
+#mission.glass,#vitals.glass,#weapon.glass,#prompt.glass,#toast.glass{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;
+  text-shadow:0 1px 1px rgba(0,0,0,.9),0 0 5px rgba(0,0,0,.75),0 0 16px rgba(0,0,0,.5)}
+#mission.glass::before,#vitals.glass::before,#weapon.glass::before,#prompt.glass::before,#toast.glass::before,
+#mission.glass::after,#vitals.glass::after,#weapon.glass::after,#prompt.glass::after,#toast.glass::after{content:none}
+#mission,#weapon{padding-right:2px}#vitals{padding-left:2px}
+#toast{font-size:15px;max-width:min(760px,calc(100vw - 32px));text-wrap:balance}
+#mObj,.vbar,#wAmmo small,.inv span{color:var(--snow)}
+#wName{color:var(--snow-2)}
+.vbar u,.mbar{background:rgba(0,0,0,.42);box-shadow:0 1px 3px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.12)}
+#vitals.warn{box-shadow:none}#vitals.warn #vHp{color:var(--alarm)}
+.inv span{padding:4px 0;background:none}
+#wSlots i{padding:5px 4px;background:none;color:rgba(243,246,250,.42)}
+#wSlots i.cur{background:none;box-shadow:inset 0 -2px 0 var(--sodium)}
+#mArrow{background:rgba(0,0,0,.35);box-shadow:0 0 10px rgba(0,0,0,.5)}
+#hud kbd{text-shadow:none}
+#feed div{padding:2px 0;background:none;text-shadow:0 1px 1px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.7)}
 #hurt{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(140,0,0,0) 42%,rgba(150,12,12,.6));opacity:0}
 #frost{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(205,228,255,0) 38%,rgba(205,228,255,.5));opacity:0;transition:opacity 1.2s}
 #over{position:fixed;inset:0;z-index:8;display:none;place-items:center;padding:16px;background:radial-gradient(ellipse at center,rgba(6,9,14,.25),rgba(6,9,14,.7))}
@@ -277,13 +338,13 @@ body.touch #weapon{display:none}
 body.touch #vitals{bottom:auto;top:16px;width:200px;padding:10px 12px;gap:5px}
 body.touch .inv kbd{display:none}.inv span{white-space:nowrap}
 body.touch #tag{display:none}
-body.over #pause{display:none}
+body.noHud #mission,body.noHud #vitals,body.noHud #weapon,body.noHud #feed,body.noHud #tag{display:none}
+body.noCross #cross{visibility:hidden}
 body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
 
 @media (max-width:860px){
-  .boot-grid{grid-template-columns:1fr;gap:20px;align-self:start}
+  .boot-grid{grid-template-columns:1fr;gap:28px;align-self:end}
   .hero{padding:24px 4px 0}
-  .pill{letter-spacing:.14em;font-size:10px;padding:9px 14px}
   #dbg{left:10px;right:10px;top:max(10px,env(safe-area-inset-top));bottom:auto;width:auto;height:48%}
   @keyframes sheetIn{from{opacity:0;transform:translateY(-18px) scale(.97)}}
 }
@@ -294,14 +355,14 @@ body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
   body.touch #vitals{top:calc(max(10px,env(safe-area-inset-top)) + 132px);left:12px;width:176px}
   #feed{display:none}
   #toast{top:30%;max-width:calc(100vw - 32px);white-space:normal;text-align:center}
-}
-@media (max-width:420px){
-  .boot-top .live{display:none}
-  .keys{grid-template-columns:1fr}
+  #tag{display:none} /* 任務文字沒有卡片底了，會和左上的標題疊在一起 */
+  #vitals{left:12px;bottom:12px;width:196px;gap:5px}
+  #weapon{right:12px;bottom:12px;min-width:0}
+  #wSlots{flex-wrap:wrap;max-width:160px;margin-left:auto}
 }
 @media (prefers-reduced-motion:reduce){
   #boot,#hud,#toast,#go,.sw input::after,#prompt,.vbar u i,.mbar i{transition:none}
-  #dbg.on,#pause .glass,.pill .blink,.assets li.load .dot,#go:disabled,#mission.flash,#feed div,#over .glass,.vbar.low u i{animation:none}
+  #dbg.on,#menu.on .mnWrap,.assets li.load .dot,#go:disabled,#mission.flash,#feed div,#over .glass,.vbar.low u i{animation:none}
 }
 </style>
 <script type="importmap">
@@ -316,21 +377,20 @@ body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
 <svg id="lensDefs" aria-hidden="true"></svg>
 
 <div id="boot">
-  <header class="boot-top">
-    <span class="pill glass">Prototipo · Gaussian splat · tercera persona</span>
-    <span class="pill glass live"><span class="blink"></span>Buenos Aires · nevada nocturna</span>
-  </header>
   <div class="boot-grid">
     <section class="hero">
       <h1>El Eternauta<br>Online</h1>
       <p class="place">Plaza de Mayo · <b>雪夜五月廣場</b></p>
-      <p class="zh">布宜諾斯艾利斯，一場會致命的雪落了一整夜。被雪碰到的人站起來了，但已經不是人。戴上防毒面罩、裹緊雪衣，在五月廣場找武器、換濾罐，守住金字塔，用無線電呼叫救援。廣場、喪屍、槍和補給全都是 Gaussian splat。</p>
-      <p class="caption glass"><i>AVISO</i>別讓雪碰到皮膚，也別讓牠們碰到你。</p>
+      <p class="zh">一場會致命的雪落了一整夜。戴上面罩，在廣場找武器、守住金字塔，用無線電呼叫救援。</p>
     </section>
-    <aside class="sheet glass" data-lens>
-      <div>
-        <h2>載入素材 <b id="loadPct">0<small>%</small></b></h2>
-        <ul class="assets well" id="assets">
+    <aside class="start">
+      <button id="go" class="glass" disabled>載入中…</button>
+      <div class="goBar" aria-hidden="true"><u id="goBar"></u></div>
+      <p id="goNote">第一次進場約下載 100 MB，之後由瀏覽器快取。</p>
+      <p class="hint"><span class="kb"><kbd>WASD</kbd> 移動　<kbd>E</kbd> 互動　<kbd>Esc</kbd> 暫停、設定與操作說明</span><span class="tc">右下「選單」可暫停、調整設定與查看操作說明</span></p>
+      <details class="loadDetail">
+        <summary>載入明細 <b id="loadPct">0<small>%</small></b></summary>
+        <ul class="assets" id="assets">
           <li data-k="spark"><span class="dot"></span><b>Spark splat 渲染器</b><i>—</i><span class="bar"><u></u></span></li>
           <li data-k="splat"><span class="dot"></span><b>五月廣場 splat（.spz）</b><i>—</i><span class="bar"><u></u></span></li>
           <li data-k="fbx"><span class="dot"></span><b>角色 FBX（防毒面罩・雪衣）</b><i>—</i><span class="bar"><u></u></span></li>
@@ -339,31 +399,15 @@ body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
           <li data-k="zomb"><span class="dot"></span><b>敵人 splat（6 種・綁骨）</b><i>—</i><span class="bar"><u></u></span></li>
           <li data-k="items"><span class="dot"></span><b>武器、裝備與道具 splat</b><i>—</i><span class="bar"><u></u></span></li>
         </ul>
-      </div>
-      <div>
-        <h2>操作</h2>
-        <div class="keys">
-          <div class="well"><kbd>WASD</kbd>移動・<kbd>Shift</kbd>跑</div>
-          <div class="well"><kbd>Space</kbd>跳・<kbd>滾輪</kbd>鏡頭</div>
-          <div class="well"><kbd>左鍵</kbd>射擊／攻擊</div>
-          <div class="well"><kbd>右鍵</kbd>瞄準</div>
-          <div class="well"><kbd>F</kbd>近戰・<kbd>V</kbd>踢</div>
-          <div class="well"><kbd>R</kbd>換彈・<kbd>1–4</kbd>武器</div>
-          <div class="well"><kbd>E</kbd>撿起／互動</div>
-          <div class="well"><kbd>H</kbd>醫療・<kbd>T</kbd>膠帶</div>
-          <div class="well wide"><kbd>點畫面</kbd>鎖定滑鼠，<kbd>Esc</kbd>釋放・<kbd>M</kbd>靜音・<kbd>P</kbd>設定</div>
-        </div>
-        <p class="keys-touch well">左下搖桿移動，右半邊拖曳轉視角。右下「射擊」會自動微調準心，旁邊有跳、跑、換彈、換武器與醫療；靠近物品時出現「撿」。P 開設定與除錯面板。</p>
-      </div>
-      <button id="go" class="glass" disabled>載入中…</button>
-      <p id="goNote">第一次進場約下載 100 MB（場景 65 MB、角色 27 MB、敵人與道具 8 MB），之後由瀏覽器快取。</p>
+      </details>
     </aside>
   </div>
-  <p class="credit glass">非官方同人作品，與《El Eternauta》原作、出版社及串流平台無關。場景 splat、角色 FBX、動畫片段與碰撞網格取自開源專案 <a href="https://github.com/santisiri/eternauta-online" target="_blank" rel="noopener">santisiri/eternauta-online</a>（程式 MIT，素材屬原作者），固定在 8377fe2 版本即時載入；splat 以 <a href="https://sparkjs.dev/" target="_blank" rel="noopener">Spark</a>（MIT）渲染。喪屍由 <a href="https://quaternius.com/" target="_blank" rel="noopener">Quaternius</a> 的 Universal Base Characters 與 Animation Library（CC0）、武器與補給由 <a href="https://polyhaven.com/models" target="_blank" rel="noopener">Poly Haven</a> 的模型（CC0）烘焙成 .spz。士兵、金屬人、頭盔、背心、AKS-74U、MP7、巡邏車、公車亭與汽水罐取自 Sketchfab 的 CC BY 4.0 模型，作者依序為 britdawgmasterfunk、Marcin.Kwiatkowski、JonnyMANSON、Elyar、Drus、samanthacford、DanielZhabotinsky、just_polygons、Ottto3ds、SubdivisionProductions；夜空掠過的 F-35 是 shangus930 的 CC BY 4.0 模型。烘焙時改了顏色並加上積雪。</p>
+  <p class="credit">非官方同人作品，與《El Eternauta》原作、出版社及串流平台無關。素材來源與授權在遊戲中按 Esc 的「關於」。</p>
 </div>
 
 <div id="hud">
   <div id="tag">El Eternauta · Plaza de Mayo<small>雪夜五月廣場 · 原型</small></div>
+  <div id="fade"></div>
   <div id="hurt"></div><div id="frost"></div>
   <div id="scope"></div>
   <div id="cross"><i></i><i></i><i></i><i></i><b></b></div>
@@ -384,7 +428,47 @@ body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
   <div id="prompt" class="glass"></div>
   <div id="toast" class="glass"></div>
 </div>
-<div id="pause"><div class="glass"><b>Pausa</b><span>滑鼠已釋放。點畫面回到廣場。</span></div></div>
+<div id="menu" role="dialog" aria-modal="true" aria-label="暫停與設定" aria-hidden="true">
+  <div class="mnWrap">
+    <section class="mnHero">
+      <h2>Pausa</h2>
+      <p class="place" id="mnMission">—</p>
+      <p id="mnObj"></p>
+      <p id="mnStats"></p>
+      <div class="mnAct">
+        <button id="mnResume" class="glass" type="button">回到廣場</button>
+        <button class="mnLink" id="mnRespawn" type="button">回到檢查點</button>
+        <button class="mnLink" id="mnDebug" type="button"><kbd>P</kbd>除錯面板</button>
+      </div>
+    </section>
+    <aside class="mnSide">
+      <nav id="mnTabs" role="tablist"><button role="tab" data-tab="set" aria-selected="true">設定</button><button role="tab" data-tab="keys" aria-selected="false">操作</button><button role="tab" data-tab="about" aria-selected="false">關於</button></nav>
+      <div class="mnPane" id="pane-set"></div>
+      <div class="mnPane" id="pane-keys" hidden>
+        <dl class="mnKeys">
+          <dt class="kb"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd class="kb">移動，按住 <kbd>Shift</kbd> 跑</dd>
+          <dt class="kb"><kbd>Space</kbd></dt><dd class="kb">跳</dd>
+          <dt class="kb"><kbd>左鍵</kbd><kbd>右鍵</kbd></dt><dd class="kb">射擊／攻擊、瞄準</dd>
+          <dt class="kb"><kbd>F</kbd><kbd>V</kbd></dt><dd class="kb">揮拳、踢</dd>
+          <dt class="kb"><kbd>R</kbd></dt><dd class="kb">換彈</dd>
+          <dt class="kb"><kbd>1–4</kbd><kbd>Q</kbd></dt><dd class="kb">選武器、下一把</dd>
+          <dt class="kb"><kbd>E</kbd></dt><dd class="kb">撿起、撬開、開門</dd>
+          <dt class="kb"><kbd>H</kbd><kbd>T</kbd></dt><dd class="kb">醫療箱、膠帶補雪衣</dd>
+          <dt class="kb"><kbd>滾輪</kbd></dt><dd class="kb">鏡頭遠近</dd>
+          <dt class="kb"><kbd>M</kbd><kbd>P</kbd></dt><dd class="kb">靜音、除錯面板</dd>
+          <dt class="kb"><kbd>Esc</kbd></dt><dd class="kb">暫停與這個選單</dd>
+          <div class="tc"><dt>左下</dt><dd>搖桿移動</dd><dt>右半邊</dt><dd>拖曳轉視角</dd><dt>射擊</dt><dd>自動微調準心</dd><dt>撿</dt><dd>靠近物品時出現</dd><dt>選單</dt><dd>暫停與這個選單</dd></div>
+        </dl>
+      </div>
+      <div class="mnPane" id="pane-about" hidden>
+        <div id="mnAbout">
+          <p>瀏覽器裡跑的 Gaussian splat 第三人稱原型：五月廣場、喪屍、槍與補給全都是 splat，聲音由 WebAudio 即時合成。</p>
+          <p class="credit-full">非官方同人作品，與《El Eternauta》原作、出版社及串流平台無關。場景 splat、角色 FBX、動畫片段與碰撞網格取自開源專案 <a href="https://github.com/santisiri/eternauta-online" target="_blank" rel="noopener">santisiri/eternauta-online</a>（程式 MIT，素材屬原作者），固定在 8377fe2 版本即時載入；splat 以 <a href="https://sparkjs.dev/" target="_blank" rel="noopener">Spark</a>（MIT）渲染。喪屍由 <a href="https://quaternius.com/" target="_blank" rel="noopener">Quaternius</a> 的 Universal Base Characters 與 Animation Library（CC0）、武器與補給由 <a href="https://polyhaven.com/models" target="_blank" rel="noopener">Poly Haven</a> 的模型（CC0）烘焙成 .spz。士兵、金屬人、頭盔、背心、AKS-74U、MP7、巡邏車、公車亭與汽水罐取自 Sketchfab 的 CC BY 4.0 模型，作者依序為 britdawgmasterfunk、Marcin.Kwiatkowski、JonnyMANSON、Elyar、Drus、samanthacford、DanielZhabotinsky、just_polygons、Ottto3ds、SubdivisionProductions；夜空掠過的 F-35 是 shangus930 的 CC BY 4.0 模型。聖堂野戰醫院是 artfletch 的 St Stephen Walbrook 掃描，病床與血袋來自 loxfear、sousinho；地鐵站是 n-malmberg 的柏林 U-Bahn 車站，列車來自 crow（crow.bite），廣場上的地鐵入口來自 johhny3D（皆為 CC BY 4.0，站名牌與入口招牌的真實站名、標誌已抹掉，販賣機與發車資訊板的品牌和地名也換掉；地鐵站直接畫原始網格，沒有烘焙成 splat）。烘焙時改了顏色並加上積雪。</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
 <div id="over"><div class="glass"></div></div>
 <aside id="dbg" class="glass" aria-label="設定與除錯面板"></aside>
 <div id="touch">
@@ -396,13 +480,14 @@ body.touch #feed{top:auto;bottom:160px;right:auto;left:16px;justify-items:start}
   <button class="tbtn glass" id="tSwap">拳腳</button>
   <button class="tbtn glass" id="tHeal">醫療</button>
   <button class="tbtn glass" id="tUse">撿</button>
-  <button class="tbtn glass" id="tDbg">P</button>
+  <button class="tbtn glass" id="tDbg">選單</button>
 </div>
 
 <script type="module">
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 /* ======================================================================
    素材：固定在上游 commit，座標系（Y 向上、公尺）與碰撞網格才不會跑掉
@@ -435,6 +520,39 @@ const CFG = {
 };
 const FOG = { color: new THREE.Color('#1b2230'), density: 0.016, cull: 170, lampGain: 1 };
 
+/* 室內場景：和廣場在同一個 three 場景裡，只是放在 400 m 外（燈光、霧與剔除都只看距離，互不干擾）。
+   以下座標都是場景自己的（地板 y = 0），o 是它在世界裡的原點；splat 進門時才下載。
+   prims 由 tools/room-col.mjs 從原始網格柵格化產生，最後幾個是手動補的外牆。 */
+const ROOMS = {
+  hall: {
+    name: '聖堂', intro: '長椅被推到牆邊，燭火還亮著', splat: 'hall', o: [400, 0, 0], bounds: [-9.6, 9.8, -23.2, 14.2],
+    entry: [0.3, -11.2, 0], exit: [0.4, -21.3], // 進門後站的位置與朝向（yaw 0 = 面向 +Z，站在門廊盡頭，鏡頭不會卡進門廊的掃描雜訊裡）、回廣場的門；prims 的門洞以 carve [[-0.75, 1.2, -13.3, -11.3]] 清開
+    door: { at: [-43.6, -3], out: [-42.3, -3, Math.PI / 2], lamp: [-44.4, 2.7, -3.9], label: '拱廊下的側門', inLabel: '回廣場的門' },
+    camMax: 4.6, ambient: 3, cap: 7,
+    lamps: [[-6.1, 1.25, -10.1, 0.6], [6.1, 1.25, -10.1, 0.6], [0.2, 1.1, 1.2, 0.8], [1.8, 2.4, -19.2, 0.45], [-8.2, 1.4, 6.4, 0.5], [8.2, 1.4, -0.4, 0.5]],
+    spawns: [[-8, 7.5], [8, 7.5], [0.2, 11.2], [-8.1, -1.8], [8.1, 2.5], [-3, 11], [4.5, 12]],
+    patients: [[-7.6, -6.7], [6, -9.7], [-0.6, 8]], // 第一次進門時趴在病床邊的喪屍
+    blood: [[-3, -10.4], [0.3, 5.6], [7.9, 7.2]], // 野戰醫院任務的血袋
+    props: [['bed', -7.3, -10.8, Math.PI / 2], ['bed', -4.9, -10.8, Math.PI / 2], ['bed', 4.9, -10.8, -Math.PI / 2], ['bed', 7.3, -10.8, -Math.PI / 2]],
+    prims: 'b,-9.37,4.4,-1.41,0.25,9.2,0.75,0;b,-9.37,4.4,-0.16,0.25,9.2,0.25,0;b,-9.37,4.4,2.46,0.25,9.2,0.5,0;b,-9.37,4.4,3.84,0.25,9.2,1.25,0;b,-9.24,4.4,-8.29,0.5,9.2,1,0;b,-9.24,4.4,-6.79,0.5,9.2,0.5,0;b,-9.24,4.4,-3.91,0.5,9.2,4.25,0;b,-9.24,4.4,-0.66,0.5,9.2,0.75,0;b,-9.24,4.4,1.09,0.5,9.2,2.25,0;b,-9.24,4.4,2.96,0.5,9.2,0.5,0;b,-9.24,4.4,8.46,0.5,9.2,8,0;b,-9.12,0.7,2.59,0.25,1.8,0.25,0;b,-9.12,0.7,3.34,0.25,1.8,0.25,0;b,-9.12,4.4,-10.41,0.25,9.2,3.25,0;b,-9.12,4.4,-7.41,0.25,9.2,0.75,0;b,-9.12,4.4,-6.29,0.25,9.2,0.5,0;b,-9.12,4.4,12.84,0.25,9.2,0.75,0;b,-8.99,0.7,2.34,0.5,1.8,0.25,0;b,-8.99,0.7,3.96,0.5,1.8,1,0;b,-8.99,4.4,13.34,0.5,9.2,0.25,0;b,-8.87,0.7,-11.91,0.25,1.8,0.25,0;b,-8.87,0.7,-11.41,0.25,1.8,0.25,0;b,-8.87,0.7,-10.91,0.25,1.8,0.25,0;b,-8.87,0.7,-9.91,0.25,1.8,0.25,0;b,-8.87,0.7,-8.54,0.25,1.8,0.5,0;b,-8.87,0.7,-7.29,0.25,1.8,1,0;b,-8.87,0.7,-4.91,0.25,1.8,2.25,0;b,-8.87,0.7,-3.29,0.25,1.8,0.5,0;b,-8.87,0.7,-1.16,0.25,1.8,2.25,0;b,-8.87,0.7,0.96,0.25,1.8,0.5,0;b,-8.87,0.7,3.09,0.25,1.8,0.25,0;b,-8.87,0.7,4.84,0.25,1.8,0.25,0;b,-8.87,0.7,5.71,0.25,1.8,0.5,0;b,-8.87,0.7,7.71,0.25,1.8,2.5,0;b,-8.87,0.7,10.84,0.25,1.8,1.75,0;b,-8.87,0.7,12.84,0.25,1.8,0.25,0;b,-8.87,4.4,-12.41,0.75,9.2,0.25,0;b,-8.74,0.7,-11.16,0.5,1.8,0.25,0;b,-8.74,0.7,-10.41,0.5,1.8,0.75,0;b,-8.74,0.7,-9.29,0.5,1.8,1,0;b,-8.62,0.7,11.96,0.75,1.8,0.5,0;b,-8.62,4.4,13.59,1.25,9.2,0.25,0;b,-8.37,0.7,-12.41,0.25,1.8,0.25,0;b,-8.24,4.4,-12.16,2,9.2,0.25,0;b,-8.12,0.7,12.84,0.25,1.8,0.25,0;b,-8.12,4.4,-12.41,0.25,9.2,0.25,0;b,-7.87,0.7,12.34,2.25,1.8,0.25,0;b,-7.74,0.7,13.09,0.5,1.8,0.25,0;b,-7.62,0.7,5.71,0.25,1.8,0.5,0;b,-7.62,0.7,9.71,0.25,1.8,0.5,0;b,-7.49,0.7,9.34,0.5,1.8,0.25,0;b,-7.49,0.7,11.59,0.5,1.8,0.25,0;b,-7.37,0.7,-8.16,0.25,1.8,0.75,0;b,-7.37,0.7,-5.41,0.25,1.8,0.75,0;b,-7.37,0.7,-4.16,0.25,1.8,0.75,0;b,-7.37,0.7,-0.41,0.25,1.8,0.25,0;b,-7.37,0.7,0.09,0.25,1.8,0.25,0;b,-7.37,0.7,5.34,0.25,1.8,0.25,0;b,-7.37,0.7,10.09,0.25,1.8,0.25,0;b,-7.37,4.4,-0.16,0.25,9.2,0.25,0;b,-7.37,4.4,5.71,0.25,9.2,0.5,0;b,-7.37,4.4,9.71,0.25,9.2,0.5,0;b,-7.37,0.7,11.84,1.25,1.8,0.25,0;b,-7.37,4.4,13.34,2.25,9.2,0.25,0;b,-7.24,0.7,-8.66,0.5,1.8,0.25,0;b,-7.24,0.7,-7.04,0.5,1.8,0.5,0;b,-7.12,0.7,-6.66,0.25,1.8,0.25,0;b,-7.12,0.7,10.34,0.25,1.8,0.25,0;b,-7.12,0.7,12.84,0.25,1.8,0.25,0;b,-7.12,4.4,-8.16,0.25,9.2,0.25,0;b,-7.12,4.4,-4.41,0.25,9.2,0.25,0;b,-7.12,4.4,-3.91,0.25,9.2,0.25,0;b,-7.12,4.4,-0.41,0.25,9.2,0.25,0;b,-7.12,0.7,-6.04,0.75,1.8,0.5,0;b,-7.12,0.7,-4.91,0.75,1.8,0.25,0;b,-7.12,0.7,12.59,3.25,1.8,0.25,0;b,-6.99,4.4,5.34,0.5,9.2,0.25,0;b,-6.99,4.4,9.34,0.5,9.2,0.25,0;b,-6.99,4.4,10.09,0.5,9.2,0.25,0;b,-6.99,0.7,-7.41,1,1.8,0.25,0;b,-6.99,0.7,6.09,1.5,1.8,0.25,0;b,-6.87,0.7,-5.41,0.25,1.8,0.75,0;b,-6.87,0.7,-1.66,0.25,1.8,0.25,0;b,-6.87,0.7,11.59,0.25,1.8,0.25,0;b,-6.87,4.4,-8.66,0.25,9.2,0.25,0;b,-6.87,0.7,-6.41,0.75,1.8,0.25,0;b,-6.87,0.7,-1.16,0.75,1.8,0.25,0;b,-6.87,4.4,-7.91,0.75,9.2,0.25,0;b,-6.87,0.7,-7.66,1.25,1.8,0.25,0;b,-6.87,0.7,-4.66,1.25,1.8,0.25,0;b,-6.87,0.7,-3.66,1.25,1.8,0.25,0;b,-6.87,0.7,0.34,1.25,1.8,0.25,0;b,-6.87,0.7,5.09,1.25,1.8,0.25,0;b,-6.87,0.7,9.09,1.25,1.8,0.25,0;b,-6.74,0.7,-0.91,0.5,1.8,0.25,0;b,-6.74,0.7,-1.41,1,1.8,0.25,0;b,-6.74,0.7,8.34,1,1.8,0.25,0;b,-6.74,0.7,-11.91,1.5,1.8,0.25,0;b,-6.74,0.7,-0.66,1.5,1.8,0.25,0;b,-6.62,0.7,-9.41,0.25,1.8,0.25,0;b,-6.62,0.7,-6.91,0.25,1.8,0.75,0;b,-6.62,4.4,-4.16,0.25,9.2,0.75,0;b,-6.62,4.4,-0.16,0.25,9.2,0.75,0;b,-6.62,4.4,5.71,0.25,9.2,0.5,0;b,-6.62,4.4,9.71,0.25,9.2,0.5,0;b,-6.62,0.7,8.59,1.25,1.8,0.25,0;b,-6.62,0.7,12.09,2.75,1.8,0.25,0;b,-6.49,0.7,-8.66,0.5,1.8,0.25,0;b,-6.49,0.7,-2.16,0.5,1.8,0.25,0;b,-6.49,0.7,9.34,0.5,1.8,0.25,0;b,-6.49,0.7,-1.91,1,1.8,0.25,0;b,-6.49,0.7,8.09,1.5,1.8,0.25,0;b,-6.37,0.7,-8.29,0.25,1.8,0.5,0;b,-6.37,0.7,-4.16,0.25,1.8,0.75,0;b,-6.37,0.7,-1.66,0.25,1.8,0.25,0;b,-6.37,0.7,5.84,0.25,1.8,0.25,0;b,-6.37,0.7,9.71,0.25,1.8,0.5,0;b,-6.37,0.7,12.34,0.25,1.8,0.25,0;b,-6.37,0.7,-8.91,2.25,1.8,0.25,0;b,-6.24,0.7,2.59,1,1.8,0.25,0;b,-6.24,0.7,8.84,2,1.8,0.25,0;b,-6.12,0.7,-0.91,0.25,1.8,0.25,0;b,-6.12,0.7,-2.41,0.75,1.8,0.25,0;b,-6.12,0.7,5.59,0.75,1.8,0.25,0;b,-5.99,0.7,-3.16,0.5,1.8,0.25,0;b,-5.99,0.7,-1.16,0.5,1.8,0.25,0;b,-5.99,0.7,2.34,0.5,1.8,0.25,0;b,-5.99,0.7,-2.79,1,1.8,0.5,0;b,-5.87,0.7,-2.16,0.25,1.8,0.25,0;b,-5.87,0.7,-1.41,0.25,1.8,0.25,0;b,-5.87,0.7,0.59,0.25,1.8,0.25,0;b,-5.87,0.7,8.34,0.25,1.8,0.25,0;b,-5.87,0.7,0.96,0.75,1.8,0.5,0;b,-5.87,4.4,6.09,0.75,9.2,0.25,0;b,-5.74,0.7,-3.41,0.5,1.8,0.25,0;b,-5.74,0.7,9.84,0.5,1.8,0.25,0;b,-5.74,0.7,10.59,0.5,1.8,0.25,0;b,-5.74,4.4,13.34,0.5,9.2,0.25,0;b,-5.74,4.4,5.84,1,9.2,0.25,0;b,-5.74,0.7,-0.16,1.5,1.8,0.75,0;b,-5.62,0.7,-8.41,0.25,1.8,0.25,0;b,-5.62,0.7,-0.91,0.25,1.8,0.25,0;b,-5.62,0.7,1.34,0.25,1.8,0.25,0;b,-5.62,0.7,12.34,0.25,1.8,0.25,0;b,-5.62,4.4,7.09,0.25,9.2,0.25,0;b,-5.62,0.7,-3.66,0.75,1.8,0.25,0;b,-5.62,0.7,-1.66,0.75,1.8,0.25,0;b,-5.62,0.7,0.34,0.75,1.8,0.25,0;b,-5.62,0.7,9.09,0.75,1.8,0.25,0;b,-5.62,4.4,6.59,0.75,9.2,0.25,0;b,-5.62,4.4,7.34,0.75,9.2,0.25,0;b,-5.62,0.7,5.34,2.25,1.8,0.25,0;b,-5.49,0.7,10.84,0.5,1.8,0.25,0;b,-5.37,0.7,-3.16,0.25,1.8,0.25,0;b,-5.37,0.7,0.59,0.25,1.8,0.25,0;b,-5.37,0.7,4.59,0.25,1.8,0.25,0;b,-5.37,0.7,6.84,0.25,1.8,0.25,0;b,-5.37,0.7,-3.91,0.75,1.8,0.25,0;b,-5.37,0.7,-1.91,0.75,1.8,0.25,0;b,-5.37,0.7,3.96,0.75,1.8,0.5,0;b,-5.37,4.4,8.09,0.75,9.2,0.25,0;b,-5.37,0.7,13.09,3.75,1.8,0.25,0;b,-5.24,0.7,-2.29,0.5,1.8,0.5,0;b,-5.24,0.7,8.59,0.5,1.8,0.25,0;b,-5.24,4.4,8.34,0.5,9.2,0.25,0;b,-5.24,0.7,-0.66,1,1.8,0.25,0;b,-5.24,0.7,-7.91,2.5,1.8,0.25,0;b,-5.12,0.7,-3.41,0.25,1.8,0.25,0;b,-5.12,4.4,8.84,0.25,9.2,0.25,0;b,-5.12,0.7,4.34,0.75,1.8,0.25,0;b,-5.12,0.7,4.84,0.75,1.8,0.25,0;b,-5.12,4.4,7.59,1.75,9.2,0.25,0;b,-5.12,4.4,13.59,3.25,9.2,0.25,0;b,-4.99,0.7,-4.41,0.5,1.8,0.25,0;b,-4.99,0.7,-2.66,0.5,1.8,0.25,0;b,-4.99,0.7,-0.91,0.5,1.8,0.25,0;b,-4.99,0.7,7.34,0.5,1.8,0.25,0;b,-4.99,4.4,13.34,0.5,9.2,0.25,0;b,-4.99,0.7,-4.16,1,1.8,0.25,0;b,-4.99,0.7,7.09,1,1.8,0.25,0;b,-4.99,0.7,-7.16,1.5,1.8,0.25,0;b,-4.99,0.7,-7.66,2,1.8,0.25,0;b,-4.99,4.4,6.34,2.5,9.2,0.25,0;b,-4.99,0.7,-11.66,3,1.8,0.25,0;b,-4.87,0.7,-3.66,0.25,1.8,0.25,0;b,-4.87,0.7,1.09,0.25,1.8,0.25,0;b,-4.87,0.7,4.59,0.25,1.8,0.25,0;b,-4.87,0.7,10.84,0.25,1.8,0.25,0;b,-4.87,0.7,5.09,0.75,1.8,0.25,0;b,-4.87,0.7,-1.29,1.25,1.8,0.5,0;b,-4.87,4.4,5.59,1.25,9.2,0.25,0;b,-4.87,0.7,-8.16,1.75,1.8,0.25,0;b,-4.87,0.7,-7.41,1.75,1.8,0.25,0;b,-4.87,0.7,10.09,3.75,1.8,0.25,0;b,-4.74,0.7,0.59,0.5,1.8,0.25,0;b,-4.74,0.7,8.84,0.5,1.8,0.25,0;b,-4.74,4.4,7.84,2,9.2,0.25,0;b,-4.74,4.4,-12.16,3.5,9.2,0.25,0;b,-4.62,0.7,-3.91,0.25,1.8,0.25,0;b,-4.62,0.7,0.84,0.75,1.8,0.25,0;b,-4.62,0.7,1.34,0.75,1.8,0.25,0;b,-4.62,0.7,9.84,0.75,1.8,0.25,0;b,-4.62,4.4,6.09,1.25,9.2,0.25,0;b,-4.62,0.7,11.09,1.75,1.8,0.25,0;b,-4.49,0.7,-3.41,0.5,1.8,0.25,0;b,-4.49,0.7,0.34,0.5,1.8,0.25,0;b,-4.49,0.7,11.59,0.5,1.8,0.25,0;b,-4.49,4.4,7.34,0.5,9.2,0.25,0;b,-4.49,4.4,8.46,0.5,9.2,0.5,0;b,-4.49,0.7,-3.04,1,1.8,0.5,0;b,-4.49,0.7,11.34,1,1.8,0.25,0;b,-4.49,4.4,5.84,1,9.2,0.25,0;b,-4.49,0.7,-9.16,4.5,1.8,0.25,0;b,-4.37,0.7,-2.66,0.25,1.8,0.25,0;b,-4.37,0.7,1.09,0.25,1.8,0.25,0;b,-4.37,0.7,4.34,0.25,1.8,0.25,0;b,-4.37,0.7,-1.66,0.75,1.8,0.25,0;b,-4.37,0.7,0.09,0.75,1.8,0.25,0;b,-4.37,0.7,3.71,0.75,1.8,0.5,0;b,-4.37,4.4,8.09,0.75,9.2,0.25,0;b,-4.37,4.4,6.59,1.25,9.2,0.25,0;b,-4.37,4.4,6.84,1.75,9.2,0.25,0;b,-4.24,0.7,10.59,1.5,1.8,0.25,0;b,-4.24,0.7,10.34,4,1.8,0.25,0;b,-4.12,0.7,-0.66,0.25,1.8,0.25,0;b,-4.12,0.7,-1.91,0.75,1.8,0.25,0;b,-4.12,0.7,-0.29,0.75,1.8,0.5,0;b,-4.12,0.7,4.09,0.75,1.8,0.25,0;b,-4.12,0.7,4.59,0.75,1.8,0.25,0;b,-4.12,0.7,10.84,0.75,1.8,0.25,0;b,-4.12,0.7,-8.66,3.75,1.8,0.25,0;b,-3.99,0.7,5.59,0.5,1.8,0.25,0;b,-3.99,0.7,8.34,0.5,1.8,0.25,0;b,-3.99,0.7,-2.16,1,1.8,0.25,0;b,-3.99,4.4,7.09,1,9.2,0.25,0;b,-3.87,0.7,-3.91,0.25,1.8,0.25,0;b,-3.87,0.7,-3.41,0.25,1.8,0.25,0;b,-3.87,0.7,-0.91,0.25,1.8,0.25,0;b,-3.87,0.7,4.34,0.25,1.8,0.25,0;b,-3.87,4.4,7.59,0.25,9.2,0.25,0;b,-3.87,0.7,5.09,0.75,1.8,0.75,0;b,-3.74,0.7,-2.66,0.5,1.8,0.25,0;b,-3.74,0.7,8.09,0.5,1.8,0.25,0;b,-3.74,4.4,7.34,0.5,9.2,0.25,0;b,-3.74,0.7,-8.41,1,1.8,0.25,0;b,-3.74,0.7,-2.41,1,1.8,0.25,0;b,-3.74,0.7,8.84,1,1.8,0.25,0;b,-3.62,0.7,-11.91,0.25,1.8,0.25,0;b,-3.62,0.7,-0.66,0.25,1.8,0.25,0;b,-3.62,0.7,8.59,1.25,1.8,0.25,0;b,-3.49,0.7,6.09,0.5,1.8,0.25,0;b,-3.49,0.7,9.84,0.5,1.8,0.25,0;b,-3.49,0.7,-8.91,1,1.8,0.25,0;b,-3.49,0.7,-1.16,1,1.8,0.25,0;b,-3.49,0.7,5.84,1,1.8,0.25,0;b,-3.37,0.7,-8.04,0.25,1.8,0.5,0;b,-3.37,0.7,-4.16,0.25,1.8,0.75,0;b,-3.37,0.7,-2.91,0.25,1.8,0.25,0;b,-3.37,0.7,-0.91,0.25,1.8,0.25,0;b,-3.37,0.7,5.59,0.25,1.8,0.25,0;b,-3.37,0.7,9.46,0.25,1.8,0.5,0;b,-3.37,0.7,-3.66,2.25,1.8,0.25,0;b,-3.24,0.7,-1.66,0.5,1.8,0.25,0;b,-3.24,0.7,7.21,0.5,1.8,0.5,0;b,-3.24,0.7,9.09,0.5,1.8,0.25,0;b,-3.24,0.7,-1.41,1,1.8,0.25,0;b,-3.24,0.7,7.59,1,1.8,0.25,0;b,-3.12,0.7,-2.66,0.25,1.8,0.25,0;b,-3.12,4.4,-8.29,0.25,9.2,0.5,0;b,-3.12,4.4,-4.16,0.25,9.2,0.25,0;b,-3.12,4.4,9.84,0.25,9.2,0.25,0;b,-3.12,0.7,-9.41,0.75,1.8,0.25,0;b,-2.99,0.7,-3.16,0.5,1.8,0.25,0;b,-2.99,0.7,6.34,1,1.8,0.25,0;b,-2.87,4.4,9.09,0.25,9.2,0.25,0;b,-2.87,0.7,-11.66,0.75,1.8,0.25,0;b,-2.87,0.7,-2.16,0.75,1.8,0.25,0;b,-2.87,0.7,8.09,0.75,1.8,0.25,0;b,-2.87,4.4,-7.91,0.75,9.2,0.25,0;b,-2.87,4.4,-4.41,0.75,9.2,0.25,0;b,-2.87,4.4,-3.91,0.75,9.2,0.25,0;b,-2.87,4.4,9.34,0.75,9.2,0.25,0;b,-2.87,0.7,-7.66,1.25,1.8,0.25,0;b,-2.87,0.7,-4.66,1.25,1.8,0.25,0;b,-2.87,0.7,-1.91,1.25,1.8,0.25,0;b,-2.87,0.7,6.59,1.25,1.8,0.25,0;b,-2.87,0.7,7.84,1.25,1.8,0.25,0;b,-2.87,4.4,-11.91,1.25,9.2,0.25,0;b,-2.74,0.7,-11.41,0.5,1.8,0.25,0;b,-2.74,0.7,-7.29,0.5,1.8,0.5,0;b,-2.74,4.4,10.09,0.5,9.2,0.25,0;b,-2.62,0.7,-1.66,0.25,1.8,0.25,0;b,-2.62,0.7,-3.41,0.75,1.8,0.25,0;b,-2.62,0.7,6.84,1.25,1.8,0.25,0;b,-2.62,0.7,8.34,1.75,1.8,0.25,0;b,-2.49,0.7,-2.91,0.5,1.8,0.25,0;b,-2.49,0.7,9.09,0.5,1.8,0.25,0;b,-2.37,0.7,-8.91,0.25,1.8,0.25,0;b,-2.37,0.7,-8.16,0.25,1.8,0.75,0;b,-2.37,0.7,-4.16,0.25,1.8,0.75,0;b,-2.37,0.7,9.59,0.25,1.8,0.25,0;b,-2.37,0.7,12.09,0.25,1.8,0.25,0;b,-2.37,4.4,9.84,0.25,9.2,0.25,0;b,-2.37,0.7,13.09,0.75,1.8,0.25,0;b,-2.24,0.7,-3.16,0.5,1.8,0.25,0;b,-2.24,0.7,9.34,0.5,1.8,0.25,0;b,-2.24,0.7,-2.54,1,1.8,0.5,0;b,-2.24,0.7,12.84,1,1.8,0.25,0;b,-2.12,0.7,8.59,0.75,1.8,0.25,0;b,-2.12,0.7,10.09,0.75,1.8,0.25,0;b,-2.12,4.4,13.59,0.75,9.2,0.25,0;b,-2.12,0.7,7.09,1.25,1.8,0.25,0;b,-1.99,0.7,-2.16,0.5,1.8,0.25,0;b,-1.99,0.7,8.09,0.5,1.8,0.25,0;b,-1.99,0.7,7.34,1,1.8,0.25,0;b,-1.87,0.7,9.71,0.25,1.8,0.5,0;b,-1.87,0.7,7.59,0.75,1.8,0.25,0;b,-1.87,4.4,-14.16,0.75,9.2,0.25,0;b,-1.74,4.4,-14.41,0.5,9.2,0.25,0;b,-1.74,4.4,-13.91,0.5,9.2,0.25,0;b,-1.62,4.4,-20.04,0.25,9.2,1,0;b,-1.62,4.4,-18.41,0.25,9.2,1.25,0;b,-1.62,4.4,-17.16,0.25,9.2,0.75,0;b,-1.62,4.4,-14.66,0.75,9.2,0.25,0;b,-1.62,4.4,-13.66,0.75,9.2,0.25,0;b,-1.62,4.4,-12.16,1.75,9.2,0.25,0;b,-1.49,4.4,-20.66,0.5,9.2,0.25,0;b,-1.49,4.4,-19.29,0.5,9.2,0.5,0;b,-1.49,4.4,-17.66,0.5,9.2,0.25,0;b,-1.49,4.4,-16.66,0.5,9.2,0.25,0;b,-1.49,4.4,13.09,1,9.2,0.25,0;b,-1.37,0.7,-21.16,0.25,1.8,0.25,0;b,-1.37,0.7,-18.91,0.25,1.8,0.25,0;b,-1.37,0.7,-17.91,0.25,1.8,0.25,0;b,-1.37,0.7,-16.16,0.25,1.8,0.25,0;b,-1.37,0.7,-12.91,0.25,1.8,0.25,0;b,-1.37,4.4,-14.91,0.75,9.2,0.25,0;b,-1.37,4.4,-13.41,0.75,9.2,0.25,0;b,-1.24,4.4,-20.91,0.5,9.2,0.25,0;b,-1.24,4.4,-13.16,0.5,9.2,0.25,0;b,-1.12,0.7,-21.66,0.25,1.8,0.25,0;b,-1.12,0.7,2.59,0.25,1.8,0.25,0;b,-1.12,0.7,3.09,0.25,1.8,0.25,0;b,-1.12,4.4,-21.16,0.25,9.2,0.25,0;b,-1.12,4.4,-16.41,1.25,9.2,0.25,0;b,-1.12,0.7,12.46,2.75,1.8,0.5,0;b,-0.99,0.7,2.34,0.5,1.8,0.25,0;b,-0.99,0.7,2.84,0.5,1.8,0.25,0;b,-0.99,0.7,3.34,0.5,1.8,0.25,0;b,-0.99,4.4,-21.41,0.5,9.2,0.25,0;b,-0.99,4.4,-15.16,0.5,9.2,0.25,0;b,-0.99,4.4,-12.79,0.5,9.2,0.5,0;b,-0.99,4.4,-11.91,0.5,9.2,0.25,0;b,-0.99,0.7,11.59,1,1.8,0.25,0;b,-0.87,0.7,-21.91,0.25,1.8,0.25,0;b,-0.87,0.7,-12.41,0.25,1.8,0.25,0;b,-0.87,0.7,2.09,0.25,1.8,0.25,0;b,-0.87,4.4,-15.66,0.25,9.2,0.75,0;b,-0.87,4.4,-11.54,0.25,9.2,0.5,0;b,-0.87,4.4,-16.16,0.75,9.2,0.25,0;b,-0.87,4.4,13.59,0.75,9.2,0.25,0;b,-0.74,0.7,3.59,0.5,1.8,0.25,0;b,-0.74,0.7,13.09,0.5,1.8,0.25,0;b,-0.74,4.4,-21.66,0.5,9.2,0.25,0;b,-0.62,0.7,1.84,0.75,1.8,0.25,0;b,-0.49,4.4,13.34,8,9.2,0.25,0;b,-0.37,4.4,-21.91,0.75,9.2,0.25,0;b,-0.24,0.7,12.84,1,1.8,0.25,0;b,0.01,0.7,-22.66,0.5,1.8,0.25,0;b,0.01,0.7,1.59,1,1.8,0.25,0;b,0.01,0.7,4.09,1,1.8,0.25,0;b,0.01,0.7,12.09,4,1.8,0.25,0;b,0.13,4.4,13.09,1.25,9.2,0.25,0;b,0.13,0.7,3.84,1.75,1.8,0.25,0;b,0.13,0.7,-22.16,2.25,1.8,0.25,0;b,0.26,0.7,-22.41,1.5,1.8,0.25,0;b,0.26,0.7,11.84,3.5,1.8,0.25,0;b,0.63,4.4,13.59,0.25,9.2,0.25,0;b,0.63,0.7,1.84,0.75,1.8,0.25,0;b,0.88,0.7,11.59,0.25,1.8,0.25,0;b,0.88,0.7,13.09,0.25,1.8,0.25,0;b,1.01,0.7,-11.16,0.5,1.8,0.25,0;b,1.01,0.7,2.21,0.5,1.8,0.5,0;b,1.01,0.7,3.46,0.5,1.8,0.5,0;b,1.01,4.4,-21.91,0.5,9.2,0.25,0;b,1.13,0.7,-15.66,0.25,1.8,0.25,0;b,1.13,0.7,2.59,0.25,1.8,0.25,0;b,1.13,0.7,3.09,0.25,1.8,0.25,0;b,1.13,4.4,-16.16,0.25,9.2,0.25,0;b,1.13,0.7,2.84,0.75,1.8,0.25,0;b,1.26,4.4,-21.66,0.5,9.2,0.25,0;b,1.26,4.4,-15.91,0.5,9.2,0.25,0;b,1.38,0.7,11.59,0.25,1.8,0.25,0;b,1.38,4.4,-15.41,0.25,9.2,0.75,0;b,1.38,4.4,-12.91,0.25,9.2,0.25,0;b,1.38,4.4,-21.41,0.75,9.2,0.25,0;b,1.51,4.4,-16.41,1,9.2,0.25,0;b,1.51,4.4,13.09,1,9.2,0.25,0;b,1.63,4.4,-21.16,0.25,9.2,0.25,0;b,1.63,4.4,-14.91,0.75,9.2,0.25,0;b,1.63,4.4,-12.66,0.75,9.2,0.25,0;b,1.76,4.4,-20.91,0.5,9.2,0.25,0;b,1.76,4.4,-16.66,1,9.2,0.25,0;b,1.88,0.7,-18.66,0.25,1.8,0.25,0;b,1.88,4.4,-17.66,0.25,9.2,0.25,0;b,1.88,0.7,-13.16,0.75,1.8,0.25,0;b,1.88,0.7,12.84,1.25,1.8,0.25,0;b,2.01,4.4,-20.66,0.5,9.2,0.25,0;b,2.01,4.4,-18.16,0.5,9.2,0.75,0;b,2.01,4.4,-17.29,0.5,9.2,0.5,0;b,2.01,4.4,-14.66,0.5,9.2,0.25,0;b,2.01,0.7,-12.91,1,1.8,0.25,0;b,2.01,0.7,12.34,1,1.8,0.25,0;b,2.01,4.4,-12.16,1.5,9.2,0.25,0;b,2.13,0.7,4.34,0.25,1.8,0.25,0;b,2.13,4.4,-19.54,0.25,9.2,2,0;b,2.13,4.4,-16.91,0.25,9.2,0.25,0;b,2.13,4.4,13.59,0.75,9.2,0.25,0;b,2.13,0.7,12.59,1.25,1.8,0.25,0;b,2.26,4.4,-14.41,0.5,9.2,0.25,0;b,2.38,0.7,4.09,0.25,1.8,0.25,0;b,2.38,0.7,9.46,0.25,1.8,0.5,0;b,2.38,0.7,10.09,0.25,1.8,0.25,0;b,2.38,0.7,12.09,0.25,1.8,0.25,0;b,2.38,4.4,-14.16,0.25,9.2,0.25,0;b,2.51,0.7,-8.16,0.5,1.8,0.75,0;b,2.51,0.7,-4.16,0.5,1.8,0.75,0;b,2.51,4.4,-13.79,0.5,9.2,0.5,0;b,2.51,4.4,-13.16,0.5,9.2,0.25,0;b,2.51,4.4,9.84,0.5,9.2,0.25,0;b,2.63,4.4,-13.41,0.25,9.2,0.25,0;b,2.63,4.4,-12.91,0.25,9.2,0.25,0;b,2.63,4.4,9.59,0.25,9.2,0.25,0;b,2.63,0.7,7.59,0.75,1.8,0.25,0;b,2.63,0.7,9.09,0.75,1.8,0.25,0;b,2.63,0.7,13.09,1.25,1.8,0.25,0;b,2.76,0.7,-2.91,0.5,1.8,0.25,0;b,2.76,0.7,8.09,0.5,1.8,0.25,0;b,2.76,0.7,8.59,0.5,1.8,0.25,0;b,2.76,0.7,-2.66,1,1.8,0.25,0;b,2.76,0.7,7.34,1,1.8,0.25,0;b,2.76,0.7,-8.66,2,1.8,0.25,0;b,2.88,0.7,-13.29,0.25,1.8,0.5,0;b,2.88,0.7,12.84,0.25,1.8,0.25,0;b,2.88,4.4,-3.91,0.25,9.2,0.25,0;b,2.88,4.4,9.34,0.75,9.2,0.25,0;b,2.88,4.4,10.09,0.75,9.2,0.25,0;b,2.88,0.7,-4.66,1.25,1.8,0.25,0;b,2.88,0.7,-7.66,1.75,1.8,0.25,0;b,3.01,0.7,-7.29,0.5,1.8,0.5,0;b,3.01,0.7,6.84,0.5,1.8,0.25,0;b,3.01,0.7,-11.41,1,1.8,0.25,0;b,3.01,0.7,-2.41,1,1.8,0.25,0;b,3.01,0.7,8.34,1,1.8,0.25,0;b,3.01,0.7,10.34,1,1.8,0.25,0;b,3.13,0.7,-1.91,0.25,1.8,0.25,0;b,3.13,4.4,9.09,0.25,9.2,0.25,0;b,3.13,4.4,-8.41,0.75,9.2,0.25,0;b,3.13,4.4,-7.91,0.75,9.2,0.25,0;b,3.13,4.4,-4.41,0.75,9.2,0.25,0;b,3.13,0.7,-3.66,1.75,1.8,0.25,0;b,3.13,4.4,-11.91,3.75,9.2,0.25,0;b,3.26,0.7,-2.16,1,1.8,0.25,0;b,3.38,0.7,9.71,0.25,1.8,0.5,0;b,3.38,4.4,-8.16,0.25,9.2,0.25,0;b,3.38,4.4,-4.04,0.25,9.2,0.5,0;b,3.38,0.7,7.84,1.25,1.8,0.25,0;b,3.38,0.7,7.09,1.75,1.8,0.25,0;b,3.51,0.7,8.09,0.5,1.8,0.25,0;b,3.51,0.7,9.34,0.5,1.8,0.25,0;b,3.51,0.7,10.09,0.5,1.8,0.25,0;b,3.63,0.7,-8.16,0.25,1.8,0.75,0;b,3.63,0.7,-4.16,0.25,1.8,0.75,0;b,3.63,0.7,-1.16,0.25,1.8,0.25,0;b,3.63,0.7,13.34,0.25,1.8,0.25,0;b,3.63,4.4,13.59,0.25,9.2,0.25,0;b,3.63,0.7,-1.66,0.75,1.8,0.25,0;b,3.76,0.7,-1.91,0.5,1.8,0.25,0;b,3.76,0.7,7.34,0.5,1.8,0.25,0;b,3.76,0.7,-3.41,1,1.8,0.25,0;b,3.76,0.7,-1.41,1,1.8,0.25,0;b,3.76,0.7,9.09,1,1.8,0.25,0;b,3.88,0.7,-0.66,0.25,1.8,0.25,0;b,3.88,0.7,6.09,0.25,1.8,0.25,0;b,3.88,0.7,7.59,1.25,1.8,0.25,0;b,3.88,0.7,6.59,1.75,1.8,0.25,0;b,4.01,0.7,6.84,1,1.8,0.25,0;b,4.01,0.7,8.84,1.5,1.8,0.25,0;b,4.01,0.7,-11.66,5,1.8,0.25,0;b,4.13,0.7,-2.66,0.25,1.8,0.25,0;b,4.13,0.7,5.84,0.25,1.8,0.25,0;b,4.13,0.7,-3.16,0.75,1.8,0.25,0;b,4.13,0.7,-0.91,0.75,1.8,0.25,0;b,4.26,0.7,-3.91,0.5,1.8,0.25,0;b,4.26,0.7,8.34,0.5,1.8,0.25,0;b,4.26,4.4,13.59,0.5,9.2,0.25,0;b,4.26,0.7,-2.91,1,1.8,0.25,0;b,4.26,0.7,8.59,1,1.8,0.25,0;b,4.38,0.7,0.34,0.25,1.8,0.25,0;b,4.38,0.7,-1.16,0.75,1.8,0.25,0;b,4.38,0.7,-0.16,0.75,1.8,0.25,0;b,4.51,0.7,7.34,0.5,1.8,0.25,0;b,4.51,0.7,10.09,0.5,1.8,0.25,0;b,4.51,0.7,-0.41,1,1.8,0.25,0;b,4.51,0.7,6.34,2,1.8,0.25,0;b,4.63,0.7,-4.41,0.25,1.8,0.25,0;b,4.63,0.7,-2.66,0.25,1.8,0.25,0;b,4.63,0.7,0.96,0.25,1.8,0.5,0;b,4.63,0.7,-4.16,0.75,1.8,0.25,0;b,4.63,0.7,-2.41,0.75,1.8,0.25,0;b,4.63,0.7,0.09,0.75,1.8,0.25,0;b,4.76,0.7,7.09,0.5,1.8,0.25,0;b,4.76,0.7,9.34,0.5,1.8,0.25,0;b,4.76,0.7,-2.16,1,1.8,0.25,0;b,4.76,0.7,9.71,1,1.8,0.5,0;b,4.76,4.4,13.34,2,9.2,0.25,0;b,4.76,0.7,13.09,2.5,1.8,0.25,0;b,4.88,0.7,0.34,0.25,1.8,0.25,0;b,4.88,0.7,4.59,0.25,1.8,0.25,0;b,4.88,0.7,-1.91,0.75,1.8,0.25,0;b,4.88,0.7,0.59,0.75,1.8,0.25,0;b,4.88,0.7,1.34,0.75,1.8,0.25,0;b,4.88,0.7,5.84,0.75,1.8,0.25,0;b,4.88,0.7,5.46,1.25,1.8,0.5,0;b,4.88,0.7,8.09,1.25,1.8,0.25,0;b,5.01,0.7,-3.91,0.5,1.8,0.25,0;b,5.01,0.7,8.34,0.5,1.8,0.25,0;b,5.01,0.7,9.09,0.5,1.8,0.25,0;b,5.01,0.7,-3.41,1,1.8,0.25,0;b,5.01,0.7,-1.41,1,1.8,0.25,0;b,5.01,0.7,6.09,1.5,1.8,0.25,0;b,5.13,0.7,-11.91,0.25,1.8,0.25,0;b,5.13,0.7,-2.91,0.25,1.8,0.25,0;b,5.13,0.7,0.96,0.25,1.8,0.5,0;b,5.13,0.7,-8.16,0.75,1.8,0.75,0;b,5.13,0.7,-1.66,0.75,1.8,0.25,0;b,5.13,0.7,6.84,0.75,1.8,0.25,0;b,5.13,0.7,7.84,0.75,1.8,0.25,0;b,5.13,0.7,-0.66,1.75,1.8,0.25,0;b,5.13,4.4,-12.16,3.25,9.2,0.25,0;b,5.26,0.7,-4.91,0.5,1.8,0.25,0;b,5.26,0.7,-4.66,1,1.8,0.25,0;b,5.26,0.7,-3.16,1,1.8,0.25,0;b,5.26,0.7,-0.91,1,1.8,0.25,0;b,5.38,0.7,-4.16,0.25,1.8,0.25,0;b,5.38,0.7,-0.41,0.25,1.8,0.25,0;b,5.38,0.7,4.59,0.25,1.8,0.25,0;b,5.38,0.7,7.09,0.25,1.8,0.25,0;b,5.38,0.7,-1.16,0.75,1.8,0.25,0;b,5.38,0.7,3.96,0.75,1.8,0.5,0;b,5.38,0.7,7.59,0.75,1.8,0.25,0;b,5.38,0.7,5.09,1.75,1.8,0.25,0;b,5.51,0.7,-2.41,0.5,1.8,0.25,0;b,5.51,0.7,9.34,0.5,1.8,0.25,0;b,5.51,0.7,-4.41,1,1.8,0.25,0;b,5.63,0.7,-3.91,0.25,1.8,0.25,0;b,5.63,0.7,-2.16,0.25,1.8,0.25,0;b,5.63,0.7,0.34,0.25,1.8,0.25,0;b,5.63,0.7,7.34,0.75,1.8,0.25,0;b,5.63,4.4,-11.91,0.75,9.2,0.25,0;b,5.63,0.7,8.84,1.25,1.8,0.25,0;b,5.63,0.7,4.84,1.75,1.8,0.25,0;b,5.76,0.7,-2.91,0.5,1.8,0.25,0;b,5.76,0.7,5.84,0.5,1.8,0.25,0;b,5.76,0.7,6.59,1.5,1.8,0.25,0;b,5.88,0.7,-2.66,0.25,1.8,0.25,0;b,5.88,0.7,-0.41,0.25,1.8,0.25,0;b,5.88,0.7,1.34,0.25,1.8,0.25,0;b,5.88,0.7,5.59,0.25,1.8,0.25,0;b,5.88,0.7,-0.16,0.75,1.8,0.25,0;b,5.88,0.7,0.59,0.75,1.8,0.25,0;b,5.88,0.7,9.09,0.75,1.8,0.25,0;b,5.88,0.7,8.59,1.25,1.8,0.25,0;b,5.88,0.7,4.34,1.75,1.8,0.25,0;b,6.01,0.7,-4.16,0.5,1.8,0.25,0;b,6.01,0.7,6.34,0.5,1.8,0.25,0;b,6.01,0.7,7.09,0.5,1.8,0.25,0;b,6.01,0.7,8.09,0.5,1.8,0.25,0;b,6.01,0.7,0.84,1,1.8,0.25,0;b,6.13,0.7,-2.41,0.25,1.8,0.25,0;b,6.13,0.7,-1.41,0.25,1.8,0.25,0;b,6.13,0.7,0.34,0.25,1.8,0.25,0;b,6.13,0.7,6.84,0.25,1.8,0.25,0;b,6.13,0.7,-1.91,0.75,1.8,0.25,0;b,6.13,0.7,1.09,0.75,1.8,0.25,0;b,6.13,0.7,4.59,0.75,1.8,0.25,0;b,6.13,0.7,13.34,0.75,1.8,0.25,0;b,6.13,0.7,0.09,1.25,1.8,0.25,0;b,6.13,0.7,8.34,1.25,1.8,0.25,0;b,6.26,0.7,-2.16,0.5,1.8,0.25,0;b,6.26,0.7,1.71,0.5,1.8,0.5,0;b,6.26,0.7,3.84,0.5,1.8,0.25,0;b,6.26,0.7,7.84,0.5,1.8,0.25,0;b,6.26,4.4,13.59,0.5,9.2,0.25,0;b,6.26,0.7,-3.41,1,1.8,0.25,0;b,6.26,0.7,-1.66,1,1.8,0.25,0;b,6.26,0.7,5.34,1,1.8,0.25,0;b,6.38,0.7,-2.91,0.25,1.8,0.25,0;b,6.38,0.7,1.34,0.25,1.8,0.25,0;b,6.38,0.7,5.84,0.25,1.8,0.25,0;b,6.38,0.7,9.59,0.25,1.8,0.25,0;b,6.38,0.7,-8.16,0.75,1.8,0.25,0;b,6.38,0.7,-3.91,0.75,1.8,0.25,0;b,6.38,0.7,4.09,0.75,1.8,0.25,0;b,6.38,0.7,-3.66,2.75,1.8,0.25,0;b,6.51,0.7,-1.04,0.5,1.8,0.5,0;b,6.51,0.7,6.09,0.5,1.8,0.25,0;b,6.51,0.7,9.34,0.5,1.8,0.25,0;b,6.51,0.7,-3.16,1,1.8,0.25,0;b,6.63,0.7,-8.41,0.25,1.8,0.25,0;b,6.63,0.7,-7.91,0.25,1.8,0.25,0;b,6.63,0.7,-4.29,0.25,1.8,0.5,0;b,6.63,0.7,-1.41,0.25,1.8,0.25,0;b,6.63,0.7,-0.29,0.25,1.8,0.5,0;b,6.63,0.7,0.34,0.25,1.8,0.25,0;b,6.63,0.7,6.34,0.25,1.8,0.25,0;b,6.63,0.7,10.09,0.25,1.8,0.25,0;b,6.63,4.4,5.71,0.25,9.2,0.5,0;b,6.63,4.4,9.71,0.25,9.2,0.5,0;b,6.76,0.7,8.09,0.5,1.8,0.25,0;b,6.76,0.7,-2.66,1,1.8,0.25,0;b,6.76,0.7,7.59,1,1.8,0.25,0;b,6.88,0.7,-2.91,0.25,1.8,0.25,0;b,6.88,0.7,-2.16,0.25,1.8,0.25,0;b,6.88,0.7,1.34,0.25,1.8,0.25,0;b,6.88,0.7,7.84,0.25,1.8,0.25,0;b,6.88,4.4,-3.91,0.25,9.2,0.25,0;b,6.88,0.7,-7.41,0.75,1.8,0.25,0;b,6.88,0.7,5.09,0.75,1.8,0.25,0;b,6.88,0.7,7.34,0.75,1.8,0.25,0;b,6.88,0.7,12.96,0.75,1.8,0.5,0;b,7.01,0.7,-7.16,0.5,1.8,0.25,0;b,7.01,0.7,7.09,0.5,1.8,0.25,0;b,7.01,0.7,9.09,0.5,1.8,0.25,0;b,7.01,4.4,0.34,0.5,9.2,0.25,0;b,7.01,4.4,5.34,0.5,9.2,0.25,0;b,7.01,4.4,6.09,0.5,9.2,0.25,0;b,7.01,4.4,9.34,0.5,9.2,0.25,0;b,7.01,4.4,10.09,0.5,9.2,0.25,0;b,7.01,0.7,-2.41,1,1.8,0.25,0;b,7.01,0.7,-0.66,1,1.8,0.25,0;b,7.01,0.7,0.59,1,1.8,0.25,0;b,7.01,0.7,10.34,1,1.8,0.25,0;b,7.01,4.4,13.34,1,9.2,0.25,0;b,7.01,4.4,-11.91,1.5,9.2,0.25,0;b,7.13,0.7,-4.91,0.75,1.8,0.25,0;b,7.13,0.7,0.84,0.75,1.8,0.25,0;b,7.13,4.4,-8.41,0.75,9.2,0.25,0;b,7.13,4.4,-4.41,0.75,9.2,0.25,0;b,7.13,4.4,-0.41,0.75,9.2,0.25,0;b,7.13,0.7,-8.66,1.25,1.8,0.25,0;b,7.13,0.7,-7.66,1.25,1.8,0.25,0;b,7.13,0.7,-4.66,1.25,1.8,0.25,0;b,7.26,0.7,-1.66,0.5,1.8,0.25,0;b,7.26,0.7,1.09,0.5,1.8,0.25,0;b,7.26,0.7,1.59,0.5,1.8,0.25,0;b,7.26,0.7,-1.91,1,1.8,0.25,0;b,7.38,0.7,-2.16,0.25,1.8,0.25,0;b,7.38,0.7,1.34,0.25,1.8,0.25,0;b,7.38,0.7,1.84,0.25,1.8,0.25,0;b,7.38,4.4,-8.04,0.25,9.2,0.5,0;b,7.38,4.4,-4.04,0.25,9.2,0.5,0;b,7.38,4.4,-0.04,0.25,9.2,0.5,0;b,7.38,4.4,5.71,0.25,9.2,0.5,0;b,7.38,4.4,9.71,0.25,9.2,0.5,0;b,7.38,4.4,12.96,0.25,9.2,0.5,0;b,7.51,0.7,0.34,0.5,1.8,0.25,0;b,7.51,0.7,5.34,0.5,1.8,0.25,0;b,7.51,0.7,6.09,0.5,1.8,0.25,0;b,7.51,0.7,9.34,0.5,1.8,0.25,0;b,7.51,0.7,10.09,0.5,1.8,0.25,0;b,7.63,0.7,-8.16,0.25,1.8,0.75,0;b,7.63,0.7,-4.16,0.25,1.8,0.75,0;b,7.63,0.7,-0.16,0.25,1.8,0.75,0;b,7.63,0.7,5.09,0.25,1.8,0.25,0;b,7.63,0.7,5.59,0.25,1.8,0.25,0;b,7.63,0.7,9.59,0.25,1.8,0.25,0;b,8.01,4.4,-12.16,1,9.2,0.25,0;b,8.26,4.4,12.59,2,9.2,0.25,0;b,8.51,0.7,-12.41,1,1.8,0.25,0;b,8.88,0.7,5.84,0.25,1.8,0.25,0;b,8.88,0.7,6.84,0.25,1.8,0.75,0;b,8.88,0.7,8.71,0.25,1.8,0.5,0;b,8.88,0.7,10.09,0.25,1.8,0.75,0;b,8.88,0.7,11.21,0.25,1.8,0.5,0;b,9.01,0.7,-8.16,0.5,1.8,0.25,0;b,9.01,4.4,12.34,1,9.2,0.25,0;b,9.13,0.7,-10.04,0.25,1.8,3,0;b,9.13,0.7,-7.79,0.25,1.8,0.5,0;b,9.13,0.7,-6.91,0.25,1.8,0.25,0;b,9.13,0.7,-3.29,0.25,1.8,6.5,0;b,9.13,0.7,2.34,0.25,1.8,0.75,0;b,9.13,0.7,3.71,0.25,1.8,1,0;b,9.13,4.4,-12.41,0.25,9.2,0.25,0;b,9.13,4.4,11.59,0.25,9.2,0.25,0;b,9.26,4.4,-12.04,0.5,9.2,0.5,0;b,9.26,4.4,0.96,0.5,9.2,2,0;b,9.26,4.4,2.96,0.5,9.2,0.5,0;b,9.26,4.4,7.84,0.5,9.2,7.25,0;b,9.26,4.4,11.96,0.5,9.2,0.5,0;b,9.38,4.4,-11.41,0.25,9.2,0.75,0;b,9.38,4.4,-10.41,0.25,9.2,0.25,0;b,9.38,4.4,-4.91,0.25,9.2,9.75,0;b,9.38,4.4,2.34,0.25,9.2,0.75,0;b,9.38,4.4,3.71,0.25,9.2,1,0;b,9.51,4.4,-10.79,0.5,9.2,0.5,0;b,9.51,4.4,-10.04,0.5,9.2,0.5,0;b,9.63,0.7,-8.29,0.25,1.8,0.5,0;b,-9.3,4.5,1,0.5,9.2,26.8,0;b,9.55,4.5,1,0.5,9.2,26.8,0;b,0.1,4.5,13.9,19.4,9.2,0.5,0;b,-5.1,4.5,-12.3,8.4,9.2,0.5,0;b,5.35,4.5,-12.3,8.4,9.2,0.5,0;b,0.4,4.5,-23,5,9.2,0.4,0',
+  },
+  metro: {
+    name: '五月廣場站', intro: '列車停在月台邊，車門開著，車廂裡有東西在動', glb: 'metro', o: [400, 0, 120], bounds: [-1.9, 7, -47.9, 16.5],
+    entry: [4.6, 12.6, Math.PI], exit: [4.6, 15.4], // 月台北端的樓梯口；月台 y = 0，車廂地板和月台齊平，軌道在 −1.1
+    door: { at: [31, 1], out: [31, 2.4, 0], lamp: [31, 3.32, 0.02], globes: [[-1.24, 0], [1.25, 0]], label: '地鐵入口', inLabel: '往上的樓梯' }, // 入口欄杆是 PROPS 的 subway，燈是欄杆兩根柱子上的燈球
+    camMax: 3.4, ambient: 3, cap: 7,
+    lamps: [[4.6, 3.3, 12, 0.55], [4.6, 3.3, -2, 0.5], [4.6, 3.3, -16, 0.45], [4.6, 3.3, -30, 0.5], [4.6, 3.3, -44, 0.45], [0.2, 2.4, -9, 0.4], [0.2, 2.4, -27, 0.4]],
+    spawns: [[4.6, -44], [4.2, -32], [0.2, -11], [0.2, -32], [4.4, -20], [4.4, -8]],
+    patients: [[0.2, -14], [0.3, -24], [4.6, -3]],
+    crate: [0.2, -16.6], // 地鐵任務：列車走道上的軍用木箱
+    backdrop: [[7.05, -47.9, 7.05, 16.5, 4.9], [-1.9, 16.55, 7.05, 16.55, 4.9], [-1.9, -47.95, 7.05, -47.95, 4.9]], // 原檔月台後牆與兩端是開的，補暗色牆面（x0, z0, x1, z1, 高）
+    props: [],
+    prims: 'b,-1.69,0.7,-1.68,0.25,1.8,0.25,0;b,-1.69,0.7,-1.18,0.25,1.8,0.25,0;b,-1.69,0.7,-0.68,0.25,1.8,0.25,0;b,-1.69,4.4,-45.93,0.25,9.2,2.25,0;b,-1.69,4.4,-44.43,0.25,9.2,0.25,0;b,-1.69,4.4,-43.93,0.25,9.2,0.25,0;b,-1.69,4.4,-43.43,0.25,9.2,0.25,0;b,-1.69,4.4,-40.31,0.25,9.2,5.5,0;b,-1.69,4.4,-37.18,0.25,9.2,0.25,0;b,-1.69,4.4,-36.68,0.25,9.2,0.25,0;b,-1.69,4.4,-36.18,0.25,9.2,0.25,0;b,-1.69,4.4,-35.68,0.25,9.2,0.25,0;b,-1.69,4.4,-32.56,0.25,9.2,5.5,0;b,-1.69,4.4,-29.43,0.25,9.2,0.25,0;b,-1.69,4.4,-28.93,0.25,9.2,0.25,0;b,-1.69,4.4,-28.43,0.25,9.2,0.25,0;b,-1.69,4.4,-25.31,0.25,9.2,5.5,0;b,-1.69,4.4,-22.18,0.25,9.2,0.25,0;b,-1.69,4.4,-21.68,0.25,9.2,0.25,0;b,-1.69,4.4,-21.18,0.25,9.2,0.25,0;b,-1.69,4.4,-20.68,0.25,9.2,0.25,0;b,-1.69,4.4,-15.18,0.25,9.2,10.25,0;b,-1.69,4.4,-9.68,0.25,9.2,0.25,0;b,-1.69,4.4,-9.18,0.25,9.2,0.25,0;b,-1.69,4.4,-8.68,0.25,9.2,0.25,0;b,-1.69,4.4,-8.18,0.25,9.2,0.25,0;b,-1.69,4.4,-5.06,0.25,9.2,5.5,0;b,-1.69,4.4,-1.93,0.25,9.2,0.25,0;b,-1.69,4.4,-1.43,0.25,9.2,0.25,0;b,-1.69,4.4,-0.93,0.25,9.2,0.25,0;b,-1.69,4.4,2.19,0.25,9.2,5.5,0;b,-1.69,4.4,5.32,0.25,9.2,0.25,0;b,-1.69,4.4,5.82,0.25,9.2,0.25,0;b,-1.69,4.4,6.32,0.25,9.2,0.25,0;b,-1.69,4.4,6.82,0.25,9.2,0.25,0;b,-1.69,4.4,9.94,0.25,9.2,5.5,0;b,-1.69,4.4,13.07,0.25,9.2,0.25,0;b,-1.69,4.4,13.57,0.25,9.2,0.25,0;b,-1.69,4.4,14.07,0.25,9.2,0.25,0;b,-1.69,4.4,15.07,0.25,9.2,1.25,0;b,5.06,0.7,7.57,0.25,1.8,0.25,0;b,5.31,0.7,-41.93,0.25,1.8,0.25,0;b,5.31,0.7,-38.93,0.25,1.8,0.25,0;b,5.31,0.7,-37.68,0.25,1.8,0.25,0;b,5.31,0.7,-34.81,0.25,1.8,1,0;b,5.31,0.7,-24.68,0.25,1.8,0.25,0;b,5.31,0.7,-7.43,0.25,1.8,0.25,0;b,5.31,0.7,-6.18,0.25,1.8,0.25,0;b,5.31,0.7,3.19,0.25,1.8,0.5,0;b,5.31,0.7,6.82,0.25,1.8,0.25,0;b,5.31,0.7,8.07,0.25,1.8,0.25,0;b,5.31,0.7,10.57,0.25,1.8,0.25,0;b,5.31,0.7,7.82,0.75,1.8,0.25,0;b,5.43,0.7,-42.31,0.5,1.8,0.5,0;b,5.43,0.7,8.82,0.5,1.8,0.25,0;b,5.43,0.7,10.94,0.5,1.8,0.5,0;b,5.56,0.7,-40.18,0.25,1.8,0.25,0;b,5.56,0.7,-39.18,0.25,1.8,0.25,0;b,5.56,0.7,-38.43,0.25,1.8,0.25,0;b,5.56,0.7,-37.93,0.25,1.8,0.25,0;b,5.56,0.7,-37.31,0.25,1.8,0.5,0;b,5.56,0.7,-25.56,0.25,1.8,0.5,0;b,5.56,0.7,-24.93,0.25,1.8,0.25,0;b,5.56,0.7,-23.68,0.25,1.8,0.25,0;b,5.56,0.7,-22.81,0.25,1.8,0.5,0;b,5.56,0.7,-20.68,0.25,1.8,0.25,0;b,5.56,0.7,-8.68,0.25,1.8,0.25,0;b,5.56,0.7,-7.93,0.25,1.8,0.25,0;b,5.56,0.7,-6.81,0.25,1.8,0.5,0;b,5.56,0.7,-5.81,0.25,1.8,0.5,0;b,5.56,0.7,5.57,0.25,1.8,0.25,0;b,5.56,0.7,6.07,0.25,1.8,0.25,0;b,5.56,0.7,6.57,0.25,1.8,0.25,0;b,5.56,0.7,7.57,0.25,1.8,0.25,0;b,5.56,0.7,8.32,0.25,1.8,0.25,0;b,5.56,4.4,-41.43,0.25,9.2,0.75,0;b,5.56,4.4,-35.68,0.25,9.2,0.75,0;b,5.56,4.4,-27.18,0.25,9.2,0.75,0;b,5.56,4.4,-21.43,0.25,9.2,0.75,0;b,5.56,4.4,-9.93,0.25,9.2,0.75,0;b,5.56,4.4,-4.43,0.25,9.2,0.75,0;b,5.56,4.4,4.32,0.25,9.2,0.75,0;b,5.56,4.4,10.07,0.25,9.2,0.75,0;b,5.68,0.7,-40.43,0.5,1.8,0.25,0;b,5.68,0.7,-39.68,0.5,1.8,0.25,0;b,5.68,0.7,-36.93,0.5,1.8,0.25,0;b,5.68,0.7,-26.18,0.5,1.8,0.25,0;b,5.68,0.7,-23.18,0.5,1.8,0.25,0;b,5.68,0.7,-8.18,0.5,1.8,0.25,0;b,5.68,0.7,-5.43,0.5,1.8,0.25,0;b,5.68,0.7,2.57,0.5,1.8,0.25,0;b,5.68,0.7,5.32,0.5,1.8,0.25,0;b,5.68,0.7,6.32,0.5,1.8,0.25,0;b,5.68,0.7,9.07,0.5,1.8,0.25,0;b,5.68,0.7,7.32,1.5,1.8,0.25,0;b,5.81,0.7,-37.68,0.25,1.8,0.25,0;b,5.81,0.7,-25.18,0.25,1.8,0.25,0;b,5.81,0.7,-22.43,0.25,1.8,0.25,0;b,5.81,0.7,-6.18,0.25,1.8,0.25,0;b,5.81,0.7,8.57,1.25,1.8,0.25,0;b,5.93,0.7,-5.18,0.5,1.8,0.25,0;b,5.93,4.4,-40.06,0.5,9.2,0.5,0;b,5.93,4.4,-39.06,0.5,9.2,0.5,0;b,5.93,4.4,-38.43,0.5,9.2,0.25,0;b,5.93,4.4,-37.93,0.5,9.2,0.25,0;b,5.93,4.4,-37.31,0.5,9.2,0.5,0;b,5.93,4.4,-25.56,0.5,9.2,0.5,0;b,5.93,4.4,-24.81,0.5,9.2,0.5,0;b,5.93,4.4,-23.81,0.5,9.2,0.5,0;b,5.93,4.4,-22.81,0.5,9.2,0.5,0;b,5.93,4.4,-8.56,0.5,9.2,0.5,0;b,5.93,4.4,-7.93,0.5,9.2,0.25,0;b,5.93,4.4,-7.43,0.5,9.2,0.25,0;b,5.93,4.4,-6.81,0.5,9.2,0.5,0;b,5.93,4.4,-5.81,0.5,9.2,0.5,0;b,5.93,4.4,5.57,0.5,9.2,0.25,0;b,5.93,4.4,6.07,0.5,9.2,0.25,0;b,5.93,4.4,6.69,0.5,9.2,0.5,0;b,5.93,4.4,7.69,0.5,9.2,0.5,0;b,5.93,4.4,8.32,0.5,9.2,0.25,0;b,5.93,4.4,8.82,0.5,9.2,0.25,0;b,5.93,0.7,-39.43,1,1.8,0.25,0;b,5.93,0.7,-38.68,1,1.8,0.25,0;b,5.93,0.7,-25.93,1,1.8,0.25,0;b,5.93,0.7,-24.31,1,1.8,0.5,0;b,5.93,0.7,-20.31,1,1.8,0.5,0;b,5.93,0.7,-8.93,1,1.8,0.25,0;b,5.93,0.7,-7.68,1,1.8,0.25,0;b,5.93,0.7,-7.18,1,1.8,0.25,0;b,5.93,0.7,7.07,1,1.8,0.25,0;b,5.93,0.7,-42.68,1.5,1.8,0.25,0;b,5.93,0.7,-34.18,1.5,1.8,0.25,0;b,5.93,0.7,2.82,1.5,1.8,0.25,0;b,5.93,0.7,3.57,1.5,1.8,0.25,0;b,5.93,0.7,11.32,1.5,1.8,0.25,0;b,6.06,4.4,-40.43,0.25,9.2,0.25,0;b,6.06,4.4,-39.68,0.25,9.2,0.25,0;b,6.06,4.4,-37.68,0.25,9.2,0.25,0;b,6.06,4.4,-36.93,0.25,9.2,0.25,0;b,6.06,4.4,-26.18,0.25,9.2,0.25,0;b,6.06,4.4,-25.18,0.25,9.2,0.25,0;b,6.06,4.4,-23.18,0.25,9.2,0.25,0;b,6.06,4.4,-22.43,0.25,9.2,0.25,0;b,6.06,4.4,-8.18,0.25,9.2,0.25,0;b,6.06,4.4,-6.18,0.25,9.2,0.25,0;b,6.06,4.4,-5.43,0.25,9.2,0.25,0;b,6.06,4.4,5.32,0.25,9.2,0.25,0;b,6.06,4.4,6.32,0.25,9.2,0.25,0;b,6.06,4.4,9.07,0.25,9.2,0.25,0;b,6.06,0.7,-43.43,0.75,1.8,0.25,0;b,6.06,0.7,-38.18,0.75,1.8,0.25,0;b,6.06,0.7,-23.43,0.75,1.8,0.25,0;b,6.06,0.7,5.82,0.75,1.8,0.25,0;b,6.06,0.7,8.07,0.75,1.8,0.25,0;b,6.06,0.7,11.94,0.75,1.8,0.5,0;b,6.06,0.7,-6.43,1.25,1.8,0.25,0;b,6.06,4.4,-41.93,1.25,9.2,0.25,0;b,6.06,4.4,-40.93,1.25,9.2,0.25,0;b,6.06,4.4,-36.18,1.25,9.2,0.25,0;b,6.06,4.4,-35.18,1.25,9.2,0.25,0;b,6.06,4.4,-27.68,1.25,9.2,0.25,0;b,6.06,4.4,-26.68,1.25,9.2,0.25,0;b,6.06,4.4,-21.93,1.25,9.2,0.25,0;b,6.06,4.4,-20.93,1.25,9.2,0.25,0;b,6.06,4.4,-10.43,1.25,9.2,0.25,0;b,6.06,4.4,-9.43,1.25,9.2,0.25,0;b,6.06,4.4,-4.93,1.25,9.2,0.25,0;b,6.06,4.4,-3.93,1.25,9.2,0.25,0;b,6.06,4.4,3.82,1.25,9.2,0.25,0;b,6.06,4.4,4.82,1.25,9.2,0.25,0;b,6.06,4.4,9.57,1.25,9.2,0.25,0;b,6.06,4.4,10.57,1.25,9.2,0.25,0;b,6.18,0.7,-36.68,1,1.8,0.25,0;b,6.31,0.7,-40.06,0.25,1.8,1,0;b,6.31,0.7,-38.93,0.25,1.8,0.25,0;b,6.31,0.7,-38.43,0.25,1.8,0.25,0;b,6.31,0.7,-37.43,0.25,1.8,0.75,0;b,6.31,0.7,-26.18,0.25,1.8,0.25,0;b,6.31,0.7,-25.43,0.25,1.8,0.75,0;b,6.31,0.7,-24.68,0.25,1.8,0.25,0;b,6.31,0.7,-23.93,0.25,1.8,0.25,0;b,6.31,0.7,-22.81,0.25,1.8,1,0;b,6.31,0.7,-20.68,0.25,1.8,0.25,0;b,6.31,0.7,-8.31,0.25,1.8,1,0;b,6.31,0.7,-7.43,0.25,1.8,0.25,0;b,6.31,0.7,-6.81,0.25,1.8,0.5,0;b,6.31,0.7,-5.81,0.25,1.8,1,0;b,6.31,0.7,5.44,0.25,1.8,0.5,0;b,6.31,0.7,6.19,0.25,1.8,0.5,0;b,6.31,0.7,6.82,0.25,1.8,0.25,0;b,6.31,0.7,7.57,0.25,1.8,0.25,0;b,6.31,0.7,8.32,0.25,1.8,0.25,0;b,6.31,0.7,8.82,0.25,1.8,0.25,0;b,6.31,0.7,-42.31,0.75,1.8,0.5,0;b,6.31,0.7,10.94,0.75,1.8,0.5,0;b,6.43,0.7,-39.18,0.5,1.8,0.25,0;b,6.43,0.7,-37.93,0.5,1.8,0.25,0;b,6.43,0.7,-36.93,0.5,1.8,0.25,0;b,6.43,0.7,-24.93,0.5,1.8,0.25,0;b,6.43,0.7,-23.68,0.5,1.8,0.25,0;b,6.43,0.7,2.57,0.5,1.8,0.25,0;b,6.43,0.7,6.57,0.5,1.8,0.25,0;b,6.43,0.7,7.82,0.5,1.8,0.25,0;b,6.56,0.7,-34.68,0.25,1.8,0.75,0;b,6.56,0.7,3.19,0.25,1.8,0.5,0;b,6.56,4.4,-41.43,0.25,9.2,0.75,0;b,6.56,4.4,-35.68,0.25,9.2,0.75,0;b,6.56,4.4,-27.18,0.25,9.2,0.75,0;b,6.56,4.4,-21.43,0.25,9.2,0.75,0;b,6.56,4.4,-9.93,0.25,9.2,0.75,0;b,6.56,4.4,-4.43,0.25,9.2,0.75,0;b,6.56,4.4,4.32,0.25,9.2,0.75,0;b,6.56,4.4,10.07,0.25,9.2,0.75,0;b,6.81,0.7,-38.93,0.25,1.8,0.25,0;b,6.81,0.7,-37.68,0.25,1.8,0.25,0;b,6.81,0.7,-24.68,0.25,1.8,0.25,0;b,6.81,0.7,-6.18,0.25,1.8,0.25,0;b,6.81,0.7,6.82,0.25,1.8,0.25,0;b,6.81,0.7,8.07,0.25,1.8,0.25,0;b,-1.49,0.7,-33.97,0.2,1.8,2.2,0;b,-1.49,0.7,-30.17,0.2,1.8,3,0;b,-1.49,0.7,-25.67,0.2,1.8,5.6,0;b,-1.49,0.7,-20.57,0.2,1.8,2.2,0;b,-1.49,0.7,-17.37,0.2,1.8,2.2,0;b,-1.49,0.7,-12.47,0.2,1.8,5.2,0;b,-1.49,0.7,-9.27,0.2,1.8,0.8,0;b,-1.49,0.7,-8.47,0.2,1.8,0.4,0;b,-1.49,0.7,-7.17,0.2,1.8,1.8,0;b,-1.49,0.7,-4.07,0.2,1.8,2,0;b,-1.39,0.7,-8.77,0.4,1.8,0.2,0;b,-1.29,0.7,-2.97,0.2,1.8,0.2,0;b,-1.29,4.4,-33.77,0.2,9.2,1.8,0;b,-1.29,4.4,-30.17,0.2,9.2,3,0;b,-1.29,4.4,-25.67,0.2,9.2,5.6,0;b,-1.29,4.4,-20.77,0.2,9.2,1.8,0;b,-1.29,4.4,-17.17,0.2,9.2,1.8,0;b,-1.29,4.4,-12.47,0.2,9.2,5.2,0;b,-1.29,4.4,-9.27,0.2,9.2,0.8,0;b,-1.29,4.4,-8.47,0.2,9.2,0.4,0;b,-1.29,4.4,-7.17,0.2,9.2,1.8,0;b,-1.29,4.4,-4.17,0.2,9.2,1.8,0;b,-1.19,0.7,-28.57,0.8,1.8,0.2,0;b,-1.19,0.7,-9.77,0.8,1.8,0.2,0;b,-1.19,0.7,-8.17,0.8,1.8,0.2,0;b,-0.99,0.7,-34.47,0.4,1.8,0.4,0;b,-0.99,0.7,-29.27,0.4,1.8,1.2,0;b,-0.99,0.7,-27.97,0.4,1.8,1,0;b,-0.99,0.7,-26.27,0.4,1.8,0.8,0;b,-0.99,0.7,-24.87,0.4,1.8,0.8,0;b,-0.99,0.7,-20.47,0.4,1.8,0.8,0;b,-0.99,0.7,-17.67,0.4,1.8,0.4,0;b,-0.99,0.7,-12.77,0.4,1.8,1,0;b,-0.99,0.7,-11.27,0.4,1.8,0.8,0;b,-0.99,0.7,-10.17,0.4,1.8,0.6,0;b,-0.99,0.7,-9.37,0.4,1.8,0.6,0;b,-0.99,0.7,-8.47,0.4,1.8,0.4,0;b,-0.99,0.7,-7.97,0.4,1.8,0.2,0;b,-0.99,0.7,-4.07,0.4,1.8,0.4,0;b,-0.99,4.4,-18.97,0.8,9.2,1.8,0;b,-0.89,0.7,-33.87,0.6,1.8,0.4,0;b,-0.89,0.7,-30.07,0.6,1.8,0.4,0;b,-0.89,0.7,-27.17,0.6,1.8,0.6,0;b,-0.89,0.7,-25.57,0.6,1.8,0.2,0;b,-0.89,0.7,-24.37,0.6,1.8,0.2,0;b,-0.89,0.7,-20.97,0.6,1.8,0.2,0;b,-0.89,0.7,-19.97,0.6,1.8,0.2,0;b,-0.89,0.7,-17.97,0.6,1.8,0.2,0;b,-0.89,0.7,-17.27,0.6,1.8,0.4,0;b,-0.89,0.7,-13.47,0.6,1.8,0.4,0;b,-0.89,0.7,-11.97,0.6,1.8,0.2,0;b,-0.89,0.7,-10.67,0.6,1.8,0.4,0;b,-0.89,0.7,-8.97,0.6,1.8,0.2,0;b,-0.89,0.7,-7.77,0.6,1.8,0.2,0;b,-0.89,0.7,-4.37,0.6,1.8,0.2,0;b,-0.89,0.7,-3.47,0.6,1.8,0.4,0;b,-0.89,0.7,-34.17,0.2,1.8,0.2,0;b,-0.89,0.7,-26.77,0.2,1.8,0.2,0;b,-0.89,0.7,-25.77,0.2,1.8,0.2,0;b,-0.89,0.7,-25.37,0.2,1.8,0.2,0;b,-0.89,0.7,-16.97,0.2,1.8,0.2,0;b,-0.89,0.7,-12.17,0.2,1.8,0.2,0;b,-0.89,0.7,-11.77,0.2,1.8,0.2,0;b,-0.89,0.7,-8.77,0.2,1.8,0.2,0;b,-0.89,0.7,-3.77,0.2,1.8,0.2,0;b,-0.79,0.7,-35.17,1.2,1.8,0.2,0;b,-0.79,0.7,-2.77,1.2,1.8,0.2,0;b,-0.69,4.4,-34.77,1.4,9.2,0.2,0;b,-0.29,0.7,-35.37,0.2,1.8,0.2,0;b,-0.29,0.7,-2.57,0.2,1.8,0.2,0;b,0.11,0.7,-15.67,0.2,1.8,0.4,0;b,0.11,0.7,-10.67,0.2,1.8,0.4,0;b,0.11,0.7,-5.67,0.2,1.8,0.4,0;b,0.11,4.4,-34.97,3,9.2,0.2,0;b,0.21,4.4,-2.97,2.8,9.2,0.2,0;b,0.21,4.4,-3.17,3.2,9.2,0.2,0;b,0.61,0.7,-35.37,0.4,1.8,0.2,0;b,0.61,0.7,-2.57,0.4,1.8,0.2,0;b,1.11,0.7,-16.97,0.2,1.8,0.2,0;b,1.11,0.7,-35.17,1.4,1.8,0.2,0;b,1.11,0.7,-2.77,1.4,1.8,0.2,0;b,1.11,4.4,-34.77,1.4,9.2,0.2,0;b,1.31,0.7,-33.87,0.6,1.8,0.4,0;b,1.31,0.7,-30.07,0.6,1.8,0.4,0;b,1.31,0.7,-27.17,0.6,1.8,0.6,0;b,1.31,0.7,-25.57,0.6,1.8,0.2,0;b,1.31,0.7,-24.37,0.6,1.8,0.2,0;b,1.31,0.7,-20.97,0.6,1.8,0.2,0;b,1.31,0.7,-19.97,0.6,1.8,0.2,0;b,1.31,0.7,-17.97,0.6,1.8,0.2,0;b,1.31,0.7,-17.27,0.6,1.8,0.4,0;b,1.31,0.7,-13.47,0.6,1.8,0.4,0;b,1.31,0.7,-11.97,0.6,1.8,0.2,0;b,1.31,0.7,-10.67,0.6,1.8,0.4,0;b,1.31,0.7,-8.97,0.6,1.8,0.2,0;b,1.31,0.7,-7.77,0.6,1.8,0.2,0;b,1.31,0.7,-4.37,0.6,1.8,0.2,0;b,1.31,0.7,-3.47,0.6,1.8,0.4,0;b,1.31,4.4,-18.97,1,9.2,1.4,0;b,1.41,0.7,-34.37,0.4,1.8,0.6,0;b,1.41,0.7,-29.27,0.4,1.8,1.2,0;b,1.41,0.7,-27.97,0.4,1.8,1,0;b,1.41,0.7,-26.27,0.4,1.8,1.2,0;b,1.41,0.7,-24.97,0.4,1.8,1,0;b,1.41,0.7,-20.47,0.4,1.8,0.8,0;b,1.41,0.7,-17.67,0.4,1.8,0.4,0;b,1.41,0.7,-12.67,0.4,1.8,1.2,0;b,1.41,0.7,-11.37,0.4,1.8,1,0;b,1.41,0.7,-10.17,0.4,1.8,0.6,0;b,1.41,0.7,-9.37,0.4,1.8,0.6,0;b,1.41,0.7,-8.47,0.4,1.8,0.4,0;b,1.41,0.7,-7.97,0.4,1.8,0.2,0;b,1.41,0.7,-3.97,0.4,1.8,0.6,0;b,1.41,4.4,-19.77,0.8,9.2,0.2,0;b,1.41,4.4,-18.17,0.8,9.2,0.2,0;b,1.51,0.7,-33.57,0.2,1.8,0.2,0;b,1.51,0.7,-33.17,0.2,1.8,0.2,0;b,1.51,0.7,-31.37,0.2,1.8,0.2,0;b,1.51,0.7,-30.97,0.2,1.8,0.2,0;b,1.51,0.7,-30.47,0.2,1.8,0.4,0;b,1.51,0.7,-24.17,0.2,1.8,0.2,0;b,1.51,0.7,-23.67,0.2,1.8,0.4,0;b,1.51,0.7,-23.17,0.2,1.8,0.2,0;b,1.51,0.7,-21.37,0.2,1.8,0.2,0;b,1.51,0.7,-16.77,0.2,1.8,0.6,0;b,1.51,0.7,-14.47,0.2,1.8,0.4,0;b,1.51,0.7,-13.87,0.2,1.8,0.4,0;b,1.51,0.7,-7.27,0.2,1.8,0.4,0;b,1.51,0.7,-6.67,0.2,1.8,0.4,0;b,1.51,0.7,-4.57,0.2,1.8,0.2,0;b,1.51,0.7,-28.57,0.6,1.8,0.2,0;b,1.51,0.7,-9.77,0.6,1.8,0.2,0;b,1.51,0.7,-8.77,0.6,1.8,0.2,0;b,1.51,0.7,-8.17,0.6,1.8,0.2,0;b,1.71,0.7,-34.97,0.2,1.8,0.2,0;b,1.71,0.7,-31.57,0.2,1.8,0.2,0;b,1.71,0.7,-21.57,0.2,1.8,0.2,0;b,1.71,0.7,-2.97,0.2,1.8,0.2,0;b,1.71,4.4,-33.77,0.2,9.2,1.8,0;b,1.71,4.4,-30.07,0.2,9.2,2.8,0;b,1.71,4.4,-25.67,0.2,9.2,5.6,0;b,1.71,4.4,-20.67,0.2,9.2,1.6,0;b,1.71,4.4,-17.17,0.2,9.2,1.8,0;b,1.71,4.4,-12.47,0.2,9.2,5.2,0;b,1.71,4.4,-9.27,0.2,9.2,0.8,0;b,1.71,4.4,-8.47,0.2,9.2,0.4,0;b,1.71,4.4,-7.17,0.2,9.2,1.8,0;b,1.71,4.4,-4.17,0.2,9.2,1.8,0;b,7.1,2,-15.7,0.4,4.4,64.4,0;b,-2,2,-15.7,0.4,4.4,64.4,0;b,2.5,2,-48,8.8,4.4,0.4,0;b,2.5,2,16.6,9.4,4.4,0.4,0;b,2.42,2,-41.8,0.16,4.4,12.4,0;b,2.42,2,7,0.16,4.4,19,0',
+  },
+};
+const roomW = (id, x, z) => { const o = ROOMS[id].o; return [o[0] + x, o[2] + z]; };
+for (const R of Object.values(ROOMS)) R.spawnsW = R.spawns.map(([x, z]) => [R.o[0] + x, R.o[2] + z]);
+
 /* 路燈（取自上游 layout.json：型號、位置、朝向）。燈頭高度量自其 props.glb。 */
 const LAMP_RAW = 'alto,15.1,-0.33,-36.8,90;alto,-35.5,-0.41,-24.2,0;alto,14.5,-0.64,20,-160;simple,-6.5,-0.18,2.9,0;simple,8.9,-0.32,4.9,0;simple,9.1,-0.6,16.9,0;simple,5.9,-0.44,15.8,0;simple,13.9,-0.48,7.4,0;simple,5.5,-0.55,20.3,0;simple,-16.4,-0.33,-25.1,0;simple,-19.4,-0.26,-8,0;simple,-19.7,-0.23,5.9,0;simple,-6.1,-0.31,-30.8,0;triple,-3.1,-0.21,-11.3,0;triple,5.5,-0.16,-9.5,0;triple,2.5,-0.21,1.9,0;triple,-9.1,-0.24,-5.9,0;triple,10.9,-0.29,-5,0';
 const LAMPS = LAMP_RAW.split(';').map(s => {
@@ -443,6 +561,11 @@ const LAMPS = LAMP_RAW.split(';').map(s => {
   if (kind === 'triple') return { kind, pos: new THREE.Vector3(X, Y + 4.05, Z), power: 1.35, globes: [[-0.66, 0], [0, 0.14], [0.66, 0]] };
   return { kind, pos: new THREE.Vector3(X, Y + 4.2, Z), power: 1, globes: [[0, 0]] };
 });
+// 室內的提燈與燭火，以及廣場上每扇門旁的一盞（room 標記的燈只在那個場景顯示光暈）
+for (const [id, R] of Object.entries(ROOMS)) {
+  for (const [x, y, z, power] of R.lamps) LAMPS.push({ kind: 'lantern', room: id, pos: new THREE.Vector3(R.o[0] + x, R.o[1] + y, R.o[2] + z), power, globes: [[0, 0]] });
+  LAMPS.push({ kind: 'lantern', pos: new THREE.Vector3(...R.door.lamp), power: 0.75, globes: R.door.globes || [[0, 0]] });
+}
 
 /* 簡化碰撞體：上游 layout.json 每件物件的 collide 形狀，換算成世界座標。
    c = 圓柱 (x, 底 y, z, 半徑, 高)；b = 盒 (中心 x, y, z, 長, 高, 寬, 偏航)。 */
@@ -452,6 +575,8 @@ const PRIM_RAW = 'c,-23.2,-0.2,8.5,0.4,3.75;c,-10.3,-0.16,-29.9,0.43,4.05;c,-0.9
    PROP_BOX 是道具座標裡的碰撞盒 (中心 x, y, z, 長, 高, 寬)，公車亭只擋後牆、側板、座椅與販賣機，頂棚下走得進去。 */
 const PROP_BOX = {
   cruiser: [[0, 0.5, 0, 1.82, 1.1, 5.05], [0, 1.25, -0.25, 1.6, 0.6, 2.4]],
+  bed: [[0, 0.45, 0, 1.2, 0.9, 1.85]],
+  subway: [[0, 1, -0.2, 3.05, 2, 6.2]], // 欄杆圍起來的樓梯井整塊擋住，只留南端的開口（門在開口外）
   'shelter-a': [[-0.35, 0.65, -0.9, 2.6, 1.4, 0.8], [0, 1.1, -0.25, 3.44, 2.3, 0.5], [1.21, 0.9, 0.22, 0.82, 1.9, 0.45], [-1.6, 1, 0.7, 0.12, 2.1, 1.2], [1.53, 1, 0.9, 0.17, 2.1, 0.9]],
   'shelter-b': [[0, 1.1, -0.5, 2.9, 2.3, 0.12], [0.05, 0.25, -0.27, 1.7, 0.6, 0.36], [-1.35, 1, -0.1, 0.1, 2.1, 0.85], [1.45, 1, -0.08, 0.1, 2.1, 0.9]],
 };
@@ -459,7 +584,9 @@ const PROPS = [
   { id: 'cruiser', x: 22, z: 22, y: -0.57, yaw: 2.75 },
   { id: 'shelter-a', x: -35, z: 1, y: -0.13, yaw: Math.PI / 2 },
   { id: 'shelter-b', x: -17, z: 15, y: -0.13, yaw: Math.PI },
+  { id: 'subway', x: 31, z: -3, y: -0.44, yaw: 0 },
   ...[[-16.2, 14.1, 0.4], [-15.4, 14.5, 2.1], [-33.9, 2.4, 1.3], [-34.2, -0.6, 4], [23.4, 19.8, 5.2], [20.6, 25.6, 0.9]].map(([x, z, yaw]) => ({ id: 'can', x, z, yaw, tilt: true })),
+  ...Object.entries(ROOMS).flatMap(([room, R]) => R.props.map(([id, x, z, yaw]) => ({ id, room, x: R.o[0] + x, z: R.o[2] + z, y: R.o[1], yaw }))),
 ];
 function propPrims() {
   const out = [];
@@ -469,12 +596,38 @@ function propPrims() {
   }
   return out;
 }
+// 室內場景：地板一整塊，加上柵格化的牆、柱、長椅（換成世界座標）
+function roomPrims() {
+  const out = [];
+  for (const R of Object.values(ROOMS)) {
+    const [ox, oy, oz] = R.o, [x0, x1, z0, z1] = R.bounds;
+    out.push(`b,${ox + (x0 + x1) / 2},${oy - 0.25},${oz + (z0 + z1) / 2},${x1 - x0 + 1},0.5,${z1 - z0 + 1},0`);
+    for (const s of R.prims.split(';')) { const f = s.split(','); out.push([f[0], +f[1] + ox, +f[2] + oy, +f[3] + oz, ...f.slice(4)].join(',')); }
+  }
+  return out;
+}
 
 /* ======================================================================
    畫面基礎
    ====================================================================== */
 const canvas = document.getElementById('gl');
 const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+/* 設定值（Esc 選單）：存在 localStorage 的 eter266.settings；數值有 lo–hi 範圍與一格 st，開關的 d 是 true／false */
+const SET_KEY = 'eter266.settings';
+const SET_DEF = {
+  sens: { d: 1, lo: 0.3, hi: 2.5, st: 0.1 }, invY: { d: false }, touchSens: { d: 1, lo: 0.4, hi: 2, st: 0.1 },
+  fov: { d: 55, lo: 45, hi: 75, st: 1 }, bright: { d: 1, lo: 0.7, hi: 1.5, st: 0.05 }, shake: { d: 1, lo: 0, hi: 1, st: 0.1 }, hud: { d: true }, cross: { d: true },
+  vMaster: { d: 1, lo: 0, hi: 1, st: 0.05 }, vWind: { d: 1, lo: 0, hi: 1, st: 0.05 },
+  autoQ: { d: true }, res: { d: 1, lo: 0.5, hi: 1, st: 0.05 }, snow: { d: true }, pauseBlur: { d: true },
+};
+const SET = (() => {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); } catch { /* 讀不到就用預設 */ }
+  const o = {};
+  for (const [k, D] of Object.entries(SET_DEF)) { const v = d?.[k]; o[k] = typeof D.d === 'boolean' ? (typeof v === 'boolean' ? v : D.d) : (Number.isFinite(v) && v >= D.lo && v <= D.hi ? v : D.d); }
+  return o;
+})();
+function setSave() { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch { /* 存不了就算了 */ } }
 if (isTouch) document.body.classList.add('touch');
 
 /* ---------- 液態玻璃的折射：依元素大小畫一張位移貼圖，邊緣一圈把背景往內折 ----------
@@ -544,7 +697,7 @@ addEventListener('pointermove', e => {
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const BASE_DPR = Math.min(window.devicePixelRatio || 1, isTouch ? 1.25 : 1.5);
-let renderScale = 1;
+let renderScale = SET.autoQ ? 1 : SET.res;
 const scene = new THREE.Scene();
 scene.background = FOG.color.clone();
 scene.fog = new THREE.FogExp2(FOG.color.clone(), FOG.density);
@@ -555,7 +708,7 @@ function resize() {
   renderer.setPixelRatio(BASE_DPR * renderScale);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  baseFov = camera.fov = w < h ? Math.min(82, 55 / Math.sqrt(w / h)) : 55;
+  baseFov = camera.fov = w < h ? Math.min(82, SET.fov / Math.sqrt(w / h)) : SET.fov;
   camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
@@ -579,10 +732,12 @@ const haloCore = new THREE.SpriteMaterial({ map: GLOW, color: 0xffd6a0, blending
 const haloHaze = new THREE.SpriteMaterial({ map: GLOW, color: 0xff9d4d, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: 0.16 });
 const halos = new THREE.Group(); scene.add(halos);
 for (const L of LAMPS) {
+  const grp = L.room ? (ROOMS[L.room].halos ||= (() => { const g = new THREE.Group(); g.visible = false; scene.add(g); return g; })()) : halos, small = L.kind === 'lantern';
   for (const [ox, oy] of L.globes) {
-    const s = new THREE.Sprite(haloCore); s.position.set(L.pos.x + ox, L.pos.y + oy, L.pos.z); s.scale.setScalar(0.9); s.renderOrder = 5; halos.add(s);
+    const s = new THREE.Sprite(haloCore); s.position.set(L.pos.x + ox, L.pos.y + oy, L.pos.z); s.scale.setScalar(small ? 0.45 : 0.9); s.renderOrder = 5; grp.add(s);
   }
-  const h = new THREE.Sprite(haloHaze); h.position.copy(L.pos); h.scale.setScalar(L.kind === 'triple' ? 7 : 5.5); h.renderOrder = 5; halos.add(h);
+  if (L.room) continue; // 室內走道窄，鏡頭常會穿過燈旁：只留燈芯，不加大片光暈
+  const h = new THREE.Sprite(haloHaze); h.position.copy(L.pos); h.scale.setScalar(L.kind === 'triple' ? 7 : small ? 3 : 5.5); h.renderOrder = 5; grp.add(h);
 }
 
 /* ---------- 下雪粒子（跟著鏡頭的循環體積，靠近路燈的雪片會被染暖） ---------- */
@@ -631,14 +786,16 @@ const snow = new THREE.Points(snowGeo, snowMat); snow.frustumCulled = false; sno
    載入進度 UI
    ====================================================================== */
 const rows = {}; document.querySelectorAll('#assets li').forEach(li => rows[li.dataset.k] = li);
-const loadPct = document.getElementById('loadPct');
+const loadPct = document.getElementById('loadPct'), goBar = document.getElementById('goBar'), goBtn = document.getElementById('go');
 function setRow(k, frac, text, cls) {
   const li = rows[k]; if (!li) return;
   if (frac != null) { li.dataset.f = Math.min(1, frac); li.querySelector('u').style.width = Math.round(Math.min(1, frac) * 100) + '%'; }
   if (text != null) li.querySelector('i').textContent = text;
   li.className = cls || (frac > 0 ? 'load' : '');
   const all = Object.values(rows), sum = all.reduce((a, r) => a + (r.className === 'fail' ? 1 : +(r.dataset.f || 0)), 0);
-  loadPct.innerHTML = `${Math.round(sum / all.length * 100)}<small>%</small>`;
+  const pc = Math.round(sum / all.length * 100);
+  loadPct.innerHTML = `${pc}<small>%</small>`; goBar.style.width = pc + '%';
+  if (goBtn.disabled) goBtn.textContent = `載入中 ${pc}%`;
 }
 const mb = b => (b / 1e6).toFixed(1);
 const LOAD = { spark: 'wait', splat: 'wait', fbx: 'wait', clips: 'wait', col: 'wait', actors: 'wait' };
@@ -653,7 +810,7 @@ function primitiveTris(out) {
   let count = 0;
   const push = (a, b, c) => out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  for (const s of [...PRIM_RAW.split(';'), ...propPrims()]) {
+  for (const s of [...PRIM_RAW.split(';'), ...propPrims(), ...roomPrims()]) {
     const f = s.split(','); const t = f[0]; const n = f.slice(1).map(Number); count++;
     if (t === 'c') {
       const [x, y0, z, r, h] = n, seg = 12, ring0 = [], ring1 = [];
@@ -698,7 +855,9 @@ function buildGrid(soup) {
     let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz);
     nrm[k * 3] = nx / l; nrm[k * 3 + 1] = ny / l; nrm[k * 3 + 2] = nz / l;
   });
-  const cs = COL.cs, nx = Math.ceil(190 / cs), nz = Math.ceil(200 / cs);
+  // 網格涵蓋廣場（x −90…100、z −120…80）與遠處的室內場景
+  let xMax = 100, zMax = 80; for (const R of Object.values(ROOMS)) { xMax = Math.max(xMax, R.o[0] + R.bounds[1] + 4); zMax = Math.max(zMax, R.o[2] + R.bounds[3] + 4); }
+  const cs = COL.cs, nx = Math.ceil((xMax - COL.x0) / cs), nz = Math.ceil((zMax - COL.z0) / cs);
   const cellRange = (k) => {
     const o = k * 9;
     const mnx = Math.min(tri[o], tri[o + 3], tri[o + 6]), mxx = Math.max(tri[o], tri[o + 3], tri[o + 6]);
@@ -815,7 +974,7 @@ async function loadCollider() {
 /* ======================================================================
    Spark：Gaussian splat、LoD、依距離剔除、夜色／冷霧／路燈（逐 splat 修飾器）
    ====================================================================== */
-const SPLAT = { S: null, spark: null, mesh: null, total: 0, ready: false, U: null, lastCam: new THREE.Vector3(1e9, 0, 0), lastT: 0, dirty: true, lodScale: 1 };
+const SPLAT = { S: null, spark: null, mesh: null, more: [], total: 0, ready: false, U: null, lastCam: new THREE.Vector3(1e9, 0, 0), lastT: 0, dirty: true, lodScale: 1 };
 // actor = true 給喪屍與物件：不做距離剔除、月光稍亮一點，並加上槍口火光（flash：位置＋強度）
 function makeNightModifier(S, actor = false) {
   const { dynoBlock, Gsplat, Dyno, DynoVec3, DynoVec4 } = S.dyno;
@@ -914,6 +1073,7 @@ function updateSplatUniforms(now) {
   // 只在鏡頭明顯移動時重新跑修飾器，霧與剔除不需要每格都精確
   if (SPLAT.dirty || (cam.distanceToSquared(SPLAT.lastCam) > 0.36 && now - SPLAT.lastT > 90)) {
     SPLAT.lastCam.copy(cam); SPLAT.lastT = now; SPLAT.dirty = false; SPLAT.mesh.updateVersion();
+    for (const m of SPLAT.more) m.updateVersion();
     for (const m of ACT.items) m.updateVersion();
   }
 }
@@ -1076,6 +1236,7 @@ const view = { yaw: CFG.spawnYaw + Math.PI, pitch: 0.2, dist: 4.4, distT: 4.4 };
 let playing = false, jumpQueued = false, touchRun = false;
 const stick = { x: 0, y: 0, id: null };
 addEventListener('keydown', e => {
+  if (MENU.on) return;
   if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { if (overKind) { if (overKind === 'dead') revive(); else closeOver(); lockPointer(); } else jumpQueued = true; } }
   if (e.code === 'KeyP' && !e.repeat) toggleDebug();
   if (playing && !e.repeat) {
@@ -1088,11 +1249,11 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => { keys.clear(); input.fire = input.aim = false; });
 let lockFailed = false;
-function lockPointer() {
+function lockPointer(soft) { // soft：關選單時順手鎖回去，剛按過 Esc 時瀏覽器可能拒絕，那就等玩家點畫面，不改用拖曳模式
   if (isTouch) return;
-  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { lockFailed = true; }); } catch { lockFailed = true; /* 不支援就用拖曳 */ }
+  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { if (!soft) lockFailed = true; }); } catch { if (!soft) lockFailed = true; /* 不支援就用拖曳 */ }
 }
-canvas.addEventListener('click', () => { if (playing && document.pointerLockElement !== canvas && !overKind) lockPointer(); });
+canvas.addEventListener('click', () => { if (playing && document.pointerLockElement !== canvas && !overKind && !MENU.on) lockPointer(); });
 // 滑鼠：鎖定後左鍵射擊／攻擊、右鍵瞄準；鎖定失敗（例如內嵌框架）時直接用點擊開火
 canvas.addEventListener('mousedown', e => {
   if (!playing || overKind) return;
@@ -1102,22 +1263,23 @@ canvas.addEventListener('mousedown', e => {
 });
 addEventListener('mouseup', e => { if (e.button === 0) input.fire = false; if (e.button === 2) input.aim = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-document.getElementById('pause').addEventListener('click', () => { document.body.classList.remove('paused'); lockPointer(); });
+// 游標鎖定被解除（玩家按了 Esc，瀏覽器先拿去解鎖）就打開選單；選單自己解鎖的不算
 document.addEventListener('pointerlockchange', () => {
   const locked = document.pointerLockElement === canvas;
   document.body.classList.toggle('locked', locked);
-  document.body.classList.toggle('paused', playing && !locked && !isTouch && pauseOnUnlock);
+  if (locked) { if (MENU.on) menuClose(true); return; }
+  if (playing && !isTouch && pauseOnUnlock && !overKind && performance.now() - MENU.selfExit > 400) menuOpen();
 });
 let pauseOnUnlock = false;
 addEventListener('mousemove', e => {
-  if (document.pointerLockElement === canvas) look(e.movementX, e.movementY, 0.0022);
-  else if (drag && playing) look(e.movementX, e.movementY, 0.004);
+  if (document.pointerLockElement === canvas) look(e.movementX, e.movementY, 0.0022 * SET.sens);
+  else if (drag && playing && !MENU.on) look(e.movementX, e.movementY, 0.004 * SET.sens);
 });
 let drag = false;
 canvas.addEventListener('mousedown', () => { drag = true; });
 addEventListener('mouseup', () => { drag = false; });
 addEventListener('wheel', e => { view.distT = THREE.MathUtils.clamp(view.distT * Math.pow(1.0015, e.deltaY), CFG.camMin, CFG.camMax); }, { passive: true });
-function look(dx, dy, s) { view.yaw -= dx * s; view.pitch = THREE.MathUtils.clamp(view.pitch + dy * s, -0.6, 1.2); }
+function look(dx, dy, s) { view.yaw -= dx * s; view.pitch = THREE.MathUtils.clamp(view.pitch + dy * s * (SET.invY ? -1 : 1), -0.6, 1.2); }
 
 // 觸控：左搖桿、右半邊拖曳轉視角
 const stickEl = document.getElementById('stick'), knob = stickEl.querySelector('i');
@@ -1132,12 +1294,12 @@ function moveStick(e) {
 }
 let lookTouch = null;
 canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { lookTouch = { id: e.pointerId, x: e.clientX, y: e.clientY }; } });
-canvas.addEventListener('pointermove', e => { if (lookTouch && e.pointerId === lookTouch.id) { look(e.clientX - lookTouch.x, e.clientY - lookTouch.y, 0.0075); lookTouch.x = e.clientX; lookTouch.y = e.clientY; } });
+canvas.addEventListener('pointermove', e => { if (lookTouch && e.pointerId === lookTouch.id) { look(e.clientX - lookTouch.x, e.clientY - lookTouch.y, 0.0075 * SET.touchSens); lookTouch.x = e.clientX; lookTouch.y = e.clientY; } });
 canvas.addEventListener('pointerup', e => { if (lookTouch && e.pointerId === lookTouch.id) lookTouch = null; });
 document.getElementById('tJump').addEventListener('pointerdown', e => { e.preventDefault(); jumpQueued = true; });
 const tRun = document.getElementById('tRun');
 tRun.addEventListener('pointerdown', e => { e.preventDefault(); touchRun = !touchRun; tRun.classList.toggle('on', touchRun); });
-document.getElementById('tDbg').addEventListener('pointerdown', e => { e.preventDefault(); toggleDebug(); });
+document.getElementById('tDbg').addEventListener('pointerdown', e => { e.preventDefault(); menuOpen(); });
 const tFire = document.getElementById('tFire');
 tFire.addEventListener('pointerdown', e => { e.preventDefault(); tFire.setPointerCapture(e.pointerId); input.touchFire = true; });
 for (const ev of ['pointerup', 'pointercancel']) tFire.addEventListener(ev, () => { input.touchFire = false; });
@@ -1156,6 +1318,7 @@ function groundAt(x, z) { let g = rayDown(x, z, 2.5, 8); if (!g.hit) g = rayDown
 // 卡住或掉出去時回到任務檢查點（還沒開始任務時是起點）
 function respawn() {
   const [x, z] = M.i >= 0 ? M.checkpoint : [CFG.spawn.x, CFG.spawn.z];
+  setWorld(worldOf(x, z));
   player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); player.grounded = true; player.airTime = 0;
   if (M.i < 0) { player.yaw = CFG.spawnYaw; view.yaw = CFG.spawnYaw + Math.PI; view.pitch = 0.2; }
   snapCamera = true; toast(M.i >= 0 ? '回到檢查點' : '回到起點');
@@ -1344,7 +1507,7 @@ function updateCamera(dt, t) {
 /* ======================================================================
    效能：依 FPS 自動調整 Spark 的 LoD 預算，必要時再降解析度
    ====================================================================== */
-const perf = { frames: [], fps: 0, low: 0, acc: 0, good: 0, auto: true };
+const perf = { frames: [], fps: 0, low: 0, acc: 0, good: 0, auto: true }; // auto 只管 LoD 預算；解析度跟著 SET.autoQ
 function adapt(dt) {
   perf.frames.push(dt); if (perf.frames.length > 240) perf.frames.shift();
   perf.acc += dt; if (perf.acc < 1) return; perf.acc = 0;
@@ -1354,10 +1517,10 @@ function adapt(dt) {
   if (perf.fps < 57) {
     perf.good = 0;
     if (SPLAT.lodScale > 0.3) { SPLAT.lodScale = Math.max(0.3, SPLAT.lodScale * 0.82); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
-    else if (renderScale > 0.7) { renderScale = Math.max(0.7, renderScale - 0.1); resize(); }
+    else if (SET.autoQ && renderScale > 0.7) { renderScale = Math.max(0.7, renderScale - 0.1); resize(); }
   } else if (perf.fps > 59 && ++perf.good >= 4) {
     perf.good = 0;
-    if (renderScale < 1) { renderScale = Math.min(1, renderScale + 0.1); resize(); }
+    if (renderScale < 1 && SET.autoQ) { renderScale = Math.min(1, renderScale + 0.1); resize(); }
     else if (SPLAT.lodScale < (isTouch ? 0.8 : 1)) { SPLAT.lodScale = Math.min(isTouch ? 0.8 : 1, SPLAT.lodScale * 1.1); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
   }
 }
@@ -1429,7 +1592,7 @@ function buildDebug() {
   dbg.querySelectorAll('.sl input').forEach(fill);
   D.dClose.onclick = () => toggleDebug();
   D.cViz.onchange = e => { if (colliderViz) colliderViz.visible = e.target.checked; };
-  D.cAuto.onchange = e => { perf.auto = e.target.checked; };
+  D.cAuto.checked = perf.auto; D.cAuto.onchange = e => { perf.auto = SET.autoQ = e.target.checked; setSave(); setApply('autoQ'); };
   D.cCull.oninput = e => { FOG.cull = +e.target.value; D.vCull.textContent = FOG.cull + ' m'; fill(e.target); syncFog(); };
   D.cFog.oninput = e => { FOG.density = +e.target.value; D.vFog.textContent = FOG.density.toFixed(3); fill(e.target); syncFog(); };
   D.cLamp.oninput = e => { FOG.lampGain = +e.target.value; D.vLamp.textContent = FOG.lampGain.toFixed(2); fill(e.target); syncFog(); };
@@ -1587,6 +1750,8 @@ const PICK = {
   crate: { name: '軍用木箱', splat: 'crate', scale: 1, glow: 0xffc27a, still: true, use: '撬開' },
   radio: { name: '軍用無線電', splat: 'radio', scale: 1, glow: 0x9fe0ff, still: true, use: '呼叫救援' },
   trunk: { name: '巡邏車後車廂', splat: null, scale: 1, glow: 0x9fe0ff, still: true, use: '撬開' },
+  door: { name: '門', splat: null, scale: 1, glow: 0xffc27a, still: true, use: '推開' },
+  blood: { name: '血袋', splat: 'blood', scale: 1.5, glow: 0xff9a8a, auto: true },
 };
 // 任務點與出生點（廣場座標，公尺；以 __eter.clear() 檢查過地面與障礙）
 const PTS = {
@@ -1614,6 +1779,15 @@ function fallbackItemMesh(def) {
   m.position.y = 0.07; const g = new THREE.Group(); g.add(m); return g;
 }
 const props = [];
+function stairWell() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#4a4d52'); gr.addColorStop(0.55, '#121418'); gr.addColorStop(1, '#020203');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 256);
+  for (let i = 0; i < 14; i++) { const y = i * 17 + 4; g.fillStyle = `rgba(200,210,225,${0.22 * (1 - i / 14) ** 2})`; g.fillRect(0, y, 64, 2); } // 階梯邊緣，越深越看不見
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 6.1), new THREE.MeshBasicMaterial({ map: tex, fog: true }));
+  m.rotation.x = -Math.PI / 2; m.position.set(0.01, 0.16, 0.1); return m; // 貼圖頂端（亮的那頭）在南端開口
+}
 function buildProps() {
   for (const p of PROPS) {
     let obj = ACT.fallback ? null : itemSplat(p.id);
@@ -1624,6 +1798,8 @@ function buildProps() {
     }
     obj.position.set(p.x, p.y, p.z); obj.rotation.set(p.tilt ? Math.PI / 2 : 0, p.yaw, 0, 'YXZ');
     if (p.tilt) obj.position.y += 0.03; // 壓扁的罐子倒在雪裡
+    if (p.id === 'subway') obj.add(stairWell()); // 往下的樓梯：欄杆裡鋪一張由亮轉暗的貼圖
+    obj.visible = (p.room || 'plaza') === WORLD.id; // 室內的病床只在進門後顯示
     scene.add(obj); obj.updateMatrixWorld(true); obj.updateVersion?.();
     const beacons = p.id === 'cruiser' ? [0xff2a2a, 0x3a6bff].map((col, i) => {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: col, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: 0 }));
@@ -1657,7 +1833,7 @@ function jetStart() {
   JET.obj.rotation.set(0, a, (Math.random() - 0.5) * 0.3, 'YXZ'); JET.obj.visible = true;
 }
 function jetUpdate(dt) {
-  if (!JET.on) { if (playing && ACT.ready && (JET.t -= dt) <= 0) jetStart(); return; }
+  if (!JET.on) { if (playing && ACT.ready && WORLD.id === 'plaza' && (JET.t -= dt) <= 0) jetStart(); return; }
   JET.p.addScaledVector(JET.v, dt); JET.obj.position.copy(JET.p); JET.obj.updateMatrixWorld(true);
   const blink = Math.sin(simTime * 9) > 0.85;
   JET.lights.forEach((s, i) => { s.material.opacity = i === 2 ? (blink ? 1 : 0) : i === 3 ? (Math.sin(simTime * 4.5) > 0.6 ? 0.9 : 0) : 0.9; });
@@ -1896,29 +2072,123 @@ function navSpawn(lo, hi) {
 }
 function navDist(p) { const c = navCell(p.x, p.z); return NAV.ready && c >= 0 ? NAV.dist[c] : -1; }
 
+/* ---------- 場景切換：廣場 ↔ 室內 ----------
+   碰撞網格是同一份（室內在遠處），尋路網格各場景一份（換場時整個交換 NAV 的欄位）。
+   換場時把場上的喪屍全部收回，導演改用該場景的出生點與數量；splat、光暈、雪、道具只顯示目前的場景。 */
+const WORLD = { id: 'plaza', busy: false, plaza: null };
+const NAVS = {};
+function worldOf(x, z) {
+  for (const [id, R] of Object.entries(ROOMS)) { const [x0, x1, z0, z1] = R.bounds, [ox, , oz] = R.o; if (x > ox + x0 - 3 && x < ox + x1 + 3 && z > oz + z0 - 3 && z < oz + z1 + 3) return id; }
+  return 'plaza';
+}
+function setWorld(id) {
+  if (id === WORLD.id) return;
+  const P = WORLD.plaza ||= { mesh: SPLAT.mesh, U: SPLAT.U, bounds: CFG.bounds, camMax: CFG.camMax }, R = ROOMS[id];
+  NAVS[WORLD.id] = { ...NAV };
+  Object.assign(NAV, NAVS[id] || { cs: 0.5, x0: R.o[0] + R.bounds[0], z0: R.o[2] + R.bounds[2], nx: Math.ceil((R.bounds[1] - R.bounds[0]) / 0.5), nz: Math.ceil((R.bounds[3] - R.bounds[2]) / 0.5), row: 0, ready: false, walk: null, h: null, dist: null, q: null, t: 0, cell: -1 });
+  WORLD.id = id;
+  for (const [k, r] of Object.entries(ROOMS)) { for (const m of r.meshes || []) m.visible = k === id; if (r.halos) r.halos.visible = k === id; }
+  if (P.mesh) P.mesh.visible = !R;
+  SPLAT.mesh = R ? R.mesh || null : P.mesh; SPLAT.U = R ? R.U || null : P.U; SPLAT.more = R?.meshes?.slice(1) || []; SPLAT.dirty = true;
+  halos.visible = !R; snow.visible = !R && SET.snow;
+  for (const p of props) { p.obj.visible = (p.room || 'plaza') === id; p.beacons?.forEach(b => { b.visible = !R; }); }
+  if (R && JET.obj) { JET.on = false; JET.obj.visible = false; }
+  CFG.bounds = R ? { minX: R.o[0] + R.bounds[0], maxX: R.o[0] + R.bounds[1], minZ: R.o[2] + R.bounds[2], maxZ: R.o[2] + R.bounds[3] } : P.bounds;
+  CFG.camMax = R ? R.camMax : P.camMax; view.distT = Math.min(view.distT, CFG.camMax);
+  moon.intensity = R ? 0.12 : 0.55;
+  if (AU.wind) AU.wind.gain.value = (R ? 0.015 : 0.07) * SET.vWind;
+  for (const z of zombies) if (z.active) despawnZombie(z);
+  DIR.spawnT = R ? 2 : 3; lampT = 0;
+  if (COL.n) navBuild(1e4); // 室內網格小，一次建好
+}
+// 室內場景第一次進門才下載。splat 場景用和廣場一樣的夜色修飾器，燈光是室內的提燈；
+// glb 場景（車站：從低面數貼圖模型烘成 splat 會糊，直接畫網格）由最近的提燈點光與半球光照明，座標都是場景的局部座標。
+function loadRoom(id) {
+  const R = ROOMS[id], ids = [].concat(R.splat || []);
+  return R.loading ||= (async () => {
+    if (R.glb) {
+      if (ACT.fallback || location.protocol === 'file:') throw new Error('沒有室內模型');
+      const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync((await fetchBytes(URLS.actors + R.glb + '.glb')).buffer, '');
+      gltf.scene.position.set(...R.o); R.model = gltf.scene;
+      const g = R.halos ||= new THREE.Group(); g.add(gltf.scene);
+      const bm = new THREE.MeshLambertMaterial({ color: 0x24272b, side: THREE.DoubleSide });
+      for (const [x0, z0, x1, z1, h] of R.backdrop || []) { // 原檔沒蓋到的牆面補一片暗色牆，鏡頭看出去不會看到底色
+        const w = new THREE.Mesh(new THREE.PlaneGeometry(Math.hypot(x1 - x0, z1 - z0), h), bm);
+        w.position.set(R.o[0] + (x0 + x1) / 2, R.o[1] + h / 2 - 0.3, R.o[2] + (z0 + z1) / 2); w.rotation.y = Math.atan2(-(z1 - z0), x1 - x0); g.add(w);
+      }
+      if (!g.parent) scene.add(g);
+      g.visible = WORLD.id === id; R.meshes = []; R.mesh = null;
+      return;
+    }
+    const S = SPLAT.S; if (!S || ACT.fallback || !ids.every(k => ACT.man?.scenes?.[k])) throw new Error('沒有室內 splat');
+    const packs = await Promise.all(ids.map(async k => { const pk = new S.PackedSplats({ fileBytes: await fetchBytes(URLS.actors + k + '.spz') }); await pk.initialized; return pk; }));
+    const { mod, U } = makeNightModifier(S);
+    R.meshes = packs.map(packed => {
+      const mesh = new S.SplatMesh({ packedSplats: packed, worldModifier: mod });
+      mesh.position.set(...R.o); mesh.visible = WORLD.id === id; scene.add(mesh); mesh.updateMatrixWorld(true); return mesh;
+    });
+    R.mesh = R.meshes[0]; R.U = U; R.n = ids.reduce((n, k) => n + ACT.man.scenes[k].n, 0);
+    if (R.halos && !R.halos.parent) { R.halos.visible = WORLD.id === id; scene.add(R.halos); }
+    if (WORLD.id === id) { SPLAT.mesh = R.mesh; SPLAT.U = U; SPLAT.more = R.meshes.slice(1); SPLAT.dirty = true; }
+  })().catch(e => { R.loading = null; throw e; });
+}
+const fadeEl = document.getElementById('fade');
+function useDoor(p, force) {
+  if (WORLD.busy) return;
+  const to = p.to, from = WORLD.id, R = ROOMS[to] || ROOMS[from];
+  if (!force && to !== 'plaza' && (DIR.waveQueue > 0 || waveAlive() || (M.cur?.id === 'radio' && M.stage === 1) || zombies.some(z => z.alive && z.kind === 'robot'))) { toast('外面打得正兇，現在開門，牠們會跟著進來'); return; }
+  WORLD.busy = true; sfx('door', p.pos);
+  (async () => {
+    if (to !== 'plaza') {
+      if (!R.mesh && !R.model) toast(`推開${p.label || '門'}……`, 1.6);
+      try { await loadRoom(to); } catch (e) { WORLD.busy = false; warn('室內場景載入失敗：' + (e.message || e)); toast('門從裡面被堵死了，推不開'); return; }
+    }
+    fadeEl.classList.add('on');
+    await new Promise(r => setTimeout(r, 420));
+    setWorld(to);
+    const [x, z, yaw] = to === 'plaza' ? R.door.out : [...roomW(to, R.entry[0], R.entry[1]), R.entry[2]];
+    player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); player.yaw = yaw; view.yaw = yaw + Math.PI; view.pitch = 0.15; snapCamera = true;
+    if (to !== 'plaza' && !R.visited) { // 第一次進門：病床邊有幾個「病人」
+      R.visited = true; for (const [px, pz] of R.patients || []) spawnZombie(...roomW(to, px, pz), { feed: true });
+      toast(`${R.name}：${R.intro}`, 3);
+    }
+    await new Promise(r => setTimeout(r, 140));
+    fadeEl.classList.remove('on'); WORLD.busy = false;
+  })();
+}
+// 每個室內場景兩扇門：廣場上的入口、場景裡回廣場的出口（固定的互動點，任務重置也不會清掉）
+function buildDoors() {
+  for (const [id, R] of Object.entries(ROOMS)) {
+    addPickup('door', ...R.door.at, { to: id, label: R.door.label, fixed: true });
+    addPickup('door', ...roomW(id, ...R.exit), { to: 'plaza', label: R.door.inLabel, fixed: true });
+  }
+}
+
 /* ---------- 導演：環境喪屍、波次、噪音 ---------- */
 const DIR = { ambient: 0, cap: isTouch ? 9 : 14, elites: isTouch ? 2 : 3, robotP: 0, robotT: 0, spawnT: 0, waveQueue: 0, waveRunners: 0, level: 0, noise: 0, noisePos: new THREE.Vector3(), endlessT: 0 };
 const STATS = { kills: 0, heads: 0, robots: 0, shots: 0, hits: 0, t0: 0, deaths: 0 };
 function pickSpawn(near = false) { // near：波次與無線電的喪屍生得近一點，不用走半張地圖
-  const fwd = tmp.set(-Math.sin(view.yaw), 0, -Math.cos(view.yaw));
+  const fwd = tmp.set(-Math.sin(view.yaw), 0, -Math.cos(view.yaw)), R = ROOMS[WORLD.id], list = R ? R.spawnsW : PTS.spawns;
+  const minD = R ? 7 : near ? 13 : 18, want = R ? 13 : near ? 19 : 30;
   let best = null, bestS = -Infinity;
-  for (const [x, z] of PTS.spawns) {
+  for (const [x, z] of list) {
     const dx = x - player.pos.x, dz = z - player.pos.z, d = Math.hypot(dx, dz);
-    if (d < (near ? 13 : 18)) continue;
+    if (d < minD) continue;
     const seen = (dx * fwd.x + dz * fwd.z) / d;
-    const s = -Math.abs(d - (near ? 19 : 30)) * 0.08 - seen * 2 + Math.random() * 1.5;
+    const s = -Math.abs(d - want) * 0.08 - seen * 2 + Math.random() * 1.5;
     if (s > bestS) { bestS = s; best = [x, z]; }
   }
-  return best || PTS.spawns[Math.floor(Math.random() * PTS.spawns.length)];
+  return best || list[Math.floor(Math.random() * list.length)];
 }
 function makeNoise(pos, radius) { DIR.noise = radius; DIR.noisePos.copy(pos); }
 function directorUpdate(dt) {
   if (!ACT.ready || !player.alive) return;
   DIR.noise = Math.max(0, DIR.noise - dt * 30);
   const alive = zombies.filter(z => z.alive && z.kind !== 'robot').length, live = zombies.filter(z => z.active && z.kind !== 'robot').length;
-  const want = Math.min(DIR.cap, DIR.ambient + (DIR.waveQueue > 0 ? DIR.cap : 0));
-  if (DIR.robotP > 0 && (DIR.robotT -= dt) <= 0) { DIR.robotT = 25 + Math.random() * 20; if (Math.random() < DIR.robotP) { const at = navSpawn(26, 40) || pickSpawn(true); spawnZombie(at[0], at[1], { kind: 'robot', aggro: true }); } }
-  if ((DIR.spawnT -= dt) <= 0 && live < DIR.cap && alive < want) {
+  const R = ROOMS[WORLD.id], cap = R ? R.cap : DIR.cap;
+  const want = R ? Math.min(cap, R.ambient + Math.min(2, DIR.level)) : Math.min(DIR.cap, DIR.ambient + (DIR.waveQueue > 0 ? DIR.cap : 0));
+  if (!R && DIR.robotP > 0 && (DIR.robotT -= dt) <= 0) { DIR.robotT = 25 + Math.random() * 20; if (Math.random() < DIR.robotP) { const at = navSpawn(26, 40) || pickSpawn(true); spawnZombie(at[0], at[1], { kind: 'robot', aggro: true }); } }
+  if ((DIR.spawnT -= dt) <= 0 && live < cap && alive < want) {
     const [x, z] = (DIR.waveQueue > 0 && navSpawn(24, 34)) || pickSpawn(DIR.waveQueue > 0);
     if (DIR.waveQueue > 0) { const runner = DIR.waveRunners > 0 && Math.random() < 0.5; if (runner) DIR.waveRunners--; spawnZombie(x + Math.random() * 2 - 1, z + Math.random() * 2 - 1, { aggro: true, wave: true, runner }); DIR.waveQueue--; DIR.spawnT = 0.7 + Math.random() * 0.8; }
     else { spawnZombie(x, z, { feed: Math.random() < 0.25, runner: DIR.level >= 3 && Math.random() < 0.15 }); DIR.spawnT = 1.5 + Math.random() * 2.5; }
@@ -2033,7 +2303,7 @@ function addPickup(kind, x, z, opts = {}) {
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: def.glow, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: def.still ? 0.22 : 0.42 }));
   halo.scale.setScalar(def.still ? 2.2 : 1.1); halo.renderOrder = 5; halo.position.y = def.still ? 0.4 : 0.42;
   const g = new THREE.Group(); g.add(root, halo); g.position.set(x, y, z); scene.add(g);
-  const p = { kind, def, g, root, mesh, halo, pos: g.position, taken: false, t: Math.random() * 6, quest: !!opts.quest, drop: !!opts.drop, life: opts.drop && !opts.keep ? 45 : Infinity, opened: false, onTake: opts.onTake || null };
+  const p = { kind, def, g, root, mesh, halo, pos: g.position, taken: false, t: Math.random() * 6, quest: !!opts.quest, drop: !!opts.drop, life: opts.drop && !opts.keep ? 45 : Infinity, opened: false, onTake: opts.onTake || null, to: opts.to, label: opts.label, loot: opts.loot, fixed: !!opts.fixed };
   pickups.push(p); return p;
 }
 function removePickup(p) { p.taken = true; scene.remove(p.g); if (p.mesh) { const i = ACT.items.indexOf(p.mesh); if (i >= 0) ACT.items.splice(i, 1); p.mesh.dispose?.(); } pickups.splice(pickups.indexOf(p), 1); }
@@ -2054,7 +2324,8 @@ function pickupsUpdate(dt) {
   const el = document.getElementById('prompt');
   if (focus && playing) {
     const verb = focus.def.use || '撿起';
-    el.innerHTML = isTouch ? `${verb} <b>${focus.def.name}</b>` : `<kbd>E</kbd> ${verb} <b>${focus.def.name}</b>`;
+    const name = focus.label || focus.def.name;
+    el.innerHTML = isTouch ? `${verb} <b>${name}</b>` : `<kbd>E</kbd> ${verb} <b>${name}</b>`;
     el.classList.add('on'); document.getElementById('tUse').classList.add('on');
   } else { el.classList.remove('on'); document.getElementById('tUse').classList.remove('on'); }
 }
@@ -2064,6 +2335,10 @@ function interact() {
   if (p.def.use === '撬開' && !player.owned.crowbar) { toast('徒手打不開，需要鐵撬'); return; }
   if (p.kind === 'crate') {
     p.opened = true; if (p.mesh) p.mesh.recolor.setScalar(0.8); p.halo.visible = false; sfx('crate', p.pos);
+    if (p.loot === 'metro') { // 列車走道上的補給箱：東西沿著走道排開（走道只有一公尺寬）
+      M.data.list = [['ammo', 1], ['medkit', -1.1], ['ammo', 1.9], ['food', -2]].map(([k, dz]) => addPickup(k, p.pos.x, p.pos.z + dz, { quest: true }));
+      toast('補給箱撬開了：兩盒子彈、一個醫療箱、一個罐頭'); M.data.opened = true; return;
+    }
     addPickup('pistol', p.pos.x + 0.9, p.pos.z + 0.6, { quest: true }); addPickup('ammo', p.pos.x - 0.8, p.pos.z + 0.7);
     toast('木箱撬開了：一把手槍和一盒子彈'); M.data.opened = true; return;
   }
@@ -2073,6 +2348,7 @@ function interact() {
     for (const [k, b, s] of [['vest', 1.3, -0.55], ['helmet', 1.3, 0.55], ['ammo', 2.1, 0]]) addPickup(k, p.pos.x + bx * b - bz * s, p.pos.z + bz * b + bx * s, { quest: k !== 'ammo' });
     toast('後車廂撬開了：一件防彈背心、一頂頭盔'); M.data.opened = true; return;
   }
+  if (p.kind === 'door') { useDoor(p); return; }
   if (p.kind === 'radio') { if (M.cur?.id === 'radio' && M.stage === 0) { M.stage = 1; M.t = 0; p.halo.material.color.set(0xffc27a); toast('無線電打開了。撐住，訊號正在連線'); sfx('radio', p.pos); } return; }
   take(p);
 }
@@ -2096,6 +2372,7 @@ function take(p) {
   else if (k === 'food') { player.hp = Math.min(100, player.hp + 12); STATS.food = (STATS.food || 0) + 1; toast('罐頭：生命 +12'); sfx('pickup', p.pos, 1.3); }
   else if (k === 'helmet') { player.helmet = true; toast('戴上軍用頭盔：受到的傷害 −20%'); sfx('pickup', p.pos, 0.8); }
   else if (k === 'vest') { player.vest = true; player.armor = 100; toast('穿上防彈背心：雪衣補滿，擋得住更多攻擊'); sfx('tape', p.pos); }
+  else if (k === 'blood') { player.hp = Math.min(100, player.hp + 15); if (p.quest) M.data.got = (M.data.got || 0) + 1; toast(`血袋 ${M.data.got || 0}/3：還是冰的（生命 +15）`); sfx('pickup', p.pos, 0.85); }
   p.onTake?.(); removePickup(p); hud(true);
 }
 
@@ -2297,6 +2574,7 @@ function revive() {
   if (player.oneShot?.A) { player.oneShot.A.setEffectiveWeight(0); player.oneShot.A.paused = true; }
   player.oneShot = null; player.ovW = 0;
   const [x, z] = M.checkpoint;
+  setWorld(worldOf(x, z));
   for (const zb of zombies) if (zb.active && Math.hypot(zb.pos.x - x, zb.pos.z - z) < 20) despawnZombie(zb);
   M.cur?.onDeath?.();
   player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); snapCamera = true;
@@ -2319,6 +2597,12 @@ const MISSIONS = [
     start() { addPickup('trunk', ...PTS.trunk); DIR.ambient = 6; DIR.level = 1; },
     obj() { return M.data.opened ? { text: `穿戴後車廂裡的裝備 ${(player.helmet ? 1 : 0) + (player.vest ? 1 : 0)}/2`, at: PTS.trunk } : { text: '撬開巡邏車的後車廂', at: PTS.trunk }; },
     done() { return player.helmet && player.vest; } },
+  { id: 'hospital', title: '野戰醫院', brief: '西邊拱廊下有扇側門，通往隔壁的聖堂。軍方把那裡改成了野戰醫院，病床旁應該還留著血袋。',
+    start() { M.data.got = 0; M.data.list = ROOMS.hall.blood.map(([x, z]) => addPickup('blood', ...roomW('hall', x, z), { quest: true })); DIR.ambient = 5; DIR.level = 1; },
+    obj() {
+      const left = M.data.list.filter(p => !p.taken), at = nearest(left.map(p => [p.pos.x, p.pos.z]));
+      return { text: WORLD.id === 'hall' ? `收集病床旁的血袋 ${M.data.got}/3` : '從拱廊下的側門進入聖堂', at, prog: M.data.got / 3 };
+    }, done() { return M.data.got >= 3; } },
   { id: 'pyramid', title: '守住金字塔', brief: '槍聲把牠們引過來了。到五月金字塔，撐過三波。台座邊有把霰彈槍。',
     start() { addPickup('shotgun', ...PTS.shotgun); addPickup('ammo', PTS.shotgun[0] + 1.2, PTS.shotgun[1] + 0.4); M.stage = 0; M.data.wave = 0; DIR.ambient = 3; },
     update(dt) {
@@ -2356,6 +2640,15 @@ const MISSIONS = [
       const n = Math.min(2, STATS.robots - M.data.k0), bots = zombies.filter(z => z.kind === 'robot' && z.alive).map(z => [z.pos.x, z.pos.z]);
       return { text: `擊毀金屬人 ${n}/2`, at: nearest(bots) || PTS.aksu, prog: n / 2 };
     }, done() { return M.stage === 3; } },
+  { id: 'metro', title: '末班車', brief: '廣場東側有個地鐵入口。月台邊停著一班沒開走的列車，軍方把補給箱塞進了車廂。撬開它，把彈藥和藥品帶上來。',
+    start() { M.data.list = []; addPickup('crate', ...roomW('metro', ...ROOMS.metro.crate), { loot: 'metro' }); DIR.ambient = 4; DIR.level = 2; },
+    obj() {
+      const at = roomW('metro', ...ROOMS.metro.crate);
+      if (WORLD.id !== 'metro') return { text: '從廣場東側的地鐵入口下到月台', at };
+      if (!M.data.opened) return { text: '撬開車廂走道上的補給箱', at };
+      const left = M.data.list.filter(p => !p.taken), n = M.data.list.length;
+      return { text: `拿走箱裡的補給 ${n - left.length}/${n}`, at: left.length ? nearest(left.map(p => [p.pos.x, p.pos.z])) : at, prog: (n - left.length) / n };
+    }, done() { return M.data.opened && M.data.list.every(p => p.taken); } },
   { id: 'radio', title: '無線電', brief: '玫瑰宮前有台軍用無線電。帶上旁邊的步槍，打開無線電呼叫救援，撐到訊號接通。',
     start() { addPickup('rifle', ...PTS.rifle); addPickup('ammo', PTS.rifle[0] - 1, PTS.rifle[1] - 0.8); M.data.radio = addPickup('radio', ...PTS.radio); M.stage = 0; M.data.p = 0; DIR.ambient = 6; DIR.level = 3; DIR.robotP = 0.4; DIR.robotT = 30; },
     update(dt) {
@@ -2372,6 +2665,12 @@ const MISSIONS = [
       return { text: dist2(PTS.radio) < 7.5 ? `訊號連線中 ${Math.round(M.data.p * 100)}%` : '回到無線電旁！訊號中斷', at: PTS.radio, prog: M.data.p };
     }, done() { return M.stage === 2; } },
 ];
+// 任務目標在另一個場景時，箭頭與光柱改指向通往那裡的門
+function objective() {
+  const o = M.cur ? M.cur.obj() : null; if (!o?.at) return o;
+  const w = worldOf(...o.at); if (w === WORLD.id) return o;
+  return { ...o, at: WORLD.id === 'plaza' ? ROOMS[w].door.at : roomW(WORLD.id, ...ROOMS[WORLD.id].exit) };
+}
 const dist2 = ([x, z]) => Math.hypot(player.pos.x - x, player.pos.z - z);
 const nearest = list => list.reduce((b, p) => !b || dist2(p) < dist2(b) ? p : b, null);
 const waveAlive = () => zombies.some(z => z.wave && z.alive);
@@ -2452,14 +2751,14 @@ const fx = (() => {
       for (const t of tracers) { t.t -= dt; t.l.material.opacity = Math.max(0, t.t / 0.07) * 0.85; }
       if ((flashT -= dt) <= 0) { flashS.visible = false; flashL.intensity = 0; }
       FLASH.power = Math.max(0, FLASH.power - dt * 22);
-      const o = M.cur && playing ? M.cur.obj() : null;
+      const o = M.cur && playing ? objective() : null;
       beam.visible = !!(o && o.at);
-      if (beam.visible) { const [x, z] = o.at; beam.position.set(x, groundAt(x, z), z); beam.material.opacity = 0.1 + Math.sin(simTime * 2.4) * 0.04; }
+      if (beam.visible) { const [x, z] = o.at; beam.position.set(x, groundAt(x, z), z); beam.material.opacity = (0.1 + Math.sin(simTime * 2.4) * 0.04) * THREE.MathUtils.smoothstep(Math.hypot(x - camera.position.x, z - camera.position.z), 2.5, 8); } // 走到跟前就淡掉，不然在車廂、走道裡會擋住整個畫面
     },
   };
 })();
 const SHAKE = { a: 0 };
-function shake(a) { SHAKE.a = Math.min(0.6, SHAKE.a + a); }
+function shake(a) { SHAKE.a = Math.min(0.6, SHAKE.a + a * SET.shake); }
 
 /* ---------- 音效：WebAudio 即時合成 ---------- */
 const AU = { ctx: null, master: null, muted: false, noise: null, wind: null };
@@ -2467,7 +2766,7 @@ function audioInit() {
   if (AU.ctx) { AU.ctx.resume?.(); return; }
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)(); AU.ctx = ctx;
-    AU.master = ctx.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.8;
+    AU.master = ctx.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.8 * SET.vMaster;
     const comp = ctx.createDynamicsCompressor(); AU.master.connect(comp); comp.connect(ctx.destination);
     const len = ctx.sampleRate * 2, b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -2475,7 +2774,7 @@ function audioInit() {
     // 風聲：低通的雜訊，濾波頻率慢慢飄
     const src = ctx.createBufferSource(); src.buffer = b; src.loop = true;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 0.7;
-    const g = ctx.createGain(); g.gain.value = 0.07;
+    const g = ctx.createGain(); g.gain.value = (WORLD.id === 'plaza' ? 0.07 : 0.015) * SET.vWind;
     const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 260; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
     src.connect(lp); lp.connect(g); g.connect(AU.master); src.start(); AU.wind = g;
   } catch { AU.ctx = null; }
@@ -2531,13 +2830,14 @@ function sfx(name, at, pitch = 1) {
     case 'pickup': tone('sine', 660 * pitch, 680 * pitch, 0.005, 0.18, 0.12); setTimeout(() => { if (AU.ctx) sfxTone(990 * pitch); }, 90); break;
     case 'heal': case 'tape': noise('bandpass', name === 'tape' ? 2500 : 1200, 1.5, 0.05, 0.22, 0.4); break;
     case 'crate': noise('lowpass', 900, 0.9, 0.005, 0.7, 0.3); tone('triangle', 180, 90, 0.005, 0.4, 0.3); break;
+    case 'door': tone('sawtooth', 210, 150, 0.08, 0.05, 0.7); tone('triangle', 120, 95, 0.02, 0.12, 0.9); noise('lowpass', 500, 0.7, 0.75, 0.5, 0.25); break; // 鉸鏈嘎吱、門板撞上
     case 'radio': noise('bandpass', 1800, 0.8, 0.05, 0.12 * pitch, 1.2); tone('sine', 1100, 1100, 0.01, 0.04 * pitch, 0.25); break;
     case 'horn': { for (const f of [98, 103.5]) tone('sawtooth', f, f * 0.98, 0.3, 0.18, 1.6); break; }
     case 'mission': tone('sine', 523, 523, 0.01, 0.12, 0.25); setTimeout(() => sfxTone(784), 160); break;
   }
 }
 function sfxTone(f) { const ctx = AU.ctx; if (!ctx || AU.muted) return; const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.14, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); o.connect(g); g.connect(AU.master); o.start(t); o.stop(t + 0.25); }
-function toggleMute() { AU.muted = !AU.muted; if (AU.master) AU.master.gain.value = AU.muted ? 0 : 0.8; toast(AU.muted ? '已靜音（M）' : '聲音開啟（M）'); }
+function toggleMute() { AU.muted = !AU.muted; if (AU.master) AU.master.gain.value = AU.muted ? 0 : 0.8 * SET.vMaster; toast(AU.muted ? '已靜音（M）' : '聲音開啟（M）'); }
 
 /* ---------- HUD ---------- */
 const H = {}; ['vHp', 'vArm', 'vFil', 'iMed', 'iTape', 'wName', 'wAmmo', 'wSlots', 'mStep', 'mTitle', 'mObj', 'mWp', 'mArrow', 'mDist', 'mProg', 'cross', 'hitmark', 'hurt', 'frost', 'feed', 'tFire', 'tSwap'].forEach(id => H[id] = document.getElementById(id));
@@ -2556,7 +2856,7 @@ function hud(force) {
   H.wSlots.innerHTML = [1, 2, 3, 4].map(n => { const k = WEAPONS[id].slot === n ? id : SLOT_ORDER.filter(x => WEAPONS[x].slot === n && player.owned[x]).pop(); return `<i class="${k ? 'own' : ''} ${k === id ? 'cur' : ''}">${n} ${k ? WEAPONS[k].name : '—'}</i>`; }).join('');
   H.tFire.innerHTML = w.mag ? `射擊<small>${player.mag[id] || 0}/${player.ammo[w.ammo]}</small>` : '攻擊';
   H.tSwap.textContent = w.name;
-  const o = M.cur ? M.cur.obj() : null;
+  const o = objective();
   H.mStep.innerHTML = M.cur ? `<span>任務 ${M.i + 1} / ${MISSIONS.length}</span><span>${STATS.kills} 擊倒</span>` : `<span>${M.endless ? '自由生存' : '準備中'}</span><span>${STATS.kills} 擊倒</span>`;
   H.mTitle.textContent = M.cur ? M.cur.title : M.endless ? '撐到天亮' : '—';
   H.mObj.textContent = o ? o.text : M.endless ? `救援在路上。波次越來越密（等級 ${DIR.level}）。` : '';
@@ -2661,7 +2961,7 @@ function refreshGo() {
   const charReady = LOAD.fbx === 'done' || LOAD.fbx === 'fail';
   const colReady = LOAD.col === 'done' && LOAD.actors === 'done';
   const splatSettled = LOAD.splat === 'done' || LOAD.splat === 'fail';
-  if (charReady && colReady && splatSettled) { go.disabled = false; go.textContent = '進入廣場'; goNote.textContent = LOAD.splat === 'fail' ? '場景 splat 沒有載入成功，只能在碰撞體與霧裡走動。' : '點按鈕後滑鼠會被鎖定；按 Esc 釋放。'; }
+  if (charReady && colReady && splatSettled) { go.disabled = false; go.textContent = '進入廣場'; go.parentNode.classList.add('ready'); goNote.textContent = LOAD.splat === 'fail' ? '場景 splat 沒有載入成功，只能在碰撞體與霧裡走動。' : '點按鈕後滑鼠會被鎖定；按 Esc 暫停。'; }
   else if (charReady && colReady && LOAD.splat === 'load') { go.disabled = false; go.textContent = '先進場（場景仍在載入）'; }
 }
 const ticker = setInterval(() => { refreshGo(); if (LOAD.splat === 'done' && !go.disabled && go.textContent === '進入廣場') clearInterval(ticker); }, 300);
@@ -2678,7 +2978,6 @@ go.addEventListener('click', () => {
 });
 if (dbgOn) { dbg.classList.add('on'); buildDebug(); }
 document.querySelectorAll('#boot .glass').forEach(el => attachLens(el, el.classList.contains('sheet') ? { bezel: 34, scale: 62 } : { bezel: 16, scale: 26 }));
-attachLens(document.querySelector('#pause .glass'), { bezel: 22, scale: 40 });
 
 (async () => {
   const clipsTask = loadClips();
@@ -2695,14 +2994,105 @@ attachLens(document.querySelector('#pause .glass'), { bezel: 22, scale: 40 });
     buildProps();
   });
   await Promise.all([charTask, colTask, splatTask, actorTask]);
+  buildDoors();
   refreshGo();
 })();
+
+/* ======================================================================
+   Esc 選單：暫停、設定、操作說明與素材來源
+   ====================================================================== */
+const MENU = { on: false, selfExit: 0, openT: 0 };
+const menuEl = document.getElementById('menu'), paneSet = document.getElementById('pane-set');
+const pct = v => Math.round(v * 100) + '%';
+const SET_UI = [
+  ['操作', [['sens', '滑鼠靈敏度', v => v.toFixed(1) + '×'], ['invY', '反轉滑鼠上下'], ...(isTouch ? [['touchSens', '觸控轉視角', v => v.toFixed(1) + '×']] : [])]],
+  ['畫面', [['fov', '視野', v => v + '°'], ['bright', '亮度', pct], ['shake', '鏡頭晃動', pct], ['hud', '顯示任務與狀態'], ['cross', '準心']]],
+  ['聲音', [['vMaster', '主音量', pct], ['vWind', '風聲', pct]]],
+  ['效能', [['autoQ', '自動調整畫質（維持 60 FPS）'], ['res', '渲染解析度', pct], ['snow', '飄雪'], ['pauseBlur', '切到其他視窗時暫停']]],
+];
+const SET_FMT = Object.fromEntries(SET_UI.flatMap(([, rows]) => rows.map(([k, , f]) => [k, f])));
+paneSet.innerHTML = SET_UI.map(([h, rows]) => `<h3>${h}</h3>` + rows.map(([k, n]) => {
+  const D = SET_DEF[k];
+  return typeof D.d === 'boolean' ? `<label class="sw">${n}<input type="checkbox" data-k="${k}"></label>`
+    : `<label class="sl" data-row="${k}"><span>${n}</span><output data-o="${k}"></output><input type="range" data-k="${k}" min="${D.lo}" max="${D.hi}" step="${D.st}"></label>`;
+}).join('')).join('') + '<button class="mnLink" id="mnReset" type="button">恢復預設值</button>';
+function setApply(k) {
+  const b = document.body, all = !k;
+  if (all || k === 'hud') b.classList.toggle('noHud', !SET.hud);
+  if (all || k === 'cross') b.classList.toggle('noCross', !SET.cross);
+  if (all || k === 'bright') canvas.style.filter = SET.bright === 1 ? '' : `brightness(${SET.bright})`;
+  if (k === 'fov') resize();
+  if ((all || k === 'vMaster') && AU.master && !AU.muted) AU.master.gain.value = 0.8 * SET.vMaster;
+  if ((all || k === 'vWind') && AU.wind) AU.wind.gain.value = (WORLD.id === 'plaza' ? 0.07 : 0.015) * SET.vWind;
+  if (all || k === 'snow') snow.visible = WORLD.id === 'plaza' && SET.snow;
+  if (k === 'autoQ' || k === 'res') { perf.auto = SET.autoQ; renderScale = SET.autoQ ? Math.max(renderScale, 0.7) : SET.res; resize(); if (D.cAuto) D.cAuto.checked = perf.auto; }
+}
+function menuSync() {
+  for (const el of paneSet.querySelectorAll('[data-k]')) {
+    const k = el.dataset.k;
+    if (el.type === 'checkbox') el.checked = SET[k];
+    else { el.value = SET[k]; el.style.setProperty('--p', ((SET[k] - SET_DEF[k].lo) / (SET_DEF[k].hi - SET_DEF[k].lo) * 100) + '%'); paneSet.querySelector(`[data-o="${k}"]`).textContent = SET_FMT[k](SET[k]); }
+  }
+  const res = paneSet.querySelector('[data-row="res"]'); res.classList.toggle('off', SET.autoQ); res.querySelector('input').disabled = SET.autoQ;
+  if (SET.autoQ) res.querySelector('output').textContent = `自動 ${pct(renderScale)}`;
+}
+paneSet.addEventListener('input', e => {
+  const k = e.target.dataset.k; if (!k) return;
+  SET[k] = e.target.type === 'checkbox' ? e.target.checked : +(+e.target.value).toFixed(3);
+  setSave(); setApply(k); menuSync();
+});
+paneSet.addEventListener('click', e => {
+  if (e.target.id !== 'mnReset') return;
+  for (const [k, D] of Object.entries(SET_DEF)) SET[k] = D.d;
+  setSave(); setApply(); setApply('fov'); setApply('autoQ'); menuSync(); toast('設定已恢復預設值', 1.6);
+});
+function menuInfo() {
+  const c = M.cur, o = objective();
+  document.getElementById('mnMission').innerHTML = c ? `Misión ${M.i + 1} / ${MISSIONS.length} · <b>${c.title}</b>` : M.endless ? 'Supervivencia · <b>自由生存</b>' : 'Plaza de Mayo · <b>雪夜五月廣場</b>';
+  document.getElementById('mnObj').textContent = o?.text || (WORLD.id === 'plaza' ? '雪還在下。' : `${ROOMS[WORLD.id].name}裡很安靜。`);
+  const mins = Math.floor((performance.now() - STATS.t0) / 60000);
+  document.getElementById('mnStats').textContent = `擊倒 ${STATS.kills} · 爆頭 ${STATS.heads} · 命中率 ${STATS.shots ? Math.round(STATS.hits / STATS.shots * 100) + '%' : '—'} · ${mins} 分鐘`;
+}
+function menuTab(id) {
+  for (const b of document.querySelectorAll('#mnTabs [data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === id);
+  for (const t of ['set', 'keys', 'about']) document.getElementById('pane-' + t).hidden = t !== id;
+}
+function menuOpen() {
+  if (MENU.on || !playing || overKind) return;
+  MENU.on = true; MENU.openT = performance.now();
+  keys.clear(); input.fire = input.aim = input.touchFire = false; stick.x = stick.y = 0;
+  document.body.classList.add('paused');
+  if (document.pointerLockElement) { MENU.selfExit = performance.now(); document.exitPointerLock(); }
+  menuInfo(); menuSync();
+  menuEl.classList.add('on'); menuEl.setAttribute('aria-hidden', 'false');
+}
+function menuClose(fromLock) {
+  if (!MENU.on) return;
+  MENU.on = false; document.body.classList.remove('paused');
+  menuEl.classList.remove('on'); menuEl.setAttribute('aria-hidden', 'true');
+  if (!fromLock) lockPointer(true);
+}
+// Esc：遊戲中打開、選單裡關掉（游標鎖定時 Esc 多半被瀏覽器拿去解鎖，由 pointerlockchange 開選單；同一個 Esc 若也傳進來就忽略）
+addEventListener('keydown', e => {
+  if (e.code !== 'Escape') return;
+  e.preventDefault();
+  if (MENU.on) { if (performance.now() - MENU.openT > 300) menuClose(); }
+  else if (playing && !overKind) menuOpen();
+}, true);
+addEventListener('blur', () => { if (SET.pauseBlur) menuOpen(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && SET.pauseBlur) menuOpen(); });
+document.getElementById('mnTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) menuTab(b.dataset.tab); });
+document.getElementById('mnResume').addEventListener('click', () => menuClose());
+document.getElementById('mnRespawn').addEventListener('click', () => { menuClose(); respawn(); });
+document.getElementById('mnDebug').addEventListener('click', () => { menuClose(); if (!dbgOn) toggleDebug(); });
+attachLens(document.getElementById('mnResume'), { bezel: 14, scale: 24 });
+setApply();
 
 // 測試用
 window.__eter = {
   get state() { return { playing, pos: player.pos.toArray(), grounded: player.grounded, anim: player.anim, load: { ...LOAD }, splats: { visible: SPLAT.spark?.activeSplats || 0, total: SPLAT.total, lodScale: SPLAT.lodScale }, fps: perf.fps, clips: player.clipInfo, warn: WARN.slice() }; },
   start() { go.disabled = false; go.click(); },
-  place(x, z, yaw = player.yaw) { player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); player.yaw = yaw; view.yaw = yaw + Math.PI; snapCamera = true; },
+  place(x, z, yaw = player.yaw) { setWorld(worldOf(x, z)); player.pos.set(x, groundAt(x, z), z); player.vel.set(0, 0, 0); player.yaw = yaw; view.yaw = yaw + Math.PI; snapCamera = true; },
   look(yaw, pitch, dist) { view.yaw = yaw; view.pitch = pitch; if (dist) view.distT = view.dist = dist; snapCamera = true; },
   keys, jump() { jumpQueued = true; },
   showCollider(v) { if (colliderViz) colliderViz.visible = v; },
@@ -2722,7 +3112,8 @@ window.__eter = {
   PTS, NAV, M, input, player, zombies, pickups, props, JET, jet() { JET.t = 0; },
   spawn(x, z, opts) { return !!spawnZombie(x, z, opts); },
   give(w) { player.owned[w] = true; if (WEAPONS[w].mag) { player.mag[w] = WEAPONS[w].mag; player.ammo[WEAPONS[w].ammo] += 30; } equip(w); },
-  mission(i) { for (const p of [...pickups]) removePickup(p); for (const z of zombies) despawnZombie(z); DIR.waveQueue = 0; startMission(i); },
+  mission(i) { if (typeof i === 'string') i = MISSIONS.findIndex(m => m.id === i); for (const p of [...pickups]) if (!p.fixed) removePickup(p); for (const z of zombies) despawnZombie(z); DIR.waveQueue = 0; startMission(i); },
+  MENU, SET, menuOpen, menuClose, ROOMS, WORLD, worldOf, roomW, enter(id) { const d = pickups.find(p => p.kind === 'door' && p.to === id); if (d) useDoor(d, true); return !!d; },
   god(on = true) { GOD.on = on; GOD.ammo = on; },
   fire() { player.cool = 0; fire(); }, melee, interact, equip, hurtZombie, killPlayer, revive,
 };
