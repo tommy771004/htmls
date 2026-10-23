@@ -311,9 +311,10 @@ HANDOFF 先前列為未做的項目：
   - 鐵砧槍械：騎樓下的櫃台，老闆賣彈藥、五級防彈背心（護甲 20–100，$250–2,500）、消音器與擴充彈匣（手槍、衝鋒槍、步槍、霰彈槍，$1,200，彈匣 ×1.5，存在 `motors.v5.ext`）；在店前拿槍指著他或開槍，他從櫃台下抽槍反擊（每 0.9 秒一發 12 點，打倒他店休 5 分鐘）。
   - 射擊場：店後面三面水泥牆圍起來，$20 玩 30 秒，9 個標靶輪流立起 2.2 秒，打中一個 1 分、射擊能力 +0.15；場內開槍不算犯罪。
   - 縫線服飾：$150 換一套衣服；通緝中、警察沒看到你時換裝，少一顆星。
+  - 模型（只在 http(s)，走近 160 m 才下載 `props/v5shop.glb` 與 `arms.glb`）：服飾店是 jungle_jim 的兩間維多利亞式店面（玻璃後面是假人、ngdkh 的掛衣架與後牆層架），槍牆三排與玻璃展示櫃擺實體武器模型，射擊場是 FrodoUndead 的吊靶（人形靶紙）與五個射擊位；以檔案開啟或下載失敗時是程式建模（`MALL.fb`／`MALL.fg`）。
   - 泡泡隧道洗車：車停到入口按 E 付 $15，輸送帶以 2 m/s 把車拉過 24 m 的隧道（刷子轉、水霧），泥巴與血跡洗掉。車開久了兩側與車尾沾泥（下雨沾得快），撞到人車頭沾血；車頭有血、慢下來時附近的路人看 2.5 秒會報警（1 星）。
 - 存檔第 9 版：多了 `v5`（`imp`：座駕在拖吊場；`ext`：擴充彈匣）。
-- 測試 API：`__nc.gta.v5`：`V5`（`lad`、`imp`、`band`、`medkits`、`helis`）、`FAC`、`LADS`、`w(id, x, z)`（設施座標 → 世界）、`yaw(id, a)`、`lad(i, top)`、`impound(why)`、`pay()`、`gateBreak()`、`fenceNear()`、`roofJump()`、`hospFee()`、`inYard(x, z)`；商業設施的 `SHOP`（`rob`、`clerk`、`drunk`、`shutter`）、`ATM_SPOTS`、`MALL`（`owner`、`range`、`wash`、`targets`）、`robStart()`、`aimAtClerk()`、`booze(where)`、`gunShop()`、`shopArmor()`、`shopMods()`、`rangeStart()`／`rangeEnd(quit)`、`clothesShop()`、`washStart(v)`、`carGrime(v)`、`v5Blood(v)`、`mallW(x, z)`、`aimRay()`、`rayHitsCyl(R, x, z, y0, y1, r)`、`shutterAt()`。
+- 測試 API：`__nc.gta.v5`：`V5`（`lad`、`imp`、`band`、`medkits`、`helis`）、`FAC`、`LADS`、`w(id, x, z)`（設施座標 → 世界）、`yaw(id, a)`、`lad(i, top)`、`impound(why)`、`pay()`、`gateBreak()`、`fenceNear()`、`roofJump()`、`hospFee()`、`inYard(x, z)`；商業設施的 `SHOP`（`rob`、`clerk`、`drunk`、`shutter`）、`ATM_SPOTS`、`MALL`（`owner`、`range`、`wash`、`targets`）、`robStart()`、`aimAtClerk()`、`booze(where)`、`gunShop()`、`shopArmor()`、`shopMods()`、`rangeStart()`／`rangeEnd(quit)`、`clothesShop()`、`washStart(v)`、`carGrime(v)`、`v5Blood(v)`、`mallW(x, z)`、`mallGlb()`（直接下載商店街模型）、`aimRay()`、`rayHitsCyl(R, x, z, y0, y1, r)`、`shutterAt()`、`blockInfo()`（每個街區的區名、特殊地塊、模型地塊數與興趣點，選址用）。
 
 ### 城區與安全屋（World 整合）
 

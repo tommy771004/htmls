@@ -252,11 +252,17 @@ const extApply = () => { for (const id of EXT_IDS) if (ARMS[id]) ARMS[id].mag = 
 extApply();
 if (FAC.mall) {
   const F = FAC.mall, k = new Kit(), z = F.L[0].zn, ax = F.ax, az = F.az, G = F.L[0], C = F.L[1];
+  const fb = new Kit(), fg = new Kit();   // 模型版會換掉的程式建模：fb 是服飾店的正面與燈箱櫥窗、射擊位隔板，fg 是槍架上的替身；模型下載好就藏起來
   // ─ 槍店：騎樓（屋頂、兩根柱子）、櫃台、後牆的槍架與燈條
   k.box(ax + 21.25, 3.45, az + 14, 17.5, .2, 3, 0x1c1e22, 2);
   for (const x of [13, 29.5]) k.box(ax + x, 1.7, az + 12.8, .3, 3.4, .3, 0x2a2c30, 15);
-  k.box(ax + 21, .55, az + 14.6, 10, 1.1, .6, 0x3a2c22, 2).box(ax + 21, 1.12, az + 14.6, 10.1, .05, .7, 0x8a8e92, 3);
-  for (let x = 14.5; x < 28.5; x += 1.4) for (const y of [1.6, 2.2, 2.8]) k.box(ax + x, y, az + 15.42, .9, .07, .1, 0x15161a, 15).box(ax + x - .2, y + .06, az + 15.4, .12, .14, .08, 0x5a3a26, 2);
+  // 櫃台：木頭底座、金屬框、上半截是玻璃展示櫃（紅絨布上擺手槍，模型版才有）；後牆是深色洞洞板與三排掛架
+  k.box(ax + 21, .4, az + 14.6, 10, .8, .6, 0x3a2c22, 2).box(ax + 21, .81, az + 14.6, 9.9, .02, .56, 0x5a1a1e, 2);
+  for (const [x, w] of [[16.02, .04], [25.98, .04], [21, .04]]) k.box(ax + x, .96, az + 14.6, w, .32, .6, 0x8a8e92, 3);
+  for (const s of [-1, 1]) k.box(ax + 21, 1.13, az + 14.6 + s * .3, 10.04, .025, .04, 0x8a8e92, 3);
+  k.box(ax + 21.25, 2.2, az + 15.46, 15.6, 2.2, .04, 0x23252a, 2);
+  for (let x = 14.5; x < 28.5; x += 1.4) for (const y of [1.6, 2.2, 2.8]) k.box(ax + x, y, az + 15.42, .9, .07, .1, 0x15161a, 15);
+  for (let x = 14.5; x < 28.5; x += 1.4) for (const y of [1.6, 2.2, 2.8]) fg.box(ax + x - .2, y + .06, az + 15.4, .12, .14, .08, 0x5a3a26, 2);
   k.box(ax + 21.25, 3.3, az + 15.4, 16, .06, .06, 0xffa040, 8);
   // ─ 射擊場：三面 3.2 m 的水泥牆、射擊位的雨遮與隔板、地上的距離線、標靶的沙堆
   const R = F.range, rx0 = R.x0 - ax, rx1 = R.x1 - ax, rz0 = R.z0 - az, rz1 = R.z1 - az;
@@ -266,14 +272,16 @@ if (FAC.mall) {
     colliders.push({ x0: ax + x0, x1: ax + x1, z0: az + z0, z1: az + z1, hy: 3.2, zn: z });
   }
   k.box(ax + (rx0 + rx1) / 2, 2.9, az + rz0 + 2.2, rx1 - rx0, .15, 4.4, 0x2a2c30, 2);
-  for (let x = rx0 + 3.5; x < rx1 - 1; x += 3.4) k.box(ax + x, 1.2, az + rz0 + 2.6, .06, 1.6, 1.4, 0x6a6e72, 2);
+  for (let x = rx0 + 3.5; x < rx1 - 1; x += 3.4) fb.box(ax + x, 1.2, az + rz0 + 2.6, .06, 1.6, 1.4, 0x6a6e72, 2);
   for (const d of [10, 15, 20]) k.box(ax + (rx0 + rx1) / 2, .2, az + rz0 + 2.6 + d, rx1 - rx0 - 1, .01, .08, 0xe8e4d8, 2);
   k.box(ax + (rx0 + rx1) / 2, .6, az + rz1 - 1.4, rx1 - rx0 - 1, 1, 1.4, 0x8a7350, 2);
-  // ─ 服飾店：兩扇燈箱櫥窗、裡面的假人
-  for (const x of [34, 41]) {
-    k.box(ax + x, 1.6, az + 12.45, 4.2, 2.4, .08, 0xfff0e0, 11);
-    for (const s of [-1, 1]) k.cyl(ax + x + s * .9, .95, az + 12.75, .16, .2, 1.3, 10, 0xe8e2d8, 2).cyl(ax + x + s * .9, 1.75, az + 12.75, .1, .1, .22, 10, 0xe8e2d8, 2);
-  }
+  // ─ 服飾店：二樓的店往後退（10-city.js 的 FAC.mall），前面是一層樓的店面（z 12.9–20.3）：屋頂與兩側牆一直都有；
+  // 正面在模型版是 jungle_jim 的兩間維多利亞式店面（玻璃後面擺假人與掛衣架），程式建模是一整片牆加兩扇燈箱櫥窗
+  k.box(ax + 37.5, 4.98, az + 16.7, 12.7, .14, 7.4, 0x2a2826, 2);
+  for (const x of [31.2, 43.8]) k.box(ax + x, 2.45, az + 16.6, .24, 4.9, 7.4, 0x5a3e34, 2);
+  colliders.push({ x0: ax + 31.1, x1: ax + 43.9, z0: az + 12.9, z1: az + 20.3, hy: 5.05, zn: z });
+  fb.box(ax + 37.5, 2.45, az + 12.95, 12.4, 4.9, .1, 0x4a3a32, 2);
+  for (const x of [34, 41]) fb.box(ax + x, 1.6, az + 12.87, 4.2, 2.4, .08, 0xfff0e0, 11);
   // ─ 停車場：柏油與停車格
   const P0 = F.lot;
   k.box((P0.x0 + P0.x1) / 2, .165, (P0.z0 + P0.z1) / 2, P0.x1 - P0.x0, .03, P0.z1 - P0.z0, 0x2c2e31, 2);
@@ -290,16 +298,33 @@ if (FAC.mall) {
   k.box(ax + wx0 - .9, 1.1, az + wz0 - 1.6, .3, 2.2, .3, 0x30343a, 15).box(ax + wx0 - .72, 1.35, az + wz0 - 1.6, .06, .5, .36, 0x6ad0ff, 8);
   colliders.push({ x0: ax + wx0 - 1.1, x1: ax + wx0 - .7, z0: az + wz0 - 1.8, z1: az + wz0 - 1.4, zn: z });
   cityAdd(new T.Mesh(k.build(), MAT.uber), z);
+  cityAdd(MALL.fb = new T.Mesh(fb.build(), MAT.uber), z); cityAdd(MALL.fg = new T.Mesh(fg.build(), MAT.uber), z);
+  // 店裡的陳設（模型版才擺：程式建模的正面是一整片牆）：櫥窗裡穿衣服的假人、後牆的胡桃木層架與一疊疊摺好的衣服
+  { const mk = new Kit(), PAL = [0x2a3a5a, 0xc8b89a, 0x8a2a2a, 0x3a5a3a, 0xe8e2d8, 0x1a1a1a, 0x6a7a9a, 0xb07a4a];
+    [32.7, 36.3, 40.6, 42.8].forEach((x, i) => mk.cyl(ax + x, .1, az + 13.75, .22, .22, .06, 14, 0x2a2a2a, 3).cyl(ax + x, .7, az + 13.75, .025, .025, 1.2, 6, 0x8a8e92, 3)
+      .cyl(ax + x, 1.25, az + 13.75, .15, .19, .75, 12, PAL[i * 3 % 8], 2).cyl(ax + x, 1.72, az + 13.75, .1, .1, .22, 10, 0xe8e2d8, 2));
+    let n = 0;
+    for (const [x0, x1] of [[31.6, 37.4], [37.7, 43.6]]) {
+      mk.box(ax + (x0 + x1) / 2, 1.75, az + 19.95, x1 - x0 - .3, 3.5, .08, 0x3a2a22, 2);
+      for (const y of [.8, 1.4, 2, 2.6]) {
+        mk.box(ax + (x0 + x1) / 2, y, az + 19.72, x1 - x0 - .6, .04, .42, 0x6a4a36, 2);
+        for (let x = x0 + .6; x < x1 - .5; x += .48) mk.box(ax + x, y + .02 + .06 * (1 + n % 2), az + 19.72, .36, .12 * (1 + n % 2), .3, PAL[n++ * 5 % 8], 2);
+      }
+    }
+    cityAdd(MALL.mann = new T.Mesh(mk.build(), MAT.uber), z); MALL.mann.visible = false; }
+  { const g = new T.Mesh(new T.BoxGeometry(9.9, .3, .56), new T.MeshBasicMaterial({ color: 0x9ab8c4, transparent: true, opacity: .1, depthWrite: false }));
+    v5Put(F, g, 21, .97, 14.6, 0); }
   // 櫃台的碰撞（人站在騎樓下、櫃台外面）
   colliders.push({ x0: ax + 16, x1: ax + 26, z0: az + 14.3, z1: az + 14.95, hy: 1.15, zn: z });
   // 招牌
   const put = (m, x, y, zz, ry) => v5Put(F, m, x, y, zz, ry);
   put(v5Sign([['鐵砧槍械', .46, '#ffb35a', .4], ['IRONCLAD ARMS · 射擊場', .24, '#e8e0d0', .8]], 8, 1.7, { bg: '#16171a', edge: '#ffb35a', dim: 0xffffff }), 21.25, 5.4, 15.42, Math.PI);
-  put(v5Sign([['縫線服飾', .44, '#1a1a1a', .38], ['STITCHLINE', .3, '#6a5040', .78]], 6, 1.6, { bg: '#f4ece0', dim: 0xf0f0f0 }), 37.5, 4.3, 12.4, Math.PI);
+  put(v5Sign([['縫線服飾', .44, '#1a1a1a', .38], ['STITCHLINE', .3, '#6a5040', .78]], 6, 1.6, { bg: '#f4ece0', dim: 0xf0f0f0 }), 37.5, 5.85, 12.95, Math.PI);
   put(v5Sign([['泡泡隧道 洗車', .4, '#ffffff', .38], [`SUDS TUNNEL · ${money(WASH_FEE)}`, .3, '#bfe6ff', .78]], wx1 - wx0, 1.4, { bg: '#1a4a8a', edge: '#7ad0ff', dim: 0xffffff }), wc, 5.65, wz0 - .17, Math.PI);
   put(v5Sign([['射擊位', .5, '#f0e8d8', .5]], 3, .6, { bg: '#2a2c30' }), (rx0 + rx1) / 2, 2.6, rz0 + .2, 0);
   v5Light(F, 21, 3.2, 13.8, 0xffc890, 9, 1.1); v5Light(F, 37.5, 2.6, 11.4, 0xfff0e0, 8, .9); v5Light(F, wc, 4, wz0 + 3, 0x9ad8ff, 10, 1); v5Light(F, wc, 4, wz1 - 3, 0x9ad8ff, 10, 1);
   v5Light(F, (rx0 + rx1) / 2, 2.7, rz0 + 2, 0xfff0d8, 10, 1);
+  for (const x of [34.5, 40.6]) v5Light(F, x, 3.8, 16.2, 0xfff0d8, 7, .9);   // 服飾店裡
   // 會動的東西：標靶（9 個，軸在底部，倒下時躺平）、刷子（兩側直立 2 組、上方橫的 1 支）、水霧
   for (const d of [10, 15, 20]) for (const s of [-1, 0, 1]) {
     const tk = new Kit(); tk.box(0, .6, 0, .08, 1.2, .08, 0x5a4a3a, 2);
@@ -316,6 +341,54 @@ if (FAC.mall) {
   }
   { const sk = new Kit(); for (let i = 0; i < 14; i++) sk.box((i % 7 - 3) * .75, 3.6 - Math.floor(i / 7) * .3, (i * .37) % 1 - .5, .5, .9, .02, 0xcfe8ff, 11, .3, i);
     const m = new T.Mesh(sk.build(), new T.MeshBasicMaterial({ color: 0xbfe0ff, transparent: true, opacity: .35, depthWrite: false })); m.position.set(ax + wc, 0, az + wz0 + 6); m.visible = false; cityAdd(m, z); MALL.spray.push(m); }
+}
+// ─── 模型版（只在 http(s)）：走近商店街 160 m 內才下載 v5shop.glb（服飾店店面、掛衣架、吊靶、射擊位）與武器模型（槍牆、展示櫃）───
+const _mm = new T.Matrix4(), _mq = new T.Quaternion(), _me = new T.Euler();
+// 同一材質的部件合併成一個網格：o = { it, x, y, z（設施座標）, ry, rz（先繞 z 再繞 y）}
+function v5Merge(F, list) {
+  const by = new Map();
+  for (const o of list) {
+    _me.set(0, o.ry || 0, o.rz || 0, 'YZX'); _mm.compose(V3(F.ax + o.x, o.y, F.az + o.z), _mq.setFromEuler(_me), V3(1, 1, 1));
+    for (const p of o.it.parts) { if (!by.has(p.mat)) by.set(p.mat, []); by.get(p.mat).push(p.geo.clone().applyMatrix4(_mm)); }
+  }
+  for (const [mat, geos] of by) {
+    const g = mergeGeometries(geos); for (const x of geos) x.dispose(); if (!g) continue;
+    const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.noTess = 1; cityAdd(m, facZn(F));
+  }
+}
+// 槍牆三排（由上往下）：照模型長度由左往右排到牆尾；展示櫃裡橫躺的手槍、衝鋒槍與手榴彈
+const GUN_ROWS = [[2.8, ['sniper', 'rifle', 'shotgun', 'rifle', 'sniper', 'shotgun', 'rifle', 'rpg', 'rifle']],
+  [2.2, ['rifle', 'smg', 'shotgun', 'launcher', 'smg', 'rifle', 'minigun', 'smg', 'shotgun', 'smg']],
+  [1.6, ['smg', 'pistol', 'pistol', 'katana', 'pistol', 'smg', 'bat', 'pistol', 'pistol', 'smg', 'baton', 'pistol', 'pistol']]];
+const CASE_ROW = ['pistol', 'grenade', 'pistol', 'smg', 'pistol', 'c4', 'pistol', 'pistol', 'grenade', 'smg', 'pistol', 'gas', 'pistol', 'pistol', 'smg', 'pistol'];
+function mallGlb() {
+  const F = FAC.mall; MALL.glb = 1;
+  return Promise.all([loadProps('v5shop'), loadProps('arms')]).then(([S, A]) => {
+    if (S) {
+      v5Put(F, propObject(S.front, 0, 0, 0), 37.5, 0, 13, Math.PI);
+      v5Merge(F, [[33, 16.6, 'rackA'], [35.9, 18.6, 'rackB'], [39.9, 16.6, 'rackB'], [42.4, 18.6, 'rackA']].map(([x, zz, id]) => ({ it: S[id], x, y: .07, z: zz, ry: Math.PI / 2 })));
+      const R = F.range, cx = (R.x0 + R.x1) / 2 - F.ax, rz0 = R.z0 - F.az;
+      v5Merge(F, [-2, -1, 0, 1, 2].map(i => ({ it: S.booth, x: cx + i * 1.9, y: .19, z: rz0 + 4.5 })));
+      const pk = new Kit(); for (const s of [-1, 1]) pk.box(s * .64, .99, 0, .05, 1.98, .05, 0x3a3c40, 3); pk.box(0, 1.98, 0, 1.36, .05, .05, 0x3a3c40, 3);
+      const posts = pk.build();
+      for (const t of MALL.targets) { t.m.geometry.dispose(); t.m.geometry = posts; t.m.add(propObject(S.target, 0, .95, 0, Math.PI)); }
+      MALL.mann.visible = true; MALL.fb.visible = false;
+    }
+    if (A) {
+      const list = [];
+      for (const [y, ids] of GUN_ROWS) {
+        let x = 13.9;
+        for (const id of ids) {
+          const it = A[id]; if (!it) continue;
+          if (x + it.d > 28.6) break;
+          list.push({ it, x: x + it.d / 2, y: y - .02 + it.h / 2, z: 15.36 - it.w / 2, ry: Math.PI / 2 }); x += it.d + .28;
+        }
+      }
+      CASE_ROW.forEach((id, i) => { const it = A[id]; if (!it) return; const lie = id !== 'grenade' && id !== 'gas';
+        list.push({ it, x: 16.5 + i * .6, y: .82 + (lie ? it.w : it.h) / 2, z: 14.6 + (i % 2 ? .09 : -.09), ry: Math.PI / 2 + (i % 3 - 1) * .25, rz: lie ? Math.PI / 2 : 0 }); });
+      v5Merge(F, list); MALL.fg.visible = false;
+    }
+  });
 }
 // 店面前的路邊車位清掉（洗車隧道的進出口與槍店騎樓前）：30-vehicles.js 的 facParked 之後呼叫
 function mallParkClear() {
@@ -518,8 +591,17 @@ ctxHooks.unshift(p => {
 });
 function mallStep(dt) {
   if (!MALL.init) { MALL.init = true; ownerInit(); }
+  if (GLB_ON && !MALL.glb && FAC.mall) { const [x, z] = mallW(37, 30); if (Math.hypot(pX() - x, pZ() - z) < 160) mallGlb(); }
   const A = arm.ammo[arm.sel], mag = ARMS[arm.sel].gun && A ? A.mag : -1, fired = MALL.mag >= 0 && mag >= 0 && mag < MALL.mag && player.where === 'out';
   MALL.mag = mag;
   ownerStep(dt, fired); rangeStep(dt, fired); washStep(dt); grimeStep(dt);
 }
-Object.assign(gtaApi.v5, { MALL, gunShop, shopAmmo, shopArmor, shopMods, rangeStart, rangeEnd, clothesShop, washStart, washIn, carGrime, v5Blood, extApply, mallW, rayHitsCyl, aimRay, shutterAt: () => toW(GAR_X, GAR_Z + SW + 4) });
+// 選址用：每個街區的區名、特殊地塊、換成模型的地塊數與地圖上的興趣點（邏輯座標的街區 i, j）
+gtaApi.v5.blockInfo = () => {
+  const pts = mapBlips().map(b => ({ c: b.cat, n: b.name, l: toL(b.x, b.z) }));
+  return blocks.filter(b => !b.outer && !b.plaza).map(b => {
+    const x0 = avX(b.i), z0 = stZ(b.j), inB = ([x, z]) => x > x0 - 4 && x < x0 + P + 4 && z > z0 - 4 && z < z0 + Q + 4;
+    return { i: b.i, j: b.j, d: district(x0 + 36, z0 + 31), sp: lots.filter(L => L.b === b && L.special).map(L => L.special), glb: lots.filter(L => L.b === b && L.glb).length, poi: pts.filter(p => inB(p.l)).map(p => p.c + ':' + p.n) };
+  });
+};
+Object.assign(gtaApi.v5, { MALL, mallGlb, gunShop, shopAmmo, shopArmor, shopMods, rangeStart, rangeEnd, clothesShop, washStart, washIn, carGrime, v5Blood, extApply, mallW, rayHitsCyl, aimRay, shutterAt: () => toW(GAR_X, GAR_Z + SW + 4) });

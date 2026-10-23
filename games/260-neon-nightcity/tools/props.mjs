@@ -34,6 +34,17 @@ export const SETS = [
     { id: 'toolcart', file: 'free_drawer_tool_cart_used', h: .98, rot: 1 },
   ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
+  // 第五部曲的商店街（69-v5-shops.js，原檔在 .cache/v5/）：縫線服飾的店面是 jungle_jim 三間店面的右邊兩間（原檔單位約半公尺，縮成 0.6；
+  // 原點在玻璃面、店內往 −z；原店名的立體字、人行道與第三間不要），店裡的掛衣架是 ngdkh 的 Wardrobe Rack 兩座；
+  // 射擊場的吊靶（夾板＋人形靶紙）與射擊位（兩片夾板隔間＋檯面）是 FrodoUndead 的 Gun Targets
+  // 原檔的玻璃是很藍、粗糙度 0.8 的半透明（BLEND），反射環境變成一片霧白、看不到店裡：換成淡灰、透明度一成、光滑；店裡的白牆換成暖米色
+  { out: 'v5shop', src: '.cache/v5', tex: 2048, recolor: { ...Object.fromEntries(['Glass', 'Glass.001', 'Glass.002'].map((k) => [k, [.5, .56, .6, .1, .06]])), 'Inside.002__0': [.74, .66, .56, 1] }, items: [
+    { id: 'front', file: 'storefronts_with_opening_doors_empty_stores', scale: .6, origin: [-16.64, .66, -9.9], only: /^(Storefront2 by Jungle Jim|Storefront3|Cube|Cube\.001)$/, drop: /^Text/ },
+    { id: 'rackA', file: 'wardrobe_rack', h: 1.75, only: /^rack 1$/ },
+    { id: 'rackB', file: 'wardrobe_rack', h: 1.75, only: /^rack 2$/ },
+    { id: 'target', file: 'gun_targets', h: 1, only: /^Moving Target_6$/ },
+    { id: 'booth', file: 'gun_targets', h: 1.9, only: /^(BoothTable_8|BoothWall_9)$/ },
+  ] },
   // 武器（69-combat.js）：orient 是「哪個原檔軸變成槍口方向 +z、哪個變成上方 +y」，center 是包圍盒中心放原點（握把位置由頁面的 ARMS 表另外給）
   // heavy：瓦斯罐原檔兩萬多面（拉環、保險桿都很細），單獨減到兩成
   { out: 'arms', tex: 512, src: '.cache/arms', heavy: [/Smoke Grenade/, .2], items: [
@@ -891,13 +902,14 @@ async function build(set) {
     for (const [, ps] of groups) {
       const m = ps[0].mat, curtain = !!ps[0].curtain;
       const tint = set.tint && m && set.tint[m.getName()];   // [底色倍率, 最低粗糙度, 最高金屬度]
-      const bc = (m ? m.getBaseColorFactor() : [.6, .6, .6, 1]).map((v, i) => tint && i < 3 ? v * tint[0] : v), es = m?.getExtension('KHR_materials_emissive_strength')?.getEmissiveStrength() ?? 1;
+      const rc = set.recolor && m && set.recolor[m.getName()];   // [r, g, b, a, 粗糙度]：整個換掉原檔的底色（偏色很重、又粗糙到一片霧白的玻璃）
+      const bc = rc ? rc.slice(0, 4) : (m ? m.getBaseColorFactor() : [.6, .6, .6, 1]).map((v, i) => tint && i < 3 ? v * tint[0] : v), es = m?.getExtension('KHR_materials_emissive_strength')?.getEmissiveStrength() ?? 1;
       let ef = m && !(set.noEmi && set.noEmi.test(m.getName())) ? m.getEmissiveFactor().map((v) => v * es) : [0, 0, 0], ek = 0;
       // emi：[[材質名, 顏色（null 照原檔）, 燈種]…]：燈種是 _EMI 的 w（頁面 26-glb.js：0 照 uM.z、1 頭燈 uM.x、2 煞車 uM.y），列車的窗燈與頭燈分開開關
       const er = set.emi && m && set.emi.find(([re]) => re.test(m.getName()));
       if (er) { if (er[1]) ef = er[1]; ek = er[2]; }
       // metalMax（第四輪）：整組的金屬度上限（原檔多半標 metallic 1、靠金屬粗糙貼圖分區，這條管線不留那張貼圖）；沒寫就和以前一樣
-      const pbr = [Math.max(m ? m.getRoughnessFactor() : .8, tint ? tint[1] : 0), set.win ? 0 : Math.min(m ? m.getMetallicFactor() : 0, tint ? tint[2] ?? set.metalMax ?? 1 : set.metalMax ?? 1), 0, 0];
+      const pbr = [rc && rc[4] != null ? rc[4] : Math.max(m ? m.getRoughnessFactor() : .8, tint ? tint[1] : 0), set.win ? 0 : Math.min(m ? m.getMetallicFactor() : 0, tint ? tint[2] ?? set.metalMax ?? 1 : set.metalMax ?? 1), 0, 0];
       const P = [], N = [], U = [], C = [], B = [], E = [], I = [], W = [];
       const vert = (p, i, w) => {
         P.push(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]); N.push(p.nor[i * 3], p.nor[i * 3 + 1], p.nor[i * 3 + 2]);

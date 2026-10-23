@@ -292,6 +292,18 @@ try {
     const as = await ev(page, () => window.__nc.getStats());
     check(ok && as.where === id, `安全屋 ${id} 的室內模型已換上，${as.triangles} 個三角形、${as.drawCalls} 個 draw call、${as.fps} fps`);
   }
+
+  // 商店街（69-v5-shops.js）：走近就下載服飾店店面、掛衣架、吊靶與射擊位，槍牆與展示櫃擺上實體武器
+  {
+    await ev(page, () => { const nc = window.__nc; nc.walk(); const [x, z] = nc.gta.v5.mallW(37.5, 6); nc.tp(x, z, nc.gta.v5.yaw('mall', 0)); });
+    let ok = false;
+    for (let i = 0; i < 80 && !ok; i++) { await page.waitForTimeout(250); ok = await ev(page, () => { const M = window.__nc.gta.v5.MALL; return !M.fb.visible && !M.fg.visible && M.mann.visible; }); }
+    const tg = await ev(page, () => window.__nc.gta.v5.MALL.targets.every(t => t.m.children.length === 1));
+    await ev(page, () => { const nc = window.__nc, V = nc.gta.v5, [x, z] = V.mallW(37.5, 9); nc.player.x = x; nc.player.z = z; nc.look(V.yaw('mall', 0), -.05, 1); });
+    await page.waitForTimeout(600); await hideHud(page);
+    await shot(page, 'g-mall');
+    check(ok && tg, `商店街模型已換上（店面、假人、槍牆替身藏起來；9 個吊靶 ${tg}）`);
+  }
 } finally {
   check(!log.pageerrors.length, `沒有未捕捉例外 ${log.pageerrors.slice(0, 3).join(' | ')}`);
   check(!log.errors.length, `沒有 console.error ${log.errors.slice(0, 3).join(' | ')}`);

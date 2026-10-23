@@ -78,6 +78,78 @@
    }
   ]
  },
+ "v5shop": {
+  "kb": 1077,
+  "items": {
+   "front": {
+    "w": 12.75,
+    "d": 7.62,
+    "h": 5.05,
+    "tris": 8825
+   },
+   "rackA": {
+    "w": 0.61,
+    "d": 1.79,
+    "h": 1.75,
+    "tris": 2030
+   },
+   "rackB": {
+    "w": 0.61,
+    "d": 1.79,
+    "h": 1.75,
+    "tris": 2111
+   },
+   "target": {
+    "w": 1.23,
+    "d": 0.03,
+    "h": 1,
+    "tris": 70
+   },
+   "booth": {
+    "w": 1.73,
+    "d": 1.13,
+    "h": 1.9,
+    "tris": 178
+   }
+  },
+  "credits": [
+   {
+    "file": "storefronts_with_opening_doors_empty_stores",
+    "title": "Storefronts with opening doors (empty stores)",
+    "author": "Jungle Jim (https://sketchfab.com/jungle_jim)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/storefronts-with-opening-doors-empty-stores-151b488b26dd4ff4b15c4c03dc0711e6"
+   },
+   {
+    "file": "wardrobe_rack",
+    "title": "Wardrobe Rack",
+    "author": "Khoa Nguyen (https://sketchfab.com/ngdkh)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855"
+   },
+   {
+    "file": "wardrobe_rack",
+    "title": "Wardrobe Rack",
+    "author": "Khoa Nguyen (https://sketchfab.com/ngdkh)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855"
+   },
+   {
+    "file": "gun_targets",
+    "title": "Gun Targets",
+    "author": "FrodoUndead (https://sketchfab.com/FrodoUndead)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/gun-targets-eb9fbe283faa41ef8685359a0769d303"
+   },
+   {
+    "file": "gun_targets",
+    "title": "Gun Targets",
+    "author": "FrodoUndead (https://sketchfab.com/FrodoUndead)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/gun-targets-eb9fbe283faa41ef8685359a0769d303"
+   }
+  ]
+ },
  "arms": {
   "kb": 1266,
   "items": {
