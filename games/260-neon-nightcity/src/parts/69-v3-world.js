@@ -36,8 +36,8 @@ function taxiGo(d) {
   });
 }
 function taxiFree() { if (taxi.car) { taxi.car.hit = Math.min(taxi.car.hit, .5); taxi.car.hailed = false; } taxi.car = null; }
-// 互動提示：招手（12 m 內、還沒停的計程車）、坐後座（停好的那台 3.5 m 內）
-ctxHooks.push(p => {
+// 互動提示：招手（12 m 內、還沒停的計程車）、坐後座（停好的那台 3.5 m 內）；排在門口、櫃台等固定提示之後
+ctxLate.push(p => {
   if (p.mode !== 'walk' || p.where !== 'out' || W.stars || life.dead || p.swim) return null;
   const c = taxi.car;
   if (c && traffic.includes(c) && Math.hypot(c.x - p.x, c.z - p.z) < TYPES[c.type].len / 2 + 2 && c.v < 1) return { key: 'E', text: '坐上計程車後座 <i>· F 是搶車</i>', fn: taxiRide };

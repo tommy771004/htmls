@@ -1,5 +1,6 @@
 // 第五部曲（城市建築設施藍圖與魔鬼細節）的驗收：醫院（醫藥費、醫療包、救護車、員工電梯、屋頂直升機）、第九分局（逃生梯、屋頂直升機）、
-// 拖吊場（扣車、贖車、翻鐵絲網、撞破柵門）、走得上去的屋頂與從屋頂跳下去、存檔第 9 版
+// 拖吊場（扣車、贖車、翻鐵絲網、撞破柵門）、走得上去的屋頂與從屋頂跳下去、存檔第 9 版；
+// 商業設施：便利店搶劫與第二台收銀機、能量飲料、提款機、酒、槍店（背心、擴充彈匣、射擊場、老闆反擊）、服飾店甩星、車身血跡與洗車、自動捲門
 // 用法：node tools/check-gta-v5.mjs [html]（預設 web/260-neon-nightcity.html）
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +32,7 @@ try {
     return { ids: Object.keys(F).join(','), h: F.hosp.L.map(L => +L.h.toFixed(1)), pd: +F.pd.L[0].h.toFixed(1), helis: V.V5.helis.map(h => h.v && h.v.name), lads: V.LADS.length, ghost: F.hosp.b && N.ways ? 1 : 1 };
   });
   if (c1) {
-    check(c1.ids === 'hosp,pd', `醫院與分局兩個街區（${c1.ids}）`);
+    check(c1.ids === 'hosp,pd,mall', `醫院、分局與商店街三個街區（${c1.ids}）`);
     check(c1.h[0] > 10 && c1.h[1] > 30 && c1.pd > 15, `急診樓、主樓、分局的高度 ${c1.h.join('／')}／${c1.pd}`);
     check(c1.helis.length === 2 && c1.helis.every(Boolean), `屋頂停兩架直升機（${c1.helis.join('、')}）`);
   }
@@ -157,7 +158,152 @@ try {
   });
   if (c11) check(c11.v === 9 && c11.v5 && c11.v5.imp === 1, `存檔 v${c11.v}、v5 ${JSON.stringify(c11.v5)}`);
 
-  console.log('12. 主控台');
+  const c12 = await sec('12. 便利店搶劫：威嚇條約 12 秒、朝貨架開槍加快、第二台收銀機、能量飲料', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, S = V.SHOP, C = V.STORE_CLERK, W = G.wanted.W; __t.reset(); N.enter('store'); __t.step(2);
+    const face = (yaw = 0) => { N.player.x = C.x; N.player.z = C.z - 2.6; N.player.yaw = yaw; N.look(yaw, 0); };
+    const fresh = () => { S.rob = null; S.closed = 0; S.reg2 = false; S.till = false; S.clerk.st = 'idle'; S.clerk.hp = 60; G.wanted.clear('reset'); };
+    const until = (stop, max) => { let n = 0; while (!stop() && n < max) { face(); __t.step(1); n++; } return n; };
+    G.weapon('pistol'); G.fill(); fresh(); face(); __t.step(20);
+    const rnd = Math.random; Math.random = () => .9; G.aim(true); until(() => S.rob, 120); Math.random = rnd;   // .9 → 店員不抽槍
+    const robbing = !!S.rob, armed = !!(S.rob && S.rob.armed), c0 = N.motors.cash;
+    const slow = +(until(() => !S.rob, 60 * 20) / 60).toFixed(1), got = N.motors.cash - c0, stars = W.stars;
+    G.aim(false); __t.step(2);
+    N.player.x = V.STORE_REG2.x; N.player.z = V.STORE_REG2.z - .4; __t.step(1); const t2 = N.ctx(), c1 = N.motors.cash; N.act(); const reg = N.motors.cash - c1;
+    N.player.x = V.STORE_FRIDGE.x; N.player.z = V.STORE_FRIDGE.z + .7; G.life.hp = 50; __t.step(1); const t3 = N.ctx(); N.act(); const hp = G.life.hp;
+    // 朝貨架開槍：每 1.5 秒轉開身子打一發貨架再對回店員
+    fresh(); face(); G.aim(true); Math.random = () => .9; until(() => S.rob, 120); Math.random = rnd; let n = 0, shelf = 0;
+    while (S.rob && n < 60 * 20) {
+      if (n % 90 === 0) { for (let i = 0; i < 8; i++) { face(1.4); __t.step(1); } G.fire(); for (let i = 0; i < 3; i++) { face(1.4); __t.step(1); } if (S.rob && S.rob.shootT > 1.5) shelf++; n += 11; }
+      face(); __t.step(1); n++;
+    }
+    const fast = +(n / 60).toFixed(1);
+    G.aim(false); fresh(); N.exit(); __t.step(2);
+    return { robbing, armed, slow, got, stars, t2, reg, t3, hp, fast, shelf };
+  });
+  if (c12) {
+    check(c12.robbing && !c12.armed && c12.slow > 11.5 && c12.slow < 13.5 && c12.got >= 800 && c12.got <= 2500 && c12.stars >= 2, `拿槍指著店員：${c12.slow} 秒搶到 $${c12.got}、通緝 ${c12.stars} 星`);
+    check(c12.shelf >= 2 && c12.fast > 4 && c12.fast < 7, `朝貨架開 ${c12.shelf} 槍威嚇加快：${c12.fast} 秒`);
+    check(c12.t2 && c12.t2.includes('第二台') && c12.reg >= 250 && c12.reg <= 700, `${c12.t2} → +$${c12.reg}`);
+    check(c12.t3 && c12.t3.includes('能量飲料') && Math.floor(c12.hp) === 65, `${c12.t3.replace(/<[^>]+>/g, '')} → 生命 ${Math.floor(c12.hp)}`);
+  }
+
+  const c12b = await sec('13. 店員抽槍反擊、打倒店員後自己清空收銀機', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, S = V.SHOP, C = V.STORE_CLERK; __t.reset(); N.enter('store'); __t.step(2);
+    const face = () => { N.player.x = C.x; N.player.z = C.z - 2.6; N.player.yaw = 0; N.look(0, 0); };
+    S.rob = null; S.closed = 0; S.clerk.st = 'idle'; S.clerk.hp = 60; G.weapon('pistol'); G.fill(); G.life.armor = 0; face(); __t.step(10);
+    const rnd = Math.random; Math.random = () => .1; G.aim(true); let n = 0; while (!S.rob && n++ < 120) { face(); __t.step(1); } Math.random = rnd;
+    const armed = !!(S.rob && S.rob.armed); for (let i = 0; i < 60 * 3; i++) { face(); __t.step(1); }
+    const st = S.clerk.st, hurt = 100 - Math.round(G.life.hp);
+    for (let i = 0; i < 6 && S.clerk.st !== 'dead'; i++) { G.fire(); for (let k = 0; k < 20; k++) { face(); __t.step(1); } }
+    const dead = S.clerk.st === 'dead', stars = G.wanted.W.stars; G.aim(false); __t.step(2);
+    const T = N.gta.apt.APT.store.till; N.player.x = T.x; N.player.z = T.z; __t.step(1); const t = N.ctx(), c0 = N.motors.cash; N.act();
+    const got = N.motors.cash - c0; S.closed = 0; S.clerk.st = 'idle'; S.till = S.reg2 = false; G.wanted.clear('reset'); G.life.hp = 100; N.exit(); __t.step(2);
+    return { armed, st, hurt, dead, stars, t, got };
+  });
+  if (c12b) {
+    check(c12b.armed && c12b.st === 'shoot' && c12b.hurt >= 18, `店員抽出霰彈槍（${c12b.st}）、三秒內打掉 ${c12b.hurt} 點生命`);
+    check(c12b.dead && c12b.stars >= 1 && c12b.t && c12b.t.includes('清空') && c12b.got > 0, `打倒店員（通緝 ${c12b.stars} 星）→ ${c12b.t} +$${c12b.got}`);
+  }
+
+  const c13 = await sec('14. 提款機：拿槍指著提款的人約 1.5 秒交出錢', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, A = V.ATM_SPOTS[0]; __t.reset(); N.walk();
+    A.st = 'use'; A.aim = 0; A.t = 0;
+    const px = A.w.x - Math.sin(A.w.yaw) * 4, pz = A.w.z - Math.cos(A.w.yaw) * 4, yaw = Math.atan2(A.w.x - px, A.w.z - pz);
+    N.tp(px, pz, yaw); N.look(yaw, 0); G.weapon('pistol'); G.fill(); __t.step(10); G.aim(true); const c0 = N.motors.cash; let n = 0;
+    while (A.st !== 'flee' && n < 300) { N.player.yaw = yaw; N.look(yaw, 0); __t.step(1); n++; }
+    const out = { st: A.st, t: +(n / 60).toFixed(1), got: N.motors.cash - c0, n: V.ATM_SPOTS.length };
+    G.aim(false); G.wanted.clear('reset'); return out;
+  });
+  if (c13) check(c13.n >= 4 && c13.st === 'flee' && c13.t < 2.5 && c13.got >= 60 && c13.got <= 400, `${c13.n} 台提款機；${c13.t} 秒後交出 $${c13.got}`);
+
+  const c14 = await sec('15. 酒：三杯之後畫面與走路會晃，慢慢退', () => {
+    const N = window.__nc, V = N.gta.v5; __t.reset(); N.walk(); V.SHOP.drunk = 0; N.motors.cash = 5000;
+    for (let i = 0; i < 3; i++) V.booze('bar');
+    const d = V.SHOP.drunk, wob = N.post.wobble; __t.step(60);
+    const d1 = V.SHOP.drunk; V.SHOP.drunk = 0; N.post.wobble = 0; return { d: +d.toFixed(2), d1: +d1.toFixed(3), wob, cash: N.motors.cash };
+  });
+  if (c14) check(c14.d === 1.2 && c14.d1 < c14.d && c14.d1 > 1.1 && c14.wob === 1 && c14.cash === 4964, `三杯 $36、酒意 ${c14.d}（畫面搖晃 ${c14.wob}），一秒後 ${c14.d1}`);
+
+  const c15 = await sec('16. 槍店：防彈背心、擴充彈匣', () => {
+    const N = window.__nc, G = N.gta, V = G.v5; __t.reset(); N.walk(); N.motors.cash = 20000; __t.step(2);
+    const [x, z] = V.mallW(21, 13.6); N.tp(x, z, V.yaw('mall', 0)); __t.step(3);
+    const t0 = N.ctx(); G.life.armor = 0; V.shopArmor(); N.pick(2); const armor = G.life.armor;
+    const m0 = G.ARMS.smg.mag; V.shopMods(); const k = N.dialog.opts.findIndex(o => o.t.startsWith('衝鋒槍擴充彈匣')); N.pick(k); const m1 = G.ARMS.smg.mag, ext = N.motors.v5.ext.slice();
+    N.closeDialog(); N.motors.v5.ext = []; V.extApply();
+    return { t0, armor, m0, m1, ext, cash: N.motors.cash, back: G.ARMS.smg.mag };
+  });
+  if (c15) check(c15.t0 && c15.t0.includes('鐵砧') && c15.armor === 60 && c15.m1 === Math.round(c15.m0 * 1.5) && c15.ext.join() === 'smg' && c15.cash === 17800 && c15.back === c15.m0, `${c15.t0.replace(/<[^>]+>/g, '')} → 強化背心護甲 ${c15.armor}、衝鋒槍彈匣 ${c15.m0} → ${c15.m1}（付 $${20000 - c15.cash}）`);
+
+  const c16 = await sec('17. 射擊場：場內開槍不算犯罪、打中立起來的標靶得分', async () => {
+    const N = window.__nc, G = N.gta, V = G.v5, M = V.MALL, W = G.wanted.W; N.motors.cash = 5000; G.weapon('pistol'); G.fill();
+    V.rangeStart(); await __t.wait(900); __t.step(2);
+    const inRange = !!M.range; G.wanted.set(1); const h0 = W.heat; G.wanted.crime('shots'); const quiet = W.heat === h0; G.wanted.clear('reset');
+    const T = M.targets[1]; M.range.cur = T; M.range.next = 99; T.up = 1; T.t = 9; __t.step(30);
+    const [tx, tz] = V.mallW(T.x, T.z), ty = N.player.y + .2 + 1.45;
+    // 準星就是鏡頭正中央：照射線和標靶的偏差修正鏡頭的水平角與俯仰（鏡頭被牆擠近時，鏡頭方向和 camState.yaw 會差一點）
+    G.aim(true); __t.step(10); let yaw = N.player.yaw, pitch = 0, hit = false, ps = 0;
+    for (let it = 0; it < 40 && !hit; it++) {
+      N.camera.updateMatrixWorld(); const R = V.aimRay(), h = Math.hypot(tx - R.ox, tz - R.oz);
+      hit = V.rayHitsCyl(R, tx, tz, ty - .3, ty + .3, .3); if (hit) break;
+      const ey = Math.atan2(tx - R.ox, tz - R.oz) - Math.atan2(R.dx, R.dz), ep = Math.atan2(ty - R.oy, h) - Math.asin(R.dy);
+      if (!ps && Math.abs(ep) > .01) { N.look(yaw, pitch + .05); __t.step(3); N.camera.updateMatrixWorld(); ps = Math.sign(V.aimRay().dy - R.dy) || 1; }
+      yaw += Math.atan2(Math.sin(ey), Math.cos(ey)); pitch += ep * ps; N.player.yaw = yaw; N.look(yaw, pitch); __t.step(3);
+    }
+    const best = +pitch.toFixed(2);
+    const s0 = M.range.score; if (hit) { G.fire(); for (let i = 0; i < 3; i++) { __t.step(1); N.camera.updateMatrixWorld(); } }
+    const score = M.range.score - s0, down = !T.up;
+    G.aim(false); V.rangeEnd(true); await __t.wait(900); __t.step(2);
+    return { inRange, quiet, hit, best, score, down, back: !M.range, fee: 5000 - N.motors.cash };
+  });
+  if (c16) check(c16.inRange && c16.fee === 20 && c16.quiet && c16.hit && c16.score === 1 && c16.down && c16.back, `付 $${c16.fee} 進場、開槍不加熱度、瞄準標靶（俯仰 ${c16.best}）命中 ${c16.score}、離開回到櫃台`);
+
+  const c17 = await sec('18. 槍店老闆：拿槍指著他就反擊', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, O = V.MALL.owner; __t.reset(); N.walk();
+    const [x, z] = V.mallW(21, 10); N.tp(x, z); O.st = 'idle'; G.weapon('pistol'); G.fill(); G.life.armor = 0; __t.step(5);
+    const yaw = Math.atan2(O.s.x - N.player.x, O.s.z - N.player.z); G.aim(true);
+    for (let i = 0; i < 6; i++) { N.player.yaw = yaw; N.look(yaw, 0); __t.step(1); }
+    const st = O.st; G.aim(false); const hp0 = G.life.hp;
+    for (let i = 0; i < 180; i++) __t.step(1);
+    const hurt = Math.round(hp0 - G.life.hp); O.st = 'idle'; G.wanted.clear('reset'); G.life.hp = 100; return { st, hurt };
+  });
+  if (c17) check(c17.st === 'hostile' && c17.hurt >= 12, `老闆 ${c17.st}、三秒內打掉 ${c17.hurt} 點生命`);
+
+  const c18 = await sec('19. 縫線服飾：通緝中、警察沒看到時換裝少一星', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, A = G.apt; __t.reset(); N.walk(); N.motors.cash = 5000;
+    const [x, z] = V.mallW(37.5, 11.6); N.tp(x, z); __t.step(2); const t0 = N.ctx();
+    const id = G.crew.CREW[G.crew.crew.cur].id, cur = A.outfit[id] || 0;
+    G.wanted.set(2); G.wanted.W.seen = false; V.clothesShop(); N.pick(cur ? 0 : 1);
+    const st = G.wanted.W.stars, now = A.outfit[id]; G.wanted.clear('reset'); A.wear(cur); return { t0, st, cash: N.motors.cash, changed: now !== cur };
+  });
+  if (c18) check(c18.t0 && c18.t0.includes('縫線') && c18.st === 1 && c18.cash === 4850 && c18.changed, `${c18.t0.replace(/<[^>]+>/g, '')} → 換裝後通緝 ${c18.st} 星、付 $150`);
+
+  const c19 = await sec('20. 撞人沾血、開久了沾泥；洗車隧道洗乾淨', () => {
+    const N = window.__nc, V = N.gta.v5, F = V.FAC.mall; __t.reset(); N.motors.cash = 5000;
+    N.drive(); const v = N.player.veh; v.blood = 0; V.v5Blood(v); V.v5Blood(v); v.dirt = .8; V.carGrime(v);
+    const blood = +v.blood.toFixed(2), vis = !!(v.grime && v.grime.g.visible);
+    const [x, z] = V.mallW((F.wash.x0 + F.wash.x1) / 2 - F.ax, F.wash.z0 - F.az - 3);
+    v.x = x; v.z = z; v.yaw = V.yaw('mall', 0); v.vx = v.vz = 0; __t.step(3);
+    const t0 = N.ctx(); N.act(); let n = 0, mid = 0;
+    while (V.MALL.wash && n < 60 * 30) { __t.step(1); n++; if (n === 60 * 6) mid = +v.dirt.toFixed(2); }
+    const out = { blood, vis, t0, mid, t: +(n / 60).toFixed(1), after: [v.blood, v.dirt], cash: N.motors.cash, hidden: !v.grime.g.visible };
+    N.walk(); return out;
+  });
+  if (c19) {
+    check(c19.blood === .7 && c19.vis, `撞兩個人車頭沾血 ${c19.blood}、貼花看得到`);
+    check(c19.t0 && c19.t0.includes('洗車') && c19.mid < .8 && c19.after.join() === '0,0' && c19.cash === 4985 && c19.hidden && c19.t > 12 && c19.t < 17, `${c19.t0.replace(/<[^>]+>/g, '')} → 輸送帶 ${c19.t} 秒（半路泥巴 ${c19.mid}）洗乾淨、付 $15`);
+  }
+
+  const c20 = await sec('21. CHROME WORKS 自動捲門：自己的車開到門口、警察沒看到才開', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, S = V.SHOP.shutter; __t.reset(); N.drive(); const v = N.player.veh;
+    const [x, z] = V.shutterAt(); v.x = x; v.z = z; v.vx = v.vz = 0;
+    for (let i = 0; i < 120; i++) { v.x = x; v.z = z; v.vx = v.vz = 0; __t.step(1); }
+    const open = +S.open.toFixed(2);
+    G.wanted.set(2); for (let i = 0; i < 120; i++) { G.wanted.W.seen = true; v.x = x; v.z = z; v.vx = v.vz = 0; __t.step(1); }
+    const shut = +S.open.toFixed(2); G.wanted.clear('reset'); for (let i = 0; i < 60; i++) __t.step(1); N.walk(); return { open, shut };
+  });
+  if (c20) check(c20.open > .9 && c20.shut < .1, `沒被看到時捲門打開 ${c20.open}、被看到時關上 ${c20.shut}`);
+
+  console.log('22. 主控台');
   check(log.pageerrors.length === 0, `沒有 uncaught exception（${log.pageerrors.slice(0, 2).join(' | ')}）`);
   check(log.errors.length === 0, `沒有 console.error（${log.errors.slice(0, 2).join(' | ')}）`);
 } finally { await browser.close(); }

@@ -319,7 +319,7 @@ function v5Key(code) {
     const f = fenceNear(); if (f) { fenceStart(f); return true; }
     if (roofJump()) return true;
   }
-  return false;
+  return v5ShopKey(code);
 }
 
 // ─── 每幀（99-main.js 在 v3Update 之後呼叫）───
@@ -374,6 +374,7 @@ function v5Update(dt) {
   if (V5.band > 0) V5.band -= dt;
   v5Bandage();
   V5.lastVeh = player.mode === 'drive' ? player.veh : null;
+  v5ShopUpdate(dt);   // 69-v5-shops.js
 }
 // 繃帶：出院後 5 分鐘，額頭一圈、左前臂一段
 const BAND = (() => {

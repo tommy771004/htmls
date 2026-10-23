@@ -408,6 +408,9 @@ const FAC = (() => {
     hosp: { i: 4, j: 1, lots: [{ x0: 12.5, x1: 28, z0: 12.5, z1: 49.5, style: 8, floors: 2, axis: 'x', face: -1, er: 1 }, { x0: 28, x1: 59.5, z0: 12.5, z1: 49.5, style: 8, floors: 8, axis: 'x', face: -1, back: 1, roof: 1 }] },
     // 分局（4 層紅磚，面向東邊的大道，屋頂停機坪、北牆逃生梯）；西邊是圍起來的拖吊場
     pd: { i: 0, j: 4, lots: [{ x0: 37.5, x1: 59.5, z0: 12.5, z1: 49.5, style: 0, floors: 4, axis: 'x', face: 1, roof: 1 }], yard: { x0: 12.5, x1: 36.5, z0: 12.5, z1: 49.5 } },
+    // 楓林里的商店街（69-v5-shops.js）：槍店（店面往後退，騎樓下是櫃台）與後面的露天射擊場、服飾店、停車場、東側的洗車隧道（南北穿過街區）
+    mall: { i: 3, j: 7, lots: [{ x0: 12.5, x1: 30, z0: 15.5, z1: 25, style: 4, floors: 1, axis: 'z', face: -1 }, { x0: 31, x1: 44, z0: 12.5, z1: 27, style: 2, floors: 2, axis: 'z', face: -1 }],
+      range: { x0: 12.5, x1: 30, z0: 25, z1: 49.5 }, lot: { x0: 31, x1: 46, z0: 27, z1: 49.5 }, wash: { x0: 47, x1: 55, z0: 18, z1: 42 } },
   };
   for (const [id, F] of Object.entries(S)) {
     const b = blocks.find(o => !o.outer && o.i === F.i && o.j === F.j);
@@ -427,7 +430,7 @@ const FAC = (() => {
       colliders.push(L.col = { x0: L.x0, x1: L.x1, z0: L.z0, z1: L.z1, hy: h - .05 });
       return L;
     });
-    if (F.yard) F.yard = { x0: F.ax + F.yard.x0, x1: F.ax + F.yard.x1, z0: F.az + F.yard.z0, z1: F.az + F.yard.z1 };
+    for (const k of ['yard', 'range', 'lot', 'wash']) if (F[k]) F[k] = { x0: F.ax + F[k].x0, x1: F.ax + F[k].x1, z0: F.az + F[k].z0, z1: F.az + F[k].z1 };
   }
   return S;
 })();

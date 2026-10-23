@@ -15,7 +15,7 @@ const SPOT_COL = lin(0xdfe8ff);
 
 // ─── 報案與熱度 ───
 function crime(kind, x = player.x, z = player.z) {
-  if (player.where !== 'out' || life.dead) return;
+  if (player.where !== 'out' || life.dead || v5Quiet(kind)) return;   // 69-v5-shops.js：射擊場裡開槍不算
   const t = uTimeNow(), n = CRIME[kind];
   if (!n) return;
   if ((kind === 'shots' || kind === 'blast' || kind === 'explode') && (evBountyNear(x, z) || side.act && side.act.noCrime && side.act.noCrime(x, z))) return;   // 69-street.js 攔逃犯車、69-survival.js 的貨場不算罪

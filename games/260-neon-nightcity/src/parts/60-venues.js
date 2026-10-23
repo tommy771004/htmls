@@ -479,6 +479,7 @@ function exitVenue(then) {
 }
 // 其他模組可以掛進來的互動（車行、車庫）：回傳 { key, text, fn } 或 null
 const ctxHooks = [];
+const ctxLate = [];   // 比門口、櫃台這些固定的互動提示後問（69-v3-world.js 的招計程車：路過的計程車不該蓋掉門口的「進入」）
 // 依位置找出目前可以做的事，回傳 { key, text, fn }
 function contextAction() {
   const p = player;
@@ -508,6 +509,7 @@ function contextAction() {
     if (near(-8.6, 12.5, 2.2)) return { key: 'E', text: '點一杯', fn: () => { sfx.glass(); post.wobble = .6; toast('酒保推來一杯發光的東西'); } };
     if (Math.abs(p.x) < 6 && p.z > 13 && p.z < 25 && !p.dance) return { key: 'G', text: '跳舞', fn: () => toggleDance() };
   }
+  for (const h of ctxLate) { const r = h(p, near); if (r) return r; }
   return null;
 }
 // CHROME WORKS 換色：第一個選項是這台車的原廠色，換完記在車庫存檔裡

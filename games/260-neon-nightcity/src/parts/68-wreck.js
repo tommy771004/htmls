@@ -126,6 +126,7 @@ function pedRam(k, v, sp) {
   ps.fly = { vx: v.vx * 1.15, vz: v.vz * 1.15, vy: Math.min(12, .45 * sp), y: base, spin: 0 };
   if (!dead) { ps.down = 3.5 + Math.min(3, sp * .3); ps.stun = 1; }   // 沒死：落地躺一下，爬起來逃跑（40-people.js 的 stun 流程）
   if (dead && sp > 14) blood(p.x, 1, p.z);
+  v5Blood(v);   // 69-v5-shops.js：車頭沾血
   return dead;
 }
 function wreckUpdate(dt) {
