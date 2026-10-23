@@ -17,12 +17,102 @@ const sfx = (() => {
     for (let i = 0; i < d.length; i++) { l = (l + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; }
     const s = ac.createBufferSource(); s.buffer = b; s.loop = true; return s;
   }
+  // ─── 真實錄音（tools/sfx.mjs → assets/260/sfx/，Freesound 的 CC0 錄音）：只在 http(s) 下載；以檔案開啟、下載失敗或還沒解碼完時，各音效退回下面的合成音 ───
+  // 生命週期：單發音在解碼時就裁好長度、最後 35% 淡到無聲，播完 onended 立刻斷線；同名的音有同時發聲上限，超過時最舊的 30 ms 內收掉。
+  // 循環音（引擎、甩尾、警笛、旋翼）只在需要時建立，音量歸零 0.4 s 後就停掉來源，不在背景空轉。
+  const REC_ON = /^https?:$/.test(location.protocol), REC_DIR = '../assets/260/sfx/';
+  const rec = { one: {}, loop: {}, last: {}, live: {}, gapT: {}, gapK: {}, n: 0, fail: [], ready: false };
+  const CAP = { pistol: 6, smg: 8, rifle: 8, shotgun: 4, sniper: 3, silenced: 6, explode: 3, crash: 3, bump: 3, body: 3, step: 2, punch: 3, horn: 3 };
+  const GAP = { crash: .12, bump: .07, body: .06, bodyfall: .3, glass: .1, splash: .15, horn: .2 };   // 同名的音最短間隔（碰撞每幀都可能回報），間隔內只讓更大聲的蓋過去
+  const recBytes = !REC_ON ? null : fetch(REC_DIR + 'sfx.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error('sfx.json ' + r.status)))).then((man) => {
+    const files = new Set([...Object.values(man.one).flat().map((v) => v[0]), ...Object.values(man.loop).map((v) => v[0])]);
+    return Promise.all([...files].map((f) => fetch(REC_DIR + f).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => [f, b], () => [f, null]))).then((bs) => ({ man, bs }));
+  }).catch((e) => { rec.fail.push(String(e.message || e)); return null; });
+  // 單聲道、裁到 [o, o+d]、峰值正規化到 0.9；開頭 3 ms 淡入（從中間切也不會爆音），最後 35% 以平方曲線淡到 0
+  function recSlice(b, o, d) {
+    const sr = b.sampleRate, i0 = Math.max(0, Math.round(o * sr)), n = Math.max(1, Math.min(b.length - i0, Math.round(d * sr)));
+    const out = ac.createBuffer(1, n, sr), y = out.getChannelData(0);
+    for (let c = 0; c < b.numberOfChannels; c++) { const x = b.getChannelData(c); for (let i = 0; i < n; i++) y[i] += x[i0 + i] / b.numberOfChannels; }
+    let pk = 1e-4; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(y[i]));
+    const g = .9 / pk, fi = Math.round(.003 * sr), fo = Math.round(n * .35);
+    for (let i = 0; i < n; i++) { let e = g; if (i < fi) e *= i / fi; const r = n - i; if (r < fo) e *= (r / fo) ** 2; y[i] *= e; }
+    return out;
+  }
+  // 無縫循環：多讀 80 ms，和開頭做等功率交叉淡化；RMS 正規化到 0.25，各層引擎的音量才對得起來
+  function recLoopBuf(b, o, d) {
+    const sr = b.sampleRate, i0 = Math.round(o * sr), xf = Math.round(.08 * sr), n = Math.min(Math.round(d * sr), b.length - i0 - xf);
+    const out = ac.createBuffer(1, n, sr), y = out.getChannelData(0);
+    for (let c = 0; c < b.numberOfChannels; c++) {
+      const x = b.getChannelData(c);
+      for (let i = 0; i < n; i++) { let v = x[i0 + i]; if (i < xf) { const w = i / xf; v = v * Math.sqrt(w) + x[i0 + n + i] * Math.sqrt(1 - w); } y[i] += v / b.numberOfChannels; }
+    }
+    let e = 0; for (let i = 0; i < n; i++) e += y[i] * y[i];
+    const g = .25 / Math.max(1e-4, Math.sqrt(e / n)); for (let i = 0; i < n; i++) y[i] *= g;
+    return out;
+  }
+  async function recLoad() {
+    const got = await recBytes; if (!got || !ac) return;
+    const bufs = {};
+    await Promise.all(got.bs.map(async ([f, b]) => { if (!b) { rec.fail.push(f); return; } try { bufs[f] = await ac.decodeAudioData(b); } catch (e) { rec.fail.push(f); } }));
+    for (const [k, vs] of Object.entries(got.man.one)) { const l = vs.filter((v) => bufs[v[0]]).map(([f, o, d]) => recSlice(bufs[f], o, d)); if (l.length) rec.one[k] = l; }
+    for (const [k, [f, o, d]] of Object.entries(got.man.loop)) if (bufs[f]) rec.loop[k] = recLoopBuf(bufs[f], o, d);
+    rec.ready = true;
+  }
+  // 播一個錄音變體（不連續重複同一個、音高 ±4% 隨機）；回傳 false 表示沒有錄音，呼叫端改用合成音
+  function rplay(name, { k = 1, rate = 1, bus = master, t = 0, pan = 0, lp = 0 } = {}) {
+    const vs = rec.one[name]; if (!vs || !ac || !(k > .005)) return !!vs;
+    const now = ac.currentTime, t0 = Math.max(now, t || now);
+    if (GAP[name] && !t) { if (now - (rec.gapT[name] || -9) < GAP[name] && k <= rec.gapK[name]) return true; rec.gapT[name] = now; rec.gapK[name] = k; }
+    if (rec.n > 40 && k < .25) return true;   // 太多聲音同時響時丟掉小聲的
+    let i = Math.floor(Math.random() * vs.length); if (vs.length > 1 && i === rec.last[name]) i = (i + 1) % vs.length; rec.last[name] = i;
+    const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = vs[i]; s.playbackRate.value = rate * (1 + (Math.random() - .5) * .08); g.gain.value = k;
+    let node = s;
+    if (lp) { const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; node.connect(f); node = f; }
+    if (pan) { const p = ac.createStereoPanner(); p.pan.value = pan; node.connect(p); node = p; }
+    node.connect(g); g.connect(bus); s.start(t0); rec.n++;
+    const live = rec.live[name] || (rec.live[name] = []), v = { s, g };
+    live.push(v);
+    while (live.length > (CAP[name] || 4)) { const o = live.shift(); o.g.gain.setTargetAtTime(0, now, .008); try { o.s.stop(now + .03); } catch (e) {} }
+    s.onended = () => { rec.n--; g.disconnect(); const j = live.indexOf(v); if (j >= 0) live.splice(j, 1); };
+    return true;
+  }
+  // 循環音的來源：要用時才建，k 歸零 0.4 s 後停掉（lp 給遠處的警笛悶住）
+  function rloop(name, bus = master) {
+    const b = rec.loop[name]; if (!b) return null;
+    const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0;
+    const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 20000;
+    s.connect(f); f.connect(g); g.connect(bus); s.start(ac.currentTime, Math.random() * b.duration);
+    return { s, g, f, idle: 0 };
+  }
+  function lset(L, k, dt, tc = .08) {
+    if (!L) return L;
+    L.g.gain.setTargetAtTime(k, ac.currentTime, tc);
+    if (k > .002) { L.idle = 0; return L; }
+    if ((L.idle += dt) < .4) return L;
+    try { L.s.stop(); } catch (e) {} L.g.disconnect(); return null;
+  }
+  // 一段固定長度的循環音（遠處經過的警笛）：淡入、持續、淡出，到點停
+  function rlong(name, dur, k, { bus = ambG, pan = 0, lp = 0 } = {}) {
+    const b = rec.loop[name]; if (!b || !ac) return false;
+    const t = ac.currentTime + .05, s = ac.createBufferSource(), g = ac.createGain(), p = ac.createStereoPanner(), f = ac.createBiquadFilter();
+    s.buffer = b; s.loop = true; f.type = 'lowpass'; f.frequency.value = lp || 20000; p.pan.value = pan;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(k, t + dur * .3); g.gain.setValueAtTime(k, t + dur * .55); g.gain.linearRampToValueAtTime(0, t + dur);
+    s.connect(f); f.connect(p); p.connect(g); g.connect(bus); s.start(t, Math.random() * b.duration); s.stop(t + dur + .02);
+    s.onended = () => g.disconnect();
+    return true;
+  }
+  const camD = (o) => (o && typeof o.x === 'number' ? Math.hypot(o.x - camera.position.x, o.z - camera.position.z) : 0);
   function outGain() { return st.muted || st.hidden && SET.muteBlur ? 0 : .8 * SET.vMaster * (st.duck ? .25 : 1); }
   function mix() {
     if (!ac) return;
     const t = ac.currentTime;
     out.gain.setTargetAtTime(outGain(), t, .05); master.gain.setTargetAtTime(SET.vSfx, t, .05);
     musicG.gain.setTargetAtTime(SET.vMusic, t, .05); ambG.gain.setTargetAtTime(SET.vAmb, t, .05);
+    // 暫停選單打開時 step 不跑、update 不會被呼叫：甩尾、警笛、旋翼直接收掉（關掉選單後 update／loops 需要時再建）
+    if (st.duck) {
+      for (const k of ["skid", "wail", "yelp", "heli"]) if (st[k]) { const L = st[k]; st[k] = null; L.g.gain.setTargetAtTime(0, t, .02); try { L.s.stop(t + .1); } catch (e) {} }
+      if (st.sir) { st.sir.g.gain.setTargetAtTime(0, t, .02); st.sir.hg.gain.setTargetAtTime(0, t, .02); }
+    }
   }
   function init() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -58,6 +148,7 @@ const sfx = (() => {
     st.clubT0 = ac.currentTime + .1; st.nextClub = st.clubT0; st.barT0 = ac.currentTime + .1; st.nextBar = st.barT0;
     sched = setInterval(schedule, 25);
     ambientLoop();
+    recLoad();
   }
   // ─── 夜店：四拍大鼓、反拍開鈸、拍手、Acid 貝斯、和弦鋪底、後段琶音 ───
   const CHORDS = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]];
@@ -122,6 +213,8 @@ const sfx = (() => {
     setTimeout(ambientLoop, 4000 + Math.random() * 9000);
     if (!ac || st.where !== 'out' || st.duck) return;   // 暫停選單開著時不放
     const t = ac.currentTime + .05;
+    // 有錄音時：遠處的喇叭悶在低通後面，偶爾一台警車在幾條街外經過（6 s 淡入淡出，到點就停）
+    if (Math.random() < .7 ? rplay('horn', { k: .1 + Math.random() * .08, lp: 900, pan: Math.random() * 1.6 - .8, bus: ambG }) : rlong('sirenWail', 6, .05, { pan: Math.random() * 1.6 - .8, lp: 1400 })) return;
     if (Math.random() < .7) {
       const f = 330 + Math.random() * 120, g = ac.createGain(), p = ac.createStereoPanner(); p.pan.value = Math.random() * 2 - 1;
       for (const k of [1, 1.26]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * k; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 900; o.connect(fl); fl.connect(g); o.start(t); o.stop(t + .5); }
@@ -135,19 +228,41 @@ const sfx = (() => {
       o.connect(g); g.connect(p); p.connect(ambG); o.start(t); o.stop(t + 5.7);
     }
   }
-  function startEngine(v) {
+  // 引擎錄音：汽車是 idle／low／med／high 四層轉速循環，依轉速交叉淡化、各層在自己的中心轉速附近變調；機車用機車怠速加高兩層的汽車錄音再調高
+  const ENG_CAR = [['engIdle', .12, 1], ['engLow', .4, 1], ['engMed', .7, 1], ['engHigh', 1, 1]];
+  const ENG_BIKE = [['bikeIdle', .12, 1], ['engMed', .55, 1.3], ['engHigh', 1, 1.35]];
+  function startEngine(v, quiet) {
     if (!ac) return;
-    if (eng) stopEngine();
+    if (eng) stopEngine(true);
+    const set = v.isCar ? ENG_CAR : ENG_BIKE;
+    if (set.every(([n]) => rec.loop[n])) {
+      const g = ac.createGain(); g.gain.value = 0; g.connect(master);
+      const layers = set.map(([n, c, m]) => { const s = ac.createBufferSource(), lg = ac.createGain(); s.buffer = rec.loop[n]; s.loop = true; lg.gain.value = 0; s.connect(lg); lg.connect(g); s.start(ac.currentTime, Math.random() * s.buffer.duration); return { s, lg, c, m }; });
+      if (!quiet) rplay('engStart', { k: .45, rate: v.isCar ? 1 : 1.3 });
+      g.gain.setTargetAtTime(1, ac.currentTime + (quiet ? 0 : .35), .12);
+      eng = { rec: true, g, layers, car: v.isCar, v };
+      return;
+    }
     const o1 = ac.createOscillator(), o2 = ac.createOscillator(), fl = ac.createBiquadFilter(), g = ac.createGain();
     o1.type = 'sawtooth'; o2.type = v.isCar ? 'square' : 'sawtooth'; fl.type = 'lowpass'; fl.frequency.value = 500; fl.Q.value = 2;
     g.gain.value = 0;
     o1.connect(fl); o2.connect(fl); fl.connect(g); g.connect(master); o1.start(); o2.start();
-    eng = { o1, o2, fl, g, car: v.isCar };
+    eng = { o1, o2, fl, g, car: v.isCar, v };
   }
-  function stopEngine() { if (!eng) return; const e = eng; eng = null; const t = ac.currentTime; e.g.gain.setTargetAtTime(0, t, .15); e.o1.stop(t + .8); e.o2.stop(t + .8); }
+  // 熄火：錄音版 0.12 s 收掉、0.3 s 停來源，換車時（swap）不放熄火聲
+  function stopEngine(swap) {
+    if (!eng) return; const e = eng; eng = null; const t = ac.currentTime;
+    if (e.rec) { e.g.gain.setTargetAtTime(0, t, .04); for (const L of e.layers) L.s.stop(t + .3); setTimeout(() => e.g.disconnect(), 400); if (!swap) rplay('engStop', { k: .35, rate: e.car ? 1 : 1.3 }); return; }
+    e.g.gain.setTargetAtTime(0, t, .1); e.o1.stop(t + .5); e.o2.stop(t + .5);
+  }
   return {
     init,
     get ready() { return !!ac; },
+    // 驗收用：錄音解碼好了沒、有哪些、失敗的檔案、同時發聲數、哪些循環音的來源還開著
+    get rec() { return { on: REC_ON, ready: rec.ready, one: Object.keys(rec.one), loop: Object.keys(rec.loop), fail: rec.fail.slice(), voices: rec.n, eng: eng ? (eng.rec ? "rec" : "synth") : null, loops: ["skid", "wail", "yelp", "heli"].filter((k) => st[k]) }; },
+    play: (name, o) => rplay(name, o),
+    // 每段錄音的長度與 RMS（dB）：檢查裁切點沒有落在無聲的地方
+    stats() { const db = (b) => { const y = b.getChannelData(0); let e = 0; for (let i = 0; i < y.length; i++) e += y[i] * y[i]; return +(10 * Math.log10(e / y.length + 1e-12)).toFixed(1); }; const o = {}; for (const [k, vs] of Object.entries(rec.one)) o[k] = vs.map((b) => [+b.duration.toFixed(2), db(b)]); for (const [k, b] of Object.entries(rec.loop)) o[k] = [[+b.duration.toFixed(2), db(b)]]; return o; },
     beat() { return (now() - (ac ? st.clubT0 : 0)) * CLUB_BPM / 60; },
     setMuted(m) { st.muted = m; mix(); },
     // 95-menu.js：音量滑桿、暫停時壓低（duck）、切到別的分頁時靜音（hidden）
@@ -165,55 +280,94 @@ const sfx = (() => {
       clubF.frequency.setTargetAtTime(s.where === 'club' ? 16000 : 260 + clamp(1 - s.dClub / 20, 0, 1) * 500, t, .25);
       barBus.gain.setTargetAtTime(s.where === 'bar' ? .8 : out ? clamp(1 - s.dBar / 22, 0, 1) * .3 : 0, t, .25);
       barF.frequency.setTargetAtTime(s.where === 'bar' ? 9000 : 700, t, .25);
-      if (eng) {
+      if (eng && !eng.rec && rec.ready && (eng.car ? ENG_CAR : ENG_BIKE).every(([n]) => rec.loop[n])) startEngine(eng.v, true);   // 上車時錄音還沒解碼完：解碼好就換掉合成引擎
+      if (eng && eng.rec) {
+        const r = clamp(s.rpm, 0, 1), vol = .3 + s.thr * .2 + (s.nitro ? .08 : 0);
+        for (const L of eng.layers) {
+          const w = Math.max(0, 1 - Math.abs(r - L.c) / .3);
+          L.lg.gain.setTargetAtTime(w * vol, t, .06);
+          L.s.playbackRate.setTargetAtTime(clamp(1 + (r - L.c) * .9, .78, 1.4) * L.m, t, .05);
+        }
+      } else if (eng) {
         const base = eng.car ? 38 : 52, f = base + s.rpm * (eng.car ? 120 : 160) * (1 + s.gear * .06);
         eng.o1.frequency.setTargetAtTime(f, t, .05); eng.o2.frequency.setTargetAtTime(f * (eng.car ? .5 : 1.01), t, .05);
         eng.fl.frequency.setTargetAtTime(300 + s.thr * 1400 + s.rpm * 900, t, .06);
         eng.g.gain.setTargetAtTime(.05 + s.thr * .07 + s.rpm * .04 + (s.nitro ? .04 : 0), t, .08);
       }
-      skidG.gain.setTargetAtTime(clamp((s.slip - 2.5) / 6, 0, 1) * .16, t, .05);
+      // loops() 只在戶外由 policeUpdate 呼叫：進室內或停止呼叫超過 0.25 s，警笛與旋翼照樣收掉
+      if (t - (st.loopT || 0) > .25) {
+        st.wail = lset(st.wail, 0, dt, .05); st.yelp = lset(st.yelp, 0, dt, .05); st.heli = lset(st.heli, 0, dt, .05);
+        if (st.sir) { st.sir.g.gain.setTargetAtTime(0, t, .05); st.sir.hg.gain.setTargetAtTime(0, t, .05); }
+      }
+      // 甩尾：錄音的輪胎尖叫循環，滑移停了 0.4 s 內就停掉來源；音高隨滑移量略升
+      const sk = clamp((s.slip - 2.5) / 6, 0, 1);
+      if (rec.loop.skid) {
+        skidG.gain.setTargetAtTime(0, t, .05);
+        if (sk > 0 && !st.skid) st.skid = rloop('skid');
+        if (st.skid) { st.skid.s.playbackRate.setTargetAtTime(.9 + sk * .25, t, .1); st.skid = lset(st.skid, sk * .5, dt, .04); }
+      } else skidG.gain.setTargetAtTime(sk * .16, t, .05);
     },
     engineOn(v) { startEngine(v); },
     engineOff() { stopEngine(); },
-    step(run, indoor) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'bandpass', indoor ? 600 : 1400, 1, run ? .1 : .06, indoor ? .06 : .09); if (!indoor) nz(t + .01, master, 'highpass', 4000, .5, .03, .12); },
+    step(run, indoor) { if (!ac) return; if (rplay('step', { k: run ? .3 : .2, lp: indoor ? 2400 : 0, rate: run ? 1.05 : 1 })) return; const t = ac.currentTime; nz(t, master, 'bandpass', indoor ? 600 : 1400, 1, run ? .1 : .06, indoor ? .06 : .09); if (!indoor) nz(t + .01, master, 'highpass', 4000, .5, .03, .12); },
     // 北嶺鐵道橋的列車（21-rail.js）：兩音的電聯車汽笛；行駛聲是一條一直開著的低頻噪音，k 是遠近（0 關掉）、clack 是過軌縫的節奏
-    trainHorn(k) { if (!ac || !(k > .01)) return; const t = ac.currentTime, g = ac.createGain(); for (const [f, d] of [[311, 0], [392, 0], [311, .55], [392, .55]]) { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = f; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1100; o.connect(fl); fl.connect(g); o.start(t + d); o.stop(t + d + .42); } g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05 * k, t + .04); g.gain.setValueAtTime(.05 * k, t + .9); g.gain.exponentialRampToValueAtTime(.0001, t + 1.05); g.connect(master); },
+    trainHorn(k) { if (!ac || !(k > .01)) return; if (rplay('trainHorn', { k: .6 * k })) return; const t = ac.currentTime, g = ac.createGain(); for (const [f, d] of [[311, 0], [392, 0], [311, .55], [392, .55]]) { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = f; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1100; o.connect(fl); fl.connect(g); o.start(t + d); o.stop(t + d + .42); } g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05 * k, t + .04); g.gain.setValueAtTime(.05 * k, t + .9); g.gain.exponentialRampToValueAtTime(.0001, t + 1.05); g.connect(master); },
     trainRun(k, clack) {
       if (!ac) return;
       if (!st.train) { const b = brown(), f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260; const g = ac.createGain(); g.gain.value = 0; b.connect(f); f.connect(g); g.connect(master); b.start(); st.train = { g, f, last: 0 }; }
       const t = ac.currentTime; st.train.g.gain.setTargetAtTime(.22 * k, t, .25); st.train.f.frequency.setTargetAtTime(180 + 260 * k, t, .3);
       if (clack && k > .05 && t - st.train.last > .08) { st.train.last = t; nz(t, master, 'bandpass', 900, 2, .05 * k, .06); nz(t + .11, master, 'bandpass', 760, 2, .04 * k, .06); }
     },
-    horn(c) { if (!ac) return; const t = ac.currentTime; const g = ac.createGain(); for (const k of [1, 1.25]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 370 * k; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1400; o.connect(fl); fl.connect(g); o.start(t); o.stop(t + .45); } g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .45); g.connect(master); },
-    impact(k) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 500, 1, clamp(k / 12, .05, .5), .3); kick(t, master); },
-    splash(k = 1) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 900 + 900 * k, .7, .05 + .2 * k, .25 + .45 * k); nz(t + .03, master, 'highpass', 2600, .6, .03 + .07 * k, .2 + .3 * k); },
-    door() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 300, 1, .2, .25); tone(t + .05, master, 'sine', 90, .2, .005, .2); },
-    doorCar(car) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', car ? 700 : 1500, 1, .15, .12); },
+    // 喇叭依離鏡頭的距離衰減，遠的悶一點
+    horn(c) { if (!ac) return; const hd = camD(c); if (rplay('horn', { k: .5 * clamp(1 - hd / 110, .08, 1), lp: hd > 35 ? 2200 : 0 })) return; const t = ac.currentTime; const g = ac.createGain(); for (const k of [1, 1.25]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 370 * k; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1400; o.connect(fl); fl.connect(g); o.start(t); o.stop(t + .45); } g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .45); g.connect(master); },
+    // 碰撞：kind 'body'＝人撞到東西或摔落（肉身悶響，重的再加倒地聲）、'ped'＝車撞人（肉身＋車身）；沒給 kind 是車／物件的金屬碰撞，k ≥ 9 用重撞、≥ 16 加碎玻璃
+    impact(k, kind) {
+      if (!ac) return;
+      if (kind) { if (rplay('body', { k: clamp(k / 9, .3, 1) })) { if (kind === 'ped') rplay('bump', { k: clamp(k / 14, .2, .6) }); if (k > 9) rplay('bodyfall', { k: .55 }); return; } }
+      else if (rplay(k >= 9 ? 'crash' : 'bump', { k: clamp(k / (k >= 9 ? 18 : 8), .12, 1) })) { if (k >= 16) rplay('glass', { k: .35 }); return; }
+      const t = ac.currentTime; nz(t, master, 'lowpass', 500, 1, clamp(k / 12, .05, .5), .3); kick(t, master);
+    },
+    splash(k = 1) { if (!ac) return; if (rplay('splash', { k: .25 + .55 * k, rate: 1.15 - .25 * k })) return; const t = ac.currentTime; nz(t, master, 'lowpass', 900 + 900 * k, .7, .05 + .2 * k, .25 + .45 * k); nz(t + .03, master, 'highpass', 2600, .6, .03 + .07 * k, .2 + .3 * k); },
+    door() { if (!ac) return; if (rplay('door', { k: .6 })) return; const t = ac.currentTime; nz(t, master, 'lowpass', 300, 1, .2, .25); tone(t + .05, master, 'sine', 90, .2, .005, .2); },
+    doorCar(car) { if (!ac) return; if (rplay('doorCar', { k: .6, rate: car ? 1 : 1.25 })) return; const t = ac.currentTime; nz(t, master, 'lowpass', car ? 700 : 1500, 1, .15, .12); },
     click() { if (!ac) return; tone(ac.currentTime, master, 'sine', 880, .05, .002, .06); },
     rope() { if (!ac) return; const t = ac.currentTime; tone(t, master, 'triangle', 660, .06, .005, .3); tone(t + .12, master, 'triangle', 990, .05, .005, .4); },
     pickup() { if (!ac) return; const t = ac.currentTime; [784, 988, 1175].forEach((f, i) => tone(t + i * .08, master, 'sine', f, .06, .005, .3)); },
     glass() { if (!ac) return; const t = ac.currentTime; tone(t, master, 'sine', 2400, .05, .002, .5); tone(t + .02, master, 'sine', 3150, .03, .002, .4); },
     spray() { if (!ac) return; nz(ac.currentTime, master, 'highpass', 3000, .5, .1, .7); },
     // 68-gta.js：槍聲（尖峰＋低頻＋街道回音）、爆炸（依距離）、碎玻璃、空膛、換彈、出拳
-    shot() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'highpass', 1400, .7, .55, .09); nz(t, master, 'lowpass', 900, .8, .3, .45); const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(48, t + .12); env(g, t, .001, .6, .16); o.connect(g); g.connect(master); o.start(t); o.stop(t + .2); nz(t + .14, master, 'bandpass', 700, .6, .06, .5); },
-    boom(d = 0) { if (!ac) return; const t = ac.currentTime + d / 340, k = clamp(1 - d / 140, .12, 1); const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(900, t); fl.frequency.exponentialRampToValueAtTime(90, t + 1.6); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.9 * k, t + .02); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8); s.playbackRate.value = .6; s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 3); const o = ac.createOscillator(), og = ac.createGain(); o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + .6); env(og, t, .004, .9 * k, .8); o.connect(og); og.connect(master); o.start(t); o.stop(t + 1); for (let i = 0; i < 6; i++) nz(t + .2 + Math.random() * 1.2, master, 'bandpass', 500 + Math.random() * 900, 1, .08 * k, .15); },
-    glassBreak() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'highpass', 2500, .7, .35, .3); for (let i = 0; i < 7; i++) tone(t + Math.random() * .25, master, 'sine', 2600 + Math.random() * 3800, .05, .001, .15 + Math.random() * .2); },
+    shot() { if (!ac) return; if (rplay('pistol', { k: .7 })) return; const t = ac.currentTime; nz(t, master, 'highpass', 1400, .7, .55, .09); nz(t, master, 'lowpass', 900, .8, .3, .45); const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(48, t + .12); env(g, t, .001, .6, .16); o.connect(g); g.connect(master); o.start(t); o.stop(t + .2); nz(t + .14, master, 'bandpass', 700, .6, .06, .5); },
+    // 爆炸：聲音照距離延遲到達、遠的衰減並悶住；錄音裁在 2 s 內淡完，不留長尾
+    boom(d = 0) { if (!ac) return; const t = ac.currentTime + d / 340, k = clamp(1 - d / 140, .12, 1); if (rplay('explode', { k: .95 * k, t: d > 3 ? t : 0, lp: d > 40 ? 500 + 3000 * k : 0, rate: .95 })) return; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(900, t); fl.frequency.exponentialRampToValueAtTime(90, t + 1.6); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.9 * k, t + .02); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8); s.playbackRate.value = .6; s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 3); const o = ac.createOscillator(), og = ac.createGain(); o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + .6); env(og, t, .004, .9 * k, .8); o.connect(og); og.connect(master); o.start(t); o.stop(t + 1); for (let i = 0; i < 6; i++) nz(t + .2 + Math.random() * 1.2, master, 'bandpass', 500 + Math.random() * 900, 1, .08 * k, .15); },
+    glassBreak() { if (!ac) return; if (rplay('glass', { k: .55 })) return; const t = ac.currentTime; nz(t, master, 'highpass', 2500, .7, .35, .3); for (let i = 0; i < 7; i++) tone(t + Math.random() * .25, master, 'sine', 2600 + Math.random() * 3800, .05, .001, .15 + Math.random() * .2); },
     zap() { if (!ac) return; const t = ac.currentTime; for (let i = 0; i < 5; i++) tone(t + i * .045, master, 'sawtooth', 1100 + i * 170, .07, .002, .04); nz(t, master, 'highpass', 4200, 1, .16, .25); },
-    dry() { if (!ac) return; tone(ac.currentTime, master, 'square', 1900, .04, .001, .03); },
-    reload() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'bandpass', 2400, 2, .12, .05); tone(t + .02, master, 'square', 900, .03, .001, .04); nz(t + .75, master, 'bandpass', 1800, 2, .16, .06); tone(t + .78, master, 'square', 1300, .04, .001, .05); },
-    punch() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 420, 1, .35, .14); tone(t, master, 'sine', 95, .3, .002, .12); },
+    dry() { if (!ac) return; if (rplay('dry', { k: .5 })) return; tone(ac.currentTime, master, 'square', 1900, .04, .001, .03); },
+    reload() { if (!ac) return; if (rplay('reload', { k: .55 })) return; const t = ac.currentTime; nz(t, master, 'bandpass', 2400, 2, .12, .05); tone(t + .02, master, 'square', 900, .03, .001, .04); nz(t + .75, master, 'bandpass', 1800, 2, .16, .06); tone(t + .78, master, 'square', 1300, .04, .001, .05); },
+    punch() { if (!ac) return; if (rplay('punch', { k: .85 })) return; const t = ac.currentTime; nz(t, master, 'lowpass', 420, 1, .35, .14); tone(t, master, 'sine', 95, .3, .002, .12); },
     whoosh() { if (!ac) return; const t = ac.currentTime; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'bandpass'; fl.Q.value = 2; fl.frequency.setValueAtTime(1400, t); fl.frequency.exponentialRampToValueAtTime(350, t + .2); env(g, t, .02, .12, .2); s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + .3); },
-    thunder(d) { if (!ac) return; const t = ac.currentTime + d; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.value = 160; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .15); g.gain.exponentialRampToValueAtTime(0.0001, t + 4); s.playbackRate.value = .5; s.connect(fl); fl.connect(g); g.connect(ambG); s.start(t); s.stop(t + 4.2); },
+    thunder(d) { if (!ac) return; if (rplay('thunder', { k: .7, t: ac.currentTime + d, bus: ambG, lp: 2500 })) return; const t = ac.currentTime + d; const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'lowpass'; fl.frequency.value = 160; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .15); g.gain.exponentialRampToValueAtTime(0.0001, t + 4); s.playbackRate.value = .5; s.connect(fl); fl.connect(g); g.connect(ambG); s.start(t); s.stop(t + 4.2); },
     // 69-combat.js／69-police.js：各種槍聲（k 音量、f 音色：1 手槍、.7 衝鋒槍、1.3 步槍、2 霰彈、2.6 狙擊、.5 機槍）、火箭、受傷、WASTED／BUSTED
     gun(k = 1, f = 1) {
-      if (!ac || k < .02) return; const t = ac.currentTime, lo = f >= 2 ? 1.6 : 1;
+      if (!ac || k < .02) return;
+      // 錄音：f 對到槍種（.3 以下是消音器），遠處的槍聲（k 小）悶在低通後面
+      const kind = f <= .35 ? 'silenced' : f >= 2.4 ? 'sniper' : f >= 1.8 ? 'shotgun' : f >= 1.15 ? 'rifle' : f <= .55 ? 'rifle' : f <= .8 ? 'smg' : 'pistol';
+      if (rplay(kind, { k: (kind === 'silenced' ? 2.6 : .75) * k, rate: f <= .55 && kind === 'rifle' ? 1.08 : 1, lp: k < .6 ? 1200 + k * 7000 : 0 })) return;
+      const t = ac.currentTime, lo = f >= 2 ? 1.6 : 1;
       nz(t, master, 'highpass', 1600 / lo, .7, .5 * k, .05 + f * .025); nz(t, master, 'lowpass', 1100 / lo, .8, .32 * k, .2 + f * .14);
       const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(160 / lo, t); o.frequency.exponentialRampToValueAtTime(44, t + .1 + f * .03); env(g, t, .001, .55 * k * Math.min(1.4, f), .12 + f * .05); o.connect(g); g.connect(master); o.start(t); o.stop(t + .4);
       if (f >= 1) nz(t + .12, master, 'bandpass', 500, .6, .12 * k * f, .5 + f * .35);   // 街道回音
     },
-    launch() { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 600, .7, .45, .35); const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'bandpass'; fl.Q.value = 1.5; fl.frequency.setValueAtTime(2200, t); fl.frequency.exponentialRampToValueAtTime(600, t + .9); env(g, t, .01, .25, .9); s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 1); },
-    hurt() { if (!ac) return; const t = ac.currentTime; tone(t, master, 'sine', 70, .45, .002, .18); nz(t, master, 'lowpass', 300, 1, .2, .1); },
-    bounce() { if (!ac) return; const t = ac.currentTime; tone(t, master, 'triangle', 1500 + Math.random() * 400, .05, .001, .06); },
+    launch() { if (!ac) return; if (rplay('rocket', { k: .7 })) return; const t = ac.currentTime; nz(t, master, 'lowpass', 600, .7, .45, .35); const s = noiseSrc(false), fl = ac.createBiquadFilter(), g = ac.createGain(); fl.type = 'bandpass'; fl.Q.value = 1.5; fl.frequency.setValueAtTime(2200, t); fl.frequency.exponentialRampToValueAtTime(600, t + .9); env(g, t, .01, .25, .9); s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + 1); },
+    hurt() { if (!ac) return; if (rplay('body', { k: .75, rate: .9 })) return; const t = ac.currentTime; tone(t, master, 'sine', 70, .45, .002, .18); nz(t, master, 'lowpass', 300, 1, .2, .1); },
+    // 69-combat.js 的 hitWith：子彈打中人（肉身悶響）、車與直升機（金屬，偶爾跳彈）、地面與牆（偶爾跳彈）；60 m 外聽不到，只有錄音版（合成音時照舊無聲）
+    bulletHit(kind, x, z) {
+      if (!ac || !kind || kind === 'prop') return;
+      const k = clamp(1 - Math.hypot(x - camera.position.x, z - camera.position.z) / 60, 0, 1); if (k < .05) return;
+      if (/^(ped|cop|fighter|extra|fn)$/.test(kind)) rplay('body', { k: .4 * k, rate: 1.25 });
+      else if (/^(car|veh|heli|rap|ebox)$/.test(kind)) { rplay('bump', { k: .28 * k, rate: 1.5 }); if (Math.random() < .3) rplay('ricochet', { k: .2 * k }); }
+      else if (Math.random() < .25) rplay('ricochet', { k: .15 * k, lp: 6000 });
+    },
+    bounce() { if (!ac) return; if (rplay('ricochet', { k: .18, rate: 1.3, lp: 5000 })) return; const t = ac.currentTime; tone(t, master, 'triangle', 1500 + Math.random() * 400, .05, .001, .06); },
     beep() { if (!ac) return; tone(ac.currentTime, master, 'square', 1760, .03, .001, .05); },
     wasted() { if (!ac) return; const t = ac.currentTime; kick(t, master); tone(t, master, 'sine', 196, .25, .01, 2.2, 900, 120); tone(t + .05, master, 'sine', 98, .3, .01, 2.6); },
     // 69-crew.js：特殊能力啟動（低頻下沉＋心跳般的悶響）與關閉、切換角色時往上衝的風聲
@@ -223,7 +377,22 @@ const sfx = (() => {
     // 持續音：警笛（n 台、最近的距離）與直升機旋翼（距離），每幀更新
     loops(siren, sd, heli, hd) {
       if (!ac) return;
-      const t = ac.currentTime;
+      const t = ac.currentTime, lt = st.loopT || t; st.loopT = t;
+      // 錄音：遠處是 wail、30 m 內換成 yelp（交叉淡化），遠的警笛悶住；沒有警車或直升機時 0.4 s 內停掉來源
+      if (rec.loop.sirenWail && rec.loop.sirenYelp && rec.loop.heli) {
+        const dt = Math.min(.1, t - lt);
+        const k = siren ? clamp(1 - sd / 160, 0, 1) ** 2 * .5 : 0, y = clamp((40 - sd) / 15, 0, 1);
+        if (k * (1 - y) > 0 && !st.wail) st.wail = rloop('sirenWail');
+        if (k * y > 0 && !st.yelp) st.yelp = rloop('sirenYelp');
+        if (st.wail) st.wail.f.frequency.setTargetAtTime(1500 + 14000 * k, t, .2);
+        st.wail = lset(st.wail, k * (1 - y), dt, .12); st.yelp = lset(st.yelp, k * y, dt, .12);
+        const hk = heli ? clamp(1 - hd / 220, 0, 1) ** 1.5 * .8 : 0;
+        if (hk > 0 && !st.heli) st.heli = rloop('heli');
+        if (st.heli) st.heli.f.frequency.setTargetAtTime(600 + 12000 * hk, t, .2);
+        st.heli = lset(st.heli, hk, dt, .2);
+        if (st.sir) { st.sir.g.gain.setTargetAtTime(0, t, .05); st.sir.hg.gain.setTargetAtTime(0, t, .05); }
+        return;
+      }
       if (!st.sir) {
         const g = ac.createGain(); g.gain.value = 0; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2400; g.connect(fl); fl.connect(master);
         const o = ac.createOscillator(); o.type = 'sawtooth'; const o2 = ac.createOscillator(); o2.type = 'square'; o2.detune.value = 9;

@@ -373,6 +373,7 @@ window.__nc = {
   step: (dt = 1 / 60) => step(dt),
   // 碰撞：靜態盒（世界 AABB 是 bx0…；有 f 的盒 x0…z1 是 f 框裡的座標）、圓柱、每幀重建的圓；collide(x, z, r, y) 照玩家走路的方式推一次（空氣牆稽核用）
   col: { colliders, circles, dynCircles, dynMore, toW: (x, z, f) => toW(x, z, f), toL: (x, z, f) => toL(x, z, f), collide(x, z, r = .32, y = 0) { colY = y; const o = collideCircle(x, z, r, false, true); colY = 0; return o; } },
+  sfx,   // 80-audio.js：sfx.rec 是真實錄音的載入狀態、正在響的聲音數與循環音
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.y = spawnY(x, z); player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },   // 傳送到快速道路上（最近的路是快速道路）：站在橋面
   // 邏輯座標（方格；spots 裡的門口、sea 的矩形、APT 的 door 都是）：換成世界座標再傳送，朝向一起轉

@@ -388,13 +388,13 @@ function vehHits(v, imp) {
     const p = peds.people[k];
     for (const s of [1, -1]) {
       const cx = v.x + fx * v.off * s, cz = v.z + fz * v.off * s;
-      if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { const dead = pedRam(k, v, sp); sfx.impact(sp * .6); if (v === player.veh) crime(dead ? 'kill' : 'assault', p.x, p.z); break; }   // pedRam：68-wreck.js 的撞擊傷害與擊飛
+      if (Math.hypot(p.x - cx, p.z - cz) < v.rad + .35) { const dead = pedRam(k, v, sp); sfx.impact(sp * .6, 'ped'); if (v === player.veh) crime(dead ? 'kill' : 'assault', p.x, p.z); break; }   // pedRam：68-wreck.js 的撞擊傷害與擊飛
     }
   }  // 69-squads.js 的戰鬥員（敵方與搶包賊）：玩家開車撞到就倒
   if (v !== player.veh) return;
   for (const f of SQ.f) {
     if (!fUp(f) || fAlly(f)) continue;
-    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { if (fHit(f, RAM_K * sp * sp, v.vx / sp, v.vz / sp, true)) kinLaunch(f, v.vx * 1.15, v.vz * 1.15, Math.min(12, .45 * sp)); sfx.impact(sp * .6); break; }   // kinLaunch：和 pedRam 一樣飛出去
+    for (const s of [1, -1]) if (Math.hypot(f.x - v.x - fx * v.off * s, f.z - v.z - fz * v.off * s) < v.rad + .4) { if (fHit(f, RAM_K * sp * sp, v.vx / sp, v.vz / sp, true)) kinLaunch(f, v.vx * 1.15, v.vz * 1.15, Math.min(12, .45 * sp)); sfx.impact(sp * .6, 'ped'); break; }   // kinLaunch：和 pedRam 一樣飛出去
   }
 }
 

@@ -84,7 +84,7 @@ function ladStep(inp, dt) {
   if (A.y <= 0) {   // 到底
     const [x, z] = ladFoot(L); V5.lad = null;
     player.x = x; player.z = z; player.y = groundH(x, z); player.v = 0; player.anim = -1;
-    if (A.slide) { sfx.impact(4); dust(x, player.y + .1, z, 4); }
+    if (A.slide) { sfx.impact(4, 'body'); dust(x, player.y + .1, z, 4); }
     return;
   }
   A.y = Math.min(A.y, L.y1 - .1);
@@ -289,7 +289,7 @@ function fenceStep(A, dt) {
   player.x = X; player.z = Z; player.y = groundH(X, Z) + (FENCE_H + .1) * (u < .8 ? up : 1 - (u - .8) / .2);
   player.yaw = yawW(f.zn, Math.atan2(f.nx, f.nz));
   me.anim(0, ANIM.climb, A.ph, 0); me.anim2(0, 0, 0); me.place(0, player.x, player.y, player.z, player.yaw); me.flush();
-  if (u >= 1) { V5.lad = null; player.y = groundH(X, Z); player.anim = -1; sfx.step && sfx.impact(3); }
+  if (u >= 1) { V5.lad = null; player.y = groundH(X, Z); player.anim = -1; sfx.step && sfx.impact(3, 'body'); }
 }
 
 // ─── 互動提示 ───

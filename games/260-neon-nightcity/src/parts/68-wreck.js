@@ -18,7 +18,7 @@ function wreckStage(v, k, dt) {
   }
   // 40%：動力只剩七成五，偶爾熄火半秒到一秒
   if (k < STAGE.black) {
-    if (v.stall > 0) v.stall -= dt;
+    if (v.stall > 0) { v.stall -= dt; if (v.stall <= 0 && mine) sfx.engineOn(v); }   // 熄火結束：重新發動（引擎聲原本熄了就不會回來）
     else if (Math.random() < dt * .12) { v.stall = .5 + Math.random() * .7; if (mine) { sfx.engineOff(); toast('引擎熄火了一下'); } }
     v.engK = v.stall > 0 ? 0 : .75;
   } else { v.engK = 1; v.stall = 0; }

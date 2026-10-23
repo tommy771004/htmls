@@ -170,6 +170,10 @@ const ITEMS = [
   { id: 'shotgun', src: '/assets/199/models/guns.glb', include: /^sg$/, spacing: 0.0045, native: true,
     recolor: { metal: [0.16, 0.16, 0.17], poly: [0.07, 0.07, 0.075], wood: [0.36, 0.2, 0.1], tan: [0.3, 0.25, 0.17], glass: [0.2, 0.25, 0.3] } },
   { id: 'crowbar', src: PH + 'crowbar_01/crowbar_01_1k.gltf', spacing: 0.0028, grip: [0.5, 0.12, 0.5] },
+  // 球棒、狙擊槍、手榴彈：借 260 已轉正的 arms.glb（解開 meshopt 成 arms_plain.glb；槍口／棒頭朝 +z、上方 +y、公尺）
+  { id: 'bat', src: SF + 'arms_plain.glb', include: /^bat$/, rotX: -Math.PI / 2, spacing: 0.0032, grip: [0.5, 0.1, 0.5] },
+  { id: 'sniper', src: SF + 'arms_plain.glb', include: /^sniper$/, rotY: Math.PI, spacing: 0.0042, grip: [0.5, 0.42, 0.64] },
+  { id: 'grenade', src: SF + 'arms_plain.glb', include: /^grenade$/, spacing: 0.0016, grip: [0.5, 0.5, 0.5] },
   { id: 'gasmask', src: PH + 'old_gas_mask/old_gas_mask_1k.gltf', spacing: 0.0045 },
   { id: 'medkit', src: PH + 'medical_box/medical_box_1k.gltf', spacing: 0.0055 },
   { id: 'ammo', src: PH + 'ammo_box/ammo_box_1k.gltf', spacing: 0.0042 },
@@ -187,6 +191,23 @@ const ITEMS = [
   { id: 'shelter-b', src: SF + 'modern_bus_stop_shelter.glb', size: 3.39, spacing: 0.026, snow: 0.8, dim: 1.15 },
   { id: 'f35', src: SF + 'f-35a_lightning_ii.glb', size: 15.7, spacing: 0.085, dim: 0.9 }, // 夜空飛過的戰機，機頭朝 +Z
   { id: 'can', src: SF + 'soda_cans_3d_pack.glb', include: /crushed_23$/, size: 0.1, spacing: 0.0035, tint: [0.95, 0.32, 0.26] },
+  // 雪裡拋下的車與軍方檢查哨（DanielZhabotinsky 的虛構廠牌車與 Abrams 戰車、TampaJoey 的路障組；原檔借自 260 的 .cache，車頭朝 +x，轉成朝 +Z）
+  { id: 'taxi', src: SF + 'canyon_75_taxi_-_low_poly_model.glb', rotY: -Math.PI / 2, size: 5.3, spacing: 0.032, snow: 0.9, dim: 0.85 },
+  { id: 'sedan', src: SF + 'fairheaven_lt_80_-_low_poly_model.glb', rotY: -Math.PI / 2, size: 5.08, spacing: 0.032, snow: 0.9, dim: 0.85 },
+  { id: 'hatch', src: SF + 'milano_95_-_low_poly_model.glb', rotY: -Math.PI / 2, size: 4.05, spacing: 0.03, snow: 0.9, dim: 0.85 },
+  { id: 'ambulance', src: SF + 'shvan_92_ambulance_-_low_poly_model.glb', rotY: -Math.PI / 2, size: 5.6, spacing: 0.034, snow: 0.85, dim: 0.85 },
+  { id: 'armored', src: SF + 'md_84_armored_-_low_poly_model.glb', rotY: -Math.PI / 2, size: 6.3, spacing: 0.036, snow: 0.85, dim: 0.9 },
+  { id: 'tank', src: SF + 'abrams_2k.glb', rotY: -Math.PI / 2, size: 9.8, spacing: 0.045, snow: 0.8, dim: 0.75 }, // 260 的 raw 原檔 146 MB，貼圖先縮成 2K（abrams_2k.glb）
+  { id: 'barrier', src: SF + 'barricade_set_low_poly_game_ready.glb', include: /^Barricade3L/, size: 2.4, spacing: 0.012, snow: 0.6 },
+  { id: 'fence', src: SF + 'barricade_set_low_poly_game_ready.glb', include: /^CrowdControl/, size: 2.9, spacing: 0.011, snow: 0.5, dim: 0.9 },
+  { id: 'cone', src: SF + 'barricade_set_low_poly_game_ready.glb', include: /^ConeTraffic/, size: 0.7, spacing: 0.006, snow: 0.5 },
+  // 人行道設施：260 處理過的 street／st2_street（原檔已不在，tools/props.mjs 的輸出解開 meshopt 成 *_plain.glb；單位已是公尺，不再縮放）
+  { id: 'booth', src: SF + 'st2_street_plain.glb', include: /^booth$/, spacing: 0.016, snow: 0.7, dim: 0.85 },
+  { id: 'newsbox', src: SF + 'st2_street_plain.glb', include: /^newsbox$/, spacing: 0.012, snow: 0.6 },
+  { id: 'bin', src: SF + 'st2_street_plain.glb', include: /^bin_k$/, spacing: 0.013, snow: 0.6 },
+  { id: 'wheelie', src: SF + 'st2_street_plain.glb', include: /^wheelie$/, spacing: 0.01, snow: 0.6, dim: 0.9 },
+  { id: 'hydrant', src: SF + 'street_plain.glb', include: /^hydrant$/, spacing: 0.006, snow: 0.5 },
+  { id: 'ebox', src: SF + 'street_plain.glb', include: /^ebox$/, spacing: 0.016, snow: 0.6, dim: 0.9 },
   // 野戰醫院：鐵架病床（床頭朝 −Z）與血袋
   { id: 'bed', src: SF + 'hospital_bed.glb', rotY: Math.PI / 2, size: 1.9, spacing: 0.014, dim: 0.9 },
   { id: 'blood', src: SF + 'blood_bag.glb', size: 0.24, spacing: 0.003 },
@@ -208,6 +229,7 @@ async function bakeItem(it) {
   });
   // 轉向（與縮放）後再定原點：手持物件放在握把，其他放在底部中心
   const rot = new THREE.Matrix4().makeRotationY(it.rotY || 0), box = new THREE.Box3();
+  if (it.rotX) rot.premultiply(new THREE.Matrix4().makeRotationX(it.rotX));
   for (const m of meshes) { const b = new THREE.Box3().setFromObject(m, true); b.applyMatrix4(rot); box.union(b); }
   if (it.size) { const d = box.getSize(new THREE.Vector3()), k = it.size / Math.max(d.x, d.y, d.z); rot.premultiply(new THREE.Matrix4().makeScale(k, k, k)); box.min.multiplyScalar(k); box.max.multiplyScalar(k); }
   const sz = box.getSize(new THREE.Vector3()), o = it.grip ? new THREE.Vector3(...it.grip).multiply(sz).add(box.min) : new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2);

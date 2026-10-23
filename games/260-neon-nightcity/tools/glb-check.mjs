@@ -35,6 +35,14 @@ try {
   const early = await ev(page, () => window.__nc.glb.loaded.slice());
   check(early.every(id => id === 'ae86' || id === 'zx6r'), `開頁時只下載座駕與路邊機車（${early.join(', ') || '還沒下載完'}），其他進車行或車庫才下載`);
   const t0 = Date.now();
+  // 真實錄音（80-audio.js，assets/260/sfx/）：http 下載解碼，連開槍後發聲數 3 s 內歸零（單發音都裁好長度，不留尾音）
+  await page.waitForFunction(() => window.__nc.sfx.rec.ready, null, { timeout: 30000 });
+  const sr = await ev(page, () => window.__nc.sfx.rec);
+  check(sr.on && sr.one.length >= 27 && sr.loop.length >= 9 && !sr.fail.length, `錄音音效 ${sr.one.length} 種單發、${sr.loop.length} 種循環${sr.fail.length ? "，失敗 " + sr.fail.join(",") : ""}`);
+  await ev(page, () => { for (let i = 0; i < 12; i++) window.__nc.sfx.gun(1, [1, 1.3, 2][i % 3]); window.__nc.sfx.boom(5); window.__nc.sfx.impact(18); });
+  await page.waitForTimeout(3000);
+  const sv = await ev(page, () => window.__nc.sfx.rec.voices);
+  check(sv === 0, `槍聲、爆炸與撞擊 3 s 後全部結束（剩 ${sv} 個）`);
   await ev(page, () => window.__nc.loadAllGLB());
   const g = await ev(page, () => window.__nc.glb);
   check(g.on && g.loaded.length === IDS.length && !g.failed.length, `GLB 下載 ${g.loaded.length}/${IDS.length}（${((Date.now() - t0) / 1000).toFixed(1)} s）${g.failed.length ? '，失敗 ' + g.failed.join(',') : ''}`);

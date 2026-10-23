@@ -125,7 +125,7 @@ function airLand(A, vy, roof) {
   if (water) { sfx.splash(1); waterSplash(player.x, player.z, 1.2); player.down = 0; player.anim = -1; return; }
   let dmg = A.kind === 'eject' ? A.dmg : A.kind === 'chute' ? (vy > 8 ? (vy - 8) * 6 : 0) : (vy - 9) * 6;
   dmg *= skK.take;
-  sfx.impact(Math.min(20, vy * 1.4)); dust(player.x, player.y + .1, player.z, 6);
+  sfx.impact(Math.min(20, vy * 1.4), 'body'); dust(player.x, player.y + .1, player.z, 6);
   if (A.kind === 'chute' && dmg <= 0) { player.down = 0; player.anim = -1; toast('漂亮落地'); return; }
   player.down = A.kind === 'chute' ? 1.4 : 2.6; player.downPh = -uTimeNow(); player.gotUp = 0; player.kx = A.vx * .3; player.kz = A.vz * .3;
   if (dmg > 0) hurtPlayer(dmg);

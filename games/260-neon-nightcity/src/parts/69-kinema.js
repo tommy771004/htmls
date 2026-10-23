@@ -270,7 +270,7 @@ function kinWalk(x, z) {
     if (cl > 1.2) {
       kin.crushWT = uTimeNow() + 1.5; kin.crushWalk++;
       v.vx -= cl * push.nx; v.vz -= cl * push.nz;   // 牆經由人把車擋下來
-      hurtPlayer(35 + cl * 5, v.x, v.z); sfx.impact(10); camState.shake = Math.max(camState.shake, .8);
+      hurtPlayer(35 + cl * 5, v.x, v.z); sfx.impact(10, 'ped'); camState.shake = Math.max(camState.shake, .8);
       player.x = x; player.z = z;
       launchMe(-push.nx * 2.2, -push.nz * 2.2, 5.5, 0);   // 往上彈、滾上引擎蓋
       if (v.unit) crime('resist', v.x, v.z);
@@ -293,7 +293,7 @@ function kinWalk(x, z) {
     const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz);
     if (d > .64 || d < 1e-4) continue;
     const nx = dx / d, nz = dz / d, pen = .64 - d;
-    if (run && -(mx * nx + mz * nz) / ml > .5 && !(o.bargeT > now)) { o.bargeT = now + 1.2; player.v *= .8; kin.barge++; sfx.impact(2.5); kinLaunch(o, -nx * 3.2, -nz * 3.2); continue; }
+    if (run && -(mx * nx + mz * nz) / ml > .5 && !(o.bargeT > now)) { o.bargeT = now + 1.2; player.v *= .8; kin.barge++; sfx.impact(2.5, 'body'); kinLaunch(o, -nx * 3.2, -nz * 3.2); continue; }
     x += nx * pen * .5; z += nz * pen * .5;
     const r = collideCircle(o.x - nx * pen * .5, o.z - nz * pen * .5, .32, false); o.x = r.x; o.z = r.z;
   }
@@ -305,7 +305,7 @@ function kinWalk(x, z) {
 // 肩膀撞人：玩家保留八成速度；對方背後 0.6 m 有牆、設施或高低差就直接倒，否則踉蹌退 0.8 m，脾氣差的回頭揮拳
 function kinBarge(k, dx, dz) {
   const ps = pedState[k], p = peds.people[k], now = uTimeNow();
-  ps.bargeT = now + 1.2; player.v *= .8; kin.barge++; sfx.impact(2.5);
+  ps.bargeT = now + 1.2; player.v *= .8; kin.barge++; sfx.impact(2.5, 'body');
   const bx = p.x + dx * .6, bz = p.z + dz * .6;
   if (collideCircle(bx, bz, .3, false).hit || Math.abs(groundH(bx, bz) - groundH(p.x, p.z)) > .25) { knockPed(k, dx, dz); pedFly(k, dx * 3.2, dz * 3.2, 1.2, true); return; }
   kinStumble(k, dx, dz, .8, .35);
@@ -358,7 +358,7 @@ function jumpOut(v) {
   }
   v.byP = uTimeNow(); kin.jump++;
   launchMe(vx * .7 + lx * 2.6, vz * .7 + lz * 2.6, 2.2, Math.max(0, sp - 6) * 1.3);
-  sfx.impact(Math.min(14, sp * .5));
+  sfx.impact(Math.min(14, sp * .5), 'body');
   toast(v.isCar ? '跳車' : '跳下機車');
   return true;
 }

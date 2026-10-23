@@ -1,0 +1,29 @@
+{
+  "voice": "am_michael",
+  "speed": 1.04,
+  "lines": {
+    "wake": "Survivor, this is Southern Cross. If you can hear me, listen. Those people in the plaza aren't people anymore. Grab the crowbar by the bench. Over.",
+    "crate": "Copy. There's an army crate on the east side of the pyramid. Pry it open with the crowbar. Over.",
+    "filters": "Be advised, your mask filters won't last. The dead in the square still have gas masks. Take their filters. Three of them. Over.",
+    "cruiser": "There's a police cruiser in the southeast corner, lights still flashing. Pop the trunk. Body armor should be inside. Over.",
+    "hospital": "Side door under the west arcade leads to the church. The army turned it into a field hospital. Find the blood bags by the beds. Over.",
+    "pyramid": "Your gunfire is drawing them in. Get to the May Pyramid and hold through three waves. There's a shotgun at the base. Over.",
+    "pyramid-go": "Contact! Here they come. Hold the pyramid!",
+    "wave1": "Wave one, inbound.",
+    "wave2": "Wave two. More of them this time.",
+    "wave3": "Final wave. Runners in the mix. Hold on!",
+    "robots": "An army squad went dark at the north crossing. There's a carbine in the snow. Watch yourself. Whatever tore them apart, it wasn't the dead. Over.",
+    "robots-go": "Something's moving out there. Those footsteps are metal.",
+    "metro": "Subway entrance, east side of the plaza. There's a train stuck at the platform, supply crates aboard. Bring up the ammo and the meds. Over.",
+    "store": "Corner store at the north crossing, next to that abandoned hatchback. Door's unlocked. There may still be food and meds on the shelves. Something's moving behind the counter. Over.",
+    "radio": "Last one. There's a military radio in front of the Pink House. Take the rifle, switch it on, and hold until the signal locks. Over.",
+    "radio-on": "Signal acquired. Keep that channel open, and don't let them near the radio. Over.",
+    "radio-lost": "Signal's dropping. Get back to the radio!",
+    "done": "Good copy. Objective complete.",
+    "win": {
+      "text": "Plaza, this is the resistance at Puerto Montt. We hear you. Hold on. We'll be there before dawn. Out.",
+      "voice": "bm_george",
+      "speed": 0.98
+    }
+  }
+}

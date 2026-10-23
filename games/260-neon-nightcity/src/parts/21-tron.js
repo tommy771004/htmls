@@ -279,7 +279,7 @@ function tronUpdate(dt) {
     if (a.trail) trailPush(a.trail, a.x - Math.sin(a.yaw) * 1.1, a.y, a.z - Math.cos(a.yaw) * 1.1);
     // 撞到走路的人：撞倒（停下來等的不會）
     if (onFoot && a.v > 4 && Math.hypot(dx, dz) < (a.cyc ? 1.3 : 2.1) && Math.abs(my - a.y) < 1.5 && T0.hitCd <= 0) {
-      T0.hitCd = 1.5; const [kx, kz] = dirW(TRON_ZN, a.fx, a.fz); knockPlayer(kx, kz); hurtPlayer(a.cyc ? 20 : 30, player.x - kx, player.z - kz); sfx.impact(8);
+      T0.hitCd = 1.5; const [kx, kz] = dirW(TRON_ZN, a.fx, a.fz); knockPlayer(kx, kz); hurtPlayer(a.cyc ? 20 : 30, player.x - kx, player.z - kz); sfx.impact(8, 'ped');
     }
   }
   if (T0.hitCd > 0) T0.hitCd -= dt;

@@ -318,7 +318,7 @@ function railUpdate(dt) {
         // 撞到旁邊 2.2 m（橋面的走道、隧道的洞壁邊都站得下，列車半寬 1.45 m），再往外倒
         R.hitCd = 2; const s = lat >= 0 ? 1 : -1, [kx, kz] = dirW(RAIL_ZN, -uz * s + c.ux * .6, ux * s + c.uz * .6);
         [player.x, player.z] = toW(x + ux * al - uz * s * 2.2, z + uz * al + ux * s * 2.2, RAIL_ZN);
-        knockPlayer(kx, kz); hurtPlayer(45, player.x - kx, player.z - kz); sfx.impact(14); camState.shake = 1;
+        knockPlayer(kx, kz); hurtPlayer(45, player.x - kx, player.z - kz); sfx.impact(14, 'ped'); camState.shake = 1;
       }
     }
   }
