@@ -159,13 +159,15 @@ const TYPES = {
   urban_cop: glbType('urban_cop', 14, FB.police, { police: 1 }), md84: glbType('md84', 9.5, FB.truck, { armored: 1 }),
   ambulance: glbType('ambulance', 11.5, FB.truck), canyon_taxi: glbType('canyon_taxi', 13, FB.taxi),
   fh: glbType('fh', 13, FB.sedan), il: glbType('il', 13.5, FB.sedan),
+  // world_1 gameready_city 路上的三台車（tools/traffic.mjs 的 grc_*）：深藍舊轎車、白色廂型貨車、藍色郵務車
+  grc_sedan: glbType('grc_sedan', 12, FB.sedan), grc_stepvan: glbType('grc_stepvan', 10, FB.truck), grc_mailvan: glbType('grc_mailvan', 10, FB.truck),
   // 五星才出動的坦克（不進車流；砲塔是 traffic.glb 的 tank_turret，69-police.js 另外掛）
   tank: glbType('tank', 9, FB.truck, { armored: 1, tank: 1 }),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
-const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84'];
+const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il', 'grc_sedan'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84', 'grc_stepvan', 'grc_mailvan'];
 const TAXIS = ['fh_taxi', 'fh_taxi', 'canyon_taxi'];
 const pick = (a, u) => a[Math.min(a.length - 1, Math.floor(u * a.length))];
 function pickType() { const r = rT(); return r < .24 ? pick(TAXIS, r / .24) : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : pick(SEDANS, (r - .44) / .56); }

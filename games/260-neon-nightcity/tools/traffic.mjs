@@ -62,6 +62,11 @@ export const TRAFFIC = [
   { id: 'gunship', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(?!(8|10|11|37|39)$)/, pal: false, tris: 4000, noFar: true, flat: true },
   { id: 'gunship_rotor', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(8|10|11)$/, part: true, pal: false, tris: 400, noFar: true, flat: true },
   { id: 'gunship_tail', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(37|39)$/, part: true, pal: false, tris: 300, noFar: true, flat: true },
+  // world_1 gameready_city 路上的三台車：tools/props.mjs 的 w1_grc 已經切出來、擺正、接地（rawFile 直接讀那個輸出；節點名就是物件 id）。
+  // 轎車與白色廂型貨車原檔車頭朝 +x，郵務車朝 +z；車身顏色在貼圖上，不給調色盤
+  { id: 'grc_sedan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: -90, center: /^sedan$/, nodes: /^sedan$/, pal: false, tris: 2400 },
+  { id: 'grc_stepvan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: -90, center: /^stepvan$/, nodes: /^stepvan$/, pal: false, tris: 2400 },
+  { id: 'grc_mailvan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: 0, center: /^mailvan$/, nodes: /^mailvan$/, pal: false, tris: 2400 },
 ];
 const srcOf = (cfg) => {
   const a = resolve(root, '../../assets/260', (cfg.src || cfg.id) + '.glb');
@@ -109,10 +114,10 @@ function matOf(col, pbr, emi, wheel, pal) {
 // 每台烘兩級：近景 tris（40 m 內）與遠景 FAR_TRIS（節點名加 _far）
 const WHEEL_TRIS = 140, FAR_TRIS = 600, FAR_WHEEL = 24;
 async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
-  const doc = await io.read(cfg.raw ? resolve(root, '.cache/raw', cfg.raw + '.glb') : srcOf(cfg));
+  const doc = await io.read(cfg.rawFile ? resolve(root, cfg.rawFile) : cfg.raw ? resolve(root, '.cache/raw', cfg.raw + '.glb') : srcOf(cfg));
   // raw：縮放＋繞 y 轉，原點移到整檔（不只選到的節點）的底面中心
   let xf = (p) => p, xfN = (n) => n;
-  if (cfg.raw) {
+  if (cfg.raw || cfg.rawFile) {
     const a = -cfg.rot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), k = cfg.scale;
     const rot = ([x, y, z]) => [x * c - z * s, y, x * s + z * c];
     let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
@@ -134,14 +139,14 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     const mesh = node.getMesh();
     if (!mesh) continue;
     if (cfg.nodes && !cfg.nodes.test(node.getName())) continue;
-    const wm = node.getWorldMatrix(), wheel = !cfg.raw && /^wheel_/.test(node.getName()), un = cfg.raw ? 'body' : node.getName();   // raw 的零件全部合成一個單元一起減面
+    const wm = node.getWorldMatrix(), wheel = !cfg.raw && !cfg.rawFile && /^wheel_/.test(node.getName()), un = cfg.raw || cfg.rawFile ? 'body' : node.getName();   // raw 的零件全部合成一個單元一起減面
     let u = units.get(un);
     if (!u) units.set(un, (u = { wheel, pos: [], nor: [], col: [], mat: [], idx: [] }));
     for (const prim of mesh.listPrimitives()) {
       const P = prim.getAttribute('POSITION'), N = prim.getAttribute('NORMAL'), C = prim.getAttribute('COLOR_0');
       const PB = prim.getAttribute('_PBR'), E = prim.getAttribute('_EMI'), UV = prim.getAttribute('TEXCOORD_0');
       const mat = prim.getMaterial(), tex = mat?.getBaseColorTexture(), bcf = cfg.raw && mat ? mat.getBaseColorFactor() : [1, 1, 1, 1];
-      const rawPbr = cfg.raw && mat ? [mat.getRoughnessFactor(), mat.getMetallicFactor(), 0, 0] : null;
+      const rawPbr = (cfg.raw || cfg.rawFile) && mat ? [mat.getRoughnessFactor(), mat.getMetallicFactor(), 0, 0] : null;
       const px = tex && UV ? await texPixels(tex) : null;
       const n = P.getCount(), base = u.pos.length / 3;
       const a = [], b = [], c = [], d = [], e = [], uv = [];

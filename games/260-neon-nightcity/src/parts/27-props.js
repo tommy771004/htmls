@@ -99,6 +99,23 @@ const COAST_MODELS = [
   { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500, zn: FAR_ZN },
   { set: 'far_golu', id: 'golu', at: FAR_SITES.golu, proxy: 'golu', near: 1500 },
   { set: 'far_s7', id: 's7', at: FAR_SITES.s7, proxy: 'golu', near: 1500 },
+  // 外海的兩座島（遠景，整個城市南半都看得到，所以 near 比其他遠景大；城北的玩家要往南走才會下載）：鷹巖村的紅瓦屋頂（props.mjs 的 glow 取樣）夜裡點上一盞盞暖色的窗燈
+  { set: 'far_eze', id: 'eze', at: FAR_SITES.eze, proxy: 'eze', near: 3600, y: FAR_SITES.eze.y, zn: ZONES[2], after: (it, zn) => {
+    const k = new Kit(), c = Math.cos(FAR_SITES.eze.ry), s = Math.sin(FAR_SITES.eze.ry), at = FAR_SITES.eze;
+    for (const [x, y, z] of it.glow || []) k.box(at.x + x * c + z * s, at.y + y + 2, at.z - x * s + z * c, 4.5, 3.2, 4.5, 0xffc890, 11);   // 兩公里外一盞約兩三個像素
+    cityAdd(new T.Mesh(k.build(), MAT.far), zn);
+  } },
+  // 光格島的街區是原檔的遮光盒（純黑），只有路面邊線會亮：沿島緣（props.mjs 的 ring）拉一圈青色的護岸燈帶，每隔一段立一支洋紅色的燈柱
+  { set: 'far_tron', id: 'tron', at: FAR_SITES.tron, proxy: 'tron', near: 3600, y: FAR_SITES.tron.y, zn: ZONES[2], after: (it, zn) => {
+    const k = new Kit(), at = FAR_SITES.tron, c = Math.cos(at.ry), s = Math.sin(at.ry), R = it.ring || [], y = at.y + .1;
+    const P = R.map(([x, z]) => [at.x + x * c + z * s, at.z - x * s + z * c]);
+    P.forEach((p, i) => {
+      const q = P[(i + 1) % P.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      if (L > .5 && L < 30) k.box((p[0] + q[0]) / 2, y + .7, (p[1] + q[1]) / 2, L + .4, .9, .5, 0x46e6ff, 11, 0, -Math.atan2(q[1] - p[1], q[0] - p[0]), 0);
+      if (i % 9 === 0) k.box(p[0], y + 7, p[1], .8, 14, .8, 0x1a1c22, 2).box(p[0], y + 14.6, p[1], 2.2, 1.4, 2.2, 0xff3ad0, 11);
+    });
+    cityAdd(new T.Mesh(k.build(), MAT.far), zn);
+  } },
 ];
 let coastTick = 0;
 function coastModelsUpdate() {
@@ -111,6 +128,7 @@ function coastModelsUpdate() {
     loadProps(o.set).then(items => {
       if (!items || !items[o.id]) return;
       cityAdd(o.obj = propObject(items[o.id], o.at.x, o.y || 0, o.at.z, o.at.ry || 0), zn);   // o.obj：tools/glb-check.mjs 量擺放的位置
+      if (o.after) o.after(items[o.id], zn);
       if (o.proxy === 'isle') {   // 島上的基地也畫進日光陰影的高度圖（22-hmap.js）
         const M = new T.Matrix4().compose(V3(o.at.x, o.y || 0, o.at.z), new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), o.at.ry || 0), V3(1, 1, 1));
         const wg = items[o.id].parts.map(p => p.geo.clone().applyMatrix4(M));
@@ -291,6 +309,43 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       w2Drop(...harbor.boxMeshes);
       W2.swapped.push('cranes', 'ship', 'containers'); W2.n.containers = pairs.reduce((a, L) => a + L.length, 0);
     }),
+    // ─── 路燈：Full Gameready City 的眼鏡蛇頭路燈（w1_grc 的 lamp，桿在原點、燈臂往 −x）換掉三組程式建模的燈；
+    // 燈頭比程式的近 0.25 m，沿燈臂拉長 1.12 倍對上路燈表（hx／hz）。模型的燈罩是灰的，另擺一片自發光的燈罩（顏色照原本三組） ───
+    w2Load('w1_grc', it => {
+      const L = [lampsA, lampsS, lampsC].map(l => l.map(t => ({ ...t, sx: 1.12 })));
+      for (const l of L) w2Inst(it.lamp, l, 0);
+      [0xff8a3a, 0xb8dcff, 0xff8a3a].forEach((col, k) => instanced(new Kit().box(-2.02, 6.91, 0, .36, .03, .15, col, 8).build(), MAT.uber, L[k]));
+      w2Drop(lampMeshA, lampMeshS, lampMeshC);
+      W2.swapped.push('lamps'); W2.n.lamps = lampsA.length + lampsS.length + lampsC.length;
+    }),
+    // ─── 路面：同一個檔案的柏油貼圖（顏色、法線）疊到 10-city.js 的程式路面上（ASPH_U）；平均亮度先算好，貼圖只改細節不改整體明暗 ───
+    Promise.all(['base', 'n'].map(k => new T.TextureLoader().loadAsync(PROP_BASE + 'w1_asphalt_' + k + '.webp'))).then(([b, n]) => {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+      const cx = cv.getContext('2d'); cx.drawImage(b.image, 0, 0, 32, 32);
+      const px = cx.getImageData(0, 0, 32, 32).data, m = [0, 0, 0], lin1 = v => ((v / 255 + .055) / 1.055) ** 2.4;
+      for (let i = 0; i < px.length; i += 4) for (let c = 0; c < 3; c++) m[c] += lin1(px[i + c]) / 1024;
+      b.colorSpace = T.SRGBColorSpace;
+      for (const t of [b, n]) { t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 4; t.needsUpdate = true; }
+      ASPH_U.uAsB.value = b; ASPH_U.uAsN.value = n; ASPH_U.uAsM.value.set(...m.map(v => Math.max(v, .005))); ASPH_U.uAsOn.value = 1;
+      W2.swapped.push('asphalt');
+    }, e => { console.warn('柏油貼圖下載失敗', e); W2.failed.push('w1_asphalt'); }),
+    // ─── 珊瑚灘海濱步道的觀景解說牌：Èze 掃描原檔附的山城全景照（w1_board，燈箱），立在欄杆內側、鷹巖村的正對面，
+    // 牌面朝步道、往後仰 34°，看牌子的人抬頭就是那座島 ───
+    w2Load('w1_board', it => {
+      const ex = FAR_SITES.eze.x, z = SHORE_Z - 1.3;
+      let x = null;
+      for (let d = 0; d < 60 && x == null; d++) for (const s of [1, -1]) if (x == null && free(ex + d * s, z, 2.1)) x = ex + d * s;
+      if (x == null) return;
+      claim(x, z, 2.1); addBoxL({ x0: x - 1.95, x1: x + 1.95, z0: z - .5, z1: z + .2 });
+      const g = new T.Group(); g.position.set(x, .15, z); g.rotation.y = Math.PI;   // 局部 +z（牌面）朝北
+      const pan = new T.Group(); pan.position.set(0, .9, .1); pan.rotation.x = -.6; g.add(pan);
+      pan.add(propObject(it.board, 0, 0, .07, 0, .5));   // 背板前面 3 cm
+      pan.add(new T.Mesh(new Kit().box(0, .6, 0, 3.84, 1.32, .08, 0x2a2d33, 15).build(), MAT.uber));   // 背板與外框
+      const legs = new Kit(); for (const s of [-1.5, 1.5]) legs.box(s, .62, -.25, .12, 1.24, .12, 0x2a2d33, 15);
+      g.add(new T.Mesh(legs.build(), MAT.uber));
+      cityAdd(g, zoneAtL(x, z));
+      W2.swapped.push('board'); W2.board = { x, z };
+    }),
     // ─── 北嶺：第三層山脊後面的雪山（遠景材質） ───
     w2Load('cst_mount', it => { w2Inst(it.mount, PEAKS); W2.n.peaks = PEAKS.length; }),
   ]);
@@ -345,6 +400,6 @@ W2.at = { seat: parkSeats.find(t => t.kind === 'bench'), picnic: parkSeats.find(
   palm: palms[0], guard: lifeguards[0], ferris: { x: FERRIS.cx, z: FERRIS.wz }, crane: { x: 690, z: QUAY.z1 }, yard: harbor.boxLists.flat()[0], cape: capePicnic[0], planter: planters[0], peak: PEAKS[0] };
 // 驗收：程式建模的網格還掛在場景上的有幾個（以檔案開啟時應該全部都在）
 // （清單在這裡先取好：模型還在下載，harbor.ship 之後會換成模型的船）
-const W2_PROC = [hydrantMesh, binMesh, boothMesh, treeMesh, benchMesh, planterShrubMesh, palmMesh, guardMesh, beachUmbMesh, isleTreeMesh, ...harbor.cranes.map(c => c.proc), harbor.ship, ...harbor.boxMeshes];
+const W2_PROC = [hydrantMesh, binMesh, boothMesh, lampMeshA, lampMeshS, lampMeshC, treeMesh, benchMesh, planterShrubMesh, palmMesh, guardMesh, beachUmbMesh, isleTreeMesh, ...harbor.cranes.map(c => c.proc), harbor.ship, ...harbor.boxMeshes];
 W2.kept = () => W2_PROC.filter(m => m && m.parent).length;
 { const iv = setInterval(() => { if (window.__nc && window.__nc.props) { window.__nc.props.w2 = W2; clearInterval(iv); } }, 250); }

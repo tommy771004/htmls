@@ -654,6 +654,9 @@ const FAR_SITES = {
   london: { x: FAR_BANK_X - 380, z: CITY_CZ, ry: 0 },    // 模型 719×1265 m，東緣貼著河岸，最高的塔在北端
   golu: { x: EAST_BANK_X + 110, z: CITY_CZ, ry: 0 },     // 模型 172×387 m，西排是倉庫與棚屋（背面朝城市）、東排是沿街立面
   s7: { x: EAST_BANK_X + 300, z: CITY_CZ - 60, ry: 0 },  // 舊港城後排的板樓群（street7 剩下的部分，164×265 m、最高 71 m），從城裡看是天際線
+  // 外海的兩座島（World 第一輪剩下的兩個模型，下載前是下面程式建模的岩丘）：
+  eze: { x: CITY_X0 + 500, z: SHORE_Z + 1900, ry: Math.PI / 2, y: SEA_Y - 30 },   // 鷹巖村：珊瑚灘正前方，Èze 的山城掃描（636×553 m、海面上約 230 m），山城那一面（模型 +x）朝北對著城市
+  tron: { x: CITY_X1 + 1300, z: SHORE_Z + 900, ry: 0, y: SEA_Y + 1.6 },        // 光格島：錨灣港外的人工島，Arq Grid Tron 的霓虹街區（422×483 m），島緣是一圈護岸
 };
 {
   const k = new Kit(), r2 = rng(4242);
@@ -690,14 +693,16 @@ const FAR_SITES = {
     PEAKS.push({ x, z, y: -15, ry: r8() * 6.3, sx: s, sz: s * (.8 + r8() * .4), sy: 18 + r8() * 8, zn: north.find(zn => x >= zn.x0 && x < zn.x1) || north[0] });
   }
   // 外海的小島：低矮的岩丘，有幾盞燈。各掛在離它最近的區（南面兩座跟著 C 區、東北那座跟著 B 區）
+  // 南面兩座各自一個網格（ISLE_PROXY.tron／eze）：27-props.js 換成模型後拿掉
   const ik = new Map(), kOf = (m, zn) => { if (!m.has(zn)) m.set(zn, new Kit()); return m.get(zn); };
-  for (const [ix, iz, r, h] of [[CITY_X1 + 1300, SHORE_Z + 900, 260, 70], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90], [CITY_X1 + 2200, CITY_Z0 + 400, 300, 90]]) {
-    const kk = kOf(ik, iz > FAR_ZM ? ZONES[2] : ZONES[1]);
+  for (const [ix, iz, r, h, id] of [[CITY_X1 + 1300, SHORE_Z + 900, 260, 70, 'tron'], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90, 'eze'], [CITY_X1 + 2200, CITY_Z0 + 400, 300, 90]]) {
+    const zn = iz > FAR_ZM ? ZONES[2] : ZONES[1], kk = id ? new Kit() : kOf(ik, zn);
     for (let j = 0; j < 4; j++) {   // 幾個壓扁的圓丘疊成不規則的島
       const rr = r * (.45 + r2() * .45), g = new T.SphereGeometry(rr, 20, 6, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1, h * (.4 + r2() * .6) / rr, .55 + r2() * .3);
       g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4); kk.add(g, 0x0c100c, 2, null);
     }
     for (let j = 0; j < 6; j++) { const a = r2() * 6.3; kk.box(ix + Math.cos(a) * r * .6, SEA_Y + h * .35, iz + Math.sin(a) * r * .4, 2, 2, 2, 0xffd8a0, 11); }
+    if (id) cityAdd(ISLE_PROXY[id] = new T.Mesh(kk.build(), MAT.far), zn);
   }
   for (const [zn, kk] of ik) cityAdd(new T.Mesh(kk.build(), MAT.far), zn);
   // 對岸：沿河的堤岸與一條地面，依南北切成兩段跟著岸這邊的區（FAR_PARTS：北段 A 區、南段 C 區，交界各多伸 60 m 疊在一起，南段放低一點免得疊在一起閃）；

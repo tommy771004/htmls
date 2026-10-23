@@ -121,7 +121,7 @@ function carClass(id) {
   return c.vmax >= 70 ? 'super' : 'sedan';
 }
 // 車流車型（30-vehicles.js 的 TYPES）：沒列到的是轎跑
-const TYPE_CLS = { super: ['tiara', 'milano'], muscle: ['carter', 'fh', 'il'], police: ['fh_cop', 'il_cop', 'urban_cop'], heavy: ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84'], tank: ['tank'] };
+const TYPE_CLS = { super: ['tiara', 'milano'], muscle: ['carter', 'fh', 'il'], police: ['fh_cop', 'il_cop', 'urban_cop'], heavy: ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84', 'grc_stepvan', 'grc_mailvan'], tank: ['tank'] };
 const typeClass = type => Object.keys(TYPE_CLS).find(k => TYPE_CLS[k].includes(type)) || 'sedan';
 // 套到載具上：full 時連極速、加速與抓地一起換（車流車型）；mass、hpMax、turn、hbGrip 每台都有
 function vehClass(v, cls, full) {

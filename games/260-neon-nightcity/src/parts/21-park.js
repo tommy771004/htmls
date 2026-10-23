@@ -84,6 +84,8 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
     if (Math.hypot(x - L.cx, z - L.cz) < 16 || Math.hypot(x - C.x, z - C.z) < 12) continue;
     if (z > L.cz && z - L.cz < 260 && Math.abs(x - L.cx) < (z - L.cz) * .6 + 8) continue;   // 觀景台往南看出去的那一片不種
     if (Math.abs(x - W.x0) < 1.5 || Math.abs(x - W.x1) < 1.5 || Math.abs(z - W.z0) < 1.5) continue;   // 圍籬線上
+    if (z < L.cz && L.cz - z < 150 && Math.abs(x - L.cx) < (L.cz - z) * .5 + 8) continue;   // 觀景台往北看鐵道橋的那一片也不種
+    if (VIADUCT && x > VIADUCT.x + VIADUCT.lx0 - 6 && x < VIADUCT.x + VIADUCT.lx0 + VIADUCT.W + 6 && z > VIADUCT.z + VIADUCT.lz0 - 6 && z < VIADUCT.z + VIADUCT.lz0 + VIADUCT.D + 6) continue;   // 鐵道橋的模型自己有樹
     const y = parkH(x, z) - .2;
     if (kind < .78) {
       const h = 9 * s, cl = lin(pine[Math.floor(cr * pine.length)]);
@@ -202,11 +204,37 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
     c.fillStyle = '#2a1e12'; c.fillRect(0, 0, w, h); c.strokeStyle = '#c8a46a'; c.lineWidth = 6; c.strokeRect(10, 10, w - 20, h - 20);
     c.fillStyle = '#f0dcae'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.font = `700 ${Math.round(h * .42)}px ${font}`; c.fillText('北嶺國家公園', w / 2, h * .4);
-    c.font = `600 ${Math.round(h * .2)}px ${font}`; c.fillStyle = '#c8b48a'; c.fillText('NORTH RIDGE NPARK · 雲階步道 1.3 km', w / 2, h * .78);
+    c.font = `600 ${Math.round(h * .2)}px ${font}`; c.fillStyle = '#c8b48a'; c.fillText('NORTH RIDGE NATIONAL PARK · 雲階步道 1.3 km', w / 2, h * .78);
   });
   const { x: cbx, z: cbz } = NPARK.cabin, cby = Math.min(parkGround(cbx - 4, cbz - 3), parkGround(cbx + 4, cbz + 3), parkGround(cbx - 4, cbz + 3), parkGround(cbx + 4, cbz - 3)) - .3;
   sign(2.2, .5, cbx + 4.12, cby + 3.05, cbz - .2, Math.PI / 2, (c, w, h) => {
     c.fillStyle = '#1e2a1a'; c.fillRect(0, 0, w, h); c.fillStyle = '#e8e0c0'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.font = `700 ${Math.round(h * .5)}px ${font}`; c.fillText('管理站 RANGER STATION', w / 2, h / 2);
   });
+}
+
+// ─── 北嶺鐵道橋（範圍、山溝與土丘在 10-city.js 的 VIADUCT）：兩端進山的隧道口（混凝土洞門、黑色洞口、頂上的壓頂），
+// 以及模型下載前（以檔案開啟就一直是它）的程式替身：沿模型鐵軌的弧線一條鋼梁、四座橋墩、兩條軌道。替身放在 VIADUCT.proxy，27-world1.js 擺好模型就拿掉 ───
+if (VIADUCT) {
+  const V = VIADUCT, k = new Kit(), con = 0x6e6a62, dark = 0x050506, y = V.deck;
+  for (const e of V.ends) {
+    const fx = e.x + e.s * 1.2;   // 洞門牆的中心（牆面在 e.x，往山裡 2.4 m 厚）
+    k.box(fx, y + 4, e.z, 2.4, 11, 15, con, 2).box(fx - e.s * .7, y + 9.8, e.z, 3.6, .7, 16.4, 0x5a5650, 2);
+    k.box(e.x - e.s * .06, y + 2.6, e.z, .1, 6.4, 5.4, dark, 2).box(e.x - e.s * .07, y + 5.8, e.z, .1, 1.6, 4.2, dark, 2);   // 洞口：方形下半加窄一點的頂
+    for (const s of [-1, 1]) k.box(e.x - e.s * .6, y + 2.5, e.z + s * 7.9, 1.6, 9, 1.2, con, 2);   // 兩側的扶壁
+  }
+  cityAdd(new T.Mesh(k.build(), MAT.ridge), PARK_ZN);
+  // 替身：模型局部 x −147…147，鐵軌的 z 從西端 −7、中段 +6 到東端 −10（二次曲線）
+  const pk = new Kit(), steel = 0x3e4a52, zAt = t => 6 - 1.5 * t - 14.5 * t * t, half = V.W / 2, cx = V.x + V.lx0 + half, n = 16;
+  for (let i = 0; i < n; i++) {
+    const t0 = -1 + 2 * i / n, t1 = -1 + 2 * (i + 1) / n, x0 = cx + t0 * half, x1 = cx + t1 * half, z0 = V.z + zAt(t0), z1 = V.z + zAt(t1);
+    const L = Math.hypot(x1 - x0, z1 - z0), a = -Math.atan2(z1 - z0, x1 - x0), mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+    pk.box(mx, y - 1.6, mz, L + .2, 2.6, 4.4, steel, 15, 0, a, 0).box(mx, y - .15, mz, L + .2, .3, 5, 0x4a4a46, 2, 0, a, 0);
+    for (const s of [-.75, .75]) pk.box(mx - Math.sin(a) * s, y + .1, mz - Math.cos(a) * s, L + .2, .18, .12, 0x2a2826, 15, 0, a, 0);
+  }
+  for (const t of [-.5, -.17, .17, .5]) {
+    const x = cx + t * half, z = V.z + zAt(t), g = V.at(x - V.x - V.lx0, z - V.z - V.lz0) + V.y - 2, h = y - 2.9 - g;
+    if (h > 2) pk.box(x, g + h / 2, z, 3.2, h, 4.6, 0x7a7068, 2);
+  }
+  V.proxy = new T.Mesh(pk.build(), MAT.ridge); cityAdd(V.proxy, PARK_ZN);
 }

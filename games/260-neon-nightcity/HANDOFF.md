@@ -9,8 +9,8 @@
 - **Cyberpunk City（`bld_cyber`）的品牌處理**：四張廣告圖集全是真實品牌，換成了原創的霓虹廣告（`tools/props.mjs` 的 `texEdit.ads`）；立面照片拍到的真實招牌（餐廳、速食、飯店、劇院、募兵中心）模糊成色塊（`texEdit.blur`）；最高那棟樓頂的服飾品牌（H&M）立體字整塊刪掉（`dropBox`）。要保留原貌就拿掉 `bld_cyber` 的 `texEdit`／`dropBox`，再跑 `node tools/props.mjs bld_cyber`。
 - **Neighbourhood（`bld_nbh`）拿掉的 BMW E46**：真實車款，而且車流會開進中庭。要放回就拿掉 `dropPath: /E46/`（面數會再增加）。
 - **world_1 的 PetStock 商場（`bld_w1` 的 `pet`）**：Petstock 與 Radio Rentals 是真實品牌，九處商標模糊成色塊（`texEdit.Material`）。要保留原貌就拿掉那段 `texEdit`，再跑 `node tools/props.mjs bld_w1`。
-- **world_1 的 gameready_city（`bld_grc`）**：一塊立面照片（`Concrete_u2SEBuild7_1_26`）上的真實招牌模糊成色塊；另外三種路面材質與路燈整組不要。
-- **world_1 沒用上的三個檔案**：鐵道高架橋（城北街上看不到、空中看是浮著的一條地皮）、Arq Grid Tron（亮線全在自發光貼圖，`emit` 不支援，整片黑）、Èze Village（360° 全景照片球）。要用 Tron 得先讓 `tools/props.mjs` 的 `emit` 帶自發光貼圖；高架橋要有能擺的山谷（北嶺公園的山坡只有圍籬那一塊，沒有谷地）。
+- **world_1 的 gameready_city（`bld_grc`）**：一塊立面照片（`Concrete_u2SEBuild7_1_26`）上的真實招牌模糊成色塊；當初拿掉的三台車（藍色舊轎車、白色廂型貨車、藍色郵務車）與路燈在第二批補用（`w1_grc`），車頭徽章與車門上的公司名一樣模糊掉。
+- **world_1 第二批放的位置**：Èze Village 是外海西南的「鷹巖村」（珊瑚灘正前方，山城那面朝北），Arq Grid Tron 是錨灣港外的「光格島」，鐵道橋是北嶺公園觀景台正北的山谷（`10-city.js` 的 `VIADUCT`，公園山坡挖成山溝接上掃描地面）；地名都是自己取的，要換位置改 `21-coast.js` 的 `FAR_SITES` 與 `VIADUCT` 的 x／z。
 - **BODEGA 夜貓便利店的門**：開在 `20-props.js` 依地塊亂數挑到 BODEGA 招牌的店面（中城 (4,2)、9 St），沒有寫死招牌；店面或亂數順序改了，門就會落在別家店前面，要重新對 `APT.store.door`。
 
 ## 世界與地形
@@ -23,6 +23,8 @@
 | 對岸只有兩條 20 m 寬的濱水步道走得上去（鷺岸步道、舊港步道，各一座渡船碼頭與一艘船），步道靠樓那一側是一排程式建模的樓面、進不去；步道以外的對岸開船只能貼到堤岸外 4 m。後面的 London City 與舊港城模型仍是 `far` 版材質（小貼圖），從步道抬頭看高樓還是糊的 | 步道、渡口與高牆在 `10-city.js` 的 `BANK_WALKS`／`FERRY`（`back` 那一邊不做低擋牆），畫面在 `21-coast.js`（樓面、渡口、售票亭），`farClamp` 決定哪裡靠得了岸；要更清楚得在 `tools/props.mjs` 把 `far_london`／`far_golu` 改成不縮貼圖的版本（檔案會大很多） |
 | 灰鷗島的廢墟街區與辦公園區走得進去（樓與樓之間的街、中庭），但樓本身是空殼、進不去；辦公園區中間那塊有圍籬的花園也進不去。碰撞是 0.5 m 格子量出來的矩形，斜牆邊緣有半格的鋸齒 | 佔地由 `tools/foot.mjs` 量模型寫進 `props.json` 的 `foot`，21 的 `isleFoot()` 換成碰撞、替身方塊與日照高度圖；廢墟的入口是 `tools/props.mjs` 的 `drop`（拿掉一棟樓） |
 | 不規則只到「區」的層級：每區裡的街道仍是直的方格，彎道只在區之間的連接道路；縫上的涼亭、小賣亭、公廁是程式建模的小房子，進不去、小賣亭沒有買賣 | `05-zones.js` 的 `ZONES`（加一區要在 `SEAM` 補上它的縫、`06-roads.js` 會自動接起邊界上同編號的路口）；縫的步道與小建築位置在 `20-props.js`（`SEAM_PATH`、`SEAM_SITES`），幾何在 `21-coast.js`；岬角是 `10-city.js` 的 `CAPES` |
+| 北嶺鐵道橋只看得到：橋上沒有火車、晚上沒有燈；山溝與兩端隧道口在圍籬外，走不進去，也沒有從谷底的路接進城；掃描底下的地面是用 `hf` 每格最低點雙線性內插接起來的，近看邊上會有一點錯位 | `10-city.js` 的 `VIADUCT`／`viaCarve()`、`21-park.js` 檔尾的隧道口；`tools/props.mjs` 的 `far_rail`（`hf` 格數） |
+| 鷹巖村與光格島是遠景島，上不去；光格島的街道家具、樹、車與光速機車都拿掉了（只剩街區與亮線），晚上島緣的霓虹護岸燈是頁面加的；鷹巖村夜裡的窗燈是照屋頂顏色撒的點，不是真的窗戶 | `tools/props.mjs` 的 `far_eze`／`far_tron`（`drop`、`skirt`、`glow`），27 的 `COAST_MODELS` 的 `after` |
 | 河岸、東灣的岸線、燈、程式建模的天際線與外海小島已依區拆段（`FAR_PARTS`／`EAST_PARTS`），但 London City 與舊港城的模型是一整組，仍跟著 `FAR_ZN` 一個區 | 27 的 `COAST_MODELS`（`zn: FAR_ZN`）；要拆得在 `tools/props.mjs` 依 z 把原檔切成兩段 |
 
 ## 建築與夜景

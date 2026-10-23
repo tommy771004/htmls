@@ -109,7 +109,57 @@ const parkHill = (x, z) => {
   return side * back * (.15 + main * (vale + .12 * nz));
 };
 const inParkMesh = (x, z) => x >= NPARK.x0 && x <= NPARK.x1 && z >= NPARK.z0 && z <= NPARK.z1;
-const parkH = (x, z) => parkBase(x, z) + parkHill(x, z);
+// ─── 北嶺鐵道橋（World 第一輪的 railway 掃描：295×100 m，鋼梁高架橋跨過一條南北向的山溝，橋面在模型 y≈64）───
+// 擺在公園後段（步道圍籬外、觀景台北面約 190 m），A 區邏輯座標、不轉向。模型自帶地形，props.mjs 的 hf 記下每格最低的高度：
+// 山坡在模型範圍裡貼到模型地面下 1.5 m（壓低或墊高），南北兩頭順著模型邊緣的溝底花 80 m 爬回山坡（一條穿過山脊的溝）、東西兩頭 40 m，
+// 東西兩端鐵軌進山的地方各堆一個土丘，21-park.js 在那裡蓋隧道口。y：模型東西兩端的地面對齊山坡（取中位數）。
+// 模型由 27-world1.js 下載（以檔案開啟時是 21-park.js 的程式替身），山溝兩種開法都一樣
+const VIADUCT = (() => {
+  const hf = PROPS_SPEC.far_rail?.items.rail?.hf; if (!hf) return null;
+  const { nx, nz, dx, dz } = hf, W = nx * dx, D = nz * dz, x = NPARK.gx + 15, z = CITY_Z0 - 830;
+  // 沒有頂點的格子（模型邊緣的缺口）用同一列最近的格子補；只有橋墩、沒有地面頂點的格子會突然高出幾十公尺，比周圍 3×3 的中位數高 6 m 以上就壓回中位數
+  const y0 = hf.y.map((v, k) => {
+    if (v != null) return v;
+    const i = k % nx, j = (k - i) / nx;
+    for (let r = 1; r < nx; r++) for (const ii of [i - r, i + r]) if (ii >= 0 && ii < nx && hf.y[j * nx + ii] != null) return hf.y[j * nx + ii];
+    return 0;
+  });
+  const y = y0.map((v, k) => {
+    const i = k % nx, j = (k - i) / nx, L = [];
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) if (i + a >= 0 && i + a < nx && j + b >= 0 && j + b < nz) L.push(y0[(j + b) * nx + i + a]);
+    L.sort((p, q) => p - q); const m = L[L.length >> 1];
+    return v - m > 6 ? m : v;
+  });
+  const cell = (i, j) => y[clamp(j, 0, nz - 1) * nx + clamp(i, 0, nx - 1)];
+  const at = (lx, lz) => {   // 模型局部座標（外框左下角起算）的地面高度，雙線性
+    const u = clamp(lx / dx - .5, 0, nx - 1), v = clamp(lz / dz - .5, 0, nz - 1), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j;
+    return (cell(i, j) * (1 - a) + cell(i + 1, j) * a) * (1 - b) + (cell(i, j + 1) * (1 - a) + cell(i + 1, j + 1) * a) * b;
+  };
+  const d = [];
+  for (let j = 0; j < nz; j++) for (const i of [0, 1, 2, nx - 3, nx - 2, nx - 1]) if (hf.y[j * nx + i] != null)
+    d.push(parkBase(x + hf.x0 + (i + .5) * dx, z + hf.z0 + (j + .5) * dz) + parkHill(x + hf.x0 + (i + .5) * dx, z + hf.z0 + (j + .5) * dz) - hf.y[j * nx + i]);
+  d.sort((a, b) => a - b);
+  const oy = d[d.length >> 1];
+  // 鐵軌在兩端的位置（模型局部 z，從外框中心起算）與橋面高度；隧道口在外框外面
+  const ends = [{ x: x + hf.x0 - .5, z: z - 6, s: -1 }, { x: x + hf.x0 + W + .5, z: z - 10, s: 1 }], deck = oy + 64.5;
+  return { x, z, y: oy, at, W, D, lx0: hf.x0, lz0: hf.z0, ends, deck, name: '北嶺鐵道橋' };
+})();
+// 山坡被山溝與隧道口的土丘改過之後的高度（h：原本的山坡）
+const viaCarve = (x, z, h) => {
+  const V = VIADUCT; if (!V) return h;
+  const lx = x - V.x - V.lx0, lz = z - V.z - V.lz0, ex = Math.max(0, -lx, lx - V.W), ez = Math.max(0, -lz, lz - V.D);
+  if (ex < 40 && ez < 80) {
+    const w = (1 - sstep(0, 80, ez)) * (1 - sstep(0, 40, ex));
+    h += (V.at(lx, lz) + V.y - 1.5 - h) * w;   // 模型底下也墊高，從低處看不會透空
+  }
+  for (const e of V.ends) {   // 隧道口上面的土丘：鐵軌往外 8 m 內堆到橋面上 11 m（寬度和洞門差不多），再往外 60 m 降回山坡
+    const o = (x - e.x) * e.s; if (o < -2) continue;
+    const m = (V.deck + 11 - Math.max(0, o - 10) * .3) * Math.exp(-(((z - e.z) / 11) ** 2)) * sstep(-2, 8, o) * (1 - sstep(10, 70, o));
+    h = Math.max(h, m);
+  }
+  return h;
+};
+const parkH = (x, z) => viaCarve(x, z, parkBase(x, z) + parkHill(x, z));
 // 步道：門口往北蜿蜒到山頂的觀景台（控制點：離門中線的 x、離樓牆背面的距離），每 2 m 取一點
 NPARK.trail = (() => {
   const C = [[0, -2], [0, 45], [-22, 110], [18, 185], [-26, 260], [8, 335], [44, 400], [26, 465], [52, 530], [60, 588]].map(([x, d]) => [NPARK.gx + x, NPARK.z1 - d]);
@@ -931,6 +981,7 @@ vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
 `;
 const ROAD_FS = /* glsl */`
 ${GROUND_COMMON}
+uniform sampler2D uAsB, uAsN; uniform float uAsOn; uniform vec3 uAsM;
 void main(){
   vec2 p = vL;
   float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
@@ -943,6 +994,13 @@ void main(){
   float patchv = step(.66, n2(p*.07 + 3.)); alb *= mix(1., .72, patchv);
   alb *= 1. + uDay * (1.6 - uWet);   // 乾的柏油在白天比夜裡的濕路面亮
   float seam = smoothstep(.04, .0, abs(fract(p.x*.031 + n2(p*.05)*.3) - .5)) * .3; alb *= 1. - seam;
+  // Full Gameready City 的柏油貼圖（27-props 下載好才開 uAsOn）：每 5.5 m 一格，亮度除以平均值當細節，法線疊在程式的起伏上
+  vec2 asT = vec2(0.);
+  if (uAsOn > .5) {
+    vec2 tu = p / 5.5 + vec2(n2(p*.013), n2(p*.013 + 5.)) * .6;   // 加一點低頻位移，看不出格子
+    alb *= mix(vec3(1.), texture2D(uAsB, tu).rgb / uAsM, .8);
+    asT = texture2D(uAsN, tu).xy * 2. - 1.;
+  }
   float paint = 0.; vec3 pc = vec3(.8);
   // 大道上的標線
   if (onA && !inter) {
@@ -988,6 +1046,7 @@ void main(){
   vec3 n = vec3(0., 1., 0.);
   float h0 = n2(p*4.), hx = n2(p*4. + vec2(.05, 0.)), hz = n2(p*4. + vec2(0., .05));
   n.xz -= vec2(hx - h0, hz - h0) * 1.6 * (1. - pud);
+  n.xz += vec2(asT.x, -asT.y) * .35 * (1. - pud) * (1. - paint*.5);
   float dist = length(vW - uCam);
   if (dist < 40.) n.xz += ripple(p, uTime) * .5 * (.3 + .7*pud) * (1. - dist/40.);
   n = normalize(nW(n));
@@ -1039,7 +1098,8 @@ void main(){
   vec3 c = wetSurface(alb, vec3(0., 1., 0.), mix(.3, .6, path), pud, 0.);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
-const MAT_ROAD = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: ROAD_FS });
+const ASPH_U = { uAsB: { value: null }, uAsN: { value: null }, uAsOn: { value: 0 }, uAsM: { value: new T.Vector3(1, 1, 1) } };   // 路面與連接道路共用
+const MAT_ROAD = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...ASPH_U }, vertexShader: GROUND_VS, fragmentShader: ROAD_FS });
 const MAT_WALK = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS });
 // 地面網格（不進倒影，70-render.js）：幾何是邏輯座標，掛進所在的區
 const groundMeshes = [];
@@ -1119,7 +1179,7 @@ function zoneClip(x0, x1, z0, z1) {
   const vs = GROUND_VS.replace('uniform mat4 uReflMat;', 'uniform mat4 uReflMat;\nattribute vec2 aUV, aAx;').replace('vL = position.xz; vAx = normalize((modelMatrix * vec4(1., 0., 0., 0.)).xz);', 'vL = aUV; vAx = aAx;');
   const fs = ROAD_FS.replace(/float ia = [^\n]*\n\s*float js = [^\n]*\n\s*bool onA = [^\n]*\n/, 'float dx = p.x, dz = 40.;\n  bool onA = true, onS = false;\n');
   if (vs === GROUND_VS || fs === ROAD_FS) throw new Error('connector shader patch failed');
-  const connMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const connMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...ASPH_U }, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const P = [], N = [], UV = [], AX = [], I = [];
   for (const e of RN.edges) {
     if (e.kind !== 'c') continue;
