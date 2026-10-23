@@ -399,6 +399,38 @@ for (const b of blocks) {
     else L.ghost = 1;
   }
 }
+// 第五部曲的設施街區（69-v5-civic.js）：中城的聖瑪格麗特醫院、舊碼頭的第九分局與拖吊場。地塊照樣生成（亂數序列不變），
+// 原本的地塊和廣場一樣當 ghost、實體建築拿掉，換成設施自己的地塊（自己的亂數 L.rng，20-props.js 的窗台設施也用它）；
+// 街區的碰撞盒換成每棟樓自己的，帶屋頂高度 hy（站上屋頂的人不被擋）。座標相對於街區的西北角（avX(i)、stZ(j)），人行道內是 12.5–59.5 × 12.5–49.5
+const FAC = (() => {
+  const S = {
+    // 急診樓（2 層，面向西邊的大道）＋主樓（8 層，屋頂停機坪）
+    hosp: { i: 4, j: 1, lots: [{ x0: 12.5, x1: 28, z0: 12.5, z1: 49.5, style: 8, floors: 2, axis: 'x', face: -1, er: 1 }, { x0: 28, x1: 59.5, z0: 12.5, z1: 49.5, style: 8, floors: 8, axis: 'x', face: -1, back: 1, roof: 1 }] },
+    // 分局（4 層紅磚，面向東邊的大道，屋頂停機坪、北牆逃生梯）；西邊是圍起來的拖吊場
+    pd: { i: 0, j: 4, lots: [{ x0: 37.5, x1: 59.5, z0: 12.5, z1: 49.5, style: 0, floors: 4, axis: 'x', face: 1, roof: 1 }], yard: { x0: 12.5, x1: 36.5, z0: 12.5, z1: 49.5 } },
+  };
+  for (const [id, F] of Object.entries(S)) {
+    const b = blocks.find(o => !o.outer && o.i === F.i && o.j === F.j);
+    if (!b) { delete S[id]; continue; }
+    F.b = b; F.ax = avX(F.i); F.az = stZ(F.j);
+    if (b.col) colliders.splice(colliders.indexOf(b.col), 1);
+    for (const L of lots) if (L.b === b) {
+      if (L.glb) { const k = bldPlace.indexOf(L.glb); if (k >= 0) bldPlace.splice(k, 1); L.glb = null; L.ghost = 2; }
+      else L.ghost = 1;
+    }
+    const R = rng(911 + F.i * 31 + F.j);
+    F.L = F.lots.map(o => {
+      const fh = o.style === 2 || o.style === 8 ? 3.4 : 3.1, h = 4.6 + o.floors * fh + .7;
+      const L = { x0: F.ax + o.x0, x1: F.ax + o.x1, z0: F.az + o.z0, z1: F.az + o.z1, h, style: o.style, seed: R() * 1000, face: o.face, axis: o.axis, special: 'fac', fh, b, rng: R, back: o.back ? 1 : 0, fac: id, o };
+      L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
+      lots.push(L);
+      colliders.push(L.col = { x0: L.x0, x1: L.x1, z0: L.z0, z1: L.z1, hy: h - .05 });
+      return L;
+    });
+    if (F.yard) F.yard = { x0: F.ax + F.yard.x0, x1: F.ax + F.yard.x1, z0: F.az + F.yard.z0, z1: F.az + F.yard.z1 };
+  }
+  return S;
+})();
 // 整個街區換成一個模型或一群建築：冠石金融區是 bld_fin（golukumar 的紐約街區拆出來的 12 群，tools/props.mjs），
 // 光環廣場是 Cyberpunk City 拆出的 14 群（bld_cyber）加上金融區的三群、灰石國宅放 grey_18 塔樓、grey_30 雙層板樓與 grey_31 大板樓、楓林里與公園大道放 golukumar 的 Neighbourhood 整個街區（nbh_01，帶中庭與樹）。
 // 一群或兩群並排，等比縮放（最多 1.08 倍）塞進人行道內 47×37 m 的地塊範圍，能轉 90° 放得更大就轉；整個街區的地塊都不建程式立面，
@@ -573,12 +605,13 @@ void main(){
   else if (st == 3) wall = L(vec3(.22,.24,.27));
   else if (st == 4) wall = L(mix(vec3(.36,.5,.5), vec3(.55,.4,.44), fract(seed*7.))) * (.85 + .15*fbm(vec2(u,y)*2.));
   else if (st == 5) wall = L(vec3(.12,.11,.12)) * (.6 + .4*bm);
+  else if (st == 8) { wall = L(vec3(.84,.86,.86)) * (.9 + .1*fbm(vec2(u,y)*2.)); float pj = step(fract(u/1.8), .025) + step(fract(y/1.7), .025); wall *= 1. - .22*clamp(pj, 0., 1.); }   // 醫院（69-v5-civic.js）：白色牆板
   else wall = L(vec3(.45,.2,.14)) * mix(.8, 1.1, bv) * (.55 + .45*bm);
   wall *= 1. - .35*grime*smoothstep(H, 0., y*.6);
   wall *= mix(.6, 1., smoothstep(0., .9, y));       // 雨水打濕的牆腳
   float gH = 4.6;
-  float fh = st == 3 ? 3.7 : st == 2 ? 3.4 : 3.1;
-  float ws = st == 3 ? 1.6 : st == 2 ? 2.2 : 2.5;
+  float fh = st == 3 ? 3.7 : st == 2 || st == 8 ? 3.4 : 3.1;
+  float ws = st == 3 ? 1.6 : st == 2 || st == 8 ? 2.2 : 2.5;
   float nF = floor((H - gH - .7) / fh);
   float cols = max(1., floor((fw - 1.) / ws)); float mg = (fw - cols*ws) * .5;
   float cu = (u - mg) / ws; float ci = floor(cu);
@@ -670,7 +703,7 @@ void main(){
       float lintel = step(abs(f.y - wmax.y - .035), .035) * step(wmin.x - .02, f.x) * step(f.x, wmax.x + .02);
       float frame = step(wmin.x - .025, f.x) * step(f.x, wmax.x + .025) * step(wmin.y - .02, f.y) * step(f.y, wmax.y + .02);
       alb = mix(alb, L(vec3(.15,.12,.1)), frame);
-      alb = mix(alb, L(vec3(.62,.58,.5)) * (.8 + .2*grime), max(sill, lintel) * (st == 2 ? .5 : 1.));
+      alb = mix(alb, L(vec3(.62,.58,.5)) * (.8 + .2*grime), max(sill, lintel) * (st == 2 ? .5 : st == 8 ? .25 : 1.));
       float streak = smoothstep(.0, .5, wmin.y - f.y) * step(wmin.x, f.x) * step(f.x, wmax.x) * fbm(vec2(u*8., y*.5));
       alb *= 1. - streak * .4;
     }

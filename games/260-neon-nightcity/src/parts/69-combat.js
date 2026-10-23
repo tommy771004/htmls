@@ -523,6 +523,7 @@ function hurtPlayer(n, fx, fz) {
 const godMode = { on: false };
 function die(kind) {
   if (life.dead) return;
+  v5Die(kind);   // 69-v5-civic.js：座駕要不要拖進拖吊場（要在下車之前問）
   if (player.mode === 'drive') exitVehicle();
   if (gta.jack) gta.jack = null;
   wheelClose(false);
@@ -532,12 +533,12 @@ function die(kind) {
   const d = $('death');
   d.classList.toggle('busted', kind === 'busted');
   $('deathW').textContent = kind === 'busted' ? 'BUSTED' : 'WASTED';
-  $('deathS').textContent = kind === 'busted' ? `被帶回${PD.name} · 保釋金 $2,500` : `送往${HOSP.name} · 醫藥費 $5,000`;
+  $('deathS').textContent = kind === 'busted' ? `被帶回${PD.name} · 保釋金 $2,500` : `送往${HOSP.name} · 醫藥費 ${money(hospFee())}`;
   d.classList.add('on');
   if (kind === 'busted') sfx.busted(); else sfx.wasted();
 }
 function respawn() {
-  const kind = life.dead, S = kind === 'busted' ? PD : HOSP, fee = kind === 'busted' ? 2500 : 5000;
+  const kind = life.dead, S = kind === 'busted' ? PD : HOSP, fee = kind === 'busted' ? 2500 : hospFee();
   if (player.mode === 'drive') exitVehicle();
   setWhere('out');
   player.x = S.x; player.z = S.z; player.yaw = S.yaw; player.y = groundH(S.x, S.z); player.v = 0; player.down = 0; player.anim = -1;
@@ -551,7 +552,8 @@ function respawn() {
   equip('fist', true);
   slowmo.want = 1;
   $('death').classList.remove('on');
-  toast(kind === 'busted' ? `${S.name} · 付了保釋金 ${money(fee)}，彈藥被沒收一半` : `${S.name} · 醫藥費 ${money(fee)}`);
+  toast(kind === 'busted' ? `${S.name} · 付了保釋金 ${money(fee)}，彈藥被沒收一半` : `${S.name} · 醫藥費 ${money(fee)}（現金的 5%）`);
+  v5Respawn(kind);
 }
 function deathStep() {
   life.deadT += slowmo.raw;
@@ -827,6 +829,7 @@ addEventListener('wheel', e => {
 }, { passive: false });
 addEventListener('keyup', e => { if (e.code === 'Tab' && arm.wheel.open && arm.wheel.kb) wheelClose(true); });
 function gtaKey(code) {
+  if (v5Key(code)) return true;   // 69-v5-civic.js：爬梯子、翻鐵絲網、從屋頂跳下去、店裡的按鍵
   if (crashKey(code)) return true;   // 69-v3-crash.js：空中開傘、走路時空白鍵翻越
   if (crewKey(code)) return true;   // 69-crew.js：Q 角色轉盤、X 特殊能力
   if (code === 'Tab') { if (arm.wheel.open) wheelClose(true); else wheelOpen(); return true; }

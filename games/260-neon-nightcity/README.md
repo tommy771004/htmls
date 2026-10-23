@@ -109,6 +109,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `69-v3-heist.js` | 第三部曲：搶劫同夥 `HIRE`（駭客、車手、槍手各一老一菜），`hireStart` 接在計畫板後面，`hireK` 給 69-heist／69-heist2 的鑽機、破譯與威懾，`hireCar` 改逃亡車，`heist3Update` 生成槍手；菜鳥升級寫進 `motors.gear.hire` |
 | `69-v3-skills.js` | 第三部曲：六圍 `skills`（每位主角一份，`sk(k)`、倍率 `skK`、升級 `skUp`／`skillEvent`）、衝刺體力 `stam`、噪音圈 `noise`（小地圖淡藍圈）、消音器 `silOn`／`silFit` 與手機「改槍與裝備」`gearRows`、潛水 `diveToggle`／`breath`、水下打撈 `salv`；選單「角色能力」`skillRows` |
 | `69-v3-world.js` | 第三部曲：計程車（招手、手機叫車、`taxiRide`／`taxiGo`、逃票）、日夜犯罪權重 `evNightW`、雨天 AI 抓地力 `aiDrive`、撬車警報 `alarmStep`；每幀入口 `v3Update`（99-main 在 `gtaUpdate` 之後呼叫） |
+| `69-v5-civic.js` | 第五部曲之一：公共設施。10-city 的 `FAC` 街區（醫院 `FAC.hosp`、第九分局與拖吊場 `FAC.pd`）的雨遮、招牌、停機坪與屋頂直升機（69-gunship 的 `buildGunship(x, z, yaw, { kind })`）、員工電梯、醫療包、繃帶；拖吊場 `impound`／`impPay`／柵門 `gateOpen`／`gateBreak`、翻鐵絲網 `fenceStart`；外牆鐵梯 `V5_LADS`（`ladStep`，40-people 在 `V5.lad` 時交給它）、走得上去的屋頂 `v5Roof`（20-walk 的 `WALKS`）與 `roofJump`；醫藥費 `hospFee`、69-combat 呼叫的 `v5Die`／`v5Respawn`、按鍵 `v5Key`、每幀 `v5Update`（99-main 在 `v3Update` 之後呼叫） |
 | `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車；海岸的 `COAST_MODELS`（灰鷗島的 `isle_ruin`／`isle_office`、遠景的 `far_london`／`far_golu`／`far_s7`，擺好就把 `ISLE_PROXY` 的替身 `removeFromParent()`：`distCull` 每幀都會重設 `visible`，只藏起來會被打開） |
 | `27-world1.js` | World 第四輪（`~/Downloads/world_1`）不在街區裡的地標與遠景 `W1_SITES`：東灣對岸的水泥廠（`far_cement`）與三棟長板樓（`bld_tram`）、舊碼頭河岸的木樁階梯（`w1_stairs`）、木棧橋入口的鐵絲網、岬角上的石塔與一圈石塊矮牆（`w1_tower`、`w1_fence`）；`w1Update()` 每 30 幀檢查一次，走近 `near` 公尺才下載，以檔案開啟不擺 |
 | `28-sky.js` | 日夜與天氣：時鐘 `clockSt`、太陽與月亮方向（`sunDir`）、天空與霧的調色盤、天氣狀態機 `WX`（`updateWeather`、`setWeather`）、積水乾濕、撐傘、雷電；`atmApply()` 把結果寫進共用 uniform 與泛光、曝光；`occUpdate()` 每幀挑最近的車與人給地面陰影 |
@@ -292,6 +293,17 @@ HANDOFF 先前列為未做的項目：
 - **跳車**：時速 15 km/h（`KIN.jump` 4 m/s）以上按 F，人往車門那側滾出去（車速的七成 + 側向 2.6 m/s、往上 2.2），落地扣 (v − 6)·1.3（乘上力量的承傷倍率）；車沒人開，照 `coast` 滑到停，滑出去的 8 秒內撞到路人一樣撞飛。
 - 沒做：消防車水砲（沒有消防車）、玩家站在車頂隨車移動（玩家不會站上車頂，翻越是直接翻過去）。
 - 測試 API：`__nc.gta.kin`：`KIN`、`kin`（計數器 `crush`／`crushWalk`／`barge`／`jump`／`door`／`bowl` 與 `last` 吸附距離）、`massOf`、`jump()`、`door(v)`、`hit(x, z, r)`、`open(x, z, R, L)`（附近的空地與往前 L 公尺沒有東西的方向）、`wall(x, z, r)`（最近的平牆與法線）、`spawn(type, x, z, yaw)`、`drop(v)`、`me()`。
+
+### GTA 式擴充（第五部曲：城市建築設施）
+
+依使用者的《城市建築設施藍圖與魔鬼細節》（`neon_nightcity_gta_v3.md`），`node tools/check-gta-v5.mjs [html]` 驗收。設施蓋在 `10-city.js` 的 `FAC` 街區：原本的地塊照樣生成（亂數序列不變）、當 ghost，實體建築拿掉，換成設施自己的地塊（`special: 'fac'`、自己的亂數），立面照城市 shader 畫，所以窗燈、高度圖、屋頂、防火梯都照舊；碰撞盒換成每棟樓自己的、帶屋頂高度 `hy`。
+
+- **聖瑪格麗特醫院**（中城 (4,1)）：2 層急診樓面向大道（人行道上的雨遮、紅色急診燈箱、兩台救護車），8 層主樓用新的立面樣式 8（白色牆板）。WASTED 後在急診門口醒來，醫藥費是現金的 5%、最多 $5,000（`hospFee`），額頭與左前臂纏 5 分鐘繃帶。急診門口的醫療包 +50 生命（90 秒後補回）；坐進救護車駕駛座 +25（每台一次）。主樓北牆的員工電梯 E 直達屋頂，停機坪上是醫療直升機（警用直升機機身重新上漆，沒有火箭莢）。
+- **第九分局與拖吊場**（舊碼頭 (0,4)）：4 層紅磚分局面向大道（NCPD 藍色燈箱與球燈），北牆有一道通到屋頂的逃生梯，屋頂停一架警用直升機（開走 2 星）；西半邊是 2.2 m 鐵絲網（刺絲）圍起來的拖吊場，北側一道滑門與守衛亭。被擊斃或被捕時開著自己的車（或車在 150 m 內）、通緝中棄車而甩掉警察時人離車 150 m 以上，車會被拖進來（`motors.v5.imp`，按 V 叫車沒用）。守衛亭 E 付 $250 開門 60 秒，或面向網子按空白鍵翻過去（1.6 秒），開車以 2.5 m/s 以上撞柵門直接撞破（沒付錢就 2 星，90 秒後修好）；車開出拖吊場就算領回。全區地圖有「P」拖吊場圖示。
+- **外牆鐵梯**：底部 0.8 m 內按 E 吸附，W／S 爬（1.6 m/s）、按住 Shift 加速（3.4 m/s）、往下按 Shift 直接滑下去（8 m/s），爬到頂站上屋頂，屋頂上走到梯子口按 E 爬下去。爬梯的姿勢是待機動畫上覆寫四肢（`ANIM.climb`）。
+- **屋頂**：設施樓的屋頂走得上去（`WALKS`，邊緣 0.45 m 擋住、樓梯間與空調箱也擋），站在邊上面向外面按空白鍵往外跳，變成 69-v3-crash 的自由落體（可以開傘）。相機在比樓頂高的地方不被那棟樓擋（99-main 的相機碰撞看 `hy`）。
+- 存檔第 9 版：多了 `v5`（`imp`：座駕在拖吊場）。
+- 測試 API：`__nc.gta.v5`：`V5`（`lad`、`imp`、`band`、`medkits`、`helis`）、`FAC`、`LADS`、`w(id, x, z)`（設施座標 → 世界）、`yaw(id, a)`、`lad(i, top)`、`impound(why)`、`pay()`、`gateBreak()`、`fenceNear()`、`roofJump()`、`hospFee()`、`inYard(x, z)`。
 
 ### 城區與安全屋（World 整合）
 

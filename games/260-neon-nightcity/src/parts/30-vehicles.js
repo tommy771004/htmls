@@ -217,6 +217,7 @@ for (const S of [HOSP, PD]) {
   for (let i = parked.length - 1; i >= 0; i--) if (Math.abs(parked[i].x - x) < 1 && Math.abs(parked[i].z - S.z) < 14) parked.splice(i, 1);
   S.cars.forEach((type, n) => parked.push({ type, x, z: S.z - 6.5 + n * 6.2, yaw: side > 0 ? Math.PI : 0, pal: 0 }));
 }
+parked.push(...facParked());   // 69-v5-civic.js：拖吊場裡被扣的車（不抽 rT）
 // 停車位以邏輯座標挑好，這裡一次換成世界座標（車頭方向一起轉）；車身的兩個碰撞圓直接是世界座標
 for (const p of parked) { const zn = zoneAtL(p.x, p.z); [p.x, p.z] = toW(p.x, p.z, zn); p.yaw = yawW(zn, p.yaw); }
 // 停車、出生、交車與重生點：生成時（避開停車格）是邏輯座標，cityWorld() 之後換成世界座標

@@ -64,8 +64,9 @@ function mapBlips() {
   add('bar', { name: APT.pub.name, x: APT.pub.doorW.x, z: APT.pub.doorW.z, type: '酒館', desc: `${APT.pub.dist}的木造老酒館，不用買就能進去。` });
   add('shop', { name: APT.store.name, txt: '24', x: APT.store.doorW.x, z: APT.store.doorW.z, type: '便利商店', desc: `${APT.store.dist}，二十四小時營業；在結帳台花 ${money(SNACK)} 買吃的可以補滿生命。` });
   add('bank', { name: '中央霓虹銀行', ...WP(BANK.x, BANK.z + 2), type: '銀行', desc: '金庫在大廳後面。搶劫從手機的搶劫行動開始籌備。' });
-  add('pd', { name: PD.name, x: PD.x, z: PD.z, type: '警察局', desc: 'BUSTED 之後在這裡交保釋金出來。' });
-  add('hosp', { name: HOSP.name, x: HOSP.x, z: HOSP.z, type: '醫院', desc: 'WASTED 之後在這裡出院。' });
+  add('pd', { name: PD.name, x: PD.x, z: PD.z, type: '警察局', desc: 'BUSTED 之後在這裡交保釋金出來。北牆的逃生梯爬得上屋頂，停機坪上停著警用直升機（開走 2 星）。' });
+  add('hosp', { name: HOSP.name, x: HOSP.x, z: HOSP.z, type: '醫院', desc: `WASTED 之後在這裡出院（醫藥費是現金的 5%，最多 ${money(5000)}）。急診門口有醫療包；北牆的員工電梯通到屋頂的醫療直升機。` });
+  if (FAC.pd) { const [x, z] = facW(FAC.pd, 24, 31); add('pd', { name: `${PD.name}拖吊場`, txt: 'P', x, z, type: '拖吊場', desc: motors.v5.imp ? `${kestrel.name}被扣在這裡：到北邊的守衛亭付 ${money(IMP_FEE)} 贖回，或翻過鐵絲網把車偷出來（撞破柵門 2 星）。` : '被擊斃、被捕時開著的車，或通緝中丟下的車，會被拖到這裡。' }); }   // 69-v5-civic.js
   for (const o of ramenSpots) add('ramen', { name: '路邊拉麵攤', ...WP(o.x, o.z), type: '小吃', desc: '霓虹區人行道上的拉麵攤。' });
   sideBlips(add);   // 69-side.js：街頭賽起點、生存擂台、委託人、幫派據點
   for (const r of RAMPS) { const done = motors.stunts.includes(r.i); add('ramp', { name: `特技跳台 #${r.i + 1}`, x: r.x, z: r.z, type: '特技跳台', done, rows: [['狀態', done ? '已完成' : '未完成（首次加倍獎金）']], desc: '加速衝上跳台，落地前在空中翻滾可以拿加成。' }); }

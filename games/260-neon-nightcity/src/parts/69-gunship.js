@@ -26,19 +26,21 @@ function gunshipKit() {
   k.cyl(0, -.55, 2.1, .09, .09, .5, 8, dark, 15, Math.PI / 2).box(0, -.42, 1.9, .3, .22, .3, dark, 2);   // 機鼻機砲
   return k.build();
 }
-function buildGunship(x, z, yaw) {
-  const g = new T.Group(), body = new T.Group();
-  const [hull, rotor, tail] = GS_IDS.map(id => partMesh(id, 1, true));
+// o.kind：'police'／'med' 是 69-v5-civic.js 屋頂停機坪的直升機（警用直升機機身、沒有火箭莢；醫療機身漆成白色加紅十字）
+function buildGunship(x, z, yaw, o = {}) {
+  const g = new T.Group(), body = new T.Group(), ids = o.kind ? ['heli', 'heli_rotor', 'heli_tail'] : GS_IDS;
+  const [hull, rotor, tail] = ids.map(id => partMesh(id, 1, true));
   for (const m of [hull, rotor, tail]) { scene.remove(m); body.add(m); m.count = 1; }
   rotor.material = tail.material = hull.material;
-  if (!GS_GLB) body.add(new T.Mesh(gunshipKit(), MAT.uber));
+  if (!GS_GLB && !o.kind) body.add(new T.Mesh(gunshipKit(), MAT.uber));
+  if (o.kind) heliPaint(hull, body, o.kind);
   g.add(body); scene.add(g);
-  const geo = TRAFFIC_GEO[GS_IDS[0]] ? TRAFFIC_GEO[GS_IDS[0]].geo : null;
+  const geo = TRAFFIC_GEO[ids[0]] ? TRAFFIC_GEO[ids[0]].geo : null;
   if (geo && !geo.boundingBox) geo.computeBoundingBox();
   const bb = geo ? geo.boundingBox : { min: { x: -1.3, y: 0, z: -5 }, max: { x: 1.3, y: 3, z: 5 } };
   const len = bb.max.z - bb.min.z, w = bb.max.x - bb.min.x;
   const v = {
-    kind: 'gunship', fly: true, isCar: true, name: GS_GLB ? '武裝直升機 · 沙隼' : '武裝直升機 · 灰鷺', g, body, mat: hull.material, wheels: [], hull, rotor, tail, seat: null,
+    kind: 'gunship', fly: true, isCar: true, name: o.kind === 'med' ? '醫療直升機 · 白鷺' : o.kind ? '警用直升機 · 夜巡' : GS_GLB ? '武裝直升機 · 沙隼' : '武裝直升機 · 灰鷺', ids, rockets: !o.kind, g, body, mat: hull.material, wheels: [], hull, rotor, tail, seat: null,
     x, z, y: Math.max(groundH(x, z), roofH(x, z) + .05), yaw, vx: 0, vz: 0, vy: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0, rot: 0, spool: 0,
     len, w, h: bb.max.y - bb.min.y, rad: 1.5, off: len * .25, wb: 3, wr: .4, vmax: 46, eng: 12, grip: 4, mass: 5200, hp: 2600, hpMax: 2600, hpLock: 1, lights: 0, gear: 1, rpm: .2,
   };
@@ -46,6 +48,15 @@ function buildGunship(x, z, yaw) {
   GS.list.push(v);
   gunshipPose(v);
   return v;
+}
+// 屋頂停機坪的直升機重新上漆：原本的紅色機身漆改成醫療白或警用深藍，兩側加紅十字或白色腰線
+function heliPaint(hull, body, kind) {
+  const c = hull.geometry.attributes.color, to = kind === 'med' ? [.8, .81, .82] : [.012, .03, .09];
+  if (c) for (let i = 0; i < c.count; i++) { const r = c.getX(i), g = c.getY(i), b = c.getZ(i); if (r > .08 && r > g * 2.2 && r > b * 2.2) c.setXYZ(i, ...to); }
+  const k = new Kit();
+  if (kind === 'med') for (const s of [-1, 1]) k.box(s * .99, .95, .4, .02, .6, .18, 0xd81e2c, 11).box(s * .99, .95, .4, .02, .18, .6, 0xd81e2c, 11);
+  else for (const s of [-1, 1]) k.box(s * .97, .7, .2, .02, .14, 2.6, 0xe8ecf0, 2);
+  body.add(new T.Mesh(k.build(), MAT.uber));
 }
 function dropGunship(v) {
   if (player.veh === v) exitVehicle();
@@ -58,8 +69,8 @@ function dropGunship(v) {
 function gunshipPose(v) {
   const set = (m, p, e) => { m.setMatrixAt(0, _pm4.compose(_pp.set(p[0], p[1], p[2]), _pq4.setFromEuler(e), _one)); m.instanceMatrix.needsUpdate = true; };
   set(v.hull, [0, 0, 0], _pe4.set(0, 0, 0));
-  set(v.rotor, piv(GS_IDS[1]), _pe4.set(0, v.rot, 0));
-  set(v.tail, piv(GS_IDS[2]), _pe4.set(v.rot * 1.6, 0, 0));
+  set(v.rotor, piv(v.ids[1]), _pe4.set(0, v.rot, 0));
+  set(v.tail, piv(v.ids[2]), _pe4.set(v.rot * 1.6, 0, 0));
 }
 // 99-main.js 開直升機時呼叫（代替 driveVehicle）；回傳 { imp, vF, aF } 和車一樣
 function flyHeli(v, inp, dt) {
@@ -129,7 +140,7 @@ function gunshipStep(dt) {
 // 左鍵：左右火箭莢輪流發射，飛向準星指著的地方
 function gunshipFire() {
   const v = player.veh;
-  if (!v || !v.fly || GS.fireT > 0 || life.dead) return;
+  if (!v || !v.fly || !v.rockets || GS.fireT > 0 || life.dead) return;
   if (GS.rk <= 0) { sfx.dry(); return; }
   GS.fireT = .32; GS.rk--; GS.side = -GS.side;
   if (GS.rk <= 0) { GS.rkT = GS_RELOAD; toast(`火箭莢打空了：${GS_RELOAD} 秒後裝填`); }
@@ -157,7 +168,7 @@ const HELIPAD = spotW({ x: CITY_X0 - OUT_D * .5, z: stZ(4) + 31, yaw: 0 });
 // 登機：機身比車大，走到 5 m 內就能上
 ctxHooks.push((p) => {
   if (p.mode !== 'walk' || p.where !== 'out') return null;
-  for (const v of GS.list) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < 5) return { key: 'F', text: `登機 <i>· ${v.name}</i>`, fn: () => { enterVehicle(v); toast('Space 爬升 · Shift 下降 · 左鍵發射火箭'); } };
+  for (const v of GS.list) if (!v.dead && Math.hypot(p.x - v.x, p.z - v.z) < 5) return { key: 'F', text: `登機 <i>· ${v.name}</i>`, fn: () => { enterVehicle(v); toast(v.rockets ? 'Space 爬升 · Shift 下降 · 左鍵發射火箭' : 'Space 爬升 · Shift 下降'); } };
   return null;
 });
 const gunshipApi = { GS, HELIPAD, build: (x, z, yaw = 0) => buildGunship(x, z, yaw), drop: dropGunship, fire: () => { GS.fireT = 0; gunshipFire(); }, roofH };

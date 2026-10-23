@@ -55,6 +55,7 @@ function onKey(code) {
 }
 // V：把目前的座駕叫到最近的車道上並直接上車（停在車庫裡的也會開出來）
 function summonCar() {
+  if (motors.v5.imp) { toast(`${kestrel.name} 在${PD.name}的拖吊場 · 付罰金贖回，或翻牆偷出來`); return; }   // 69-v5-civic.js
   motors.stowed = false; kestrel.g.visible = true;
   if (kestrel.dead) toast(`${kestrel.name} 修好送過來了`);
   if (kestrel.dead || kestrel.flat) wreckFix(kestrel);   // 68-wreck.js：耐久、車窗、引擎、輪胎
@@ -170,6 +171,7 @@ function updateCamera(dt, spd) {
   const ox = tx + rx * sx, oz = tz + rz * sx;
   for (const b of p.air3 && p.air3.kind !== 'eject' ? [] : boxesNear(ox, oz, dist + 2)) {   // 跳傘時不拉近：樓的盒子沒有高度，飛在屋頂上空也會被拉近
     if (b.low) continue;   // 岸邊擋牆不擋相機
+    if (b.hy !== undefined && Math.min(ty, wy) > b.hy + .3) continue;   // 站在屋頂上（69-v5-civic.js）：比樓頂高的相機不被那棟樓擋
     if (boxGap(b, ox, oz) > dist + 2) continue;
     const t = rayBox(ox, oz, wx - ox, wz - oz, b, .25);
     if (t < tmin) tmin = t;
@@ -288,6 +290,7 @@ function step(dt) {
   updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
   v3Update(dt);   // 69-v3-*：第三部曲的六圍、化學反應、撞擊與跳傘、計程車
+  v5Update(dt);   // 69-v5-*：第五部曲的公共設施（醫院、分局與拖吊場、外牆鐵梯）
   if (out) policeUpdate(dt);
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {

@@ -744,6 +744,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   if (player.ride) { aptRide(dt); return; }   // 69-safehouse.js：走樓梯、搭電梯（照路徑走，不受碰撞）
   if (player.air3) { airStep(inp, dt, camYaw); return; }   // 69-v3-crash.js：被拋出車外、自由落體、開傘
   if (vaultStep(dt)) return;                               // 69-v3-crash.js：翻越矮牆與停著的車
+  if (V5.lad) { ladStep(inp, dt); return; }               // 69-v5-civic.js：爬外牆鐵梯、翻鐵絲網
   let mx = inp.mx, mz = inp.mz;
   const ml = Math.hypot(mx, mz);
   if (ml > 1) { mx /= ml; mz /= ml; }
