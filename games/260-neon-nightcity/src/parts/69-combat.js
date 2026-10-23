@@ -306,6 +306,7 @@ function shoot() {
 // 一發子彈（或一顆霰彈）打到東西；by：'player'｜'npc'｜'cop'
 function hitWith(h, R, dmg, by, head = 2.5, stun = 0) {
   const x = R.ox + R.dx * h.t, y = R.oy + R.dy * h.t, z = R.oz + R.dz * h.t, mine = by === 'player';
+  if (!stun) sfx.bulletHit(h.kind, x, z);
   if (stun && h.kind === 'ped') { stunPed(h.ref, stun, R.dx, R.dz); chemStun(x, z, stun); if (mine) crime('assault', x, z); return; }   // chemStun：雨天電流傳給旁邊的人（69-v3-chem.js）
   if (stun && h.kind === 'cop') { stunCop(h.ref, stun); if (mine) crime('resist', x, z); return; }
   if (stun && h.kind === 'fighter') { const f = h.ref; f.stunT = stun; f.stunPh = -uTimeNow(); sparks(x, y, z, 6, 2); return; }
@@ -733,7 +734,7 @@ function vehPairs() {
       if (sp < 4 || v.dead || v.y > player.y + 1.5 || player.y > v.y + 2.5) continue;   // 快速道路橋上橋下
       for (const s of [1, -1]) {
         const cx = v.x + Math.sin(v.yaw) * v.off * s, cz = v.z + Math.cos(v.yaw) * v.off * s;
-        if (Math.hypot(player.x - cx, player.z - cz) < v.rad + .35) { life.hitCd = .8; sfx.impact(sp * .6); knockPlayer(v.vx, v.vz); hurtPlayer(sp * 3.2, v.x, v.z); break; }
+        if (Math.hypot(player.x - cx, player.z - cz) < v.rad + .35) { life.hitCd = .8; sfx.impact(sp * .6, 'ped'); knockPlayer(v.vx, v.vz); hurtPlayer(sp * 3.2, v.x, v.z); break; }
       }
       if (life.hitCd > 0) break;
     }

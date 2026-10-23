@@ -276,3 +276,7 @@
 | `street` `hydrant` | [Fire Hydrant](https://sketchfab.com/3d-models/fire-hydrant-d012d05e8bca49928a2944e043d93fb7) | [TraianDumbrava](https://sketchfab.com/TraianDumbrava) | CC BY 4.0 |
 | `street` `ebox` | [Electrical box - FREE](https://sketchfab.com/3d-models/electrical-box-free-383a234d6d80421fbe67080048cbbc70) | [Mathieu Godard](https://sketchfab.com/Mathieu.Godard) | CC BY 4.0 |
 | `street` `pump` | [gas pump](https://sketchfab.com/3d-models/gas-pump-add0f902b9164718bd0540e88bf9927e) | [打螺丝](https://sketchfab.com/youoyouyou) | CC BY 4.0 |
+
+## 音效（`sfx/`）
+
+槍聲、爆炸、撞擊、腳步、車門、引擎、輪胎、警笛、直升機等真實錄音，全部是 Freesound 上的 CC0 1.0 錄音（不用 Grand Theft Auto V 或任何 Rockstar Games 的音效），由 `games/260-neon-nightcity/tools/sfx.mjs` 下載並逐檔檢查授權；每個檔案的錄音、作者與用途見 [`sfx/CREDITS.md`](sfx/CREDITS.md)。
