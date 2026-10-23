@@ -135,7 +135,7 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 ## 雪夜五月廣場（266）
 
 - 單檔 `web/266-eternauta-plaza.html`，沒有 build。場景 splat、玩家 FBX 與動畫從上游 santisiri/eternauta-online 的 GitHub 固定版本即時下載（Spark 2.3.1 + Three.js 0.186.0 由 CDN 載入）。
-- 延伸玩法（任務、喪屍、武器、裝備）用到的 `.spz` 在 `assets/266/`：網路上沒有授權清楚的喪屍／武器 splat，所以由 `games/266-eternauta-plaza/tools/bake.mjs` 把 Quaternius 與 Poly Haven 的 CC0 模型在無頭 Chrome 裡烘焙成 SPZ v2；喪屍另有 `.skin`（Spark `SplatSkinning` 權重）與 `manifest.json` 裡的骨架和動畫。改了烘焙參數要重跑並 commit `assets/266/`。`npm start` 的伺服器已能送出 `.spz`、`.skin`。
+- 延伸玩法（任務、喪屍、士兵與金屬人、武器、裝備、巡邏車與公車亭等道具）用到的 `.spz` 在 `assets/266/`：網路上沒有授權清楚的喪屍／武器 splat，所以由 `games/266-eternauta-plaza/tools/bake.mjs` 把 Quaternius 與 Poly Haven 的 CC0 模型、以及 Sketchfab 的 CC BY 模型（重新綁到 Quaternius 骨架，作者列在同資料夾的 `CREDITS.md` 與頁面 `.credit`，要保留）在無頭 Chrome 裡烘焙成 SPZ v2；喪屍另有 `.skin`（Spark `SplatSkinning` 權重）與 `manifest.json` 裡的骨架和動畫。改了烘焙參數要重跑並 commit `assets/266/`。`npm start` 的伺服器已能送出 `.spz`、`.skin`。
 - 格式、來源與指令見 `games/266-eternauta-plaza/README.md`；`window.__eter` 的 `spawn`／`give`／`mission(i)`／`god`／`clear(x, z)` 可直接擺場景測試。
 
 ## Groundline 機場停機坪即時調度（267）

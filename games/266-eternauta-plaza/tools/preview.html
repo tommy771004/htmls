@@ -12,7 +12,7 @@
 <body>
 <canvas id="c"></canvas><div id="t"></div>
 <script type="module">
-// 檢查烘焙結果：物件排一排、三種喪屍套上 Spark SplatSkinning 播放動畫。?clip=walk&t=0.3&view=items|zombies
+// 檢查烘焙結果：物件排一排、喪屍套上 Spark SplatSkinning 播放動畫。?clip=walk|none&t=0.3&view=items|zombies&only=id,id&yaw=&zoom=&cy=
 import * as THREE from 'three';
 import { SparkRenderer, SplatMesh, SplatSkinning, PackedSplats } from 'https://cdn.jsdelivr.net/npm/@sparkjsdev/spark@2.3.1/dist/spark.module.min.js';
 const QS = new URLSearchParams(location.search), BASE = '/assets/266/';
@@ -40,7 +40,8 @@ if (view === 'items') {
   for (const [k, c] of Object.entries(man.clips)) clips[k] = THREE.AnimationClip.parse({ name: c.name, duration: c.duration, tracks: c.tracks, uuid: k });
   const zs = [];
   let i = 0;
-  for (const [id, meta] of Object.entries(man.zombies)) {
+  const list = Object.entries(man.zombies).filter(([id]) => !QS.get('only') || QS.get('only').split(',').includes(id));
+  for (const [id, meta] of list) {
     const rig = man.rigs[meta.body];
     const root = new THREE.Group(); root.matrixAutoUpdate = false; root.matrix.fromArray(rig.root);
     const bones = rig.bones.map(b => { const o = new THREE.Bone(); o.name = b.n; o.position.fromArray(b.t); o.quaternion.fromArray(b.q); o.scale.fromArray(b.s); return o; });
@@ -55,11 +56,11 @@ if (view === 'items') {
     const Q0 = new THREE.Quaternion(), P0 = new THREE.Vector3();
     for (let j = 0; j < bones.length; j++) sk.setRestQuatPos(j, Q0, P0);
     mesh.skinning = sk; mesh.updateGenerator();
-    mesh.position.set((i - 1) * 0.9, 0, 0); scene.add(mesh);
+    mesh.position.set((i - (list.length - 1) / 2) * 0.9, 0, 0); scene.add(mesh);
     const mixer = new THREE.AnimationMixer(root);
     const ratio = rig.bones.find(b => b.n === 'pelvis').t[1] / man.ualPelvis[1];
     const clip = clips[QS.get('clip') || 'walk'];
-    const a = mixer.clipAction(clip); a.play();
+    if (clip) mixer.clipAction(clip).play(); // clip=none：綁定姿勢
     zs.push({ root, bones, inv, sk, mixer, mesh, ratio, pelvis: bones.find(b => b.name === 'pelvis') });
     i++;
   }
@@ -74,7 +75,8 @@ if (view === 'items') {
   };
   window.pose(+(QS.get('t') || 0.3));
   const yaw = +(QS.get('yaw') || 0);
-  camera.position.set(Math.sin(yaw) * 4.2, 1.1, Math.cos(yaw) * 4.2); camera.lookAt(0, 0.9, 0);
+  const cd = Math.max(4.2, list.length * 0.75), cy = +(QS.get('cy') || 0.9), zoom = +(QS.get('zoom') || 1);
+  camera.position.set(Math.sin(yaw) * cd / zoom, cy + 0.2, Math.cos(yaw) * cd / zoom); camera.lookAt(0, cy, 0);
   document.getElementById('t').textContent = Object.entries(man.zombies).map(([k, v]) => k + ' ' + v.n).join(' · ');
 }
 let frames = 0;
