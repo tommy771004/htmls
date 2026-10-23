@@ -2,6 +2,7 @@
 // 拖吊場（扣車、贖車、翻鐵絲網、撞破柵門）、走得上去的屋頂與從屋頂跳下去、存檔第 9 版；
 // 商業設施：便利店搶劫與第二台收銀機、能量飲料、提款機、酒、槍店（背心、擴充彈匣、射擊場、老闆反擊）、服飾店甩星、車身血跡與洗車、自動捲門；
 // 立體停車場：四條坡道開上頂樓、頂樓超跑與「飛躍霓虹大道」跳台、降落傘包與跳車開傘、電梯、入口柵欄桿
+// 街道微結構：車行落地窗、候車亭、電話亭、熱狗攤瓦斯鋼瓶、施工圍籬、紐澤西護欄、交通錐、銀行液壓防撞柱
 // 用法：node tools/check-gta-v5.mjs [html]（預設 web/260-neon-nightcity.html）
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +31,20 @@ await page.evaluate(() => {
       return p;
     },
     reset() { const N = window.__nc; N.gta.wanted.clear('reset'); N.gta.life.hp = 100; if (N.player.mode === 'drive') N.walk(); N.player.air3 = null; N.player.down = 0; N.gta.v5.V5.lad = null; },
+    // 街道設施：(nx, nz) 兩邊哪一邊從 d0 到 7 m 都是空地（連路邊車一起算；車從那邊衝過來），1｜−1｜0
+    side(o, nx, nz, d0 = 1.6) { const A = window.__nc.gta.v5.street; for (const s of [1, -1]) { let ok = true; for (let d = d0; d <= 7 && ok; d += .5) ok = A.free(o.x + nx * s * d, o.z + nz * s * d, .9); if (ok) return s; } return 0; },
+    // 四個方向（物件的前後左右）裡哪一個方向的 1.6–7 m 是空地：回傳 [ax, az]
+    dir(o) { const c = Math.cos(o.yaw), sn = Math.sin(o.yaw); for (const [x, z] of [[sn, c], [c, -sn], [-c, sn], [-sn, -c]]) if (__t.side(o, x, z) === 1) return [x, z]; return null; },
+    // 開自己的車從 (tx, tz) 往 (ax, az) 方向 d 公尺外、以 kmh 衝過來，每幀維持車速到 hit() 成立或超過 max 幀；
+    // hit 是 null：撞到東西（車速掉兩成）之後就不再維持車速（看「沒過門檻會不會照一般碰撞擋住」）；不然一直維持到 hit() 成立（路緣會讓車慢下來，玩家實際上會踩油門）
+    ram(tx, tz, ax, az, kmh, hit, d = 7, max = 120) {
+      const N = window.__nc; __t.reset(); N.drive(); const v = N.player.veh; N.gta.wreck.fix(v); v.tumble = null; v.flipped = 0;
+      const l = Math.hypot(ax, az); if (!(l > 0)) throw new Error('ram：沒有方向'); ax /= l; az /= l;
+      v.x = tx + ax * d; v.z = tz + az * d; v.y = 0; v.yaw = Math.atan2(-ax, -az); v.vx = v.vz = 0; __t.step(1);
+      const sp = kmh / 3.6; let n = 0, got = false, touch = false;
+      for (; n < max; n++) { if (!touch) { v.vx = -ax * sp; v.vz = -az * sp; } __t.step(1); if (hit && hit()) { got = true; break; } if (!hit && !touch && Math.hypot(v.vx, v.vz) < sp * .8) touch = true; }
+      return { v, n, got };
+    },
   };
 });
 
@@ -370,7 +385,159 @@ try {
     check(c24.broke && c24.hp === 2000 && c24.after > c24.sp * .8 && c24.flew > 1, `柵欄桿斷飛 ${c24.flew} m，車速 ${c24.sp} → ${c24.after}、不扣血`);
   }
 
-  console.log('26. 主控台');
+  const s1 = await sec('26. 街道微結構的數量', () => window.__nc.gta.v5.street.count());
+  if (s1) check(s1.sites === 8 && s1.shelters >= 20 && s1.stands >= 12 && s1.bollards >= 4 && s1.panes >= 100 && s1.jersey >= 18 && s1.fence >= 80, `施工區 ${s1.sites}、候車亭 ${s1.shelters}、熱狗攤 ${s1.stands}、電話亭 ${s1.booths}、護欄 ${s1.jersey}、圍籬 ${s1.fence} 片、防撞柱 ${s1.bollards}、玻璃 ${s1.panes} 片`);
+
+  const s2 = await sec('27. 車行落地窗：一槍就碎、車撞（> 800 N·s）也碎', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st; __t.reset();
+    const deal = st.items.filter(o => o.kind === 'pane' && o.deal), ok = deal.filter(o => __t.side(o, Math.sin(o.yaw), Math.cos(o.yaw), 1)), a = ok[0], b = ok[ok.length - 1];
+    const nx = Math.sin(a.yaw), nz = Math.cos(a.yaw), s = __t.side(a, nx, nz, 1), g0 = st.n.glass;
+    N.tp(a.x + nx * s * 6, a.z + nz * s * 6); __t.step(2);
+    const kind = A.shoot(a.x + nx * s * 5, 1.6, a.z + nz * s * 5, a.x, 2.2, a.z); __t.step(2);
+    const shards = st.shards.length;
+    const r = __t.ram(b.x, b.z, nx * s, nz * s, 12, () => b.down); __t.step(30); const sp = Math.hypot(r.v.vx, r.v.vz);
+    N.walk(); return { n: deal.length, s, kind, a: !!a.down, shards, b: !!b.down, frames: r.n, glass: st.n.glass - g0, sp: +sp.toFixed(1) };
+  });
+  if (s2) {
+    check(s2.n === 6 && s2.kind === 'prop' && s2.a && s2.shards >= 14, `展示窗 ${s2.n} 片；一槍打中（${s2.kind}）碎成 ${s2.shards} 片碎片`);
+    check(s2.b && s2.glass === 2, `時速 12 撞上（${s2.frames} 幀）另一片也碎（共碎 ${s2.glass} 片）`);
+  }
+
+  const s3 = await sec('28. 公車候車亭：背牆玻璃一槍就碎、輕撞碎玻璃、超過 9000 N·s 連根拔起', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st; __t.reset();
+    const L = st.items.filter(o => o.kind === 'shelter' && !o.down && __t.side(o, Math.sin(o.yaw), Math.cos(o.yaw)) === 1);
+    const a = L[0], b = L[1], nx = Math.sin(a.yaw), nz = Math.cos(a.yaw), p = a.panes[1];
+    N.tp(a.x + nx * 5, a.z + nz * 5); __t.step(2);
+    const kind = A.shoot(a.x + nx * 4, 1.5, a.z + nz * 4, p.x, 1.4, p.z); __t.step(2); const shot = !!p.down, other = a.panes.filter(q => q.down).length;
+    const bx = Math.sin(b.yaw), bz = Math.cos(b.yaw);
+    const r1 = __t.ram(b.x, b.z, bx, bz, 11, () => b.panes.some(q => q.down) || b.down, 7, 90); __t.step(20);
+    const soft = { panes: b.panes.filter(q => q.down).length, down: !!b.down };
+    const t0 = st.tumble.length, sh0 = st.n.shelter;
+    const r2 = __t.ram(b.x, b.z, bx, bz, 35, () => b.down, 8); const tumb = st.tumble.length - t0;
+    __t.step(240);
+    N.walk(); return { n: L.length, kind, shot, other, soft, hard: !!b.down, uproot: st.n.shelter - sh0, tumb, f: [r1.n, r2.n], allGlass: b.panes.every(q => q.down) };
+  });
+  if (s3) {
+    check(s3.kind === 'prop' && s3.shot && s3.other === 1, `打一槍背牆中間那片碎（其他兩片還在）`);
+    check(s3.soft.panes >= 1 && !s3.soft.down, `時速 11 撞上（衝量約 4900）只碎 ${s3.soft.panes} 片玻璃、候車亭還在`);
+    check(s3.hard && s3.uproot === 1 && s3.tumb >= 1 && s3.allGlass, `時速 35 撞上連根拔起、整座翻滾（${s3.tumb} 組），玻璃全碎`);
+  }
+
+  const s4 = await sec('29. 電話亭：一槍玻璃碎、車撞超過 9000 N·s 連根拔起', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st; __t.reset();
+    const L = st.items.filter(o => o.kind === 'booth' && !o.down && __t.side(o, 1, 0)), a = L[0], b = L[1];
+    N.tp(a.x + __t.side(a, 1, 0) * 5, a.z); __t.step(2);
+    const kind = A.shoot(a.x + __t.side(a, 1, 0) * 4, 1.4, a.z, a.x, 1.3, a.z); __t.step(2);
+    const s = __t.side(b, 1, 0), r = __t.ram(b.x, b.z, s, 0, 35, () => b.down, 8);
+    __t.step(30); N.walk(); return { kind, glass: a.glass, down: !!b.down, f: r.n };
+  });
+  if (s4) check(s4.kind === 'prop' && s4.glass === 0 && s4.down, `一槍打碎電話亭玻璃（${s4.kind}）；時速 35 撞上連根拔起`);
+
+  const s5 = await sec('30. 熱狗攤：撞翻、時速 50 以上或瓦斯鋼瓶中兩槍 → 噴火兩秒後爆炸', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st, G = N.gta; __t.reset();
+    const L = st.items.filter(o => o.kind === 'hotdog' && !o.down && !o.boom), a = L[0];
+    // 鋼瓶中兩槍：第一槍漏氣、第二槍噴火，兩秒後炸開（站在 5 m 外的人受傷、攤子自己被炸翻）
+    const tx = a.tx, tz = a.tz, s = __t.side({ x: tx, z: tz }, 1, 0) || 1;
+    N.tp(tx + s * 5, tz); __t.step(2); G.life.hp = 100;
+    const k1 = A.shoot(tx + s * 4, 1.0, tz, tx, .3, tz), h1 = a.hits, f1 = st.fires.length;
+    const k2 = A.shoot(tx + s * 4, 1.0, tz, tx, .3, tz), f2 = st.fires.length;
+    __t.step(60); const mid = st.fires.length; __t.step(75);
+    const shot = { k1, h1, f1, k2, f2, mid, after: st.fires.length, down: !!a.down, hp: Math.round(G.life.hp) };
+    // 時速 30 撞上：翻倒但鋼瓶沒破
+    const b = L.find(o => o !== a && Math.hypot(o.x - a.x, o.z - a.z) > 30 && __t.dir(o)), [bx, bz] = __t.dir(b);
+    const tm0 = st.tumble.length;
+    const r1 = __t.ram(b.x, b.z, bx, bz, 30, () => b.down, 7, 90);
+    const slow = { down: !!b.down, boom: !!b.boom, parts: st.tumble.length - tm0 }; __t.step(60);
+    // 時速 60 撞上：鋼瓶破、噴火
+    const c = L.find(o => o !== a && o !== b && Math.hypot(o.x - b.x, o.z - b.z) > 30 && Math.hypot(o.x - a.x, o.z - a.z) > 30 && __t.dir(o)), [cx, cz] = __t.dir(c);
+    const r2 = __t.ram(c.x, c.z, cx, cz, 60, () => c.down, 9, 90);
+    const fast = { down: !!c.down, boom: !!c.boom, fires: st.fires.length };
+    N.walk(); __t.step(150);
+    return { shot, slow, fast, done: st.fires.length, f: [r1.n, r2.n] };
+  });
+  if (s5) {
+    const s = s5.shot;
+    check(s.k1 === 'prop' && s.h1 === 1 && s.f1 === 0 && s.f2 === 1 && s.mid === 1 && s.after === 0 && s.down && s.hp < 100, `鋼瓶第一槍漏氣、第二槍噴火，1 秒時還在噴、2.25 秒時炸開，攤子被炸翻、5 m 外的人剩 ${s.hp} 生命`);
+    check(s5.slow.down && !s5.slow.boom && s5.slow.parts >= 3, `時速 30 撞翻（遮陽傘、醬料、攤車、鋼瓶 ${s5.slow.parts} 件飛出去），鋼瓶沒破`);
+    check(s5.fast.down && s5.fast.boom && s5.fast.fires >= 1 && s5.done === 0, `時速 60 撞上：鋼瓶噴火，之後炸開`);
+  }
+
+  const s6 = await sec('31. 施工圍籬：低於 3500 N·s 擋住；撞倒整排依序倒下，開過去刮出火花', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st; __t.reset();
+    const pick = row => { const p = row.panels[Math.floor(row.panels.length / 2)]; return [p, __t.side(p, Math.sin(p.yaw), Math.cos(p.yaw))]; };
+    const rows = st.fence.filter(r => r.panels.length >= 9 && !r.panels.some(q => q.down) && pick(r)[1]);
+    const [q, qs] = pick(rows[1]);
+    __t.ram(q.x, q.z, Math.sin(q.yaw) * qs, Math.cos(q.yaw) * qs, 6, null, 5, 90);
+    const weak = rows[1].panels.filter(p => p.down).length;
+    const row = rows[0], [p, s] = pick(row), nx = Math.sin(p.yaw) * s, nz = Math.cos(p.yaw) * s, f0 = st.n.fence;
+    const r = __t.ram(p.x, p.z, nx, nz, 30, () => p.down, 7);
+    __t.step(6); const early = row.panels.filter(x => x.ang >= 1.45).length, falling = row.panels.filter(x => x.ang > .05).length;
+    __t.step(120); const flat = row.panels.filter(x => x.ang >= 1.45).length;
+    // 從倒下的圍籬上開過去
+    const sc0 = st.n.scrape || 0, fp = row.panels[2];
+    const v = N.player.veh; v.tumble = null; const ux = Math.cos(p.yaw), uz = -Math.sin(p.yaw);
+    v.x = fp.fx - ux * 6; v.z = fp.fz - uz * 6; v.y = 0; v.yaw = Math.atan2(ux, uz);
+    for (let i = 0; i < 90; i++) { v.vx = ux * 8; v.vz = uz * 8; __t.step(1); }
+    const scrape = (st.n.scrape || 0) - sc0;
+    N.walk(); return { weak, n: row.panels.length, fell: st.n.fence - f0, early, falling, flat, scrape, f: r.n };
+  });
+  if (s6) {
+    check(s6.weak === 0, `時速 6（衝量約 2700）撞上，圍籬沒倒`);
+    check(s6.fell === s6.n && s6.early < s6.n && s6.flat === s6.n, `時速 30 撞上整排 ${s6.n} 片依序倒下（0.1 秒時倒平 ${s6.early} 片、正在倒 ${s6.falling} 片；兩秒後全倒平 ${s6.flat} 片）`);
+    check(s6.scrape >= 3, `開過倒在地上的圍籬刮出火花 ${s6.scrape} 次`);
+  }
+
+  const s7 = await sec('32. 紐澤西護欄：時速 40 彈開、時速 80 被鏟起來翻飛、3000 kg 以上推著走', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st; __t.reset();
+    const L = st.jersey.filter(o => !o.dyn && __t.side(o, Math.cos(o.yaw), -Math.sin(o.yaw)));
+    const side = o => { const s = __t.side(o, Math.cos(o.yaw), -Math.sin(o.yaw)); return [Math.cos(o.yaw) * s, -Math.sin(o.yaw) * s]; };
+    const a = L[0], [ax, az] = side(a), x0 = a.x;
+    const r1 = __t.ram(a.x, a.z, ax, az, 40, null, 6, 40); const v = r1.v;
+    const bounce = { tumble: !!v.tumble, moved: !!a.dyn, out: -(v.vx * ax + v.vz * az) <= 1 };
+    const b = L[1], [bx, bz] = side(b), l0 = st.n.launch;
+    const r2 = __t.ram(b.x, b.z, bx, bz, 80, () => st.n.launch > l0, 7, 60); const top = { y: 0, tumble: !!r2.v.tumble };
+    for (let i = 0; i < 60; i++) { __t.step(1); top.y = Math.max(top.y, r2.v.y); }
+    __t.step(240); N.gta.wreck.fix(r2.v); r2.v.tumble = null; r2.v.flipped = 0; r2.v.y = 0;
+    const c = L[2], [cx, cz] = side(c), c0 = [c.x, c.z], p0 = st.n.push;
+    N.walk(); N.drive(); N.player.veh.mass = 4000;
+    __t.ram(c.x, c.z, cx, cz, 20, () => st.n.push - p0 > 20, 6, 90);
+    const push = { moved: +Math.hypot(c.x - c0[0], c.z - c0[1]).toFixed(2), n: st.n.push - p0 };
+    delete N.player.veh.mass; N.walk();
+    return { bounce, launch: st.n.launch - l0, top: { y: +top.y.toFixed(2), tumble: top.tumble }, push };
+  });
+  if (s7) {
+    check(!s7.bounce.tumble && !s7.bounce.moved && s7.bounce.out, `時速 40 撞上照一般碰撞擋住，護欄不動`);
+    check(s7.launch === 1 && s7.top.tumble && s7.top.y > 1.2, `時速 80 撞上被斜面鏟起來翻飛（最高 ${s7.top.y} m）`);
+    check(s7.push.n > 3 && s7.push.moved > .5, `4000 kg 的車時速 20 推著護欄走 ${s7.push.moved} m`);
+  }
+
+  const s8 = await sec('33. 交通錐一碰就飛', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st; __t.reset();
+    const o = st.cones.find(c => !c.down && __t.side(c, 1, 0)), s = __t.side(o, 1, 0), y0 = o.y;
+    const r = __t.ram(o.x, o.z, s, 0, 25, () => o.down, 6); let top = 0; for (let i = 0; i < 40; i++) { __t.step(1); top = Math.max(top, o.y); }
+    __t.step(200); N.walk(); return { down: !!o.down, top: +(top - y0).toFixed(2), rest: !o.fly };
+  });
+  if (s8) check(s8.down && s8.top > .3 && s8.rest, `撞飛（最高 ${s8.top} m）後落地停住`);
+
+  const s9 = await sec('34. 銀行門前的液壓防撞柱：時速 60 以上車頭全毀、繫了安全帶也飛出去', () => {
+    const N = window.__nc, A = N.gta.v5.street, st = A.st, G = N.gta; __t.reset();
+    const L = st.items.filter(o => o.kind === 'bollard'), o = L[2];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([x, z]) => __t.side(o, x, z) === 1);
+    const [ax, az] = dirs[0];
+    const r1 = __t.ram(o.x, o.z, ax, az, 30, null, 6, 60); const slow = { mode: N.player.mode, hp: r1.v.hp, n: st.n.bollard };
+    const b0 = st.n.bollard; __t.reset(); N.drive(); G.v3.crash.crash.belt = true;
+    const v = N.player.veh; G.wreck.fix(v); const hm = v.hp;
+    let mode = 'drive', air = null;
+    const r2 = __t.ram(o.x, o.z, ax, az, 70, () => st.n.bollard > b0, 8, 60); mode = N.player.mode; air = N.player.air3 && N.player.air3.kind;
+    const hp = v.hp; __t.step(240); N.gta.wreck.fix(v);
+    return { n: L.length, dirs: dirs.length, slow, hit: st.n.bollard - b0, mode, air, hp: Math.round(hp), hm: Math.round(hm), f: r2.n };
+  });
+  if (s9) {
+    check(s9.slow.mode === 'drive' && s9.slow.n === 0, `時速 30 撞上只是擋住（還在車上）`);
+    check(s9.hit === 1 && s9.hp <= s9.hm * .2 + 1 && s9.mode === 'walk' && s9.air === 'eject', `時速 70 撞上：耐久 ${s9.hm} → ${s9.hp}、繫著安全帶仍從擋風玻璃飛出去（${s9.air}）`);
+  }
+
+  console.log('35. 主控台');
   check(log.pageerrors.length === 0, `沒有 uncaught exception（${log.pageerrors.slice(0, 2).join(' | ')}）`);
   check(log.errors.length === 0, `沒有 console.error（${log.errors.slice(0, 2).join(' | ')}）`);
 } finally { await browser.close(); }

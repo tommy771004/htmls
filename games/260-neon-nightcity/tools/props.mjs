@@ -45,6 +45,15 @@ export const SETS = [
     { id: 'target', file: 'gun_targets', h: 1, only: /^Moving Target_6$/ },
     { id: 'booth', file: 'gun_targets', h: 1.9, only: /^(BoothTable_8|BoothWall_9)$/ },
   ] },
+  // 第五部曲之四的街道小設施（69-v5-street.js，原檔在 .cache/v5/）：Ottto3d 的 Modern Bus Stop Shelter（放大 1.1 倍，開口朝 +z；
+  // 背牆三片玻璃在這條管線畫成不透明的黑板，拿掉（dropBox），頁面換成打得碎的透明玻璃）；BeaBea 的 Hot Dog Stand（縮成 0.5）拆成
+  // 攤車、遮陽傘（連傘柄）與兩罐醬料，三件用同一個原點（攤車底面中心），頁面擺在同一個位置就對得上；撞飛的時候各自翻滾
+  { out: 'v5street', src: '.cache/v5', tex: 1024, items: [
+    { id: 'shelter', file: 'modern_bus_stop_shelter', scale: 1.1, dropBox: [[-1.19, -.53, .25, 1.75, -.445, -.425], [-.32, .35, .25, 1.75, -.445, -.425], [.55, 1.22, .25, 1.75, -.445, -.425]] },
+    { id: 'hd_cart', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], dropBox: [[-2, 2, 1.5, 4, -3, 5], [1.05, 1.32, 1.15, 1.75, 1.85, 2.33]] },
+    { id: 'hd_umb', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], clip: [-2, 2, 1.5, 4, -3, 5] },
+    { id: 'hd_sauce', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], clip: [1.05, 1.32, 1.15, 1.75, 1.85, 2.33] },
+  ] },
   // 第九分局（69-v5-civic.js；10-city.js 的 FAC.pd 前半塊地當實體建築 bldPlace 擺）：katiewolfe 的 Southern District Police Station（CC BY 4.0，照片掃描，公尺，
   // 正面朝 +z、右側有原本的逃生梯）。21 塊切塊先縫合再減到 6%，8K 貼圖縮成 4K
   { out: 'v5pd', src: '.cache/v5', tex: 4096, items: [{ id: 'pd', file: 'southern_district_police_station', sloppy: .06, seam: .06, renorm: 1 }] },
@@ -1003,8 +1012,9 @@ async function build(set) {
       return ix.length ? subPrim(p, ix) : null;
     }).filter(Boolean);
     if (set.keep) prims = prims.filter((p) => set.keep(p.node));
-    if (set.dropBox) prims = prims.map((p) => {   // 原檔座標的盒子 [x0, x1, y0, y1, z0, z1, 材質]：做成立體字的真實商標整塊拿掉
-      const boxes = set.dropBox.filter((b) => !b[6] || (p.mat && b[6].test(p.mat.getName())));
+    const dropB = src.dropBox || set.dropBox;   // 物件自己的 dropBox 優先（同一組裡別的物件不受影響）
+    if (dropB) prims = prims.map((p) => {   // 原檔座標的盒子 [x0, x1, y0, y1, z0, z1, 材質]：做成立體字的真實商標整塊拿掉
+      const boxes = dropB.filter((b) => !b[6] || (p.mat && b[6].test(p.mat.getName())));
       if (!boxes.length) return p;
       const ix = [];
       for (let t = 0; t < p.idx.length; t += 3) {

@@ -69,6 +69,7 @@ function brkBreak(c, v) {
 }
 // 開車前（69-v3-crash.js 的 driveSub、69-v3-world.js 的 aiDrive）：這一幀前後兩個碰撞圓會掃到的路燈、消防栓先撞斷
 function breakSweep(v, dt) {
+  streetSweep(v, dt);   // 69-v5-street.js：玻璃、圍籬、候車亭、熱狗攤、護欄、防撞柱（機車也算）
   if (player.where !== 'out' || v.boat || v.fly || !v.isCar) return;   // 機車撞上去是人摔出去（69-v3-crash.js），桿子不斷
   const sp = Math.hypot(v.vx, v.vz);
   if (sp < BRK_V) return;

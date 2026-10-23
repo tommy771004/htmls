@@ -380,6 +380,7 @@ function v5Update(dt) {
   v5Bandage();
   V5.lastVeh = player.mode === 'drive' ? player.veh : null;
   pkUpdate(dt);   // 69-v5-garage.js
+  streetUpdate(dt);   // 69-v5-street.js
   v5ShopUpdate(dt);   // 69-v5-shops.js
 }
 // 繃帶：出院後 5 分鐘，額頭一圈、左前臂一段

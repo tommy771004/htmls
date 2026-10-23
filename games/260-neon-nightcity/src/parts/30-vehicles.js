@@ -219,6 +219,7 @@ for (const S of [HOSP, PD]) {
 }
 parked.push(...facParked());   // 69-v5-civic.js：拖吊場裡被扣的車（不抽 rT）
 mallParkClear();   // 69-v5-shops.js：洗車隧道進出口前的路邊車位
+streetParkClear();   // 69-v5-street.js：路邊施工區那幾段
 // 停車位以邏輯座標挑好，這裡一次換成世界座標（車頭方向一起轉）；車身的兩個碰撞圓直接是世界座標
 for (const p of parked) { const zn = zoneAtL(p.x, p.z); [p.x, p.z] = toW(p.x, p.z, zn); p.yaw = yawW(zn, p.yaw); }
 // 停車、出生、交車與重生點：生成時（避開停車格）是邏輯座標，cityWorld() 之後換成世界座標
@@ -510,6 +511,7 @@ const vehicles = [kestrel, hanzo];
 
 // 碰撞：圓對 AABB、圓對圓；回傳推出量與法線
 const dynCircles = [];   // 會動的圓（世界座標，每幀重建）：21-coast.js 的岸橋腳與集卡
+const dynMore = [];   // 會動的圓（世界座標，各自更新位置）：69-v5-street.js 被推著走的紐澤西護欄
 let colY = 0;   // 正在算碰撞的東西離地多高：高過 hy 的圓與盒不擋（車開在鐵灣高架斷橋、快速道路橋面上時，橋下的柱子不算），低於 ly 的盒不擋（橋面的護欄只擋橋上的）
 function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行，可以穿過沙灘外緣的擋牆下水
   let nx = 0, nz = 0, hit = 0;
@@ -529,7 +531,7 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
       nx += ex; nz += ez; hit = 1;
     }
   }
-  for (const c of dynCircles.length ? [...circlesNear(x, z, r), ...dynCircles] : circlesNear(x, z, r)) {
+  for (const c of dynCircles.length || dynMore.length ? [...circlesNear(x, z, r), ...dynCircles, ...dynMore] : circlesNear(x, z, r)) {
     if (skipCar && c.car || c.hy != null && colY > c.hy) continue;
     const dx = x - c.x, dz = z - c.z, rr = r + c.r, d2 = dx * dx + dz * dz;
     if (d2 < rr * rr && d2 > 1e-8) { const d = Math.sqrt(d2); x = c.x + dx / d * rr; z = c.z + dz / d * rr; nx += dx / d; nz += dz / d; hit = 1; }

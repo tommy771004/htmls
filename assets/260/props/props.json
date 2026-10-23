@@ -150,6 +150,65 @@
    }
   ]
  },
+ "v5street": {
+  "kb": 384,
+  "items": {
+   "shelter": {
+    "w": 3.73,
+    "d": 1.41,
+    "h": 2.42,
+    "tris": 4828
+   },
+   "hd_cart": {
+    "w": 1.44,
+    "d": 2.5,
+    "h": 1.23,
+    "tris": 4010
+   },
+   "hd_umb": {
+    "w": 1.58,
+    "d": 1.56,
+    "h": 1.16,
+    "tris": 6680
+   },
+   "hd_sauce": {
+    "w": 0.1,
+    "d": 0.2,
+    "h": 0.27,
+    "tris": 1784
+   }
+  },
+  "credits": [
+   {
+    "file": "modern_bus_stop_shelter",
+    "title": "Modern Bus Stop Shelter",
+    "author": "Ottto3d (https://sketchfab.com/Ottto3ds)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/modern-bus-stop-shelter-2904d92a65b947e7bed44319bc320e84"
+   },
+   {
+    "file": "hot_dog_stand",
+    "title": "Hot Dog Stand",
+    "author": "BeaBea (https://sketchfab.com/beabea.)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/hot-dog-stand-182671a3e8e644b8bae2decc3745d49e"
+   },
+   {
+    "file": "hot_dog_stand",
+    "title": "Hot Dog Stand",
+    "author": "BeaBea (https://sketchfab.com/beabea.)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/hot-dog-stand-182671a3e8e644b8bae2decc3745d49e"
+   },
+   {
+    "file": "hot_dog_stand",
+    "title": "Hot Dog Stand",
+    "author": "BeaBea (https://sketchfab.com/beabea.)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/hot-dog-stand-182671a3e8e644b8bae2decc3745d49e"
+   }
+  ]
+ },
  "v5pd": {
   "kb": 7902,
   "items": {

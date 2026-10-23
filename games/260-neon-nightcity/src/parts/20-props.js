@@ -490,7 +490,7 @@ const works = [];
   for (let k = 0; k < 6; k++) works.push({ t: 'drum', x: x + (k % 2) * .6 - .3, z: zc - 9 + k * 3.2 });
   for (let k = 0; k < 7; k++) works.push({ t: 'cone', x: x - 1.5 + (k % 2) * .25, z: zc - 14 + k * 1.6 });
   works.push({ t: 'jersey', x: x + 1.05, z: zc - 2, ry: 0 }, { t: 'jersey', x: x + 1.05, z: zc + 2.1, ry: 0 });
-  for (const w of works) circles.push({ x: w.x, z: w.z, r: w.t === 'jersey' ? 1 : .35 });
+  for (const w of works) if (w.t !== 'jersey') circles.push({ x: w.x, z: w.z, r: .35 });   // 紐澤西護欄的畫面與碰撞在 69-v5-street.js（會被推、會鏟起車）
 }
 // 飛車特技跳台（69-stunt.js）：放在路口前的停車道上，順著車流方向朝路口飛過去；(x, z) 是跳台邊緣，yaw 是車頭方向。
 // 30-vehicles.js 擺路邊車時用 rampBlock() 讓開跳台與落地區
@@ -550,9 +550,6 @@ const garDrive = (x, z) => !!FAC.gar && x > FAC.gar.ax - 1 && x < FAC.gar.ax + 1
   instanced(d.build(), MAT.uberI, works.filter(w => w.t === 'drum'), 0, (t, c) => c === 1 ? rnd() : 0);
   const c = new Kit().cyl(0, .38, 0, .03, .19, .72, 12, 0xff5a0a, 10).cyl(0, .4, 0, .12, .14, .1, 12, 0xf2f2ee, 11).box(0, .02, 0, .42, .04, .42, 0x222222, 2);
   instanced(c.build(), MAT.uber, works.filter(w => w.t === 'cone'), LY.NOREFL);
-  const j = new Kit().box(0, .2, 0, .6, .4, 3.8, 0xb8b4aa, 10).box(0, .6, 0, .35, .4, 3.8, 0xb8b4aa, 10).box(0, .82, 0, .22, .06, 3.8, 0xb8b4aa, 10)
-    .box(.31, .4, 0, .01, .12, 3.6, 0xff6a10, 11);
-  instanced(j.build(), MAT.uber, works.filter(w => w.t === 'jersey'));
 }
 
 // ─── 招牌圖集：所有字都用 Canvas 畫在一張 2048 的貼圖上 ───
