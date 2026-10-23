@@ -17,9 +17,19 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const log = (...a) => { document.getElementById('log').textContent += a.join(' ') + '\n'; console.log(...a); };
 const loader = new GLTFLoader();
+// three 已不支援 KHR_materials_pbrSpecularGlossiness：只取漫射貼圖與顏色，夠取樣用
+loader.register(parser => ({
+  name: 'KHR_materials_pbrSpecularGlossiness',
+  extendMaterialParams(i, params) {
+    const ext = parser.json.materials[i].extensions?.KHR_materials_pbrSpecularGlossiness; if (!ext) return Promise.resolve();
+    if (ext.diffuseFactor) params.color = new THREE.Color().setRGB(ext.diffuseFactor[0], ext.diffuseFactor[1], ext.diffuseFactor[2], THREE.LinearSRGBColorSpace);
+    return ext.diffuseTexture ? parser.assignTexture(params, 'map', ext.diffuseTexture, THREE.SRGBColorSpace) : Promise.resolve();
+  },
+}));
 const UBC = '/games/197-openworld/.cache/ubc/Universal Base Characters[Standard]/';
 const UAL = '/games/197-openworld/.cache/ual/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb';
 const PH = '/games/266-eternauta-plaza/.cache/polyhaven/';
+const SF = '/games/266-eternauta-plaza/.cache/sketchfab/'; // Sketchfab 原檔（CC BY，見 CREDITS.md）
 
 /* ---------- 可重現的亂數與 3D 雜訊 ---------- */
 function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
@@ -44,7 +54,7 @@ function sampler(tex) {
   const fn = (u, v, out) => {
     u = u - Math.floor(u); v = v - Math.floor(v);
     const x = Math.min(W - 1, Math.floor(u * W)), y = Math.min(H - 1, Math.floor(v * H)), o = (y * W + x) * 4;
-    out[0] = d[o] / 255; out[1] = d[o + 1] / 255; out[2] = d[o + 2] / 255; return out;
+    out[0] = d[o] / 255; out[1] = d[o + 1] / 255; out[2] = d[o + 2] / 255; out[3] = d[o + 3] / 255; return out;
   };
   texCache.set(tex, fn); return fn;
 }
@@ -108,7 +118,7 @@ function sampleMesh(acc, mesh, opts) {
         const res = opts.shade(ctx); if (!res) continue;
         const off = res.offset || 0;
         if (off) P.addScaledVector(N, off);
-        push(acc, P, N, res.rgb, size * (res.grow || 1), Math.max(0.0006, size * 0.12), res.alpha ?? 0.96, rnd, bones);
+        push(acc, P, N, res.rgb, size * (res.grow || 1), Math.max(0.0006, size * 0.12), res.alpha ?? 0.96, rnd, ctx.bones); // shade 可以改寫 bones（剛性配件）
       }
     }
   }
@@ -149,7 +159,8 @@ const srgb = c => { const k = c.clone().convertLinearToSRGB(); return [k.r, k.g,
    物件：Poly Haven（CC0）與 199 的槍模型
    ====================================================================== */
 // 手持武器統一成 199 的慣例：-Z 朝槍口、+Y 朝上、原點在握把（grip 是旋轉後包圍盒裡的比例位置）；
-// 其他物件原點在底部中心。rotY 以弧度繞 Y 軸轉。
+// 其他物件原點在底部中心。rotY 以弧度繞 Y 軸轉。Sketchfab 原檔單位不一，size 指定轉向後最長邊的公尺數；
+// exclude 排除名稱鏈符合的節點；有透明貼圖的材質（MASK／BLEND）在 alpha < 0.5 處不取樣。
 const ITEMS = [
   { id: 'pistol', src: PH + 'service_pistol/service_pistol_1k.gltf', include: /pistol_a|slide_a|hammer_a|trigger_a/, spacing: 0.0028, rotY: Math.PI / 2, grip: [0.5, 0.55, 0.8] },
   { id: 'rifle', src: PH + 'bolt_action_rifle_7_62/bolt_action_rifle_7_62_1k.gltf', include: /scope|wrap|7_62$|bolt_a|trigger/, spacing: 0.0042, rotY: Math.PI / 2, grip: [0.5, 0.45, 0.66] },
@@ -163,6 +174,16 @@ const ITEMS = [
   { id: 'radio', src: PH + 'vintage_radio_transceiver/vintage_radio_transceiver_1k.gltf', spacing: 0.0055 },
   { id: 'food', src: PH + 'russian_food_cans_01/russian_food_cans_01_1k.gltf', spacing: 0.0028 },
   { id: 'crate', src: PH + 'old_military_crate/old_military_crate_1k.gltf', include: /_a$/, spacing: 0.011 },
+  { id: 'aksu', src: SF + 'aksu-74_game_ready.glb', size: 0.82, rotY: Math.PI, spacing: 0.0042, grip: [0.5, 0.45, 0.66] },
+  { id: 'mp7', src: SF + 'low_poly_mp7a2.glb', size: 0.7, spacing: 0.0036, grip: [0.5, 0.5, 0.53] },
+  { id: 'helmet', src: SF + 'military_helmet.glb', size: 0.27, spacing: 0.0042 },
+  { id: 'vest', src: SF + 'military_character_kit_1.1_cc0.glb', include: /_mpc01_|plate_carrier_01_main_117/, size: 0.46, spacing: 0.0075 },
+  // 廣場上的靜態道具：車頭朝 +Z；snow 是朝上表面的積雪強度，dim 壓暗（夜裡的路燈再打亮）
+  { id: 'cruiser', src: SF + 'fairheaven_lt_80_cop_cruiser_-_low_poly_model.glb', rotY: -Math.PI / 2, size: 5.08, spacing: 0.032, snow: 0.85, dim: 0.85 },
+  { id: 'shelter-a', src: SF + 'bus_shelter_diorama.glb', exclude: /^Object_4$/, size: 3.44, spacing: 0.028, snow: 0.7 },
+  { id: 'shelter-b', src: SF + 'modern_bus_stop_shelter.glb', size: 3.39, spacing: 0.026, snow: 0.8, dim: 1.15 },
+  { id: 'f35', src: SF + 'f-35a_lightning_ii.glb', size: 15.7, spacing: 0.085, dim: 0.9 }, // 夜空飛過的戰機，機頭朝 +Z
+  { id: 'can', src: SF + 'soda_cans_3d_pack.glb', include: /crushed_23$/, size: 0.1, spacing: 0.0035, tint: [0.95, 0.32, 0.26] },
 ];
 async function bakeItem(it) {
   const gltf = await loader.loadAsync(it.src);
@@ -171,25 +192,33 @@ async function bakeItem(it) {
   gltf.scene.traverse(o => {
     if (!o.isMesh) return;
     let ok = !it.include; for (let p = o; p && !ok; p = p.parent) if (it.include.test(p.name)) ok = true;
+    if (it.exclude) for (let p = o; p && ok; p = p.parent) if (it.exclude.test(p.name)) ok = false;
     if (ok && !/glass/i.test(o.material?.name || '') ) meshes.push(o);
   });
-  // 轉向後再定原點：手持物件放在握把，其他放在底部中心
+  // 轉向（與縮放）後再定原點：手持物件放在握把，其他放在底部中心
   const rot = new THREE.Matrix4().makeRotationY(it.rotY || 0), box = new THREE.Box3();
-  for (const m of meshes) { const b = new THREE.Box3().setFromObject(m); b.applyMatrix4(rot); box.union(b); }
+  for (const m of meshes) { const b = new THREE.Box3().setFromObject(m, true); b.applyMatrix4(rot); box.union(b); }
+  if (it.size) { const d = box.getSize(new THREE.Vector3()), k = it.size / Math.max(d.x, d.y, d.z); rot.premultiply(new THREE.Matrix4().makeScale(k, k, k)); box.min.multiplyScalar(k); box.max.multiplyScalar(k); }
   const sz = box.getSize(new THREE.Vector3()), o = it.grip ? new THREE.Vector3(...it.grip).multiply(sz).add(box.min) : new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2);
   const pre = it.native ? new THREE.Matrix4().makeTranslation(-meshes[0].getWorldPosition(new THREE.Vector3()).x, -meshes[0].getWorldPosition(new THREE.Vector3()).y, -meshes[0].getWorldPosition(new THREE.Vector3()).z) : new THREE.Matrix4().makeTranslation(-o.x, -o.y, -o.z).multiply(rot);
   const acc = Acc();
   for (const m of meshes) {
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     sampleMesh(acc, m, {
-      spacing: it.spacing, pre, seed: 11, shade: ({ u, v, m: mat, col, p }) => {
+      spacing: it.spacing, pre, seed: 11, shade: ({ u, v, m: mat, col, p, n }) => {
         const mm = mat || mats[0];
         const map = sampler(mm.map), arm = sampler(mm.aoMap || mm.roughnessMap);
         let rgb;
         if (it.recolor) { const base = it.recolor[mm.name] || [0.2, 0.2, 0.2], k = 0.85 + fbm(p.x * 80, p.y * 80, p.z * 80) * 0.3; return { rgb: base.map(x => x * k) }; }
-        if (map) { map(u, v, col); const k = srgb(mm.color || new THREE.Color(1, 1, 1)); rgb = [col[0] * k[0], col[1] * k[1], col[2] * k[2]]; }
+        if (map) { map(u, v, col); if ((mm.transparent || mm.alphaTest > 0) && col[3] < 0.5) return null; const k = srgb(mm.color || new THREE.Color(1, 1, 1)); rgb = [col[0] * k[0], col[1] * k[1], col[2] * k[2]]; }
         else { rgb = srgb(mm.color || new THREE.Color(0.5, 0.5, 0.5)); const k = 0.9 + fbm(p.x * 60, p.y * 60, p.z * 60) * 0.2; rgb = rgb.map(x => x * k); }
         if (arm && mm.aoMap) { const t = [0, 0, 0]; arm(u, v, t); const ao = 0.35 + 0.65 * t[0]; rgb = rgb.map(x => x * ao); }
+        if (it.tint) rgb = rgb.map((x, i) => x * it.tint[i]);
+        if (it.dim) rgb = rgb.map(x => x * it.dim);
+        if (it.snow && n.y > 0.5) {
+          const s = it.snow * THREE.MathUtils.smoothstep(n.y, 0.5, 0.92) * THREE.MathUtils.clamp(0.45 + fbm(p.x * 3, p.y * 3, p.z * 3) * 0.9, 0, 1);
+          rgb = rgb.map((x, i) => x + ([0.82, 0.85, 0.9][i] - x) * s);
+        }
         return { rgb };
       },
     });
@@ -283,6 +312,151 @@ async function bakeZombie(cfg, rigs) {
   return { acc, meta: { n: acc.a.length, body: cfg.body } };
 }
 
+/* ======================================================================
+   其他骨架的角色（Sketchfab 原檔：Mixamo、UE4、Unity 命名）→ 套到 UBC 男性骨架，沿用同一套 UAL 動畫。
+   做法：用原檔自己的骨架擺成 UBC 的 T 字姿勢、縮放到同身高，再把每根骨頭平移到 UBC 的關節位置；
+   權重沿用原檔的蒙皮，骨頭編號換成 UBC 的（手指、扭轉骨併到最近的上層對應骨頭）。
+   ====================================================================== */
+const BONE_MAPS = {
+  mixamo: { hips: 'pelvis', spine: 'spine_01', spine1: 'spine_02', spine2: 'spine_03', neck: 'neck_01', head: 'Head', leftshoulder: 'clavicle_l', leftarm: 'upperarm_l', leftforearm: 'lowerarm_l', lefthand: 'hand_l', leftupleg: 'thigh_l', leftleg: 'calf_l', leftfoot: 'foot_l', lefttoebase: 'ball_l', rightshoulder: 'clavicle_r', rightarm: 'upperarm_r', rightforearm: 'lowerarm_r', righthand: 'hand_r', rightupleg: 'thigh_r', rightleg: 'calf_r', rightfoot: 'foot_r', righttoebase: 'ball_r' },
+  ue: null, // 名稱和 UBC 一樣（去掉編號、不分大小寫）
+  unity: { hips: 'pelvis', spine: 'spine_01', chest: 'spine_03', neck: 'neck_01', head: 'Head', leftshoulder: 'clavicle_l', leftarm: 'upperarm_l', leftelbow: 'lowerarm_l', leftwrist: 'hand_l', leftleg: 'thigh_l', leftknee: 'calf_l', leftankle: 'foot_l', balll: 'ball_l', rightshoulder: 'clavicle_r', rightarm: 'upperarm_r', rightelbow: 'lowerarm_r', rightwrist: 'hand_r', rightleg: 'thigh_r', rightknee: 'calf_r', rightankle: 'foot_r', ballr: 'ball_r' },
+};
+const UBC_MAIN = ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'Head', 'clavicle_l', 'upperarm_l', 'lowerarm_l', 'hand_l', 'clavicle_r', 'upperarm_r', 'lowerarm_r', 'hand_r', 'thigh_l', 'calf_l', 'foot_l', 'ball_l', 'thigh_r', 'calf_r', 'foot_r', 'ball_r'];
+// 擺姿勢的骨鏈：每根骨頭指向鏈上下一個有對應的關節，方向要和 UBC 一致
+const CHAINS = [['spine_01', 'spine_02', 'spine_03', 'neck_01', 'Head'], ['clavicle_l', 'upperarm_l', 'lowerarm_l', 'hand_l'], ['clavicle_r', 'upperarm_r', 'lowerarm_r', 'hand_r'], ['thigh_l', 'calf_l', 'foot_l', 'ball_l'], ['thigh_r', 'calf_r', 'foot_r', 'ball_r']];
+const UBCR = {};
+async function ubcRig(body) {
+  if (UBCR[body]) return UBCR[body];
+  const g = await loader.loadAsync(`${UBC}Base Characters/Godot - UE/Superhero_${body}_FullBody.gltf`); g.scene.updateMatrixWorld(true);
+  let sk = null; g.scene.traverse(o => { if (o.isSkinnedMesh && (!sk || o.geometry.attributes.position.count > sk.geometry.attributes.position.count)) sk = o; });
+  const P = {}, idx = {};
+  sk.skeleton.bones.forEach((b, j) => { idx[b.name] = j; P[b.name] = new THREE.Vector3().setFromMatrixPosition(sk.skeleton.boneInverses[j].clone().invert()); });
+  return (UBCR[body] = { P, idx });
+}
+const nodeOk = (o, cfg) => { let ok = !cfg.include; for (let p = o; p; p = p.parent) { if (cfg.include?.test(p.name)) ok = true; if (cfg.exclude?.test(p.name)) return false; } return ok && !cfg.excludeMat?.test(o.material?.name || ''); };
+const wpos = b => new THREE.Vector3().setFromMatrixPosition(b.matrixWorld);
+function aimTo(bone, child, dir) {
+  const d0 = wpos(child).sub(wpos(bone)).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(d0, dir.clone().normalize());
+  const wq = bone.getWorldQuaternion(new THREE.Quaternion()), pq = bone.parent.getWorldQuaternion(new THREE.Quaternion());
+  bone.quaternion.copy(pq.invert().multiply(q).multiply(wq)); bone.updateMatrixWorld(true);
+}
+// 回傳已經在 UBC 綁定空間、帶 UBC 骨頭權重的一般網格（sampleMesh 直接讀 skinIndex／skinWeight）
+async function fitHumanoid(cfg) {
+  const R = await ubcRig('Male');
+  const g = await loader.loadAsync(cfg.src), wrap = new THREE.Group(); wrap.add(g.scene); wrap.updateMatrixWorld(true);
+  const meshes = []; g.scene.traverse(o => { if (o.isSkinnedMesh && nodeOk(o, cfg)) meshes.push(o); });
+  const sb = meshes[0].skeleton.bones, map = BONE_MAPS[cfg.bones];
+  const key = n => n.replace(/^mixamorig:?/i, '').replace(/_\d+$/, '').replace(/[\s_]/g, '').toLowerCase();
+  const own = sb.map(b => { const k = key(b.name); return map ? map[k] || null : UBC_MAIN.find(u => u.replace(/_/g, '').toLowerCase() === k) || null; });
+  const mapped = sb.map(b => { for (let p = b; p?.isBone; p = p.parent) { const k = sb.indexOf(p); if (k >= 0 && own[k]) return own[k]; } return 'pelvis'; });
+  const src = {}; sb.forEach((b, j) => { if (own[j] && !src[own[j]]) src[own[j]] = b; });
+  const miss = UBC_MAIN.filter(u => !src[u]); if (miss.length) log(cfg.id, '沒有對應的骨頭', miss.join(','));
+  // 1. 轉向：左大腿在 +X、臉朝 +Z
+  const dl = wpos(src.thigh_l).sub(wpos(src.thigh_r)); wrap.rotation.y = Math.atan2(dl.z, dl.x); wrap.updateMatrixWorld(true);
+  // 2. 擺成 UBC 的 T 字姿勢
+  for (const ch of CHAINS) { const c = ch.filter(u => src[u]); for (let i = 0; i + 1 < c.length; i++) aimTo(src[c[i]], src[c[i + 1]], R.P[c[i + 1]].clone().sub(R.P[c[i]])); }
+  // 3. 縮放到同身高、骨盆對齊，再把每根骨頭平移到 UBC 的關節
+  const J = u => wpos(src[u]);
+  const s = (R.P.Head.y - R.P.foot_l.y) / (J('Head').y - J('foot_l').y), T = R.P.pelvis.clone().sub(J('pelvis').multiplyScalar(s));
+  const D = {}; for (const u of UBC_MAIN) if (src[u]) D[u] = R.P[u].clone().sub(J(u).multiplyScalar(s).add(T));
+  const out = [], v = new THREE.Vector3();
+  for (const m of meshes) {
+    const g0 = m.geometry, n = g0.attributes.position.count, pos = new Float32Array(n * 3), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    const SI = g0.attributes.skinIndex, SW = g0.attributes.skinWeight;
+    for (let i = 0; i < n; i++) {
+      v.fromBufferAttribute(g0.attributes.position, i); m.applyBoneTransform(i, v); v.applyMatrix4(m.matrixWorld).multiplyScalar(s).add(T);
+      const w = new Map();
+      for (let c = 0; c < 4; c++) { const x = SW.getComponent(i, c); if (x <= 0) continue; const u = mapped[SI.getComponent(i, c)]; w.set(u, (w.get(u) || 0) + x); }
+      let tot = 0; for (const [u, x] of w) { v.addScaledVector(D[u], x); tot += x; }
+      if (tot > 0 && tot < 0.999) v.addScaledVector(D.pelvis, 1 - tot);
+      pos.set([v.x, v.y, v.z], i * 3);
+      const top = [...w.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4), t4 = top.reduce((a, b) => a + b[1], 0) || 1;
+      top.forEach(([u, x], c) => { si[i * 4 + c] = R.idx[u]; sw[i * 4 + c] = x / t4; });
+      if (!top.length) { si[i * 4] = R.idx.pelvis; sw[i * 4] = 1; }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    if (g0.attributes.uv) geo.setAttribute('uv', g0.attributes.uv);
+    geo.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+    if (g0.index) geo.setIndex(g0.index); for (const gr of g0.groups) geo.addGroup(gr.start, gr.count, gr.materialIndex);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, m.material); mesh.updateMatrixWorld(true); out.push(mesh);
+  }
+  return { meshes: out, R };
+}
+// 依骨頭找身體某部位的包圍盒（主要權重是 names 其中之一的頂點）
+function partBox(meshes, R, names) {
+  const ids = new Set(names.map(n => R.idx[n])), box = new THREE.Box3(), v = new THREE.Vector3();
+  for (const m of meshes) { const p = m.geometry.attributes.position, si = m.geometry.attributes.skinIndex; for (let i = 0; i < p.count; i++) if (ids.has(si.getX(i))) box.expandByPoint(v.fromBufferAttribute(p, i)); }
+  return box;
+}
+// 剛性配件（頭盔、背心）：縮放、擺到身上，整片綁一根骨頭（或依高度在兩根之間分配）
+async function attachPart(acc, a, fitted, shade) {
+  const g = await loader.loadAsync(a.src); g.scene.updateMatrixWorld(true);
+  const ms = []; g.scene.traverse(o => { if (o.isMesh && nodeOk(o, a)) ms.push(o); });
+  const rot = new THREE.Matrix4().makeRotationY(a.rotY || 0), box = new THREE.Box3();
+  for (const m of ms) if (!a.anchor || nodeOk(m, { include: a.anchor })) box.union(new THREE.Box3().setFromObject(m, true).applyMatrix4(rot)); // anchor：只用主體定大小與位置
+  const tb = partBox(fitted.meshes, fitted.R, a.fitTo), tsz = tb.getSize(new THREE.Vector3()), bsz = box.getSize(new THREE.Vector3());
+  const k = tsz.x * a.widen / bsz.x, c = box.getCenter(new THREE.Vector3());
+  const at = new THREE.Vector3((tb.min.x + tb.max.x) / 2, a.top ? tb.max.y + a.top : (tb.min.y + tb.max.y) / 2, (tb.min.z + tb.max.z) / 2 + (a.dz || 0));
+  const pre = new THREE.Matrix4().makeTranslation(at.x, at.y, at.z).multiply(new THREE.Matrix4().makeScale(k, k, k)).multiply(new THREE.Matrix4().makeTranslation(-c.x, a.top ? -box.max.y : -c.y, -c.z)).multiply(rot);
+  const R = fitted.R, b0 = R.idx[a.bone], b1 = a.bone2 ? R.idx[a.bone2] : null, split = a.bone2 ? R.P[a.bone].y : 0;
+  for (const m of ms) sampleMesh(acc, m, { spacing: a.spacing, pre, seed: 21, shade: ctx => {
+    ctx.bones = b1 == null ? [[b0, 1]] : (() => { const t = THREE.MathUtils.clamp((ctx.p.y - split) / 0.12 + 0.5, 0, 1); return [[b0, t], [b1, 1 - t]].filter(x => x[1] > 0); })();
+    const r = shade(ctx); if (r && a.dim) r.rgb = r.rgb.map(x => x * a.dim); return r;
+  } });
+}
+const HUMANOIDS = [
+  // 軍方殘兵：裝甲兵制服重新染成橄欖綠，拿掉二戰鋼盔，換上士兵套件的頭盔與防彈背心
+  { id: 'soldier-a', kind: 'soldier', src: SF + 'ww2_panzergrenadier_2k_cc0.glb', bones: 'mixamo', excludeMat: /helmetm42|scrimwire|scrimleaves/, spacing: 0.0098, seed: 13,
+    attach: [
+      { src: SF + 'military_character_kit_1.1_cc0.glb', include: /^(helmet_body_7|chinstrap_0|chinstrap_buckle_2|chinstrap_adjustment_5|chinstrap_nuts_6|adjuster_pad_1|adjuster_nut_3|internal_padding_4|poly_frame_8)$/, anchor: /^helmet_body_7$/, fitTo: ['Head'], widen: 1.3, top: 0.03, bone: 'Head', spacing: 0.007, dim: 0.62 },
+      { src: SF + 'military_character_kit_1.1_cc0.glb', include: /_mpc01_|plate_carrier_01_main_117/, fitTo: ['spine_02', 'spine_03'], widen: 1.12, bone: 'spine_03', bone2: 'spine_02', spacing: 0.0085, dim: 0.5 },
+    ] },
+  // 機器人人：被「手」遙控的人形，兩種外殼
+  { id: 'robot-a', kind: 'robot', src: SF + 'ue4_rig_and_texture_robot_cyborg_pack.glb', bones: 'ue', spacing: 0.0088, seed: 17, metal: 0.42 },
+  { id: 'robot-b', kind: 'robot', src: SF + 'retextured_model.glb', bones: 'unity', spacing: 0.0088, seed: 19, tint: [0.62, 0.64, 0.66] },
+];
+function humanoidShade(cfg) {
+  const col = [0, 0, 0, 1];
+  return ({ p, n, u, v, m, bones: bw, rnd }) => {
+    const map = sampler(m?.map); let rgb;
+    if (map) { map(u, v, col); if ((m.transparent || m.alphaTest > 0) && col[3] < 0.5) return null; const k = srgb(m.color || new THREE.Color(1, 1, 1)); rgb = [col[0] * k[0], col[1] * k[1], col[2] * k[2]]; }
+    else rgb = srgb(m?.color || new THREE.Color(0.5, 0.5, 0.5));
+    if (cfg.tint) rgb = rgb.map((x, i) => x * cfg.tint[i] / 0.5 * 0.5 + cfg.tint[i] * 0.35);
+    const nz = fbm(p.x * 9 + cfg.seed, p.y * 9, p.z * 9), fine = noise3(p.x * 70, p.y * 70, p.z * 70);
+    const L = rgb[0] * 0.3 + rgb[1] * 0.59 + rgb[2] * 0.11;
+    if (cfg.kind === 'soldier') {
+      const dom = bw && bw.length ? bw[0][0] : -1, R = UBCR.Male, head = dom === R.idx.Head || dom === R.idx.neck_01 || dom === R.idx.hand_l || dom === R.idx.hand_r;
+      const skin = head && rgb[0] > rgb[1] * 1.04 && rgb[0] > rgb[2] * 1.12 && L > 0.18;
+      if (skin) { // 灰綠、帶屍斑的皮膚（和 UBC 喪屍一致）
+        rgb = [L * 0.78 + rgb[0] * 0.08, L * 0.86 + rgb[1] * 0.06, L * 0.80 + rgb[2] * 0.06];
+        const bruise = Math.max(0, nz - 0.58) * 2.4; rgb = [rgb[0] * (1 - bruise * 0.5) + 0.12 * bruise, rgb[1] * (1 - bruise * 0.6), rgb[2] * (1 - bruise * 0.3) + 0.08 * bruise];
+      } else { // 制服去掉原本的灰綠與臂章，換成橄欖綠
+        const k = (0.82 + nz * 0.3 + (fine - 0.5) * 0.1) * 0.62;
+        rgb = [L * 1.02 * k, L * 1.06 * k, L * 0.74 * k];
+        const blood = fbm(p.x * 6 - 13, p.y * 6 + cfg.seed, p.z * 6);
+        if (blood > 0.7 && p.y > 0.5) { const b = Math.min(1, (blood - 0.7) * 6); rgb = rgb.map((x, i) => x * (1 - b) + [0.2, 0.03, 0.03][i] * b); }
+      }
+    } else { // 機器人：金屬外殼（金屬的底色貼圖偏亮，壓暗才像原檔的反光金屬），加上刮痕與鏽
+      if (cfg.metal) { const sat = Math.max(...rgb) - Math.min(...rgb); if (sat < 0.18) rgb = rgb.map(x => x * cfg.metal); }
+      const rust = fbm(p.x * 12 + 7, p.y * 12, p.z * 12 - cfg.seed);
+      if (rust > 0.68) { const r = Math.min(1, (rust - 0.68) * 4); rgb = rgb.map((x, i) => x * (1 - r * 0.6) + [0.22, 0.11, 0.05][i] * r * 0.6); }
+      rgb = rgb.map(x => x * (0.88 + fine * 0.24));
+    }
+    if (n.y > 0.6 && p.y > 1.2) { const s = Math.min(1, (n.y - 0.6) * 2.4) * (0.2 + nz * 0.35); rgb = rgb.map(x => x * (1 - s) + 0.82 * s); } // 肩頭積雪
+    return { rgb };
+  };
+}
+async function bakeHumanoid(cfg) {
+  const fitted = await fitHumanoid(cfg), acc = Acc(), shade = humanoidShade(cfg);
+  for (const m of fitted.meshes) sampleMesh(acc, m, { spacing: cfg.spacing, seed: cfg.seed, shade });
+  for (const a of cfg.attach || []) await attachPart(acc, a, fitted, shade);
+  return { acc, meta: { n: acc.a.length, body: 'Male', kind: cfg.kind } };
+}
+
 /* ---------- 動畫：Universal Animation Library（CC0），只留身體骨頭的旋轉與骨盆位移 ---------- */
 const CLIPS = { walk: 'Walk_Loop', idle: 'Idle_Loop', jog: 'Jog_Fwd_Loop', jab: 'Punch_Jab', cross: 'Punch_Cross', hit: 'Hit_Chest', hitHead: 'Hit_Head', die: 'Death01', crouch: 'Crouch_Idle_Loop' };
 async function bakeClips() {
@@ -304,18 +478,19 @@ async function bakeClips() {
   return { clips: out, pelvis: pelvis.position.toArray().map(x => +x.toFixed(5)) };
 }
 
-window.bakeAll = async (which = 'all') => {
+window.bakeAll = async (which = 'all', only = null) => {
   const files = {}, manifest = { items: {}, zombies: {}, rigs: {}, clips: null };
-  if (which === 'all' || which === 'items') for (const it of ITEMS) {
+  const want = id => !only || only.includes(id);
+  if (which === 'all' || which === 'items') for (const it of ITEMS.filter(x => want(x.id))) {
     const { acc, meta } = await bakeItem(it); files[it.id + '.spz'] = b64(await encodeSpz(acc)); manifest.items[it.id] = meta; log(it.id, meta.n, meta.size);
   }
   if (which === 'all' || which === 'zombies') {
-    for (const v of VARIANTS) {
-      const { acc, meta } = await bakeZombie(v, manifest.rigs);
+    for (const v of [...VARIANTS, ...HUMANOIDS].filter(x => want(x.id))) {
+      const { acc, meta } = v.src ? await bakeHumanoid(v) : await bakeZombie(v, manifest.rigs);
       files[v.id + '.spz'] = b64(await encodeSpz(acc)); files[v.id + '.skin'] = b64(await gzip(skinBytes(acc)));
       manifest.zombies[v.id] = meta; log(v.id, meta.n);
     }
-    const c = await bakeClips(); manifest.clips = c.clips; manifest.ualPelvis = c.pelvis;
+    if (!only) { const c = await bakeClips(); manifest.clips = c.clips; manifest.ualPelvis = c.pelvis; }
   }
   return { files, manifest };
 };
