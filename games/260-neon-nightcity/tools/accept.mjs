@@ -340,7 +340,7 @@ async function desktop() {
     await page.keyboard.press('KeyP');
     await page.waitForTimeout(400);
     const ph = await nc(() => { const r = document.getElementById('phone').getBoundingClientRect(); return { open: window.__nc.gta.phone.phone.open, b: Math.round(r.bottom), h: innerHeight, w: Math.round(r.width), rows: document.querySelectorAll('#phScr li').length }; });
-    check(ph.open && ph.b <= ph.h && ph.w === 280 && ph.rows === 6, `按 P 滑出手機 ${JSON.stringify(ph)}`);
+    check(ph.open && ph.b <= ph.h && ph.w === 280 && ph.rows === 8, `按 P 滑出手機 ${JSON.stringify(ph)}`);
     await shot(page, 'd-phone');
     const zw = await nc(() => { const nc = window.__nc, g = nc.gta, p = g.phone; nc.motors.cash = 100000; g.wanted.set(2); p.pick(0); p.pick(0); const c0 = nc.motors.cash; p.pick(0); return { cost: 100000 - nc.motors.cash, stars: g.wanted.W.stars, cd: Math.round(p.phone.cd.wipe), c0 }; });
     check(zw.cost === 2000 && zw.stars === 0 && zw.cd === 180, `Zero 消除 2 星通緝 ${JSON.stringify(zw)}`);
@@ -371,7 +371,7 @@ async function desktop() {
       p.load();
       setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
     }));
-    check(qv.ok && qv.v === 6 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    check(qv.ok && qv.v === 7 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
     await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
@@ -790,7 +790,7 @@ async function desktop() {
       await page.waitForFunction(() => window.__nc.player.veh, null, { timeout: 15000 });
       // 先修車：前面的撞擊累積下來，撞上路樁可能起火燒毀（68-wreck.js）
       await nc(() => { const n = window.__nc, v = n.player.veh, s = n.Ws(n.park.gx, n.park.z1 + 70, Math.PI); v.x = s.x; v.z = s.z; v.yaw = s.yaw; v.vx = v.vz = 0; if (n.gta.wreck) n.gta.wreck.fix(v); });
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(2400);   // 停 2 秒繫上安全帶（69-v3-crash.js），不然高速撞上路樁會飛出車外
       await page.keyboard.down('KeyW'); await page.waitForTimeout(4500); await page.keyboard.up('KeyW');
       const car = await nc(() => { const n = window.__nc, v = n.player.veh, [, z] = n.L(v.x, v.z); return +z.toFixed(1); });
       await nc(() => window.__nc.walk());
@@ -798,6 +798,40 @@ async function desktop() {
       const W0 = await nc(() => window.__nc.park.walk.x0), Z1 = await nc(() => window.__nc.park.z1);
       check(gate.z < Z1 && gate.d === '北嶺公園' && !gate.swim && slope.y > 5 && Math.abs(slope.y - slope.h) < .3 && fence.x > W0 && Math.abs(look.y - look.deck) < .05 && car > Z1 + 40,
         `北嶺公園：走進門、坡上貼地、圍籬擋住、觀景台平台、車擋在門口 ${JSON.stringify(pk)}`);
+    }
+    // 北嶺鐵道橋（10-city.js 的 VIADUCT、20-walk.js、21-rail.js）：圍籬圈進來；橋面走得上去、護欄擋住，橋下的谷底是另一層、橋墩擋住；
+    // 從平台走進隧道、洞底擋住、相機在洞裡；列車整列在橋上時五節都在、在洞底時藏起來；站在軌道上被列車撞倒但留在橋面；夜裡有燈
+    {
+      const run = async (ms, yaw) => { if (yaw != null) await nc((y) => { const n = window.__nc; n.player.yaw = y; n.look(y, .1, 0); }, yaw); await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyW'); await page.waitForTimeout(ms); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft'); };
+      const at = () => nc(() => { const n = window.__nc, p = n.player, V = n.props.viaduct, [x, z] = n.L(p.x, p.z), o = Math.max(...V.ends.map(e => V.frame(e, x, z)[0])); return { x: +x.toFixed(1), z: +z.toFixed(1), y: +p.y.toFixed(2), deck: +V.deck.toFixed(2), dz: +(z - V.zc(x)).toFixed(2), o: +o.toFixed(1), cam: +n.camera.position.y.toFixed(2), down: p.down > 0, d: n.park.district(p.x, p.z).split(' ')[0] }; });
+      await nc(() => { const n = window.__nc, V = n.props.viaduct; n.walk(); n.props.rail.hold(); n.tpL(V.x - 40, V.zc(V.x - 40), Math.PI / 2); n.player.y = V.deck; });
+      await page.waitForTimeout(300); await run(2000, Math.PI / 2);
+      const deck = await at();
+      await run(2500, Math.PI);
+      const rail = await at();
+      await nc(() => { const n = window.__nc, V = n.props.viaduct, p = V.piers[1]; n.tpL((p.x0 + p.x1) / 2, p.z1 + 10, Math.PI); });
+      await page.waitForTimeout(2500); await run(4000, Math.PI);
+      const pier = { ...(await at()), z1: await nc(() => window.__nc.props.viaduct.piers[1].z1) };
+      await nc(() => { const n = window.__nc, V = n.props.viaduct, e = V.ends[0]; n.tpL(e.x + e.ux * 10, e.z + e.uz * 10, Math.atan2(e.ux, e.uz)); });
+      await page.waitForTimeout(1500); await run(14000, await nc(() => { const e = window.__nc.props.viaduct.ends[0]; return Math.atan2(e.ux, e.uz); }));
+      const bore = { ...(await at()), A: await nc(() => window.__nc.props.viaduct.A), B: await nc(() => window.__nc.props.viaduct.BORE) };
+      const vis = await nc(async () => {
+        const n = window.__nc, R = n.props.rail.R, on = () => R.cars.filter(c => c.on && c.obj.visible).length;
+        n.props.rail.go(1, R.len / 2 + 60); R.speed = 0; await new Promise(r => setTimeout(r, 300)); const mid = on();
+        n.props.rail.go(1, 0); await new Promise(r => setTimeout(r, 300)); const hid = on();
+        return { mid, hid, lights: R.lights };
+      });
+      // 撞人：站在橋中間的軌道上，列車從西邊 40 m 外開過來
+      await nc(() => { const n = window.__nc, V = n.props.viaduct, R = n.props.rail.R; n.tpL(V.x, V.zc(V.x), -Math.PI / 2); n.player.y = V.deck; n.gta.life && (n.gta.life.hp = 100); let s = 0; for (; s < R.len && R.at(s)[0] < V.x; s += .5); n.props.rail.go(1, s - 40); R.speed = 17; });
+      let hit = null;
+      for (let i = 0; i < 30 && !(hit && hit.down); i++) { await page.waitForTimeout(150); hit = await at(); }
+      await page.waitForTimeout(2600); const after = await at();
+      await nc(() => { const n = window.__nc; n.props.rail.R.speed = 17; n.props.rail.R.state = 'wait'; n.props.rail.R.tw = 30; n.tpL(n.park.look.cx, n.park.look.cz, 0); });
+      const rk = { deck, rail, pier, bore, vis, hit, after };
+      check(deck.d === '北嶺鐵道橋' && Math.abs(deck.y - deck.deck) < .05 && deck.x > -40 + 5 && Math.abs(rail.dz) <= 4.5 && Math.abs(rail.y - rail.deck) < .05 && pier.y < pier.deck - 30 && pier.z > pier.z1 && pier.z < pier.z1 + 2
+        && bore.o > bore.A + 20 && bore.o < bore.A + bore.B && Math.abs(bore.y - bore.deck) < .05 && bore.cam < bore.deck + 6.2 && vis.mid === 5 && vis.hid === 0 && vis.lights >= 40
+        && hit && hit.down && Math.abs(after.y - after.deck) < .3 && Math.abs(after.dz) <= 4.5,
+        `北嶺鐵道橋：橋面、護欄、谷底與橋墩、隧道、列車進出洞、撞人留在橋面、夜燈 ${JSON.stringify(rk)}`);
     }
     // 遊艇（31-boats.js）：上船、開出去有航跡、下船後回到水裡游泳或岸上
     {

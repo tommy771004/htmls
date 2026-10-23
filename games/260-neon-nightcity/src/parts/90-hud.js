@@ -3,7 +3,7 @@
 // 北方 = -z；地圖上 px = x、py = z。heading 以順時針角度表示，0 為北。
 // 地圖涵蓋對岸、海與灰鷗島；每公尺 1.5 px（小地圖另外放大回原本的比例）。底圖是世界座標（MAP_X0、MAP_Z0 是各區換過去的外接框），
 // 每區用 canvas 的變換照邏輯座標畫原本的矩形，並裁在區的範圍內
-const MAP_L = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: NPARK.walk.z0 - 40, z1: ISLE.z1 + 40 };   // 北邊含北嶺公園   // 邏輯座標的範圍
+const MAP_L = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: (NPARK.rail || NPARK.walk).z0 - 40, z1: ISLE.z1 + 40 };   // 北邊含北嶺公園與鐵道橋   // 邏輯座標的範圍
 const MAP_BB = (() => {
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, MAP_L.x0), Math.min(zn.x1, MAP_L.x1), Math.max(zn.z0, MAP_L.z0), Math.min(zn.z1, MAP_L.z1), zn)) {
@@ -23,13 +23,20 @@ mapImg.getContext('2d').fillStyle = '#14202a'; mapImg.getContext('2d').fillRect(
   for (const P of FAR_PARTS) { const z0 = Math.max(P.z0, MAP_L.z0 - 2000), z1 = Math.min(P.z1, MAP_L.z1 + 2000); c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(MAP_L.x0 - 2000, z0, FAR_BANK_X - MAP_L.x0 + 2000, z1 - z0); c.restore(); }
   for (const P of EAST_PARTS) { const z0 = Math.max(P.z0, CITY_CZ - 850), z1 = Math.min(P.z1, CITY_CZ + 850); if (z1 > z0) { c.save(); zoneCtx(c, P.zn, MAP_X0, MAP_Z0, MAP_S); c.fillStyle = '#22252a'; c.fillRect(EAST_BANK_X, z0, 2000, z1 - z0); c.restore(); } }
 }
-// 北嶺公園（10-city.js 的 NPARK，A 區邏輯座標）：圍籬範圍的草地、門的通道、步道與觀景台、管理站；px 是一個像素的長度
+// 北嶺公園（10-city.js 的 NPARK，A 區邏輯座標）：圍籬範圍的草地、門的通道、步道與觀景台、管理站，北邊的鐵道橋（軌道、兩座隧道口）；px 是一個像素的長度
 function parkMap(c, px, grass, gate, trail) {
-  const W = NPARK.walk, L = NPARK.look, C = NPARK.cabin;
-  c.fillStyle = grass; c.fillRect(W.x0, W.z0, W.x1 - W.x0, W.z1 - W.z0);
+  const W = NPARK.walk, L = NPARK.look, C = NPARK.cabin, R = NPARK.rail;
+  c.fillStyle = grass; c.fillRect(W.x0, W.z0, W.x1 - W.x0, W.z1 - W.z0); if (R) c.fillRect(R.x0, R.z0, R.x1 - R.x0, R.z1 - R.z0);
   c.fillStyle = gate; c.fillRect(NPARK.gx - NPARK.gw, CITY_Z0 - OUT_D, 2 * NPARK.gw, OUT_D);
   c.strokeStyle = trail; c.lineWidth = Math.max(2.6, 2.2 * px); c.lineJoin = c.lineCap = 'round';
-  c.beginPath(); NPARK.trail.forEach(([x, z], n) => n ? c.lineTo(x, z) : c.moveTo(x, z)); c.stroke();
+  for (const T0 of NPARK.trails) { c.beginPath(); T0.forEach(([x, z], n) => n ? c.lineTo(x, z) : c.moveTo(x, z)); c.stroke(); }
+  if (RAIL) {
+    const P = RAIL.pts, V = VIADUCT; c.strokeStyle = '#15171a'; c.lineWidth = Math.max(5, 7 * px); c.lineCap = 'butt';
+    c.beginPath(); P.forEach(([x, z], n) => n ? c.lineTo(x, z) : c.moveTo(x, z)); c.stroke();
+    c.strokeStyle = '#8c8a86'; c.lineWidth = Math.max(1.4, 1.2 * px); c.setLineDash([6 * px, 6 * px]);
+    c.beginPath(); P.forEach(([x, z], n) => n ? c.lineTo(x, z) : c.moveTo(x, z)); c.stroke(); c.setLineDash([]);
+    c.fillStyle = '#5a5650'; for (const e of V.ends) { c.save(); c.translate(e.x + e.ux * (V.A + 4), e.z + e.uz * (V.A + 4)); c.rotate(Math.atan2(e.uz, e.ux)); c.fillRect(-4, -16, 8, 32); c.restore(); }
+  }
   c.fillStyle = trail; c.fillRect(L.x0, L.z0, L.x1 - L.x0, L.z1 - L.z0); c.fillRect(C.x - 4, C.z - 3, 8, 6);
 }
 // 每區的地塊與縫裡的塔樓（10-city.js 的 seam）；p 是一個像素的長度
@@ -136,6 +143,7 @@ function drawMini(px, pz, yaw, mk) {
   evMini(mctx, P2, zoom);   // 運鈔車藍點與錢袋（69-events.js）
   if (player.where === 'out') squadMini(mctx, P2, zoom);   // 幫派紅點、傭兵綠點、被盯上的資產（69-squads.js）
   if (player.where === 'out') sideMini(mctx, P2, zoom);   // 街頭賽對手、生存模式、幫派地盤（69-side.js）
+  if (player.where === 'out') { salvMini(mctx, P2); noiseMini(mctx, P2, zoom); }   // 水下貨櫃的聲納、噪音圈（69-v3-skills.js）
   mctx.restore();
   // 目標：在圓內就畫點，超出就貼在圓周
   if (mk && mk.where === 'out') {

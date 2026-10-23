@@ -5070,6 +5070,43 @@
       null
      ]
     },
+    "line": {
+     "c": [
+      5.275,
+      0.00198,
+      -0.0006957
+     ],
+     "y": 64.38,
+     "w": 12,
+     "x0": -140,
+     "x1": 140,
+     "piers": [
+      [
+       -87,
+       -78,
+       -2,
+       7
+      ],
+      [
+       -26,
+       -18,
+       -1,
+       12
+      ],
+      [
+       34,
+       43,
+       -2,
+       11
+      ],
+      [
+       94,
+       103,
+       -8,
+       5
+      ]
+     ]
+    },
     "tris": 164968
    }
   },
@@ -5905,6 +5942,52 @@
    }
   },
   "credits": []
+ },
+ "w1_train": {
+  "kb": 1506,
+  "items": {
+   "cab": {
+    "w": 2.9,
+    "d": 21.42,
+    "h": 3.91,
+    "tris": 137488
+   },
+   "mid": {
+    "w": 2.82,
+    "d": 20.06,
+    "h": 4.7,
+    "tris": 123420
+   },
+   "tail": {
+    "w": 2.82,
+    "d": 19.2,
+    "h": 3.91,
+    "tris": 117628
+   }
+  },
+  "credits": [
+   {
+    "file": "lastochka",
+    "title": "Lastochka electric train",
+    "author": "tiunov.se (https://sketchfab.com/tiunov.se)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/lastochka-electric-train-1e2e86e317164b5983a000f79c6fe7a2"
+   },
+   {
+    "file": "lastochka",
+    "title": "Lastochka electric train",
+    "author": "tiunov.se (https://sketchfab.com/tiunov.se)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/lastochka-electric-train-1e2e86e317164b5983a000f79c6fe7a2"
+   },
+   {
+    "file": "lastochka",
+    "title": "Lastochka electric train",
+    "author": "tiunov.se (https://sketchfab.com/tiunov.se)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/lastochka-electric-train-1e2e86e317164b5983a000f79c6fe7a2"
+   }
+  ]
  },
  "st2_street": {
   "kb": 652,

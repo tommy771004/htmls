@@ -57,7 +57,7 @@ function turfLurk(dt) {
     return;
   }
   if (!T || turfOwned(T) || player.where !== 'out' || side.act || turf.hang || W.stars || (turf.lurkT -= dt) > 0) return;
-  turf.lurkT = 25 + Math.random() * 20;
+  turf.lurkT = (25 + Math.random() * 20) * (isNight() ? .6 : 1.4);   // 69-v3-world.js：晚上盯梢的多
   if (fFreeN() < 6 || turfD(T) < 120) return;   // 據點附近已經有一群
   const sp = spawnSpot(45, 80);
   if (!sp || turfHere(sp.x, sp.z) !== T) return;

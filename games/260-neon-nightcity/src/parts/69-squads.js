@@ -179,7 +179,7 @@ function fStep(f, dt) {
   if (f.calm) {
     const d = Math.hypot(pX() - f.x, pZ() - f.z);
     const slow = player.mode !== 'drive' || !player.veh || Math.hypot(player.veh.vx, player.veh.vz) < 6;   // 開車呼嘯而過不會被盯上
-    if (d < (f.lurk && !gta.aiming ? 7 : 22) && slow && losClear(f.x, f.z, pX(), pZ()) || f.hp < TEAM[f.team].hp || d < 60 && uTimeNow() - (W.bangT || -9) < .3) wakeGroup(f.grp);
+    if (d < (f.lurk && !gta.aiming ? 7 : 22) && slow && losClear(f.x, f.z, pX(), pZ()) || f.hp < TEAM[f.team].hp || d < (W.bangR || 60) && uTimeNow() - (W.bangT || -9) < .3) wakeGroup(f.grp);   // bangR：槍聲傳多遠（69-v3-skills.js 的消音器）
     else {
       p.aimK = 0; fighters.anim(f.k, ANIM.talk, f.ph += dt, 1); fighters.place(f.k, f.x, fGround(f), f.z, f.yaw);
       return;
@@ -278,7 +278,7 @@ function squadDrive(c, tx, tz, stopD, dt) {
   if (c.rev > 0) { c.rev -= dt; thr = 0; brk = 1; steer = -(Math.sign(da) || 1); }
   else if (thr > .3 && Math.abs(vF) < 1.2) { c.stuck += dt; if (c.stuck > 1.4) { c.rev = 1.1; c.stuck = 0; } }
   else c.stuck = 0;
-  driveVehicle(v, { thr, brk, steer, hb: false }, dt);
+  aiDrive(v, { thr, brk, steer, hb: false }, dt);   // 69-v3-world.js：雨天照濕路面的抓地力
   v.lights = 1;
 }
 // 車窗開火：從朝目標那一側的車窗

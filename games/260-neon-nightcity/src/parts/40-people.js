@@ -669,6 +669,7 @@ function pedRelocate(ps, px, pz) {
 // 下雨天路人變少：雨越大，越多人躲進室內（沒帶傘的先走）。只在離玩家 55 m 外消失、出現，放到遠處就不會被撞、被瞄準或當目擊者
 pedState.forEach((ps, k) => { const h = (k * .6180339887 + .31) % 1; ps.shy = ps.um0 ? h * .6 : .4 + h * .6; });
 const PED_AWAY = 2e4;
+const PED_DIVE_V = 7, PED_DIVE_T = .9, PED_DIVE_W = .9, PED_DIVE_A = 7;   // 撲開：車速 7 m/s 以上、0.9 秒車程內、車寬外 0.9 m；在框裡每秒往外橫移 7 m（最多 2.6 m）
 function updatePeds(dt) {
   let u = 0;
   const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare() * SET.ped;   // SET.ped：Esc 選單的人口密集程度   // 69-turf.js：赤蠍幫的地盤路人少
@@ -698,8 +699,23 @@ function updatePeds(dt) {
     const dx = x + ps.dx - px, dz = z + ps.dz - pz, dd = Math.hypot(dx, dz);
     const danger = player.mode === 'drive' ? (Math.hypot(player.veh.vx, player.veh.vz) > 3 ? 4.5 : 2.4) : .9;
     if (dd < danger && dd > .01) { ps.dx += dx / dd * (danger - dd) * 4 * dt; ps.dz += dz / dd * (danger - dd) * 4 * dt; ps.dodge = 1.2; }
+    // 撲開：玩家的車開得快時，車頭前方 PED_DIVE_T 秒車程、車寬兩側各多 PED_DIVE_W 的長方形裡的人往車身外側撲（從車的中線往外）
+    if (player.mode === 'drive' && dd < 40) {
+      const v = player.veh, sp = Math.hypot(v.vx, v.vz);
+      if (sp > PED_DIVE_V && !v.boat && !v.fly) {
+        const fx = v.vx / sp, fz = v.vz / sp, ahead = dx * fx + dz * fz, side = dx * fz - dz * fx, half = (v.w || 1.9) / 2 + PED_DIVE_W;
+        if (ahead > -1 && ahead < sp * PED_DIVE_T + (v.len || 4.4) / 2 && Math.abs(side) < half) {
+          // side > 0 是車的左邊（左邊的單位向量 (fz, -fx)），往同一邊撲；撲出去之後就不換邊
+          const s = ps.dive > 0 ? ps.diveS : side > .05 ? 1 : side < -.05 ? -1 : (k & 1 ? 1 : -1);
+          ps.diveS = s;
+          ps.dx += fz * s * PED_DIVE_A * dt; ps.dz -= fx * s * PED_DIVE_A * dt; ps.dodge = 1.4; ps.dive = .8;
+          if (!(ps.panic > 0)) { ps.panic = 3; peds.anim(k, ANIM.run, rP() * 10, 1.4); }
+        }
+      }
+    }
     ps.dx = damp(ps.dx, 0, ps.dodge > 0 ? .3 : 1.2, dt); ps.dz = damp(ps.dz, 0, ps.dodge > 0 ? .3 : 1.2, dt);
-    const lim = 1.4; ps.dx = clamp(ps.dx, -lim, lim); ps.dz = clamp(ps.dz, -lim, lim);
+    const lim = ps.dive > 0 ? 2.6 : 1.4; ps.dx = clamp(ps.dx, -lim, lim); ps.dz = clamp(ps.dz, -lim, lim);
+    if (ps.dive > 0) ps.dive -= dt;
     if (ps.dodge > 0) ps.dodge -= dt;
     x += ps.dx; z += ps.dz;
     const yaw = Math.atan2(tx, tz);
@@ -725,6 +741,8 @@ const player = { mode: 'walk', ...WP(avX(1) - 9.6, stZ(2) + 18), y: .15, yaw: ya
 const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
   if (player.ride) { aptRide(dt); return; }   // 69-safehouse.js：走樓梯、搭電梯（照路徑走，不受碰撞）
+  if (player.air3) { airStep(inp, dt, camYaw); return; }   // 69-v3-crash.js：被拋出車外、自由落體、開傘
+  if (vaultStep(dt)) return;                               // 69-v3-crash.js：翻越矮牆與停著的車
   let mx = inp.mx, mz = inp.mz;
   const ml = Math.hypot(mx, mz);
   if (ml > 1) { mx /= ml; mz /= ml; }
@@ -741,7 +759,9 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 蹲下（69-combat.js 的 Z 鍵）：跑起來或水深過膝就站起來；crouchK 給相機降低高度
   if (player.crouch && (run || depth > .4)) player.crouch = false;
   player.crouchK = damp(player.crouchK || 0, player.crouch ? 1 : 0, 10, dt);
-  const target = ml > .05 ? (player.swim ? (run ? 2.3 : 1.3) : (run ? 4.6 : player.crouch ? (aimM ? 1.1 : 1.3) : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
+  // runK：69-v3-skills.js 的衝刺體力（喘的時候變慢）；skK.crouch：潛行等級讓蹲行快一點
+  const rk = player.runK ?? 1, ck = skK.crouch;
+  const target = ml > .05 ? (player.swim ? (run ? 2.3 * rk : 1.3) * (player.dive ? 1.15 : 1) : (run ? 4.6 * rk : player.crouch ? (aimM ? 1.1 : 1.3) * ck : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
   player.v = damp(player.v, target, target > player.v ? 6 : 10, dt);
   let mdx = Math.sin(player.yaw), mdz = Math.cos(player.yaw);
   if (aimM) {
@@ -763,11 +783,12 @@ function updatePlayerWalk(inp, dt, camYaw) {
   for (const c of traffic) { const L = TYPES[c.type].len * .3; for (const s of [-1, 1]) pushOut(c.x + Math.sin(c.yaw) * L * s, c.z + Math.cos(c.yaw) * L * s, TYPES[c.type].w * .5 + .32); }
   for (const v of vehicles) { const L = v.off; for (const s of [-1, 1]) pushOut(v.x + Math.sin(v.yaw) * L * s, v.z + Math.cos(v.yaw) * L * s, v.rad + .3); }
   for (let k = 0; k < PED_N; k++) { const p = peds.people[k]; pushOut(p.x, p.z, .55); }
+  if (player.where === 'out') [x, z] = walkStep(player.x, player.z, x, z, player.y);   // 北嶺鐵道橋的護欄、洞壁、橋墩（20-walk.js）
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
-  const fy = player.where === 'out' ? seaFloor(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板
-  player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
+  const fy = player.where === 'out' ? walkY(x, z, player.y, seaFloor(x, z)) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板
+  player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;
   let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? DANCES[player.dance - 1] : ANIM.idle;

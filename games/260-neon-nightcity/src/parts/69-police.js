@@ -19,13 +19,14 @@ function crime(kind, x = player.x, z = player.z) {
   const t = uTimeNow(), n = CRIME[kind];
   if (!n) return;
   if ((kind === 'shots' || kind === 'blast' || kind === 'explode') && (evBountyNear(x, z) || side.act && side.act.noCrime && side.act.noCrime(x, z))) return;   // 69-street.js 攔逃犯車、69-survival.js 的貨場不算罪
-  if (kind === 'shots') { W.bangT = t; if (t - W.shotsT < 5) return; W.shotsT = t; }
-  // 對警察動手、警察親眼看到、已經在追：直接加熱度；否則要有路人目擊，三秒後報案（槍聲與爆炸六十公尺內都聽得到）
-  if (kind === 'ramcop' || kind === 'resist' || kind === 'killcop' || kind === 'heli' || W.stars > 0 && W.seen || copSees(x, z, 0)) { addHeat(n, FLOOR[kind] || 0); return; }
-  const loud = kind === 'shots' || kind === 'blast' || kind === 'explode';
+  // 槍聲傳多遠看 69-v3-skills.js 的噪音圈（noise.shotR：一般 60 m、裝消音器 7 m）；69-squads.js 站著聊天的幫派也照這個範圍醒過來
+  const loud = kind === 'shots' || kind === 'blast' || kind === 'explode', hearR = kind === 'shots' ? noise.shotR : 60;
+  if (kind === 'shots') { W.bangT = t; W.bangR = hearR; if (t - W.shotsT < 5) return; W.shotsT = t; }
+  // 對警察動手、警察親眼看到或噪音圈碰到警察、已經在追：直接加熱度；否則要有路人目擊，三秒後報案
+  if (kind === 'ramcop' || kind === 'resist' || kind === 'killcop' || kind === 'heli' || W.stars > 0 && W.seen || copSees(x, z, 0) || loud && copNear(x, z, hearR)) { addHeat(n, FLOOR[kind] || 0); return; }
   let wit = false;
-  for (let k = 0; k < PED_N && !wit; k++) { const p = peds.people[k]; if (!(pedState[k].down > 0) && Math.hypot(p.x - x, p.z - z) < (loud ? 60 : 30)) wit = true; }
-  if (!wit) wit = traffic.some(c => Math.hypot(c.x - x, c.z - z) < 25);
+  for (let k = 0; k < PED_N && !wit; k++) { const p = peds.people[k]; if (!(pedState[k].down > 0) && Math.hypot(p.x - x, p.z - z) < (loud ? hearR : 30)) wit = true; }
+  if (!wit) wit = traffic.some(c => Math.hypot(c.x - x, c.z - z) < Math.min(25, loud ? hearR : 25));
   if (wit && !(phone.ghostT > 0)) W.reports.push({ t: t + 3, n, floor: FLOOR[kind] || 0 });
 }
 function addHeat(n, floor = 0) {
@@ -114,6 +115,7 @@ function sees() {
   if (player.where !== 'out') return false;
   W.disg = !W.seen && (player.veh !== W.lastVeh || !!(player.veh && player.veh.disguise));   // disguise：69-heist2.js 改過塗裝的鎮暴裝甲車
   const x = pX(), z = pZ();
+  if (player.dive && player.diveK > .6) return false;   // 69-v3-skills.js：潛在水下，岸上與空中都看不到
   const high = player.veh && player.veh.fly && player.veh.y - groundH(x, z) > 30;   // 69-gunship.js：飛高了只有警用直升機跟得住
   if (!high && copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
   if (player.swim && copNear(x, z, SWIM_WATCH)) return true;   // 游泳沒辦法換裝也跑不快：岸上的人盯著水面
@@ -378,7 +380,7 @@ function driveUnit(u, dt) {
     const sp2 = dP >= 70 && !onScreen(v.x, v.z) && spawnSpot(60, 130);
     if (sp2 && !onScreen(sp2.x, sp2.z)) { u.revN = 0; u.rev = 0; v.x = sp2.x; v.z = sp2.z; v.yaw = sp2.yaw; v.vx = Math.sin(sp2.yaw) * 10; v.vz = Math.cos(sp2.yaw) * 10; v.y = groundH(v.x, v.z); poseVehicle(v); return; }
   }
-  driveVehicle(v, { thr, brk, steer, hb: false }, dt);
+  aiDrive(v, { thr, brk, steer, hb: false }, dt);   // 69-v3-world.js：雨天照濕路面的抓地力
   v.lights = 1;
   if (stop && sp < 2.5 && u.crew > 0) crewOut(u);
 }

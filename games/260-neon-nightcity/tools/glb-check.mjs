@@ -173,7 +173,7 @@ try {
     check(done && ok, `${id} 的模型擺在該在的地方（邏輯座標範圍 ${JSON.stringify(bb && bb.b)}，${why}）`);
   }
 
-  // 北嶺鐵道橋（10-city.js 的 VIADUCT）：走近就下載，擺好拿掉程式替身；山坡在模型範圍裡貼著模型地面下 1.5 m（hf 雙線性）
+  // 北嶺鐵道橋（10-city.js 的 VIADUCT）：走近就下載，擺好拿掉程式替身；山坡在模型範圍中間貼著模型地面下 1.5 m（hf 雙線性）
   {
     await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; nc.tpL(V.x - 40, V.z + 120, Math.PI); });
     let done = false;
@@ -186,6 +186,22 @@ try {
     await page.waitForTimeout(800); await hideHud(page); await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct, [x, z] = nc.W(V.x, V.z); nc.look(Math.atan2(x - nc.player.x, z - nc.player.z), .12, 0); });
     await page.waitForTimeout(400); await shot(page, 'g-viaduct');
     check(done && !vr.proxy && vr.d.every(v => Math.abs(v) < .05), `北嶺鐵道橋模型已擺上、替身拿掉，山溝貼著模型地面（差 ${vr.d.join('、')} m，橋面 y ${vr.deck}）`);
+  }
+
+  // 北嶺鐵道橋的列車（21-rail.js）：走近就下載 w1_train 換掉程式替身；夜裡停在橋中間截圖（車窗亮著）
+  {
+    let ok = false;
+    for (let i = 0; i < 160 && !ok; i++) { await page.waitForTimeout(250); ok = await ev(page, () => window.__nc.props.rail.R.loaded); }
+    const t0 = await ev(page, () => { const nc = window.__nc, R = nc.props.rail.R, t = nc.time(); nc.time(21 * 60 + 30); nc.props.rail.go(1, R.len / 2 + 50); R.speed = 0; return t; });
+    await page.waitForTimeout(1500); await hideHud(page);
+    const tr = await ev(page, () => {
+      const nc = window.__nc, V = nc.props.viaduct, R = nc.props.rail.R, [cx, cz] = nc.W(V.x + 25, V.z + 48), [tx, tz] = nc.W(V.x - 15, V.zc(V.x - 15));
+      nc.camAt(cx, V.deck + 9, cz, tx, V.deck + 2, tz);
+      return { on: R.cars.filter(c => c.on && c.obj.visible).length, mesh: R.cars.reduce((a, c) => a + c.obj.children.length, 0), win: +R.uM.value.z.toFixed(2) };
+    });
+    await page.waitForTimeout(500); await shot(page, 'g-train');
+    await ev(page, (t) => { const nc = window.__nc, R = nc.props.rail.R; nc.camAt(); nc.time(t); R.speed = 17; R.state = 'wait'; R.tw = 30; }, t0);
+    check(ok && tr.on === 5 && tr.mesh > 5 && tr.win > .5, `北嶺鐵道橋的列車換成 Lastochka 模型，五節都在橋上、夜裡車窗亮（${JSON.stringify(tr)}）`);
   }
 
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間

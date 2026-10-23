@@ -8,7 +8,7 @@ const sellPrice = id => Math.round(CARS[id].price * .6 / 1000) * 1000;
 
 // ─── 車庫存檔：現金、擁有的車、各車塗裝、目前開在街上的那台 ───
 const MOTOR_KEY = 'nc260.motors';
-const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {}, svb: {} } };
+const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {}, svb: {} }, skills: null, gear: null };
 try {
   const d = JSON.parse(localStorage.getItem(MOTOR_KEY) || 'null');
   if (d && typeof d === 'object') {
@@ -28,6 +28,12 @@ try {
       const S = d.side, ids = a => Array.isArray(a) ? a.filter((s, k) => typeof s === 'string' && s.length < 24 && a.indexOf(s) === k) : [];
       motors.side = { race: num(S.race, v => v > 0 && v < 3600), win: ids(S.win), surv: Number.isInteger(S.surv) ? clamp(S.surv, 0, 999) : 0, turf: ids(S.turf), tale: num(S.tale, v => Number.isInteger(v) && v >= 0 && v < 20), svb: num(S.svb, v => Number.isInteger(v) && v > 0 && v < 1000) };
     }
+    // 第 7 版（69-v3-skills.js）：三位主角的六圍（0–100）、裝備 gear（消音器 sil、撈過的貨櫃 salv、搶劫同夥的經驗 hire）
+    if (Array.isArray(d.skills) && d.skills.length === 3) motors.skills = d.skills.map(s => s && typeof s === 'object' ? num(s, v => v >= 0 && v <= 100) : {});
+    if (d.gear && typeof d.gear === 'object') {
+      const G = d.gear, ids = a => Array.isArray(a) ? a.filter((s, k) => typeof s === 'string' && s.length < 24 && a.indexOf(s) === k) : [];
+      motors.gear = { sil: ids(G.sil), salv: Array.isArray(G.salv) ? G.salv.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < 64 && a.indexOf(i) === k) : [], hire: num(G.hire, v => Number.isInteger(v) && v >= 0 && v < 100) };
+    }
     if (Array.isArray(d.stunts)) motors.stunts = d.stunts.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < RAMPS.length && a.indexOf(i) === k);
     // 第 2 版：手機快速存檔（69-phone.js）。舊存檔沒有這個欄位；讀檔時再逐項檢查範圍
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
@@ -38,7 +44,7 @@ try {
 const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
   motors.ts = Date.now();
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 6, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side })); } catch (e) { /* 存不了就算了 */ }
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 7, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side, skills: motors.skills, gear: motors.gear })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();

@@ -14,8 +14,9 @@ const EV_W = [['truck', 3], ['thief', 3], ['deal', 2], ['bounty', 2]];
 function evPick(force) {
   let k = force;
   if (!k) {
-    let r = Math.random() * EV_W.reduce((s, w) => s + w[1], 0);
-    for (const [n, w] of EV_W) if ((r -= w) < 0) { k = n; break; }
+    // 69-v3-world.js 的日夜生態：白天運鈔車多、晚上幫派交易與懸賞多
+    let r = Math.random() * EV_W.reduce((s, w) => s + evNightW(w[0], w[1]), 0);
+    for (const [n, w] of EV_W) if ((r -= evNightW(n, w)) < 0) { k = n; break; }
     if (k === 'deal' && turfMine()) k = 'thief';   // 69-turf.js：搶下來的地盤沒有幫派交易
   }
   if (k === 'truck') return truckSpawn();

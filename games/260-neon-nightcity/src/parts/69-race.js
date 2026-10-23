@@ -198,7 +198,7 @@ function rivalStep(a, r, pp, dt) {
     const p = polyAt(G, r.s, r.k);
     v.x = p.x; v.z = p.z; v.yaw = Math.atan2(p.dx, p.dz); v.vx = p.dx * 8; v.vz = p.dz * 8; v.y = groundH(v.x, v.z); r.lost = 0; r.rev = 0;
   }
-  driveVehicle(v, { thr, brk, steer, hb: false }, dt);
+  aiDrive(v, { thr, brk, steer, hb: false }, dt);   // 69-v3-world.js：雨天照濕路面的抓地力
   v.lights = 1;
 }
 const _rs = V3();

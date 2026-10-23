@@ -197,7 +197,7 @@ function hackOpen() {
     do o = { tf: r(HACK_F), ta: r(HACK_A), f: r(HACK_F), a: r(HACK_A) }; while (Math.abs(o.tf - o.f) + Math.abs(o.ta - o.a) < 3);
     return { ...o, ok: false, ph: Math.random() * 6, sp: .7 + i * .35 };
   });
-  HACK.on = true; HACK.t = HACK_T; HACK.cur = 0; HACK.hold = 0;
+  HACK.on = true; HACK.t = HACK.T = HACK_T * hireK('hack'); HACK.cur = 0;   // 69-v3-heist.js：駭客決定破譯時間 HACK.hold = 0;
   hackEl().classList.add('on'); document.body.classList.add('hacking');
   arm.trig = false; gta.aiming = false;
   sfx.click();
@@ -265,7 +265,7 @@ function hackDraw() {
   });
   g.globalAlpha = 1;
   HACK.tEl.textContent = HACK.t.toFixed(1); HACK.tEl.classList.toggle('low', HACK.t < 5);
-  HACK.bar.style.transform = `scaleX(${(HACK.t / HACK_T).toFixed(3)})`; HACK.bar.style.background = HACK.t < 5 ? 'var(--rose)' : '';
+  HACK.bar.style.transform = `scaleX(${(HACK.t / (HACK.T || HACK_T)).toFixed(3)})`; HACK.bar.style.background = HACK.t < 5 ? 'var(--rose)' : '';
 }
 
 // 69-heist.js 的 heistUpdate 每幀呼叫（off／plan／淡出中不會進來）

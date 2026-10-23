@@ -1,13 +1,13 @@
 // ═══ 北嶺公園：城北樓牆的門（Cinder Av 北端）外面一片走得上去的山坡 ═══
 // 範圍、高度函式（parkH）、步道（NPARK.trail）、觀景台與管理站的位置在 10-city.js 的 NPARK；groundHL 在範圍裡回傳 parkH，
 // 玩家與相機就貼著坡走。這裡只建畫面與碰撞：山坡網格（A 區邏輯座標、4 m 一格，邊界接上 21-coast.js 的第一層遠景山脊）、
-// 步道、松林、圍籬、步道燈、門口的牌樓與路樁、管理站、山頂的雲階觀景台。材質都是 MAT.ridge（150 m 內照一般的霧，再遠和山脊一樣淡）
+// 步道（主步道與往鐵道橋的三條岔路）、松林、圍籬、步道燈、門口的牌樓與路樁、管理站、山頂的雲階觀景台（鐵道橋那一段在 21-rail.js）。材質都是 MAT.ridge（150 m 內照一般的霧，再遠和山脊一樣淡）
 
 const PARK_ZN = ZONES[0];
-// 到步道的距離：步道點放進 8 m 的格子
+// 到步道的距離：所有步道（NPARK.trails）的點放進 8 m 的格子
 const parkTrailD = (() => {
   const S = 8, cells = new Map(), key = (i, j) => i * 4096 + j;
-  for (const p of NPARK.trail) { const k = key(Math.floor(p[0] / S), Math.floor(p[1] / S)); if (!cells.has(k)) cells.set(k, []); cells.get(k).push(p); }
+  for (const p of NPARK.trails.flat()) { const k = key(Math.floor(p[0] / S), Math.floor(p[1] / S)); if (!cells.has(k)) cells.set(k, []); cells.get(k).push(p); }
   return (x, z, max = 16) => {
     let best = max; const r = Math.ceil(max / S), i0 = Math.floor(x / S), j0 = Math.floor(z / S);
     for (let i = i0 - r; i <= i0 + r; i++) for (let j = j0 - r; j <= j0 + r; j++) for (const p of cells.get(key(i, j)) || []) best = Math.min(best, Math.hypot(p[0] - x, p[1] - z));
@@ -33,8 +33,8 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
     const d = NPARK.z1 - z; if (d < 70 && Math.abs(x - NPARK.gx) < 60) c.lerp(meadow, (1 - d / 70) * (1 - Math.abs(x - NPARK.gx) / 60));
     const sx = parkH(x + 2, z) - parkH(x - 2, z), sz = parkH(x, z + 2) - parkH(x, z - 2), sl = Math.hypot(sx, sz) / 4;
     c.lerp(rock, sstep(.35, .7, sl));
-    const W = NPARK.walk, e = Math.min(x - NPARK.x0, NPARK.x1 - x, z - NPARK.z0) / 90;
-    c.lerp(far, x > W.x0 && x < W.x1 && z > W.z0 ? 0 : (1 - sstep(0, 1, e)) * .9);
+    const e = Math.min(x - NPARK.x0, NPARK.x1 - x, z - NPARK.z0) / 90;
+    c.lerp(far, NPARK.inWalk(x, z) ? 0 : (1 - sstep(0, 1, e)) * .9);
     col[k] = c.r; col[k + 1] = c.g; col[k + 2] = c.b;
   }
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
@@ -50,15 +50,21 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
 }
 
 {
-  // ─── 步道：沿 NPARK.trail 一條 2.6 m 寬的泥土路，貼在坡上 6 cm ───
-  const P = NPARK.trail, pos = [], col = [], idx = [], dirt = lin(0x7a6446), edge = lin(0x5c5034);
-  for (let i = 0; i < P.length; i++) {
-    const a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, ox = -dz / l, oz = dx / l;
-    for (const [s, c] of [[-1.5, edge], [-1, dirt], [1, dirt], [1.5, edge]]) {
-      const x = P[i][0] + ox * s, z = P[i][1] + oz * s;
-      pos.push(x, parkGround(x, z) + .06, z); col.push(c.r, c.g, c.b);
+  // ─── 步道：沿 NPARK.trails 每條 2.6 m 寬的泥土路，貼在坡上 6 cm；進了鐵道橋模型的範圍就停（接上模型谷底自己的路）───
+  const pos = [], col = [], idx = [], dirt = lin(0x7a6446), edge = lin(0x5c5034), V = VIADUCT;
+  const inScan = (x, z) => V && x > V.x + V.lx0 + 2 && x < V.x + V.lx0 + V.W - 2 && z > V.z + V.lz0 + 2 && z < V.z + V.lz0 + V.D - 2;
+  for (const P of NPARK.trails) {
+    let prev = -1;
+    for (let i = 0; i < P.length; i++) {
+      if (inScan(P[i][0], P[i][1])) { prev = -1; continue; }
+      const a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, ox = -dz / l, oz = dx / l, n0 = pos.length / 3;
+      for (const [s, c] of [[-1.5, edge], [-1, dirt], [1, dirt], [1.5, edge]]) {
+        const x = P[i][0] + ox * s, z = P[i][1] + oz * s;
+        pos.push(x, parkGround(x, z) + .06, z); col.push(c.r, c.g, c.b);
+      }
+      if (prev >= 0) for (let s = 0; s < 3; s++) { const q = prev + s, r = n0 + s; idx.push(q, r, q + 1, q + 1, r, r + 1); }
+      prev = n0;
     }
-    if (i) for (let s = 0; s < 3; s++) { const q = (i - 1) * 4 + s, r = i * 4 + s; idx.push(q, r, q + 1, q + 1, r, r + 1); }
   }
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
@@ -71,21 +77,24 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
 
 {
   // ─── 松林與幾棵闊葉樹：整片山坡網格裡撒，避開步道、門口的草坪、管理站與觀景台；圍籬裡的樹幹有碰撞 ───
-  const k = new Kit(), r = rng(9191), W = NPARK.walk, L = NPARK.look, C = NPARK.cabin;
+  const k = new Kit(), r = rng(9191), W = NPARK.walk, L = NPARK.look, C = NPARK.cabin, V = VIADUCT, F = NPARK.fence;
   const pine = [0x1e3a22, 0x24432a, 0x1a3320, 0x2c4a2a], leaf = [0x3a5a2a, 0x4a6230, 0x5a6a34];
+  const dens = (NPARK.x1 - NPARK.x0) / 510;   // 網格加寬過（鐵道橋的隧道山頭），樹的數量照寬度加，密度不變
+  const fenceD = (x, z) => { let m = 1e9; for (let i = 0; i < F.length - 1; i++) { const a = F[i], b = F[i + 1]; m = Math.min(m, Math.hypot(Math.max(0, Math.min(a[0], b[0]) - x, x - Math.max(a[0], b[0])), Math.max(0, Math.min(a[1], b[1]) - z, z - Math.max(a[1], b[1])))); } return m; };
   let n = 0;
-  for (let tries = 0; tries < 9000 && n < 2600; tries++) {
+  for (let tries = 0; tries < 9000 * dens && n < 2600 * dens; tries++) {
     const x = NPARK.x0 + 6 + r() * (NPARK.x1 - NPARK.x0 - 12), z = NPARK.z0 + 6 + r() * (NPARK.z1 - NPARK.z0 - 12), s = .75 + r() * .6, kind = r(), cr = r();
-    const inWalk = x > W.x0 + 1.5 && x < W.x1 - 1.5 && z > W.z0 + 1.5 && z < W.z1;
+    const inWalk = NPARK.inWalk(x, z);
     const d = NPARK.z1 - z;
     if (d < 14) continue;   // 樓牆背面
     if (Math.abs(x - NPARK.gx) < 50 && d < 80) continue;   // 門口的草坪
     if (parkTrailD(x, z) < 5) continue;
     if (Math.hypot(x - L.cx, z - L.cz) < 16 || Math.hypot(x - C.x, z - C.z) < 12) continue;
     if (z > L.cz && z - L.cz < 260 && Math.abs(x - L.cx) < (z - L.cz) * .6 + 8) continue;   // 觀景台往南看出去的那一片不種
-    if (Math.abs(x - W.x0) < 1.5 || Math.abs(x - W.x1) < 1.5 || Math.abs(z - W.z0) < 1.5) continue;   // 圍籬線上
+    if (fenceD(x, z) < 1.5) continue;   // 圍籬線上
     if (z < L.cz && L.cz - z < 150 && Math.abs(x - L.cx) < (L.cz - z) * .5 + 8) continue;   // 觀景台往北看鐵道橋的那一片也不種
-    if (VIADUCT && x > VIADUCT.x + VIADUCT.lx0 - 6 && x < VIADUCT.x + VIADUCT.lx0 + VIADUCT.W + 6 && z > VIADUCT.z + VIADUCT.lz0 - 6 && z < VIADUCT.z + VIADUCT.lz0 + VIADUCT.D + 6) continue;   // 鐵道橋的模型自己有樹
+    if (V && x > V.x + V.lx0 - 6 && x < V.x + V.lx0 + V.W + 6 && z > V.z + V.lz0 - 6 && z < V.z + V.lz0 + V.D + 6) continue;   // 鐵道橋的模型自己有樹
+    if (V && V.ends.some(e => { const [o, d] = V.frame(e, x, z); return o > -26 && o < V.A + 12 && Math.abs(d) < (d * e.ux > 0 ? 40 : 26) || o > -26 && o < V.A + V.BORE + 8 && Math.abs(d) < 12; })) continue;   // 兩端的平台、南側的緩坡與洞門前、隧道上的蓋板
     const y = parkH(x, z) - .2;
     if (kind < .78) {
       const h = 9 * s, cl = lin(pine[Math.floor(cr * pine.length)]);
@@ -117,18 +126,23 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
       px = x; pz = z; py = y;
     }
   };
-  fence(W.x0, W.z1, W.x0, W.z0); fence(W.x0, W.z0, W.x1, W.z0); fence(W.x1, W.z0, W.x1, W.z1);
-  colliders.push({ x0: W.x0 - .3, x1: W.x0 + .3, z0: W.z0, z1: W.z1, low: 1 }, { x0: W.x1 - .3, x1: W.x1 + .3, z0: W.z0, z1: W.z1, low: 1 }, { x0: W.x0, x1: W.x1, z0: W.z0 - .3, z1: W.z0 + .3, low: 1 });
+  // 圍籬沿 NPARK.fence（原本的範圍和北嶺鐵道橋那一段合起來的外框，前面是樓牆背面不圍）
+  const F = NPARK.fence;
+  for (let i = 0; i < F.length - 1; i++) {
+    const [x0, z0] = F[i], [x1, z1] = F[i + 1];
+    fence(x0, z0, x1, z1);
+    colliders.push({ x0: Math.min(x0, x1) - .3, x1: Math.max(x0, x1) + .3, z0: Math.min(z0, z1) - .3, z1: Math.max(z0, z1) + .3, low: 1 });
+  }
 
-  // 步道燈：每 36 m 一盞，左右交替
-  const P = NPARK.trail;
-  for (let i = 10, side = 1; i < P.length - 6; i += 18, side = -side) {
-    const a = P[i - 1], b = P[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
-    const x = P[i][0] - dz / l * 2.2 * side, z = P[i][1] + dx / l * 2.2 * side, y = parkGround(x, z);
+  // 步道燈：每 36 m 一盞，左右交替（每條步道都是）；鐵道橋模型範圍裡貼著模型的地面
+  for (const T0 of NPARK.trails) for (let i = 10, side = 1; i < T0.length - 6; i += 18, side = -side) {
+    const a = T0[i - 1], b = T0[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
+    const x = T0[i][0] - dz / l * 2.2 * side, z = T0[i][1] + dx / l * 2.2 * side, y = parkWalkH(x, z);
     k.cyl(x, y + 1.6, z, .07, .09, 3.2, 6, dark, 15).box(x, y + 3.25, z, .34, .3, .34, warm, 11).box(x, y + 3.45, z, .5, .08, .5, dark, 15);
     coastLight(x, y + 3, z, warm, 12, 1.1);
     circles.push({ x, z, r: .12 });
   }
+  const P = NPARK.trail;
   // 長椅：步道旁四張，面向步道
   for (const f of [.22, .45, .68, .9]) {
     const i = Math.floor(P.length * f), a = P[i - 1], b = P[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz), nx = -dz / l, nz = dx / l;
@@ -213,28 +227,3 @@ const footY = (X, Z) => { const h = groundH(X, Z); return h > .2 ? h : h > 0 ? .
   });
 }
 
-// ─── 北嶺鐵道橋（範圍、山溝與土丘在 10-city.js 的 VIADUCT）：兩端進山的隧道口（混凝土洞門、黑色洞口、頂上的壓頂），
-// 以及模型下載前（以檔案開啟就一直是它）的程式替身：沿模型鐵軌的弧線一條鋼梁、四座橋墩、兩條軌道。替身放在 VIADUCT.proxy，27-world1.js 擺好模型就拿掉 ───
-if (VIADUCT) {
-  const V = VIADUCT, k = new Kit(), con = 0x6e6a62, dark = 0x050506, y = V.deck;
-  for (const e of V.ends) {
-    const fx = e.x + e.s * 1.2;   // 洞門牆的中心（牆面在 e.x，往山裡 2.4 m 厚）
-    k.box(fx, y + 4, e.z, 2.4, 11, 15, con, 2).box(fx - e.s * .7, y + 9.8, e.z, 3.6, .7, 16.4, 0x5a5650, 2);
-    k.box(e.x - e.s * .06, y + 2.6, e.z, .1, 6.4, 5.4, dark, 2).box(e.x - e.s * .07, y + 5.8, e.z, .1, 1.6, 4.2, dark, 2);   // 洞口：方形下半加窄一點的頂
-    for (const s of [-1, 1]) k.box(e.x - e.s * .6, y + 2.5, e.z + s * 7.9, 1.6, 9, 1.2, con, 2);   // 兩側的扶壁
-  }
-  cityAdd(new T.Mesh(k.build(), MAT.ridge), PARK_ZN);
-  // 替身：模型局部 x −147…147，鐵軌的 z 從西端 −7、中段 +6 到東端 −10（二次曲線）
-  const pk = new Kit(), steel = 0x3e4a52, zAt = t => 6 - 1.5 * t - 14.5 * t * t, half = V.W / 2, cx = V.x + V.lx0 + half, n = 16;
-  for (let i = 0; i < n; i++) {
-    const t0 = -1 + 2 * i / n, t1 = -1 + 2 * (i + 1) / n, x0 = cx + t0 * half, x1 = cx + t1 * half, z0 = V.z + zAt(t0), z1 = V.z + zAt(t1);
-    const L = Math.hypot(x1 - x0, z1 - z0), a = -Math.atan2(z1 - z0, x1 - x0), mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
-    pk.box(mx, y - 1.6, mz, L + .2, 2.6, 4.4, steel, 15, 0, a, 0).box(mx, y - .15, mz, L + .2, .3, 5, 0x4a4a46, 2, 0, a, 0);
-    for (const s of [-.75, .75]) pk.box(mx - Math.sin(a) * s, y + .1, mz - Math.cos(a) * s, L + .2, .18, .12, 0x2a2826, 15, 0, a, 0);
-  }
-  for (const t of [-.5, -.17, .17, .5]) {
-    const x = cx + t * half, z = V.z + zAt(t), g = V.at(x - V.x - V.lx0, z - V.z - V.lz0) + V.y - 2, h = y - 2.9 - g;
-    if (h > 2) pk.box(x, g + h / 2, z, 3.2, h, 4.6, 0x7a7068, 2);
-  }
-  V.proxy = new T.Mesh(pk.build(), MAT.ridge); cityAdd(V.proxy, PARK_ZN);
-}

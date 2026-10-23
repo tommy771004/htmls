@@ -53,7 +53,7 @@ function stuntFly(v, inp, dt) {
   v.x += v.vx * dt; v.z += v.vz * dt; v.y += A.vy * dt;
   A.h = Math.max(A.h, v.y);
   const st = inp ? inp.steer || 0 : 0, pc = inp ? (inp.thr || 0) - (inp.brk || 0) : 0;
-  A.rr = damp(A.rr, -st * 7.5, 5, dt); A.pr = damp(A.pr, pc * 6, 5, dt);
+  A.rr = damp(A.rr, -st * 7.5 * skK.air, 5, dt); A.pr = damp(A.pr, pc * 6 * skK.air, 5, dt);   // 69-v3-skills.js：駕駛等級越高轉得越快
   v.roll += A.rr * dt; v.pitch += A.pr * dt;
   A.rolls += Math.abs(A.rr) * dt; A.flips += Math.abs(A.pr) * dt;
   // 沒在操控、而且還沒翻過頭：慢慢回正，車頭跟著拋物線

@@ -39,6 +39,7 @@ function spAdd(n) {
 }
 // 充能事件（69-combat.js 呼叫）：kill(爆頭, 近戰)、boom、hurt(扣掉的生命)
 function spEvent(kind, a, b) {
+  skillEvent(kind, a, b);   // 69-v3-skills.js：六圍升級
   if (crew.on || crew.sw) return;
   const ab = CREW[crew.cur].ab;
   if (kind === 'kill') {
@@ -77,7 +78,7 @@ function nearMiss(v, now) {
     const d = Math.hypot(c.x - v.x, c.z - v.z);
     if (d > 4.2 || d < 2.3) continue;
     if ((crew.nm.get(c) || -9) > now - 3) continue;
-    crew.nm.set(c, now); spAdd(8);
+    crew.nm.set(c, now); spAdd(8); skillEvent('near');
   }
 }
 

@@ -92,6 +92,7 @@ const MENU = {
       { n: '快速存檔', act: menuSave, d: '存下主角、任務、彈藥、位置與正在開的車。通緝中、搶劫中或人在室內時不能存（安全屋請去床邊）。' },
       { n: '讀取快速存檔', act: menuLoad, off: !motors.game, val: motors.game ? new Date(motors.game.t).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '沒有存檔', d: '回到上次快速存檔的地方。現金與車庫本來就即時存著，不受影響。' },
     ] },
+    { n: '角色能力', rows: skillRows },   // 69-v3-skills.js：目前主角的六圍
     { n: '操作說明', rows: () => [
       ...KEY_ACTS.map(a => ({ n: a.n, info: keyName(keyCur(a.k)) })),
       { n: '環顧', info: '滑鼠（點畫面鎖定游標）' }, { n: '開火／瞄準', info: SET.aimHold === 'toggle' ? '左鍵／右鍵切換' : '左鍵／右鍵按住' },

@@ -75,7 +75,7 @@ function mapBlips() {
 // ─── 視角與狀態 ───
 const MV = { cx: 0, cz: 0, zoom: 1, tx: 0, tz: 0, tzoom: 1, dirty: true, blips: [], sel: -1, hover: -1, mx: -1, my: -1, raf: 0, ptr: new Map(), drag: null, pinch: null, t: 0 };
 // MAP_LB 是邏輯座標的範圍（各區照它畫），MAP_BOUNDS 是換到世界座標的外接框（平移、縮放的限制）
-const MAP_LB = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: NPARK.walk.z0 - 60, z1: ISLE.z1 + 40 };   // 北邊含北嶺公園
+const MAP_LB = { x0: FAR_BANK_X - 40, x1: EAST_BANK_X + 40, z0: (NPARK.rail || NPARK.walk).z0 - 60, z1: ISLE.z1 + 40 };   // 北邊含北嶺公園與鐵道橋
 const MAP_BOUNDS = (() => {
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const zn of ZONES) for (const [x, z] of rectW(Math.max(zn.x0, MAP_LB.x0), Math.min(zn.x1, MAP_LB.x1), Math.max(zn.z0, MAP_LB.z0), Math.min(zn.z1, MAP_LB.z1), zn)) {

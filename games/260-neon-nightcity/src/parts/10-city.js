@@ -79,7 +79,7 @@ const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && 
 const NPARK = (() => {
   const zr = CITY_Z0 - 700, RX0 = CITY_X0 - 2600, RX1 = CITY_X1 + 2600, ax1 = Math.min(RX1, avX(8) + 60);   // 21-coast.js 第一層山脊（A 區那一段）
   const n = Math.max(4, Math.round(90 * (ax1 - RX0) / (RX1 - RX0))), dx = (ax1 - RX0) / n, gx = avX(3);
-  const ka = Math.round((gx - 240 - RX0) / dx), kb = Math.round((gx + 270 - RX0) / dx);
+  const ka = Math.round((gx - 380 - RX0) / dx), kb = Math.min(n - 1, Math.round((gx + 380 - RX0) / dx));   // 兩邊留到北嶺鐵道橋的隧道山頭降回來（東邊不超過 A 區那段山脊）
   return {
     zr, RX0, dx, ph: rng(4242)() * 100,   // ph：21-coast.js 的 rng(4242) 第一個值就是第一層山脊的相位
     x0: RX0 + ka * dx, x1: RX0 + kb * dx, z0: zr - 300, z1: CITY_Z0 - OUT_D, gx, gw: 10,
@@ -110,12 +110,14 @@ const parkHill = (x, z) => {
 };
 const inParkMesh = (x, z) => x >= NPARK.x0 && x <= NPARK.x1 && z >= NPARK.z0 && z <= NPARK.z1;
 // ─── 北嶺鐵道橋（World 第一輪的 railway 掃描：295×100 m，鋼梁高架橋跨過一條南北向的山溝，橋面在模型 y≈64）───
-// 擺在公園後段（步道圍籬外、觀景台北面約 190 m），A 區邏輯座標、不轉向。模型自帶地形，props.mjs 的 hf 記下每格最低的高度：
-// 山坡在模型範圍裡貼到模型地面下 1.5 m（壓低或墊高），南北兩頭順著模型邊緣的溝底花 80 m 爬回山坡（一條穿過山脊的溝）、東西兩頭 40 m，
-// 東西兩端鐵軌進山的地方各堆一個土丘，21-park.js 在那裡蓋隧道口。y：模型東西兩端的地面對齊山坡（取中位數）。
-// 模型由 27-world1.js 下載（以檔案開啟時是 21-park.js 的程式替身），山溝兩種開法都一樣
+// 擺在公園後段（觀景台北面約 190 m），A 區邏輯座標、不轉向；步道圍籬往北圍進來（NPARK.rail），山溝底、橋面、兩端的平台與隧道都走得到。
+// 模型自帶地形，props.mjs 的 hf 記下每格最低的高度、line 記下橋面中心線（z = c0 + c1·x + c2·x²，模型局部座標）與橋墩的佔地：
+// 山坡在模型範圍裡貼到模型地面下 1.5 m（畫面；走的時候貼著模型地面），南北兩頭順著模型邊緣的溝底花 80 m 爬回山坡、東西兩頭 40 m。
+// y：模型東西兩端的地面對齊山坡（取中位數），再抬到溝底高過海面（溝底低於 SEA_Y 會變成水）。
+// 兩端：鐵軌出了模型順著切線直走，先是 A 公尺長、和橋面一樣高的平台（南側緩坡接步道），再進山裡的隧道（洞門在 o = A，洞長 BORE）。
+// 洞門、隧道、平台上的軌道、燈與列車在 21-rail.js；模型由 27-world1.js 下載（以檔案開啟時是 21-rail.js 的程式替身），兩種開法地形都一樣
 const VIADUCT = (() => {
-  const hf = PROPS_SPEC.far_rail?.items.rail?.hf; if (!hf) return null;
+  const it = PROPS_SPEC.far_rail?.items.rail, hf = it?.hf, ln = it?.line; if (!hf || !ln) return null;
   const { nx, nz, dx, dz } = hf, W = nx * dx, D = nz * dz, x = NPARK.gx + 15, z = CITY_Z0 - 830;
   // 沒有頂點的格子（模型邊緣的缺口）用同一列最近的格子補；只有橋墩、沒有地面頂點的格子會突然高出幾十公尺，比周圍 3×3 的中位數高 6 m 以上就壓回中位數
   const y0 = hf.y.map((v, k) => {
@@ -139,30 +141,46 @@ const VIADUCT = (() => {
   for (let j = 0; j < nz; j++) for (const i of [0, 1, 2, nx - 3, nx - 2, nx - 1]) if (hf.y[j * nx + i] != null)
     d.push(parkBase(x + hf.x0 + (i + .5) * dx, z + hf.z0 + (j + .5) * dz) + parkHill(x + hf.x0 + (i + .5) * dx, z + hf.z0 + (j + .5) * dz) - hf.y[j * nx + i]);
   d.sort((a, b) => a - b);
-  const oy = d[d.length >> 1];
-  // 鐵軌在兩端的位置（模型局部 z，從外框中心起算）與橋面高度；隧道口在外框外面
-  const ends = [{ x: x + hf.x0 - .5, z: z - 6, s: -1 }, { x: x + hf.x0 + W + .5, z: z - 10, s: 1 }], deck = oy + 64.5;
-  return { x, z, y: oy, at, W, D, lx0: hf.x0, lz0: hf.z0, ends, deck, name: '北嶺鐵道橋' };
+  const low = [...y].sort((a, b) => a - b)[Math.floor(y.length * .02)];
+  const oy = Math.max(d[d.length >> 1], SEA_Y + 2.6 - low), deck = oy + ln.y;
+  // 中心線（世界的邏輯座標）：zc(x) 是那個 x 上鐵軌中心的 z
+  const [c0, c1, c2] = ln.c, zc = X => z + c0 + c1 * (X - x) + c2 * (X - x) ** 2;
+  // 兩端：p 是模型邊緣上的鐵軌中心，(ux, uz) 是往外（進山）的切線；s −1 西、+1 東
+  const A = 24, BORE = 60;
+  const ends = [-1, 1].map(s => {
+    const lx = s * W / 2, m = c1 + 2 * c2 * lx, l = Math.hypot(1, m);
+    return { x: x + lx, z: zc(x + lx), ux: s / l, uz: s * m / l, s };
+  });
+  const frame = (e, X, Z) => { const dx = X - e.x, dz = Z - e.z; return [dx * e.ux + dz * e.uz, dz * e.ux - dx * e.uz]; };   // [o 往外, d 往左]
+  const piers = (ln.piers || []).map(([x0, x1, z0, z1]) => ({ x0: x + x0, x1: x + x1, z0: z + z0, z1: z + z1 }));
+  return { x, z, y: oy, at, W, D, lx0: hf.x0, lz0: hf.z0, ends, deck, zc, frame, A, BORE, piers, name: '北嶺鐵道橋' };
 })();
-// 山坡被山溝與隧道口的土丘改過之後的高度（h：原本的山坡）
-const viaCarve = (x, z, h) => {
+// 山坡被山溝、兩端的平台與隧道上的山頭改過之後的高度（h：原本的山坡）。walk：玩家站的高度（模型範圍裡貼著模型地面，不是畫面的 1.5 m 下面）
+const viaCarve = (x, z, h, walk) => {
   const V = VIADUCT; if (!V) return h;
   const lx = x - V.x - V.lx0, lz = z - V.z - V.lz0, ex = Math.max(0, -lx, lx - V.W), ez = Math.max(0, -lz, lz - V.D);
   if (ex < 40 && ez < 80) {
-    const w = (1 - sstep(0, 80, ez)) * (1 - sstep(0, 40, ex));
-    h += (V.at(lx, lz) + V.y - 1.5 - h) * w;   // 模型底下也墊高，從低處看不會透空
+    const w = (1 - sstep(0, 80, ez)) * (1 - sstep(0, 40, ex)), inn = Math.min(lx, V.W - lx, lz, V.D - lz);
+    h += (V.at(lx, lz) + V.y - 1.5 * (walk ? 1 - sstep(0, 8, inn) : 1) - h) * w;   // 模型底下也墊高，從低處看不會透空
   }
-  for (const e of V.ends) {   // 隧道口上面的土丘：鐵軌往外 8 m 內堆到橋面上 11 m（寬度和洞門差不多），再往外 60 m 降回山坡
-    const o = (x - e.x) * e.s; if (o < -2) continue;
-    const m = (V.deck + 11 - Math.max(0, o - 10) * .3) * Math.exp(-(((z - e.z) / 11) ** 2)) * sstep(-2, 8, o) * (1 - sstep(10, 70, o));
-    h = Math.max(h, m);
+  for (const e of V.ends) {
+    const [o, d] = V.frame(e, x, z), ad = Math.abs(d); if (o < -30 || ad > 100) continue;
+    // 平台：和橋面一樣高（低 0.25 m 的道碴），往橋那邊 22 m 降回山溝（橋端下的路堤），北側 12–34 m、南側 12–70 m 降回山坡（南側是上來的緩坡）
+    const wl = 1 - sstep(12, d * e.ux > 0 ? 70 : 34, ad), wo = sstep(-23, -1, o);
+    let g = h + (V.deck - .25 - h) * wl * wo;
+    // 隧道上的山頭：洞門那一塊（|d| < 16）在 o = A + 6 之後才隆起（藏在 21-rail.js 的洞門後面），兩側從 A − 14 起爬；過了洞底再慢慢降回山坡（公園網格兩邊留得夠寬）
+    const top = V.deck + 17 - .7 * Math.max(0, ad - 10) - .5 * Math.max(0, o - V.A - V.BORE - 5);
+    const k = (sstep(V.A + 6, V.A + 10, o) * (1 - sstep(16, 22, ad)) + sstep(V.A - 14, V.A + 4, o) * sstep(16, 22, ad));
+    if (k > 0) g += (Math.max(top, h) - g) * k;
+    if (o > V.A - 1 && o < V.A + V.BORE + 1 && ad < 10) g = Math.min(g, V.deck - .3);   // 隧道經過的地方挖成一條 20 m 寬的溝（網格 4 m 一格、對角 5.7 m，溝要寬過洞壁 5.7 m 以上，山坡的三角形才不會穿進洞裡），上面蓋著 21-rail.js 的山頭蓋板
+    h = g;
   }
   return h;
 };
 const parkH = (x, z) => viaCarve(x, z, parkBase(x, z) + parkHill(x, z));
-// 步道：門口往北蜿蜒到山頂的觀景台（控制點：離門中線的 x、離樓牆背面的距離），每 2 m 取一點
-NPARK.trail = (() => {
-  const C = [[0, -2], [0, 45], [-22, 110], [18, 185], [-26, 260], [8, 335], [44, 400], [26, 465], [52, 530], [60, 588]].map(([x, d]) => [NPARK.gx + x, NPARK.z1 - d]);
+const parkWalkH = (x, z) => viaCarve(x, z, parkBase(x, z) + parkHill(x, z), 1);
+// 步道：控制點之間 Catmull-Rom，每 2 m 取一點
+const parkSpline = C => {
   const out = [];
   for (let i = 0; i < C.length - 1; i++) {
     const p0 = C[Math.max(0, i - 1)], p1 = C[i], p2 = C[i + 1], p3 = C[Math.min(C.length - 1, i + 2)];
@@ -174,7 +192,28 @@ NPARK.trail = (() => {
   }
   out.push(C[C.length - 1]);
   return out;
-})();
+};
+// 主步道：門口往北蜿蜒到山頂的觀景台（控制點：離門中線的 x、離樓牆背面的距離）
+NPARK.trail = parkSpline([[0, -2], [0, 45], [-22, 110], [18, 185], [-26, 260], [8, 335], [44, 400], [26, 465], [52, 530], [60, 588]].map(([x, d]) => [NPARK.gx + x, NPARK.z1 - d]));
+NPARK.trails = [NPARK.trail];
+// 北嶺鐵道橋那一段（VIADUCT）：圍籬往北圍到兩座隧道的山頭（rail），和原本的範圍合起來；fence 是合起來的外框（21-park.js 照它蓋圍籬）。
+// 觀景台旁岔出三條：西、東兩條沿著山溝的邊爬到兩端的平台（從平台南側的緩坡上去），一條之字形下到山溝底、從橋下穿過去
+if (VIADUCT) {
+  const V = VIADUCT, W = NPARK.walk, [w, e] = V.ends, xs = V.ends.map(e => e.x + e.ux * (V.A + V.BORE));
+  NPARK.rail = { x0: Math.floor(xs[0]) - 12, x1: Math.ceil(xs[1]) + 12, z0: Math.round(V.z + V.lz0 - 30), z1: W.z0 };
+  const apr = (e, o, d) => [e.x + e.ux * o - e.uz * d, e.z + e.uz * o + e.ux * d];   // 端點座標系（o 往外、d 往左）的點
+  const gx = NPARK.gx, gz = NPARK.z1;
+  NPARK.trails.push(
+    parkSpline([[gx + 50, gz - 548], [gx + 4, gz - 578], [gx - 46, gz - 610], [gx - 96, gz - 648], apr(w, 14, w.s * 66), apr(w, 12, w.s * 30), apr(w, 10, w.s * 6)]),
+    parkSpline([[gx + 66, gz - 580], [gx + 104, gz - 604], [gx + 150, gz - 640], apr(e, 22, e.s * 70), apr(e, 14, e.s * 32), apr(e, 10, e.s * 6)]),
+    parkSpline([[gx + 46, gz - 592], [gx + 30, gz - 622], [gx + 44, gz - 656], [gx + 20, gz - 688], [gx + 26, gz - 722], [gx + 14, gz - 752], [gx + 12, gz - 782], [gx + 8, gz - 828]]),
+  );
+}
+NPARK.inWalk = (x, z) => { const W = NPARK.walk, R = NPARK.rail; return x > W.x0 && x < W.x1 && z > W.z0 && z < W.z1 || !!R && x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1; };
+{
+  const W = NPARK.walk, R = NPARK.rail;
+  NPARK.fence = R ? [[W.x0, W.z1], [W.x0, W.z0], [R.x0, W.z0], [R.x0, R.z0], [R.x1, R.z0], [R.x1, W.z0], [W.x1, W.z0], [W.x1, W.z1]] : [[W.x0, W.z1], [W.x0, W.z0], [W.x1, W.z0], [W.x1, W.z1]];
+}
 // 觀景台（步道盡頭）與管理站：平台高度固定，站上去不跟著坡
 {
   const [lx, lz] = NPARK.trail[NPARK.trail.length - 1], cx = lx, cz = lz - 5;
@@ -245,6 +284,7 @@ const district = (x, z) => {
     return x < BEACH_X1 ? '珊瑚灘 Coral Beach' : '錨灣港 Anchor Bay';
   }
   for (const B of [...BANK_WALKS, ...FERRY]) if (x >= B.x0 - 2 && x <= B.x1 + 2 && z >= B.z0 - 2 && z <= B.z1 + 2) return `${B.name} ${B.en || (B.x0 < CITY_X0 ? 'Heron Ferry' : 'Old Harbour Ferry')}`;
+  const R = NPARK.rail; if (R && x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1) return `${VIADUCT.name} North Ridge Viaduct`;
   if (z < CITY_Z0 && x >= NPARK.gx - NPARK.gw - 2 && x <= NPARK.gx + NPARK.gw + 2 || z < NPARK.z1 && inParkMesh(x, z)) return NPARK.name;
   if (x < CITY_X0) return '灰鷺河濱 Heron Riverside';
   if (i < 0 || i > NX || j < 0 || j > NZ) return '城郊 Outskirts';
@@ -1222,7 +1262,7 @@ for (const h of CAPES) {
 // 地面高度（邏輯座標）：人行道高 0.15；查格子，不逐一比對街區。世界座標的 groundH 在下面
 const groundHL = (x, z) => {
   if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
-    if (z < NPARK.z1 && inParkMesh(x, z)) { const L = NPARK.look; return x >= L.x0 && x <= L.x1 && z >= L.z0 && z <= L.z1 ? L.h : parkH(x, z); }   // 北嶺公園的山坡與觀景台
+    if (z < NPARK.z1 && inParkMesh(x, z)) { const L = NPARK.look; return x >= L.x0 && x <= L.x1 && z >= L.z0 && z <= L.z1 ? L.h : parkWalkH(x, z); }   // 北嶺公園的山坡與觀景台（鐵道橋的山溝底貼著模型地面）
     if (x > CITY_X0 - OUT_D && x < CITY_X1 + OUT_D && z > CITY_Z0 - OUT_D && z < SHORE_Z) return .15;   // 濱海步道、北面樓牆前
     for (const r of PIERS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
     for (const r of FERRY) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
