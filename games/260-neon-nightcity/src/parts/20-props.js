@@ -1,7 +1,7 @@
 
 // ═══ 街道設施、招牌、全息廣告、蒸氣、雨與天空 ═══
 await bootStep(BOOT.props, '擺放街道與招牌…');
-const _o = new T.Object3D(), _fm = new T.Matrix4();
+const _o = new T.Object3D(), _pfm = new T.Matrix4();
 // 清單是邏輯座標（t.zn 給了就用那一片，否則看位置在哪一片；null 是世界座標）：每個 instance 的矩陣乘上所在位置的 frameM4 換成世界座標，InstancedMesh 本身掛在 scene
 // R：只送相機附近幾公尺內的實例（預設 INST_R；面數多的模型，例如 27-props 檔尾的樹，給小一點）。
 // stream.R0：近處這幾公尺內的不送（27-props 檔尾換成模型後，程式建模的樹只畫在模型的範圍外，當遠景）
@@ -12,7 +12,7 @@ function instanced(geo, mat, list, layer = 0, extra, R) {
     _o.position.set(t.x, t.y || 0, t.z); _o.rotation.set(t.rx || 0, t.ry || 0, t.rz || 0, 'YXZ');
     _o.scale.set(t.sx || t.s || 1, t.sy || t.s || 1, t.sz || t.s || 1); _o.updateMatrix();
     const zn = t.zn !== undefined ? t.zn : zoneAtL(t.x, t.z);
-    if (zn) _o.matrix.premultiply(frameM4(zn, t.x, t.z, _fm));
+    if (zn) _o.matrix.premultiply(frameM4(zn, t.x, t.z, _pfm));
     wx[k] = _o.matrix.elements[12]; wz[k] = _o.matrix.elements[14];
     m.setMatrixAt(k, _o.matrix);
   });

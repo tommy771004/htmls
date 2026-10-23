@@ -38,10 +38,13 @@ try {
   await ev(page, () => window.__nc.loadAllGLB());
   const g = await ev(page, () => window.__nc.glb);
   check(g.on && g.loaded.length === IDS.length && !g.failed.length, `GLB 下載 ${g.loaded.length}/${IDS.length}（${((Date.now() - t0) / 1000).toFixed(1)} s）${g.failed.length ? '，失敗 ' + g.failed.join(',') : ''}`);
-  // World 第四輪之二（27-props.js 檔尾）：街道設施、植物與海岸的 8 組模型下載好、換掉程式建模
-  await page.waitForFunction(() => { const w = window.__nc.props.w2; return w && Object.keys(w.sets).length + w.failed.length >= 9; }, null, { timeout: 60000 }).catch(() => {});
-  const w2 = await ev(page, () => { const w = window.__nc.props.w2; return { sets: Object.keys(w.sets).length, failed: w.failed, swapped: w.swapped.length, kept: w.kept(), n: w.n }; });
-  check(w2.sets === 9 && !w2.failed.length && w2.swapped >= 13 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500 && w2.n.ebox > 20 && w2.n.pump >= 4 && w2.n.pier > 20, `world_2 模型與橋墩 ${w2.sets}/9 組、換掉 ${w2.swapped} 類、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
+  // World 第四輪之二（27-props.js 檔尾）：街道設施、植物與海岸的 8 組模型、快速道路的橋墩（hwy），加上 world_1 第二批的路燈（w1_grc）與觀景解說牌（w1_board）下載好、換掉程式建模；
+  // 柏油貼圖（w1_asphalt）不是模型組，下載好就開 ASPH_U
+  await page.waitForFunction(() => { const w = window.__nc.props.w2; return w && Object.keys(w.sets).length + w.failed.length >= 11 && (w.swapped.includes('asphalt') || w.failed.includes('w1_asphalt')); }, null, { timeout: 60000 }).catch(() => {});
+  const w2 = await ev(page, () => { const w = window.__nc.props.w2; return { sets: Object.keys(w.sets).length, failed: w.failed, swapped: w.swapped.length, has: ['lamps', 'asphalt', 'board'].filter(k => w.swapped.includes(k)), kept: w.kept(), n: w.n, board: w.board }; });
+  check(w2.sets === 11 && !w2.failed.length && w2.swapped >= 16 && w2.has.length === 3 && w2.kept === 1 && w2.n.trees > 1000 && w2.n.containers > 500 && w2.n.ebox > 20 && w2.n.pump >= 4 && w2.n.lamps > 3000 && w2.n.pier > 20 && w2.board, `world_2 模型與橋墩 ${w2.sets}/11 組、換掉 ${w2.swapped} 類（含 ${w2.has.join('、')}）、程式建模只留遠景的樹（${w2.kept}）${JSON.stringify(w2.n)}${w2.failed.length ? '，失敗 ' + w2.failed.join(',') : ''}`);
+  const grc = await ev(page, () => ['grc_sedan', 'grc_stepvan', 'grc_mailvan'].map(t => window.__nc.parked.filter(p => p.type === t).length));
+  check(grc.every(n => n > 10), `gameready_city 的三台車混進路邊停車（轎車 ${grc[0]}、廂型貨車 ${grc[1]}、郵務車 ${grc[2]}）`);
 
   // 展示廳：後兩排的實車
   await ev(page, () => window.__nc.enter('show'));
@@ -143,10 +146,10 @@ try {
 
   // 島上的基地與對岸的遠景（27-props.js 的 COAST_MODELS）：走近就下載，量模型在所在區（邏輯座標）的範圍，
   // 島上的要整塊落在灰鷗島上、底部在地面附近（原檔有幾公尺的地基）；對岸的要貼著各自的河岸（河岸基礎在水面下二十公尺內）（倫敦的東緣、舊港城的西緣），不能浮在空中或沉到水裡
-  // 十五片版圖拿掉了東灣對岸（golu、s7），只測頁面還有的模型
+  // 十五片版圖拿掉了東灣對岸（golu、s7），只測頁面還有的模型；外海的兩座島（鷹巖村、光格島）：底部沉在海面下、頂端在海面上，中心對著原本程式建模的島
   const coastIds = await ev(page, () => window.__nc.props.coast.models.map(o => o.id));
-  for (const id of ['ruin', 'office', 'london', 'golu', 's7'].filter(id => coastIds.includes(id))) {
-    await ev(page, (id) => { const nc = window.__nc, o = nc.props.coast.models.find(o => o.id === id); nc.tpL(o.at.x + (o.proxy === 'isle' ? 0 : o.id === 'london' ? 700 : -600), o.at.z, 0); }, id);
+  for (const id of ['ruin', 'office', 'london', 'golu', 's7', 'eze', 'tron'].filter(id => coastIds.includes(id))) {
+    await ev(page, (id) => { const nc = window.__nc, o = nc.props.coast.models.find(o => o.id === id); nc.tpL(o.at.x + (o.proxy === 'isle' ? 0 : o.id === 'london' ? 700 : o.proxy === 'eze' || o.proxy === 'tron' ? 0 : -600), o.at.z - (o.proxy === 'eze' || o.proxy === 'tron' ? 700 : 0), 0); }, id);
     let done = false;
     for (let i = 0; i < 240 && !done; i++) { await page.waitForTimeout(250); done = await ev(page, (id) => !!window.__nc.props.coast.models.find(o => o.id === id).done, id); }
     const bb = await ev(page, (id) => {
@@ -161,13 +164,45 @@ try {
         b.x0 = Math.min(b.x0, q.min.x); b.x1 = Math.max(b.x1, q.max.x); b.y0 = Math.min(b.y0, q.min.y); b.y1 = Math.max(b.y1, q.max.y); b.z0 = Math.min(b.z0, q.min.z); b.z1 = Math.max(b.z1, q.max.z);
       });
       for (const k in b) b[k] = Math.round(b[k]);
-      return { b, isle: o.proxy === 'isle' ? C.ISLE : null, far: C.FAR_BANK_X, east: C.EAST_BANK_X };
+      return { b, isle: o.proxy === 'isle' ? C.ISLE : null, far: C.FAR_BANK_X, east: C.EAST_BANK_X, at: o.at, sea: window.__nc.sea.SEA_Y };
     }, id);
     let ok = !!bb, why = '';
     if (bb && bb.isle) { const I = bb.isle; ok = bb.b.x0 > I.x0 - 5 && bb.b.x1 < I.x1 + 5 && bb.b.z0 > I.z0 - 5 && bb.b.z1 < I.z1 + 5 && bb.b.y0 > -6 && bb.b.y0 < 2 && bb.b.y1 > 10; why = `島 x ${I.x0}…${I.x1}、z ${I.z0}…${I.z1}`; }
+    else if (bb && (id === 'eze' || id === 'tron')) { const cx = (bb.b.x0 + bb.b.x1) / 2, cz = (bb.b.z0 + bb.b.z1) / 2; ok = Math.hypot(cx - bb.at.x, cz - bb.at.z) < 80 && bb.b.y0 < bb.sea - 5 && bb.b.y1 > bb.sea + (id === 'eze' ? 150 : 15); why = `島心 ${Math.round(bb.at.x)}, ${Math.round(bb.at.z)}，海面 ${bb.sea}`; }
     else if (bb && id === 'london') { ok = Math.abs(bb.b.x1 - bb.far) < 60 && bb.b.y0 > -25 && bb.b.y0 < 5 && bb.b.y1 > 40; why = `河岸 x ${bb.far}`; }
     else if (bb) { ok = bb.b.x0 > bb.east - 40 && bb.b.y0 > -25 && bb.b.y0 < 5 && bb.b.y1 > 20; why = `河岸 x ${bb.east}`; }
     check(done && ok, `${id} 的模型擺在該在的地方（邏輯座標範圍 ${JSON.stringify(bb && bb.b)}，${why}）`);
+  }
+
+  // 北嶺鐵道橋（10-city.js 的 VIADUCT）：走近就下載，擺好拿掉程式替身；山坡在模型範圍中間貼著模型地面下 1.5 m（hf 雙線性）
+  {
+    await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; nc.tpL(V.x - 40, V.z + 120, Math.PI); });
+    let done = false;
+    for (let i = 0; i < 240 && !done; i++) { await page.waitForTimeout(250); done = await ev(page, () => !!window.__nc.props.w1.find(o => o.set === 'far_rail').obj); }
+    const vr = await ev(page, () => {
+      const nc = window.__nc, V = nc.props.viaduct, d = [];
+      for (const [fx, fz] of [[.25, .5], [.5, .5], [.75, .5], [.5, .2], [.5, .8]]) { const x = V.x + V.lx0 + V.W * fx, z = V.z + V.lz0 + V.D * fz; d.push(nc.park.h(x, z) - (V.at(V.W * fx, V.D * fz) + V.y - 1.5)); }
+      return { proxy: !!(V.proxy && V.proxy.parent), d: d.map(v => +v.toFixed(2)), deck: +V.deck.toFixed(1) };
+    });
+    await page.waitForTimeout(800); await hideHud(page); await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct, [x, z] = nc.W(V.x, V.z); nc.look(Math.atan2(x - nc.player.x, z - nc.player.z), .12, 0); });
+    await page.waitForTimeout(400); await shot(page, 'g-viaduct');
+    check(done && !vr.proxy && vr.d.every(v => Math.abs(v) < .05), `北嶺鐵道橋模型已擺上、替身拿掉，山溝貼著模型地面（差 ${vr.d.join('、')} m，橋面 y ${vr.deck}）`);
+  }
+
+  // 北嶺鐵道橋的列車（21-rail.js）：走近就下載 w1_train 換掉程式替身；夜裡停在橋中間截圖（車窗亮著）
+  {
+    let ok = false;
+    for (let i = 0; i < 160 && !ok; i++) { await page.waitForTimeout(250); ok = await ev(page, () => window.__nc.props.rail.R.loaded); }
+    const t0 = await ev(page, () => { const nc = window.__nc, R = nc.props.rail.R, t = nc.time(); nc.time(21 * 60 + 30); nc.props.rail.go(1, R.len / 2 + 50); R.speed = 0; return t; });
+    await page.waitForTimeout(1500); await hideHud(page);
+    const tr = await ev(page, () => {
+      const nc = window.__nc, V = nc.props.viaduct, R = nc.props.rail.R, [cx, cz] = nc.W(V.x + 25, V.z + 48), [tx, tz] = nc.W(V.x - 15, V.zc(V.x - 15));
+      nc.camAt(cx, V.deck + 9, cz, tx, V.deck + 2, tz);
+      return { on: R.cars.filter(c => c.on && c.obj.visible).length, mesh: R.cars.reduce((a, c) => a + c.obj.children.length, 0), win: +R.uM.value.z.toFixed(2) };
+    });
+    await page.waitForTimeout(500); await shot(page, 'g-train');
+    await ev(page, (t) => { const nc = window.__nc, R = nc.props.rail.R; nc.camAt(); nc.time(t); R.speed = 17; R.state = 'wait'; R.tw = 30; }, t0);
+    check(ok && tr.on === 5 && tr.mesh > 5 && tr.win > .5, `北嶺鐵道橋的列車換成 Lastochka 模型，五節都在橋上、夜裡車窗亮（${JSON.stringify(tr)}）`);
   }
 
   // 安全屋：走近門口就下載室內模型，換掉程式建模的房間

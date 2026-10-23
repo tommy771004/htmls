@@ -199,9 +199,49 @@ export const SETS = [
   { out: 'w1_fence', src: '.cache/world1', sloppy: .12, tex: 512, items: [{ id: 'wire', file: 'wiremesh', scale: .01, pick: (x, y, z) => x > -200 && x < 100 && Math.abs(z) < 60 && y < 360 },
     { id: 'stone', file: 'stone_fence', scale: 1 }] },
   // 遠景：Metazeon 的三座水泥廠掃描（CC BY 4.0，0.45 倍）在東灣對岸。
-  // world_1 另外兩個遠景試過但沒用：railway（鐵道高架橋連山谷的掃描）城北一圈都是樓，只有空中看得到，看起來是浮在平地上的一條地皮；
-  // tron（Arq Grid Tron）的亮線全在自發光貼圖，這條管線只留底色貼圖，整片是黑色方塊。要用得先讓 emit 支援自發光貼圖
   { out: 'far_cement', src: '.cache/world1', far: 1, sloppy: .04, items: [{ id: 'plant', file: 'cement_plant', scale: .45 }, { id: 'tank', file: 'cement_tank', scale: .45 }, { id: 'ruin', file: 'cement_ruin', scale: .45 }] },
+  // ─── world_1 第二批：原本沒用上的三個檔與 gameready_city 拿掉的部分（這四個原檔 2026-10-23 從 Sketchfab 重新下載）───
+  // 用到這一批加的選項：skirt（外圍一圈往下長到模型底下 d 公尺的斜坡，掃描的邊緣才不會浮著；cap 補島面、ring 輸出外緣）、hf（[nx, nz] 每格的地面最低點，頁面用來接地形）、
+  // glow（照底色貼圖挑屋頂撒夜燈點，頁面在那裡放小燈塊）、texOut（只輸出材質的貼圖，給頁面當重複貼圖）
+  // 鷹巖村（21-coast.js 外海西南那座島）：Azad Balabanian 的 Èze Village 空拍掃描（CC BY 4.0，公分；山頂的石頭村與兩側山谷，約 640×550 m、263 m 高），
+  // 天空球（Skybox：同一次空拍的 360° 全景照）不要，另外裁成 w1_board 的看板。掃描四周的切邊往下長成約 42° 的山坡、沉進海裡
+  { out: 'far_eze', src: '.cache/world1', far: 1, tex: 1024, sloppy: .3, items: [{ id: 'eze', file: 'eze', scale: .01, drop: /Skybox/, skirt: { d: 60, slope: 1.1, col: [.055, .062, .042] },
+    glow: { n: 220, gap: 7, test: (r, g, b) => r > 110 && r > g * 1.18 && g > b * .95 && r - b > 45 } }] },
+  // 北嶺鐵道橋（10-city.js 的 VIADUCT，北嶺公園觀景台正北的山谷）：orphanrtg 的 Railway bridge with a feeling of coziness（CC BY 4.0，
+  // 掃描單位一格約 100 m：橋長約 290 m、橋墩約 40 m），連山谷、樹與谷底的路；不補裙邊，hf 給頁面把公園山坡貼到掃描的地面底下、在邊上接起來；
+  // line 量橋面的中心線與高度（橋面約 y 64.3、護欄頂約 66.7）與四座橋墩的佔地，列車、橋面步道、護欄與山溝底的碰撞都照它（21-rail.js）
+  { out: 'far_rail', src: '.cache/world1', far: 1, tex: 1024, sloppy: .06, items: [{ id: 'rail', file: 'railway', scale: 100, hf: [60, 22], line: { y: [63.4, 65.4], step: 4, x: [-140, 140], piers: [40, 48] } }] },
+  // 光格島（外海東南那座島）：SpringSociety 的 Arq Grid Tron（CC BY 4.0，公尺；霓虹格線的未來街區，亮線全在自發光貼圖），縮成六成；
+  // 水面、街道家具、樹與車不要；街區之間原本是空的，cap 補一片島面，外緣往下長成黑色岸壁，ring 給頁面沿外緣擺護岸燈
+  { out: 'far_tron', src: '.cache/world1', far: 1, tex: 1024, sloppy: .3, items: [{ id: 'tron', file: 'tron', scale: .6, groundY: 0, drop: /Water|Bench|Vending|Crate|Planter|Postbox|StreetBin|SignPost|Dumpster|Hydrant|BikeRack|Barrel|TrafficCone|Door_Maintenance|Table|Glasses|Spanner|Console|LightOrnament|Tree|Foliage|GodRay|CarPipeline|TronCycle|Lit\.|UnlitPureBlack/,
+    skirt: { d: 30, cap: -.25, col: [.02, .022, .028], ring: 4 } }] },
+  // gameready_city 當初拿掉的部分：路上的三台車（深藍轎車、白色廂型貨車、藍色郵務車，tools/traffic.mjs 從這個檔烘進車流）與路燈（彎臂燈桿，
+  // 20-props.js 換掉支路的程式路燈）。車與路燈在原檔是和別的東西合併的網格，用 clip 依位置切出來；車頭的徽章、車門上的公司名模糊掉
+  { out: 'w1_grc', src: '.cache/world1', tex: 512,
+    texEdit: { Concrete_u2SEBuild7_1_0: { blur: [[.1, .33, .135, .39], [.48, .66, .51, .72]] }, Concrete_u2SEBuild7_1_2: { blur: [[.16, .385, .225, .42], [.55, .8, .65, .84]] },
+      Concrete_u2SEBuild7_1_3: { blur: [[.16, .385, .225, .42]] } },
+    items: [
+      // drop 也比節點名：節點都叫 Object_N，負向前瞻只會吃掉材質名不是這台車的（路面上的紙屑、人孔蓋）
+      { id: 'sedan', file: 'gameready_city', scale: 1.9, clip: [-16.5, -13.8, .08, 1.4, -5.3, -3.9], drop: /^(?!Object_|Concrete_u2SEBuild7_1_0$|Merged_materials$)/ },
+      { id: 'stepvan', file: 'gameready_city', scale: 1.9, clip: [-23, -20, .08, 1.5, -3.7, -2.1], drop: /^(?!Object_|Concrete_u2SEBuild7_1_2$)/ },
+      { id: 'mailvan', file: 'gameready_city', scale: 1.9, clip: [-1.8, -.2, .08, 1.5, 24.1, 27.2], drop: /^(?!Object_|Concrete_u2SEBuild7_1_[23]$)/ },
+      // 燈桿（_84）在 (−2.75, 10.25)、燈頭在 +x 1 m：轉 180° 讓燈臂朝 −x（和 20-props.js 的 lampKit 一樣），原點放在燈桿底；放大到燈頭約 7 m 高。
+      // 旁邊的垃圾桶（_95）、號誌牌（_90）與地上的紙屑不要
+      { id: 'lamp', file: 'gameready_city', scale: 2.2, rot: 2, clip: [-2.95, -1.6, -.05, 3.4, 10.1, 10.4], drop: /^(?!Object_|Concrete_u2SEBuild7_1_84$|StreeLamp)/, origin: [2.66, 0, -10.2] },
+    ] },
+  // gameready_city 的柏油路面（Concrete_u2SEBuild7_1：底色、法線、粗糙度三張），10-city.js 的路面 shader 拿來當重複貼圖
+  { out: 'w1_asphalt', src: '.cache/world1', texOut: { file: 'gameready_city', mat: /^Concrete_u2SEBuild7_1$/, size: 512 } },
+  // 鷹巖村的看板：Èze 掃描附的 360° 空拍全景（Skybox 的貼圖），裁出地平線那一帶，做成珊瑚灘步道上的燈箱看板
+  { out: 'w1_board', src: '.cache/world1', board: { file: 'eze', mat: /^Material\.001$/, crop: [0, .45, .62, .86], flip: 1, w: 7.2, h: 2.4 } },
+  // 北嶺鐵道橋的列車（21-rail.js）：tiunov.se 的 Lastochka electric train（CC BY 4.0，公尺，沒有貼圖、只有材質顏色；2026-10-23 下載），
+  // 原檔是一節駕駛車、一節中間車、一節拖車沿 x 排開（車頭朝 −x），依位置拆成三個物件、車頭轉成朝 +z；頁面排成五節，最後一節是反過來的駕駛車。
+  // 車頭上方的目的地字幕（Material_1508，真實地名）拿掉，頁面另外貼原創的路線牌；客室窗（Material_705／544，深色半透明）夜裡亮暖色燈（燈種 0），
+  // 頭燈（Material_806）是燈種 1，跑起來才亮
+  { out: 'w1_train', src: '.cache/world1', tex: 256, simplify: .3, emi: [[/^Material_(705|544)$/, [1, .74, .46], 0], [/^Material_806$/, null, 1]], items: [
+    { id: 'cab', file: 'lastochka', orient: ['-x', 'y'], pick: (x) => x < 17.65, drop: /^Material_1508$/ },
+    { id: 'mid', file: 'lastochka', orient: ['-x', 'y'], pick: (x) => x > 17.65 && x < 36.85 },
+    { id: 'tail', file: 'lastochka', orient: ['-x', 'y'], pick: (x) => x > 36.85 },
+  ] },
   // ─── World 第四輪之二（使用者提供的 ~/Downloads/world_2，21 個 Sketchfab 模型，全部 CC BY 4.0；複製到 .cache/world2/，短檔名；來源與拿掉的部分見 CREDITS.md）───
   // 街道設施、植物與海岸，頁面在 27-props.js 檔尾（World 第四輪之二那段）下載後換掉 20-props／21-coast 的程式建模；大量重複的用 InstancedMesh。
   // 用到這一輪加的選項：metalMax（金屬度上限）、noEmi（拿掉自發光）、mask（改成 MASK）、keyWhite（白底當透明）、simplifyMat（只減某些材質；第四項 'sloppy'／'permissive' 允許不管拓撲或跨 UV 接縫收合）、soften（提亮並壓低貼圖對比）。
@@ -488,12 +528,187 @@ async function blurAtlas(img, rects) {
   return sharp(base).composite(comp).png().toBuffer();
 }
 
+// ─── world_1 第二批的選項（skirt、hf、glow），都在 place() 擺正、縮放之後跑，座標是輸出的公尺 ───
+// skirt { d, maxY, res, slope, col, n }：掃描模型（地景切片）的邊緣補一圈斜坡，往下長到模型最低點下面 d 公尺。
+// 不用邊界邊（照片掃描的邊緣是鋸齒、重疊與破洞，邊界邊會缺一段段）：三角形取樣進 res 公尺的格子記最低高度，
+// 從中心往外每個角度（n 個）找最外面有模型的格子，那一點的高度當坡頂（略往內一點，藏在模型邊緣底下），坡底從中心往外推（高差 × slope）。
+// 另開一個沒有貼圖的雙面材質（col 是線性底色）。maxY：坡頂最高到這個高度（城市切片只補地面以下）。
+// cap：坡頂一律在這個高度，圈內再鋪一片平的面（街區之間原本是空的，補成島面）。ring：每 ring 個角度取一個坡頂點 [x, z] 記進 manifest（頁面沿著它擺護岸燈）
+function addSkirt(prims, { d, maxY = Infinity, res = 2, slope = 0, col = [.1, .1, .1], n = 720, cap, ring: ringStep }) {
+  const { mn, mx } = bbox(prims), W = Math.ceil((mx[0] - mn[0]) / res) + 1, H = Math.ceil((mx[2] - mn[2]) / res) + 1, ylo = new Float32Array(W * H).fill(Infinity);
+  for (const p of prims) for (let t = 0; t < p.idx.length; t += 3) {
+    const P = [0, 1, 2].map((k) => { const v = p.idx[t + k]; return [p.pos[v * 3], p.pos[v * 3 + 1], p.pos[v * 3 + 2]]; });
+    const m = Math.max(1, Math.ceil(Math.max(...[[0, 1], [1, 2], [2, 0]].map(([a, b]) => Math.hypot(P[a][0] - P[b][0], P[a][2] - P[b][2]))) / (res * .7)));
+    for (let i = 0; i <= m; i++) for (let j = 0; j <= m - i; j++) {
+      const u = i / m, w = j / m, v = 1 - u - w, x = P[0][0] * u + P[1][0] * w + P[2][0] * v, z = P[0][2] * u + P[1][2] * w + P[2][2] * v, y = P[0][1] * u + P[1][1] * w + P[2][1] * v;
+      const k = Math.floor((z - mn[2]) / res) * W + Math.floor((x - mn[0]) / res);
+      if (y < ylo[k]) ylo[k] = y;
+    }
+  }
+  const cx = (mn[0] + mx[0]) / 2, cz = (mn[2] + mx[2]) / 2, yb = mn[1] - d, R = Math.hypot(mx[0] - mn[0], mx[2] - mn[2]) / 2 + res;
+  const at = (x, z) => { const X = Math.floor((x - mn[0]) / res), Z = Math.floor((z - mn[2]) / res); return X < 0 || Z < 0 || X >= W || Z >= H ? Infinity : ylo[Z * W + X]; };
+  const ring = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, dx = Math.cos(a), dz = Math.sin(a);
+    let hit = null;
+    for (let r = R; r > res; r -= res * .5) {
+      if (at(cx + dx * r, cz + dz * r) === Infinity) continue;
+      const r1 = r - res * .75, y = cap ?? Math.min(maxY, at(cx + dx * r1, cz + dz * r1) === Infinity ? at(cx + dx * r, cz + dz * r) : at(cx + dx * r1, cz + dz * r1));
+      hit = [cx + dx * r1, y - .3, cz + dz * r1, dx, dz]; break;
+    }
+    ring.push(hit);
+  }
+  const pos = [], nor = [], idx = [], ny = slope / Math.hypot(1, slope), nh = 1 / Math.hypot(1, slope);
+  for (let i = 0; i < n; i++) {
+    const A = ring[i], B = ring[(i + 1) % n];
+    if (!A || !B) continue;
+    const q = pos.length / 3;
+    for (const [P, low] of [[A, 0], [A, 1], [B, 1], [B, 0]]) {
+      const o = low ? Math.max(0, P[1] - yb) * slope : 0;
+      pos.push(P[0] + P[3] * o, low ? yb : P[1], P[2] + P[4] * o); nor.push(P[3] * nh, ny, P[4] * nh);
+    }
+    idx.push(q, q + 2, q + 1, q, q + 3, q + 2);
+  }
+  const segs = idx.length / 6;
+  if (cap != null) {   // 島面：從中心拉到每一段坡頂的扇形
+    const c0 = pos.length / 3; pos.push(cx, cap, cz); nor.push(0, 1, 0);
+    for (let i = 0; i < n; i++) {
+      const A = ring[i], B = ring[(i + 1) % n];
+      if (!A || !B) continue;
+      const q = pos.length / 3; pos.push(A[0], cap, A[2], B[0], cap, B[2]); nor.push(0, 1, 0, 0, 1, 0);
+      idx.push(c0, q + 1, q);
+    }
+  }
+  console.log(`  崖壁：一圈 ${segs} 段，往下到 y ${yb.toFixed(1)}${cap != null ? `，島面 y ${cap}` : ''}`);
+  if (!idx.length) return prims;
+  const mat = new Document().createMaterial('skirt').setBaseColorFactor([...col, 1]).setRoughnessFactor(1).setMetallicFactor(0).setDoubleSided(true);
+  const out = [...prims, { node: 'skirt', path: 'skirt', mat, pos: Float32Array.from(pos), nor: Float32Array.from(nor), uv: null, idx: Uint32Array.from(idx), cnt: pos.length / 3 }];
+  if (ringStep) out.ring = ring.filter((p, i) => p && i % ringStep === 0).map((p) => [+p[0].toFixed(1), +p[2].toFixed(1)]);
+  return out;
+}
+// hf [nx, nz]：外框切成 nx×nz 格，每格取落在格裡的頂點最低的高度（地面，樹冠與橋面比它高）；沒有頂點的格子是 null
+function heightField(prims, nx, nz) {
+  const { mn, mx } = bbox(prims), dx = (mx[0] - mn[0]) / nx, dz = (mx[2] - mn[2]) / nz, y = new Array(nx * nz).fill(null);
+  for (const p of prims) for (let i = 0; i < p.cnt; i++) {
+    const X = Math.min(nx - 1, Math.floor((p.pos[i * 3] - mn[0]) / dx)), Z = Math.min(nz - 1, Math.floor((p.pos[i * 3 + 2] - mn[2]) / dz)), k = Z * nx + X;
+    if (y[k] == null || p.pos[i * 3 + 1] < y[k]) y[k] = p.pos[i * 3 + 1];
+  }
+  return { x0: +mn[0].toFixed(2), z0: +mn[2].toFixed(2), dx: +dx.toFixed(3), dz: +dz.toFixed(3), nx, nz, y: y.map((v) => v == null ? null : +v.toFixed(1)) };
+}
+// line { y: [lo, hi], step, x: [x0, x1] }：橋面的中心線。每 step 公尺切一片，取高度在 [lo, hi]（橋面，低於護欄頂）的頂點，
+// 依 z 分群（間隔超過 2.5 m 算另一群：旁邊的樹冠與山坡），從中間那片往兩頭走、每片挑離上一片中心最近的那群；
+// 各片的中心擬合成 z = c0 + c1·x + c2·x²，y 是橋面頂點高度的中位數，w 是各片寬度的中位數（護欄內側到內側）
+function trackLine(prims, { y: [lo, hi], step = 4, x: [x0, x1], piers: pier }) {
+  const band = [];
+  for (const p of prims) for (let i = 0; i < p.cnt; i++) { const y = p.pos[i * 3 + 1]; if (y >= lo && y <= hi) band.push([p.pos[i * 3], y, p.pos[i * 3 + 2]]); }
+  const slice = (x) => {
+    const zs = band.filter((v) => Math.abs(v[0] - x) < step / 2).map((v) => v[2]).sort((a, b) => a - b), groups = [];
+    for (const z of zs) { const g = groups[groups.length - 1]; if (g && z - g[g.length - 1] < 2.5) g.push(z); else groups.push([z]); }
+    return groups.filter((g) => g.length > 4);
+  };
+  const pts = [], pick = (x, near) => {
+    const gs = slice(x); if (!gs.length) return near;
+    const g = gs.reduce((a, b) => Math.abs((a[0] + a[a.length - 1]) / 2 - near) < Math.abs((b[0] + b[b.length - 1]) / 2 - near) ? a : b);
+    const c = (g[0] + g[g.length - 1]) / 2; if (Math.abs(c - near) > 4) return near;
+    pts.push([x, c, g[g.length - 1] - g[0]]); return c;
+  };
+  const mid = (x0 + x1) / 2, g0 = slice(mid).sort((a, b) => b.length - a.length)[0], c0 = (g0[0] + g0[g0.length - 1]) / 2;
+  for (const dir of [1, -1]) { let c = c0; for (let x = mid + (dir > 0 ? 0 : -step); dir > 0 ? x <= x1 : x >= x0; x += dir * step) c = pick(x, c); }
+  // 最小平方擬合二次式
+  const S = Array.from({ length: 5 }, (_, k) => pts.reduce((a, p) => a + p[0] ** k, 0)), T = [0, 1, 2].map((k) => pts.reduce((a, p) => a + p[1] * p[0] ** k, 0));
+  const M = [[S[0], S[1], S[2]], [S[1], S[2], S[3]], [S[2], S[3], S[4]]], det = (m) => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const D = det(M), c = [0, 1, 2].map((k) => det(M.map((r, i) => r.map((v, j) => j === k ? T[i] : v))) / D);
+  const ys = band.filter((v) => v[0] > x0 && v[0] < x1 && Math.abs(v[2] - (c[0] + c[1] * v[0] + c[2] * v[0] ** 2)) < 3).map((v) => v[1]).sort((a, b) => a - b);
+  const ws = pts.map((p) => p[2]).sort((a, b) => a - b);
+  const res = { c: [+c[0].toFixed(3), +c[1].toFixed(5), +c[2].toFixed(7)], y: +ys[ys.length >> 1].toFixed(2), w: +ws[ws.length >> 1].toFixed(1), x0, x1 };
+  console.log(`  橋面中心線：${pts.length} 片，z = ${res.c.join(' + ')}·x…，y ${res.y}，寬 ${res.w}`);
+  // 橋墩：高度帶 piers（橋面下 16–24 m，西端的橋墩在 30–40 m 會和山坡連成一片）裡，離中心線 12 m 內的頂點放進 1 m 的格子，連通的一塊是一座（給山溝底的碰撞）
+  if (pier) {
+    const occ = new Set();
+    for (const p of prims) for (let i = 0; i < p.cnt; i++) {
+      const x = p.pos[i * 3], y = p.pos[i * 3 + 1], z = p.pos[i * 3 + 2];
+      if (y >= pier[0] && y <= pier[1] && Math.abs(z - (c[0] + c[1] * x + c[2] * x * x)) < 12) occ.add(Math.floor(x) + ',' + Math.floor(z));
+    }
+    res.piers = [];
+    for (const k of occ) {
+      if (!occ.has(k)) continue;
+      const st = [k], b = [1e9, -1e9, 1e9, -1e9]; let n = 0; occ.delete(k);
+      while (st.length) {
+        const [i, j] = st.pop().split(',').map(Number); n++; b[0] = Math.min(b[0], i); b[1] = Math.max(b[1], i + 1); b[2] = Math.min(b[2], j); b[3] = Math.max(b[3], j + 1);
+        for (let a = -1; a <= 1; a++) for (let d = -1; d <= 1; d++) { const q = (i + a) + ',' + (j + d); if (occ.has(q)) { occ.delete(q); st.push(q); } }
+      }
+      const mx = (b[0] + b[1]) / 2, off = (b[2] + b[3]) / 2 - (c[0] + c[1] * mx + c[2] * mx * mx);   // 橋墩騎在中心線上；偏到一邊的是樹梢
+      if (n >= 12 && b[1] - b[0] < 20 && b[3] - b[2] < 20 && Math.abs(off) < 3) res.piers.push(b);
+    }
+    for (let i = res.piers.length - 1; i > 0; i--) for (let j = 0; j < i; j++) {   // 同一座被切成兩塊的併起來
+      const p = res.piers[i], q = res.piers[j];
+      if (p[0] <= q[1] && q[0] <= p[1] && p[2] <= q[3] && q[2] <= p[3]) { res.piers[j] = [Math.min(p[0], q[0]), Math.max(p[1], q[1]), Math.min(p[2], q[2]), Math.max(p[3], q[3])]; res.piers.splice(i, 1); break; }
+    }
+    res.piers.sort((p, q) => p[0] - q[0]);
+    console.log(`  橋墩：${res.piers.map((b) => `x ${b[0]}…${b[1]}`).join('、')}`);
+  }
+  return res;
+}
+// glow { n, gap, test(r, g, b) }：依面積隨機挑三角形，重心取到的底色符合 test（紅瓦屋頂）就記成一盞夜燈的位置，彼此至少隔 gap 公尺
+async function glowPts(prims, { n, gap, test }) {
+  const px = new Map(), tris = [];
+  for (const p of prims) {
+    const t0 = p.mat && p.mat.getBaseColorTexture(); if (!t0 || !p.uv) continue;
+    if (!px.has(t0)) { const { data, info } = await sharp(Buffer.from(t0.getImage())).resize(512, 512, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true }); px.set(t0, { data, S: info.width }); }
+    for (let t = 0; t < p.idx.length; t += 3) {
+      const v = [0, 1, 2].map((k) => p.idx[t + k]), P = v.map((i) => [p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]]);
+      const e1 = P[1].map((x, k) => x - P[0][k]), e2 = P[2].map((x, k) => x - P[0][k]);
+      const area = Math.hypot(e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]) / 2;
+      tris.push({ p, v, P, area, img: px.get(t0) });
+    }
+  }
+  const tot = tris.reduce((a, o) => a + o.area, 0), r = (() => { let s = 1234567; return () => (s = (s * 16807) % 2147483647) / 2147483647; })(), pts = [];
+  for (let k = 0; k < n * 60 && pts.length < n; k++) {
+    let x = r() * tot, o = tris[0]; for (const q of tris) { x -= q.area; if (x <= 0) { o = q; break; } }
+    const u = o.v.reduce((a, i) => a + o.p.uv[i * 2], 0) / 3, w = o.v.reduce((a, i) => a + o.p.uv[i * 2 + 1], 0) / 3, S = o.img.S;
+    const j = (Math.min(S - 1, Math.max(0, Math.floor((((w % 1) + 1) % 1) * S))) * S + Math.min(S - 1, Math.max(0, Math.floor((((u % 1) + 1) % 1) * S)))) * 3;
+    if (!test(o.img.data[j], o.img.data[j + 1], o.img.data[j + 2])) continue;
+    const c = [0, 1, 2].map((a) => (o.P[0][a] + o.P[1][a] + o.P[2][a]) / 3);
+    if (pts.some((q) => Math.hypot(q[0] - c[0], q[2] - c[2]) < gap)) continue;
+    pts.push(c.map((v) => +v.toFixed(1)));
+  }
+  console.log(`  夜燈點：${pts.length}`);
+  return pts;
+}
+// texOut { file, mat, size }：只把那個材質的底色、法線、金屬粗糙三張貼圖輸出成 <out>_base／_n／_mr.webp
+async function texOut(set) {
+  const { file, mat, size } = set.texOut, doc = await io.read(resolve(root, set.src, file + '.glb'));
+  const m = doc.getRoot().listMaterials().find((x) => mat.test(x.getName())), files = [];
+  for (const [k, t] of [['base', m.getBaseColorTexture()], ['n', m.getNormalTexture()], ['mr', m.getMetallicRoughnessTexture()]]) {
+    if (!t) continue;
+    const f = `${set.out}_${k}.webp`;
+    await sharp(Buffer.from(t.getImage())).resize(size, size).webp({ quality: 82 }).toFile(resolve(OUT, f));
+    files.push(f);
+  }
+  const kb = files.reduce((a, f) => a + Math.round(statSync(resolve(OUT, f)).size / 1024), 0);
+  console.log(`${set.out}: ${files.join('、')}，${kb} KB`);
+  return { kb, tex: files };
+}
+// board { file, mat, crop, flip, w, h }：從原檔某個材質的底色貼圖裁一塊（UV，v 由上往下；flip 先上下翻），做成 w×h 公尺、面朝 +z 的燈箱面板
+async function boardSrc(set) {
+  const { file, mat, crop: [u0, v0, u1, v1], flip, w, h } = set.board, doc = await io.read(resolve(root, set.src, file + '.glb'));
+  const m = doc.getRoot().listMaterials().find((x) => mat.test(x.getName())), img = Buffer.from(m.getBaseColorTexture().getImage());
+  const { width: W, height: H } = await sharp(img).metadata();
+  let s = sharp(img); if (flip) s = sharp(await s.flip().toBuffer());
+  const png = await s.extract({ left: Math.round(u0 * W), top: Math.round(v0 * H), width: Math.round((u1 - u0) * W), height: Math.round((v1 - v0) * H) }).resize(1024).png().toBuffer();
+  const tmp = new Document(), tex = tmp.createTexture('board').setImage(new Uint8Array(png)).setMimeType('image/png');
+  const bm = tmp.createMaterial('board').setBaseColorTexture(tex).setEmissiveTexture(tex).setEmissiveFactor([.55, .55, .55]);
+  const pos = Float32Array.from([-w / 2, 0, 0, w / 2, 0, 0, w / 2, h, 0, -w / 2, h, 0]), nor = Float32Array.from([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
+  return [{ node: 'board', path: 'board', mat: bm, pos, nor, uv: Float32Array.from([0, 1, 1, 1, 1, 0, 0, 0]), idx: Uint32Array.from([0, 1, 2, 0, 2, 3]), cnt: 4 }];
+}
+
 async function build(set) {
+  if (set.texOut) return texOut(set);
   const out = new Document();
   out.createBuffer();
   const scene = out.createScene();
   const items = {};
-  const sources = set.items ? set.items : [{ file: set.file, drop: set.drop }];
+  const sources = set.items ? set.items : set.board ? [] : [{ file: set.file, drop: set.drop }];
   const credits = [];
   const matCache = new Map();   // 來源材質 → 新材質（貼圖複製到新文件）
   const texCache = new Map(), autoCache = new Map();
@@ -614,14 +829,17 @@ async function build(set) {
       const m = ps[0].mat, curtain = !!ps[0].curtain;
       const tint = set.tint && m && set.tint[m.getName()];   // [底色倍率, 最低粗糙度, 最高金屬度]
       const bc = (m ? m.getBaseColorFactor() : [.6, .6, .6, 1]).map((v, i) => tint && i < 3 ? v * tint[0] : v), es = m?.getExtension('KHR_materials_emissive_strength')?.getEmissiveStrength() ?? 1;
-      const ef = m && !(set.noEmi && set.noEmi.test(m.getName())) ? m.getEmissiveFactor().map((v) => v * es) : [0, 0, 0];
+      let ef = m && !(set.noEmi && set.noEmi.test(m.getName())) ? m.getEmissiveFactor().map((v) => v * es) : [0, 0, 0], ek = 0;
+      // emi：[[材質名, 顏色（null 照原檔）, 燈種]…]：燈種是 _EMI 的 w（頁面 26-glb.js：0 照 uM.z、1 頭燈 uM.x、2 煞車 uM.y），列車的窗燈與頭燈分開開關
+      const er = set.emi && m && set.emi.find(([re]) => re.test(m.getName()));
+      if (er) { if (er[1]) ef = er[1]; ek = er[2]; }
       // metalMax（第四輪）：整組的金屬度上限（原檔多半標 metallic 1、靠金屬粗糙貼圖分區，這條管線不留那張貼圖）；沒寫就和以前一樣
       const pbr = [Math.max(m ? m.getRoughnessFactor() : .8, tint ? tint[1] : 0), set.win ? 0 : Math.min(m ? m.getMetallicFactor() : 0, tint ? tint[2] ?? set.metalMax ?? 1 : set.metalMax ?? 1), 0, 0];
       const P = [], N = [], U = [], C = [], B = [], E = [], I = [], W = [];
       const vert = (p, i, w) => {
         P.push(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]); N.push(p.nor[i * 3], p.nor[i * 3 + 1], p.nor[i * 3 + 2]);
         U.push(p.uv ? p.uv[i * 2] : 0, p.uv ? p.uv[i * 2 + 1] : 0);
-        C.push(bc[0], bc[1], bc[2], m && m.getAlphaMode() === 'BLEND' ? bc[3] : 1); B.push(...pbr); E.push(...ef, 0);
+        C.push(bc[0], bc[1], bc[2], m && m.getAlphaMode() === 'BLEND' ? bc[3] : 1); B.push(...pbr); E.push(...ef, ek);
         if (w != null) W.push(w);
       };
       let base = 0;
@@ -674,6 +892,7 @@ async function build(set) {
     node.setMesh(mesh); scene.addChild(node);
     items[id] = { ...dims, tris: prims.reduce((a, p) => a + p.idx.length / 3, 0) };
   };
+  if (set.board) await emit('board', await boardSrc(set), { w: set.board.w, d: 0, h: set.board.h });
   for (const src of sources) {
     const doc = await io.read(resolve(set.src ? resolve(root, set.src) : SRC, src.file + '.glb'));
     const info = doc.getRoot().getAsset().extras || {};
@@ -792,7 +1011,14 @@ async function build(set) {
       return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
     }).filter(Boolean);
     if (src.pick) prims = prims.filter((p) => { const { mn, mx } = bbox([p]); return src.pick((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2); });
-    if (!set.split) { await emit(src.id, prims, place(prims, src)); continue; }
+    if (!set.split) {
+      const dims = place(prims, src);
+      if (src.hf) dims.hf = heightField(prims, ...src.hf);   // 崖壁之前量：只量掃描本身的地面
+      if (src.line) dims.line = trackLine(prims, src.line);
+      if (src.skirt) { prims = addSkirt(prims, src.skirt); if (src.skirt.ring) dims.ring = prims.ring; }
+      if (src.glow) dims.glow = await glowPts(prims, src.glow);
+      await emit(src.id, prims, dims); continue;
+    }
     // 拆成多棟：依建築名分組，各自置中接地（原檔已是公尺、正面朝 +z）
     const groups = new Map();
     for (const p of prims) { const k = set.split(p.node, p.mat ? p.mat.getName() : ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }

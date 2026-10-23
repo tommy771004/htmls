@@ -50,7 +50,7 @@ function truckDrive(tk, dt) {
   // 逃犯車轉彎拉手煞甩尾，不太減速
   const hb = !!tk.flee && ad > .5 && vF > 12;
   if (hb) { thr = .8; brk = 0; }
-  driveVehicle(v, { thr, brk, steer, hb }, dt);
+  aiDrive(v, { thr, brk, steer, hb }, dt);   // 69-v3-world.js：雨天照濕路面的抓地力
   v.lights = 1;
 }
 // 69-combat.js 的 blast() 每次爆炸都問這裡：炸在後車門 4 m 內就打開

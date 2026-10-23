@@ -1,9 +1,11 @@
 // ═══ World 第四輪（使用者提供的 ~/Downloads/world_1）：不在街區裡的地標與遠景（街區裡的建築由 10-city.js 的 bldPlace 擺）───
-// 鷺嘴岬的石塔與石牆（外緣改成多邊形之後沒有岬角，不擺）、舊碼頭河岸的木樁階梯與兩座木棧橋入口的鐵絲網
+// 北嶺公園後面的鐵道橋、鷺嘴岬的石塔與石牆（外緣改成多邊形之後沒有岬角，不擺）、舊碼頭河岸的木樁階梯與兩座木棧橋入口的鐵絲網
 // （東灣改成山之後，對岸的水泥廠與長板樓拿掉了）。模型是 tools/props.mjs 的 far_／w1_ 組（bld_tram 和街區共用），
 // 玩家走近 near 公尺內才下載；以檔案開啟不擺（碰撞也不加）。
 const W1_SITES = [];
 if (GLB_ON) {
+  // 北嶺鐵道橋（10-city.js 的 VIADUCT）：北嶺公園後段的山溝，擺好就拿掉 21-rail.js 的程式替身
+  if (VIADUCT) W1_SITES.push({ set: 'far_rail', id: 'rail', x: VIADUCT.x, z: VIADUCT.z, y: VIADUCT.y, ry: VIADUCT.ry || 0, near: 1300, zn: VIADUCT.zn, proxy: VIADUCT.proxy });
   // 舊碼頭的河岸階梯（Mayflower Stairs 掃描）：兩座木棧橋中間，木樁牆面朝河（原檔正面朝 +z，轉成朝 −x），整塊沉到步道面以下，
   // 水面以上只露出牆頂與階梯口
   W1_SITES.push({ set: 'w1_stairs', id: 'stairs', x: CITY_X0 - OUT_D + 4.2, z: stZ(2) + 31, y: -7.02, ry: -Math.PI / 2, near: 500, zn: ZONES[0] });
@@ -60,6 +62,7 @@ function w1Update() {
       if (!items || !items[o.id]) return;
       const g = propObject(items[o.id], o.x, o.y || 0, o.z, o.ry || 0);
       if (zn) cityAdd(g, zn); else scene.add(g);
+      o.obj = g; if (o.proxy) o.proxy.removeFromParent();
     });
   }
 }

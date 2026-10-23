@@ -165,7 +165,7 @@ function wheelCycle(d) {
 }
 function ammoText(id) {
   const A = ARMS[id], a = arm.ammo[id];
-  return A.gun ? `${a.mag} / ${a.res}` : A.throw ? `× ${a.mag}` : '';
+  return A.gun ? `${a.mag} / ${a.res}` : A.pour ? `${a.mag}%` : A.throw ? `× ${a.mag}` : '';
 }
 const SVGNS = 'http://www.w3.org/2000/svg';
 function drawWheel() {
@@ -232,6 +232,7 @@ function triggerDown() {
   if (player.mode === 'drive' && player.veh.fly) return gunshipFire();   // 69-gunship.js：直升機的火箭莢
   const A = ARMS[arm.sel];
   if (!canFight() && !canDriveBy(A)) return;
+  if (A.pour) return;   // 69-v3-chem.js：汽油桶按住倒油
   if (A.melee) swing();
   else if (A.throw) throwIt();
   else if (!A.auto) shoot();
@@ -240,7 +241,7 @@ function triggerUp() { arm.trig = false; }
 function reload() {
   const A = ARMS[arm.sel], a = arm.ammo[arm.sel];
   if (!A.gun || gta.reloadT > 0 || a.mag >= A.mag || a.res <= 0) return;
-  gta.reloadT = A.rel; gta.relMax = A.rel; sfx.reload();
+  gta.reloadT = gta.relMax = A.rel * skK.rel; sfx.reload();   // 69-v3-skills.js：射擊等級縮短換彈
 }
 function finishReload() {
   const A = ARMS[arm.sel], a = arm.ammo[arm.sel];
@@ -272,17 +273,19 @@ function shoot() {
   if (!gta.aiming && !inCar) player.yaw = camState.yaw;   // 沒瞄準就開槍：先轉向準星
   const R0 = aimRay();
   if (inCar && !(myGun[id] && myGun[id].visible)) windowMuzzle(_mz); else muzzleOf(heldModel(id), A, _mz);   // 車內射擊：手伸出車窗時從槍口出去
+  const sil = silOn(id);   // 69-v3-skills.js：消音器
   if (A.stun) { sparks(_mz.x, _mz.y, _mz.z, 4, 1.5); sfx.zap(); }
+  else if (sil) { muzzleFx(_mz.x, _mz.y, _mz.z, .35); sfx.gun(.22, .3); }
   else { muzzleFx(_mz.x, _mz.y, _mz.z, A.f >= 2 ? 1.4 : 1); sfx.gun(1, A.f); }
   camState.shake = Math.max(camState.shake, A.f >= 2 ? .3 : .12);
-  camState.pitch = clamp(camState.pitch - (A.f >= 2 ? .02 : .006) * (A.scope ? .4 : 1) * abil.recoil, -.45, 1.15);   // 後座力
+  camState.pitch = clamp(camState.pitch - (A.f >= 2 ? .02 : .006) * (A.scope ? .4 : 1) * abil.recoil * skK.recoil, -.45, 1.15);   // 後座力（射擊等級越高越小）
   if (A.rocket) {
     const hit = castRay(R0, 300), tx = R0.ox + R0.dx * hit.t, ty = R0.oy + R0.dy * hit.t, tz = R0.oz + R0.dz * hit.t;
     _ad.set(tx - _mz.x, ty - _mz.y, tz - _mz.z).normalize();
     launch('rocket', _mz.x, _mz.y, _mz.z, _ad.x * 48, _ad.y * 48, _ad.z * 48, 'player'); sfx.launch();
   } else if (A.lob) lobShot(R0, A);   // 69-tactics.js
   else {
-    const moving = player.v > .5 ? 1.4 : 1, deg = (A.spread * (gta.aimK > .5 ? .6 : 1.2) * moving + arm.bloom) * abil.spread;
+    const moving = player.v > .5 ? 1.4 : 1, deg = (A.spread * (gta.aimK > .5 ? .6 : 1.2) * moving + arm.bloom) * abil.spread * skK.spread;
     for (let i = 0; i < (A.pel || 1); i++) {
       const R = spreadDir(R0, deg), hit = castRay(R, A.range);
       const x = R.ox + R.dx * hit.t, y = R.oy + R.dy * hit.t, z = R.oz + R.dz * hit.t;
@@ -292,26 +295,29 @@ function shoot() {
     }
     arm.bloom = Math.min(A.spread * 1.5, arm.bloom + A.spread * .25);
   }
-  if (!A.stun) { panic(player.x, player.z, 30, 8); crime('shots', player.x, player.z); }   // 電擊槍沒有槍聲
+  // 電擊槍沒有槍聲；消音器的槍聲只傳 NOISE.sil（69-police.js 的 crime 用 noise.shotR 當聽得到的範圍）
+  if (!A.stun) { noise.shotR = sil ? NOISE.sil : NOISE.shot; noiseAdd(noise.shotR); panic(player.x, player.z, sil ? NOISE.sil : 30, 8); crime('shots', player.x, player.z); }
   if (a.mag === 0 && a.res > 0) arm.pend.push({ t: .25, fn: () => { if (arm.sel === id && a.mag === 0) reload(); } });
 }
 // 一發子彈（或一顆霰彈）打到東西；by：'player'｜'npc'｜'cop'
 function hitWith(h, R, dmg, by, head = 2.5, stun = 0) {
   const x = R.ox + R.dx * h.t, y = R.oy + R.dy * h.t, z = R.oz + R.dz * h.t, mine = by === 'player';
-  if (stun && h.kind === 'ped') { stunPed(h.ref, stun, R.dx, R.dz); if (mine) crime('assault', x, z); return; }
+  if (stun && h.kind === 'ped') { stunPed(h.ref, stun, R.dx, R.dz); chemStun(x, z, stun); if (mine) crime('assault', x, z); return; }   // chemStun：雨天電流傳給旁邊的人（69-v3-chem.js）
   if (stun && h.kind === 'cop') { stunCop(h.ref, stun); if (mine) crime('resist', x, z); return; }
   if (stun && h.kind === 'fighter') { const f = h.ref; f.stunT = stun; f.stunPh = -uTimeNow(); sparks(x, y, z, 6, 2); return; }
+  if (mine && (h.kind === 'ped' || h.kind === 'cop' || h.kind === 'fighter')) skillEvent('hit');   // 69-v3-skills.js：射擊升級
   if (h.kind === 'ped') { if (hitPed(h.ref, dmg * (y > 1.55 ? head : 1), R.dx, R.dz, mine, x, y, z) && mine) spEvent('kill', y > 1.55); }
   else if (h.kind === 'extra') { const s = extraSt[h.ref]; s.st = 'fall'; s.t = -12; s.vx = R.dx * 2; s.vz = R.dz * 2; extras.anim(h.ref, ANIM.die, -uTimeNow(), 1); blood(x, y, z); if (mine) { crime('kill', x, z); spEvent('kill', y > 1.55); } }
-  else if (h.kind === 'car') { sparks(x, y, z, 6, 3); if (!tireShot(h.ref, x, y, z, dmg, mine)) damageCar(h.ref, dmg * VEH_K, mine); }   // tireShot：68-wreck.js 的單顆輪胎
-  else if (h.kind === 'veh') { sparks(x, y, z, 6, 3); if (!tireShot(h.ref, x, y, z, dmg, mine)) damageVeh(h.ref, dmg * VEH_K, mine); }
+  // tireShot：68-wreck.js 的單顆輪胎；weakHit：69-v3-chem.js 的擋風玻璃（駕駛中彈）與左後油箱（漏油、三倍傷害、第二發起火）
+  else if (h.kind === 'car') { sparks(x, y, z, 6, 3); const k = weakHit(h.ref, 'car', x, y, z, mine), d = h.ref.det; if (!tireShot(d || h.ref, x, y, z, dmg, mine)) { if (d) damageVeh(d, dmg * VEH_K * k, mine); else damageCar(h.ref, dmg * VEH_K * k, mine); } }   // det：weakHit 已經把車流車變成載具
+  else if (h.kind === 'veh') { sparks(x, y, z, 6, 3); const k = weakHit(h.ref, 'veh', x, y, z, mine); if (!tireShot(h.ref, x, y, z, dmg, mine)) damageVeh(h.ref, dmg * VEH_K * k, mine); }
   else if (h.kind === 'cop') { blood(x, y, z); const hd = y - (h.ref.y || 0) > 1.55; if (copHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }
   else if (h.kind === 'heli') { sparks(x, y, z, 8, 4); heliHit(dmg, mine); }
   else if (h.kind === 'rap') { sparks(x, y, z, 8, 4); rapHit(dmg, mine); }   // 69-tactics.js 的垂降直升機
   else if (h.kind === 'ebox') boxHit(h.ref, dmg, mine);   // 69-market.js：流明電訊的電訊箱
   else if (h.kind === 'fn') { blood(x, y, z); h.ref(dmg, R, mine); }   // 其他會中彈的東西自己處理（69-heist.js 跑出銀行的人質）
   else if (h.kind === 'fighter') { blood(x, y, z); const hd = y > 1.55; if (fHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }   // 69-squads.js：幫派
-  else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); }
+  else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); chemHit(x, y, z); }   // 打到地上的油就點著
 }
 // 電擊槍：路人倒地抽搐幾秒後爬起來逃跑（原地，不重生）；警察倒地幾秒後繼續追
 function stunPed(k, t, fx, fz) {
@@ -344,18 +350,20 @@ function meleeHit(A) {
   const bike = player.mode === 'drive' && !player.veh.isCar;
   if (life.dead || player.mode !== 'walk' && !bike) return;
   const yaw = bike ? player.veh.yaw : player.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), mine = true;
+  const dmg = A.dmg * skK.melee, sneak = player.crouch && !W.stars;   // 69-v3-skills.js：力量加傷害；沒被通緝時蹲著從背後打是暗殺（一擊倒）
+  const behind = (x, z, yw) => sneak && (x - player.x) * Math.sin(yw) + (z - player.z) * Math.cos(yw) > 0;
   for (let k = 0; k < PED_N; k++) {
     const p = peds.people[k], dx = p.x - player.x, dz = p.z - player.z, d = Math.hypot(dx, dz), ps = pedState[k];
     if (d < A.reach + (bike ? .4 : 0) && (bike || dx * fx + dz * fz > d * .5) && !(ps.down > 0)) {
-      sfx.punch();
+      sfx.punch(); skillEvent('melee');
       // 近戰：一般路人一下就倒，脾氣差的會吃掉傷害再反擊；武士刀一刀斃命
-      if (A.kill || !ps.tough || abil.melee) { knockPed(k, fx * abil.knock, fz * abil.knock); crime(A.kill || A.dmg >= 60 || abil.melee ? 'kill' : 'assault', p.x, p.z); if (A.kill || abil.melee) spEvent('kill', false, true); }
-      else hitPed(k, A.dmg, fx, fz, mine, p.x, 1.3, p.z);
+      if (A.kill || !ps.tough || abil.melee || behind(p.x, p.z, p.yaw)) { knockPed(k, fx * abil.knock, fz * abil.knock); crime(A.kill || A.dmg >= 60 || abil.melee ? 'kill' : 'assault', p.x, p.z); if (A.kill || abil.melee) spEvent('kill', false, true); }
+      else hitPed(k, dmg, fx, fz, mine, p.x, 1.3, p.z);
       return;
     }
   }
-  if (copMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee ? 999 : A.dmg)) { sfx.punch(); return; }
-  if (fighterMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee ? 999 : A.dmg)) { sfx.punch(); return; }
+  if (copMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee ? 999 : dmg)) { sfx.punch(); skillEvent('melee'); return; }
+  if (fighterMelee(player.x, player.z, fx, fz, A.reach, A.kill || abil.melee || sneak ? 999 : dmg)) { sfx.punch(); skillEvent('melee'); if (sneak) skUp('stl', .8); return; }
   for (const v of vehicles) if (v !== player.veh && !v.dead && Math.hypot(v.x - player.x - fx, v.z - player.z - fz) < v.len / 2 + .6 && !A.fist) { sfx.impact(4); damageVeh(v, A.dmg * 1.2, true); return; }
   sfx.whoosh();
 }
@@ -455,6 +463,7 @@ function stepProj(dt) {
 // ─── 爆炸：路人、警察、直升機、玩家、車流、載具（連鎖爆炸） ───
 function blast(x, y, z, r, dmg, by, skip) {
   const mine = by === 'player';
+  chemIgnite(x, z, r * .6); if (mine) noiseAdd(NOISE.blast);   // 69-v3-chem.js：爆炸點燃地上的油
   if (mine) spEvent('boom');
   fireball(x, y, z, r > 9 ? 1.3 : 1);
   const cd = Math.hypot(camera.position.x - x, camera.position.z - z);
@@ -657,7 +666,7 @@ function npcGunOf(p) {
 function npcShoot(ox, oy, oz, acc, dmg, f = 1, by = 'npc') {
   const inV = player.mode === 'drive', tx = inV ? player.veh.x : player.x, tz = inV ? player.veh.z : player.z, ty = inV ? player.veh.y + 1 : player.y + 1.2;
   const d = Math.hypot(tx - ox, tz - oz), sp = inV ? Math.hypot(player.veh.vx, player.veh.vz) : player.v;
-  const pHit = acc * clamp(1.1 - d / 70, .12, 1) * (sp > 8 ? .55 : sp > 3 ? .8 : 1) * (player.down > 0 ? .5 : 1) * (inV || !player.crouch ? 1 : crouchCover(ox, oz) ? .12 : .8);
+  const pHit = acc * clamp(1.1 - d / 70, .12, 1) * (sp > 8 ? .55 : sp > 3 ? .8 : 1) * (player.down > 0 ? .5 : 1) * (inV || !player.crouch ? 1 : crouchCover(ox, oz) ? .12 : .8) * (player.dive ? 0 : 1);   // 潛到水下打不到（69-v3-skills.js）
   const hit = Math.random() < pHit && !life.dead;
   const ex = hit ? 0 : (Math.random() - .5) * 3, ey = hit ? 0 : (Math.random() - .3) * 1.5, ez = hit ? 0 : (Math.random() - .5) * 3;
   muzzleFx(ox, oy, oz, .8);
@@ -839,10 +848,12 @@ addEventListener('wheel', e => {
 }, { passive: false });
 addEventListener('keyup', e => { if (e.code === 'Tab' && arm.wheel.open && arm.wheel.kb) wheelClose(true); });
 function gtaKey(code) {
+  if (crashKey(code)) return true;   // 69-v3-crash.js：空中開傘、走路時空白鍵翻越
   if (crewKey(code)) return true;   // 69-crew.js：Q 角色轉盤、X 特殊能力
   if (code === 'Tab') { if (arm.wheel.open) wheelClose(true); else wheelOpen(); return true; }
   if (life.dead) return true;
   if (code === 'KeyR') { reload(); return true; }
+  if (code === 'KeyZ' && player.swim && diveToggle()) return true;   // 69-v3-skills.js：游泳時 Z 是下潛／浮上
   if (code === 'KeyZ' && player.mode === 'walk' && !player.swim && !(player.down > 0)) { player.crouch = !player.crouch; return true; }
   if (code === 'KeyG' && arm.stickies.length) { detonate(); return true; }
   if (code === 'Aim') { if (canFight() && !ARMS[arm.sel].gun) equip(arm.last[1]); gta.touchAim = !gta.touchAim; return true; }

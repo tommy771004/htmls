@@ -40,7 +40,7 @@
 - 車型目錄在 `25-cars.js` 的 `CARS`：每台有名稱、類型、售價、原廠色、車長車寬、輪徑胎寬、輪距、前後軸位置、極速 `vmax`（m/s）、加速 `eng`、抓地 `grip`、輪框樣式與 `body(kit, paint)`。`carKit(id, paint, wheels)` 的 `wheels` 2 是細緻輪框、1 是給車流 InstancedMesh 的簡化輪子、0 是不含輪子（玩家座駕的輪子另外掛在轉向軸上）。
 - 實車模型（`26-glb.js`）也登錄在 `CARS`：`glb: true`、`paint: null`（原廠色＝不覆寫）、`paintable`、`proxy`（替身車型）、`bike`、`seat`（機車騎乘位置）、`credit`；車身尺寸、軸距、輪距與輪徑來自 `assets/260/cars.json`。`applyCar` 先放替身，下載好再換成 GLB 的車身與輪子（汽車輪子掛車架、機車掛車身跟著壓車），`v.isCar` 依 `bike` 切換，機車沿用 Hanzo 的物理、騎姿與音效。展示廳與車庫用 `carObject(id, paint)`，走進場館時才下載。
 - 玩家只有一個「座駕」物件（沿用 `kestrel` 變數），`applyCar(v, id, paint)` 重建車身、四個輪子與 `len`、`w`、`rad`、`off`、`vmax`、`eng`、`grip`、`wb`、`wr`；`driveVehicle` 與碰撞都讀這些欄位。
-- 狀態 `motors`：`cash`（起始 $180,000）、`owned`（起始只有 `STARTER`；讀檔時丟掉不是實車模型的車）、`paint`（各車塗裝）、`cur`（目前座駕）、`stowed`（座駕停在車庫裡）、`test`（試駕中）。存到 `localStorage` 的 `nc260.motors`，讀不到就用預設值。
+- 狀態 `motors`：`cash`（起始 $180,000）、`owned`（起始只有 `STARTER`；讀檔時丟掉不是實車模型的車）、`paint`（各車塗裝）、`cur`（目前座駕）、`stowed`（座駕停在車庫裡）、`test`（試駕中）。存到 `localStorage` 的 `nc260.motors`，讀不到就用預設值。之後各階段加上的欄位與版本（目前第 7 版：`skills` 六圍、`gear` 消音器／打撈／同夥等級）見 README 各「GTA 式擴充」小節。
 - 買車：扣款、加入車庫、座駕換成新車停在車行門口（交車位置是門前停車道、車頭順著車流）；原本的座駕回到車庫。試駕：記下原座駕，換車 60 秒，時間到或下車就換回原車並放回原位。
 - 車庫：顯示擁有、且不是正開在街上的車；在車旁可以開出去（座駕換成這台、停在車庫門口並上車）或以牌價六成賣回（開場的 AE86 `STARTER` 不能賣）。開著座駕停在車庫門口按 E 會停進去，之後按 V 會把它叫出來。
 - 收入：任務完成 +$250,000；甩尾打賞是側滑 `slip > 1`、時速 > 25 km/h 時累積 `slip × 時速 × 3 × 倍率`（倍率隨甩尾時間到 2.8 倍），甩滿 0.8 秒、停止 0.5 秒後入帳，途中撞擊 > 6 m/s 就作廢；試駕的車不算。

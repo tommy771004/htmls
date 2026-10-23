@@ -98,7 +98,7 @@ function rollSettle(v, tr, tp) {
   else {
     v.roll = r; v.vx = v.vz = 0;
     v.flipped = { t: 0, side: Math.abs(Math.abs(r) - HALF_PI) < .1 ? Math.sign(r) : 0, push: 0 };
-    if (v === player.veh) toast(v.flipped.side ? '車子側翻了 · 往起身那一側按住方向鍵推回來，或按 F 下車' : '車子翻過來了 · 快按 F 下車');
+    if (v === player.veh) toast(v.flipped.side ? '車子側翻了 · 往起身那一側按住方向鍵推回來，或按 F 下車' : '車子翻過來了 · 按住 A 或 D 翻回來，或按 F 下車');
   }
   v.y = surfaceH(v) - ROLL_H + rollExt(v);
 }
@@ -131,7 +131,7 @@ function rollStep(v, dt) {
   v.steer = damp(v.steer, 0, 4, dt); v.brakeOn = 0;
   return { imp: Math.max(imp, hit), vF: v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw), aF: 0 };
 }
-// 側躺或倒扣：開不動；玩家側躺時往起身那一側按住方向鍵把車推回來；倒扣 4 秒起火
+// 側躺或倒扣：開不動；玩家側躺時往起身那一側按住方向鍵把車推回來；倒扣時按住左或右施加翻轉扭矩翻回來（69-v3-skills.js 的駕駛等級越高越快），放著不管 4 秒起火
 function flipStep(v, inp, dt) {
   const F = v.flipped;
   F.t += dt;
@@ -142,7 +142,16 @@ function flipStep(v, inp, dt) {
     F.push = inp.steer * F.side > .5 ? F.push + dt : Math.max(0, F.push - dt);
     if (F.push > .6) { v.flipped = null; rollStart(v, 2.4, -F.side * 3.4); sfx.impact(6); return { imp: 0, vF: 0, aF: 0 }; }
   }
-  if (!F.side && F.t > 4 && !v.dead) { const want = hpLockOf(v) * STAGE.fire * .9; if (v.hp > want) damageVeh(v, v.hp - want); }
+  if (!F.side && inp) {
+    F.push = Math.abs(inp.steer) > .5 ? F.push + dt : Math.max(0, F.push - dt);
+    if (Math.abs(inp.steer) > .5) { v.roll += Math.sign(inp.steer) * dt * .35; if (Math.random() < dt * 6) dust(v.x, v.y + .2, v.z, 1); }   // 先晃一晃
+    if (F.push > 1.3 - .7 * sk('drv')) {
+      // 翻回來：照騰空時間（上拋 4.1 m/s）算滾速，落地時差一點點轉正，剩下的交給 rollStep 落地後擺正（滾太快會一路滾到側躺）
+      const dir = -Math.sign(inp.steer), tgt = Math.round((v.roll + dir * Math.PI) / (Math.PI * 2)) * Math.PI * 2;
+      v.flipped = null; rollStart(v, 4.1, (tgt - v.roll) / (2 * 4.1 / 9.8) * .9); sfx.impact(8); return { imp: 0, vF: 0, aF: 0 };
+    }
+  }
+  if (!F.side && F.t > 4 && !(F.push > 0) && !v.dead) { const want = hpLockOf(v) * STAGE.fire * .9; if (v.hp > want) damageVeh(v, v.hp - want); }
   return { imp: 0, vF: 0, aF: 0 };
 }
 // 沒人開的車（69-combat.js 的 coast 先問這裡）：翻滾、翻倒或疊在車頂上的車自己處理，回傳 true 表示處理過了

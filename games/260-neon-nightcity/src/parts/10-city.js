@@ -144,6 +144,8 @@ const landW = (X, Z) => { if (inCity(X, Z)) return true; const zn = zoneOfW(X, Z
 const CAPES = [];
 // 北嶺公園（下面 hillH 之後建好；畫面在 21-park.js）。開場在那之前問地面高度的（groundH、seaFloor）就當沒有公園
 let NPARK = null;
+// 北嶺鐵道橋（main 分支的 World 第一輪 railway 掃描）：要等新版面的公園框搬過去，先不擺（21-rail.js、20-walk.js、27-world1.js 看到 null 就跳過）
+const VIADUCT = null;
 const capeAt = (X, Z) => { for (const h of CAPES) if (X >= h.bb[0] && X <= h.bb[1] && Z >= h.bb[2] && Z <= h.bb[3] && inPoly(h.pts, X, Z)) return h; return null; };
 // 區域：i、j 是以大道／街為單位的連續座標（街區 (bi, bj) 的範圍是 bi…bi+1）
 const DISTRICTS = [
@@ -859,6 +861,7 @@ vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
 `;
 const ROAD_FS = /* glsl */`
 ${GROUND_COMMON}
+uniform sampler2D uAsB, uAsN; uniform float uAsOn; uniform vec3 uAsM;
 void main(){
   vec2 p = vL;
   float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
@@ -871,6 +874,13 @@ void main(){
   float patchv = step(.66, n2(p*.07 + 3.)); alb *= mix(1., .72, patchv);
   alb *= 1. + uDay * (1.6 - uWet);   // 乾的柏油在白天比夜裡的濕路面亮
   float seam = smoothstep(.04, .0, abs(fract(p.x*.031 + n2(p*.05)*.3) - .5)) * .3; alb *= 1. - seam;
+  // Full Gameready City 的柏油貼圖（27-props 下載好才開 uAsOn）：每 5.5 m 一格，亮度除以平均值當細節，法線疊在程式的起伏上
+  vec2 asT = vec2(0.);
+  if (uAsOn > .5) {
+    vec2 tu = p / 5.5 + vec2(n2(p*.013), n2(p*.013 + 5.)) * .6;   // 加一點低頻位移，看不出格子
+    alb *= mix(vec3(1.), texture2D(uAsB, tu).rgb / uAsM, .8);
+    asT = texture2D(uAsN, tu).xy * 2. - 1.;
+  }
   float paint = 0.; vec3 pc = vec3(.8);
   // 大道上的標線
   if (onA && !inter) {
@@ -916,6 +926,7 @@ void main(){
   vec3 n = vec3(0., 1., 0.);
   float h0 = n2(p*4.), hx = n2(p*4. + vec2(.05, 0.)), hz = n2(p*4. + vec2(0., .05));
   n.xz -= vec2(hx - h0, hz - h0) * 1.6 * (1. - pud);
+  n.xz += vec2(asT.x, -asT.y) * .35 * (1. - pud) * (1. - paint*.5);
   float dist = length(vW - uCam);
   if (dist < 40.) n.xz += ripple(p, uTime) * .5 * (.3 + .7*pud) * (1. - dist/40.);
   n = normalize(nW(n));
@@ -967,7 +978,8 @@ void main(){
   vec3 c = wetSurface(alb, vec3(0., 1., 0.), mix(.3, .6, path), pud, 0.);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
-const MAT_ROAD = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: ROAD_FS });
+const ASPH_U = { uAsB: { value: null }, uAsN: { value: null }, uAsOn: { value: 0 }, uAsM: { value: new T.Vector3(1, 1, 1) } };   // 路面與連接道路共用
+const MAT_ROAD = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...ASPH_U }, vertexShader: GROUND_VS, fragmentShader: ROAD_FS });
 const MAT_WALK = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS });
 // 地面網格（不進倒影，70-render.js）：幾何是邏輯座標，掛進所在的區
 const groundMeshes = [];
@@ -1087,11 +1099,11 @@ function zoneClip(x0, x1, z0, z1) {
   const vs = GROUND_VS.replace('attribute vec4 aL;', 'attribute vec2 aUV, aAx;').replace('vL = aL.xy; vAx = normalize((modelMatrix * vec4(aL.z, 0., aL.w, 0.)).xz);', 'vL = aUV; vAx = aAx;');
   const fs = ROAD_FS.replace(/float ia = [^\n]*\n\s*float js = [^\n]*\n\s*bool onA = [^\n]*\n/, 'float dx = p.x, dz = 40.;\n  bool onA = true, onS = false;\n');
   if (vs === GROUND_VS || fs === ROAD_FS) throw new Error('connector shader patch failed');
-  const connMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const connMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...ASPH_U }, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   // 匝道是單向：不畫中央雙黃線與車道虛線，改成兩側的白色實線邊線
   const fsR = fs.replace(/float yel = [^;]*;/, 'float yel = 0.;').replace(/paint = max\(paint, step\(abs\(ax - 5\.1\), \.07\) \* step\(\.42, fract\(p\.y\*\.25\)\)\);/, `paint = max(paint, step(abs(ax - ${(RAMP_HW - .45).toFixed(2)}), .08));`);
   if (fsR === fs) throw new Error('ramp shader patch failed');
-  const rampMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: vs, fragmentShader: fsR, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const rampMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...ASPH_U }, vertexShader: vs, fragmentShader: fsR, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   for (const ramp of [false, true]) {
   const P = [], N = [], UV = [], AX = [], I = [];
   for (const e of RN.edges) {

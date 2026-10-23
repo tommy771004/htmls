@@ -46,7 +46,7 @@ function onKey(code) {
   if (fading) return;
   const ctx = contextAction();
   if (code === 'KeyF') {
-    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) toast('先降落到地面'); else if (Math.hypot(player.veh.vx, player.veh.vz) < 4) exitVehicle(); else toast('先把車速降下來'); }   // 69-gunship.js：直升機在半空或屋頂上不能下
+    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < 4) exitVehicle(); else toast('先把車速降下來'); }   // 69-gunship.js：直升機在半空或屋頂上不能下
     else if (ctx && ctx.key === 'F') ctx.fn();
   }
   if (code === 'KeyE' && ctx && ctx.key === 'E') ctx.fn();
@@ -100,7 +100,7 @@ if (isTouch) {
   cvs.addEventListener('pointerup', lend); cvs.addEventListener('pointercancel', lend);
   document.querySelectorAll('#tbtn button').forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = true; else if (k === 'Fire') triggerDown(); else onKey(k); });
+    b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') { keys[k] = true; if (k === 'Space' && started && player.mode === 'walk') onKey(k); } else if (k === 'Fire') triggerDown(); else onKey(k); });
     const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; if (k === 'Fire') triggerUp(); };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
   });
@@ -154,6 +154,11 @@ function updateCamera(dt, spd) {
     if (p.where !== 'out') dist = Math.min(dist, 3.2);
     dist = lerp(dist, 1.75, gta.aimK);   // 瞄準：拉近成越肩視角（69-combat.js）
     dist = lerp(dist, .05, arm.zoomK); ty += arm.zoomK * .1;   // 狙擊鏡：鏡頭進到眼睛
+    // 69-v3-crash.js 的空中：拉遠；開傘時看向人與傘之間、鏡頭跟著滑翔方向
+    if (p.air3) {
+      dist = p.air3.kind === 'chute' ? 12 : 7.5;
+      if (p.air3.kind === 'chute') { ty += 2.6; camState.yaw += wrapA(p.yaw - camState.yaw) * (1 - Math.exp(-1.5 * dt)); camState.pitch = damp(camState.pitch, .22, 2, dt); }
+    }
   }
   const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
   _cd.set(Math.sin(camState.yaw) * cp, -sp, Math.cos(camState.yaw) * cp);
@@ -163,7 +168,7 @@ function updateCamera(dt, spd) {
   // 撞牆就把相機往角色拉近
   let tmin = 1;
   const ox = tx + rx * sx, oz = tz + rz * sx;
-  for (const b of boxesNear(ox, oz, dist + 2)) {
+  for (const b of p.air3 && p.air3.kind !== 'eject' ? [] : boxesNear(ox, oz, dist + 2)) {   // 跳傘時不拉近：樓的盒子沒有高度，飛在屋頂上空也會被拉近
     if (b.low) continue;   // 岸邊擋牆不擋相機
     if (boxGap(b, ox, oz) > dist + 2) continue;
     const t = rayBox(ox, oz, wx - ox, wz - oz, b, .25);
@@ -172,8 +177,9 @@ function updateCamera(dt, spd) {
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
   // 室內：有第二層的安全屋（69-safehouse.js）地板跟著所在的層，天花板依位置（夾層下比較低，相機與角色兩處取低的）
   const V = p.where === 'out' ? null : VENUES[p.where];
-  const floor = (V ? V.lvY || 0 : Math.max(seaFloor(wx, wz), SEA_Y)) + .35;
-  const ceil = !V ? 999 : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
+  let wk = null; if (!V) { wk = walkCam(wx, wz, p.y, Math.max(seaFloor(wx, wz), SEA_Y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
+  const floor = (V ? V.lvY || 0 : wk[0]) + .35;
+  const ceil = !V ? wk[1] : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
   wy = clamp(wy, floor, ceil);
   if (camState.snap) camState.pos.set(wx, wy, wz);
   else { const k = 1 - Math.exp(-(inV ? 14 : 18) * dt); camState.pos.x += (wx - camState.pos.x) * k; camState.pos.y += (wy - camState.pos.y) * k; camState.pos.z += (wz - camState.pos.z) * k; }
@@ -212,6 +218,7 @@ function pickLights(t) {
       if (TYPES[c.type].police) dynLights.push({ x: c.x, y: 1.8, z: c.z, col: Math.sin(t * 12) > 0 ? POL_R : POL_B, r: 14, i: 2.2 });
     }
     dynLights.push(...policeLights(t));   // 警車閃燈、直升機探照燈（69-police.js）
+    dynLights.push(...railLights());   // 北嶺鐵道橋的列車頭燈（21-rail.js）
     // 爆炸、起火與槍口閃光（68-gta.js），亮度隨時間衰減
     for (const l of fxLights.slice(-3)) dynLights.push({ x: l.x, y: l.y, z: l.z, col: l.col, r: l.r, i: l.i * (1 - l.life / l.max) });
     const n = Math.max(0, NL - dynLights.length);
@@ -246,6 +253,7 @@ function step(dt) {
     updatePeds(dt);
     holo.rotation.y = t * .35;
     coastUpdate(t, dt);
+    railUpdate(dt);   // 北嶺鐵道橋的列車（21-rail.js）
     boatsUpdate(dt);
     wakeUpdate(dt);
   } else if (player.where === 'club') updateClub(t, U.uBeat.value);
@@ -257,7 +265,7 @@ function step(dt) {
     if (nitro.on) { v.vmax *= 1.25; v.eng *= 1.6; }
     const grip0 = v.grip; if (abil.drive) { v.grip *= 2.5; v.stK = 1.8; }   // Kael 的極限反射駕駛（69-crew.js）
     if (player.where === 'out') { v.grip *= 1 - .3 * wx.wet; v.brkK = 1 - .2 * wx.wet; }   // 濕路面（28-sky.js 的 wx.wet）：側向抓地少三成、煞車距離變長
-    const r = v.fly ? flyHeli(v, inp, dt) : v.boat ? driveBoat(v, inp, dt) : v.air ? stuntFly(v, inp, dt) : driveVehicle(v, inp, dt);   // 31-boats.js：船；69-stunt.js：跳台斜面與飛行
+    const r = v.fly ? flyHeli(v, inp, dt) : v.boat ? driveBoat(v, inp, dt) : v.air ? stuntFly(v, inp, dt) : driveSub(v, inp, dt);   // driveSub：69-v3-crash.js 高速時切子步   // 31-boats.js：船；69-stunt.js：跳台斜面與飛行
     if (!v.air && !v.boat && !v.fly && !v.tumble && !v.flipped) stuntGround(v, r.vF);
     v.vmax = vmax0; v.eng = eng0; v.grip = grip0; v.stK = 1; v.brkK = 1;
     if (r.imp > 3) { sfx.impact(r.imp); camState.shake = Math.min(1, r.imp / 14); }
@@ -278,6 +286,7 @@ function step(dt) {
   updateMotors(dt, t);
   updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
+  v3Update(dt);   // 69-v3-*：第三部曲的六圍、化學反應、撞擊與跳傘、計程車
   if (out) policeUpdate(dt);
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {
@@ -355,7 +364,7 @@ requestAnimationFrame(loop);
 window.__nc = {
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
-  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
+  ready: true, scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   start: () => go.click(),
   tp(x, z, yaw = player.yaw) { if (player.mode === 'drive') exitVehicle(); setWhere('out'); player.x = x; player.z = z; player.y = spawnY(x, z); player.yaw = yaw; camState.yaw = yaw; camState.snap = true; },   // 傳送到快速道路上（最近的路是快速道路）：站在橋面

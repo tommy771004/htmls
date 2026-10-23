@@ -84,6 +84,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 #vitals i{display:block;height:100%;border-radius:2px;background:rgba(12,14,18,.7);overflow:hidden}
 #vitals span{display:block;height:100%;width:var(--v,100%);transition:width var(--dur-hover) linear}
 #hpBar span{background:#62b56c}
+/* 69-v3-skills.js：衝刺體力與閉氣（不滿才出現），疊在小地圖上方；潛水時畫面泛藍 */
+#v3bars{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 150px);width:132px;display:grid;gap:3px;pointer-events:none}
+#v3bars i{display:block;height:4px;border-radius:2px;background:rgba(12,14,18,.7);overflow:hidden;opacity:0;transition:opacity var(--dur-exit) var(--ease-out)}
+#v3bars i.on{opacity:1;transition-duration:var(--dur-enter)}
+#v3bars i::before{content:"";display:block;height:100%;width:var(--v,100%);background:#d9d3c4}
+#v3bars #brBar::before{background:#6fc3e8}
+#v3bars i.low::before{background:#e0643c}
+#diveFx{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;background:radial-gradient(ellipse at 50% 45%,rgba(20,70,90,.28) 20%,rgba(8,38,56,.72) 100%);transition:opacity .6s}
+body.dive #diveFx{opacity:1}
 #hpBar.low span{background:#d65a48;animation:lowHp 1s steps(2) infinite}
 @keyframes lowHp{50%{opacity:.45}}
 #arBar span{background:#5c8ed6}
@@ -249,7 +258,7 @@ body.touch #mapKeys{display:none}
 #cine.sub #cineSub{opacity:1}
 #cineSkip{position:absolute;z-index:1;right:16px;bottom:calc(min(11vh,96px) / 2 - 9px);font-size:11px;color:var(--ink-2);opacity:0;transition:opacity 260ms}
 #cine.sub #cineSkip{opacity:.8}
-body.cine #obj,body.cine #compass,body.cine #clockBox,body.cine #tools,body.cine #mapBox,body.cine #vitals,body.cine #prompt,body.cine #speedo,body.cine #wanted,body.cine #weap,body.cine #xhair,body.cine #marker,body.cine #touch.on{visibility:hidden}
+body.cine #obj,body.cine #compass,body.cine #clockBox,body.cine #tools,body.cine #mapBox,body.cine #vitals,body.cine #v3bars,body.cine #prompt,body.cine #speedo,body.cine #wanted,body.cine #weap,body.cine #xhair,body.cine #marker,body.cine #touch.on{visibility:hidden}
 #dialog{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:14px 18px 14px;background:var(--panel-2);border-radius:10px;pointer-events:auto;display:none}
 #dialog.on{display:block}
 body.wheel #tbtn,body.wheel #joy,body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #vitals,body.talking #prompt{display:none!important}
@@ -438,6 +447,7 @@ body.touch #capture{display:none}
   #clockBox{padding:6px 11px 7px}
   #mapBox{width:104px;height:104px;padding:5px;border-radius:12px}
   #vitals{width:104px}
+  #v3bars{width:104px;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 122px)}
   #wanted{top:calc(max(14px,env(safe-area-inset-top)) + 128px)}
   #wanted svg{width:19px;height:18px}
   #mini{width:94px;height:94px}
@@ -485,6 +495,8 @@ body.touch #capture{display:none}
     <dt>Esc</dt><dd>暫停與設定：靈敏度、按鍵綁定、音量、畫質</dd>
     <dt>1–6</dt><dd>夜店門口／夜店裡／酒吧／改裝廠／車行／車庫</dd>
   </dl></div>
+  <div id="v3bars" aria-hidden="true"><i id="staBar"></i><i id="brBar"></i></div>
+  <div id="diveFx" aria-hidden="true"></div>
   <div id="mapBox" class="pan"><canvas id="mini" width="240" height="240"></canvas></div>
   <div id="vitals" aria-label="生命、護甲與特殊能力"><i id="hpBar"><span></span></i><i id="arBar"><span></span></i><i id="spBar"><span></span></i></div>
   <div id="wanted" aria-label="通緝等級"></div>

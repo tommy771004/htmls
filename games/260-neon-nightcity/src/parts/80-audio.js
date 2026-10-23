@@ -176,6 +176,14 @@ const sfx = (() => {
     engineOn(v) { startEngine(v); },
     engineOff() { stopEngine(); },
     step(run, indoor) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'bandpass', indoor ? 600 : 1400, 1, run ? .1 : .06, indoor ? .06 : .09); if (!indoor) nz(t + .01, master, 'highpass', 4000, .5, .03, .12); },
+    // 北嶺鐵道橋的列車（21-rail.js）：兩音的電聯車汽笛；行駛聲是一條一直開著的低頻噪音，k 是遠近（0 關掉）、clack 是過軌縫的節奏
+    trainHorn(k) { if (!ac || !(k > .01)) return; const t = ac.currentTime, g = ac.createGain(); for (const [f, d] of [[311, 0], [392, 0], [311, .55], [392, .55]]) { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = f; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1100; o.connect(fl); fl.connect(g); o.start(t + d); o.stop(t + d + .42); } g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05 * k, t + .04); g.gain.setValueAtTime(.05 * k, t + .9); g.gain.exponentialRampToValueAtTime(.0001, t + 1.05); g.connect(master); },
+    trainRun(k, clack) {
+      if (!ac) return;
+      if (!st.train) { const b = brown(), f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260; const g = ac.createGain(); g.gain.value = 0; b.connect(f); f.connect(g); g.connect(master); b.start(); st.train = { g, f, last: 0 }; }
+      const t = ac.currentTime; st.train.g.gain.setTargetAtTime(.22 * k, t, .25); st.train.f.frequency.setTargetAtTime(180 + 260 * k, t, .3);
+      if (clack && k > .05 && t - st.train.last > .08) { st.train.last = t; nz(t, master, 'bandpass', 900, 2, .05 * k, .06); nz(t + .11, master, 'bandpass', 760, 2, .04 * k, .06); }
+    },
     horn(c) { if (!ac) return; const t = ac.currentTime; const g = ac.createGain(); for (const k of [1, 1.25]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 370 * k; const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1400; o.connect(fl); fl.connect(g); o.start(t); o.stop(t + .45); } g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .45); g.connect(master); },
     impact(k) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 500, 1, clamp(k / 12, .05, .5), .3); kick(t, master); },
     splash(k = 1) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'lowpass', 900 + 900 * k, .7, .05 + .2 * k, .25 + .45 * k); nz(t + .03, master, 'highpass', 2600, .6, .03 + .07 * k, .2 + .3 * k); },

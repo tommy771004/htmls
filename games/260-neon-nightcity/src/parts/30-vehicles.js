@@ -159,13 +159,15 @@ const TYPES = {
   urban_cop: glbType('urban_cop', 14, FB.police, { police: 1 }), md84: glbType('md84', 9.5, FB.truck, { armored: 1 }),
   ambulance: glbType('ambulance', 11.5, FB.truck), canyon_taxi: glbType('canyon_taxi', 13, FB.taxi),
   fh: glbType('fh', 13, FB.sedan), il: glbType('il', 13.5, FB.sedan),
+  // world_1 gameready_city 路上的三台車（tools/traffic.mjs 的 grc_*）：深藍舊轎車、白色廂型貨車、藍色郵務車
+  grc_sedan: glbType('grc_sedan', 12, FB.sedan), grc_stepvan: glbType('grc_stepvan', 10, FB.truck), grc_mailvan: glbType('grc_mailvan', 10, FB.truck),
   // 五星才出動的坦克（不進車流；砲塔是 traffic.glb 的 tank_turret，69-police.js 另外掛）
   tank: glbType('tank', 9, FB.truck, { armored: 1, tank: 1 }),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
-const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84'];
+const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il', 'grc_sedan'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84', 'grc_stepvan', 'grc_mailvan'];
 const TAXIS = ['fh_taxi', 'fh_taxi', 'canyon_taxi'];
 const pick = (a, u) => a[Math.min(a.length - 1, Math.floor(u * a.length))];
 function pickType() { const r = rT(); return r < .24 ? pick(TAXIS, r / .24) : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : pick(SEDANS, (r - .44) / .56); }
@@ -533,6 +535,8 @@ function collideCircle(x, z, r, skipCar, swimmer) {   // swimmer：玩家步行�
   return { x, z, nx, nz, hit };
 }
 // 兩個圓代表車身前後，跟靜態物、停車與車流碰撞
+// 擦牆：入射角 30° 以內算擦過（SCRAPE_SIN = sin 30°），擦著時速度每秒衰減 SCRAPE_DRAG，車頭每秒往牆的方向轉 SCRAPE_ALIGN 的比例
+const SCRAPE_SIN = .5, SCRAPE_DRAG = .55, SCRAPE_ALIGN = 2.5;
 function vehicleCollide(v, dt) {
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
   const off = v.off;
@@ -562,8 +566,16 @@ function vehicleCollide(v, dt) {
     if (px || pz) {
       v.x += px; v.z += pz;
       const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
-      const vn = v.vx * nx + v.vz * nz;
-      if (vn < 0) { v.vx -= vn * nx * 1.25; v.vz -= vn * nz * 1.25; v.vx *= .9; v.vz *= .9; impact = Math.max(impact, -vn); }
+      const vn = v.vx * nx + v.vz * nz, sp = Math.hypot(v.vx, v.vz);
+      // 擦牆（入射角小於 SCRAPE_DEG）：只去掉法向速度、切向留著，車頭被帶向牆的方向，噴火花；正面撞：反彈並掉一成速度（彈出車外在 69-v3-crash.js）
+      if (vn < 0 && v.isCar && sp > 6 && -vn < sp * SCRAPE_SIN) {
+        v.vx -= vn * nx * 1.05; v.vz -= vn * nz * 1.05;
+        const k = Math.exp(-SCRAPE_DRAG * dt); v.vx *= k; v.vz *= k;
+        const tx = -nz, tz = nx, dir = Math.sign(v.vx * tx + v.vz * tz) || 1, fwd = Math.sign(v.vx * fx + v.vz * fz) || 1;
+        v.yaw += wrapA(Math.atan2(tx * dir * fwd, tz * dir * fwd) - v.yaw) * Math.min(1, SCRAPE_ALIGN * dt);
+        if (Math.random() < dt * 40 && Math.hypot(v.x - pX(), v.z - pZ()) < 80) sparks(cx + px - nx * v.rad, (v.y || 0) + .45, cz + pz - nz * v.rad, 3, 3);
+        v.scrape = .15; impact = Math.max(impact, -vn * .5);
+      } else if (vn < 0) { v.vx -= vn * nx * 1.25; v.vz -= vn * nz * 1.25; v.vx *= .9; v.vz *= .9; impact = Math.max(impact, -vn); }
     }
   }
   if (ram) rollRam(v, ram.c, ram.rel, ram.nx, ram.nz);

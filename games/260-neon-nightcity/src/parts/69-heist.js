@@ -341,8 +341,8 @@ function planBoard() {
   if (W.stars) return dialog(who, '外面還有警察在找你，先處理掉再來。');
   if (SQ.def) return dialog(who, `${SQ.def.name}被盯上了，先去處理。`);
   dialog(who, `中央霓虹銀行，10 St。金庫裡的現金最多兩百五十萬。籌備費 ${money(HEIST_FEE)}，Zero 抽一成。\n潛行：壓住人質不讓警報響，出來只有 2 星，但上限兩百萬。\n強攻：炸門、守門口、5 星突圍，上限兩百五十萬。`, [
-    { t: `潛行（${money(HEIST_FEE)}）`, fn: () => planGo('smart') },
-    { t: `強攻（${money(HEIST_FEE)}）`, fn: () => planGo('loud') },
+    { t: `潛行（${money(HEIST_FEE)}）`, fn: () => hireStart('smart') },   // 69-v3-heist.js：先挑駭客、車手、槍手
+    { t: `強攻（${money(HEIST_FEE)}）`, fn: () => hireStart('loud') },
     { t: '再想想', fn: closeDialog },
   ]);
 }
@@ -394,7 +394,7 @@ function blowVault() {
 function drillStart() {
   sfx.reload();
   if (heist.alarm) { holdStart(); return; }
-  heist.t = 40; heist.drilling = true; toast('鑽機開始運作：40 秒內別讓人質按警報');
+  heist.t = Math.round(40 * hireK('drill')); heist.drilling = true; toast(`鑽機開始運作：${heist.t} 秒內別讓人質按警報`);   // 駭客決定鑽機時間（69-v3-heist.js）
 }
 // 強攻或響了警報：換成 Jax 到門口守 60 秒（4 星）
 function holdStart() {
@@ -418,6 +418,7 @@ function escapeStart() {
     const s = crew.st[0]; Object.assign(s, bankAt(-1.5, 1.6));
     crewLoad(0); heistGear(); equip('smg', true);
     heist.car = getawayCar();   // 69-heist2.js：潛行是 Tiara GT，強攻是改裝過的鎮暴裝甲車（另在河濱停機坪放好武裝直升機）
+    hireCar(heist.car);         // 69-v3-heist.js：車手決定逃亡車的極速與耐久
     heistStage('escape');
     heist.hpPrev = life.hp + life.armor;
     wantedApi.set(heist.alarm ? 5 : 2);
@@ -475,13 +476,14 @@ function heistFail(why) {
   toast(`搶劫失敗（${why}）：回銀行門口再來一次`);
 }
 function heistPass() {
-  const take = heist.take, loss = Math.min(heist.loss, take), cut = Math.round((take - loss) * ZERO_CUT), net = take - loss - cut;
-  heistStage('off');
+  // 分紅：69-v3-heist.js 雇的三個人各自抽（沒雇過的舊流程是 Zero 一成）
+  const take = heist.take, loss = Math.min(heist.loss, take), cuts = hireCuts(take - loss), cut = cuts.reduce((s, c) => s + c[1], 0), net = take - loss - cut;
+  heist.passed = true; heistStage('off');
   for (const r of runSt) runnerOff(r);
   if (heist.car) { if (player.veh) exitVehicle(); if (heist.air) heistVehGone(heist.car); heist.car = null; }   // 強攻是坐直升機到的，裝甲車留在半路
   motors.cash += net; saveMotors();
   newsAdd(`中央霓虹銀行遭搶 ${money(take)}`, `蒙面搶匪炸開金庫${heist.jumped ? '，逃亡車飛越鐵灣高架斷橋' : ''}，警方至今仍未掌握去向。`);
-  $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ['駭客 Zero 分紅（10%）', '−' + money(cut)], ['最終實得淨利', money(net)], ['三位主角各得', money(Math.floor(net / 3))]].map(([a, b], i) => `<dt${i === 3 ? ' class="net"' : ''}>${a}</dt><dd${i === 3 ? ' class="net"' : ''}>${b}</dd>`).join('');
+  $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ...cuts.map(([n, c]) => [n, '−' + money(c)]), ['最終實得淨利', money(net)], ['三位主角各得', money(Math.floor(net / 3))]].map(([a, b]) => { const c = a === '最終實得淨利' ? ' class="net"' : ''; return `<dt${c}>${a}</dt><dd${c}>${b}</dd>`; }).join('');
   $('heistDone').querySelector('b').textContent = 'HEIST PASSED'; $('heistDone').querySelector('small').textContent = '中央霓虹銀行';   // 69-side.js 的 sideDone 也用這個畫面
   $('heistDone').classList.add('on'); heist.doneT = 7; sfx.ability(true);
 }
@@ -520,7 +522,7 @@ function heistUpdate(dt) {
     const a = arm.ammo[arm.sel], mag = a ? a.mag : 0;
     if (a && mag < heist.mag && ARMS[arm.sel].gun) heist.intim += 35;
     heist.mag = mag;
-    heist.intim = clamp(heist.intim + (gta.aiming ? 28 : HACK.on ? 0 : -7) * dt, 0, 100);   // 破譯時 Kael 接手壓人質
+    heist.intim = clamp(heist.intim + (gta.aiming ? 28 : HACK.on ? 0 : -7 * hireK('intim')) * dt, 0, 100);   // 破譯時 Kael 接手壓人質
     if (heist.intim <= 0) heistAlarm('有行員按下了桌底警報');
     hostStep(dt);
   }

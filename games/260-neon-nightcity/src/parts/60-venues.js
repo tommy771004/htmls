@@ -484,6 +484,7 @@ function contextAction() {
   const p = player;
   // 街上的點是邏輯座標（場館門口、車行……），換成世界座標再量；室內的座標本來就是場館自己的
   const near = (x, z, r) => { if (p.where === 'out') [x, z] = toW(x, z); return Math.hypot(p.x - x, p.z - z) < r; };
+  if (p.air3) return null;   // 69-v3-crash.js 的空中（跳傘、被拋出去）：地面上的互動都不算
   for (const h of ctxHooks) { const r = h(p, near); if (r) return r; }
   if (p.mode === 'drive') {
     const v = p.veh;

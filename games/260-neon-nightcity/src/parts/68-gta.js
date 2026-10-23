@@ -6,7 +6,8 @@
 // → policeUpdate（69-police.js）→ updateCrowds → gtaLate（武器擺到手上、粒子上傳）
 const gta = { weapon: 'fist', aiming: false, guard: false, aimK: 0, fireT: 0, reloadT: 0, jack: null, punchT: 0, punchPh: 0, actAnim: 0, hold: false, rmb: false, pitch: 0 };
 const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車',
-  urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克' };
+  urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克',
+  grc_sedan: 'Brougham 轎車', grc_stepvan: 'Stepline 廂型貨車', grc_mailvan: '蝸牛郵務車' };
 // 車損階段（neon_nightcity_gta_v_2.md 第一節第 3 點，耐久的比例）：70% 以上只有火花、碎窗淡白煙、40% 濃黑煙且動力少兩成五、15% 起火每秒 −25、歸零爆炸
 const HP = 1000, STAGE = { white: .7, black: .4, fire: .15 }, BURN_HP = 25, BOOM_R = 12;
 const hpMaxOf = c => c.hpMax || (c.type ? VCLASS[typeClass(c.type)].hp : HP);   // 車流車沒有 hpMax：照車型的級距
@@ -427,7 +428,7 @@ function gtaUpdate(dt) {
   else if (player.down > 0 && player.mode === 'walk') {
     player.down -= dt;
     const r = collideCircle(player.x + player.kx * dt, player.z + player.kz * dt, .32, false);
-    player.x = r.x; player.z = r.z; player.kx *= Math.exp(-4 * dt); player.kz *= Math.exp(-4 * dt);
+    [player.x, player.z] = player.where === 'out' ? walkStep(player.x, player.z, r.x, r.z, player.y) : [r.x, r.z];   // 被列車撞飛也不會穿過橋的護欄（20-walk.js） player.kx *= Math.exp(-4 * dt); player.kz *= Math.exp(-4 * dt);
     if (player.down <= 1 && !player.gotUp) { player.gotUp = 1; player.upPh = -uTimeNow(); }
     if (player.down <= 0) { player.gotUp = 0; player.anim = -1; }
     me.anim(0, player.gotUp ? ANIM.getup : ANIM.die, player.gotUp ? player.upPh : player.downPh, 1);

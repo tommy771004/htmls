@@ -152,6 +152,7 @@ function drawMini(px, pz, yaw, mk) {
   evMini(mctx, P2, zoom);   // 運鈔車藍點與錢袋（69-events.js）
   if (player.where === 'out') squadMini(mctx, P2, zoom);   // 幫派紅點、傭兵綠點、被盯上的資產（69-squads.js）
   if (player.where === 'out') sideMini(mctx, P2, zoom);   // 街頭賽對手、生存模式、幫派地盤（69-side.js）
+  if (player.where === 'out') { salvMini(mctx, P2); noiseMini(mctx, P2, zoom); }   // 水下貨櫃的聲納、噪音圈（69-v3-skills.js）
   mctx.restore();
   // 目標：在圓內就畫點，超出就貼在圓周
   if (mk && mk.where === 'out') {
