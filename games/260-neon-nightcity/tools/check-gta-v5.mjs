@@ -3,6 +3,7 @@
 // 商業設施：便利店搶劫與第二台收銀機、能量飲料、提款機、酒、槍店（背心、擴充彈匣、射擊場、老闆反擊）、服飾店甩星、車身血跡與洗車、自動捲門；
 // 立體停車場：四條坡道開上頂樓、頂樓超跑與「飛躍霓虹大道」跳台、降落傘包與跳車開傘、電梯、入口柵欄桿
 // 街道微結構：車行落地窗、候車亭、電話亭、熱狗攤瓦斯鋼瓶、施工圍籬、紐澤西護欄、交通錐、銀行液壓防撞柱
+// 霓峰塔工地：250 m 塔吊的直梯、附著平台與屋頂、吊臂走道、狙擊槍箱、跳下去開傘、直升機降落屋頂
 // 用法：node tools/check-gta-v5.mjs [html]（預設 web/260-neon-nightcity.html）
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,7 +58,7 @@ try {
     return { ids: Object.keys(F).join(','), h: F.hosp.L.map(L => +L.h.toFixed(1)), pd: +F.pd.L[0].h.toFixed(1), helis: V.V5.helis.map(h => h.v && h.v.name), lads: V.LADS.length, ghost: F.hosp.b && N.ways ? 1 : 1 };
   });
   if (c1) {
-    check(c1.ids === 'hosp,pd,mall,gar', `醫院、分局、商店街與立體停車場四個街區（${c1.ids}）`);
+    check(c1.ids === 'hosp,pd,mall,gar,crane', `醫院、分局、商店街、立體停車場與霓峰塔工地五個街區（${c1.ids}）`);
     check(c1.h[0] > 10 && c1.h[1] > 30 && c1.pd > 15, `急診樓、主樓、分局的高度 ${c1.h.join('／')}／${c1.pd}`);
     check(c1.helis.length === 2 && c1.helis.every(Boolean), `屋頂停兩架直升機（${c1.helis.join('、')}）`);
   }
@@ -564,7 +565,54 @@ try {
     check(s10.trees > 1000 && s10.rope >= 4, `樹的碰撞半徑 0.2（${s10.trees} 棵）、紅絨布繩沿繩子排小圓（${s10.rope}）`);
   }
 
-  console.log('36. 主控台');
+  const s11 = await sec('36. 霓峰塔塔吊：直梯約 40 秒、附著平台接到屋頂、吊臂走道、狙擊槍箱與射程、從吊臂跳下去開傘、直升機降落屋頂', () => {
+    const N = window.__nc, G = N.gta, V = G.v5, C = V.crane, CR = C.CR, L = CR.lad, wk = N.props.rail.walk; __t.reset();
+    const o = { on: CR.on };
+    if (!CR.on) return o;
+    const F = V.FAC.crane, Tw = F.tower, mx = CR.mx, mz = CR.mz, W = (x, z) => N.W(x, z);
+    // 步行面：屋頂、連接橋、附著平台、吊臂；邊上擋住
+    const at = (x, z, y) => { const [X, Z] = W(x, z); const r = wk(X, Z, y); return r == null ? r : +r.toFixed(2); };
+    o.walk = { deck: at((Tw.x0 + Tw.x1) / 2, (Tw.z0 + Tw.z1) / 2, C.DECK), bridge: at((Tw.x1 + mx) / 2, mz, C.DECK), ring: at(mx, mz + 2, C.DECK), edge: at((Tw.x0 + Tw.x1) / 2, Tw.z0 + .2, C.DECK) };
+    const jw = (X, Z) => { const [x, z] = C.jib(X, Z), r = wk(x, z, C.JIB); return r == null ? r : +r.toFixed(2); };
+    o.walk.jib = jw(-40, 0); o.walk.jibSide = jw(-40, 1.2); o.walk.ground = at((Tw.x0 + Tw.x1) / 2, (Tw.z0 + Tw.z1) / 2, 0);
+    // 從地面爬：一路爬到 202 m 停下來踏上附著平台，再抓住梯子爬到吊臂
+    const [fx, fz] = V.w('crane', L.x + L.nx * .5, L.z + L.nz * .5); N.tp(fx, fz, V.yaw('crane', Math.atan2(-L.nx, -L.nz))); __t.step(2);
+    o.t0 = N.ctx(); N.act(); N.keys.KeyW = true; let n = 0;
+    while (V.V5.lad && V.V5.lad.y < C.DECK && n < 4000) { __t.step(1); n++; }
+    N.keys.KeyW = false; __t.step(1);
+    const t1 = n / 60; o.t1 = N.ctx(); N.act(); __t.step(20); o.ring = +N.player.y.toFixed(2);
+    o.t2 = N.ctx(); N.act(); N.keys.KeyW = true; n = 0;
+    while (V.V5.lad && n < 4000) { __t.step(1); n++; }
+    N.keys.KeyW = false; __t.step(20);
+    o.climb = +(t1 + n / 60).toFixed(1); o.top = +N.player.y.toFixed(2);
+    // 走到吊臂末端撿狙擊槍箱
+    const res0 = G.arm.ammo.sniper.res, [cx, cz] = CR.caseAt; N.player.x = cx; N.player.z = cz; N.player.y = C.JIB; __t.step(3);
+    o.sniper = { sel: G.arm.sel, add: G.arm.ammo.sniper.res - res0, hidden: !CR.caseM.visible, perch: C.perchK(G.ARMS.sniper), ground: 0 };
+    // 從吊臂側邊跳下去、開傘、落地
+    const [jx, jz] = C.jib(-60, .8), [sx, sz] = C.jib(-60, 3); N.player.x = jx; N.player.z = jz; N.player.y = C.JIB; N.player.yaw = Math.atan2(sx - jx, sz - jz); __t.step(5);
+    o.onJib = +N.player.y.toFixed(2); o.jump = V.roofJump(); __t.step(60);
+    o.open = G.v3.crash.open(); N.keys.ShiftLeft = true; n = 0;
+    while (N.player.air3 && n < 9000) { __t.step(1); n++; }
+    N.keys.ShiftLeft = false; o.land = { t: +(n / 60).toFixed(1), y: +N.player.y.toFixed(1), dead: !!G.life.dead, hp: Math.round(G.life.hp) };
+    o.sniper.ground = C.perchK(G.ARMS.sniper);
+    // 直升機：屋頂高度、停在停機坪上
+    __t.reset(); const [hx, hz] = W((Tw.x0 + Tw.x1) / 2 - 2, (Tw.z0 + Tw.z1) / 2);
+    o.roof = +G.gunship.roofH(hx, hz).toFixed(2);
+    const h = G.gunship.build(hx, hz, 0); h.y = C.DECK + 1; __t.step(90); o.heli = +h.y.toFixed(2); G.gunship.drop(h);
+    __t.reset(); return o;
+  });
+  if (s11 && s11.on) {
+    const w = s11.walk;
+    check(Math.abs(w.deck - 202.3) < .05 && Math.abs(w.bridge - 202.3) < .05 && Math.abs(w.ring - 202.3) < .05 && w.edge === null && w.ground === undefined, `屋頂、連接橋、附著平台都站在 202.3 m，邊上擋住、地面不受影響 ${JSON.stringify(w)}`);
+    check(Math.abs(w.jib - s11.top) < .05 && w.jibSide === null, `吊臂走道 ${w.jib} m，側邊擋住`);
+    check(s11.t0 && s11.t0.includes('塔吊直梯') && s11.t1 && s11.t1.includes('附著平台') && Math.abs(s11.ring - 202.3) < .1 && s11.t2 && s11.t2.includes('抓住'), `${s11.t0} → ${s11.t1}（y ${s11.ring}）→ ${s11.t2}`);
+    check(s11.climb > 36 && s11.climb < 44 && s11.top > 236, `直梯從地面爬到吊臂 ${s11.top} m 共 ${s11.climb} 秒（不按 Shift）`);
+    check(s11.sniper.sel === 'sniper' && s11.sniper.add === 30 && s11.sniper.hidden && s11.sniper.perch === 4 && s11.sniper.ground === 1, `吊臂末端撿到重型狙擊槍（彈藥 +${s11.sniper.add}）、高處射程 ×${s11.sniper.perch}、落地後 ×${s11.sniper.ground}`);
+    check(Math.abs(s11.onJib - s11.top) < .05 && s11.jump && s11.open && !s11.land.dead && s11.land.y < 40, `從吊臂側邊跳下去、開傘、${s11.land.t} 秒後落地（y ${s11.land.y}、生命 ${s11.land.hp}）`);
+    check(Math.abs(s11.roof - 202.3) < .1 && Math.abs(s11.heli - 202.35) < .2, `直升機的屋頂高度 ${s11.roof} m、停在停機坪上 y ${s11.heli}`);
+  } else check(false, '找不到霓峰塔工地（FAC.crane）');
+
+  console.log('37. 主控台');
   check(log.pageerrors.length === 0, `沒有 uncaught exception（${log.pageerrors.slice(0, 2).join(' | ')}）`);
   check(log.errors.length === 0, `沒有 console.error（${log.errors.slice(0, 2).join(' | ')}）`);
 } finally { await browser.close(); }

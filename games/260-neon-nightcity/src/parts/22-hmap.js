@@ -14,6 +14,15 @@ const hmTex = new T.DataTexture(new Uint16Array(HM.n * HM.n).fill(T.DataUtils.to
 hmTex.minFilter = hmTex.magFilter = T.LinearFilter; hmTex.generateMipmaps = false;
 U.uHMap.value = hmTex;
 U.uHM.value.set(HM.x0, HM.z0, 1 / (HM.n * HMS), 0);
+// 城市陸地的遮罩（05-zones.js 的 CITY_POLY，和高度圖同一個範圍）：00-core.js 的 applyFog 在鏡頭升高時只讓城裡的霧變淡
+{
+  const S = 512, k = S / (HM.n * HMS), cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const c = cv.getContext('2d'); c.filter = 'blur(6px)'; c.fillStyle = '#fff'; c.beginPath();
+  CITY_POLY.forEach(([x, z], i) => c[i ? 'lineTo' : 'moveTo']((x - HM.x0) * k, (z - HM.z0) * k)); c.closePath(); c.fill();
+  c.strokeStyle = '#000'; c.lineWidth = 2 * 90 * k; c.stroke();   // 往裡縮 90 m：外緣的山坡（21-coast.js）從城市邊上就開始隆起，那一圈照舊在霧裡
+  const tx = new T.CanvasTexture(cv); tx.flipY = false; tx.wrapS = tx.wrapT = T.ClampToEdgeWrapping; tx.generateMipmaps = false; tx.minFilter = T.LinearFilter;
+  U.uCityM.value = tx;
+}
 const hmI = x => Math.floor((x - HM.x0) / HMS), hmJ = z => Math.floor((z - HM.z0) / HMS);
 function hmDirty(i0, i1, j0, j1) {
   const d = HM.d ||= [1e9, -1e9, 1e9, -1e9];

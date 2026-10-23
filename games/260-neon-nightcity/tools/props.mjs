@@ -54,6 +54,28 @@ export const SETS = [
     { id: 'hd_umb', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], clip: [-2, 2, 1.5, 4, -3, 5] },
     { id: 'hd_sauce', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], clip: [1.05, 1.32, 1.15, 1.75, 1.85, 2.33] },
   ] },
+  // 第五部曲之五的施工大樓與塔吊（69-v5-crane.js，原檔在 .cache/v5/）：Stas Gunko 的 Construction（CC BY 4.0，公尺，23×13 m、八層、層高 4 m）
+  // 照高度切成三段：底層（兩層店面＋第三層，到 13.0 m 的樓板底）、標準層（13.0–25.0 m 三層，頁面疊十幾次）、頂層（25.0 m 以上，沒封頂的框架與牆）；
+  // 三段用同一個原點（原檔外框的水平中心、各段的切面高度），疊起來切口剛好接上
+  { out: 'v5tower', src: '.cache/v5', tex: 1024, items: [
+    { id: 'base', file: 'construction', band: [-5, 13], origin: [-12.145, 0, 6.825] },
+    { id: 'mid', file: 'construction', band: [13, 25], origin: [-12.145, 13, 6.825] },
+    { id: 'top', file: 'construction', band: [25, 99], origin: [-12.145, 25, 6.825] },
+  ] },
+  // Cem Alagozlu 的 Liebherr Tower Crane（CC BY 4.0）：原檔比實物小（桅桿 1.2 m 寬、一節 1.66 m），放大 1.8 倍。拆成底座、一節桅桿（頁面疊幾十節到 230 m 上下）
+  // 與頂部（回轉台、駕駛室、吊臂、平衡臂、塔帽，原點是回轉台底 y 31.3）；三件的原點都在桅桿中心線上。吊臂朝 +z、平衡臂朝 −z
+  { out: 'v5crane', src: '.cache/v5', tex: 1024, items: [
+    { id: 'cr_mast', file: 'liebherr_tower_crane', scale: 1.8, origin: [0, 8.3, 0], only: /^Object012$/, simp: [.35, .01] },
+    { id: 'cr_top', file: 'liebherr_tower_crane', scale: 1.8, origin: [0, 31.3, 0], only: /^(Box021|Object052|Object053|Plane002|Box069)$/, simp: [.45, .004] },
+  ] },
+  // Şafak Binen 的 Construction Pack (Low Poly)（CC BY 4.0）：五棟施工中的框架，挑兩棟矮的擺在施工大樓旁邊當工寮與材料棚
+  { out: 'v5site', src: '.cache/v5', tex: 1024, items: [
+    { id: 'site1', file: 'construction_pack_low_poly', only: /^Construction1$/ },
+    { id: 'site2', file: 'construction_pack_low_poly', only: /^Construction2$/ },
+    { id: 'site3', file: 'construction_pack_low_poly', only: /^Construction3$/ },
+    { id: 'site4', file: 'construction_pack_low_poly', only: /^Construction4$/ },
+    { id: 'site5', file: 'construction_pack_low_poly', only: /^Construction5$/ },
+  ] },
   // 第九分局（69-v5-civic.js；10-city.js 的 FAC.pd 前半塊地當實體建築 bldPlace 擺）：katiewolfe 的 Southern District Police Station（CC BY 4.0，照片掃描，公尺，
   // 正面朝 +z、右側有原本的逃生梯）。21 塊切塊先縫合再減到 6%，8K 貼圖縮成 4K
   { out: 'v5pd', src: '.cache/v5', tex: 4096, items: [{ id: 'pd', file: 'southern_district_police_station', sloppy: .06, seam: .06, renorm: 1 }] },
@@ -494,6 +516,34 @@ function subPrim(p, ix) {
   const idx = Uint32Array.from(ix, (v) => { if (!map.has(v)) { map.set(v, keep.length); keep.push(v); } return map.get(v); });
   const pick = (a, n) => { if (!a) return null; const o = new Float32Array(keep.length * n); keep.forEach((v, i) => { for (let k = 0; k < n; k++) o[i * n + k] = a[v * n + k]; }); return o; };
   return { node: p.node, path: p.path, mat: p.mat, pos: pick(p.pos, 3), nor: pick(p.nor, 3), uv: pick(p.uv, 2), idx, cnt: keep.length };
+}
+// 水平切一段（原檔座標 y0 ≤ y < y1）：跨過切面的三角形真的切開（位置、法線、UV 照比例內插），柱子與牆才不會整根掉到另一段。
+// 施工大樓的樓層一段一段疊上去（69-v5-crane.js），各段用同一個原點，切口剛好接在一起
+function bandPrim(p, y0, y1) {
+  const P = [], N = [], U = [], hasUV = !!p.uv;
+  const vtx = (i) => ({ p: [p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]], n: [p.nor[i * 3], p.nor[i * 3 + 1], p.nor[i * 3 + 2]], u: hasUV ? [p.uv[i * 2], p.uv[i * 2 + 1]] : [0, 0] });
+  const mix = (a, b, t) => ({ p: a.p.map((v, k) => v + (b.p[k] - v) * t), n: a.n.map((v, k) => v + (b.n[k] - v) * t), u: a.u.map((v, k) => v + (b.u[k] - v) * t) });
+  // Sutherland–Hodgman：留下 s·(y − c) ≥ 0 的那邊
+  const cut = (poly, c, sg) => {
+    const out = [];
+    for (let k = 0; k < poly.length; k++) {
+      const a = poly[k], b = poly[(k + 1) % poly.length], da = sg * (a.p[1] - c), db = sg * (b.p[1] - c);
+      if (da >= 0) out.push(a);
+      if ((da >= 0) !== (db >= 0)) out.push(mix(a, b, da / (da - db)));
+    }
+    return out;
+  };
+  for (let t = 0; t < p.idx.length; t += 3) {
+    let poly = [0, 1, 2].map((k) => vtx(p.idx[t + k]));
+    const lo = Math.min(...poly.map((v) => v.p[1])), hi = Math.max(...poly.map((v) => v.p[1]));
+    if (hi <= y0 || lo >= y1) { if (!(hi === lo && lo === y0)) continue; }   // 剛好躺在下切面上的樓板面算這一段
+    if (lo < y0) poly = cut(poly, y0, 1);
+    if (hi > y1) poly = cut(poly, y1, -1);
+    for (let k = 1; k + 1 < poly.length; k++) for (const v of [poly[0], poly[k], poly[k + 1]]) { P.push(...v.p); N.push(...v.n); U.push(...v.u); }
+  }
+  if (!P.length) return null;
+  const cnt = P.length / 3;
+  return { node: p.node, path: p.path, mat: p.mat, pos: Float32Array.from(P), nor: Float32Array.from(N), uv: hasUV ? Float32Array.from(U) : null, idx: Uint32Array.from({ length: cnt }, (_, i) => i), cnt };
 }
 // 擺正一組 primitive（就地改）：轉 rot×90°、縮放、底面中心移到原點
 // 3×3 對稱矩陣的特徵向量（Jacobi），由大到小
@@ -1022,6 +1072,12 @@ async function build(set) {
         if (!boxes.some((b) => x > b[0] && x < b[1] && y > b[2] && y < b[3] && z > b[4] && z < b[5])) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);
       }
       return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
+    }).filter(Boolean);
+    if (src.band) prims = prims.map((p) => bandPrim(p, src.band[0], src.band[1])).filter(Boolean);
+    if (src.simp) prims = prims.map((p) => {   // [比例, 誤差]：這個物件自己減面（塔吊桅桿一節要重複幾十次，格子桿件減到三分之一）
+      if (p.idx.length < 90) return p;
+      const [ix] = MeshoptSimplifier.simplify(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, Math.max(36, Math.floor(p.idx.length * src.simp[0] / 3) * 3), src.simp[1]);
+      return ix.length ? subPrim(p, ix) : null;
     }).filter(Boolean);
     if (set.seg) {
       // 依材質合併、跨整片城市的網格：高於 minY 的三角形投影到 xz 格網（res 一格），相連的格子算同一棟（或貼在一起的一群）。

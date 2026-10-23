@@ -58,7 +58,7 @@ const NL = LOW ? 8 : 16;
 const LAMP_C = 16, LAMP_K = 16;   // 路燈表的格子邊長（公尺）與每格最多幾盞
 const U = {
   uTime: { value: 0 }, uLampOn: { value: 1 }, uFlash: { value: 0 }, uClipY: { value: -1e9 }, uWet: { value: 1 },
-  uCam: { value: V3() }, uFogCol: { value: C3(0x1a1d26) }, uFogHi: { value: C3(0x3a2a3a) }, uFogDen: { value: .016 },
+  uCam: { value: V3() }, uFogCol: { value: C3(0x1a1d26) }, uFogHi: { value: C3(0x3a2a3a) }, uFogDen: { value: .016 }, uCullR: { value: 380 },
   uLP: { value: Array.from({ length: NL }, () => new T.Vector4(0, -999, 0, 0)) },
   uLC: { value: Array.from({ length: NL }, () => new T.Vector4()) },
   uLD: { value: Array.from({ length: NL }, () => new T.Vector4(0, -1, 0, -2)) },
@@ -73,7 +73,7 @@ const U = {
   uDay: { value: 0 }, uCloud: { value: .9 }, uSun: { value: V3(0, -1, 0) }, uSunCol: { value: V3() },
   uSkyTop: { value: V3() }, uSkyHor: { value: V3() }, uMoon: { value: V3(0, -1, 0) },
   // 建築高度圖（28-sky.js）：xy 是西北角的世界座標，z 是 1/邊長，w 是最高的屋頂；日光朝太陽方向在圖上步進求陰影
-  uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) },
+  uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) }, uCityM: { value: null },
   // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
   uOccA: { value: Array.from({ length: LOW ? 6 : 12 }, () => new T.Vector4(0, 0, 1, 0)) },
   uOccB: { value: Array.from({ length: LOW ? 6 : 12 }, () => new T.Vector4()) },
@@ -84,13 +84,13 @@ const ALLU = Object.keys(U);
 
 // ─── GLSL 共用：雜湊、燈光、霧、環境反射 ───
 const GL_LIB = /* glsl */`
-uniform float uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp;
+uniform float uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR;
 uniform vec3 uCam, uFogCol, uFogHi, uAmbTop, uAmbBot; uniform vec4 uFocus;
 uniform vec4 uLP[${NL}]; uniform vec4 uLC[${NL}]; uniform vec4 uLD[${NL}];
 uniform vec4 uCity; uniform vec2 uGrid;
 uniform highp sampler2D uLampT; uniform vec4 uLampG, uZone;
 uniform float uDay, uCloud; uniform vec3 uSun, uSunCol, uSkyTop, uSkyHor, uMoon;
-uniform sampler2D uHMap; uniform vec4 uHM;
+uniform sampler2D uHMap, uCityM; uniform vec4 uHM;
 uniform vec4 uOccA[${NOCC}]; uniform vec4 uOccB[${NOCC}];
 float h11(float n){ return fract(sin(n)*43758.5453123); }
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
@@ -225,8 +225,15 @@ vec3 envMap(vec3 r){
 }
 vec3 applyFog(vec3 c, vec3 p){
   vec3 d = p - uCam; float dist = length(d);
-  float hf = exp(-max(p.y,0.)*.02);
-  float x = dist*uFogDen*(.5 + .5*hf);
+  float hf = exp(-max(p.y,0.)*.02), D = .5 + .5*hf;
+  // 鏡頭在高處（直升機、霓峰塔的塔吊）：霧集中在地面附近（標高 20 m 的指數大氣），往下看只穿過一小段濃霧；
+  // 只在城市的陸地上（22-hmap.js 的 uCityM）：外面的山、河與海本來就只做給地面看的剪影，照舊在霧裡。地面的鏡頭照舊（hk = 0）。畫面邊緣（uCullR：distCull 與街道設施不畫的距離）照水平距離全進霧裡，不會看到城市被切掉
+  float hk = smoothstep(20., 120., uCam.y) * texture2D(uCityM, (p.xz - uHM.xy) * uHM.z).r, yc = max(uCam.y, 0.), yp = max(p.y, 0.), dy = abs(yc - yp);
+  float Da = dy > 1. ? 20.*abs(exp(-yp/20.) - exp(-yc/20.))/dy : exp(-yp/20.);
+  #ifndef FAR
+  D = mix(D, min(D, .02 + Da), hk);   // 遠景（北嶺的山坡、對岸）照舊：本來就只做給地面看的剪影，近看的明暗不對
+  #endif
+  float x = dist*uFogDen*D;
   float f = mix(1. - exp(-x), 1. - exp(-x*x), uDay);   // 白天用平方指數：近處清楚、420 m 外（distCull 不畫的地方）照樣全進霧裡
   vec3 dir = d/max(dist,1e-3);
   vec3 fc = mix(uFogCol, uFogHi, smoothstep(-.05, .45, dir.y)) * (1. + uFlash*1.5);
@@ -268,10 +275,15 @@ void main(){
   if (uFocus.w > 0.) {   // 貼著相機或擋在相機與角色之間的東西用抖動淡掉
     vec3 ab = uFocus.xyz - uCam; float tt = clamp(dot(vW - uCam, ab) / dot(ab, ab), 0., 1.);
     float dd = length(vW - uCam - ab * tt), cd = length(vW - uCam);
+  #ifndef FAR
+  f = max(f, hk * smoothstep(.6, .97, length(d.xz)/uCullR));
+  #endif
     float fade = max(1. - smoothstep(.5, 1.6, cd), (1. - smoothstep(.45, 1., dd)) * step(tt, .8) * .8);
     if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < fade) discard;
   }
   vec3 n = normalize(vN);
+// 遠景只算一部分距離的霧（FAR）：鏡頭升到 40–180 m（直升機、霓峰塔的塔吊）時慢慢回到完整的霧，不然中間的城區都在霧裡、遠處的對岸與山坡像浮在空中
+float farK(float k){ return mix(k, 1., smoothstep(40., 180., uCam.y)); }
   #ifdef DOUBLE
   if (!gl_FrontFacing) n = -n;
   #endif
@@ -306,9 +318,9 @@ void main(){
   c += emi;
   #if defined(FAR) && defined(FARD)
   float fd = length(vW - uCam);   // 北嶺（21-park.js）：FARD 公尺內照一般的霧，再遠才和遠景一樣只算一部分距離，走得到的山坡接上遠景山脊
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * (fd > FARD ? (FARD + (fd - FARD) * FAR) / fd : 1.)), 1.);
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * (fd > FARD ? (FARD + (fd - FARD) * farK(FAR)) / fd : 1.)), 1.);
   #elif defined(FAR)
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * FAR), 1.);   // 遠景（對岸、山、外海的島）：霧只算一部分距離，剪影才看得到
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * farK(FAR)), 1.);   // 遠景（對岸、山、外海的島）：霧只算一部分距離，剪影才看得到
   #else
   gl_FragColor = vec4(applyFog(c, vW), 1.);
   #endif

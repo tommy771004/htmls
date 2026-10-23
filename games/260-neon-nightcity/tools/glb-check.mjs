@@ -324,6 +324,15 @@ try {
     await shot(page, 'g-mall');
     check(ok && tg, `商店街模型已換上（店面、假人、槍牆替身藏起來；9 個吊靶 ${tg}）`);
   }
+
+  // 霓峰塔工地（69-v5-tower.js）：大樓三段、桅桿 78 節與塔頂換上模型，程式建模的替身藏起來
+  {
+    await ev(page, () => { const nc = window.__nc, C = nc.gta.v5.crane, [x, z] = C.jib(24); nc.walk(); nc.tp(x, z, 0); });
+    let ok = false;
+    for (let i = 0; i < 80 && !ok; i++) { await page.waitForTimeout(250); ok = await ev(page, () => { const C = window.__nc.gta.v5.crane.CR; return !!C.glb && C.lod === 1 && C.glb.every(m => m.visible) && C.fb.every(m => !m.visible); }); }
+    const n = await ev(page, () => (window.__nc.gta.v5.crane.CR.glb || []).length);
+    check(ok, `霓峰塔模型已換上（${n} 組實例，替身藏起來）`);
+  }
 } finally {
   check(!log.pageerrors.length, `沒有未捕捉例外 ${log.pageerrors.slice(0, 3).join(' | ')}`);
   check(!log.errors.length, `沒有 console.error ${log.errors.slice(0, 3).join(' | ')}`);

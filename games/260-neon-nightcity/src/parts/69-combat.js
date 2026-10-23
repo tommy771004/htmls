@@ -287,7 +287,7 @@ function shoot() {
   else {
     const moving = player.v > .5 ? 1.4 : 1, deg = (A.spread * (gta.aimK > .5 ? .6 : 1.2) * moving + arm.bloom) * abil.spread * skK.spread;
     for (let i = 0; i < (A.pel || 1); i++) {
-      const R = spreadDir(R0, deg), hit = castRay(R, A.range);
+      const R = spreadDir(R0, deg), hit = castRay(R, A.range * perchK(A));   // 塔吊上用狙擊鏡射程加倍（69-v5-tower.js）
       const x = R.ox + R.dx * hit.t, y = R.oy + R.dy * hit.t, z = R.oz + R.dz * hit.t;
       if (i < 3) tracer(_mz.x, _mz.y, _mz.z, x, y, z);
       if (player.where === 'out') {

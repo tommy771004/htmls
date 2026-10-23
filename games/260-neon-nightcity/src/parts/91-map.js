@@ -40,6 +40,7 @@ const MAP_CAT = [
   { id: 'ramen', name: '拉麵攤', col: '#ff7a52', icon: 'ramen' },
   { id: 'shop', name: '便利商店', col: '#5ad8ff' },
   { id: 'ramp', name: '特技跳台', col: '#d9b42a', icon: 'ramp' },
+  { id: 'crane', name: '塔吊', col: '#ffd23a' },
   { id: 'race', name: '街頭賽', col: '#ff3fd2' },
   { id: 'surv', name: '生存擂台', col: '#ff8a3a' },
   { id: 'tale', name: '委託', col: '#ffe066' },
@@ -67,6 +68,7 @@ function mapBlips() {
   add('pd', { name: PD.name, x: PD.x, z: PD.z, type: '警察局', desc: 'BUSTED 之後在這裡交保釋金出來。北牆的逃生梯爬得上屋頂，停機坪上停著警用直升機（開走 2 星）。' });
   add('hosp', { name: HOSP.name, x: HOSP.x, z: HOSP.z, type: '醫院', desc: `WASTED 之後在這裡出院（醫藥費是現金的 5%，最多 ${money(5000)}）。急診門口有醫療包；北牆的員工電梯通到屋頂的醫療直升機。` });
   if (FAC.pd) { const [x, z] = facW(FAC.pd, 24, 31); add('pd', { name: `${PD.name}拖吊場`, txt: 'P', x, z, type: '拖吊場', desc: motors.v5.imp ? `${kestrel.name}被扣在這裡：到北邊的守衛亭付 ${money(IMP_FEE)} 贖回，或翻過鐵絲網把車偷出來（撞破柵門 2 星）。` : '被擊斃、被捕時開著的車，或通緝中丟下的車，會被拖到這裡。' }); }   // 69-v5-civic.js
+  if (CR.on) { const [x, z] = toW(CR.mx, CR.mz, CR.f); add('crane', { name: '霓峰塔工地', txt: '吊', x, z, type: '塔吊', desc: `250 m 的塔吊：桅桿東面的直梯爬到吊臂約 40 秒，202 m 的附著平台接到大樓屋頂（直升機可以直接降落在屋頂停機坪）。吊臂末端有重型狙擊槍；從吊臂或屋頂邊上跳下去開傘。` }); }   // 69-v5-tower.js
   for (const o of ramenSpots) add('ramen', { name: '路邊拉麵攤', ...WP(o.x, o.z), type: '小吃', desc: '霓虹區人行道上的拉麵攤。' });
   sideBlips(add);   // 69-side.js：街頭賽起點、生存擂台、委託人、幫派據點
   for (const r of RAMPS) { const done = motors.stunts.includes(r.i); add('ramp', { name: `特技跳台 #${r.i + 1}`, x: r.x, z: r.z, type: '特技跳台', done, rows: [['狀態', done ? '已完成' : '未完成（首次加倍獎金）']], desc: '加速衝上跳台，落地前在空中翻滾可以拿加成。' }); }

@@ -102,7 +102,7 @@ function flyHeli(v, inp, dt) {
   const wall = roofH(v.x, v.z) > v.y + .6 || roofH(v.x + fx * v.len * .4, v.z + fz * v.len * .4) > v.y + .6;
   if (wall) { imp = Math.hypot(v.vx, v.vz); v.x = ox; v.z = oz; v.vx *= -.3; v.vz *= -.3; if (imp > 4) damageVeh(v, (imp - 4) * 40, false); }
   v.y += v.vy * dt;
-  v.y = Math.min(v.y, 170);
+  v.y = Math.min(v.y, 290);   // 升限要高過霓峰塔的屋頂（202 m，69-v5-tower.js）
   const floor = Math.max(groundH(v.x, v.z), roofH(v.x, v.z) + .05);
   if (v.y < floor) { if (v.vy < -7) { imp = Math.max(imp, -v.vy); damageVeh(v, (-v.vy - 7) * 120, false); } v.y = floor; v.vy = Math.max(0, v.vy); }
   // 姿態：加速前傾、轉彎側傾

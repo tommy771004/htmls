@@ -778,12 +778,12 @@ function updatePlayerWalk(inp, dt, camYaw) {
   }
   const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
   colY = player.y;   // 快速道路橋面上的護欄只擋橋上的人、橋下的柱子只擋地面的人（30-vehicles.js）
-  let r = collideCircle(nx, nz, .32, false, true);
+  let r = skyWalk() ? { x: nx, z: nz } : collideCircle(nx, nz, .32, false, true);   // 塔吊的吊臂上（69-v5-tower.js）只看步行面
   colY = 0;
   let x = r.x, z = r.z;
   if (depth > 0) { [x, z] = farClamp(x, z); if (!tronNear(x, z)) z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）；光格島附近（21-tron.js）可以游到碼頭的梯子
   // 車流、載具與路人（69-kinema.js：停著的車推得動一點、被車夾在牆上、和路人互相讓開、衝刺撞人）
-  [x, z] = kinWalk(x, z);
+  if (!skyWalk()) [x, z] = kinWalk(x, z);
   if (player.where === 'out') [x, z] = walkStep(player.x, player.z, x, z, player.y);   // 北嶺鐵道橋的護欄、洞壁、橋墩（20-walk.js）
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏

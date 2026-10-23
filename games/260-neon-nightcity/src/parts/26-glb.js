@@ -181,7 +181,7 @@ void main(){
   gl_FragColor = vec4(applyFog(c, vW), clamp(base.a + (1. - max(dot(n, v), 0.)) * .25, 0., 1.));
   #else
   #ifdef FAR
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * FAR), 1.);   // 遠景模型（對岸城區）：和 MAT.far 一樣只算一部分距離的霧
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * farK(FAR)), 1.);   // 遠景模型（對岸城區）：和 MAT.far 一樣只算一部分距離的霧
   #else
   gl_FragColor = vec4(applyFog(c, vW), 1.);
   #endif

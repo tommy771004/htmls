@@ -56,10 +56,11 @@ OVR[ANIM.climb] = (p, t) => {
 };
 const ladFoot = L => facW(L.F, L.x + L.nx * .45, L.z + L.nz * .45);
 const ladTop = L => facW(L.F, L.top[0], L.top[1]);
+// fromTop：true 從頂上、false 從地面、數字是從梯子中段的那個高度（塔吊在大樓屋頂的連接橋，L.stops）
 function ladStart(L, fromTop) {
   if (player.mode !== 'walk' || player.down > 0) return;
   player.crouch = false; player.dance = 0; gta.aiming = false; arm.trig = false;
-  V5.lad = { L, y: fromTop ? L.y1 - .2 : .15, ph: 0 };
+  V5.lad = { L, y: typeof fromTop === 'number' ? fromTop : fromTop ? L.y1 - .2 : .15, ph: 0 };
   player.v = 0; sfx.step && sfx.click();
   toast('W／S 爬上爬下 · 按住 Shift 加速，往下按 Shift 直接滑下去');
 }
@@ -73,7 +74,7 @@ function ladStep(inp, dt) {
   const A = V5.lad;
   if (A.fence) return fenceStep(A, dt);
   const L = A.L, up = inp.mz > .2, dn = inp.mz < -.2;
-  const sp = up ? (inp.run ? LAD_FAST : LAD_SP) : dn ? -(inp.run ? LAD_SLIDE : LAD_SP) : 0;
+  const sp = up ? (inp.run ? L.fast || LAD_FAST : L.sp || LAD_SP) : dn ? -(inp.run ? L.slide || LAD_SLIDE : L.sp || LAD_SP) : 0;   // 塔吊的梯子自己的速度（L.sp／fast／slide）
   A.y += sp * dt; A.ph += Math.abs(sp) * dt * (A.slide ? 0 : 1.6);
   A.slide = dn && inp.run;
   if (A.y >= L.y1 - .1 && up) {   // 爬到頂：站上屋頂
@@ -89,6 +90,14 @@ function ladStep(inp, dt) {
   }
   A.y = Math.min(A.y, L.y1 - .1);
   ladPlace();
+}
+// 梯子中段的平台（L.stops：[{ y, at: [x, z]（設施座標）, name }]）：爬到那個高度按 E 踏上去
+const ladStopAt = A => A && A.L && A.L.stops && A.L.stops.find(s => Math.abs(A.y - s.y) < .9);
+function ladStop() {
+  const s = ladStopAt(V5.lad); if (!s) return false;
+  const [x, z] = facW(V5.lad.L.F, s.at[0], s.at[1]); V5.lad = null;
+  player.x = x; player.z = z; player.y = s.y; player.v = 0; player.anim = -1;
+  return true;
 }
 
 // ─── 走得上去的屋頂：設施地塊的屋頂（o.roof），邊緣 0.4 m 擋住，空白鍵從邊上跳下去 ───
@@ -294,12 +303,17 @@ function fenceStep(A, dt) {
 
 // ─── 互動提示 ───
 ctxHooks.unshift(p => {
+  if (p.where === 'out' && ladStopAt(V5.lad)) { const s = ladStopAt(V5.lad); return { key: 'E', text: `踏上${s.name}`, fn: ladStop }; }
   if (p.where !== 'out' || V5.lad) return null;
   if (p.mode === 'walk') {
     for (const L of V5_LADS) {
       const [fx, fz] = ladFoot(L), [tx, tz] = ladTop(L);
       if (Math.abs(p.y) < 1.2 && Math.hypot(p.x - fx, p.z - fz) < LAD_R) return { key: 'E', text: `爬${L.name}`, fn: () => ladStart(L, false) };
       if (Math.abs(p.y - L.y1) < .8 && Math.hypot(p.x - tx, p.z - tz) < 1.2) return { key: 'E', text: `爬下${L.name}`, fn: () => ladStart(L, true) };
+      for (const s of L.stops || []) {
+        const [sx, sz] = facW(L.F, s.at[0], s.at[1]);
+        if (Math.abs(p.y - s.y) < .8 && Math.hypot(p.x - sx, p.z - sz) < 1.4) return { key: 'E', text: `抓住${L.name}`, fn: () => ladStart(L, s.y + .1) };
+      }
     }
     const H = FAC.hosp;
     if (H) {
@@ -382,6 +396,7 @@ function v5Update(dt) {
   pkUpdate(dt);   // 69-v5-garage.js
   streetUpdate(dt);   // 69-v5-street.js
   v5ShopUpdate(dt);   // 69-v5-shops.js
+  craneUpdate(dt);   // 69-v5-tower.js
 }
 // 繃帶：出院後 5 分鐘，額頭一圈、左前臂一段
 const BAND = (() => {

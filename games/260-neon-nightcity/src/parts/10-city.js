@@ -414,6 +414,8 @@ const FAC = (() => {
       range: { x0: 12.5, x1: 30, z0: 25, z1: 49.5 }, lot: { x0: 31, x1: 46, z0: 27, z1: 49.5 }, wash: { x0: 47, x1: 55, z0: 18, z1: 42 } },
     // 公園大道 (8,8) 的五層立體停車場（69-v5-garage.js）：沒有地塊，整塊人行道內是停車場；東邊隔著大道是燈籠公園，頂樓的特技跳台往東飛進公園
     gar: { i: 8, j: 8, lots: [], gar: { x0: 13, x1: 59, z0: 13, z1: 49 }, lv: 3.6, n: 4, roof: .15 + 4 * 3.6 },   // 層高 3.6 m，頂樓是第 4 層樓板（地面 0.15）
+    // 中城 (4,3) 的霓峰塔工地（69-v5-tower.js）：沒有地塊，西半是蓋到 202 m 的框架大樓（tower），東邊是 250 m 的塔吊（mast 是桅桿中心），四周圍施工圍籬
+    crane: { i: 4, j: 3, lots: [], tower: { x0: 14.2, x1: 37.3, z0: 13.3, z1: 38.2 }, mast: [47, 26] },
   };
   for (const [id, F] of Object.entries(S)) {
     const b = blocks.find(o => !o.outer && o.i === F.i && o.j === F.j);
@@ -442,7 +444,7 @@ const FAC = (() => {
       }
       return L;
     });
-    for (const k of ['yard', 'range', 'lot', 'wash', 'gar']) if (F[k]) F[k] = { x0: F.ax + F[k].x0, x1: F.ax + F[k].x1, z0: F.az + F[k].z0, z1: F.az + F[k].z1 };
+    for (const k of ['yard', 'range', 'lot', 'wash', 'gar', 'tower']) if (F[k]) F[k] = { x0: F.ax + F[k].x0, x1: F.ax + F[k].x1, z0: F.az + F[k].z0, z1: F.az + F[k].z1 };
   }
   return S;
 })();

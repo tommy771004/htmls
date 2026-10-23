@@ -33,9 +33,10 @@ const SET = (() => {
   return s;
 })();
 // 細節距離：選單的 SET.dist 再乘上自動降載的 k（70-render.js：內部解析度降到底還是太慢就縮短，快了再放回來）；
-// 遠處的立面、建築組與街道設施都照它隱藏（10-city.js 的 distCull、20-props.js 的 instUpdate），v 變了要重算
-const detail = { k: 1, v: 0 };
-const detailK = () => SET.dist * detail.k;
+// 遠處的立面、建築組與街道設施都照它隱藏（10-city.js 的 distCull、20-props.js 的 instUpdate），v 變了要重算。
+// alt：鏡頭升高（直升機、霓峰塔的塔吊）時看得更遠，70-render.js 依鏡頭高度設 1–1.6（霧也跟著鏡頭高度變淡，邊緣照 uCullR 全進霧裡）
+const detail = { k: 1, v: 0, alt: 1 };
+const detailK = () => SET.dist * detail.k * detail.alt;
 function setSave() { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) { /* 存不了就算了 */ } }
 // 距離與速度依測量系統顯示（90-hud.js、91-map.js）
 const IMPERIAL = () => SET.units === 'imperial';

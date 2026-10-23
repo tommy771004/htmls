@@ -150,6 +150,7 @@ function renderFrame(dt, t) {
   if (outdoors && SET.refl) renderReflection();
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
   R.render(curScene, camera);
+  { const a = 1 + Math.round(sstep(60, 220, camera.position.y) * 6) / 10; if (a !== detail.alt) { detail.alt = a; detail.v++; } U.uCullR.value = INST_R * detailK(); }   // 高處看得更遠（01-settings.js 的 detail.alt）
   // 泛光
   const w = rtScene.width, h = rtScene.height;
   mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : 1; blit(mPre, rtB[0]);

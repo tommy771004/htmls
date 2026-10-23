@@ -209,6 +209,157 @@
    }
   ]
  },
+ "v5tower": {
+  "kb": 1021,
+  "items": {
+   "base": {
+    "w": 23.15,
+    "d": 12.46,
+    "h": 13.02,
+    "tris": 5204
+   },
+   "mid": {
+    "w": 20.16,
+    "d": 13.07,
+    "h": 12,
+    "tris": 3127
+   },
+   "top": {
+    "w": 20.16,
+    "d": 12.16,
+    "h": 8.96,
+    "tris": 2664
+   }
+  },
+  "credits": [
+   {
+    "file": "construction",
+    "title": "Construction",
+    "author": "Stas Gunko (https://sketchfab.com/Stasgunko)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-84e65d542fa9456593b10ffb0d0802ec"
+   },
+   {
+    "file": "construction",
+    "title": "Construction",
+    "author": "Stas Gunko (https://sketchfab.com/Stasgunko)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-84e65d542fa9456593b10ffb0d0802ec"
+   },
+   {
+    "file": "construction",
+    "title": "Construction",
+    "author": "Stas Gunko (https://sketchfab.com/Stasgunko)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-84e65d542fa9456593b10ffb0d0802ec"
+   }
+  ]
+ },
+ "v5crane": {
+  "kb": 1262,
+  "items": {
+   "cr_mast": {
+    "w": 1.98,
+    "d": 1.98,
+    "h": 3.56,
+    "tris": 1768
+   },
+   "cr_top": {
+    "w": 8.58,
+    "d": 103.04,
+    "h": 33.31,
+    "tris": 58883
+   }
+  },
+  "credits": [
+   {
+    "file": "liebherr_tower_crane",
+    "title": "Liebherr tower crane",
+    "author": "Cem Alagozlu (https://sketchfab.com/cem.alagozlu)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/liebherr-tower-crane-0f8befc223734608a5d54aad4904951f"
+   },
+   {
+    "file": "liebherr_tower_crane",
+    "title": "Liebherr tower crane",
+    "author": "Cem Alagozlu (https://sketchfab.com/cem.alagozlu)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/liebherr-tower-crane-0f8befc223734608a5d54aad4904951f"
+   }
+  ]
+ },
+ "v5site": {
+  "kb": 309,
+  "items": {
+   "site1": {
+    "w": 10.1,
+    "d": 5.38,
+    "h": 7.94,
+    "tris": 1065
+   },
+   "site2": {
+    "w": 21.86,
+    "d": 13.84,
+    "h": 5.13,
+    "tris": 288
+   },
+   "site3": {
+    "w": 26.57,
+    "d": 15.23,
+    "h": 22.87,
+    "tris": 5043
+   },
+   "site4": {
+    "w": 9,
+    "d": 9.94,
+    "h": 10.22,
+    "tris": 619
+   },
+   "site5": {
+    "w": 25.99,
+    "d": 13.96,
+    "h": 22.84,
+    "tris": 2471
+   }
+  },
+  "credits": [
+   {
+    "file": "construction_pack_low_poly",
+    "title": "Construction Pack (Low Poly)",
+    "author": "Şafak Binen (https://sketchfab.com/sfkbnn)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7"
+   },
+   {
+    "file": "construction_pack_low_poly",
+    "title": "Construction Pack (Low Poly)",
+    "author": "Şafak Binen (https://sketchfab.com/sfkbnn)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7"
+   },
+   {
+    "file": "construction_pack_low_poly",
+    "title": "Construction Pack (Low Poly)",
+    "author": "Şafak Binen (https://sketchfab.com/sfkbnn)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7"
+   },
+   {
+    "file": "construction_pack_low_poly",
+    "title": "Construction Pack (Low Poly)",
+    "author": "Şafak Binen (https://sketchfab.com/sfkbnn)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7"
+   },
+   {
+    "file": "construction_pack_low_poly",
+    "title": "Construction Pack (Low Poly)",
+    "author": "Şafak Binen (https://sketchfab.com/sfkbnn)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7"
+   }
+  ]
+ },
  "v5pd": {
   "kb": 7902,
   "items": {

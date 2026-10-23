@@ -74,7 +74,7 @@
 
 ## 街區建築與道具（`props/`）
 
-`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。
+`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -94,6 +94,9 @@
 | `v5hosp`（聖瑪格麗特醫院的舊院區正面） | [Samaritan Hospital Frontage](https://sketchfab.com/3d-models/samaritan-hospital-frontage-316005d0b39b4791b1f54d50594d51ca) | [artfletch](https://sketchfab.com/artfletch) | CC BY 4.0 |
 | `v5street`（公車候車亭；背牆三片玻璃另外建成會碎的實例） | [Modern Bus Stop Shelter](https://sketchfab.com/3d-models/modern-bus-stop-shelter-2904d92a65b947e7bed44319bc320e84) | [Ottto3d](https://sketchfab.com/Ottto3ds) | CC BY 4.0 |
 | `v5street`（熱狗攤：攤車、遮陽傘、醬料拆成三件） | [Hot Dog Stand](https://sketchfab.com/3d-models/hot-dog-stand-182671a3e8e644b8bae2decc3745d49e) | [BeaBea](https://sketchfab.com/beabea.) | CC BY 4.0 |
+| `v5tower`（霓峰塔的框架大樓：底層、標準層、頂層） | [Construction](https://sketchfab.com/3d-models/construction-84e65d542fa9456593b10ffb0d0802ec) | [Stas Gunko](https://sketchfab.com/Stasgunko) | CC BY 4.0 |
+| `v5crane`（250 m 塔吊：桅桿標準節、塔頂與吊臂） | [Liebherr tower crane](https://sketchfab.com/3d-models/liebherr-tower-crane-0f8befc223734608a5d54aad4904951f) | [Cem Alagozlu](https://sketchfab.com/cem.alagozlu) | CC BY 4.0 |
+| `v5site`（工地的工寮與材料棚） | [Construction Pack (Low Poly)](https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7) | [Şafak Binen](https://sketchfab.com/sfkbnn) | CC BY 4.0 |
 
 ### 新城區與安全屋（World 整合）
 
