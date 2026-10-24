@@ -197,18 +197,24 @@ function drunkStep(dt) {
     .box(-2.6, h - .3, .03, 3, .06, .04, 0xd8f0ff, 8).box(2.6, h - .3, .03, 3, .06, .04, 0xd8f0ff, 8)
     .box(-1.2, .9, .05, .14, 1.8, .06, 0x2a2c30, 15).box(1.2, .9, .05, .14, 1.8, .06, 0x2a2c30, 15).box(0, 1.5, .06, 2.6, .1, .06, 0xf0a020, 15).build(), MAT.uber);
   ik.position.set(GAR_X, 0, GAR_Z + .08); ik.visible = false; cityAdd(ik, zoneAtL(GAR_X, GAR_Z));
-  SHOP.shutter = { m, ik, open: 0, msgT: 0 };
+  // 門頂的旋轉警示黃燈（燈罩裡一片反光板，轉起來掃一圈）
+  const bc = new T.Mesh(new Kit().cyl(0, .12, 0, .12, .12, .24, 12, 0xffa020, 11).box(.06, .12, 0, .02, .18, .16, 0xfff2c0, 8).build(), MAT.uber);
+  bc.position.set(GAR_X + w / 2 - .4, h + .1, GAR_Z + .3); cityAdd(bc, zoneAtL(GAR_X, GAR_Z));
+  SHOP.shutter = { m, ik, open: 0, msgT: 0, bc };
 }
 function shutterStep(dt) {
   const S = SHOP.shutter; if (!S) return;
   const v = player.mode === 'drive' ? player.veh : null, [gx, gz] = toW(GAR_X, GAR_Z + SW + 4);
-  const near = v && (v.isCar || v === kestrel) && !v.fly && Math.hypot(v.x - gx, v.z - gz) < 6;   // 自己的機車也能開進去改裝（66-chrome.js）
-  const want = near && !(W.stars > 0 && W.seen) ? 1 : 0;
-  if (near && !want && (S.msgT -= dt) <= 0) { S.msgT = 6; toast('警察還看得到你：CHROME WORKS 的捲門不開'); }
-  if (want !== S.want) { S.want = want; sfx.door(); }
-  S.open = damp(S.open, want, 2.2, dt);
+  const near = v && !v.fly && !v.boat && Math.hypot(v.x - gx, v.z - gz) < 6;   // 紅外線感應區：門前 6 m（偷來的車與機車也開得進去，66-chrome.js）
+  const why = near ? v6DoorBlock(v) : '';   // 69-v6-customs.js：歇業、警察看得到、太燙手的贓車、坦克
+  const want = near && !why ? 1 : 0;
+  if (near && why && (S.msgT -= dt) <= 0) { S.msgT = 6; toast(why); }
+  if (want !== S.want) { S.want = want; if (want) sfx.hiss(); sfx.door(); }
+  S.open = clamp(S.open + (want ? 1 : -1) * dt / 1.2, 0, 1);   // 氣壓閥一聲，1.2 秒內升起
   S.m.scale.y = 1 - S.open * .92; S.m.position.y = S.open * 3.4;
   S.ik.visible = S.open > .02;
+  S.spin = (near || (S.open > .01 && S.open < .99)) ? (S.spin || 0) + dt * 9 : 0;   // 門頂的警示黃燈：開門時轉
+  if (S.bc) { S.bc.rotation.y = S.spin; S.bc.visible = true; }
 }
 
 // ─── 互動提示（便利店裡、提款機、酒吧）───

@@ -77,7 +77,7 @@ const mUp = pass(`uniform sampler2D tSrc, tAdd; uniform vec2 uTexel; uniform flo
     s += texture2D(tSrc, vUv + t).rgb + texture2D(tSrc, vUv - t).rgb + texture2D(tSrc, vUv + vec2(t.x, -t.y)).rgb + texture2D(tSrc, vUv + vec2(-t.x, t.y)).rgb;
     gl_FragColor = vec4(texture2D(tAdd, vUv).rgb + s / 16. * uK, 1.);
   }`, { tSrc: { value: null }, tAdd: { value: null }, uTexel: { value: new T.Vector2() }, uK: { value: 1 } });
-const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint; uniform vec2 uRes, uFx;
+const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint; uniform vec2 uRes, uFx, uHi;
   varying vec2 vUv;
   float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   vec3 aces(vec3 x){ return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
@@ -105,6 +105,8 @@ const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvV
     if (uWob > 0.) c = mix(c, texture2D(tScene, uv + vec2(.012, 0.) * uWob).rgb, .35 * uWob);
     c += texture2D(tBloom, uv).rgb * uBloomK;
     c *= uExp * (1. + uFlash * .5);
+    // 高光肩部（場館的 ENV.post.knee／range）：最亮的色版超過 knee 後漸近 knee+range，燈泡與反光不會燒成整片白；用最大色版縮放，不偏色
+    if (uHi.x > 0.) { float L = max(max(c.r, c.g), c.b); if (L > uHi.x) { float e = L - uHi.x; c *= (uHi.x + e / (1. + e / uHi.y)) / L; } }
     c = aces(c);
     // 調色：暗部偏青、亮部偏暖
     float l = dot(c, vec3(.2126, .7152, .0722));
@@ -122,7 +124,7 @@ const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvV
     c += (h(uv * uRes + fract(uTime * 7.)) - .5) * .035 * uFx.y;
     gl_FragColor = vec4(c, 1.);
   }`, { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
-  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) } });
+  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
 const prevVP = new T.Matrix4(), curVP = new T.Matrix4();
@@ -165,13 +167,14 @@ function renderFrame(dt, t) {
   { const a = 1 + Math.round(sstep(60, 220, camera.position.y) * 6) / 10; if (a !== detail.alt) { detail.alt = a; detail.v++; } U.uCullR.value = INST_R * detailK(); }   // 高處看得更遠（01-settings.js 的 detail.alt）
   { const cx = camera.position.x, cz = camera.position.z, zc = zoneAtW(cx, cz); if (zc) { const f = localZone(zc, ...zoneLocal(zc, cx, cz)); U.uZone.value.set(f.ox, f.oz, f.c, f.s); } }   // 相機那一點的剛體框（彎曲的片）
   const outdoors = curScene === scene;
+  const vp = outdoors ? null : (ENV[player.where] || {}).post;   // 場館自己的曝光、泛光門檻與高光肩部（60-venues.js 的 ENV）
   reflU.uReflOn.value = outdoors && SET.refl ? 1 : 0;
   if (outdoors && SET.refl) renderReflection();
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
   R.render(curScene, camera);
   // 泛光
   const w = rtScene.width, h = rtScene.height;
-  mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : 1; blit(mPre, rtB[0]);
+  mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : vp?.thr ?? 1; blit(mPre, rtB[0]);
   for (let i = 1; i < rtB.length; i++) { mDown.uniforms.tSrc.value = rtB[i - 1].texture; mDown.uniforms.uTexel.value.set(1 / rtB[i - 1].width, 1 / rtB[i - 1].height); blit(mDown, rtB[i]); }
   const last = rtB.length - 1;
   for (let i = last - 1; i >= 0; i--) {
@@ -186,8 +189,8 @@ function renderFrame(dt, t) {
   const u = mComp.uniforms;
   u.tScene.value = rtScene.texture; u.tDepth.value = rtScene.depthTexture; u.tBloom.value = rtU[0].texture;
   u.uInvVP.value.copy(curVP).invert(); u.uPrevVP.value.copy(prevVP);
-  u.uBlur.value = post.blur; u.uExp.value = post.exposure * SET.bright * (outdoors ? atm.exp : 1); u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
-  u.uBloomK.value = (outdoors ? .85 : 1.0) * SET.bloom;
+  u.uBlur.value = post.blur; u.uExp.value = post.exposure * SET.bright * (outdoors ? atm.exp : vp?.exp ?? 1); u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
+  u.uBloomK.value = (outdoors ? .85 : vp?.bloom ?? 1) * SET.bloom; u.uHi.value.set(vp?.knee ?? 0, vp?.range ?? 1);
   u.uFx.value.set(SET.ca ? 1 : 0, SET.grain ? 1 : 0);
   u.uGray.value = post.gray; u.uVig.value = post.vig; u.uHurt.value = post.hurt; u.uTint.value.copy(post.tint);
   u.uRes.value.set(w, h);

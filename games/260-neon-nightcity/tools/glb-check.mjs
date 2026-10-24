@@ -66,7 +66,7 @@ try {
   });
   check(foot['水塔腳之間'] && !foot['水塔腳之間'].hit && foot['醫院急診樓前'] && !foot['醫院急診樓前'].hit && foot.blocks > 50, `實體建築照模型外形換掉碰撞盒：${foot.blocks}/${foot.all} 個街區、${foot.boxes} 個盒；${['水塔腳之間', '醫院急診樓前'].map(k => k + (foot[k] ? `（${foot[k].id}）${foot[k].hit ? '擋住' : '走得過去'}` : '模型沒下載')).join('、')}`);
 
-  // 展示廳：後兩排的實車
+  // 展示廳（64-showroom.js，三層樓）：一樓中庭與兩側展廊
   await ev(page, () => window.__nc.enter('show'));
   await page.waitForTimeout(600);
   await ev(page, () => { const nc = window.__nc; nc.player.x = 0; nc.player.z = 22; nc.player.yaw = 0; nc.look(0, -.12, 1); });
@@ -82,12 +82,12 @@ try {
   const cars = await ev(page, () => window.__nc.spots.showCars);
   if (process.env.CLOSEUPS) for (const c of cars.filter(c => IDS.includes(c.id) && (!process.env.ONLY || process.env.ONLY.split(',').includes(c.id)))) {
     // 站在車子斜前方、相機拉遠看整台車
-    await ev(page, (c) => { const nc = window.__nc, p = nc.player, a = c.yaw + .75; nc.me.mesh.visible = false; p.x = c.x + Math.sin(a) * 2.2; p.z = c.z + Math.cos(a) * 2.2; p.yaw = a + Math.PI; nc.look(a + Math.PI, -.22, 1); }, c);
+    await ev(page, (c) => { const nc = window.__nc, p = nc.player, a = c.yaw + .75; nc.showLevel(c.lv || 0); nc.me.mesh.visible = false; p.x = c.x + Math.sin(a) * 2.2; p.z = c.z + Math.cos(a) * 2.2; p.yaw = a + Math.PI; nc.look(a + Math.PI, -.22, 1); }, c);
     await page.waitForTimeout(350); await hideHud(page); await shot(page, 'c-' + c.id);
     await ev(page, () => { window.__nc.me.mesh.visible = true; });
   }
   const m3 = cars.find(c => c.id === 'e92');
-  await ev(page, (c) => { const p = window.__nc.player; p.x = c.x; p.z = c.z - 2.6; }, m3);
+  await ev(page, (c) => { const nc = window.__nc, p = nc.player; nc.showLevel(c.lv || 0); p.x = c.x * .72; p.z = c.z; }, m3);   // 64-showroom.js：車在兩側展廊，站在走道上
   await page.waitForTimeout(250);
   check(/BMW M3 \(E92\)/.test((await ev(page, () => window.__nc.ctx())) || ''), `實車旁的提示：${await ev(page, () => window.__nc.ctx())}`);
   await ev(page, () => window.__nc.carInfo('e92'));

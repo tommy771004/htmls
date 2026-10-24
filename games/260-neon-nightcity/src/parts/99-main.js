@@ -57,6 +57,7 @@ function onKey(code) {
 // V：把目前的座駕叫到最近的車道上並直接上車（停在車庫裡的也會開出來）
 function summonCar() {
   if (motors.v5.imp) { toast(`${kestrel.name} 在${PD.name}的拖吊場 · 付罰金贖回，或翻牆偷出來`); return; }   // 69-v5-civic.js
+  if (!v6Claim()) return;   // 69-v6-customs.js：燒毀的座駕要付保險自付額或原廠重建費
   motors.stowed = false; kestrel.g.visible = true;
   if (kestrel.dead) toast(`${kestrel.name} 修好送過來了`);
   if (kestrel.dead || kestrel.flat) wreckFix(kestrel);   // 68-wreck.js：耐久、車窗、引擎、輪胎
@@ -213,8 +214,9 @@ function pickLights(t) {
     const v = player.mode === 'drive' ? player.veh : kestrel.lights ? kestrel : null;
     if (v && v.lights) {
       const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
-      for (const s of v.isCar ? [-1, 1] : [0]) dynLights.push({ x: v.x + fx * v.len * .5 + rx * s * .62, y: v.y + .7, z: v.z + fz * v.len * .5 + rz * s * .62, col: HEAD_COL, r: 34, i: v.isCar ? 3.2 : 4, dir: [fx, -.07, fz], cos: .84 });
+      for (const s of v.isCar ? [-1, 1] : [0]) dynLights.push({ x: v.x + fx * v.len * .5 + rx * s * .62, y: v.y + .7, z: v.z + fz * v.len * .5 + rz * s * .62, col: v.headCol || HEAD_COL, r: 34, i: v.isCar ? 3.2 : 4, dir: [fx, -.07, fz], cos: .84 });   // headCol：66-chrome.js 的氙氣／黃金大燈
     }
+    dynLights.push(...v6Lights(t));   // 69-v6-customs.js：底盤霓虹、改裝廠門頂的旋轉警示燈
     const near = atm.lamp < .2 ? [] : traffic.map(c => ({ c, d: (c.x - cx) ** 2 + (c.z - cz) ** 2 })).filter(o => o.d < 1600).sort((a, b) => a.d - b.d).slice(0, 3);   // 白天車流不開大燈
     for (const { c } of near) {
       const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), L2 = TYPES[c.type].len / 2;
@@ -228,14 +230,14 @@ function pickLights(t) {
     const n = Math.max(0, NL - dynLights.length);
     L.push(...dynLights, ...lightPick.slice(0, n));
   } else {
-    const VL = VENUES[player.where].data.lights;   // 車行、車庫的燈比 NL 多：挑離相機最近的
+    const VL = VENUES[player.where].data.lights.filter(l => l.i > 0);   // 車行、車庫的燈比 NL 多：挑離相機最近的（亮度 0 的動態燈不佔位置）
     L.push(...(VL.length <= NL ? VL : VL.map(l => ({ l, d: (l.x - cx) ** 2 + (l.z - cz) ** 2 - l.r * l.r })).sort((a, b) => a.d - b.d).slice(0, NL).map(o => o.l)));
   }
   for (let k = 0; k < NL; k++) {
     const l = L[k];
     if (!l) { U.uLP.value[k].set(0, -999, 0, 0); continue; }
     U.uLP.value[k].set(l.x, l.y, l.z, l.r);
-    U.uLC.value[k].set(l.col.r ?? l.col.x, l.col.g ?? l.col.y, l.col.b ?? l.col.z, 0).multiplyScalar(l.i);
+    U.uLC.value[k].set(l.col.r ?? l.col.x, l.col.g ?? l.col.y, l.col.b ?? l.col.z, 0).multiplyScalar(l.i * (chrome.dim && player.where === 'chrome' && !l.keep ? .4 : 1));   // 66-chrome.js 的 L：主照明調暗 60%
     if (l.dir) U.uLD.value[k].set(l.dir[0], l.dir[1], l.dir[2], l.cos); else U.uLD.value[k].set(0, -1, 0, -2);
   }
 }
@@ -248,6 +250,7 @@ function step(dt) {
   U.uTime.value = t;
   U.uBeat.value = sfx.beat();
   readInput();
+  v6Input(inp);   // 69-v6-customs.js：按住 X 的液壓單輪起伏
   gtaPre(dt);
   let spd = 0;
   const out = player.where === 'out';
@@ -286,10 +289,11 @@ function step(dt) {
     else { player.v = 0; updatePlayerWalk({ mx: 0, mz: 0, run: false }, dt, camState.yaw); }
     const dc = player.where === 'out' ? Math.hypot(player.x - CLUB_W.x, player.z - CLUB_W.z) : 999;
     const db = player.where === 'out' ? Math.hypot(player.x - BAR_W.x, player.z - BAR_W.z) : 999;
-    sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: 0, gear: 1, thr: 0, slip: 0, nitro: false });
+    sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: CW.open ? chrome.rev : 0, gear: 1, thr: CW.open && chrome.revOn ? 1 : 0, slip: 0, nitro: false });   // 66-chrome.js：改裝面板裡原地轟油門
   }
   updateMotors(dt, t);
   updateChrome(dt);   // 66-chrome.js：改裝廠裡的展示車與離場時把車停回門口
+  v6Update(dt);   // 69-v6-customs.js：歇業倒數、炸彈、液壓、回火與燒胎煙、歪軸、客戶委託
   updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
   v3Update(dt);   // 69-v3-*：第三部曲的六圍、化學反應、撞擊與跳傘、計程車
@@ -395,14 +399,15 @@ window.__nc = {
   setQuest, talk: { marlo: talkMarlo, juno: talkJuno }, dialog: dlg, closeDialog,
   // 門口與人物是邏輯座標（用 tpL）；dealSpot、homeSpot 是車停的位置，世界座標
   spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 },
-    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw })), seller: SELLER },
+    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw, lv: c.lv })), seller: SELLER },
+  showLevel: k => showLevel(k), showLift: () => showLift(),   // 64-showroom.js 的三層展示廳
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
   act() { const c = contextAction(); if (c) c.fn(); return c ? c.text : null; },   // 直接執行目前的互動提示
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
   // 66-chrome.js 的改裝廠：套件表、效果、原廠規格；pad() 是門口停車格（世界座標）
-  chrome: { MODS, MOD_FX, CAR_REAL, TUNE, CRASH, STAGE, st: chrome, pad: () => chromePad(), stats: id => modStats(id), apply: () => modApply(kestrel), repairCost: () => repairCost(kestrel), dlg: () => ({ open: dlg.open, who: $('dlgWho').textContent, text: $('dlgText').textContent, opts: dlg.opts.map(o => o.t) }),
+  chrome: { CATS, GRP, MOD_FX, CAR_REAL, TUNE, CRASH, STAGE, st: chrome, CHROME_CAR, BAY1, BAY4, JOHNNY, ROOK, STAIR, PRIV, pad: () => chromePad(), stats: (id, m) => modStats(id, m), apply: () => modApply(kestrel), repairCost: () => repairCost(kestrel), repairParts: () => repairParts(kestrel), plate: id => plateOf(id || kestrel.carId), dlg: () => ({ open: dlg.open, who: $('dlgWho').textContent, text: $('dlgText').textContent, opts: dlg.opts.map(o => o.t) }),
     // 改裝面板：panel() 目前的層與清單、open()／close()、key(code) 照鍵盤操作、choose(名稱) 選那一列（例如 choose('引擎') 再 choose('EMS 改裝 2 級')）
-    panel: () => ({ open: CW.open, cat: CW.cat, sel: CW.sel, title: $('cwTitle').textContent, rows: CW.rows.map(r => ({ name: r.name, val: r.val })), desc: $('cwDesc').textContent }), open: () => cwOpen(), close: () => cwClose(), key: c => cwKey(c),
+    panel: () => ({ open: CW.open, path: CW.path.slice(), cat: CW.path[0] || null, sel: CW.sel, cam: CW.cam, title: $('cwTitle').textContent, rows: CW.rows.map(r => ({ name: r.name, val: r.val, off: !!r.off })), desc: $('cwDesc').textContent, note: $('cwNote').textContent }), open: () => cwOpen(), close: () => cwClose(), key: c => cwKey(c), plateIn: (txt) => { if (!CW.typing) return false; $('cwPlateIn').value = txt; cwPlateDone(true); return true; }, dim: on => cwDim(on), rev: () => chrome.rev,
     choose(name) { const i = CW.rows.findIndex(r => r.name === name); if (i < 0) return false; CW.sel = i; cwPick(); return true; } },
   // 天氣與時間（28-sky.js）：rain(v) 依雨量挑最接近的天氣並立刻套用；weather(id, snap)；time(分鐘)
   rain(v) { setWeather(v > .85 ? 'storm' : v > .45 ? 'rain' : v > .12 ? 'drizzle' : 'overcast', true); wx.rain = v; }, flash() { wx.next = 0; wx.force = true; },

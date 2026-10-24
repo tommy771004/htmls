@@ -51,6 +51,31 @@ export const MODELS = [
   { id: 'chall', file: 'free__dodge_challenger_srt', len: 5.02, tris: 90000 },
   { id: 'zr1', file: '2019_chevrolet_corvette_zr1', len: 4.49, tris: 90000 },
   { id: 'police', file: 'police_car', len: 5.3, tris: 90000 },
+  // 第三批：amogusstrikesback2 的三台超跑（CC BY 4.0）；前後位置燈的節點連著往車頭外伸一公尺多的光束面片（會撐大車長、畫成黑色的長條），整個拿掉
+  { id: 'svj', file: 'lamborghini_aventador_lp_770-4_svj', len: 4.943, tris: 90000, drop: /^lights_position_front_and_back/ },
+  { id: 'evija', file: 'lotus_evija', len: 4.459, tris: 90000, drop: /^lights_position_front_and_back/,
+    wheelNodes: Object.fromEntries(['FL', 'FR', 'BL', 'BR'].map((w) => [w.replace('B', 'R'), [`^wheel${w}_tires`, `^wheel${w}_details`]])) },
+  { id: 'spano', file: '2015_gta_spano', len: 4.61, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'f8', file: 'ferrari_f8_tributo', len: 4.611, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'scg', file: 'scg_003s', len: 4.77, tris: 90000, paint: 'material', drop: /^lights_position_front_and_back/ },
+  { id: 'p9x8', file: 'peugeot_9x8', len: 5.0, tris: 90000, drop: /^lights_position_front_and_back/ },
+  { id: 'c110', file: 'bugatti_centodieci', len: 4.6, tris: 90000, drop: /^lights_position_front_and_back/ },
+  { id: 'nevera', file: 'rimac_nevera', len: 4.75, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'f488c', file: 'ferrari_488_challenge_evo', len: 4.65, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/,
+    wheelNodes: Object.fromEntries(['FL', 'FR', 'BL', 'BR'].map((w) => [w.replace('B', 'R'), [`^Wheel${w}_tyres`, `^Wheel${w}_rims`]])) },
+  { id: 'sc20', file: 'lamborghini_sc20', len: 4.93, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'c63dtm', file: 'mercedes-benz_amg_c63_dtm_mk_iii', len: 4.85, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'spano8', file: 'asphalt_8_-_2015_gta_spano', len: 4.61, tris: 90000 },   // IWillSearchNewModelz 上傳的另一份 Spano（一張貼圖、節點名是 Object_N）
+  { id: 'mosler', file: 'mosler_mt900_gtr_xx_twin_turbo_land_shark', len: 4.58, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'csl3', file: 'bmw_3.0_csl_hommage_concept', len: 4.94, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'slk55', file: 'mercedes-benz_slk_55_amg', len: 4.134, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'giulietta', file: '2016_alfa_romeo_giulietta_veloce_1750_tbi_tct', len: 4.351, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  // 遊戲拆出來的警車（公分；車身有 HiRes／LowRes／BoxRes 三套，還有粒子、輪位、鏡頭、影子面片等輔助網格）：只留 HiRes 車身、室內與高模輪子
+  { id: 'charger', file: 'dodge_charger_srt8_police', len: 5.15, tris: 90000, paint: false,
+    drop: /^(BoxRes|LowRes|Particle|WheelPos|Wheel_|Rim_|ShadowPlane|hood_cam|Damage_Effect|Brake|Glow|Rank|Driver)/,
+    wheelNodes: Object.fromEntries(['FL', 'FR', 'BL', 'BR'].map((w) => [w.replace('B', 'R'), [`^WheelHiRes_${w}`, `^RimHiRes_${w}`]])) },
+  { id: 'energ', file: 'mercedes-benz_vision_ener-g-force', len: 4.7, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/,
+    wheelNodes: Object.fromEntries(['FL', 'FR', 'BL', 'BR'].map((w) => [w.replace('B', 'R'), [`^Wheel${w}_tyre`, `^Wheel${w}_(details|carpaint)`]])) },
   { id: 'v4', file: 'ducati_panigale_v4', len: 2.11, tris: 70000, bike: true, flip: true, paint: false },
   { id: 'zx6r', file: 'kawasaki_ninja_zx-6r', len: 2.025, tris: 70000, bike: true, paint: false, opaque: true, noEmi: true,
     wheelNodes: { F: ['^Front Wheel_', '^Front Rim_'], R: ['^Rear Wheel_', '^Rear Rim_'] } },
@@ -104,6 +129,7 @@ async function processModel(M) {
   const prims = [];
   scene.traverse((node) => {
     const mesh = node.getMesh(); if (!mesh) return;
+    if (cfg.drop && cfg.drop.test(node.getName())) return;   // drop：不要的節點（例如伸出車頭好幾公尺的大燈光束面片）
     const wm = node.getWorldMatrix();
     const { det, n: nm } = normalMat(wm);
     for (const p of mesh.listPrimitives()) {

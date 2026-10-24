@@ -1463,6 +1463,938 @@
    -0.25
   ]
  },
+ "svj": {
+  "id": "svj",
+  "title": "lamborghini aventador lp 770-4 svj",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/lamborghini-aventador-lp-770-4-svj-71460dcc354045ddb1e7a8670678ffca",
+  "bike": false,
+  "len": 4.943,
+  "w": 2.276,
+  "h": 1.155,
+  "wr": 0.355,
+  "fa": 1.242,
+  "ra": -1.459,
+  "track": 0.875,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.865,
+    "y": 0.345,
+    "z": 1.242,
+    "r": 0.345
+   },
+   {
+    "name": "FR",
+    "x": -0.865,
+    "y": 0.345,
+    "z": 1.242,
+    "r": 0.345
+   },
+   {
+    "name": "RL",
+    "x": 0.885,
+    "y": 0.366,
+    "z": -1.459,
+    "r": 0.366
+   },
+   {
+    "name": "RR",
+    "x": -0.885,
+    "y": 0.366,
+    "z": -1.459,
+    "r": 0.366
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31484,
+  "kb": 702,
+  "draws": 20
+ },
+ "evija": {
+  "id": "evija",
+  "title": "lotus evija",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/lotus-evija-80d85f9fe49f4e249548a466a5674835",
+  "bike": false,
+  "len": 4.459,
+  "w": 2.008,
+  "h": 1.141,
+  "wr": 0.353,
+  "fa": 1.22,
+  "ra": -1.374,
+  "track": 0.847,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.861,
+    "y": 0.346,
+    "z": 1.22,
+    "r": 0.346
+   },
+   {
+    "name": "FR",
+    "x": -0.869,
+    "y": 0.346,
+    "z": 1.22,
+    "r": 0.346
+   },
+   {
+    "name": "RL",
+    "x": 0.834,
+    "y": 0.36,
+    "z": -1.374,
+    "r": 0.36
+   },
+   {
+    "name": "RR",
+    "x": -0.824,
+    "y": 0.36,
+    "z": -1.374,
+    "r": 0.36
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 30725,
+  "kb": 687,
+  "draws": 14
+ },
+ "spano": {
+  "id": "spano",
+  "title": "2015 gta spano",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2015-gta-spano-9f115e79267742ff9a95dc7c1cf3021c",
+  "bike": false,
+  "len": 4.61,
+  "w": 2.151,
+  "h": 1.147,
+  "wr": 0.331,
+  "fa": 1.257,
+  "ra": -1.476,
+  "track": 0.831,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   },
+   {
+    "name": "RR",
+    "x": -0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31418,
+  "kb": 727,
+  "draws": 20
+ },
+ "f8": {
+  "id": "f8",
+  "title": "ferrari f8 tributo",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ferrari-f8-tributo-61d8929fd08048bf8ee2e143df2de796",
+  "bike": false,
+  "len": 4.611,
+  "w": 2.267,
+  "h": 1.202,
+  "wr": 0.351,
+  "fa": 1.151,
+  "ra": -1.494,
+  "track": 0.805,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.804,
+    "y": 0.351,
+    "z": 1.151,
+    "r": 0.351
+   },
+   {
+    "name": "FR",
+    "x": -0.804,
+    "y": 0.351,
+    "z": 1.151,
+    "r": 0.351
+   },
+   {
+    "name": "RL",
+    "x": 0.822,
+    "y": 0.351,
+    "z": -1.494,
+    "r": 0.351
+   },
+   {
+    "name": "RR",
+    "x": -0.789,
+    "y": 0.351,
+    "z": -1.494,
+    "r": 0.351
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31232,
+  "kb": 662,
+  "draws": 19
+ },
+ "scg": {
+  "id": "scg",
+  "title": "scg 003s",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/scg-003s-3a6571e472564c539a32cf9235f1bd7d",
+  "bike": false,
+  "len": 4.77,
+  "w": 2.026,
+  "h": 1.158,
+  "wr": 0.354,
+  "fa": 1.239,
+  "ra": -1.493,
+  "track": 0.852,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.853,
+    "y": 0.35,
+    "z": 1.241,
+    "r": 0.35
+   },
+   {
+    "name": "FR",
+    "x": -0.853,
+    "y": 0.35,
+    "z": 1.237,
+    "r": 0.35
+   },
+   {
+    "name": "RL",
+    "x": 0.85,
+    "y": 0.358,
+    "z": -1.493,
+    "r": 0.358
+   },
+   {
+    "name": "RR",
+    "x": -0.849,
+    "y": 0.358,
+    "z": -1.493,
+    "r": 0.358
+   }
+  ],
+  "paint": [
+   "material"
+  ],
+  "paintable": false,
+  "tris": 30602,
+  "kb": 762,
+  "draws": 17
+ },
+ "p9x8": {
+  "id": "p9x8",
+  "title": "peugeot 9x8",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/peugeot-9x8-e58eeb88062347a1aba677920fc990fc",
+  "bike": false,
+  "len": 5,
+  "w": 2.034,
+  "h": 1.167,
+  "wr": 0.38,
+  "fa": 1.449,
+  "ra": -1.587,
+  "track": 0.799,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.799,
+    "y": 0.372,
+    "z": 1.449,
+    "r": 0.372
+   },
+   {
+    "name": "FR",
+    "x": -0.799,
+    "y": 0.371,
+    "z": 1.449,
+    "r": 0.371
+   },
+   {
+    "name": "RL",
+    "x": 0.798,
+    "y": 0.389,
+    "z": -1.587,
+    "r": 0.389
+   },
+   {
+    "name": "RR",
+    "x": -0.799,
+    "y": 0.389,
+    "z": -1.587,
+    "r": 0.389
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 37922,
+  "kb": 1080,
+  "draws": 31
+ },
+ "c110": {
+  "id": "c110",
+  "title": "bugatti centodieci",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bugatti-centodieci-e6512e977ec2446da50e4c2e732b6b0b",
+  "bike": false,
+  "len": 4.6,
+  "w": 2.157,
+  "h": 1.245,
+  "wr": 0.376,
+  "fa": 1.314,
+  "ra": -1.354,
+  "track": 0.836,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.844,
+    "y": 0.367,
+    "z": 1.314,
+    "r": 0.367
+   },
+   {
+    "name": "FR",
+    "x": -0.844,
+    "y": 0.367,
+    "z": 1.314,
+    "r": 0.367
+   },
+   {
+    "name": "RL",
+    "x": 0.829,
+    "y": 0.384,
+    "z": -1.354,
+    "r": 0.384
+   },
+   {
+    "name": "RR",
+    "x": -0.829,
+    "y": 0.384,
+    "z": -1.354,
+    "r": 0.384
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 37516,
+  "kb": 788,
+  "draws": 20
+ },
+ "nevera": {
+  "id": "nevera",
+  "title": "rimac nevera",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/rimac-nevera-f11270b93b1349db9a4324ab000c9d76",
+  "bike": false,
+  "len": 4.75,
+  "w": 2.192,
+  "h": 1.208,
+  "wr": 0.354,
+  "fa": 1.246,
+  "ra": -1.499,
+  "track": 0.862,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.854,
+    "y": 0.354,
+    "z": 1.246,
+    "r": 0.354
+   },
+   {
+    "name": "FR",
+    "x": -0.854,
+    "y": 0.354,
+    "z": 1.246,
+    "r": 0.354
+   },
+   {
+    "name": "RL",
+    "x": 0.869,
+    "y": 0.354,
+    "z": -1.499,
+    "r": 0.354
+   },
+   {
+    "name": "RR",
+    "x": -0.869,
+    "y": 0.354,
+    "z": -1.499,
+    "r": 0.354
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31367,
+  "kb": 692,
+  "draws": 23
+ },
+ "f488c": {
+  "id": "f488c",
+  "title": "ferrari 488 challenge evo",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ferrari-488-challenge-evo-ecd56e1ef7aa4d3ca842b6bf09c6bb4e",
+  "bike": false,
+  "len": 4.65,
+  "w": 2.206,
+  "h": 1.256,
+  "wr": 0.351,
+  "fa": 1.177,
+  "ra": -1.425,
+  "track": 0.81,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.806,
+    "y": 0.351,
+    "z": 1.177,
+    "r": 0.351
+   },
+   {
+    "name": "FR",
+    "x": -0.806,
+    "y": 0.351,
+    "z": 1.177,
+    "r": 0.351
+   },
+   {
+    "name": "RL",
+    "x": 0.815,
+    "y": 0.351,
+    "z": -1.425,
+    "r": 0.351
+   },
+   {
+    "name": "RR",
+    "x": -0.815,
+    "y": 0.351,
+    "z": -1.425,
+    "r": 0.351
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 33185,
+  "kb": 741,
+  "draws": 14
+ },
+ "sc20": {
+  "id": "sc20",
+  "title": "lamborghini sc20",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/lamborghini-sc20-a982eaba9bd04375bbeb1238cc2d2586",
+  "bike": false,
+  "len": 4.93,
+  "w": 2.217,
+  "h": 1.133,
+  "wr": 0.34,
+  "fa": 1.244,
+  "ra": -1.441,
+  "track": 0.87,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.877,
+    "y": 0.329,
+    "z": 1.244,
+    "r": 0.329
+   },
+   {
+    "name": "FR",
+    "x": -0.88,
+    "y": 0.329,
+    "z": 1.244,
+    "r": 0.329
+   },
+   {
+    "name": "RL",
+    "x": 0.861,
+    "y": 0.351,
+    "z": -1.441,
+    "r": 0.351
+   },
+   {
+    "name": "RR",
+    "x": -0.863,
+    "y": 0.351,
+    "z": -1.441,
+    "r": 0.351
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 47264,
+  "kb": 1011,
+  "draws": 24
+ },
+ "c63dtm": {
+  "id": "c63dtm",
+  "title": "mercedes-benz amg c63 dtm mk III",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-benz-amg-c63-dtm-mk-iii-248bbea6a38e42c88a796582a568b366",
+  "bike": false,
+  "len": 4.85,
+  "w": 2.066,
+  "h": 1.184,
+  "wr": 0.326,
+  "fa": 1.486,
+  "ra": -1.189,
+  "track": 0.824,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.824,
+    "y": 0.326,
+    "z": 1.486,
+    "r": 0.326
+   },
+   {
+    "name": "FR",
+    "x": -0.824,
+    "y": 0.326,
+    "z": 1.486,
+    "r": 0.326
+   },
+   {
+    "name": "RL",
+    "x": 0.824,
+    "y": 0.326,
+    "z": -1.189,
+    "r": 0.326
+   },
+   {
+    "name": "RR",
+    "x": -0.824,
+    "y": 0.326,
+    "z": -1.189,
+    "r": 0.326
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31257,
+  "kb": 711,
+  "draws": 16
+ },
+ "spano8": {
+  "id": "spano8",
+  "title": "Asphalt 8 - 2015 GTA Spano",
+  "author": "IWillSearchNewModelz (https://sketchfab.com/iwillsearch69)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/asphalt-8-2015-gta-spano-b10cc5377c574dd8a6dbe16d78610cb8",
+  "bike": false,
+  "len": 4.61,
+  "w": 2.151,
+  "h": 1.147,
+  "wr": 0.331,
+  "fa": 1.257,
+  "ra": -1.476,
+  "track": 0.831,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   },
+   {
+    "name": "RR",
+    "x": -0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 31130,
+  "kb": 764,
+  "draws": 20
+ },
+ "mosler": {
+  "id": "mosler",
+  "title": "mosler mt900 gtr xx twin turbo land shark",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mosler-mt900-gtr-xx-twin-turbo-land-shark-3950d06bd5164e7f875d08150276958b",
+  "bike": false,
+  "len": 4.58,
+  "w": 2.124,
+  "h": 1.072,
+  "wr": 0.328,
+  "fa": 1.27,
+  "ra": -1.414,
+  "track": 0.795,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.762,
+    "y": 0.312,
+    "z": 1.27,
+    "r": 0.312
+   },
+   {
+    "name": "FR",
+    "x": -0.763,
+    "y": 0.312,
+    "z": 1.27,
+    "r": 0.312
+   },
+   {
+    "name": "RL",
+    "x": 0.828,
+    "y": 0.344,
+    "z": -1.414,
+    "r": 0.344
+   },
+   {
+    "name": "RR",
+    "x": -0.829,
+    "y": 0.344,
+    "z": -1.414,
+    "r": 0.344
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 30768,
+  "kb": 705,
+  "draws": 23
+ },
+ "csl3": {
+  "id": "csl3",
+  "title": "bmw 3.0 csl hommage concept",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-30-csl-hommage-concept-bd775e7cf7204147b351ada3a7b0b841",
+  "bike": false,
+  "len": 4.94,
+  "w": 1.998,
+  "h": 1.316,
+  "wr": 0.356,
+  "fa": 1.414,
+  "ra": -1.407,
+  "track": 0.832,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.832,
+    "y": 0.356,
+    "z": 1.414,
+    "r": 0.356
+   },
+   {
+    "name": "FR",
+    "x": -0.832,
+    "y": 0.356,
+    "z": 1.414,
+    "r": 0.356
+   },
+   {
+    "name": "RL",
+    "x": 0.832,
+    "y": 0.356,
+    "z": -1.407,
+    "r": 0.356
+   },
+   {
+    "name": "RR",
+    "x": -0.832,
+    "y": 0.356,
+    "z": -1.407,
+    "r": 0.356
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 30114,
+  "kb": 635,
+  "draws": 23
+ },
+ "slk55": {
+  "id": "slk55",
+  "title": "mercedes-benz slk 55 amg",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-benz-slk-55-amg-af4218b4cd2946aebad183c16549e1db",
+  "bike": false,
+  "len": 4.134,
+  "w": 2.012,
+  "h": 1.32,
+  "wr": 0.324,
+  "fa": 1.191,
+  "ra": -1.238,
+  "track": 0.766,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.766,
+    "y": 0.324,
+    "z": 1.191,
+    "r": 0.324
+   },
+   {
+    "name": "FR",
+    "x": -0.767,
+    "y": 0.324,
+    "z": 1.191,
+    "r": 0.324
+   },
+   {
+    "name": "RL",
+    "x": 0.766,
+    "y": 0.324,
+    "z": -1.238,
+    "r": 0.324
+   },
+   {
+    "name": "RR",
+    "x": -0.767,
+    "y": 0.324,
+    "z": -1.238,
+    "r": 0.324
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31208,
+  "kb": 725,
+  "draws": 20
+ },
+ "giulietta": {
+  "id": "giulietta",
+  "title": "2016 alfa romeo giulietta veloce 1750 tbi tct",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2016-alfa-romeo-giulietta-veloce-1750-tbi-tct-1622fa52b112463ba678d88abc0b08f7",
+  "bike": false,
+  "len": 4.351,
+  "w": 1.975,
+  "h": 1.45,
+  "wr": 0.314,
+  "fa": 1.222,
+  "ra": -1.408,
+  "track": 0.746,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.746,
+    "y": 0.314,
+    "z": 1.222,
+    "r": 0.314
+   },
+   {
+    "name": "FR",
+    "x": -0.746,
+    "y": 0.314,
+    "z": 1.222,
+    "r": 0.314
+   },
+   {
+    "name": "RL",
+    "x": 0.757,
+    "y": 0.314,
+    "z": -1.408,
+    "r": 0.314
+   },
+   {
+    "name": "RR",
+    "x": -0.734,
+    "y": 0.314,
+    "z": -1.408,
+    "r": 0.314
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31389,
+  "kb": 620,
+  "draws": 19
+ },
+ "charger": {
+  "id": "charger",
+  "title": "dodge charger srt8 police",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/dodge-charger-srt8-police-411db194726c4762bd946d361b79d982",
+  "bike": false,
+  "len": 5.15,
+  "w": 2.018,
+  "h": 1.593,
+  "wr": 0.341,
+  "fa": 1.483,
+  "ra": -1.51,
+  "track": 0.759,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.763,
+    "y": 0.341,
+    "z": 1.483,
+    "r": 0.341
+   },
+   {
+    "name": "FR",
+    "x": -0.763,
+    "y": 0.341,
+    "z": 1.483,
+    "r": 0.341
+   },
+   {
+    "name": "RL",
+    "x": 0.755,
+    "y": 0.341,
+    "z": -1.51,
+    "r": 0.341
+   },
+   {
+    "name": "RR",
+    "x": -0.755,
+    "y": 0.341,
+    "z": -1.51,
+    "r": 0.341
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 7515,
+  "kb": 236,
+  "draws": 11
+ },
+ "energ": {
+  "id": "energ",
+  "title": "mercedes-benz vision ener-g-force",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-benz-vision-ener-g-force-82d86a2a78d24474a6aacc4a5438adce",
+  "bike": false,
+  "len": 4.7,
+  "w": 2.299,
+  "h": 2.309,
+  "wr": 0.481,
+  "fa": 1.474,
+  "ra": -1.431,
+  "track": 0.914,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.914,
+    "y": 0.481,
+    "z": 1.474,
+    "r": 0.481
+   },
+   {
+    "name": "FR",
+    "x": -0.914,
+    "y": 0.481,
+    "z": 1.474,
+    "r": 0.481
+   },
+   {
+    "name": "RL",
+    "x": 0.914,
+    "y": 0.481,
+    "z": -1.431,
+    "r": 0.481
+   },
+   {
+    "name": "RR",
+    "x": -0.914,
+    "y": 0.481,
+    "z": -1.431,
+    "r": 0.481
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 35367,
+  "kb": 761,
+  "draws": 17
+ },
  "v4": {
   "id": "v4",
   "title": "Ducati Panigale V4",

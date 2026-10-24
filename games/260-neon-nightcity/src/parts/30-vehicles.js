@@ -476,7 +476,7 @@ function applyCar(v, id, paint) {
   disposeKit(v.body); v.body.clear();
   for (const w of v.wheels) w.piv.parent && w.piv.parent.remove(w.piv);
   v.wheels.length = 0;
-  v.isCar = !c.bike; v.glbTok = (v.glbTok || 0) + 1;
+  v.isCar = !c.bike; v.glbTok = (v.glbTok || 0) + 1; v.inst = null; v.modG = null;
   // 機車的輪子掛在車身上（跟著壓車），汽車的掛在車架上
   if (c.bike) {
     const m = new T.Mesh(hanzoKit().build(), v.mat); m.userData.kit = 1; v.body.add(m);
@@ -510,6 +510,8 @@ function applyCar(v, id, paint) {
     v.wheels.length = 0;
     v.body.add(inst.body);
     for (const w of inst.wheels) { (c.bike ? v.body : v.g).add(w.piv); v.wheels.push(w); }
+    v.inst = inst;
+    for (const h of carHooks) h(v, id, true);   // 66-chrome.js：改裝件掛回新的車身、烤漆材質
   });
 }
 const kestrel = mkVehicle('kestrel'), hanzo = mkVehicle('hanzo');   // kestrel：玩家座駕（換車都走 applyCar）；hanzo：路邊的機車
@@ -625,7 +627,7 @@ function driveVehicle(v, inp, dt) {
   v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）
   let aF = 0;
   if (inp.thr > 0) aF += v.eng * (v.engK ?? 1) * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
-  if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * inp.brk * (vF > -9 ? 1 : 0);
+  if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * (v.revK || 1) * inp.brk * (vF > -9 ? 1 : 0);   // revK：66-chrome.js 的變速箱，倒車起步比較快
   aF -= vF * .12 + Math.sign(vF) * .35;
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
@@ -633,7 +635,7 @@ function driveVehicle(v, inp, dt) {
   const grip = (inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6))) * (v.slideT > 0 ? .25 : 1);   // slideT：被撞得打轉（69-kinema.js）
   vR *= Math.exp(-grip * dt);
   const wb = v.wb;
-  let targetYr = vF * Math.tan(v.steer) / wb + (v.flatYr || 0) * clamp(vF / 12, -1, 1);   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
+  let targetYr = vF * Math.tan(v.steer) / wb + ((v.flatYr || 0) + (v.axleYr || 0)) * clamp(vF / 12, -1, 1);   // axleYr：69-v6-customs.js 撞歪的輪軸   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
   v.yr = damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
   v.yaw += v.yr * dt;
@@ -665,10 +667,10 @@ const _rake = V3();
 function poseVehicle(v) {
   v.g.position.set(v.x, v.y, v.z);
   v.g.rotation.set(0, v.yaw, 0);
-  v.body.rotation.set(v.pitch + (v.sagP || 0), 0, (v.isCar ? v.roll : v.lean) + (v.sagR || 0), 'YXZ');   // sag：68-wreck.js 的破胎下沉
+  v.body.rotation.set(v.pitch + (v.sagP || 0) + (v.hydP || 0), 0, (v.isCar ? v.roll : v.lean) + (v.sagR || 0) + (v.hydR || 0), 'YXZ');   // sag：68-wreck.js 的破胎下沉；hyd：69-v6-customs.js 的液壓起伏
   // 跳台飛行中（69-stunt.js）與翻車（68-roll.js）繞車身中心翻轉，平常繞著地面
   if ((v.air || v.tumble || v.flipped) && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }
-  else if (v.isCar && v.rideY) v.body.position.set(0, v.rideY, 0);   // 66-chrome.js 的降低懸吊：車身往輪子壓下去
+  else if (v.isCar && (v.rideY || v.hydY)) v.body.position.set(0, (v.rideY || 0) + (v.hydY || 0), 0);   // 66-chrome.js 的降低懸吊：車身往輪子壓下去；液壓升降
   else if (v.body.position.lengthSq()) v.body.position.set(0, 0, 0);
   for (const w of v.wheels) {
     if (v.isCar) { w.piv.rotation.set(0, w.front ? v.steer : 0, 0); w.w.rotation.x = v.spin; }

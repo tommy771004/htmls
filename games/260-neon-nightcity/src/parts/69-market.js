@@ -93,7 +93,7 @@ function marketExplode(v, mine) { if (mine && VNTR_TYPES.includes(v.type)) stock
 const ESTATES = [
   { id: 'lazarus', name: 'LAZARUS 夜店', price: 250000, rate: 2400, cap: 48000 },
   { id: 'afterglow', name: 'AFTERGLOW 酒吧', price: 120000, rate: 1100, cap: 22000 },
-  { id: 'chrome', name: 'CHROME WORKS 改裝廠', price: 180000, rate: 1700, cap: 34000 },
+  { id: 'chrome', name: 'CHROME WORKS 改裝廠', price: 350000, rate: 1700, cap: 34000 },   // 69-v6-customs.js：門口的待售告示牌也能買；老闆 Kael 修車改裝全免、接客戶委託
   // 安全屋（69-safehouse.js）：買了可以進去睡覺存檔；不在家時短租出去，租金照售價約 0.16%／遊戲小時存進保險箱（進門時自動收下，或用手機收）
   { id: 'loft', name: '冠石頂層公寓', price: 380000, rate: 600, cap: 12000, home: true },
   { id: 'villa', name: '雲杉坡崖邊別墅', price: 600000, rate: 950, cap: 19000, home: true },

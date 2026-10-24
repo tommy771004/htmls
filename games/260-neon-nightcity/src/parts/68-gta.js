@@ -282,7 +282,7 @@ ctxHooks.push(p => {
 });
 
 // ─── 武器（69-combat.js）：這裡只留共用的射線工具 ───
-function canFight() { return started && (player.where === 'out' || player.where === 'bank' || player.where === 'store') && player.mode === 'walk' && !player.swim && !gta.jack && !(player.down > 0) && !dlg.open && !fading; }
+function canFight() { return started && (player.where === 'out' || player.where === 'bank' || player.where === 'store' || player.where === 'chrome') && player.mode === 'walk' && !player.swim && !gta.jack && !(player.down > 0) && !dlg.open && !fading; }
 // 準星射線：從相機穿過畫面中央，起點移到玩家所在的平面（避免打到相機和玩家之間的東西）
 function aimRay() {
   camera.getWorldDirection(_gv);
@@ -349,7 +349,7 @@ function explode(v) {
   if (mine) crime(v.unit ? 'killcop' : 'explode', v.x, v.z);
   marketExplode(v, mine);   // 69-market.js：凡托車款被炸，股價下跌
   if (v.unit) unitDead(v);
-  if (v === kestrel) toast(`${v.name} 燒毀了 · 按 V 叫修好的車`);
+  if (v === kestrel) toast(v6WreckMsg(v));   // 69-v6-customs.js：有保險打給磐石互保，沒保險付原廠重建費
 }
 function knockPlayer(dx, dz) {
   if (player.mode !== 'walk' || life.dead) return;

@@ -231,6 +231,8 @@ const sfx = (() => {
   // 引擎錄音：汽車是 idle／low／med／high 四層轉速循環，依轉速交叉淡化、各層在自己的中心轉速附近變調；機車用機車怠速加高兩層的汽車錄音再調高
   const ENG_CAR = [['engIdle', .12, 1], ['engLow', .4, 1], ['engMed', .7, 1], ['engHigh', 1, 1]];
   const ENG_BIKE = [['bikeIdle', .12, 1], ['engMed', .55, 1.3], ['engHigh', 1, 1.35]];
+  // 排氣管對引擎聲的影響：[音量, 音高]（66-chrome.js 的排氣管等級，sfx.exhaust 設定）
+  const EXH = [[1, 1], [1.12, 1.05], [1.3, .97], [1.5, .92]];
   function startEngine(v, quiet) {
     if (!ac) return;
     if (eng) stopEngine(true);
@@ -282,17 +284,17 @@ const sfx = (() => {
       barF.frequency.setTargetAtTime(s.where === 'bar' ? 9000 : 700, t, .25);
       if (eng && !eng.rec && rec.ready && (eng.car ? ENG_CAR : ENG_BIKE).every(([n]) => rec.loop[n])) startEngine(eng.v, true);   // 上車時錄音還沒解碼完：解碼好就換掉合成引擎
       if (eng && eng.rec) {
-        const r = clamp(s.rpm, 0, 1), vol = .3 + s.thr * .2 + (s.nitro ? .08 : 0);
+        const r = clamp(s.rpm, 0, 1), X = EXH[st.exh || 0], vol = (.3 + s.thr * .2 + (s.nitro ? .08 : 0)) * X[0];
         for (const L of eng.layers) {
           const w = Math.max(0, 1 - Math.abs(r - L.c) / .3);
           L.lg.gain.setTargetAtTime(w * vol, t, .06);
-          L.s.playbackRate.setTargetAtTime(clamp(1 + (r - L.c) * .9, .78, 1.4) * L.m, t, .05);
+          L.s.playbackRate.setTargetAtTime(clamp(1 + (r - L.c) * .9, .78, 1.4) * L.m * X[1], t, .05);
         }
       } else if (eng) {
         const base = eng.car ? 38 : 52, f = base + s.rpm * (eng.car ? 120 : 160) * (1 + s.gear * .06);
         eng.o1.frequency.setTargetAtTime(f, t, .05); eng.o2.frequency.setTargetAtTime(f * (eng.car ? .5 : 1.01), t, .05);
         eng.fl.frequency.setTargetAtTime(300 + s.thr * 1400 + s.rpm * 900, t, .06);
-        eng.g.gain.setTargetAtTime(.05 + s.thr * .07 + s.rpm * .04 + (s.nitro ? .04 : 0), t, .08);
+        eng.g.gain.setTargetAtTime((.05 + s.thr * .07 + s.rpm * .04 + (s.nitro ? .04 : 0)) * EXH[st.exh || 0][0], t, .08);
       }
       // loops() 只在戶外由 policeUpdate 呼叫：進室內或停止呼叫超過 0.25 s，警笛與旋翼照樣收掉
       if (t - (st.loopT || 0) > .25) {
@@ -308,6 +310,26 @@ const sfx = (() => {
       } else skidG.gain.setTargetAtTime(sk * .16, t, .05);
     },
     engineOn(v) { startEngine(v); },
+    // 66-chrome.js 的排氣管：0 原廠、1 鈦合金雙出（亮一點）、2 側排管（大聲）、3 直通管（最大聲、低沉）
+    exhaust(n) { st.exh = n | 0; },
+    // 回火：幾聲短促的爆裂（直通管幾乎每次放油門都有）
+    pop(k = 1) { if (!ac) return; const t = ac.currentTime; for (let i = 0; i < 2 + (k * 3 | 0); i++) { const d = i * (.05 + Math.random() * .06); nz(t + d, master, 'bandpass', 700 + Math.random() * 900, 1.2, .22 * k, .05); tone(t + d, master, 'sine', 70 + Math.random() * 30, .12 * k, .002, .06); } },
+    // 渦輪洩壓閥：高頻的「啾——」口哨加上一陣氣聲
+    bov() { if (!ac) return; const t = ac.currentTime; const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(2900, t); o.frequency.exponentialRampToValueAtTime(1500, t + .32); env(g, t, .01, .05, .32); o.connect(g); g.connect(master); o.start(t); o.stop(t + .4); nz(t, master, 'bandpass', 2600, 1.4, .12, .35); },
+    // 改裝喇叭：0 原廠、1 氣動喇叭（低沉雙音）、2 音樂喇叭（一段旋律）、3 警笛喇叭（短促 yelp）
+    hornT(n) {
+      if (!ac) return; const t = ac.currentTime;
+      if (!n) { this.horn(); return; }
+      if (n === 1) { for (const f of [185, 233]) tone(t, master, 'square', f, .05, .02, .9, 900, 700); return; }
+      if (n === 2) { [392, 523, 659, 784, 659, 784].forEach((f, i) => tone(t + i * .13, master, 'square', f, .04, .005, .14, 1800)); return; }
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(650, t);
+      for (let i = 0; i < 3; i++) { o.frequency.linearRampToValueAtTime(1500, t + i * .22 + .11); o.frequency.linearRampToValueAtTime(650, t + i * .22 + .22); }
+      env(g, t, .01, .05, .66); const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2400; o.connect(fl); fl.connect(g); g.connect(master); o.start(t); o.stop(t + .7);
+    },
+    // 氣壓閥「嘶——」：捲門、液壓
+    hiss(k = 1) { if (!ac) return; const t = ac.currentTime; nz(t, master, 'highpass', 3200, .6, .12 * k, .45); tone(t + .38, master, 'sine', 90, .08 * k, .002, .1); },
+    // 炸彈的急促嗶嗶聲（0.5 秒）
+    bombBeep() { if (!ac) return; const t = ac.currentTime; for (let i = 0; i < 5; i++) tone(t + i * .1, master, 'square', 2200, .05, .001, .05); },
     engineOff() { stopEngine(); },
     step(run, indoor) { if (!ac) return; if (rplay('step', { k: run ? .3 : .2, lp: indoor ? 2400 : 0, rate: run ? 1.05 : 1 })) return; const t = ac.currentTime; nz(t, master, 'bandpass', indoor ? 600 : 1400, 1, run ? .1 : .06, indoor ? .06 : .09); if (!indoor) nz(t + .01, master, 'highpass', 4000, .5, .03, .12); },
     // 北嶺鐵道橋的列車（21-rail.js）：兩音的電聯車汽笛；行駛聲是一條一直開著的低頻噪音，k 是遠近（0 關掉）、clack 是過軌縫的節奏

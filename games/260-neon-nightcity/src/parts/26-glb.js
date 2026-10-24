@@ -66,13 +66,50 @@ const GLB_CARS = [
     tag: '一千多匹的油電動力、前軸兩顆電動馬達，車尾一片固定式大尾翼。整間車行加速最暴力的一台。' }],
   ['p1', { name: 'McLaren P1', cls: '2013 · 油電 V8 超跑', price: 1100000, fb: 0xe8782a, proxy: 'halcyon', vmax: 100, eng: 21.5, grip: 10.6,
     tag: '油電三雄之一，車身像被風吹出來的一層皮，賽道模式下車身會降低、尾翼會升起。' }],
+  // 第三批：amogusstrikesback2 的三台超跑
+  ['svj', { name: 'Lamborghini Aventador SVJ', cls: 'LP 770-4 · 自然進氣 V12 四驅', price: 520000, fb: 0x1f4fd8, proxy: 'furia', vmax: 100, eng: 21.9, grip: 10.2,
+    tag: '七百七十匹的自然進氣 V12，剪刀門一掀整條街都會回頭。主動氣流尾翼過彎時往內側壓，紐柏林北環曾經是量產車最快。原廠塗裝，不能換色。' }],
+  ['evija', { name: 'Lotus Evija', cls: '2020 · 四馬達純電超跑', price: 2100000, fb: 0x1f4fd8, proxy: 'halcyon', vmax: 100, eng: 21.3, grip: 10.5,
+    tag: '兩千匹的純電超跑，四顆馬達各管一個輪子，車尾兩個大洞讓氣流直接穿過車身。整間車行最貴的一台，安靜得像一陣風。原廠塗裝，不能換色。' }],
+  ['spano', { name: 'GTA Spano', cls: '2015 · 雙渦輪 V10 中置', price: 900000, fb: 0xf0f0ee, proxy: 'saetta', vmax: 100, eng: 21.3, grip: 10,
+    tag: '西班牙小廠手工打造的超跑，碳纖維、凱夫拉與石墨烯車身，雙渦輪 V10 推到九百匹，極速是整間車行最高的。原廠塗裝，不能換色。' }],
+  ['f8', { name: 'Ferrari F8 Tributo', cls: '2019 · 雙渦輪 V8 中置', price: 280000, fb: 0xf0f0ee, proxy: 'saetta', vmax: 100, eng: 21.3, grip: 9.8,
+    tag: '向史上最強的 V8 致敬：七百二十匹、渦輪幾乎沒有遲滯，車尾的 S-Duct 把氣流從引擎蓋中間導上去壓住車頭。原廠塗裝，不能換色。' }],
+  ['scg', { name: 'SCG 003S', cls: 'Glickenhaus · 公路版耐久賽車', price: 1800000, fb: 0xf0f0ee, proxy: 'mamba', vmax: 100, eng: 21.4, grip: 11.1,
+    tag: '紐約小廠把紐柏林 24 小時的賽車掛上車牌，鷗翼門、碳纖維單體殼與整片底盤下壓力。過彎抓地力是公路車裡的怪物。原廠塗裝，不能換色。' }],
+  ['p9x8', { name: 'Peugeot 9X8', cls: '2022 · Le Mans Hypercar 油電賽車', price: 3200000, fb: 0x1f4fd8, proxy: 'halcyon', vmax: 100, eng: 21.3, grip: 12.1,
+    tag: '沒有尾翼的利曼原型賽車，下壓力全靠車身與底盤。不是公路車，車行說是「收藏展示用」，但油箱是滿的。原廠彩繪，不能換色。' }],
+  ['c110', { name: 'Bugatti Centodieci', cls: '2020 · 四渦輪 W16 四驅', price: 8900000, fb: 0x1f4fd8, proxy: 'furia', vmax: 100, eng: 24.6, grip: 10.5,
+    tag: '致敬九〇年代 EB110 的限量十台，一千六百匹的 W16、四顆渦輪。整間車行最貴、加速最猛的一台。原廠塗裝，不能換色。' }],
+  ['nevera', { name: 'Rimac Nevera', cls: '2021 · 四馬達純電超跑', price: 2400000, fb: 0x1f4fd8, proxy: 'halcyon', vmax: 110, eng: 28.4, grip: 10.7,
+    tag: '克羅埃西亞的純電怪物：四顆馬達、一千九百多匹，零到一百不到兩秒，極速破四百。兩噸多的車重，煞車和輪胎都要很有自信。原廠塗裝，不能換色。' }],
+  ['f488c', { name: 'Ferrari 488 Challenge Evo', cls: '2020 · 單一車型賽專用賽車', price: 450000, fb: 0x1f4fd8, proxy: 'saetta', vmax: 100, eng: 20.8, grip: 11.9,
+    tag: '原廠單一車型賽的賽車：防滾籠、賽車座椅、光頭胎與大尾翼，沒有冷氣也沒有車牌。原廠彩繪，不能換色。' }],
+  ['sc20', { name: 'Lamborghini SC20', cls: '2020 · 無擋風玻璃 V12 單一訂製車', price: 3500000, fb: 0x1f4fd8, proxy: 'furia', vmax: 100, eng: 21.3, grip: 10.2,
+    tag: '原廠賽車部門替一位客人做的一台：開放座艙、沒有擋風玻璃，SVJ 的 V12 配上 GT3 賽車的尾翼。雨夜開它會濕透。原廠塗裝，不能換色。' }],
+  ['c63dtm', { name: 'Mercedes-AMG C63 DTM', cls: 'DTM 房車賽 · 前置 V8 賽車', price: 780000, fb: 0x1f4fd8, proxy: 'mamba', vmax: 100, eng: 20.8, grip: 12.1,
+    tag: '德國房車大師賽的賽車：外表還看得出是 C 級雙門，底下是碳纖維單體殼、V8 與巨大的尾翼。過彎抓地力是整間車行的頂點。原廠彩繪，不能換色。' }],
+  ['energ', { name: 'Mercedes-Benz Vision Ener-G-Force', cls: '2012 · 氫燃料電池越野概念車', price: 1200000, fb: 0x1f3a7a, proxy: 'bulldog', vmax: 70, eng: 10.5, grip: 8.8,
+    tag: '洛杉磯車展的設計概念車：四輪輪轂馬達、車頂的儲水槽與越野燈架。這台沒有量產，性能數字是車行自己定的。原廠塗裝，不能換色。' }],
+  ['spano8', { name: 'GTA Spano 銀白版', cls: '2015 · 雙渦輪 V10 中置', price: 920000, fb: 0xe8e8e4, proxy: 'saetta', vmax: 100, eng: 21.3, grip: 10,
+    tag: '同一台西班牙超跑的另一份模型：銀白車身、碳纖維下擺與深灰飾條，比藍白那台低調一點。原廠塗裝，不能換色。' }],
+  ['mosler', { name: 'Mosler MT900 GTR XX', cls: '「Land Shark」雙渦輪 V8 改裝', price: 1250000, fb: 0x1f4fd8, proxy: 'mamba', vmax: 100, eng: 23.1, grip: 10.7,
+    tag: '美國小廠的賽車底盤塞進雙渦輪 V8，綽號「陸上鯊魚」，直線加速專門拿來破紀錄。馬力是改裝車常見的說法，不是原廠數字。原廠塗裝，不能換色。' }],
+  ['csl3', { name: 'BMW 3.0 CSL Hommage', cls: '2015 · 向 E9 蝙蝠車致敬的概念車', price: 850000, fb: 0x1f4fd8, proxy: 'ronin', vmax: 80, eng: 16.4, grip: 9.6,
+    tag: '致敬七〇年代賽道上的「蝙蝠車」：碳纖維車身、巨大的鴨尾與格柵。這台沒有量產，性能數字是車行自己定的。原廠塗裝，不能換色。' }],
+  ['slk55', { name: 'Mercedes-Benz SLK 55 AMG', cls: '2012 R172 · 自然進氣 V8 硬頂敞篷', price: 90000, fb: 0x1f4fd8, proxy: 'meridian', vmax: 70, eng: 15.5, grip: 9.2,
+    tag: '短軸距的硬頂敞篷跑車塞進五點五升 V8，排氣聲比外表兇得多。車頂收進行李廂只要二十秒。原廠塗裝，不能換色。' }],
+  ['giulietta', { name: 'Alfa Romeo Giulietta Veloce', cls: '2016 · 1750 TBi 前驅掀背', price: 42000, fb: 0x1f4fd8, proxy: 'lucerna', vmax: 66, eng: 13.1, grip: 9,
+    tag: '義大利的五門掀背，盾形水箱護罩與藏在 C 柱的後門把手。前輪驅動，不愛甩尾，但窄巷裡很好開。原廠塗裝，不能換色。' }],
+  ['charger', { name: 'Dodge Charger SRT8 Police', cls: '前置 HEMI V8 · 追緝警車', price: 68000, fb: 0x1a1b1e, proxy: 'bulldog', vmax: 70, eng: 13.4, grip: 8.9,
+    tag: '黑白相間的追緝警車，推撞桿、車頂警示燈條與 PURSUIT 911 塗裝都還在。重、硬、耐撞。原廠塗裝，不能換色。' }],
   ['zx6r', { name: 'Kawasaki Ninja ZX-6R', cls: '636 cc 四缸仿賽', price: 16000, fb: 0x3aa83a, proxy: 'hanzo', bike: true, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
     tag: '萊姆綠的中量級仿賽，轉速拉到一萬六。比千 cc 好駕馭，在窄巷裡也鑽得進去。' }],
   ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, fb: 0xc8141c, proxy: 'hanzo', bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
     tag: '從 MotoGP 賽車下放的 V4 引擎、單搖臂與紅色車殼。兩百多匹，比很多跑車都快。' }],
 ];
 // ─── 原廠規格（公開規格與媒體實測的概數；賽車是規格書的最低車重與 BoP 前後的馬力）───
-// [車重 kg（機車是含油）, 馬力 PS, 0–100 km/h 秒, 極速 km/h（有電子限速的照限速）, 側向抓地 g（繞圈測試）, 100–0 煞車距離 m, 驅動：R 前置後驅／M 中後置後驅／A 四驅／B 機車, 備註：cage 防滾籠賽車、pol 警用強化]
+// [車重 kg（機車是含油）, 馬力 PS, 0–100 km/h 秒, 極速 km/h（有電子限速的照限速）, 側向抓地 g（繞圈測試）, 100–0 煞車距離 m, 驅動：R 前置後驅／M 中後置後驅／F 前置前驅／A 四驅／B 機車, 備註：cage 防滾籠賽車、pol 警用強化]
 const CAR_REAL = {
   e92: [1655, 420, 4.8, 250, .95, 36, 'R'], m3c: [1730, 510, 3.9, 250, 1.0, 34, 'R'], m4wb: [1725, 510, 3.9, 290, 1.02, 34, 'R'],
   m3gtr: [1120, 470, 3.6, 290, 1.45, 30, 'R', 'cage'], m3t24: [1450, 550, 3.6, 280, 1.4, 31, 'R', 'cage'], m4gt3: [1300, 590, 3.4, 290, 1.55, 29, 'R', 'cage'],
@@ -84,11 +121,17 @@ const CAR_REAL = {
   evo190: [1340, 235, 7.1, 250, .88, 39, 'R'], m4csl: [1625, 550, 3.7, 307, 1.05, 33, 'R'], chall: [2018, 717, 3.6, 315, .93, 36, 'R'],
   police: [1840, 250, 8.5, 209, .78, 44, 'R', 'pol'], zr1: [1615, 765, 3.0, 341, 1.1, 31, 'R'], f40: [1100, 478, 4.1, 324, .98, 37, 'M'],
   sf90: [1660, 1030, 2.3, 320, 1.15, 30, 'A'], p1: [1490, 916, 2.8, 350, 1.2, 30, 'M'],
+  svj: [1675, 770, 2.8, 350, 1.2, 30, 'A'], evija: [1680, 2000, 2.9, 350, 1.25, 31, 'A'], spano: [1400, 900, 2.9, 370, 1.15, 31, 'M'],
+  nevera: [2300, 1914, 2.0, 412, 1.3, 30, 'A'], f488c: [1385, 670, 3.0, 320, 1.6, 28, 'M', 'cage'], sc20: [1600, 770, 2.9, 350, 1.2, 30, 'A'], c63dtm: [1110, 500, 3.0, 280, 1.65, 25, 'R', 'cage'],
+  energ: [2400, 400, 5.5, 200, .85, 38, 'A'],
+  spano8: [1400, 900, 2.9, 370, 1.15, 31, 'M'], mosler: [1150, 1500, 2.6, 360, 1.3, 30, 'M'], csl3: [1400, 450, 4.2, 280, 1.05, 34, 'R'],   // Land Shark 的馬力是改裝車的說法；3.0 CSL Hommage 是概念車，數字自訂
+  slk55: [1615, 421, 4.6, 250, .95, 35, 'R'], giulietta: [1395, 240, 6.0, 244, .9, 37, 'F'], charger: [1950, 370, 5.8, 240, .88, 38, 'R', 'pol'],   // Vision Ener-G-Force 是沒有動力規格的概念車：數字是自己定的越野休旅
+  f8: [1435, 720, 2.9, 340, 1.1, 32, 'M'], scg: [1300, 811, 2.9, 350, 1.4, 29, 'M'], p9x8: [1030, 707, 2.9, 340, 1.65, 26, 'M', 'cage'], c110: [1976, 1600, 2.4, 380, 1.25, 31, 'A'],
   zx6r: [196, 130, 3.2, 260, .88, 41, 'B'], v4: [198, 214, 2.9, 299, .9, 38, 'B'],
 };
 // 換算成遊戲手感（城市尺度的街機手感，具名常數）：
 //   極速 = 原廠 × TOP_K（再由 vmaxFor 反推推力歸零速度）；加速 eng = ENG0 + ENG_K·(27.8 / 0–100 秒)；抓地 = GRIP0 + GRIP_K·g（機車另一組）；
-//   轉向 1.05·(1500 / 車重)^0.3（四驅 ×0.97）；手煞車 μ 後驅 .4、四驅 .56（越重越不好甩）；耐久 HP0 + HP_KG·車重（防滾籠、警用另加）；煞車 16·(a / 10.5)^0.8
+//   轉向 1.05·(1500 / 車重)^0.3（四驅 ×0.97）；手煞車 μ 後驅 .4、前驅 .5、四驅 .56（越重越不好甩）；耐久 HP0 + HP_KG·車重（防滾籠、警用另加）；煞車 16·(a / 10.5)^0.8
 const TUNE = { TOP_K: .8, ENG0: 5.5, ENG_K: 1.65, GRIP0: 5.2, GRIP_K: 4.2, BGRIP0: 3.6, BGRIP_K: 4.6, HP0: 650, HP_KG: .32, HP_CAGE: 200, HP_POL: 300, RIDER: 80 };
 function realTune(c, r) {
   const [kg, ps, t100, top, g, d100, dt, x] = r, bike = dt === 'B', m = kg + (bike ? TUNE.RIDER : 0);
@@ -97,7 +140,7 @@ function realTune(c, r) {
     real: { kg, ps, t100, top, g, d100, dt, x: x || '' }, kmh, eng: +eng.toFixed(2), vmax: +vmaxFor(kmh, eng).toFixed(2),
     grip: +(bike ? TUNE.BGRIP0 + TUNE.BGRIP_K * g : TUNE.GRIP0 + TUNE.GRIP_K * g).toFixed(2),
     m, turn: +(bike ? 1.5 * (280 / m) ** .3 : clamp(1.05 * (1500 / kg) ** .3 * (dt === 'A' ? .97 : 1), .8, 1.35)).toFixed(3),
-    drift: +(bike ? .4 : (dt === 'A' ? .56 : .4) * (kg / 1500) ** .25).toFixed(3),
+    drift: +(bike ? .4 : (dt === 'A' ? .56 : dt === 'F' ? .5 : .4) * (kg / 1500) ** .25).toFixed(3),
     hp: Math.round(bike ? 380 + kg : TUNE.HP0 + TUNE.HP_KG * kg + (x === 'cage' ? TUNE.HP_CAGE : 0) + (x === 'pol' ? TUNE.HP_POL : 0)),
     brk: +(16 * (386 / d100 / 10.5) ** .8).toFixed(2),
   });
@@ -145,7 +188,7 @@ void main(){
     if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < fade) discard;
   }
   vec4 base = vCol;
-  if (vPbr.w > .5 && uPaint.w > .5) base.rgb = uPaint.rgb;
+  if (vPbr.w > .5 && uPaint.w > .5 && uPaint.r >= 0.) base.rgb = uPaint.rgb;   // r < 0：原廠色，只換烤漆材質
   #ifdef USE_MAP
   base *= texture2D(uMap, vUv);
   #endif
@@ -160,6 +203,14 @@ void main(){
   float rough = clamp(vPbr.x, .05, 1.), metal = clamp(vPbr.y, 0., 1.), coat = vPbr.z;
   // 很多模型把金屬漆標成 metallic 1；夜城的環境光很暗，全金屬會整台變黑，所以只有很光滑的（鍍鉻）才保留全金屬
   metal = min(metal, mix(.5, 1., step(rough, .15)));
+  // uPaint.w：66-chrome.js 的烤漆材質（1 原廠亮面、2 金屬、3 消光、4 珠光、5 電鍍鏡面），只換車漆的部分
+  if (vPbr.w > .5 && uPaint.w > 1.5) {
+    float pf = uPaint.w;
+    if (pf < 2.5) { metal = .55; rough = .3; coat = 1.; }
+    else if (pf < 3.5) { metal = 0.; rough = .72; coat = 0.; }
+    else if (pf < 4.5) { rough = .22; coat = 1.; base.rgb = mix(base.rgb, base.rgb.gbr * .7 + vec3(.12, .08, .16), pow(1. - max(dot(n, v), 0.), 1.6) * .85); }
+    else { metal = 1.; rough = .06; coat = 1.; base.rgb = mix(base.rgb, vec3(.9), .35); }
+  }
   // uM.w：燒毀程度（68-gta.js 的爆炸），車身變成焦黑、不再反光發光
   base.rgb = mix(base.rgb, vec3(.03, .026, .022), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; coat *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y);
@@ -290,9 +341,10 @@ function loadGLB(id) {
   }, () => { glbReport.failed.push(id); glbDone.add(id); return null; });
 }
 // 一個實例：自己的 uM（頭燈、煞車）與車漆 uniform，網格與材質都是新的、幾何共用
-function glbInstance(tpl, paint, uM) {
+function glbInstance(tpl, paint, uM, fin = 1) {
   const inst = { uM: uM || { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, 0) }, body: new T.Group(), wheels: [] };
-  if (paint != null && CARS[tpl.id].paintable) { const c = new T.Color(paint); inst.uPaint.value.set(c.r, c.g, c.b, 1); }
+  if (paint != null && CARS[tpl.id].paintable) { const c = new T.Color(paint); inst.uPaint.value.set(c.r, c.g, c.b, fin); }
+  else if (fin > 1 && CARS[tpl.id].paintable) inst.uPaint.value.set(-1, -1, -1, fin);
   const mats = new Map();
   const mk = e => {
     let m = mats.get(e.mat); if (!m) { m = glbMaterial(e.mat, inst); mats.set(e.mat, m); }
@@ -311,14 +363,14 @@ function glbInstance(tpl, paint, uM) {
 }
 // 展示廳與車庫用的整台車（靜態）：先放替身，走進那個場館時才下載模型（glbWake），下載好就換掉
 const glbWait = [];
-function carObject(id, paint) {
+function carObject(id, paint, fin = 1) {
   const c = CARS[id];
   const fbMesh = () => { const m = new T.Mesh(c.bike ? bikeFallbackGeo() : carKit(id, paint).build(), MAT.uber); m.userData.kit = 1; return m; };
   if (!c.glb) return fbMesh();
   const g = new T.Group(), fb = fbMesh(); g.add(fb);
   if (GLB_ON) {
     if (glbWait.length > 64) for (let i = glbWait.length - 1; i >= 0; i--) if (!glbWait[i].g.parent) glbWait.splice(i, 1);
-    glbWait.push({ g, fb, id, paint });
+    glbWait.push({ g, fb, id, paint, fin });
   }
   return g;
 }
@@ -331,7 +383,7 @@ function glbWake(scn) {
     if (!glbDone.has(e.id)) glbBatch.add(e.id);
     loadGLB(e.id).then(tpl => {
       if (!tpl || e.fb.parent !== e.g) return;
-      const inst = glbInstance(tpl, e.paint);
+      const inst = glbInstance(tpl, e.paint, null, e.fin); e.g.userData.inst = inst;
       e.g.remove(e.fb); e.fb.geometry.dispose();
       e.g.add(inst.body); for (const w of inst.wheels) e.g.add(w.piv);
     });

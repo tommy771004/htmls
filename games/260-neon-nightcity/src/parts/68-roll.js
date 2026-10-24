@@ -71,7 +71,7 @@ function rollKick(v, sx, sz, k) {
 }
 // 被撞：dv 是這台車吸收的速度變化（m/s）、(nx, nz) 是被推的方向；從側面撞而且夠猛（min）才翻
 function rollHit(v, dv, nx, nz, min = 13) {
-  if (dv < min || !v.isCar || v.tumble || v.flipped || (v.mass || 1600) > 3000) return;
+  if (dv < min / (v.cog || 1) || !v.isCar || v.tumble || v.flipped || (v.mass || 1600) > 3000) return;   // cog：66-chrome.js 降低懸吊，重心低比較不容易翻
   const lat = nx * Math.cos(v.yaw) - nz * Math.sin(v.yaw);   // 往車身左邊推是正
   if (Math.abs(lat) < .7) return;
   const e = dv - min + 4;
@@ -88,6 +88,7 @@ function rollRam(v, c, rel, nx, nz) {
   v2.vx += nx * dv; v2.vz += nz * dv;
   damageVeh(v2, rel * 14, v === player.veh);
   rollHit(v2, dv, nx, nz, 9);   // 停著或慢慢開的車流車被側面撞，比兩台都在跑的車容易翻
+  v6Plow(v, v2);   // 69-v6-customs.js：防撞鏟把對方往上鏟
 }
 function rollSettle(v, tr, tp) {
   v.tumble = null;
