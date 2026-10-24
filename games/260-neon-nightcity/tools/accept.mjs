@@ -188,10 +188,22 @@ async function desktop() {
     check((await nc(() => window.__nc.player.veh && window.__nc.player.veh.name)) === 'Nissan Skyline GT-R (R34)' && (await nc(() => window.__nc.player.where)) === 'out', '從車庫把 R34 開出去');
     await nc((g) => { const v = window.__nc.vehicles[0]; [v.x, v.z] = window.__nc.W(g.x, g.z); v.vx = v.vz = 0; }, s.garage);
     await page.waitForTimeout(100);
+    // CHROME WORKS：門口按 E 開進改裝廠（66-chrome.js），走到車旁打開改裝選單、換色，再開車離開
     const p0c = await nc(() => window.__nc.vehicles[0].paint);
     await page.keyboard.press('KeyE');
+    await page.waitForFunction(() => window.__nc.player.where === 'chrome', null, { timeout: 20000, polling: 100 });
+    const cw = await nc(() => {
+      const nc = window.__nc, C = nc.chrome, v = nc.vehicles[0]; nc.player.x = 2.6; nc.player.z = 11.5; nc.act();
+      const rows = C.panel().rows.map((r) => r.name), e0 = v.eng, c0 = nc.motors.cash;
+      C.choose('噴漆'); C.key('ArrowDown'); C.key('Enter'); C.key('Escape');   // 換成第二個顏色
+      C.choose('引擎'); C.choose('EMS 改裝 1 級'); C.key('Escape');
+      return { rows, open: C.panel().open, eng: v.eng / e0, paid: c0 - nc.motors.cash };
+    });
+    check((await nc(() => window.__nc.vehicles[0].paint)) !== p0c && cw.rows.includes('引擎') && cw.rows.includes('開車離開') && cw.open, `CHROME WORKS 開進改裝廠、改裝面板、換色（${cw.rows.length} 類）`);
+    check(Math.abs(cw.eng - 1.05) < 1e-6 && cw.paid === 9000, `EMS 1 級：加速 ×${cw.eng.toFixed(3)}、付 ${cw.paid}`);
+    await nc(() => window.__nc.chrome.choose('開車離開'));
+    await page.waitForFunction(() => window.__nc.player.where === 'out' && window.__nc.player.mode === 'drive', null, { timeout: 20000, polling: 100 });
     await page.waitForTimeout(100);
-    check((await nc(() => window.__nc.vehicles[0].paint)) !== p0c, 'CHROME WORKS 換色');
     const dr = await nc(() => {
       const nc = window.__nc, c0 = nc.motors.cash, car = { isCar: true, slip: 2.6 };
       for (let i = 0; i < 90; i++) nc.driftTick(1 / 60, car, 0, 80);

@@ -58,7 +58,7 @@ function mapBlips() {
   const est = (id, base) => { const e = estOf(id); if (!e) return base; const own = estOwned(id); return { ...base, own, rows: [['產權', own ? '已擁有' : `待售 ${money(e.price)}`], ...(e.rate ? [['收入', `${money(e.rate)}／遊戲小時`]] : [])] }; };
   add('club', est('lazarus', { name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + 2), type: '夜店', desc: '9 St 的夜店。今晚只放名單上的人進去。', tp: 'club' }));
   add('bar', est('afterglow', { name: 'AFTERGLOW', ...WP(BAR_X - 4.6, BAR_Z + 2), type: '酒吧', desc: '7 St 的酒吧，調酒師 Juno 在吧台後面。', tp: 'barIn' }));
-  add('chrome', est('chrome', { name: 'CHROME WORKS', ...WP(GAR_X, GAR_Z + 4), type: '改裝廠', desc: '把車停進門口的停車格可以換塗裝。', tp: 'garage' }));
+  add('chrome', est('chrome', { name: 'CHROME WORKS', ...WP(GAR_X, GAR_Z + 4), type: '改裝廠', desc: '開自己的車停到門口按 E 開進去：性能套件、裝甲、防彈胎、修車與換塗裝。', tp: 'garage' }));
   add('dealer', { name: 'VELOCE MOTORS', ...WP(DEAL_X, DEAL_Z + 2), type: '車行', desc: '29 台實車模型，可以看規格、試駕或買下。', tp: 'dealer' });
   add('garage', { name: 'GARAGE 07', ...WP(HOME_X, HOME_Z - 2), type: '私人車庫', desc: '買來的車停在這裡；開著座駕停在門口按 E 停進去。', tp: 'home' });
   for (const id of APT_IDS) { const a = APT[id]; add('safe', est(id, { name: a.name, x: a.doorW.x, z: a.doorW.z, type: '安全屋', desc: `${a.dist}。買下後可以進去睡覺存檔（時間推進 6 小時）。` })); }

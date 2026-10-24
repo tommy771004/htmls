@@ -722,7 +722,7 @@ function npcShootAt(ox, oy, oz, tx, ty, tz, pHit, f, onHit) {
 }
 
 // ─── 載具互撞（玩家座駕、搶來的車、警車、坦克）與被撞的行人 ───
-// 兩圓近似車身；ΔHP = max(0, (J/M − 3.5)·18)，恢復係數 0.25（neon_nightcity_gta_v_2.md）
+// 兩圓近似車身；ΔHP = crashDmg(J/M)（68-gta.js），恢復係數 0.25（neon_nightcity_gta_v_2.md）
 function vehPairs() {
   const L = vehicles;
   kinVehicles(L);   // 69-kinema.js：迭代位置修正（連牆一起）、法線＋切向衝量、PIT 打轉、夾扁
@@ -779,7 +779,7 @@ function combatLate() {
   const p = me.people[0], A = ARMS[arm.sel];
   const walking = player.mode === 'walk' && player.where === 'out' && me.mesh.visible !== false && p.rig && !(player.down > 0) && life.dead !== 'busted';
   // 狙擊鏡：鏡頭進到眼睛，角色藏起來
-  if (player.mode === 'walk') me.mesh.visible = arm.zoomK < .6;
+  if (player.mode === 'walk') me.mesh.visible = arm.zoomK < .6 && !CW.open;   // CW：66-chrome.js 的改裝面板開著時角色藏起來
   for (const id in myGun) myGun[id].visible = false;
   const showGun = walking && arm.sel !== 'fist' && arm.zoomK < .6 && !(A.throw && arm.ammo[arm.sel].mag <= 0) && life.dead !== 'wasted';
   if (showGun) { if (gta.aimK > .5) camera.getWorldDirection(_ad); holdAt(heldModel(arm.sel), p, A, gta.aimK > .5 ? _ad : null); }

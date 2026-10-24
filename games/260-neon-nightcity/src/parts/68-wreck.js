@@ -10,19 +10,19 @@ function hpLockOf(v) {
 }
 function wreckStage(v, k, dt) {
   const mine = v === player.veh;
-  // 70%：車窗碎掉（一次）
-  if (k < STAGE.white && !v.glass) {
+  // 60%：車窗碎掉（一次）
+  if (k < STAGE.glass && !v.glass) {
     v.glass = 1;
     glassBurst(v.x, v.y + (v.isCar ? 1.15 : .9), v.z);
     if (Math.hypot(v.x - pX(), v.z - pZ()) < 40) sfx.glass();
   }
-  // 40%：動力只剩七成五，偶爾熄火半秒到一秒
+  // 30%：動力只剩七成五，偶爾熄火半秒到一秒
   if (k < STAGE.black) {
     if (v.stall > 0) { v.stall -= dt; if (v.stall <= 0 && mine) sfx.engineOn(v); }   // 熄火結束：重新發動（引擎聲原本熄了就不會回來）
     else if (Math.random() < dt * .12) { v.stall = .5 + Math.random() * .7; if (mine) { sfx.engineOff(); toast('引擎熄火了一下'); } }
     v.engK = v.stall > 0 ? 0 : .75;
   } else { v.engK = 1; v.stall = 0; }
-  // 15%：起火，駕駛跳車（玩家自己決定要不要下車）
+  // 12%：起火，駕駛跳車（玩家自己決定要不要下車）
   if (k < STAGE.fire && !v.bail) {
     v.bail = 1;
     if (mine) toast('車子起火了 · 快按 F 下車');

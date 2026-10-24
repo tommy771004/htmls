@@ -35,17 +35,17 @@ try {
   const c2 = await ev(page, () => {
     const N = window.__nc, W = N.gta.wreck, v = N.vehicles[0], H = W.hpMax(v), out = {};
     N.drive();
-    v.hp = H * .65; N.step(1 / 60); out.glass = v.glass;
-    v.hp = H * .35; for (let i = 0; i < 30; i++) N.step(1 / 60); out.engK = v.engK;
+    v.hp = H * .55; N.step(1 / 60); out.glass = v.glass;
+    v.hp = H * .25; for (let i = 0; i < 30; i++) N.step(1 / 60); out.engK = v.engK;
     v.hp = H * .1; N.step(1 / 60); out.bail = v.bail;
     const h0 = v.hp; for (let i = 0; i < 60; i++) N.step(1 / 60); out.burn = +(h0 - v.hp).toFixed(1);
     W.fix(v); out.fixed = { hp: v.hp === v.hpMax, glass: v.glass, bail: v.bail, engK: v.engK };
     out.R = W.BOOM_R;
     return out;
   });
-  check(c2.glass === 1, '70% 以下車窗碎掉');
-  check(c2.engK === .75 || c2.engK === 0, `40% 以下動力 ×0.75 或熄火（engK ${c2.engK}）`);
-  check(c2.bail === 1, '15% 以下起火');
+  check(c2.glass === 1, '60% 以下車窗碎掉');
+  check(c2.engK === .75 || c2.engK === 0, `30% 以下動力 ×0.75 或熄火（engK ${c2.engK}）`);
+  check(c2.bail === 1, '12% 以下起火');
   check(c2.burn > 20 && c2.burn < 30, `起火每秒扣約 25（實際 ${c2.burn}）`);
   check(c2.fixed.hp && !c2.fixed.glass && !c2.fixed.bail && c2.fixed.engK === 1, `修車全部回復 ${JSON.stringify(c2.fixed)}`);
   check(c2.R === 12, '爆炸半徑 12 m');

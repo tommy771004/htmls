@@ -8,8 +8,13 @@ const gta = { weapon: 'fist', aiming: false, guard: false, aimK: 0, fireT: 0, re
 const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車',
   urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克',
   grc_sedan: 'Brougham 轎車', grc_stepvan: 'Stepline 廂型貨車', grc_mailvan: '蝸牛郵務車' };
-// 車損階段（neon_nightcity_gta_v_2.md 第一節第 3 點，耐久的比例）：70% 以上只有火花、碎窗淡白煙、40% 濃黑煙且動力少兩成五、15% 起火每秒 −25、歸零爆炸
-const HP = 1000, STAGE = { white: .7, black: .4, fire: .15 }, BURN_HP = 25, BOOM_R = 12;
+// 車損階段（耐久的比例；原本照 neon_nightcity_gta_v_2.md 是 70% 碎窗冒白煙、40% 黑煙、15% 起火，撞兩下就冒煙，調成 GTA V 那樣耐撞）：
+// 60% 以上只有凹痕與火花、60% 車窗碎掉、50% 冒白煙、30% 濃黑煙且動力少兩成五、12% 起火每秒 −25、歸零爆炸
+const HP = 1000, STAGE = { glass: .6, white: .5, black: .3, fire: .12 }, BURN_HP = 25, BOOM_R = 12;
+// 撞擊扣血：速度變化（J/M）超過 CRASH.dv0 的部分 ×CRASH.k（原本規格是 3.5 m/s、×18，時速 50 撞牆就扣兩成五）。
+// 現在時速 50 正面撞牆約扣 100（一千出頭的耐久，要五、六下才冒煙），時速 100 約扣 260；側面擦撞多半不到門檻
+const CRASH = { dv0: 6, k: 9 };
+const crashDmg = dv => Math.max(0, (dv - CRASH.dv0) * CRASH.k);
 const hpMaxOf = c => c.hpMax || (c.type ? VCLASS[typeClass(c.type)].hp : HP);   // 車流車沒有 hpMax：照車型的級距
 const _gm = new T.Matrix4(), _gv = V3(), _gv2 = V3(), _gq = new T.Quaternion();
 
@@ -331,7 +336,8 @@ function damageCar(c, n, byP = false) {
   return null;
 }
 // byP：玩家造成的（之後爆炸算玩家的罪，69-police.js 的 crime）
-function damageVeh(v, n, byP = false) { if (v.dead || !(n > 0)) return; hpLockOf(v); if (byP) v.byP = uTimeNow(); v.hp -= n; if (v.unit) unitHit(v, byP); if (v.hp <= 0) explode(v); }
+// raw：照門檻算好的扣血（點火到 STAGE.fire 以下），不打裝甲的折扣；其他的扣血乘上 66-chrome.js 的裝甲 v.armorK
+function damageVeh(v, n, byP = false, raw = false) { if (v.dead || !(n > 0)) return; hpLockOf(v); if (byP) v.byP = uTimeNow(); v.hp -= raw ? n : n * (v.armorK ?? 1); if (v.unit) unitHit(v, byP); if (v.hp <= 0) explode(v); }
 // ─── 車損：冒煙、起火、爆炸；撞到路人 ───
 function explode(v) {
   if (v.dead) return;
@@ -377,9 +383,9 @@ function vehDamage(v, dt) {
 }
 // 開車撞人：前後兩個碰撞圓附近的路人倒地；撞擊扣血
 function vehHits(v, imp) {
-  // 撞牆扣血（neon_nightcity_gta_v_2.md：ΔHP = (J/M − 3.5)·18；牆的質量無限大，J/M = (1+e)·v法向，e = .25 和 vehicleCollide 的反彈一致）
+  // 撞牆扣血（ΔHP = crashDmg(J/M)；牆的質量無限大，J/M = (1+e)·v法向，e = .25 和 vehicleCollide 的反彈一致）
   const jm = 1.25 * imp;
-  if (jm > 3.5) { damageVeh(v, (jm - 3.5) * 18, false); if (jm > 6) sparks(v.x + Math.sin(v.yaw) * v.len * .45, v.y + .5, v.z + Math.cos(v.yaw) * v.len * .45, Math.min(24, jm * 1.5 | 0), 3 + jm * .3); }
+  if (jm > 3.5) { damageVeh(v, crashDmg(jm), false); if (jm > 6) sparks(v.x + Math.sin(v.yaw) * v.len * .45, v.y + .5, v.z + Math.cos(v.yaw) * v.len * .45, Math.min(24, jm * 1.5 | 0), 3 + jm * .3); }
   const sp = Math.hypot(v.vx, v.vz);
   if (sp < 2.5) return;
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);

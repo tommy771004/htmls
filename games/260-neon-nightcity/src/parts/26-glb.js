@@ -71,6 +71,37 @@ const GLB_CARS = [
   ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, fb: 0xc8141c, proxy: 'hanzo', bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
     tag: '從 MotoGP 賽車下放的 V4 引擎、單搖臂與紅色車殼。兩百多匹，比很多跑車都快。' }],
 ];
+// ─── 原廠規格（公開規格與媒體實測的概數；賽車是規格書的最低車重與 BoP 前後的馬力）───
+// [車重 kg（機車是含油）, 馬力 PS, 0–100 km/h 秒, 極速 km/h（有電子限速的照限速）, 側向抓地 g（繞圈測試）, 100–0 煞車距離 m, 驅動：R 前置後驅／M 中後置後驅／A 四驅／B 機車, 備註：cage 防滾籠賽車、pol 警用強化]
+const CAR_REAL = {
+  e92: [1655, 420, 4.8, 250, .95, 36, 'R'], m3c: [1730, 510, 3.9, 250, 1.0, 34, 'R'], m4wb: [1725, 510, 3.9, 290, 1.02, 34, 'R'],
+  m3gtr: [1120, 470, 3.6, 290, 1.45, 30, 'R', 'cage'], m3t24: [1450, 550, 3.6, 280, 1.4, 31, 'R', 'cage'], m4gt3: [1300, 590, 3.4, 290, 1.55, 29, 'R', 'cage'],
+  gt3rs: [1450, 525, 3.2, 296, 1.2, 31, 'M'], gt3r: [1250, 565, 3.0, 290, 1.6, 29, 'M', 'cage'],
+  s1krr: [204, 193, 2.9, 299, .9, 40, 'B'], s1krr19: [194, 207, 2.8, 303, .92, 39, 'B'],
+  ae86: [940, 130, 8.5, 190, .8, 43, 'R'], rx7: [1260, 255, 5.3, 250, .9, 37, 'R'], supra: [1510, 280, 4.9, 250, .92, 37, 'R'],
+  r34: [1540, 280, 4.9, 250, .95, 36, 'A'], nsx: [1350, 280, 5.7, 270, .92, 38, 'M'], r35: [1752, 570, 2.8, 315, 1.0, 33, 'A'],
+  p930: [1300, 300, 5.4, 260, .86, 40, 'M'], rwb: [1290, 330, 4.8, 270, .95, 36, 'M'], e34: [1480, 192, 8.6, 228, .78, 42, 'R'],
+  evo190: [1340, 235, 7.1, 250, .88, 39, 'R'], m4csl: [1625, 550, 3.7, 307, 1.05, 33, 'R'], chall: [2018, 717, 3.6, 315, .93, 36, 'R'],
+  police: [1840, 250, 8.5, 209, .78, 44, 'R', 'pol'], zr1: [1615, 765, 3.0, 341, 1.1, 31, 'R'], f40: [1100, 478, 4.1, 324, .98, 37, 'M'],
+  sf90: [1660, 1030, 2.3, 320, 1.15, 30, 'A'], p1: [1490, 916, 2.8, 350, 1.2, 30, 'M'],
+  zx6r: [196, 130, 3.2, 260, .88, 41, 'B'], v4: [198, 214, 2.9, 299, .9, 38, 'B'],
+};
+// 換算成遊戲手感（城市尺度的街機手感，具名常數）：
+//   極速 = 原廠 × TOP_K（再由 vmaxFor 反推推力歸零速度）；加速 eng = ENG0 + ENG_K·(27.8 / 0–100 秒)；抓地 = GRIP0 + GRIP_K·g（機車另一組）；
+//   轉向 1.05·(1500 / 車重)^0.3（四驅 ×0.97）；手煞車 μ 後驅 .4、四驅 .56（越重越不好甩）；耐久 HP0 + HP_KG·車重（防滾籠、警用另加）；煞車 16·(a / 10.5)^0.8
+const TUNE = { TOP_K: .8, ENG0: 5.5, ENG_K: 1.65, GRIP0: 5.2, GRIP_K: 4.2, BGRIP0: 3.6, BGRIP_K: 4.6, HP0: 650, HP_KG: .32, HP_CAGE: 200, HP_POL: 300, RIDER: 80 };
+function realTune(c, r) {
+  const [kg, ps, t100, top, g, d100, dt, x] = r, bike = dt === 'B', m = kg + (bike ? TUNE.RIDER : 0);
+  const eng = TUNE.ENG0 + TUNE.ENG_K * 27.8 / t100, kmh = top * TUNE.TOP_K;
+  Object.assign(c, {
+    real: { kg, ps, t100, top, g, d100, dt, x: x || '' }, kmh, eng: +eng.toFixed(2), vmax: +vmaxFor(kmh, eng).toFixed(2),
+    grip: +(bike ? TUNE.BGRIP0 + TUNE.BGRIP_K * g : TUNE.GRIP0 + TUNE.GRIP_K * g).toFixed(2),
+    m, turn: +(bike ? 1.5 * (280 / m) ** .3 : clamp(1.05 * (1500 / kg) ** .3 * (dt === 'A' ? .97 : 1), .8, 1.35)).toFixed(3),
+    drift: +(bike ? .4 : (dt === 'A' ? .56 : .4) * (kg / 1500) ** .25).toFixed(3),
+    hp: Math.round(bike ? 380 + kg : TUNE.HP0 + TUNE.HP_KG * kg + (x === 'cage' ? TUNE.HP_CAGE : 0) + (x === 'pol' ? TUNE.HP_POL : 0)),
+    brk: +(16 * (386 / d100 / 10.5) ** .8).toFixed(2),
+  });
+}
 const shortLic = l => (l || '').replace(/\s*\(.*\)/, '').replace(/^CC-/, 'CC ').replace(/-(\d)/, ' $1');
 const shortAuthor = a => (a || '').replace(/\s*\(.*\)/, '');
 for (const [id, o] of GLB_CARS) {
@@ -81,6 +112,7 @@ for (const [id, o] of GLB_CARS) {
     credit: `模型：${shortAuthor(s.author)} · ${shortLic(s.license)} · 非官方同人，與車廠無關`, source: s.source,
     db: s.db || null,   // tools/seats.mjs 量的駕駛座 [座椅高度, 往前偏移]（69-combat.js 的車窗射擊）
   });
+  if (CAR_REAL[id]) realTune(CARS[id], CAR_REAL[id]);   // 每台車照原廠規格換算自己的極速、加速、抓地、車重、轉向、手煞車、耐久與煞車
 }
 
 // ─── 材質 ───

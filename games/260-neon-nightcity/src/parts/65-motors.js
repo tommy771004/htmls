@@ -8,7 +8,7 @@ const sellPrice = id => Math.round(CARS[id].price * .6 / 1000) * 1000;
 
 // ─── 車庫存檔：現金、擁有的車、各車塗裝、目前開在街上的那台 ───
 const MOTOR_KEY = 'nc260.motors';
-const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {}, svb: {} }, skills: null, gear: null, v5: { imp: 0, ext: [] } };
+const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {}, svb: {} }, skills: null, gear: null, v5: { imp: 0, ext: [] }, mods: {} };
 try {
   const d = JSON.parse(localStorage.getItem(MOTOR_KEY) || 'null');
   if (d && typeof d === 'object') {
@@ -36,6 +36,8 @@ try {
     }
     // 第 9 版（69-v5-civic.js）：座駕在拖吊場（imp）、裝了擴充彈匣的槍（ext）
     if (d.v5 && typeof d.v5 === 'object') motors.v5 = { imp: d.v5.imp === 1 ? 1 : 0, ext: Array.isArray(d.v5.ext) ? d.v5.ext.filter((s, k, a) => typeof s === 'string' && s.length < 24 && a.indexOf(s) === k) : [] };   // ext：69-v5-shops.js 的擴充彈匣
+    // 第 10 版（66-chrome.js）：每台車在 CHROME WORKS 裝的改裝套件 { 車: { 套件: 等級 } }；這裡只收物件，套件與等級由 66-chrome.js 的 modSanitize 檢查
+    if (d.mods && typeof d.mods === 'object' && !Array.isArray(d.mods)) for (const id in d.mods) if (CARS[id] && CARS[id].glb && d.mods[id] && typeof d.mods[id] === 'object') motors.mods[id] = d.mods[id];
     if (Array.isArray(d.stunts)) motors.stunts = d.stunts.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < RAMPS.length && a.indexOf(i) === k);
     // 第 2 版：手機快速存檔（69-phone.js）。舊存檔沒有這個欄位；讀檔時再逐項檢查範圍
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
@@ -57,7 +59,7 @@ try {
 const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
   motors.ts = Date.now();
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 9, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side, skills: motors.skills, gear: motors.gear, v5: motors.v5 })); } catch (e) { /* 存不了就算了 */ }
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 10, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side, skills: motors.skills, gear: motors.gear, v5: motors.v5, mods: motors.mods })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();
@@ -71,11 +73,12 @@ function placeCarAt(sp) {
   rollClear(v);   // 68-roll.js
   poseVehicle(v);
 }
-// 規格：極速照實換算，加速與抓地用五格評分（遊戲裡的加速度是街機手感，換成秒數會很怪）
+// 規格：遊戲裡的極速（原廠極速 × 26-glb.js 的 TUNE.TOP_K），加速、煞車與抓地用五格評分（遊戲裡的加速度是街機手感，換成秒數會很怪），下一行是原廠數字
 const dots = (v, lo, hi) => { const n = clamp(Math.round(1 + (v - lo) / (hi - lo) * 4), 1, 5); return '●'.repeat(n) + '○'.repeat(5 - n); };
 const carStats = id => {
-  const c = CARS[id];
-  return `極速 ${Math.round(c.vmax * 3.6)} km/h · 加速 ${dots(c.eng, 6.5, 22)} · 抓地 ${dots(c.grip, 6.8, 11)}`;
+  const c = CARS[id], r = c.real;
+  return `極速 ${Math.round(c.kmh || c.vmax * 3.6)} km/h · 加速 ${dots(c.eng, 10.5, 25)} · 煞車 ${dots(c.brk || 16, 13.8, 19.6)} · 抓地 ${dots(c.grip, 7.6, 11.8)}`
+    + (r ? `\n原廠 ${r.ps} 匹 · ${r.kg.toLocaleString('en-US')} kg · 0–100 ${r.t100} 秒 · 極速 ${r.top} km/h` : '');
 };
 
 // ─── 展示廳：門在 z = 0，室內 x -16..16、z 0..SD、挑高 7 m；一排六台實車模型，奇數排中間兩台在轉盤上 ───
@@ -337,7 +340,7 @@ function sellCar(id) {
   const v = sellPrice(id);
   motors.owned = motors.owned.filter(o => o !== id);
   if (motors.cur === id) { motors.cur = STARTER; applyCar(kestrel, STARTER, motors.paint[STARTER]); }
-  delete motors.paint[id];
+  delete motors.paint[id]; delete motors.mods[id];   // 改裝套件跟著車走（66-chrome.js）
   closeDialog(); rebuildGarage(); earn(v, `賣掉 ${CARS[id].name}`); sfx.click();
 }
 function stowCar() {

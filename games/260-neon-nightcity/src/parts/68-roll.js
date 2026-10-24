@@ -151,7 +151,7 @@ function flipStep(v, inp, dt) {
       v.flipped = null; rollStart(v, 4.1, (tgt - v.roll) / (2 * 4.1 / 9.8) * .9); sfx.impact(8); return { imp: 0, vF: 0, aF: 0 };
     }
   }
-  if (!F.side && F.t > 4 && !(F.push > 0) && !v.dead) { const want = hpLockOf(v) * STAGE.fire * .9; if (v.hp > want) damageVeh(v, v.hp - want); }
+  if (!F.side && F.t > 4 && !(F.push > 0) && !v.dead) { const want = hpLockOf(v) * STAGE.fire * .9; if (v.hp > want) damageVeh(v, v.hp - want, false, true); }
   return { imp: 0, vF: 0, aF: 0 };
 }
 // 沒人開的車（69-combat.js 的 coast 先問這裡）：翻滾、翻倒或疊在車頂上的車自己處理，回傳 true 表示處理過了

@@ -1,5 +1,5 @@
 
-// ═══ 可進入的場館：LAZARUS 夜店、AFTERGLOW 酒吧，外加 CHROME WORKS 改裝廠門口 ═══
+// ═══ 可進入的場館：LAZARUS 夜店、AFTERGLOW 酒吧，外加 CHROME WORKS 改裝廠門口（室內在 66-chrome.js）═══
 await bootStep(BOOT.venues, '布置夜店與酒吧…');
 const ENV = {
   out: { lampOn: 1, wet: 1, fogDen: .016, fog: 0x1a1d26, fogHi: 0x3a2a3a, top: 0x1d2230, bot: 0x241a16 },
@@ -397,10 +397,10 @@ const dlg = { open: false, opts: [] };
 function dialog(who, text, opts) {
   dlg.open = true; dlg.opts = opts || [{ t: '離開', fn: closeDialog }];
   $('dlgWho').textContent = who; $('dlgText').textContent = text;
-  const box = $('dlgOpts'); box.innerHTML = '';
+  const box = $('dlgOpts'); box.innerHTML = ''; box.classList.toggle('many', dlg.opts.length > 6);   // 選項多（66-chrome.js 的改裝選單）排兩欄
   dlg.opts.forEach((o, i) => {
     const b = document.createElement('button');
-    b.innerHTML = `<kbd>${i + 1}</kbd>`; b.append(o.t);
+    b.innerHTML = i < 10 ? `<kbd>${(i + 1) % 10}</kbd>` : ''; b.append(o.t);
     b.addEventListener('click', () => { sfx.click(); o.fn(); });
     box.append(b);
   });
@@ -491,8 +491,7 @@ function contextAction() {
   if (p.mode === 'drive') {
     const v = p.veh;
     const rs = resprayCtx(v); if (rs) return rs;   // 通緝中：CHROME WORKS 噴漆消星（69-crew.js）
-    if (v === kestrel && !motors.test && Math.hypot(v.x - toW(GAR_X, GAR_Z + SW + 4)[0], v.z - toW(GAR_X, GAR_Z + SW + 4)[1]) < 6 && Math.hypot(v.vx, v.vz) < 2)
-      return { key: 'E', text: '換一套塗裝 <i>· CHROME WORKS</i>', fn: cycleLivery };
+    const cw = chromeCtx(v); if (cw) return cw;   // 自己的車停在門口：開進 CHROME WORKS 改裝（66-chrome.js）
     return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: v.boat ? '下船' : '下車', fn: exitVehicle } : null;
   }
   if (p.where === 'out') {
@@ -513,7 +512,7 @@ function contextAction() {
   for (const h of ctxLate) { const r = h(p, near); if (r) return r; }
   return null;
 }
-// CHROME WORKS 換色：第一個選項是這台車的原廠色，換完記在車庫存檔裡
+// CHROME WORKS 換色（在改裝廠裡，66-chrome.js 的改裝選單）：第一個選項是這台車的原廠色，換完記在車庫存檔裡
 const LIVERIES = [[0x8a1018, '酒紅'], [0x3c4148, '槍灰'], [0x0d3b5c, '午夜藍'], [0xd8d4c8, '珍珠白'], [0x1b1c1f, '消光黑'], [0xc9a227, '香檳金'], [0x2f6a3a, '賽車綠']];
 function cycleLivery() {
   const id = kestrel.carId;

@@ -113,6 +113,16 @@
 - **鐵梯只有分局附樓南牆一道**：`v5Ladder` 可以掛到任何牆上，但一般大樓的防火梯（`20-props.js` 的窗台設施）仍是裝飾、爬不上去。
 - 還沒做：施工大樓的塔吊、車輛細節（短按／長按 F、燒胎甜甜圈、卡軸、泡水、拖吊車）、AI（消防與救護派遣、警察徵用車輛與車門掩護、E 對話與挑釁、尾隨、拍照）、切換角色小劇場、大型地景（塔吊、貨運列車、排水道與地鐵、軍事基地、機場）。
 
+## CHROME WORKS 改裝廠與車輛規格
+
+- **原廠數字是概數**：`26-glb.js` 的 `CAR_REAL`（車重、馬力、0–100、極速、側向 g、煞車距離）取自公開規格與媒體實測的常見數字，改裝賽車（M3 GTR、M3 Touring 24H、M4 GT3、GT3 R、RWB）用規格書的最低車重與 BoP 前後的馬力，數字可再對。換算常數在 `TUNE`；遊戲的 0–100 仍是街機手感（1.2–3.4 秒），原廠秒數只用來排快慢。
+- **改裝效果是自己挑的**：GTA V 的套件分級與 GTA Online 洛聖都改車王的基本價照抄，效果（`MOD_FX`）是自訂的具名常數；GTA 本身依車價調整部分套件價格，這裡是固定價。尾翼的價格也是自訂的。
+- **室內是程式建模的美式改裝店**：升降機、工具推車與點唱機借現有的 `carlift`／`toolcart`／`jukebox` 模型（http(s) 下才換上），展示台的 Challenger 是車行的實車模型，其他都是 Kit 建模；招牌在自己的 `cwAtlas`（20-props 的 2048 招牌圖集已經滿了，再加格子會把 `LAZARUS_SMALL` 擠出去）。改裝面板的版面照使用者給的 GTA V 洛聖都改車王截圖。要換成整間實體模型，Sketchfab 上的候選（尚未下載、授權與下載權限要到頁面確認）：
+  - 整間：Garage Interior（dhimasdc9，CC BY，約 11.7 萬面）https://sketchfab.com/3d-models/garage-interior-7e58e5e59a2e4ea8a7652b2b9413056d ；Sci-Fi Garage（nenkea，CC BY，約 1.9 萬面）https://sketchfab.com/3d-models/sci-fi-garage-2069d538b2fc41cc8b3d7383b6de4d1d ；Sci-Fi Garage（Adelaide Essex，授權未確認，約 9 萬面）https://sketchfab.com/3d-models/sci-fi-garage-5317acd8a054403989bf68f11ad89951
+  - 道具：Car lift（Sargone，CC BY）https://sketchfab.com/3d-models/car-lift-1b4ae76820294373bc19ee16b9a4db61 ；Tire Rack（3ddominator，CC BY）https://sketchfab.com/3d-models/tire-rack-3e4fdc69fe5f428082242a32a343c28a ；Tool Cart（jimbogies，CC BY）https://sketchfab.com/3d-models/tool-cart-16ceecf05f3e453e96c050f4c43f86b5 ；Engine Hoist（dinoxwave，CC BY）https://sketchfab.com/3d-models/engine-hoist-engine-crane-cca42a7a1eaa47f187e9206991c5b4e4 ；Workbench（Bársh，CC BY）https://sketchfab.com/3d-models/workbench-0a49e3b3b9624a2bb21eeeb473397873 ；Air Compressor XYZ（Sandokan，CC BY）https://sketchfab.com/3d-models/air-compressor-xyz-7e024388f87145cfaadad9e521bfc073
+  - 下載後放進 gitignore 的 `.cache/props/`，在 `tools/props.mjs` 加一組（照 `carlift`／`toolcart` 的做法進 `interior` 組），再在 `66-chrome.js` 用 `propSwap('chrome', 替身, id, 位置)` 擺上去；作者與授權記進 `assets/260/CREDITS.md`。
+- **撞擊扣血調輕了**：v2 規格的 ΔHP = (J/M − 3.5)·18 與 70%／40%／15% 的階段讓車撞兩下就冒煙，改成 (J/M − 6)·9 與 60% 碎窗／50% 白煙／30% 黑煙／12% 起火（`68-gta.js` 的 `CRASH`、`STAGE`）。`tools/check-gta-v2.mjs` 的階段測試跟著改了門檻。
+
 ## 車輛與人物
 
 - 車流是固定車道圖上的跟車模型，變換車道只有兩種：超車（前車停住超過 2 秒、對向 45 m 內沒車時借對向車道超過再切回，`30-vehicles.js` 的 `offT`／`passS`）與讓路（後面 32 m 內有亮燈追來的警車就往路邊靠 1.6 m、減到 2.5 m/s，`sirenBehind`；玩家開的警車不算），不會為了轉彎或併線換道；車輛之間只有雙圓碰撞。
