@@ -51,6 +51,11 @@ export const MODELS = [
   { id: 'chall', file: 'free__dodge_challenger_srt', len: 5.02, tris: 90000 },
   { id: 'zr1', file: '2019_chevrolet_corvette_zr1', len: 4.49, tris: 90000 },
   { id: 'police', file: 'police_car', len: 5.3, tris: 90000 },
+  // 第三批：amogusstrikesback2 的三台超跑（CC BY 4.0）；前後位置燈的節點連著往車頭外伸一公尺多的光束面片（會撐大車長、畫成黑色的長條），整個拿掉
+  { id: 'svj', file: 'lamborghini_aventador_lp_770-4_svj', len: 4.943, tris: 90000, drop: /^lights_position_front_and_back/ },
+  { id: 'evija', file: 'lotus_evija', len: 4.459, tris: 90000, drop: /^lights_position_front_and_back/,
+    wheelNodes: Object.fromEntries(['FL', 'FR', 'BL', 'BR'].map((w) => [w.replace('B', 'R'), [`^wheel${w}_tires`, `^wheel${w}_details`]])) },
+  { id: 'spano', file: '2015_gta_spano', len: 4.61, tris: 90000, drop: /^lights_position_front_and_back/ },
   { id: 'v4', file: 'ducati_panigale_v4', len: 2.11, tris: 70000, bike: true, flip: true, paint: false },
   { id: 'zx6r', file: 'kawasaki_ninja_zx-6r', len: 2.025, tris: 70000, bike: true, paint: false, opaque: true, noEmi: true,
     wheelNodes: { F: ['^Front Wheel_', '^Front Rim_'], R: ['^Rear Wheel_', '^Rear Rim_'] } },
@@ -104,6 +109,7 @@ async function processModel(M) {
   const prims = [];
   scene.traverse((node) => {
     const mesh = node.getMesh(); if (!mesh) return;
+    if (cfg.drop && cfg.drop.test(node.getName())) return;   // drop：不要的節點（例如伸出車頭好幾公尺的大燈光束面片）
     const wm = node.getWorldMatrix();
     const { det, n: nm } = normalMat(wm);
     for (const p of mesh.listPrimitives()) {

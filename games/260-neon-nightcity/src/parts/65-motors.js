@@ -89,7 +89,8 @@ const SHOW_ROWS = [
   ['s1krr', 'zx6r', 'gt3rs', 'gt3r', 'v4', 's1krr19'],
   ['ae86', 'rx7', 'supra', 'r34', 'nsx', 'r35'],
   ['e34', 'evo190', 'p930', 'rwb', 'm4csl', 'f40'],
-  ['police', 'chall', 'zr1', 'sf90', 'p1'],
+  ['police', 'chall', 'zr1', 'sf90', 'p1', 'svj'],
+  ['evija', 'spano'],
 ];
 const SD = 20 + SHOW_ROWS.length * 10, BK = SD - 30;   // 展示廳深度；後牆區（業務桌、休息區、招牌）比原本的 30 m 廳往後移 BK
 const SELLER = { x: 11, z: 27.4 + BK };

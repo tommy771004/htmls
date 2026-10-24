@@ -1,8 +1,8 @@
 # assets/260 實車模型來源與授權
 
-作品 260 霓虹夜城車行與車庫裡的 29 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
+作品 260 霓虹夜城車行與車庫裡的 32 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
 
-非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
+非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -30,6 +30,9 @@
 | `f40.glb` | [Ferrari f40](https://sketchfab.com/3d-models/ferrari-f40-52a66c41cfcd4f999fb1b1c49bf24d70) | Black Snow | CC-BY-4.0 |
 | `sf90.glb` | [2023 Ferrari SF90 XX Stradale](https://sketchfab.com/3d-models/2023-ferrari-sf90-xx-stradale-2c80c667232544649328cf3589921bcd) | Ddiaz Design | CC-BY-4.0 |
 | `p1.glb` | [Mclaren P1 | www.vecarz.com](https://sketchfab.com/3d-models/mclaren-p1-wwwvecarzcom-adae2edc721e4ce7b31c1d06a581e30a) | vecarz | CC-BY-4.0 |
+| `svj.glb` | [lamborghini aventador lp 770-4 svj](https://sketchfab.com/3d-models/lamborghini-aventador-lp-770-4-svj-71460dcc354045ddb1e7a8670678ffca) | amogusstrikesback2 | CC-BY-4.0 |
+| `evija.glb` | [lotus evija](https://sketchfab.com/3d-models/lotus-evija-80d85f9fe49f4e249548a466a5674835) | amogusstrikesback2 | CC-BY-4.0 |
+| `spano.glb` | [2015 gta spano](https://sketchfab.com/3d-models/2015-gta-spano-9f115e79267742ff9a95dc7c1cf3021c) | amogusstrikesback2 | CC-BY-4.0 |
 | `chall.glb` | [( FREE ) Dodge Challenger SRT](https://sketchfab.com/3d-models/free-dodge-challenger-srt-38a1fd572beb433fa2d26d8c1070c8fa) | SDC PERFORMANCE™️ | CC-BY-4.0 |
 | `zr1.glb` | [2019 Chevrolet Corvette ZR1](https://sketchfab.com/3d-models/2019-chevrolet-corvette-zr1-92b1b185b0d44847b0d099a787f8ed12) | Ddiaz Design | CC-BY-4.0 |
 | `police.glb` | [Police car](https://sketchfab.com/3d-models/police-car-9166b13b6ae341f4bfc093edb71d74f4) | Mateusz Woliński | CC-BY-4.0 |

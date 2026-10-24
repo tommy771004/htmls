@@ -481,4 +481,4 @@ function carWheelGeo(id, f) {
 }
 // 車庫車格的順序（車行與車庫只放 26-glb.js 的實車模型；上面程式建模的車留給車流與沒下載到模型時的替身）
 const CAR_ORDER = ['ae86', 'e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3', 'gt3rs', 'gt3r', 's1krr', 's1krr19',
-  'rx7', 'supra', 'r34', 'nsx', 'r35', 'p930', 'rwb', 'e34', 'evo190', 'm4csl', 'chall', 'police', 'zr1', 'f40', 'sf90', 'p1', 'zx6r', 'v4'];
+  'rx7', 'supra', 'r34', 'nsx', 'r35', 'p930', 'rwb', 'e34', 'evo190', 'm4csl', 'chall', 'police', 'zr1', 'f40', 'sf90', 'p1', 'svj', 'evija', 'spano', 'zx6r', 'v4'];

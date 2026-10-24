@@ -1463,6 +1463,162 @@
    -0.25
   ]
  },
+ "svj": {
+  "id": "svj",
+  "title": "lamborghini aventador lp 770-4 svj",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/lamborghini-aventador-lp-770-4-svj-71460dcc354045ddb1e7a8670678ffca",
+  "bike": false,
+  "len": 4.943,
+  "w": 2.276,
+  "h": 1.155,
+  "wr": 0.355,
+  "fa": 1.242,
+  "ra": -1.459,
+  "track": 0.875,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.865,
+    "y": 0.345,
+    "z": 1.242,
+    "r": 0.345
+   },
+   {
+    "name": "FR",
+    "x": -0.865,
+    "y": 0.345,
+    "z": 1.242,
+    "r": 0.345
+   },
+   {
+    "name": "RL",
+    "x": 0.885,
+    "y": 0.366,
+    "z": -1.459,
+    "r": 0.366
+   },
+   {
+    "name": "RR",
+    "x": -0.885,
+    "y": 0.366,
+    "z": -1.459,
+    "r": 0.366
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31484,
+  "kb": 702,
+  "draws": 20
+ },
+ "evija": {
+  "id": "evija",
+  "title": "lotus evija",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/lotus-evija-80d85f9fe49f4e249548a466a5674835",
+  "bike": false,
+  "len": 4.459,
+  "w": 2.008,
+  "h": 1.141,
+  "wr": 0.353,
+  "fa": 1.22,
+  "ra": -1.374,
+  "track": 0.847,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.861,
+    "y": 0.346,
+    "z": 1.22,
+    "r": 0.346
+   },
+   {
+    "name": "FR",
+    "x": -0.869,
+    "y": 0.346,
+    "z": 1.22,
+    "r": 0.346
+   },
+   {
+    "name": "RL",
+    "x": 0.834,
+    "y": 0.36,
+    "z": -1.374,
+    "r": 0.36
+   },
+   {
+    "name": "RR",
+    "x": -0.824,
+    "y": 0.36,
+    "z": -1.374,
+    "r": 0.36
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 30725,
+  "kb": 687,
+  "draws": 14
+ },
+ "spano": {
+  "id": "spano",
+  "title": "2015 gta spano",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2015-gta-spano-9f115e79267742ff9a95dc7c1cf3021c",
+  "bike": false,
+  "len": 4.61,
+  "w": 2.151,
+  "h": 1.147,
+  "wr": 0.331,
+  "fa": 1.257,
+  "ra": -1.476,
+  "track": 0.831,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   },
+   {
+    "name": "RR",
+    "x": -0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   }
+  ],
+  "paint": [
+   "Material.002"
+  ],
+  "paintable": false,
+  "tris": 31418,
+  "kb": 727,
+  "draws": 20
+ },
  "v4": {
   "id": "v4",
   "title": "Ducati Panigale V4",
