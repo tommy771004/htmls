@@ -1,9 +1,9 @@
 
-// ═══ 聲音：雨、城市低頻、引擎、甩尾、夜店 124 BPM 與酒吧 84 BPM 音樂，全部即時合成 ═══
+// ═══ 聲音：雨、城市低頻、引擎、甩尾、夜店 128 BPM 與酒吧 84 BPM 音樂，全部即時合成 ═══
 const sfx = (() => {
   let ac = null, out, master, musicG, ambG, noiseBuf, rainG, rainF, cityG, eng = null, skidG, clubBus, clubF, barBus, barF, sched = null;
   const st = { muted: false, duck: false, hidden: false, clubT0: 0, barT0: 0, nextClub: 0, nextBar: 0, clubStep: 0, barStep: 0, where: 'out', dClub: 999, dBar: 999 };
-  const CLUB_BPM = 124, BAR_BPM = 84;
+  const CLUB_BPM = 128, BAR_BPM = 84;
   const t0perf = performance.now();
   function now() { return ac ? ac.currentTime : (performance.now() - t0perf) / 1000; }
   function mkNoise() {

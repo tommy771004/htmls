@@ -294,6 +294,7 @@ function step(dt) {
   updateMotors(dt, t);
   updateChrome(dt);   // 66-chrome.js：改裝廠裡的展示車與離場時把車停回門口
   v6Update(dt);   // 69-v6-customs.js：歇業倒數、炸彈、液壓、回火與燒胎煙、歪軸、客戶委託
+  v7Update(dt);   // 69-v7-*.js：地堡與霓虹堡、賭場與金庫搶劫、夜店（人氣、保險箱、鬧事、出貨）
   updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
   v3Update(dt);   // 69-v3-*：第三部曲的六圍、化學反應、撞擊與跳傘、計程車

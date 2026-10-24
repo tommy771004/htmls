@@ -11,7 +11,7 @@ const KEY_ACTS = [
   { k: 'ShiftLeft', n: '奔跑／氮氣' }, { k: 'Space', n: '手煞車' }, { k: 'KeyF', n: '上車／下車、搶車' }, { k: 'KeyE', n: '互動' },
   { k: 'KeyR', n: '換彈匣' }, { k: 'KeyZ', n: '蹲下／站起' }, { k: 'Tab', n: '武器轉盤（按住）' }, { k: 'KeyQ', n: '角色轉盤（按住）' },
   { k: 'KeyX', n: '特殊能力' }, { k: 'KeyG', n: '跳舞／引爆黏彈' }, { k: 'KeyV', n: '叫車' }, { k: 'KeyC', n: '切換鏡頭距離' },
-  { k: 'KeyP', n: '手機' }, { k: 'KeyM', n: '全區地圖' },
+  { k: 'KeyP', n: '手機' }, { k: 'KeyM', n: '全區地圖' }, { k: 'KeyB', n: 'Mk II 切換彈種' },
 ];
 const KEY_NO = /^(Escape|Enter|NumpadEnter|Backspace|Delete|CapsLock|Meta(Left|Right)|Digit\d|Numpad\w*|Arrow\w+|F\d+)$/;
 const KEYMAP = new Map();   // 實體鍵 → 遊戲 code（'Unbound' 是被換走、現在不做事的預設鍵）

@@ -416,6 +416,12 @@ const FAC = (() => {
     gar: { i: 8, j: 8, lots: [], gar: { x0: 13, x1: 59, z0: 13, z1: 49 }, lv: 3.6, n: 4, roof: .15 + 4 * 3.6 },   // 層高 3.6 m，頂樓是第 4 層樓板（地面 0.15）
     // 中城 (4,3) 的霓峰塔工地（69-v5-tower.js）：沒有地塊，西半是蓋到 202 m 的框架大樓（tower），東邊是 250 m 的塔吊（mast 是桅桿中心），四周圍施工圍籬
     crane: { i: 4, j: 3, lots: [], tower: { x0: 14.2, x1: 37.3, z0: 13.3, z1: 38.2 }, mast: [47, 26] },
+    // 第七部曲（69-v7-casino.js）：光環廣場 (8,4) 的霓鑽賭場酒店：西北、東北兩座塔樓，南半是 2 層的裙樓（大門朝南，屋頂是 RF 泳池與停機坪）
+    casino: { i: 8, j: 4, lots: [{ x0: 12.5, x1: 30, z0: 12.5, z1: 30, style: 3, floors: 42, axis: 'z', face: 1, back: 1 }, { x0: 42, x1: 59.5, z0: 12.5, z1: 30, style: 3, floors: 36, axis: 'z', face: 1, back: 1 },
+      { x0: 12.5, x1: 59.5, z0: 30, z1: 49.5, style: 3, floors: 2, axis: 'z', face: 1, roof: 1 }] },
+    // 69-v7-bunker.js：灰石國宅北端 (15,0) 的霓虹堡軍事基地、隔壁 (16,0) 北嶺山腳的地堡土丘，兩塊都沒有地塊（(17,0) 以東的北排沒有街區）
+    fort: { i: 15, j: 0, lots: [] },
+    bunker: { i: 16, j: 0, lots: [] },
   };
   for (const [id, F] of Object.entries(S)) {
     const b = blocks.find(o => !o.outer && o.i === F.i && o.j === F.j);

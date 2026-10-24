@@ -7,7 +7,7 @@ const sellPrice = id => Math.round(CARS[id].price * .6 / 1000) * 1000;
 
 // ─── 車庫存檔：現金、擁有的車、各車塗裝、目前開在街上的那台 ───
 const MOTOR_KEY = 'nc260.motors';
-const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {}, svb: {} }, skills: null, gear: null, v5: { imp: 0, ext: [] }, mods: {}, v6: { sellT: 0, exp: null, wipe: 0 } };
+const motors = { cash: 180000, owned: [STARTER], paint: {}, cur: STARTER, stowed: false, test: null, game: null, stunts: [], stk: null, props: null, ts: 0, side: { race: {}, win: [], surv: 0, turf: [], tale: {}, svb: {} }, skills: null, gear: null, v5: { imp: 0, ext: [] }, mods: {}, v6: { sellT: 0, exp: null, wipe: 0 }, v7: {} };
 try {
   const d = JSON.parse(localStorage.getItem(MOTOR_KEY) || 'null');
   if (d && typeof d === 'object') {
@@ -43,6 +43,8 @@ try {
       motors.v6 = { sellT: Number.isFinite(d.v6.sellT) && d.v6.sellT > 0 && d.v6.sellT < Date.now() + 36e5 ? d.v6.sellT : 0, wipe: d.v6.wipe === 1 ? 1 : 0,
         exp: E && typeof E === 'object' && Number.isInteger(E.d) && ok(E.list).length === 3 ? { d: E.d, list: ok(E.list), done: ok(E.done) } : null };
     }
+    // 第 12 版（69-v7-*.js）：夜店 club、地堡 bunker、賭場 casino；這裡只收物件，各欄位由各模組開場時檢查範圍
+    if (d.v7 && typeof d.v7 === 'object' && !Array.isArray(d.v7)) motors.v7 = Object.fromEntries(['club', 'bunker', 'casino'].filter(k => d.v7[k] && typeof d.v7[k] === 'object' && !Array.isArray(d.v7[k])).map(k => [k, d.v7[k]]));
     if (Array.isArray(d.stunts)) motors.stunts = d.stunts.filter((i, k, a) => Number.isInteger(i) && i >= 0 && i < RAMPS.length && a.indexOf(i) === k);
     // 第 2 版：手機快速存檔（69-phone.js）。舊存檔沒有這個欄位；讀檔時再逐項檢查範圍
     if (d.game && typeof d.game === 'object' && Array.isArray(d.game.st) && Number.isInteger(d.game.cur) && d.game.ammo && typeof d.game.ammo === 'object') motors.game = d.game;
@@ -64,7 +66,7 @@ try {
 const lastTs = motors.ts;   // saveMotors 會改寫 ts，先記下上次存檔的時間給 69-market.js
 function saveMotors() {
   motors.ts = Date.now();
-  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 11, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side, skills: motors.skills, gear: motors.gear, v5: motors.v5, mods: motors.mods, v6: motors.v6 })); } catch (e) { /* 存不了就算了 */ }
+  try { localStorage.setItem(MOTOR_KEY, JSON.stringify({ v: 12, ts: motors.ts, cash: motors.cash, owned: motors.owned, paint: motors.paint, cur: motors.cur, game: motors.game, stunts: motors.stunts, stk: motors.stk, props: motors.props, side: motors.side, skills: motors.skills, gear: motors.gear, v5: motors.v5, mods: motors.mods, v6: motors.v6, v7: motors.v7 })); } catch (e) { /* 存不了就算了 */ }
 }
 function earn(n, why) {
   motors.cash += n; saveMotors();
