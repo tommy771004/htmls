@@ -188,7 +188,7 @@ void main(){
     if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < fade) discard;
   }
   vec4 base = vCol;
-  if (vPbr.w > .5 && uPaint.w > .5) base.rgb = uPaint.rgb;
+  if (vPbr.w > .5 && uPaint.w > .5 && uPaint.r >= 0.) base.rgb = uPaint.rgb;   // r < 0：原廠色，只換烤漆材質
   #ifdef USE_MAP
   base *= texture2D(uMap, vUv);
   #endif
@@ -203,6 +203,14 @@ void main(){
   float rough = clamp(vPbr.x, .05, 1.), metal = clamp(vPbr.y, 0., 1.), coat = vPbr.z;
   // 很多模型把金屬漆標成 metallic 1；夜城的環境光很暗，全金屬會整台變黑，所以只有很光滑的（鍍鉻）才保留全金屬
   metal = min(metal, mix(.5, 1., step(rough, .15)));
+  // uPaint.w：66-chrome.js 的烤漆材質（1 原廠亮面、2 金屬、3 消光、4 珠光、5 電鍍鏡面），只換車漆的部分
+  if (vPbr.w > .5 && uPaint.w > 1.5) {
+    float pf = uPaint.w;
+    if (pf < 2.5) { metal = .55; rough = .3; coat = 1.; }
+    else if (pf < 3.5) { metal = 0.; rough = .72; coat = 0.; }
+    else if (pf < 4.5) { rough = .22; coat = 1.; base.rgb = mix(base.rgb, base.rgb.gbr * .7 + vec3(.12, .08, .16), pow(1. - max(dot(n, v), 0.), 1.6) * .85); }
+    else { metal = 1.; rough = .06; coat = 1.; base.rgb = mix(base.rgb, vec3(.9), .35); }
+  }
   // uM.w：燒毀程度（68-gta.js 的爆炸），車身變成焦黑、不再反光發光
   base.rgb = mix(base.rgb, vec3(.03, .026, .022), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; coat *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y);
@@ -333,9 +341,10 @@ function loadGLB(id) {
   }, () => { glbReport.failed.push(id); glbDone.add(id); return null; });
 }
 // 一個實例：自己的 uM（頭燈、煞車）與車漆 uniform，網格與材質都是新的、幾何共用
-function glbInstance(tpl, paint, uM) {
+function glbInstance(tpl, paint, uM, fin = 1) {
   const inst = { uM: uM || { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, 0) }, body: new T.Group(), wheels: [] };
-  if (paint != null && CARS[tpl.id].paintable) { const c = new T.Color(paint); inst.uPaint.value.set(c.r, c.g, c.b, 1); }
+  if (paint != null && CARS[tpl.id].paintable) { const c = new T.Color(paint); inst.uPaint.value.set(c.r, c.g, c.b, fin); }
+  else if (fin > 1 && CARS[tpl.id].paintable) inst.uPaint.value.set(-1, -1, -1, fin);
   const mats = new Map();
   const mk = e => {
     let m = mats.get(e.mat); if (!m) { m = glbMaterial(e.mat, inst); mats.set(e.mat, m); }
@@ -354,14 +363,14 @@ function glbInstance(tpl, paint, uM) {
 }
 // 展示廳與車庫用的整台車（靜態）：先放替身，走進那個場館時才下載模型（glbWake），下載好就換掉
 const glbWait = [];
-function carObject(id, paint) {
+function carObject(id, paint, fin = 1) {
   const c = CARS[id];
   const fbMesh = () => { const m = new T.Mesh(c.bike ? bikeFallbackGeo() : carKit(id, paint).build(), MAT.uber); m.userData.kit = 1; return m; };
   if (!c.glb) return fbMesh();
   const g = new T.Group(), fb = fbMesh(); g.add(fb);
   if (GLB_ON) {
     if (glbWait.length > 64) for (let i = glbWait.length - 1; i >= 0; i--) if (!glbWait[i].g.parent) glbWait.splice(i, 1);
-    glbWait.push({ g, fb, id, paint });
+    glbWait.push({ g, fb, id, paint, fin });
   }
   return g;
 }
@@ -374,7 +383,7 @@ function glbWake(scn) {
     if (!glbDone.has(e.id)) glbBatch.add(e.id);
     loadGLB(e.id).then(tpl => {
       if (!tpl || e.fb.parent !== e.g) return;
-      const inst = glbInstance(tpl, e.paint);
+      const inst = glbInstance(tpl, e.paint, null, e.fin); e.g.userData.inst = inst;
       e.g.remove(e.fb); e.fb.geometry.dispose();
       e.g.add(inst.body); for (const w of inst.wheels) e.g.add(w.piv);
     });

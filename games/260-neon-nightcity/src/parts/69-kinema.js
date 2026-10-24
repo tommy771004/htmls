@@ -186,6 +186,7 @@ function kinVehicles(L) {
     damageVeh(A, crashDmg(dvA), B === player.veh);
     damageVeh(B, crashDmg(dvB), A === player.veh);
     rollHit(A, dvA, c.nx, c.nz); rollHit(B, dvB, -c.nx, -c.nz);   // 68-roll.js：側面被撞得夠猛就翻
+    v6Plow(A, B); v6Plow(B, A);   // 69-v6-customs.js：防撞鏟正面撞車把對方往上鏟
     if (dvA + dvB > 7) sparks(c.px, Math.max(A.y || 0, B.y || 0) + .6, c.pz, 10, 4);
     if (A !== player.veh && B !== player.veh) continue;
     const mine = A === player.veh ? A : B, other = mine === A ? B : A, dv = mine === A ? dvA : dvB;

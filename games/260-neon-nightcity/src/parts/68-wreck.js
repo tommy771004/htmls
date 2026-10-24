@@ -39,7 +39,7 @@ function bailOut(v) {
 function wreckFix(v) {
   hpLockOf(v);
   v.dead = 0; v.burn = 0; v.hp = v.hpMax;
-  v.glass = 0; v.engK = 1; v.stall = 0; v.bail = 0;
+  v.glass = 0; v.engK = 1; v.stall = 0; v.bail = 0; v.axle = 0; v.axleYr = 0;   // axle：69-v6-customs.js 撞歪的輪軸
   tireFix(v); rollClear(v);   // 68-roll.js：翻倒的車也擺正
 }
 

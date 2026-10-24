@@ -28,8 +28,14 @@ const CONTACTS = [
     { t: '雷達隱形 60 秒', sub: phone.ghostT > 0 ? `生效中 · 剩 ${secs(phone.ghostT)}` : '期間路人看到犯罪也不會報警', val: money(PH_GHOST), ok: phone.ghostT <= 0, fn: zeroGhost },
     { t: '標記運鈔車', sub: ev.truck ? '小地圖上已經有一台' : '叫一台鐵庫保全運鈔車開過附近', val: money(PH_TRUCK), ok: !ev.truck && !W.stars, fn: zeroTruck },
   ] },
-  { name: '鐵手', role: '技工', rows: () => [
-    { t: `送 ${kestrel.name} 過來`, sub: phone.cd.mech > 0 ? `冷卻中 · ${secs(phone.cd.mech)}` : '停在你身後 30 公尺的路上', val: '免費', ok: phone.cd.mech <= 0, fn: mechDeliver },
+  { name: '鐵手強尼', role: 'CHROME WORKS 技工', rows: () => [
+    { t: `送 ${kestrel.name} 過來`, sub: phone.cd.mech > 0 ? `冷卻中 · ${secs(phone.cd.mech)}` : kestrel.dead ? (v6Insured(kestrel.carId) ? `燒毀了 · 磐石互保自付額 ${money(v6Deduct(kestrel.carId))}` : `燒毀了 · 原廠重建費 ${money(v6Rebuild(kestrel.carId))}`) : '停在你身後 30 公尺的路上', val: kestrel.dead ? '' : '免費', ok: phone.cd.mech <= 0, fn: mechDeliver },
+    ...(kestrel.bomb === 2 && !kestrel.dead ? [{ t: '引爆車載炸彈', sub: `${kestrel.name} 上的手機遙控炸彈`, val: '', ok: true, fn: v6Detonate }] : []),   // 69-v6-customs.js
+  ] },
+  { name: '磐石互保', role: '車輛保險', rows: () => [
+    kestrel.dead && v6Insured(kestrel.carId)
+      ? { t: '申請理賠', sub: `${kestrel.name} · 自付額（車價 1.5%）`, val: money(v6Deduct(kestrel.carId)), ok: phone.cd.mech <= 0, fn: mechDeliver }
+      : { t: '申請理賠', sub: v6Insured(kestrel.carId) ? `${kestrel.name} 已投保全額險 · 沒有毀損` : `${kestrel.name} 沒有投保 · 到 CHROME WORKS 的防盜保險投保`, val: '', ok: false },
   ] },
   { name: '鐵幕保全', role: '傭兵', rows: () => [
     { t: '空投彈藥箱', sub: phone.cd.drop > 0 ? `準備中 · ${secs(phone.cd.drop)}` : '投在前方路上：彈藥全滿＋防彈衣', val: money(PH_DROP), ok: phone.cd.drop <= 0 && !phone.crates.length, fn: mercDrop },
@@ -63,6 +69,7 @@ function mechDeliver() {
   if (player.where !== 'out') { phoneMsg('鐵手：你人在室內，我開不進去。'); return; }
   if (player.mode === 'drive' && player.veh === kestrel) { phoneMsg('鐵手：你已經坐在它裡面了。'); return; }
   if (motors.test) { phoneMsg('鐵手：先把試駕車還回去。'); return; }
+  if (!v6Claim()) { phoneMsg('強尼：自付額或重建費不夠，修不了。'); return; }   // 69-v6-customs.js：燒毀的座駕要付保險自付額或原廠重建費
   motors.stowed = false; kestrel.g.visible = true;
   if (kestrel.dead || kestrel.flat) wreckFix(kestrel);   // 68-wreck.js：耐久、車窗、引擎、輪胎
   const q = player.mode === 'drive' ? player.veh : player, yaw = q.yaw;
@@ -224,7 +231,7 @@ function phoneRows() {
   if (phone.scr === 'save') return saveRows();
   if (phone.scr === 'news') return news.length ? news.slice(0, 10).map(n => ({ t: n.h, sub: `${n.when}${n.b ? ' · ' + n.b : ''}`, val: '', ok: true, fn: () => { phone.msg = n.b || n.h; } })) : [{ t: '目前沒有新聞', sub: '城裡今晚很安靜', val: '', ok: false }];
   return [
-    { t: '聯絡人', sub: phone.ghostT > 0 ? `雷達隱形 · 剩 ${secs(phone.ghostT)}` : 'Zero、鐵手、鐵幕保全', val: '', ok: true, fn: () => { phone.scr = 'contacts'; phone.msg = ''; } },
+    { t: '聯絡人', sub: phone.ghostT > 0 ? `雷達隱形 · 剩 ${secs(phone.ghostT)}` : 'Zero、鐵手強尼、鐵幕保全、磐石互保', val: '', ok: true, fn: () => { phone.scr = 'contacts'; phone.msg = ''; } },
     { t: '暗網軍火', sub: '彈藥、投擲物、防彈衣', val: '', ok: true, fn: () => { phone.scr = 'arms'; phone.msg = ''; } },
     { t: '霓虹證交所', sub: motors.stk && STOCKS.some(s => motors.stk.sh[s.id]) ? `持股市值 ${money(STOCKS.reduce((a, s) => a + motors.stk.sh[s.id] * motors.stk.px[s.id], 0))}` : '六檔股票，破壞對手的資產讓股價波動', val: '', ok: true, fn: () => { phone.scr = 'stocks'; phone.msg = ''; } },
     { t: '天際置業', sub: motors.props.own.length ? `${motors.props.own.length} 處資產 · 保險箱 ${money(ESTATES.reduce((a, e) => a + (estOwned(e.id) ? motors.props.safe[e.id] : 0), 0))}` : '買下夜店、酒吧、改裝廠或安全屋', val: '', ok: true, fn: () => { phone.scr = 'estates'; phone.msg = ''; } },

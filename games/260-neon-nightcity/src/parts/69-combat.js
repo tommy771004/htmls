@@ -834,6 +834,7 @@ addEventListener('keyup', e => { if (e.code === 'Tab' && arm.wheel.open && arm.w
 function gtaKey(code) {
   if (v5Key(code)) return true;   // 69-v5-civic.js：爬梯子、翻鐵絲網、從屋頂跳下去、店裡的按鍵
   if (crashKey(code)) return true;   // 69-v3-crash.js：空中開傘、走路時空白鍵翻越
+  if (v6Key(code)) return true;   // 69-v6-customs.js：液壓（X）、改裝喇叭（H）
   if (crewKey(code)) return true;   // 69-crew.js：Q 角色轉盤、X 特殊能力
   if (code === 'Tab') { if (arm.wheel.open) wheelClose(true); else wheelOpen(); return true; }
   if (life.dead) return true;

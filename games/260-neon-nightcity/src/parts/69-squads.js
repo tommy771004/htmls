@@ -175,6 +175,7 @@ function fStep(f, dt) {
     if (f.calm) wakeGroup(f.grp);
     return;
   }
+  if (f.bait) return v6BaitStep(f, dt);   // 69-v6-customs.js：走去偷裝了點火炸彈的車
   if (f.team === 'thief') return thiefStep(f, dt);   // 69-street.js
   // 還沒察覺的幫派（69-street.js 的交易）：站著聊天，玩家靠近、看得到，或有人中槍、附近有槍聲才動手；69-turf.js 盯梢的（lurk）要靠到 7 m 內或拔槍
   if (f.calm) {
