@@ -3,7 +3,9 @@
 // 降低／街頭／運動／競技懸吊、渦輪調校、20–100% 裝甲、防彈胎，再加尾翼（GTA V 的尾翼會加一點循跡）。
 // 價格照 GTA Online 洛聖都改車王的基本價（尾翼是自訂的）；效果是自己挑的具名常數（MOD_FX），列在 README。
 // 裝過的套件存在 motors.mods[車]（nc260.motors 第 10 版），跟著車走：換車、試駕結束、從車庫開出來都由 applyCar 的 carHooks 重新疊上去。
-ENV.chrome = { lampOn: 0, wet: 0, fogDen: .016, fog: 0x17120e, fogHi: 0x241a14, top: 0x8a7a68, bot: 0x3a2c24 };   // 暖色的美式改裝店
+// 明亮的美式改裝店：環境光拉高、天花板加 LED 燈條；post 是 70-render.js 的場館後製（曝光、泛光門檻與強度、高光肩部 knee／range），
+// 亮但不刺眼：車頂與鍍鉻的反光、燈泡最亮只到肩部的漸近值，不會燒成整片白
+ENV.chrome = { lampOn: 0, wet: 0, fogDen: .006, fog: 0x3a3029, fogHi: 0x4a3c30, top: 0xd2c6b6, bot: 0x6e6056, post: { exp: 1.08, thr: 1.7, bloom: .45, knee: 1.0, range: .85 } };
 
 // 每個套件：名稱、各級 [名稱, 價格]；第 0 級是原廠（免費換回去）。bike：機車能不能裝
 const MODS = {
@@ -135,14 +137,16 @@ const CW_SIGN = (S, name, x, y, z, ry, w, h, glow = 1.4, kind = 0) => {
   for (let i = 0; i < 5; i++) k.box(0, 4.42 - (i % 2) * .02, .9 + i * .9, 10, .04, .86, cream, 10);
   B.push({ x0: -5.2, x1: 5.2, z0: -1.2, z1: -.4 });
   // 拋光水泥地（伸縮縫）、升降機下的黑白棋盤格與紅色收邊、黃色安全線
-  k.box(0, -.05, CD / 2, 24.4, .1, CD + .4, 0x55524e, 10);
+  k.box(0, -.05, CD / 2, 24.4, .1, CD + .4, 0x7c7872, 10);
   for (let z = 4; z < CD; z += 4) k.box(0, .002, z, 24, .004, .03, 0x2e2c2a, 2);
   for (let x = -8; x <= 8; x += 8) k.box(x, .002, CD / 2, .03, .004, CD, 0x2e2c2a, 2);
   for (let i = 0; i < 12; i++) for (let j = 0; j < 14; j++) k.box(-3.3 + i * .6, .006, CHROME_CAR.z - 3.9 + j * .6, .6, .01, .6, (i + j) % 2 ? 0x0e0e10 : 0xe8e4da, 0);
   for (const s of [-1, 1]) { k.box(s * 3.68, .007, CHROME_CAR.z, .14, .012, 8.56, red, 0); k.box(0, .007, CHROME_CAR.z + s * 4.28, 7.5, .012, .14, red, 0); }
   for (let i = 0; i < 9; i++) k.box(-2.8 + i * .7, .004, CHROME_CAR.z - 4.75, .32, .006, .5, i % 2 ? 0x111214 : 0xe8c020, 2, 0, .6);
   // 天花板、黑色工字鋼桁架、縱向檁條
-  k.box(0, CW_H + .05, CD / 2, 24.4, .1, CD + .4, 0x1a1918, 2);
+  k.box(0, CW_H + .05, CD / 2, 24.4, .1, CD + .4, 0x5a5652, 2);
+  // LED 線型燈（桁架之間）：鋁殼＋乳白擴散板，自發光不要太亮（交給高光肩部收）
+  for (let z = 5; z < CD - 1; z += 4) for (const x of [-7, 0, 7]) { k.box(x, CW_H - .5, z, 3, .08, .4, 0x8a8e94, 15).box(x, CW_H - .55, z, 2.86, .02, .3, 0xf6efe2, 11); for (const s of [-1, 1]) k.box(x + s * 1.2, CW_H - .28, z, .01, .4, .01, 0x111111, 15); }
   for (let z = 3; z < CD; z += 4) { k.box(0, CW_H - .32, z, 24, .06, .22, steel, 15).box(0, CW_H - .06, z, 24, .06, .22, steel, 15).box(0, CW_H - .19, z, 24, .26, .03, steel, 15); for (let x = -11; x <= 11; x += 1.1) k.box(x, CW_H - .19, z, .03, .26, .03, 0x2a2c30, 15, 0, 0, .6 * (Math.round(x * 10) % 2 ? 1 : -1)); }
   for (const x of [-8, -4, 0, 4, 8]) k.box(x, CW_H - .12, CD / 2, .14, .16, CD, steel, 15);
   // 琺瑯吊燈（墨綠燈罩、暖色燈泡）
@@ -287,12 +291,12 @@ propSwap('chrome', null, 'cw_air', [{ x: 11.5, z: 11.7, ry: -Math.PI / 2 }], chr
 // 燈：吊燈是暖白，霓虹字與展示台另外打光；比 NL 多的由 pickLights 挑離相機最近的
 const CW_WARM = lin(0xffd6a0);
 chrome.lights.push(
-  { x: -2, y: 4.5, z: 9.5, col: CW_WARM, r: 9, i: 1.9 }, { x: 2, y: 4.5, z: 9.5, col: CW_WARM, r: 9, i: 1.9 }, { x: -2, y: 4.5, z: 13.5, col: CW_WARM, r: 9, i: 1.9 }, { x: 2, y: 4.5, z: 13.5, col: CW_WARM, r: 9, i: 1.9 },
+  { x: -2, y: 4.5, z: 9.5, col: CW_WARM, r: 11, i: 1.6 }, { x: 2, y: 4.5, z: 9.5, col: CW_WARM, r: 11, i: 1.6 }, { x: -2, y: 4.5, z: 13.5, col: CW_WARM, r: 11, i: 1.6 }, { x: 2, y: 4.5, z: 13.5, col: CW_WARM, r: 11, i: 1.6 },
   { x: CW_DISP.x, y: 4.4, z: CW_DISP.z, col: lin(0xfff0dc), r: 9, i: 2.2 }, { x: CW_DISP.x, y: .4, z: CW_DISP.z, col: CW_WARM, r: 5, i: .7 },
-  { x: -2.5, y: 4.4, z: 23, col: CW_WARM, r: 9, i: 1.6 }, { x: -9.4, y: 4.4, z: 5, col: CW_WARM, r: 8, i: 1.3 }, { x: 9.4, y: 4.4, z: 4.8, col: CW_WARM, r: 8, i: 1.4 },
-  { x: -8.6, y: 3.8, z: 18, col: lin(0xf4f8ff), r: 9, i: 1.4 }, { x: 9.5, y: 4.4, z: 18, col: CW_WARM, r: 9, i: 1.2 }, { x: 8, y: 4.4, z: 12.5, col: CW_WARM, r: 8, i: 1.1 },
+  { x: -2.5, y: 4.4, z: 23, col: CW_WARM, r: 11, i: 1.6 }, { x: -9.4, y: 4.4, z: 5, col: CW_WARM, r: 10, i: 1.4 }, { x: 9.4, y: 4.4, z: 4.8, col: CW_WARM, r: 10, i: 1.4 },
+  { x: -8.6, y: 3.8, z: 18, col: lin(0xf4f8ff), r: 9, i: 1.4 }, { x: 9.5, y: 4.4, z: 18, col: CW_WARM, r: 11, i: 1.4 }, { x: 8, y: 4.4, z: 12.5, col: CW_WARM, r: 10, i: 1.3 },
   { x: -11, y: 3, z: 4.5, col: lin(0xff4f9a), r: 6, i: 1 }, { x: -8.6, y: 2.6, z: .6, col: lin(0xff3a2a), r: 4, i: .8 }, { x: 0, y: 4.6, z: 1, col: lin(0x2cf2d8), r: 7, i: .8 },
-  { x: -8.6, y: 4.4, z: 9.5, col: CW_WARM, r: 7, i: 1.1 },
+  { x: -8.6, y: 4.4, z: 9.5, col: CW_WARM, r: 10, i: 1.3 },
 );
 VENUES.chrome = { scene: chromeScene, data: chrome, spawn: { x: -2.6, z: 7.4, yaw: .35 }, name: 'CHROME WORKS', toast: 'CHROME WORKS 電馭改裝', dist: district(GAR_X, GAR_Z).split(' ')[0] + ' · 8 St', ceil: 5.9, door: WP(GAR_X, GAR_Z), out: spotW({ x: GAR_X + 6.2, z: GAR_Z + 1.4, yaw: 0 }) };
 

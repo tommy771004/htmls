@@ -127,8 +127,8 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `60-venues.js` | 三座場館門面、夜店與酒吧室內場景、任務、對話、場館登錄 `VENUES` 與進出、互動掛鉤 `ctxHooks` |
 | `64-showroom.js` | VELOCE MOTORS 三層樓展示廳：建築（胡桃木、黃銅、大理石、天窗、吊燈、欄杆、海報與樓層牌的 `svAtlas`）、展車擺放 `SHOW_FLOORS`、每層的碰撞與燈 `show.lv[k]`、換層 `showLevel`、電梯 `showLift`、轉台與車廂 `updateShow` |
 | `65-motors.js` | 車庫室內、看車／買車／試駕／出庫／賣車對話、停進車庫、甩尾打賞、存檔 |
-| `66-chrome.js` | CHROME WORKS 改裝廠室內（升降機、烤漆房、輪胎牆、調校電腦、技師 Rook）、開進／開出（`chromeEnter`／`chromeLeave`）、GTA V 式改裝套件 `MODS` 與效果 `MOD_FX`、`modApply`（掛在 30 的 `carHooks`，每次 `applyCar` 都疊上去）、修車 |
-| `70-render.js` | 反射相機、MSAA 半浮點渲染目標、5 階泛光、動態模糊、色散、ACES、調色、顆粒、動態解析度 |
+| `66-chrome.js` | CHROME WORKS 改裝廠室內（明亮的美式車間：淺色水泥地、LED 線型燈、高環境光，`ENV.chrome.post` 壓住高光；升降機、烤漆房、輪胎牆、調校電腦、技師 Rook）、開進／開出（`chromeEnter`／`chromeLeave`）、GTA V 式改裝套件 `MODS` 與效果 `MOD_FX`、`modApply`（掛在 30 的 `carHooks`，每次 `applyCar` 都疊上去）、修車 |
+| `70-render.js` | 反射相機、MSAA 半浮點渲染目標、5 階泛光、動態模糊、色散、高光肩部、ACES、調色、顆粒、動態解析度；室內場館的 `ENV.<場館>.post` 覆寫曝光、泛光門檻／強度與高光肩部 |
 | `80-audio.js` | WebAudio：雨聲、城市低頻、124 BPM 夜店鼓組（拍點驅動舞步與燈光）、酒吧 lo-fi 是即時合成；槍聲、爆炸、撞擊（車／物件的金屬聲，`impact(k, "body")` 人摔落、`"ped"` 車撞人）、子彈打中人與車、拳腳、腳步、車門、喇叭、引擎（汽車四層轉速循環交叉淡化）、甩尾、警笛（遠 wail 近 yelp）、直升機、雷聲與列車汽笛是 Freesound 的 CC0 錄音（`tools/sfx.mjs` 下載到 `assets/260/sfx/`，只在 http(s) 載入，以檔案開啟或還沒解碼完退回合成音）。單發音解碼時裁好長度、最後 35% 淡出，同名有發聲上限與最短間隔；循環音要用才建、歸零 0.4 s 後停掉來源，`loops()` 停止呼叫（進室內）也會收掉。`__nc.sfx.rec`／`stats()` 看載入狀態 |
 | `90-hud.js` | 羅盤與街名（格網外的海邊、島與河濱顯示地名）、時鐘、天氣圖示、小地圖（底圖涵蓋兩岸、海、碼頭、跨海橋與灰鷗島，每公尺 1.5 px）、傳送 `teleport(k)`、目標標記、時速表 |
 | `91-map.js` | 全區地圖（M）：向量重畫的街廓、道路、海岸與地名，可縮放平移；地點圖示（`MAP_ICON`）、右側圖例、左上資訊卡（導航點、傳送）、比例尺與游標所在的地名 |
