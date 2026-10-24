@@ -3,7 +3,9 @@
 // 實車沿左右兩側的展廊擺（每層每側 8 台，車頭斜朝中庭），中庭一樓是旋轉台上的鎮店之寶、接待櫃台與休息區；
 // 二樓後方是會員酒吧與撞球檯，三樓後方是點唱機、老加油機與閱覽角。後方正中間是玻璃電梯（E 選樓層），二、三樓的中庭邊是黃銅欄杆。
 // 每層一套碰撞與燈（show.lv[k]），換層走 showLevel(k)：VENUES.show.data／lvs／lvY 跟著換（40-people.js 的地板、99-main.js 的相機）。
-ENV.show = { lampOn: 0, wet: 0, fogDen: .006, fog: 0x1c1712, fogHi: 0x2c241c, top: 0x9a8a74, bot: 0x4a3c30 };
+// 明亮的展廳：環境光拉高、地板與上半牆改成淺色；post 是 70-render.js 的場館後製（曝光、泛光門檻與強度、高光肩部），
+// 水晶吊燈、天窗與車漆的反光收在肩部的漸近值以下，不會燒成整片白
+ENV.show = { lampOn: 0, wet: 0, fogDen: .003, fog: 0x4a4036, fogHi: 0x5a4e40, top: 0xd8ccba, bot: 0x7a6c5e, post: { exp: 1.04, thr: 1.8, bloom: .4, knee: 1.0, range: .85 } };
 const SV_W = 17, SV_D = 52, SV_FH = 6, SV_NF = 3, SV_ATR = 6, SV_VOID = 42.4, SV_ROOF = SV_NF * SV_FH;
 const SV_CX = 11.8, SV_SLOT = [7, 12, 17, 22, 27, 32, 37, 42], SV_YAW = 2.06;   // 車的中心 x、各格的 z、左側車頭朝向（右側取負）
 const SV_LIFT = { x: 0, z: 45.4 }, SELLER = { x: 0, z: 35.4 }, SV_HERO = { id: 'c110', x: 0, z: 18 };
@@ -90,7 +92,7 @@ function svSign(name, x, y, z, ry, w, h, glow = 1, kind = 0) {
 // ─── 建築 ───
 {
   const k = new Kit(), S = showScene, L = show.lv;
-  const walnut = 0x4a2a16, walnutD = 0x2e1a0e, brass = 0xc9a24a, marble = 0xd8d2c6, marbleD = 0x1a1a1e, cream = 0xefe6d2, leather = 0x5a2e1a;
+  const walnut = 0x4a2a16, walnutD = 0x2e1a0e, brass = 0xc9a24a, marble = 0xd8d2c6, marbleD = 0xb8ad9a, cream = 0xefe6d2, leather = 0x5a2e1a;
   const allBox = b => { for (const l of L) l.boxes.push({ ...b }); };
   const allCirc = c => { for (const l of L) l.circles.push({ ...c }); };
   // 外牆（三層共用的碰撞）：前牆在一樓留門
@@ -104,7 +106,7 @@ function svSign(name, x, y, z, ry, w, h, glow = 1, kind = 0) {
 
   for (let f = 0; f < SV_NF; f++) {
     const Y = f * SV_FH;
-    // 地板：深色大理石＋黃銅分割線（一樓整片；樓上是兩側展廊與後方的走道，中庭留空）
+    // 地板：米色拋光大理石＋黃銅分割線（一樓整片；樓上是兩側展廊與後方的走道，中庭留空）
     const floorRect = (x0, x1, z0, z1) => {
       k.box((x0 + x1) / 2, Y - .25, (z0 + z1) / 2, x1 - x0, .5, z1 - z0, marbleD, 10);
       for (let x = Math.ceil(x0 / 2.5) * 2.5; x < x1; x += 2.5) k.box(x, Y + .002, (z0 + z1) / 2, .03, .004, z1 - z0, brass, 15);
@@ -112,23 +114,24 @@ function svSign(name, x, y, z, ry, w, h, glow = 1, kind = 0) {
     };
     if (f === 0) floorRect(-SV_W, SV_W, 0, SV_D);
     else { floorRect(-SV_W, -SV_ATR, 0, SV_D); floorRect(SV_ATR, SV_W, 0, SV_D); floorRect(-SV_ATR, SV_ATR, SV_VOID, SV_D); }
-    // 展廊的天花板：樓板下的胡桃木藻井，每台車上方一盞崁燈
+    // 展廊的天花板：樓板下的胡桃木藻井（格子裡是奶油色的平頂），每台車上方一盞崁燈
     const cy = Y + SV_FH - .5;
     for (const s of [-1, 1]) {
       const x0 = s * SV_ATR, x1 = s * SV_W, xm = (x0 + x1) / 2;
-      k.box(xm, cy + .02, SV_D / 2, SV_W - SV_ATR, .04, SV_D, 0x2a1c12, 2);
+      k.box(xm, cy + .02, SV_D / 2, SV_W - SV_ATR, .04, SV_D, 0xe6dccb, 2);
       for (let z = 0; z <= SV_D; z += 2.5) k.box(xm, cy - .14, z, SV_W - SV_ATR, .28, .16, walnut, 10);
       for (let x = SV_ATR + 2.75; x < SV_W; x += 2.75) k.box(s * x, cy - .14, SV_D / 2, .16, .28, SV_D, walnut, 10);
       if (f < SV_NF - 1) k.box(s * (SV_ATR - .02), cy - .05, SV_VOID / 2, .1, .7, SV_VOID, walnutD, 10).box(s * (SV_ATR - .05), cy - .38, SV_VOID / 2, .05, .04, SV_VOID, brass, 3);   // 樓板邊緣的胡桃木封邊與黃銅線
     }
     if (f < SV_NF - 1) for (let z = SV_VOID + 2; z < SV_D; z += 2.5) k.box(0, cy - .14, z, SV_ATR * 2, .28, .16, walnut, 10);
     if (f < SV_NF - 1) k.box(0, cy - .05, SV_VOID - .02, SV_ATR * 2, .7, .1, walnutD, 10).box(0, cy - .38, SV_VOID - .05, SV_ATR * 2, .04, .05, brass, 3);
-    // 側牆：胡桃木腰板＋黃銅扶手線，上面是直紋木板；每格之間一根壁柱（黃銅柱頭）
+    // 側牆：胡桃木腰板＋黃銅扶手線，上面是奶油色牆板與胡桃木框線；每格之間一根壁柱（黃銅柱頭）
     for (const s of [-1, 1]) {
       const wx = s * (SV_W - .02);
       k.box(wx, Y + .55, SV_D / 2, .04, 1.1, SV_D, walnutD, 10).box(s * (SV_W - .05), Y + 1.12, SV_D / 2, .04, .05, SV_D, brass, 3).box(s * (SV_W - .05), Y + .06, SV_D / 2, .05, .12, SV_D, 0x111111, 2);
-      k.box(wx, Y + 3.3, SV_D / 2, .03, 4.4, SV_D, 0x3a2414, 10);
-      for (let z = .2; z < SV_D; z += .3) k.box(s * (SV_W - .06), Y + 3.3, z, .04, 4.4, .12, walnut, 10);
+      k.box(wx, Y + 3.3, SV_D / 2, .03, 4.4, SV_D, 0xe8dfcf, 10);
+      k.box(s * (SV_W - .05), Y + 5.42, SV_D / 2, .06, .16, SV_D, walnut, 10).box(s * (SV_W - .05), Y + 1.3, SV_D / 2, .04, .06, SV_D, walnut, 10);
+      for (let z = 4.5; z < SV_D - 1; z += 5) for (const dz of [.55, 4.45]) k.box(s * (SV_W - .05), Y + 3.3, z + dz, .04, 3.6, .05, 0xb89a72, 10);
       for (let z = 4.5; z < SV_D; z += 5) {
         k.box(s * (SV_W - .18), Y + 2.7, z, .3, 5.4, .5, walnutD, 10).box(s * (SV_W - .2), Y + .12, z, .36, .24, .58, brass, 15).box(s * (SV_W - .2), Y + 5.3, z, .36, .2, .58, brass, 15);
       }

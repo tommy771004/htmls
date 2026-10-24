@@ -125,7 +125,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何（`people` 由 40 自己解） |
 | `55-motor-front.js` | 車行落地窗、雨棚與門前展示車、車庫燈條與招牌（要在 60 合併室外招牌之前） |
 | `60-venues.js` | 三座場館門面、夜店與酒吧室內場景、任務、對話、場館登錄 `VENUES` 與進出、互動掛鉤 `ctxHooks` |
-| `64-showroom.js` | VELOCE MOTORS 三層樓展示廳：建築（胡桃木、黃銅、大理石、天窗、吊燈、欄杆、海報與樓層牌的 `svAtlas`）、展車擺放 `SHOW_FLOORS`、每層的碰撞與燈 `show.lv[k]`、換層 `showLevel`、電梯 `showLift`、轉台與車廂 `updateShow` |
+| `64-showroom.js` | VELOCE MOTORS 三層樓展示廳：明亮的建築（米色大理石地、奶油色牆板與藻井、胡桃木、黃銅、天窗、吊燈、欄杆、海報與樓層牌的 `svAtlas`；`ENV.show.post` 壓住吊燈與車漆的高光）、展車擺放 `SHOW_FLOORS`、每層的碰撞與燈 `show.lv[k]`、換層 `showLevel`、電梯 `showLift`、轉台與車廂 `updateShow` |
 | `65-motors.js` | 車庫室內、看車／買車／試駕／出庫／賣車對話、停進車庫、甩尾打賞、存檔 |
 | `66-chrome.js` | CHROME WORKS 改裝廠室內（明亮的美式車間：淺色水泥地、LED 線型燈、高環境光，`ENV.chrome.post` 壓住高光；升降機、烤漆房、輪胎牆、調校電腦、技師 Rook）、開進／開出（`chromeEnter`／`chromeLeave`）、GTA V 式改裝套件 `MODS` 與效果 `MOD_FX`、`modApply`（掛在 30 的 `carHooks`，每次 `applyCar` 都疊上去）、修車 |
 | `70-render.js` | 反射相機、MSAA 半浮點渲染目標、5 階泛光、動態模糊、色散、高光肩部、ACES、調色、顆粒、動態解析度；室內場館的 `ENV.<場館>.post` 覆寫曝光、泛光門檻／強度與高光肩部 |
