@@ -150,7 +150,7 @@ async function desktop() {
     await page.waitForTimeout(800);
     check((await nc(() => window.__nc.player.where)) === 'show', '進入 VELOCE MOTORS 展示廳');
     const r34 = s.showCars.find((c) => c.id === 'r34');
-    await nc((c) => { const p = window.__nc.player; p.x = c.x; p.z = c.z - 2.9; }, r34);
+    await nc((c) => { const p = window.__nc.player; p.x = c.x * .72; p.z = c.z; }, r34);   // 64-showroom.js：車在兩側展廊，站在走道上
     await page.waitForTimeout(200);
     check(/Skyline GT-R/.test((await nc(() => window.__nc.ctx())) || ''), '走到車旁出現看車提示');
     await shot(page, 'd-show');

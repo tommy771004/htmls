@@ -2035,6 +2035,56 @@
   "kb": 711,
   "draws": 16
  },
+ "spano8": {
+  "id": "spano8",
+  "title": "Asphalt 8 - 2015 GTA Spano",
+  "author": "IWillSearchNewModelz (https://sketchfab.com/iwillsearch69)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/asphalt-8-2015-gta-spano-b10cc5377c574dd8a6dbe16d78610cb8",
+  "bike": false,
+  "len": 4.61,
+  "w": 2.151,
+  "h": 1.147,
+  "wr": 0.331,
+  "fa": 1.257,
+  "ra": -1.476,
+  "track": 0.831,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.835,
+    "y": 0.318,
+    "z": 1.257,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   },
+   {
+    "name": "RR",
+    "x": -0.827,
+    "y": 0.344,
+    "z": -1.476,
+    "r": 0.344
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 31130,
+  "kb": 764,
+  "draws": 20
+ },
  "mosler": {
   "id": "mosler",
   "title": "mosler mt900 gtr xx twin turbo land shark",

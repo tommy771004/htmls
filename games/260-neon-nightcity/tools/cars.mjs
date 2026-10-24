@@ -65,6 +65,7 @@ export const MODELS = [
     wheelNodes: Object.fromEntries(['FL', 'FR', 'BL', 'BR'].map((w) => [w.replace('B', 'R'), [`^Wheel${w}_tyres`, `^Wheel${w}_rims`]])) },
   { id: 'sc20', file: 'lamborghini_sc20', len: 4.93, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
   { id: 'c63dtm', file: 'mercedes-benz_amg_c63_dtm_mk_iii', len: 4.85, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
+  { id: 'spano8', file: 'asphalt_8_-_2015_gta_spano', len: 4.61, tris: 90000 },   // IWillSearchNewModelz 上傳的另一份 Spano（一張貼圖、節點名是 Object_N）
   { id: 'mosler', file: 'mosler_mt900_gtr_xx_twin_turbo_land_shark', len: 4.58, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
   { id: 'csl3', file: 'bmw_3.0_csl_hommage_concept', len: 4.94, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },
   { id: 'slk55', file: 'mercedes-benz_slk_55_amg', len: 4.134, tris: 90000, paint: 'Material.001', drop: /^lights_position_front_and_back/ },

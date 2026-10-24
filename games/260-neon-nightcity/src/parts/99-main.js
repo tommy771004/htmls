@@ -395,7 +395,8 @@ window.__nc = {
   setQuest, talk: { marlo: talkMarlo, juno: talkJuno }, dialog: dlg, closeDialog,
   // 門口與人物是邏輯座標（用 tpL）；dealSpot、homeSpot 是車停的位置，世界座標
   spots: { bouncer: BOUNCER, clubDoor: { x: CLUB_X, z: CLUB_Z + .6 }, barDoor: { x: BAR_X - 4.6, z: BAR_Z + .6 }, juno: JUNO, floor: CLUB_FLOOR, garage: { x: GAR_X, z: GAR_Z + SW + 4 },
-    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw })), seller: SELLER },
+    dealerDoor: { x: DEAL_X, z: DEAL_Z + .6 }, homeDoor: { x: HOME_X, z: HOME_Z - .6 }, dealSpot: DEAL_SPOT, homeSpot: HOME_SPOT, showCars: show.cars.map(c => ({ id: c.id, x: c.x, z: c.z, yaw: c.yaw, lv: c.lv })), seller: SELLER },
+  showLevel: k => showLevel(k), showLift: () => showLift(),   // 64-showroom.js 的三層展示廳
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
   act() { const c = contextAction(); if (c) c.fn(); return c ? c.text : null; },   // 直接執行目前的互動提示
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },

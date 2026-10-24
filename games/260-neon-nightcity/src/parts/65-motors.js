@@ -1,6 +1,5 @@
 
 // ═══ VELOCE MOTORS 車行與 GARAGE 07 車庫：展示廳、車庫、買車／試駕／開車出庫／賣車、甩尾賺錢與存檔 ═══
-ENV.show = { lampOn: 0, wet: 0, fogDen: .012, fog: 0x1a1814, fogHi: 0x2a2620, top: 0x8a8070, bot: 0x4a4238 };
 ENV.home = { lampOn: 0, wet: 0, fogDen: .03, fog: 0x14181c, fogHi: 0x20262a, top: 0x6a767a, bot: 0x3a3a36 };
 const money = n => '$' + Math.round(n).toLocaleString('en-US');
 const carPrice = id => CARS[id].price;
@@ -81,117 +80,7 @@ const carStats = id => {
     + (r ? `\n原廠 ${r.ps} 匹 · ${r.kg.toLocaleString('en-US')} kg · 0–100 ${r.t100} 秒 · 極速 ${r.top} km/h` : '');
 };
 
-// ─── 展示廳：門在 z = 0，室內 x -16..16、z 0..SD、挑高 7 m；一排六台實車模型，奇數排中間兩台在轉盤上 ───
-const showScene = new T.Scene();
-const show = { boxes: [], circles: [], lights: [], cars: [], spin: [], people: null };
-const SHOW_ROWS = [
-  ['e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3'],
-  ['s1krr', 'zx6r', 'gt3rs', 'gt3r', 'v4', 's1krr19'],
-  ['ae86', 'rx7', 'supra', 'r34', 'nsx', 'r35'],
-  ['e34', 'evo190', 'p930', 'rwb', 'm4csl', 'f40'],
-  ['police', 'chall', 'zr1', 'sf90', 'p1', 'svj'],
-  ['evija', 'spano', 'f8', 'scg', 'p9x8', 'c110'],
-  ['nevera', 'f488c', 'sc20', 'c63dtm', 'energ', 'mosler'],
-  ['csl3', 'slk55', 'giulietta', 'charger'],
-];
-const SD = 20 + SHOW_ROWS.length * 10, BK = SD - 30;   // 展示廳深度；後牆區（業務桌、休息區、招牌）比原本的 30 m 廳往後移 BK
-const SELLER = { x: 11, z: 27.4 + BK };
-{
-  const k = new Kit(), B = show.boxes, S = showScene, gold = 0xffcf6a;
-  const wall = (x0, x1, z0, z1, h, col, mat = 2) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
-  // 地板：拋光深灰石材與淺色石縫；天花板三條長燈帶
-  k.box(0, -.05, SD / 2, 32.4, .1, SD + .4, 0x2a2b2f, 10);
-  for (let x = -14; x <= 14; x += 2) k.box(x, .002, SD / 2, .025, .004, SD, 0x45464c, 10);
-  for (let z = 2; z < SD; z += 2) k.box(0, .002, z, 32, .004, .025, 0x45464c, 10);
-  k.box(0, 7.05, SD / 2, 32.4, .1, SD + .4, 0x141518, 2);
-  for (const x of [-10, 0, 10]) { k.box(x, 6.97, SD / 2, .5, .05, SD - 3, 0xfff4e4, 11); k.box(x, 6.99, SD / 2, .8, .02, SD - 2.6, 0x2a2b30, 15); }
-  // 側牆：暖灰石材牆＋金色腰線；後牆：深色木格柵
-  wall(-16.4, -16, 0, SD, 7.05, 0x9a948a); wall(16, 16.4, 0, SD, 7.05, 0x9a948a);
-  for (const s of [-1, 1]) { k.box(s * 15.97, 1.1, SD / 2, .04, .04, SD, gold, 8); k.box(s * 15.95, .06, SD / 2, .06, .12, SD, 0x111214, 2); }
-  wall(-16.4, 16.4, SD, SD + .4, 7.05, 0x24180f);
-  for (let x = -15.6; x <= 15.6; x += .52) k.box(x, 3.5, SD - .04, .3, 7, .07, 0x5e3c22, 10);
-  // 前牆：兩片雨窗、玻璃門、上方門楣
-  k.box(0, 6.1, -.2, 32.8, 1.9, .4, 0x15161a, 2);
-  for (const s of [-1, 1]) k.box(s * 8.9, .15, -.2, 15, .3, .4, 0x15161a, 2);
-  B.push({ x0: -16.4, x1: -1.4, z0: -.4, z1: 0 }, { x0: 1.4, x1: 16.4, z0: -.4, z1: 0 }, { x0: -1.4, x1: 1.4, z0: -.7, z1: -.3 });
-  k.box(0, 1.5, -.3, 2.8, 3, .06, 0x0a0c10, 1).box(0, 4.07, -.25, 2.8, 2.15, .05, 0x0a0c10, 1);
-  k.box(0, 3.02, -.25, 2.9, .08, .1, gold, 3);
-  for (const s of [-1, 1]) { k.box(s * 1.42, 2.6, -.2, .1, 5.1, .12, gold, 3); k.box(s * .25, 1.15, -.24, .04, .9, .04, 0xd8dce2, 3); }
-  for (const x of [-15.9, -12.6, -9.2, -5.8, -1.5, 1.5, 5.8, 9.2, 12.6, 15.9]) k.box(x, 2.7, -.02, .08, 4.9, .08, 0xc8ccd2, 3);
-  k.box(0, 5.15, -.02, 32, .08, .08, 0xc8ccd2, 3);
-  // 展示台：圓形台座與金色燈環；台前一支規格立牌
-  SHOW_ROWS.forEach((row, r) => row.forEach((id, i) => {
-    const x = (i - (row.length - 1) / 2) * 5, z = 9 + r * 10, yaw = Math.PI + Math.sign(x) * .5, spin = r % 2 === 1 && Math.abs(x) < 3;
-    if (!spin) {
-      k.cyl(x, .06, z, 2.35, 2.4, .12, 44, 0x1c1d21, 10);
-      k.add(new T.TorusGeometry(2.37, .022, 4, 56), gold, 8, tf(x, .12, z, Math.PI / 2, 0, 0));
-    }
-    const px = x + Math.sin(yaw) * 2.95, pz = z + Math.cos(yaw) * 2.95;
-    if (r % 2 === 0 || spin) {
-      k.box(px, .4, pz, .04, .8, .04, 0xc8ccd2, 3).box(px, .02, pz, .26, .04, .26, 0x111214, 2);
-      k.box(px, .82, pz, .4, .26, .03, 0x15161a, 2, -.6, yaw).box(px + Math.sin(yaw) * .012, .83, pz + Math.cos(yaw) * .012, .34, .2, .02, 0x4a4438, 11, -.6, yaw);
-      show.circles.push({ x: px, z: pz, r: .18 });
-    }
-    show.cars.push({ id, x, z, yaw, spin });
-    show.circles.push({ x, z, r: 2.3, car: 1 });
-  }));
-  // 業務的桌子（右後）、休息區沙發與茶几（左後）、盆栽
-  k.box(11, .5, 26.4 + BK, 4.2, 1, 1.1, 0xe6e0d4, 10).box(11, 1.03, 26.4 + BK, 4.4, .06, 1.3, 0x2a2420, 10).box(11, .5, 25.84 + BK, 4.2, .9, .02, gold, 11);
-  k.box(10.2, 1.2, 26.6 + BK, .5, .32, .03, 0x0a0c10, 1, -.2).box(10.2, 1.07, 26.4 + BK, .5, .02, .34, 0x1a1b1e, 2);
-  k.box(11.3, .5, 28.1 + BK, .55, .1, .55, 0x1a1b1e, 2).box(11.3, .9, 28.4 + BK, .55, .7, .1, 0x1a1b1e, 2);
-  B.push({ x0: 8.8, x1: 13.2, z0: 25.75 + BK, z1: 27.05 + BK });
-  for (const [x, z, w, d] of [[-12.6, 27.6 + BK, 4.6, 1.0], [-14.6, 25.2 + BK, 1.0, 3.8]]) {
-    k.box(x, .25, z, w, .5, d, 0x4a2a1c, 2);
-    k.box(x + (d > w ? -.4 : 0), .7, z + (d > w ? 0 : .4), d > w ? .2 : w, .5, d > w ? d : .2, 0x4a2a1c, 2);
-    B.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
-  }
-  k.cyl(-12, .38, 25 + BK, .7, .7, .04, 24, 0x1a1b1e, 10).cyl(-12, .19, 25 + BK, .08, .1, .38, 8, 0xd8dce2, 3);
-  show.circles.push({ x: -12, z: 25 + BK, r: .7 });
-  for (const [x, z] of [[-15.2, 1.2], [15.2, 1.2], [-15.2, 29 + BK], [7.6, 29 + BK], [-15.2, 24], [15.2, 24]]) {
-    k.cyl(x, .35, z, .32, .26, .7, 14, 0x1a1b1e, 10);
-    for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; k.add(new T.ConeGeometry(.12, 1.1, 5), 0x2a4a2c, 2, tf(x + Math.cos(a) * .12, 1.15, z + Math.sin(a) * .12, Math.sin(a) * .3, 0, -Math.cos(a) * .3)); }
-    show.circles.push({ x, z, r: .4 });
-  }
-  S.add(new T.Mesh(k.build(), MAT.uber));
-  // 車：固定的直接擺上台，中間兩台放在轉盤上慢慢轉；實車模型先放替身，下載好再換
-  for (const c of show.cars) {
-    const m = carObject(c.id);
-    if (c.spin) {
-      const g = new T.Group(); g.position.set(c.x, 0, c.z); g.rotation.y = c.yaw;
-      const tk = new Kit().cyl(0, .06, 0, 2.35, 2.4, .12, 44, 0x1c1d21, 10).add(new T.TorusGeometry(2.37, .022, 4, 56), gold, 8, tf(0, .12, 0, Math.PI / 2, 0, 0));
-      for (let i = 0; i < 12; i++) tk.box(Math.cos(i / 12 * Math.PI * 2) * 2.0, .125, Math.sin(i / 12 * Math.PI * 2) * 2.0, .25, .01, .04, gold, 11, 0, -i / 12 * Math.PI * 2);
-      g.add(new T.Mesh(tk.build(), MAT.uber));
-      m.position.y = .12; g.add(m); S.add(g);
-      show.spin.push({ g, c, a0: c.yaw });
-    } else { m.position.set(c.x, .12, c.z); m.rotation.y = c.yaw; S.add(m); }
-  }
-  // 後牆上的招牌
-  const sg = new T.PlaneGeometry(9, 2.25); const uv = sg.attributes.uv; const c = cells.VELOCE;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, lerp(c.u0, c.u1, uv.getX(i)), lerp(c.v0, c.v1, uv.getY(i)));
-  sg.setAttribute('aS', new T.Float32BufferAttribute(new Array(uv.count).fill(0).flatMap(() => [.6, 0, 1.6, 0]), 4));
-  const sm = new T.Mesh(sg, MAT_SIGN); sm.position.set(0, 4.7, SD - .12); sm.rotation.y = Math.PI; S.add(sm);
-  // 前窗：雨夜街景
-  for (const s of [-1, 1]) {
-    const m = new T.Mesh(new T.PlaneGeometry(14.8, 4.85), new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
-    m.position.set(s * 8.9, 2.725, -.05); S.add(m);
-  }
-}
-{
-  const cr = crowd(4); const rc = rng(707);
-  const list = [
-    [ANIM.talk, SELLER.x, 0, SELLER.z, Math.PI, { top: lin(0x1b2230), bot: lin(0x15171c), skin: SKINS[1], hair: lin(0x1a1410), longHair: 0, coat: 1, skirt: 0, hat: 0, glowI: 0 }],
-    [ANIM.idle, -3.2, 0, 13.6, Math.PI - .4], [ANIM.talk, -2.2, 0, 13.9, -2.2],
-    [ANIM.sit, -12.6, -.12, 27.3 + BK, Math.PI],
-  ];
-  list.forEach(([a, x, y, z, yaw, look], k) => { cr.look(k, look || { r: rc, glowI: 0 }); cr.anim(k, a, rc() * 10, 1); cr.place(k, x, y, z, yaw); if (k === 1 || k === 2) show.circles.push({ x, z, r: .3 }); });
-  cr.flush(); showScene.add(cr.mesh); show.people = cr;
-}
-show.lights.push(
-  ...SHOW_ROWS.flatMap((_, r) => [-10, 0, 10].map(x => ({ x, y: 6.4, z: 9 + r * 10, col: lin(0xfff2e0), r: 14, i: 2.1 }))),
-  { x: 0, y: 4.6, z: 28 + BK, col: lin(0xffcf6a), r: 9, i: 1.1 }, { x: 0, y: 4, z: 2, col: lin(0xd8e4ff), r: 12, i: .9 },
-  { x: 11, y: 2.6, z: 25.6 + BK, col: lin(0xffe0b8), r: 6, i: 1 }, { x: -12, y: 2.6, z: 26 + BK, col: lin(0xffc890), r: 6, i: .9 },
-  ...SHOW_ROWS.filter((_, r) => r % 2 === 0 && r < SHOW_ROWS.length - 1).flatMap((_, k) => [-14, 14].map(x => ({ x, y: 5, z: 14 + k * 20, col: lin(0xfff2e0), r: 10, i: .7 }))),
-);   // 燈比 NL 多：pickLights 每幀挑離相機最近的
+// 展示廳（三層樓、左右兩側展車、電梯）在 64-showroom.js
 
 // ─── GARAGE 07：門在 z = 0，室內 x -9..9、z 0..GD、高 4.6 m；兩側各 GN 格、最裡面一格（共 2·GN+1 格，對應 CAR_ORDER） ───
 const homeScene = new T.Scene();
@@ -267,7 +156,6 @@ function rebuildGarage() {
 }
 rebuildGarage();
 
-VENUES.show = { scene: showScene, data: show, spawn: { x: 0, z: 2.2, yaw: 0 }, name: 'VELOCE MOTORS', toast: 'VELOCE MOTORS 疾風車行', dist: '中城 · 9 St', ceil: 6.6, door: WP(DEAL_X, DEAL_Z), out: spotW({ x: DEAL_X, z: DEAL_Z + 1.3, yaw: Math.PI }) };
 VENUES.home = { scene: homeScene, data: home, spawn: { x: 0, z: 2.2, yaw: 0 }, name: 'GARAGE 07', toast: 'GARAGE 07 · 你的車庫', dist: '舊碼頭 · 8 St', ceil: 4.2, door: WP(HOME_X, HOME_Z), out: spotW({ x: HOME_X - 1.4, z: HOME_Z - 1.3, yaw: 0 }) };
 
 // ─── 對話：看車、買車、試駕、業務、車庫 ───
@@ -366,10 +254,12 @@ ctxHooks.push((p, near) => {
     if (near(DEAL_X, DEAL_Z + .6, 1.7)) return { key: 'E', text: '進入 VELOCE MOTORS', fn: () => enterVenue('show') };
     if (near(HOME_X, HOME_Z - .6, 2.2)) return { key: 'E', text: '打開車庫 <i>· GARAGE 07</i>', fn: () => { rebuildGarage(); enterVenue('home'); } };
   } else if (p.where === 'show') {
-    if (near(0, .6, 1.5)) return { key: 'E', text: '回到街上', fn: () => exitVenue() };
-    if (near(SELLER.x, SELLER.z - 1.8, 1.8)) return { key: 'E', text: '跟業務 Vale 說話', fn: talkSeller };
-    let best = null, bd = 3.5;
-    for (const c of show.cars) { const d = Math.hypot(p.x - c.x, p.z - c.z); if (d < bd) { bd = d; best = c; } }
+    const lv = VENUES.show.lv || 0;   // 64-showroom.js：三層樓，只看這一層的車
+    if (!lv && near(0, .6, 1.5)) return { key: 'E', text: '回到街上', fn: () => exitVenue() };
+    if (near(SV_LIFT.x, SV_LIFT.z, 1.8)) return { key: 'E', text: `搭電梯 <i>· 現在 ${lv + 1}F</i>`, fn: showLift };
+    if (!lv && near(SELLER.x, SELLER.z - 2.3, 1.7)) return { key: 'E', text: '跟業務 Vale 說話', fn: talkSeller };
+    let best = null, bd = 3.8;
+    for (const c of show.cars) { if (c.lv !== lv) continue; const d = Math.hypot(p.x - c.x, p.z - c.z); if (d < bd) { bd = d; best = c; } }
     if (best) return { key: 'E', text: `看車 <i>· ${CARS[best.id].name} · ${money(CARS[best.id].price)}</i>`, fn: () => carDialog(best.id) };
   } else if (p.where === 'home') {
     if (near(0, .6, 1.5)) return { key: 'E', text: '回到街上', fn: () => exitVenue() };
@@ -392,7 +282,7 @@ function updateMotors(dt, t) {
     if (hudCache.dl !== n) { hudCache.dl = n; $('dlPct').textContent = n + '%'; dl.style.setProperty('--p', n + '%'); dl.setAttribute('aria-valuenow', n); }
     dl.classList.add('on');
   }
-  if (player.where === 'show') for (const s of show.spin) s.g.rotation.y = s.a0 + t * .22;
+  updateShow(dt, t);   // 64-showroom.js：轉台、電梯車廂、離開時回到一樓
   const tst = motors.test;
   if (tst) {
     if (!tst.live) { if (player.mode === 'drive' && player.veh === kestrel) tst.live = true; }

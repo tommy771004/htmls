@@ -1,6 +1,6 @@
 # assets/260 實車模型來源與授權
 
-作品 260 霓虹夜城車行與車庫裡的 46 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
+作品 260 霓虹夜城車行與車庫裡的 47 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
 
 非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Glickenhaus、Peugeot、Bugatti、Rimac、Mosler、Alfa Romeo、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
 
@@ -42,6 +42,7 @@
 | `sc20.glb` | [lamborghini sc20](https://sketchfab.com/3d-models/lamborghini-sc20-a982eaba9bd04375bbeb1238cc2d2586) | amogusstrikesback2 | CC-BY-4.0 |
 | `c63dtm.glb` | [mercedes-benz amg c63 dtm mk iii](https://sketchfab.com/3d-models/mercedes-benz-amg-c63-dtm-mk-iii-248bbea6a38e42c88a796582a568b366) | amogusstrikesback2 | CC-BY-4.0 |
 | `energ.glb` | [mercedes-benz vision ener-g-force](https://sketchfab.com/3d-models/mercedes-benz-vision-ener-g-force-82d86a2a78d24474a6aacc4a5438adce) | amogusstrikesback2 | CC-BY-4.0 |
+| `spano8.glb` | [Asphalt 8 - 2015 GTA Spano](https://sketchfab.com/3d-models/asphalt-8-2015-gta-spano-b10cc5377c574dd8a6dbe16d78610cb8) | IWillSearchNewModelz | CC-BY-4.0 |
 | `mosler.glb` | [mosler mt900 gtr xx twin turbo land shark](https://sketchfab.com/3d-models/mosler-mt900-gtr-xx-twin-turbo-land-shark-3950d06bd5164e7f875d08150276958b) | amogusstrikesback2 | CC-BY-4.0 |
 | `csl3.glb` | [bmw 3.0 csl hommage concept](https://sketchfab.com/3d-models/bmw-30-csl-hommage-concept-bd775e7cf7204147b351ada3a7b0b841) | amogusstrikesback2 | CC-BY-4.0 |
 | `slk55.glb` | [mercedes-benz slk 55 amg](https://sketchfab.com/3d-models/mercedes-benz-slk-55-amg-af4218b4cd2946aebad183c16549e1db) | amogusstrikesback2 | CC-BY-4.0 |
