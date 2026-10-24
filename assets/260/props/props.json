@@ -130,6 +130,190 @@
    }
   ]
  },
+ "casino": {
+  "kb": 1353,
+  "items": {
+   "cs_rl": {
+    "w": 2.7,
+    "d": 1.86,
+    "h": 1.07,
+    "tris": 17092
+   },
+   "cs_rl2": {
+    "w": 2.8,
+    "d": 1.16,
+    "h": 0.35,
+    "tris": 14373
+   },
+   "cs_vault": {
+    "w": 4.07,
+    "d": 1.4,
+    "h": 3.9,
+    "tris": 26638
+   },
+   "cs_m0": {
+    "w": 4.54,
+    "d": 0.53,
+    "h": 3.22,
+    "tris": 8754
+   },
+   "cs_daily": {
+    "w": 2.42,
+    "d": 0.98,
+    "h": 2.4,
+    "tris": 3240
+   },
+   "cs_wheel": {
+    "w": 3.2,
+    "d": 1.27,
+    "h": 3.2,
+    "tris": 9374
+   }
+  },
+  "credits": [
+   {
+    "file": "roulette_table",
+    "title": "Roulette Table",
+    "author": "Notto (https://sketchfab.com/nottoo)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/roulette-table-8526f020e3434edfa0bd374d437c7014"
+   },
+   {
+    "file": "simple_roulette_table",
+    "title": "Simple Roulette Table",
+    "author": "Designed By Jonathan (https://sketchfab.com/designedbyjonathan)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/simple-roulette-table-a128e643ea6149e686fe6b73ceb48ef9"
+   },
+   {
+    "file": "bank_vault_door",
+    "title": "Bank Vault Door",
+    "author": "CommonSpence (https://sketchfab.com/commonspence)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bank-vault-door-66ed0c4af0284ed09363a4c35ee7ba3d"
+   },
+   {
+    "file": "vault_door_1",
+    "title": "Vault Door",
+    "author": "ShakibSKb (https://sketchfab.com/shakibskb)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/vault-door-2de2322bf07d496bbcc19d94400a469f"
+   },
+   {
+    "file": "vault_door",
+    "title": "Vault door",
+    "author": "OrlandoL (https://sketchfab.com/OllyOY)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/vault-door-b7f9cf66195546668d74c2d9d5cfb2b4"
+   },
+   {
+    "file": "wheel_of_fortune",
+    "title": "WHEEL OF FORTUNE",
+    "author": "aero1515 (https://sketchfab.com/aero1515)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/wheel-of-fortune-66d38f4d3c534f5686ca305b6ef084b1"
+   }
+  ]
+ },
+ "cas_hall": {
+  "kb": 8014,
+  "items": {
+   "hall": {
+    "w": 12.33,
+    "d": 25.82,
+    "h": 5.17,
+    "tris": 278924
+   }
+  },
+  "credits": [
+   {
+    "file": "gameready_casino_scene",
+    "title": "Gameready Casino scene",
+    "author": "Katydid (https://sketchfab.com/Katydid.)",
+    "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+    "source": "https://sketchfab.com/3d-models/gameready-casino-scene-685736a30da846b4ad7f2ddb3b9a56fc"
+   }
+  ]
+ },
+ "v7van": {
+  "kb": 115,
+  "items": {
+   "van": {
+    "w": 3.37,
+    "d": 5,
+    "h": 3.23,
+    "tris": 9192
+   }
+  },
+  "credits": [
+   {
+    "file": "armored_van",
+    "title": "Armored Van Gltf",
+    "author": "Danish337 (https://sketchfab.com/Danish337)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/armored-van-gltf-3f8f20dccb62471289045875f37d7a71"
+   }
+  ]
+ },
+ "bunker": {
+  "kb": 704,
+  "items": {
+   "bk_cnc": {
+    "w": 2.69,
+    "d": 1.25,
+    "h": 2.6,
+    "tris": 1752
+   },
+   "bk_mill": {
+    "w": 1.19,
+    "d": 1.06,
+    "h": 2.1,
+    "tris": 32818
+   },
+   "bk_door": {
+    "w": 1.85,
+    "d": 0.29,
+    "h": 2.6,
+    "tris": 5148
+   },
+   "bk_lathe": {
+    "w": 1.94,
+    "d": 0.87,
+    "h": 1.53,
+    "tris": 16748
+   }
+  },
+  "credits": [
+   {
+    "file": "cnc_milling_machine",
+    "title": "CNC Milling Machine",
+    "author": "ambivalentBear (https://sketchfab.com/ambivalentBear)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/cnc-milling-machine-318e0c1f28fb4ac49c90e0bce947f786"
+   },
+   {
+    "file": "vertical_milling_machine",
+    "title": "Vertical milling machine",
+    "author": "vramstudio (https://sketchfab.com/vramstudio)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/vertical-milling-machine-0e7444ee28aa4150b60b966179085f55"
+   },
+   {
+    "file": "bunker_door",
+    "title": "Bunker Door",
+    "author": "Gabriel Gauthier (https://sketchfab.com/Gab629)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bunker-door-deb898e42397499aabedd6913723c0be"
+   },
+   {
+    "file": "lathe",
+    "title": "Lathe",
+    "author": "herdiansyahhadi (https://sketchfab.com/herdiansyahhadi)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/lathe-c2b8ba51351740ecb62c0b5a563b5ae7"
+   }
+  ]
+ },
  "ramen": {
   "kb": 231,
   "items": {

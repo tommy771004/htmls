@@ -163,6 +163,7 @@ function drawMini(px, pz, yaw, mk) {
   gpsMini(mctx, P2, zoom);   // 導航路線（69-gps.js）
   for (const v of VENUE_PINS) { const [x, y] = P2(v.x, v.z); mctx.fillStyle = v.col; mctx.beginPath(); mctx.arc(x, y, 5 / zoom * 1.4, 0, 7); mctx.fill(); }
   v6Mini(mctx, P2, zoom);   // 69-v6-customs.js：改裝廠歇業的紅色鎖頭
+  v7Mini(mctx, P2, zoom);   // 69-v7-*.js：地堡、賭場、夜店鬧事的藍點
   for (const v of vehicles) if (v !== player.veh) { const [x, y] = P2(v.x, v.z); mctx.fillStyle = '#e9e5dc'; mctx.fillRect(x - 3, y - 3, 6, 6); }
   mctx.fillStyle = 'rgba(255,215,90,.75)';
   for (const c of traffic) { const [x, y] = P2(c.x, c.z); if (Math.abs(x) < 140 && Math.abs(y) < 140) mctx.fillRect(x - 1.5, y - 1.5, 3, 3); }

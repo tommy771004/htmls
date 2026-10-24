@@ -41,6 +41,32 @@ export const SETS = [
     { id: 'cw_air', file: 'air_compressor_xyz', h: 1.1 },   // 儲氣筒沿 x（約 1.5 m）
     { id: 'cw_hoist', file: 'engine_hoist', h: 1.9 },   // 原檔單位很小；吊臂與兩支腳朝 +x，吊鉤在 x ≈ +0.83 m、離地約 1.45 m
   ] },
+  // 霓鑽賭場（69-v7-casino.js）：kvasium 的 Casion slot-machine、Ravi Jangid 的 Blackjack Table、Notto 的 Roulette Table、
+  // Designed By Jonathan 的 Simple Roulette Table、CommonSpence 的 Bank Vault Door（都是 CC BY 4.0）
+  { out: 'casino', tex: 1024, items: [
+    { id: 'cs_rl', file: 'roulette_table', yaw: 31.5, len: 2.7 },   // 原檔斜放、比例很小；轉正後長邊沿 x，輪盤在 −x 那端
+    { id: 'cs_rl2', file: 'simple_roulette_table', len: 2.8 },   // 只有桌面（沒有腳），頁面墊一個台座；輪盤在 +x 那端
+    { id: 'cs_vault', file: 'bank_vault_door', h: 3.9, rot: 2 },   // 圓門，轉成把手朝 −z（氣閘那側），鉸鏈在 −x
+    // 氣閘外門：圓門板半徑 15.5 單位縮成 1.61 m，原點留在圓心；轉成鍵盤朝 −z，鉸鏈柱在 −x（x −1.56）
+    { id: 'cs_m0', file: 'vault_door_1', scale: .104, rot: 2, origin: [0, 0, 0] },
+    // 日間金庫：混凝土門板（0.9 單位見方）放大成 2.4 m，轉輪朝 −z；原點在門板正面的底邊中點
+    { id: 'cs_daily', file: 'vault_door', scale: 2.667, rot: 1, origin: [0, -.45, -.45] },
+    // 幸運轉盤：原檔平放（轉軸朝 +y、八個木托盤往外），立起來讓轉軸指向 −z（玩家那側）；原點留在轉軸，半徑 1.42 → 1.6 m
+    { id: 'cs_wheel', file: 'wheel_of_fortune', pitch: -90, scale: 1.127, origin: [0, 0, 0] },
+  ] },
+  // 賭場 1 樓大廳（69-v7-casino.js）：Katydid 的 Gameready Casino scene（SketchUp 匯出，英吋 → 公尺），原檔的大門就在 −z 那面短牆的正中，平移成門口牆在 z 0、中線 x 0；
+  // 拿掉 SketchUp 的描邊線（edge_color）與燈旁的光暈貼片（auto_1：頁面的 BLEND 材質當玻璃畫，會變成白色方片；燈光由頁面補點光）。大廳 25.8 × 12.3 m、高 5.2 m
+  { out: 'cas_hall', tex: 1024, items: [{ id: 'hall', file: 'gameready_casino_scene', scale: .0254, origin: [-720.57, -273.32, -508.64], drop: /^edge_color|^auto_1$/ }] },
+  // 地堡（69-v7-bunker.js）：A 區的 CNC 加工中心與立式銑床、南牆與門框旁的人員門；正面都轉到 −z（人員門朝 +z）
+  // 夜店出貨的夜梟改裝廂型車（69-v7-club.js）：卡通比例的運鈔車，車頭朝 +z；頁面再照 shvan 的車長車寬壓扁
+  { out: 'v7van', tex: 1024, items: [{ id: 'van', file: 'armored_van', len: 5 }] },
+  { out: 'bunker', tex: 1024, items: [
+    { id: 'bk_cnc', file: 'cnc_milling_machine', h: 2.6, rot: 2 },
+    { id: 'bk_mill', file: 'vertical_milling_machine', pitch: -9, h: 2.1, rot: 2, simp: [.25, .02] },   // 原檔是毫米、往後斜放，先繞 x 扶正
+    { id: 'bk_door', file: 'bunker_door', h: 2.6 },
+    // 車銑複合機：原檔長軸沿 z、操作面（手輪與按鈕）朝 +x；轉成長軸沿 x、操作面朝 −z（輸送帶那側），放大成 1.9 m 長
+    { id: 'bk_lathe', file: 'lathe', rot: 1, scale: 1.6 },
+  ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
   // 第五部曲的商店街（69-v5-shops.js，原檔在 .cache/v5/）：縫線服飾的店面是 jungle_jim 三間店面的右邊兩間（原檔單位約半公尺，縮成 0.6；
   // 原點在玻璃面、店內往 −z；原店名的立體字、人行道與第三間不要），店裡的掛衣架是 ngdkh 的 Wardrobe Rack 兩座；

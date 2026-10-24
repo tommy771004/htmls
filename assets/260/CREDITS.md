@@ -92,7 +92,7 @@
 
 ## 街區建築與道具（`props/`）
 
-`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載（`chrome` 是走進 CHROME WORKS 改裝廠才下載，四件都減面到約三成五），`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
+`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載（`chrome` 是走進 CHROME WORKS 改裝廠才下載，四件都減面到約三成五），`casino`（霓鑽賭場入口的兩張輪盤桌與 B1 的三扇金庫門）走進賭場 1 樓或 B1 才下載，不減面；`cas_hall`（賭場 1 樓整個大廳，約 28 萬面）走進賭場 1 樓才下載；`bunker`（地堡的銑床、車銑複合機與人員門）走近地堡 300 m 內或走進地堡才下載，`v7van`（夜店出貨的廂型車）開始出貨時才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -110,6 +110,18 @@
 | `chrome`（CHROME WORKS 的輪胎架） | [Tire Rack](https://sketchfab.com/3d-models/tire-rack-3e4fdc69fe5f428082242a32a343c28a) | [3ddominator](https://sketchfab.com/roughdominator) | CC BY 4.0 |
 | `chrome`（CHROME WORKS 的空壓機） | [Air Compressor XYZ](https://sketchfab.com/3d-models/air-compressor-xyz-7e024388f87145cfaadad9e521bfc073) | [Sandokan](https://sketchfab.com/sandokan68) | CC BY 4.0 |
 | `chrome`（CHROME WORKS 的引擎吊架） | [Engine Hoist - Engine Crane](https://sketchfab.com/3d-models/engine-hoist-engine-crane-cca42a7a1eaa47f187e9206991c5b4e4) | [dinoxwave](https://sketchfab.com/dinoxwave) | CC BY 4.0 |
+| `casino`（霓鑽賭場東側的輪盤桌） | [Roulette Table](https://sketchfab.com/3d-models/roulette-table-8526f020e3434edfa0bd374d437c7014) | [Notto](https://sketchfab.com/nottoo) | CC BY 4.0 |
+| `casino`（霓鑽賭場西側的輪盤桌，台座是程式建模） | [Simple Roulette Table](https://sketchfab.com/3d-models/simple-roulette-table-a128e643ea6149e686fe6b73ceb48ef9) | [Designed By Jonathan](https://sketchfab.com/designedbyjonathan) | CC BY 4.0 |
+| `casino`（霓鑽賭場 B1 的主金庫圓門） | [Bank Vault Door](https://sketchfab.com/3d-models/bank-vault-door-66ed0c4af0284ed09363a4c35ee7ba3d) | [CommonSpence](https://sketchfab.com/commonspence) | CC BY 4.0 |
+| `casino`（霓鑽賭場 B1 的氣閘外門 `cs_m0`） | [Vault Door](https://sketchfab.com/3d-models/vault-door-2de2322bf07d496bbcc19d94400a469f) | [ShakibSKb](https://sketchfab.com/shakibskb) | CC BY 4.0 |
+| `casino`（霓鑽賭場 B1 的日間金庫門 `cs_daily`） | [Vault door](https://sketchfab.com/3d-models/vault-door-b7f9cf66195546668d74c2d9d5cfb2b4) | [OrlandoL](https://sketchfab.com/OllyOY) | CC BY 4.0 |
+| `casino`（霓鑽賭場的幸運轉盤 `cs_wheel`，立起來疊在 20 格色盤前面） | [WHEEL OF FORTUNE](https://sketchfab.com/3d-models/wheel-of-fortune-66d38f4d3c534f5686ca305b6ef084b1) | [aero1515](https://sketchfab.com/aero1515) | CC BY 4.0 |
+| `cas_hall`（霓鑽賭場 1 樓整個大廳：吃角子老虎、吧台、輪盤、21 點牌桌、吊燈與牆面；拿掉 SketchUp 的描邊線） | [Gameready Casino scene](https://sketchfab.com/3d-models/gameready-casino-scene-685736a30da846b4ad7f2ddb3b9a56fc) | [Katydid](https://sketchfab.com/Katydid.) | Sketchfab Standard |
+| `bunker`（北嶺地堡製造區的 CNC 銑床 `bk_cnc`） | [CNC Milling Machine](https://sketchfab.com/3d-models/cnc-milling-machine-318e0c1f28fb4ac49c90e0bce947f786) | [ambivalentBear](https://sketchfab.com/ambivalentBear) | CC BY 4.0 |
+| `bunker`（北嶺地堡製造區的立式銑床 `bk_mill`，減面到約兩成五） | [Vertical milling machine](https://sketchfab.com/3d-models/vertical-milling-machine-0e7444ee28aa4150b60b966179085f55) | [vramstudio](https://sketchfab.com/vramstudio) | CC BY 4.0 |
+| `bunker`（北嶺地堡製造區的車銑複合機 `bk_lathe`） | [Lathe](https://sketchfab.com/3d-models/lathe-c2b8ba51351740ecb62c0b5a563b5ae7) | [herdiansyahhadi](https://sketchfab.com/herdiansyahhadi) | CC BY 4.0 |
+| `v7van`（LAZARUS 出貨的夜梟改裝廂型車車身，頁面壓成 4.5 × 2.4 m） | [Armored Van Gltf](https://sketchfab.com/3d-models/armored-van-gltf-3f8f20dccb62471289045875f37d7a71) | [Danish337](https://sketchfab.com/Danish337) | CC BY 4.0 |
+| `bunker`（北嶺地堡的人員門 `bk_door`：山坡入口旁與室內南牆） | [Bunker Door](https://sketchfab.com/3d-models/bunker-door-deb898e42397499aabedd6913723c0be) | [Gabriel Gauthier](https://sketchfab.com/Gab629) | CC BY 4.0 |
 | `v5shop`（縫線服飾的店面） | [Storefronts with opening doors (empty stores)](https://sketchfab.com/3d-models/storefronts-with-opening-doors-empty-stores-151b488b26dd4ff4b15c4c03dc0711e6) | [Jungle Jim](https://sketchfab.com/jungle_jim) | CC BY 4.0 |
 | `v5shop`（掛衣架） | [Wardrobe Rack](https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855) | [Khoa Nguyen](https://sketchfab.com/ngdkh) | CC BY 4.0 |
 | `v5shop`（射擊場的吊靶與射擊位） | [Gun Targets](https://sketchfab.com/3d-models/gun-targets-eb9fbe283faa41ef8685359a0769d303) | [FrodoUndead](https://sketchfab.com/FrodoUndead) | CC BY 4.0 |

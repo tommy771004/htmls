@@ -301,6 +301,28 @@ body.wheel #tbtn,body.wheel #joy,body.talking #touch.on,body.talking #speedo,bod
 #v6job.on{display:block}
 #v6job b{display:block;margin-bottom:3px;font-size:13px;color:#ffb648}
 #v6job .ok{color:#7fe08a}
+/* 第七部曲：舞池節奏挑戰（--p 是拍子的相位）、Mk II 彈種、賭場的吃角子老虎與賽馬 */
+#v7beat{position:absolute;left:50%;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 120px);transform:translateX(-50%);display:none;width:132px;height:132px;pointer-events:none;text-align:center}
+#v7beat.on{display:block}
+#v7beat i{position:absolute;inset:0;margin:auto;width:calc(132px - 92px * var(--p,0));height:calc(132px - 92px * var(--p,0));border:3px solid #ff3fa0;border-radius:50%;opacity:calc(.35 + .65 * var(--p,0));box-sizing:border-box}
+#v7beat::after{content:'';position:absolute;inset:0;margin:auto;width:40px;height:40px;border-radius:50%;background:rgba(255,63,160,.25);border:2px solid #fff}
+#v7beat b{position:absolute;left:0;right:0;top:44px;font:800 24px/1 var(--cond);color:#fff;z-index:1}
+#v7beat small{position:absolute;left:0;right:0;top:-22px;font-size:12px;color:var(--ink-2);text-shadow:0 1px 3px #000}
+#v7beat em{position:absolute;left:0;right:0;bottom:-24px;font:700 15px/1 var(--cond);font-style:normal;color:#ffd23a;text-shadow:0 1px 3px #000}
+#v7mk{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 92px);display:none;padding:4px 9px;background:rgba(0,0,0,.66);font-size:12px;pointer-events:none}
+#v7mk.on{display:block}
+#v7cas{position:absolute;left:50%;top:calc(max(20px,env(safe-area-inset-top)) + 90px);transform:translateX(-50%);display:none;width:min(320px,calc(100vw - 32px));padding:10px 14px;border-top:3px solid #e8c060;background:rgba(10,4,8,.82);pointer-events:none;font-size:12px}
+#v7cas.on{display:block}
+#v7cas b{display:block;margin-bottom:6px;color:#e8c060;font-size:13px}
+#v7cas .reels{display:flex;gap:8px;justify-content:center}
+#v7cas .reels i{flex:1;padding:10px 0;background:#f2efe6;color:#1a0c14;font:800 26px/1 var(--cond);font-style:normal;text-align:center;border-radius:3px}
+#v7cas small{display:block;margin-top:6px;color:var(--ink-2);text-align:center}
+#v7cas .lane{display:flex;align-items:center;gap:8px;margin:3px 0}
+#v7cas .lane span{width:64px;white-space:nowrap}
+#v7cas .lane em{position:relative;flex:1;height:8px;background:rgba(255,255,255,.12)}
+#v7cas .lane em::after{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p);background:#8a8e92}
+#v7cas .lane.me span{color:#ffd23a}
+#v7cas .lane.me em::after{background:#ffd23a}
 #cwKeys{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));display:none;flex-wrap:wrap;justify-content:flex-end;gap:6px;pointer-events:auto;font-size:12px}
 #cwKeys.on{display:flex}
 #cwKeys>*{display:flex;align-items:center;gap:4px;padding:5px 9px;border:0;border-radius:4px;background:rgba(0,0,0,.72);color:var(--ink);font:inherit;font-size:12px}
@@ -579,7 +601,7 @@ body.touch #capture{display:none}
   <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火 · <b>Esc</b> 暫停與設定</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
-  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、直升機與戰車模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋與酒館的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。</small>
+  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、賭場與地堡道具、直升機與戰車模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋、酒館與賭場大廳的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。</small>
 </div></div>
 <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#07080b;color:#ece8e0">這件作品需要 JavaScript 與 WebGL。</p></noscript>
 <p class="sr">可開車探索的雨夜城市：程序生成的街區、霓虹招牌與全息廣告，可下車步行並進入酒吧與夜店。</p>

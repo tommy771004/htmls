@@ -350,7 +350,7 @@ function defSpot(id) {
   const d = APT.office.door, s = aptFace('office');
   return { ...WP(d.x, d.z + 2.5 * s), name: '灰鷗島辦公室' };
 }
-const defReward = id => 6000 + ESTATES.find(e => e.id === id).rate * 4;
+const defReward = id => { const e = ESTATES.find(o => o.id === id); return 6000 + (e.def || e.rate * 4); };
 function defStart(id) {
   if (SQ.def || !estOwned(id)) return false;
   const s = defSpot(id);

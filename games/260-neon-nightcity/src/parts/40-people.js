@@ -764,7 +764,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // runK：69-v3-skills.js 的衝刺體力（喘的時候變慢）；skK.crouch：潛行等級讓蹲行快一點
   const rk = player.runK ?? 1, ck = skK.crouch;
   const target = ml > .05 ? (player.swim ? (run ? 2.3 * rk : 1.3) * (player.dive ? 1.15 : 1) : (run ? 4.6 * rk : player.crouch ? (aimM ? 1.1 : 1.3) * ck : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
-  player.v = damp(player.v, target, target > player.v ? 6 : 10, dt);
+  player.v = damp(player.v, target * (player.loadK ?? 1), target > player.v ? 6 : 10, dt);   // loadK：69-v7-casino.js 袋子裡金條太重
   let mdx = Math.sin(player.yaw), mdz = Math.cos(player.yaw);
   if (aimM) {
     // 瞄準時身體對著準星，移動方向照搖桿（側移、後退）

@@ -91,7 +91,8 @@ function marketExplode(v, mine) { if (mine && VNTR_TYPES.includes(v.type)) stock
 
 // ─── 天際置業：資產 ───
 const ESTATES = [
-  { id: 'lazarus', name: 'LAZARUS 夜店', price: 250000, rate: 2400, cap: 48000 },
+  { id: 'lazarus', name: 'LAZARUS 夜店', price: 250000, rate: 0, cap: 250000, def: 9600, blurb: '保險箱每日 $1,500–$50,000（照人氣）' },   // 69-v7-club.js：保險箱收入照人氣算（每日 1500 + 48500 × (P/100)²），上限 $250,000
+  { id: 'bunker', name: '北嶺地堡', price: 1150000, rate: 0, cap: 0, blurb: '軍火製造與 Mk II 研究' },   // 69-v7-bunker.js：收入是出貨，不進保險箱
   { id: 'afterglow', name: 'AFTERGLOW 酒吧', price: 120000, rate: 1100, cap: 22000 },
   { id: 'chrome', name: 'CHROME WORKS 改裝廠', price: 350000, rate: 1700, cap: 34000 },   // 69-v6-customs.js：門口的待售告示牌也能買；老闆 Kael 修車改裝全免、接客戶委託
   // 安全屋（69-safehouse.js）：買了可以進去睡覺存檔；不在家時短租出去，租金照售價約 0.16%／遊戲小時存進保險箱（進門時自動收下，或用手機收）

@@ -77,13 +77,32 @@ const mUp = pass(`uniform sampler2D tSrc, tAdd; uniform vec2 uTexel; uniform flo
     s += texture2D(tSrc, vUv + t).rgb + texture2D(tSrc, vUv - t).rgb + texture2D(tSrc, vUv + vec2(t.x, -t.y)).rgb + texture2D(tSrc, vUv + vec2(-t.x, t.y)).rgb;
     gl_FragColor = vec4(texture2D(tAdd, vUv).rgb + s / 16. * uK, 1.);
   }`, { tSrc: { value: null }, tAdd: { value: null }, uTexel: { value: new T.Vector2() }, uK: { value: 1 } });
-const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint; uniform vec2 uRes, uFx, uHi;
+// 熱成像（69-v7-bunker.js）：熱源投影到畫面上（uv、半徑、強度），HEAT_N 個以內，近的先
+const HEAT_N = 20, _heat = new Float32Array(160 * 5), _hv = new T.Vector3();
+function heatUniforms(u) {
+  const H = u.uHeat.value, F = V7FX;
+  u.uFx7.value.set(F.therm, F.gas, F.blur, F.nv);
+  for (const q of H) q.w = 0;
+  if (!(F.therm > 0)) return;
+  const n = heatPts(camera.position.x, camera.position.z, _heat, 160), list = [];
+  for (let i = 0; i < n; i++) {
+    const o = i * 5; _hv.set(_heat[o], _heat[o + 1], _heat[o + 2]);
+    const d = _hv.distanceTo(camera.position); _hv.project(camera);
+    if (_hv.z > 1 || Math.abs(_hv.x) > 1.2 || Math.abs(_hv.y) > 1.2) continue;
+    list.push([d, _hv.x * .5 + .5, _hv.y * .5 + .5, Math.min(.5, _heat[o + 3] / (2 * d * Math.tan(camera.fov * Math.PI / 360))), _heat[o + 4]]);
+  }
+  list.sort((a, b) => a[0] - b[0]);
+  list.slice(0, HEAT_N).forEach((q, i) => H[i].set(q[1], q[2], q[3], q[4]));
+}
+const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint, uFx7; uniform vec2 uRes, uFx, uHi;
+  uniform vec4 uHeat[${HEAT_N}];   // 69-v7-bunker.js 的熱源（畫面 uv、半徑、強度），uFx7：x 熱成像、y 神經毒氣、z 宿醉模糊、w 夜視鏡
   varying vec2 vUv;
   float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   vec3 aces(vec3 x){ return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
   void main(){
     vec2 uv = vUv;
     if (uWob > 0.) uv += vec2(sin(uv.y * 8. + uTime * 1.7), cos(uv.x * 6. + uTime * 1.3)) * .006 * uWob;
+    if (uFx7.y > 0.) uv += vec2(sin(uv.y * 14. + uTime * 3.1), cos(uv.x * 11. + uTime * 2.3)) * .005 * uFx7.y;
     float d = texture2D(tDepth, uv).r;
     vec4 wp = uInvVP * vec4(uv * 2. - 1., d * 2. - 1., 1.); wp /= wp.w;
     vec4 pc = uPrevVP * wp; vec2 puv = pc.xy / pc.w * .5 + .5;
@@ -103,6 +122,7 @@ const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvV
     c.r = mix(c.r, texture2D(tScene, uv - cc * edge * .012).r, .6 * uFx.x);   // uFx：Esc 選單的色散、底片顆粒開關
     c.b = mix(c.b, texture2D(tScene, uv + cc * edge * .012).b, .6 * uFx.x);
     if (uWob > 0.) c = mix(c, texture2D(tScene, uv + vec2(.012, 0.) * uWob).rgb, .35 * uWob);
+    if (uFx7.z > 0.) { vec2 o = vec2(.007, .005) * uFx7.z; c = mix(c, (texture2D(tScene, uv + o).rgb + texture2D(tScene, uv - o).rgb + texture2D(tScene, uv + vec2(-o.y, o.x)).rgb + texture2D(tScene, uv + vec2(o.y, -o.x)).rgb) * .25, .75 * min(1., uFx7.z)); }
     c += texture2D(tBloom, uv).rgb * uBloomK;
     c *= uExp * (1. + uFlash * .5);
     // 高光肩部（場館的 ENV.post.knee／range）：最亮的色版超過 knee 後漸近 knee+range，燈泡與反光不會燒成整片白；用最大色版縮放，不偏色
@@ -114,6 +134,17 @@ const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvV
     c = mix(c, c * vec3(1.06, 1., .9), l * .25);
     c *= 1. - edge * .9;
     if (uTint.w > 0.) c = mix(c, vec3(dot(c, vec3(.2126, .7152, .0722))) * uTint.rgb + c * .25, uTint.w);
+    // 熱成像：深藍紫的冷背景，人與引擎發橘白光（熱源不看深度：穿過牆、煙與樹葉）
+    if (uFx7.x > 0.) {
+      float lt = dot(c, vec3(.2126, .7152, .0722)), ht = 0.;
+      vec3 th = mix(vec3(.04, .02, .14), vec3(.3, .14, .46), smoothstep(0., .9, lt));
+      for (int i = 0; i < ${HEAT_N}; i++) { vec4 q = uHeat[i]; if (q.w <= 0.) continue; vec2 dd = (uv - q.xy) * vec2(uRes.x / uRes.y, 1.); dd.y *= .55; ht = max(ht, (1. - smoothstep(q.z * .35, q.z, length(dd))) * q.w); }
+      th = mix(th, mix(vec3(1., .3, .08), vec3(1., .96, .82), smoothstep(.55, 1., ht)) * 1.3, smoothstep(.0, .4, ht));
+      c = mix(c, th, uFx7.x);
+    }
+    // 神經毒氣：發綠；夜視鏡：綠色單色、放大亮度、加雜訊
+    if (uFx7.y > 0.) c = mix(c, c * vec3(.5, 1.2, .45) + vec3(.03, .09, 0.), .8 * uFx7.y);
+    if (uFx7.w > 0.) { float ln = dot(c, vec3(.2126, .7152, .0722)); vec3 nv = vec3(.3, 1., .4) * pow(clamp(ln * 4., 0., 1.), .7) + (h(uv * uRes + fract(uTime * 5.)) - .5) * .14; c = mix(c, nv, uFx7.w); }
     if (uGray + uVig + uHurt > 0.) {
       float r = length(cc * vec2(uRes.x / uRes.y, 1.)) * 1.25;
       c = mix(c, vec3(dot(c, vec3(.2126, .7152, .0722))) * vec3(1.02, 1., .97), uGray);
@@ -124,7 +155,7 @@ const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom; uniform mat4 uInvV
     c += (h(uv * uRes + fract(uTime * 7.)) - .5) * .035 * uFx.y;
     gl_FragColor = vec4(c, 1.);
   }`, { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
-  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
+  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uFx7: { value: new T.Vector4() }, uHeat: { value: Array.from({ length: HEAT_N }, () => new T.Vector4()) }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
 const prevVP = new T.Matrix4(), curVP = new T.Matrix4();
@@ -193,6 +224,7 @@ function renderFrame(dt, t) {
   u.uBloomK.value = (outdoors ? .85 : vp?.bloom ?? 1) * SET.bloom; u.uHi.value.set(vp?.knee ?? 0, vp?.range ?? 1);
   u.uFx.value.set(SET.ca ? 1 : 0, SET.grain ? 1 : 0);
   u.uGray.value = post.gray; u.uVig.value = post.vig; u.uHurt.value = post.hurt; u.uTint.value.copy(post.tint);
+  heatUniforms(u);
   u.uRes.value.set(w, h);
   blit(mComp, null);
   prevVP.copy(curVP);

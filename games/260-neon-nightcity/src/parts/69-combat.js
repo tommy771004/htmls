@@ -229,6 +229,7 @@ const DB_HIP = .87, DB_SEAT = .44 - DB_HIP;   // 開車動畫的骨盆在原點�
 function triggerDown() {
   if (arm.wheel.open || life.dead) return;
   arm.trig = true;
+  if (v7Trigger()) return;   // 69-v7-club.js：武裝廂型車的砲塔、舞池節奏小遊戲
   if (player.mode === 'drive' && player.veh.fly) return gunshipFire();   // 69-gunship.js：直升機的火箭莢
   const A = ARMS[arm.sel];
   if (!canFight() && !canDriveBy(A)) return;
@@ -291,11 +292,13 @@ function shoot() {
       const x = R.ox + R.dx * hit.t, y = R.oy + R.dy * hit.t, z = R.oz + R.dz * hit.t;
       if (i < 3) tracer(_mz.x, _mz.y, _mz.z, x, y, z);
       if (player.where === 'out') {
-        hitWith(hit, R, A.dmg * abil.out, 'player', A.head, A.stun);
+        if (!mkHit(hit, R, A, id)) hitWith(hit, R, A.dmg * abil.out, 'player', A.head, A.stun);   // 69-v7-bunker.js：Mk II 的特殊彈藥
+        bunkerTrainShot(R);   // 地堡補給：打軍火列車最後一節的掛鉤
         if (hit.kind === 'veh') kinBullet(hit.ref, R, A.dmg);   // 69-kinema.js：子彈推動沒人開的車
         if ((A.pel || 1) > 1 && hit.t < 6 && !A.stun) kinBlow(hit, R);   // 霰彈近距離把人轟飛
       }
       else if (player.where === 'bank') bankShot(R, A.dmg * abil.out);   // 銀行大廳：射線只算人質與警衛（69-heist.js）
+      else if (player.where === 'casinoB') casinoShot(R, A.dmg * abil.out * (mkOf(id) ? MK_DMG : 1));   // 69-v7-casino.js：金庫的警衛與攝影機
     }
     arm.bloom = Math.min(A.spread * 1.5, arm.bloom + A.spread * .25);
   }
@@ -832,6 +835,7 @@ addEventListener('wheel', e => {
 }, { passive: false });
 addEventListener('keyup', e => { if (e.code === 'Tab' && arm.wheel.open && arm.wheel.kb) wheelClose(true); });
 function gtaKey(code) {
+  if (v7Key(code)) return true;   // 69-v7-*.js：金條太重不能翻越、節奏小遊戲的空白鍵、Mk II 的 B 鍵與熱成像 E 鍵
   if (v5Key(code)) return true;   // 69-v5-civic.js：爬梯子、翻鐵絲網、從屋頂跳下去、店裡的按鍵
   if (crashKey(code)) return true;   // 69-v3-crash.js：空中開傘、走路時空白鍵翻越
   if (v6Key(code)) return true;   // 69-v6-customs.js：液壓（X）、改裝喇叭（H）

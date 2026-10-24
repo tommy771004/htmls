@@ -211,10 +211,11 @@ function estateRows() {
         : { t: e.name, sub: `安全屋 · ${APT[e.id].dist}`, val: '導航', ok: true, fn: () => { const d = aptOut(e.id); gpsSet(d.x, d.z); phoneMsg(`已設定導航到${e.name}。`); } }
       : { t: e.name, sub: e.rate ? `安全屋 · 睡覺存檔 · 短租每小時 ${money(e.rate)}` : `安全屋 · 睡覺推進時間並存檔`, val: money(e.price), ok: motors.cash >= e.price, fn: () => { if (estBuy(e.id)) { sfx.pickup(); phoneMsg(`${e.name}現在是你的了，門口按 E 進去。`); } } }
     : estOwned(e.id)
-    ? { t: e.name, sub: `保險箱 ${money(motors.props.safe[e.id])} / ${money(e.cap)} · 每小時 ${money(e.rate)}`, val: '收取', ok: motors.props.safe[e.id] >= 1, fn: () => { const n = estCollect(e.id); phoneMsg(`收了 ${money(n)}。`); } }
-    : { t: e.name, sub: `每遊戲小時收入 ${money(e.rate)}`, val: money(e.price), ok: motors.cash >= e.price, fn: () => { if (estBuy(e.id)) { sfx.pickup(); phoneMsg(`${e.name}現在是你的了，收入會存進保險箱。`); } } });
+    ? !e.cap ? { t: e.name, sub: e.blurb, val: '導航', ok: true, fn: () => { const d = estDoor(e.id); if (d) { gpsSet(d.x, d.z); phoneMsg(`已設定導航到${e.name}。`); } } }
+      : { t: e.name, sub: `保險箱 ${money(motors.props.safe[e.id])} / ${money(e.cap)} · ${e.rate ? `每小時 ${money(e.rate)}` : e.blurb}`, val: '收取', ok: motors.props.safe[e.id] >= 1, fn: () => { const n = estCollect(e.id); phoneMsg(`收了 ${money(n)}。`); } }
+    : { t: e.name, sub: e.rate ? `每遊戲小時收入 ${money(e.rate)}` : e.blurb, val: money(e.price), ok: motors.cash >= e.price, fn: () => { if (estBuy(e.id)) { sfx.pickup(); phoneMsg(`${e.name}現在是你的了，收入會存進保險箱。`); } } });
   const total = ESTATES.reduce((a, e) => a + (estOwned(e.id) ? Math.floor(motors.props.safe[e.id]) : 0), 0);
-  const biz = motors.props.own.filter(id => ESTATES.find(e => e.id === id).rate).length;
+  const biz = motors.props.own.filter(id => { const e = ESTATES.find(o => o.id === id); return e.rate || (e.cap && !e.home); }).length;
   if (biz > 1) rows.push({ t: '全部收取', sub: `${biz} 處資產`, val: total ? money(total) : '', ok: total >= 1, fn: () => { let n = 0; for (const id of motors.props.own) n += estCollect(id); phoneMsg(`一共收了 ${money(n)}。`); } });
   return rows;
 }
