@@ -1612,11 +1612,219 @@
    }
   ],
   "paint": [
-   "Material.002"
+   "Material.001"
   ],
   "paintable": false,
   "tris": 31418,
   "kb": 727,
+  "draws": 20
+ },
+ "f8": {
+  "id": "f8",
+  "title": "ferrari f8 tributo",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ferrari-f8-tributo-61d8929fd08048bf8ee2e143df2de796",
+  "bike": false,
+  "len": 4.611,
+  "w": 2.267,
+  "h": 1.202,
+  "wr": 0.351,
+  "fa": 1.151,
+  "ra": -1.494,
+  "track": 0.805,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.804,
+    "y": 0.351,
+    "z": 1.151,
+    "r": 0.351
+   },
+   {
+    "name": "FR",
+    "x": -0.804,
+    "y": 0.351,
+    "z": 1.151,
+    "r": 0.351
+   },
+   {
+    "name": "RL",
+    "x": 0.822,
+    "y": 0.351,
+    "z": -1.494,
+    "r": 0.351
+   },
+   {
+    "name": "RR",
+    "x": -0.789,
+    "y": 0.351,
+    "z": -1.494,
+    "r": 0.351
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31232,
+  "kb": 662,
+  "draws": 19
+ },
+ "scg": {
+  "id": "scg",
+  "title": "scg 003s",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/scg-003s-3a6571e472564c539a32cf9235f1bd7d",
+  "bike": false,
+  "len": 4.77,
+  "w": 2.026,
+  "h": 1.158,
+  "wr": 0.354,
+  "fa": 1.239,
+  "ra": -1.493,
+  "track": 0.852,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.853,
+    "y": 0.35,
+    "z": 1.241,
+    "r": 0.35
+   },
+   {
+    "name": "FR",
+    "x": -0.853,
+    "y": 0.35,
+    "z": 1.237,
+    "r": 0.35
+   },
+   {
+    "name": "RL",
+    "x": 0.85,
+    "y": 0.358,
+    "z": -1.493,
+    "r": 0.358
+   },
+   {
+    "name": "RR",
+    "x": -0.849,
+    "y": 0.358,
+    "z": -1.493,
+    "r": 0.358
+   }
+  ],
+  "paint": [
+   "material"
+  ],
+  "paintable": false,
+  "tris": 30602,
+  "kb": 762,
+  "draws": 17
+ },
+ "p9x8": {
+  "id": "p9x8",
+  "title": "peugeot 9x8",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/peugeot-9x8-e58eeb88062347a1aba677920fc990fc",
+  "bike": false,
+  "len": 5,
+  "w": 2.034,
+  "h": 1.167,
+  "wr": 0.38,
+  "fa": 1.449,
+  "ra": -1.587,
+  "track": 0.799,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.799,
+    "y": 0.372,
+    "z": 1.449,
+    "r": 0.372
+   },
+   {
+    "name": "FR",
+    "x": -0.799,
+    "y": 0.371,
+    "z": 1.449,
+    "r": 0.371
+   },
+   {
+    "name": "RL",
+    "x": 0.798,
+    "y": 0.389,
+    "z": -1.587,
+    "r": 0.389
+   },
+   {
+    "name": "RR",
+    "x": -0.799,
+    "y": 0.389,
+    "z": -1.587,
+    "r": 0.389
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 37922,
+  "kb": 1080,
+  "draws": 31
+ },
+ "c110": {
+  "id": "c110",
+  "title": "bugatti centodieci",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bugatti-centodieci-e6512e977ec2446da50e4c2e732b6b0b",
+  "bike": false,
+  "len": 4.6,
+  "w": 2.157,
+  "h": 1.245,
+  "wr": 0.376,
+  "fa": 1.314,
+  "ra": -1.354,
+  "track": 0.836,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.844,
+    "y": 0.367,
+    "z": 1.314,
+    "r": 0.367
+   },
+   {
+    "name": "FR",
+    "x": -0.844,
+    "y": 0.367,
+    "z": 1.314,
+    "r": 0.367
+   },
+   {
+    "name": "RL",
+    "x": 0.829,
+    "y": 0.384,
+    "z": -1.354,
+    "r": 0.384
+   },
+   {
+    "name": "RR",
+    "x": -0.829,
+    "y": 0.384,
+    "z": -1.354,
+    "r": 0.384
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 37516,
+  "kb": 788,
   "draws": 20
  },
  "v4": {

@@ -1,8 +1,8 @@
 # assets/260 實車模型來源與授權
 
-作品 260 霓虹夜城車行與車庫裡的 32 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
+作品 260 霓虹夜城車行與車庫裡的 36 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
 
-非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
+非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Glickenhaus、Peugeot、Bugatti、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -33,6 +33,10 @@
 | `svj.glb` | [lamborghini aventador lp 770-4 svj](https://sketchfab.com/3d-models/lamborghini-aventador-lp-770-4-svj-71460dcc354045ddb1e7a8670678ffca) | amogusstrikesback2 | CC-BY-4.0 |
 | `evija.glb` | [lotus evija](https://sketchfab.com/3d-models/lotus-evija-80d85f9fe49f4e249548a466a5674835) | amogusstrikesback2 | CC-BY-4.0 |
 | `spano.glb` | [2015 gta spano](https://sketchfab.com/3d-models/2015-gta-spano-9f115e79267742ff9a95dc7c1cf3021c) | amogusstrikesback2 | CC-BY-4.0 |
+| `f8.glb` | [ferrari f8 tributo](https://sketchfab.com/3d-models/ferrari-f8-tributo-61d8929fd08048bf8ee2e143df2de796) | amogusstrikesback2 | CC-BY-4.0 |
+| `scg.glb` | [scg 003s](https://sketchfab.com/3d-models/scg-003s-3a6571e472564c539a32cf9235f1bd7d) | amogusstrikesback2 | CC-BY-4.0 |
+| `p9x8.glb` | [peugeot 9x8](https://sketchfab.com/3d-models/peugeot-9x8-e58eeb88062347a1aba677920fc990fc) | amogusstrikesback2 | CC-BY-4.0 |
+| `c110.glb` | [bugatti centodieci](https://sketchfab.com/3d-models/bugatti-centodieci-e6512e977ec2446da50e4c2e732b6b0b) | amogusstrikesback2 | CC-BY-4.0 |
 | `chall.glb` | [( FREE ) Dodge Challenger SRT](https://sketchfab.com/3d-models/free-dodge-challenger-srt-38a1fd572beb433fa2d26d8c1070c8fa) | SDC PERFORMANCE™️ | CC-BY-4.0 |
 | `zr1.glb` | [2019 Chevrolet Corvette ZR1](https://sketchfab.com/3d-models/2019-chevrolet-corvette-zr1-92b1b185b0d44847b0d099a787f8ed12) | Ddiaz Design | CC-BY-4.0 |
 | `police.glb` | [Police car](https://sketchfab.com/3d-models/police-car-9166b13b6ae341f4bfc093edb71d74f4) | Mateusz Woliński | CC-BY-4.0 |
