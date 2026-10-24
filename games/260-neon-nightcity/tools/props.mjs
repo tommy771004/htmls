@@ -41,6 +41,15 @@ export const SETS = [
     { id: 'cw_air', file: 'air_compressor_xyz', h: 1.1 },   // 儲氣筒沿 x（約 1.5 m）
     { id: 'cw_hoist', file: 'engine_hoist', h: 1.9 },   // 原檔單位很小；吊臂與兩支腳朝 +x，吊鉤在 x ≈ +0.83 m、離地約 1.45 m
   ] },
+  // 霓鑽賭場（69-v7-casino.js）：kvasium 的 Casion slot-machine、Ravi Jangid 的 Blackjack Table、Notto 的 Roulette Table、
+  // Designed By Jonathan 的 Simple Roulette Table、CommonSpence 的 Bank Vault Door（都是 CC BY 4.0）
+  { out: 'casino', tex: 1024, items: [
+    { id: 'cs_slot', file: 'slot_machine', h: 1.75 },   // 螢幕朝 +z，拉桿在 +x
+    { id: 'cs_bj', file: 'blackjack_table', scale: 1, rot: 2 },   // 原檔公尺；半圓的玩家那側轉到 −z，荷官的直邊在 +z
+    { id: 'cs_rl', file: 'roulette_table', yaw: 31.5, len: 2.7 },   // 原檔斜放、比例很小；轉正後長邊沿 x，輪盤在 −x 那端
+    { id: 'cs_rl2', file: 'simple_roulette_table', len: 2.8 },   // 只有桌面（沒有腳），頁面墊一個台座；輪盤在 +x 那端
+    { id: 'cs_vault', file: 'bank_vault_door', h: 3.9, rot: 2 },   // 圓門，轉成把手朝 −z（氣閘那側），鉸鏈在 −x
+  ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
   // 第五部曲的商店街（69-v5-shops.js，原檔在 .cache/v5/）：縫線服飾的店面是 jungle_jim 三間店面的右邊兩間（原檔單位約半公尺，縮成 0.6；
   // 原點在玻璃面、店內往 −z；原店名的立體字、人行道與第三間不要），店裡的掛衣架是 ngdkh 的 Wardrobe Rack 兩座；

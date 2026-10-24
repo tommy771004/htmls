@@ -122,7 +122,7 @@ try {
     check(c4.sup && c4.fort && c4.heat > 0, `地堡防爆門（${c4.sup}）與霓虹堡（${c4.fort}）都在城裡、熱成像抓到 ${c4.heat} 個熱源`);
   }
 
-  const c5 = await sec('5. 霓鑽賭場：1 樓禁武器、轉盤、老虎機、21 點', async () => {
+  const c5 = await sec('5. 霓鑽賭場：1 樓禁武器、轉盤、老虎機、21 點、輪盤', async () => {
     const N = window.__nc, K = N.gta.v7.casino, M = N.motors; __t.reset();
     N.gta.equip('pistol', true);
     N.tp(K.door().x, K.door().z); K.enter(); await __t.until(() => N.player.where === 'casino');
@@ -141,8 +141,13 @@ try {
     const car = M.owned.includes('evija');
     const bj = [[{ r: 1 }, { r: 13 }], [{ r: 1 }, { r: 1 }, { r: 9 }], [{ r: 13 }, { r: 12 }, { r: 5 }]].map(K.bj.val);
     const tcp = [[{ r: 2, s: 0 }, { r: 3, s: 0 }, { r: 4, s: 0 }], [{ r: 9, s: 0 }, { r: 9, s: 1 }, { r: 9, s: 2 }], [{ r: 2, s: 0 }, { r: 7, s: 0 }, { r: 11, s: 0 }], [{ r: 5, s: 1 }, { r: 5, s: 0 }, { r: 11, s: 2 }]].map(h => K.tcp.rank(h).cat);
+    // 美式輪盤：38 格，每一種押法的回報都是 36/38；強制開出 7（紅、單、第一打）
+    const nums = [-1, ...Array.from({ length: 37 }, (_, i) => i)];
+    const rl = K.rl.BETS.map(b => nums.filter(b.hit).length * (b.k + 1) / 38);
+    const chips0 = K.st().chips; K.rl.spin(0, 100, 7); K.rl.step(3.1); const red = K.st().chips - chips0;
+    K.rl.spin(3, 100, -1); K.rl.step(3.1); const zz = K.st().chips - chips0 - red; N.closeDialog();
     N.exit();
-    return { where, sel, cnt, rtp: +rtp.toFixed(3), dia, r0, r1, car, bj, tcp };
+    return { where, sel, cnt, rtp: +rtp.toFixed(3), dia, r0, r1, car, bj, tcp, rl: [Math.min(...rl), Math.max(...rl)].map(v => +v.toFixed(4)), red, zz, nRl: K.rl.BETS.length };
   });
   if (c5) {
     check(c5.where === 'casino' && c5.sel === 'fist', `進 1 樓武器自動收起（${c5.sel}）`);
@@ -150,6 +155,8 @@ try {
     check(c5.r0 && !c5.r1 && c5.car, '一天轉一次，頭獎把展示台的車停進車庫');
     check(c5.dia === 1000 && c5.rtp > .85 && c5.rtp < 1, `三顆鑽石 1000 倍，理論回報 ${(c5.rtp * 100).toFixed(1)}%`);
     check(c5.bj.join() === '21,21,25', `21 點計分（A 可當 1 或 11）：${c5.bj.join('／')}`);
+    check(c5.rl[0] === c5.rl[1] && Math.abs(c5.rl[0] - 36 / 38) < 1e-4, `輪盤 ${c5.nRl} 種押法的回報都是 36/38（${(c5.rl[0] * 100).toFixed(2)}%）`);
+    check(c5.red === 200 && c5.zz === 0, `輪盤開出 7 押紅拿回 ${c5.red}；開出 00 押雙拿回 ${c5.zz}`);
     check(c5.tcp[0] === 5 && c5.tcp[1] === 4 && c5.tcp[2] === 2 && c5.tcp[3] === 1, `三張牌撲克牌型：同花順 > 三條 > 同花 > 一對（${c5.tcp.join('／')}）`);
   }
 

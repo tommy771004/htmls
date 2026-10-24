@@ -130,6 +130,78 @@
    }
   ]
  },
+ "casino": {
+  "kb": 1485,
+  "items": {
+   "cs_slot": {
+    "w": 0.99,
+    "d": 0.83,
+    "h": 1.75,
+    "tris": 10000
+   },
+   "cs_bj": {
+    "w": 2.6,
+    "d": 1.65,
+    "h": 0.9,
+    "tris": 5788
+   },
+   "cs_rl": {
+    "w": 2.7,
+    "d": 1.86,
+    "h": 1.07,
+    "tris": 17092
+   },
+   "cs_rl2": {
+    "w": 2.8,
+    "d": 1.16,
+    "h": 0.35,
+    "tris": 14373
+   },
+   "cs_vault": {
+    "w": 4.07,
+    "d": 1.4,
+    "h": 3.9,
+    "tris": 26638
+   }
+  },
+  "credits": [
+   {
+    "file": "slot_machine",
+    "title": "Casion slot-machine",
+    "author": "kvasium (https://sketchfab.com/kvasium)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/casion-slot-machine-49fc3271878e4e148fed325439b53a1a"
+   },
+   {
+    "file": "blackjack_table",
+    "title": "Blackjack Table",
+    "author": "Ravi Jangid (https://sketchfab.com/ravijangid.rv)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/blackjack-table-baf7e3cbd14140ca81ea1a79d28fb635"
+   },
+   {
+    "file": "roulette_table",
+    "title": "Roulette Table",
+    "author": "Notto (https://sketchfab.com/nottoo)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/roulette-table-8526f020e3434edfa0bd374d437c7014"
+   },
+   {
+    "file": "simple_roulette_table",
+    "title": "Simple Roulette Table",
+    "author": "Designed By Jonathan (https://sketchfab.com/designedbyjonathan)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/simple-roulette-table-a128e643ea6149e686fe6b73ceb48ef9"
+   },
+   {
+    "file": "bank_vault_door",
+    "title": "Bank Vault Door",
+    "author": "CommonSpence (https://sketchfab.com/commonspence)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bank-vault-door-66ed0c4af0284ed09363a4c35ee7ba3d"
+   }
+  ]
+ },
  "ramen": {
   "kb": 231,
   "items": {

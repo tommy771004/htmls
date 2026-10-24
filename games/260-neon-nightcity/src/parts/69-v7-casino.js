@@ -2,7 +2,9 @@
 // 光環廣場 (8,4) 的 FAC.casino：西北、東北兩座塔樓與 2 層的裙樓。裙樓南面是大門與運鈔車卸貨口，屋頂是 RF 泳池與停機坪（東牆的鐵梯上去），
 // 西邊人行道上有一個雨水下水道的鐵蓋（強攻路線從這裡炸開）。
 // 1 樓（場館 'casino'）：禁止攜帶武器。幸運轉盤（20 格各 18°，一天一次）、展示台上的頭獎跑車、兌換櫃台（$1 = 1 籌碼）、
-//   21 點、三張牌撲克、Inside Track 賽馬、吃角子老虎（最多押 2,500，三顆鑽石 1000 倍）。
+//   21 點、三張牌撲克、美式輪盤（0 與 00）、Inside Track 賽馬、吃角子老虎（最多押 2,500，三顆鑽石 1000 倍）。
+//   吃角子老虎、牌桌、兩張輪盤桌與 B1 的圓形金庫門是 props/casino.glb（tools/props.mjs 的 casino 組，CC BY 4.0），走進 1 樓／B1 才下載；
+//   以檔案開啟或下載失敗時留著程式建模的替身（每種一個網格，propSwap 換掉時藏起來）。
 // B1（場館 'casinoB'，只有搶劫時進得去）：保全室的雙讀卡機（1.5 秒內刷兩張）、雙門氣閘、主金庫（6 道指紋鎖／鋁熱劑柵門）、日間金庫、運鈔車卸貨口。
 // 計畫板在 AFTERGLOW 後面的街機角落：三種路線（A 偽裝保全、B 屋頂垂降、C 下水道強攻）與隨機目標（現金／名畫／金條／鑽石）。
 //   A：從卸貨口以保全身分進去，不拿槍指人、不開槍就沒人管你；金庫時限 150 秒。
@@ -12,7 +14,7 @@
 //   名畫一幅割 6 秒、其他一堆 4 秒；袋子裡金條佔一半以上 → 走路 ×0.68、不能翻越。
 // 存檔在 motors.v7.casino（籌碼、轉盤日期、計畫）。排在 69-v7-bunker 之後、69-v7-club 之前：頂層不能用 keys、camState、post。
 
-const CAS = { spin: null, race: null, slot: null, h: null, emp: 0, lock5: 0, saveT: 0 };
+const CAS = { spin: null, race: null, slot: null, rl: null, h: null, emp: 0, lock5: 0, saveT: 0 };
 const CAS_DAY = GAME_HOUR * 24, SLOT_MAX = 2500, WHEEL_N = 20, PODIUM = 'evija', CHIP_BUY = [1000, 10000, 100000];
 const KEY_WIN = 1.5, MANT_T = 3, GAS_WARN = 15, GAS_DPS = 12, LOCK5_T = 90, EMP_T = 60, GOLD_K = .68, ART_T = 6, PILE_T = 4, FINGER_T = 3, THERM_T = 4;
 const CAS_APPS = {
@@ -76,6 +78,11 @@ const cas = { boxes: [], circles: [], lights: [] };
 const CS_CASH = { x: -20.4, z: 8 }, CS_WHEEL = { x: 0, z: 33.2 }, CS_POD = { x: 0, z: 21 }, CS_TRACK = { x: 21.4, z: 28 }, CS_STAFF = { x: 0, z: 39.4 };
 const CS_BJ = [{ x: -13, z: 17 }, { x: -13, z: 26 }], CS_TCP = [{ x: 13, z: 17 }];
 const CS_SLOTS = Array.from({ length: 10 }, (_, i) => ({ x: -11.25 + i * 2.5, z: 8.6 }));
+// 牌桌是半月形：直邊（荷官那側）在 t.z + .93，半圓的圓心在 t.z + CS_ARC、半徑 1.3，玩家坐在南邊的弧上（CS_SEATS 是座位的角度）
+const CS_ARC = .58, CS_SEATS = [-1.05, -.4, .4, 1.05];
+const csSeat = (t, a) => ({ x: t.x + Math.sin(a) * 1.9, z: t.z + CS_ARC - Math.cos(a) * 1.9, yaw: -a });
+// 輪盤桌：長邊沿 x，玩家站南邊（−z）、荷官在北邊；m 是 casino.glb 的物件，w／d 是桌面大小，wx 是轉輪在哪一端，y 是模型墊高（cs_rl2 只有桌面，放在台座上）
+const CS_RL = [{ x: 13, z: 26.5, m: 'cs_rl', w: 2.7, d: 1.86, wx: -1, y: 0 }, { x: -12.5, z: 34, m: 'cs_rl2', w: 2.8, d: 1.16, wx: 1, y: .78 }];
 const casWheel = new T.Group(), casPod = new T.Group();
 {
   const k = new Kit(), B = cas.boxes;
@@ -93,17 +100,39 @@ const casWheel = new T.Group(), casPod = new T.Group();
   k.box(CS_CASH.x - .4, .55, CS_CASH.z, 1.2, 1.1, 6, 0x2a1418, 10).box(CS_CASH.x - .4, 1.12, CS_CASH.z, 1.3, .06, 6.1, 0xd8b048, 15);
   k.box(-23.9, 3.2, CS_CASH.z, .06, 1, 4.6, 0xffd060, 11);
   B.push({ x0: -24, x1: CS_CASH.x + .2, z0: CS_CASH.z - 3, z1: CS_CASH.z + 3 });
-  // 吃角子老虎（南側一排，面向北邊）
+  // 吃角子老虎（南側一排，面向北邊）；程式建模的替身另成一個網格，casino.glb 的 cs_slot 下載好就藏起來
+  const ks = new Kit();
   for (const s of CS_SLOTS) {
-    k.box(s.x, .8, s.z - .45, 1.1, 1.6, .9, 0x2a1a30, 10).box(s.x, 1.2, s.z - .01, .8, .55, .04, 0x40c8ff, 11).box(s.x, 1.85, s.z - .45, 1.1, .5, .9, 0xd8b048, 8).box(s.x + .5, 1.1, s.z, .05, .3, .05, 0xff3040, 8);
+    ks.box(s.x, .8, s.z - .45, 1.1, 1.6, .9, 0x2a1a30, 10).box(s.x, 1.2, s.z - .01, .8, .55, .04, 0x40c8ff, 11).box(s.x, 1.85, s.z - .45, 1.1, .5, .9, 0xd8b048, 8).box(s.x + .5, 1.1, s.z, .05, .3, .05, 0xff3040, 8);
     B.push({ x0: s.x - .55, x1: s.x + .55, z0: s.z - .9, z1: s.z });
   }
-  // 21 點與三張牌撲克的牌桌（半月形桌面用圓柱近似）
+  const slotFb = new T.Mesh(ks.build(), MAT.uber); casScene.add(slotFb);
+  propSwap('casino', slotFb, 'cs_slot', CS_SLOTS.map(s => ({ x: s.x, z: s.z - .45 })), casScene, null, 'casino');
+  // 21 點與三張牌撲克的半月形牌桌（cs_bj）；座椅留在大網格裡
+  const kb = new Kit(), half = (r, h, y, z, col, mat) => kb.add(new T.CylinderGeometry(r, r, h, 28, 1, false, Math.PI / 2, Math.PI), col, mat, tf(0, y, z));
   for (const t of [...CS_BJ, ...CS_TCP]) {
-    k.cyl(t.x, .78, t.z, 1.8, 1.8, .08, 28, 0x0e5a3a, 10).cyl(t.x, .8, t.z, 1.9, 1.9, .05, 28, 0x3a1a10, 10).cyl(t.x, .38, t.z, .4, .6, .76, 12, 0x2a1418, 10);
-    for (let a = -1; a <= 1; a++) { const cx = t.x + Math.sin(a * .7) * 2.4, cz = t.z - Math.cos(a * .7) * 2.4; k.cyl(cx, .55, cz, .26, .26, .1, 12, 0x6a1020, 10).cyl(cx, .27, cz, .04, .06, .5, 8, 0xd8b048, 15); }
-    cas.circles.push({ x: t.x, z: t.z, r: 1.95 });
-    cas.lights.push({ x: t.x, y: 3.2, z: t.z, col: lin(0xfff0c8), r: 6, i: 1.1 });
+    const t0 = kb.pos.length;
+    half(1.3, .07, .86, CS_ARC, 0x3a1a10, 10); half(1.16, .02, .9, CS_ARC, 0x0e5a3a, 10);
+    kb.box(0, .86, (CS_ARC + .93) / 2, 2.6, .07, .93 - CS_ARC, 0x3a1a10, 10).box(0, .9, (CS_ARC + .93) / 2, 2.32, .02, .93 - CS_ARC, 0x0e5a3a, 10).box(0, .41, .55, 1.8, .82, .7, 0x2a1418, 10);
+    for (let i = t0; i < kb.pos.length; i += 3) { kb.pos[i] += t.x; kb.pos[i + 2] += t.z; }
+    for (const a of CS_SEATS) { const c = csSeat(t, a); k.cyl(c.x, .55, c.z, .26, .26, .1, 12, 0x6a1020, 10).cyl(c.x, .27, c.z, .04, .06, .5, 8, 0xd8b048, 15); }
+    cas.circles.push({ x: t.x, z: t.z + CS_ARC, r: 1.32 });
+    B.push({ x0: t.x - 1.3, x1: t.x + 1.3, z0: t.z + CS_ARC, z1: t.z + .93 });
+    cas.lights.push({ x: t.x, y: 3.2, z: t.z + .3, col: lin(0xfff0c8), r: 6, i: 1.1 });
+  }
+  const tableFb = new T.Mesh(kb.build(), MAT.uber); casScene.add(tableFb);
+  propSwap('casino', tableFb, 'cs_bj', [...CS_BJ, ...CS_TCP].map(t => ({ x: t.x, z: t.z + .1 })), casScene, null, 'casino');
+  // 輪盤桌：cs_rl 有桌腳，cs_rl2 只有桌面（墊在一直都在的台座上）
+  for (const R of CS_RL) {
+    const kr = new Kit(), y = R.y || .82;
+    if (R.y) k.box(R.x, R.y / 2, R.z, R.w - .4, R.y, R.d - .36, 0x2a1418, 10).box(R.x, R.y - .02, R.z, R.w - .3, .04, R.d - .26, 0xd8b048, 15);
+    else for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) kr.cyl(R.x + sx * (R.w / 2 - .25), .41, R.z + sz * (R.d / 2 - .25), .03, .03, .82, 6, 0xb08a38, 15);
+    kr.box(R.x, y + .04, R.z, R.w, .08, R.d, 0x3a1a10, 10).box(R.x + R.wx * -.35, y + .085, R.z, R.w - 1.2, .01, R.d - .2, 0x0e5a3a, 10);
+    kr.cyl(R.x + R.wx * (R.w / 2 - .5), y + .12, R.z, .42, .42, .1, 24, 0x5a3418, 10).cyl(R.x + R.wx * (R.w / 2 - .5), y + .17, R.z, .34, .3, .02, 24, 0x8a1424, 10).cyl(R.x + R.wx * (R.w / 2 - .5), y + .22, R.z, .03, .05, .12, 8, 0xd8b048, 15);
+    const fb = new T.Mesh(kr.build(), MAT.uber); casScene.add(fb);
+    propSwap('casino', fb, R.m, [{ x: R.x, y: R.y, z: R.z }], casScene, null, 'casino');
+    B.push({ x0: R.x - R.w / 2, x1: R.x + R.w / 2, z0: R.z - R.d / 2, z1: R.z + R.d / 2 });
+    cas.lights.push({ x: R.x, y: 3.2, z: R.z, col: lin(0xfff0c8), r: 6, i: 1.1 });
   }
   // Inside Track：東牆的大螢幕與座位
   k.box(23.85, 3.4, CS_TRACK.z, .1, 3.4, 7.4, 0x0a0a0a, 2).box(23.8, 3.4, CS_TRACK.z, .02, 3, 7, 0x40ff9a, 11);
@@ -132,10 +161,11 @@ const casWheel = new T.Group(), casPod = new T.Group();
 }
 // 1 樓的人：荷官、客人與門口的保全
 {
-  const cr = crowd(12), rc = rng(8484);
-  const P0 = [[ANIM.idle, CS_BJ[0].x, CS_BJ[0].z + 2.3, Math.PI, 1], [ANIM.idle, CS_BJ[1].x, CS_BJ[1].z + 2.3, Math.PI, 1], [ANIM.idle, CS_TCP[0].x, CS_TCP[0].z + 2.3, Math.PI, 1], [ANIM.idle, CS_CASH.x - .9, CS_CASH.z, Math.PI / 2, 1],
-    [ANIM.sit, CS_BJ[0].x - 1.6, CS_BJ[0].z - 1.75, .7, 0], [ANIM.sit, CS_BJ[1].x + 1.6, CS_BJ[1].z - 1.75, -.7, 0], [ANIM.sit, CS_TCP[0].x, CS_TCP[0].z - 2.4, 0, 0], [ANIM.interact, CS_SLOTS[2].x, CS_SLOTS[2].z + .5, Math.PI, 0],
-    [ANIM.interact, CS_SLOTS[7].x, CS_SLOTS[7].z + .5, Math.PI, 0], [ANIM.talk, 6, 30, -1, 0], [ANIM.cross, -4, 2.2, 0, 2], [ANIM.cross, 4, 2.2, 0, 2]];
+  const cr = crowd(14), rc = rng(8484), seat = (t, a) => { const c = csSeat(t, CS_SEATS[a]); return [ANIM.sit, c.x, c.z, c.yaw, 0]; };
+  const P0 = [[ANIM.idle, CS_BJ[0].x, CS_BJ[0].z + 1.55, Math.PI, 1], [ANIM.idle, CS_BJ[1].x, CS_BJ[1].z + 1.55, Math.PI, 1], [ANIM.idle, CS_TCP[0].x, CS_TCP[0].z + 1.55, Math.PI, 1], [ANIM.idle, CS_CASH.x - .9, CS_CASH.z, Math.PI / 2, 1],
+    seat(CS_BJ[0], 0), seat(CS_BJ[1], 3), seat(CS_TCP[0], 2), [ANIM.interact, CS_SLOTS[2].x, CS_SLOTS[2].z + .5, Math.PI, 0],
+    [ANIM.interact, CS_SLOTS[7].x, CS_SLOTS[7].z + .5, Math.PI, 0], [ANIM.talk, 6, 30, -1, 0], [ANIM.cross, -4, 2.2, 0, 2], [ANIM.cross, 4, 2.2, 0, 2],
+    ...CS_RL.map(R => [ANIM.idle, R.x + R.wx * .4, R.z + R.d / 2 + .45, Math.PI, 1])];
   P0.forEach(([a, x, z, yaw, role], i) => {
     cr.look(i, role === 1 ? { r: rc, top: 0xf0f0f0, bot: 0x111114, glowI: 0 } : role === 2 ? { r: rc, top: 0x18181c, bot: 0x18181c, female: false, glowI: 0 } : { r: rc, glowI: rc() < .3 ? 1.2 : 0 });
     cr.anim(i, a, rc() * 10, 1, 0); cr.place(i, x, a === ANIM.sit ? -.3 : 0, z, yaw);
@@ -154,6 +184,7 @@ const CB2 = {
   cards: [{ x: -6.4, z: 14.6 }, { x: -2, z: 14.6 }], daily: { x: 8, z: 18.6 },
   mant0: { z0: 21.8, z1: 22.2 }, mant1: { z0: 27.8, z1: 28.2 }, vault: { x0: -10, x1: 10, z0: 28.2, z1: 43 },
 };
+const CB_VR = 1.78, CB_VY = 1.95, CB_VH = { x: -1.95, z: 28.3 }, CB_VA = -1.6;
 const CB_GATES = [[-9, 31.5], [-9, 35.5], [-9, 39.5], [9, 31.5], [9, 35.5], [9, 39.5]].map(([x, z]) => ({ x, z, s: Math.sign(x) }));
 const CB_CAMS = [{ x: -19.6, z: 2, yaw: .8 }, { x: 19.6, z: 8, yaw: -1.2 }, { x: -19.6, z: 20, yaw: 1.6 }, { x: 0, z: 21.6, yaw: Math.PI }];
 const CB_GUARDS = [[[-12, 7], [-4, 7]], [[6, 5], [6, 13]], [[-10, 19], [-10, 13]], [[3, 20.6], [13, 20.6]], [[-6, 34], [6, 34]], [[16, 10], [16, 18]]];
@@ -181,9 +212,13 @@ const casBGate = [], casBPile = [];
   // 氣閘：走廊 x −2..2、z 22..28，兩道門
   wall(-12, -2, 21.8, 22.2); wall(2, 20, 21.8, 22.2); wall(-2.4, -2, 22.2, 27.8); wall(2, 2.4, 22.2, 27.8);
   wall(-10.4, -2, 27.8, 28.2); wall(2, 10.4, 27.8, 28.2);
-  // 主金庫：牆、圓形金庫門（開著靠在牆邊）、6 道柵門與後面的貨
+  // 內門那一段牆是圓形門框（洞的半徑 CB_VR、圓心離地 CB_VY）
+  const fr = new T.Shape([new T.Vector2(-2, 0), new T.Vector2(2, 0), new T.Vector2(2, 4.4), new T.Vector2(-2, 4.4)]);
+  fr.holes.push(new T.Path().absarc(0, CB_VY, CB_VR, 0, Math.PI * 2, false));
+  k.add(new T.ExtrudeGeometry(fr, { depth: .4, bevelEnabled: false, curveSegments: 20 }), 0x4a4e54, 2, tf(0, 0, 27.8));
+  k.add(new T.TorusGeometry(CB_VR, .06, 6, 40), 0xd0d4d8, 15, tf(0, CB_VY, 27.78));
+  // 主金庫：牆、6 道柵門與後面的貨
   wall(-10.4, -10, 28.2, 43); wall(10, 10.4, 28.2, 43);
-  k.cyl(-4.6, 2, 27.6, 2, 2, .5, 32, 0x9aa0a6, 3, Math.PI / 2, 0, 0).cyl(-4.6, 2, 27.3, .5, .5, .3, 16, 0xd0d4d8, 15, Math.PI / 2, 0, 0);
   for (let x = -9.6; x <= 9.6; x += 1.6) k.box(x, 2.2, 42.9, .06, 4.4, .1, 0x8a8e92, 15);
   casBScene.add(new T.Mesh(k.build(), MAT.uber));
   // 會開的門：氣閘外門、內門、日間金庫的柵門（盒子另外存，開了就從碰撞拿掉）
@@ -193,7 +228,16 @@ const casBGate = [], casBPile = [];
     casBDoors[id] = { m, b: { x0, x1, z0, z1 }, open: false };
     B.push(casBDoors[id].b);
   };
-  door('m0', -2, 2, 21.8, 22.2, 0x8a9096); door('m1', -2, 2, 27.8, 28.2, 0x8a9096); door('daily', 6.8, 9.2, 15, 15.4, 0x6a6e72);
+  door('m0', -2, 2, 21.8, 22.2, 0x8a9096); door('daily', 6.8, 9.2, 15, 15.4, 0x6a6e72);
+  // 內門 m1 是圓形金庫門：鉸鏈在西邊（CB_VH），開門時往金庫裡轉 CB_VA；開著的門板也擋路（ob）
+  const piv = new T.Group(); piv.position.set(CB_VH.x, 0, CB_VH.z); casBScene.add(piv);
+  const kv = new Kit(), lx = -CB_VH.x, lz = 28 - CB_VH.z;
+  kv.cyl(lx, CB_VY, lz, CB_VR - .04, CB_VR - .04, .5, 40, 0x8a9096, 3, Math.PI / 2, 0, 0).cyl(lx, CB_VY, lz - .3, .55, .55, .12, 24, 0xb0b4b8, 15, Math.PI / 2, 0, 0)
+    .box(lx, CB_VY, lz - .38, 1.6, .08, .08, 0xd0d4d8, 15).box(lx, CB_VY, lz - .38, .08, 1.6, .08, 0xd0d4d8, 15).box(.1, CB_VY, lz, .3, 3.2, .5, 0x5a5e62, 3);
+  const vm = new T.Mesh(kv.build(), MAT.uber); piv.add(vm);
+  casBDoors.m1 = { m: vm, piv, a: 0, b: { x0: -2, x1: 2, z0: 27.8, z1: 28.2 }, ob: { x0: CB_VH.x - .75, x1: CB_VH.x + .75, z0: 28.2, z1: CB_VH.z + 4 }, open: false };
+  B.push(casBDoors.m1.b);
+  propSwap('casinoB', vm, 'cs_vault', [{ x: lx, z: lz }], piv, null, 'casino');
   // 柵門與貨堆
   for (const [i, G] of CB_GATES.entries()) {
     const kg = new Kit(); for (let j = -2; j <= 2; j++) kg.box(0, 1.4, j * .4, .06, 2.8, .06, 0xb0b4b8, 15); kg.box(0, 2.8, 0, .1, .1, 2, 0xb0b4b8, 15).box(0, 1.4, 1.1, .1, .3, .2, 0x40ff9a, 11);
@@ -231,9 +275,10 @@ VENUES.casinoB = { scene: casBScene, data: casB, spawn: { x: CB2.dock.x, z: 3, y
   door: CASX.on ? casW(CAS_DOCK.x, CAS_DOCK.z) : WP(0, 0), out: CASX.on ? { ...casW(CAS_DOCK.x, CAS_DOCK.z + 2), yaw: facY(CASX.F, 0) } : spotW(HOME_SPOT) };
 function casDoor(id, open) {
   const D = casBDoors[id]; if (D.open === open) return;
-  D.open = open; D.m.visible = !open;
+  D.open = open; if (!D.piv) D.m.visible = !open;
   const i = casB.boxes.indexOf(D.b);
   if (open && i >= 0) casB.boxes.splice(i, 1); else if (!open && i < 0) casB.boxes.push(D.b);
+  if (D.ob) { const j = casB.boxes.indexOf(D.ob); if (open && j < 0) casB.boxes.push(D.ob); else if (!open && j >= 0) casB.boxes.splice(j, 1); }
   if (player.where === 'casinoB') colDirty();
   sfx.door();
 }
@@ -349,6 +394,39 @@ function slotStep(dt) {
   casPay(pay, `吃角子老虎 ${S.r.join(' ')}${S.k ? ` · ${S.k} 倍` : ''}`);
   if (!pay) toast(`吃角子老虎 ${S.r.join(' ')} · 沒中`);
   dialog('吃角子老虎', `${S.r.join('  ')}\n${pay ? `中了 ${S.k} 倍 · ${pay.toLocaleString()} 籌碼` : '沒中'}`, [{ t: '再拉一次', fn: () => { closeDialog(); casBet('吃角子老虎', '三顆鑽石 1000 倍、三個 7 是 100 倍、櫻桃一顆就退本。', [100, 500, SLOT_MAX], slotSpin); } }, { t: '離開', fn: closeDialog }]);
+}
+// 美式輪盤：38 格（0、00、1–36），押紅黑／單雙／大小 1 賠 1、一打 2 賠 1、單號 35 賠 1（0 和 00 只能押單號）
+const RL_RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const RL_BETS = [
+  { t: '紅', k: 1, hit: n => RL_RED.has(n) }, { t: '黑', k: 1, hit: n => n > 0 && !RL_RED.has(n) },
+  { t: '單', k: 1, hit: n => n > 0 && n % 2 === 1 }, { t: '雙', k: 1, hit: n => n > 0 && n % 2 === 0 },
+  { t: '1–18', k: 1, hit: n => n >= 1 && n <= 18 }, { t: '19–36', k: 1, hit: n => n >= 19 },
+  { t: '第一打 1–12', k: 2, hit: n => n >= 1 && n <= 12 }, { t: '第二打 13–24', k: 2, hit: n => n >= 13 && n <= 24 }, { t: '第三打 25–36', k: 2, hit: n => n >= 25 },
+  { t: '單號 0', k: 35, hit: n => n === 0 }, { t: '單號 00', k: 35, hit: n => n === -1 }, { t: '單號 17', k: 35, hit: n => n === 17 },
+];
+const rlName = n => n === -1 ? '00' : String(n), rlCol = n => n <= 0 ? '綠' : RL_RED.has(n) ? '紅' : '黑';
+function rlMenu() {
+  dialog('美式輪盤', '先選押哪裡，再下注。0 和 00 出來時，紅黑、單雙、大小與一打都算輸。', [
+    ...RL_BETS.map((b, i) => ({ t: `${b.t}（${b.k} 賠 1）`, fn: () => { closeDialog(); casBet('美式輪盤', `押 ${b.t}，${b.k} 賠 1。`, [100, 1000, 5000, 25000], bet => rlSpin(i, bet)); } })),
+    { t: '離開', fn: closeDialog },
+  ]);
+}
+// n：-1 是 00；沒給就隨機
+function rlSpin(pick, bet, n = Math.floor(Math.random() * 38) - 1) {
+  CAS.rl = { pick, bet, n, t: 0 };
+  sfx.click();
+}
+function rlStep(dt) {
+  const S = CAS.rl; if (!S) return;
+  S.t += dt;
+  const el = $('v7cas'), m = S.t < 2.4 ? Math.floor(Math.random() * 38) - 1 : S.n;
+  el.classList.add('on'); el.innerHTML = `<b>美式輪盤</b><div class="reels"><i>${rlName(m)}</i></div><small>押 ${RL_BETS[S.pick].t} · ${S.bet.toLocaleString()}</small>`;
+  if (S.t < 3) return;
+  CAS.rl = null; el.classList.remove('on');
+  const B0 = RL_BETS[S.pick], win = B0.hit(S.n), pay = win ? S.bet * (B0.k + 1) : 0;
+  casPay(pay, `美式輪盤 ${rlName(S.n)}${rlCol(S.n)}`);
+  if (!pay) toast(`美式輪盤 ${rlName(S.n)}${rlCol(S.n)} · 沒中`);
+  dialog('美式輪盤', `開出 ${rlName(S.n)}（${rlCol(S.n)}）\n${pay ? `押 ${B0.t} 中了 · 拿回 ${pay.toLocaleString()} 籌碼` : `押 ${B0.t} · 沒中`}`, [{ t: '再押一次', fn: () => { closeDialog(); rlMenu(); } }, { t: '離開', fn: closeDialog }]);
 }
 // Inside Track：六匹馬、賠率 1–30 倍，勝率照賠率倒數
 const HORSES = ['夜航星', '鐵鬃', '霓虹閃電', '老碼頭', '紅棗泥', '灰鷗'];
@@ -658,8 +736,9 @@ ctxHooks.push((p, near) => {
     if (near(CS_CASH.x + .9, CS_CASH.z, 2.2)) return { key: 'E', text: `兌換櫃台 <i>· 籌碼 ${v7KS().chips.toLocaleString()}</i>`, fn: casCashier };
     if (near(CS_WHEEL.x, CS_WHEEL.z - .6, 1.8)) return { key: 'E', text: wheelReady() ? '轉幸運轉盤 <i>· 今天的一次</i>' : '幸運轉盤 <i>· 明天再來</i>', fn: wheelSpin };
     if (near(CS_POD.x, CS_POD.z - 4.9, 1.4)) return { key: 'E', text: `頭獎：${CARS[PODIUM].name}`, fn: () => toast(`${CARS[PODIUM].name} · ${money(CARS[PODIUM].price)} · 幸運轉盤轉到金色那一格就是你的`) };
-    for (const t of CS_BJ) if (near(t.x, t.z - 2.6, 1.3)) return { key: 'E', text: '21 點', fn: () => casBet('21 點', '黑傑克 3:2，莊家停在 17。', [500, 2500, 10000, 50000], bjStart) };
-    for (const t of CS_TCP) if (near(t.x, t.z - 2.6, 1.3)) return { key: 'E', text: '三張牌撲克', fn: () => casBet('三張牌撲克', '先下底注；莊家 Q 高以上才成局。', [500, 2500, 10000], tcpStart) };
+    for (const t of CS_BJ) if (near(t.x, t.z - 2.1, 1.3)) return { key: 'E', text: '21 點', fn: () => casBet('21 點', '黑傑克 3:2，莊家停在 17。', [500, 2500, 10000, 50000], bjStart) };
+    for (const t of CS_TCP) if (near(t.x, t.z - 2.1, 1.3)) return { key: 'E', text: '三張牌撲克', fn: () => casBet('三張牌撲克', '先下底注；莊家 Q 高以上才成局。', [500, 2500, 10000], tcpStart) };
+    for (const R of CS_RL) if (near(R.x, R.z - R.d / 2 - .7, 1.5)) return { key: 'E', text: '美式輪盤 <i>· 0 與 00</i>', fn: () => { if (!CAS.rl) rlMenu(); } };
     for (const s of CS_SLOTS) if (near(s.x, s.z + .5, .9)) return { key: 'E', text: '吃角子老虎 <i>· 最多押 2,500</i>', fn: () => { if (!CAS.slot) casBet('吃角子老虎', '三顆鑽石 1000 倍、三個 7 是 100 倍、櫻桃一顆就退本。', [100, 500, SLOT_MAX], slotSpin); } };
     if (near(CS_TRACK.x - 1.4, CS_TRACK.z, 2.6)) return { key: 'E', text: 'Inside Track 賽馬', fn: () => { if (!CAS.race) trackStart(); } };
     if (near(CS_STAFF.x, CS_STAFF.z - .8, 1.4)) return { key: 'E', text: '員工通道 <i>· 閒人勿進</i>', fn: () => toast('門鎖著 · 金庫在 B1，計畫板在 AFTERGLOW') };
@@ -688,8 +767,10 @@ function v7CasinoKey(code) {
   return false;
 }
 function v7CasinoUpdate(dt) {
-  if (player.where === 'casino') { wheelStep(dt); slotStep(dt); trackStep(dt); }
-  else if (CAS.slot || CAS.race) { CAS.slot = CAS.race = null; $('v7cas').classList.remove('on'); }
+  if (player.where === 'casino') { wheelStep(dt); slotStep(dt); trackStep(dt); rlStep(dt); }
+  else if (CAS.slot || CAS.race || CAS.rl) { CAS.slot = CAS.race = CAS.rl = null; $('v7cas').classList.remove('on'); }
+  const V = casBDoors.m1; V.a = V.open ? Math.min(1, V.a + dt / 2.2) : Math.max(0, V.a - dt / 1.6);
+  V.piv.rotation.y = CB_VA * (V.a * V.a * (3 - 2 * V.a));
   const H = CAS.h;
   // 夜視鏡（B 停電時）：燈暗下來
   const dark = H && player.where === 'casinoB' && CAS.emp > 0;
