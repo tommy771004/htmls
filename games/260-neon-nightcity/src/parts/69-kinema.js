@@ -180,11 +180,11 @@ function kinVehicles(L) {
     v.yk = clamp(v.yk, -3.5, 3.5);
     if (Math.abs(v.yk) > .6) v.slideT = Math.max(v.slideT || 0, Math.min(1.5, Math.abs(v.yk) * .5));   // 被撞得打轉：側滑一陣子
   }
-  // ③ 傷害、翻車、音效、罪責：速度變化超過 3.5 m/s 的部分 ×18（neon_nightcity_gta_v_2.md）
+  // ③ 傷害、翻車、音效、罪責：速度變化照 68-gta.js 的 crashDmg（超過 CRASH.dv0 的部分 ×CRASH.k）
   for (const P of act) {
     const { A, B, c } = P, dvA = P.J * P.wA, dvB = P.J * P.wB;
-    damageVeh(A, Math.max(0, (dvA - 3.5) * 18), B === player.veh);
-    damageVeh(B, Math.max(0, (dvB - 3.5) * 18), A === player.veh);
+    damageVeh(A, crashDmg(dvA), B === player.veh);
+    damageVeh(B, crashDmg(dvB), A === player.veh);
     rollHit(A, dvA, c.nx, c.nz); rollHit(B, dvB, -c.nx, -c.nz);   // 68-roll.js：側面被撞得夠猛就翻
     if (dvA + dvB > 7) sparks(c.px, Math.max(A.y || 0, B.y || 0) + .6, c.pz, 10, 4);
     if (A !== player.veh && B !== player.veh) continue;

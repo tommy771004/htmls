@@ -88,8 +88,8 @@ function fireStep(dt) {
     const t = (burnSt.carT.get(o) || 0) + dt; burnSt.carT.set(o, t);
     if (t < 1) return;
     burnSt.carT.delete(o);
-    if (isVeh) { if (!o.dead && !o.bail) damageVeh(o, Math.max(1, o.hp - hpLockOf(o) * STAGE.fire * .9), true); }
-    else { const v = o.det = damageCar(o, hpMaxOf(o) * .95, true); if (v && !v.bail) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), true); }
+    if (isVeh) { if (!o.dead && !o.bail) damageVeh(o, Math.max(1, o.hp - hpLockOf(o) * STAGE.fire * .9), true, true); }
+    else { const v = o.det = damageCar(o, hpMaxOf(o) * .95, true); if (v && !v.bail) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), true, true); }
   };
   for (const v of vehicles) carBurn(v, true);
   for (const c of [...traffic, ...parked]) if ((c.x - px) ** 2 + (c.z - pz) ** 2 < 160 ** 2) carBurn(c, false);
@@ -123,8 +123,8 @@ function weakHit(ref, kind, x, y, z, mine) {
     const lk = leaks.get(ref);
     if (lk) {   // 第二發：漏出來的油點著，車子起火
       chemIgnite(ref.x, ref.z, 3); fuelDrop(x, z, ref); chemIgnite(x, z, 1);
-      if (kind === 'car') { const v = ref.det = damageCar(ref, hpMaxOf(ref) * .95, mine); if (v) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), mine); }
-      else if (!ref.bail) damageVeh(ref, Math.max(1, ref.hp - hpLockOf(ref) * STAGE.fire * .9), mine);
+      if (kind === 'car') { const v = ref.det = damageCar(ref, hpMaxOf(ref) * .95, mine); if (v) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), mine, true); }
+      else if (!ref.bail) damageVeh(ref, Math.max(1, ref.hp - hpLockOf(ref) * STAGE.fire * .9), mine, true);
       leaks.delete(ref);
     } else { leaks.set(ref, { n: 45, x: ref.x, z: ref.z, t: 0 }); if (ref === player.veh) toast('油箱被打穿了 · 漏油中'); }
     return 3;
@@ -165,7 +165,7 @@ function rimStep(dt) {
       v.rimH = (v.rimH || 0) + dt * sp / 18;
       const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
       for (const t of flats) if (Math.random() < dt * 30) { _rw.set(v.x + fz * t.x + fx * t.z, v.y + .08, v.z - fx * t.x + fz * t.z); sparks(_rw.x, _rw.y, _rw.z, 2, 2.5); }
-      if (v.rimH > RIM_HEAT && !v.bail) { damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), v === player.veh); if (v === player.veh) toast('輪框磨出的火花把車點著了 · 快下車'); }
+      if (v.rimH > RIM_HEAT && !v.bail) { damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), v === player.veh, true); if (v === player.veh) toast('輪框磨出的火花把車點著了 · 快下車'); }
     } else v.rimH = Math.max(0, (v.rimH || 0) - dt * .6);
   }
 }

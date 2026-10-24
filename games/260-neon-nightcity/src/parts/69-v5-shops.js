@@ -202,7 +202,7 @@ function drunkStep(dt) {
 function shutterStep(dt) {
   const S = SHOP.shutter; if (!S) return;
   const v = player.mode === 'drive' ? player.veh : null, [gx, gz] = toW(GAR_X, GAR_Z + SW + 4);
-  const near = v && v.isCar && !v.fly && Math.hypot(v.x - gx, v.z - gz) < 6;
+  const near = v && (v.isCar || v === kestrel) && !v.fly && Math.hypot(v.x - gx, v.z - gz) < 6;   // 自己的機車也能開進去改裝（66-chrome.js）
   const want = near && !(W.stars > 0 && W.seen) ? 1 : 0;
   if (near && !want && (S.msgT -= dt) <= 0) { S.msgT = 6; toast('警察還看得到你：CHROME WORKS 的捲門不開'); }
   if (want !== S.want) { S.want = want; sfx.door(); }

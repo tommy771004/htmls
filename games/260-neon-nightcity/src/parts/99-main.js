@@ -21,8 +21,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 function onKey(code) {
+  if (cwKey(code)) return;   // 66-chrome.js 的改裝面板
   if (dlg.open) {
-    const n = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3 }[code];
+    const n = /^Digit\d$/.test(code) ? (+code[5] + 9) % 10 : null;   // 1–9、0 是第 10 個選項（66-chrome.js 的改裝選單）
     if (n != null && dlg.opts[n]) { sfx.click(); dlg.opts[n].fn(); }
     if (code === 'Escape') closeDialog();
     return;
@@ -288,6 +289,7 @@ function step(dt) {
     sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: 0, gear: 1, thr: 0, slip: 0, nitro: false });
   }
   updateMotors(dt, t);
+  updateChrome(dt);   // 66-chrome.js：改裝廠裡的展示車與離場時把車停回門口
   updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
   v3Update(dt);   // 69-v3-*：第三部曲的六圍、化學反應、撞擊與跳傘、計程車
@@ -397,6 +399,11 @@ window.__nc = {
   ctx() { const c = contextAction(); return c ? c.key + ' ' + c.text : null; },
   act() { const c = contextAction(); if (c) c.fn(); return c ? c.text : null; },   // 直接執行目前的互動提示
   pick(n) { if (dlg.open && dlg.opts[n]) dlg.opts[n].fn(); return dlg.open; },
+  // 66-chrome.js 的改裝廠：套件表、效果、原廠規格；pad() 是門口停車格（世界座標）
+  chrome: { MODS, MOD_FX, CAR_REAL, TUNE, CRASH, STAGE, st: chrome, pad: () => chromePad(), stats: id => modStats(id), apply: () => modApply(kestrel), repairCost: () => repairCost(kestrel), dlg: () => ({ open: dlg.open, who: $('dlgWho').textContent, text: $('dlgText').textContent, opts: dlg.opts.map(o => o.t) }),
+    // 改裝面板：panel() 目前的層與清單、open()／close()、key(code) 照鍵盤操作、choose(名稱) 選那一列（例如 choose('引擎') 再 choose('EMS 改裝 2 級')）
+    panel: () => ({ open: CW.open, cat: CW.cat, sel: CW.sel, title: $('cwTitle').textContent, rows: CW.rows.map(r => ({ name: r.name, val: r.val })), desc: $('cwDesc').textContent }), open: () => cwOpen(), close: () => cwClose(), key: c => cwKey(c),
+    choose(name) { const i = CW.rows.findIndex(r => r.name === name); if (i < 0) return false; CW.sel = i; cwPick(); return true; } },
   // 天氣與時間（28-sky.js）：rain(v) 依雨量挑最接近的天氣並立刻套用；weather(id, snap)；time(分鐘)
   rain(v) { setWeather(v > .85 ? 'storm' : v > .45 ? 'rain' : v > .12 ? 'drizzle' : 'overcast', true); wx.rain = v; }, flash() { wx.next = 0; wx.force = true; },
   weather(id, snap = true) { setWeather(id, snap); return wx.cur; }, time(min) { if (Number.isFinite(min)) { clockSt.min = ((min | 0) % 1440 + 1440) % 1440; clockSt.acc = 0; } return clockSt.min; }, wx, atm, map: mapApi, sea: { depth: waterDepth, floor: seaFloor, BEACH, QUAY, ISLE, SEA_Y, sites: ISLE_SITES, foot: isleFoot, walks: BANK_WALKS, ferry: FERRY }, park: { ...NPARK, h: parkH, raw: parkRawH, W: parkW, L: parkL, district: (x, z) => districtW(x, z) },

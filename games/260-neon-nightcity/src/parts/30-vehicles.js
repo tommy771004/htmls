@@ -470,6 +470,7 @@ function mkVehicle(kind) {
   }
   return v;
 }
+const carHooks = [];   // applyCar 換好車之後呼叫 (v, id)：66-chrome.js 把這台車裝過的改裝套件疊上去
 function applyCar(v, id, paint) {
   const c = CARS[id], f = c.glb && !c.bike ? CARS[c.proxy] : c;
   disposeKit(v.body); v.body.clear();
@@ -492,7 +493,13 @@ function applyCar(v, id, paint) {
   }
   Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name, seat: c.seat || null });
   vehClass(v, carClass(id), false);   // 25-cars.js：質量、耐久、轉向與手煞車照級距表，極速與抓地保留這台車自己的
+  if (c.real) {   // 26-glb.js 的原廠規格：車重、轉向、手煞車、耐久與煞車也是這台車自己的
+    const k = v.hpMax ? clamp(v.hp / v.hpMax, 0, 1) : 1;
+    v.mass = c.m; v.turn = c.turn; v.hbGrip = c.drift * 10 * DRIFT_K; v.hpMax = c.hp; v.hp = c.hp * k;
+  }
+  v.brk = c.brk || 16;
   tireReset(v);   // 換車就是新輪胎（68-wreck.js）
+  for (const h of carHooks) h(v, id);   // 66-chrome.js：CHROME WORKS 的改裝套件
   // 實車模型：下載好就把替身換掉（期間又換了車就作罷）
   const p = c.glb && loadGLB(id), tok = v.glbTok;
   if (p) p.then(tpl => {
@@ -618,7 +625,7 @@ function driveVehicle(v, inp, dt) {
   v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）
   let aF = 0;
   if (inp.thr > 0) aF += v.eng * (v.engK ?? 1) * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
-  if (inp.brk > 0) aF += vF > .8 ? -16 * inp.brk * (v.brkK || 1) : -6 * inp.brk * (vF > -9 ? 1 : 0);
+  if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * inp.brk * (vF > -9 ? 1 : 0);
   aF -= vF * .12 + Math.sign(vF) * .35;
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
@@ -661,6 +668,7 @@ function poseVehicle(v) {
   v.body.rotation.set(v.pitch + (v.sagP || 0), 0, (v.isCar ? v.roll : v.lean) + (v.sagR || 0), 'YXZ');   // sag：68-wreck.js 的破胎下沉
   // 跳台飛行中（69-stunt.js）與翻車（68-roll.js）繞車身中心翻轉，平常繞著地面
   if ((v.air || v.tumble || v.flipped) && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }
+  else if (v.isCar && v.rideY) v.body.position.set(0, v.rideY, 0);   // 66-chrome.js 的降低懸吊：車身往輪子壓下去
   else if (v.body.position.lengthSq()) v.body.position.set(0, 0, 0);
   for (const w of v.wheels) {
     if (v.isCar) { w.piv.rotation.set(0, w.front ? v.steer : 0, 0); w.w.rotation.x = v.spin; }

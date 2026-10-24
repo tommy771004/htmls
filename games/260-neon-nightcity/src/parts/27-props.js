@@ -165,14 +165,15 @@ const ramenReady = ramenSpots.length ? loadProps('ramen').then(items => {
 
 // ─── 室內道具：走進場館才下載，下載好就把 Blender 道具（fb，InstancedMesh）換掉；fb 為 null 是單純加擺（車庫的升降機） ───
 const propSwaps = [];   // { where, fb, scn, id, list, done }
-function propSwap(where, fb, id, list, scn = fb && fb.parent, done) { if (GLB_ON) propSwaps.push({ where, fb, scn, id, list, done }); }
+// set：道具在哪一個 props/<set>.glb（預設 interior；66-chrome.js 的改裝廠用 chrome）
+function propSwap(where, fb, id, list, scn = fb && fb.parent, done, set = 'interior') { if (GLB_ON) propSwaps.push({ where, fb, scn, id, list, done, set }); }
 function propWake(where) {
   for (let i = propSwaps.length - 1; i >= 0; i--) {
     const o = propSwaps[i];
     if (o.where !== where) continue;
     propSwaps.splice(i, 1);
-    if (!glbDone.has('p:interior')) glbBatch.add('p:interior');
-    loadProps('interior').then(items => {
+    if (!glbDone.has('p:' + o.set)) glbBatch.add('p:' + o.set);
+    loadProps(o.set).then(items => {
       if (!items || !items[o.id]) return;
       if (o.fb) o.fb.visible = false;
       for (const t of o.list) o.scn.add(propObject(items[o.id], t.x, t.y || 0, t.z, t.ry || 0, t.s || 1));

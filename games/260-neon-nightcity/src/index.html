@@ -266,6 +266,43 @@ body.wheel #tbtn,body.wheel #joy,body.talking #touch.on,body.talking #speedo,bod
 #dlgWho{display:block;font-size:12px;color:var(--sodium);margin-bottom:5px}
 #dlgText{margin:0;font-size:15px;line-height:1.6;white-space:pre-line}
 #dlgOpts{display:flex;flex-direction:column;gap:6px;margin-top:11px}
+#dialog{max-height:calc(100vh - 48px);overflow-y:auto}
+/* 66-chrome.js 的改裝面板（版面仿 GTA V 洛聖都改車王：左上角招牌、類別列、清單、說明、分段性能條） */
+#cw{position:absolute;left:max(24px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));width:min(380px,calc(100vw - 32px));display:none;pointer-events:auto;user-select:none;-webkit-user-select:none}
+#cw.on{display:block;animation:cwIn var(--dur-enter) var(--ease-out)}
+@keyframes cwIn{from{transform:translateX(-14px)}}
+#cwHead{display:grid;place-content:center;justify-items:center;height:84px;background:linear-gradient(120deg,#05191c 0%,#0a0c11 55%,#22091a 100%);border-bottom:2px solid #2cf2d8}
+#cwHead b{font-family:var(--cond);font-style:italic;font-weight:800;font-size:36px;letter-spacing:.03em;line-height:1;color:#2cf2d8;text-shadow:0 0 14px rgba(44,242,216,.6),0 0 2px #fff}
+#cwHead small{margin-top:5px;font-size:11px;letter-spacing:.32em;color:#ff5fa8}
+#cwBar{display:flex;justify-content:space-between;padding:8px 12px;background:#000;font-size:13px;color:var(--ink)}
+#cwN{font-variant-numeric:tabular-nums;color:var(--ink-2)}
+#cwList{max-height:min(40vh,340px);overflow-y:auto;background:rgba(0,0,0,.68);scrollbar-width:none}
+#cwList button{display:flex;justify-content:space-between;gap:12px;width:100%;padding:6px 12px;border:0;background:none;color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+#cwList button .v{font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
+#cwList button.sel{background:#ece8e0;color:#0b0c0f}
+#cwList button.sel .v{color:#2a2d33}
+#cwList button.poor .v{color:#e0605a}
+#cwList button.off{opacity:.45}
+#cwMore{height:0;background:rgba(0,0,0,.68)}
+#cwMore.on{display:grid;place-items:center;height:18px}
+#cwMore.on::before{content:"";width:8px;height:8px;border:solid var(--ink-2);border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg)}
+#cwDesc{margin:2px 0 0;padding:9px 12px;min-height:48px;background:rgba(0,0,0,.68);font-size:13px;line-height:1.55;white-space:pre-line}
+#cwStats{margin-top:2px;padding:9px 12px 10px;background:rgba(0,0,0,.68)}
+.cwS{display:grid;grid-template-columns:76px 1fr;align-items:center;gap:10px;height:21px;font-size:13px}
+.cwB{position:relative;height:9px;background:rgba(236,232,224,.16);-webkit-mask:repeating-linear-gradient(90deg,#000 0 calc(20% - 3px),transparent calc(20% - 3px) 20%);mask:repeating-linear-gradient(90deg,#000 0 calc(20% - 3px),transparent calc(20% - 3px) 20%)}
+.cwB em,.cwB u,.cwB i{position:absolute;top:0;bottom:0;left:0;transition:width var(--dur-hover) var(--ease-out),left var(--dur-hover) var(--ease-out)}
+.cwB em{background:#2cf2d8}.cwB u{background:#e0605a}.cwB i{background:#ece8e0}
+#cwNote{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-2)}
+#cwKeys{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));display:none;flex-wrap:wrap;justify-content:flex-end;gap:6px;pointer-events:auto;font-size:12px}
+#cwKeys.on{display:flex}
+#cwKeys>*{display:flex;align-items:center;gap:4px;padding:5px 9px;border:0;border-radius:4px;background:rgba(0,0,0,.72);color:var(--ink);font:inherit;font-size:12px}
+#cwKeys button{cursor:pointer}
+#cwKeys kbd{font:inherit;padding:0 5px;border-radius:3px;background:#ece8e0;color:#0b0c0f}
+body.cwOn #obj,body.cwOn #compass,body.cwOn #street,body.cwOn #mapBox,body.cwOn #vitals,body.cwOn #prompt,body.cwOn #touch,body.cwOn #capture{display:none!important}
+body.touch #cwKeys>span{display:none}
+@media (max-width:760px){#cw{left:16px;top:max(12px,env(safe-area-inset-top))}#cwHead{height:58px}#cwHead b{font-size:26px}#cwList{max-height:30vh}}
+@media (prefers-reduced-motion:reduce){#cw.on{animation:none}.cwB em,.cwB u,.cwB i{transition:none}}
+#dlgOpts.many{display:grid;grid-template-columns:1fr 1fr}
 #dlgOpts button{text-align:left;background:rgba(236,232,224,.07);border:0;border-radius:6px;padding:8px 11px;font-size:14px;transition:background var(--dur-hover) var(--ease-out)}
 #dlgOpts button:hover,#dlgOpts button:focus-visible{background:rgba(255,174,87,.22);outline:none}
 #dlgOpts button:active{background:rgba(255,174,87,.34);transition-duration:var(--dur-press)}
@@ -396,7 +433,7 @@ body.touch #mnKeys button kbd{display:none}
 }
 @media (prefers-reduced-motion: reduce){ .mnWait{animation:none} }
 /* Esc 選單的顯示設定：HUD、小地圖開關與安全區域（--safe，HUD 整體往內縮） */
-body.noHud #hud > :not(#tools):not(#prompt):not(#toast):not(#dialog):not(#cine):not(#death):not(#heistDone):not(#wheel):not(#crewW){visibility:hidden}
+body.noHud #hud > :not(#tools):not(#prompt):not(#toast):not(#dialog):not(#cine):not(#death):not(#heistDone):not(#wheel):not(#crewW):not(#cw):not(#cwKeys){visibility:hidden}
 body.noHud:not(.touch) #tools{visibility:hidden}
 body.noRadar #mapBox,body.noRadar #vitals{visibility:hidden}
 #hud{inset:var(--safe,0px)}
