@@ -2035,6 +2035,264 @@
   "kb": 711,
   "draws": 16
  },
+ "mosler": {
+  "id": "mosler",
+  "title": "mosler mt900 gtr xx twin turbo land shark",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mosler-mt900-gtr-xx-twin-turbo-land-shark-3950d06bd5164e7f875d08150276958b",
+  "bike": false,
+  "len": 4.58,
+  "w": 2.124,
+  "h": 1.072,
+  "wr": 0.328,
+  "fa": 1.27,
+  "ra": -1.414,
+  "track": 0.795,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.762,
+    "y": 0.312,
+    "z": 1.27,
+    "r": 0.312
+   },
+   {
+    "name": "FR",
+    "x": -0.763,
+    "y": 0.312,
+    "z": 1.27,
+    "r": 0.312
+   },
+   {
+    "name": "RL",
+    "x": 0.828,
+    "y": 0.344,
+    "z": -1.414,
+    "r": 0.344
+   },
+   {
+    "name": "RR",
+    "x": -0.829,
+    "y": 0.344,
+    "z": -1.414,
+    "r": 0.344
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 30768,
+  "kb": 705,
+  "draws": 23
+ },
+ "csl3": {
+  "id": "csl3",
+  "title": "bmw 3.0 csl hommage concept",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-30-csl-hommage-concept-bd775e7cf7204147b351ada3a7b0b841",
+  "bike": false,
+  "len": 4.94,
+  "w": 1.998,
+  "h": 1.316,
+  "wr": 0.356,
+  "fa": 1.414,
+  "ra": -1.407,
+  "track": 0.832,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.832,
+    "y": 0.356,
+    "z": 1.414,
+    "r": 0.356
+   },
+   {
+    "name": "FR",
+    "x": -0.832,
+    "y": 0.356,
+    "z": 1.414,
+    "r": 0.356
+   },
+   {
+    "name": "RL",
+    "x": 0.832,
+    "y": 0.356,
+    "z": -1.407,
+    "r": 0.356
+   },
+   {
+    "name": "RR",
+    "x": -0.832,
+    "y": 0.356,
+    "z": -1.407,
+    "r": 0.356
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 30114,
+  "kb": 635,
+  "draws": 23
+ },
+ "slk55": {
+  "id": "slk55",
+  "title": "mercedes-benz slk 55 amg",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-benz-slk-55-amg-af4218b4cd2946aebad183c16549e1db",
+  "bike": false,
+  "len": 4.134,
+  "w": 2.012,
+  "h": 1.32,
+  "wr": 0.324,
+  "fa": 1.191,
+  "ra": -1.238,
+  "track": 0.766,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.766,
+    "y": 0.324,
+    "z": 1.191,
+    "r": 0.324
+   },
+   {
+    "name": "FR",
+    "x": -0.767,
+    "y": 0.324,
+    "z": 1.191,
+    "r": 0.324
+   },
+   {
+    "name": "RL",
+    "x": 0.766,
+    "y": 0.324,
+    "z": -1.238,
+    "r": 0.324
+   },
+   {
+    "name": "RR",
+    "x": -0.767,
+    "y": 0.324,
+    "z": -1.238,
+    "r": 0.324
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31208,
+  "kb": 725,
+  "draws": 20
+ },
+ "giulietta": {
+  "id": "giulietta",
+  "title": "2016 alfa romeo giulietta veloce 1750 tbi tct",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2016-alfa-romeo-giulietta-veloce-1750-tbi-tct-1622fa52b112463ba678d88abc0b08f7",
+  "bike": false,
+  "len": 4.351,
+  "w": 1.975,
+  "h": 1.45,
+  "wr": 0.314,
+  "fa": 1.222,
+  "ra": -1.408,
+  "track": 0.746,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.746,
+    "y": 0.314,
+    "z": 1.222,
+    "r": 0.314
+   },
+   {
+    "name": "FR",
+    "x": -0.746,
+    "y": 0.314,
+    "z": 1.222,
+    "r": 0.314
+   },
+   {
+    "name": "RL",
+    "x": 0.757,
+    "y": 0.314,
+    "z": -1.408,
+    "r": 0.314
+   },
+   {
+    "name": "RR",
+    "x": -0.734,
+    "y": 0.314,
+    "z": -1.408,
+    "r": 0.314
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31389,
+  "kb": 620,
+  "draws": 19
+ },
+ "charger": {
+  "id": "charger",
+  "title": "dodge charger srt8 police",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/dodge-charger-srt8-police-411db194726c4762bd946d361b79d982",
+  "bike": false,
+  "len": 5.15,
+  "w": 2.018,
+  "h": 1.593,
+  "wr": 0.341,
+  "fa": 1.483,
+  "ra": -1.51,
+  "track": 0.759,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.763,
+    "y": 0.341,
+    "z": 1.483,
+    "r": 0.341
+   },
+   {
+    "name": "FR",
+    "x": -0.763,
+    "y": 0.341,
+    "z": 1.483,
+    "r": 0.341
+   },
+   {
+    "name": "RL",
+    "x": 0.755,
+    "y": 0.341,
+    "z": -1.51,
+    "r": 0.341
+   },
+   {
+    "name": "RR",
+    "x": -0.755,
+    "y": 0.341,
+    "z": -1.51,
+    "r": 0.341
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 7515,
+  "kb": 236,
+  "draws": 11
+ },
  "energ": {
   "id": "energ",
   "title": "mercedes-benz vision ener-g-force",

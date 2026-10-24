@@ -500,7 +500,7 @@ function cwCam(dt) {
 }
 function talkRook() {
   dialog(WHO_CW, '套件照洛聖都那邊的規矩分級：引擎、變速箱、渦輪管加速，煞車管停得住，懸吊和尾翼管過彎，裝甲管你撞牆之後還有沒有車可開。每台車的底子都不一樣，先看原廠數字再決定錢花在哪。', [
-    { t: '這台車的原廠數字？', fn: () => { const r = CARS[kestrel.carId].real; dialog(WHO_CW, r ? `${CARS[kestrel.carId].name}：${r.ps} 匹、車重 ${r.kg.toLocaleString('en-US')} kg、0–100 ${r.t100} 秒、極速 ${r.top} km/h、${{ R: '前置後驅', M: '中後置後驅', A: '四輪驅動', B: '機車' }[r.dt]}。` : '這台沒有原廠資料。', [{ t: '好', fn: talkRook }]); } },
+    { t: '這台車的原廠數字？', fn: () => { const r = CARS[kestrel.carId].real; dialog(WHO_CW, r ? `${CARS[kestrel.carId].name}：${r.ps} 匹、車重 ${r.kg.toLocaleString('en-US')} kg、0–100 ${r.t100} 秒、極速 ${r.top} km/h、${{ R: '前置後驅', M: '中後置後驅', F: '前置前驅', A: '四輪驅動', B: '機車' }[r.dt]}。` : '這台沒有原廠資料。', [{ t: '好', fn: talkRook }]); } },
     ...(repairCost(kestrel) ? [{ t: `修車（${money(repairCost(kestrel))}）`, fn: () => { closeDialog(); chromeRepair(repairCost(kestrel)); } }] : []),
     { t: '打開改裝面板', fn: () => { closeDialog(); cwOpen(); } },
     { t: '先這樣', fn: closeDialog },

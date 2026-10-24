@@ -91,13 +91,23 @@ const GLB_CARS = [
     tag: '德國房車大師賽的賽車：外表還看得出是 C 級雙門，底下是碳纖維單體殼、V8 與巨大的尾翼。過彎抓地力是整間車行的頂點。原廠彩繪，不能換色。' }],
   ['energ', { name: 'Mercedes-Benz Vision Ener-G-Force', cls: '2012 · 氫燃料電池越野概念車', price: 1200000, fb: 0x1f3a7a, proxy: 'bulldog', vmax: 70, eng: 10.5, grip: 8.8,
     tag: '洛杉磯車展的設計概念車：四輪輪轂馬達、車頂的儲水槽與越野燈架。這台沒有量產，性能數字是車行自己定的。原廠塗裝，不能換色。' }],
+  ['mosler', { name: 'Mosler MT900 GTR XX', cls: '「Land Shark」雙渦輪 V8 改裝', price: 1250000, fb: 0x1f4fd8, proxy: 'mamba', vmax: 100, eng: 23.1, grip: 10.7,
+    tag: '美國小廠的賽車底盤塞進雙渦輪 V8，綽號「陸上鯊魚」，直線加速專門拿來破紀錄。馬力是改裝車常見的說法，不是原廠數字。原廠塗裝，不能換色。' }],
+  ['csl3', { name: 'BMW 3.0 CSL Hommage', cls: '2015 · 向 E9 蝙蝠車致敬的概念車', price: 850000, fb: 0x1f4fd8, proxy: 'ronin', vmax: 80, eng: 16.4, grip: 9.6,
+    tag: '致敬七〇年代賽道上的「蝙蝠車」：碳纖維車身、巨大的鴨尾與格柵。這台沒有量產，性能數字是車行自己定的。原廠塗裝，不能換色。' }],
+  ['slk55', { name: 'Mercedes-Benz SLK 55 AMG', cls: '2012 R172 · 自然進氣 V8 硬頂敞篷', price: 90000, fb: 0x1f4fd8, proxy: 'meridian', vmax: 70, eng: 15.5, grip: 9.2,
+    tag: '短軸距的硬頂敞篷跑車塞進五點五升 V8，排氣聲比外表兇得多。車頂收進行李廂只要二十秒。原廠塗裝，不能換色。' }],
+  ['giulietta', { name: 'Alfa Romeo Giulietta Veloce', cls: '2016 · 1750 TBi 前驅掀背', price: 42000, fb: 0x1f4fd8, proxy: 'lucerna', vmax: 66, eng: 13.1, grip: 9,
+    tag: '義大利的五門掀背，盾形水箱護罩與藏在 C 柱的後門把手。前輪驅動，不愛甩尾，但窄巷裡很好開。原廠塗裝，不能換色。' }],
+  ['charger', { name: 'Dodge Charger SRT8 Police', cls: '前置 HEMI V8 · 追緝警車', price: 68000, fb: 0x1a1b1e, proxy: 'bulldog', vmax: 70, eng: 13.4, grip: 8.9,
+    tag: '黑白相間的追緝警車，推撞桿、車頂警示燈條與 PURSUIT 911 塗裝都還在。重、硬、耐撞。原廠塗裝，不能換色。' }],
   ['zx6r', { name: 'Kawasaki Ninja ZX-6R', cls: '636 cc 四缸仿賽', price: 16000, fb: 0x3aa83a, proxy: 'hanzo', bike: true, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
     tag: '萊姆綠的中量級仿賽，轉速拉到一萬六。比千 cc 好駕馭，在窄巷裡也鑽得進去。' }],
   ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, fb: 0xc8141c, proxy: 'hanzo', bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
     tag: '從 MotoGP 賽車下放的 V4 引擎、單搖臂與紅色車殼。兩百多匹，比很多跑車都快。' }],
 ];
 // ─── 原廠規格（公開規格與媒體實測的概數；賽車是規格書的最低車重與 BoP 前後的馬力）───
-// [車重 kg（機車是含油）, 馬力 PS, 0–100 km/h 秒, 極速 km/h（有電子限速的照限速）, 側向抓地 g（繞圈測試）, 100–0 煞車距離 m, 驅動：R 前置後驅／M 中後置後驅／A 四驅／B 機車, 備註：cage 防滾籠賽車、pol 警用強化]
+// [車重 kg（機車是含油）, 馬力 PS, 0–100 km/h 秒, 極速 km/h（有電子限速的照限速）, 側向抓地 g（繞圈測試）, 100–0 煞車距離 m, 驅動：R 前置後驅／M 中後置後驅／F 前置前驅／A 四驅／B 機車, 備註：cage 防滾籠賽車、pol 警用強化]
 const CAR_REAL = {
   e92: [1655, 420, 4.8, 250, .95, 36, 'R'], m3c: [1730, 510, 3.9, 250, 1.0, 34, 'R'], m4wb: [1725, 510, 3.9, 290, 1.02, 34, 'R'],
   m3gtr: [1120, 470, 3.6, 290, 1.45, 30, 'R', 'cage'], m3t24: [1450, 550, 3.6, 280, 1.4, 31, 'R', 'cage'], m4gt3: [1300, 590, 3.4, 290, 1.55, 29, 'R', 'cage'],
@@ -111,13 +121,15 @@ const CAR_REAL = {
   sf90: [1660, 1030, 2.3, 320, 1.15, 30, 'A'], p1: [1490, 916, 2.8, 350, 1.2, 30, 'M'],
   svj: [1675, 770, 2.8, 350, 1.2, 30, 'A'], evija: [1680, 2000, 2.9, 350, 1.25, 31, 'A'], spano: [1400, 900, 2.9, 370, 1.15, 31, 'M'],
   nevera: [2300, 1914, 2.0, 412, 1.3, 30, 'A'], f488c: [1385, 670, 3.0, 320, 1.6, 28, 'M', 'cage'], sc20: [1600, 770, 2.9, 350, 1.2, 30, 'A'], c63dtm: [1110, 500, 3.0, 280, 1.65, 25, 'R', 'cage'],
-  energ: [2400, 400, 5.5, 200, .85, 38, 'A'],   // Vision Ener-G-Force 是沒有動力規格的概念車：數字是自己定的越野休旅
+  energ: [2400, 400, 5.5, 200, .85, 38, 'A'],
+  mosler: [1150, 1500, 2.6, 360, 1.3, 30, 'M'], csl3: [1400, 450, 4.2, 280, 1.05, 34, 'R'],   // Land Shark 的馬力是改裝車的說法；3.0 CSL Hommage 是概念車，數字自訂
+  slk55: [1615, 421, 4.6, 250, .95, 35, 'R'], giulietta: [1395, 240, 6.0, 244, .9, 37, 'F'], charger: [1950, 370, 5.8, 240, .88, 38, 'R', 'pol'],   // Vision Ener-G-Force 是沒有動力規格的概念車：數字是自己定的越野休旅
   f8: [1435, 720, 2.9, 340, 1.1, 32, 'M'], scg: [1300, 811, 2.9, 350, 1.4, 29, 'M'], p9x8: [1030, 707, 2.9, 340, 1.65, 26, 'M', 'cage'], c110: [1976, 1600, 2.4, 380, 1.25, 31, 'A'],
   zx6r: [196, 130, 3.2, 260, .88, 41, 'B'], v4: [198, 214, 2.9, 299, .9, 38, 'B'],
 };
 // 換算成遊戲手感（城市尺度的街機手感，具名常數）：
 //   極速 = 原廠 × TOP_K（再由 vmaxFor 反推推力歸零速度）；加速 eng = ENG0 + ENG_K·(27.8 / 0–100 秒)；抓地 = GRIP0 + GRIP_K·g（機車另一組）；
-//   轉向 1.05·(1500 / 車重)^0.3（四驅 ×0.97）；手煞車 μ 後驅 .4、四驅 .56（越重越不好甩）；耐久 HP0 + HP_KG·車重（防滾籠、警用另加）；煞車 16·(a / 10.5)^0.8
+//   轉向 1.05·(1500 / 車重)^0.3（四驅 ×0.97）；手煞車 μ 後驅 .4、前驅 .5、四驅 .56（越重越不好甩）；耐久 HP0 + HP_KG·車重（防滾籠、警用另加）；煞車 16·(a / 10.5)^0.8
 const TUNE = { TOP_K: .8, ENG0: 5.5, ENG_K: 1.65, GRIP0: 5.2, GRIP_K: 4.2, BGRIP0: 3.6, BGRIP_K: 4.6, HP0: 650, HP_KG: .32, HP_CAGE: 200, HP_POL: 300, RIDER: 80 };
 function realTune(c, r) {
   const [kg, ps, t100, top, g, d100, dt, x] = r, bike = dt === 'B', m = kg + (bike ? TUNE.RIDER : 0);
@@ -126,7 +138,7 @@ function realTune(c, r) {
     real: { kg, ps, t100, top, g, d100, dt, x: x || '' }, kmh, eng: +eng.toFixed(2), vmax: +vmaxFor(kmh, eng).toFixed(2),
     grip: +(bike ? TUNE.BGRIP0 + TUNE.BGRIP_K * g : TUNE.GRIP0 + TUNE.GRIP_K * g).toFixed(2),
     m, turn: +(bike ? 1.5 * (280 / m) ** .3 : clamp(1.05 * (1500 / kg) ** .3 * (dt === 'A' ? .97 : 1), .8, 1.35)).toFixed(3),
-    drift: +(bike ? .4 : (dt === 'A' ? .56 : .4) * (kg / 1500) ** .25).toFixed(3),
+    drift: +(bike ? .4 : (dt === 'A' ? .56 : dt === 'F' ? .5 : .4) * (kg / 1500) ** .25).toFixed(3),
     hp: Math.round(bike ? 380 + kg : TUNE.HP0 + TUNE.HP_KG * kg + (x === 'cage' ? TUNE.HP_CAGE : 0) + (x === 'pol' ? TUNE.HP_POL : 0)),
     brk: +(16 * (386 / d100 / 10.5) ** .8).toFixed(2),
   });

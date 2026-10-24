@@ -112,7 +112,7 @@ const VCLASS = {
 const DRIFT_K = 1 / 3.2;
 // 車子的 vmax 參數是推力歸零的速度（driveVehicle：eng·(1 − (v/vmax)²) 對上阻力 .12v + .35），這裡反推成實際極速剛好是表上的 km/h
 const vmaxFor = (kmh, acc) => { const V = kmh / 3.6; return V / Math.sqrt(Math.max(.05, 1 - (.12 * V + .35) / acc)); };
-const CAR_CLS = { muscle: ['chall', 'zr1', 'bulldog'], sedan: ['ae86', 'e34', 'evo190', 'm3c', 'm3t24', 'lucerna', 'meridian', 'kestrel'], police: ['police'] };
+const CAR_CLS = { muscle: ['chall', 'zr1', 'bulldog'], sedan: ['ae86', 'e34', 'evo190', 'm3c', 'm3t24', 'lucerna', 'meridian', 'kestrel'], police: ['police', 'charger'] };
 function carClass(id) {
   const c = CARS[id];
   if (!c) return 'sedan';
@@ -481,4 +481,4 @@ function carWheelGeo(id, f) {
 }
 // 車庫車格的順序（車行與車庫只放 26-glb.js 的實車模型；上面程式建模的車留給車流與沒下載到模型時的替身）
 const CAR_ORDER = ['ae86', 'e92', 'm3c', 'm4wb', 'm3gtr', 'm3t24', 'm4gt3', 'gt3rs', 'gt3r', 's1krr', 's1krr19',
-  'rx7', 'supra', 'r34', 'nsx', 'r35', 'p930', 'rwb', 'e34', 'evo190', 'm4csl', 'chall', 'police', 'zr1', 'f40', 'sf90', 'p1', 'svj', 'evija', 'spano', 'f8', 'scg', 'p9x8', 'c110', 'nevera', 'f488c', 'sc20', 'c63dtm', 'energ', 'zx6r', 'v4'];
+  'rx7', 'supra', 'r34', 'nsx', 'r35', 'p930', 'rwb', 'e34', 'evo190', 'm4csl', 'chall', 'police', 'zr1', 'f40', 'sf90', 'p1', 'svj', 'evija', 'spano', 'f8', 'scg', 'p9x8', 'c110', 'nevera', 'f488c', 'sc20', 'c63dtm', 'energ', 'mosler', 'csl3', 'slk55', 'giulietta', 'charger', 'zx6r', 'v4'];
