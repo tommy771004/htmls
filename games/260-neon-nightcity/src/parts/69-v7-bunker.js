@@ -151,7 +151,7 @@ const bunkerPadW = () => { const [x, z] = facW(BUNK.F, 36, 47); return { x, z, y
 const bunkerScene = new T.Scene();
 const bunk = { boxes: [], circles: [], lights: [] };
 const BK_PC = { x: -2, z: 7 }, BK_BENCH = { x: 20, z: 21 }, BK_EXIT = { x: 0, z: 1.2 }, BK_RES = { x: 1, z: 20 };
-const BK_CNC = [[-27, 8], [-21, 8], [-15, 8]], BK_MILL = [[-27, 20], [-21, 20]], BK_PDOOR = { x: 7 };
+const BK_CNC = [[-27, 8], [-21, 8], [-15, 8]], BK_MILL = [[-27, 20], [-21, 20]], BK_LATHE = [[-15.4, 20], [-11.6, 20]], BK_PDOOR = { x: 7 };
 {
   const k = new Kit(), B = bunk.boxes;
   const wall = (x0, x1, z0, z1, h = 7, col = 0x5a5c58, mat = 2) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
@@ -165,14 +165,15 @@ const BK_CNC = [[-27, 8], [-21, 8], [-15, 8]], BK_MILL = [[-27, 20], [-21, 20]],
   // 區域地線與招牌色帶
   for (const [x0, x1, c] of [[-31, -9, 0xffc020], [-7, 9, 0x40c8ff], [11, 31, 0xff4a3a]]) { k.box((x0 + x1) / 2, .015, 27, x1 - x0, .01, .3, c, 11); k.box((x0 + x1) / 2, 5.6, 27.85, x1 - x0, .5, .06, c, 11); }
   // A 製造：CNC 機台、輸送帶
-  // 機台以 http(s) 開啟時換成 bunker.glb 的模型（bk_cnc 2.69 × 1.25 m、bk_mill 1.19 × 1.06 m，操作面朝 −z），程式建模是替身
-  const kc = new Kit(), km = new Kit();
+  // 機台以 http(s) 開啟時換成 bunker.glb 的模型（bk_cnc 2.69 × 1.25 m、bk_mill 1.19 × 1.06 m、bk_lathe 車銑複合機 1.94 × 0.87 m，操作面朝 −z），程式建模是替身
+  const kc = new Kit(), km = new Kit(), kl = new Kit();
   for (const [x, z] of BK_CNC) { kc.box(x, 1.3, z, 2.7, 2.6, 1.25, 0x6a7a80, 10).box(x, 1.5, z - .64, 1.4, .9, .04, 0x40c8ff, 1).box(x + 1, 2.7, z, .4, .2, .4, 0xff4020, 9); B.push({ x0: x - 1.35, x1: x + 1.35, z0: z - .63, z1: z + .63 }); }
   for (const [x, z] of BK_MILL) { km.box(x, .5, z, 1.1, 1, 1, 0x4a6a4a, 10).box(x, 1.5, z + .3, .4, 1.2, .4, 0x4a6a4a, 10).box(x, 1.7, z - .1, .5, .4, .5, 0xd0d4d8, 10); B.push({ x0: x - .6, x1: x + .6, z0: z - .55, z1: z + .55 }); }
+  for (const [x, z] of BK_LATHE) { kl.box(x, .35, z, 1.9, .7, .7, 0xd8dcdc, 10).box(x - .65, 1.1, z + .1, .5, .8, .5, 0xd8dcdc, 10).box(x - .3, 1.42, z + .1, 1.3, .2, .5, 0xd8dcdc, 10).box(x - .85, 1.2, z + .15, .3, .5, .3, 0x1a1a1c, 15); B.push({ x0: x - .97, x1: x + .97, z0: z - .44, z1: z + .44 }); }
   // 南牆上（防爆門東邊）的人員門：bunker_door 模型，替身是一塊門板
   const kd = new Kit(); kd.box(BK_PDOOR.x, 1.3, .14, 1.85, 2.6, .28, 0x8a8c88, 15).box(BK_PDOOR.x - .5, 1.25, .3, .5, .5, .06, 0x6a4a3a, 15);
   B.push({ x0: BK_PDOOR.x - .92, x1: BK_PDOOR.x + .92, z0: 0, z1: .3 });
-  for (const [kk, id, L] of [[kc, 'bk_cnc', BK_CNC], [km, 'bk_mill', BK_MILL], [kd, 'bk_door', [[BK_PDOOR.x, .145]]]]) {
+  for (const [kk, id, L] of [[kc, 'bk_cnc', BK_CNC], [km, 'bk_mill', BK_MILL], [kl, 'bk_lathe', BK_LATHE], [kd, 'bk_door', [[BK_PDOOR.x, .145]]]]) {
     const fb = new T.Mesh(kk.build(), MAT.uber); bunkerScene.add(fb);
     propSwap('bunker', fb, id, L.map(([x, z]) => ({ x, z })), bunkerScene, null, 'bunker');
   }

@@ -51,15 +51,21 @@ export const SETS = [
     { id: 'cs_m0', file: 'vault_door_1', scale: .104, rot: 2, origin: [0, 0, 0] },
     // 日間金庫：混凝土門板（0.9 單位見方）放大成 2.4 m，轉輪朝 −z；原點在門板正面的底邊中點
     { id: 'cs_daily', file: 'vault_door', scale: 2.667, rot: 1, origin: [0, -.45, -.45] },
+    // 幸運轉盤：原檔平放（轉軸朝 +y、八個木托盤往外），立起來讓轉軸指向 −z（玩家那側）；原點留在轉軸，半徑 1.42 → 1.6 m
+    { id: 'cs_wheel', file: 'wheel_of_fortune', pitch: -90, scale: 1.127, origin: [0, 0, 0] },
   ] },
   // 賭場 1 樓大廳（69-v7-casino.js）：Katydid 的 Gameready Casino scene（SketchUp 匯出，英吋 → 公尺），原檔的大門就在 −z 那面短牆的正中，平移成門口牆在 z 0、中線 x 0；
   // 拿掉 SketchUp 的描邊線（edge_color）與燈旁的光暈貼片（auto_1：頁面的 BLEND 材質當玻璃畫，會變成白色方片；燈光由頁面補點光）。大廳 25.8 × 12.3 m、高 5.2 m
   { out: 'cas_hall', tex: 1024, items: [{ id: 'hall', file: 'gameready_casino_scene', scale: .0254, origin: [-720.57, -273.32, -508.64], drop: /^edge_color|^auto_1$/ }] },
   // 地堡（69-v7-bunker.js）：A 區的 CNC 加工中心與立式銑床、南牆與門框旁的人員門；正面都轉到 −z（人員門朝 +z）
+  // 夜店出貨的夜梟改裝廂型車（69-v7-club.js）：卡通比例的運鈔車，車頭朝 +z；頁面再照 shvan 的車長車寬壓扁
+  { out: 'v7van', tex: 1024, items: [{ id: 'van', file: 'armored_van', len: 5 }] },
   { out: 'bunker', tex: 1024, items: [
     { id: 'bk_cnc', file: 'cnc_milling_machine', h: 2.6, rot: 2 },
     { id: 'bk_mill', file: 'vertical_milling_machine', pitch: -9, h: 2.1, rot: 2, simp: [.25, .02] },   // 原檔是毫米、往後斜放，先繞 x 扶正
     { id: 'bk_door', file: 'bunker_door', h: 2.6 },
+    // 車銑複合機：原檔長軸沿 z、操作面（手輪與按鈕）朝 +x；轉成長軸沿 x、操作面朝 −z（輸送帶那側），放大成 1.9 m 長
+    { id: 'bk_lathe', file: 'lathe', rot: 1, scale: 1.6 },
   ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
   // 第五部曲的商店街（69-v5-shops.js，原檔在 .cache/v5/）：縫線服飾的店面是 jungle_jim 三間店面的右邊兩間（原檔單位約半公尺，縮成 0.6；

@@ -570,6 +570,18 @@ function v7Turret() {
   for (const s of [-1, 1]) k.box(s * .16, .4, .75, .07, .07, 1.3, 0x0e0f10, 15).box(s * .16, .4, 1.42, .1, .1, .08, 0x2a2c30, 3);
   const g = new T.Group(), m = new T.Mesh(k.build(), MAT.uber); g.add(m); g.userData.gun = m; return g;
 }
+// Danish337 的 Armored Van（props/v7van.glb，5 × 3.37 × 3.23 m 的卡通比例）：以 http(s) 開啟時蓋掉 shvan 的車身，
+// 壓成 2.4 × 4.5 m、車頂 2.3 m，車長車寬跟著改（碰撞與輪距照新的算）；砲塔移到箱型車廂頂上。下載失敗就留著 shvan
+function v7VanBody(v) {
+  if (!GLB_ON) return;
+  loadProps('v7van').then(items => {
+    if (!items || !items.van || v.dead || !v.g.parent) return;
+    const o = propObject(items.van, 0, 0, 0), sx = 2.4 / 3.37, sy = 2.3 / 3.23, sz = 4.5 / 5;
+    o.scale.set(sx, sy, sz); v.body.children[0].visible = false; v.body.add(o);
+    v.len = 4.5; v.w = 2.4; v.rad = v.w / 2 + .05; v.off = v.len * .28; v.wb = v.len * .58;
+    if (v.tur) v.tur.position.set(0, 2.32, -.6);
+  });
+}
 const v7MineGeo = (() => { const k = new Kit(); k.cyl(0, .06, 0, .28, .32, .12, 14, 0x2a2c30, 15).cyl(0, .14, 0, .05, .05, .04, 8, 0xff2020, 8); return k.build(); })();
 function v7SellStart() {
   const why = side.act ? `${side.act.name}還沒結束` : W.stars ? '先甩掉警察' : heist.st !== 'off' && heist.st !== 'plan' ? '搶劫進行中' : '';
@@ -580,7 +592,7 @@ function v7SellStart() {
     const o = VENUES.club.out, sp = rnLaneSpot(o.x, o.z, 6);
     const v = buildVeh('shvan', sp.x, sp.z, sp.yaw, 0, 3, 1, 'club');
     v.name = '夜梟改裝廂型車'; v.hp *= 3; v.hpMax = v.hp; v.armorK = .5; v.y = groundH(v.x, v.z);
-    const tur = v7Turret(); tur.position.set(0, 2.25, -.4); v.g.add(tur); v.tur = tur;
+    const tur = v7Turret(); tur.position.set(0, 2.25, -.4); v.g.add(tur); v.tur = tur; v7VanBody(v);
     poseVehicle(v); enterVehicle(v); camState.yaw = v.yaw; camState.pitch = .1;
     // 買家：500–1100 m 外的路口
     const cand = RN.nodes.filter(nd => { const d = Math.hypot(nd.x - v.x, nd.z - v.z); return d > 500 && d < 1100; });

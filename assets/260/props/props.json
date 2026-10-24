@@ -131,7 +131,7 @@
   ]
  },
  "casino": {
-  "kb": 1170,
+  "kb": 1353,
   "items": {
    "cs_rl": {
     "w": 2.7,
@@ -162,6 +162,12 @@
     "d": 0.98,
     "h": 2.4,
     "tris": 3240
+   },
+   "cs_wheel": {
+    "w": 3.2,
+    "d": 1.27,
+    "h": 3.2,
+    "tris": 9374
    }
   },
   "credits": [
@@ -199,6 +205,13 @@
     "author": "OrlandoL (https://sketchfab.com/OllyOY)",
     "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
     "source": "https://sketchfab.com/3d-models/vault-door-b7f9cf66195546668d74c2d9d5cfb2b4"
+   },
+   {
+    "file": "wheel_of_fortune",
+    "title": "WHEEL OF FORTUNE",
+    "author": "aero1515 (https://sketchfab.com/aero1515)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/wheel-of-fortune-66d38f4d3c534f5686ca305b6ef084b1"
    }
   ]
  },
@@ -222,8 +235,28 @@
    }
   ]
  },
+ "v7van": {
+  "kb": 115,
+  "items": {
+   "van": {
+    "w": 3.37,
+    "d": 5,
+    "h": 3.23,
+    "tris": 9192
+   }
+  },
+  "credits": [
+   {
+    "file": "armored_van",
+    "title": "Armored Van Gltf",
+    "author": "Danish337 (https://sketchfab.com/Danish337)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/armored-van-gltf-3f8f20dccb62471289045875f37d7a71"
+   }
+  ]
+ },
  "bunker": {
-  "kb": 525,
+  "kb": 704,
   "items": {
    "bk_cnc": {
     "w": 2.69,
@@ -242,6 +275,12 @@
     "d": 0.29,
     "h": 2.6,
     "tris": 5148
+   },
+   "bk_lathe": {
+    "w": 1.94,
+    "d": 0.87,
+    "h": 1.53,
+    "tris": 16748
    }
   },
   "credits": [
@@ -265,6 +304,13 @@
     "author": "Gabriel Gauthier (https://sketchfab.com/Gab629)",
     "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
     "source": "https://sketchfab.com/3d-models/bunker-door-deb898e42397499aabedd6913723c0be"
+   },
+   {
+    "file": "lathe",
+    "title": "Lathe",
+    "author": "herdiansyahhadi (https://sketchfab.com/herdiansyahhadi)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/lathe-c2b8ba51351740ecb62c0b5a563b5ae7"
    }
   ]
  },
