@@ -744,7 +744,7 @@ gtaApi.v7 = {
   },
   casino: {
     CAS, APPS: CAS_APPS, TGT: CAS_TGT, WHEEL, st: v7KS, on: () => CASX.on, door: () => CASX.on && casW(CAS_DOOR.x, CAS_DOOR.z), w: (x, z) => casW(x, z), enter: casEnter,
-    spin: wheelSpin, ready: wheelReady, wheelStep, SLOT_SYM, SLOT_STRIP, hstep: dt => CAS.h && casHeistStep(CAS.h, dt), gs: () => casGS, bj: { start: bjStart, val: bjVal }, tcp: { rank: tcpRank, start: tcpStart }, slot: slotSpin, track: trackRun, deck, rl: { spin: rlSpin, step: rlStep, BETS: RL_BETS, st: () => CAS.rl }, vault: () => casBDoors.m1.a, door: casDoor,
+    spin: wheelSpin, ready: wheelReady, wheelStep, SLOT_SYM, SLOT_STRIP, hstep: dt => CAS.h && casHeistStep(CAS.h, dt), gs: () => casGS, bj: { start: bjStart, val: bjVal }, tcp: { rank: tcpRank, start: tcpStart }, slot: slotSpin, track: trackRun, deck, rl: { spin: rlSpin, step: rlStep, BETS: RL_BETS, st: () => CAS.rl }, vault: () => casBDoors.m1.a, vdoor: casDoor,
     plan: casPlan, h: () => CAS.h, breach: how => CAS.h && casBreach(CAS.h, how), card: casCard, gate: casGateAct, daily: casDailyAct, leave: casLeave, alarm: () => CAS.h && casAlarm(CAS.h),
     guards: () => casGS.map(g => ({ x: g.x, z: g.z, st: g.st })), takedown: i => casTakedown(casGS[i]), end: casHeistEnd, doors: () => Object.fromEntries(Object.entries(casBDoors).map(([k, d]) => [k, d.open])),
   },

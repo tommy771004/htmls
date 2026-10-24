@@ -132,6 +132,9 @@ if (FAC.bunker) {
   k.box(X(36), 3.4, Z(40), 14, 6.8, 2.4, 0x8a8a84, 2).box(X(36), 2.6, Z(41.25), 9.6, 5.2, .1, 0x2a2c2a, 15);
   for (let i = 0; i < 10; i++) k.box(X(31.6 + i * .98), 2.6, Z(41.32), .49, 5.1, .02, i % 2 ? 0x1a1a1a : 0xffc020, 11);   // 黃黑警示條
   k.box(X(36), 5.7, Z(41.4), 9, .25, .1, 0xff3a2a, 8);
+  // 門框東段的人員門（裝飾，不開）：走近 300 m 內才下載 bunker.glb 的 bk_door，替身是一塊門板
+  const kd = new Kit(); kd.box(0, 1.3, 0, 1.85, 2.6, .28, 0x8a8c88, 15).box(-.5, 1.25, .16, .5, .5, .06, 0x6a4a3a, 15);
+  BUNK.pd = { x: 41.9, z: 41.35, fb: v5Put(F, new T.Mesh(kd.build(), MAT.uber), 41.9, 0, 41.35, 0), st: 0 };
   v5Box(F, 29, 43, 38.8, 41.3);
   k.box(X(36), .02, Z(45), 10, .02, 7, 0x3a3a38, 10);
   for (const x of [29.5, 42.5]) { k.box(X(x), .5, Z(44), .5, 1, .5, 0xffc020, 11); v5Box(F, x - .25, x + .25, 43.75, 44.25); }
@@ -148,6 +151,7 @@ const bunkerPadW = () => { const [x, z] = facW(BUNK.F, 36, 47); return { x, z, y
 const bunkerScene = new T.Scene();
 const bunk = { boxes: [], circles: [], lights: [] };
 const BK_PC = { x: -2, z: 7 }, BK_BENCH = { x: 20, z: 21 }, BK_EXIT = { x: 0, z: 1.2 }, BK_RES = { x: 1, z: 20 };
+const BK_CNC = [[-27, 8], [-21, 8], [-15, 8]], BK_MILL = [[-27, 20], [-21, 20]], BK_PDOOR = { x: 7 };
 {
   const k = new Kit(), B = bunk.boxes;
   const wall = (x0, x1, z0, z1, h = 7, col = 0x5a5c58, mat = 2) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
@@ -161,7 +165,17 @@ const BK_PC = { x: -2, z: 7 }, BK_BENCH = { x: 20, z: 21 }, BK_EXIT = { x: 0, z:
   // 區域地線與招牌色帶
   for (const [x0, x1, c] of [[-31, -9, 0xffc020], [-7, 9, 0x40c8ff], [11, 31, 0xff4a3a]]) { k.box((x0 + x1) / 2, .015, 27, x1 - x0, .01, .3, c, 11); k.box((x0 + x1) / 2, 5.6, 27.85, x1 - x0, .5, .06, c, 11); }
   // A 製造：CNC 機台、輸送帶
-  for (const [x, z] of [[-27, 8], [-21, 8], [-15, 8], [-27, 20], [-21, 20]]) { k.box(x, 1.1, z, 3.2, 2.2, 2.4, 0x6a7a80, 10).box(x, 1.5, z - 1.22, 1.6, .9, .04, 0x40c8ff, 1).box(x + 1.2, 2.3, z, .4, .2, .4, 0xff4020, 9); B.push({ x0: x - 1.6, x1: x + 1.6, z0: z - 1.2, z1: z + 1.2 }); }
+  // 機台以 http(s) 開啟時換成 bunker.glb 的模型（bk_cnc 2.69 × 1.25 m、bk_mill 1.19 × 1.06 m，操作面朝 −z），程式建模是替身
+  const kc = new Kit(), km = new Kit();
+  for (const [x, z] of BK_CNC) { kc.box(x, 1.3, z, 2.7, 2.6, 1.25, 0x6a7a80, 10).box(x, 1.5, z - .64, 1.4, .9, .04, 0x40c8ff, 1).box(x + 1, 2.7, z, .4, .2, .4, 0xff4020, 9); B.push({ x0: x - 1.35, x1: x + 1.35, z0: z - .63, z1: z + .63 }); }
+  for (const [x, z] of BK_MILL) { km.box(x, .5, z, 1.1, 1, 1, 0x4a6a4a, 10).box(x, 1.5, z + .3, .4, 1.2, .4, 0x4a6a4a, 10).box(x, 1.7, z - .1, .5, .4, .5, 0xd0d4d8, 10); B.push({ x0: x - .6, x1: x + .6, z0: z - .55, z1: z + .55 }); }
+  // 南牆上（防爆門東邊）的人員門：bunker_door 模型，替身是一塊門板
+  const kd = new Kit(); kd.box(BK_PDOOR.x, 1.3, .14, 1.85, 2.6, .28, 0x8a8c88, 15).box(BK_PDOOR.x - .5, 1.25, .3, .5, .5, .06, 0x6a4a3a, 15);
+  B.push({ x0: BK_PDOOR.x - .92, x1: BK_PDOOR.x + .92, z0: 0, z1: .3 });
+  for (const [kk, id, L] of [[kc, 'bk_cnc', BK_CNC], [km, 'bk_mill', BK_MILL], [kd, 'bk_door', [[BK_PDOOR.x, .145]]]]) {
+    const fb = new T.Mesh(kk.build(), MAT.uber); bunkerScene.add(fb);
+    propSwap('bunker', fb, id, L.map(([x, z]) => ({ x, z })), bunkerScene, null, 'bunker');
+  }
   k.box(-17, .55, 14, 18, .25, 1.2, 0x2a2c2e, 15).box(-17, .7, 14, 18, .04, 1, 0x1a1a1a, 2);
   B.push({ x0: -26, x1: -8, z0: 13.4, z1: 14.6 });
   // B 研究：實驗桌、螢幕牆
@@ -493,6 +507,14 @@ ctxHooks.push((p, near) => {
 });
 function v7BunkerUpdate(dt) {
   bunkerTick(dt);
+  const PD = BUNK.pd;
+  if (PD && !PD.st && GLB_ON && player.where === 'out') {
+    const [x, z] = facW(BUNK.F, PD.x, PD.z);
+    if (Math.hypot(pX() - x, pZ() - z) < 300) {
+      PD.st = 1;
+      loadProps('bunker').then(items => { if (!items || !items.bk_door) return; PD.fb.visible = false; v5Put(BUNK.F, propObject(items.bk_door, 0, 0, 0), PD.x, 0, PD.z, 0); });
+    }
+  }
   fortStep(dt);
   mkBurnStep(dt);
   mkHud();
