@@ -58,6 +58,78 @@
    }
   ]
  },
+ "chrome": {
+  "kb": 1189,
+  "items": {
+   "cw_lift": {
+    "w": 0.66,
+    "d": 4.05,
+    "h": 2.57,
+    "tris": 21128
+   },
+   "cw_cart": {
+    "w": 1.11,
+    "d": 0.61,
+    "h": 0.95,
+    "tris": 80112
+   },
+   "cw_tires": {
+    "w": 0.71,
+    "d": 2.11,
+    "h": 2.2,
+    "tris": 5680
+   },
+   "cw_air": {
+    "w": 1.51,
+    "d": 0.65,
+    "h": 1.1,
+    "tris": 32692
+   },
+   "cw_hoist": {
+    "w": 2.23,
+    "d": 1.28,
+    "h": 1.9,
+    "tris": 22671
+   }
+  },
+  "credits": [
+   {
+    "file": "car_lift",
+    "title": "Car lift",
+    "author": "Sargone (https://sketchfab.com/Sargone)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/car-lift-1b4ae76820294373bc19ee16b9a4db61"
+   },
+   {
+    "file": "tool_cart",
+    "title": "Tool Cart",
+    "author": "jimbogies (https://sketchfab.com/jimbogies)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/tool-cart-16ceecf05f3e453e96c050f4c43f86b5"
+   },
+   {
+    "file": "tire_rack",
+    "title": "Tire Rack",
+    "author": "3ddominator (https://sketchfab.com/roughdominator)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/tire-rack-3e4fdc69fe5f428082242a32a343c28a"
+   },
+   {
+    "file": "air_compressor_xyz",
+    "title": "Air Compressor XYZ",
+    "author": "Sandokan (https://sketchfab.com/sandokan68)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/air-compressor-xyz-7e024388f87145cfaadad9e521bfc073"
+   },
+   {
+    "file": "engine_hoist",
+    "title": "Engine Hoist - Engine Crane",
+    "author": "dinoxwave (https://sketchfab.com/dinoxwave)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/engine-hoist-engine-crane-cca42a7a1eaa47f187e9206991c5b4e4"
+   }
+  ]
+ },
  "ramen": {
   "kb": 231,
   "items": {

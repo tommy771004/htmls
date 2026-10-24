@@ -168,16 +168,8 @@ const CW_SIGN = (S, name, x, y, z, ry, w, h, glow = 1.4, kind = 0) => {
   k.box(-11.6, 1.1, 18.4, .3, 2.2, 2.4, 0x2a2c30, 15);
   for (let i = 0; i < 8; i++) k.cyl(-11.55, .98 + (i % 2) * .5, 17.5 + (i >> 1) * .55, .1, .1, .26, 12, [0xc81030, 0x1f5fa8, 0xe8e4dc, 0x2f6a3a, 0xc9a227, 0x7a2cff, 0x111111, 0xe8782a][i], 0);
   B.push({ x0: -11.9, x1: -11.3, z0: 17.1, z1: 19.7 });
-  // 輪胎牆（右後）：黑色鋼架上一排排的胎，中間那層是白邊胎
-  for (let r = 0; r < 3; r++) {
-    k.box(11.4, .3 + r * 1.1, 17.5, .9, .05, 7, steel, 15);
-    for (let i = 0; i < 9; i++) {
-      k.add(new T.TorusGeometry(.3, .12, 8, 18), 0x121212, 6, tf(11.4, .72 + r * 1.1, 14.4 + i * .76, 0, Math.PI / 2, 0));
-      if (r === 1) k.add(new T.TorusGeometry(.27, .025, 6, 18), 0xeeeae0, 10, tf(11.27, .72 + r * 1.1, 14.4 + i * .76, 0, Math.PI / 2, 0));
-    }
-  }
-  for (const z of [14, 21]) k.box(11.4, 1.7, z, .9, 3.4, .06, steel, 15);
-  B.push({ x0: 10.9, x1: 12, z0: 13.9, z1: 21.1 });
+  // 輪胎牆（右後）：http(s) 下換成三座 Tire Rack 模型；以檔案開啟是程式建模的鋼架（tw，見下面）
+  B.push({ x0: 10.9, x1: 12, z0: 13.4, z1: 21.6 });
   // 輪框展示牆（右前）：黃銅框裡的四組輪框
   for (let i = 0; i < 4; i++) {
     const z = 10 + i * 1.15;
@@ -192,7 +184,7 @@ const CW_SIGN = (S, name, x, y, z, ry, w, h, glow = 1.4, kind = 0) => {
   k.box(10.2, 1.45, 4.95, .9, .56, .05, 0x0a0c10, 1, -.12).box(10.2, 1.45, 4.92, .82, .48, .02, 0x3a5a6a, 11, -.12);
   B.push({ x0: 7.7, x1: 11.1, z0: 4.05, z1: 5.15 });
   // 後牆：紅色烤漆工具櫃一整排（不鏽鋼檯面、鍍鉻把手）、洞洞板、交叉的格子旗
-  k.box(-2.5, .96, CD - .6, 6.6, .06, 1, 0xd8dce2, 3);
+  k.box(-2.5, .96, CD - .6, 6.6, .06, 1, 0xb8bcc0, 15);   // 不鏽鋼檯面用生鐵材質：鍍鉻在室內會映出城市環境貼圖的色塊
   for (let i = 0; i < 5; i++) {
     const x = -5.2 + i * 1.3;
     k.box(x, .46, CD - .6, 1.24, .9, .92, red, 0);
@@ -206,18 +198,23 @@ const CW_SIGN = (S, name, x, y, z, ry, w, h, glow = 1.4, kind = 0) => {
     k.box(fx, 4.2, CD - .15, .04, 2.2, .04, brass, 3, 0, 0, a).add(new T.SphereGeometry(.05, 8, 6), brass, 3, tf(tx, ty, CD - .15));
     for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) k.box(tx + ux * (.12 + i * .2) + vx * (.1 + j * .2), ty + uy * (.12 + i * .2) + vy * (.1 + j * .2), CD - .17, .2, .2, .01, (i + j) % 2 ? 0x111111 : 0xf2f0ea, 2, 0, 0, a);
   }
-  // 引擎吊架與吊著的 V8（右後）
-  const ex = 6.6, ez = CD - 2.4;
-  k.box(ex, .08, ez, .12, .16, 2.2, 0xd8a020, 15).box(ex, 1.3, ez + 1, .14, 2.5, .14, 0xd8a020, 15).box(ex, 2.5, ez + .1, .12, .12, 1.9, 0xd8a020, 15, -.25);
-  k.box(ex, 1.15, ez - .7, .7, .5, 1.0, 0x3a3e44, 3);
-  for (const s of [-1, 1]) { k.box(ex + s * .26, 1.5, ez - .7, .24, .26, .95, red, 0, 0, 0, s * .5); for (let i = 0; i < 4; i++) k.cyl(ex + s * .5, 1.4, ez - 1.05 + i * .24, .05, .05, .16, 8, 0xd8dce2, 3, 0, 0, Math.PI / 2); }
-  k.box(ex, 1.75, ez - .7, .34, .14, .7, 0xd8dce2, 3).cyl(ex, 1.95, ez - .7, .16, .16, .16, 16, 0x1a1a1a, 2);
-  k.cyl(ex, 2.25, ez - .7, .01, .01, .5, 4, 0x111111, 15);
+  // 引擎吊架與吊著的 V8（右後）：吊架 http(s) 下換成 dinoxwave 的 Engine Hoist（吊臂朝 −z、吊鉤在引擎正上方 1.47 m），以檔案開啟是程式建模的黃色吊架（hk）；
+  // 引擎（直列的缸體、兩排汽缸蓋與排氣管、進氣歧管、空氣濾清器）一直是程式建模的，吊在離地 0.15–1.35 m
+  const ex = 6.6, ez = CD - 2.4, ey = -.68;
+  k.box(ex, 1.15 + ey, ez - .7, .7, .5, 1.0, 0x3a3e44, 3);
+  for (const s of [-1, 1]) { k.box(ex + s * .26, 1.5 + ey, ez - .7, .24, .26, .95, red, 0, 0, 0, s * .5); for (let i = 0; i < 4; i++) k.cyl(ex + s * .5, 1.4 + ey, ez - 1.05 + i * .24, .05, .05, .16, 8, 0xd8dce2, 3, 0, 0, Math.PI / 2); }
+  k.box(ex, 1.75 + ey, ez - .7, .34, .14, .7, 0xd8dce2, 3).cyl(ex, 1.95 + ey, ez - .7, .16, .16, .16, 16, 0x1a1a1a, 2);
+  k.cyl(ex, 1.42, ez - .7, .012, .012, .14, 4, 0x111111, 15);
+  const hk = new Kit();
+  hk.box(ex, .08, ez, .12, .16, 2.2, 0xd8a020, 15).box(ex, 1.3, ez + 1, .14, 2.5, .14, 0xd8a020, 15).box(ex, 2.5, ez + .1, .12, .12, 1.9, 0xd8a020, 15, -.25);
+  hk.cyl(ex, 1.92, ez - .7, .01, .01, 1.1, 4, 0x111111, 15);
+  const hoist = new T.Mesh(hk.build(), MAT.uber); S.add(hoist);
+  propSwap('chrome', hoist, 'cw_hoist', [{ x: ex, z: ez + .14, ry: Math.PI / 2 }], S, null, 'chrome');
   chrome.circles.push({ x: ex, z: ez - .4, r: 1 });
   for (const [x, z, c] of [[9.4, CD - .6, 0x1b3a7a], [10.1, CD - .6, red], [9.75, CD - 1.2, 0xe8e4da]]) { k.cyl(x, .45, z, .3, .3, .9, 16, c, 0); for (const y of [.2, .7]) k.cyl(x, y, z, .31, .31, .04, 16, 0x2a2a2a, 15); }
   B.push({ x0: 9, x1: 10.5, z0: CD - 1.6, z1: CD });
   // 展示台：低的圓台、黃銅邊、暖白燈環，上面停美式肌肉車
-  k.cyl(CW_DISP.x, .09, CW_DISP.z, 2.9, 3.0, .18, 48, 0x0e0e10, 0);
+  k.cyl(CW_DISP.x, .09, CW_DISP.z, 2.9, 3.0, .18, 48, 0x0e0e10, 10);
   k.add(new T.TorusGeometry(2.95, .03, 4, 64), brass, 3, tf(CW_DISP.x, .18, CW_DISP.z, Math.PI / 2, 0, 0)).add(new T.TorusGeometry(3.02, .015, 4, 64), 0xffe2b0, 11, tf(CW_DISP.x, .06, CW_DISP.z, Math.PI / 2, 0, 0));
   // 休息區（左前）：皮沙發（捲邊扶手）、輪胎茶几（玻璃桌面）、老加油機
   k.box(-10.65, .27, 4.5, .95, .34, 3.2, 0x5a2e1a, 10).box(-11.05, .72, 4.5, .26, .62, 3.2, 0x5a2e1a, 10);
@@ -234,13 +231,24 @@ const CW_SIGN = (S, name, x, y, z, ry, w, h, glow = 1.4, kind = 0) => {
   // 捲門外的雨夜街景（和車行的落地窗同一個 shader）
   { const m = new T.Mesh(new T.PlaneGeometry(10.2, 3.7), new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
     m.position.set(0, 1.85, -.5); S.add(m); }
-  // 程式建模的雙柱升降機（替身；http(s) 下換成 GARAGE 07 那台 carlift 模型）：紅色柱子
+  // 輪胎牆的替身：黑色鋼架上一排排的胎，中間那層是白邊胎
+  const tk = new Kit();
+  for (let r = 0; r < 3; r++) {
+    tk.box(11.4, .3 + r * 1.1, 17.5, .9, .05, 7, steel, 15);
+    for (let i = 0; i < 9; i++) {
+      tk.add(new T.TorusGeometry(.3, .12, 8, 18), 0x121212, 6, tf(11.4, .72 + r * 1.1, 14.4 + i * .76, 0, Math.PI / 2, 0));
+      if (r === 1) tk.add(new T.TorusGeometry(.27, .025, 6, 18), 0xeeeae0, 10, tf(11.27, .72 + r * 1.1, 14.4 + i * .76, 0, Math.PI / 2, 0));
+    }
+  }
+  for (const z of [14, 21]) tk.box(11.4, 1.7, z, .9, 3.4, .06, steel, 15);
+  const tw = new T.Mesh(tk.build(), MAT.uber); S.add(tw);
+  propSwap('chrome', tw, 'cw_tires', [14.75, 17.5, 20.25].map(z => ({ x: 11.5, z })), S, null, 'chrome');
+  // 程式建模的雙柱升降機（替身；http(s) 下換成 Sargone 的 Car lift：柱距 4 m，轉 90° 讓柱子在車身兩側）：紅色柱子
   const lk = new Kit();
-  for (const s of [-1, 1]) { lk.box(s * 1.78, 1.9, 0, .32, 3.8, .45, red, 0).box(s * 1.78, 3.85, 0, .4, .12, .5, steel, 15); lk.box(s * 1.2, .09, -.6, 1.3, .06, .14, 0x9aa0a6, 15).box(s * 1.2, .09, .6, 1.3, .06, .14, 0x9aa0a6, 15); }
-  lk.box(0, 3.9, 0, 3.9, .12, .2, steel, 15);
+  for (const s of [-1, 1]) { lk.box(s * 2.02, 1.3, 0, .3, 2.6, .4, red, 0).box(s * 2.02, 2.62, 0, .38, .08, .46, steel, 15); lk.box(s * 1.3, .09, -.6, 1.4, .06, .14, 0x9aa0a6, 15).box(s * 1.3, .09, .6, 1.4, .06, .14, 0x9aa0a6, 15); }
   const lift = new T.Mesh(lk.build(), MAT.uber); lift.position.set(CHROME_CAR.x, 0, CHROME_CAR.z); S.add(lift);
-  B.push({ x0: CHROME_CAR.x - 2.1, x1: CHROME_CAR.x - 1.45, z0: CHROME_CAR.z - .5, z1: CHROME_CAR.z + .5 }, { x0: CHROME_CAR.x + 1.45, x1: CHROME_CAR.x + 2.1, z0: CHROME_CAR.z - .5, z1: CHROME_CAR.z + .5 });
-  propSwap('chrome', lift, 'carlift', [{ x: CHROME_CAR.x, z: CHROME_CAR.z, ry: Math.PI / 2 }], S);
+  B.push({ x0: CHROME_CAR.x - 2.25, x1: CHROME_CAR.x - 1.8, z0: CHROME_CAR.z - .35, z1: CHROME_CAR.z + .35 }, { x0: CHROME_CAR.x + 1.8, x1: CHROME_CAR.x + 2.25, z0: CHROME_CAR.z - .35, z1: CHROME_CAR.z + .35 });
+  propSwap('chrome', lift, 'cw_lift', [{ x: CHROME_CAR.x, z: CHROME_CAR.z, ry: Math.PI / 2 }], S, null, 'chrome');
   // 點唱機（替身是 interior_props 的 jukebox，http(s) 下換成實體模型）
   const JUKE = [{ x: -11.45, z: 8.2, ry: Math.PI / 2 }];
   propSwap('chrome', instancedIn(S, prop('jukebox'), MAT.uber, JUKE), 'jukebox', JUKE);
@@ -263,8 +271,10 @@ const CW_SIGN = (S, name, x, y, z, ry, w, h, glow = 1.4, kind = 0) => {
   const m = carObject('chall'); m.position.set(CW_DISP.x, .18, CW_DISP.z); m.rotation.y = CW_DISP.yaw; chromeScene.add(m);
   chrome.circles.push({ x: CW_DISP.x, z: CW_DISP.z, r: 2.95 });
 }
-// 工具推車（http(s) 下走進來才換成模型；沒有替身）
-propSwap('chrome', null, 'toolcart', [{ x: 3.2, z: 8.2, ry: -Math.PI / 2 }], chromeScene, () => chrome.boxes.push({ x0: 2.85, x1: 3.55, z0: 7.7, z1: 8.7 }));
+// 工具推車兩台（升降機旁、後牆工具櫃旁，抽屜朝外）與空壓機（右牆輪框展示下面）：http(s) 下走進來才換成模型，沒有替身
+propSwap('chrome', null, 'cw_cart', [{ x: 3.4, z: 8.4, ry: -Math.PI / 2 }, { x: -7.1, z: CD - .45, ry: Math.PI }], chromeScene,
+  () => chrome.boxes.push({ x0: 3.1, x1: 3.7, z0: 7.85, z1: 8.95 }, { x0: -7.65, x1: -6.55, z0: CD - .75, z1: CD }), 'chrome');
+propSwap('chrome', null, 'cw_air', [{ x: 11.5, z: 11.7, ry: -Math.PI / 2 }], chromeScene, () => chrome.boxes.push({ x0: 11.15, x1: 12, z0: 10.95, z1: 12.45 }), 'chrome');
 {
   const cr = crowd(3); const rc = rng(1717);
   const list = [

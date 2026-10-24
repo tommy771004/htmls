@@ -33,6 +33,14 @@ export const SETS = [
     { id: 'carlift', file: 'carlift', scale: 1 },
     { id: 'toolcart', file: 'free_drawer_tool_cart_used', h: .98, rot: 1 },
   ] },
+  // CHROME WORKS 改裝廠室內（66-chrome.js）：Sargone 的 Car lift、jimbogies 的 Tool Cart、3ddominator 的 Tire Rack、Sandokan 的 Air Compressor XYZ、dinoxwave 的 Engine Hoist（都是 CC BY 4.0）
+  { out: 'chrome', tex: 1024, simplify: .35, simplifyError: .002, items: [
+    { id: 'cw_lift', file: 'car_lift', scale: 1.1 },   // 雙柱沿 z 排（柱距 4 m、高 2.6 m），頁面轉 90° 擺，柱子在車身兩側
+    { id: 'cw_cart', file: 'tool_cart', h: .95 },   // 原檔單位約公分；抽屜朝 +z
+    { id: 'cw_tires', file: 'tire_rack', h: 2.2 },   // 長邊沿 z（約 2.1 m）
+    { id: 'cw_air', file: 'air_compressor_xyz', h: 1.1 },   // 儲氣筒沿 x（約 1.5 m）
+    { id: 'cw_hoist', file: 'engine_hoist', h: 1.9 },   // 原檔單位很小；吊臂與兩支腳朝 +x，吊鉤在 x ≈ +0.83 m、離地約 1.45 m
+  ] },
   { out: 'ramen', items: [{ id: 'ramen', file: 'japanese_ramen_stall', h: 3.4, drop: /Platform/ }] },
   // 第五部曲的商店街（69-v5-shops.js，原檔在 .cache/v5/）：縫線服飾的店面是 jungle_jim 三間店面的右邊兩間（原檔單位約半公尺，縮成 0.6；
   // 原點在玻璃面、店內往 −z；原店名的立體字、人行道與第三間不要），店裡的掛衣架是 ngdkh 的 Wardrobe Rack 兩座；

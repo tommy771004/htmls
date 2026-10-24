@@ -74,7 +74,7 @@
 
 ## 街區建築與道具（`props/`）
 
-`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
+`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載（`chrome` 是走進 CHROME WORKS 改裝廠才下載，四件都減面到約三成五），`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -87,6 +87,11 @@
 | `interior`（街機） | [Rusty Japanese Arcade](https://sketchfab.com/3d-models/rusty-japanese-arcade-2938ae13a77c46e8afabb41eba18e699) | [Toni García Vilche](https://sketchfab.com/zul_gv) | CC BY 4.0 |
 | `interior`（升降機） | [Carlift](https://sketchfab.com/3d-models/carlift-2dfad5340895423b8ec58fc392e4af32) | [3ddominator](https://sketchfab.com/roughdominator) | CC BY 4.0 |
 | `interior`（工具推車） | [[Free] Drawer Tool Cart (Used)](https://sketchfab.com/3d-models/free-drawer-tool-cart-used-da8955e5c8c448e58b013951f48148a0) | [Robert Prispilović](https://sketchfab.com/rprispil) | CC BY 4.0 |
+| `chrome`（CHROME WORKS 的雙柱升降機） | [Car lift](https://sketchfab.com/3d-models/car-lift-1b4ae76820294373bc19ee16b9a4db61) | [Sargone](https://sketchfab.com/Sargone) | CC BY 4.0 |
+| `chrome`（CHROME WORKS 的工具推車） | [Tool Cart](https://sketchfab.com/3d-models/tool-cart-16ceecf05f3e453e96c050f4c43f86b5) | [jimbogies](https://sketchfab.com/jimbogies) | CC BY 4.0 |
+| `chrome`（CHROME WORKS 的輪胎架） | [Tire Rack](https://sketchfab.com/3d-models/tire-rack-3e4fdc69fe5f428082242a32a343c28a) | [3ddominator](https://sketchfab.com/roughdominator) | CC BY 4.0 |
+| `chrome`（CHROME WORKS 的空壓機） | [Air Compressor XYZ](https://sketchfab.com/3d-models/air-compressor-xyz-7e024388f87145cfaadad9e521bfc073) | [Sandokan](https://sketchfab.com/sandokan68) | CC BY 4.0 |
+| `chrome`（CHROME WORKS 的引擎吊架） | [Engine Hoist - Engine Crane](https://sketchfab.com/3d-models/engine-hoist-engine-crane-cca42a7a1eaa47f187e9206991c5b4e4) | [dinoxwave](https://sketchfab.com/dinoxwave) | CC BY 4.0 |
 | `v5shop`（縫線服飾的店面） | [Storefronts with opening doors (empty stores)](https://sketchfab.com/3d-models/storefronts-with-opening-doors-empty-stores-151b488b26dd4ff4b15c4c03dc0711e6) | [Jungle Jim](https://sketchfab.com/jungle_jim) | CC BY 4.0 |
 | `v5shop`（掛衣架） | [Wardrobe Rack](https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855) | [Khoa Nguyen](https://sketchfab.com/ngdkh) | CC BY 4.0 |
 | `v5shop`（射擊場的吊靶與射擊位） | [Gun Targets](https://sketchfab.com/3d-models/gun-targets-eb9fbe283faa41ef8685359a0769d303) | [FrodoUndead](https://sketchfab.com/FrodoUndead) | CC BY 4.0 |
