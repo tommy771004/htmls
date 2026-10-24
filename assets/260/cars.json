@@ -1827,6 +1827,266 @@
   "kb": 788,
   "draws": 20
  },
+ "nevera": {
+  "id": "nevera",
+  "title": "rimac nevera",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/rimac-nevera-f11270b93b1349db9a4324ab000c9d76",
+  "bike": false,
+  "len": 4.75,
+  "w": 2.192,
+  "h": 1.208,
+  "wr": 0.354,
+  "fa": 1.246,
+  "ra": -1.499,
+  "track": 0.862,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.854,
+    "y": 0.354,
+    "z": 1.246,
+    "r": 0.354
+   },
+   {
+    "name": "FR",
+    "x": -0.854,
+    "y": 0.354,
+    "z": 1.246,
+    "r": 0.354
+   },
+   {
+    "name": "RL",
+    "x": 0.869,
+    "y": 0.354,
+    "z": -1.499,
+    "r": 0.354
+   },
+   {
+    "name": "RR",
+    "x": -0.869,
+    "y": 0.354,
+    "z": -1.499,
+    "r": 0.354
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31367,
+  "kb": 692,
+  "draws": 23
+ },
+ "f488c": {
+  "id": "f488c",
+  "title": "ferrari 488 challenge evo",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ferrari-488-challenge-evo-ecd56e1ef7aa4d3ca842b6bf09c6bb4e",
+  "bike": false,
+  "len": 4.65,
+  "w": 2.206,
+  "h": 1.256,
+  "wr": 0.351,
+  "fa": 1.177,
+  "ra": -1.425,
+  "track": 0.81,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.806,
+    "y": 0.351,
+    "z": 1.177,
+    "r": 0.351
+   },
+   {
+    "name": "FR",
+    "x": -0.806,
+    "y": 0.351,
+    "z": 1.177,
+    "r": 0.351
+   },
+   {
+    "name": "RL",
+    "x": 0.815,
+    "y": 0.351,
+    "z": -1.425,
+    "r": 0.351
+   },
+   {
+    "name": "RR",
+    "x": -0.815,
+    "y": 0.351,
+    "z": -1.425,
+    "r": 0.351
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 33185,
+  "kb": 741,
+  "draws": 14
+ },
+ "sc20": {
+  "id": "sc20",
+  "title": "lamborghini sc20",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/lamborghini-sc20-a982eaba9bd04375bbeb1238cc2d2586",
+  "bike": false,
+  "len": 4.93,
+  "w": 2.217,
+  "h": 1.133,
+  "wr": 0.34,
+  "fa": 1.244,
+  "ra": -1.441,
+  "track": 0.87,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.877,
+    "y": 0.329,
+    "z": 1.244,
+    "r": 0.329
+   },
+   {
+    "name": "FR",
+    "x": -0.88,
+    "y": 0.329,
+    "z": 1.244,
+    "r": 0.329
+   },
+   {
+    "name": "RL",
+    "x": 0.861,
+    "y": 0.351,
+    "z": -1.441,
+    "r": 0.351
+   },
+   {
+    "name": "RR",
+    "x": -0.863,
+    "y": 0.351,
+    "z": -1.441,
+    "r": 0.351
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 47264,
+  "kb": 1011,
+  "draws": 24
+ },
+ "c63dtm": {
+  "id": "c63dtm",
+  "title": "mercedes-benz amg c63 dtm mk III",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-benz-amg-c63-dtm-mk-iii-248bbea6a38e42c88a796582a568b366",
+  "bike": false,
+  "len": 4.85,
+  "w": 2.066,
+  "h": 1.184,
+  "wr": 0.326,
+  "fa": 1.486,
+  "ra": -1.189,
+  "track": 0.824,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.824,
+    "y": 0.326,
+    "z": 1.486,
+    "r": 0.326
+   },
+   {
+    "name": "FR",
+    "x": -0.824,
+    "y": 0.326,
+    "z": 1.486,
+    "r": 0.326
+   },
+   {
+    "name": "RL",
+    "x": 0.824,
+    "y": 0.326,
+    "z": -1.189,
+    "r": 0.326
+   },
+   {
+    "name": "RR",
+    "x": -0.824,
+    "y": 0.326,
+    "z": -1.189,
+    "r": 0.326
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 31257,
+  "kb": 711,
+  "draws": 16
+ },
+ "energ": {
+  "id": "energ",
+  "title": "mercedes-benz vision ener-g-force",
+  "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mercedes-benz-vision-ener-g-force-82d86a2a78d24474a6aacc4a5438adce",
+  "bike": false,
+  "len": 4.7,
+  "w": 2.299,
+  "h": 2.309,
+  "wr": 0.481,
+  "fa": 1.474,
+  "ra": -1.431,
+  "track": 0.914,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.914,
+    "y": 0.481,
+    "z": 1.474,
+    "r": 0.481
+   },
+   {
+    "name": "FR",
+    "x": -0.914,
+    "y": 0.481,
+    "z": 1.474,
+    "r": 0.481
+   },
+   {
+    "name": "RL",
+    "x": 0.914,
+    "y": 0.481,
+    "z": -1.431,
+    "r": 0.481
+   },
+   {
+    "name": "RR",
+    "x": -0.914,
+    "y": 0.481,
+    "z": -1.431,
+    "r": 0.481
+   }
+  ],
+  "paint": [
+   "Material.001"
+  ],
+  "paintable": false,
+  "tris": 35367,
+  "kb": 761,
+  "draws": 17
+ },
  "v4": {
   "id": "v4",
   "title": "Ducati Panigale V4",

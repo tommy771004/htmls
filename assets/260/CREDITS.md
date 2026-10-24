@@ -1,8 +1,8 @@
 # assets/260 實車模型來源與授權
 
-作品 260 霓虹夜城車行與車庫裡的 36 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
+作品 260 霓虹夜城車行與車庫裡的 41 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
 
-非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Glickenhaus、Peugeot、Bugatti、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
+非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Glickenhaus、Peugeot、Bugatti、Rimac、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -37,6 +37,11 @@
 | `scg.glb` | [scg 003s](https://sketchfab.com/3d-models/scg-003s-3a6571e472564c539a32cf9235f1bd7d) | amogusstrikesback2 | CC-BY-4.0 |
 | `p9x8.glb` | [peugeot 9x8](https://sketchfab.com/3d-models/peugeot-9x8-e58eeb88062347a1aba677920fc990fc) | amogusstrikesback2 | CC-BY-4.0 |
 | `c110.glb` | [bugatti centodieci](https://sketchfab.com/3d-models/bugatti-centodieci-e6512e977ec2446da50e4c2e732b6b0b) | amogusstrikesback2 | CC-BY-4.0 |
+| `nevera.glb` | [rimac nevera](https://sketchfab.com/3d-models/rimac-nevera-f11270b93b1349db9a4324ab000c9d76) | amogusstrikesback2 | CC-BY-4.0 |
+| `f488c.glb` | [ferrari 488 challenge evo](https://sketchfab.com/3d-models/ferrari-488-challenge-evo-ecd56e1ef7aa4d3ca842b6bf09c6bb4e) | amogusstrikesback2 | CC-BY-4.0 |
+| `sc20.glb` | [lamborghini sc20](https://sketchfab.com/3d-models/lamborghini-sc20-a982eaba9bd04375bbeb1238cc2d2586) | amogusstrikesback2 | CC-BY-4.0 |
+| `c63dtm.glb` | [mercedes-benz amg c63 dtm mk iii](https://sketchfab.com/3d-models/mercedes-benz-amg-c63-dtm-mk-iii-248bbea6a38e42c88a796582a568b366) | amogusstrikesback2 | CC-BY-4.0 |
+| `energ.glb` | [mercedes-benz vision ener-g-force](https://sketchfab.com/3d-models/mercedes-benz-vision-ener-g-force-82d86a2a78d24474a6aacc4a5438adce) | amogusstrikesback2 | CC-BY-4.0 |
 | `chall.glb` | [( FREE ) Dodge Challenger SRT](https://sketchfab.com/3d-models/free-dodge-challenger-srt-38a1fd572beb433fa2d26d8c1070c8fa) | SDC PERFORMANCE™️ | CC-BY-4.0 |
 | `zr1.glb` | [2019 Chevrolet Corvette ZR1](https://sketchfab.com/3d-models/2019-chevrolet-corvette-zr1-92b1b185b0d44847b0d099a787f8ed12) | Ddiaz Design | CC-BY-4.0 |
 | `police.glb` | [Police car](https://sketchfab.com/3d-models/police-car-9166b13b6ae341f4bfc093edb71d74f4) | Mateusz Woliński | CC-BY-4.0 |
