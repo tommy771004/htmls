@@ -678,7 +678,7 @@ const SET_DEF = {
   sens: { d: 1, lo: 0.3, hi: 2.5, st: 0.1 }, invY: { d: false }, touchSens: { d: 1, lo: 0.4, hi: 2, st: 0.1 },
   fov: { d: 55, lo: 45, hi: 75, st: 1 }, bright: { d: 1, lo: 0.7, hi: 1.5, st: 0.05 }, shake: { d: 1, lo: 0, hi: 1, st: 0.1 }, hud: { d: true }, cross: { d: true },
   vMaster: { d: 1, lo: 0, hi: 1, st: 0.05 }, vWind: { d: 1, lo: 0, hi: 1, st: 0.05 }, vVoice: { d: 1, lo: 0, hi: 1, st: 0.05 },
-  autoQ: { d: true }, res: { d: 1, lo: 0.5, hi: 1, st: 0.05 }, snow: { d: true }, pauseBlur: { d: true },
+  gpu: { d: 0, lo: 0, hi: 3, st: 1 }, autoQ: { d: true }, res: { d: 1, lo: 0.5, hi: 1, st: 0.05 }, snow: { d: true }, pauseBlur: { d: true },
 };
 const SET = (() => {
   let d = null;
@@ -754,9 +754,52 @@ addEventListener('pointermove', e => {
     }
   });
 }, { passive: true });
+// 沒有 WebGL 2（很舊的瀏覽器、硬體加速被關掉）時 three 會直接丟例外，先在開場畫面說清楚
+if (!(() => { try { const c = document.createElement('canvas').getContext('webgl2'); c?.getExtension('WEBGL_lose_context')?.loseContext(); return !!c; } catch { return false; } })()) {
+  document.getElementById('go').textContent = '無法啟動';
+  document.getElementById('goNote').textContent = '這個瀏覽器沒有可用的 WebGL 2，畫不出場景。請開啟瀏覽器的硬體加速，或更新到新版的 Chrome、Edge、Firefox、Safari。';
+  throw new Error('WebGL 2 unavailable');
+}
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-const BASE_DPR = Math.min(window.devicePixelRatio || 1, isTouch ? 1.25 : 1.5);
+/* 顯示卡分級：WebGL 只回報 GPU 名稱，碰不到驅動程式；依名稱給初始 splat 預算、解析度上限與排序間隔，
+   進場後 adapt() 再依實際 FPS 微調。Spark 每次深度排序都要把整批 splat 的距離從 GPU 讀回主執行緒，
+   splat 越多、排得越勤，主執行緒卡得越久，所以等級越低預算越少、排序間隔越長
+   （預設是徑向排序，鏡頭只轉不移時順序不變，間隔拉長看不出來）。 */
+const GPU_TIERS = {
+  soft: { name: '軟體繪圖', splats: 6e5, dpr: 1, sort: 100 },
+  low: { name: '低', splats: 1e6, dpr: 1, sort: 66 },
+  mid: { name: '中', splats: 1.6e6, dpr: 1.25, sort: 50 },
+  high: { name: '高', splats: 2.5e6, dpr: 1.5, sort: 33 },
+};
+const GPU = (() => {
+  const gl = renderer.getContext(); let name = '';
+  try { const x = gl.getExtension('WEBGL_debug_renderer_info'); name = String(gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || ''); } catch { /* 有些瀏覽器不給名稱 */ }
+  // 沒有硬體加速（遠端桌面、驅動被瀏覽器列入黑名單）時，要求 failIfMajorPerformanceCaveat 的 context 會被拒絕
+  let caveat = false;
+  try { const c = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true }); caveat = !c; c?.getExtension('WEBGL_lose_context')?.loseContext(); } catch { /* 當成有硬體加速 */ }
+  const n = name.toLowerCase();
+  let auto = caveat || /swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/.test(n) ? 'soft'
+    : /apple m\d+ (pro|max|ultra)|geforce (rtx|gtx (9[6-9]0|1[0-9]))|nvidia (rtx|quadro|tesla)|radeon (rx|pro|r9)|arc\(tm\) a|\barc a\d/.test(n) ? 'high'
+    : /apple m\d|apple gpu|geforce|nvidia|radeon|\bamd\b|iris\(r\) xe|iris xe|adreno.{0,8}7\d\d|mali-g7\d/.test(n) ? 'mid'
+    : /intel|mali|adreno|powervr|apple a\d|uhd|hd graphics/.test(n) ? 'low'
+    : isTouch ? 'low' : 'mid';
+  // 手機與平板會降頻，起點保守一點：Apple 的晶片給中級，其他給低級
+  if (isTouch && auto !== 'soft') auto = auto === 'high' || /apple/.test(n) ? 'mid' : 'low';
+  // ANGLE 字串裡的繪圖後端：Mac 是 Metal、Windows 是 Direct3D 11、Linux 多半是 OpenGL 或 Vulkan
+  const api = /metal/i.test(name) ? 'Metal' : /direct3d|d3d11/i.test(name) ? 'Direct3D 11' : /vulkan/i.test(name) ? 'Vulkan' : /opengl/i.test(name) ? 'OpenGL' : '';
+  // 面板上只留型號：ANGLE (廠商, 型號 + 後端細節, 後端) → 型號
+  const short = (name.match(/^ANGLE \([^,]*, (.*?)(?:, [^,]*)?\)$/)?.[1] || name).replace(/^ANGLE \w+ Renderer: /, '').replace(/ \(0x[0-9a-f]+\)| Direct3D.*| vs_\d.*/gi, '').trim();
+  return { name: name || '未知', short: short || '未知', auto, api, tier: auto, lost: false };
+})();
+GPU.tier = SET.gpu ? ['low', 'mid', 'high'][SET.gpu - 1] : GPU.auto;
+let BASE_DPR = Math.min(window.devicePixelRatio || 1, GPU_TIERS[GPU.tier].dpr);
+function tierApply() { // 設定裡換等級：解析度上限、splat 預算與排序間隔一起換
+  GPU.tier = SET.gpu ? ['low', 'mid', 'high'][SET.gpu - 1] : GPU.auto; const T = GPU_TIERS[GPU.tier];
+  BASE_DPR = Math.min(window.devicePixelRatio || 1, T.dpr);
+  if (SPLAT.spark) { SPLAT.spark.lodSplatCount = T.splats; SPLAT.spark.minSortIntervalMs = T.sort; }
+  resize();
+}
 let renderScale = SET.autoQ ? 1 : SET.res;
 const scene = new THREE.Scene();
 scene.background = FOG.color.clone();
@@ -1084,7 +1127,8 @@ async function loadSpark() {
   try {
     const S = await import(URLS.spark);
     SPLAT.S = S;
-    const spark = new S.SparkRenderer({ renderer, lodSplatScale: isTouch ? 0.8 : 1, lodRenderScale: 1.5, maxStdDev: Math.sqrt(7) });
+    const T = GPU_TIERS[GPU.tier];
+    const spark = new S.SparkRenderer({ renderer, lodSplatCount: T.splats, minSortIntervalMs: T.sort, lodRenderScale: 1.5, maxStdDev: Math.sqrt(7) });
     spark.renderOrder = 0;
     scene.add(spark); SPLAT.spark = spark; SPLAT.lodScale = spark.lodSplatScale;
     LOAD.spark = 'done'; setRow('spark', 1, 'v2.3.1', 'done');
@@ -1113,7 +1157,9 @@ async function loadSplat(S) {
     scene.add(mesh); SPLAT.mesh = mesh;
     await mesh.initialized;
     SPLAT.total = mesh.packedSplats?.lodSplats?.numSplats || mesh.extSplats?.lodSplats?.numSplats || mesh.numSplats || 0;
-    SPLAT.ready = true; LOAD.splat = 'done';
+    SPLAT.ready = true; LOAD.splat = 'done'; perfHold(2.5); // 剛到的幾秒在上傳 LoD 樹，不拿來判斷畫質
+    // 先用七成預算接住剛到的 LoD 頁面，順的話 adapt() 每兩秒放寬一級
+    if (perf.auto) { SPLAT.lodScale = 0.7; SPLAT.spark.lodSplatScale = 0.7; }
     setRow('splat', 1, `${(SPLAT.total / 1e6).toFixed(2)} M splats · LoD`, 'done');
   } catch (e) {
     LOAD.splat = 'fail'; setRow('splat', 1, '載入失敗', 'fail');
@@ -1574,21 +1620,26 @@ function updateCamera(dt, t) {
 /* ======================================================================
    效能：依 FPS 自動調整 Spark 的 LoD 預算，必要時再降解析度
    ====================================================================== */
-const perf = { frames: [], fps: 0, low: 0, acc: 0, good: 0, auto: true }; // auto 只管 LoD 預算；解析度跟著 SET.autoQ
+const perf = { frames: [], fps: 0, low: 0, acc: 0, n: 0, good: 0, auto: true, hold: 0 }; // auto 只管 LoD 預算；解析度跟著 SET.autoQ
+// 場景剛到、按下進場、換場時會有一兩格長的停頓，這段時間的 FPS 不拿來降畫質，不然一開場預算就被壓到底
+function perfHold(s) { perf.hold = Math.max(perf.hold, performance.now() + s * 1000); }
 function adapt(dt) {
-  perf.frames.push(dt); if (perf.frames.length > 240) perf.frames.shift();
-  perf.acc += dt; if (perf.acc < 1) return; perf.acc = 0;
+  perf.frames.push(dt); if (perf.frames.length > 240) perf.frames.shift(); perf.n++;
+  // 每半秒判一次：平均掉到 57 以下，或半秒內有兩格以上超過 50 ms 的頓挫（排序回讀卡住主執行緒）就降
+  perf.acc += dt; if (perf.acc < 0.5) return; perf.acc = 0;
   const f = perf.frames.slice(-90), avg = f.reduce((a, b) => a + b, 0) / f.length;
   perf.fps = 1 / avg; const sorted = [...f].sort((a, b) => b - a); perf.low = 1 / sorted[Math.max(0, Math.floor(f.length * 0.05))];
+  const recent = perf.frames.slice(-perf.n), rAvg = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length), hitches = recent.filter(d => d > 0.05).length; perf.n = 0;
   if (!perf.auto || !SPLAT.spark || !SPLAT.ready || document.hidden) return;
-  if (perf.fps < 57) {
+  if (performance.now() < perf.hold) { perf.frames.length = 0; perf.good = 0; return; }
+  if (1 / rAvg < 57 || hitches >= 2) {
     perf.good = 0;
-    if (SPLAT.lodScale > 0.3) { SPLAT.lodScale = Math.max(0.3, SPLAT.lodScale * 0.82); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
+    if (SPLAT.lodScale > 0.3) { SPLAT.lodScale = Math.max(0.3, SPLAT.lodScale * (1 / rAvg < 40 || hitches >= 4 ? 0.7 : 0.85)); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
     else if (SET.autoQ && renderScale > 0.7) { renderScale = Math.max(0.7, renderScale - 0.1); resize(); }
-  } else if (perf.fps > 59 && ++perf.good >= 4) {
+  } else if (1 / rAvg > 59 && !hitches && ++perf.good >= 4) {
     perf.good = 0;
     if (renderScale < 1 && SET.autoQ) { renderScale = Math.min(1, renderScale + 0.1); resize(); }
-    else if (SPLAT.lodScale < (isTouch ? 0.8 : 1)) { SPLAT.lodScale = Math.min(isTouch ? 0.8 : 1, SPLAT.lodScale * 1.1); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
+    else if (SPLAT.lodScale < 1) { SPLAT.lodScale = Math.min(1, SPLAT.lodScale * 1.1); SPLAT.spark.lodSplatScale = SPLAT.lodScale; }
   }
 }
 
@@ -1614,6 +1665,7 @@ function buildDebug() {
           <div class="tile"><span>LoD 預算倍率</span><b id="dLod">—</b></div>
           <div class="tile"><span>解析度</span><b id="dDpr">—</b></div>
         </div>
+        <div class="kv"><span>顯示卡</span><b id="dGpu">—</b></div>
       </section>
       <section class="grp well">
         <h3>角色 <em id="dGround">—</em></h3>
@@ -1706,6 +1758,7 @@ function renderDebug() {
   D.dTot.textContent = SPLAT.total ? fmt(SPLAT.total) : (LOAD.splat === 'fail' ? '載入失敗' : '載入中');
   D.dLod.textContent = `${SPLAT.lodScale.toFixed(2)} × · ${FOG.cull} m`;
   D.dDpr.textContent = `${(BASE_DPR * renderScale).toFixed(2)} dpr`;
+  D.dGpu.textContent = `${GPU_TIERS[GPU.tier].name} · ${GPU.short}${GPU.api ? ' · ' + GPU.api : ''}`;
   D.dGround.textContent = player.grounded ? '著地' : `空中 · vy ${player.vel.y.toFixed(1)}`;
   D.dPos.textContent = `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`;
   D.dSpd.textContent = `${s.toFixed(2)} m/s`;
@@ -1762,14 +1815,16 @@ async function loadActors(S) {
     const man = await (await fetch(URLS.actors + 'manifest.json')).json(); ACT.man = man;
     if (S) { const m = makeNightModifier(S, true); ACT.mod = m.mod; ACT.U = m.U; }
     const zids = Object.keys(man.zombies), iids = Object.keys(man.items); let zd = 0, id = 0;
-    const packedFrom = async bytes => { if (!S) return null; const p = new S.PackedSplats({ fileBytes: bytes }); await p.initialized; return p; };
+    // 道具與武器在 worker 裡建 LoD 樹，和場景共用同一份 splat 預算（遠處的車只畫粗的一層）；
+    // 喪屍不行：SplatSkinning 的權重照原始 splat 順序對應
+    const packedFrom = async (bytes, lod) => { if (!S) return null; const p = new S.PackedSplats({ fileBytes: bytes, lod }); await p.initialized; return p; };
     await Promise.all([
       ...zids.map(async k => {
         const [spz, skin] = await Promise.all([fetchBytes(URLS.actors + k + '.spz'), fetchBytes(URLS.actors + k + '.skin').then(gunzip)]);
         ACT.packed[k] = await packedFrom(spz); ACT.skin[k] = new Uint16Array(skin.buffer, skin.byteOffset, skin.byteLength / 2);
         setRow('zomb', ++zd / zids.length * 0.95, `${zd} / ${zids.length}`);
       }),
-      ...iids.map(async k => { ACT.packed[k] = await packedFrom(await fetchBytes(URLS.actors + k + '.spz')); setRow('items', ++id / iids.length, `${id} / ${iids.length}`); }),
+      ...iids.map(async k => { ACT.packed[k] = await packedFrom(await fetchBytes(URLS.actors + k + '.spz'), true); setRow('items', ++id / iids.length, `${id} / ${iids.length}`); }),
     ]);
     for (const body of Object.keys(man.rigs)) ACT.clips[body] = buildZombieClips(man, body);
     const zn = zids.reduce((a, k) => a + man.zombies[k].n, 0), inn = iids.reduce((a, k) => a + man.items[k].n, 0);
@@ -2157,6 +2212,7 @@ function worldOf(x, z) {
 }
 function setWorld(id) {
   if (id === WORLD.id) return;
+  perfHold(1.5); // 換場會切換整批 splat 與尋路網格
   const P = WORLD.plaza ||= { mesh: SPLAT.mesh, U: SPLAT.U, bounds: CFG.bounds, camMax: CFG.camMax }, R = ROOMS[id];
   NAVS[WORLD.id] = { ...NAV };
   Object.assign(NAV, NAVS[id] || { cs: 0.5, x0: R.o[0] + R.bounds[0], z0: R.o[2] + R.bounds[2], nx: Math.ceil((R.bounds[1] - R.bounds[0]) / 0.5), nz: Math.ceil((R.bounds[3] - R.bounds[2]) / 0.5), row: 0, ready: false, walk: null, h: null, dist: null, q: null, t: 0, cell: -1 });
@@ -3130,6 +3186,7 @@ function updateAimPoint() {
 const lampSort = LAMPS.map((L, i) => i);
 let lampT = 0, last = performance.now(), simTime = 0;
 function frame(now) {
+  if (GPU.lost) return; // 畫面已經失效，停掉迴圈，等玩家重新載入
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - last) / 1000); last = now; simTime += dt;
   if (playing && !document.body.classList.contains('paused')) {
@@ -3167,6 +3224,7 @@ requestAnimationFrame(frame);
    ====================================================================== */
 const go = document.getElementById('go'), goNote = document.getElementById('goNote');
 function refreshGo() {
+  if (GPU.lost) return;
   const charReady = LOAD.fbx === 'done' || LOAD.fbx === 'fail';
   const colReady = LOAD.col === 'done' && LOAD.actors === 'done';
   const splatSettled = LOAD.splat === 'done' || LOAD.splat === 'fail';
@@ -3175,7 +3233,8 @@ function refreshGo() {
 }
 const ticker = setInterval(() => { refreshGo(); if (LOAD.splat === 'done' && !go.disabled && go.textContent === '進入廣場') clearInterval(ticker); }, 300);
 go.addEventListener('click', () => {
-  const first = !playing;
+  if (GPU.lost) { location.reload(); return; }
+  const first = !playing; perfHold(2);
   playing = true; pauseOnUnlock = true; snapCamera = false;
   view.yaw = player.yaw + Math.PI; view.pitch = 0.18; view.distT = 4.4;
   document.body.classList.add('playing');
@@ -3185,6 +3244,18 @@ go.addEventListener('click', () => {
   audioInit();
   if (first) { STATS.t0 = performance.now(); setTimeout(() => startMission(0), 900); placeArmory(); }
 });
+// 顯示卡驅動重置（Windows 的 TDR、筆電切換顯示卡、顯示記憶體不足）時整個 WebGL 畫面會失效；
+// Spark 的 splat 貼圖沒辦法原地重建，回到開場畫面請玩家重新載入
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault(); GPU.lost = true; playing = false;
+  if (document.pointerLockElement) document.exitPointerLock?.();
+  document.body.classList.remove('playing'); document.getElementById('boot').classList.remove('gone');
+  go.disabled = false; go.textContent = '重新載入';
+  goNote.textContent = '顯示卡驅動重置了畫面（WebGL context lost），要重新載入才能繼續。常發生的話，到 Esc 選單把「畫質等級」調低。';
+  warn('WebGL context lost');
+});
+// 失效當下還在等 GPU 回讀的排序會被拒絕（three 的 probeAsync 不帶原因），畫面已經停了，不要再當成錯誤丟出來
+addEventListener('unhandledrejection', e => { if (GPU.lost) e.preventDefault(); });
 if (dbgOn) { dbg.classList.add('on'); buildDebug(); }
 document.querySelectorAll('#boot .glass').forEach(el => attachLens(el, el.classList.contains('sheet') ? { bezel: 34, scale: 62 } : { bezel: 16, scale: 26 }));
 
@@ -3217,7 +3288,7 @@ const SET_UI = [
   ['操作', [['sens', '滑鼠靈敏度', v => v.toFixed(1) + '×'], ['invY', '反轉滑鼠上下'], ...(isTouch ? [['touchSens', '觸控轉視角', v => v.toFixed(1) + '×']] : [])]],
   ['畫面', [['fov', '視野', v => v + '°'], ['bright', '亮度', pct], ['shake', '鏡頭晃動', pct], ['hud', '顯示任務與狀態'], ['cross', '準心']]],
   ['聲音', [['vMaster', '主音量', pct], ['vWind', '風聲', pct], ['vVoice', '無線電導引', pct]]],
-  ['效能', [['autoQ', '自動調整畫質（維持 60 FPS）'], ['res', '渲染解析度', pct], ['snow', '飄雪'], ['pauseBlur', '切到其他視窗時暫停']]],
+  ['效能', [['gpu', '畫質等級', v => v ? GPU_TIERS[['low', 'mid', 'high'][v - 1]].name : `自動（${GPU_TIERS[GPU.auto].name}）`], ['autoQ', '自動調整畫質（維持 60 FPS）'], ['res', '渲染解析度', pct], ['snow', '飄雪'], ['pauseBlur', '切到其他視窗時暫停']]],
 ];
 const SET_FMT = Object.fromEntries(SET_UI.flatMap(([, rows]) => rows.map(([k, , f]) => [k, f])));
 paneSet.innerHTML = SET_UI.map(([h, rows]) => `<h3>${h}</h3>` + rows.map(([k, n]) => {
@@ -3235,6 +3306,7 @@ function setApply(k) {
   if ((all || k === 'vWind') && AU.wind) AU.wind.gain.value = (WORLD.id === 'plaza' ? 0.07 : 0.015) * SET.vWind;
   if ((all || k === 'vVoice') && VO.bus) VO.bus.gain.value = VO_GAIN * SET.vVoice;
   if (all || k === 'snow') snow.visible = WORLD.id === 'plaza' && SET.snow;
+  if (k === 'gpu') tierApply();
   if (k === 'autoQ' || k === 'res') { perf.auto = SET.autoQ; renderScale = SET.autoQ ? Math.max(renderScale, 0.7) : SET.res; resize(); if (D.cAuto) D.cAuto.checked = perf.auto; }
 }
 function menuSync() {
@@ -3254,7 +3326,7 @@ paneSet.addEventListener('input', e => {
 paneSet.addEventListener('click', e => {
   if (e.target.id !== 'mnReset') return;
   for (const [k, D] of Object.entries(SET_DEF)) SET[k] = D.d;
-  setSave(); setApply(); setApply('fov'); setApply('autoQ'); menuSync(); toast('設定已恢復預設值', 1.6);
+  setSave(); setApply(); setApply('gpu'); setApply('fov'); setApply('autoQ'); menuSync(); toast('設定已恢復預設值', 1.6);
 });
 function menuInfo() {
   const c = M.cur, o = objective();
@@ -3319,7 +3391,7 @@ window.__eter = {
       helmet: player.helmet, vest: player.vest,
       zombies: zombies.filter(z => z.active).map(z => ({ x: +z.pos.x.toFixed(2), z: +z.pos.z.toFixed(2), hp: Math.round(z.hp), state: z.state, alive: z.alive, kind: z.kind, variant: z.variant })), pickups: pickups.map(p => ({ kind: p.kind, x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1) })), stats: { ...STATS }, over: overKind, fallback: ACT.fallback };
   },
-  PTS, NAV, M, input, player, zombies, pickups, props, JET, NADE, COL, PROP_BOX, PRIM_RAW, jet() { JET.t = 0; },
+  PTS, NAV, M, input, player, zombies, pickups, props, JET, NADE, COL, PROP_BOX, PRIM_RAW, SPLAT, perf, jet() { JET.t = 0; },
   spawn(x, z, opts) { return !!spawnZombie(x, z, opts); },
   give(w) { player.owned[w] = true; if (WEAPONS[w].mag) { player.mag[w] = WEAPONS[w].mag; player.ammo[WEAPONS[w].ammo] += 30; } equip(w); },
   mission(i) { if (typeof i === 'string') i = MISSIONS.findIndex(m => m.id === i); for (const p of [...pickups]) if (!p.fixed) removePickup(p); for (const z of zombies) despawnZombie(z); DIR.waveQueue = 0; startMission(i); },
