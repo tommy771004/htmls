@@ -226,7 +226,7 @@ for (const s of sideSpots) {
   const r = rnd();
   if (r < .1 && free(s.x, s.z, .6)) { hydrants.push({ ...s, y: .15 }); claim(s.x, s.z, .6); circles.push({ x: s.x, z: s.z, r: .25 }); }
   else if (r < .2 && free(s.x, s.z, .7)) { bins.push({ ...s, y: .15 }); claim(s.x, s.z, .7); circles.push({ x: s.x, z: s.z, r: .32 }); }
-  else if (r < .26 && free(s.x, s.z, .8)) { boxesN.push({ ...s, y: .15 }); claim(s.x, s.z, .8); circles.push({ x: s.x, z: s.z, r: .35 }); }
+  else if (r < .26 && free(s.x, s.z, .8)) { boxesN.push({ ...s, y: .15 }); claim(s.x, s.z, .8); circles.push({ x: s.x, z: s.z, r: .45 }); }
   else if (r < .3 && free(s.x, s.z, 1.2)) { booths.push({ ...s, y: .15 }); claim(s.x, s.z, 1.2); circles.push({ x: s.x, z: s.z, r: .55 }); }
 }
 // 路口轉角的護柱（只放在這一區自己的人行道上）
@@ -404,6 +404,8 @@ worldHooks.push(() => { for (const b of boxesN) { [b.x, b.z] = toW(b.x, b.z); } 
 const boxesMesh = instanced(new Kit()   // 藍色電訊箱：69-market.js 打爛時把該格縮成 0
   .box(0, .62, 0, .5, .9, .45, 0x1c4f9a, 10).box(0, 1.1, 0, .5, .08, .45, 0x163f7a, 10).box(0, .7, -.23, .38, .3, .02, 0xeeeeee, 11)
   .box(.18, .1, 0, .04, .2, .4, 0x222222, 15).box(-.18, .1, 0, .04, .2, .4, 0x222222, 15).build(), MAT.uber, boxesN, LY.NOREFL);
+// 69-v5-street.js 以 http(s) 開啟時換成 v5works.glb 的電訊箱（照邏輯座標的 boxesL 擺）；69-market.js 打爛時每一串都要縮
+const boxesMs = [boxesMesh], boxesL = boxesN.map(b => ({ ...b }));
 instanced(new Kit().cyl(0, .45, 0, .1, .11, .9, 10, 0x34383d, 15).cyl(0, .82, 0, .115, .115, .06, 10, 0xd8a020, 10).build(), MAT.uber, bollards, LY.NOREFL);
 const boothMesh = instanced(new Kit()
   .box(0, 1.15, 0, .9, 2.3, .9, 0x1d2a2a, 15).box(0, 1.3, -.46, .7, 1.5, .02, 0x88aaaa, 1).box(0, 2.18, -.46, .7, .16, .03, 0x7fe7ff, 8)

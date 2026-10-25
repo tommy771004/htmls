@@ -13,6 +13,24 @@ if (GLB_ON) {
     W1_SITES.push({ set: 'w1_tunnel', id: M.id, x, z, y: VIADUCT.deck + M.y, ry, near: 900, zn: VIADUCT.zn, proxy: e.proxy });
     for (const [o0, d, y, a] of P.cliffs) { const [cx, cz] = at(o0, d); W1_SITES.push({ set: 'w1_tunnel', id: 'cliff', x: cx, z: cz, y: VIADUCT.deck + y, ry: ry + a, near: 900, zn: VIADUCT.zn }); }
   }
+  // 田園一景（cs_country）：灰鷗島的兩條碎石路（21-coast.js 的 CS_SITES），路面中心對著碎石路；燈塔那條路上倒著幾個小貨櫃（boxes），
+  // 從橋上島那條是唯一進出辦公園區的路，不擺。碰撞：兩側護欄（矮牆）、楓樹樹幹、貨櫃（模型座標，原點是路面中心、路沿 +z）。
+  // 兩條路接著再各擺一段護欄（rail，31.3 m 一段）
+  for (const C of CS_SITES) {
+    const c = Math.cos(C.ry), s = Math.sin(C.ry), at = (x, z) => [C.x + x * c + z * s, C.z - x * s + z * c];
+    const box = (x0, x1, z0, z1, o) => { const p = [at(x0, z0), at(x1, z1)]; addBoxL({ x0: Math.min(p[0][0], p[1][0]), x1: Math.max(p[0][0], p[1][0]), z0: Math.min(p[0][1], p[1][1]), z1: Math.max(p[0][1], p[1][1]), ...o }); };
+    W1_SITES.push({ set: 'cs_country', id: 'scene', x: C.x, z: C.z, y: .03, ry: C.ry, near: 700 });
+    for (const sx of [-4.3, 4.3]) box(sx - .15, sx + .15, -15.65, 15.65, { low: 1 });
+    for (const [x, z] of [[-8.1, -10.4], [-7.5, 6.5], [-7.6, -4], [7.5, 10.3], [7, -5.8], [7, 3.9]]) { const [X, Z] = at(x, z); addCircleL({ x: X, z: Z, r: .45 }); }
+    if (C.boxes) {
+      W1_SITES.push({ set: 'cs_country', id: 'boxes', x: C.x, z: C.z, y: .03, ry: C.ry, near: 500 });
+      for (const [x, z] of [[-2.8, 5.3], [1.5, -6.1], [2.9, -12], [-2.3, -4.3], [-2.2, -8.5], [-3.1, -6.8], [-1.8, 8.4]]) { const [X, Z] = at(x, z); addCircleL({ x: X, z: Z, r: 1.45 }); }
+    }
+    for (const [d] of C.more || []) {
+      for (const k of [-1, 1]) { const [X, Z] = at(k * 4.3, d); W1_SITES.push({ set: 'cs_country', id: 'rail', x: X, z: Z, y: .03, ry: C.ry, near: 400 }); }
+      for (const k of [-1, 1]) box(k * 4.3 - .15, k * 4.3 + .15, d - 15.65, d + 15.65, { low: 1 });
+    }
+  }
   // 舊碼頭的河岸階梯（Mayflower Stairs 掃描）：兩座木棧橋中間，木樁牆面朝河（原檔正面朝 +z，轉成朝 −x），整塊沉到步道面以下，
   // 水面以上只露出牆頂與階梯口
   W1_SITES.push({ set: 'w1_stairs', id: 'stairs', x: CITY_X0 - OUT_D + 4.2, z: stZ(2) + 31, y: -7.02, ry: -Math.PI / 2, near: 500, zn: ZONES[0] });

@@ -96,6 +96,16 @@ const boats = BOAT_SPOTS.map((S, i) => {
   vehicles.push(v);
   return v;
 });
+// 以 http(s) 開啟時船身換成 boats.glb 的模型（船頭朝 +z、底面中心是船底，龍骨對到吃水線下 BOAT_DRAFT）；灣仔的原檔比較寬，橫向壓到船寬＋欄杆
+if (GLB_ON) loadProps('boats').then(it => {
+  if (!it) return;
+  for (const v of boats) {
+    const m = it[v.type]; if (!m) continue;
+    const o = propObject(m, 0, -BOAT_DRAFT, 0), sx = Math.min(1, (v.w + .3) / m.w);
+    o.scale.set(sx, 1, 1);
+    v.body.children[0].visible = false; v.body.add(o); v.glb = 1;
+  }
+}).catch(e => console.warn('boats', e));
 // 水面起伏（三道波疊起來；只給船用）
 const seaWave = (x, z, t) => .16 * Math.sin(x * .19 + t * 1.05) + .11 * Math.sin(z * .23 - t * .83 + 1.3) + .06 * Math.sin((x + z) * .41 + t * 1.7);
 const boatFloor = (x, z) => seaFloor(x, z) > SEA_Y - BOAT_DRAFT - .15;   // 這裡太淺，船過不去

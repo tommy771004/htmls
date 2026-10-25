@@ -482,6 +482,51 @@ input[type=text],input[type=tel],input[type=number],input[type=date],select,text
   .js .grid .item.rv,.js .revs .rev.rv,.js .wall .ph.rv,.js .sg.sg>.sgi.sgi{opacity:1;transform:none}
   .js .wall .ph.rv>svg,.js .wall .ph.rv>img{clip-path:none}
 }
+
+/* ===== 捲動動態（仿形象影片）：慣性捲動、Hero 停住後被下一段的布邊蓋過、標題逐字升起、照片揭開與速度斜切 =====
+   全部是附加規則；沒有 JS 或開了減少動態時，頁面維持原樣。
+   捲動時會每幀改寫的變數一律註冊成不繼承，避免整棵 DOM 每幀重算樣式（原本根元素的 --sy 就是這樣拖慢捲動的）。 */
+@property --sy{syntax:'<length>';inherits:false;initial-value:0px}
+@property --o{syntax:'<number>';inherits:false;initial-value:1}
+@property --sc{syntax:'<number>';inherits:false;initial-value:1}
+@property --ty{syntax:'<length>';inherits:false;initial-value:0px}
+@property --py{syntax:'<length-percentage>';inherits:false;initial-value:0px}
+@property --mk-c{syntax:'<percentage>';inherits:false;initial-value:0%}
+@property --mk-s{syntax:'<number>';inherits:false;initial-value:1.1}
+@property --mk-k{syntax:'<angle>';inherits:false;initial-value:0deg}
+body,body::before{--sy:inherit}
+.ph>svg,.ph>img{--py:inherit;--mk-s:inherit;--mk-k:inherit}
+html.mk-on{scroll-behavior:auto!important;overflow-anchor:none}
+/* Hero 停住；布邊掛在下一段上緣，跟著原生捲動 */
+.mk-pin{position:relative;display:flow-root;overflow-x:clip}
+.mk-pin>.mk-hero{position:sticky;transform-origin:50% 85%;will-change:transform}
+.mk-vb{position:relative;z-index:3;height:0;overflow-x:clip;pointer-events:none}
+.mk-next{position:relative;z-index:4}
+.mk-ve{position:absolute;left:0;top:var(--mk-vt);display:block;max-width:none;animation:mkDrift 70s linear infinite;will-change:transform}
+@keyframes mkDrift{to{transform:translate3d(var(--mk-p),0,0)}}
+.mk-band{position:absolute;left:0;white-space:nowrap;line-height:1;letter-spacing:.34em;will-change:transform}
+.mk-band span{display:block}
+/* 標題逐字、照片揭開 */
+.mk-ln{display:block;overflow:clip;padding:.1em 0 .18em;margin:-.1em 0 -.18em}
+.mk-ch{display:inline-block;transform-origin:0 100%}
+.mk-ph{clip-path:inset(var(--mk-c) 0 0 0 round var(--mk-rd,0px))}
+.mk-ph>svg,.mk-ph>img{scale:var(--mk-s)!important;transform:skewY(var(--mk-k));will-change:transform}
+@supports (animation-timeline: view()){
+  .mk-sda .mk-h{view-timeline:--mkh block}
+  .mk-sda .mk-ch{animation:mkCh linear both;animation-timeline:--mkh;animation-range:cover calc(var(--d) * 9%) cover calc(24% + var(--d) * 9%)}
+  @keyframes mkCh{from{transform:translate3d(0,112%,0) rotate(7deg)}60%{transform:translate3d(0,-4%,0) rotate(-.6deg)}to{transform:none}}
+  .mk-sda .mk-ph{view-timeline:--mkp block;animation:mkPh linear both;animation-timeline:--mkp;animation-range:entry 0% cover 42%}
+  .mk-sda .mk-ph>svg,.mk-sda .mk-ph>img{animation:mkPhIn linear both;animation-timeline:--mkp;animation-range:entry 0% cover 50%}
+  @keyframes mkPh{from{--mk-c:22%}to{--mk-c:0%}}
+  @keyframes mkPhIn{from{scale:1.22}to{scale:1.06}}
+  .mk-sda .mk-band{animation:mkBand linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+  @keyframes mkBand{from{transform:translate3d(0,0,0)}to{transform:translate3d(-22%,0,0)}}
+}
+@media (prefers-reduced-motion: reduce){
+  .mk-ch,.mk-ph>svg,.mk-ph>img,.mk-band{animation:none!important;transform:none!important}
+  .mk-ph{animation:none!important;clip-path:none!important}
+  .mk-vb{display:none}
+}
 </style>
 </head>
 <body>
@@ -1629,6 +1674,314 @@ if(patch && !reduce && window.matchMedia('(hover:hover) and (pointer:fine)').mat
 renderStatus();
 setInterval(renderStatus, 60000);
 
+})();
+</script>
+<script>
+var MK = {hero:'.hero',heads:'main h2',pics:'.ph',veil:{edge:'fray',color:'#e3dbca',thread:'#d3c7ad',shade:'rgba(27,42,74,.22)',feather:.26,mark:'INDIGO RIVET',markFont:'"Helvetica Neue",Arial,sans-serif',markWeight:'800',markColor:'rgba(27,42,74,.07)'}};
+/* ===== 捲動動態 =====
+   MK 設定在上面一行：hero 選擇器、蓋過 Hero 的布邊（veil）、要逐字升起的標題、要揭開的照片框。
+   1. 慣性捲動：只接管滑鼠滾輪；觸控板本身有慣性，交給原生捲動（疊一層平滑反而慢半拍），觸控與鍵盤也是原生。
+      可捲動的內層區塊、Ctrl 縮放與開著的對話框都不攔。
+   2. Hero 包進一個比它高的容器並 sticky，捲到底先停住；下一段提早往上蓋，它上緣掛著一道布邊（扇貝、鋸齒、撕紙、雲霧…），
+      布邊跟著下一段原生捲動，所以內容一定落在布上；布邊只在尺寸改變時畫一次，飄動與印字橫移都交給 CSS。
+   3. 標題切成字，每個字在行的遮罩裡錯落升起；照片框由下往上揭開、畫面慢慢收回原尺寸。支援捲動驅動動畫的瀏覽器
+      完全交給 CSS（不佔主執行緒），其他瀏覽器用 JS 依捲動位置計算。停在哪裡就是那個位置的樣子，不會卡在隱藏狀態。
+   4. 捲得快時照片順著方向微微斜切，停下就回正。 */
+(function(){
+  var C = window.MK || {}, doc = document, root = doc.documentElement;
+  if (!window.requestAnimationFrame || !doc.querySelector) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var SDA = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: view()'));
+  root.classList.add('mk-on');
+  if (SDA) root.classList.add('mk-sda');
+  function cl(v){ return v < 0 ? 0 : v > 1 ? 1 : v; }
+  function ease(v){ return 1 - Math.pow(1 - v, 3); }
+  function sm(v){ return v * v * (3 - 2 * v); }
+  function each(sel, fn){ Array.prototype.forEach.call(typeof sel === 'string' ? doc.querySelectorAll(sel) : sel, fn); }
+  var nav = doc.querySelector(C.nav || 'header');
+  function navH(){ return nav ? nav.getBoundingClientRect().height : 0; }
+  function maxY(){ return Math.max(0, root.scrollHeight - window.innerHeight); }
+
+  /* ---------- 1. 慣性捲動（滑鼠滾輪） ---------- */
+  var fine = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+  var cur = window.scrollY, target = cur, anim = false, lastSet = -1, lastT = 0, padUntil = 0;
+  function canScroll(el, dy){
+    for (; el && el !== doc.body && el !== root; el = el.parentElement){
+      var oy = getComputedStyle(el).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1){
+        if (dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0) return true;
+      }
+    }
+    return false;
+  }
+  function modalOpen(){ var m = doc.querySelector('dialog[open],[aria-modal="true"]'); return !!(m && m.getClientRects().length); }
+  // 觸控板：wheelDeltaY 是 deltaY 的 -3 倍，或不是 120 的倍數；滑鼠滾輪一格是 120
+  function pad(e){
+    if (e.deltaMode !== 0) return false;
+    var w = e.wheelDeltaY;
+    if (w) return w === -3 * e.deltaY || Math.abs(w) % 120 !== 0;
+    return Math.abs(e.deltaY) < 50 && e.deltaY % 1 !== 0;
+  }
+  function tick(now){
+    if (!anim) return;
+    var dt = Math.min(.05, (now - lastT) / 1000 || .016); lastT = now;
+    cur += (target - cur) * (1 - Math.exp(-dt * 10));
+    if (Math.abs(target - cur) < .4){ cur = target; anim = false; }
+    lastSet = Math.round(cur); window.scrollTo(0, cur);
+    if (anim) requestAnimationFrame(tick);
+  }
+  function go(y){
+    if (!anim) cur = window.scrollY;
+    target = Math.max(0, Math.min(maxY(), y));
+    if (!anim){ anim = true; lastT = performance.now(); requestAnimationFrame(tick); }
+  }
+  if (fine){
+    window.addEventListener('wheel', function(e){
+      if (e.ctrlKey || e.defaultPrevented || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (pad(e)){ padUntil = e.timeStamp + 400; if (anim){ anim = false; cur = target = window.scrollY; } return; }
+      if (e.timeStamp < padUntil) return;
+      var dy = e.deltaY * (e.deltaMode === 1 ? 36 : e.deltaMode === 2 ? window.innerHeight : 1);
+      if (canScroll(e.target, dy) || modalOpen()) return;
+      e.preventDefault();
+      go((anim ? target : window.scrollY) + dy);
+    }, { passive: false });
+    window.addEventListener('scroll', function(){
+      // 拖捲軸、按鍵或頁面自己捲動時交還給原生
+      if (anim && Math.abs(window.scrollY - lastSet) > 3) anim = false;
+      if (!anim) cur = target = window.scrollY;
+    }, { passive: true });
+    doc.addEventListener('click', function(e){
+      if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var id = a.getAttribute('href').slice(1), el = id ? doc.getElementById(id) : null;
+      if (!el && id) return;
+      e.preventDefault();
+      go(el ? el.getBoundingClientRect().top + window.scrollY - navH() + 1 : 0);
+      if (history.pushState) history.pushState(null, '', '#' + id);
+    });
+  }
+
+  /* ---------- 2. Hero 停住與布邊 ---------- */
+  var V = C.veil || {}, hero = C.hero && doc.querySelector(C.hero), pin = null, next = null, vb = null, band = null;
+  var VH = 0, D = 0, O = 0, F = 0, A = 0, X = 160;
+  if (hero && hero.parentNode){
+    pin = doc.createElement('div'); pin.className = 'mk-pin';
+    hero.parentNode.insertBefore(pin, hero); pin.appendChild(hero);
+    hero.classList.add('mk-hero');
+    next = pin.nextElementSibling;
+    vb = doc.createElement('div'); vb.className = 'mk-vb'; vb.setAttribute('aria-hidden', 'true');
+    pin.parentNode.insertBefore(vb, next);
+    if (V.mark){
+      band = doc.createElement('div'); band.className = 'mk-band';
+      band.style.color = V.markColor || 'rgba(0,0,0,.1)';
+      band.style.font = (V.markWeight || '700') + ' 10px ' + (V.markFont || 'serif');
+      band.innerHTML = '<span></span>';
+      vb.appendChild(band);
+    }
+  }
+  function mkc(cls, w, h, cw, ch){
+    var c = doc.createElement('canvas'); c.className = cls; c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h));
+    c.style.width = cw + 'px'; c.style.height = ch + 'px'; return c;
+  }
+  // 週期為 P 的布邊輪廓（往上凸的量），讓畫布可以無縫平移
+  function hash(i){ var s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+  function edgeFn(kind, P){
+    var t = 6.2832 / P, Z = V.size || 46;
+    if (kind === 'scallop') return function(x){ var u = ((x % Z) + Z) % Z / Z; return Math.sqrt(Math.max(0, 1 - Math.pow(u * 2 - 1, 2))) * Z * .42 + Math.sin(x * t) * 6; };
+    if (kind === 'zigzag') return function(x){ var u = ((x % Z) + Z) % Z / Z; return (1 - Math.abs(u * 2 - 1)) * Z * .55 + Math.sin(x * t * 2) * 5; };
+    if (kind === 'rib') return function(x){ var u = ((x % Z) + Z) % Z / Z; return Math.pow(Math.sin(u * 3.1416), .6) * Z * .5 + Math.sin(x * t) * 5; };
+    if (kind === 'torn') return function(x){ return 9 + Math.sin(x * t * 3) * 6 + Math.sin(x * t * 7 + 1.3) * 3.2 + Math.sin(x * t * 17 + 2.1) * 1.8 + Math.sin(x * t * 43 + .4) * 1 + Math.sin(x * t * 97) * .6; };
+    if (kind === 'fray') return function(x){ return 6 + Math.sin(x * t * 2) * 4; };
+    // cloud
+    return function(x, k){ k = k || 0; return 40 + Math.sin(x * t * 2 + k) * 18 + Math.abs(Math.sin(x * t * 3 + k * 1.7)) * 30 + Math.sin(x * t * 7 + k * 2.9) * 8; };
+  }
+  function paintEdge(g, w, P, top, h, s, kind, k){
+    var f = edgeFn(kind, P), col = V.color || '#fff', x, step = kind === 'cloud' ? 8 : 3;
+    g.setTransform(s, 0, 0, s, 0, 0);
+    function path(dy){ g.beginPath(); g.moveTo(0, h); for (x = 0; x <= w + step; x += step) g.lineTo(x, top + dy - f(x, k)); g.lineTo(w, h); g.closePath(); }
+    if (V.shade && kind !== 'cloud'){ path(-3); g.fillStyle = V.shade; g.fill(); }
+    path(0); g.fillStyle = col; g.fill();
+    // 下緣：實色到 Hero 底為止，再往下漸淡到透明，接上頁面底色不留接縫
+    g.save(); g.globalCompositeOperation = 'destination-out';
+    var fg = g.createLinearGradient(0, h - X, 0, h); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,1)');
+    g.fillStyle = fg; g.fillRect(0, h - X, w, X); g.restore();
+    if (kind === 'torn'){
+      g.beginPath(); for (x = 0; x <= w + step; x += step){ var y = top - f(x); if (x) g.lineTo(x, y); else g.moveTo(x, y); }
+      g.strokeStyle = V.fiber || 'rgba(255,255,255,.55)'; g.lineWidth = 3; g.stroke();
+    }
+    if (kind === 'fray'){
+      // 毛邊：一根根垂下的緯紗，長短依位置的雜湊值，週期內重複
+      g.strokeStyle = V.thread || col; g.lineWidth = 1.3; g.beginPath();
+      var n = Math.round(P / 3.2), dx = P / n;
+      for (x = 1; x < w; x += dx){
+        var i = Math.round(x / dx) % n, y0 = top - f(x), len = 6 + hash(i) * 24, sw = (hash(i + 99) - .5) * 5;
+        g.moveTo(x, y0 + 1); g.quadraticCurveTo(x + sw * .3, y0 - len * .55, x + sw, y0 - len);
+      }
+      g.stroke();
+    }
+    if (V.holes){
+      g.save(); g.globalCompositeOperation = 'destination-out';
+      var Z = V.size || 46;
+      for (x = Z / 2; x < w + Z; x += Z){ g.beginPath(); g.arc(x, top + Z * .2 - Math.sin(x * 6.2832 / P) * 6, Z * .1, 0, 6.2832); g.fill(); }
+      g.restore();
+    }
+    if (V.stitch){
+      g.setLineDash(V.stitchDash || [10, 7]); g.strokeStyle = V.stitch; g.lineWidth = 2; g.beginPath();
+      for (x = 0; x <= w + step; x += step){ var sy = top + (V.stitchGap || 26) - Math.sin(x * 6.2832 / P) * 6; if (x) g.lineTo(x, sy); else g.moveTo(x, sy); }
+      g.stroke(); g.setLineDash([]);
+    }
+  }
+  function layout(){
+    if (!pin) return;
+    VH = window.innerHeight;
+    var mob = window.innerWidth < 760, W = vb.clientWidth || root.clientWidth;
+    D = Math.round(VH * (mob ? .55 : .7));      // 停住的捲動距離
+    O = Math.round(VH * (mob ? .4 : .5));       // 下一段提早蓋上來的距離
+    F = Math.round(VH * (V.feather || .28));    // 布邊在下一段上緣之上多高
+    A = V.edge === 'cloud' ? 110 : 60;          // 布邊起伏的預留空間
+    var cs = getComputedStyle(hero), hh = hero.offsetHeight;
+    hero.style.top = Math.min(0, VH - hh - parseFloat(cs.marginBottom)) + 'px';
+    pin.style.height = (hh + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom) + D) + 'px';
+    vb.style.marginTop = (-O) + 'px';
+    // 布邊之後、會疊到布上的區塊都要排在布之上（前面若只是細分隔條，連後面那段一起）
+    var acc = 0;
+    for (var el = vb.nextElementSibling; el; el = el.nextElementSibling){
+      el.classList.add('mk-next'); acc += el.offsetHeight;
+      if (acc > O + X + 40) break;
+    }
+    var H = F + A + O + X, P = mob ? 420 : 640;
+    if (V.size){ P = Math.round(P / V.size) * V.size; }
+    each(vb.querySelectorAll('canvas'), function(c){ c.remove(); });
+    vb.style.setProperty('--mk-vt', (-(F + A)) + 'px');
+    vb.style.setProperty('--mk-p', (-P) + 'px');
+    var layers = V.edge === 'cloud' ? [{ k: 0, a: V.mist || .5, sp: 1.6, dy: -F * .4 }, { k: 2.3, a: 1, sp: 1, dy: 0 }] : [{ k: 0, a: 1, sp: 1, dy: 0 }];
+    layers.forEach(function(L, li){
+      var w = W + P, s, c;
+      if (V.edge === 'cloud'){
+        // 雲霧：畫在 1/4 解析度，CSS 放大時自然柔化
+        s = .25; c = mkc('mk-ve', w * s, H * s, w, H);
+      } else {
+        s = Math.min(window.devicePixelRatio || 1, 1.5); c = mkc('mk-ve', w * s, H * s, w, H);
+      }
+      var g = c.getContext('2d');
+      paintEdge(g, w, P, A + L.dy, H, s, V.edge || 'cloud', L.k);
+      c.style.opacity = L.a;
+      c.style.animationDuration = Math.round(P / (V.drift || 9) * L.sp) + 's';
+      if (li === 0 && layers.length > 1) c.style.animationDirection = 'reverse';
+      vb.insertBefore(c, band);
+    });
+    if (band){
+      var fs = Math.round(Math.max(24, Math.min(84, F * .3)));
+      band.style.top = (-F + Math.round(F * .3)) + 'px';
+      band.style.fontSize = fs + 'px';
+      var sp = band.firstChild, txt = '';
+      for (var i = 0; i < Math.ceil(W * 2.2 / (fs * (V.mark.length * .9 + 2))) + 2; i++) txt += V.mark + '  ';
+      sp.textContent = txt;
+    }
+    if (!SDA && band) band.style.transform = '';
+  }
+  function heroPush(){
+    if (!pin) return;
+    var r = vb.getBoundingClientRect(), p = cl((window.innerHeight - r.top + F) / (window.innerHeight * .95));
+    hero.style.scale = (1 + .035 * sm(p)).toFixed(4);
+    if (!SDA && band) band.style.transform = 'translate3d(' + (-(1 - cl(r.top / window.innerHeight)) * 18).toFixed(2) + '%,0,0)';
+  }
+
+  /* ---------- 3. 標題逐字升起、照片揭開 ---------- */
+  var heads = [], phs = [];
+  if (C.heads) each(C.heads, function(h){
+    if (hero && hero.contains(h)) return;
+    var ok = true;
+    each(h.querySelectorAll('br'), function(b){ if (b.parentNode !== h) ok = false; });
+    if (!ok) return;
+    if (!h.getAttribute('aria-label')) h.setAttribute('aria-label', h.textContent.replace(/\s+/g, ' ').trim());
+    var parts = h.innerHTML.split(/<br\s*\/?>/i).filter(function(s){ return s.replace(/\s|&nbsp;/g, '').length; });
+    h.innerHTML = parts.map(function(s){ return '<span class="mk-ln" aria-hidden="true">' + s.trim() + '</span>'; }).join('');
+    h.classList.add('mk-h');
+    var chs = [];
+    each(h.querySelectorAll('.mk-ln'), function(ln, li){
+      var n = 0, walk = doc.createTreeWalker(ln, NodeFilter.SHOW_TEXT), tn, list = [];
+      while ((tn = walk.nextNode())) list.push(tn);
+      list.forEach(function(t){
+        var f = doc.createDocumentFragment();
+        Array.from(t.nodeValue).forEach(function(c){
+          if (/\s/.test(c)){ f.appendChild(doc.createTextNode(c)); return; }
+          // 句讀黏在前一個字上，避免拆成行內區塊後被換到行首
+          if (/[，。、！？：；」』）》,.!?:;)]/.test(c) && f.lastChild && f.lastChild.className === 'mk-ch'){ f.lastChild.textContent += c; return; }
+          var sp = doc.createElement('span'), d = li * .22 + n * .045;
+          sp.className = 'mk-ch'; sp.textContent = c; sp.style.setProperty('--d', d.toFixed(3));
+          f.appendChild(sp); chs.push({ el: sp, d: d }); n++;
+        });
+        t.parentNode.replaceChild(f, t);
+      });
+    });
+    heads.push({ el: h, cs: chs, k: -1 });
+  });
+  if (C.pics) each(C.pics, function(p){
+    if (hero && hero.contains(p)) return;
+    p.classList.add('mk-ph'); p.style.setProperty('--mk-rd', getComputedStyle(p).borderTopLeftRadius);
+    phs.push(p);
+  });
+  // 不支援捲動驅動動畫時的 JS 版本
+  function reveal(){
+    if (SDA) return;
+    var vh = window.innerHeight, atEnd = window.scrollY >= maxY() - 2;
+    heads.forEach(function(h){
+      var r = h.el.getBoundingClientRect();
+      if (r.bottom < -50 || r.top > vh + 50){ if (r.top > vh && h.k !== 0){ h.k = 0; h.cs.forEach(function(c){ c.el.style.transform = 'translate3d(0,112%,0) rotate(7deg)'; }); } return; }
+      var e = atEnd ? 1 : cl((vh * .98 - r.top) / (vh * .34));
+      if (e === h.k) return; h.k = e;
+      var span = h.cs.length ? h.cs[h.cs.length - 1].d : 0;
+      h.cs.forEach(function(c){
+        var k = ease(cl((e * (1 + span) - c.d) * 1.6));
+        c.el.style.transform = k >= 1 ? '' : 'translate3d(0,' + ((1 - k) * 112).toFixed(1) + '%,0) rotate(' + ((1 - k) * 7).toFixed(2) + 'deg)';
+      });
+    });
+    phs.forEach(function(p){
+      var r = p.getBoundingClientRect();
+      if (r.bottom < -50 || r.top > vh + 50) return;
+      var k = ease(atEnd ? 1 : cl((vh - r.top) / (vh * .55)));
+      p.style.setProperty('--mk-c', ((1 - k) * 22).toFixed(2) + '%');
+      p.style.setProperty('--mk-s', (1.06 + .16 * (1 - k)).toFixed(4));
+    });
+  }
+
+  /* ---------- 4. 速度斜切：只處理畫面內的照片（IntersectionObserver 維護清單，不在每幀量位置） ---------- */
+  var vis = [], vy = 0, lastY = window.scrollY, skewOn = false;
+  if (phs.length && 'IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        var i = vis.indexOf(en.target);
+        if (en.isIntersecting && i < 0) vis.push(en.target);
+        if (!en.isIntersecting && i >= 0){ vis.splice(i, 1); en.target.style.setProperty('--mk-k', '0deg'); }
+      });
+    }, { rootMargin: '10% 0px' });
+    phs.forEach(function(p){ io.observe(p); });
+  }
+  function skewTick(){
+    var y = window.scrollY, d = y - lastY; lastY = y;
+    vy += (d - vy) * .22;
+    var a = Math.max(-3, Math.min(3, vy * -.085)), v = Math.abs(a) < .02 ? '0deg' : a.toFixed(3) + 'deg';
+    for (var i = 0; i < vis.length; i++) vis[i].style.setProperty('--mk-k', v);
+    if (Math.abs(vy) > .04 || d) requestAnimationFrame(skewTick);
+    else { skewOn = false; vy = 0; }
+  }
+
+  var queued = false;
+  function onScroll(){
+    if (!skewOn && vis.length){ skewOn = true; lastY = window.scrollY; requestAnimationFrame(skewTick); }
+    if (queued) return; queued = true;
+    requestAnimationFrame(function(){ queued = false; heroPush(); reveal(); });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  var rw = 0;
+  window.addEventListener('resize', function(){ if (window.innerWidth !== rw || !pin){ rw = window.innerWidth; layout(); } onScroll(); });
+  window.addEventListener('load', function(){ layout(); onScroll(); });
+  if (pin && window.ResizeObserver){ var rh = 0; new ResizeObserver(function(){ var h = hero.offsetHeight; if (Math.abs(h - rh) > 1){ rh = h; layout(); onScroll(); } }).observe(hero); }
+  rw = window.innerWidth;
+  layout(); heroPush(); reveal();
+  window.__mk = { layout: layout, sda: SDA };
 })();
 </script>
 </body>

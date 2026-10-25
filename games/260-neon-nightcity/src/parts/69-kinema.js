@@ -94,7 +94,7 @@ function kinBlow(h, R) {
 // 和原本 vehPairs 一樣的過濾：看不到的、高度差一個車身（直升機、從斷橋或跳台飛過去）、疊在車頂上的不算
 function kinPairOk(A, B) {
   if (A.g && !A.g.visible || B.g && !B.g.visible) return false;
-  if (Math.abs((A.y || 0) - (B.y || 0)) > 1.2 || A.under === B || B.under === A) return false;
+  if (Math.abs((A.y || 0) - (B.y || 0)) > 1.2 || A.under === B || B.under === A || A.towBy === B || B.towBy === A) return false;   // towBy：69-v8-civic.js 拖吊車拖著的車
   return Math.hypot(A.x - B.x, A.z - B.z) <= (A.len + B.len) / 2 + 1;
 }
 // 兩車前後兩個碰撞圓之間穿透最深的一對；n 從 B 指向 A，p 是接觸點

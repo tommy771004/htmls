@@ -60,6 +60,38 @@ export const SETS = [
   // 地堡（69-v7-bunker.js）：A 區的 CNC 加工中心與立式銑床、南牆與門框旁的人員門；正面都轉到 −z（人員門朝 +z）
   // 夜店出貨的夜梟改裝廂型車（69-v7-club.js）：卡通比例的運鈔車，車頭朝 +z；頁面再照 shvan 的車長車寬壓扁
   { out: 'v7van', tex: 1024, items: [{ id: 'van', file: 'armored_van', len: 5 }] },
+  // 路人舉起來拍照的手機（69-v9-ai.js）：orbarts 的 Smartphone Highpoly（CC BY 4.0，約 9.4 萬面）減到幾千面，直立、螢幕朝 +z、高 15 cm
+  // 地鐵（69-v9-metro.js）：Xlay3D 的 FREE // Subway Station & R46 Subway（CC BY 4.0）拆成車站（保留原檔座標：軌道沿 x、月台在 −z 側）與一節車廂；
+  // johhny_3D 的 Subway Entrance V2（CC BY 4.0）是街上的出入口。纜線與管線另外大幅減面
+  // texEdit：material 是車廂與月台的真實廣告圖集（版面相連，給矩形），JoinedDecals 的「74 Street」站名、6／7 路線圓標與報紙擦掉
+  { out: 'metro', tex: 1024, simplify: .5, simplifyError: .003, heavy: [/Cable|Tubo|Tuberia|PortaCables|Fluorescente|Papelera|Camara/, .15],
+    texEdit: {
+      material: { ads: 5, flip: true, emi: false, rects: [[0, 0, .238, .335], [.255, .03, .495, .333, 1], [0, .335, .226, .61], [.25, .335, .435, .605], [0, .605, .29, .748], [.29, .6, .515, .76],
+        [.515, .555, .79, .765], [.73, .61, 1, .98], [0, .748, .2, 1], [.2, .755, .355, 1], [.355, .748, .515, 1], [.515, .755, .73, 1]] },
+      JoinedDecals: { erase: [[.5, .81, 1, 1], [.805, .665, .965, .815]] },
+    }, items: [
+    { id: 'mt_station', file: 'subway_station', scale: 1, origin: [0, 0, 0], dropPath: /TrainEmpty|CartelPilar/ },   // 柱子上的「74 Street」站名牌拿掉（頁面畫自己的站名）
+    { id: 'mt_car', file: 'subway_station', only: /^TrainEmpty$/, dropPath: /PuertasLaterales/, dropBox: [[-60, -12.6, -5, 10, -5, 5]], scale: 1, origin: [0, 0, 0] },   // 一節 24 m（x −12..12，軌道中心 z 0），拿掉掛在另一節上的連結器
+    // 側門：每邊四組對開門（門中心 x ±2.76、±8.27，地板 y 0.14），一扇門的網格兩側都有；左扇（−x 那扇）與右扇各拆成一件，頁面整件往 ∓x 滑 0.72 m
+    { id: 'mt_doorL', file: 'subway_station', only: /^TrainEmpty$/, dropBox: [[-60, -12.6, -5, 10, -5, 5]], keepPath: /(Puertas|PegatinasNegrasPuertas|MarcosCristalesPuertas|CristalesPuertas|GomasPuertas)Laterales2_LP/, scale: 1, origin: [0, 0, 0] },
+    { id: 'mt_doorR', file: 'subway_station', only: /^TrainEmpty$/, dropBox: [[-60, -12.6, -5, 10, -5, 5]], keepPath: /(Puertas|PegatinasNegrasPuertas|MarcosCristalesPuertas|CristalesPuertas|GomasPuertas)Laterales_LP/, scale: 1, origin: [0, 0, 0] },
+  ] },
+  // 排水道（69-v9-drain.js）：SPLEEN VISION 的 dirty tunnel（CC BY 4.0，照片掃描的混凝土箱涵，寬 3 m、高 1.84 m、長 9 m，兩端是黃黑警示條的端牆；
+  // 原檔是 specular-glossiness 材質，先用 gltf-transform 的 metalRough() 轉成 dirty_tunnel_mr.glb）。dr_mouth 是整段（河岸的排水口），dr_seg 只取中間 6.4 m（沒有端牆）讓頁面接成長隧道
+  { out: 'drain', src: '.cache/drain', tex: 2048, items: [
+    { id: 'dr_mouth', file: 'dirty_tunnel_mr', sloppy: .1, seam: .02, renorm: 1, scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_seg', file: 'dirty_tunnel_mr', sloppy: .1, seam: .02, renorm: 1, clip: [-3, 3, -1, 3, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
+    // 檢查井的牆面與地面：從同一個箱涵切出內側牆面（避開牆角與偏亮的牆頂；整道左右兩面輪流用，另有開口上方、開口兩側兩種寬度）與一塊地面，頁面放大疊層鋪滿
+    { id: 'dr_wall', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [1.15, 3, .2, 1.2, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_wall2', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [-3, -1.15, .2, 1.2, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_lintel', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [1.15, 3, .25, 1.35, -1.4, 1.4], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_pier', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [1.15, 3, .25, 1.35, -.46, .46], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_floor', file: 'dirty_tunnel_mr', sloppy: .1, seam: .02, renorm: 1, clip: [-1.3, 1.3, -1, .15, -1.4, 1.4], scale: 1, origin: [0, 0, 0] },
+  ] },
+  // texEdit：欄杆站牌原本是真實的站名、N／R 路線圓標與 MTA 標誌，重畫成虛構的「霓虹城地鐵」
+  { out: 'metro_gate', tex: 1024, texEdit: { Green_Texture: { flip: true, paint: [[.709, .252, .988, .331, mtSignSvg('sub')], [.709, .35, .988, .429, mtSignSvg('sub')],
+    [.704, .655, .982, .811, mtSignSvg('st')], [.704, .826, .98, .981, mtSignSvg('st')]] } }, items: [{ id: 'mt_gate', file: 'subway_entrance', scale: .66, origin: [-.4, 0, -1.5], drop: /^sidewalk|Sidewalk/ }] },   // 原檔帶一塊 17 m 的人行道板（拿掉）；縮成燈柱高 2.7 m、欄杆圍出 2 × 4.4 m，開口（兩支燈柱那端）朝 +z，樓梯往 −z 下到地面下 3.3 m
+  { out: 'phone', tex: 512, simplify: .04, simplifyError: .01, items: [{ id: 'phone', file: 'smartphone_highpoly', h: .15 }] },
   { out: 'bunker', tex: 1024, items: [
     { id: 'bk_cnc', file: 'cnc_milling_machine', h: 2.6, rot: 2 },
     { id: 'bk_mill', file: 'vertical_milling_machine', pitch: -9, h: 2.1, rot: 2, simp: [.25, .02] },   // 原檔是毫米、往後斜放，先繞 x 扶正
@@ -87,6 +119,45 @@ export const SETS = [
     { id: 'hd_cart', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], dropBox: [[-2, 2, 1.5, 4, -3, 5], [1.05, 1.32, 1.15, 1.75, 1.85, 2.33]] },
     { id: 'hd_umb', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], clip: [-2, 2, 1.5, 4, -3, 5] },
     { id: 'hd_sauce', file: 'hot_dog_stand', scale: .5, origin: [.1855, -1.003, .317], clip: [1.05, 1.32, 1.15, 1.75, 1.85, 2.33] },
+  ] },
+  // 第五部曲之四的施工區雜物與電訊箱（69-v5-street.js、20-props.js 的 boxesN；原檔在 .cache/works/，CC BY 4.0）：nathansp 的 Construction Fence（一片，
+  // 長邊沿 x，頁面把寬度壓到 2.4 m）、Blender3D 的 Simple Jersey Barrier（長邊沿 z，頁面把斷面壓成 0.6 × 0.85）、PT34 的 Traffic cone、
+  // rollthebryce 的 Construction Barricades 只取旗手警示牌（pCube17）、Mathieu.Godard 的 Electrical box、Thamium9 的 Portable Generator、
+  // krambulini 的 Light Tower（拖車燈塔）、Martin Topolski 的 Construction Sand Pile（照片掃描）
+  { out: 'v5works', src: '.cache/works', tex: 1024, mask: /^ConstructionSign/, noEmi: /^ConstructionSign/, recolor: { standardSurface1: [.56, .58, .6, 1, .45] }, items: [
+    { id: 'fence', file: 'construction_fence', h: 1.95 },
+    { id: 'jersey', file: 'simple_jersey_barrier', len: 3.8 },
+    { id: 'cone', file: 'traffic_cone_game_ready', h: .72 },
+    { id: 'wsign', file: 'construction_barricades', only: /^pCube17$/, h: 2.0 },
+    { id: 'tbox', file: 'electrical_box_-_free', h: 1.15 },
+    { id: 'gen', file: 'portable_generator_3d_model', h: .62 },
+    { id: 'ltower', file: 'light_tower', h: 3.6 },
+    { id: 'sand', file: 'photoscan_low-poly_construction_sand_pile', len: 2.2 },
+  ] },
+  // 兩款遊艇（31-boats.js，原檔在 .cache/boats/，CC BY 4.0）：dannzjs 的 Yatch I（second edition）當浪刃 7.2 m、hsinpa 的 SpeedBoat 當灣仔 5.4 m
+  { out: 'boats', src: '.cache/boats', tex: 1024, simplifyMat: [[/^(Steel|ControlSide|Plate)$/, .2, .01]], items: [
+    { id: 'wavecut', file: 'yatch_i_second_edition', len: 7.2, rot: 1 },
+    { id: 'bayhop', file: 'speedboat', len: 5.4 },
+  ] },
+  // 霓虹堡軍事基地（69-v7-bunker.js 的 FORT）與銀行防撞柱（69-v5-street.js），原檔在 .cache/fort/，全部 CC BY 4.0（2026-10-25 下載，作者見 CREDITS.md）：
+  // 鐵絲網圍籬只取有刺絲的那一片（Cube.002）、轉成沿 x；機棚是半圓拱棚，坦克從南面開出去；
+  // 彈藥箱取原檔下面那一箱（上面那箱開著蓋）；油桶取貨櫃組裡的第一個桶子
+  { out: 'fort', src: '.cache/fort', tex: 512, items: [
+    { id: 'fence', file: 'fence', only: /^Cube\.002_0$/, h: 3.4, rot: 1 },
+    { id: 'tower', file: 'watchtower', h: 12 },
+    { id: 'hangar', file: 'quonset', len: 25 },
+    { id: 'booth', file: 'booth', h: 2.9 },
+    { id: 'boom', file: 'boom', len: 4.2 },
+    { id: 'sandbag', file: 'sandbags', len: 4.6 },
+    { id: 'crate', file: 'crates', pick: (x, y) => y < -.25, len: 1.5 },
+    { id: 'drum', file: 'barrels', only: /^Cylinder_328$/, h: 1.1 },
+    { id: 'bollard', file: 'bollard', h: .95 },
+  ] },
+  // 北嶺鐵道的貨運列車（21-rail.js 的 sets.frt），原檔在 .cache/rail/，CC BY 4.0：Heataker 的 EMD-SD40 柴電機車（駕駛室在 +z）、zairiq 的棚車與平車
+  { out: 'rail_frt', src: '.cache/rail', tex: 512, simplify: .15, items: [
+    { id: 'loco', file: 'sd40', len: 20.8 },
+    { id: 'box', file: 'boxcar', len: 15.2 },
+    { id: 'flat', file: 'flatcar', len: 15.4 },
   ] },
   // 第五部曲之五的施工大樓與塔吊（69-v5-crane.js，原檔在 .cache/v5/）：Stas Gunko 的 Construction（CC BY 4.0，公尺，23×13 m、八層、層高 4 m）
   // 照高度切成三段：底層（兩層店面＋第三層，到 13.0 m 的樓板底）、標準層（13.0–25.0 m 三層，頁面疊十幾次）、頂層（25.0 m 以上，沒封頂的框架與牆）；
@@ -135,6 +206,8 @@ export const SETS = [
     { id: 'bat', file: 'baseball_bat', len: .84, orient: ['-x', 'y'], center: 1 },
     { id: 'katana', file: 'cyberpunk_katana', len: 1.0, orient: ['-x', 'y'], center: 1 },
     { id: 'baton', file: 'police_baton_game_ready_-_pbr', len: .5, orient: ['-z', 'y'], center: 1 },
+    // 電擊槍（69-combat.js 的 stun）：GoldbergR 的 X26 Taser Low-Poly（CC BY 4.0），原檔長軸在 z、純色材質
+    { id: 'stun', file: 'x26_taser_low-poly', len: .17, orient: ['z', 'y'], center: 1 },
   ] },
   // 快速道路的橋墩柱身（21-coast.js 的 FWY_PIERS，27-props.js 依橋面高度拉長）：PolyDavid 的 Cyberpunk Highway（CC BY 4.0）裡的混凝土柱（Object_63）與側面的黃色飾條（Object_65），
   // 原檔單位公尺、柱高 8.1 m，長邊（2.9 m）轉成橫跨橋面。其他部件（橋面、路燈、指示牌）不用；原檔放在 .cache/hwy/
@@ -381,6 +454,21 @@ export const SETS = [
     { id: 'fern', file: 'bush', h: .6, drop: /Ivy|wall|hosta|Fern2|FernLong/ },
     { id: 'fernlong', file: 'bush', h: .5, drop: /Ivy|wall|hosta|Fern1/ },
   ] },
+  // 田園一景：abhayexe 的 Countryside Scene Free（CC BY 4.0，公尺）。整景是 8 m 柏油路兩側護欄、沙土地、碎石、三種楓樹各兩棵，路沿 z，原點是路面中心；
+  // 路上倒著的八個小貨櫃另外一件（boxes，同一個原點），兩件疊起來就是原本的樣子。擺在灰鷗島的兩條路上（21-coast.js 的 CS_SITES），
+  // 楓樹、貨櫃（放大成 20 呎）與護欄另外拆出來到處重複用（公園與島上的樹、拖吊場、施工大樓工地、島上的路邊）。
+  // 原檔材質都叫 Wheatgrass_Mat.041_N：_10 樹皮、_11 樹葉、_3~_7 草叢、_2／_12 碎石
+  { out: 'cs_country', src: '.cache/props', tex: 1024, metalMax: 0, mask: /^Wheatgrass_Mat\.041_(3|4|5|6|7|11)$/, noEmi: /./,
+    // 碎石（_2／_12）二十萬面減到幾千，球形路樁與地面（_9）、護欄（_0）、木箱（無編號、_8）、麥草（_6）、樹皮（_10）各自減
+    simplifyMat: [[/_(2|12)$/, .05, .05, 'permissive'], [/_(9|0)$/, .25, .02], [/^Wheatgrass_Mat\.041(_8)?$/, .35, .01], [/_6$/, .4, .02], [/_10$/, .4, .02]], items: [
+      { id: 'scene', file: 'countryside_scene_free', scale: 1, origin: [0, .2, -1.9], dropPath: /SM_Container/ },
+      { id: 'boxes', file: 'countryside_scene_free', scale: 1, origin: [0, .2, -1.9], only: /^SM_Container/ },
+      { id: 'acer1', file: 'countryside_scene_free', h: 9, only: /^Acer_large_1_LOD2\.001/ },
+      { id: 'acer2', file: 'countryside_scene_free', h: 10, only: /^Acer_large_2_LOD2\.001/ },
+      { id: 'acer3', file: 'countryside_scene_free', h: 8, only: /^Acer_large_3_LOD2\.001/ },
+      { id: 'crate', file: 'countryside_scene_free', h: 2.59, only: /^SM_Container\.001_22_5$/ },
+      { id: 'rail', file: 'countryside_scene_free', only: /^Rails\.001/ },
+    ] },
   // 珊瑚灘：椰子樹、救生員塔（小屋的 BLEND 改 MASK）、海灘陽傘
   { out: 'cst_beach', src: '.cache/world2', tex: 1024, metalMax: .1, mask: /^booth$/, simplifyMat: [[/Palm_4_Leaf/, .5, .01]], items: [
     { id: 'palm', file: 'palm', h: 10 },
@@ -643,12 +731,13 @@ function place(prims, cfg, scale0) {
 // blur：照片立面上拍到的真實招牌，把那幾個矩形（UV，v 由上往下）重度模糊成看不出字的色塊
 const AD_PAL = [['#0b0f1a', '#ff3b8d', '#29e0ff'], ['#ffd400', '#141414', '#e4002b'], ['#101820', '#00ffa3', '#f5f5f5'], ['#e4002b', '#ffffff', '#ffd400'],
   ['#1b0033', '#cc99ff', '#ff6a00'], ['#f2f2f2', '#0a2fff', '#ff2d55'], ['#002b36', '#2aa198', '#fdf6e3'], ['#ff6a00', '#1a1a1a', '#ffffff'], ['#06121f', '#ffb000', '#ff3b8d']];
+const AD_PAL_LIGHT = AD_PAL.filter(([bg]) => parseInt(bg.slice(1, 3), 16) + parseInt(bg.slice(3, 5), 16) + parseInt(bg.slice(5, 7), 16) > 300);   // 不發光的紙本海報用亮底，深底在車廂裡像一塊黑板
 const AD_LAT = ['KAGEMORI', 'NOVA DRIFT', 'PULSE/9', 'ORBITAL COLA', 'LUMEN AIR', 'HEXA', 'KITE MOBILE', 'ZEPHYR', 'MIRAGE TV', 'AKIRO', 'VOLTA', 'NEONIX', 'SORA BANK', 'QUILL', 'TANUKI', 'HALO 24', 'RIKKA', 'OMNI-7', 'FERRO', 'CIRRUS'];
 const AD_CJK = ['霓虹拉麵', '夜鷹電機', '雲端酒造', '赤羽鐘錶', '狐火電影', '鐵馬機車', '月光銀行', '電腦書店', '星屑咖啡', '光環劇院', '龍門飯店', '極光通訊', '白鷺藥局', '黑潮唱片', '燈籠茶屋', '電光彈珠'];
 const AD_TAG = ['24H', 'NEW', 'OPEN', '¥980', '-50%', 'SALE', 'LIVE', '2077', 'VR', '4K'];
 const FONT_CJK = 'PingFang TC, Heiti TC, sans-serif', FONT_LAT = 'Avenir Next Condensed, Helvetica Neue, sans-serif';
-function adSvg(x, y, w, h, r) {
-  const [bg, fg, ac] = AD_PAL[Math.floor(r() * AD_PAL.length)], pick = (a) => a[Math.floor(r() * a.length)];
+function adSvg(x, y, w, h, r, pal = AD_PAL) {
+  const [bg, fg, ac] = pal[Math.floor(r() * pal.length)], pick = (a) => a[Math.floor(r() * a.length)];
   let o = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${bg}"/>`;
   const t = (tx, ty, sz, fill, str, font, anchor = 'middle') => `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-family="${font}" font-weight="800" font-size="${sz.toFixed(1)}" fill="${fill}" text-anchor="${anchor}">${str}</text>`;
   if (h > w * 2.2) {   // 直立招牌：中文直排
@@ -672,8 +761,28 @@ function adSvg(x, y, w, h, r) {
   }
   return o;
 }
-async function adAtlas(img, seed) {
+// 第 5 個值 sym：這一格在模型上有正著貼也有轉 180° 貼的，畫成點對稱、不放字的圖形海報
+function adSym(x, y, w, h, r) {
+  const [bg, fg, ac] = AD_PAL_LIGHT[Math.floor(r() * AD_PAL_LIGHT.length)], cx = x + w / 2, cy = y + h / 2, m = Math.min(w, h);
+  let o = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${bg}"/>`;
+  for (let i = 0; i < 3; i++) { const d = h * (.08 + i * .07), t = h * .03; o += `<rect x="${x}" y="${y + d}" width="${w}" height="${t}" fill="${ac}"/><rect x="${x}" y="${y + h - d - t}" width="${w}" height="${t}" fill="${ac}"/>`; }
+  o += `<circle cx="${cx}" cy="${cy}" r="${m * .32}" fill="${fg}"/><circle cx="${cx}" cy="${cy}" r="${m * .18}" fill="${ac}"/>`;
+  o += `<polygon points="${cx},${cy - m * .1} ${cx + m * .1},${cy} ${cx},${cy + m * .1} ${cx - m * .1},${cy}" fill="${bg}"/>`;
+  return o;
+}
+// rects（地鐵車廂加的選項）：版面彼此相連、找不出黑邊時，直接給版面的 UV 矩形（v 由上往下），底圖保留原檔；flip：原檔貼圖上下顛倒存放
+async function adAtlas(img, seed, rects, flip) {
   const S = 1024, O = 2048, k = O / S;
+  if (rects) {
+    let r0 = seed * 9301 + 49297; const r = () => (r0 = (r0 * 16807) % 2147483647) / 2147483647;
+    const body = rects.map(([u0, v0, u1, v1, sym]) => {
+      const x = u0 * O, y = v0 * O, w = (u1 - u0) * O, h = (v1 - v0) * O, o = sym ? adSym(x, y, w, h, r) : adSvg(x, y, w, h, r, AD_PAL_LIGHT);
+      return flip ? `<g transform="translate(0 ${(2 * y + h).toFixed(1)}) scale(1 -1)">${o}</g>` : o;
+    }).join('');
+    const base = await sharp(Buffer.from(img), { limitInputPixels: false }).resize(O, O, { fit: 'fill' }).removeAlpha().png().toBuffer();
+    const top = await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${O}" height="${O}">${body}</svg>`), { limitInputPixels: false }).png().toBuffer();
+    return { png: await sharp(base).composite([{ input: top }]).png().toBuffer(), n: rects.length };
+  }
   const { data } = await sharp(Buffer.from(img), { limitInputPixels: false }).resize(S, S, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const on = new Uint8Array(S * S), lab = new Int32Array(S * S).fill(-1), boxes = [];
   for (let i = 0; i < S * S; i++) on[i] = data[i * 3] * .3 + data[i * 3 + 1] * .59 + data[i * 3 + 2] * .11 > 18 ? 1 : 0;
@@ -691,8 +800,41 @@ async function adAtlas(img, seed) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${O}" height="${O}"><rect width="${O}" height="${O}" fill="#000"/>${body}</svg>`;
   return { png: await sharp(Buffer.from(svg), { limitInputPixels: false }).png().toBuffer(), n: boxes.length };
 }
-async function blurAtlas(img, rects) {
+// erase（地鐵貼花加的選項）：有 alpha 的貼花圖集模糊後字的輪廓還讀得出來，直接把那幾格清成透明（貼花就不見了）
+// paint（地鐵閘口加的選項）：[u0, v0, u1, v1, 畫法(x, y, w, h) → SVG]，把原檔的真實站牌整塊重畫；flip 同 rects
+async function paintAtlas(img, list, flip) {
   const O = 2048, base = await sharp(Buffer.from(img), { limitInputPixels: false }).resize(O, O, { fit: 'fill' }).removeAlpha().png().toBuffer();
+  const body = list.map(([u0, v0, u1, v1, fn]) => {
+    const x = u0 * O, y = v0 * O, w = (u1 - u0) * O, h = (v1 - v0) * O, o = fn(x, y, w, h);
+    return flip ? `<g transform="translate(0 ${(2 * y + h).toFixed(1)}) scale(1 -1)">${o}</g>` : o;
+  }).join('');
+  const top = await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${O}" height="${O}">${body}</svg>`), { limitInputPixels: false }).png().toBuffer();
+  return sharp(base).composite([{ input: top }]).png().toBuffer();
+}
+// 地鐵閘口的兩種站牌（虛構的「霓虹城地鐵」，綠色 N 線圓標和頁面的站牌一致）
+function mtSignSvg(kind) { return (x, y, w, h) => {   // function 宣告：SETS 在檔案開頭就呼叫它
+  const T = (tx, ty, sz, fill, str, font, anchor = 'start', wt = 700) => `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-family="${font}" font-weight="${wt}" font-size="${sz.toFixed(1)}" fill="${fill}" text-anchor="${anchor}">${str}</text>`;
+  let o = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#141617"/><rect x="${x + w * .02}" y="${y + h * .9}" width="${w * .96}" height="${h * .025}" fill="#c9cbc8"/>`;
+  if (kind === 'sub') {
+    o += T(x + w * .04, y + h * .66, h * .5, '#e9ebe6', 'METRO', FONT_LAT, 'start', 800);
+    o += T(x + w * .96, y + h * .66, h * .3, '#e9ebe6', '霓虹城地鐵', FONT_CJK, 'end');
+  } else {
+    const r = h * .17, cy = y + h * .3;
+    o += `<circle cx="${x + w * .03 + r}" cy="${cy}" r="${r}" fill="#2fae5a"/>` + T(x + w * .03 + r, cy + r * .42, r * 1.25, '#fff', 'N', FONT_LAT, 'middle', 800);
+    o += T(x + w * .05 + r * 2.2, cy + r * .45, h * .2, '#e9ebe6', '全線各站', FONT_CJK);
+    o += T(x + w * .04, y + h * .78, h * .26, '#e9ebe6', 'Metro Station', FONT_LAT, 'start', 600);
+  }
+  return o;
+}; }
+async function eraseAtlas(img, rects) {
+  const O = 2048, { data } = await sharp(Buffer.from(img), { limitInputPixels: false }).resize(O, O, { fit: 'fill' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (const [u0, v0, u1, v1] of rects) for (let y = Math.round(v0 * O); y < Math.round(v1 * O); y++) for (let x = Math.round(u0 * O); x < Math.round(u1 * O); x++) data.fill(0, (y * O + x) * 4, (y * O + x) * 4 + 4);
+  return sharp(data, { raw: { width: O, height: O, channels: 4 } }).png().toBuffer();
+}
+async function blurAtlas(img, rects) {
+  // alpha：貼花圖集（地鐵的 JoinedDecals）要保留透明度，沒有 alpha 的照片立面照舊
+  const O = 2048, meta = await sharp(Buffer.from(img), { limitInputPixels: false }).metadata();
+  const base = await (meta.hasAlpha ? sharp(Buffer.from(img), { limitInputPixels: false }).resize(O, O, { fit: 'fill' }) : sharp(Buffer.from(img), { limitInputPixels: false }).resize(O, O, { fit: 'fill' }).removeAlpha()).png().toBuffer();
   const comp = [];
   for (const [u0, v0, u1, v1] of rects) {
     const left = Math.round(u0 * O), top = Math.round(v0 * O), width = Math.round((u1 - u0) * O), height = Math.round((v1 - v0) * O);
@@ -906,10 +1048,10 @@ async function build(set) {
     const edit = set.texEdit && m && set.texEdit[m.getName()];
     if (edit && m.getBaseColorTexture()) {
       // 換掉真實商標：廣告圖集同時當底色與自發光（版面形狀照原檔，內容是原創的）；照片立面只模糊招牌
-      const src = m.getBaseColorTexture(), png = edit.ads != null ? (await adAtlas(src.getImage(), edit.ads)).png : await blurAtlas(src.getImage(), edit.blur);
+      const src = m.getBaseColorTexture(), png = edit.paint ? await paintAtlas(src.getImage(), edit.paint, edit.flip) : edit.ads != null ? (await adAtlas(src.getImage(), edit.ads, edit.rects, edit.flip)).png : edit.erase ? await eraseAtlas(src.getImage(), edit.erase) : await blurAtlas(src.getImage(), edit.blur);
       const nt = out.createTexture(m.getName() + (edit.ads != null ? '_ads' : '_clean')).setImage(new Uint8Array(png)).setMimeType('image/png');
       n.setBaseColorTexture(nt);
-      if (edit.ads != null) n.setEmissiveTexture(nt).setEmissiveFactor([1, 1, 1]);
+      if (edit.ads != null && edit.emi !== false) n.setEmissiveTexture(nt).setEmissiveFactor([1, 1, 1]);   // emi: false：車廂裡的紙本海報不發光
       else if (m.getEmissiveTexture()) n.setEmissiveTexture(copyTex(m.getEmissiveTexture())).setEmissiveFactor([1, 1, 1]);
     } else if (set.keyWhite && m && m.getBaseColorTexture() && set.keyWhite.test(m.getName())) {
       // keyWhite（第四輪）：沒有 alpha 的葉片貼圖，白底當成透明（配合 mask）
@@ -1078,7 +1220,9 @@ async function build(set) {
       prims = prims.filter((p) => p.path.split('/').some((n) => src.only.test(n)));
       if (src.inst != null) { const ks = [...new Set(prims.map(key))]; prims = prims.filter((p) => key(p) === ks[src.inst]); }
     }
-    if (set.dropPath) prims = prims.filter((p) => !set.dropPath.test(p.path));   // 依祖先節點名（整條路徑）拿掉車、路燈、路面
+    if (set.dropPath) prims = prims.filter((p) => !set.dropPath.test(p.path));
+    if (src.dropPath) prims = prims.filter((p) => !src.dropPath.test(p.path));
+    if (src.keepPath) prims = prims.filter((p) => src.keepPath.test(p.path));   // 只留路徑符合的（同一個原檔拆出會動的零件：地鐵車門）   // 物件自己的（同一個原檔拆成兩件：整景不要貨櫃）   // 依祖先節點名（整條路徑）拿掉車、路燈、路面
     if (set.heavy) prims = prims.map((p) => {   // [路徑, 比例]：面數特別高的小零件（冷氣室外機、路燈）單獨大幅減面，其他照整組的 simplify
       if (!set.heavy[0].test(p.path) || p.idx.length < 90) return p;
       const [ix] = MeshoptSimplifier.simplify(Uint32Array.from(p.idx), Float32Array.from(p.pos), 3, Math.max(36, Math.floor(p.idx.length * set.heavy[1] / 3) * 3), .08);

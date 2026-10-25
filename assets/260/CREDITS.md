@@ -63,6 +63,13 @@
 
 街上、夜店、酒吧與車行裡的人物是 Quaternius 的 [Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) 男女底模與 [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) 動作（CC0），由 `games/260-neon-nightcity/blender/people.py` 重新分區材質、掛上髮型後壓縮成 `blender/out/people.glb`，打包時內嵌。
 
+換裝的「Jason 造型」「Lucia 造型」（開場主角預設穿 Jason）與街上、夜店排隊和舞池裡的幾個 Lucia 是下表兩個 Sketchfab 掃描人物：原檔沒有骨架，`tools/scan-people.mjs`（Blender 跑 `blender/scan_people.py`）綁到上面那副 Quaternius 骨架、量化壓縮成 `people/<id>.glb`，只在 http(s) 下、第一次有人要穿時才下載。兩個都是遊戲角色的非官方同人模型，與 Rockstar Games 無關。原檔放在 gitignore 的 `games/260-neon-nightcity/.cache/people/`。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `people/jason.glb` | [Jason Duval & GTA VI](https://sketchfab.com/3d-models/jason-duval-gta-vi-e6eefc3185fb4bcda7cdf9753924e162) | [BakhtiarSource](https://sketchfab.com/iranan) | CC BY 4.0 |
+| `people/lucia.glb` | [GTA 6 GIRL SKIN](https://sketchfab.com/3d-models/gta-6-girl-skin-4abc4ab140d14a5db236309f679d2ac0) | [SYMXY_](https://sketchfab.com/SYMXY_) | CC BY 4.0 |
+
 ## 車流
 
 街上的車都是減面版本（`tools/traffic.mjs` 烘成頂點色，近景約 3–4 千面、遠景約 1 千面），內嵌在頁面裡：BMW E34 與 Mercedes-Benz 190E 借用上表 `e34`、`evo190` 兩台（授權與作者同上表），其餘是下表 DanielZhabotinsky 的虛構廠牌車（原檔不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/cars/`）。車身顏色依遊戲的調色盤重新上色，計程車、警車與廂型車保留原本的塗裝。
@@ -89,10 +96,13 @@
 | `urban_cop` | [Urban '10 Cop Enforcer - Low poly model](https://sketchfab.com/3d-models/urban-10-cop-enforcer-low-poly-model-745830362bb342128ef6509345606ffe) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `ambulance` | [Shvan '92 Ambulance - Low Poly model](https://sketchfab.com/3d-models/shvan-92-ambulance-low-poly-model-2856dd3c61f940909dced9a5c0379484) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `md84` | [MD '84 Armored - Low poly model（SWAT 裝甲車）](https://sketchfab.com/3d-models/md-84-armored-low-poly-model-26e809cce40e4359a3199649f12ef295) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `tow` | [Lightbody '90 MD Tow Truck - Low poly model（拖吊車：拖吊場、CHROME WORKS 門口）](https://sketchfab.com/3d-models/lightbody-90-md-tow-truck-low-poly-model-5cba208001c64e8ea164f89e4dde91e7) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `fire_chief` | [Fairheaven SW '80 Fire Dept. - Low poly model（消防指揮車：派遣、分局門口）](https://sketchfab.com/3d-models/fairheaven-sw-80-fire-dept-low-poly-model-0cd661aaab6949ba9d77dbb13ab146c5) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `firetruck` | [Fire engine/Fire truck low poly game asset（消防水箱車：派遣、醫院門口）](https://sketchfab.com/3d-models/fire-enginefire-truck-low-poly-game-asset-2f663c7477374d30af9f80c528fff55c) | [FixedShark554](https://sketchfab.com/FixedShark554) | CC BY 4.0 |
 
 ## 街區建築與道具（`props/`）
 
-`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載（`chrome` 是走進 CHROME WORKS 改裝廠才下載，四件都減面到約三成五），`casino`（霓鑽賭場入口的兩張輪盤桌與 B1 的三扇金庫門）走進賭場 1 樓或 B1 才下載，不減面；`cas_hall`（賭場 1 樓整個大廳，約 28 萬面）走進賭場 1 樓才下載；`bunker`（地堡的銑床、車銑複合機與人員門）走近地堡 300 m 內或走進地堡才下載，`v7van`（夜店出貨的廂型車）開始出貨時才下載，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
+`games/260-neon-nightcity/tools/props.mjs` 把下表的原檔（不進 repo，放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`）擺正、縮放、壓縮成 `props/*.glb`，尺寸與來源寫在 `props/props.json`。建築組拆成一棟一棟，金屬粗糙貼圖裡的洋紅玻璃遮罩改寫成「窗戶編號」貼圖，夜裡每扇窗各自亮燈。頁面只在以 http(s) 開啟時才下載：建築與拉麵攤開場就下載，室內道具走進酒吧或車庫才下載（`chrome` 是走進 CHROME WORKS 改裝廠才下載，四件都減面到約三成五），`casino`（霓鑽賭場入口的兩張輪盤桌與 B1 的三扇金庫門）走進賭場 1 樓或 B1 才下載，不減面；`cas_hall`（賭場 1 樓整個大廳，約 28 萬面）走進賭場 1 樓才下載；`bunker`（地堡的銑床、車銑複合機與人員門）走近地堡 300 m 內或走進地堡才下載，`v7van`（夜店出貨的廂型車）開始出貨時才下載，`phone`（路人拍照用的手機，減面到約 4%）開場就下載（以檔案開啟或還沒下載好用方塊替身），`metro`（地鐵月台與車廂，約 47 萬面，高面數的電線、燈管、垃圾桶等小零件另外減到一成五）走進地鐵站才下載、`metro_gate`（地鐵入口）開場就下載，以檔案開啟用程式建模的替身，`v5shop`（第五部曲的商店街；原檔在 `.cache/v5/`）走近楓林里商店街 160 m 內才下載：服飾店店面拿掉原店名的立體字與人行道、玻璃改成淡灰透明。`v5pd`（舊碼頭第九分局北半的紅磚老分局，空拍掃描）縫合分塊後照 UV 縫線減面到約 22 萬面，和一般建築一樣走近 520 m 內才下載；`v5hosp`（醫院西側急診樓換成的紅磚舊院區正面，原檔只掃了正面，背後由頁面補一個量體）同樣做法，約 24 萬面。`v5street`（第五部曲的街道小設施：公車候車亭與熱狗攤）開場就下載，以檔案開啟用程式建模的替身。`v5works`（施工區的圍籬、紐澤西護欄、交通錐、旗手警示牌、發電機、拖車燈塔、沙堆與人行道的電訊箱；原檔在 `.cache/works/`）與 `boats`（兩款遊艇的船身；原檔在 `.cache/boats/`）也是開場就下載，以檔案開啟用程式建模的替身；圍籬與護欄的模型比例和替身不同，頁面照替身的尺寸壓扁（圍籬寬度、護欄斷面）。`fort`（霓虹堡軍事基地的圍籬、崗哨塔、拱棚機棚、崗亭、柵欄桿、沙包、貨箱、油桶，以及銀行門前與霓虹堡大門外的防撞柱；原檔在 `.cache/fort/`）開場就下載，紐澤西護欄與燈塔借 `v5works`；`rail_frt`（北嶺鐵道的貨運列車：柴電機車減面到一成五、棚車、平車；原檔在 `.cache/rail/`）和電聯車一樣走近鐵道橋才下載，平車上的貨箱用 `fort` 的貨箱。TampaJoey 的 Military Style Building 也下載了，但門是關著的（動畫才會開），坦克開不出來，沒有用。`v5tower`／`v5crane`／`v5site`（第五部曲之五的霓峰塔工地）走近才看得到：框架大樓照樓板高度切成底層、標準層、頂層三段，頁面疊成 202 m、兩份背對背；塔吊的桅桿標準節與塔頂（旋轉機構、駕駛室、吊臂、平衡臂、塔尖）各自減面，桅桿疊 78 節到 233 m；以檔案開啟、或鏡頭在 700 m 外用程式建模的替身。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -121,6 +131,9 @@
 | `bunker`（北嶺地堡製造區的立式銑床 `bk_mill`，減面到約兩成五） | [Vertical milling machine](https://sketchfab.com/3d-models/vertical-milling-machine-0e7444ee28aa4150b60b966179085f55) | [vramstudio](https://sketchfab.com/vramstudio) | CC BY 4.0 |
 | `bunker`（北嶺地堡製造區的車銑複合機 `bk_lathe`） | [Lathe](https://sketchfab.com/3d-models/lathe-c2b8ba51351740ecb62c0b5a563b5ae7) | [herdiansyahhadi](https://sketchfab.com/herdiansyahhadi) | CC BY 4.0 |
 | `v7van`（LAZARUS 出貨的夜梟改裝廂型車車身，頁面壓成 4.5 × 2.4 m） | [Armored Van Gltf](https://sketchfab.com/3d-models/armored-van-gltf-3f8f20dccb62471289045875f37d7a71) | [Danish337](https://sketchfab.com/Danish337) | CC BY 4.0 |
+| `phone`（第九部曲路人舉起來拍照的手機，頁面縮到 15 cm 高） | [Smartphone Highpoly](https://sketchfab.com/3d-models/smartphone-highpoly-90a952e6345e4cbb8a8fb32067453fb6) | [OrbArts](https://sketchfab.com/orbarts) | CC BY 4.0 |
+| `metro`（地鐵月台 `mt_station`、R46 車廂 `mt_car` 與左右車門 `mt_doorL`／`mt_doorR`；車廂廣告換成原創海報，月台貼花的站名、路線圓標與報紙擦掉，柱子上的站名牌拿掉） | [FREE // Subway Station & R46 Subway](https://sketchfab.com/3d-models/free-subway-station-r46-subway-ae5aadde1c6f48a19b32b309417a669b) | [Alex Murias - Unikosplay（Xlay3D）](https://sketchfab.com/Xlay3D) | CC BY 4.0 |
+| `metro_gate`（地鐵入口的欄杆與球燈，縮成 0.66 倍、拿掉人行道板；站名牌與交通局標誌重畫成虛構的「METRO · 霓虹城地鐵」） | [Subway Entrance V2](https://sketchfab.com/3d-models/subway-entrance-v2-9bf519fd97ec4685a5d171442494c2a6) | [johhny3D](https://sketchfab.com/johhny3D) | CC BY 4.0 |
 | `bunker`（北嶺地堡的人員門 `bk_door`：山坡入口旁與室內南牆） | [Bunker Door](https://sketchfab.com/3d-models/bunker-door-deb898e42397499aabedd6913723c0be) | [Gabriel Gauthier](https://sketchfab.com/Gab629) | CC BY 4.0 |
 | `v5shop`（縫線服飾的店面） | [Storefronts with opening doors (empty stores)](https://sketchfab.com/3d-models/storefronts-with-opening-doors-empty-stores-151b488b26dd4ff4b15c4c03dc0711e6) | [Jungle Jim](https://sketchfab.com/jungle_jim) | CC BY 4.0 |
 | `v5shop`（掛衣架） | [Wardrobe Rack](https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855) | [Khoa Nguyen](https://sketchfab.com/ngdkh) | CC BY 4.0 |
@@ -129,6 +142,28 @@
 | `v5hosp`（聖瑪格麗特醫院的舊院區正面） | [Samaritan Hospital Frontage](https://sketchfab.com/3d-models/samaritan-hospital-frontage-316005d0b39b4791b1f54d50594d51ca) | [artfletch](https://sketchfab.com/artfletch) | CC BY 4.0 |
 | `v5street`（公車候車亭；背牆三片玻璃另外建成會碎的實例） | [Modern Bus Stop Shelter](https://sketchfab.com/3d-models/modern-bus-stop-shelter-2904d92a65b947e7bed44319bc320e84) | [Ottto3d](https://sketchfab.com/Ottto3ds) | CC BY 4.0 |
 | `v5street`（熱狗攤：攤車、遮陽傘、醬料拆成三件） | [Hot Dog Stand](https://sketchfab.com/3d-models/hot-dog-stand-182671a3e8e644b8bae2decc3745d49e) | [BeaBea](https://sketchfab.com/beabea.) | CC BY 4.0 |
+| `v5works`（施工區的鐵網圍籬，寬度壓成 2.4 m 一片） | [Construction Fence](https://sketchfab.com/3d-models/construction-fence-b4695ee8badb41caa1dd3e57bc9bbc70) | [nathansp](https://sketchfab.com/nathansp) | CC BY 4.0 |
+| `v5works`（紐澤西護欄，斷面壓成 0.6 × 0.85 m） | [Simple Jersey Barrier](https://sketchfab.com/3d-models/simple-jersey-barrier-3064d9fb498c459e8f94e621dc7e9936) | [Blender3D](https://sketchfab.com/Blender3D) | CC BY 4.0 |
+| `v5works`（交通錐） | [Traffic cone (Game ready)](https://sketchfab.com/3d-models/traffic-cone-game-ready-8cdac192abd044988c314eeb6377a3a0) | [PT34](https://sketchfab.com/PT34) | CC BY 4.0 |
+| `v5works`（施工區上游的旗手警示牌，只取警示牌） | [Construction Barricades](https://sketchfab.com/3d-models/construction-barricades-32fd7c8c35854920b9557d1aa71af3fe) | [rollthebryce](https://sketchfab.com/rollthebryce) | CC BY 4.0 |
+| `v5works`（人行道的電訊箱） | [Electrical box - FREE](https://sketchfab.com/3d-models/electrical-box-free-383a234d6d80421fbe67080048cbbc70) | [Mathieu Godard](https://sketchfab.com/Mathieu.Godard) | CC BY 4.0 |
+| `v5works`（施工區的發電機） | [Portable Generator 3D Model](https://sketchfab.com/3d-models/portable-generator-3d-model-309ebac9ff054ce6bb96534f1645484d) | [Thamium9](https://sketchfab.com/Thamium9) | CC BY 4.0 |
+| `v5works`（施工區的拖車燈塔） | [Light Tower](https://sketchfab.com/3d-models/light-tower-9addea6a4129438b83a1fc3ed4a784ec) | [krambulini](https://sketchfab.com/krambulini) | CC BY 4.0 |
+| `v5works`（施工區的沙堆，照片掃描） | [Photoscan Low-poly Construction Sand Pile](https://sketchfab.com/3d-models/photoscan-low-poly-construction-sand-pile-7a7533e1ecab4b1d96da55cc3ad9ad98) | [Martin Topolski](https://sketchfab.com/martin.topolski) | CC BY 4.0 |
+| `boats`（浪刃 Wavecut 24 的船身） | [Yatch I (second edition)](https://sketchfab.com/3d-models/yatch-i-second-edition-b826e1c52d604c599b893967bed8a254) | [dannzjs](https://sketchfab.com/dannzjs) | CC BY 4.0 |
+| `boats`（灣仔 Bayhop 17 的船身，橫向壓到船寬） | [SpeedBoat](https://sketchfab.com/3d-models/speedboat-df5db2118b1944e0915441012c89527c) | [hsinpa](https://sketchfab.com/hsinpa) | CC BY 4.0 |
+| `fort`（霓虹堡的鐵絲網圍籬，只取有刺絲的那一片） | [Modular Chain Link Fence Set](https://sketchfab.com/3d-models/modular-chain-link-fence-set-bd85a8005ff0403cab2f1e9845016b8f) | [FrodoUndead](https://sketchfab.com/FrodoUndead) | CC BY 4.0 |
+| `fort`（霓虹堡的鋼架崗哨塔） | [Military watchtower #1](https://sketchfab.com/3d-models/military-watchtower-1-33bbf3553e464270867f70bede244982) | [zachari-blinn](https://sketchfab.com/zachari-blinn) | CC BY 4.0 |
+| `fort`（霓虹堡的半圓拱機棚） | [Quonset Hut](https://sketchfab.com/3d-models/quonset-hut-5213606fbe334f64b929dfedffcf71af) | [John](https://sketchfab.com/gold-experience) | CC BY 4.0 |
+| `fort`（霓虹堡大門的崗亭） | [Guard Booth with interior](https://sketchfab.com/3d-models/guard-booth-with-interior-181cd7b921c14f70ba5b64d3f4fdd8db) | [castleonsandYT](https://sketchfab.com/castleonsandYT) | CC BY 4.0 |
+| `fort`（霓虹堡大門對開的柵欄桿） | [Automatic Boom Barriers](https://sketchfab.com/3d-models/automatic-boom-barriers-0013365d67f84b8bb22d62e128f69fa2) | [Maxwell autodoors](https://sketchfab.com/maihupronoob) | CC BY 4.0 |
+| `fort`（霓虹堡的沙包牆） | [Sandbag Barrier (Ready for Unreal Engine)](https://sketchfab.com/3d-models/sandbag-barrier-ready-for-unreal-engine-593800671c8e45eca93b8b7c765c0f77) | [G4AGamingLabs](https://sketchfab.com/G4AGamingLabs) | CC BY 4.0 |
+| `fort`（霓虹堡與貨運列車平車上的軍火貨箱，只取蓋著的那一箱） | [Military Crates](https://sketchfab.com/3d-models/military-crates-4c9619e4336f4cbe9390d4c679e04fc2) | [LuddePudde](https://sketchfab.com/luddepubde) | CC BY 4.0 |
+| `fort`（霓虹堡的油桶，只取第一個桶子） | [Modular containers and barrells pack game ready](https://sketchfab.com/3d-models/modular-containers-and-barrells-pack-game-ready-542b68aa56ee44f49c8860fdf158f831) | [Salah3D](https://sketchfab.com/abbasyounis214) | CC BY 4.0 |
+| `fort`（銀行門前與霓虹堡大門外的防撞柱） | [Concrete Bollard Scan 01 &#124; Retopologized](https://sketchfab.com/3d-models/concrete-bollard-scan-01-retopologized-f475b7954bae4acdb00183171744aece) | [Kai Moisch](https://sketchfab.com/kaimoisch) | CC BY 4.0 |
+| `rail_frt`（北嶺鐵道貨運列車的柴電機車） | [EMD-SD40 Diesel Electric Locomotive](https://sketchfab.com/3d-models/emd-sd40-diesel-electric-locomotive-7271826d3a584a22849c949a7755f79d) | [Heataker](https://sketchfab.com/Heataker) | CC BY 4.0 |
+| `rail_frt`（貨運列車的棚車） | [Train boxcar](https://sketchfab.com/3d-models/train-boxcar-1b6187fe9fdf443a9579e1775cc3343e) | [zairiq zairiq](https://sketchfab.com/zairiqzairiq) | CC BY 4.0 |
+| `rail_frt`（貨運列車的平車） | [Train_flatcar](https://sketchfab.com/3d-models/train-flatcar-d75522d400384424936d632523130bbc) | [zairiq zairiq](https://sketchfab.com/zairiqzairiq) | CC BY 4.0 |
 | `v5tower`（霓峰塔的框架大樓：底層、標準層、頂層） | [Construction](https://sketchfab.com/3d-models/construction-84e65d542fa9456593b10ffb0d0802ec) | [Stas Gunko](https://sketchfab.com/Stasgunko) | CC BY 4.0 |
 | `v5crane`（250 m 塔吊：桅桿標準節、塔頂與吊臂） | [Liebherr tower crane](https://sketchfab.com/3d-models/liebherr-tower-crane-0f8befc223734608a5d54aad4904951f) | [Cem Alagozlu](https://sketchfab.com/cem.alagozlu) | CC BY 4.0 |
 | `v5site`（工地的工寮與材料棚） | [Construction Pack (Low Poly)](https://sketchfab.com/3d-models/construction-pack-low-poly-b17b94aa9c30435e88ca0c090a6cfed7) | [Şafak Binen](https://sketchfab.com/sfkbnn) | CC BY 4.0 |
@@ -286,6 +321,14 @@
 
 沒有用到的三個：[Highway (Modular) [Street Assets Vol. 04]](https://sketchfab.com/3d-models/highway-modular-street-assets-vol-04-6776eeb54b7c45bfa51dd0fa7edc2830)（Alt，CC BY 4.0；路面寬 8.4 m 的套件，門架與隔音牆要拉長一倍多、玻璃是半透明點陣）、[Modular Bridge ( low Poly ) Game Ready.](https://sketchfab.com/3d-models/modular-bridge-low-poly-game-ready-0d7261538b4e4433b230f083a0cef38f)（Salah3D，CC BY 4.0；橋墩和橋面連成一整塊）、American Road Overpass（jimbogies；410 MB、公分單位的整座場景）。
 
+### 田園一景（`props/cs_country.glb`）
+
+`tools/props.mjs` 的 `cs_country` 組把下表的整個場景拆成幾件：整景（柏油路、兩側護欄、沙土地、碎石、楓樹；路上倒著的八個小貨櫃另外一件 `boxes`）擺在灰鷗島的兩條碎石路上；三款槭樹混進公園與島上的樹；一個小貨櫃放大成 20 呎貨櫃，疊在拖吊場西牆邊與霓峰塔工地；護欄沿島上的路再接幾段。碎石二十萬面減到幾千，樹皮、貨櫃、護欄、路樁各自減面，貼圖縮到 1024。開場就下載（整景與護欄走近才擺），以檔案開啟時不擺。原檔放在 gitignore 的 `games/260-neon-nightcity/.cache/props/`。
+
+| 物件 | 用途 | 原檔 | 作者 | 授權 |
+|---|---|---|---|---|
+| `cs_country` `scene` `boxes` `acer1`–`3` `crate` `rail` | 灰鷗島的田園路段、公園的槭樹、拖吊場與工地的貨櫃、島上的護欄 | [Countryside Scene Free](https://sketchfab.com/3d-models/countryside-scene-free-d86d86d99991483c87339637d16401a7) | [abhayexe](https://sketchfab.com/abhayexe) | CC BY 4.0 |
+
 ## 武器、警方載具與路障（第二階段）
 
 `tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 的消防栓換掉人行道的程式建模消防栓，電箱擺在人行道、加油機擺在遊艇碼頭岸上（只在 http(s) 下），加油機貼圖上的品牌字樣與貼紙模糊成色塊（`texEdit`）。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。
@@ -311,6 +354,7 @@
 | `arms` `bat` | [Baseball Bat](https://sketchfab.com/3d-models/baseball-bat-30b41d95e3cc4f53afb4bac3f71fd821) | [CGunwale](https://sketchfab.com/cgunwale) | CC BY 4.0 |
 | `arms` `katana` | [Cyberpunk Katana](https://sketchfab.com/3d-models/cyberpunk-katana-aa5505c8bd9c41c692159fa79e0e1693) | [Mikołaj Michalak](https://sketchfab.com/M_Michalak) | CC BY 4.0 |
 | `arms` `baton` | [Police Baton (Game ready - PBR)](https://sketchfab.com/3d-models/police-baton-game-ready-pbr-8ed437ccdead4fe4a69f2026d4d81057) | [mahyarhdri](https://sketchfab.com/mahyarhdri) | CC BY 4.0 |
+| `arms` `stun` | [X26 Taser (Low-Poly)](https://sketchfab.com/3d-models/x26-taser-low-poly-8cd8726928a8410eb2fc731a1f81e37a) | [GoldbergR](https://sketchfab.com/GoldbergR) | CC BY 4.0 |
 | `street` `hydrant` | [Fire Hydrant](https://sketchfab.com/3d-models/fire-hydrant-d012d05e8bca49928a2944e043d93fb7) | [TraianDumbrava](https://sketchfab.com/TraianDumbrava) | CC BY 4.0 |
 | `street` `ebox` | [Electrical box - FREE](https://sketchfab.com/3d-models/electrical-box-free-383a234d6d80421fbe67080048cbbc70) | [Mathieu Godard](https://sketchfab.com/Mathieu.Godard) | CC BY 4.0 |
 | `street` `pump` | [gas pump](https://sketchfab.com/3d-models/gas-pump-add0f902b9164718bd0540e88bf9927e) | [打螺丝](https://sketchfab.com/youoyouyou) | CC BY 4.0 |

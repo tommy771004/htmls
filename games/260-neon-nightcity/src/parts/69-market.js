@@ -7,7 +7,7 @@
 // 股價、持股與資產都跟現金一樣即時寫進 nc260.motors（存檔第 3 版的 stk、props 欄位）。
 // 關著遊戲的期間（第 4 版的 ts 到現在，最多算 24 小時）開場時補算：股價照同樣的規則回歸與漂移，資產照遊戲時間累積收入。
 // 資產防守失敗（69-squads.js）會停業 10 分鐘：props.pause 記著停到什麼時候（真實時間），期間不累積收入。
-// 排在 69-heist 之後、69-phone 之前；頂層只用到 68 以前的東西（rayHooks、boxesN、boxesMesh）。
+// 排在 69-heist 之後、69-phone 之前；頂層只用到 68 以前的東西（rayHooks、boxesN、boxesMs）。
 
 const STOCKS = [
   { id: 'IVLT', name: '鐵庫保全', ind: '保全', base: 84, rival: 'SNTL', tgt: '鐵庫保全運鈔車' },
@@ -62,7 +62,7 @@ rayHooks.push((R, hit) => {
   for (let k = 0; k < boxesN.length; k++) {
     const b = boxesN[k];
     if (boxHp[k] <= 0 || Math.abs(b.x - R.ox) > 120 || Math.abs(b.z - R.oz) > 120) continue;
-    hit(rayCyl(R, b.x, b.z, .32, .15, 1.3), 'ebox', k);
+    hit(rayCyl(R, b.x, b.z, .5, .15, 1.3), 'ebox', k);
   }
 });
 const _bm = new T.Matrix4().makeScale(0, 0, 0);
@@ -71,7 +71,7 @@ function boxHit(k, dmg, mine) {
   const b = boxesN[k];
   boxHp[k] -= dmg; sparks(b.x, .9, b.z, 8, 3);
   if (boxHp[k] > 0) return;
-  instSet(boxesMesh, k, _bm);
+  for (const m of boxesMs) instSet(m, k, _bm);
   const ci = circles.findIndex(c => c.x === b.x && c.z === b.z); if (ci >= 0) { circles.splice(ci, 1); colDirty(); }
   sparks(b.x, .8, b.z, 40, 7);
   blast(b.x, .6, b.z, 4, 70, mine ? 'player' : null);
@@ -192,4 +192,4 @@ function marketUpdate(dt) {
 }
 
 // 測試 API（window.__nc.gta.market）
-const marketApi = { STOCKS, ESTATES, mk, news, newsAdd, newsOffline, offline: ms => marketOffline(Date.now() - ms), shock: stockShock, tick: stockTick, buy: stockBuy, sell: stockSell, estBuy, estCollect, boxHp, boxHit };
+const marketApi = { STOCKS, ESTATES, mk, news, newsAdd, newsOffline, offline: ms => marketOffline(Date.now() - ms), shock: stockShock, tick: stockTick, buy: stockBuy, sell: stockSell, estBuy, estCollect, boxHp, boxHit, boxes: boxesN, boxMs: () => boxesMs.length };

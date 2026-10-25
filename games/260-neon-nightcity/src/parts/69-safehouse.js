@@ -132,6 +132,12 @@ const OUTFITS = {
   jax: [{ name: '軍綠工作服' }, { name: '沙色迷彩長袖', look: { top: 0x6a6046, bot: 0x4a4434, coat: 1, hat: 1 } },
     { name: '黑背心', look: { top: 0x111215, bot: 0x2a2d35, coat: 0, hat: 0, glow: 0xff3fa0, glowI: 1.2 } }, { name: '橘色工裝連身服', look: { top: 0xc0662a, bot: 0xc0662a, coat: 1, hat: 0, shoe: 0x2a2420 } }],
 };
+// 掃描人物造型（40-people.js 的 scanGet，只在 http(s) 下載；以檔案開啟時清單裡不列）：每位主角都能換，凱爾在 http(s) 下預設穿 Jason
+const SCAN_LOOKS = [{ name: 'Jason 造型', scan: 'jason', look: { scan: 'jason', female: false } },
+  { name: 'Lucia 造型', scan: 'lucia', look: { scan: 'lucia', female: true, longHair: 1 } }];
+for (const id in OUTFITS) OUTFITS[id].push(...SCAN_LOOKS);
+const outfitOk = o => !o.scan || GLB_ON;
+const outfitOf = c => outfit[c.id] ?? (c.id === 'kael' && GLB_ON ? OUTFITS.kael.findIndex(o => o.scan === 'jason') : 0);
 const ROBE_COLS = [0x2e2e30, 0xb8402a, 0xd8d6d0, 0x1f2f45, 0x6a6046];
 const OUTFIT_KEY = 'nc260.outfit', CREW_LOOK0 = CREW.map(c => ({ ...c.look }));
 const outfit = (() => { try { const o = JSON.parse(localStorage.getItem(OUTFIT_KEY)); if (o && typeof o === 'object') return o; } catch {} return {}; })();
@@ -139,6 +145,7 @@ const outfit = (() => { try { const o = JSON.parse(localStorage.getItem(OUTFIT_K
 function outfitApply(i, k, save) {
   const c = CREW[i], O = OUTFITS[c.id];
   k = clamp(Math.floor(+k) || 0, 0, O.length - 1);
+  if (!outfitOk(O[k])) k = 0;
   const l = { ...O[k].look };
   for (const key of ['top', 'bot', 'shoe', 'glow']) if (l[key] !== undefined) l[key] = lin(l[key]);
   c.look = { ...CREW_LOOK0[i], ...l };
@@ -147,11 +154,11 @@ function outfitApply(i, k, save) {
   if (i === crew.cur) me.look(0, { r: rng(9), ...c.look });
   crewLook();
 }
-CREW.forEach((c, i) => outfitApply(i, outfit[c.id]));
+CREW.forEach((c, i) => { const k = outfitOf(c), had = c.id in outfit; outfitApply(i, k); if (!had) delete outfit[c.id]; });
 function aptRobe() {
-  const i = crew.cur, c = CREW[i], O = OUTFITS[c.id], cur = outfit[c.id] || 0;
+  const i = crew.cur, c = CREW[i], O = OUTFITS[c.id], cur = outfitOf(c);
   dialog(`衣架 · ${c.name}`, `${c.name} 的衣服都掛在這裡（每間安全屋的衣架掛的是同一批）。現在穿的是「${O[cur].name}」。`, [
-    ...O.map((o, k) => ({ t: k === cur ? `${o.name}（現在穿的）` : o.name, fn: () => { closeDialog(); if (k !== cur) { outfitApply(i, k, true); toast(`${c.name} 換上${o.name}`); } } })),
+    ...O.flatMap((o, k) => outfitOk(o) ? [{ t: k === cur ? `${o.name}（現在穿的）` : o.name, fn: () => { closeDialog(); if (k !== cur) { outfitApply(i, k, true); toast(`${c.name} 換上${o.name}`); } } }] : []),
     { t: '算了', fn: closeDialog },
   ]);
 }
@@ -402,4 +409,4 @@ ctxHooks.push((p, near) => {
 });
 
 // 測試 API（window.__nc.gta.apt）
-const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut, level: aptLevel, climb: aptClimb, OUTFITS, outfit, wear: (k, i = crew.cur) => outfitApply(i, k, true), curb: aptCurb, stow: aptStow, carOut: aptCarOut, garage: aptGarage };
+const aptApi = { APT, load: aptLoad, enter: aptEnter, nap: aptNap, out: aptOut, level: aptLevel, climb: aptClimb, OUTFITS, outfit, outfitOf, wear: (k, i = crew.cur) => outfitApply(i, k, true), curb: aptCurb, stow: aptStow, carOut: aptCarOut, garage: aptGarage };

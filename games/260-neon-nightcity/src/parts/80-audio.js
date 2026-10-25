@@ -284,7 +284,7 @@ const sfx = (() => {
       barF.frequency.setTargetAtTime(s.where === 'bar' ? 9000 : 700, t, .25);
       if (eng && !eng.rec && rec.ready && (eng.car ? ENG_CAR : ENG_BIKE).every(([n]) => rec.loop[n])) startEngine(eng.v, true);   // 上車時錄音還沒解碼完：解碼好就換掉合成引擎
       if (eng && eng.rec) {
-        const r = clamp(s.rpm, 0, 1), X = EXH[st.exh || 0], vol = (.3 + s.thr * .2 + (s.nitro ? .08 : 0)) * X[0];
+        const r = clamp(s.rpm, 0, 1), X = EXH[st.exh || 0], vol = (.3 + s.thr * .2 + (s.nitro ? .08 : 0)) * X[0] * (s.eg ?? 1);   // eg：68-vdetail.js 下車沒熄火的車，照距離變小聲
         for (const L of eng.layers) {
           const w = Math.max(0, 1 - Math.abs(r - L.c) / .3);
           L.lg.gain.setTargetAtTime(w * vol, t, .06);
@@ -294,7 +294,7 @@ const sfx = (() => {
         const base = eng.car ? 38 : 52, f = base + s.rpm * (eng.car ? 120 : 160) * (1 + s.gear * .06);
         eng.o1.frequency.setTargetAtTime(f, t, .05); eng.o2.frequency.setTargetAtTime(f * (eng.car ? .5 : 1.01), t, .05);
         eng.fl.frequency.setTargetAtTime(300 + s.thr * 1400 + s.rpm * 900, t, .06);
-        eng.g.gain.setTargetAtTime((.05 + s.thr * .07 + s.rpm * .04 + (s.nitro ? .04 : 0)) * EXH[st.exh || 0][0], t, .08);
+        eng.g.gain.setTargetAtTime((.05 + s.thr * .07 + s.rpm * .04 + (s.nitro ? .04 : 0)) * EXH[st.exh || 0][0] * (s.eg ?? 1), t, .08);
       }
       // loops() 只在戶外由 policeUpdate 呼叫：進室內或停止呼叫超過 0.25 s，警笛與旋翼照樣收掉
       if (t - (st.loopT || 0) > .25) {

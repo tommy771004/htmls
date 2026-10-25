@@ -676,6 +676,12 @@ const ISLE_SITES = {
   ruin: { x: ISLE.x0 + 70, z: ISLE.z0 + 150, ry: 0, w: 52, d: 64 },        // dasy444 的 abandoned city street，放大 2.3 倍
   office: { x: BRIDGE_X + 8, z: ISLE.z0 + 160, ry: Math.PI, w: 62, d: 63 },  // dasy444 的 Loft 18 environment（辦公室與一圈板樓）；北面的門是安全屋（69-safehouse.js）
 };
+// 田園一景（27-world1.js 擺 cs_country）：從橋上島那條碎石路、往燈塔那條（路燈在路邊 5 m，剛好在護欄外）。ry 是路的方向（模型 +z），
+// more：沿路再接幾段護欄（路面中心往 +z 的距離），boxes：路上倒著小貨櫃（燈塔那條是死路）
+const CS_SITES = [
+  { x: BRIDGE_X, z: ISLE.z0 + 52, ry: 0, more: [[47]] },
+  { x: BRIDGE_X + 62, z: ISLE.z0 + 120, ry: Math.PI / 2, boxes: 1, more: [[31.3], [62.6]] },
+];
 // 基地裡每棟樓的佔地：tools/foot.mjs 從模型量出來寫進 props.json 的 foot（模型座標），換成邏輯座標的矩形 [x0, x1, z0, z1, 高]。
 // 樓與樓之間的巷子、中庭走得進去；沒有量過就退回整塊
 function isleFoot(id) {
@@ -713,6 +719,7 @@ const beacon = new T.Group();
   for (let i = 0; i < 140; i++) {
     const tx = ISLE.x0 + 8 + r2() * (ISLE.x1 - ISLE.x0 - 16), tz = ISLE.z0 + 8 + r2() * (ISLE.z1 - ISLE.z0 - 16);
     if (sites.some(s => Math.abs(tx - s.x) < s.w / 2 + 5 && Math.abs(tz - s.z) < s.d / 2 + 5)) continue;
+    if (CS_SITES.some(c => { const dx = tx - c.x, dz = tz - c.z, a = dx * Math.cos(c.ry) - dz * Math.sin(c.ry), b = dx * Math.sin(c.ry) + dz * Math.cos(c.ry); return Math.abs(a) < 15 && Math.abs(b) < 20; })) continue;   // 田園一景自己有樹
     if (Math.abs(tx - BRIDGE_X) < 8 && tz < ISLE.z0 + 124 || Math.abs(tz - (ISLE.z0 + 120)) < 7 && tx > BRIDGE_X || Math.hypot(tx - x, tz - z) < 16) continue;
     isleTrees.push({ x: tx, z: tz, y: 0, ry: r2() * 6.3, s: .9 + r2() * .6 }); circles.push({ x: tx, z: tz, r: TREE_COL });
   }

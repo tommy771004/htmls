@@ -46,6 +46,10 @@ export const TRAFFIC = [
   { id: 'canyon_taxi', pal: false, tris: 4000 },
   { id: 'fh', pal: true, tris: 3600 },
   { id: 'il', pal: true, tris: 3600 },
+  // HANDOFF 補完：拖吊車、消防局長車（同一位作者）與 FixedShark554 的消防車（69-v8-fire.js 的消防派遣）
+  { id: 'tow', pal: true, tris: 4200 },
+  { id: 'fire_chief', pal: false, tris: 4000 },
+  { id: 'firetruck', pal: false, tris: 4800 },
   // 直接讀原檔（raw，.cache/raw/）：不是車，不走 cars.mjs。scale 縮放、rot 繞 y 轉（度，轉完車頭朝 +z）、nodes 只取哪些節點；
   // 同一個原檔的各部件共用同一個原點（整檔或 center 指定節點的底面中心），part: true 的部件再把自己的中心移到原點（轉軸），偏移記在 extras.piv
   { id: 'heli', raw: 'as350_b2', scale: 99, rot: 180, nodes: /^(cabine|patins|tuyere|moyeu)/, pal: false, tris: 3600 },

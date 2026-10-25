@@ -161,6 +161,8 @@ const TYPES = {
   fh: glbType('fh', 13, FB.sedan), il: glbType('il', 13.5, FB.sedan),
   // world_1 gameready_city 路上的三台車（tools/traffic.mjs 的 grc_*）：深藍舊轎車、白色廂型貨車、藍色郵務車
   grc_sedan: glbType('grc_sedan', 12, FB.sedan), grc_stepvan: glbType('grc_stepvan', 10, FB.truck), grc_mailvan: glbType('grc_mailvan', 10, FB.truck),
+  // 69-v8-civic.js：拖吊車（也在車流與拖吊場裡）、消防指揮車與消防水箱車（只有消防派遣會出動）
+  tow: glbType('tow', 10.5, FB.truck), fire_chief: glbType('fire_chief', 13, FB.police), firetruck: glbType('firetruck', 9.5, FB.truck),
   // 五星才出動的坦克（不進車流；砲塔是 traffic.glb 的 tank_turret，69-police.js 另外掛）
   tank: glbType('tank', 9, FB.truck, { armored: 1, tank: 1 }),
 };
@@ -181,8 +183,8 @@ const HANZO_SPOT = { x: BAR_X + 9, z: stZ(1) - PARK, yaw: -Math.PI / 2 };
 const DEAL_SPOT = { x: DEAL_X, z: stZ(3) - PARK, yaw: -Math.PI / 2 };
 const HOME_SPOT = { x: HOME_X, z: stZ(2) + PARK, yaw: Math.PI / 2 };
 // 醫院與警察局（69-combat.js 的 WASTED／BUSTED 在門口重生）：沒有建築，門前的人行道就是重生點，路邊停著救護車與警車
-const HOSP = { x: avX(4) + HR + SW * .5, z: stZ(1) + 30, yaw: -Math.PI / 2, name: '聖瑪格麗特醫院', cars: ['ambulance', 'ambulance'] };
-const PD = { x: avX(1) - HR - SW * .5, z: stZ(4) + 30, yaw: Math.PI / 2, name: '第九分局', cars: ['il_cop', 'urban_cop', 'fh_cop'] };
+const HOSP = { x: avX(4) + HR + SW * .5, z: stZ(1) + 30, yaw: -Math.PI / 2, name: '聖瑪格麗特醫院', cars: ['ambulance', 'ambulance', 'firetruck'] };
+const PD = { x: avX(1) - HR - SW * .5, z: stZ(4) + 30, yaw: Math.PI / 2, name: '第九分局', cars: ['il_cop', 'urban_cop', 'fh_cop', 'fire_chief'] };
 for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) for (const d of [0, 2]) {
   // 大道（沿 z），右駕：往 +z 的車停在 x 負側
   const side = d === 0 ? -1 : 1;
@@ -212,10 +214,17 @@ for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3
   }
 }
 for (const S of [HOSP, PD]) {
-  // 大道（沿 z）邊的停車格：先清掉那一段原本的車，再依序停進去
+  // 大道（沿 z）邊的停車格：先清掉那一段原本的車，再依序停進去（一格 6.2 m，消防水箱車這種長車照車長多佔一點）
   const side = S === HOSP ? 1 : -1, x = avX(S === HOSP ? 4 : 1) + side * PARK;
-  for (let i = parked.length - 1; i >= 0; i--) if (Math.abs(parked[i].x - x) < 1 && Math.abs(parked[i].z - S.z) < 14) parked.splice(i, 1);
-  S.cars.forEach((type, n) => parked.push({ type, x, z: S.z - 6.5 + n * 6.2, yaw: side > 0 ? Math.PI : 0, pal: 0 }));
+  const L = S.cars.map(t => Math.max(6.2, ((TYPES[t] && TYPES[t].len) || 5) + .9)), z1 = S.z - 9.6 + L.reduce((a, b) => a + b, 0);
+  for (let i = parked.length - 1; i >= 0; i--) if (Math.abs(parked[i].x - x) < 1 && parked[i].z > S.z - 14 && parked[i].z < Math.max(S.z + 14, z1 + 3.5)) parked.splice(i, 1);
+  let z = S.z - 9.6;
+  S.cars.forEach((type, n) => { parked.push({ type, x, z: z + L[n] / 2, yaw: side > 0 ? Math.PI : 0, pal: 0 }); z += L[n]; });
+}
+{
+  // CHROME WORKS 門口旁邊的車位停一台拖吊車（69-v8-civic.js 開得走）：換掉那一格的車，拖吊車比一格長，前後各清一格
+  const z = GAR_Z + 4.5, c = parked.filter(p => Math.abs(p.z - z) < 3 && Math.abs(p.x - GAR_X) > 12 && Math.abs(p.x - GAR_X) < 30).sort((a, b) => Math.abs(a.x - GAR_X) - Math.abs(b.x - GAR_X))[0];
+  if (c) { for (let i = parked.length - 1; i >= 0; i--) if (parked[i] !== c && Math.abs(parked[i].z - c.z) < 1 && Math.abs(parked[i].x - c.x) < 8) parked.splice(i, 1); c.type = 'tow'; c.pal = 2; }
 }
 parked.push(...facParked());   // 69-v5-civic.js：拖吊場裡被扣的車（不抽 rT）
 mallParkClear();   // 69-v5-shops.js：洗車隧道進出口前的路邊車位
@@ -316,7 +325,7 @@ const YIELD_OFF = -1.6;
 function sirenBehind(c, fx, fz) {
   for (const u of W.units) {
     const v = u.v;
-    if (!v || v.dead || !v.lights || !u.drive) continue;
+    if (!v || v.dead || !v.lights || !u.drive || u.quiet) continue;   // quiet：69-v9-ai.js 沒有警笛的徵用車與便衣車
     const dx = v.x - c.x, dz = v.z - c.z, a = dx * fx + dz * fz;
     if (a < -2 && a > -32 && Math.abs(dx * fz - dz * fx) < 5 && v.vx * fx + v.vz * fz > 3) return true;
   }
@@ -620,46 +629,51 @@ function driveVehicle(v, inp, dt) {
   if (v.bail && v !== player.veh) inp = BAIL_INP;   // 68-wreck.js：起火後駕駛跳車，車子滑行到停
   if (v.tumble) return rollStep(v, dt);   // 68-roll.js：翻滾中、側躺或倒扣
   if (v.flipped) return flipStep(v, v === player.veh ? inp : null, dt);
+  if (v.flood) inp = FLOOD_INP;   // 68-vdetail.js：引擎進水熄火
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
   let vF = v.vx * fx + v.vz * fz, vR = v.vx * rx + v.vz * rz;
   const spd = Math.abs(vF);
+  const hold = vdPre(v, inp, dt, vF);   // 68-vdetail.js：原地燒胎、甜甜圈、濕沙卡軸（沙地阻力寫在 vdK／vdDrag）
   const maxSt = lerp(v.isCar ? .55 : .5, v.isCar ? .12 : .1, clamp(spd / 45, 0, 1));
   v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）
   let aF = 0;
-  if (inp.thr > 0) aF += v.eng * (v.engK ?? 1) * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
+  if (inp.thr > 0) aF += v.eng * (v.engK ?? 1) * v.vdK * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
   if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * (v.revK || 1) * inp.brk * (vF > -9 ? 1 : 0);   // revK：66-chrome.js 的變速箱，倒車起步比較快
-  aF -= vF * .12 + Math.sign(vF) * .35;
+  aF -= vF * .12 + Math.sign(vF) * (.35 + v.vdDrag);
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
   if (!inp.thr && !inp.brk && Math.abs(vF) < .3) vF = 0;
+  if (hold) { if (hold.vF != null) vF = hold.vF; if (hold.min) vF = Math.max(vF, hold.min); }
   const grip = (inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6))) * (v.slideT > 0 ? .25 : 1);   // slideT：被撞得打轉（69-kinema.js）
   vR *= Math.exp(-grip * dt);
+  if (hold && hold.vR != null) vR = hold.vR;
   const wb = v.wb;
   let targetYr = vF * Math.tan(v.steer) / wb + ((v.flatYr || 0) + (v.axleYr || 0)) * clamp(vF / 12, -1, 1);   // axleYr：69-v6-customs.js 撞歪的輪軸   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
-  v.yr = damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
+  v.yr = hold && hold.yr != null ? hold.yr : damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
   v.yaw += v.yr * dt;
   kinYaw(v, dt);
   // 甩尾時把一部分前進速度轉成側滑
   if (inp.hb && spd > 6) vR += v.yr * vF * .045 * dt * 60 * .016;
-  v.slip = Math.abs(vR);
+  v.slip = hold && hold.slip != null ? hold.slip : Math.abs(vR);
   const nfx = Math.sin(v.yaw), nfz = Math.cos(v.yaw), nrx = -nfz, nrz = nfx;
   v.vx = nfx * vF + nrx * vR; v.vz = nfz * vF + nrz * vR;
+  if (hold && hold.piv) { const h = wb / 2; v.vx = (fx - nfx) * h / dt; v.vz = (fz - nfz) * h / dt; }   // 甜甜圈：前軸那一點不動，車尾甩出去
   v.x += v.vx * dt; v.z += v.vz * dt;
   const imp = vehicleCollide(v, dt);
   const gh = v.isCar ? surfaceH(v) : deckAt(v.x, v.z, v.y) ?? groundH(v.x, v.z);   // 68-roll.js：疊在別台車的車頂上；06-roads.js：快速道路的橋面
-  v.y = damp(v.y, gh, 18, dt);
+  v.y = vdWater(v, dt, gh) ?? damp(v.y, gh, 18, dt);   // 68-vdetail.js：下水、沉到海底
   // 車身姿態：側傾、俯仰、機車壓車
   const latA = vF * v.yr;
   v.roll = damp(v.roll, v.isCar ? clamp(latA * .006, -.06, .06) : 0, 6, dt);
   v.pitch = damp(v.pitch, clamp(-aF * .0035, -.04, .04), 6, dt);
   v.lean = damp(v.lean, v.isCar ? 0 : clamp(-latA * .045, -.7, .7), 7, dt);
-  v.spin += vF * dt / v.wr;
+  v.spin += hold && hold.spin != null ? hold.spin * dt : vF * dt / v.wr;
   const kmh = Math.abs(vF) * 3.6;
   const gears = [0, 38, 72, 108, 146, 999];
   let g = 1; while (g < 5 && kmh > gears[g]) g++;
   v.gear = vF < -.5 ? 'R' : g;
-  v.rpm = clamp(.18 + (kmh - gears[g - 1]) / (gears[g] - gears[g - 1] || 40) * .8, .12, 1) * (inp.thr ? 1 : .8);
+  v.rpm = hold && hold.rpm != null ? hold.rpm : clamp(.18 + (kmh - gears[g - 1]) / (gears[g] - gears[g - 1] || 40) * .8, .12, 1) * (inp.thr ? 1 : .8);
   v.brakeOn = inp.brk && vF > .5 ? 1 : 0;
   return { imp, vF, aF };
 }

@@ -101,6 +101,10 @@ export const MODELS = [
   { id: 'canyon_taxi', file: 'canyon_75_taxi_-_low_poly_model', len: 5.31, tris: 30000, traffic: true, flip: true },
   { id: 'fh', file: 'fairheaven_lt_80_-_low_poly_model', len: 5.0, tris: 30000, traffic: true, flip: true },
   { id: 'il', file: 'illinois_90_-_low_poly_model', len: 5.17, tris: 30000, traffic: true, flip: true },
+  // HANDOFF 補完：拖吊車與消防局長車（同一位作者），消防車是 FixedShark554 的低面數消防車（車頭朝 +z）
+  { id: 'tow', file: 'lightbody_90_md_tow_truck_-_low_poly_model', len: 6.3, tris: 30000, traffic: true, flip: true },
+  { id: 'fire_chief', file: 'fairheaven_sw_80_fire_dept._-_low_poly_model', len: 5.3, tris: 30000, traffic: true, flip: true },
+  { id: 'firetruck', file: 'fire_enginefire_truck_low_poly_game_asset', len: 9.2, tris: 30000, traffic: true },
 ];
 const CFG = JSON.parse(existsSync(resolve(root, 'tools/cars.cfg.json')) ? readFileSync(resolve(root, 'tools/cars.cfg.json'), 'utf8') : '{}');
 
@@ -393,9 +397,10 @@ async function processModel(M) {
   R.getAsset().extras = { title: info.title, author: info.author, license: info.license, source: info.source };
 
   await doc.transform(
-    prune(), dedup(), weld(),
+    // keepSolidTextures：單色小貼圖不能換成 baseColorFactor（頁面的 uber 材質只讀 COLOR_0 × 貼圖，factor 是白的；消防車的紅色車身就是這樣不見的）
+    prune({ keepSolidTextures: true }), dedup(), weld(),
     simplify({ simplifier: MeshoptSimplifier, ratio: Math.min(1, cfg.tris / trisIn), error: cfg.err ?? .0012 }),
-    prune(),
+    prune({ keepSolidTextures: true }),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [cfg.tex ?? 1024, cfg.tex ?? 1024], quality: 82 }),
     meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
   );

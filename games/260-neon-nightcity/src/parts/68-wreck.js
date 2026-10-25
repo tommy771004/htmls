@@ -18,7 +18,7 @@ function wreckStage(v, k, dt) {
   }
   // 30%：動力只剩七成五，偶爾熄火半秒到一秒
   if (k < STAGE.black) {
-    if (v.stall > 0) { v.stall -= dt; if (v.stall <= 0 && mine) sfx.engineOn(v); }   // 熄火結束：重新發動（引擎聲原本熄了就不會回來）
+    if (v.stall > 0) { v.stall -= dt; if (v.stall <= 0 && mine && !v.flood) sfx.engineOn(v); }   // 熄火結束：重新發動（引擎聲原本熄了就不會回來）
     else if (Math.random() < dt * .12) { v.stall = .5 + Math.random() * .7; if (mine) { sfx.engineOff(); toast('引擎熄火了一下'); } }
     v.engK = v.stall > 0 ? 0 : .75;
   } else { v.engK = 1; v.stall = 0; }
@@ -40,6 +40,7 @@ function wreckFix(v) {
   hpLockOf(v);
   v.dead = 0; v.burn = 0; v.hp = v.hpMax;
   v.glass = 0; v.engK = 1; v.stall = 0; v.bail = 0; v.axle = 0; v.axleYr = 0;   // axle：69-v6-customs.js 撞歪的輪軸
+  v.flood = 0; v.floodT = 0; v.stuck = null;   // 68-vdetail.js：泡水、陷在沙裡
   tireFix(v); rollClear(v);   // 68-roll.js：翻倒的車也擺正
 }
 

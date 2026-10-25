@@ -212,6 +212,9 @@ function w2Load(set, fn, fail) {
   });
 }
 let w2Ready = Promise.resolve();
+// 公園、縫與島上的樹分七種（nat_trees 四種、cs_country 三種，兩組各自擺），行道樹都是第 0 種（楓樹）
+const treePick = t => (t.park ? Math.floor(w2Hash(t.x, t.z) * 7) : 0);
+const isleTreeList = () => ISLE_TREES.map(t => ({ ...t, park: 1 }));
 // ?w2=0：不換這一輪的模型（比較效能、除錯用）
 if (/[?&]w2=0\b/.test(location.search)) W2.on = false;
 if (W2.on && GLB_VS_I !== GLB_VS) {
@@ -252,17 +255,36 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       for (const t of cp) addCircleL({ x: t.x, z: t.z, r: 1.1, w: 1 });
       W2.swapped.push('bins', 'booth', 'bench'); Object.assign(W2.n, { bins: bins.length, booths: booths.length, news: newsBoxes.length, parkSeats: parkSeats.length, benches: benches.length, capePicnic: cp.length });
     }),
-    // ─── 樹：行道樹是楓樹，公園、縫、岬角與灰鷗島四種混著（楓樹、兩棵垂柳、三棵一叢的橡樹）；碰撞照舊 ───
+    // ─── 樹：行道樹是楓樹，公園、縫、岬角與灰鷗島七種混著（楓樹、兩棵垂柳、三棵一叢的橡樹；後三種是 cs_country 的三款槭樹，那一組自己擺）；碰撞照舊 ───
     w2Load('nat_trees', it => {
       const MIX = ['maple', 'willow_a', 'willow_b', 'oak'];
-      const pick = t => (t.park ? Math.floor(w2Hash(t.x, t.z) * 4) : 0);
-      const isle = ISLE_TREES.map(t => ({ ...t, park: 1 }));
-      w2Group(trees, 4, pick).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, TREE_R));
-      w2Group(isle, 4, pick).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, 700));   // 島上的樹少，從岸邊看得到
+      w2Group(trees, 7, treePick).slice(0, 4).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, TREE_R));
+      w2Group(isleTreeList(), 7, treePick).slice(0, 4).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, 700));   // 島上的樹少，從岸邊看得到
       // 程式建模的行道樹留著當遠景：只畫在 TREE_R 外（20-props 的 stream.R0），近處換成模型
       if (treeMesh.userData.stream) treeMesh.userData.stream.R0 = TREE_R - 6; else w2Drop(treeMesh);
       w2Drop(isleTreeMesh);
-      W2.swapped.push('trees'); W2.n.trees = trees.length + isle.length;
+      W2.swapped.push('trees'); W2.n.trees = trees.length + ISLE_TREES.length;
+    }),
+    // ─── 田園一景（abhayexe 的 Countryside Scene）拆出來的件：公園與島上的槭樹（nat_trees 的另外三種）、20 呎貨櫃、護欄 ───
+    // 整景與島上的護欄在 27-world1.js（走近才擺）。貨櫃：拖吊場西牆邊兩個疊一起再一個、施工大樓工地東邊（材料棚北邊）兩個加一個疊上去；
+    // 設施座標相對街區西北角（facZn），碰撞是盒（疊的那個不用）
+    w2Load('cs_country', it => {
+      const ACER = ['acer1', 'acer2', 'acer3'];
+      w2Group(trees, 7, treePick).slice(4).forEach((L, k) => w2Inst(it[ACER[k]], L, 0, TREE_R));
+      w2Group(isleTreeList(), 7, treePick).slice(4).forEach((L, k) => w2Inst(it[ACER[k]], L, 0, 700));
+      const box = [];
+      const put = (F, x, z, ry = 0, y = 0) => {
+        if (!F) return;
+        const zn = F.L[0] ? F.L[0].zn : F.zn;   // 69-v5-civic.js 的 facZn（模型可能在那一段跑到之前就下載好）
+        box.push({ x: F.ax + x, z: F.az + z, y, ry, zn });
+        if (!y) { const hw = it.crate.w / 2, hd = it.crate.d / 2, [a, b] = ry ? [hd, hw] : [hw, hd]; addBoxL({ x0: F.ax + x - a, x1: F.ax + x + a, z0: F.az + z - b, z1: F.az + z + b, zn, hy: it.crate.h }); }
+      };
+      const P = FAC.pd, Y = P && P.yard;
+      if (Y) { const x = Y.x0 - P.ax + 1.6, z = Y.z0 - P.az; put(P, x, z + 20); put(P, x, z + 20, 0, it.crate.h); put(P, x, z + 27); }
+      const C = FAC.crane;
+      if (C) { put(C, 54, 17.5); put(C, 54, 25); put(C, 54, 21.2, 0, it.crate.h); }
+      w2Inst(it.crate, box, 0, W2R.mid * 1.5);
+      W2.n.crates = box.length;
     }),
     // ─── 灌木：樹下（只有模型版才有）與海濱花台（換掉程式的二十面體） ───
     w2Load('nat_bush', it => {

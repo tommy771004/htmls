@@ -196,7 +196,7 @@ $('wheel').addEventListener('pointerdown', e => {
 const _mz = V3(), _ad = V3();
 function canDriveBy(A) {
   const v = player.veh;
-  return started && player.where === 'out' && player.mode === 'drive' && !!A && !!A.db && (A.db === 1 || !v.isCar) && !v.fly && !dlg.open && !fading && !life.dead;
+  return started && player.where === 'out' && player.mode === 'drive' && !!A && !!A.db && (A.db === 1 || !v.isCar) && !v.fly && !v.water && !dlg.open && !fading && !life.dead;   // water：69-v8-civic.js 的消防水箱車，開火鍵是水砲
 }
 function windowMuzzle(out) {
   const v = player.veh, fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;
@@ -594,6 +594,7 @@ function pedLeave(k, ps) {
   peds.anim(k, ANIM.run, Math.random() * 9, 1.2);
 }
 function pedFsm(k, ps, dt) {
+  if (ps.fsm === 'talk' || ps.fsm === 'heckle' || ps.fsm === 'snap') return aiPedFsm(k, ps, dt);   // 69-v9-ai.js：說話、跟上來嗆、拍照
   const p = peds.people[k], t = uTimeNow();
   const px = player.mode === 'drive' ? player.veh.x : player.x, pz = player.mode === 'drive' ? player.veh.z : player.z;
   let dx = px - ps.fx, dz = pz - ps.fz, d = Math.hypot(dx, dz);

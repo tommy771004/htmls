@@ -184,9 +184,9 @@ function crewCam() {
     const u = ease((t - SW_UP) / SW_PAN);
     skyAt(lerp(w.fx, w.tx, u), lerp(w.fz, w.tz, u), _cq);
     gray = 1;
-    if (!w.swapped && u > .5) { w.swapped = true; crewLoad(w.i); sfx.swoosh(false); }
+    if (!w.swapped && u > .5) { w.swapped = true; crewLoad(w.i); vigStart(w.i); sfx.swoosh(false); }   // vigStart：69-v9-switch.js 的小劇場
   } else if (t < SW_UP + SW_PAN + SW_DOWN) {
-    if (!w.swapped) { w.swapped = true; crewLoad(w.i); }
+    if (!w.swapped) { w.swapped = true; crewLoad(w.i); vigStart(w.i); }
     const u = ease((t - SW_UP - SW_PAN) / SW_DOWN), sky = skyAt(w.tx, w.tz, _cq).clone();
     camera.position.lerpVectors(sky, normP, u); camera.quaternion.copy(_cq).slerp(normQ, Math.min(1, u * 1.15));
     gray = 1 - u;

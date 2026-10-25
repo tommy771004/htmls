@@ -193,7 +193,10 @@ void main(){
   base *= texture2D(uMap, vUv);
   #endif
   #ifdef MASK
-  if (base.a < .5) discard;
+  #ifndef MASK_CUT
+  #define MASK_CUT .5
+  #endif
+  if (base.a < MASK_CUT) discard;   // MASK_CUT：細鐵絲網的貼圖縮小後 alpha 被平均掉，霓虹堡的圍籬用低一點的門檻
   #endif
   vec3 n = normalize(vN);
   #ifdef DOUBLE

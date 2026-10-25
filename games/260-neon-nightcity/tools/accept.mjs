@@ -192,9 +192,11 @@ async function desktop() {
     const p0c = await nc(() => window.__nc.vehicles[0].paint);
     await page.keyboard.press('KeyE');
     await page.waitForFunction(() => window.__nc.player.where === 'chrome', null, { timeout: 20000, polling: 100 });
+    await page.waitForTimeout(300);   // 淡入還沒結束（60-venues.js 的 fading）時 transition() 會直接 return，開車離開會沒反應
     const cw = await nc(() => {
       const nc = window.__nc, C = nc.chrome, v = nc.vehicles[0]; nc.player.x = C.CHROME_CAR.x + 2.6; nc.player.z = C.CHROME_CAR.z; nc.act();
       const rows = C.panel().rows.map((r) => r.name);
+      if (rows.includes('修復載具')) C.choose('修復載具');   // 前面的測試撞過車：66-chrome.js 要先修好才能改裝
       C.choose('烤漆與車牌'); C.choose('車身顏色'); C.key('ArrowDown'); C.key('Enter'); C.key('Escape'); C.key('Escape');   // 換成第二個顏色
       const e0 = v.eng, c0 = nc.motors.cash;
       C.choose('引擎調校'); C.choose('EMS 改裝 1 級'); C.key('Escape');
@@ -259,8 +261,8 @@ async function desktop() {
     check(Object.values(grip).every(e => e != null && e < .03), `雙手握在槍上（手腕離握點的最大距離，公尺）${JSON.stringify(grip)}`);
     const boom = await nc(() => new Promise((r) => {
       const nc = window.__nc, v = nc.gta.jacked[0];
-      nc.gta.damage(v, 600);
-      setTimeout(() => { const smoke = nc.gta.parts.filter(p => p.kind === 'smoke').length; nc.gta.damage(v, 900); setTimeout(() => r({ smoke, dead: !!v.dead, burn: v.burn, dark: nc.gta.parts.filter(p => p.kind === 'dark').length }), 300); }, 800);
+      nc.gta.damage(v, v.hpMax * .6);   // 照耐久上限的比例（車流車型的上限 1000–1250 不等，固定 600 打不到冒白煙的 50%）
+      setTimeout(() => { const smoke = nc.gta.parts.filter(p => p.kind === 'smoke').length; nc.gta.damage(v, v.hpMax * .9); setTimeout(() => r({ smoke, dead: !!v.dead, burn: v.burn, dark: nc.gta.parts.filter(p => p.kind === 'dark').length }), 300); }, 800);
     }));
     check(boom.smoke > 0 && boom.dead && boom.burn === 1 && boom.dark > 0, `打到冒煙再爆炸 ${JSON.stringify(boom)}`);
     const ped = await nc(() => { const nc = window.__nc; nc.gta.knockPed(0, 1, 0); return { down: nc.pedState[0].down > 0, panic: nc.pedState.filter(p => p.panic > 0).length }; });
@@ -361,7 +363,7 @@ async function desktop() {
     check(gh.ghost === 60 && gh.reports === 0, `雷達隱形 60 秒：犯罪沒有路人報案 ${JSON.stringify(gh)}`);
     const air = await nc(() => new Promise((r) => {
       const nc = window.__nc, g = nc.gta, p = g.phone, c0 = nc.motors.cash;
-      p.back(); p.pick(2); p.pick(0);
+      p.back(); p.pick(p.phone.rows.findIndex((r) => r.t === '鐵幕保全')); p.pick(0);   // 聯絡人照名字找（第六部曲在前面插了鐵手強尼、磐石互保）
       const c = p.phone.crates[0]; g.arm.ammo.rifle.res = 0; g.life.armor = 0;
       c.y = 0; nc.player.x = c.x; nc.player.z = c.z;
       setTimeout(() => r({ cost: c0 - nc.motors.cash, left: p.phone.crates.length, rifle: g.arm.ammo.rifle.res, armor: g.life.armor }), 400);
@@ -384,7 +386,7 @@ async function desktop() {
       p.load();
       setTimeout(() => r({ ok, v: saved.v, ts: saved.ts > 0, veh: saved.game.veh, mode: nc.player.mode, same: nc.player.veh === v0 }), 1600);
     }));
-    check(qv.ok && qv.v === 9 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
+    check(qv.ok && qv.v >= 9 && qv.ts && qv.veh && qv.veh.k === 'own' && qv.mode === 'drive' && qv.same, `開車時快速存檔，讀檔回到座駕上 ${JSON.stringify(qv)}`);
     await nc(() => window.__nc.walk());
 
     // 第四階段：特技跳台（時速 60 以上衝出去：慢動作、側面機位、首次加倍獎金）
@@ -654,15 +656,15 @@ async function desktop() {
     });
     // 換裝：衣架按 E，選第二套（顏色換掉、記在 localStorage），再換回原本那套
     const wr = await nc(() => {
-      const nc = window.__nc, a = nc.gta.apt.APT.loft, p = nc.player, c = nc.gta.crew.CREW[nc.gta.crew.crew.cur], top0 = c.look.top.getHex();
+      const nc = window.__nc, a = nc.gta.apt.APT.loft, p = nc.player, c = nc.gta.crew.CREW[nc.gta.crew.crew.cur], top0 = c.look.top.getHex(), k0 = nc.gta.apt.outfitOf(c);
       p.x = a.robe.x; p.z = a.robe.z - 1.3; const ctx = nc.ctx(); nc.act();
       const opts = nc.gta.apt.OUTFITS[c.id].length; nc.pick(1);
       let saved = null; try { saved = JSON.parse(localStorage.getItem('nc260.outfit'))[c.id]; } catch {}
       const r = { ctx, opts, k: nc.gta.apt.outfit[c.id], saved, changed: c.look.top.getHex() !== top0 };
-      nc.gta.apt.wear(0); r.back = c.look.top.getHex() === top0;
+      nc.gta.apt.wear(k0); r.back = c.look.top.getHex() === top0;   // 以網站開啟時 Kael 預設穿 Jason 掃描造型（69-safehouse.js 的 outfitOf）
       return r;
     });
-    check(/換裝/.test(wr.ctx) && wr.opts === 4 && wr.k === 1 && wr.saved === 1 && wr.changed && wr.back, `安全屋衣架換裝、記住選擇、換回原本那套 ${JSON.stringify(wr)}`);
+    check(/換裝/.test(wr.ctx) && wr.opts >= 4 && wr.k === 1 && wr.saved === 1 && wr.changed && wr.back, `安全屋衣架換裝、記住選擇、換回原本那套 ${JSON.stringify(wr)}`);
     check(/上樓/.test(lf1.c) && !lf2.ride && Math.abs(lf2.y - 3.85) < .1 && /下樓/.test(lf2.c), `閣樓沿旋轉樓梯走上夾層 ${JSON.stringify({ ...lf1, ...lf2 })}`);
     await nc(() => window.__nc.exit());
     await page.waitForTimeout(900);
@@ -913,9 +915,12 @@ async function desktop() {
       const bore = { ...(await at()), A: await nc(() => window.__nc.props.viaduct.A), B: await nc(() => window.__nc.props.viaduct.BORE) };
       const vis = await nc(async () => {
         const n = window.__nc, R = n.props.rail.R, on = () => R.cars.filter(c => c.on && c.obj.visible).length;
-        n.props.rail.go(1, R.len / 2 + 60); R.speed = 0; await new Promise(r => setTimeout(r, 300)); const mid = on();
+        // 貨運列車（rail_frt）：機車、兩節棚車、平車，平車上四箱貨；換回電聯車時貨運那一列要藏起來
+        n.props.rail.go(1, R.len / 2 + 60, 'frt'); R.speed = 0; await new Promise(r => setTimeout(r, 300));
+        const frt = on(), cargo = R.cars[R.cars.length - 1].cargo.length, frtL = Math.round(R.trainL);
+        n.props.rail.go(1, R.len / 2 + 60, 'pax'); R.speed = 0; await new Promise(r => setTimeout(r, 300)); const mid = on(), stray = R.sets.frt.cars.filter(c => c.obj.visible).length;
         n.props.rail.go(1, 0); await new Promise(r => setTimeout(r, 300)); const hid = on();
-        return { mid, hid, lights: R.lights };
+        return { mid, hid, frt, cargo, frtL, stray, lights: R.lights };
       });
       // 撞人：站在橋中間的軌道上，列車從西邊 40 m 外開過來
       await nc(() => { const n = window.__nc, V = n.props.viaduct, R = n.props.rail.R; n.props.rail.tp(V.x, V.zc(V.x), -Math.PI / 2); n.player.y = V.deck; n.gta.life && (n.gta.life.hp = 100); let s = 0; for (; s < R.len && R.at(s)[0] < V.x; s += .5); n.props.rail.go(1, s - 40); R.speed = 17; });
@@ -925,9 +930,9 @@ async function desktop() {
       await nc(() => { const n = window.__nc; n.props.rail.R.speed = 17; n.props.rail.R.state = 'wait'; n.props.rail.R.tw = 30; n.props.rail.tp(n.park.look.cx, n.park.look.cz, 0); });
       const rk = { deck, rail, pier, bore, vis, hit, after };
       check(deck.d === '北嶺鐵道橋' && Math.abs(deck.y - deck.deck) < .05 && deck.x > -40 + 5 && Math.abs(rail.dz) <= 4.5 && Math.abs(rail.y - rail.deck) < .05 && pier.y < pier.deck - 30 && pier.z > pier.z1 && pier.z < pier.z1 + 2
-        && bore.o > bore.A + 20 && bore.o < bore.A + bore.B && Math.abs(bore.y - bore.deck) < .05 && bore.cam < bore.deck + 6.2 && vis.mid === 5 && vis.hid === 0 && vis.lights >= 40
+        && bore.o > bore.A + 20 && bore.o < bore.A + bore.B && Math.abs(bore.y - bore.deck) < .05 && bore.cam < bore.deck + 6.2 && vis.mid === 5 && vis.hid === 0 && vis.frt === 4 && vis.cargo === 4 && vis.stray === 0 && vis.lights >= 40
         && hit && hit.down && Math.abs(after.y - after.deck) < .3 && Math.abs(after.dz) <= 4.5,
-        `北嶺鐵道橋：橋面、護欄、谷底與橋墩、隧道、列車進出洞、撞人留在橋面、夜燈 ${JSON.stringify(rk)}`);
+        `北嶺鐵道橋：橋面、護欄、谷底與橋墩、隧道、列車進出洞、貨運列車、撞人留在橋面、夜燈 ${JSON.stringify(rk)}`);
     }
     // 光格島（21-tron.js）：以檔案開啟沒有近景可以下載，不擺島上的碼頭與遊艇（上岸、騎光速機車的驗收在 glb-check.mjs，要 http）
     {

@@ -1,0 +1,6 @@
+# Roadster Stunt Arena（200）
+
+- 原始碼在 `games/200-roadster-arena/`（Three.js 0.186.0 + Rapier `@dimforge/rapier3d-compat` + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/200-roadster-arena.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 Node 測試（`tools/sim.test.mjs`：手感、任務、計時賽、聯賽規則與 AI、大廳／房間／排行榜、本機 WebSocket 兩人整合），再跑兩種尺寸的無頭 Chrome 驗收；`node tools/mp.mjs` 開兩個分頁走完快速配對、分享網址加入、球權與進球同步。舊的「車球碗」`web/200-carball.html` 已由它取代，`vercel.json` 308 轉址。非官方同人作品，頁面與 README 要維持「與車廠無關」的聲明，不要加入車廠標誌。車輛模型是 Sketchfab 上 asiphy007 的 CC BY 4.0 同人模型（原檔放 gitignore 的 `.cache/`），`npm run car`（`tools/car.mjs`）切輪、減面、濾法線後輸出 `assets/roadster.glb`（有 commit），打包時 gzip＋base64 內嵌；主選單 `#fan`、展示間與 `assets/CREDITS.md` 的作者與授權標示要保留。
+- Rapier 內建的 base64 WASM 在打包時被換掉：`tools/build.mjs` 把 WASM 以 gzip＋base64 內嵌，頁面用 `DecompressionStream` 解開。升級 Rapier 版本後打包失敗，多半是那段 base64 的寫法變了。
+- `src/core/`（車輛控制、特技場與聯賽球場、任務與計時賽、聯賽規則與 AI）與 `src/net/core.js`（`LobbyCore`／`RoomCore`／`BoardCore`）不碰 DOM。`net/core.js` 由本機 `server/roadster/server.mjs`（`createRoadster()`，經 jade 伺服器的 `onUpgrade` 掛在 8127 的 `/api/rsa`）與 `worker/index.js`（Cloudflare Durable Objects）共用；伺服器不跑物理，每人模擬自己的車、球由球權人模擬，伺服器裁定球權與進球。協定見 `SPEC.md`。
+- 頁面找伺服器：`RSA_SERVER` 打包變數 → `?server=` → localhost／127.0.0.1 同網址 → 否則離線（Vercel 與以檔案開啟都是離線，不會發 WebSocket）。Cloudflare 部署要用使用者自己的帳號，不要自動執行。操作、`window.__rsa` 測試 API 與已知限制見同資料夾的 `README.md`。

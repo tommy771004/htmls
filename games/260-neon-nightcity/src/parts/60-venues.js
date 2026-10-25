@@ -223,6 +223,7 @@ const mirrorBall = (() => {
     do { x = -5.4 + rc() * 10.8; z = 13.6 + rc() * 10.8; tries++; } while (tries < 30 && spots.some(s => Math.hypot(s[0] - x, s[1] - z) < 1.05));
     spots.push([x, z]);
     cr.look(k, { r: rc, glowI: rc() < .45 ? 1.8 : 0 });
+    if (k === 4) cr.look(k, { ...LUCIA(k), glowI: 1.8 });   // 舞池裡一個 Lucia（掃描模型）
     const a = DANCES[Math.floor(rc() * DANCES.length)];
     cr.anim(k, a, rc() * 10, 1, Math.floor(rc() * 4) / 4);   // 拍點錯開四分之一拍，同一種舞步也不會整齊劃一
     const yaw = Math.atan2(-x * .2, 29 - z) + (rc() - .5) * 1.4;
@@ -529,12 +530,12 @@ function toggleDance() {
   player.v = 0;
 }
 function enterVehicle(v) {
-  player.mode = 'drive'; player.veh = v; v.lights = 1;
+  player.mode = 'drive'; player.veh = v; v.lights = v.flood ? 0 : 1;
   me.mesh.visible = v.isCar ? false : true;
-  sfx.doorCar(v.isCar); sfx.engineOn(v);
+  sfx.doorCar(v.isCar); if (!vdIdleTake(v) && !v.flood) sfx.engineOn(v);   // 68-vdetail.js：長按 F 下車沒熄火的車回來不用重新發動；泡水的車發不動
   camState.snap = false;
 }
-function exitVehicle(keep) {   // keep：留著車速（69-kinema.js 的跳車）
+function exitVehicle(keep, idle) {   // keep：留著車速（69-kinema.js 的跳車）；idle：長按 F，引擎不熄（68-vdetail.js）
   const v = player.veh;
   if (v.boat) return boatExit(v);   // 31-boats.js：站到最近的岸上，沒有就下水
   const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);   // 車身左側（+x 方向轉到世界）
@@ -543,7 +544,8 @@ function exitVehicle(keep) {   // keep：留著車速（69-kinema.js 的跳車�
   player.x = x; player.z = z; player.y = v.y; player.yaw = v.yaw; player.mode = 'walk'; player.veh = null; player.v = 0;   // y：在快速道路橋面上下車就站在橋面
   v.lights = 0; if (!keep) v.vx = v.vz = 0; v.brakeOn = 0; v.steer = 0;
   me.mesh.visible = true;
-  sfx.doorCar(v.isCar); sfx.engineOff();
+  sfx.doorCar(v.isCar);
+  if (idle) vdIdleLeave(v); else sfx.engineOff();
 }
 let toastT = 0;
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); toastT = 2.6; }

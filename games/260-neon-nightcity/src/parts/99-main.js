@@ -47,7 +47,7 @@ function onKey(code) {
   if (fading) return;
   const ctx = contextAction();
   if (code === 'KeyF') {
-    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < KIN.jump) exitVehicle(); else if (!jumpOut(player.veh)) toast('先把車速降下來'); }   // jumpOut：69-kinema.js 的跳車；69-gunship.js：直升機在半空或屋頂上不能下
+    if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < KIN.jump) vdKeyF(); else if (!jumpOut(player.veh)) toast('先把車速降下來'); }   // jumpOut：69-kinema.js 的跳車；69-gunship.js：直升機在半空或屋頂上不能下
     else if (ctx && ctx.key === 'F') ctx.fn();
   }
   if (code === 'KeyE' && ctx && ctx.key === 'E') ctx.fn();
@@ -59,8 +59,8 @@ function summonCar() {
   if (motors.v5.imp) { toast(`${kestrel.name} 在${PD.name}的拖吊場 · 付罰金贖回，或翻牆偷出來`); return; }   // 69-v5-civic.js
   if (!v6Claim()) return;   // 69-v6-customs.js：燒毀的座駕要付保險自付額或原廠重建費
   motors.stowed = false; kestrel.g.visible = true;
-  if (kestrel.dead) toast(`${kestrel.name} 修好送過來了`);
-  if (kestrel.dead || kestrel.flat) wreckFix(kestrel);   // 68-wreck.js：耐久、車窗、引擎、輪胎
+  if (kestrel.dead || kestrel.flood) toast(`${kestrel.name} 修好送過來了`);
+  if (kestrel.dead || kestrel.flat || kestrel.flood || kestrel.stuck) wreckFix(kestrel);   // 68-vdetail.js：泡水、陷在沙裡   // 68-wreck.js：耐久、車窗、引擎、輪胎
   const sp = rnLaneSpot(player.x, player.z, 8);   // 06-roads.js：最近那段路靠玩家這一側的車道
   kestrel.x = sp.x; kestrel.z = sp.z; kestrel.yaw = sp.yaw;
   kestrel.vx = kestrel.vz = 0; kestrel.y = 0; kestrel.air = null; poseVehicle(kestrel);
@@ -289,16 +289,21 @@ function step(dt) {
     else { player.v = 0; updatePlayerWalk({ mx: 0, mz: 0, run: false }, dt, camState.yaw); }
     const dc = player.where === 'out' ? Math.hypot(player.x - CLUB_W.x, player.z - CLUB_W.z) : 999;
     const db = player.where === 'out' ? Math.hypot(player.x - BAR_W.x, player.z - BAR_W.z) : 999;
-    sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: CW.open ? chrome.rev : 0, gear: 1, thr: CW.open && chrome.revOn ? 1 : 0, slip: 0, nitro: false });   // 66-chrome.js：改裝面板裡原地轟油門
+    sfx.update(dt, { where: player.where, dClub: dc, dBar: db, rain: U.uRain.value, rpm: CW.open ? chrome.rev : vd.idle ? .14 : 0, eg: vdIdleGain(), gear: 1, thr: CW.open && chrome.revOn ? 1 : 0, slip: 0, nitro: false });   // 66-chrome.js：改裝面板裡原地轟油門
   }
   updateMotors(dt, t);
   updateChrome(dt);   // 66-chrome.js：改裝廠裡的展示車與離場時把車停回門口
+  vdUpdate(dt);   // 68-vdetail.js：F 的短按／長按、沒熄火的車、燒胎煙、沉車
   v6Update(dt);   // 69-v6-customs.js：歇業倒數、炸彈、液壓、回火與燒胎煙、歪軸、客戶委託
   v7Update(dt);   // 69-v7-*.js：地堡與霓虹堡、賭場與金庫搶劫、夜店（人氣、保險箱、鬧事、出貨）
   updateWeather(dt, t);   // 28-sky.js：時間與天氣決定天空、霧與燈（要在 gtaUpdate 前，換角色的雲霧過場才蓋得過去）
   gtaUpdate(dt);
   v3Update(dt);   // 69-v3-*：第三部曲的六圍、化學反應、撞擊與跳傘、計程車
   v5Update(dt);   // 69-v5-*：第五部曲的公共設施（醫院、分局與拖吊場、外牆鐵梯）
+  v8Update(dt);   // 69-v8-civic.js：消防與救護派遣、拖吊車
+  aiUpdate(dt);   // 69-v9-ai.js：便衣尾隨、拍照的手機、頭上的對白
+  vigUpdate(dt);   // 69-v9-switch.js：切換角色的小劇場
+  mtUpdate(dt);   // 69-v9-metro.js：地鐵的列車週期與乘車
   if (out) policeUpdate(dt);
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {

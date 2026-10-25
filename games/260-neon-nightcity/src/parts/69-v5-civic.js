@@ -233,6 +233,7 @@ function facParked() {
   const T0 = ['e34', 'negotiator', 'compact', 'urban', 'fh_taxi', 'milano'], out = [];
   [[3.5, 0], [6.7, 1], [16.3, 3], [19.5, 5]].forEach(([x, n], i) => out.push({ type: T0[n], x: F.yard.x0 + x, z: F.yard.z1 - 2.6, yaw: Math.PI, pal: (i * 3) % PAL.length }));
   out.push({ type: T0[4], x: F.yard.x0 + 19.6, z: F.yard.z0 + 22, yaw: Math.PI, pal: 0 });
+  out.push({ type: 'tow', x: F.yard.x0 + 4, z: F.yard.z0 + 9, yaw: 0, pal: 2 });   // 69-v8-civic.js：開得走的拖吊車
   return out;
 }
 

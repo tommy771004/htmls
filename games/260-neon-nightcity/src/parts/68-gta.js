@@ -7,7 +7,8 @@
 const gta = { weapon: 'fist', aiming: false, guard: false, aimK: 0, fireT: 0, reloadT: 0, jack: null, punchT: 0, punchPh: 0, actAnim: 0, hold: false, rmb: false, pitch: 0 };
 const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車', il_cop: 'Illinois 警車', e34: 'BMW E34', evo190: '190E EVO', negotiator: 'Negotiator', milano: 'Milano', kiri: 'Kiri', carter: 'Carter', compact: 'Compact', urban: 'Urban', tiara: 'Tiara GT', shvan: 'Shvan 廂型車', lct: 'LCT 3000 貨車', conquer: 'Conquer 皮卡', fvan: '送貨廂型車',
   urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克',
-  grc_sedan: 'Brougham 轎車', grc_stepvan: 'Stepline 廂型貨車', grc_mailvan: '蝸牛郵務車' };
+  grc_sedan: 'Brougham 轎車', grc_stepvan: 'Stepline 廂型貨車', grc_mailvan: '蝸牛郵務車',
+  tow: 'Lightbody 拖吊車', fire_chief: 'Fairheaven 消防指揮車', firetruck: '消防水箱車' };
 // 車損階段（耐久的比例；原本照 neon_nightcity_gta_v_2.md 是 70% 碎窗冒白煙、40% 黑煙、15% 起火，撞兩下就冒煙，調成 GTA V 那樣耐撞）：
 // 60% 以上只有凹痕與火花、60% 車窗碎掉、50% 冒白煙、30% 濃黑煙且動力少兩成五、12% 起火每秒 −25、歸零爆炸
 const HP = 1000, STAGE = { glass: .6, white: .5, black: .3, fire: .12 }, BURN_HP = 25, BOOM_R = 12;
@@ -236,6 +237,7 @@ function panic(x, z, r, t) {
     const [, , tx, tz] = pedPos(ps);
     ps.dir = tx * dx + tz * dz >= 0 ? 1 : -1;
     if (ps.fsm === 'fight') return;
+    if (ps.fsm === 'talk' || ps.fsm === 'heckle' || ps.fsm === 'snap') { pedLeave(k, ps); return; }   // 69-v9-ai.js：說話、拍照的人嚇跑
     // 離得近的人有三成當場抱頭蹲下（69-combat.js 的 pedFsm），其他人跑開
     if (!ps.fsm && !ps.tough && dx * dx + dz * dz < r * r * .3 && Math.random() < .3) { pedEnter(k, 'cower', t + 2 + Math.random() * 3); return; }
     if (ps.fsm) return;

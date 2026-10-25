@@ -115,6 +115,8 @@ for (const w of works) if (w.t === 'jersey') stJerseyL.push({ x: w.x, z: w.z, ry
 }
 // 銀行門前的液壓防撞柱：10 St 北側的路緣，門口左右各 6 m
 for (let k = -4; k <= 4; k++) { const x = BANK.x + k * 1.5, z = [.5, 1.2, 1.9].map(d => stZ(4) - HR - d).find(z => free(x, z, .2)); if (z !== undefined) { stBollardsL.push({ x, z, y: .15, zn: zoneAtL(x, z) }); claim(x, z, .2); } }
+// 霓虹堡（69-v7-bunker.js 的 FORT，FAC.fort）大門外：圍牆前面左右各一排，擋住從路上直接撞圍牆（大門本身留給柵欄桿）
+if (FAC.fort) { const F = FAC.fort; for (const x of [21.5, 23, 24.5, 26, 27.5, 40.5, 42, 43.5, 45, 46.5]) stBollardsL.push({ x: F.ax + x, z: F.az + 50.3, y: 0, zn: facZn(F), fort: 1 }); }
 // 車行的落地窗：兩面展示窗各三片（鍍鉻直框之間），貼在窗面外 0.12 m
 for (const s of [-1, 1]) for (let i = 0; i < 3; i++) stPanesL.push({ x: DEAL_X + s * 6.1 - 4.7 + 3.133 * (i + .5), z: DEAL_Z + .12, ry: 0, hw: 1.5, y0: .5, y1: 4.35, zn: zoneAtL(DEAL_X, DEAL_Z), deal: 1 });
 
@@ -146,20 +148,29 @@ const stTankMesh = instanced(new Kit().cyl(ST_TANK.x, .26, ST_TANK.z, ST_TANK.r,
   .cyl(ST_TANK.x, .55, ST_TANK.z, .03, .03, .06, 8, 0x9a9ea2, 3).cyl(ST_TANK.x, .03, ST_TANK.z, .12, .12, .06, 14, 0x2a2a2c, 2).build(), MAT.uber, stands, LY.NOREFL);
 const stBollardMesh = instanced(new Kit().cyl(0, .5, 0, .16, .16, 1.0, 14, 0x4a4e52, 15).cyl(0, .78, 0, .165, .165, .1, 14, 0xffc21a, 11).cyl(0, 1.0, 0, .12, .16, .04, 14, 0x2a2c2f, 15)
   .cyl(0, .02, 0, .26, .26, .04, 14, 0x3a3c3e, 15).build(), MAT.uber, stBollardsL, LY.NOREFL);
-// 施工區：挖開的路面、鋼板、土堆、發電機、工作燈、立牌的支架（每段合成一個網格）
+// 施工區：挖開的路面與鋼板（每段合成一個網格）；土堆、發電機、燈塔與立牌以 http(s) 開啟時換成 v5works.glb 的模型（st.siteFb 是程式建模的替身）
 const stSignMat = v5Sign([['道路施工', .42, '#16120a', .36], ['ROAD WORK AHEAD', .2, '#16120a', .76]], 1.4, .9, { bg: '#ffb21a', edge: '#16120a' }).material;
+const stSand = [], stGen = [], stTower = [], stWSign = [];
+st.siteFb = [];
 for (const s of ST_SITES) {
-  const k = new Kit(), xm = (s.xl + s.curb) / 2, zm = (s.za + s.zb) / 2, L = s.zb - s.za, sd = s.side;
+  const k = new Kit(), f = new Kit(), xm = (s.xl + s.curb) / 2, zm = (s.za + s.zb) / 2, L = s.zb - s.za, sd = s.side;
   k.box(xm, .012, zm, 2.6, .02, L - .4, 0x17181a, 2);
   k.box(xm, .03, zm - 3, 1.6, .03, 2.3, 0x55585b, 15).box(xm + sd * .1, .03, zm + .2, 1.6, .03, 2.3, 0x4c4f52, 15);
   k.box(xm, .02, zm + 5.5, 1.1, .03, 3.6, 0x0a0a0b, 2);
-  k.cyl(xm - sd * .3, .42, s.za + 2.4, .25, 1.05, .84, 10, 0x5b4734, 2);
-  k.box(xm, .38, s.zb - 2.6, .9, .7, .62, 0xd8a21a, 10).box(xm, .4, s.zb - 2.6 + .32, .6, .4, .02, 0x1a1a1a, 2);
+  f.cyl(xm - sd * .3, .42, s.za + 2.4, .25, 1.05, .84, 10, 0x5b4734, 2);
+  f.box(xm, .38, s.zb - 2.6, .9, .7, .62, 0xd8a21a, 10).box(xm, .4, s.zb - 2.6 + .32, .6, .4, .02, 0x1a1a1a, 2);
   const lx = s.curb - sd * .5, lz = s.zb - 1.2;
-  k.cyl(lx, 1.7, lz, .05, .06, 3.4, 8, 0xd8a21a, 15).box(lx, 3.45, lz, .7, .3, .14, 0x2a2c2f, 15).box(lx, 3.45, lz + s.up * -.08, .6, .22, .02, 0xfff4d8, 11);
-  for (const d of [-.5, .5]) k.box(s.sign.x + d, .55, s.sign.z, .05, 1.1, .05, 0x2a2c2f, 15);
+  f.cyl(lx, 1.7, lz, .05, .06, 3.4, 8, 0xd8a21a, 15).box(lx, 3.45, lz, .7, .3, .14, 0x2a2c2f, 15).box(lx, 3.45, lz + s.up * -.08, .6, .22, .02, 0xfff4d8, 11);
+  for (const d of [-.5, .5]) f.box(s.sign.x + d, .55, s.sign.z, .05, 1.1, .05, 0x2a2c2f, 15);
   cityAdd(new T.Mesh(k.build(), MAT.uber), s.zn);
+  const fm = new T.Mesh(f.build(), MAT.uber); cityAdd(fm, s.zn);
   const sm = new T.Mesh(new T.PlaneGeometry(1.4, .9), stSignMat); sm.position.set(s.sign.x, 1.35, s.sign.z); sm.rotation.y = s.sign.ry; cityAdd(sm, s.zn);
+  st.siteFb.push(fm, sm);
+  // 模型的位置：沙堆在上游端、發電機在沙堆後面靠圍籬、拖車燈塔（3.2 m 長）在下游端順著車道、旗手警示牌在立牌的位置
+  stSand.push({ x: xm - sd * .1, z: s.za + 2.0, ry: w2Hash(s.x, s.za) * 6.28, zn: s.zn });
+  stGen.push({ x: xm + sd * .55, z: s.za + 4.7, ry: Math.PI / 2 * sd, zn: s.zn });
+  stTower.push({ x: xm, z: s.zb - 1.85, ry: s.up < 0 ? 0 : Math.PI, zn: s.zn });
+  stWSign.push({ x: s.sign.x, z: s.sign.z, ry: s.sign.ry, zn: s.zn });
 }
 // 碰撞圓（邏輯座標，cityWorld 之後是同一個物件換成世界座標）
 const stCircle = (x, z, r, hy) => addCircleL({ x, z, r, hy });
@@ -186,6 +197,43 @@ if (GLB_ON) loadProps('v5street').then(it => {
   }
   st.glb = 1;
 }).catch(e => console.warn('v5street', e));
+// v5works.glb：施工區的圍籬、紐澤西護欄、交通錐（會動的：等 stInit 建好替身再換，換上的模型照 stPose 的縮放壓成替身的尺寸）、
+// 沙堆、發電機、拖車燈塔、旗手警示牌（不會動，直接擺），以及 20-props.js 的電訊箱（69-market.js 打爛時把 boxesMs 每一串的那一格縮成 0）
+function stWorksSwap(it) {
+  const swap = (item, list, old, s, layer) => {
+    if (!item) return null;
+    const ms = w2Inst(item, list.map(() => ({ x: 0, z: 0, zn: null })), layer);
+    for (const m of ms) m.frustumCulled = false;
+    for (const e of old) w2Drop(e.m);
+    return ms.map(m => ({ m, s }));
+  };
+  const f = swap(it.fence, stFence.flatMap(r => r.panels), st.fMs, [(ST_PL - .08) / it.fence.w, 1, 1], LY.NOREFL);
+  if (f) { st.fMs = f; for (const row of stFence) for (const p of row.panels) stFencePose(p); }
+  const j = swap(it.jersey, stJerseyL, st.jMs, [.6 / it.jersey.w, .85 / it.jersey.h, 1], 0);
+  if (j) { st.jMs = j; for (const o of stJerseyL) stJerseyPose(o); }
+  const c = swap(it.cone, stConesL, st.cMs, [1, 1, 1], LY.NOREFL);
+  if (c) { st.cMs = c; for (const o of stConesL) stConePose(o); }
+  st.wglb = 1;
+}
+if (GLB_ON) loadProps('v5works').then(it => {
+  if (!it) return;
+  if (it.sand && it.gen && it.ltower && it.wsign) {
+    w2Inst(it.sand, stSand, LY.NOREFL, 220); w2Inst(it.gen, stGen, LY.NOREFL, 160); w2Inst(it.ltower, stTower, 0, 260); w2Inst(it.wsign, stWSign, LY.NOREFL, 220);
+    w2Drop(...st.siteFb);
+  }
+  if (it.tbox && boxesN.length) {
+    const ms = w2Inst(it.tbox, boxesL, LY.NOREFL, 160);
+    boxesMs.forEach(m => w2Drop(m)); boxesMs.length = 0; boxesMs.push(...ms);
+    boxHp.forEach((hp, k) => { if (hp <= 0) for (const m of ms) instSet(m, k, _stZero); });
+  }
+  st.works = it;
+  if (st.ready) stWorksSwap(it);
+}).catch(e => console.warn('v5works', e));
+// 防撞柱換成 kaimoisch 的混凝土防撞柱掃描（tools/props.mjs 的 fort 組；銀行與霓虹堡共用）
+if (GLB_ON && stBollardsL.length) loadProps('fort').then(it => {
+  if (!it || !it.bollard) return;
+  w2Inst(it.bollard, stBollardsL, LY.NOREFL, 220); w2Drop(stBollardMesh); st.bglb = 1;
+}).catch(e => console.warn('fort bollard', e));
 
 // ─── 透明玻璃（候車亭背牆、車行落地窗）：反射環境、邊緣比較不透明 ───
 const stGlassMat = new T.ShaderMaterial({
@@ -338,7 +386,20 @@ function stInit() {
     const c = Math.cos(o.yaw), s = Math.sin(o.yaw);
     o.tx = o.x + ST_TANK.x * c + ST_TANK.z * s; o.tz = o.z - ST_TANK.x * s + ST_TANK.z * c;
     stAdd(o); st.rays.push(o);
+    // 攤販：站在把手那一端（局部 z −1.75）面向攤車；碰撞圓掛進 o.cs，攤子被撞翻時跟著搬走
+    o.vend = { x: o.x - 1.75 * s, z: o.z - 1.75 * c, run: 0 };
+    const vc = { x: o.vend.x, z: o.vend.z, r: .3 }; circles.push(vc); o.cs.push(vc);
   });
+  // 攤販用 40-people.js 的人物（路人同一套模型與動畫），白上衣；攤子倒了就往人行道裡面跑開（stVendStep）
+  st.vend = crowd(Math.max(1, stands.length)); scene.add(st.vend.mesh);
+  const rv = rng(4417);
+  stands.forEach((o, k) => {
+    st.vend.look(k, { r: rv, top: lin(0xeeece6), hat: 0 });
+    st.vend.anim(k, k % 3 ? ANIM.idle : ANIM.talk, rv() * 10, 1);
+    st.vend.place(k, o.vend.x, groundH(o.vend.x, o.vend.z) > 0 ? .15 : 0, o.vend.z, o.yaw);
+  });
+  st.vend.mesh.count = stands.length;
+  colDirty();
   stBollardsL.forEach((o, k) => { Object.assign(o, stW(o), { kind: 'bollard', k, hx: .17, hz: .17, top: 1.0 }); stAdd(o); });
   // 電話亭（20-props.js 的 booths）：找回它的碰撞圓
   st.booths = booths.map((b, k) => {
@@ -358,6 +419,7 @@ function stInit() {
   const panels = stFence.flatMap(r => r.panels);
   st.fFrame = new T.InstancedMesh(fk.build(), MAT.uber, Math.max(1, panels.length)); st.fNet = new T.InstancedMesh(ng, new T.MeshBasicMaterial({ map: ntx, alphaTest: .5, side: T.DoubleSide, color: 0x6a6e72 }), Math.max(1, panels.length));
   for (const m of [st.fFrame, st.fNet]) { m.frustumCulled = false; m.layers.set(LY.NOREFL); scene.add(m); }
+  st.fMs = [{ m: st.fFrame, s: [1, 1, 1] }, { m: st.fNet, s: [1, 1, 1] }];
   let pk = 0;
   for (const row of stFence) {
     st.fence.push(row);
@@ -367,25 +429,27 @@ function stInit() {
   const jk = new Kit().box(0, .2, 0, .6, .4, 3.8, 0xb8b4aa, 10).box(0, .6, 0, .36, .4, 3.8, 0xb8b4aa, 10).box(0, .83, 0, .22, .06, 3.8, 0xb8b4aa, 10);
   for (const s of [-1, 1]) jk.box(s * .19, .45, 0, .01, .1, 3.6, 0xff6a10, 11, 0, 0, -s * .3);
   st.jMesh = new T.InstancedMesh(jk.build(), MAT.uber, Math.max(1, stJerseyL.length)); st.jMesh.frustumCulled = false; scene.add(st.jMesh);
+  st.jMs = [{ m: st.jMesh, s: [1, 1, 1] }];
   stJerseyL.forEach((o, k) => { Object.assign(o, stW(o), { kind: 'jersey', k, hx: .3, hz: 1.9, top: .85, vx: 0, vz: 0, w: 0, dyn: null }); st.jersey.push(o); st.rays.push(o); stJerseyPose(o); });
   // 交通錐：一碰就飛（沒有碰撞）
   const ck = new Kit().cyl(0, .38, 0, .03, .19, .72, 12, 0xff5a0a, 10).cyl(0, .4, 0, .12, .14, .1, 12, 0xf2f2ee, 11).box(0, .02, 0, .42, .04, .42, 0x222222, 2);
   st.cMesh = new T.InstancedMesh(ck.build(), MAT.uber, Math.max(1, stConesL.length)); st.cMesh.frustumCulled = false; st.cMesh.layers.set(LY.NOREFL); scene.add(st.cMesh);
+  st.cMs = [{ m: st.cMesh, s: [1, 1, 1] }];
   stConesL.forEach((o, k) => { const w = stW(o); Object.assign(o, w, { kind: 'cone', k, hx: .2, hz: .2, top: .75, y: groundH(w.x, w.z), q: new T.Quaternion().setFromAxisAngle(_stS.set(0, 1, 0), w.yaw), fly: null }); st.cones.push(o); stAdd(o); stConePose(o); });
   for (const m of [st.paneMesh, st.fFrame, st.fNet, st.jMesh, st.cMesh]) m.instanceMatrix.needsUpdate = true;
+  if (st.works) stWorksSwap(st.works);
 }
+// 三種會動的設施各有一串網格（程式建模的替身，或 v5works.glb 換上的模型）與各自的縮放（模型的比例照替身的尺寸壓過）
+function stPose(ms, k) { for (const e of ms) { _stM2.compose(_stV, _stQ, _stS.set(...e.s)); instSet(e.m, k, _stM2); } }
 function stFencePose(p) {
-  const y = groundH(p.x, p.z);
   _stQ.setFromEuler(_stE.set(p.fd * p.ang, p.yaw, 0, 'YXZ'));
-  _stM.compose(_stV.set(p.x, y, p.z), _stQ, _stS.set(1, 1, 1));
-  st.fFrame.setMatrixAt(p.k, _stM); st.fNet.setMatrixAt(p.k, _stM);
-  st.fFrame.instanceMatrix.needsUpdate = st.fNet.instanceMatrix.needsUpdate = true;
+  _stV.set(p.x, groundH(p.x, p.z), p.z); stPose(st.fMs, p.k);
 }
 function stJerseyPose(o) {
-  _stM.compose(_stV.set(o.x, groundH(o.x, o.z), o.z), _stQ.setFromAxisAngle(_stS.set(0, 1, 0), o.yaw), _stS.set(1, 1, 1));
-  st.jMesh.setMatrixAt(o.k, _stM); st.jMesh.instanceMatrix.needsUpdate = true;
+  _stQ.setFromAxisAngle(_stS.set(0, 1, 0), o.yaw);
+  _stV.set(o.x, groundH(o.x, o.z), o.z); stPose(st.jMs, o.k);
 }
-function stConePose(o) { _stM.compose(_stV.set(o.x, o.y, o.z), o.q, _stS.set(1, 1, 1)); st.cMesh.setMatrixAt(o.k, _stM); st.cMesh.instanceMatrix.needsUpdate = true; }
+function stConePose(o) { _stQ.copy(o.q); _stV.set(o.x, o.y, o.z); stPose(st.cMs, o.k); }
 
 // ─── 碰觸：圓 (x, z, r) 碰到物件的腳印（局部座標的長方形）就回傳法線（從物件指向圓心）與穿進去的深度 ───
 function stContact(o, x, z, r) {
@@ -473,7 +537,7 @@ function stUproot(o, vx, vy, vz, dx, dz) {
 // 熱狗攤被撞：遮陽傘與醬料飛走、攤車翻倒（鋼瓶跟著攤車滾）
 function stKnock(o, vx, vz, sp, by) {
   if (o.down) return;
-  o.down = 1; stOff(o); st.n.hotdog++;
+  o.down = 1; stOff(o); st.n.hotdog++; stVendFlee(o);
   const s = Math.max(sp, 3), dx = vx / s, dz = vz / s;
   stTumbleAdd(stTake(st.hd.umb, o.k), V3(vx * .7, 4 + sp * .15, vz * .7), V3((Math.random() - .5) * 8, (Math.random() - .5) * 6, (Math.random() - .5) * 8));
   stTumbleAdd(stTake(st.hd.sauce, o.k), V3(vx * .9 + (Math.random() - .5) * 2, 3 + Math.random() * 2, vz * .9 + (Math.random() - .5) * 2), V3(Math.random() * 20, Math.random() * 20, Math.random() * 20));
@@ -634,10 +698,24 @@ function stBlast(x, y, z, r, mine) {
   for (const o of st.jersey) { const ax = o.x - x, az = o.z - z, d = Math.hypot(ax, az); if (d < r * .6) { stJerseyDyn(o); const k = (1 - d / (r * .6)) * 4; o.vx += ax / (d || 1) * k; o.vz += az / (d || 1) * k; } }
 }
 
+// 攤販跑開：背對攤車跑 5 秒（時速 16），之後收起來
+function stVendFlee(o) {
+  if (!o.vend || o.vend.run) return;
+  o.vend.run = 5; st.vend.anim(o.k, ANIM.run, Math.random() * 9, 1.15);
+}
+function stVendStep(dt) {
+  for (const o of stands) {
+    const v = o.vend; if (!v || !(v.run > 0)) continue;
+    v.run -= dt;
+    if (v.run <= 0) { st.vend.place(o.k, 0, -60, 0, 0); continue; }
+    v.x -= Math.sin(o.yaw) * 4.5 * dt; v.z -= Math.cos(o.yaw) * 4.5 * dt;
+    st.vend.place(o.k, v.x, groundH(v.x, v.z) > 0 ? .15 : 0, v.z, o.yaw + Math.PI);
+  }
+}
 // 每幀（69-v5-civic.js 的 v5Update）
 function streetUpdate(dt) {
   if (!st.ready) { if (cityIsWorld) stInit(); else return; }
-  stShardStep(dt); stTumbleStep(dt); stFenceStep(dt); stJerseyStep(dt); stConeStep(dt); stFireStep(dt);
+  stShardStep(dt); stTumbleStep(dt); stFenceStep(dt); stJerseyStep(dt); stConeStep(dt); stFireStep(dt); stVendStep(dt);
 }
 
 // 驗收用：每種設施最近的一個（世界座標）、把東西擺到車前面
@@ -647,7 +725,7 @@ gtaApi.v5.street = {
     const L = kind === 'jersey' ? st.jersey : kind === 'cone' ? st.cones : st.items.filter(o => o.kind === kind);
     let b = null, bd = 1e9; for (const o of L) { if (alive && o.down) continue; const d = Math.hypot(o.x - x, o.z - z); if (d < bd) { bd = d; b = o; } } return b;
   },
-  count: () => ({ sites: ST_SITES.length, shelters: shelters.length, stands: stands.length, booths: booths.length, jersey: stJerseyL.length, fence: stFence.reduce((a, r) => a + r.panels.length, 0), bollards: stBollardsL.length, panes: st.paneMesh ? st.paneMesh.count : 0, glb: !!st.glb }),
+  count: () => ({ sites: ST_SITES.length, shelters: shelters.length, stands: stands.length, booths: booths.length, jersey: stJerseyL.length, fence: stFence.reduce((a, r) => a + r.panels.length, 0), bollards: stBollardsL.length, panes: st.paneMesh ? st.paneMesh.count : 0, glb: !!st.glb, works: !!st.wglb, vendors: st.vend ? st.vend.mesh.count : 0, bollardGlb: !!st.bglb, fortBollards: stBollardsL.filter(o => o.fort).length }),
   ignite: (o, f = ST_TANK_FUSE) => stIgnite(o, f, 'player'), knock: (o, vx = 6, vz = 0) => stKnock(o, vx, vz, Math.hypot(vx, vz), 'player'),
   // 從 (x, y, z) 朝 (tx, ty, tz) 開一槍（走 castRay／hitWith，和玩家的子彈同一條路），回傳打到的東西種類
   free: (x, z, r = 1.2) => !collideCircle(x, z, r, false).hit,   // 連路邊車一起算

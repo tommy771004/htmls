@@ -506,14 +506,14 @@ function v5Quiet(kind) { return kind === 'shots' && !!MALL.range; }
 
 // ─── 縫線服飾：換一套衣服；通緝中、警察沒看到時換裝，少一顆星 ───
 function clothesShop() {
-  const i = crew.cur, c = CREW[i], O = OUTFITS[c.id], cur = outfit[c.id] || 0;
+  const i = crew.cur, c = CREW[i], O = OUTFITS[c.id], cur = outfitOf(c);
   dialog('縫線服飾 · STITCHLINE', `店員遞來一疊衣服。現在穿的是「${O[cur].name}」，換一套 ${money(OUTFIT_PRICE)}。${W.stars ? '\n（通緝中：警察沒看到你的時候換裝，可以甩掉一顆星。）' : ''}`, [
-    ...O.map((o, k) => ({ t: k === cur ? `${o.name}（現在穿的）` : `${o.name} · ${money(OUTFIT_PRICE)}`, fn: () => {
+    ...O.flatMap((o, k) => !outfitOk(o) ? [] : [{ t: k === cur ? `${o.name}（現在穿的）` : `${o.name} · ${money(OUTFIT_PRICE)}`, fn: () => {
       closeDialog(); if (k === cur || !v5Pay(OUTFIT_PRICE)) return;
       outfitApply(i, k, true); sfx.pickup();
       if (W.stars > 0 && !W.seen) { const n = W.stars - 1; wantedApi.set(n); toast(`${c.name} 換上${o.name} · 警察認不出你了（通緝 ${n} 星）`); }
       else toast(`${c.name} 換上${o.name}${W.stars ? ' · 警察正看著你，換了也沒用' : ''}`);
-    } })),
+    } }]),
     { t: '算了', fn: closeDialog },
   ]);
 }

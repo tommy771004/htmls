@@ -74,38 +74,63 @@ function bunkerTick(dt) {
 // ═══ 霓虹堡軍事基地（FAC.fort）═══
 const FORT = { on: false };
 if (FAC.fort) {
-  const F = FAC.fort, k = new Kit(), X = x => F.ax + x, Z = z => F.az + z;
+  // k：一直留著的（機棚地上的黃框、停機坪）；f：程式替身，以 http(s) 開啟時換成 tools/props.mjs 的 fort 組（Sketchfab 模型），碰撞照舊
+  const F = FAC.fort, k = new Kit(), f = new Kit(), X = x => F.ax + x, Z = z => F.az + z, zn = facZn(F), M = FORT.lists = {};
+  const put = (id, x, z, ry = 0, o = {}) => (M[id] || (M[id] = [])).push({ x: X(x), z: Z(z), ry, zn, ...o });
   FORT.on = true; FORT.F = F;
-  const fence = (x0, x1, z0, z1) => { k.box(X((x0 + x1) / 2), 1.6, Z((z0 + z1) / 2), Math.max(.08, x1 - x0), 3.2, Math.max(.08, z1 - z0), 0x8a9098, 15); v5Box(F, x0, x1, z0, z1); };
-  // 圍牆：鐵絲網（上面一排刺絲），南面中間是大門（x 30–38）
+  // 圍牆：鐵絲網（上面一排刺絲），南面中間是大門（x 30–38）；模型每片 4.15 m，照每段的長度均分、沿 x 縮放
+  const fence = (x0, x1, z0, z1) => {
+    f.box(X((x0 + x1) / 2), 1.6, Z((z0 + z1) / 2), Math.max(.08, x1 - x0), 3.2, Math.max(.08, z1 - z0), 0x8a9098, 15); v5Box(F, x0, x1, z0, z1);
+    const alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0, n = Math.ceil(L / 4.15);
+    for (let i = 0; i < n; i++) { const t = (i + .5) / n; put('fence', alongX ? x0 + L * t : (x0 + x1) / 2, alongX ? (z0 + z1) / 2 : z0 + L * t, alongX ? 0 : Math.PI / 2, { sx: L / n / 4.15 }); }
+  };
   fence(12.5, 12.7, 12.5, 49.5); fence(59.3, 59.5, 12.5, 49.5); fence(12.5, 59.5, 12.5, 12.7); fence(12.5, 30, 49.3, 49.5); fence(38, 59.5, 49.3, 49.5);
-  for (let x = 13; x < 59.5; x += 3) for (const z of [12.6, 49.4]) if (z < 40 || x < 30 || x > 38) k.box(X(x), 3.35, Z(z), .06, .3, .06, 0x5a5e62, 15);
-  k.box(X(12.6), 3.3, Z(31), .3, .2, 37, 0x5a5e62, 15).box(X(59.4), 3.3, Z(31), .3, .2, 37, 0x5a5e62, 15);
-  // 大門：崗亭、柵欄桿、混凝土路障
-  k.box(X(28.6), 1.4, Z(47.6), 2.4, 2.8, 2.4, 0x6a7058, 2).box(X(28.6), 2.9, Z(47.6), 2.8, .2, 2.8, 0x3a3e34, 2).box(X(28.6), 1.7, Z(48.82), 2, .9, .04, 0x8ab0c8, 1);
-  v5Box(F, 27.4, 29.8, 46.4, 48.8);
-  k.box(X(34), 1.1, Z(49.2), 8, .12, .12, 0xd02020, 2);
-  for (const x of [30.4, 37.6]) { k.box(X(x), .45, Z(51.2), .8, .9, 1.6, 0xb0aca0, 2); v5Box(F, x - .4, x + .4, 50.4, 52); }
-  // 機棚（半圓頂用三段斜屋頂近似，南面敞開）
-  k.box(X(48), 4.5, Z(14.2), 20, 9, .4, 0x5a6050, 2).box(X(38.2), 4.5, Z(22), .4, 9, 16, 0x5a6050, 2).box(X(57.8), 4.5, Z(22), .4, 9, 16, 0x5a6050, 2);
-  for (const [y, w] of [[9.2, 20.4], [10.4, 14], [11.2, 7]]) k.box(X(48), y, Z(22), w, .3, 16.2, 0x4a5044, 2);
-  k.box(X(48), .03, Z(25), 18, .02, 10, 0xffd23a, 11);
-  v5Box(F, 37.9, 38.5, 14, 30, { hy: 9 }); v5Box(F, 57.5, 58.1, 14, 30, { hy: 9 }); v5Box(F, 38, 58, 14, 14.6, { hy: 9 });
-  // 塔台
-  k.box(X(16.5), 7, Z(16.5), 4, 14, 4, 0x8a8a7a, 2).box(X(16.5), 15.4, Z(16.5), 5.6, 2.8, 5.6, 0x3a5a6a, 1).box(X(16.5), 17, Z(16.5), 6.2, .4, 6.2, 0x2a2e2a, 2).cyl(X(16.5), 18.4, Z(16.5), .06, .06, 2.4, 6, 0x9a9a9a, 15);
-  v5Box(F, 14.5, 18.5, 14.5, 18.5, { hy: 17.2 });
-  // 停機坪與油桶、彈藥箱堆
+  for (let x = 13; x < 59.5; x += 3) for (const z of [12.6, 49.4]) if (z < 40 || x < 30 || x > 38) f.box(X(x), 3.35, Z(z), .06, .3, .06, 0x5a5e62, 15);
+  f.box(X(12.6), 3.3, Z(31), .3, .2, 37, 0x5a5e62, 15).box(X(59.4), 3.3, Z(31), .3, .2, 37, 0x5a5e62, 15);
+  // 大門：崗亭、兩支對開的柵欄桿、混凝土護欄（v5works 的紐澤西護欄）、門內兩道沙包牆
+  f.box(X(28.6), 1.4, Z(47.6), 2.4, 2.8, 2.4, 0x6a7058, 2).box(X(28.6), 2.9, Z(47.6), 2.8, .2, 2.8, 0x3a3e34, 2).box(X(28.6), 1.7, Z(48.82), 2, .9, .04, 0x8ab0c8, 1);
+  v5Box(F, 27.3, 29.9, 46.3, 48.9); put('booth', 28.6, 47.6, 0);
+  f.box(X(34), 1.1, Z(49.2), 8, .12, .12, 0xd02020, 2);
+  put('boom', 32.1, 49.2, Math.PI / 2); put('boom', 35.9, 49.2, -Math.PI / 2);
+  for (const x of [30.4, 37.6]) { f.box(X(x), .45, Z(51.4), .7, .9, 3.8, 0xb0aca0, 2); v5Box(F, x - .35, x + .35, 49.5, 53.3); put('jersey', x, 51.4, 0); }   // 模型長邊沿 z
+  for (const [x, z, ry] of [[22, 45.5, 0], [44, 45.5, 0], [19.4, 22.6, 0]]) { f.box(X(x), .5, Z(z), 4.6, 1, .74, 0x8a7a58, 2); v5Box(F, x - 2.3, x + 2.3, z - .37, z + .37, { hy: 1 }); put('sandbag', x, z, ry); }
+  // 機棚：半圓拱棚（16 × 25 m、高 9.5 m），南北兩端敞開，坦克從南面開出去；碰撞只有兩側的拱腳
+  for (const s of [-1, 1]) f.box(X(48 + s * 7.7), 2.4, Z(26.5), .4, 4.8, 25, 0x5a6050, 2);
+  for (const [y, w] of [[5.2, 15], [7.8, 11.6], [9.3, 6]]) f.box(X(48), y, Z(26.5), w, .3, 25, 0x4a5044, 2);
+  k.box(X(48), .03, Z(26), 12, .02, 10, 0xffd23a, 11);
+  v5Box(F, 40, 40.8, 14, 39, { hy: 6 }); v5Box(F, 55.2, 56, 14, 39, { hy: 6 });
+  for (const z of [14, 38.6]) { v5Box(F, 40.8, 44.4, z, z + .4, { hy: 8 }); v5Box(F, 51.6, 55.2, z, z + .4, { hy: 8 }); }   // 兩端的端牆（中間 7 m 寬的門洞）
+  put('hangar', 48, 26.5, 0);
+  // 塔台：鋼架崗哨塔（12 m，樓梯在東側）；碰撞是四支塔腳
+  f.box(X(16.5), 5.5, Z(16.5), 3.6, 11, 3.6, 0x8a8a7a, 2).box(X(16.5), 10.4, Z(16.5), 5, 2.4, 5, 0x3a5a6a, 1).box(X(16.5), 11.8, Z(16.5), 5.6, .4, 5.6, 0x2a2e2a, 2);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const [cx, cz] = facW(F, 16.42 + sx * 1.9, 16.5 + sz * 1.9); circles.push({ x: cx, z: cz, r: .3, w: 1 }); }
+  put('tower', 16.5, 16.5, 0);
+  // 停機坪與油桶、彈藥箱堆（靠東牆，不擋坦克從機棚開到大門的路）
   v5Pad(F, 24, 36, 0, k);
-  for (let i = 0; i < 6; i++) k.cyl(X(44 + (i % 3) * .8), .55, Z(40 + Math.floor(i / 3) * .8), .32, .32, 1.1, 12, 0x3a5a2a, 2);
-  for (let i = 0; i < 8; i++) k.box(X(50 + (i % 4) * 1.4), .45 + Math.floor(i / 4) * .9, Z(34), 1.3, .9, 1, 0x4a5a32, 2);
-  v5Box(F, 43.6, 46.4, 39.6, 41.8); v5Box(F, 49.3, 55.7, 33.4, 34.6, { hy: 1.8 });
-  // 探照燈柱
-  for (const [x, z] of [[14, 48], [58, 48], [58, 14]]) { k.cyl(X(x), 4, Z(z), .12, .14, 8, 8, 0x5a5e62, 15).box(X(x), 8.2, Z(z), .6, .4, .6, 0xf0f0e0, 11); v5Light(F, x, 7.5, z, 0xf0f0d8, 26, 1.6); }
+  for (let i = 0; i < 6; i++) { const x = 54.6 + (i % 3) * .8, z = 46.2 + Math.floor(i / 3) * .8; f.cyl(X(x), .55, Z(z), .32, .32, 1.1, 12, 0x3a5a2a, 2); put('drum', x, z, i * 1.7); }
+  for (let i = 0; i < 8; i++) { const z = 41.4 + (i % 4) * 1.55, y = Math.floor(i / 4) * .63; f.box(X(57.6), y + .31, Z(z), .93, .62, 1.5, 0x4a5a32, 2); put('crate', 57.6, z, Math.PI / 2, { y }); }
+  v5Box(F, 54.2, 56.6, 45.8, 47.4); v5Box(F, 57.1, 58.1, 40.6, 47.4, { hy: 1.3 });
+  // 探照燈：v5works 的拖車燈塔（替身是燈柱）
+  for (const [x, z, ry] of [[14.5, 47.5, .8], [57.5, 38, -1.6], [58, 14.5, -2.4]]) { f.cyl(X(x), 2, Z(z), .12, .14, 4, 8, 0x5a5e62, 15).box(X(x), 4.1, Z(z), .6, .4, .6, 0xf0f0e0, 11); v5Light(F, x, 4, z, 0xf0f0d8, 26, 1.6); put('ltower', x, z, ry); }
+  FORT.fb = cityAdd(new T.Mesh(f.build(), MAT.uber), zn);
   cityAdd(new T.Mesh(k.build(), MAT.uber), facZn(F));
   v5Put(F, v5Sign([['霓虹堡 FORT NEON', .4, '#f2f0e0', .36], ['軍事禁區 · 擅入者格殺勿論', .24, '#ff4a3a', .76]], 7, 1.7, { bg: '#2a3424', edge: '#d0c890', dim: 0xd8d8d8 }), 26.2, 2.4, 49.8, 0);
   V5.helis.push({ F, x: 24, z: 36, y: .1, yaw: Math.PI / 2, v: null, gone: 0 });   // 69-v5-civic.js 生成：武裝直升機（kind 不給就是 69-gunship 的砲艇）
   FORT.tankAt = { x: 48, z: 24, yaw: Math.PI };
 }
+// 霓虹堡的模型（tools/props.mjs 的 fort 組；紐澤西護欄與燈塔借 v5works 組）：兩組都下載好才換掉替身 FORT.fb
+if (FORT.on && GLB_ON) Promise.all([loadProps('fort'), loadProps('v5works')]).then(([it, wk]) => {
+  if (!it || !wk) return;
+  const M = FORT.lists, R = 320;
+  for (const id of ['fence', 'booth', 'boom', 'sandbag', 'hangar', 'tower', 'drum', 'crate']) {
+    const ms = it[id] ? w2Inst(it[id], M[id], id === 'hangar' || id === 'tower' ? 0 : LY.NOREFL, R) : [];
+    // 鐵絲網：貼圖縮小後鐵絲的 alpha 被平均掉，遠一點就整片不見；門檻壓低（26-glb.js 的 MASK_CUT）
+    if (id === 'fence') for (const m of ms) { const o = m.material; m.material = new T.ShaderMaterial({ uniforms: o.uniforms, vertexShader: o.vertexShader, fragmentShader: o.fragmentShader, defines: { ...o.defines, MASK_CUT: '.12' }, side: o.side }); }
+  }
+  for (const o of M.jersey) { o.sx = .7 / wk.jersey.w; o.sy = .85 / wk.jersey.h; }   // 斷面壓成和碰撞一樣的 0.7 × 0.85 m
+  w2Inst(wk.jersey, M.jersey, 0, R); w2Inst(wk.ltower, M.ltower, 0, R);
+  w2Drop(FORT.fb); FORT.glb = 1;
+}).catch(e => console.warn('fort', e));
 function fortPad() { const F = FORT.F; if (!F) return { ...spotW(HOME_SPOT), y: 0 }; const [x, z] = facW(F, 21, 36); return { x, z, y: 0, yaw: Math.PI / 2 }; }
 const inFort = (X, Z) => { if (!FORT.on) return false; const F = FORT.F, [x, z] = toL(X, Z, facZn(F)); return x > F.ax + 12.7 && x < F.ax + 59.3 && z > F.az + 12.7 && z < F.az + 49.3; };
 function fortStep(dt) {
@@ -288,8 +313,9 @@ function bunkerSupAct(S) {
       const D = S.dest;
       if (S.kind === 'train') {
         const R = RAIL;
-        if (S.st === 'go' && Math.hypot(pX() - S.goal.x, pZ() - S.goal.z) < 260 && R.state !== 'run') { R.state = 'run'; R.dir = 1; R.s = 0; R.horned = false; }
-        if (S.st === 'go' && R.state === 'run') { const [x, z] = R.at(R.s - R.dir * (R.trainL - 3)); S.tail = toW(x, z, RAIL_ZN); }
+        // 軍火列車是 21-rail.js 的貨運編成：走近了就叫一班（電聯車還在跑就等它進洞）
+        if (S.st === 'go' && Math.hypot(pX() - S.goal.x, pZ() - S.goal.z) < 260 && (R.state !== 'run' || R.kind !== 'frt')) { if (R.state !== 'run') railStart(1, 'frt'); else R.want = 'frt'; }
+        if (S.st === 'go' && R.state === 'run' && R.kind === 'frt') { const [x, z] = R.at(R.s - R.dir * (R.trainL - 3)); S.tail = toW(x, z, RAIL_ZN); } else if (S.st === 'go') S.tail = null;
         if (S.st === 'crate' && player.mode === 'walk' && Math.hypot(pX() - S.crate.x, pZ() - S.crate.z) < 1.6) { S.st = 'carry'; S.crate.m.removeFromParent(); sfx.pickup(); toast('扛起軍火貨箱 · 送回北嶺地堡'); gpsSet(D.x, D.z); }
         if (S.st === 'carry' && Math.hypot(pX() - D.x, pZ() - D.z) < 14) return bunkerSupDone();
       } else {
@@ -322,13 +348,17 @@ function bunkerSupClear() {
 }
 // 列車：打中最後一節車廂（69-combat.js 的 shoot 呼叫 v7Shot）
 function bunkerTrainShot(R) {
-  const S = V7B.sup; if (!S || S.kind !== 'train' || S.st !== 'go' || !S.tail || RAIL.state !== 'run') return;
+  const S = V7B.sup; if (!S || S.kind !== 'train' || S.st !== 'go' || !S.tail || RAIL.state !== 'run' || RAIL.kind !== 'frt') return;
   if (!rayHitsCyl(R, S.tail[0], S.tail[1], RAIL.D, RAIL.D + 4.2, 2.2)) return;
   S.hits = (S.hits || 0) + 1; sparks(S.tail[0], RAIL.D + 1.2, S.tail[1], 8, 3);
   if (S.hits < 3) return;
   S.st = 'crate';
-  const k = new Kit(); k.box(0, .45, 0, 1.4, .9, 1, 0x4a5a32, 2).box(0, .91, 0, 1.42, .03, 1.02, 0x2a3220, 2);
-  const m = new T.Mesh(k.build(), MAT.uber); m.position.set(S.tail[0], RAIL.D, S.tail[1]); scene.add(m);
+  const fl = RAIL.cars[RAIL.cars.length - 1], cg = fl.cargo && fl.cargo[0];   // 平車的車頭朝行進方向，cargo[0] 是最後面那一箱，藏起來、掉在橋面上
+  if (cg) cg.visible = false;
+  let m;
+  if (cg && !cg.isMesh) { m = cg.clone(); m.visible = true; m.rotation.set(0, Math.random() * 6.28, 0); }
+  else { const k = new Kit(); k.box(0, .45, 0, 1.4, .9, 1, 0x4a5a32, 2).box(0, .91, 0, 1.42, .03, 1.02, 0x2a3220, 2); m = new T.Mesh(k.build(), MAT.uber); }
+  m.position.set(S.tail[0], RAIL.D, S.tail[1]); scene.add(m);
   S.crate = { x: S.tail[0], z: S.tail[1], m };
   sfx.impact(10); toast('掛鉤斷了！貨箱掉在橋面上');
 }

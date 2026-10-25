@@ -25,7 +25,7 @@ const PEOPLE = await (async () => {
     c.tracks = c.tracks.filter(t => t.name.endsWith('.quaternion') || /^(pelvis|root)\.position$/.test(t.name));
     clips.set(c.name, c);
   }
-  const tpl = {}, geos = {};
+  const tpl = {}, geos = {}, bind = {};
   const P = V3(), N = V3(), M = new T.Matrix4(), A = new T.Matrix4(), NM = new T.Matrix3();
   for (const g of ['Male', 'Female']) {
     const grp = gltf.scene.getObjectByName(g);
@@ -33,6 +33,8 @@ const PEOPLE = await (async () => {
     grp.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
     const body = meshes.find(m => m.material.name.endsWith('_skin'));
     const sk = body.skeleton, bi = new Map(sk.bones.map((b, i) => [b.name, i])), jb = bi.get('pelvis');
+    // 掃描人物（scanGet）換到同一個綁定空間用：身體的 bindMatrixInverse × 骨盆的綁定矩陣、骨名 → 編號
+    bind[g] = { M: body.bindMatrixInverse.clone().multiply(sk.boneInverses[jb].clone().invert()), bi };
     const parts = [];   // 每個網格一段；v 是髮型編號（-1 = 每個人都有）
     for (const m of meshes) {
       const own = m.name + ' ' + (m.parent ? m.parent.name : '');
@@ -99,7 +101,7 @@ const PEOPLE = await (async () => {
     probe.updateMatrixWorld(true);
     seat[c] = h - pel.getWorldPosition(P).y;
   }
-  return { tpl, geos, clips, seat };
+  return { tpl, geos, clips, seat, bind };
 })().catch(e => { console.warn('人物模型載入失敗，街上不放人', e); return null; });
 
 // 動畫庫的待機是握拳、雙臂外張的備戰姿勢：手指往靜止姿勢放鬆，待機的手肘伸直一些、上臂往下收（同 268）
@@ -139,7 +141,13 @@ uniform vec3 uC[9];
 uniform vec4 uGlow, uPat;
 varying vec3 vW, vN, vCol, vEmi, vP;
 varying float vTop;
+#ifdef SCAN
+varying vec2 vUv;
+#endif
 void main(){
+  #ifdef SCAN
+  vUv = uv;
+  #endif
   vec3 objectNormal = normal, transformed = position;
   #include <skinbase_vertex>
   #include <skinnormal_vertex>
@@ -158,9 +166,16 @@ uniform vec4 uPat;
 uniform vec3 uPatC;
 varying vec3 vW, vN, vCol, vEmi, vP;
 varying float vTop;
+#ifdef SCAN
+uniform sampler2D uMap;
+varying vec2 vUv;
+#endif
 void main(){
   if (vW.y < uClipY) discard;
   vec3 n = normalize(vN), v = normalize(uCam - vW), col = vCol;
+  #ifdef SCAN
+  col = texture2D(uMap, vUv).rgb;   // 掃描人物的底色貼圖（sRGB 貼圖由硬體解成線性）
+  #endif
   // 上衣花樣（uPat.x）：1 橫條紋、2 格紋、3 胸前一道寬條、4 肩膀以上拼色（長袖連袖子）；y 是每公尺幾條、z 是濃淡
   if (vTop > .5 && uPat.x > .5) {
     float f = uPat.y, m;
@@ -181,6 +196,48 @@ const charMat = () => new T.ShaderMaterial({
     uPat: { value: new T.Vector4() }, uPatC: { value: new T.Color() } },
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
+// 掃描人物的材質：和同一人的 charMat 共用 uniform 物件，另外帶底色貼圖
+const scanMat = (cm, tex) => new T.ShaderMaterial({ uniforms: { ...cm.uniforms, uMap: { value: tex } }, defines: { SCAN: 1 }, vertexShader: CHAR_VS, fragmentShader: CHAR_FS });
+
+// ─── 掃描人物（blender/scan_people.py：沒有骨架的 Sketchfab 人物綁到同一副 Quaternius 骨架）───
+// assets/260/people/<id>.glb 只在 http(s) 下載，第一次有人要穿才下載；下載好之前（與以檔案開啟時）照舊是程式換色的身體，
+// 下載好後把登記過的人重新 look 一次。幾何換到 PEOPLE 的綁定空間、骨頭編號照骨名對回模板骨架，所以動畫與 IK 都照用。
+const SCAN_SEX = { jason: 'Male', lucia: 'Female' };
+const SCAN = {}, scanWait = {};
+function scanGet(id, p) {
+  if (!GLB_ON || !PEOPLE || !SCAN_SEX[id]) return null;
+  if (SCAN[id] && (SCAN[id].geo || SCAN[id].fail)) return SCAN[id].geo ? SCAN[id] : null;
+  (scanWait[id] ||= new Set()).add(p);   // 下載中再有人要穿也登記，下載好一起重新 look
+  if (SCAN[id]) return null;
+  SCAN[id] = {};
+  glbLoader.loadAsync(`../assets/260/people/${id}.glb`).then(gltf => {
+    let m = null;
+    gltf.scene.traverse(o => { if (o.isSkinnedMesh && !m) m = o; });
+    const g = SCAN_SEX[id], B = PEOPLE.bind[g], ms = m.skeleton, jm = ms.bones.findIndex(b => b.name === 'pelvis');
+    const M = B.M.clone().multiply(ms.boneInverses[jm]).multiply(m.bindMatrix), NM = new T.Matrix3().getNormalMatrix(M);
+    const src = m.geometry, n = src.attributes.position.count, P = V3();
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    const remap = ms.bones.map(b => B.bi.get(b.name) ?? 0);
+    for (let i = 0; i < n; i++) {
+      P.fromBufferAttribute(src.attributes.position, i).applyMatrix4(M).toArray(pos, i * 3);
+      P.fromBufferAttribute(src.attributes.normal, i).applyMatrix3(NM).normalize().toArray(nor, i * 3);
+      for (let k = 0; k < 4; k++) { si[i * 4 + k] = remap[src.attributes.skinIndex.getComponent(i, k)]; sw[i * 4 + k] = src.attributes.skinWeight.getComponent(i, k); }
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
+    geo.setAttribute('uv', src.attributes.uv);
+    geo.setAttribute('skinIndex', new T.BufferAttribute(si, 4));
+    geo.setAttribute('skinWeight', new T.BufferAttribute(sw, 4));
+    geo.setAttribute('aSlot', new T.BufferAttribute(new Float32Array(n), 1));
+    geo.setAttribute('aPat', new T.BufferAttribute(new Float32Array(n * 3), 3));
+    geo.setIndex(src.index);
+    SCAN[id] = { geo, tex: m.material.map, sex: g };
+    for (const q of scanWait[id]) if (q.scanId === id && q.crowd) q.crowd.look(q.k, q.lastLook);
+    scanWait[id].clear();
+  }).catch(e => { console.warn('掃描人物載入失敗', id, e); SCAN[id] = { fail: true }; });
+  return null;
+}
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
   die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33, danceD: 34, danceE: 35, danceF: 36 };
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
@@ -478,7 +535,9 @@ function crowd(n, cap = n) {
         p.rig.remove(p.sm);
         p.sm.bindMode = T.DetachedBindMode;
         p.h.add(p.sm);
-        p.sm.material = charMat();
+        p.cm = charMat();
+        p.sm.material = p.cm;
+        p.scanMats = {};
         p.sm.boundingSphere = new T.Sphere(V3(0, 1, 0), 1.3);
         // 骨頭矩陣只在擺過姿勢後重算（倒影與主畫面各 render 一次，遠處的人隔幀才擺）
         const sk = p.sm.skeleton;
@@ -488,7 +547,9 @@ function crowd(n, cap = n) {
         p.mixer = new T.AnimationMixer(p.rig);
         p.acts = new Map();
       }
-      const u = p.sm.material.uniforms, C = u.uC.value;
+      const u = p.cm.uniforms, C = u.uC.value;
+      p.crowd = api; p.lastLook = o; p.scanId = o.scan || null;
+      const sc = o.scan ? scanGet(o.scan, p) : null;
       const skin = o.skin || pick(SKINS), top = o.top || pick(TOPS), bot = o.bot || pick(BOTS), hair = o.hair || pick(HAIRS);
       const long = o.coat ?? (r() < .6 ? 1 : 0), bare = fem && (o.skirt ?? (r() < .3 ? 1 : 0));
       C[0].copy(skin); C[1].copy(top); C[2].copy(long ? top : skin); C[3].copy(bot); C[4].copy(bare ? skin : bot);
@@ -500,6 +561,8 @@ function crowd(n, cap = n) {
       u.uPatC.value.copy(TOPS[(TOPS.indexOf(top) + 3 + Math.floor(hv * 40) % 5) % TOPS.length] || TOPS[0]);
       if (u.uPatC.value.equals(top)) u.uPatC.value.copy(top).multiplyScalar(.4);
       p.sm.geometry = PEOPLE.geos[sex][fem ? (o.longHair ? 0 : o.longHair === 0 ? 1 + Math.floor(r() * 2) : Math.floor(r() * 3)) : (o.hat ? 1 : Math.floor(r() * 3))];
+      if (sc && sc.sex === sex) { p.sm.geometry = sc.geo; p.sm.material = p.scanMats[o.scan] ||= scanMat(p.cm, sc.tex); }
+      else p.sm.material = p.cm;
       const gc = o.glow || pick(GLOWS);
       u.uGlow.value.set(gc.r, gc.g, gc.b, o.glowI ?? (r() < .3 ? 1.6 : 0));
       p.s = o.scale || ((fem ? .95 : 1) * (.94 + r() * .1));
@@ -570,6 +633,8 @@ function updateCrowds(scn) {
 
 // ─── 街上的行人：沿著街區人行道繞圈，多數撐傘 ───
 const PED_N = LOW ? 18 : 38;
+// 掃描的 Lucia（女性、長髮）：重看一次外觀用自己的亂數（下載好之後 scanGet 會拿同一組參數再 look 一次）
+const LUCIA = k => ({ r: rng(500 + k), scan: 'lucia', female: true, longHair: 1, glowI: 0 });
 const xzW = (x, z, y) => { const [X, Z] = toW(x, z); return [X, y, Z]; };   // 邏輯 (x, z) → peds.place 的世界座標 x, y, z
 const peds = crowd(PED_N + 8);
 const pedState = [];
@@ -585,6 +650,7 @@ const umbrellas = [];
     const um = rP() < .62;
     pedState.push({ b, inset, w, d, per, s: rP() * per, dir: rP() < .5 ? 1 : -1, v: 1.05 + rP() * .5, um, um0: um, dodge: 0, dx: 0, dz: 0 });
     peds.look(k, { r: rP });
+    if (k % 19 === 7) peds.look(k, LUCIA(k));   // 幾個路人換成 Lucia 的掃描模型（http(s) 下載好才換；亂數另外抽，rP 的序列不變）
     peds.anim(k, um ? ANIM.umbrella : ANIM.walk, rP() * 10, pedState[k].v * .78);
     if (um) umbrellas.push(k);
   }
@@ -592,6 +658,7 @@ const umbrellas = [];
   for (let q = 0; q < 6; q++) {
     const k = PED_N + q;
     peds.look(k, { r: rP, glowI: q % 2 ? 1.6 : 0 });
+    if (q === 2) peds.look(k, LUCIA(k));
     const x = CLUB_X - 4.5 - q * 1.05, z = CLUB_Z + 1.5 + (q % 2) * .3;
     peds.anim(k, q % 3 === 0 ? ANIM.talk : q % 3 === 1 ? ANIM.idle : ANIM.smoke, rP() * 10, 1);
     peds.place(k, ...xzW(x, z, .15), yawW(zoneAtL(x, z), Math.PI / 2 + (rP() - .5) * .8));
@@ -740,6 +807,7 @@ scene.add(me.mesh);
 const player = { mode: 'walk', ...WP(avX(1) - 9.6, stZ(2) + 18), y: .15, yaw: yawW(zoneAtL(avX(1), stZ(2)), 0), v: 0, vx: 0, vz: 0, veh: null, walkPh: 0, dance: 0, anim: ANIM.idle, blend: 0, prevAnim: ANIM.idle, where: 'out', stepT: 0 };
 const SWIM_Y = .06;   // UAL 的游泳動畫以根骨當水面（踩水骨盆在 -0.33 m、自由式在 -0.08 m）
 function updatePlayerWalk(inp, dt, camYaw) {
+  if (player.ride && player.ride.metro) { metroRide(inp, dt); return; }   // 69-v9-metro.js：搭地鐵（站在車門旁跟著車走）
   if (player.ride && player.ride.tron) { tronRide(inp, dt, camYaw); return; }   // 21-tron.js：騎光格島的光速機車、坐長椅
   if (player.ride) { aptRide(dt); return; }   // 69-safehouse.js：走樓梯、搭電梯（照路徑走，不受碰撞）
   if (player.air3) { airStep(inp, dt, camYaw); return; }   // 69-v3-crash.js：被拋出車外、自由落體、開傘
@@ -748,7 +816,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   let mx = inp.mx, mz = inp.mz;
   const ml = Math.hypot(mx, mz);
   if (ml > 1) { mx /= ml; mz /= ml; }
-  if (ml > .05) player.dance = 0;
+  if (ml > .05) { player.dance = 0; player.vig = 0; }   // vig：69-v9-switch.js 切換角色的小劇場動作
   // 相機的前方 = (sin yaw, cos yaw)；右方 = (-cos, sin)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw), rx = -fz, rz = fx;
   const wx = fx * mz + rx * mx, wz = fz * mz + rz * mx;
@@ -792,7 +860,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;
-  let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.dance ? DANCES[player.dance - 1] : ANIM.idle;
+  let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.vig || (player.dance ? DANCES[player.dance - 1] : ANIM.idle);
   if (aimM) a = sp > .25 ? ANIM.aimWalk : ANIM.aimIdle;
   if (player.crouch) a = aimM ? (sp > .25 ? ANIM.crouchAimWalk : ANIM.crouchAim) : sp > .25 ? ANIM.crouchWalk : ANIM.crouch;
   if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }

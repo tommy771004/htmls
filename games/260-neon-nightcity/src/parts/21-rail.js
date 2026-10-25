@@ -3,6 +3,7 @@
 // 座標都是北嶺公園的座標框（VIADUCT.zn = NPARK.f）；端點座標系 V.frame(e, x, z) → [o 往外（進山）, d 往左]，洞門在 o = A，洞底在 o = A + BORE。
 // 列車：tools/props.mjs 的 w1_train（tiunov.se 的 Lastochka electric train，CC BY 4.0）拆成的車頭 cab、中間車 mid、無駕駛室的 tail，
 // 編成 車頭＋中間＋tail＋中間＋反向的車頭（約 104 m）。以 http(s) 開啟、走近 RAIL_NEAR 公尺才下載；以檔案開啟或下載失敗用程式替身。
+// 每三趟有一趟是貨運列車（rail_frt：柴電機車、兩節棚車、載軍火貨箱的平車，慢一點）；railStart(dir, 'frt') 指定下一趟開哪一種。
 // 一趟從一端的洞底開到另一端的洞底（車身過了洞底就藏起來），停一陣子再反方向開回來；白天車窗暗、夜裡亮，頭燈一直開著
 
 const RAIL = VIADUCT ? (() => {
@@ -22,12 +23,18 @@ const RAIL = VIADUCT ? (() => {
   };
   // 編成：車種與反向。EXT 是車身前後端在模型座標的 z（車頭朝 +z；props.json 的外框還算進了拿掉的終點站字幕，車頭不在原點正中），
   // 替身照同樣的長度。off：車廂原點在車頭後面多遠；車廂之間留 0.4 m 的貫通道
-  const EXT = { cab: [-9.91, 10.71], mid: [-9.98, 10.03], tail: [-9.6, 9.6] };
-  const cars = [['cab', 0], ['mid', 0], ['tail', 0], ['mid', 0], ['cab', 1]].map(([id, rev]) => ({ id, rev, L: EXT[id][1] - EXT[id][0], obj: null, s: 0, x: 0, z: 0, ux: 1, uz: 0, on: false }));
-  let off = 0;
-  for (const c of cars) { const [z0, z1] = EXT[c.id], fr = c.rev ? -z0 : z1, bk = c.rev ? z1 : -z0; c.off = off + fr; c.mid = (z0 + z1) / 2 * (c.rev ? -1 : 1); off += fr + bk + .4; }
-  return { V, D, pts, S, len, at, cars, EXT, trainL: off - .4, uM: { value: new T.Vector4(1, 0, 1, 0) },
-    t: 0, speed: 17, wait: 38, dir: 1, s: -1e9, state: 'wait', tw: 12, hornCd: 0, joint: 0, hitCd: 0, loaded: false, req: false, snd: false };
+  // 貨運列車（rail_frt：柴電機車 loco、棚車 box、平車 flat）的車身在模型座標裡置中
+  const EXT = { cab: [-9.91, 10.71], mid: [-9.98, 10.03], tail: [-9.6, 9.6], loco: [-10.4, 10.4], box: [-7.6, 7.6], flat: [-7.7, 7.7] };
+  const consist = (list, gap) => {
+    const cars = list.map(([id, rev]) => ({ id, rev, L: EXT[id][1] - EXT[id][0], obj: null, s: 0, x: 0, z: 0, ux: 1, uz: 0, on: false }));
+    let off = 0;
+    for (const c of cars) { const [z0, z1] = EXT[c.id], fr = c.rev ? -z0 : z1, bk = c.rev ? z1 : -z0; c.off = off + fr; c.mid = (z0 + z1) / 2 * (c.rev ? -1 : 1); off += fr + bk + gap; }
+    return { cars, trainL: off - gap };
+  };
+  // 編成：pax 是電聯車（車廂之間 0.4 m 貫通道），frt 是貨運列車（車鉤 1 m；最後一節平車載著軍火貨箱，69-v7-bunker.js 的補給任務打斷它的掛鉤）
+  const sets = { pax: consist([['cab', 0], ['mid', 0], ['tail', 0], ['mid', 0], ['cab', 1]], .4), frt: consist([['loco', 0], ['box', 0], ['box', 1], ['flat', 0]], 1) };
+  return { V, D, pts, S, len, at, sets, kind: 'pax', cars: sets.pax.cars, EXT, trainL: sets.pax.trainL, uM: { value: new T.Vector4(1, 0, 1, 0) },
+    t: 0, speed: 17, wait: 38, dir: 1, s: -1e9, state: 'wait', tw: 12, trips: 0, want: null, hornCd: 0, joint: 0, hitCd: 0, loaded: false, frtLoaded: false, req: false, snd: false };
 })() : null;
 const RAIL_NEAR = 1100, RAIL_ZN = VIADUCT ? VIADUCT.zn : null;
 // 山頭蓋板的高度（公園框的座標，d：離鐵軌中心的橫向距離）：沒挖溝的山坡，比山頭的輪廓低就照輪廓（平頂是 port.lid）；
@@ -246,7 +253,8 @@ if (RAIL) {
 
 // ─── 列車：程式替身（白色車身、紅色腰帶、亮的車窗、頭燈）；模型下載好就換掉 ───
 function railProxyCar(id) {
-  const c = RAIL.cars.find(c => c.id === id), L = c.L, k = new Kit(), body = 0xdcdcd6, red = 0xb3201c, glass = 0x1a1c20;
+  if (id === 'loco' || id === 'box' || id === 'flat') return railProxyFrt(id);
+  const L = RAIL.EXT[id][1] - RAIL.EXT[id][0], k = new Kit(), body = 0xdcdcd6, red = 0xb3201c, glass = 0x1a1c20;
   const cab = id === 'cab', L0 = cab ? L - 3 : L;
   k.box(0, 2.15, cab ? -1.5 : 0, 2.9, 3.1, L0, body, 10).box(0, 1.25, cab ? -1.5 : 0, 2.92, .45, L0, red, 10);
   k.box(0, .45, 0, 2.4, .6, L - 1, 0x2a2c30, 15);
@@ -270,27 +278,62 @@ function railGlbCar(item) {
   }
   return g;
 }
-function railBuild(items) {
-  for (const c of RAIL.cars) {
+// 貨運列車的程式替身：橄欖綠的柴電機車（長車鼻＋駕駛室）、棚車、平車
+function railProxyFrt(id) {
+  const L = RAIL.EXT[id][1] - RAIL.EXT[id][0], k = new Kit(), olive = 0x4a5238, dark = 0x22241e, rust = 0x5a3a28;
+  k.box(0, .55, 0, 2.4, .7, L - 1, dark, 15).box(0, 1.05, 0, 2.9, .3, L, id === 'loco' ? olive : rust, 2);
+  for (const z of [-L / 2 + 2.6, L / 2 - 2.6]) k.box(0, .5, z, 2.3, .8, 2.8, 0x16181a, 15);
+  if (id === 'loco') {
+    k.box(0, 2.6, -1.6, 2.2, 2.8, L - 7.6, olive, 2).box(0, 2.9, L / 2 - 4.4, 3, 3.4, 3.2, olive, 2).box(0, 3.4, L / 2 - 2.78, 2.6, .9, .06, 0x1a1c20, 1);
+    for (const s of [-1, 1]) k.box(s * .7, 2.2, L / 2 - 2.7, .3, .2, .1, 0xfff4d0, 4);
+  } else if (id === 'box') k.box(0, 2.75, 0, 2.95, 3.1, L - .4, rust, 2);
+  const g = new T.Group(); g.add(new T.Mesh(k.build(), MAT.uber)); return g;
+}
+// 平車上的軍火貨箱：69-v7-bunker.js 的 fort 模型組有 crate 就用模型，不然用程式建模；補給任務打斷掛鉤時藏起最後面那一箱（c.cargo）
+function railCargo(c, crate) {
+  if (c.cargo) c.cargo.forEach(o => o.removeFromParent());
+  c.cargo = [-4.6, -1.6, 1.6, 4.6].map(z => {
+    let o;
+    if (crate) o = propObject(crate, 0, 1.2, z, Math.PI / 2, 1.5 / crate.w);
+    else { const k = new T.Mesh(new Kit().box(0, .45, 0, 1.4, .9, 1, 0x4a5a32, 2).box(0, .91, 0, 1.42, .03, 1.02, 0x2a3220, 2).build(), MAT.uber); k.position.set(0, 1.2, z); o = k; }
+    c.obj.add(o); return o;
+  });
+}
+function railBuild(items, set = 'pax') {
+  for (const c of RAIL.sets[set].cars) {
     const o = items ? railGlbCar(items[c.id]) : railProxyCar(c.id);
     o.visible = c.obj ? c.obj.visible : false;
     if (c.obj) { o.position.copy(c.obj.position); o.rotation.copy(c.obj.rotation); c.obj.removeFromParent(); }
     c.obj = o; cityAdd(o, RAIL_ZN);
+    if (c.id === 'flat') railCargo(c, items && items.crate);
   }
-  RAIL.loaded = !!items;
+  if (set === 'pax') RAIL.loaded = !!items; else RAIL.frtLoaded = !!items;
 }
-if (RAIL) railBuild(null);
+// 下一趟開哪一種編成（wait 裡、或補給任務叫車時呼叫）：換掉 cars／trainL／速度，另一種藏起來
+function railUse(kind) {
+  const R = RAIL; if (!R || R.kind === kind) return;
+  for (const c of R.cars) { c.on = false; if (c.obj) c.obj.visible = false; }
+  R.kind = kind; R.cars = R.sets[kind].cars; R.trainL = R.sets[kind].trainL; R.speed = kind === 'frt' ? 13 : 17;
+  if (kind === 'frt') for (const c of R.cars) if (c.cargo) c.cargo.forEach(o => { o.visible = true; });
+}
+function railStart(dir, kind) { const R = RAIL; if (!R) return; railUse(kind || R.kind); R.dir = dir; R.state = 'run'; R.s = dir > 0 ? 0 : R.len; R.horned = false; }
+if (RAIL) { railBuild(null); railBuild(null, 'frt'); }
 
 // 每幀：班次、車廂位置、號誌、聲音、撞到人。t 一直走（離得遠也照時刻表），走近才下載模型
 function railUpdate(dt) {
   if (!RAIL) return;
   const R = RAIL, V = R.V, D = R.D;
   const [px, pz] = toL(player.x, player.z, RAIL_ZN), near = Math.hypot(px - V.x, pz - V.z);
-  if (GLB_ON && !R.req && near < RAIL_NEAR) { R.req = true; loadProps('w1_train').then(items => { if (items && items.cab && items.mid && items.tail) railBuild(items); }); }
-  // 班次：wait（藏在洞裡）→ run（車頭從一端洞底開到車尾過了另一端洞底）→ 換方向
+  if (GLB_ON && !R.req && near < RAIL_NEAR) {
+    R.req = true;
+    loadProps('w1_train').then(items => { if (items && items.cab && items.mid && items.tail) railBuild(items); });
+    // 貨運列車與平車上的貨箱（霓虹堡那組的 crate）
+    Promise.all([loadProps('rail_frt'), loadProps('fort').catch(() => null)]).then(([items, fort]) => { if (items && items.loco && items.box && items.flat) railBuild({ ...items, crate: fort && fort.crate }, 'frt'); }).catch(e => console.warn('rail_frt', e));
+  }
+  // 班次：wait（藏在洞裡）→ run（車頭從一端洞底開到車尾過了另一端洞底）→ 換方向；每三趟一趟貨運（R.want 指定就照它）
   if (R.state === 'wait') {
     R.tw -= dt;
-    if (R.tw <= 0) { R.state = 'run'; R.s = R.dir > 0 ? 0 : R.len; R.horned = false; }
+    if (R.tw <= 0) { railStart(R.dir, R.want || (++R.trips % 3 ? 'pax' : 'frt')); R.want = null; }
   } else {
     R.s += R.dir * R.speed * dt;
     if (R.dir > 0 ? R.s - R.trainL > R.len + 4 : R.s + R.trainL < -4) { R.state = 'wait'; R.tw = R.wait; R.dir = -R.dir; }
@@ -347,7 +390,7 @@ function railLights() {
 const railApi = {
   get R() { return RAIL; },
   // 讓列車馬上從 dir 那一端出發（s：車頭的位置，省略是洞底）
-  go(dir = 1, s) { if (!RAIL) return; RAIL.dir = dir; RAIL.state = 'run'; RAIL.s = s ?? (dir > 0 ? 0 : RAIL.len); RAIL.horned = false; },
+  go(dir = 1, s, kind) { if (!RAIL) return; railStart(dir, kind); if (s !== undefined) RAIL.s = s; },
   hold() { if (!RAIL) return; RAIL.state = 'wait'; RAIL.tw = 1e9; },
   walk: (X, Z, y0) => walkAt(X, Z, y0),
   // 鐵道橋的座標（公園框）和世界座標互換、擺位置（驗收腳本用，不寫死世界座標）

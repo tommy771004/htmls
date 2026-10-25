@@ -28,7 +28,7 @@ const JOB_BASE = 25000, JOB_PERFECT = 10000, JOB_SCRAPE = 1500, AXLE_DV = 9, AXL
 const TYPE_VALUE = {
   fh_taxi: 18000, canyon_taxi: 18000, e34: 22000, evo190: 26000, negotiator: 30000, milano: 65000, kiri: 38000, carter: 45000, compact: 16000, urban: 28000, tiara: 85000,
   shvan: 26000, lct: 34000, conquer: 30000, fvan: 22000, fh: 40000, il: 42000, grc_sedan: 14000, grc_stepvan: 24000, grc_mailvan: 22000,
-  fh_cop: null, il_cop: null, urban_cop: null, ambulance: null, md84: null, tank: null,
+  fh_cop: null, il_cop: null, urban_cop: null, ambulance: null, md84: null, tank: null, fire_chief: null, firetruck: null, tow: 32000,
 };
 const EXPORT_POOL = Object.keys(TYPE_VALUE).filter(k => TYPE_VALUE[k]);
 { const el = document.createElement('div'); el.id = 'v6job'; el.setAttribute('aria-live', 'polite'); $('hud').append(el); }   // 客戶委託的清單與交車獎金（右上角）
@@ -342,7 +342,7 @@ function v6DriveStep(dt) {
   if (lift && v.turbo) sfx.bov();
   V6.prevThr = thr; V6.prevGear = typeof v.gear === 'number' ? v.gear : 1;
   // 燒胎煙：甩尾或原地燒胎時從後輪冒出（顏色是改裝的燒胎煙）
-  if (v.isCar && v.slip > 3.5 && sp > 2 && (V6.smokeT -= dt) <= 0) {
+  if (v.isCar && v.slip > 3.5 && (sp > 2 || v.burnout) && (V6.smokeT -= dt) <= 0) {   // burnout：68-vdetail.js 的原地燒胎
     V6.smokeT = .045;
     const c = v.smokeC || SMOKE_COL[0];
     for (const s of [-1, 1]) emit('smoke', v.x - fx * v.len * .32 - fz * s * v.w * .4, .25, v.z - fz * v.len * .32 + fx * s * v.w * .4, { vx: (Math.random() - .5) * .8 - v.vx * .2, vy: .5 + Math.random() * .4, vz: (Math.random() - .5) * .8 - v.vz * .2, max: 1.4 + Math.random() * .6, s0: .3, s1: 1.8, drag: 1.2, a: .42, c });

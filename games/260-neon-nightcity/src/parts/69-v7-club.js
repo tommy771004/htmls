@@ -751,7 +751,7 @@ gtaApi.v7 = {
   },
   bunker: {
     V7B, AMMO: AMMO7, RESEARCH, st: v7BS, owned: bunkerOwned, tick: bunkerTick, unl: resUnl, door: () => BUNK.on && bunkerDoorW(), fort: FORT, inFort, fortPad,
-    enter: () => bunkerEnter(null), exit: bunkerExit, sup: bunkerSupStart, supSt: () => V7B.sup, sell: bunkerSellStart, selling: () => V7B.sell,
+    enter: () => bunkerEnter(null), exit: bunkerExit, sup: bunkerSupStart, supSt: () => V7B.sup, trainShot: bunkerTrainShot, supStep: dt => side.act && side.act.kind === 'bunkersup' && side.act.step(dt), sell: bunkerSellStart, selling: () => V7B.sell,
     mk: id => mkOf(id), ammo: id => mkAmmo(id), cycle: mkCycle, therm: () => V7B.therm, thermOk, heat: (out = new Float32Array(800)) => heatPts(pX(), pZ(), out, 160),
   },
   casino: {

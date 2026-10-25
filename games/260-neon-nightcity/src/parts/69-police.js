@@ -23,11 +23,12 @@ function crime(kind, x = player.x, z = player.z) {
   const loud = kind === 'shots' || kind === 'blast' || kind === 'explode', hearR = kind === 'shots' ? noise.shotR : 60;
   if (kind === 'shots') { W.bangT = t; W.bangR = hearR; if (t - W.shotsT < 5) return; W.shotsT = t; }
   // 對警察動手、警察親眼看到或噪音圈碰到警察、已經在追：直接加熱度；否則要有路人目擊，三秒後報案
+  if (tailCrime(x, z, n)) return;   // 69-v9-ai.js：便衣車看到了
   if (kind === 'ramcop' || kind === 'resist' || kind === 'killcop' || kind === 'heli' || W.stars > 0 && W.seen || copSees(x, z, 0) || loud && copNear(x, z, hearR)) { addHeat(n, FLOOR[kind] || 0); return; }
   let wit = false;
   for (let k = 0; k < PED_N && !wit; k++) { const p = peds.people[k]; if (!(pedState[k].down > 0) && Math.hypot(p.x - x, p.z - z) < (loud ? hearR : 30)) wit = true; }
   if (!wit) wit = traffic.some(c => Math.hypot(c.x - x, c.z - z) < Math.min(25, loud ? hearR : 25));
-  if (wit && !(phone.ghostT > 0)) W.reports.push({ t: t + 3, n, floor: FLOOR[kind] || 0 });
+  if (wit && !(phone.ghostT > 0)) { const rep = { t: t + 3, n, floor: FLOOR[kind] || 0 }; W.reports.push(rep); snapWitness(rep, x, z); }   // 69-v9-ai.js：目擊的路人舉手機拍下來
 }
 function addHeat(n, floor = 0) {
   W.heat += n;
@@ -47,9 +48,9 @@ function wantedClear(why) {
   W.heat = 0; W.stars = 0; W.seen = false; W.evade = 0; W.lkp = null; W.reports.length = 0; W.bustT = 0;
   for (const u of W.units) u.state = 'leave';
   if (W.heli && !W.heli.gang) W.heli.leave = true;
-  if (why === 'evaded' && had) { toast('甩掉警察了'); if (W.peak >= 4) newsAdd('警方追捕失手', `${W.peak} 星級的全城圍捕落空，嫌犯在${district(...toL(pX(), pZ())).split(' ')[0]}一帶消失。`); }
+  if (why === 'evaded' && had) { toast('甩掉警察了'); if (W.peak >= 4) newsAdd('警方追捕失手', `${W.peak} 星級的全城圍捕落空，嫌犯在${district(...toL(pX(), pZ())).split(' ')[0]}一帶消失。`); tailStart(W.peak); }   // 69-v9-ai.js：便衣尾隨
   W.peak = 0;
-  if (why === 'reset') { for (const u of [...W.units]) dropUnit(u); for (const c of W.cops) freeCop(c); if (W.heli) dropHeli(); for (const b of [...W.blocks]) dropBlock(b); }
+  if (why === 'reset') { tailDrop(); for (const u of [...W.units]) dropUnit(u); for (const c of W.cops) freeCop(c); if (W.heli) dropHeli(); for (const b of [...W.blocks]) dropBlock(b); }
 }
 const pX = () => (player.mode === 'drive' ? player.veh.x : player.x), pZ = () => (player.mode === 'drive' ? player.veh.z : player.z);
 
@@ -175,7 +176,7 @@ function spawnCop(u, side, swat) {
   if (!c) return null;
   const v = u.v, lx = Math.cos(v.yaw) * side, lz = -Math.sin(v.yaw) * side;
   const r = collideCircle(v.x + lx * (v.w / 2 + .7), v.z + lz * (v.w / 2 + .7), .32, false);
-  Object.assign(c, { on: true, unit: u, x: r.x, z: r.z, y: 0, rope: null, yaw: v.yaw, state: 'act', hp: swat ? 160 : 100, swat, gun: swat ? 'rifle' : W.stars >= 3 && Math.random() < .4 ? 'shotgun' : 'pistol', shotT: .8 + Math.random(), burst: 0, ph: Math.random() * 9, downT: 0 });
+  Object.assign(c, { on: true, unit: u, x: r.x, z: r.z, y: 0, rope: null, yaw: v.yaw, state: 'act', hp: swat ? 160 : 100, swat, gun: swat ? 'rifle' : W.stars >= 3 && Math.random() < .4 ? 'shotgun' : 'pistol', shotT: .8 + Math.random(), burst: 0, ph: Math.random() * 9, downT: 0, jackC: null, cover: null, coverCool: 0 });   // jackC／cover：69-v9-ai.js 的徵用民車與車門掩護
   copsCrowd.look(c.k, { female: false, top: lin(swat ? 0x121315 : 0x1d2840), bot: lin(swat ? 0x101113 : 0x151a26), skin: SKINS[c.k % SKINS.length], hair: HAIRS[c.k % 3], coat: 1, skirt: 0, longHair: 0, hat: 1, glowI: 0, shoe: SHOES[0], scale: 1.02 });
   return c;
 }
@@ -205,7 +206,7 @@ function copMelee(x, z, fx, fz, reach, dmg) {
 }
 // 射線可以打到警員與直升機（68-gta.js 的 castRay）
 rayHooks.push((R, hit) => {
-  for (const c of W.cops) if (c.on && c.state !== 'down') hit(rayCyl(R, c.x, c.z, .34, (c.y || 0) + .1, (c.y || 0) + 1.95), 'cop', c);   // y：69-tactics.js 垂降中的特警
+  for (const c of W.cops) if (c.on && c.state !== 'down') hit(rayCyl(R, c.x, c.z, .34, (c.y || 0) + .1, (c.y || 0) + (c.cover === 'down' ? 1.15 : 1.95)), 'cop', c);   // y：69-tactics.js 垂降中的特警；cover：69-v9-ai.js 蹲在車門後面
   const h = W.heli;
   if (h && !h.dead) { const t = rayCyl({ ...R }, h.x, h.z, 2.6, h.y - .4, h.y + 3); hit(t, 'heli', h); }
 });
@@ -249,6 +250,9 @@ function copStep(c, dt) {
     }
   }
   if (!W.stars) { freeCop(c); return; }
+  if (copJack(c, dt, carOk, d)) return;   // 69-v9-ai.js：沒車可開就攔民車
+  const cv = copCover(c, dt, carOk, d);   // 69-v9-ai.js：躲在警車另一側輪流探身開槍（'up' 時原地瞄準）
+  if (cv === true) return;
   const los = d < (player.swim ? SWIM_SHOT : 60) && losClear(c.x, c.z, tx, tz);
   const shoot = W.stars >= 2 && los && !life.dead;
   const al = (W.stars >= 2 ? squadAlly(c.x, c.z, Math.min(los ? d : 60, 45)) : null) || squadGang(c.x, c.z, Math.min(los ? d : 60, 40));   // 69-squads.js：比你更近、看得到的傭兵或隊友，或正在開打的赤蠍幫
@@ -258,6 +262,7 @@ function copStep(c, dt) {
   const gx = target[0] - c.x, gz = target[1] - c.z, gd = Math.hypot(gx, gz) || 1;
   if (gd > want + (shoot ? 1.5 : .3) || !los && gd > 2) sp = shoot || gd > 6 ? 4.3 : 2.2;
   else if (shoot && gd < want - 4) sp = -1.6;
+  if (cv) sp = 0;
   c.yaw += wrapA(Math.atan2(sp > 0 && !los ? gx : dx, sp > 0 && !los ? gz : dz) - c.yaw) * (1 - Math.exp(-9 * dt));
   if (al && !sp) c.yaw += wrapA(Math.atan2(al.x - c.x, al.z - c.z) - c.yaw) * (1 - Math.exp(-12 * dt));
   if (sp) {
@@ -689,10 +694,11 @@ function policeUpdate(dt) {
       if (!W.stars) { u.state = 'leave'; u.drive = true; }
     } else driveUnit(u, dt);
     const d = Math.hypot(u.v.x - px, u.v.z - pz);
-    if (!u.v.dead && u.state !== 'leave') sirenNear = Math.min(sirenNear, d);
+    if (!u.v.dead && u.state !== 'leave' && !u.quiet) sirenNear = Math.min(sirenNear, d);   // quiet：69-v9-ai.js 的徵用民車與便衣車
     const crewBack = !W.cops.some(c => c.on && c.unit === u && c.state !== 'down');
     if (d > (u.keep ? 700 : 260) || u.state === 'leave' && d > 90 && crewBack || u.v.dead && d > 120) dropUnit(u);
   }
+  sirenNear = Math.min(sirenNear, civSirenD(px, pz));   // 69-v8-civic.js：消防車與救護車
   for (const c of W.cops) if (c.on) copStep(c, dt);
   heliStep(dt);
   tacticsUpdate(dt);   // 69-tactics.js：PIT、催淚瓦斯、垂降直升機
@@ -745,7 +751,7 @@ function policeMini(ctx, P2, zoom) {
   for (const u of W.units) {
     if (u.v.dead) continue;
     const [x, y] = P2(u.v.x, u.v.z);
-    ctx.fillStyle = blink ? '#ff3a48' : '#3a6cff'; ctx.fillRect(x - 4 / zoom * 1.4, y - 4 / zoom * 1.4, 8 / zoom * 1.4, 8 / zoom * 1.4);
+    ctx.fillStyle = u.quiet ? '#c8463c' : blink ? '#ff3a48' : '#3a6cff'; ctx.fillRect(x - 4 / zoom * 1.4, y - 4 / zoom * 1.4, 8 / zoom * 1.4, 8 / zoom * 1.4);
   }
   ctx.fillStyle = '#7fa0ff';
   for (const c of W.cops) if (c.on && c.state !== 'down') { const [x, y] = P2(c.x, c.z); ctx.beginPath(); ctx.arc(x, y, 2.6 / zoom * 1.4, 0, 7); ctx.fill(); }
@@ -765,7 +771,7 @@ function policeMini(ctx, P2, zoom) {
 // 燈：最近兩台警車的紅藍閃燈、直升機的探照燈（聚光燈照地）
 function policeLights(t) {
   const out = [], cx = camera.position.x, cz = camera.position.z;
-  const near = W.units.filter(u => !u.v.dead && u.state !== 'leave').map(u => ({ u, d: (u.v.x - cx) ** 2 + (u.v.z - cz) ** 2 })).sort((a, b) => a.d - b.d).slice(0, 2);
+  const near = W.units.filter(u => !u.v.dead && u.state !== 'leave' && !u.quiet).map(u => ({ u, d: (u.v.x - cx) ** 2 + (u.v.z - cz) ** 2 })).sort((a, b) => a.d - b.d).slice(0, 2);
   for (const { u } of near) out.push({ x: u.v.x, y: u.v.y + 1.9, z: u.v.z, col: Math.sin(t * 13 + u.t) > 0 ? POL_R : POL_B, r: 16, i: 2.6 });
   const h = W.heli;
   if (h && !h.fall && !h.leave && !h.gang) {

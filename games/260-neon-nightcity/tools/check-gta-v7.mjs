@@ -1,7 +1,7 @@
 // 第七部曲（夜店、賭場、地堡，neon_nightcity_gta_v_1.md）的驗收：
 // LAZARUS 人氣與保險箱公式、技術員生產、洗錢抽成、舞池倍率、鬧事 A、馬克白斷片；
 // 霓鑽賭場 1 樓禁武器、轉盤機率、老虎機回報、21 點計分、金庫劫案（雙卡 1.5 秒、氣閘、柵門、金條負重、毒氣、5 星鎖定）；
-// 北嶺地堡的物資、生產與研究公式、市中心出貨 ×1.5、Mk II 彈種；存檔第 12 版
+// 北嶺地堡的物資、生產與研究公式、市中心出貨 ×1.5、Mk II 彈種、攔截軍火列車（貨運編成）；存檔第 12 版
 // 用法：node tools/check-gta-v7.mjs [html]（預設 web/260-neon-nightcity.html）。
 // 每次 step 都會畫一幀，軟體繪圖很慢，所以這裡大多直接呼叫規則函式，只在必要時推進幾幀
 import { dirname, resolve } from 'node:path';
@@ -120,6 +120,29 @@ try {
     check(c4.val === 600000 && c4.where === 'out', `市中心買家 ×1.5（$400,000 → $${c4.val}）`);
     check(c4.mk && c4.a.join() === 'inc,,exp', `Mk II 狙擊槍 B 鍵切換彈種（研究前跳過爆裂彈，研究後可選：${c4.a.map(a => a || '普通').join('→')}）`);
     check(c4.sup && c4.fort && c4.heat > 0, `地堡防爆門（${c4.sup}）與霓虹堡（${c4.fort}）都在城裡、熱成像抓到 ${c4.heat} 個熱源`);
+  }
+
+  const c4b = await sec('4b. 攔截軍火列車：叫的是貨運列車，打斷平車掛鉤、最後一箱掉在橋面上', async () => {
+    const N = window.__nc, B = N.gta.v7.bunker, r = N.props.rail, R = r.R; __t.reset();
+    if (!R) return { skip: 1 };
+    R.state = 'wait'; R.tw = 1e9; r.go(1, R.len, 'pax'); R.state = 'wait'; R.tw = 1e9;   // 先停在洞裡、編成是電聯車
+    __t.own('bunker'); N.enter('bunker'); await __t.until(() => N.player.where === 'bunker');   // 補給要在地堡裡的電腦接（exitVenue 走出來）
+    B.sup('train'); await __t.until(() => B.supSt() && B.supSt().goal && N.player.where === 'out');
+    const S = B.supSt(); N.tp(S.goal.x, S.goal.z); B.supStep(1 / 60);
+    const kind = R.kind, run = R.state;
+    R.s = R.len / 2 + R.trainL / 2; R.speed = 0; B.supStep(1 / 60);
+    const tail = S.tail ? [...S.tail] : null, fl = R.cars[R.cars.length - 1], c0 = fl.cargo.filter(o => o.visible).length;
+    // 從旁邊 10 m 朝最後一節的掛鉤水平開三槍（69-combat 的 shoot 每發子彈都呼叫 trainShot）
+    const ray = tail && { ox: tail[0] + 10, oy: R.D + 1.5, oz: tail[1], dx: -1, dy: 0, dz: 0 };
+    for (let i = 0; i < 3 && ray; i++) B.trainShot(ray);
+    const st = S.st, c1 = fl.cargo.filter(o => o.visible).length, crate = S.crate && Math.hypot(S.crate.x - tail[0], S.crate.z - tail[1]);
+    const A = N.gta.side.side.act; if (A && A.kind === 'bunkersup') A.fail('驗收結束');
+    R.speed = 17; R.state = 'wait'; R.tw = 30;
+    return { kind, run, tail: !!tail, c0, c1, st, crate };
+  });
+  if (c4b && !c4b.skip) {
+    check(c4b.kind === 'frt' && c4b.run === 'run', `走近鐵道橋叫來的是貨運列車（${c4b.kind}／${c4b.run}）`);
+    check(c4b.tail && c4b.st === 'crate' && c4b.c0 === 4 && c4b.c1 === 3 && c4b.crate < .01, `三槍打斷掛鉤：平車的貨箱 ${c4b.c0} → ${c4b.c1}、掉在橋面上（${c4b.st}）`);
   }
 
   const c5 = await sec('5. 霓鑽賭場：1 樓禁武器、轉盤、老虎機、21 點、輪盤', async () => {

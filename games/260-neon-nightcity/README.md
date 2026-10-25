@@ -16,6 +16,7 @@ npm test         # tools/accept.mjs：1440×900 走完整段任務、開車、�
 npm run thumb    # tools/thumb.mjs（本機 HTTP，座駕是 AE86 實車）→ ../../thumbs/260.jpg；THUMB="車 dx,dz,車 yaw,相機 yaw,pitch,遠近" 可調構圖
 npm run assets   # 用 Blender 重建 blender/out/*.glb（需要 Blender 5.x）
 npm run people   # tools/people.mjs：Blender 跑 blender/people.py（Quaternius 底模與動畫），再用 gltf-transform 壓成 blender/out/people.glb（gltf-transform 借 197 的 node_modules，要先在 197 跑 npm ci）
+node tools/scan-people.mjs [jason lucia]   # Blender 跑 blender/scan_people.py：沒有骨架的 Sketchfab 掃描人物綁到同一副 Quaternius 骨架，量化壓縮成 assets/260/people/<id>.glb（原檔在 .cache/people/）
 node tools/pose-gallery.mjs [資料夾]   # 在大道上排一列人，每人一種動作，正面與側面截圖檢查姿勢
 TRAFFIC=1 node tools/cars.mjs  # 先把 .cache/cars/ 裡車流專用的原檔整理到 .cache/traffic/（可只給 id，例如 fh_taxi lct）
 npm run traffic  # tools/traffic.mjs：把 assets/260 與 .cache/traffic 的車烘成車流用的 blender/out/traffic.glb（頂點色＋uber 材質編號，近景約 3–4k 面、遠景約 1k 面；可只給 id）
@@ -43,9 +44,9 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | :-- | :-- | :-- |
 | W A S D／方向鍵 | 油門、煞車倒車、轉向；飛離跳台後左右是翻滾、油門／煞車是前後空翻；車子倒扣時按住 A 或 D 翻回來 | 移動；跳傘時控制方向（開傘後 A／D 轉向、W 加速下降、S 減速） |
 | Shift | 氮氣；開直升機時下降 | 跑步 |
-| Space | 手煞車甩尾；開直升機時爬升 | 翻越前方的矮牆、護欄或停著的車；自由落體時開傘 |
-| F | 停穩後下車（時速 15 km/h 以上是跳車：人往車門那側滾出去、車繼續滑）；開船時下船（近岸就上岸）；直升機離地 22 m 以上跳傘，低於這個高度要降落才能下 | 靠近車輛或遊艇時上車上船、5 m 內登上直升機；自由落體時開傘 |
-| E | 停在 CHROME WORKS 門口時開進改裝廠、停在 GARAGE 07 門口時停進車庫 | 對話、進出場館、點酒、看車、開車出庫；搶劫的計畫板、銀行門口、金庫鑽機、上逃亡車；安全屋門口看房或進入、沙發睡覺；12 m 內招計程車、坐上停好的計程車後座 |
+| Space | 手煞車甩尾；停著時拉手煞＋W 是原地燒胎，再打方向甩甜甜圈，燒 1 秒以上放手煞（W 不放）彈射起步；開直升機時爬升 | 翻越前方的矮牆、護欄或停著的車；自由落體時開傘 |
+| F | 停穩後下車：短按熄火，按住 0.45 秒下車不熄火（大燈亮著、引擎聲照距離變小，回來直接開；走遠 60 m 或進室內自己熄掉）（時速 15 km/h 以上是跳車：人往車門那側滾出去、車繼續滑）；開船時下船（近岸就上岸）；直升機離地 22 m 以上跳傘，低於這個高度要降落才能下 | 靠近車輛或遊艇時上車上船、5 m 內登上直升機；自由落體時開傘 |
+| E | 停在 CHROME WORKS 門口時開進改裝廠、停在 GARAGE 07 門口時停進車庫 | 路人身邊打招呼（再按一次挑釁）、對話、進出場館、點酒、看車、開車出庫；搶劫的計畫板、銀行門口、金庫鑽機、上逃亡車；安全屋門口看房或進入、沙發睡覺；12 m 內招計程車、坐上停好的計程車後座 |
 | G | 引爆黏性炸彈 | 跳舞（舞池上跳滿 5 秒完成任務）、引爆黏性炸彈、搶劫時引爆金庫門 |
 | Z | | 游泳時下潛、再按一次浮上來 |
 | V | | 把目前的座駕叫到最近的車道（停在車庫裡也會開出來） |
@@ -72,16 +73,17 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `05-zones.js` | 分片：邏輯座標（方格）經彎曲 `warpJ`／`unwarp` 與剛體變換到世界座標 `ZONES`、換算 `toW`／`toL`／`dirW`／`yawW`／`spotW`／`rectW`、`zoneAtW`／`zoneOfW`／`zoneNearL`、座標框 `frameW`／`localZone`／`frameM4`；外緣 `CITY_POLY`、`inCity`、`shoreAt`；`?zrot=N` 把整座城再轉 N° 並平移、`?warp=0` 關掉彎曲（除錯用） |
 | `06-roads.js` | 路網圖 `RN`：各區的路口（世界座標）與路段，加上縫裡把兩區同一個路口接起來的三次貝茲連接道路（`kind: 'c'`）；車流、警車、GPS、路障、叫車都走這張圖（`edgeAt`、`rnAt`、Dijkstra 的 `rnField`）；斜穿片的大道 `DIAG`（`kind: 'd'`，穿過的格子在 `PLAZA`，`plazaAt`／`plazaD`）與沿縫的快速道路 `FWY`（`kind: 'f'`，`seamMid` 取縫的中線、`fwyClear` 推離片的路；高架橋面高度 `F.h(弧長)`／`fwyH(e, u)`，跨過連接道路，銜接點是沒有片的路口 `free`；`deckTop`／`deckAt` 查橋面、`spawnY` 給生成載具的高度）；鐵灣高架斷橋 `BROKEN`（自動挑離鐵灣貨場最近、前後都是草地的連接道路，`brokenNear` 讓路燈與樹避開） |
 | `10-city.js` | 20×15 街區（原本的 5×5 在西北角，第一輪的 8×7 在它外圍，第二輪的新區由 `DISTRICTS` 表分區）與地塊、`wholeBlocks` 把整個街區換成一個模型或一群建築（冠石的 `bld_fin`、光環的 `bld_cyber` 14 群加 `bld_fin` 三群、灰石的 `grey_18`／`grey_30`／`grey_31`、楓林里與公園大道的 `nbh_01`）、海岸地形（`LANDS`、`BEACH`、`QUAY`、`BRIDGE`、`ISLE`、`PIERS`、`groundH` 與擋牆）、外緣的擋牆、梯子與步道 `SHORE`、外緣外的山 `hillH`（網格上的高度 `hillMeshH`）與山坡住宅、北嶺公園的範圍與步道 `NPARK`、縫的草地與連接道路、地名 `district()`、距離剔除 `distCull`、碰撞空間索引 `boxesNear`／`circlesNear`、安全屋的門 `APT_DOORS`（門與捲門那一段店面畫成鐵捲門）、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
-| `20-props.js` | 路燈與光錐、紅綠燈、街道設施（流明電訊的藍色電訊箱 `boxesN` 可以打爛）、特技跳台 `RAMPS`（`rampBlock` 清掉助跑道上的路邊停車）、行道樹、燈籠公園步道的紅燈籠路燈 `parkLamps`、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空；`signLights` 另外收燈籠與實體建築原檔路燈（`props.json` 的 `lights`）的點光 |
+| `20-props.js` | 路燈與光錐、紅綠燈、街道設施（流明電訊的電訊箱 `boxesN` 可以打爛；以檔案開啟是藍色的程式建模，http(s) 下 69-v5-street 換成 `v5works` 的模型）、特技跳台 `RAMPS`（`rampBlock` 清掉助跑道上的路邊停車）、行道樹、燈籠公園步道的紅燈籠路燈 `parkLamps`、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空；`signLights` 另外收燈籠與實體建築原檔路燈（`props.json` 的 `lights`）的點光 |
 | `22-hmap.js` | 日照陰影用的建物高度圖：開場把地塊、`bldPlace` 建築、島上建物與燈塔的外框光柵化成 1.25 m 一格的半浮點貼圖（`uHMap`），建築組載入後再用實際三角形重畫（`hmModel`） |
 | `21-coast.js` | 海岸：水面 shader（倒影加兩層波紋）、沙灘、碼頭與島面、擋牆欄杆與步道路燈、步道長椅與花台；珊瑚灘的救生員塔、陽傘、排球網、椰子樹與棧橋盡頭的摩天輪；錨灣港（`harbor`）：貨櫃船靠港、離港、出海再回來（`SHIP_T` 各段長度），四座岸橋只在船停在吊臂下時搬貨櫃、岸橋整座沿軌道移位，三台集卡在岸橋與堆場間跑（會等岸橋、讓玩家），岸橋腳與集卡是每幀重建的動態碰撞圓 `dynCircles`；貨櫃堆與高桿燈；擋牆上的爬梯；區與區之間縫上的碎石步道、步道燈、涼亭、小賣亭與公廁（`SEAM_SITES`）；斜張跨海橋；灰鷗島的岩岸、樹與燈塔；遠景（北嶺國家公園三層山脊、灰鷺河對岸、東灣對岸 `FAR_SITES`、外海小島）與以檔案開啟時的替身 `ISLE_PROXY`；快速道路的高架橋面、橋墩、分隔島與門架 |
 | `21-park.js` | 北嶺公園：冠石北端外緣上的門（石柱木樑的牌樓、路樁、兩側燈柱），門外沿著山的網格（`hillMeshH`）鋪的之字形泥土步道與往北嶺鐵道橋的三條岔路（`NPARK.trails`，進了鐵道橋模型的範圍就停）、約 2600 棵松樹與闊葉樹（圍籬裡的有碰撞）、圍籬、步道燈與長椅、管理站、山腰的雲階觀景台（平台、亭頂、欄杆、台階、望遠鏡）；網格是公園座標框 `NPARK.f` 的局部座標，圓柱與光源換成世界座標；材質是 `MAT.ridge`（150 m 內照一般的霧，再遠和遠景一樣淡） |
 | `20-walk.js` | 多層的步行面 `WALKS`：同一個 x、z 有兩個高度的地方（鐵道橋的橋面與橋下、隧道與上面的山頭）。每項回傳站的高度、`null` 擋住或 `undefined` 照地形；`walkStep`（被擋就沿軸滑）、`walkY` 給 40-people 走路，`walkCam`（地板、天花板、拉回洞裡的相機位置）給 99-main 的相機 |
-| `21-rail.js` | 北嶺鐵道橋的路堤、隧道（兩端洞門的程式替身、西端翼牆、封頂的山頭、洞裡的燈與越深越暗的襯砌、封底）、號誌、橋面與橋墩的夜燈；五節的電聯車（`RAIL`：從西洞底開到東洞底、停 38 秒再開回來，出洞與看到軌道上有人會鳴笛，撞到人擊倒並留在橋面）、軌道聲；`WALKS` 的那一項（橋面護欄、橋墩、隧道洞壁、山頭）。座標是公園框（`VIADUCT.zn` = `NPARK.f`），`railApi` 的 `tp`／`L`／`W`／`yaw` 給驗收擺位置；山頭蓋板是貼著 `parkLidH`（沒挖溝的山坡）的網格，頂點色和山一樣 |
+| `21-rail.js` | 北嶺鐵道橋的路堤、隧道（兩端洞門的程式替身、西端翼牆、封頂的山頭、洞裡的燈與越深越暗的襯砌、封底）、號誌、橋面與橋墩的夜燈；五節的電聯車（`RAIL`：從西洞底開到東洞底、停 38 秒再開回來，出洞與看到軌道上有人會鳴笛，撞到人擊倒並留在橋面）；每三趟有一趟是四節的貨運列車（`RAIL.sets.frt`：`rail_frt` 的柴電機車、兩節棚車、載四箱軍火貨箱的平車 `c.cargo`，時速 47 km；`railUse`／`railStart(dir, kind)` 換編成，`R.want` 指定下一趟）、軌道聲；`WALKS` 的那一項（橋面護欄、橋墩、隧道洞壁、山頭）。座標是公園框（`VIADUCT.zn` = `NPARK.f`），`railApi` 的 `tp`／`L`／`W`／`yaw` 給驗收擺位置；山頭蓋板是貼著 `parkLidH`（沒挖溝的山坡）的網格，頂點色和山一樣 |
 | `21-tron.js` | 光格島（`10-city.js` 的 `TRON_SITE`／`TRON_LAND`，`SEA_FR` 座標框：城東南的開闊海面）：北端的碼頭與梯子、燈柱；近景 `isle_tron` 與步行格（`isle_tron.walk.bin`）的下載、走近換掉遠景 `far_tron`；`WALKS` 的那一項（樓、牆、護欄靠步行格擋住，樹另外擋，相機與子彈被樓擋住）；`21-coast.js` 的海面在島上挖掉（下層街區低於海面）；水池與光束的 shader；沿車道圖跑的光速機車（拖光牆）與三種車；騎路邊的光速機車（`tronRide`，40 走路時交給它）、販賣機買飲料、坐長椅、上下層的升降梯 |
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
-| `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質（建築組另有窗戶編號貼圖 `USE_WINMAP`）、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance` |
+| `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質（建築組另有窗戶編號貼圖 `USE_WINMAP`）、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance`；`MASK` 材質的門檻是 `MASK_CUT`（預設 0.5，霓虹堡的鐵絲網用 0.12） |
 | `68-gta.js` | GTA 式擴充第一階段：搶車／撬車（`detachCar` 把車流車變成獨立載具）、準星射線（`castRay`，`rayHooks` 讓 69 加入警察與直升機）、車損（白煙 → 黑煙 → 起火 → 爆炸、燒毀殘骸，撞擊扣血 `crashDmg`：ΔHP = max(0, (J/M − 6)·9)，乘上裝甲的 `armorK`）、路人倒地與逃跑、被拖下車的駕駛（`extras`）、火焰煙霧粒子與閃光燈 |
+| `68-vdetail.js` | 車輛細節：F 的短按／長按（`vdKeyF`，`vdUpdate` 放開或按滿 `VD_HOLD_T` 才決定；長按 `exitVehicle(false, true)` 走 `vdIdleLeave`，`enterVehicle` 用 `vdIdleTake` 接回不重新發動，步行時的引擎聲乘 `vdIdleGain()`）、原地燒胎與甜甜圈（`vdPre`：手煞＋油門、時速低於 `BURN_V`，打方向繞前軸轉 `DONUT_YR`、計圈，燒 `LAUNCH_T` 秒放手煞彈射 `LAUNCH_V`）、沙灘的沙地阻力與濕沙卡軸（`vdBeachD`：乾沙 0–36 m、濕沙 36–56 m；濕沙上低速催油 `SAND_T` 秒陷住，4 秒內前後換向 3 次搖出來）、泡水（`vdWater`：水阻、水花、水深超過 0.45 m 撐 2 秒或一下子 0.8 m 熄火，`v.flood` 時 driveVehicle 換成 `FLOOD_INP`；比地面深的海裡沉到 `seaFloor`；水深過 1 m 撐 1.5 秒逼玩家下車），`wreckFix` 清掉，V 叫車送修好的。driveVehicle 開頭呼叫 `vdPre`、落地高度問 `vdWater`；測試 API `__nc.gta.vd`，`node tools/check-vdetail.mjs` 驗收 |
 | `68-wreck.js` | `neon_nightcity_gta_v_2.md` 的車損補完：損壞階段（60% 碎窗、50% 白煙、30% 黑煙且動力 ×0.75 並偶爾熄火、12% 起火每秒 −25、AI 下車逃跑；`hpLockOf` 第一次受損時鎖定耐久上限）、單顆輪胎（每顆 50 HP，`tireShot`／`tireApply`：極速、抓地、往破胎側偏與車身傾斜）、撞人（傷害 1.8·v²、擊飛 1.15·v 與往上 min(12, .45v) 的拋物線、`wreckUpdate`）、`wreckFix` |
 | `68-roll.js` | 翻車與堆疊：`v.tumble` 時 `driveVehicle()` 與 `coast()` 改走 `rollStep()`（繞車身中心翻、彈跳、停在最近的 0／±90°／180°），側躺或倒扣的 `v.flipped` 開不動（側躺按住方向鍵推回、倒扣 4 秒起火）；觸發是跳台落地翻車、近距離爆炸（`rollKick`）、側面被撞（`rollHit`）與時速 65 以上撞車流（`rollRam`，車流車脫離成臨時載具）；`surfaceH()` 讓從上面落下的車停在別台車的車頂上（`v.under` 記下墊在下面的那台，開下來前不和它碰撞）；傳送、修車、換車要 `rollClear()`；地面高度先問 `deckAt`（高架橋面） |
 | `69-combat.js` | 第二階段戰鬥：武器表 `ARMS`（近戰 4、槍 7、投擲 2）、武器模型（`arms.glb`，握把 `grip`／槍口 `muzzle` 是模型座標，`holdAt` 擺到右手骨）、武器轉盤與子彈時間（`slowmo`）、射擊與換彈、火箭／手榴彈／黏性炸彈（`launch`／`stepProj`／`blast`）、生命與護甲、WASTED／BUSTED 與醫院／警察局重生、路人反應（投降、蹲下、還手、持槍路人開槍）、NPC 的槍、載具互撞 |
@@ -113,17 +115,21 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `69-v5-civic.js` | 第五部曲之一：公共設施。10-city 的 `FAC` 街區（醫院 `FAC.hosp`、第九分局與拖吊場 `FAC.pd`）的雨遮、招牌、停機坪與屋頂直升機（69-gunship 的 `buildGunship(x, z, yaw, { kind })`）、員工電梯、醫療包、繃帶；拖吊場 `impound`／`impPay`／柵門 `gateOpen`／`gateBreak`、翻鐵絲網 `fenceStart`；外牆鐵梯 `V5_LADS`（`ladStep`，40-people 在 `V5.lad` 時交給它）、走得上去的屋頂 `v5Roof`（20-walk 的 `WALKS`）與 `roofJump`；醫藥費 `hospFee`、69-combat 呼叫的 `v5Die`／`v5Respawn`、按鍵 `v5Key`、每幀 `v5Update`（99-main 在 `v3Update` 之後呼叫） |
 | `69-v5-shops.js` | 第五部曲之二：商業設施。BODEGA 的店員與搶劫（`storeStep`：拿槍指著店員 `aimAtClerk`、威嚇條 `SHOP.rob`、抽槍的店員、第二台收銀機、冰櫃飲料）、提款機 `ATM_SPOTS` 與被搶的人（`atmStep`）、酒 `booze`／`drunkStep`、CHROME WORKS 的自動捲門 `shutterStep`；楓林里商店街 `FAC.mall` 的鐵砧槍械（老闆 `ownerStep`、`gunShop`／`shopAmmo`／`shopArmor`／`shopMods`、擴充彈匣 `extApply`）、射擊場 `rangeStart`／`rangeStep`（69-police 的 `crime` 問 `v5Quiet`）、縫線服飾 `clothesShop`、泡泡洗車 `washStart`／`washStep`、車身泥巴與血跡 `carGrime`／`grimeStep`（68-wreck 撞人時呼叫 `v5Blood`）；進度條 `v5Bar`（`#v5bar`），每幀 `v5ShopUpdate`（v5Update 呼叫） |
 | `69-v5-garage.js` | 第五部曲之三：公園大道 `FAC.gar` 的五層立體停車場。樓板與坡道的高度（06-roads 的 `DECKS`）、相機的天花板（20-walk 的 `WALKS`）、每層帶 `ly`／`hy` 的護牆（`pkBox` 把沿 z 的長盒切成 2 m；`boxToW` 改成仿射框之前為了剪切才切，留著不影響）、停著的車、招牌與燈；頂樓超跑 `pkCarSpawn`、傘包與跳車開傘 `pkBail`（v5Key 的 F）、電梯（`ctxHooks`）、入口柵欄桿；每幀 `pkUpdate`（v5Update 呼叫） |
-| `69-v5-street.js` | 第五部曲之四：街道的微結構。路邊施工區 `ST_SITES`（`stSitesL`，30-vehicles 擺完路邊車後 `streetParkClear` 清掉那幾段）的圍籬、紐澤西護欄（含 20-props 原本施工段的兩座）、交通錐；公車候車亭、熱狗攤（`v5street.glb`，以檔案開啟是程式建模的替身）、電話亭的玻璃、VELOCE MOTORS 的落地窗、銀行門前的液壓防撞柱。撞擊看衝量（`ST_J`），69-v3-break 的 `breakSweep` 最前面呼叫 `streetSweep`；子彈走 68-gta 的 `rayHooks`（打中的種類是 `'prop'`，69-combat 的 `hitWith` 呼叫 `ref`）；69-combat 的 `blast` 呼叫 `stBlast`；推著走的護欄用 30-vehicles 的 `dynMore`；每幀 `streetUpdate`（v5Update 呼叫） |
+| `69-v5-street.js` | 第五部曲之四：街道的微結構。路邊施工區 `ST_SITES`（`stSitesL`，30-vehicles 擺完路邊車後 `streetParkClear` 清掉那幾段）的圍籬、紐澤西護欄（含 20-props 原本施工段的兩座）、交通錐（`stPose` 寫進 `st.fMs`／`st.jMs`／`st.cMs` 每一串網格；以 http(s) 開啟時 `stWorksSwap` 換成 `v5works.glb` 的模型，另擺沙堆、發電機、拖車燈塔與旗手警示牌，人行道的電訊箱也在這裡換）、熱狗攤的攤販（`st.vend`，攤子倒了就跑開）；公車候車亭、熱狗攤（`v5street.glb`，以檔案開啟是程式建模的替身）、電話亭的玻璃、VELOCE MOTORS 的落地窗、銀行門前與霓虹堡大門外的液壓防撞柱（`stBollardsL`，霓虹堡的帶 `fort`；以 http(s) 開啟換成 `fort.glb` 的混凝土防撞柱）。撞擊看衝量（`ST_J`），69-v3-break 的 `breakSweep` 最前面呼叫 `streetSweep`；子彈走 68-gta 的 `rayHooks`（打中的種類是 `'prop'`，69-combat 的 `hitWith` 呼叫 `ref`）；69-combat 的 `blast` 呼叫 `stBlast`；推著走的護欄用 30-vehicles 的 `dynMore`；每幀 `streetUpdate`（v5Update 呼叫） |
 | `69-v6-customs.js` | 第六部曲：大型改裝車廠的機制。進廠規則 `v6DoorBlock`／`v6EnterCheck`（通緝與警察視線、歇業、太燙手的超跑、坦克與飛行載具）、強尼的開場白、工位 4 銷贓 `v6Sell`（市價 `TYPE_VALUE`、出口車單 `v6Exp` 與黑板、15 分鐘冷卻）與追蹤器 `v6Track`、拔槍關店 `v6Violence`／`v6FightStep` 與鋼瓶連環爆炸 `v6Cylinder`、歇業倒數 `v6CloseStep`、保險與重建費 `v6Claim`、點火炸彈的偷車賊 `v6BaitStep`（69-squads 的 fStep 交過來）與遙控炸彈 `v6Detonate`、液壓 `v6Key`／`v6Input`／`v6HydStep`、回火／洩壓閥／燒胎煙／歪軸 `v6DriveStep`、防撞鏟 `v6Plow`（68-roll 的 rollRam 與 69-kinema 呼叫）、底盤霓虹與門頂警示燈 `v6Lights`、待售告示牌與老闆辦公室、2 樓私人車庫 `v6PrivBuild`／`v6PrivTake`、客戶委託 `v6JobOffer`／`v6JobDone`（`side.act`）；每幀 `v6Update`，`__nc.gta.v6` |
-| `69-v7-bunker.js` | 第七部曲之一：北嶺地堡與霓虹堡。熱成像與毒氣的共用狀態 `V7FX`、熱源 `heatPts`（70-render 的 `uHeat`）；霓虹堡軍事基地 `FORT`（`FAC.fort`，圍牆、崗哨、機棚的坦克，進去 4 星）、地堡 `BUNK`（`FAC.bunker`，防爆門 `bunkerDoorW`）與室內 `VENUES.bunker`；物資與生產研究 `bunkerTick`（`SUP_*`、`STOCK_*`、`RES_RATE`、`ALPHAS`）、補給任務 `bunkerSupStart`（軍火列車、錨灣港卡車、坦克）、出貨 `bunkerSellStart`（市中心 ×`CITY_K`）、Mk II 工作台 `bunkerBench`、彈種 `AMMO7`／`mkHit`（69-combat 的 shoot 先問）／`mkCycle`（B 鍵）、熱成像 `thermOk`；每幀 `v7BunkerUpdate` |
+| `69-v7-bunker.js` | 第七部曲之一：北嶺地堡與霓虹堡。熱成像與毒氣的共用狀態 `V7FX`、熱源 `heatPts`（70-render 的 `uHeat`）；霓虹堡軍事基地 `FORT`（`FAC.fort`，圍牆、崗哨、機棚的坦克，進去 4 星；程式替身 `FORT.fb`，以 http(s) 開啟換成 `fort.glb` 的圍籬、崗哨塔、拱棚機棚、崗亭、柵欄桿、沙包、貨箱、油桶，紐澤西護欄與燈塔借 `v5works`，擺放清單在 `FORT.lists`）、地堡 `BUNK`（`FAC.bunker`，防爆門 `bunkerDoorW`）與室內 `VENUES.bunker`；物資與生產研究 `bunkerTick`（`SUP_*`、`STOCK_*`、`RES_RATE`、`ALPHAS`）、補給任務 `bunkerSupStart`（軍火列車是 21-rail 的貨運編成、打斷平車的掛鉤掉下最後一箱，錨灣港卡車、坦克）、出貨 `bunkerSellStart`（市中心 ×`CITY_K`）、Mk II 工作台 `bunkerBench`、彈種 `AMMO7`／`mkHit`（69-combat 的 shoot 先問）／`mkCycle`（B 鍵）、熱成像 `thermOk`；每幀 `v7BunkerUpdate` |
 | `69-v7-casino.js` | 第七部曲之二：霓鑽賭場（`FAC.casino`，(8,4)）。外觀 `CASX`（雨遮、紅地毯、卸貨口、裙樓屋頂泳池與停機坪、通風井、東牆鐵梯、下水道鐵蓋）、1 樓 `VENUES.casino`（`cas_hall.glb` 大廳，配置常數 `CS_*`；兌換櫃台、老虎機 `slotSpin`、21 點 `bjStart`、三張牌撲克 `tcpStart`、美式輪盤 `CS_RL`／`rlSpin`、Inside Track `trackRun`、幸運轉盤 `WHEEL`／`wheelSpin`、展示台的頭獎車 `PODIUM`）、B1 `VENUES.casinoB`（讀卡機、氣閘、6 道柵門、日間金庫、警衛 `casGS`、攝影機 `CB_CAMS`）、金庫劫案 `casPlan`／`casBreach`／`casHeistStep`／`casExit`／`casHeistEnd`（`side.act`）；每幀 `v7CasinoUpdate` |
 | `69-v7-club.js` | 第七部曲之三：LAZARUS 夜店擴建。人氣與保險箱 `clubTick`（`SAFE_*`、`POP_DECAY`、離線補算）、2 樓夾層 `club2`（VIP 區、老闆辦公室的保險箱與電腦）、冷凍庫貨梯 `v7LiftTo` 到 B1（武裝廂型車、技術員終端機）與 B2–B5 倉庫、舞池節奏 `v7Beat*`、鬧事 `v7Trouble*`、馬克白斷片 `v7Macbeth`／`BLACKOUT`、DJ 與技術員 `v7DjMenu`／`v7TechJob`、全部出售 `v7SellStart`（砲塔 `v7TurretStep`、地雷 `v7Mine`）；三個 v7 檔的每幀入口 `v7Update`、按鍵 `v7Key`（gtaKey 最先問）、小地圖 `v7Mini`、`__nc.gta.v7` |
+| `69-v8-civic.js` | 第八部曲：城市勤務。消防派遣（`fireStepCiv`、水砲 `douse`／`sprayFx`）、救護派遣 `ambStep`、派遣車的生成與行駛 `civSpawn`／`civGo`／`civDrive`、玩家的水砲 `playerSpray`、拖吊車 `towHook`／`towDrop`／`towStep`；每幀入口 `v8Update`、`__nc.gta.v8` |
+| `69-v9-ai.js` | 第九部曲：AI。警察攔民車徵用 `copJack`／`copTake`（沒有警笛的 `quiet` 出勤）、車門掩護 `copCover`／`coverSpot`（`u.hold` 讓警車停著）、E 打招呼與挑釁 `aiGreet`／`aiHeckle`（路人狀態 `talk`／`heckle`，`aiPedFsm`）、目擊路人舉手機拍照 `snapWitness`／`snapStep`（拍完才報案，`repsStep`）與燒胎時的圍觀拍照 `funSnaps`、甩掉通緝後的便衣尾隨 `tailStart`／`tailStep`／`tailBust`、頭上台詞 `aiSay`／`saysStep`（`#says`）；每幀入口 `aiUpdate`、`__nc.gta.ai` |
+| `69-v9-metro.js` | 地鐵：三站共用一個月台場館 `VENUES.metro`（`mtArrive` 換站名、畫布站牌 `mtSigns` 與出口），入口 `MT.stations` 擺在三條 `DIAG` 的廣場上；列車週期 `mtState`（進站、停站、出站、空檔）與 2 號軌快車、車門旁選目的地 `mtBoard`／`mtGo`、乘車 `metroRide`（相機 `mtCam`）、換站 `transition` → `mtAlight`；模型 `props/metro.glb`／`metro_gate.glb` 以 `propSwap`／`loadProps` 換掉程式建模的替身；每幀入口 `mtUpdate`、`__nc.gta.metro` |
+| `69-v9-switch.js` | 第九部曲：切換角色小劇場。每位主角三齣 `VIGS`（動作、台詞、有些有配角 `vigCrowd`），69-crew 的 `crewCam` 換人時呼叫 `vigStart`，40-people 照 `player.vig` 播動作；`vigUpdate`、`__nc.gta.vig` |
 | `69-v5-tower.js` | 第五部曲之五：中城 (4,3) `FAC.crane` 的霓峰塔工地。框架大樓（`v5tower` 的底層、標準層 ×15、頂層，兩份背對背，屋頂 202.3 m 的鋼板平台與停機坪）、250 m 塔吊（`v5crane` 的桅桿標準節 ×78、塔頂；吊臂朝西伸 76 m），以檔案開啟或 700 m 外是程式建模的替身（`CR.fb`）；施工圍籬、工寮與材料棚（`v5site`）。桅桿東面的直梯用 69-v5-civic 的 `v5Ladder`（`L.sp`／`fast`／`slide` 自己的速度，`L.stops` 在 202 m 的附著平台可以踏上去）；屋頂、連接橋、附著平台是一個 `WALKS`，吊臂走道在自己的仿射框 `CR.f`（`frameM4` 在桅桿那一點）；兩者都登錄在 `V5.roofs`（空白鍵往下跳）。走在吊臂上不算城裡的碰撞（`skyWalk`，40-people 跳過 `collideCircle` 與 `kinWalk`：街區的整塊碰撞盒沒有高度上限）。吊臂末端的狙擊槍箱、120 m 以上用狙擊鏡射程 ×4 與倍率 ×2（`perchK`／`scopeK`，69-combat 與 99-main 呼叫）；每幀 `craneUpdate`（v5Update 呼叫） |
 | `27-props.js` | 實體建築與道具（`assets/260/props/`，`loadProps(set)` 也用來載武器 `arms`）：`bldPlace` 的建築依組與材質合併擺放、霓虹區路邊的拉麵攤、酒吧點唱機與街機的替換（`propSwap`／`propWake`）、車庫的升降機與工具推車；海岸的 `COAST_MODELS`（灰鷗島的 `isle_ruin`／`isle_office`、遠景的 `far_london`／`far_golu`／`far_s7`，擺好就把 `ISLE_PROXY` 的替身 `removeFromParent()`：`distCull` 每幀都會重設 `visible`，只藏起來會被打開） |
 | `27-bldfoot.js` | 實體建築的碰撞外形（空氣牆修正）：有實體建築的街區（含設施街區換模型的那幾塊地）原本整塊是一個碰撞盒，模型下載好之後 `bldCut` 在街區的 0.25 m 格子裡畫上模型在人的高度切出來的牆、頭頂下的朝上面（墊高的地面、台階），以及 8 m 以下的天花板；`blkFoot` 從街道往裡灌（牆先加厚 0.75 m，門窗縫灌不進模型的空殼，灌完再退回），屋頂下離露天超過 3 m 的地方不算，灌不到的格子合併成矩形換掉街區的盒（`blk` 標記；設施街區只換模型那幾塊、屋頂高度 `hy` 照舊）。程式立面的地塊、還沒下載或下載失敗的模型照舊整塊擋 |
 | `27-world1.js` | World 第四輪（`~/Downloads/world_1`）不在街區裡的地標與遠景 `W1_SITES`：東灣對岸的水泥廠（`far_cement`）與三棟長板樓（`bld_tram`）、舊碼頭河岸的木樁階梯（`w1_stairs`）、木棧橋入口的鐵絲網、岬角上的石塔與一圈石塊矮牆（`w1_tower`、`w1_fence`）；`w1Update()` 每 30 幀檢查一次，走近 `near` 公尺才下載，以檔案開啟不擺 |
 | `28-sky.js` | 日夜與天氣：時鐘 `clockSt`、太陽與月亮方向（`sunDir`）、天空與霧的調色盤、天氣狀態機 `WX`（`updateWeather`、`setWeather`）、積水乾濕、撐傘、雷電；`atmApply()` 把結果寫進共用 uniform 與泛光、曝光；`occUpdate()` 每幀挑最近的車與人給地面陰影 |
-| `31-boats.js` | 遊艇：兩款程式建模的船（`BOAT_TYPES`，V 形船殼）停在六個碼頭（`BOAT_SPOTS`，含對岸的兩座渡口），`driveBoat()` 推力、阻力、側滑與舵效、隨浪起伏與俯仰、撞岸牆與貨櫃船（OBB），淺水擋住；下船時 9 m 內有岸就上岸，否則跳進水裡；船尾航跡（`wake` InstancedMesh）、浪花與游泳的水花 |
+| `31-boats.js` | 遊艇：兩款船（`BOAT_TYPES`；以 http(s) 開啟時船身換成 `boats.glb` 的 Yatch I 與 SpeedBoat，以檔案開啟是程式建模的 V 形船殼）停在六個碼頭（`BOAT_SPOTS`，含對岸的兩座渡口），`driveBoat()` 推力、阻力、側滑與舵效、隨浪起伏與俯仰、撞岸牆與貨櫃船（OBB），淺水擋住；下船時 9 m 內有岸就上岸，否則跳進水裡；船尾航跡（`wake` InstancedMesh）、浪花與游泳的水花 |
 | `30-vehicles.js` | 車流車型 `TYPES`（計程車、兩種警車、九種房車、四種廂型車與貨車都來自內嵌的 `traffic.glb`，40 m 外換遠景模型、相機後方不畫；`traffic.glb` 載入失敗才用程式建模）、程式建模的 Kestrel、Hanzo 等替身；車道圖、號誌停等、跟車與車輛物理；`applyCar()` 依目錄重建玩家座駕的車身、輪子與手感 |
 | `40-people.js` | 人物：Quaternius 男女底模（`people.glb`）依髮型合併成蒙皮幾何、每人一個 SkinnedMesh＋AnimationMixer；動畫時間由 `uTime`／`uBeat` 換算（舞池對拍），調酒、DJ、撐傘、抽菸、抱胸、騎機車與 `danceD`–`danceF` 三種舞步在播放後覆寫手臂與上身（`OVR`，舞池用 `DANCES` 七選一）；上衣花樣 `uPat`（橫條、格紋、胸前寬條、肩膀拼色）畫在綁定姿勢的座標 `aPat` 上；行人、排隊人龍、玩家（含涉水與游泳）與更新 `updateCrowds()` |
 | `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`），烘成 `Kit` 幾何（`people` 由 40 自己解） |
@@ -148,6 +154,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 ### 人物
 
 - `blender/people.py`（改自 268）從 197 的 `.cache/` 讀 Quaternius Universal Base Characters 與 Universal Animation Library（CC0），把身體依面分成 skin／top／sleeve／bottom／shin／shoe 六個材質、男女各掛三種髮型，留下 12 段動畫（見 `KEEP`）；`npm run people` 再用 gltf-transform 去重、量化與 meshopt 壓縮（不用 gltfpack：它會清掉網格名稱；也不去重材質：上衣／袖子同色會被合併）。輸出約 1 MB，打包時內嵌成 `#glb-people`。
+- 掃描人物（`40-people.js` 的 `scanGet`／`SCAN`）：`people/jason.glb`、`people/lucia.glb` 只在 http(s) 下、第一次有人 `look({ scan })` 時下載，幾何換到 `PEOPLE` 的綁定空間、骨頭照骨名對回模板骨架，動畫與 IK 照用；下載好之前（與以檔案開啟時）是程式換色的身體，下載中登記的人下載好一起重新 look。換裝的「Jason／Lucia 造型」（`69-safehouse.js` 的 `SCAN_LOOKS`）、每 19 個路人一個 Lucia、夜店排隊與舞池各一個（`LUCIA(k)`）。
 - 前端把每種「性別×髮型」合併成一份蒙皮幾何（`aSlot` 分區），衣服、膚色、髮色與鞋子霓虹是每人材質的 uniform，一人一次 draw。骨架不在場景圖裡（網格用 detached 綁定），只有在畫面內的人每幀擺姿勢，35 m 外隔幀、70 m 外每四幀；骨頭矩陣也只在擺過姿勢後重算。
 - 女性骨架在檔案裡平移了 1.2 m（男女並排），inverse bind 要乘回那段位移，否則手臂會被甩成長條。坐與騎車的骨盆高度在載入時量出來，對齊舊版的座位高度。
 
@@ -388,6 +395,55 @@ HANDOFF 先前列為未做的項目：
 - 測試 API：`__nc.gta.v7`：`FX`、`key(code)`；`club`（`st()`、`daily(P)`、`tick(dt)`、`pop(n)`、`crowdN()`、`level(k)`、`stairs(up)`、`lift(k)`、`fee(v)`、`beat.{start,hit,end,st}`、`trouble.{start(id),a,b,clear,st}`、`macbeth(id)`、`drinkStep(dt)`、`last()`、`spots`、`sell()`、`mine()`、`safe()`）；`bunker`（`st()`、`tick(dt)`、`unl(id)`、`door()`、`fort`、`enter()`／`exit()`、`sup(kind)`、`sell(K)`、`mk(id)`、`ammo(id)`、`cycle()`、`thermOk()`、`heat()`）；`casino`（`st()`、`door()`、`enter()`、`spin()`、`ready()`、`wheelStep(dt)`、`SLOT_SYM`／`SLOT_STRIP`、`bj.val`、`tcp.rank`、`rl.{spin(押法, 注, 號碼),step(dt),BETS,st}`（號碼 −1 是 00）、`vault()`（金庫圓門開到幾成）、`door(id, open)`、`plan(app)`、`h()`、`breach(how)`、`hstep(dt)`、`card(i)`、`gate(i)`、`daily()`、`leave()`、`alarm()`、`gs()`、`takedown(i)`、`end(ok)`、`doors()`）。
 - 驗收：`node tools/check-gta-v7.mjs`（直接呼叫規則函式，只推進很少幀；軟體繪圖下加 `NC_QUERY='?gpu=soft'`）。
 
+### GTA 式擴充（第八部曲：城市勤務）
+
+`69-v8-civic.js`（排在 69-v7 之後、70 之前），每幀入口 `v8Update`（99-main 在 `v5Update` 之後呼叫）。
+
+- **消防派遣**：玩家 `FIRE_R`（220 m）內有車或油燒了 `FIRE_WAIT`（5 秒），消防水箱車（`firetruck`）與指揮車（`fire_chief`）從 200–420 m 外照 `routeTo` 的路網開過去，停在離火最近的路上（`FIRE_STOP`），用水砲滅 `FIRE_STOP + 12` m 內的火（`douse`：油火、燒著的車、殘骸；水柱推倒路人、電倒警察），閒 3 秒就找 140 m 內下一處或開走。等消防車的時候殘骸的火不熄（`FIRE_HOLD`）。
+- **救護派遣**：路人倒地 `AMB_WAIT`（6 秒）後救護車開到傷者旁（`AMB_R` 150 m 內），停 `AMB_TREAT`（5 秒）扶起傷者與 `AMB_REACH` 內倒地的路人。
+- 派遣車開警示燈與警笛（`civSirenD` 接進 69-police 的 `sirenNear`，車流照樣讓路）；被玩家搶走就變成一般的車（`civRelease`），離玩家 `CIV_DROP`（260 m）就收掉。卡住而且不在畫面裡時往前挪。
+- **水砲**：開消防水箱車時開火鍵往準星指的地面打拋物線水柱（`SPRAY_MAX` 28 m，`sprayFx` 的 `spray` 粒子），不能車窗射擊（69-combat 的 `canDriveBy`）。醫院門口停著一台（30-vehicles 的 `HOSP.cars`），開走也有水砲（`fireKit`）。
+- **拖吊車**（`tow`）：倒車到別台車的車頭或車尾 `TOW_REACH`（3.4 m）內按 E 掛上（路邊停的車先 `detachCar`），再按 E 放下；拖進分局拖吊場放下拿 `TOW_PAY`（$350，自己的座駕與沒搶來的車不給錢，車收走）。被拖的車不和拖吊車碰撞（69-kinema 的 `kinPairOk`）。拖吊場與 CHROME WORKS 門口各停一台。
+- `?civ=0` 關掉派遣（`tools/lib.mjs` 的 `open()` 預設帶上，只有 `check-gta-v8.mjs` 打開）。
+- 測試 API：`__nc.gta.v8`：`CIV`（`fire`、`amb`、`tow`、`on`、`done`）、`fireSpots(x, z, r)`、`douse(x, z, r, k, mine)`、`towTarget(T)`、`hook()`、`drop()`、`ped(k)`、`nearPed(x, z)`、`fire(x, z)`（點一灘油火）、`wreck(x, z, yaw)`（炸一台車）、`knock(k)`、`spawn(type, x, z, yaw)`、`enter(v)`、`rush()`（跳過等待）。
+- 驗收：`node tools/check-gta-v8.mjs`。
+
+### GTA 式擴充（第九部曲：AI 與切換角色小劇場）
+
+`69-v9-ai.js` 與 `69-v9-switch.js`（排在 69-v8 之後、70 之前），每幀入口 `aiUpdate`、`vigUpdate`（99-main 在 `v8Update` 之後呼叫）。計時用自己累加的 `ai.clk`（快轉的驗收不推進 `uTimeNow()`）；報案的 3 秒與槍聲 `W.bangT` 仍是真實時間。
+
+- **警察徵用民車**：玩家開車逃、警員下了車而附近沒有自己的警車可開（被搶、打爛或開走了），玩家又在 `JACK_MIN`（18 m）外時，跑到 `JACK_R`（35 m）內最近的一台民車（`NOJACK` 不搶警車與勤務車）；車子被攔停（`c.hit`），走到 `JACK_REACH`（1.4 m）內把駕駛拖下來（`detachCar`，駕駛跑掉；90 m 內會跳提示），換成一台 `quiet: 1, jack: 1` 的出勤：開著追、沒有警笛與警示燈，小地圖上是暗紅色。同時最多 `JACK_MAX`（2）台；跑 `JACK_GIVEUP`（12 秒）攔不到就放棄。
+- **車門掩護**：2 星以上、玩家在走路、警車停著而且警員離玩家 `COVER_MIN`–`COVER_MAX`（7–45 m）時躲到自己警車離玩家較遠的那一側（車身側面對著玩家時躲在車門旁，車頭或車尾對著玩家時躲在另一端；`coverSpot`，走過去會繞過車身），蹲下 `COVER_DOWN`（2.2 秒）、探身開槍 `COVER_UP`（1.4 秒）輪流；蹲下時子彈的判定頂端從 1.95 m 降到 1.15 m。玩家衝到 `COVER_LEAVE`（6 m）內或走遠 `COVER_FAR`（50 m）就離開掩護，`COVER_COOL`（8 秒）內不再躲。掩護期間警車 `hold`（停著不開走）。
+- **E 打招呼與挑釁**：走到路人 `TALK_R`（2.5 m）內出現「E 打招呼」：路人停下來面向玩家，主角說一句、路人回一句（依天氣、晚上與路人脾氣挑台詞），`TALK_T`（6 秒）內提示換成「E 挑釁」。挑釁時脾氣差的直接動手（`fight`）；其他的一半跑開、一半跟上來嗆（離玩家 `HECKLE_D` 2.2 m，`HECKLE_T` 8 秒後回去走路）。對話中聽到槍聲或被撞就照原本的恐慌跑開。
+- **目擊路人拍照**：犯罪被路人看到時，`SNAP_R`（25 m）內最多 `SNAP_N`（2）位路人舉起手機（`phone.glb`）對著玩家拍 `SNAP_T`（2.4 秒，最後閃一下閃光），報案要等拍完才成立；拍的人全部在拍完前被撞倒、嚇跑（`SNAP_SCARE`），報案就取消。原地燒胎、飛車與燒胎甩尾時 `SNAP_FUN_R`（30 m）內的路人也會掏手機拍（不報案，同時最多 `SNAP_MAX` 4 人）。
+- **便衣尾隨**：甩掉 `TAIL_STAR`（2）星以上的通緝時有 `TAIL_P`（40%）的機會，一台便衣車（一般房車）從 70–130 m 外出現，照路網跟在 `TAIL_NEAR`–`TAIL_FAR`（25–45 m）之間、沒有警笛，跟了 6 秒以上而且在 70 m 內時跳提示「後面那台房車跟了好幾個路口了…」。在它 `TAIL_SEE`（70 m）內犯罪直接 2 星、便衣車變成出勤（2 名警員）；撞它也一樣。拉開到 `TAIL_LOSE`（160 m）以上 `TAIL_LOSE_T`（8 秒）就放棄，最多跟 `TAIL_T`（90 秒）。
+- **頭上台詞**：主角與路人說話時頭上出現一行字（`#says`，`SAY_T` 3.2 秒，`SAY_R` 32 m 外不顯示），進室內對話畫面時藏起來。台詞全部原創。
+- **切換角色小劇場**：Q 轉盤換人時，鏡頭降下來會看到那位主角正在做自己的事：Vance 抽菸、講電話、蹲著看鞋，Kael 跟技師吵離合器（技師回話）、戴耳機跳舞、蹲著看輪胎，Jax 對空氣出拳、跟買家談價錢（買家回話）、雙手抱胸數錢。降落中段（`VIG_SAY` 1.15 秒）頭上出現台詞，有配角的再 `VIG_REPLY`（1.4 秒）回一句；同一位主角不連續兩次同一齣。一動（移動、瞄準、上車、進室內）或 `VIG_T`（6 秒）後就結束，配角轉身走開。
+- 驗收：`node tools/check-ai.mjs`（每一項都直接擺場景），`NC_QUERY='?zrot=25'` 也要過。
+
+### 地鐵（三站、40 秒一班）
+
+`69-v9-metro.js`（排在 69-v9-ai 之後），每幀入口 `mtUpdate`（99-main 在 `vigUpdate` 之後呼叫），只在玩家在月台（`player.where === 'metro'`）時推進列車。站名、路線與廣告全部虛構。
+
+- **入口**：三條斜穿大道（`DIAG`）各有一站，擺在大道旁的廣場上（`plazaD` 離路中心 12.5 m 以上、`free` 找空位、離中段的格子近的優先），站名取那一片的區域名：楓林里站、琥珀工業區站、錨灣港站（重名時加大道名）。欄杆與兩支球燈是 johhny_3D 的 Subway Entrance V2（`metro_gate.glb`，站牌重畫成「METRO · 霓虹城地鐵」與 N 線圓標），以檔案開啟或下載失敗用程式建模的欄杆。站在開口前 `MT_GATE_R`（2.6 m）內按 E 進站；大地圖有綠色「M」圖示。
+- **月台**：Xlay3D 的 Subway Station & R46 Subway（`metro.glb` 的 `mt_station`：磁磚牆、綠色鋼柱、拱頂、長椅與垃圾桶），三站共用同一個場館，北牆五塊與出口走廊一塊站牌是畫布畫的（綠色 N 圓標、中文站名、英文區名 · 大道名）。出口在月台東端的樓梯走廊，走進去按 E 出站，回到那一站的入口。
+- **列車**：兩節 R46 車廂（`mt_car`，車門左右扇 `mt_doorL`／`mt_doorR` 分開，開門時各滑 `MT_DOOR_SLIDE` 0.72 m），1 號軌的週期是進站 `MT_IN`（9 秒，從東邊減速進來，70 m 時鳴笛）→ 停站開門 `MT_DWELL`（14 秒，開門有提示音）→ 出站 `MT_OUT`（8 秒）→ 空檔 `MT_GAP`（9 秒），合計 40 秒一班；每三班一班，2 號軌在空檔時以 `MT_EXP_V`（22 m/s）開過一列不停站的快車。車廂裡有跟著車走的燈，車輪聲照距離與車速。
+- **搭車**：車門開著、離關門還有 2.4 秒以上時，站在門邊 `MT_BOARD_R`（1.7 m）內按 E 選目的地（選的時候時鐘停在關門前 2.2 秒，車門不會關）；選好就上車、關門開車，主角站在車門旁扶著，鏡頭在車廂裡。開出 `MT_RIDE_FADE`（60 m）後淡出，換到目的站、列車從東邊進站，停好開門就自動下車。免費，不算犯罪。
+- **商標**：原檔車廂裡的真實廣告圖集（`material`）換成原創海報（`tools/props.mjs` 的 `texEdit` `rects`，版面相連所以給矩形；兩面牆共用、一面轉了 180° 的那一格畫成點對稱的圖形海報），貼花圖集（`JoinedDecals`）的真實站名、路線圓標與報紙擦成透明；入口欄杆的站名牌與交通局標誌用 `paint` 整塊重畫。
+- 測試 API：`__nc.gta.metro`：`MT`（`t`、`n`、`st`、`ride`、`hold`、`trains`、`stats.rides`）、`stations`、`scene`、`state()`、`enter(i)`、`boardAt()`、`go(i)`（站在門邊時直接上車往第 i 站）、`phase(ph)`（`in`／`stop`／`out`／`gone`）、`atDoor(c, k)`（站到第 c 節第 k 扇門前）、`PLAT`、`EXIT`、`T`。
+- 驗收：`node tools/check-metro.mjs [--http]`（`--http` 另外檢查模型換掉替身、廣告與貼花圖集是換過的版本），`NC_QUERY='?zrot=25'` 也要過。
+
+### 車輛細節（短按／長按 F、燒胎、卡軸、泡水）
+
+`68-vdetail.js`（排在 68-roll 之後、68-wreck 之前），每幀入口 `vdUpdate`（99-main 在 `v6Update` 之前呼叫），物理改寫在 30-vehicles 的 `driveVehicle` 裡（開頭 `vdPre`、落地高度 `vdWater`）。數值都是自己挑的具名常數。
+
+- **F 的短按與長按**：停穩後按 F 不馬上下車，放開是短按（下車熄火、大燈熄），按住 `VD_HOLD_T`（0.45 秒）是長按：下車不熄火，大燈亮著、排氣管冒白煙，引擎聲照距離變小（`vdIdleGain`，45 m 外聽不到），回來上車直接開（不放發動聲）；走遠 `VD_IDLE_R`（60 m）、進室內、上別台車或車壞了就自己熄掉。開船、直升機、泡水的車照舊一按就下；時速 15 km/h 以上照舊是跳車。
+- **原地燒胎與甜甜圈**：時速低於 `BURN_V`（3 m/s）拉手煞（Space）踩油門：車不走、後輪空轉冒煙、轉速拉高；同時打方向繞著前軸甩（`DONUT_YR` 2.3 rad/s），每轉一整圈提示「甜甜圈 ×N」；燒 `LAUNCH_T`（1 秒）以上、油門不放只放手煞是彈射起步（至少 `LAUNCH_V` 7 m/s）。座駕的燒胎煙是改裝的顏色（69-v6-customs），搶來的車是白煙。原地燒胎不算甩尾打賞（時速 25 以下不計）。
+- **沙地與卡軸**：珊瑚灘從岸邊量起 0–36 m 是乾沙（動力 ×0.7、多一點阻力），36–56 m 是濕沙（水線在 48 m；動力 ×0.4、低速特別黏）。濕沙上時速低於 `SAND_KMH`（14）催油或倒車 `SAND_T`（1.4 秒）就陷住：輪子空轉、車身只隨搖車前後晃 0.25 m；`ROCK_T`（4 秒）內 W／S 換向 `ROCK_N`（3）次搖出來（往最後的方向推一下，之後 4 秒不會再陷）。帶著速度衝過去不會陷。
+- **泡水**：沙灘外是 1.4 m 深的淺海，車開得下去。水裡有阻力（越深越重）、車頭推出水花，高速入水濺起水花。水深超過 `FLOOD_D`（0.45 m，機車 0.35）撐 `FLOOD_T`（2 秒），或一下子超過 0.8 m：引擎進水熄火、大燈熄，發不動也上不了油（`v.flood`，driveVehicle 換成 `FLOOD_INP`）；比地面深的地方（groundH 不知道海底）以 1.2 m/s 沉到 `seaFloor`。水深過 `SINK_D`（1 m）撐 1.5 秒逼玩家下車（水深 1.25 m 以上就浮起來游泳）。修車（`wreckFix`）或 V 叫車送一台修好的；AI 的車進水一樣熄火、滑到停。
+- 測試 API：`__nc.gta.vd`：`st`（`f`、`idle`、`burnT`、`donut`）、`beach(X, Z)`（沙灘上從岸邊量起的距離，不在沙灘是 −1）、`keyF()`（在車上按下 F，放開與否看 `keys.KeyF`）、`summon()`（步行時的 V）。
+- 驗收：`node tools/check-vdetail.mjs`。
+
 ### GTA 式擴充（第五部曲：城市建築設施）
 
 依使用者的《城市建築設施藍圖與魔鬼細節》（`neon_nightcity_gta_v3.md`），`node tools/check-gta-v5.mjs [html]` 驗收。設施蓋在 `10-city.js` 的 `FAC` 街區：原本的地塊照樣生成（亂數序列不變）、當 ghost，實體建築拿掉，換成設施自己的地塊（`special: 'fac'`、自己的亂數），立面照城市 shader 畫，所以窗燈、高度圖、屋頂、防火梯都照舊；碰撞盒換成每棟樓自己的、帶屋頂高度 `hy`。
@@ -452,7 +508,7 @@ HANDOFF 先前列為未做的項目：
     - gameready_city 的三台車（藍色舊轎車、白色廂型貨車、藍色郵務車）烘進 `traffic.glb`（`grc_sedan`／`grc_stepvan`／`grc_mailvan`，`tools/traffic.mjs` 的 `rawFile` 讀 `w1_grc.glb`），在車流與路邊停車；彎臂路燈（`w1_grc` 的 `lamp`）換掉支路的程式路燈（燈頭的發光鏡片照舊）；柏油路面的三張貼圖（`w1_asphalt_*.webp`）由 `10-city.js` 的 `ASPH_U` 接進路面 shader 當 5.5 m 的重複貼圖。這三樣都在 world_2 那段的 `W2` 清單裡，以檔案開啟不換。
     - `tools/props.mjs` 加的選項：`skirt`（`d`、`slope`、`col`、`cap`、`ring`；極座標一圈往內找掃描邊緣，往下長成斜坡）、`hf`、`glow`、`texOut`、`board`、`tron`（光格島的步行格與陸地，`tools/walkgrid.mjs`）、`only`／`inst`（只留路徑符合的原件、取第幾份）；`props.json` 裡光格島的大陣列（`TIGHT` 的鍵）擠成一行。
   - 新的處理選項：`seg`（依 xz 佔地的連通塊把一整片城市拆成單棟，`segPick` 決定要不要與朝向）、`sloppy`（掃描模型用 meshopt 的 Permissive 減面到指定比例）。
-- World 第四輪之二（使用者提供的 `~/Downloads/world_2`，21 個 CC BY 4.0 的 Sketchfab 模型，複製到 gitignore 的 `.cache/world2/`；`tools/props.mjs` 的 `st2_street`、`nat_trees`、`nat_bush`、`cst_beach`、`cst_ferris`、`cst_port`、`cst_mount` 七組，合計約 4 MB）：以 http(s) 開啟時開場在背景下載，下載好由 `27-props.js` 檔尾那段把 `20-props.js`／`21-coast.js` 的程式建模換掉，位置、碰撞與 `zn` 規則不變；以檔案開啟、下載失敗或網址加 `?w2=0` 時程式建模原封不動。換掉的有人行道消防栓（`street.glb` 的同一個模型）、垃圾桶（四款依位置雜湊混用）、電話亭、海濱與岬角長椅、行道樹（楓樹）與公園、岬角、灰鷗島的樹（楓樹、兩款垂柳、橡樹混用；程式建模的樹留在 200 m 外當遠景，`instUpdate` 的 `stream.R0`）、海濱花台的灌木、椰子樹、救生員塔、陽傘、棧橋摩天輪（支架、輪子、十個車廂，照舊轉動、車廂保持水平）、錨灣港四座岸橋（小車與吊具照舊動，船不在吊臂下的岸橋停在陸側）、貨櫃船（照舊起伏）與堆場貨櫃（一格 40 呎換成兩個門對門的 20 呎，顏色照原本六色）。人行道電箱（`street.glb` 的 `ebox`，沿路邊點約 2%）與遊艇碼頭岸上的加油機（`pump`，每個碼頭一台，貼圖上的品牌字樣模糊掉）兩種模型版與程式建模版都擺（`streetBoxes()`，要等 `99-main.js` 的 `cityWorld()` 之後呼叫 `W2.boot()` 才擺，因為船位在 `31-boats.js`；替身時 `w2.proc` 為真）。只有模型版才加的：人行道報紙箱、公園長椅與野餐桌、岬角野餐桌、樹下灌木、北嶺後面的六座雪山（遠景材質）。數量多的每個部件一個 InstancedMesh（`instanced()` 第六個參數 `R` 給了就一定串流：小件 110 m、中件 160 m、樹 200 m），材質是 `glbMaterial` 加上 `instanceMatrix` 的版本（`propMatI`，和原材質共用 uniforms）。狀態在 `window.__nc.props.w2`（`on`、`sets`、`failed`、`swapped`、`n` 各類數量、`at` 每類一個位置、`kept()` 還在場景上的程式建模網格數）。
+- World 第四輪之二（使用者提供的 `~/Downloads/world_2`，21 個 CC BY 4.0 的 Sketchfab 模型，複製到 gitignore 的 `.cache/world2/`；`tools/props.mjs` 的 `st2_street`、`nat_trees`、`nat_bush`、`cst_beach`、`cst_ferris`、`cst_port`、`cst_mount` 七組，合計約 4 MB）：以 http(s) 開啟時開場在背景下載，下載好由 `27-props.js` 檔尾那段把 `20-props.js`／`21-coast.js` 的程式建模換掉，位置、碰撞與 `zn` 規則不變；以檔案開啟、下載失敗或網址加 `?w2=0` 時程式建模原封不動。換掉的有人行道消防栓（`street.glb` 的同一個模型）、垃圾桶（四款依位置雜湊混用）、電話亭、海濱與岬角長椅、行道樹（楓樹）與公園、岬角、灰鷗島的樹（楓樹、兩款垂柳、橡樹混用；程式建模的樹留在 200 m 外當遠景，`instUpdate` 的 `stream.R0`）、海濱花台的灌木、椰子樹、救生員塔、陽傘、棧橋摩天輪（支架、輪子、十個車廂，照舊轉動、車廂保持水平）、錨灣港四座岸橋（小車與吊具照舊動，船不在吊臂下的岸橋停在陸側）、貨櫃船（照舊起伏）與堆場貨櫃（一格 40 呎換成兩個門對門的 20 呎，顏色照原本六色）。人行道電箱（`street.glb` 的 `ebox`，沿路邊點約 2%）與遊艇碼頭岸上的加油機（`pump`，每個碼頭一台，貼圖上的品牌字樣模糊掉）兩種模型版與程式建模版都擺（`streetBoxes()`，要等 `99-main.js` 的 `cityWorld()` 之後呼叫 `W2.boot()` 才擺，因為船位在 `31-boats.js`；替身時 `w2.proc` 為真）。只有模型版才加的：人行道報紙箱、公園長椅與野餐桌、岬角野餐桌、樹下灌木、北嶺後面的六座雪山（遠景材質）。數量多的每個部件一個 InstancedMesh（`instanced()` 第六個參數 `R` 給了就一定串流：小件 110 m、中件 160 m、樹 200 m），材質是 `glbMaterial` 加上 `instanceMatrix` 的版本（`propMatI`，和原材質共用 uniforms）。田園一景（`cs_country` 組，abhayexe 的 Countryside Scene）也在這裡：三款槭樹和 `nat_trees` 四種一起分七種擺公園、縫與島上的樹（`treePick`），20 呎貨櫃疊在拖吊場西牆邊與霓峰塔工地；整景（`scene`、路上的小貨櫃 `boxes`）與島上的護欄（`rail`）由 `27-world1.js` 照 `21-coast.js` 的 `CS_SITES` 擺在灰鷗島兩條碎石路上。狀態在 `window.__nc.props.w2`（`on`、`sets`、`failed`、`swapped`、`n` 各類數量、`at` 每類一個位置、`kept()` 還在場景上的程式建模網格數）。
 
 - 世界與地形（HANDOFF 實作）：島上、碼頭的擋牆與外緣臨水的低擋牆（每 260 m 一座）都有爬梯（`LADDERS`，擋牆在梯子處讓游泳的人通過，梯子外一定是水）；四個碼頭各停一艘遊艇（浪刃 Wavecut 24、灣仔 Bayhop 17），F 上船，海上有航跡與浪花，可以開到外海（`farClamp` 擋在遠景對岸的堤岸外）；灰鷺河對岸有一條走得上去的濱水步道（鷺岸步道，`BANK_WALKS`；東灣對岸在重排時拿掉了）：石板步道、臨水欄杆與路燈、長椅、一排近景樓面（一樓店面、樓上窗格，擋住後面遠景模型糊掉的底層），中間是渡船碼頭與售票亭，南北各停一艘船，從梯子或碼頭上岸；錨灣港的貨櫃船每輪約 13 分鐘靠港、離港、轉向、出海再回來，岸橋與集卡跟著工作；區與區之間的縫上有碎石步道與步道燈，每段步道中間是涼亭、小賣亭或公廁；遠景的河對岸跟著舊城那一片（`FAR_PARTS`），整座城轉角度時不會和城區錯開。
 - 灰鷗島的兩個基地走得進去：`tools/foot.mjs` 量模型在人身高度（0.35–2 m）的牆與頭上的屋頂，得到每棟樓的佔地矩形（`props.json` 的 `foot`），碰撞、以檔案開啟時的方塊替身與日照高度圖都照它；樓與樓之間的街、中庭走得進去。廢墟原檔是一圈樓圍起來的遊戲關卡，拿掉東面一棟樓的南半，留一個朝跨海橋那條路的缺口。
@@ -479,7 +535,7 @@ HANDOFF 先前列為未做的項目：
 
 ### 下水
 
-- 珊瑚灘外緣（水深 0.3 m 處）的擋牆只擋車與行人，玩家可以涉水走出去（水越深走越慢），水深超過 1.25 m 就改游泳：UAL 的 `Swim_Idle_Loop`／`Swim_Fwd_Loop`，Shift 加速，入水、出水與划水有水花聲。水深由 `10-city.js` 的 `waterDepth()` 算（沙灘外是 1.4 m 的淺海，其他水面當 8 m 深）。
+- 從珊瑚灘外緣（水深 0.3 m 處）可以涉水走出去（水越深走越慢），水深超過 1.25 m 就改游泳：UAL 的 `Swim_Idle_Loop`／`Swim_Fwd_Loop`，Shift 加速，入水、出水與划水有水花聲。水深由 `10-city.js` 的 `waterDepth()` 算（沙灘外是 1.4 m 的淺海，其他水面當 8 m 深）。車也開得下去，會泡水熄火（見「車輛細節」）。
 - 游泳時不能開槍、瞄準、跳舞或切換角色；碼頭、步道與島的岸邊擋牆照樣擋住，只能從沙灘上岸。游不到灰鷺河與東灣對岸。通緝中下水時，岸上 110 m 內的警察（步行或車上）一直看得見你、不會消星，85 m 內步行的警察會往水裡開槍。
 
 ### 全區地圖
