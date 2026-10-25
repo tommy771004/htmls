@@ -99,12 +99,12 @@ try {
       if (!d.length) continue;
       d.sort((p, q) => p - q);
       const m = d[d.length >> 1];
-      res.n++; res.fill += (e.seams || []).length; res.fillG += e.seamG || 0; res.trees += e.treesCut || 0;
+      res.n++; res.fill += (e.seams || []).length; res.fillG += e.seamG || 0; res.signs = (res.signs || 0) + (e.signs || 0); res.trees += e.treesCut || 0;
       if (m <= .5) res.ok++; else if (m > 3) res.yard++; else res.worst.push(e.id + ' ' + m.toFixed(2));
     }
     return res;
   });
-  check(seam.n > 30 && seam.ok >= seam.n * .85 && seam.fill > 10 && seam.fillG > 5, `沿街模型的一樓牆面貼齊街面：${seam.ok}/${seam.n} 棟（前院 ${seam.yard} 棟，其餘 ${seam.worst.slice(0, 4).join('、') || '無'}），交界補立面 ${seam.fill} 段（模型對模型 ${seam.fillG} 段）`);
+  check(seam.n > 30 && seam.ok >= seam.n * .85 && seam.fill > 10 && seam.fillG > 5 && seam.signs > 10, `沿街模型的一樓牆面貼齊街面：${seam.ok}/${seam.n} 棟（前院 ${seam.yard} 棟，其餘 ${seam.worst.slice(0, 4).join('、') || '無'}），交界補立面 ${seam.fill} 段（模型對模型 ${seam.fillG} 段），補上的店面掛了 ${seam.signs} 塊招牌`);
   // 行道樹讓模型（27-bldfoot.js 的 bldTrees）：留下來（含縮小）的行道樹，枝葉不插進模型伸出來的逃生梯、雨棚；拿掉的樹連碰撞圓一起拿掉
   const tree = await ev(page, () => {
     const N = window.__nc, T = N.props.bld.trees || [], C = N.col.circles || [], res = { cut: 0, small: N.props.bld.reduce((a, e) => a + (e.treesSmall || 0), 0), hitLeft: 0, colLeft: 0 };

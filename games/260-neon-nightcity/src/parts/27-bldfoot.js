@@ -120,12 +120,76 @@ function bldTrees(e) {
   }
   e.treesCut = n; e.treesSmall = small;
 }
-// 補縫的立面：程式立面那一側照隔壁地塊（style／seed／高度），夠寬的一樓是拉下鐵捲門的店面；模型對模型的縫用素面的牆（簷口那種石材，style 7）
+// 補縫店面的招牌：20-props.js 的 2048 招牌圖集已經滿了（再加格子會擠掉現有的招牌），這裡用自己的 1024 圖集（同 66-chrome.js 的 cwAtlas）。
+// 店名全是虛構的小店；縫寬 1.8 m 以上掛橫式店招，再窄的掛一塊小燈箱
+const seamAtlas = document.createElement('canvas'); seamAtlas.width = seamAtlas.height = 1024;
+const seamCells = { wide: [], small: [] };
+{
+  let x = 0, y = 0, row = 0;
+  const cell = (kind, w, hh, draw) => {
+    if (x + w > 1024) { x = 0; y += row + 2; row = 0; }
+    const c = seamAtlas.getContext('2d');
+    c.save(); c.beginPath(); c.rect(x, y, w, hh); c.clip(); c.translate(x, y); draw(c, w, hh); c.restore();
+    seamCells[kind].push({ u0: x / 1024, v0: 1 - (y + hh) / 1024, u1: (x + w) / 1024, v1: 1 - y / 1024 });
+    if (y + hh > 1024) console.warn('seam sign atlas overflow', kind);
+    x += w + 2; row = Math.max(row, hh);
+  };
+  for (const d of [
+    c => boxSign(c, 510, 96, ['#2a2f36', '#161a1f'], '#f2c94c', '永興五金', 'HARDWARE · 鎖匙 · 刻印', FONT_H),
+    c => { plate(c, 510, 96); neon(c, '夜貓洗衣 24H', 255, 50, 52, '#5fe1ff', FONT_H, 800); },
+    c => boxSign(c, 510, 96, ['#f4ead2', '#dfcfa8'], '#8c1c13', '老陳牛肉麵', 'BEEF NOODLE · 小菜', FONT_H),
+    c => { plate(c, 510, 96, '#100606'); neon(c, '福記燒臘', 255, 50, 58, '#ff7a3a', FONT_H, 800); },
+    c => boxSign(c, 510, 96, ['#163a2c', '#0c241b'], '#e9f5e1', '明光眼鏡', 'OPTICAL · 驗光配鏡', FONT_H),
+    c => { plate(c, 510, 96); neon(c, 'Ink & Iron', 255, 52, 62, '#ff4fd8', FONT_S, 400); },
+    c => boxSign(c, 510, 96, ['#f2efe8', '#cfc9bd'], '#1d3b72', '小林理髮', 'HAIR CUT · 洗剪吹', FONT_H),
+    c => { plate(c, 510, 96, '#06070d'); neon(c, 'RECORDS 唱片', 255, 50, 50, '#ffd84a', FONT_H, 800); },
+    c => boxSign(c, 510, 96, ['#7a1c24', '#4a0e14'], '#ffe7b8', '金泰鐘錶', 'WATCH REPAIR · 修理', FONT_H),
+    c => { plate(c, 510, 96); neon(c, '茶 TEA HOUSE', 255, 50, 52, '#7cff9a', FONT_H, 800); },
+    c => boxSign(c, 510, 96, ['#1b2036', '#0e1122'], '#9fb4ff', '星河電腦', 'PC REPAIR · 二手零件', FONT_H),
+    c => { plate(c, 510, 96, '#0d0606'); neon(c, '串燒 YAKITORI', 255, 50, 48, '#ff5a3a', FONT_H, 800); },
+  ]) cell('wide', 510, 96, d);
+  // 小燈箱遠看只有幾十個像素：用實心粗字的燈箱（霓虹描邊字縮小會糊成一塊）
+  for (const [t, bg, fg, font] of [['OPEN', ['#d81e3c', '#9c1028'], '#fff4e8', FONT_B], ['營業中', ['#ffd23a', '#e8a512'], '#7a1010', FONT_H], ['24H', ['#1b6fd8', '#0e4594'], '#ffffff', FONT_B], ['麵', ['#f4ead2', '#dfcfa8'], '#a3140e', FONT_H], ['修理', ['#1f7a4a', '#11502f'], '#f2ffe8', FONT_H], ['ATM', ['#14213d', '#0a1124'], '#ffd86b', FONT_B], ['酒', ['#2a0a14', '#14040a'], '#ff6a8a', FONT_H], ['藥局', ['#e9f3f6', '#b8d5dc'], '#0b7a4a', FONT_H]])
+    cell('small', 254, 126, (c, w, hh) => { const g = c.createLinearGradient(0, 0, 0, hh); g.addColorStop(0, bg[0]); g.addColorStop(1, bg[1]); c.fillStyle = g; c.fillRect(0, 0, w, hh); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0, 0, w, 6); c.fillRect(0, hh - 6, w, 6); c.fillStyle = fg; c.font = `900 ${[...t].length > 2 ? 64 : 84}px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, w / 2, hh / 2 + 3, w * .88); });
+}
+const seamTex = new T.CanvasTexture(seamAtlas);
+seamTex.colorSpace = T.SRGBColorSpace; seamTex.anisotropy = 8; seamTex.minFilter = T.LinearMipmapLinearFilter;
+const MAT_SEAMSIGN = MAT_SIGN.clone(); MAT_SEAMSIGN.uniforms = { ...shared(ALLU), tAtlas: { value: seamTex } };
+// 補縫是模型下載後一棟一棟做的：招牌先排進各片的佇列，同一輪的做完再每片合成一個網格（不要每段縫一個 draw call）
+const seamSignQ = new Map();
+let seamSignT = 0;
+function seamSign(r, ax, f, fw, seed, zn) {
+  const R = rng((seed | 0) * 31 + Math.round((r.x0 + r.z0) * 10)), wide = fw >= 1.8;
+  const L = wide ? seamCells.wide : seamCells.small, c = L[Math.floor(R() * L.length)];
+  const w = wide ? Math.min(fw * .82, 6.2) : Math.min(fw * .9, 1.4), hh = wide ? Math.min(w / 5.33, 1.05) : w * .5;
+  const nx = ax === 'x' ? f : 0, nz = ax === 'z' ? f : 0, tx = nz, tz = -nx;   // 法向朝街；tx/tz 是面向觀看者的右方
+  const cx = ax === 'z' ? (r.x0 + r.x1) / 2 : (f > 0 ? r.x1 : r.x0) + nx * .12, cz = ax === 'z' ? (f > 0 ? r.z1 : r.z0) + nz * .12 : (r.z0 + r.z1) / 2, cy = 3.95;
+  const key = zn ? zn.id : 0, q = seamSignQ.get(key) || { p: [], uv: [], s: [], idx: [], zn };
+  seamSignQ.set(key, q);
+  const base = q.p.length / 3, glow = .9 + R() * .7, kind = R() < .08 ? 1 : 0, ph = R();
+  for (const [a, b, u, v] of [[-w / 2, -hh / 2, c.u0, c.v0], [w / 2, -hh / 2, c.u1, c.v0], [w / 2, hh / 2, c.u1, c.v1], [-w / 2, hh / 2, c.u0, c.v1]]) { q.p.push(cx + tx * a, cy + b, cz + tz * a); q.uv.push(u, v); q.s.push(ph, kind, glow, 0); }
+  q.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  if (!seamSignT) seamSignT = setTimeout(seamSignFlush, 0);
+}
+function seamSignFlush() {
+  seamSignT = 0;
+  for (const q of seamSignQ.values()) {
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(q.p, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(q.uv, 2)); g.setAttribute('aS', new T.Float32BufferAttribute(q.s, 4));
+    g.setIndex(q.idx); g.computeBoundingSphere();
+    const m = new T.Mesh(g, MAT_SEAMSIGN); m.matrixAutoUpdate = false; m.userData.noTess = 1;
+    cityAdd(m, q.zn === undefined ? zoneAtL(q.p[0], q.p[2]) : q.zn); cullAdd(m);
+  }
+  seamSignQ.clear();
+}
+// 補縫的立面：程式立面那一側照隔壁地塊（style／seed／高度），夠寬的一樓是拉下鐵捲門的店面、上面掛招牌；模型對模型的縫用素面的牆（簷口那種石材，style 7）
 function seamFill(r, L, ax, f, style, seed, h, zn) {
   const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn };
   const k = ax === 'z' ? (f > 0 ? 'pz' : 'nz') : (f > 0 ? 'px' : 'nx'), fw = ax === 'z' ? r.x1 - r.x0 : r.z1 - r.z0;
   const shop = L && fw >= SEAM_SHOP ? { [k]: true } : null;
   boxFaces(B, r.x0, r.x1, r.z0, r.z1, 0, h, seed, style, shop, h, shop ? { [k]: [1, 1] } : null);
+  const sign = !!shop && style !== 5;
+  if (sign) seamSign(r, ax, f, fw, seed, zn);
   if (L && style !== 3) {   // 簷口與一樓的腰帶接著隔壁（只往前後凸，不伸進模型）
     const o = .35, ox = ax === 'x' ? o : 0, oz = ax === 'z' ? o : 0, q = .18, qx = ax === 'x' ? q : 0, qz = ax === 'z' ? q : 0;
     boxFaces(B, r.x0 - ox, r.x1 + ox, r.z0 - oz, r.z1 + oz, h - .55, h + .06, seed, 7, null, h, null);
@@ -133,6 +197,7 @@ function seamFill(r, L, ax, f, style, seed, h, zn) {
   }
   chunkMesh(B);
   hmRectL(r.x0, r.x1, r.z0, r.z1, h, false, zn);
+  return sign;
 }
 const SEAM_SHOP = 1.2;
 function bldSeam(e) {
@@ -160,7 +225,7 @@ function bldSeam(e) {
     if (!nb.glb) {   // 隔壁是程式立面
       if (!g || g.w < SEAM_MIN || g.w > SEAM_MAX) continue;
       const r = rectOf(a, a + dir * (g.w + FOOT_C / 2), g.D);
-      seamFill(r, nb, ax, f, nb.style, nb.seed, nb.h, nb.zn);
+      if (seamFill(r, nb, ax, f, nb.style, nb.seed, nb.h, nb.zn)) e.signs = (e.signs || 0) + 1;
       (b.fill || (b.fill = [])).push(r);
       (e.seams || (e.seams = [])).push(+g.w.toFixed(2));
       continue;
