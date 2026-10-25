@@ -43,6 +43,21 @@ try {
   await page.waitForTimeout(3000);
   const sv = await ev(page, () => window.__nc.sfx.rec.voices);
   check(sv === 0, `槍聲、爆炸與撞擊 3 s 後全部結束（剩 ${sv} 個）`);
+  // 每台實車依引擎型式換成那一型的真實錄音轉速層（80-audio.js 的 ENG_FAM，開到才下載）：任何轉速最多兩層出聲、權重平方和為 1、轉速越高音越高；電動車是合成馬達聲、RX-7 用通用錄音
+  const engT = await ev(page, async () => {
+    const N = window.__nc, out = {}; N.drive('kestrel'); const id0 = N.player.veh.carId;
+    for (const [id, fam] of [['ae86', 'i4'], ['e92', 'bmw'], ['supra', 'jdm6'], ['gt3rs', 'flat6'], ['f40', 'fer8'], ['chall', 'us8'], ['svj', 'v12'], ['zx6r', 'bike4'], ['evija', null], ['rx7', null]]) {
+      N.applyCar(id); N.sfx.engineOn(N.player.veh);
+      for (let i = 0; i < 100 && fam && N.sfx.rec.fam !== fam; i++) await new Promise(r => setTimeout(r, 100));
+      const R = N.sfx.rec, mix = fam && R.fam === fam ? Array.from({ length: 23 }, (_, k) => N.sfx.engMix(.1 + k * .04)) : null;
+      // 每個轉速的目標音高：出聲層的 基頻 × 速率（沒被夾住時等於目標），要單調上升
+      const pitch = mix && mix.map(m => Math.max(...m.map(([f, w, q]) => (w > .5 ? f * q : 0))));
+      out[id] = { fam: R.fam, eng: R.eng, ok: !fam || (mix.every(m => m.filter(l => l[1] > 0).length <= 2 && Math.abs(m.reduce((a, l) => a + l[1] * l[1], 0) - 1) < .01) && pitch.every((p, i) => !i || p >= pitch[i - 1] - .01)), credit: !!N.sfx.engCredit(id) };
+    }
+    N.applyCar(id0); N.walk(); N.sfx.engineOff(); return out;
+  });
+  const engBad = Object.entries(engT).filter(([id, r]) => !r.ok || (id === 'evija' ? r.eng !== 'ev' : id === 'rx7' ? r.fam || r.eng !== 'rec' : !r.fam || !r.credit));
+  check(!engBad.length, `引擎聲依型式換成真實錄音：${Object.entries(engT).map(([id, r]) => `${id} ${r.fam || r.eng}`).join('、')}${engBad.length ? '；不對：' + engBad.map(([id]) => id).join(',') : ''}`);
   await ev(page, () => window.__nc.loadAllGLB());
   const g = await ev(page, () => window.__nc.glb);
   check(g.on && g.loaded.length === IDS.length && !g.failed.length, `GLB 下載 ${g.loaded.length}/${IDS.length}（${((Date.now() - t0) / 1000).toFixed(1)} s）${g.failed.length ? '，失敗 ' + g.failed.join(',') : ''}`);

@@ -362,4 +362,4 @@
 
 ## 音效（`sfx/`）
 
-槍聲、爆炸、撞擊、腳步、車門、引擎、輪胎、警笛、直升機等真實錄音，全部是 Freesound 上的 CC0 1.0 錄音（不用 Grand Theft Auto V 或任何 Rockstar Games 的音效），由 `games/260-neon-nightcity/tools/sfx.mjs` 下載並逐檔檢查授權；每個檔案的錄音、作者與用途見 [`sfx/CREDITS.md`](sfx/CREDITS.md)。
+槍聲、爆炸、撞擊、腳步、車門、引擎、輪胎、警笛、直升機等真實錄音，都是 Freesound 上的 CC0 1.0 錄音，只有 BMW 與 Porsche 的引擎轉速層各有一段 CC BY 4.0（ikbenraar 的 BMW M3、jerry.berumen 的 Porsche 911）（不用 Grand Theft Auto V 或任何 Rockstar Games 的音效），由 `games/260-neon-nightcity/tools/sfx.mjs` 下載並逐檔檢查授權；每個檔案的錄音、作者與用途見 [`sfx/CREDITS.md`](sfx/CREDITS.md)。

@@ -175,7 +175,8 @@ function carDialog(id) {
   else if (short <= 0) opts.push({ t: `買下（${money(c.price)}）`, fn: () => confirmBuy(id) });
   else opts.push({ t: `還差 ${money(short)}`, fn: () => dialog(WHO_SELL, `${c.name} 要 ${money(c.price)}。你現在有 ${money(motors.cash)}。去街上甩幾圈尾再回來，這台車不會跑掉。`, [{ t: '試駕看看', fn: () => testDrive(id) }, { t: '好吧', fn: closeDialog }]) });
   opts.push({ t: '試駕 60 秒', fn: () => testDrive(id) }, { t: '再看看', fn: closeDialog });
-  dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${money(c.price)} · ${carStats(id)}` + (c.credit ? `\n${c.credit}` : ''), opts);
+  const snd = sfx.engCredit(id);   // 80-audio.js：這台車的引擎聲錄音出處（部分為 CC BY）
+  dialog(`${c.name} · ${c.cls}`, `${c.tag}\n${money(c.price)} · ${carStats(id)}` + (c.credit ? `\n${c.credit}` : '') + (snd ? `\n${snd}` : ''), opts);
 }
 function confirmBuy(id) {
   const c = CARS[id];

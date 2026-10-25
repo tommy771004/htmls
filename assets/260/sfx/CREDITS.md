@@ -1,6 +1,6 @@
 # assets/260/sfx 音效來源
 
-作品 260 霓虹夜城的真實錄音音效（槍聲、爆炸、撞擊、人聲以外的肢體碰撞、腳步、車門、引擎、輪胎、警笛、直升機等），全部是 [Freesound](https://freesound.org/) 上授權為 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) 的錄音，檔案是 Freesound 的 128 kbps 預覽 MP3。由 `games/260-neon-nightcity/tools/sfx.mjs` 下載（每個檔案下載前都檢查過音效頁上的授權），頁面在解碼後裁切、正規化並淡出。CC0 不要求標示，這裡仍列出作者。
+作品 260 霓虹夜城的真實錄音音效（槍聲、爆炸、撞擊、人聲以外的肢體碰撞、腳步、車門、引擎、輪胎、警笛、直升機等），都是 [Freesound](https://freesound.org/) 上的錄音，檔案是 Freesound 的 128 kbps 預覽 MP3。由 `games/260-neon-nightcity/tools/sfx.mjs` 下載（每個檔案下載前都檢查過音效頁上的授權），頁面在解碼後裁切、正規化並淡出。第一張表全部是 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)，CC0 不要求標示，這裡仍列出作者；第二張表是各引擎型式的轉速層，少數是 CC BY（標示如下，遊戲裡車行的看車對話也會列出）。
 
 不使用 Grand Theft Auto V 或任何 Rockstar Games 作品的音效；這些是真實世界的錄音，用來取代原本的合成音。
 
@@ -66,3 +66,38 @@
 | `159753.mp3` | [MISC_Police_Siren_Wailer_Static_001.wav](https://freesound.org/s/159753/) | conleec | sirenWail |
 | `58015.mp3` | [yelp.wav](https://freesound.org/s/58015/) | guitarguy1985 | sirenYelp |
 | `187678.mp3` | [Helicopter Loop.flac](https://freesound.org/s/187678/) | qubodup | heli |
+
+## 引擎轉速層（`eng/`）
+
+每台實車依引擎型式用一組真實錄音（對照表在 `src/parts/80-audio.js` 的 `ENG_FAM`）。每層是從原錄音照 MP3 音框切出的一兩秒（沒有重新編碼），頁面依轉速在相鄰兩層之間交叉淡化並變調。
+
+| 檔案 | 錄音 | 作者 | 授權 | 用在 |
+| :-- | :-- | :-- | :-- | :-- |
+| `eng/bmw0.mp3` | [Car, BMW M6, Start, Idle, Accelerate](https://freesound.org/s/478597/) | Kinoton | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | bmw 第 1 層（34.6–36.89 s，84.8 Hz） |
+| `eng/bmw1.mp3` | [Car, BMW M6, Start, Idle, Accelerate](https://freesound.org/s/478597/) | Kinoton | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | bmw 第 2 層（3.4–5.18 s，103.6 Hz） |
+| `eng/bmw2.mp3` | [BMWM3_01.wav](https://freesound.org/s/415276/) | ikbenraar | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | bmw 第 3 層（14–15.39 s，271.2 Hz） |
+| `eng/jdm60.mp3` | [Import car revs on Chassis Dyno with Turbo.wav](https://freesound.org/s/496171/) | editboy23 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | jdm6 第 1 層（0.4–1.01 s，112.4 Hz） |
+| `eng/jdm61.mp3` | [Import car revs on Chassis Dyno with Turbo.wav](https://freesound.org/s/496171/) | editboy23 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | jdm6 第 2 層（13.4–15.61 s，169.6 Hz） |
+| `eng/jdm62.mp3` | [Import car revs on Chassis Dyno with Turbo.wav](https://freesound.org/s/496171/) | editboy23 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | jdm6 第 3 層（10–10.49 s，203.2 Hz） |
+| `eng/flat60.mp3` | [vehicle car porsche 911 revving engine motor boxer](https://freesound.org/s/772802/) | jerry.berumen | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | flat6 第 1 層（4.2–6.66 s，35 Hz） |
+| `eng/flat61.mp3` | [porsche_911.wav](https://freesound.org/s/55727/) | mharo | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | flat6 第 2 層（2.6–3.39 s，58.5 Hz） |
+| `eng/flat62.mp3` | [vehicle car porsche 911 revving engine motor boxer](https://freesound.org/s/772802/) | jerry.berumen | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | flat6 第 3 層（33.3–34.09 s，101.6 Hz） |
+| `eng/flat63.mp3` | [Porsche.MP3](https://freesound.org/s/90404/) | mmplisskin | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | flat6 第 4 層（4.85–5.29 s，231.5 Hz） |
+| `eng/fer80.mp3` | [Ferrari 360 Spider - engine sound ](https://freesound.org/s/241083/) | PritzProductions | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | fer8 第 1 層（20–22.39 s，71.3 Hz） |
+| `eng/fer81.mp3` | [Ferrari 360 Spider - engine sound ](https://freesound.org/s/241083/) | PritzProductions | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | fer8 第 2 層（12.3–13.9 s，110.4 Hz） |
+| `eng/fer82.mp3` | [Ferrari 360 Spider - engine sound ](https://freesound.org/s/241083/) | PritzProductions | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | fer8 第 3 層（7.4–8.11 s，183 Hz） |
+| `eng/us80.mp3` | [Dodge Challenger SRT](https://freesound.org/s/760645/) | JorisDJN | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | us8 第 1 層（42.2–44.02 s，52.5 Hz） |
+| `eng/us81.mp3` | [Dodge Challenger SRT](https://freesound.org/s/760645/) | JorisDJN | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | us8 第 2 層（56–56.79 s，82.1 Hz） |
+| `eng/us82.mp3` | [Dodge Challenger SRT](https://freesound.org/s/760645/) | JorisDJN | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | us8 第 3 層（186–187.59 s，133.2 Hz） |
+| `eng/us83.mp3` | [Dodge Challenger SRT](https://freesound.org/s/760645/) | JorisDJN | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | us8 第 4 層（64.4–65.09 s，149.4 Hz） |
+| `eng/v120.mp3` | [Lambo idle and rev.mp3](https://freesound.org/s/112075/) | cheesepuff | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | v12 第 1 層（20.4–21.71 s，68 Hz） |
+| `eng/v121.mp3` | [Lambo idle and rev.mp3](https://freesound.org/s/112075/) | cheesepuff | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | v12 第 2 層（14.1–16.12 s，104.3 Hz） |
+| `eng/v122.mp3` | [Lambo idle and rev.mp3](https://freesound.org/s/112075/) | cheesepuff | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | v12 第 3 層（33.1–34.41 s，155.4 Hz） |
+| `eng/v123.mp3` | [Lambo idle and rev.mp3](https://freesound.org/s/112075/) | cheesepuff | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | v12 第 4 層（55.1–55.91 s，211.3 Hz） |
+| `eng/i40.mp3` | [Alfa Romeo Brera accelerating away](https://freesound.org/s/535944/) | marksayer | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | i4 第 1 層（12–14.03 s，50.5 Hz） |
+| `eng/i41.mp3` | [Alfa Romeo Brera accelerating away](https://freesound.org/s/535944/) | marksayer | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | i4 第 2 層（1.5–2.11 s，117.8 Hz） |
+| `eng/i42.mp3` | [Alfa Romeo Brera accelerating away](https://freesound.org/s/535944/) | marksayer | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | i4 第 3 層（9.2–9.8 s，154.1 Hz） |
+| `eng/bike40.mp3` | [KawasakiZX6RStart.wav](https://freesound.org/s/211668/) | Sclolex | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | bike4 第 1 層（8–11.25 s，38.4 Hz） |
+| `eng/bike41.mp3` | [KawasakiZX6RStart.wav](https://freesound.org/s/211668/) | Sclolex | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | bike4 第 2 層（1.3–3.82 s，50.5 Hz） |
+| `eng/bike42.mp3` | [Kawasaki Ninja Burnout](https://freesound.org/s/428191/) | Hurry_Joe33 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | bike4 第 3 層（3.4–4.01 s，178.3 Hz） |
+| `eng/bike43.mp3` | [Kawasaki Ninja Burnout](https://freesound.org/s/428191/) | Hurry_Joe33 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | bike4 第 4 層（12.3–13 s，436.7 Hz） |

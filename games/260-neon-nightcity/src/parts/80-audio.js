@@ -21,7 +21,7 @@ const sfx = (() => {
   // 生命週期：單發音在解碼時就裁好長度、最後 35% 淡到無聲，播完 onended 立刻斷線；同名的音有同時發聲上限，超過時最舊的 30 ms 內收掉。
   // 循環音（引擎、甩尾、警笛、旋翼）只在需要時建立，音量歸零 0.4 s 後就停掉來源，不在背景空轉。
   const REC_ON = /^https?:$/.test(location.protocol), REC_DIR = '../assets/260/sfx/';
-  const rec = { one: {}, loop: {}, last: {}, live: {}, gapT: {}, gapK: {}, n: 0, fail: [], ready: false };
+  const rec = { one: {}, loop: {}, last: {}, live: {}, gapT: {}, gapK: {}, n: 0, fail: [], ready: false, man: null, eng: {}, engSt: {} };
   const CAP = { pistol: 6, smg: 8, rifle: 8, shotgun: 4, sniper: 3, silenced: 6, explode: 3, crash: 3, bump: 3, body: 3, step: 2, punch: 3, horn: 3 };
   const GAP = { crash: .12, bump: .07, body: .06, bodyfall: .3, glass: .1, splash: .15, horn: .2 };   // 同名的音最短間隔（碰撞每幀都可能回報），間隔內只讓更大聲的蓋過去
   const recBytes = !REC_ON ? null : fetch(REC_DIR + 'sfx.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error('sfx.json ' + r.status)))).then((man) => {
@@ -56,7 +56,15 @@ const sfx = (() => {
     await Promise.all(got.bs.map(async ([f, b]) => { if (!b) { rec.fail.push(f); return; } try { bufs[f] = await ac.decodeAudioData(b); } catch (e) { rec.fail.push(f); } }));
     for (const [k, vs] of Object.entries(got.man.one)) { const l = vs.filter((v) => bufs[v[0]]).map(([f, o, d]) => recSlice(bufs[f], o, d)); if (l.length) rec.one[k] = l; }
     for (const [k, [f, o, d]] of Object.entries(got.man.loop)) if (bufs[f]) rec.loop[k] = recLoopBuf(bufs[f], o, d);
-    rec.ready = true;
+    rec.man = got.man; rec.ready = true;
+  }
+  // 各引擎型式的轉速層（sfx.json 的 eng）：開到那一型的車才下載它的幾個小檔，下載解碼完之前先用通用的引擎錄音
+  function engLoad(fam) {
+    const L = rec.man && rec.man.eng && rec.man.eng[fam];
+    if (!L || rec.engSt[fam]) return;
+    rec.engSt[fam] = 'load';
+    Promise.all(L.map(([f, o, d, hz]) => fetch(REC_DIR + f).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(f + ' ' + r.status)))).then((b) => ac.decodeAudioData(b)).then((b) => ({ b: recLoopBuf(b, o, d), f: hz }))))
+      .then((ls) => { rec.eng[fam] = ls; rec.engSt[fam] = 'ok'; }, (e) => { rec.engSt[fam] = 'fail'; rec.fail.push(String(e.message || e)); });
   }
   // 播一個錄音變體（不連續重複同一個、音高 ±4% 隨機）；回傳 false 表示沒有錄音，呼叫端改用合成音
   function rplay(name, { k = 1, rate = 1, bus = master, t = 0, pan = 0, lp = 0 } = {}) {
@@ -231,25 +239,68 @@ const sfx = (() => {
   // 引擎錄音：汽車是 idle／low／med／high 四層轉速循環，依轉速交叉淡化、各層在自己的中心轉速附近變調；機車用機車怠速加高兩層的汽車錄音再調高
   const ENG_CAR = [['engIdle', .12, 1], ['engLow', .4, 1], ['engMed', .7, 1], ['engHigh', 1, 1]];
   const ENG_BIKE = [['bikeIdle', .12, 1], ['engMed', .55, 1.3], ['engHigh', 1, 1.35]];
+  // 每台實車的引擎型式 → tools/sfx.mjs 的 ENG（每層 [錄音, 這段的基頻 Hz]）與看車對話裡的出處。
+  // 沒列的用上面的通用錄音：RX-7（找不到可用授權的轉子引擎錄音）、搶來的車流車；電動車沒有引擎，用合成的馬達與逆變器聲
+  const ENG_FAM = {
+    bmw: ['e92 m3c m4wb m3gtr m3t24 m4gt3 e34 m4csl csl3', 'BMW M6／M3 實錄 · Kinoton（CC0）、ikbenraar（CC BY 4.0）'],
+    jdm6: ['supra r34 r35 nsx scg p9x8', '渦輪六缸底盤動力計實錄 · editboy23（CC0）'],
+    flat6: ['gt3rs gt3r p930 rwb', 'Porsche 911 水平對臥六缸實錄 · jerry.berumen（CC BY 4.0）、mharo、mmplisskin（CC0）'],
+    fer8: ['f40 sf90 p1 f8 f488c', 'Ferrari 360 V8 實錄 · PritzProductions（CC0）'],
+    us8: ['chall charger police zr1 mosler c63dtm slk55 spano spano8', 'Dodge Challenger SRT V8 實錄 · JorisDJN（CC0）'],
+    v12: ['svj sc20 c110', 'Lamborghini Murciélago V12 實錄 · cheesepuff（CC0）'],
+    i4: ['ae86 evo190 giulietta', 'Alfa Romeo Brera 四缸實錄 · marksayer（CC0）'],
+    bike4: ['s1krr s1krr19 zx6r v4', 'Kawasaki ZX-6R／Ninja 四缸實錄 · Sclolex、Hurry_Joe33（CC0）'],
+    ev: ['evija nevera energ', '電動車沒有引擎，馬達聲為即時合成'],
+  };
+  const ENG_OF = {}; for (const [k, [ids]] of Object.entries(ENG_FAM)) for (const id of ids.split(' ')) ENG_OF[id] = k;
   // 排氣管對引擎聲的影響：[音量, 音高]（66-chrome.js 的排氣管等級，sfx.exhaust 設定）
   const EXH = [[1, 1], [1.12, 1.05], [1.3, .97], [1.5, .92]];
   function startEngine(v, quiet) {
     if (!ac) return;
     if (eng) stopEngine(true);
+    const fam = ENG_OF[v.carId];
+    if (fam === 'ev') {
+      // 電動車：馬達基頻（正弦）加 1.5 倍的逆變器嘯聲（三角波經帶通），音高跟車速走、不跟檔位；發動是兩聲提示音
+      const o1 = ac.createOscillator(), o2 = ac.createOscillator(), bp = ac.createBiquadFilter(), g = ac.createGain();
+      o1.type = 'sine'; o2.type = 'triangle'; bp.type = 'bandpass'; bp.Q.value = 2.5; g.gain.value = 0;
+      o1.connect(g); o2.connect(bp); bp.connect(g); g.connect(master); o1.start(); o2.start();
+      if (!quiet) { const t = ac.currentTime; tone(t, master, 'sine', 660, .03, .01, .16); tone(t + .12, master, 'sine', 990, .028, .01, .22); }
+      eng = { ev: true, o1, o2, bp, g, car: true, v };
+      return;
+    }
+    const fs = fam && rec.eng[fam];
+    if (fs) {
+      // 這一型的錄音：每層是一段穩定轉速的錄音（engMix 決定誰出聲、變調多少）
+      const g = ac.createGain(); g.gain.value = 0; g.connect(master);
+      const layers = fs.map(({ b, f }) => { const s = ac.createBufferSource(), lg = ac.createGain(); s.buffer = b; s.loop = true; lg.gain.value = 0; s.connect(lg); lg.connect(g); s.start(ac.currentTime, Math.random() * b.duration); return { s, lg, f }; });
+      if (!quiet) rplay('engStart', { k: .45, rate: v.isCar ? 1 : 1.3 });
+      g.gain.setTargetAtTime(1, ac.currentTime + (quiet ? 0 : .35), .12);
+      eng = { rec: true, fam, top: fs[fs.length - 1].f * 1.35, g, layers, car: v.isCar, v };
+      return;
+    }
+    if (fam) engLoad(fam);
     const set = v.isCar ? ENG_CAR : ENG_BIKE;
     if (set.every(([n]) => rec.loop[n])) {
       const g = ac.createGain(); g.gain.value = 0; g.connect(master);
       const layers = set.map(([n, c, m]) => { const s = ac.createBufferSource(), lg = ac.createGain(); s.buffer = rec.loop[n]; s.loop = true; lg.gain.value = 0; s.connect(lg); lg.connect(g); s.start(ac.currentTime, Math.random() * s.buffer.duration); return { s, lg, c, m }; });
       if (!quiet) rplay('engStart', { k: .45, rate: v.isCar ? 1 : 1.3 });
       g.gain.setTargetAtTime(1, ac.currentTime + (quiet ? 0 : .35), .12);
-      eng = { rec: true, g, layers, car: v.isCar, v };
+      eng = { rec: true, g, layers, car: v.isCar, v, want: fam };
       return;
     }
     const o1 = ac.createOscillator(), o2 = ac.createOscillator(), fl = ac.createBiquadFilter(), g = ac.createGain();
     o1.type = 'sawtooth'; o2.type = v.isCar ? 'square' : 'sawtooth'; fl.type = 'lowpass'; fl.frequency.value = 500; fl.Q.value = 2;
     g.gain.value = 0;
     o1.connect(fl); o2.connect(fl); fl.connect(g); g.connect(master); o1.start(); o2.start();
-    eng = { o1, o2, fl, g, car: v.isCar, v };
+    eng = { o1, o2, fl, g, car: v.isCar, v, want: fam };
+  }
+  // 分型錄音的混音：轉速（怠速 0.12～紅線 1）指數對應到 [最低層的基頻, 最高層 ×1.35]，排氣管（pm）再整體升降音高；
+  // 只有夾住目標基頻的兩層出聲（等功率交叉淡化），各自變調到目標音高。回傳每層 [權重, 播放速率]
+  function engMix(rpm, pm = 1) {
+    const Ls = eng.layers, F = Ls[0].f * Math.pow(eng.top / Ls[0].f, clamp((rpm - .12) / .88, 0, 1)) * pm;
+    let j = 0; while (j < Ls.length - 1 && F > Ls[j + 1].f) j++;
+    const u = j < Ls.length - 1 ? clamp(Math.log(F / Ls[j].f) / Math.log(Ls[j + 1].f / Ls[j].f), 0, 1) : 0;
+    return Ls.map((L, i) => [i === j ? Math.cos(u * Math.PI / 2) : i === j + 1 ? Math.sin(u * Math.PI / 2) : 0, clamp(F / L.f, .4, 2.5)]);
   }
   // 熄火：錄音版 0.12 s 收掉、0.3 s 停來源，換車時（swap）不放熄火聲
   function stopEngine(swap) {
@@ -261,7 +312,11 @@ const sfx = (() => {
     init,
     get ready() { return !!ac; },
     // 驗收用：錄音解碼好了沒、有哪些、失敗的檔案、同時發聲數、哪些循環音的來源還開著
-    get rec() { return { on: REC_ON, ready: rec.ready, one: Object.keys(rec.one), loop: Object.keys(rec.loop), fail: rec.fail.slice(), voices: rec.n, eng: eng ? (eng.rec ? "rec" : "synth") : null, loops: ["skid", "wail", "yelp", "heli"].filter((k) => st[k]) }; },
+    get rec() { return { on: REC_ON, ready: rec.ready, one: Object.keys(rec.one), loop: Object.keys(rec.loop), fail: rec.fail.slice(), voices: rec.n, eng: eng ? (eng.ev ? "ev" : eng.rec ? "rec" : "synth") : null, fam: eng ? eng.fam || null : null, want: eng ? eng.want || null : null, engSets: { ...rec.engSt }, loops: ["skid", "wail", "yelp", "heli"].filter((k) => st[k]) }; },
+    // 看車對話（65-motors.js）：這台車的引擎聲出處；沒有對應型式的回 null
+    engCredit: (id) => (ENG_OF[id] ? '引擎聲：' + ENG_FAM[ENG_OF[id]][1] + (ENG_OF[id] === 'ev' ? '' : ' · Freesound') : null),
+    // 驗收用：目前這台分型錄音的車在某個轉速下每層的 [基頻, 權重, 播放速率]
+    engMix: (rpm) => (eng && eng.fam ? engMix(rpm).map(([w, r], i) => [eng.layers[i].f, +w.toFixed(3), +r.toFixed(3)]) : null),
     play: (name, o) => rplay(name, o),
     // 每段錄音的長度與 RMS（dB）：檢查裁切點沒有落在無聲的地方
     stats() { const db = (b) => { const y = b.getChannelData(0); let e = 0; for (let i = 0; i < y.length; i++) e += y[i] * y[i]; return +(10 * Math.log10(e / y.length + 1e-12)).toFixed(1); }; const o = {}; for (const [k, vs] of Object.entries(rec.one)) o[k] = vs.map((b) => [+b.duration.toFixed(2), db(b)]); for (const [k, b] of Object.entries(rec.loop)) o[k] = [[+b.duration.toFixed(2), db(b)]]; return o; },
@@ -282,14 +337,22 @@ const sfx = (() => {
       clubF.frequency.setTargetAtTime(s.where === 'club' ? 16000 : 260 + clamp(1 - s.dClub / 20, 0, 1) * 500, t, .25);
       barBus.gain.setTargetAtTime(s.where === 'bar' ? .8 : out ? clamp(1 - s.dBar / 22, 0, 1) * .3 : 0, t, .25);
       barF.frequency.setTargetAtTime(s.where === 'bar' ? 9000 : 700, t, .25);
-      if (eng && !eng.rec && rec.ready && (eng.car ? ENG_CAR : ENG_BIKE).every(([n]) => rec.loop[n])) startEngine(eng.v, true);   // 上車時錄音還沒解碼完：解碼好就換掉合成引擎
-      if (eng && eng.rec) {
+      if (eng && !eng.rec && !eng.ev && rec.ready && (eng.car ? ENG_CAR : ENG_BIKE).every(([n]) => rec.loop[n])) startEngine(eng.v, true);   // 上車時錄音還沒解碼完：解碼好就換掉合成引擎
+      if (eng && eng.want) { engLoad(eng.want); if (rec.eng[eng.want]) startEngine(eng.v, true); }   // 這一型的轉速層下載好了就換上（下載失敗就一直用通用錄音）
+      if (eng && eng.fam) {
+        const X = EXH[st.exh || 0], vol = (.3 + s.thr * .2 + (s.nitro ? .08 : 0)) * X[0] * (s.eg ?? 1);
+        engMix(s.rpm, X[1]).forEach(([w, rate], i) => { const L = eng.layers[i]; L.lg.gain.setTargetAtTime(w * vol, t, .06); L.s.playbackRate.setTargetAtTime(rate, t, .05); });
+      } else if (eng && eng.rec) {
         const r = clamp(s.rpm, 0, 1), X = EXH[st.exh || 0], vol = (.3 + s.thr * .2 + (s.nitro ? .08 : 0)) * X[0] * (s.eg ?? 1);   // eg：68-vdetail.js 下車沒熄火的車，照距離變小聲
         for (const L of eng.layers) {
           const w = Math.max(0, 1 - Math.abs(r - L.c) / .3);
           L.lg.gain.setTargetAtTime(w * vol, t, .06);
           L.s.playbackRate.setTargetAtTime(clamp(1 + (r - L.c) * .9, .78, 1.4) * L.m * X[1], t, .05);
         }
+      } else if (eng && eng.ev) {
+        const v = eng.v, k = clamp(Math.hypot(v.vx || 0, v.vz || 0) / (v.vmax || 80), 0, 1), f = 120 + k * 1700;
+        eng.o1.frequency.setTargetAtTime(f, t, .08); eng.o2.frequency.setTargetAtTime(f * 1.5, t, .08); eng.bp.frequency.setTargetAtTime(f * 1.5, t, .08);
+        eng.g.gain.setTargetAtTime((.008 + s.thr * .035 * (.3 + k) + k * .012) * (s.eg ?? 1), t, .1);
       } else if (eng) {
         const base = eng.car ? 38 : 52, f = base + s.rpm * (eng.car ? 120 : 160) * (1 + s.gear * .06);
         eng.o1.frequency.setTargetAtTime(f, t, .05); eng.o2.frequency.setTargetAtTime(f * (eng.car ? .5 : 1.01), t, .05);
