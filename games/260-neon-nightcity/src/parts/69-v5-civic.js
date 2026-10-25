@@ -146,12 +146,16 @@ function v5HeliSpawn(H) {
 if (FAC.hosp) {
   const F = FAC.hosp, [E, Tw] = F.L, k = new Kit(), G = !!E.glb;
   // 急診入口：人行道上的雨遮與兩根柱子、自動門的燈框。急診樓換成掃描的舊院區正面（G）時，雨遮伸到正門（z 28.7）的台階上、牆面在 x 16.1，
-  // 模型背後是空的，補一個磚色量體與屋頂蓋住
+  // 模型背後是空的，補一棟磚樓的量體蓋住（以模型為主：用城裡磚樓的程式立面，有窗、夜裡會亮、帶簷口，和掃描的紅磚接得起來）
   const ez = G ? 28.7 : 31, cx0 = 8.1, cx1 = G ? 16 : 12.7, cy = G ? 4.6 : 3.75, cl = G ? 7.6 : 12;
   k.box(F.ax + (cx0 + cx1) / 2, cy, F.az + ez, cx1 - cx0, .28, cl, 0xd8dcdc, 10).box(F.ax + (cx0 + cx1) / 2, cy - .15, F.az + ez, cx1 - cx0 - .1, .04, cl - .2, 0xfff4e0, 11);
   for (const z of [ez - cl * .45, ez + cl * .45]) k.cyl(F.ax + 8.6, cy / 2, F.az + z, .14, .14, cy - .15, 10, 0xb8bcbe, 3);
-  if (G) k.box(F.ax + 23.8, 5.95, F.az + 31.5, 8.4, 11.9, 26, 0x6e4636, 2).box(F.ax + 23.8, 11.95, F.az + 31.5, 8.2, .1, 25.8, 0x55585a, 2);   // 立面最深退到 x 19.1；簷口（12 m）以下、左邊樓梯塔與右邊附樓之間
-  else k.box(F.ax + 12.45, 1.4, F.az + 31, .08, 2.8, 3.4, 0x9ad8ff, 1).box(F.ax + 12.42, 2.9, F.az + 31, .1, .16, 3.8, 0xffffff, 11);
+  if (G) {   // 立面最深退到 x 19.1；簷口（12 m）以下、左邊樓梯塔與右邊附樓之間
+    const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: facZn(F) }, x0 = F.ax + 19.6, x1 = F.ax + 28, z0 = F.az + 18.5, z1 = F.az + 44.5, h = 11.9;
+    boxFaces(B, x0, x1, z0, z1, 0, h, E.seed, 0, null, h, null);
+    boxFaces(B, x0 - .3, x1 + .3, z0 - .3, z1 + .3, h - .55, h + .06, E.seed, 7, null, h, null);
+    chunkMesh(B);
+  } else k.box(F.ax + 12.45, 1.4, F.az + 31, .08, 2.8, 3.4, 0x9ad8ff, 1).box(F.ax + 12.42, 2.9, F.az + 31, .1, .16, 3.8, 0xffffff, 11);
   // 主樓北牆的員工電梯門、屋頂的電梯機房
   k.box(F.ax + 50, 1.25, F.az + 12.42, 1.6, 2.5, .08, 0x8a9096, 3).box(F.ax + 50, 2.75, F.az + 12.4, 2, .3, .1, 0x30a0ff, 11);
   const hy = Tw.h;

@@ -5,12 +5,14 @@ const _o = new T.Object3D(), _pfm = new T.Matrix4();
 // 清單是邏輯座標（t.zn 給了就用那一片，否則看位置在哪一片；null 是世界座標）：每個 instance 的矩陣乘上所在位置的 frameM4 換成世界座標，InstancedMesh 本身掛在 scene
 // R：只送相機附近幾公尺內的實例（預設 INST_R；面數多的模型，例如 27-props 檔尾的樹，給小一點）。
 // stream.R0：近處這幾公尺內的不送（27-props 檔尾換成模型後，程式建模的樹只畫在模型的範圍外，當遠景）
+// 每個實例記在清單項目的 t._inst（[網格, 編號]），之後要整個拿掉（27-bldfoot 讓位給實體建築的行道樹）用 instHide；標了 t.hide 的之後建的網格也不畫
 function instanced(geo, mat, list, layer = 0, extra, R) {
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
   const wx = new Float32Array(list.length), wz = new Float32Array(list.length);
   list.forEach((t, k) => {
     _o.position.set(t.x, t.y || 0, t.z); _o.rotation.set(t.rx || 0, t.ry || 0, t.rz || 0, 'YXZ');
-    _o.scale.set(t.sx || t.s || 1, t.sy || t.s || 1, t.sz || t.s || 1); _o.updateMatrix();
+    _o.scale.set(t.sx || t.s || 1, t.sy || t.s || 1, t.sz || t.s || 1); if (t.hide) _o.scale.setScalar(0); _o.updateMatrix();
+    (t._inst || (t._inst = [])).push([m, k]);
     const zn = t.zn !== undefined ? t.zn : zoneAtL(t.x, t.z);
     if (zn) _o.matrix.premultiply(frameM4(zn, t.x, t.z, _pfm));
     wx[k] = _o.matrix.elements[12]; wz[k] = _o.matrix.elements[14];
@@ -33,6 +35,15 @@ function instStreamAdd(m, xs, zs, R = INST_R) {
   m.userData.map = new Int32Array(n); m.userData.stream = S;
   m.boundingSphere = new T.Sphere(V3(), R + 30);
   instStreams.push(S);
+}
+// 清單項目的所有實例縮成 0（串流的改原始矩陣）
+function instHide(t) {
+  t.hide = 1;
+  for (const [m, k] of t._inst || []) {
+    const S = m.userData.stream;
+    if (S) { S.mtx.fill(0, k * 16, k * 16 + 16); S.dirty = true; }
+    else { m.setMatrixAt(k, new T.Matrix4().makeScale(0, 0, 0)); m.instanceMatrix.needsUpdate = true; }
+  }
 }
 // mtx 是世界座標
 function instSet(m, k, mtx) {
@@ -284,9 +295,9 @@ for (const b of blocks) {
   const dist = district((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2);
   const dens = dist.startsWith('霓虹') ? .35 : dist.startsWith('中城') ? .45 : .8;
   for (const z of [b.z0 + 1.6, b.z1 - 1.6]) for (let x = b.x0 + 12; x < b.x1 - 10; x += 9 + rnd() * 3)
-    if (rnd() < dens && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: TREE_COL }); }
+    if (rnd() < dens && free(x, z, 2.2)) { const t = { x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35, walk: 1 }; trees.push(t); claim(x, z, 2.2); circles.push(t.col = { x, z, r: TREE_COL }); }
   for (const x of [b.x0 + 1.6, b.x1 - 1.6]) for (let z = b.z0 + 12; z < b.z1 - 10; z += 9 + rnd() * 3)
-    if (rnd() < dens * .7 && free(x, z, 2.2)) { trees.push({ x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35 }); claim(x, z, 2.2); circles.push({ x, z, r: TREE_COL }); }
+    if (rnd() < dens * .7 && free(x, z, 2.2)) { const t = { x, z, y: .15, ry: rnd() * 6.3, s: .85 + rnd() * .35, walk: 1 }; trees.push(t); claim(x, z, 2.2); circles.push(t.col = { x, z, r: TREE_COL }); }
 }
 // 片之間的空地：每一對相鄰的片，沿著共用的邊界走，在這片的邊界路與那片的邊界路中間鋪碎石步道（SEAM_PATH，世界座標的折線，
 // 點上記草地寬 w），夠寬的地方擺涼亭、茶亭、公廁（SEAM_SITES）；長椅、路燈、建物的樣子在 21-coast.js。
@@ -351,7 +362,7 @@ const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) **
     }
   }
 }
-for (const t of trees) if (!t.park) grates.push({ x: t.x, z: t.z, y: .155 });
+for (const t of trees) if (!t.park) grates.push(t.grate = { x: t.x, z: t.z, y: .155 });   // walk：人行道的行道樹（t.col／t.grate 給 27-bldfoot 的 bldTrees 一起拿掉）
 // World 第四輪之二：只有換成模型時才擺的東西（人行道的報紙箱、燈籠公園步道旁的長椅與草地上的野餐桌、樹下的灌木）。
 // 用自己的亂數（不動 rnd() 的序列）；兩種開啟方式都先 claim，之後的設施擺放一樣；碰撞等模型下載好才加（27-props.js 檔尾）
 const newsBoxes = [], parkSeats = [], shrubs = [];

@@ -71,8 +71,9 @@ function bldLoad(set) {
       }
       hmModel(b, wg, frameM4(zn, b.x, b.z));   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
       if (b.blk && b.blk.ents) bldCut(b, wg);   // 27-bldfoot.js：模型在人的高度的外形
+      bldOver(b, wg);   // 伸出地塊前緣的逃生梯、雨棚與兩端的高度
     }
-    for (const b of mine) if (b.row) bldSeam(b);   // 模型兩端和隔壁程式立面之間的縫，照隔壁補起來
+    for (const b of mine) if (b.row) { bldSeam(b); bldTrees(b); }   // 模型兩端和隔壁之間的縫補起來；枝葉會插進逃生梯、雨棚的行道樹拿掉
     hmFlush();
     for (const blk of new Set(mine.map(b => b.blk).filter(k => k && k.ents))) blkFoot(blk);   // 照模型的外形換掉街區的碰撞盒
     for (const { mat, list, zn } of byKey.values()) {
@@ -178,7 +179,7 @@ function propWake(where) {
     loadProps(o.set).then(items => {
       if (!items || !items[o.id]) return;
       if (o.fb) o.fb.visible = false;
-      for (const t of o.list) o.scn.add(propObject(items[o.id], t.x, t.y || 0, t.z, t.ry || 0, t.s || 1));
+      for (const t of o.list) { const g = propObject(items[o.id], t.x, t.y || 0, t.z, t.ry || 0, t.s || 1); if (t.rz) g.rotation.z = t.rz; o.scn.add(g); }   // rz：先繞 z 再繞 y（排水道把牆面切片放平當天花板）
       if (o.done) o.done();
     });
   }

@@ -155,7 +155,7 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   propSwap('drain', mkM, 'dr_mouth', [{ x: DR_MOUTH, z: 0, ry: Math.PI / 2, s: DR_S }], drScene, null, 'drain');
   // 檢查井：牆（隧道接進來的那兩面留開口）、天花板與豎井、爬梯、管子、端牆的警示條。
   // 模型下載好在牆前疊三層從箱涵切出來的牆面（dr_wall 整道、dr_lintel 開口上方、dr_pier 開口兩側；每層錯開、往室內退 1.2 cm 免得互相閃爍），
-  // 地面鋪 dr_floor 轉 90° 放大。程式建模的牆與地面（原檔地面往兩側的排水溝傾斜，模型擺好後墊底的地面放低 18 cm）留在後面墊住切邊的縫
+  // 地面鋪 dr_floor 轉 90° 放大；天花板也用牆面切片（繞 z 轉 90° 放平、紋理朝下，沿長邊排成一條條，豎井那條在洞口斷開）。程式建模的牆與地面（原檔地面往兩側的排水溝傾斜，模型擺好後墊底的地面放低 18 cm）留在後面墊住切邊的縫
   const k = new Kit(), fl = new Kit(), PITCH = DR_CHH / 3, FS = DR_CH / 2.98, pans = { dr_wall: [], dr_wall2: [], dr_lintel: [], dr_pier: [], dr_floor: [] };
   // 切片的牆面：模型 x 上的位置（dr_wall2 是左邊那面，朝 +x）、切的高度範圍
   const CUT = { dr_wall: [1.31, .2, 1], dr_wall2: [-1.36, .2, 1], dr_lintel: [1.31, .25, 1.1], dr_pier: [1.31, .25, 1.1] };
@@ -189,6 +189,14 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
     }
     // 天花板（豎井那一格挖空）與豎井
     const hz = DR_CHW - .8, hw = .6;
+    // 模型的天花板：豎井南邊鋪 CEIL_N 條、豎井那條（到北牆）在洞口兩邊各一片，片的另一端伸進端牆後面
+    const roof = (id, za, zb, r, sx = 0) => {   // 蓋住 z 從 za 到 zb 的一條；sx 不是 0 時是豎井那條，片的一端停在洞口邊
+      const [mx, my, mh] = CUT[id], s = (zb - za + .04) / mh, x = sx ? cx + sx * (hw + 6.44 * s / 2) : cx;
+      pans[id].push({ x, y: DR_CHH - .03 - r * .01 - Math.abs(mx) * s, z: mx > 0 ? za - .02 - my * s : za - .02 + (my + mh) * s, ry: Math.PI / 2, rz: mx > 0 ? Math.PI / 2 : -Math.PI / 2, s });
+    };
+    const CEIL_N = 4, cw = (hz - hw + DR_CHW) / CEIL_N;
+    for (let i = 0; i < CEIL_N; i++) roof(i % 2 ? 'dr_wall2' : 'dr_wall', -DR_CHW + i * cw, -DR_CHW + (i + 1) * cw, i % 2);
+    for (const sx of [-1, 1]) roof(sx > 0 ? 'dr_wall' : 'dr_wall2', hz - hw, DR_CHW, 0, sx);
     k.box(cx, DR_CHH + .15, (hz - hw - DR_CHW) / 2, L, .3, hz - hw + DR_CHW, dk, 2);
     k.box(cx, DR_CHH + .15, (hz + hw + DR_CHW) / 2, L, .3, DR_CHW - hz - hw, dk, 2);
     for (const s of [-1, 1]) k.box(cx + s * (hw + L / 2) / 2, DR_CHH + .15, hz, L / 2 - hw, .3, hw * 2, dk, 2);

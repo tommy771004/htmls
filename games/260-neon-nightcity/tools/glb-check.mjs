@@ -70,7 +70,7 @@ try {
   // 沿街模型與程式立面的交界以模型為主（27-bldfoot.js 的 bldAlign／bldSeam）：一樓的牆面推到地塊前緣、和隔壁的程式立面接成一線，兩端的縫照隔壁補起來。
   // 用碰撞格子（模型在人的高度切出來的牆）量每棟的前牆：沿寬度每 0.5 m 從地塊前緣外 1.5 m 往內找第一道牆，取中位數
   const seam = await ev(page, () => {
-    const N = window.__nc, C = .25, res = { n: 0, ok: 0, yard: 0, fill: 0, worst: [] };
+    const N = window.__nc, C = .25, res = { n: 0, ok: 0, yard: 0, fill: 0, fillG: 0, trees: 0, worst: [] };
     for (const e of N.props.bld) {
       if (!e.row || !e.cut || !e.blk.foot) continue;
       const G = e.blk.foot, L0 = e.lots[0], ax = L0.axis, f = L0.face;
@@ -84,12 +84,29 @@ try {
       if (!d.length) continue;
       d.sort((p, q) => p - q);
       const m = d[d.length >> 1];
-      res.n++; res.fill += (e.seams || []).length;
+      res.n++; res.fill += (e.seams || []).length; res.fillG += e.seamG || 0; res.trees += e.treesCut || 0;
       if (m <= .5) res.ok++; else if (m > 3) res.yard++; else res.worst.push(e.id + ' ' + m.toFixed(2));
     }
     return res;
   });
-  check(seam.n > 30 && seam.ok >= seam.n * .85 && seam.fill > 10, `沿街模型的一樓牆面貼齊街面：${seam.ok}/${seam.n} 棟（前院 ${seam.yard} 棟，其餘 ${seam.worst.slice(0, 4).join('、') || '無'}），交界補立面 ${seam.fill} 段`);
+  check(seam.n > 30 && seam.ok >= seam.n * .85 && seam.fill > 10 && seam.fillG > 5, `沿街模型的一樓牆面貼齊街面：${seam.ok}/${seam.n} 棟（前院 ${seam.yard} 棟，其餘 ${seam.worst.slice(0, 4).join('、') || '無'}），交界補立面 ${seam.fill} 段（模型對模型 ${seam.fillG} 段）`);
+  // 行道樹讓模型（27-bldfoot.js 的 bldTrees）：留下來的行道樹，枝葉不插進模型伸出來的逃生梯、雨棚；拿掉的樹連碰撞圓一起拿掉
+  const tree = await ev(page, () => {
+    const N = window.__nc, T = N.props.bld.trees || [], C = N.col.circles || [], res = { cut: 0, hitLeft: 0, colLeft: 0 };
+    for (const t of T) { if (!t.walk) continue; if (t.hide) { res.cut++; if (C.includes(t.col)) res.colLeft++; } }
+    for (const e of N.props.bld) {
+      if (!e.over) continue;
+      const L0 = e.lots[0], ax = L0.axis, f = L0.face, a0 = e.over.a0, face = ax === 'z' ? (f > 0 ? L0.z1 : L0.z0) : (f > 0 ? L0.x1 : L0.x0);
+      for (const t of T) {
+        if (!t.walk || t.hide) continue;
+        const u = ax === 'z' ? t.x : t.z, d = (ax === 'z' ? t.z - face : t.x - face) * f, reach = 2.2 * t.s;
+        if (d <= 0 || d > 4.5) continue;
+        for (let i = 0; i < e.over.n; i++) { const c = a0 + i + .5; if (Math.abs(c - u) < reach && e.over.bins[i] - (d - reach) > .35) { res.hitLeft++; break; } }
+      }
+    }
+    return res;
+  });
+  check(tree.cut > 10 && !tree.hitLeft && !tree.colLeft, `枝葉會插進模型逃生梯、雨棚的行道樹拿掉 ${tree.cut} 棵（留下來還會插到的 ${tree.hitLeft} 棵、拿掉卻還留著碰撞的 ${tree.colLeft} 棵）`);
 
   // 展示廳（64-showroom.js，三層樓）：一樓中庭與兩側展廊
   await ev(page, () => window.__nc.enter('show'));

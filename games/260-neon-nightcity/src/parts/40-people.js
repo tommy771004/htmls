@@ -644,7 +644,7 @@ const umbrellas = [];
   const inner = blocks.filter(b => !b.outer && !b.park && isOld(b.i, b.j));   // 開場在舊城區（玩家附近），之後 pedRelocate 跟著玩家搬
   for (let k = 0; k < PED_N; k++) {
     const b = inner[Math.floor(rP() * inner.length)];
-    const inset = 1.3 + rP() * 2.4;
+    const inset = Math.min(1.3 + rP() * 2.4, BLD_ON ? SW - ALIGN_OUT - .3 : 9);   // 實體建築推到街面後台階最多凸出 ALIGN_OUT（27-bldfoot.js），路人不貼著牆走
     const w = b.x1 - b.x0 - inset * 2, d = b.z1 - b.z0 - inset * 2;
     const per = 2 * (w + d);
     const um = rP() < .62;

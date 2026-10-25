@@ -20,8 +20,9 @@ function footGrid(b) {
 // bldAlign（下載後、擺放前）：量模型在人的高度（FOOT_HS）切出來的前緣輪廓（沿寬度每 ALIGN_BIN 一格取最前面的東西），40 百分位當牆面
 //   （台階、門廊這類窄的突出不算），整棟往街面推到牆面貼齊地塊前緣；最前面的東西最多凸出 ALIGN_OUT（路人走在離牆 0.8 m 以外），
 //   牆面退超過 ALIGN_YARD 的是前院（停車場、廣場），不推。模型的幾何不改。
-// bldSeam（切好外形後）：模型兩端的側牆往內縮（陽台、逃生梯撐大了外框），和隔壁的程式立面之間留一道縫：照隔壁地塊的樣式補一段立面
-//   填到模型的側牆（高度照隔壁），碰撞一起擋住（b.fill）。縫寬超過 SEAM_MAX 的是側院，不補。
+// bldSeam（切好外形後）：模型兩端的側牆往內縮（陽台、逃生梯撐大了外框），和隔壁之間留一道縫：隔壁是程式立面就照隔壁地塊的樣式補一段立面
+//   填到模型的側牆（高度照隔壁，夠寬的一樓是拉下鐵捲門的店面）；隔壁是另一棟模型就補一道素面的牆（高度照兩棟在交界處比較矮的那棟）。
+//   碰撞一起擋住（b.fill）。縫寬超過 SEAM_MAX 的是側院，不補。
 const ALIGN_BIN = .5, ALIGN_OUT = 1.2, ALIGN_YARD = 3, SEAM_MIN = .2, SEAM_MAX = 3, SEAM_D = 6;
 function bldGap(it, s) {   // it 是 loadProps 的物件（parts 的幾何是模型座標，正面朝 +z），回傳要往前推幾公尺
   const hs = FOOT_HS.map(h => h / s), y0 = hs[0], y1 = hs[hs.length - 1], bin = ALIGN_BIN / s;
@@ -64,37 +65,115 @@ function bldAlign(b, it) {   // b 是 bldPlace 的一筆（邏輯座標），只
   hmRectL(b.x - w / 2 - 1, b.x + w / 2 + 1, b.z - d / 2 - 1, b.z + d / 2 + 1, HM_NONE, true);   // 舊位置的陰影高度（hmModel 只清新的位置）
   b.x += Math.sin(b.ry) * g; b.z += Math.cos(b.ry) * g;
 }
+// 沿街一排模型的幾何量值（擺好後，geos 是邏輯座標）：e.over 是沿街每 OVER_BIN 一格、OVER_Y–OVER_Y1 高度裡伸出地塊前緣最遠多少（逃生梯、雨棚、陽台），
+// e.endH 是兩端 SEAM_END 內的實際高度（模型對模型補縫照它定高度）
+const OVER_Y = 2.4, OVER_Y1 = 10, OVER_BIN = 1, SEAM_END = 1.5;
+function bldSpan(e) {
+  const L0 = e.lots[0], ax = L0.axis, f = L0.face, along = L => ax === 'z' ? [L.x0, L.x1] : [L.z0, L.z1];
+  return { L0, ax, f, along, a0: Math.min(...e.lots.map(L => along(L)[0])), a1: Math.max(...e.lots.map(L => along(L)[1])),
+    face: ax === 'z' ? (f > 0 ? L0.z1 : L0.z0) : (f > 0 ? L0.x1 : L0.x0), dep: ax === 'z' ? L0.z1 - L0.z0 : L0.x1 - L0.x0 };
+}
+function bldOver(e, geos) {
+  if (!e.row) return;
+  const { ax, f, a0, a1, face } = bldSpan(e), n = Math.max(1, Math.ceil((a1 - a0) / OVER_BIN)), over = new Float32Array(n), endH = [0, 0];
+  const put = (x, y, z) => {
+    const u = ax === 'z' ? x : z, v = (ax === 'z' ? z - face : x - face) * f;
+    if (u - a0 < SEAM_END && y > endH[0]) endH[0] = y;
+    if (a1 - u < SEAM_END && y > endH[1]) endH[1] = y;
+    if (y < OVER_Y || y > OVER_Y1 || v <= 0) return;
+    const i = Math.min(n - 1, Math.max(0, Math.floor((u - a0) / OVER_BIN)));
+    if (v > over[i]) over[i] = v;
+  };
+  for (const g of geos) {
+    const p = g.attributes.position.array, ix = g.index ? g.index.array : null, N = ix ? ix.length : p.length / 3;
+    for (let k = 0; k < N; k += 3) {
+      const A = (ix ? ix[k] : k) * 3, B = (ix ? ix[k + 1] : k + 1) * 3, C = (ix ? ix[k + 2] : k + 2) * 3;
+      for (const [u, v] of [[A, B], [B, C], [C, A]]) {   // 邊上每 0.5 m 取一點（大片的雨棚只有四個角）
+        const m = Math.max(1, Math.ceil(Math.hypot(p[v] - p[u], p[v + 2] - p[u + 2]) / .5));
+        for (let t = 0; t < m; t++) put(p[u] + (p[v] - p[u]) * t / m, p[u + 1] + (p[v + 1] - p[u + 1]) * t / m, p[u + 2] + (p[v + 2] - p[u + 2]) * t / m);
+      }
+    }
+  }
+  e.over = { a0, n, bins: over }; e.endH = endH;
+}
+// 行道樹讓模型：枝葉（樹幹往牆那邊伸 CANOPY_R × 縮放）插進模型伸出來的逃生梯、雨棚超過 CANOPY_HIT 的樹拿掉（連樹穴與碰撞圓）。
+// 程式立面的逃生梯只伸出 0.62 m，原本的樹都不會被拿掉
+const CANOPY_R = 2.2, CANOPY_HIT = .3;
+bldPlace.trees = trees;   // 驗收用（tools/glb-check.mjs 從 __nc.props.bld.trees 讀）
+function bldTrees(e) {
+  if (!e.over) return;
+  const { ax, f, a0, face } = bldSpan(e), O = e.over;
+  let n = 0;
+  for (const t of trees) {
+    if (!t.walk || t.hide) continue;
+    const u = ax === 'z' ? t.x : t.z, d = (ax === 'z' ? t.z - face : t.x - face) * f, reach = CANOPY_R * t.s;
+    if (d <= 0 || d > SW || u < a0 - reach || u > a0 + O.n * OVER_BIN + reach) continue;
+    let o = 0;
+    for (let i = Math.max(0, Math.floor((u - reach - a0) / OVER_BIN)); i <= Math.min(O.n - 1, Math.floor((u + reach - a0) / OVER_BIN)); i++) o = Math.max(o, O.bins[i]);
+    if (o - (d - reach) <= CANOPY_HIT) continue;
+    instHide(t); if (t.grate) instHide(t.grate);
+    const k = circles.indexOf(t.col); if (k >= 0) { circles.splice(k, 1); colDirty(); }
+    n++;
+  }
+  e.treesCut = n;
+}
+// 補縫的立面：程式立面那一側照隔壁地塊（style／seed／高度），夠寬的一樓是拉下鐵捲門的店面；模型對模型的縫用素面的牆（簷口那種石材，style 7）
+function seamFill(r, L, ax, f, style, seed, h, zn) {
+  const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn };
+  const k = ax === 'z' ? (f > 0 ? 'pz' : 'nz') : (f > 0 ? 'px' : 'nx'), fw = ax === 'z' ? r.x1 - r.x0 : r.z1 - r.z0;
+  const shop = L && fw >= SEAM_SHOP ? { [k]: true } : null;
+  boxFaces(B, r.x0, r.x1, r.z0, r.z1, 0, h, seed, style, shop, h, shop ? { [k]: [1, 1] } : null);
+  if (L && style !== 3) {   // 簷口與一樓的腰帶接著隔壁（只往前後凸，不伸進模型）
+    const o = .35, ox = ax === 'x' ? o : 0, oz = ax === 'z' ? o : 0, q = .18, qx = ax === 'x' ? q : 0, qz = ax === 'z' ? q : 0;
+    boxFaces(B, r.x0 - ox, r.x1 + ox, r.z0 - oz, r.z1 + oz, h - .55, h + .06, seed, 7, null, h, null);
+    boxFaces(B, r.x0 - qx, r.x1 + qx, r.z0 - qz, r.z1 + qz, 4.45, 4.75, seed, 7, null, h, null);
+  }
+  chunkMesh(B);
+  hmRectL(r.x0, r.x1, r.z0, r.z1, h, false, zn);
+}
+const SEAM_SHOP = 1.2;
 function bldSeam(e) {
-  const L0 = e.lots[0], ax = L0.axis, f = L0.face, b = e.blk, G = b && b.foot;
+  const b = e.blk, G = b && b.foot;
   if (!G || !e.cut) return;
-  const along = L => ax === 'z' ? [L.x0, L.x1] : [L.z0, L.z1];
-  const a0 = Math.min(...e.lots.map(L => along(L)[0])), a1 = Math.max(...e.lots.map(L => along(L)[1]));
-  const face = ax === 'z' ? (f > 0 ? L0.z1 : L0.z0) : (f > 0 ? L0.x1 : L0.x0), dep = ax === 'z' ? L0.z1 - L0.z0 : L0.x1 - L0.x0;
+  const { L0, ax, f, along, a0, a1, face, dep } = bldSpan(e);
   const wallAt = (u, d) => {   // 沿街 u、離前緣 d 的格子是不是模型的牆
     const x = ax === 'z' ? u : face - f * d, z = ax === 'z' ? face - f * d : u, i = footI(G, x), j = footJ(G, z);
     return i > 0 && j > 0 && i < G.nx - 1 && j < G.nz - 1 && G.wall[j * G.nx + i];
   };
-  for (const [a, dir] of [[a0, 1], [a1, -1]]) {
-    const nb = lots.find(L => L.b === L0.b && L.axis === ax && L.face === f && !L.back && !L.glb && !L.ghost && Math.abs(along(L)[dir > 0 ? 1 : 0] - a) < .05);
-    if (!nb) continue;   // 隔壁是另一棟模型、街角或空地
+  // 從 a 往 dir 找第一道牆：前緣往內 SEAM_D 內每個深度取最小（縫寬），再往後延伸到縫變窄為止（深度 D）
+  const gapAt = (a, dir) => {
     const dist = d => { for (let u = FOOT_C / 2; u < SEAM_MAX + FOOT_C; u += FOOT_C) if (wallAt(a + dir * u, d)) return u - FOOT_C / 2; return Infinity; };
     let w = Infinity, D = 0;
     for (let d = FOOT_C / 2; d < Math.min(SEAM_D, dep); d += FOOT_C) w = Math.min(w, dist(d));
-    if (!(w >= SEAM_MIN && w <= SEAM_MAX)) continue;
+    if (w === Infinity) return null;
     for (let d = FOOT_C / 2; d < dep && dist(d) >= w; d += FOOT_C) D = d + FOOT_C / 2;
-    const u0 = a, u1 = a + dir * (w + FOOT_C / 2), v0 = face, v1 = face - f * Math.min(D, dep);
-    const r = ax === 'z' ? { x0: Math.min(u0, u1), x1: Math.max(u0, u1), z0: Math.min(v0, v1), z1: Math.max(v0, v1) } : { x0: Math.min(v0, v1), x1: Math.max(v0, v1), z0: Math.min(u0, u1), z1: Math.max(u0, u1) };
-    const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: nb.zn };
-    boxFaces(B, r.x0, r.x1, r.z0, r.z1, 0, nb.h, nb.seed, nb.style, null, nb.h, null);
-    if (nb.style !== 3) {   // 簷口與一樓的腰帶接著隔壁（只往前後凸，不伸進模型）
-      const o = .35, ox = ax === 'x' ? o : 0, oz = ax === 'z' ? o : 0, q = .18, qx = ax === 'x' ? q : 0, qz = ax === 'z' ? q : 0;
-      boxFaces(B, r.x0 - ox, r.x1 + ox, r.z0 - oz, r.z1 + oz, nb.h - .55, nb.h + .06, nb.seed, 7, null, nb.h, null);
-      boxFaces(B, r.x0 - qx, r.x1 + qx, r.z0 - qz, r.z1 + qz, 4.45, 4.75, nb.seed, 7, null, nb.h, null);
+    return { w, D };
+  };
+  const rectOf = (u0, u1, D) => { const v0 = face, v1 = face - f * Math.min(D, dep); return ax === 'z' ? { x0: Math.min(u0, u1), x1: Math.max(u0, u1), z0: Math.min(v0, v1), z1: Math.max(v0, v1) } : { x0: Math.min(v0, v1), x1: Math.max(v0, v1), z0: Math.min(u0, u1), z1: Math.max(u0, u1) }; };
+  for (const [a, dir, end] of [[a0, 1, 0], [a1, -1, 1]]) {
+    const nb = lots.find(L => L.b === L0.b && L.axis === ax && L.face === f && !L.back && !L.ghost && !e.lots.includes(L) && Math.abs(along(L)[dir > 0 ? 1 : 0] - a) < .05);
+    if (!nb) continue;   // 街角或空地
+    const g = gapAt(a, dir);
+    if (!nb.glb) {   // 隔壁是程式立面
+      if (!g || g.w < SEAM_MIN || g.w > SEAM_MAX) continue;
+      const r = rectOf(a, a + dir * (g.w + FOOT_C / 2), g.D);
+      seamFill(r, nb, ax, f, nb.style, nb.seed, nb.h, nb.zn);
+      (b.fill || (b.fill = [])).push(r);
+      (e.seams || (e.seams = [])).push(+g.w.toFixed(2));
+      continue;
     }
-    chunkMesh(B);
-    hmRectL(r.x0, r.x1, r.z0, r.z1, nb.h, false, nb.zn);
+    // 隔壁是另一棟模型：兩棟都切好外形才補（後下載的那一棟補），兩邊的縫加起來
+    const o = nb.glb;
+    if (o === e || !o.cut || !o.row || (o.seamed || (o.seamed = new Set())).has(e)) continue;
+    o.seamed.add(e); (e.seamed || (e.seamed = new Set())).add(o);
+    const g2 = gapAt(a, -dir), w1 = g ? g.w : 0, w2 = g2 ? g2.w : 0;
+    if (!g || !g2 || w1 + w2 < SEAM_MIN || w1 > SEAM_MAX || w2 > SEAM_MAX) continue;
+    const oEnd = Math.abs(bldSpan(o).a0 - a) < .05 ? 0 : 1, h = Math.min(e.endH ? e.endH[end] : e.h, o.endH ? o.endH[oEnd] : o.h);
+    if (h < 3) continue;
+    const r = rectOf(a - dir * (w2 + FOOT_C / 2), a + dir * (w1 + FOOT_C / 2), Math.min(g.D, g2.D));
+    seamFill(r, null, ax, f, 7, L0.seed || 0, h, L0.zn);
     (b.fill || (b.fill = [])).push(r);
-    (e.seams || (e.seams = [])).push(+w.toFixed(2));
+    (e.seams || (e.seams = [])).push(+(w1 + w2).toFixed(2)); e.seamG = (e.seamG || 0) + 1;
   }
 }
 // 邏輯座標 → 格子（第 0 格與最後一格是街道）
