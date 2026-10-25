@@ -291,6 +291,11 @@ function glbMaterial(src, inst, far, wash) {
 
 // ─── 下載與拆件：body 的網格、每個輪子的網格（相對輪軸）；幾何與貼圖所有實例共用 ───
 const glbLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+// 下載的模型在 Worker 裡解 meshopt（大的建築組在主執行緒解要上百 ms）；以檔案開啟不下載，不開；?warm=0 也不開（27-props.js）
+if (GLB_ON && !/[?&]warm=0\b/.test(location.search)) try { MeshoptDecoder.useWorkers(Math.min(4, Math.max(1, (navigator.hardwareConcurrency || 4) >> 2))); } catch (e) { /* 開不了 Worker 就在主執行緒解 */ }
+// 96-perf.js 的卡頓分類：載入的回呼標上名稱與花的時間（[名稱, ms]），96 在下一幀開頭收走
+const perfTags = [];
+const perfTag = (name, t0) => { perfTags.push([name, performance.now() - t0]); };
 // 打包時內嵌的 meshopt 壓縮 GLB（#glb-名稱，gzip＋base64）：人物與車流
 async function embeddedGLB(name) {
   const el = document.getElementById('glb-' + name);
@@ -322,6 +327,7 @@ function loadGLB(id) {
   if (!GLB_ON || !CARS[id] || !CARS[id].glb) return null;
   const prog = e => { glbBytes[id] = [e.loaded, e.lengthComputable ? e.total : 0]; };
   return glbCache[id] ??= glbLoader.loadAsync(GLB_BASE + id + '.glb', prog).then(g => {
+    const pt = performance.now();
     const root = g.scene.getObjectByName('car'), spec = GLB_SPEC[id];
     g.scene.updateMatrixWorld(true);
     const inv = root.matrixWorld.clone().invert();
@@ -339,7 +345,7 @@ function loadGLB(id) {
         (nm === n.name ? tw.list : tw.fix).push(...list);
       } else tpl.body.push(...list);
     }
-    glbReport.loaded.push(id); glbDone.add(id);
+    glbReport.loaded.push(id); glbDone.add(id); perfTag('車 ' + id, pt);
     return tpl;
   }, () => { glbReport.failed.push(id); glbDone.add(id); return null; });
 }

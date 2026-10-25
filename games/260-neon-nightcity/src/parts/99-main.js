@@ -345,6 +345,7 @@ function loop(now) {
   if (Math.abs(slowmo.k - 1) < .002) slowmo.k = 1;
   T0 += raw * 1000 * (1 - slowmo.k);
   const dt = raw * slowmo.k;
+  frameBegin(now);   // 70-render.js：整幀 CPU 計時（依幀時調整、96-perf.js 的面板）
   step(dt);
   frames++; fpsT += dt; if (fpsT > .5) { fps = frames / fpsT; frames = 0; fpsT = 0; }
 }
@@ -372,7 +373,7 @@ bootProgress(100, '雨正在下。');
 const go = $('go'); go.disabled = false;
 go.textContent = '進入雨夜'; go.removeAttribute('role'); go.removeAttribute('aria-valuenow');
 go.addEventListener('click', () => {
-  started = true; sfx.init();
+  started = true; sfx.init(); warmGo();   // 27-props.js：進場後背景載入每幀只佔 6 ms、走近才下載的道具先傳貼圖
   $('start').classList.add('gone'); $('hud').classList.add('on'); $('touch').classList.add('on');
   setTimeout(() => { $('start').style.display = 'none'; }, 700);
   if (!isTouch) cvs.requestPointerLock?.();
@@ -387,6 +388,7 @@ window.__nc = {
   ready: true, city: { blocks, lots, bldPlace }, gpu: GPU, reflFar: m => { reflFarT = m; },   // 街區與地塊（挑設施街區、驗收用）；顯示卡分級（00-core.js）與倒影遠平面（70-render.js，null 照等級）
   scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
+  perf: perfApi,   // 96-perf.js：效能面板（?perf=1）、stats()、stalls()、route() 固定路線量測
   // 碰撞：靜態盒（世界 AABB 是 bx0…；有 f 的盒 x0…z1 是 f 框裡的座標）、圓柱、每幀重建的圓；collide(x, z, r, y) 照玩家走路的方式推一次（空氣牆稽核用）
   col: { colliders, circles, dynCircles, dynMore, toW: (x, z, f) => toW(x, z, f), toL: (x, z, f) => toL(x, z, f), collide(x, z, r = .32, y = 0) { colY = y; const o = collideCircle(x, z, r, false, true); colY = 0; return o; } },
   sfx,   // 80-audio.js：sfx.rec 是真實錄音的載入狀態、正在響的聲音數與循環音

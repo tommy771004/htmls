@@ -8,7 +8,8 @@ for (const m of groundMeshes) m.layers.set(LY.NOREFL);
 let DPR = Math.min(devicePixelRatio || 1, GT().dpr);   // 00-core.js 的畫質等級：解析度上限
 R.setPixelRatio(DPR);
 // gray／vig／hurt：69-combat.js 的 WASTED／BUSTED 去色與暗角、受傷時畫面邊緣泛紅
-const post = { scale: typeof SET.res === 'number' ? SET.res : 1, blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
+// reflHalf：倒影隔幀畫（依幀時調整在 CPU 送不完時打開）；ceil：自動解析度往上升的上限（在 1 以上降過一次就停在那一檔下面）
+const post = { reflHalf: false, ceil: 9, scale: typeof SET.res === 'number' ? SET.res : 1, blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
 // 沒有浮點渲染目標的擴充（少數舊驅動、部分 Android）就退回 8 位元：畫得出來，只是霓虹的泛光與高光會被截在 1（00-core.js 的 GPU.hdr）
 const rtOpts = { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true };
 let rtScene, rtRefl, rtB = [], rtU = [];
@@ -33,9 +34,9 @@ function resize() {
   makeTargets();
 }
 resize();
-addEventListener('resize', resize);
+addEventListener('resize', () => { post.scale = Math.min(post.scale, Math.max(1, resMax())); resize(); });
 // 換畫質等級（01-settings.js 的 tierSet）：解析度上限跟著換
-function tierDpr() { DPR = Math.min(devicePixelRatio || 1, GT().dpr); R.setPixelRatio(DPR); resize(); }
+function tierDpr() { DPR = Math.min(devicePixelRatio || 1, GT().dpr); R.setPixelRatio(DPR); post.ceil = 9; post.scale = Math.min(post.scale, 1); resize(); }
 // 驅動重置後 three 會重建 GL 狀態並重新上傳材質與貼圖，渲染目標在這裡重做；沒恢復前遊戲照跑、畫面停在最後一幀
 R.domElement.addEventListener('webglcontextlost', () => { GPU.lost++; toast('顯示卡重置中…'); }, false);
 R.domElement.addEventListener('webglcontextrestored', () => { makeTargets(); firstFrame = true; toast('畫面已恢復'); }, false);
@@ -190,8 +191,20 @@ function renderReflection() {
   U.uClipY.value = -1e9; U.uCam.value.copy(camera.position); U.uFocus.value.w = fw;
 }
 R.info.autoReset = false;   // 一幀有很多次 render，統計要整幀累計
+// 96-perf.js 的計時掛點：f 是 99-main 的 loop 開頭、a／b 是 renderFrame 的頭尾（沒開 ?perf 時是空的）
+const perfHook = { f: null, a: null, b: null };
+// 99-main.js 的 loop 開頭：記這一幀 CPU 從哪裡開始算，renderFrame 結束時得到整幀的 CPU 時間（邏輯＋送出指令，cpu 是平滑過的），
+// 依幀時調整用它分辨是 CPU 送不完還是顯示卡畫不完：前者降解析度沒有用
+const frameClk = { t0: 0, cpu: 8 };
+function frameBegin(now) { frameClk.t0 = performance.now(); perfHook.f?.(now); }
+// 自動解析度往上的上限：等級的 ss（high 1.25、ultra 1.5）再受內部像素數 px 限制（DPR 2 的 4K 螢幕本來就夠細，不再加）
+const resMax = () => Math.min(GT().ss || 1, Math.sqrt((GT().px || 4.2e6) / Math.max(1, innerWidth * innerHeight * DPR * DPR)), R.capabilities.maxTextureSize / Math.max(innerWidth, innerHeight) / DPR);
+let reflOdd = 0;
 function renderFrame(dt, t) {
+  perfHook.a?.();
   R.info.reset();
+  // 整個場景的矩陣一幀只算一次：倒影與主畫面兩趟 R.render 原本各算一次（場景有三千多個物件）
+  curScene.matrixWorldAutoUpdate = false; curScene.updateMatrixWorld();
   camera.updateMatrixWorld();
   sky.position.copy(camera.position); sky.updateMatrixWorld();   // 天空球跟著相機（城市東西兩端離原點超過半徑）
   U.uCam.value.copy(camera.position);
@@ -200,7 +213,8 @@ function renderFrame(dt, t) {
   const outdoors = curScene === scene;
   const vp = outdoors ? null : (ENV[player.where] || {}).post;   // 場館自己的曝光、泛光門檻與高光肩部（60-venues.js 的 ENV）
   reflU.uReflOn.value = outdoors && SET.refl ? 1 : 0;
-  if (outdoors && SET.refl) renderReflection();
+  // 倒影隔幀畫：沒畫的那一幀沿用上一張倒影與它的投影矩陣（uReflMat），靜止的東西位置照樣對；剛切換鏡頭時一定畫
+  if (outdoors && SET.refl && (!post.reflHalf || (reflOdd ^= 1) || firstFrame || camState.snap)) renderReflection();
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
   R.render(curScene, camera);
   // 泛光
@@ -238,9 +252,27 @@ function renderFrame(dt, t) {
   if (post.ft > Math.max(19, tgt * 1.15)) { post.slow += rd; post.fast = 0; } else if (post.ft < Math.max(13, tgt * 1.04)) { post.fast += rd; post.slow = 0; } else { post.slow = post.fast = 0; }
   if (SET.res !== 'auto' || post.cool > 0) post.fast = 0;
   if (SET.res !== 'auto') post.slow = 0;   // 固定解析度比例時不自動調整
-  if (post.slow > 1.2 && post.scale > .6) { post.scale = Math.max(.6, post.scale - .1); post.slow = 0; post.cool = 15; makeTargets(); }
-  else if (post.slow > 1.2 && detail.k > .6) { detail.k = Math.max(.6, detail.k - .1); detail.v++; post.slow = 0; post.cool = 15; }   // 解析度降到底還是慢：縮短建築與街道設施的細節距離（01-settings.js）
-  if (post.fast > 4 && detail.k < 1) { detail.k = Math.min(1, detail.k + .05); detail.v++; post.fast = 0; }   // 變快了先把距離放回來，再升解析度
-  else if (post.fast > 4 && post.scale < 1) { post.scale = Math.min(1, post.scale + .05); post.fast = 0; makeTargets(); }
+  // 太慢時的順序：CPU 送不完（整幀 CPU 超過目標的八成）先讓戶外的倒影隔幀畫，再縮短細節距離；顯示卡畫不完先降內部解析度（到 60%），
+  // 都到底了才動另一邊。變快時倒著放回來：距離 → 倒影（CPU 留得出倒影那一趟的餘裕才放）→ 解析度（可以超過 100%，到 resMax 為止）
+  frameClk.cpu = lerp(frameClk.cpu, performance.now() - frameClk.t0, .05);
+  const cpuB = frameClk.cpu > tgt * .8, reflOn = outdoors && SET.refl;
+  if (post.slow > 1.2) {
+    const s0 = post.scale;
+    if (reflOn && !post.reflHalf && (cpuB || post.scale <= .6)) post.reflHalf = true;
+    else if (post.scale > .6 && (!cpuB || detail.k <= .6)) { post.scale = Math.max(.6, post.scale - .1); makeTargets(); }
+    else if (detail.k > .6) { detail.k = Math.max(.6, detail.k - .1); detail.v++; }   // 縮短建築與街道設施的細節距離（01-settings.js）
+    if (s0 > 1 && post.scale < s0) post.ceil = Math.min(post.ceil, s0 - .05);   // 超過 100% 降過一次就不再升回那一檔
+    post.slow = 0; post.cool = 15;
+  }
+  if (post.fast > 4) {
+    post.fast = 0;
+    if (detail.k < 1) { detail.k = Math.min(1, detail.k + .05); detail.v++; }
+    else if (post.reflHalf && (!reflOn || frameClk.cpu < tgt * .55)) post.reflHalf = false;
+    else {
+      const top = post.scale < 1 ? 1 : frameClk.cpu < tgt * .6 ? Math.min(resMax(), post.ceil) : 1;   // 100% 以上要 CPU 也有餘裕
+      if (post.scale < top - .001) { post.scale = Math.min(top, post.scale + .05); makeTargets(); }
+    }
+  }
   if (post.wobble > 0) post.wobble = Math.max(0, post.wobble - dt * .08);
+  perfHook.b?.();
 }

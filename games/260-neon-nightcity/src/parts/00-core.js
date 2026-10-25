@@ -35,12 +35,14 @@ R.domElement.tabIndex = 0;
 // ─── 顯示卡分級：WebGL 只回報 GPU 名稱與 ANGLE 的繪圖後端，碰不到驅動程式，所以照名稱給起始畫質 ───
 // dpr 解析度上限；msaa、refl、dist、fps 是 01-settings.js 的預設值（玩家改過的照玩家的）；
 // rf 倒影的遠平面倍率（70-render.js 的 reflFar，0 是不縮）；nl 燈數、sh 日光陰影步數、occ 地上陰影的車人數是 shader 常數，開場定下，選單換等級要重新整理才生效。
-// 原本的桌機設定就是 high，觸控與小螢幕（LOW）原本的設定就是 low
+// ss 自動解析度往上最多到幾倍、px 內部像素數上限（70-render.js 的 resMax：顯示卡有餘裕時超過 100% 當超取樣抗鋸齒）。
+// 原本的桌機設定就是 high，觸控與小螢幕（LOW）原本的設定就是 low；ultra 不會自動選到，要在選單或網址 ?gpu=ultra 指定
 const GPU_TIERS = {
   soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6 },
   low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8 },
   mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .9, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1 },
-  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0 },
+  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0, ss: 1.25, px: 4.2e6 },
+  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, ss: 1.5, px: 8.3e6 },
 };
 const GPU = (() => {
   const gl = R.getContext(); let name = '';
@@ -62,7 +64,7 @@ const GPU = (() => {
   const short = (name.match(/^ANGLE \([^,]*, (.*?)(?:, [^,]*)?\)$/)?.[1] || name).replace(/^ANGLE \w+ Renderer: /, '').replace(/ \(0x[0-9a-f]+\)| Direct3D.*| vs_\d.*/gi, '').trim();
   // 半浮點渲染目標（泛光與曝光要超過 1 的亮度）：WebGL2 要 EXT_color_buffer_float 或 _half_float，沒有就退回 8 位元（70-render.js）
   const hdr = R.extensions.has('EXT_color_buffer_float') || R.extensions.has('EXT_color_buffer_half_float');
-  // 等級：網址 ?gpu=soft|low|mid|high（驗收工具固定用 high）＞ 選單（01-settings.js 的 SET.gpu）＞ 自動
+  // 等級：網址 ?gpu=soft|low|mid|high|ultra（驗收工具固定用 high）＞ 選單（01-settings.js 的 SET.gpu）＞ 自動
   const qs = new URLSearchParams(location.search), q = qs.get('gpu');
   let pick = null; try { pick = JSON.parse(localStorage.getItem('nc260.settings') || 'null')?.gpu; } catch (e) { /* 沒存過 */ }
   const tier = GPU_TIERS[q] ? q : GPU_TIERS[pick] ? pick : auto;

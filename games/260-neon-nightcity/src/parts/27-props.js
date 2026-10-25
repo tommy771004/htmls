@@ -10,30 +10,100 @@ const propCache = {}, propMats = new Map(), FAR_FOG = .2;   // FAR_FOG：props.j
 // WASH_SETS：立面是拼貼圖集、量不出窗戶的組，夜裡在 shader 依高度打一層路燈光（26-glb.js 的 WASH）
 const WASH_SETS = new Set(['bld_nbh']);
 const propMat = (src, far, wash) => { let m = propMats.get(src); if (!m) { m = glbMaterial(src, PROP_INST, far, wash); propMats.set(src, m); } return m; };
-// 量化的整數屬性轉成浮點，再套上節點矩陣（量化的位移與縮放在節點上）
+// 量化的整數屬性轉成浮點，再套上節點矩陣（量化的位移與縮放在節點上）。直接讀底層陣列（交錯排列照 stride，正規化的整數照 three 的 denormalize），
+// 逐元素 getComponent 在大的建築組與場館要上百 ms
+const DENORM = new Map([[Uint32Array, 4294967295], [Uint16Array, 65535], [Uint8Array, 255], [Uint8ClampedArray, 255], [Int32Array, 2147483647], [Int16Array, 32767], [Int8Array, 127]]);
 function floatGeo(geo, mtx) {
   const g = new T.BufferGeometry();
   for (const [k, at] of Object.entries(geo.attributes)) {
-    const f = new Float32Array(at.count * at.itemSize);
-    for (let i = 0; i < at.count; i++) for (let c = 0; c < at.itemSize; c++) f[i * at.itemSize + c] = at.getComponent(i, c);
-    g.setAttribute(k, new T.BufferAttribute(f, at.itemSize));
+    const il = at.isInterleavedBufferAttribute, a = il ? at.data.array : at.array, st = il ? at.data.stride : at.itemSize, o = il ? at.offset : 0, n = at.itemSize;
+    const f = new Float32Array(at.count * n), d = at.normalized ? DENORM.get(a.constructor) : 0;
+    if (d === undefined && !(a instanceof Float32Array)) { for (let i = 0; i < at.count; i++) for (let c = 0; c < n; c++) f[i * n + c] = at.getComponent(i, c); }
+    else if (d) { for (let i = 0; i < at.count; i++) for (let c = 0; c < n; c++) f[i * n + c] = Math.max(a[i * st + o + c] / d, -1); }
+    else for (let i = 0; i < at.count; i++) for (let c = 0; c < n; c++) f[i * n + c] = a[i * st + o + c];
+    g.setAttribute(k, new T.BufferAttribute(f, n));
   }
-  g.setIndex(geo.index ? Array.from(geo.index.array) : null);
+  const ix = geo.index && geo.index.array;
+  g.setIndex(ix ? new T.BufferAttribute(ix instanceof Uint8Array ? Uint16Array.from(ix) : ix.slice(), 1) : null);
   g.applyMatrix4(mtx);
   return g;
+}
+// 大量重複的道具用的 InstancedMesh 版材質（後段的 w2Inst）
+const GLB_VS_I = GLB_VS.replace('vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);',
+  'vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);');
+const propMatsI = new Map();
+function propMatI(mat) {   // 和 propMat 共用 uniforms（時間、相機、天氣都跟著動），只換頂點著色器
+  let m = propMatsI.get(mat);
+  if (!m) { m = new T.ShaderMaterial({ uniforms: mat.uniforms, vertexShader: GLB_VS_I, fragmentShader: mat.fragmentShader, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
+  return m;
+}
+// ─── 分幀與預熱（96-perf.js 量到的抵達卡頓：第一次畫到時一幀上傳近百張貼圖、建築組在主執行緒合併一次 0.5～1 秒）───
+// 長工作每做滿 warmMs 就讓出一幀，同一幀裡所有切片共用預算（開始畫面時給 40 ms，進場後 99-main.js 改成 6 ms）。
+// 模型放進場景前先在背景編好著色器（compileAsync：有 KHR_parallel_shader_compile 時驅動在背景編）、貼圖一張一張上傳（initTexture），
+// 建築合併後、距離剔除半徑內的大網格一個一個送進 1×1 的暫存目標畫一次，把頂點傳上顯示卡；這樣第一次畫到時不用整批擠在同一幀。
+// ?warm=0 關掉（不切片、不預熱、不開解碼 Worker），和舊做法比較用。
+const WARM_ON = !/[?&]warm=0\b/.test(location.search);
+let warmLive = false, warmMs = WARM_ON ? 40 : Infinity, warmTs = -1, warmT = 0, warmRT = null;
+const warmCam = new T.PerspectiveCamera(), warmTex = new WeakSet();
+warmCam.layers.enableAll();
+const nextFrame = () => new Promise(r => { const t = setTimeout(r, 100); requestAnimationFrame(ts => { clearTimeout(t); r(ts); }); });
+async function warmSlice() {
+  for (;;) {
+    if (performance.now() - warmT < warmMs) return;
+    const ts = await nextFrame();
+    if (ts === undefined || ts !== warmTs) { warmTs = ts; warmT = performance.now(); }   // 這一幀第一個醒來的切片重設預算
+  }
+}
+// 做事的時間（扣掉等幀）：96-perf.js 的卡頓標記用
+function warmClock() { let ms = 0, t = performance.now(); return { tick: async () => { ms += performance.now() - t; await warmSlice(); t = performance.now(); }, ms: () => ms + performance.now() - t }; }
+// near 給了（建築組）：著色器全部編，貼圖與頂點只傳 near 為真的網格的（建築組 670 m 外就下載，全部先傳要多佔幾百 MB 顯示卡記憶體）；
+// 沒給：進場後才下載的道具（走近或走進場館才下載的）編著色器、傳貼圖，幾何等第一次畫到；開場整批下載的（69-* 頂層的 loadProps，
+// 多半擺在城裡別處）只編著色器，貼圖照舊等第一次畫到。貼圖傳過的不再傳（warmTex），著色器 three 自己快取
+const warmGo = () => { warmLive = true; if (WARM_ON) warmMs = 6; };   // 99-main.js 按下進場時呼叫
+async function glbWarm(objs, near, inst) {
+  if (!WARM_ON || !objs.length) return;
+  const tmp = new T.Scene(), mats = new Set();
+  for (const o of objs) {
+    const geo = o.isMesh ? o.geometry : o.geo, mat = o.isMesh ? o.material : o.mat;
+    if (mats.has(mat)) continue;
+    mats.add(mat); tmp.add(new T.Mesh(geo, mat));
+    if (inst) tmp.add(new T.InstancedMesh(geo, propMatI(mat), 1));   // inst：後段 w2Inst 用的實例版
+  }
+  try { await R.compileAsync(tmp, warmCam); } catch (e) { /* 編譯失敗留給第一次畫到時再報 */ }
+  if (near) objs = objs.filter(near);
+  else if (!warmLive) objs = [];
+  const tex = [];
+  for (const m of new Set(objs.map(o => (o.isMesh ? o.material : o.mat)))) for (const u of Object.values(m.uniforms || {})) { const v = u.value; if (v && v.isTexture && !v.isRenderTargetTexture && !warmTex.has(v)) { warmTex.add(v); tex.push(v); } }
+  for (const t of tex) { await warmSlice(); R.initTexture(t); }
+  if (!near) return;
+  warmRT ??= new T.WebGLRenderTarget(1, 1, { depthBuffer: false });
+  for (const m of objs) {
+    await warmSlice();
+    const prev = R.getRenderTarget(), ri = R.info.render, c = ri.calls, tr = ri.triangles, fc = m.frustumCulled, par = m.parent;
+    tmp.clear(); tmp.add(m); m.frustumCulled = false;
+    R.setRenderTarget(warmRT); R.render(tmp, warmCam); R.setRenderTarget(prev);
+    m.frustumCulled = fc; tmp.remove(m); if (par) par.add(m);
+    ri.calls = c; ri.triangles = tr;
+  }
 }
 // 一個輸出檔 → { 物件 id: { parts: [{ geo, mat }], w, d, h } }
 function loadProps(set) {
   if (!GLB_ON || !PROPS_SPEC[set]) return Promise.resolve(null);
   const key = 'p:' + set;
-  return propCache[set] ??= glbLoader.loadAsync(PROP_BASE + set + '.glb', e => { glbBytes[key] = [e.loaded, e.lengthComputable ? e.total : 0]; }).then(g => {
+  return propCache[set] ??= glbLoader.loadAsync(PROP_BASE + set + '.glb', e => { glbBytes[key] = [e.loaded, e.lengthComputable ? e.total : 0]; }).then(async g => {
+    const clk = warmClock();
     g.scene.updateMatrixWorld(true);
     const items = {};
     for (const n of g.scene.children) {
-      const parts = [];
-      n.traverse(m => { if (m.isMesh) parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)) }); });
+      const parts = [], ms = [];
+      n.traverse(m => { if (m.isMesh) ms.push(m); });
+      for (const m of ms) { parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)) }); await clk.tick(); }
       items[n.name] = { parts, ...PROPS_SPEC[set].items[n.name] };
     }
+    perfTags.push(['道具 ' + set, clk.ms()]);
+    const parts = Object.values(items).flatMap(it => it.parts);
+    if (bldPlace.some(b => b.set === set)) await glbWarm(parts, () => false);   // 建築組：這裡只編著色器，貼圖與頂點在 bldPut 照距離傳
+    else await glbWarm(parts);
     glbDone.add(key);
     return items;
   }, e => { console.warn('道具模型下載失敗：' + set, e); glbDone.add(key); return null; });
@@ -53,39 +123,50 @@ const bldTile = b => zoneAtL(b.x, b.z).id + ':' + Math.floor((b.x - X0) / (P * B
 const bldW = new Map(bldPlace.map(b => [b, toW(b.x, b.z)]));   // 走近才下載：比的是世界座標
 const bldSets = [...new Set(bldPlace.map(b => b.set))];
 const bldReq = new Map();   // set → Promise
+let bldQ = Promise.resolve();   // 各組依序擺（一組擺到一半時讓出幀，別組不插進來，bldSeam 看到的隔壁不是半套）
 function bldLoad(set) {
   if (bldReq.has(set)) return bldReq.get(set);
-  const pr = loadProps(set).then(items => {
-    const mine = bldPlace.filter(b => b.set === set);
-    if (!items) { lotFallback(mine.flatMap(b => b.lots)); return; }
-    const byKey = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
-    for (const b of mine) {
-      bldAlign(b, items[b.id]);   // 27-bldfoot.js：沿街的一排照模型的牆面推到街面（以模型為主）
-      M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
-      const tk = bldTile(b), wg = [], zn = zoneAtL(b.x, b.z);
-      for (const p of items[b.id].parts) {
-        let e = byKey.get(tk + '|' + p.mat.uuid);
-        if (!e) byKey.set(tk + '|' + p.mat.uuid, e = { mat: p.mat, list: [], zn });
-        const g = p.geo.clone().applyMatrix4(M);
-        e.list.push(g); wg.push(g);
-      }
-      hmModel(b, wg, frameM4(zn, b.x, b.z));   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
-      if (b.blk && b.blk.ents) bldCut(b, wg);   // 27-bldfoot.js：模型在人的高度的外形
-      bldOver(b, wg);   // 伸出地塊前緣的逃生梯、雨棚與兩端的高度
-    }
-    for (const b of mine) if (b.row) { bldSeam(b); bldTrees(b); }   // 模型兩端和隔壁之間的縫補起來；枝葉會插進逃生梯、雨棚的行道樹拿掉
-    hmFlush();
-    for (const blk of new Set(mine.map(b => b.blk).filter(k => k && k.ents))) blkFoot(blk);   // 照模型的外形換掉街區的碰撞盒
-    for (const { mat, list, zn } of byKey.values()) {
-      const g = mergeGeometries(list);
-      for (const x of list) x.dispose();
-      if (!g) continue;
-      const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set; m.userData.noTess = 1;   // 頂點逐一彎曲（不切），貼著彎過的街區
-      cityAdd(m, zn); cullAdd(m);
-    }
-  });
+  const pr = loadProps(set).then(items => (bldQ = bldQ.then(() => bldPut(set, items)).catch(e => console.warn('建築組擺放失敗：' + set, e))));
   bldReq.set(set, pr);
   return pr;
+}
+async function bldPut(set, items) {
+  const clk = warmClock(), mine = bldPlace.filter(b => b.set === set);
+  if (!items) { lotFallback(mine.flatMap(b => b.lots)); return; }
+  const byKey = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
+  for (const b of mine) {
+    bldAlign(b, items[b.id]);   // 27-bldfoot.js：沿街的一排照模型的牆面推到街面（以模型為主）
+    M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
+    const tk = bldTile(b), wg = [], zn = zoneAtL(b.x, b.z);
+    for (const p of items[b.id].parts) {
+      let e = byKey.get(tk + '|' + p.mat.uuid);
+      if (!e) byKey.set(tk + '|' + p.mat.uuid, e = { mat: p.mat, list: [], zn });
+      const g = p.geo.clone().applyMatrix4(M);
+      e.list.push(g); wg.push(g);
+    }
+    hmModel(b, wg, frameM4(zn, b.x, b.z));   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
+    if (b.blk && b.blk.ents) bldCut(b, wg);   // 27-bldfoot.js：模型在人的高度的外形
+    bldOver(b, wg);   // 伸出地塊前緣的逃生梯、雨棚與兩端的高度
+    await clk.tick();
+  }
+  for (const b of mine) if (b.row) { bldSeam(b); bldTrees(b); }   // 模型兩端和隔壁之間的縫補起來；枝葉會插進逃生梯、雨棚的行道樹拿掉
+  hmFlush();
+  for (const blk of new Set(mine.map(b => b.blk).filter(k => k && k.ents))) blkFoot(blk);   // 照模型的外形換掉街區的碰撞盒
+  const ms = [];
+  for (const { mat, list, zn } of byKey.values()) {
+    await clk.tick();
+    const g = mergeGeometries(list);
+    for (const x of list) x.dispose();
+    if (!g) continue;
+    const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.bld = set; m.userData.noTess = 1;   // 頂點逐一彎曲（不切），貼著彎過的街區
+    bakeMesh(m, zn); ms.push(m);   // 10-city.js 的 cityAdd 對原點網格做的事，放進場景前先預熱
+  }
+  perfTags.push(['建築 ' + set, clk.ms()]);
+  // 只預熱現在距離剔除半徑內的（遠的分塊等走近、第一次畫到才上傳，不先佔顯示卡記憶體）
+  let x, z; try { x = pX(); z = pZ(); } catch (e) { [x, z] = toW(avX(1), stZ(2)); }   // 開場時排在後面的 69-police.js 還沒跑到：用出生點
+  const cr = CULL_R * detailK() + 60;
+  await glbWarm(ms, m => { const s = m.geometry.boundingSphere || (m.geometry.computeBoundingSphere(), m.geometry.boundingSphere); return Math.hypot(s.center.x - x, s.center.z - z) < s.radius + cr; });
+  for (const m of ms) { scene.add(m); cullAdd(m); }
 }
 const bldNear = (set, x, z, R) => bldPlace.some(b => { if (b.set !== set) return false; const [bx, bz] = bldW.get(b); return (bx - x) ** 2 + (bz - z) ** 2 < R * R; });
 const bldReady = Promise.all(bldSets.filter(set => bldNear(set, ...toW(avX(1), stZ(2)), BLD_NEAR)).map(bldLoad));   // 出生點在 Atlas Av · 8 St 附近（40-people.js 的 player）
@@ -192,14 +273,6 @@ function propWake(where) {
 // 清單、zn 與 instUpdate 串流規則和程式建模一樣），材質是 glbMaterial 加上 instanceMatrix 的版本（propMatI）。
 // 狀態放在 window.__nc.props.w2（驗收用）。
 const W2 = { on: GLB_ON, sets: {}, failed: [], swapped: [], n: {} };
-const GLB_VS_I = GLB_VS.replace('vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);',
-  'vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);');
-const propMatsI = new Map();
-function propMatI(mat) {   // 和 propMat 共用 uniforms（時間、相機、天氣都跟著動），只換頂點著色器
-  let m = propMatsI.get(mat);
-  if (!m) { m = new T.ShaderMaterial({ uniforms: mat.uniforms, vertexShader: GLB_VS_I, fragmentShader: mat.fragmentShader, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
-  return m;
-}
 // 一個模型物件擺成清單裡的每一份；geo 可以換成上色過的副本（貨櫃）
 function w2Inst(it, list, layer = 0, R, geoOf = g => g) {
   if (!it || !list.length) return [];
@@ -209,8 +282,9 @@ const w2Drop = (...ms) => { for (const m of ms) if (m) m.removeFromParent(); };
 const w2Hash = (x, z) => ((Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 + 1) % 1;
 const w2Group = (list, n, f) => { const out = Array.from({ length: n }, () => []); for (const t of list) out[f(t)].push(t); return out; };
 function w2Load(set, fn, fail) {
-  return loadProps(set).then(items => {
+  return loadProps(set).then(async items => {
     if (!items) { W2.failed.push(set); if (fail) fail(); return; }
+    await glbWarm(Object.values(items).flatMap(it => it.parts), null, true);
     try { fn(items); W2.sets[set] = Object.keys(items).length; } catch (e) { console.warn('World 第四輪之二：擺放失敗 ' + set, e); W2.failed.push(set); }
   });
 }
