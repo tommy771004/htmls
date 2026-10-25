@@ -90,22 +90,22 @@ async function perfRoute({ wait = 12000, sample = 8000, min = 1320, weather = 'r
     if (stops && !stops.includes(name)) continue;
     const s0 = PF.stalls.length, t0 = performance.now();
     if (go(N) === false) { out.push({ name, skip: '這個版本沒有' }); continue; }
-    // 等平靜：沒有下載中的批次、2 秒內沒有新編著色器或卡頓
+    // 等平靜：沒有下載中的批次、沒有還在分幀做的載入工作（27-props.js 的 warmBusy）、2 秒內沒有新編著色器或卡頓
     let calm = performance.now();
     for (let k = PF.n; performance.now() - t0 < wait;) {
       await new Promise(r => setTimeout(r, 200));
       const fr = PF.ring.slice(-Math.min(PF.n - k, PERF_N)); k = PF.n;
-      if (glbBatchFrac() !== null || fr.some(f => f.dp || f.ms > PERF_STALL)) calm = performance.now();
+      if (glbBatchFrac() !== null || warmBusy || fr.some(f => f.dp || f.ms > PERF_STALL)) calm = performance.now();
       if (performance.now() - calm > 2000) break;
     }
     const arrive = PF.stalls.slice(s0).map(perfStall), k0 = PF.n;
     await new Promise(r => setTimeout(r, sample));
     const st = perfStats(PF.ring.slice(-Math.min(PF.n - k0, PERF_N)));
-    out.push({ name, settle: Math.round(performance.now() - t0 - sample), arrive, ...st });
+    out.push({ name, settle: Math.round(performance.now() - t0 - sample), busy: warmBusy, arrive, ...st });
   }
   PERF_STOPS[0][1](N);   // 回到光環廣場（也從室內出來：tp 會 setWhere('out')）
   perfOn(was);
   return (perfApi.last = out);
 }
-const perfApi = { PF, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => (PF.ext === null ? (PF.ext = PF.gl.getExtension('EXT_disjoint_timer_query_webgl2') || false) : PF.ext) ? true : false };
+const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => (PF.ext === null ? (PF.ext = PF.gl.getExtension('EXT_disjoint_timer_query_webgl2') || false) : PF.ext) ? true : false };
 if (PF.on) perfOn(true);

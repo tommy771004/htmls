@@ -43,7 +43,7 @@ function propMatI(mat) {   // 和 propMat 共用 uniforms（時間、相機、�
 // 建築合併後、距離剔除半徑內的大網格一個一個送進 1×1 的暫存目標畫一次，把頂點傳上顯示卡；這樣第一次畫到時不用整批擠在同一幀。
 // ?warm=0 關掉（不切片、不預熱、不開解碼 Worker），和舊做法比較用。
 const WARM_ON = !/[?&]warm=0\b/.test(location.search);
-let warmLive = false, warmMs = WARM_ON ? 40 : Infinity, warmTs = -1, warmT = 0, warmRT = null;
+let warmBusy = 0, warmLive = false, warmMs = WARM_ON ? 40 : Infinity, warmTs = -1, warmT = 0, warmRT = null;
 const warmCam = new T.PerspectiveCamera(), warmTex = new WeakSet();
 warmCam.layers.enableAll();
 const nextFrame = () => new Promise(r => { const t = setTimeout(r, 100); requestAnimationFrame(ts => { clearTimeout(t); r(ts); }); });
@@ -54,14 +54,18 @@ async function warmSlice() {
     if (ts === undefined || ts !== warmTs) { warmTs = ts; warmT = performance.now(); }   // 這一幀第一個醒來的切片重設預算
   }
 }
-// 做事的時間（扣掉等幀）：96-perf.js 的卡頓標記用
+// 做事的時間（扣掉等幀）：96-perf.js 的卡頓標記用；warmBusy 是還在切片的工作數（96-perf.js 的路線量測等它歸零才取樣）
 function warmClock() { let ms = 0, t = performance.now(); return { tick: async () => { ms += performance.now() - t; await warmSlice(); t = performance.now(); }, ms: () => ms + performance.now() - t }; }
+async function warmJob(f) { warmBusy++; try { return await f(); } finally { warmBusy--; } }
 // near 給了（建築組）：著色器全部編，貼圖與頂點只傳 near 為真的網格的（建築組 670 m 外就下載，全部先傳要多佔幾百 MB 顯示卡記憶體）；
 // 沒給：進場後才下載的道具（走近或走進場館才下載的）編著色器、傳貼圖，幾何等第一次畫到；開場整批下載的（69-* 頂層的 loadProps，
 // 多半擺在城裡別處）只編著色器，貼圖照舊等第一次畫到。貼圖傳過的不再傳（warmTex），著色器 three 自己快取
 const warmGo = () => { warmLive = true; if (WARM_ON) warmMs = 6; };   // 99-main.js 按下進場時呼叫
 async function glbWarm(objs, near, inst) {
   if (!WARM_ON || !objs.length) return;
+  return warmJob(() => glbWarm1(objs, near, inst));
+}
+async function glbWarm1(objs, near, inst) {
   const tmp = new T.Scene(), mats = new Set();
   for (const o of objs) {
     const geo = o.isMesh ? o.geometry : o.geo, mat = o.isMesh ? o.material : o.mat;
@@ -90,7 +94,7 @@ async function glbWarm(objs, near, inst) {
 function loadProps(set) {
   if (!GLB_ON || !PROPS_SPEC[set]) return Promise.resolve(null);
   const key = 'p:' + set;
-  return propCache[set] ??= glbLoader.loadAsync(PROP_BASE + set + '.glb', e => { glbBytes[key] = [e.loaded, e.lengthComputable ? e.total : 0]; }).then(async g => {
+  return propCache[set] ??= glbLoader.loadAsync(PROP_BASE + set + '.glb', e => { glbBytes[key] = [e.loaded, e.lengthComputable ? e.total : 0]; }).then(g => warmJob(async () => {
     const clk = warmClock();
     g.scene.updateMatrixWorld(true);
     const items = {};
@@ -106,7 +110,7 @@ function loadProps(set) {
     else await glbWarm(parts);
     glbDone.add(key);
     return items;
-  }, e => { console.warn('道具模型下載失敗：' + set, e); glbDone.add(key); return null; });
+  }), e => { console.warn('道具模型下載失敗：' + set, e); glbDone.add(key); return null; });
 }
 // 一個物件擺一份（Group，網格共用幾何與材質）
 function propObject(it, x, y, z, ry = 0, s = 1) {
@@ -126,7 +130,7 @@ const bldReq = new Map();   // set → Promise
 let bldQ = Promise.resolve();   // 各組依序擺（一組擺到一半時讓出幀，別組不插進來，bldSeam 看到的隔壁不是半套）
 function bldLoad(set) {
   if (bldReq.has(set)) return bldReq.get(set);
-  const pr = loadProps(set).then(items => (bldQ = bldQ.then(() => bldPut(set, items)).catch(e => console.warn('建築組擺放失敗：' + set, e))));
+  const pr = loadProps(set).then(items => (bldQ = bldQ.then(() => warmJob(() => bldPut(set, items))).catch(e => console.warn('建築組擺放失敗：' + set, e))));
   bldReq.set(set, pr);
   return pr;
 }
