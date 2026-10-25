@@ -179,7 +179,7 @@ function propWake(where) {
     loadProps(o.set).then(items => {
       if (!items || !items[o.id]) return;
       if (o.fb) o.fb.visible = false;
-      for (const t of o.list) { const g = propObject(items[o.id], t.x, t.y || 0, t.z, t.ry || 0, t.s || 1); if (t.rz) g.rotation.z = t.rz; o.scn.add(g); }   // rz：先繞 z 再繞 y（排水道把牆面切片放平當天花板）
+      for (const t of o.list) o.scn.add(propObject(items[o.id], t.x, t.y || 0, t.z, t.ry || 0, t.s || 1));
       if (o.done) o.done();
     });
   }

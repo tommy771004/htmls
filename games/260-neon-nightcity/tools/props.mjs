@@ -187,6 +187,11 @@ export const SETS = [
   // 聖瑪格麗特醫院的舊院區正面（10-city.js 的 FAC.hosp 急診那塊地）：artfletch 的 Samaritan Hospital Frontage（CC BY 4.0，照片掃描，公尺，
   // 只掃了正面與右側轉角，背後是空的，頁面在後面補一個量體）。正面朝 +z、牆面在 z≈10，原檔 y 3.5 是人行道（下面的地下室採光井埋進人行道板）
   { out: 'v5hosp', src: '.cache/v5', tex: 4096, items: [{ id: 'front', file: 'samaritan_hospital_frontage', groundY: 3.5, sloppy: .12, seam: .06, renorm: 1 }] },
+  // 霓鑽賭場酒店（69-v7-casino.js；10-city.js 的 FAC.casino 北半那塊地當實體建築擺）：VertaScan 的 Skyscraper Tower（CC BY 4.0，沒有貼圖、窗框是建模的）。
+  // 雙圓弧塔身連同原檔自己 21 m 高的基座整組縮到 0.82（基座 46.8 × 22 m 剛好是街區北半，塔高 120 m），基地的草地、道路與地坪拿掉；
+  // 南邊接頁面程式建模的 2 層裙樓（大門、泳池、停機坪）。半透明的玻璃改成 MASK（塔裡是空的）、換成深藍灰的帷幕窗格，夜裡點亮窗燈（原檔玻璃有一點青色自發光，頁面會放大成整片亮青，拿掉）
+  { out: 'cas_ext', tex: 512, win: true, curtain: /^glass$/, mask: /^glass$/, noEmi: /^glass$/, recolor: { glass: [.07, .08, .1, 1, .12] },
+    items: [{ id: 'tower', file: 'skyscraper_tower', drop: /^(GRASS|ROAD|SITE)$/, len: 46.8 }] },
   // 武器（69-combat.js）：orient 是「哪個原檔軸變成槍口方向 +z、哪個變成上方 +y」，center 是包圍盒中心放原點（握把位置由頁面的 ARMS 表另外給）
   // heavy：瓦斯罐原檔兩萬多面（拉環、保險桿都很細），單獨減到兩成
   { out: 'arms', tex: 512, src: '.cache/arms', heavy: [/Smoke Grenade/, .2], items: [
@@ -1349,6 +1354,7 @@ async function build(set) {
     if (!set.split) {
       if (src.renorm) renormal(prims);
       const dims = place(prims, src);
+      if (set.curtain) curtainUV(prims, set.curtain);   // 單件的物件也能有帷幕窗格（賭場塔樓）
       if (src.hf) dims.hf = heightField(prims, ...src.hf);   // 崖壁之前量：只量掃描本身的地面
       if (src.line) dims.line = trackLine(prims, src.line);
       if (src.skirt) { prims = addSkirt(prims, src.skirt); if (src.skirt.ring) dims.ring = prims.ring; }

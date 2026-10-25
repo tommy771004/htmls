@@ -45,6 +45,15 @@ function instHide(t) {
     else { m.setMatrixAt(k, new T.Matrix4().makeScale(0, 0, 0)); m.instanceMatrix.needsUpdate = true; }
   }
 }
+// 整個縮小 f 倍（繞實例原點，也就是樹根；27-bldfoot 讓位給實體建築的行道樹）
+function instScale(t, f) {
+  const M = new T.Matrix4(), v = new T.Vector3(f, f, f);
+  for (const [m, k] of t._inst || []) {
+    const S = m.userData.stream;
+    if (S) { M.fromArray(S.mtx, k * 16).scale(v).toArray(S.mtx, k * 16); S.dirty = true; }
+    else { m.getMatrixAt(k, M); m.setMatrixAt(k, M.scale(v)); m.instanceMatrix.needsUpdate = true; }
+  }
+}
 // mtx 是世界座標
 function instSet(m, k, mtx) {
   const S = m.userData.stream;

@@ -90,9 +90,9 @@ try {
     return res;
   });
   check(seam.n > 30 && seam.ok >= seam.n * .85 && seam.fill > 10 && seam.fillG > 5, `沿街模型的一樓牆面貼齊街面：${seam.ok}/${seam.n} 棟（前院 ${seam.yard} 棟，其餘 ${seam.worst.slice(0, 4).join('、') || '無'}），交界補立面 ${seam.fill} 段（模型對模型 ${seam.fillG} 段）`);
-  // 行道樹讓模型（27-bldfoot.js 的 bldTrees）：留下來的行道樹，枝葉不插進模型伸出來的逃生梯、雨棚；拿掉的樹連碰撞圓一起拿掉
+  // 行道樹讓模型（27-bldfoot.js 的 bldTrees）：留下來（含縮小）的行道樹，枝葉不插進模型伸出來的逃生梯、雨棚；拿掉的樹連碰撞圓一起拿掉
   const tree = await ev(page, () => {
-    const N = window.__nc, T = N.props.bld.trees || [], C = N.col.circles || [], res = { cut: 0, hitLeft: 0, colLeft: 0 };
+    const N = window.__nc, T = N.props.bld.trees || [], C = N.col.circles || [], res = { cut: 0, small: N.props.bld.reduce((a, e) => a + (e.treesSmall || 0), 0), hitLeft: 0, colLeft: 0 };
     for (const t of T) { if (!t.walk) continue; if (t.hide) { res.cut++; if (C.includes(t.col)) res.colLeft++; } }
     for (const e of N.props.bld) {
       if (!e.over) continue;
@@ -106,7 +106,7 @@ try {
     }
     return res;
   });
-  check(tree.cut > 10 && !tree.hitLeft && !tree.colLeft, `枝葉會插進模型逃生梯、雨棚的行道樹拿掉 ${tree.cut} 棵（留下來還會插到的 ${tree.hitLeft} 棵、拿掉卻還留著碰撞的 ${tree.colLeft} 棵）`);
+  check(tree.cut + tree.small > 10 && !tree.hitLeft && !tree.colLeft, `枝葉會插進模型逃生梯、雨棚的行道樹縮小 ${tree.small} 棵、拿掉 ${tree.cut} 棵（留下來還會插到的 ${tree.hitLeft} 棵、拿掉卻還留著碰撞的 ${tree.colLeft} 棵）`);
 
   // 展示廳（64-showroom.js，三層樓）：一樓中庭與兩側展廊
   await ev(page, () => window.__nc.enter('show'));

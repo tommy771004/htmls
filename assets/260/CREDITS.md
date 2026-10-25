@@ -140,6 +140,7 @@
 | `v5shop`（射擊場的吊靶與射擊位） | [Gun Targets](https://sketchfab.com/3d-models/gun-targets-eb9fbe283faa41ef8685359a0769d303) | [FrodoUndead](https://sketchfab.com/FrodoUndead) | CC BY 4.0 |
 | `v5pd`（第九分局的老分局） | [Southern District Police Station](https://sketchfab.com/3d-models/southern-district-police-station-3353cf5bfbda4b8797e845594b0cbfa7) | [Katie Wolfe](https://sketchfab.com/katiewolfe) | CC BY 4.0 |
 | `v5hosp`（聖瑪格麗特醫院的舊院區正面） | [Samaritan Hospital Frontage](https://sketchfab.com/3d-models/samaritan-hospital-frontage-316005d0b39b4791b1f54d50594d51ca) | [artfletch](https://sketchfab.com/artfletch) | CC BY 4.0 |
+| `cas_ext`（霓鑽賭場酒店的雙圓弧塔樓連原檔的基座，整組縮到 0.82；拿掉基地的草地、道路與地坪，玻璃換成帷幕窗格、拿掉玻璃的自發光） | [Skyscraper Tower](https://sketchfab.com/3d-models/skyscraper-tower-8c141fda071f4f6a927f4d7047f48ec7) | [VertaScan](https://sketchfab.com/VertaScan) | CC BY 4.0 |
 | `v5street`（公車候車亭；背牆三片玻璃另外建成會碎的實例） | [Modern Bus Stop Shelter](https://sketchfab.com/3d-models/modern-bus-stop-shelter-2904d92a65b947e7bed44319bc320e84) | [Ottto3d](https://sketchfab.com/Ottto3ds) | CC BY 4.0 |
 | `v5street`（熱狗攤：攤車、遮陽傘、醬料拆成三件） | [Hot Dog Stand](https://sketchfab.com/3d-models/hot-dog-stand-182671a3e8e644b8bae2decc3745d49e) | [BeaBea](https://sketchfab.com/beabea.) | CC BY 4.0 |
 | `v5works`（施工區的鐵網圍籬，寬度壓成 2.4 m 一片） | [Construction Fence](https://sketchfab.com/3d-models/construction-fence-b4695ee8badb41caa1dd3e57bc9bbc70) | [nathansp](https://sketchfab.com/nathansp) | CC BY 4.0 |

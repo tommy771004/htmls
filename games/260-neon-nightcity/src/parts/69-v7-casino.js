@@ -1,5 +1,5 @@
 // ═══ 第七部曲：霓鑽賭場酒店與金庫大劫案（使用者提供的 neon_nightcity_gta_v_1.md 第二節）═══
-// 光環廣場 (8,4) 的 FAC.casino：西北、東北兩座塔樓與 2 層的裙樓。裙樓南面是大門與運鈔車卸貨口，屋頂是 RF 泳池與停機坪（東牆的鐵梯上去），
+// 光環廣場 (8,4) 的 FAC.casino：西北、東北兩座塔樓（http(s) 開啟時是 cas_ext.glb 的一棟雙圓弧塔連基座）與 2 層的裙樓。裙樓南面是大門與運鈔車卸貨口，屋頂是 RF 泳池與停機坪（東牆的鐵梯上去），
 // 西邊人行道上有一個雨水下水道的鐵蓋（強攻路線從這裡炸開）。
 // 1 樓（場館 'casino'）：禁止攜帶武器。幸運轉盤（20 格各 18°，一天一次）、展示台上的頭獎跑車、兌換櫃台（$1 = 1 籌碼）、
 //   21 點、三張牌撲克、美式輪盤（0 與 00）、Inside Track 賽馬、吃角子老虎（最多押 2,500，三顆鑽石 1000 倍）。
@@ -40,9 +40,11 @@ const v7KS = () => motors.v7.casino;
 const gameClock = () => Date.now() / 1000;   // 轉盤與日間金庫：遊戲日 = GAME_HOUR × 24 秒的真實時間
 
 // ═══ 外觀（FAC.casino）═══
-const CASX = { on: false };
+// CAS_G：北半換成模型（10-city.js，塔樓連基座佔到 z 34.8）時裙樓變淺，屋頂的泳池、停機坪與通風井往南挪
+const CASX = { on: false }, CAS_G = !!(FAC.casino && FAC.casino.L[0].glb);
+const CAS_ROOF = CAS_G ? { pool: [23, 41.6, 9.6], lz: 47.9, pad: [48, 42.2], vent: [40, 37], shaft: 38.6 } : { pool: [23, 40, 12.4], lz: 47.4, pad: [48, 40], vent: [40, 34], shaft: 35.6 };
 if (FAC.casino) {
-  const F = FAC.casino, Pd = F.L[2], k = new Kit(), X = x => F.ax + x, Z = z => F.az + z, hy = Pd.h;
+  const F = FAC.casino, Pd = F.L.at(-1), k = new Kit(), X = x => F.ax + x, Z = z => F.az + z, hy = Pd.h;
   CASX.on = true; CASX.F = F; CASX.h = hy;
   // 大門雨遮與金色門框、旋轉門
   k.box(X(36), 4.6, Z(51.2), 16, .35, 3.4, 0x1a1418, 2).box(X(36), 4.38, Z(51.2), 15.6, .06, 3.2, 0xfff0c8, 11);
@@ -53,23 +55,25 @@ if (FAC.casino) {
   k.box(X(54), 2.2, Z(49.62), 5, 4.4, .1, 0x6a6e72, 3).box(X(54), 4.6, Z(49.66), 5.4, .3, .12, 0xffc020, 11);
   for (const x of [51.2, 56.8]) { k.cyl(X(x), .5, Z(50.6), .14, .14, 1, 10, 0xffc020, 11); v5Box(F, x - .15, x + .15, 50.45, 50.75); }
   // 屋頂：RF 泳池（池子當成實心，走不進去）、躺椅、停機坪、垂降用的通風井
-  k.box(X(23), hy + .25, Z(40), 14.4, .5, 12.4, 0xe8e4dc, 10).box(X(23), hy + .45, Z(40), 13.6, .1, 11.6, 0x30c8e8, 11);
-  for (let i = 0; i < 5; i++) k.box(X(17 + i * 3), hy + .25, Z(47.4), .8, .3, 1.9, 0xf0f0f0, 10);
-  v5Pad(F, 48, 40, hy, k);
-  k.box(X(40), hy + .7, Z(34), 2, 1.4, 2, 0x8a8e92, 15).box(X(40), hy + 1.45, Z(34), 2.2, .1, 2.2, 0x5a5e62, 15);
-  v5Roof(F, Pd, [[X(15.8), X(30.2), Z(33.8), Z(46.2)], [X(39), X(41), Z(33), Z(35)]]);
+  const RF = CAS_ROOF, [px, pz, pd] = RF.pool, [vx, vz] = RF.vent;
+  k.box(X(px), hy + .25, Z(pz), 14.4, .5, pd, 0xe8e4dc, 10).box(X(px), hy + .45, Z(pz), 13.6, .1, pd - .8, 0x30c8e8, 11);
+  for (let i = 0; i < 5; i++) k.box(X(17 + i * 3), hy + .25, Z(RF.lz), .8, .3, 1.9, 0xf0f0f0, 10);
+  v5Pad(F, RF.pad[0], RF.pad[1], hy, k);
+  k.box(X(vx), hy + .7, Z(vz), 2, 1.4, 2, 0x8a8e92, 15).box(X(vx), hy + 1.45, Z(vz), 2.2, .1, 2.2, 0x5a5e62, 15);
+  v5Roof(F, Pd, [[X(px - 7.2), X(px + 7.2), Z(pz - pd / 2), Z(pz + pd / 2)], [X(vx - 1), X(vx + 1), Z(vz - 1), Z(vz + 1)]]);
   v5Ladder(F, 59.5, 44, 1, 0, hy, [57.6, 44], k);
   // 下水道的鐵蓋（西邊人行道）
   k.cyl(X(10.5), .03, Z(31), .9, .9, .05, 18, 0x2a2c2e, 15).box(X(10.5), .065, Z(31), 1.4, .02, .12, 0x1a1a1a, 15);
   // 塔樓頂的鑽石燈
-  for (const [x, z, y] of [[21.25, 21.25, F.L[0].h], [50.75, 21.25, F.L[1].h]]) { k.add(new T.OctahedronGeometry(3.2, 0), 0x9ae8ff, 8, tf(X(x), y + 4, Z(z))); v5Light(F, x, y + 4, z, 0x9ae8ff, 40, 2.2); }
+  const T0 = F.L[0], tops = T0.glb ? [[29, 23.6, T0.glb.h], [43, 23.6, T0.glb.h]] : [[21.25, 21.25, F.L[0].h], [50.75, 21.25, F.L[1].h]];   // 換成模型時是一棟雙圓弧塔：兩個弧頂各一顆
+  for (const [x, z, y] of tops) { k.add(new T.OctahedronGeometry(3.2, 0), 0x9ae8ff, 8, tf(X(x), y + 4, Z(z))); v5Light(F, x, y + 4, z, 0x9ae8ff, 40, 2.2); }
   cityAdd(new T.Mesh(k.build(), MAT.uber), facZn(F));
   v5Put(F, v5Sign([['NEON DIAMOND', .46, '#fff4d8', .4], ['霓鑽賭場酒店 · CASINO & RESORT', .2, '#e8c060', .78]], 16, 2.6, { bg: '#1a0c14', edge: '#e8c060', dim: 0xffffff }), 36, hy - 2.4, 49.72, 0);
   v5Put(F, v5Sign([['卸貨區 · 運鈔車專用', .34, '#1a1a1a', .5]], 4, .7, { bg: '#ffc020' }), 54, 5.2, 49.72, 0);
-  v5Light(F, 36, 4, 52, 0xffe0a0, 16, 2); v5Light(F, 36, hy - 2.4, 51, 0xffd890, 18, 1.4); v5Light(F, 48, hy + 1, 40, 0xfff0c0, 12, .8);
+  v5Light(F, 36, 4, 52, 0xffe0a0, 16, 2); v5Light(F, 36, hy - 2.4, 51, 0xffd890, 18, 1.4); v5Light(F, RF.pad[0], hy + 1, RF.pad[1], 0xfff0c0, 12, .8);
 }
 const casW = (x, z) => { const [X, Z] = facW(CASX.F, x, z); return { x: X, z: Z }; };
-const CAS_DOOR = { x: 36, z: 50.6 }, CAS_DOCK = { x: 54, z: 50.6 }, CAS_SEWER = { x: 10.5, z: 31 }, CAS_SHAFT = { x: 40, z: 35.6 };
+const CAS_DOOR = { x: 36, z: 50.6 }, CAS_DOCK = { x: 54, z: 50.6 }, CAS_SEWER = { x: 10.5, z: 31 }, CAS_SHAFT = { x: CAS_ROOF.vent[0], z: CAS_ROOF.shaft };
 const casL = p => ({ x: CASX.F.ax + p.x, z: CASX.F.az + p.z });   // ctxHooks 的 near 用邏輯座標
 
 // ═══ 1 樓：賭場大廳（場館 'casino'）═══

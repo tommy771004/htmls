@@ -96,14 +96,15 @@ function bldOver(e, geos) {
   }
   e.over = { a0, n, bins: over }; e.endH = endH;
 }
-// 行道樹讓模型：枝葉（樹幹往牆那邊伸 CANOPY_R × 縮放）插進模型伸出來的逃生梯、雨棚超過 CANOPY_HIT 的樹拿掉（連樹穴與碰撞圓）。
+// 行道樹讓模型：枝葉（樹幹往牆那邊伸 CANOPY_R × 縮放）插進模型伸出來的逃生梯、雨棚超過 CANOPY_HIT 的樹縮小到剛好碰不到（instScale，改 t.s，之後才建的網格跟著縮），
+// 要縮到 TREE_MIN 倍以下的才拿掉（連樹穴與碰撞圓）。
 // 程式立面的逃生梯只伸出 0.62 m，原本的樹都不會被拿掉
-const CANOPY_R = 2.2, CANOPY_HIT = .3;
+const CANOPY_R = 2.2, CANOPY_HIT = .3, TREE_MIN = .55;
 bldPlace.trees = trees;   // 驗收用（tools/glb-check.mjs 從 __nc.props.bld.trees 讀）
 function bldTrees(e) {
   if (!e.over) return;
   const { ax, f, a0, face } = bldSpan(e), O = e.over;
-  let n = 0;
+  let n = 0, small = 0;
   for (const t of trees) {
     if (!t.walk || t.hide) continue;
     const u = ax === 'z' ? t.x : t.z, d = (ax === 'z' ? t.z - face : t.x - face) * f, reach = CANOPY_R * t.s;
@@ -111,11 +112,13 @@ function bldTrees(e) {
     let o = 0;
     for (let i = Math.max(0, Math.floor((u - reach - a0) / OVER_BIN)); i <= Math.min(O.n - 1, Math.floor((u + reach - a0) / OVER_BIN)); i++) o = Math.max(o, O.bins[i]);
     if (o - (d - reach) <= CANOPY_HIT) continue;
+    const s = (d - o + CANOPY_HIT) / CANOPY_R;   // 縮到枝葉剛好碰不到；縮不到 TREE_MIN 倍的拿掉
+    if (s >= t.s * TREE_MIN) { instScale(t, s / t.s); t.s = s; small++; continue; }
     instHide(t); if (t.grate) instHide(t.grate);
     const k = circles.indexOf(t.col); if (k >= 0) { circles.splice(k, 1); colDirty(); }
     n++;
   }
-  e.treesCut = n;
+  e.treesCut = n; e.treesSmall = small;
 }
 // 補縫的立面：程式立面那一側照隔壁地塊（style／seed／高度），夠寬的一樓是拉下鐵捲門的店面；模型對模型的縫用素面的牆（簷口那種石材，style 7）
 function seamFill(r, L, ax, f, style, seed, h, zn) {

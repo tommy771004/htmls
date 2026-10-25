@@ -1167,6 +1167,26 @@
    }
   ]
  },
+ "cas_ext": {
+  "kb": 1339,
+  "items": {
+   "tower": {
+    "w": 46.8,
+    "d": 22.29,
+    "h": 120.41,
+    "tris": 101303
+   }
+  },
+  "credits": [
+   {
+    "file": "skyscraper_tower",
+    "title": "Skyscraper Tower",
+    "author": "VertaScan (https://sketchfab.com/VertaScan)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/skyscraper-tower-8c141fda071f4f6a927f4d7047f48ec7"
+   }
+  ]
+ },
  "arms": {
   "kb": 1322,
   "items": {

@@ -155,8 +155,8 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   propSwap('drain', mkM, 'dr_mouth', [{ x: DR_MOUTH, z: 0, ry: Math.PI / 2, s: DR_S }], drScene, null, 'drain');
   // 檢查井：牆（隧道接進來的那兩面留開口）、天花板與豎井、爬梯、管子、端牆的警示條。
   // 模型下載好在牆前疊三層從箱涵切出來的牆面（dr_wall 整道、dr_lintel 開口上方、dr_pier 開口兩側；每層錯開、往室內退 1.2 cm 免得互相閃爍），
-  // 地面鋪 dr_floor 轉 90° 放大；天花板也用牆面切片（繞 z 轉 90° 放平、紋理朝下，沿長邊排成一條條，豎井那條在洞口斷開）。程式建模的牆與地面（原檔地面往兩側的排水溝傾斜，模型擺好後墊底的地面放低 18 cm）留在後面墊住切邊的縫
-  const k = new Kit(), fl = new Kit(), PITCH = DR_CHH / 3, FS = DR_CH / 2.98, pans = { dr_wall: [], dr_wall2: [], dr_lintel: [], dr_pier: [], dr_floor: [] };
+  // 地面鋪 dr_floor 轉 90° 放大；天花板是箱涵自己的頂板拉開鋪成幾條（drCeil，豎井那條在洞口斷開；牆面切片放平會看到倒著的粉筆字）。程式建模的牆與地面（原檔地面往兩側的排水溝傾斜，模型擺好後墊底的地面放低 18 cm）留在後面墊住切邊的縫
+  const k = new Kit(), fl = new Kit(), PITCH = DR_CHH / 3, FS = DR_CH / 2.98, pans = { dr_wall: [], dr_wall2: [], dr_lintel: [], dr_pier: [], dr_floor: [] }, ceil = [];
   // 切片的牆面：模型 x 上的位置（dr_wall2 是左邊那面，朝 +x）、切的高度範圍
   const CUT = { dr_wall: [1.31, .2, 1], dr_wall2: [-1.36, .2, 1], dr_lintel: [1.31, .25, 1.1], dr_pier: [1.31, .25, 1.1] };
   // 牆面疊層：(fx, fz) 是牆面中心、(nx, nz) 朝牆裡，ids／ts 是每一層用的切片與沿牆的錯開量
@@ -189,14 +189,10 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
     }
     // 天花板（豎井那一格挖空）與豎井
     const hz = DR_CHW - .8, hw = .6;
-    // 模型的天花板：豎井南邊鋪 CEIL_N 條、豎井那條（到北牆）在洞口兩邊各一片，片的另一端伸進端牆後面
-    const roof = (id, za, zb, r, sx = 0) => {   // 蓋住 z 從 za 到 zb 的一條；sx 不是 0 時是豎井那條，片的一端停在洞口邊
-      const [mx, my, mh] = CUT[id], s = (zb - za + .04) / mh, x = sx ? cx + sx * (hw + 6.44 * s / 2) : cx;
-      pans[id].push({ x, y: DR_CHH - .03 - r * .01 - Math.abs(mx) * s, z: mx > 0 ? za - .02 - my * s : za - .02 + (my + mh) * s, ry: Math.PI / 2, rz: mx > 0 ? Math.PI / 2 : -Math.PI / 2, s });
-    };
-    const CEIL_N = 4, cw = (hz - hw + DR_CHW) / CEIL_N;
-    for (let i = 0; i < CEIL_N; i++) roof(i % 2 ? 'dr_wall2' : 'dr_wall', -DR_CHW + i * cw, -DR_CHW + (i + 1) * cw, i % 2);
-    for (const sx of [-1, 1]) roof(sx > 0 ? 'dr_wall' : 'dr_wall2', hz - hw, DR_CHW, 0, sx);
+    // 模型的天花板（drCeil）：豎井南邊兩條，豎井那條（到北牆）在洞口兩邊各一片、各用半塊頂板；兩端伸進端牆、條與條疊 8 cm
+    const zh = hz - hw, zm = (zh - DR_CHW) / 2;
+    ceil.push([c0 - .15, c1 + .15, -DR_CHW - .1, zm + .08, 0, 1], [c0 - .15, c1 + .15, zm - .08, zh + .08, 0, 1],
+      [c0 - .15, cx - hw, zh - .08, DR_CHW + .1, 0, .5], [cx + hw, c1 + .15, zh - .08, DR_CHW + .1, .5, 1]);
     k.box(cx, DR_CHH + .15, (hz - hw - DR_CHW) / 2, L, .3, hz - hw + DR_CHW, dk, 2);
     k.box(cx, DR_CHH + .15, (hz + hw + DR_CHW) / 2, L, .3, DR_CHW - hz - hw, dk, 2);
     for (const s of [-1, 1]) k.box(cx + s * (hw + L / 2) / 2, DR_CHH + .15, hz, L / 2 - hw, .3, hw * 2, dk, 2);
@@ -220,10 +216,43 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   for (const [r0, r1] of [[0, DR_X.run1[1]], DR_X.run2]) k.box((r0 + r1) / 2, .02, 0, r1 - r0, .02, 1.1, 0x0d110e, 2);
   drScene.add(new T.Mesh(k.build(), MAT.uber));
   const flM = new T.Mesh(fl.build(), MAT.uber); drScene.add(flM);
-  for (const id in pans) propSwap('drain', null, id, pans[id], drScene, id === 'dr_floor' ? () => { flM.position.y = -.18; } : null, 'drain');
+  for (const id in pans) propSwap('drain', null, id, pans[id], drScene, id === 'dr_floor' ? () => { flM.position.y = -.18; loadProps('drain').then(it => it && it.dr_seg && drCeil(it.dr_seg, ceil)); } : null, 'drain');
   // 走私包：東端檢查井的角落
   DR.bag = new T.Mesh(new Kit().box(0, .2, 0, .7, .4, .36, 0x2a3a2a, 15).box(0, .42, 0, .5, .04, .06, 0x15140f, 15).build(), MAT.uber);
   DR.bag.position.set(DR.stash.x, 0, DR.stash.z); DR.bag.rotation.y = .4; drScene.add(DR.bag);
+}
+// 檢查井的天花板：取 dr_seg 箱涵頂板的三角形（重心高於 1.4、朝下、離兩側牆角 1.1 以內，照片掃描的頂板沒有塗鴉），
+// 模型 z（隧道方向）對到場館 x、模型 x 對到 −z（繞 y 轉 90°，不鏡像、繞序不變），每一條 [x0, x1, z0, z1, f0, f1] 拉伸鋪滿，
+// f0–f1 是取模型 z 的哪一段（重心落在裡面的三角形）；頂板最高點貼在天花板下 2 cm，後面一條低 1 cm 免得疊的地方閃爍
+const DR_CEIL = { y: 1.4, x: 1.1, z: 3.2, top: 1.56 };
+function drCeil(it, strips) {
+  const C = DR_CEIL;
+  for (const { geo, mat } of it.parts) {
+    const P = geo.attributes.position, N = geo.attributes.normal, ix = geo.index ? geo.index.array : null, n = ix ? ix.length : P.count;
+    const keep = [];
+    for (let t = 0; t < n; t += 3) {
+      const v = [0, 1, 2].map(k => ix ? ix[t + k] : t + k);
+      const cy = v.reduce((a, i) => a + P.getY(i), 0) / 3, cx = v.reduce((a, i) => a + P.getX(i), 0) / 3, ny = v.reduce((a, i) => a + N.getY(i), 0) / 3;
+      if (cy > C.y && ny < -.5 && Math.abs(cx) < C.x) keep.push(v, v.reduce((a, i) => a + P.getZ(i), 0) / 3);
+    }
+    const out = {}, atts = Object.entries(geo.attributes);
+    for (const [name, at] of atts) out[name] = [];
+    strips.forEach(([x0, x1, z0, z1, f0, f1], r) => {
+      const m0 = -C.z + f0 * 2 * C.z, m1 = -C.z + f1 * 2 * C.z, sx = (x1 - x0) / (m1 - m0), sz = (z1 - z0) / (2 * C.x), sy = (sx + sz) / 2;
+      for (let q = 0; q < keep.length; q += 2) {
+        if (keep[q + 1] < m0 || keep[q + 1] > m1) continue;
+        for (const i of keep[q]) for (const [name, at] of atts) {
+          const o = out[name];
+          if (name === 'position') o.push(x0 + (P.getZ(i) - m0) * sx, DR_CHH - .02 - r * .01 - (C.top - P.getY(i)) * sy, z1 - (P.getX(i) + C.x) * sz);
+          else if (name === 'normal') o.push(N.getZ(i), N.getY(i), -N.getX(i));
+          else for (let c = 0; c < at.itemSize; c++) o.push(at.getComponent(i, c));
+        }
+      }
+    });
+    const g = new T.BufferGeometry();
+    for (const [name, at] of atts) g.setAttribute(name, new T.BufferAttribute(new Float32Array(out[name]), at.itemSize));
+    drScene.add(new T.Mesh(g, mat));
+  }
 }
 // 排水口外的河景：夜裡的河面與對岸的燈（畫布貼圖，自己發光）
 {

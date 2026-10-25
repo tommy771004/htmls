@@ -417,7 +417,11 @@ const FAC = (() => {
     // 中城 (4,3) 的霓峰塔工地（69-v5-tower.js）：沒有地塊，西半是蓋到 202 m 的框架大樓（tower），東邊是 250 m 的塔吊（mast 是桅桿中心），四周圍施工圍籬
     crane: { i: 4, j: 3, lots: [], tower: { x0: 14.2, x1: 37.3, z0: 13.3, z1: 38.2 }, mast: [47, 26] },
     // 第七部曲（69-v7-casino.js）：光環廣場 (8,4) 的霓鑽賭場酒店：西北、東北兩座塔樓，南半是 2 層的裙樓（大門朝南，屋頂是 RF 泳池與停機坪）
-    casino: { i: 8, j: 4, lots: [{ x0: 12.5, x1: 30, z0: 12.5, z1: 30, style: 3, floors: 42, axis: 'z', face: 1, back: 1 }, { x0: 42, x1: 59.5, z0: 12.5, z1: 30, style: 3, floors: 36, axis: 'z', face: 1, back: 1 },
+    // 以 http(s) 開啟時兩座塔樓換成 VertaScan 的雙圓弧塔連同它的基座（props/cas_ext.glb，46.8 × 22.3 m、高 120 m）一棟，佔滿北半（到 z 34.8），
+    // 裙樓（永遠是程式建模、最後一塊地）往南縮；屋頂的泳池、停機坪與通風井在 69-v7-casino.js 跟著挪（CAS_G）
+    casino: { i: 8, j: 4, lots: BLD_ON && PROPS_SPEC.cas_ext ? [{ x0: 12.5, x1: 59.5, z0: 12.5, z1: 34.8, style: 3, floors: 38, axis: 'z', face: 1, back: 1, glb: ['cas_ext', 'tower'] },
+      { x0: 12.5, x1: 59.5, z0: 34.8, z1: 49.5, style: 3, floors: 2, axis: 'z', face: 1, roof: 1 }]
+      : [{ x0: 12.5, x1: 30, z0: 12.5, z1: 30, style: 3, floors: 42, axis: 'z', face: 1, back: 1 }, { x0: 42, x1: 59.5, z0: 12.5, z1: 30, style: 3, floors: 36, axis: 'z', face: 1, back: 1 },
       { x0: 12.5, x1: 59.5, z0: 30, z1: 49.5, style: 3, floors: 2, axis: 'z', face: 1, roof: 1 }] },
     // 69-v7-bunker.js：灰石國宅北端 (15,0) 的霓虹堡軍事基地、隔壁 (16,0) 北嶺山腳的地堡土丘，兩塊都沒有地塊（(17,0) 以東的北排沒有街區）
     fort: { i: 15, j: 0, lots: [] },

@@ -165,7 +165,7 @@ varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying fl
 void main(){
   vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);
   vCol = color; vPbr = _pbr; vEmi = _emi; vWin = _win;
-  #ifdef USE_MAP
+  #if defined(USE_MAP) || defined(USE_WINMAP) || defined(USE_EMIMAP)   // 沒有底色貼圖的帷幕牆（賭場塔樓）也要用 UV 取窗格
   vUv = uv;
   #else
   vUv = vec2(0);
