@@ -150,10 +150,12 @@ if (FAC.hosp) {
   const ez = G ? 28.7 : 31, cx0 = 8.1, cx1 = G ? 16 : 12.7, cy = G ? 4.6 : 3.75, cl = G ? 7.6 : 12;
   k.box(F.ax + (cx0 + cx1) / 2, cy, F.az + ez, cx1 - cx0, .28, cl, 0xd8dcdc, 10).box(F.ax + (cx0 + cx1) / 2, cy - .15, F.az + ez, cx1 - cx0 - .1, .04, cl - .2, 0xfff4e0, 11);
   for (const z of [ez - cl * .45, ez + cl * .45]) k.cyl(F.ax + 8.6, cy / 2, F.az + z, .14, .14, cy - .15, 10, 0xb8bcbe, 3);
-  if (G) {   // 立面最深退到 x 19.1；簷口（12 m）以下、左邊樓梯塔與右邊附樓之間
-    const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: facZn(F) }, x0 = F.ax + 19.6, x1 = F.ax + 28, z0 = F.az + 18.5, z1 = F.az + 44.5, h = 11.9;
-    boxFaces(B, x0, x1, z0, z1, 0, h, E.seed, 0, null, h, null);
-    boxFaces(B, x0 - .3, x1 + .3, z0 - .3, z1 + .3, h - .55, h + .06, E.seed, 7, null, h, null);
+  if (G) {   // 掃描只有正面一層殼（高 14–16.5 m）：沿 z 分五段，每段前緣貼在那一段殼的最深處後面、高度比那一段的立面頂低 0.3 m（從街上看被立面擋住，
+    // 從側面看是實心的磚樓，不會看到薄片與穿透的天空）；右端 z 43 以後模型只有 5 m 高的門廊，維持原本 11.9 m 的磚樓
+    const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: facZn(F) }, x1 = F.ax + 28;
+    for (const [x0, z0, z1, h] of [[17.4, 14.9, 17, 14.4], [19.6, 17, 24, 13.1], [16.7, 24, 31, 15.1], [19.7, 31, 37, 13.8], [21.2, 37, 42.9, 13.8], [19.6, 42.9, 44.5, 11.9]])
+      boxFaces(B, F.ax + x0, x1, F.az + z0, F.az + z1, 0, h, E.seed, 0, null, h, null);
+    boxFaces(B, F.ax + 19.3, x1 + .3, F.az + 42.9, F.az + 44.8, 11.35, 11.96, E.seed, 7, null, 11.9, null);   // 門廊上方那段的簷口
     chunkMesh(B);
   } else k.box(F.ax + 12.45, 1.4, F.az + 31, .08, 2.8, 3.4, 0x9ad8ff, 1).box(F.ax + 12.42, 2.9, F.az + 31, .1, .16, 3.8, 0xffffff, 11);
   // 主樓北牆的員工電梯門、屋頂的電梯機房

@@ -106,7 +106,10 @@ try {
     }
     return res;
   });
-  check(tree.cut + tree.small > 10 && !tree.hitLeft && !tree.colLeft, `枝葉會插進模型逃生梯、雨棚的行道樹縮小 ${tree.small} 棵、拿掉 ${tree.cut} 棵（留下來還會插到的 ${tree.hitLeft} 棵、拿掉卻還留著碰撞的 ${tree.colLeft} 棵）`);
+  // 逃生梯、雨棚伸到人行道上方（bldOver 量 2.4–10 m 高）：號誌桿離地塊前緣 3.3 m、路燈桿 3.9 m（20-props.js，燈頭往馬路伸），伸出不到 3 m 就碰不到
+  const over = await ev(page, () => { let m = 0, id = '', n = 0; for (const e of window.__nc.props.bld) if (e.over) { n++; const v = Math.max(...e.over.bins); if (v > m) { m = v; id = e.id; } } return { m: +m.toFixed(2), id, n }; });
+  check(over.n > 30 && over.m < 3, `模型伸到人行道上方的逃生梯、雨棚最多 ${over.m} m（${over.id}，量了 ${over.n} 棟），碰不到號誌桿與路燈桿`);
+  check(tree.cut + tree.small > 10 && !tree.hitLeft && !tree.colLeft,`枝葉會插進模型逃生梯、雨棚的行道樹縮小 ${tree.small} 棵、拿掉 ${tree.cut} 棵（留下來還會插到的 ${tree.hitLeft} 棵、拿掉卻還留著碰撞的 ${tree.colLeft} 棵）`);
 
   // 展示廳（64-showroom.js，三層樓）：一樓中庭與兩側展廊
   await ev(page, () => window.__nc.enter('show'));
