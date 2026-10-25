@@ -56,7 +56,8 @@ try {
   // 空氣牆（27-bldfoot.js）：模型下載好的街區照模型在人的高度的外形換掉整塊的碰撞盒；舊碼頭紅磚樓的水塔腳之間、醫院急診樓前的空地（都在原本的地塊裡）走得過去
   const foot = await ev(page, async () => {
     const N = window.__nc, out = {};
-    for (const [k, x, z] of [['水塔腳之間', -118.7, -42], ['醫院急診樓前', 117.9, -76.8]]) {
+    for (const [k, lx0, lz0] of [['水塔腳之間', -124.28, -48.82], ['醫院急診樓前', 131.29, -78.5]]) {   // 邏輯座標（?zrot= 轉城時也對得上）
+      const [x, z] = N.W(lx0, lz0);
       N.tp(x + 6, z + 6);
       for (let t = 0; t < 60; t++) { const [lx, lz] = N.L(x, z), e = N.props.bld.find(e => e.lots.some(L => lx > L.x0 && lx < L.x1 && lz > L.z0 && lz < L.z1)); if (e && e.cut) { out[k] = { id: e.id, hit: N.col.collide(x, z, .32).hit }; break; } await new Promise(r => setTimeout(r, 250)); }
     }
@@ -65,6 +66,30 @@ try {
     return out;
   });
   check(foot['水塔腳之間'] && !foot['水塔腳之間'].hit && foot['醫院急診樓前'] && !foot['醫院急診樓前'].hit && foot.blocks > 50, `實體建築照模型外形換掉碰撞盒：${foot.blocks}/${foot.all} 個街區、${foot.boxes} 個盒；${['水塔腳之間', '醫院急診樓前'].map(k => k + (foot[k] ? `（${foot[k].id}）${foot[k].hit ? '擋住' : '走得過去'}` : '模型沒下載')).join('、')}`);
+
+  // 沿街模型與程式立面的交界以模型為主（27-bldfoot.js 的 bldAlign／bldSeam）：一樓的牆面推到地塊前緣、和隔壁的程式立面接成一線，兩端的縫照隔壁補起來。
+  // 用碰撞格子（模型在人的高度切出來的牆）量每棟的前牆：沿寬度每 0.5 m 從地塊前緣外 1.5 m 往內找第一道牆，取中位數
+  const seam = await ev(page, () => {
+    const N = window.__nc, C = .25, res = { n: 0, ok: 0, yard: 0, fill: 0, worst: [] };
+    for (const e of N.props.bld) {
+      if (!e.row || !e.cut || !e.blk.foot) continue;
+      const G = e.blk.foot, L0 = e.lots[0], ax = L0.axis, f = L0.face;
+      const a0 = Math.min(...e.lots.map(L => ax === 'z' ? L.x0 : L.z0)), a1 = Math.max(...e.lots.map(L => ax === 'z' ? L.x1 : L.z1)), face = ax === 'z' ? (f > 0 ? L0.z1 : L0.z0) : (f > 0 ? L0.x1 : L0.x0);
+      const d = [];
+      for (let a = a0 + 1; a <= a1 - 1; a += .5) for (let t = -1.5 + C / 2; t < 30; t += C) {
+        const x = ax === 'z' ? a : face - f * t, z = ax === 'z' ? face - f * t : a, i = Math.floor((x - G.x0) / C) + 1, j = Math.floor((z - G.z0) / C) + 1;
+        if (i < 1 || j < 1 || i > G.nx - 2 || j > G.nz - 2) break;
+        if (G.wall[j * G.nx + i]) { d.push(t - C / 2); break; }
+      }
+      if (!d.length) continue;
+      d.sort((p, q) => p - q);
+      const m = d[d.length >> 1];
+      res.n++; res.fill += (e.seams || []).length;
+      if (m <= .5) res.ok++; else if (m > 3) res.yard++; else res.worst.push(e.id + ' ' + m.toFixed(2));
+    }
+    return res;
+  });
+  check(seam.n > 30 && seam.ok >= seam.n * .85 && seam.fill > 10, `沿街模型的一樓牆面貼齊街面：${seam.ok}/${seam.n} 棟（前院 ${seam.yard} 棟，其餘 ${seam.worst.slice(0, 4).join('、') || '無'}），交界補立面 ${seam.fill} 段`);
 
   // 展示廳（64-showroom.js，三層樓）：一樓中庭與兩側展廊
   await ev(page, () => window.__nc.enter('show'));

@@ -4,14 +4,98 @@
 // 以及頭頂上方（FOOT_ROOF–FOOT_CEIL）的天花板與雨棚；然後 blkFoot 從街區外面往裡灌：
 //   1. 牆先加厚 FOOT_CLOSE 格再灌，門窗、欄杆間 1.5 m 以內的縫灌不進去（免得走進模型的空殼），灌完再往牆邊退回同樣的格數；
 //   2. 頭頂有屋頂、離露天的地方超過 FOOT_EAVE 的格子不算（騎樓、屋簷下可以走，室內不行）；
-//   3. 程式立面的地塊、還沒下載（或下載失敗由 lotFallback 補立面）的模型的地塊整塊擋住。
+//   3. 程式立面的地塊、還沒下載（或下載失敗由 lotFallback 補立面）的模型的地塊、bldSeam 補的立面（b.fill）整塊擋住。
 // 灌不到的格子合併成矩形（邏輯座標，addBoxL 照片的彎曲換成仿射框），換掉這個街區原本的盒（blk 標記）。
-const FOOT_C = .25, FOOT_HS = [.35, .7, 1.1, 1.5, 1.9], FOOT_ROOF = 2.6, FOOT_CEIL = 8, FOOT_CLOSE = 3, FOOT_EAVE = 3;
-// 街區的格子：人行道內的範圍（10-city.js 的 makeLots 一樣退 SW），外面多一圈是街道（灌水的起點）
+// 格子往人行道多鋪 FOOT_OUT：bldAlign 把模型推到街面後，台階、門廊會凸出到人行道上（最多 ALIGN_OUT），也要擋住。
+const FOOT_C = .25, FOOT_HS = [.35, .7, 1.1, 1.5, 1.9], FOOT_ROOF = 2.6, FOOT_CEIL = 8, FOOT_CLOSE = 3, FOOT_EAVE = 3, FOOT_OUT = 2;
+// 街區的格子：人行道內的範圍（10-city.js 的 makeLots 一樣退 SW）再往外 FOOT_OUT，外面多一圈是人行道（灌水的起點）
 function footGrid(b) {
   if (b.foot) return b.foot;
-  const x0 = b.x0 + SW, z0 = b.z0 + SW, ni = Math.ceil((b.x1 - SW - x0) / FOOT_C - 1e-6), nj = Math.ceil((b.z1 - SW - z0) / FOOT_C - 1e-6), nx = ni + 2, nz = nj + 2;
-  return (b.foot = { x0, z0, x1: b.x1 - SW, z1: b.z1 - SW, nx, nz, wall: new Uint8Array(nx * nz), roof: new Uint8Array(nx * nz) });
+  const x0 = b.x0 + SW - FOOT_OUT, z0 = b.z0 + SW - FOOT_OUT, x1 = b.x1 - SW + FOOT_OUT, z1 = b.z1 - SW + FOOT_OUT;
+  const ni = Math.ceil((x1 - x0) / FOOT_C - 1e-6), nj = Math.ceil((z1 - z0) / FOOT_C - 1e-6), nx = ni + 2, nz = nj + 2;
+  return (b.foot = { x0, z0, x1, z1, nx, nz, wall: new Uint8Array(nx * nz), roof: new Uint8Array(nx * nz) });
+}
+// ─── 沿街模型與程式立面的交界：以模型為主 ───
+// 模型的外框含雨棚、逃生梯、簷口與台階，10-city.js 照外框把模型正面貼齊地塊前緣，一樓的牆就常退在 1–3 m 後面，隔壁的程式立面凸出來、露出側牆。
+// bldAlign（下載後、擺放前）：量模型在人的高度（FOOT_HS）切出來的前緣輪廓（沿寬度每 ALIGN_BIN 一格取最前面的東西），40 百分位當牆面
+//   （台階、門廊這類窄的突出不算），整棟往街面推到牆面貼齊地塊前緣；最前面的東西最多凸出 ALIGN_OUT（路人走在離牆 0.8 m 以外），
+//   牆面退超過 ALIGN_YARD 的是前院（停車場、廣場），不推。模型的幾何不改。
+// bldSeam（切好外形後）：模型兩端的側牆往內縮（陽台、逃生梯撐大了外框），和隔壁的程式立面之間留一道縫：照隔壁地塊的樣式補一段立面
+//   填到模型的側牆（高度照隔壁），碰撞一起擋住（b.fill）。縫寬超過 SEAM_MAX 的是側院，不補。
+const ALIGN_BIN = .5, ALIGN_OUT = 1.2, ALIGN_YARD = 3, SEAM_MIN = .2, SEAM_MAX = 3, SEAM_D = 6;
+function bldGap(it, s) {   // it 是 loadProps 的物件（parts 的幾何是模型座標，正面朝 +z），回傳要往前推幾公尺
+  const hs = FOOT_HS.map(h => h / s), y0 = hs[0], y1 = hs[hs.length - 1], bin = ALIGN_BIN / s;
+  let x0 = Infinity, x1 = -Infinity;
+  for (const p of it.parts) { const a = p.geo.attributes.position.array; for (let k = 0; k < a.length; k += 3) { if (a[k] < x0) x0 = a[k]; if (a[k] > x1) x1 = a[k]; } }
+  const n = Math.floor((x1 - x0) / bin);
+  if (n < 4) return 0;
+  const front = new Float32Array(n).fill(-Infinity);
+  const seg = (ax, az, bx, bz) => {
+    const m = Math.ceil(Math.abs(bx - ax) / (bin / 2)) + 1;
+    for (let k = 0; k <= m; k++) { const t = k / m, i = Math.floor((ax + (bx - ax) * t - x0) / bin), z = az + (bz - az) * t; if (i >= 0 && i < n && z > front[i]) front[i] = z; }
+  };
+  for (const p of it.parts) {
+    const g = p.geo, a = g.attributes.position.array, ix = g.index ? g.index.array : null, N = ix ? ix.length : a.length / 3;
+    for (let k = 0; k < N; k += 3) {
+      const A = (ix ? ix[k] : k) * 3, B = (ix ? ix[k + 1] : k + 1) * 3, C = (ix ? ix[k + 2] : k + 2) * 3;
+      const lo = Math.min(a[A + 1], a[B + 1], a[C + 1]), hi = Math.max(a[A + 1], a[B + 1], a[C + 1]);
+      if (hi < y0 || lo > y1) continue;
+      if (hi - lo < .03 / s) { seg(a[A], a[A + 2], a[B], a[B + 2]); seg(a[B], a[B + 2], a[C], a[C + 2]); seg(a[C], a[C + 2], a[A], a[A + 2]); continue; }   // 人的高度裡的水平面（花台、矮牆頂）
+      for (const h of hs) {
+        if (h < lo || h > hi) continue;
+        const q = [];
+        for (const [u, v] of [[A, B], [B, C], [C, A]]) { const uy = a[u + 1], vy = a[v + 1]; if ((uy - h) * (vy - h) > 0 || uy === vy) continue; const t = (h - uy) / (vy - uy); q.push(a[u] + (a[v] - a[u]) * t, a[u + 2] + (a[v + 2] - a[u + 2]) * t); }
+        if (q.length >= 4) seg(q[0], q[1], q[2], q[3]);
+      }
+    }
+  }
+  const gaps = [];
+  for (let i = 1; i < n - 1; i++) if (front[i] > -Infinity) gaps.push((it.d / 2 - front[i]) * s);   // 兩端各留一格（側牆的轉角）
+  if (gaps.length < (n - 2) * .3) return 0;   // 人的高度幾乎沒有東西（騎樓、架空）：不推
+  gaps.sort((p, q) => p - q);
+  const wall = gaps[Math.floor(gaps.length * .4)];
+  return wall > ALIGN_YARD ? 0 : Math.max(0, Math.min(wall, gaps[0] + ALIGN_OUT));
+}
+function bldAlign(b, it) {   // b 是 bldPlace 的一筆（邏輯座標），只推沿街的一排（10-city.js 的 row）
+  if (!b.row || b.gap !== undefined) return;
+  const g = b.gap = bldGap(it, b.s);
+  if (g < .05) return;
+  const [w, d] = hmFoot(b, PROPS_SPEC[b.set].items[b.id]);
+  hmRectL(b.x - w / 2 - 1, b.x + w / 2 + 1, b.z - d / 2 - 1, b.z + d / 2 + 1, HM_NONE, true);   // 舊位置的陰影高度（hmModel 只清新的位置）
+  b.x += Math.sin(b.ry) * g; b.z += Math.cos(b.ry) * g;
+}
+function bldSeam(e) {
+  const L0 = e.lots[0], ax = L0.axis, f = L0.face, b = e.blk, G = b && b.foot;
+  if (!G || !e.cut) return;
+  const along = L => ax === 'z' ? [L.x0, L.x1] : [L.z0, L.z1];
+  const a0 = Math.min(...e.lots.map(L => along(L)[0])), a1 = Math.max(...e.lots.map(L => along(L)[1]));
+  const face = ax === 'z' ? (f > 0 ? L0.z1 : L0.z0) : (f > 0 ? L0.x1 : L0.x0), dep = ax === 'z' ? L0.z1 - L0.z0 : L0.x1 - L0.x0;
+  const wallAt = (u, d) => {   // 沿街 u、離前緣 d 的格子是不是模型的牆
+    const x = ax === 'z' ? u : face - f * d, z = ax === 'z' ? face - f * d : u, i = footI(G, x), j = footJ(G, z);
+    return i > 0 && j > 0 && i < G.nx - 1 && j < G.nz - 1 && G.wall[j * G.nx + i];
+  };
+  for (const [a, dir] of [[a0, 1], [a1, -1]]) {
+    const nb = lots.find(L => L.b === L0.b && L.axis === ax && L.face === f && !L.back && !L.glb && !L.ghost && Math.abs(along(L)[dir > 0 ? 1 : 0] - a) < .05);
+    if (!nb) continue;   // 隔壁是另一棟模型、街角或空地
+    const dist = d => { for (let u = FOOT_C / 2; u < SEAM_MAX + FOOT_C; u += FOOT_C) if (wallAt(a + dir * u, d)) return u - FOOT_C / 2; return Infinity; };
+    let w = Infinity, D = 0;
+    for (let d = FOOT_C / 2; d < Math.min(SEAM_D, dep); d += FOOT_C) w = Math.min(w, dist(d));
+    if (!(w >= SEAM_MIN && w <= SEAM_MAX)) continue;
+    for (let d = FOOT_C / 2; d < dep && dist(d) >= w; d += FOOT_C) D = d + FOOT_C / 2;
+    const u0 = a, u1 = a + dir * (w + FOOT_C / 2), v0 = face, v1 = face - f * Math.min(D, dep);
+    const r = ax === 'z' ? { x0: Math.min(u0, u1), x1: Math.max(u0, u1), z0: Math.min(v0, v1), z1: Math.max(v0, v1) } : { x0: Math.min(v0, v1), x1: Math.max(v0, v1), z0: Math.min(u0, u1), z1: Math.max(u0, u1) };
+    const B = { p: [], n: [], uv: [], b: [], b2: [], idx: [], zn: nb.zn };
+    boxFaces(B, r.x0, r.x1, r.z0, r.z1, 0, nb.h, nb.seed, nb.style, null, nb.h, null);
+    if (nb.style !== 3) {   // 簷口與一樓的腰帶接著隔壁（只往前後凸，不伸進模型）
+      const o = .35, ox = ax === 'x' ? o : 0, oz = ax === 'z' ? o : 0, q = .18, qx = ax === 'x' ? q : 0, qz = ax === 'z' ? q : 0;
+      boxFaces(B, r.x0 - ox, r.x1 + ox, r.z0 - oz, r.z1 + oz, nb.h - .55, nb.h + .06, nb.seed, 7, null, nb.h, null);
+      boxFaces(B, r.x0 - qx, r.x1 + qx, r.z0 - qz, r.z1 + qz, 4.45, 4.75, nb.seed, 7, null, nb.h, null);
+    }
+    chunkMesh(B);
+    hmRectL(r.x0, r.x1, r.z0, r.z1, nb.h, false, nb.zn);
+    (b.fill || (b.fill = [])).push(r);
+    (e.seams || (e.seams = [])).push(+w.toFixed(2));
+  }
 }
 // 邏輯座標 → 格子（第 0 格與最後一格是街道）
 const footI = (G, x) => Math.floor((x - G.x0) / FOOT_C) + 1, footJ = (G, z) => Math.floor((z - G.z0) / FOOT_C) + 1;
@@ -77,6 +161,7 @@ function blkFoot(b) {
   const block = new Uint8Array(N);
   const mark = (x0, x1, z0, z1) => { for (let j = Math.max(1, footJ(G, z0 + FOOT_C / 2)); j <= Math.min(nz - 2, footJ(G, z1 - FOOT_C / 2)); j++) for (let i = Math.max(1, footI(G, x0 + FOOT_C / 2)); i <= Math.min(nx - 2, footI(G, x1 - FOOT_C / 2)); i++) block[j * nx + i] = 1; };
   for (const L of lots) if (L.b === b && !L.ghost && !(L.glb && L.glb.cut)) mark(L.x0, L.x1, L.z0, L.z1);   // ghost：設施街區原本的地塊
+  for (const r of b.fill || []) mark(r.x0, r.x1, r.z0, r.z1);   // bldSeam 補的立面
   for (const e of b.ents) if (!e.cut && !e.lots.length) { const it = PROPS_SPEC[e.set]?.items[e.id]; if (it) { const [w, d] = hmFoot(e, it); mark(e.x - w / 2, e.x + w / 2, e.z - d / 2, e.z + d / 2); } }   // 同一街區的第二群（沒有地塊）
   const wallD = footDilate(G.wall, nx, nz, FOOT_CLOSE), open = new Uint8Array(N);
   // 1. 從街道灌（4 連通）

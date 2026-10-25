@@ -382,7 +382,7 @@ if (BLD_ON) {
         ? { x: am, z: f > 0 ? row[i].z1 - dd : row[i].z0 + dd, ry: f > 0 ? 0 : Math.PI }
         : { x: f > 0 ? row[i].x1 - dd : row[i].x0 + dd, z: am, ry: f > 0 ? Math.PI / 2 : -Math.PI / 2 };
       const set = Object.keys(pool).find(k => pool[k] === list);
-      bldPlace.push({ set, id: b.id, ...P, s, h: b.h * s, lots: span, blk: row[i].b });
+      bldPlace.push({ set, id: b.id, ...P, s, h: b.h * s, lots: span, blk: row[i].b, row: 1 });   // row：沿街的一排，27-props.js 下載後照模型的牆面對齊街面（bldAlign）
       for (const L of span) L.glb = bldPlace.at(-1);
       i = best.j;
     }

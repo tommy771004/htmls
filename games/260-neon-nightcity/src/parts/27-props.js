@@ -60,6 +60,7 @@ function bldLoad(set) {
     if (!items) { lotFallback(mine.flatMap(b => b.lots)); return; }
     const byKey = new Map(), M = new T.Matrix4(), Q = new T.Quaternion(), Y = V3(0, 1, 0);
     for (const b of mine) {
+      bldAlign(b, items[b.id]);   // 27-bldfoot.js：沿街的一排照模型的牆面推到街面（以模型為主）
       M.compose(V3(b.x, 0, b.z), Q.setFromAxisAngle(Y, b.ry), V3(b.s, b.s, b.s));
       const tk = bldTile(b), wg = [], zn = zoneAtL(b.x, b.z);
       for (const p of items[b.id].parts) {
@@ -71,6 +72,7 @@ function bldLoad(set) {
       hmModel(b, wg, frameM4(zn, b.x, b.z));   // 22-hmap.js：用模型的三角形重畫日光陰影的高度圖
       if (b.blk && b.blk.ents) bldCut(b, wg);   // 27-bldfoot.js：模型在人的高度的外形
     }
+    for (const b of mine) if (b.row) bldSeam(b);   // 模型兩端和隔壁程式立面之間的縫，照隔壁補起來
     hmFlush();
     for (const blk of new Set(mine.map(b => b.blk).filter(k => k && k.ents))) blkFoot(blk);   // 照模型的外形換掉街區的碰撞盒
     for (const { mat, list, zn } of byKey.values()) {
