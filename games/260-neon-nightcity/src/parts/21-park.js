@@ -4,6 +4,7 @@
 // 門口的牌樓與路樁、管理站、山腰的雲階觀景台。網格是框的局部座標（cityAdd 帶 NPARK.f），圓柱與光源換成世界座標（w: 1）。
 // 材質都是 MAT.ridge（150 m 內照一般的霧，再遠和山一樣淡）
 
+await bootTick(12.5, "整理北嶺公園與鐵道橋…");
 const PARK_ZN = NPARK.f;
 const pkY = parkH;   // 框的局部座標的地面高度（城裡 0）
 const pkCircle = (x, z, r) => { const [X, Z] = toW(x, z, PARK_ZN); circles.push({ x: X, z: Z, r, w: 1 }); };

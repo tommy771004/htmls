@@ -13,7 +13,11 @@ function bootProgress(p, msg) {
 }
 // 各階段開始時的百分比（依桌機實測的耗時分配）；最後一段留給下載座駕與機車的實車模型
 const BOOT = { city: 4, props: 8, vehicles: 14, people: 29, assets: 40, venues: 46, render: 60, dl: 60 };
-const bootStep = (p, msg) => { bootProgress(p, msg); return new Promise(r => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 80); }); };
+let bootT = 0;
+const bootStep = (p, msg) => { bootProgress(p, msg); return new Promise(r => { const go = () => { bootT = performance.now(); r(); }; requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 80); }); };
+// 一個階段裡的長段落（2x 的 part 開頭、20-relief 的迴圈）：進度與文字照更新，距上次讓出超過 120 ms 才讓一幀。
+// 不讓的話「擺放街道與招牌」一整段是好幾秒的單一長任務，畫面停住、像當掉
+const bootTick = (p, msg) => { bootProgress(p, msg); return performance.now() - bootT > 120 ? bootStep(p) : null; };
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 

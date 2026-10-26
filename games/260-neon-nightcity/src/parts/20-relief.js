@@ -4,6 +4,7 @@
 // 擺出凸出牆面的幾何，照紐約老公寓的照片：石窗台與窗楣（中間一塊拱心石）、店面之間的壁柱與柱頭、簷口下的托架與飾帶。
 // 只擺看得到的面：正面一定擺，兩側只擺高過隔壁地塊的樓層，背面不擺。窗的零件用實例（距離串流 RELIEF_R），其他每個街區合併成一個網格。
 // 實體建築下載失敗時 lotFallback 補回的立面沒有浮雕（那時這裡已經跑過了）
+await bootTick(9, "刻上立面的窗台與簷口…");
 const RELIEF_R = 230;
 {
   const GH = 4.6;
@@ -171,5 +172,6 @@ const RELIEF_R = 230;
     const kind = key.replace(/[\d.]+$/, ''), ws = +key.slice(kind.length);
     instanced(winGeo(ws, ws === 2.2 ? 3.4 : 3.1, kind), MAT.ux, WIN[key], LY.NOREFL, null, RELIEF_R);
   }
-  for (const { k, zn } of kits.values()) { const m = new T.Mesh(k.build(), MAT.ux); cityAdd(m, zn); cullAdd(m); }
+  let ki = 0;
+  for (const { k, zn } of kits.values()) { const m = new T.Mesh(k.build(), MAT.ux); cityAdd(m, zn); cullAdd(m); await bootTick(9 + 1.4 * ++ki / kits.size); }
 }

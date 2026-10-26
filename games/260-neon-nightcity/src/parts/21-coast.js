@@ -5,6 +5,7 @@
 // ─── 水面：同一張倒影貼圖，城市底下不鋪（四塊環繞的平面）。照 Na Pali 海岸那支空拍片（深藍外海、近岸青綠、岸邊成片白沫）：
 // 波紋是九道順著風向、波長從 60 m 一路減半的方向波（深水色散：長波走得快），疊兩層雜訊打散，遠處的短波淡掉免得閃；
 // 離岸距離 tShore（下面 SHD 烘的距離場）決定淺水的顏色、一道道往岸上推的浪線與岸邊的白沫，白沫照路燈與日光打光 ───
+await bootTick(11, "鋪海岸、碼頭與跨海橋…");
 const WATER_FS = /* glsl */`
 ${GROUND_COMMON}
 uniform sampler2D tTron, tShore; uniform vec3 uTronA, uTronB; uniform vec4 uTronG, uShore;
