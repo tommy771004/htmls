@@ -184,15 +184,126 @@ function poolSplash(x, y, z, k = 1) {
   sfx.splash(1);
 }
 // 上樓：打完樓下的人進頂層公寓（69-safehouse.js 的 loft 場館，任務裡沒買也進得去），按 E 沿旋轉樓梯上夾層，走到西側欄杆的窗邊（陽台在窗外）；
-// 一樓的西面落地窗前有沙發擋著，夾層的西北角有弧形欄杆，兩層都走不到玻璃邊，窗邊的點取夾層走得到、離玻璃最近的地方。霍爾的人從電梯、樓梯上來，時間到就破門
-const LOFT_WIN = { x: -1.9, z: -2.4 }, LOFT_T = 60;
+// 一樓的西面落地窗前有沙發擋著，夾層的西北角有弧形欄杆，兩層都走不到玻璃邊，窗邊的點取夾層走得到、離玻璃最近的地方。
+// 室內：戴恩跟著玩家走過的路（不用尋路，也不會穿過家具）；進門 LOFT_IN 秒後霍爾的三個人從大門進來，一樓照格子 BFS 走到樓梯口、沿踏階上夾層，
+// 看得到就開槍（場館的座標，69-combat.js 的 shoot 在 'loft' 交給 loftShot）；戴恩也會還擊。時間到就破門（任務失敗）
+const LOFT_WIN = { x: -1.9, z: -2.4 }, LOFT_T = 60, LOFT_IN = 7, LOFT_FOES = 3;
+const loftCrowd = crowd(1 + LOFT_FOES);
+// 一樓的格子路徑：0.25 m 格、離牆與家具 0.35 m，從大門走到樓梯口
+function loftPath(fx, fz, tx, tz) {
+  const D = VENUES.loft.lvs[0], G = .25, X0 = -3.9, Z0 = -3.9, NX = 56, NZ = 40, R = .35;
+  const free = (x, z) => !D.boxes.some(b => !b.low && x > b.x0 - R && x < b.x1 + R && z > b.z0 - R && z < b.z1 + R) && !D.circles.some(c => Math.hypot(x - c.x, z - c.z) < c.r + R);
+  const cell = (x, z) => [Math.round((x - X0) / G), Math.round((z - Z0) / G)], at = (i, j) => [X0 + i * G, Z0 + j * G];
+  const ok = new Uint8Array(NX * NZ); for (let j = 0; j < NZ; j++) for (let i = 0; i < NX; i++) ok[j * NX + i] = free(...at(i, j)) ? 1 : 0;
+  const near = (x, z) => { let b = -1, bd = 1e9; for (let j = 0; j < NZ; j++) for (let i = 0; i < NX; i++) if (ok[j * NX + i]) { const [px, pz] = at(i, j), d = Math.hypot(px - x, pz - z); if (d < bd) { bd = d; b = j * NX + i; } } return b; };
+  const s0 = near(fx, fz), s1 = near(tx, tz), prev = new Int32Array(NX * NZ).fill(-1), q = [s0]; prev[s0] = s0;
+  for (let h = 0; h < q.length && prev[s1] < 0; h++) { const c = q[h], i = c % NX, j = (c / NX) | 0; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const a = i + di, b = j + dj, n = b * NX + a; if (a < 0 || b < 0 || a >= NX || b >= NZ || !ok[n] || prev[n] >= 0 || di && dj && (!ok[j * NX + a] || !ok[b * NX + i])) continue; prev[n] = c; q.push(n); } }
+  if (prev[s1] < 0) return [[fx, 0, fz], [tx, 0, tz]];
+  const pts = []; for (let c = s1; ; c = prev[c]) { const [x, z] = at(c % NX, (c / NX) | 0); pts.unshift([x, 0, z]); if (c === s0) break; }
+  return pts.filter((p, i) => i % 3 === 0 || i === pts.length - 1);
+}
+// 沿折線 P（[x, y, z]…）走 d 公尺的位置與方向
+function loftAlong(P, d) {
+  for (let i = 1; i < P.length; i++) { const [ax, ay, az] = P[i - 1], [bx, by, bz] = P[i], L = Math.hypot(bx - ax, bz - az, by - ay); if (d <= L || i === P.length - 1) { const u = L ? Math.min(1, d / L) : 1; return { x: ax + (bx - ax) * u, y: ay + (by - ay) * u, z: az + (bz - az) * u, yaw: Math.atan2(bx - ax, bz - az), end: i === P.length - 1 && d >= L }; } d -= L; }
+  const e = P[P.length - 1]; return { x: e[0], y: e[1], z: e[2], yaw: 0, end: true };
+}
+function loftOn(a) {
+  const scn = APT.loft.scn; if (!scn) return;
+  const L = a.loftK = { trail: [[5.5, 0, 4.6], [APT.loft.spawn.x, 0, APT.loft.spawn.z]], dane: { x: 5.5, y: 0, z: 4.6, yaw: Math.PI, d: 0 }, foes: [], t: 0 };
+  scn.add(loftCrowd.mesh);
+  loftCrowd.look(0, castLook(0, 'dane'));
+  const R = rng(4404), up = APT.loft.up.path, door = APT.loft.spawn, foot = up[0];
+  for (let i = 0; i < LOFT_FOES; i++) {
+    loftCrowd.look(i + 1, { r: R, top: 0x1c1e22, bot: 0x16171a, female: false, glowI: 0 });
+    L.foes.push({ i: i + 1, hp: 100, st: 'wait', at: LOFT_IN + i * 1.6, d: 0, x: door.x, y: 0, z: door.z, yaw: Math.PI, shotT: 1 + R(), c: { x: 0, z: -99, r: .32 }, lv: 0 });
+  }
+  // 大門 → 樓梯口（一樓 BFS）→ 踏階 → 夾層上停在樓梯頂往窗邊推進兩公尺
+  const top = up[up.length - 1];
+  L.path = [...loftPath(door.x, door.z - .6, foot[0], foot[2]), ...up, [top[0] - 1.2, top[1], top[2] - .2], [top[0] - 2.2, top[1], top[2] - .4]];
+  a.npc.dane = L.dane;   // 對白（say）找得到戴恩
+  loftCrowd.flush();
+}
+function loftOff(a) {
+  const L = a.loftK; if (!L) return;
+  for (const f of L.foes) for (const lv of VENUES.loft.lvs) { const k = lv.circles.indexOf(f.c); if (k >= 0) lv.circles.splice(k, 1); }
+  loftCrowd.mesh.removeFromParent();
+  if (a.npc.dane === L.dane) delete a.npc.dane;
+  a.loftK = null;
+}
+// 敵人的碰撞圓放在他所在的那一層（樓梯上的不擋）
+function loftCirc(f, lv) {
+  if (f.lv === lv) return;
+  for (const L of VENUES.loft.lvs) { const k = L.circles.indexOf(f.c); if (k >= 0) L.circles.splice(k, 1); }
+  f.lv = lv; if (lv >= 0 && f.st !== 'down') VENUES.loft.lvs[lv].circles.push(f.c);
+}
+function loftStep(a, dt) {
+  const L = a.loftK; if (!L || player.where !== 'loft') return;
+  const live = !say.on;   // 窗邊對話的時候大家先停著（不然對白中被打）
+  if (live) L.t += dt;
+  const P = player, py = P.y, Lt = L.trail, last = Lt[Lt.length - 1];
+  if (Math.hypot(P.x - last[0], P.z - last[2], py - last[1]) > .25) { Lt.push([P.x, py, P.z]); if (Lt.length > 400) Lt.shift(); }
+  // 戴恩：沿玩家走過的路，落後 1.6 m
+  let tot = 0; for (let i = 1; i < Lt.length; i++) tot += Math.hypot(Lt[i][0] - Lt[i - 1][0], Lt[i][2] - Lt[i - 1][2], Lt[i][1] - Lt[i - 1][1]);
+  const D = L.dane, want = Math.max(0, tot - 1.6), step = Math.min(Math.max(0, want - D.d), dt * 5.5), q = loftAlong(Lt, D.d += step);
+  const mv = step / Math.max(dt, 1e-4);
+  D.x = q.x; D.y = q.y; D.z = q.z; if (mv > .3) D.yaw = q.yaw; else D.yaw += wrapA(Math.atan2(P.x - D.x, P.z - D.z) - D.yaw) * Math.min(1, dt * 4);
+  // 霍爾的人
+  let tgt = null, td = 14;
+  for (const f of L.foes) {
+    if (f.st === 'down') continue;
+    if (f.st === 'wait') { if (L.t < f.at) { loftCrowd.place(f.i, 0, -60, 0, 0); continue; } f.st = 'go'; sfx.boom && sfx.boom(2); if (f.i === 1) toast('大門被撞開了 · 霍爾的人進來了'); }
+    const dx = P.x - f.x, dz = P.z - f.z, d = Math.hypot(dx, dz, py - f.y), stairs = f.d > 0 && f.y > .2 && f.y < APT.loft.up.y - .2;
+    if (f.st === 'go' && live) {
+      const q2 = loftAlong(L.path, f.d += dt * (d < 9 ? 1.9 : 3.2));
+      f.x = q2.x; f.y = q2.y; f.z = q2.z; f.yaw = q2.yaw;
+      loftCirc(f, f.y < .2 ? 0 : f.y > APT.loft.up.y - .2 ? 1 : -1);
+      if (q2.end) f.st = 'hold';
+    }
+    if (f.st === 'hold' || d < 9 && !stairs) f.yaw = Math.atan2(dx, dz);
+    loftCrowd.anim(f.i, f.st === 'go' && live && !(d < 9 && !stairs) ? ANIM.run : ANIM.aimIdle, f.i * 1.7, 1, 0);
+    if (live && !stairs && d < 16 && !life.dead && (f.shotT -= dt) <= 0) {
+      f.shotT = .8 + Math.random() * .6;
+      sfx.gun(.6, 1); muzzleFx(f.x + Math.sin(f.yaw) * .5, f.y + 1.4, f.z + Math.cos(f.yaw) * .5, .6);
+      if (Math.random() < (P.crouch ? .22 : .32) * (d < 6 ? 1.4 : 1)) hurtPlayer(7, f.x, f.z);
+    }
+    f.c.x = f.x; f.c.z = f.z;
+    loftCrowd.place(f.i, f.x, f.y, f.z, f.yaw);
+    const dd = Math.hypot(f.x - D.x, f.z - D.z, f.y - D.y); if (dd < td && !stairs) { td = dd; tgt = f; }
+  }
+  // 戴恩還擊：最近、不在樓梯上的那個
+  if (live && tgt && (L.dShot = (L.dShot ?? 1.2) - dt) <= 0) {
+    L.dShot = 1 + Math.random() * .5; D.yaw = Math.atan2(tgt.x - D.x, tgt.z - D.z);
+    sfx.gun(.7, 1); muzzleFx(D.x + Math.sin(D.yaw) * .5, D.y + 1.4, D.z + Math.cos(D.yaw) * .5, .6);
+    if (Math.random() < .4) loftHit(tgt, 34, D.x, D.z);
+  }
+  loftCrowd.anim(0, say.on ? ANIM.talk : tgt ? ANIM.aimIdle : mv > 3 ? ANIM.run : mv > .3 ? ANIM.walk : ANIM.idle, .7, 1, 0);
+  loftCrowd.place(0, D.x, D.y, D.z, D.yaw);
+  loftCrowd.flush();
+}
+function loftHit(f, dmg, fx, fz) {
+  if (f.st === 'down') return;
+  if (f.st === 'wait') return;
+  f.hp -= dmg;
+  if (f.hp > 0) return;
+  f.st = 'down'; loftCirc(f, -1);
+  loftCrowd.anim(f.i, ANIM.die, -uTimeNow(), 1); loftCrowd.place(f.i, f.x, f.y, f.z, Math.atan2(f.x - fx, f.z - fz));
+}
+// 69-combat.js 的 shoot：在頂層公寓開槍（場館座標，射線只算霍爾的人）
+function loftShot(R, dmg) {
+  const L = side.act && side.act.loftK; if (!L) return;
+  let best = null, bt = 40;
+  for (const f of L.foes) if (f.st === 'go' || f.st === 'hold') { const t = rayCyl(R, f.x, f.z, .34, f.y + .1, f.y + 1.95); if (t < bt) { bt = t; best = f; } }
+  if (best) loftHit(best, dmg * (R.oy + R.dy * bt - best.y > 1.55 ? 2.5 : 1), player.x, player.z);
+}
+storyTicks.push((a, dt) => loftStep(a, dt));
+storyCleanups.push(a => loftOff(a));
 STEP.loft = {
   start: (a, s, c) => {
     c.t = LOFT_T; c.wait = true;
     a.leapPre = leapPlan();   // 還在樓下時先算好跳的路線：進了室內，玩家座標是場館自己的，附近的建築與碰撞盒會照那個位置串流，量不到這棟樓
     if (player.mode === 'drive') exitVehicle();
     aptLevel('loft', 0); player.ride = null; aptLoad('loft');
-    enterVenue('loft', () => { c.wait = false; toast('他們在樓下了 · 上夾層，到西側的窗邊'); });
+    enterVenue('loft', () => { c.wait = false; loftOn(a); toast('他們在樓下了 · 上夾層，到西側的窗邊'); });
   },
   step: (a, s, c, dt) => {
     if (c.wait || fading) return false;
@@ -215,6 +326,7 @@ STEP.leap = {
     c.wait = true;
     transition(() => {
       if (player.mode === 'drive') exitVehicle();
+      loftOff(a);   // 室內的戴恩與霍爾的人收掉（a.npc.dane 是場館座標，出去前要拿掉）
       setWhere('out'); cardOff();
       player.x = L.ex; player.z = L.ez; player.y = L.y0; player.yaw = camState.yaw = L.yaw; camState.pitch = .7; camState.snap = true; player.down = 0;   // 鏡頭在頭頂上往下看：看得到泳池，也不會卡在背後那棟樓裡（跳傘鏡頭不拉近）
       player.air3 = { kind: 'fall', vx: 0, vy: L.vy0, vz: 0, t: 0, land: { y: L.wy + .2, fn: () => a.leapGo && leapSplash(a, a.leapGo) } };
@@ -330,6 +442,51 @@ function finJet(a) {
   a.jet = { g, dyn };
   if (GLB_ON) loadProps('fin_jet').then(it => { if (it && it.fin_jet && a.jet && a.jet.g === g) g.add(propObject(it.fin_jet, 0, 0, 0, 0)); }).catch(e => console.warn('fin_jet', e));
 }
+// 交帳之後：范斯走到機門登機，專機從草地沿 S 形的路線上跑道（機場座標的三次貝茲曲線，頭尾都朝東），加速、抬頭、爬升到 50 m 以上。
+// 碰撞圓跟著機身移動，離地就拿掉；玩家站在原地看（鏡頭自己控制），也可以跳過
+const JET_DOOR = [10.2, 2.4];   // 機門：機身座標（u 往機頭、v 往左側），在 ST_JET 那一側
+function jetPath(a) {
+  const R = AIR_L.rwy, lx = (R.x0 + R.x1) / 2 - 150 - JET_OFF, lz = R.z - 45;
+  const B = [[lx, lz], [lx + 60, lz], [lx + 60, R.z], [lx + 120, R.z]], pts = [];
+  for (let i = 0; i <= 24; i++) { const t = i / 24, u = 1 - t, w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t]; pts.push([w.reduce((s, k, j) => s + k * B[j][0], 0), 0, w.reduce((s, k, j) => s + k * B[j][1], 0)]); }
+  pts.push([R.x1 - 40, 0, R.z]);
+  return pts;
+}
+function jetPose(a, J) {
+  const q = loftAlong(J.path, J.s), q2 = loftAlong(J.path, J.s + 4), [X, Z] = airW(q.x, q.z), [X2, Z2] = airW(q2.x, q2.z), g = a.jet.g;
+  g.position.set(X, J.y, Z); g.rotation.order = 'YXZ'; g.rotation.set(-J.pitch, Math.atan2(X2 - X, Z2 - Z), 0);
+  const fx = Math.sin(g.rotation.y), fz = Math.cos(g.rotation.y);
+  if (J.y > 2.5) { for (const c of a.jet.dyn) { const i = dynMore.indexOf(c); if (i >= 0) dynMore.splice(i, 1); } return; }
+  [[-12, 0], [0, 0], [12, 0], [-2, 9], [-2, -9]].forEach(([u, v], i) => { const c = a.jet.dyn[i]; c.x = X + fx * u + fz * v; c.z = Z + fz * u - fx * v; });
+}
+STEP.jet = {
+  start: (a, s, c) => {
+    if (!a.jet) finJet(a);
+    const g = a.jet.g, fx = Math.sin(g.rotation.y), fz = Math.cos(g.rotation.y), [u, v] = JET_DOOR;
+    c.door = { x: g.position.x + fx * u + fz * v, z: g.position.z + fz * u - fx * v };
+    c.ph = 'board'; c.J = { path: jetPath(a), s: 0, v: 0, y: 0, pitch: 0 };
+    if (!a.npc.vance) a.npc.vance = nearL(ST_JET(), 3, .8, -Math.PI / 2);
+  },
+  step: (a, s, c, dt) => {
+    if (!a.jet) return true;
+    const J = c.J;
+    if (c.ph === 'board') {   // 范斯走到機門、上去
+      const V = a.npc.vance, dx = c.door.x - V.x, dz = c.door.z - V.z, d = Math.hypot(dx, dz);
+      if (d < .4) { delete a.npc.vance; c.ph = 'taxi'; toast('范斯上了專機 · 帳本跟著他走'); return false; }
+      const k = Math.min(d, dt * 2.4) / d; V.x += dx * k; V.z += dz * k; V.yaw = Math.atan2(dx, dz); V.anim = ANIM.run; V.ph = 0;
+      return false;
+    }
+    if (c.ph === 'taxi') { J.v = Math.min(18, J.v + dt * 4); if (J.s > 140) { c.ph = 'roll'; toast('專機轉上跑道 · 全推力'); } }
+    else if (c.ph === 'roll') { J.v += dt * 5; if (J.v > 62) { c.ph = 'climb'; sfx.swoosh && sfx.swoosh(false); } }
+    else { J.v += dt * 2; J.pitch = Math.min(.2, J.pitch + dt * .12); J.y += dt * J.v * Math.sin(J.pitch); }
+    J.s += dt * J.v;
+    jetPose(a, J);
+    return J.y > 55;
+  },
+  hud: (a, s, c) => ({ text: c.ph === 'board' ? '范斯登機' : '目送專機起飛', bar: -1, num: c.J && c.J.v > 1 ? `${Math.round(c.J.v * 3.6)} km/h` : '' }),
+  mark: (a, s, c) => a.jet ? { name: '聯邦專機', x: a.jet.g.position.x, y: a.jet.g.position.y + 6, z: a.jet.g.position.z, where: 'out' } : null,
+  skip: (a, s, c) => { delete a.npc.vance; c.ph = 'climb'; c.J.y = 60; },
+};
 storyCleanups.push(a => { if (!a.jet) return; a.jet.g.removeFromParent(); for (const c of a.jet.dyn) { const i = dynMore.indexOf(c); if (i >= 0) dynMore.splice(i, 1); } a.jet = null; });
 
 // ─── F-4B 直播 ───
@@ -351,6 +508,7 @@ STEP.lift = {
     c.wait = true;
     transition(() => {
       if (player.mode === 'drive') exitVehicle();
+      loftOff(a);   // 室內的戴恩與霍爾的人收掉（a.npc.dane 是場館座標，出去前要拿掉）
       setWhere('out'); cardOff();
       const p = towerRoof(0, 0), r = towerRoof(3.5, -3);
       player.x = p.x; player.z = p.z; player.y = p.y + .05; player.yaw = camState.yaw = p.yaw; camState.snap = true; player.v = 0;
@@ -463,22 +621,135 @@ function storyEnding(end) {
 }
 // 69-police.js 的 crime：路人報警到派車的秒數（第九分局換了人慢一點；兩人上了通緝海報就快一點）
 function storyRepT() { return !S ? 3 : S.flags.end === 'B' ? 1.5 : S.flags.end === 'A' ? 4 : 3; }
-// 結局 B 的通緝海報：幾個主線去過的街角立一塊告示牌
-const posters = [];
-function posterSync() {
-  const on = !!(S && S.flags.end === 'B');
-  if (on && !posters.length) {
-    for (const p of [ST_CROWN(), ST_MID(), ST_NEON(), ST_HALO(), ST_DOCKS(), ST_TAPE(), ST_MOTEL()]) {
-      const g = new T.Group(), sign = v5Sign([['通緝', .2, '#9a2a22', .17], ['羅莎·伊巴拉', .12, '#1c1814', .4], ['戴恩·默瑟', .12, '#1c1814', .56], ['懸賞 $1,000,000', .08, '#3a3028', .74], ['第九分局 · 見到請立即報警', .06, '#5a4a3a', .88]], .9, 1.25, { bg: '#e6dcc4', edge: '#7a6a50' });
-      sign.position.set(0, 1.85, .05); g.add(sign);
-      const k = new Kit(); k.box(0, 1.3, -.02, .08, 2.6, .08, 0x3a3c40, 2).box(0, 1.85, 0, .98, 1.33, .04, 0x2a2c2e, 2);
-      g.add(new T.Mesh(k.build(), MAT.uber));
-      const yaw = frameYaw(p.x, p.z) + Math.PI / 2, [lx, lz] = toL(p.x, p.z), q = spotW({ x: lx + 1.4, z: lz + 1.4 });
-      g.position.set(q.x, groundH(q.x, q.z), q.z); g.rotation.y = yaw; scene.add(g); posters.push(g);
+// 結局 B 的通緝海報：玩家附近 PST_R 內的號誌桿與路燈桿，每根包一到三張紙（弧面貼著桿子）。牆面不貼：模型建築的碰撞面和畫面上的牆
+// 差到一兩公尺（櫥窗退縮、鷹架），貼上去不是藏在牆裡就是浮在半空；桿子的位置與粗細是確定的。每根桿子用自己的亂數，走遠再回來還是同樣幾張。
+// 紙照日光與路燈打光（shade），晚上不會自己亮
+const PST_N = 700, PST_R = 300, PST_K = 4;
+const pstCv = document.createElement('canvas'); pstCv.width = 512 * PST_K; pstCv.height = 736;
+{
+  const c = pstCv.getContext('2d', { willReadFrequently: true }); let x0c = 0; const F = (w, px) => `${w} ${px}px "PingFang TC","Heiti TC","Noto Sans CJK TC",system-ui,sans-serif`;
+  const mug = (x, y, w, h, seed, hair) => {   // 半色調印出來的嫌犯照：身高刻度的背板、頭肩的剪影
+    const R = rng(seed);
+    c.fillStyle = '#b9b2a2'; c.fillRect(x, y, w, h);
+    c.strokeStyle = 'rgba(40,36,30,.35)'; c.lineWidth = 2;
+    for (let k = 1; k < 8; k++) { const yy = y + h * k / 8; c.beginPath(); c.moveTo(x, yy); c.lineTo(x + w * (k % 2 ? .18 : .1), yy); c.stroke(); }
+    const cx = x + w * (.48 + R() * .04), hy = y + h * .4, hw = w * .2;
+    c.fillStyle = '#4a443c';
+    c.beginPath(); c.ellipse(cx, y + h * 1.02, w * .46, h * .3, 0, Math.PI, 0); c.fill();                  // 肩
+    c.fillRect(cx - hw * .42, hy + hw * .9, hw * .84, h * .25);                                             // 脖子
+    c.beginPath(); c.ellipse(cx, hy, hw, hw * 1.28, 0, 0, Math.PI * 2); c.fill();                           // 頭
+    c.fillStyle = '#2a2622';
+    if (hair) { c.beginPath(); c.ellipse(cx, hy - hw * .35, hw * 1.12, hw * 1.05, 0, Math.PI, 0); c.fill(); c.fillRect(cx - hw * 1.12, hy - hw * .4, hw * .5, h * .42); c.fillRect(cx + hw * .62, hy - hw * .4, hw * .5, h * .42); }
+    else { c.beginPath(); c.ellipse(cx, hy - hw * .55, hw * 1.02, hw * .7, 0, Math.PI, 0); c.fill(); }
+    c.fillStyle = 'rgba(232,224,204,.55)';                                                                   // 網點：亮的地方點大
+    const D = c.getImageData(x0c + x, y, w, h).data;   // 先讀整塊再點（邊點邊讀會讀到剛點上去的）
+    for (let yy = 3; yy < h; yy += 6) for (let xx = 3 + (yy / 6 % 2) * 3; xx < w; xx += 6) { const d = D[((yy | 0) * w + (xx | 0)) * 4] / 255; c.beginPath(); c.arc(x + xx, y + yy, .6 + d * 2.1, 0, Math.PI * 2); c.fill(); }
+    c.strokeStyle = '#1c1814'; c.lineWidth = 3; c.strokeRect(x, y, w, h);
+  };
+  for (let k = 0; k < PST_K; k++) {
+    const x0 = x0c = k * 512, W = 512, H = 736;
+    c.save(); c.beginPath(); c.rect(x0, 0, W, H); c.clip(); c.translate(x0, 0);
+    c.fillStyle = '#ebe4d2'; c.fillRect(0, 0, W, H);
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#9a2a22'; c.font = F(900, 104); c.fillText('通　緝', W / 2, 78);
+    c.fillStyle = '#1c1814'; c.fillRect(36, 138, W - 72, 4); c.font = F(600, 24); c.fillText('第九分局 · 刑事案件 2026-0417', W / 2, 166);
+    const duo = k === 0 || k === 3;
+    if (duo) {
+      mug(40, 196, 206, 250, 11, 1); mug(266, 196, 206, 250, 23, 0);
+      c.fillStyle = '#1c1814'; c.font = F(800, 36); c.fillText('羅莎·伊巴拉', 143, 482); c.fillText('戴恩·默瑟', 369, 482);
+      c.font = F(500, 21); c.fillStyle = '#3a3028'; c.fillText('女 · 約 30 歲 · 黑長髮', 143, 516); c.fillText('男 · 約 35 歲 · 左臂刺青', 369, 516);
+    } else {
+      const rosa = k === 1;
+      mug(106, 196, 300, 296, rosa ? 11 : 23, rosa);
+      c.fillStyle = '#1c1814'; c.font = F(800, 46); c.fillText(rosa ? '羅莎·伊巴拉' : '戴恩·默瑟', W / 2, 532);
+      c.font = F(500, 22); c.fillStyle = '#3a3028'; c.fillText(rosa ? '女 · 約 30 歲 · 黑長髮 · 身高 168' : '男 · 約 35 歲 · 左臂刺青 · 身高 183', W / 2, 570);
     }
+    c.fillStyle = '#9a2a22'; c.font = F(900, 58); c.fillText(duo ? '懸賞 $1,000,000' : '懸賞 $500,000', W / 2, duo ? 594 : 628);
+    c.fillStyle = '#3a3028'; c.font = F(600, 22); c.fillText('持有武器，切勿自行接近', W / 2, duo ? 648 : 676); c.fillText('見到請立即撥打第九分局專線', W / 2, duo ? 680 : 706);
+    if (k === 3) {   // 被人用紅漆噴了字（直播轉傳之後，街上有人站在他們那邊）
+      c.save(); c.translate(W * .52, H * .42); c.rotate(-.22); c.strokeStyle = 'rgba(196,30,36,.9)'; c.lineWidth = 20; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.font = F(900, 170); c.fillStyle = 'rgba(196,30,36,.86)'; c.fillText('英雄', 0, 0);
+      c.lineWidth = 9; c.beginPath(); c.moveTo(-190, 96); c.quadraticCurveTo(0, 130, 196, 84); c.stroke(); c.restore();
+    }
+    c.restore();
   }
-  for (const g of posters) g.visible = on;
 }
+const pstTex = new T.CanvasTexture(pstCv); pstTex.colorSpace = T.SRGBColorSpace; pstTex.anisotropy = 8;
+const PST_VS = /* glsl */`
+attribute vec4 aP;
+varying vec3 vW, vN; varying vec2 vUv; varying vec4 vP;
+void main(){ mat4 m = modelMatrix * instanceMatrix; vec4 w = m * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(m) * normal); vUv = uv; vP = aP; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const PST_FS = /* glsl */`
+${GL_LIB}
+uniform sampler2D tP;
+varying vec3 vW, vN; varying vec2 vUv; varying vec4 vP;
+void main(){
+  if (vW.y < uClipY) discard;
+  float s = vP.y;
+  if (s > .6) { vec2 q = s > .8 ? 1. - vUv : vUv; if (q.x + q.y * .8 < .14 + .1 * n2(vUv * 34. + s * 90.)) discard; }   // 撕掉一角
+  vec3 t = texture2D(tP, vec2((vP.x + vUv.x) / ${PST_K}., vUv.y)).rgb;
+  float age = vP.z;
+  t *= mix(vec3(1.), vec3(1., .9, .74), age) * (1. - .22 * age * smoothstep(.45, 1., n2(vUv * vec2(5., 16.) + s * 31.)));   // 曬黃、雨水流下來的漬
+  t *= .82 - .2 * uWet;
+  vec3 v = normalize(uCam - vW);
+  gl_FragColor = vec4(applyFog(shade(vW, normalize(vN), v, t, .92, 0.), vW), 1.);
+}`;
+const pstMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), tP: { value: pstTex } }, vertexShader: PST_VS, fragmentShader: PST_FS, side: T.DoubleSide });
+// 包在半徑 R 的桿子上、弧長 w、高 h 的紙（正中朝 +z）；離桿面 6 mm
+function pstWrap(R, w, h) {
+  const g = new T.BufferGeometry(), P = [], Nn = [], UV = [], I = [], S = 14, r = R + .006, th = w / r;
+  for (let i = 0; i <= S; i++) { const u = i / S, a = (u - .5) * th, sx = Math.sin(a), cz = Math.cos(a); for (const v of [0, 1]) { P.push(sx * r, (v - .5) * h, cz * r); Nn.push(sx, 0, cz); UV.push(u, v); } }
+  for (let i = 0; i < S; i++) { const k = i * 2; I.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+  g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(Nn, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setIndex(I);
+  return g;
+}
+// 號誌桿：20-props.js 的 sigBuild 錐形柱（y .47 半徑 .165 → y 6.42 半徑 .118，沒有換模型）；路燈：程式建模的錐形柱（約 .095），換成 w1_grc 的模型後是 .053
+const PST_POLE = { sig: { R0: .156, w: .32, rAt: y => .165 - (y - .47) / 5.95 * .047 }, lamp: { R0: .06, w: .27, rAt: () => W2.swapped.includes('lamps') ? .053 : .095 } };
+const pst = { m: {}, n: 0, at: null, lamps: null };
+const _pd = new T.Object3D();
+function pstBuild(cx, cz) {
+  const out = { sig: [], lamp: [] };
+  // 一根桿子：P 是世界座標，face 是朝人行道的方向（弧度，世界座標的 yaw）；亂數照桿子的位置
+  const pole = (kind, X, Z, face, chance) => {
+    if (Math.hypot(X - cx, Z - cz) > PST_R || out[kind].length >= PST_N) return;
+    const R = rng(Math.round(X * 10) * 73856093 ^ Math.round(Z * 10) * 19349663), cnt = R() < chance ? 1 + (R() < .45) + (R() < .2) : 0, gy = groundH(X, Z), off = R() * 6.28;
+    for (let k = 0; k < cnt; k++) {
+      const y = 1.35 + R() * .55 + (k === 2 ? .5 : 0), yaw = face + (k === 0 ? (R() - .5) * 1.2 : k === 1 ? Math.PI * (.55 + R() * .5) + off * .1 : -Math.PI * (.5 + R() * .4));
+      out[kind].push({ x: X, z: Z, y: gy + y, yaw, k: PST_POLE[kind].rAt(y) / PST_POLE[kind].R0, kind: (R() * 4) | 0, s: R(), age: R() });
+    }
+  };
+  for (const s of signals) {
+    const [X, Z] = s.zn ? toW(s.x, s.z, s.zn) : [s.x, s.z], n = s.node, [NX, NZ] = s.zn ? toW(avX(n.i), stZ(n.j), s.zn) : [n.x, n.z];
+    pole('sig', X, Z, Math.atan2(X - NX, Z - NZ), .8);   // 朝路口外（站在街角等紅燈的人看得到）
+  }
+  for (const L of [lampsA, lampsS]) for (const l of L) {
+    const [X, Z] = toW(l.x, l.z, l.zn), [HX, HZ] = L === lampsA ? toW(l.hx, l.z, l.zn) : toW(l.x, l.hz, l.zn);
+    pole('lamp', X, Z, Math.atan2(X - HX, Z - HZ), .5);   // 燈臂伸向車道，紙貼在背面（人行道那側）
+  }
+  pst.n = 0;
+  for (const kind of ['sig', 'lamp']) {
+    const P = PST_POLE[kind], L = out[kind];
+    let m = pst.m[kind];
+    if (!m) {
+      m = pst.m[kind] = new T.InstancedMesh(pstWrap(P.R0, P.w, P.w * 1.44), pstMat, PST_N);
+      m.geometry.setAttribute('aP', new T.InstancedBufferAttribute(new Float32Array(PST_N * 4), 4));
+      m.userData.noTess = 1; scene.add(m);
+    }
+    const A = m.geometry.attributes.aP;
+    L.forEach((p, i) => { _pd.position.set(p.x, p.y, p.z); _pd.rotation.set(0, p.yaw, 0); _pd.scale.set(p.k, 1, p.k); _pd.updateMatrix(); m.setMatrixAt(i, _pd.matrix); A.setXYZW(i, p.kind, p.s, p.age, 0); });
+    m.count = L.length; pst.n += L.length; m.instanceMatrix.needsUpdate = true; A.needsUpdate = true; m.computeBoundingSphere();
+  }
+  pst.at = [cx, cz]; pst.lamps = PST_POLE.lamp.rAt(0);
+}
+// 每幀（storyUpdate）：結局 B 才貼；走離上次貼的中心 90 m，或路燈換成模型（桿子變細）就重貼
+function posterTick() {
+  const on = !!(S && S.flags.end === 'B'), out = player.where === 'out';
+  for (const m of Object.values(pst.m)) m.visible = on && out;
+  if (!on || !out) return;
+  const x = pX(), z = pZ();
+  if (!pst.at || Math.hypot(x - pst.at[0], z - pst.at[1]) > 90 || pst.lamps !== PST_POLE.lamp.rAt(0)) pstBuild(x, z);
+}
+function posterSync() { pst.at = null; posterTick(); }
 
 // ─── 手機的「主線任務」：重玩做過的任務 ───
 function storyPhoneRows() {
@@ -513,7 +784,7 @@ storyAdd([
       { type: 'say', with: 'dane', lines: [L('dane', '三台車，沒有車牌，引擎都沒熄。'), L('rosa', '霍爾知道正本在我們手上。'), L('dane', '頂樓有陽台。陽台下面是泳池。'), L('rosa', '你在開玩笑。')] },
       { type: 'fight', text: '霍爾的人堵在大樓門口', at: ST_LOFT, n: 6, r: 13, esc: true, hot: true, guns: ['rifle', 'smg', 'pistol'] },
       { type: 'loft', text: '上樓：按 E 沿旋轉樓梯上夾層' },
-      { type: 'card', k: '冠石頂層公寓 · 夾層', t: '凌晨四點', lines: [['dane', '他們上樓了。電梯、樓梯，兩邊都是。'], ['rosa', '窗外就是陽台。你相信我嗎？'], ['dane', '從來沒有。'], ['rosa', '很好。牽著。']] },
+      { type: 'say', with: 'dane', lines: [['dane', '他們上樓了。電梯、樓梯，兩邊都是。'], ['rosa', '窗外就是陽台。你相信我嗎？'], ['dane', '從來沒有。'], ['rosa', '很好。牽著。']] },   // 在夾層的窗邊對話（場館裡，戴恩就站在旁邊），講完淡出接室外的陽台
       { type: 'leap', text: '牽著戴恩從頂樓跳進泳池', ck: true },
       { type: 'fn', fn: () => { addHeat(99, 4); toast('霍爾調了整個分局 · 4 星'); } },
       { type: 'lose', text: '甩掉霍爾調來的整個分局' },
@@ -538,6 +809,7 @@ storyAdd([
       { type: 'run', text: '把帳本送到灰鷺角機場的聯邦專機', to: ST_JET, r: 12, drive: true, name: '聯邦專機' },
       { type: 'fn', fn: a => { a.chaseOn = 0; if (SQ.chase) chaseEnd(true); wantedClear('reset'); a.npc.vance = nearL(ST_JET(), 3, .8, -Math.PI / 2); } },
       { type: 'say', with: 'vance', lines: [L('vance', '準時。'), L('rosa', '正本跟副本都在。'), L('vance', '霍爾今天下午就會被帶走。'), L('dane', '史塔林呢？'), L('vance', '她請得起最好的律師。你們兩個自由了，這是我能給的。')] },
+      { type: 'jet' },   // 范斯登機，專機滑行、起飛
       { type: 'fn', fn: () => storyEnding('A') },
       { type: 'card', k: '片尾', t: '星期天的晚餐', hold: 2.4 },
       { type: 'fade', to: () => stAt(ROSA_L, .6, .8, Math.atan2(1.2, -1.4)), gray: 0 },   // 面向母親（下一行站在 1.8, -0.6）
@@ -603,4 +875,4 @@ ctxHooks.push(p => {
   return { key: 'E', text: `跟盧佩說話 <i>· 存檔${S.flags.house ? '' : '、買回房子'}</i>`, fn: lupeAsk };
 });
 
-storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], roofFoes: () => roofFoes(side.act).map(f => ({ x: f.x, z: f.z, y: fGround(f), hp: f.hp })), loft: ST_LOFT, jet: () => { const j = side.act && side.act.jet; return j ? { x: j.g.position.x, z: j.g.position.z, ry: j.g.rotation.y, model: j.g.children.length > 0, dyn: j.dyn.length } : null; }, house: { buy: houseBuy, ask: lupeAsk, at: lupeAt, P: HOUSE_P, lines: () => ({ A: finA().map(l => l[1]), B: finB().map(l => l[1]) }) } };
+storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => Object.values(pst.m).some(m => m.visible) ? pst.n : 0, posterAt: (x, z) => { pstBuild(x, z); return pst.n; }, poster: (i, kind = 'sig') => { const m = pst.m[kind]; if (!m || i >= m.count) return null; const M = new T.Matrix4(); m.getMatrixAt(i, M); const e = M.elements; return { x: e[12], y: e[13], z: e[14], nx: e[8], nz: e[10], k: Math.hypot(e[8], e[10]) }; }, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], roofFoes: () => roofFoes(side.act).map(f => ({ x: f.x, z: f.z, y: fGround(f), hp: f.hp })), loft: ST_LOFT, jet: () => { const j = side.act && side.act.jet; return j ? { x: j.g.position.x, y: j.g.position.y, z: j.g.position.z, ry: j.g.rotation.y, model: j.g.children.length > 0, dyn: j.dyn.length } : null; }, house: { buy: houseBuy, ask: lupeAsk, at: lupeAt, P: HOUSE_P, lines: () => ({ A: finA().map(l => l[1]), B: finB().map(l => l[1]) }) } };

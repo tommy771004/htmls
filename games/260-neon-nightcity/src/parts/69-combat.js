@@ -299,6 +299,7 @@ function shoot() {
       }
       else if (player.where === 'bank') bankShot(R, A.dmg * abil.out);   // 銀行大廳：射線只算人質與警衛（69-heist.js）
       else if (player.where === 'casinoB') casinoShot(R, A.dmg * abil.out * (mkOf(id) ? MK_DMG : 1));   // 69-v7-casino.js：金庫的警衛與攝影機
+      else if (player.where === 'loft') loftShot(R, A.dmg * abil.out);   // 69-w5-fin.js：終章頂層公寓破門進來的霍爾手下
     }
     arm.bloom = Math.min(A.spread * 1.5, arm.bloom + A.spread * .25);
   }

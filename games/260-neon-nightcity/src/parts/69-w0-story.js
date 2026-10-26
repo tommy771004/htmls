@@ -505,7 +505,7 @@ STEP.lose = {
 // ─── 字幕對白：鏡頭在說話的兩人旁邊（with 的人站在 a.npc 裡），沒有對象就繞著玩家轉 ───
 const say = { on: false, lines: [], i: 0, lt: 0, t: 0, with: null, then: null, phone: '', side: 1, a0: 0 };
 function sayStart(s, a, then) {
-  Object.assign(say, { on: true, lines: s.lines, i: 0, lt: 0, t: 0, then, phone: s.phone || '', with: s.with ? sayWho(a, s.with) : null, a0: camState.yaw + Math.PI * .7, side: 1 });
+  Object.assign(say, { on: true, lines: s.lines, i: 0, lt: 0, t: 0, then, at: player.where, phone: s.phone || '', with: s.with ? sayWho(a, s.with) : null, a0: camState.yaw + Math.PI * .7, side: 1 });
   if (say.with) { const q = say.with, ux = q.x - pX(), uz = q.z - pZ(), l = Math.hypot(ux, uz) || 1, mx = (q.x + pX()) / 2, mz = (q.z + pZ()) / 2;
     const free = sd => { const x = mx - uz / l * sd * 3.4, z = mz + ux / l * sd * 3.4, r = collideCircle(x, z, .5, false); return -Math.hypot(r.x - x, r.z - z); };
     say.side = free(1) >= free(-1) ? 1 : -1; }
@@ -666,6 +666,7 @@ function storyPre() {
 }
 function storyUpdate(dt) {
   if (!S) return;
+  posterTick();   // 69-w5-fin.js：結局 B 的通緝海報
   const a = side.act, out = player.where === 'out';
   // 起點的圈與站在起點的人
   const m = storyNext(), idle = m && !a && out && !SQ.def && (heist.st === 'off' || heist.st === 'plan');
@@ -679,7 +680,7 @@ function storyUpdate(dt) {
     if (!q || !out || !PEOPLE) { castCrowd.place(k, 0, -60, 0, 0); return; }
     if (!p.rig || p.lookId !== id) { castCrowd.look(k, castLook(k, id)); p.lookId = id; }
     const d = Math.hypot(q.x - pX(), q.z - pZ()), talking = say.on && say.with === q;
-    castCrowd.anim(k, q.anim ?? (talking || d < 4 ? ANIM.talk : CAST[id].ci !== undefined ? CREW[CAST[id].ci].idle : ANIM.idle), q.anim ? -uTimeNow() : k * 2.3, 1);   // anim、y：終章跳下去、站在塔頂
+    castCrowd.anim(k, q.anim ?? (talking || d < 4 ? ANIM.talk : CAST[id].ci !== undefined ? CREW[CAST[id].ci].idle : ANIM.idle), q.anim ? q.ph ?? -uTimeNow() : k * 2.3, 1);   // anim、y：終章跳下去、站在塔頂；ph 給了就照常循環（范斯跑去登機）
     castCrowd.place(k, q.x, q.y ?? footY(q.x, q.z), q.z, d < 7 && !q.anim ? Math.atan2(pX() - q.x, pZ() - q.z) : q.yaw);
   });
   // 主線的配角站出來時，同一個人的閒置身體（69-crew.js 的 crewNpc）收起來
@@ -695,9 +696,9 @@ function storyLate() {
   if (!say.on) return;
   const dt = slowmo.raw;
   say.t += dt;
-  if (crew.sw || life.dead || player.where !== 'out') { sayEnd(true); return; }
+  if (crew.sw || life.dead || player.where !== say.at) { sayEnd(true); return; }   // 在哪裡開始就在哪裡講完（終章頂層公寓的窗邊在室內）
   if ((say.lt += dt) > 2.4 + say.lines[say.i][1].length * .12) { sayNext(); if (!say.on) return; }
-  const q = say.with, gy = groundH(pX(), pZ());
+  const q = say.with, gy = say.at === 'out' ? groundH(pX(), pZ()) : player.y;
   if (q) {
     const ux = q.x - pX(), uz = q.z - pZ(), l = Math.hypot(ux, uz) || 1, sd = say.side, k = Math.min(1, say.t / .6), e = k * k * (3 - 2 * k), drift = Math.sin(say.t * .25) * .35;
     if (player.mode === 'walk') player.yaw += wrapA(Math.atan2(ux, uz) - player.yaw) * Math.min(1, dt * 6);
