@@ -249,18 +249,27 @@ async function desktop() {
     await page.waitForTimeout(1500);
     check((await nc(() => window.__nc.gta.arm.ammo.pistol.mag)) === 16, '按 R 換彈匣');
     // 持槍姿勢（40-people.js 的 gunPose）：瞄準時雙手的手腕都送到槍上的握點；長槍沒瞄準時也雙手握著
+    // 玩家站在搶車的車道上，車流的車撞到會倒地 2.6 秒（68-gta.js 的 knockPlayer：槍收起來、取消瞄準），等爬起來再重新拿槍量，最多 3 次
     const grip = {};
+    let knocked = 0;
     await nc(() => window.__nc.gta.fill());
     for (const [w, a] of [['pistol', 1], ['rifle', 1], ['rifle', 0], ['shotgun', 1], ['rpg', 1], ['minigun', 1]]) {
-      await nc(([w, a]) => { window.__nc.gta.weapon(w); window.__nc.gta.aim(!!a); }, [w, a]);
-      await page.waitForTimeout(700);
-      const h = await nc(() => { const h = window.__nc.gta.held(); return h && h.ik; });
+      let h = null;
+      for (let t = 0; t < 3 && !h; t++) {
+        await page.waitForFunction(() => !(window.__nc.player.down > 0), null, { timeout: 4000 }).catch(() => {});
+        await nc(([w, a]) => { window.__nc.gta.weapon(w); window.__nc.gta.aim(!!a); }, [w, a]);
+        await page.waitForTimeout(700);
+        h = await nc(() => { const h = window.__nc.gta.held(); return h && h.ik; });
+        if (!h && await nc(() => window.__nc.player.down > 0)) knocked++;
+      }
       grip[w + (a ? '' : '低姿')] = h ? Math.max(h.r, h.l) : null;
     }
     await nc(() => { window.__nc.gta.aim(false); window.__nc.gta.weapon('pistol'); });
-    check(Object.values(grip).every(e => e != null && e < .03), `雙手握在槍上（手腕離握點的最大距離，公尺）${JSON.stringify(grip)}`);
+    check(Object.values(grip).every(e => e != null && e < .03), `雙手握在槍上（手腕離握點的最大距離，公尺）${JSON.stringify(grip)}${knocked ? `（量的時候被車撞倒 ${knocked} 次，爬起來重量）` : ''}`);
     const boom = await nc(() => new Promise((r) => {
-      const nc = window.__nc, v = nc.gta.jacked[0];
+      const nc = window.__nc, v = nc.gta.jacked[0], P = nc.player, d = Math.hypot(v.x - P.x, v.z - P.z);
+      // 玩家下車後還站在旁邊的話先把車挪到 35 m 外：爆炸半徑 12 m，近距離連同附近車流的連鎖爆炸會把玩家炸死（後面車內射擊、護甲、警察都跟著失敗）
+      if (d < 35) { const a = d > .1 ? Math.atan2(v.x - P.x, v.z - P.z) : P.yaw; v.x = P.x + Math.sin(a) * 35; v.z = P.z + Math.cos(a) * 35; v.vx = v.vz = 0; }
       nc.gta.damage(v, v.hpMax * .6);   // 照耐久上限的比例（車流車型的上限 1000–1250 不等，固定 600 打不到冒白煙的 50%）
       setTimeout(() => { const smoke = nc.gta.parts.filter(p => p.kind === 'smoke').length; nc.gta.damage(v, v.hpMax * .9); setTimeout(() => r({ smoke, dead: !!v.dead, burn: v.burn, dark: nc.gta.parts.filter(p => p.kind === 'dark').length }), 300); }, 800);
     }));
@@ -268,10 +277,17 @@ async function desktop() {
     const ped = await nc(() => { const nc = window.__nc; nc.gta.knockPed(0, 1, 0); return { down: nc.pedState[0].down > 0, panic: nc.pedState.filter(p => p.panic > 0).length }; });
     check(ped.down, `路人中彈倒地，附近 ${ped.panic} 人逃跑`);
     // 電擊槍：倒地抽搐、原地爬起來逃跑（不瞬移）；車內射擊：汽車上可用手槍，霰彈槍只有機車
-    const st0 = await nc(() => { const nc = window.__nc, g = nc.gta, p = nc.peds.people[1]; g.stunPed(1, .8, 1, 0); return { x: p.x, z: p.z, down: nc.pedState[1].down > 0, stun: nc.pedState[1].stun }; });
-    await page.waitForTimeout(1600);
-    const st1 = await nc(() => { const nc = window.__nc, p = nc.peds.people[1], s = nc.pedState[1]; return { x: p.x, z: p.z, down: s.down > 0, panic: s.panic > 0 }; });
-    check(st0.down && st0.stun && !st1.down && st1.panic && Math.hypot(st1.x - st0.x, st1.z - st0.z) < 6, `電擊槍：路人倒地後原地爬起逃跑 ${JSON.stringify({ moved: +Math.hypot(st1.x - st0.x, st1.z - st0.z).toFixed(1), panic: st1.panic })}`);
+    // 「原地」量的是爬起來那一幀離倒地處多遠（頁面裡每幀看 down）：爬起來後用逃跑的速度跑，固定等 1.6 秒的話頁面忙時多跑的距離會超過門檻
+    const tz = await nc(() => new Promise((r) => {
+      const nc = window.__nc, p = nc.peds.people[1], s = nc.pedState[1]; nc.gta.stunPed(1, .8, 1, 0);
+      const x0 = p.x, z0 = p.z, down = s.down > 0, stun = s.stun, t0 = performance.now();
+      const tick = () => {
+        if (s.down > 0 && performance.now() - t0 < 4000) return requestAnimationFrame(tick);
+        r({ down, stun, up: !(s.down > 0), t: +((performance.now() - t0) / 1000).toFixed(1), moved: +Math.hypot(p.x - x0, p.z - z0).toFixed(1), panic: s.panic > 0 });
+      };
+      requestAnimationFrame(tick);
+    }));
+    check(tz.down && tz.stun && tz.up && tz.panic && tz.moved < 1.5, `電擊槍：路人倒地後原地爬起逃跑 ${JSON.stringify({ moved: tz.moved, t: tz.t, panic: tz.panic })}`);
     const db = await nc(() => { const nc = window.__nc, g = nc.gta; nc.drive(); g.wanted.clear('reset'); g.fill(); g.equip('pistol', true); g.state.fireT = g.state.reloadT = 0; g.fire(); return { mode: nc.player.mode, mag: g.arm.ammo.pistol.mag, sg: g.canDriveBy('shotgun'), rf: g.canDriveBy('rifle'), dead: g.life.dead, god: g.god.on, where: nc.player.where, pist: g.canDriveBy('pistol') }; });
     check(db.mode === 'drive' && db.mag === 15 && !db.sg && !db.rf, `車內射擊：手槍可開火、霰彈槍與步槍不行 ${JSON.stringify(db)}`);
     await nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); window.__nc.walk(); });
