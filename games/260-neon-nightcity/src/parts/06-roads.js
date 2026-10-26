@@ -315,14 +315,14 @@ for (const F of FWY) {
 }
 // ─── 匝道（單向，kind 'f'、ramp）：出口匝道在行車方向的右手邊從主線分出，RAMP_DIV 公尺內岔開到 RAMP_D（放不下就試 26 m）外，
 // 岔開的那段跟著主線的高度（兩座橋面還疊在一起），再下坡，在下一條從橋下穿過的連接道路上以 T 字路口（號誌，匝道一相、連接道路一相）落地；
-// 入口匝道反過來，從同一個路口上去，在越過那條路之後併入主線。分合流點要在主線至少 4 m 高的地方、離別的分合流點 30 m 以上；岔開段不能在主線急彎內側折回；
+// 入口匝道反過來，從同一個路口上去，在越過那條路之後併入主線。分合流點要在主線至少 4 m 高的地方、離快速道路的分合流點 30 m、別的匝道的分合流點 RAMP_GAP 以上；岔開段不能在主線急彎內側折回；
 // 整條匝道離片的路與人行道、別的快速道路與匝道都要夠遠，越過別的連接道路的地方要有 6.6 m 高。下坡最陡約 11%。
 // 兩條快速道路大半走在天樞島的水道上：匝道可以整段在水上（落地在跨水道的橋上），水上那段的橋面至少 RAMP_WET 高，21-coast.js 照離水底的高度當成橋、立橋墩
-const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, RAMP_WET = .4, FWY_RAMPS = [];
+const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, RAMP_WET = .4, RAMP_GAP = 70, FWY_RAMPS = [];
 {
   const CD = RN.edges.filter(e => e.kind === 'c' || e.kind === 'd');
   const segD = (pts, x, z) => { let b = 1e9; for (let k = 1; k < pts.length; k++) { const a = pts[k - 1], q = pts[k], dx = q[0] - a[0], dz = q[1] - a[1], t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1); b = Math.min(b, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t)); } return b; };
-  const busy = F => [...(F.joins || []).map(j => j.a), ...FWY_RAMPS.filter(r => r.F === F).map(r => r.aM)];
+  const busy = F => [...(F.joins || []).map(j => [j.a, 30]), ...FWY_RAMPS.filter(r => r.F === F).map(r => [r.aM, RAMP_GAP])];   // 匝道的分合流點彼此隔 RAMP_GAP（太近會交織，21-xrail.js 也立不了柱）
   // 連接道路和主線右手邊 l 那條線的交點
   const landing = (F, e, l) => {
     for (let k = 1; k < e.pts.length; k++) {
@@ -342,7 +342,7 @@ const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, RAMP_WET = .4, FWY_RA
       if (!T || T.u < HR + 8 || T.u > e.len - HR - 8) continue;
       for (let Lr = 130; Lr <= 320; Lr += 10) {
         const aM = T.a + sg * Lr;
-        if (aM < F.a0 || aM > F.a1 || busy(F).some(b => Math.abs(b - aM) < 30)) continue;
+        if (aM < F.a0 || aM > F.a1 || busy(F).some(([b, g]) => Math.abs(b - aM) < g)) continue;
         // 中心線：從分合流點沿主線往落地點，側向距離緩和地岔開；高度先跟著主線，再降到地面（落地點前 FWY_PAD 是平的）
         const pts = [], hs = [], n = Math.ceil(Lr / 4), span = Lr - FWY_PAD - RAMP_DIV + 10;
         for (let k = 0; k <= n; k++) {

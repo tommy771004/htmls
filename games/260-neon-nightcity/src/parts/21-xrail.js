@@ -13,6 +13,7 @@ const XR = (() => {
   const end = H.S.at(-1), aS = H.a0 + HR + 8;
   let aE = end - 50;
   while (aE > aS && (() => { const [x, z] = fwyAt(H, aE); return !inCity(x, z) || polyDistPt(CITY_POLY, x, z) < 40; })()) aE -= 10;
+  if (!H.tail && aE > H.a1 - HR - 14 && aE - H.a1 < 60) aE = H.a1 - HR - 14;   // 越過平面路口之後放不下一跨（天樞島之後港灣的東端很短）：停在路口前，線頭才有柱子撐
   if (aE - aS < 900) return null;
   const at = (a, lat = 0) => { const [x, z, hx, hz] = fwyAt(H, a); return [x - hz * lat, z + hx * lat, hx, hz]; };   // lat：往 (−hz, hx) 那一側
   // 站：兩端各一個（月台從線頭往裡 XR_PLAT），中間一站挑在兩站中點附近、不在快速道路東端的平面路口上
@@ -87,12 +88,15 @@ if (XR) {
   // 分合流段：快速道路在匯入的橋面疊住的地方不立橋墩，這裡改成從地面立整支穿過橋面（中心線離開別條快速道路的橋面才立，分合流點前後 JN 不立）
   const roadC = RN.edges.filter(e => e.kind === 'c' || e.kind === 'd');
   const offOther = (x, z) => FWY.every(F => F === H || fwyProj(F, x, z).d > DECK_W + 1.5);
+  // 匝道的分合流段也一樣（匝道從主線中心線岔開，那段的橋墩被 21-coast.js 的 deckOn 擋掉）：柱子不能穿過匝道的橋面
+  const MR = FWY_RAMPS.filter(r => r.F === H), nearRamp = a => MR.some(r => Math.abs(a - r.aM) < RAMP_DIV + 30);
+  const offRamp = (x, z) => MR.every(r => r.pts.every((q, i) => !i || segD(x, z, r.pts[i - 1], q) > RAMP_DW + .8));
   // 能不能在 a 立柱：回傳 [柱腳高, 腳的橫向位置]，不行回傳 null
   const site = a => {
     if (nearJ(a, JN)) return null;
     const [x, z] = R.at(a), road = a > H.a0 - 1 && a < H.a1 + 1, h = road ? H.h(a) : 0;
     if (road && (Math.abs(a - H.a0) < HR + 12 || Math.abs(a - H.a1) < HR + 12)) return null;   // 平面路口
-    if (road && h >= PIER_H) return nearJ(a, 120) && offOther(x, z) && !roadC.some(e => e.pts.some((q, i) => i && segD(x, z, e.pts[i - 1], q) < (e.hw || HR) + 3)) ? [0, [0]] : null;
+    if (road && h >= PIER_H) return (nearJ(a, 120) || nearRamp(a)) && offOther(x, z) && offRamp(x, z) && !roadC.some(e => e.pts.some((q, i) => i && segD(x, z, e.pts[i - 1], q) < (e.hw || HR) + 3)) ? [0, [0]] : null;
     if (road) return nearJ(a, 45) ? null : [h, [0]];   // 坡道上：立在中央護欄上
     if (roadNear(x, z)[0] < HR + SW + 2 || nearConn(x, z, 3) || SEAM_SITES.some(o => Math.hypot(o.x - x, o.z - z) < o.R + 6)) return null;
     return [0, onWalk(x, z) ? [-4.6, 4.6] : [0]];
