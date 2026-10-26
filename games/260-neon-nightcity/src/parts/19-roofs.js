@@ -28,7 +28,7 @@ function roofKind(L) {
   const pitch = kind === 'hip' ? 28 : 34 + roofHash(L, 2) * 8, half = w / 2;
   const H = kind === 'mansard' ? 3 : Math.min(5.5, half * Math.tan(pitch * Math.PI / 180));
   const mat = beach ? TX.tile : works ? TX.seam : TX.slate;
-  const col = beach ? [0xa4532f, 0x9a4a2c, 0xb0623a, 0x8c4a32][Math.floor(roofHash(L, 3) * 4)]
+  const col = beach ? [0x9a5a40, 0x8e5038, 0xa26748, 0x845040][Math.floor(roofHash(L, 3) * 4)]
     : works ? [0x5d6468, 0x6b4a3c, 0x4e5a52, 0x707478][Math.floor(roofHash(L, 3) * 4)]
     : [0x3c4048, 0x45434a, 0x34393f][Math.floor(roofHash(L, 3) * 3)];
   return L.rk = { kind, w, dp, H, mat, col, y0: L.h + ROOF_H0, chim: roofHash(L, 4) < (works ? .25 : .55), oh: kind === 'mansard' ? .22 : .38 };

@@ -539,6 +539,7 @@ void main(){
 const FACADE_FS = /* glsl */`
 ${GL_LIB}
 varying vec3 vW, vN; varying vec2 vUv; varying vec4 vB, vB2;
+uniform highp sampler2DArray uFacA, uFacN; uniform vec4 uFac;   // 08-tex.js 的照片材質（uFac.x 底色、y 法線）
 vec3 L(vec3 c){ return c*c; }
 float brick(vec2 q, out vec2 id){
   vec2 b = q / vec2(.23, .076);
@@ -548,6 +549,19 @@ float brick(vec2 q, out vec2 id){
   float m = smoothstep(0., .1, f.y) * smoothstep(1., .9, f.y) * smoothstep(0., .04, f.x) * smoothstep(1., .96, f.x);
   float lod = 1. - smoothstep(.12, .45, fwidth(b.y));
   return mix(.8, m, lod);
+}
+// 玻璃映出的對街（白天）：反射線往外走一條街寬（18 m）撞到對面的樓，高度照 seed 抽 9–25 m；
+// 撞到的話畫對面的磚牆與窗格（受天光與斜射的太陽），沒撞到才是天空（envMap）
+vec3 oppRefl(vec3 p, vec3 r, vec3 n, float seed){
+  float t = 18. / max(dot(r, n), .06), hy = p.y + r.y * t, Ho = 9. + 16. * h21(vec2(seed, 5.3));
+  vec3 env = envMap(r);
+  if (hy > Ho || r.y < -.9) return env;
+  vec3 q = p + r * t; vec2 w = vec2(dot(q.xz, vec2(-n.z, n.x)), hy);
+  vec3 wc = mix(vec3(.2,.11,.08), vec3(.24,.22,.2), step(.5, h21(vec2(floor(w.x / 30.), seed))));
+  float win = step(.3, fract(w.x / 2.5)) * step(fract(w.x / 2.5), .75) * step(.2, fract(w.y / 3.1)) * step(fract(w.y / 3.1), .78) * step(4.6, hy);
+  vec3 c = wc * (uAmbTop * .9 + uSunCol * .35 * max(-uSun.x * n.x - uSun.z * n.z, 0.));
+  c = mix(c, uSkyHor * .25 + vec3(.02), win);
+  return mix(env, c * 1.4, smoothstep(Ho, Ho - .6, hy) * uDay);
 }
 // 室內映射：從窗面往房間裡射線，求出撞到後牆、側牆或天花板地板
 vec3 room(vec3 o, vec3 vd, vec3 dim, float hs, vec3 lc, float kind){
@@ -626,9 +640,15 @@ vec3 shopRoom(vec3 o, vec3 vd, vec3 dim, float hs){
   float px = fract(hs*31.)*dim.x*.7 + dim.x*.15, pz = dim.z * (.35 + .4*fract(hs*11.));
   float tp = (pz - o.z) / max(vd.z, 1e-3);
   vec3 pp = o + vd * tp;
-  float person = step(abs(pp.x - px), .2 - .08*step(1.45, pp.y)) * step(pp.y, 1.72) * step(tp, t) * step(.35, fract(hs*23.));
-  c = mix(c, vec3(.03), person);
-  return c * lc * mix(1.25, .7, hp.z / dim.z);
+  // 人形：頭、肩、往下收的上身、兩條腿（中間有縫）；衣服顏色照 hs 抽，受店裡的燈
+  float dx = abs(pp.x - px), py = pp.y;
+  float body = step(length(vec2(dx, (py - 1.6) * .85)), .1)                                          // 頭
+    + step(py, 1.47) * step(.92, py) * step(dx, mix(.15, .22, smoothstep(.92, 1.4, py)))              // 上身與肩
+    + step(py, .95) * step(dx, .15) * step(.025, dx) + step(py, 1.5) * step(1.4, py) * step(dx, .05);  // 腿、脖子
+  float person = clamp(body, 0., 1.) * step(tp, t) * step(.35, fract(hs*23.));
+  vec3 cloth = .06 + .22 * (.5 + .5*cos(6.28*(fract(hs*53.) + vec3(0., .33, .67))));
+  c = mix(c, mix(cloth, vec3(.05,.045,.05), step(py, .95) * .7 + step(1.5, py) * .5) * (.8 + .4*smoothstep(.9, 1.5, py)), person);
+  return c * lc * mix(1.25, .7, hp.z / dim.z) * mix(1., .5, uDay);   // 白天外面亮，店裡相對暗
 }
 void main(){
   if (vW.y < uClipY) discard;
@@ -641,6 +661,11 @@ void main(){
   if (n.y > .5) {                                  // 屋頂：瀝青、積水
     float f = fbm(vW.xz*.5);
     vec3 alb = vec3(.035,.035,.04) * (.7 + .6*f);
+    if (uFac.x > .5) {                             // 照片材質：龜裂的瀝青防水層（第 4 層，3 m 一張）
+      vec2 q = vW.xz / 3.;
+      alb = L(texture(uFacA, vec3(q, 4.)).rgb) * .6 * (.8 + .4*f);
+      if (uFac.y > .5) { vec3 t = texture(uFacN, vec3(q, 4.)).rgb; n = normalize(n + vec3(t.r*2. - 1., 0., 1. - t.g*2.) * .8); }
+    }
     float pud = smoothstep(.55, .65, fbm(vW.xz*.15 + seed));
     c = shade(vW, n, v, alb, mix(.85, .1, pud), 0.);
     c += envMap(reflect(-v, n)) * pud * .35;
@@ -659,15 +684,42 @@ void main(){
   vec3 wall; float rough = .85;
   vec2 bid; float bm = brick(vec2(u, y), bid);
   float bv = h21(bid + seed);
-  if (st == 0) wall = L(vec3(.5,.22,.15)) * mix(.75, 1.15, bv) * (.55 + .45*bm);
-  else if (st == 1) wall = L(vec3(.42,.3,.22)) * mix(.75, 1.12, bv) * (.55 + .45*bm);
+  // 磚：每塊的深淺與色偏、偶爾一塊換過的深色磚、偏灰的灰縫（遠處 bm 收斂成 .8）
+  vec3 btint = mix(vec3(1.), vec3(1.07,.93,.84), h21(bid + 3.1)) * (1. - .42*step(.95, h21(bid*1.31 + seed)));
+  vec3 mortar = L(vec3(.44,.41,.37)) * (.75 + .25*grime);
+  if (st == 0) wall = mix(mortar, L(vec3(.48,.24,.17)) * mix(.72, 1.15, bv) * btint, bm);
+  else if (st == 1) wall = mix(mortar, L(vec3(.42,.3,.22)) * mix(.74, 1.12, bv) * btint, bm);
   else if (st == 2) { wall = L(vec3(.55,.52,.47)) * (.85 + .15*fbm(vec2(u,y)*3.)); float bl = fract(y/.6); wall *= .8 + .2*smoothstep(0.,.04,bl); }
   else if (st == 3) wall = L(vec3(.22,.24,.27));
   else if (st == 4) wall = L(mix(vec3(.36,.5,.5), vec3(.55,.4,.44), fract(seed*7.))) * (.85 + .15*fbm(vec2(u,y)*2.));
   else if (st == 5) wall = L(vec3(.12,.11,.12)) * (.6 + .4*bm);
   else if (st == 8) { wall = L(vec3(.84,.86,.86)) * (.9 + .1*fbm(vec2(u,y)*2.)); float pj = step(fract(u/1.8), .025) + step(fract(y/1.7), .025); wall *= 1. - .22*clamp(pj, 0., 1.); }   // 醫院（69-v5-civic.js）：白色牆板
   else wall = L(vec3(.45,.2,.14)) * mix(.8, 1.1, bv) * (.55 + .45*bm);
+  // 照片材質（08-tex.js）：磚、混凝土、灰泥換成照片，每塊地錯開貼圖的起點、深淺不同；翻新樓的灰泥上粉彩色。
+  // 法線照面的水平方向（用螢幕導數判斷 u 往哪邊增加）與上方；玻璃帷幕、夜店、醫院照舊
+  vec3 nW = n;
+  if (uFac.x > .5 && st != 3 && st != 5 && st != 8) {
+    float lay = st == 1 ? 1. : st == 2 ? 2. : st == 4 ? 3. : 0., sc = st == 1 ? 1.3 : st == 2 ? 4. : st == 4 ? 2. : 1.4;
+    vec2 q = vec2(u, y) / sc + vec2(fract(seed*13.), fract(seed*29.));
+    vec3 tint = st == 4 ? L(mix(vec3(.62,.86,.84), vec3(.95,.72,.74), fract(seed*7.))) * 1.25
+              : st == 2 ? vec3(1.1) : vec3(.9 + .25*fract(seed*5.)) * (st == 1 ? vec3(.92,.86,.8) : vec3(1.));
+    // 混凝土那張斑塊很重：往整張的平均色（最小一級 mipmap）收一半，免得看出重複
+    vec3 tA = texture(uFacA, vec3(q, lay)).rgb;
+    if (st == 2) tA = mix(textureLod(uFacA, vec3(q, lay), 10.).rgb, tA, .45);
+    wall = L(tA) * tint;
+    if (uFac.y > .5) {
+      vec4 tn = texture(uFacN, vec3(q, lay));
+      float sg = sign(dot(Tn, dFdx(vW))*dFdx(u) + dot(Tn, dFdy(vW))*dFdy(u) + 1e-6);
+      nW = normalize(n + (Tn*sg*(tn.r*2. - 1.) + vec3(0., 1. - tn.g*2., 0.)) * 1.2);
+      rough = mix(.6, 1., tn.b);
+    }
+  }
   wall *= 1. - .35*grime*smoothstep(H, 0., y*.6);
+  // 做舊：整面的大塊褪色、女兒牆流下來的黑痕、轉角（和隔壁棟的交界）與牆腳的暗部、牆腳的泥水濺痕
+  float edge = min(u, fw - u);
+  float run = smoothstep(H - 6., H - .4, y) * smoothstep(.5, .78, n2(vec2(u*2.1 + seed*9., y*.09)));
+  wall *= (.86 + .2*fbm(vec2(u, y)*.12 + seed)) * (1. - .4*run) * mix(.7, 1., smoothstep(0., 1.3, edge));
+  wall *= 1. - .3*(1. - smoothstep(0., 1.5, y)) * (.5 + .5*n2(vec2(u*1.3, y*2.5)));
   wall *= mix(.6, 1., smoothstep(0., .9, y));       // 雨水打濕的牆腳
   float gH = 4.6;
   float fh = st == 3 ? 3.7 : st == 2 || st == 8 ? 3.4 : 3.1;
@@ -709,7 +761,7 @@ void main(){
         float frame = max(step(abs(ux - .7), .008), step(abs(ux - .86), .008)) * step(y, 2.6) + step(abs(y - 2.6), .03) * door;
         frame += step(abs(y - 2.95), .025);
         float F = .06 + .94*pow(1. - max(dot(n, v), 0.), 5.);
-        c = inside * .62 * (1. - F*.6) + envMap(reflect(-v, n)) * F * .8;
+        c = inside * .62 * (1. - F*.6) + oppRefl(vW, reflect(-v, n), n, seed + ui) * (F * .8 + .06*uDay);
         c += shade(vW, n, v, vec3(0.), .05, 0.) * .5;
         c = mix(c, shade(vW, n, v, L(vec3(.12)), .4, .6), clamp(frame, 0., 1.));
       }
@@ -722,7 +774,7 @@ void main(){
         vec3 inside = room(vec3(u - fw*.5 + .75, y, 0.), vd, dim, seed, vec3(1.,.8,.55), 0.);
         float fr = step(.7, d) + step(2.62, y);
         c = mix(inside * .9, shade(vW, n, v, L(vec3(.1,.08,.06)), .5, 0.), clamp(fr, 0., 1.));
-      } else c = shade(vW, n, v, st == 3 ? L(vec3(.3,.31,.33)) : wall * .9, rough, 0.);
+      } else c = shade(vW, st == 3 ? n : nW, v, st == 3 ? L(vec3(.3,.31,.33)) : wall * .9, rough, 0.);
     }
     gl_FragColor = vec4(applyFog(c, vW), 1.); return;
   }
@@ -736,7 +788,7 @@ void main(){
     vec3 lc = hs2 < .55 ? vec3(1.,.66,.36) : hs2 < .8 ? vec3(.8,.86,1.) : hs2 < .92 ? vec3(1.,.4,.65) : vec3(.4,.6,1.);
     if (st == 5) lc = vec3(.9,.2,.6) * (.6 + .4*sin(uBeat*6.283));
     if (hs2 >= .92) lc *= .6 + .4*fract(sin(floor(uTime*5. + hs*20.))*91.);
-    lc = lit ? lc * 1.5 : mix(lc * .025, vec3(.42,.43,.45), uDay);   // 白天沒開燈的房間也看得到裡面
+    lc = lit ? lc * 1.5 : mix(lc * .025, vec3(.15,.15,.16) * (.6 + .8*hs2), uDay);   // 白天沒開燈的房間：看得到裡面，但比外牆暗得多
     vec3 dim = vec3(ws, fh, st == 3 ? 6. : 3.4);
     vec3 o = vec3(f.x*ws, f.y*fh, 0.);
     vec3 inside = room(o, vd, dim, hs, lc, st == 3 ? 1. : 0.);
@@ -747,9 +799,19 @@ void main(){
       inside = mix(inside, lc * L(vec3(.6,.45,.35)) * (.6 + .2*sin(wf.x*60.)), clamp(cov, 0., 1.));
     } else if (lit && cur < .5) {                       // 百葉窗
       inside = mix(inside, lc * .5 * (.5 + .5*step(.35, fract(wf.y*14.))), .8);
+    } else if (!lit && uDay > 0. && cur > .55) {        // 白天：拉上的窗簾、放下一半的百葉、紗簾（受天光）
+      vec3 dl = uAmbTop * .55 + uSunCol * .12 * max(dot(n, uSun), 0.);
+      float k = fract(hs*67.);
+      vec3 cc = L(mix(vec3(.78,.74,.66), mix(vec3(.62,.4,.32), vec3(.42,.5,.56), fract(hs*5.)), step(.5, k))) * dl;
+      float cov = k < .35 ? 1. - step(abs(wf.x - .5), .06*fract(hs*9.))                              // 拉上的窗簾（中間留一條縫）
+                : k < .7 ? step(.75 - .5*fract(hs*13.), wf.y) * (.75 + .25*step(.4, fract(wf.y*16.)))   // 放下一部分的捲簾
+                : step(wf.x, .3) + step(.7, wf.x);                                                     // 拉到兩側的窗簾
+      inside = mix(inside, cc * (.85 + .15*sin(wf.x*55.)), clamp(cov, 0., 1.) * uDay);
     }
-    float F = .05 + .95*pow(1. - max(dot(n, v), 0.), 5.);
-    c = inside * (1. - F*.5) + envMap(reflect(-v, n)) * (F*.7 + .04);
+    vec3 nG = normalize(n + Tn*(hs - .5)*.05 + vec3(0., (hs2 - .5)*.04, 0.));   // 每片玻璃有一點不平
+    float F = .05 + .95*pow(1. - max(dot(nG, v), 0.), 5.);
+    vec3 rG = reflect(-v, nG);
+    c = inside * (1. - F*.5) + oppRefl(vW, rG, n, seed + fi*.37) * (F*.7 + .04 + .1*uDay);
     c += shade(vW, n, v, vec3(0.), .04, 0.) * .6;
     if (st == 3) { float mul = step(f.x, .035) + step(.965, f.x) + step(f.y, .07); c = mix(c, shade(vW, n, v, L(vec3(.2,.22,.25)), .4, .7), clamp(mul, 0., 1.)); }
     else {                                               // 窗框分隔
@@ -771,7 +833,7 @@ void main(){
       alb = L(vec3(.18,.2,.23));
       if (y > H - 1.6) { c = vec3(.2,.9,1.) * 1.6 * step(.5, fract(seed*3.)) + vec3(1.,.35,.6) * 1.6 * step(fract(seed*3.), .5); gl_FragColor = vec4(applyFog(c, vW), 1.); return; }
     }
-    c = shade(vW, n, v, alb, rr, 0.);
+    c = shade(vW, nW, v, alb, rr, 0.);
     if (st == 4) {                                        // 翻新的霓虹樓：樓板 LED 線
       float band = step(abs(f.y - .02), .018) * step(0., fi) * step(fi, nF);
       vec3 bc = mix(vec3(.15,1.,.9), vec3(1.,.2,.6), step(.5, fract(seed*11.)));

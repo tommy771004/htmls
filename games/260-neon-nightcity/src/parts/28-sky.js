@@ -65,6 +65,7 @@ const _c1 = new T.Color(), _c2 = new T.Color(), _c3 = new T.Color(), _c4 = new T
 const WARM = C3(0xff8a48), NOON = C3(0xfff1de);
 // 依時間與天氣算出戶外的一切（每幀，在戶外時）
 function atmApply() {
+  facApply();   // 08-tex.js：照片材質
   const min = clockSt.min + clockSt.acc / 2.5;
   const sun = sunDir(min, U.uSun.value); sunDir(min + 760, U.uMoon.value);
   const se = sun.y, c = wx.cloud, r = wx.rain, f = wx.fog;

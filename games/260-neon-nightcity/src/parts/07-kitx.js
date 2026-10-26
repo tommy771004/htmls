@@ -112,6 +112,7 @@ float kxMortar(vec2 q, vec2 sz, float j, out vec2 id){
   return mix(.85, m, 1. - smoothstep(.15, .45, fwidth(b.y)));
 }
 float kxStreak(vec3 p, vec2 uv, float k){ return smoothstep(.5, .85, fbm(vec2(uv.x * k, p.y * .3)) + .25 * n3(p * .7) - .12); }
+uniform highp sampler2DArray uFacA; uniform vec4 uFac;   // 08-tex.js 的照片材質（斜屋頂的筒瓦第 5 層、石板瓦第 6 層）
 void texMat(int m, vec3 p, vec3 n, inout vec3 alb, inout float rough, inout float metal, inout float envK){
   float ax; vec2 uv = kxUV(p, n, ax);
   float vert = ax == 1. ? 0. : 1., up = smoothstep(.6, .95, n.y);
@@ -217,7 +218,12 @@ void texMat(int m, vec3 p, vec3 n, inout vec3 alb, inout float rough, inout floa
   } else if (m >= 37 && m <= 39) {   // 屋頂（20-roof.js）：a 沿屋脊、b 沿坡往上（高度除以坡的正弦，鋪面的間距照坡面量）；平的部分（復折式屋頂的頂）照 xz
     float sl = length(n.xz); vec2 dS = sl > .05 ? n.xz / sl : vec2(0., 1.);
     float a = dot(p.xz, vec2(-dS.y, dS.x)), b = sl > .05 ? p.y / max(sl, .25) : dot(p.xz, dS);
-    if (m == 37) {   // 筒瓦：一列列半圓的陶瓦（弧面明暗）、每排下緣的陰影、每片色差、青苔與雨後的髒污
+    vec3 hue = alb / max(dot(alb, vec3(.3, .5, .2)), .02);   // 地塊抽到的顏色只留色相，照片材質淡淡染上
+    if (m <= 38 && uFac.x > .5) {   // 照片材質（08-tex.js）：陶筒瓦 2.9 m、石板瓦 2 m 一張
+      vec3 t = texture(uFacA, vec3(vec2(a, b) / (m == 37 ? 2.9 : 2.), m == 37 ? 5. : 6.)).rgb;
+      alb = t * t; alb = mix(vec3(dot(alb, vec3(.3, .5, .2))), alb, m == 37 ? .7 : 1.) * mix(vec3(1.), hue, .2);   // 陶瓦照片偏紅，收一點飽和
+      rough = m == 37 ? .72 : .55; envK = m == 37 ? 0. : .1;
+    } else if (m == 37) {   // 筒瓦：一列列半圓的陶瓦（弧面明暗）、每排下緣的陰影、每片色差、青苔與雨後的髒污
       vec2 q = vec2(a / .23, b / .34), id = floor(q), f = fract(q); float aa = kxAA(q);
       float barrel = sin(f.x * 3.1416), lip = smoothstep(.78, 1., f.y);
       alb *= mix(.86, (.6 + .5 * barrel) * (1. - .38 * lip), aa) * (.76 + .44 * h21(id + 4.2));
@@ -234,6 +240,9 @@ void texMat(int m, vec3 p, vec3 n, inout vec3 alb, inout float rough, inout floa
       alb = mix(alb, vec3(.2, .09, .04), .3 * smoothstep(.62, .8, fbm3(p * 2.3 + 6.)));
       rough = .45; metal = .55; envK = .3;
     }
+    // 三種共用、遠處也看得到的舊化：幾公尺大小的深淺斑塊、日曬褪色（往灰拉）
+    alb *= .78 + .36 * fbm3(p * .21 + 9.);
+    alb = mix(alb, vec3(dot(alb, vec3(.3, .5, .2))), .25 + .2 * fbm3(p * .37 + 3.));
   } else {   // 橡膠、粗塑膠：細顆粒、灰塵讓深色也看得出起伏
     alb = mix(alb, vec3(.075, .072, .068), .3 * fbm3(p * 4.) + .25 * up);
     alb *= .88 + .2 * n2(uv * 60.) * kxAA(uv * 60.);

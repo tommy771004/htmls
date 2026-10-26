@@ -398,6 +398,20 @@
 | `street` `ebox` | [Electrical box - FREE](https://sketchfab.com/3d-models/electrical-box-free-383a234d6d80421fbe67080048cbbc70) | [Mathieu Godard](https://sketchfab.com/Mathieu.Godard) | CC BY 4.0 |
 | `street` `pump` | [gas pump](https://sketchfab.com/3d-models/gas-pump-add0f902b9164718bd0540e88bf9927e) | [打螺丝](https://sketchfab.com/youoyouyou) | CC BY 4.0 |
 
+## 牆面與屋頂的照片材質（`tex/`）
+
+程式建模的樓房牆面、平屋頂與斜屋頂用的照片材質，都是 [ambientCG](https://ambientcg.com/) 的 CC0 1.0 材質（1K-JPG），由 `games/260-neon-nightcity/tools/tex.mjs` 疊成 `tex/fac_c.jpg`（底色乘上環境遮蔽）與 `tex/fac_n.jpg`（法線 xy＋粗糙度），每層 1024²。
+
+| 層 | 材質 | 用途 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| 0 | [Bricks097](https://ambientcg.com/view?id=Bricks097) | 舊紅磚（立面風格 0、6 與其他磚樓） | ambientCG | CC0 1.0 |
+| 1 | [Bricks094](https://ambientcg.com/view?id=Bricks094) | 褐磚（風格 1） | ambientCG | CC0 1.0 |
+| 2 | [Concrete035](https://ambientcg.com/view?id=Concrete035) | 舊混凝土（風格 2） | ambientCG | CC0 1.0 |
+| 3 | [Plaster003](https://ambientcg.com/view?id=Plaster003) | 粗灰泥（風格 4 翻新樓，著色器上粉彩色） | ambientCG | CC0 1.0 |
+| 4 | [Asphalt026C](https://ambientcg.com/view?id=Asphalt026C) | 平屋頂的瀝青防水層 | ambientCG | CC0 1.0 |
+| 5 | [RoofingTiles014B](https://ambientcg.com/view?id=RoofingTiles014B) | 陶筒瓦（海濱斜屋頂） | ambientCG | CC0 1.0 |
+| 6 | [RoofingTiles003](https://ambientcg.com/view?id=RoofingTiles003) | 石板瓦（復折式與老磚房斜屋頂） | ambientCG | CC0 1.0 |
+
 ## 音效（`sfx/`）
 
 槍聲、爆炸、撞擊、腳步、車門、引擎、輪胎、警笛、直升機等真實錄音，都是 Freesound 上的 CC0 1.0 錄音，只有 BMW 與 Porsche 的引擎轉速層各有一段 CC BY 4.0（ikbenraar 的 BMW M3、jerry.berumen 的 Porsche 911）（不用 Grand Theft Auto V 或任何 Rockstar Games 的音效），由 `games/260-neon-nightcity/tools/sfx.mjs` 下載並逐檔檢查授權；每個檔案的錄音、作者與用途見 [`sfx/CREDITS.md`](sfx/CREDITS.md)。

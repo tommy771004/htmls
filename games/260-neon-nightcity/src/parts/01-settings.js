@@ -20,6 +20,8 @@ const SET_DEF = {
   refl: { d: GT().refl, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
   // 清晨的光（00-core.js 的 uGI、70-render.js 的體積光）：vol 0 是不畫體積光（等級沒有步數時固定關掉），mist 是清晨薄霧的濃度
   vol: { d: GT().vol ? 1 : 0, lo: 0, hi: 1.5, st: .1 }, mist: { d: 1, lo: 0, hi: 1.5, st: .1 },
+  // 照片材質（08-tex.js）：0 關（程式紋理）、1 只有底色、2 加法線與粗糙度
+  tex: { d: GT().tex, o: [0, 1, 2] },
 };
 function setValid(k, v) {
   const D = SET_DEF[k];
