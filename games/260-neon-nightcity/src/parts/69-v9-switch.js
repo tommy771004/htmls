@@ -18,6 +18,16 @@ const VIGS = {
     { anim: ANIM.talk, say: '貨在後車廂，錢先拿來。', npc: { anim: ANIM.cross, say: '急什麼，我又不會跑。' } },
     { anim: ANIM.cross, say: '少了兩捆…有人要倒楣了。' },
   ],
+  rosa: [
+    { anim: ANIM.punch, say: '一、二…呼吸。別讓手先跑。' },
+    { anim: ANIM.phone, say: '媽，我在路上了，你先吃。', then: '…嗯，我會小心。' },
+    { anim: ANIM.cross, say: '這城市三年沒變，倒是我變了。' },
+  ],
+  dane: [
+    { anim: ANIM.smoke, say: '戒菸第三次，失敗第三次。' },
+    { anim: ANIM.talk, say: '房租月底給，霍利斯說的。', npc: { anim: ANIM.talk, say: '又是你，退伍的那個。' } },
+    { anim: ANIM.kneel, say: '綁好鞋帶，這是軍隊唯一教對的事。' },
+  ],
 };
 const vig = { on: null, last: {}, npc: null, n: 0 };
 const vigCrowd = crowd(1);

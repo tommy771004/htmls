@@ -411,6 +411,7 @@ void main(){
   else if (m == 11) { emi = vCol * 1.1 * uM.z; alb *= .3; }                  // 柔和自發光
   else if (m >= 12 && m <= 14) { float on = abs(vIns.x - float(m - 12)) < .5 ? 1. : 0.; emi = vCol * (.04 + on * 3.4); alb *= .15; } // 號誌燈
   else if (m == 15) { rough = .5; metal = .8; envK = .3; }                   // 生鐵
+  else if (m == 16) { emi = vCol * uLampOn * 1.6; alb = vec3(.03); rough = .08; envK = 1.; }   // 白天是暗玻璃、入夜才亮的窗（天樞島的塔冠）
   alb = mix(alb, vec3(.025, .022, .02), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; envK *= 1. - uM.w; emi *= 1. - uM.w;
   float wet = uWet * smoothstep(.55, .95, n.y) * (1. - step(4., float(m)) * step(float(m), 9.));
   #ifdef FAR

@@ -73,6 +73,7 @@ if (XR) {
   const onWalk = (x, z) => SEAM_PATH.some(run => run.some(p => (p.x - x) ** 2 + (p.z - z) ** 2 < 9));
   const colAt = (a, x, z, y0, legs) => {
     const top = XR_Y - 2.3, [, , hx, hz] = R.at(a), ry = Math.atan2(-hz, hx);
+    if (y0 === 0 && inLake(x, z)) y0 = LAKE_Y;   // 天樞島的水道裡：從水底立起
     for (const l of legs) { const [px, pz] = R.at(a, l); k.cyl(px, (y0 + top) / 2, pz, .5, .58, top - y0, 14, con, 2); circles.push({ x: px, z: pz, r: .6, w: 1 }); }   // 橋面上的也擋車（比中央護欄寬）
     k.box(x, top - .3, z, 1.6, 1, legs.length > 1 ? 10.4 : 6.2, con2, 2, 0, ry);
     cols.push(a);

@@ -14,7 +14,17 @@ const CREW = [
   { id: 'jax', name: 'Jax', zh: '賈克斯', role: '軍火走私', ab: 'rage', abName: '腎上腺素狂暴', col: '#ff8a4c', hp: 120, armor: 80,
     home: spotW({ x: lerp(avX(0) + HR + SW, avX(1) - HR - SW, .4), z: stZ(0) + HR + SW * .5, yaw: Math.PI, name: '舊碼頭倉庫' }), idle: ANIM.cross,
     look: { female: false, top: lin(0x3a4430), bot: lin(0x2a2620), skin: SKINS[2], hair: HAIRS[1], coat: 0, skirt: 0, longHair: 0, hat: 1, shoe: SHOES[2], glow: lin(0xff8a4c), glowI: 1.3, scale: 1.06 } },
+  // 主線《一手爛牌》（69-w0-story.js）的雙主角：接在三人後面（69-heist 用 CREW[0..2] 的編號不變）。新存檔要等劇情讓其他人登場才能切換（storyAvail）
+  { id: 'rosa', name: 'Rosa', zh: '羅莎', role: '假釋中 · 地下擂台出身', ab: 'focus', abName: '冷靜判讀', col: '#ff6f91', hp: 100, armor: 0,
+    home: spotW({ x: lerp(avX(14) + HR + SW, avX(15) - HR - SW, .4), z: stZ(3) + HR + SW * .5, yaw: Math.PI, name: '灰石國宅' }), idle: ANIM.cross,
+    look: { female: true, top: lin(0x2b2f36), bot: lin(0x4a4436), skin: SKINS[1], hair: HAIRS[0], coat: 0, skirt: 0, longHair: 1, hat: 0, shoe: SHOES[0], glow: lin(0xff6f91), glowI: .8, scale: .97, scan: 'rosa' } },
+  { id: 'dane', name: 'Dane', zh: '戴恩', role: '退伍兵 · 船廠催收', ab: 'drill', abName: '戰術呼吸', col: '#f2c14e', hp: 110, armor: 30,
+    home: spotW({ x: lerp(avX(12) + HR + SW, avX(13) - HR - SW, .5), z: stZ(12) + HR + SW * .5, yaw: Math.PI, name: '錨灣港船廠' }), idle: ANIM.smoke,
+    look: { female: false, top: lin(0x5a5f52), bot: lin(0x2c3038), skin: SKINS[0], hair: HAIRS[1], coat: 0, skirt: 0, longHair: 0, hat: 0, shoe: SHOES[2], glow: lin(0xf2c14e), glowI: .8, scale: 1.03, scan: 'dane' } },
 ];
+const CREW_N = CREW.length;
+// 這一位現在能不能切換過去（主線鎖定、還沒登場的主角；storyAvail 在 69-w0-story.js）
+const crewOk = i => i !== crew.cur && storyAvail(i);
 const crew = {
   cur: 1, on: false, sw: null, hurtAcc: 0, crashCd: 0, capsT: 0, tk: 0, nm: new WeakMap(),
   st: CREW.map(c => ({ hp: c.hp, armor: c.armor, sp: 40, x: c.home.x, z: c.home.z, yaw: c.home.yaw, where: 'out' })),
@@ -22,11 +32,11 @@ const crew = {
 };
 crew.st[1].sp = 60;
 // 不在操作中的兩位主角：站在自己最後的位置（一開始在家門口）
-const crewNpc = crowd(2);
-const crewNpcOf = [0, 2];
+const crewNpc = crowd(CREW_N - 1);
+const crewNpcOf = [];
 function crewLook() {
   crewNpcOf.length = 0;
-  for (let i = 0; i < 3; i++) if (i !== crew.cur) crewNpcOf.push(i);
+  for (let i = 0; i < CREW_N; i++) if (i !== crew.cur) crewNpcOf.push(i);
   crewNpcOf.forEach((ci, j) => crewNpc.look(j, { r: rng(31 + ci), ...CREW[ci].look }));
 }
 crewLook();
@@ -45,8 +55,10 @@ function spEvent(kind, a, b) {
   if (kind === 'kill') {
     if (ab === 'bullet') { if (a) spAdd(15); if (b && !W.stars) spAdd(20); }   // 爆頭擊殺、沒被通緝時的近戰擊倒（潛行）
     if (ab === 'rage') spAdd(12);
+    if (ab === 'focus') spAdd(b ? 18 : 6);
+    if (ab === 'drill') spAdd(a ? 14 : 9);
   } else if (kind === 'boom') { if (ab === 'rage') spAdd(12); }
-  else if (kind === 'hurt' && ab === 'rage') {
+  else if (kind === 'hurt' && (ab === 'rage' || ab === 'drill')) {
     crew.hurtAcc += a;
     while (crew.hurtAcc >= 10) { crew.hurtAcc -= 10; spAdd(5); }
   }
@@ -57,6 +69,7 @@ function abilityOn() {
   if (s.sp < 10) { toast(`${c.abName}還沒充好`); return; }
   if (c.ab === 'bullet' && player.mode !== 'walk') { toast(`${c.name} 的時間減緩只能下車用`); return; }
   if (c.ab === 'reflex' && player.mode !== 'drive') { toast(`${c.name} 的反射駕駛要在開車時用`); return; }
+  if ((c.ab === 'focus' || c.ab === 'drill') && player.mode !== 'walk') { toast(`${c.name} 的${c.abName}只能下車用`); return; }
   crew.on = true; sfx.ability(true); applyAbil();
 }
 function abilityOff() { if (!crew.on) return; crew.on = false; sfx.ability(false); applyAbil(); }
@@ -64,12 +77,13 @@ function abilityToggle() { if (crew.on) abilityOff(); else abilityOn(); }
 // 每幀依目前主角與是否啟動改寫 abil（69-combat.js 讀）與子彈時間
 function applyAbil() {
   const ab = crew.on ? CREW[crew.cur].ab : '';
-  abil.take = ab === 'rage' ? .15 : 1;
-  abil.out = ab === 'rage' ? 2 : ab === 'bullet' ? 1.25 : 1;
-  abil.spread = abil.recoil = ab === 'bullet' ? .2 : 1;
-  abil.melee = ab === 'rage'; abil.knock = ab === 'rage' ? 3 : 1; abil.floor = ab === 'rage' ? 1 : 0;
+  // focus（Rosa）：近戰打得重、擊退遠，槍的散布與後座力減半，時間稍慢；drill（Dane）：受到的傷害減半、散布與後座力減四成
+  abil.take = ab === 'rage' ? .15 : ab === 'drill' ? .5 : 1;
+  abil.out = ab === 'rage' ? 2 : ab === 'bullet' ? 1.25 : ab === 'focus' ? 1.15 : ab === 'drill' ? 1.2 : 1;
+  abil.spread = abil.recoil = ab === 'bullet' ? .2 : ab === 'focus' ? .5 : ab === 'drill' ? .6 : 1;
+  abil.melee = ab === 'rage' || ab === 'focus'; abil.knock = ab === 'rage' ? 3 : ab === 'focus' ? 2.2 : 1; abil.floor = ab === 'rage' ? 1 : 0;
   abil.drive = ab === 'reflex';
-  slowmo.ab = ab === 'bullet' ? .4 : ab === 'reflex' ? .35 : 1;
+  slowmo.ab = ab === 'bullet' ? .4 : ab === 'reflex' ? .35 : ab === 'focus' ? .7 : 1;
 }
 // 擦身而過：開得夠快、和車流的車身距離不到 1 m 又沒撞上，每台車 3 秒內只算一次
 function nearMiss(v, now) {
@@ -82,7 +96,7 @@ function nearMiss(v, now) {
   }
 }
 
-// ─── 角色轉盤（按住 Q；觸控「角色」）：三格扇形，選中填上該角色的顏色 ───
+// ─── 角色轉盤（按住 Q；觸控「角色」）：每位主角一格扇形，選中填上該角色的顏色；不能切換的那幾格是灰的 ───
 function crewWheelOpen() {
   const w = crew.wheel;
   if (w.open || arm.wheel.open || life.dead || crew.sw || player.where !== 'out') return;
@@ -103,18 +117,18 @@ function crewWheelMove(dx, dy) {
   const l = Math.hypot(w.x, w.y);
   if (l > 120) { w.x *= 120 / l; w.y *= 120 / l; }
   if (l < 30) return;
-  const s = ((Math.round(Math.atan2(w.x, -w.y) / (Math.PI * 2 / 3)) % 3) + 3) % 3;
-  if (s !== w.sel && s !== crew.cur) { w.sel = s; sfx.click(); drawCrewWheel(); }   // 目前操作的角色那格不能選
+  const s = ((Math.round(Math.atan2(w.x, -w.y) / (Math.PI * 2 / CREW_N)) % CREW_N) + CREW_N) % CREW_N;
+  if (s !== w.sel && crewOk(s)) { w.sel = s; sfx.click(); drawCrewWheel(); }   // 目前操作的角色、主線鎖住的那格不能選
 }
 function drawCrewWheel() {
   const w = crew.wheel, R1 = 70, R2 = 176, gap = .03;
   const P = (a, r) => `${(Math.sin(a) * r).toFixed(1)} ${(-Math.cos(a) * r).toFixed(1)}`;
   let s = `<svg viewBox="-190 -190 380 380" aria-hidden="true">`;
-  for (let i = 0; i < 3; i++) {
-    const c = CREW[i], st = crew.st[i], a0 = (i - .5) * Math.PI * 2 / 3 + gap, a1 = (i + .5) * Math.PI * 2 / 3 - gap, sel = i === w.sel, cur = i === crew.cur;
+  for (let i = 0; i < CREW_N; i++) {
+    const c = CREW[i], st = crew.st[i], a0 = (i - .5) * Math.PI * 2 / CREW_N + gap, a1 = (i + .5) * Math.PI * 2 / CREW_N - gap, sel = i === w.sel, cur = i === crew.cur, lock = !cur && !crewOk(i);
     const am = (a0 + a1) / 2, cx = Math.sin(am) * 124, cy = -Math.cos(am) * 124;
-    const where = cur ? '目前' : `${Math.round(Math.hypot(st.x - player.x, st.z - player.z))} m · ${st.near || c.home.name}`;
-    s += `<g class="${sel ? 'sel' : ''}" data-c="${i}" style="--c:${c.col}"><path class="sec${sel ? ' sel' : ''}${cur ? ' none' : ''}" data-c="${i}" d="M${P(a0, R2)} A${R2} ${R2} 0 0 1 ${P(a1, R2)} L${P(a1, R1)} A${R1} ${R1} 0 0 0 ${P(a0, R1)} Z"/>`;
+    const where = cur ? '目前' : lock ? storyLockWhy(i) : `${Math.round(Math.hypot(st.x - player.x, st.z - player.z))} m · ${st.near || c.home.name}`;
+    s += `<g class="${sel ? 'sel' : ''}" data-c="${i}" style="--c:${lock ? '#555' : c.col}"><path class="sec${sel ? ' sel' : ''}${cur || lock ? ' none' : ''}" data-c="${i}" d="M${P(a0, R2)} A${R2} ${R2} 0 0 1 ${P(a1, R2)} L${P(a1, R1)} A${R1} ${R1} 0 0 0 ${P(a0, R1)} Z"/>`;
     s += `<rect class="cbar" x="${(cx - 30).toFixed(1)}" y="${(cy - 34).toFixed(1)}" width="60" height="3" rx="1.5"/>`;
     s += `<text x="${cx.toFixed(1)}" y="${(cy - 8).toFixed(1)}">${c.name} <tspan class="sm">${c.zh}</tspan></text>`;
     s += `<text class="sm" x="${cx.toFixed(1)}" y="${(cy + 10).toFixed(1)}">${c.abName}</text>`;
@@ -127,14 +141,15 @@ function drawCrewWheel() {
 $('crewW').addEventListener('pointerdown', e => {
   if (e.target.id === 'cwC') { e.preventDefault(); crewWheelClose(false); return; }
   const t = e.target.closest('[data-c]'); if (!t) return;
-  e.preventDefault(); const i = +t.dataset.c; crew.wheel.sel = i === crew.cur ? -1 : i; crewWheelClose(true);
+  e.preventDefault(); const i = +t.dataset.c; crew.wheel.sel = crewOk(i) ? i : -1; crewWheelClose(true);
 });
 
 // ─── 切換：鏡頭拉到高空雲層 → 平移到另一位主角上方 → 俯衝下來（真實時間 2.7 秒） ───
 const SW_UP = 1, SW_PAN = .7, SW_DOWN = 1, SW_H = 150, CLOUD = lin(0x4e4652);
 function crewSwitch(i) {
   if (i === crew.cur || crew.sw || life.dead || fading || dlg.open) return;
-  if (W.stars > 0) { toast('通緝中不能切換角色'); return; }
+  if (!storyAvail(i)) { toast(storyLockWhy(i)); return; }
+  if (W.stars > 0 && !storyDuoSwitch(i)) { toast('通緝中不能切換角色'); return; }   // 主線任務中雙主角之間可以（69-w0-story.js）
   if (player.swim) { toast('在水裡不能切換角色'); return; }
   if (player.where !== 'out') { toast('到室外才能切換角色'); return; }
   abilityOff();

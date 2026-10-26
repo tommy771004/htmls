@@ -630,13 +630,13 @@ let fwyPierMesh = null;
       const h = fwyH(e, u); if (h < PIER_H + .5) continue;
       const [x, z, hx, hz] = edgeAt(e, u);
       if (nearRoad(x, z, HR + 3) || deckOn(x, z, e, 1)) continue;   // 分合流處疊在別條路的橋面下的不立
-      const top = h - DECK_T, ry = Math.atan2(hx, hz);
-      pk.cyl(x, (top - .8) / 2, z, .95, 1.1, top - .8, 14, CONC, TX.conc);
+      const top = h - DECK_T, ry = Math.atan2(hx, hz), y0 = inLake(x, z) ? LAKE_Y : 0;   // 天樞島的水道裡：柱子從水底立起
+      pk.cyl(x, (top - .8 + y0) / 2, z, .95, 1.1, top - .8 - y0, 14, CONC, TX.conc);
       // 帽梁（照高架的槌頭帽梁）：中間深、往兩端收薄，梁底在縱梁下；頂上每根縱梁一塊橡膠支承墊
       const hw = W - .2, cb = top - 1.1;
       k.prism(x, cb, z, [[-hw, -.6], [-1.3, -1.5], [1.3, -1.5], [hw, -.6], [hw, 0], [-hw, 0]], 1.8, CONC_D, TX.conc, 0, ry);
       for (const c of [-W * .72, -W * .28, W * .28, W * .72]) k.box(x + Math.cos(ry) * c, cb + .05, z - Math.sin(ry) * c, .6, .1, .5, 0x2a2a2a, TX.rubber, 0, ry);
-      FWY_PIERS.push({ x, z, ry, h: top - .8 });
+      FWY_PIERS.push({ x, z, ry, h: top - .8 - y0, y0 });
       circles.push({ x, z, r: 1.15, w: 1, hy: top - .6 });
     }
     // 中央護欄：銜接點的路口前後 HR + 6 m 斷開；橋上只擋橋上的

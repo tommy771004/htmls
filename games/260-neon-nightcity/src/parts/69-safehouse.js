@@ -131,6 +131,10 @@ const OUTFITS = {
     { name: '霓虹帽T', look: { top: 0x1f2f45, bot: 0x101012, coat: 1, hat: 1, glow: 0x2cf2d8, glowI: 1.8 } }, { name: '白T牛仔褲', look: { top: 0xe0ddd5, bot: 0x2f3a4a, coat: 0, shoe: 0xb8b6b0, glowI: 0 } }],
   jax: [{ name: '軍綠工作服' }, { name: '沙色迷彩長袖', look: { top: 0x6a6046, bot: 0x4a4434, coat: 1, hat: 1 } },
     { name: '黑背心', look: { top: 0x111215, bot: 0x2a2d35, coat: 0, hat: 0, glow: 0xff3fa0, glowI: 1.2 } }, { name: '橘色工裝連身服', look: { top: 0xc0662a, bot: 0xc0662a, coat: 1, hat: 0, shoe: 0x2a2420 } }],
+  rosa: [{ name: '背心工裝褲' }, { name: '黑色連帽外套', look: { top: 0x15161a, bot: 0x1d1f24, coat: 1, glow: 0xff6f91, glowI: 1.2 } },
+    { name: '擂台短褲', look: { top: 0xc8304a, bot: 0x111215, coat: 0, shoe: 0xe8e4dc } }, { name: '派對小洋裝', look: { top: 0x6a1630, bot: 0x6a1630, skirt: 1, coat: 0, shoe: 0x111111, glow: 0xff9ec0, glowI: 1.4 } }],
+  dane: [{ name: '舊軍綠T恤' }, { name: '船廠工作服', look: { top: 0x3c5466, bot: 0x3c5466, coat: 1, shoe: 0x2a2420 } },
+    { name: '花襯衫', look: { top: 0x2f8f8a, bot: 0xb8ab90, coat: 0, glow: 0xffd27a, glowI: .8 } }, { name: '黑色防風外套', look: { top: 0x121417, bot: 0x22252b, coat: 1, hat: 1, glow: 0xf2c14e, glowI: 1.2 } }],
 };
 // 掃描人物造型（40-people.js 的 scanGet，只在 http(s) 下載；以檔案開啟時清單裡不列）：每位主角都能換，凱爾在 http(s) 下預設穿 Jason
 const SCAN_LOOKS = [{ name: 'Jason 造型', scan: 'jason', look: { scan: 'jason', female: false } },

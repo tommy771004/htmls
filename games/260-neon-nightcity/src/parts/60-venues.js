@@ -386,14 +386,17 @@ const QUEST = [
   { text: '把火柴盒拿給 LAZARUS 門口的 Marlo', mk: () => ({ name: 'Marlo', ...WP(BOUNCER.x, BOUNCER.z), y: 2.3, where: 'out' }) },
   { text: '走進 LAZARUS', mk: () => ({ name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + .4), y: 2.4, where: 'out' }) },
   { text: '在舞池跳一支舞（G）', mk: () => player.where === 'club' ? { name: '舞池', x: CLUB_FLOOR.x, y: 1.2, z: CLUB_FLOOR.z, where: 'club' } : { name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + .4), y: 2.4, where: 'out' } },
-  { text: '雨還沒停，城市是你的', mk: () => null },
+  { get text() { return storyIdleText() || '雨還沒停，城市是你的'; }, mk: () => storyIdleMark() },
+  // 主線（69-w0-story.js）還沒玩到 3-1：絨布繩照樣拉著，Marlo 不放行，任務框寫的是下一個主線任務
+  { get text() { return storyIdleText(); }, mk: () => storyIdleMark() },
 ];
 const quest = { n: 0, danceT: 0 };
+const questIn = () => quest.n >= 3 && quest.n <= 5;   // 已經在名單上（絨布繩撤開）
 function setQuest(n) {
   quest.n = n;
   $('objText').textContent = QUEST[n].text;
   const o = $('obj'); o.classList.remove('flash'); void o.offsetWidth; o.classList.add('flash');
-  if (n >= 3) { ropeGroup.visible = false; for (const c of ROPE_CIRCLES) c.r = 0; }
+  const open = questIn(); ropeGroup.visible = !open; for (const c of ROPE_CIRCLES) c.r = open ? 0 : .3;   // 3-1 從頭玩時把絨布繩拉回來
 }
 // ─── 對話框 ───
 const dlg = { open: false, opts: [] };
@@ -412,9 +415,11 @@ function dialog(who, text, opts) {
 }
 function closeDialog() { dlg.open = false; $('dialog').classList.remove('on'); document.body.classList.remove('talking'); }
 function talkMarlo() {
+  if (quest.n === 6) { dialog('Marlo · LAZARUS 門口', '名單上沒有你。今晚只放熟面孔進去，下雨天也一樣。'); return; }
+  if (quest.n === 0 && storyMarloAgain()) { dialog('Marlo · LAZARUS 門口', '又是你。名單換過了，上面還是沒有你。', [{ t: '那要怎樣才能上名單？', fn: askList }, { t: '算了。', fn: closeDialog }]); return; }
   if (quest.n === 2) {
     dialog('Marlo · LAZARUS 門口', '……Juno 的火柴盒。好吧，進去。別在裡面惹事，也別在舞池上講電話。', [{ t: '謝了。', fn: () => { closeDialog(); setQuest(3); sfx.rope(); toast('紅絨布繩撤開了'); } }]);
-  } else if (quest.n >= 3) {
+  } else if (questIn()) {
     dialog('Marlo · LAZARUS 門口', '你已經在名單上了。進去吧，雨會把你的鞋泡壞。');
   } else {
     dialog('Marlo · LAZARUS 門口', '名單上沒有你。今晚只放熟面孔進去，下雨天也一樣。', [
@@ -499,9 +504,9 @@ function contextAction() {
   }
   if (p.where === 'out') {
     // 門和 Marlo 只差一步：放行之後門優先，之前 Marlo 優先
-    if (quest.n >= 3 && near(CLUB_X, CLUB_Z + .6, 1.6)) return { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') };
+    if (questIn() && near(CLUB_X, CLUB_Z + .6, 1.6)) return { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') };
     if (near(BOUNCER.x, BOUNCER.z, 2.4)) return { key: 'E', text: '跟 Marlo 說話', fn: talkMarlo };
-    if (near(CLUB_X, CLUB_Z + .6, 1.6)) return quest.n >= 3 ? { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') } : { key: 'E', text: '門鎖著 <i>· 先跟門口的人談</i>', fn: () => toast('Marlo 擋在門前') };
+    if (near(CLUB_X, CLUB_Z + .6, 1.6)) return questIn() ? { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') } : { key: 'E', text: '門鎖著 <i>· 先跟門口的人談</i>', fn: () => toast('Marlo 擋在門前') };
     if (near(BAR_X - 4.6, BAR_Z + .6, 1.6)) return { key: 'E', text: '進入 AFTERGLOW', fn: () => enterVenue('bar') };
     for (const v of vehicles) if (!v.dead && (v.boat || Math.abs(p.y - (v.y || 0)) < 2.5) && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `${v.boat ? '上船' : '上車'} <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
   } else if (p.where === 'bar') {

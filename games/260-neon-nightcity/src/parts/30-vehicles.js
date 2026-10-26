@@ -108,6 +108,11 @@ const PAL_HEX = [0x7a1f22, 0x1e2f4f, 0x5a5e62, 0x111214, 0xd8d6d0, 0x23412e, 0x4
   MAT.uberI.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `int m = int(vMat + .5);
   const vec3 PAL[${PAL.length}] = vec3[](${s});`).replace('if (m == 0) { rough = .22; envK = .75; }', 'if (m == 0) { rough = .22; envK = .75; if (vIns.z > .5) alb = PAL[int(vIns.z - .5)]; }');
 }
+// 車流與路邊停車的 InstancedMesh 用自己的一份：aIns.w 是剛生成的車還要淡掉多少（1 全透明、0 不透明），用點陣丟掉像素淡入
+// （MAT.uberI 也給道具的實例用，它們的 aIns.w 另有用途，所以不改共用的那份）
+const TRAF_MAT = mkUber({ inst: true });
+TRAF_MAT.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `if (vIns.w > 0. && fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < vIns.w) discard;
+  int m = int(vMat + .5);`);
 
 // ─── 車流路網：06-roads.js 的 RN（路口與路段，世界座標）；車在 (e, dir, s)，轉彎走 turnPathE 的二次貝茲 ───
 function bez(a, b, c, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * b[0] + t * t * c[0], u * u * a[1] + 2 * u * t * b[1] + t * t * c[1]]; }
@@ -251,7 +256,7 @@ for (let n = 0; n < TRAFFIC_N; n++) {
 const typeMesh = {};
 const LOD_NEAR = 40;
 const mkInst = (g, cap) => {
-  const m = new T.InstancedMesh(g, MAT.uberI, cap);
+  const m = new T.InstancedMesh(g, TRAF_MAT, cap);
   g.setAttribute('aIns', new T.InstancedBufferAttribute(new Float32Array(cap * 4), 4));
   m.frustumCulled = false; m.count = 0;
   scene.add(m);
@@ -275,7 +280,7 @@ function flushTraffic() {
       if (d2 > 64 && dx * fx + dz * fz < -8 || d2 > CAR_FAR * CAR_FAR) continue;   // 相機後方、霧裡看不到的都不畫
       const lod = far && d2 > LOD_NEAR * LOD_NEAR ? 1 : 0, m = lod ? far : near, k = n[lod]++;
       m.instanceMatrix.array.set(c.m, k * 16);
-      const ia = m.geometry.attributes.aIns.array; ia[k * 4] = c.brake; ia[k * 4 + 1] = c.seed; ia[k * 4 + 2] = c.palI;
+      const ia = m.geometry.attributes.aIns.array; ia[k * 4] = c.brake; ia[k * 4 + 1] = c.seed; ia[k * 4 + 2] = c.palI; ia[k * 4 + 3] = c.fade || 0;
     }
     for (const [m, k] of [[near, n[0]], [far, n[1]]]) if (m) { m.count = k; m.instanceMatrix.needsUpdate = true; m.geometry.attributes.aIns.needsUpdate = true; }
   }
@@ -343,17 +348,59 @@ function oncomingClear(c, fx, fz, d) {
   }
   return true;
 }
-// 車流只有幾十台：離玩家太遠（霧裡看不到）的車搬到玩家附近 140–250 m 的路段，城市再大，眼前的路上都有車
-function trafficRespawn(c, px, pz) {
-  const near = TRAFFIC_EDGES.filter(e => { const m = e.pts[0], q = e.pts.at(-1); return Math.min(Math.hypot(m[0] - px, m[1] - pz), Math.hypot(q[0] - px, q[1] - pz)) < 320; });
-  if (!near.length) return;
-  for (let n = 0; n < 40; n++) {
-    const e = near[Math.floor(rT() * near.length)], dir = rT() < .5 || e.oneway ? 1 : -1;
-    const s = rT() * segLenE(e), [x, z] = laneAt(e, dir, s), dd = Math.hypot(x - px, z - pz);
-    if (dd < 140 || dd > 250 || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144)) continue;
-    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z, off: 0, offT: 0, blockT: 0, passS: 0, yieldT: 0 });
-    return;
+// ─── 以玩家為中心的生成圈（2026-10-26）：車流與路人集中在玩家附近活動。走出外環、而且鏡頭看不到的，搬回外環上
+// （車 100–170 m、人 90–140 m）；移動時外環跟著速度往外推，生成點也偏向前方，開得快時前面的路先排好車。
+// 白天 100 m 外還看得清楚，所以只在畫面外、被街區擋住或霧裡的地方生成，車再用點陣淡入（TRAF_MAT）；
+// 一幀最多搬 RING_PER_FRAME 個。超過 hard（車 290 m、人 230 m）的不管看不看得到都搬（和以前一樣）。畫的距離不變（CAR_FAR 等）
+const RING_CAR = { r0: 100, r1: 170, hard: 290 }, RING_PED = { r0: 90, r1: 140, hard: 230 }, RING_PER_FRAME = 2;
+const ringV = { x: 0, z: 0, px: NaN, pz: NaN };   // 玩家的平滑速度（m/s），updateTraffic 每幀先算（40-people.js 的路人也用）
+function ringTick(dt) {
+  const x = pX(), z = pZ();
+  if (dt > 0 && ringV.px === ringV.px) {
+    const vx = (x - ringV.px) / dt, vz = (z - ringV.pz) / dt, k = 1 - Math.exp(-dt * 2);
+    if (vx * vx + vz * vz < 150 * 150) { ringV.x += (vx - ringV.x) * k; ringV.z += (vz - ringV.z) * k; }   // 瞬移不算
   }
+  ringV.px = x; ringV.pz = z;
+}
+// 依速度把外環往外推：時速 100 公里左右車的外環是 140–240 m；外環不超過 hard
+function ringR(R) {
+  const sp = Math.hypot(ringV.x, ringV.z), r1 = Math.min(R.r1 + Math.min(sp * 2.5, 110), R.hard - 10);
+  return [Math.min(R.r0 + Math.min(sp * 1.2, 80), r1 - 40), r1];
+}
+// 往前方多放：回傳 0–1 的接受機率，背後的點在速度快時幾乎不放
+function ringAhead(x, z, px, pz) {
+  const sp = Math.hypot(ringV.x, ringV.z); if (sp < 2) return 1;
+  const a = Math.min(sp / 15, 1) * 3, d = Math.hypot(x - px, z - pz) || 1;
+  return Math.max(0, 1 + a * ((x - px) * ringV.x + (z - pz) * ringV.z) / (d * sp)) / (1 + a);
+}
+// 鏡頭看不到 (x, z) 高 h 的東西：在背後或畫面外、霧太濃、或被街區擋住（相機飛高時街區擋不住）
+const _ringP = new T.Vector3();
+function ringHidden(x, z, h) {
+  const cp = camera.position, dx = x - cp.x, dz = z - cp.z, d = Math.hypot(dx, dz);
+  const f = d * U.uFogDen.value;
+  if (lerp(1 - Math.exp(-f), 1 - Math.exp(-f * f), U.uDay.value) > .9) return true;
+  const e = camera.matrixWorld.elements;
+  if (dx * -e[8] + dz * -e[10] < 0) return true;
+  _ringP.set(x, h, z).project(camera);
+  if (Math.abs(_ringP.x) > 1.15 || Math.abs(_ringP.y) > 1.2) return true;
+  return cp.y < 40 && !losClear(cp.x, cp.z, x, z);
+}
+// 車流只有幾十台：走出外環的車搬到外環上的路段，城市再大，眼前的路上都有車。找不到合適的點就留在原地，下一幀再試
+let ringEdges = null, ringEX = 0, ringEZ = 0;
+function trafficRespawn(c, px, pz, [r0, r1]) {
+  if (!ringEdges || Math.hypot(px - ringEX, pz - ringEZ) > 30) {   // 玩家附近的路段：走 30 m 重算一次
+    ringEX = px; ringEZ = pz;
+    ringEdges = TRAFFIC_EDGES.filter(e => { const m = e.pts[0], q = e.pts.at(-1); return Math.min(Math.hypot(m[0] - px, m[1] - pz), Math.hypot(q[0] - px, q[1] - pz)) < 360; });
+  }
+  if (!ringEdges.length) return false;
+  for (let n = 0; n < 40; n++) {
+    const e = ringEdges[Math.floor(rT() * ringEdges.length)], dir = rT() < .5 || e.oneway ? 1 : -1;
+    const s = rT() * segLenE(e), [x, z] = laneAt(e, dir, s), dd = Math.hypot(x - px, z - pz);
+    if (dd < r0 || dd > r1 || rT() > ringAhead(x, z, px, pz) || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144) || !ringHidden(x, z, 1.2)) continue;
+    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z, off: 0, offT: 0, blockT: 0, passS: 0, yieldT: 0, fade: 1 });
+    return true;
+  }
+  return false;
 }
 // 到了路口：直行 .55、右轉 .25、左轉 .2（依出路口的方向和進來的方向的夾角分類），沒路才迴轉
 function trafficNext(c) {
@@ -370,9 +417,15 @@ function trafficNext(c) {
   return opts[0][0];
 }
 function updateTraffic(dt, t) {
-  const ppx = pX(), ppz = pZ();
+  ringTick(dt);
+  const ppx = pX(), ppz = pZ(), ring = ringR(RING_CAR);
+  let ringN = RING_PER_FRAME;
   for (const c of traffic) {
-    if (!c.turn && c.hit <= 0 && (c.x - ppx) ** 2 + (c.z - ppz) ** 2 > 290 * 290) trafficRespawn(c, ppx, ppz);
+    if (c.fade > 0) c.fade = Math.max(0, c.fade - dt / .6);
+    if (ringN > 0 && !c.turn && c.hit <= 0) {
+      const d2 = (c.x - ppx) ** 2 + (c.z - ppz) ** 2;
+      if (d2 > RING_CAR.hard ** 2 || d2 > (ring[1] + 20) ** 2 && ringHidden(c.x, c.z, 1.2)) { ringN--; trafficRespawn(c, ppx, ppz, ring); }
+    }
     if (c.hit > 0) { c.hit -= dt; c.v = damp(c.v, 0, 4, dt); }
     let fx, fz;
     if (c.turn) { const tg = bezTan(c.turn.p0, c.turn.p1, c.turn.p2, c.turn.t); const l = Math.hypot(tg[0], tg[1]) || 1; fx = tg[0] / l; fz = tg[1] / l; }

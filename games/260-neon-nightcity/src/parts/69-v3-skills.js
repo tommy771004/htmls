@@ -17,6 +17,8 @@ const SK_BASE = [
   { sta: 40, sho: 65, str: 40, stl: 60, drv: 35, lung: 35 },
   { sta: 45, sho: 35, str: 35, stl: 35, drv: 70, lung: 40 },
   { sta: 60, sho: 50, str: 70, stl: 25, drv: 40, lung: 30 },
+  { sta: 55, sho: 40, str: 60, stl: 50, drv: 35, lung: 40 },   // 主線雙主角（69-w0-story.js）：Rosa 地下擂台出身（力量、潛行）
+  { sta: 55, sho: 60, str: 50, stl: 35, drv: 50, lung: 35 },   // Dane 退伍兵（射擊）
 ];
 const SK_RUN_T = [8, 48];        // 衝刺體力：0 級 8 秒、99 級 48 秒，100 級無限
 const SK_TIRED_K = .74;          // 喘的時候衝刺速度 ×0.74（4.6 → 3.4 m/s）
@@ -27,7 +29,7 @@ const NOISE = { crouch: 3.5, walk: 9, run: 18, swim: 6, shot: 60, sil: 7, blast:
 const SIL_IDS = ['pistol', 'smg', 'rifle', 'sniper'], SIL_PRICE = 1800;
 const PETROL_PRICE = 400;        // 汽油桶補滿（69-v3-chem.js）
 
-// 存檔：motors.skills 是三個物件；舊存檔沒有就用起始值
+// 存檔：motors.skills 是五個物件（第 13 版以前是三個）；舊存檔沒有就用起始值
 const skills = SK_BASE.map((b, i) => {
   const s = motors.skills && motors.skills[i];
   return Object.fromEntries(SK_KEYS.map(k => [k, s && Number.isFinite(s[k]) ? clamp(s[k], 0, 100) : b[k]]));

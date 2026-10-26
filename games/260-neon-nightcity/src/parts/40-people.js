@@ -789,15 +789,22 @@ function pedPos(ps) {
   const [x, z, tx, tz] = pedPosL(ps), zn = blkZone(ps.b), [X, Z] = toW(x, z, zn), [TX, TZ] = dirW(zn, tx, tz);
   return [X, Z, TX, TZ];
 }
-// 行人繞著一個街區走；那個街區離玩家超過 230 m 就換到玩家附近 70–180 m 的街區（城市放大後人不會散到看不到的地方）
+// 行人繞著一個街區走；走出玩家的生成圈（30-vehicles.js 的 RING_PED，90–140 m，移動時往外推、偏向前方）又不在鏡頭裡，
+// 就換到外環上的街區，出現的那一點也要在鏡頭看不到的地方；街區超過 230 m 的不管看不看得到都換。找不到就下一幀再試
 const pedBlocks = blocks.filter(b => !b.outer && !b.park);
-function pedRelocate(ps, px, pz) {
+function pedRelocate(ps, px, pz, [r0, r1] = ringR(RING_PED)) {
   for (let n = 0; n < 30; n++) {
     const b = pedBlocks[Math.floor(rP() * pedBlocks.length)], [bx, bz] = blkW(b), d = Math.hypot(bx - px, bz - pz);
-    if (d < 70 || d > 180) continue;
-    ps.b = b; ps.w = b.x1 - b.x0 - ps.inset * 2; ps.d = b.z1 - b.z0 - ps.inset * 2; ps.per = 2 * (ps.w + ps.d); ps.s = rP() * ps.per; ps.dx = ps.dz = 0;
-    return;
+    if (d < r0 - 30 || d > r1 + 30 || rP() > ringAhead(bx, bz, px, pz)) continue;
+    const w = b.x1 - b.x0 - ps.inset * 2, dd = b.z1 - b.z0 - ps.inset * 2, per = 2 * (w + dd);
+    for (let m = 0; m < 3; m++) {
+      const q = { b, inset: ps.inset, w, d: dd, per, s: rP() * per }, [x, z] = pedPos(q), dp = Math.hypot(x - px, z - pz);
+      if (dp < r0 || dp > r1 || !ringHidden(x, z, 1)) continue;
+      ps.b = b; ps.w = w; ps.d = dd; ps.per = per; ps.s = q.s; ps.dx = ps.dz = 0;
+      return true;
+    }
   }
+  return false;
 }
 // 下雨天路人變少：雨越大，越多人躲進室內（沒帶傘的先走）。只在離玩家 55 m 外消失、出現，放到遠處就不會被撞、被瞄準或當目擊者
 pedState.forEach((ps, k) => { const h = (k * .6180339887 + .31) % 1; ps.shy = ps.um0 ? h * .6 : .4 + h * .6; });
@@ -806,13 +813,18 @@ const PED_DIVE_V = 7, PED_DIVE_T = .9, PED_DIVE_W = .9, PED_DIVE_A = 7;   // 撲
 function updatePeds(dt) {
   let u = 0;
   const ppx = pX(), ppz = pZ(), share = (1 - .5 * clamp((wx.rain - .1) / .8, 0, 1)) * pedTurfShare() * SET.ped;   // SET.ped：Esc 選單的人口密集程度   // 69-turf.js：赤蠍幫的地盤路人少
+  const ring = ringR(RING_PED);
+  let ringN = RING_PER_FRAME + 1;
   pedState.forEach((ps, k) => {
-    if (ps.out) { if (ps.shy >= share) return; ps.out = 0; pedRelocate(ps, ppx, ppz); }
+    if (ps.out) { if (ps.shy >= share || ringN <= 0) return; ringN--; if (!pedRelocate(ps, ppx, ppz, ring)) return; ps.out = 0; }   // 雨停回到街上的人也從外環看不到的地方出來
     else if (ps.shy >= share && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
       const p = peds.people[k];
       if ((p.x - ppx) ** 2 + (p.z - ppz) ** 2 > 55 * 55) { ps.out = 1; peds.place(k, PED_AWAY, -50, PED_AWAY, 0); return; }
     }
-    if (!ps.fsm && !(ps.down > 0) && !(ps.panic > 0) && (blkW(ps.b)[0] - ppx) ** 2 + (blkW(ps.b)[1] - ppz) ** 2 > 230 * 230) pedRelocate(ps, ppx, ppz);
+    if (ringN > 0 && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
+      const [bx, bz] = blkW(ps.b), d2 = (bx - ppx) ** 2 + (bz - ppz) ** 2, p = peds.people[k];
+      if (d2 > RING_PED.hard ** 2 || d2 > (ring[1] + 40) ** 2 && ringHidden(p.x, p.z, 1)) { ringN--; pedRelocate(ps, ppx, ppz, ring); }   // 街區中心比人的位置遠一點，留 40 m
+    }
     // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
     // 69-combat.js：被槍指著投降、抱頭蹲下、脾氣差的人反擊（pedFsm 接手這一幀就 return）
     if (ps.fsm && !(ps.down > 0) && pedFsm(k, ps, dt)) return;

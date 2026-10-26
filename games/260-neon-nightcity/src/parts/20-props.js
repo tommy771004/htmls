@@ -549,9 +549,21 @@ for (const L of winSpots) {
     if (rnd() < .14) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
   }
   if (escCol >= 0) for (let fi = 0; fi < nF; fi++) (G || escapes).push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
-  const RG = roofKind(L) ? { push() {} } : null;   // 斜屋頂（19-roofs.js）上不擺水塔與空調箱，亂數照抽
-  if (L.h < 32 && rnd() < .28) (G || RG || towers).push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
-  for (let n = 0; n < 2; n++) if (rnd() < .5) (G || RG || roofBits).push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
+  const RG = roofKind(L) || L.crown ? { push() {} } : null;   // 斜屋頂（19-roofs.js）與天樞島的塔冠（20-isle.js）上不擺水塔與空調箱，亂數照抽
+  // 天樞島的退台塔擺在最上一層（往裡退 ti、頂高 ty）；廠房樓 80 m 以下都可能有水塔
+  const tp = L.tiers && L.tiers.length ? L.tiers.at(-1) : null, ti = tp ? tp.i : 0, ty = tp ? tp.y : L.h;
+  if ((L.isle ? ty < 80 : L.h < 32) && rnd() < .28) (G || RG || towers).push({ x: lerp(L.x0 + ti, L.x1 - ti, .3 + rnd() * .4), y: ty, z: lerp(L.z0 + ti, L.z1 - ti, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
+  for (let n = 0; n < 2; n++) if (rnd() < .5) (G || RG || roofBits).push({ x: lerp(L.x0 + ti, L.x1 - ti, .15 + rnd() * .7), y: ty, z: lerp(L.z0 + ti, L.z1 - ti, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
+}
+// 天樞島的填空樓（11-isle.js，世界座標的四邊形）：木水塔（磚石樓、75 m 以下）與空調箱，避開屋頂中間的樓梯間（20-isle.js）
+{
+  const r = rng(2610);
+  for (const f of ISLE_FILL) {
+    const P = f.tiers.length ? f.tiers.at(-1).P : f.P, y = f.htop, at = (s, t) => [lerp(lerp(P[0][0], P[1][0], s), lerp(P[3][0], P[2][0], s), t), lerp(lerp(P[0][1], P[1][1], s), lerp(P[3][1], P[2][1], s), t)];
+    const ry = Math.atan2(-(P[1][1] - P[0][1]), P[1][0] - P[0][0]), side = () => r() < .5 ? .14 + r() * .2 : .66 + r() * .2;
+    if (f.style !== 3 && y < 75 && r() < .55) { const [x, z] = at(side(), .3 + r() * .4); towers.push({ x, y, z, ry: r() * 6, s: .8 + r() * .4, zn: null }); }
+    for (let n = 0; n < 2; n++) if (r() < .6) { const [x, z] = at(side(), .2 + r() * .6); roofBits.push({ x, y, z, ry: ry + Math.floor(r() * 4) * Math.PI / 2, s: .7 + r() * .6, zn: null }); }
+  }
 }
 // 窗型冷氣（照公寓外牆上的窗機）：機身、前面板的出風百葉與進風格柵、右側的操作面板、兩側散熱百葉、下面的三角托架。局部 +z 朝外，牆在 z ≈ -0.22
 {

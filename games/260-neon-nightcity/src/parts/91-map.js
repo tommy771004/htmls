@@ -56,7 +56,7 @@ function mapBlips() {
   const mk = missionMark();
   if (mk && mk.where === 'out') add('mission', { name: mk.name, x: mk.x, z: mk.z, type: '任務', desc: $('objText')?.textContent || '' });
   if (!motors.stowed && !kestrel.dead) add('car', { name: kestrel.name, x: kestrel.x, z: kestrel.z, type: '座駕', desc: '停在路邊的座駕；按 V 可以叫到身邊。', tp: 'car' });
-  CREW.forEach((c, i) => { if (i !== crew.cur) add('crew', { name: `${c.name}（${c.zh}）`, txt: c.name[0], col: c.col, x: crew.st[i].x, z: crew.st[i].z, type: c.role, desc: `${c.home.name}附近。按 Q 開角色轉盤切換過去。` }); });
+  CREW.forEach((c, i) => { if (crewOk(i)) add('crew', { name: `${c.name}（${c.zh}）`, txt: c.name[0], col: c.col, x: crew.st[i].x, z: crew.st[i].z, type: c.role, desc: `${c.home.name}附近。按 Q 開角色轉盤切換過去。` }); });
   const est = (id, base) => { const e = estOf(id); if (!e) return base; const own = estOwned(id); return { ...base, own, rows: [['產權', own ? '已擁有' : `待售 ${money(e.price)}`], ...(e.rate ? [['收入', `${money(e.rate)}／遊戲小時`]] : [])] }; };
   add('club', est('lazarus', { name: 'LAZARUS', ...WP(CLUB_X, CLUB_Z + 2), type: '夜店', desc: '9 St 的夜店。今晚只放名單上的人進去。', tp: 'club' }));
   add('bar', est('afterglow', { name: 'AFTERGLOW', ...WP(BAR_X - 4.6, BAR_Z + 2), type: '酒吧', desc: '7 St 的酒吧，調酒師 Juno 在吧台後面。', tp: 'barIn' }));

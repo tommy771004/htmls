@@ -50,7 +50,7 @@ function fSpawn(team, x, z, yaw, o = {}) {
   const f = SQ.f.find(q => !q.on);
   if (!f) return null;
   const r = collideCircle(x, z, .32, false);
-  Object.assign(f, { on: true, team, x: r.x, z: r.z, yaw, hp: TEAM[team].hp, gun: o.gun || 'pistol', shotT: .6 + Math.random(), burst: 0, ph: Math.random() * 9, state: o.state || 'act', downT: 0, stunT: 0, car: o.car || null, ci: o.ci ?? -1, slot: o.slot ?? 0, tgt: null, tgtT: 0, goal: o.goal || null, rt: null, def: false, calm: false, lurk: false, grp: null, onDown: null, esc: !!o.esc });
+  Object.assign(f, { on: true, team, x: r.x, z: r.z, yaw, hp: TEAM[team].hp, gun: o.gun || 'pistol', shotT: .6 + Math.random(), burst: 0, ph: Math.random() * 9, state: o.state || 'act', downT: 0, stunT: 0, car: o.car || null, ci: o.ci ?? -1, slot: o.slot ?? 0, tgt: null, tgtT: 0, goal: o.goal || null, rt: null, def: false, calm: false, lurk: false, grp: null, onDown: null, esc: !!o.esc, brawl: !!o.brawl });   // brawl：69-w0-story.js 的徒手打架（不拿槍）
   fLook(f);
   return f;
 }
@@ -65,7 +65,7 @@ function fHit(f, dmg, fx, fz, mine) {
   if (f.team === 'crew') { f.hp = Math.max(50, f.hp); return false; }
   if (f.hp > 0) { if (mine) f.tgtT = 0; return false; }
   fDown(f, fx, fz);
-  if (f.team === 'gang' && Math.random() < .5) dropPickup(f.x, f.z, f.gun);
+  if (f.team === 'gang' && !f.brawl && Math.random() < .5) dropPickup(f.x, f.z, f.gun);
   return true;
 }
 function fDown(f, fx = 0, fz = 1) {
@@ -177,6 +177,7 @@ function fStep(f, dt) {
   }
   if (f.bait) return v6BaitStep(f, dt);   // 69-v6-customs.js：走去偷裝了點火炸彈的車
   if (f.team === 'thief') return thiefStep(f, dt);   // 69-street.js
+  if (f.brawl) return storyBrawl(f, dt);   // 69-w0-story.js：序章放風場的徒手打架
   // 還沒察覺的幫派（69-street.js 的交易）：站著聊天，玩家靠近、看得到，或有人中槍、附近有槍聲才動手；69-turf.js 盯梢的（lurk）要靠到 7 m 內或拔槍
   if (f.calm) {
     const d = Math.hypot(pX() - f.x, pZ() - f.z);
@@ -221,7 +222,7 @@ function fStep(f, dt) {
 }
 // 69-combat.js 的 combatLate：手上的槍
 function squadGuns() {
-  for (const f of SQ.f) if (fUp(f) && f.team !== 'thief') npcGunPut(fighters.people[f.k], f.gun);
+  for (const f of SQ.f) if (fUp(f) && f.team !== 'thief' && !f.brawl) npcGunPut(fighters.people[f.k], f.gun);
 }
 
 // ─── 車：幫派座車與傭兵皮卡（沿路網追玩家，近了直接開過去） ───
@@ -533,7 +534,7 @@ function squadHeist(s) {
       fSpawn('crew', at.x, at.z, at.yaw, { ci, gun: ci === 2 ? 'rifle' : 'smg', slot: j + 1 });
     });
   } else if (s === 'drive') {
-    for (let i = 0; i < 3; i++) if (i !== crew.cur) crew.st[i].where = 'heist';
+    for (let i = 0; i < 3; i++) if (i !== crew.cur) crew.st[i].where = 'heist';   // 搶銀行的三人（Vance、Kael、Jax）
     SQ.hc = { shotT: 1.5 };
   } else {
     // 結束（成功、失敗）：另外兩人回到現身的位置（成功就在貨櫃安全屋，失敗回家）

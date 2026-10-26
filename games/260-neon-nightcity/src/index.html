@@ -109,6 +109,18 @@ body.dive #diveFx{opacity:1}
 #wanted svg.lit path{fill:#f2ede2;stroke:#0c0d10}
 #wanted.cool svg.lit{animation:starBlink .5s steps(2) infinite}
 @keyframes starBlink{50%{opacity:.25}}
+/* 主線（69-w0-story.js）：通緝星級下面的腳鐐與警用掃描器小條；全黑的章節卡（序章的假釋審查也在這上面播字幕） */
+#stChip{position:absolute;right:max(16px,env(safe-area-inset-right));top:calc(max(14px,env(safe-area-inset-top)) + 132px);display:none;align-items:center;gap:8px;max-width:min(300px,52vw);padding:5px 10px 6px;font-size:12px;line-height:1.35;color:var(--ink-2);font-variant-numeric:tabular-nums}
+#stChip.on{display:flex}
+#stChip i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--teal)}
+#stChip.warn{color:var(--ink)}
+#stChip.warn i{background:var(--rose);animation:starBlink .5s steps(2) infinite}
+#stCard{position:absolute;inset:0;z-index:2;display:grid;place-content:center;justify-items:center;padding:16px;background:#050608;text-align:center;opacity:0;visibility:hidden;transition:opacity 700ms var(--ease-out),visibility 0s linear 700ms;pointer-events:none}
+#stCard.on{opacity:1;visibility:visible;transition:opacity 700ms var(--ease-out)}
+#stCard small{font-size:12px;letter-spacing:.24em;color:var(--sodium)}
+#stCard b{margin-top:6px;font-family:var(--cond);font-size:clamp(34px,7vw,72px);font-weight:700;letter-spacing:.04em;line-height:1.05;color:var(--ink)}
+#stCard p{width:min(560px,calc(100vw - 32px));min-height:3.2em;margin:18px 0 0;font-size:clamp(14px,1.6vw,17px);line-height:1.6;color:var(--ink)}
+#stCard p em{font-style:normal;font-weight:600;color:#ffe066;margin-right:.5em}
 
 /* 中央：WASTED／BUSTED 橫帶 */
 #death{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);padding:18px 16px 16px;background:rgba(5,6,8,.74);text-align:center;opacity:0;transition:opacity 600ms var(--ease-out)}
@@ -265,7 +277,7 @@ body.talking #says{display:none}
 #cine.sub #cineSub{opacity:1}
 #cineSkip{position:absolute;z-index:1;right:16px;bottom:calc(min(11vh,96px) / 2 - 9px);font-size:11px;color:var(--ink-2);opacity:0;transition:opacity 260ms}
 #cine.sub #cineSkip{opacity:.8}
-body.cine #obj,body.cine #compass,body.cine #clockBox,body.cine #tools,body.cine #mapBox,body.cine #vitals,body.cine #v3bars,body.cine #prompt,body.cine #speedo,body.cine #wanted,body.cine #weap,body.cine #xhair,body.cine #marker,body.cine #touch.on{visibility:hidden}
+body.cine #obj,body.cine #compass,body.cine #clockBox,body.cine #tools,body.cine #mapBox,body.cine #vitals,body.cine #v3bars,body.cine #prompt,body.cine #speedo,body.cine #wanted,body.cine #stChip,body.cine #weap,body.cine #xhair,body.cine #marker,body.cine #touch.on{visibility:hidden}
 #dialog{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:14px 18px 14px;background:var(--panel-2);border-radius:10px;pointer-events:auto;display:none}
 #dialog.on{display:block}
 body.wheel #tbtn,body.wheel #joy,body.talking #touch.on,body.talking #speedo,body.talking #mapBox,body.talking #vitals,body.talking #prompt{display:none!important}
@@ -523,6 +535,7 @@ body.touch #capture{display:none}
   #vitals{width:104px}
   #v3bars{width:104px;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 122px)}
   #wanted{top:calc(max(14px,env(safe-area-inset-top)) + 128px)}
+  #stChip{top:calc(max(14px,env(safe-area-inset-top)) + 156px)}
   #wanted svg{width:19px;height:18px}
   #mini{width:94px;height:94px}
   #speedo{width:142px;padding:6px 10px 8px}
@@ -574,6 +587,7 @@ body.touch #capture{display:none}
   <div id="mapBox" class="pan"><canvas id="mini" width="240" height="240"></canvas></div>
   <div id="vitals" aria-label="生命、護甲與特殊能力"><i id="hpBar"><span></span></i><i id="arBar"><span></span></i><i id="spBar"><span></span></i></div>
   <div id="wanted" aria-label="通緝等級"></div>
+  <div id="stChip" class="pan" aria-live="polite"><i></i><span id="stChipT"></span></div>
   <div id="scope" aria-hidden="true"></div>
   <div id="death"><b id="deathW">WASTED</b><small id="deathS"></small></div>
   <div id="heistDone"><b>HEIST PASSED</b><small>中央霓虹銀行</small><dl id="hpRows"></dl></div>
@@ -590,6 +604,7 @@ body.touch #capture{display:none}
   <div id="dl" class="pan" role="progressbar" aria-label="下載實車模型" aria-valuemin="0" aria-valuemax="100"><span>下載實車模型</span><b id="dlPct">0%</b><i></i></div>
   <div id="capture">點畫面鎖定游標 · Esc 暫停與設定</div>
   <div id="cine" aria-live="polite"><p id="cineSub"></p><small id="cineSkip">E · 空白鍵 略過</small></div>
+  <div id="stCard" aria-live="polite"><small id="stCardK"></small><b id="stCardT"></b><p id="stCardS"></p></div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
 <div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="KeyZ">蹲下</button><button data-k="Fire">開火</button></div></div>

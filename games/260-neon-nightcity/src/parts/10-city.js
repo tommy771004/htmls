@@ -910,7 +910,7 @@ void main(){
     }
     if (st == 3) {                                        // 玻璃帷幕的樓板帶
       alb = L(vec3(.18,.2,.23));
-      if (y > H - 1.6) { c = vec3(.2,.9,1.) * 1.6 * step(.5, fract(seed*3.)) + vec3(1.,.35,.6) * 1.6 * step(fract(seed*3.), .5); gl_FragColor = vec4(applyFog(c, vW), 1.); return; }
+      if (y > H - 1.6 && vB2.w < .5) { c = vec3(.2,.9,1.) * 1.6 * step(.5, fract(seed*3.)) + vec3(1.,.35,.6) * 1.6 * step(fract(seed*3.), .5); gl_FragColor = vec4(applyFog(c, vW), 1.); return; }
     }
     c = shade(vW, nW, v, alb, rr, 0.);
     if (st == 4) {                                        // 翻新的霓虹樓：樓板 LED 線
@@ -935,7 +935,7 @@ function quad(B, a, b, c, d, nrm, u0, u1, attrB, attrB2) {
   B.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 // 盒子：四面＋頂，面朝外；u 從面向觀看者的左邊算起
-function boxFaces(B, x0, x1, z0, z1, y0, y1, seed, style, shopFaces, h, masks, roof = true) {
+function boxFaces(B, x0, x1, z0, z1, y0, y1, seed, style, shopFaces, h, masks, roof = true, flag = 0) {   // flag（aB2.w）：1 = 天樞島，玻璃樓頂不畫霓虹燈帶
   const faces = [
     { n: [0, 0, 1], a: [x0, y0, z1], b: [x1, y0, z1], w: x1 - x0, key: 'pz' },
     { n: [0, 0, -1], a: [x1, y0, z0], b: [x0, y0, z0], w: x1 - x0, key: 'nz' },
@@ -945,7 +945,7 @@ function boxFaces(B, x0, x1, z0, z1, y0, y1, seed, style, shopFaces, h, masks, r
   for (const f of faces) {
     const shop = shopFaces && shopFaces[f.key] ? 1 : 0;
     const m = masks && masks[f.key] || [0, 1];
-    quad(B, f.a, f.b, [f.b[0], y1, f.b[2]], [f.a[0], y1, f.a[2]], f.n, 0, f.w, [seed, style, f.w, shop], [m[0], m[1], h, 0]);
+    quad(B, f.a, f.b, [f.b[0], y1, f.b[2]], [f.a[0], y1, f.a[2]], f.n, 0, f.w, [seed, style, f.w, shop], [m[0], m[1], h, flag]);
   }
   if (roof) quad(B, [x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0], 0, x1 - x0, [seed, style, x1 - x0, 0], [0, 1, h, 0]);
 }
@@ -991,7 +991,7 @@ for (const L of lots) {
   const h2 = L.style === 3 && R() < .5 && L.h > 50 ? L.h + 8 + R() * 20 : 0;
   if (L.ghost) { if (L.style <= 2 && !L.back) winSpots.push(L); continue; }   // 20-props.js 的窗台設施也照原本的寬度抽亂數
   const B = buf(key, zn);
-  boxFaces(B, L.x0, L.x1, L.z0, L.z1, 0, L.h, L.seed, L.style, shopF, L.h, masks);
+  boxFaces(B, L.x0, L.x1, L.z0, L.z1, 0, L.h, L.seed, L.style, shopF, L.h, masks, true, L.isle ? 1 : 0);
   // 簷口與女兒牆（磚樓、石樓）
   if (L.style !== 3) {
     const o = .35, y = L.h;
@@ -1006,7 +1006,7 @@ for (const L of lots) {
   if (L.tiers) {
     let y0 = L.h;
     for (const [k, t] of L.tiers.entries()) {
-      boxFaces(B, L.x0 + t.i, L.x1 - t.i, L.z0 + t.i, L.z1 - t.i, y0, t.y, L.seed + k + 1, t.st, null, t.y, null);
+      boxFaces(B, L.x0 + t.i, L.x1 - t.i, L.z0 + t.i, L.z1 - t.i, y0, t.y, L.seed + k + 1, t.st, null, t.y, null, true, 1);
       if (t.st !== 3) boxFaces(B, L.x0 + t.i - .3, L.x1 - t.i + .3, L.z0 + t.i - .3, L.z1 - t.i + .3, t.y - .45, t.y + .06, L.seed, 7, null, t.y, null);
       y0 = t.y;
     }

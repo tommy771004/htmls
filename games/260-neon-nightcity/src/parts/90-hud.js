@@ -147,10 +147,30 @@ const DIRN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const headingOf = (dx, dz) => ((180 - Math.atan2(dx, dz) * 180 / Math.PI) % 360 + 360) % 360;
 const dirName = h => DIRN[Math.round(h / 45) % 8];
 // 世界座標 → 所在區的邏輯座標，再照方格找最近的大道與街
+// 天樞島（邏輯 x ≥ 8000，大道 i = 114–120、街 j = 1–9）照曼哈頓下城的街名；片之間的彎路（連接道路）依路段給名字
+const ISLE_AVE = ['Greenwich St', 'Trinity Pl', 'Broadway', 'Nassau St', 'William St', 'Pearl St', 'Water St'];
+const ISLE_STR = ['Chambers St', 'Warren St', 'Murray St', 'Vesey St', 'Fulton St', 'John St', 'Maiden Ln', 'Pine St', 'Wall St'];
+const ISLE_CURVE = ['Exchange Pl', 'Beaver St', 'Stone St', 'Whitehall St', 'Cedar St', 'Liberty St', 'Rector St', 'Bridge St', 'Old Slip', 'Hanover Sq'];
+let isleConn = null;
+function isleStreet(X, Z, x, z) {
+  const zn = zoneAtW(X, Z);
+  if (zn && zn.isle) {
+    let bi = 114, bd = 1e9; for (let i = 114; i <= 120; i++) { const d = Math.abs(x - avX(i)); if (d < bd) { bd = d; bi = i; } }
+    let bj = 1, be = 1e9; for (let j = 1; j <= 9; j++) { const d = Math.abs(z - stZ(j)); if (d < be) { be = d; bj = j; } }
+    if (bd < 13 && be < 13) return `${ISLE_AVE[bi - 114]} · ${ISLE_STR[bj - 1]}`;
+    if (bd < 13 || be < 13) return bd < be ? ISLE_AVE[bi - 114] : ISLE_STR[bj - 1];
+  }
+  isleConn ||= RN.edges.filter(e => e.kind === 'c' && e.pts.some(([px, pz]) => inPoly(LAKE_P, px, pz)));
+  let best = null, bd = (HR + 6) ** 2;
+  for (const e of isleConn) for (const [px, pz] of e.pts) { const d = (px - X) ** 2 + (pz - Z) ** 2; if (d < bd) { bd = d; best = e; } }
+  if (best) return best.bridge ? `${ISLE_CURVE[best.id % ISLE_CURVE.length]} Bridge` : ISLE_CURVE[best.id % ISLE_CURVE.length];
+  return null;
+}
 function streetName(X, Z, Y) {
   if (Y === undefined || deckTop(X, Z) === null || deckAt(X, Z, Y) !== null) for (const F of FWY) if (F.edges) for (const e of F.edges) for (const p of e.pts) if (Math.abs(p[0] - X) < HR + 2 && Math.abs(p[1] - Z) < HR + 2) return F.name;   // 快速道路（世界座標，點每 4 m 一個；在橋下就照地面的路名）
   const [x, z] = toL(X, Z);
   { const p = plazaAt(x, z); if (p && plazaD(x, z) < HR + SW) return p.D.name; }   // 廣場裡斜的大道（06-roads.js）
+  if (inPoly(LAKE_P, X, Z)) { const n = isleStreet(X, Z, x, z); if (n) return n; }
   if (x < CITY_X0 - 6 || x > CITY_X1 + 6 || z > CITY_Z1 + 6 || z < CITY_Z0 - 6) return district(x, z).replace(/^\S+ /, '');   // 格網外（海邊、島、河濱）沒有街名，顯示地名
   let bi = 0, bd = 1e9; for (let i = 0; i <= NX; i++) { const d = Math.abs(x - avX(i)); if (d < bd) { bd = d; bi = i; } }
   let bj = 0, be = 1e9; for (let j = 0; j <= NZ; j++) { const d = Math.abs(z - stZ(j)); if (d < be) { be = d; bj = j; } }
@@ -279,7 +299,7 @@ function teleport(k) {
     player.where === 'out' ? transition(fn) : transition(fn);
   };
   if (k === 'club') go(CLUB_X - 3, CLUB_Z + 4.5, Math.PI);
-  else if (k === 'clubIn') { if (quest.n >= 3) { if (player.mode === 'drive') exitVehicle(); enterVenue('club'); } else { go(CLUB_X - 3, CLUB_Z + 4.5, Math.PI); toast('還沒上名單，先到門口'); } }
+  else if (k === 'clubIn') { if (questIn()) { if (player.mode === 'drive') exitVehicle(); enterVenue('club'); } else { go(CLUB_X - 3, CLUB_Z + 4.5, Math.PI); toast('還沒上名單，先到門口'); } }
   else if (k === 'barIn') { if (player.mode === 'drive') exitVehicle(); enterVenue('bar'); }
   else if (k === 'garage') go(GAR_X - 4, GAR_Z + 3, Math.PI);
   else if (k === 'dealer') go(DEAL_X - 2.5, DEAL_Z + 3.4, Math.PI);
