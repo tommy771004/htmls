@@ -170,6 +170,7 @@ for (const s of ST_SITES) {
   stSand.push({ x: xm - sd * .1, z: s.za + 2.0, ry: w2Hash(s.x, s.za) * 6.28, zn: s.zn });
   stGen.push({ x: xm + sd * .55, z: s.za + 4.7, ry: Math.PI / 2 * sd, zn: s.zn });
   stTower.push({ x: xm, z: s.zb - 1.85, ry: s.up < 0 ? 0 : Math.PI, zn: s.zn });
+  outLights.push({ x: xm, y: 3.4, z: s.zb - 4.5, col: lin(0xfff0d8), r: 16, i: 1.3 });   // 燈頭朝工地往下照（模型的燈面只有發光貼圖，照不亮地面）
   stWSign.push({ x: s.sign.x, z: s.sign.z, ry: s.sign.ry, zn: s.zn });
 }
 // 碰撞圓（邏輯座標，cityWorld 之後是同一個物件換成世界座標）

@@ -106,8 +106,31 @@ if (GLB_ON) loadProps('boats').then(it => {
     const o = propObject(m, 0, -BOAT_DRAFT, 0), sx = Math.min(1, (v.w + .3) / m.w);
     o.scale.set(sx, 1, 1);
     v.body.children[0].visible = false; v.body.add(o); v.glb = 1;
+    v.body.add(v.lamps = new T.Mesh(boatLamps(v, o).build(), v.mat));
   }
 }).catch(e => console.warn('boats', e));
+// 程式建模的航行燈跟著替身藏起來了，照模型的頂點擺回去：船頭三成處兩舷的舷緣（左舷紅、右舷綠）、船尾一段的最高處（白色桅燈，
+// 立在 0.2 m 的短桿上，太矮就把桿子拉到 1.8 m）、船頭最前端（探照燈）。量的是 body 座標（含 o 的縮放與位移）
+function boatLamps(v, o) {
+  o.updateMatrix();
+  const L = v.len, p = new T.Vector3(), side = [[-1e9, 0, 0], [-1e9, 0, 0]], top = [-1e9, 0, 0], nose = [0, 0, -1e9];
+  for (const m of o.children) {
+    const a = m.geometry.attributes.position;
+    for (let i = 0; i < a.count; i++) {
+      p.fromBufferAttribute(a, i).applyMatrix4(o.matrix);
+      if (Math.abs(p.z - L * .25) < L * .06) for (const s of [0, 1]) { const x = s ? -p.x : p.x; if (x > side[s][0] - .05 && (x > side[s][0] + .05 || p.y > side[s][1])) side[s] = [x, p.y, p.z]; }
+      if (p.z < -L * .3 && Math.abs(p.x) < v.w * .35 && p.y > top[0]) top.splice(0, 3, p.y, p.x, p.z);
+      if (p.z > nose[2] && p.y > .3) nose.splice(0, 3, p.x, p.y, p.z);
+    }
+  }
+  const k = new Kit();
+  k.box(side[0][0] - .03, side[0][1] + .05, side[0][2], .08, .08, .12, 0xff2020, 11).box(-side[1][0] + .03, side[1][1] + .05, side[1][2], .08, .08, .12, 0x20ff60, 11);
+  const my = Math.max(top[0] + .2, 1.8);
+  k.cyl(top[1], (top[0] + my) / 2, top[2], .025, .025, my - top[0], 6, 0xc8ccd4, 3);
+  k.box(top[1], my + .05, top[2], .1, .1, .1, 0xfff4e0, 11);
+  k.box(nose[0], nose[1] - .05, nose[2] - .12, .2, .12, .1, 0xfff0d8, 4);
+  return k;
+}
 // 水面起伏（三道波疊起來；只給船用）
 const seaWave = (x, z, t) => .16 * Math.sin(x * .19 + t * 1.05) + .11 * Math.sin(z * .23 - t * .83 + 1.3) + .06 * Math.sin((x + z) * .41 + t * 1.7);
 const boatFloor = (x, z) => seaFloor(x, z) > SEA_Y - BOAT_DRAFT - .15;   // 這裡太淺，船過不去
