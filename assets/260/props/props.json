@@ -1063,6 +1063,39 @@
    }
   ]
  },
+ "nat_trees2": {
+  "kb": 536,
+  "items": {
+   "broad_a": {
+    "w": 9.1,
+    "d": 7.08,
+    "h": 7.4,
+    "tris": 825653
+   },
+   "broad_b": {
+    "w": 6.15,
+    "d": 5.76,
+    "h": 7.2,
+    "tris": 550533
+   }
+  },
+  "credits": [
+   {
+    "file": "more_realistic_trees_free",
+    "title": "More Realistic Trees Free!",
+    "author": "Nicholas-3D (https://sketchfab.com/Nicholas01)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/more-realistic-trees-free-b5b506fc4f5d4af9b546283bdf0c6a15"
+   },
+   {
+    "file": "more_realistic_trees_free",
+    "title": "More Realistic Trees Free!",
+    "author": "Nicholas-3D (https://sketchfab.com/Nicholas01)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/more-realistic-trees-free-b5b506fc4f5d4af9b546283bdf0c6a15"
+   }
+  ]
+ },
  "amb_str": {
   "kb": 113,
   "items": {

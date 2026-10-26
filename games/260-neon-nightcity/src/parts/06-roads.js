@@ -71,6 +71,55 @@ const rnAt = (zn, i, j) => rnNode.get(`${zn.id}:${i},${j}`);
     if (!took.length && cand.length) tryTake(cand.sort((p, q) => p.L - q.L)[0]);
     for (const c of took.sort((p, q) => p.pa - q.pa)) rnAddEdge(c.na, c.nb, 'c', null, bez(c.na, c.nb, c.ta, c.tb));
   }
+  // ─── 天樞島的橋：島的邊界路口（離島岸 70 m 內）往外，接對岸片的邊界路口（離水道外緣 70 m 內），兩端都順著自己的片垂直離開邊界路。
+  // 近的、兩端正對的先挑；兩座橋的島端與對岸端都要隔 110 m 以上、不能交叉；中間只能過水（離兩端 40 m 外不能踩到別的陸地）。最多 ISLE_BRIDGES 座 ───
+  const ISLE_BRIDGES = 9, segHit = (p, q, r, t) => !!segCross(p, q, r, t);
+  const ends = (zn, near) => {
+    const out = [];
+    for (const n of RN.nodes) {
+      if (n.zn !== zn) continue;
+      for (const [d, on] of [[[-1, 0], n.i === zn.ni0], [[1, 0], n.i === zn.ni1], [[0, -1], n.j === zn.nj0], [[0, 1], n.j === zn.nj1]]) {
+        if (!on || used.has(`${n.id}:${d}`) || near(n.x, n.z) > 70) continue;
+        out.push({ n, d, t: dirW(zn, ...d, avX(n.i), stZ(n.j)) });
+      }
+    }
+    return out;
+  };
+  const IE = ZONES.filter(z => z.isle).flatMap(z => ends(z, (x, z2) => polyDistPt(ISLE_P, x, z2)));
+  const OE = ZONES.filter(z => !z.isle).flatMap(z => ends(z, (x, z2) => polyDistPt(LAKE_P, x, z2)));
+  const cand = [];
+  for (const a of IE) for (const b of OE) {
+    const dx = b.n.x - a.n.x, dz = b.n.z - a.n.z, L = Math.hypot(dx, dz);
+    if (L > 330 || L < 40) continue;
+    const ca = (a.t[0] * dx + a.t[1] * dz) / L, cb = -(b.t[0] * dx + b.t[1] * dz) / L;
+    if (ca < .7 || cb < .45) continue;
+    // 中間只能是水：直線上每 6 m 一點，離兩端 40 m 以外的不能在陸地上（外緣外、別的片）
+    let wet = true;
+    for (let s2 = 40; s2 < L - 40 && wet; s2 += 6) { const x = a.n.x + dx * s2 / L, z = a.n.z + dz * s2 / L; if (!lakeExact(x, z)) wet = false; }
+    if (wet) cand.push({ a, b, L, c: Math.min(ca, cb) });
+  }
+  const BR = [];
+  for (const c of cand.sort((p, q) => p.L / p.c ** 2 - q.L / q.c ** 2)) {
+    if (BR.length >= ISLE_BRIDGES) break;
+    if (BR.some(o => Math.hypot(o.a.n.x - c.a.n.x, o.a.n.z - c.a.n.z) < 110 || Math.hypot(o.b.n.x - c.b.n.x, o.b.n.z - c.b.n.z) < 110
+      || segHit([o.a.n.x, o.a.n.z], [o.b.n.x, o.b.n.z], [c.a.n.x, c.a.n.z], [c.b.n.x, c.b.n.z]))) continue;
+    if (used.has(`${c.a.n.id}:${c.a.d}`) || used.has(`${c.b.n.id}:${c.b.d}`)) continue;
+    used.add(`${c.a.n.id}:${c.a.d}`); used.add(`${c.b.n.id}:${c.b.d}`); BR.push(c);
+  }
+  for (const c of BR) rnAddEdge(c.a.n, c.b.n, 'c', null, bez(c.a.n, c.b.n, c.a.t, c.b.t)).bridge = 1;
+}
+// 跨過天樞島水道的連接道路：水上那一段（兩端各多伸進陸地 6 m）登錄到 05-zones.js 的 BRIDGES（橋面上算陸地）；畫面在 21-isle.js
+for (const e of RN.edges) {
+  if (e.kind !== 'c') continue;
+  let run = null;
+  const flush = k => {
+    if (!run) return;
+    const a = Math.max(0, run - 2), b = Math.min(e.pts.length - 1, k + 2), pts = e.pts.slice(a, b + 1), xs = pts.map(p => p[0]), zs = pts.map(p => p[1]), hw = HR + 3.2;
+    BRIDGES.push({ e, pts, hw, bb: [Math.min(...xs) - hw, Math.max(...xs) + hw, Math.min(...zs) - hw, Math.max(...zs) + hw] });
+    e.bridge = 1; run = null;
+  };
+  for (let k = 0; k < e.pts.length; k++) { const wet = lakeExact(...e.pts[k]); if (wet && run === null) run = k; else if (!wet) flush(k - 1); }
+  flush(e.pts.length - 1);
 }
 // ─── 斜穿片的大道（kind 'd'）：片裡從一個路口斜著穿過 n 個街區到對角的路口（邏輯座標的直線，跟著片彎），穿過的街區改成廣場
 // （10-city.js 的 b.plaza：地塊留著當 ghost 照原寬度抽亂數、不蓋樓，人行道板沿大道切開，20-props.js 擺樹、長椅與噴水池）。
@@ -98,10 +147,23 @@ const plazaD = (x, z) => { const p = plazaAt(x, z); return p ? Math.abs((x - p.a
 // ─── 沿縫的快速道路（kind 'f'）：沿著幾對相鄰片之間的縫（兩片邊界路的中線）一路接下去的長路，架在橋上越過穿過縫的連接道路；
 // 兩端停在最外面那條連接道路上（平面號誌路口），中間用匝道上下（見下面的 FWY_RAMPS），兩條快速道路共用一段橋面（共線段）。
 // pairs 依序是縫的兩片（片的 key）；中線每 4 m 取一點，換片的地方平滑接過去
+// 天樞島之後，兩條都繞進島四周的水道（{ lake: [起, 迄] }：水道中線，島心 ISLE_C 的世界角度，0° 朝東、90° 朝南，照給的順序走）：
+// 北嶺從冠石與光環之間下來，沿水道西半往南，出來走公園大道與珊瑚灘南之間；港灣從舊城與楓林之間往東，沿水道北半，出來走灰石與琥珀之間。
+// 兩條在水道西北段共用橋面（下面的共線段）
 const FWY = [
-  { name: 'Ridgeline Fwy', zh: '北嶺快速道路', pairs: [['A2', 'B1'], ['A2', 'B2'], ['D2', 'E'], ['E', 'G2'], ['G2', 'H1']] },
-  { name: 'Harbor Fwy', zh: '港灣快速道路', pairs: [['A1', 'D1'], ['A1', 'D2'], ['A2', 'D2'], ['B2', 'E'], ['C1', 'F1'], ['C2', 'F2']] },
+  { name: 'Ridgeline Fwy', zh: '北嶺快速道路', pairs: [['A2', 'B1'], ['A2', 'B2'], { lake: [262, 118] }, ['E', 'G2']] },
+  { name: 'Harbor Fwy', zh: '港灣快速道路', pairs: [['A1', 'D1'], ['A1', 'D2'], { lake: [205, 345] }, ['C1', 'F1'], ['C2', 'F2']] },
 ];
+// 水道中線：從島心往 a 度，島岸與水道外緣的中點；a0 到 a1 每 5 m 一點（a1 < a0 就倒著走）
+function lakeMid(a0, a1, step = 5) {
+  const c = ISLE_W, ray = (P, a) => { const dx = Math.cos(a), dz = Math.sin(a); let best = 0; for (let k = 0; k < P.length; k++) { const p = P[k], q = P[(k + 1) % P.length]; const X = segCross(c, [c[0] + dx * 3000, c[1] + dz * 3000], p, q); if (X) best = Math.max(best, Math.hypot(X[0] - c[0], X[1] - c[1])); } return best; };
+  const at = a => { const r = a - (ZONE_ROT || 0), ri = ray(ISLE_P, r), ro = ray(LAKE_P, r), m = (ri + ro) / 2; return { x: c[0] + Math.cos(r) * m, z: c[1] + Math.sin(r) * m, w: ro - ri, m }; };
+  const out = []; let a = a0 * Math.PI / 180;
+  const A1 = a1 * Math.PI / 180, sg = Math.sign(A1 - a);
+  while ((A1 - a) * sg > 0) { const p = at(a); out.push(p); a += sg * step / Math.max(60, p.m); }
+  out.push(at(A1));
+  return out;
+}
 // 兩片之間的縫的中線：沿共用的邊界路走，這片的邊界路點與那片同一條路上對應的點取中點；w 是兩條路之間草地的寬
 function seamMid(za, zb, step = 5, pad = 40) {
   const L = [];
@@ -172,7 +234,7 @@ function fwyClear(P) {
 // 中線：各對縫依序接起來。每一段的方向照上一段的尾巴決定，接的地方在兩段最靠近的兩點剪開（兩段的 pad 互相重疊，直接接會折回來）
 const resample = (Q, d) => { const out = [Q[0]]; let acc = 0; for (let k = 1; k < Q.length; k++) { const a = Q[k - 1], b = Q[k], l = Math.hypot(b[0] - a[0], b[1] - a[1]); let s = d - acc; while (s <= l) { out.push([a[0] + (b[0] - a[0]) * s / l, a[1] + (b[1] - a[1]) * s / l]); s += d; } acc = l - (s - d); } return out; };
 for (const F of FWY) {
-  const runs = F.pairs.map(([ka, kb]) => seamMid(ZONES.find(z => z.key === ka), ZONES.find(z => z.key === kb)).map(p => [p.x, p.z]));
+  const runs = F.pairs.map(pr => (pr.lake ? lakeMid(...pr.lake) : seamMid(ZONES.find(z => z.key === pr[0]), ZONES.find(z => z.key === pr[1]))).map(p => [p.x, p.z]));
   const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
   if (runs.length > 1) { const [a, b] = runs, near = p => Math.min(d2(p, b[0]), d2(p, b.at(-1))); if (near(a[0]) < near(a.at(-1))) a.reverse(); }
   let line = runs[0];

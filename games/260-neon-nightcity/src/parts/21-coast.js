@@ -237,8 +237,8 @@ const coastLight = (x, y, z, col, r, i) => { const l = { x, y, z, col: lin(col),
   // 外緣臨水的邊（10-city.js 的 SHORE，世界座標；以前的岬角 CAPES 也一樣）：裝一樣的欄杆，邊緣是往下到水裡的石砌護岸，每 30 m 一盞步道路燈
   const hk = new Kit(), stone = new T.BufferGeometry();
   const sp = [], sn = [];
-  for (const h of [...CAPES, SHORE]) {
-    const n = h.pts.length, area = polyArea(h.pts) > 0 ? 1 : -1;
+  for (const h of [...CAPES, SHORE, ...LAKE_SHORES]) {
+    const n = h.pts.length, area = shoreSide(h);
     let run = 12;
     for (let k = 0; k < n; k++) {
       if (!h.wet[k]) continue;
@@ -344,8 +344,8 @@ let benchMesh, planterShrubMesh;
   // 對岸步道（BANK_WALKS）：靠水那側面向水，渡船碼頭前後讓開
   for (const [i, B] of BANK_WALKS.entries()) for (let z = B.z0 + 14; z < B.z1 - 10; z += 23) if (Math.abs(z - (FERRY[i].z0 + FERRY[i].z1) / 2) > 9) put(i ? B.x0 + 2.4 : B.x1 - 2.4, z, i ? -Math.PI / 2 : Math.PI / 2, false);
   // 外緣臨水的邊與岬角（世界座標）：碎石步道內側面向水，兩盞路燈中間一張
-  for (const h of [...CAPES, SHORE]) {
-    const n = h.pts.length, area = polyArea(h.pts) > 0 ? 1 : -1;
+  for (const h of [...CAPES, SHORE, ...LAKE_SHORES]) {
+    const n = h.pts.length, area = shoreSide(h);
     let run = 27;
     for (let k = 0; k < n; k++) {
       if (!h.wet[k]) continue;
@@ -354,7 +354,7 @@ let benchMesh, planterShrubMesh;
       const ux = (q[0] - p[0]) / len, uz = (q[1] - p[1]) / len, ix = -uz * area, iz = ux * area;
       for (let a = run; a < len; a += 30) {
         const x = p[0] + ux * a + ix * 4, z = p[1] + uz * a + iz * 4;
-        if (!inPoly(h.pts, x, z)) { run = a + 30; continue; }
+        if (!shoreLand(h, x, z)) { run = a + 30; continue; }
         benches.push({ x, z, y: 0, ry: Math.atan2(-ix, -iz), zn: null });
         colliders.push({ x0: -1.1, x1: 1.1, z0: -.45, z1: .45, zn: frameW(x, z, ux, uz) });
         run = a + 30;

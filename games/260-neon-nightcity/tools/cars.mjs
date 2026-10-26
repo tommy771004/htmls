@@ -82,11 +82,11 @@ export const MODELS = [
   // 街頭車（照 gta5-mods 熱門車款補的類型，不進車行）：汽車混進車流、搶到後換成這裡的實車，開回 GARAGE 07 就收下；機車停在路邊
   { id: 'g63', file: 'mersedes-benz_g63_amg', len: 4.873, tris: 90000, soup: true },
   { id: 'lc200', file: 'toyota_land_cruiser_j200_2017', len: 4.95, tris: 90000, wheelsAt: { FL: [.82, 1.555, .39], FR: [-.82, 1.555, .39], RL: [.82, -1.295, .39], RR: [-.82, -1.295, .39] } },
-  { id: 'rr06', file: '2006_land_rover_range_rover_supercharged', len: 4.95, tris: 90000, paint: false },
-  { id: 'ramtrx', file: 'dodge_ram_trx_sandblast_edition', len: 5.92, tris: 90000, soup: true },
+  { id: 'rr06', file: '2006_land_rover_range_rover_supercharged', len: 4.95, tris: 90000, paint: false, flip: true },   // 原檔車頭朝 -z
+  { id: 'ramtrx', file: 'dodge_ram_trx_sandblast_edition', len: 5.92, tris: 90000, soup: true, flip: true },   // 原檔車頭朝 -z
   { id: 'ghost', file: 'rolls-royce_ghost', len: 5.546, tris: 90000, soup: true },
   { id: 's65', file: 'mersedes-benz_s65_w222', len: 5.27, tris: 90000, soup: true },
-  { id: 'm5f90', file: 'bmw_m5_f90', len: 4.966, tris: 90000, soup: true, tex: 512 },   // 原檔是不共用頂點的三角形，一百多個材質：先合併頂點、貼圖壓到 512
+  { id: 'm5f90', file: 'bmw_m5_f90', len: 4.966, tris: 90000, soup: true, tex: 512, flip: true },   // 原檔是不共用頂點的三角形，一百多個材質：先合併頂點、貼圖壓到 512
   { id: 'camry', file: 'toyota_camry_2020', len: 4.885, tris: 90000, wheelsAt: { FL: [.8, 1.46, .34], FR: [-.8, 1.46, .34], RL: [.8, -1.365, .34], RR: [-.8, -1.365, .34] } },
   { id: 'gt500', file: 'ford_mustang_shelby_gt500', len: 4.818, tris: 90000 },
   { id: 'viper', file: 'dodge_viper_srt_free', len: 4.46, tris: 90000, paint: false },

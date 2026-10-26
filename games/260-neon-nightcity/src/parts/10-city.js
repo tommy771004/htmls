@@ -112,6 +112,14 @@ const CORE = 5, isCore = (i, j) => i < CORE && j < CORE, isOld = (i, j) => i < 8
 const phase = (i, j) => isCore(i, j) ? 0 : isOld(i, j) ? 1 : 2;
 for (const ph of [0, 1, 2]) for (let i = 0; i < (ph < 2 ? 8 : NX); i++) for (let j = 0; j < (ph < 2 ? 7 : NZ); j++)
   if (phase(i, j) === ph && !cellDropped(i, j)) blocks.push({ i, j, x0: avX(i) + HR, x1: avX(i + 1) - HR, z0: stZ(j) + HR, z1: stZ(j + 1) - HR, outer: 0 });
+// 第三輪：天樞島（04-layout.js 的 isle 四片，邏輯座標在 x ≥ 8000）排在最後，地塊用自己的亂數（isleLots），前面的序列不變
+const ISLE_CELLS = new Set();
+for (const zn of ZONES) if (zn.isle) for (let i = zn.ni0; i < zn.ni1; i++) for (let j = zn.nj0; j < zn.nj1; j++) {
+  ISLE_CELLS.add(i + ',' + j);
+  if (!cellDropped(i, j)) blocks.push({ i, j, x0: avX(i) + HR, x1: avX(i + 1) - HR, z0: stZ(j) + HR, z1: stZ(j + 1) - HR, outer: 0, isle: zn.key });
+}
+// 邏輯格子 (i, j) 是城裡的街區（方格或島上）
+const gridCell = (i, j) => (i >= 0 && j >= 0 && i < NX && j < NZ || ISLE_CELLS.has(i + ',' + j)) && !cellDropped(i, j);
 const OUT_D = 50, CITY_X0 = avX(0) - HR, CITY_X1 = avX(NX) + HR, CITY_Z0 = stZ(0) - HR, CITY_Z1 = stZ(NZ) + HR;
 const CITY_CX = (CITY_X0 + CITY_X1) / 2, CITY_CZ = (CITY_Z0 + CITY_Z1) / 2;
 // 海岸（21-coast.js）：城市的陸地是 05-zones.js 的外緣多邊形（CITY_POLY；片之間與片外圍的空地是草地），南面與西面臨水（西是灰鷺河、南是海：
@@ -190,8 +198,11 @@ const DISTRICTS = [
   { name: '珊瑚灘 Coral Beach', i0: 0, i1: 10, j0: 11, j1: NZ },
   { name: '錨灣港 Anchor Bay', i0: 10, i1: NX, j0: 11, j1: NZ },
 ];
+// 天樞島四片的地名（照片的 key）
+const ISLE_NAMES = { MA: '天樞北城 Meridian North', MB: '天樞西岸 Meridian Westbank', MC: '天樞金融區 Meridian Financial', MD: '天樞岬角 Meridian Point' };
 const district = (x, z) => {
   const i = (x - X0) / P, j = (z - Z0) / Q;
+  if (x > 7900 && x < 8600) { const zn = zoneAtL(x, z) || ZONES.filter(o => o.isle).reduce((a, o) => Math.hypot(x - (o.x0 + o.x1) / 2, z - (o.z0 + o.z1) / 2) < Math.hypot(x - (a.x0 + a.x1) / 2, z - (a.z0 + a.z1) / 2) ? o : a); return ISLE_NAMES[zn.key]; }
   if (z > CITY_Z1) {   // 海邊（21-coast.js）：在格網外，要先判斷
     if (z >= ISLE.z0 - 4) return '灰鷗島 Gull Island';
     if (z > QUAY.z1 && x > BRIDGE.x0 - 30 && x < BRIDGE.x1 + 30) return '灰鷗大橋 Gullwing Bridge';
@@ -282,7 +293,68 @@ function addLot(axis, a0, a1, x0, x1, z0, z1, face, b, special) {
   const h = style === 3 ? 38 + rnd() * (mid || fin ? 70 : halo ? 120 : 40) : 4.6 + floors * fh + .7;
   lots.push({ ...L, h, style, seed: rnd() * 1000, face, axis, special, fh, b });
 }
-blocks.forEach(makeLots);   // 外圍的樓牆（outer）已經拿掉：片外圍到外緣之間是草地，北面與東面的外面是山
+blocks.forEach(b => b.isle ? isleLots(b) : makeLots(b));   // 外圍的樓牆（outer）已經拿掉：片外圍到外緣之間是草地，北面與東面的外面是山
+// ─── 天樞島的街區（照曼哈頓下城）：金融區與岬角多半是整塊街區的高樓，西岸是新填地的現代高樓，北城是五到十二層的鑄鐵與磚造廠房樓、偶爾一棟塔樓。
+// 塔樓 = 底座（L.h，到第一道退台）加上往上一層層往裡退的 L.tiers（{ i：每邊退幾公尺, y：這一層的頂, st：樣式 }），最上面的 crown 是 20-isle.js 的塔冠與尖頂。
+// 牆和樓板仍是方塊；退台的邊上有簷口（樣式 7）。亂數用 isleRnd，舊城區的序列不受影響 ───
+const isleRnd = rng(20261026);
+const ISLE_KIND = { MA: 'loft', MB: 'bpc', MC: 'fin', MD: 'fin' };
+function isleTower(L, R, kind) {
+  const w = Math.min(L.x1 - L.x0, L.z1 - L.z0), r = R();
+  // deco：石造退台塔（1930 年代），glass：玻璃帷幕塔，slab：方正的戰後辦公樓
+  const type = kind === 'bpc' ? (r < .55 ? 'glass' : r < .85 ? 'deco' : 'slab') : kind === 'loft' ? (r < .5 ? 'deco' : 'slab') : (r < .45 ? 'deco' : r < .8 ? 'glass' : 'slab');
+  const big = w > 30, H = (kind === 'loft' ? 55 + R() * 55 : big ? 110 + R() * 150 : 70 + R() * 80) * (kind === 'bpc' ? .85 : 1);
+  L.type = type; L.tiers = [];
+  if (type === 'glass') {
+    L.style = 3; L.fh = 3.7; L.h = H * (.62 + R() * .2);
+    const ins = 2 + R() * 3; L.tiers.push({ i: ins, y: H, st: 3 });
+    if (R() < .6) L.tiers.push({ i: ins + 4 + R() * 3, y: H + 6 + R() * 6, st: 3 });   // 頂上的機房層
+  } else if (type === 'slab') {
+    L.style = R() < .5 ? 2 : 3; L.fh = L.style === 3 ? 3.7 : 3.4; L.h = H * .9;
+    L.tiers.push({ i: 3, y: H, st: L.style });
+  } else {
+    // 退台：底座到 0.3–0.4，之後每段退 2.5–4 m，最上面一段收成塔冠（L.crown）
+    L.style = 2; L.fh = 3.4; L.h = Math.max(24, H * (.3 + R() * .12));
+    let y = L.h, ins = 0;
+    const n = 3 + Math.floor(R() * 3);
+    for (let k = 0; k < n && ins < w / 2 - 6; k++) {
+      ins += 2.5 + R() * 1.5; y += (H - L.h) / n * (k === 0 ? 1.4 : .85 + R() * .3);
+      L.tiers.push({ i: ins, y: Math.min(y, H), st: 2 });
+    }
+    if (w / 2 - ins > 5) L.crown = { i: ins, y: L.tiers.at(-1).y, kind: Math.floor(R() * 3), spire: R() < .6 ? 18 + R() * 45 : 0 };
+  }
+  L.htop = Math.max(L.h, ...L.tiers.map(t => t.y)) + (L.crown ? 14 + L.crown.spire : 0);
+}
+function isleLots(b) {
+  const R = isleRnd, kind = ISLE_KIND[b.isle];
+  const bx0 = b.x0 + SW, bx1 = b.x1 - SW, bz0 = b.z0 + SW, bz1 = b.z1 - SW, mid = (bz0 + bz1) / 2;
+  colliders.push(b.col = { x0: bx0, x1: bx1, z0: bz0, z1: bz1 });
+  const r = R(), whole = kind === 'fin' ? .5 : kind === 'bpc' ? .45 : .08, half = kind === 'fin' ? .35 : kind === 'bpc' ? .35 : .22;
+  const put = (x0, x1, z0, z1, face, axis, tower, back) => {
+    const L = { x0, x1, z0, z1, face, axis, special: null, b, seed: R() * 1000, rng: R, isle: b.isle, back: back ? 1 : 0 };
+    if (tower) isleTower(L, R, kind);
+    else {   // 廠房樓：鑄鐵立面（石）或磚，五到十二層
+      L.style = R() < .45 ? 2 : 0; L.fh = L.style === 2 ? 3.9 : 3.4;
+      const fl = kind === 'loft' ? 5 + Math.floor(R() * 8) : 8 + Math.floor(R() * 10);
+      L.h = 4.6 + fl * L.fh + .7;
+      if (fl > 9 && R() < .5) { L.tiers = [{ i: 2.5, y: L.h + 2 * L.fh, st: L.style }]; }
+      L.htop = Math.max(L.h, ...(L.tiers || []).map(t => t.y));
+    }
+    lots.push(L);
+    return L;
+  };
+  if (r < whole) put(bx0, bx1, bz0, bz1, R() < .5 ? 1 : -1, 'z', true);
+  else if (r < whole + half) { put(bx0, bx1, bz0, mid, -1, 'z', true); put(bx0, bx1, mid, bz1, 1, 'z', R() < .6); }
+  else for (const [z0, z1, face] of [[bz0, mid, -1], [mid, bz1, 1]]) {
+    let a = bx0;
+    while (a < bx1 - .01) {
+      let w = 8 + R() * 10;
+      if (bx1 - (a + w) < 7) w = bx1 - a;
+      put(a, a + w, z0, z1, face, 'z', kind !== 'loft' && w > 15 && R() < .4);
+      a += w;
+    }
+  }
+}
 // 地塊所在的區（立面、陰影高度圖、直升機的屋頂高度都照這個）
 for (const L of lots) if (L.zn === undefined) L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
 // 岸邊的擋牆：沿每塊地的邊每 2 m 看外側是不是水（岬角也算陸地），連續的一段變成一個 4 m 厚的盒（low：不擋相機與子彈）
@@ -331,15 +403,17 @@ for (const r of LANDS) {
 // 臨水的邊：4 m 厚的低擋牆（low），外面是沙灘、碼頭這些矩形的那幾段不擋；沿岸每 260 m 一座梯子（擋牆在那裡留 2.2 m 的 swim 缺口）。
 // 靠山的邊：一道看不見的高牆。SHORE 是把外緣在擋牆的頭尾切開之後的多邊形，wet[k] 標出臨水的邊（21-coast.js 沿這些邊裝欄杆、
 // 路燈、護岸，鋪碎石步道，和以前的岬角同一套）
-const SHORE = (() => {
-  const P = CITY_POLY, n = P.length, sg = polyArea(P) > 0 ? 1 : -1, pts = [], wet = [];
+// 天樞島的水道兩岸（LAKE_SHORES：島岸與對岸，05-zones.js 的 ISLE_P、LAKE_P）也用同一套：out 是陸地在多邊形外面（對岸），
+// 每條邊都看外側（水那一側）是不是水，橋頭（06-roads.js 的 BRIDGES 上是陸地）自動斷開
+function shoreRing(P, out, gate) {
+  const n = P.length, sg = (polyArea(P) > 0 ? 1 : -1) * (out ? -1 : 1), pts = [], wet = [];
   let lad = 130;
   for (let k = 0; k < n; k++) {
     const p = P[k], q = P[(k + 1) % n], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
     if (L < .01) continue;
     const ux = (q[0] - p[0]) / L, uz = (q[1] - p[1]) / L, ox = uz * sg, oz = -ux * sg, f = frameW(p[0], p[1], ux, uz), zo = ox * f.s + oz * f.c > 0 ? 1 : -1;   // zo：往外是局部 +z 還是 −z
     const box = (a, b, extra) => colliders.push({ x0: a, x1: b, z0: zo > 0 ? 0 : -4, z1: zo > 0 ? 4 : 0, zn: f, ...extra });
-    if (!shoreEdge(k)) { box(-3, L + 3, { edge: 1 }); pts.push(p); wet.push(0); continue; }
+    if (gate && !gate(k)) { box(-3, L + 3, { edge: 1 }); pts.push(p); wet.push(0); continue; }
     // 每 2 m 看外面 0.6 m 是不是水，連續的水邊一段擋牆
     const N = Math.max(1, Math.round(L / 2)), at = t => [p[0] + ux * t, p[1] + uz * t], isWet = [];
     for (let i = 0; i <= N; i++) { const [x, z] = at(L * i / N); isWet.push(!landW(x + ox * .6, z + oz * .6)); }
@@ -363,13 +437,18 @@ const SHORE = (() => {
       i = j;
     }
   }
-  const S = { name: '', pts, wet, caps: [] };
+  const S = { name: '', pts, wet, caps: [], out: out ? 1 : 0 }, o = out ? -1 : 1;
   const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
   S.bb = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
-  S.inn = polyInset(pts, wet.map(w => w ? 6 : 0));
-  S.walk = [1, 3.4].map(d => polyInset(pts, wet.map(w => w ? d : 0)));
+  S.inn = polyInset(pts, wet.map(w => w ? 6 * o : 0));
+  S.walk = [1, 3.4].map(d => polyInset(pts, wet.map(w => w ? d * o : 0)));
   return S;
-})();
+}
+const SHORE = shoreRing(CITY_POLY, 0, shoreEdge);
+const LAKE_SHORES = [shoreRing(ISLE_P, 0), shoreRing(LAKE_P, 1)];
+// 岸邊的物件迴圈（21-coast.js 的欄杆、護岸、路燈、長椅，下面的碎石步道）：陸地那一側的方向（多邊形裡面 = 1，對岸 = −1）
+const shoreSide = h => (polyArea(h.pts) > 0 ? 1 : -1) * (h.out ? -1 : 1);
+const shoreLand = (h, x, z) => inPoly(h.pts, x, z) !== !!h.out;
 
 // ─── 實體建築：以 http(s) 開啟時，部分連續地塊合併換成 DanielZhabotinsky 建築組的模型（tools/props.mjs → assets/260/props/bld_*.glb，
 // 規格在 props.json）。這些地塊不建程式立面、不開店面；模型由 27-props.js 下載擺放，下載失敗再補回程式立面（lotFallback）。
@@ -390,7 +469,7 @@ if (BLD_ON) {
   for (const row of rows.values()) {
     const ax = row[0].axis, len = L => ax === 'z' ? L.x1 - L.x0 : L.z1 - L.z0, dep = ax === 'z' ? row[0].z1 - row[0].z0 : row[0].x1 - row[0].x0;
     for (let i = 0; i < row.length; i++) {
-      if (row[i].special || row[i].glb) continue;
+      if (row[i].special || row[i].glb || row[i].isle) continue;   // 天樞島的地塊排在最後，跳過不抽 rb
       const dk = district((row[i].x0 + row[i].x1) / 2, (row[i].z0 + row[i].z1) / 2).slice(0, 2), sets = SETS[dk] || SETS.中城;
       if (rb() > (PROB[dk] ?? .45)) continue;
       const list = pool[sets[Math.floor(rb() * sets.length)]];
@@ -918,10 +997,19 @@ for (const L of lots) {
     const o = .35, y = L.h;
     boxFaces(B, L.x0 - o, L.x1 + o, L.z0 - o, L.z1 + o, y - .55, y + .06, L.seed, 7, null, L.h, null);
     boxFaces(B, L.x0 - .18, L.x1 + .18, L.z0 - .18, L.z1 + .18, 4.45, 4.75, L.seed, 7, null, L.h, null);
-  } else if (h2) {   // 高樓退縮頂
+  } else if (h2 && !L.tiers) {   // 高樓退縮頂
     const ix = (L.x1 - L.x0) * .18, iz = (L.z1 - L.z0) * .18;
     boxFaces(B, L.x0 + ix, L.x1 - ix, L.z0 + iz, L.z1 - iz, L.h, h2, L.seed + 1, 3, null, h2, null);
     L.h2 = h2;
+  }
+  // 天樞島的退台：一層層往裡退的方塊，石樓每道退台邊上一圈簷口
+  if (L.tiers) {
+    let y0 = L.h;
+    for (const [k, t] of L.tiers.entries()) {
+      boxFaces(B, L.x0 + t.i, L.x1 - t.i, L.z0 + t.i, L.z1 - t.i, y0, t.y, L.seed + k + 1, t.st, null, t.y, null);
+      if (t.st !== 3) boxFaces(B, L.x0 + t.i - .3, L.x1 - t.i + .3, L.z0 + t.i - .3, L.z1 - t.i + .3, t.y - .45, t.y + .06, L.seed, 7, null, t.y, null);
+      y0 = t.y;
+    }
   }
   if (L.style <= 2 && !L.back) winSpots.push(L);
 }
@@ -1229,9 +1317,10 @@ function zoneClip(x0, x1, z0, z1) {
   const seamMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 0.;'),
     side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
   const pos = [], nor = [];
-  for (const P of [CITY_POLY, ...CAPES.map(h => h.pts)]) {   // 岬角的草地也在這裡（同一個材質）
-    const tri = T.ShapeUtils.triangulateShape(P.map(([x, z]) => new T.Vector2(x, z)), []);
-    for (const t of tri) for (const k of t) { pos.push(P[k][0], -.01, P[k][1]); nor.push(0, 1, 0); }
+  // 岬角的草地也在這裡（同一個材質）；天樞島的水道在外緣裡挖掉（LAKE_P 是洞），島（ISLE_P）另外鋪
+  for (const [P, H] of [[CITY_POLY, [LAKE_P]], [ISLE_P, []], ...CAPES.map(h => [h.pts, []])]) {
+    const tri = T.ShapeUtils.triangulateShape(P.map(([x, z]) => new T.Vector2(x, z)), H.map(Q => Q.map(([x, z]) => new T.Vector2(x, z)))), V = [...P, ...H.flat()];
+    for (const t of tri) for (const k of t) { pos.push(V[k][0], -.01, V[k][1]); nor.push(0, 1, 0); }
   }
   const g = new T.BufferGeometry();
   g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.computeBoundingSphere();
@@ -1240,7 +1329,7 @@ function zoneClip(x0, x1, z0, z1) {
   const walkMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
     side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const wp = [], wn = [];
-  for (const h of [...CAPES, SHORE]) {   // 外緣臨水的邊也一樣
+  for (const h of [...CAPES, SHORE, ...LAKE_SHORES]) {   // 外緣臨水的邊、天樞島的水道兩岸也一樣
     const [A, B] = h.walk, n = h.pts.length;
     for (let k = 0; k < n; k++) {
       if (!h.wet[k]) continue;
@@ -1314,7 +1403,7 @@ const tronLandL = (x, z) => {
 const tronLandW = (X, Z) => { if (!TRON_LAND) return false; const [x, z] = toL(X, Z, TRON_SITE.zn); return tronLandL(x - TRON_SITE.x, z - TRON_SITE.z); };
 // 地面高度（邏輯座標）：人行道高 0.15；查格子，不逐一比對街區。世界座標的 groundH 在下面
 const groundHL = (x, z) => {
-  if (x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) {
+  if ((x <= CITY_X0 || x >= CITY_X1 || z <= CITY_Z0 || z >= CITY_Z1) && !(x > 7900 && x < 8600)) {   // 天樞島（x ≥ 8000）照格子查
     for (const r of PIERS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
     for (const r of FERRY) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
     for (const r of BANK_WALKS) if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r.h;
@@ -1322,7 +1411,7 @@ const groundHL = (x, z) => {
     return 0;
   }
   const i = Math.floor((x - X0) / P), j = Math.floor((z - Z0) / Q);
-  if (i < 0 || j < 0 || i >= NX || j >= NZ || cellDropped(i, j)) return 0;
+  if (!gridCell(i, j)) return 0;
   return x > avX(i) + HR && x < avX(i + 1) - HR && z > stZ(j) + HR && z < stZ(j + 1) - HR && plazaD(x, z) >= HR ? .15 : 0;   // 廣場裡斜的大道是路面
 };
 // 執行時（玩家、車、行人、警察）用的是世界座標：先換回邏輯座標
@@ -1341,6 +1430,7 @@ const districtW = (X, Z) => {
 };
 // ─── 外緣外面的地形（世界座標）：臨水那一側是 8 m 深的海；靠山那一側從外緣往外慢慢升高（21-coast.js 的山照這個建網格），
 // 山和海交界的角度之間平滑過渡；舊城北邊河谷（RIVER_E 以西、FAR_Z1 以北）挖成河道，對岸（FAR_BANK_X 以西）壓在對岸的地面底下 ───
+const LAKE_Y = -7;   // 天樞島水道的水底
 const HILL = (() => {
   const P = CITY_POLY, n = P.length, [cx, cz] = CITY_C, R = P.map(p => Math.hypot(p[0] - cx, p[1] - cz));
   // 每個頂點靠山的程度（臨水 0、靠山 1），左右各平滑 5 個頂點（10°）
@@ -1349,6 +1439,7 @@ const HILL = (() => {
 })();
 const hillAt = a => { const H = HILL, t = ((a + (ZONE_ROT || 0)) * 90 / Math.PI % H.n + H.n) % H.n, k = Math.floor(t), f = t - k, k1 = (k + 1) % H.n; return [H.R[k] * (1 - f) + H.R[k1] * f, H.W[k] * (1 - f) + H.W[k1] * f]; };
 function hillH(X, Z) {
+  if (inLake(X, Z)) return LAKE_Y;   // 天樞島的水道
   const a = Math.atan2(Z - HILL.cz, X - HILL.cx), [R, w] = hillAt(a), d = Math.max(0, Math.hypot(X - HILL.cx, Z - HILL.cz) - R);
   const n1 = .55 + .3 * Math.sin(a * 5 + 1.3) + .15 * Math.sin(a * 13 + .4), hd = dd => (1 - Math.exp(-dd / 320)) * (70 + 380 * n1) * (.85 + .15 * Math.sin(dd * .011 + a * 3)) + .3;
   // 北嶺公園那個方向（HILL.park，弳度）是一道緩一點的山谷：離外緣的距離打 0.45 折，左右約 ±9° 漸漸接回原本的坡

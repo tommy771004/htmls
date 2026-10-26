@@ -28,6 +28,7 @@ node tools/car-view.mjs <id>   # 四視角檢查單台模型（輪子塗紅、�
 node tools/foot.mjs [組名…]   # 量灰鷗島兩個基地模型的佔地（人身高度帶的牆＋屋頂），寫進 props.json 的 foot（換了 isle_* 模型後重跑）
 node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的駕駛座 [座椅高度, 往前偏移] 寫進 cars.json 的 db（換了車模後重跑）
 node tools/kitfit.mjs [id…]    # 量實車的保險桿輪廓、側裙、尾箱後緣與原廠尾翼，寫進 cars.json 的 kit（改裝外觀件照它貼著車身做；換了車模後重跑）
+node tools/lamps.mjs [id…]     # 照位置、朝向與底色找出實車的頭燈與尾燈（很多原檔的燈只是貼圖上的顏色），改寫 assets/260/<id>.glb 的 _EMI（燈種 1.25／2.25）；--traffic 做 .cache/traffic/ 的車流車。cars.mjs 重新產生某台車之後要接著跑一次（不能對已經跑過的檔再跑：倒車燈歸零後就分不出來了）
 node tools/kit-view.mjs <dir> [id…|all]   # 以本機 HTTP 開頁、裝上 MODS 指定的外觀件，從多個角度截圖（VIEWS=tail,nose 只拍幾個角度）
 ```
 
@@ -35,7 +36,7 @@ node tools/kit-view.mjs <dir> [id…|all]   # 以本機 HTTP 開頁、裝上 MOD
 
 - 原檔放在 gitignore 的 `.cache/cars/`（檔名對應 `tools/cars.mjs` 的 `MODELS`），處理後的 `assets/260/*.glb`（47 台約 64 MB）與 `cars.json` 有 commit；`cars.json` 在打包時併進頁面（車長、輪距、軸距、輪徑、可否換色、作者與授權）。
 - `tools/cars.mjs` 每台車：依 `len`（真實車長）縮放、長軸轉到 z、`flip` 讓車頭朝 +z、接地；從落地的連通塊找出輪胎，整塊落在輪子圓柱裡的零件（輪框、碟盤、卡鉗）拆成 `wheel_FL`…（機車 `wheel_F`／`wheel_R`），節點原點在輪軸；材質或節點路徑符合 `fix`（預設 `/calip/i`）的零件另拆成不隨輪轉的 `wheel_XX_fix`，機車再沿前軸斜上 `fork.rake`（預設 24°）的轉向軸挑出前叉與龍頭，也放進 `wheel_F_fix`，`cars.json` 記下 `rake`，頁面把 `_fix` 掛在輪子的轉向節點 `piv` 上、機車繞斜軸轉；材質係數寫進頂點屬性（`COLOR_0`、`_PBR` 粗糙／金屬／清漆／車漆旗標、`_EMI` 自發光＋燈種），同一張貼圖的零件合成一個 primitive；最後減面到 `tris`、貼圖轉 1024 WebP、meshopt 壓縮。車漆材質自動挑（名稱有 paint 或面數最多的清漆材質），`paint: [名稱]` 指定、`paint: false` 不換色；有彩繪貼圖的車不能在 CHROME WORKS 換色。
-- 頁面（`26-glb.js`）只有以 http(s) 開啟時才下載，而且是走進展示廳、車庫、走近車行門口（門前兩台展示車與櫥窗剪影）或換成那台車時才下載，座駕（新存檔是 AE86）與路邊的 ZX-6R 開場就下載，下載完才開放「進入雨夜」（手機也一樣等，卡住超過 60 秒才先用替身進場）；以檔案開啟或下載失敗就用 `proxy` 指定的程式建模車身（機車用 Hanzo）頂替。開始畫面的「進入雨夜」按鈕本身是 0–100 的進度條（`00-core.js` 的 `bootProgress`／`bootStep`，各段比例在 `BOOT`，最後 40% 是座駕下載的位元組數），展示廳、車庫與車行門口要下載時，HUD 上方顯示這一批的合計進度（`glbBatch`）。材質是 uber 光照的貼圖版本，金屬度在粗糙表面上壓到 0.5（很多模型把金屬漆標成 metallic 1，在夜城會整台變黑），自發光壓回 0–1 再依燈種隨頭燈與煞車變亮。
+- 頁面（`26-glb.js`）只有以 http(s) 開啟時才下載，而且是走進展示廳、車庫、走近車行門口（門前兩台展示車與櫥窗剪影）或換成那台車時才下載，座駕（新存檔是 AE86）與路邊的 ZX-6R 開場就下載，下載完才開放「進入雨夜」（手機也一樣等，卡住超過 60 秒才先用替身進場）；以檔案開啟或下載失敗就用 `proxy` 指定的程式建模車身（機車用 Hanzo）頂替。開始畫面的「進入雨夜」按鈕本身是 0–100 的進度條（`00-core.js` 的 `bootProgress`／`bootStep`，各段比例在 `BOOT`，最後 40% 是座駕下載的位元組數），展示廳、車庫與車行門口要下載時，HUD 上方顯示這一批的合計進度（`glbBatch`）。材質是 uber 光照的貼圖版本，金屬度在粗糙表面上壓到 0.5（很多模型把金屬漆標成 metallic 1，在夜城會整台變黑），自發光壓回 0–1 再依燈種隨頭燈與煞車變亮。燈種 1.25（頭燈）／2.25（尾燈）是 `tools/lamps.mjs` 標的燈的範圍：車尾 0.5 m 內朝後、不是車漆的面（紅色的車只挑很紅的或透明燈罩；有紅色透明燈罩的車只取燈罩），車頭 0.5 m 內朝前的透明燈罩或亮白的金屬反光碗；這兩種不乘自發光貼圖，改由片段的底色決定哪裡亮（尾燈只有底色紅的發光、頭燈只有亮的或透明的發光），所以整片範圍標大一點也只有燈罩會亮。原檔車尾白光、燈罩不紅的自發光當成倒車燈歸零。這是猜的：新車要在夜裡踩煞車看前後（`uM` 設成 (1, 1, 1, 0)）確認。
 - 加新車：把 GLB 放進 `.cache/cars/`，在 `MODELS` 加一列、跑 `node tools/cars.mjs <id>` 與 `car-view.mjs` 確認方向，再到 `26-glb.js` 的 `GLB_CARS`、`25-cars.js` 的 `CAR_ORDER` 與 `64-showroom.js` 的 `SHOW_FLOORS` 登錄（每層每側 8 格；沒排進去的車自動補空格，車庫格數依 `CAR_ORDER` 自動算）。原檔有怪癖時在 `MODELS` 加：`opaque`（整台標成 BLEND 但其實不透明）、`noEmi`（底色貼圖也接到自發光的無光照匯出）、`wheelNodes`（輪胎和前叉黏在一起時，依節點名指定輪胎與輪框）。只收 CC0／CC BY（或接受 NC-SA）的模型，並更新 `assets/260/CREDITS.md`。
 
 `node_modules` 連到 `../201-coral-cove/node_modules`（three 0.186.0、esbuild、playwright-core）。
@@ -160,7 +161,7 @@ node tools/kit-view.mjs <dir> [id…|all]   # 以本機 HTTP 開頁、裝上 MOD
 ### 車流
 
 - 車型：計程車（Fairheaven LT '80 Taxi）、警車（Fairheaven LT '80、Illinois '90，`police: 1` 會在車頂閃紅藍燈）、房車（車行的 E34、190E 與 Negotiator、Milano、Kiri、Carter、Compact、Urban、Tiara）、廂型車與貨車（Shvan、LCT 3000、Conquer 皮卡、French delivery van）。除了 E34 與 190E，都是 DanielZhabotinsky 的虛構廠牌低多邊形車（CC BY 4.0），原檔放在 gitignore 的 `.cache/cars/`，由 `cars.mjs` 裡標 `traffic: true` 的項目整理到 `.cache/traffic/`（不進車行、不 commit），這批原檔車頭朝 -z，要 `flip`。
-- `tools/traffic.mjs` 讀 `assets/260/<id>.glb` 或 `.cache/traffic/<id>.glb`（cars.mjs 已經整理好車長、方向、輪子節點與材質頂點屬性），貼圖在頂點上取樣成頂點色，依 `_PBR`／`_EMI`／輪子節點分成 uber 材質編號（車漆 0 交給調色盤、玻璃 1、燈 4／5／11、輪胎 6、輪圈 7…），車身與每個輪子分開減面（先依位置＋材質焊接，否則硬邊拆開的面板只能 sloppy 減面、整台被撕碎），輸出近景 `id` 與遠景 `id_far` 兩級。
+- `tools/traffic.mjs` 讀 `assets/260/<id>.glb` 或 `.cache/traffic/<id>.glb`（cars.mjs 已經整理好車長、方向、輪子節點與材質頂點屬性），貼圖在頂點上取樣成頂點色，依 `_PBR`／`_EMI`／輪子節點分成 uber 材質編號（車漆 0 交給調色盤、玻璃 1、燈 4／5／11、輪胎 6、輪圈 7…），車身與每個輪子分開減面（先依位置＋材質焊接，否則硬邊拆開的面板只能 sloppy 減面、整台被撕碎），輸出近景 `id` 與遠景 `id_far` 兩級。每個三角形只取一個材質編號（兩個頂點以上是燈就算燈，其餘取多數），頂點的編號在三角形裡內插，兩端不同時中間會掃過鍍鉻、燈、輪胎，整台變成彩虹條紋；車行的實車（`src`）先用 17 個方向的正交深度圖留下看得到的外殼（`shellCull`），內裝與板金內側不佔減面預算。燈照 `_EMI.w`：1／2 是原檔的燈，1.25／2.25 是 `lamps.mjs` 的燈範圍，低模只有頂點色，所以逐頂點挑底色紅的（尾燈）或亮的（頭燈）。
 - 頁面裡量化的位置是正規化整數，要先轉成浮點再套節點矩陣（直接 `applyMatrix4` 會被截在 ±1）。每幀 `flushTraffic()` 依相機距離把車分進近景／遠景兩個 InstancedMesh。
 - 加車型：原檔放進 `.cache/cars/`、在 `cars.mjs` 的 `MODELS` 加一列 `traffic: true`（`node tools/car-view.mjs <id>` 檢查方向），在 `TRAFFIC` 加一列（`pal` 決定車漆能不能吃調色盤）、`npm run traffic <id>`，再到 `30-vehicles.js` 的 `TYPES` 與 `pickType()` 登錄。
 

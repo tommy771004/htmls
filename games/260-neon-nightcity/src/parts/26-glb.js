@@ -300,10 +300,16 @@ void main(){
   }
   #endif
   vec3 emi = vEmi.rgb / max(1., max(vEmi.r, max(vEmi.g, vEmi.b)));   // 有些模型的 emissive_strength 很大，壓回 0–1 再交給燈種倍率
-  #ifdef USE_EMIMAP
-  emi *= texture2D(uEmiMap, vUv).rgb;
-  #endif
   float k = vEmi.a;
+  if (abs(fract(k) - .25) < .05) {   // tools/lamps.mjs 照位置與顏色找到的燈（1.25 頭燈、2.25 尾燈）：燈罩是底色貼圖上的顏色，只讓紅的（尾燈）或亮的、透明的（頭燈）部分發光
+    k = floor(k);
+    float mx = max(base.g, base.b);
+    emi *= k > 1.5 ? smoothstep(1.6, 3.2, base.r / max(mx, .015)) * smoothstep(.015, .08, base.r) : max(smoothstep(.1, .45, dot(base.rgb, vec3(.2126, .7152, .0722))), (1. - base.a) * 1.2);
+  }
+  else if (abs(fract(k) - .5) < .05) k = floor(k);   // 1.5／2.5：lamps.mjs 的 FIX 手量範圍，整片發光
+  #ifdef USE_EMIMAP
+  else emi *= texture2D(uEmiMap, vUv).rgb;
+  #endif
   c += emi * 1.6 * (k > 1.5 ? .5 + uM.y * 2.4 : k > .5 ? .35 + uM.x * 1.4 : uM.z) * (1. - uM.w);
   #ifdef BLEND
   gl_FragColor = vec4(applyFog(c, vW), clamp(base.a + (1. - max(dot(n, v), 0.)) * .25, 0., 1.));

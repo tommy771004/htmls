@@ -116,16 +116,82 @@ const mulP = (m, x, y, z) => [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x +
 const mulN = (m, x, y, z) => { const a = [m[0] * x + m[4] * y + m[8] * z, m[1] * x + m[5] * y + m[9] * z, m[2] * x + m[6] * y + m[10] * z]; const l = Math.hypot(...a) || 1; return a.map((v) => v / l); };
 
 // uber 材質編號：0 車漆 1 玻璃 2 塑膠 3 鍍鉻 4 頭燈 5 尾燈 6 輪胎 7 輪圈 10 光滑 11 柔和自發光
-function matOf(col, pbr, emi, wheel, pal) {
-  const lum = .2126 * col[0] + .7152 * col[1] + .0722 * col[2];
-  if (emi[3] === 1) return 4;
-  if (emi[3] === 2) return 5;
+// real：車行的實車（src，貼圖車身）：金屬漆一律當光滑漆面，不判鍍鉻（逐頂點取樣的亮暗會讓鍍鉻與漆面在同一片車身上交錯）
+// 燈種照 _EMI.w：1 頭燈、2 尾燈（原檔的自發光）；1.5／2.5 是 tools/lamps.mjs 手量的燈；1.25／2.25 是它照位置找到的燈範圍，
+// 頁面的實車逐像素挑底色亮的（頭燈）或紅的（尾燈）發光，這裡在讀檔時逐三角形取樣挑（傳進來的 emi 已經清掉）
+function matOf(col, pbr, emi, wheel, pal, real) {
+  const lum = .2126 * col[0] + .7152 * col[1] + .0722 * col[2], k = emi[3];
+  if (k === 1 || Math.abs(k - 1.5) < .01) return 4;
+  if (k === 2 || Math.abs(k - 2.5) < .01) return 5;
   if (emi[0] + emi[1] + emi[2] > .05) return 11;
   if (col[3] < .99) return 1;
   if (wheel) return lum < .04 && pbr[1] < .5 ? 6 : 7;
   if (pbr[3] > .5 && pal) return 0;
-  if (pbr[1] > .5 && pbr[0] < .35 && lum > .3) return 3;   // 暗色的金屬漆當成光滑漆面，不然整台像鍍鉻
+  if (pbr[1] > .5 && pbr[0] < .35 && lum > .3 && !real) return 3;   // 暗色的金屬漆當成光滑漆面，不然整台像鍍鉻
   return pbr[0] < .4 || pbr[2] > .3 ? 10 : 2;
+}
+
+// 三角形的材質一律取一個（頂點的材質編號在三角形裡內插，兩端不同的話中間會掃過鍍鉻、燈、輪胎，整台變成彩虹條紋）：
+// 兩個頂點以上是燈就算燈，其餘取多數
+const BARY = [[1 / 3, 1 / 3], [.6, .2], [.2, .6], [.2, .2], [.8, .1], [.1, .8], [.1, .1], [.45, .45], [.45, .1], [.1, .45]];   // 三角形裡取樣的重心座標
+const LAMP = new Set([4, 5]);
+function triMat(a, b, c) {
+  for (const m of [a, b, c]) if (LAMP.has(m) && (m === a) + (m === b) + (m === c) >= 2) return m;
+  return a === b || a === c ? a : b === c ? b : a;
+}
+
+// 外殼：從四周與上方 17 個方向各畫一張深度圖（正交、512 格），三角形的重心或靠近三個角的點有一個在最前面（2 cm 內）就留下。
+// 車行的實車連內裝、引擎、板金內側都建了，全部丟給減面的話幾千面的預算被裡面吃掉，外殼被撕破；
+// 車流的材質是不透明的（玻璃也是深色的面），裡面本來就看不到
+const SHELL_DIRS = [];
+for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; SHELL_DIRS.push([Math.cos(a), 0, Math.sin(a)], [Math.cos(a) * .7071, .7071, Math.sin(a) * .7071]); }
+SHELL_DIRS.push([0, 1, 0]);
+function shellCull(ix, pos, id) {
+  const nT = ix.length / 3, keep = new Uint8Array(nT), G = 512, eps = .02;
+  const zb = new Float32Array(G * G);
+  for (const d of SHELL_DIRS) {
+    const up0 = Math.abs(d[1]) > .9 ? [1, 0, 0] : [0, 1, 0];
+    const rx = [up0[1] * d[2] - up0[2] * d[1], up0[2] * d[0] - up0[0] * d[2], up0[0] * d[1] - up0[1] * d[0]], rl = Math.hypot(...rx); for (let k = 0; k < 3; k++) rx[k] /= rl;
+    const uy = [d[1] * rx[2] - d[2] * rx[1], d[2] * rx[0] - d[0] * rx[2], d[0] * rx[1] - d[1] * rx[0]];
+    const n = pos.length / 3, S = new Float32Array(n), Tt = new Float32Array(n), D = new Float32Array(n);
+    let s0 = Infinity, s1 = -Infinity, t0 = Infinity, t1 = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+      S[i] = x * rx[0] + y * rx[1] + z * rx[2]; Tt[i] = x * uy[0] + y * uy[1] + z * uy[2]; D[i] = x * d[0] + y * d[1] + z * d[2];
+      s0 = Math.min(s0, S[i]); s1 = Math.max(s1, S[i]); t0 = Math.min(t0, Tt[i]); t1 = Math.max(t1, Tt[i]);
+    }
+    const k = (G - 1) / Math.max(s1 - s0, t1 - t0, 1e-6);
+    for (let i = 0; i < n; i++) { S[i] = (S[i] - s0) * k; Tt[i] = (Tt[i] - t0) * k; }
+    zb.fill(-Infinity);
+    for (let t = 0; t < nT; t++) {
+      const a = ix[t * 3], b = ix[t * 3 + 1], c = ix[t * 3 + 2];
+      const ax = S[a], ay = Tt[a], bx = S[b], by = Tt[b], cx = S[c], cy = Tt[c];
+      const area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax); if (Math.abs(area) < 1e-12) continue;
+      const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx))), x1 = Math.min(G - 1, Math.ceil(Math.max(ax, bx, cx)));
+      const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy))), y1 = Math.min(G - 1, Math.ceil(Math.max(ay, by, cy)));
+      for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
+        const qx = px + .5, qy = py + .5;
+        const w0 = ((bx - qx) * (cy - qy) - (by - qy) * (cx - qx)) / area, w1 = ((cx - qx) * (ay - qy) - (cy - qy) * (ax - qx)) / area, w2 = 1 - w0 - w1;
+        if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+        const z = w0 * D[a] + w1 * D[b] + w2 * D[c], o = py * G + px;
+        if (z > zb[o]) zb[o] = z;
+      }
+    }
+    for (let t = 0; t < nT; t++) {
+      if (keep[t]) continue;
+      const v = [ix[t * 3], ix[t * 3 + 1], ix[t * 3 + 2]];
+      const ms = [S, Tt, D].map((A) => (A[v[0]] + A[v[1]] + A[v[2]]) / 3);
+      for (const [ws, wv] of [[1, -1], [.5, 0], [.5, 1], [.5, 2]]) {
+        const q = [S, Tt, D].map((A, j) => wv < 0 ? ms[j] : ms[j] * ws + A[v[wv]] * (1 - ws));
+        const o = Math.min(G - 1, Math.max(0, Math.floor(q[1]))) * G + Math.min(G - 1, Math.max(0, Math.floor(q[0])));
+        if (q[2] >= zb[o] - eps) { keep[t] = 1; break; }
+      }
+    }
+  }
+  const out = [];
+  for (let t = 0; t < nT; t++) if (keep[t]) out.push(ix[t * 3], ix[t * 3 + 1], ix[t * 3 + 2]);
+  console.log(`  ${id}：外殼 ${out.length / 3} / ${nT} 面`);
+  return new Uint32Array(out);
 }
 
 // 每台車分成幾個單元（車身、各個輪子）各自減面：輪框細節多、平面少，按比例分的話面數全被輪框吃掉。
@@ -151,6 +217,7 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     xf = (p) => { const q = rot(p.map((v) => v * k)); return [q[0] - o[0], q[1] - o[1], q[2] - o[2]]; };
     xfN = rot;
   }
+  const real = !cfg.raw && !cfg.rawFile && !!cfg.src;
   const units = new Map();   // 節點名 → { wheel, pos[], nor[], col[], mat[], idx[] }
   let total = 0;
   for (const node of doc.getRoot().listNodes()) {
@@ -168,20 +235,42 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
       const px = tex && UV ? await texPixels(tex) : null;
       const n = P.getCount(), base = u.pos.length / 3;
       const a = [], b = [], c = [], d = [], e = [], uv = [];
+      const vdet = new Uint8Array(n), vc = [], vuv = [];   // lamps.mjs 偵測到的燈範圍（1.25／2.25）：留著頂點色與 UV，下面逐三角形挑
       for (let i = 0; i < n; i++) {
         P.getElement(i, a); N.getElement(i, b); C ? C.getElement(i, c) : c.splice(0, 4, 1, 1, 1, 1);
         PB ? PB.getElement(i, d) : d.splice(0, 4, ...(rawPbr || [.6, 0, 0, 0])); E ? E.getElement(i, e) : e.splice(0, 4, 0, 0, 0, 0);
         let rgb = [c[0] * bcf[0], c[1] * bcf[1], c[2] * bcf[2]];
-        if (px) { UV.getElement(i, uv); const s = sample(px, uv[0], uv[1]); rgb = [rgb[0] * s[0], rgb[1] * s[1], rgb[2] * s[2]]; }
-        const m = matOf([...rgb, c[3]], d, e, wheel, cfg.pal);
+        vc.push(rgb[0], rgb[1], rgb[2], c[3]);
+        if (px) { UV.getElement(i, uv); vuv.push(uv[0], uv[1]); const s = sample(px, uv[0], uv[1]); rgb = [rgb[0] * s[0], rgb[1] * s[1], rgb[2] * s[2]]; }
+        if (Math.abs(e[3] - Math.floor(e[3]) - .25) < .01) { vdet[i] = Math.floor(e[3]); e.splice(0, 4, 0, 0, 0, 0); }
+        const m = matOf([...rgb, c[3]], d, e, wheel, cfg.pal, real);
         // 燈：頂點色換成燈光的顏色（亮度交給 shader）；柔和自發光（燈條、儀表）壓暗，免得泛光整台爆白
         if (m === 4 || m === 11) { const l = Math.max(e[0], e[1], e[2]); if (l > .05) rgb = [e[0] / l, e[1] / l, e[2] / l]; if (m === 11) rgb = rgb.map((v) => v * .45); }
+        if (m === 5 && rgb[0] > .01) rgb = [1, rgb[1] / rgb[0], rgb[2] / rgb[0]];   // 尾燈的顏色正規化，亮度交給 shader
         u.mat.push(m);
         u.pos.push(...xf(mulP(wm, a[0], a[1], a[2]))); u.nor.push(...xfN(mulN(wm, b[0], b[1], b[2]))); u.col.push(...rgb);
       }
-      const I = prim.getIndices();
-      if (I) for (const v of I.getArray()) u.idx.push(base + v);
-      else for (let i = 0; i < n; i++) u.idx.push(base + i);
+      const I = prim.getIndices(), ia = I ? I.getArray() : Array.from({ length: n }, (_, i) => i);
+      for (let f = 0; f < ia.length; f += 3) {
+        const t = [ia[f], ia[f + 1], ia[f + 2]], k = vdet[t[0]] && (vdet[t[0]] === vdet[t[1]] || vdet[t[0]] === vdet[t[2]]) ? vdet[t[0]] : vdet[t[1]] && vdet[t[1]] === vdet[t[2]] ? vdet[t[1]] : 0;
+        if (!k) { for (const v of t) u.idx.push(base + v); continue; }
+        // 燈範圍裡的三角形：在三角形裡取 10 個點的底色，三成以上是紅的（尾燈）或亮的、透明的（頭燈，或尾燈的燈罩）就整片是燈。
+        // 低模的燈常常落在大三角形中間，只看頂點會整個漏掉；燈罩後面的燈芯也被 shellCull 拿掉了，所以燈罩本身要亮
+        let hit = 0; const acc = [0, 0, 0];
+        for (const [wa, wb] of BARY) {
+          const w = [wa, wb, 1 - wa - wb], col = [0, 1, 2].map((j) => w[0] * vc[t[0] * 4 + j] + w[1] * vc[t[1] * 4 + j] + w[2] * vc[t[2] * 4 + j]);
+          const al = w[0] * vc[t[0] * 4 + 3] + w[1] * vc[t[1] * 4 + 3] + w[2] * vc[t[2] * 4 + 3];
+          if (px) { const s = sample(px, w[0] * vuv[t[0] * 2] + w[1] * vuv[t[1] * 2] + w[2] * vuv[t[2] * 2], w[0] * vuv[t[0] * 2 + 1] + w[1] * vuv[t[1] * 2 + 1] + w[2] * vuv[t[2] * 2 + 1]); for (let j = 0; j < 3; j++) col[j] *= s[j]; }
+          const lum = .2126 * col[0] + .7152 * col[1] + .0722 * col[2], red = col[0] > .05 && col[0] > 2.2 * Math.max(col[1], col[2]);
+          if (k === 2 ? red || al < .99 : lum > .2 || al < .99) { hit++; if (red) for (let j = 0; j < 3; j++) acc[j] += col[j]; }
+        }
+        if (hit < BARY.length * .3) { for (const v of t) u.idx.push(base + v); continue; }
+        const lc = k === 2 ? (acc[0] > .01 ? [1, acc[1] / acc[0], acc[2] / acc[0]] : [1, .05, .03]) : [1, .95, .86];
+        for (const v of t) {   // 燈的三角形不和旁邊的車身共用頂點
+          u.idx.push(u.pos.length / 3);
+          u.pos.push(...u.pos.slice((base + v) * 3, (base + v) * 3 + 3)); u.nor.push(...u.nor.slice((base + v) * 3, (base + v) * 3 + 3)); u.col.push(...lc); u.mat.push(k === 2 ? 5 : 4);
+        }
+      }
       total += (I ? I.getCount() : n) / 3;
     }
   }
@@ -198,12 +287,23 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
       ix[i] = w;
     });
     const pos = new Float32Array(wpos), target = (u.wheel ? wheelTris : bodyTris) * 3;
-    let out = ix;
-    if (ix.length > target) {
+    let out = real && !u.wheel ? shellCull(ix, pos, id) : ix;
+    // 燈的三角形和車身不共用頂點（焊接時連材質一起比），在減面看來是一塊塊獨立的小島，Prune 會整塊拿掉：另外減面、不 Prune
+    const isLamp = (a, t) => LAMP.has(triMat(u.mat[wsrc[a[t]]], u.mat[wsrc[a[t + 1]]], u.mat[wsrc[a[t + 2]]]));
+    const li = [], bi = [];
+    for (let t = 0; t < out.length; t += 3) (isLamp(out, t) ? li : bi).push(out[t], out[t + 1], out[t + 2]);
+    let lamp = new Uint32Array(li);
+    out = new Uint32Array(bi);
+    const lt = Math.min(lamp.length, Math.round(target * .15 / 3) * 3);
+    if (lamp.length > lt) [lamp] = MeshoptSimplifier.simplify(lamp, pos, 3, lt, .03, []);
+    if (lamp.length > lt * 1.5) [lamp] = MeshoptSimplifier.simplifySloppy(lamp, pos, 3, null, lt, .03);
+    const bt = Math.max(target / 2, target - lamp.length);
+    if (out.length > bt) {
       // Prune：整塊小零件（螺絲、徽章）在誤差內可以直接拿掉
-      [out] = MeshoptSimplifier.simplify(ix, pos, 3, target, u.wheel ? .1 : .025, ['Prune']);
-      if (out.length > target * 1.5) [out] = MeshoptSimplifier.simplifySloppy(out, pos, 3, null, target, u.wheel ? 1 : .03);
+      [out] = MeshoptSimplifier.simplify(out, pos, 3, bt, u.wheel ? .1 : .025, ['Prune']);
+      if (out.length > bt * 1.5) [out] = MeshoptSimplifier.simplifySloppy(out, pos, 3, null, bt, u.wheel ? 1 : .03);
     }
+    if (lamp.length) { const m = new Uint32Array(out.length + lamp.length); m.set(out); m.set(lamp, out.length); out = m; }
     // 法線：相鄰面夾角 40° 內平滑，其餘保留硬邊
     const fn = [], adj = new Map();
     for (let t = 0; t < out.length; t += 3) {
@@ -217,17 +317,20 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     const vmap = new Map();
     for (let t = 0; t < out.length; t += 3) {
       const f = fn[t / 3];
+      // 一個三角形一個材質（_MAT 在 shader 裡是內插的：三個頂點材質不同時，中間會內插出鍍鉻、燈、輪胎等其他編號，車身變成一條條彩色的帶）；
+      // 燈優先（小塊，不然減面後就被車身吃掉），其餘取多數
+      const tm = triMat(u.mat[wsrc[out[t]]], u.mat[wsrc[out[t + 1]]], u.mat[wsrc[out[t + 2]]]);
       for (let k = 0; k < 3; k++) {
         const w = out[t + k], src = wsrc[w];
         const n = [0, 0, 0];
         for (const g of adj.get(w)) { const h = fn[g]; if (h[0] * f[0] + h[1] * f[1] + h[2] * f[2] > .766) { n[0] += h[0]; n[1] += h[1]; n[2] += h[2]; } }
         const l = Math.hypot(...n) || 1;
-        const key = `${w}|${Math.round(n[0] / l * 20)},${Math.round(n[1] / l * 20)},${Math.round(n[2] / l * 20)}`;
+        const key = `${w}|${tm}|${Math.round(n[0] / l * 20)},${Math.round(n[1] / l * 20)},${Math.round(n[2] / l * 20)}`;
         let o = vmap.get(key);
         if (o == null) {
           o = P.length / 3; vmap.set(key, o);
           P.push(pos[w * 3], pos[w * 3 + 1], pos[w * 3 + 2]); N.push(n[0] / l, n[1] / l, n[2] / l);
-          C.push(u.col[src * 3], u.col[src * 3 + 1], u.col[src * 3 + 2]); M.push(u.mat[src]);
+          C.push(u.col[src * 3], u.col[src * 3 + 1], u.col[src * 3 + 2]); M.push(tm);
         }
         IDX.push(o);
       }

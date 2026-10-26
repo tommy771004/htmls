@@ -184,6 +184,11 @@ export const SETS = [
     { id: 'gse_tug', file: 'airport_tug', len: 3.3, rot: 3, simp: [.06, .004] },   // 掃描 21.6 萬面
     { id: 'gse_cart', file: 'airport_baggage_equipment_cart_lowpoly', len: 3.0, rot: 2 },
   ] },
+  // Nicholas-3D 的 More Realistic Trees（CC BY 4.0）：兩棵闊葉樹，葉子是一片片的幾何（每棵約 75 萬面），thinMat 抽稀、樹幹減面
+  { out: 'nat_trees2', tex: 512, metalMax: 0, mask: /leaf/i, noEmi: /leaf/i, thinMat: [[/leaf/i, .025, 3.6]], simplifyMat: [[/bark/i, .006, .2, 'sloppy']], items: [
+    { id: 'broad_a', file: 'more_realistic_trees_free', keepPath: /Tree_0/, h: 7.4 },
+    { id: 'broad_b', file: 'more_realistic_trees_free', keepPath: /Tree\.001_1/, h: 7.2 },
+  ] },
   // 救護車停下來處置時擺在傷者旁邊的擔架（69-v8-civic.js）：Danish Shah 的 Ambulance Stretcher，CC BY 4.0；原檔只有一個中灰色材質、沒有貼圖，調成鋁白
   { out: 'amb_str', tex: 512, recolor: { AmbulanceStretcher_MT: [.8, .82, .84, 1, .45] }, items: [{ id: 'amb_str', file: 'ambulance_stretcher_2', len: 1.95 }] },
   // 霓虹堡軍事基地（69-v7-bunker.js 的 FORT）與銀行防撞柱（69-v5-street.js），原檔在 .cache/fort/，全部 CC BY 4.0（2026-10-25 下載，作者見 CREDITS.md）：
@@ -1261,6 +1266,27 @@ async function build(set) {
         for (let i = 0; i < p.cnt; i++) vert(p, i, set.winAuto ? seedOf(id) : null);
         for (const v of p.idx) I.push(base + v);
         base += p.cnt;
+      }
+      // thinMat：[[材質名, 留下的比例, 放大倍數]…] 一片一片的實體葉子（三角形的連通塊）只留一部分，留下的以自己的中心放大，樹冠才不會變稀
+      // （More Realistic Trees 的葉子是幾何、不是葉片卡，每棵幾十萬面，一般減面會把葉子收成一團）
+      const th = set.thinMat && m && set.thinMat.find(([re]) => re.test(m.getName()));
+      if (th && I.length > 300) {
+        const nv = P.length / 3, par = Int32Array.from({ length: nv }, (_, i) => i);
+        const root = (a) => { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; };
+        for (let t = 0; t < I.length; t += 3) { const a = root(I[t]); par[root(I[t + 1])] = a; par[root(I[t + 2])] = a; }
+        const cs = new Map();   // 連通塊 → [x, y, z, n]
+        for (let v = 0; v < nv; v++) { const r = root(v); let c = cs.get(r); if (!c) cs.set(r, c = [0, 0, 0, 0]); c[0] += P[v * 3]; c[1] += P[v * 3 + 1]; c[2] += P[v * 3 + 2]; c[3]++; }
+        const kept = (r) => ((Math.imul(r + 1, 2654435761) >>> 0) / 4294967296) < th[1];
+        for (let v = 0; v < nv; v++) { const r = root(v); if (!kept(r)) continue; const c = cs.get(r); for (let k = 0; k < 3; k++) P[v * 3 + k] = c[k] / c[3] + (P[v * 3 + k] - c[k] / c[3]) * th[2]; }
+        const map = new Map(), keep = [], nI = [];
+        for (let t = 0; t < I.length; t += 3) {
+          if (!kept(root(I[t]))) continue;
+          for (let k = 0; k < 3; k++) { const v = I[t + k]; if (!map.has(v)) { map.set(v, keep.length); keep.push(v); } nI.push(map.get(v)); }
+        }
+        const pick = (a, n) => keep.flatMap((v) => a.slice(v * n, v * n + n));
+        const [P2, N2, U2, C2, B2, E2, W2] = [pick(P, 3), pick(N, 3), pick(U, 2), pick(C, 4), pick(B, 4), pick(E, 4), W.length ? pick(W, 1) : []];
+        for (const [a, b] of [[P, P2], [N, N2], [U, U2], [C, C2], [B, B2], [E, E2], [W, W2], [I, nI]]) { a.length = 0; for (const v of b) a.push(v); }
+        console.log(`  thinMat ${m.getName()}：${cs.size} 塊留 ${[...cs.keys()].filter(kept).length}`);
       }
       // simplifyMat（第四輪）：[[材質名, 比例, 誤差, 'sloppy']…] 只減這些材質（樹幹），葉片卡不動；用掉的頂點重新編號。
       // 第四個是 'sloppy' 就不管拓撲硬減（貨櫃這種 UV 接縫很多、一般減面減不下去的箱子）

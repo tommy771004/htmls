@@ -11,7 +11,7 @@ const ZQ = new URLSearchParams(location.search);
 const ZONE_ROT = (() => { const q = ZQ.get('zrot'); return q !== null && isFinite(+q) ? +q * Math.PI / 180 : null; })();
 const WARP_ON = ZQ.get('warp') !== '0';
 const ZONES = LAYOUT.map((L, id) => ({
-  id, key: L.key, name: L.name, ni0: L.ni0, ni1: L.ni1, nj0: L.nj0, nj1: L.nj1,
+  id, key: L.key, name: L.name, ni0: L.ni0, ni1: L.ni1, nj0: L.nj0, nj1: L.nj1, isle: !!L.isle,
   x0: L.ni0 === 0 ? -1e5 : avX(L.ni0), x1: L.ni1 === NX ? 8000 : avX(L.ni1), z0: L.nj0 === 0 ? -1e5 : stZ(L.nj0), z1: L.nj1 === NZ ? 1e5 : stZ(L.nj1),
   ry: L.ry, ox: L.ox, oz: L.oz, W: WARP_ON ? L.W : null,
 }));
@@ -37,27 +37,31 @@ for (const zn of ZONES_V6) {
   // CITY_EDGE 與縫裡的東西是世界座標，跟著一起轉
   ZONES.G = { gc, gs, pcx, pcz, tx, tz };
 }
+// 天樞島之前的十五片（存檔第 12 版以前的世界座標）：65-motors.js 讀舊存檔時先用它換回邏輯座標
+const ZONES_V12 = LAYOUT_V12.map((L, id) => ({ id, key: L.key, ni0: L.ni0, ni1: L.ni1, nj0: L.nj0, nj1: L.nj1, ry: L.ry, ox: L.ox, oz: L.oz, W: L.W, c: Math.cos(L.ry), s: Math.sin(L.ry),
+  x0: L.ni0 === 0 ? -1e5 : avX(L.ni0), x1: L.ni1 === NX ? 8000 : avX(L.ni1), z0: L.nj0 === 0 ? -1e5 : stZ(L.nj0), z1: L.nj1 === NZ ? 1e5 : stZ(L.nj1) }));
 const zrotW = (x, z) => { const G = ZONES.G, dx = x - G.pcx, dz = z - G.pcz; return [G.pcx + G.tx + dx * G.gc + dz * G.gs, G.pcz + G.tz - dx * G.gs + dz * G.gc]; };
 
 // ─── 彎曲（和 tools/check-zones.mjs 的 warpJ 同一個公式，改了要兩邊一起改）───
 const WARP_TAPER = 160;
 const CITY_LX0 = avX(0) - HR - 50, CITY_LX1 = avX(NX) + HR + 50, CITY_LZ0 = stZ(0) - HR - 50, CITY_LZ1 = stZ(NZ) + HR + 50 + 110;
-const warpOut = (x, z) => Math.max(CITY_LX0 - x, x - CITY_LX1, CITY_LZ0 - z, z - CITY_LZ1, 0);
+// 天樞島的片（W.bx0…bz1）照島自己的邏輯範圍收
+const warpOut = (x, z, W) => W && W.bx0 !== undefined ? Math.max(W.bx0 - x, x - W.bx1, W.bz0 - z, z - W.bz1, 0) : Math.max(CITY_LX0 - x, x - CITY_LX1, CITY_LZ0 - z, z - CITY_LZ1, 0);
 const sm01 = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
-const warpT = (x, z) => 1 - sm01(warpOut(x, z) / WARP_TAPER);
+const warpT = (x, z, W) => 1 - sm01(warpOut(x, z, W) / WARP_TAPER);
 const _wj = [0, 0, 1, 0, 0, 1];
 // 回傳共用的陣列 [x', z', ∂x'/∂x, ∂x'/∂z, ∂z'/∂x, ∂z'/∂z]（呼叫端要馬上取用）
 function warpJ(W, x, z) {
   const o = _wj;
   if (!W) { o[0] = x; o[1] = z; o[2] = 1; o[3] = 0; o[4] = 0; o[5] = 1; return o; }
-  const d = warpOut(x, z);
+  const d = warpOut(x, z, W);
   if (d >= WARP_TAPER) { o[0] = x; o[1] = z; o[2] = 1; o[3] = 0; o[4] = 0; o[5] = 1; return o; }
   const t = 1 - sm01(d / WARP_TAPER);
   const a0 = W.kz * z + W.p0, a1 = W.kx * x + W.p1, a2 = W.kx2 * x + W.p2, a3 = W.kz2 * z + W.p3, ux = x - W.xc, uz = z - W.zc;
   const s0 = Math.sin(a0), c0 = Math.cos(a0), s1 = Math.sin(a1), c1 = Math.cos(a1), s2 = Math.sin(a2), c2 = Math.cos(a2), s3 = Math.sin(a3), c3 = Math.cos(a3);
   const dx = W.ax * s0 + W.sx * s1 + W.fa * ux * uz / W.hm, dz = W.az * s2 + W.sz * s3 + W.fb * ux * uz / W.hm;
   let tx = 0, tz = 0;
-  if (d > 0) { const e = .5; tx = (warpT(x + e, z) - warpT(x - e, z)) / (2 * e); tz = (warpT(x, z + e) - warpT(x, z - e)) / (2 * e); }
+  if (d > 0) { const e = .5; tx = (warpT(x + e, z, W) - warpT(x - e, z, W)) / (2 * e); tz = (warpT(x, z + e, W) - warpT(x, z - e, W)) / (2 * e); }
   o[0] = x + dx * t; o[1] = z + dz * t;
   o[2] = 1 + (W.sx * W.kx * c1 + W.fa * uz / W.hm) * t + dx * tx; o[3] = (W.ax * W.kz * c0 + W.fa * ux / W.hm) * t + dx * tz;
   o[4] = (W.az * W.kx2 * c2 + W.fb * uz / W.hm) * t + dz * tx; o[5] = 1 + (W.sz * W.kz2 * c3 + W.fb * ux / W.hm) * t + dz * tz;
@@ -236,12 +240,42 @@ const CITY_MASK = (() => {
   return { S, nx, nz, m };
 })();
 // 點在外緣裡（格子邊上兩格內用多邊形精算）
+// 天樞島的水道不算（inLake 在下面，函式裡才用到）
 function inCity(X, Z) {
   const M = CITY_MASK, i = Math.floor((X - CITY_BB.x0) / M.S), j = Math.floor((Z - CITY_BB.z0) / M.S);
   if (i < 0 || j < 0 || i >= M.nx || j >= M.nz) return false;
   const v = M.m[j * M.nx + i];
-  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const ii = i + a, jj = j + b; if (ii >= 0 && jj >= 0 && ii < M.nx && jj < M.nz && M.m[jj * M.nx + ii] !== v) return inPoly(CITY_POLY, X, Z); }
-  return !!v;
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const ii = i + a, jj = j + b; if (ii >= 0 && jj >= 0 && ii < M.nx && jj < M.nz && M.m[jj * M.nx + ii] !== v) return inPoly(CITY_POLY, X, Z) && !inLake(X, Z); }
+  return !!v && !inLake(X, Z);
+}
+// ─── 天樞島的水道（04-layout.js 的 LAKE_POLY 裡、ISLE_POLY 外）：外緣把它包在裡面，但它是水。橋（06-roads.js 的 BRIDGES，
+// 跨過水道的連接道路，路面加兩側人行道的寬度）上是陸地。4 m 的格子先算好，邊上兩格內用多邊形精算 ───
+const LAKE_P = ZONE_ROT === null ? LAKE_POLY : LAKE_POLY.map(p => zrotW(p[0], p[1])), ISLE_P = ZONE_ROT === null ? ISLE_POLY : ISLE_POLY.map(p => zrotW(p[0], p[1]));
+const ISLE_W = ZONE_ROT === null ? ISLE_C : zrotW(ISLE_C[0], ISLE_C[1]);
+const lakeExact = (X, Z) => inPoly(LAKE_P, X, Z) && !inPoly(ISLE_P, X, Z);
+const LAKE_MASK = (() => {
+  const S = 4, xs = LAKE_P.map(p => p[0]), zs = LAKE_P.map(p => p[1]), x0 = Math.min(...xs) - S, z0 = Math.min(...zs) - S;
+  const nx = Math.ceil((Math.max(...xs) + S - x0) / S), nz = Math.ceil((Math.max(...zs) + S - z0) / S), m = new Uint8Array(nx * nz);
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) m[j * nx + i] = lakeExact(x0 + (i + .5) * S, z0 + (j + .5) * S) ? 1 : 0;
+  return { S, x0, z0, nx, nz, m };
+})();
+const BRIDGES = [];   // { pts, hw, bb }（06-roads.js 填）
+function onBridge(X, Z) {
+  for (const B of BRIDGES) {
+    if (X < B.bb[0] || X > B.bb[1] || Z < B.bb[2] || Z > B.bb[3]) continue;
+    const P = B.pts;
+    for (let k = 1; k < P.length; k++) { const a = P[k - 1], ex = P[k][0] - a[0], ez = P[k][1] - a[1], t = Math.max(0, Math.min(1, ((X - a[0]) * ex + (Z - a[1]) * ez) / (ex * ex + ez * ez || 1))); if (Math.hypot(X - a[0] - ex * t, Z - a[1] - ez * t) <= B.hw) return B; }
+  }
+  return null;
+}
+// 點在水道的水面上（不含橋）
+function inLake(X, Z) {
+  const M = LAKE_MASK, i = Math.floor((X - M.x0) / M.S), j = Math.floor((Z - M.z0) / M.S);
+  if (i < 0 || j < 0 || i >= M.nx || j >= M.nz) return false;
+  const v = M.m[j * M.nx + i];
+  let w = !!v;
+  for (let a = -1; a <= 1 && w === !!v; a++) for (let b = -1; b <= 1; b++) { const ii = i + a, jj = j + b; if (ii >= 0 && jj >= 0 && ii < M.nx && jj < M.nz && M.m[jj * M.nx + ii] !== v) { w = lakeExact(X, Z); break; } }
+  return w && !onBridge(X, Z);
 }
 // 外緣外面是水還是山：外緣是從 CITY_CTR 每 2° 量一點，所以看點在中心的哪個方向（?zrot 轉過的要轉回來）
 const CITY_C = ZONE_ROT === null ? CITY_CTR : zrotW(CITY_CTR[0], CITY_CTR[1]);
