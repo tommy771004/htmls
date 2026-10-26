@@ -4299,5 +4299,871 @@
   "tris": 77037,
   "kb": 1141,
   "draws": 9
+ },
+ "g63": {
+  "id": "g63",
+  "title": "Mersedes-Benz G63 AMG",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mersedes-benz-g63-amg-e5e2a1d2238048a1a494b3df983c16bb",
+  "bike": false,
+  "len": 4.873,
+  "w": 2.227,
+  "h": 1.989,
+  "wr": 0.43,
+  "fa": 1.522,
+  "ra": -1.355,
+  "track": 0.799,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.799,
+    "y": 0.43,
+    "z": 1.522,
+    "r": 0.43
+   },
+   {
+    "name": "FR",
+    "x": -0.799,
+    "y": 0.43,
+    "z": 1.522,
+    "r": 0.43
+   },
+   {
+    "name": "RL",
+    "x": 0.8,
+    "y": 0.43,
+    "z": -1.355,
+    "r": 0.43
+   },
+   {
+    "name": "RR",
+    "x": -0.798,
+    "y": 0.43,
+    "z": -1.355,
+    "r": 0.43
+   }
+  ],
+  "paint": [
+   "bodypaint"
+  ],
+  "paintable": true,
+  "tris": 186940,
+  "kb": 3300,
+  "draws": 34
+ },
+ "lc200": {
+  "id": "lc200",
+  "title": "Toyota Land Cruiser J200 2017",
+  "author": "David_Holiday (https://sketchfab.com/David_Holiday)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/toyota-land-cruiser-j200-2017-374e85a6e18743429f6d9c0e7bbffb3c",
+  "bike": false,
+  "len": 4.95,
+  "w": 2.296,
+  "h": 1.897,
+  "wr": 0.39,
+  "fa": 1.555,
+  "ra": -1.295,
+  "track": 0.82,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.82,
+    "y": 0.39,
+    "z": 1.555,
+    "r": 0.39
+   },
+   {
+    "name": "FR",
+    "x": -0.82,
+    "y": 0.39,
+    "z": 1.555,
+    "r": 0.39
+   },
+   {
+    "name": "RL",
+    "x": 0.82,
+    "y": 0.39,
+    "z": -1.295,
+    "r": 0.39
+   },
+   {
+    "name": "RR",
+    "x": -0.82,
+    "y": 0.39,
+    "z": -1.295,
+    "r": 0.39
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 121787,
+  "kb": 1849,
+  "draws": 11
+ },
+ "rrs": {
+  "id": "rrs",
+  "title": "Range Rover Sport 2018",
+  "author": "diw3d (https://sketchfab.com/diwdiw)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/range-rover-sport-2018-d1fe581b3baf4af89275e9aa9a1392e2",
+  "bike": false,
+  "len": 4.879,
+  "w": 2.176,
+  "h": 1.811,
+  "wr": 0.412,
+  "fa": 1.374,
+  "ra": -1.569,
+  "track": 0.796,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.796,
+    "y": 0.412,
+    "z": 1.374,
+    "r": 0.412
+   },
+   {
+    "name": "FR",
+    "x": -0.796,
+    "y": 0.412,
+    "z": 1.374,
+    "r": 0.412
+   },
+   {
+    "name": "RL",
+    "x": 0.796,
+    "y": 0.412,
+    "z": -1.569,
+    "r": 0.412
+   },
+   {
+    "name": "RR",
+    "x": -0.796,
+    "y": 0.412,
+    "z": -1.57,
+    "r": 0.412
+   }
+  ],
+  "paint": [
+   "Car_Paint"
+  ],
+  "paintable": true,
+  "tris": 104057,
+  "kb": 1189,
+  "draws": 13
+ },
+ "rr06": {
+  "id": "rr06",
+  "title": "2006 Land Rover Range Rover Supercharged",
+  "author": "Randomness (https://sketchfab.com/throwbackthursdaymodels)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2006-land-rover-range-rover-supercharged-277cf51a9f95473c85580612651990fd",
+  "bike": false,
+  "len": 4.95,
+  "w": 2.178,
+  "h": 1.949,
+  "wr": 0.407,
+  "fa": 1.253,
+  "ra": -1.605,
+  "track": 0.829,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.827,
+    "y": 0.407,
+    "z": 1.252,
+    "r": 0.407
+   },
+   {
+    "name": "FR",
+    "x": -0.831,
+    "y": 0.407,
+    "z": 1.253,
+    "r": 0.407
+   },
+   {
+    "name": "RL",
+    "x": 0.827,
+    "y": 0.407,
+    "z": -1.605,
+    "r": 0.407
+   },
+   {
+    "name": "RR",
+    "x": -0.831,
+    "y": 0.407,
+    "z": -1.606,
+    "r": 0.407
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 107933,
+  "kb": 2390,
+  "draws": 35
+ },
+ "ramtrx": {
+  "id": "ramtrx",
+  "title": "Dodge RAM TRX Sandblast Edition",
+  "author": "𝑵 (https://sketchfab.com/sickmyself8)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/dodge-ram-trx-sandblast-edition-de045bf2f3b141a48a4248885d3fee1c",
+  "bike": false,
+  "len": 5.92,
+  "w": 2.503,
+  "h": 2.131,
+  "wr": 0.464,
+  "fa": 1.715,
+  "ra": -1.953,
+  "track": 0.99,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.99,
+    "y": 0.464,
+    "z": 1.715,
+    "r": 0.464
+   },
+   {
+    "name": "FR",
+    "x": -0.987,
+    "y": 0.464,
+    "z": 1.715,
+    "r": 0.464
+   },
+   {
+    "name": "RL",
+    "x": 0.991,
+    "y": 0.464,
+    "z": -1.953,
+    "r": 0.464
+   },
+   {
+    "name": "RR",
+    "x": -0.99,
+    "y": 0.464,
+    "z": -1.953,
+    "r": 0.464
+   }
+  ],
+  "paint": [
+   "DRTRX_Vehicle_Paint_01"
+  ],
+  "paintable": false,
+  "tris": 161504,
+  "kb": 2933,
+  "draws": 78
+ },
+ "ghost": {
+  "id": "ghost",
+  "title": "Rolls-Royce Ghost",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/rolls-royce-ghost-4a590f4afa094fa8b407a14db77a63a8",
+  "bike": false,
+  "len": 5.546,
+  "w": 2.149,
+  "h": 1.582,
+  "wr": 0.405,
+  "fa": 1.845,
+  "ra": -1.492,
+  "track": 0.799,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.804,
+    "y": 0.405,
+    "z": 1.845,
+    "r": 0.405
+   },
+   {
+    "name": "FR",
+    "x": -0.794,
+    "y": 0.405,
+    "z": 1.845,
+    "r": 0.405
+   },
+   {
+    "name": "RL",
+    "x": 0.804,
+    "y": 0.405,
+    "z": -1.492,
+    "r": 0.405
+   },
+   {
+    "name": "RR",
+    "x": -0.794,
+    "y": 0.405,
+    "z": -1.492,
+    "r": 0.405
+   }
+  ],
+  "paint": [
+   "rrghost_paint"
+  ],
+  "paintable": true,
+  "tris": 192168,
+  "kb": 2540,
+  "draws": 10
+ },
+ "s65": {
+  "id": "s65",
+  "title": "Mersedes-Benz s65 w222",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mersedes-benz-s65-w222-f42d9d13b0404b5b9a2302a4c590a94d",
+  "bike": false,
+  "len": 5.27,
+  "w": 2.117,
+  "h": 1.502,
+  "wr": 0.362,
+  "fa": 1.678,
+  "ra": -1.421,
+  "track": 0.779,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.781,
+    "y": 0.362,
+    "z": 1.678,
+    "r": 0.362
+   },
+   {
+    "name": "FR",
+    "x": -0.776,
+    "y": 0.362,
+    "z": 1.678,
+    "r": 0.362
+   },
+   {
+    "name": "RL",
+    "x": 0.781,
+    "y": 0.362,
+    "z": -1.421,
+    "r": 0.362
+   },
+   {
+    "name": "RR",
+    "x": -0.776,
+    "y": 0.362,
+    "z": -1.421,
+    "r": 0.362
+   }
+  ],
+  "paint": [
+   "sw222_paint"
+  ],
+  "paintable": true,
+  "tris": 150631,
+  "kb": 1863,
+  "draws": 14
+ },
+ "m5f90": {
+  "id": "m5f90",
+  "title": "Bmw M5 F90",
+  "author": "RES1N (https://sketchfab.com/Resinnnn)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-m5-f90-5478e978bd634337adc8e3dc413fbfa3",
+  "bike": false,
+  "len": 4.966,
+  "w": 2.112,
+  "h": 1.471,
+  "wr": 0.346,
+  "fa": 1.367,
+  "ra": -1.587,
+  "track": 0.792,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.786,
+    "y": 0.346,
+    "z": 1.367,
+    "r": 0.346
+   },
+   {
+    "name": "FR",
+    "x": -0.782,
+    "y": 0.346,
+    "z": 1.367,
+    "r": 0.346
+   },
+   {
+    "name": "RL",
+    "x": 0.8,
+    "y": 0.345,
+    "z": -1.587,
+    "r": 0.345
+   },
+   {
+    "name": "RR",
+    "x": -0.8,
+    "y": 0.345,
+    "z": -1.587,
+    "r": 0.345
+   }
+  ],
+  "paint": [
+   "Carpaint"
+  ],
+  "paintable": false,
+  "tris": 134248,
+  "kb": 3337,
+  "draws": 100
+ },
+ "camry": {
+  "id": "camry",
+  "title": "Toyota Camry 2020",
+  "author": "ItsDiyor (https://sketchfab.com/ItsDiyor)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/toyota-camry-2020-236a5a6e2fa6420fbdf641f4800cd544",
+  "bike": false,
+  "len": 4.885,
+  "w": 2.137,
+  "h": 1.471,
+  "wr": 0.34,
+  "fa": 1.46,
+  "ra": -1.365,
+  "track": 0.8,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.8,
+    "y": 0.34,
+    "z": 1.46,
+    "r": 0.34
+   },
+   {
+    "name": "FR",
+    "x": -0.8,
+    "y": 0.34,
+    "z": 1.46,
+    "r": 0.34
+   },
+   {
+    "name": "RL",
+    "x": 0.8,
+    "y": 0.34,
+    "z": -1.365,
+    "r": 0.34
+   },
+   {
+    "name": "RR",
+    "x": -0.8,
+    "y": 0.34,
+    "z": -1.365,
+    "r": 0.34
+   }
+  ],
+  "paint": [
+   "Paint_Color"
+  ],
+  "paintable": true,
+  "tris": 91063,
+  "kb": 1179,
+  "draws": 12
+ },
+ "gt500": {
+  "id": "gt500",
+  "title": "Ford Mustang Shelby GT500",
+  "author": "Jiaxing (https://sketchfab.com/saitoyang)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/ford-mustang-shelby-gt500-0eaa7a16796540f29461ddae05ecdeb3",
+  "bike": false,
+  "len": 4.818,
+  "w": 2.078,
+  "h": 1.382,
+  "wr": 0.349,
+  "fa": 1.448,
+  "ra": -1.292,
+  "track": 0.822,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.841,
+    "y": 0.348,
+    "z": 1.448,
+    "r": 0.348
+   },
+   {
+    "name": "FR",
+    "x": -0.832,
+    "y": 0.354,
+    "z": 1.448,
+    "r": 0.354
+   },
+   {
+    "name": "RL",
+    "x": 0.806,
+    "y": 0.348,
+    "z": -1.294,
+    "r": 0.348
+   },
+   {
+    "name": "RR",
+    "x": -0.81,
+    "y": 0.348,
+    "z": -1.291,
+    "r": 0.348
+   }
+  ],
+  "paint": [
+   "carpaint"
+  ],
+  "paintable": true,
+  "tris": 143495,
+  "kb": 1732,
+  "draws": 6
+ },
+ "viper": {
+  "id": "viper",
+  "title": "Dodge Viper SRT [Free]",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/dodge-viper-srt-free-b4234b7970fa464faaecaf637acb0912",
+  "bike": false,
+  "len": 4.46,
+  "w": 1.926,
+  "h": 1.254,
+  "wr": 0.331,
+  "fa": 1.264,
+  "ra": -1.196,
+  "track": 0.787,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.787,
+    "y": 0.331,
+    "z": 1.264,
+    "r": 0.331
+   },
+   {
+    "name": "FR",
+    "x": -0.787,
+    "y": 0.331,
+    "z": 1.264,
+    "r": 0.331
+   },
+   {
+    "name": "RL",
+    "x": 0.787,
+    "y": 0.331,
+    "z": -1.196,
+    "r": 0.331
+   },
+   {
+    "name": "RR",
+    "x": -0.787,
+    "y": 0.331,
+    "z": -1.196,
+    "r": 0.331
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 109725,
+  "kb": 1299,
+  "draws": 14
+ },
+ "senna": {
+  "id": "senna",
+  "title": "McLaren Senna Free",
+  "author": "Black Snow (https://sketchfab.com/BlackSnow02)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mclaren-senna-free-ea3e43a6eb004853a87fe9c58422eb96",
+  "bike": false,
+  "len": 4.744,
+  "w": 2.221,
+  "h": 1.22,
+  "wr": 0.354,
+  "fa": 1.162,
+  "ra": -1.432,
+  "track": 0.863,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.861,
+    "y": 0.354,
+    "z": 1.162,
+    "r": 0.354
+   },
+   {
+    "name": "FR",
+    "x": -0.865,
+    "y": 0.354,
+    "z": 1.162,
+    "r": 0.354
+   },
+   {
+    "name": "RL",
+    "x": 0.861,
+    "y": 0.354,
+    "z": -1.432,
+    "r": 0.354
+   },
+   {
+    "name": "RR",
+    "x": -0.865,
+    "y": 0.354,
+    "z": -1.432,
+    "r": 0.354
+   }
+  ],
+  "paint": [
+   "sennapaintmain"
+  ],
+  "paintable": true,
+  "tris": 133259,
+  "kb": 1593,
+  "draws": 10
+ },
+ "r8": {
+  "id": "r8",
+  "title": "Audi R8",
+  "author": "wallon (https://sketchfab.com/realwallon)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/audi-r8-e17e438f076f4427a58d93aa779edaed",
+  "bike": false,
+  "len": 4.426,
+  "w": 2.307,
+  "h": 1.238,
+  "wr": 0.352,
+  "fa": 1.095,
+  "ra": -1.472,
+  "track": 0.878,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.857,
+    "y": 0.346,
+    "z": 1.11,
+    "r": 0.346
+   },
+   {
+    "name": "FR",
+    "x": -0.857,
+    "y": 0.346,
+    "z": 1.08,
+    "r": 0.346
+   },
+   {
+    "name": "RL",
+    "x": 0.916,
+    "y": 0.358,
+    "z": -1.472,
+    "r": 0.358
+   },
+   {
+    "name": "RR",
+    "x": -0.881,
+    "y": 0.358,
+    "z": -1.472,
+    "r": 0.358
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 94796,
+  "kb": 816,
+  "draws": 18
+ },
+ "evo6": {
+  "id": "evo6",
+  "title": "Mitsubishi Lancer Evolution 6  | www.vecarz.com",
+  "author": "vecarz (https://sketchfab.com/heynic)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/mitsubishi-lancer-evolution-6-wwwvecarzcom-c3d5dcd8ff724bc88c46760d92fc5188",
+  "bike": false,
+  "len": 4.35,
+  "w": 1.918,
+  "h": 1.448,
+  "wr": 0.318,
+  "fa": 1.281,
+  "ra": -1.229,
+  "track": 0.752,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 0.753,
+    "y": 0.318,
+    "z": 1.281,
+    "r": 0.318
+   },
+   {
+    "name": "FR",
+    "x": -0.752,
+    "y": 0.318,
+    "z": 1.281,
+    "r": 0.318
+   },
+   {
+    "name": "RL",
+    "x": 0.753,
+    "y": 0.318,
+    "z": -1.229,
+    "r": 0.318
+   },
+   {
+    "name": "RR",
+    "x": -0.752,
+    "y": 0.318,
+    "z": -1.229,
+    "r": 0.318
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "tris": 80904,
+  "kb": 1442,
+  "draws": 37
+ },
+ "hd72": {
+  "id": "hd72",
+  "title": "Harley-Davidson Seventy-Two HD FXT 2015❤️",
+  "author": "ᗩᒪE᙭. Kᗩ.🚗 (https://sketchfab.com/Alex.Ka.)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/harley-davidson-seventy-two-hd-fxt-2015-15e67a3076494bb99ba7504c9913ceb5",
+  "bike": true,
+  "len": 2.255,
+  "w": 0.796,
+  "h": 1.353,
+  "wr": 0.323,
+  "fa": 0.817,
+  "ra": -0.7,
+  "track": 0.009,
+  "wheels": [
+   {
+    "name": "F",
+    "x": -0.018,
+    "y": 0.316,
+    "z": 0.817,
+    "r": 0.316
+   },
+   {
+    "name": "R",
+    "x": 0,
+    "y": 0.33,
+    "z": -0.7,
+    "r": 0.33
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "rake": 24,
+  "tris": 60240,
+  "kb": 690,
+  "draws": 15
+ },
+ "hdpol": {
+  "id": "hdpol",
+  "title": "Harley-Davidson Police",
+  "author": "Comrade1280 (https://sketchfab.com/comrade1280)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/harley-davidson-police-79dc00298bf449d7bcfdf6eb32bd15ac",
+  "bike": true,
+  "len": 2.44,
+  "w": 0.889,
+  "h": 1.464,
+  "wr": 0.365,
+  "fa": 0.903,
+  "ra": -0.725,
+  "track": 0.087,
+  "wheels": [
+   {
+    "name": "F",
+    "x": -0.081,
+    "y": 0.397,
+    "z": 0.903,
+    "r": 0.397
+   },
+   {
+    "name": "R",
+    "x": -0.093,
+    "y": 0.332,
+    "z": -0.725,
+    "r": 0.332
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "rake": 24,
+  "tris": 91804,
+  "kb": 992,
+  "draws": 16
+ },
+ "r6": {
+  "id": "r6",
+  "title": "2015 YAMAHA YZF-R6",
+  "author": "dragos12_ (https://sketchfab.com/dragos12_)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/2015-yamaha-yzf-r6-123ac3a3757d4143944fa09f59ec341d",
+  "bike": true,
+  "len": 2.04,
+  "w": 0.693,
+  "h": 1.026,
+  "wr": 0.286,
+  "fa": 0.748,
+  "ra": -0.625,
+  "track": 0.001,
+  "wheels": [
+   {
+    "name": "F",
+    "x": -0.001,
+    "y": 0.272,
+    "z": 0.748,
+    "r": 0.272
+   },
+   {
+    "name": "R",
+    "x": 0,
+    "y": 0.3,
+    "z": -0.625,
+    "r": 0.3
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "rake": 24,
+  "tris": 97721,
+  "kb": 1916,
+  "draws": 30
+ },
+ "z1000": {
+  "id": "z1000",
+  "title": "Z1000 2014",
+  "author": "e-restrepo1114 (https://sketchfab.com/EmanuelRestrepoVelez)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/z1000-2014-70cecfa5568347428c5ad72e9a156be9",
+  "bike": true,
+  "len": 2.045,
+  "w": 0.738,
+  "h": 1.087,
+  "wr": 0.31,
+  "fa": 0.72,
+  "ra": -0.72,
+  "track": 0,
+  "wheels": [
+   {
+    "name": "F",
+    "x": 0,
+    "y": 0.31,
+    "z": 0.72,
+    "r": 0.31
+   },
+   {
+    "name": "R",
+    "x": 0,
+    "y": 0.31,
+    "z": -0.72,
+    "r": 0.31
+   }
+  ],
+  "paint": [],
+  "paintable": false,
+  "rake": 24,
+  "tris": 36722,
+  "kb": 631,
+  "draws": 19
  }
 }

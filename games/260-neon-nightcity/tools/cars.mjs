@@ -79,6 +79,25 @@ export const MODELS = [
   { id: 'v4', file: 'ducati_panigale_v4', len: 2.11, tris: 70000, bike: true, flip: true, paint: false },
   { id: 'zx6r', file: 'kawasaki_ninja_zx-6r', len: 2.025, tris: 70000, bike: true, paint: false, opaque: true, noEmi: true,
     wheelNodes: { F: ['^Front Wheel_', '^Front Rim_'], R: ['^Rear Wheel_', '^Rear Rim_'] } },
+  // 街頭車（照 gta5-mods 熱門車款補的類型，不進車行）：汽車混進車流、搶到後換成這裡的實車，開回 GARAGE 07 就收下；機車停在路邊
+  { id: 'g63', file: 'mersedes-benz_g63_amg', len: 4.873, tris: 90000, soup: true },
+  { id: 'lc200', file: 'toyota_land_cruiser_j200_2017', len: 4.95, tris: 90000, wheelsAt: { FL: [.82, 1.555, .39], FR: [-.82, 1.555, .39], RL: [.82, -1.295, .39], RR: [-.82, -1.295, .39] } },
+  { id: 'rrs', file: 'range_rover_sport_2018', len: 4.879, tris: 90000 },
+  { id: 'rr06', file: '2006_land_rover_range_rover_supercharged', len: 4.95, tris: 90000, paint: false },
+  { id: 'ramtrx', file: 'dodge_ram_trx_sandblast_edition', len: 5.92, tris: 90000, soup: true },
+  { id: 'ghost', file: 'rolls-royce_ghost', len: 5.546, tris: 90000, soup: true },
+  { id: 's65', file: 'mersedes-benz_s65_w222', len: 5.27, tris: 90000, soup: true },
+  { id: 'm5f90', file: 'bmw_m5_f90', len: 4.966, tris: 90000, soup: true, tex: 512 },   // 原檔是不共用頂點的三角形，一百多個材質：先合併頂點、貼圖壓到 512
+  { id: 'camry', file: 'toyota_camry_2020', len: 4.885, tris: 90000, wheelsAt: { FL: [.8, 1.46, .34], FR: [-.8, 1.46, .34], RL: [.8, -1.365, .34], RR: [-.8, -1.365, .34] } },
+  { id: 'gt500', file: 'ford_mustang_shelby_gt500', len: 4.818, tris: 90000 },
+  { id: 'viper', file: 'dodge_viper_srt_free', len: 4.46, tris: 90000, paint: false },
+  { id: 'senna', file: 'mclaren_senna_free', len: 4.744, tris: 90000 },
+  { id: 'r8', file: 'audi_r8', len: 4.426, tris: 90000, paint: false },
+  { id: 'evo6', file: 'mitsubishi_lancer_evolution_6___www.vecarz.com', len: 4.35, tris: 90000, paint: false },
+  { id: 'hd72', file: 'harley-davidson_seventy-two_hd_fxt_2015', len: 2.255, tris: 70000, bike: true, paint: false, wheelsAt: { R: [0, -.7, .33] } },
+  { id: 'hdpol', file: 'harley-davidson_police', len: 2.44, tris: 70000, bike: true, paint: false, wtop: .8 },
+  { id: 'r6', file: '2015_yamaha_yzf-r6', len: 2.04, tris: 70000, bike: true, flip: true, paint: false, wheelsAt: { R: [0, -.625, .3] } },
+  { id: 'z1000', file: 'z1000_2014', len: 2.045, tris: 70000, bike: true, flip: true, paint: false, wheelsAt: { F: [0, .72, .31], R: [0, -.72, .31] }, fork: { r: .09, bar: .36, barH: .1 } },
   // 車流專用（DanielZhabotinsky 的虛構廠牌低多邊形車與 French delivery van，CC BY 4.0；原檔車頭都朝 -z，只有廂型車不用轉）：輸出到 .cache/traffic/，再由 tools/traffic.mjs 烘進 traffic.glb
   { id: 'fh_taxi', file: 'fairheaven_lt_80_taxi_-_low_poly_model', len: 5.07, tris: 30000, traffic: true, flip: true },
   { id: 'fh_cop', file: 'fairheaven_lt_80_cop_cruiser_-_low_poly_model', len: 5.07, tris: 30000, traffic: true, flip: true },
@@ -170,6 +189,19 @@ async function processModel(M) {
     }
   });
 
+  // 離群的小雜物（十幾個三角形以下、整塊在大零件外框之外，例如拉到車外幾公尺的退化面片）會撐大外框、把車縮小，先丟掉
+  {
+    const box = (p) => { const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]; for (let i = 0; i < p.cnt; i++) for (let k = 0; k < 3; k++) { const v = p.pos[i * 3 + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; } return { mn, mx }; };
+    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    for (const p of prims) { if (p.idx.length / 3 < 16) continue; const b = box(p); for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], b.mn[k]); mx[k] = Math.max(mx[k], b.mx[k]); } }
+    const pad = [0, 1, 2].map((k) => (mx[k] - mn[k]) * .05);
+    for (let i = prims.length - 1; i >= 0; i--) {
+      const p = prims[i]; if (p.idx.length / 3 >= 16) continue;
+      const b = box(p);
+      if ([0, 1, 2].some((k) => b.mn[k] < mn[k] - pad[k] || b.mx[k] > mx[k] + pad[k])) { console.log(`  ${M.id}：丟掉離群的 ${p.node}（${p.idx.length / 3} 面）`); prims.splice(i, 1); }
+    }
+  }
+
   // ─── 2. 擺正：長軸轉到 z、車頭朝 +z、依車長縮放、置中、接地 ───
   const bb = () => { const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]; for (const p of prims) for (let i = 0; i < p.cnt; i++) for (let k = 0; k < 3; k++) { const v = p.pos[i * 3 + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; } return { mn, mx }; };
   let b = bb();
@@ -189,6 +221,18 @@ async function processModel(M) {
   const s = cfg.len / (b.mx[2] - b.mn[2]);
   const cx = (b.mx[0] + b.mn[0]) / 2, cz = (b.mx[2] + b.mn[2]) / 2;
   for (const p of prims) for (let i = 0; i < p.cnt; i++) { p.pos[i * 3] = (p.pos[i * 3] - cx) * s; p.pos[i * 3 + 1] = (p.pos[i * 3 + 1] - b.mn[1]) * s; p.pos[i * 3 + 2] = (p.pos[i * 3 + 2] - cz) * s; }
+  // soup：原檔每個三角形各自一組頂點（不共用），減面器沒有邊可收 → 位置（0.1 mm）、法線、UV 都一樣的頂點先合併
+  if (cfg.soup) for (const p of prims) {
+    const key = new Map(), remap = new Uint32Array(p.cnt); let n = 0;
+    const r = (v, q) => Math.round(v * q);
+    for (let i = 0; i < p.cnt; i++) {
+      const k = [r(p.pos[i * 3], 1e4), r(p.pos[i * 3 + 1], 1e4), r(p.pos[i * 3 + 2], 1e4), r(p.nor[i * 3], 50), r(p.nor[i * 3 + 1], 50), r(p.nor[i * 3 + 2], 50), p.uv ? r(p.uv[i * 2], 1e4) + ',' + r(p.uv[i * 2 + 1], 1e4) : ''].join(',');
+      let j = key.get(k);
+      if (j == null) { j = n++; key.set(k, j); p.pos.copyWithin(j * 3, i * 3, i * 3 + 3); p.nor.copyWithin(j * 3, i * 3, i * 3 + 3); if (p.uv) p.uv.copyWithin(j * 2, i * 2, i * 2 + 2); }
+      remap[i] = j;
+    }
+    p.idx = p.idx.map((i) => remap[i]); p.cnt = n; p.pos = p.pos.slice(0, n * 3); p.nor = p.nor.slice(0, n * 3); if (p.uv) p.uv = p.uv.slice(0, n * 2);
+  }
 
   // ─── 3. 連通塊與輪子 ───
   const comps = [];   // 每個 primitive 的每個連通塊：bbox
@@ -208,7 +252,7 @@ async function processModel(M) {
   const H = b.mx[1];
   // 貼地的薄片（陰影平面）不算
   for (const c of comps) c.shadow = c.mx[1] - c.mn[1] < .01 && c.mn[1] < .02 && (c.mx[0] - c.mn[0]) * (c.mx[2] - c.mn[2]) > cfg.len * .6;
-  const ground = Math.min(...comps.filter((c) => !c.shadow).map((c) => c.mn[1]));
+  const ground = comps.reduce((m, c) => c.shadow ? m : Math.min(m, c.mn[1]), Infinity);   // 不用展開：零件幾十萬塊時會撐爆呼叫堆疊
   if (process.env.DEBUG) for (const c of comps.filter((c) => c.mn[1] < ground + .05).sort((a, c) => c.n - a.n).slice(0, 12)) console.log('ground comp', c.n, c.mn.map((v) => v.toFixed(2)).join(','), c.mx.map((v) => v.toFixed(2)).join(','), c.prim.mat?.getName());
   const slots = M.bike ? [['F', (c) => (c.mn[2] + c.mx[2]) > 0], ['R', (c) => (c.mn[2] + c.mx[2]) <= 0]]
     : [['FL', (c) => c.mx[0] + c.mn[0] > 0 && c.mn[2] + c.mx[2] > 0], ['FR', (c) => c.mx[0] + c.mn[0] <= 0 && c.mn[2] + c.mx[2] > 0], ['RL', (c) => c.mx[0] + c.mn[0] > 0 && c.mn[2] + c.mx[2] <= 0], ['RR', (c) => c.mx[0] + c.mn[0] <= 0 && c.mn[2] + c.mx[2] <= 0]];
@@ -223,6 +267,9 @@ async function processModel(M) {
     wheels.push({ name, x: (mn[0] + mx[0]) / 2, y: ground + r, z: (mn[2] + mx[2]) / 2, r, x0: mn[0], x1: mx[0], front: name[0] === 'F', re: [tire, WN.find((w) => w.name === name).parts] });
   }
   for (const [name, inSlot] of WN ? [] : slots) {
+    // wheelsAt：{ 輪位: [x, z, 半徑] } 直接指定輪心（輪胎和車身下緣、擋泥板共用材質，自動找不出來時用）；胎寬汽車 .26、機車 .18
+    const at = cfg.wheelsAt?.[name];
+    if (at) { const [x, z, r] = at, hw = M.bike ? .09 : .13; wheels.push({ name, x, y: ground + r, z, r, x0: x - hw, x1: x + hw, front: name[0] === 'F' }); continue; }
     // 落地的連通塊（輪胎可能拆成好幾段胎面）→ 同材質、同一個前後位置的塊合起來就是整顆輪胎
     const g = comps.filter((c) => !c.shadow && c.mn[1] < ground + .03 && inSlot(c) && c.mx[2] - c.mn[2] < 1.2 && c.mx[0] - c.mn[0] < .6);
     if (!g.length) continue;
@@ -231,7 +278,7 @@ async function processModel(M) {
     const mset = new Set(g.map((c) => c.prim.mat));
     const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
     for (const c of comps) {
-      if (c.shadow || !mset.has(c.prim.mat) || Math.abs((c.mn[2] + c.mx[2]) / 2 - cz0) > .55 || c.mx[2] - c.mn[2] > 1.2 || c.mx[1] > 1.3) continue;
+      if (c.shadow || !mset.has(c.prim.mat) || Math.abs((c.mn[2] + c.mx[2]) / 2 - cz0) > .55 || c.mx[2] - c.mn[2] > 1.2 || c.mx[1] > (cfg.wtop ?? 1.3)) continue;   // wtop：輪胎材質和車身下緣共用時，只收這個高度以下的塊
       if (c.mx[0] < cx0 - .3 || c.mn[0] > cx0 + .3) continue;
       for (let j = 0; j < 3; j++) { mn[j] = Math.min(mn[j], c.mn[j]); mx[j] = Math.max(mx[j], c.mx[j]); }
     }

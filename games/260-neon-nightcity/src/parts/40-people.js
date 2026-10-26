@@ -239,7 +239,7 @@ function scanGet(id, p) {
   return null;
 }
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33, danceD: 34, danceE: 35, danceF: 36 };
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33, danceD: 34, danceE: 35, danceF: 36, phone: 38 };   // 37 是 69-v5-civic.js 的 climb
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -248,7 +248,7 @@ const ACLIP = {
   [ANIM.danceD]: { c: 'Idle_Loop' }, [ANIM.danceE]: { c: 'Dance_Loop', beat: 4, off: .25 }, [ANIM.danceF]: { c: 'Dance_Loop', beat: 2, off: .75 },
   [ANIM.sit]: { c: 'Sitting_Idle_Loop', alt: 'Sitting_Talking_Loop' }, [ANIM.bartend]: { c: 'Idle_Loop' }, [ANIM.umbrella]: { c: 'Walk_Loop', rate: 1.3 },
   [ANIM.dj]: { c: 'Idle_Loop' }, [ANIM.cross]: { c: 'Idle_Loop' }, [ANIM.talk]: { c: 'Idle_Talking_Loop' }, [ANIM.ride]: { c: 'Driving_Loop' },
-  [ANIM.punch]: { c: 'Punch_Cross', beat: 2, alt: 'Punch_Jab' }, [ANIM.smoke]: { c: 'Idle_Loop' },
+  [ANIM.punch]: { c: 'Punch_Cross', beat: 2, alt: 'Punch_Jab' }, [ANIM.smoke]: { c: 'Idle_Loop' }, [ANIM.phone]: { c: 'Idle_Loop' },
   // 68-gta.js 用的單次動作（once：相位是開始的時刻，播完停在最後一格；rev：倒著播，倒地動畫倒放當作爬起來）
   [ANIM.die]: { c: 'Death01', once: 1, rate: 1.3 }, [ANIM.getup]: { c: 'Death01', once: 1, rev: 1, rate: 1.9 }, [ANIM.jab]: { c: 'Punch_Jab', once: 1, rate: 1.3 },
   [ANIM.interact]: { c: 'Interact', once: 1, rate: 1.2 }, [ANIM.crouch]: { c: 'Crouch_Idle_Loop' },
@@ -440,6 +440,13 @@ const OVR = {
     const u = frac(t * .1), k = sst(0, .1, u) * sst(.25, .15, u);
     aim(p, 'upperarm_r', -.2, -.9 + .4 * k, .35 + .3 * k); aim(p, 'lowerarm_r', .05 + .3 * k, -.1 + 1.1 * k, 1 - .6 * k);
   },
+  // 講電話：右手腕用 ikArm 送到右耳旁（手肘往外下方彎），手機由 handPose 擺在耳朵與嘴之間
+  [ANIM.phone]: p => {
+    const m2b = 1 / (p.m2b ||= V3().setFromMatrixScale(p.sm.matrix).x);   // 骨架空間的單位不是公尺
+    p.bones.Head.getWorldPosition(_hpT);
+    ikArm(p, 'r', _hpT.add(_v2.set(-.12, -.02, .05).multiplyScalar(m2b)), _hpPole, 1);   // Head 骨在下巴的高度，耳朵約在上方 7 cm
+    aim(p, 'neck_01', -.08, 1, .05);
+  },
   [ANIM.sit]: (p, t) => {
     const u = frac(t * .07), k = sst(0, .08, u) * sst(.2, .12, u);
     if (k > .01) { aim(p, 'upperarm_r', -.15, -.55, .8, k); aim(p, 'lowerarm_r', .3, .95, .25, k); }
@@ -607,6 +614,7 @@ function poseOne(p, t, b) {
   if (f && (!mix2 || w2 < .5)) f(p, t * sp + ph, b + bo);
   if (p.hold && crowdFrame - p.holdT <= 2 && HOLD_ANIM.has(id) && (!mix2 || w2 < .5)) gunPose(p);
   p.rig.updateMatrixWorld(true);
+  if (HAND_PROP[id] && (!mix2 || w2 < .5)) handPose(p, id);
   p.sm.skeleton.dirty = true;
   if (id === ANIM.umbrella) p.handL.setFromMatrixPosition(p.bones.hand_r.matrixWorld).y += p.sm.position.y;
 }
@@ -628,6 +636,60 @@ function updateCrowds(scn) {
       if (d > 35 && (crowdFrame + p.k) % (d > 70 ? 4 : 2)) continue;
       poseOne(p, t, b);
     }
+  }
+  handPropsStep(scn);
+}
+// ─── 手上的小道具：抽菸的人右手夾一根菸（菸頭發光）、講電話的人右耳貼著手機 ───
+// handPose 在擺好姿勢後算出道具在角色空間的矩陣 p.propL（遠處的人隔幀才擺，位置跟著 p.h 每幀走）；handPropsStep 依鏡頭距離挑最近的幾個擺上去。
+// 手機的模型在 69-v9-ai.js（phoneSwap，以 http(s) 開啟才下載），這裡先用程式建模的機身
+const _hpPole = V3(-1, -.7, .15), _hpT = V3(), _hpA = V3(), _hpB = V3(), _hpX = V3(), _hpY = V3(), _hpZ = V3(), _hpM = new T.Matrix4();
+const HAND_PROP = {
+  [ANIM.smoke]: { max: 12, R: 45, list: [], geo: new Kit().cyl(0, .01, 0, .0047, .0047, .022, 8, 0xc8803a, 2).cyl(0, .053, 0, .0045, .0045, .064, 8, 0xece8e0, 2).cyl(0, .0875, 0, .0044, .0044, .005, 8, 0xff5a1a, 11).build() },   // 濾嘴在掌心裡，菸身與菸頭從指間伸出約 6 cm
+  [ANIM.phone]: { max: 6, R: 45, list: [], phone: 1, geo: new Kit().box(0, 0, 0, .07, .15, .009, 0x15171b, 3).box(0, 0, .0048, .063, .137, .001, 0xc8dcff, 8).build() },
+};
+function handPose(p, id) {
+  const L = p.propL ||= new T.Matrix4(), m2b = 1 / (p.m2b ||= V3().setFromMatrixScale(p.sm.matrix).x);
+  p.bones.hand_r.getWorldPosition(_hpA); p.bones.lowerarm_r.getWorldPosition(_hpB);
+  _hpY.subVectors(_hpA, _hpB).normalize();   // 前臂方向（手肘 → 手腕）
+  if (id === ANIM.phone) {
+    // 機身長邊從嘴邊斜到耳上（往上、往後），螢幕朝頭（+x 是角色的左邊），中心貼在右耳外側
+    _hpY.set(0, 1, -.45).normalize(); _hpZ.set(1, 0, 0); _hpX.crossVectors(_hpY, _hpZ);
+    p.bones.Head.getWorldPosition(_hpA).add(_v1.set(-.085, .05, .035).multiplyScalar(m2b));
+  } else {
+    // 菸夾在指間：手腕往指尖 8 cm，菸身和前臂垂直；朝向取「前、外、上」斜向的參考方向扣掉前臂分量
+    // （手垂著時朝前、前臂朝前時從拳頭上緣往上，不會因為前臂朝前而退化；朝內會整根穿進拳頭）
+    _hpA.addScaledVector(_hpY, .08 * m2b);
+    _hpZ.set(-.3, .5, 1).normalize(); _hpZ.addScaledVector(_hpY, -_hpZ.dot(_hpY)).normalize(); _hpX.crossVectors(_hpZ, _hpY).normalize(); _hpY.copy(_hpZ); _hpZ.crossVectors(_hpX, _hpY);
+  }
+  _hpM.makeBasis(_hpX, _hpY, _hpZ).scale(_v1.set(m2b, m2b, m2b)).setPosition(_hpA);
+  p.sm.updateMatrix(); L.multiplyMatrices(p.sm.matrix, _hpM);
+  p.propId = id; p.propF = crowdFrame;
+}
+function handPropGet(hp, i) {
+  let g = hp.list[i];
+  if (!g) {
+    g = new T.Group(); g.matrixAutoUpdate = false; g.add(new T.Mesh(hp.geo, MAT.uber)); hp.list[i] = g;
+    if (hp.phone) { g.userData.id = 'phone'; phoneSwap(g); }
+  }
+  return g;
+}
+const _hpC = [];
+function handPropsStep(scn) {
+  for (const id in HAND_PROP) {
+    const hp = HAND_PROP[id], cp = camera.position;
+    _hpC.length = 0;
+    for (const c of CROWDS) {
+      if (c.mesh.parent !== scn || !c.mesh.visible) continue;
+      for (const p of c.people) if (p.rig && p.propId == id && p.a[0] == id && crowdFrame - p.propF <= 6 && p.h.visible !== false) { const d = (p.x - cp.x) ** 2 + (p.z - cp.z) ** 2; if (d < hp.R * hp.R) _hpC.push([d, p]); }
+    }
+    if (_hpC.length > hp.max) _hpC.sort((a, b) => a[0] - b[0]);
+    const n = Math.min(_hpC.length, hp.max);
+    for (let i = 0; i < n; i++) {
+      const p = _hpC[i][1], g = handPropGet(hp, i);
+      if (g.parent !== scn) scn.add(g);
+      p.h.updateMatrixWorld(); g.matrix.multiplyMatrices(p.h.matrixWorld, p.propL); g.matrixWorldNeedsUpdate = true; g.visible = true;
+    }
+    for (let i = n; i < hp.list.length; i++) hp.list[i].visible = false;
   }
 }
 
@@ -660,7 +722,7 @@ const umbrellas = [];
     peds.look(k, { r: rP, glowI: q % 2 ? 1.6 : 0 });
     if (q === 2) peds.look(k, LUCIA(k));
     const x = CLUB_X - 4.5 - q * 1.05, z = CLUB_Z + 1.5 + (q % 2) * .3;
-    peds.anim(k, q % 3 === 0 ? ANIM.talk : q % 3 === 1 ? ANIM.idle : ANIM.smoke, rP() * 10, 1);
+    peds.anim(k, q === 4 ? ANIM.phone : q % 3 === 0 ? ANIM.talk : q % 3 === 1 ? ANIM.idle : ANIM.smoke, rP() * 10, 1);
     peds.place(k, ...xzW(x, z, .15), yawW(zoneAtL(x, z), Math.PI / 2 + (rP() - .5) * .8));
     circles.push({ x, z, r: .3 });
   }

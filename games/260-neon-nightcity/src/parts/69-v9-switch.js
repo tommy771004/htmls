@@ -5,7 +5,7 @@ const VIG_T = 6, VIG_SAY = 1.15, VIG_REPLY = 1.4, VIG_NPC_R = 1.5, VIG_NPC_LEAVE
 const VIGS = {
   vance: [
     { anim: ANIM.smoke, say: '又是一個睡不著的晚上。' },
-    { anim: ANIM.talk, say: '我說過了，我已經退休了。', then: '…別再打這支號碼。' },
+    { anim: ANIM.phone, say: '我說過了，我已經退休了。', then: '…別再打這支號碼。' },
     { anim: ANIM.kneel, say: '這雙鞋陪我跑過三個國家。' },
   ],
   kael: [

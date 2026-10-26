@@ -5,6 +5,7 @@ const NOJACK = new Set([...COPS, 'md84', 'ambulance', 'firetruck', 'fire_chief',
 const COVER_MIN = 7, COVER_MAX = 45, COVER_LEAVE = 6, COVER_FAR = 50, COVER_DOWN = 2.2, COVER_UP = 1.4, COVER_COOL = 8;   // 車門掩護：蹲 2.2 秒、探身開槍 1.4 秒輪流
 const TALK_R = 2.5, TALK_T = 6, TALK_END = 7, HECKLE_T = 8, HECKLE_D = 2.2, HECKLE_END = 25;   // 打招呼 6 秒內可以再按 E 挑釁；被挑釁跟上來嗆 8 秒
 const TAIL_P = .4, TAIL_STAR = 2, TAIL_NEAR = 25, TAIL_FAR = 45, TAIL_SEE = 70, TAIL_LOSE = 160, TAIL_LOSE_T = 8, TAIL_T = 90;   // 便衣尾隨：甩掉 2 星以上四成機率，跟在 25–45 m
+const SNAP_CALL = 3;   // 拍到犯罪的人拍完把手機貼到耳邊講 3 秒（只是動作；報案照 W.reports 原本的延遲成立）
 const SNAP_R = 25, SNAP_N = 2, SNAP_T = 2.4, SNAP_HOLD = .8, SNAP_SCARE = 3, SNAP_FUN_R = 30, SNAP_FUN_IV = 2.5, SNAP_MAX = 4;   // 拍照：犯罪 25 m 內最多兩個目擊者舉手機 2.4 秒
 const SAY_T = 3.2, SAY_R = 32;   // 對白：頭上 3.2 秒，32 m 外不畫
 const FLASH_COL = lin(0xf2f4ff);
@@ -250,10 +251,11 @@ function snapWitness(rep, x, z) {
 function snapStart(k, rep) {
   if (snapCount() >= SNAP_MAX) return false;
   const ps = pedState[k];
-  pedEnter(k, 'snap', uTimeNow() + SNAP_T + SNAP_HOLD + 1);
+  const T1 = SNAP_T + SNAP_HOLD + 1 + (rep ? SNAP_CALL : 0);
+  pedEnter(k, 'snap', uTimeNow() + T1);
   if (ps.fsm !== 'snap') return false;
   peds.anim(k, ANIM.aimIdle, 0, 1);
-  ps.aiEnd = ai.clk + SNAP_T + SNAP_HOLD + 1; ps.snapT = 0; ps.snapDone = 0; ps.snapRep = rep;
+  ps.aiEnd = ai.clk + T1; ps.call = 0; ps.snapT = 0; ps.snapDone = 0; ps.snapRep = rep;
   ai.stats.snap++;
   return true;
 }
@@ -262,13 +264,20 @@ function snapStep(k, ps, dt, t, d, bang) {
   const P = peds.people[k];
   if (bang || life.dead || player.where !== 'out' || d < SNAP_SCARE && player.mode === 'walk' || t > ps.aiEnd) {
     if (ps.snapDone && !bang) pedResume(k, ps); else pedLeave(k, ps);
-    P.aimK = 0; return false;
+    P.aimK = 0; ps.call = 0; return false;
   }
   const px = player.mode === 'drive' ? player.veh.x : player.x, pz = player.mode === 'drive' ? player.veh.z : player.z, py = player.mode === 'drive' ? player.veh.y + 1 : player.y + 1.2;
   ps.fyaw += wrapA(Math.atan2(px - ps.fx, pz - ps.fz) - ps.fyaw) * (1 - Math.exp(-7 * dt));
+  ps.snapT += dt;
+  if (ps.snapT > SNAP_T + SNAP_HOLD) {
+    if (!ps.snapRep || ps.snapT > SNAP_T + SNAP_HOLD + SNAP_CALL) { P.aimK = 0; ps.snapRep = null; ps.call = 0; pedResume(k, ps); return false; }
+    // 拍到犯罪：手機貼到耳邊報案（40-people.js 的 ANIM.phone，手機由 handPropsStep 擺；phonesStep 跳過這個人）
+    P.aimK = 0; ps.call = 1; peds.anim(k, ANIM.phone, ps.snapT, 1);
+    peds.place(k, ps.fx, footY(ps.fx, ps.fz), ps.fz, ps.fyaw);
+    return true;
+  }
   P.aimK = 1; P.aimP = clamp(Math.atan2(py - 1.45, d), -.4, .4) + .18;   // 持槍瞄準的手臂（右手伸直、左手托著），手機夾在兩手中間、舉得比槍略高
   peds.anim(k, ANIM.aimIdle, 0, 1);
-  ps.snapT += dt;
   if (ps.snapT > SNAP_T && !ps.snapDone) {
     ps.snapDone = 1; ai.stats.snapDone++;
     fxLights.push({ x: ps.fx + Math.sin(ps.fyaw) * .45, y: footY(ps.fx, ps.fz) + 1.55, z: ps.fz + Math.cos(ps.fyaw) * .45, col: FLASH_COL, r: 7, i: 3.2, life: 0, max: .14 });   // 閃光燈在手機的位置（手前 0.45 m）
@@ -276,7 +285,6 @@ function snapStep(k, ps, dt, t, d, bang) {
     if (ps.snapRep) { const r = ai.reps.find(o => o.rep === ps.snapRep); if (r) r.done = true; if (Math.random() < .5) sayPed(k, aiPick(L_SNAP)); }
     else if (Math.random() < .5) sayPed(k, aiPick(L_FUN));
   }
-  if (ps.snapT > SNAP_T + SNAP_HOLD) { P.aimK = 0; ps.snapRep = null; pedResume(k, ps); return false; }
   peds.place(k, ps.fx, footY(ps.fx, ps.fz), ps.fz, ps.fyaw);
   return true;
 }
@@ -284,7 +292,7 @@ function snapStep(k, ps, dt, t, d, bang) {
 const PHONE_A = {};
 const phoneFbGeo = (() => { const k = new Kit(); k.box(0, .075, 0, .07, .15, .009, 0x15171b, 3).box(0, .077, .0048, .063, .137, .001, 0xc8dcff, 8); return k.build(); })();
 let phoneItem = null;
-if (GLB_ON) loadProps('phone').then(items => { phoneItem = items && items.phone; if (phoneItem) for (const h of ai.phones) phoneSwap(h); });
+if (GLB_ON) loadProps('phone').then(items => { phoneItem = items && items.phone; if (phoneItem) for (const h of [...ai.phones, ...HAND_PROP[ANIM.phone].list]) phoneSwap(h); });
 function phoneSwap(h) {
   if (!phoneItem || h.userData.real) return;
   h.clear(); const o = propObject(phoneItem, 0, -.07, 0); h.add(o); h.userData.real = 1;
@@ -302,7 +310,7 @@ function phonesStep() {
   let n = 0;
   for (let k = 0; k < PED_N && n < SNAP_MAX; k++) {
     const ps = pedState[k], P = peds.people[k];
-    if (ps.fsm !== 'snap' || ps.out || !P.sm) continue;
+    if (ps.fsm !== 'snap' || ps.call || ps.out || !P.sm) continue;
     _v9d.set(-Math.sin(ps.fyaw), 0, -Math.cos(ps.fyaw));   // 螢幕朝拍照的人、背面（鏡頭）朝前
     const h = aiPhone(n++);
     holdAt(h, P, PHONE_A, _v9d);   // 朝向照 _v9d；位置改到兩手中間
