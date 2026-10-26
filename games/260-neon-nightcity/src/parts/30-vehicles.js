@@ -629,6 +629,9 @@ function vehicleCollide(v, dt) {
   if (ram) rollRam(v, ram.c, ram.rel, ram.nx, ram.nz);
   return impact;
 }
+// 基礎加速調降 25%（2026-10-26）：踩油門時的淨加速度（推力減阻力）乘 ACC_K，0–100 等等的時間變成 1/0.75 倍；
+// 到極速時推力等於阻力、扣掉的是 0，所以極速不變（只把推力乘 0.75 的話，阻力沒變，淨加速度掉得更多、極速也會掉）
+const ACC_K = .75;
 function driveVehicle(v, inp, dt) {
   if (v.bail && v !== player.veh) inp = BAIL_INP;   // 68-wreck.js：起火後駕駛跳車，車子滑行到停
   if (v.tumble) return rollStep(v, dt);   // 68-roll.js：翻滾中、側躺或倒扣
@@ -641,7 +644,10 @@ function driveVehicle(v, inp, dt) {
   const maxSt = lerp(v.isCar ? .55 : .5, v.isCar ? .12 : .1, clamp(spd / 45, 0, 1));
   v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）
   let aF = 0;
-  if (inp.thr > 0) aF += v.eng * (v.engK ?? 1) * v.vdK * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
+  if (inp.thr > 0) {
+    const th = v.eng * (v.engK ?? 1) * v.vdK * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
+    aF += th - (1 - ACC_K) * Math.max(0, th - (Math.max(vF, 0) * .12 + .35 + v.vdDrag));
+  }
   if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * (v.revK || 1) * inp.brk * (vF > -9 ? 1 : 0);   // revK：66-chrome.js 的變速箱，倒車起步比較快
   aF -= vF * .12 + Math.sign(vF) * (.35 + v.vdDrag);
   if (inp.hb) aF -= Math.sign(vF) * 4;
