@@ -790,20 +790,23 @@ function pedPos(ps) {
   return [X, Z, TX, TZ];
 }
 // 行人繞著一個街區走；走出玩家的生成圈（30-vehicles.js 的 RING_PED，90–140 m，移動時往外推、偏向前方）又不在鏡頭裡，
-// 就換到外環上的街區，出現的那一點也要在鏡頭看不到的地方；街區超過 230 m 的不管看不看得到都換。找不到就下一幀再試
+// 就換到外環上的街區，出現的那一點也要在鏡頭看不到的地方；街區超過 230 m 的不管看不看得到都換。找不到就下一幀再試，
+// 連續 RING_LOOSE 次找不到（一直往前走、前方都看得到），就放在外環的外半圈（一百多公尺外的人只有幾個像素高）；移動時背後的人先換
 const pedBlocks = blocks.filter(b => !b.outer && !b.park);
 function pedRelocate(ps, px, pz, [r0, r1] = ringR(RING_PED)) {
+  const loose = (ps.ringF || 0) >= RING_LOOSE;
   for (let n = 0; n < 30; n++) {
     const b = pedBlocks[Math.floor(rP() * pedBlocks.length)], [bx, bz] = blkW(b), d = Math.hypot(bx - px, bz - pz);
     if (d < r0 - 30 || d > r1 + 30 || rP() > ringAhead(bx, bz, px, pz)) continue;
     const w = b.x1 - b.x0 - ps.inset * 2, dd = b.z1 - b.z0 - ps.inset * 2, per = 2 * (w + dd);
     for (let m = 0; m < 3; m++) {
       const q = { b, inset: ps.inset, w, d: dd, per, s: rP() * per }, [x, z] = pedPos(q), dp = Math.hypot(x - px, z - pz);
-      if (dp < r0 || dp > r1 || !ringHidden(x, z, 1)) continue;
-      ps.b = b; ps.w = w; ps.d = dd; ps.per = per; ps.s = q.s; ps.dx = ps.dz = 0;
+      if (dp < (loose ? (r0 + r1) / 2 : r0) || dp > r1 || !loose && !ringHidden(x, z, 1)) continue;
+      ps.b = b; ps.w = w; ps.d = dd; ps.per = per; ps.s = q.s; ps.dx = ps.dz = 0; ps.ringF = 0;
       return true;
     }
   }
+  ps.ringF = (ps.ringF || 0) + 1;
   return false;
 }
 // 下雨天路人變少：雨越大，越多人躲進室內（沒帶傘的先走）。只在離玩家 55 m 外消失、出現，放到遠處就不會被撞、被瞄準或當目擊者
@@ -822,8 +825,8 @@ function updatePeds(dt) {
       if ((p.x - ppx) ** 2 + (p.z - ppz) ** 2 > 55 * 55) { ps.out = 1; peds.place(k, PED_AWAY, -50, PED_AWAY, 0); return; }
     }
     if (ringN > 0 && !ps.fsm && !(ps.down > 0) && !(ps.panic > 0)) {
-      const [bx, bz] = blkW(ps.b), d2 = (bx - ppx) ** 2 + (bz - ppz) ** 2, p = peds.people[k];
-      if (d2 > RING_PED.hard ** 2 || d2 > (ring[1] + 40) ** 2 && ringHidden(p.x, p.z, 1)) { ringN--; pedRelocate(ps, ppx, ppz, ring); }   // 街區中心比人的位置遠一點，留 40 m
+      const [bx, bz] = blkW(ps.b), d2 = (bx - ppx) ** 2 + (bz - ppz) ** 2, p = peds.people[k], dx = p.x - ppx, dz = p.z - ppz;
+      if (d2 > RING_PED.hard ** 2 || (ringBehind(dx, dz, dx * dx + dz * dz, ring[0]) || d2 > (ring[1] + 40) ** 2) && ringHidden(p.x, p.z, 1)) { ringN--; pedRelocate(ps, ppx, ppz, ring); }   // 街區中心比人的位置遠一點，留 40 m
     }
     // 68-gta.js：中彈或被撞倒地（down 秒數倒數完換個地方重新出現），聽到槍聲爆炸就跑（panic）
     // 69-combat.js：被槍指著投降、抱頭蹲下、脾氣差的人反擊（pedFsm 接手這一幀就 return）

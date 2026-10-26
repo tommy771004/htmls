@@ -44,7 +44,7 @@ function sideUpdate(dt) {
   const a = side.act;
   if (!a) return;
   if (life.dead) { a.fail(life.dead === 'busted' ? '被捕了' : '陣亡了'); return; }
-  if (crew.sw) { a.fail('換了角色'); return; }
+  if (crew.sw) { if (!a.duo) a.fail('換了角色'); return; }   // duo：主線任務裡雙主角互換（69-w0-story.js）
   a.step(dt);
   if (side.act !== a) return;
   const h = a.hud(), o = $('obj'), sub = $('objSub');
@@ -56,8 +56,8 @@ function sideUpdate(dt) {
   setText('objNum', h.num || '');
 }
 // 小地圖與大地圖（90-hud.js、91-map.js）
-function sideBlips(add) { raceBlips(add); survBlips(add); taleBlips(add); turfBlips(add); }
-function sideMini(ctx, P2, zoom) { raceMini(ctx, P2, zoom); survMini(ctx, P2, zoom); turfMini(ctx, P2, zoom); taleMini(ctx, P2, zoom); }
+function sideBlips(add) { storyBlips(add); raceBlips(add); survBlips(add); taleBlips(add); turfBlips(add); }
+function sideMini(ctx, P2, zoom) { storyMini(ctx, P2, zoom); raceMini(ctx, P2, zoom); survMini(ctx, P2, zoom); turfMini(ctx, P2, zoom); taleMini(ctx, P2, zoom); }
 function sideBig(c, X, Z, s) { turfBig(c, X, Z, s); raceBig(c, X, Z, s); }
 // 戰鬥員池（69-squads.js）的空位；不夠 n 個就先收倒地最久的（倒地的人佔著位置 20 秒）
 const fFreeN = () => SQ.f.filter(f => !f.on).length;

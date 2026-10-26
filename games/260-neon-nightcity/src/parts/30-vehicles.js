@@ -350,9 +350,11 @@ function oncomingClear(c, fx, fz, d) {
 }
 // ─── 以玩家為中心的生成圈（2026-10-26）：車流與路人集中在玩家附近活動。走出外環、而且鏡頭看不到的，搬回外環上
 // （車 100–170 m、人 90–140 m）；移動時外環跟著速度往外推，生成點也偏向前方，開得快時前面的路先排好車。
-// 白天 100 m 外還看得清楚，所以只在畫面外、被街區擋住或霧裡的地方生成，車再用點陣淡入（TRAF_MAT）；
+// 白天 100 m 外還看得清楚，所以只在畫面外、被街區擋住或霧裡的地方生成，車再用點陣淡入（TRAF_MAT）；一直往前走的時候前方大多看得到，
+// 連續 RING_LOOSE 次找不到藏得住的點，就放到外環最外圈（r1 前 30 m 內）、淡入慢一點（1.5 s），前面的路才不會變空。
 // 一幀最多搬 RING_PER_FRAME 個。超過 hard（車 290 m、人 230 m）的不管看不看得到都搬（和以前一樣）。畫的距離不變（CAR_FAR 等）
-const RING_CAR = { r0: 100, r1: 170, hard: 290 }, RING_PED = { r0: 90, r1: 140, hard: 230 }, RING_PER_FRAME = 2;
+// ki／mi、ko／mo：內外環每 m/s 往外推幾公尺與上限（路人走得慢、開車時看不清楚，推得少）
+const RING_CAR = { r0: 100, r1: 170, hard: 290, ki: 1.2, mi: 80, ko: 2.5, mo: 110 }, RING_PED = { r0: 90, r1: 140, hard: 230, ki: .6, mi: 40, ko: 1.2, mo: 60 }, RING_PER_FRAME = 2, RING_LOOSE = 3;
 const ringV = { x: 0, z: 0, px: NaN, pz: NaN };   // 玩家的平滑速度（m/s），updateTraffic 每幀先算（40-people.js 的路人也用）
 function ringTick(dt) {
   const x = pX(), z = pZ();
@@ -362,10 +364,15 @@ function ringTick(dt) {
   }
   ringV.px = x; ringV.pz = z;
 }
-// 依速度把外環往外推：時速 100 公里左右車的外環是 140–240 m；外環不超過 hard
+// 依速度把外環往外推：時速 100 公里左右車的外環是 133–240 m、路人 107–173 m；外環不超過 hard
 function ringR(R) {
-  const sp = Math.hypot(ringV.x, ringV.z), r1 = Math.min(R.r1 + Math.min(sp * 2.5, 110), R.hard - 10);
-  return [Math.min(R.r0 + Math.min(sp * 1.2, 80), r1 - 40), r1];
+  const sp = Math.hypot(ringV.x, ringV.z), r1 = Math.min(R.r1 + Math.min(sp * R.ko, R.mo), R.hard - 10);
+  return [Math.min(R.r0 + Math.min(sp * R.ki, R.mi), r1 - 40), r1];
+}
+// 移動時在背後、離玩家超過內環 20 m 的：先收回來放到前面
+function ringBehind(dx, dz, d2, r0) {
+  const sp = Math.hypot(ringV.x, ringV.z);
+  return sp > 5 && d2 > (r0 + 20) ** 2 && dx * ringV.x + dz * ringV.z < -.3 * Math.sqrt(d2) * sp;
 }
 // 往前方多放：回傳 0–1 的接受機率，背後的點在速度快時幾乎不放
 function ringAhead(x, z, px, pz) {
@@ -385,9 +392,10 @@ function ringHidden(x, z, h) {
   if (Math.abs(_ringP.x) > 1.15 || Math.abs(_ringP.y) > 1.2) return true;
   return cp.y < 40 && !losClear(cp.x, cp.z, x, z);
 }
-// 車流只有幾十台：走出外環的車搬到外環上的路段，城市再大，眼前的路上都有車。找不到合適的點就留在原地，下一幀再試
+// 車流只有幾十台：走出外環的車搬到外環上的路段，城市再大，眼前的路上都有車。找不到合適的點就留在原地，下一幀再試（c.ringF 記失敗次數）
 let ringEdges = null, ringEX = 0, ringEZ = 0;
 function trafficRespawn(c, px, pz, [r0, r1]) {
+  const loose = (c.ringF || 0) >= RING_LOOSE;
   if (!ringEdges || Math.hypot(px - ringEX, pz - ringEZ) > 30) {   // 玩家附近的路段：走 30 m 重算一次
     ringEX = px; ringEZ = pz;
     ringEdges = TRAFFIC_EDGES.filter(e => { const m = e.pts[0], q = e.pts.at(-1); return Math.min(Math.hypot(m[0] - px, m[1] - pz), Math.hypot(q[0] - px, q[1] - pz)) < 360; });
@@ -396,10 +404,13 @@ function trafficRespawn(c, px, pz, [r0, r1]) {
   for (let n = 0; n < 40; n++) {
     const e = ringEdges[Math.floor(rT() * ringEdges.length)], dir = rT() < .5 || e.oneway ? 1 : -1;
     const s = rT() * segLenE(e), [x, z] = laneAt(e, dir, s), dd = Math.hypot(x - px, z - pz);
-    if (dd < r0 || dd > r1 || rT() > ringAhead(x, z, px, pz) || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144) || !ringHidden(x, z, 1.2)) continue;
-    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z, off: 0, offT: 0, blockT: 0, passS: 0, yieldT: 0, fade: 1 });
+    if (dd < (loose ? r1 - 30 : r0) || dd > r1 || rT() > ringAhead(x, z, px, pz) || traffic.some(o => o !== c && (o.x - x) ** 2 + (o.z - z) ** 2 < 144)) continue;
+    const hid = ringHidden(x, z, 1.2);
+    if (!hid && !loose) continue;
+    Object.assign(c, { e, dir, s, turn: null, v: 6, stuck: 0, ghost: 0, hit: 0, brake: 0, x, z, off: 0, offT: 0, blockT: 0, passS: 0, yieldT: 0, fade: 1, fadeT: hid ? .6 : 1.5, ringF: 0 });
     return true;
   }
+  c.ringF = (c.ringF || 0) + 1;
   return false;
 }
 // 到了路口：直行 .55、右轉 .25、左轉 .2（依出路口的方向和進來的方向的夾角分類），沒路才迴轉
@@ -421,10 +432,10 @@ function updateTraffic(dt, t) {
   const ppx = pX(), ppz = pZ(), ring = ringR(RING_CAR);
   let ringN = RING_PER_FRAME;
   for (const c of traffic) {
-    if (c.fade > 0) c.fade = Math.max(0, c.fade - dt / .6);
+    if (c.fade > 0) c.fade = Math.max(0, c.fade - dt / (c.fadeT || .6));
     if (ringN > 0 && !c.turn && c.hit <= 0) {
-      const d2 = (c.x - ppx) ** 2 + (c.z - ppz) ** 2;
-      if (d2 > RING_CAR.hard ** 2 || d2 > (ring[1] + 20) ** 2 && ringHidden(c.x, c.z, 1.2)) { ringN--; trafficRespawn(c, ppx, ppz, ring); }
+      const dx = c.x - ppx, dz = c.z - ppz, d2 = dx * dx + dz * dz;
+      if (d2 > RING_CAR.hard ** 2 || (ringBehind(dx, dz, d2, ring[0]) || d2 > (ring[1] + 20) ** 2) && ringHidden(c.x, c.z, 1.2)) { ringN--; trafficRespawn(c, ppx, ppz, ring); }
     }
     if (c.hit > 0) { c.hit -= dt; c.v = damp(c.v, 0, 4, dt); }
     let fx, fz;

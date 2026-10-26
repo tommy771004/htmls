@@ -26,6 +26,7 @@ const iconSvg = (k, col, txt) => txt
 // 圖例的類別與順序
 const MAP_CAT = [
   { id: 'mission', name: '任務目標', col: '#ffcc4d', icon: 'mission' },
+  { id: 'story', name: '主線', col: '#ffcf4a' },   // 69-w0-story.js：下一個主線起點（角色字首）
   { id: 'car', name: '我的座駕', col: '#62e6d8', icon: 'car' },
   { id: 'crew', name: '主角', col: '#ece8e0' },
   { id: 'club', name: '夜店', col: '#ff3fa0', icon: 'club' },

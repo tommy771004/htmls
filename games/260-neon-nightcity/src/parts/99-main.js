@@ -28,6 +28,7 @@ function onKey(code) {
     if (code === 'Escape') closeDialog();
     return;
   }
+  if (storyKey(code)) return;   // 69-w0-story.js：主線的字幕與字卡
   if (taleKey(code)) return;    // 69-tale.js：委託完成的電話過場
   if (phoneKey(code)) return;   // 69-phone.js：P 開關手機，開著時數字鍵選列、Esc 返回
   if (heistKey(code)) return;   // 69-heist.js：G 引爆金庫門、關掉結算畫面
@@ -356,7 +357,8 @@ function loop(now) {
 
 // ─── 開始 ───
 setWhere('out');
-setQuest(0);
+setQuest(storyBoot());   // 69-w0-story.js：主線開著時，新存檔操作羅莎、門禁等到 3-1
+storyObj();
 camState.yaw = player.yaw = 0.35;
 // 等座駕與路邊機車的實車模型、街上的實體建築與拉麵攤下載完再開放進場（手機也一樣等）；以檔案開啟不下載。
 // 卡住超過 60 秒就先用替身進場，下載好再換
@@ -382,15 +384,16 @@ go.addEventListener('click', () => {
   setTimeout(() => { $('start').style.display = 'none'; }, 700);
   if (!isTouch) cvs.requestPointerLock?.();
   cvs.focus();
-  toast('門禁：今晚 LAZARUS 只放名單上的人');
+  if (!storyGo()) toast('門禁：今晚 LAZARUS 只放名單上的人');   // 69-w0-story.js：新存檔直接進序章
 });
 requestAnimationFrame(loop);
 
 window.__nc = {
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
+  story: storyApi,   // 69-w0-story.js：主線（go(id)、state()、skip()）
   ready: true, city: { blocks, lots, bldPlace }, gpu: GPU, reflFar: m => { reflFarT = m; },   // 街區與地塊（挑設施街區、驗收用）；顯示卡分級（00-core.js）與倒影遠平面（70-render.js，null 照等級）
-  scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, air: airApi, xrail: xrApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
+  scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, air: airApi, xrail: xrApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, story: storyApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   perf: perfApi,   // 96-perf.js：效能面板（?perf=1）、stats()、stalls()、route() 固定路線量測
   // 碰撞：靜態盒（世界 AABB 是 bx0…；有 f 的盒 x0…z1 是 f 框裡的座標）、圓柱、每幀重建的圓；collide(x, z, r, y) 照玩家走路的方式推一次（空氣牆稽核用）

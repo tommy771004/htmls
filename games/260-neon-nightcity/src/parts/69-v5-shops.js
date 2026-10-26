@@ -51,6 +51,7 @@ function robDone() {
   addHeat(CRIME.assault, 2);
   SHOP.rob = null; SHOP.reg2 = true; SHOP.closed = ROB_CLOSED; SHOP.clerk.st = 'cower'; clerkAnim(ANIM.kneel);
   v5Bar(null);
+  storyEv('rob');   // 69-w0-story.js：1-4「夜貓」
 }
 function clerkDown() {
   const c = SHOP.clerk; c.st = 'dead'; c.t = 0;
@@ -68,7 +69,7 @@ function storeStep(dt) {
   const A = arm.ammo[arm.sel], mag = ARMS[arm.sel].gun && A ? A.mag : -1;
   const fired = SHOP.mag >= 0 && mag >= 0 && mag < SHOP.mag; SHOP.mag = mag;
   if (fired && c.st !== 'dead') {
-    if (aimAtClerk()) { c.hp -= ARMS[arm.sel].dmg || 30; if (c.hp <= 0) { clerkDown(); return; } }
+    if (aimAtClerk()) { storyEv('clerk'); c.hp -= ARMS[arm.sel].dmg || 30; if (c.hp <= 0) { clerkDown(); return; } }
     else if (SHOP.rob) { SHOP.rob.shootT = 2; sfx.glassBreak(); }
   }
   if (c.st === 'dead' || SHOP.closed > 0 && !SHOP.rob) return;

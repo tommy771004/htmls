@@ -52,6 +52,7 @@ export async function open(url, { w = 1440, h = 900, touch = false, soft = false
       let u = toUrl(url) + query;
       if (!/[?&]gpu=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'gpu=' + (touch ? 'low' : 'high');
       if (!/[?&]civ=/.test(u)) u += '&civ=0';
+      if (!/[?&]story=/.test(u)) u += '&story=0';   // 主線（69-w0-story.js）預設關掉：照舊的「門禁」開場、五人都能切換；check-story.mjs 帶 story=1
       await page.goto(u, { waitUntil: 'load', timeout: 60000 });
       await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 40000 });
       return { browser, page, log };

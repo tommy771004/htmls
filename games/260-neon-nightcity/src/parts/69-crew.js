@@ -50,6 +50,7 @@ function spAdd(n) {
 // 充能事件（69-combat.js 呼叫）：kill(爆頭, 近戰)、boom、hurt(扣掉的生命)
 function spEvent(kind, a, b) {
   skillEvent(kind, a, b);   // 69-v3-skills.js：六圍升級
+  storyEv(kind, a, b);   // 69-w0-story.js：附加目標的爆頭與近戰
   if (crew.on || crew.sw) return;
   const ab = CREW[crew.cur].ab;
   if (kind === 'kill') {
@@ -305,6 +306,6 @@ function respray(v) {
 // 測試 API（window.__nc.gta.crew）
 const crewApi = {
   CREW, crew, abil,
-  sw: i => crewSwitch(i), sp(n) { crew.st[crew.cur].sp = n; }, on: abilityOn, off: abilityOff,
+  sw: i => crewSwitch(i), load: i => crewLoad(i), sp(n) { crew.st[crew.cur].sp = n; }, on: abilityOn, off: abilityOff,
   wheelOpen: crewWheelOpen, wheelMove: crewWheelMove, wheelClose: crewWheelClose, event: spEvent, respray, resprayCtx,
 };

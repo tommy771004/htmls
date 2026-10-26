@@ -355,6 +355,22 @@ function isleLots(b) {
   }
 }
 blocks.forEach(b => b.isle ? isleLots(b) : makeLots(b));   // 外圍的樓牆（outer）已經拿掉：片外圍到外緣之間是草地，北面與東面的外面是山
+// 天樞島的地標大樓（28-isle-lm.js 載入 tools/isle-glb.mjs 的模型）：這幾塊地不蓋程式立面與塔冠（L.glb），模型下載好之後 27-bldfoot.js 照模型的外形換掉街區的盒。
+// half：0 整塊街區、1 南半（z0 側）、2 北半；h 是模型的高（屋頂高度用）。以檔案開啟不下載模型，照舊蓋程式的塔
+const ISLE_LM = [
+  { id: 'owtc', i: 114, j: 5, half: 0, w: 35.32, d: 35.5, h: 296.34 },
+  { id: 'wtc3', i: 115, j: 5, half: 0, w: 44, d: 32.84, h: 147.56 },
+  { id: 'exch20', i: 115, j: 7, half: 0, w: 45, d: 34.25, h: 148.2 },
+  { id: 'whitehall', i: 116, j: 8, half: 2, w: 45, d: 17.85, h: 68.4 },
+];
+if (/^https?:$/.test(location.protocol)) for (const o of ISLE_LM) {
+  const L = lots.find(L => L.isle && L.b.i === o.i && L.b.j === o.j && (o.half ? L.z1 - L.z0 < 25 && (o.half === 1) === (L.z0 - L.b.z0 < SW + 1) : L.z1 - L.z0 > 30));
+  if (!L || L.x1 - L.x0 < o.w || L.z1 - L.z0 < o.d) { console.warn('天樞島地標：找不到放得下的地塊 ' + o.id); continue; }
+  const b = L.b;
+  o.L = L; L.glb = { set: 'isle', id: o.id, lots: [L], blk: b, x: (L.x0 + L.x1) / 2, z: (L.z0 + L.z1) / 2, ry: L.face > 0 ? 0 : Math.PI, s: 1 };
+  o.h0 = L.h; L.h = L.htop = o.h; L.tiers = null; L.crown = null;   // h0：下載失敗時補回的程式立面用原本的底座高
+  b.col.blk = b; (b.ents || (b.ents = [])).push(L.glb);
+}
 // 地塊所在的區（立面、陰影高度圖、直升機的屋頂高度都照這個）
 for (const L of lots) if (L.zn === undefined) L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
 // 岸邊的擋牆：沿每塊地的邊每 2 m 看外側是不是水（岬角也算陸地），連續的一段變成一個 4 m 厚的盒（low：不擋相機與子彈）

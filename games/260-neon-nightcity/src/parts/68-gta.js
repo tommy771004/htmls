@@ -454,6 +454,7 @@ function vehHits(v, imp) {
 function gtaPre(dt) {
   crewPre();
   talePre();
+  storyPre();   // 69-w0-story.js：主線的字幕與字卡
   if (gta.jack || player.down > 0 || life.dead || HACK.on) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }   // HACK：69-heist2.js 的金庫破譯（WASD 用來調波形）
 }
 function gtaUpdate(dt) {
@@ -472,6 +473,7 @@ function gtaUpdate(dt) {
   heistUpdate(dt);
   squadUpdate(dt);   // 69-squads.js：幫派、傭兵、資產防守、搶劫隊友
   sideUpdate(dt);    // 69-side.js：街頭賽、生存模式、委託、幫派地盤
+  storyUpdate(dt);   // 69-w0-story.js：主線的起點、配角、腳鐐與掃描器
   aptUpdate();
   if (out) {
     kinUpdate(dt);   // 69-kinema.js：近戰吸附、踉蹌、保齡球、跳車後滑出去的車
@@ -510,6 +512,7 @@ function gtaLate() {
   crewLate();
   stuntLate();
   taleLate();   // 69-tale.js：委託的過場鏡頭
+  storyLate();   // 69-w0-story.js：主線對白的鏡頭
   bankGunsLate();   // 69-heist.js：大廳裡 Jax、Kael 與警衛的槍
   uploadFx();
 }
