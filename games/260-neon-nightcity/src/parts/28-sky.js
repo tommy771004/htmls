@@ -1,9 +1,12 @@
 
 // ═══ 日夜循環與隨機天氣 ═══
-// 時鐘每 2.5 秒走一遊戲分鐘（一天是真實的 60 分鐘），90-hud.js 推進、顯示。太陽依時間由東經南往西走，
+// 時鐘每 MIN_SEC 秒走一遊戲分鐘（1⅔ 秒，一天是真實的 40 分鐘；原本 2.5 秒、60 分鐘，2026-10-27 加快 50%），90-hud.js 推進、顯示。太陽依時間由東經南往西走，
 // 天空、霧、環境光、日光、曝光、泛光門檻、路燈與窗燈都由時間與天氣算出來（atmApply，只在戶外寫進 uniform；室內的 ENV 把日光歸零）。
 // 天氣在 WX 的幾種狀態之間隨機轉換（WX_NEXT 是下一個狀態的權重），雨量、雲量、霧慢慢過渡；雨停後路面慢慢變乾，雷雨才打雷。
+// 一場雨（小雨、雨、雷雨連著算）最多下 RAIN_MAX 遊戲分鐘，到了就轉成不下雨的天氣。
+const MIN_SEC = 2.5 / 1.5;   // 真實幾秒走一遊戲分鐘（69-market.js 的 GAME_HOUR 照這個算）
 const clockSt = { min: 2 * 60 + 14, acc: 0 };
+const RAIN_MAX = 120;
 const DEG = Math.PI / 180;
 const WX = {
   clear: { n: '晴', rain: 0, cloud: .06, fog: 0 },
@@ -19,9 +22,11 @@ const WX_NEXT = {
   drizzle: { overcast: 3, rain: 3, drizzle: 1 }, rain: { drizzle: 3, storm: 2, overcast: 2 }, storm: { rain: 3, drizzle: 1 }, fog: { cloudy: 2, overcast: 2, clear: 1 },
 };
 // 開場是凌晨兩點的雨夜；left 是這個天氣還剩幾遊戲分鐘
-const wx = { cur: 'rain', left: 150, rain: .62, cloud: .97, fog: .15, wet: 1, next: 20 + Math.random() * 25, flash: [], force: false, umb: true, bolts: 0 };
+const wx = { cur: 'rain', left: RAIN_MAX, rainT: 0, rain: .62, cloud: .97, fog: .15, wet: 1, next: 20 + Math.random() * 25, flash: [], force: false, umb: true, bolts: 0 };
 function wxPick(from) {
   const h = clockSt.min / 60, w = { ...WX_NEXT[from] };
+  // 這場雨下滿兩小時了：只從不下雨的天氣裡挑（雷雨後面只接雨，那就轉陰）
+  if (WX[from].rain > 0 && wx.rainT >= RAIN_MAX - 1) { for (const k in w) if (WX[k].rain > 0) delete w[k]; if (!Object.keys(w).length) return 'overcast'; }
   if (h > 3.5 && h < 8.5 && w.fog) w.fog *= 3;   // 清晨容易起霧
   let s = Object.values(w).reduce((a, b) => a + b, 0) * Math.random();
   for (const [k, v] of Object.entries(w)) if ((s -= v) <= 0) return k;
@@ -30,7 +35,10 @@ function wxPick(from) {
 // 天氣直接換掉；snap 為真時數值不過渡（測試與讀檔用）
 function setWeather(id, snap) {
   if (!WX[id]) return;
+  // 從不下雨轉成下雨（或測試、讀檔直接設定）是一場新的雨；下雨的天氣只排到這場雨剩下的時間
+  if (snap || !(WX[wx.cur].rain > 0)) wx.rainT = 0;
   wx.cur = id; wx.left = 70 + Math.random() * 150;
+  if (WX[id].rain > 0) wx.left = Math.min(wx.left, Math.max(1, RAIN_MAX - wx.rainT));
   if (snap) { const W = WX[id]; wx.rain = W.rain; wx.cloud = W.cloud; wx.fog = W.fog; wx.wet = W.rain > 0 ? 1 : 0; }
 }
 
@@ -66,7 +74,7 @@ const WARM = C3(0xff8a48), NOON = C3(0xfff1de);
 // 依時間與天氣算出戶外的一切（每幀，在戶外時）
 function atmApply() {
   facApply();   // 08-tex.js：照片材質
-  const min = clockSt.min + clockSt.acc / 2.5;
+  const min = clockSt.min + clockSt.acc / MIN_SEC;
   const sun = sunDir(min, U.uSun.value); sunDir(min + 760, U.uMoon.value);
   const se = sun.y, c = wx.cloud, r = wx.rain, f = wx.fog;
   const day = sstep(-.11, .16, se), dusk = sstep(-.13, 0, se) * (1 - sstep(.06, .32, se));
@@ -117,7 +125,8 @@ function atmApply() {
 // 每幀：天氣過渡、積水、打雷（取代原本 99-main 的雨勢正弦起伏）
 function updateWeather(dt, t) {
   const out = player.where === 'out';
-  wx.left -= dt / 2.5;
+  wx.left -= dt / MIN_SEC;
+  if (WX[wx.cur].rain > 0) wx.rainT += dt / MIN_SEC;
   if (wx.left <= 0) setWeather(wxPick(wx.cur));
   const W = WX[wx.cur], k = 1 - Math.exp(-dt / 30), kc = 1 - Math.exp(-dt / 22);
   wx.cloud += (W.cloud - wx.cloud) * kc;
@@ -173,8 +182,8 @@ function occUpdate() {
   L.sort((a, b) => a.d - b.d);
   for (let k = 0; k < NOCC; k++) {
     const o = L[k];
-    if (!o) { U.uOccB.value[k].set(0, 0, 0, 0); continue; }
-    U.uOccA.value[k].set(o.x, o.z, Math.cos(o.yaw), Math.sin(o.yaw));
-    U.uOccB.value[k].set(o.hl, o.hw, o.h, 0);
+    if (!o) { v4set(U.uOccB.value, k, 0, 0, 0, 0); continue; }
+    v4set(U.uOccA.value, k, o.x, o.z, Math.cos(o.yaw), Math.sin(o.yaw));
+    v4set(U.uOccB.value, k, o.hl, o.hw, o.h, 0);
   }
 }

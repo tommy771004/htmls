@@ -659,7 +659,9 @@ function vehicleCollide(v, dt) {
     let r = collideCircle(cx, cz, v.rad, false);
     colY = 0;
     let px = r.x - cx, pz = r.z - cz, nx = r.nx, nz = r.nz;
+    const near = (v.rad * 2 + 15) ** 2;   // 車流車的兩個圓心離車中心最多 len × .3、半徑最多半個車寬：遠的不用算地面高度（groundH 要反算彎曲，每台車每幀兩次 × 整個車流）
     for (const c of traffic) {
+      if ((c.x - cx) ** 2 + (c.z - cz) ** 2 > near) continue;
       const cy = c.y || groundH(c.x, c.z);
       if (c === v.under || v.y > 1.1 && v.y > cy + 1.1 || cy > v.y + 2.5) continue;   // 68-roll.js：疊在車頂上、剛從車頂開下來或從上面飛過；快速道路橋上與橋下
       const L = TYPES[c.type].len * .3;

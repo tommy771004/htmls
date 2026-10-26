@@ -53,6 +53,8 @@ three r186 的 `WebGPURenderer` 不支援 `ShaderMaterial`／`RawShaderMaterial`
    - 先決定兩件事：
      - `uLampT` 是 Float32 的路燈表，用 `textureLoad` 讀，不需要過濾。
      - `uHMap` 是 HalfFloat，可以線性過濾。
+   - 點光與地上陰影的陣列 uniform（`uLP`／`uLC`／`uLD`／`uOccA`／`uOccB`）在 2026-10-27 改成平的 `Float32Array`（`00-core.js` 的 `V4A`／`v4set`）。`gfxU` 目前用 `Array.isArray` 判斷陣列，typed array 會被當成單一 uniform，要加 `ArrayBuffer.isView` 的分支（`uniformArray` 照 vec4 讀）。
+   - `70-render.js` 換掉了 three 的 `Object3D.updateMatrixWorld`（沒變的不重算）與 `Frustum.intersectsObject`（全進霧裡的不畫），WebGPURenderer 也走這兩個。
    - 倒影的 `reflCam` 投影是照 WebGL 的公式改遠平面，WebGPU 要改用 0..1 的版本。另外 `reflCam` 第一次 render 時，three 會因為座標系統改變而重算投影，要先設好 `coordinateSystem`。
 2. **第三階段**：`20-props.js`（8 個）、`21-coast`／`21-isle`／`21-tron`、`26-glb.js` 的 uber（實車與 GLB 模型）、`27-props.js`。
 3. **第四階段**：車輛、船、`40-people.js` 自己做的蒙皮（最後做），以及 `60-venues`、`64`、`66`、`68`、`69` 的室內。

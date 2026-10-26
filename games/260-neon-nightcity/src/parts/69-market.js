@@ -105,7 +105,7 @@ const ESTATES = [
   { id: 'i14', name: '公園大道白色大宅', price: 480000, rate: 760, cap: 15200, home: true },
   { id: 'lr', name: '珊瑚灘清水模公寓', price: 220000, rate: 350, cap: 7000, home: true },
 ];
-const GAME_HOUR = 150;   // 90-hud.js 的時鐘：遊戲裡一分鐘 = 2.5 秒
+const GAME_HOUR = 60 * MIN_SEC;   // 28-sky.js 的時鐘：遊戲裡一分鐘 = MIN_SEC 秒（一小時 100 秒）
 // motors.props = { own: [id], safe: {id: 金額} }
 function estInit() { const p = motors.props ||= { own: [], safe: {} }; p.pause ||= {}; for (const id in p.pause) if (p.pause[id] < Date.now()) delete p.pause[id]; p.own = p.own.filter((id, i, a) => ESTATES.some(e => e.id === id) && a.indexOf(id) === i); for (const e of ESTATES) p.safe[e.id] = Math.min(e.cap, p.safe[e.id] || 0); }
 const estOwned = id => motors.props.own.includes(id);

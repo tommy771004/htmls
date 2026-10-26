@@ -35,7 +35,7 @@ try {
     const N = window.__nc, C = N.gta.v7.club, M = N.motors; __t.reset(); __t.own('lazarus');
     const S = C.st(), daily = [0, 20, 50, 100].map(P => C.daily(P));
     M.props.safe.lazarus = 0; S.pop = 60; delete M.props.pause.lazarus;
-    const day = 150 * 24, d60 = C.daily(60);
+    const day = N.gameHour * 24, d60 = C.daily(60);
     C.tick(day);
     const safe1 = Math.round(M.props.safe.lazarus), pop1 = +S.pop.toFixed(2);
     M.props.safe.lazarus = 249990; S.full = 0; C.tick(day);

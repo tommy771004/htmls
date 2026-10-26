@@ -259,7 +259,7 @@ function updateHud(dt) {
   }
   setText('stHead', `${dirName(h)} ${Math.round(h)}°`);
   clockSt.acc += dt;
-  if (clockSt.acc > 2.5) { clockSt.acc = 0; clockSt.min = (clockSt.min + 1) % 1440; }
+  if (clockSt.acc > MIN_SEC) { clockSt.acc = 0; clockSt.min = (clockSt.min + 1) % 1440; }
   setText('clock', `${String(Math.floor(clockSt.min / 60)).padStart(2, '0')}:${String(clockSt.min % 60).padStart(2, '0')}`);
   drawMini(px, pz, p.where === 'out' ? yawView : yawView, p.where === 'out' ? mk : null);
   // 目標標記

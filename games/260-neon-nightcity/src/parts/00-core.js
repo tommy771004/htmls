@@ -105,6 +105,9 @@ const wrapA = a => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) 
 function rng(seed) { let s = seed >>> 0; return () => { s += 0x6D2B79F5; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const V3 = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const C3 = h => new T.Color(h);
+// vec4 陣列 uniform 存成平的 Float32Array：three 每換一個材質就重傳整個陣列，Vector4 陣列每次都要先攤平（flatten）再傳
+const V4A = (n, x = 0, y = 0, z = 0, w = 0) => { const a = new Float32Array(n * 4); for (let i = 0; i < a.length; i += 4) { a[i] = x; a[i + 1] = y; a[i + 2] = z; a[i + 3] = w; } return a; };
+const v4set = (a, k, x, y, z, w) => { k *= 4; a[k] = x; a[k + 1] = y; a[k + 2] = z; a[k + 3] = w; };
 
 // ─── 城市格線 ───
 // 南北向的大道沿 z，東西向的街沿 x；道路中心線在 avX(i)、stZ(j)。
@@ -123,9 +126,7 @@ const LAMP_C = 16, LAMP_K = 16;   // 路燈表的格子邊長（公尺）與每�
 const U = {
   uTime: { value: 0 }, uLampOn: { value: 1 }, uFlash: { value: 0 }, uClipY: { value: -1e9 }, uWet: { value: 1 },
   uCam: { value: V3() }, uFogCol: { value: C3(0x1a1d26) }, uFogHi: { value: C3(0x3a2a3a) }, uFogDen: { value: .016 }, uCullR: { value: 380 },
-  uLP: { value: Array.from({ length: NL }, () => new T.Vector4(0, -999, 0, 0)) },
-  uLC: { value: Array.from({ length: NL }, () => new T.Vector4()) },
-  uLD: { value: Array.from({ length: NL }, () => new T.Vector4(0, -1, 0, -2)) },
+  uLP: { value: V4A(NL, 0, -999, 0, 0) }, uLC: { value: V4A(NL) }, uLD: { value: V4A(NL, 0, -1, 0, -2) },   // 點光：位置與半徑、顏色、聚光方向與 cos（V4A 平的陣列，用 v4set 寫）
   uAmbTop: { value: C3(0x1d2230) }, uAmbBot: { value: C3(0x241a16) },
   uCity: { value: new T.Vector4(X0, Z0, P, Q) }, uGrid: { value: new T.Vector2(NX, NZ) },
   // 路燈表（20-props.js 的 lampTable）：世界座標切成 LAMP_C 公尺的格子，每格列出光照範圍蓋到這格的路燈（x, z, 種類, 有沒有）；
@@ -147,8 +148,7 @@ const U = {
   // 外海的機場島（21-air.js）：A = (中心 x, z, 長軸 cos, sin)、B = (半長, 半寬)；B.x = 0 時沒有
   uAirA: { value: new T.Vector4(0, 0, 1, 0) }, uAirB: { value: new T.Vector4() },
   // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
-  uOccA: { value: Array.from({ length: GT().occ }, () => new T.Vector4(0, 0, 1, 0)) },
-  uOccB: { value: Array.from({ length: GT().occ }, () => new T.Vector4()) },
+  uOccA: { value: V4A(GT().occ, 0, 0, 1, 0) }, uOccB: { value: V4A(GT().occ) },
 };
 const NOCC = GT().occ, SH_N = GT().sh;   // 地上陰影的車人數、日光陰影的步數
 const shared = keys => { const o = {}; for (const k of keys) o[k] = U[k]; return o; };

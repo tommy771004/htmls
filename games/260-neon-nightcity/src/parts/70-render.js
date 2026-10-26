@@ -222,7 +222,7 @@ function renderReflection() {
   reflU.uReflMat.value.multiplyMatrices(reflBias, reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse);
   U.uClipY.value = 0; U.uCam.value.copy(_rp); const fw = U.uFocus.value.w; U.uFocus.value.w = 0;
   R.setRenderTarget(rtRefl); R.setClearColor(0x000000, 1); R.clear();
-  R.render(scene, reflCam);
+  fogCullAt(_rp); R.render(scene, reflCam); fogCull.on = false;
   U.uClipY.value = -1e9; U.uCam.value.copy(camera.position); U.uFocus.value.w = fw;
 }
 R.info.autoReset = false;   // 一幀有很多次 render，統計要整幀累計
@@ -234,6 +234,47 @@ const frameClk = { t0: 0, cpu: 8 };
 function frameBegin(now) { frameClk.t0 = performance.now(); perfHook.f?.(now); }
 // 自動解析度往上的上限：等級的 ss（high 1.25、ultra 1.5）再受內部像素數 px 限制（DPR 2 的 4K 螢幕本來就夠細，不再加）
 const resMax = () => Math.min(GT().ss || 1, Math.sqrt((GT().px || 4.2e6) / Math.max(1, innerWidth * innerHeight * DPR * DPR)), R.capabilities.maxTextureSize / Math.max(innerWidth, innerHeight) / DPR);
+// 世界矩陣只重算有變的：three 原本每幀對每個 matrixAutoUpdate 的物件 compose 再乘上父矩陣（場景約四千個物件，兩千多個不會動）。
+// 位置、旋轉、縮放（matrixAutoUpdate 關掉的看 matrix 本身）與父物件都和上次一樣、父矩陣也沒重算時跳過
+{
+  const P = T.Object3D.prototype;
+  P.updateMatrixWorld = function (force) {
+    if (this.matrixAutoUpdate) {
+      const p = this.position, q = this.quaternion, s = this.scale, c = this._trs || (this._trs = new Float64Array(10).fill(NaN));
+      if (c[0] !== p.x || c[1] !== p.y || c[2] !== p.z || c[3] !== q._x || c[4] !== q._y || c[5] !== q._z || c[6] !== q._w || c[7] !== s.x || c[8] !== s.y || c[9] !== s.z || this._trsP !== this.parent || this.pivot !== null) {
+        c[0] = p.x; c[1] = p.y; c[2] = p.z; c[3] = q._x; c[4] = q._y; c[5] = q._z; c[6] = q._w; c[7] = s.x; c[8] = s.y; c[9] = s.z; this._trsP = this.parent;
+        this.updateMatrix();
+      }
+    } else {   // 手動寫的 matrix：16 個數字比上次（比相乘便宜）
+      const e = this.matrix.elements, c = this._mtx || (this._mtx = new Float64Array(16).fill(NaN));
+      let k = 0; while (k < 16 && c[k] === e[k]) k++;
+      if (k < 16 || this._trsP !== this.parent) { c.set(e); this._trsP = this.parent; this.matrixWorldNeedsUpdate = true; }
+    }
+    if (this.matrixWorldNeedsUpdate || force) {
+      if (this.matrixWorldAutoUpdate === true) { if (this.parent === null) this.matrixWorld.copy(this.matrix); else this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix); }
+      this.matrixWorldNeedsUpdate = false; force = true;
+    }
+    const ch = this.children; for (let i = 0, l = ch.length; i < l; i++) ch[i].updateMatrixWorld(force);
+  };
+}
+// 全進霧裡的不畫：00-core.js 的 applyFog 在鏡頭低於 20 m 時 D ≥ .5，視線距離 × uFogDen × .5 超過 6 就剩不到 0.25%（夜裡的指數霧與白天的平方指數霧都是），
+// 包圍球整顆在那之外的物件在視錐測試就剔掉（海上 1～3 km 的船與乘客、對岸的小東西，每幀一百多個 draw call）。
+// 只對整段霧都算的材質：GLSL 有呼叫 applyFog、沒有 FAR（遠景只算一部分距離的霧，剪影要看得到）；鏡頭在高處時霧變淡，不剔
+const fogCull = { en: true, on: false, x: 0, y: 0, z: 0, d: 0 }, fogMat = new WeakMap(), _fcS = new T.Sphere();
+const fogFull = m => {
+  if (Array.isArray(m)) return m.every(fogFull);
+  let v = fogMat.get(m);
+  if (v === undefined) { v = !!(m.isShaderMaterial && m.fragmentShader.replace(GL_LIB, '').includes('applyFog(') && !(m.defines && 'FAR' in m.defines)); fogMat.set(m, v); }
+  return v;
+};
+function fogCullAt(p) { fogCull.on = fogCull.en && camera.position.y < 20; fogCull.x = p.x; fogCull.y = p.y; fogCull.z = p.z; fogCull.d = 12 / Math.max(U.uFogDen.value, 1e-4); }
+T.Frustum.prototype.intersectsObject = function (o) {
+  const s = _fcS;
+  if (o.boundingSphere !== undefined) { if (o.boundingSphere === null) o.computeBoundingSphere(); s.copy(o.boundingSphere).applyMatrix4(o.matrixWorld); }
+  else { const g = o.geometry; if (g.boundingSphere === null) g.computeBoundingSphere(); s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); }
+  if (fogCull.on) { const c = s.center, dx = c.x - fogCull.x, dy = c.y - fogCull.y, dz = c.z - fogCull.z, L = fogCull.d + s.radius; if (dx * dx + dy * dy + dz * dz > L * L && fogFull(o.material)) return false; }
+  return this.intersectsSphere(s);
+};
 let reflOdd = 0;
 function renderFrame(dt, t) {
   perfHook.a?.();
@@ -251,7 +292,8 @@ function renderFrame(dt, t) {
   // 倒影隔幀畫：沒畫的那一幀沿用上一張倒影與它的投影矩陣（uReflMat），靜止的東西位置照樣對；剛切換鏡頭時一定畫
   if (outdoors && SET.refl && (!post.reflHalf || (reflOdd ^= 1) || firstFrame || camState.snap)) renderReflection();
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
-  R.render(curScene, camera);
+  if (outdoors) fogCullAt(camera.position);
+  R.render(curScene, camera); fogCull.on = false;
   // 泛光
   const w = rtScene.width, h = rtScene.height;
   mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : vp?.thr ?? 1; blit(mPre, rtB[0]);

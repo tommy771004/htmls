@@ -237,10 +237,11 @@ function pickLights(t) {
   }
   for (let k = 0; k < NL; k++) {
     const l = L[k];
-    if (!l) { U.uLP.value[k].set(0, -999, 0, 0); continue; }
-    U.uLP.value[k].set(l.x, l.y, l.z, l.r);
-    U.uLC.value[k].set(l.col.r ?? l.col.x, l.col.g ?? l.col.y, l.col.b ?? l.col.z, 0).multiplyScalar(l.i * (chrome.dim && player.where === 'chrome' && !l.keep ? .4 : 1));   // 66-chrome.js 的 L：主照明調暗 60%
-    if (l.dir) U.uLD.value[k].set(l.dir[0], l.dir[1], l.dir[2], l.cos); else U.uLD.value[k].set(0, -1, 0, -2);
+    if (!l) { v4set(U.uLP.value, k, 0, -999, 0, 0); continue; }
+    v4set(U.uLP.value, k, l.x, l.y, l.z, l.r);
+    const i = l.i * (chrome.dim && player.where === 'chrome' && !l.keep ? .4 : 1);   // 66-chrome.js 的 L：主照明調暗 60%
+    v4set(U.uLC.value, k, (l.col.r ?? l.col.x) * i, (l.col.g ?? l.col.y) * i, (l.col.b ?? l.col.z) * i, 0);
+    if (l.dir) v4set(U.uLD.value, k, l.dir[0], l.dir[1], l.dir[2], l.cos); else v4set(U.uLD.value, k, 0, -1, 0, -2);
   }
 }
 const HEAD_COL = lin(0xfff0d8), POL_R = lin(0xff1030), POL_B = lin(0x2050ff);
@@ -389,6 +390,8 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
+  gameHour: GAME_HOUR,   // 69-market.js：一遊戲小時是幾秒真實時間（28-sky.js 的 MIN_SEC × 60）
+  fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對
   gfx: gfxApi,   // 02-gfx.js：繪圖後端（webgl／webgpu）、還沒改寫成 TSL 的材質 miss()
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
