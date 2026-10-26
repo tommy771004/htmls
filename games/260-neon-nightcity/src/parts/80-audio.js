@@ -243,7 +243,7 @@ const sfx = (() => {
   // 沒列的用上面的通用錄音：RX-7（找不到可用授權的轉子引擎錄音）、搶來的車流車；電動車沒有引擎，用合成的馬達與逆變器聲
   const ENG_FAM = {
     bmw: ['e92 m3c m4wb m3gtr m3t24 m4gt3 e34 m4csl csl3', 'BMW M6／M3 實錄 · Kinoton（CC0）、ikbenraar（CC BY 4.0）'],
-    jdm6: ['supra r34 r35 nsx scg p9x8', '渦輪六缸底盤動力計實錄 · editboy23（CC0）'],
+    jdm6: ['supra r34 r35 nsx scg p9x8', '渦輪六缸底盤動力計實錄 · editboy23（CC0），怠速借 BMW M6 · Kinoton（CC0）'],
     flat6: ['gt3rs gt3r p930 rwb', 'Porsche 911 水平對臥六缸實錄 · jerry.berumen（CC BY 4.0）、mharo、mmplisskin（CC0）'],
     fer8: ['f40 sf90 p1 f8 f488c', 'Ferrari 360 V8 實錄 · PritzProductions（CC0）'],
     us8: ['chall charger police zr1 mosler c63dtm slk55 spano spano8', 'Dodge Challenger SRT V8 實錄 · JorisDJN（CC0）'],
