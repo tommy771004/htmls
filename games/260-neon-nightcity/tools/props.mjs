@@ -191,6 +191,8 @@ export const SETS = [
   ] },
   // 救護車停下來處置時擺在傷者旁邊的擔架（69-v8-civic.js）：Danish Shah 的 Ambulance Stretcher，CC BY 4.0；原檔只有一個中灰色材質、沒有貼圖，調成鋁白
   { out: 'amb_str', tex: 512, recolor: { AmbulanceStretcher_MT: [.8, .82, .84, 1, .45] }, items: [{ id: 'amb_str', file: 'ambulance_stretcher_2', len: 1.95 }] },
+  // 主線 F-4A 的聯邦專機（69-w5-fin.js 停在灰鷺角機場的機坪）：Ahmed Mahdi 的 Bombardier_Global_7500，CC BY 4.0，原檔在 .cache/story/（SOURCES.md）
+  { out: 'fin_jet', src: '.cache/story', tex: 1024, items: [{ id: 'fin_jet', file: 'bombardier_global_7500', len: 33.8, simp: [.35, .002] }] },
   // 霓虹堡軍事基地（69-v7-bunker.js 的 FORT）與銀行防撞柱（69-v5-street.js），原檔在 .cache/fort/，全部 CC BY 4.0（2026-10-25 下載，作者見 CREDITS.md）：
   // 鐵絲網圍籬只取有刺絲的那一片（Cube.002）、轉成沿 x；機棚是半圓拱棚，坦克從南面開出去；
   // 彈藥箱取原檔下面那一箱（上面那箱開著蓋）；油桶取貨櫃組裡的第一個桶子

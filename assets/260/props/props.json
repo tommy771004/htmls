@@ -1116,6 +1116,26 @@
    }
   ]
  },
+ "fin_jet": {
+  "kb": 1764,
+  "items": {
+   "fin_jet": {
+    "w": 32.28,
+    "d": 33.8,
+    "h": 8.36,
+    "tris": 128639
+   }
+  },
+  "credits": [
+   {
+    "file": "bombardier_global_7500",
+    "title": "Bombardier_Global_7500",
+    "author": "Ahmed Mahdi (https://sketchfab.com/mhmdshwatahmdmhdy922)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/bombardier-global-7500-08c977705e4b473bb0539b32a86a6c27"
+   }
+  ]
+ },
  "fort": {
   "kb": 1175,
   "items": {

@@ -183,10 +183,31 @@ function poolSplash(x, y, z, k = 1) {
   for (let i = 0; i < n; i++) { const t = Math.random() * 6.3, s = (.6 + Math.random() * 1.8) * k; emit('spray', x, y + .3, z, { vx: Math.cos(t) * s, vy: 3 + Math.random() * 3.5 * k, vz: Math.sin(t) * s, max: 1.2, s0: .16, s1: .45 * k + .1, grav: 9.5, drag: .6, a: .65, c: [.75, .82, .88] }); }
   sfx.splash(1);
 }
+// 上樓：打完樓下的人進頂層公寓（69-safehouse.js 的 loft 場館，任務裡沒買也進得去），按 E 沿旋轉樓梯上夾層，走到西側欄杆的窗邊（陽台在窗外）；
+// 一樓的西面落地窗前有沙發擋著，夾層的西北角有弧形欄杆，兩層都走不到玻璃邊，窗邊的點取夾層走得到、離玻璃最近的地方。霍爾的人從電梯、樓梯上來，時間到就破門
+const LOFT_WIN = { x: -1.9, z: -2.4 }, LOFT_T = 60;
+STEP.loft = {
+  start: (a, s, c) => {
+    c.t = LOFT_T; c.wait = true;
+    a.leapPre = leapPlan();   // 還在樓下時先算好跳的路線：進了室內，玩家座標是場館自己的，附近的建築與碰撞盒會照那個位置串流，量不到這棟樓
+    if (player.mode === 'drive') exitVehicle();
+    aptLevel('loft', 0); player.ride = null; aptLoad('loft');
+    enterVenue('loft', () => { c.wait = false; toast('他們在樓下了 · 上夾層，到西側的窗邊'); });
+  },
+  step: (a, s, c, dt) => {
+    if (c.wait || fading) return false;
+    if (player.where !== 'loft') { storyFail(a, '離開了公寓'); return false; }
+    if ((c.t -= dt) <= 0) { storyFail(a, '霍爾的人破門進來了'); return false; }
+    return VENUES.loft.lv === 1 && !player.ride && Math.hypot(player.x - LOFT_WIN.x, player.z - LOFT_WIN.z) < 1.2;
+  },
+  hud: (a, s, c) => ({ text: VENUES.loft.lv ? '走到西側的窗邊，陽台在窗外' : s.text, bar: -1, num: `${Math.max(0, Math.ceil(c.t))} 秒`, low: c.t < 15 }),
+  mark: () => { const P = APT.loft.up.path[0]; return VENUES.loft.lv ? { name: '窗邊', x: LOFT_WIN.x, y: APT.loft.up.y + 1.4, z: LOFT_WIN.z, where: 'loft' } : { name: '樓梯', x: P[0], y: 1.6, z: P[2], where: 'loft' }; },
+  skip: () => { if (player.where !== 'loft') return; player.ride = null; aptLevel('loft', 1); player.x = LOFT_WIN.x; player.y = APT.loft.up.y; player.z = LOFT_WIN.z; },
+};
 STEP.leap = {
   start: (a, s, c) => {
     if (a.pal < 0) palOn(a, DANE);   // 從檢查點重來：第一步的 palOn 沒跑
-    const L = a.leap = leapPlan();
+    const L = a.leap = a.leapPre || leapPlan(); a.leapPre = null;   // 從檢查點重來時人在樓下門口（storyStart 會帶回任務起點），當場算
     if (a.poolM) { scene.remove(a.poolM); a.poolM.geometry.dispose(); }
     a.poolM = finPool(L);
     if (a.balcM) { scene.remove(a.balcM); a.balcM.geometry.dispose(); }
@@ -296,6 +317,20 @@ STEP.run = {
   skip: (a, s, c) => { const q = tgtOf(c), o = player.mode === 'drive' ? player.veh : player; o.x = q.x; o.z = q.z; },
 };
 storyCleanups.push(a => { if (a.chaseOn) { a.chaseOn = 0; if (SQ.chase) chaseEnd(true); } });
+// 聯邦專機：tools/props.mjs 的 fin_jet（Bombardier Global 7500，長 33.8 m，原檔機頭朝 +z），停在跑道與滑行道之間的草地（21-air.js 的機場座標），
+// 機頭朝東、對著交帳點（ST_JET 在機頭前 13 m）；滑行道上有起降循環的客機在跑，所以不停在滑行道上。碰撞是 30-vehicles.js 的 dynMore 圓（機身三個、兩翼各一個），
+// 任務收尾收掉。只在 http(s) 下載；以檔案開啟沒有替身，只有碰撞
+const JET_OFF = 30;   // 機身中心在 ST_JET 西邊幾公尺
+function finJet(a) {
+  if (a.jet || !AIR_L) return;
+  const R = AIR_L.rwy, lx = (R.x0 + R.x1) / 2 - 150 - JET_OFF, lz = R.z - 45, [X, Z] = airW(lx, lz), [ux, uz] = dirW(AIR_ZN, 1, 0), [vx, vz] = dirW(AIR_ZN, 0, 1);
+  const g = new T.Group(); g.position.set(X, 0, Z); g.rotation.y = Math.PI / 2 + AIR_YAW; scene.add(g);
+  const dyn = [[-12, 0, 2.1], [0, 0, 2.1], [12, 0, 1.6], [-2, 9, 1.4], [-2, -9, 1.4]].map(([u, v, r]) => ({ x: X + ux * u + vx * v, z: Z + uz * u + vz * v, r }));   // 機頭在 +u（東）
+  dynMore.push(...dyn);
+  a.jet = { g, dyn };
+  if (GLB_ON) loadProps('fin_jet').then(it => { if (it && it.fin_jet && a.jet && a.jet.g === g) g.add(propObject(it.fin_jet, 0, 0, 0, 0)); }).catch(e => console.warn('fin_jet', e));
+}
+storyCleanups.push(a => { if (!a.jet) return; a.jet.g.removeFromParent(); for (const c of a.jet.dyn) { const i = dynMore.indexOf(c); if (i >= 0) dynMore.splice(i, 1); } a.jet = null; });
 
 // ─── F-4B 直播 ───
 const UP_T = 180;   // 上傳要 3 分鐘
@@ -477,7 +512,8 @@ storyAdd([
       { type: 'fn', fn: a => palOn(a, DANE) },
       { type: 'say', with: 'dane', lines: [L('dane', '三台車，沒有車牌，引擎都沒熄。'), L('rosa', '霍爾知道正本在我們手上。'), L('dane', '頂樓有陽台。陽台下面是泳池。'), L('rosa', '你在開玩笑。')] },
       { type: 'fight', text: '霍爾的人堵在大樓門口', at: ST_LOFT, n: 6, r: 13, esc: true, hot: true, guns: ['rifle', 'smg', 'pistol'] },
-      { type: 'card', k: '冠石頂層公寓', t: '凌晨四點', lines: [['dane', '他們上樓了。電梯、樓梯，兩邊都是。'], ['rosa', '你相信我嗎？'], ['dane', '從來沒有。'], ['rosa', '很好。牽著。']] },
+      { type: 'loft', text: '上樓：按 E 沿旋轉樓梯上夾層' },
+      { type: 'card', k: '冠石頂層公寓 · 夾層', t: '凌晨四點', lines: [['dane', '他們上樓了。電梯、樓梯，兩邊都是。'], ['rosa', '窗外就是陽台。你相信我嗎？'], ['dane', '從來沒有。'], ['rosa', '很好。牽著。']] },
       { type: 'leap', text: '牽著戴恩從頂樓跳進泳池', ck: true },
       { type: 'fn', fn: () => { addHeat(99, 4); toast('霍爾調了整個分局 · 4 星'); } },
       { type: 'lose', text: '甩掉霍爾調來的整個分局' },
@@ -496,7 +532,7 @@ storyAdd([
     next: () => 'end',
     bonus: [{ t: '4 分鐘內送到', ok: a => a.t < 240 }, { t: '沒換過車', ok: a => !a.vehs || a.vehs.size <= 1 }],
     steps: [
-      { type: 'fn', fn: a => { palOn(a, DANE); storyCar(a, 'kiri', ST_BEACH(), '范斯安排的車', true); } },
+      { type: 'fn', fn: a => { palOn(a, DANE); storyCar(a, 'kiri', ST_BEACH(), '范斯安排的車', true); finJet(a); } },
       { type: 'car', text: '上車' },
       { type: 'fn', fn: a => { a.chaseOn = 1; gangChase('story', 3); addHeat(99, 3); toast('霍爾的人和赤蠍幫一起攔 · 3 星'); } },
       { type: 'run', text: '把帳本送到灰鷺角機場的聯邦專機', to: ST_JET, r: 12, drive: true, name: '聯邦專機' },
@@ -567,4 +603,4 @@ ctxHooks.push(p => {
   return { key: 'E', text: `跟盧佩說話 <i>· 存檔${S.flags.house ? '' : '、買回房子'}</i>`, fn: lupeAsk };
 });
 
-storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], roofFoes: () => roofFoes(side.act).map(f => ({ x: f.x, z: f.z, y: fGround(f), hp: f.hp })), loft: ST_LOFT, house: { buy: houseBuy, ask: lupeAsk, at: lupeAt, P: HOUSE_P, lines: () => ({ A: finA().map(l => l[1]), B: finB().map(l => l[1]) }) } };
+storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], roofFoes: () => roofFoes(side.act).map(f => ({ x: f.x, z: f.z, y: fGround(f), hp: f.hp })), loft: ST_LOFT, jet: () => { const j = side.act && side.act.jet; return j ? { x: j.g.position.x, z: j.g.position.z, ry: j.g.rotation.y, model: j.g.children.length > 0, dyn: j.dyn.length } : null; }, house: { buy: houseBuy, ask: lupeAsk, at: lupeAt, P: HOUSE_P, lines: () => ({ A: finA().map(l => l[1]), B: finB().map(l => l[1]) }) } };

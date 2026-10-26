@@ -193,6 +193,7 @@
 | `air_gse`（機坪的拖車；引擎蓋、水箱罩與資料牌上的廠牌字樣模糊） | [Airport Tug](https://sketchfab.com/3d-models/airport-tug-388e668f8143432fb82c1268e1f9ab81) | [flightmaster177](https://sketchfab.com/flightmaster177) | CC BY 4.0 |
 | `air_gse`（機坪的行李車） | [Airport baggage equipment (cart) lowpoly](https://sketchfab.com/3d-models/airport-baggage-equipment-cart-lowpoly-7ae8444bb5044376a04ee7bb0664ff39) | [propmaker1](https://sketchfab.com/menX1151) | CC BY 4.0 |
 | `amb_str`（救護車旁的擔架，原檔的灰色調成鋁白） | [Ambulance Stretcher 2](https://sketchfab.com/3d-models/ambulance-stretcher-2-9fe5c15944914774a4ff1fe1193bc0d2) | [Danish Shah](https://sketchfab.com/s.danishshah57) | CC BY 4.0 |
+| `fin_jet`（主線 F-4A 停在灰鷺角機場機坪的聯邦專機） | [Bombardier_Global_7500](https://sketchfab.com/3d-models/bombardier-global-7500-08c977705e4b473bb0539b32a86a6c27) | [Ahmed Mahdi](https://sketchfab.com/mhmdshwatahmdmhdy922) | CC BY 4.0 |
 | `fort`（霓虹堡的鐵絲網圍籬，只取有刺絲的那一片） | [Modular Chain Link Fence Set](https://sketchfab.com/3d-models/modular-chain-link-fence-set-bd85a8005ff0403cab2f1e9845016b8f) | [FrodoUndead](https://sketchfab.com/FrodoUndead) | CC BY 4.0 |
 | `fort`（霓虹堡的鋼架崗哨塔） | [Military watchtower #1](https://sketchfab.com/3d-models/military-watchtower-1-33bbf3553e464270867f70bede244982) | [zachari-blinn](https://sketchfab.com/zachari-blinn) | CC BY 4.0 |
 | `fort`（霓虹堡的半圓拱機棚） | [Quonset Hut](https://sketchfab.com/3d-models/quonset-hut-5213606fbe334f64b929dfedffcf71af) | [John](https://sketchfab.com/gold-experience) | CC BY 4.0 |
