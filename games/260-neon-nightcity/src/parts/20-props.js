@@ -549,8 +549,9 @@ for (const L of winSpots) {
     if (rnd() < .14) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
   }
   if (escCol >= 0) for (let fi = 0; fi < nF; fi++) (G || escapes).push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
-  if (L.h < 32 && rnd() < .28) (G || towers).push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
-  for (let n = 0; n < 2; n++) if (rnd() < .5) (G || roofBits).push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
+  const RG = roofKind(L) ? { push() {} } : null;   // 斜屋頂（19-roofs.js）上不擺水塔與空調箱，亂數照抽
+  if (L.h < 32 && rnd() < .28) (G || RG || towers).push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
+  for (let n = 0; n < 2; n++) if (rnd() < .5) (G || RG || roofBits).push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
 }
 // 窗型冷氣（照公寓外牆上的窗機）：機身、前面板的出風百葉與進風格柵、右側的操作面板、兩側散熱百葉、下面的三角托架。局部 +z 朝外，牆在 z ≈ -0.22
 {
@@ -914,6 +915,7 @@ const billboards = [];
   const neonC = cand.filter(L => district((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2).startsWith('霓虹'));
   const pick = [...neonC.sort(() => r3() - .5).slice(0, 9), ...cand.sort(() => r3() - .5).slice(0, 5)];
   pick.forEach((L, k) => {
+    L.rk = null;   // 掛屋頂廣告的地塊照舊是平頂（19-roofs.js）
     const name = BILL[k % (BILL.length - 1)][0];
     const fz = L.axis === 'z' ? L.face : 0, fx = L.axis === 'x' ? L.face : 0;
     const cx = (L.x0 + L.x1) / 2 + fx * ((L.x1 - L.x0) / 2 - 1.5), cz = (L.z0 + L.z1) / 2 + fz * ((L.z1 - L.z0) / 2 - 1.5);

@@ -137,3 +137,18 @@ const TMS = 2.5;
   tx.minFilter = tx.magFilter = T.LinearFilter; tx.generateMipmaps = false; tx.needsUpdate = true;
   U.uTMap.value = tx; U.uTM.value.set(HM.x0, HM.z0, 1 / (n * TMS), max + .5);
 }
+// 斜屋頂（19-roofs.js）：屋頂面的高度寫進高度圖（日光陰影的屋脊、直升機與跳傘落在屋頂上不會陷進去）；邏輯座標每 0.6 m 取一點換到世界
+{
+  for (const L of lots) {
+    if (!L.rk) continue;
+    const oh = L.rk.oh, x0 = L.x0 - (L.axis === 'x' ? oh : 0), x1 = L.x1 + (L.axis === 'x' ? oh : 0), z0 = L.z0 - (L.axis === 'z' ? oh : 0), z1 = L.z1 + (L.axis === 'z' ? oh : 0);
+    for (let x = x0; x <= x1; x += .6) for (let z = z0; z <= z1; z += .6) {
+      const h = roofTop(L, x, z); if (!(h > L.h)) continue;
+      const [X, Z] = toW(x, z, L.zn); hmPut(hmI(X), hmJ(Z), h);
+    }
+    const cs = rectW(x0, x1, z0, z1, L.zn), xs = cs.map(c => c[0]), zs = cs.map(c => c[1]);
+    hmDirty(hmI(Math.min(...xs)) - 1, hmI(Math.max(...xs)) + 1, hmJ(Math.min(...zs)) - 1, hmJ(Math.max(...zs)) + 1);
+    HM.max = Math.max(HM.max, L.rk.y0 + L.rk.H);
+  }
+  hmFlush();
+}

@@ -1,4 +1,5 @@
-// ═══ 程式立面的浮雕：窗台與窗楣、窗側框、店面壁柱、入口門框與雨遮、簷口托架與飾帶、轉角壁柱、女兒牆與壓頂、玻璃帷幕的直向鰭片 ═══
+// ═══ 程式立面的浮雕：窗台與窗楣、窗側框、店面壁柱、入口門框與雨遮、簷口托架與飾帶、轉角壁柱、女兒牆與壓頂、玻璃帷幕的直向鰭片；
+//     腰線（一樓頂與每兩、三層一道）、轉角隅石、入口的門扇與氣窗、門燈與門牌、海濱灰泥樓的百葉窗與花台 ═══
 // 10-city.js 的立面（boxFaces＋FACADE_FS）是平的四邊形，磚、窗、店面都是著色器畫的；這裡照同一套窗格（gH、fh、ws、cols、mg、wmin／wmax、店面 units）
 // 擺出凸出牆面的幾何，照紐約老公寓的照片：石窗台與窗楣（中間一塊拱心石）、店面之間的壁柱與柱頭、簷口下的托架與飾帶。
 // 只擺看得到的面：正面一定擺，兩側只擺高過隔壁地塊的樓層，背面不擺。窗的零件用實例（距離串流 RELIEF_R），其他每個街區合併成一個網格。
@@ -99,6 +100,20 @@ const RELIEF_R = 230;
         fbox(k, F, c, 2.9, .07, 1.92, .16, .14, 0x2a221c).box(...P(F, c, 3.08, .55), 2.3, .1, 1.1, 0x26282c, TX.iron, 0, F.ry);   // 門楣與雨遮
         for (const s of [-1, 1]) k.bar(...P(F, c + s * 1.0, 2.55, .02), ...P(F, c + s * 1.0, 3.03, 1.0), .04, .04, 0x26282c, TX.iron);
         fbox(k, F, c, .08, .3, 2.0, .16, .6, 0x77736b, TX.conc);   // 門前的台階
+        // 門：雙扇木門（每扇上下兩塊凸起的門板）、上面一扇氣窗（玻璃加三根直櫺）、兩側的壁燈與門牌
+        const door = [0x2b3a2e, 0x3a2420, 0x1f2a36, 0x2a2622][Math.floor(L.seed * 3) % 4];
+        for (const s of [-1, 1]) {
+          fbox(k, F, c + s * .38, 1.12, .035, .74, 2.24, .05, door, TX.woodY);
+          for (const y of [.62, 1.62]) fbox(k, F, c + s * .38, y, .065, .5, .74, .03, door, TX.woodY);
+          fbox(k, F, c + s * .06, 1.12, .07, .04, .16, .04, 0x9a8a5a, 3);   // 把手（黃銅）
+        }
+        fbox(k, F, c, 2.52, .03, 1.5, .4, .04, 0x161a20, 0);
+        for (const u of [-.37, 0, .37]) fbox(k, F, c + u, 2.52, .055, .035, .4, .03, 0x2a221c);
+        for (const s of [-1, 1]) {
+          fbox(k, F, c + s * 1.22, 2.25, .06, .16, .22, .12, 0x1c1c1e, TX.iron);
+          fbox(k, F, c + s * 1.22, 2.16, .16, .14, .2, .14, 0xffd9a0, 11);   // 壁燈的燈罩（柔和自發光）
+        }
+        fbox(k, F, c + 1.22, 1.62, .025, .26, .18, .03, 0x9a8a5a, 3);   // 門牌
       }
     }
     // 正面：簷口下的飾帶與托架（磚樓），轉角壁柱
@@ -106,9 +121,45 @@ const RELIEF_R = 230;
     if (brickish(st)) {
       fbox(k, F, F.w / 2, L.h - .82, .06, F.w, .24, .12, 0x5a4e44, TX.stone);
       for (let u = .4; u < F.w - .2; u += .7) fbox(k, F, u, L.h - .68, .17, .14, .26, .34, 0x6a5e52, TX.stone);
-      for (const s of [.22, F.w - .22]) fbox(k, F, s, (4.75 + L.h - .95) / 2, .04, .44, L.h - .95 - 4.75, .08, st === 5 ? 0x2a282a : 0x8a7f70, TX.stone);
+      if (st === 5) for (const s of [.22, F.w - .22]) fbox(k, F, s, (4.75 + L.h - .95) / 2, .04, .44, L.h - .95 - 4.75, .08, 0x2a282a, TX.stone);   // 其他磚樓是下面的轉角隅石
     }
-    // 女兒牆與壓頂：四邊貼著外牆往上 0.75 m（簷口頂在 h + 0.06），屋頂從街上看是圍起來的
+    // 腰線：一樓頂一道（店面上緣），往上每兩層（灰泥樓）或三層（磚樓）一道，凸出 0.1 m；混凝土樓每層一道細的樓板線
+    for (const key of ['pz', 'nz', 'px', 'nx']) {
+      if (key === rear) continue;
+      const F2 = faceOf(L, key), cov = coverH(L, key);
+      if (key !== front && cov >= L.h - .5) continue;
+      const every = st === 2 ? 1 : st === 4 ? 2 : 3, bandC = st === 4 ? 0xd8d0c0 : st === 2 ? 0x77736b : 0x8a7f70, bandM = st === 4 || st === 2 ? TX.conc : TX.stone;
+      if (cov < GH - .2) fbox(k, F2, F2.w / 2, GH - .02, .07, F2.w, .2, .14, bandC, bandM);
+      for (let fi = every; fi < nF; fi += every) {
+        const y = GH + fi * fh - .12;
+        if (y > cov + .2 && y < L.h - 1.2) fbox(k, F2, F2.w / 2, y, .05, F2.w, st === 2 ? .1 : .16, st === 2 ? .1 : .1, bandC, bandM);
+      }
+      // 轉角隅石：磚樓與灰泥樓的兩個角，一長一短交錯的石塊（每塊 0.38 m 高），從一樓頂到簷口
+      if (st !== 2 && st !== 5) for (const [u, sgn] of [[0, 1], [F2.w, -1]]) {
+        for (let y = Math.max(GH, cov + .2), n = 0; y < L.h - 1.1; y += .4, n++) {
+          const lw = n % 2 ? .34 : .58;
+          fbox(k, F2, u + sgn * lw / 2, y + .19, .03, lw, .36, .06, st === 4 ? 0xe2dccd : 0x9e9480, st === 4 ? TX.conc : TX.stone);
+        }
+      }
+    }
+    // 海濱的灰泥樓（style 4）：每扇窗兩側一對木百葉窗、隔一扇一個花台（紅花綠葉）
+    if (st === 4) {
+      const F2 = faceOf(L, front), cols = Math.max(1, Math.floor((F2.w - 1) / ws)), mg = (F2.w - cols * ws) / 2, w = .46 * ws, h = .62 * fh;
+      const shut = [0x2f5e6a, 0x3d6b4a, 0x7a3a34, 0x2e4a72][Math.floor(L.seed * 5) % 4];
+      for (let fi = 0; fi < nF; fi++) for (let ci = 0; ci < cols; ci++) {
+        const u = mg + (ci + .5) * ws, y = GH + fi * fh + .18 * fh;
+        for (const s of [-1, 1]) {
+          fbox(k, F2, u + s * (w / 2 + w * .27), y + h / 2, .04, w * .5, h, .05, shut, TX.woodY);
+          for (let j = 1; j < 7; j++) fbox(k, F2, u + s * (w / 2 + w * .27), y + h * j / 7, .07, w * .44, .025, .02, shut, TX.woodY);
+        }
+        if ((fi + ci) % 2 === 0) {
+          fbox(k, F2, u, y - .2, .2, w + .12, .22, .26, 0x6a4a34, TX.woodX);
+          for (let j = 0; j < 4; j++) fbox(k, F2, u - w / 2 + (j + .5) * w / 4, y - .02, .2, w / 4.4, .16, .2, j % 2 ? 0xb0283a : 0x3e6a2c, 2);
+        }
+      }
+    }
+    // 女兒牆與壓頂：四邊貼著外牆往上 0.75 m（簷口頂在 h + 0.06），屋頂從街上看是圍起來的；斜屋頂（19-roofs.js）的樓不擺
+    if (roofKind(L)) continue;
     const t = .26, ph = .75, y = L.h + ph / 2;
     k.box((L.x0 + L.x1) / 2, y, L.z0 + t / 2, L.x1 - L.x0, ph, t, wall, wm).box((L.x0 + L.x1) / 2, y, L.z1 - t / 2, L.x1 - L.x0, ph, t, wall, wm);
     k.box(L.x0 + t / 2, y, (L.z0 + L.z1) / 2, t, ph, L.z1 - L.z0 - 2 * t, wall, wm).box(L.x1 - t / 2, y, (L.z0 + L.z1) / 2, t, ph, L.z1 - L.z0 - 2 * t, wall, wm);

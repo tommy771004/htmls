@@ -97,6 +97,7 @@ Kit.prototype.visor = function (x, y, z, r, len, color, mat = 2, ry = 0, gap = 1
 //   28 石材（大塊石、斑點）  29 鋼板與立邊屋頂（壓紋、垂流的髒污）  30 橡膠、粗塑膠（細顆粒）
 //   31 碳纖維（2×2 斜紋、清漆，66-chrome 的改裝件）  32 燒鈦（排氣尾管的熱變色，金→紫→藍；不看頂點色）
 //   33 環氧樹脂地坪（彩色碎片、胎痕、油漬、切割縫）  34 粉體烤漆鋼板（橘皮、手摸髒污、磕掉的漆）  35 室內不鏽鋼（髮絲紋、低反射）  36 洞洞板：66-chrome 改裝廠
+//   37 筒瓦  38 石板瓦  39 立邊鋼板：20-roof.js 的斜屋頂（沿坡的鋪面）
 const KX_TEX = /* glsl */`
 varying vec3 vP, vNo;
 float kxAA(vec2 q){ return 1. - smoothstep(.25, .7, max(fwidth(q.x), fwidth(q.y))); }
@@ -213,6 +214,26 @@ void texMat(int m, vec3 p, vec3 n, inout vec3 alb, inout float rough, inout floa
     float hole = 1. - smoothstep(.16, .23, length(f));
     alb *= mix(.84, 1. - .85 * hole, aa) * (.88 + .18 * fbm3(p * 2.5));
     rough = .85;
+  } else if (m >= 37 && m <= 39) {   // 屋頂（20-roof.js）：a 沿屋脊、b 沿坡往上（高度除以坡的正弦，鋪面的間距照坡面量）；平的部分（復折式屋頂的頂）照 xz
+    float sl = length(n.xz); vec2 dS = sl > .05 ? n.xz / sl : vec2(0., 1.);
+    float a = dot(p.xz, vec2(-dS.y, dS.x)), b = sl > .05 ? p.y / max(sl, .25) : dot(p.xz, dS);
+    if (m == 37) {   // 筒瓦：一列列半圓的陶瓦（弧面明暗）、每排下緣的陰影、每片色差、青苔與雨後的髒污
+      vec2 q = vec2(a / .23, b / .34), id = floor(q), f = fract(q); float aa = kxAA(q);
+      float barrel = sin(f.x * 3.1416), lip = smoothstep(.78, 1., f.y);
+      alb *= mix(.86, (.6 + .5 * barrel) * (1. - .38 * lip), aa) * (.76 + .44 * h21(id + 4.2));
+      alb = mix(alb, alb * vec3(.66, .72, .55), .55 * smoothstep(.55, .85, fbm3(p * 1.4)));
+      rough = .72;
+    } else if (m == 38) {   // 石板瓦：交丁的長方片、片間的縫、每片深淺不同，微微反光
+      vec2 id; float q = kxMortar(vec2(a, b), vec2(.3, .16), .012, id);
+      alb *= mix(.5, 1., q) * (.78 + .38 * h21(id + 2.1)) * (.86 + .2 * fbm3(p * 2.));
+      rough = .55; envK = .1;
+    } else {   // 立邊鋼板：每 48 cm 一道立起的接縫（亮邊）、沿坡往下的雨痕與鏽
+      float d = abs(fract(a / .48) - .5), aa = kxAA(vec2(a / .48, 1.));
+      alb *= mix(1., (1. + .3 * smoothstep(.45, .49, d)) * (1. - .25 * smoothstep(.4, .45, d) * (1. - smoothstep(.45, .47, d))), aa);
+      alb *= (.82 + .28 * fbm3(p * 1.2)) * (1. - .25 * smoothstep(.55, .85, fbm(vec2(a * 3., b * .4))));
+      alb = mix(alb, vec3(.2, .09, .04), .3 * smoothstep(.62, .8, fbm3(p * 2.3 + 6.)));
+      rough = .45; metal = .55; envK = .3;
+    }
   } else {   // 橡膠、粗塑膠：細顆粒、灰塵讓深色也看得出起伏
     alb = mix(alb, vec3(.075, .072, .068), .3 * fbm3(p * 4.) + .25 * up);
     alb *= .88 + .2 * n2(uv * 60.) * kxAA(uv * 60.);
@@ -226,4 +247,4 @@ if (UBERX_VS === UBER_VS || !UBERX_FS.includes('texMat(m,')) console.warn('kitx:
 function mkUberX(o) { const m = mkUber(o); m.vertexShader = UBERX_VS; m.fragmentShader = UBERX_FS; return m; }
 MAT.ux = mkUberX(); MAT.uxI = mkUberX({ inst: true });
 // 材質代號（Kit 的 mat 參數）
-const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36 };
+const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36, tile: 37, slate: 38, seam: 39 };
