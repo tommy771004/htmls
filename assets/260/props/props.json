@@ -130,6 +130,65 @@
    }
   ]
  },
+ "cw_shop": {
+  "kb": 3741,
+  "items": {
+   "cw_weld": {
+    "w": 0.68,
+    "d": 1.69,
+    "h": 1.3,
+    "tris": 102535
+   },
+   "cw_shelf": {
+    "w": 0.95,
+    "d": 1.16,
+    "h": 2,
+    "tris": 149656
+   },
+   "cw_tbox": {
+    "w": 0.48,
+    "d": 0.34,
+    "h": 1.25,
+    "tris": 196255
+   },
+   "cw_jack": {
+    "w": 0.28,
+    "d": 0.26,
+    "h": 0.45,
+    "tris": 3022
+   }
+  },
+  "credits": [
+   {
+    "file": "welder",
+    "title": "Welder",
+    "author": "Fredrik Johansen (https://sketchfab.com/kird3rf)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/welder-d0035d16d7024132814128cba7643aab"
+   },
+   {
+    "file": "garage_shelf",
+    "title": "Garage Shelf",
+    "author": "Yağız Solmaz (https://sketchfab.com/yagiz.slz)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/garage-shelf-8b3555c8083b4cb9a248feea44d186d6"
+   },
+   {
+    "file": "garage_tool_box_cart",
+    "title": "Garage Tool Box Cart",
+    "author": "wavecommotion (https://sketchfab.com/WaveCommotion)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/garage-tool-box-cart-4f9f4613c2b448d3998949599d74825b"
+   },
+   {
+    "file": "car_jack_stand",
+    "title": "Car Jack Stand",
+    "author": "dinoxwave (https://sketchfab.com/dinoxwave)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/car-jack-stand-8269a1918e9c4a78bb95bd2f3dd50259"
+   }
+  ]
+ },
  "casino": {
   "kb": 1353,
   "items": {

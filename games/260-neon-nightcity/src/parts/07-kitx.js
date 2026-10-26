@@ -96,6 +96,7 @@ Kit.prototype.visor = function (x, y, z, r, len, color, mat = 2, ry = 0, gap = 1
 //   23／24／25 木頭，木紋沿 x／y／z（年輪、纖維、髒污）  26 混凝土磚（40×20 cm、灰縫）  27 紅磚（23×7.6 cm、交丁）
 //   28 石材（大塊石、斑點）  29 鋼板與立邊屋頂（壓紋、垂流的髒污）  30 橡膠、粗塑膠（細顆粒）
 //   31 碳纖維（2×2 斜紋、清漆，66-chrome 的改裝件）  32 燒鈦（排氣尾管的熱變色，金→紫→藍；不看頂點色）
+//   33 環氧樹脂地坪（彩色碎片、胎痕、油漬、切割縫）  34 粉體烤漆鋼板（橘皮、手摸髒污、磕掉的漆）  35 室內不鏽鋼（髮絲紋、低反射）  36 洞洞板：66-chrome 改裝廠
 const KX_TEX = /* glsl */`
 varying vec3 vP, vNo;
 float kxAA(vec2 q){ return 1. - smoothstep(.25, .7, max(fwidth(q.x), fwidth(q.y))); }
@@ -181,6 +182,37 @@ void texMat(int m, vec3 p, vec3 n, inout vec3 alb, inout float rough, inout floa
     vec3 a = vec3(.62, .5, .3), b = vec3(.36, .2, .5), c = vec3(.2, .34, .62);
     alb = t < .5 ? mix(a, b, t * 2.) : mix(b, c, t * 2. - 1.);
     rough = .2; metal = 1.; envK = .9;
+  } else if (m == 33) {   // 環氧樹脂地坪：彩色碎片、大片色差、沿車道（z）的胎痕、油漬（更亮更暗）、每 6 m 一道切割縫、細刮痕
+    float aa = kxAA(uv * 220.), c = h21(floor(uv * 220.));
+    alb *= .86 + .22 * fbm3(p * .35);
+    alb = mix(alb, c > .5 ? vec3(.75, .76, .78) : vec3(.12, .13, .15), step(.9, abs(c - .5) * 2.) * aa * .5);
+    float tire = smoothstep(.62, .82, fbm(vec2(uv.x * 2.6, uv.y * .12)) + .3 * fbm(vec2(uv.x * 9., uv.y * .4)) - .15);
+    alb *= 1. - .3 * tire * up;
+    float oil = max(smoothstep(.78, .84, fbm3(vec3(uv * .45, 3.1)) + .06 * n2(uv * 7.)), .8 * smoothstep(.955, .985, n2(uv * 2.3 + 7.)));
+    alb = mix(alb, alb * vec3(.62, .6, .58), oil * up);
+    float jt = max(smoothstep(.006, 0., abs(fract(uv.x / 6. + .5) - .5) * 6. - .004), smoothstep(.006, 0., abs(fract(uv.y / 6. + .5) - .5) * 6. - .004));
+    alb *= 1. - .55 * jt * up * kxAA(uv * 2.);
+    float scr = smoothstep(.985, 1., n2(vec2(uv.x * 3. + uv.y * 40., uv.y * 1.5))) * kxAA(uv * 40.);
+    alb = mix(alb, alb * 1.35 + .03, scr * up);
+    rough = mix(.26 + .2 * tire, .12, oil); envK = .12 + .1 * oil;
+  } else if (m == 34) {   // 粉體烤漆鋼板（工具櫃、升降機、鋼柱）：橘皮微紋、半光、手摸的髒污、少量磕掉的漆露出灰底、接地的地方較髒
+    float aa = kxAA(uv * 80.);
+    alb *= .94 + .1 * aa * n2(uv * 80.) + .1 * (fbm3(p * 1.8) - .5);
+    alb = mix(alb, alb * .55, (1. - smoothstep(.0, .35, p.y)) * vert * .6);
+    alb = mix(alb, alb * vec3(.7, .68, .64), .4 * smoothstep(.62, .8, fbm3(p * 5. + 2.)) * vert);
+    float chip = step(.97, n3(p * 40.)) * smoothstep(.55, .7, fbm3(p * 2.3 + 5.)) * kxAA(uv * 40.);
+    alb = mix(alb, vec3(.3, .3, .29), chip * .8);
+    rough = mix(.34, .7, chip) + .1 * fbm3(p * 3.); metal = .15; envK = .05 * (1. - chip);   // 室內：環境貼圖是城市夜景，反射高了會在大片烤漆上映出色塊
+  } else if (m == 35) {   // 室內的不鏽鋼：沿 x 的髮絲紋、指紋與油污；環境反射壓低（室內會映出城市環境貼圖的色塊）
+    float aa = kxAA(vec2(uv.x * 4., uv.y * 400.));
+    alb *= .86 + .14 * fbm3(p * 2.) + .1 * aa * (n2(vec2(uv.x * 4., uv.y * 400.)) - .5);
+    alb = mix(alb, alb * .72, .35 * smoothstep(.6, .85, fbm3(p * 6. + 1.)));
+    rough = .3 + .16 * fbm3(p * 4.); metal = .7; envK = .06;
+  } else if (m == 36) {   // 洞洞板：2.54 cm 間距的圓孔（遠處淡成較暗的平均色）、手摸的髒污
+    vec2 q = uv / .0254, f = fract(q) - .5; float aa = kxAA(q);
+    float hole = 1. - smoothstep(.16, .23, length(f));
+    alb *= mix(.84, 1. - .85 * hole, aa) * (.88 + .18 * fbm3(p * 2.5));
+    rough = .85;
   } else {   // 橡膠、粗塑膠：細顆粒、灰塵讓深色也看得出起伏
     alb = mix(alb, vec3(.075, .072, .068), .3 * fbm3(p * 4.) + .25 * up);
     alb *= .88 + .2 * n2(uv * 60.) * kxAA(uv * 60.);
@@ -194,4 +226,4 @@ if (UBERX_VS === UBER_VS || !UBERX_FS.includes('texMat(m,')) console.warn('kitx:
 function mkUberX(o) { const m = mkUber(o); m.vertexShader = UBERX_VS; m.fragmentShader = UBERX_FS; return m; }
 MAT.ux = mkUberX(); MAT.uxI = mkUberX({ inst: true });
 // 材質代號（Kit 的 mat 參數）
-const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32 };
+const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36 };

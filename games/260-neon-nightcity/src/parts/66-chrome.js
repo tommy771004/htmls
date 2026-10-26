@@ -212,7 +212,7 @@ function kitFit(k, id, K, m) {
     for (const sx of [-1, 1]) {
       const x = sx * (sx0 + .04);
       kitTube(k, [[sx * (sx0 - .1), y - .02, z0 + .05], [x, y, z0 - .08], [x, y, (z0 + z1) / 2], [x, y, z1 + .1], [x + sx * .02, y, z1 + .02]], r, 0xd8dce2, 3);
-      k.box(x, y + r * .55, (z0 + z1) / 2, r * 2.3, r * 1.1, (z0 - z1) * .55, 0x9aa0a6, TX.galv);   // 隔熱罩
+      k.box(x, y + r * .55, (z0 + z1) / 2, r * 2.3, r * 1.1, (z0 - z1) * .55, 0x9aa0a6, TX.steel);   // 隔熱罩
       kitTip(k, x + sx * .025, y, z1 + .01, r * 1.08, .12, 0xffffff, TX.ti, sx * .25);
     }
     any = true;
@@ -272,16 +272,18 @@ for (const [z, yaw] of [[23.2, 0], [31.2, Math.PI]]) for (const x of [2.2, 5.6, 
 const chromeScene = new T.Scene();
 const chromeLv = [{ boxes: [], circles: [], lights: [] }, { boxes: [], circles: [], lights: [] }];
 const chrome = { lv: chromeLv, people: null, show: null, parked: false, stolen: null, stoleShow: null, job: null, jobShow: null, priv: [], staff: [], doorB: null, doorT: 0, dim: false, rev: 0 };
-// 美式招牌與工位牌（名稱都是原創）畫在自己的 1024 貼圖上：20-props.js 的招牌圖集已經滿了
-const cwAtlas = document.createElement('canvas'); cwAtlas.width = cwAtlas.height = 1024;
+// 美式招牌、工位牌與牆上的海報（名稱都是原創）畫在自己的 1024 × 2048 貼圖上：20-props.js 的招牌圖集已經滿了
+// （原本 1024 見方，DYNO、總廠霓虹、PRIVATE GARAGE 排到圖外變成空白）
+const CW_AW = 1024, CW_AH = 2048;
+const cwAtlas = document.createElement('canvas'); cwAtlas.width = CW_AW; cwAtlas.height = CW_AH;
 const cwCells = {};
 let cwX = 0, cwY = 0, cwRow = 0;
 function cwCell(name, w, h, draw) {
-  if (cwX + w > 1024) { cwX = 0; cwY += cwRow + 2; cwRow = 0; }
+  if (cwX + w > CW_AW) { cwX = 0; cwY += cwRow + 2; cwRow = 0; }
   const c = cwAtlas.getContext('2d'), x = cwX, y = cwY; cwX += w + 2; cwRow = Math.max(cwRow, h);
   c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.translate(x, y); draw(c, w, h); c.restore();
-  cwCells[name] = { u0: x / 1024, v0: 1 - (y + h) / 1024, u1: (x + w) / 1024, v1: 1 - y / 1024 };
-  if (y + h > 1024) console.warn('chrome sign atlas overflow', name);
+  cwCells[name] = { u0: x / CW_AW, v0: 1 - (y + h) / CW_AH, u1: (x + w) / CW_AW, v1: 1 - y / CW_AH };
+  if (y + h > CW_AH) console.warn('chrome sign atlas overflow', name);
 }
 cwCell('CW_SPEED', 512, 192, (c, w, h) => {
   plate(c, w, h, '#efe4c8'); c.strokeStyle = '#b3201c'; c.lineWidth = 12; c.strokeRect(10, 10, w - 20, h - 20); c.lineWidth = 3; c.strokeRect(24, 24, w - 48, h - 48);
@@ -346,66 +348,72 @@ function boardDraw(list, done = []) {
   const B0 = L0.boxes, B1 = L1.boxes;
   const red = 0xb3121a, cream = 0xefe6d2, steel = 0x16171a, brass = 0xc9a24a, yel = 0xe8c020, wallC = 0xd8d6d0, panel = 0xc4c6c8;
   const both = b => { B0.push({ ...b }); B1.push({ ...b }); };
-  // 外牆：下半是淺灰空心磚（水平灰縫），上半是白色浪板，腰線一條霓虹青色帶
+  // 牆：下半 3.6 m 是刷白漆的空心磚（TX.cmu 畫灰縫），上半是浪板（TX.sheet）；y0 以上才畫
+  const wallP = (x, z, w, d, y0 = 0) => { if (y0 < 3.6) k.box(x, (y0 + 3.6) / 2, z, w, 3.6 - y0, d, 0xe4e2dc, TX.cmu); k.box(x, (Math.max(y0, 3.6) + CW_H) / 2, z, w, CW_H - Math.max(y0, 3.6), d, wallC, TX.sheet); };
+  // 外牆：下半是淺灰空心磚，上半是白色浪板，腰線一條霓虹青色帶
   for (const s of [-1, 1]) {
-    k.box(s * (CW_X + .2), CW_H / 2, CD / 2, .4, CW_H, CD + .4, wallC, 2); both({ x0: s > 0 ? CW_X : -CW_X - .4, x1: s > 0 ? CW_X + .4 : -CW_X, z0: 0, z1: CD });
-    for (let y = .4; y < 3.6; y += .4) k.box(s * (CW_X - .01), y, CD / 2, .02, .02, CD, 0xa8a6a0, 2);
+    wallP(s * (CW_X + .2), CD / 2, .4, CD + .4); both({ x0: s > 0 ? CW_X : -CW_X - .4, x1: s > 0 ? CW_X + .4 : -CW_X, z0: 0, z1: CD });
     k.box(s * (CW_X - .02), 3.75, CD / 2, .04, .14, CD, 0x2cf2d8, 8);
-    for (let u = .25; u < CD; u += .5) k.box(s * (CW_X - .03), 6.7, u, .04, 5.6, .06, panel, 10);
+    for (let u = .25; u < CD; u += .5) k.box(s * (CW_X - .03), 6.7, u, .04, 5.6, .06, panel, TX.sheet);
   }
-  k.box(0, CW_H / 2, CD + .2, CW_X * 2 + .8, CW_H, .4, wallC, 2); both({ x0: -CW_X, x1: CW_X, z0: CD, z1: CD + .4 });
-  for (let y = .4; y < 3.6; y += .4) k.box(0, y, CD - .01, CW_X * 2, .02, .02, 0xa8a6a0, 2);
+  wallP(0, CD + .2, CW_X * 2 + .8, .4); both({ x0: -CW_X, x1: CW_X, z0: CD, z1: CD + .4 });
   k.box(0, 3.75, CD - .02, CW_X * 2, .14, .04, 0x2cf2d8, 8);
   // 前牆：三道 5.5 × 4.5 m 的捲門開口（A、B、C），門楣以上是浪板；A、C 關著，B 是你開進來的那道（進來之後自動放下）
   {
     let x = -CW_X;
     for (const dx of DOORS_X) {
       const a = dx - DOOR_W / 2, b = dx + DOOR_W / 2;
-      k.box((x + a) / 2, CW_H / 2, -.2, a - x, CW_H, .4, wallC, 2); B0.push({ x0: x, x1: a, z0: -.4, z1: 0 });
-      k.box(dx, (DOOR_H + CW_H) / 2, -.2, DOOR_W, CW_H - DOOR_H, .4, wallC, 2);
+      wallP((x + a) / 2, -.2, a - x, .4); B0.push({ x0: x, x1: a, z0: -.4, z1: 0 });
+      wallP(dx, -.2, DOOR_W, .4, DOOR_H);
       for (const sx of [a, b]) k.box(sx, DOOR_H / 2, .02, .16, DOOR_H, .1, yel, 2).box(sx, DOOR_H / 2, .03, .17, DOOR_H, .02, 0x121212, 2, 0, 0, 0);
       k.box(dx, DOOR_H + .2, .02, DOOR_W + .3, .3, .1, 0x2a2c30, 15).cyl(dx, DOOR_H + .55, .4, .28, .28, DOOR_W, 16, 0x6c7176, 15, 0, 0, Math.PI / 2);
-      if (dx !== 0) for (let y = .12; y < DOOR_H; y += .24) k.box(dx, y, -.05, DOOR_W, .2, .05, 0x8c9196, 15).box(dx, y + .11, -.03, DOOR_W, .03, .04, 0x5a5e62, 15);
+      if (dx !== 0) for (let y = .12; y < DOOR_H; y += .24) k.box(dx, y, -.05, DOOR_W, .2, .05, 0x8c9196, TX.steel).box(dx, y + .11, -.03, DOOR_W, .03, .04, 0x5a5e62, 15);
       // 門頂的警示黃燈（旋轉燈罩）
       k.cyl(b - .3, DOOR_H + .55, .2, .1, .1, .16, 12, 0xffa020, 11);
       x = b;
     }
-    k.box((x + CW_X) / 2, CW_H / 2, -.2, CW_X - x, CW_H, .4, wallC, 2); B0.push({ x0: x, x1: CW_X, z0: -.4, z1: 0 });
+    wallP((x + CW_X) / 2, -.2, CW_X - x, .4); B0.push({ x0: x, x1: CW_X, z0: -.4, z1: 0 });
     B0.push({ x0: -CW_X, x1: CW_X, z0: -1.4, z1: -.45 });
     B1.push({ x0: -CW_X, x1: CW_X, z0: -.4, z1: 0 });
   }
   // 地板：反光環氧樹脂（深灰帶一點藍）、黃色工位線、行人走道斑馬線
-  k.box(0, -.05, CD / 2, CW_X * 2 + .4, .1, CD + .4, 0x4a5058, 10);
+  k.box(0, -.05, CD / 2, CW_X * 2 + .4, .1, CD + .4, 0x4a5058, TX.epoxy);
   for (const x of [-6, 6]) k.box(x, .004, MEZ_Z / 2 - 3.5, .14, .006, MEZ_Z - 7, yel, 2);
   for (let i = -8; i <= 8; i++) k.box(i * 2, .004, 13.2, .14, .006, .06, yel, 2);
   k.box(0, .004, 13.2, CW_X * 2, .006, .1, yel, 2);
   for (let i = 0; i < 6; i++) k.box(-2.5 + i * 1, .005, 1.3, .5, .006, 2, 0xe8e4da, 2);
   // 天花板、黑色桁架、LED 高天井燈
-  k.box(0, CW_H + .05, CD / 2, CW_X * 2 + .4, .1, CD + .4, 0x6a6862, 2);
-  for (let z = 3; z < CD; z += 4.5) { k.box(0, CW_H - .35, z, CW_X * 2, .06, .24, steel, 15).box(0, CW_H - .06, z, CW_X * 2, .06, .24, steel, 15).box(0, CW_H - .2, z, CW_X * 2, .28, .03, steel, 15); }
+  k.box(0, CW_H + .05, CD / 2, CW_X * 2 + .4, .1, CD + .4, 0x6a6862, TX.sheet);
+  for (let z = 3; z < CD; z += 4.5) { k.box(0, CW_H - .35, z, CW_X * 2, .06, .24, steel, TX.enamel).box(0, CW_H - .06, z, CW_X * 2, .06, .24, steel, TX.enamel).box(0, CW_H - .2, z, CW_X * 2, .28, .03, steel, TX.enamel); }
   for (const x of [-12, -6, 0, 6, 12]) k.box(x, CW_H - .14, CD / 2, .14, .18, CD, steel, 15);
   for (const x of [-12, 0, 12]) for (const z of [4, 10, 16]) { k.cyl(x, CW_H - .9, z, .45, .55, .3, 20, 0x8a8e94, 15).cyl(x, CW_H - 1.06, z, .5, .5, .02, 20, 0xf6efe2, 11).cyl(x, CW_H - .45, z, .01, .01, .7, 4, 0x111111, 15); }
   // ─── 2 樓夾層：樓板、鋼柱、玻璃欄杆；樓梯在走廊左邊（x −5.6..−4，z 12.6 → 20） ───
-  k.box(0, MEZ_Y - .15, (MEZ_Z + CD) / 2, CW_X * 2, .3, CD - MEZ_Z, 0x9a9690, 2);
-  k.box(0, MEZ_Y + .002, (MEZ_Z + CD) / 2, CW_X * 2, .006, CD - MEZ_Z, 0x5a5e66, 10);   // 夾層地板：深灰橡膠地墊
-  k.box(0, MEZ_Y - .32, MEZ_Z + .05, CW_X * 2, .34, .14, 0x2a2c30, 15);
-  for (const x of [-12, -4, 4, 12]) for (const z of [MEZ_Z + .2, 27]) { k.box(x, (MEZ_Y - .3) / 2, z, .3, MEZ_Y - .3, .3, 0x2a2c30, 15); B0.push({ x0: x - .2, x1: x + .2, z0: z - .2, z1: z + .2 }); }
+  k.box(0, MEZ_Y - .15, (MEZ_Z + CD) / 2, CW_X * 2, .3, CD - MEZ_Z, 0x9a9690, TX.conc);
+  k.box(0, MEZ_Y + .002, (MEZ_Z + CD) / 2, CW_X * 2, .006, CD - MEZ_Z, 0x5a5e66, TX.rubber);   // 夾層地板：深灰橡膠地墊
+  k.box(0, MEZ_Y - .32, MEZ_Z + .05, CW_X * 2, .34, .14, 0x2a2c30, TX.enamel);
+  for (const x of [-12, -4, 4, 12]) for (const z of [MEZ_Z + .2, 27]) { k.box(x, (MEZ_Y - .3) / 2, z, .3, MEZ_Y - .3, .3, 0x2a2c30, TX.enamel); B0.push({ x0: x - .2, x1: x + .2, z0: z - .2, z1: z + .2 }); }
   for (let x = -CW_X + .3; x < CW_X; x += 1.6) if (x < -5.8 || x > -3.8) k.box(x, MEZ_Y + .5, MEZ_Z + .1, .04, 1, .04, 0x2a2c30, 15);
   k.box(0, MEZ_Y + 1.02, MEZ_Z + .1, CW_X * 2, .05, .08, 0x2a2c30, 15).box(0, MEZ_Y + .55, MEZ_Z + .12, CW_X * 2, .9, .02, 0x9fb8c0, 10);
   B1.push({ x0: -CW_X, x1: CW_X, z0: -1, z1: MEZ_Z + .2, low: 1 });   // 夾層邊緣（擋人不擋相機）
   // 樓梯：鋼構踏板、兩側扶手；底下擋起來
   {
     const n = 16, x0 = -5.6, x1 = -4;
-    for (let i = 0; i < n; i++) { const z = STAIR.z0 + (i + .5) * (STAIR.z1 - STAIR.z0) / n, y = (i + 1) * MEZ_Y / n; k.box((x0 + x1) / 2, y - .03, z, x1 - x0, .06, (STAIR.z1 - STAIR.z0) / n + .02, 0x6a6e74, 15); }
-    for (const x of [x0 - .05, x1 + .05]) k.box(x, MEZ_Y / 2 + .45, (STAIR.z0 + STAIR.z1) / 2, .05, .05, 8.4, yel, 2, -Math.atan2(MEZ_Y, STAIR.z1 - STAIR.z0)).box(x, MEZ_Y / 2, (STAIR.z0 + STAIR.z1) / 2, .1, .1, 8, 0x2a2c30, 15, -Math.atan2(MEZ_Y, STAIR.z1 - STAIR.z0));
+    for (let i = 0; i < n; i++) { const z = STAIR.z0 + (i + .5) * (STAIR.z1 - STAIR.z0) / n, y = (i + 1) * MEZ_Y / n; k.box((x0 + x1) / 2, y - .03, z, x1 - x0, .06, (STAIR.z1 - STAIR.z0) / n + .02, 0x6a6e74, TX.steel); }
+    const dz = (STAIR.z1 - STAIR.z0) / n;
+    for (let i = 0; i < n; i++) k.box((x0 + x1) / 2, (i + 1) * MEZ_Y / n - .002, STAIR.z0 + (i + 1) * dz - .03, x1 - x0, .008, .05, yel, 2);   // 踏板前緣的黃色止滑條
+    for (const x of [x0 - .05, x1 + .05]) {
+      k.box(x, MEZ_Y / 2, (STAIR.z0 + STAIR.z1) / 2, .06, .26, 8.6, 0x2a2c30, TX.enamel, -Math.atan2(MEZ_Y, STAIR.z1 - STAIR.z0));   // 斜樑（槽鋼）
+      k.rod(x, .95, STAIR.z0, x, MEZ_Y + .95, STAIR.z1, .022, 10, yel, TX.enamel).rod(x, .5, STAIR.z0 + .1, x, MEZ_Y + .5, STAIR.z1 + .1, .012, 8, yel, TX.enamel);
+      for (let i = 0; i < n; i += 3) { const zz = STAIR.z0 + (i + .5) * dz, yy = (i + 1) * MEZ_Y / n; k.rod(x, yy, zz, x, yy + .95, zz, .018, 8, yel, TX.enamel); }
+    }
     B0.push({ x0: x0 - .1, x1: x1 + .1, z0: STAIR.z0 + .8, z1: STAIR.z1 });
   }
   // ─── 工位 1：鈑金與烤漆。四柱液壓頂高機（客戶車／委託車）、無塵靜電烤漆房（後半） ───
   {
     const { x, z } = BAY1;
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { k.box(x + sx * 1.6, 1.4, z + sz * 2.7, .26, 2.8, .26, 0x1f5fa8, 0); B0.push({ x0: x + sx * 1.6 - .16, x1: x + sx * 1.6 + .16, z0: z + sz * 2.7 - .16, z1: z + sz * 2.7 + .16 }); }
-    for (const sz of [-1, 1]) k.box(x, 2.82, z + sz * 2.7, 3.5, .12, .3, 0x1f5fa8, 0);
-    chrome.lift1 = new T.Mesh(new Kit().box(-.85, 0, 0, .55, .1, 5.2, 0x3a3e44, 15).box(.85, 0, 0, .55, .1, 5.2, 0x3a3e44, 15).box(0, -.06, 0, 2.3, .04, .2, yel, 2).build(), MAT.uber);
+    cwLift4(k, x, z, 0x1f5fa8);   // 66-chrome-kit.js
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) B0.push({ x0: x + sx * 1.6 - .16, x1: x + sx * 1.6 + .16, z0: z + sz * 2.7 - .16, z1: z + sz * 2.7 + .16 });
+    chrome.lift1 = new T.Mesh(cwLiftDeck(0x1f5fa8).build(), MAT.ux);
     chrome.lift1.position.set(x, 1.6, z); S.add(chrome.lift1);
     const pb = { x0: -17.8, x1: -6.6, z0: 9.2, z1: 12.9 };
     k.box((pb.x0 + pb.x1) / 2, 3.6, (pb.z0 + pb.z1) / 2, pb.x1 - pb.x0, .12, pb.z1 - pb.z0, 0xe8e6e0, 2);
@@ -419,7 +427,10 @@ function boardDraw(list, done = []) {
     // 噴漆機械臂的軌道與噴槍
     k.box((pb.x0 + pb.x1) / 2, 3.3, pb.z1 - .5, pb.x1 - pb.x0 - .4, .1, .1, 0x9aa0a6, 15).box(-12, 2.6, pb.z1 - .5, .14, 1.4, .14, 0xff8a20, 0).box(-12, 1.9, pb.z1 - .9, .1, .1, .7, 0x2a2c30, 15);
     // 工位 1 的工具櫃（紅色）與一組氧氣乙炔鋼瓶
-    for (let i = 0; i < 4; i++) k.box(-17.5, .46, 1.4 + i * 1.2, .9, .9, 1.16, red, 0).box(-17.04, .5, 1.4 + i * 1.2, .02, .02, .9, 0xd8dce2, 3);
+    cwChest(k, -17.5, 0, 1.4, Math.PI / 2, 1.1, 1.0, .86, red, { seed: 11, lid: .42, handle: 1 });
+    cwChest(k, -17.5, 0, 2.6, Math.PI / 2, 1.1, .92, .86, red, { seed: 12, pat: [1, 1, 1, 1, 2.2], open: 2 });
+    cwChest(k, -17.48, 0, 3.8, Math.PI / 2 + .04, 1.1, 1.0, .86, red, { seed: 13, lid: .36, top: 'steel' });
+    cwChest(k, -17.5, 0, 5.0, Math.PI / 2, 1.1, .78, .86, 0x1a1b1e, { seed: 14, pat: [1, 1, 2, 2] });
     B0.push({ x0: -18, x1: -17, z0: .8, z1: 5.8 });
   }
   // ─── 工位 2：滾筒馬力機（地坑裡兩組滾筒）、車頭前的大風扇、馬力機電腦 ───
@@ -430,11 +441,10 @@ function boardDraw(list, done = []) {
     for (const dz of [1.2, 1.55, -1.35, -1.0]) k.cyl(x, -.11, z + dz, .16, .16, 2.5, 20, 0x9aa0a6, 15, 0, 0, Math.PI / 2);   // 滾筒埋在地坑裡，頂面和地板齊平
     for (const dz of [1.375, -1.175]) k.box(x, .002, z + dz, 2.6, .004, .78, 0x15171a, 2);
     // 大風扇（車頭前）
-    k.box(x, .9, z - 4.1, 1.7, 1.7, .4, 0x2a2c30, 15).cyl(x, .9, z - 3.88, .72, .72, .04, 28, 0x111111, 2, Math.PI / 2, 0, 0);
-    for (let i = 0; i < 5; i++) k.box(x, .9, z - 3.86, .1, 1.3, .02, 0x8a8e94, 15, 0, 0, i * Math.PI / 5);
-    B0.push({ x0: x - .9, x1: x + .9, z0: z - 4.35, z1: z - 3.85 });
+    cwFan(k, x, 1.0, z - 4.1, 0);
+    B0.push({ x0: x - 1, x1: x + 1, z0: z - 4.6, z1: z - 3.75 });
     // 馬力機電腦（工位 2 右前）：機櫃與兩台螢幕
-    k.box(3.6, .6, 3.2, .8, 1.2, .6, 0x2a2c30, 15).box(3.6, 1.55, 3.0, 1.1, .62, .05, 0x0a0c10, 1, -.1).box(3.6, 1.55, 3.03, 1.0, .54, .02, 0x2a8a7a, 11, -.1);
+    cwDynoDesk(k, 3.6, 3.2, Math.PI + .12);
     B0.push({ x0: 3.15, x1: 4.05, z0: 2.85, z1: 3.55 });
     // 綁帶與輪擋
     for (const s of [-1, 1]) k.box(x + s * 1.2, .08, z + 2.6, .2, .16, .4, yel, 2).box(x + s * 1.2, .08, z - 2.4, .2, .16, .4, yel, 2);
@@ -447,51 +457,56 @@ function boardDraw(list, done = []) {
     L0.circles.push({ x, z, r: 2.95 });
     // 焊接機械臂：黃色基座、兩節手臂、焊槍（69-v6 那邊不動它；火花在 updateChrome）
     const ax = 16.2, az = 3.6;
-    k.cyl(ax, .3, az, .5, .6, .6, 20, 0xe8a020, 0).cyl(ax, .9, az, .25, .25, .6, 16, 0x2a2c30, 15).box(ax - .7, 1.8, az + .3, 1.6, .26, .26, 0xe8a020, 0, 0, -.35, .55).box(ax - 1.9, 2.0, az + .9, 1.2, .2, .2, 0xe8a020, 0, 0, -.6, -.3).cyl(ax - 2.4, 1.8, az + 1.3, .06, .03, .4, 8, 0x2a2c30, 15);
+    cwRobot(k, ax, az, ax - 2.5, 1.62, az + 1.4);
     chrome.weld = { x: ax - 2.5, y: 1.62, z: az + 1.4 };
     L0.circles.push({ x: ax, z: az, r: .7 });
     // 炸彈工作檯（右後）：木檯面、電線、計時器
-    k.box(16.6, .45, 11.6, 1.4, .9, 2.4, 0x5a3820, 10).box(16.6, .93, 11.6, 1.5, .06, 2.5, 0x2a1810, 0);
+    cwWoodBench(k, 16.6, 11.6, Math.PI / 2, 2.4, 1.4, .96, 0x5a3820);
     k.box(16.5, 1.02, 11.2, .4, .12, .3, 0x2a2c30, 15).box(16.5, 1.09, 11.2, .2, .04, .12, 0xff2a2a, 8).box(16.7, 1.0, 12.0, .3, .1, .5, 0x8a6a30, 2);
     for (let i = 0; i < 4; i++) k.cyl(16.3 + i * .12, .97, 11.7, .008, .008, .6, 4, [0xff2020, 0x2040ff, 0xffd020, 0x20c040][i], 2, Math.PI / 2, 0, 0);
     B0.push({ x0: 15.85, x1: 17.4, z0: 10.35, z1: 12.85 });
     // 氧氣乙炔鋼瓶（綠色氧氣、紅色乙炔）放在推車上：69-v6-customs.js 開槍打中會連環爆炸
-    for (const [cx, cz] of [[-7.4, 2.6], [7.6, 10.8]]) {
-      k.box(cx, .2, cz, .7, .08, .5, 0x2a2c30, 15);
-      k.cyl(cx - .17, .85, cz, .12, .12, 1.3, 14, 0x2f6a3a, 0).cyl(cx + .17, .8, cz, .14, .14, 1.2, 14, 0x8a1018, 0);
-      k.add(new T.SphereGeometry(.12, 10, 6), 0x2f6a3a, 0, tf(cx - .17, 1.5, cz)).add(new T.SphereGeometry(.14, 10, 6), 0x8a1018, 0, tf(cx + .17, 1.4, cz));
-      L0.circles.push({ x: cx, z: cz, r: .45 });
-    }
+    for (const [cx, cz, ry] of [[-7.4, 2.6, .5], [7.6, 10.8, -2.4]]) { cwGasCart(k, cx, cz, ry); L0.circles.push({ x: cx, z: cz, r: .45 }); }
   }
   // ─── 中段：零件展示走廊（輪框架、尾翼牆）、鐵手強尼的工作站、工位 4 拆解區的鐵網隔間 ───
   {
     // 輪框展示架（走廊左側，面向走廊）
     for (let i = 0; i < 6; i++) {
-      const x = -16 + i * 1.5, z = 19.6;
-      k.box(x, 1.6, z + .2, 1.3, 3.2, .1, 0x2a2c30, 15);
-      for (let j = 0; j < 2; j++) { k.cyl(x, 1 + j * 1.2, z, .42, .42, .12, 24, [0xd8dce2, 0x1a1b1e, 0xc9a227, 0x9aa0a6, 0xb03040, 0x3a6ad8][(i + j) % 6], 3, Math.PI / 2, 0, 0); for (let s = 0; s < 6; s++) { const a = s / 6 * Math.PI * 2; k.box(x + Math.cos(a) * .2, 1 + j * 1.2 + Math.sin(a) * .2, z - .07, .05, .26, .03, 0x2a2c30, 15, 0, 0, a + Math.PI / 2); } }
+      const x = -16 + i * 1.5, z = 19.6, F = cwFrame(k, x, 0, z, Math.PI);
+      F.rbox(0, 1.65, -.2, 1.3, 3.1, .06, .02, 0x2a2c30, TX.enamel).box(0, .05, -.2, 1.36, .1, .3, 0x1a1b1e, TX.enamel).box(0, 3.24, -.2, 1.36, .08, .12, 0x1a1b1e, TX.enamel);
+      for (let j = 0; j < 2; j++) { F.rod(0, 1 + j * 1.2 + .1, -.17, 0, 1 + j * 1.2 + .1, -.02, .015, 6, CW_ALU, 3); cwRim(F, 0, 1 + j * 1.2, -.02, (i + j) % 3, [0xd8dce2, 0x1a1b1e, 0xc9a227, 0x9aa0a6, 0xb03040, 0x3a6ad8][(i + j) % 6]); }
     }
     B0.push({ x0: -16.8, x1: -7.6, z0: 19.3, z1: 20 });
     // 尾翼牆（走廊右側）：三支尾翼掛在牆上
-    for (let i = 0; i < 3; i++) { const x = -2 + i * 2.1; k.box(x, 2.6 + (i % 2) * .5, 19.9, 1.8, .06, .3, [CARBON, 0xd8dce2, red][i], 15, -.2).box(x - .6, 2.4 + (i % 2) * .5, 19.95, .04, .4, .1, 0x2a2c30, 15).box(x + .6, 2.4 + (i % 2) * .5, 19.95, .04, .4, .1, 0x2a2c30, 15); }
+    k.rbox(.1, 2.75, 20.05, 6.6, 1.7, .05, .02, 0x1a1b1e, TX.enamel);
+    for (const x of [-3, 3.2]) k.rod(x, 3.6, 20.05, x, MEZ_Y - .5, 20.05, .012, 6, 0x8a8e94, 15);
+    for (let i = 0; i < 3; i++) { const x = -2 + i * 2.1, F = cwFrameM(k, tf(x, 2.6 + (i % 2) * .5, 19.82, -.75, Math.PI, 0)); cwWing(F, 1.8, [CARBON, 0xd8dce2, red][i], i ? TX.enamel : TX.carbon); }
     // 鐵手強尼的工作站（走廊中央，面向工位 2）：工作檯、診斷電腦、工具牆
-    k.box(JOHNNY.x, .48, JOHNNY.z - .9, 3, .96, .8, 0x3a3e44, 15).box(JOHNNY.x, .98, JOHNNY.z - .9, 3.1, .06, .9, 0xb8bcc0, 15);
-    k.box(JOHNNY.x - .8, 1.35, JOHNNY.z - .7, .7, .45, .05, 0x0a0c10, 1).box(JOHNNY.x - .8, 1.35, JOHNNY.z - .73, .64, .38, .02, 0x2a6a8a, 11);
-    k.box(JOHNNY.x + .5, 1.1, JOHNNY.z - .8, .5, .2, .3, red, 0);
+    cwCounter(k, JOHNNY.x, JOHNNY.z - .9, Math.PI);
     B0.push({ x0: JOHNNY.x - 1.55, x1: JOHNNY.x + 1.55, z0: JOHNNY.z - 1.35, z1: JOHNNY.z - .45 });
     // 工位 4 的鐵網隔間（x = 6，z 13.6..20；留一個 2.4 m 的門）
-    for (let z = 13.6; z < 20; z += 1.6) if (z < 15.4 || z > 17.6) { k.box(6, 1.25, z + .8, .04, 2.5, 1.56, 0x8a8e94, 15); for (let y = .2; y < 2.5; y += .25) k.box(6.02, y, z + .8, .01, .01, 1.56, 0x5a5e62, 15); }
+    for (let z = 13.6; z < 20; z += 1.6) if (z < 15.4 || z > 17.6) {
+      for (let y = .2; y < 2.5; y += .1) k.box(6, y, z + .8, .02, .006, 1.5, 0x9aa0a6, 15);
+      for (let w = .05; w < 1.55; w += .1) k.box(6, 1.3, z + w, .02, 2.4, .006, 0x9aa0a6, 15);
+      for (const zz of [z + .02, z + 1.58]) k.rbox(6, 1.3, zz, .05, 2.6, .05, .01, 0x5a5e62, TX.enamel);
+      k.box(6, 2.55, z + .8, .05, .05, 1.6, 0x5a5e62, TX.enamel).box(6, .06, z + .8, .05, .05, 1.6, 0x5a5e62, TX.enamel);
+    }
     B0.push({ x0: 5.9, x1: 6.1, z0: 13.6, z1: 15.4 }, { x0: 5.9, x1: 6.1, z0: 17.6, z1: 20 });
   }
   // ─── 工位 4：黑市拆解區。地磅（黑黃斜紋邊）、銷贓秤、出口懸賞黑板、Rook 的收車檯、一堆拆下來的車門與引擎蓋 ───
   {
     const { x, z } = BAY4;
-    k.box(x, .02, z, 6.4, .04, 3.2, 0x5a5e62, 15);
+    k.box(x, .02, z, 6.4, .04, 3.2, 0x5a5e62, TX.steel);
     for (let i = 0; i < 16; i++) k.box(x - 3.2 + i * .4 + .2, .045, z - 1.6, .2, .01, .12, i % 2 ? 0x111214 : yel, 2, 0, .6).box(x - 3.2 + i * .4 + .2, .045, z + 1.6, .2, .01, .12, i % 2 ? 0x111214 : yel, 2, 0, .6);
-    k.box(17.6, 1.6, z - 1.8, .3, 1.4, 1, 0x2a2c30, 15).box(17.44, 1.7, z - 1.8, .02, .5, .7, 0x1a3a2a, 11);   // 秤的讀數盒
-    k.box(16.9, .5, ROOK.z, .9, 1, 2.2, 0x4a2c18, 10).box(16.9, 1.03, ROOK.z, 1, .06, 2.3, 0x2a1810, 0);
+    k.rbox(17.6, 1.6, z - 1.8, .3, 1.4, 1, .03, 0x2a2c30, TX.enamel).rbox(17.44, 1.7, z - 1.8, .02, .5, .7, .01, 0x0a0c10, 2).box(17.43, 1.7, z - 1.8, .004, .16, .56, 0x30ff80, 11);   // 秤的讀數盒
+    for (let i = 0; i < 4; i++) k.cyl(17.44, 1.25, z - 2.1 + i * .2, .03, .03, .02, 10, [0x20c040, 0xc01818, 0xe8c020, 0x9aa0a6][i], 8, 0, 0, Math.PI / 2);
+    k.rod(17.6, .9, z - 1.8, 17.7, .02, z - 1.3, .015, 6, CW_BLK, TX.rubber).rod(17.7, .02, z - 1.3, 15.2, .02, z - 1.5, .015, 6, CW_BLK, TX.rubber);
+    cwWoodCounter(k, 16.9, ROOK.z, -Math.PI / 2, 2.2, .9, 1.06, 0x5a3a20);
     B0.push({ x0: 16.4, x1: 17.4, z0: ROOK.z - 1.15, z1: ROOK.z + 1.15 });
-    for (let i = 0; i < 5; i++) k.box(14.6 + (i % 2) * .3, .1 + i * .12, 19.2, 1.2, .1, 1.6, [0x8a1018, 0x3c4148, 0x0d3b5c, 0xd8d4c8, 0x2f6a3a][i], 0, 0, i * .3);
+    {   // 拆下來的引擎蓋與車門歪疊成一堆
+      const pr = rng(512), PC = [0x8a1018, 0x3c4148, 0x0d3b5c, 0xd8d4c8, 0x2f6a3a];
+      for (let i = 0; i < 5; i++) { const F = cwFrameM(k, tf(14.65 + (i % 2) * .25 + (pr() - .5) * .1, .04 + i * .1, 19.15 + (pr() - .5) * .12, (pr() - .5) * .08, i * .3 + (pr() - .5) * .3, (pr() - .5) * .1)); if (i % 2) cwDoor(F, PC[i]); else cwHood(F, 1.25, 1.5, PC[i]); }
+    }
     B0.push({ x0: 13.8, x1: 15.6, z0: 18.3, z1: 20 });
     const bd = new T.Mesh(new T.PlaneGeometry(2.4, 1.5), MAT_BOARD);
     bd.geometry.setAttribute('aS', new T.Float32BufferAttribute([0, 0, .55, 0, 0, 0, .55, 0, 0, 0, .55, 0, 0, 0, .55, 0], 4));
@@ -500,18 +515,19 @@ function boardDraw(list, done = []) {
   }
   // ─── 夾層底下（z 20..34）：休息區（左）、零件倉庫（右）、工具牆（後） ───
   {
-    k.box(-15.6, .27, 26, .95, .34, 3.2, 0x5a2e1a, 10).box(-16.05, .72, 26, .26, .62, 3.2, 0x5a2e1a, 10);
+    cwSofa(k, -15.65, 26, Math.PI / 2, 3.2, 0x5a2e1a);
     k.add(new T.TorusGeometry(.42, .17, 10, 22), 0x121212, 6, tf(-14.0, .18, 26, Math.PI / 2, 0, 0)).cyl(-14.0, .37, 26, .62, .62, .03, 28, 0x9fc4c8, 10);
     B0.push({ x0: -16.2, x1: -15.1, z0: 24.3, z1: 27.7 }); L0.circles.push({ x: -14, z: 26, r: .62 });
     const gp = { x: -17.3, z: 30.5 };
-    k.box(gp.x, .95, gp.z, .5, 1.7, .7, red, 0).box(gp.x + .26, 1.25, gp.z, .02, .5, .5, cream, 2).add(new T.SphereGeometry(.24, 16, 12), 0xfff4e0, 11, tf(gp.x, 2.1, gp.z));
+    cwPump(k, gp.x, gp.z, Math.PI / 2, red);
     B0.push({ x0: gp.x - .3, x1: gp.x + .3, z0: gp.z - .4, z1: gp.z + .4 });
     // 後牆的紅色工具櫃一整排
-    for (let i = 0; i < 8; i++) { const x = -6 + i * 1.3; k.box(x, .46, CD - .6, 1.24, .9, .92, red, 0); for (let d = 0; d < 4; d++) k.box(x, .18 + d * .2, CD - 1.07, 1.0, .02, .02, 0xd8dce2, 3); }
-    k.box(-1.45, .96, CD - .6, 10.5, .06, 1, 0xb8bcc0, 15);
+    const PATS = [[1, 1, 1, 1.4, 1.8, 2.4], [1, 1, 2, 2], [1, 1, 1, 1, 1, 1, 2], [1.4, 1.4, 2.4], [1, 1, 1, 1.4, 1.8, 2.4], [1, 1, 1, 1, 2.2], [1, 2, 2, 2], [1, 1, 1, 1.4, 1.8, 2.4]];
+    for (let i = 0; i < 8; i++) cwChest(k, -6 + i * 1.3, 0, CD - .58, Math.PI, 1.24, .92, .9, red, { seed: 30 + i, pat: PATS[i], top: null, cast: false, open: i === 2 ? 1 : i === 6 ? 0 : -1 });
+    k.rbox(-1.45, .945, CD - .58, 1.02, .05, 10.56, .02, 0xb8bcc0, TX.steel, 0, Math.PI / 2, 0).box(-1.45, 1.1, CD - .06, 10.56, .28, .02, 0xb8bcc0, TX.steel);
     B0.push({ x0: -6.7, x1: 3.8, z0: CD - 1.1, z1: CD });
-    k.box(-1.45, 2.25, CD - .1, 10.5, 1.3, .05, 0x3a3430, 2);
-    for (let i = 0; i < 24; i++) k.box(-6.3 + i * .42, 2.1 + (i % 3) * .35, CD - .14, .05, .4 - (i % 2) * .12, .03, 0xb8bcc2, 15, 0, 0, (i % 3 - 1) * .3);
+    k.box(-1.45, 2.25, CD - .1, 10.5, 1.3, .05, 0x6a5a48, TX.peg).box(-1.45, 2.25, CD - .085, 10.6, 1.4, .02, 0x2a2c30, TX.enamel);
+    { const tr = rng(2424), tz = cwFrame(k, 0, 0, CD - .125); let tx = -6.4; while (tx < 3.4) { const kind = tr() < .12 ? 4 : Math.floor(tr() * 4); cwTool(tz, tx, 2.55 + (tr() - .5) * .12 - (kind === 4 ? .5 : 0), kind, tr); tx += kind === 4 ? .5 : .1 + tr() * .12; } }
   }
   // ─── 2 樓：老闆辦公室（左，玻璃隔間）、街機區（中）、私人展示車庫（右） ───
   {
@@ -519,24 +535,21 @@ function boardDraw(list, done = []) {
     // 辦公室玻璃隔間（x = −8，留 1.4 m 的門）與一段前牆
     k.box(-8, y + 1.5, (23.4 + CD) / 2, .05, 3, CD - 23.4, 0x3a4448, 10).box(-8, y + 3.02, (MEZ_Z + CD) / 2, .08, .06, CD - MEZ_Z, 0x2a2c30, 15);
     B1.push({ x0: -8.1, x1: -7.9, z0: 23.4, z1: CD });
-    k.box(-13, y + .38, 29.5, 2.4, .06, 1.2, 0x4a2c18, 10).box(-13, y + .2, 29.5, 2.2, .36, 1, 0x3a2414, 10);   // 辦公桌
-    k.box(-13.4, y + .45, 29.4, .5, .02, .34, 0x0a0c10, 1).box(-12.4, y + .46, 29.6, .26, .02, .18, 0x2a2c30, 15);
-    k.box(-13, y + .45, 30.6, .6, .9, .6, 0x1a1a1a, 10);   // 皮椅
-    k.box(-17.4, y + .55, 32.8, .9, 1.1, .9, 0x3a3e44, 15).cyl(-16.94, y + .65, 32.8, .12, .12, .04, 16, 0xc9a24a, 3, 0, 0, Math.PI / 2);   // 保險箱
+    cwExecDesk(k, -13, y, 29.5, Math.PI); cwExecChair(k, -12.85, y, 30.55, Math.PI + .25); cwSafe(k, -17.4, y, 32.8, Math.PI / 2);   // 辦公桌、皮椅、保險箱（66-chrome-kit.js）
     B1.push({ x0: -14.3, x1: -11.7, z0: 28.8, z1: 30.2 }, { x0: -17.9, x1: -16.9, z0: 32.3, z1: 33.3 });
     // 私人展示車庫：灰色地坪、白色車格線、招牌
-    k.box(9, y + .004, 27.2, 18, .006, 14, 0x707478, 10);
+    k.box(9, y + .004, 27.2, 18, .006, 14, 0x707478, TX.epoxy);
     for (const P of PRIV) for (const s of [-1, 1]) k.box(P.x + s * 1.7, y + .008, P.z, .06, .004, 4.6, 0xe8e4da, 2);
     CW_SIGN(S, 'CW_PRIV', 9, y + 3.6, CD - .1, Math.PI, 2.6, .98, .9);
     // 載車升降機（右前角，裝飾）
-    k.box(17, y + 1.6, 26.8, .1, 3.2, 4.8, 0x2a2c30, 15).box(16.95, y + 2.9, 26.8, .04, .3, 3.4, yel, 2);
+    cwCarElevator(k, 17.75, y, 26.8, -Math.PI / 2);
   }
-  S.add(new T.Mesh(k.build(), MAT.uber));
+  S.add(new T.Mesh(k.build(), MAT.ux));
   // 捲門 B 外的雨夜街景（和車行的落地窗同一個 shader）與門 B 本身（進來之後放下）
   { const m = new T.Mesh(new T.PlaneGeometry(DOOR_W - .2, DOOR_H - .1), new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
     m.position.set(0, DOOR_H / 2, -.6); S.add(m); }
-  { const dk = new Kit(); for (let y = .12; y < DOOR_H; y += .24) dk.box(0, y, 0, DOOR_W, .2, .05, 0x8c9196, 15).box(0, y + .11, .02, DOOR_W, .03, .04, 0x5a5e62, 15);
-    chrome.doorB = new T.Mesh(dk.build(), MAT.uber); chrome.doorB.position.set(0, 0, -.05); S.add(chrome.doorB); }
+  { const dk = new Kit(); for (let y = .12; y < DOOR_H; y += .24) dk.box(0, y, 0, DOOR_W, .2, .05, 0x8c9196, TX.steel).box(0, y + .11, .02, DOOR_W, .03, .04, 0x5a5e62, 15);
+    chrome.doorB = new T.Mesh(dk.build(), MAT.ux); chrome.doorB.position.set(0, 0, -.05); S.add(chrome.doorB); }
   // 招牌：後牆的 SPEED SHOP、前牆內側的總廠霓虹、工位牌、低底盤霓虹、拆解區招牌、馬力機、機油牌與公路盾牌、OPEN 24H
   CW_SIGN(S, 'CW_SPEED', -1.4, 3.9, CD - .1, Math.PI, 4.8, 1.8, .75);
   CW_SIGN(S, 'CW_MEGA', 0, 7.2, .25, 0, 8, 2, 1.5);
@@ -592,6 +605,13 @@ function boardDraw(list, done = []) {
 propSwap('chrome', null, 'cw_cart', [{ x: -3.4, z: 4.2, ry: Math.PI / 2 }, { x: -7.2, z: 6.2, ry: -Math.PI / 2 }], chromeScene,
   () => chromeLv[0].boxes.push({ x0: -3.7, x1: -3.1, z0: 3.65, z1: 4.75 }, { x0: -7.5, x1: -6.9, z0: 5.65, z1: 6.75 }), 'chrome');
 propSwap('chrome', null, 'cw_air', [{ x: 13.4, z: 32.8, ry: Math.PI }], chromeScene, () => chromeLv[0].boxes.push({ x0: 12.65, x1: 14.15, z0: 32.4, z1: 33.4 }), 'chrome');
+// 第二批（props/cw_shop.glb）：工位 4 後牆的電焊機、拉桿工具箱與兩支頂車架，工位 1 牆邊的工具箱與頂車架，零件倉庫後牆的三座鐵架；同樣沒有替身
+propSwap('chrome', null, 'cw_weld', [{ x: 8.2, z: 19, ry: Math.PI }], chromeScene, () => chromeLv[0].boxes.push({ x0: 7.85, x1: 8.55, z0: 18.15, z1: 19.85 }), 'cw_shop');
+propSwap('chrome', null, 'cw_tbox', [{ x: 10.6, z: 19.4, ry: Math.PI }, { x: -17.3, z: 7, ry: Math.PI / 2 }], chromeScene,
+  () => chromeLv[0].boxes.push({ x0: 10.35, x1: 10.85, z0: 19.2, z1: 19.6 }, { x0: -17.5, x1: -17.1, z0: 6.75, z1: 7.25 }), 'cw_shop');
+propSwap('chrome', null, 'cw_jack', [{ x: 9.3, z: 19.5, ry: .3 }, { x: 9.75, z: 19.6, ry: -.2 }, { x: -16.6, z: 8.4, ry: .5 }, { x: -16.15, z: 8.6, ry: 1.2 }], chromeScene,
+  () => chromeLv[0].boxes.push({ x0: 9.1, x1: 9.95, z0: 19.3, z1: 19.8 }, { x0: -16.8, x1: -15.95, z0: 8.2, z1: 8.8 }), 'cw_shop');
+propSwap('chrome', null, 'cw_shelf', [6.6, 7.65, 8.7].map((x, i) => ({ x, z: 33.3, ry: i * Math.PI })), chromeScene, () => chromeLv[0].boxes.push({ x0: 6.1, x1: 9.2, z0: 32.7, z1: 34 }), 'cw_shop');
 // 人：鐵手強尼（工作站）、兩名學徒（工位 1、工位 3）、Rook（拆解區）、休息區的客人、2 樓打街機的人。前三個是 69-v6-customs.js 拔槍事件的店員
 {
   const cr = crowd(7); const rc = rng(1717);

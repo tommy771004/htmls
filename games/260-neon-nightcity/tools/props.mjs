@@ -41,6 +41,14 @@ export const SETS = [
     { id: 'cw_air', file: 'air_compressor_xyz', h: 1.1 },   // 儲氣筒沿 x（約 1.5 m）
     { id: 'cw_hoist', file: 'engine_hoist', h: 1.9 },   // 原檔單位很小；吊臂與兩支腳朝 +x，吊鉤在 x ≈ +0.83 m、離地約 1.45 m
   ] },
+  // CHROME WORKS 第二批（66-chrome.js，和 chrome 分開一組：chrome 的來源檔已不在 .cache）：Fredrik Johansen 的 Welder、Yağız Solmaz 的 Garage Shelf、
+  // WaveCommotion 的 Garage Tool Box Cart、dinoxwave 的 Car Jack Stand（都是 CC BY 4.0）
+  { out: 'cw_shop', tex: 1024, simplify: .35, simplifyError: .002, items: [
+    { id: 'cw_weld', file: 'welder', h: 1.3, rot: 3 },   // 原檔約公分；面板朝 +x、氣瓶在 −x，轉成面板朝 +z；焊槍線拖在地上
+    { id: 'cw_shelf', file: 'garage_shelf', h: 2 },   // 四柱鐵架，紙箱放在架上
+    { id: 'cw_tbox', file: 'garage_tool_box_cart', h: 1.25, rot: 1 },   // 三層疊的拉桿工具箱（拉桿拉出），原檔正面朝 −x
+    { id: 'cw_jack', file: 'car_jack_stand', h: .45 },   // 頂車架（安全架），原檔放大約四倍
+  ] },
   // 霓鑽賭場（69-v7-casino.js）：kvasium 的 Casion slot-machine、Ravi Jangid 的 Blackjack Table、Notto 的 Roulette Table、
   // Designed By Jonathan 的 Simple Roulette Table、CommonSpence 的 Bank Vault Door（都是 CC BY 4.0）
   { out: 'casino', tex: 1024, items: [
