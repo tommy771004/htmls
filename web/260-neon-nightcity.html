@@ -6186,7 +6186,7 @@ void main(){
     #endif
     float hs = hw(cell), hs2 = hw(cell + 71.3), lit = step(hs, uLit * litK) * smoothstep(1.5, 3.5, vW.y);
     vec3 lc = hs2 < .62 ? vec3(1., .72, .42) : hs2 < .88 ? vec3(.86, .9, 1.) : vec3(1., .86, .62);
-    c += lc * lit * glass * side * mix(1.25, .05, uDay);
+    c = mix(c, lc * 1.15, lit * glass * side * mix(1., .04, uDay));   // \u63DB\u6210\u5BA4\u5167\u71C8\u7684\u984F\u8272\uFF08\u4E0D\u662F\u758A\u52A0\uFF1A\u4EAE\u7684\u73BB\u7483\u8207\u767D\u7A97\u6846\u758A\u4E0A\u53BB\u6703\u8B8A\u6210\u6B7B\u767D\uFF09
     c += base.rgb * uLamp * side * vec3(1., .72, .45) * (.05 + .6 * exp(-max(vW.y - .8, 0.) / 4.));   // \u8DEF\u71C8\u6253\u5728\u4E00\u6A13\u7684\u6696\u5149\uFF08\u548C WASH \u7684\u4E00\u6A23\uFF0C\u4F46\u4E0D\u6253\u6574\u7247\u958B\u9593\u7684\u5BA4\u5167\u5149\uFF09
   }
   #endif
