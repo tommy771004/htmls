@@ -31,26 +31,29 @@ const LV_KEYS = Object.keys(GRP).filter(k => GRP[k].lv);
 // 機車裝不了的：保險桿、尾翼、液壓、烤漆材質（機車的模型是原廠彩繪）
 const BIKE_NO = ['bmp', 'spl', 'pf'];
 // 效果（規格書第四節的公式；乘在這台車原廠換算出來的數值上）：
-//   arm 耐久上限 ×(1 + 裝甲%)；brk 煞車減速度 ×(1 + 0.12·級)；eng 加速 ×(1 + 0.08·級)、極速最多 +5%；tur 加速 ×1.22；
-//   trn 換檔延遲 0.35 → 0.08 s（遊戲沒有逐檔模擬：省下的時間換算成加速 ×(1 + 0.25·省下的秒數)），倒車起步加快；
+//   arm 耐久上限 ×(1 + 裝甲%)；brk 煞車減速度 ×(1 + 0.12·級)；eng 加速 ×(1 + 0.03·級)、極速最多 +2%；tur 加速 ×1.08、極速 +1%；
+//   trn 換檔延遲 0.35 → 0.08 s（遊戲沒有逐檔模擬：省下的時間換算成加速 ×(1 + TRN_K·省下的秒數)），倒車起步加快；
+//   引擎、渦輪、變速箱全上滿是加速 ×1.24、極速 +3%（規格書的 ×1.32、×1.22、0.25 疊起來是 ×1.72，再開氮氣 ×1.6 就像火箭，使用者要求調低）；
 //   sus 車身下降（m）、過彎、重心（68-roll.js 的翻車門檻 ÷ cog）；spl 側向抓地 μ_lat +0.03／+0.06（driveVehicle 的 grip = μ·10）；
 //   exh 放油門時回火的機率；bmp 2 級以上是防撞鏟（69-v6-customs.js：正面撞車把對方往上鏟 3.5 m/s）
 const MOD_FX = {
   arm: { hpK: [1, 1.2, 1.4, 1.6, 1.8, 2] },
   brk: { brk: [1, 1.12, 1.24, 1.36] },
-  eng: { eng: [1, 1.08, 1.16, 1.24, 1.32], top: [1, 1.0125, 1.025, 1.0375, 1.05] },
-  tur: { eng: [1, 1.22], top: [1, 1.02] },
+  eng: { eng: [1, 1.03, 1.06, 1.09, 1.12], top: [1, 1.005, 1.01, 1.015, 1.02] },
+  tur: { eng: [1, 1.08], top: [1, 1.01] },
   trn: { shift: [.35, .25, .15, .08], rev: [1, 1.15, 1.3, 1.45] },
   sus: { rideY: [0, -.02, -.04, -.06, -.08, 0], grip: [1, 1.01, 1.02, 1.03, 1.04, 1.01], turn: [1, 1.01, 1.02, 1.04, 1.06, 1.02], cog: [1, .92, .85, .78, .7, 1] },
   spl: { mu: [0, .03, .06] },
   exh: { pop: [0, .08, .25, .75] },
 };
+const TRN_K = .1;
 const HL_COL = [null, lin(0xe6f0ff), lin(0xffc860)];
 const NEON_COL = [null, lin(0xb04cff), lin(0x2cf2e0), lin(0xff2a48), lin(0x3aff7a), lin(0xe8f4ff)];
 const SMOKE_COL = [[.75, .75, .78], [1.5, .5, 2], [.4, 1.7, 1.8], [2, .4, .45], [.5, 1.8, .6]];
 const NEON_HEX = [0, 0xb04cff, 0x2cf2e0, 0xff2a48, 0x3aff7a, 0xe8f4ff];
 const modsOf = id => motors.mods[id] || {};
-const modCan = (id, k) => !(CARS[id].bike && BIKE_NO.includes(k));
+// 原廠就有尾翼的實車（tools/kitfit.mjs 量的 kit.wing）不能再裝尾翼（兩片疊在一起），量不到尾箱後緣（kit.d，掀背的尾門是斜的）的也不行
+const modCan = (id, k) => { const K = GLB_SPEC[id] && GLB_SPEC[id].kit; return !(CARS[id].bike && BIKE_NO.includes(k)) && !(k === 'spl' && K && (K.wing || !K.d)); };
 const PLATE_RE = /^[A-Z0-9]{1,8}$/;
 // 讀檔時檢查：只留認得的套件與範圍內的整數等級，等級 0 不存；車牌 1–8 個英數字；ins、trk 是 1
 function modSanitize() {
@@ -75,7 +78,7 @@ const fxOf = (m, k, key, d) => (MOD_FX[k] && MOD_FX[k][key] || [])[m[k] || 0] ??
 // 這台車裝了套件之後的數值（不碰載具；改裝選單拿來預覽）
 function modStats(id, m = modsOf(id)) {
   const c = CARS[id], shift = fxOf(m, 'trn', 'shift', .35);
-  const eng = c.eng * fxOf(m, 'eng', 'eng', 1) * fxOf(m, 'tur', 'eng', 1) * (1 + (.35 - shift) * .25);
+  const eng = c.eng * fxOf(m, 'eng', 'eng', 1) * fxOf(m, 'tur', 'eng', 1) * (1 + (.35 - shift) * TRN_K);
   const top = fxOf(m, 'eng', 'top', 1) * fxOf(m, 'tur', 'top', 1);
   const kmh = (c.kmh || c.vmax * 3.6 * .78) * top;
   return {
@@ -102,19 +105,144 @@ function modApply(v, id = v.carId, glb) {
 carHooks.push(modApply);
 modApply(kestrel);   // 65-motors.js 開場已經照存檔 applyCar 過一次（那時這個 hook 還沒掛上）
 
-// ─── 改裝件的外觀（程式建模，掛在車身上，跟著車身俯仰）：尾翼、前保險桿／防撞鏟、排氣尾管、側裙霓虹燈條 ───
-const CARBON = 0x18191c, STEEL = 0x8a8e94;
+// ─── 改裝件的外觀（程式建模，掛在車身上，跟著車身俯仰）：前下巴、防撞鋼架、尖刺鏟、鴨尾、GT 大尾翼、排氣尾管、側排管、底盤霓虹燈條 ───
+// 實車照 cars.json 的 kit（tools/kitfit.mjs 量的保險桿平面輪廓、側裙、尾箱後緣）貼著這台車的外形做；沒有 kit 的（程式建模的替身）照車長車寬擺
+const CARBON = 0x26272b, STEEL = 0x8a8e94, KIT_BLACK = 0x1e2024;
 function modParts(id, m) {
-  const c = CARS[id], s = GLB_SPEC[id] || {}, L = c.len, Wd = c.w, H = s.h || 1.35, k = new Kit();
+  const K = GLB_ON && GLB_SPEC[id] && GLB_SPEC[id].kit, k = new Kit();   // 以檔案開啟時是程式建模的替身，不照實車的外形
+  const any = K ? kitFit(k, id, K, m) : kitBox(k, id, m);
+  if (!any) return null;
+  const g = new T.Group(), me = new T.Mesh(k.build(), MAT.ux); me.userData.kit = 1; g.add(me);
+  return g;
+}
+// kit 的平面輪廓 c = [y, 半寬, a, b, c]：z = a + b·x² + c·x⁴（x 超過半寬就用半寬那一點）
+const kzAt = (c, x) => { const q = Math.min(Math.abs(x), c[1]); return c[2] + c[3] * q * q + c[4] * q ** 4; };
+const kzD = (c, x) => Math.abs(x) > c[1] ? 0 : 2 * c[3] * x + 4 * c[4] * x ** 3;
+// 沿輪廓取 n + 1 點：位置（高度 y、往外推 off）、外法線（sg = 1 朝前、−1 朝後）、上方向
+function kitPath(c, sg, y, hw, n, off = 0) {
+  const P = [], N = [], U = [];
+  for (let i = 0; i <= n; i++) {
+    const x = -hw + 2 * hw * i / n, d = kzD(c, x), l = Math.hypot(d, 1), o = [-sg * d / l, 0, sg / l];
+    P.push([x + o[0] * off, y, kzAt(c, x) + o[2] * off]); N.push(o); U.push([0, 1, 0]);
+  }
+  return { P, N, U };
+}
+const kitTube = (k, pts, r, color, mat) => k.add(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(p => V3(...p))), pts.length * 6, r, 8), color, mat);
+// 排氣尾管：沿 -z 的捲邊圓管，口裡面是黑的；x, y, z 是管口
+function kitTip(k, x, y, z, r, len, color, mat, ry = 0) {
+  const pts = [[r * .82, -len], [r, -len * .6], [r, -.012], [r * 1.06, -.004], [r * 1.02, 0], [r * .9, .002], [r * .86, -.01]];
+  k.lathe(x, y, z, pts.map(([a, b]) => [a, -b]), 20, color, mat, Math.PI / 2, ry, 0);   // lathe 繞 y：轉成沿 z，管口朝 −z
+  k.cyl(x, y, z + .03, r * .84, r * .84, .01, 16, 0x0a0a0a, 2, Math.PI / 2, ry, 0);
+}
+function kitFit(k, id, K, m) {
   let any = false;
-  if (m.spl === 1) { k.box(0, H * .74, -L / 2 + .3, Wd * .78, .05, .32, CARBON, 15, -.28); any = true; }
-  if (m.spl === 2) {
-    const y = H * .74 + .34, z = -L / 2 + .36;
-    k.box(0, y, z, Wd * .94, .05, .36, CARBON, 15, .08);
-    for (const sx of [-1, 1]) k.box(sx * Wd * .25, y - .18, z + .02, .05, .34, .14, CARBON, 15).box(sx * Wd * .47, y + .02, z, .02, .2, .42, CARBON, 15);
+  const S = K.s && K.s.every(Number.isFinite) ? K.s : null, F = K.f || K.fm, FM = K.fm || K.f, R = K.r || K.rm, RM = K.rm || K.r;
+  const fy = K.f ? K.f[0] - .03 : F ? F[0] - .2 : .15;   // 前保險桿最低點
+  const ry = K.r ? K.r[0] - .03 : R ? R[0] - .25 : .2;
+  const taper = (n, e = .1) => i => { const t = Math.min(i, n - i) / n / e; return t >= 1 ? 1 : .35 + .65 * t * t * (3 - 2 * t); };
+  // 前下巴：保險桿底下往前伸 5 cm 的碳纖維板，兩端收窄
+  if (m.bmp === 1 && F) {
+    const n = 28, { P, N, U } = kitPath(F, 1, Math.max(.075, fy), F[1] * .97, n), t = taper(n);
+    k.loft(P, N, U, i => { const q = t(i); return [[-.12, .004], [.012 + .042 * q, .002], [.022 + .045 * q, -.008], [.012 + .04 * q, -.016], [-.12, -.016]]; }, CARBON, TX.carbon);
     any = true;
   }
-  if (m.bmp === 1) { k.box(0, .1, L / 2 - .06, Wd * .86, .03, .24, CARBON, 15); any = true; }
+  // 賽博防撞鋼架：兩道沿保險桿弧度的鋼管、四根立柱、中間一條青色 LED，兩端彎回保險桿
+  if (m.bmp === 2 && FM) {
+    const y0 = Math.max(.16, fy + .07), y1 = Math.max(y0 + .16, FM[0] + .1), hw = FM[1] * .72, off = .11;
+    const at = (x, y, o) => { const d = kzD(FM, x), l = Math.hypot(d, 1); return [x - d / l * o, y, kzAt(FM, x) + o / l]; };
+    for (const [y, w] of [[y0, hw * .82], [y1, hw]]) {
+      const pts = [at(-w - .06, y, .01)]; for (let i = 0; i <= 8; i++) pts.push(at(-w + 2 * w * i / 8, y, off)); pts.push(at(w + .06, y, .01));
+      kitTube(k, pts, .028, KIT_BLACK, 2);
+    }
+    for (const x of [-hw * .9, -hw * .32, hw * .32, hw * .9]) { const a = at(x, y0 - .04, off), b = at(x, y1 + .04, off); k.rod(...a, ...b, .024, 8, KIT_BLACK, 2); }
+    for (const x of [-hw * .32, hw * .32]) { const a = at(x, (y0 + y1) / 2, off), b = at(x, (y0 + y1) / 2, -.04); k.rod(...a, ...b, .02, 8, KIT_BLACK, 2); }
+    const c = at(0, (y0 + y1) / 2, off + .015);
+    k.box(c[0], c[1], c[2], hw * .5, .05, .02, 0x2a2c30, 15).box(c[0], c[1], c[2] + .011, hw * .46, .014, .004, 0x2cf2e0, 8);
+    any = true;
+  }
+  // 尖刺鏟：往前傾的鋼板，下緣一排鍍鉻尖刺，上緣捲一道鋼管
+  if (m.bmp === 3 && F) {
+    const y0 = Math.max(.08, fy + .01), h = clamp((FM ? FM[0] : y0 + .25) - y0, .18, .27), n = 24, hw = F[1] * .98;
+    const { P, N, U } = kitPath(F, 1, y0, hw, n);
+    k.loft(P, N, U, [[.06, h], [.08, h], [.24, 0], [.22, 0]], 0x2a2c30, 10);
+    const top = []; for (let i = 0; i <= n; i += 2) top.push([P[i][0] + N[i][0] * .07, y0 + h, P[i][2] + N[i][2] * .07]);
+    kitTube(k, top, .022, 0x2a2c30, 15);
+    for (let i = 1; i < 10; i++) {
+      const x = -hw * .9 + hw * 1.8 * i / 10, d = kzD(F, x), l = Math.hypot(d, 1), z = kzAt(F, x);
+      k.add(new T.ConeGeometry(.035, .16, 8), 0xd0d4da, 3, tf(x - d / l * .3, y0 + .03, z + .3 / l, Math.PI / 2, Math.atan2(-d, 1), 0));
+    }
+    for (const sx of [-1, 1]) { const x = sx * hw * .45, d = kzD(F, x), l = Math.hypot(d, 1), z = kzAt(F, x); k.rod(x - d / l * .2, y0 + h * .55, z + .2 / l, x, y0 + h * .55, z - .05, .025, 8, 0x2a2c30, 15); }
+    any = true;
+  }
+  // 尾翼：沿尾箱後緣（kit.d：後緣高度與位置是 x 的二次式，往前 15 cm 的尾箱面高度）
+  if (m.spl && K.d && !K.wing) {
+    const [hw, y0, ky, z0, kz, yf0, kyf] = K.d, yE = x => y0 + ky * x * x, zE = x => z0 + kz * x * x, yF = x => yf0 + kyf * x * x;
+    const yDeck = (x, dz) => yE(x) + (yF(x) - yE(x)) * dz / .15;   // 後緣往前 dz 的尾箱面高度
+    if (m.spl === 1) {   // 低調鴨尾：貼著後緣往上翹 5 cm
+      const n = 24, w = hw * .96, t = taper(n, .12), P = [], N = [], U = [];
+      for (let i = 0; i <= n; i++) { const x = -w + 2 * w * i / n, d = 2 * kz * x, l = Math.hypot(d, 1); P.push([x, yE(x), zE(x)]); N.push([d / l, 0, -1 / l]); U.push([0, 1, 0]); }
+      k.loft(P, N, U, i => { const x = P[i][0], q = t(i), dy = yDeck(x, .15) - yE(x); return [[-.15, dy - .006], [-.06, (dy - .006) * .4 + .02 * q], [.012 + .02 * q, .012 + .04 * q], [.006, -.008]]; }, CARBON, TX.carbon);
+    } else {   // GT 大尾翼：倒裝的弧面翼（迎角 9°）、碳纖維端板、兩片鋁製立柱、後緣的格尼條
+      const span = Math.min(S[0] + .04, hw + .16), zl = z0 + .16, ch = .3, yw = y0 + .3, aoa = .16;
+      const foil = []; for (let i = 0; i <= 14; i++) { const t = (1 - Math.cos(Math.PI * i / 14)) / 2; foil.push([t, .6 * (.2969 * Math.sqrt(t) - .126 * t - .3516 * t * t + .2843 * t ** 3 - .1036 * t ** 4), -.06 * (t < .4 ? (2 * .4 * t - t * t) / .16 : ((1 - .8) + 2 * .4 * t - t * t) / .36)]); }
+      const sec = []; for (const [t, th, cb] of foil) sec.push([t * ch, (cb + th) * ch]); for (let i = foil.length - 2; i > 0; i--) { const [t, th, cb] = foil[i]; sec.push([t * ch, (cb - th) * ch]); }
+      const rot = sec.map(([o, u]) => [o * Math.cos(aoa) - u * Math.sin(aoa), o * Math.sin(aoa) + u * Math.cos(aoa)]);   // 後緣往上
+      const n = 16, P = [], N = [], U = [];
+      for (let i = 0; i <= n; i++) { P.push([-span + 2 * span * i / n, yw, zl]); N.push([0, 0, -1]); U.push([0, 1, 0]); }
+      k.loft(P, N, U, rot, CARBON, TX.carbon);
+      const te = rot[0];
+      k.box(0, yw + te[1] + .011, zl - te[0] - .002, span * 2, .022, .004, 0x1a1b1e, 15);
+      for (const sx of [-1, 1]) {
+        k.prism(sx * (span + .005), 0, 0, [[-(zl + .05), yw - .09], [-(zl - ch - .04), yw - .02], [-(zl - ch - .04), yw + te[1] + .08], [-(zl - .02), yw + .045], [-(zl + .05), yw + .02]], .008, CARBON, TX.carbon, 0, Math.PI / 2, 0);
+        const xs = sx * Math.min(.5, hw * .62), zb = zE(xs);
+        k.prism(xs, 0, 0, [[-(zb + .17), yDeck(xs, .17) - .015], [-(zb + .03), yDeck(xs, .03) - .015], [-(zl - .19), yw - .005], [-(zl - .06), yw - .005]], .012, 0x2a2c30, 15, 0, Math.PI / 2, 0);
+      }
+    }
+    any = true;
+  }
+  // 排氣：1 鈦合金雙出、3 直通管四出（後保險桿下緣、凸出 4 cm）；2 側排管沿側裙到後輪前面出氣
+  if ((m.exh === 1 || m.exh === 3) && R) {
+    const y = Math.max(.14, ry + .07), xs = Math.min(.5, R[1] * .55);
+    const tips = m.exh === 1 ? [[-xs, .046], [xs, .046]] : [[-xs - .06, .052], [-xs + .06, .052], [xs - .06, .052], [xs + .06, .052]];
+    for (const [x, r] of tips) kitTip(k, x, y, kzAt(R, x) - .04, r, .3, m.exh === 1 ? 0xffffff : 0xd8dce2, m.exh === 1 ? TX.ti : 3);
+    any = true;
+  }
+  if (m.exh === 2 && S) {
+    const [sx0, sy0, z0, z1] = S, y = sy0 + .06, r = .042;
+    for (const sx of [-1, 1]) {
+      const x = sx * (sx0 + .04);
+      kitTube(k, [[sx * (sx0 - .1), y - .02, z0 + .05], [x, y, z0 - .08], [x, y, (z0 + z1) / 2], [x, y, z1 + .1], [x + sx * .02, y, z1 + .02]], r, 0xd8dce2, 3);
+      k.box(x, y + r * .55, (z0 + z1) / 2, r * 2.3, r * 1.1, (z0 - z1) * .55, 0x9aa0a6, TX.galv);   // 隔熱罩
+      kitTip(k, x + sx * .025, y, z1 + .01, r * 1.08, .12, 0xffffff, TX.ti, sx * .25);
+    }
+    any = true;
+  }
+  // 底盤霓虹：藏在側裙下緣內側與後保險桿底下，光打在地上（69-v6-customs.js 的點光）
+  if (m.ng && S) {
+    const [sx0, sy0, z0, z1, cy] = S, y = Math.max(.04, Math.min(sy0, cy) - .015), c = NEON_HEX[m.ng];
+    for (const sx of [-1, 1]) k.box(sx * (sx0 - .12), y, (z0 + z1) / 2, .025, .012, (z0 - z1) * .9, c, 8);
+    if (RM) k.box(0, Math.max(.04, ry - .01), kzAt(RM, 0) + .3, RM[1] * .9, .012, .025, c, 8);
+    any = true;
+  }
+  // 量不到的部位（某些車的保險桿是整片鏤空的格柵、車尾是鰭片）：那幾樣照車長車寬擺
+  const miss = {};
+  if (m.bmp && !F) miss.bmp = m.bmp;
+  if ((m.exh === 1 || m.exh === 3) && !R || m.exh === 2 && !S) miss.exh = m.exh;
+  if (m.ng && !S) miss.ng = m.ng;
+  return kitBox(k, id, miss) || any;
+}
+// 程式建模的替身：照車長、車寬、車高擺
+function kitBox(k, id, m) {
+  const c = CARS[id], s = GLB_SPEC[id] || {}, L = c.len, Wd = c.w, H = s.h || 1.35;
+  let any = false;
+  if (m.spl === 1) { k.box(0, H * .74, -L / 2 + .3, Wd * .78, .05, .32, CARBON, TX.carbon, -.28); any = true; }
+  if (m.spl === 2) {
+    const y = H * .74 + .34, z = -L / 2 + .36;
+    k.box(0, y, z, Wd * .94, .05, .36, CARBON, TX.carbon, .08);
+    for (const sx of [-1, 1]) k.box(sx * Wd * .25, y - .18, z + .02, .05, .34, .14, CARBON, TX.carbon).box(sx * Wd * .47, y + .02, z, .02, .2, .42, CARBON, TX.carbon);
+    any = true;
+  }
+  if (m.bmp === 1) { k.box(0, .1, L / 2 - .06, Wd * .86, .03, .24, CARBON, TX.carbon); any = true; }
   if (m.bmp === 2) {
     for (const y of [.32, .6]) k.cyl(0, y, L / 2 + .12, .035, .035, Wd * .82, 8, 0x2a2c30, 15, 0, 0, Math.PI / 2);
     for (const x of [-Wd * .32, 0, Wd * .32]) k.cyl(x, .46, L / 2 + .12, .03, .03, .34, 8, 0x2a2c30, 15);
@@ -129,9 +257,7 @@ function modParts(id, m) {
   if (m.exh === 2) { for (const sx of [-1, 1]) k.cyl(sx * (Wd / 2 + .03), .28, .1, .055, .055, 1.2, 12, 0xd8dce2, 15, Math.PI / 2, 0, 0); any = true; }
   if (m.exh === 3) { for (const sx of [-1, 1]) k.cyl(sx * .14, .3, -L / 2 - .04, .075, .075, .22, 12, 0x1a1a1a, 15, Math.PI / 2, 0, 0); any = true; }
   if (m.ng) { for (const sx of [-1, 1]) k.box(sx * Wd * .44, .1, 0, .03, .02, L * .62, NEON_HEX[m.ng], 8); any = true; }
-  if (!any) return null;
-  const g = new T.Group(), me = new T.Mesh(k.build(), MAT.uber); me.userData.kit = 1; g.add(me);
-  return g;
+  return any;
 }
 
 // ─── 廠房：門在 z = 0，x −18..18、z 0..CD；前段 z < MEZ_Z 挑高 9.6 m，後段是 2 樓夾層（樓板 4.8 m） ───
@@ -659,7 +785,7 @@ function modFxText(k, n, id) {
   if (k === 'sus') return n === 5 ? '開車時按 X 升降車身、按住 X 放開彈跳 1.2 m、按住 X 加 W／A／S／D 單輪起伏。' : `車身下降 ${Math.round(-MOD_FX.sus.rideY[n] * 100)} cm · 重心 −${Math.round((1 - MOD_FX.sus.cog[n]) * 100)}% · ${pct(S0.grip, S1.grip, '抓地')}`;
   if (k === 'bmp') return n === 1 ? '碳纖維前下巴（外觀）。' : `正面撞車時把對方往上鏟 3.5 m/s${n === 3 ? '，尖刺把對方的前輪扎破' : ''}。`;
   if (k === 'exh') return ['', '鈦合金雙出：音色比較亮，偶爾回火。', '側排管：更大聲，常常回火。', '直通管：最大聲，放油門與換檔時幾乎都會噴出雙股藍色回火（點得著地上的汽油）。'][n];
-  if (k === 'tur') return `加速 ×1.22 · 鬆油門有洩壓閥的口哨聲`;
+  if (k === 'tur') return `${pct(S0.eng, S1.eng, '加速')} · ${pct(S0.kmh, S1.kmh, '極速')} · 鬆油門有洩壓閥的口哨聲`;
   if (k === 'hn' || k === 'smk' || k === 'hl' || k === 'ng' || k === 'nm') return `${GRP[k].lv[n][0]}（外觀與聲音）。`;
   if (k === 'pf') return ['', '金屬漆：細細的金屬顆粒，反光比較銳利。', '消光漆：沒有清漆的霧面。', '珠光漆：斜看會泛出另一種顏色。', '電鍍鏡面：整台車像一面鏡子。'][n];
   if (k === 'bomb') return n === 1 ? '下一個發動這台車引擎的人（不是你）：嗶嗶嗶 0.5 秒後整台車引爆。停好車走遠一點，偷車賊會上鉤。' : '打開手機 → 聯絡人 → 鐵手強尼 → 引爆車載炸彈，隨時引爆。';

@@ -45,6 +45,39 @@ Kit.prototype.prism = function (x, y, z, pts, depth, color, mat = 2, rx = 0, ry 
 Kit.prototype.torus = function (x, y, z, R, r, seg, color, mat = 15, rx = Math.PI / 2, ry = 0, rz = 0, arc = Math.PI * 2, rseg = 6) {
   return this.add(new T.TorusGeometry(R, r, rseg, seg, arc), color, mat, tf(x, y, z, rx, ry, rz));
 };
+// 沿一串點擠出剖面：P[i] 是路徑上的點，N[i]、U[i] 是那一點剖面平面的兩軸（「外」與「上」，單位向量），sec(i) 是第 i 點的剖面
+// [外, 上] 封閉多邊形（陣列也可以，每點一樣；點數要相同）。剖面每條邊各自一組頂點（稜角是硬的）、沿路徑平滑，兩端封口
+Kit.prototype.loft = function (P, N, U, sec, color, mat = 2) {
+  const n = P.length, S = typeof sec === 'function' ? sec : () => sec, pos = [], nor = [];
+  const R = [], E = [];
+  for (let i = 0; i < n; i++) {
+    const s = S(i); let A = 0;
+    for (let j = 0; j < s.length; j++) { const a = s[j], b = s[(j + 1) % s.length]; A += a[0] * b[1] - b[0] * a[1]; }
+    const sg = A < 0 ? -1 : 1, p = P[i], o = N[i], u = U[i];
+    R.push(s.map(([a, b]) => [p[0] + o[0] * a + u[0] * b, p[1] + o[1] * a + u[1] * b, p[2] + o[2] * a + u[2] * b]));
+    // 邊的外法線：逆時針多邊形的邊 (da, db) 往外是 (db, −da)
+    E.push(s.map((a, j) => { const b = s[(j + 1) % s.length], da = (b[0] - a[0]) * sg, db = (b[1] - a[1]) * sg, x = o[0] * db - u[0] * da, y = o[1] * db - u[1] * da, z = o[2] * db - u[2] * da, l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; }));
+  }
+  const tri = (a, b, c, na, nb, nc) => {
+    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    const f = (uy * vz - uz * vy) * (na[0] + nb[0] + nc[0]) + (uz * vx - ux * vz) * (na[1] + nb[1] + nc[1]) + (ux * vy - uy * vx) * (na[2] + nb[2] + nc[2]);
+    if (f < 0) { [b, c] = [c, b]; [nb, nc] = [nc, nb]; }
+    pos.push(...a, ...b, ...c); nor.push(...na, ...nb, ...nc);
+  };
+  const m = R[0].length;
+  for (let i = 0; i + 1 < n; i++) for (let j = 0; j < m; j++) {
+    const j1 = (j + 1) % m, na = E[i][j], nb = E[i + 1][j];
+    tri(R[i][j], R[i][j1], R[i + 1][j1], na, na, nb); tri(R[i][j], R[i + 1][j1], R[i + 1][j], na, nb, nb);
+  }
+  for (const [i, k] of [[0, 1], [n - 1, n - 2]]) {
+    const c = R[i].reduce((a, q) => [a[0] + q[0] / m, a[1] + q[1] / m, a[2] + q[2] / m], [0, 0, 0]);
+    let t = [P[i][0] - P[k][0], P[i][1] - P[k][1], P[i][2] - P[k][2]]; const l = Math.hypot(...t) || 1; t = t.map(v => v / l);
+    for (let j = 0; j < m; j++) tri(c, R[i][j], R[i][(j + 1) % m], t, t, t);
+  }
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+  return this.add(g, color, mat);
+};
 // 號誌燈的遮光罩：沿 +z 伸出的半開圓筒（下方開口 gap 弧度），雙面要另外補內壁，所以做成有厚度的兩層
 Kit.prototype.visor = function (x, y, z, r, len, color, mat = 2, ry = 0, gap = 1.6) {
   const th = Math.PI * 2 - gap, st = Math.PI / 2 + gap / 2;   // CylinderGeometry 的 θ 從 +z 起算；轉成軸朝 z 後開口朝 -y
@@ -62,6 +95,7 @@ Kit.prototype.visor = function (x, y, z, r, len, color, mat = 2, ry = 0, gap = 1
 //   20 混凝土（細斑、氣孔、雨水垂流、模板接縫）  21 塗漆的鐵（掉漆、鏽斑與鏽水痕、細刮痕）  22 鍍鋅鋼（鋅花、霧面）
 //   23／24／25 木頭，木紋沿 x／y／z（年輪、纖維、髒污）  26 混凝土磚（40×20 cm、灰縫）  27 紅磚（23×7.6 cm、交丁）
 //   28 石材（大塊石、斑點）  29 鋼板與立邊屋頂（壓紋、垂流的髒污）  30 橡膠、粗塑膠（細顆粒）
+//   31 碳纖維（2×2 斜紋、清漆，66-chrome 的改裝件）  32 燒鈦（排氣尾管的熱變色，金→紫→藍；不看頂點色）
 const KX_TEX = /* glsl */`
 varying vec3 vP, vNo;
 float kxAA(vec2 q){ return 1. - smoothstep(.25, .7, max(fwidth(q.x), fwidth(q.y))); }
@@ -137,6 +171,16 @@ void texMat(int m, vec3 p, vec3 n, inout vec3 alb, inout float rough, inout floa
     alb = mix(alb, vec3(.1, .1, .095), .25 * fbm3(p * .9 + 4.));
     alb *= 1. - .35 * vert * kxStreak(p, uv, 5.);
     rough = .55; metal = .35; envK = .35;
+  } else if (m == 31) {   // 碳纖維：每束 6 mm 的 2×2 斜紋（每兩格換方向），兩個方向的纖維反光不同、束的斷面是圓的；外面一層清漆
+    vec2 q = uv / .006, c = floor(q), f = fract(q);
+    float d = mod(floor((c.x + c.y) * .5), 2.), a = d > .5 ? f.y : f.x, aa = kxAA(q);
+    alb *= mix(1.3, (d > .5 ? 1.9 : .8) * (.55 + .45 * sin(a * 3.1416)), aa);
+    rough = .2; envK = .45;
+  } else if (m == 32) {   // 燒鈦：沿管子方向（z）的熱變色
+    float t = fract(p.z * 3.2 + .12 * fbm3(p * 9.));
+    vec3 a = vec3(.62, .5, .3), b = vec3(.36, .2, .5), c = vec3(.2, .34, .62);
+    alb = t < .5 ? mix(a, b, t * 2.) : mix(b, c, t * 2. - 1.);
+    rough = .2; metal = 1.; envK = .9;
   } else {   // 橡膠、粗塑膠：細顆粒、灰塵讓深色也看得出起伏
     alb = mix(alb, vec3(.075, .072, .068), .3 * fbm3(p * 4.) + .25 * up);
     alb *= .88 + .2 * n2(uv * 60.) * kxAA(uv * 60.);
@@ -150,4 +194,4 @@ if (UBERX_VS === UBER_VS || !UBERX_FS.includes('texMat(m,')) console.warn('kitx:
 function mkUberX(o) { const m = mkUber(o); m.vertexShader = UBERX_VS; m.fragmentShader = UBERX_FS; return m; }
 MAT.ux = mkUberX(); MAT.uxI = mkUberX({ inst: true });
 // 材質代號（Kit 的 mat 參數）
-const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30 };
+const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32 };

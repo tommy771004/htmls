@@ -475,7 +475,7 @@ const JOB_OPTS = [['eng', 1, 4], ['pf', 1, 4], ['spl', 1, 2], ['sus', 1, 4], ['n
 function v6JobOffer() {
   const pool = CAR_ORDER.filter(id => CARS[id] && CARS[id].glb && !CARS[id].bike && CARS[id].paintable && !motors.owned.includes(id));
   if (!pool.length) return;
-  const id = pool[Math.floor(Math.random() * pool.length)], opts = JOB_OPTS.slice(), req = [{ k: 'fix' }], P = PAINTS(id);
+  const id = pool[Math.floor(Math.random() * pool.length)], opts = JOB_OPTS.filter(([k]) => modCan(id, k)), req = [{ k: 'fix' }], P = PAINTS(id);
   req.push({ k: 'pc', n: P[1 + Math.floor(Math.random() * (P.length - 1))][0] });
   for (let i = 0; i < 2; i++) { const [k, a, b] = opts.splice(Math.floor(Math.random() * opts.length), 1)[0]; req.push({ k, n: a + Math.floor(Math.random() * (b - a + 1)) }); }
   const dest = JOB_DEST[Math.floor(Math.random() * JOB_DEST.length)], d = APT_DOORS[dest];

@@ -203,7 +203,7 @@ async function desktop() {
       return { rows, open: C.panel().open, eng: v.eng / e0, paid: c0 - nc.motors.cash };
     });
     check((await nc(() => window.__nc.vehicles[0].paint)) !== p0c && cw.rows.includes('引擎調校') && cw.rows.includes('開車離開') && cw.open, `CHROME WORKS 開進改裝廠、改裝面板、換色（${cw.rows.length} 列）`);
-    check(Math.abs(cw.eng - 1.08) < 1e-6 && cw.paid === 2500, `EMS 1 級：加速 ×${cw.eng.toFixed(3)}、付 ${cw.paid}`);
+    check(Math.abs(cw.eng - 1.03) < 1e-6 && cw.paid === 2500, `EMS 1 級：加速 ×${cw.eng.toFixed(3)}、付 ${cw.paid}`);
     await nc(() => window.__nc.chrome.choose('開車離開'));
     await page.waitForFunction(() => window.__nc.player.where === 'out' && window.__nc.player.mode === 'drive', null, { timeout: 20000, polling: 100 });
     await page.waitForTimeout(100);

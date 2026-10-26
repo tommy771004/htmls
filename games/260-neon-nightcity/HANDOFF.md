@@ -184,6 +184,7 @@
   - 道具：Car lift（Sargone，CC BY）https://sketchfab.com/3d-models/car-lift-1b4ae76820294373bc19ee16b9a4db61 ；Tire Rack（3ddominator，CC BY）https://sketchfab.com/3d-models/tire-rack-3e4fdc69fe5f428082242a32a343c28a ；Tool Cart（jimbogies，CC BY）https://sketchfab.com/3d-models/tool-cart-16ceecf05f3e453e96c050f4c43f86b5 ；Engine Hoist（dinoxwave，CC BY）https://sketchfab.com/3d-models/engine-hoist-engine-crane-cca42a7a1eaa47f187e9206991c5b4e4 ；Workbench（Bársh，CC BY）https://sketchfab.com/3d-models/workbench-0a49e3b3b9624a2bb21eeeb473397873 ；Air Compressor XYZ（Sandokan，CC BY）https://sketchfab.com/3d-models/air-compressor-xyz-7e024388f87145cfaadad9e521bfc073
   - 下載後放進 gitignore 的 `.cache/props/`，在 `tools/props.mjs` 加一組（照 `carlift`／`toolcart` 的做法進 `interior` 組），再在 `66-chrome.js` 用 `propSwap('chrome', 替身, id, 位置)` 擺上去；作者與授權記進 `assets/260/CREDITS.md`。
 - **撞擊扣血調輕了**：v2 規格的 ΔHP = (J/M − 3.5)·18 與 70%／40%／15% 的階段讓車撞兩下就冒煙，改成 (J/M − 6)·9 與 60% 碎窗／50% 白煙／30% 黑煙／12% 起火（`68-gta.js` 的 `CRASH`、`STAGE`）。`tools/check-gta-v2.mjs` 的階段測試跟著改了門檻。
+- **外觀件是照車身量的程式建模**（`66-chrome.js` 的 `kitFit`，輪廓由 `tools/kitfit.mjs` 量好寫進 `cars.json` 的 `kit`）：沒有去找外觀套件模型，直接改成照車身量的程式建模。新排氣管和原廠尾管並存（原廠的拆不掉，是車身網格的一部分）；原廠有尾翼或量不到尾箱後緣的車不能裝尾翼（`modCan`，尾翼偵測錯的車在 kitfit 的 `WING` 手動覆寫），舊存檔已裝的讀檔時拿掉；量不到的部位（evija 車頭、p9x8 車尾、energ 側面）與以檔案開啟時退回方塊樣式（`kitBox`）。性能套件全上滿約 ×1.24（`MOD_FX`、`TRN_K`），氮氣 ×1.6 另外乘上去，沒有調。
 
 ## 第七部曲（夜店、賭場、地堡，`neon_nightcity_gta_v_1.md`）
 

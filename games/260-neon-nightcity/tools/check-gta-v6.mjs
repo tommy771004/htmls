@@ -34,13 +34,14 @@ try {
     return {
       cats: C.CATS.map(c => c.name), eng: [1, 2, 3, 4].map(n => +(st({ eng: n }).eng / S0.eng).toFixed(3)), top4: +(st({ eng: 4 }).kmh / S0.kmh).toFixed(4),
       tur: +(st({ tur: 1 }).eng / S0.eng).toFixed(3), brk: [1, 2, 3].map(n => +(st({ brk: n }).brk / S0.brk).toFixed(2)), spl: [1, 2].map(n => +(st({ spl: n }).grip - S0.grip).toFixed(2)),
-      arm: [1, 3, 5].map(n => +(st({ arm: n }).hp / S0.hp).toFixed(2)), shift: [0, 1, 2, 3].map(n => st({ trn: n }).shift), rev: st({ trn: 3 }).rev, cog: st({ sus: 4 }).cog,
+      arm: [1, 3, 5].map(n => +(st({ arm: n }).hp / S0.hp).toFixed(2)), full: +(st({ eng: 4, tur: 1, trn: 3 }).eng / S0.eng).toFixed(3), fullTop: +(st({ eng: 4, tur: 1, trn: 3 }).kmh / S0.kmh).toFixed(3), shift: [0, 1, 2, 3].map(n => st({ trn: n }).shift), rev: st({ trn: 3 }).rev, cog: st({ sus: 4 }).cog,
     };
   });
   if (c1) {
     check(c1.cats.length === 13, `13 大類（${c1.cats.join('、')}）`);
-    check(c1.eng.join() === '1.08,1.16,1.24,1.32' && c1.top4 === 1.05, `EMS 加速 ×${c1.eng.join('／')}、4 級極速 ×${c1.top4}`);
-    check(c1.tur === 1.22 && c1.brk.join() === '1.12,1.24,1.36', `渦輪加速 ×${c1.tur}、煞車 ×${c1.brk.join('／')}`);
+    check(c1.eng.join() === '1.03,1.06,1.09,1.12' && c1.top4 === 1.02, `EMS 加速 ×${c1.eng.join('／')}、4 級極速 ×${c1.top4}`);
+    check(c1.full < 1.25 && c1.fullTop <= 1.031, `引擎、渦輪、變速箱全上滿：加速 ×${c1.full}、極速 ×${c1.fullTop}（不像火箭）`);
+    check(c1.tur === 1.08 && c1.brk.join() === '1.12,1.24,1.36', `渦輪加速 ×${c1.tur}、煞車 ×${c1.brk.join('／')}`);
     check(c1.spl.join() === '0.3,0.6' && c1.arm.join() === '1.2,1.6,2', `尾翼 μ +0.03／+0.06（grip +${c1.spl.join('／')}）、裝甲耐久 ×${c1.arm.join('／')}`);
     check(c1.shift.join() === '0.35,0.25,0.15,0.08' && c1.rev === 1.45 && c1.cog === .7, `換檔延遲 ${c1.shift.join('→')} 秒、倒車 ×${c1.rev}、降低 4 階重心 ×${c1.cog}`);
   }
@@ -66,7 +67,7 @@ try {
     check(/開進 CHROME WORKS/.test(c2.ctx || '') && c2.where === 'chrome' && /改裝/.test(c2.ctx2 || ''), `門口開進改裝廠、走到馬力機旁改裝（${c2.ctx2}）`);
     check(c2.rows.length === 14 && c2.rows[13] === '開車離開', `面板 13 類＋開車離開`);
     check(c2.cam['排氣管與喇叭'] === 'rear' && c2.cam['引擎調校'] === 'engine' && c2.cam['輪胎與燒胎煙'] === 'wheel' && c2.cam['擾流尾翼'] === 'wing', `鏡頭錨點 ${JSON.stringify(c2.cam)}`);
-    check(c2.ems[0] === 1.16 && c2.ems[1] === 5000, `EMS 2 級：加速 ×${c2.ems[0]}、付 ${c2.ems[1]}`);
+    check(c2.ems[0] === 1.06 && c2.ems[1] === 5000, `EMS 2 級：加速 ×${c2.ems[0]}、付 ${c2.ems[1]}`);
     const want = Math.round(300 * .7 + 35 * 6 + 80 * 4 + 150);
     check(c2.locked === 13 && c2.cost === want && c2.fixed, `受損時其他 13 類鎖住、估價 ${c2.cost}（公式 ${want}：${JSON.stringify(c2.P)}）、修好`);
   }
