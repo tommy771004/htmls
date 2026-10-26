@@ -50,12 +50,19 @@ const CAST = {
   otis: { name: '奧帝斯', role: '隔壁聽無線電的人', look: { female: false, top: 0x4a5a3a, bot: 0x2a2c30, hair: 0, coat: 0, hat: 1, scale: .98 } },
   parole: { name: '假釋官', role: '霍布斯 · 第九分局轄區', look: { female: false, top: 0x1d2330, bot: 0x16181c, hair: 1, coat: 1, hat: 0, scale: 1.02 } },
   inmate: { name: '獄友', role: '', look: { female: true, top: 0xd8782a, bot: 0xd8782a, hair: 0, longHair: 0, coat: 0, skirt: 0, scale: .98 } },
-  rosa: { ci: ROSA }, dane: { ci: DANE }, jax: { ci: CREW.findIndex(c => c.id === 'jax') },
+  biker: { name: '鐵鏽騎士', role: '', look: { female: false, top: 0x2a1c14, bot: 0x1a1a1e, hair: 0, coat: 1, hat: 0, scale: 1.04 } },
+  pit: { name: '擂台對手', role: '', look: { female: true, top: 0x8a1c22, bot: 0x18181c, hair: 0, longHair: 0, coat: 0, skirt: 0, scale: 1.02 } },
+  hall: { name: '霍爾', role: '第九分局副局長', look: { female: false, top: 0x1a2232, bot: 0x14161c, hair: 0, coat: 1, hat: 1, scale: 1.03 } },
+  oakes: { name: '蒙洛', role: '「大橡」· LAZARUS 老闆', look: { female: false, top: 0x1c1a20, bot: 0x16151a, hair: 0, coat: 1, hat: 0, scale: 1.05, glow: 0xd8b04a, glowI: .35 } },
+  twade: { name: '泰倫斯', role: '「T-Wade」· 唱片公司合夥人', look: { female: false, top: 0xe8e2d4, bot: 0x2a3a5a, hair: 1, coat: 0, hat: 1, scale: 1 } },
+  jada: { name: '潔妲', role: 'STEREO', look: { female: true, top: 0xb83a8a, bot: 0x1a1a22, hair: 1, longHair: 1, coat: 0, skirt: 0, scale: .96, glow: 0xff5ad0, glowI: .6 } },
+  kiki: { name: '奇奇', role: 'STEREO', look: { female: true, top: 0x3ad0c8, bot: 0x22222a, hair: 2, longHair: 0, coat: 1, skirt: 1, scale: .94, glow: 0x5af0ff, glowI: .6 } },
+  rosa: { ci: ROSA }, dane: { ci: DANE }, jax: { ci: CREW.findIndex(c => c.id === 'jax') }, kael: { ci: CREW.findIndex(c => c.id === 'kael') }, vance: { ci: CREW.findIndex(c => c.id === 'vance') },
 };
 // 雙主角的掃描身體（blender/scan_people.py 的 rosa、dane：renderpeople 的掃描綁到 UBC 骨架）：登記好再重看一次站在原地的兩人
 Object.assign(SCAN_SEX, { rosa: 'Female', dane: 'Male' });
 crewLook();
-const CAST_IDS = Object.keys(CAST);
+const CAST_IDS = Object.keys(CAST), CAST_CI = CAST_IDS.filter(id => CAST[id].ci !== undefined);
 const castCrowd = crowd(CAST_IDS.length);
 scene.add(castCrowd.mesh);
 const castName = id => { const c = CAST[id]; return c.ci !== undefined ? CREW[c.ci].zh : c.name; };
@@ -67,7 +74,7 @@ function castLook(k, id) {
 }
 
 // ─── 存檔與狀態 ───
-const ORDER = ['P-1', 'P-2', 'P-3', '1-1', '1-2', '1-3', '1-4', '1-5', '2-1'];
+const ORDER = ['P-1', 'P-2', 'P-3', '1-1', '1-2', '1-3', '1-4', '1-5', 'next'];   // 'next'：還沒寫的下一章（storyAdd 插在它前面）
 let S = null;   // motors.story
 function storyInit() {
   if (!storyOn()) return;
@@ -201,15 +208,22 @@ const MISSIONS = [
 ];
 const MS = Object.fromEntries(MISSIONS.map(m => [m.id, m]));
 for (const m of MISSIONS) m.sw ||= [m.who];
+// 之後各章的檔案（69-w1-ch2.js…）把任務接在後面
+function storyAdd(list) { for (const m of list) { m.sw ||= [m.who]; m.bonus ||= []; MISSIONS.push(m); MS[m.id] = m; if (!ORDER.includes(m.id)) ORDER.splice(ORDER.length - 1, 0, m.id); } }
 const toLs = s => { const [x, z] = toL(s.x, s.z); return { x, z, yaw: s.yaw || 0 }; };
 
 // ─── 起點與任務卡 ───
-const storyNext = () => S && MS[S.m] ? MS[S.m] : null;
+// 下一個要玩的任務：存檔記的是還沒寫好的下一章（'next'）時，新的章節接上後改成第一個沒完成的任務
+function storyNext() {
+  if (!S) return null;
+  if (!MS[S.m] && S.m !== 'end') { const f = ORDER.find(id => MS[id] && !S.done.includes(id)); if (f) S.m = f; }
+  return MS[S.m] || null;
+}
 // 任務框（沒有任務在跑時）與地圖目標（60-venues.js 的 QUEST[5]、QUEST[6]）
 function storyIdleText() {
   if (!S) return '';
   const m = storyNext();
-  if (!m) return S.m && S.m !== 'end' ? '第二章即將開放 · 城市是你的' : '';
+  if (!m) return S.m !== 'end' ? '下一章即將開放 · 城市是你的' : '';
   return `主線 ${m.id}「${m.title}」· ${storyWhere(m)}`;
 }
 function storyWhere(m) { const p = m.at(); return districtW(p.x, p.z).split(' ')[0]; }
@@ -253,7 +267,7 @@ ctxHooks.unshift(p => {
 const startRing = neonRing(0xffcf4a, 1.05);
 
 // ─── 進行中 ───
-const STEP = {};
+const STEP = {}, storyCleanups = [], storyTicks = [];   // 各章的任務收尾與每幀（運鈔車、快艇……）
 function storyStart(m, ck = 0) {
   if (side.act) sideEnd();
   const a = {
@@ -271,6 +285,7 @@ function storyStart(m, ck = 0) {
     a.hp0 = life.hp;
     sideStart(a);
     if (m.giver) a.npc[m.giver] = m.giverAt();
+    if (m.cast) for (const id in m.cast) a.npc[id] = m.cast[id]();
     storyAdvance(a);
   };
   if (crew.cur !== m.who || player.where !== 'out' || Math.hypot(pX() - m.at().x, pZ() - m.at().z) > 12) transition(go); else go();
@@ -290,7 +305,9 @@ function storyStep(a, dt) {
   if (a.hpPrev != null && hp < a.hpPrev) a.hurt += a.hpPrev - hp;
   a.hpPrev = hp;
   a.peak = Math.max(a.peak, W.stars);
+  if (player.veh) (a.vehs ||= new Set()).add(player.veh);
   palStep(a, dt);
+  for (const f of storyTicks) f(a, dt);
   const s = a.cur.s;
   if (s.lim && a.st > s.lim) { storyFail(a, '時間到了'); return; }
   if (STEP[s.type].step(a, s, a.cur, dt)) storyAdvance(a);
@@ -314,6 +331,7 @@ function storyClear(a) {
   storyDropCar(a);
   if (say.on) sayEnd(false);
   cardOff();
+  for (const f of storyCleanups) f(a);
   a.npc = {};
 }
 function storyPass(a) {
@@ -430,10 +448,11 @@ STEP.fight = {
     fRoom(s.n);
     for (let i = 0; i < s.n; i++) {
       const t = i / s.n * Math.PI * 2, x = P.x + Math.sin(t) * s.r, z = P.z + Math.cos(t) * s.r;
-      const f = fSpawn('gang', x, z, Math.atan2(P.x - x, P.z - z), { gun: s.brawl ? 'pistol' : guns[i % guns.length], brawl: s.brawl });
+      const f = fSpawn('gang', x, z, Math.atan2(P.x - x, P.z - z), { gun: s.brawl ? 'pistol' : guns[i % guns.length], brawl: s.brawl, esc: s.esc });   // esc：便衣（一身黑、和警察同一邊）
       if (!f) continue;
-      f.grp = c.grp; f.calm = !s.brawl;
-      if (s.brawl) { f.hp = 70; fighters.look(f.k, { ...castLook(f.k, s.cast || 'inmate'), r: rng(1300 + i) }); }
+      f.grp = c.grp; f.calm = !s.brawl && !s.hot;   // hot：一出來就開打
+      if (s.brawl) f.hp = s.hp || 70; else if (s.hp) f.hp = s.hp;
+      if (s.brawl || s.cast) fighters.look(f.k, { ...castLook(f.k, s.cast || 'inmate'), r: rng(1300 + i), ...(s.tint ? { top: lin(s.tint[i % s.tint.length]) } : {}) });
     }
     if (s.npc) { const [lx, lz] = toL(P.x, P.z); a.npc[s.npc.id] = spotW({ x: lx + s.npc.dx, z: lz, yaw: -Math.PI / 2 }); }
   },
@@ -540,13 +559,13 @@ function palStep(a) {
 function storyCar(a, id, at, name, near) {
   const sp = rnLaneSpot(at.x, at.z, near ? 4 : 10);
   const v = buildVeh(TYPES[id] ? id : 'tiara', sp.x, sp.z, sp.yaw, 0, Math.random(), 2, 'story');   // 車流的車型（30-vehicles.js 的 TYPES）
-  v.y = spawnY(v.x, v.z); v.name = name; poseVehicle(v);
+  v.y = spawnY(v.x, v.z); v.name = name; v.storyOwn = 1; poseVehicle(v);
   a.car = v; a.carHp0 = v.hp;
 }
 function storyDropCar(a, keep) {
   const v = a.car; if (!v) return;
   a.car = null;
-  if (keep || player.veh === v) return;
+  if (keep || player.veh === v || !v.storyOwn) return;   // 借用的載具（碼頭的快艇）留在原地
   dropVeh(v);
 }
 
@@ -580,6 +599,7 @@ function storyEv(kind, x, y) {
   if (kind === 'kill') { a.kills++; if (x) a.heads++; if (y) a.melee++; }
   if (kind === 'rob' && a.robC) a.robC.done = true;
   if (kind === 'clerk') a.clerkHit = true;
+  if (kind === 'truck' && a.truckC) a.truckC.open = true;   // 69-events.js 的 truckOpen：主線運鈔車的後門炸開了
 }
 
 // ─── 腳鐐與警用掃描器 ───
@@ -652,7 +672,7 @@ function storyUpdate(dt) {
     castCrowd.place(k, q.x, footY(q.x, q.z), q.z, d < 7 ? Math.atan2(pX() - q.x, pZ() - q.z) : q.yaw);
   });
   // 主線的配角站出來時，同一個人的閒置身體（69-crew.js 的 crewNpc）收起來
-  for (const id of ['rosa', 'dane', 'jax']) { const ci = CAST[id].ci, st = crew.st[ci]; if (ci === crew.cur || a && a.pal === ci) continue; const on = !!want[id]; if (on && st.where === 'out') st.where = 'cast'; else if (!on && st.where === 'cast') st.where = 'out'; }
+  for (const id of CAST_CI) { const ci = CAST[id].ci, st = crew.st[ci]; if (ci === crew.cur || a && a.pal === ci) continue; const on = !!want[id]; if (on && st.where === 'out') st.where = 'cast'; else if (!on && st.where === 'cast') st.where = 'out'; }
   storyChip(dt);
   storyRetryAsk();
   if (!a && !life.dead && !fading && !crew.sw && !dlg.open && !S.retry && S.back) storyBack();
@@ -743,6 +763,7 @@ const storyApi = {
     else if (s.type === 'rob') { if (a.robC) a.robC.done = true; }
     else if (s.type === 'leave') { const o = VENUES[player.where] && VENUES[player.where].out; setWhere('out'); if (o) { player.x = o.x; player.z = o.z; } }
     else if (s.type === 'lose') { wantedClear('reset'); c.had = true; }
+    else if (STEP[s.type].skip) STEP[s.type].skip(a, s, c);   // 各章自己的步驟
     return s.type;
   },
   // 一路跳到任務結束（測試：每一步都 skip、讓它跑幾幀）

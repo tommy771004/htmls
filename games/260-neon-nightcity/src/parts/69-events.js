@@ -23,7 +23,8 @@ function truckSpawn(why) {
 function truckRoute(tk) {
   const v = tk.v, c = [];
   let tx, tz;
-  if (tk.flee) { [tx, tz] = fleeNode(v.x, v.z, 150, 400); tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1; return; }   // 69-street.js 的逃犯車：往遠離玩家的路口開
+  if (tk.flee) { [tx, tz] = fleeNode(v.x, v.z, 150, 400); tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1; return; }
+  if (tk.dest) { tk.route = routeTo(v.x, v.z, tk.dest.x, tk.dest.z); tk.k = 1; return; }   // 69-w1-ch2.js 的主線運鈔車：開到指定的地方停下   // 69-street.js 的逃犯車：往遠離玩家的路口開
   for (const n of RN.nodes) { const d = Math.hypot(n.x - v.x, n.z - v.z); if (d > 150 && d < 400) c.push([n.x, n.z]); }
   [tx, tz] = c[Math.floor(Math.random() * c.length)];
   tk.route = routeTo(v.x, v.z, tx, tz); tk.k = 1;
@@ -32,7 +33,7 @@ function truckDrive(tk, dt) {
   const v = tk.v;
   if (player.veh === v) { tk.state = 'taken'; return; }   // 玩家自己開走了
   if (tk.state !== 'drive' || v.dead) { if (!v.dead) driveVehicle(v, { thr: 0, brk: 1, steer: 0, hb: false }, dt); return; }
-  if (tk.k >= tk.route.length) truckRoute(tk);
+  if (tk.k >= tk.route.length) { if (tk.dest && tk.route) { tk.state = 'park'; return truckDrive(tk, dt); } truckRoute(tk); }
   // 目標點往行車方向的右側（這座城市靠右行駛）偏一條車道；逃犯車被追時三不五時切到對向車道逆向開
   if (tk.flee && (tk.wrongT = (tk.wrongT ?? 6) - dt) <= 0) { tk.wrong = !tk.wrong && Math.hypot(v.x - pX(), v.z - pZ()) < 90; tk.wrongT = tk.wrong ? 4 + Math.random() * 3 : 7 + Math.random() * 7; }
   const [ax, az] = tk.route[tk.k - 1], [bx, bz] = tk.route[tk.k];
@@ -63,6 +64,7 @@ function evBlast(x, z, r, mine) {
 function truckOpen(tk, k, mine) {
   const v = tk.v;
   tk.state = 'open';
+  if (tk.story) { if (mine) addHeat(CRIME.explode, 3); sparks(v.x - Math.sin(v.yaw) * v.len / 2, 1.2, v.z - Math.cos(v.yaw) * v.len / 2, 30, 6); stockShock('IVLT'); storyEv('truck'); return; }   // 主線 2-3：車上只有硬碟（69-w1-ch2.js）
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx, n = 3, each = Math.round(tk.cash * k / n / 100) * 100;
   for (let s = 0; s < n; s++) {
     const x = v.x - fx * (v.len / 2 + 1.2 + s * .7) + rx * (s - 1) * 1.1, z = v.z - fz * (v.len / 2 + 1.2 + s * .7) + rz * (s - 1) * 1.1;
@@ -73,6 +75,10 @@ function truckOpen(tk, k, mine) {
   stockShock('IVLT');
   toast(k < 1 ? '運鈔車炸毀了，燒剩的錢袋掉在路上' : '後車門炸開了：撿錢袋');
   newsAdd(k < 1 ? '鐵庫保全運鈔車遭炸毀' : '鐵庫保全運鈔車遇劫', `${district(...toL(pX(), pZ())).split(' ')[0]}街頭傳出爆炸，現金散落一地，警方封鎖現場。`);
+}
+function truckDrop(tk) {
+  if (player.veh !== tk.v) { const i = vehicles.indexOf(tk.v); if (i >= 0) vehicles.splice(i, 1); scene.remove(tk.v.g); tk.v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
+  if (ev.truck === tk) { ev.truck = null; ev.t = 150 + Math.random() * 90; }
 }
 let bagGeo = null;
 function bagMesh(x, z) {
@@ -93,10 +99,7 @@ function evUpdate() {
     if (tk.v.dead && tk.state !== 'open') truckOpen(tk, .6, !!tk.v.byP);
     // 太遠、開太久沒人理，或搶完人走遠了：收掉
     const d = Math.hypot(tk.v.x - pX(), tk.v.z - pZ());
-    if (d > 320 || tk.state === 'drive' && tk.t > 300 && d > 120 || tk.state === 'open' && !ev.bags.length && d > 80) {
-      if (player.veh !== tk.v) { const i = vehicles.indexOf(tk.v); if (i >= 0) vehicles.splice(i, 1); scene.remove(tk.v.g); tk.v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
-      ev.truck = null; ev.t = 150 + Math.random() * 90;
-    }
+    if (!tk.story && (d > 320 || tk.state === 'drive' && tk.t > 300 && d > 120 || tk.state === 'open' && !ev.bags.length && d > 80)) truckDrop(tk);   // 主線的運鈔車由任務收
   } else if (out && !W.stars && !side.act && !ev.cur && started && !life.dead && (ev.t -= slowmo.raw) <= 0) { if (!evPick()) ev.t = 20; }   // 69-street.js 挑運鈔車或街頭事件
   for (const b of [...ev.bags]) {
     b.t += dt; b.m.rotation.y += dt * .6;

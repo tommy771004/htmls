@@ -313,7 +313,7 @@ function step(dt) {
   vehicles.forEach(poseVehicle);
   if (player.where === 'club' && quest.n === 4 && player.dance && Math.abs(player.x) < 6.2 && player.z > 12.8 && player.z < 25.2) {
     quest.danceT += dt;
-    if (quest.danceT > 5) { setQuest(5); toast('Marlo 說得對，這裡的低音值得淋一場雨'); earn(250000, 'Juno 托人送來的謝禮'); }
+    if (quest.danceT > 5) { setQuest(5); toast('Marlo 說得對，這裡的低音值得淋一場雨'); if (!storyOn()) earn(250000, 'Juno 托人送來的謝禮'); }   // 主線開著時是 3-1，照主線的報酬表發
   }
   updateCamera(dt, spd);
   updateCrowds(curScene);

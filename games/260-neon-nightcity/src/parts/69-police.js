@@ -653,7 +653,7 @@ function policeUpdate(dt) {
     W.visT -= dt;
     if (W.visT <= 0) { W.visT = .15; W.seen = sees(); }
     if (W.seen) { W.lkp = { x: pX(), z: pZ() }; W.evade = 0; W.lastVeh = player.veh; }
-    else { W.evade += dt; if (W.evade > EVADE[W.stars - 1]) wantedClear('evaded'); }
+    else if (!storyNoEvade()) { W.evade += dt; if (W.evade > EVADE[W.stars - 1]) wantedClear('evaded'); }   // 69-w1-ch2.js 的 2-4：腳鐐訊號被追蹤，躲起來也不會消星
   }
   const s = W.stars;
   if (s > 0 && !life.dead) {

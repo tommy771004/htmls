@@ -211,7 +211,7 @@ function raceFinish(a) {
   const best = S.race[R.id], rec = !best || t < best, first = place === 1 && !S.win.includes(R.id);
   if (rec) S.race[R.id] = Math.round(t * 10) / 10;
   if (place === 1 && first) S.win.push(R.id);
-  const pay = place === 1 ? R.prize * (first ? 1.5 : 1) : place === 2 ? R.prize * .4 : place === 3 ? R.fee : 0;
+  const pay = (place === 1 ? R.prize * (first ? 1.5 : 1) : place === 2 ? R.prize * .4 : place === 3 ? R.fee : 0) * storyRaceK();   // 69-w2-ch3.js：3-5 的 MV 上片之後 ×1.2
   sideEnd();
   if (pay) motors.cash += Math.round(pay); saveMotors();
   sideDone(place === 1 ? 'RACE WON' : 'FINISHED', `街頭賽 · ${R.name}`, [['名次', `第 ${place} 名 / 4`], ['時間', fmtT(t) + (rec ? '（新紀錄）' : '')], ['最佳成績', fmtT(S.race[R.id])], ['獎金', money(pay) + (first ? '（首勝加成）' : '')]], 3);
