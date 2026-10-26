@@ -22,12 +22,13 @@ const sharp = (await imp('sharp')).default;
 const SRC = resolve(root, '.cache/isle');
 const OUT = resolve(root, '../../assets/260/isle');
 // file：來源檔名；fit：[沿 x, 沿 z] 最大的外框（公尺）；rot：先繞 y 轉幾個 90°（長邊轉到 x）；ground：原檔的地面高度（沒寫就用最低點）；
-// metalMax：金屬度上限（夜城的環境光很暗，全金屬的玻璃會黑成一片）；winAll：整張貼圖都是窗的材質（一樓的櫥窗）
+// metalMax：金屬度上限（夜城的環境光很暗，全金屬的玻璃會黑成一片）；winAll：整張貼圖都是窗的材質（一樓的櫥窗）；
+// winBright：玻璃比牆亮的照片（紅磚與米色石材上反白的窗，拉著白窗簾或映著天光）：近乎無彩的亮區與明顯偏藍的也算玻璃；noWin：沒有窗的材質（重複貼的磚牆，找到的都是雜點）
 const ITEMS = [
   { id: 'owtc', file: 'one_world_trade_center', fit: [44, 35.5], metalMax: .55 },
   { id: 'wtc3', file: '3_world_trade_center', fit: [44, 35.5], rot: 1, metalMax: .55 },
   { id: 'exch20', file: '20_exchange_place', fit: [45, 35.5], ground: 0 },
-  { id: 'whitehall', file: 'whitehall_building', fit: [45, 35.5], ground: -.8, winAll: /^Wind$/ },
+  { id: 'whitehall', file: 'whitehall_building', fit: [45, 35.5], ground: -.8, winAll: /^Wind$/, winBright: true, noWin: /^StripeBrick$/ },
 ];
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
@@ -63,8 +64,8 @@ function collect(doc) {
 }
 
 // 照片立面找窗戶（改自 tools/props.mjs 的 photoWindows）：比周圍 129 px 平均暗 28%，或低於整張的 Otsu 門檻（圖集的全黑空白不算），再做開運算去雜點；
-// 連通區太小、太大（超過貼圖 1/12，一扇窗不會更大）、不夠方正（填滿外框不到 55%）或太細長（磚縫、簷口的陰影，長寬比超過 4）的丟掉。回傳每個像素是第幾扇窗（0＝不是窗）
-function photoWindows(data, S) {
+// 連通區太小（不到 40 px 或窄於 4 px：石材上的雜點）、太大（超過貼圖 1/12，一扇窗不會更大；winBright 放寬到 1/5）、不夠方正（填滿外框不到 55%）或太細長（磚縫、簷口的陰影，長寬比超過 4）的丟掉。回傳每個像素是第幾扇窗（0＝不是窗）
+function photoWindows(data, S, bright) {
   const N = S * S, L = new Float32Array(N);
   for (let i = 0; i < N; i++) L[i] = (data[i * 4] * .3 + data[i * 4 + 1] * .59 + data[i * 4 + 2] * .11) / 255;
   const med = Float32Array.from(L).sort()[N >> 1];
@@ -75,31 +76,40 @@ function photoWindows(data, S) {
   const I = new Float64Array((S + 1) * (S + 1)), R = 64;
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) I[(y + 1) * (S + 1) + x + 1] = L[y * S + x] + I[y * (S + 1) + x + 1] + I[(y + 1) * (S + 1) + x] - I[y * (S + 1) + x];
   const box = (x, y) => { const x0 = Math.max(0, x - R), x1 = Math.min(S, x + R + 1), y0 = Math.max(0, y - R), y1 = Math.min(S, y + R + 1); return (I[y1 * (S + 1) + x1] - I[y0 * (S + 1) + x1] - I[y1 * (S + 1) + x0] + I[y0 * (S + 1) + x0]) / ((x1 - x0) * (y1 - y0)); };
-  let g = new Uint8Array(N);
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const l = L[y * S + x]; g[y * S + x] = (l < box(x, y) * .72 || l < otsu * .85) && l < Math.max(.12, med * .8) ? 1 : 0; }
+  // 暗的（一般的窗）與亮或偏藍的（winBright）分開標號再合起來：混在一起時，暗的窗櫺與橫過整張圖的陰影線會把亮的玻璃串成一大片
+  const gd = new Uint8Array(N), gw = new Uint8Array(N);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const j = y * S + x, l = L[j], i = j * 4, c = [data[i], data[i + 1], data[i + 2]];
+    gd[j] = (l < box(x, y) * .72 || l < otsu * .85) && l < Math.max(.12, med * .8) ? 1 : 0;
+    gw[j] = bright && (l > .74 && Math.max(...c) - Math.min(...c) < 34 || c[2] > c[0] + 14 && c[2] >= c[1] && l > .1) ? 1 : 0;   // 亮而近乎無彩，或明顯偏藍（磚與石材是暖色）
+  }
   const pass = (a, er, horiz) => { const o = new Uint8Array(N); for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { let v = er ? 1 : 0; for (let d = -1; d <= 1; d++) { const X = horiz ? x + d : x, Y = horiz ? y : y + d; const q = X < 0 || Y < 0 || X >= S || Y >= S ? 0 : a[Y * S + X]; if (er ? !q : q) { v = er ? 0 : 1; break; } } o[y * S + x] = v; } return o; };
-  g = pass(pass(pass(pass(g, 1, 1), 1, 0), 0, 1), 0, 0);
-  const g0 = g; g = pass(pass(g, 0, 1), 0, 0);   // 標號前先膨脹一格：上下推拉窗的兩片、被窗櫺切開的玻璃算同一扇（編號只寫回原本的窗格）
-  const lab = new Int32Array(N).fill(-1), keep = new Int32Array(N);
-  for (let i = 0, n = 0, k = 0; i < N; i++) {
-    if (!g[i] || lab[i] >= 0) continue;
-    const st = [i], px = []; lab[i] = n; let x0 = S, x1 = 0, y0 = S, y1 = 0;
-    while (st.length) {
-      const j = st.pop(), x = j % S, y = (j / S) | 0; px.push(j); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
-      for (const k of [x > 0 ? j - 1 : -1, x < S - 1 ? j + 1 : -1, y > 0 ? j - S : -1, y < S - 1 ? j + S : -1]) if (k >= 0 && g[k] && lab[k] < 0) { lab[k] = n; st.push(k); }
+  const keep = new Int32Array(N), big = bright ? 5 : 12;   // 一扇窗最大佔貼圖的 1/12（winBright 的石材立面窗大：雙扇一組約 1/6）
+  let k = 0;
+  for (const m of bright ? [gd, gw] : [gd]) {
+    const g0 = pass(pass(pass(pass(m, 1, 1), 1, 0), 0, 1), 0, 0), g = pass(pass(g0, 0, 1), 0, 0);   // 開運算去雜點；標號前先膨脹一格：上下推拉窗的兩片、被窗櫺切開的玻璃算同一扇（編號只寫回原本的窗格）
+    const lab = new Int32Array(N).fill(-1);
+    for (let i = 0, n = 0; i < N; i++) {
+      if (!g[i] || lab[i] >= 0) continue;
+      const st = [i], px = []; lab[i] = n; let x0 = S, x1 = 0, y0 = S, y1 = 0;
+      while (st.length) {
+        const j = st.pop(), x = j % S, y = (j / S) | 0; px.push(j); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+        for (const q of [x > 0 ? j - 1 : -1, x < S - 1 ? j + 1 : -1, y > 0 ? j - S : -1, y < S - 1 ? j + S : -1]) if (q >= 0 && g[q] && lab[q] < 0) { lab[q] = n; st.push(q); }
+      }
+      const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+      const n0 = px.reduce((t, j) => t + g0[j], 0);   // 膨脹前的像素：雕花上一群暗點膨脹後會連成一塊，寫回去只剩零散的點（夜裡變成閃爍的雜點與點線框）
+      if (n0 >= 40 && n0 / (bw * bh) > .4 && Math.min(bw, bh) >= 4 && bw <= S / big && bh <= S / big && px.length / (bw * bh) > .55 && Math.max(bw, bh) < 4 * Math.min(bw, bh)) { k++; for (const j of px) if (g0[j] && !keep[j]) keep[j] = k; }
+      n++;
     }
-    const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-    if (px.length >= 12 && bw <= S / 12 && bh <= S / 12 && px.length / (bw * bh) > .55 && Math.max(bw, bh) < 4 * Math.min(bw, bh)) { k++; for (const j of px) if (g0[j]) keep[j] = k; }
-    n++;
   }
   return keep;
 }
 // 貼圖的 alpha 改成窗戶編號：255＝牆，窗是 8–207（每扇窗一個值，頁面照它決定這扇窗亮不亮，一扇窗整扇一起亮）。
 // 材質是 OPAQUE，頁面不拿 alpha 做透明（28-isle-lm.js 的夜間窗燈讀第 0 層 mip）。all：整張都是窗（一樓的櫥窗）
-async function winAlpha(img, all) {
+async function winAlpha(img, all, bright) {
   const { width: w, height: h } = await sharp(Buffer.from(img)).metadata(), S = w === h ? Math.min(w, 1024) : 512;   // 原尺寸找（窗戶在 1024 的圖集上只有十幾 px）
   const sq = await sharp(Buffer.from(img)).resize(S, S, { fit: 'fill' }).ensureAlpha().raw().toBuffer();
-  const lab = all ? null : photoWindows(sq, S), m = Buffer.alloc(S * S);
+  const lab = all ? null : photoWindows(sq, S, bright), m = Buffer.alloc(S * S);
   for (let i = 0; i < S * S; i++) m[i] = all ? 8 + (((i % S) >> 5) * 37 + ((i / S | 0) >> 5) * 11) % 200 : lab[i] ? 8 + (lab[i] * 37) % 200 : 255;
   const a = await sharp(m, { raw: { width: S, height: S, channels: 1 } }).resize(w, h, { fit: 'fill', kernel: 'nearest' }).extractChannel(0).raw().toBuffer();   // 單通道輸入縮放後會變成三通道
   const rgb = await sharp(Buffer.from(img)).removeAlpha().raw().toBuffer(), out = Buffer.alloc(w * h * 4);
@@ -142,7 +152,7 @@ async function build(it) {
     if (!mats.has(m)) {
       const n = out.createMaterial(m ? m.getName() : 'flat').setBaseColorFactor([1, 1, 1, 1]).setMetallicFactor(0).setRoughnessFactor(1).setDoubleSided(!!(m && m.getDoubleSided()));
       if (tex) {
-        const big = Math.min(...tex.getSize()) >= 128, all = !!(it.winAll && it.winAll.test(m.getName())), wa = big || all ? await winAlpha(tex.getImage(), all) : null;
+        const big = Math.min(...tex.getSize()) >= 128 && !(it.noWin && it.noWin.test(m.getName())), all = !!(it.winAll && it.winAll.test(m.getName())), wa = big || all ? await winAlpha(tex.getImage(), all, !!it.winBright) : null;
         if (wa) console.log(`  ${m.getName()}：窗戶遮罩 ${(wa.frac * 100).toFixed(1)}%`);
         n.setBaseColorTexture(out.createTexture(m.getName()).setImage(await webp(wa || tex.getImage())).setMimeType('image/webp'));
       }
