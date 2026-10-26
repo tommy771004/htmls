@@ -694,7 +694,7 @@ function handPropsStep(scn) {
 }
 
 // ─── 街上的行人：沿著街區人行道繞圈，多數撐傘 ───
-const PED_N = LOW ? 18 : 38;
+const PED_N = LOW ? 23 : 48;   // 2026-10-26 多 25%（原本 18／38）
 // 掃描的 Lucia（女性、長髮）：重看一次外觀用自己的亂數（下載好之後 scanGet 會拿同一組參數再 look 一次）
 const LUCIA = k => ({ r: rng(500 + k), scan: 'lucia', female: true, longHair: 1, glowI: 0 });
 // 197 湖畔求生的三個 NPC（營地的阿哲、碼頭的老陳、健行的小安）也進城當路人：外觀同樣另外抽亂數

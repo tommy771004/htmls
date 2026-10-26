@@ -168,7 +168,7 @@ const TYPES = {
   // 街頭車（26-glb.js 的 street）：車流與路邊用 traffic.glb 的低面數版，玩家坐上去時 68-gta.js 的 streetUp 換成 assets/260 的實車
   ...Object.fromEntries(['g63', 'lc200', 'rr06', 'ramtrx', 'ghost', 's65', 'm5f90', 'camry', 'gt500', 'viper', 'senna', 'r8', 'evo6'].map(id => [id, glbType(id, id === 'ramtrx' ? 12 : 13.5, FB.sedan, { street: 1 })])),
 };
-const TRAFFIC_N = LOW ? 18 : 34;
+const TRAFFIC_N = LOW ? 23 : 43;   // 2026-10-26 多 25%（原本 18／34）
 const traffic = [], parked = [];
 const rT = rng(31);
 const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il', 'grc_sedan'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84', 'grc_stepvan', 'grc_mailvan'];
