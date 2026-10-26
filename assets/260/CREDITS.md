@@ -372,7 +372,7 @@
 
 ## 天樞島的地標大樓（`isle/`）
 
-地圖正中間的天樞島（照曼哈頓下城）上四棟地標，經 `games/260-neon-nightcity/tools/isle-glb.mjs` 處理（攤平、照地塊縮放、材質改成頂點屬性、照片立面的底色貼圖 alpha 換成夜間窗燈用的窗戶編號、WebP、meshopt 壓縮）後放在 `isle/`，屬於原作的衍生作品，沿用原作授權；明細見 `isle/CREDITS.md`。
+地圖正中間的天樞島（照曼哈頓下城）上四棟地標與渡輪站泊著的渡輪（不縮放、不找窗），經 `games/260-neon-nightcity/tools/isle-glb.mjs` 處理（攤平、照地塊縮放、材質改成頂點屬性、照片立面的底色貼圖 alpha 換成夜間窗燈用的窗戶編號、WebP、meshopt 壓縮）後放在 `isle/`，屬於原作的衍生作品，沿用原作授權；明細見 `isle/CREDITS.md`。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -380,6 +380,7 @@
 | `isle/wtc3.glb` | [3 World Trade Center](https://sketchfab.com/3d-models/3-world-trade-center-47d1943cfa97409e983a7acab4f109f1) | NanoRay | CC-BY-4.0 |
 | `isle/exch20.glb` | [20 Exchange Place](https://sketchfab.com/3d-models/20-exchange-place-08de1cbdebfa4e08a84299ac62586ff5) | novusod | CC-BY-4.0 |
 | `isle/whitehall.glb` | [Whitehall Building](https://sketchfab.com/3d-models/whitehall-building-d0db0e12b3484594a1c9eb35186b7c0f) | novusod | CC-BY-4.0 |
+| `isle/ferry.glb` | [Star Ferry](https://sketchfab.com/3d-models/star-ferry-7b0f363137e94d688db63da2b4e0b376) | chrisw225 | CC-BY-4.0 |
 
 ## 武器、警方載具與路障（第二階段）
 

@@ -23,12 +23,15 @@ const SRC = resolve(root, '.cache/isle');
 const OUT = resolve(root, '../../assets/260/isle');
 // file：來源檔名；fit：[沿 x, 沿 z] 最大的外框（公尺）；rot：先繞 y 轉幾個 90°（長邊轉到 x）；ground：原檔的地面高度（沒寫就用最低點）；
 // metalMax：金屬度上限（夜城的環境光很暗，全金屬的玻璃會黑成一片）；winAll：整張貼圖都是窗的材質（一樓的櫥窗）；
-// winBright：玻璃比牆亮的照片（紅磚與米色石材上反白的窗，拉著白窗簾或映著天光）：近乎無彩的亮區與明顯偏藍的也算玻璃；noWin：沒有窗的材質（重複貼的磚牆，找到的都是雜點）
+// winBright：玻璃比牆亮的照片（紅磚與米色石材上反白的窗，拉著白窗簾或映著天光）：近乎無彩的亮區與明顯偏藍的也算玻璃；noWin：沒有窗的材質（重複貼的磚牆，找到的都是雜點）；
+// skip：整個丟掉的材質（半透明的鏈條：這裡的材質不做透明）
 const ITEMS = [
   { id: 'owtc', file: 'one_world_trade_center', fit: [44, 35.5], metalMax: .55 },
   { id: 'wtc3', file: '3_world_trade_center', fit: [44, 35.5], rot: 1, metalMax: .55 },
   { id: 'exch20', file: '20_exchange_place', fit: [45, 35.5], ground: 0 },
   { id: 'whitehall', file: 'whitehall_building', fit: [45, 35.5], ground: -.8, winAll: /^Wind$/, winBright: true, noWin: /^StripeBrick$/ },
+  // 渡輪站泊著的渡輪（21-isle.js 的泊位、28-isle-lm.js 載入）：原檔就是公尺，不縮放；船底在原點，頁面再往下放到吃水線；不找窗
+  { id: 'ferry', file: 'star_ferry', fit: [32.3, 10.35], rot: 1, noWin: /./, skip: /chains/ },
 ];
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
@@ -127,7 +130,7 @@ async function webp(t) {
 async function build(it) {
   const doc = await io.read(resolve(SRC, it.file + '.glb'));
   const info = doc.getRoot().getAsset().extras || {};
-  const prims = collect(doc);
+  const prims = collect(doc).filter(p => !(it.skip && p.mat && it.skip.test(p.mat.getName())));
   // 轉 rot 個 90°（繞 y：x → −z）
   for (let r = 0; r < (it.rot || 0); r++) for (const p of prims) for (let i = 0; i < p.cnt; i++) {
     const x = p.pos[i * 3], z = p.pos[i * 3 + 2], nx = p.nor[i * 3], nz = p.nor[i * 3 + 2];
@@ -190,7 +193,7 @@ async function build(it) {
 const only = process.argv.slice(2), built = {};
 for (const it of ITEMS) if (!only.length || only.includes(it.id)) built[it.id] = await build(it);
 if (!only.length) {
-  const md = ['# 天樞島地標大樓（tools/isle-glb.mjs）', '', '頁面 `games/260-neon-nightcity/src/parts/28-isle-lm.js` 載入；幾何照地塊縮放、依材質合併，材質改成頂點屬性，照片立面的底色貼圖 alpha 換成夜間窗燈用的窗戶編號，WebP 與 meshopt 壓縮。外形照原作。', '',
+  const md = ['# 天樞島地標大樓與渡輪（tools/isle-glb.mjs）', '', '頁面 `games/260-neon-nightcity/src/parts/28-isle-lm.js` 載入；幾何照地塊縮放（渡輪不縮放）、依材質合併，材質改成頂點屬性，照片立面的底色貼圖 alpha 換成夜間窗燈用的窗戶編號，WebP 與 meshopt 壓縮。外形照原作。', '',
     '| 檔案 | 作品 | 作者 | 授權 | 來源 |', '| --- | --- | --- | --- | --- |',
     ...Object.entries(built).map(([id, b]) => `| ${id}.glb | ${b.title} | ${(b.author || '').replace(/ \(.*\)$/, '')} | CC BY 4.0 | ${b.source} |`), ''];
   writeFileSync(resolve(OUT, 'CREDITS.md'), md.join('\n'));

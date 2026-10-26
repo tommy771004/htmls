@@ -106,9 +106,12 @@
   }
   if (location.search.includes('isleLog')) console.log(`天樞島的橋 ${BRIDGES.length} 座：吊橋 ${nS}、拱橋 ${nA}`, BRIDGES.map(B => B.pts.length * 3 | 0));
 }
+// 渡輪站第一道泊位的渡輪：位置與朝向（世界座標）、程式建模的替身（28-isle-lm.js 下載好模型後拿掉）
+const ISLE_FERRY = { x: 0, z: 0, fx: 1, fz: 0, fb: null };
 // ═══ 天樞島尖端的公園（照砲台公園）與東岸的碼頭（照南街海港）：位置在 11-isle.js 的 ISLE_PARK，世界座標 ═══
 //   砲台：紅砂岩的圓形砲台（柯林頓堡），一圈射口、門朝島內，裡面一根旗桿
-//   渡輪站：玻璃正面朝水、正面上方伸出雨棚、屋頂上的站名牌；站前兩道泊位（木護舷與一排排木樁），一道泊著一艘兩頭都能開的橘色渡輪
+//   渡輪站（照白廳渡輪站）：島內那一面是預鑄混凝土的直鰭與三座入口，朝水的大廳是整片玻璃帷幕，屋頂往水面升起、伸出正面 10 m（三根鋼樹柱撐著），
+//   屋簷上一排大字站名；站前兩道泊位（木護舷、木樁、鋼跳板、綠色鋼構門架與泊位號碼），第一道泊著渡輪（28-isle-lm.js 換成模型）
 //   銅球：花崗岩基座上的銅球雕塑，四周一圈鋪面廣場；碎石小徑把它們和公園邊上接起來
 //   碼頭：木棧板碼頭（木樁每 4 m 一排），兩座上面有紅色的倉庫棚，中間那座旁邊泊一艘三桅帆船
 {
@@ -136,41 +139,114 @@
   }
   if (P.term) {
     const T0 = P.term, f = fr(T0.x, T0.z, T0.fx, T0.fz), hw = T0.w / 2, hd = T0.d / 2, H = T0.h;
-    // 主體：兩側與背面是混凝土牆，正面（+a）整片玻璃、每 4 m 一根鋼框
-    k.box(...f.at(-1, 0, H / 2), T0.w, H, T0.d - 2, 0xb8b4ac, TX.conc, 0, f.ry + Math.PI / 2);
-    for (let b = -hw; b < hw - 1; b += 4) {
-      k.box(...f.at(hd - .1, b + 2, H * .45), 3.7, H * .78, .2, 0xffe8c0, 16, 0, f.ry + Math.PI / 2);
-      k.box(...f.at(hd, b, H * .45), .25, H * .8, .35, 0x3a3e44, 15, 0, f.ry + Math.PI / 2);
+    const PRE = 0xc8c3b8, PRE_D = 0x9a958b, MUL = 0x2a2e33, GLW = 0xe8cfa4, GLW2 = 0x8c7c64, ROOF = 0xdcd9d2, GRN = 0x2f5a4c, BULB = 0xfff0d0;
+    // 站房的座標：a 沿 f（朝水）、b 往左；B 是對齊站房的方塊（y 是中心高，la 沿 a、lb 沿 b），Pr 是 a–y 剖面沿 b 擠出（prism 的 x 是 −a）
+    const B = (a, b, y, la, lb, h, col, m) => k.box(...f.at(a, b, y), lb, h, la, col, m, 0, f.ry);
+    const Pr = (b, pts, len, col, m) => k.prism(...f.at(0, b, 0), pts.map(([a, y]) => [-a, y]), len, col, m, 0, f.ry + Math.PI / 2);
+    // 屋頂往水面升起、伸出正面 10 m（照白廳渡輪站）：yR 是 a 處屋頂的底面
+    const aB = -hd - 1, aF = hd + 10, rise = 3, yR = a => H + rise * (a - aB) / (aF - aB), aG = hd - 9;   // aG：後段實心的服務棟／前段玻璃大廳的分界
+    B(0, 0, .25, T0.d + 1.6, T0.w + 1.6, .5, 0x8a8680, TX.stone);   // 花崗岩基座
+    Pr(0, [[-hd, 0], [aG, 0], [aG, yR(aG)], [-hd, yR(-hd)]], T0.w, PRE, TX.conc);   // 服務棟
+    // 大廳：白天是暗玻璃、入夜透出室內燈（一樓的候船室亮，夾層以上暗一些，整面才不會是一塊發光的箱子）
+    Pr(0, [[aG, 0], [hd, 0], [hd, 6.6], [aG, 6.6]], T0.w - .6, GLW, 16);
+    Pr(0, [[aG, 6.6], [hd, 6.6], [hd, yR(hd)], [aG, yR(aG)]], T0.w - .6, GLW2, 16);
+    Pr(0, [[aB, yR(aB)], [aF, yR(aF)], [aF, yR(aF) + .9], [aB, yR(aB) + 1.1]], T0.w + 2, ROOF, TX.sheet);   // 屋頂
+    B(aF + .12, 0, yR(aF) + .45, .25, T0.w + 2.2, 1, 0xeeebe4, 10);   // 屋簷的封邊
+    // 玻璃帷幕：正面每 1.5 m 一根直料，3.4 m 的門楣、6.6 m 的夾層樓板邊、10 m 一道橫料；側面只有大廳那一段
+    const yF = yR(hd);
+    for (let b = -hw + .3; b <= hw - .29; b += (T0.w - .6) / Math.round((T0.w - .6) / 1.5)) B(hd + .1, b, yF / 2, .26, .12, yF, MUL, 15);
+    for (const [y, h, col, m] of [[.1, .2, MUL, 15], [3.4, .16, MUL, 15], [6.6, .75, PRE_D, TX.conc], [10, .14, MUL, 15]]) B(hd + .12, 0, y, .3, T0.w - .5, h, col, m);
+    for (const s of [-1, 1]) {
+      for (let a = aG + 1.5; a < hd; a += 1.5) B(a, s * (hw - .24), yR(a) / 2, .12, .26, yR(a), MUL, 15);
+      for (const [y, h, col, m] of [[3.4, .16, MUL, 15], [6.6, .75, PRE_D, TX.conc], [10, .14, MUL, 15]]) B((aG + hd) / 2, s * (hw - .2), y, hd - aG, .32, h, col, m);
+      // 服務棟的側牆：每 2 m 一片預鑄混凝土的直鰭
+      for (let a = -hd + 1; a < aG; a += 2) B(a, s * (hw + .18), yR(a) / 2, .3, .36, yR(a), PRE_D, TX.conc);
     }
-    k.box(...f.at(hd + 4, 0, H * .9), T0.w + 4, .5, 9, 0xd8d6d0, TX.sheet, 0, f.ry + Math.PI / 2);   // 雨棚
-    for (const b of [-hw + 1, hw - 1]) k.box(...f.at(hd + 7.8, b, H * .45), .3, H * .9, .3, 0x3a3e44, 15, 0, f.ry);
-    k.box(...f.at(-1, 0, H + .3), T0.w + 1, .6, T0.d - 1, 0x8a8680, TX.conc, 0, f.ry + Math.PI / 2);
-    // 站名牌
-    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 192;
-    const c = cv.getContext('2d'); c.fillStyle = '#1d2a3a'; c.fillRect(0, 0, 1024, 192); c.fillStyle = '#f2ead8'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = '700 92px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; c.fillText('MERIDIAN FERRY', 512, 78); c.font = '600 54px system-ui,sans-serif'; c.fillText('天 樞 渡 輪', 512, 152);
+    // 上船的門：正面對著兩道泊位各一座鋼框門洞
+    for (const S of P.slips) {
+      const b = (S.x - T0.x) * -T0.fz + (S.z - T0.z) * T0.fx;
+      B(hd + .38, b, 3.55, .7, 6.6, .3, MUL, 15);
+      for (const s of [-1, 1]) B(hd + .38, b + s * 3.15, 1.75, .7, .3, 3.5, MUL, 15);
+      B(hd + .02, b, 1.7, .08, 6, 3.3, 0x1a2228, 1);
+    }
+    // 屋頂伸出去的那段：三根鋼樹柱撐著（樹幹分三枝頂到屋頂底面）、底面一排排嵌燈
+    for (const b of [-hw + 1.5, 0, hw - 1.5]) {
+      const a = hd + 7.5, yt = yR(a) - 3.2, [x, , z] = f.at(a, b);
+      k.cyl(x, .15, z, .55, .6, .3, 12, 0x8a8680, TX.stone).cyl(x, yt / 2, z, .26, .32, yt, 12, MUL, 15);
+      for (const [da, db] of [[2.2, 0], [-1.6, 2], [-1.6, -2]]) k.rod(x, yt - .1, z, ...f.at(a + da, b + db, yR(a + da) - .02), .16, 8, MUL, 15, .1);
+      circles.push({ x, z, r: .5, w: 1 });
+    }
+    for (const a of [hd + 2.5, hd + 6, hd + 9.2]) for (let b = -hw + 2; b <= hw - 1.9; b += 4) B(a, b, yR(a) - .04, .6, .6, .06, BULB, 16);
+    // 站名：屋簷上一排大字（照白廳渡輪站的 STATEN ISLAND FERRY），鋼桁架撐著；島內那一面入口上方一塊小的
+    const cv = document.createElement('canvas'); cv.width = 2048; cv.height = 288;
+    const c = cv.getContext('2d'); c.fillStyle = '#f4efe4'; c.strokeStyle = '#1b2530'; c.lineJoin = 'round'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    // 字有深色描邊：白天映著亮的天空也讀得到
+    c.font = '700 168px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; c.lineWidth = 24; c.strokeText('MERIDIAN FERRY', 1024, 100); c.fillText('MERIDIAN FERRY', 1024, 100);
+    c.font = '600 84px system-ui,sans-serif'; c.lineWidth = 10; c.strokeText('天　樞　渡　輪', 1024, 236); c.fillText('天　樞　渡　輪', 1024, 236);
     const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace; tx.anisotropy = 4;
-    const sg = new T.Mesh(new T.PlaneGeometry(20, 3.75), new T.MeshBasicMaterial({ map: tx, toneMapped: false, color: 0xd0d0d0 }));
-    sg.position.set(...f.at(hd - .3, 0, H + 2.6)); sg.rotation.y = f.ry; cullAdd(cityAdd(sg, null));
-    k.box(...f.at(hd - .45, 0, H + 2.6), 20.6, 4.2, .25, 0x2a2e34, 15, 0, f.ry);
-    const fq = frameW(T0.x, T0.z, T0.fx, T0.fz); colliders.push({ x0: -hd, x1: hd, z0: -hw, z1: hw, zn: fq });
-    // 泊位：兩側木護舷牆與木樁
+    const signMat = new T.MeshBasicMaterial({ map: tx, toneMapped: false, color: 0xd8d8d8, transparent: true, alphaTest: .35, depthWrite: false });
+    const yS = yR(aF - 1.5) + .9 + 2.4;
+    const sg = new T.Mesh(new T.PlaneGeometry(30, 4.2), signMat); sg.position.set(...f.at(aF - 1.5, 0, yS)); sg.rotation.y = f.ry; cullAdd(cityAdd(sg, null));
+    for (const y of [yS - 1.7, yS + 1.6]) k.bar(...f.at(aF - 1.75, -15.5, y), ...f.at(aF - 1.75, 15.5, y), .14, .22, MUL, 15);
+    for (let b = -15; b <= 15.01; b += 5) k.bar(...f.at(aF - 1.75, b, yR(aF - 1.75) + .9), ...f.at(aF - 1.75, b, yS + 1.7), .14, .14, MUL, 15);
+    const sb = new T.Mesh(new T.PlaneGeometry(15, 2.1), signMat); sb.position.set(...f.at(-hd - .5, 0, 7.6)); sb.rotation.y = f.ry + Math.PI; cullAdd(cityAdd(sb, null));
+    // 島內那一面（後面）：直鰭、高處一道橫向的帶窗、三座入口（玻璃門分四扇）與入口雨棚
+    const doors = [-9, 0, 9];
+    B(-hd - .03, 0, 10.6, .06, T0.w - 2, 2.8, GLW2, 16);
+    for (let b = -hw + 1; b < hw; b += 2) if (doors.every(d => Math.abs(b - d) > 2.9)) B(-hd - .18, b, yR(-hd) / 2, .36, .3, yR(-hd), PRE_D, TX.conc);
+    for (const d of doors) {
+      B(-hd - .02, d, 1.7, .08, 4.8, 3.4, 0x1a2228, 1); B(-hd - .2, d, 3.5, .4, 5.2, .25, MUL, 15);
+      for (let i = -2; i <= 2; i++) B(-hd - .08, d + i * 1.2, 1.7, .1, i % 2 ? .06 : .14, 3.4, MUL, 15);
+      B(-hd - .08, d, 2.7, .1, 4.8, .1, MUL, 15);
+    }
+    B(-hd - 1.7, 0, 4.2, 3.4, 26, .3, ROOF, TX.sheet);
+    for (let b = -12; b <= 12; b += 6) B(-hd - 1.7, b, 4.04, .5, .5, .05, BULB, 16);
+    const fq = frameW(T0.x, T0.z, T0.fx, T0.fz); colliders.push({ x0: -hd - .4, x1: hd + .4, z0: -hw - .4, z1: hw + .4, zn: fq });
+    // 泊位：兩側木護舷牆與木樁、岸邊的鋼跳板；泊位口兩座綠色的鋼構門架（四柱與斜撐），頂上的桁架吊著跳板，正面掛泊位號碼；兩邊各一座繫船柱
     for (const [si, S] of P.slips.entries()) {
-      const g = fr(S.x, S.z, S.fx, S.fz);
-      for (const b of [-S.w / 2, S.w / 2]) {
+      const g = fr(S.x, S.z, S.fx, S.fz), sw = S.w / 2, G = g.ry;
+      for (const b of [-sw, sw]) {
         k.bar(...g.at(-2, b, .3), ...g.at(S.len, b, .3), .5, 2.2, WOOD_D, TX.woodZ);
         for (let a = 0; a <= S.len; a += 4) k.cyl(...g.at(a, b + Math.sign(b) * .5, (LAKE_Y + 1.6) / 2), .3, .32, 1.6 - LAKE_Y, 8, WOOD, TX.woodY);
       }
-      k.box(...g.at(-1, 0, .9), S.w + 1, .4, 3, WOOD_D, TX.woodZ, 0, g.ry);   // 跳板
-      if (si === 0) {   // 渡輪：橘色船身、兩層白色客艙、兩頭的駕駛台、中間的煙囪
-        const L = 30, B = 8.6, mid = S.len * .55;
+      k.box(...g.at(1.2, 0, -.15), S.w - 2.6, .3, 7.4, 0x55595c, TX.steel, 0, G);
+      for (const s of [-1, 1]) {
+        k.bar(...g.at(-2.4, s * (sw - 1.4), 1.05), ...g.at(4.8, s * (sw - 1.4), 1.05), .07, .07, GRN, TX.steel);
+        for (let a = -2.4; a <= 4.81; a += 1.8) k.box(...g.at(a, s * (sw - 1.4), .5), .06, 1.1, .06, GRN, TX.steel, 0, G);
+        const bb = s * (sw + 1.6), [tx0, , tz0] = g.at(0, bb);
+        for (const da of [-1.2, 1.2]) for (const db of [-.9, .9]) k.box(...g.at(da, bb + db, (13 + LAKE_Y) / 2), .38, 13 - LAKE_Y, .38, GRN, TX.steel, 0, G);
+        for (let y = 1.5; y < 12; y += 3.4) for (const da of [-1.2, 1.2]) {
+          k.bar(...g.at(da, bb - .9, y), ...g.at(da, bb + .9, y), .16, .16, GRN, TX.steel);
+          k.rod(...g.at(da, bb - .9, y), ...g.at(da, bb + .9, y + 3.4), .06, 4, GRN, TX.steel);
+        }
+        for (const y of [1.5, 8.3]) for (const db of [-.9, .9]) k.bar(...g.at(-1.2, bb + db, y), ...g.at(1.2, bb + db, y), .16, .16, GRN, TX.steel);
+        k.cyl(...g.at(-1.6, s * (sw + 4.2), .4), .2, .26, .8, 10, 0x22262a, 15).cyl(...g.at(-1.6, s * (sw + 4.2), .84), .3, .3, .1, 10, 0x22262a, 15);
+        colliders.push({ x0: -1.5, x1: 1.5, z0: -1.2, z1: 1.2, zn: frameW(tx0, tz0, S.fx, S.fz) });
+        // 吊著跳板外端的鋼索
+        k.rod(...g.at(4.6, s * (sw - 1.6), .05), ...g.at(1.2, s * (sw - 1.6), 12.3), .03, 3, 0x2a2420, 15);
+      }
+      for (const b of [-sw + 1.5, sw - 1.5]) k.box(...g.at(1.45, b, 12.05), .7, .35, .4, BULB, 16, 0, G);   // 照著泊位的投光燈
+      for (const y of [12.4, 13.4]) for (const da of [-1.2, 1.2]) k.bar(...g.at(da, -sw - 2.5, y), ...g.at(da, sw + 2.5, y), .3, .34, GRN, TX.steel);
+      for (let b = -sw - 1.6, i = 0; b < sw + 1.6; b += (S.w + 3.2) / 8, i++) for (const da of [-1.2, 1.2]) k.rod(...g.at(da, b, i % 2 ? 12.4 : 13.4), ...g.at(da, b + (S.w + 3.2) / 8, i % 2 ? 13.4 : 12.4), .07, 4, GRN, TX.steel);
+      // 泊位號碼
+      const nc = document.createElement('canvas'); nc.width = 256; nc.height = 96;
+      const n2 = nc.getContext('2d'); n2.fillStyle = '#1f3a31'; n2.fillRect(0, 0, 256, 96); n2.fillStyle = '#f4efe4'; n2.textAlign = 'center'; n2.textBaseline = 'middle';
+      n2.font = '700 64px "Avenir Next Condensed","DIN Condensed","Arial Narrow",system-ui,sans-serif'; n2.fillText('SLIP ' + (si + 1), 128, 50);
+      const nt = new T.CanvasTexture(nc); nt.colorSpace = T.SRGBColorSpace;
+      const ns = new T.Mesh(new T.PlaneGeometry(4, 1.5), new T.MeshBasicMaterial({ map: nt, toneMapped: false, color: 0xc8c8c8 }));
+      ns.position.set(...g.at(1.42, 0, 12.9)); ns.rotation.y = G; cullAdd(cityAdd(ns, null));
+      if (si === 0) {   // 渡輪：28-isle-lm.js 下載好模型（Star Ferry）前的替身——橘色船身、兩層白色客艙、兩頭的駕駛台、中間的煙囪
+        const L = 30, Bm = 8.6, mid = S.len * .52, kf = new Kit();
+        Object.assign(ISLE_FERRY, { x: g.at(mid, 0)[0], z: g.at(mid, 0)[2], fx: S.fx, fz: S.fz });
         const PP = [], NN = [], UU = [];
         for (let i = 0; i <= 12; i++) { const a = mid - L / 2 + L * i / 12; PP.push(g.at(a, 0, -.6)); NN.push([-S.fz, 0, S.fx]); UU.push([0, 1, 0]); }
-        k.loft(PP, NN, UU, i => { const t = i / 12, w = B / 2 * (.72 + .28 * Math.sin(t * Math.PI)); return [[-w, 2.4], [-w, .6], [-w * .8, -1], [w * .8, -1], [w, .6], [w, 2.4]]; }, ORANGE, 0);
-        k.box(...g.at(mid, 0, 3.6), B - 1.6, 2.4, L - 6, WHITE, 10, 0, g.ry).box(...g.at(mid, 0, 6), B - 2.6, 2.4, L - 10, ORANGE, 0, 0, g.ry);
-        for (const e of [-1, 1]) k.box(...g.at(mid + e * (L / 2 - 6.5), 0, 8), 3.4, 1.8, 2.6, WHITE, 10, 0, g.ry).box(...g.at(mid + e * (L / 2 - 6.5), 0, 8.1), 3.5, .7, 2.7, 0x1a2a3a, 1, 0, g.ry);
-        k.cyl(...g.at(mid, 0, 9.4), .9, 1, 3.2, 12, 0x2a2a2a, 2);
-        for (const e of [-1, 1]) for (let a = -L / 2 + 5; a < L / 2 - 4; a += 2.2) k.box(...g.at(mid + a, e * (B / 2 - .79), 3.6), 1.4, .9, .05, 0x1a2a3a, 1, 0, g.ry + Math.PI / 2);
+        kf.loft(PP, NN, UU, i => { const t = i / 12, w = Bm / 2 * (.72 + .28 * Math.sin(t * Math.PI)); return [[-w, 2.4], [-w, .6], [-w * .8, -1], [w * .8, -1], [w, .6], [w, 2.4]]; }, ORANGE, 0);
+        kf.box(...g.at(mid, 0, 3.6), Bm - 1.6, 2.4, L - 6, WHITE, 10, 0, G).box(...g.at(mid, 0, 6), Bm - 2.6, 2.4, L - 10, ORANGE, 0, 0, G);
+        for (const e of [-1, 1]) kf.box(...g.at(mid + e * (L / 2 - 6.5), 0, 8), 3.4, 1.8, 2.6, WHITE, 10, 0, G).box(...g.at(mid + e * (L / 2 - 6.5), 0, 8.1), 3.5, .7, 2.7, 0x1a2a3a, 1, 0, G);
+        kf.cyl(...g.at(mid, 0, 9.4), .9, 1, 3.2, 12, 0x2a2a2a, 2);
+        for (const e of [-1, 1]) for (let a = -L / 2 + 5; a < L / 2 - 4; a += 2.2) kf.box(...g.at(mid + a, e * (Bm / 2 - .79), 3.6), 1.4, .9, .05, 0x1a2a3a, 1, 0, G + Math.PI / 2);
+        ISLE_FERRY.fb = cullAdd(cityAdd(new T.Mesh(kf.build(), MAT.ux), null));
+        colliders.push({ x0: -16.3, x1: 16.3, z0: -5.3, z1: 5.3, zn: frameW(ISLE_FERRY.x, ISLE_FERRY.z, S.fx, S.fz) });   // 船身：游泳的人不會穿進去
       }
     }
   }

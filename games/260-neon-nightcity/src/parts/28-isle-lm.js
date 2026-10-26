@@ -76,3 +76,22 @@ if (GLB_ON) for (const o of ISLE_LM) {
     glbDone.add(key); ISLE_LM_ON.n++;
   })).catch(err => { console.warn('天樞島地標下載失敗：' + o.id, err); glbDone.add(key); ISLE_LM_ON.failed.push(o.id); L.h = o.h0; lotFallback([L]); });
 }
+// 渡輪站泊著的渡輪（assets/260/isle/ferry.glb：chrisw225 的 Star Ferry，CC BY）：世界座標，船底在原點、長邊沿 x；
+// 吃水 1.5 m（原檔的紅色船底漆到水線），下載好拿掉 21-isle.js 的替身（替身要整個 removeFromParent，剔除表也要拿掉，不然距離剔除會把它開回來）
+const ISLE_FERRY_DRAFT = 1.5;
+if (GLB_ON && ISLE_FERRY.fb) glbLoader.loadAsync(ISLE_LM_BASE + 'ferry.glb', e => { glbBytes['i:ferry'] = [e.loaded, e.lengthComputable ? e.total : 0]; }).then(g => warmJob(async () => {
+  const clk = warmClock(), F = ISLE_FERRY, ms = [];
+  g.scene.updateMatrixWorld(true);
+  const M = new T.Matrix4().compose(V3(F.x, SEA_Y - ISLE_FERRY_DRAFT, F.z), new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), Math.atan2(-F.fz, F.fx)), V3(1, 1, 1));
+  g.scene.traverse(m => {
+    if (!m.isMesh) return;
+    const o = new T.Mesh(floatGeo(m.geometry, m.matrixWorld).applyMatrix4(M), glbMaterial(m.material, PROP_INST, 0, true));   // WASH：夜裡依開間透出一點艙內的光
+    o.matrixAutoUpdate = false; o.userData.noTess = 1; ms.push(o);
+  });
+  await clk.tick();
+  await glbWarm(ms, () => false);
+  const fb = F.fb, i = cullList.indexOf(fb.userData.cull); fb.removeFromParent(); if (i >= 0) cullList.splice(i, 1);
+  for (const m of ms) { scene.add(m); cullAdd(m); }
+  perfTags.push(['天樞島渡輪', clk.ms()]);
+  glbDone.add('i:ferry'); ISLE_LM_ON.ferry = 1;
+})).catch(err => { console.warn('天樞島渡輪下載失敗', err); glbDone.add('i:ferry'); });

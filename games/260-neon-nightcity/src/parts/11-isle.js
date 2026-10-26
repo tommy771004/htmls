@@ -158,11 +158,11 @@ if (ZONES.some(z => z.isle)) {
   if (T0) {
     Object.assign(T0, { w: tw, d: td, h: 14, ux: pp[0], uz: pp[1], fx: -d[0], fz: -d[1] });
     claimC(T0.x, T0.z, 26);
-    // 泊位：從站前的岸往外 34 m（中心線順著 -d），兩道
+    // 泊位：從站前的岸往外 38 m（中心線順著 -d），兩道
     for (const b of [-12, 12]) {
       let r0 = 0; const [sx, sz] = [T0.x + pp[0] * b, T0.z + pp[1] * b];
       while (r0 < 120 && inPoly(ISLE_P, sx - d[0] * r0, sz - d[1] * r0)) r0 += 1;
-      ISLE_PARK.slips.push({ x: sx - d[0] * r0, z: sz - d[1] * r0, fx: -d[0], fz: -d[1], len: 34, w: 10 });
+      ISLE_PARK.slips.push({ x: sx - d[0] * r0, z: sz - d[1] * r0, fx: -d[0], fz: -d[1], len: 38, w: 13 });   // 船寬 10.3 m（28-isle-lm.js 的渡輪）
     }
   }
   // 砲台：偏西（b < 0）、離岸 26–45 m
@@ -188,7 +188,7 @@ if (ZONES.some(z => z.isle)) {
     if (ISLE_PARK.piers.length >= 3 || ISLE_PARK.piers.some(q => Math.hypot(q.x - c.S[0], q.z - c.S[1]) < 60)) continue;
     ISLE_PARK.piers.push({ x: c.S[0], z: c.S[1], fx: c.o[0], fz: c.o[1], len: 48, w: 14 });
   }
-  if (location.search.includes('isleLog')) console.log('天樞島公園', JSON.stringify({ term: !!T0, fort: !!ISLE_PARK.fort, sphere: !!ISLE_PARK.sphere, slips: ISLE_PARK.slips.length, paths: ISLE_PARK.paths.length, piers: ISLE_PARK.piers.length }));
+  if (location.search.includes('isleLog')) console.log('天樞島公園', JSON.stringify({ term: T0 && [T0.x, T0.z, T0.fx, T0.fz].map(v => +v.toFixed(2)), fort: !!ISLE_PARK.fort, sphere: !!ISLE_PARK.sphere, slips: ISLE_PARK.slips.length, paths: ISLE_PARK.paths.length, piers: ISLE_PARK.piers.length }));
 }
 // 立面：每條邊一面牆（quad 的 u 從面向觀看者的左邊算起），頂一片；前緣那面一樓是店面
 function isleWalls(B, P, y0, y1, seed, style, h, front, roof = true) {

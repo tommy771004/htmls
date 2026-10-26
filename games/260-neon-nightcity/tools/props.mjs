@@ -497,7 +497,7 @@ export const SETS = [
       { id: 'booth', file: 'phone_booth', h: 2.4 },
       { id: 'newsbox', file: 'newsbox', h: 1.2 },
     ] },
-  // 樹：楓樹（拿掉底下的草皮；葉片貼圖沒有 alpha，白底當透明）、兩棵垂柳（原檔並排，依 x 切開）、三棵一叢的橡樹。樹幹減面，葉片卡不動
+  // 樹：楓樹（拿掉底下的草皮；葉片貼圖沒有 alpha，白底當透明——但葉子外面多半是淺綠的延伸填色，白底只佔一點，重跑這組之後要再跑 tools/leafkey.mjs 補葉形）、兩棵垂柳（原檔並排，依 x 切開）、三棵一叢的橡樹。樹幹減面，葉片卡不動
   { out: 'nat_trees', src: '.cache/world2', tex: 512, metalMax: 0, mask: /lea(f|ves)/i, keyWhite: /^sugar_maple_leaf$/, noEmi: /leaf|grass/i, simplifyMat: [[/bark/i, .2, .02]],
     items: [
       { id: 'maple', file: 'maple', h: 8, drop: /Groundcover|grass/ },
