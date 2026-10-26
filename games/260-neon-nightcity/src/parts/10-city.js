@@ -40,9 +40,15 @@ function tessXZ(g, L) {
     const a = tri[best], b = tri[(best + 1) % 3], c = tri[(best + 2) % 3], m = mid(a, b);
     split([a, m, c], depth + 1); split([m, b, c], depth + 1);
   };
-  const posK = names.indexOf('position');
+  const posK = names.indexOf('position'), L2 = L * L;
   for (let t = 0; t < n; t++) {
     if (parts) while (pk < parts.length && parts[pk] <= t * 3) { pOut.push(out[posK].length / 3); pk++; }
+    // 不用切的三角形直接照抄（和 split 一路 emit 的結果一樣）：大多數三角形都短，逐頂點配置陣列的那條路開場要上千毫秒
+    const a = t * 9;
+    if ((pos[a] - pos[a + 3]) ** 2 + (pos[a + 2] - pos[a + 5]) ** 2 <= L2 && (pos[a + 3] - pos[a + 6]) ** 2 + (pos[a + 5] - pos[a + 8]) ** 2 <= L2 && (pos[a + 6] - pos[a]) ** 2 + (pos[a + 8] - pos[a + 2]) ** 2 <= L2) {
+      for (let k = 0; k < src.length; k++) { const s = src[k].itemSize, arr = src[k].array, o = out[k]; for (let i = t * 3 * s, e = i + 3 * s; i < e; i++) o.push(arr[i]); }
+      continue;
+    }
     split([0, 1, 2].map(e => src.map(attr => vtx(attr, t * 3 + e))), 0);
   }
   const ng = new T.BufferGeometry();

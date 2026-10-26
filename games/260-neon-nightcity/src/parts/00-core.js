@@ -453,6 +453,7 @@ const _m4 = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _v = V
 function tf(x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
   return new T.Matrix4().compose(_v.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz, 'YXZ')), _s.set(sx, sy, sz));
 }
+const KIT_BOX = (() => { const g = new T.BoxGeometry(1, 1, 1).toNonIndexed(); return { p: Float32Array.from(g.attributes.position.array), n: Float32Array.from(g.attributes.normal.array) }; })();
 class Kit {
   constructor() { this.pos = []; this.nor = []; this.col = []; this.mat = []; this.ext = {}; this.parts = []; }
   add(geo, color, mat, matrix, ext) {
@@ -469,7 +470,21 @@ class Kit {
     if (g !== geo) g.dispose();
     return this;
   }
-  box(x, y, z, sx, sy, sz, color, mat = 2, rx = 0, ry = 0, rz = 0, ext) { return this.add(new T.BoxGeometry(sx, sy, sz), color, mat, tf(x, y, z, rx, ry, rz), ext); }
+  // 方塊：單位方塊的樣板（BoxGeometry 轉 non-indexed，頂點順序一樣）乘尺寸再套旋轉與位移，不用每塊都建一個 BoxGeometry
+  // （開場幾十萬塊，建幾何、轉 non-indexed、applyMatrix4 加起來上千毫秒）。尺寸只縮放、不改軸向，法線只要轉
+  box(x, y, z, sx, sy, sz, color, mat = 2, rx = 0, ry = 0, rz = 0, ext) {
+    if (sx < 0 || sy < 0 || sz < 0) return this.add(new T.BoxGeometry(sx, sy, sz), color, mat, tf(x, y, z, rx, ry, rz), ext);   // 負的尺寸 BoxGeometry 會翻法線，照舊
+    const B = KIT_BOX, e = tf(x, y, z, rx, ry, rz).elements, c = color instanceof T.Color ? color : lin(color);
+    this.parts.push(this.pos.length / 3);
+    for (let i = 0; i < 108; i += 3) {
+      const px = B.p[i] * sx, py = B.p[i + 1] * sy, pz = B.p[i + 2] * sz, nx = B.n[i], ny = B.n[i + 1], nz = B.n[i + 2];
+      this.pos.push(e[0] * px + e[4] * py + e[8] * pz + e[12], e[1] * px + e[5] * py + e[9] * pz + e[13], e[2] * px + e[6] * py + e[10] * pz + e[14]);
+      this.nor.push(e[0] * nx + e[4] * ny + e[8] * nz, e[1] * nx + e[5] * ny + e[9] * nz, e[2] * nx + e[6] * ny + e[10] * nz);
+      this.col.push(c.r, c.g, c.b); this.mat.push(mat);
+      if (ext) for (const k in ext) (this.ext[k] ||= []).push(...ext[k]);
+    }
+    return this;
+  }
   cyl(x, y, z, r0, r1, h, seg, color, mat = 2, rx = 0, ry = 0, rz = 0, ext) { return this.add(new T.CylinderGeometry(r0, r1, h, seg), color, mat, tf(x, y, z, rx, ry, rz), ext); }
   build() {
     const g = new T.BufferGeometry();

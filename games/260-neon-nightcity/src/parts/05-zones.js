@@ -49,7 +49,7 @@ const CITY_LX0 = avX(0) - HR - 50, CITY_LX1 = avX(NX) + HR + 50, CITY_LZ0 = stZ(
 const warpOut = (x, z, W) => W && W.bx0 !== undefined ? Math.max(W.bx0 - x, x - W.bx1, W.bz0 - z, z - W.bz1, 0) : Math.max(CITY_LX0 - x, x - CITY_LX1, CITY_LZ0 - z, z - CITY_LZ1, 0);
 const sm01 = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 const warpT = (x, z, W) => 1 - sm01(warpOut(x, z, W) / WARP_TAPER);
-const _wj = [0, 0, 1, 0, 0, 1];
+const _wj = [0, 0, 1, 0, 0, 1], _wjC = { W: null, x: NaN, z: NaN, s0: 0, c0: 1, s1: 0, c1: 1, s2: 0, c2: 1, s3: 0, c3: 1 };
 // 回傳共用的陣列 [x', z', ∂x'/∂x, ∂x'/∂z, ∂z'/∂x, ∂z'/∂z]（呼叫端要馬上取用）
 function warpJ(W, x, z) {
   const o = _wj;
@@ -58,7 +58,12 @@ function warpJ(W, x, z) {
   if (d >= WARP_TAPER) { o[0] = x; o[1] = z; o[2] = 1; o[3] = 0; o[4] = 0; o[5] = 1; return o; }
   const t = 1 - sm01(d / WARP_TAPER);
   const a0 = W.kz * z + W.p0, a1 = W.kx * x + W.p1, a2 = W.kx2 * x + W.p2, a3 = W.kz2 * z + W.p3, ux = x - W.xc, uz = z - W.zc;
-  const s0 = Math.sin(a0), c0 = Math.cos(a0), s1 = Math.sin(a1), c1 = Math.cos(a1), s2 = Math.sin(a2), c2 = Math.cos(a2), s3 = Math.sin(a3), c3 = Math.cos(a3);
+  // a1、a2 只看 x，a0、a3 只看 z：烘焙網格時同一面的頂點 x 或 z 常常一樣，記住上一次的三角函數（和每次重算的結果完全相同）
+  const C = _wjC;
+  if (C.W !== W || C.x !== x) { C.s1 = Math.sin(a1); C.c1 = Math.cos(a1); C.s2 = Math.sin(a2); C.c2 = Math.cos(a2); C.x = x; }
+  if (C.W !== W || C.z !== z) { C.s0 = Math.sin(a0); C.c0 = Math.cos(a0); C.s3 = Math.sin(a3); C.c3 = Math.cos(a3); C.z = z; }
+  C.W = W;
+  const s0 = C.s0, c0 = C.c0, s1 = C.s1, c1 = C.c1, s2 = C.s2, c2 = C.c2, s3 = C.s3, c3 = C.c3;
   const dx = W.ax * s0 + W.sx * s1 + W.fa * ux * uz / W.hm, dz = W.az * s2 + W.sz * s3 + W.fb * ux * uz / W.hm;
   let tx = 0, tz = 0;
   if (d > 0) { const e = .5; tx = (warpT(x + e, z, W) - warpT(x - e, z, W)) / (2 * e); tz = (warpT(x, z + e, W) - warpT(x, z - e, W)) / (2 * e); }
@@ -256,7 +261,15 @@ const lakeExact = (X, Z) => inPoly(LAKE_P, X, Z) && !inPoly(ISLE_P, X, Z);
 const LAKE_MASK = (() => {
   const S = 4, xs = LAKE_P.map(p => p[0]), zs = LAKE_P.map(p => p[1]), x0 = Math.min(...xs) - S, z0 = Math.min(...zs) - S;
   const nx = Math.ceil((Math.max(...xs) + S - x0) / S), nz = Math.ceil((Math.max(...zs) + S - z0) / S), m = new Uint8Array(nx * nz);
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) m[j * nx + i] = lakeExact(x0 + (i + .5) * S, z0 + (j + .5) * S) ? 1 : 0;
+  // 掃描線（和 CITY_MASK 一樣）：兩個多邊形的交點一起排序、奇偶填——島在水道裡面，奇數段就是「水道裡、島外」。
+  // 以前每格各跑兩次 inPoly，開場要上千毫秒
+  for (let j = 0; j < nz; j++) {
+    const z = z0 + (j + .5) * S, cr = [];
+    for (const P of [LAKE_P, ISLE_P]) for (let k = 0, n = P.length; k < n; k++) { const a = P[k], b = P[(k + 1) % n]; if ((a[1] > z) !== (b[1] > z)) cr.push(a[0] + (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1])); }
+    cr.sort((p, q) => p - q);
+    // 格子中心在 [cr[k], cr[k + 1]) 之間才算（和逐格用 inPoly 判斷同一個結果）
+    for (let k = 0; k + 1 < cr.length; k += 2) for (let i = Math.max(0, Math.ceil((cr[k] - x0) / S - .5)); i < nx && x0 + (i + .5) * S < cr[k + 1]; i++) m[j * nx + i] = 1;
+  }
   return { S, x0, z0, nx, nz, m };
 })();
 const BRIDGES = [];   // { pts, hw, bb }（06-roads.js 填）

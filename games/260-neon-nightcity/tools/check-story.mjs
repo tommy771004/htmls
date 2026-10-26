@@ -106,7 +106,14 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     if (R['5-3']) check(R['5-3'].flags.hangar === 1 && R['5-3'].pay >= 400000, `5-3：跳上貨機、落地撿回現金（$${R['5-3'].pay}）`);
     if (R['5-4']) check(R['5-4'].flags.heli === 1 && R['5-4'].pay >= 400000, `5-4：吊貨櫃撞穿工地、拿回證物箱（$${R['5-4'].pay}）`);
     if (R['5-6']) check(R['5-6'].cast.jax === 1 && R['5-6'].pay >= 200000, `5-6：賈克斯可以切換（$${R['5-6'].pay}）`);
-    const rid = order.find(id => R[id] && R[id].pay > 0);
+    if (R['F-1']) check(R['F-1'].pay >= 2000000, `F-1：賭場金庫得手，金庫加獎牌 $${R['F-1'].pay}`);
+    if (R['F-2']) check(R['F-2'].pay >= 400000, `F-2：雙人跳、甩掉 4 星（$${R['F-2'].pay}）`);
+    if (R['F-3']) check(R['F-3'].m === 'F-4A' && R['F-3'].flags.route === 'A' && R['F-3'].pay === 0, `F-3：選了 ${R['F-3'].flags.route}，下一關 ${R['F-3'].m}`);
+    if (R['F-4A']) check(R['F-4A'].m === 'end' && R['F-4A'].flags.end === 'A' && ['dane', 'vance', 'kael', 'jax'].every(k => R['F-4A'].cast[k] === 1), `F-4A：結局 A、下一關 ${R['F-4A'].m}、五人都能切換`);
+    if (R['F-4B']) check(R['F-4B'].m === 'end' && R['F-4B'].flags.end === 'B' && R['F-4B'].flags.fame === 100, `F-4B：結局 B、下一關 ${R['F-4B'].m}、名氣 ${R['F-4B'].flags.fame}`);
+    // 照搶案分贓算的任務（4-5、F-1）重玩時搶案本身照樣付錢，只看主線自己發的
+    const split = await page.evaluate(() => Object.keys(window.__nc.story.M).filter(id => window.__nc.story.M[id].split));
+    const rid = order.find(id => R[id] && R[id].pay > 0 && !split.includes(id));
     const re = rid && await sec('重玩：同樣的獎牌不再發錢', async id => {
       const N = window.__nc, St = N.story, cash0 = N.motors.cash;
       __t.dismiss(); St.go(id); await __t.settle(); __t.step(40); await __t.run(id);
@@ -167,9 +174,41 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
       if (mech.sky) check(mech.sky.kind === 'fall' && mech.sky.fell > 20 && mech.sky.h > 300, `5-3 從 ${mech.sky.h} m 自由落體（2 秒掉了 ${mech.sky.fell} m）`);
       if (mech.sling) check(/登機/.test(mech.sling.ctx || '') && mech.sling.in && mech.sling.on && mech.sling.d <= 12.6 && mech.sling.type === 'smash', `5-4 登機、掛上貨櫃、飛走時貨櫃跟著（${JSON.stringify(mech.sling)}）`);
       check(mech.cp && mech.cp.n >= 4 && mech.cp.lim > 30, `3-5 MV 的檢查點 ${mech.cp && mech.cp.n} 個、限時 ${mech.cp && mech.cp.lim} 秒`);
-      check(mech.truck && mech.truck.moved > 30 && (mech.truck.type === 'tail' || mech.truck.type === 'truck'), `2-2 的運鈔車 20 秒開了 ${mech.truck && mech.truck.moved} m（> 30 m；當下時速 ${mech.truck && Math.round(mech.truck.sp * 3.6)}，還在跟車：${mech.truck && mech.truck.type}${mech.truck && mech.truck.retry ? '；失敗：' + JSON.stringify(mech.truck.retry) : ''}）`);
+      check(mech.truck && mech.truck.moved > 20 && (mech.truck.type === 'tail' || mech.truck.type === 'truck'), `2-2 的運鈔車 20 秒開了 ${mech.truck && mech.truck.moved} m（> 20 m：車流裡會停紅燈，卡住的話是 0；當下時速 ${mech.truck && Math.round(mech.truck.sp * 3.6)}，還在跟車：${mech.truck && mech.truck.type}${mech.truck && mech.truck.retry ? '；失敗：' + JSON.stringify(mech.truck.retry) : ''}）`);
       check(mech.win && !mech.win.air && mech.win.type === 'away', `2-5 跳窗落地、在逃（${JSON.stringify(mech.win)}）`);
       check(mech.boat && mech.boat.sp > 3, `2-6 霍利斯的快艇在跑（${JSON.stringify(mech.boat)}）`);
+    }
+    // 終章：跳步驟驗不到的
+    const fin = all.includes('F-4B') && await sec('終章的機制：雙人跳、塔頂直播與六星、重玩 F-3 改走另一條路', async () => {
+      const N = window.__nc, St = N.story, o = {};
+      const toS = async (id, type) => { __t.dismiss(); St.go(id); await __t.settle(); __t.step(40);
+        for (let i = 0; i < 20; i++) { await __t.settle(); const s = St.state(); if (!s.act || s.act.type === type) break; St.skip(); __t.step(20); if (N.dialog.open) N.closeDialog(); }
+        await __t.settle(); return St.act(); };
+      const life = () => N.gta.life.hp + N.gta.life.armor;
+      // F-2：從樓頂的高度跳下去，落進泳池不扣血
+      let a = await toS('F-2', 'leap');
+      if (a) { const hp0 = life(); for (let i = 0; i < 80 && !a.leapDone; i++) { __t.step(10); if (a.leapHold && a.leapHold.out) await new Promise(r => setTimeout(r, 150)); } const L = a.leap;
+        o.leap = { done: a.leapDone, hurt: hp0 - life(), d: a.leapMiss ?? -1, h: L ? Math.round(L.y0 - L.wy) : 0, roof: !!(L && L.roof), down: L ? Math.round(L.by - N.player.y) : 0, air: !!N.player.air3, type: St.state().act && St.state().act.type }; }
+      // F-4B：站在 202 m 的屋頂上不掉下去；六星（第六顆星亮著），直升機飛在屋頂以上
+      a = await toS('F-4B', 'stream');
+      if (a) { __t.step(600); const W = N.gta.wanted.W, el = document.getElementById('wanted');
+        o.roof = { y: Math.round(N.player.y), deck: St.fin.towerRoof().y, stars: W.stars, six: el.classList.contains('six') && el.children[5].classList.contains('lit'), heli: W.heli && !W.heli.fall ? Math.round(W.heli.y) : null, p: +((a.cur && a.cur.p) || 0).toFixed(3), type: St.state().act && St.state().act.type };
+        St.fail('測試'); __t.step(5); if (N.dialog.open) N.closeDialog(); N.gta.wanted.clear('reset'); o.roof.six2 = W.six || 0; }
+      // 重玩 F-3（主線已經走完）選 B：下一關換成 F-4B
+      St.st().m = 'end'; St.st().retry = null; St.fin.start('F-3'); await __t.settle();
+      for (let i = 0; i < 40; i++) { await __t.settle(); const s = St.state(); if (!s.act) break;
+        if (s.act.type === 'choose') { __t.step(5); const b = [...document.querySelectorAll('#dlgOpts button')].find(b => b.textContent.includes('B · ')); if (b) b.click(); } else St.skip();
+        __t.step(20); }
+      __t.dismiss();
+      o.re = { m: St.state().m, route: St.state().flags.route, rows: St.fin.phone().length, repT: St.fin.repT(), posters: St.fin.posters() };
+      return o;
+    });
+    if (fin) {
+      const L = fin.leap, R2 = fin.roof, E = fin.re;
+      check(L && L.done && L.hurt <= 0 && L.d >= 0 && L.d < 1.5 && L.h >= 12 && (!L.roof || L.down > 4), `F-2：從 ${L && L.h} m 跳下來落進${L && L.roof ? '隔壁樓頂的' : ''}泳池、沒扣血，再帶到樓下（${JSON.stringify(L)}）`);
+      check(R2 && Math.abs(R2.y - R2.deck) < 2 && R2.stars === 6 && R2.six && (R2.heli === null || R2.heli > R2.deck) && R2.p > .05 && R2.six2 === 0, `F-4B：塔頂 ${R2 && R2.y} m 守著、六星、直升機 ${R2 && R2.heli} m、上傳 ${R2 && Math.round(R2.p * 100)}%（${JSON.stringify(R2)}）`);
+      check(E.m === 'F-4B' && E.route === 'B', `重玩 F-3 改選 B：下一關 ${E.m}`);
+      check(E.rows >= 30 && E.repT === 1.5 && E.posters >= 5, `手機「主線任務」${E.rows} 列、結局 B 報警 ${E.repT} 秒、通緝海報 ${E.posters} 塊`);
     }
     const mon = await sec('腳鐐：羅莎走出範圍，30 秒後加 1 星', () => {
       const N = window.__nc, St = N.story;
