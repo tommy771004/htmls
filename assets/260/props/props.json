@@ -1030,6 +1030,59 @@
    }
   ]
  },
+ "air_gse": {
+  "kb": 326,
+  "items": {
+   "gse_tug": {
+    "w": 1.92,
+    "d": 3.3,
+    "h": 1.35,
+    "tris": 12928
+   },
+   "gse_cart": {
+    "w": 1.5,
+    "d": 3,
+    "h": 2.03,
+    "tris": 1972
+   }
+  },
+  "credits": [
+   {
+    "file": "airport_tug",
+    "title": "Airport Tug",
+    "author": "flightmaster177 (https://sketchfab.com/flightmaster177)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/airport-tug-388e668f8143432fb82c1268e1f9ab81"
+   },
+   {
+    "file": "airport_baggage_equipment_cart_lowpoly",
+    "title": "Airport baggage equipment (cart) lowpoly",
+    "author": "propmaker1 (https://sketchfab.com/menX1151)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/airport-baggage-equipment-cart-lowpoly-7ae8444bb5044376a04ee7bb0664ff39"
+   }
+  ]
+ },
+ "amb_str": {
+  "kb": 113,
+  "items": {
+   "amb_str": {
+    "w": 0.79,
+    "d": 1.95,
+    "h": 1.1,
+    "tris": 14997
+   }
+  },
+  "credits": [
+   {
+    "file": "ambulance_stretcher_2",
+    "title": "Ambulance Stretcher 2",
+    "author": "Danish Shah (https://sketchfab.com/s.danishshah57)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/ambulance-stretcher-2-9fe5c15944914774a4ff1fe1193bc0d2"
+   }
+  ]
+ },
  "fort": {
   "kb": 1175,
   "items": {

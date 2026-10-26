@@ -177,6 +177,15 @@ export const SETS = [
   ] },
   // LAZARUS 夜店的 DJ 控制器（60-venues.js）：Andres Torres 的 DJ Mixer desk（CC BY 4.0），放大蓋住 Blender 主控台桌面上的唱盤
   { out: 'club_dj', tex: 1024, items: [{ id: 'club_dj', file: 'dj_mixer_desk', len: 1.86, rot: 1 }] },
+  // 機坪的地勤車（21-air.js 的 AIR_GSE）：flightmaster177 的 Airport Tug（實物掃描，車頭朝 +x）與 propmaker1 的行李車（尾燈那端在 +z），都是 CC BY 4.0。
+  // 拖車引擎蓋兩側、水箱罩與資料牌上的廠牌字樣（掃描進貼圖的打孔字）模糊掉
+  { out: 'air_gse', src: '.cache/air', tex: 1024, texEdit: {
+    material_0: { blur: [[.168, .905, .201, .984], [.26, .813, .285, .845], [.41, .928, .433, .943], [.526, .911, .555, .997], [.643, .913, .658, .941], [.923, .955, .946, .984]] } }, items: [
+    { id: 'gse_tug', file: 'airport_tug', len: 3.3, rot: 3, simp: [.06, .004] },   // 掃描 21.6 萬面
+    { id: 'gse_cart', file: 'airport_baggage_equipment_cart_lowpoly', len: 3.0, rot: 2 },
+  ] },
+  // 救護車停下來處置時擺在傷者旁邊的擔架（69-v8-civic.js）：Danish Shah 的 Ambulance Stretcher，CC BY 4.0；原檔只有一個中灰色材質、沒有貼圖，調成鋁白
+  { out: 'amb_str', tex: 512, recolor: { AmbulanceStretcher_MT: [.8, .82, .84, 1, .45] }, items: [{ id: 'amb_str', file: 'ambulance_stretcher_2', len: 1.95 }] },
   // 霓虹堡軍事基地（69-v7-bunker.js 的 FORT）與銀行防撞柱（69-v5-street.js），原檔在 .cache/fort/，全部 CC BY 4.0（2026-10-25 下載，作者見 CREDITS.md）：
   // 鐵絲網圍籬只取有刺絲的那一片（Cube.002）、轉成沿 x；機棚是半圓拱棚，坦克從南面開出去；
   // 彈藥箱取原檔下面那一箱（上面那箱開著蓋）；油桶取貨櫃組裡的第一個桶子

@@ -211,8 +211,24 @@ function downPed(x, z, r) {
   }
   return best;
 }
+// 擔架：救護車停好處置時擺在傷者旁邊（靠救護車那一側），開走就收起來；以 http(s) 開啟換成 amb_str 組的模型，否則是方塊替身
+const AMB_STR = { g: null };
+function ambStretcher(on, x, z, yaw) {
+  let S = AMB_STR.g;
+  if (!S) {
+    if (!on) return;
+    S = AMB_STR.g = new T.Group(); scene.add(S);
+    const k = new Kit(); k.box(0, .85, 0, .6, .12, 1.9, 0xd8dadc, 10).box(0, .4, 0, .5, .05, 1.6, 0x9a9ea2, 15);
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.box(sx * .24, .42, sz * .7, .04, .8, .04, 0x9a9ea2, 15);
+    const fb = new T.Mesh(k.build(), MAT.uber); S.add(fb);
+    if (GLB_ON) loadProps('amb_str').then(it => { if (it && it.amb_str) { fb.removeFromParent(); fb.geometry.dispose(); S.add(propObject(it.amb_str, 0, 0, 0, 0)); } }).catch(e => console.warn('amb_str', e));
+  }
+  S.visible = !!on;
+  if (on) { S.position.set(x, groundH(x, z), z); S.rotation.y = yaw; }
+}
 function ambStep(dt, t) {
   const px = pX(), pz = pZ(), A = CIV.amb;
+  if (!A || A.tk.state !== 'park') ambStretcher(false);
   if (!A) {
     CIV.cool.amb -= dt;
     const k = player.where === 'out' && CIV.cool.amb <= 0 ? downPed(px, pz, AMB_R) : -1;
@@ -237,6 +253,10 @@ function ambStep(dt, t) {
   else if (tk.state === 'drive') { const k = downPed(v.x, v.z, 120); if (k >= 0) { A.k = k; civGo(tk, peds.people[k].x, peds.people[k].z); } else { civLeave(tk); return; } }
   const at = civDrive(tk, dt, 7);
   if (at && tk.state === 'drive') tk.state = 'park';
+  if (tk.state === 'park') {   // 擔架推到傷者身邊（離傷者 1.1 m、長邊和救護車到傷者的方向垂直）
+    const p = peds.people[A.k], dx = v.x - p.x, dz = v.z - p.z, l = Math.hypot(dx, dz) || 1;
+    ambStretcher(true, p.x + dx / l * 1.1, p.z + dz / l * 1.1, Math.atan2(dx, dz) + Math.PI / 2);
+  }
   if (tk.state === 'park' && (A.treat += dt) > AMB_TREAT) {
     let n = 0;
     for (let i = 0; i < PED_N; i++) { const q = pedState[i], pp = peds.people[i]; if (q && q.down > 0 && (i === A.k || !q.stun && Math.hypot(pp.x - v.x, pp.z - v.z) < AMB_REACH)) { q.down = .01; n++; } }

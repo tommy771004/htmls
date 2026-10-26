@@ -216,6 +216,48 @@ function airAt(P, d) {   // 路徑上弧長 d 的點與方向（yaw：0 朝 +z�
   const [ax, az] = P.p[i - 1], [bx, bz] = P.p[i], u = (d - P.s[i - 1]) / Math.max(1e-6, P.s[i] - P.s[i - 1]);
   return [ax + (bx - ax) * u, az + (bz - az) * u, Math.atan2(bx - ax, bz - az)];
 }
+// ─── 機坪的地勤車：每座登機門西側停一列（拖車＋兩台行李車，車頭朝航廈），另一列（拖車＋三台）沿著登機門後面與遠端機位之間的矩形繞圈。
+// 模型是 air_gse 組（和 air 組一起在 AIR_NEAR 內下載），以檔案開啟用方塊替身；停著的是 SEA_FR 座標的固定碰撞盒，繞圈的是 dynMore 的圓 ───
+const GSE_GAP = [4.05, 3.9];   // 拖車中心到第一台行李車、行李車之間（車長 3.3／3.0，間隔 0.9 m）
+const AIR_GSE = { units: [], loop: [], d: 0, v: 4.5, dyn: [], hooked: false };
+function gseKit(kind) {
+  const k = new Kit();
+  if (kind === 'gse_tug') k.box(0, .55, .35, 1.85, .7, 2.5, 0xe9e9e4, 10).box(0, .75, -1.15, 1.6, .35, .9, 0x24366e, 0).box(0, .32, 0, 1.9, .5, 3.2, 0x2a2c2e, 15);
+  else k.box(0, 1.2, 0, 1.5, 1.6, 2.9, 0xd6d8d8, 10).box(0, .3, 0, 1.4, .25, 3, 0x2a2c2e, 15);
+  return k;
+}
+function gseUnit(kind) {
+  const g = new T.Group(), m = new T.Mesh(gseKit(kind).build(), MAT.uber); g.add(m);
+  const u = { kind, g, fb: m }; AIR_GSE.units.push(u); return u;
+}
+// 一列車：拖車在 d，行李車依序在後面（offs 是沿著車頭方向往後的距離）
+const gseOffs = n => [0, ...Array.from({ length: n }, (_, i) => GSE_GAP[0] + GSE_GAP[1] * i)];
+if (AIR_L) {
+  const L = AIR_L;
+  for (const gt of L.gates) {   // 西側：上一座登機門客機的翼尖（x − 35.5）與這架的翼尖（x − 13.3）之間；車頭朝北（航廈）
+    const x = gt.x - 23, z0 = 226, offs = gseOffs(2);
+    offs.forEach((o, i) => { const u = gseUnit(i ? 'gse_cart' : 'gse_tug'); u.g.position.set(x, 0, z0 + o); u.g.rotation.y = Math.PI; cityAdd(u.g, AIR_ZN); });
+    colliders.push({ x0: x - 1, x1: x + 1, z0: z0 - 1.7, z1: z0 + offs[2] + 1.6, zn: AIR_F });
+  }
+  // 繞圈：登機門客機機尾（z 258）後面往西到遠端機位客機的翼尖（x −2232）前，再往南繞回來（逆時針看下去是：西、南、東、北）
+  AIR_GSE.path = airPath([[-1970, 272], [-2150, 272], [-2150, 335], [-1790, 335], [-1790, 272], [-1970, 272]], 9);   // 從北邊中段出發、回到同一點
+  for (const [i] of gseOffs(3).entries()) { const u = gseUnit(i ? 'gse_cart' : 'gse_tug'); scene.add(u.g); AIR_GSE.loop.push(u); AIR_GSE.dyn.push({ x: 1e6, z: 1e6, r: 1.1 }); }
+}
+function gseModels(items) {
+  for (const u of AIR_GSE.units) if (items[u.kind]) { u.fb.removeFromParent(); u.fb.geometry.dispose(); u.g.add(propObject(items[u.kind], 0, 0, 0, 0)); }
+}
+function gseUpdate(dt) {
+  const G = AIR_GSE, P = G.path; if (!P) return;
+  if (!G.hooked) { G.hooked = true; dynMore.push(...G.dyn); }
+  const len = P.len;
+  G.d = (G.d + G.v * dt) % len;
+  const offs = gseOffs(3);
+  G.loop.forEach((u, i) => {
+    const d = ((G.d - offs[i]) % len + len) % len, [x, z, yaw] = airAt(P, d), [X, Z] = airW(x, z);
+    u.g.position.set(X, 0, Z); u.g.rotation.y = yaw + AIR_YAW;
+    G.dyn[i].x = X; G.dyn[i].z = Z;
+  });
+}
 const AIR_P = { planes: [], cur: 0, st: 'park', t: 12, d: 0, v: 0, x: 0, y: 0, z: 0, yaw: Math.PI / 2, pitch: 0, roll: 0, n: 0, dyn: [] };
 if (AIR_L) {
   const L = AIR_L, S = L.stand, R = L.rwy, W = L.twy;
@@ -238,8 +280,12 @@ function airUpdate(dt) {
   // 走近才下載模型
   if (!AIR_M.req && GLB_ON) {
     const [cx, cz] = airW((L.I.x0 + L.I.x1) / 2, (L.I.z0 + L.I.z1) / 2);
-    if (Math.hypot(pX() - cx, pZ() - cz) < AIR_NEAR) { AIR_M.req = true; loadProps('air').then(items => { if (items) { AIR_M.items = items; airModels(items); } }); }
+    if (Math.hypot(pX() - cx, pZ() - cz) < AIR_NEAR) {
+      AIR_M.req = true; loadProps('air').then(items => { if (items) { AIR_M.items = items; airModels(items); } });
+      loadProps('air_gse').then(items => { if (items) gseModels(items); }).catch(e => console.warn('air_gse', e));
+    }
   }
+  gseUpdate(dt);
   P.t -= dt;
   const pl = P.planes[P.cur];
   if (P.st === 'park') { [P.x, P.z, P.yaw, P.y, P.pitch] = [L.stand.x, L.stand.z, Math.PI / 2, 0, 0]; if (P.t <= 0) { P.st = 'out'; P.d = 0; P.v = 0; } }
@@ -276,7 +322,7 @@ function airUpdate(dt) {
   P.dyn.forEach((c, i) => { const o = [-11, 0, 11, 17][i]; c.x = ground ? X + fx * o : 1e6; c.z = ground ? Z + fz * o : 1e6; });
 }
 const airApi = {
-  get L() { return AIR_L; }, get P() { return AIR_P; }, get M() { return AIR_M; }, AIR, land: (x, z) => airLandL(x, z), landW: (X, Z) => airLandW(X, Z),
+  get L() { return AIR_L; }, get P() { return AIR_P; }, get M() { return AIR_M; }, gse: AIR_GSE, AIR, land: (x, z) => airLandL(x, z), landW: (X, Z) => airLandW(X, Z),
   W: (x, z) => airW(x, z), L2: (X, Z) => toL(X, Z, AIR_ZN), district: (X, Z) => districtW(X, Z),
   tp: (x, z, yaw = 0) => { const [X, Z] = airW(x, z); window.__nc.tp(X, Z, yaw + AIR_YAW); },
   set: (st, t = 0) => { AIR_P.st = st; AIR_P.t = t; if (st === 'final') { AIR_P.x = AIR_L.td - AIR_FINAL; AIR_P.z = AIR_L.rwy.z; AIR_P.y = AIR_FINAL * AIR_GLIDE; AIR_P.v = 72; AIR_P.yaw = Math.PI / 2; } if (st === 'out' || st === 'in') { AIR_P.d = 0; AIR_P.v = 0; } },
