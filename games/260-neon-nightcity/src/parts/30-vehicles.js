@@ -238,6 +238,9 @@ for (const S of [HOSP, PD]) {
 parked.push(...facParked());   // 69-v5-civic.js：拖吊場裡被扣的車（不抽 rT）
 mallParkClear();   // 69-v5-shops.js：洗車隧道進出口前的路邊車位
 streetParkClear();   // 69-v5-street.js：路邊施工區那幾段
+// 跳台的助跑道與落地區：上面只看車心，長車（貨車、廂型車）的車頭車尾會伸進去；彎曲的片裡換成世界座標後也會偏一兩公尺，所以兩端再多留 1.3 m
+// （亂數都抽過了，這裡拿掉不會讓後面的車跑位）
+for (let i = parked.length - 1; i >= 0; i--) { const p = parked[i], L = TYPES[p.type].len / 2 + 1.3; if ([-1, 1].some(s => rampBlock(p.x + Math.sin(p.yaw) * L * s, p.z + Math.cos(p.yaw) * L * s))) parked.splice(i, 1); }
 // 停車位以邏輯座標挑好，這裡一次換成世界座標（車頭方向一起轉）；車身的兩個碰撞圓直接是世界座標
 for (const p of parked) { const zn = zoneAtL(p.x, p.z); [p.x, p.z] = toW(p.x, p.z, zn); p.yaw = yawW(zn, p.yaw); }
 // 停車、出生、交車與重生點：生成時（避開停車格）是邏輯座標，cityWorld() 之後換成世界座標

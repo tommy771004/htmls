@@ -314,10 +314,11 @@ try {
     N.keys.ShiftLeft = true; step(240); N.keys.ShiftLeft = false; heli.vx = heli.vz = 0; G.wanted.clear('reset'); await wait(600);
     out.land = { st: h.st, done: document.getElementById('heistDone').classList.contains('on'), alt: +(heli.y - S.roofH(heli.x, heli.z)).toFixed(1) };
     if (N.player.veh) N.walk();
-    out.after = { enf: N.vehicles.includes(car), heli: S.GS.list.length };
+    const heistHelis = () => S.GS.list.filter(v => !v.pad).length;   // 69-v5-civic.js 的屋頂停機坪（警局、醫院）各停一架（v.pad），不算搶案這架
+    out.after = { enf: N.vehicles.includes(car), heli: heistHelis() };
     // 再搶一次：停機坪換一架新的，不會疊兩架
     h.how = 'loud'; h.enfReady = true; const car2 = H.getawayCar(), h2 = H.heli();
-    out.again = { heli: S.GS.list.length, pad: Math.hypot(h2.x - S.HELIPAD.x, h2.z - S.HELIPAD.z) < 1, touch: document.querySelector('#tbtn button[data-k="Space"]').textContent };
+    out.again = { heli: heistHelis(), pad: Math.hypot(h2.x - S.HELIPAD.x, h2.z - S.HELIPAD.z) < 1, touch: document.querySelector('#tbtn button[data-k="Space"]').textContent };
     S.drop(h2); N.vehicles.splice(N.vehicles.indexOf(car2), 1); car2.g.removeFromParent(); h.car = null;
     return out;
   });

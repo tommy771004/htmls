@@ -74,9 +74,11 @@ function gasStep(dt) {
     }
     if (player.where === 'out' && player.mode === 'walk' && Math.hypot(px - g.x, pz - g.z) < r * fade) inGas = g;
     if (g.by !== 'player' || g.t < .5) continue;
-    // 玩家丟的：警察（包括特警）與幫派、傭兵敵人嗆到原地蹲著咳
-    for (const c of W.cops) if (c.on && c.state !== 'down' && !c.rope && Math.hypot(c.x - g.x, c.z - g.z) < r && !(c.stunT > .5)) stunCop(c, 3);
-    for (const f of SQ.f) if (fUp(f) && !fAlly(f) && Math.hypot(f.x - g.x, f.z - g.z) < r && !(f.stunT > .5)) { f.stunT = 3; f.stunPh = -uTimeNow(); }
+    // 玩家丟的：警察（包括特警）與幫派、傭兵敵人嗆到原地蹲著咳。罐子一落地就算犯罪、附近的人會醒來跑開，
+    // 煙要 1.5 秒才長滿，照畫面的半徑算會讓 3–4 m 外的人先跑出去；嗆到的範圍 0.6 秒就到滿
+    const rN = g.r * Math.min(1, g.t / .6);
+    for (const c of W.cops) if (c.on && c.state !== 'down' && !c.rope && Math.hypot(c.x - g.x, c.z - g.z) < rN && !(c.stunT > .5)) stunCop(c, 3);
+    for (const f of SQ.f) if (fUp(f) && !fAlly(f) && Math.hypot(f.x - g.x, f.z - g.z) < rN && !(f.stunT > .5)) { f.stunT = 3; f.stunPh = -uTimeNow(); }
   }
   GAS.k = damp(GAS.k, inGas ? 1 : 0, inGas ? 3 : 1.2, dt);
   if (inGas) {
