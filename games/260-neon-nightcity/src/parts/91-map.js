@@ -174,7 +174,9 @@ function mapDraw() {
       if (!vis(x, x, z, z) || (alt % 2 && MV.zoom < 3)) continue;
       let a = Math.atan2(q[1] - p[1], q[0] - p[0]);
       if (a > Math.PI / 2) a -= Math.PI; else if (a < -Math.PI / 2) a += Math.PI;
-      c.save(); c.translate(X(x), Z(z)); c.rotate(a); c.fillText((e.kind === 'f' ? e.fwy.name : e.kind === 'd' ? e.diag.name : e.kind === 'z' ? AVE[e.a.i] : STR[e.a.j]).toUpperCase(), 0, 0); c.restore();
+      const isle = e.zn && e.zn.isle, nm = e.kind === 'f' ? e.fwy.name : e.kind === 'd' ? e.diag.name : e.kind === 'z' ? (isle ? ISLE_AVE[e.a.i - 114] : AVE[e.a.i]) : (isle ? ISLE_STR[e.a.j - 1] : STR[e.a.j]);   // 天樞島的格子用 90-hud.js 的曼哈頓下城街名
+      if (!nm) continue;
+      c.save(); c.translate(X(x), Z(z)); c.rotate(a); c.fillText(nm.toUpperCase(), 0, 0); c.restore();
     }
   }
   c.shadowBlur = 0;

@@ -93,6 +93,7 @@ function drawCity(c, P, k, C, vis, lot, line) {
   const G = MAP_GEO, [tx, tz] = P(G.tx0, G.tz0);
   c.imageSmoothingEnabled = true; c.drawImage(G.ter, tx, tz, G.ter.width * G.tS * k, G.ter.height * G.tS * k);
   c.fillStyle = C.grass; path(CITY_POLY, true); c.fill();   // 外緣裡面：片之間的空地是草地
+  c.fillStyle = C.water; c.beginPath(); for (const R of [LAKE_P, ISLE_P]) { R.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); c.closePath(); } c.fill('evenodd');   // 天樞島的水道（外緣與島岸之間）
   for (const s of G.coast) if (vis(s.bb)) { c.fillStyle = C[s.c]; path(s.pts, true); c.fill(); }
   { const K = MAP_PARK; c.fillStyle = C.park; path(K.walk, true); c.fill(); c.strokeStyle = C.trail || '#8a7050'; c.lineWidth = Math.max(1.4, 2.6 * k); c.lineJoin = c.lineCap = 'round'; path(K.trail); c.stroke(); c.fillStyle = C.trail || '#8a7050'; path(K.look, true); c.fill(); path(K.cabin, true); c.fill(); }   // 北嶺公園
   airMapDraw(c, P, k, C);
@@ -110,6 +111,7 @@ function drawCity(c, P, k, C, vis, lot, line) {
     if (s.plaza) continue;   // 廣場：整塊是鋪面
     c.fillStyle = s.park ? C.park : C.block; path(s.inn, true); c.fill();
   }
+  c.fillStyle = C.block; for (const f of ISLE_FILL) { path(f.P, true); c.fill(); }   // 天樞島格子之間斜的填空樓（11-isle.js，世界座標）
   c.strokeStyle = C.road; c.lineWidth = 2 * HR * k;
   for (const e of RN.edges) if (e.kind === 'd') { path(e.pts); c.stroke(); }   // 斜的大道蓋在廣場上
   c.strokeStyle = C.fwy || '#b08a3a'; c.lineWidth = 2 * HR * k;
@@ -124,7 +126,7 @@ function drawCity(c, P, k, C, vis, lot, line) {
   if (lot) for (const s of G.lot) if (vis(s.bb)) { c.fillStyle = lot(s.L); path(s.pts, true); c.fill(); }
   if (line) { c.strokeStyle = line; c.lineWidth = 1; for (const e of RN.edges) { path(e.pts); c.stroke(); } }
 }
-const MINI_C = { grass: '#26321f', walk: '#2a2d33', block: '#2a2d33', park: '#26321f', road: '#4a4e56', beach: '#6a5e46', quay: '#3a3d42', pier: '#5a4632', isle: '#26321f' };
+const MINI_C = { water: '#14202a', grass: '#26321f', walk: '#2a2d33', block: '#2a2d33', park: '#26321f', road: '#4a4e56', beach: '#6a5e46', quay: '#3a3d42', pier: '#5a4632', isle: '#26321f' };
 const mapImg = document.createElement('canvas');
 mapImg.width = Math.ceil((MAP_BB.x1 - MAP_X0) * MAP_S); mapImg.height = Math.ceil((MAP_BB.z1 - MAP_Z0) * MAP_S);
 {
