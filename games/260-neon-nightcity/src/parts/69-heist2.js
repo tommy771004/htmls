@@ -50,12 +50,12 @@ function setupBStart() {
   heistStage('setupB');
   enfSpawn();
   heistFade(() => {
-    Object.assign(crew.st[2], { x: SAFE.x, z: SAFE.z, yaw: player.yaw });
-    crewLoad(2);
+    Object.assign(crew.st[hW(2)], { x: SAFE.x, z: SAFE.z, yaw: player.yaw });
+    crewLoad(hW(2));
     const a = arm.ammo;
     a.stun.mag = ARMS.stun.mag; a.stun.res = ARMS.stun.res; a.gas.mag = ARMS.gas.n;
     equip('stun', true);
-    toast('前置 B：換 Jax 埋伏 NCPD 移防車隊。用電擊槍或催淚瓦斯放倒押車特警，搶走鎮暴裝甲車');
+    toast(`前置 B：換 ${hName(2)} 埋伏 NCPD 移防車隊。用電擊槍或催淚瓦斯放倒押車特警，搶走鎮暴裝甲車`);
   });
 }
 function enfStep(dt) {
@@ -99,7 +99,7 @@ ctxHooks.push((p) => {
 // ─── 逃亡載具 ───
 function getawayCar() {
   clearSpot(CAR_AT.x, CAR_AT.z, 9);
-  heist.air = heist.how === 'loud' && !!heist.enfReady;   // 強攻而且做完前置 B：裝甲車＋直升機
+  heist.air = (heist.how === 'loud' || !!heist.storyAir) && !!heist.enfReady;   // 強攻（或主線 4-5 的 storyAir）而且做完前置 B：裝甲車＋直升機
   if (!heist.air) {
     const v = buildVeh('tiara', CAR_AT.x, CAR_AT.z, CAR_AT.yaw, 0, .61, 2, 'heist');
     v.name = '逃亡車 · Tiara GT'; v.vmax = 47; v.eng = 13; v.hp = 2400; v.y = spawnY(v.x, v.z); poseVehicle(v);
@@ -128,7 +128,7 @@ function disguiseKit(v) {
 function heliLeg() {
   const v = player.veh, h = heist.heli;
   if (h && h.dead && v !== h && !heist.heliLost) { heist.heliLost = true; toast('直升機被打爛了：開裝甲車甩掉警察，直接開進貨場'); }
-  if (v && v === h && !heist.heliIn) { heist.heliIn = true; toast('Kael 起飛：Space 爬升、左鍵發射火箭。飛高了地面的警察跟不住'); }
+  if (v && v === h && !heist.heliIn) { heist.heliIn = true; toast(`${hName(1)} 起飛：Space 爬升、左鍵發射火箭。飛高了地面的警察跟不住`); }
   if (v && v.fly && Math.hypot(v.x - YARD.x, v.z - YARD.z) < 10 && v.y - groundH(v.x, v.z) > 1.5 && !heist.landHint) { heist.landHint = true; toast('按住 Shift 降落在黃圈裡'); }
 }
 function heist2Mark() {
@@ -189,8 +189,10 @@ body.hacking #touch{visibility:hidden}`;
   HACK.el = e; HACK.cv = e.querySelector('#hackCv'); HACK.tEl = e.querySelector('#hackT'); HACK.bar = e.querySelector('#hackBar i');
   return e;
 }
-function hackOpen() {
+// free：不在搶案裡用（主線 4-3 的卸腳鐐），結束時呼叫 free(how)；每幀由呼叫的人推 hackStep
+function hackOpen(free) {
   if (HACK.on) return;
+  HACK.free = free || null;
   const r = n => 1 + Math.floor(Math.random() * n);
   HACK.rows = [0, 1, 2].map(i => {
     let o;
@@ -219,6 +221,7 @@ function hackKey(code) {
 }
 // ok：三組都對齊；drill：按 E 改裝鑽機；late：時間到
 function hackEnd(how) {
+  if (HACK.free) { const f = HACK.free; HACK.free = null; hackClose(); f(how); return; }
   hackClose(); heist.hackDone = true;
   if (how === 'ok') {
     sfx.ability(true);
@@ -230,7 +233,7 @@ function hackEnd(how) {
   drillStart();
 }
 function hackStep(dt) {
-  if (heist.st !== 'drill' || player.where !== 'bank' || life.dead) { hackClose(); return; }
+  if (!HACK.free && (heist.st !== 'drill' || player.where !== 'bank') || life.dead) { hackClose(); return; }
   HACK.ph += dt;
   HACK.t = Math.max(0, HACK.t - dt);
   const R = HACK.rows[HACK.cur];

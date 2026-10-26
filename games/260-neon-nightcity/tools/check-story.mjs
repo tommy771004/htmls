@@ -99,6 +99,9 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     if (R['3-1']) check(R['3-1'].pay >= 20000 && R['3-1'].pay <= 30000 && R['3-1'].flags.vip === 1, `3-1：門禁照主線發錢（$${R['3-1'].pay}，不是 $250,000）`);
     if (R['3-5']) check(R['3-5'].flags.mv === 1 && R['3-5'].flags.fame >= 40, `3-5：MV 上片、名氣 ${R['3-5'].flags.fame}`);
     if (R['3-7']) check(R['3-7'].flags.home2 === 1, '3-7：買下安全屋');
+    if (R['4-3']) check(R['4-3'].flags.monitor === 0, '4-3：腳鐐解除');
+    if (R['4-4']) check(R['4-4'].flags.enf === 1 && R['4-4'].pay >= 200000, `4-4：搶到鎮暴裝甲車（$${R['4-4'].pay}）`);
+    if (R['4-5']) check(R['4-5'].flags.bank === 1 && R['4-5'].pay >= 1000000, `4-5：搶完銀行，分贓加獎牌 $${R['4-5'].pay}`);
     const rid = order.find(id => R[id] && R[id].pay > 0);
     const re = rid && await sec('重玩：同樣的獎牌不再發錢', async id => {
       const N = window.__nc, St = N.story, cash0 = N.motors.cash;
@@ -107,13 +110,13 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     }, rid);
     if (re) check(re.pay === 0, `重玩 ${rid}（已是金牌）不再發錢（$${re.pay}）`);
     // 跳步驟驗不到的：AI 真的會動
-    const mech = all.includes('3-7') && await sec('第二、三章的機制：運鈔車、跳窗、快艇、門禁、籠子、MV', async () => {
+    const mech = all.includes('3-7') && await sec('第二～四章的機制：運鈔車、跳窗、快艇、門禁、籠子、MV、搶案', async () => {
       const N = window.__nc, St = N.story, o = {};
       const toS = async (id, type) => { const St = window.__nc.story; __t.dismiss(); St.go(id); await __t.settle(); __t.step(40);
         for (let i = 0; i < 20; i++) { await __t.settle(); const s = St.state(); if (!s.act || s.act.type === type) break; St.skip(); __t.step(20); if (N.dialog.open) N.closeDialog(); }
         await __t.settle(); return St.act(); };
       let a = await toS('2-2', 'tail');
-      if (a && a.truck) { const v = a.truck.v, x0 = v.x, z0 = v.z; __t.step(600); o.truck = { moved: Math.round(Math.hypot(v.x - x0, v.z - z0)), sp: +Math.hypot(v.vx, v.vz).toFixed(1), route: a.truck.route ? a.truck.route.length : 0, type: St.state().act && St.state().act.type, retry: St.state().retry }; }
+      if (a && a.truck) { const tk = a.truck, v = tk.v, x0 = v.x, z0 = v.z; __t.step(600); o.truck = { moved: Math.round(Math.hypot(v.x - x0, v.z - z0)), sp: +Math.hypot(v.vx, v.vz).toFixed(1), route: tk.route ? tk.route.length : 0, type: St.state().act && St.state().act.type, retry: St.state().retry }; }
       a = await toS('2-5', 'away');
       if (a) { __t.step(180); o.win = { air: !!N.player.air3, hp: N.gta.life ? N.gta.life.hp : null, type: St.state().act && St.state().act.type, foes: a.motel ? 1 : 0 }; }
       a = await toS('2-6', 'chase');
@@ -125,6 +128,9 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
       // 3-3：籠子在、對手在籠子裡，走出去會被推回來
       a = await toS('3-3', 'fight');
       if (a && a.cage) { const c = a.cage, P = N.player; P.x = c.x + 9; P.z = c.z; __t.step(3); o.cage = { d: +Math.hypot(P.x - c.x, P.z - c.z).toFixed(2), type: St.state().act && St.state().act.type }; }
+      // 4-5：搶案的角色表換成羅莎、凱爾、戴恩，大廳是塞拉斯與娜迪亞；收尾後還原
+      a = await toS('4-5', 'heist');
+      if (a) { const H = N.gta.heist; o.h45 = { st: H.heist.st, who: H.heist.who && H.heist.who.join() }; St.fail('測試'); __t.step(5); if (N.dialog.open) N.closeDialog(); o.h45.after = H.heist.st; o.h45.who2 = H.heist.who || null; }
       // 3-5：檢查點路線與時間
       a = await toS('3-5', 'cp');
       if (a && a.cur) o.cp = { n: a.cur.pts ? a.cur.pts.length : 0, lim: a.cur.lim };
@@ -133,15 +139,16 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     if (mech) {
       check(mech.door && mech.door.join() === '0,1,2,3', `3-1 門禁一步步走：quest ${mech.door && mech.door.join(' → ')}`);
       check(mech.cage && mech.cage.d < 5 && mech.cage.type === 'fight', `3-3 籠子把人推回圈內（離中心 ${mech.cage && mech.cage.d} m）`);
+      if (mech.h45) check(mech.h45.st === 'go' && mech.h45.who && mech.h45.who.split(',').length === 3 && mech.h45.after === 'off' && !mech.h45.who2, `4-5 搶案從銀行門口開始、失敗後收掉（${JSON.stringify(mech.h45)}）`);
       check(mech.cp && mech.cp.n >= 4 && mech.cp.lim > 30, `3-5 MV 的檢查點 ${mech.cp && mech.cp.n} 個、限時 ${mech.cp && mech.cp.lim} 秒`);
-      check(mech.truck && mech.truck.moved > 20 && mech.truck.type === 'tail', `2-2 的運鈔車 10 秒開了 ${mech.truck && mech.truck.moved} m（平均 > 2 m/s；當下時速 ${mech.truck && Math.round(mech.truck.sp * 3.6)}，還在跟車：${mech.truck && mech.truck.type}）`);
+      check(mech.truck && (mech.truck.moved > 20 || mech.truck.moved > 8 && mech.truck.sp > 3) && mech.truck.type === 'tail', `2-2 的運鈔車 10 秒開了 ${mech.truck && mech.truck.moved} m（平均 > 2 m/s，或停過紅燈但又開走了；當下時速 ${mech.truck && Math.round(mech.truck.sp * 3.6)}，還在跟車：${mech.truck && mech.truck.type}${mech.truck && mech.truck.retry ? '；失敗：' + JSON.stringify(mech.truck.retry) : ''}）`);
       check(mech.win && !mech.win.air && mech.win.type === 'away', `2-5 跳窗落地、在逃（${JSON.stringify(mech.win)}）`);
       check(mech.boat && mech.boat.sp > 3, `2-6 霍利斯的快艇在跑（${JSON.stringify(mech.boat)}）`);
     }
     const mon = await sec('腳鐐：羅莎走出範圍，30 秒後加 1 星', () => {
       const N = window.__nc, St = N.story;
       __t.dismiss(); N.gta.wanted.clear('reset');
-      St.go('1-5', false); St.state();
+      St.go('1-5', false); St.st().flags.monitor = 1;   // 跑過 4-3 的話腳鐐已經解了，這裡裝回去
       if (St.state().cur !== 'rosa') N.gta.crew.load(St.ROSA);
       const f = St.far(); N.tp(f.x, f.z); __t.step(30);
       const m0 = St.mon(), chip = document.getElementById('stChipT').textContent;

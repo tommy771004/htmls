@@ -23,6 +23,7 @@ const HIRE_ROLES = ['hacker', 'driver', 'gunman'];
 const hireLv = id => Math.min(3, motors.gear.hire[id] || 0);
 // 某個角色的某項能力：菜鳥每升一級往老手靠近 1/4
 function hireVal(role, k, def = 1) {
+  if (heist.storyK && heist.storyK[k] != null) return heist.storyK[k];   // 主線 4-5：娜迪亞開鎖快
   const L = HIRE[role].list, P = heist.hire && L.find(o => o.id === heist.hire[role]);
   if (!P) return def;
   if (P.vet || P[k] == null) return P[k] ?? def;
@@ -44,6 +45,7 @@ function hireStart(how) {
 const hireOf = role => heist.hire && HIRE[role].list.find(o => o.id === heist.hire[role]);
 // 結算：三個人的分紅（沒挑過的舊流程照 Zero 一成）
 function hireCuts(net) {
+  if (heist.storyCuts) return heist.storyCuts.map(([n, c]) => [`${n} 分紅（${Math.round(c * 100)}%）`, Math.round(net * c)]);   // 主線 4-5：固定的隊員
   if (!heist.hire) return [['駭客 Zero 分紅（10%）', Math.round(net * ZERO_CUT)]];
   return HIRE_ROLES.map(r => { const P = hireOf(r); return [`${HIRE[r].n} ${P.n} 分紅（${Math.round(P.cut * 100)}%）`, Math.round(net * P.cut)]; });
 }

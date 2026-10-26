@@ -27,6 +27,9 @@ const YARD = spotW({ x: avX(5) + PARK, z: stZ(7) - 26, yaw: Math.PI });   // 鐵
 const BRIDGE_IN = { x: BROKEN.x - BROKEN.dx * (BROKEN.L + 12), z: BROKEN.z - BROKEN.dz * (BROKEN.L + 12) };   // 斷橋斜坡前的助跑起點
 const HEIST_FEE = 10000, TAKE = { smart: 2000000, loud: 2500000 }, ZERO_CUT = .1;
 const heist = { st: 'off', how: null, t: 0, intim: 100, alarm: false, take: 0, loss: 0, hpPrev: 0, van: null, car: null, mag: 0, warned: 0, objSmall: '' };
+// 角色表：搶案的三個位置（0 進大廳與扛錢、1 開逃亡車、2 前置 B 與守門）由哪一位主角擔任；主線 4-4／4-5（69-w3-ch4.js）換成羅莎、凱爾、戴恩
+const hW = k => heist.who ? heist.who[k] : k;
+const hName = k => CREW[hW(k)].name;
 
 // ─── 銀行大廳（室內場景）：大理石地板、櫃台、金庫圓門、人質 ───
 const bankScene = new T.Scene();
@@ -289,9 +292,9 @@ function missionMark() { return heist.st !== 'off' && heist.st !== 'plan' ? heis
 const HEIST_TEXT = {
   setup: () => heist.van && player.veh === heist.van ? '把鑽機廂型車開回舊碼頭倉庫' + (W.stars ? '（先甩掉警察）' : '') : '前置：偷走舊碼頭的鑽機廂型車',
   go: () => '到中央霓虹銀行門口',
-  lobby: () => `壓住大廳的人質（瞄準他們）· Jax 正在裝 C4`,
+  lobby: () => `壓住大廳的人質（瞄準他們）· ${heist.npcN ? heist.npcN[0] : 'Jax'} 正在裝 C4`,
   c4: () => '按 G 引爆金庫門',
-  drill: () => player.where === 'bank' ? (heist.t > 0 && heist.drilling ? '鑽機運作中：繼續壓住人質' : '到金庫門口按 E 裝鋁熱鑽機') : `以 Jax 守住銀行門口${heist.breach ? `（警員闖進 ${heist.breach} 次）` : ''}`,
+  drill: () => player.where === 'bank' ? (heist.t > 0 && heist.drilling ? '鑽機運作中：繼續壓住人質' : '到金庫門口按 E 裝鋁熱鑽機') : `以 ${hName(2)} 守住銀行門口${heist.breach ? `（警員闖進 ${heist.breach} 次）` : ''}`,
   escape: () => '帶著錢袋走到逃亡車',
   drive: () => heist.amb < 0 && !heist.jumped ? '戰車封路：衝上鐵灣高架斷橋飛過去' + (abil.drive ? '' : '（X 反射駕駛）') : W.stars ? '甩掉警察' : '開進鐵灣貨場的貨櫃安全屋分贓',
 };
@@ -371,8 +374,8 @@ function spawnVan() {
 function bankEnter() {
   if (W.stars) { toast('通緝中進不去：先甩掉警察'); return; }
   heistFade(() => {
-    const s = crew.st[0]; Object.assign(s, bankAt(0, 1.4));
-    crewLoad(0);
+    const s = crew.st[hW(0)]; Object.assign(s, bankAt(0, 1.4));
+    crewLoad(hW(0));
     setWhere('bank');
     const sp = VENUES.bank.spawn; player.x = sp.x; player.z = sp.z; player.yaw = sp.yaw; camState.yaw = sp.yaw; camState.pitch = .12;
     arm.ammo.pistol.mag = ARMS.pistol.mag; equip('pistol', true);
@@ -401,13 +404,13 @@ function holdStart() {
   const T0 = heist.holdT || 60;   // 69-heist2.js：破譯成功省下鑽機，只守 30 秒
   heist.drilling = true; heist.t = T0;
   heistFade(() => {
-    const s = crew.st[2]; Object.assign(s, bankAt(2.5, 3));
-    crewLoad(2);
+    const s = crew.st[hW(2)]; Object.assign(s, bankAt(2.5, 3));
+    crewLoad(hW(2));
     heistGear(); equip('rifle', true);
     heist.t = T0; heistStage('drill', T0);
     heist.runOutT = 9; heist.leaks = 0; heist.breach = 0;
     wantedApi.set(4);
-    toast(`警察包圍銀行了：Jax 守住門口 ${T0} 秒`);
+    toast(`警察包圍銀行了：${hName(2)} 守住門口 ${T0} 秒`);
   });
 }
 function heistGear() { for (const id of ARM_IDS) { const A = ARMS[id], a = arm.ammo[id]; if (A.gun) { a.mag = A.mag; a.res = A.res; } else if (A.throw) a.mag = A.n; } life.armor = 100; }
@@ -415,8 +418,8 @@ function heistGear() { for (const id of ARM_IDS) { const A = ARMS[id], a = arm.a
 function escapeStart() {
   heistFade(() => {
     heist.drilling = false; heist.take = TAKE[heist.how];
-    const s = crew.st[0]; Object.assign(s, bankAt(-1.5, 1.6));
-    crewLoad(0); heistGear(); equip('smg', true);
+    const s = crew.st[hW(0)]; Object.assign(s, bankAt(-1.5, 1.6));
+    crewLoad(hW(0)); heistGear(); equip('smg', true);
     heist.car = getawayCar();   // 69-heist2.js：潛行是 Tiara GT，強攻是改裝過的鎮暴裝甲車（另在河濱停機坪放好武裝直升機）
     hireCar(heist.car);         // 69-v3-heist.js：車手決定逃亡車的極速與耐久
     heistStage('escape');
@@ -428,8 +431,8 @@ function escapeStart() {
 function getawayEnter() {
   const v = heist.car;
   heistFade(() => {
-    const s = crew.st[1]; s.x = v.x; s.z = v.z; s.yaw = v.yaw;
-    crewLoad(1); enterVehicle(v);
+    const s = crew.st[hW(1)]; s.x = v.x; s.z = v.z; s.yaw = v.yaw;
+    crewLoad(hW(1)); enterVehicle(v);
     heist.amb = heist.air ? 0 : 3.5; heist.jumped = false; clearSpot(YARD.x, YARD.z, 8);   // 強攻改搭直升機，沒有戰車封路
     heistStage('drive');
     toast(heist.air ? 'Kael 開裝甲車：到灰鷺河濱的停機坪換武裝直升機' : 'Kael 開車：甩掉警察，開到鐵灣貨場的貨櫃安全屋');
@@ -475,6 +478,18 @@ function heistFail(why) {
   heistStage('go');
   toast(`搶劫失敗（${why}）：回銀行門口再來一次`);
 }
+// 整個收掉（主線的搶案失敗或放棄：69-w3-ch4.js 從檢查點重來時重新擺好）
+function heistAbort() {
+  heist.busy = false;
+  for (const r of runSt) runnerOff(r);
+  hackClose();
+  if (heist.car) { heistVehGone(heist.car); heist.car = null; }
+  if (heist.enf) { heistVehGone(heist.enf); heist.enf = null; }
+  if (heist.escCar) { heistVehGone(heist.escCar); heist.escCar = null; }
+  enfDrop();
+  heist.drilling = false; heist.alarm = false;
+  if (heist.st !== 'off') heistStage('off');
+}
 function heistPass() {
   // 分紅：69-v3-heist.js 雇的三個人各自抽（沒雇過的舊流程是 Zero 一成）
   const take = heist.take, loss = Math.min(heist.loss, take), cuts = hireCuts(take - loss), cut = cuts.reduce((s, c) => s + c[1], 0), net = take - loss - cut;
@@ -483,9 +498,10 @@ function heistPass() {
   if (heist.car) { if (player.veh) exitVehicle(); if (heist.air) heistVehGone(heist.car); heist.car = null; }   // 強攻是坐直升機到的，裝甲車留在半路
   motors.cash += net; saveMotors();
   newsAdd(`中央霓虹銀行遭搶 ${money(take)}`, `蒙面搶匪炸開金庫${heist.jumped ? '，逃亡車飛越鐵灣高架斷橋' : ''}，警方至今仍未掌握去向。`);
-  $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ...cuts.map(([n, c]) => [n, '−' + money(c)]), ['最終實得淨利', money(net)], ['三位主角各得', money(Math.floor(net / 3))]].map(([a, b]) => { const c = a === '最終實得淨利' ? ' class="net"' : ''; return `<dt${c}>${a}</dt><dd${c}>${b}</dd>`; }).join('');
+  $('hpRows').innerHTML = [['總搶奪金額', money(take)], ['中彈耗損扣除', '−' + money(loss)], ...cuts.map(([n, c]) => [n, '−' + money(c)]), ['最終實得淨利', money(net)], [heist.who ? '兩位主角各得' : '三位主角各得', money(Math.floor(net / (heist.who ? 2 : 3)))]].map(([a, b]) => { const c = a === '最終實得淨利' ? ' class="net"' : ''; return `<dt${c}>${a}</dt><dd${c}>${b}</dd>`; }).join('');
   $('heistDone').querySelector('b').textContent = 'HEIST PASSED'; $('heistDone').querySelector('small').textContent = '中央霓虹銀行';   // 69-side.js 的 sideDone 也用這個畫面
   $('heistDone').classList.add('on'); heist.doneT = 7; sfx.ability(true);
+  storyEv('heist', net);   // 69-w0-story.js：主線 4-5
 }
 
 // 99-main.js 的 onKey：G 引爆金庫門

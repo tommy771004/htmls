@@ -48,6 +48,7 @@ function sideUpdate(dt) {
   a.step(dt);
   if (side.act !== a) return;
   const h = a.hud(), o = $('obj'), sub = $('objSub');
+  if (!h) return;   // 主線包著搶案（69-w3-ch4.js）：任務框交給 heistHud
   o.classList.add('heist');
   setText('objText', h.text);
   sub.classList.toggle('bar', h.bar >= 0);

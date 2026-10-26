@@ -52,6 +52,8 @@ const CAST = {
   inmate: { name: '獄友', role: '', look: { female: true, top: 0xd8782a, bot: 0xd8782a, hair: 0, longHair: 0, coat: 0, skirt: 0, scale: .98 } },
   biker: { name: '鐵鏽騎士', role: '', look: { female: false, top: 0x2a1c14, bot: 0x1a1a1e, hair: 0, coat: 1, hat: 0, scale: 1.04 } },
   pit: { name: '擂台對手', role: '', look: { female: true, top: 0x8a1c22, bot: 0x18181c, hair: 0, longHair: 0, coat: 0, skirt: 0, scale: 1.02 } },
+  silas: { name: '塞拉斯', role: '老派的銀行搶匪', look: { female: false, top: 0x3a2a20, bot: 0x22201e, hair: 2, coat: 1, hat: 0, scale: 1.02 } },
+  nadia: { name: '娜迪亞', role: '羅莎的獄友 · 開保險箱的', look: { female: true, top: 0x23262c, bot: 0x18191c, hair: 0, longHair: 1, coat: 1, skirt: 0, scale: .96 } },
   hall: { name: '霍爾', role: '第九分局副局長', look: { female: false, top: 0x1a2232, bot: 0x14161c, hair: 0, coat: 1, hat: 1, scale: 1.03 } },
   oakes: { name: '蒙洛', role: '「大橡」· LAZARUS 老闆', look: { female: false, top: 0x1c1a20, bot: 0x16151a, hair: 0, coat: 1, hat: 0, scale: 1.05, glow: 0xd8b04a, glowI: .35 } },
   twade: { name: '泰倫斯', role: '「T-Wade」· 唱片公司合夥人', look: { female: false, top: 0xe8e2d4, bot: 0x2a3a5a, hair: 1, coat: 0, hat: 1, scale: 1 } },
@@ -240,10 +242,12 @@ function storyObj() {
   sm.innerHTML = c ? `${c[0]} <i>· ${c[1]}</i>` : '主線 <i>· 一手爛牌</i>';
   if (quest.n >= 5) setText('objText', storyIdleText() || QUEST[quest.n].text);
 }
-const payOf = (m, k) => m.star ? Math.round(STAR_PAY[m.star] * MEDAL[k].k) : 0;
+// split：搶案任務照分贓算（69-heist.js 的 heistPass 發），主線只發獎牌加成
+const SPLIT_PAY = [0, 100000, 200000];
+const payOf = (m, k) => m.split ? SPLIT_PAY[k] : m.star ? Math.round(STAR_PAY[m.star] * MEDAL[k].k) : 0;
 function storyCard(m) {
   const c = CHAPTER[m.ch], best = S.medal[m.id];
-  const rows = [m.star ? `難度 ${'★'.repeat(m.star)}${'☆'.repeat(5 - m.star)} · 報酬 ${money(STAR_PAY[m.star])}（金牌 ${money(payOf(m, 2))}）` : '劇情任務',
+  const rows = [m.split ? `難度 ${'★'.repeat(m.star)}${'☆'.repeat(5 - m.star)} · 報酬照搶案分贓（銀牌加 ${money(SPLIT_PAY[1])}、金牌加 ${money(SPLIT_PAY[2])}）` : m.star ? `難度 ${'★'.repeat(m.star)}${'☆'.repeat(5 - m.star)} · 報酬 ${money(STAR_PAY[m.star])}（金牌 ${money(payOf(m, 2))}）` : '劇情任務',
     ...(m.bonus.length ? [`附加目標：${m.bonus.map(b => b.t).join('、')}`] : []), ...(best != null ? [`最好成績：${MEDAL[best].name}`] : [])];
   dialog(`${c[0]} · ${c[1]} — ${m.id}「${m.title}」`, `${m.desc}\n${rows.join('\n')}`, [
     { t: `開始（操作${CREW[m.who].zh}）`, fn: () => { closeDialog(); const b = storyBusy(); if (b) { toast(b); return; } storyStart(m); } },
@@ -286,6 +290,7 @@ function storyStart(m, ck = 0) {
     sideStart(a);
     if (m.giver) a.npc[m.giver] = m.giverAt();
     if (m.cast) for (const id in m.cast) a.npc[id] = m.cast[id]();
+    if (ck > 0) a.k = ck - 1;   // 從檢查點那一步開始
     storyAdvance(a);
   };
   if (crew.cur !== m.who || player.where !== 'out' || Math.hypot(pX() - m.at().x, pZ() - m.at().z) > 12) transition(go); else go();
@@ -295,6 +300,7 @@ function storyAdvance(a) {
   a.k++; a.st = 0; a.cur = null;
   const s = a.M.steps[a.k];
   if (!s) { storyPass(a); return; }
+  if (s.ck) a.ckK = a.k;   // 檢查點：失敗後從這一步重來
   a.cur = { s };
   (STEP[s.type].start || (() => {}))(a, s, a.cur);
 }
@@ -315,6 +321,7 @@ function storyStep(a, dt) {
 function storyHud(a) {
   const s = a.cur && a.cur.s;
   if (!s) return { text: a.M.title, bar: -1 };
+  if (STEP[s.type].ownHud) return null;   // 69-side.js 的 sideUpdate 不寫任務框（搶案自己寫）
   const h = STEP[s.type].hud ? STEP[s.type].hud(a, s, a.cur) : { text: s.text || a.M.title, bar: -1 };
   if (s.lim) { const left = Math.max(0, s.lim - a.st); return { ...h, bar: left / s.lim * 100, num: `${Math.ceil(left)} 秒`, low: left < 15 }; }
   return h;
@@ -353,7 +360,7 @@ function storyPass(a) {
   saveMotors();
   if (pay) earn(pay, `主線「${m.title}」`);
   storyObj();
-  const rows = [...(m.star ? [['報酬', pay ? money(pay) : prev != null ? '已領過（差額 $0）' : '$0']] : []), ...m.bonus.map((b, j) => [b.t, ok[j] ? '✓' : '—']), ...(m.bonus.length ? [['獎牌', MEDAL[k].name]] : [])];
+  const rows = [...(m.star ? [[m.split ? '獎牌加成' : '報酬', pay ? money(pay) : prev != null ? '已領過（差額 $0）' : '$0']] : []), ...m.bonus.map((b, j) => [b.t, ok[j] ? '✓' : '—']), ...(m.bonus.length ? [['獎牌', MEDAL[k].name]] : [])];
   sideDone('MISSION PASSED', `${CHAPTER[m.ch][0]} ${m.id}「${m.title}」`, rows, 0);
   // 序章一開始是全黑的字卡：直接接下一關的起點（P-2 就在監獄門口）
 }
@@ -361,7 +368,7 @@ function storyFail(a, why) {
   const m = a.M;
   sideEnd();
   if (!castOf(crew.cur)) S.back = 1;   // 失敗時操作的是還沒登場的人：之後換回羅莎
-  S.retry = { id: m.id, why };
+  S.retry = { id: m.id, why, ck: a.ckK || 0 }; S.ck = a.ckK || 0;
   saveMotors();
   toast(`任務失敗：${why}`);
 }
@@ -372,7 +379,8 @@ function storyRetryAsk() {
   S.retry = null;
   const m = MS[R.id];
   dialog(`任務失敗 · ${m.id}「${m.title}」`, `${R.why}。失敗不扣錢，起點會一直留在地圖上。`, [
-    { t: '馬上重試', fn: () => { closeDialog(); const b = storyBusy(); if (b) { toast(b); storyBack(); return; } storyStart(m); } },
+    ...(R.ck ? [{ t: '從檢查點重來', fn: () => { closeDialog(); const b = storyBusy(); if (b) { toast(b); storyBack(); return; } storyStart(m, R.ck); } }] : []),
+    { t: R.ck ? '從頭開始' : '馬上重試', fn: () => { closeDialog(); const b = storyBusy(); if (b) { toast(b); storyBack(); return; } storyStart(m); } },
     { t: '先不要', fn: () => { closeDialog(); storyBack(); } },
   ]);
 }
@@ -599,7 +607,8 @@ function storyEv(kind, x, y) {
   if (kind === 'kill') { a.kills++; if (x) a.heads++; if (y) a.melee++; }
   if (kind === 'rob' && a.robC) a.robC.done = true;
   if (kind === 'clerk') a.clerkHit = true;
-  if (kind === 'truck' && a.truckC) a.truckC.open = true;   // 69-events.js 的 truckOpen：主線運鈔車的後門炸開了
+  if (kind === 'truck' && a.truckC) a.truckC.open = true;
+  if (kind === 'heist' && a.heistC) { a.heistC.done = true; a.heistNet = x; }   // 69-heist.js 的 heistPass   // 69-events.js 的 truckOpen：主線運鈔車的後門炸開了
 }
 
 // ─── 腳鐐與警用掃描器 ───

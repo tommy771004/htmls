@@ -307,7 +307,7 @@ function gangChase(why, n = 2) {
     c.chase = true; ch.cars.push(c);
   }
   if (!ch.cars.length) { SQ.chase = null; return false; }
-  toast(why === 'van' ? `${GANG_NAME}也想要那台鑽機：兩台車追上來了` : `${GANG_NAME}看到你拿了錢：兩台車追上來了（小地圖紅點）`);
+  toast(why === 'van' ? `${GANG_NAME}也想要那台鑽機：兩台車追上來了` : why === 'story' ? `${GANG_NAME}的車跟上來了（小地圖紅點）` : `${GANG_NAME}看到你拿了錢：兩台車追上來了（小地圖紅點）`);
   wakeArms();
   return true;
 }
