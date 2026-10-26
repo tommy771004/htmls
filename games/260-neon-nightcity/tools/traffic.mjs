@@ -235,12 +235,12 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
       const px = tex && UV ? await texPixels(tex) : null;
       const n = P.getCount(), base = u.pos.length / 3;
       const a = [], b = [], c = [], d = [], e = [], uv = [];
-      const vdet = new Uint8Array(n), vc = [], vuv = [];   // lamps.mjs 偵測到的燈範圍（1.25／2.25）：留著頂點色與 UV，下面逐三角形挑
+      const vdet = new Uint8Array(n), vmet = new Uint8Array(n), vc = [], vuv = [];   // lamps.mjs 偵測到的燈範圍（1.25／2.25）：留著頂點色與 UV，下面逐三角形挑
       for (let i = 0; i < n; i++) {
         P.getElement(i, a); N.getElement(i, b); C ? C.getElement(i, c) : c.splice(0, 4, 1, 1, 1, 1);
         PB ? PB.getElement(i, d) : d.splice(0, 4, ...(rawPbr || [.6, 0, 0, 0])); E ? E.getElement(i, e) : e.splice(0, 4, 0, 0, 0, 0);
         let rgb = [c[0] * bcf[0], c[1] * bcf[1], c[2] * bcf[2]];
-        vc.push(rgb[0], rgb[1], rgb[2], c[3]);
+        vc.push(rgb[0], rgb[1], rgb[2], c[3]); vmet[i] = d[1] > .5 ? 1 : 0;
         if (px) { UV.getElement(i, uv); vuv.push(uv[0], uv[1]); const s = sample(px, uv[0], uv[1]); rgb = [rgb[0] * s[0], rgb[1] * s[1], rgb[2] * s[2]]; }
         if (Math.abs(e[3] - Math.floor(e[3]) - .25) < .01) { vdet[i] = Math.floor(e[3]); e.splice(0, 4, 0, 0, 0, 0); }
         const m = matOf([...rgb, c[3]], d, e, wheel, cfg.pal, real);
@@ -254,7 +254,7 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
       for (let f = 0; f < ia.length; f += 3) {
         const t = [ia[f], ia[f + 1], ia[f + 2]], k = vdet[t[0]] && (vdet[t[0]] === vdet[t[1]] || vdet[t[0]] === vdet[t[2]]) ? vdet[t[0]] : vdet[t[1]] && vdet[t[1]] === vdet[t[2]] ? vdet[t[1]] : 0;
         if (!k) { for (const v of t) u.idx.push(base + v); continue; }
-        // 燈範圍裡的三角形：在三角形裡取 10 個點的底色，三成以上是紅的（尾燈）或亮的、透明的（頭燈，或尾燈的燈罩）就整片是燈。
+        // 燈範圍裡的三角形：在三角形裡取 10 個點的底色，三成以上是紅的（尾燈）或亮的（頭燈）就整片是燈。
         // 低模的燈常常落在大三角形中間，只看頂點會整個漏掉；燈罩後面的燈芯也被 shellCull 拿掉了，所以燈罩本身要亮
         let hit = 0; const acc = [0, 0, 0];
         for (const [wa, wb] of BARY) {
@@ -262,7 +262,8 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
           const al = w[0] * vc[t[0] * 4 + 3] + w[1] * vc[t[1] * 4 + 3] + w[2] * vc[t[2] * 4 + 3];
           if (px) { const s = sample(px, w[0] * vuv[t[0] * 2] + w[1] * vuv[t[1] * 2] + w[2] * vuv[t[2] * 2], w[0] * vuv[t[0] * 2 + 1] + w[1] * vuv[t[1] * 2 + 1] + w[2] * vuv[t[2] * 2 + 1]); for (let j = 0; j < 3; j++) col[j] *= s[j]; }
           const lum = .2126 * col[0] + .7152 * col[1] + .0722 * col[2], red = col[0] > .05 && col[0] > 2.2 * Math.max(col[1], col[2]);
-          if (k === 2 ? red || al < .99 : lum > .2 || al < .99) { hit++; if (red) for (let j = 0; j < 3; j++) acc[j] += col[j]; }
+          // 透明的面只算亮的燈罩，車窗是暗的（亮度 0.03 以下）；頭燈不算不透明的金屬（鍍鉻保險桿、水箱罩）
+          if (k === 2 ? red || al < .99 && lum > .1 : lum > .2 && al >= .99 && !(vmet[t[0]] + vmet[t[1]] + vmet[t[2]] >= 2) || al < .99 && lum > .08) { hit++; if (red) for (let j = 0; j < 3; j++) acc[j] += col[j]; }
         }
         if (hit < BARY.length * .3) { for (const v of t) u.idx.push(base + v); continue; }
         const lc = k === 2 ? (acc[0] > .01 ? [1, acc[1] / acc[0], acc[2] / acc[0]] : [1, .05, .03]) : [1, .95, .86];
@@ -295,14 +296,20 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     let lamp = new Uint32Array(li);
     out = new Uint32Array(bi);
     const lt = Math.min(lamp.length, Math.round(target * .15 / 3) * 3);
-    if (lamp.length > lt) [lamp] = MeshoptSimplifier.simplify(lamp, pos, 3, lt, .03, []);
-    if (lamp.length > lt * 1.5) [lamp] = MeshoptSimplifier.simplifySloppy(lamp, pos, 3, null, lt, .03);
+    // 減面只給這一組三角形用到的頂點：meshopt 把位置相同的頂點當成同一個，燈和車身在交界處位置相同，整份頂點一起給的話，
+    // 減完的燈三角形會改用車身的頂點（材質跟著變回車身）
+    const simp = (ix, tgt, err, opt, sloppyErr) => {
+      const loc = new Map(), back = [], lp = [], li = new Uint32Array(ix.length);
+      ix.forEach((w, i) => { let o = loc.get(w); if (o == null) { o = back.length; loc.set(w, o); back.push(w); lp.push(pos[w * 3], pos[w * 3 + 1], pos[w * 3 + 2]); } li[i] = o; });
+      const P3 = new Float32Array(lp);
+      let [r] = MeshoptSimplifier.simplify(li, P3, 3, tgt, err, opt);
+      if (r.length > tgt * 1.5) [r] = MeshoptSimplifier.simplifySloppy(r, P3, 3, null, tgt, sloppyErr);
+      return r.map((o) => back[o]);
+    };
+    if (lamp.length > lt) lamp = simp(lamp, lt, .03, [], .03);
     const bt = Math.max(target / 2, target - lamp.length);
-    if (out.length > bt) {
-      // Prune：整塊小零件（螺絲、徽章）在誤差內可以直接拿掉
-      [out] = MeshoptSimplifier.simplify(out, pos, 3, bt, u.wheel ? .1 : .025, ['Prune']);
-      if (out.length > bt * 1.5) [out] = MeshoptSimplifier.simplifySloppy(out, pos, 3, null, bt, u.wheel ? 1 : .03);
-    }
+    // Prune：整塊小零件（螺絲、徽章）在誤差內可以直接拿掉
+    if (out.length > bt) out = simp(out, bt, u.wheel ? .1 : .025, ['Prune'], u.wheel ? 1 : .03);
     if (lamp.length) { const m = new Uint32Array(out.length + lamp.length); m.set(out); m.set(lamp, out.length); out = m; }
     // 法線：相鄰面夾角 40° 內平滑，其餘保留硬邊
     const fn = [], adj = new Map();

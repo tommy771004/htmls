@@ -178,7 +178,7 @@ const airLandL = (x, z) => {
 };
 const airLandW = (X, Z) => AIR ? airLandL(...toL(X, Z, SEA_FR)) : false;
 // 世界座標的點在陸地上：外緣裡面，或在上面那些矩形裡（換到點所在那一片的邏輯座標），或在機場島與堤道上
-const landW = (X, Z) => { if (inCity(X, Z) || airLandW(X, Z)) return true; const zn = zoneOfW(X, Z); return !!zn && inLand(...zoneLocal(zn, X, Z)); };
+const landW = (X, Z) => { if (inCity(X, Z) || airLandW(X, Z)) return true; if (inLake(X, Z)) return false; const zn = zoneOfW(X, Z); return !!zn && inLand(...zoneLocal(zn, X, Z)); };
 // ─── 岬角（世界座標的草地多邊形）：外緣改成不規則的多邊形之後不需要了，留著空的表（21-coast、地圖照樣迭代） ───
 const CAPES = [];
 // 北嶺公園（下面 hillH 之後建好；畫面在 21-park.js）。開場在那之前問地面高度的（groundH、seaFloor）就當沒有公園
@@ -293,7 +293,6 @@ function addLot(axis, a0, a1, x0, x1, z0, z1, face, b, special) {
   const h = style === 3 ? 38 + rnd() * (mid || fin ? 70 : halo ? 120 : 40) : 4.6 + floors * fh + .7;
   lots.push({ ...L, h, style, seed: rnd() * 1000, face, axis, special, fh, b });
 }
-blocks.forEach(b => b.isle ? isleLots(b) : makeLots(b));   // 外圍的樓牆（outer）已經拿掉：片外圍到外緣之間是草地，北面與東面的外面是山
 // ─── 天樞島的街區（照曼哈頓下城）：金融區與岬角多半是整塊街區的高樓，西岸是新填地的現代高樓，北城是五到十二層的鑄鐵與磚造廠房樓、偶爾一棟塔樓。
 // 塔樓 = 底座（L.h，到第一道退台）加上往上一層層往裡退的 L.tiers（{ i：每邊退幾公尺, y：這一層的頂, st：樣式 }），最上面的 crown 是 20-isle.js 的塔冠與尖頂。
 // 牆和樓板仍是方塊；退台的邊上有簷口（樣式 7）。亂數用 isleRnd，舊城區的序列不受影響 ───
@@ -355,6 +354,7 @@ function isleLots(b) {
     }
   }
 }
+blocks.forEach(b => b.isle ? isleLots(b) : makeLots(b));   // 外圍的樓牆（outer）已經拿掉：片外圍到外緣之間是草地，北面與東面的外面是山
 // 地塊所在的區（立面、陰影高度圖、直升機的屋頂高度都照這個）
 for (const L of lots) if (L.zn === undefined) L.zn = zoneAtL((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2);
 // 岸邊的擋牆：沿每塊地的邊每 2 m 看外側是不是水（岬角也算陸地），連續的一段變成一個 4 m 厚的盒（low：不擋相機與子彈）

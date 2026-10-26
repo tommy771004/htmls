@@ -375,7 +375,7 @@ const SEAM_PATH = [], SEAM_SITES = [];
     let cur = null;
     for (const [p, q] of L) {
       const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, w = Math.hypot(p[0] - q[0], p[1] - q[1]) - 2 * HR;   // w：草地寬
-      const ok = w >= 12 && inCity(x, z) && polyDistPt(CITY_POLY, x, z) > 8 && !zoneNearL(x, z, HR + 2.5) && !nearConn(x, z, HR + 2) && !brokenNear(x, z, 6);
+      const ok = w >= 12 && inCity(x, z) && polyDistPt(CITY_POLY, x, z) > 8 && !zoneNearL(x, z, HR + 2.5) && !nearConn(x, z, HR + 2) && !brokenNear(x, z, 6) && !isleFillNear(x, z, 4);   // 天樞島的填空樓（11-isle.js）
       if (!ok) { if (cur && cur.length > 3) runs.push(cur); cur = null; continue; }
       (cur ||= []).push({ x, z, w });
     }
@@ -391,7 +391,7 @@ const SEAM_PATH = [], SEAM_SITES = [];
     const ux = q.x - p.x, uz = q.z - p.z, l = Math.hypot(ux, uz) || 1, s = n % 2 ? 1 : -1, nx = -uz / l * s, nz = ux / l * s;
     const type = KINDS[n % 3], R = type === 'pavilion' ? 4.2 : type === 'kiosk' ? 3 : 3.6;
     const x = p.x + nx * (1.2 + 4 + R), z = p.z + nz * (1.2 + 4 + R);
-    if (!inCity(x, z) || zoneNearL(x, z, HR + R + 2) || nearConn(x, z, HR + R + 3)) continue;
+    if (!inCity(x, z) || zoneNearL(x, z, HR + R + 2) || nearConn(x, z, HR + R + 3) || isleFillNear(x, z, R + 2)) continue;
     SEAM_SITES.push({ type, x, z, R, ry: Math.atan2(-nx, -nz), ux: ux / l, uz: uz / l }); n++;   // ry：正面朝步道
   }
 }
@@ -401,7 +401,7 @@ const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) **
   const r5 = rng(7171), conn = RN.edges.filter(e => e.kind === 'c' || e.kind === 'f'), { x0, x1, z0, z1 } = CITY_BB;
   for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
-    if (r5() > .55 || !inCity(tx, tz) || zoneNearL(tx, tz, HR + 4) || polyDistPt(CITY_POLY, tx, tz) < 7 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5)) continue;
+    if (r5() > .55 || !inCity(tx, tz) || zoneNearL(tx, tz, HR + 4) || polyDistPt(CITY_POLY, tx, tz) < 7 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5) || isleFillNear(tx, tz, 4)) continue;
     if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
     trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: TREE_COL, w: 1 });
   }

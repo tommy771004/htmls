@@ -46,7 +46,7 @@ export const SUBS = [
 ];
 // 島：濱水步道寬 ESP；尖端的公園 TIP（世界角度、多長、半寬度）；島和四周的片之間是水道（最窄 CHMIN、最寬 CHMAX，對岸留 BANK 的草地與步道）；
 // 島的外形把四片的陸地做閉運算（CLOSE），片之間的縫補成陸地
-const ESP = 26, TIP = [75, 80, 28], CHMIN = 80, CHMAX = 150, BANK = 14, CLOSE = 46;
+const ESP = 26, TIP = [75, 80, 28], CHMIN = 80, CHMAX = 300, BANK = 14, CLOSE = 46;
 const ISLE_B = [avX(114) - HR, avX(120) + HR, stZ(1) - HR, stZ(9) + HR];   // 島的邏輯範圍（彎曲在這外面 160 m 內收掉）
 // 快速道路經過的縫要寬一點
 // 天樞島之後：北嶺快速道路沿 A2/B1、A2/B2 下來接水道、出水道走 E/G2；港灣快速道路 A1/D1、A1/D2 接水道北半、出來走 C1/F1、C2/F2（06-roads.js 的 FWY）

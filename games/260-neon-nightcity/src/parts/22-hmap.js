@@ -106,6 +106,9 @@ function hmFlush() {
   for (const L of lots) if (!L.glb && !L.ghost) hmRectL(L.x0, L.x1, L.z0, L.z1, L.h, false, L.zn);   // ghost：廣場與設施街區原本的地塊，沒蓋樓
   for (const b of bldPlace) { const it = PROPS_SPEC[b.set]?.items[b.id]; if (!it) continue; const [w, d] = hmFoot(b, it); hmRectL(b.x - w / 2, b.x + w / 2, b.z - d / 2, b.z + d / 2, b.h); }
   for (const id in ISLE_SITES) for (const [x0, x1, z0, z1, h] of isleFoot(id)) hmRectL(x0, x1, z0, z1, h);
+  // 天樞島：片裡的退台（L.tiers 是邏輯座標，每層往裡退 t.i）與填空樓（11-isle.js，世界座標的四邊形）
+  for (const L of lots) if (L.tiers && !L.glb) for (const t of L.tiers) hmRectL(L.x0 + t.i, L.x1 - t.i, L.z0 + t.i, L.z1 - t.i, t.y, false, L.zn);
+  for (const f of ISLE_FILL) for (const [P, h] of [[f.P, f.h], ...f.tiers.map(t => [t.P, t.y])]) { hmTri(P[0][0], h, P[0][1], P[1][0], h, P[1][1], P[2][0], h, P[2][1]); hmTri(P[0][0], h, P[0][1], P[2][0], h, P[2][1], P[3][0], h, P[3][1]); HM.max = Math.max(HM.max, h); }
   hmRectL(LIGHTHOUSE.x - 4, LIGHTHOUSE.x + 4, LIGHTHOUSE.z - 4, LIGHTHOUSE.z + 4, 36);
   hmFlush();
 }
