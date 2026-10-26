@@ -2,28 +2,62 @@
 // 地形矩形與擋牆在 10-city.js（LANDS、BEACH、QUAY、BRIDGE、ISLE、PIERS、groundH），這裡只建畫面、燈與設施的碰撞。
 // 遠景（對岸、北面的山、外海的島）用 MAT.far：霧只算一部分距離。排在 20-props 之後（signLights、cell、signQuad、instanced 都已宣告）。
 
-// ─── 水面：同一張倒影貼圖，加上兩層移動的波紋法線；城市底下不鋪（四塊環繞的平面） ───
+// ─── 水面：同一張倒影貼圖，城市底下不鋪（四塊環繞的平面）。照 Na Pali 海岸那支空拍片（深藍外海、近岸青綠、岸邊成片白沫）：
+// 波紋是九道順著風向、波長從 60 m 一路減半的方向波（深水色散：長波走得快），疊兩層雜訊打散，遠處的短波淡掉免得閃；
+// 離岸距離 tShore（下面 SHD 烘的距離場）決定淺水的顏色、一道道往岸上推的浪線與岸邊的白沫，白沫照路燈與日光打光 ───
 const WATER_FS = /* glsl */`
 ${GROUND_COMMON}
-uniform sampler2D tTron; uniform vec3 uTronA, uTronB; uniform vec4 uTronG;
+uniform sampler2D tTron, tShore; uniform vec3 uTronA, uTronB; uniform vec4 uTronG, uShore;
+// 方向波：回傳水面高度，g 累加斜率（dh/dx, dh/dz）
+float waves(vec2 p, float t, float dist, out vec2 g){
+  float h = 0.; g = vec2(0);
+  float L = 60.;
+  for (int i = 0; i < 9; i++) {
+    float fi = float(i), a = -.55 + (h21(vec2(fi, 3.7)) - .5) * 1.9;
+    vec2 d = vec2(cos(a), sin(a));
+    float k = 6.2832 / L, w = sqrt(9.8 * k), A = L * .0055 * smoothstep(L * 90., L * 25., dist);
+    float ph = dot(d, p) * k - w * t + h21(vec2(fi, 9.1)) * 6.2832;
+    float s = sin(ph), c = cos(ph);
+    // 波峰尖、波谷平：(1+sin)^1.6 的形狀
+    float b = 1. + s, sh = pow(b, 1.6);
+    h += A * sh * .5; g += A * .8 * pow(b, .6) * c * k * d;
+    L *= .62;
+  }
+  return h;
+}
 void main(){
   // 光格島（21-tron.js）：島上的海面不畫（下層街區低於海面），tTron 是陸地遮罩、uTronA／B 把世界座標換成島的模型座標
   vec2 tq = (vec2(dot(uTronA, vec3(vW.xz, 1.)), dot(uTronB, vec3(vW.xz, 1.))) - uTronG.xy) / uTronG.zw;
   if (tq.x > 0. && tq.y > 0. && tq.x < 1. && tq.y < 1. && texture2D(tTron, tq).r > .5) discard;
   vec2 p = vL; float t = uTime;
-  vec2 g = vec2(n2(p*.045 + vec2(t*.05, t*.03)), n2(p*.05 + vec2(-t*.04, t*.05) + 7.)) - .5;
-  vec2 g2 = vec2(n2(p*.33 + vec2(t*.32, -t*.2)), n2(p*.29 + vec2(-t*.26, t*.3) + 3.)) - .5;
-  vec3 n = vec3(g.x*.55 + g2.x*.3, 1., g.y*.55 + g2.y*.3);
   float dist = length(vW - uCam);
+  vec2 su = (vW.xz - uShore.xy) * uShore.z;
+  float shore = su.x > 0. && su.y > 0. && su.x < 1. && su.y < 1. ? texture2D(tShore, su).r * uShore.w : uShore.w;   // 離岸幾公尺（遠於 uShore.w 都當外海）
+  vec2 g; float h = waves(vW.xz, t, dist, g);
+  vec2 g2 = vec2(n2(p*.33 + vec2(t*.32, -t*.2)), n2(p*.29 + vec2(-t*.26, t*.3) + 3.)) - .5;
+  float calm = mix(.45, 1., smoothstep(4., 30., shore));   // 貼岸的水被浪花打亂、方向波弱一點
+  vec3 n = vec3(-g.x * calm + g2.x*.16, 1., -g.y * calm + g2.y*.16);
   if (dist < 50.) n.xz += ripple(p*.7, uTime) * .3 * (1. - dist/50.);
-  n = normalize(nW(n));
+  n = normalize(n);
   vec3 v = normalize(uCam - vW);
   float F = .02 + .98*pow(1. - max(dot(n, v), 0.), 5.);
-  vec3 c = shade(vW, n, v, vec3(.006,.011,.016), .12, 0.);
+  // 水體：外海深藍、淺水青綠（照環境光、日光與路燈打光，夜裡自然暗下去）；波峰透一點亮
+  float sh = 1. - smoothstep(2., 26., shore + (n2(vW.xz*.03) - .5) * 8.);
+  vec3 body = mix(vec3(.004,.016,.04), vec3(.012,.085,.085), sh) * (1. + clamp(h, -.3, .6) * .9);
+  vec3 c = shade(vW, vec3(0., 1., 0.), v, body, .95, 0.) + shade(vW, n, v, vec3(0.), .1, 0.);
   vec3 rc;
   if (uReflOn > .5) rc = reflSample(vRP.xy / vRP.w + n.xz * vec2(.05, .11), .003 + min(dist, 600.)*.00003);
   else rc = envMap(reflect(-v, n));
-  c = mix(c, rc, clamp(.3 + F*.85, 0., 1.));
+  c = mix(c, rc, clamp(.18 + F*.85, 0., 1.) * (1. - sh * .35));
+  // 白沫：岸邊一圈（寬度隨雜訊起伏）＋一道道往岸上推的浪線（越靠岸越密、退下去會散）＋外海偶爾的白頭浪；
+  // 花紋是兩層順著水流漂的細胞雜訊（中間鏤空的蕾絲狀）
+  vec2 fp = vW.xz + g * 6.;
+  float lace = smoothstep(.42, .72, fbm(fp*.21 + vec2(t*.07, -t*.05))) * .7 + smoothstep(.55, .8, n2(fp*.9 - t*.3)) * .5;
+  float band = 1. - smoothstep(1., 5. + 7.*n2(vW.xz*.02 + t*.02), shore);
+  float wv = fract(shore / 11. + t * .11 + n2(vW.xz*.015) * .6), line = smoothstep(.0, .05, wv) * smoothstep(.3, .08, wv) * (1. - smoothstep(4., 24., shore));
+  float cap = smoothstep(.95, 1.2, h + (n2(vW.xz*.11 + t*.15) - .5) * .3) * smoothstep(300., 80., dist) * .3;
+  float foam = clamp(band * (.2 + .9*lace) + line * lace * .9 + cap * lace, 0., 1.) * smoothstep(1800., 500., dist);
+  c = mix(c, shade(vW, normalize(vec3(n.x*.3, 1., n.z*.3)), v, vec3(.62,.66,.68), .85, 0.), foam);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
 // 沙灘：乾沙、近水的濕沙（會反光）、浪花線
@@ -86,7 +120,46 @@ void main(){
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
 const groundMat = (fs, u = {}) => new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...u }, vertexShader: GROUND_VS, fragmentShader: fs });
-const MAT_WATER = groundMat(WATER_FS, { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) } }), MAT_PLANK = groundMat(PLANK_FS);
+// 離岸距離場：城市外緣往外一圈（含灰鷗島、光格島）切成方格，每格是不是陸地（陸地、沙灘露出水面的部分、山與對岸、光格島），
+// 再做精確的歐氏距離轉換（Felzenszwalb），存成 0–SHD_MAX m 的 8 位元貼圖。uShore：原點 x、z，1/邊長，SHD_MAX
+const SHD_MAX = 80;
+const SHD = (() => {
+  const t0 = performance.now();
+  let x0 = CITY_BB.x0 - 500, x1 = CITY_BB.x1 + 500, z0 = CITY_BB.z0 - 500, z1 = CITY_BB.z1 + 500;
+  const grow = ([x, z], r) => { x0 = Math.min(x0, x - r); x1 = Math.max(x1, x + r); z0 = Math.min(z0, z - r); z1 = Math.max(z1, z + r); };
+  for (const c of rectW(ISLE.x0, ISLE.x1, ISLE.z0, ISLE.z1)) grow(c, 200);
+  grow(toW(TRON_SITE.x, TRON_SITE.z, TRON_SITE.zn), 500);
+  const N = LOW ? 512 : 1024, size = Math.max(x1 - x0, z1 - z0), cs = size / N, INF = 1e12;
+  const f = new Float64Array(N * N);
+  const isLand = (i, j) => { const X = x0 + (i + .5) * cs, Z = z0 + (j + .5) * cs; return landW(X, Z) ? groundH(X, Z) > SEA_Y + .02 : hillH(X, Z) > SEA_Y || tronLandW(X, Z); };
+  // 陸地判定是大頭：先每 B 格取一點，四角一致的方塊整塊填，不一致的才逐格判定（窄於 B 格的陸地，例如木棧，會漏掉，水從底下過也說得通）
+  const B = 4, M = N / B, cn = new Uint8Array((M + 1) * (M + 1));
+  for (let j = 0; j <= M; j++) for (let i = 0; i <= M; i++) cn[j * (M + 1) + i] = isLand(Math.min(i * B, N - 1), Math.min(j * B, N - 1)) ? 1 : 0;
+  for (let bj = 0; bj < M; bj++) for (let bi = 0; bi < M; bi++) {
+    const k = bj * (M + 1) + bi, c = cn[k], same = c === cn[k + 1] && c === cn[k + M + 1] && c === cn[k + M + 2];
+    for (let j = bj * B; j < bj * B + B; j++) for (let i = bi * B; i < bi * B + B; i++) f[j * N + i] = (same ? c : isLand(i, j)) ? 0 : INF;
+  }
+  const t1 = performance.now();
+  // 一維平方距離轉換（下包絡拋物線），先列後行
+  const d = new Float64Array(N), v = new Int32Array(N), zz = new Float64Array(N + 1), row = new Float64Array(N);
+  const edt = () => {
+    let k = 0; v[0] = 0; zz[0] = -INF; zz[1] = INF;
+    for (let q = 1; q < N; q++) {
+      let s; while ((s = ((row[q] + q * q) - (row[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k])) <= zz[k]) k--;
+      k++; v[k] = q; zz[k] = s; zz[k + 1] = INF;
+    }
+    k = 0; for (let q = 0; q < N; q++) { while (zz[k + 1] < q) k++; d[q] = (q - v[k]) ** 2 + row[v[k]]; }
+  };
+  for (let j = 0; j < N; j++) { for (let i = 0; i < N; i++) row[i] = f[j * N + i]; edt(); for (let i = 0; i < N; i++) f[j * N + i] = d[i]; }
+  const px = new Uint8Array(N * N);
+  for (let i = 0; i < N; i++) { for (let j = 0; j < N; j++) row[j] = f[j * N + i]; edt(); for (let j = 0; j < N; j++) px[j * N + i] = Math.min(255, Math.round(Math.sqrt(d[j]) * cs / SHD_MAX * 255)); }
+  const tex = new T.DataTexture(px, N, N, T.RedFormat, T.UnsignedByteType);
+  tex.minFilter = tex.magFilter = T.LinearFilter; tex.needsUpdate = true;
+  if (location.search.includes('shoreLog')) console.log(`離岸距離場 ${N}² · ${cs.toFixed(1)} m/格 · ${(performance.now() - t0).toFixed(0)} ms（陸地 ${(t1 - t0).toFixed(0)}）`);
+  return { tex, u: new T.Vector4(x0, z0, 1 / size, SHD_MAX) };
+})();
+const MAT_WATER = groundMat(WATER_FS, { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) },
+  tShore: { value: SHD.tex }, uShore: { value: SHD.u } }), MAT_PLANK = groundMat(PLANK_FS);
 {
   // 灰鷺河、南面的海、東面的海灣：一整張世界座標的水面（各區轉過、拉開之後，岸線與區之間的縫都還在水上；陸地蓋在上面）。
   // 最後才畫，被陸地擋住的部分不必算
