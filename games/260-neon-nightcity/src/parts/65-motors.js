@@ -251,12 +251,26 @@ function stowCar() {
   rebuildGarage();
   enterVenue('home');
 }
+// 搶來或騎走的街頭車（26-glb.js 的 street）：開到門口停下按 E 就收進車庫，變成自己的車（烤漆照搬；街上那台收掉，68-gta.js 的 dropVehicle）
+const streetId = v => v !== kestrel && !v.dead && (v.carId ? CARS[v.carId].street && v.carId : TYPES[v.type] && TYPES[v.type].street && v.type);   // 還沒換成實車的（以檔案開啟）用車流車型
+function stowStreet() {
+  const v = player.veh, id = streetId(v), palI = v.ins ? v.ins.array[2] : 0, paint = v.carId ? v.paint : CARS[id].paintable && palI ? PAL_HEX[palI - 1] : null;
+  if (motors.owned.includes(id)) return toast(`車庫裡已經有一台 ${CARS[id].name}`);
+  exitVehicle();
+  motors.owned.push(id); if (Number.isInteger(paint)) motors.paint[id] = paint;
+  saveMotors();
+  dropVehicle(v);
+  rebuildGarage();
+  enterVenue('home');
+  toast(`${CARS[id].name} 收進 GARAGE 07`);
+}
 
 // ─── 互動提示 ───
 ctxHooks.push((p, near) => {
   if (p.mode === 'drive') {
     const v = p.veh;
     if (v === kestrel && !motors.test && Math.hypot(v.x - HOME_SPOT.x, v.z - HOME_SPOT.z) < 6 && Math.hypot(v.vx, v.vz) < 2) return { key: 'E', text: '停進車庫 <i>· GARAGE 07</i>', fn: stowCar };
+    if (streetId(v) && Math.hypot(v.x - HOME_SPOT.x, v.z - HOME_SPOT.z) < 6 && Math.hypot(v.vx, v.vz) < 2) return { key: 'E', text: `收進車庫 <i>· ${CARS[streetId(v)].name}</i>`, fn: stowStreet };
     return null;
   }
   if (p.where === 'out') {

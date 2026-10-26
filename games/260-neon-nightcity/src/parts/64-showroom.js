@@ -9,7 +9,7 @@ ENV.show = { lampOn: 0, wet: 0, fogDen: .003, fog: 0x4a4036, fogHi: 0x5a4e40, to
 const SV_W = 17, SV_D = 52, SV_FH = 6, SV_NF = 3, SV_ATR = 6, SV_VOID = 42.4, SV_ROOF = SV_NF * SV_FH;
 const SV_CX = 11.8, SV_SLOT = [7, 12, 17, 22, 27, 32, 37, 42], SV_YAW = 2.06;   // 車的中心 x、各格的 z、左側車頭朝向（右側取負）
 const SV_LIFT = { x: 0, z: 45.4 }, SELLER = { x: 0, z: 35.4 }, SV_HERO = { id: 'c110', x: 0, z: 18 };
-// 各樓層的車（左、右各 8 格）；CAR_ORDER 裡沒排到的車自動補進空格
+// 各樓層的車（左、右各 8 格）；CAR_ORDER 裡沒排到的車自動補進空格（街頭車除外）
 const SHOW_FLOORS = [
   { name: '1F · 日系經典與 BMW M', L: ['ae86', 'rx7', 'supra', 'r34', 'nsx', 'r35', 'e34', 'evo190'], R: ['e92', 'm3c', 'm4wb', 'm4csl', 'm3gtr', 'm3t24', 'm4gt3'] },
   { name: '2F · 歐洲超跑', L: ['gt3rs', 'gt3r', 'p930', 'rwb', 'f40', 'f8', 'f488c', 'sf90'], R: ['p1', 'svj', 'sc20', 'evija', 'spano', 'spano8', 'scg'] },
@@ -17,7 +17,7 @@ const SHOW_FLOORS = [
 ];
 {
   const placed = new Set([SV_HERO.id, ...SHOW_FLOORS.flatMap(f => [...f.L, ...f.R])]);
-  for (const id of CAR_ORDER) if (!placed.has(id)) { const f = SHOW_FLOORS.find(f => f.L.length < 8 || f.R.length < 8); if (!f) break; (f.R.length < 8 ? f.R : f.L).push(id); }
+  for (const id of CAR_ORDER) if (!placed.has(id) && !CARS[id].street) { const f = SHOW_FLOORS.find(f => f.L.length < 8 || f.R.length < 8); if (!f) break; (f.R.length < 8 ? f.R : f.L).push(id); }
 }
 const showScene = new T.Scene();
 const show = { lv: [0, 1, 2].map(() => ({ boxes: [], circles: [], lights: [] })), cars: [], spin: [], people: null, cab: null };

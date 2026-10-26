@@ -71,6 +71,20 @@ export const TRAFFIC = [
   { id: 'grc_sedan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: -90, center: /^sedan$/, nodes: /^sedan$/, pal: false, tris: 2400 },
   { id: 'grc_stepvan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: -90, center: /^stepvan$/, nodes: /^stepvan$/, pal: false, tris: 2400 },
   { id: 'grc_mailvan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: 0, center: /^mailvan$/, nodes: /^mailvan$/, pal: false, tris: 2400 },
+  // 街頭車（26-glb.js 的 street）：車行的實車模型烘成車流版，搶到時才換回實車（68-gta.js 的 streetVeh）；pal 照 cars.json 的 paintable
+  { id: 'g63', src: 'g63', pal: true, tris: 4000 },
+  { id: 'lc200', src: 'lc200', pal: false, tris: 4000 },
+  { id: 'rr06', src: 'rr06', pal: false, tris: 4000 },
+  { id: 'ramtrx', src: 'ramtrx', pal: false, tris: 4000 },
+  { id: 'ghost', src: 'ghost', pal: true, tris: 4000 },
+  { id: 's65', src: 's65', pal: true, tris: 4000 },
+  { id: 'm5f90', src: 'm5f90', pal: false, tris: 4000 },
+  { id: 'camry', src: 'camry', pal: true, tris: 4000 },
+  { id: 'gt500', src: 'gt500', pal: true, tris: 4000 },
+  { id: 'viper', src: 'viper', pal: false, tris: 4000 },
+  { id: 'senna', src: 'senna', pal: true, tris: 4000 },
+  { id: 'r8', src: 'r8', pal: false, tris: 4000 },
+  { id: 'evo6', src: 'evo6', pal: false, tris: 4000 },
 ];
 const srcOf = (cfg) => {
   const a = resolve(root, '../../assets/260', (cfg.src || cfg.id) + '.glb');

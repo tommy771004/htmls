@@ -4348,8 +4348,8 @@
    "bodypaint"
   ],
   "paintable": true,
-  "tris": 186940,
-  "kb": 3300,
+  "tris": 156069,
+  "kb": 2692,
   "draws": 34
  },
  "lc200": {
@@ -4401,58 +4401,6 @@
   "tris": 121787,
   "kb": 1849,
   "draws": 11
- },
- "rrs": {
-  "id": "rrs",
-  "title": "Range Rover Sport 2018",
-  "author": "diw3d (https://sketchfab.com/diwdiw)",
-  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
-  "source": "https://sketchfab.com/3d-models/range-rover-sport-2018-d1fe581b3baf4af89275e9aa9a1392e2",
-  "bike": false,
-  "len": 4.879,
-  "w": 2.176,
-  "h": 1.811,
-  "wr": 0.412,
-  "fa": 1.374,
-  "ra": -1.569,
-  "track": 0.796,
-  "wheels": [
-   {
-    "name": "FL",
-    "x": 0.796,
-    "y": 0.412,
-    "z": 1.374,
-    "r": 0.412
-   },
-   {
-    "name": "FR",
-    "x": -0.796,
-    "y": 0.412,
-    "z": 1.374,
-    "r": 0.412
-   },
-   {
-    "name": "RL",
-    "x": 0.796,
-    "y": 0.412,
-    "z": -1.569,
-    "r": 0.412
-   },
-   {
-    "name": "RR",
-    "x": -0.796,
-    "y": 0.412,
-    "z": -1.57,
-    "r": 0.412
-   }
-  ],
-  "paint": [
-   "Car_Paint"
-  ],
-  "paintable": true,
-  "tris": 104057,
-  "kb": 1189,
-  "draws": 13
  },
  "rr06": {
   "id": "rr06",
@@ -4552,8 +4500,8 @@
    "DRTRX_Vehicle_Paint_01"
   ],
   "paintable": false,
-  "tris": 161504,
-  "kb": 2933,
+  "tris": 158854,
+  "kb": 2841,
   "draws": 78
  },
  "ghost": {
@@ -4604,8 +4552,8 @@
    "rrghost_paint"
   ],
   "paintable": true,
-  "tris": 192168,
-  "kb": 2540,
+  "tris": 140199,
+  "kb": 1560,
   "draws": 10
  },
  "s65": {
@@ -4656,8 +4604,8 @@
    "sw222_paint"
   ],
   "paintable": true,
-  "tris": 150631,
-  "kb": 1863,
+  "tris": 122655,
+  "kb": 1298,
   "draws": 14
  },
  "m5f90": {

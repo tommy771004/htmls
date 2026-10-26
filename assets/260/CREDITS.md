@@ -1,8 +1,8 @@
 # assets/260 實車模型來源與授權
 
-作品 260 霓虹夜城車行與車庫裡的 47 台實車模型。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
+作品 260 霓虹夜城車行、車庫與街頭的 64 台實車模型（其中 17 台是街頭車，車流裡也用它們烘成的低模）。原檔都來自 Sketchfab，經 `games/260-neon-nightcity/tools/cars.mjs` 處理（攤平、縮放到真實車長、拆出輪子、減面、材質改成頂點屬性、貼圖轉 WebP、meshopt 壓縮）後放在這裡，屬於原作的衍生作品，沿用原作授權。
 
-非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Glickenhaus、Peugeot、Bugatti、Rimac、Mosler、Alfa Romeo、Chevrolet、Dodge、Ducati、Kawasaki 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
+非官方同人作品，與模型上出現的車廠（BMW、Porsche、Nissan、Toyota、Mazda、Honda、Mercedes-Benz、Ferrari、McLaren、Lamborghini、Lotus、GTA Motor、Glickenhaus、Peugeot、Bugatti、Rimac、Mosler、Alfa Romeo、Chevrolet、Dodge、Ducati、Kawasaki、Ford、Audi、Mitsubishi、Rolls-Royce、Land Rover、RAM、Harley-Davidson、Yamaha 等）及贊助商品牌無關；商標與彩繪屬於各自的權利人。
 
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
@@ -53,6 +53,24 @@
 | `police.glb` | [Police car](https://sketchfab.com/3d-models/police-car-9166b13b6ae341f4bfc093edb71d74f4) | Mateusz Woliński | CC-BY-4.0 |
 | `v4.glb` | [Ducati Panigale V4](https://sketchfab.com/3d-models/ducati-panigale-v4-47f87e3d70f644289e34cbff91255d0c) | ROY | CC-BY-4.0 |
 | `zx6r.glb` | [Kawasaki ninja ZX-6R](https://sketchfab.com/3d-models/kawasaki-ninja-zx-6r-4af2b6840b8045a5af5e8df8a85f04fa) | valvetin | CC-BY-4.0 |
+| **街頭車**（車行不賣：混在車流與路邊，搶來或騎走後收進車庫） | | | |
+| `g63.glb` | [Mersedes-Benz G63 AMG](https://sketchfab.com/3d-models/mersedes-benz-g63-amg-e5e2a1d2238048a1a494b3df983c16bb) | Black Snow | CC-BY-4.0 |
+| `lc200.glb` | [Toyota Land Cruiser J200 2017](https://sketchfab.com/3d-models/toyota-land-cruiser-j200-2017-374e85a6e18743429f6d9c0e7bbffb3c) | David_Holiday | CC-BY-4.0 |
+| `rr06.glb` | [2006 Land Rover Range Rover Supercharged](https://sketchfab.com/3d-models/2006-land-rover-range-rover-supercharged-277cf51a9f95473c85580612651990fd) | Randomness | CC-BY-4.0 |
+| `ramtrx.glb` | [Dodge RAM TRX Sandblast Edition](https://sketchfab.com/3d-models/dodge-ram-trx-sandblast-edition-de045bf2f3b141a48a4248885d3fee1c) | 𝑵 | CC-BY-4.0 |
+| `ghost.glb` | [Rolls-Royce Ghost](https://sketchfab.com/3d-models/rolls-royce-ghost-4a590f4afa094fa8b407a14db77a63a8) | Black Snow | CC-BY-4.0 |
+| `s65.glb` | [Mersedes-Benz s65 w222](https://sketchfab.com/3d-models/mersedes-benz-s65-w222-f42d9d13b0404b5b9a2302a4c590a94d) | Black Snow | CC-BY-4.0 |
+| `m5f90.glb` | [Bmw M5 F90](https://sketchfab.com/3d-models/bmw-m5-f90-5478e978bd634337adc8e3dc413fbfa3) | RES1N | CC-BY-4.0 |
+| `camry.glb` | [Toyota Camry 2020](https://sketchfab.com/3d-models/toyota-camry-2020-236a5a6e2fa6420fbdf641f4800cd544) | ItsDiyor | CC-BY-4.0 |
+| `gt500.glb` | [Ford Mustang Shelby GT500](https://sketchfab.com/3d-models/ford-mustang-shelby-gt500-0eaa7a16796540f29461ddae05ecdeb3) | Jiaxing | CC-BY-4.0 |
+| `viper.glb` | [Dodge Viper SRT [Free]](https://sketchfab.com/3d-models/dodge-viper-srt-free-b4234b7970fa464faaecaf637acb0912) | Black Snow | CC-BY-4.0 |
+| `senna.glb` | [McLaren Senna Free](https://sketchfab.com/3d-models/mclaren-senna-free-ea3e43a6eb004853a87fe9c58422eb96) | Black Snow | CC-BY-4.0 |
+| `r8.glb` | [Audi R8](https://sketchfab.com/3d-models/audi-r8-e17e438f076f4427a58d93aa779edaed) | wallon | CC-BY-4.0 |
+| `evo6.glb` | [Mitsubishi Lancer Evolution 6 · www.vecarz.com](https://sketchfab.com/3d-models/mitsubishi-lancer-evolution-6-wwwvecarzcom-c3d5dcd8ff724bc88c46760d92fc5188) | vecarz | CC-BY-4.0 |
+| `hd72.glb` | [Harley-Davidson Seventy-Two HD FXT 2015](https://sketchfab.com/3d-models/harley-davidson-seventy-two-hd-fxt-2015-15e67a3076494bb99ba7504c9913ceb5) | ᗩᒪE᙭. Kᗩ.🚗 | CC-BY-4.0 |
+| `hdpol.glb` | [Harley-Davidson Police](https://sketchfab.com/3d-models/harley-davidson-police-79dc00298bf449d7bcfdf6eb32bd15ac) | Comrade1280 | CC-BY-4.0 |
+| `r6.glb` | [2015 YAMAHA YZF-R6](https://sketchfab.com/3d-models/2015-yamaha-yzf-r6-123ac3a3757d4143944fa09f59ec341d) | dragos12_ | CC-BY-4.0 |
+| `z1000.glb` | [Z1000 2014](https://sketchfab.com/3d-models/z1000-2014-70cecfa5568347428c5ad72e9a156be9) | e-restrepo1114 | CC-BY-4.0 |
 
 - CC-BY-4.0：https://creativecommons.org/licenses/by/4.0/
 - CC-BY-NC-SA-4.0：https://creativecommons.org/licenses/by-nc-sa/4.0/ ——不可商用；這些衍生檔案以同一授權釋出。

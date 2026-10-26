@@ -240,16 +240,16 @@ const sfx = (() => {
   const ENG_CAR = [['engIdle', .12, 1], ['engLow', .4, 1], ['engMed', .7, 1], ['engHigh', 1, 1]];
   const ENG_BIKE = [['bikeIdle', .12, 1], ['engMed', .55, 1.3], ['engHigh', 1, 1.35]];
   // 每台實車的引擎型式 → tools/sfx.mjs 的 ENG（每層 [錄音, 這段的基頻 Hz]）與看車對話裡的出處。
-  // 沒列的用上面的通用錄音：RX-7（找不到可用授權的轉子引擎錄音）、搶來的車流車；電動車沒有引擎，用合成的馬達與逆變器聲
+  // 沒列的用上面的通用錄音：RX-7（找不到可用授權的轉子引擎錄音）、哈雷的 V 型雙缸、搶來的車流車；電動車沒有引擎，用合成的馬達與逆變器聲
   const ENG_FAM = {
-    bmw: ['e92 m3c m4wb m3gtr m3t24 m4gt3 e34 m4csl csl3', 'BMW M6／M3 實錄 · Kinoton（CC0）、ikbenraar（CC BY 4.0）'],
+    bmw: ['e92 m3c m4wb m3gtr m3t24 m4gt3 e34 m4csl csl3 m5f90', 'BMW M6／M3 實錄 · Kinoton（CC0）、ikbenraar（CC BY 4.0）'],
     jdm6: ['supra r34 r35 nsx scg p9x8', '渦輪六缸底盤動力計實錄 · editboy23（CC0），怠速借 BMW M6 · Kinoton（CC0）'],
     flat6: ['gt3rs gt3r p930 rwb', 'Porsche 911 水平對臥六缸實錄 · jerry.berumen（CC BY 4.0）、mharo、mmplisskin（CC0）'],
-    fer8: ['f40 sf90 p1 f8 f488c', 'Ferrari 360 V8 實錄 · PritzProductions（CC0）'],
-    us8: ['chall charger police zr1 mosler c63dtm slk55 spano spano8', 'Dodge Challenger SRT V8 實錄 · JorisDJN（CC0）'],
-    v12: ['svj sc20 c110', 'Lamborghini Murciélago V12 實錄 · cheesepuff（CC0）'],
-    i4: ['ae86 evo190 giulietta', 'Alfa Romeo Brera 四缸實錄 · marksayer（CC0）'],
-    bike4: ['s1krr s1krr19 zx6r v4', 'Kawasaki ZX-6R／Ninja 四缸實錄 · Sclolex、Hurry_Joe33（CC0）'],
+    fer8: ['f40 sf90 p1 f8 f488c senna r8', 'Ferrari 360 V8 實錄 · PritzProductions（CC0）'],
+    us8: ['chall charger police zr1 mosler c63dtm slk55 spano spano8 gt500 viper ramtrx g63 lc200 rr06', 'Dodge Challenger SRT V8 實錄 · JorisDJN（CC0）'],
+    v12: ['svj sc20 c110 s65 ghost', 'Lamborghini Murciélago V12 實錄 · cheesepuff（CC0）'],
+    i4: ['ae86 evo190 giulietta camry evo6', 'Alfa Romeo Brera 四缸實錄 · marksayer（CC0）'],
+    bike4: ['s1krr s1krr19 zx6r v4 r6 z1000', 'Kawasaki ZX-6R／Ninja 四缸實錄 · Sclolex、Hurry_Joe33（CC0）'],
     ev: ['evija nevera energ', '電動車沒有引擎，馬達聲為即時合成'],
   };
   const ENG_OF = {}; for (const [k, [ids]] of Object.entries(ENG_FAM)) for (const id of ids.split(' ')) ENG_OF[id] = k;

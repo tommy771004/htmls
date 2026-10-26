@@ -136,10 +136,10 @@ function quickSave(at) {
   crewSave();
   const pos = at || (player.mode === 'drive' ? player.veh : player), v = !at && player.mode === 'drive' ? player.veh : null;
   // 座駕：自己的車（own）、路邊的機車（bike），或搶來的車流車型（TYPES 的名稱與塗裝）
-  const vk = !v || v.dead ? null : v === kestrel ? 'own' : v === hanzo ? 'bike' : TYPES[v.type] && v.ins ? v.type : null;
+  const vk = !v || v.dead ? null : v === kestrel ? 'own' : v === hanzo ? 'bike' : TYPES[v.type] && (v.ins || v.palI != null) ? v.type : null;   // palI：換成實車的街頭車（68-gta.js 的 streetUp）
   motors.game = {
     t: Date.now(), quest: quest.n, cur: crew.cur, min: clockSt.min, wx: wx.cur,
-    veh: vk ? { k: vk, pal: vk === v.type ? v.ins.array[2] : 0 } : null, where: at && APT[player.where] ? player.where : null,
+    veh: vk ? { k: vk, pal: vk === v.type ? (v.ins ? v.ins.array[2] : v.palI) : 0 } : null, where: at && APT[player.where] ? player.where : null,
     st: crew.st.map((s, i) => ({ hp: Math.round(s.hp), armor: Math.round(s.armor), sp: Math.round(s.sp), x: +(i === crew.cur ? pos.x : s.x).toFixed(2), z: +(i === crew.cur ? pos.z : s.z).toFixed(2), yaw: +(i === crew.cur ? pos.yaw : s.yaw).toFixed(3) })),
     ammo: Object.fromEntries(ARM_IDS.filter(id => arm.ammo[id]).map(id => [id, [arm.ammo[id].mag, arm.ammo[id].res]])),
   };

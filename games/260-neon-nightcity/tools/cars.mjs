@@ -82,7 +82,6 @@ export const MODELS = [
   // 街頭車（照 gta5-mods 熱門車款補的類型，不進車行）：汽車混進車流、搶到後換成這裡的實車，開回 GARAGE 07 就收下；機車停在路邊
   { id: 'g63', file: 'mersedes-benz_g63_amg', len: 4.873, tris: 90000, soup: true },
   { id: 'lc200', file: 'toyota_land_cruiser_j200_2017', len: 4.95, tris: 90000, wheelsAt: { FL: [.82, 1.555, .39], FR: [-.82, 1.555, .39], RL: [.82, -1.295, .39], RR: [-.82, -1.295, .39] } },
-  { id: 'rrs', file: 'range_rover_sport_2018', len: 4.879, tris: 90000 },
   { id: 'rr06', file: '2006_land_rover_range_rover_supercharged', len: 4.95, tris: 90000, paint: false },
   { id: 'ramtrx', file: 'dodge_ram_trx_sandblast_edition', len: 5.92, tris: 90000, soup: true },
   { id: 'ghost', file: 'rolls-royce_ghost', len: 5.546, tris: 90000, soup: true },

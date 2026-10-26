@@ -107,6 +107,42 @@ const GLB_CARS = [
     tag: '萊姆綠的中量級仿賽，轉速拉到一萬六。比千 cc 好駕馭，在窄巷裡也鑽得進去。' }],
   ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, fb: 0xc8141c, proxy: 'hanzo', bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
     tag: '從 MotoGP 賽車下放的 V4 引擎、單搖臂與紅色車殼。兩百多匹，比很多跑車都快。' }],
+  // 街頭車（street）：車行不賣。汽車混在車流與路邊停車裡（30-vehicles.js 的 STREET），被玩家搶來坐上去時換成實車（68-gta.js 的 streetUp）；
+  // 機車停在路邊（68-gta.js 的 STREET_BIKES）。開回 GARAGE 07 門口按 E 收進車庫（65-motors.js），之後就和買來的車一樣
+  ['g63', { name: 'Mercedes-AMG G63', cls: '2019 W463 · 雙渦輪 V8 越野', price: 180000, fb: 0x1f4fd8, proxy: 'bulldog', street: 1, vmax: 62, eng: 13, grip: 8.2,
+    tag: '方盒子車身、外掛備胎與側出排氣，四千多 cc 的雙渦輪 V8。重、高、轉彎會晃，但撞上去吃虧的通常是對方。' }],
+  ['lc200', { name: 'Toyota Land Cruiser 200', cls: '2017 J200 · V8 越野休旅', price: 85000, fb: 0xd8d6d0, proxy: 'bulldog', street: 1, vmax: 58, eng: 11.5, grip: 7.8,
+    tag: '開到哪裡都修得好的大型越野車，在這座城裡多半載著保鑣或貨。原廠塗裝，不能換色。' }],
+  ['rr06', { name: 'Range Rover Supercharged', cls: '2006 L322 · 機械增壓 V8', price: 48000, fb: 0xd8d6d0, proxy: 'bulldog', street: 1, vmax: 58, eng: 12, grip: 7.8,
+    tag: '老派英國豪華越野車，木飾板、真皮座椅與蛤殼式引擎蓋。舊了，但壓縮機一叫還是很有派頭。原廠塗裝，不能換色。' }],
+  ['ramtrx', { name: 'RAM 1500 TRX', cls: '2021 · 機械增壓 HEMI V8 皮卡', price: 92000, fb: 0x1f4fd8, proxy: 'bulldog', street: 1, vmax: 55, eng: 13.5, grip: 7.4,
+    tag: '七百匹的越野皮卡，長行程避震與 35 吋越野胎，連人行道邊石都不用減速。沙漠迷彩的彩繪貼在車身側面。' }],
+  ['ghost', { name: 'Rolls-Royce Ghost', cls: '2021 · 雙渦輪 V12 四門', price: 340000, fb: 0x1f4fd8, proxy: 'meridian', street: 1, vmax: 64, eng: 13.8, grip: 8.4,
+    tag: '後開式車門、帕德嫩神殿水箱護罩與星空頂。安靜到聽不見 V12，只聽得見後座在講電話。' }],
+  ['s65', { name: 'Mercedes-AMG S65', cls: '2015 W222 · 雙渦輪 V12 四門', price: 230000, fb: 0x1f4fd8, proxy: 'meridian', street: 1, vmax: 70, eng: 15, grip: 8.8,
+    tag: '旗艦房車塞進六升 V12，一千牛頓米的扭力讓兩噸多的車像被推出去。後座有按摩椅。' }],
+  ['m5f90', { name: 'BMW M5 Competition (F90)', cls: '2018 · 雙渦輪 V8 四驅四門', price: 120000, fb: 0x111214, proxy: 'ronin', street: 1, vmax: 76, eng: 17.5, grip: 9.4,
+    tag: '外表是商務房車，四驅可以切成純後驅。這台是消光黑配紅卡鉗，原廠塗裝，不能換色。' }],
+  ['camry', { name: 'Toyota Camry', cls: '2020 XV70 · 直列四缸前驅', price: 26000, fb: 0x1f4fd8, proxy: 'lucerna', street: 1, vmax: 58, eng: 11, grip: 8.2,
+    tag: '城裡最常見的計程車與上班族座駕，安靜、省油、壞不了。開它犯案沒人會多看一眼。' }],
+  ['gt500', { name: 'Ford Mustang Shelby GT500', cls: '2020 · 機械增壓 V8 雙門', price: 78000, fb: 0x1f4fd8, proxy: 'bulldog', street: 1, vmax: 80, eng: 17.5, grip: 9.3,
+    tag: '七百六十匹的美式肌肉車，引擎蓋上的大散熱口與碳纖維尾翼。直線很兇，彎道要尊重它。' }],
+  ['viper', { name: 'Dodge Viper SRT', cls: '2013 · 自然進氣 V10 雙門', price: 105000, fb: 0x7a1f22, proxy: 'mamba', street: 1, vmax: 82, eng: 17.5, grip: 9.6,
+    tag: '八升 V10、側排氣、沒有循跡控制的老派毒蛇。紅色車身配藍色雙條紋與大尾翼，原廠彩繪，不能換色。' }],
+  ['senna', { name: 'McLaren Senna', cls: '2019 · 雙渦輪 V8 中置', price: 1000000, fb: 0x1f4fd8, proxy: 'mamba', street: 1, vmax: 86, eng: 19.5, grip: 10.6,
+    tag: '以賽車手命名的公路賽車，主動式尾翼與透明車門下緣。據說全城只有一台，不知道為什麼停在路邊。' }],
+  ['r8', { name: 'Audi R8 寬體', cls: 'V10 中置四驅', price: 160000, fb: 0xb36a2a, proxy: 'mamba', street: 1, vmax: 82, eng: 18, grip: 9.8,
+    tag: '自然進氣 V10 的中置跑車，加了外擴寬體、鴨尾與蜂巢格柵。橘色車身是原廠彩繪，不能換色。' }],
+  ['evo6', { name: 'Mitsubishi Lancer Evolution VI', cls: '1999 · 渦輪四缸四驅', price: 45000, fb: 0x3a2a6a, proxy: 'ronin', street: 1, vmax: 66, eng: 15, grip: 9.4,
+    tag: '拉力賽冠軍的街車版，四驅、渦輪與巨大的尾翼。紫色車身配藍色貼紙，原廠彩繪，不能換色。' }],
+  ['hd72', { name: 'Harley-Davidson Seventy-Two', cls: '2015 · 1200 cc V 型雙缸', price: 12000, fb: 0xc8141c, proxy: 'hanzo', bike: true, street: 1, vmax: 50, eng: 11, grip: 7, seat: [-.06, -.28],
+    tag: '高把手、細前輪與糖果紅油箱的復古嬉皮車。不快，但停在哪裡都很好看。' }],
+  ['hdpol', { name: 'Harley-Davidson 警用重機', cls: '1700 cc V 型雙缸 · 警用', price: 28000, fb: 0x111214, proxy: 'hanzo', bike: true, street: 1, vmax: 52, eng: 11.5, grip: 7.2, seat: [-.06, -.25],
+    tag: '交通警察的巡邏重機，擋風鏡、警示燈與側箱都在。重得不像機車，騎走它警察會很不高興。' }],
+  ['r6', { name: 'Yamaha YZF-R6', cls: '2015 · 600 cc 四缸仿賽', price: 14000, fb: 0xd8d6d0, proxy: 'hanzo', bike: true, street: 1, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
+    tag: '一萬六千轉的中量級仿賽，白銀配色。賽道出身，在城裡騎要忍住別一直拉轉。' }],
+  ['z1000', { name: 'Kawasaki Z1000', cls: '2014 · 1000 cc 四缸街車', price: 13000, fb: 0x111214, proxy: 'hanzo', bike: true, street: 1, vmax: 72, eng: 16.5, grip: 7.6, seat: [-.06, -.2],
+    tag: '沒有整流罩的千 cc 街車，凶狠的前臉與低扭力。直線加速不輸仿賽，坐姿比較舒服。' }],
 ];
 // ─── 原廠規格（公開規格與媒體實測的概數；賽車是規格書的最低車重與 BoP 前後的馬力）───
 // [車重 kg（機車是含油）, 馬力 PS, 0–100 km/h 秒, 極速 km/h（有電子限速的照限速）, 側向抓地 g（繞圈測試）, 100–0 煞車距離 m, 驅動：R 前置後驅／M 中後置後驅／F 前置前驅／A 四驅／B 機車, 備註：cage 防滾籠賽車、pol 警用強化]
@@ -128,6 +164,12 @@ const CAR_REAL = {
   slk55: [1615, 421, 4.6, 250, .95, 35, 'R'], giulietta: [1395, 240, 6.0, 244, .9, 37, 'F'], charger: [1950, 370, 5.8, 240, .88, 38, 'R', 'pol'],   // Vision Ener-G-Force 是沒有動力規格的概念車：數字是自己定的越野休旅
   f8: [1435, 720, 2.9, 340, 1.1, 32, 'M'], scg: [1300, 811, 2.9, 350, 1.4, 29, 'M'], p9x8: [1030, 707, 2.9, 340, 1.65, 26, 'M', 'cage'], c110: [1976, 1600, 2.4, 380, 1.25, 31, 'A'],
   zx6r: [196, 130, 3.2, 260, .88, 41, 'B'], v4: [198, 214, 2.9, 299, .9, 38, 'B'],
+  // 街頭車：Senna 是乾重加油液、R8 照 V10 Plus、Evo VI 是 GSR 的數字；兩台 Harley 是含油車重
+  g63: [2560, 585, 4.5, 220, .85, 38, 'A'], lc200: [2700, 381, 6.7, 210, .75, 44, 'A'], rr06: [2650, 396, 7.5, 210, .75, 44, 'A'], ramtrx: [2930, 712, 4.5, 190, .72, 46, 'A'],
+  ghost: [2490, 571, 4.8, 250, .85, 38, 'A'], s65: [2250, 630, 4.3, 250, .9, 36, 'R'], m5f90: [1940, 625, 3.3, 305, 1.0, 34, 'A'], camry: [1590, 206, 8.4, 210, .82, 40, 'F'],
+  gt500: [1916, 771, 3.5, 290, 1.05, 33, 'R'], viper: [1520, 649, 3.4, 330, 1.05, 33, 'R'], senna: [1309, 800, 2.8, 340, 1.4, 30, 'M'], r8: [1640, 610, 3.2, 330, 1.05, 33, 'A'],
+  evo6: [1360, 280, 4.6, 240, .92, 37, 'A'],
+  hd72: [256, 68, 5.8, 175, .72, 46, 'B'], hdpol: [372, 86, 5.5, 180, .7, 45, 'B'], r6: [190, 124, 3.3, 260, .88, 40, 'B'], z1000: [221, 142, 3.0, 245, .86, 41, 'B'],
 };
 // 換算成遊戲手感（城市尺度的街機手感，具名常數）：
 //   極速 = 原廠 × TOP_K（再由 vmaxFor 反推推力歸零速度）；加速 eng = ENG0 + ENG_K·(27.8 / 0–100 秒)；抓地 = GRIP0 + GRIP_K·g（機車另一組）；

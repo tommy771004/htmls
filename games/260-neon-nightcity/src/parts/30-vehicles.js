@@ -102,7 +102,7 @@ function hanzoKit() {
 const BIKE_WHEEL = wheelGeo(.33, .14, 0x2a2c30);
 
 // 車漆調色盤：instance 的 aIns.z 選色
-const PAL = [0x7a1f22, 0x1e2f4f, 0x5a5e62, 0x111214, 0xd8d6d0, 0x23412e, 0x4d1a2c, 0xb3a385, 0x2d5f73, 0x6b3a1e].map(h => lin(h));
+const PAL_HEX = [0x7a1f22, 0x1e2f4f, 0x5a5e62, 0x111214, 0xd8d6d0, 0x23412e, 0x4d1a2c, 0xb3a385, 0x2d5f73, 0x6b3a1e], PAL = PAL_HEX.map(h => lin(h));   // PAL_HEX：搶到街頭車時換成實車的烤漆（68-gta.js）
 {
   const s = PAL.map(c => `vec3(${c.r.toFixed(4)},${c.g.toFixed(4)},${c.b.toFixed(4)})`).join(',');
   MAT.uberI.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `int m = int(vMat + .5);
@@ -165,14 +165,18 @@ const TYPES = {
   tow: glbType('tow', 10.5, FB.truck), fire_chief: glbType('fire_chief', 13, FB.police), firetruck: glbType('firetruck', 9.5, FB.truck),
   // 五星才出動的坦克（不進車流；砲塔是 traffic.glb 的 tank_turret，69-police.js 另外掛）
   tank: glbType('tank', 9, FB.truck, { armored: 1, tank: 1 }),
+  // 街頭車（26-glb.js 的 street）：車流與路邊用 traffic.glb 的低面數版，玩家坐上去時 68-gta.js 的 streetUp 換成 assets/260 的實車
+  ...Object.fromEntries(['g63', 'lc200', 'rr06', 'ramtrx', 'ghost', 's65', 'm5f90', 'camry', 'gt500', 'viper', 'senna', 'r8', 'evo6'].map(id => [id, glbType(id, id === 'ramtrx' ? 12 : 13.5, FB.sedan, { street: 1 })])),
 };
 const TRAFFIC_N = LOW ? 18 : 34;
 const traffic = [], parked = [];
 const rT = rng(31);
 const SEDANS = ['e34', 'evo190', 'negotiator', 'milano', 'kiri', 'carter', 'compact', 'urban', 'tiara', 'fh', 'il', 'grc_sedan'], COPS = ['fh_cop', 'il_cop', 'urban_cop'], TRUCKS = ['shvan', 'lct', 'conquer', 'fvan', 'ambulance', 'md84', 'grc_stepvan', 'grc_mailvan'];
 const TAXIS = ['fh_taxi', 'fh_taxi', 'canyon_taxi'];
+// 街頭車：一般車多抽幾次（Camry、Land Cruiser 常見，Senna 全城難得一見）
+const STREET = ['camry', 'camry', 'camry', 'lc200', 'lc200', 'rr06', 'rr06', 'g63', 'g63', 'ramtrx', 'ramtrx', 's65', 'ghost', 'm5f90', 'm5f90', 'gt500', 'gt500', 'viper', 'evo6', 'evo6', 'r8', 'senna'];
 const pick = (a, u) => a[Math.min(a.length - 1, Math.floor(u * a.length))];
-function pickType() { const r = rT(); return r < .24 ? pick(TAXIS, r / .24) : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : pick(SEDANS, (r - .44) / .56); }
+function pickType() { const r = rT(); return r < .24 ? pick(TAXIS, r / .24) : r < .38 ? pick(TRUCKS, (r - .24) / .14) : r < .44 ? pick(COPS, (r - .38) / .06) : r < .53 ? pick(STREET, (r - .44) / .09) : pick(SEDANS, (r - .53) / .47); }
 // 停車：每段路兩側的停車格，避開路口、消防栓、施工區與夜店門口
 const CLUB_X = avX(1) + 36, CLUB_Z = stZ(3) - HR - SW;
 const BAR_X = lerp(avX(3) + HR + SW, avX(4) - HR - SW, SPECIAL.bar.at), BAR_Z = stZ(1) - HR - SW;

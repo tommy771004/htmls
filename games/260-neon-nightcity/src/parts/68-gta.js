@@ -9,6 +9,7 @@ const TYPE_NAME = { fh_taxi: 'Fairheaven 計程車', fh_cop: 'Fairheaven 警車'
   urban_cop: 'Urban 執法休旅', md84: 'MD 84 裝甲車', ambulance: 'Shvan 救護車', canyon_taxi: 'Canyon 計程車', fh: 'Fairheaven LT', il: 'Illinois', tank: '重裝坦克',
   grc_sedan: 'Brougham 轎車', grc_stepvan: 'Stepline 廂型貨車', grc_mailvan: '蝸牛郵務車',
   tow: 'Lightbody 拖吊車', fire_chief: 'Fairheaven 消防指揮車', firetruck: '消防水箱車' };
+for (const id in TYPES) if (TYPES[id].street) TYPE_NAME[id] = CARS[id].name;   // 街頭車（26-glb.js 的 street）用車行目錄的名字
 // 車損階段（耐久的比例；原本照 neon_nightcity_gta_v_2.md 是 70% 碎窗冒白煙、40% 黑煙、15% 起火，撞兩下就冒煙，調成 GTA V 那樣耐撞）：
 // 60% 以上只有凹痕與火花、60% 車窗碎掉、50% 冒白煙、30% 濃黑煙且動力少兩成五、12% 起火每秒 −25、歸零爆炸
 const HP = 1000, STAGE = { glass: .6, white: .5, black: .3, fire: .12 }, BURN_HP = 25, BOOM_R = 12;
@@ -147,12 +148,40 @@ function buildVeh(type, x, z, yaw, sp = 0, seed = 0, palI = 0, kind = 'jack') {
   vehicles.push(v);
   return v;
 }
-function detachCar(c) {
-  const sp = traffic.includes(c) ? c.v || 0 : 0;
+// 街頭車（26-glb.js 的 street）：脫離車流時先和別的車一樣用車流低模（被撞、AI 開走、清場的車不必下載實車），
+// 玩家坐上去才換成和座駕一樣的實車（streetUp，gtaUpdate 每幀檢查；車流的烤漆色照搬）。路邊機車沒有低模，直接建實車
+function streetUp(v) {
+  v.up = 1;
+  const p = loadGLB(v.type);
+  if (!p) return;   // 以檔案開啟沒有實車模型：維持低模
+  p.then(tpl => {
+    if (!tpl || !v.ins || !vehicles.includes(v)) return;
+    const palI = v.palI = v.ins.array[2];   // 69-phone.js 的快速存檔照這個記塗裝
+    v.body.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); v.body.clear(); v.ins = null;
+    v.mat = mkUber(); v.mat.uniforms.uM.value.set(0, 0, 1, 0);
+    applyCar(v, v.type, CARS[v.type].paintable && palI ? PAL_HEX[palI - 1] : undefined);
+    poseVehicle(v);
+  });
+}
+function streetVeh(type, x, z, yaw, sp, palI) {
+  const mat = mkUber(); mat.uniforms.uM.value.set(0, 0, 1, 0);
+  const g = new T.Group(), body = new T.Group(); g.add(body); scene.add(g);
+  const v = { kind: 'jack', type: TYPES[type] ? type : null, isCar: true, g, body, mat, wheels: [], x, z, y: 0, yaw, vx: Math.sin(yaw) * sp, vz: Math.cos(yaw) * sp,
+    yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0, rpm: 0, gear: 1, slip: 0, lights: 0, police: false, seat: null };
+  applyCar(v, type, CARS[type].paintable && palI ? PAL_HEX[palI - 1] : undefined);
+  vehicles.push(v);
+  return v;
+}
+// 車流或路邊車從車流表、停車表（連同碰撞圓）與 InstancedMesh 的清單裡拿掉
+function unlinkCar(c) {
   let i = traffic.indexOf(c); if (i >= 0) traffic.splice(i, 1);
   i = parked.indexOf(c);
   if (i >= 0) { parked.splice(i, 1); for (const q of c.circ || []) { const j = circles.indexOf(q); if (j >= 0) circles.splice(j, 1); } colDirty(); }
   const L = typeMesh[c.type].list; i = L.indexOf(c); if (i >= 0) L.splice(i, 1);
+}
+function detachCar(c) {
+  const sp = traffic.includes(c) ? c.v || 0 : 0;
+  unlinkCar(c);
   const v = buildVeh(c.type, c.x, c.z, c.yaw, sp, c.seed || 0, c.palI || 0);
   v.hpLock = 1;   // 耐久上限就是級距表的（68-wreck.js 的 hpLock：之後被改的 hp 不算上限）
   if (c.hp != null) v.hp = Math.min(v.hp, c.hp);
@@ -167,9 +196,24 @@ function detachCar(c) {
   }
   return v;
 }
+// 路邊的機車（街頭車裡的四台）：各換掉一格路邊車位，騎走後開回 GARAGE 07 按 E 收下（65-motors.js）。停車表這時已是世界座標。
+// 模型一台一兩 MB：玩家走到 STREET_BIKE_R 內才建（streetBikes，gtaUpdate 每幀呼叫；建好前那格是空的），建了就不收
+const STREET_BIKE_R = 60;
+const STREET_BIKES = [['hd72', HOME_SPOT], ['hdpol', PD], ['r6', { x: CLUB_X, z: CLUB_Z }], ['z1000', DEAL_SPOT]].map(([id, at]) => {
+  const p = spotW(at), c = parked.filter(q => SEDANS.includes(q.type) || TYPES[q.type].street).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+  if (!c) return null;
+  unlinkCar(c);
+  return { id, x: c.x, z: c.z, y: c.y || 0, yaw: c.yaw, v: null };
+}).filter(Boolean);
+function streetBikes() {
+  for (const b of STREET_BIKES) if (!b.v && Math.hypot(player.x - b.x, player.z - b.z) < STREET_BIKE_R) { b.v = streetVeh(b.id, b.x, b.z, b.yaw, 0, 0); b.v.y = b.y; poseVehicle(b.v); }
+}
 function dropVehicle(v) {
-  jacked.splice(jacked.indexOf(v), 1); vehicles.splice(vehicles.indexOf(v), 1);
-  scene.remove(v.g); v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+  const i = jacked.indexOf(v); if (i >= 0) jacked.splice(i, 1);   // 路邊的機車（STREET_BIKES 的 v）不在 jacked 裡
+  vehicles.splice(vehicles.indexOf(v), 1);
+  scene.remove(v.g);
+  if (v.carId) { v.glbTok++; disposeKit(v.g); v.mat.dispose(); return; }   // 實車：GLB 的幾何與貼圖所有實例共用，只收自己的材質
+  v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
 }
 // 玩家附近的車流（慢於 6 m/s）或路邊車：車身矩形外 1.6 m 內
 function nearCar(x, z, pad = 1.6) {
@@ -417,6 +461,8 @@ function gtaUpdate(dt) {
   if (player.mode !== 'walk') player.crouch = false;
   gta.fireT = Math.max(0, gta.fireT - dt); gta.punchT = Math.max(0, gta.punchT - dt);
   if (gta.jack) stepJack(dt);
+  streetBikes();
+  { const v = player.veh; if (v && v.ins && !v.up && TYPES[v.type] && TYPES[v.type].street) streetUp(v); }
   combatUpdate(dt);
   crewUpdate(dt);
   gpsUpdate();
@@ -471,7 +517,7 @@ for (const v of vehicles) v.hp ??= HP;
 
 // 測試 API（window.__nc.gta；69-combat.js 的 combatApi 與 69-police.js 的 wantedApi 在 99-main 合併進來）
 const gtaApi = {
-  state: gta, parts, fxLights, jacked, extras: extraSt,
+  state: gta, parts, fxLights, jacked, extras: extraSt, bikes: STREET_BIKES,
   weapon: w => equip(w), fire: () => { triggerDown(); triggerUp(); }, punch: () => { equip('fist', true); triggerDown(); triggerUp(); }, aim(on = true) { gta.touchAim = on; },
   // 走到最近的車流或路邊車旁並開始搶（parked：只找路邊車）
   jack(parkedOnly = false) {

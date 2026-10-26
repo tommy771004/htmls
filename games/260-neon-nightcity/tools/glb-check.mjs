@@ -32,8 +32,8 @@ try {
   await ev(page, () => { try { localStorage.removeItem('nc260.motors'); } catch (e) {} });
   await ev(page, () => window.__nc.start());
   await page.waitForTimeout(800);
-  const early = await ev(page, () => window.__nc.glb.loaded.slice());
-  check(early.every(id => id === 'ae86' || id === 'zx6r'), `開頁時只下載座駕與路邊機車（${early.join(', ') || '還沒下載完'}），其他進車行或車庫才下載`);
+  const early = await ev(page, () => window.__nc.glb.loaded.slice()), bikes = await ev(page, () => window.__nc.gta.bikes.map(b => b.id));   // bikes：68-gta.js 路邊的街頭機車（走近才建）
+  check(early.every(id => id === 'ae86' || id === 'zx6r' || bikes.includes(id)), `開頁時只下載座駕與路邊機車（${early.join(', ') || '還沒下載完'}），其他進車行或車庫才下載`);
   const t0 = Date.now();
   // 真實錄音（80-audio.js，assets/260/sfx/）：http 下載解碼，連開槍後發聲數 3 s 內歸零（單發音都裁好長度，不留尾音）
   await page.waitForFunction(() => window.__nc.sfx.rec.ready, null, { timeout: 30000 });
