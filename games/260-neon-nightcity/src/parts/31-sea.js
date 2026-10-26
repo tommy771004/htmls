@@ -123,7 +123,7 @@ const pbWet = (x, z, yaw, L = 16) => !boatFloor(x, z) && !boatFloor(x + Math.sin
 function pbWant() {
   if (!W.stars || player.where !== 'out' || life.dead) return 0;
   const wet = player.swim || player.mode === 'drive' && player.veh && player.veh.boat && !player.veh.pol;
-  return wet ? PB_MAX[W.stars] : 0;
+  return wet ? PB_MAX[Math.min(5, W.stars)] : 0;   // 六星（69-police.js 的 W.six）照 5 星
 }
 // 出生點：玩家 170–240 m 外、鏡頭背後或很遠、水夠深；船頭朝玩家
 function pbSpot() {

@@ -102,6 +102,10 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     if (R['4-3']) check(R['4-3'].flags.monitor === 0, '4-3：腳鐐解除');
     if (R['4-4']) check(R['4-4'].flags.enf === 1 && R['4-4'].pay >= 200000, `4-4：搶到鎮暴裝甲車（$${R['4-4'].pay}）`);
     if (R['4-5']) check(R['4-5'].flags.bank === 1 && R['4-5'].pay >= 1000000, `4-5：搶完銀行，分贓加獎牌 $${R['4-5'].pay}`);
+    if (R['5-2']) check(R['5-2'].cast.vance === 1 && R['5-2'].pay === 0, '5-2：劇情任務，范斯可以切換');
+    if (R['5-3']) check(R['5-3'].flags.hangar === 1 && R['5-3'].pay >= 400000, `5-3：跳上貨機、落地撿回現金（$${R['5-3'].pay}）`);
+    if (R['5-4']) check(R['5-4'].flags.heli === 1 && R['5-4'].pay >= 400000, `5-4：吊貨櫃撞穿工地、拿回證物箱（$${R['5-4'].pay}）`);
+    if (R['5-6']) check(R['5-6'].cast.jax === 1 && R['5-6'].pay >= 200000, `5-6：賈克斯可以切換（$${R['5-6'].pay}）`);
     const rid = order.find(id => R[id] && R[id].pay > 0);
     const re = rid && await sec('重玩：同樣的獎牌不再發錢', async id => {
       const N = window.__nc, St = N.story, cash0 = N.motors.cash;
@@ -110,13 +114,14 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     }, rid);
     if (re) check(re.pay === 0, `重玩 ${rid}（已是金牌）不再發錢（$${re.pay}）`);
     // 跳步驟驗不到的：AI 真的會動
-    const mech = all.includes('3-7') && await sec('第二～四章的機制：運鈔車、跳窗、快艇、門禁、籠子、MV、搶案', async () => {
+    const mech = all.includes('3-7') && await sec('第二～五章的機制：運鈔車、跳窗、快艇、門禁、籠子、MV、搶案、貨機、吊掛', async () => {
       const N = window.__nc, St = N.story, o = {};
       const toS = async (id, type) => { const St = window.__nc.story; __t.dismiss(); St.go(id); await __t.settle(); __t.step(40);
         for (let i = 0; i < 20; i++) { await __t.settle(); const s = St.state(); if (!s.act || s.act.type === type) break; St.skip(); __t.step(20); if (N.dialog.open) N.closeDialog(); }
         await __t.settle(); return St.act(); };
+      // 2-2：運鈔車照路線開 20 秒，玩家每秒跟到車後 30 m（不會跟丟也不會起疑）
       let a = await toS('2-2', 'tail');
-      if (a && a.truck) { const tk = a.truck, v = tk.v, x0 = v.x, z0 = v.z; __t.step(600); o.truck = { moved: Math.round(Math.hypot(v.x - x0, v.z - z0)), sp: +Math.hypot(v.vx, v.vz).toFixed(1), route: tk.route ? tk.route.length : 0, type: St.state().act && St.state().act.type, retry: St.state().retry }; }
+      if (a && a.truck) { const tk = a.truck, v = tk.v, x0 = v.x, z0 = v.z; for (let i = 0; i < 20; i++) { __t.step(60); if (v.dead) break; N.player.x = v.x - Math.sin(v.yaw) * 30; N.player.z = v.z - Math.cos(v.yaw) * 30; } o.truck = { moved: Math.round(Math.hypot(v.x - x0, v.z - z0)), sp: +Math.hypot(v.vx, v.vz).toFixed(1), route: tk.route ? tk.route.length : 0, type: St.state().act && St.state().act.type, retry: St.state().retry }; }
       a = await toS('2-5', 'away');
       if (a) { __t.step(180); o.win = { air: !!N.player.air3, hp: N.gta.life ? N.gta.life.hp : null, type: St.state().act && St.state().act.type, foes: a.motel ? 1 : 0 }; }
       a = await toS('2-6', 'chase');
@@ -134,14 +139,35 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
       // 3-5：檢查點路線與時間
       a = await toS('3-5', 'cp');
       if (a && a.cur) o.cp = { n: a.cur.pts ? a.cur.pts.length : 0, lim: a.cur.lim };
+      // 5-3：貨機沿跑道往西滑跑；車貼著後貨艙門、速度對上就跳過去；之後從空中落下
+      a = await toS('5-3', 'plane');
+      if (a && a.car) {
+        const P = N.props.air.P, x0 = P.x; __t.step(900);
+        o.plane = { st: P.st, dx: Math.round(x0 - P.x), v: +P.v.toFixed(1), drive: N.player.veh === a.car };
+        const v = a.car; for (let i = 0; i < 60; i++) { const d = St.ch5.planeDoor(); v.x = d.x; v.z = d.z; v.vx = d.vx; v.vz = d.vz; __t.step(1); }
+        o.plane.after = St.state().act && St.state().act.type; o.plane.st2 = P.st;
+      }
+      a = await toS('5-3', 'sky');
+      if (a) { const y0 = N.player.y; __t.step(120); o.sky = { kind: N.player.air3 && N.player.air3.kind, fell: Math.round(y0 - N.player.y), h: Math.round(y0) }; }
+      // 5-4：走到直升機旁按 F 登機，停在貨櫃正上方就掛上；飛走時貨櫃跟著（不超過繩長）
+      a = await toS('5-4', 'sling');
+      if (a && a.heli && a.sling) {
+        const h = a.heli, S = a.sling; N.tp(h.x + 3, h.z, 0); __t.step(2); o.sling = { ctx: N.ctx() }; N.act(); __t.step(5); o.sling.in = N.player.veh === h;
+        h.x = S.x; h.z = S.z; h.y = S.y + 10; h.vx = h.vz = h.vy = 0; __t.step(30); o.sling.on = S.on;
+        for (let i = 0; i < 90; i++) { h.x += .25; h.vx = 15; __t.step(1); }
+        o.sling.d = +Math.hypot(h.x - S.x, h.y - 1.2 - S.y, h.z - S.z).toFixed(1); o.sling.moved = Math.round(Math.hypot(S.x - h.x + 22.5, S.z - h.z)); o.sling.type = St.state().act && St.state().act.type;
+      }
       return o;
     });
     if (mech) {
       check(mech.door && mech.door.join() === '0,1,2,3', `3-1 門禁一步步走：quest ${mech.door && mech.door.join(' → ')}`);
       check(mech.cage && mech.cage.d < 5 && mech.cage.type === 'fight', `3-3 籠子把人推回圈內（離中心 ${mech.cage && mech.cage.d} m）`);
       if (mech.h45) check(mech.h45.st === 'go' && mech.h45.who && mech.h45.who.split(',').length === 3 && mech.h45.after === 'off' && !mech.h45.who2, `4-5 搶案從銀行門口開始、失敗後收掉（${JSON.stringify(mech.h45)}）`);
+      if (mech.plane) check(mech.plane.dx > 100 && mech.plane.drive && mech.plane.after !== 'plane' && mech.plane.st2 === 'roll', `5-3 貨機滑跑 15 秒 ${mech.plane.dx} m、貼著艙門就跳上去（${JSON.stringify(mech.plane)}）`);
+      if (mech.sky) check(mech.sky.kind === 'fall' && mech.sky.fell > 20 && mech.sky.h > 300, `5-3 從 ${mech.sky.h} m 自由落體（2 秒掉了 ${mech.sky.fell} m）`);
+      if (mech.sling) check(/登機/.test(mech.sling.ctx || '') && mech.sling.in && mech.sling.on && mech.sling.d <= 12.6 && mech.sling.type === 'smash', `5-4 登機、掛上貨櫃、飛走時貨櫃跟著（${JSON.stringify(mech.sling)}）`);
       check(mech.cp && mech.cp.n >= 4 && mech.cp.lim > 30, `3-5 MV 的檢查點 ${mech.cp && mech.cp.n} 個、限時 ${mech.cp && mech.cp.lim} 秒`);
-      check(mech.truck && (mech.truck.moved > 20 || mech.truck.moved > 8 && mech.truck.sp > 3) && mech.truck.type === 'tail', `2-2 的運鈔車 10 秒開了 ${mech.truck && mech.truck.moved} m（平均 > 2 m/s，或停過紅燈但又開走了；當下時速 ${mech.truck && Math.round(mech.truck.sp * 3.6)}，還在跟車：${mech.truck && mech.truck.type}${mech.truck && mech.truck.retry ? '；失敗：' + JSON.stringify(mech.truck.retry) : ''}）`);
+      check(mech.truck && mech.truck.moved > 30 && (mech.truck.type === 'tail' || mech.truck.type === 'truck'), `2-2 的運鈔車 20 秒開了 ${mech.truck && mech.truck.moved} m（> 30 m；當下時速 ${mech.truck && Math.round(mech.truck.sp * 3.6)}，還在跟車：${mech.truck && mech.truck.type}${mech.truck && mech.truck.retry ? '；失敗：' + JSON.stringify(mech.truck.retry) : ''}）`);
       check(mech.win && !mech.win.air && mech.win.type === 'away', `2-5 跳窗落地、在逃（${JSON.stringify(mech.win)}）`);
       check(mech.boat && mech.boat.sp > 3, `2-6 霍利斯的快艇在跑（${JSON.stringify(mech.boat)}）`);
     }

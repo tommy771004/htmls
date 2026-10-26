@@ -231,8 +231,10 @@ function phoneRows() {
   if (phone.scr === 'arms') return shopRows();
   if (phone.scr === 'gear') return gearRows();   // 69-v3-skills.js：消音器、汽油桶
   if (phone.scr === 'save') return saveRows();
+  if (phone.scr === 'story') return storyPhoneRows();   // 69-w5-fin.js：重玩主線
   if (phone.scr === 'news') return news.length ? news.slice(0, 10).map(n => ({ t: n.h, sub: `${n.when}${n.b ? ' · ' + n.b : ''}`, val: '', ok: true, fn: () => { phone.msg = n.b || n.h; } })) : [{ t: '目前沒有新聞', sub: '城裡今晚很安靜', val: '', ok: false }];
   return [
+    ...(S && S.done.length ? [{ t: '主線任務', sub: S.flags.end ? `一手爛牌 · 結局 ${S.flags.end} · 重玩任何一關` : `一手爛牌 · 完成 ${S.done.length} 關`, val: '', ok: true, fn: () => { phone.scr = 'story'; phone.msg = ''; } }] : []),
     { t: '聯絡人', sub: phone.ghostT > 0 ? `雷達隱形 · 剩 ${secs(phone.ghostT)}` : 'Zero、鐵手強尼、鐵幕保全、磐石互保', val: '', ok: true, fn: () => { phone.scr = 'contacts'; phone.msg = ''; } },
     { t: '暗網軍火', sub: storyArmsK() < 1 ? '彈藥、投擲物、防彈衣 · 賈克斯 9 折' : '彈藥、投擲物、防彈衣', val: '', ok: true, fn: () => { phone.scr = 'arms'; phone.msg = ''; } },
     { t: '霓虹證交所', sub: motors.stk && STOCKS.some(s => motors.stk.sh[s.id]) ? `持股市值 ${money(STOCKS.reduce((a, s) => a + motors.stk.sh[s.id] * motors.stk.px[s.id], 0))}` : '六檔股票，破壞對手的資產讓股價波動', val: '', ok: true, fn: () => { phone.scr = 'stocks'; phone.msg = ''; } },
@@ -243,7 +245,7 @@ function phoneRows() {
     { t: '霓虹新聞台', sub: news.length ? news[0].h : '城裡今晚很安靜', val: news.length ? `${Math.min(news.length, 10)} 則` : '', ok: true, fn: () => { phone.scr = 'news'; phone.msg = ''; } },
   ];
 }
-const PH_TITLE = { news: '霓虹新聞台', home: 'NeonPhone', contacts: '聯絡人', arms: '暗網軍火', gear: '改槍與裝備', save: '快速存檔', stocks: '霓虹證交所', estates: '天際置業' };
+const PH_TITLE = { story: '主線任務', news: '霓虹新聞台', home: 'NeonPhone', contacts: '聯絡人', arms: '暗網軍火', gear: '改槍與裝備', save: '快速存檔', stocks: '霓虹證交所', estates: '天際置業' };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 function drawPhone() {
   const rows = phone.rows = phoneRows();

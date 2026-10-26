@@ -218,7 +218,7 @@ const toLs = s => { const [x, z] = toL(s.x, s.z); return { x, z, yaw: s.yaw || 0
 // 下一個要玩的任務：存檔記的是還沒寫好的下一章（'next'）時，新的章節接上後改成第一個沒完成的任務
 function storyNext() {
   if (!S) return null;
-  if (!MS[S.m] && S.m !== 'end') { const f = ORDER.find(id => MS[id] && !S.done.includes(id)); if (f) S.m = f; }
+  if (!MS[S.m] && S.m !== 'end') { const f = ORDER.find(id => MS[id] && !S.done.includes(id) && (!MS[id].route || MS[id].route === S.flags.route)); if (f) S.m = f; }   // route：終章兩條路只算選了的那條
   return MS[S.m] || null;
 }
 // 任務框（沒有任務在跑時）與地圖目標（60-venues.js 的 QUEST[5]、QUEST[6]）
@@ -351,8 +351,9 @@ function storyPass(a) {
   if (prev == null || k > prev) S.medal[m.id] = k;
   if (first) { S.done.push(m.id); m.first && m.first(); }
   const i = ORDER.indexOf(m.id);
-  if (S.m === m.id && i >= 0) {
-    S.m = ORDER[i + 1] || 'end'; S.ck = 0;
+  // next：分岔（F-3 選的路、F-4A／F-4B 接片尾）；重玩 F-3 時（主線已經走完，或停在另一條路的起點）也照新選的路走
+  if (i >= 0 && (S.m === m.id || m.next && (S.m === 'end' || !m.route && MS[S.m] && MS[S.m].route))) {
+    S.m = m.next ? m.next() : ORDER[i + 1] || 'end'; S.ck = 0;
     const nx = MS[S.m];
     if (nx && nx.sms) phoneMsg(nx.sms);
   }
@@ -555,7 +556,7 @@ function palStep(a) {
   if (a.pal < 0) return;
   // 雙主角互換以後：跟著的人換成另一位
   if (a.pal === crew.cur && a.palAlt >= 0) { const was = a.pal; a.pal = a.palAlt; a.palAlt = was; crew.st[was].where = 'out'; crew.st[a.pal].where = 'story'; a.palF && a.palF.on && fFree(a.palF); a.palF = null; }
-  const want = player.mode === 'walk' && player.where === 'out' && !crew.sw;
+  const want = player.mode === 'walk' && player.where === 'out' && !crew.sw && !player.air3 && !a.noPal;   // 在空中（跳傘、F-2 雙人跳）或站在戰鬥員站不上去的地方（F-4B 塔頂）：先收起來
   if (!want) { if (a.palF && a.palF.on) { fFree(a.palF); a.palF = null; } }
   else if (!a.palF || !a.palF.on || a.palF.team !== 'crew' || Math.hypot(a.palF.x - pX(), a.palF.z - pZ()) > 40) palPlace(a);
   // 切換角色時落在同伴的位置
@@ -608,6 +609,7 @@ function storyEv(kind, x, y) {
   if (kind === 'rob' && a.robC) a.robC.done = true;
   if (kind === 'clerk') a.clerkHit = true;
   if (kind === 'truck' && a.truckC) a.truckC.open = true;
+  if (kind === 'casino' && a.casC) { a.casC.end = true; a.casC.ok = !!x; }   // 69-v7-casino.js 的 casHeistEnd：主線 F-1
   if (kind === 'heist' && a.heistC) { a.heistC.done = true; a.heistNet = x; }   // 69-heist.js 的 heistPass   // 69-events.js 的 truckOpen：主線運鈔車的後門炸開了
 }
 
@@ -677,8 +679,8 @@ function storyUpdate(dt) {
     if (!q || !out || !PEOPLE) { castCrowd.place(k, 0, -60, 0, 0); return; }
     if (!p.rig || p.lookId !== id) { castCrowd.look(k, castLook(k, id)); p.lookId = id; }
     const d = Math.hypot(q.x - pX(), q.z - pZ()), talking = say.on && say.with === q;
-    castCrowd.anim(k, talking || d < 4 ? ANIM.talk : CAST[id].ci !== undefined ? CREW[CAST[id].ci].idle : ANIM.idle, k * 2.3, 1);
-    castCrowd.place(k, q.x, footY(q.x, q.z), q.z, d < 7 ? Math.atan2(pX() - q.x, pZ() - q.z) : q.yaw);
+    castCrowd.anim(k, q.anim ?? (talking || d < 4 ? ANIM.talk : CAST[id].ci !== undefined ? CREW[CAST[id].ci].idle : ANIM.idle), q.anim ? -uTimeNow() : k * 2.3, 1);   // anim、y：終章跳下去、站在塔頂
+    castCrowd.place(k, q.x, q.y ?? footY(q.x, q.z), q.z, d < 7 && !q.anim ? Math.atan2(pX() - q.x, pZ() - q.z) : q.yaw);
   });
   // 主線的配角站出來時，同一個人的閒置身體（69-crew.js 的 crewNpc）收起來
   for (const id of CAST_CI) { const ci = CAST[id].ci, st = crew.st[ci]; if (ci === crew.cur || a && a.pal === ci) continue; const on = !!want[id]; if (on && st.where === 'out') st.where = 'cast'; else if (!on && st.where === 'cast') st.where = 'out'; }
@@ -752,7 +754,8 @@ const storyApi = {
   go(id, start = true) {
     if (!S || !MS[id]) return false;
     const i = ORDER.indexOf(id);
-    for (const q of ORDER.slice(0, i)) if (!S.done.includes(q)) { S.done.push(q); const mm = MS[q]; mm && mm.first && mm.first(); }
+    // 終章另一條路（route 不同）不算做過
+    for (const q of ORDER.slice(0, i)) if (!S.done.includes(q) && !(MS[q] && MS[q].route && MS[q].route !== MS[id].route)) { S.done.push(q); const mm = MS[q]; mm && mm.first && mm.first(); }
     S.m = id; S.fresh = false; S.retry = null; saveMotors(); storyObj();
     if (side.act) sideEnd();
     if (start) storyStart(MS[id]);

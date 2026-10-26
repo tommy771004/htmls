@@ -108,6 +108,9 @@ body.dive #diveFx{opacity:1}
 #wanted path{fill:rgba(12,14,18,.55);stroke:rgba(236,232,224,.32);stroke-width:1.4;stroke-linejoin:round}
 #wanted svg.lit path{fill:#f2ede2;stroke:#0c0d10}
 #wanted.cool svg.lit{animation:starBlink .5s steps(2) infinite}
+#wanted svg.x6{display:none}
+#wanted.six svg.x6{display:block}
+#wanted.six svg.x6.lit path{fill:#e9b8a8;stroke:#2a0e0a}
 @keyframes starBlink{50%{opacity:.25}}
 /* 主線（69-w0-story.js）：通緝星級下面的腳鐐與警用掃描器小條；全黑的章節卡（序章的假釋審查也在這上面播字幕） */
 #stChip{position:absolute;right:max(16px,env(safe-area-inset-right));top:calc(max(14px,env(safe-area-inset-top)) + 132px);display:none;align-items:center;gap:8px;max-width:min(300px,52vw);padding:5px 10px 6px;font-size:12px;line-height:1.35;color:var(--ink-2);font-variant-numeric:tabular-nums}
@@ -121,6 +124,12 @@ body.dive #diveFx{opacity:1}
 #stCard b{margin-top:6px;font-family:var(--cond);font-size:clamp(34px,7vw,72px);font-weight:700;letter-spacing:.04em;line-height:1.05;color:var(--ink)}
 #stCard p{width:min(560px,calc(100vw - 32px));min-height:3.2em;margin:18px 0 0;font-size:clamp(14px,1.6vw,17px);line-height:1.6;color:var(--ink)}
 #stCard p em{font-style:normal;font-weight:600;color:#ffe066;margin-right:.5em}
+#stCred{position:absolute;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 17vh);width:min(560px,calc(100vw - 32px));transform:translate(-50%,8px);text-align:center;opacity:0;pointer-events:none;transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
+#stCred.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){#stCred{transform:translate(-50%,0);transition:opacity 700ms var(--ease-out)}}
+#stCred small{display:block;font-size:12px;letter-spacing:.24em;color:var(--sodium)}
+#stCred b{display:block;margin-top:6px;font-family:var(--cond);font-size:clamp(28px,4.6vw,48px);font-weight:700;letter-spacing:.04em;line-height:1.1;color:var(--ink);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#stCred span{display:block;margin-top:8px;font-size:clamp(13px,1.5vw,15px);line-height:1.5;color:var(--ink);text-shadow:0 1px 2px rgba(0,0,0,.6)}
 
 /* 中央：WASTED／BUSTED 橫帶 */
 #death{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);padding:18px 16px 16px;background:rgba(5,6,8,.74);text-align:center;opacity:0;transition:opacity 600ms var(--ease-out)}

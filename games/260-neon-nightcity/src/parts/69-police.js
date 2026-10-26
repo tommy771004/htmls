@@ -1,9 +1,10 @@
 // ═══ 第二階段：通緝與警方（熱度與星級、目擊報案、視線錐、最後已知位置、警車調度與路網追捕、下車警員、
 //     直升機探照燈、路障與釘刺帶、SWAT 裝甲車、坦克），數值照 neon_nightcity_gta_v_2.md ═══
-const HEAT_STAR = [30, 100, 300, 700, 1500];   // 熱度門檻 → 1–5 星
-const EVADE = [15, 30, 45, 65, 90];            // 脫離視線多久消星（秒）
-const UNITS = [2, 4, 6, 8, 10];                // 每個星級最多幾台警車
-const SPAWN_IV = [12, 9, 7, 5, 4];             // 派車間隔（秒）
+// 第 6 格是六星：只有主線 F-4B 的直播（W.six）才會到，平常最多 5 星
+const HEAT_STAR = [30, 100, 300, 700, 1500, 3200];   // 熱度門檻 → 1–6 星
+const EVADE = [15, 30, 45, 65, 90, 120];             // 脫離視線多久消星（秒）
+const UNITS = [2, 4, 6, 8, 10, 12];                  // 每個星級最多幾台警車
+const SPAWN_IV = [12, 9, 7, 5, 4, 3];                // 派車間隔（秒）
 const CONE_R = 85, CONE_COS = Math.cos(55 * Math.PI / 180), DISGUISE_R = 18, NEAR_R = 10;
 const HELI_R = 140, SPOT_R = 35;
 const SWIM_WATCH = 110, SWIM_SHOT = 85;   // 玩家在水裡：岸上的警察 110 m 內一直盯著（不會因為游遠就消星），85 m 內看得到就開槍
@@ -28,12 +29,12 @@ function crime(kind, x = player.x, z = player.z) {
   let wit = false;
   for (let k = 0; k < PED_N && !wit; k++) { const p = peds.people[k]; if (!(pedState[k].down > 0) && Math.hypot(p.x - x, p.z - z) < (loud ? hearR : 30)) wit = true; }
   if (!wit) wit = traffic.some(c => Math.hypot(c.x - x, c.z - z) < Math.min(25, loud ? hearR : 25));
-  if (wit && !(phone.ghostT > 0)) { const rep = { t: t + 3, n, floor: FLOOR[kind] || 0 }; W.reports.push(rep); snapWitness(rep, x, z); }   // 69-v9-ai.js：目擊的路人舉手機拍下來
+  if (wit && !(phone.ghostT > 0)) { const rep = { t: t + storyRepT(), n, floor: FLOOR[kind] || 0 }; W.reports.push(rep); snapWitness(rep, x, z); }   // 69-v9-ai.js：目擊的路人舉手機拍下來
 }
 function addHeat(n, floor = 0) {
   W.heat += n;
   if (floor) W.heat = Math.max(W.heat, HEAT_STAR[floor - 1]);
-  const s = Math.min(5, Math.max(W.stars, floor, HEAT_STAR.filter(h => W.heat >= h).length));
+  const s = Math.min(W.six ? 6 : 5, Math.max(W.stars, floor, HEAT_STAR.filter(h => W.heat >= h).length));
   if (s > W.stars) {
     const first = !W.stars;
     W.stars = s; W.peak = Math.max(W.peak || 0, s); W.seen = true; W.evade = 0; W.lkp = { x: pX(), z: pZ() }; W.lastVeh = player.veh;
@@ -45,7 +46,7 @@ function addHeat(n, floor = 0) {
 }
 function wantedClear(why) {
   const had = W.stars > 0;
-  W.heat = 0; W.stars = 0; W.seen = false; W.evade = 0; W.lkp = null; W.reports.length = 0; W.bustT = 0;
+  W.heat = 0; W.stars = 0; W.six = 0; W.seen = false; W.evade = 0; W.lkp = null; W.reports.length = 0; W.bustT = 0;
   for (const u of W.units) u.state = 'leave';
   if (W.heli && !W.heli.gang) W.heli.leave = true;
   if (why === 'evaded' && had) { toast('甩掉警察了'); if (W.peak >= 4) newsAdd('警方追捕失手', `${W.peak} 星級的全城圍捕落空，嫌犯在${district(...toL(pX(), pZ())).split(' ')[0]}一帶消失。`); tailStart(W.peak); }   // 69-v9-ai.js：便衣尾隨
@@ -513,7 +514,7 @@ function heliStep(dt) {
     }
     h.x += h.vx * dt; h.z += h.vz * dt;
     // 往前看 3 秒的樓高先爬升；還是擦到屋頂（太快衝進高樓區）就失控墜毀
-    const alt = Math.max(h.gang ? 26 : 40, roofAt(h.x, h.z, 1) + 12, roofAt(h.x + h.vx * 3, h.z + h.vz * 3, 1) + 12) + (h.leave ? 30 : 0);
+    const alt = Math.max(h.gang ? 26 : 40, roofAt(h.x, h.z, 1) + 12, roofAt(h.x + h.vx * 3, h.z + h.vz * 3, 1) + 12, storyHeliY()) + (h.leave ? 30 : 0);
     h.y = damp(h.y, alt, alt > h.y ? 1.6 : .8, dt);
     if (h.y < roofAt(h.x, h.z, 0) + 1.5) { h.vx *= .3; h.vz *= .3; heliHit(1e5, false); toast(h.gang ? '直升機撞上大樓了' : '警用直升機撞上大樓了'); }
     const look = tgt ? Math.atan2(tgt[0] - h.x, tgt[1] - h.z) : Math.atan2(h.vx, h.vz);
@@ -533,7 +534,7 @@ function heliStep(dt) {
       if (h.snipeT <= 0) { h.snipeT = 1.1 + Math.random() * .6; npcShoot(h.x, h.y - .5, h.z, .45, 9, 1.4, 'gang'); }
     } else if (W.stars >= 4 && W.seen && !h.leave && !life.dead) {
       h.snipeT -= dt;
-      if (h.snipeT <= 0) { h.snipeT = 2.5 + Math.random(); npcShoot(h.x, h.y - .5, h.z, .3, 20, 2.6, 'cop'); }
+      if (h.snipeT <= 0) { h.snipeT = (W.stars >= 6 ? 1.8 : 2.5) + Math.random(); npcShoot(h.x, h.y - .5, h.z, .3, 20, 2.6, 'cop'); }
     }
     if (h.leave && Math.hypot(h.x - px, h.z - pz) > 220) { dropHeli(); return; }
   }
@@ -667,8 +668,8 @@ function policeUpdate(dt) {
     const active = W.units.filter(u => u.state === 'chase' && !u.v.dead).length;
     if (W.spawnT <= 0 && active < Math.round(UNITS[s - 1] * (LOW ? .6 : 1)) && player.where === 'out') {
       W.spawnT = SPAWN_IV[s - 1];
-      const swat = s >= 4 && Math.random() < .35, tank = s >= 5 && !W.units.some(u => u.kind === 'tank') && W.tankT <= 0;
-      if (tank) W.tankT = 40;
+      const swat = s >= 4 && Math.random() < (s >= 6 ? .6 : .35), tank = s >= 5 && !W.units.some(u => u.kind === 'tank') && W.tankT <= 0;
+      if (tank) W.tankT = s >= 6 ? 20 : 40;
       spawnUnit(tank ? 'tank' : swat ? 'swat' : null);
     }
     W.tankT -= dt;
@@ -727,15 +728,16 @@ const STAR_D = (() => {
   for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 4.7 : 10.6; d += `${i ? 'L' : 'M'}${(12 + Math.cos(a) * r).toFixed(2)} ${(12.4 + Math.sin(a) * r).toFixed(2)}`; }
   return d + 'Z';
 })();
-$('wanted').innerHTML = Array.from({ length: 5 }, () => `<svg viewBox="0 0 24 23" aria-hidden="true"><path d="${STAR_D}"/></svg>`).join('');
+$('wanted').innerHTML = Array.from({ length: 6 }, (_, i) => `<svg viewBox="0 0 24 23" aria-hidden="true"${i === 5 ? ' class="x6"' : ''}><path d="${STAR_D}"/></svg>`).join('');   // 第六顆只在六星時出現
 $('wanted').setAttribute('aria-label', '通緝星級');
 function wantedHud() {
-  const key = `${W.stars}|${W.seen ? 1 : 0}`;
+  const key = `${W.stars}|${W.seen ? 1 : 0}|${W.six ? 1 : 0}`;
   if (hudCache.wanted === key) return;
   hudCache.wanted = key;
   const el = $('wanted');
   el.classList.toggle('on', W.stars > 0);
   el.classList.toggle('cool', W.stars > 0 && !W.seen);
+  el.classList.toggle('six', !!W.six);
   [...el.children].forEach((s, i) => s.classList.toggle('lit', i < W.stars));
   el.setAttribute('aria-label', `通緝 ${W.stars} 星`);
 }

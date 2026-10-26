@@ -551,16 +551,22 @@ function casBoard() {
 function casPlan(app) {
   const why = sideBusy() || (CASX.on ? '' : '賭場不在這座城裡');
   if (why && why !== '現在不行') return toast(why);
+  const A = CAS_APPS[app];
+  motors.cash -= A.prep; v7KS().app = app; saveMotors(); sfx.pickup();
+  const H = casNew(app);
+  exitVenue(() => { casGo(H); sideStart(casAct(H)); });
+}
+// 這一次搶劫的狀態（CAS.h）；主線 F-1（69-w5-fin.js）也用這兩個，不扣準備費、不開自己的 side.act
+function casNew(app) {
   const C = v7KS(), A = CAS_APPS[app];
   if (!CAS_TGT[C.tgt]) C.tgt = Object.keys(CAS_TGT)[Math.floor(Math.random() * 4)];   // 沒踩點（上一次得手後清掉了）就現在決定
-  motors.cash -= A.prep; C.app = app; saveMotors(); sfx.pickup();
   const H = CAS.h = { app, tgt: C.tgt, st: 'go', t: 0, timer: A.time, alarm: app === 'C', gas: 0, bag: { val: 0, gold: 0 }, gates: CB_GATES.map(() => ({ st: 'shut' })), card: 0, cardT: 0, mant: 0, work: null, daily: false, warn: 0, beepT: 0 };
   H.entry = app === 'A' ? CAS_DOCK : app === 'B' ? { x: 59.5, z: 44 } : CAS_SEWER;
-  exitVenue(() => {
-    const p = casW(H.entry.x, H.entry.z); gpsSet(p.x, p.z);
-    v7Sms('Kade', app === 'A' ? '保全制服放在卸貨口旁邊的貨櫃裡。換好衣服從捲門進去。' : app === 'B' ? '東牆有鐵梯上裙樓屋頂，通風井在停機坪西邊。EMP 我來按。' : '炸藥裝好了。西邊人行道的下水道鐵蓋，炸開就是 B1 的牆。');
-    sideStart(casAct(H));
-  });
+  return H;
+}
+function casGo(H) {
+  const p = casW(H.entry.x, H.entry.z); gpsSet(p.x, p.z);
+  v7Sms('Kade', H.app === 'A' ? '保全制服放在卸貨口旁邊的貨櫃裡。換好衣服從捲門進去。' : H.app === 'B' ? '東牆有鐵梯上裙樓屋頂，通風井在停機坪西邊。EMP 我來按。' : '炸藥裝好了。西邊人行道的下水道鐵蓋，炸開就是 B1 的牆。');
 }
 function casAct(H) {
   const A = CAS_APPS[H.app];
@@ -757,6 +763,7 @@ function casHeistEnd(ok) {
     sideDone('霓鑽賭場金庫', `${CAS_APPS[H.app].name} · ${CAS_TGT[H.tgt].name}`, [['金庫', money(H.bag.val)], ['準備費', money(-CAS_APPS[H.app].prep)], ['時間', fmtT(H.t)], ['實拿', money(H.bag.val)]], 3);
   } else { C.app = ''; saveMotors(); }
   if (player.where === 'casinoB' && !life.dead) exitVenue();
+  storyEv('casino', ok);   // 69-w0-story.js：主線 F-1
 }
 
 // ═══ 互動、按鍵與每幀 ═══
