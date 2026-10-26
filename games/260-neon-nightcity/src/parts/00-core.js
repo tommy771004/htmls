@@ -116,6 +116,8 @@ const U = {
   uSkyTop: { value: V3() }, uSkyHor: { value: V3() }, uMoon: { value: V3(0, -1, 0) },
   // 建築高度圖（28-sky.js）：xy 是西北角的世界座標，z 是 1/邊長，w 是最高的屋頂；日光朝太陽方向在圖上步進求陰影
   uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) }, uCityM: { value: null },
+  // 外海的機場島（21-air.js）：A = (中心 x, z, 長軸 cos, sin)、B = (半長, 半寬)；B.x = 0 時沒有
+  uAirA: { value: new T.Vector4(0, 0, 1, 0) }, uAirB: { value: new T.Vector4() },
   // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
   uOccA: { value: Array.from({ length: GT().occ }, () => new T.Vector4(0, 0, 1, 0)) },
   uOccB: { value: Array.from({ length: GT().occ }, () => new T.Vector4()) },
@@ -132,7 +134,7 @@ uniform vec4 uLP[${NL}]; uniform vec4 uLC[${NL}]; uniform vec4 uLD[${NL}];
 uniform vec4 uCity; uniform vec2 uGrid;
 uniform highp sampler2D uLampT; uniform vec4 uLampG, uZone;
 uniform float uDay, uCloud; uniform vec3 uSun, uSunCol, uSkyTop, uSkyHor, uMoon;
-uniform sampler2D uHMap, uCityM; uniform vec4 uHM;
+uniform sampler2D uHMap, uCityM; uniform vec4 uHM, uAirA, uAirB;
 uniform vec4 uOccA[${NOCC}]; uniform vec4 uOccB[${NOCC}];
 float h11(float n){ return fract(sin(n)*43758.5453123); }
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
@@ -275,6 +277,10 @@ vec3 applyFog(vec3 c, vec3 p){
   #ifndef FAR
   D = mix(D, min(D, .02 + Da), hk);   // 遠景（北嶺的山坡、對岸）照舊：本來就只做給地面看的剪影，近看的明暗不對
   #endif
+  if (uAirB.x > 0.) {   // 機場島雖然用遠景材質（從城裡隔著海看得到），但飛得到上空：島上和城裡一樣讓高處的霧變淡
+    vec2 q = p.xz - uAirA.xy, lq = abs(vec2(dot(q, uAirA.zw), dot(q, vec2(-uAirA.w, uAirA.z)))) - uAirB.xy;
+    D = mix(D, min(D, .02 + Da), smoothstep(20., 120., uCam.y) * (1. - smoothstep(0., 80., max(lq.x, lq.y))));
+  }
   float x = dist*uFogDen*D;
   float f = mix(1. - exp(-x), 1. - exp(-x*x), uDay);   // 白天用平方指數：近處清楚、420 m 外（distCull 不畫的地方）照樣全進霧裡
   #ifndef FAR

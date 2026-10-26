@@ -80,5 +80,6 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 | 268 | TERRA | `games/268-terra-sandbox/` | 同上 |
 | 269 | 靜水釣遊 | `games/269-stillwater/` | 同上 |
 | 270 | 裝甲進化殿堂 | 單檔 `web/270-mark-assembly.html`（無 build）、工具在 `games/270-mark-assembly/` | 改頁面前先讀 `games/270-mark-assembly/CLAUDE.md` |
+| 272 | iPhone Duo 鉸鏈逐件組裝 | `games/272-iphone-duo/`（零件函式、檢查引擎、esbuild） | 同資料夾 `CLAUDE.md`（改零件或修正後要依序 bake → geo → build） |
 
 新增有原始碼的作品時，把專屬說明寫進該資料夾的 `CLAUDE.md`，這裡只加一列。

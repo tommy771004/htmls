@@ -59,6 +59,8 @@ const MAP_PARK = (() => {
   return { walk, trail: NPARK.trail.map(([x, z]) => w(x, z)), look: box(L.x0, L.x1, L.z0, L.z1), cabin: box(C.x - 4, C.x + 4, C.z - 3, C.z + 3) };
 })();
 // 北嶺鐵道（21-rail.js 的 RAIL）：露天的一段（平台與橋）和兩端的隧道分開，隧道畫虛線
+// 港灣高架線（21-xrail.js）：中心線每 8 m 一點與三站的位置
+const MAP_XR = XR ? { pts: Array.from({ length: Math.ceil((XR.aE - XR.aS) / 8) + 1 }, (_, i) => XR.at(Math.min(XR.aE, XR.aS + i * 8)).slice(0, 2)), sts: XR.sts.map(s => [s.x, s.z]) } : null;
 const MAP_RAIL = RAIL ? (() => {
   const V = VIADUCT, [w, e] = V.ends, open = [], tun = [[], []];
   for (const [x, z] of RAIL.pts) {
@@ -68,6 +70,24 @@ const MAP_RAIL = RAIL ? (() => {
   tun[0].push(open[0]); tun[1].unshift(open[open.length - 1]);
   return { open, tun };
 })() : null;
+// 灰鷺角國際機場（21-air.js，SEA_FR 座標框）：島、堤道、跑道、滑行道、機坪與航廈（世界座標的多邊形）
+const MAP_AIR = AIR_L ? (() => {
+  const L = AIR_L, r = (x0, x1, z0, z1) => [airW(x0, z0), airW(x1, z0), airW(x1, z1), airW(x0, z1)], R = L.rwy, W = L.twy, A = L.apron, I = L.I;
+  return { isl: r(I.x0, I.x1, I.z0, I.z1), road: AIR.road.map(([x, z]) => airW(x, z)), hw: AIR.hw, rwy: r(R.x0, R.x1, R.z - R.hw, R.z + R.hw),
+    twy: [r(W.x0 - W.hw, W.x1 + W.hw, W.z - W.hw, W.z + W.hw), ...L.links.map(([x, z0, z1]) => r(x - W.hw, x + W.hw, z0, z1))],
+    apron: [r(A.x0, A.x1, A.z0, A.z1), r(L.land.x0, L.land.x1, L.land.z0, L.land.z1), r(L.plaza.x0, L.plaza.x1, L.plaza.z0, L.plaza.z1), r(L.park.x0, L.park.x1, L.park.z0, L.park.z1)],
+    bld: [r(L.term.x - 85, L.term.x + 85, L.term.z - 55, L.term.z + 55), r(L.hangar.x - 57, L.hangar.x + 57, L.hangar.z - 38, L.hangar.z + 38), r(L.tower.x - 9, L.tower.x + 9, L.tower.z - 9, L.tower.z + 9)] };
+})() : null;
+// 機場不在預先畫好的小地圖底圖（mapImg）裡（底圖會寬兩倍多），底圖、全區地圖與小地圖都即時用向量畫
+function airMapDraw(c, P, k, C) {
+  if (!MAP_AIR) return;
+  const M = MAP_AIR, path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
+  c.fillStyle = C.grass; path(M.isl, true); c.fill();
+  c.strokeStyle = C.road; c.lineWidth = 2 * M.hw * k; c.lineJoin = c.lineCap = 'round'; path(M.road); c.stroke();
+  c.fillStyle = C.walk; for (const p of M.apron) { path(p, true); c.fill(); }
+  c.fillStyle = C.road; for (const p of M.twy) { path(p, true); c.fill(); } path(M.rwy, true); c.fill();
+  c.fillStyle = C.block; for (const p of M.bld) { path(p, true); c.fill(); }
+}
 function drawCity(c, P, k, C, vis, lot, line) {
   const path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
   const G = MAP_GEO, [tx, tz] = P(G.tx0, G.tz0);
@@ -75,6 +95,7 @@ function drawCity(c, P, k, C, vis, lot, line) {
   c.fillStyle = C.grass; path(CITY_POLY, true); c.fill();   // 外緣裡面：片之間的空地是草地
   for (const s of G.coast) if (vis(s.bb)) { c.fillStyle = C[s.c]; path(s.pts, true); c.fill(); }
   { const K = MAP_PARK; c.fillStyle = C.park; path(K.walk, true); c.fill(); c.strokeStyle = C.trail || '#8a7050'; c.lineWidth = Math.max(1.4, 2.6 * k); c.lineJoin = c.lineCap = 'round'; path(K.trail); c.stroke(); c.fillStyle = C.trail || '#8a7050'; path(K.look, true); c.fill(); path(K.cabin, true); c.fill(); }   // 北嶺公園
+  airMapDraw(c, P, k, C);
   if (MAP_RAIL) {   // 鐵道：深色道床上一條淺色軌線，隧道是虛線
     const R = MAP_RAIL, lw = Math.max(1.2, 2.2 * k);
     c.lineJoin = c.lineCap = 'round'; c.strokeStyle = C.railBed || '#15171b'; c.lineWidth = lw * 2.4; path(R.open); c.stroke();
@@ -93,16 +114,24 @@ function drawCity(c, P, k, C, vis, lot, line) {
   for (const e of RN.edges) if (e.kind === 'd') { path(e.pts); c.stroke(); }   // 斜的大道蓋在廣場上
   c.strokeStyle = C.fwy || '#b08a3a'; c.lineWidth = 2 * HR * k;
   for (const e of RN.edges) if (e.kind === 'f') { c.lineWidth = 2 * (e.hw || HR) * k; path(e.pts); c.stroke(); }   // 快速道路（GTA 地圖的黃色；匝道窄一點）
+  if (MAP_XR) {   // 港灣高架線：疊在快速道路上，畫法同鐵道，三站是淺色方塊
+    const lw = Math.max(1.2, 2.2 * k), q = Math.max(3, 5 * k);
+    c.lineJoin = c.lineCap = 'round'; c.strokeStyle = C.railBed || '#15171b'; c.lineWidth = lw * 2.4; path(MAP_XR.pts); c.stroke();
+    c.strokeStyle = C.rail || '#9aa0aa'; c.lineWidth = lw; path(MAP_XR.pts); c.stroke();
+    c.fillStyle = C.rail || '#9aa0aa'; c.strokeStyle = C.railBed || '#15171b'; c.lineWidth = lw * .8;
+    for (const [x, z] of MAP_XR.sts) { const [a, b] = P(x, z); c.fillRect(a - q / 2, b - q / 2, q, q); c.strokeRect(a - q / 2, b - q / 2, q, q); }
+  }
   if (lot) for (const s of G.lot) if (vis(s.bb)) { c.fillStyle = lot(s.L); path(s.pts, true); c.fill(); }
   if (line) { c.strokeStyle = line; c.lineWidth = 1; for (const e of RN.edges) { path(e.pts); c.stroke(); } }
 }
+const MINI_C = { grass: '#26321f', walk: '#2a2d33', block: '#2a2d33', park: '#26321f', road: '#4a4e56', beach: '#6a5e46', quay: '#3a3d42', pier: '#5a4632', isle: '#26321f' };
 const mapImg = document.createElement('canvas');
 mapImg.width = Math.ceil((MAP_BB.x1 - MAP_X0) * MAP_S); mapImg.height = Math.ceil((MAP_BB.z1 - MAP_Z0) * MAP_S);
 {
   const c = mapImg.getContext('2d');
   c.fillStyle = '#14202a'; c.fillRect(0, 0, mapImg.width, mapImg.height);   // 水
   drawCity(c, (x, z) => [(x - MAP_X0) * MAP_S, (z - MAP_Z0) * MAP_S], MAP_S,
-    { grass: '#26321f', walk: '#2a2d33', block: '#2a2d33', park: '#26321f', road: '#4a4e56', beach: '#6a5e46', quay: '#3a3d42', pier: '#5a4632', isle: '#26321f' },
+    MINI_C,
     () => true, lotCol, 'rgba(255,190,90,.35)');
 }
 const VENUE_PINS = [
@@ -160,6 +189,7 @@ function drawMini(px, pz, yaw, mk) {
   mctx.translate(R2, R2); mctx.rotate(yaw - Math.PI); mctx.scale(zoom, zoom);
   mctx.drawImage(mapImg, -(px - MAP_X0) * MAP_S, -(pz - MAP_Z0) * MAP_S);
   const P2 = (x, z) => [(x - px) * MAP_S, (z - pz) * MAP_S];
+  if (MAP_AIR && (px < MAP_X0 + 400 || pz < MAP_Z0 + 400)) airMapDraw(mctx, P2, MAP_S, MINI_C);   // 機場（底圖外面）
   gpsMini(mctx, P2, zoom);   // 導航路線（69-gps.js）
   for (const v of VENUE_PINS) { const [x, y] = P2(v.x, v.z); mctx.fillStyle = v.col; mctx.beginPath(); mctx.arc(x, y, 5 / zoom * 1.4, 0, 7); mctx.fill(); }
   v6Mini(mctx, P2, zoom);   // 69-v6-customs.js：改裝廠歇業的紅色鎖頭

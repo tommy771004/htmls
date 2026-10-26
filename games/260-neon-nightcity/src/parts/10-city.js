@@ -138,8 +138,39 @@ const BANK_WALKS = [
 const FERRY = BANK_WALKS.map((B, i) => { const zc = Math.round((B.z0 + B.z1) / 2); return i ? { x0: B.x0 - 30, x1: B.x0, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '舊港渡口' } : { x0: B.x1, x1: B.x1 + 30, z0: zc - 2.5, z1: zc + 2.5, h: .4, name: '鷺岸渡口' }; });
 const LANDS = [{ ...BEACH, z0: SHORE_Z - INLAND }, QUAY, BRIDGE, ISLE, ...PIERS, ...BANK_WALKS, ...FERRY];
 const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
-// 世界座標的點在陸地上：外緣裡面，或在上面那些矩形裡（換到點所在那一片的邏輯座標）
-const landW = (X, Z) => { if (inCity(X, Z)) return true; const zn = zoneOfW(X, Z); return !!zn && inLand(...zoneLocal(zn, X, Z)); };
+// 外海的島（光格島、鷹巖村）與機場不屬於任何片：SEA_FR 是它們的剛體座標框（沒有 ?zrot 時就是世界座標；有的話跟著整座城一起轉）
+const SEA_FR = ZONE_ROT === null ? null : (() => { const [ox, oz] = zrotW(0, 0), [ex, ez] = zrotW(1, 0); return frameW(ox, oz, ex - ox, ez - oz); })();
+// ─── 灰鷺角國際機場（21-air.js）：城西外海的填海島（SEA_FR 座標的矩形，北緣離灰鷺河對岸 FAR_Z1 七十多公尺），跑道東西向，
+// 堤道從楓林西第 9 條街的西端（外緣那條大道的路邊）沿街道方向出海，S 形彎到島東緣北段的航廈前路。堤道是 SEA_FR 座標的三次貝茲曲線，切成 8 m 一段的折線 ───
+const AIR = (() => {
+  const isl = { x0: -3300, x1: -1000, z0: 20, z1: 600 }, zn = ZONES.find(z => z.name === '楓林西');
+  if (!zn) return null;
+  const [sx, sz] = toL(...toW(avX(zn.ni0) - HR, stZ(9), zn), SEA_FR), [dx, dz] = dirW(zn, -1, 0, avX(zn.ni0) - HR, stZ(9)), dl = Math.hypot(dx, dz);
+  const ux = dx / dl, uz = dz / dl, [rx, rz] = SEA_FR ? [ux * SEA_FR.c - uz * SEA_FR.s, ux * SEA_FR.s + uz * SEA_FR.c] : [ux, uz];   // 街道方向換到 SEA_FR
+  const B = [[sx, sz], [sx + rx * 160, sz + rz * 160], [isl.x1 + 240, 60], [isl.x1, 60]], pts = [];
+  const bz = (t, k) => (1 - t) ** 3 * B[0][k] + 3 * (1 - t) ** 2 * t * B[1][k] + 3 * (1 - t) * t * t * B[2][k] + t ** 3 * B[3][k];
+  for (let i = 0; i <= 80; i++) pts.push([bz(i / 80, 0), bz(i / 80, 1)]);
+  const road = [];   // 均勻 8 m 一段
+  let acc = 0; road.push(pts[0]);
+  for (let i = 1; i < pts.length; i++) { const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); acc += L; if (acc >= 8 || i === pts.length - 1) { road.push(pts[i]); acc = 0; } }
+  const xs = road.map(p => p[0]), zs = road.map(p => p[1]);
+  return { isl, road, hw: 10, bb: [Math.min(...xs) - 12, Math.max(...xs) + 12, Math.min(...zs) - 12, Math.max(...zs) + 12], name: '灰鷺角國際機場', en: 'Heron Point International' };
+})();
+// SEA_FR 座標的一點：在機場島上（含堤道路面）。堤道從街口開始，外緣裡面那一小段本來就是陸地
+const airLandL = (x, z) => {
+  if (!AIR) return false;
+  const I = AIR.isl; if (x >= I.x0 && x <= I.x1 && z >= I.z0 && z <= I.z1) return true;
+  const b = AIR.bb; if (x < b[0] || x > b[1] || z < b[2] || z > b[3]) return false;
+  const R = AIR.road;
+  for (let i = 1; i < R.length; i++) {
+    const [ax, az] = R[i - 1], ex = R[i][0] - ax, ez = R[i][1] - az, t = clamp(((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez), 0, 1);
+    if (Math.hypot(x - ax - ex * t, z - az - ez * t) <= AIR.hw) return true;
+  }
+  return false;
+};
+const airLandW = (X, Z) => AIR ? airLandL(...toL(X, Z, SEA_FR)) : false;
+// 世界座標的點在陸地上：外緣裡面，或在上面那些矩形裡（換到點所在那一片的邏輯座標），或在機場島與堤道上
+const landW = (X, Z) => { if (inCity(X, Z) || airLandW(X, Z)) return true; const zn = zoneOfW(X, Z); return !!zn && inLand(...zoneLocal(zn, X, Z)); };
 // ─── 岬角（世界座標的草地多邊形）：外緣改成不規則的多邊形之後不需要了，留著空的表（21-coast、地圖照樣迭代） ───
 const CAPES = [];
 // 北嶺公園（下面 hillH 之後建好；畫面在 21-park.js）。開場在那之前問地面高度的（groundH、seaFloor）就當沒有公園
@@ -1200,8 +1231,7 @@ for (const h of CAPES) {
     colliders.push({ x0: -2.5, x1: 2.5, z0: out < 0 ? 0 : -4, z1: out < 0 ? 4 : 0, low: 1, zn: f });
   }
 }
-// 外海的島（光格島、鷹巖村）不屬於任何片：SEA_FR 是它們的剛體座標框（沒有 ?zrot 時就是世界座標；有的話跟著整座城一起轉）
-const SEA_FR = ZONE_ROT === null ? null : (() => { const [ox, oz] = zrotW(0, 0), [ex, ez] = zrotW(1, 0); return frameW(ox, oz, ex - ox, ez - oz); })();
+// 外海的島（光格島、鷹巖村）與機場的座標框 SEA_FR 在上面 landW 那裡（外緣的擋牆要先知道機場的堤道）
 // 光格島（21-tron.js；遠景在 21-coast.js 的 FAR_SITES.tron）：SEA_FR 座標的島心（城東南的開闊海面，東面是山、北面是錨灣港外），模型座標（不轉）加上它就是 SEA_FR 座標，島面高 y。
 // TRON_LAND 是 tools/walkgrid.mjs 量的陸地（模型座標、每格 res 公尺的遊程編碼，先取近景 isle_tron 的），pier 是北端那條路往北伸 28 m 的碼頭
 const TRON_SITE = { x: 2100, z: 2900, y: SEA_Y + 1.6, zn: SEA_FR };
@@ -1235,12 +1265,14 @@ const groundHL = (x, z) => {
 };
 // 執行時（玩家、車、行人、警察）用的是世界座標：先換回邏輯座標
 // 片裡面照邏輯座標查；片之間的空地（外緣裡）高度 0；外緣外面換到最近那一片的邏輯座標（沙灘、碼頭、棧橋）
-const groundH = (X, Z) => { const ph = parkGround(X, Z); if (ph !== null) return ph; const zn = zoneAtW(X, Z); if (!zn && inCity(X, Z)) return 0; const [x, z] = zoneLocal(zn || zoneNearW(X, Z), X, Z); return groundHL(x, z); };
+const groundH = (X, Z) => { const ph = parkGround(X, Z); if (ph !== null) return ph; const zn = zoneAtW(X, Z); if (!zn && airLandW(X, Z)) return 0;   // 機場島：離片太遠，換到最近那片的邏輯座標會發散
+  if (!zn && inCity(X, Z)) return 0; const [x, z] = zoneLocal(zn || zoneNearW(X, Z), X, Z); return groundHL(x, z); };
 const onRoad = (X, Z) => groundH(X, Z) === 0;
 const districtW = (X, Z) => {
   if (NPARK && NPARK.rail) { const [x, z] = parkL(X, Z), R = NPARK.rail; if (x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1) return `${VIADUCT.name} North Ridge Viaduct`; }
   if (parkHas(X, Z)) return NPARK.name;
   if (tronLandW(X, Z)) return '光格島';
+  if (airLandW(X, Z) && !inCity(X, Z)) return AIR.name;
   const zn = zoneOfW(X, Z); let [x, z] = toL(X, Z, zn);
   if (zn && inCity(X, Z)) { x = clamp(x, avX(zn.ni0), avX(zn.ni1)); z = clamp(z, stZ(zn.nj0), stZ(zn.nj1)); }   // 片之間的縫（快速道路）：算最近那片路網範圍裡的地名，不要外插到海邊的地名（離片遠時 unwarp 會發散）
   return district(x, z);
@@ -1545,6 +1577,7 @@ const seaFloorL = (x, z) => inLand(x, z) || x >= BEACH.x0 && x <= BEACH.x1 && z 
 const seaFloor = (X, Z) => {
   const ph = parkGround(X, Z); if (ph !== null) return ph;
   if (tronLandW(X, Z)) return 0;   // 光格島上（含下層街區）不算水
+  if (airLandW(X, Z)) return 0;    // 機場島與堤道
   if (inCity(X, Z)) { const zn = zoneAtW(X, Z); return zn ? groundHL(...zoneLocal(zn, X, Z)) : 0; }
   const [x, z] = toL(X, Z), f = seaFloorL(x, z);
   return f > -8 ? f : hillH(X, Z);

@@ -334,7 +334,13 @@ let benchMesh, planterShrubMesh;
     for (let i = 8, n = 0; i < run.length - 2; i += 7, n++) {
       const p = run[i], [sx, sz] = side[i], s = n % 2 ? -1 : 1, x = p.x + sx * s * 1.7, z = p.z + sz * s * 1.7;
       circles.push({ x, z, r: .18, w: 1 });
-      k.cyl(x, 2.1, z, .06, .08, 4.2, 8, 0x22252a, 15).cyl(x, 4.3, z, .24, .16, .28, 10, 0x1a1c20, 15).cyl(x, 4.1, z, .2, .2, .06, 10, 0xffe2b0, 11);
+      // 公園的柱頂燈（照常見的鑄鐵橡實燈）：裙邊底座、細柱與兩道箍、燈座、乳白燈罩（自發光）、頂蓋與尖頂
+      k.lathe(x, 0, z, [[.2, 0], [.2, .32], [.15, .4], [.11, .56], [.075, .6]], 10, 0x22252a, TX.iron)
+        .lathe(x, 0, z, [[.075, .6], [.06, 3.55], [.0, 3.55]], 8, 0x22252a, TX.iron)
+        .cyl(x, 1.1, z, .085, .085, .06, 10, 0x22252a, TX.iron).cyl(x, 3.3, z, .08, .08, .05, 10, 0x22252a, TX.iron)
+        .lathe(x, 0, z, [[.05, 3.55], [.13, 3.66], [.16, 3.72], [.16, 3.76]], 10, 0x1a1c20, TX.iron)
+        .lathe(x, 0, z, [[.16, 3.76], [.24, 3.92], [.25, 4.08], [.2, 4.22], [.16, 4.26]], 10, 0xffe2b0, 11)
+        .lathe(x, 0, z, [[.16, 4.26], [.22, 4.28], [.2, 4.33], [.07, 4.46], [.03, 4.62], [0, 4.66]], 10, 0x1a1c20, TX.iron);
       coastLight(x, 4, z, 0xffd8a0, 11, .75).w = 1;
     }
   }
@@ -343,33 +349,122 @@ let benchMesh, planterShrubMesh;
   // 建物：局部座標正面朝 +z（步道那邊），用 tf 轉到世界
   for (const S of SEAM_SITES) {
     const at = (x, y, z) => { const c = Math.cos(S.ry), s = Math.sin(S.ry); return [S.x + x * c + z * s, y, S.z - x * s + z * c]; };
-    const box = (x, y, z, w, h, d, col, m, rx = 0) => k.box(...at(x, y, z), w, h, d, col, m, rx, S.ry);
-    const cyl = (x, y, z, r0, r1, h, seg, col, m) => k.cyl(...at(x, y, z), r0, r1, h, seg, col, m, 0, S.ry);
-    if (S.type === 'pavilion') {   // 涼亭：石台、四根柱、四角攢尖頂、中間一圈長凳
-      box(0, .15, 0, 7.4, .3, 7.4, 0x5a5650, 2);
-      for (const [px, pz] of [[-3.2, -3.2], [3.2, -3.2], [-3.2, 3.2], [3.2, 3.2]]) { cyl(px, 1.75, pz, .14, .16, 2.9, 8, 0x3a2c22, 2); circles.push({ ...(([x, , z]) => ({ x, z }))(at(px, 0, pz)), r: .2, w: 1 }); }
-      k.add(new T.ConeGeometry(5.6, 1.9, 4, 1), lin(0x2a3a34), 2, tf(...at(0, 4.15, 0), 0, S.ry + Math.PI / 4));
-      box(0, 3.25, 0, 7, .2, 7, 0x3a2c22, 2);
-      for (const [px, pz, w, d] of [[0, -2.4, 4.4, .45], [-2.4, 0, .45, 4.4], [2.4, 0, .45, 4.4]]) box(px, .55, pz, w, .12, d, 0x6a4a30, 2).box(px, .35, pz, w * .9, .4, d * .7, 0x4a4844, 2);
+    // 局部座標的零件：每個都回傳 C，可以串接（C.box(...).cyl(...) 仍是局部座標）
+    const C = {};
+    const box = C.box = (x, y, z, w, h, d, col, m, rx = 0, ry = 0, rz = 0) => (k.box(...at(x, y, z), w, h, d, col, m, rx, S.ry + ry, rz), C);
+    const cyl = C.cyl = (x, y, z, r0, r1, h, seg, col, m, rx = 0, ry = 0, rz = 0) => (k.cyl(...at(x, y, z), r0, r1, h, seg, col, m, rx, S.ry + ry, rz), C);
+    const lathe = C.lathe = (x, y, z, pts, seg, col, m) => (k.lathe(...at(x, y, z), pts, seg, col, m, 0, S.ry), C);
+    const prism = C.prism = (x, y, z, pts, d, col, m, rx = 0, ry = 0) => (k.prism(...at(x, y, z), pts, d, col, m, rx, S.ry + ry, 0), C);
+    const bar = C.bar = (a, b, w, h, col, m) => (k.bar(...at(...a), ...at(...b), w, h, col, m), C);
+    const rod = C.rod = (a, b, r, seg, col, m) => (k.rod(...at(...a), ...at(...b), r, seg, col, m), C);
+    const WX = Math.abs(Math.sin(S.ry)) > .707 ? TX.woodZ : TX.woodX, WZ = WX === TX.woodX ? TX.woodZ : TX.woodX;   // 合併後是世界座標：木紋方向跟著建物轉
+    // 斜屋頂：屋脊沿 x，兩片斜板（簷高 ey、脊高 ry0、半深 hd 含出簷、長 L），上面一條條立邊鋼板的肋、脊蓋與封簷板
+    const gable = (L, hd, ey, ry0, col, rib, ribGap = .45) => {
+      const a = Math.atan2(ry0 - ey, hd), sl = Math.hypot(ry0 - ey, hd);
+      for (const s of [-1, 1]) {
+        box(0, (ey + ry0) / 2 + .06, s * hd / 2, L, .1, sl, col, TX.sheet, s * a);
+        for (let x = -L / 2 + ribGap / 2; x < L / 2; x += ribGap) bar([x, ey + .12, s * hd], [x, ry0 + .1, 0], .03, .04, rib, TX.sheet);
+        box(0, ey - .02, s * (hd + .02), L + .1, .2, .05, 0x2a2622, WX);   // 封簷板
+        box(0, ey - .1, s * (hd - .05), L, .08, .1, 0x5a5e62, TX.galv);       // 簷溝
+      }
+      box(0, ry0 + .14, 0, L + .1, .1, .22, rib, TX.sheet);
+    };
+    if (S.type === 'pavilion') {   // 涼亭（照公園的木構涼亭）：石砌台基與前後踏階、石墩上的方木柱與斜撐、一圈梁、外露的椽、四坡瓦頂與脊蓋、頂上的小氣窗亭與風向標尖、中間兩張野餐桌
+      const stone = 0x6e6a62, wood = 0x4a3424, wood2 = 0x5e4430, roof = 0x2a3a34;
+      box(0, .15, 0, 7.4, .3, 7.4, stone, TX.stone).box(0, .31, 0, 7.6, .04, 7.6, 0x857f74, TX.stone);
+      for (const s of [-1, 1]) box(0, .08, s * 4.05, 2.4, .16, .7, stone, TX.stone);
+      for (const [px, pz] of [[-3.2, -3.2], [3.2, -3.2], [-3.2, 3.2], [3.2, 3.2]]) {
+        box(px, .55, pz, .44, .5, .44, 0x7a756b, TX.stone).box(px, .82, pz, .5, .06, .5, 0x8a8478, TX.stone);
+        box(px, 2.0, pz, .24, 2.36, .24, wood, TX.woodY);
+        for (const [dx, dz] of [[-Math.sign(px), 0], [0, -Math.sign(pz)]]) bar([px + dx * .1, 2.55, pz + dz * .1], [px + dx * .8, 3.15, pz + dz * .8], .1, .1, wood2, TX.woodY);   // 斜撐
+        circles.push({ ...(([x, , z]) => ({ x, z }))(at(px, 0, pz)), r: .26, w: 1 });
+      }
+      for (const s of [-1, 1]) box(0, 3.25, s * 3.2, 7, .3, .2, wood2, WX).box(s * 3.2, 3.25, 0, .2, .3, 7, wood2, WZ);
+      for (let t = -3; t <= 3.01; t += .75) for (const s of [-1, 1]) {   // 椽：從四邊往中心爬
+        bar([t, 3.27, s * 3.7], [t * .25, 4.6, s * .9], .07, .12, wood, WX);
+        bar([s * 3.7, 3.27, t], [s * .9, 4.6, t * .25], .07, .12, wood, WZ);
+      }
+      k.add(new T.ConeGeometry(5.6, 1.9, 4, 1, true), lin(roof), TX.sheet, tf(...at(0, 4.2, 0), 0, S.ry + Math.PI / 4));   // 開底：從亭子裡看得到椽與望板
+      const ceil = new T.ConeGeometry(5.6, 1.9, 4, 1, true); ceil.setIndex(Array.from(ceil.index.array).reverse());
+      k.add(ceil, lin(0x6a4c34), WX, tf(...at(0, 4.16, 0), 0, S.ry + Math.PI / 4));   // 望板（翻面朝下）
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; bar([Math.cos(a) * 5.5, 3.27, Math.sin(a) * 5.5], [0, 5.13, 0], .1, .1, 0x1e2a24, TX.sheet); }   // 脊蓋
+      for (let y = 3.5; y < 4.9; y += .3) { const r = 5.6 * (5.15 - y) / 1.9 + .02; k.add(new T.CylinderGeometry(r, r, .025, 4, 1, true), lin(0x23312b), TX.sheet, tf(...at(0, y, 0), 0, S.ry + Math.PI / 4)); }   // 瓦列
+      box(0, 5.25, 0, .9, .5, .9, wood2, WX);
+      k.add(new T.ConeGeometry(.85, .6, 4, 1), lin(roof), TX.sheet, tf(...at(0, 5.8, 0), 0, S.ry + Math.PI / 4));
+      cyl(0, 6.3, 0, .02, .02, .5, 4, 0x1a1c20, 15);
+      for (const s of [-1, 1]) {   // 野餐桌
+        for (let j = 0; j < 4; j++) box(s * 1.3 - .3 + j * .2, .99, 0, .18, .05, 2.2, j % 2 ? wood2 : 0x56402c, WZ);   // 桌面四片板、板間留縫
+        for (const t of [-1, 1]) for (const j of [-1, 1]) box(s * 1.3 + t * .62 + j * .065, .71, 0, .12, .04, 2.2, wood2, WZ);
+        for (const t of [-1, 1]) box(s * 1.3, .955, t * .8, .76, .04, .08, wood, WX);   // 桌面下的橫檔
+        for (const t of [-1, 1]) bar([s * 1.3 - .55, .32, t * .8], [s * 1.3 + .55, .32, t * .8], .06, .06, wood, WX).bar([s * 1.3 - .3, .32, t * .8], [s * 1.3, .97, t * .8], .06, .06, wood, WX).bar([s * 1.3 + .3, .32, t * .8], [s * 1.3, .97, t * .8], .06, .06, wood, WX);
+      }
       cyl(0, 3.05, 0, .25, .25, .15, 10, 0xffe2b0, 11);
       coastLight(...at(0, 2.9, 0), 0xffd8a0, 8, .8).w = 1;
-    } else if (S.type === 'kiosk') {   // 茶亭：小木屋、賣窗（裡面亮著）、遮陽篷、霓虹招牌、兩張高腳凳
-      box(0, 1.35, 0, 3.4, 2.7, 2.6, 0x3a2a20, 2).box(0, 2.85, 0, 3.8, .3, 3, 0x1e1a18, 2);
-      box(0, 1.55, 1.31, 2.4, 1.1, .04, 0x8a6438, 11).box(0, .98, 1.5, 2.6, .08, .45, 0x6a4a30, 2);
-      box(0, 2.4, 1.75, 3.2, .06, 1.1, 0xc84a2a, 2);
-      box(0, 3.25, 1.2, 2.6, .5, .1, 0x10161c, 2).box(0, 3.25, 1.26, 2.2, .3, .02, 0xff6ab0, 8);
-      for (const px of [-.7, .7]) cyl(px, .38, 2.1, .18, .14, .76, 10, 0x22252a, 15);
+    } else if (S.type === 'kiosk') {   // 茶亭（照公園的木造小賣亭）：直條木板牆、半拉起的鐵捲門賣窗與亮著的櫃內、檯面、條紋遮陽篷、出簷的屋頂與霓虹招牌、側門、菜單板、高腳凳
+      const wood = 0x3a2a20, wood2 = 0x4a3628;
+      box(0, .08, 0, 3.8, .16, 3, 0x5a5650, TX.conc);
+      // 機身：後段實心，前面是牆框圍出賣窗（x ±1.3、y 0.95–2.25），裡面是櫃內
+      box(0, 1.43, -.3, 3.4, 2.54, 2.0, 0x2a1e16, TX.woodY);
+      box(0, .555, 1.0, 3.4, .79, .6, 0x2a1e16, TX.woodY).box(0, 2.48, 1.0, 3.4, .46, .6, 0x2a1e16, TX.woodY);
+      for (const s of [-1, 1]) box(s * 1.5, 1.6, 1.0, .4, 1.3, .6, 0x2a1e16, TX.woodY);
+      for (let x = -1.6; x <= 1.61; x += .2) {
+        const c = (x * 5 | 0) % 2 ? wood : wood2;
+        box(x, 1.43, -1.31, .17, 2.54, .03, c, TX.woodY);
+        if (Math.abs(x) < 1.32) box(x, .555, 1.31, .17, .79, .03, c, TX.woodY).box(x, 2.48, 1.31, .17, .46, .03, c, TX.woodY);
+        else box(x, 1.43, 1.31, .17, 2.54, .03, c, TX.woodY);
+      }
+      for (let z = -1.2; z <= 1.21; z += .2) for (const s of [-1, 1]) box(s * 1.71, 1.43, z, .03, 2.54, .17, (z * 5 | 0) % 2 ? wood : wood2, TX.woodY);
+      box(0, 1.6, .71, 2.6, 1.3, .02, 0x8a6438, 11);    // 亮著的櫃內（後牆）
+      box(0, .96, 1.0, 2.6, .02, .6, 0x3a2a20, WX).box(0, 2.24, 1.0, 2.6, .02, .6, 0x6a5a48, 11);
+      for (const s of [-1, 1]) box(s * 1.29, 1.6, 1.0, .02, 1.3, .6, 0x4a3628, TX.woodY);
+      for (let i = 0; i < 2; i++) box(0, 1.35 + i * .35, .82, 2.5, .03, .22, 0x6a4a30, WX);
+      for (let i = 0; i < 18; i++) box(-1.05 + (i % 9) * .26, 1.45 + (i / 9 | 0) * .35, .82, .14, .16 + (i % 3) * .04, .12, [0xc84a2a, 0x2a8ac8, 0xe8c040, 0x3aa860][i % 4], 10);
+      box(-.6, 1.12, 1.0, .5, .3, .4, 0x8a8e92, 3).box(.5, 1.06, .95, .36, .18, .3, 0x2a2c30, TX.iron);   // 櫃台上的保溫壺與收銀機
+      cyl(0, 2.2, 1.36, .12, .12, 2.5, 10, 0x6a6c70, TX.galv, 0, 0, Math.PI / 2);   // 捲起的鐵捲門
+      box(0, 2.15, 1.36, 2.62, .14, .06, 0x5a5c60, TX.galv);
+      for (const s of [-1, 1]) box(s * 1.32, 1.6, 1.36, .08, 1.36, .08, 0x2a2622, WX);
+      box(0, .98, 1.55, 2.8, .07, .5, 0x6a4a30, WX).box(0, .9, 1.35, 2.7, .1, .1, 0x2a2622, WX);
+      for (const s of [-1, 1]) bar([s * 1.2, .5, 1.33], [s * 1.2, .95, 1.75], .05, .05, 0x2a2622, WX);
+      for (let i = 0; i < 8; i++) box(-1.4 + i * .4 + .2, 2.55, 1.85, .4, .05, 1.1, i % 2 ? 0xe8e0d0 : 0xc84a2a, 2, -.35);   // 條紋遮陽篷
+      for (let i = 0; i < 8; i++) box(-1.4 + i * .4 + .2, 2.28, 2.36, .4, .16, .02, i % 2 ? 0xe8e0d0 : 0xc84a2a, 2);
+      for (const s of [-1, 1]) bar([s * 1.58, 2.74, 1.32], [s * 1.58, 2.3, 2.36], .03, .03, 0x2a2c30, TX.iron);
+      box(0, 2.85, 0, 4, .12, 3.2, 0x1e1a18, TX.sheet).box(0, 2.94, 0, 3.7, .08, 2.9, 0x2a2622, WX);
+      for (const s of [-1, 1]) box(0, 2.85, s * 1.6, 4.04, .22, .05, 0x3a2a20, WX).box(s * 2.0, 2.85, 0, .05, .22, 3.24, 0x3a2a20, WX);
+      box(0, 3.25, 1.2, 2.6, .5, .1, 0x10161c, TX.woodY).box(0, 3.25, 1.26, 2.2, .3, .02, 0xff6ab0, 8);
+      for (const s of [-1, 1]) bar([s * 1.1, 2.95, 1.15], [s * 1.1, 3.05, 1.15], .04, .04, 0x2a2c30, TX.iron);
+      box(1.73, 1.2, -.4, .04, 2.1, .9, 0x2a2018, TX.woodY).box(1.76, 1.15, -.1, .04, .04, .14, 0x9a9a9a, 3);   // 側門
+      box(-1.73, 1.9, .5, .04, .7, .9, 0x12161a, 2).box(-1.755, 1.9, .5, .01, .6, .8, 0xd8c8a0, 11);   // 菜單板
+      box(-1.5, 2.45, -1.0, .5, .32, .4, 0xbab5a8, TX.sheet);   // 窗機
+      for (const px of [-.8, 0, .8]) lathe(px, 0, 2.15, [[.2, 0], [.2, .03], [.04, .06], [.035, .7], [.18, .72], [.18, .78], [0, .79]], 10, px ? 0x22252a : 0x2a2c30, TX.iron);
       coastLight(...at(0, 2, 2.2), 0xffb070, 8, .9).w = 1;
-    } else {   // 公廁：混凝土盒、兩扇門、門上的燈與標示
-      box(0, 1.5, 0, 6, 3, 3.4, 0x6a6862, 2).box(0, 3.1, 0, 6.4, .2, 3.8, 0x2a2c30, 2);
-      for (const px of [-1.4, 1.4]) box(px, 1.05, 1.71, 1, 2.1, .04, 0x2a3036, 10).box(px, 2.5, 1.72, .5, .5, .02, px < 0 ? 0x5ab0ff : 0xff6a8a, 11);
-      box(0, 2.75, 1.85, 4.4, .08, .3, 0xfff0d8, 11);
+    } else {   // 公廁（照公園的混凝土磚公廁）：台基、裂面混凝土磚牆與腰帶、轉角壁柱、立邊鋼板的雙坡頂與山牆百葉、兩扇鋼門與門框、男女標示、高窗百葉、門燈、中間的飲水機、落水管
+      const cmu = 0x9a8f80, cmu2 = 0x857b6d;
+      box(0, .08, 0, 6.6, .16, 4.0, 0x6e6a62, TX.conc);
+      box(0, 1.48, 0, 6, 2.64, 3.4, cmu, TX.cmu);
+      for (const s of [-1, 1]) box(0, .45, s * 1.71, 6.02, .6, .03, cmu2, TX.cmu).box(s * 3.01, .45, 0, .03, .6, 3.42, cmu2, TX.cmu);   // 勒腳
+      for (const y of [1.2, 2.5]) for (const s of [-1, 1]) box(0, y, s * 1.71, 6.02, .08, .03, cmu2, TX.cmu).box(s * 3.01, y, 0, .03, .08, 3.42, cmu2, TX.cmu);
+      for (const [x, z] of [[-3, -1.7], [3, -1.7], [-3, 1.7], [3, 1.7]]) box(x, 1.48, z, .3, 2.64, .3, cmu2, TX.cmu);
+      gable(7.2, 2.3, 2.85, 3.85, 0x3c5a50, 0x4a6a5e);
+      for (const s of [-1, 1]) {
+        prism(s * 3, 2.8, 0, [[-1.7, 0], [1.7, 0], [0, .98]], .2, cmu, TX.cmu, 0, Math.PI / 2);
+        box(s * 3.11, 3.15, 0, .03, .4, .6, 0x3a3e40, TX.galv);
+        for (let i = 0; i < 4; i++) box(s * 3.13, 3.0 + i * .1, 0, .03, .02, .56, 0x6a6e70, TX.galv);
+      }
+      for (const px of [-1.6, 1.6]) {
+        box(px, 1.18, 1.72, 1.12, 2.22, .06, 0x2a2e32, TX.iron).box(px, 1.12, 1.74, .96, 2.06, .04, px < 0 ? 0x2c4a5e : 0x5e2c3a, TX.iron);
+        box(px, .2, 1.765, .96, .3, .01, 0x8a8e92, 3).box(px + .36, 1.1, 1.78, .04, .12, .06, 0x9a9a9a, 3);
+        box(px, 2.5, 1.73, .4, .4, .02, px < 0 ? 0x2a6ab0 : 0xb03a5a, 10).box(px, 2.53, 1.745, .08, .2, .01, 0xf0f0f0, 10).cyl(px, 2.67, 1.745, .045, .045, .01, 8, 0xf0f0f0, 10, Math.PI / 2);
+        box(px, 2.82, 1.78, .3, .1, .14, 0x1a1c20, TX.iron).box(px, 2.765, 1.8, .24, .02, .1, 0xfff0d8, 11);   // 門燈
+      }
+      for (const x of [-2.6, 2.6, 0]) for (const zz of [-1, 1]) if (zz < 0 || x === 0) { box(x, 2.3, zz * 1.72, .7, .3, .04, 0x3a3e40, TX.galv); for (let i = 0; i < 3; i++) box(x, 2.2 + i * .09, zz * 1.74, .66, .02, .03, 0x6a6e70, TX.galv); }
+      lathe(0, 0, 1.95, [[.2, 0], [.2, .04], [.12, .1], [.1, .8], [.22, .85], [.22, .95], [0, .96]], 12, 0x7a7e82, 3);   // 飲水機
+      for (const [x, z] of [[-3.1, 1.6], [3.1, -1.6]]) cyl(x, 1.45, z, .05, .05, 2.8, 6, 0x5a5e62, TX.galv);
       coastLight(...at(0, 2.6, 2.4), 0xfff0d8, 7, .7).w = 1;
     }
     const hw = S.type === 'pavilion' ? 0 : S.type === 'kiosk' ? 1.7 : 3, hd = S.type === 'kiosk' ? 1.3 : 1.7;
     if (hw) colliders.push({ x0: -hw, x1: hw, z0: -hd, z1: hd, zn: frameW(S.x, S.z, Math.cos(S.ry), -Math.sin(S.ry)) });
   }
-  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
+  cityAdd(new T.Mesh(k.build(), MAT.ux), null);
 }
 // ─── 快速道路（06-roads.js 的 FWY，世界座標）：高架橋與上下坡。路面在 10-city.js 的連接道路網格裡（跟著 fwyH 抬高），這裡是橋的結構：
 // 橋面兩側的路肩與護欄、橋面板（厚 DECK_T）、橋下的單柱橋墩與帽梁（離連接道路 HR + 3 m 以內不立）、坡道低於 PIER_H 的部分是實心的擋土牆；
@@ -425,11 +520,33 @@ let fwyPierMesh = null;
         const P = (s, o, y) => [s.x - s.hz * o * sd, y, s.z + s.hx * o * sd], out = [-A.hz * sd, 0, A.hx * sd], inn = [A.hz * sd, 0, -A.hx * sd];
         const bA = up ? A.h - DECK_T : 0, bB = up ? B.h - DECK_T : 0;
         quad(P(A, W, bA), P(B, W, bB), P(B, W, B.h + 1), P(A, W, A.h + 1), out, CONC);   // 外側面（橋面板＋護欄，坡道到地面）
-        quad(P(A, W - .4, A.h), P(B, W - .4, B.h), P(B, W - .4, B.h + 1), P(A, W - .4, A.h + 1), inn, CONC);   // 護欄內側
+        if (up) quad(P(A, W + .02, A.h - .32), P(B, W + .02, B.h - .32), P(B, W + .02, B.h - .2), P(A, W + .02, A.h - .2), out, CONC_D);   // 橋面板與護欄的施工縫
+        // 護欄內側照 F 型混凝土護欄的斷面：底下 8 cm 直立、往上 25 cm 緩坡、再陡坡到頂（頂寬 0.4 m 不變）
+        const fP = [[W - .66, 0], [W - .66, .08], [W - .5, .33], [W - .4, 1]];
+        for (let j = 1; j < fP.length; j++) quad(P(A, fP[j - 1][0], A.h + fP[j - 1][1]), P(B, fP[j - 1][0], B.h + fP[j - 1][1]), P(B, fP[j][0], B.h + fP[j][1]), P(A, fP[j][0], A.h + fP[j][1]), inn, j === 1 ? CONC_D : CONC);
         quad(P(A, W - .4, A.h + 1), P(B, W - .4, B.h + 1), P(B, W, B.h + 1), P(A, W, A.h + 1), [0, 1, 0], CONC_D);   // 護欄頂
+        if (up) {   // 橋上：護欄頂的鋼欄杆（每段一根立柱、上面一根方管）
+          const R = (s, o, y) => P(s, o, y);
+          k.bar(...R(A, W - .2, A.h + 1), ...R(A, W - .2, A.h + 1.32), .06, .06, 0x5a5e64, TX.galv);
+          for (const [o0, o1] of [[W - .25, W - .15]]) { quad(R(A, o0, A.h + 1.3), R(B, o0, B.h + 1.3), R(B, o1, B.h + 1.3), R(A, o1, A.h + 1.3), [0, 1, 0], 0x6a6e74); quad(R(A, o1, A.h + 1.22), R(B, o1, B.h + 1.22), R(B, o1, B.h + 1.3), R(A, o1, A.h + 1.3), out, 0x5a5e64); quad(R(A, o0, A.h + 1.22), R(B, o0, B.h + 1.22), R(B, o0, B.h + 1.3), R(A, o0, A.h + 1.3), inn, 0x5a5e64); }
+        }
         quad(P(A, HW - .05, A.h + .006), P(B, HW - .05, B.h + .006), P(B, W - .4, B.h + .006), P(A, W - .4, A.h + .006), [0, 1, 0], ROADSIDE);   // 路肩
       }
-      if (up) for (const sd of [-1, 1]) { const P = (s, o, y) => [s.x - s.hz * o * sd, y, s.z + s.hx * o * sd]; quad(P(A, 0, A.h - DECK_T), P(B, 0, B.h - DECK_T), P(B, W, B.h - DECK_T), P(A, W, A.h - DECK_T), [0, -1, 0], CONC_D); }   // 橋面板底
+      if (up) for (const sd of [-1, 1]) {
+        const P = (s, o, y) => [s.x - s.hz * o * sd, y, s.z + s.hx * o * sd], out = [-A.hz * sd, 0, A.hx * sd], inn = [A.hz * sd, 0, -A.hx * sd];
+        quad(P(A, 0, A.h - DECK_T), P(B, 0, B.h - DECK_T), P(B, W, B.h - DECK_T), P(A, W, A.h - DECK_T), [0, -1, 0], CONC_D);   // 橋面板底
+        // 預力混凝土縱梁（照加州高架的 I 型梁）：每側兩根，腹板 0.35 m、梁深 1.1 m、下翼 0.7 m
+        for (const c of [W * .28, W * .72]) {
+          const yA = A.h - DECK_T, yB = B.h - DECK_T, d = 1.1;
+          quad(P(A, c - .175, yA), P(B, c - .175, yB), P(B, c - .175, yB - d + .2), P(A, c - .175, yA - d + .2), inn, CONC);
+          quad(P(A, c + .175, yA), P(B, c + .175, yB), P(B, c + .175, yB - d + .2), P(A, c + .175, yA - d + .2), out, CONC);
+          quad(P(A, c - .35, yA - d + .2), P(B, c - .35, yB - d + .2), P(B, c - .35, yB - d), P(A, c - .35, yA - d), inn, CONC);
+          quad(P(A, c + .35, yA - d + .2), P(B, c + .35, yB - d + .2), P(B, c + .35, yB - d), P(A, c + .35, yA - d), out, CONC);
+          quad(P(A, c - .35, yA - d), P(B, c - .35, yB - d), P(B, c + .35, yB - d), P(A, c + .35, yA - d), [0, -1, 0], CONC_D);
+          quad(P(A, c - .35, yA - d + .2), P(B, c - .35, yB - d + .2), P(B, c - .175, yB - d + .2), P(A, c - .175, yA - d + .2), [0, 1, 0], CONC);
+          quad(P(A, c + .175, yA - d + .2), P(B, c + .175, yB - d + .2), P(B, c + .35, yB - d + .2), P(A, c + .35, yA - d + .2), [0, 1, 0], CONC);
+        }
+      }
       // 碰撞：每 3 m 一段、兩側各一個盒（局部 x 沿路，z 橫向；兩側對稱，不用管哪邊是正）
       const f = frameW(A.x, A.z, B.x - A.x, B.z - A.z), L = Math.hypot(B.x - A.x, B.z - A.z), lo = Math.min(A.h, B.h);
       // frameW 的局部 z 是 (−hz, hx)·sd 那一側取正：sd = 1 是 [W − .5, W + .3]
@@ -441,7 +558,11 @@ let fwyPierMesh = null;
       const [x, z, hx, hz] = edgeAt(e, u);
       if (nearRoad(x, z, HR + 3) || deckOn(x, z, e, 1)) continue;   // 分合流處疊在別條路的橋面下的不立
       const top = h - DECK_T, ry = Math.atan2(hx, hz);
-      pk.cyl(x, (top - .8) / 2, z, .95, 1.1, top - .8, 14, CONC, 2); k.box(x, top - .4, z, 1.8, .8, 2 * W - 2.4, CONC_D, 2, 0, ry);
+      pk.cyl(x, (top - .8) / 2, z, .95, 1.1, top - .8, 14, CONC, TX.conc);
+      // 帽梁（照高架的槌頭帽梁）：中間深、往兩端收薄，梁底在縱梁下；頂上每根縱梁一塊橡膠支承墊
+      const hw = W - .2, cb = top - 1.1;
+      k.prism(x, cb, z, [[-hw, -.6], [-1.3, -1.5], [1.3, -1.5], [hw, -.6], [hw, 0], [-hw, 0]], 1.8, CONC_D, TX.conc, 0, ry);
+      for (const c of [-W * .72, -W * .28, W * .28, W * .72]) k.box(x + Math.cos(ry) * c, cb + .05, z - Math.sin(ry) * c, .6, .1, .5, 0x2a2a2a, TX.rubber, 0, ry);
       FWY_PIERS.push({ x, z, ry, h: top - .8 });
       circles.push({ x, z, r: 1.15, w: 1, hy: top - .6 });
     }
@@ -451,31 +572,51 @@ let fwyPierMesh = null;
       const ub = Math.min(u + 6, u1), [x0, z0] = edgeAt(e, u), [x1, z1] = edgeAt(e, ub), l = Math.hypot(x1 - x0, z1 - z0);
       if (l < .3 || onOther((x0 + x1) / 2, (z0 + z1) / 2, e, (fwyH(e, u) + fwyH(e, ub)) / 2)) continue;
       const ha = fwyH(e, u), hb = fwyH(e, ub), y = (ha + hb) / 2, ry = Math.atan2(-(z1 - z0), x1 - x0), rz = Math.atan2(hb - ha, l);
-      k.box((x0 + x1) / 2, y + .42, (z0 + z1) / 2, l + .06, .84, .32, 0x9a968c, 2, 0, ry, rz).box((x0 + x1) / 2, y + .1, (z0 + z1) / 2, l + .06, .2, .62, 0x8a867c, 2, 0, ry, rz);
+      // F 型混凝土分隔牆的斷面沿路段擠出（局部 z 沿路、x 橫向）
+      k.prism((x0 + x1) / 2, y, (z0 + z1) / 2, [[-.31, 0], [.31, 0], [.31, .08], [.2, .33], [.1, .86], [-.1, .86], [-.2, .33], [-.31, .08]], l + .06, 0x9a968c, TX.conc, -rz, Math.atan2(x1 - x0, z1 - z0));
       colliders.push(Object.assign({ x0: -.03, x1: l + .03, z0: -.31, z1: .31, low: 1, zn: frameW(x0, z0, x1 - x0, z1 - z0) }, Math.min(ha, hb) >= PIER_H ? { ly: Math.min(ha, hb) - 1.5 } : {}));
     }
     if (e.len < 140 || e.ramp) continue;
     // 門架：兩根柱子立在路肩外（橋上立在護欄上）、橫樑離路面 7 m；牌子在橫樑兩面，各在那一邊車道的上方
     const [mx, mz, hx, hz] = edgeAt(e, e.len / 2), nx = -hz, nz = hx, gy = fwyH(e, e.len / 2), po = gy > .05 ? DECK_W - .2 : HR + 1.6;
-    for (const sd of [-1, 1]) { const px = mx + nx * sd * po, pz = mz + nz * sd * po; k.cyl(px, gy + 3.6, pz, .22, .26, 7.2, 10, 0x6a6e74, 15); if (gy <= .05) circles.push({ x: px, z: pz, r: .3, w: 1 }); }
-    k.box(mx, gy + 7.1, mz, 2 * po + .4, .5, .5, 0x6a6e74, 15, 0, Math.atan2(-nz, nx)).box(mx, gy + 7.6, mz, 2 * po + .4, .16, .16, 0x6a6e74, 15, 0, Math.atan2(-nz, nx));
+    // 門架（照加州的桁架式標誌門架）：兩端各一組雙柱（底板、柱間綴條），上面是四根弦桿的空間桁架、腹桿交錯；牌子下面一條有欄杆的檢修走道
+    const G = (a, b, y) => [mx + nx * a + hx * b, gy + y, mz + nz * a + hz * b], GS = 0x7a7e84;
+    for (const sd of [-1, 1]) {
+      const a = sd * po;
+      for (const b of [-.45, .45]) { k.rod(...G(a, b, 0), ...G(a, b, 7.5), .13, 8, GS, TX.galv).box(...G(a, b, .05), .5, .1, .5, 0x5a5e64, TX.galv, 0, Math.atan2(nx, nz)); }
+      for (let y = .6; y < 7.3; y += 1.1) { k.rod(...G(a, -.45, y), ...G(a, .45, y + .55), .035, 4, GS, TX.galv).rod(...G(a, .45, y + .55), ...G(a, -.45, y + 1.1), .035, 4, GS, TX.galv); }
+      if (gy <= .05) circles.push({ x: mx + nx * a, z: mz + nz * a, r: .7, w: 1 });
+    }
+    for (const b of [-.45, .45]) for (const y of [6.5, 7.6]) k.rod(...G(-po - .3, b, y), ...G(po + .3, b, y), .07, 6, GS, TX.galv);
+    for (let a = -po, j = 0; a < po - .1; a += 1.1, j++) {
+      const a2 = Math.min(a + 1.1, po);
+      for (const b of [-.45, .45]) k.rod(...G(a, b, j % 2 ? 6.5 : 7.6), ...G(a2, b, j % 2 ? 7.6 : 6.5), .03, 4, GS, TX.galv);
+      for (const y of [6.5, 7.6]) k.rod(...G(a, -.45, y), ...G(a2, .45, y), .03, 4, GS, TX.galv);
+      k.rod(...G(a, -.45, 6.5), ...G(a, -.45, 7.6), .03, 4, GS, TX.galv).rod(...G(a, .45, 6.5), ...G(a, .45, 7.6), .03, 4, GS, TX.galv);
+    }
+    for (const sd of [-1, 1]) {   // 檢修走道：格柵踏板、欄杆
+      const b = -sd * 1.1;
+      k.box(...G(0, b, 5.95), .9, .05, 2 * po - 1.4, 0x4a4e54, TX.galv, 0, Math.atan2(nx, nz));
+      k.rod(...G(-po + .7, b - sd * .45, 6.95), ...G(po - .7, b - sd * .45, 6.95), .025, 4, GS, TX.galv);
+      for (let a = -po + .7; a <= po - .69; a += 1.5) k.rod(...G(a, b - sd * .45, 5.95), ...G(a, b - sd * .45, 6.95), .02, 4, GS, TX.galv);
+    }
     for (const sd of [-1, 1]) {
       const pl = new T.Mesh(new T.PlaneGeometry(6.4, 2), sign(F));
       // 右駕：沿 +h 開的車在 n = (−hz, hx) 那一側；牌子掛在那半邊上方、正面朝來車（−h）
       const side = sd, fx = -sd * hx, fz = -sd * hz;
-      pl.position.set(mx + nx * side * 3.4 + fx * .3, gy + 7.1, mz + nz * side * 3.4 + fz * .3); pl.rotation.y = Math.atan2(fx, fz);
+      pl.position.set(mx + nx * side * 3.4 + fx * .62, gy + 7.1, mz + nz * side * 3.4 + fz * .62); pl.rotation.y = Math.atan2(fx, fz);
       cityAdd(pl, null);
     }
   }
   if (pos.length) {
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
-    k.add(g, 0xffffff, 2);
+    k.add(g, 0xffffff, TX.conc);
     // Kit.add 把整塊塗成同一色：顏色另外寫回去
     for (let i = 0, o = k.col.length - col.length; i < col.length; i++) k.col[o + i] = col[i];
   }
-  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
-  if (FWY_PIERS.length) cityAdd(fwyPierMesh = new T.Mesh(pk.build(), MAT.uber), null);
+  cityAdd(new T.Mesh(k.build(), MAT.ux), null);
+  if (FWY_PIERS.length) cityAdd(fwyPierMesh = new T.Mesh(pk.build(), MAT.ux), null);
 }
 
 // 棧橋：木板、樁、欄杆；盡頭的摩天輪（輪面朝北，岸上看得到整圈）

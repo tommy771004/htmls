@@ -76,16 +76,35 @@ export const SETS = [
     { id: 'mt_doorL', file: 'subway_station', only: /^TrainEmpty$/, dropBox: [[-60, -12.6, -5, 10, -5, 5]], keepPath: /(Puertas|PegatinasNegrasPuertas|MarcosCristalesPuertas|CristalesPuertas|GomasPuertas)Laterales2_LP/, scale: 1, origin: [0, 0, 0] },
     { id: 'mt_doorR', file: 'subway_station', only: /^TrainEmpty$/, dropBox: [[-60, -12.6, -5, 10, -5, 5]], keepPath: /(Puertas|PegatinasNegrasPuertas|MarcosCristalesPuertas|CristalesPuertas|GomasPuertas)Laterales_LP/, scale: 1, origin: [0, 0, 0] },
   ] },
+  // 機場（21-air.js，外海西邊的填海機場）：fDlruosne 的 Airbus A320-200 V2 與 Boeing 737 MAX 8（白色素塗裝）、soysascha 的 Futuristic airport building whale（航廈）、
+  // lucassobral3d 的 Control Tower San Francisco、casadofer 的 Hangar structure in airport of León（機庫）、CyzaStore 的 Airport Jetway（空橋）、rwy00 的 Airport Catering Truck（都是 CC BY 4.0）。
+  // 遠景組（far）：從城市西岸隔著一公里的海也看得到。客機機頭都轉到 +z、輪子著地；空橋長軸沿 x，機艙那端（圓筒＋門罩）在 +x
+  // 夜裡航廈的玻璃帷幕亮燈：圖集裡帷幕的幾塊（量模型：屋簷以下、接近垂直的三角形落在哪些 UV；加上兩端的弧形玻璃）切成一格一格的窗（winWhole：整棟一個亂數，靠窗編號分格亮）
+  // 機庫原檔沒有貼圖，材質是 3ds Max 的線框色（青、純綠、純藍）：換成灰藍玻璃與壓暗的鋼構色，不然像玩具
+  { out: 'air', src: '.cache/air', far: 1, tex: 1024, win: true, winAuto: /^material_0$/, winWhole: true,
+    recolor: { wire_127255255: [.3, .36, .4, .55, .08], wire_000255000: [.32, .34, .31, 1], wire_000063255: [.2, .25, .33, 1], wire_000082165: [.23, .28, .35, 1], wire_082145165: [.36, .41, .45, 1], wire_127159255: [.42, .46, .53, 1] },
+    winRects: { material_0: [[.72, .005, .845, .44, 4, 8], [.44, .44, .5, .78, 1, 6], [.03, .09, .19, .44, 3, 6], [.166, .781, .884, .884, 20, 2], [.913, .01, .977, .249, 1, 5], [.952, .44, 1, .72, 1, 5]]
+      .flatMap(([u0, v0, u1, v1, nu, nv]) => Array.from({ length: nu * nv }, (_, i) => { const du = (u1 - u0) / nu, dv = (v1 - v0) / nv, a = u0 + (i % nu) * du, b = v0 + ((i / nu) | 0) * dv; return [a + .002, b + .002, a + du - .002, b + dv - .002]; })) },
+    items: [
+    { id: 'a320', file: 'airbus_a320-200_v2', len: 37.6, simp: [.2, .002] },   // 原檔機頭朝 +z（z 45..194），長 149 單位
+    { id: 'b737', file: 'boeing_737_max_8', len: 39.5, rot: 1, simp: [.2, .002], dropBox: [[-200, 200, -10, 100, 150, 300]] },   // 機頭朝 −x；z 237..244 有兩塊散落的碎片
+    { id: 'term', file: 'futuristic_airport_building_whale', len: 170 },   // 長軸沿 z，玻璃拱門那端在 +z，兩側是米色的翼板
+    { id: 'tower', file: 'control_tower_san_francisco', scale: 1 },   // 高 57 m
+    // 機庫：拿掉停在門前的 A380（z > 2 的都是門外的東西）與地面兩片大平面，門朝 +z；原檔約 150 × 100 m，縮成 0.75
+    { id: 'hangar', file: 'hangar_structure_in_aisport_of_leon_spain', scale: .75, sloppy: .25, seam: .02, drop: /^wire_152152152$|^wire_076047038$/, dropBox: [[-300, 300, -10, 100, 2, 300]] },
+    { id: 'jetway', file: 'airport_jetway', len: 26, simp: [.15, .004] },
+    { id: 'cater', file: 'airport_catering_truck', scale: 1, rot: 2 },   // 原檔車頭朝 −z
+  ] },
   // 排水道（69-v9-drain.js）：SPLEEN VISION 的 dirty tunnel（CC BY 4.0，照片掃描的混凝土箱涵，寬 3 m、高 1.84 m、長 9 m，兩端是黃黑警示條的端牆；
   // 原檔是 specular-glossiness 材質，先用 gltf-transform 的 metalRough() 轉成 dirty_tunnel_mr.glb）。dr_mouth 是整段（河岸的排水口），dr_seg 只取中間 6.4 m（沒有端牆）讓頁面接成長隧道
   { out: 'drain', src: '.cache/drain', tex: 2048, items: [
     { id: 'dr_mouth', file: 'dirty_tunnel_mr', sloppy: .1, seam: .02, renorm: 1, scale: 1, origin: [0, 0, 0] },
     { id: 'dr_seg', file: 'dirty_tunnel_mr', sloppy: .1, seam: .02, renorm: 1, clip: [-3, 3, -1, 3, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
     // 檢查井的牆面與地面：從同一個箱涵切出內側牆面（避開牆角與偏亮的牆頂；整道左右兩面輪流用，另有開口上方、開口兩側兩種寬度）與一塊地面，頁面放大疊層鋪滿
-    { id: 'dr_wall', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [1.15, 3, .2, 1.2, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
-    { id: 'dr_wall2', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [-3, -1.15, .2, 1.2, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
-    { id: 'dr_lintel', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [1.15, 3, .25, 1.35, -1.4, 1.4], scale: 1, origin: [0, 0, 0] },
-    { id: 'dr_pier', file: 'dirty_tunnel_mr', sloppy: 1, seam: .02, renorm: 1, clip: [1.15, 3, .25, 1.35, -.46, .46], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_wall', file: 'dirty_tunnel_mr', sloppy: .25, clipFirst: 1, seam: .02, renorm: 1, clip: [1.15, 3, .2, 1.2, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_wall2', file: 'dirty_tunnel_mr', sloppy: .25, clipFirst: 1, seam: .02, renorm: 1, clip: [-3, -1.15, .2, 1.2, -3.2, 3.2], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_lintel', file: 'dirty_tunnel_mr', sloppy: .25, clipFirst: 1, seam: .02, renorm: 1, clip: [1.15, 3, .25, 1.35, -1.4, 1.4], scale: 1, origin: [0, 0, 0] },
+    { id: 'dr_pier', file: 'dirty_tunnel_mr', sloppy: .25, clipFirst: 1, seam: .02, renorm: 1, clip: [1.15, 3, .25, 1.35, -.46, .46], scale: 1, origin: [0, 0, 0] },
     { id: 'dr_floor', file: 'dirty_tunnel_mr', sloppy: .1, seam: .02, renorm: 1, clip: [-1.3, 1.3, -1, .15, -1.4, 1.4], scale: 1, origin: [0, 0, 0] },
   ] },
   // texEdit：欄杆站牌原本是真實的站名、N／R 路線圓標與 MTA 標誌，重畫成虛構的「霓虹城地鐵」
@@ -638,6 +657,17 @@ function weldPrim(p) {
   return subPrim(p, Array.from(p.idx, (v) => rep[v]));
 }
 // 取 primitive 的部分三角形，頂點重新編號
+// 只留重心在這個盒子裡的三角形（原檔座標 [x0, x1, y0, y1, z0, z1]）：遊戲關卡模型散在遠處的碎片
+function clipPrims(prims, [x0, x1, y0, y1, z0, z1]) {
+  return prims.map((p) => {
+    const ix = [];
+    for (let t = 0; t < p.idx.length; t += 3) {
+      let x = 0, y = 0, z = 0; for (let k = 0; k < 3; k++) { x += p.pos[p.idx[t + k] * 3] / 3; y += p.pos[p.idx[t + k] * 3 + 1] / 3; z += p.pos[p.idx[t + k] * 3 + 2] / 3; }
+      if (x > x0 && x < x1 && y > y0 && y < y1 && z > z0 && z < z1) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);
+    }
+    return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
+  }).filter(Boolean);
+}
 function subPrim(p, ix) {
   const map = new Map(), keep = [];
   const idx = Uint32Array.from(ix, (v) => { if (!map.has(v)) { map.set(v, keep.length); keep.push(v); } return map.get(v); });
@@ -1235,6 +1265,8 @@ async function build(set) {
     }).filter(Boolean);
     const sloppy = src.sloppy ?? set.sloppy;   // 物件自己的比例優先（同一組裡面數差很多的原檔）
     if (src.seam) prims = mergePrims(prims);   // 原檔照 16 位元索引切成好幾塊、塊與塊之間不共用頂點：先併回一塊，減面才不會沿著切線裂開
+    // clipFirst：先切再減面。切下來要拼貼的一片（排水道檢查井的牆面）：減面不動切邊，邊緣是原檔的細三角形；先減再切的話切邊是一排大鋸齒
+    if (src.clip && src.clipFirst) prims = clipPrims(prims, src.clip);
     if (sloppy && sloppy < 1) prims = prims.map((p) => {   // 照片掃描：UV 接縫多到 simplify 減不下去，允許跨接縫收合（Permissive）減到這個比例（遠景與地標用）
       if (p.idx.length < 300) return p;
       // seam：不跨接縫（UV 不同的頂點不收合），近看的掃描不會出現一塊塊貼錯的碎斑，代價是減不到那麼少（誤差放寬到 err）。
@@ -1334,17 +1366,7 @@ async function build(set) {
       }
       continue;
     }
-    if (src.clip) {   // 只留重心在這個盒子裡的三角形（原檔座標 [x0, x1, y0, y1, z0, z1]）：遊戲關卡模型散在遠處的碎片
-      const [x0, x1, y0, y1, z0, z1] = src.clip;
-      prims = prims.map((p) => {
-        const ix = [];
-        for (let t = 0; t < p.idx.length; t += 3) {
-          let x = 0, y = 0, z = 0; for (let k = 0; k < 3; k++) { x += p.pos[p.idx[t + k] * 3] / 3; y += p.pos[p.idx[t + k] * 3 + 1] / 3; z += p.pos[p.idx[t + k] * 3 + 2] / 3; }
-          if (x > x0 && x < x1 && y > y0 && y < y1 && z > z0 && z < z1) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);
-        }
-        return ix.length === p.idx.length ? p : ix.length ? subPrim(p, ix) : null;
-      }).filter(Boolean);
-    }
+    if (src.clip && !src.clipFirst) prims = clipPrims(prims, src.clip);
     if (set.split && set.dropGround != null) prims = prims.map((p) => {   // 拆棟的組：整片地面（三角形最高點低於 dropGround）不要
       const ix = [];
       for (let t = 0; t < p.idx.length; t += 3) if (Math.max(p.pos[p.idx[t] * 3 + 1], p.pos[p.idx[t + 1] * 3 + 1], p.pos[p.idx[t + 2] * 3 + 1]) >= set.dropGround) ix.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]);

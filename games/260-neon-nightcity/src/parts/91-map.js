@@ -82,7 +82,11 @@ function mapBlips() {
 // ─── 視角與狀態 ───
 const MV = { cx: 0, cz: 0, zoom: 1, tx: 0, tz: 0, tzoom: 1, dirty: true, blips: [], sel: -1, hover: -1, mx: -1, my: -1, raf: 0, ptr: new Map(), drag: null, pinch: null, t: 0 };
 // 平移、縮放的限制是小地圖底圖的範圍（90-hud.js 的 MAP_BB，世界座標）
-const MAP_BOUNDS = MAP_BB;
+const MAP_BOUNDS = (() => {   // 底圖的範圍再加上機場（21-air.js；不在預先畫好的底圖裡，地圖即時畫）
+  const B = { ...MAP_BB };
+  if (MAP_AIR) for (const [x, z] of MAP_AIR.isl) { B.x0 = Math.min(B.x0, x - 120); B.x1 = Math.max(B.x1, x + 120); B.z0 = Math.min(B.z0, z - 120); B.z1 = Math.max(B.z1, z + 120); }
+  return B;
+})();
 const mapDpr = () => Math.min(devicePixelRatio || 1, 2);
 function mapFitZoom() { const r = bigmap.getBoundingClientRect(); return Math.min(r.width / (MAP_BOUNDS.x1 - MAP_BOUNDS.x0), r.height / (MAP_BOUNDS.z1 - MAP_BOUNDS.z0)); }
 const MAP_ZMAX = 7;
@@ -117,7 +121,8 @@ const MAP_LABELS = (() => {
   L.push({ zh: '灰鷗島', en: 'GULL ISLAND', x: (ISLE.x0 + ISLE.x1) / 2, z: (ISLE.z0 + ISLE.z1) / 2 },
     { zh: '灰鷺河', en: 'HERON RIVER', x: (FAR_BANK_X + RIVER_E) / 2, z: FAR_Z1 - 260, water: 1 },
     { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 260, z: FAR_Z1 - 520 });
-  return [...L.map(o => ({ ...o, ...WP(o.x, o.z) })), { zh: '北嶺公園', en: 'NORTH RIDGE PARK', ...parkW(0, (NPARK.walk.z0 + NPARK.walk.z1) / 2) }];   // 上面是邏輯座標，畫的時候用世界座標；北嶺公園是它自己的座標框（10-city.js）
+  const air = AIR_L ? [{ zh: AIR.name, en: AIR.en.toUpperCase(), ...WP(...airW(AIR_L.term.x, AIR_L.term.z - 90), null) }] : [];   // 機場是 SEA_FR 座標框（21-air.js）
+  return [...L.map(o => ({ ...o, ...WP(o.x, o.z) })), { zh: '北嶺公園', en: 'NORTH RIDGE PARK', ...parkW(0, (NPARK.walk.z0 + NPARK.walk.z1) / 2) }, ...air];   // 上面是邏輯座標，畫的時候用世界座標；北嶺公園是它自己的座標框（10-city.js）
 })();
 
 // ─── 繪製 ───
@@ -231,6 +236,7 @@ function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在
   const [fx, fz] = toL(X, Z, FAR_ZN);
   if (fx < FAR_BANK_X && fz < FAR_Z1) return '倫敦城 · 灰鷺河對岸';
   if (!inCity(X, Z)) {
+    if (airLandW(X, Z)) return AIR.name;
     if (landW(X, Z)) return z > ISLE.z0 - 10 && x > ISLE.x0 - 10 && x < ISLE.x1 + 10 ? '灰鷗島' : zh;
     if (waterDepth(X, Z) > 0) return fz < FAR_Z1 + 40 && fx < RIVER_E + 120 ? '灰鷺河' : '外海';
     return '城外山區';

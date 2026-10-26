@@ -72,14 +72,18 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `04-layout.js` | `tools/check-zones.mjs` 產生的版面：十五片的範圍與變換 `LAYOUT`、外緣 `CITY_EDGE`／`CITY_SHORE`／`CITY_CTR`、拿掉的格子 `DROP_CELLS`（不要手改，改 check-zones 再重跑） |
 | `05-zones.js` | 分片：邏輯座標（方格）經彎曲 `warpJ`／`unwarp` 與剛體變換到世界座標 `ZONES`、換算 `toW`／`toL`／`dirW`／`yawW`／`spotW`／`rectW`、`zoneAtW`／`zoneOfW`／`zoneNearL`、座標框 `frameW`／`localZone`／`frameM4`；外緣 `CITY_POLY`、`inCity`、`shoreAt`；`?zrot=N` 把整座城再轉 N° 並平移、`?warp=0` 關掉彎曲（除錯用） |
 | `06-roads.js` | 路網圖 `RN`：各區的路口（世界座標）與路段，加上縫裡把兩區同一個路口接起來的三次貝茲連接道路（`kind: 'c'`）；車流、警車、GPS、路障、叫車都走這張圖（`edgeAt`、`rnAt`、Dijkstra 的 `rnField`）；斜穿片的大道 `DIAG`（`kind: 'd'`，穿過的格子在 `PLAZA`，`plazaAt`／`plazaD`）與沿縫的快速道路 `FWY`（`kind: 'f'`，`seamMid` 取縫的中線、`fwyClear` 推離片的路；高架橋面高度 `F.h(弧長)`／`fwyH(e, u)`，跨過連接道路，銜接點是沒有片的路口 `free`；`deckTop`／`deckAt` 查橋面、`spawnY` 給生成載具的高度）；鐵灣高架斷橋 `BROKEN`（自動挑離鐵灣貨場最近、前後都是草地的連接道路，`brokenNear` 讓路燈與樹避開） |
+| `07-kitx.js` | Kit 的細部建模工具（圓角盒 `rbox`、旋轉體 `lathe`、兩點間的 `rod`／`bar`、擠出多邊形 `prism`、`torus`、雙層遮光罩 `visor`）與程式紋理材質 `MAT.ux`／`MAT.uxI`：頂點色＋`aMat` ≥ 20 時在著色器裡畫紋路（`TX`：混凝土、塗漆鐵的鏽與掉漆、鍍鋅鋼、三個方向的木紋、混凝土磚、紅磚、石材、鋼板、橡膠），不用貼圖檔，細紋依 fwidth 在遠處淡掉。號誌（近處完整版 `sigMesh`、70 m 外遠景版 `sigFar`）、逃生梯、窗型冷氣、水塔、屋頂空調箱、燈籠、噴水池、縫上的涼亭／小賣亭／公廁、快速道路的護欄、大梁、帽梁與門架都用它 |
 | `10-city.js` | 20×15 街區（原本的 5×5 在西北角，第一輪的 8×7 在它外圍，第二輪的新區由 `DISTRICTS` 表分區）與地塊、`wholeBlocks` 把整個街區換成一個模型或一群建築（冠石的 `bld_fin`、光環的 `bld_cyber` 14 群加 `bld_fin` 三群、灰石的 `grey_18`／`grey_30`／`grey_31`、楓林里與公園大道的 `nbh_01`）、海岸地形（`LANDS`、`BEACH`、`QUAY`、`BRIDGE`、`ISLE`、`PIERS`、`groundH` 與擋牆）、外緣的擋牆、梯子與步道 `SHORE`、外緣外的山 `hillH`（網格上的高度 `hillMeshH`）與山坡住宅、北嶺公園的範圍與步道 `NPARK`、縫的草地與連接道路、地名 `district()`、距離剔除 `distCull`、碰撞空間索引 `boxesNear`／`circlesNear`、安全屋的門 `APT_DOORS`（門與捲門那一段店面畫成鐵捲門）、立面 shader（磚、石、玻璃帷幕、窗內房間、店面、鐵捲門塗鴉）、道路與人行道 shader（標線、積水、漣漪、平面反射） |
 | `20-props.js` | 路燈與光錐、紅綠燈、街道設施（流明電訊的電訊箱 `boxesN` 可以打爛；以檔案開啟是藍色的程式建模，http(s) 下 69-v5-street 換成 `v5works` 的模型）、特技跳台 `RAMPS`（`rampBlock` 清掉助跑道上的路邊停車）、行道樹、燈籠公園步道的紅燈籠路燈 `parkLamps`、施工區、招牌字圖集（店招、立式招牌、廣告牌）、全息頭像、燈串、蒸氣、雨與天空；`signLights` 另外收燈籠與實體建築原檔路燈（`props.json` 的 `lights`）的點光 |
+| `20-relief.js` | 程式立面的浮雕（排在 20-props 之後）：沒換成模型的地塊（風格 8 除外）的窗台、窗楣與拱心石、店面柱、門框與雨棚、女兒牆與壓頂、磚樓的簷下飾帶與托架、塔樓的直鰭與樓層線腳；窗框依種類與窗寬分組實例化（`RELIEF_R` 230 m 內），其餘每個街區一個合併網格，材質是 `MAT.ux`。側面只在高出鄰棟的部分加，背面不加；`lotFallback()` 補回的立面沒有浮雕 |
 | `22-hmap.js` | 日照陰影用的建物高度圖：開場把地塊、`bldPlace` 建築、島上建物與燈塔的外框光柵化成 1.25 m 一格的半浮點貼圖（`uHMap`），建築組載入後再用實際三角形重畫（`hmModel`） |
+| `21-air.js` | 灰鷺角國際機場（`10-city.js` 的 `AIR`：城西外海的填海島 `AIR.isl` 與接回楓林西第 9 條街的 S 形堤道 `AIR.road`，`SEA_FR` 座標框）：島面、跑道與滑行道標線、機坪、航廈前路與停車場、護岸、0.9 m 矮牆（東緣在堤道接口斷開、梯子前是 `swim` 缺口）、跑道邊燈與進場燈、機坪高桿燈與路燈（`signLights`）、堤道的護欄與路燈；程式建模的替身 `AIR_M.proxies`；`air` 組模型（航廈、塔台、機庫、三座空橋、五架客機、餐車）走近 `AIR_NEAR` 才下載（`airModels`）；一架客機的起降循環 `AIR_P`；`00-core.js` 的 `uAirA`／`uAirB`（直升機飛到島上空時霧變淡）；`airApi` 測試 API |
 | `21-coast.js` | 海岸：水面 shader（倒影加兩層波紋）、沙灘、碼頭與島面、擋牆欄杆與步道路燈、步道長椅與花台；珊瑚灘的救生員塔、陽傘、排球網、椰子樹與棧橋盡頭的摩天輪；錨灣港（`harbor`）：貨櫃船靠港、離港、出海再回來（`SHIP_T` 各段長度），四座岸橋只在船停在吊臂下時搬貨櫃、岸橋整座沿軌道移位，三台集卡在岸橋與堆場間跑（會等岸橋、讓玩家），岸橋腳與集卡是每幀重建的動態碰撞圓 `dynCircles`；貨櫃堆與高桿燈；擋牆上的爬梯；區與區之間縫上的碎石步道、步道燈、涼亭、小賣亭與公廁（`SEAM_SITES`）；斜張跨海橋；灰鷗島的岩岸、樹與燈塔；遠景（北嶺國家公園三層山脊、灰鷺河對岸、東灣對岸 `FAR_SITES`、外海小島）與以檔案開啟時的替身 `ISLE_PROXY`；快速道路的高架橋面、橋墩、分隔島與門架 |
 | `21-park.js` | 北嶺公園：冠石北端外緣上的門（石柱木樑的牌樓、路樁、兩側燈柱），門外沿著山的網格（`hillMeshH`）鋪的之字形泥土步道與往北嶺鐵道橋的三條岔路（`NPARK.trails`，進了鐵道橋模型的範圍就停）、約 2600 棵松樹與闊葉樹（圍籬裡的有碰撞）、圍籬、步道燈與長椅、管理站、山腰的雲階觀景台（平台、亭頂、欄杆、台階、望遠鏡）；網格是公園座標框 `NPARK.f` 的局部座標，圓柱與光源換成世界座標；材質是 `MAT.ridge`（150 m 內照一般的霧，再遠和遠景一樣淡） |
 | `20-walk.js` | 多層的步行面 `WALKS`：同一個 x、z 有兩個高度的地方（鐵道橋的橋面與橋下、隧道與上面的山頭）。每項回傳站的高度、`null` 擋住或 `undefined` 照地形；`walkStep`（被擋就沿軸滑）、`walkY` 給 40-people 走路，`walkCam`（地板、天花板、拉回洞裡的相機位置）給 99-main 的相機 |
 | `21-rail.js` | 北嶺鐵道橋的路堤、隧道（兩端洞門的程式替身、西端翼牆、封頂的山頭、洞裡的燈與越深越暗的襯砌、封底）、號誌、橋面與橋墩的夜燈；五節的電聯車（`RAIL`：從西洞底開到東洞底、停 38 秒再開回來，出洞與看到軌道上有人會鳴笛，撞到人擊倒並留在橋面）；每三趟有一趟是四節的貨運列車（`RAIL.sets.frt`：`rail_frt` 的柴電機車、兩節棚車、載四箱軍火貨箱的平車 `c.cargo`，時速 47 km；`railUse`／`railStart(dir, kind)` 換編成，`R.want` 指定下一趟）、軌道聲；`WALKS` 的那一項（橋面護欄、橋墩、隧道洞壁、山頭）。座標是公園框（`VIADUCT.zn` = `NPARK.f`），`railApi` 的 `tp`／`L`／`W`／`yaw` 給驗收擺位置；山頭蓋板是貼著 `parkLidH`（沒挖溝的山坡）的網格，頂點色和山一樣 |
 | `21-tron.js` | 光格島（`10-city.js` 的 `TRON_SITE`／`TRON_LAND`，`SEA_FR` 座標框：城東南的開闊海面）：北端的碼頭與梯子、燈柱；近景 `isle_tron` 與步行格（`isle_tron.walk.bin`）的下載、走近換掉遠景 `far_tron`；`WALKS` 的那一項（樓、牆、護欄靠步行格擋住，樹另外擋，相機與子彈被樓擋住）；`21-coast.js` 的海面在島上挖掉（下層街區低於海面）；水池與光束的 shader；沿車道圖跑的光速機車（拖光牆）與三種車；騎路邊的光速機車（`tronRide`，40 走路時交給它）、販賣機買飲料、坐長椅、上下層的升降梯 |
+| `21-xrail.js` | 港灣高架線（跨城的鐵路）：疊在港灣快速道路（`FWY` 的 Harbor Fwy）中心線上的雙線高架，西端從快速道路起點的平面路口後開始、越過東端的平面路口沿空的縫架到城東（`XR.aS`／`aE`，約 1.8 km）；箱梁、橋面、道碴與鋼軌、護欄、架空線與電桿、兩端車擋；柱子在快速道路的橋墩上從中央護欄穿出（`FWY_PIERS`），沒有橋墩的地方自己立（坡道的中央護欄上、分合流段從地面穿過橋面、縫裡立在地上，腳下是步道就改門形架），`XR.cols`；三站（兩端終點站與中間一站，名稱取區名）的月台、雨棚、燈與站名牌；一列電聯車（21-rail 的 `w1_train` 與替身）在三站間往返（`xrUpdate`，走近 `XR_NEAR` 才下載模型）；頭燈 `xrLights`；`xrApi` 測試 API |
 | `25-cars.js` | 車型目錄 `CARS`（13 台：側面輪廓擠出的車身、上色座艙與嵌入車窗、燈具、進氣、尾翼，7 種輪框樣式）、`carKit(id, paint, wheels)` |
 | `26-glb.js` | 實車模型：`GLB_CARS` 目錄（價格、手感、替身）、貼圖版 uber 材質（建築組另有窗戶編號貼圖 `USE_WINMAP`）、延遲下載與替身替換（`carObject`、`glbWake`）、`glbInstance`；`MASK` 材質的門檻是 `MASK_CUT`（預設 0.5，霓虹堡的鐵絲網用 0.12） |
 | `68-gta.js` | GTA 式擴充第一階段：搶車／撬車（`detachCar` 把車流車變成獨立載具）、準星射線（`castRay`，`rayHooks` 讓 69 加入警察與直升機）、車損（白煙 → 黑煙 → 起火 → 爆炸、燒毀殘骸，撞擊扣血 `crashDmg`：ΔHP = max(0, (J/M − 6)·9)，乘上裝甲的 `armorK`）、路人倒地與逃跑、被拖下車的駕駛（`extras`）、火焰煙霧粒子與閃光燈 |
@@ -122,6 +126,7 @@ node tools/seats.mjs [id…]     # 量實車的車頂輪廓，把車窗射擊的
 | `69-v7-club.js` | 第七部曲之三：LAZARUS 夜店擴建。人氣與保險箱 `clubTick`（`SAFE_*`、`POP_DECAY`、離線補算）、2 樓夾層 `club2`（VIP 區、老闆辦公室的保險箱與電腦）、冷凍庫貨梯 `v7LiftTo` 到 B1（武裝廂型車、技術員終端機）與 B2–B5 倉庫、舞池節奏 `v7Beat*`、鬧事 `v7Trouble*`、馬克白斷片 `v7Macbeth`／`BLACKOUT`、DJ 與技術員 `v7DjMenu`／`v7TechJob`、全部出售 `v7SellStart`（砲塔 `v7TurretStep`、地雷 `v7Mine`）；三個 v7 檔的每幀入口 `v7Update`、按鍵 `v7Key`（gtaKey 最先問）、小地圖 `v7Mini`、`__nc.gta.v7` |
 | `69-v8-civic.js` | 第八部曲：城市勤務。消防派遣（`fireStepCiv`、水砲 `douse`／`sprayFx`）、救護派遣 `ambStep`、派遣車的生成與行駛 `civSpawn`／`civGo`／`civDrive`、玩家的水砲 `playerSpray`、拖吊車 `towHook`／`towDrop`／`towStep`；每幀入口 `v8Update`、`__nc.gta.v8` |
 | `69-v9-ai.js` | 第九部曲：AI。警察攔民車徵用 `copJack`／`copTake`（沒有警笛的 `quiet` 出勤）、車門掩護 `copCover`／`coverSpot`（`u.hold` 讓警車停著）、E 打招呼與挑釁 `aiGreet`／`aiHeckle`（路人狀態 `talk`／`heckle`，`aiPedFsm`）、目擊路人舉手機拍照 `snapWitness`／`snapStep`（拍完才報案，`repsStep`）與燒胎時的圍觀拍照 `funSnaps`、甩掉通緝後的便衣尾隨 `tailStart`／`tailStep`／`tailBust`、頭上台詞 `aiSay`／`saysStep`（`#says`）；每幀入口 `aiUpdate`、`__nc.gta.ai` |
+| `69-v9-drain.js` | 排水道：河岸擋牆上的箱涵排水口（`DR.ents[0]`，挑在擋牆梯子旁、後面有陸地、附近人行道多的一段）與人行道上的兩個人孔（`sideSpots` 往內 1.5 m）通到同一個場館 `VENUES.drain`（排水口段、兩段各 4 節箱涵、中間與東端兩個檢查井，沿 +x 排成一列 `DR_X`）；`drEnter(i)`／`drExit(i)` 依入口換出生點與出口，東端檢查井的走私包 `drTake`；模型 `props/drain.glb` 以 `propSwap` 換掉程式建模；大地圖 `drainBlips`、`__nc.gta.drain` |
 | `69-v9-metro.js` | 地鐵：三站共用一個月台場館 `VENUES.metro`（`mtArrive` 換站名、畫布站牌 `mtSigns` 與出口），入口 `MT.stations` 擺在三條 `DIAG` 的廣場上；列車週期 `mtState`（進站、停站、出站、空檔）與 2 號軌快車、車門旁選目的地 `mtBoard`／`mtGo`、乘車 `metroRide`（相機 `mtCam`）、換站 `transition` → `mtAlight`；模型 `props/metro.glb`／`metro_gate.glb` 以 `propSwap`／`loadProps` 換掉程式建模的替身；每幀入口 `mtUpdate`、`__nc.gta.metro` |
 | `69-v9-switch.js` | 第九部曲：切換角色小劇場。每位主角三齣 `VIGS`（動作、台詞、有些有配角 `vigCrowd`），69-crew 的 `crewCam` 換人時呼叫 `vigStart`，40-people 照 `player.vig` 播動作；`vigUpdate`、`__nc.gta.vig` |
 | `69-v5-tower.js` | 第五部曲之五：中城 (4,3) `FAC.crane` 的霓峰塔工地。框架大樓（`v5tower` 的底層、標準層 ×15、頂層，兩份背對背，屋頂 202.3 m 的鋼板平台與停機坪）、250 m 塔吊（`v5crane` 的桅桿標準節 ×78、塔頂；吊臂朝西伸 76 m），以檔案開啟或 700 m 外是程式建模的替身（`CR.fb`）；施工圍籬、工寮與材料棚（`v5site`）。桅桿東面的直梯用 69-v5-civic 的 `v5Ladder`（`L.sp`／`fast`／`slide` 自己的速度，`L.stops` 在 202 m 的附著平台可以踏上去）；屋頂、連接橋、附著平台是一個 `WALKS`，吊臂走道在自己的仿射框 `CR.f`（`frameM4` 在桅桿那一點）；兩者都登錄在 `V5.roofs`（空白鍵往下跳）。走在吊臂上不算城裡的碰撞（`skyWalk`，40-people 跳過 `collideCircle` 與 `kinWalk`：街區的整塊碰撞盒沒有高度上限）。吊臂末端的狙擊槍箱、120 m 以上用狙擊鏡射程 ×4 與倍率 ×2（`perchK`／`scopeK`，69-combat 與 99-main 呼叫）；每幀 `craneUpdate`（v5Update 呼叫） |
@@ -433,6 +438,43 @@ HANDOFF 先前列為未做的項目：
 - **商標**：原檔車廂裡的真實廣告圖集（`material`）換成原創海報（`tools/props.mjs` 的 `texEdit` `rects`，版面相連所以給矩形；兩面牆共用、一面轉了 180° 的那一格畫成點對稱的圖形海報），貼花圖集（`JoinedDecals`）的真實站名、路線圓標與報紙擦成透明；入口欄杆的站名牌與交通局標誌用 `paint` 整塊重畫。
 - 測試 API：`__nc.gta.metro`：`MT`（`t`、`n`、`st`、`ride`、`hold`、`trains`、`stats.rides`）、`stations`、`scene`、`state()`、`enter(i)`、`boardAt()`、`go(i)`（站在門邊時直接上車往第 i 站）、`phase(ph)`（`in`／`stop`／`out`／`gone`）、`atDoor(c, k)`（站到第 c 節第 k 扇門前）、`PLAT`、`EXIT`、`T`。
 - 驗收：`node tools/check-metro.mjs [--http]`（`--http` 另外檢查模型換掉替身、廣告與貼花圖集是換過的版本），`NC_QUERY='?zrot=25'` 也要過。
+
+### 排水道（河濱排水口與兩個人孔）
+
+`69-v9-drain.js`（排在 69-v9-ai 與 69-v9-metro 之間），沒有每幀入口：提示掛在 `ctxHooks`，走私包在提示裡順便更新顯示。數值都是自己挑的具名常數。
+
+- **排水口**：擋牆上挑一段（擋牆梯子旁 8 m、前後都是水、背後是陸地、14 m 內沒有別的梯子，同條件下 260 m 內人行道空位最多的），箱涵一半凸出擋牆外，口上有黃黑警示條與一盞燈，三個碰撞圓擋住游泳的人穿過去。只能從水裡進：游到口前 `DR_IN_R`（5 m）內按 E。
+- **人孔**：人行道上兩個鑄鐵人孔蓋（`sideSpots` 往街區裡 1.5 m、`free(1.1)` 的空位，離排水口 70–300 m、彼此 150 m 以上），名稱取那一片的區域名（同一區加一號、二號）。站上去 `DR_HOLE_R`（1.5 m）內按 E 爬下去；近的通到中間的檢查井、遠的通到東端。從人孔爬出來站在人孔的馬路那一側、面向馬路。
+- **場館**：沿 +x 一列：排水口段 → 4 節箱涵 → 中間檢查井 → 4 節箱涵 → 東端檢查井，全長約 109 m。箱涵是 SPLEEN VISION 的 dirty tunnel（CC BY 4.0，原檔是 Specular-Glossiness 材質，先用 gltf-transform 的 `metalRough()` 換掉；縮放 1.6 倍，內寬約 4 m、內高 2.5 m）；檢查井（7 × 6.6 m、高 4.4 m，豎井到 7.2 m）的牆面與地面是從同一個箱涵切出來的牆面（`dr_wall`／`dr_wall2` 左右兩面輪流、開口上方 `dr_lintel`、開口兩側 `dr_pier`）與地面（`dr_floor`），一層層疊上去（切片用 `tools/props.mjs` 的 `clipFirst` 先切再減面，切邊才不會是鋸齒；整個場館約 66 萬面）；以檔案開啟或下載失敗用程式建模。爬梯貼在豎井北壁，梯子旁按 E 爬上那個人孔；排水口段按 E 游出去回到河裡。燈是箱涵頂上隔兩節一盞的籠罩燈、檢查井一盞、豎井頂透下來的冷光與口外的月光；口外看出去是畫布畫的夜裡河景。
+- **走私包**：東端檢查井的角落，按 E 撿起入帳 `DR_STASH`（$1,800），包不見，`DR_STASH_T`（真實時間 20 分鐘）後再出現（不存檔，重新整理就重來）。
+- **通緝**：和其他室內場館一樣，不在戶外就不生成警察、警察也看不到人（69-police 的 `sees()`），星級照甩開視線的規則下降；從另一個人孔或排水口出去就換了地方。
+- 測試 API：`__nc.gta.drain`：`DR`（`ents`、`stash`、`stats`、`bag`）、`X`（各段的 x 範圍）、`scene`、`ents`、`enter(i)`、`exit(i)`、`take()`、`at(i)`（入口的世界座標；排水口給游泳靠近的那一點）、`resetStash()`。
+- 驗收：`node tools/check-drain.mjs [--http]`（`--http` 另外檢查箱涵與檢查井換成模型），`NC_QUERY='?zrot=25'` 也要過。
+
+### 灰鷺角國際機場（城西外海的填海機場）
+
+`21-air.js`（排在 20-walk 之後、21-coast 之前），每幀入口 `airUpdate`（99-main 在 `tronUpdate` 之後呼叫）。島與堤道的陸地判斷在 `10-city.js`：`AIR`（島 `isl`、堤道 `road`、半寬 `hw`）、`airLandL`／`airLandW`，`landW`、`seaFloor`、`groundH`、`districtW` 都先問它（`SEA_FR` 搬到 `landW` 前面宣告）。數值都是自己挑的具名常數，名稱是原創的。
+
+- **位置**：島在 `SEA_FR` 座標 x −3300…−1000、z 20…600（城西外海，離岸約一公里）。堤道從楓林西第 9 條街西端出海，三次貝茲曲線取樣成每 8 m 一段，雙向四線、兩側紐澤西護欄與消波石，岸邊的擋牆在接口自動斷開（`SHORE` 依 `landW` 判斷）。開車沿堤道就能上島。
+- **版面**（由北到南）：航廈前路與停車場 → 航廈（`term`，玻璃拱門朝東）與塔台 → 機坪（三座空橋登機門、兩個遠端機位、機庫門前）→ 平行滑行道與七條連絡道 → 東西向跑道（2050 m，西端外海上有進場燈與 PAPI）。島邊一圈 0.9 m 矮牆擋住走路的人與車；東緣南段有梯子，`31-boats.js` 在旁邊停一艘船。
+- **客機**：一次一架照固定流程跑：遠端機位停 30 秒 → 沿路線滑行到跑道東端 → 往西起飛（70 m/s 拉起、爬升）→ 飛出外海消失 15 秒、換機型 → 從西邊 4.2 km 外以 3° 下滑道進場 → 落地減速 → 滑回遠端機位。四個動態碰撞圓（`dynMore`）跟著機身，擋得住人和車。
+- **模型**：`tools/props.mjs` 的 `air` 組（全部 CC BY 4.0，來源見 `assets/260/CREDITS.md`）：fDlruosne 的 A320 與 737 MAX 8、soysascha 的鯨魚造型航廈、lucassobral3d 的舊金山塔台、casadofer 的萊昂機庫、CyzaStore 的空橋、rwy00 的餐車。遠景組（`far`）從城西岸隔著海也看得到。玩家離島中心 `AIR_NEAR`（3.6 km）內、以 http(s) 開啟時才下載，擺好後拿掉程式建模的替身；以檔案開啟用替身。航廈的玻璃帷幕夜裡亮燈（`winRects`：量模型屋簷以下、接近垂直的三角形落在圖集哪些格子）；機庫原檔的線框色換成灰藍玻璃與鋼構色（`recolor`）。
+- **夜裡**：機坪南緣每 100 m 一支 28 m 高桿燈（燈在高處，強度要比路燈大幾十倍）、航廈南面屋簷下的泛光燈、航廈前路與停車場的路燈、堤道路燈；跑道白色邊燈、跑道頭綠紅燈、滑行道藍燈都是自發光，從城裡看是一串燈點。
+- **地圖**：HUD 小地圖與大地圖的底圖是預先畫好的城市範圍，機場不在裡面，`90-hud.js` 的 `airMapDraw` 每次畫的時候用 `MAP_AIR`（世界座標的島、堤道、跑道、滑行道、機坪、建物）疊上去；大地圖的範圍 `MAP_BOUNDS` 包進機場島，有地名標籤。
+- 測試 API：`__nc.props.air`：`L`（版面）、`P`（客機狀態 `st`、`x`、`y`、`z`、`planes`）、`M`（`items`、`proxies`）、`AIR`、`land(x, z)`／`landW(X, Z)`、`W(x, z)`（`SEA_FR` → 世界）、`L2(X, Z)`、`district(X, Z)`、`tp(x, z, yaw)`、`set(st, t)`（`park`／`out`／`line`／`roll`／`gone`／`final`／`rollout`／`in`）。
+- 驗收：`node tools/check-air.mjs [--http]`（地理、開車沿堤道上島、矮牆、梯子、起降循環；`--http` 另外檢查模型換掉替身；`SHOT_DIR` 存截圖），`NC_QUERY='?zrot=25'` 也要過。
+
+### 港灣高架線（跨城的鐵路）
+
+`21-xrail.js`（排在 21-rail、21-tron 之後，頂層用得到 `RAIL.EXT`、`railProxyCar`、`railGlbCar`、`FWY_PIERS`），每幀入口 `xrUpdate`（99-main 在 `airUpdate` 之後呼叫），頭燈 `xrLights` 推進 `dynLights`。座標全部是世界座標（快速道路的中心線本來就是），網格 `cityAdd(…, null)`。
+
+- **路線**：港灣快速道路的中心線，`XR.at(a, lat)` 是弧長 a、往 (−hz, hx) 那一側橫移 lat 的位置。軌面 `XR_Y`（18.5 m），箱梁下緣 16.2 m，高過快速道路的門架；西端從快速道路起點的平面路口後 `HR + 8` 開始，東端快速道路在平面路口就結束了，線沿縫一路架到離城的外緣 40 m 內為止。
+- **柱子**（`XR.cols` 是弧長）：快速道路橋墩（中央護欄那一條）上的直接往上接；分合流點前後 `JN`（24 m）不立（車要換線）。沒有橋墩的地方每 26 m 試一支：坡道上立在中央護欄上；分合流段（快速道路被匯入的橋面疊住、不立橋墩）從地面立整支穿過橋面，條件是中心線離開別條快速道路的橋面、底下不是連接道路；縫裡立在地上（離片的路、連接道路與步道建物夠遠），腳下是縫的步道就改成跨過步道的門形架。最後把超過 52 m 的跨距從中間往外每 2 m 找位置補柱（剩下最長約 72 m，都是跨過連接道路）。每支柱子都有碰撞圓（橋面上的也擋車）。
+- **站**：兩端終點站與中間一站（中間一站避開快速道路東端的平面路口），月台寬 `XR_PW`、長 `XR_PLAT`，雨棚、月台燈（`signLights`）與畫布站名牌（站名取 `districtW` 的區名加「站」，下面一行「港灣高架線 · Harbor Skyline」）。站沒有樓梯，上不去。
+- **列車**：編成同北嶺鐵道（車頭、中間、tail、中間、反向車頭），終點站停 40 秒、中間站 22 秒，最高 22 m/s；往 +a 開走 +`XR_TRK` 那一線、往 −a 走另一線，從終點站出發時出站 80 m 的渡線換線（`xrLat`）。玩家在任一站或列車 `XR_NEAR`（1.5 km）內才下載 `w1_train`；行駛聲只在北嶺鐵道的列車沒在出聲時由這裡出（同一個聲音節點），出站鳴笛。
+- **地圖**：90-hud 的 `MAP_XR`，大小地圖都疊在快速道路上面（畫法同鐵道），三站是淺色方塊。
+- 測試 API：`__nc.props.xrail`：`R`（`XR`）、`Y`、`at(a, lat)`、`go(i, dir)`（列車馬上從第 i 站往 dir 出發）、`tp(i, lat)`（傳到第 i 站旁）。
+- 驗收：`node tools/check-xrail.mjs [--http]`（全長、站名、柱子數與最長一跨、線頭懸臂、箱梁淨高、站序與速度、車廂高度；`--http` 檢查列車換成模型；`SHOT_DIR` 存白天與夜間截圖），`NC_QUERY='?zrot=25'` 也要過。
 
 ### 車輛細節（短按／長按 F、燒胎、卡軸、泡水）
 

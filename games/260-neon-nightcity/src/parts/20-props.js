@@ -205,17 +205,53 @@ for (const n of RN.nodes) for (const { e, dir } of n.out) {
   const hx = ax === 'x' ? -sg : 0, hz = ax === 'z' ? -sg : 0;   // 來車的方向（邏輯座標）：和往外的方向相反
   signals.push({ x: avX(n.i) - hx * 9.2 - hz * 9.2, z: stZ(n.j) - hz * 9.2 + hx * 9.2, ry: Math.atan2(hx, hz), i: n.i, j: n.j, ax, zn: n.zn, node: n });
 }
-const sigGeo = new Kit()
-  .cyl(0, 3.1, 0, .11, .13, 6.2, 10, 0x30343a, 15)
-  .box(2.6, 6.05, 0, 5.2, .12, .12, 0x30343a, 15)
-  .box(4.7, 5.35, 0, .42, 1.25, .34, 0x15171a, 2)
-  .box(4.7, 5.35, .19, .5, 1.33, .04, 0x101113, 2)
-  .cyl(4.7, 5.74, -.18, .12, .12, .04, 12, 0xff2a1a, 12, Math.PI / 2)
-  .cyl(4.7, 5.35, -.18, .12, .12, .04, 12, 0xffb020, 13, Math.PI / 2)
-  .cyl(4.7, 4.96, -.18, .12, .12, .04, 12, 0x40ff9a, 14, Math.PI / 2)
-  .box(.25, 2.6, 0, .3, .5, .25, 0x15171a, 2)
-  .build();
-const sigMesh = instanced(sigGeo, MAT.uberI, signals, 0, () => 0);
+// 照美式懸臂號誌（mast arm）的照片畫：混凝土基座、底板與錨栓、錐形鋼柱、斜上的錐形懸臂與法蘭、兩組三色燈（12 吋燈面、
+// 遮光罩、黑色背板帶黃色反光邊）、吊架；柱上朝路口的行人號誌與按鈕盒。局部座標：柱在原點，懸臂朝 +x，燈面朝 -z（來車）
+// lo：遠景版（SIG_NEAR 外）：段數減半、不畫螺帽、燈框、遮光罩內壁與按鈕盒，圓角盒改直角，約 1/4 的面
+const sigBuild = (lo) => {
+  const k = new Kit(), steel = 0x3a3e44, dark = 0x121417, ARM_Y = 5.95, sg = (n) => lo ? Math.max(4, n >> 1) : n;
+  const rb = (x, y, z, sx, sy, sz, r, c, m, rx = 0, ry = 0, rz = 0, b = 0) => lo ? k.box(x, y, z, sx, sy, sz, c, m, rx, ry, rz) : k.rbox(x, y, z, sx, sy, sz, r, c, m, rx, ry, rz, b);
+  k.cyl(0, .1, 0, .4, .43, .2, sg(16), 0x77736b, TX.conc).box(0, .22, 0, .5, .04, .5, steel, TX.iron);   // 基座、底板
+  if (!lo) for (const [x, z] of [[-.19, -.19], [.19, -.19], [-.19, .19], [.19, .19]]) k.cyl(x, .27, z, .028, .028, .07, 6, 0x6a6c70, TX.galv);   // 錨栓螺帽
+  k.lathe(0, 0, 0, [[.25, .24], [.25, .34], [.21, .4], [.165, .47]], sg(16), steel, TX.iron);   // 底座罩
+  k.lathe(0, 0, 0, [[.165, .47], [.118, 6.42], [.128, 6.44], [.128, 6.5], [.07, 6.58], [0, 6.6]], sg(16), steel, TX.iron);   // 錐形柱與柱頂蓋
+  // 懸臂：法蘭板、斜上的錐形臂、下面的三角肋板、末端蓋
+  k.box(.15, ARM_Y, 0, .05, .44, .34, steel, TX.iron);
+  if (!lo) for (const z of [-.12, .12]) for (const y of [-.15, .15]) k.cyl(.18, ARM_Y + y, z, .02, .02, .05, 6, 0x6a6c70, TX.galv, 0, 0, Math.PI / 2);
+  k.rod(.17, ARM_Y, 0, 5.75, ARM_Y + .32, 0, .105, sg(12), steel, TX.iron, .06);
+  k.prism(.17, ARM_Y, 0, [[0, -.02], [.55, -.02], [0, -.5]], .025, steel, TX.iron);
+  k.cyl(5.76, ARM_Y + .32, 0, .062, .062, .03, sg(10), steel, TX.iron, 0, 0, Math.PI / 2);
+  // 三色燈：背板、黃邊、燈箱、每格的燈面、外框與遮光罩，上面的吊架夾在臂上
+  const head = (hx) => {
+    const ay = ARM_Y + .32 * (hx - .17) / 5.58, hy = ay - .62;
+    rb(hx, hy, .15, .58, 1.3, .025, .05, dark, TX.rubber);
+    for (const [x, y, w, h] of [[0, .625, .58, .05], [0, -.625, .58, .05], [-.265, 0, .05, 1.3], [.265, 0, .05, 1.3]]) k.box(hx + x, hy + y, .134, w, h, .008, 0xd9b020, 10);
+    rb(hx, hy, 0, .36, 1.06, .26, .045, dark, TX.rubber, 0, 0, 0, .015);
+    [[0xff2a1a, 12], [0xffb020, 13], [0x40ff9a, 14]].forEach(([c, m], i) => {
+      const y = hy + .35 - i * .35;
+      k.cyl(hx, y, -.132, .135, .135, .02, sg(12), c, m, Math.PI / 2);
+      if (lo) { k.box(hx, y + .13, -.25, .3, .02, .24, dark, TX.rubber); return; }
+      k.cyl(hx, y, -.128, .158, .158, .012, 12, 0x1c1e22, TX.rubber, Math.PI / 2);
+      k.visor(hx, y, -.13, .165, .24, dark, TX.rubber, Math.PI);
+      if (i < 2) k.box(hx, y - .175, -.12, .34, .012, .02, 0x08090a, 2);
+    });
+    k.box(hx, hy + .56, 0, .12, .06, .12, steel, TX.iron).rod(hx, hy + .58, 0, hx, ay - .05, 0, .025, sg(8), steel, TX.iron);
+    rb(hx, ay, 0, .1, .2, .24, .03, steel, TX.iron);   // 臂上的夾具
+  };
+  head(2.7); head(5.1);
+  // 柱上的行人號誌（朝 +x，過馬路的人看對面那一支）：燈箱、遮罩、亮著的橘色手掌；下面是按鈕盒與說明牌
+  rb(.27, 2.75, 0, .2, .4, .38, .03, dark, TX.rubber, 0, Math.PI / 2).box(.18, 2.75, 0, .14, .06, .06, steel, TX.iron);
+  k.box(.375, 2.75, 0, .01, .3, .3, 0xff7a20, 11).box(.42, 2.92, 0, .1, .02, .38, dark, TX.rubber);
+  for (const z of [-.19, .19]) k.box(.42, 2.75, z, .1, .36, .02, dark, TX.rubber);
+  if (!lo) {
+    k.rbox(.16, 1.1, .1, .1, .17, .08, .02, 0xb89a2a, TX.iron, 0, Math.PI / 4).cyl(.2, 1.12, .14, .03, .03, .03, 10, 0x2a2c30, 3, Math.PI / 2, Math.PI / 4);
+    k.box(.17, 1.32, .11, .015, .22, .14, 0xe8e8e2, 10, 0, Math.PI / 4);
+  }
+  return k.build();
+};
+// 近處 SIG_NEAR 內畫完整的、外面畫遠景版（兩個串流網格，R0 跟著畫質的距離倍率走，交界不重疊也不留空）；燈號兩個都更新
+const SIG_NEAR = 70, sigMesh = instanced(sigBuild(false), MAT.uxI, signals, 0, () => 0, SIG_NEAR), sigFar = instanced(sigBuild(true), MAT.uxI, signals, 0, () => 0);
+if (sigFar.userData.stream) Object.defineProperty(sigFar.userData.stream, 'R0', { get: () => SIG_NEAR * detailK() });
 for (const s of signals) { circles.push(circleToW({ x: s.x, z: s.z, r: .2 }, s.zn)); if (s.zn) claim(s.x, s.z, 1.2); }
 const SIGP = 26;
 function lightState(i, j, ax, t) {
@@ -224,9 +260,11 @@ function lightState(i, j, ax, t) {
   return k < 13 ? 0 : k < 24 ? 2 : 1;
 }
 function updateSignals(t) {
-  const a = sigGeo.attributes.aIns, map = sigMesh.userData.map;
-  for (let c = 0; c < sigMesh.count; c++) { const s = signals[map ? map[c] : c]; a.array[c * 4] = lightState(s.i, s.j, s.ax, t); }
-  a.needsUpdate = true;
+  for (const m of [sigMesh, sigFar]) {
+    const a = m.geometry.attributes.aIns, map = m.userData.map;
+    for (let c = 0; c < m.count; c++) { const s = signals[map ? map[c] : c]; a.array[c * 4] = lightState(s.i, s.j, s.ax, t); }
+    a.needsUpdate = true;
+  }
 }
 
 // ─── 人行道小物：消防栓、垃圾桶、報箱、護柱、電話亭 ───
@@ -274,13 +312,22 @@ for (const b of blocks) {
     }
   }
 }
-// 燈柱、往步道伸出的橫臂、吊著的紅燈籠（上下黑色環）
-instanced(new Kit()
-  .cyl(0, .2, 0, .14, .16, .4, 8, 0x1c1a18, 15).cyl(0, 1.7, 0, .06, .07, 3.2, 8, 0x2a2622, 15)
-  .box(-.42, 3.25, 0, .9, .06, .06, 0x2a2622, 15).cyl(-.82, 3.05, 0, .01, .01, .35, 4, 0x1c1a18, 15)
-  .cyl(-.82, 2.94, 0, .09, .09, .05, 10, 0x1c1a18, 15)
-  .cyl(-.82, 2.84, 0, .14, .24, .14, 12, 0xd8401c, 11).cyl(-.82, 2.67, 0, .26, .26, .2, 12, 0xff9a4a, 11).cyl(-.82, 2.5, 0, .24, .14, .14, 12, 0xd8401c, 11)
-  .cyl(-.82, 2.41, 0, .09, .09, .05, 10, 0x1c1a18, 15).cyl(-.82, 2.3, 0, .015, .015, .18, 4, 0xd8401c, 11).build(), MAT.uber, parkLamps, LY.NOREFL);
+// 燈籠燈（照中式庭園的燈籠燈柱）：石座、鑄鐵柱與柱頂的寶珠、捲草紋托架撐著的橫臂、吊環、鼓形的紅紙燈籠（12 條骨架、亮著的燈面）、金色上下蓋與流蘇
+{
+  const k = new Kit(), iron = 0x2a2622, gold = 0xb8862a, lx = -.82;
+  k.lathe(0, 0, 0, [[.2, 0], [.2, .22], [.16, .26], [.16, .3], [.11, .36], [.08, .42]], 8, 0x6e6a62, TX.stone);
+  k.lathe(0, 0, 0, [[.08, .42], [.065, 3.3], [.08, 3.32], [.08, 3.36], [.05, 3.4]], 8, iron, TX.iron);
+  k.add(new T.SphereGeometry(.07, 8, 6), lin(gold), 15, tf(0, 3.45, 0)).cyl(0, 1.0, 0, .085, .085, .05, 8, iron, TX.iron);
+  k.box(-.45, 3.25, 0, .95, .05, .05, iron, TX.iron).cyl(-.93, 3.25, 0, .035, .035, .06, 8, gold, 15, 0, 0, Math.PI / 2);
+  k.torus(-.5, 2.75, 0, .5, .018, 12, iron, TX.iron, 0, 0, 0, Math.PI / 2, 4);   // 托架：從柱身彎上去接橫臂的四分之一弧，中間一個捲草
+  k.torus(-.2, 3.08, 0, .08, .014, 8, iron, TX.iron, 0, 0, 0, Math.PI * 1.5, 4);
+  k.cyl(lx, 3.16, 0, .012, .012, .16, 4, iron, TX.iron).torus(lx, 3.07, 0, .04, .01, 8, gold, 15, 0, 0, 0);
+  k.cyl(lx, 3.0, 0, .1, .12, .06, 12, gold, 15);
+  k.lathe(lx, 0, 0, [[.1, 2.97], [.18, 2.93], [.25, 2.84], [.28, 2.72], [.28, 2.62], [.25, 2.5], [.18, 2.41], [.1, 2.37]], 12, 0xff8a3a, 11);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); k.rod(lx + c * .19, 2.92, sn * .19, lx + c * .287, 2.67, sn * .287, .008, 3, 0xa82a14, 11).rod(lx + c * .287, 2.67, sn * .287, lx + c * .19, 2.42, sn * .19, .008, 3, 0xa82a14, 11); }
+  k.cyl(lx, 2.34, 0, .12, .1, .06, 12, gold, 15).cyl(lx, 2.27, 0, .02, .02, .08, 6, gold, 15).cyl(lx, 2.12, 0, .01, .05, .22, 8, 0xd8401c, 11);
+  instanced(k.build(), MAT.ux, parkLamps, LY.NOREFL);
+}
 
 // 行道樹：紅磚巷與舊碼頭比較多；燈籠公園的草地上種滿樹
 for (const b of blocks) {
@@ -426,11 +473,21 @@ const boxesMesh = instanced(new Kit()   // 藍色電訊箱：69-market.js 打爛
   .box(.18, .1, 0, .04, .2, .4, 0x222222, 15).box(-.18, .1, 0, .04, .2, .4, 0x222222, 15).build(), MAT.uber, boxesN, LY.NOREFL);
 // 69-v5-street.js 以 http(s) 開啟時換成 v5works.glb 的電訊箱（照邏輯座標的 boxesL 擺）；69-market.js 打爛時每一串都要縮
 const boxesMs = [boxesMesh], boxesL = boxesN.map(b => ({ ...b }));
-instanced(new Kit().cyl(0, .45, 0, .1, .11, .9, 10, 0x34383d, 15).cyl(0, .82, 0, .115, .115, .06, 10, 0xd8a020, 10).build(), MAT.uber, bollards, LY.NOREFL);
+// 路口護柱（照鑄鐵街柱）：底座的圓盤、微收的柱身、兩道凸環、黃色反光帶、半球頂
+instanced(new Kit().lathe(0, 0, 0, [[.14, 0], [.14, .05], [.11, .09], [.1, .14], [.095, .66], [.11, .68], [.11, .72], [.095, .74], [.095, .82], [.105, .84], [.1, .87], [.07, .93], [.03, .955], [0, .96]], 12, 0x34383d, TX.iron)
+  .cyl(0, .78, 0, .1, .1, .07, 12, 0xd8a020, 10).build(), MAT.ux, bollards, LY.NOREFL);
 const boothMesh = instanced(new Kit()
   .box(0, 1.15, 0, .9, 2.3, .9, 0x1d2a2a, 15).box(0, 1.3, -.46, .7, 1.5, .02, 0x88aaaa, 1).box(0, 2.18, -.46, .7, .16, .03, 0x7fe7ff, 8)
   .box(0, 2.35, 0, .96, .1, .96, 0x121818, 15).build(), MAT.uber, booths);
-instanced(new Kit().box(0, 0, 0, 1.3, .02, 1.3, 0x14130f, 15).build(), MAT.uber, grates, LY.NOREFL);
+// 樹穴鐵蓋（照常見的鑄鐵樹穴格柵）：方框、圍著樹幹的圓環、放射狀的格條
+{
+  const k = new Kit(), iron = 0x1c1b18;
+  k.box(0, -.004, 0, 1.3, .012, 1.3, 0x0c0b09, 2);
+  for (const [x, z, w, d] of [[0, -.62, 1.3, .06], [0, .62, 1.3, .06], [-.62, 0, .06, 1.3], [.62, 0, .06, 1.3]]) k.box(x, .004, z, w, .02, d, iron, TX.iron);
+  k.torus(0, .004, 0, .3, .022, 16, iron, TX.iron).torus(0, .004, 0, .46, .015, 16, iron, TX.iron);
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r1 = .6 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))); k.bar(Math.cos(a) * .32, .004, Math.sin(a) * .32, Math.cos(a) * r1, .004, Math.sin(a) * r1, .025, .016, iron, TX.iron); }
+  instanced(k.build(), MAT.ux, grates, LY.NOREFL, null, 120);   // 貼地的格柵：遠處看不出來
+}
 let treeMesh;
 { // 行道樹：幾團變形的二十面體葉團
   const k = new Kit(); const r2 = rng(5);
@@ -448,13 +505,24 @@ let treeMesh;
   treeMesh = instanced(k.build(), MAT.uber, trees);
 }
 // 廣場的噴水池：石砌圓池、深色水面、中間兩層的盤與水柱（水柱是淡藍的自發光），池邊一圈低矮的燈
-instanced(new Kit()
-  .cyl(0, .25, 0, 3.2, 3.3, .5, 28, 0x6e6a62, 2).cyl(0, .52, 0, 3.25, 3.25, .06, 28, 0x8a8478, 2)
-  .cyl(0, .4, 0, 2.95, 2.95, .04, 28, 0x0e2230, 2)
-  .cyl(0, 1, 0, .35, .45, 1.2, 12, 0x6e6a62, 2).cyl(0, 1.65, 0, 1.4, .5, .25, 20, 0x8a8478, 2)
-  .cyl(0, 2.3, 0, .18, .22, 1.1, 10, 0x6e6a62, 2).cyl(0, 2.85, 0, .7, .25, .16, 16, 0x8a8478, 2)
-  .cyl(0, 3.5, 0, .06, .12, 1.2, 8, 0x9fd8ff, 11).cyl(0, 1.95, 0, 1.1, 1.3, .5, 20, 0x9fd8ff, 11)
-  .build(), MAT.uber, fountains.map(f => ({ ...f, y: .15 })), LY.NOREFL);
+// 廣場噴水池（照歐式兩層盤噴泉）：石砌池壁與圓弧壓頂、池底與水面、八盞池底燈、雕花的柱座、兩層有唇口的水盤、從盤緣落下的水簾、頂上的噴泉與水花
+{
+  const k = new Kit(), st = 0x6e6a62, st2 = 0x8a8478, water = 0x9fd8ff;
+  k.lathe(0, 0, 0, [[3.3, 0], [3.3, .42], [3.38, .46], [3.38, .54], [3.3, .6], [3.15, .62], [3.0, .58], [2.95, .5], [2.95, .1], [0, .1]], 36, st, TX.stone);
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; k.box(Math.cos(a) * 3.32, .25, Math.sin(a) * 3.32, .02, .3, .3, 0x5a5650, TX.stone, 0, -a); }   // 石塊縫
+  k.cyl(0, .4, 0, 2.95, 2.95, .02, 36, 0x0e2230, 1);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; k.cyl(Math.cos(a) * 2.6, .3, Math.sin(a) * 2.6, .08, .1, .05, 8, 0xbfe8ff, 11); }
+  k.lathe(0, 0, 0, [[.7, .1], [.7, .3], [.55, .38], [.42, .5], [.36, .9], [.42, 1.1], [.3, 1.3], [.26, 1.5], [.0, 1.5]], 16, st, TX.stone);
+  k.lathe(0, 0, 0, [[.26, 1.42], [.6, 1.48], [1.2, 1.62], [1.45, 1.74], [1.5, 1.82], [1.42, 1.86], [1.3, 1.8], [.0, 1.78]], 24, st2, TX.stone);
+  k.cyl(0, 1.79, 0, 1.38, 1.38, .02, 24, 0x2a5a70, 1);
+  k.lathe(0, 0, 0, [[.0, 1.8], [.24, 1.8], [.2, 2.1], [.16, 2.4], [.22, 2.6], [.16, 2.7], [.0, 2.7]], 12, st, TX.stone);
+  k.lathe(0, 0, 0, [[.16, 2.66], [.4, 2.72], [.72, 2.86], [.78, 2.92], [.72, 2.96], [.0, 2.94]], 16, st2, TX.stone);
+  k.lathe(0, 0, 0, [[.0, 2.94], [.08, 2.94], [.06, 3.2], [.1, 3.3], [.0, 3.38]], 8, st, TX.stone);
+  k.add(new T.CylinderGeometry(1.52, 1.62, 1.3, 24, 1, true), lin(water), 11, tf(0, 1.18, 0));   // 下層盤的水簾
+  k.add(new T.CylinderGeometry(.8, .88, .9, 16, 1, true), lin(water), 11, tf(0, 2.5, 0));
+  k.lathe(0, 0, 0, [[.02, 3.3], [.05, 3.7], [.08, 4.1], [.18, 4.4], [.32, 4.35], [.5, 4.0], [.62, 3.6], [.0, 3.6]], 12, water, 11);
+  instanced(k.build(), MAT.ux, fountains.map(f => ({ ...f, y: .15 })), LY.NOREFL);
+}
 
 // ─── 窗型冷氣、逃生梯、水塔、屋頂設備 ───
 const acs = [], escapes = [], towers = [], roofBits = [];
@@ -484,27 +552,82 @@ for (const L of winSpots) {
   if (L.h < 32 && rnd() < .28) (G || towers).push({ x: lerp(L.x0, L.x1, .3 + rnd() * .4), y: L.h, z: lerp(L.z0, L.z1, .3 + rnd() * .4), ry: rnd() * 6, s: .8 + rnd() * .4 });
   for (let n = 0; n < 2; n++) if (rnd() < .5) (G || roofBits).push({ x: lerp(L.x0, L.x1, .15 + rnd() * .7), y: L.h, z: lerp(L.z0, L.z1, .15 + rnd() * .7), ry: Math.floor(rnd() * 4) * Math.PI / 2, s: .7 + rnd() * .6 });
 }
-instanced(new Kit().box(0, .22, .02, .66, .42, .5, 0xbab5a8, 10).box(0, .22, .28, .58, .3, .02, 0x55534e, 2).box(0, -.04, .05, .5, .06, .4, 0x2a2a2a, 15).build(), MAT.uber, acs);
+// 窗型冷氣（照公寓外牆上的窗機）：機身、前面板的出風百葉與進風格柵、右側的操作面板、兩側散熱百葉、下面的三角托架。局部 +z 朝外，牆在 z ≈ -0.22
 {
-  const k = new Kit(), iron = 0x1c1d20, W = 5.2;
-  k.box(0, 0, 0, W, .06, 1.15, iron, 15);
-  k.box(0, 1.0, .55, W, .05, .05, iron, 15);
-  for (let x = -W / 2; x <= W / 2 + .01; x += W / 8) k.box(x, .5, .55, .03, 1, .03, iron, 15);
-  k.box(-W / 2, .5, 0, .03, 1, 1.15, iron, 15);
-  k.box(W / 2, .5, 0, .03, 1, 1.15, iron, 15);
-  k.box(.8, 1.55, .15, .6, .05, 3.4, iron, 15, -Math.atan2(3.1, 3.3) + Math.PI / 2, Math.PI / 2, 0);
-  instanced(k.build(), MAT.uber, escapes.map(e => ({ ...e, x: e.x + Math.cos(e.ry) * 1.25, z: e.z - Math.sin(e.ry) * 1.25 })));
+  const k = new Kit(), shell = 0xc9c4b6, grey = 0x8e8a80;
+  k.box(0, .22, .02, .66, .42, .5, shell, TX.sheet).box(0, .22, .272, .62, .38, .012, 0xb2ad9f, TX.sheet);
+  for (let i = 0; i < 3; i++) k.box(-.07, .34 - i * .035, .285, .44, .008, .03, grey, TX.sheet, -.5);   // 出風百葉
+  for (let i = 0; i < 5; i++) k.box(-.07, .2 - i * .03, .28, .44, .012, .006, 0x4a4842, 2);       // 進風格柵
+  k.box(.22, .22, .28, .12, .3, .006, 0x5a5850, TX.rubber).box(.22, .3, .284, .06, .03, .004, 0x2a2c30, 2);
+  for (const s of [-1, 1]) for (let i = 0; i < 2; i++) k.box(s * .333, .3 - i * .1, .05, .006, .03, .3, grey, TX.sheet);
+  for (const s of [-1, 1]) k.bar(s * .26, -.16, -.22, s * .26, -.005, .2, .025, .025, 0x2a2a2a, TX.iron);
+  k.box(0, -.01, -.01, .62, .025, .03, 0x2a2a2a, TX.iron);
+  instanced(k.build(), MAT.ux, acs, 0, null, 150);   // 小東西：150 m 外只剩幾個像素，不送
 }
+// 逃生梯（照紐約與波特蘭的老公寓）：每層一座平台（角鋼框、格柵踏板、外緣與兩端的欄杆與直欄、下面的斜撐），往上一層的斜梯（兩根側板、踏階、扶手）。
+// 局部 +z 朝外，牆在 z ≈ -0.62；斜梯爬 3.1 m（一層樓高），style 3 的高樓層差 0.6 m，照舊用同一座
 {
-  const k = new Kit(), wood = 0x5a3f2a;
-  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.box(x * 1.1, 1.3, z * 1.1, .12, 2.6, .12, 0x26272a, 15);
-  k.box(0, 2.62, 0, 2.9, .12, 2.9, 0x26272a, 15);
-  k.cyl(0, 4.3, 0, 1.55, 1.6, 3.2, 16, wood, 2);
-  for (let y = 3; y < 6; y += .7) k.cyl(0, y, 0, 1.63, 1.63, .06, 16, 0x222326, 15);
-  k.cyl(0, 6.45, 0, .1, 1.7, 1.1, 16, 0x3a3a3c, 15);
-  instanced(k.build(), MAT.uber, towers);
+  const k = new Kit(), iron = 0x1c1d20, W = 5.2, D = 1.15, z0 = -D / 2, z1 = D / 2;
+  k.box(0, -.03, 0, W, .03, D, 0x141517, TX.iron);   // 踏板
+  for (let x = -W / 2 + .2; x < W / 2; x += .2) k.box(x, .0, 0, .02, .02, D - .04, 0x2a2b2e, TX.iron);   // 格柵
+  for (const z of [z0, z1]) k.box(0, -.04, z, W, .07, .04, iron, TX.iron);
+  for (const x of [-W / 2, W / 2]) k.box(x, -.04, 0, .04, .07, D, iron, TX.iron);
+  k.box(0, 1.0, z1, W + .04, .04, .04, iron, TX.iron).box(0, .5, z1, W, .025, .025, iron, TX.iron);   // 外緣扶手與中欄
+  for (let x = -W / 2; x <= W / 2 + .01; x += .2) k.box(x, .5, z1, .018, 1, .018, iron, TX.iron);
+  for (const x of [-W / 2, W / 2]) {
+    k.box(x, 1.0, 0, .04, .04, D, iron, TX.iron).box(x, .5, 0, .025, .025, D, iron, TX.iron);
+    for (let z = z0 + .2; z < z1; z += .2) k.box(x, .5, z, .018, 1, .018, iron, TX.iron);
+  }
+  for (const x of [-2.1, -.7, .7, 2.1]) k.bar(x, -1.0, z0 - .03, x, -.06, z1 - .08, .035, .035, iron, TX.iron);   // 斜撐
+  // 斜梯：靠牆那半邊，從 x = -0.85 爬到 2.45
+  const sx0 = -.85, sx1 = 2.45, H = 3.1, sz0 = -.15, sz1 = .45;
+  for (const z of [sz0, sz1]) k.bar(sx0, 0, z, sx1, H, z, .025, .18, iron, TX.iron);
+  for (let i = 1; i < 12; i++) { const t = i / 12; k.box(lerp(sx0, sx1, t), H * t - .04, (sz0 + sz1) / 2, .22, .025, sz1 - sz0, 0x2a2b2e, TX.iron); }
+  k.bar(sx0, .95, sz1 + .03, sx1, H + .95, sz1 + .03, .03, .03, iron, TX.iron);
+  for (const t of [.25, .5, .75]) k.box(lerp(sx0, sx1, t), H * t + .48, sz1 + .03, .02, .95, .02, iron, TX.iron);
+  instanced(k.build(), MAT.ux, escapes.map(e => ({ ...e, x: e.x + Math.cos(e.ry) * 1.25, z: e.z - Math.sin(e.ry) * 1.25 })), 0, null, 240);
 }
-instanced(new Kit().box(0, .55, 0, 2.2, 1.1, 1.4, 0x6c6f72, 10).box(.4, 1.2, 0, .9, .2, .9, 0x3a3c3e, 2).cyl(-.6, 1.4, 0, .25, .25, .8, 10, 0x55585b, 15).build(), MAT.uber, roofBits);
+// 屋頂木水塔（照曼哈頓的木桶水塔）：四腳鋼架與交叉拉桿、鋼梁平台與一圈欄杆、杉木桶身（直條木板分兩色）與鐵箍、錐形頂與頂上的球、檢修爬梯
+{
+  const k = new Kit(), wood = 0x5a3f2a, wood2 = 0x4a3322, iron = 0x26272a;
+  const legs = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (const [x, z] of legs) k.box(x * 1.1, 1.3, z * 1.1, .12, 2.6, .12, iron, TX.iron).box(x * 1.1, .03, z * 1.1, .3, .06, .3, 0x3a3a3c, TX.sheet);
+  for (let i = 0; i < 4; i++) {
+    const [ax, az] = legs[i], [bx, bz] = legs[(i + 1) % 4];
+    k.rod(ax * 1.1, .3, az * 1.1, bx * 1.1, 2.4, bz * 1.1, .02, 4, iron, TX.iron).rod(bx * 1.1, .3, bz * 1.1, ax * 1.1, 2.4, az * 1.1, .02, 4, iron, TX.iron);
+    k.bar(ax * 1.1, 1.3, az * 1.1, bx * 1.1, 1.3, bz * 1.1, .08, .1, iron, TX.iron);
+  }
+  k.box(0, 2.62, 0, 2.9, .12, 2.9, iron, TX.iron);
+  for (const [x, z, w, d] of [[0, -1.42, 2.9, .03], [0, 1.42, 2.9, .03], [-1.42, 0, .03, 2.9], [1.42, 0, .03, 2.9]]) k.box(x, 3.15, z, w, .04, d, iron, TX.iron);
+  for (const [x, z] of legs) k.box(x * 1.42, 2.9, z * 1.42, .04, .55, .04, iron, TX.iron);
+  for (let i = 0; i < 24; i++) {   // 桶身：24 片木板
+    const a = i / 24 * Math.PI * 2;
+    k.box(Math.sin(a) * 1.55, 4.3, Math.cos(a) * 1.55, .41, 3.2, .08, i % 3 ? wood : wood2, TX.woodY, 0, a);
+  }
+  k.cyl(0, 4.3, 0, 1.5, 1.5, 3.18, 12, 0x2a1e14, TX.woodY);
+  for (let y = 3; y < 6; y += .55) k.cyl(0, y, 0, 1.62, 1.62, .05, 20, 0x222326, TX.iron);
+  k.lathe(0, 0, 0, [[1.72, 5.86], [1.72, 5.92], [.12, 6.9], [.05, 6.98]], 20, 0x3a3a3c, TX.sheet);
+  k.add(new T.SphereGeometry(.12, 8, 6), lin(0x3a3a3c), 15, tf(0, 7.05, 0));
+  for (const x of [-.22, .22]) k.box(x, 4.45, 1.66, .04, 3.6, .04, iron, TX.iron);   // 爬梯
+  for (let y = 2.8; y < 6.2; y += .3) k.box(0, y, 1.66, .44, .025, .025, iron, TX.iron);
+  k.box(0, 6.05, 1.35, .6, .04, .5, iron, TX.iron, -.5);   // 頂上的檢修口
+  instanced(k.build(), MAT.ux, towers, 0, null, 320);   // 數量不到 160 不會自動串流，但一座一千多面
+}
+// 屋頂空調箱（rooftop unit）：基座框、機櫃與面板接縫、側面的冷凝器格柵、頂上的風扇護網、排氣罩與瓦斯管
+{
+  const k = new Kit(), cab = 0xa3a6a8, seam = 0x6a6d70;
+  k.box(0, .06, 0, 2.3, .12, 1.5, 0x3a3c3e, TX.iron).box(0, .62, 0, 2.2, 1.0, 1.4, cab, TX.sheet);
+  for (const x of [-.55, .2]) k.box(x, .62, .705, .01, .96, .01, seam, TX.sheet);
+  k.box(-.85, .65, .705, .05, .08, .02, 0x2a2c2e, TX.iron).box(-.2, .65, .705, .05, .08, .02, 0x2a2c2e, TX.iron);
+  k.box(.75, .6, .704, .6, .74, .01, 0x3c3f42, TX.galv);   // 冷凝器格柵
+  for (let y = .28; y < .96; y += .06) k.box(.75, y, .712, .6, .012, .012, seam, TX.sheet);
+  for (const s of [-1, 1]) { k.box(s * 1.105, .62, 0, .01, .8, 1.1, 0x3c3f42, TX.galv); for (let z = -.5; z < .52; z += .07) k.box(s * 1.11, .62, z, .01, .78, .015, seam, TX.sheet); }
+  k.cyl(.45, 1.14, 0, .42, .42, .04, 16, 0x2a2c2e, TX.iron).torus(.45, 1.17, 0, .42, .02, 16, seam, TX.galv);
+  for (let a = 0; a < 4; a++) k.box(.45, 1.17, 0, .82, .015, .015, seam, TX.galv, 0, a * Math.PI / 4);
+  k.box(-.7, 1.2, 0, .5, .16, .6, cab, TX.sheet).box(-.7, .9, -.75, .5, .4, .14, 0x8a8d90, TX.sheet, .4);   // 排氣罩
+  k.rod(-1.05, .2, -.6, -1.05, .45, -.6, .025, 6, 0xd8b020, TX.iron).rod(-1.05, .45, -.6, -1.4, .45, -.6, .025, 6, 0xd8b020, TX.iron);
+  instanced(k.build(), MAT.ux, roofBits, 0, null, 260);
+}
 
 // 施工區：Atlas Av 靠 8 St 的一段車道
 const works = [];
@@ -567,12 +690,19 @@ const garDrive = (x, z) => !!FAC.gar && x > FAC.gar.ax - 1 && x < FAC.gar.ax + 1
   cityAdd(new T.Mesh(k.build(), MAT.uber), null);
 }
 {
+  // 施工桶（照美國的導引桶 channelizer drum）：黑色橡膠底圈、四道橘白反光帶與帶間的凹槽、頂蓋的提把、閃爍警示燈
   const d = new Kit();
-  for (let k = 0; k < 4; k++) d.cyl(0, .12 + k * .24, 0, .29, .3, .24, 14, k % 2 ? 0xf2f2ee : 0xff6a10, k % 2 ? 11 : 10);
-  d.cyl(0, 1.0, 0, .2, .2, .06, 12, 0x222222, 2).box(0, 1.12, 0, .14, .12, .06, 0xffb020, 9);
-  instanced(d.build(), MAT.uberI, works.filter(w => w.t === 'drum'), 0, (t, c) => c === 1 ? rnd() : 0);
-  const c = new Kit().cyl(0, .38, 0, .03, .19, .72, 12, 0xff5a0a, 10).cyl(0, .4, 0, .12, .14, .1, 12, 0xf2f2ee, 11).box(0, .02, 0, .42, .04, .42, 0x222222, 2);
-  instanced(c.build(), MAT.uber, works.filter(w => w.t === 'cone'), LY.NOREFL);
+  d.cyl(0, .05, 0, .42, .44, .1, 16, 0x1a1a1a, TX.rubber);
+  for (let k = 0; k < 4; k++) d.cyl(0, .19 + k * .21, 0, .285 - k * .008, .295 - k * .008, .17, 16, k % 2 ? 0xf2f2ee : 0xff6a10, k % 2 ? 11 : 10);
+  for (let k = 0; k < 4; k++) d.cyl(0, .085 + k * .21, 0, .27 - k * .008, .27 - k * .008, .04, 16, 0xe85a08, 10);
+  d.lathe(0, 0, 0, [[.26, .92], [.25, .97], [.2, 1.0], [0, 1.01]], 16, 0xe85a08, 10).box(0, 1.03, 0, .3, .05, .06, 0xe85a08, 10);
+  d.box(0, 1.08, 0, .04, .1, .04, 0x222222, 2).rbox(0, 1.18, 0, .18, .14, .07, .03, 0x222222, 2).box(0, 1.18, -.037, .13, .09, .01, 0xffb020, 9);
+  instanced(d.build(), MAT.uxI, works.filter(w => w.t === 'drum'), 0, (t, c) => c === 1 ? rnd() : 0);
+  // 交通錐（照 28 吋的 PVC 錐）：方形黑底座與四角的倒角、圓錐身、上下兩道白色反光環、頂端開口
+  const c = new Kit().rbox(0, .02, 0, .42, .42, .04, .06, 0x222222, TX.rubber, Math.PI / 2).cyl(0, .055, 0, .2, .22, .03, 12, 0x2a2a2a, TX.rubber)
+    .lathe(0, 0, 0, [[.19, .06], [.15, .3], [.035, .7], [.025, .72], [.02, .7]], 14, 0xff5a0a, 10)
+    .cyl(0, .5, 0, .093, .107, .1, 14, 0xf2f2ee, 11).cyl(0, .35, 0, .135, .146, .07, 14, 0xf2f2ee, 11);
+  instanced(c.build(), MAT.ux, works.filter(w => w.t === 'cone'), LY.NOREFL);
 }
 
 // ─── 招牌圖集：所有字都用 Canvas 畫在一張 2048 的貼圖上 ───

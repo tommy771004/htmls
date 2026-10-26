@@ -84,6 +84,8 @@ const BOAT_SPOTS = [
   { type: 'wavecut', x: FERRY[0].x1 - 10, z: FERRY[0].z0 - 3.4, yaw: Math.PI / 2, where: FERRY[0].name },
   // 光格島北端的碼頭（10-city.js 的 TRON_LAND.pier，島在 SEA_FR 座標框）：以 http(s) 開啟才有島可以上去（21-tron.js）
   ...(GLB_ON && TRON_LAND && TRON_LAND.pier ? [{ type: 'wavecut', x: TRON_SITE.x + TRON_LAND.pier.x1 + 2.2, z: TRON_SITE.z + TRON_LAND.pier.z0 + 12, yaw: Math.PI, where: '光格島', zn: TRON_SITE.zn }] : []),
+  // 灰鷺角國際機場東緣南段的梯子旁（21-air.js 的 AIR_L.ladder，SEA_FR 座標框）
+  ...(AIR_L ? [{ type: 'bayhop', x: AIR_L.ladder.x + 5.8, z: AIR_L.ladder.z + 14, yaw: Math.PI, where: AIR.name, zn: SEA_FR }] : []),
 ];
 const boats = BOAT_SPOTS.map((S, i) => {
   const T0 = BOAT_TYPES[S.type], mat = mkUber({ double: true });

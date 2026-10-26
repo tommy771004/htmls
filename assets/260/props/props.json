@@ -314,8 +314,107 @@
    }
   ]
  },
+ "air": {
+  "kb": 7271,
+  "items": {
+   "a320": {
+    "w": 35.54,
+    "d": 37.6,
+    "h": 11.22,
+    "tris": 108004
+   },
+   "b737": {
+    "w": 35.95,
+    "d": 39.5,
+    "h": 12.37,
+    "tris": 111638
+   },
+   "term": {
+    "w": 109.78,
+    "d": 170,
+    "h": 38.95,
+    "tris": 120000
+   },
+   "tower": {
+    "w": 25.11,
+    "d": 23.91,
+    "h": 56.96,
+    "tris": 86168
+   },
+   "hangar": {
+    "w": 114.37,
+    "d": 75.79,
+    "h": 27,
+    "tris": 164540
+   },
+   "jetway": {
+    "w": 26,
+    "d": 4.95,
+    "h": 8.78,
+    "tris": 31909
+   },
+   "cater": {
+    "w": 2.75,
+    "d": 9.13,
+    "h": 3.42,
+    "tris": 58251
+   }
+  },
+  "credits": [
+   {
+    "file": "airbus_a320-200_v2",
+    "title": "Airbus A320-200 V2",
+    "author": "Dlourine (https://sketchfab.com/fDlruosne)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/airbus-a320-200-v2-c078f9af15884a6b820c7e778831b110"
+   },
+   {
+    "file": "boeing_737_max_8",
+    "title": "Boeing 737 MAX 8",
+    "author": "Dlourine (https://sketchfab.com/fDlruosne)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/boeing-737-max-8-380d0315b8774117a3b1820f4857e00e"
+   },
+   {
+    "file": "futuristic_airport_building_whale",
+    "title": "Futuristic airport building whale",
+    "author": "soysascha (https://sketchfab.com/soysascha)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/futuristic-airport-building-whale-023f7539dc784c919ab490f27b63f0bc"
+   },
+   {
+    "file": "control_tower_san_francisco",
+    "title": "Control Tower San Francisco",
+    "author": "Lucas Sobral (https://sketchfab.com/lucassobral3d)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/control-tower-san-francisco-96e0b2ef0b784a48968634583617d208"
+   },
+   {
+    "file": "hangar_structure_in_aisport_of_leon_spain",
+    "title": "Hangar Structure In Aisport Of León (Spain)",
+    "author": "casadofer (https://sketchfab.com/casadofer)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/hangar-structure-in-aisport-of-leon-spain-050dfc5858f041b49736f73709af28e0"
+   },
+   {
+    "file": "airport_jetway",
+    "title": "Airport Jetway",
+    "author": "Bora.YLD (https://sketchfab.com/Bora.YLD)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/airport-jetway-707e860e25334b85b4bf7c538420066e"
+   },
+   {
+    "file": "airport_catering_truck",
+    "title": "Airport Catering Truck",
+    "author": "spot1studios (https://sketchfab.com/spot1studios)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/airport-catering-truck-289f4e2cfa3f4722b0476b1fc37681d8"
+   }
+  ],
+  "far": 1
+ },
  "drain": {
-  "kb": 3859,
+  "kb": 3269,
   "items": {
    "dr_mouth": {
     "w": 2.97,
@@ -333,25 +432,25 @@
     "w": 0.03,
     "d": 6.44,
     "h": 1.04,
-    "tris": 40192
+    "tris": 10046
    },
    "dr_wall2": {
     "w": 0.03,
     "d": 6.44,
     "h": 1.04,
-    "tris": 41840
+    "tris": 10458
    },
    "dr_lintel": {
     "w": 0.03,
     "d": 2.83,
     "h": 1.15,
-    "tris": 19562
+    "tris": 4889
    },
    "dr_pier": {
     "w": 0.02,
     "d": 0.95,
     "h": 1.14,
-    "tris": 6522
+    "tris": 1630
    },
    "dr_floor": {
     "w": 2.65,
