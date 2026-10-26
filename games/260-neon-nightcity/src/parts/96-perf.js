@@ -5,7 +5,7 @@
 // 無頭 Chrome 是軟體繪圖或拿不到真的顯示卡時間，數字要在玩家自己的 Chrome、實機顯示卡上量。
 const PERF_STALL = 25, PERF_N = 900;
 const PF = { on: new URLSearchParams(location.search).get('perf') === '1', ring: [], n: 0, stalls: [], cur: null, now0: 0, t0: 0, r0: 0, el: null, shown: 0,
-  ext: null, gl: R.getContext(), q: [], last: null, snap: [0, 0, 0] };
+  ext: null, gl: GFX === 'webgl' ? R.getContext() : null, q: [], last: null, snap: [0, 0, 0] };
 // 顯示卡計時：同一時間只能有一個 TIME_ELAPSED 查詢，結果幾幀後才拿得到（逐幀輪詢），中間發生過 GPU_DISJOINT 的整批丟掉
 function perfGpuBegin(f) {
   if (!PF.ext) return;
@@ -24,7 +24,7 @@ function perfGpuEnd() {
 }
 function perfOn(on) {
   PF.on = on;
-  if (on && PF.ext === null) PF.ext = PF.gl.getExtension('EXT_disjoint_timer_query_webgl2') || false;
+  if (on && PF.ext === null) PF.ext = PF.gl?.getExtension('EXT_disjoint_timer_query_webgl2') || false;
   if (on && !PF.el) {
     PF.el = document.createElement('pre'); PF.el.id = 'perf';
     PF.el.style.cssText = 'position:fixed;left:8px;top:8px;z-index:99;margin:0;padding:6px 8px;font:11px/1.45 ui-monospace,Menlo,monospace;color:#d8f0e8;background:rgba(6,10,12,.72);pointer-events:none;white-space:pre';
@@ -107,5 +107,5 @@ async function perfRoute({ wait = 12000, sample = 8000, min = 1320, weather = 'r
   perfOn(was);
   return (perfApi.last = out);
 }
-const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => (PF.ext === null ? (PF.ext = PF.gl.getExtension('EXT_disjoint_timer_query_webgl2') || false) : PF.ext) ? true : false };
+const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => (PF.ext === null ? (PF.ext = PF.gl?.getExtension('EXT_disjoint_timer_query_webgl2') || false) : PF.ext) ? true : false };
 if (PF.on) perfOn(true);

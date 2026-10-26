@@ -20,15 +20,31 @@ const bootStep = (p, msg) => { bootProgress(p, msg); return new Promise(r => { c
 const bootTick = (p, msg) => { bootProgress(p, msg); return performance.now() - bootT > 120 ? bootStep(p) : null; };
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { WebGPURenderer } from 'three/webgpu';
 
 const isTouch = matchMedia('(pointer: coarse)').matches;
 if (isTouch) document.body.classList.add('touch');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const LOW = isTouch || Math.min(screen.width, screen.height) < 600;
 
+// 繪圖後端：預設是 three 的 WebGLRenderer（GLSL 的 ShaderMaterial）。?gfx=webgpu 改走 WebGPURenderer（02-gfx.js：著色器逐步改寫成 TSL，
+// 還沒改寫的用替代材質畫），瀏覽器沒有 WebGPU 時它自己退回 WebGL2 後端（?gfx=webgpu-gl 直接用那個後端，比對兩邊的 TSL）
+let GFX = (() => { const g = new URLSearchParams(location.search).get('gfx'); return g === 'webgpu' && navigator.gpu ? 'webgpu' : g === 'webgpu-gl' ? 'webgpu-gl' : 'webgl'; })();
 let R;
-try { R = new T.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false }); }
-catch (e) { bootMsg('這個瀏覽器無法啟用 WebGL。'); throw e; }
+if (GFX !== 'webgl') {
+  try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: GFX === 'webgpu-gl' }); await R.init(); }
+  catch (e) { console.warn('WebGPU 啟用失敗，改用 WebGL', e); R?.dispose?.(); R = null; GFX = 'webgl'; }
+}
+if (!R) {
+  try { R = new T.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false }); }
+  catch (e) { bootMsg('這個瀏覽器無法啟用 WebGL。'); throw e; }
+}
+// WebGPURenderer 沒有的 WebGL 介面：各 part 只用到這幾個（MSAA 上限、貼圖尺寸、非等向過濾、浮點渲染目標的擴充）
+if (GFX !== 'webgl') {
+  const lim = R.backend.device?.limits;
+  R.capabilities = { maxSamples: 4, maxTextureSize: lim ? lim.maxTextureDimension2D : 8192, getMaxAnisotropy: () => R.getMaxAnisotropy() };
+  R.extensions = { has: () => true };
+}
 R.outputColorSpace = T.LinearSRGBColorSpace; // 後製最後一步自己做色調映射與 gamma
 R.toneMapping = T.NoToneMapping;
 R.autoClear = false;
@@ -49,8 +65,10 @@ const GPU_TIERS = {
   ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, vol: 20, tex: 2, ss: 1.5, px: 8.3e6 },
 };
 const GPU = (() => {
-  const gl = R.getContext(); let name = '';
+  // WebGPU 的 adapter.info 沒有型號（Apple 只給 metal-3），名稱照舊向一個臨時的 WebGL2 context 要
+  const gl = GFX === 'webgl' ? R.getContext() : document.createElement('canvas').getContext('webgl2'); let name = '';
   try { const x = gl.getExtension('WEBGL_debug_renderer_info'); name = String(gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || ''); } catch (e) { /* 有些瀏覽器不給名稱 */ }
+  if (GFX !== 'webgl') gl?.getExtension('WEBGL_lose_context')?.loseContext();
   // 沒有硬體加速（遠端桌面、驅動被瀏覽器列入黑名單）時，要求 failIfMajorPerformanceCaveat 的 context 會被拒絕
   let caveat = false;
   try { const c = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true }); caveat = !c; c?.getExtension('WEBGL_lose_context')?.loseContext(); } catch (e) { /* 當成有硬體加速 */ }
@@ -72,7 +90,7 @@ const GPU = (() => {
   const qs = new URLSearchParams(location.search), q = qs.get('gpu');
   let pick = null; try { pick = JSON.parse(localStorage.getItem('nc260.settings') || 'null')?.gpu; } catch (e) { /* 沒存過 */ }
   const tier = GPU_TIERS[q] ? q : GPU_TIERS[pick] ? pick : auto;
-  return { name: name || '未知', short: short || '未知', vendor, api, auto, tier, boot: tier, url: !!GPU_TIERS[q], hdr: qs.get('hdr') === '0' ? false : hdr, lost: 0 };
+  return { name: name || '未知', short: short || '未知', vendor, api, auto, tier, boot: tier, url: !!GPU_TIERS[q], gfx: GFX, hdr: qs.get('hdr') === '0' ? false : hdr, lost: 0 };
 })();
 const GT = () => GPU_TIERS[GPU.tier];
 // 驅動重置（Windows 的 TDR、Mac 切換內顯與獨顯、分頁在背景太久）：three 會擋下預設行為並在恢復時重建狀態，

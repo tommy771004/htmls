@@ -100,6 +100,7 @@ function airStep(inp, dt, camYaw) {
     A.vx = damp(A.vx, Math.sin(player.yaw) * sp, 1.2, dt); A.vz = damp(A.vz, Math.cos(player.yaw) * sp, 1.2, dt);
   }
   let x = player.x + A.vx * dt, z = player.z + A.vz * dt, y = player.y + A.vy * dt;
+  if (A.land && y < A.land.y) { player.x = x; player.z = z; player.y = A.land.y; return A.land.fn(); }   // 指定的落點（69-w5-fin.js 雙人跳的泳池）：比屋頂、地面先接住
   // 樓：高度圖比人高就擋住水平移動；開傘時落在屋頂上順著滑出去（屋頂沒有走路的地面）
   const roof = roofH(x, z), floor = airFloor(x, z);
   if (roof > y + .2 && roof > floor + 1.5) { x = player.x; z = player.z; A.vx *= -.2; A.vz *= -.2; }

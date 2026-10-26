@@ -62,7 +62,7 @@ storyCleanups.push(a => { if (a.casOn) { a.casOn = 0; a.casC = null; if (CAS.h) 
 // 起跳點：大樓門口外 1 m、樓頂的高度；泳池先找隔壁比較矮的樓頂（8×6 m 的池子整片放得下、夠平），找不到才退回門口外 14–56 m 的空地
 // （不在樓裡、推不動、不在水裡）。跳過去的拋物線都不能碰到別的屋頂
 const finRoad = (x, z) => { const p = rnProject(x, z, 16); return onRoad(x, z) || !!p && p.d < 7; };   // 車道上（離路中心 7 m 內）
-const POOL_W = 4.3, POOL_D = 3.2, POOL_WY = .62;   // 池子外緣的半寬、半深；水面離池底座的高度
+const POOL_W = 4.3, POOL_D = 3.2, POOL_WY = .62, POOL_STAND = 1.15;   // 池子外緣的半寬、半深；水面離池底座的高度；站在池裡時腳在水面下多深
 function leapPlan() {
   const D = ST_LOFT(), g0 = groundH(D.x, D.z);
   let bt = 0, bh = -1;
@@ -73,10 +73,11 @@ function leapPlan() {
   top = Math.max(top, g0 + 24);
   let ex = D.x - ix, ez = D.z - iz;
   for (let d = 1; d < 8; d += .5) { ex = D.x - ix * d; ez = D.z - iz * d; if (roofH(ex, ez) < top - 2) break; }
-  const y0 = top + 1.6, vy0 = 3;
-  const clear = (bx, bz, by) => {
+  const y0 = top + 1.6, vy0 = 4;
+  const clear = (bx, bz, by, vy0 = 4) => {
     const T0 = (vy0 + Math.sqrt(vy0 * vy0 + 19.6 * (y0 - by))) / 9.8;
-    for (let u = .08; u < .96; u += .08) { const t = u * T0, y = y0 + vy0 * t - 4.9 * t * t; if (roofH(ex + (bx - ex) * u, ez + (bz - ez) * u) > y - 2.5) return false; }
+    const du = 1 / Math.max(12, Math.hypot(bx - ex, bz - ez));   // 每公尺量一次，樓的邊緣才不會從兩個取樣點之間漏掉
+    for (let u = du; u < .96; u += du) { const t = u * T0, y = y0 + vy0 * t - 4.9 * t * t; if (roofH(ex + (bx - ex) * u, ez + (bz - ez) * u) > y - 1.2) return false; }   // 腳離屋頂至少 1.2 m
     return true;
   };
   // 池子四角再往外 1 m 都要在同一片屋頂上（不貼著屋緣、不壓到水塔冷氣機）
@@ -89,11 +90,11 @@ function leapPlan() {
     return true;
   };
   let best = null;
-  for (let r = 14; r <= 70 && !best; r += 2) for (let k = -10; k <= 10 && !best; k++) {
-    const t = bt + Math.PI + k * .15, bx = ex + Math.sin(t) * r, bz = ez + Math.cos(t) * r, by = roofH(bx, bz), g = groundH(bx, bz);
+  for (let r = 14; r <= 70 && !best; r += 2) for (let j = 0, n = Math.ceil(Math.PI * r / 1.5); j <= 2 * n && !best; j++) {   // 從門口正前方往兩邊轉，整圈都找，每 1.5 m 一個點
+    const k = j & 1 ? (j + 1) / 2 : -j / 2, t = bt + Math.PI + k * 1.5 / r, bx = ex + Math.sin(t) * r, bz = ez + Math.cos(t) * r, by = roofH(bx, bz), g = groundH(bx, bz);
     if (by < g + 8 || by > top - 12 || by < g0 + 8) continue;
     const yaw = Math.atan2(bx - ex, bz - ez);
-    if (flat(bx, bz, yaw, by) && clear(bx, bz, by + POOL_WY)) best = { bx, bz, by, roof: true };
+    if (flat(bx, bz, yaw, by)) for (const v of [4, 6]) if (!best && clear(bx, bz, by + POOL_WY, v)) best = { bx, bz, by, vy0: v, roof: true };   // 隔著一棟樓：跳高一點越過去
   }
   colY = 0;
   for (let r = 14; r <= 56 && !best; r += 3) for (let k = -8; k <= 8 && !best; k++) {
@@ -118,14 +119,16 @@ function leapStreet(L) {
   return { x: L.ex, z: L.ez, y: groundH(L.ex, L.ez), yaw: L.yaw };
 }
 function finPool(L) {
-  const k = new Kit(), STONE = 0xcfc8b8, DECK = 0x6b5848, TILE = 0x2f6f86, W = POOL_WY;
+  const k = new Kit(), STONE = 0xcfc8b8, DECK = 0x6b5848, W = POOL_WY;
   k.box(0, .06, 0, 10.6, .12, 8.4, DECK, 2);                                   // 木棧板平台
-  k.box(0, W / 2, 0, 8.6, W, 6.4, STONE, TX.tile);                              // 池子外壁（石材，凸出屋頂）
-  k.box(0, W - .02, 0, 7.4, .04, 5.2, TILE, 2);                                 // 池底磁磚（從水面透出來的深藍）
-  k.box(0, W - .01, 0, 7.4, .02, 5.2, 0x0e3f55, 1);                             // 水面：深色、像玻璃一樣反射天空與霓虹
-  for (const [x, z, sx, sz] of [[0, 2.72, 8.8, .3], [0, -2.72, 8.8, .3], [3.85, 0, .3, 5.74], [-3.85, 0, .3, 5.74]]) k.box(x, W + .05, z, sx, .1, sz, 0xe8e2d4, 2);   // 池緣壓頂
-  for (const x of [-2.6, -.9, .9, 2.6]) for (const z of [-2.58, 2.58]) k.box(x, W - .14, z, .5, .1, .04, 0x7fe0f0, 11);   // 水下燈（池壁上一排，入夜才亮）
-  for (const z of [-2.1, 2.1]) k.box(-3.6, W - .14, z, .04, .1, .5, 0x7fe0f0, 11);
+  k.box(0, (W - .06) / 2, 0, 8.6, W - .06, 6.4, STONE, TX.tile);                // 池子外壁（石材，凸出屋頂）；頂面比水面低，不和水面搶同一個平面
+  k.box(0, W - .03, 0, 7.4, .02, 5.2, 0x08303d, 11);                            // 水面：入夜被池底燈照成暗青色（不是整片亮青）
+  for (const [x, z, sx, sz] of [[0, 2.9, 8.8, .64], [0, -2.9, 8.8, .64], [4, 0, .64, 5.2], [-4, 0, .64, 5.2]]) k.box(x, W + .03, z, sx, .14, sz, 0xe8e2d4, 2);   // 池緣壓頂（蓋住水面到外壁之間）
+  // 水下燈從水面透出來的光斑：沿著長邊的池壁一排，由外往內一層比一層亮
+  for (const x of [-2.4, 0, 2.4]) for (const z of [-2.2, 2.2]) {
+    const zi = z * .97;
+    k.box(x, W - .016, zi, 1.2, .004, .7, 0x0c4352, 11).box(x, W - .01, zi, .8, .004, .46, 0x13606f, 11).box(x, W - .004, z * 1.04, .4, .004, .2, 0x2a8c9c, 11);
+  }
   for (const sx of [-1, 1]) {   // 兩張躺椅（棧板上、池子後面）
     k.box(sx * 1.6, .32, 3.75, .7, .1, 1.5, 0xf2efe8, 10).box(sx * 1.6, .55, 4.4, .7, .46, .08, 0xf2efe8, 10, -.5);
     for (const dz of [-.6, .6]) k.box(sx * 1.6, .18, 3.75 + dz, .62, .14, .05, 0x3a3836, 15);
@@ -149,8 +152,8 @@ STEP.leap = {
     transition(() => {
       if (player.mode === 'drive') exitVehicle();
       setWhere('out'); cardOff();
-      player.x = L.ex; player.z = L.ez; player.y = L.y0; player.yaw = camState.yaw = L.yaw; camState.snap = true; player.down = 0;
-      player.air3 = { kind: 'fall', vx: 0, vy: L.vy0, vz: 0, t: 0 };
+      player.x = L.ex; player.z = L.ez; player.y = L.y0; player.yaw = camState.yaw = L.yaw; camState.pitch = .7; camState.snap = true; player.down = 0;   // 鏡頭在頭頂上往下看：看得到泳池，也不會卡在背後那棟樓裡（跳傘鏡頭不拉近）
+      player.air3 = { kind: 'fall', vx: 0, vy: L.vy0, vz: 0, t: 0, land: { y: L.wy + .2, fn: () => a.leapGo && leapSplash(a, a.leapGo) } };
       a.leapGo = { ...L, t: 0 }; a.leapDone = 0; slowmo.st = .45;
       sfx.swoosh && sfx.swoosh(false);
       c.wait = false;
@@ -158,20 +161,23 @@ STEP.leap = {
   },
   step: (a, s, c) => !c.wait && !fading && (a.leapDone || !a.leapGo && !a.leapHold && !player.air3),
   hud: (a, s) => ({ text: a.leapGo ? `${s.text} · F 開傘也可以` : s.text, bar: -1, num: a.leapGo ? `${Math.max(0, Math.round(player.y - a.leapGo.wy))} m` : '' }),
-  mark: a => a.leap ? { name: '泳池', x: a.leap.bx, y: a.leap.wy + 2, z: a.leap.bz, where: 'out' } : null,
+  mark: a => a.leap && !a.leapHold ? { name: '泳池', x: a.leap.bx, y: a.leap.wy + 2, z: a.leap.bz, where: 'out' } : null,
   skip: a => { const L = a.leapGo || a.leapHold; if (!L) return;
     player.air3 = null; chute.visible = false; slowmo.st = 1; const q = leapStreet(L);
-    player.x = q.x; player.z = q.z; player.y = q.y; player.v = 0; player.vig = 0; delete a.npc.dane; a.leapGo = a.leapHold = null; a.leapDone = 1; },
+    player.x = q.x; player.z = q.z; player.y = q.y; player.v = 0; delete a.npc.dane; a.leapGo = a.leapHold = null; a.leapDone = 1; leapBoxOff(a); },
 };
-// 落水：沒扣血，濺起水花。樓頂的池子在水裡踩一下水，再黑場帶到樓下的街上
+// 落水：沒扣血，濺起水花。在池裡站一下，再黑場帶到樓下的街上
 function leapSplash(a, L) {
   a.leapMiss = +Math.hypot(player.x - L.bx, player.z - L.bz).toFixed(2);
   player.air3 = null; chute.visible = false;
-  player.x = L.bx; player.z = L.bz; player.y = L.wy - SWIM_Y; player.v = 0; player.down = 0; player.anim = -1; player.vig = ANIM.swimIdle;
+  player.x = L.bx; player.z = L.bz; player.y = L.wy - POOL_STAND; player.v = 0; player.down = 0; player.anim = -1; player.vig = 0;
   poolSplash(L.bx, L.wy, L.bz, 1.4); poolSplash(L.bx + Math.cos(L.yaw) * 1.2, L.wy, L.bz - Math.sin(L.yaw) * 1.2, 1);
-  camState.shake = .5; slowmo.st = 1;
+  camState.shake = .5; slowmo.st = 1; camState.yaw = L.yaw + .4; camState.pitch = .6;   // 斜上方看下來：池子、兩個人都在畫面裡
   const rx = Math.cos(L.yaw), rz = -Math.sin(L.yaw);
-  a.npc.dane = { x: L.bx + rx * 1.3, y: L.wy - SWIM_Y, z: L.bz + rz * 1.3, yaw: L.yaw, anim: ANIM.swimIdle };
+  a.npc.dane = { x: L.bx + rx * 1.3, y: L.wy - POOL_STAND, z: L.bz + rz * 1.3, yaw: L.yaw };
+  // 樓的碰撞盒沒有高度：站在屋頂上時鏡頭會被那棟樓拉到頭上。踩水這段暫時給盒子一個樓頂高度（和 69-v5-civic.js 的 hy 一樣）
+  a.leapBox = L.roof ? boxesNear(L.bx, L.bz, 4).filter(b => b.hy === undefined && boxGap(b, L.bx, L.bz) <= 0) : [];
+  for (const b of a.leapBox) b.hy = L.by;
   a.leapGo = null; a.leapHold = { ...L, t: 0 };
   toast('落進泳池了 · 快走');
 }
@@ -180,14 +186,19 @@ function leapOut(a) {
   L.out = 1;
   transition(() => {
     const q = leapStreet(L);
-    player.x = q.x; player.z = q.z; player.y = q.y; player.yaw = camState.yaw = q.yaw; player.v = 0; player.vig = 0;
-    delete a.npc.dane; a.leapHold = null; a.leapDone = 1;
+    player.x = q.x; player.z = q.z; player.y = q.y; player.yaw = camState.yaw = q.yaw; player.v = 0;
+    delete a.npc.dane; a.leapHold = null; a.leapDone = 1; leapBoxOff(a);
   });
+}
+function leapBoxOff(a) {
+  for (const b of a.leapBox || []) delete b.hy;
+  a.leapBox = null;
 }
 storyTicks.push((a, dt) => {
   const H = a.leapHold;
-  if (H) {   // 池子裡：踩水 1.4 秒（推擠、步行面都不管，固定在水裡）
-    player.x = H.bx; player.z = H.bz; player.y = H.wy - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04; player.v = 0; player.vig = ANIM.swimIdle;
+  if (H) {   // 池子裡站 1.4 秒，水到胸口（推擠、步行面都不管，固定在水裡）
+    player.x = H.bx; player.z = H.bz; player.y = H.wy - POOL_STAND; player.v = 0;
+    me.place(0, player.x, player.y, player.z, player.yaw); me.flush();   // 步行那段已經照地面往下拉過一次了，重新擺回池裡
     if ((H.t += dt) > 1.4) leapOut(a);
     return;
   }
@@ -197,7 +208,7 @@ storyTicks.push((a, dt) => {
   const A = player.air3;
   if (!A) { leapSplash(a, L); return; }   // 開傘落地或撞到東西：一樣算進泳池
   const h = player.y - L.wy, dx = L.bx - player.x, dz = L.bz - player.z;
-  const tr = Math.max(.25, (A.vy + Math.sqrt(Math.max(0, A.vy * A.vy + 19.6 * Math.max(0, h)))) / 9.8);
+  const tr = Math.max(.02, (A.vy + Math.sqrt(Math.max(0, A.vy * A.vy + 19.6 * Math.max(0, h)))) / 9.8);
   if (A.kind !== 'chute') { A.vx = dx / tr; A.vz = dz / tr; }
   // 戴恩在羅莎右手邊，牽著手一起掉
   const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
@@ -206,7 +217,8 @@ storyTicks.push((a, dt) => {
 });
 storyCleanups.push(a => {
   if (a.leapGo) { a.leapGo = null; if (player.air3) { player.air3 = null; chute.visible = false; player.y = groundH(pX(), pZ()); } }
-  if (a.leapHold) { a.leapHold = null; player.vig = 0; player.y = groundH(pX(), pZ()); }
+  if (a.leapHold) { a.leapHold = null; player.y = groundH(pX(), pZ()); }
+  leapBoxOff(a);
   if (a.poolM) { scene.remove(a.poolM); a.poolM.geometry.dispose(); a.poolM = null; }
   if (slowmo.st < 1) slowmo.st = 1;
 });
@@ -427,7 +439,7 @@ storyAdd([
       { type: 'say', with: 'vance', lines: [L('vance', '準時。'), L('rosa', '正本跟副本都在。'), L('vance', '霍爾今天下午就會被帶走。'), L('dane', '史塔林呢？'), L('vance', '她請得起最好的律師。你們兩個自由了，這是我能給的。')] },
       { type: 'fn', fn: () => storyEnding('A') },
       { type: 'card', k: '片尾', t: '星期天的晚餐', hold: 2.4 },
-      { type: 'fade', to: () => stAt(ROSA_L, .6, .8, 0), gray: 0 },
+      { type: 'fade', to: () => stAt(ROSA_L, .6, .8, Math.atan2(1.2, -1.4)), gray: 0 },   // 面向母親（下一行站在 1.8, -0.6）
       { type: 'fn', fn: a => { a.npc.lupe = stAt(ROSA_L, 1.8, -.6); } },
       { type: 'say', with: 'lupe', lines: FIN_A },
       { type: 'credits', end: 'A' },
@@ -456,4 +468,4 @@ storyAdd([
 ]);
 posterSync();
 
-storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY };
+storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], loft: ST_LOFT };

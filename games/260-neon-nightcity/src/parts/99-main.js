@@ -389,6 +389,7 @@ go.addEventListener('click', () => {
 requestAnimationFrame(loop);
 
 window.__nc = {
+  gfx: gfxApi,   // 02-gfx.js：繪圖後端（webgl／webgpu）、還沒改寫成 TSL 的材質 miss()
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
   story: storyApi,   // 69-w0-story.js：主線（go(id)、state()、skip()）

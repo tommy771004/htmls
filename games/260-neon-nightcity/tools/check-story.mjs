@@ -187,7 +187,8 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
       const life = () => N.gta.life.hp + N.gta.life.armor;
       // F-2：從樓頂的高度跳下去，落進泳池不扣血
       let a = await toS('F-2', 'leap');
-      if (a) { const hp0 = life(); for (let i = 0; i < 80 && !a.leapDone; i++) { __t.step(10); if (a.leapHold && a.leapHold.out) await new Promise(r => setTimeout(r, 150)); } const L = a.leap;
+      if (a) { const hp0 = life(); for (let i = 0; i < 80 && !a.leapDone; i++) { __t.step(10); if (a.leapHold && a.leapHold.out) await new Promise(r => setTimeout(r, 150)); }
+        await new Promise(r => setTimeout(r, 300)); const L = a.leap;   // 黑場淡出完（fading 期間 transition 不會動）
         o.leap = { done: a.leapDone, hurt: hp0 - life(), d: a.leapMiss ?? -1, h: L ? Math.round(L.y0 - L.wy) : 0, roof: !!(L && L.roof), down: L ? Math.round(L.by - N.player.y) : 0, air: !!N.player.air3, type: St.state().act && St.state().act.type }; }
       // F-4B：站在 202 m 的屋頂上不掉下去；六星（第六顆星亮著），直升機飛在屋頂以上
       a = await toS('F-4B', 'stream');
