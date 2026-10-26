@@ -17,6 +17,7 @@
 - **碰撞規格書（第四部曲）的數字**：貼上來的規格書公式與 `GTAKinematicsSolver.js` 都掉了，只剩文字敘述與少數數字（0.8 m 踉蹌、0.6 m 背後判定、0.45 m 擊退、1.4 m 拖出、3.5 m 霰彈）。其他是自己補的 `KIN`：穿透容差 δ 1 cm、修正比例 β 0.8、迭代 4 次、恢復係數 0.25、切向摩擦 μ 0.45、地面摩擦 6.5 m/s²、夾扁門檻 135° 與 M·v 6000、人 85 kg、跳車 4 m/s；打轉上限 3.5 rad/s、側滑抓地 ×0.25。主線上已經有的機制（擦牆、撞出擋風玻璃、撞斷路燈與消防栓、撞人擊飛、翻車）照原本的，沒有換成規格書的版本。
 - **Jason／Lucia 掃描人物**：兩個 Sketchfab 掃描模型（遊戲角色的同人作品）綁到 Quaternius 骨架後放進換裝（每位主角的衣架與服飾店都多兩套「Jason 造型」「Lucia 造型」），開場的 Kael 預設穿 Jason（以 http(s) 開啟時；`69-safehouse.js` 的 `outfitOf`）。街上（每 19 個路人一個）、夜店排隊與舞池各有一個 Lucia；Jason 沒有放進路人，免得和玩家撞臉。要拿掉預設就把 `outfitOf` 的 kael 那段改回 0。
 - **田園一景放在灰鷗島**：原本想擺北嶺公園，但公園的山坡橫向都有 8–12°，平的只有鐵道橋下的山溝（掃描模型自己的地面和樹會穿插），所以擺在島上兩條碎石路（`21-coast.js` 的 `CS_SITES`），燈塔那條的路上留著原檔倒著的小貨櫃，從橋上島那條（唯一進出辦公園區的路）拿掉貨櫃。槭樹、20 呎貨櫃與護欄另外拆出來用在公園、島上、拖吊場與霓峰塔工地。
+- **渡輪的船名**：Snowsoup 的渡輪照真實的芬蘭渡輪 Meriluoto 號做，船名、救生圈上的字和船側的電話號碼重畫成虛構的「HERON LINE」（`tools/props.mjs` 的 `sea` 組 `texEdit.Labels_texture`、`ferrySvg()`），救生艇上的船名模糊掉。要保留原貌就拿掉那段 `texEdit`，再跑 `node tools/props.mjs sea`。
 - **掩護鍵 Q**：規格要 Q 吸附掩護，但 Q 已經是角色轉盤，沒有做吸附（掩護仍是 `losClear` 的視線遮蔽）。
 - **街頭賽只在晚上**：規格的「日夜犯罪生態」提到夜間飆車，沒有限制賽車只能晚上開（要等太久）；只調了事件與盯梢的權重。
 - **BODEGA 夜貓便利店的門**：開在 `20-props.js` 依地塊亂數挑到 BODEGA 招牌的店面（中城 (4,2)、9 St），沒有寫死招牌；店面或亂數順序改了，門就會落在別家店前面，要重新對 `APT.store.door`。
@@ -25,7 +26,7 @@
 
 | 限制 | 從哪裡改 |
 | :-- | :-- |
-| 遊艇只有兩款程式建模的船，停在六個碼頭（含對岸的兩座渡口）；警察、小隊與賽車都不開船（追到岸邊就停），海上沒有拖船、渡輪或其他船隻；船只和擋牆、貨櫃船與淺水碰撞，撞了沒有損傷外觀（打爆會沉） | `31-boats.js`（`BOAT_TYPES`、`BOAT_SPOTS`、`driveBoat()`）；警方追逐在 `69-police.js`，要讓警察開船得在那裡加一種水上單位、路網換成水上的航點 |
+| 玩家能開的船只有兩款遊艇，停在六個碼頭（含對岸的兩座渡口）；水上的其他船是一艘渡輪（灰鷺河兩岸照固定班表往返）、一艘拖船（只陪貨櫃船進出港）與水警艇（`31-sea.js`）。陸上的警察、小隊與賽車都不開船（追到岸邊就停），水警艇只在玩家開船或游泳時出動、不會上岸，避淺只看前方幾十公尺的淺水與礁石（被整個島隔開時會在岸邊來回，不會繞遠路）；渡輪與拖船不會閃玩家（只把船推開）、不能上去；船只和擋牆、貨櫃船、渡輪、拖船與淺水碰撞，撞了沒有損傷外觀（打爆會沉） | `31-boats.js`（`BOAT_TYPES`、`BOAT_SPOTS`、`driveBoat()`）、`31-sea.js`（`ferryPose`、`tugPose`、`pbStep`）；要讓水警艇會繞遠路得給水面一張航點圖 |
 | 貨櫃船照固定時間表走固定航線（`SHIP_T`），不會閃遊艇（只把遊艇推開）；集卡沿一條固定迴圈跑，不進城；岸橋與集卡的貨櫃只是動畫，不會真的搬到堆場 | `21-coast.js` 的 `shipPose()`、`harbor.path` 與 `coastUpdate()` |
 | 北嶺公園只有圍籬裡約 200×270 m 貼著山的網格，外面的山坡高度照 `hillH`（比網格高一點）；車（含機車）被門口的路樁擋住，警車與小隊的車停在門外，步行的警察與小隊照直線追進來（沒有坡上的路網，會被樹卡一下）；路人與車流不進公園；樹是低多邊形的錐體與二十面體，沒有風吹、草叢與落葉；從觀景台看不到城裡的立面（`distCull` 420 m） | 範圍與高度在 `10-city.js` 的 `NPARK`／`parkH()`／`hillMeshH()`，畫面在 `21-park.js`（步行 NPC 的高度用 `footY()`）；整片山都要貼網格的話，`seaFloor` 在山上改回傳 `hillMeshH`；要讓車開上山得給 `poseVehicle` 加上坡度 |
 | 對岸只有兩條 20 m 寬的濱水步道走得上去（鷺岸步道、舊港步道，各一座渡船碼頭與一艘船），步道靠樓那一側是一排程式建模的樓面、進不去；步道以外的對岸開船只能貼到堤岸外 4 m。後面的 London City 與舊港城模型仍是 `far` 版材質（小貼圖），從步道抬頭看高樓還是糊的 | 步道、渡口與高牆在 `10-city.js` 的 `BANK_WALKS`／`FERRY`（`back` 那一邊不做低擋牆），畫面在 `21-coast.js`（樓面、渡口、售票亭），`farClamp` 決定哪裡靠得了岸；要更清楚得在 `tools/props.mjs` 把 `far_london`／`far_golu` 改成不縮貼圖的版本（檔案會大很多） |
@@ -161,6 +162,15 @@
 - **防撞柱**：銀行門前的液壓防撞柱換成 Kai Moisch 的混凝土防撞柱掃描（0.95 m）；霓虹堡大門外左右各一排五支（`stBollardsL` 帶 `fort`，和銀行同一套撞擊規則：時速 60 以上車頭全毀、人飛出去）。大門本身沒有防撞柱（坦克要開出來），柵欄桿是裝飾、沒有碰撞。
 - **貨運列車**（`21-rail.js` 的 `RAIL.sets.frt`，`rail_frt.glb`）：Heataker 的 EMD-SD40 柴電機車（44 萬面，減到一成五）、zairiq 的棚車兩節（第二節反過來接）與平車，平車上四箱 `fort` 的彈藥箱。每三趟有一趟是貨運（時速 47 km，電聯車 61 km）；地堡的「攔截軍火列車」補給任務改成叫貨運列車（電聯車在跑就等它進洞，`R.want`），打斷掛鉤時平車最後面那一箱藏起來、掉在橋面上。貨運列車還是只在北嶺鐵道橋兩個洞底之間來回（和電聯車同一條死路），不能爬上車、不會出軌，撞到人和電聯車一樣擊倒。車廂沒有夜燈（只有機車頭燈），白色機車在白天偏亮。
 
+## 水上的船與 DJ 台（2026-10-26）
+
+- **渡輪**（`31-sea.js`，Snowsoup 的 Hailuoto car ferry，50 m）：鷺岸渡口（對岸）與舊碼頭第一座木棧南側之間往返，每頭停 45 秒、航行 95 秒（`FERRY_T`），航線是兩端切線的 Hermite 曲線（`ferryAt`），雙頭渡輪不掉頭（回程倒著開，尾跡跟著換邊）。不能上船、不載車，沒有乘客。
+- **拖船**（Potater_King 的 40ft Tugboat，22 m）：平常停在錨灣港西邊待命（`TUG_STBY`），貨櫃船離港時開過去頂著船舷一起推、轉向，送出港後回來；回港照時間倒放（`tugPose` 跟著 `harbor.st`）。拖船是「陪著動」，貨櫃船的航線不受拖船影響。
+- **水警艇**（gogiart 的 Police III，14 m；`BOAT_TYPES.polboat`）：有通緝、玩家在水上（開船或游泳）時從鏡頭看不到的 170–240 m 外生出來，最多 1／1／2／2／3 艘（1–5 星），追到 34 m 內繞著打轉，2 星以上船上的警察開槍；150 m 內算「看得到」（`69-police.js` 的 `sees()`），警笛距離也算進去。避淺看前方三個距離的水深與碰撞（礁石、碼頭），選定的偏角留 2.5 秒；卡住倒車 2 秒再換邊繞。可以搶（上船就變成一般的船，`PB.taken`，走遠 400 m 收掉），不進存檔。水警艇由 `31-sea.js` 推進（`ai: true`，69-combat.js 的滑行跳過）。
+- **DJ 台**：LAZARUS 的 DJ 台上加了 Andres Torres 的 DJ 控制器（`club_dj`，1.86 m 寬），蓋住程式建模的兩個唱盤與混音器；只有桌面那一件，台子本身照舊是 Blender 的 `dj_booth`。
+- **`tools/props.mjs` 的 `vcol`**：組設定 `vcol: true` 會把原檔的頂點色（COLOR_0）乘進烘焙的顏色（拖船的船身顏色只在頂點色裡）。
+- **下載了、還沒接上的**（都在 gitignore 的 `.cache/`，CC BY 4.0）：計程車（Libau Media 的 1950s American Taxi，`.cache/cars/`；會動到車流 `traffic.mjs`／`cars.mjs`）、機場拖車與行李車（flightmaster177、propmaker1，`.cache/air/`）、立體停車場夜景（SPLEEN VISION，`.cache/props/parking_garage_at_night.glb`）、樹（Nicholas-3D 的 More Realistic Trees，124 MB）、擔架（Danish Shah）、髮型包（rendysix，`.cache/people/`）與消防員（jakobscheidt，258 MB）。
+
 ## 程式建模的細部與紋路（2026-10-26）
 
 - 還是程式建模的東西重做成和模型同一個細節等級（`07-kitx.js` 的工具與 `MAT.ux` 程式紋理）：號誌（錐形柱、底座罩與錨栓、斜撐、三燈頭的背板與遮光罩、行人燈與按鈕；一支約 2500 面，實例化）、逃生梯（格柵、欄杆、斜撐、11 階樓梯）、窗型冷氣、水塔（木板桶身、鐵箍、錐頂、爬梯）、屋頂空調箱、燈籠、街角護柱、樹穴鐵格、噴水池、施工桶與交通錐、縫上的涼亭／小賣亭／公廁、快速道路的 F 型護欄、鋼護欄、I 型大梁、帽梁與桁架門架；程式立面加了浮雕（`20-relief.js`）。
@@ -196,7 +206,7 @@
   - 老虎機：Slot Machine（3dzavr，CC BY，約 1.1k 面）https://sketchfab.com/3d-models/slot-machine-fa73111371dc4bc1862842783cbb8de1 ；Stylized Jackpot Slot Machine（Burak Özcan，CC BY，約 9.3k 面）https://sketchfab.com/3d-models/stylized-jackpot-slot-machine-cc13049ec275468a9e41e62079da0d4c ；Casion slot-machine（kvasium，CC BY，約 10k 面，用過、已由大廳取代）https://sketchfab.com/3d-models/casion-slot-machine-49fc3271878e4e148fed325439b53a1a
   - 賭桌：Blackjack Table（Ravi Jangid，CC BY，約 5.8k 面，用過、已由大廳取代）https://sketchfab.com/3d-models/blackjack-table-baf7e3cbd14140ca81ea1a79d28fb635 ；Simple Roulette Table（Designed By Jonathan，CC BY，已用）https://sketchfab.com/3d-models/simple-roulette-table-a128e643ea6149e686fe6b73ceb48ef9 ；Roulette Table（Notto，CC BY，已用）https://sketchfab.com/3d-models/roulette-table-8526f020e3434edfa0bd374d437c7014
   - 幸運轉盤：WHEEL OF FORTUNE（aero1515，CC BY，約 9.4k 面，已用）https://sketchfab.com/3d-models/wheel-of-fortune-66d38f4d3c534f5686ca305b6ef084b1
-  - DJ 台：DJ Booth（SimonSohneg）https://sketchfab.com/3d-models/dj-booth-737e022ff8c34918a516fe2444b69583 ；Dj turntable（Zivid，CC BY；下載下來是 31 萬點的點雲掃描、沒有面，不能當網格用）https://sketchfab.com/3d-models/dj-turntable-9db8b642a78b495992ab66fe97f532da ；DJ Mixer desk（Andres Torres）https://sketchfab.com/3d-models/dj-mixer-desk-f61b9a6dcdad46ddac764e84fe798de2
+  - DJ 台：DJ Booth（SimonSohneg）https://sketchfab.com/3d-models/dj-booth-737e022ff8c34918a516fe2444b69583 ；Dj turntable（Zivid，CC BY；下載下來是 31 萬點的點雲掃描、沒有面，不能當網格用）https://sketchfab.com/3d-models/dj-turntable-9db8b642a78b495992ab66fe97f532da ；DJ Mixer desk（Andres Torres，CC BY，已用：`club_dj`）https://sketchfab.com/3d-models/dj-mixer-desk-f61b9a6dcdad46ddac764e84fe798de2
   - 金庫門：Bank Vault Door（CommonSpence，CC BY，約 26.6k 面，已用）https://sketchfab.com/3d-models/bank-vault-door-66ed0c4af0284ed09363a4c35ee7ba3d ；Vault door（ArtOfOrlando，CC BY，約 3.2k 面，已用：日間金庫）https://sketchfab.com/3d-models/vault-door-b7f9cf66195546668d74c2d9d5cfb2b4 ；Vault Door（ShakibSKb，CC BY，已用：氣閘外門）https://sketchfab.com/3d-models/vault-door-2de2322bf07d496bbcc19d94400a469f
   - 地堡防爆門：Bunker Door（Gabriel Gauthier，CC BY，已用）https://sketchfab.com/3d-models/bunker-door-deb898e42397499aabedd6913723c0be ；Old metal bunker door（rakutin，CC BY）https://sketchfab.com/3d-models/old-metal-bunker-door-a602f52789fb4bc1a46cc1d0633def60 ；Blast Door V1（tagmonke）https://sketchfab.com/3d-models/blast-door-v1-1c2dba0060644759869fd7ab4b52a4d6
   - 地堡製造區：CNC Milling Machine（ambivalentBear，CC BY，約 1.8k 面）https://sketchfab.com/3d-models/cnc-milling-machine-318e0c1f28fb4ac49c90e0bce947f786 ；Vertical milling machine（vramstudio，CC BY，約 73k 面）https://sketchfab.com/3d-models/vertical-milling-machine-0e7444ee28aa4150b60b966179085f55 ；Lathe（herdiansyahhadi，CC BY，約 17k 面，已用：BK_LATHE）https://sketchfab.com/3d-models/lathe-c2b8ba51351740ecb62c0b5a563b5ae7

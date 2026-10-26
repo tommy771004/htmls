@@ -160,7 +160,7 @@ function driveBoat(v, inp, dt) {
   // 外海與對岸：游泳一樣的範圍（對岸只在它的那段 z 擋）
   [v.x, v.z] = farClamp(v.x, v.z); v.x = Math.min(v.x, CITY_X1 + 2600); v.z = clamp(v.z, CITY_Z0 - 600, Math.max(SHORE_Z + 1700, TRON_SITE.z + 450));   // 南界要包住光格島（10-city.js 的 TRON_SITE，十五片版面搬到城東南的外海）
   let imp = vehicleCollide(v, dt);
-  imp = Math.max(imp, boatShipHit(v));
+  imp = Math.max(imp, boatShipHit(v), seaHullHit(v));   // seaHullHit：31-sea.js 的渡輪與拖船
   // 船頭、船尾太淺：退回上一個位置
   const sh = (s) => boatFloor(v.x + nfx * v.len * .42 * s, v.z + nfz * v.len * .42 * s);
   if (sh(1) || sh(-1) || boatFloor(v.x, v.z)) {

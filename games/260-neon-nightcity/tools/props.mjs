@@ -166,6 +166,17 @@ export const SETS = [
     { id: 'wavecut', file: 'yatch_i_second_edition', len: 7.2, rot: 1 },
     { id: 'bayhop', file: 'speedboat', len: 5.4 },
   ] },
+  // 水上的其他船（31-boats.js 的 SEA）：gogiart 的 Police III（警艇）、Potater_King 的 40ft Tugboat（錨灣港的拖船）、Snowsoup 的 Hailuoto car ferry（灰鷺河的渡輪），
+  // 都是 CC BY 4.0。渡輪是雙頭渡輪（兩端都能開），原檔照真實的 Meriluoto 號做：船名、救生圈上的字和船側的電話號碼重畫成虛構的「HERON LINE」，救生艇上的船名模糊掉
+  { out: 'sea', src: '.cache/boats', tex: 1024, simplify: .35, simplifyError: .002, vcol: true, texEdit: {
+    Labels_texture: { flip: true, paint: [[.0146, .0137, .6064, .1465, ferrySvg('plate')], [.555, .0945, .865, .5745, ferrySvg('ring')], [.008, .555, .80, .75, ferrySvg('clear')], [.006, .752, .994, .994, ferrySvg('name')]] },
+    Lifeboat_texture_1: { blur: [[.41, .08, .66, .22], [.41, .78, .66, .91]] }, Lifeboat_texture_2: { blur: [[.41, .08, .66, .22], [.41, .78, .66, .91]] } }, items: [
+    { id: 'polboat', file: 'police_iii', len: 14 },   // 原檔約 18.8 m（船尾的平台算進去），船頭朝 +z
+    { id: 'tug', file: '40ft_tugboat', len: 22, rot: 2 },   // 原檔 12.7 m、船頭朝 −z；放大成港口拖船的尺寸
+    { id: 'ferry', file: 'hailuoto_car_ferry_la_meriluoto', len: 50, rot: 1 },   // 原檔 53.5 m、長邊沿 x（兩端一樣）
+  ] },
+  // LAZARUS 夜店的 DJ 控制器（60-venues.js）：Andres Torres 的 DJ Mixer desk（CC BY 4.0），放大蓋住 Blender 主控台桌面上的唱盤
+  { out: 'club_dj', tex: 1024, items: [{ id: 'club_dj', file: 'dj_mixer_desk', len: 1.86, rot: 1 }] },
   // 霓虹堡軍事基地（69-v7-bunker.js 的 FORT）與銀行防撞柱（69-v5-street.js），原檔在 .cache/fort/，全部 CC BY 4.0（2026-10-25 下載，作者見 CREDITS.md）：
   // 鐵絲網圍籬只取有刺絲的那一片（Cube.002）、轉成沿 x；機棚是半圓拱棚，坦克從南面開出去；
   // 彈藥箱取原檔下面那一箱（上面那箱開著蓋）；油桶取貨櫃組裡的第一個桶子
@@ -564,7 +575,10 @@ function collect(doc) {
       const idx = ia ? Uint32Array.from(ia.getArray()) : Uint32Array.from({ length: cnt }, (_, i) => i);
       if (det < 0) for (let i = 0; i < idx.length; i += 3) { const s = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = s; }
       let path = [], par = node; while (par) { path.unshift(par.getName()); par = par.getParentNode(); }
-      prims.push({ node: node.getName(), path: path.join('/'), mat, pos, nor, uv, idx, cnt });
+      // 原檔的頂點色（只有設了 vcol 的組會乘進底色，見 emit）
+      const ca = p.getAttribute('COLOR_0'); let col = null;
+      if (ca) { col = new Float32Array(cnt * 4); const e = [0, 0, 0, 1]; for (let i = 0; i < cnt; i++) { e[3] = 1; ca.getElement(i, e); col.set([e[0], e[1], e[2], ca.getElementSize() > 3 ? e[3] : 1], i * 4); } }
+      prims.push({ node: node.getName(), path: path.join('/'), mat, pos, nor, uv, col, idx, cnt });
     }
   });
   return prims;
@@ -680,7 +694,7 @@ function subPrim(p, ix) {
   const map = new Map(), keep = [];
   const idx = Uint32Array.from(ix, (v) => { if (!map.has(v)) { map.set(v, keep.length); keep.push(v); } return map.get(v); });
   const pick = (a, n) => { if (!a) return null; const o = new Float32Array(keep.length * n); keep.forEach((v, i) => { for (let k = 0; k < n; k++) o[i * n + k] = a[v * n + k]; }); return o; };
-  return { node: p.node, path: p.path, mat: p.mat, pos: pick(p.pos, 3), nor: pick(p.nor, 3), uv: pick(p.uv, 2), idx, cnt: keep.length };
+  return { node: p.node, path: p.path, mat: p.mat, pos: pick(p.pos, 3), nor: pick(p.nor, 3), uv: pick(p.uv, 2), col: pick(p.col, 4), idx, cnt: keep.length };
 }
 // 水平切一段（原檔座標 y0 ≤ y < y1）：跨過切面的三角形真的切開（位置、法線、UV 照比例內插），柱子與牆才不會整根掉到另一段。
 // 施工大樓的樓層一段一段疊上去（69-v5-crane.js），各段用同一個原點，切口剛好接在一起
@@ -855,6 +869,17 @@ async function paintAtlas(img, list, flip) {
   return sharp(base).composite([{ input: top }]).png().toBuffer();
 }
 // 地鐵閘口的兩種站牌（虛構的「霓虹城地鐵」，綠色 N 線圓標和頁面的站牌一致）
+// 渡輪的標示（貼圖上下顛倒存放、2:1 的圖拉成正方形，所以字要縱向放大兩倍）：船名牌、救生圈、擦掉電話號碼的空白、船側的大字船名
+function ferrySvg(kind) { return (x, y, w, h) => {
+  const txt = (str, fill, k) => { const sz = Math.min(h * k, w * 1.45 / str.length); return `<g transform="translate(${(x + w / 2).toFixed(1)} ${(y + h / 2).toFixed(1)}) scale(1 2)"><text x="0" y="${(sz * .36).toFixed(1)}" font-family="${FONT_LAT}" font-weight="800" font-size="${sz.toFixed(1)}" fill="${fill}" text-anchor="middle">${str}</text></g>`; };
+  if (kind === 'plate') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#5a443b"/>` + txt('HERON LINE', '#0d0d0d', .34);
+  if (kind === 'name') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fbc621"/>` + txt('HERON LINE', '#0d0d0d', .36);
+  if (kind === 'clear') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fbc621"/>`;
+  const cx = x + w / 2, cy = y + h / 2, rx = w * .4645, ry = h * .4755;   // 救生圈：外圈照原檔的大小，內圈約一半，白色十字帶
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fbc621"/><defs><clipPath id="fr"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/></clipPath></defs>`
+    + `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#df4b1f"/><ellipse cx="${cx}" cy="${cy}" rx="${rx * .535}" ry="${ry * .56}" fill="#fbc621"/>`
+    + `<g clip-path="url(#fr)" fill="#ffffff"><rect x="${x}" y="${cy - h * .0375}" width="${w}" height="${h * .075}"/><rect x="${cx - w * .034}" y="${y}" width="${w * .068}" height="${h}"/></g>`;
+}; }
 function mtSignSvg(kind) { return (x, y, w, h) => {   // function 宣告：SETS 在檔案開頭就呼叫它
   const T = (tx, ty, sz, fill, str, font, anchor = 'start', wt = 700) => `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-family="${font}" font-weight="${wt}" font-size="${sz.toFixed(1)}" fill="${fill}" text-anchor="${anchor}">${str}</text>`;
   let o = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#141617"/><rect x="${x + w * .02}" y="${y + h * .9}" width="${w * .96}" height="${h * .025}" fill="#c9cbc8"/>`;
@@ -1198,7 +1223,8 @@ async function build(set) {
       const vert = (p, i, w) => {
         P.push(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]); N.push(p.nor[i * 3], p.nor[i * 3 + 1], p.nor[i * 3 + 2]);
         U.push(p.uv ? p.uv[i * 2] : 0, p.uv ? p.uv[i * 2 + 1] : 0);
-        C.push(bc[0], bc[1], bc[2], m && m.getAlphaMode() === 'BLEND' ? bc[3] : 1); B.push(...pbr); E.push(...ef, ek);
+        const vc = set.vcol && p.col ? p.col.subarray(i * 4, i * 4 + 3) : [1, 1, 1];   // vcol：原檔的顏色畫在頂點色上（拖船）
+        C.push(bc[0] * vc[0], bc[1] * vc[1], bc[2] * vc[2], m && m.getAlphaMode() === 'BLEND' ? bc[3] : 1); B.push(...pbr); E.push(...ef, ek);
         if (w != null) W.push(w);
       };
       let base = 0;

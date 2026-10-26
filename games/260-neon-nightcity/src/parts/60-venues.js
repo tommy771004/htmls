@@ -131,6 +131,8 @@ const club = { boxes: [], circles: [], lights: [], people: null, dancers: [] };
   // Blender 道具：DJ 台、音箱塔、酒架、高腳椅、卡座桌
   const fitDJ = propFit('dj_booth');
   instancedIn(S, fitDJ.geo, MAT.uber, [{ x: 0, y: .9, z: 28.3, ry: Math.PI }]);
+  // 以 http(s) 開啟時桌面上換成 Andres Torres 的 DJ 控制器（props/club_dj.glb，放大蓋住程式建模的兩個唱盤與混音器；控制面與螢幕朝 DJ）
+  propSwap('club', null, 'club_dj', [{ x: 0, y: .9 + 1.4, z: 27.92 }], S, null, 'club_dj');
   instancedIn(S, prop('speaker_stack'), MAT.uber, [{ x: -6.6, z: 28.6, ry: Math.PI }, { x: 6.6, z: 28.6, ry: Math.PI }, { x: -4.4, y: .9, z: 31, ry: Math.PI }, { x: 4.4, y: .9, z: 31, ry: Math.PI }]);
   B.push({ x0: -7.3, x1: -5.9, z0: 27.6, z1: 29.6 }, { x0: 5.9, x1: 7.3, z0: 27.6, z1: 29.6 });
   instancedIn(S, prop('bottle_rack'), MAT.uber, [{ x: -11.7, z: 10.3, ry: Math.PI / 2 }, { x: -11.7, z: 14.7, ry: Math.PI / 2 }]);

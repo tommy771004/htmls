@@ -120,6 +120,7 @@ function sees() {
   const high = player.veh && player.veh.fly && player.veh.y - groundH(x, z) > 30;   // 69-gunship.js：飛高了只有警用直升機跟得住
   if (!high && copSees(x, z, W.disg ? DISGUISE_R : CONE_R)) return true;
   if (player.swim && copNear(x, z, SWIM_WATCH)) return true;   // 游泳沒辦法換裝也跑不快：岸上的人盯著水面
+  if (seaCopSees(x, z)) return true;   // 31-sea.js：水警艇
   const h = W.heli;
   if (h && !h.fall && !h.leave && !h.gang && Math.hypot(h.x - x, h.z - z) < HELI_R && Math.hypot(h.sx - x, h.sz - z) < h.spotR && heliSees(h, x, z)) return true;
   return false;
@@ -698,7 +699,7 @@ function policeUpdate(dt) {
     const crewBack = !W.cops.some(c => c.on && c.unit === u && c.state !== 'down');
     if (d > (u.keep ? 700 : 260) || u.state === 'leave' && d > 90 && crewBack || u.v.dead && d > 120) dropUnit(u);
   }
-  sirenNear = Math.min(sirenNear, civSirenD(px, pz));   // 69-v8-civic.js：消防車與救護車
+  sirenNear = Math.min(sirenNear, civSirenD(px, pz), seaSirenD(px, pz));   // 69-v8-civic.js：消防車與救護車；31-sea.js：水警艇
   for (const c of W.cops) if (c.on) copStep(c, dt);
   heliStep(dt);
   tacticsUpdate(dt);   // 69-tactics.js：PIT、催淚瓦斯、垂降直升機

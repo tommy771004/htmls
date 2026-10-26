@@ -964,6 +964,72 @@
    }
   ]
  },
+ "sea": {
+  "kb": 2837,
+  "items": {
+   "polboat": {
+    "w": 5.57,
+    "d": 14,
+    "h": 5.88,
+    "tris": 54466
+   },
+   "tug": {
+    "w": 6.49,
+    "d": 22,
+    "h": 10.82,
+    "tris": 169962
+   },
+   "ferry": {
+    "w": 11.5,
+    "d": 50,
+    "h": 22.01,
+    "tris": 81208
+   }
+  },
+  "credits": [
+   {
+    "file": "police_iii",
+    "title": "Police III",
+    "author": "gogiart (https://sketchfab.com/agt14032013)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/police-iii-9e40832461704bd78051702c07da85cd"
+   },
+   {
+    "file": "40ft_tugboat",
+    "title": "40ft Tugboat",
+    "author": "Potater_King (https://sketchfab.com/Potater_King)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/40ft-tugboat-0555e3e0c1be4080a2ba6731b801f8da"
+   },
+   {
+    "file": "hailuoto_car_ferry_la_meriluoto",
+    "title": "Hailuoto car ferry L/A Meriluoto",
+    "author": "Snowsoup (https://sketchfab.com/snowsoup)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/hailuoto-car-ferry-la-meriluoto-44eaf2dd56b74e76a310d2e532957dbe"
+   }
+  ]
+ },
+ "club_dj": {
+  "kb": 488,
+  "items": {
+   "club_dj": {
+    "w": 1.86,
+    "d": 0.68,
+    "h": 0.25,
+    "tris": 48126
+   }
+  },
+  "credits": [
+   {
+    "file": "dj_mixer_desk",
+    "title": "DJ Mixer desk",
+    "author": "Andres Torres (https://sketchfab.com/linelovesletters)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/dj-mixer-desk-f61b9a6dcdad46ddac764e84fe798de2"
+   }
+  ]
+ },
  "fort": {
   "kb": 1175,
   "items": {

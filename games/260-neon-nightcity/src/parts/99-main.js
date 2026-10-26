@@ -266,6 +266,7 @@ function step(dt) {
     airUpdate(dt);    // 灰鷺角國際機場的客機起降與模型下載（21-air.js）
     xrUpdate(dt);     // 港灣高架線的列車（21-xrail.js）
     boatsUpdate(dt);
+    seaUpdate(dt);    // 渡輪、拖船與水警艇（31-sea.js）
     wakeUpdate(dt);
   } else if (player.where === 'club') updateClub(t, U.uBeat.value);
   if (player.mode === 'drive') {
