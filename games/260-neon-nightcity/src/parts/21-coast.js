@@ -582,12 +582,12 @@ let fwyPierMesh = null;
     const n = Math.max(2, Math.ceil(e.len / 3)), S = [], W = e.dw || DECK_W, HW = e.hw || HR;
     for (let i = 0; i <= n; i++) {
       const u = e.len * i / n, [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1.2)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1.2)), l = Math.hypot(xb - xa, zb - za) || 1;
-      S.push({ u, x, z, hx: (xb - xa) / l, hz: (zb - za) / l, h: fwyH(e, u) });
+      S.push({ u, x, z, hx: (xb - xa) / l, hz: (zb - za) / l, h: fwyH(e, u), y0: inLake(x, z) ? LAKE_Y : 0 });   // y0：橋下的地面（天樞島的水道裡是水底）
     }
     for (let i = 1; i <= n; i++) {
       const A = S[i - 1], B = S[i];
       if (A.h <= .05 && B.h <= .05) continue;
-      const up = A.h >= PIER_H && B.h >= PIER_H;   // 橋（下面空的）還是坡道（實心）
+      const up = A.h - A.y0 >= PIER_H && B.h - B.y0 >= PIER_H;   // 橋（下面空的）還是坡道（實心）；水上的匝道貼近水面也是橋
       const keep = [-1, 1].filter(sd => { const x = (A.x + B.x) / 2 - (A.hz + B.hz) / 2 * W * sd, z = (A.z + B.z) / 2 + (A.hx + B.hx) / 2 * W * sd; return !onOther(x, z, e, (A.h + B.h) / 2); });
       for (const sd of keep) {
         const P = (s, o, y) => [s.x - s.hz * o * sd, y, s.z + s.hx * o * sd], out = [-A.hz * sd, 0, A.hx * sd], inn = [A.hz * sd, 0, -A.hx * sd];
@@ -627,8 +627,8 @@ let fwyPierMesh = null;
     }
     // 橋墩：每 26 m 一座，連接道路與斜的大道旁邊不立
     for (let u = 13; u < e.len - 13; u += 26) {
-      const h = fwyH(e, u); if (h < PIER_H + .5) continue;
-      const [x, z, hx, hz] = edgeAt(e, u);
+      const h = fwyH(e, u), [x, z, hx, hz] = edgeAt(e, u);
+      if (h - (inLake(x, z) ? LAKE_Y : 0) < PIER_H + .5) continue;
       if (nearRoad(x, z, HR + 3) || deckOn(x, z, e, 1)) continue;   // 分合流處疊在別條路的橋面下的不立
       const top = h - DECK_T, ry = Math.atan2(hx, hz), y0 = inLake(x, z) ? LAKE_Y : 0;   // 天樞島的水道裡：柱子從水底立起
       pk.cyl(x, (top - .8 + y0) / 2, z, .95, 1.1, top - .8 - y0, 14, CONC, TX.conc);

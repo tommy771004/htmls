@@ -316,8 +316,9 @@ for (const F of FWY) {
 // ─── 匝道（單向，kind 'f'、ramp）：出口匝道在行車方向的右手邊從主線分出，RAMP_DIV 公尺內岔開到 RAMP_D（放不下就試 26 m）外，
 // 岔開的那段跟著主線的高度（兩座橋面還疊在一起），再下坡，在下一條從橋下穿過的連接道路上以 T 字路口（號誌，匝道一相、連接道路一相）落地；
 // 入口匝道反過來，從同一個路口上去，在越過那條路之後併入主線。分合流點要在主線至少 4 m 高的地方、離別的分合流點 30 m 以上；岔開段不能在主線急彎內側折回；
-// 整條匝道離片的路與人行道、別的快速道路與匝道都要夠遠，越過別的連接道路的地方要有 6.6 m 高。下坡最陡約 11%
-const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, FWY_RAMPS = [];
+// 整條匝道離片的路與人行道、別的快速道路與匝道都要夠遠，越過別的連接道路的地方要有 6.6 m 高。下坡最陡約 11%。
+// 兩條快速道路大半走在天樞島的水道上：匝道可以整段在水上（落地在跨水道的橋上），水上那段的橋面至少 RAMP_WET 高，21-coast.js 照離水底的高度當成橋、立橋墩
+const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, RAMP_WET = .4, FWY_RAMPS = [];
 {
   const CD = RN.edges.filter(e => e.kind === 'c' || e.kind === 'd');
   const segD = (pts, x, z) => { let b = 1e9; for (let k = 1; k < pts.length; k++) { const a = pts[k - 1], q = pts[k], dx = q[0] - a[0], dz = q[1] - a[1], t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1); b = Math.min(b, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t)); } return b; };
@@ -358,12 +359,13 @@ const RAMP_DIV = 50, RAMP_HW = 5, RAMP_DW = RAMP_HW + 1.2, FWY_RAMPS = [];
         for (let k = 0; k < pts.length && ok; k++) {
           const w = Lr * k / n, [px, pz] = pts[k], toT = Lr - w;
           if (w < RAMP_DIV - 8) continue;   // 還疊在主線的橋面上
-          ok = inCity(px, pz) && !zoneNearL(px, pz, RAMP_DW + HR + SW)
+          ok = (inCity(px, pz) || inLake(px, pz)) && !zoneNearL(px, pz, RAMP_DW + HR + SW)   // 可以跨過天樞島的水道（兩條快速道路走水道中線，落地點在橋上；21-coast.js 的橋墩從水底立起）
             && !(hs[k] < 6.6 && CD.some(o => (o !== e || toT > HR + RAMP_DW + 14) && segD(o.pts, px, pz) < RAMP_DW + HR + 1))
             && !FWY.some(G => G !== F && G.S && segD(G.P, px, pz) < RAMP_DW + DECK_W + 1)
             && !FWY_RAMPS.some(r => !(r === mate && toT < HR + 30) && segD(r.pts, px, pz) < 2 * RAMP_DW + 1);
         }
         if (!ok) continue;
+        for (let k = 0; k < n; k++) if (hs[k] < RAMP_WET && inLake(...pts[k])) hs[k] = RAMP_WET;   // 水上的那段不貼水面：橋面至少 RAMP_WET 高（deckOn 才找得到，車不會掉進水裡）
         const [mx, mz] = fwyAt(F, aM);
         return { F, e, x, dl, on, D, T, aM, mx, mz, pts: on ? pts.reverse() : pts, hs: on ? hs.reverse() : hs };
       }

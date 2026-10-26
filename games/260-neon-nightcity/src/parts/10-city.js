@@ -396,7 +396,7 @@ for (const r of LANDS) {
       if (!run) return;
       const [p0, p1] = [run, end], [f0, f1] = out < 0 ? [fixed - 4, fixed] : [fixed, fixed + 4];
       // 沙灘外緣（水深 0.3 m 處）那段擋車不擋人：人可以涉水、游出去（40-people.js 的 swim）
-      const swim = r === BEACH && fixed === r.z1 ? 1 : 0;
+      const swim = r === LANDS[0] && fixed === r.z1 ? 1 : 0;   // LANDS[0] 是 BEACH 往內陸延伸的副本（不是 BEACH 本身）
       const put = (a, b, sw) => { if (b - a > .01) colliders.push(ax === 'x' ? { x0: a, x1: b, z0: f0, z1: f1, low: 1, swim: sw } : { x0: f0, x1: f1, z0: a, z1: b, low: 1, swim: sw }); };
       let a = p0;
       for (const L of LADDERS) {   // 梯子前的缺口
