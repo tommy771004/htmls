@@ -365,7 +365,7 @@ function castRay(R, maxT, skip = player.veh) {
   for (const c of traffic) hit(rayOBB(R, c.x, c.z, c.yaw, TYPES[c.type].w / 2, TYPES[c.type].len / 2, 1.5), 'car', c);
   for (const c of parked) { if ((c.x - R.ox) ** 2 + (c.z - R.oz) ** 2 > (maxT + 5) ** 2) continue; hit(rayOBB(R, c.x, c.z, c.yaw, TYPES[c.type].w / 2, TYPES[c.type].len / 2, 1.5), 'car', c); }
   for (const v of vehicles) if (v !== skip) hit(rayOBB({ ...R, oy: R.oy - v.y }, v.x, v.z, v.yaw, v.w / 2, v.len / 2, v.h || (v.isCar ? 1.45 : 1.2)), 'veh', v);
-  for (const b of boxesNear(R.ox, R.oz, 0, R.ox + R.dx * best.t, R.oz + R.dz * best.t)) { if (b.low) continue; const t = rayBox(R.ox, R.oz, R.dx * best.t, R.dz * best.t, b); if (t < 1) hit(t * best.t, 'wall', b); }
+  for (const b of boxesNear(R.ox, R.oz, 0, R.ox + R.dx * best.t, R.oz + R.dz * best.t)) { if (b.low) continue; const t = rayBox(R.ox, R.oz, R.dx * best.t, R.dz * best.t, b); if (t < 1 && !(b.hy != null && R.oy + R.dy * t * best.t > b.hy)) hit(t * best.t, 'wall', b); }   // 從屋頂上方過去（站在樓頂上開槍）不算撞牆
   if (R.dy < -1e-4) hit(-R.oy / R.dy, 'ground', null);
   return best;
 }

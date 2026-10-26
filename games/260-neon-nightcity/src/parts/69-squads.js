@@ -54,7 +54,7 @@ function fSpawn(team, x, z, yaw, o = {}) {
   fLook(f);
   return f;
 }
-function fFree(f) { f.on = false; f.car = null; f.kx = f.kz = f.ky = f.kvy = 0; fighters.place(f.k, 0, -60, 0, 0); fighters.people[f.k].gunH = null; }
+function fFree(f) { f.on = false; f.car = null; f.fy = f.area = null; f.kx = f.kz = f.ky = f.kvy = 0; fighters.place(f.k, 0, -60, 0, 0); fighters.people[f.k].gunH = null; }
 const fAlly = f => f.team === 'merc' || f.team === 'crew';
 const fUp = f => f.on && f.state === 'act';
 // 被打中：敵方倒下會掉彈藥；隊友不會倒（生命鎖在 50），傭兵會
@@ -85,7 +85,7 @@ function fighterMelee(x, z, fx, fz, reach, dmg) {
   return false;
 }
 // 射線打得到敵方（友軍讓子彈穿過去，免得誤傷）
-rayHooks.push((R, hit) => { for (const f of SQ.f) if (fUp(f) && !fAlly(f)) hit(rayCyl(R, f.x, f.z, .34, .1, 1.95), 'fighter', f); });
+rayHooks.push((R, hit) => { for (const f of SQ.f) if (fUp(f) && !fAlly(f)) hit(rayCyl(R, f.x, f.z, .34, (f.fy || 0) + .1, (f.fy || 0) + 1.95), 'fighter', f); });
 // 69-police.js 的 copStep 問這裡：警察附近有沒有比玩家更近、看得到的友軍
 function squadAlly(x, z, dMax) {
   let best = null, bd = dMax;
@@ -140,7 +140,7 @@ function fireAt(t, ox, oy, oz, team, gunF = 1) {
 function fShoot(f, dt) {
   if ((f.shotT -= dt) > 0) return;
   const cd = GUN_CD[f.gun] || GUN_CD.pistol, g = npcGunOf(fighters.people[f.k]);
-  fireAt(f.tgt, g ? g.x : f.x, g ? g.y : 1.4, g ? g.z : f.z, f.team, ARMS[f.gun].f);
+  fireAt(f.tgt, g ? g.x : f.x, g ? g.y : (f.fy || 0) + 1.4, g ? g.z : f.z, f.team, ARMS[f.gun].f);
   if (f.team === 'gang') gangShots(f.x, f.z);
   f.burst = (f.burst + 1) % cd[2];
   f.shotT = f.burst ? cd[0] : cd[1] + Math.random() * .6;
@@ -158,7 +158,7 @@ function fNav(f, gx, gz, dt) {
 }
 
 // ─── 每個戰鬥員每幀 ───
-function fGround(f) { return footY(f.x, f.z); }
+function fGround(f) { return f.fy ?? footY(f.x, f.z); }   // fy：站在固定高度的樓板上（69-w5-fin.js 塔頂的人），不照地面
 function fStep(f, dt) {
   const p = fighters.people[f.k];
   if (f.state === 'car') { if (f.car) { f.x = f.car.v.x; f.z = f.car.v.z; } fighters.place(f.k, 0, -60, 0, 0); return; }
@@ -212,10 +212,10 @@ function fStep(f, dt) {
     const s = sp > 0 ? 1 : -1, m = Math.abs(sp) * dt;
     let nx = f.x + dx / dn * m * s, nz = f.z + dz / dn * m * s;
     for (const o of SQ.f) if (o !== f && fUp(o)) { const ex = nx - o.x, ez = nz - o.z, e = Math.hypot(ex, ez); if (e < .8 && e > 1e-3) { nx += ex / e * (.8 - e) * .5; nz += ez / e * (.8 - e) * .5; } }
-    const r = collideCircle(nx, nz, .32, false); f.x = r.x; f.z = r.z;
+    const r = f.fy != null ? (f.area ? f.area(nx, nz) : { x: nx, z: nz }) : collideCircle(nx, nz, .32, false); f.x = r.x; f.z = r.z;   // 樓板上的人不撞樓的碰撞盒（人就在盒子上面），只關在 area 裡
   }
   if (f.board && Math.hypot(f.board.v.x - f.x, f.board.v.z - f.z) < f.board.v.w / 2 + 1.4) { f.state = 'car'; f.car = f.board; f.board = null; return; }
-  p.aimK = P ? (sp ? .85 : 1) : .25; p.aimP = P ? Math.atan2(P.y - 1.45, Math.max(Math.hypot(P.x - f.x, P.z - f.z), 1)) * .9 : -.2;
+  p.aimK = P ? (sp ? .85 : 1) : .25; p.aimP = P ? Math.atan2(P.y - 1.45 - (f.fy || 0), Math.max(Math.hypot(P.x - f.x, P.z - f.z), 1)) * .9 : -.2;
   fighters.anim(f.k, sp ? ANIM.aimRun : ANIM.aimIdle, f.ph += dt * (sp ? 1 : 0), 1);
   fighters.place(f.k, f.x, fGround(f), f.z, f.yaw);
   if (P && !life.dead && Math.hypot(P.x - f.x, P.z - f.z) < 60) fShoot(f, dt);

@@ -189,11 +189,16 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
       let a = await toS('F-2', 'leap');
       if (a) { const hp0 = life(); for (let i = 0; i < 80 && !a.leapDone; i++) { __t.step(10); if (a.leapHold && a.leapHold.out) await new Promise(r => setTimeout(r, 150)); }
         await new Promise(r => setTimeout(r, 300)); const L = a.leap;   // 黑場淡出完（fading 期間 transition 不會動）
-        o.leap = { done: a.leapDone, hurt: hp0 - life(), d: a.leapMiss ?? -1, h: L ? Math.round(L.y0 - L.wy) : 0, roof: !!(L && L.roof), down: L ? Math.round(L.by - N.player.y) : 0, air: !!N.player.air3, type: St.state().act && St.state().act.type }; }
+        o.leap = { done: a.leapDone, hurt: hp0 - life(), d: a.leapMiss ?? -1, h: L ? Math.round(L.y0 - L.wy) : 0, roof: !!(L && L.roof), balc: !!(L && L.balc), down: L ? Math.round(L.by - N.player.y) : 0, air: !!N.player.air3, type: St.state().act && St.state().act.type }; }
       // F-4B：站在 202 m 的屋頂上不掉下去；六星（第六顆星亮著），直升機飛在屋頂以上
       a = await toS('F-4B', 'stream');
       if (a) { __t.step(600); const W = N.gta.wanted.W, el = document.getElementById('wanted');
         o.roof = { y: Math.round(N.player.y), deck: St.fin.towerRoof().y, stars: W.stars, six: el.classList.contains('six') && el.children[5].classList.contains('lit'), heli: W.heli && !W.heli.fall ? Math.round(W.heli.y) : null, p: +((a.cur && a.cur.p) || 0).toFixed(3), type: St.state().act && St.state().act.type };
+        // 塔頂的步兵：第一波 18 秒後從直梯上來，站在 202 m 的樓板上；瞄準開槍打得到
+        __t.step(600); const fs = St.fin.roofFoes(); o.roof.foes = fs.length; o.roof.fy = fs.length ? Math.max(...fs.map(f => Math.abs(f.y - o.roof.deck))) : -1;
+        if (fs.length) { const f = fs[0], hp0 = f.hp, P = N.player; N.gta.equip('rifle', true); __t.step(30);
+          for (let i = 0; i < 12; i++) { const g = St.fin.roofFoes()[0]; if (!g) break; N.camAt(P.x, P.y + 1.6, P.z, g.x, g.y + 1.2, g.z); __t.step(2); N.gta.shoot(); __t.step(8); }
+          N.camAt(); const g = St.fin.roofFoes(); o.roof.hit = g.length < fs.length || (g[0] ? g[0].hp < hp0 : true); }
         St.fail('測試'); __t.step(5); if (N.dialog.open) N.closeDialog(); N.gta.wanted.clear('reset'); o.roof.six2 = W.six || 0; }
       // 重玩 F-3（主線已經走完）選 B：下一關換成 F-4B
       St.st().m = 'end'; St.st().retry = null; St.fin.start('F-3'); await __t.settle();
@@ -202,13 +207,22 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
         __t.step(20); }
       __t.dismiss();
       o.re = { m: St.state().m, route: St.state().flags.route, rows: St.fin.phone().length, repT: St.fin.repT(), posters: St.fin.posters() };
+      // 母親家：買回房子（扣 $480,000、播過場），片尾台詞跟著換
+      const H = St.fin.house, A0 = H.lines().A[0];
+      N.motors.cash = Math.max(N.motors.cash, H.P + 1000); const c0 = N.motors.cash;
+      o.house = { ok: H.buy() };
+      for (let i = 0; i < 20; i++) { await __t.settle(); const s = St.state(); if (!s.act) break; St.skip(); __t.step(20); if (N.dialog.open) N.closeDialog(); }
+      __t.dismiss();
+      Object.assign(o.house, { paid: c0 - N.motors.cash, flag: St.state().flags.house, again: H.buy(), line: H.lines().A[0] !== A0, act: !!St.state().act });
       return o;
     });
     if (fin) {
       const L = fin.leap, R2 = fin.roof, E = fin.re;
-      check(L && L.done && L.hurt <= 0 && L.d >= 0 && L.d < 1.5 && L.h >= 12 && (!L.roof || L.down > 4), `F-2：從 ${L && L.h} m 跳下來落進${L && L.roof ? '隔壁樓頂的' : ''}泳池、沒扣血，再帶到樓下（${JSON.stringify(L)}）`);
-      check(R2 && Math.abs(R2.y - R2.deck) < 2 && R2.stars === 6 && R2.six && (R2.heli === null || R2.heli > R2.deck) && R2.p > .05 && R2.six2 === 0, `F-4B：塔頂 ${R2 && R2.y} m 守著、六星、直升機 ${R2 && R2.heli} m、上傳 ${R2 && Math.round(R2.p * 100)}%（${JSON.stringify(R2)}）`);
+      check(L && L.done && L.hurt <= 0 && L.d >= 0 && L.d < 1.5 && L.h >= 12 && L.balc && (!L.roof || L.down > 4), `F-2：從陽台 ${L && L.h} m 跳下來落進${L && L.roof ? '隔壁樓頂的' : ''}泳池、沒扣血，再帶到樓下（${JSON.stringify(L)}）`);
+      check(R2 && Math.abs(R2.y - R2.deck) < 2 && R2.stars === 6 && R2.six && (R2.heli === null || R2.heli > R2.deck) && R2.p > .05 && R2.six2 === 0 && R2.foes >= 1 && R2.fy >= 0 && R2.fy < .5 && R2.hit, `F-4B：塔頂 ${R2 && R2.y} m 守著、六星、直升機 ${R2 && R2.heli} m、上傳 ${R2 && Math.round(R2.p * 100)}%、爬上來的步兵 ${R2 && R2.foes} 個站在樓板上、打得到（${JSON.stringify(R2)}）`);
       check(E.m === 'F-4B' && E.route === 'B', `重玩 F-3 改選 B：下一關 ${E.m}`);
+      const Hs = fin.house;
+      check(Hs && Hs.ok && Hs.paid === 480000 && Hs.flag === 1 && !Hs.again && Hs.line && !Hs.act, `母親家：買回房子扣 $${Hs && Hs.paid}、過場播完、不能再買、片尾台詞換了（${JSON.stringify(Hs)}）`);
       check(E.rows >= 30 && E.repT === 1.5 && E.posters >= 5, `手機「主線任務」${E.rows} 列、結局 B 報警 ${E.repT} 秒、通緝海報 ${E.posters} 塊`);
     }
     const mon = await sec('腳鐐：羅莎走出範圍，30 秒後加 1 星', () => {

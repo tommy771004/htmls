@@ -325,7 +325,7 @@ function hitWith(h, R, dmg, by, head = 2.5, stun = 0) {
   else if (h.kind === 'ebox') boxHit(h.ref, dmg, mine);   // 69-market.js：流明電訊的電訊箱
   else if (h.kind === 'fn') { blood(x, y, z); h.ref(dmg, R, mine); }   // 其他會中彈的東西自己處理（69-heist.js 跑出銀行的人質）
   else if (h.kind === 'prop') h.ref(x, y, z, dmg, R, mine);   // 69-v5-street.js：玻璃、電話亭、熱狗攤的瓦斯鋼瓶、護欄
-  else if (h.kind === 'fighter') { blood(x, y, z); const hd = y > 1.55; if (fHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }   // 69-squads.js：幫派
+  else if (h.kind === 'fighter') { blood(x, y, z); const hd = y - (h.ref.fy || 0) > 1.55; if (fHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }   // 69-squads.js：幫派
   else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); chemHit(x, y, z); }   // 打到地上的油就點著
 }
 // 電擊槍：路人倒地抽搐幾秒後爬起來逃跑（原地，不重生）；警察倒地幾秒後繼續追

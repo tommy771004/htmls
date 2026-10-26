@@ -59,25 +59,50 @@ STEP.casino = {
 storyCleanups.push(a => { if (a.casOn) { a.casOn = 0; a.casC = null; if (CAS.h) casHeistEnd(false); gpsClear(); } });
 
 // ─── F-2 雙人跳 ───
-// 起跳點：大樓門口外 1 m、樓頂的高度；泳池先找隔壁比較矮的樓頂（8×6 m 的池子整片放得下、夠平），找不到才退回門口外 14–56 m 的空地
-// （不在樓裡、推不動、不在水裡）。跳過去的拋物線都不能碰到別的屋頂
+// 起跳點：頂層公寓的陽台，在大樓碰撞盒的外牆上、樓頂往下一層，挑朝著泳池那一面（陽台下面要是空的，不能貼著隔壁的屋頂）。
+// 泳池先找隔壁比較矮的樓頂（8×6 m 的池子整片放得下、夠平），找不到才退回樓外 14–56 m 的空地（不在樓裡、推不動、不在水裡、不在車道上）。
+// 跳過去的拋物線每公尺量一次，不能碰到別的屋頂（屋頂的高度圖在這一帶有破洞，所以樓的範圍用碰撞盒，不用高度圖找外牆）
 const finRoad = (x, z) => { const p = rnProject(x, z, 16); return onRoad(x, z) || !!p && p.d < 7; };   // 車道上（離路中心 7 m 內）
 const POOL_W = 4.3, POOL_D = 3.2, POOL_WY = .62, POOL_STAND = 1.15;   // 池子外緣的半寬、半深；水面離池底座的高度；站在池裡時腳在水面下多深
+const BALC_DOWN = 3.2, BALC_OUT = 1;   // 陽台樓板比樓頂低一層；起跳點離外牆 1 m（樓板中間）
+function loftBox(D) {
+  let best = null, bh = -1;
+  for (const b of boxesNear(D.x, D.z, 8)) {
+    const x0 = b.bx0 ?? b.x0, x1 = b.bx1 ?? b.x1, z0 = b.bz0 ?? b.z0, z1 = b.bz1 ?? b.z1;
+    if (Math.max(x0 - D.x, D.x - x1, z0 - D.z, D.z - z1) > 4) continue;
+    const h = roofH((x0 + x1) / 2, (z0 + z1) / 2);
+    if (h > bh) { bh = h; best = { x0, x1, z0, z1, top: h }; }
+  }
+  return best;
+}
+// 這一點的屋頂高度：高度圖和「蓋住這一點的碰撞盒中心的屋頂」取高的（高度圖有破洞的地方靠碰撞盒補）
+function boxRoof(x, z) {
+  let h = roofH(x, z);
+  for (const b of boxesNear(x, z, 1)) if (boxGap(b, x, z) <= 0) h = Math.max(h, roofH(((b.bx0 ?? b.x0) + (b.bx1 ?? b.x1)) / 2, ((b.bz0 ?? b.z0) + (b.bz1 ?? b.z1)) / 2));
+  return h;
+}
 function leapPlan() {
-  const D = ST_LOFT(), g0 = groundH(D.x, D.z);
-  let bt = 0, bh = -1;
-  for (let k = 0; k < 16; k++) { const t = k / 16 * Math.PI * 2, h = roofH(D.x + Math.sin(t) * 6, D.z + Math.cos(t) * 6); if (h > bh) { bh = h; bt = t; } }
-  const ix = Math.sin(bt), iz = Math.cos(bt);   // 往樓裡
-  let top = 0;
-  for (let d = 3; d <= 14; d++) top = Math.max(top, roofH(D.x + ix * d, D.z + iz * d));
-  top = Math.max(top, g0 + 24);
-  let ex = D.x - ix, ez = D.z - iz;
-  for (let d = 1; d < 8; d += .5) { ex = D.x - ix * d; ez = D.z - iz * d; if (roofH(ex, ez) < top - 2) break; }
-  const y0 = top + 1.6, vy0 = 4;
-  const clear = (bx, bz, by, vy0 = 4) => {
+  const D = ST_LOFT(), g0 = groundH(D.x, D.z), B = loftBox(D);
+  const cx = B ? (B.x0 + B.x1) / 2 : D.x, cz = B ? (B.z0 + B.z1) / 2 : D.z;
+  const top = Math.max(B ? B.top : roofH(D.x, D.z), g0 + 24);
+  const yb = top - BALC_DOWN, y0 = yb + 1.1;   // 踩在欄杆上跳出去
+  // 四面外牆上每 2.5 m 一個可以放陽台的點：外面 4 m 內都比陽台低 2 m 以上
+  const starts = [];
+  if (B) for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const along = nx ? [B.z0, B.z1] : [B.x0, B.x1], fx = nx > 0 ? B.x1 : nx < 0 ? B.x0 : 0, fz = nz > 0 ? B.z1 : nz < 0 ? B.z0 : 0;
+    for (let u = along[0] + 2.5; u <= along[1] - 2.5; u += 2.5) {
+      const x = nx ? fx + nx * BALC_OUT : u, z = nz ? fz + nz * BALC_OUT : u;
+      let ok = true; for (let d = 0; d <= 4 && ok; d += 1) ok = boxRoof(x + nx * d, z + nz * d) < yb - 2;
+      if (ok) starts.push({ x, z, nx, nz });
+    }
+  }
+  if (!starts.length) starts.push({ x: D.x, z: D.z, nx: -Math.sin(D.yaw || 0), nz: -Math.cos(D.yaw || 0), none: true });
+  // 離泳池最近、而且泳池在陽台外面那一側的起跳點
+  const pick = (bx, bz) => { let s = null, sd = 1e9; for (const q of starts) { const dx = bx - q.x, dz = bz - q.z, d = Math.hypot(dx, dz); if ((dx * q.nx + dz * q.nz) / (d || 1) > .25 && d < sd) { sd = d; s = q; } } return s; };
+  const clear = (S, bx, bz, by, vy0 = 4) => {
     const T0 = (vy0 + Math.sqrt(vy0 * vy0 + 19.6 * (y0 - by))) / 9.8;
-    const du = 1 / Math.max(12, Math.hypot(bx - ex, bz - ez));   // 每公尺量一次，樓的邊緣才不會從兩個取樣點之間漏掉
-    for (let u = du; u < .96; u += du) { const t = u * T0, y = y0 + vy0 * t - 4.9 * t * t; if (roofH(ex + (bx - ex) * u, ez + (bz - ez) * u) > y - 1.2) return false; }   // 腳離屋頂至少 1.2 m
+    const du = 1 / Math.max(12, Math.hypot(bx - S.x, bz - S.z));   // 每公尺量一次，樓的邊緣才不會從兩個取樣點之間漏掉
+    for (let u = du; u < .96; u += du) { const t = u * T0, y = y0 + vy0 * t - 4.9 * t * t; if (boxRoof(S.x + (bx - S.x) * u, S.z + (bz - S.z) * u) > y - 1.2) return false; }   // 腳離屋頂至少 1.2 m
     return true;
   };
   // 池子四角再往外 1 m 都要在同一片屋頂上（不貼著屋緣、不壓到水塔冷氣機）
@@ -89,23 +114,25 @@ function leapPlan() {
     }
     return true;
   };
+  const R0 = B ? Math.hypot(B.x1 - B.x0, B.z1 - B.z0) / 2 : 0;
   let best = null;
-  for (let r = 14; r <= 70 && !best; r += 2) for (let j = 0, n = Math.ceil(Math.PI * r / 1.5); j <= 2 * n && !best; j++) {   // 從門口正前方往兩邊轉，整圈都找，每 1.5 m 一個點
-    const k = j & 1 ? (j + 1) / 2 : -j / 2, t = bt + Math.PI + k * 1.5 / r, bx = ex + Math.sin(t) * r, bz = ez + Math.cos(t) * r, by = roofH(bx, bz), g = groundH(bx, bz);
-    if (by < g + 8 || by > top - 12 || by < g0 + 8) continue;
-    const yaw = Math.atan2(bx - ex, bz - ez);
-    if (flat(bx, bz, yaw, by)) for (const v of [4, 6]) if (!best && clear(bx, bz, by + POOL_WY, v)) best = { bx, bz, by, vy0: v, roof: true };   // 隔著一棟樓：跳高一點越過去
+  for (let r = R0 + 12; r <= R0 + 70 && !best; r += 2) for (let j = 0, n = Math.ceil(Math.PI * r / 1.5); j <= 2 * n && !best; j++) {   // 從大樓中心往外一圈一圈找，每 1.5 m 一個點
+    const t = j * 1.5 / r, bx = cx + Math.sin(t) * r, bz = cz + Math.cos(t) * r, by = roofH(bx, bz), g = groundH(bx, bz);
+    if (by < g + 8 || by > yb - 18 || by < g0 + 8) continue;   // 至少低 18 m：要看得出是從高處跳下去
+    const S = pick(bx, bz); if (!S) continue;
+    if (flat(bx, bz, Math.atan2(bx - S.x, bz - S.z), by)) for (const v of [4, 6]) if (!best && clear(S, bx, bz, by + POOL_WY, v)) best = { S, bx, bz, by, vy0: v, roof: true };   // 隔著一棟樓：跳高一點越過去
   }
   colY = 0;
-  for (let r = 14; r <= 56 && !best; r += 3) for (let k = -8; k <= 8 && !best; k++) {
-    const t = bt + Math.PI + k * .17, bx = ex + Math.sin(t) * r, bz = ez + Math.cos(t) * r, by = groundH(bx, bz);
+  for (let r = R0 + 6; r <= R0 + 50 && !best; r += 3) for (let j = 0, n = Math.ceil(Math.PI * r / 3); j <= 2 * n && !best; j++) {
+    const t = j * 3 / r, bx = cx + Math.sin(t) * r, bz = cz + Math.cos(t) * r, by = groundH(bx, bz);
     if (Math.abs(by - g0) > 2 || roofH(bx, bz) > by + .5 || waterDepth(bx, bz) > 0 || finRoad(bx, bz)) continue;
     const q = collideCircle(bx, bz, 3.4, false);
     if (Math.hypot(q.x - bx, q.z - bz) > .05) continue;
-    if (clear(bx, bz, by)) best = { bx, bz, by };
+    const S = pick(bx, bz); if (S && clear(S, bx, bz, by)) best = { S, bx, bz, by };
   }
-  if (!best) { const bx = ex - ix * 16, bz = ez - iz * 16; best = { bx, bz, by: groundH(bx, bz) }; }
-  return { ex, ez, y0, vy0, roof: false, ...best, wy: best.by + POOL_WY, yaw: Math.atan2(best.bx - ex, best.bz - ez) };
+  if (!best) { const S = starts[0], bx = S.x + S.nx * 16, bz = S.z + S.nz * 16; best = { S, bx, bz, by: groundH(bx, bz) }; }
+  const S = best.S;
+  return { ex: S.x, ez: S.z, ix: -S.nx, iz: -S.nz, yb, y0, vy0: 4, roof: false, balc: !S.none, ...best, wy: best.by + POOL_WY, yaw: Math.atan2(best.bx - S.x, best.bz - S.z) };
 }
 // 落水之後走到樓下：泳池那棟樓旁邊、不在樓裡、推不動的人行道
 function leapStreet(L) {
@@ -117,6 +144,20 @@ function leapStreet(L) {
     if (Math.hypot(q.x - x, q.z - z) < .05) return { x, z, y: g, yaw: Math.atan2(x - L.bx, z - L.bz) };
   }
   return { x: L.ex, z: L.ez, y: groundH(L.ex, L.ez), yaw: L.yaw };
+}
+// 頂層公寓的陽台：樓板從外牆伸出 2 m、三面玻璃欄杆，盆栽靠牆（從前面的欄杆上跳出去）
+function finBalcony(L) {
+  const k = new Kit();
+  k.box(0, -.12, 0, 3.6, .24, 2, 0xb9b3a8, 2);                                   // 樓板（混凝土）
+  k.box(0, -.3, 0, 3.4, .12, 1.8, 0x2a2c2e, 2);                                  // 樓板下緣的陰影線
+  for (const [x, z, sx, sz] of [[0, .95, 3.6, .04], [1.78, 0, .04, 1.9], [-1.78, 0, .04, 1.9]]) {
+    k.box(x, .52, z, sx, 1, sz, 0x9fb8c0, 1);                                      // 玻璃欄杆
+    k.box(x, 1.05, z, sx + .04, .06, sz + .04, 0x6e7276, 3);                       // 不鏽鋼扶手
+  }
+  k.box(-1.1, .45, -.55, .6, .9, .6, 0x2f3a2c, 2).box(-1.1, 1.1, -.55, .9, .5, .9, 0x3d5a34, 2);   // 盆栽
+  const m = new T.Mesh(k.build(), MAT.uber);
+  m.position.set(L.ex, L.yb, L.ez); m.rotation.y = Math.atan2(-L.ix, -L.iz); scene.add(m);
+  return m;
 }
 function finPool(L) {
   const k = new Kit(), STONE = 0xcfc8b8, DECK = 0x6b5848, W = POOL_WY;
@@ -148,6 +189,8 @@ STEP.leap = {
     const L = a.leap = leapPlan();
     if (a.poolM) { scene.remove(a.poolM); a.poolM.geometry.dispose(); }
     a.poolM = finPool(L);
+    if (a.balcM) { scene.remove(a.balcM); a.balcM.geometry.dispose(); }
+    a.balcM = L.balc ? finBalcony(L) : null;
     c.wait = true;
     transition(() => {
       if (player.mode === 'drive') exitVehicle();
@@ -220,6 +263,7 @@ storyCleanups.push(a => {
   if (a.leapHold) { a.leapHold = null; player.y = groundH(pX(), pZ()); }
   leapBoxOff(a);
   if (a.poolM) { scene.remove(a.poolM); a.poolM.geometry.dispose(); a.poolM = null; }
+  if (a.balcM) { scene.remove(a.balcM); a.balcM.geometry.dispose(); a.balcM = null; }
   if (slowmo.st < 1) slowmo.st = 1;
 });
 
@@ -286,8 +330,25 @@ STEP.lift = {
   step: (a, s, c) => !c.wait && !fading,
   hud: () => ({ text: '工地升降機一路往上……', bar: -1 }),
 };
+// 塔頂的步兵：霍爾的人從塔吊那頭的直梯一波一波爬上來（69-squads 的 fy／area：站在樓板上、關在屋頂範圍裡）
+const ROOF_WAVE = 30, ROOF_MAX = 3;
+function roofArea(x, z) {
+  const Tw = CR.F.tower, [lx, lz] = toL(x, z);
+  const [wx, wz] = toW(clamp(lx, Tw.x0 + 1.2, Tw.x1 - 1.2), clamp(lz, Tw.z0 + 1.2, Tw.z1 - 1.2));   // Tw 是邏輯座標（和 towerRoof 一樣）
+  return { x: wx, z: wz };
+}
+function roofFoes(a) { return SQ.f.filter(f => fUp(f) && f.grp === a && f.fy != null); }
+function roofWave(a, n) {
+  const R = a.rig;
+  for (let i = 0; i < n; i++) {
+    const q = towerRoof(15 + i * 1.5, (i % 2 ? -1 : 1) * (3 + i)), f = fSpawn('gang', q.x, q.z, R ? Math.atan2(R.x - q.x, R.z - q.z) : 0, { gun: i % 2 ? 'smg' : 'rifle', esc: true });
+    if (!f) continue;
+    Object.assign(f, { x: q.x, z: q.z, fy: CR_DECK, area: roofArea, grp: a, calm: false });
+  }
+  toast('霍爾的人從直梯爬上來了');
+}
 STEP.stream = {
-  start: (a, s, c) => { c.p = 0; a.helis = a.helis || 0; a.streamOn = 1; W.six = 1; wantedApi.set(6); toast('直播開始 · 全城都看到了 · 六星通緝'); equip('rpg', true); },
+  start: (a, s, c) => { c.p = 0; c.wave = ROOF_WAVE * .6; a.helis = a.helis || 0; a.streamOn = 1; W.six = 1; wantedApi.set(6); toast('直播開始 · 全城都看到了 · 六星通緝'); equip('rpg', true); },
   step: (a, s, c, dt) => {
     const R = a.rig, on = R && Math.hypot(pX() - R.x, pZ() - R.z) < 14 && Math.abs(player.y - R.y) < 3;
     c.on = on;
@@ -295,7 +356,8 @@ STEP.stream = {
     const h = W.heli;
     if (h && h.fall && !h.cnt) { h.cnt = 1; a.helis++; toast(`打下第 ${a.helis} 架直升機`); }
     if (W.stars < 6 && !life.dead) { W.six = 1; wantedApi.set(6); }
-    if (c.p >= 1) { a.streamOn = 0; return true; }
+    if (CR.on && (c.wave -= dt) <= 0) { c.wave = ROOF_WAVE; const n = Math.min(2, ROOF_MAX - roofFoes(a).length); if (n > 0) roofWave(a, n); }
+    if (c.p >= 1) { a.streamOn = 0; for (const f of roofFoes(a)) fHit(f, 999, 0, 1, false); return true; }   // 上傳完成：塔頂剩下的人投降（倒下）
     return false;
   },
   hud: (a, s, c) => ({ text: c.on ? `${s.text}${W.heli && !W.heli.fall ? ' · 直升機來了' : ''}` : '回到直播器材旁邊（14 m 內）', bar: c.p * 100, num: `${Math.floor(c.p * 100)}%`, low: !c.on }),
@@ -395,7 +457,10 @@ function storyPhoneRows() {
 }
 
 // ─── 任務表 ───
-const FIN_A = [L('lupe', '天際置業寄了信來，說法拍撤銷了。'), L('rosa', '聯邦的人辦事很快。'), L('lupe', '霍爾上了新聞。那個史塔林呢？'), L('dane', '她還在電視上剪綵。'), L('rosa', '一次只能抓一條魚。'), L('lupe', '吃飯。湯要涼了。')];
+// 片尾的台詞照「房子買回來沒有」（S.flags.house）換開頭幾句
+const finA = () => [...(S.flags.house ? [L('lupe', '房子的錢付清了，法拍那封信我拿去生火了。'), L('rosa', '聯邦的人說，天際置業的帳也要一筆一筆查。')] : [L('lupe', '天際置業寄了信來，說法拍撤銷了。'), L('rosa', '聯邦的人辦事很快。')]),
+  L('lupe', '霍爾上了新聞。那個史塔林呢？'), L('dane', '她還在電視上剪綵。'), L('rosa', '一次只能抓一條魚。'), L('lupe', '吃飯。湯要涼了。')];
+const finB = () => [['dane', '新聞說我們是「直播大盜」。'], ['rosa', '比「假釋犯」好聽。'], S.flags.house ? ['dane', '妳媽的房子呢？'] : ['dane', '妳媽那邊怎麼辦？'], S.flags.house ? ['rosa', '付清了，誰也拿不走。'] : ['rosa', '等風頭過了，我會回去把房子買回來。'], ['dane', '通緝海報上的照片很難看。'], ['rosa', '那就別回來看。開船。']];
 storyAdd([
   { id: 'F-1', ch: 'F', title: '牌桌', who: ROSA, star: 5, split: true, sw: [ROSA, DANE], at: ST_ALLEY, giver: 'otis', giverAt: () => nearL(ST_ALLEY(), 1.8, .6, -Math.PI / 2),
     desc: '史塔林帳上的錢最後都進了霓鑽賭場的金庫，帳本的正本也在裡面。', sms: '奧帝斯：正本不在帳上，在賭場的金庫裡。AFTERGLOW 後巷見。',
@@ -441,7 +506,7 @@ storyAdd([
       { type: 'card', k: '片尾', t: '星期天的晚餐', hold: 2.4 },
       { type: 'fade', to: () => stAt(ROSA_L, .6, .8, Math.atan2(1.2, -1.4)), gray: 0 },   // 面向母親（下一行站在 1.8, -0.6）
       { type: 'fn', fn: a => { a.npc.lupe = stAt(ROSA_L, 1.8, -.6); } },
-      { type: 'say', with: 'lupe', lines: FIN_A },
+      { type: 'say', with: 'lupe', get lines() { return finA(); } },
       { type: 'credits', end: 'A' },
     ] },
   { id: 'F-4B', ch: 'F', title: '直播', who: ROSA, star: 5, route: 'B', sw: [ROSA, DANE], at: ST_TGATE, giver: 'twade', giverAt: () => nearL(ST_TGATE(), 1.8, .6, -Math.PI / 2),
@@ -460,7 +525,7 @@ storyAdd([
       { type: 'fn', fn: a => { a.noPal = 0; } },
       { type: 'lose', text: '六星通緝：甩掉全城的警察' },
       { type: 'fn', fn: () => storyEnding('B') },
-      { type: 'card', k: '片尾', t: '出海', lines: [['dane', '新聞說我們是「直播大盜」。'], ['rosa', '比「假釋犯」好聽。'], ['dane', '通緝海報上的照片很難看。'], ['rosa', '那就別回來看。開船。']] },
+      { type: 'card', k: '片尾', t: '出海', get lines() { return finB(); } },
       { type: 'fade', to: () => ST_SHIP, gray: 0 },
       { type: 'fn', fn: () => { const b = ST_BH; if (b && !b.dead && vehicles.includes(b) && Math.hypot(b.x - pX(), b.z - pZ()) < 40) enterVehicle(b); } },
       { type: 'credits', end: 'B' },
@@ -468,4 +533,38 @@ storyAdd([
 ]);
 posterSync();
 
-storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], loft: ST_LOFT };
+// ─── 母親家（P-3 之後）：走到盧佩旁邊按 E，可以存檔，也可以花 $480,000 把房子買回來（計畫第五節）───
+const HOUSE_P = 480000;
+const lupeAt = () => stAt(ROSA_L, 1.8, -.6);
+const HOME_M = { id: 'H', ch: 'P', title: '回家', who: ROSA, star: 0, sw: [ROSA], bonus: [], at: () => stAt(ROSA_L, .6, .8, Math.atan2(1.2, -1.4)),
+  desc: '把母親的房子從天際置業手上買回來。',
+  steps: [
+    { type: 'fn', fn: a => { a.npc.lupe = lupeAt(); } },
+    { type: 'card', k: '灰石國宅', t: '房子是妳的了', hold: 2 },
+    { type: 'say', with: 'lupe', lines: [L('rosa', '媽，天際置業那邊付清了。這是收據，正本。'), L('lupe', '四十八萬……妳哪來的錢？'), L('rosa', '別問。房子是妳的了，誰也收不走。'), L('lupe', '……我去把門上那張通知撕掉。'), L('lupe', '今天晚上留下來吃飯。')] },
+  ] };
+MS.H = HOME_M;   // 不在 ORDER 裡：不會出現在地圖與手機的任務列表，失敗重試照樣找得到
+function houseBuy() {
+  if (!S || S.flags.house || !isDone('P-3')) return false;
+  if (motors.cash < HOUSE_P) { toast(`還差 ${money(HOUSE_P - motors.cash)}`); return false; }
+  const b = storyBusy(); if (b) { toast(b); return false; }
+  motors.cash -= HOUSE_P; S.flags.house = 1; saveMotors();
+  newsAdd('灰石國宅一戶法拍案撤回', '天際置業：「屋主已全數清償。」');
+  storyStart(HOME_M);
+  return true;
+}
+function lupeAsk() {
+  const own = !!S.flags.house;
+  dialog('盧佩 · 灰石國宅', own ? '房子是我們的了。進來坐，湯還熱著。' : `門上還貼著天際置業的法拍通知：付清 ${money(HOUSE_P)}，房子就買回來了。`, [
+    { t: '在家休息一下（存檔）', fn: () => { closeDialog(); if (quickSave()) toast('在媽媽家休息：已存檔'); } },
+    ...(own ? [] : [{ t: motors.cash >= HOUSE_P ? `把房子買回來（${money(HOUSE_P)}）` : `把房子買回來（還差 ${money(HOUSE_P - motors.cash)}）`, fn: () => { closeDialog(); houseBuy(); } }]),
+    { t: '先不要', fn: closeDialog },
+  ]);
+}
+ctxHooks.push(p => {
+  if (!S || !isDone('P-3') || p.mode !== 'walk' || p.where !== 'out' || side.act || dlg.open) return null;
+  const q = lupeAt(); if (Math.hypot(p.x - q.x, p.z - q.z) > 2.4) return null;
+  return { key: 'E', text: `跟盧佩說話 <i>· 存檔${S.flags.house ? '' : '、買回房子'}</i>`, fn: lupeAsk };
+});
+
+storyApi.fin = { start: id => storyStart(MS[id]), leapPlan, towerRoof, ending: storyEnding, repT: storyRepT, cred: () => ({ on: cred.on, i: cred.i }), posters: () => posters.filter(g => g.visible).length, phone: storyPhoneRows, heliY: storyHeliY, hgt: (x, z) => [roofH(x, z), groundH(x, z)], roofFoes: () => roofFoes(side.act).map(f => ({ x: f.x, z: f.z, y: fGround(f), hp: f.hp })), loft: ST_LOFT, house: { buy: houseBuy, ask: lupeAsk, at: lupeAt, P: HOUSE_P, lines: () => ({ A: finA().map(l => l[1]), B: finB().map(l => l[1]) }) } };
