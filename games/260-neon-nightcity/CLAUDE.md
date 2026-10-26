@@ -13,5 +13,5 @@
 
 ## 參考檔（需要時再讀）
 
-- `CLAUDE-gta.md`：GTA 式擴充各 part 的分工與掛點（68／69 開頭、第三～九部曲 `69-v3-*`…`69-v9-*`、CHROME WORKS、第七部曲夜店／賭場／地堡）、存檔版本沿革。改 `68-*`、`69-*`、`66-chrome.js` 或存檔欄位前先讀。
+- `CLAUDE-gta.md`：GTA 式擴充各 part 的分工與掛點（68／69 開頭、第三～九部曲 `69-v3-*`…`69-v9-*`、主線《一手爛牌》`69-w0-story.js`、CHROME WORKS、第七部曲夜店／賭場／地堡）、存檔版本沿革。改 `68-*`、`69-*`、`66-chrome.js` 或存檔欄位前先讀。
 - `CLAUDE-world.md`：城區（20×15、`wholeBlocks`）、距離串流與碰撞空間索引、`tools/props.mjs` 的窗戶與貼圖選項、海岸與外海島嶼、北嶺公園與鐵道橋、安全屋。改 `10-city.js`、`2x-*`（21-coast／park／rail／tron、27-*）、`69-safehouse.js` 或 `tools/props.mjs` 前先讀。

@@ -3,10 +3,11 @@
 //   1 哥德式的銅綠尖塔（陡的四坡屋頂、四角的小尖塔、頂上的燈籠亭）
 //   2 神殿式的階梯金字塔（三段銅綠的退台、四坡頂、燈籠亭）
 // 玻璃塔與其他高過 100 m 的樓：屋頂的機房與天線桅杆，頂上一盞閃的紅色航空障礙燈。填空樓（11-isle.js，世界座標）的屋頂：樓梯間與電梯機房的小屋。
-// 屋頂的木水塔與空調箱在 20-props.js（退台塔擺在最上一層上，填空樓也擺）。幾何是邏輯座標的 Kit，每片一個網格 ───
+// 屋頂的木水塔與空調箱在 20-props.js（退台塔擺在最上一層上，填空樓也擺）。幾何是邏輯座標的 Kit；網格照立面的分塊切（地塊每個街區、填空樓每 120 m 一格），
+// 距離剔除和底下的樓一起：整片一個網格時樓已經剔掉、屋頂的東西還在，遠處會看到一個個浮在霧裡的黑點 ───
 const isleTop = L => L.tiers && L.tiers.length ? L.tiers.at(-1) : { i: 0, y: L.h };
 {
-  const kits = new Map(), kz = zn => { if (!kits.has(zn)) kits.set(zn, new Kit()); return kits.get(zn); };
+  const kits = new Map(), kz = (key, zn) => { if (!kits.has(key)) kits.set(key, { k: new Kit(), zn }); return kits.get(key).k; };
   const PAT = 0x5f8a78, PAT2 = 0x4e7466, STEEL = 0xc9ced3, STONE = 0xcdc3ad, LAMP = 0xffd9a0, RED = 0xff2a1a;
   // 底面 w × d 的四坡頂（r = 0 是尖的，> 0 是平台）：先做邊長 1 的方錐再縮放
   const pyramid = (k, x, y, z, w, d, h, color, mat, top = 0) => {
@@ -24,7 +25,7 @@ const isleTop = L => L.tiers && L.tiers.length ? L.tiers.at(-1) : { i: 0, y: L.h
   let n = 0;
   for (const L of lots) {
     if (!L.isle || L.glb || !L.tiers || !L.tiers.length) continue;
-    const t = isleTop(L), cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2, w = L.x1 - L.x0 - 2 * t.i, d = L.z1 - L.z0 - 2 * t.i, k = kz(L.zn);
+    const t = isleTop(L), cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2, w = L.x1 - L.x0 - 2 * t.i, d = L.z1 - L.z0 - 2 * t.i, k = kz(`${L.b.i},${L.b.j}`, L.zn);
     let y = t.y;
     if (L.crown) {
       const C = L.crown;
@@ -73,14 +74,13 @@ const isleTop = L => L.tiers && L.tiers.length ? L.tiers.at(-1) : { i: 0, y: L.h
     }
   }
   // 填空樓：樓梯間（前緣中點往後 40% 的位置）、夠高的加航空障礙燈
-  const wk = new Kit();
   for (const f of ISLE_FILL) {
+    const wk = kz(`f${Math.floor(f.cx / 120)},${Math.floor(f.cz / 120)}`, null);   // 11-isle.js 的立面分塊
     const top = f.tiers.length ? f.tiers.at(-1).P : f.P, y = f.htop, cx = top.reduce((a, p) => a + p[0], 0) / 4, cz = top.reduce((a, p) => a + p[1], 0) / 4;
     const a = top[f.front], b = top[(f.front + 1) % 4], ry = Math.atan2(-(b[1] - a[1]), b[0] - a[0]);
     wk.box(cx, y + 1.6, cz, 3.2, 3.2, 4.4, f.style === 3 ? 0x5d6266 : 0x8a8478, f.style === 3 ? TX.sheet : TX.conc, 0, ry);
     if (y > 100) wk.box(cx, y + 3.45, cz, .35, .35, .35, RED, 9);
   }
-  for (const [zn, k] of kits) cullAdd(cityAdd(new T.Mesh(k.build(), MAT.ux), zn), CULL_R * 2);
-  if (ISLE_FILL.length) cullAdd(cityAdd(new T.Mesh(wk.build(), MAT.ux), null), CULL_R * 2);
+  for (const { k, zn } of kits.values()) cullAdd(cityAdd(new T.Mesh(k.build(), MAT.ux), zn));
   if (location.search.includes('isleLog')) console.log(`天樞島塔冠 ${n} 座`);
 }

@@ -2,9 +2,47 @@
 // 10-city.js 的 ISLE_LM 挑好地塊（L.glb，不蓋程式立面與塔冠）；這裡開場在背景下載（不等），下載好照 27-props.js 的建築做法：
 // 依材質合併、逐頂點彎進所在的片（bakeMesh）、預熱後放進場景，距離剔除半徑放大到三倍（三百公尺的塔遠遠就看得到）；
 // 日光陰影的高度圖用模型的三角形畫（22-hmap.js 的 hmModel），街區的碰撞盒照模型在人的高度的外形換掉（27-bldfoot.js 的 bldCut／blkFoot）。
-// 模型沒有窗戶遮罩：夜裡用 26-glb.js 的 WASH（依高度打路燈光、依樓層與開間疊室內透出的光）。下載失敗的地塊補回程式立面（lotFallback）。
+// 模型沒有窗戶遮罩：夜裡的窗燈與路燈光是下面的 LM_WIN。下載失敗的地塊補回程式立面（lotFallback）。
 const ISLE_LM_BASE = new URL('../assets/260/isle/', location.href).href;
 const ISLE_LM_ON = { n: 0, failed: [] };   // __nc 驗收用：擺好幾棟
+// 夜裡的窗燈：26-glb.js 的 WASH 打的光乘上底色（深藍的玻璃帷幕幾乎看不到），室內光又是整片開間一起亮（紅磚牆會變成一塊塊的格子），所以不用它，另外加一段：
+// 每扇窗依 uLit 亂數開燈（暖白為主，偶爾冷白），只亮在玻璃上，白天只留一點
+const LM_WIN = /* glsl */`
+  #ifdef LMWIN
+  {
+    float side = 1. - smoothstep(.45, .8, abs(n.y)), glass;
+    vec2 cell;
+    #ifdef USE_MAP
+    // 照片立面：tools/isle-glb.mjs 在底色貼圖的 alpha 寫了窗戶編號（255＝牆）。第 0 層 mip 才不會混到隔壁；同一扇窗整扇一起亮，
+    // 再依貼圖重複的第幾格與牆面所在的平面（同一張圖集貼在四面；法線分量取整在轉過的片裡會在邊界上逐像素跳動）錯開
+    float a0 = textureLod(uMap, vUv, 0.).a;
+    glass = step(a0, .9);
+    cell = vec2(floor(a0 * 255. + .5), dot(floor(vUv), vec2(1., 57.)) + floor(dot(vW.xz, normalize(n.xz + 1e-4)) / 6.) * 13.);
+    float litK = 1.3;   // 照片上找得到的窗只有一部分（反光的、太小的找不到），亮的比例拉高一點
+    #else
+    // 沒有貼圖的帷幕牆：暗的底色是玻璃，牆面每 3 m 一個開間、每 3.8 m 一層切出窗框
+    vec2 q = vec2(dot(vW.xz, normalize(vec2(-n.z, n.x) + 1e-4)) / 3., vW.y / 3.8), f = fract(q);
+    glass = (1. - smoothstep(.16, .34, dot(base.rgb, vec3(.3, .55, .15)))) * step(.1, f.x) * step(f.x, .9) * step(.16, f.y) * step(f.y, .86);
+    cell = floor(q) + floor(vW.xz / 37.) * 17.;
+    float litK = .9;
+    #endif
+    float hs = hw(cell), hs2 = hw(cell + 71.3), lit = step(hs, uLit * litK) * smoothstep(1.5, 3.5, vW.y);
+    vec3 lc = hs2 < .62 ? vec3(1., .72, .42) : hs2 < .88 ? vec3(.86, .9, 1.) : vec3(1., .86, .62);
+    c += lc * lit * glass * side * mix(1.25, .05, uDay);
+    c += base.rgb * uLamp * side * vec3(1., .72, .45) * (.05 + .6 * exp(-max(vW.y - .8, 0.) / 4.));   // 路燈打在一樓的暖光（和 WASH 的一樣，但不打整片開間的室內光）
+  }
+  #endif
+`;
+const lmMats = new Map();
+function lmMat(src) {
+  let m = lmMats.get(src);
+  if (!m) {
+    m = glbMaterial(src, PROP_INST, 0, false);
+    m.defines.LMWIN = ''; m.fragmentShader = m.fragmentShader.replace('#ifdef WASH', LM_WIN + '  #ifdef WASH');
+    lmMats.set(src, m);
+  }
+  return m;
+}
 if (GLB_ON) for (const o of ISLE_LM) {
   const L = o.L; if (!L) continue;
   const key = 'i:' + o.id;
@@ -15,7 +53,7 @@ if (GLB_ON) for (const o of ISLE_LM) {
     const byMat = new Map(), wg = [];
     g.scene.traverse(m => {
       if (!m.isMesh) return;
-      const geo = floatGeo(m.geometry, m.matrixWorld).applyMatrix4(M), mat = propMat(m.material, 0, true);
+      const geo = floatGeo(m.geometry, m.matrixWorld).applyMatrix4(M), mat = lmMat(m.material);
       if (!byMat.has(mat)) byMat.set(mat, []);
       byMat.get(mat).push(geo); wg.push(geo);
     });

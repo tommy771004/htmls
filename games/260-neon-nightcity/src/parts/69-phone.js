@@ -116,15 +116,16 @@ function crateStep(dt) {
 // ─── 暗網軍火：防彈衣、各槍備彈補滿、投擲物（手榴彈、催淚瓦斯與黏性炸彈一起）補滿，直接進背包；最多十列（數字鍵 1–9、0） ───
 const THROWS = ARM_IDS.filter(id => ARMS[id].throw);
 function shopRows() {
-  const rows = [{ t: '防彈衣', sub: `護甲 ${Math.round(life.armor)} / 100`, val: life.armor >= 100 ? '已滿' : money(PH_ARMOR), ok: life.armor < 100, fn: () => { if (pay(PH_ARMOR)) { life.armor = 100; sfx.pickup(); phoneMsg('防彈衣已經換上。'); } } }];
+  const k = storyArmsK(), PA = Math.round(PH_ARMOR * k), PT = Math.round(PH_THROW * k);   // 69-w0-story.js：1-2 之後賈克斯打 9 折
+  const rows = [{ t: '防彈衣', sub: `護甲 ${Math.round(life.armor)} / 100`, val: life.armor >= 100 ? '已滿' : money(PA), ok: life.armor < 100, fn: () => { if (pay(PA)) { life.armor = 100; sfx.pickup(); phoneMsg('防彈衣已經換上。'); } } }];
   for (const id of ARM_IDS) {
-    const A = ARMS[id], a = arm.ammo[id], p = PH_SHOP[id];
+    const A = ARMS[id], a = arm.ammo[id], p = PH_SHOP[id] && Math.round(PH_SHOP[id] * k);
     if (!p) continue;
     const full = a.res >= A.res;
     rows.push({ t: `${A.name}彈藥`, sub: `備彈 ${a.res} / ${A.res}`, val: full ? '已滿' : money(p), ok: !full, fn: () => { if (!pay(p)) return; a.res = A.res; sfx.reload(); phoneMsg(`${A.name}彈藥已經放進背包。`); } });
   }
   const tFull = THROWS.every(id => arm.ammo[id].mag >= ARMS[id].n);
-  rows.push({ t: '投擲物', sub: THROWS.map(id => `${ARMS[id].name} ${arm.ammo[id].mag}`).join(' · '), val: tFull ? '已滿' : money(PH_THROW), ok: !tFull, fn: () => { if (!pay(PH_THROW)) return; for (const id of THROWS) arm.ammo[id].mag = ARMS[id].n; sfx.reload(); phoneMsg('手榴彈、催淚瓦斯與黏性炸彈補滿了。'); } });
+  rows.push({ t: '投擲物', sub: THROWS.map(id => `${ARMS[id].name} ${arm.ammo[id].mag}`).join(' · '), val: tFull ? '已滿' : money(PT), ok: !tFull, fn: () => { if (!pay(PT)) return; for (const id of THROWS) arm.ammo[id].mag = ARMS[id].n; sfx.reload(); phoneMsg('手榴彈、催淚瓦斯與黏性炸彈補滿了。'); } });
   return rows;
 }
 
@@ -233,7 +234,7 @@ function phoneRows() {
   if (phone.scr === 'news') return news.length ? news.slice(0, 10).map(n => ({ t: n.h, sub: `${n.when}${n.b ? ' · ' + n.b : ''}`, val: '', ok: true, fn: () => { phone.msg = n.b || n.h; } })) : [{ t: '目前沒有新聞', sub: '城裡今晚很安靜', val: '', ok: false }];
   return [
     { t: '聯絡人', sub: phone.ghostT > 0 ? `雷達隱形 · 剩 ${secs(phone.ghostT)}` : 'Zero、鐵手強尼、鐵幕保全、磐石互保', val: '', ok: true, fn: () => { phone.scr = 'contacts'; phone.msg = ''; } },
-    { t: '暗網軍火', sub: '彈藥、投擲物、防彈衣', val: '', ok: true, fn: () => { phone.scr = 'arms'; phone.msg = ''; } },
+    { t: '暗網軍火', sub: storyArmsK() < 1 ? '彈藥、投擲物、防彈衣 · 賈克斯 9 折' : '彈藥、投擲物、防彈衣', val: '', ok: true, fn: () => { phone.scr = 'arms'; phone.msg = ''; } },
     { t: '霓虹證交所', sub: motors.stk && STOCKS.some(s => motors.stk.sh[s.id]) ? `持股市值 ${money(STOCKS.reduce((a, s) => a + motors.stk.sh[s.id] * motors.stk.px[s.id], 0))}` : '六檔股票，破壞對手的資產讓股價波動', val: '', ok: true, fn: () => { phone.scr = 'stocks'; phone.msg = ''; } },
     { t: '天際置業', sub: motors.props.own.length ? `${motors.props.own.length} 處資產 · 保險箱 ${money(ESTATES.reduce((a, e) => a + (estOwned(e.id) ? motors.props.safe[e.id] : 0), 0))}` : '買下夜店、酒吧、改裝廠或安全屋', val: '', ok: true, fn: () => { phone.scr = 'estates'; phone.msg = ''; } },
     { t: '改槍與裝備', sub: `消音器 ${motors.gear.sil.length} / ${SIL_IDS.length} · 汽油桶 ${arm.ammo.petrol.mag}%`, val: '', ok: true, fn: () => { phone.scr = 'gear'; phone.msg = ''; } },

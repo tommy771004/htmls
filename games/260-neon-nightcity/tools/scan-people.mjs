@@ -15,7 +15,7 @@ const { ALL_EXTENSIONS } = await imp('@gltf-transform/extensions');
 const { prune, dedup, quantize, meshopt } = await imp('@gltf-transform/functions');
 const { MeshoptEncoder } = await imp('meshoptimizer');
 
-const IDS = ['jason', 'lucia'];
+const IDS = ['jason', 'lucia', 'rosa', 'dane'];   // rosa、dane：主線的雙主角（原檔在 .cache/story/）
 const ids = process.argv.slice(2).length ? process.argv.slice(2) : IDS;
 const blender = process.env.BLENDER || '/Applications/Blender.app/Contents/MacOS/Blender';
 execFileSync(blender, ['-b', '--factory-startup', '-P', resolve(root, 'blender/scan_people.py'), '--', ...ids], { stdio: ['ignore', 'inherit', 'inherit'] });

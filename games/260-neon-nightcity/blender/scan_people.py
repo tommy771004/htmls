@@ -35,7 +35,14 @@ SCANS = {
         'hips': 0.53, 'torso': 0.60, 'neck': 0.81, 'head': 0.845, 'cl': (0.02, 0.79),
         'sh': (0.13, 0.775), 'el': (0.26, 0.765), 'wr': (0.385, 0.755), 'ft': (0.47, 0.75),
         'th': (0.07, 0.505), 'kn': (0.085, 0.29), 'an': (0.10, 0.05)}},
+    # 主線的雙主角（plans/260-story.md）：renderpeople 有骨架的掃描（CC BY 4.0），原檔在 .cache/story/。
+    # rig：靜止姿勢是 T 字、面向 −Y；lm 不用量，從骨頭的靜止位置換算（rig_lm），骨盆的 x、y 置中
+    'rosa': {'src': 'sophia_animated_003_-_animated_3d_woman.glb', 'dir': 'story', 'rig': True, 'sex': 'Female', 'height': 1.68, 'yaw': 0, 'tris': 36000},
+    'dane': {'src': 'nathan_animated_003_-_walking_3d_man.glb', 'dir': 'story', 'rig': True, 'sex': 'Male', 'height': 1.84, 'yaw': 0, 'tris': 36000},
 }
+# 有骨架的原檔：lm 的各關節對到哪一根骨頭（骨名結尾，左側；ft 是中指尖，從第三節往外延一節）
+RIG_LM = {'hips': 'hip', 'torso': 'spine_02', 'neck': 'neck', 'head': 'head', 'cl': 'shoulder_l', 'sh': 'upperarm_l', 'el': 'lowerarm_l',
+          'wr': 'hand_l', 'th': 'upperleg_l', 'kn': 'lowerleg_l', 'an': 'foot_l'}
 FINGERS = ('index', 'middle', 'pinky', 'ring', 'thumb')
 
 
@@ -52,21 +59,52 @@ def select_only(objs, active):
     bpy.context.view_layer.objects.active = active
 
 
+def rig_rest(objs):
+    """有骨架的原檔：骨架切到靜止姿勢、網格套用骨架變形後拿掉修改器；回傳骨名 → 世界座標的骨頭頭端"""
+    arm = next((o for o in objs if o.type == 'ARMATURE'), None)
+    if arm is None:
+        return None
+    arm.data.pose_position = 'REST'
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    for o in objs:
+        if o.type == 'MESH' and any(m.type == 'ARMATURE' for m in o.modifiers):
+            me = bpy.data.meshes.new_from_object(o.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+            o.modifiers.clear()
+            o.data = me
+    return {b.name: arm.matrix_world @ b.head_local for b in arm.data.bones}
+
+
+def rig_bone(B, key):
+    import re
+    pat = re.compile(r'(^|_)' + re.escape(key) + r'_\d+$')
+    for n, p in B.items():
+        if pat.search(n):
+            return p
+    raise KeyError(key)
+
+
 def build(sid, cfg):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
     H = cfg['height']
     # ---- 1. 掃描網格 ----
-    objs = import_gltf(os.path.join(ROOT, '.cache/people', cfg['src']))
-    meshes = [o for o in objs if o.type == 'MESH']
+    objs = import_gltf(os.path.join(ROOT, '.cache', cfg.get('dir', 'people'), cfg['src']))
+    B = rig_rest(objs) if cfg.get('rig') else None
+    meshes = [o for o in objs if o.type == 'MESH' and len(o.data.vertices) > 500]   # renderpeople 原檔裡有一顆空的 Icosphere
     Ry = Matrix.Rotation(math.radians(cfg['yaw']), 4, 'Z')
+    if B:
+        B = {n: Ry @ p for n, p in B.items()}
+        hip = rig_bone(B, 'hip')
+        Ry = Matrix.Translation((-hip.x, -hip.y, 0)) @ Ry
+        B = {n: p - V((hip.x, hip.y, 0)) for n, p in B.items()}
     for o in meshes:
         mw = Ry @ o.matrix_world
         o.parent = None
         o.data.transform(mw)
         o.matrix_world = Matrix.Identity(4)
     for o in objs:
-        if o.type != 'MESH':
+        if o not in meshes:
             bpy.data.objects.remove(o, do_unlink=True)
     select_only(meshes, meshes[0])
     if len(meshes) > 1:
@@ -78,6 +116,14 @@ def build(sid, cfg):
     z0 = P[:, 2].min()
     k = H / (P[:, 2].max() - z0)
     me.transform(Matrix.Scale(k, 4) @ Matrix.Translation((0, 0, -z0)))
+    if B:
+        def uv(p):
+            return (round(p.x * k / H, 4), round((p.z - z0) * k / H, 4))
+        lm = {n: uv(rig_bone(B, b))[1] if n in ('hips', 'torso', 'neck', 'head') else uv(rig_bone(B, b)) for n, b in RIG_LM.items()}
+        m2, m3 = rig_bone(B, 'middle_02_l'), rig_bone(B, 'middle_03_l')
+        lm['ft'] = uv(m3 + (m3 - m2) * 0.9)
+        cfg = {**cfg, 'lm': lm}
+        print(f'[{sid}] lm {lm}')
     # 只留第一組 UV（底色貼圖用）；原檔的切線與其他 UV 是法線、粗糙度貼圖用的
     while len(me.uv_layers) > 1:
         me.uv_layers.remove(me.uv_layers[-1])

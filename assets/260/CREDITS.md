@@ -87,6 +87,8 @@
 | :-- | :-- | :-- | :-- |
 | `people/jason.glb` | [Jason Duval & GTA VI](https://sketchfab.com/3d-models/jason-duval-gta-vi-e6eefc3185fb4bcda7cdf9753924e162) | [BakhtiarSource](https://sketchfab.com/iranan) | CC BY 4.0 |
 | `people/lucia.glb` | [GTA 6 GIRL SKIN](https://sketchfab.com/3d-models/gta-6-girl-skin-4abc4ab140d14a5db236309f679d2ac0) | [SYMXY_](https://sketchfab.com/SYMXY_) | CC BY 4.0 |
+| `people/rosa.glb` | 主線的羅莎（`69-w0-story.js`）：[Sophia Animated 003 - Animated 3D Woman](https://sketchfab.com/3d-models/dc448c3be0e74f96a55fb475a13433cf)（原檔有骨架，`scan_people.py` 切到靜止姿勢、關節照骨頭位置換算後重綁） | [renderpeople](https://sketchfab.com/renderpeople) | CC BY 4.0 |
+| `people/dane.glb` | 主線的戴恩：[Nathan Animated 003 - Walking 3D Man](https://sketchfab.com/3d-models/143a2b1ea5eb4385ae90a73657aca3bc)（同上；原檔在 `.cache/story/`） | [renderpeople](https://sketchfab.com/renderpeople) | CC BY 4.0 |
 | `people/q_camper.glb`、`q_fisher.glb`、`q_hiker.glb` | 作品 197 湖畔求生的三個 NPC：Quaternius [Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) 的頭與髮型＋ [Modular Character Outfits - Fantasy](https://quaternius.com/packs/modularcharacteroutfitsfantasy.html) 的服裝（197 的 `tools/build-characters.py` 組成，本來就是同一副骨架；`tools/q197-people.mjs` 併成一個網格、貼圖拼成一張） | Quaternius | CC0 |
 
 ## 車流
@@ -367,6 +369,17 @@
 | 物件 | 用途 | 原檔 | 作者 | 授權 |
 |---|---|---|---|---|
 | `cs_country` `scene` `boxes` `acer1`–`3` `crate` `rail` | 灰鷗島的田園路段、公園的槭樹、拖吊場與工地的貨櫃、島上的護欄 | [Countryside Scene Free](https://sketchfab.com/3d-models/countryside-scene-free-d86d86d99991483c87339637d16401a7) | [abhayexe](https://sketchfab.com/abhayexe) | CC BY 4.0 |
+
+## 天樞島的地標大樓（`isle/`）
+
+地圖正中間的天樞島（照曼哈頓下城）上四棟地標，經 `games/260-neon-nightcity/tools/isle-glb.mjs` 處理（攤平、照地塊縮放、材質改成頂點屬性、照片立面的底色貼圖 alpha 換成夜間窗燈用的窗戶編號、WebP、meshopt 壓縮）後放在 `isle/`，屬於原作的衍生作品，沿用原作授權；明細見 `isle/CREDITS.md`。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `isle/owtc.glb` | [One World Trade Center](https://sketchfab.com/3d-models/one-world-trade-center-44e60b2d0d764fdab74d33703847d38e) | NanoRay | CC-BY-4.0 |
+| `isle/wtc3.glb` | [3 World Trade Center](https://sketchfab.com/3d-models/3-world-trade-center-47d1943cfa97409e983a7acab4f109f1) | NanoRay | CC-BY-4.0 |
+| `isle/exch20.glb` | [20 Exchange Place](https://sketchfab.com/3d-models/20-exchange-place-08de1cbdebfa4e08a84299ac62586ff5) | novusod | CC-BY-4.0 |
+| `isle/whitehall.glb` | [Whitehall Building](https://sketchfab.com/3d-models/whitehall-building-d0db0e12b3484594a1c9eb35186b7c0f) | novusod | CC-BY-4.0 |
 
 ## 武器、警方載具與路障（第二階段）
 

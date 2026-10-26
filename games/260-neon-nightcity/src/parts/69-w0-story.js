@@ -52,6 +52,9 @@ const CAST = {
   inmate: { name: '獄友', role: '', look: { female: true, top: 0xd8782a, bot: 0xd8782a, hair: 0, longHair: 0, coat: 0, skirt: 0, scale: .98 } },
   rosa: { ci: ROSA }, dane: { ci: DANE }, jax: { ci: CREW.findIndex(c => c.id === 'jax') },
 };
+// 雙主角的掃描身體（blender/scan_people.py 的 rosa、dane：renderpeople 的掃描綁到 UBC 骨架）：登記好再重看一次站在原地的兩人
+Object.assign(SCAN_SEX, { rosa: 'Female', dane: 'Male' });
+crewLook();
 const CAST_IDS = Object.keys(CAST);
 const castCrowd = crowd(CAST_IDS.length);
 scene.add(castCrowd.mesh);
@@ -189,7 +192,7 @@ const MISSIONS = [
     desc: '假釋官突擊家訪。羅莎得在 90 秒內趕回家。', sms: '羅莎（備忘）：週四下午別亂跑，假釋官可能會來。',
     bonus: [{ t: '60 秒內到家', ok: a => a.tStep[2] < 60 }, { t: '一路上沒被通緝', ok: a => !a.peak }],
     steps: [
-      { type: 'fn', fn: a => storyCar(a, 'camry', storyFar(), '路邊的 Camry', true) },
+      { type: 'fn', fn: a => storyCar(a, 'grc_sedan', storyFar(), '路邊的轎車', true) },
       { type: 'say', phone: '假釋官', lines: [L('假釋官', '伊巴拉小姐，我是霍布斯。我人在妳母親家門口。'), L('假釋官', '妳的腳鐐顯示妳不在範圍內。九十秒，我只等九十秒。')] },
       { type: 'go', text: '90 秒內趕回灰石國宅', to: () => CREW[ROSA].home, r: 6, name: '灰石國宅', lim: 90 },
       { type: 'fn', fn: a => { storyDropCar(a); a.npc.parole = stAt(ROSA_L, -1.8, -.4); } },
@@ -247,7 +250,7 @@ ctxHooks.unshift(p => {
   if (Math.hypot(p.x - q.x, p.z - q.z) > 3) return null;
   return { key: 'E', text: `主線 ${m.id}「${m.title}」<i>· ${CREW[m.who].zh}</i>`, fn: () => storyCard(m) };
 });
-const startRing = neonRing(0xffcf4a, 1.25);
+const startRing = neonRing(0xffcf4a, 1.05);
 
 // ─── 進行中 ───
 const STEP = {};
@@ -533,11 +536,10 @@ function palStep(a) {
   if (f && f.on) { st.x = f.x; st.z = f.z; st.yaw = f.yaw; }
   else { st.x = pX(); st.z = pZ(); }
 }
-// 任務的車（buildVeh 加上實車外觀）；任務結束時收掉，除非玩家正開著（留在路邊變成一般的車）
+// 任務的車（車流的車型）；任務結束時收掉，除非玩家正開著（留在路邊變成一般的車）
 function storyCar(a, id, at, name, near) {
-  const sp = rnLaneSpot(at.x, at.z, near ? 4 : 10), C = CARS[id];
-  const v = buildVeh(C && C.glb && !C.bike ? C.proxy : 'lucerna', sp.x, sp.z, sp.yaw, 0, Math.random(), 2, 'story');
-  if (C) try { applyCar(v, id); } catch (e) { /* 沒有實車就用替身 */ }
+  const sp = rnLaneSpot(at.x, at.z, near ? 4 : 10);
+  const v = buildVeh(TYPES[id] ? id : 'tiara', sp.x, sp.z, sp.yaw, 0, Math.random(), 2, 'story');   // 車流的車型（30-vehicles.js 的 TYPES）
   v.y = spawnY(v.x, v.z); v.name = name; poseVehicle(v);
   a.car = v; a.carHp0 = v.hp;
 }
@@ -566,6 +568,9 @@ function storyBrawl(f, dt) {
   else fighters.anim(f.k, ANIM.idle, f.ph += dt, 1);
   fighters.place(f.k, f.x, fGround(f), f.z, f.yaw);
 }
+
+// 69-phone.js 的暗網軍火：1-2「兩捆」之後賈克斯的貨打 9 折
+function storyArmsK() { return S && S.flags.jaxDisc ? .9 : 1; }
 
 // ─── 事件（各模組呼叫） ───
 // 'kill'(爆頭, 近戰)：69-crew.js 的 spEvent；'rob'：69-v5-shops.js 的 robDone；'clerk'：店員中槍
