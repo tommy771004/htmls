@@ -49,6 +49,7 @@ const SKY_PAL = {
   dayO: { sky: 0x8d949c, hor: 0xa3a8ae, fog: 0x989ea4 },                  // 陰天
   dayR: { sky: 0x5a6068, hor: 0x737980, fog: 0x6a7076 },                  // 下雨的白天
   dusk: { sky: 0x2b447c, hor: 0xe3926a, fog: 0xa07c72 },                  // 日出日落
+  dawn: { sky: 0x34558f, hor: 0xeea476, fog: 0x8a96aa },                  // 日出：霧偏藍灰（暖色留給朝太陽那一側的散射）
   fog: { day: 0xb7bbbf, night: 0x2c2a34 },
 };
 const SKYC = {};
@@ -74,7 +75,8 @@ function atmApply() {
   _c1.copy(P.day.sky).lerp(P.dayO.sky, oc).lerp(P.dayR.sky, r); _c2.copy(P.day.hor).lerp(P.dayO.hor, oc).lerp(P.dayR.hor, r);
   _c3.copy(P.day.fog).lerp(P.dayO.fog, oc).lerp(P.dayR.fog, r);
   const dk = dusk * (1 - .65 * c);
-  _c1.lerp(P.dusk.sky, dk); _c2.lerp(P.dusk.hor, dk); _c3.lerp(P.dusk.fog, dk);
+  const DS = min % 1440 < 720 ? P.dawn : P.dusk;
+  _c1.lerp(DS.sky, dk); _c2.lerp(DS.hor, dk); _c3.lerp(DS.fog, dk);
   _c3.lerp(P.fog.day, f * .8); _c2.lerp(P.fog.day, f * .8);
   U.uSkyTop.value.set(_c1.r, _c1.g, _c1.b); U.uSkyHor.value.set(_c2.r, _c2.g, _c2.b);
   // 夜：雲多時是被城市照亮的紫灰低雲，晴朗時偏藍暗
@@ -85,7 +87,9 @@ function atmApply() {
   U.uFogHi.value.copy(_c4).lerp(_c3.clone().lerp(_c1, .25), day);
   // 環境光：天空的漫射（上）與地面反彈（下）
   _c4.copy(NC.top).lerp(N.top, c);
-  U.uAmbTop.value.copy(_c4).lerp(_c1.clone().lerp(_c2, .72).multiplyScalar(.75 + .3 * oc), day);
+  // 日出日落：天光取偏藍的天頂、暗一點，和低角度的暖色日光拉開冷暖（晴天才明顯）
+  const gold = dk * (1 - oc);
+  U.uAmbTop.value.copy(_c4).lerp(_c1.clone().lerp(_c2, lerp(.72, .3, gold)).multiplyScalar((.75 + .3 * oc) * (1 - .15 * gold)), day);
   _c4.copy(NC.bot).lerp(N.bot, c);
   U.uAmbBot.value.copy(_c4).lerp(_c2.clone().multiplyScalar(.2).add(_c3.set(.035, .03, .026)), day);
   // 日光：低角度偏橘，被雲遮掉
@@ -93,6 +97,10 @@ function atmApply() {
   atm.sunK = sunK;
   _c4.copy(WARM).lerp(NOON, sstep(.04, .42, se)).multiplyScalar(3 * sunK);
   U.uSunCol.value.set(_c4.r, _c4.g, _c4.b);
+  // 00-core.js 的 uGI：天空可見度白天才算、中以上的畫質等級才算（夜裡的環境光是城市的光害，室內 60-venues 把 uDay 歸零也就關掉）；
+  // 日光反彈跟著日照；清晨 5–9 點起貼地薄霧（雨天淡一半）；霧裡的前向散射低角度時強
+  const hr = min / 60 % 24, mist = sstep(4.6, 6, hr) * (1 - sstep(7.6, 9.4, hr)) * (1 - .5 * r);
+  U.uGI.value.set(GT().vol ? .85 * day : 0, sunK, mist * .0042 * SET.mist, lerp(.55, .25, sstep(.05, .4, se)));
   // 霧：夜裡的霧本來就用來藏住 420 m 外不畫的建築（distCull），白天也不能太薄
   U.uFogDen.value = lerp(.0145, .0046, day) + r * lerp(.0025, .0012, day) + f * f * lerp(.028, .02, day);
   // 路燈、窗燈：天色暗到一定程度才亮

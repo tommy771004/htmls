@@ -109,3 +109,31 @@ function hmFlush() {
   hmRectL(LIGHTHOUSE.x - 4, LIGHTHOUSE.x + 4, LIGHTHOUSE.z - 4, LIGHTHOUSE.z + 4, 36);
   hmFlush();
 }
+// ─── 樹冠圖：日光穿過樹冠的碎光（00-core.js 的 leafVis）與體積光（70-render.js）。每棵樹是一顆橢球：行道樹照 nat_trees 的楓樹
+// （寬 5.9 m、高 8 m），公園、縫與島上的樹混著七種，取平均的大小；r 是樹冠的頂、g 是底（0 是沒有樹）。2.5 m 一格，雙線性內插 ───
+const TMS = 2.5;
+{
+  const n = Math.ceil(HM.n * HMS / TMS), top = new Float32Array(n * n), bot = new Float32Array(n * n).fill(1e4);
+  let max = 0;
+  const put = (X, Z, base, r, h1, h0) => {
+    const cy = base + (h1 + h0) / 2, hh = (h1 - h0) / 2, i0 = Math.max(0, Math.floor((X - r - HM.x0) / TMS)), i1 = Math.min(n - 1, Math.floor((X + r - HM.x0) / TMS));
+    const j0 = Math.max(0, Math.floor((Z - r - HM.z0) / TMS)), j1 = Math.min(n - 1, Math.floor((Z + r - HM.z0) / TMS));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const dx = HM.x0 + (i + .5) * TMS - X, dz = HM.z0 + (j + .5) * TMS - Z, k = 1 - (dx * dx + dz * dz) / (r * r);
+      if (k <= 0) continue;
+      const e = Math.sqrt(k) * hh, o = j * n + i;
+      top[o] = Math.max(top[o], cy + e); bot[o] = Math.min(bot[o], cy - e * .8);
+    }
+    max = Math.max(max, base + h1);
+  };
+  for (const t of [...trees, ...ISLE_TREES.map(t => ({ ...t, park: 1 }))]) {
+    const [X, Z] = t.zn === null ? [t.x, t.z] : toW(t.x, t.z), s = t.s || 1;
+    let base = 0; try { base = groundH(X, Z); } catch (e) { /* 外面的島 */ }
+    if (t.park) put(X, Z, t.y + base, 3.8 * s, 8.6 * s, 2.2 * s); else put(X, Z, t.y + base, 2.95 * s, 8 * s, 2.6 * s);
+  }
+  const arr = new Uint16Array(n * n * 2);
+  for (let o = 0; o < n * n; o++) if (top[o] > 0) { arr[o * 2] = T.DataUtils.toHalfFloat(top[o]); arr[o * 2 + 1] = T.DataUtils.toHalfFloat(bot[o]); }
+  const tx = new T.DataTexture(arr, n, n, T.RGFormat, T.HalfFloatType);
+  tx.minFilter = tx.magFilter = T.LinearFilter; tx.generateMipmaps = false; tx.needsUpdate = true;
+  U.uTMap.value = tx; U.uTM.value.set(HM.x0, HM.z0, 1 / (n * TMS), max + .5);
+}

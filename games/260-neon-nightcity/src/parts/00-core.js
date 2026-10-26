@@ -34,15 +34,15 @@ R.domElement.tabIndex = 0;
 
 // ─── 顯示卡分級：WebGL 只回報 GPU 名稱與 ANGLE 的繪圖後端，碰不到驅動程式，所以照名稱給起始畫質 ───
 // dpr 解析度上限；msaa、refl、dist、fps 是 01-settings.js 的預設值（玩家改過的照玩家的）；
-// rf 倒影的遠平面倍率（70-render.js 的 reflFar，0 是不縮）；nl 燈數、sh 日光陰影步數、occ 地上陰影的車人數是 shader 常數，開場定下，選單換等級要重新整理才生效。
+// rf 倒影的遠平面倍率（70-render.js 的 reflFar，0 是不縮）；vol 體積光每個像素沿視線的步數（70-render.js 的 mVol，0 是不畫）；nl 燈數、sh 日光陰影步數、occ 地上陰影的車人數是 shader 常數，開場定下，選單換等級要重新整理才生效。
 // ss 自動解析度往上最多到幾倍、px 內部像素數上限（70-render.js 的 resMax：顯示卡有餘裕時超過 100% 當超取樣抗鋸齒）。
 // 原本的桌機設定就是 high，觸控與小螢幕（LOW）原本的設定就是 low；ultra 不會自動選到，要在選單或網址 ?gpu=ultra 指定
 const GPU_TIERS = {
-  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6 },
-  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8 },
-  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .9, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1 },
-  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0, ss: 1.25, px: 4.2e6 },
-  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, ss: 1.5, px: 8.3e6 },
+  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6, vol: 0 },
+  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8, vol: 0 },
+  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .9, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1, vol: 10 },
+  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0, vol: 14, ss: 1.25, px: 4.2e6 },
+  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, vol: 20, ss: 1.5, px: 8.3e6 },
 };
 const GPU = (() => {
   const gl = R.getContext(); let name = '';
@@ -116,6 +116,10 @@ const U = {
   uSkyTop: { value: V3() }, uSkyHor: { value: V3() }, uMoon: { value: V3(0, -1, 0) },
   // 建築高度圖（28-sky.js）：xy 是西北角的世界座標，z 是 1/邊長，w 是最高的屋頂；日光朝太陽方向在圖上步進求陰影
   uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) }, uCityM: { value: null },
+  // 樹冠圖（22-hmap.js）：rg 是樹冠的頂與底（0 是沒有樹），uTM 和 uHM 一樣是西北角、1/邊長；日光穿過樹冠時照葉子的疏密打成碎光
+  uTMap: { value: null }, uTM: { value: new T.Vector4(0, 0, 1, 0) },
+  // 清晨的光（28-sky.js 每幀，室內是 0）：x 天空可見度（街谷遮蔽）的強度、y 日光反彈、z 貼地薄霧的濃度、w 霧裡日光前向散射的強度
+  uGI: { value: new T.Vector4() },
   // 外海的機場島（21-air.js）：A = (中心 x, z, 長軸 cos, sin)、B = (半長, 半寬)；B.x = 0 時沒有
   uAirA: { value: new T.Vector4(0, 0, 1, 0) }, uAirB: { value: new T.Vector4() },
   // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
@@ -134,7 +138,7 @@ uniform vec4 uLP[${NL}]; uniform vec4 uLC[${NL}]; uniform vec4 uLD[${NL}];
 uniform vec4 uCity; uniform vec2 uGrid;
 uniform highp sampler2D uLampT; uniform vec4 uLampG, uZone;
 uniform float uDay, uCloud; uniform vec3 uSun, uSunCol, uSkyTop, uSkyHor, uMoon;
-uniform sampler2D uHMap, uCityM; uniform vec4 uHM, uAirA, uAirB;
+uniform sampler2D uHMap, uCityM, uTMap; uniform vec4 uHM, uAirA, uAirB, uTM, uGI;
 uniform vec4 uOccA[${NOCC}]; uniform vec4 uOccB[${NOCC}];
 float h11(float n){ return fract(sin(n)*43758.5453123); }
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
@@ -180,6 +184,24 @@ void pointLights(inout vec3 dif, inout vec3 spc, vec3 p, vec3 n, vec3 v, float s
     spc += col * pow(max(dot(n,hv),0.), shin) * (shin + 8.) * .05;
   }
 }
+// 樹冠：從 q 朝太陽方向在樹冠圖上步進（步長固定、比建築細），落在某棵樹的頂與底之間就照葉子的疏密（雜訊）擋掉一部分，
+// 葉子之間有空隙，地上是一塊塊的碎光；最多擋到剩 18%（樹蔭不會全黑）。uTM.w 是最高的樹冠，0 是沒有樹冠圖
+float leafVis(vec3 q, vec2 d, float k){
+  if (uTM.w <= 0. || q.y > uTM.w) return 1.;
+  float lt = 1., t = .3 + hw(q.xz * 7.3) * .8;   // 起點抖動：步進的位置不會在地上排成一圈圈的條紋
+  for (int i = 0; i < 10; i++) {
+    vec3 r = vec3(q.x + d.x * t, q.y + t * k, q.z + d.y * t);
+    if (r.y > uTM.w) break;
+    vec2 tb = textureLod(uTMap, (r.xz - uTM.xy) * uTM.z, 0.).rg;
+    if (r.y < tb.r && r.y > tb.g) {
+      float e = min(tb.r - r.y, r.y - tb.g);   // 離樹冠表面多深：邊上稀、裡面密
+      lt *= 1. - smoothstep(.38, .62, n2(r.xz * .95 + vec2(r.y * .7, -r.y * .4))) * mix(.45, .8, smoothstep(0., 1.2, e));
+      if (lt < .18) return .18;
+    }
+    t += .9 + t * .14;
+  }
+  return lt;
+}
 // 日光陰影：從 p 朝太陽方向在建築高度圖上步進（步長越走越大），光線高度低於屋頂就在陰影裡；
 // 離遮擋物越遠半影越寬。牆面先往外推一點，免得取到自己那棟的高度
 float sunVis(vec3 p, vec3 n){
@@ -197,7 +219,7 @@ float sunVis(vec3 p, vec3 n){
     if (vis < .02) return 0.;
     t = t * 1.18 + .9;
   }
-  return vis;
+  return vis * leafVis(q, d, k);
 }
 // 車與行人：車底的接觸陰影（夜裡也有）與日光投在地上的影子（車身框沿太陽方向平移到兩個高度）
 void occlude(vec3 p, out float amb, out float sun){
@@ -225,11 +247,36 @@ void occlude(vec3 p, out float amb, out float sun){
     }
   }
 }
-float gSun = -1., gAmb = -1., gOccS = 1.;   // 同一個片段多次呼叫 shade()（立面的窗框、招牌）只算一次陰影
+// 天空可見度（街谷遮蔽）：在建築高度圖上朝五個方向各取兩個距離（6、16 m）找地平線的仰角，平均擋掉的天空；
+// 牆面只看前面那半圈（背後是自己那棟）。窄巷與樓腳暗、屋頂與廣場亮（近似全域光照裡的天光遮蔽）；260 m 外在霧裡，不算
+float skyVis(vec3 p, vec3 n){
+  vec3 q = p + vec3(n.x, 0., n.z) * 1.3;
+  vec2 nx = n.xz; float nl = length(nx); nx = nl > .05 ? nx / nl : vec2(0.);
+  float occ = 0., ws = 0.;
+  for (int i = 0; i < 5; i++) {
+    float a = float(i) * 1.2566 + .3; vec2 d = vec2(cos(a), sin(a));
+    float w = mix(1., max(dot(d, nx), 0.) * 2., min(nl * 1.4, 1.));
+    if (w < .01) continue;
+    float tg = 0., r = 6.;
+    for (int k = 0; k < 2; k++) { tg = max(tg, (textureLod(uHMap, (q.xz + d * r - uHM.xy) * uHM.z, 0.).r - q.y) / r); r *= 2.7; }
+    occ += w * clamp(tg * inversesqrt(1. + tg * tg), 0., 1.);
+    ws += w;
+  }
+  return 1. - occ / max(ws, 1e-3);
+}
+float gSun = -1., gAmb = -1., gOccS = 1., gSky = -1.;   // 同一個片段多次呼叫 shade()（立面的窗框、招牌）只算一次陰影與天空可見度
 vec3 shade(vec3 p, vec3 n, vec3 v, vec3 alb, float rough, float metal){
   float shin = mix(300., 5., rough);
   if (gAmb < 0.) occlude(p, gAmb, gOccS);
-  vec3 dif = mix(uAmbBot, uAmbTop, n.y*.5+.5) + uFlash*vec3(.6,.66,.85)*(.35+.65*max(n.y,0.));
+  if (gSky < 0.) gSky = uGI.x > 0. && dot(p - uCam, p - uCam) < 67600. ? mix(1., skyVis(p, n), uGI.x) : 1.;
+  vec3 dif = mix(uAmbBot, uAmbTop * gSky, n.y*.5+.5) + uFlash*vec3(.6,.66,.85)*(.35+.65*max(n.y,0.));
+  // 日光反彈（低角度陽光的間接光）：照亮的路面往上打在牆腳與招牌底面，街對面照到太陽的牆把暖光反射到背光的這一面（街谷越深越明顯）
+  if (uGI.y > 0.) {
+    float side = 1. - abs(n.y);
+    vec3 bn = uSunCol * uGI.y;
+    dif += bn * vec3(.5, .42, .36) * (.06 + .5 * max(uSun.y, 0.)) * (max(-n.y, 0.) + side * .5) * .5;
+    dif += bn * vec3(.62, .46, .36) * max(dot(-vec3(n.x, 0., n.z), uSun), 0.) * side * (1.15 - gSky) * .32;
+  }
   vec3 spc = vec3(0);
   lampGrid(dif, spc, p, n, v, shin);
   pointLights(dif, spc, p, n, v, shin);
@@ -288,6 +335,16 @@ vec3 applyFog(vec3 c, vec3 p){
   #endif
   vec3 dir = d/max(dist,1e-3);
   vec3 fc = mix(uFogCol, uFogHi, smoothstep(-.05, .45, dir.y)) * (1. + uFlash*1.5);
+  // 霧裡的日光前向散射：朝太陽那一側的霧亮起來、偏暖（清晨低角度時最明顯）
+  float sd = max(dot(dir, uSun), 0.), ph = sd * sd * sd * .25 + pow(sd, 24.) * .9;
+  fc += uSunCol * ph * uGI.w;
+  // 清晨貼地的薄霧：標高 7 m 的指數層，沿視線積分（鏡頭與那一點的高度）；顏色是霧色加上朝太陽的散射
+  if (uGI.z > 0.) {
+    float ya = max(uCam.y, 0.), yb = max(p.y, 0.), dh = yb - ya;
+    float Dm = abs(dh) > .3 ? 7. * (exp(-ya / 7.) - exp(-yb / 7.)) / dh : exp(-yb / 7.);
+    float fm = 1. - exp(-dist * uGI.z * Dm);
+    c = mix(c, uFogCol * 1.08 + uSunCol * ph * .6, fm);
+  }
   return mix(c, fc, clamp(f, 0., 1.));
 }
 // 遠景只算一部分距離的霧（FAR）：鏡頭升到 40–180 m（直升機、霓峰塔的塔吊）時慢慢回到完整的霧，不然中間的城區都在霧裡、遠處的對岸與山坡像浮在空中

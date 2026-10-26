@@ -18,6 +18,8 @@ const SET_DEF = {
   res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: GT().msaa, o: [0, 2, 4, 8] }, fps: { d: GT().fps, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: GT().dist, lo: .6, hi: 1.2, st: .1 },
   // 進階影像：refl 0 關、1 低（三分之一解析度）、2 高（一半）
   refl: { d: GT().refl, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
+  // 清晨的光（00-core.js 的 uGI、70-render.js 的體積光）：vol 0 是不畫體積光（等級沒有步數時固定關掉），mist 是清晨薄霧的濃度
+  vol: { d: GT().vol ? 1 : 0, lo: 0, hi: 1.5, st: .1 }, mist: { d: 1, lo: 0, hi: 1.5, st: .1 },
 };
 function setValid(k, v) {
   const D = SET_DEF[k];
