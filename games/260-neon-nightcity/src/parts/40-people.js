@@ -202,7 +202,7 @@ const scanMat = (cm, tex) => new T.ShaderMaterial({ uniforms: { ...cm.uniforms, 
 // ─── 掃描人物（blender/scan_people.py：沒有骨架的 Sketchfab 人物綁到同一副 Quaternius 骨架）───
 // assets/260/people/<id>.glb 只在 http(s) 下載，第一次有人要穿才下載；下載好之前（與以檔案開啟時）照舊是程式換色的身體，
 // 下載好後把登記過的人重新 look 一次。幾何換到 PEOPLE 的綁定空間、骨頭編號照骨名對回模板骨架，所以動畫與 IK 都照用。
-const SCAN_SEX = { jason: 'Male', lucia: 'Female' };
+const SCAN_SEX = { jason: 'Male', lucia: 'Female', q_camper: 'Male', q_fisher: 'Male', q_hiker: 'Female' };   // q_：197 湖畔求生的 NPC（tools/q197-people.mjs，本來就是這副骨架）
 const SCAN = {}, scanWait = {};
 function scanGet(id, p) {
   if (!GLB_ON || !PEOPLE || !SCAN_SEX[id]) return null;
@@ -697,6 +697,9 @@ function handPropsStep(scn) {
 const PED_N = LOW ? 18 : 38;
 // 掃描的 Lucia（女性、長髮）：重看一次外觀用自己的亂數（下載好之後 scanGet 會拿同一組參數再 look 一次）
 const LUCIA = k => ({ r: rng(500 + k), scan: 'lucia', female: true, longHair: 1, glowI: 0 });
+// 197 湖畔求生的三個 NPC（營地的阿哲、碼頭的老陳、健行的小安）也進城當路人：外觀同樣另外抽亂數
+const Q197 = { 2: 'q_camper', 12: 'q_fisher', 16: 'q_hiker' };
+const q197Look = (k, id) => ({ r: rng(700 + k), scan: id, female: id === 'q_hiker', glowI: 0 });
 const xzW = (x, z, y) => { const [X, Z] = toW(x, z); return [X, y, Z]; };   // 邏輯 (x, z) → peds.place 的世界座標 x, y, z
 const peds = crowd(PED_N + 8);
 const pedState = [];
@@ -713,6 +716,7 @@ const umbrellas = [];
     pedState.push({ b, inset, w, d, per, s: rP() * per, dir: rP() < .5 ? 1 : -1, v: 1.05 + rP() * .5, um, um0: um, dodge: 0, dx: 0, dz: 0 });
     peds.look(k, { r: rP });
     if (k % 19 === 7) peds.look(k, LUCIA(k));   // 幾個路人換成 Lucia 的掃描模型（http(s) 下載好才換；亂數另外抽，rP 的序列不變）
+    else if (Q197[k % 19]) peds.look(k, q197Look(k, Q197[k % 19]));
     peds.anim(k, um ? ANIM.umbrella : ANIM.walk, rP() * 10, pedState[k].v * .78);
     if (um) umbrellas.push(k);
   }

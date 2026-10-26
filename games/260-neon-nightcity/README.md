@@ -164,6 +164,7 @@ node tools/kit-view.mjs <dir> [id…|all]   # 以本機 HTTP 開頁、裝上 MOD
 
 - `blender/people.py`（改自 268）從 197 的 `.cache/` 讀 Quaternius Universal Base Characters 與 Universal Animation Library（CC0），把身體依面分成 skin／top／sleeve／bottom／shin／shoe 六個材質、男女各掛三種髮型，留下 12 段動畫（見 `KEEP`）；`npm run people` 再用 gltf-transform 去重、量化與 meshopt 壓縮（不用 gltfpack：它會清掉網格名稱；也不去重材質：上衣／袖子同色會被合併）。輸出約 1 MB，打包時內嵌成 `#glb-people`。
 - 掃描人物（`40-people.js` 的 `scanGet`／`SCAN`）：`people/jason.glb`、`people/lucia.glb` 只在 http(s) 下、第一次有人 `look({ scan })` 時下載，幾何換到 `PEOPLE` 的綁定空間、骨頭照骨名對回模板骨架，動畫與 IK 照用；下載好之前（與以檔案開啟時）是程式換色的身體，下載中登記的人下載好一起重新 look。換裝的「Jason／Lucia 造型」（`69-safehouse.js` 的 `SCAN_LOOKS`）、每 19 個路人一個 Lucia、夜店排隊與舞池各一個（`LUCIA(k)`）。
+- 197 湖畔求生的三個 NPC（營地的阿哲、碼頭的老陳、健行的小安；Quaternius CC0，本來就是同一副骨架）也走 `scanGet`：`node tools/q197-people.mjs` 把 `assets/197/models/q/npc_*.glb` 的十幾個網格併成一個、各部位貼圖拼成一張 → `people/q_camper|q_fisher|q_hiker.glb`（300–450 KB）；街上路人編號除以 19 餘 2、12、16 的換成他們（`Q197`）。
 - 前端把每種「性別×髮型」合併成一份蒙皮幾何（`aSlot` 分區），衣服、膚色、髮色與鞋子霓虹是每人材質的 uniform，一人一次 draw。骨架不在場景圖裡（網格用 detached 綁定），只有在畫面內的人每幀擺姿勢，35 m 外隔幀、70 m 外每四幀；骨頭矩陣也只在擺過姿勢後重算。
 - 女性骨架在檔案裡平移了 1.2 m（男女並排），inverse bind 要乘回那段位移，否則手臂會被甩成長條。坐與騎車的骨盆高度在載入時量出來，對齊舊版的座位高度。
 

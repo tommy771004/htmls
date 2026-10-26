@@ -87,6 +87,7 @@
 | :-- | :-- | :-- | :-- |
 | `people/jason.glb` | [Jason Duval & GTA VI](https://sketchfab.com/3d-models/jason-duval-gta-vi-e6eefc3185fb4bcda7cdf9753924e162) | [BakhtiarSource](https://sketchfab.com/iranan) | CC BY 4.0 |
 | `people/lucia.glb` | [GTA 6 GIRL SKIN](https://sketchfab.com/3d-models/gta-6-girl-skin-4abc4ab140d14a5db236309f679d2ac0) | [SYMXY_](https://sketchfab.com/SYMXY_) | CC BY 4.0 |
+| `people/q_camper.glb`、`q_fisher.glb`、`q_hiker.glb` | 作品 197 湖畔求生的三個 NPC：Quaternius [Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) 的頭與髮型＋ [Modular Character Outfits - Fantasy](https://quaternius.com/packs/modularcharacteroutfitsfantasy.html) 的服裝（197 的 `tools/build-characters.py` 組成，本來就是同一副骨架；`tools/q197-people.mjs` 併成一個網格、貼圖拼成一張） | Quaternius | CC0 |
 
 ## 車流
 
