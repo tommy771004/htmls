@@ -1,117 +1,18 @@
 
-// ═══ 車輛：程序建模、車流 AI、路邊停車、玩家座駕物理 ═══
-// 側面輪廓（z 為車長方向、y 為高度）沿寬度擠出，再把上半部往內收
+// ═══ 車輛：車流 AI、路邊停車、玩家座駕物理（車身全是 GLB：traffic.glb 與 26-glb.js 的實車）═══
 await bootStep(BOOT.vehicles, '車流上路…');
-function sideExtrude(kit, pts, width, color, mat, taper, bevel = .035, matrix) {
-  const sh = new T.Shape(pts.map(([z, y]) => new T.Vector2(z, y)));
-  const d = width - bevel * 2;
-  const g = new T.ExtrudeGeometry(sh, { depth: d, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, steps: 1, curveSegments: 4 });
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    const sx = p.getX(i), sy = p.getY(i); let x = -(p.getZ(i) - d / 2);
-    if (taper) x *= taper(sy, sx);
-    p.setXYZ(i, x, sy, sx);
-  }
-  g.computeVertexNormals();
-  kit.add(g, color, mat, matrix);
-}
-const arch = (zc, yc, r, n = 7) => Array.from({ length: n + 1 }, (_, k) => { const a = Math.PI - k / n * Math.PI; return [zc + Math.cos(a) * r, yc + Math.sin(a) * r]; });
-function wheel(kit, x, y, z, r, w, rimCol = 0x9aa0a6, spokes = 6) {
-  kit.cyl(x, y, z, r, r, w, 18, 0x121212, 6, 0, 0, Math.PI / 2);
-  const s = Math.sign(x) || 1;
-  kit.cyl(x + s * (w / 2 - .01), y, z, r * .66, r * .66, .03, 16, 0x26282b, 2, 0, 0, Math.PI / 2);
-  for (let k = 0; k < spokes; k++) { const a = k / spokes * Math.PI * 2; kit.box(x + s * (w / 2 + .005), y, z, .03, r * 1.15, .06, rimCol, 7, a, 0, 0); }
-  kit.cyl(x + s * (w / 2 + .01), y, z, r * .16, r * .16, .04, 10, rimCol, 7, 0, 0, Math.PI / 2);
-}
-const wheelGeo = (r, w, rimCol) => { const k = new Kit(); wheel(k, w / 2, 0, 0, r, w, rimCol); return k.build(); };
-
-// Kestrel：楔形跑車，可升降頭燈、後擋百葉、整條尾燈
-function kestrelKit(paint = 0x4a5058, withWheels = false) {
-  const k = new Kit();
-  const body = [[2.2, .27], [2.26, .47], [2.06, .58], [.86, .8], [-.92, .83], [-1.98, .9], [-2.17, .88], [-2.17, .36], [-1.84, .27],
-    ...arch(-1.35, .33, .45), [-.88, .27], [.88, .27], ...arch(1.35, .33, .45), [1.84, .27]];
-  sideExtrude(k, body, 1.9, paint, 0, (y) => 1 - sstep(.6, .9, y) * .05);
-  sideExtrude(k, [[.88, .8], [.08, 1.13], [-.6, 1.14], [-1.02, .96], [-1.02, .81]], 1.62, 0x0a0c10, 1, (y) => 1 - sstep(.8, 1.14, y) * .22, .02);
-  k.box(0, 1.142, -.28, 1.2, .03, .62, paint, 0);
-  for (let i = 0; i < 6; i++) { const z = -1.12 - i * .15, y = .955 - i * .011; k.box(0, y, z, 1.45, .025, .09, 0x0e0f11, 2, -.07); }   // 引擎蓋百葉，貼著車尾斜面
-  k.box(0, .52, 2.2, 1.55, .05, .05, 0xf4f1e8, 4);
-  for (const s of [-1, 1]) { k.box(s * .62, .63, 1.98, .36, .05, .22, 0x2a2d31, 0); k.box(s * .62, .62, 2.1, .32, .045, .02, 0xf4f1e8, 4); }
-  k.box(0, .7, -2.18, 1.66, .07, .03, 0xff1a24, 5);
-  for (const s of [-1, 1]) k.box(s * .58, .57, -2.18, .32, .1, .03, 0xff1a24, 5);
-  k.box(0, .34, -2.15, 1.5, .14, .06, 0x0d0e10, 2);
-  k.box(0, .3, 2.2, 1.6, .1, .08, 0x0d0e10, 2);
-  for (const s of [-1, 1]) { k.box(s * .96, .32, 0, .03, .08, 1.7, 0x0d0e10, 2); k.box(s * .93, .86, .72, .1, .07, .14, paint, 0); }
-  if (withWheels) for (const s of [-1, 1]) for (const z of [-1.35, 1.35]) wheel(k, s * .82, .34, z, .34, .26);
-  return k;
-}
-// 八〇年代三廂房車，計程車與警車共用
-function sedanKit(kind, withWheels = true) {
-  const k = new Kit();
-  const paint = kind === 'taxi' ? 0xf2b41a : kind === 'police' ? 0x1b1e24 : 0x888888;
-  const body = [[2.42, .32], [2.46, .7], [2.22, .79], [.78, .86], [-1.56, .9], [-2.36, .92], [-2.46, .88], [-2.46, .38], [-1.96, .31],
-    ...arch(-1.45, .36, .44), [-1.0, .31], [1.0, .31], ...arch(1.45, .36, .44), [1.96, .31]];
-  sideExtrude(k, body, 1.86, paint, 0, (y) => 1 - sstep(.7, .92, y) * .03);
-  sideExtrude(k, [[.78, .86], [.12, 1.36], [-1.08, 1.38], [-1.62, .91]], 1.64, 0x090b0e, 1, (y) => 1 - sstep(.9, 1.38, y) * .12, .02);
-  k.box(0, 1.385, -.47, 1.34, .03, 1.1, paint, 0);
-  for (const s of [-1, 1]) {
-    k.box(s * .55, .62, 2.45, .42, .14, .03, 0xf6f0dc, 4);
-    k.box(s * .64, .66, -2.47, .34, .16, .03, 0xff1a1a, 5);
-    k.box(s * .94, .5, 0, .03, .06, 3.9, 0x0e0e10, 2);
-    k.box(s * .95, .93, .74, .1, .08, .14, 0x111111, 2);
-  }
-  k.box(0, .45, 2.47, 1.8, .14, .06, 0xb8bcc2, 3);
-  k.box(0, .45, -2.48, 1.8, .14, .06, 0xb8bcc2, 3);
-  k.box(0, .62, 2.465, .62, .14, .02, 0x15171a, 2);
-  if (kind === 'taxi') {
-    k.box(0, 1.5, -.35, .9, .22, .3, 0xfff4cc, 8);
-    for (const s of [-1, 1]) for (let i = 0; i < 10; i++) k.box(s * .935, .68, -1.2 + i * .26, .01, .07, .13, i % 2 ? 0x101010 : 0xf4f4f4, 2);
-  }
-  if (kind === 'police') {
-    for (const s of [-1, 1]) { k.box(s * .935, .66, 0, .01, .34, 2.6, 0xeeeeee, 2); k.box(s * .3, 1.47, -.35, .5, .12, .25, s < 0 ? 0xff1030 : 0x2050ff, 9); }
-  }
-  if (withWheels) for (const s of [-1, 1]) for (const z of [-1.45, 1.45]) wheel(k, s * .8, .36, z, .36, .24, 0x8a8e92, 0);
-  return k;
-}
-function truckKit() {
-  const k = new Kit();
-  k.box(0, 1.15, 2.2, 2.2, 1.7, 1.9, 0xd8d4c8, 0);
-  k.box(0, 1.65, 3.1, 2.0, .7, .06, 0x0a0c0e, 1);
-  k.box(0, 1.9, -1.0, 2.36, 2.7, 4.6, 0xe6e2d8, 10);
-  k.box(0, 1.9, -1.0, 2.38, .3, 4.5, 0x1a6a8a, 10);
-  k.box(0, .5, 0, 2.0, .3, 6.4, 0x1a1a1a, 2);
-  for (const s of [-1, 1]) { k.box(s * .8, .9, 3.16, .3, .18, .03, 0xf6f0dc, 4); k.box(s * .95, .8, -3.32, .2, .3, .03, 0xff1a1a, 5); }
-  for (const s of [-1, 1]) for (const z of [2.3, -2.2, -1.2]) wheel(k, s * .95, .46, z, .46, .3, 0x6a6e72, 0);
-  return k;
-}
-function hanzoKit() {
-  const k = new Kit(), paint = 0xd8d2c4, dark = 0x1a1b1e;
-  k.box(0, .62, .1, .16, .1, 1.1, dark, 15, -.12);
-  sideExtrude(k, [[.55, .78], [.2, .95], [-.25, .92], [-.35, .74], [.4, .66]], .34, paint, 0, null, .04);
-  sideExtrude(k, [[1.0, .62], [.95, .98], [.7, 1.08], [.5, .9], [.6, .6]], .42, paint, 0, (y) => 1 - sstep(.8, 1.08, y) * .3, .03);
-  k.box(0, 1.06, .78, .3, .1, .02, 0x0b0c0f, 1, -.6);
-  sideExtrude(k, [[-.25, .92], [-.95, 1.0], [-1.0, .86], [-.4, .76]], .26, paint, 0, null, .03);
-  k.box(0, .96, -.48, .3, .07, .5, 0x101010, 2);
-  k.box(0, .9, -.99, .2, .06, .03, 0xff1a1a, 5);
-  k.box(0, .82, .99, .22, .1, .03, 0xf4f0e0, 4);
-  k.box(0, .98, .52, .66, .03, .03, dark, 15);
-  k.cyl(.16, .5, -.35, .05, .06, .7, 8, 0x8a8e94, 3, Math.PI / 2 - .2);
-  k.box(0, .45, .05, .28, .32, .42, 0x2a2c30, 15);
-  for (const s of [-1, 1]) { k.box(s * .09, .55, .82, .03, .5, .03, 0x8a8e94, 3, .45); k.box(s * .09, .55, -.62, .03, .03, .7, dark, 15, .3); }
-  return k;
-}
-const BIKE_WHEEL = wheelGeo(.33, .14, 0x2a2c30);
 
 // 車漆調色盤：instance 的 aIns.z 選色
 const PAL_HEX = [0x7a1f22, 0x1e2f4f, 0x5a5e62, 0x111214, 0xd8d6d0, 0x23412e, 0x4d1a2c, 0xb3a385, 0x2d5f73, 0x6b3a1e], PAL = PAL_HEX.map(h => lin(h));   // PAL_HEX：搶到街頭車時換成實車的烤漆（68-gta.js）
 {
   const s = PAL.map(c => `vec3(${c.r.toFixed(4)},${c.g.toFixed(4)},${c.b.toFixed(4)})`).join(',');
-  MAT.uberI.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `int m = int(vMat + .5);
+  MAT.uberI.name = 'uberPal'; MAT.uberI.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `int m = int(vMat + .5);
   const vec3 PAL[${PAL.length}] = vec3[](${s});`).replace('if (m == 0) { rough = .22; envK = .75; }', 'if (m == 0) { rough = .22; envK = .75; if (vIns.z > .5) alb = PAL[int(vIns.z - .5)]; }');
 }
 // 車流與路邊停車的 InstancedMesh 用自己的一份：aIns.w 是剛生成的車還要淡掉多少（1 全透明、0 不透明），用點陣丟掉像素淡入
 // （MAT.uberI 也給道具的實例用，它們的 aIns.w 另有用途，所以不改共用的那份）
 const TRAF_MAT = mkUber({ inst: true });
-TRAF_MAT.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `if (vIns.w > 0. && fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < vIns.w) discard;
+TRAF_MAT.name = 'uberTraf'; TRAF_MAT.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `if (vIns.w > 0. && fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < vIns.w) discard;
   int m = int(vMat + .5);`);
 
 // ─── 車流路網：06-roads.js 的 RN（路口與路段，世界座標）；車在 (e, dir, s)，轉彎走 turnPathE 的二次貝茲 ───
@@ -119,8 +20,8 @@ function bez(a, b, c, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * b
 function bezTan(a, b, c, t) { const u = 1 - t; return [2 * u * (b[0] - a[0]) + 2 * t * (c[0] - b[0]), 2 * u * (b[1] - a[1]) + 2 * t * (c[1] - b[1])]; }
 
 // ─── 車流與路邊停車都畫成 InstancedMesh，每種車型一次 draw call ───
-// 實車車型由 tools/traffic.mjs 烘成 blender/out/traffic.glb（頂點色＋uber 材質編號 _MAT，幾千面），內嵌成 #glb-traffic；
-// 載入失敗時退回程式建模的車（計程車、警車、房車、貨車各一種）。
+// 實車車型由 tools/traffic.mjs 烘成 blender/out/traffic.glb（頂點色＋uber 材質編號 _MAT，幾千面），內嵌成 #glb-traffic。
+// 沒有程式建模的備援：內嵌模型讀不到時車流照跑（碰撞照 len／w），只是看不到車身。
 const TRAFFIC_GEO = await embeddedGLB('traffic').then(g => {
   const o = {};
   g.scene.updateMatrixWorld(true);
@@ -139,39 +40,43 @@ const TRAFFIC_GEO = await embeddedGLB('traffic').then(g => {
     o[m.name] = { geo, ...m.userData };
   });
   return o;
-}).catch(e => { console.warn('車流模型載入失敗，改用程式建模', e); return {}; });
-const glbType = (id, vmax, fb, extra) => {
+}).catch(e => { console.warn('車流模型載入失敗', e); return {}; });
+const glbType = (id, vmax, extra) => {
   const t = TRAFFIC_GEO[id], f = TRAFFIC_GEO[id + '_far'];
-  return { ...(t ? { geo: () => t.geo, far: f && (() => f.geo), len: t.len, w: t.w, vmax, pal: t.pal ? 1 : 0 } : fb), ...extra };
+  return { ...(t ? { geo: () => t.geo, far: f && (() => f.geo), len: t.len, w: t.w, pal: t.pal ? 1 : 0 } : { len: 4.9, w: 1.9 }), vmax, ...extra };
 };
-const FB = {
-  taxi: { kit: () => sedanKit('taxi'), len: 4.9, w: 1.9, vmax: 13 },
-  police: { kit: () => sedanKit('police'), len: 4.9, w: 1.9, vmax: 14 },
-  sedan: { kit: () => sedanKit('sedan'), len: 4.9, w: 1.9, vmax: 13, pal: 1 },
-  truck: { kit: truckKit, len: 6.8, w: 2.4, vmax: 10 },
-};
+// 實車（26-glb.js）還沒下載好、以檔案開啟或下載失敗時的替身：traffic.glb 裡同一台的低面數版，沒有的照級距借一台，縮放成這台車的長寬
+// （幾何是複製的一份，沒有 InstancedMesh 的 aIns；mesh 不標 userData.kit／glb，disposeKit 不會收掉）。機車沒有替身，下載好之前不畫車身
+const STAND_CLS = { super: 'r8', muscle: 'gt500', sedan: 'm5f90', police: 'fh_cop' }, standGeo = {};
+function standIn(id, mat) {
+  const c = CARS[id], tid = TRAFFIC_GEO[id] ? id : STAND_CLS[carClass(id)] || 'camry', t = !c.bike && TRAFFIC_GEO[tid];
+  if (!t) return null;
+  if (!standGeo[tid]) { standGeo[tid] = t.geo.clone(); standGeo[tid].deleteAttribute('aIns'); }
+  const m = new T.Mesh(standGeo[tid], mat); m.scale.set(c.w / t.w, (c.w / t.w + c.len / t.len) / 2, c.len / t.len);
+  return m;
+}
 // 車型：計程車、兩種警車（police: 車頂警示燈）、九種房車、四種廂型車與貨車；模型都在時每種一組近遠兩個 InstancedMesh
 const TYPES = {
-  fh_taxi: glbType('fh_taxi', 13, FB.taxi),
-  fh_cop: glbType('fh_cop', 14, FB.police, { police: 1 }),
-  il_cop: glbType('il_cop', 14.5, FB.police, { police: 1 }),
-  e34: glbType('e34', 12.5, FB.sedan), evo190: glbType('evo190', 13.5, FB.sedan),
-  negotiator: glbType('negotiator', 12.5, FB.sedan), milano: glbType('milano', 12, FB.sedan), kiri: glbType('kiri', 13.5, FB.sedan),
-  carter: glbType('carter', 13, FB.sedan), compact: glbType('compact', 11.5, FB.sedan), urban: glbType('urban', 12.5, FB.sedan),
-  tiara: glbType('tiara', 14, FB.sedan),
-  shvan: glbType('shvan', 11, FB.truck), lct: glbType('lct', 10, FB.truck), conquer: glbType('conquer', 12, FB.truck), fvan: glbType('fvan', 10, FB.truck),
+  fh_taxi: glbType('fh_taxi', 13),
+  fh_cop: glbType('fh_cop', 14, { police: 1 }),
+  il_cop: glbType('il_cop', 14.5, { police: 1 }),
+  e34: glbType('e34', 12.5), evo190: glbType('evo190', 13.5),
+  negotiator: glbType('negotiator', 12.5), milano: glbType('milano', 12), kiri: glbType('kiri', 13.5),
+  carter: glbType('carter', 13), compact: glbType('compact', 11.5), urban: glbType('urban', 12.5),
+  tiara: glbType('tiara', 14),
+  shvan: glbType('shvan', 11), lct: glbType('lct', 10), conquer: glbType('conquer', 12), fvan: glbType('fvan', 10),
   // 第二階段（69-police.js）：執法車也會被派出去追捕；運鈔裝甲車與救護車偶爾出現在車流
-  urban_cop: glbType('urban_cop', 14, FB.police, { police: 1 }), md84: glbType('md84', 9.5, FB.truck, { armored: 1 }),
-  ambulance: glbType('ambulance', 11.5, FB.truck), canyon_taxi: glbType('canyon_taxi', 13, FB.taxi),
-  fh: glbType('fh', 13, FB.sedan), il: glbType('il', 13.5, FB.sedan),
+  urban_cop: glbType('urban_cop', 14, { police: 1 }), md84: glbType('md84', 9.5, { armored: 1 }),
+  ambulance: glbType('ambulance', 11.5), canyon_taxi: glbType('canyon_taxi', 13),
+  fh: glbType('fh', 13), il: glbType('il', 13.5),
   // world_1 gameready_city 路上的三台車（tools/traffic.mjs 的 grc_*）：深藍舊轎車、白色廂型貨車、藍色郵務車
-  grc_sedan: glbType('grc_sedan', 12, FB.sedan), grc_stepvan: glbType('grc_stepvan', 10, FB.truck), grc_mailvan: glbType('grc_mailvan', 10, FB.truck),
+  grc_sedan: glbType('grc_sedan', 12), grc_stepvan: glbType('grc_stepvan', 10), grc_mailvan: glbType('grc_mailvan', 10),
   // 69-v8-civic.js：拖吊車（也在車流與拖吊場裡）、消防指揮車與消防水箱車（只有消防派遣會出動）
-  tow: glbType('tow', 10.5, FB.truck), fire_chief: glbType('fire_chief', 13, FB.police), firetruck: glbType('firetruck', 9.5, FB.truck),
+  tow: glbType('tow', 10.5), fire_chief: glbType('fire_chief', 13), firetruck: glbType('firetruck', 9.5),
   // 五星才出動的坦克（不進車流；砲塔是 traffic.glb 的 tank_turret，69-police.js 另外掛）
-  tank: glbType('tank', 9, FB.truck, { armored: 1, tank: 1 }),
+  tank: glbType('tank', 9, { armored: 1, tank: 1 }),
   // 街頭車（26-glb.js 的 street）：車流與路邊用 traffic.glb 的低面數版，玩家坐上去時 68-gta.js 的 streetUp 換成 assets/260 的實車
-  ...Object.fromEntries(['g63', 'lc200', 'rr06', 'ramtrx', 'ghost', 's65', 'm5f90', 'camry', 'gt500', 'viper', 'senna', 'r8', 'evo6'].map(id => [id, glbType(id, id === 'ramtrx' ? 12 : 13.5, FB.sedan, { street: 1 })])),
+  ...Object.fromEntries(['g63', 'lc200', 'rr06', 'ramtrx', 'ghost', 's65', 'm5f90', 'camry', 'gt500', 'viper', 'senna', 'r8', 'evo6'].map(id => [id, glbType(id, id === 'ramtrx' ? 12 : 13.5, { street: 1 })])),
 };
 const TRAFFIC_N = LOW ? 23 : 43;   // 2026-10-26 多 25%（原本 18／34）
 const traffic = [], parked = [];
@@ -243,6 +148,8 @@ streetParkClear();   // 69-v5-street.js：路邊施工區那幾段
 for (let i = parked.length - 1; i >= 0; i--) { const p = parked[i], L = TYPES[p.type].len / 2 + 1.3; if ([-1, 1].some(s => rampBlock(p.x + Math.sin(p.yaw) * L * s, p.z + Math.cos(p.yaw) * L * s))) parked.splice(i, 1); }
 // 停車位以邏輯座標挑好，這裡一次換成世界座標（車頭方向一起轉）；車身的兩個碰撞圓直接是世界座標
 for (const p of parked) { const zn = zoneAtL(p.x, p.z); [p.x, p.z] = toW(p.x, p.z, zn); p.yaw = yawW(zn, p.yaw); }
+// 方格的路有幾段落在外緣外的山裡：那裡的停車原本埋在山坡下面看不到，山坡走得進去之後（29-villa.js 的 hillDeck）會擋路（別墅的樓梯裡），拿掉（亂數已經抽完，不跑位）
+for (let k = parked.length - 1; k >= 0; k--) { const p = parked[k]; if (!inCity(p.x, p.z) && (hillDeck(p.x, p.z, 0) ?? 0) > 1.5) parked.splice(k, 1); }
 // 停車、出生、交車與重生點：生成時（避開停車格）是邏輯座標，cityWorld() 之後換成世界座標
 worldHooks.push(() => { for (const S of [KESTREL_SPOT, HANZO_SPOT, DEAL_SPOT, HOME_SPOT, HOSP, PD]) Object.assign(S, spotW(S)); });
 for (const p of parked) { const L = TYPES[p.type].len * .3; p.circ = [-1, 1].map(s => ({ x: p.x + Math.sin(p.yaw) * L * s, z: p.z + Math.cos(p.yaw) * L * s, r: TYPES[p.type].w * .5, car: 1, w: 1 })); circles.push(...p.circ); }
@@ -268,7 +175,7 @@ const mkInst = (g, cap) => {
 for (const [name, ty] of Object.entries(TYPES)) {
   const list = [...traffic.filter(c => c.type === name), ...parked.filter(c => c.type === name)];
   const cap = Math.max(1, list.length);
-  typeMesh[name] = { near: mkInst(ty.geo ? ty.geo() : ty.kit().build(), cap), far: ty.far ? mkInst(ty.far(), cap) : null, list };
+  typeMesh[name] = { near: ty.geo ? mkInst(ty.geo(), cap) : null, far: ty.far ? mkInst(ty.far(), cap) : null, list };
   list.forEach(c => { c.m = new Float32Array(16); c.seed ??= rT(); c.palI = ty.pal ? c.pal + 1 : 0; });
 }
 const CAR_FAR = 320;
@@ -277,6 +184,7 @@ function flushTraffic() {
   let fx = -e[8], fz = -e[10]; const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
   for (const name in typeMesh) {
     const { near, far, list } = typeMesh[name];
+    if (!near) continue;
     const n = [0, 0];
     for (const c of list) {
       const dx = c.x - cx, dz = c.z - cz, d2 = dx * dx + dz * dz;
@@ -297,14 +205,14 @@ const QUAD_VS = /* glsl */`varying vec2 vUv; varying vec3 vW; void main(){ vUv =
 const allCars = () => [...traffic, ...parked];
 const shadowMesh = (() => {
   const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2);
-  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 48);
+  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ name: 'carShadow', uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 48);
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 2; scene.add(m); return m;
 })();
 const poolMesh = (() => {
   const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2); g.translate(0, 0, .5);
   // 平面往 +z 延伸：uv.y 0 在車頭、1 在遠端
   const uv = g.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setY(k, 1 - uv.getY(k));
-  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: POOL_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending }), traffic.length + 2);
+  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ name: 'headPool', uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: POOL_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending }), traffic.length + 2);
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 3; scene.add(m); return m;
 })();
 function placeCar(c, k, y = 0) {
@@ -540,37 +448,18 @@ function mkVehicle(kind) {
   const sp0 = isCar ? KESTREL_SPOT : HANZO_SPOT, sp = cityIsWorld ? sp0 : spotW(sp0);   // 開場（cityWorld() 之前）還是邏輯座標
   const v = { kind, isCar, g, body, mat, wheels, x: sp.x, z: sp.z, y: 0, yaw: sp.yaw, vx: 0, vz: 0, yr: 0, steer: 0, spin: 0, roll: 0, pitch: 0, lean: 0,
     len: 2.1, w: .7, rad: .45, off: .55, vmax: 47, eng: 12.5, grip: 7, wb: 1.5, wr: .33, name: 'Hanzo', rpm: 0, gear: 1, slip: 0, lights: 0 };
-  if (isCar) applyCar(v, STARTER);
-  else {
-    body.add(new T.Mesh(hanzoKit().build(), mat));
-    for (const z of [.8, -.72]) {
-      const piv = new T.Group(); piv.position.set(0, .33, z); body.add(piv);
-      const w = new T.Mesh(BIKE_WHEEL, mat); w.position.x = -.07; piv.add(w); wheels.push({ piv, w, front: z > 0 });
-    }
-  }
+  if (isCar) applyCar(v, STARTER);   // 機車在下面 applyCar(hanzo, STREET_BIKE)
   return v;
 }
 const carHooks = [];   // applyCar 換好車之後呼叫 (v, id)：66-chrome.js 把這台車裝過的改裝套件疊上去
 function applyCar(v, id, paint) {
-  const c = CARS[id], f = c.glb && !c.bike ? CARS[c.proxy] : c;
+  const c = CARS[id];
   disposeKit(v.body); v.body.clear();
   for (const w of v.wheels) w.piv.parent && w.piv.parent.remove(w.piv);
   v.wheels.length = 0;
   v.isCar = !c.bike; v.glbTok = (v.glbTok || 0) + 1; v.inst = null; v.modG = null;
-  // 機車的輪子掛在車身上（跟著壓車），汽車的掛在車架上
-  if (c.bike) {
-    const m = new T.Mesh(hanzoKit().build(), v.mat); m.userData.kit = 1; v.body.add(m);
-    for (const z of [.8, -.72]) {
-      const piv = new T.Group(); piv.position.set(0, .33, z); v.body.add(piv);
-      const w = new T.Mesh(BIKE_WHEEL, v.mat); w.position.x = -.07; piv.add(w); v.wheels.push({ piv, w, front: z > 0 });
-    }
-  } else {
-    const m = new T.Mesh(carKit(id, paint, 0).build(), v.mat); m.userData.kit = 1; v.body.add(m);
-    for (const s of [-1, 1]) for (const [z, fr] of [[f.fa, 0], [f.ra, 1]]) {
-      const piv = new T.Group(); piv.position.set(s * f.track, f.wr, z); v.g.add(piv);
-      const w = new T.Mesh(carWheelGeo(id, fr), v.mat); if (s < 0) w.rotation.y = Math.PI; piv.add(w); v.wheels.push({ piv, w, front: fr === 0 });
-    }
-  }
+  // 實車模型下載好之前先放 traffic.glb 的替身（輪子含在車身裡，沒有 v.wheels）；機車沒有替身
+  const sb = standIn(id, v.mat); if (sb) v.body.add(sb);
   Object.assign(v, { carId: id, paint: paint ?? c.paint, len: c.len, w: c.w, rad: c.w / 2 + .05, off: c.len * .28, vmax: c.vmax, eng: c.eng, grip: c.grip, wb: c.fa - c.ra, wr: c.wr, name: c.name, seat: c.seat || null });
   vehClass(v, carClass(id), false);   // 25-cars.js：質量、耐久、轉向與手煞車照級距表，極速與抓地保留這台車自己的
   if (c.real) {   // 26-glb.js 的原廠規格：車重、轉向、手煞車、耐久與煞車也是這台車自己的
@@ -589,7 +478,7 @@ function applyCar(v, id, paint) {
     for (const w of v.wheels) w.piv.parent && w.piv.parent.remove(w.piv);
     v.wheels.length = 0;
     v.body.add(inst.body);
-    for (const w of inst.wheels) { (c.bike ? v.body : v.g).add(w.piv); v.wheels.push(w); }
+    for (const w of inst.wheels) { (c.bike ? v.body : v.g).add(w.piv); v.wheels.push(w); }   // 機車的輪子掛在車身上（跟著壓車），汽車的掛在車架上
     v.inst = inst;
     for (const h of carHooks) h(v, id, true);   // 66-chrome.js：改裝件掛回新的車身、烤漆材質
   });

@@ -8,7 +8,7 @@ const menu = { on: false, tab: 'set', cat: 0, row: 0, focus: 'cats', listen: nul
 // k：遊戲裡的 code（也是預設的鍵）。方向鍵、數字鍵、Enter、Esc、Backspace 在地圖、手機與對話裡另有用途，不給綁
 const KEY_ACTS = [
   { k: 'KeyW', n: '前進／油門' }, { k: 'KeyS', n: '後退／煞車' }, { k: 'KeyA', n: '左移／左轉' }, { k: 'KeyD', n: '右移／右轉' },
-  { k: 'ShiftLeft', n: '奔跑／氮氣' }, { k: 'Space', n: '手煞車' }, { k: 'KeyF', n: '上車／下車、搶車' }, { k: 'KeyE', n: '互動' },
+  { k: 'ShiftLeft', n: '奔跑／氮氣' }, { k: 'Space', n: '手煞車／跳、翻越' }, { k: 'KeyF', n: '上車／下車、搶車' }, { k: 'KeyE', n: '互動' },
   { k: 'KeyR', n: '換彈匣' }, { k: 'KeyZ', n: '蹲下／站起' }, { k: 'Tab', n: '武器轉盤（按住）' }, { k: 'KeyQ', n: '角色轉盤（按住）' },
   { k: 'KeyX', n: '特殊能力' }, { k: 'KeyG', n: '跳舞／引爆黏彈' }, { k: 'KeyV', n: '叫車' }, { k: 'KeyC', n: '切換鏡頭距離' },
   { k: 'KeyP', n: '手機' }, { k: 'KeyM', n: '全區地圖' }, { k: 'KeyB', n: 'Mk II 切換彈種' },
@@ -72,7 +72,7 @@ function setApply(k) {
   if (!k || k === 'units') { const em = document.querySelector('#spRow em'); if (em) em.textContent = IMPERIAL() ? 'mph' : 'km/h'; }
   if (!k || /^v|muteBlur/.test(k)) sfx.mix();
   if (k === 'blur') post.blur = .5 * SET.blur;
-  if (k === 'res') { post.scale = typeof SET.res === 'number' ? SET.res : 1; detail.k = 1; detail.v++; makeTargets(); }   // 切回自動從 100% 開始，太慢再往下降
+  if (k === 'res') { post.scale = resScale(); detail.k = 1; detail.v++; makeTargets(); }   // 切回自動從 100% 開始，太慢再往下降
   if (k === 'gpu') { tierSet(SET.gpu); tierDpr(); detail.v++; setSave(); }   // 00-core.js 的畫質等級：MSAA、幀率、距離、倒影換成那一級，tierDpr 重做渲染目標；menuSet 是先存檔再套用，換完要再存一次，舊等級下改過的值才不會留在設定檔裡
   if (k === 'msaa' || k === 'refl') makeTargets();
   if (k === 'dist') detail.v++;
@@ -139,7 +139,7 @@ const MENU = {
     { n: '影像', stat: true, rows: () => [
       { k: 'gpu', n: '畫質等級', o: { auto: `自動（${GPU_TIERS[GPU.auto].name}）`, soft: '最低', low: '低', mid: '中', high: '高', ultra: '極高' },
         d: `顯示卡：${GPU.short}${GPU.api ? ' · ' + GPU.api : ''}。換等級會一起換掉 MSAA、幀率上限、細節距離與路面倒影；燈光數與陰影精細度重新整理後生效${GPU.hdr ? '' : '。這張顯示卡不支援浮點渲染目標，泛光會比較弱'}。` },
-      { k: 'res', n: '內部解析度', o: { auto: '自動', .5: '50%', .6: '60%', .75: '75%', .85: '85%', 1: '100%' }, d: `自動：幀時太長就降、夠快再升回來（60%–${Math.round((GT().ss || 1) * 100)}%；超過 100% 是顯示卡有餘裕時的超取樣）。CPU 忙不過來時先讓路面倒影隔幀更新、縮短細節距離，不降解析度。固定比例不再自動調整。` },
+      { k: 'res', n: '內部解析度', o: { '1080p': '1080p', auto: '自動', .5: '50%', .6: '60%', .75: '75%', .85: '85%', 1: '100%' }, d: `1080p（預設）：內部解析度的短邊固定 1080 px，螢幕不到 1080 就照螢幕的像素（手機不超過畫質等級的上限），不自動調整。自動：幀時太長就降、夠快再升回來（60%–${Math.round((GT().ss || 1) * 100)}%；超過 100% 是顯示卡有餘裕時的超取樣）。CPU 忙不過來時先讓路面倒影隔幀更新、縮短細節距離，不降解析度。固定比例不再自動調整。` },
       { k: 'msaa', n: 'MSAA', o: { 0: '關閉', 2: 'X2', 4: 'X4', 8: 'X8' }, lim: v => v <= (R.capabilities.maxSamples || 0), d: `多重取樣抗鋸齒。這張顯示卡最多 X${R.capabilities.maxSamples || 0}。` },
       { k: 'fps', n: '幀率上限', o: { 30: '30', 60: '60', 0: '不限' }, d: '螢幕更新率高於 60 Hz 時可以限在 60 省電；筆電可以限在 30。' },
       { k: 'pauseBlur', n: '失焦時暫停遊戲', d: '切到其他視窗或分頁時自動打開這個選單。' },
@@ -157,7 +157,8 @@ const MENU = {
       { k: 'vol', n: '體積光', f: pct, off: !GT().vol, d: GT().vol ? '晴天時陽光穿過樓縫與樹冠在空氣裡照出的光束，清晨與傍晚最明顯。關掉可以省下一些顯示卡負擔。' : '這個畫質等級不畫體積光（中以上才有）。' },
       { k: 'mist', n: '清晨薄霧', f: pct, d: '早上五點到九點貼著地面的薄霧。' },
       { k: 'tex', n: '牆面與屋頂材質', o: { 0: '程式紋理', 1: '照片', 2: '照片＋凹凸' }, d: '程式建模的樓房牆面、平屋頂與斜屋頂用照片材質（約 6 MB 下載、顯示卡記憶體 40–75 MB）。程式紋理不用下載。' },
-      { reset: ['refl', 'bloom', 'blur', 'rainFx', 'ca', 'grain', 'vol', 'mist', 'tex'] },
+      { k: 'fac', n: '建築細節距離', o: { 0: '關', 70: '70 m', 110: '110 m', 150: '150 m', 210: '210 m' }, d: '這個距離內的程式建模樓房換成細模：窗戶挖進牆裡、店面往內凹、窗洞有側面與窗台。距離越遠，顯示卡要畫的三角形越多。' },
+      { reset: ['refl', 'bloom', 'blur', 'rainFx', 'ca', 'grain', 'vol', 'mist', 'tex', 'fac'] },
     ] },
   ],
 };

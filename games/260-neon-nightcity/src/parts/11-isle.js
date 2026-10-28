@@ -234,7 +234,7 @@ function isleWalls(B, P, y0, y1, seed, style, h, front, roof = true) {
   if (I.length) {
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3)); g.setAttribute('aL', new T.Float32BufferAttribute(AL, 4)); g.setIndex(I);
-    const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'walk', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
     groundAdd(m, null);
   }
 }

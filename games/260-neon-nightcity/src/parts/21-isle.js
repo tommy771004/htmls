@@ -102,7 +102,7 @@
     cullAdd(cityAdd(new T.Mesh(k.build(), MAT.ux), null), CULL_R * 2);
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(wp, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(wn, 3)); g.setAttribute('aL', new T.Float32BufferAttribute(wl, 4)); g.setIndex(wi);
-    groundAdd(new T.Mesh(g, new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })), null);
+    groundAdd(new T.Mesh(g, new T.ShaderMaterial({ name: 'walk', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })), null);
   }
   if (location.search.includes('isleLog')) console.log(`天樞島的橋 ${BRIDGES.length} 座：吊橋 ${nS}、拱橋 ${nA}`, BRIDGES.map(B => B.pts.length * 3 | 0));
 }
@@ -302,6 +302,6 @@ const ISLE_FERRY = { x: 0, z: 0, fx: 1, fz: 0, fb: null };
   for (const G of grounds) for (let i = 0; i < 32; i++) { const a0 = i / 32 * Math.PI * 2, a1 = (i + 1) / 32 * Math.PI * 2; push([G.x, G.z], [G.x + Math.cos(a1) * G.r, G.z + Math.sin(a1) * G.r], [G.x + Math.cos(a0) * G.r, G.z + Math.sin(a0) * G.r]); }
   if (gp.length) {
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(gp, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(gn, 3));
-    groundAdd(new T.Mesh(g, new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'), side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })), null);
+    groundAdd(new T.Mesh(g, new T.ShaderMaterial({ name: 'path', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'), side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })), null);
   }
 }

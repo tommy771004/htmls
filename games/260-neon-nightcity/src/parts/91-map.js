@@ -65,6 +65,7 @@ function mapBlips() {
   add('dealer', { name: 'VELOCE MOTORS', ...WP(DEAL_X, DEAL_Z + 2), type: '車行', desc: '29 台實車模型，可以看規格、試駕或買下。', tp: 'dealer' });
   add('garage', { name: 'GARAGE 07', ...WP(HOME_X, HOME_Z - 2), type: '私人車庫', desc: '買來的車停在這裡；開著座駕停在門口按 E 停進去。', tp: 'home' });
   for (const id of APT_IDS) { const a = APT[id]; add('safe', est(id, { name: a.name, x: a.doorW.x, z: a.doorW.z, type: '安全屋', desc: `${a.dist}。買下後可以進去睡覺存檔（時間推進 6 小時）。` })); }
+  for (const H of VILLA.sale) add('safe', est(H.est, { name: estOf(H.est).name, x: H.door.x, z: H.door.z, type: '山坡別墅', desc: '外緣山路上的別墅，門開著可以進去參觀；在大門按 E 看房或買下，買了可以在主臥睡覺存檔。' }));   // 29-villa.js、69-villa.js
   add('bar', { name: APT.pub.name, x: APT.pub.doorW.x, z: APT.pub.doorW.z, type: '酒館', desc: `${APT.pub.dist}的木造老酒館，不用買就能進去。` });
   add('shop', { name: APT.store.name, txt: '24', x: APT.store.doorW.x, z: APT.store.doorW.z, type: '便利商店', desc: `${APT.store.dist}，二十四小時營業；在結帳台花 ${money(SNACK)} 買吃的可以補滿生命。` });
   add('bank', { name: '中央霓虹銀行', ...WP(BANK.x, BANK.z + 2), type: '銀行', desc: '金庫在大廳後面。搶劫從手機的搶劫行動開始籌備。' });
@@ -123,7 +124,8 @@ const MAP_LABELS = (() => {
     { zh: '灰鷺河', en: 'HERON RIVER', x: (FAR_BANK_X + RIVER_E) / 2, z: FAR_Z1 - 260, water: 1 },
     { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 260, z: FAR_Z1 - 520 });
   const air = AIR_L ? [{ zh: AIR.name, en: AIR.en.toUpperCase(), ...WP(...airW(AIR_L.term.x, AIR_L.term.z - 90), null) }] : [];   // 機場是 SEA_FR 座標框（21-air.js）
-  return [...L.map(o => ({ ...o, ...WP(o.x, o.z) })), { zh: '北嶺公園', en: 'NORTH RIDGE PARK', ...parkW(0, (NPARK.walk.z0 + NPARK.walk.z1) / 2) }, ...air];   // 上面是邏輯座標，畫的時候用世界座標；北嶺公園是它自己的座標框（10-city.js）
+  return [...L.map(o => ({ ...o, ...WP(o.x, o.z) })), { zh: '北嶺公園', en: 'NORTH RIDGE PARK', ...parkW(0, (NPARK.walk.z0 + NPARK.walk.z1) / 2) }, ...air,   // 上面是邏輯座標，畫的時候用世界座標；北嶺公園是它自己的座標框（10-city.js）
+    ...(ENC ? [{ zh: ENC.name, en: ENC.en.toUpperCase(), ...WP(60, -130, ENC.f) }] : [])];   // 雲梯城寨（28-enclave.js，ENC.f 框座標）
 })();
 
 // ─── 繪製 ───
@@ -240,6 +242,7 @@ function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在
   if (fx < FAR_BANK_X && fz < FAR_Z1) return '倫敦城 · 灰鷺河對岸';
   if (!inCity(X, Z)) {
     if (airLandW(X, Z)) return AIR.name;
+    if (encHas(X, Z)) { const [ex, ez] = encL(X, Z), st = ENC.S.streets.find(s => ex > s.x0 && ex < s.x1 && ez > s.z0 && ez < s.z1); return ENC.name + (st ? ` / ${st.name}` : ''); }
     if (landW(X, Z)) return z > ISLE.z0 - 10 && x > ISLE.x0 - 10 && x < ISLE.x1 + 10 ? '灰鷗島' : zh;
     if (waterDepth(X, Z) > 0) return fz < FAR_Z1 + 40 && fx < RIVER_E + 120 ? '灰鷺河' : '外海';
     return '城外山區';

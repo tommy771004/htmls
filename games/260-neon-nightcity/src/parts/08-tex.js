@@ -12,12 +12,24 @@ const FAC_LAYERS = [
   { id: 'RoofingTiles014B', m: 2.9 },   // 5 陶筒瓦（海濱斜屋頂）
   { id: 'RoofingTiles003', m: 2 },      // 6 石板瓦（復折式與老磚房）
 ];
+// 山坡別墅區的照片材質（Poly Haven CC0，tools/tex-vil.mjs 疊成 vil_c／vil_n）：07-kitx.js 的 texMat 43–46 與 50 取用，m 一樣是每張幾公尺
+const VIL_LAYERS = [
+  { id: 'concrete_slab_wall', m: 2.3 },          // 0 板模混凝土（43）
+  { id: 'japanese_cedar_planks', m: 1.13 },      // 1 雪松直紋木板（44 木格柵）
+  { id: 'white_sandstone_blocks_02', m: 2 },     // 2 白砂岩塊（45 洞石，著色器放大成 5 m 一張，塊才像大板）
+  { id: 'stacked_stone_wall', m: 2 },            // 3 疊石牆（46）
+  { id: 'dry_ground_rocks', m: 4 },              // 4 乾土岩坡（50 的陡處）
+  { id: 'sparse_grass', m: 2 },                  // 5 稀疏草地（50 的緩處）
+  { id: 'forest_leaves_02', m: 2.2 },            // 6 落葉（外緣山林的樹冠下，07-kitx.js 的 kxFloor）
+  { id: 'forest_ground_04', m: 2.6 },            // 7 林地的苔與土（林間）
+  { id: 'rocky_trail', m: 2.5 },                 // 8 碎石步道
+];
 const FAC_ON = /^https?:$/.test(location.protocol);
-const facTex = { st: 0, a: null, n: null };   // st：0 還沒開始、1 下載中、2 好了、-1 失敗
+const facTex = { st: 0, a: null, n: null }, vilTex = { st: 0, a: null, n: null };   // st：0 還沒開始、1 下載中、2 好了、-1 失敗
 // 下載後的處理照 27-props.js 的 warmSlice 分幀：解碼在背景（createImageBitmap），一層一層讀回像素，最後 initTexture 在切片裡上傳，
 // 不會在第一次畫到時整批擠在同一幀（facLoad 只在畫面跑起來後由 facApply 呼叫，27 的 warmSlice 已經宣告）
-async function facLoad(withN) {
-  const S = 1024, nL = FAC_LAYERS.length;
+async function facLoad(withN, set = 'fac', nL = FAC_LAYERS.length, out = facTex) {
+  const S = 1024;
   const get = async (name) => {
     const bmp = await createImageBitmap(await (await fetch(new URL(`../assets/260/tex/${name}.jpg`, location.href))).blob());
     await warmSlice();
@@ -31,8 +43,8 @@ async function facLoad(withN) {
     return t;
   };
   await warmJob(async () => {
-    if (!facTex.a) facTex.a = await get('fac_c');
-    if (withN) facTex.n = await get('fac_n');
+    if (!out.a) out.a = await get(set + '_c');
+    if (withN) out.n = await get(set + '_n');
   });
 }
 // 每幀（28-sky.js 的 atmApply）：設定打開就開始下載；著色器開關跟著設定與下載狀態走，換設定不用重新整理
@@ -44,4 +56,11 @@ function facApply() {
       .catch(e => { facTex.st = -1; console.warn('照片材質載入失敗，照舊用程式紋理', e); });
   }
   U.uFac.value.set(facTex.st === 2 && k > 0 ? 1 : 0, facTex.st === 2 && k > 1 && facTex.n ? 1 : 0, 0, 0);
+  // 山坡別墅區（tools/tex-vil.mjs 的 vil_c／vil_n）：等立面那組好了再下載，一次只解一組；設定與開關同上
+  if (FAC_ON && k > 0 && facTex.st === 2 && (vilTex.st === 0 || (k > 1 && vilTex.st === 2 && !vilTex.n))) {
+    vilTex.st = 1;
+    facLoad(k > 1, 'vil', VIL_LAYERS.length, vilTex).then(() => { vilTex.st = 2; U.uVilA.value = vilTex.a; U.uVilN.value = vilTex.n; })
+      .catch(e => { vilTex.st = -1; console.warn('別墅區的照片材質載入失敗，照舊用程式紋理', e); });
+  }
+  U.uVil.value.set(vilTex.st === 2 && k > 0 ? 1 : 0, vilTex.st === 2 && k > 1 && vilTex.n ? 1 : 0, 0, 0);
 }

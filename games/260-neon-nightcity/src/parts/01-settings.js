@@ -12,16 +12,18 @@ const SET_DEF = {
   fov: { d: 62, lo: 50, hi: 80, st: 2 }, camFar: { d: 0, o: [2, 0, 1] }, recenter: { d: true }, shake: { d: 1, lo: 0, hi: 1, st: .1 },
   // 顯示：safe 是 HUD 往內縮的格數（一格 6 px）
   hud: { d: true }, radar: { d: true }, safe: { d: 0, lo: 0, hi: 8, st: 1 }, units: { d: 'metric', o: ['metric', 'imperial'] }, bright: { d: 1, lo: .7, hi: 1.4, st: .05 },
-  // 影像：res 'auto' 是依幀時自動調整（70-render.js），數字是固定的內部解析度比例；fps 0 是不限
+  // 影像：res '1080p'（預設）是內部解析度的短邊固定 1080 px、'auto' 是依幀時自動調整（70-render.js），數字是固定的內部解析度比例；軟體繪圖預設自動；fps 0 是不限
   // gpu：畫質等級（00-core.js 的 GPU_TIERS），'auto' 照顯示卡名稱；msaa、fps、dist、refl 的預設值跟著等級
   gpu: { d: 'auto', o: ['auto', 'soft', 'low', 'mid', 'high', 'ultra'] },
-  res: { d: 'auto', o: ['auto', .5, .6, .75, .85, 1] }, msaa: { d: GT().msaa, o: [0, 2, 4, 8] }, fps: { d: GT().fps, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: GT().dist, lo: .6, hi: 1.2, st: .1 },
+  res: { d: GPU.tier === 'soft' ? 'auto' : '1080p', o: ['1080p', 'auto', .5, .6, .75, .85, 1] }, msaa: { d: GT().msaa, o: [0, 2, 4, 8] }, fps: { d: GT().fps, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: GT().dist, lo: .6, hi: 1.2, st: .1 },
   // 進階影像：refl 0 關、1 低（三分之一解析度）、2 高（一半）
   refl: { d: GT().refl, o: [0, 1, 2] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
   // 清晨的光（00-core.js 的 uGI、70-render.js 的體積光）：vol 0 是不畫體積光（等級沒有步數時固定關掉），mist 是清晨薄霧的濃度
   vol: { d: GT().vol ? 1 : 0, lo: 0, hi: 1.5, st: .1 }, mist: { d: 1, lo: 0, hi: 1.5, st: .1 },
   // 照片材質（08-tex.js）：0 關（程式紋理）、1 只有底色、2 加法線與粗糙度
   tex: { d: GT().tex, o: [0, 1, 2] },
+  // 程式立面的細模（09-mass.js）：鏡頭幾公尺內的街區換成挖出窗洞、店面凹進的細模，0 關（只有平面的盒）
+  fac: { d: GT().fd, o: [0, 70, 110, 150, 210] },
 };
 function setValid(k, v) {
   const D = SET_DEF[k];

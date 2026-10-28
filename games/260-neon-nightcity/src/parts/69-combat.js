@@ -219,7 +219,7 @@ function driveByPlace(v) {
   me.mesh.visible = true;
   me.anim(0, ANIM.driveBy, 0, 1); me.anim2(0, 0, 0);
   _dbm.compose(_mz.set(v.x, v.y, v.z), _dbq.setFromEuler(_dbe.set(v.pitch, v.yaw, v.roll, 'YXZ')), _dbs);
-  // 實車用 tools/seats.mjs 量的座椅高度與前後位置；程式建模的車流車沒有資料，估在車身中心往前兩成
+  // 實車用 tools/seats.mjs 量的座椅高度與前後位置；車流車（traffic.glb）沒有資料，估在車身中心往前兩成
   const db = v.carId && CARS[v.carId] && CARS[v.carId].db;
   _dbm.multiply(db ? _dbt.makeTranslation(-side * (v.w / 2 - .5), db[0] - DB_HIP, db[1]) : _dbt.makeTranslation(-side * (v.w / 2 - .5), DB_SEAT, v.len * .2));
   me.placeM(0, _dbm);

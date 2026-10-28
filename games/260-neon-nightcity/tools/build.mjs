@@ -11,11 +11,24 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const minify = !process.argv.includes('--dev');
 const outArg = process.argv.find((a) => a.startsWith('--out='));
 const outFile = outArg ? resolve(process.cwd(), outArg.slice(6)) : resolve(root, '../../web/260-neon-nightcity.html');
-const GLBS = ['interior_props', 'street_props', 'people', 'traffic'];   // 人物：blender/people.py；車流：tools/traffic.mjs
+const GLBS = ['interior_props', 'street_props', 'people', 'traffic', 'hill_homes'];   // 人物：blender/people.py；車流：tools/traffic.mjs；山坡住宅：blender/hill_homes.py
 
 const partsDir = resolve(root, 'src/parts');
 const parts = readdirSync(partsDir).filter((f) => f.endsWith('.js')).sort();
-const source = parts.map((f) => `// ── ${f} ──\n` + readFileSync(resolve(partsDir, f), 'utf8')).join('\n');
+// 山坡別墅的平面（tools/villa-plan.mjs 產生的 blender/out/villa_walls.json）精簡後放在最前面當 VILLA_PLAN：
+// 每型 { name, lv: [{ L, z, h, w: [[x0, y0, x1, y1, 種類, 開口]], d: [[x, y, 寬, 種類, 軸]], r: [[x0, x1, y0, y1, 種類, 名稱]] }], st: 樓梯,
+//   o: 戶外 [[層, 種類, x0, x1, y0, y1]]（villa_plans.json 的 outdoor）, f: [[層, 家具, x, y, 朝向, 寬縮放, 深縮放, 佔地 [x0, x1, y0, y1]]],
+//   dr: 會動的門扇（blender/out/villa_doors.json，hill_homes.py 寫的） }（Blender 座標，+y 朝路）
+const villaDoors = JSON.parse(readFileSync(resolve(root, 'blender/out/villa_doors.json'), 'utf8'));   // hill_homes.py 建的會動的門扇（格式見那個檔）
+const villaSpec = JSON.parse(readFileSync(resolve(root, 'blender/villa_plans.json'), 'utf8')).villas;
+const r3 = (v) => typeof v === 'number' ? Math.round(v * 1000) / 1000 : Array.isArray(v) ? v.map(r3) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, r3(x)])) : v;
+const villa = Object.fromEntries(Object.entries(JSON.parse(readFileSync(resolve(root, 'blender/out/villa_walls.json'), 'utf8'))).map(([k, v]) => [k, r3({
+  name: villaSpec[k].name,
+  lv: v.levels.map((l) => ({ L: l.L, z: l.z, h: l.h, w: l.walls.map((s) => [s.a[0], s.a[1], s.b[0], s.b[1], s.t, s.open || 0]), d: l.doors.map((d) => [d.x, d.y, d.w, d.kind, d.ax]),
+    r: l.rooms.map((r) => [...r.r, r.kind, r.name]) })),
+  st: v.stairs, o: villaSpec[k].outdoor || [], f: (v.furn || []).map((f) => [f.L, f.id, f.x, f.y, f.face, f.sx, f.sy, f.r]), dr: villaDoors[k] || [],
+})]));
+const source = `// ── villa_walls.json ──\nconst VILLA_PLAN = ${JSON.stringify(villa)};\n` + parts.map((f) => `// ── ${f} ──\n` + readFileSync(resolve(partsDir, f), 'utf8')).join('\n');
 
 const result = await build({
   stdin: { contents: source, resolveDir: partsDir, sourcefile: 'parts.js', loader: 'js' },

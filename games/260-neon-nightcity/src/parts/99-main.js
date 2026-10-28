@@ -227,6 +227,7 @@ function pickLights(t) {
     dynLights.push(...policeLights(t));   // 警車閃燈、直升機探照燈（69-police.js）
     dynLights.push(...railLights());   // 北嶺鐵道橋的列車頭燈（21-rail.js）
     dynLights.push(...xrLights());     // 港灣高架線的列車頭燈（21-xrail.js）
+    dynLights.push(...villaLights());  // 山坡別墅入夜後的房間燈（69-villa.js）
     // 爆炸、起火與槍口閃光（68-gta.js），亮度隨時間衰減
     for (const l of fxLights.slice(-3)) dynLights.push({ x: l.x, y: l.y, z: l.z, col: l.col, r: l.r, i: l.i * (1 - l.life / l.max) });
     const n = Math.max(0, NL - dynLights.length);
@@ -324,7 +325,7 @@ function step(dt) {
   (step.lastCam ||= V3()).copy(camera.position);
   pickLights(t);
   if (player.where === 'out') occUpdate();   // 28-sky.js：車與行人在地上的陰影
-  if (player.where === 'out') { distCull(camera.position.x, camera.position.z); instUpdate(camera.position.x, camera.position.z); bldUpdate(); coastModelsUpdate(); w1Update(); }   // 遠處的立面、建築與設施不畫；走近才下載的建築組
+  if (player.where === 'out') { distCull(camera.position.x, camera.position.z); instUpdate(camera.position.x, camera.position.z); forestMap(camera.position.x, camera.position.z); bldUpdate(); coastModelsUpdate(); w1Update(); }   // 遠處的立面、建築與設施不畫；走近才下載的建築組
   const ctx = started && !dlg.open && !fading ? contextAction() : null;
   const pr = $('prompt');
   if (ctx) { pr.classList.add('on'); setText('promptKey', ctx.key); if (hudCache.promptText !== ctx.text) { hudCache.promptText = ctx.text; $('promptText').innerHTML = ctx.text; } }
@@ -354,6 +355,7 @@ function loop(now) {
   frameBegin(now);   // 70-render.js：整幀 CPU 計時（依幀時調整、96-perf.js 的面板）
   step(dt);
   frames++; fpsT += dt; if (fpsT > .5) { fps = frames / fpsT; frames = 0; fpsT = 0; }
+  hudPerf(now);   // 90-hud.js：時間區塊左邊的 FPS 與 ms
 }
 
 // ─── 開始 ───
@@ -392,6 +394,11 @@ requestAnimationFrame(loop);
 window.__nc = {
   gameHour: GAME_HOUR,   // 69-market.js：一遊戲小時是幾秒真實時間（28-sky.js 的 MIN_SEC × 60）
   fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對
+  enc: ENC && { on: ENC_ON, f: ENC.f, pad: ENC.pad, W: (x, z) => toW(x, z, ENC.f), L: (X, Z) => encL(X, Z), ground: (X, Z) => groundH(X, Z), district: (X, Z) => districtW(X, Z), place: (X, Z) => mapPlaceName(X, Z), tris: HILL.encTris, S: ENC.S },   // 28-enclave.js 雲梯城寨（框座標換世界座標、模型與替身的狀態）
+  hillMouths: () => HILL.mouths, hillRoads: () => HILL.paths, cityC: CITY_C,
+  villa: { VILLA, deck: hillDeck, where: villaWhere, local: villaLocal, world: villaWorld, st: () => ({ inK: villaSt.inK, wet: U.uWet.value, sun: U.uSunCol.value.r, lights: villaLights().length }), push: (x, z, y, r = .32) => { colY = y; const o = collideCircle(x, z, r, false, true); colY = 0; return o; },
+    near: (x, z, r = .5) => boxesNear(x, z, r).filter(b => boxGap(b, x, z) < r).map(b => ({ x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1, ly: b.ly, hy: b.hy, villa: b.villa, f: !!b.zn, ry: b.zn && b.zn.ry })).concat(circlesNear(x, z, r).filter(c => Math.hypot(c.x - x, c.z - z) < c.r + r).map(c => ({ circle: 1, x: c.x, z: c.z, r: c.r, hy: c.hy, car: !!c.car }))) },   // 29-villa.js 山坡別墅的地面、碰撞與出售的那幾棟
+  hillHomes: HILL_HOMES,   // 10-city.js 山坡住宅的位置（世界座標，v 是 hill_homes.glb 的型號；HILL.homes 是路與房子的數量）
   gfx: gfxApi,   // 02-gfx.js：繪圖後端（webgl／webgpu）、還沒改寫成 TSL 的材質 miss()
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
@@ -408,6 +415,11 @@ window.__nc = {
   // 邏輯座標（方格；spots 裡的門口、sea 的矩形、APT 的 door 都是）：換成世界座標再傳送，朝向一起轉
   // 截圖用：相機固定在世界座標 (px, py, pz) 看向 (tx, ty, tz)；camAt() 還原
   camAt(...o) { camState.over = o.length ? o : null; },
+  // 程式立面的細模（09-mass.js、10-city.js 的 facLod）：stats 看建了幾個街區、幾個三角形；sync 依目前鏡頭位置一次建完
+  kit: KIT_N,   // 00-core.js：Kit.box 的方塊數與其中自動倒角的數量
+  tex: () => ({ fac: facTex.st, vil: vilTex.st }),   // 照片材質的下載狀態（08-tex.js：0 還沒開始、1 下載中、2 好了、-1 失敗）
+  forest: (x, z) => x !== undefined ? HILL_FOREST.probe(x, z) : ({ ...HILL_FOREST.n, karst: KARST.length, k: KARST.slice(0, 8).map(t => [t.x | 0, t.y | 0, t.z | 0, +t.s.toFixed(1)]), fmap: FM.builds }),   // 外緣山林（10-city.js）、石柱峰（21-coast.js）、山林樹冠圖重畫次數（22-hmap.js）
+  fac: { stats: () => ({ ...fac, r: SET.fac }), sync() { facLod(camera.position.x, camera.position.z, 1e9); return { ...fac }; }, blk: facBlk },
   tpL(x, z, yaw = 0) { const s = spotW({ x, z, yaw }); this.tp(s.x, s.z, s.yaw); },
   W: (x, z) => toW(x, z), L: (x, z) => toL(x, z), Ws: (x, z, yaw = 0) => spotW({ x, z, yaw }), zones: ZONES, roads: RN, capes: CAPES, shore: SHORE, ladders: LADDERS,
   drive(name = 'kestrel') { const v = name === 'hanzo' ? hanzo : kestrel; if (player.mode === 'drive') exitVehicle(); setWhere('out'); enterVehicle(v); camState.yaw = v.yaw; camState.snap = true; },

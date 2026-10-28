@@ -23,7 +23,7 @@ async function desktop() {
   const { browser, page, log } = await open(htmlPath, { w: 1440, h: 900 });
   try {
     const a = await ev(page, () => window.__nc.assets);
-    check(a.loaded.length === 2 && a.missing.length === 0, `內嵌 GLB：${a.loaded.join('、')}（缺 ${a.missing.length}）`);
+    check(a.loaded.length === 3 && a.missing.length === 0, `內嵌 GLB：${a.loaded.join('、')}（缺 ${a.missing.length}）`);
     await ev(page, () => window.__nc.start());
     await page.waitForTimeout(1200);
     await shot(page, 'd-start');

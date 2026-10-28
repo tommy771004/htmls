@@ -104,6 +104,12 @@ const ESTATES = [
   { id: 'l16', name: '琥珀和室 Loft', price: 340000, rate: 540, cap: 10800, home: true },
   { id: 'i14', name: '公園大道白色大宅', price: 480000, rate: 760, cap: 15200, home: true },
   { id: 'lr', name: '珊瑚灘清水模公寓', price: 220000, rate: 350, cap: 7000, home: true },
+  // 山坡別墅（29-villa.js、69-villa.js）：每型一棟出售（離市中心最近的那棟），屋裡一直走得進去參觀，買了才能在主臥睡覺存檔；不在家時短租，租金照售價約 0.16%／遊戲小時
+  { id: 'hv1', name: '山坡別墅 · 懸崖展館', price: 1850000, rate: 2960, cap: 59200 },
+  { id: 'hv2', name: '山坡別墅 · 板岩柱別墅', price: 1250000, rate: 2000, cap: 40000 },
+  { id: 'hv3', name: '山坡別墅 · 洞石刀片牆三層', price: 1600000, rate: 2560, cap: 51200 },
+  { id: 'hv4', name: '山坡別墅 · 鋼構斜撐屋', price: 1100000, rate: 1760, cap: 35200 },
+  { id: 'hv5', name: '山坡別墅 · 地中海莊園', price: 2600000, rate: 4160, cap: 83200 },
 ];
 const GAME_HOUR = 60 * MIN_SEC;   // 28-sky.js 的時鐘：遊戲裡一分鐘 = MIN_SEC 秒（一小時 100 秒）
 // motors.props = { own: [id], safe: {id: 金額} }

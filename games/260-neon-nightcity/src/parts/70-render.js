@@ -7,9 +7,11 @@ const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);
 for (const m of groundMeshes) m.layers.set(LY.NOREFL);
 let DPR = Math.min(devicePixelRatio || 1, GT().dpr);   // 00-core.js 的畫質等級：解析度上限
 R.setPixelRatio(DPR);
+// 固定的內部解析度比例：'1080p' 是短邊 1080 px（螢幕本身不到 1080 就照螢幕的實際像素，不超取樣；觸控裝置不超過等級的 DPR 上限，手機照舊），數字照比例；'auto' 從 100% 開始
+const resScale = () => { if (SET.res !== '1080p') return typeof SET.res === 'number' ? SET.res : 1; const s = Math.min(innerWidth, innerHeight), k = Math.min(1080, s * (devicePixelRatio || 1)) / (s * DPR); return isTouch ? Math.min(k, 1) : k; };
 // gray／vig／hurt：69-combat.js 的 WASTED／BUSTED 去色與暗角、受傷時畫面邊緣泛紅
 // reflHalf：倒影隔幀畫（依幀時調整在 CPU 送不完時打開）；ceil：自動解析度往上升的上限（在 1 以上降過一次就停在那一檔下面）
-const post = { reflHalf: false, ceil: 9, scale: typeof SET.res === 'number' ? SET.res : 1, blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
+const post = { reflHalf: false, ceil: 9, scale: resScale(), blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
 // 沒有浮點渲染目標的擴充（少數舊驅動、部分 Android）就退回 8 位元：畫得出來，只是霓虹的泛光與高光會被截在 1（00-core.js 的 GPU.hdr）
 const rtOpts = { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true };
 let rtScene, rtRefl, rtB = [], rtU = [], rtV = null;
@@ -35,9 +37,9 @@ function resize() {
   makeTargets();
 }
 resize();
-addEventListener('resize', () => { post.scale = Math.min(post.scale, Math.max(1, resMax())); resize(); });
+addEventListener('resize', () => { post.scale = SET.res === 'auto' ? Math.min(post.scale, Math.max(1, resMax())) : resScale(); resize(); });
 // 換畫質等級（01-settings.js 的 tierSet）：解析度上限跟著換
-function tierDpr() { DPR = Math.min(devicePixelRatio || 1, GT().dpr); R.setPixelRatio(DPR); post.ceil = 9; post.scale = Math.min(post.scale, 1); resize(); }
+function tierDpr() { DPR = Math.min(devicePixelRatio || 1, GT().dpr); R.setPixelRatio(DPR); post.ceil = 9; post.scale = SET.res === 'auto' ? Math.min(post.scale, 1) : resScale(); resize(); }
 // 驅動重置後 three 會重建 GL 狀態並重新上傳材質與貼圖，渲染目標在這裡重做；沒恢復前遊戲照跑、畫面停在最後一幀
 R.domElement.addEventListener('webglcontextlost', () => { GPU.lost++; toast('顯示卡重置中…'); }, false);
 R.domElement.addEventListener('webglcontextrestored', () => { makeTargets(); firstFrame = true; toast('畫面已恢復'); }, false);
@@ -50,8 +52,8 @@ fsGeo.setAttribute('uv', new T.Float32BufferAttribute([0, 0, 2, 0, 0, 2], 2));
 const fsMesh = new T.Mesh(fsGeo); fsMesh.frustumCulled = false;
 const fsScene = new T.Scene(); fsScene.add(fsMesh);
 const FS_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`;
-const pass = (fs, uniforms) => new T.ShaderMaterial({ vertexShader: FS_VS, fragmentShader: fs, uniforms, depthTest: false, depthWrite: false });
-const mPre = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThr; varying vec2 vUv;
+const pass = (name, fs, uniforms) => new T.ShaderMaterial({ name, vertexShader: FS_VS, fragmentShader: fs, uniforms, depthTest: false, depthWrite: false });
+const mPre = pass('pre', `uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThr; varying vec2 vUv;
   // MSAA 邊緣外插偶爾讓某個 shader 算出 NaN／inf，在這裡擋掉，免得被 bloom 擴散成白斑
   vec3 tap(vec2 o){ vec3 c = texture2D(tSrc, vUv + uTexel * o).rgb; return any(isnan(c)) ? vec3(0.) : min(c, vec3(60.)); }
   void main(){
@@ -61,7 +63,7 @@ const mPre = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uT
     float w = smoothstep(.7 * uThr, 1.7 * uThr, br);   // 白天門檻拉高（28-sky.js 的 atm.bloom），不然日照的牆整面發光
     gl_FragColor = vec4(min(c * w, vec3(30.)), 1.);
   }`, { tSrc: { value: null }, uTexel: { value: new T.Vector2() }, uThr: { value: 1 } });
-const mDown = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
+const mDown = pass('down', `uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
   void main(){
     vec2 t = uTexel;
     vec3 a = texture2D(tSrc, vUv + t * vec2(-2., -2.)).rgb, b = texture2D(tSrc, vUv + t * vec2(0., -2.)).rgb, c = texture2D(tSrc, vUv + t * vec2(2., -2.)).rgb;
@@ -71,7 +73,7 @@ const mDown = pass(`uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vU
     vec3 o = e * .125 + (a + c + g + i) * .03125 + (b + d + f + h) * .0625 + (j + k + l + m) * .125;
     gl_FragColor = vec4(o, 1.);
   }`, { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
-const mUp = pass(`uniform sampler2D tSrc, tAdd; uniform vec2 uTexel; uniform float uK; varying vec2 vUv;
+const mUp = pass('up', `uniform sampler2D tSrc, tAdd; uniform vec2 uTexel; uniform float uK; varying vec2 vUv;
   void main(){
     vec2 t = uTexel;
     vec3 s = texture2D(tSrc, vUv).rgb * 4.;
@@ -100,7 +102,7 @@ function heatUniforms(u) {
 // 累積霧裡散射的日光：樓縫與樹冠之間照出一道道光束。空氣本身的密度很低，清晨的貼地薄霧（uGI.z）讓光束濃起來；
 // 散射偏向太陽那一側（相位函數）。只畫 160 m 內，往外衰減；合成時加在曝光前
 const VOL_N = GT().vol;
-const mVol = VOL_N ? pass(`${GL_LIB}
+const mVol = VOL_N ? pass('vol', `${GL_LIB}
   uniform sampler2D tDepth; uniform mat4 uInvVP; uniform float uVolK; varying vec2 vUv;
   float vVis(vec3 r){
     float sl = max(length(uSun.xz), 1e-3); vec2 d = uSun.xz / sl; float k = uSun.y / sl, t = 1.2;
@@ -115,12 +117,12 @@ const mVol = VOL_N ? pass(`${GL_LIB}
   }
   void main(){
     float dp = texture2D(tDepth, vUv).r;
-    vec4 wp = uInvVP * vec4(vUv * 2. - 1., dp * 2. - 1., 1.); wp /= wp.w;
+    vec4 wp = uInvVP * vec4(vUv * 2. - 1., ${R.coordinateSystem === T.WebGPUCoordinateSystem ? 'dp' : 'dp * 2. - 1.'}, 1.); wp /= wp.w;   // WebGPU 的深度本來就是 0..1
     vec3 rd = wp.xyz - uCam; float L = length(rd); rd /= max(L, 1e-3);
     if (dp >= 1.) L = 400.;
     L = min(L, 160.);
-    float j = hw(gl_FragCoord.xy + fract(uTime * 7.31) * 97.), ds = L / ${VOL_N}., acc = 0.;
-    for (int i = 0; i < ${VOL_N}; i++) {
+    float j = hw(gl_FragCoord.xy + fract(uTime * 7.31) * 97.), ds = L / float(VOL_N_T), acc = 0.;
+    for (int i = 0; i < VOL_N_T; i++) {
       float s = (float(i) + j) * ds; vec3 r = uCam + rd * s;
       float den = .05 + uGI.z * 520. * exp(-max(r.y, 0.) / 7.);
       acc += vVis(r) * den * ds * exp(-s * .012);
@@ -128,7 +130,7 @@ const mVol = VOL_N ? pass(`${GL_LIB}
     float sd = max(dot(rd, uSun), 0.), ph = .05 + sd * sd * sd * .9 + pow(sd, 20.) * 1.6;
     gl_FragColor = vec4(uSunCol * ph * acc * uVolK, 1.);
   }`, { ...shared(ALLU), tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uVolK: { value: 0 } }) : null;
-const mComp = pass(`uniform sampler2D tScene, tDepth, tBloom, tVol; uniform float uVolOn; uniform vec2 uVolT; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint, uFx7; uniform vec2 uRes, uFx, uHi;
+const mComp = pass('comp', `uniform sampler2D tScene, tDepth, tBloom, tVol; uniform float uVolOn; uniform vec2 uVolT; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint, uFx7; uniform vec2 uRes, uFx, uHi;
   uniform vec4 uHeat[${HEAT_N}];   // 69-v7-bunker.js 的熱源（畫面 uv、半徑、強度），uFx7：x 熱成像、y 神經毒氣、z 宿醉模糊、w 夜視鏡
   varying vec2 vUv;
   float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -216,7 +218,7 @@ function renderReflection() {
   _ru.set(0, 1, 0).applyQuaternion(camera.quaternion); _ru.y = -_ru.y;
   reflCam.position.copy(_rp); reflCam.up.copy(_ru); reflCam.lookAt(_rt);
   reflCam.projectionMatrix.copy(camera.projectionMatrix);
-  { const e = reflCam.projectionMatrix.elements, n = camera.near, f = reflFar(); e[10] = -(f + n) / (f - n); e[14] = -2 * f * n / (f - n); }   // 只改遠平面：xy 的投影不變，倒影貼圖的座標照舊
+  { const e = reflCam.projectionMatrix.elements, n = camera.near, f = reflFar(), gpu = R.coordinateSystem === T.WebGPUCoordinateSystem; e[10] = gpu ? -f / (f - n) : -(f + n) / (f - n); e[14] = (gpu ? -1 : -2) * f * n / (f - n); }   // 只改遠平面：xy 的投影不變，倒影貼圖的座標照舊（WebGPU 的深度是 0..1）
   reflCam.projectionMatrixInverse.copy(reflCam.projectionMatrix).invert();
   reflCam.updateMatrixWorld();
   reflU.uReflMat.value.multiplyMatrices(reflBias, reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse);

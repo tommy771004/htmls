@@ -130,7 +130,7 @@ function tronBuild(items, W) {
   g.add(propObject(items.tron, S.x, S.y, S.z, 0));
   // 光束（原檔的 GodRay）：加亮、往上淡掉，夜裡比較亮
   if (items.beam) {
-    const m = new T.ShaderMaterial({
+    const m = new T.ShaderMaterial({ name: 'tronBeam',
       uniforms: { uTime: U.uTime, uK: T0.uK, uY: { value: items.beam.h } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
       // 正對著看最亮、看到側邊淡掉（像一道體積光），近看也淡掉，不會糊成一片白
       vertexShader: 'varying vec3 vW, vN; varying float vH; uniform float uY; void main(){ vH = position.y / uY; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
@@ -140,7 +140,7 @@ function tronBuild(items, W) {
   }
   // 水池（原檔的 Water_Plane）：起波紋、映著青色霓虹的水面
   if (T0.D.pool) {
-    const m = new T.ShaderMaterial({
+    const m = new T.ShaderMaterial({ name: 'tronPool',
       uniforms: { uTime: U.uTime, uK: T0.uK },
       vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
       fragmentShader: `uniform float uTime, uK; varying vec3 vW;
@@ -213,7 +213,7 @@ function tronTrail(col, g) {
   const pos = new Float32Array(TRAIL_N * 6), age = new Float32Array(TRAIL_N * 2), idx = [];
   for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('age', new T.BufferAttribute(age, 1)); geo.setIndex(idx);
-  const m = new T.ShaderMaterial({
+  const m = new T.ShaderMaterial({ name: 'tronTrail',
     uniforms: { uCol: { value: lin(col) }, uK: TRON.uK }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
     vertexShader: 'attribute float age; varying float vA; void main(){ vA = age; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
     fragmentShader: 'uniform vec3 uCol; uniform float uK; varying float vA; void main(){ gl_FragColor = vec4(uCol * (1. - vA) * (1.2 + 1.4 * uK), 1.); }',

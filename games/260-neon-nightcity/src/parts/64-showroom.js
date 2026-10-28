@@ -108,7 +108,7 @@ function svSign(name, x, y, z, ry, w, h, glow = 1, kind = 0) {
     const Y = f * SV_FH;
     // 地板：米色拋光大理石＋黃銅分割線（一樓整片；樓上是兩側展廊與後方的走道，中庭留空）
     const floorRect = (x0, x1, z0, z1) => {
-      k.box((x0 + x1) / 2, Y - .25, (z0 + z1) / 2, x1 - x0, .5, z1 - z0, marbleD, 10);
+      k.box((x0 + x1) / 2, Y - .25, (z0 + z1) / 2, x1 - x0, .5, z1 - z0, marbleD, 40);
       for (let x = Math.ceil(x0 / 2.5) * 2.5; x < x1; x += 2.5) k.box(x, Y + .002, (z0 + z1) / 2, .03, .004, z1 - z0, brass, 15);
       for (let z = Math.ceil(z0 / 2.5) * 2.5; z < z1; z += 2.5) k.box((x0 + x1) / 2, Y + .002, z, x1 - x0, .004, .03, brass, 15);
     };
@@ -119,26 +119,26 @@ function svSign(name, x, y, z, ry, w, h, glow = 1, kind = 0) {
     for (const s of [-1, 1]) {
       const x0 = s * SV_ATR, x1 = s * SV_W, xm = (x0 + x1) / 2;
       k.box(xm, cy + .02, SV_D / 2, SV_W - SV_ATR, .04, SV_D, 0xe6dccb, 2);
-      for (let z = 0; z <= SV_D; z += 2.5) k.box(xm, cy - .14, z, SV_W - SV_ATR, .28, .16, walnut, 10);
-      for (let x = SV_ATR + 2.75; x < SV_W; x += 2.75) k.box(s * x, cy - .14, SV_D / 2, .16, .28, SV_D, walnut, 10);
+      for (let z = 0; z <= SV_D; z += 2.5) k.box(xm, cy - .14, z, SV_W - SV_ATR, .28, .16, walnut, 23);
+      for (let x = SV_ATR + 2.75; x < SV_W; x += 2.75) k.box(s * x, cy - .14, SV_D / 2, .16, .28, SV_D, walnut, 25);
       if (f < SV_NF - 1) k.box(s * (SV_ATR - .02), cy - .05, SV_VOID / 2, .1, .7, SV_VOID, walnutD, 10).box(s * (SV_ATR - .05), cy - .38, SV_VOID / 2, .05, .04, SV_VOID, brass, 3);   // 樓板邊緣的胡桃木封邊與黃銅線
     }
-    if (f < SV_NF - 1) for (let z = SV_VOID + 2; z < SV_D; z += 2.5) k.box(0, cy - .14, z, SV_ATR * 2, .28, .16, walnut, 10);
+    if (f < SV_NF - 1) for (let z = SV_VOID + 2; z < SV_D; z += 2.5) k.box(0, cy - .14, z, SV_ATR * 2, .28, .16, walnut, 23);
     if (f < SV_NF - 1) k.box(0, cy - .05, SV_VOID - .02, SV_ATR * 2, .7, .1, walnutD, 10).box(0, cy - .38, SV_VOID - .05, SV_ATR * 2, .04, .05, brass, 3);
     // 側牆：胡桃木腰板＋黃銅扶手線，上面是奶油色牆板與胡桃木框線；每格之間一根壁柱（黃銅柱頭）
     for (const s of [-1, 1]) {
       const wx = s * (SV_W - .02);
-      k.box(wx, Y + .55, SV_D / 2, .04, 1.1, SV_D, walnutD, 10).box(s * (SV_W - .05), Y + 1.12, SV_D / 2, .04, .05, SV_D, brass, 3).box(s * (SV_W - .05), Y + .06, SV_D / 2, .05, .12, SV_D, 0x111111, 2);
-      k.box(wx, Y + 3.3, SV_D / 2, .03, 4.4, SV_D, 0xe8dfcf, 10);
+      k.box(wx, Y + .55, SV_D / 2, .04, 1.1, SV_D, walnutD, 25).box(s * (SV_W - .05), Y + 1.12, SV_D / 2, .04, .05, SV_D, brass, 3).box(s * (SV_W - .05), Y + .06, SV_D / 2, .05, .12, SV_D, 0x111111, 2);
+      k.box(wx, Y + 3.3, SV_D / 2, .03, 4.4, SV_D, 0xe8dfcf, 41);
       k.box(s * (SV_W - .05), Y + 5.42, SV_D / 2, .06, .16, SV_D, walnut, 10).box(s * (SV_W - .05), Y + 1.3, SV_D / 2, .04, .06, SV_D, walnut, 10);
       for (let z = 4.5; z < SV_D - 1; z += 5) for (const dz of [.55, 4.45]) k.box(s * (SV_W - .05), Y + 3.3, z + dz, .04, 3.6, .05, 0xb89a72, 10);
       for (let z = 4.5; z < SV_D; z += 5) {
-        k.box(s * (SV_W - .18), Y + 2.7, z, .3, 5.4, .5, walnutD, 10).box(s * (SV_W - .2), Y + .12, z, .36, .24, .58, brass, 15).box(s * (SV_W - .2), Y + 5.3, z, .36, .2, .58, brass, 15);
+        k.box(s * (SV_W - .18), Y + 2.7, z, .3, 5.4, .5, walnutD, 24).box(s * (SV_W - .2), Y + .12, z, .36, .24, .58, brass, 15).box(s * (SV_W - .2), Y + 5.3, z, .36, .2, .58, brass, 15);
       }
     }
     // 後牆：胡桃木直紋
     k.box(0, Y + SV_FH / 2, SV_D - .02, SV_W * 2, SV_FH, .04, 0x3a2414, 10);
-    for (let x = -SV_W + .15; x < SV_W; x += .3) k.box(x, Y + SV_FH / 2, SV_D - .06, .12, SV_FH - .2, .04, walnut, 10);
+    for (let x = -SV_W + .15; x < SV_W; x += .3) k.box(x, Y + SV_FH / 2, SV_D - .06, .12, SV_FH - .2, .04, walnut, 24);
     k.box(0, Y + 1.12, SV_D - .07, SV_W * 2, .05, .04, brass, 3);
   }
   // 屋頂與中庭天窗（霧面發光板＋鋼格）
@@ -255,7 +255,7 @@ function svSign(name, x, y, z, ry, w, h, glow = 1, kind = 0) {
     for (const s of [-1, 1]) k.cyl(12 + s * 1.55, Y + .52, 46.2, .2, .2, .9, 16, leather, 10, Math.PI / 2, 0, 0);
     k.box(12, Y + .4, 44.8, 1.2, .05, .6, walnut, 10);
     L[2].boxes.push({ x0: 10.3, x1: 13.7, z0: 45.7, z1: 46.8 }, { x0: 11.4, x1: 12.6, z0: 44.5, z1: 45.1 }); }
-  S.add(new T.Mesh(k.build(), MAT.uber));
+  S.add(new T.Mesh(k.build(), MAT.ux));   // 地板是拋光大理石、胡桃木照木紋方向、奶油色牆板是漆面灰泥（07-kitx.js 的程式紋理）
   // 三樓的點唱機（interior_props 的 jukebox；http(s) 下換成實體模型）
   const JUKE = [{ x: -16.4, y: 2 * SV_FH, z: 46.8, ry: Math.PI / 2 }];
   propSwap('show', instancedIn(S, prop('jukebox'), MAT.uber, JUKE), 'jukebox', JUKE);
@@ -320,7 +320,7 @@ svSign('SV_PLAQUE', 0, .72, 33.47, Math.PI, 1.9, .48, .8);   // 接待櫃台正�
 svSign('SV_V8', 3.3, .4, 26.37, Math.PI, 1.3, .33, .8);   // 引擎展示台正面的說明牌
 // 前面的玻璃立面：雨夜街景（和酒吧的雨窗同一個 shader），每層四片
 for (let f = 0; f < SV_NF; f++) for (const [x, w] of f ? [[-12.75, 8.4], [-4.25, 8.4], [4.25, 8.4], [12.75, 8.4]] : [[-12.75, 8.4], [-4.95, 6.9], [4.95, 6.9], [12.75, 8.4]]) {
-  const m = new T.Mesh(new T.PlaneGeometry(w, SV_FH - .6), new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
+  const m = new T.Mesh(new T.PlaneGeometry(w, SV_FH - .6), new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
   m.position.set(x, f * SV_FH + SV_FH / 2 - .1, -.25); showScene.add(m);
 }
 

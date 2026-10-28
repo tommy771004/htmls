@@ -54,7 +54,7 @@ function fxMesh(add) {
   const at = { iPos: new T.InstancedBufferAttribute(new Float32Array(FX_N * 3), 3), iCol: new T.InstancedBufferAttribute(new Float32Array(FX_N * 4), 4), iSz: new T.InstancedBufferAttribute(new Float32Array(FX_N * 2), 2) };
   for (const k in at) { at[k].setUsage(T.DynamicDrawUsage); g.setAttribute(k, at[k]); }
   g.instanceCount = 0;
-  const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: FX_VS, fragmentShader: FX_FS, defines: add ? { ADD: '' } : {}, transparent: true, depthWrite: false, blending: add ? T.AdditiveBlending : T.NormalBlending }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'fx', uniforms: shared(ALLU), vertexShader: FX_VS, fragmentShader: FX_FS, defines: add ? { ADD: '' } : {}, transparent: true, depthWrite: false, blending: add ? T.AdditiveBlending : T.NormalBlending }));
   m.frustumCulled = false; m.renderOrder = add ? 5 : 4; m.layers.set(LY.NOREFL);
   scene.add(m);
   return { m, at, n: 0 };
@@ -131,10 +131,10 @@ const jacked = [];   // detachCar 建出來的載具（最多保留 8 台，舊�
 // 一台獨立載具：車流車型的幾何複製一份、自己的材質（煞車燈與燒毀程度各自設定），69-police.js 的警車也用這個建
 function buildVeh(type, x, z, yaw, sp = 0, seed = 0, palI = 0, kind = 'jack') {
   const ty = TYPES[type];
-  const geo = (ty.geo ? ty.geo() : ty.kit().build()).clone();
+  const geo = ty.geo ? ty.geo().clone() : new T.BufferGeometry();   // traffic.glb 讀不到時沒有車身（碰撞照 len／w）
   const ins = new T.InstancedBufferAttribute(new Float32Array([0, seed, palI, 0]), 4);
   geo.setAttribute('aIns', ins);
-  const mat = mkUber({ inst: true }); mat.fragmentShader = MAT.uberI.fragmentShader;
+  const mat = mkUber({ inst: true }); mat.fragmentShader = MAT.uberI.fragmentShader; mat.name = MAT.uberI.name;
   const mesh = new T.InstancedMesh(geo, mat, 1); mesh.setMatrixAt(0, new T.Matrix4()); mesh.computeBoundingSphere();
   const g = new T.Group(), body = new T.Group(); g.add(body); body.add(mesh); scene.add(g);
   const truck = TRUCKS.includes(type), heavy = ty.armored;
@@ -475,6 +475,7 @@ function gtaUpdate(dt) {
   sideUpdate(dt);    // 69-side.js：街頭賽、生存模式、委託、幫派地盤
   storyUpdate(dt);   // 69-w0-story.js：主線的起點、配角、腳鐐與掃描器
   aptUpdate();
+  villaUpdate(dt);   // 69-villa.js：山坡別墅的進出提示、門、室內
   if (out) {
     kinUpdate(dt);   // 69-kinema.js：近戰吸附、踉蹌、保齡球、跳車後滑出去的車
     wreckUpdate(dt);   // 68-wreck.js：被撞飛的路人

@@ -1,5 +1,5 @@
 // ═══ 實車模型：Sketchfab 的 GLB 經 tools/cars.mjs 處理成 assets/260/<id>.glb，規格在 assets/260/cars.json（打包進頁面） ═══
-// 以網站伺服器開啟時才下載；以檔案開啟、或下載失敗，就一直用 proxy 指定的程式建模車身（機車用 Hanzo）頂替，頁面照樣能玩。
+// 以網站伺服器開啟時才下載；以檔案開啟、或下載失敗，汽車就一直用 traffic.glb 的低面數替身（30-vehicles.js 的 standIn），機車不畫車身，頁面照樣能玩。
 // 材質沿用 uber 的光照、霧、倒影裁切與遮擋淡出，底色、粗糙度、金屬、清漆與自發光改讀 GLB 的頂點屬性與貼圖。
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import GLB_SPEC from '../../../../assets/260/cars.json';
@@ -9,139 +9,139 @@ const GLB_BASE = new URL('../assets/260/', location.href).href;
 const glbReport = { on: GLB_ON, loaded: [], failed: [] };
 const STARTER = 'ae86', STREET_BIKE = 'zx6r';   // 開場的座駕與停在路邊的機車；車行與車庫只賣實車模型
 
-// price 美元；vmax m/s、eng 加速、grip 抓地（同 CARS）；proxy 是沒下載到模型時的替身；fb 是替身的車色
+// price 美元；vmax m/s、eng 加速、grip 抓地（同 CARS）
 const GLB_CARS = [
-  ['e92', { name: 'BMW M3 (E92)', cls: '2010 · 4.0 V8 雙門', price: 62000, fb: 0x0b4fd0, proxy: 'ronin', vmax: 78, eng: 15, grip: 9.2,
+  ['e92', { name: 'BMW M3 (E92)', cls: '2010 · 4.0 V8 雙門', price: 62000, vmax: 78, eng: 15, grip: 9.2,
     tag: '最後一代自然進氣 V8 的 M3，轉到八千轉還在加速。寬體套件、碳纖維車頂與鴨尾。' }],
-  ['m3c', { name: 'BMW M3 Competition', cls: '2021 G80 · 雙渦輪直六四門', price: 98000, fb: 0xc81010, proxy: 'lucerna', vmax: 80, eng: 16.5, grip: 9.4,
+  ['m3c', { name: 'BMW M3 Competition', cls: '2021 G80 · 雙渦輪直六四門', price: 98000, vmax: 80, eng: 16.5, grip: 9.4,
     tag: '四門房車的外表、510 匹的心臟。這台加了寬體套件、鍛造碳引擎蓋與巨大尾翼，載得了朋友也甩得了尾。' }],
-  ['m4wb', { name: 'BMW M4 寬體改裝', cls: 'G82 · 寬體套件', price: 165000, fb: 0x8a7a50, proxy: 'ronin', vmax: 84, eng: 17.5, grip: 9.8,
+  ['m4wb', { name: 'BMW M4 寬體改裝', cls: 'G82 · 寬體套件', price: 165000, vmax: 84, eng: 17.5, grip: 9.8,
     tag: '直立大鼻孔、外擴的葉子板與低趴的車身，香檳金烤漆在霓虹底下會變色。' }],
-  ['m3gtr', { name: 'BMW M3 GTR (GT2)', cls: '2001 E46 · ALMS 賽車', price: 420000, fb: 0x6a1018, proxy: 'ronin', vmax: 82, eng: 18, grip: 10.4,
+  ['m3gtr', { name: 'BMW M3 GTR (GT2)', cls: '2001 E46 · ALMS 賽車', price: 420000, vmax: 82, eng: 18, grip: 10.4,
     tag: '美國 ALMS 傳奇的 22 號車，V8 賽車引擎塞進 E46 車身。原廠彩繪，CHROME WORKS 不能換色。' }],
-  ['m3t24', { name: 'BMW M3 Touring 24H', cls: '2026 · 耐久賽旅行車', price: 560000, fb: 0x2a3a8a, proxy: 'lucerna', vmax: 80, eng: 18.5, grip: 10.6,
+  ['m3t24', { name: 'BMW M3 Touring 24H', cls: '2026 · 耐久賽旅行車', price: 560000, vmax: 80, eng: 18.5, grip: 10.6,
     tag: '紐柏林 24 小時的旅行車賽車，防滾籠、賽車座椅、Shell Helix 彩繪。原廠彩繪，不能換色。' }],
-  ['m4gt3', { name: 'BMW M4 GT3 EVO', cls: '2025 G82 · GT3 賽車', price: 640000, fb: 0x15161a, proxy: 'mamba', vmax: 83, eng: 19, grip: 10.8,
+  ['m4gt3', { name: 'BMW M4 GT3 EVO', cls: '2025 G82 · GT3 賽車', price: 640000, vmax: 83, eng: 19, grip: 10.8,
     tag: 'GT3 規格的 M4：寬體、鵝頸尾翼、中央鎖定輪框。消光黑車身，可以到 CHROME WORKS 換色。' }],
-  ['gt3rs', { name: 'Porsche 911 GT3 RS', cls: '992 · 自然進氣水平對臥六缸', price: 330000, fb: 0x9a9680, proxy: 'kanto', vmax: 86, eng: 19.5, grip: 10.6,
+  ['gt3rs', { name: 'Porsche 911 GT3 RS', cls: '992 · 自然進氣水平對臥六缸', price: 330000, vmax: 86, eng: 19.5, grip: 10.6,
     tag: '九千轉紅線的公路賽車，鵝頸尾翼高過車頂。橡木綠金屬漆配橘色輪框，原廠塗裝不能換色。' }],
-  ['gt3r', { name: 'Porsche 911 GT3 R', cls: '2024 992 · GT3 賽車', price: 720000, fb: 0x6a5ab0, proxy: 'kanto', vmax: 84, eng: 19.5, grip: 11,
+  ['gt3r', { name: 'Porsche 911 GT3 R', cls: '2024 992 · GT3 賽車', price: 720000, vmax: 84, eng: 19.5, grip: 11,
     tag: '純賽車，沒有車牌也沒有冷氣。抓地力是整間車行最好的一台。原廠彩繪，不能換色。' }],
-  ['s1krr', { name: 'BMW S1000RR', cls: '千 cc 超級跑車機車', price: 24000, fb: 0xc81010, proxy: 'hanzo', bike: true, vmax: 80, eng: 17, grip: 7.4, seat: [-.06, -.2],
+  ['s1krr', { name: 'BMW S1000RR', cls: '千 cc 超級跑車機車', price: 24000, bike: true, vmax: 80, eng: 17, grip: 7.4, seat: [-.06, -.2],
     tag: '兩百匹的四缸超跑機車，壓車過彎比任何一台車都快，只是下雨天要小心。' }],
-  ['s1krr19', { name: 'BMW S1000RR (2019)', cls: 'M 套件 · 千 cc 超跑機車', price: 29000, fb: 0xd8d8dc, proxy: 'hanzo', bike: true, vmax: 82, eng: 18, grip: 7.6, seat: [-.06, -.2],
+  ['s1krr19', { name: 'BMW S1000RR (2019)', cls: 'M 套件 · 千 cc 超跑機車', price: 29000, bike: true, vmax: 82, eng: 18, grip: 7.6, seat: [-.06, -.2],
     tag: '第二代 S1000RR，M 套件的白藍紅塗裝、碳纖維輪框與 Akrapovič 排氣管。' }],
   // 第二批：日系、歐系、超跑、美式與機車
-  ['ae86', { name: 'Toyota Sprinter Trueno (AE86)', cls: '1983 · 4A-G 後驅掀背', price: 38000, fb: 0xe8e8e4, proxy: 'kestrel', vmax: 62, eng: 10, grip: 8.4,
+  ['ae86', { name: 'Toyota Sprinter Trueno (AE86)', cls: '1983 · 4A-G 後驅掀背', price: 38000, vmax: 62, eng: 10, grip: 8.4,
     tag: '黑白熊貓配色、可升降頭燈，門上印著豆腐店的字樣。馬力不大，但輕、後驅、好甩。原廠塗裝，不能換色。' }],
-  ['rx7', { name: 'Mazda RX-7 (FD3S)', cls: '1992 · 13B 雙渦輪轉子', price: 85000, fb: 0x1f5fa8, proxy: 'ronin', vmax: 79, eng: 15.5, grip: 9.6,
+  ['rx7', { name: 'Mazda RX-7 (FD3S)', cls: '1992 · 13B 雙渦輪轉子', price: 85000, vmax: 79, eng: 15.5, grip: 9.6,
     tag: '整台車只有曲線沒有直線，轉子引擎小到可以塞在前軸後面，前後配重五五開。' }],
-  ['supra', { name: 'Toyota Supra (A80)', cls: '1993 · 2JZ 雙渦輪直六', price: 110000, fb: 0xd86a1a, proxy: 'ronin', vmax: 82, eng: 16, grip: 9.2,
+  ['supra', { name: 'Toyota Supra (A80)', cls: '1993 · 2JZ 雙渦輪直六', price: 110000, vmax: 82, eng: 16, grip: 9.2,
     tag: '圓潤的長車頭、拱形尾翼與四顆圓尾燈。2JZ 引擎出了名的耐操，改到上千匹也不會散。' }],
-  ['r34', { name: 'Nissan Skyline GT-R (R34)', cls: '1999 · RB26 雙渦輪四驅', price: 135000, fb: 0x1f4fb8, proxy: 'ronin', vmax: 80, eng: 16.5, grip: 9.8,
+  ['r34', { name: 'Nissan Skyline GT-R (R34)', cls: '1999 · RB26 雙渦輪四驅', price: 135000, vmax: 80, eng: 16.5, grip: 9.8,
     tag: '方正的肩線、可調尾翼與四顆圓尾燈，ATTESA 四驅讓它在雨夜的街上照樣出得了彎。' }],
-  ['nsx', { name: 'Honda NSX', cls: '1990 · 中置 V6', price: 140000, fb: 0xf0f0ee, proxy: 'meridian', vmax: 80, eng: 15, grip: 9.8,
+  ['nsx', { name: 'Honda NSX', cls: '1990 · 中置 V6', price: 140000, vmax: 80, eng: 15, grip: 9.8,
     tag: '全鋁車身、戰鬥機座艙般的低矮視野，中置 V6 轉到八千轉。這台換了一組粉紫色的網狀輪框。' }],
-  ['r35', { name: 'Nissan GT-R (R35) 寬體', cls: '雙渦輪 V6 四驅 · 寬體套件', price: 180000, fb: 0x6a6e74, proxy: 'ronin', vmax: 86, eng: 18, grip: 10.2,
+  ['r35', { name: 'Nissan GT-R (R35) 寬體', cls: '雙渦輪 V6 四驅 · 寬體套件', price: 180000, vmax: 86, eng: 18, grip: 10.2,
     tag: '外擴的鉚釘葉子板、前下巴與高腳尾翼。四驅雙離合起步，紅燈一跳綠就已經在下個路口了。' }],
-  ['p930', { name: 'Porsche 911 Turbo (930)', cls: '1975 · 水平對臥六缸渦輪', price: 160000, fb: 0x1f5fa8, proxy: 'kanto', vmax: 78, eng: 15, grip: 8.6,
+  ['p930', { name: 'Porsche 911 Turbo (930)', cls: '1975 · 水平對臥六缸渦輪', price: 160000, vmax: 78, eng: 15, grip: 8.6,
     tag: '鯨尾尾翼、外擴後葉子板，七〇年代的渦輪遲滯：先是什麼都沒有，然後一口氣全部來。' }],
-  ['rwb', { name: 'Porsche 911 RAUH-Welt', cls: '964 · RWB 寬體改裝', price: 260000, fb: 0xf0f0ee, proxy: 'kanto', vmax: 82, eng: 16.5, grip: 9.8,
+  ['rwb', { name: 'Porsche 911 RAUH-Welt', cls: '964 · RWB 寬體改裝', price: 260000, vmax: 82, eng: 16.5, grip: 9.8,
     tag: '手工切開的葉子板、鉚上去的寬體與兩層的巨大尾翼，彩虹條紋的復古賽車彩繪。原廠彩繪，不能換色。' }],
-  ['e34', { name: 'BMW 5 系列 (E34) 低趴', cls: '1990 · 直六四門房車', price: 28000, fb: 0x1f5fa8, proxy: 'lucerna', vmax: 66, eng: 11, grip: 8.6,
+  ['e34', { name: 'BMW 5 系列 (E34) 低趴', cls: '1990 · 直六四門房車', price: 28000, vmax: 66, eng: 11, grip: 8.6,
     tag: '九〇年代的四門房車，降到幾乎貼地、外傾的網狀輪框。整間車行最便宜的一台實車。' }],
-  ['evo190', { name: 'Mercedes-Benz 190E EVO', cls: '四門房車 · 房車賽認證版', price: 120000, fb: 0x1a1b1e, proxy: 'lucerna', vmax: 76, eng: 14.5, grip: 9.4,
+  ['evo190', { name: 'Mercedes-Benz 190E EVO', cls: '四門房車 · 房車賽認證版', price: 120000, vmax: 76, eng: 14.5, grip: 9.4,
     tag: '為了房車賽而生的四門車：寬體、可調尾翼與十六氣門直四。黑色原廠塗裝，不能換色。' }],
-  ['m4csl', { name: 'BMW M4 CSL', cls: '2023 G82 · 輕量化直六', price: 190000, fb: 0x1f5fa8, proxy: 'ronin', vmax: 84, eng: 18, grip: 10.2,
+  ['m4csl', { name: 'BMW M4 CSL', cls: '2023 G82 · 輕量化直六', price: 190000, vmax: 84, eng: 18, grip: 10.2,
     tag: '拆掉後座、換上碳纖維引擎蓋與車頂，比一般 M4 輕一百公斤，雷射尾燈在夜裡是兩道紅色的刀。' }],
-  ['chall', { name: 'Dodge Challenger SRT', cls: '機械增壓 HEMI V8', price: 72000, fb: 0x4a2a7a, proxy: 'bulldog', vmax: 74, eng: 16, grip: 7.8,
+  ['chall', { name: 'Dodge Challenger SRT', cls: '機械增壓 HEMI V8', price: 72000, vmax: 74, eng: 16, grip: 7.8,
     tag: '紫色車身、消光黑引擎蓋，增壓器的嘯聲隔兩條街都聽得到。後輪很愛冒煙。原廠塗裝，不能換色。' }],
-  ['police', { name: '退役警車', cls: '前置 V8 巡邏車', price: 45000, fb: 0x1a1b1e, proxy: 'lucerna', vmax: 70, eng: 13, grip: 8.2,
+  ['police', { name: '退役警車', cls: '前置 V8 巡邏車', price: 45000, vmax: 70, eng: 13, grip: 8.2,
     tag: '從市警局標售出來的巡邏車，推撞桿、警示燈條和車頂編號都還在。開出去路人會自動讓路。原廠塗裝，不能換色。' }],
-  ['zr1', { name: 'Chevrolet Corvette ZR1', cls: '2019 C7 · 增壓 V8', price: 210000, fb: 0x1f5fa8, proxy: 'mamba', vmax: 90, eng: 18.5, grip: 9.8,
+  ['zr1', { name: 'Chevrolet Corvette ZR1', cls: '2019 C7 · 增壓 V8', price: 210000, vmax: 90, eng: 18.5, grip: 9.8,
     tag: '引擎蓋中間開了一個洞讓增壓器探出頭來，後面是高腳碳纖維尾翼。美國最後一代前置引擎的 Corvette。' }],
-  ['f40', { name: 'Ferrari F40', cls: '1987 · 雙渦輪 V8 中置', price: 900000, fb: 0xc8141c, proxy: 'saetta', vmax: 90, eng: 18.5, grip: 9.6,
+  ['f40', { name: 'Ferrari F40', cls: '1987 · 雙渦輪 V8 中置', price: 900000, vmax: 90, eng: 18.5, grip: 9.6,
     tag: '壓克力百葉後窗、拉索開門、沒有音響也沒有地毯。創辦人生前最後一台親自批准的車。' }],
-  ['sf90', { name: 'Ferrari SF90 XX Stradale', cls: '2024 · 插電 V8 四驅', price: 980000, fb: 0xc8141c, proxy: 'furia', vmax: 98, eng: 21, grip: 10.8,
+  ['sf90', { name: 'Ferrari SF90 XX Stradale', cls: '2024 · 插電 V8 四驅', price: 980000, vmax: 98, eng: 21, grip: 10.8,
     tag: '一千多匹的油電動力、前軸兩顆電動馬達，車尾一片固定式大尾翼。整間車行加速最暴力的一台。' }],
-  ['p1', { name: 'McLaren P1', cls: '2013 · 油電 V8 超跑', price: 1100000, fb: 0xe8782a, proxy: 'halcyon', vmax: 100, eng: 21.5, grip: 10.6,
+  ['p1', { name: 'McLaren P1', cls: '2013 · 油電 V8 超跑', price: 1100000, vmax: 100, eng: 21.5, grip: 10.6,
     tag: '油電三雄之一，車身像被風吹出來的一層皮，賽道模式下車身會降低、尾翼會升起。' }],
   // 第三批：amogusstrikesback2 的三台超跑
-  ['svj', { name: 'Lamborghini Aventador SVJ', cls: 'LP 770-4 · 自然進氣 V12 四驅', price: 520000, fb: 0x1f4fd8, proxy: 'furia', vmax: 100, eng: 21.9, grip: 10.2,
+  ['svj', { name: 'Lamborghini Aventador SVJ', cls: 'LP 770-4 · 自然進氣 V12 四驅', price: 520000, vmax: 100, eng: 21.9, grip: 10.2,
     tag: '七百七十匹的自然進氣 V12，剪刀門一掀整條街都會回頭。主動氣流尾翼過彎時往內側壓，紐柏林北環曾經是量產車最快。原廠塗裝，不能換色。' }],
-  ['evija', { name: 'Lotus Evija', cls: '2020 · 四馬達純電超跑', price: 2100000, fb: 0x1f4fd8, proxy: 'halcyon', vmax: 100, eng: 21.3, grip: 10.5,
+  ['evija', { name: 'Lotus Evija', cls: '2020 · 四馬達純電超跑', price: 2100000, vmax: 100, eng: 21.3, grip: 10.5,
     tag: '兩千匹的純電超跑，四顆馬達各管一個輪子，車尾兩個大洞讓氣流直接穿過車身。整間車行最貴的一台，安靜得像一陣風。原廠塗裝，不能換色。' }],
-  ['spano', { name: 'GTA Spano', cls: '2015 · 雙渦輪 V10 中置', price: 900000, fb: 0xf0f0ee, proxy: 'saetta', vmax: 100, eng: 21.3, grip: 10,
+  ['spano', { name: 'GTA Spano', cls: '2015 · 雙渦輪 V10 中置', price: 900000, vmax: 100, eng: 21.3, grip: 10,
     tag: '西班牙小廠手工打造的超跑，碳纖維、凱夫拉與石墨烯車身，雙渦輪 V10 推到九百匹，極速是整間車行最高的。原廠塗裝，不能換色。' }],
-  ['f8', { name: 'Ferrari F8 Tributo', cls: '2019 · 雙渦輪 V8 中置', price: 280000, fb: 0xf0f0ee, proxy: 'saetta', vmax: 100, eng: 21.3, grip: 9.8,
+  ['f8', { name: 'Ferrari F8 Tributo', cls: '2019 · 雙渦輪 V8 中置', price: 280000, vmax: 100, eng: 21.3, grip: 9.8,
     tag: '向史上最強的 V8 致敬：七百二十匹、渦輪幾乎沒有遲滯，車尾的 S-Duct 把氣流從引擎蓋中間導上去壓住車頭。原廠塗裝，不能換色。' }],
-  ['scg', { name: 'SCG 003S', cls: 'Glickenhaus · 公路版耐久賽車', price: 1800000, fb: 0xf0f0ee, proxy: 'mamba', vmax: 100, eng: 21.4, grip: 11.1,
+  ['scg', { name: 'SCG 003S', cls: 'Glickenhaus · 公路版耐久賽車', price: 1800000, vmax: 100, eng: 21.4, grip: 11.1,
     tag: '紐約小廠把紐柏林 24 小時的賽車掛上車牌，鷗翼門、碳纖維單體殼與整片底盤下壓力。過彎抓地力是公路車裡的怪物。原廠塗裝，不能換色。' }],
-  ['p9x8', { name: 'Peugeot 9X8', cls: '2022 · Le Mans Hypercar 油電賽車', price: 3200000, fb: 0x1f4fd8, proxy: 'halcyon', vmax: 100, eng: 21.3, grip: 12.1,
+  ['p9x8', { name: 'Peugeot 9X8', cls: '2022 · Le Mans Hypercar 油電賽車', price: 3200000, vmax: 100, eng: 21.3, grip: 12.1,
     tag: '沒有尾翼的利曼原型賽車，下壓力全靠車身與底盤。不是公路車，車行說是「收藏展示用」，但油箱是滿的。原廠彩繪，不能換色。' }],
-  ['c110', { name: 'Bugatti Centodieci', cls: '2020 · 四渦輪 W16 四驅', price: 8900000, fb: 0x1f4fd8, proxy: 'furia', vmax: 100, eng: 24.6, grip: 10.5,
+  ['c110', { name: 'Bugatti Centodieci', cls: '2020 · 四渦輪 W16 四驅', price: 8900000, vmax: 100, eng: 24.6, grip: 10.5,
     tag: '致敬九〇年代 EB110 的限量十台，一千六百匹的 W16、四顆渦輪。整間車行最貴、加速最猛的一台。原廠塗裝，不能換色。' }],
-  ['nevera', { name: 'Rimac Nevera', cls: '2021 · 四馬達純電超跑', price: 2400000, fb: 0x1f4fd8, proxy: 'halcyon', vmax: 110, eng: 28.4, grip: 10.7,
+  ['nevera', { name: 'Rimac Nevera', cls: '2021 · 四馬達純電超跑', price: 2400000, vmax: 110, eng: 28.4, grip: 10.7,
     tag: '克羅埃西亞的純電怪物：四顆馬達、一千九百多匹，零到一百不到兩秒，極速破四百。兩噸多的車重，煞車和輪胎都要很有自信。原廠塗裝，不能換色。' }],
-  ['f488c', { name: 'Ferrari 488 Challenge Evo', cls: '2020 · 單一車型賽專用賽車', price: 450000, fb: 0x1f4fd8, proxy: 'saetta', vmax: 100, eng: 20.8, grip: 11.9,
+  ['f488c', { name: 'Ferrari 488 Challenge Evo', cls: '2020 · 單一車型賽專用賽車', price: 450000, vmax: 100, eng: 20.8, grip: 11.9,
     tag: '原廠單一車型賽的賽車：防滾籠、賽車座椅、光頭胎與大尾翼，沒有冷氣也沒有車牌。原廠彩繪，不能換色。' }],
-  ['sc20', { name: 'Lamborghini SC20', cls: '2020 · 無擋風玻璃 V12 單一訂製車', price: 3500000, fb: 0x1f4fd8, proxy: 'furia', vmax: 100, eng: 21.3, grip: 10.2,
+  ['sc20', { name: 'Lamborghini SC20', cls: '2020 · 無擋風玻璃 V12 單一訂製車', price: 3500000, vmax: 100, eng: 21.3, grip: 10.2,
     tag: '原廠賽車部門替一位客人做的一台：開放座艙、沒有擋風玻璃，SVJ 的 V12 配上 GT3 賽車的尾翼。雨夜開它會濕透。原廠塗裝，不能換色。' }],
-  ['c63dtm', { name: 'Mercedes-AMG C63 DTM', cls: 'DTM 房車賽 · 前置 V8 賽車', price: 780000, fb: 0x1f4fd8, proxy: 'mamba', vmax: 100, eng: 20.8, grip: 12.1,
+  ['c63dtm', { name: 'Mercedes-AMG C63 DTM', cls: 'DTM 房車賽 · 前置 V8 賽車', price: 780000, vmax: 100, eng: 20.8, grip: 12.1,
     tag: '德國房車大師賽的賽車：外表還看得出是 C 級雙門，底下是碳纖維單體殼、V8 與巨大的尾翼。過彎抓地力是整間車行的頂點。原廠彩繪，不能換色。' }],
-  ['energ', { name: 'Mercedes-Benz Vision Ener-G-Force', cls: '2012 · 氫燃料電池越野概念車', price: 1200000, fb: 0x1f3a7a, proxy: 'bulldog', vmax: 70, eng: 10.5, grip: 8.8,
+  ['energ', { name: 'Mercedes-Benz Vision Ener-G-Force', cls: '2012 · 氫燃料電池越野概念車', price: 1200000, vmax: 70, eng: 10.5, grip: 8.8,
     tag: '洛杉磯車展的設計概念車：四輪輪轂馬達、車頂的儲水槽與越野燈架。這台沒有量產，性能數字是車行自己定的。原廠塗裝，不能換色。' }],
-  ['spano8', { name: 'GTA Spano 銀白版', cls: '2015 · 雙渦輪 V10 中置', price: 920000, fb: 0xe8e8e4, proxy: 'saetta', vmax: 100, eng: 21.3, grip: 10,
+  ['spano8', { name: 'GTA Spano 銀白版', cls: '2015 · 雙渦輪 V10 中置', price: 920000, vmax: 100, eng: 21.3, grip: 10,
     tag: '同一台西班牙超跑的另一份模型：銀白車身、碳纖維下擺與深灰飾條，比藍白那台低調一點。原廠塗裝，不能換色。' }],
-  ['mosler', { name: 'Mosler MT900 GTR XX', cls: '「Land Shark」雙渦輪 V8 改裝', price: 1250000, fb: 0x1f4fd8, proxy: 'mamba', vmax: 100, eng: 23.1, grip: 10.7,
+  ['mosler', { name: 'Mosler MT900 GTR XX', cls: '「Land Shark」雙渦輪 V8 改裝', price: 1250000, vmax: 100, eng: 23.1, grip: 10.7,
     tag: '美國小廠的賽車底盤塞進雙渦輪 V8，綽號「陸上鯊魚」，直線加速專門拿來破紀錄。馬力是改裝車常見的說法，不是原廠數字。原廠塗裝，不能換色。' }],
-  ['csl3', { name: 'BMW 3.0 CSL Hommage', cls: '2015 · 向 E9 蝙蝠車致敬的概念車', price: 850000, fb: 0x1f4fd8, proxy: 'ronin', vmax: 80, eng: 16.4, grip: 9.6,
+  ['csl3', { name: 'BMW 3.0 CSL Hommage', cls: '2015 · 向 E9 蝙蝠車致敬的概念車', price: 850000, vmax: 80, eng: 16.4, grip: 9.6,
     tag: '致敬七〇年代賽道上的「蝙蝠車」：碳纖維車身、巨大的鴨尾與格柵。這台沒有量產，性能數字是車行自己定的。原廠塗裝，不能換色。' }],
-  ['slk55', { name: 'Mercedes-Benz SLK 55 AMG', cls: '2012 R172 · 自然進氣 V8 硬頂敞篷', price: 90000, fb: 0x1f4fd8, proxy: 'meridian', vmax: 70, eng: 15.5, grip: 9.2,
+  ['slk55', { name: 'Mercedes-Benz SLK 55 AMG', cls: '2012 R172 · 自然進氣 V8 硬頂敞篷', price: 90000, vmax: 70, eng: 15.5, grip: 9.2,
     tag: '短軸距的硬頂敞篷跑車塞進五點五升 V8，排氣聲比外表兇得多。車頂收進行李廂只要二十秒。原廠塗裝，不能換色。' }],
-  ['giulietta', { name: 'Alfa Romeo Giulietta Veloce', cls: '2016 · 1750 TBi 前驅掀背', price: 42000, fb: 0x1f4fd8, proxy: 'lucerna', vmax: 66, eng: 13.1, grip: 9,
+  ['giulietta', { name: 'Alfa Romeo Giulietta Veloce', cls: '2016 · 1750 TBi 前驅掀背', price: 42000, vmax: 66, eng: 13.1, grip: 9,
     tag: '義大利的五門掀背，盾形水箱護罩與藏在 C 柱的後門把手。前輪驅動，不愛甩尾，但窄巷裡很好開。原廠塗裝，不能換色。' }],
-  ['charger', { name: 'Dodge Charger SRT8 Police', cls: '前置 HEMI V8 · 追緝警車', price: 68000, fb: 0x1a1b1e, proxy: 'bulldog', vmax: 70, eng: 13.4, grip: 8.9,
+  ['charger', { name: 'Dodge Charger SRT8 Police', cls: '前置 HEMI V8 · 追緝警車', price: 68000, vmax: 70, eng: 13.4, grip: 8.9,
     tag: '黑白相間的追緝警車，推撞桿、車頂警示燈條與 PURSUIT 911 塗裝都還在。重、硬、耐撞。原廠塗裝，不能換色。' }],
-  ['zx6r', { name: 'Kawasaki Ninja ZX-6R', cls: '636 cc 四缸仿賽', price: 16000, fb: 0x3aa83a, proxy: 'hanzo', bike: true, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
+  ['zx6r', { name: 'Kawasaki Ninja ZX-6R', cls: '636 cc 四缸仿賽', price: 16000, bike: true, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
     tag: '萊姆綠的中量級仿賽，轉速拉到一萬六。比千 cc 好駕馭，在窄巷裡也鑽得進去。' }],
-  ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, fb: 0xc8141c, proxy: 'hanzo', bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
+  ['v4', { name: 'Ducati Panigale V4', cls: '1100 cc V4 超跑機車', price: 32000, bike: true, vmax: 84, eng: 18.5, grip: 7.6, seat: [-.06, -.2],
     tag: '從 MotoGP 賽車下放的 V4 引擎、單搖臂與紅色車殼。兩百多匹，比很多跑車都快。' }],
   // 街頭車（street）：車行不賣。汽車混在車流與路邊停車裡（30-vehicles.js 的 STREET），被玩家搶來坐上去時換成實車（68-gta.js 的 streetUp）；
   // 機車停在路邊（68-gta.js 的 STREET_BIKES）。開回 GARAGE 07 門口按 E 收進車庫（65-motors.js），之後就和買來的車一樣
-  ['g63', { name: 'Mercedes-AMG G63', cls: '2019 W463 · 雙渦輪 V8 越野', price: 180000, fb: 0x1f4fd8, proxy: 'bulldog', street: 1, vmax: 62, eng: 13, grip: 8.2,
+  ['g63', { name: 'Mercedes-AMG G63', cls: '2019 W463 · 雙渦輪 V8 越野', price: 180000, street: 1, vmax: 62, eng: 13, grip: 8.2,
     tag: '方盒子車身、外掛備胎與側出排氣，四千多 cc 的雙渦輪 V8。重、高、轉彎會晃，但撞上去吃虧的通常是對方。' }],
-  ['lc200', { name: 'Toyota Land Cruiser 200', cls: '2017 J200 · V8 越野休旅', price: 85000, fb: 0xd8d6d0, proxy: 'bulldog', street: 1, vmax: 58, eng: 11.5, grip: 7.8,
+  ['lc200', { name: 'Toyota Land Cruiser 200', cls: '2017 J200 · V8 越野休旅', price: 85000, street: 1, vmax: 58, eng: 11.5, grip: 7.8,
     tag: '開到哪裡都修得好的大型越野車，在這座城裡多半載著保鑣或貨。原廠塗裝，不能換色。' }],
-  ['rr06', { name: 'Range Rover Supercharged', cls: '2006 L322 · 機械增壓 V8', price: 48000, fb: 0xd8d6d0, proxy: 'bulldog', street: 1, vmax: 58, eng: 12, grip: 7.8,
+  ['rr06', { name: 'Range Rover Supercharged', cls: '2006 L322 · 機械增壓 V8', price: 48000, street: 1, vmax: 58, eng: 12, grip: 7.8,
     tag: '老派英國豪華越野車，木飾板、真皮座椅與蛤殼式引擎蓋。舊了，但壓縮機一叫還是很有派頭。原廠塗裝，不能換色。' }],
-  ['ramtrx', { name: 'RAM 1500 TRX', cls: '2021 · 機械增壓 HEMI V8 皮卡', price: 92000, fb: 0x1f4fd8, proxy: 'bulldog', street: 1, vmax: 55, eng: 13.5, grip: 7.4,
+  ['ramtrx', { name: 'RAM 1500 TRX', cls: '2021 · 機械增壓 HEMI V8 皮卡', price: 92000, street: 1, vmax: 55, eng: 13.5, grip: 7.4,
     tag: '七百匹的越野皮卡，長行程避震與 35 吋越野胎，連人行道邊石都不用減速。沙漠迷彩的彩繪貼在車身側面。' }],
-  ['ghost', { name: 'Rolls-Royce Ghost', cls: '2021 · 雙渦輪 V12 四門', price: 340000, fb: 0x1f4fd8, proxy: 'meridian', street: 1, vmax: 64, eng: 13.8, grip: 8.4,
+  ['ghost', { name: 'Rolls-Royce Ghost', cls: '2021 · 雙渦輪 V12 四門', price: 340000, street: 1, vmax: 64, eng: 13.8, grip: 8.4,
     tag: '後開式車門、帕德嫩神殿水箱護罩與星空頂。安靜到聽不見 V12，只聽得見後座在講電話。' }],
-  ['s65', { name: 'Mercedes-AMG S65', cls: '2015 W222 · 雙渦輪 V12 四門', price: 230000, fb: 0x1f4fd8, proxy: 'meridian', street: 1, vmax: 70, eng: 15, grip: 8.8,
+  ['s65', { name: 'Mercedes-AMG S65', cls: '2015 W222 · 雙渦輪 V12 四門', price: 230000, street: 1, vmax: 70, eng: 15, grip: 8.8,
     tag: '旗艦房車塞進六升 V12，一千牛頓米的扭力讓兩噸多的車像被推出去。後座有按摩椅。' }],
-  ['m5f90', { name: 'BMW M5 Competition (F90)', cls: '2018 · 雙渦輪 V8 四驅四門', price: 120000, fb: 0x111214, proxy: 'ronin', street: 1, vmax: 76, eng: 17.5, grip: 9.4,
+  ['m5f90', { name: 'BMW M5 Competition (F90)', cls: '2018 · 雙渦輪 V8 四驅四門', price: 120000, street: 1, vmax: 76, eng: 17.5, grip: 9.4,
     tag: '外表是商務房車，四驅可以切成純後驅。這台是消光黑配紅卡鉗，原廠塗裝，不能換色。' }],
-  ['camry', { name: 'Toyota Camry', cls: '2020 XV70 · 直列四缸前驅', price: 26000, fb: 0x1f4fd8, proxy: 'lucerna', street: 1, vmax: 58, eng: 11, grip: 8.2,
+  ['camry', { name: 'Toyota Camry', cls: '2020 XV70 · 直列四缸前驅', price: 26000, street: 1, vmax: 58, eng: 11, grip: 8.2,
     tag: '城裡最常見的計程車與上班族座駕，安靜、省油、壞不了。開它犯案沒人會多看一眼。' }],
-  ['gt500', { name: 'Ford Mustang Shelby GT500', cls: '2020 · 機械增壓 V8 雙門', price: 78000, fb: 0x1f4fd8, proxy: 'bulldog', street: 1, vmax: 80, eng: 17.5, grip: 9.3,
+  ['gt500', { name: 'Ford Mustang Shelby GT500', cls: '2020 · 機械增壓 V8 雙門', price: 78000, street: 1, vmax: 80, eng: 17.5, grip: 9.3,
     tag: '七百六十匹的美式肌肉車，引擎蓋上的大散熱口與碳纖維尾翼。直線很兇，彎道要尊重它。' }],
-  ['viper', { name: 'Dodge Viper SRT', cls: '2013 · 自然進氣 V10 雙門', price: 105000, fb: 0x7a1f22, proxy: 'mamba', street: 1, vmax: 82, eng: 17.5, grip: 9.6,
+  ['viper', { name: 'Dodge Viper SRT', cls: '2013 · 自然進氣 V10 雙門', price: 105000, street: 1, vmax: 82, eng: 17.5, grip: 9.6,
     tag: '八升 V10、側排氣、沒有循跡控制的老派毒蛇。紅色車身配藍色雙條紋與大尾翼，原廠彩繪，不能換色。' }],
-  ['senna', { name: 'McLaren Senna', cls: '2019 · 雙渦輪 V8 中置', price: 1000000, fb: 0x1f4fd8, proxy: 'mamba', street: 1, vmax: 86, eng: 19.5, grip: 10.6,
+  ['senna', { name: 'McLaren Senna', cls: '2019 · 雙渦輪 V8 中置', price: 1000000, street: 1, vmax: 86, eng: 19.5, grip: 10.6,
     tag: '以賽車手命名的公路賽車，主動式尾翼與透明車門下緣。據說全城只有一台，不知道為什麼停在路邊。' }],
-  ['r8', { name: 'Audi R8 寬體', cls: 'V10 中置四驅', price: 160000, fb: 0xb36a2a, proxy: 'mamba', street: 1, vmax: 82, eng: 18, grip: 9.8,
+  ['r8', { name: 'Audi R8 寬體', cls: 'V10 中置四驅', price: 160000, street: 1, vmax: 82, eng: 18, grip: 9.8,
     tag: '自然進氣 V10 的中置跑車，加了外擴寬體、鴨尾與蜂巢格柵。橘色車身是原廠彩繪，不能換色。' }],
-  ['evo6', { name: 'Mitsubishi Lancer Evolution VI', cls: '1999 · 渦輪四缸四驅', price: 45000, fb: 0x3a2a6a, proxy: 'ronin', street: 1, vmax: 66, eng: 15, grip: 9.4,
+  ['evo6', { name: 'Mitsubishi Lancer Evolution VI', cls: '1999 · 渦輪四缸四驅', price: 45000, street: 1, vmax: 66, eng: 15, grip: 9.4,
     tag: '拉力賽冠軍的街車版，四驅、渦輪與巨大的尾翼。紫色車身配藍色貼紙，原廠彩繪，不能換色。' }],
-  ['hd72', { name: 'Harley-Davidson Seventy-Two', cls: '2015 · 1200 cc V 型雙缸', price: 12000, fb: 0xc8141c, proxy: 'hanzo', bike: true, street: 1, vmax: 50, eng: 11, grip: 7, seat: [-.06, -.28],
+  ['hd72', { name: 'Harley-Davidson Seventy-Two', cls: '2015 · 1200 cc V 型雙缸', price: 12000, bike: true, street: 1, vmax: 50, eng: 11, grip: 7, seat: [-.06, -.28],
     tag: '高把手、細前輪與糖果紅油箱的復古嬉皮車。不快，但停在哪裡都很好看。' }],
-  ['hdpol', { name: 'Harley-Davidson 警用重機', cls: '1700 cc V 型雙缸 · 警用', price: 28000, fb: 0x111214, proxy: 'hanzo', bike: true, street: 1, vmax: 52, eng: 11.5, grip: 7.2, seat: [-.06, -.25],
+  ['hdpol', { name: 'Harley-Davidson 警用重機', cls: '1700 cc V 型雙缸 · 警用', price: 28000, bike: true, street: 1, vmax: 52, eng: 11.5, grip: 7.2, seat: [-.06, -.25],
     tag: '交通警察的巡邏重機，擋風鏡、警示燈與側箱都在。重得不像機車，騎走它警察會很不高興。' }],
-  ['r6', { name: 'Yamaha YZF-R6', cls: '2015 · 600 cc 四缸仿賽', price: 14000, fb: 0xd8d6d0, proxy: 'hanzo', bike: true, street: 1, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
+  ['r6', { name: 'Yamaha YZF-R6', cls: '2015 · 600 cc 四缸仿賽', price: 14000, bike: true, street: 1, vmax: 76, eng: 15.5, grip: 7.8, seat: [-.06, -.2],
     tag: '一萬六千轉的中量級仿賽，白銀配色。賽道出身，在城裡騎要忍住別一直拉轉。' }],
-  ['z1000', { name: 'Kawasaki Z1000', cls: '2014 · 1000 cc 四缸街車', price: 13000, fb: 0x111214, proxy: 'hanzo', bike: true, street: 1, vmax: 72, eng: 16.5, grip: 7.6, seat: [-.06, -.2],
+  ['z1000', { name: 'Kawasaki Z1000', cls: '2014 · 1000 cc 四缸街車', price: 13000, bike: true, street: 1, vmax: 72, eng: 16.5, grip: 7.6, seat: [-.06, -.2],
     tag: '沒有整流罩的千 cc 街車，凶狠的前臉與低扭力。直線加速不輸仿賽，坐姿比較舒服。' }],
 ];
 // ─── 原廠規格（公開規格與媒體實測的概數；賽車是規格書的最低車重與 BoP 前後的馬力）───
@@ -218,6 +218,9 @@ const GLB_FS = /* glsl */`
 ${GL_LIB}
 uniform vec4 uM, uPaint; uniform sampler2D uMap, uEmiMap, uWinMap;
 varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying float vWin;
+#ifdef USE_WINMAP
+${ROOM_GL}
+#endif
 void main(){
   if (vW.y < uClipY) discard;
   #ifdef CUT
@@ -278,15 +281,34 @@ void main(){
   // 建築組的窗戶編號貼圖（props.mjs 的 winTex：R＝玻璃、G＝這扇窗的編號）：每扇窗依編號、貼圖重複的第幾格與 _WIN（同一面牆同一層）
   // 決定亮不亮，顏色和程式立面的窗燈同一套。編號取第 0 層 mip，遠處不會混到隔壁窗的編號
   // 遮罩也取第 0 層：遠處的牆一個像素蓋好幾扇窗，mip 平均下來會小於 .5，整面窗燈就消失了
+  // 沿牆的水平座標 u 與「往上 1 m 在 UV 裡是多少」（螢幕導數解 2×2：世界的 (u, y) 對 UV），導數要在分支外面算
+  vec3 tg = normalize(vec3(-n.z, 0., n.x) + vec3(1e-4, 0., 0.));
+  float u = dot(vW, tg), wu = dFdx(u), wv = dFdy(u), yu = dFdx(vW.y), yv = dFdy(vW.y), det = wu * yv - wv * yu;
+  vec2 upUv = (dFdy(vUv) * wu - dFdx(vUv) * wv) / (abs(det) > 1e-9 ? det : 1e9);
   if (textureLod(uWinMap, vUv, 0.).r > .5) {
     // 帷幕牆的 UV 是公尺換算的格數（幾百格）：h21 先乘一百多再取 fract，數字大了精度不夠、整面牆會同一個值，
     // 規律的格數也會排成條紋；這裡改用 Dave Hoskins 的 hash（輸入在千以內都穩）
     vec2 cell = vec2(floor(textureLod(uWinMap, vUv, 0.).g * 255. + .5), dot(mod(floor(vUv), 256.), vec2(1., 257.))) + vWin * 997.;
     float hs = hw(cell), hs2 = hw(cell + 71.3);
-    vec3 lc = hs2 < .55 ? vec3(1.,.66,.36) : hs2 < .8 ? vec3(.8,.86,1.) : hs2 < .92 ? vec3(1.,.4,.65) : vec3(.4,.6,1.);
-    float lit = step(hs, uLit * 1.1);
-    vec3 wl = lc * (.25 + .9 * dot(base.rgb, vec3(.33))) * (lit * 1.6 + .015);
-    c = mix(c * .4 + wl, c + wl * .3, uDay);   // 白天保留日照下的貼圖，只疊一點開著燈的窗
+    vec3 vd = vec3(dot(-v, tg), -v.y, max(dot(v, n), .05)), dim = vec3(4.2, 3.3, 5.);
+    float rs = hw(floor(vec2(u / dim.x, vW.y / dim.y)) + vWin * 37.);
+    // 落地窗與帷幕牆是辦公室：往上下各 0.8、1.6 m 取遮罩，五點有四點是玻璃（整層幾乎都是玻璃）就算；一般的窗是住家
+    float tall = 1. + step(.5, textureLod(uWinMap, vUv + upUv * .8, 0.).r) + step(.5, textureLod(uWinMap, vUv - upUv * .8, 0.).r)
+      + step(.5, textureLod(uWinMap, vUv + upUv * 1.6, 0.).r) + step(.5, textureLod(uWinMap, vUv - upUv * 1.6, 0.).r);
+    float office = step(3.5, tall);
+    // 燈色和程式立面一樣是自然的黃白光（辦公室偏白一點）；辦公室整層一起亮（_WIN 是同一面牆同一層），和立面的玻璃帷幕一樣
+    vec3 lc = office > .5 ? mix(vec3(1., .86, .64), vec3(1., .95, .84), hs2) : mix(vec3(1., .76, .48), vec3(1., .93, .8), hs2);
+    bool lit = hs < uLit * 1.1 * (office > .5 ? step(.55, hw(vec2(vWin * 13.1, 4.7))) * .9 + .25 : 1.);
+    // 一樓店面：一格格窗各自亂數會變成彩色馬賽克，改成同一個 6 m 開間一起亮、日光燈的白
+    if (vW.y < 4.2) { float sb = hw(vec2(floor(u / 6.), vWin * 3.7)); lit = sb < .75; lc = mix(vec3(1., .88, .66), vec3(1., .95, .86), step(.5, fract(sb * 7.))); }
+    // 窗裡是有深度的房間（10-city.js 的 room；模型的窗沒有各自的座標，房間照世界座標切格：沿牆 4.2 m、層高 3.3 m、深 5 m），
+    // 亮不亮與燈色仍照每扇窗的編號；一部分亮著的窗放下百葉。玻璃面再疊菲涅耳反射，沒開燈的窗是映著天空的暗玻璃
+    vec3 rl = lit ? lc * (office > .5 ? .75 : 1.1) : mix(lc * .025, vec3(.15, .15, .16) * (.6 + .8 * hs2), uDay);   // 辦公室天花板的日光燈本身很亮，房間光壓低
+    vec3 inside = room(vec3(mod(u, dim.x), mod(vW.y, dim.y), 0.), vd, dim, rs, rl, office);
+    if (lit && fract(hs * 41.) < .3) inside = mix(inside, rl * .5 * (.5 + .5 * step(.35, fract(vW.y * 4.3))), .8);
+    float F = .04 + .96 * pow(1. - max(dot(n, v), 0.), 5.);
+    vec3 gw = inside * (1. - F) + envMap(reflect(-v, n)) * F * .6 + c * .25;
+    c = mix(gw, c + inside * (lit ? .3 : 0.), uDay);   // 白天保留日照下的貼圖，只疊一點開著燈的房間
   }
   #endif
   #ifdef WASH
@@ -330,7 +352,7 @@ function glbMaterial(src, inst, far, wash) {
   if (src.transparent) defines.BLEND = ''; else if (src.alphaTest > 0) defines.MASK = '';
   if (src.side === T.DoubleSide) defines.DOUBLE = '';
   if (src.metalnessMap) defines.USE_WINMAP = '';   // 只有 props.mjs 的建築組會留金屬粗糙貼圖（窗戶遮罩）
-  return new T.ShaderMaterial({
+  return new T.ShaderMaterial({ name: 'glb',
     uniforms: { ...shared(ALLU), uM: inst.uM, uPaint: inst.uPaint, uMap: { value: src.map || null }, uEmiMap: { value: src.emissiveMap || null }, uWinMap: { value: src.metalnessMap || null } },
     vertexShader: GLB_VS, fragmentShader: GLB_FS, defines, side: src.side,
     transparent: !!src.transparent, depthWrite: !src.transparent,
@@ -418,13 +440,10 @@ function glbInstance(tpl, paint, uM, fin = 1) {
   }
   return inst;
 }
-// 展示廳與車庫用的整台車（靜態）：先放替身，走進那個場館時才下載模型（glbWake），下載好就換掉
+// 展示廳與車庫用的整台車（靜態）：先放 traffic.glb 的替身（機車沒有），走進那個場館時才下載模型（glbWake），下載好就換掉
 const glbWait = [];
 function carObject(id, paint, fin = 1) {
-  const c = CARS[id];
-  const fbMesh = () => { const m = new T.Mesh(c.bike ? bikeFallbackGeo() : carKit(id, paint).build(), MAT.uber); m.userData.kit = 1; return m; };
-  if (!c.glb) return fbMesh();
-  const g = new T.Group(), fb = fbMesh(); g.add(fb);
+  const g = new T.Group(), fb = standIn(id, MAT.uber); if (fb) g.add(fb);
   if (GLB_ON) {
     if (glbWait.length > 64) for (let i = glbWait.length - 1; i >= 0; i--) if (!glbWait[i].g.parent) glbWait.splice(i, 1);
     glbWait.push({ g, fb, id, paint, fin });
@@ -439,22 +458,12 @@ function glbWake(scn) {
     if (!e.g.parent) continue;
     if (!glbDone.has(e.id)) glbBatch.add(e.id);
     loadGLB(e.id).then(tpl => {
-      if (!tpl || e.fb.parent !== e.g) return;
+      if (!tpl || e.g.userData.inst) return;
       const inst = glbInstance(tpl, e.paint, null, e.fin); e.g.userData.inst = inst;
-      e.g.remove(e.fb); e.fb.geometry.dispose();
+      if (e.fb) e.g.remove(e.fb);   // 替身的幾何是共用的，不釋放
       e.g.add(inst.body); for (const w of inst.wheels) e.g.add(w.piv);
     });
   }
-}
-// 機車替身：Hanzo 的車身加兩個輪子合成一個幾何
-let bikeFbGeo = null;
-function bikeFallbackGeo() {
-  if (!bikeFbGeo) {
-    const k = new Kit(); const kk = hanzoKit(); k.pos.push(...kk.pos); k.nor.push(...kk.nor); k.col.push(...kk.col); k.mat.push(...kk.mat);
-    for (const z of [.8, -.72]) wheel(k, 0, .33, z, .33, .14, 0x9aa0a6, 5);
-    bikeFbGeo = k.build();
-  }
-  return bikeFbGeo.clone();
 }
 // 釋放 Kit 建的幾何與 GLB 實例的材質（GLB 的幾何與貼圖所有實例共用，不釋放）
 function disposeKit(o) { o.traverse(m => { if (!m.isMesh) return; if (m.userData.kit) m.geometry.dispose(); else if (m.userData.glb) m.material.dispose(); }); }

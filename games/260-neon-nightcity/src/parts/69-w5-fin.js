@@ -694,7 +694,8 @@ void main(){
   vec3 v = normalize(uCam - vW);
   gl_FragColor = vec4(applyFog(shade(vW, normalize(vN), v, t, .92, 0.), vW), 1.);
 }`;
-const pstMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), tP: { value: pstTex } }, vertexShader: PST_VS, fragmentShader: PST_FS, side: T.DoubleSide });
+const pstMat = new T.ShaderMaterial({ name: 'poster', uniforms: { ...shared(ALLU), tP: { value: pstTex } }, vertexShader: PST_VS, fragmentShader: PST_FS, side: T.DoubleSide });
+gfxLate.push(pstMat);   // 02-gfx.js：結局 B 才掛上物件，產生 TSL 時要另外轉
 // 包在半徑 R 的桿子上、弧長 w、高 h 的紙（正中朝 +z）；離桿面 6 mm
 function pstWrap(R, w, h) {
   const g = new T.BufferGeometry(), P = [], Nn = [], UV = [], I = [], S = 14, r = R + .006, th = w / r;

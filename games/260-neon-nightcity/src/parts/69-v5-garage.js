@@ -113,26 +113,29 @@ if (FAC.gar) {
     bx(14.9, 16.6, Y(j), Y(j) + 2.2, 44.14, 44.2, 0x9aa0a6, 3);
     bx(16.8, 16.95, Y(j) + 1.1, Y(j) + 1.3, 44.12, 44.2, 0x30ff70, 8);
   }
-  // 停著的車（程式建模的車款，自己的亂數，不動 rnd() 的序列）
-  const R = rng(4471), ids = ['kanto', 'bulldog', 'ronin', 'meridian', 'lucerna', 'doodle', 'duchess', 'solenne', 'mamba'];
-  const PAINT = [0x1d2a3a, 0x8a8f96, 0xd8d8d4, 0x6a1a20, 0x23402e, 0x1a1a1c, 0xb08a3a, 0x2c4c7a];
-  const putCar = (ck, id, x, y, z, yaw, paint) => {
-    const s = carKit(id, paint, 1), c = Math.cos(yaw), sn = Math.sin(yaw), cx = X(x), cz = Z(z);
-    ck.parts.push(ck.pos.length / 3);
-    for (let i = 0; i < s.pos.length; i += 3) {
-      const px = s.pos[i], pz = s.pos[i + 2], nx = s.nor[i], nz = s.nor[i + 2];
-      ck.pos.push(cx + px * c + pz * sn, y + s.pos[i + 1], cz - px * sn + pz * c);
-      ck.nor.push(nx * c + nz * sn, s.nor[i + 1], -nx * sn + nz * c);
-    }
-    ck.col.push(...s.col); ck.mat.push(...s.mat);
-    const w = CARS[id].w / 2 + .1, l = CARS[id].len / 2 + .1, hx = Math.abs(sn) > .5 ? l : w, hz = Math.abs(sn) > .5 ? w : l;
+  // 停著的車：traffic.glb 的低面數實車（30-vehicles.js 的 TRAFFIC_GEO），每種車一個 InstancedMesh，車漆用車流的調色盤（aIns.z）
+  // 自己的亂數，不動 rnd() 的序列；有頂的樓層不算積水（同 k），頂樓的兩台照常會濕
+  const R = rng(4471), ids = ['e34', 'compact', 'kiri', 'urban', 'milano', 'carter', 'camry', 'lc200', 'm5f90'], cars = { in: {}, roof: {} };
+  const putCar = (set, id, x, y, z, yaw, palI) => {
+    const t = TRAFFIC_GEO[id], sn = Math.sin(yaw);
+    if (!t) return;
+    (cars[set][id] ||= []).push({ x: X(x), y, z: Z(z), yaw, palI: t.pal ? palI : 0 });
+    const w = t.w / 2 + .1, l = t.len / 2 + .1, hx = Math.abs(sn) > .5 ? l : w, hz = Math.abs(sn) > .5 ? w : l;
     v5Box(F, x - hx, x + hx, z - hz, z + hz, { ly: y - .5, hy: y + 1.4 });
   };
   for (let j = 0; j < N; j++) for (let i = 0; i < 12; i++) for (const [z, yaw] of [[30.2, 0], [34.8, Math.PI], [46.6, 0]]) {
     if (R() > .3 || z === 46.6 && i === 0) continue;
-    putCar(k, ids[Math.floor(R() * ids.length)], 21.3 + i * 2.6, Y(j), z, yaw, PAINT[Math.floor(R() * PAINT.length)]);
+    putCar('in', ids[Math.floor(R() * ids.length)], 21.3 + i * 2.6, Y(j), z, yaw, 1 + Math.floor(R() * PAL.length));
   }
-  putCar(kr, 'saetta', 21.3 + 5 * 2.6, Y(N), 30.2, 0, 0xe8e4dc); putCar(kr, 'furia', 21.3 + 9 * 2.6, Y(N), 30.2, 0, 0x141416);   // 頂樓南排空著：跳台的助跑道
+  putCar('roof', 'senna', 21.3 + 5 * 2.6, Y(N), 30.2, 0, 5); putCar('roof', 'r8', 21.3 + 9 * 2.6, Y(N), 30.2, 0, 4);   // 頂樓南排空著：跳台的助跑道
+  const dryI = mkUber({ inst: true }); dryI.fragmentShader = MAT.uberI.fragmentShader; dryI.name = MAT.uberI.name; dryI.uniforms.uWet = { value: 0 };
+  for (const set in cars) for (const id in cars[set]) {
+    const L = cars[set][id], g = TRAFFIC_GEO[id].geo.clone(), ia = new Float32Array(L.length * 4);
+    const m = new T.InstancedMesh(g, set === 'in' ? dryI : TRAF_MAT, L.length);
+    L.forEach((c, i) => { m.setMatrixAt(i, new T.Matrix4().makeRotationY(c.yaw).setPosition(c.x, c.y, c.z)); ia[i * 4 + 1] = R(); ia[i * 4 + 2] = c.palI; });
+    g.setAttribute('aIns', new T.InstancedBufferAttribute(ia, 4));
+    m.name = 'garCars'; m.computeBoundingSphere(); cityAdd(m, F.zn, [X(36), Z(31)]);
+  }
   const dry = mkUber(); dry.uniforms.uWet = { value: 0 };
   cityAdd(new T.Mesh(k.build(), dry), F.zn); cityAdd(new T.Mesh(kr.build(), MAT.uber), F.zn);
   // 招牌：北面的大燈箱、西面的直立「P」、入口的橫招牌、頂樓跳台旁的「飛躍霓虹大道」

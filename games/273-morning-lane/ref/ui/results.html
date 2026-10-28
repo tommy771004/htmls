@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>每日結算參考</title>
+<!-- UI 參考圖：每日結算。背景是黃昏街景（收工），中間一張夾在板夾上的送報單。截圖成 ../ref-ui-results.png -->
+<style>
+:root{--ink:#1f2433;--paper:#f6eedb;--mustard:#e5aa35;--navy:#2f4c6e;--red:#d8402c;--mint:#79b8a2;--board:#a9773f}
+*{box-sizing:border-box;margin:0}
+body{width:1600px;height:900px;overflow:hidden;position:relative;font-family:"PingFang TC","Heiti TC","Noto Sans TC",ui-rounded,system-ui,sans-serif;color:var(--ink);background:#2b2230}
+.bg{position:absolute;inset:-20px;background:url(../ref-street-dusk.png) center/cover;filter:blur(6px) saturate(1.05) brightness(.82)}
+/* 一週：七天是七張貼在左邊的日曆紙，今天這張翹起來 */
+#week{position:absolute;left:70px;top:150px;display:flex;flex-direction:column;gap:10px}
+.dy{width:170px;height:70px;background:var(--paper);border:2.5px solid var(--ink);border-radius:9px;box-shadow:4px 5px 0 rgba(31,36,51,.85);display:flex;align-items:center;gap:12px;padding:0 14px;font-weight:900;font-size:22px}
+.dy small{font-size:12px;letter-spacing:.1em;color:#6d6a62;font-weight:700;display:block}
+.dy .st{margin-left:auto;font-size:15px;color:var(--mustard);-webkit-text-stroke:1px var(--ink);letter-spacing:1px}
+.dy.done{opacity:.95}
+.dy.now{transform:translateX(26px) rotate(-3deg);background:var(--mustard)}
+.dy.now .st{color:var(--paper)}
+.dy.lock{opacity:.55;background:#d9d1bf}
+.dy.lock .st{color:#6d6a62;-webkit-text-stroke:0;font-size:18px}
+/* 板夾 */
+#board{position:absolute;left:470px;top:42px;width:660px;height:820px;background:var(--board);border:3px solid var(--ink);border-radius:22px;box-shadow:8px 10px 0 rgba(20,16,24,.6);
+  background-image:radial-gradient(circle at 30% 20%,rgba(255,255,255,.12),transparent 60%),repeating-linear-gradient(8deg,rgba(0,0,0,.06) 0 3px,transparent 3px 11px)}
+#clip{position:absolute;left:50%;top:-18px;transform:translateX(-50%);width:210px;height:60px;background:linear-gradient(#c9ccd2,#8b9099);border:3px solid var(--ink);border-radius:12px 12px 18px 18px;z-index:3}
+#clip:after{content:"";position:absolute;left:50%;top:10px;transform:translateX(-50%);width:70px;height:16px;border:3px solid var(--ink);border-radius:10px;background:#6f747c}
+#sheet{position:absolute;left:34px;right:34px;top:34px;bottom:34px;background:var(--paper);border:2.5px solid var(--ink);border-radius:6px;padding:52px 40px 28px;
+  background-image:repeating-linear-gradient(transparent 0 37px,rgba(47,76,110,.18) 37px 38px);background-position:0 120px}
+h1{font-size:40px;font-weight:900;letter-spacing:.04em;display:flex;align-items:baseline;gap:14px}
+h1 small{font-size:16px;font-weight:700;color:#6d6a62;letter-spacing:.1em}
+.sub{margin-top:4px;font-size:15px;font-weight:700;color:#6d6a62;letter-spacing:.08em}
+table{width:100%;border-collapse:collapse;margin-top:34px;font-size:20px;font-weight:700}
+td{padding:6px 0;height:38px}
+td.c{text-align:center;width:90px;color:#55524b;font-variant-numeric:tabular-nums}
+td.p{text-align:right;width:120px;font-variant-numeric:tabular-nums;font-weight:900}
+td.p.neg{color:var(--red)}
+tr.tot td{border-top:3px double var(--ink);padding-top:12px;font-size:28px;font-weight:900}
+.ic{display:inline-block;width:26px;height:26px;margin-right:10px;vertical-align:-6px;border:2.2px solid var(--ink);border-radius:6px}
+/* 訂戶異動：手寫感的小字，用刪除線與加號 */
+#subs{margin-top:18px;display:flex;gap:14px}
+.chip{border:2.2px solid var(--ink);border-radius:999px;padding:5px 14px;font-weight:800;font-size:16px;background:#fff}
+.chip.plus{background:var(--mint)}
+.chip.minus{background:#f0c9bf}
+/* 印章：三顆星的等第章，斜蓋在右上角 */
+#stamp{position:absolute;right:22px;top:18px;width:124px;height:124px;border:5px solid var(--red);border-radius:50%;color:var(--red);display:grid;place-items:center;transform:rotate(12deg);text-align:center;font-weight:900;opacity:.88;
+  box-shadow:inset 0 0 0 4px var(--paper),inset 0 0 0 6px var(--red)}
+#stamp .s{font-size:26px;letter-spacing:2px}
+#stamp .t{font-size:18px;letter-spacing:.2em;margin-top:-4px}
+/* 按鈕 */
+#btns{position:absolute;left:40px;right:40px;bottom:30px;display:flex;gap:16px}
+.btn{flex:1;height:64px;border:3px solid var(--ink);border-radius:12px;font-weight:900;font-size:22px;display:grid;place-items:center;box-shadow:4px 5px 0 var(--ink);background:#fff}
+.btn.go{background:var(--mustard);flex:1.4}
+/* 右側：今天的小地圖（送到／漏送／打破窗戶的位置） */
+#map{position:absolute;left:1190px;top:150px;width:340px;padding:16px 18px;background:var(--paper);border:2.5px solid var(--ink);border-radius:10px;box-shadow:4px 5px 0 rgba(31,36,51,.85)}
+#map .lbl{font-size:13px;font-weight:700;letter-spacing:.12em;color:#6d6a62;margin-bottom:8px}
+#map .lg{display:flex;gap:12px;font-size:13px;font-weight:700;margin-top:10px;flex-wrap:wrap}
+#map .lg span:before{content:"";display:inline-block;width:12px;height:12px;border:2px solid var(--ink);border-radius:3px;margin-right:5px;vertical-align:-2px;background:var(--c)}
+#tip{position:absolute;left:1190px;top:600px;width:340px;padding:14px 18px;background:var(--navy);color:var(--paper);border:2.5px solid var(--ink);border-radius:10px;box-shadow:4px 5px 0 rgba(31,36,51,.85);font-weight:700;font-size:16px;line-height:1.55}
+#tip b{color:var(--mustard)}
+</style></head><body>
+<div class="bg"></div>
+
+<div id="week">
+  <div class="dy done"><div>週一<small>楓樹巷</small></div><span class="st">★★★</span></div>
+  <div class="dy now"><div>週二<small>楓樹巷</small></div><span class="st">★★☆</span></div>
+  <div class="dy lock"><div>週三<small>橡木坡</small></div><span class="st">🔒</span></div>
+  <div class="dy lock"><div>週四<small>河堤路</small></div><span class="st">🔒</span></div>
+  <div class="dy lock"><div>週五<small>學校街</small></div><span class="st">🔒</span></div>
+  <div class="dy lock"><div>週六<small>市集</small></div><span class="st">🔒</span></div>
+  <div class="dy lock"><div>週日<small>全鎮</small></div><span class="st">🔒</span></div>
+</div>
+
+<div id="board"><div id="clip"></div>
+  <div id="sheet">
+    <h1>送報單 <small>No. 0002</small></h1>
+    <div class="sub">週二 · 楓樹巷 · 06:12–06:58 · 晴</div>
+    <div id="stamp"><div><div class="s">★★</div><div class="t">準時</div></div></div>
+    <table>
+      <tr><td><span class="ic" style="background:#e5aa35"></span>正中信箱</td><td class="c">11 ×</td><td class="p">1,100</td></tr>
+      <tr><td><span class="ic" style="background:#79b8a2"></span>落在門廊</td><td class="c">2 ×</td><td class="p">100</td></tr>
+      <tr><td><span class="ic" style="background:#fff"></span>連投獎勵</td><td class="c">×3</td><td class="p">450</td></tr>
+      <tr><td><span class="ic" style="background:#c9c3b4"></span>漏送訂戶</td><td class="c">1 ×</td><td class="p">0</td></tr>
+      <tr><td><span class="ic" style="background:#f0c9bf"></span>打破窗戶（非訂戶）</td><td class="c">1 ×</td><td class="p neg">−100</td></tr>
+      <tr><td><span class="ic" style="background:#2f4c6e"></span>撞倒垃圾桶</td><td class="c">2 ×</td><td class="p neg">−40</td></tr>
+      <tr><td><span class="ic" style="background:#ebe5d5"></span>剩下的報紙</td><td class="c">3 份</td><td class="p">60</td></tr>
+      <tr class="tot"><td>今日合計</td><td class="c"></td><td class="p">1,570</td></tr>
+    </table>
+    <div id="subs"><span class="chip plus">＋1 新訂戶：12 號</span><span class="chip minus">−1 退訂：7 號（漏送）</span></div>
+    <div id="btns"><div class="btn">重騎週二</div><div class="btn go">明天：週三 →</div></div>
+  </div>
+</div>
+
+<div id="map">
+  <div class="lbl">今天的路線</div>
+  <svg viewBox="0 0 300 300" width="304" height="304">
+    <path d="M150 300 V180 Q150 150 180 150 H300" fill="none" stroke="#1f2433" stroke-width="22" stroke-linecap="round"/>
+    <path d="M150 300 V180 Q150 150 180 150 H300" fill="none" stroke="#5d6270" stroke-width="16"/>
+    <path d="M150 300 V180 Q150 150 180 150 H300" fill="none" stroke="#e5aa35" stroke-width="2" stroke-dasharray="7 7"/>
+    <g stroke="#1f2433" stroke-width="2">
+      <rect x="104" y="268" width="20" height="18" rx="3" fill="#e5aa35"/><rect x="176" y="268" width="20" height="18" rx="3" fill="#e5aa35"/>
+      <rect x="104" y="236" width="20" height="18" rx="3" fill="#ebe5d5"/><rect x="176" y="236" width="20" height="18" rx="3" fill="#e5aa35"/>
+      <rect x="104" y="204" width="20" height="18" rx="3" fill="#c9c3b4"/><rect x="176" y="204" width="20" height="18" rx="3" fill="#ebe5d5"/>
+      <rect x="104" y="172" width="20" height="18" rx="3" fill="#e5aa35"/><rect x="192" y="118" width="20" height="18" rx="3" fill="#e5aa35"/>
+      <rect x="224" y="118" width="20" height="18" rx="3" fill="#f0c9bf"/><rect x="256" y="118" width="20" height="18" rx="3" fill="#e5aa35"/>
+      <rect x="208" y="166" width="20" height="18" rx="3" fill="#e5aa35"/><rect x="240" y="166" width="20" height="18" rx="3" fill="#79b8a2"/><rect x="272" y="166" width="20" height="18" rx="3" fill="#e5aa35"/>
+    </g>
+    <circle cx="150" cy="292" r="7" fill="#d8402c" stroke="#1f2433" stroke-width="2"/>
+    <text x="164" y="297" font-size="13" font-weight="900" fill="#1f2433">起點</text>
+  </svg>
+  <div class="lg"><span style="--c:#e5aa35">信箱</span><span style="--c:#79b8a2">門廊</span><span style="--c:#c9c3b4">漏送</span><span style="--c:#f0c9bf">打破窗戶</span><span style="--c:#ebe5d5">非訂戶</span></div>
+</div>
+
+<div id="tip"><b>明天：</b>橡木坡是上坡路，會有一隻黃金獵犬從 5 號院子衝出來。訂戶多了一戶在轉角。</div>
+</body></html>

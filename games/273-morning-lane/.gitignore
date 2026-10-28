@@ -1,0 +1,2 @@
+# Blender 匯出的原檔（很大）；只 commit tools/pack.mjs 壓縮後的 out/*.glb
+blender/out/_*.glb

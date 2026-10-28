@@ -147,7 +147,7 @@
 | `cw_shop`（CHROME WORKS 的頂車架） | [Car Jack Stand](https://sketchfab.com/3d-models/car-jack-stand-8269a1918e9c4a78bb95bd2f3dd50259) | [dinoxwave](https://sketchfab.com/dinoxwave) | CC BY 4.0 |
 | `casino`（霓鑽賭場東側的輪盤桌） | [Roulette Table](https://sketchfab.com/3d-models/roulette-table-8526f020e3434edfa0bd374d437c7014) | [Notto](https://sketchfab.com/nottoo) | CC BY 4.0 |
 | `casino`（霓鑽賭場西側的輪盤桌，台座是程式建模） | [Simple Roulette Table](https://sketchfab.com/3d-models/simple-roulette-table-a128e643ea6149e686fe6b73ceb48ef9) | [Designed By Jonathan](https://sketchfab.com/designedbyjonathan) | CC BY 4.0 |
-| `casino`（霓鑽賭場 B1 的主金庫圓門） | [Bank Vault Door](https://sketchfab.com/3d-models/bank-vault-door-66ed0c4af0284ed09363a4c35ee7ba3d) | [CommonSpence](https://sketchfab.com/commonspence) | CC BY 4.0 |
+| `casino`（霓鑽賭場 B1 的主金庫圓門，中央霓虹銀行的金庫門也用它） | [Bank Vault Door](https://sketchfab.com/3d-models/bank-vault-door-66ed0c4af0284ed09363a4c35ee7ba3d) | [CommonSpence](https://sketchfab.com/commonspence) | CC BY 4.0 |
 | `casino`（霓鑽賭場 B1 的氣閘外門 `cs_m0`） | [Vault Door](https://sketchfab.com/3d-models/vault-door-2de2322bf07d496bbcc19d94400a469f) | [ShakibSKb](https://sketchfab.com/shakibskb) | CC BY 4.0 |
 | `casino`（霓鑽賭場 B1 的日間金庫門 `cs_daily`） | [Vault door](https://sketchfab.com/3d-models/vault-door-b7f9cf66195546668d74c2d9d5cfb2b4) | [OrlandoL](https://sketchfab.com/OllyOY) | CC BY 4.0 |
 | `casino`（霓鑽賭場的幸運轉盤 `cs_wheel`，立起來疊在 20 格色盤前面） | [WHEEL OF FORTUNE](https://sketchfab.com/3d-models/wheel-of-fortune-66d38f4d3c534f5686ca305b6ef084b1) | [aero1515](https://sketchfab.com/aero1515) | CC BY 4.0 |
@@ -371,6 +371,23 @@
 |---|---|---|---|---|
 | `cs_country` `scene` `boxes` `acer1`–`3` `crate` `rail` | 灰鷗島的田園路段、公園的槭樹、拖吊場與工地的貨櫃、島上的護欄 | [Countryside Scene Free](https://sketchfab.com/3d-models/countryside-scene-free-d86d86d99991483c87339637d16401a7) | [abhayexe](https://sketchfab.com/abhayexe) | CC BY 4.0 |
 
+### 山坡別墅的室內家具（`props/villa_furn.glb`）
+
+`blender/villa_furn.py` 從下面六個室內場景拆出單件（沙發、茶几、電視牆、立燈、盆栽、整套廚房、床組、浴櫃、馬桶、餐桌椅、沙發組），減面、統一成公尺與正面方向，再由 `tools/props.mjs villa_furn` 壓縮；床組的床單貼圖去色成灰階，遊戲裡每型別墅乘上自己的布面、床組、木作與櫥櫃顏色（`27-props.js` 的 `VILLA_PAL`）。擺放位置在 `blender/villa_plans.json` 的 `furniture`。原檔在 gitignore 的 `games/260-neon-nightcity/.cache/villa-sf/`（`minimalistic_modern_bedroom` 與 `modern_bathroom_4k` 下載了但沒用到）。
+
+| 件 | 來源模型 | 作者 | 授權 |
+|---|---|---|---|
+| `sofa_l` `coffee` `tv` `lamp` | [White Modern Living Room](https://sketchfab.com/3d-models/afb8cb0cbee1488caf61471ef14041e9) | [dylanheyes](https://sketchfab.com/dylanheyes) | CC BY 4.0 |
+| `kitchen` | [Modern Kitchen](https://sketchfab.com/3d-models/9843a830b96142a9a53f45f25304d93c) | [dylanheyes](https://sketchfab.com/dylanheyes) | CC BY 4.0 |
+| `bed` | [Cozy Modern Bedroom](https://sketchfab.com/3d-models/ea25adc53f514eaba9dd043f5eac9c77) | [dylanheyes](https://sketchfab.com/dylanheyes) | CC BY 4.0 |
+| `vanity` `toilet` `plant` | [Modern Bathroom](https://sketchfab.com/3d-models/f5780e11dfcb456abc1722fa5d069b05) | [dylanheyes](https://sketchfab.com/dylanheyes) | CC BY 4.0 |
+| `dining` | [Modern Dining Room Table Set](https://sketchfab.com/3d-models/fc73e8d591ba45f8a3b369596593dcf5) | [Akshat (shooter24994)](https://sketchfab.com/shooter24994) | CC BY 4.0 |
+| `lounge` | [Couch Complete Set](https://sketchfab.com/3d-models/7806c2e5146f471c98a561fc245f07c6) | [Studio 23](https://sketchfab.com/studio23) | CC BY 4.0 |
+
+## 雲梯城寨（`enclave/`）
+
+`enclave.glb`、`enclave.json` 與 `hero.jpg` 全部由 `games/260-neon-nightcity/blender/enclave.py` 程序化產生（幾何、混凝土／鐵皮／鐵窗／晾衣／窗的貼圖都是程式畫的，招牌字用 macOS 的 Arial Unicode 轉成網格），沒有外部模型、貼圖或照片，和作品同一授權。
+
 ## 天樞島的地標大樓（`isle/`）
 
 地圖正中間的天樞島（照曼哈頓下城）上四棟地標與渡輪站泊著的渡輪（不縮放、不找窗），經 `games/260-neon-nightcity/tools/isle-glb.mjs` 處理（攤平、照地塊縮放、材質改成頂點屬性、照片立面的底色貼圖 alpha 換成夜間窗燈用的窗戶編號、WebP、meshopt 壓縮）後放在 `isle/`，屬於原作的衍生作品，沿用原作授權；明細見 `isle/CREDITS.md`。
@@ -426,6 +443,29 @@
 | 4 | [Asphalt026C](https://ambientcg.com/view?id=Asphalt026C) | 平屋頂的瀝青防水層 | ambientCG | CC0 1.0 |
 | 5 | [RoofingTiles014B](https://ambientcg.com/view?id=RoofingTiles014B) | 陶筒瓦（海濱斜屋頂） | ambientCG | CC0 1.0 |
 | 6 | [RoofingTiles003](https://ambientcg.com/view?id=RoofingTiles003) | 石板瓦（復折式與老磚房斜屋頂） | ambientCG | CC0 1.0 |
+
+山坡別墅區（`blender/hill_homes.py` 的別墅與 `10-city.js` 細分的山坡）另一組照片材質，是 [Poly Haven](https://polyhaven.com/) 的 CC0 1.0 材質（1K JPG 的 diff、nor_gl、rough、ao），由 `games/260-neon-nightcity/tools/tex-vil.mjs` 疊成 `tex/vil_c.jpg` 與 `tex/vil_n.jpg`（格式同上）。
+
+| 層 | 材質 | 用途 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| 0 | [concrete_slab_wall](https://polyhaven.com/a/concrete_slab_wall) | 板模清水混凝土；洞石借它的細孔 | Dimitrios Savva | CC0 1.0 |
+| 1 | [japanese_cedar_planks](https://polyhaven.com/a/japanese_cedar_planks) | 直向木格柵的木紋 | Charlotte Baglioni、Rico Cilliers | CC0 1.0 |
+| 2 | [white_sandstone_blocks_02](https://polyhaven.com/a/white_sandstone_blocks_02) | 白砂岩（目前沒用到：縫太密，洞石看起來像磚；保留層號） | Rob Tuytel | CC0 1.0 |
+| 3 | [stacked_stone_wall](https://polyhaven.com/a/stacked_stone_wall) | 疊石柱與牆 | Dimitrios Savva | CC0 1.0 |
+| 4 | [dry_ground_rocks](https://polyhaven.com/a/dry_ground_rocks) | 別墅區山坡的陡處與岩盤 | Rob Tuytel | CC0 1.0 |
+| 5 | [sparse_grass](https://polyhaven.com/a/sparse_grass) | 外緣山林與別墅區林間空地的草 | Amal Kumar | CC0 1.0 |
+| 6 | [forest_leaves_02](https://polyhaven.com/a/forest_leaves_02) | 外緣山林樹冠下的落葉 | Rob Tuytel | CC0 1.0 |
+| 7 | [forest_ground_04](https://polyhaven.com/a/forest_ground_04) | 外緣山林林間的苔與土 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
+| 8 | [rocky_trail](https://polyhaven.com/a/rocky_trail) | 碎石步道（目前沒用到，保留層號給之後的林間步道） | Amal Kumar | CC0 1.0 |
+
+外緣山林的近景樹與林下層（`props/nat_forest.glb`）是 `blender/forest.py` 程式長出來的冷杉、楓樹與蕨叢、野花叢、草叢，葉片卡與樹皮借 Poly Haven 的 CC0 1.0 照片（`tools/forest-tex.mjs` 合成帶 alpha 的 PNG，原檔在 gitignore 的 `games/260-neon-nightcity/.cache/tex-src/ph/`）；楓葉叢、紫色野花叢與草叢的卡是程式畫的 SVG，不是照片。
+
+| 用在 | 原檔 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| 冷杉的整段枝條卡（剪下二十幾枝小枝拼成） | [fir_tree_01](https://polyhaven.com/a/fir_tree_01) 的 twig 貼圖 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
+| 冷杉的樹皮 | [pine_bark](https://polyhaven.com/a/pine_bark) | Dimitrios Savva | CC0 1.0 |
+| 楓樹的樹皮 | [trident_maple_bark](https://polyhaven.com/a/trident_maple_bark) | Charlotte Baglioni | CC0 1.0 |
+| 蕨叢的葉片 | [fern_02](https://polyhaven.com/a/fern_02) 的貼圖 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
 
 ## 音效（`sfx/`）
 

@@ -171,7 +171,7 @@ void main(){
 }`;
 {
   const g = new T.PlaneGeometry(12, 12); g.rotateX(-Math.PI / 2); g.translate(0, .015, 19);
-  clubScene.add(new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: LED_FS })));
+  clubScene.add(new T.Mesh(g, new T.ShaderMaterial({ name: 'led', uniforms: shared(ALLU), vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: LED_FS })));
 }
 // 搖頭燈光束與雷射：加法混合的錐體與細長面
 const BEAM_VS = /* glsl */`varying vec3 vW, vN; varying float vL; varying vec3 vC;
@@ -188,7 +188,7 @@ varying vec3 vW, vN; varying float vL; varying vec3 vC;
 void main(){ vec3 v = normalize(uCam - vW); float e = pow(abs(dot(normalize(vN), v)), 1.5);
   float a = e * pow(clamp(vL, 0., 1.), 1.3) * uK * (.7 + .3 * n2(vec2(vW.y * 2. + uTime * 3., vW.x)));
   gl_FragColor = vec4(vC * a, 1.); }`;
-const beamMat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), uK: { value: .35 } }, vertexShader: BEAM_VS, fragmentShader: BEAM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+const beamMat = new T.ShaderMaterial({ name: 'clubBeam', uniforms: { ...shared(ALLU), uK: { value: .35 } }, vertexShader: BEAM_VS, fragmentShader: BEAM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
 const laserMat = beamMat.clone(); laserMat.uniforms = { ...shared(ALLU), uK: { value: 2.4 } };
 const HEADS = [[-7, 13], [-7, 17.5], [-7, 22], [7, 13], [7, 17.5], [7, 22], [-3.5, 26], [3.5, 26]];
 const beams = (() => {
@@ -357,7 +357,7 @@ void main(){
 }`;
 {
   const g = new T.PlaneGeometry(7.4, 2.0);
-  const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
   m.position.set(2.5, 1.8, -.05); barScene.add(m);
 }
 {
@@ -450,7 +450,7 @@ const VENUES = {
 };
 let curScene = scene;
 function setWhere(w) {
-  player.where = w;
+  player.where = w; player.jump = null;
   curScene = w === 'out' ? scene : VENUES[w].scene;
   curScene.add(me.mesh);
   applyEnv(ENV[w]);
@@ -537,7 +537,7 @@ function toggleDance() {
   player.v = 0;
 }
 function enterVehicle(v) {
-  player.mode = 'drive'; player.veh = v; v.lights = v.flood ? 0 : 1;
+  player.jump = null; player.mode = 'drive'; player.veh = v; v.lights = v.flood ? 0 : 1;
   me.mesh.visible = v.isCar ? false : true;
   sfx.doorCar(v.isCar); if (!vdIdleTake(v) && !v.flood) sfx.engineOn(v);   // 68-vdetail.js：長按 F 下車沒熄火的車回來不用重新發動；泡水的車發不動
   camState.snap = false;

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>晨巷送報 · Morning Lane</title>
+<meta name="description" content="追尾鏡頭的騎車送報遊戲：在清晨的住宅街上騎腳踏車，把報紙丟進訂戶的信箱，別砸到非訂戶的窗戶。">
+<meta name="theme-color" content="#1f2433">
+<style>
+:root {
+  --ink: #1f2433; --paper: #f6eedb; --mustard: #e5aa35; --navy: #2f4c6e; --red: #d8402c; --mint: #79b8a2; --mute: #6d6a62;
+  --ui: "PingFang TC", "Heiti TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+  --g: max(12px, env(safe-area-inset-left));
+  /* 面板融進場景：煙燻玻璃（半透明深藍＋背景模糊），字用米白加深色暈，亮天空、草地上都讀得到 */
+  --glass: rgba(22, 30, 48, .34); --glass-deep: rgba(22, 30, 48, .52); --line: rgba(255, 250, 236, .22); --edge: rgba(255, 250, 236, .12);
+  --fg: #fffaf0; --fg-mute: rgba(255, 250, 236, .78); --halo: 0 1px 2px rgba(10, 14, 24, .65), 0 0 8px rgba(10, 14, 24, .35);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; overflow: hidden; background: #6fb2f2; overscroll-behavior: none; }
+body { font-family: var(--ui); color: var(--fg); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+/* 面板：沒有底色紙，改成煙燻玻璃，邊線與圓角保留送報單的輪廓 */
+.slip { position: fixed; background: var(--glass); border: 1px solid var(--edge); border-radius: 10px; -webkit-backdrop-filter: blur(9px) saturate(1.25); backdrop-filter: blur(9px) saturate(1.25); text-shadow: var(--halo); }
+.lbl { font-size: 12px; font-weight: 700; letter-spacing: .12em; color: var(--fg-mute); }
+#day { left: var(--g); top: 14px; padding: 8px 14px 9px; }
+#day b { display: block; font-size: 24px; font-weight: 900; line-height: 1.05; }
+#route { left: var(--g); top: 76px; padding: 7px 12px 9px; width: min(420px, calc(100vw - 2 * var(--g) - 150px)); }
+#routeRow { position: relative; display: flex; gap: 3px; margin-top: 7px; height: 18px; align-items: center; }
+#routeRow::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: repeating-linear-gradient(90deg, var(--fg-mute) 0 6px, transparent 6px 10px); }
+#routeRow i { position: relative; flex: 1; max-width: 16px; height: 14px; border: 0; background: var(--mustard); clip-path: polygon(50% 0, 100% 40%, 100% 100%, 0 100%, 0 40%); }
+#routeRow i.ok { background: var(--mint); }
+#routeRow i.vip { background: #ffd37a; box-shadow: 0 0 0 2px #fff6d8; }
+#routeRow i.vip.ok { background: var(--mint); }
+#routeRow i.miss { background: rgba(255,250,236,.35); }
+#routeBike { position: absolute; top: -6px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--red); border: 2px solid var(--fg); transition: left .2s linear; }
+#score { right: var(--g); top: 14px; padding: 7px 16px 9px; text-align: right; min-width: 130px; }
+#scoreN { font-size: 38px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+#streak { right: calc(var(--g) + 8px); top: 92px; background: rgba(216,64,44,.82); color: var(--paper); padding: 4px 11px; font-weight: 900; font-size: 16px; transform: rotate(-4deg); }
+#streak b { font-size: 20px; }
+#streak.bump { animation: stamp .28s cubic-bezier(.2,1.6,.4,1); }
+@keyframes stamp { from { transform: rotate(-4deg) scale(1.5); } }
+#stock { left: var(--g); bottom: max(16px, env(safe-area-inset-bottom)); padding: 7px 12px 9px; display: flex; align-items: flex-end; gap: 10px; }
+#stockN { font-size: 34px; font-weight: 900; line-height: .9; }
+#rolls { display: flex; gap: 3px; align-items: flex-end; padding-bottom: 3px; }
+#rolls u { display: block; width: 10px; height: 28px; border: 0; border-radius: 5px; background: linear-gradient(transparent 38%, var(--red) 38% 52%, transparent 52%) rgba(255,250,236,.85); }
+#rolls u.gone { opacity: .2; }
+#keys { right: var(--g); bottom: max(16px, env(safe-area-inset-bottom)); padding: 8px 12px; display: flex; gap: 12px; font-size: 14px; font-weight: 700; align-items: center; }
+kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; margin-right: 4px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: rgba(255,250,236,.14); color: var(--fg); font: 800 13px ui-rounded, system-ui, sans-serif; }
+/* 場景標記與跳字 */
+#tags { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; will-change: transform; }
+.tag span { background: var(--mustard); border: 2.5px solid var(--ink); border-radius: 8px; padding: 2px 8px; font-weight: 900; font-size: 14px; box-shadow: 3px 3px 0 rgba(31,36,51,.8); }
+.tag::after { content: ""; border: 8px solid transparent; border-top: 10px solid var(--ink); margin-top: -1px; }
+.tag.far span { font-size: 11px; padding: 1px 6px; }
+.tag.vip span { background: #ffd37a; }
+/* 今日任務：路線條下面三行，完成打勾、失敗劃掉 */
+#missions { left: var(--g); top: 140px; padding: 7px 12px 8px; max-width: min(300px, calc(100vw - 2 * var(--g))); }
+.mlist, #mList { list-style: none; padding: 0; margin-top: 5px; display: grid; gap: 3px; font-size: 13px; font-weight: 800; }
+.mlist li, #mList li { display: flex; align-items: center; gap: 7px; }
+.mlist li i, #mList li i { flex: none; width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--fg-mute); display: grid; place-items: center; font-style: normal; font-size: 11px; line-height: 1; }
+.mlist li b, #mList li b { margin-left: auto; padding-left: 10px; color: var(--fg-mute); font-variant-numeric: tabular-nums; }
+.mlist li.done i, #mList li.done i { background: var(--mint); border-color: var(--mint); color: var(--ink); }
+.mlist li.done i::after, #mList li.done i::after { content: "✓"; }
+.mlist li.fail, #mList li.fail { color: var(--fg-mute); text-decoration: line-through; }
+.mlist li.fail i::after, #mList li.fail i::after { content: "✕"; }
+.card .mlist { margin-top: 10px; font-size: 14px; }
+#toast { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); padding: 8px 18px; border-radius: 999px; background: rgba(22,30,48,.6); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); font-weight: 900; font-size: 18px; text-shadow: var(--halo); white-space: nowrap; pointer-events: none; }
+#toast.done { background: rgba(60,130,105,.72); } #toast.fail { background: rgba(150,50,40,.66); }
+#toast.show { animation: toast 2.2s ease forwards; }
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%, 10px); } 10%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+#fps { position: fixed; right: var(--g); top: 104px; padding: 4px 8px; border-radius: 6px; background: rgba(0,0,0,.55); color: #9dffb0; font: 700 12px ui-monospace, monospace; white-space: pre; pointer-events: none; z-index: 9; }
+.pop { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 28px; color: var(--paper); -webkit-text-stroke: 2.5px var(--ink); paint-order: stroke fill; text-shadow: 3px 3px 0 var(--ink); white-space: nowrap; text-align: center; line-height: 1; }
+.pop small { display: block; font-size: 15px; -webkit-text-stroke: 2px var(--ink); margin-top: 2px; }
+.pop.neg { color: #ffb3a6; }
+.pop.miss { color: #d9d3c4; font-size: 20px; }
+/* 開場與結束 */
+.card { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 2 * var(--g))); padding: 22px 24px; background: var(--glass-deep); }
+.card h1 { font-size: 30px; font-weight: 900; letter-spacing: .04em; }
+.card p { margin-top: 8px; font-size: 15px; line-height: 1.6; font-weight: 600; }
+.card .keys { margin-top: 12px; display: grid; gap: 7px; font-size: 14px; font-weight: 700; }
+.btn { display: block; width: 100%; margin-top: 16px; height: 54px; border: 0; border-radius: 12px; background: var(--mustard); box-shadow: 0 4px 0 rgba(10,14,24,.45); font: 900 20px var(--ui); color: var(--ink); text-shadow: none; cursor: pointer; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(10,14,24,.45); }
+#end table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 17px; font-weight: 700; }
+#end td { padding: 5px 0; border-bottom: 1px solid rgba(255,250,236,.2); }
+#end td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 900; }
+#end tr.tot td { border-top: 3px double var(--fg-mute); border-bottom: 0; font-size: 24px; padding-top: 9px; }
+/* 結算：左邊一週七天、中間送報單、右邊明天預告（都是煙燻玻璃） */
+#end { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 16px var(--g); background: rgba(14, 18, 30, .28); }
+#end .card { position: relative; left: auto; top: auto; transform: none; width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow: auto; }
+#sheet .head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+#sheet h1 small { font-size: 13px; font-weight: 700; color: var(--fg-mute); letter-spacing: .06em; }
+#stamp { flex: none; width: 82px; height: 82px; border: 3px solid #ff8a76; border-radius: 50%; display: grid; place-items: center; text-align: center; color: #ffb3a6; font-weight: 900; font-size: 13px; line-height: 1.2; transform: rotate(-12deg); }
+#stamp b { display: block; font-size: 20px; letter-spacing: -.05em; color: #ffd37a; }
+#endBody td:nth-child(2) { text-align: right; color: var(--fg-mute); font-weight: 700; padding-right: 14px; }
+#endBody td.neg { color: #ffb3a6; }
+#endBody i { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 3px; vertical-align: -1px; }
+#chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#chips span { padding: 4px 11px; border-radius: 999px; font-size: 13px; font-weight: 800; background: rgba(121,184,162,.35); border: 1.5px solid rgba(121,184,162,.8); }
+#chips span.lost { background: rgba(216,64,44,.3); border-color: rgba(255,138,118,.8); }
+#sheet .btns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 16px; }
+#sheet .btns .btn { margin-top: 0; font-size: 17px; }
+.btn.ghost { background: rgba(255,250,236,.16); color: var(--fg); border: 1px solid var(--edge); box-shadow: none; text-shadow: var(--halo); }
+#week { list-style: none; padding: 0; display: grid; gap: 8px; width: 132px; }
+#week li { padding: 7px 10px; border-radius: 9px; background: var(--glass); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); font-weight: 900; font-size: 15px; cursor: pointer; text-shadow: var(--halo); }
+#week li small { display: block; font-size: 11px; font-weight: 700; color: var(--fg-mute); }
+#week li em { float: right; font-style: normal; color: #ffd37a; font-size: 12px; letter-spacing: -.1em; }
+#week li.today { background: rgba(229,170,53,.55); transform: translateX(8px); }
+#week li.locked { opacity: .55; cursor: default; }
+#end .side { display: grid; gap: 12px; width: 220px; }
+#routeMap { position: relative; padding: 10px 12px; }
+#routeMap svg { display: block; width: 100%; height: auto; margin-top: 6px; }
+#routeMap .legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--fg-mute); }
+#routeMap .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+#tomorrow { position: relative; padding: 12px 14px; font-size: 14px; line-height: 1.6; font-weight: 700; }
+#tomorrow b { color: #ffd37a; }
+@media (max-width: 860px) {
+  #end { flex-direction: column; justify-content: flex-start; gap: 10px; overflow: auto; }
+  #week { order: -1; width: 100%; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  #week li { padding: 5px 2px; text-align: center; font-size: 13px; } #week li small { display: none; } #week li em { float: none; display: block; }
+  #week li.today { transform: translateY(-3px); }
+  #end .card { max-height: none; padding: 16px 16px; } #end .side { width: min(480px, 100%); grid-template-columns: 1fr 1.4fr; }
+}
+body:has(#end:not([hidden])) :is(#day, #route, #missions, #toast, #score, #streak, #stock, #keys, #pad, #tags) { visibility: hidden; }
+[hidden] { display: none !important; }
+/* 觸控：左下兩顆轉向、右下加速與丟報 */
+#pad { display: none; }
+@media (pointer: coarse) {
+  #keys, .card .keys .kb { display: none; }
+  #pad { display: block; position: fixed; inset: auto 0 0 0; height: 0; }
+  #pad button { position: fixed; bottom: max(18px, env(safe-area-inset-bottom)); width: 68px; height: 68px; border: 1px solid var(--edge); border-radius: 50%; background: var(--glass); -webkit-backdrop-filter: blur(9px) saturate(1.25); backdrop-filter: blur(9px) saturate(1.25); font: 900 24px var(--ui); color: var(--fg); text-shadow: var(--halo); touch-action: none; }
+  #pad button.on { background: rgba(229,170,53,.8); color: var(--ink); text-shadow: none; transform: scale(.94); }
+  #pad [data-k=left] { left: var(--g); } #pad [data-k=right] { left: calc(var(--g) + 80px); }
+  #pad [data-k=accel] { right: calc(var(--g) + 92px); font-size: 17px; } #pad [data-k=throw] { right: var(--g); width: 80px; height: 80px; background: rgba(229,170,53,.62); font-size: 20px; }
+  #stock { bottom: calc(max(18px, env(safe-area-inset-bottom)) + 84px); }
+}
+@media (max-width: 520px) {
+  #day b { font-size: 19px; } #scoreN { font-size: 28px; } #score { min-width: 96px; padding: 6px 11px 7px; }
+  #route { top: 66px; width: calc(100vw - 2 * var(--g)); } #streak { top: 186px; }
+  #missions { top: 126px; padding: 5px 10px 6px; } #mList { font-size: 12px; gap: 1px; } #missions .lbl { display: none; } #mList { margin-top: 0; }
+  #rolls { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="遊戲畫面"></canvas>
+<div id="tags"></div>
+<div class="slip" id="day"><span class="lbl">楓樹巷 · 第 1 天</span><b>週一 清晨</b></div>
+<div class="slip" id="route"><span class="lbl">路線　訂戶</span><div id="routeRow"></div></div>
+<div class="slip" id="missions" aria-label="今日任務"><span class="lbl">今日任務</span><ol id="mList"></ol></div>
+<div id="toast" hidden></div>
+<div class="slip" id="score"><div class="lbl">今日分數</div><div id="scoreN">0</div></div>
+<div class="slip" id="streak" hidden>連投 <b>×2</b></div>
+<div class="slip" id="stock"><div><div class="lbl">報紙</div><div id="stockN">20</div></div><div id="rolls"></div></div>
+<div class="slip" id="keys"><span><kbd>←</kbd><kbd>→</kbd>轉向</span><span><kbd>↑</kbd>加速</span><span><kbd>空白</kbd>丟報</span><span><kbd>C</kbd>鏡頭 <b id="camN">近</b></span><span><kbd>M</kbd>音效</span></div>
+<div id="pad"><button data-k="left" aria-label="左轉">◀</button><button data-k="right" aria-label="右轉">▶</button><button data-k="accel" aria-label="加速">加速</button><button data-k="throw" aria-label="丟報">丟報</button></div>
+
+<div class="slip card" id="intro">
+  <h1>晨巷送報</h1>
+  <p>把報紙丟進<b>白色信箱、紅旗立起</b>的訂戶家。黑色信箱不是訂戶，別砸破他們的窗戶。</p>
+  <p id="introDay"></p>
+  <ol id="introMissions" class="mlist"></ol>
+  <div class="keys"><span class="kb"><kbd>←</kbd><kbd>→</kbd> 轉向　<kbd>↑</kbd> 加速　<kbd>空白</kbd> 丟報（按著轉向就往那邊丟，否則丟向你騎的那一側）</span><span class="kb"><kbd>C</kbd> 切換鏡頭遠近　<kbd>V</kbd> 開關拋物線預覽　<kbd>R</kbd> 重騎</span></div>
+  <button class="btn" id="start">出發</button>
+</div>
+<div id="end" hidden>
+  <ol id="week" aria-label="這一週"></ol>
+  <div class="slip card" id="sheet">
+    <div class="head"><div><h1>送報單 <small id="sheetNo"></small></h1><p id="endSub"></p></div><div id="stamp"></div></div>
+    <table id="endBody"></table>
+    <div id="chips"></div>
+    <ol id="endMissions" class="mlist"></ol>
+    <div class="btns"><button class="btn ghost" id="again">再騎一次</button><button class="btn" id="next">明天 →</button></div>
+  </div>
+  <div class="side"><div class="slip" id="routeMap"></div><div class="slip" id="tomorrow"></div></div>
+</div>
+<!--ASSETS-->
+<!--BUNDLE-->
+</body>
+</html>

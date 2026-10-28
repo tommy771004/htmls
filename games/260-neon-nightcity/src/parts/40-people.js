@@ -191,13 +191,13 @@ void main(){
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
 // 每人一份材質（uniform 不同），共用同一個 program；不能用 clone()，會把共用的 U 也複製掉
-const charMat = () => new T.ShaderMaterial({
+const charMat = () => new T.ShaderMaterial({ name: 'char',
   uniforms: { ...shared(ALLU), uC: { value: Array.from({ length: 9 }, () => new T.Color()) }, uGlow: { value: new T.Vector4() },
     uPat: { value: new T.Vector4() }, uPatC: { value: new T.Color() } },
   vertexShader: CHAR_VS, fragmentShader: CHAR_FS,
 });
 // 掃描人物的材質：和同一人的 charMat 共用 uniform 物件，另外帶底色貼圖
-const scanMat = (cm, tex) => new T.ShaderMaterial({ uniforms: { ...cm.uniforms, uMap: { value: tex } }, defines: { SCAN: 1 }, vertexShader: CHAR_VS, fragmentShader: CHAR_FS });
+const scanMat = (cm, tex) => new T.ShaderMaterial({ name: 'char', uniforms: { ...cm.uniforms, uMap: { value: tex } }, defines: { SCAN: 1 }, vertexShader: CHAR_VS, fragmentShader: CHAR_FS });
 
 // ─── 掃描人物（blender/scan_people.py：沒有骨架的 Sketchfab 人物綁到同一副 Quaternius 骨架）───
 // assets/260/people/<id>.glb 只在 http(s) 下載，第一次有人要穿才下載；下載好之前（與以檔案開啟時）照舊是程式換色的身體，
@@ -239,7 +239,7 @@ function scanGet(id, p) {
   return null;
 }
 const ANIM = { idle: 0, walk: 1, run: 2, danceA: 3, danceB: 4, danceC: 5, sit: 6, bartend: 7, umbrella: 8, dj: 9, cross: 10, talk: 11, ride: 12, punch: 14, smoke: 15,
-  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33, danceD: 34, danceE: 35, danceF: 36, phone: 38 };   // 37 是 69-v5-civic.js 的 climb
+  die: 16, getup: 17, jab: 18, interact: 19, crouch: 20, aimIdle: 21, aimWalk: 22, swing: 23, handsUp: 24, kneel: 25, throw: 26, aimRun: 27, driveBy: 28, swimIdle: 29, swim: 30, crouchWalk: 31, crouchAim: 32, crouchAimWalk: 33, danceD: 34, danceE: 35, danceF: 36, phone: 38, sprint: 39, breast: 40, jump: 41 };   // 37 是 69-v5-civic.js 的 climb
 // 動作 → 動畫：rate 是每單位相位走幾秒動畫（行走的相位沿用舊版步頻），beat 是幾拍一輪（跳舞對拍），alt 依相位換另一段
 const ACLIP = {
   [ANIM.idle]: { c: 'Idle_Loop' }, [ANIM.walk]: { c: 'Walk_Loop', rate: 1.3 }, [ANIM.run]: { c: 'Jog_Fwd_Loop', rate: .93 },
@@ -262,6 +262,8 @@ const ACLIP = {
   [ANIM.swimIdle]: { c: 'Swim_Idle_Loop' }, [ANIM.swim]: { c: 'Swim_Fwd_Loop', rate: 1.1 },
   // 蹲下（Z）：蹲著走、蹲著瞄準（手臂照持槍瞄準覆寫）
   [ANIM.crouchWalk]: { c: 'Crouch_Fwd_Loop' }, [ANIM.crouchAim]: { c: 'Crouch_Idle_Loop' }, [ANIM.crouchAimWalk]: { c: 'Crouch_Fwd_Loop' },
+  // 玩家的奔跑、蛙式與跳（路人照舊用慢跑）：衝刺上身前傾、大幅擺臂、後腳踢高；蛙式是踩水的姿勢往前倒、四肢照 BREAST；跳的手腳全由 OVR 擺
+  [ANIM.sprint]: { c: 'Sprint_Loop', rate: .667 }, [ANIM.breast]: { c: 'Swim_Idle_Loop' }, [ANIM.jump]: { c: 'Jog_Fwd_Loop', rate: 0 },
 };
 const clipOf = (id, p) => { const a = ACLIP[id] || ACLIP[0]; return a.alt && p.alt ? a.alt : a.c; };
 function clipTime(id, name, t, b) {
@@ -509,6 +511,53 @@ const OVR = {
     aim(p, 'upperarm_' + A, m * .65, -.65, -.25); aim(p, 'lowerarm_' + A, -m * .55, -.35, .35);
   },
 };
+// 關鍵姿勢插值：K 是 [[u, 方向, 方向...], ...]（u 由 0 到 1），取第 j 個方向，兩格之間用 smoothstep；mx 是 -1 時 x 鏡射（右邊的手腳）
+const _kv = V3(), _kw = V3();
+function keyDir(K, u, j, mx = 1) {
+  let i = 1; while (i < K.length - 1 && K[i][0] < u) i++;
+  const a = K[i - 1][j], b = K[i][j], s = sst(K[i - 1][0], K[i][0], u);
+  return _kv.set(a[0] * mx, a[1], a[2]).lerp(_kw.set(b[0] * mx, b[1], b[2]), s);
+}
+// 蛙式一輪（水平的座標：+z 前進方向、+y 上、+x 左邊；右邊鏡射，擺的時候依身體的傾斜換成身體座標）：
+// 滑行（雙臂往前伸在水面下）→ 往外划開 → 手肘往下收、雙手合到下巴前 → 往前伸；手划完時膝蓋往下張開收腿、往外往後蹬、併攏
+const BREAST = {
+  arm: [[0, [.12, -.1, 1], [.05, -.08, 1]], [.12, [.12, -.1, 1], [.05, -.08, 1]], [.38, [.75, -.05, .65], [.6, -.25, .75]], [.55, [.6, -.55, .3], [-.7, -.2, .65]],
+    [.75, [.12, -.1, 1], [.05, -.08, 1]], [1, [.12, -.1, 1], [.05, -.08, 1]]],
+  leg: [[0, [.07, -.47, -.88], [.05, -.42, -.9]], [.42, [.07, -.47, -.88], [.05, -.42, -.9]], [.6, [.35, -.9, -.2], [.2, .3, -.95]], [.78, [.3, -.5, -.8], [.4, -.45, -.8]],
+    [.92, [.07, -.47, -.88], [.05, -.42, -.9]], [1, [.07, -.47, -.88], [.05, -.42, -.9]]],
+};
+const BR_TILT = 1.08, BR_PEL = -.33, BR_LIFT = .26;   // 往前倒 62°（繞踩水時的骨盆，根骨下 0.33 m），再抬高 0.26 m：肩膀貼水面、頭與帽子露出來
+function breastPose(p, t, w) {
+  const u = frac(t), a = BR_TILT * w, c = Math.cos(a), sn = Math.sin(a);
+  // 水平座標 → 身體座標（身體繞 x 往前倒 a）
+  const put = (bone, d) => aim(p, bone, d.x, d.y * c + d.z * sn, d.z * c - d.y * sn, w);
+  aim(p, 'spine_01', 0, 1, -.05, w); aim(p, 'spine_02', 0, 1, -.1, w); aim(p, 'spine_03', 0, 1, -.15, w);
+  put('neck_01', _kv.set(0, .75, .65));   // 頭往後仰，趴著也看前面
+  for (const [s, m] of [['l', 1], ['r', -1]]) {
+    put('upperarm_' + s, keyDir(BREAST.arm, u, 1, m)); put('lowerarm_' + s, keyDir(BREAST.arm, u, 2, m));
+    put('thigh_' + s, keyDir(BREAST.leg, u, 1, m)); put('calf_' + s, keyDir(BREAST.leg, u, 2, m));
+  }
+  p.sm.rotation.x = a; p.sm.position.y += BR_PEL - BR_PEL * c + BR_LIFT * w; p.sm.position.z = -BR_PEL * sn;
+}
+// 跳（player.jump，u 是起跳到落地的比例）：一腳蹬地在後、一膝抬起 → 騰空雙臂往兩側張開保持平衡、膝蓋收起 → 落下前腿伸直
+// [u, 左上臂, 左前臂, 左大腿, 左小腿, 右大腿, 右小腿]（右手照左手鏡射）
+const JUMP = [
+  [0, [.3, -.85, -.35], [.2, -.3, .9], [.06, -.85, -.5], [.05, -.45, -.9], [-.06, -.5, .85], [-.03, -.98, .15]],
+  [.2, [.97, .2, .1], [.97, .25, .05], [.12, -.6, .8], [.06, -.95, -.3], [-.12, -.6, .8], [-.06, -.95, -.3]],
+  [.8, [.95, .3, .08], [.95, .32, .02], [.1, -.97, .2], [.06, -1, -.05], [-.1, -.97, .2], [-.06, -1, -.05]],
+  [1, [.95, .3, .08], [.95, .32, .02], [.1, -.97, .2], [.06, -1, -.05], [-.1, -.97, .2], [-.06, -1, -.05]],
+];
+OVR[ANIM.jump] = p => {
+  const J = player.jump, u = J ? clamp(J.t / J.T, 0, 1) : 1;
+  for (const [s, m] of [['l', 1], ['r', -1]]) {
+    let d = keyDir(JUMP, u, 1, m); aim(p, 'upperarm_' + s, d.x, d.y, d.z);
+    d = keyDir(JUMP, u, 2, m); aim(p, 'lowerarm_' + s, d.x, d.y, d.z);
+  }
+  for (const [s, j] of [['l', 3], ['r', 5]]) {
+    let d = keyDir(JUMP, u, j); aim(p, 'thigh_' + s, d.x, d.y, d.z);
+    d = keyDir(JUMP, u, j + 1); aim(p, 'calf_' + s, d.x, d.y, d.z);
+  }
+};
 const DANCES = [ANIM.danceA, ANIM.danceB, ANIM.danceC, ANIM.punch, ANIM.danceD, ANIM.danceE, ANIM.danceF];
 const SKINS = [0xf1c8a8, 0xd9a07a, 0xb57a52, 0x8a5636, 0x5e3a24, 0xe8b894].map(lin);
 const HAIRS = [0x15110e, 0x2b1d14, 0x5a3a22, 0xb08a5a, 0x777777, 0x1a1a2a, 0x8a2a3a, 0x3a6a8a].map(lin);
@@ -612,6 +661,11 @@ function poseOne(p, t, b) {
   p.sm.position.y = PEOPLE.seat[n1] || 0;
   const f = OVR[id];
   if (f && (!mix2 || w2 < .5)) f(p, t * sp + ph, b + bo);
+  // 蛙式：swK 讓下水、停下來踩水時慢慢趴下去、立起來（隔幀才擺的人用實際經過的時間）
+  const bk = id === ANIM.breast ? 1 : 0;
+  if (bk || p.swK > .01) { p.swK = (p.swK || 0) + (bk - (p.swK || 0)) * (1 - Math.exp(-5 * clamp(t - (p.swT ?? t), 0, .1))); breastPose(p, t * sp + ph, p.swK); }
+  else if (p.swK) { p.swK = 0; p.sm.rotation.x = 0; p.sm.position.z = 0; }
+  p.swT = t;
   if (p.hold && crowdFrame - p.holdT <= 2 && HOLD_ANIM.has(id) && (!mix2 || w2 < .5)) gunPose(p);
   p.rig.updateMatrixWorld(true);
   if (HAND_PROP[id] && (!mix2 || w2 < .5)) handPose(p, id);
@@ -768,7 +822,7 @@ const umbMesh = (() => {
   return m;
 })();
 // uberD 是雙面材質：傘面顏色以 instanceColor 乘上
-MAT.uberD.vertexShader = MAT.uberD.vertexShader.replace('vCol = color;', `vCol = color;
+MAT.uberD.name = 'uberTint'; MAT.uberD.vertexShader = MAT.uberD.vertexShader.replace('vCol = color;', `vCol = color;
   #ifdef USE_INSTANCING_COLOR
   vCol *= instanceColor;
   #endif
@@ -903,17 +957,18 @@ function updatePlayerWalk(inp, dt, camYaw) {
   const wx = fx * mz + rx * mx, wz = fz * mz + rz * mx;
   const aimM = gta.aiming || gta.guard, run = inp.run && ml > .1 && !aimM;
   // 水深超過 1.25 m 改游泳（離開時 1.05 m，避免在邊界來回切換）；涉水時走慢一點
-  const depth = player.where === 'out' ? waterDepth(player.x, player.z) : 0, wasSwim = player.swim;
-  player.swim = depth > (player.swim ? 1.05 : 1.25);
+  // 跳躍中（jumpTry）不切換游泳：落進水裡那一幀才下水
+  const depth = player.where === 'out' ? waterDepth(player.x, player.z) : 0, wasSwim = player.swim, J = player.jump;
+  player.swim = !J && depth > (player.swim ? 1.05 : 1.25);
   if (player.swim !== wasSwim && depth > 0) { sfx.splash(player.swim ? 1 : .5); if (player.swim) { player.dance = 0; arm.trig = false; waterSplash(player.x, player.z, .8); } }
-  const wade = player.swim ? 1 : clamp(1 - depth * .5, .45, 1);
+  const wade = player.swim || J ? 1 : clamp(1 - depth * .5, .45, 1);
   // 蹲下（69-combat.js 的 Z 鍵）：跑起來或水深過膝就站起來；crouchK 給相機降低高度
   if (player.crouch && (run || depth > .4)) player.crouch = false;
   player.crouchK = damp(player.crouchK || 0, player.crouch ? 1 : 0, 10, dt);
   // runK：69-v3-skills.js 的衝刺體力（喘的時候變慢）；skK.crouch：潛行等級讓蹲行快一點
   const rk = player.runK ?? 1, ck = skK.crouch;
   const target = ml > .05 ? (player.swim ? (run ? 2.3 * rk : 1.3) * (player.dive ? 1.15 : 1) : (run ? 4.6 * rk : player.crouch ? (aimM ? 1.1 : 1.3) * ck : aimM ? 1.5 : 1.7) * wade) * Math.min(1, ml) : 0;
-  player.v = damp(player.v, target * (player.loadK ?? 1), target > player.v ? 6 : 10, dt);   // loadK：69-v7-casino.js 袋子裡金條太重
+  if (!J) player.v = damp(player.v, target * (player.loadK ?? 1), target > player.v ? 6 : 10, dt);   // loadK：69-v7-casino.js 袋子裡金條太重；空中保持起跳時的速度
   let mdx = Math.sin(player.yaw), mdz = Math.cos(player.yaw);
   if (aimM) {
     // 瞄準時身體對著準星，移動方向照搖桿（側移、後退）
@@ -922,7 +977,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
     mdx = player.mvx || 0; mdz = player.mvz || 0;
   } else if (ml > .05) {
     const ty = Math.atan2(wx, wz);
-    player.yaw += wrapA(ty - player.yaw) * (1 - Math.exp(-12 * dt));
+    player.yaw += wrapA(ty - player.yaw) * (1 - Math.exp(-(J ? 2.5 : 12) * dt));   // 空中只能稍微修正方向
     mdx = Math.sin(player.yaw); mdz = Math.cos(player.yaw);
   }
   const nx = player.x + mdx * player.v * dt, nz = player.z + mdz * player.v * dt;
@@ -938,16 +993,18 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 游泳時根骨貼著水面，慢慢上下起伏
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
   const fy = player.where === 'out' ? walkY(x, z, player.y, deckAt(x, z, player.y) ?? seaFloor(x, z)) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板；戶外是步行面（20-walk.js）、快速道路橋面或地面
-  player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
+  if (J) jumpStep(J, fy, depth, dt);
+  else player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;
-  let a = player.swim ? (sp > .25 ? ANIM.swim : ANIM.swimIdle) : sp > 3 ? ANIM.run : sp > .25 ? ANIM.walk : player.vig || (player.dance ? DANCES[player.dance - 1] : ANIM.idle);
+  let a = player.swim ? (sp > .25 ? ANIM.breast : ANIM.swimIdle) : J ? ANIM.jump : sp > 3 ? ANIM.sprint : sp > .25 ? ANIM.walk : player.vig || (player.dance ? DANCES[player.dance - 1] : ANIM.idle);
   if (aimM) a = sp > .25 ? ANIM.aimWalk : ANIM.aimIdle;
   if (player.crouch) a = aimM ? (sp > .25 ? ANIM.crouchAimWalk : ANIM.crouchAim) : sp > .25 ? ANIM.crouchWalk : ANIM.crouch;
   if (a !== player.anim) { player.prevAnim = player.anim; player.anim = a; player.blend = 1; }
   player.blend = Math.max(0, player.blend - dt * 5);
   const back = aimM && mdx * Math.sin(player.yaw) + mdz * Math.cos(player.yaw) < -.3 ? -1 : 1;   // 瞄準時往後退：走路動畫倒著播
-  const rate = a === ANIM.swim ? .6 + sp * .35 : a === ANIM.run ? sp / 4.6 * 1.45 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * .9 * back : a === ANIM.crouchWalk || a === ANIM.crouchAimWalk ? sp * .75 * back : 1;
+  // 每秒幾輪：走路 1.7 m/s 約 0.95 秒一輪、衝刺 4.6 m/s 每秒 1.5 輪（3 步）、蛙式 1.3 m/s 約 1.3 秒划一次
+  const rate = a === ANIM.breast ? .45 + sp * .25 : a === ANIM.sprint ? sp / 4.6 * 1.5 : a === ANIM.jump ? 0 : a === ANIM.walk || a === ANIM.aimWalk ? sp / 1.7 * 1.07 * back : a === ANIM.crouchWalk || a === ANIM.crouchAimWalk ? sp * .75 * back : 1;
   player.walkPh += dt * rate;
   me.anim(0, a, player.walkPh - uTimeNow(), 1, 0);
   me.anim2(0, player.prevAnim, player.blend, 1);
@@ -955,13 +1012,30 @@ function updatePlayerWalk(inp, dt, camYaw) {
   me.flush();
   // 腳步聲
   if (player.swim) {   // 划水聲
-    const ph = player.walkPh * 1.4;
+    const ph = player.walkPh;   // 蛙式每划一次一聲
     if (sp > .25 && Math.floor(ph) !== Math.floor(player.stepT)) sfx.splash(.25);
     player.stepT = ph;
-  } else if (a === ANIM.walk || a === ANIM.run || a === ANIM.aimWalk) {
+  } else if (a === ANIM.walk || a === ANIM.sprint || a === ANIM.aimWalk) {
     const ph = player.walkPh * 2;
-    if (Math.floor(ph) !== Math.floor(player.stepT)) sfx.step(a === ANIM.run, player.where !== 'out');
+    if (Math.floor(ph) !== Math.floor(player.stepT)) sfx.step(a === ANIM.sprint, player.where !== 'out' || villaSt.inK > .5);
     player.stepT = ph;
   }
 }
 const uTimeNow = () => U.uTime.value;
+// 跳（空白鍵；69-v3-crash.js 的 crashKey 先問翻越再問這裡）：原地或助跑起跳，約 0.9 m 高、0.86 秒落地，空中保持起跳的速度
+const JUMP_VY = 4.2;
+function jumpTry() {
+  if (player.mode !== 'walk' || player.swim || player.jump || player.down > 0 || player.air3 || player.ride || vault.on || gta.jack || life.dead) return false;
+  player.jump = { t: 0, vy: JUMP_VY, T: 2 * JUMP_VY / 9.8 }; player.crouch = false; player.dance = 0; player.blend = Math.min(player.blend, .45);
+  sfx.step(true, player.where !== 'out' || villaSt.inK > .5);
+  return true;
+}
+// 拋物線：落到步行面就落地；落進深水（1.25 m 以上）身體先沉到水下 0.9 m 再浮上來（下一幀成立游泳，濺水聲與水花在那裡）；
+// 腳下比身體低 3.5 m 以上（從高處跳下去）交給 69-v3-crash.js 的自由落體，落地照高度算傷害
+function jumpStep(J, fy, depth, dt) {
+  J.t += dt; J.vy -= 9.8 * dt; player.y += J.vy * dt;
+  if (J.vy > 0) return;
+  if (depth > 1.25 && player.y <= SEA_Y) { player.jump = null; player.y = SEA_Y - SWIM_Y - .9; return; }
+  if (player.y <= fy) { player.jump = null; player.y = fy; sfx.step(true, player.where !== 'out' || villaSt.inK > .5); return; }
+  if (player.y - fy > 3.5 && player.where === 'out') { player.jump = null; player.air3 = { kind: 'fall', vx: Math.sin(player.yaw) * player.v, vy: J.vy, vz: Math.cos(player.yaw) * player.v, t: 0 }; }
+}

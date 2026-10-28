@@ -106,10 +106,10 @@ carHooks.push(modApply);
 modApply(kestrel);   // 65-motors.js 開場已經照存檔 applyCar 過一次（那時這個 hook 還沒掛上）
 
 // ─── 改裝件的外觀（程式建模，掛在車身上，跟著車身俯仰）：前下巴、防撞鋼架、尖刺鏟、鴨尾、GT 大尾翼、排氣尾管、側排管、底盤霓虹燈條 ───
-// 實車照 cars.json 的 kit（tools/kitfit.mjs 量的保險桿平面輪廓、側裙、尾箱後緣）貼著這台車的外形做；沒有 kit 的（程式建模的替身）照車長車寬擺
+// 實車照 cars.json 的 kit（tools/kitfit.mjs 量的保險桿平面輪廓、側裙、尾箱後緣）貼著這台車的外形做；沒有 kit 的（以檔案開啟時的 traffic.glb 替身）照車長車寬擺
 const CARBON = 0x26272b, STEEL = 0x8a8e94, KIT_BLACK = 0x1e2024;
 function modParts(id, m) {
-  const K = GLB_ON && GLB_SPEC[id] && GLB_SPEC[id].kit, k = new Kit();   // 以檔案開啟時是程式建模的替身，不照實車的外形
+  const K = GLB_ON && GLB_SPEC[id] && GLB_SPEC[id].kit, k = new Kit();   // 以檔案開啟時是 traffic.glb 的替身，不照實車的外形
   const any = K ? kitFit(k, id, K, m) : kitBox(k, id, m);
   if (!any) return null;
   const g = new T.Group(), me = new T.Mesh(k.build(), MAT.ux); me.userData.kit = 1; g.add(me);
@@ -231,7 +231,7 @@ function kitFit(k, id, K, m) {
   if (m.ng && !S) miss.ng = m.ng;
   return kitBox(k, id, miss) || any;
 }
-// 程式建模的替身：照車長、車寬、車高擺
+// 沒有 kit（以檔案開啟的替身）：照車長、車寬、車高擺
 function kitBox(k, id, m) {
   const c = CARS[id], s = GLB_SPEC[id] || {}, L = c.len, Wd = c.w, H = s.h || 1.35;
   let any = false;
@@ -546,7 +546,7 @@ function boardDraw(list, done = []) {
   }
   S.add(new T.Mesh(k.build(), MAT.ux));
   // 捲門 B 外的雨夜街景（和車行的落地窗同一個 shader）與門 B 本身（進來之後放下）
-  { const m = new T.Mesh(new T.PlaneGeometry(DOOR_W - .2, DOOR_H - .1), new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
+  { const m = new T.Mesh(new T.PlaneGeometry(DOOR_W - .2, DOOR_H - .1), new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
     m.position.set(0, DOOR_H / 2, -.6); S.add(m); }
   { const dk = new Kit(); for (let y = .12; y < DOOR_H; y += .24) dk.box(0, y, 0, DOOR_W, .2, .05, 0x8c9196, TX.steel).box(0, y + .11, .02, DOOR_W, .03, .04, 0x5a5e62, 15);
     chrome.doorB = new T.Mesh(dk.build(), MAT.ux); chrome.doorB.position.set(0, 0, -.05); S.add(chrome.doorB); }

@@ -55,6 +55,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 #weather{font-size:11px;color:var(--ink-2);display:flex;align-items:center;gap:4px}
 #weather svg{width:10px;height:12px}
 #clock{font-family:var(--cond);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+/* 時間區塊左邊：FPS 與每幀毫秒（90-hud.js 的 hudPerf，每 0.5 秒更新），貼著時間區塊、同高 */
+#fpsBox{position:absolute;right:calc(100% + 8px);top:0;bottom:0;display:flex;align-items:center;gap:10px;padding:0 12px;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:left}
+#fpsBox span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
+#fpsBox b{font-family:var(--cond);font-size:20px;font-weight:600}
+#fpsBox small{font-size:10px;color:var(--ink-2);letter-spacing:.04em}
 #cash{display:grid;place-items:center;height:30px;padding:0 10px;border-radius:7px;background:var(--panel);font-family:var(--cond);font-size:15px;font-weight:600;color:#ffcf6a;font-variant-numeric:tabular-nums}
 @keyframes cashUp{0%{color:#fff;transform:scale(1.18)}100%{color:#ffcf6a;transform:none}}
 #cash.up{animation:cashUp .6s var(--ease-out);transform-origin:right center}
@@ -542,6 +547,8 @@ body.touch #capture{display:none}
   #street{font-size:11px}
   #clock{font-size:21px}
   #clockBox{padding:6px 11px 7px}
+  #fpsBox{gap:7px;padding:0 9px}
+  #fpsBox b{font-size:16px}
   #mapBox{width:104px;height:104px;padding:5px;border-radius:12px}
   #vitals{width:104px}
   #v3bars{width:104px;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 122px)}
@@ -568,13 +575,13 @@ body.touch #capture{display:none}
 <div id="hud" aria-live="polite">
   <div id="obj" class="pan"><small>門禁 <i>· 今夜</i></small><b id="objText">進入 LAZARUS</b><span id="objSub"><i></i><em id="objNum"></em></span></div>
   <div id="compass"><canvas id="cmp" width="560" height="56"></canvas><div id="street" class="pan"><b id="stName">Atlas Av</b><span id="stHead">N 0°</span></div></div>
-  <div id="clockBox" class="pan"><small id="district">霓虹區</small><div id="clockRow"><span id="weather"><svg viewBox="0 0 10 12"><path d="M5 1C3.5 4 2 5.6 2 7.6a3 3 0 0 0 6 0C8 5.6 6.5 4 5 1z" fill="#a9a49a"/></svg><span id="wxText">小雨</span></span><b id="clock">02:14</b></div></div>
+  <div id="clockBox" class="pan"><small id="district">霓虹區</small><div id="clockRow"><span id="weather"><svg viewBox="0 0 10 12"><path d="M5 1C3.5 4 2 5.6 2 7.6a3 3 0 0 0 6 0C8 5.6 6.5 4 5 1z" fill="#a9a49a"/></svg><span id="wxText">小雨</span></span><b id="clock">02:14</b></div><div id="fpsBox" class="pan" aria-label="效能"><span><b id="fpsN">--</b><small>FPS</small></span><span><b id="fpsMs">--</b><small>ms</small></span></div></div>
   <div id="tools"><b id="cash" aria-label="現金">$180,000</b><button id="bPhone" aria-label="手機（P）"><svg viewBox="0 0 16 16"><rect x="4.2" y="1.6" width="7.6" height="12.8" rx="1.8"/><path d="M7.1 12h1.8"/></svg></button><button id="bMap" aria-label="全區地圖"><svg viewBox="0 0 16 16"><path d="M1.8 3.6 5.6 2l4.8 1.8L14.2 2.4v10L10.4 14l-4.8-1.8-3.8 1.6z"/><path d="M5.6 2v10.2M10.4 3.8V14"/></svg></button><button id="bMenu" aria-label="暫停與設定（Esc）"><svg viewBox="0 0 16 16"><path d="M2.4 4.4h11.2M2.4 8h11.2M2.4 11.6h11.2"/><circle cx="5.4" cy="4.4" r="1.5" fill="#0c0e12"/><circle cx="10.6" cy="8" r="1.5" fill="#0c0e12"/><circle cx="7" cy="11.6" r="1.5" fill="#0c0e12"/></svg></button><button id="bHelp" aria-label="操作說明"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4M8 11.6v.1"/></svg></button><button id="bMute" aria-label="靜音"><svg viewBox="0 0 16 16"><path d="M2.5 6h2.6L8.6 3v10L5.1 10H2.5z"/><path id="muteWave" d="M11 5.4a3.6 3.6 0 0 1 0 5.2M12.8 3.6a6.2 6.2 0 0 1 0 8.8"/></svg></button></div>
   <div id="help"><dl>
     <dt>WASD</dt><dd>移動／油門與轉向</dd>
     <dt>滑鼠</dt><dd>環顧（點畫面鎖定游標）</dd>
     <dt>Shift</dt><dd>步行奔跑／開車氮氣</dd>
-    <dt>Space</dt><dd>手煞車甩尾</dd>
+    <dt>Space</dt><dd>手煞車甩尾（步行時跳、翻越矮牆）</dd>
     <dt>F</dt><dd>上車／下車；靠近車流或路邊車：搶車、撬車</dd>
     <dt>Tab</dt><dd>按住：武器轉盤（時間放慢），移動滑鼠選格、滾輪換同類武器</dd>
     <dt>滾輪</dt><dd>不開轉盤時：依序換武器</dd>
@@ -631,7 +638,7 @@ body.touch #capture{display:none}
 <div id="start"><div id="startIn">
   <h1>霓虹夜城<small>NEON NIGHT CITY</small></h1>
   <p>凌晨兩點，雨沒停過。9 St 的 LAZARUS 今晚只放名單上的人進去，你不在名單上。開 Kestrel、騎 Hanzo 或走路穿過這幾個街區，想辦法讓門口的人點頭。甩尾賺錢，再去 VELOCE MOTORS 挑一台夢想中的車。</p>
-  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火 · <b>Esc</b> 暫停與設定</div>
+  <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車／跳 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火 · <b>Esc</b> 暫停與設定</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
   <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、賭場與地堡道具、直升機與戰車、遊艇、渡輪、拖船、水警艇、DJ 控制器、機場地勤車、擔架、施工區設施、軍事基地、貨運列車、田園場景與 Jason／Lucia 掃描人物模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋、酒館與賭場大廳的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。音效是 Freesound 的真實錄音（CC0；BMW 與 Porsche 的引擎聲含 ikbenraar、jerry.berumen 的 CC BY 4.0 錄音），見 <a href="../assets/260/sfx/CREDITS.md" target="_blank" rel="noopener">音效 CREDITS</a>。</small>

@@ -114,14 +114,14 @@ BAYS.push({ x: 0, z: 24.2 + GK, yaw: Math.PI });
 const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
 {
   const k = new Kit(), B = home.boxes, S = homeScene, amber = 0xd89a2a;
-  const wall = (x0, x1, z0, z1, h, col, mat = 2) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
+  const wall = (x0, x1, z0, z1, h, col, mat = 26) => { k.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, x1 - x0, h, z1 - z0, col, mat); B.push({ x0, x1, z0, z1 }); };
   // 環氧樹脂地板、車格線、天花板鋼樑與日光燈管
-  k.box(0, -.05, GD / 2, 18.4, .1, GD + .4, 0x3c3f44, 10);
+  k.box(0, -.05, GD / 2, 18.4, .1, GD + .4, 0x3c3f44, 33);
   for (let n = 0; n <= GN; n++) for (const s of [-1, 1]) k.box(s * 6.3, .003, 2.95 + n * 3.3, 5.4, .006, .1, amber, 2);
   for (const s of [-1, 1]) k.box(s * 3.65, .003, 2.95 + GN * 3.3 / 2, .1, .006, GN * 3.3, amber, 2);
   for (const s of [-1, 1]) for (let n = 0; n < GN; n++) k.box(s * 8.55, .06, 4.6 + n * 3.3, .14, .12, 1.8, 0xc8a02a, 15);
-  k.box(0, 4.65, GD / 2, 18.4, .1, GD + .4, 0x1c1e22, 2);
-  for (let z = 2; z < GD; z += 3) k.box(0, 4.42, z, 18, .3, .16, 0x2a2c30, 2);
+  k.box(0, 4.65, GD / 2, 18.4, .1, GD + .4, 0x2a2c30, 20);
+  for (let z = 2; z < GD; z += 3) k.box(0, 4.42, z, 18, .3, .16, 0x2a2c30, 34);
   for (let z = 4; z < GD; z += 5) { k.box(0, 4.22, z, .14, .06, 2.6, 0xf0f6ff, 11); k.box(0, 4.27, z, .26, .05, 2.7, 0x2a2c30, 15); }
   for (const s of [-1, 1]) for (let z = 6.2; z < GD - 4; z += 6.6) { k.box(s * 6.2, 4.22, z, 2.4, .06, .12, 0xf0f6ff, 11); k.box(s * 6.2, 4.27, z, 2.5, .05, .24, 0x2a2c30, 15); }
   // 水泥磚牆、黃黑腰帶
@@ -131,25 +131,25 @@ const bayOf = id => BAYS[CAR_ORDER.indexOf(id)];
   // 前牆與捲門（室內側）
   wall(-9.4, -3.2, -.4, 0, 4.6, 0x4a4d52); wall(3.2, 9.4, -.4, 0, 4.6, 0x4a4d52);
   B.push({ x0: -3.2, x1: 3.2, z0: -.6, z1: -.25 });
-  for (let y = .15; y < 4.1; y += .24) k.box(0, y, -.2, 6.4, .2, .08, 0x80848a, 15);
+  for (let y = .15; y < 4.1; y += .24) k.box(0, y, -.2, 6.4, .2, .08, 0x80848a, 22);
   k.box(0, 4.3, -.2, 6.6, .5, .4, 0x2a2c30, 15);
   for (const s of [-1, 1]) k.box(s * 3.25, 2.2, -.15, .12, 4.4, .16, 0x2a2c30, 15);
   k.box(0, .9, -.1, .5, .06, .1, 0xd8dce2, 3);
   // 後牆：工作台、洞洞板與工具、紅色工具車、輪胎架、油桶、小冰箱
-  k.box(-6.2, .9, 26.3 + GK, 4.2, .08, 1.1, 0x5a3a20, 10).box(-6.2, .45, 26.3 + GK, 4.0, .9, 1.0, 0x2a2c30, 15);
-  k.box(-6.2, 2.4, 26.95 + GK, 4.2, 1.8, .04, 0x8a7a5a, 2);
+  k.box(-6.2, .9, 26.3 + GK, 4.2, .08, 1.1, 0x5a3a20, 23).box(-6.2, .45, 26.3 + GK, 4.0, .9, 1.0, 0x2a2c30, 34);
+  k.box(-6.2, 2.4, 26.95 + GK, 4.2, 1.8, .04, 0x8a7a5a, 36);
   for (let i = 0; i < 9; i++) k.box(-7.9 + i * .42, 2.3 + (i % 3) * .3, 26.9 + GK, .05, .38 - (i % 2) * .1, .03, 0xb8bcc2, 3, 0, 0, (i % 3 - 1) * .3);
-  for (const [x, w] of [[-3.6, .9], [-2.6, .9]]) { k.box(x, .55, 26.5 + GK, w * .95, 1.1, .6, 0xa8141a, 10); for (let d = 0; d < 4; d++) k.box(x, .2 + d * .24, 26.19 + GK, w * .85, .02, .02, 0xd8dce2, 3); }
+  for (const [x, w] of [[-3.6, .9], [-2.6, .9]]) { k.box(x, .55, 26.5 + GK, w * .95, 1.1, .6, 0xa8141a, 34); for (let d = 0; d < 4; d++) k.box(x, .2 + d * .24, 26.19 + GK, w * .85, .02, .02, 0xd8dce2, 3); }
   B.push({ x0: -8.4, x1: -2.1, z0: 25.7 + GK, z1: 27 + GK });
   for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) k.add(new T.TorusGeometry(.3, .12, 8, 18), 0x141414, 6, tf(6.4 + i * .82, .45 + j * .82, 26.4 + GK, 0, 0, 0));
   k.box(7.2, .02, 26.4 + GK, 2.8, .04, .6, 0x2a2c30, 15);
-  for (const [x, z, c] of [[3.4, 26.3 + GK, 0x1c4a7a], [4.2, 26.4 + GK, 0x7a1c1c]]) k.cyl(x, .45, z, .3, .3, .9, 16, c, 10).cyl(x, .9, z, .3, .3, .02, 16, 0x1a1a1a, 15);
+  for (const [x, z, c] of [[3.4, 26.3 + GK, 0x1c4a7a], [4.2, 26.4 + GK, 0x7a1c1c]]) k.cyl(x, .45, z, .3, .3, .9, 16, c, 21).cyl(x, .9, z, .3, .3, .02, 16, 0x1a1a1a, 15);
   B.push({ x0: 2.9, x1: 8.8, z0: 25.9 + GK, z1: 27 + GK });
   // 牆上的旗子與時鐘、入口旁的開關箱
   k.box(-8.94, 3.2, 8, .03, .9, 2.4, 0x14243a, 2).box(-8.93, 3.2, 8, .02, .12, 2.4, 0xd8a02a, 2);
   k.cyl(8.94, 3.2, 12, .35, .35, .04, 24, 0xe8e4dc, 10, 0, 0, Math.PI / 2).box(8.91, 3.25, 12, .02, .22, .03, 0x111111, 2).box(8.91, 3.2, 11.92, .02, .03, .16, 0x111111, 2);
   k.box(4, 1.4, .08, .5, .7, .14, 0x3a3d42, 15).box(4, 1.5, .16, .12, .12, .02, 0x40ff80, 11);
-  S.add(new T.Mesh(k.build(), MAT.uber));
+  S.add(new T.Mesh(k.build(), MAT.ux));   // 牆、地坪、天花板與工作台用 07-kitx.js 的程式紋理
   S.add(home.cars);
   home.baseN = home.circles.length;
 }
@@ -309,7 +309,7 @@ ctxHooks.push((p, near) => {
 
 // ─── 每幀：轉盤、試駕倒數 ───
 function updateMotors(dt, t) {
-  if (glbWait.length && (player.where === 'show' || player.where === 'home')) glbWake(VENUES[player.where].scene);
+  if (glbWait.length && (player.where === 'show' || player.where === 'home' || player.where === 'casino')) glbWake(VENUES[player.where].scene);   // casino：轉台上的頭獎車（69-v7-casino.js）
   else if (glbWait.length && player.where === 'out' && Math.hypot(player.x - VENUES.show.door.x, player.z - VENUES.show.door.z) < 90) glbWake(scene);   // 車行門口的展示車
   // 這一批實車模型的下載進度
   const f = glbBatchFrac(), dl = $('dl');

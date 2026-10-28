@@ -28,7 +28,7 @@ const RELIEF_R = 230;
     }
     return k.build();
   };
-  const WIN = {}, winList = k => (WIN[k] ||= []);
+  const WIN = {}, winList = k => (WIN[k] ||= []), BAL = { glass: [], iron: [] };
   const kits = new Map(), kitOf = L => { const key = L.b ? L.b.i + ',' + L.b.j : 'z' + (L.zn ? L.zn.id : '-'); if (!kits.has(key)) kits.set(key, { k: new Kit(), zn: L.zn }); return kits.get(key).k; };
   // 面 key 的幾何：起點 a（u = 0，面向觀看者的左邊）、u 方向、法線、寬
   const faceOf = (L, key) => key === 'pz' ? { ax: L.x0, az: L.z1, ux: 1, uz: 0, nx: 0, nz: 1, w: L.x1 - L.x0, ry: 0 }
@@ -65,12 +65,15 @@ const RELIEF_R = 230;
       if (L.axis === 'z' && L.b && !L.b.outer) { if (Math.abs(L.x0 - (L.b.x0 + SW)) < .01) shopF.nx = true; if (Math.abs(L.x1 - (L.b.x1 - SW)) < .01) shopF.px = true; }
     }
     if (st === 3) {   // 玻璃帷幕：豎框位置立鰭片，每層一道細的樓板線腳；頂上 1.6 m 是霓虹冠帶
-      for (const key of ['pz', 'nz', 'px', 'nx']) {
-        const F = faceOf(L, key), cols = Math.max(1, Math.floor((F.w - 1) / 1.6)), mg = (F.w - cols * 1.6) / 2, y0 = Math.max(GH, coverH(L, key)), y1 = L.h - 1.6;
-        if (y1 - y0 < 3) continue;
-        for (let c = 0; c <= cols; c++) fbox(k, F, mg + c * 1.6, (y0 + y1) / 2, .14, .07, y1 - y0, .28, 0x2a2e34, TX.galv);
-        for (let y = GH + 3.7; y < y1; y += 3.7) if (y > y0) fbox(k, F, F.w / 2, y, .05, F.w - 2 * mg, .12, .1, 0x30343a, TX.galv);
-        if (key === front && !L.back) for (const s of [0, F.w]) fbox(k, F, s, GH / 2, .1, .5, GH, .2, 0x30343a, TX.galv);
+      // 牆照 09-mass.js 的 facWalls（街角退一格的塔樓是基座四面加上面八段）
+      for (const w of facWalls(L)) {
+        const F = w.F, key = w.key, cols = Math.max(1, Math.floor((F.w - 1) / 1.6)), mg = (F.w - cols * 1.6) / 2;
+        const y0 = Math.max(GH, w.y0, key ? coverH(L, key) : 0), y1 = w.y1 >= L.h - .01 ? L.h - 1.6 : w.y1;
+        if (y1 - y0 >= 3) {
+          for (let c = 0; c <= cols; c++) fbox(k, F, mg + c * 1.6, (y0 + y1) / 2, .14, .07, y1 - y0, .28, 0x2a2e34, TX.galv);
+          for (let y = GH + 3.7; y < y1; y += 3.7) if (y > y0) fbox(k, F, F.w / 2, y, .05, F.w - 2 * mg, .12, .1, 0x30343a, TX.galv);
+        }
+        if (key === front && w.y0 === 0 && !L.back) for (const s of [0, F.w]) fbox(k, F, s, GH / 2, .1, .5, GH, .2, 0x30343a, TX.galv);
       }
       continue;
     }
@@ -85,11 +88,31 @@ const RELIEF_R = 230;
       for (let fi = 0; fi < nF; fi++) {
         const y = GH + fi * fh + .18 * fh;
         if (y < cov + .3) continue;
-        for (let ci = 0; ci < cols; ci++) { const [x, , z] = P(F, mg + (ci + .5) * ws, 0, 0); winList(wkey).push({ x, y, z, ry: F.ry, zn: L.zn }); }
+        for (let ci = 0; ci < cols; ci++) { if (isFront && facBayAt(L, ci, fi)) continue; const [x, , z] = P(F, mg + (ci + .5) * ws, 0, 0); winList(wkey).push({ x, y, z, ry: F.ry, zn: L.zn }); }
+      }
+      // 凸窗（09-mass.js）：正面的窗照它自己的窗格，腰線包過凸窗的正面與兩側
+      if (isFront) for (const b of L.mass ? L.mass.bays : []) {
+        const Fb = facBayF(L, b), bc = Math.max(1, Math.floor((Fb.w - 1) / ws)), bm = (Fb.w - bc * ws) / 2;
+        for (let fi = b.f0; fi <= b.f1; fi++) for (let ci = 0; ci < bc; ci++) {
+          const [x, , z] = P(Fb, bm + (ci + .5) * ws, 0, 0); winList(wkey).push({ x, y: GH + fi * fh + .18 * fh, z, ry: F.ry, zn: L.zn });
+        }
+        const every = st === 4 ? 2 : 3;
+        for (let fi = every; fi < nF; fi += every) {
+          const y = GH + fi * fh - .12;
+          if (y < b.y0 + .2 || y > b.y1 - .3) continue;
+          fbox(k, Fb, Fb.w / 2, y, .05, Fb.w + .1, .16, .1, 0x8a7f70, TX.stone);
+          for (const u of [b.u0, b.u1]) fbox(k, F, u, y, b.d / 2, .1, .16, b.d, 0x8a7f70, TX.stone);
+        }
       }
       if (cov > 1) continue;
       // 一樓：店面之間的壁柱（柱礎、柱身、柱頭），或住宅入口的門框與雨遮
-      if (shopF[key] && st !== 5) {
+      if (isFront && L.mass && L.mass.arc) {   // 騎樓（09-mass.js）：每根柱的柱礎與柱頭，梁下一道線腳
+        for (const [u0, u1] of arcCols(L, F.w)) {
+          const c = (u0 + u1) / 2;
+          fbox(k, F, c, .36, -.25, .64, .4, .64, 0x3a3532, TX.stone).box(...P(F, c, 3.33, -.25), .64, .14, .64, 0x5a544e, TX.stone, 0, F.ry);
+        }
+        fbox(k, F, F.w / 2, 3.36, .04, F.w, .12, .08, 0x5a544e, TX.stone);
+      } else if (shopF[key] && st !== 5) {
         const units = Math.max(1, Math.round(F.w / 6.5)), uw = F.w / units, pc = st === 6 ? 0x0f291f : 0x4d4742;
         for (let u = 0; u <= units; u++) {
           const a = u === 0 ? .28 : u === units ? F.w - .28 : u * uw;
@@ -131,7 +154,7 @@ const RELIEF_R = 230;
       if (key !== front && cov >= L.h - .5) continue;
       const every = st === 2 ? 1 : st === 4 ? 2 : 3, bandC = st === 4 ? 0xd8d0c0 : st === 2 ? 0x77736b : 0x8a7f70, bandM = st === 4 || st === 2 ? TX.conc : TX.stone;
       if (cov < GH - .2) fbox(k, F2, F2.w / 2, GH - .02, .07, F2.w, .2, .14, bandC, bandM);
-      for (let fi = every; fi < nF; fi += every) {
+      for (let fi = every; fi < nF && st !== 4; fi += every) {   // 灰泥樓每層已經有樓板帶（09-mass.js）
         const y = GH + fi * fh - .12;
         if (y > cov + .2 && y < L.h - 1.2) fbox(k, F2, F2.w / 2, y, .05, F2.w, st === 2 ? .1 : .16, st === 2 ? .1 : .1, bandC, bandM);
       }
@@ -153,11 +176,16 @@ const RELIEF_R = 230;
           fbox(k, F2, u + s * (w / 2 + w * .27), y + h / 2, .04, w * .5, h, .05, shut, TX.woodY);
           for (let j = 1; j < 7; j++) fbox(k, F2, u + s * (w / 2 + w * .27), y + h * j / 7, .07, w * .44, .025, .02, shut, TX.woodY);
         }
-        if ((fi + ci) % 2 === 0) {
+        if ((fi + ci) % 2 === 0 && !L.mass.bal.some(b => b.fi === fi && Math.abs(b.u - (mg + (ci + .5) * ws)) < ws)) {   // 陽台後面不擺花台
           fbox(k, F2, u, y - .2, .2, w + .12, .22, .26, 0x6a4a34, TX.woodX);
           for (let j = 0; j < 4; j++) fbox(k, F2, u - w / 2 + (j + .5) * w / 4, y - .02, .2, w / 4.4, .16, .2, j % 2 ? 0xb0283a : 0x3e6a2c, 2);
         }
       }
+    }
+    // 陽台（09-mass.js 的 L.mass.bal）：樓板凸出 1.1 m，欄杆一半的樓是玻璃、一半是鐵欄杆（每棟一種）
+    for (const b of L.mass.bal) {
+      const F2 = faceOf(L, front), [x, , z] = P(F2, b.u, 0, 0);
+      (facHash(L.seed, 33) < .5 ? BAL.glass : BAL.iron).push({ x, y: GH + b.fi * fh + .14, z, ry: F2.ry, zn: L.zn });
     }
     // 女兒牆與壓頂：四邊貼著外牆往上 0.75 m（簷口頂在 h + 0.06），屋頂從街上看是圍起來的；斜屋頂（19-roofs.js）的樓不擺
     if (roofKind(L)) continue;
@@ -167,6 +195,25 @@ const RELIEF_R = 230;
     const cy = L.h + ph + .04, cc = st === 2 || st === 4 ? 0x6a6c70 : 0x8a8478;
     k.box((L.x0 + L.x1) / 2, cy, L.z0 + t / 2, L.x1 - L.x0 + .08, .08, t + .08, cc, TX.stone).box((L.x0 + L.x1) / 2, cy, L.z1 - t / 2, L.x1 - L.x0 + .08, .08, t + .08, cc, TX.stone);
     k.box(L.x0 + t / 2, cy, (L.z0 + L.z1) / 2, t + .08, .08, L.z1 - L.z0, cc, TX.stone).box(L.x1 - t / 2, cy, (L.z0 + L.z1) / 2, t + .08, .08, L.z1 - L.z0, cc, TX.stone);
+  }
+  // 陽台的幾何：局部原點在樓板頂、牆面上，+z 朝外；寬照兩個開間（2 × 2.5 − 0.3）
+  {
+    const w = 4.7, D = 1.1, slab = 0xd8d2c4, rail = 0x2a2d31;
+    const base = k => k.box(0, -.09, D / 2, w, .18, D, slab, TX.conc).box(0, -.2, D - .04, w, .04, .08, 0xb8b2a4, TX.conc);   // 樓板與滴水線
+    const g = new Kit(); base(g);
+    g.box(0, .52, D - .06, w - .08, .92, .025, 0x4f6268, 0);                                            // 正面的玻璃板
+    for (const s of [-1, 1]) g.box(s * (w / 2 - .04), .52, D / 2, .025, .92, D - .1, 0x4f6268, 0);       // 兩側玻璃板
+    g.box(0, 1.0, D - .06, w, .05, .07, rail, TX.galv);
+    for (const s of [-1, 1]) g.box(s * (w / 2 - .04), 1.0, D / 2, .07, .05, D - .06, rail, TX.galv).box(s * (w / 2 - .04), .5, D - .06, .06, 1.0, .06, rail, TX.galv);
+    const i = new Kit(); base(i);
+    i.box(0, 1.0, D - .05, w, .05, .05, rail, TX.iron).box(0, .1, D - .05, w, .04, .04, rail, TX.iron);
+    for (let x = -w / 2 + .05; x <= w / 2 - .04; x += .19) i.box(x, .55, D - .05, .022, .9, .022, rail, TX.iron);
+    for (const s of [-1, 1]) {
+      i.box(s * (w / 2 - .03), 1.0, D / 2, .05, .05, D - .05, rail, TX.iron).box(s * (w / 2 - .03), .1, D / 2, .04, .04, D - .05, rail, TX.iron);
+      for (let z = .2; z < D - .1; z += .19) i.box(s * (w / 2 - .03), .55, z, .022, .9, .022, rail, TX.iron);
+    }
+    if (BAL.glass.length) instanced(g.build(), MAT.ux, BAL.glass, 0, null, RELIEF_R);
+    if (BAL.iron.length) instanced(i.build(), MAT.ux, BAL.iron, 0, null, RELIEF_R);
   }
   for (const key in WIN) {
     const kind = key.replace(/[\d.]+$/, ''), ws = +key.slice(kind.length);

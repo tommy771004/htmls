@@ -100,10 +100,10 @@ if (RAIL) {
         if (i && j) { const a = (i - 1) * (nd + 1) + j - 1, b = i * (nd + 1) + j - 1; idx.push(...(e.s > 0 ? [a, a + 1, b, b, a + 1, b + 1] : [a, b, a + 1, a + 1, b, b + 1])); }
       }
       const g = new T.BufferGeometry();
-      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(new Array(pos.length / 3).fill(2), 1));
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(new Array(pos.length / 3).fill(TX.hill), 1));   // 和山坡同一套材質（07-kitx.js）
       g.setIndex(idx); g.computeVertexNormals();
       if (g.attributes.normal.array[1] < 0) { g.setIndex(idx.map((v, n) => idx[n - n % 3 + [0, 2, 1][n % 3]])); g.computeVertexNormals(); }   // 繞序朝下就翻過來
-      const lm = new T.Mesh(g, MAT.uber); lm.name = 'railLid'; cityAdd(lm, RAIL_ZN);
+      const lm = new T.Mesh(g, MAT.ux); lm.name = 'railLid'; cityAdd(lm, RAIL_ZN);
     }
     ebox(e, (A - 1 + A + B) / 2, 0, D - .24, B + 1, .1, 2 * (rock ? Pt.cw : Pt.cw) + .4, 0x46423c, 2);   // 洞裡的地面（溝底、拱洞裡）
     // ─── 隧道：洞口（port.in）往裡兩面洞壁、洞頂，洞口那圈擋住模型洞口和洞壁之間的縫；12 m 一段，越裡面越暗，黑色的洞底；

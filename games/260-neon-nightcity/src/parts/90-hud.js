@@ -9,6 +9,7 @@ const MAP_BB = (() => {
   rectW(ISLE.x0, ISLE.x1, ISLE.z0, ISLE.z1).forEach(add);
   add(toW(FAR_BANK_X - 120, Math.min(FAR_Z1, CITY_Z0), FAR_ZN));
   if (RAIL) for (const [x, z] of RAIL.pts) add(toW(x, z, RAIL_ZN));   // 北嶺鐵道橋連兩端的隧道
+  if (ENC) { const P = ENC.pad; rectW(P.x0, P.x1, P.z0, P.z1, ENC.f).forEach(add); }   // 雲梯城寨
   return B;
 })();
 const MAP_X0 = MAP_BB.x0, MAP_Z0 = MAP_BB.z0, MAP_S = 1.5, MINI_K = 2 / MAP_S;
@@ -78,6 +79,20 @@ const MAP_AIR = AIR_L ? (() => {
     apron: [r(A.x0, A.x1, A.z0, A.z1), r(L.land.x0, L.land.x1, L.land.z0, L.land.z1), r(L.plaza.x0, L.plaza.x1, L.plaza.z0, L.plaza.z1), r(L.park.x0, L.park.x1, L.park.z0, L.park.z1)],
     bld: [r(L.term.x - 85, L.term.x + 85, L.term.z - 55, L.term.z + 55), r(L.hangar.x - 57, L.hangar.x + 57, L.hangar.z - 38, L.hangar.z + 38), r(L.tower.x - 9, L.tower.x + 9, L.tower.z - 9, L.tower.z + 9)] };
 })() : null;
+// 雲梯城寨（28-enclave.js；ENC.f 框座標的矩形換成世界座標）：平台是鋪面、街是路、地塊是街區、樓照地塊的顏色
+const MAP_ENC = ENC ? (() => {
+  const S = ENC.S, r = o => rectW(o.x0, o.x1, o.z0, o.z1, ENC.f), P = ENC.pad;
+  return { pad: r({ ...P, z1: 0 }), st: S.streets.map(o => r(o.id === 'main' ? { ...o, z1: 0 } : o)), lot: S.lots.map(r), court: S.lots.map(L => r(L.court)), bld: S.blds.map(r) };   // 平台與主街畫到框的 z = 0（城市外緣那條路的中心線），城裡的路與街區後畫、蓋在上面
+})() : null;
+function encMapDraw(c, P, k, C) {
+  if (!MAP_ENC) return;
+  const M = MAP_ENC, poly = pts => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); c.closePath(); c.fill(); };
+  c.fillStyle = C.walk; poly(M.pad);
+  c.fillStyle = C.road; M.st.forEach(poly);
+  c.fillStyle = C.block; M.lot.forEach(poly);
+  c.fillStyle = C.walk; M.court.forEach(poly);
+  c.fillStyle = '#1f2228'; M.bld.forEach(poly);
+}
 // 機場不在預先畫好的小地圖底圖（mapImg）裡（底圖會寬兩倍多），底圖、全區地圖與小地圖都即時用向量畫
 function airMapDraw(c, P, k, C) {
   if (!MAP_AIR) return;
@@ -97,6 +112,7 @@ function drawCity(c, P, k, C, vis, lot, line) {
   for (const s of G.coast) if (vis(s.bb)) { c.fillStyle = C[s.c]; path(s.pts, true); c.fill(); }
   { const K = MAP_PARK; c.fillStyle = C.park; path(K.walk, true); c.fill(); c.strokeStyle = C.trail || '#8a7050'; c.lineWidth = Math.max(1.4, 2.6 * k); c.lineJoin = c.lineCap = 'round'; path(K.trail); c.stroke(); c.fillStyle = C.trail || '#8a7050'; path(K.look, true); c.fill(); path(K.cabin, true); c.fill(); }   // 北嶺公園
   airMapDraw(c, P, k, C);
+  encMapDraw(c, P, k, C);
   if (MAP_RAIL) {   // 鐵道：深色道床上一條淺色軌線，隧道是虛線
     const R = MAP_RAIL, lw = Math.max(1.2, 2.2 * k);
     c.lineJoin = c.lineCap = 'round'; c.strokeStyle = C.railBed || '#15171b'; c.lineWidth = lw * 2.4; path(R.open); c.stroke();
@@ -181,6 +197,17 @@ function streetName(X, Z, Y) {
 }
 const hudCache = {};
 const setText = (id, t) => { if (hudCache[id] !== t) { hudCache[id] = t; $(id).textContent = t; } };
+// 時間區塊左邊的 FPS 與每幀毫秒：99-main.js 的 loop 每畫一幀叫一次，用真實時間（不受子彈時間與 dt 上限影響），每 0.5 秒算一次平均；
+// 中間隔了 2 秒以上（暫停選單、分頁切走）就重新起算，不顯示那一段
+const hudPf = { n: 0, t0: 0 };
+function hudPerf(now) {
+  const el = now - hudPf.t0;
+  if (!hudPf.t0 || el > 2000) { hudPf.t0 = now; hudPf.n = 0; return; }
+  hudPf.n++;
+  if (el < 500) return;
+  setText('fpsN', String(Math.round(hudPf.n * 1000 / el))); setText('fpsMs', (el / hudPf.n).toFixed(1));
+  hudPf.n = 0; hudPf.t0 = now;
+}
 const _pv = V3();
 function drawCompass(h, mk, wp) {
   const W = cmp.width, H = cmp.height; cctx.clearRect(0, 0, W, H);

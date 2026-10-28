@@ -273,7 +273,7 @@ const wake = (() => {
   const at = { iP: new T.InstancedBufferAttribute(new Float32Array(WAKE_N * 4), 4), iA: new T.InstancedBufferAttribute(new Float32Array(WAKE_N * 4), 4) };
   for (const k in at) { at[k].setUsage(T.DynamicDrawUsage); g.setAttribute(k, at[k]); }
   g.instanceCount = 0;
-  const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: WAKE_VS, fragmentShader: WAKE_FS, transparent: true, depthWrite: false }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'wake', uniforms: shared(ALLU), vertexShader: WAKE_VS, fragmentShader: WAKE_FS, transparent: true, depthWrite: false }));
   m.frustumCulled = false; m.renderOrder = 3; m.layers.set(LY.NOREFL); scene.add(m);
   return { m, at, list: [] };
 })();

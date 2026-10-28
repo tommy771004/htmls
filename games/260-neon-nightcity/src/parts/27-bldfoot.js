@@ -307,7 +307,10 @@ function blkFoot(b) {
   const G = footGrid(b), { nx, nz } = G, N = nx * nz;
   const block = new Uint8Array(N);
   const mark = (x0, x1, z0, z1) => { for (let j = Math.max(1, footJ(G, z0 + FOOT_C / 2)); j <= Math.min(nz - 2, footJ(G, z1 - FOOT_C / 2)); j++) for (let i = Math.max(1, footI(G, x0 + FOOT_C / 2)); i <= Math.min(nx - 2, footI(G, x1 - FOOT_C / 2)); i++) block[j * nx + i] = 1; };
-  for (const L of lots) if (L.b === b && !L.ghost && !(L.glb && L.glb.cut)) mark(L.x0, L.x1, L.z0, L.z1);   // ghost：設施街區原本的地塊
+  for (const L of lots) if (L.b === b && !L.ghost && !(L.glb && L.glb.cut)) {   // ghost：設施街區原本的地塊；騎樓（09-mass.js）正面那條不擋
+    const k = L.mass && L.mass.arc ? L.mass.front : '', D = ARC_D;
+    mark(L.x0 + (k === 'nx' ? D : 0), L.x1 - (k === 'px' ? D : 0), L.z0 + (k === 'nz' ? D : 0), L.z1 - (k === 'pz' ? D : 0));
+  }
   for (const r of b.fill || []) mark(r.x0, r.x1, r.z0, r.z1);   // bldSeam 補的立面
   for (const e of b.ents) if (!e.cut && !e.lots.length) { const it = PROPS_SPEC[e.set]?.items[e.id]; if (it) { const [w, d] = hmFoot(e, it); mark(e.x - w / 2, e.x + w / 2, e.z - d / 2, e.z + d / 2); } }   // 同一街區的第二群（沒有地塊）
   const wallD = footDilate(G.wall, nx, nz, FOOT_CLOSE), open = new Uint8Array(N);

@@ -141,6 +141,43 @@ const TMS = 2.5;
   tx.minFilter = tx.magFilter = T.LinearFilter; tx.generateMipmaps = false; tx.needsUpdate = true;
   U.uTMap.value = tx; U.uTM.value.set(HM.x0, HM.z0, 1 / (n * TMS), max + .5);
 }
+// ─── 外緣山林的樹冠圖（00-core.js 的 forestVis）：10-city.js 的 HILL_FOREST 照鏡頭畫 1 km 見方（2 m 一格），鏡頭離圖中心 160 m 以上才重畫（99-main.js 每幀問）。
+// 冷杉是圓錐（頂 18.7·s、底 1.8·s、底半徑 4·s，同 blender/forest.py），楓樹是橢球（中心 7.4·s、橫半徑 4.8·s、縱半徑 4.6·s）；r 是頂、g 是底（世界高度）───
+const FM = { S: 2, n: 512, cx: 1e9, cz: 1e9, tex: null, top: null, bot: null, builds: 0 };
+{
+  const n = FM.n; FM.top = new Float32Array(n * n); FM.bot = new Float32Array(n * n);
+  FM.tex = new T.DataTexture(new Uint16Array(n * n * 2), n, n, T.RGFormat, T.HalfFloatType);
+  FM.tex.minFilter = FM.tex.magFilter = T.LinearFilter; FM.tex.generateMipmaps = false;
+  U.uFMap.value = FM.tex;
+}
+function forestMap(cx, cz) {
+  if (Math.abs(cx - FM.cx) < 160 && Math.abs(cz - FM.cz) < 160 || !HILL_FOREST.fir.length && !HILL_FOREST.maple.length) return;
+  const n = FM.n, S = FM.S, half = n * S / 2, top = FM.top, bot = FM.bot;
+  FM.cx = Math.round(cx / 40) * 40; FM.cz = Math.round(cz / 40) * 40;
+  const x0 = FM.cx - half, z0 = FM.cz - half;
+  top.fill(-1e4); bot.fill(1e4);
+  let any = 0;
+  const put = (t, cone) => {
+    const s = t.s || 1, r = (cone ? 4 : 4.8) * s;
+    if (t.x < x0 - r || t.x > x0 + 2 * half + r || t.z < z0 - r || t.z > z0 + 2 * half + r) return;
+    any++;
+    const i0 = Math.max(0, Math.floor((t.x - r - x0) / S)), i1 = Math.min(n - 1, Math.floor((t.x + r - x0) / S));
+    const j0 = Math.max(0, Math.floor((t.z - r - z0) / S)), j1 = Math.min(n - 1, Math.floor((t.z + r - z0) / S));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const dx = x0 + (i + .5) * S - t.x, dz = z0 + (j + .5) * S - t.z, dd = Math.sqrt(dx * dx + dz * dz);
+      if (dd >= r) continue;
+      const o = j * n + i;
+      if (cone) { top[o] = Math.max(top[o], t.y + s * 18.7 - dd * 16.9 / 4); bot[o] = Math.min(bot[o], t.y + 1.8 * s); }
+      else { const e = Math.sqrt(1 - dd * dd / (r * r)) * 4.6 * s, cy = t.y + 7.4 * s; top[o] = Math.max(top[o], cy + e); bot[o] = Math.min(bot[o], cy - e * .8); }
+    }
+  };
+  for (const t of HILL_FOREST.fir) put(t, true);
+  for (const t of HILL_FOREST.maple) put(t, false);
+  const arr = FM.tex.image.data, h = T.DataUtils.toHalfFloat;
+  for (let o = 0; o < n * n; o++) { const e = top[o] < -1e3; arr[o * 2] = h(e ? 0 : top[o]); arr[o * 2 + 1] = h(e ? 0 : bot[o]); }
+  FM.tex.needsUpdate = true; FM.builds++;
+  U.uFM.value.set(x0, z0, 1 / (n * S), any ? 1 : 0);
+}
 // 斜屋頂（19-roofs.js）：屋頂面的高度寫進高度圖（日光陰影的屋脊、直升機與跳傘落在屋頂上不會陷進去）；邏輯座標每 0.6 m 取一點換到世界
 {
   for (const L of lots) {

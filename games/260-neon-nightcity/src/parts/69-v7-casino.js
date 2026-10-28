@@ -173,8 +173,8 @@ const casWheel = new T.Group(), casPod = new T.Group();
   // aero1515 的 WHEEL OF FORTUNE（casino.glb 的 cs_wheel，半徑 1.6 m、轉軸朝 −z）：疊在色盤前面一起轉，20 格色盤從八個木托盤之間露出來
   propSwap('casino', null, 'cs_wheel', [{ x: 0, y: 0, z: -.15 / .66, s: 1 / .66 }], casWheel, null, 'casino');
   const kp = new Kit(); kp.box(0, 0, 0, .18, .36, .08, 0xffffff, 8); const pm = new T.Mesh(kp.build(), MAT.uber); pm.position.set(CS_WHEEL.x, 4.72, 25.15); casScene.add(pm);
-  // 頭獎跑車：轉台上的程式建模替身（實車模型要到車行才看得到），縮成 0.82 才轉得開
-  const car = new T.Mesh(carKit(PODIUM).build(), MAT.uber); car.scale.setScalar(.82); casPod.add(car);
+  // 頭獎跑車：實車模型（26-glb.js 的 carObject，走進賭場才下載，之前是 traffic.glb 的替身），縮成 0.82 才轉得開
+  const car = carObject(PODIUM); car.name = 'podCar'; car.scale.setScalar(.82); casPod.add(car);
   const kt = new Kit(); kt.cyl(0, .01, 0, 1.92, 1.92, .08, 40, 0x2a2a30, 15); kt.cyl(0, -.01, 0, 2, 2, .06, 40, 0xd8b048, 8);   // 金色只露出外圈 casPod.add(new T.Mesh(kt.build(), MAT.uber));
   car.position.y = .05; casPod.position.set(CS_POD.x, .21, CS_POD.z); casScene.add(casPod);
 }

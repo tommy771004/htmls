@@ -27,7 +27,7 @@ const LM_WIN = /* glsl */`
     float litK = .9;
     #endif
     float hs = hw(cell), hs2 = hw(cell + 71.3), lit = step(hs, uLit * litK) * smoothstep(1.5, 3.5, vW.y);
-    vec3 lc = hs2 < .62 ? vec3(1., .72, .42) : hs2 < .88 ? vec3(.86, .9, 1.) : vec3(1., .86, .62);
+    vec3 lc = mix(vec3(1., .76, .48), vec3(1., .93, .8), hs2);   // 和其他窗燈一樣是自然的黃白光
     c = mix(c, lc * 1.15, lit * glass * side * mix(1., .04, uDay));   // 換成室內燈的顏色（不是疊加：亮的玻璃與白窗框疊上去會變成死白）
     c += base.rgb * uLamp * side * vec3(1., .72, .45) * (.05 + .6 * exp(-max(vW.y - .8, 0.) / 4.));   // 路燈打在一樓的暖光（和 WASH 的一樣，但不打整片開間的室內光）
   }
@@ -38,7 +38,7 @@ function lmMat(src) {
   let m = lmMats.get(src);
   if (!m) {
     m = glbMaterial(src, PROP_INST, 0, false);
-    m.defines.LMWIN = ''; m.fragmentShader = m.fragmentShader.replace('#ifdef WASH', LM_WIN + '  #ifdef WASH');
+    m.name = 'glbLM'; m.defines.LMWIN = ''; m.fragmentShader = m.fragmentShader.replace('#ifdef WASH', LM_WIN + '  #ifdef WASH');
     lmMats.set(src, m);
   }
   return m;

@@ -34,7 +34,7 @@ const GLB_VS_I = GLB_VS.replace('vec4 w = modelMatrix * vec4(position, 1.); vW =
 const propMatsI = new Map();
 function propMatI(mat) {   // 和 propMat 共用 uniforms（時間、相機、天氣都跟著動），只換頂點著色器
   let m = propMatsI.get(mat);
-  if (!m) { m = new T.ShaderMaterial({ uniforms: mat.uniforms, vertexShader: GLB_VS_I, fragmentShader: mat.fragmentShader, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
+  if (!m) { m = new T.ShaderMaterial({ name: mat.name + 'I', uniforms: mat.uniforms, vertexShader: GLB_VS_I, fragmentShader: mat.fragmentShader, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
   return m;
 }
 // ─── 分幀與預熱（96-perf.js 量到的抵達卡頓：第一次畫到時一幀上傳近百張貼圖、建築組在主執行緒合併一次 0.5～1 秒）───
@@ -90,7 +90,7 @@ async function glbWarm1(objs, near, inst) {
     ri.calls = c; ri.triangles = tr;
   }
 }
-// 一個輸出檔 → { 物件 id: { parts: [{ geo, mat }], w, d, h } }
+// 一個輸出檔 → { 物件 id: { parts: [{ geo, mat, src（原檔材質名） }], w, d, h } }
 function loadProps(set) {
   if (!GLB_ON || !PROPS_SPEC[set]) return Promise.resolve(null);
   const key = 'p:' + set;
@@ -101,7 +101,7 @@ function loadProps(set) {
     for (const n of g.scene.children) {
       const parts = [], ms = [];
       n.traverse(m => { if (m.isMesh) ms.push(m); });
-      for (const m of ms) { parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)) }); await clk.tick(); }
+      for (const m of ms) { parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)), src: m.material.name }); await clk.tick(); }
       items[n.name] = { parts, ...PROPS_SPEC[set].items[n.name] };
     }
     perfTags.push(['道具 ' + set, clk.ms()]);
@@ -293,12 +293,21 @@ function w2Load(set, fn, fail) {
   });
 }
 let w2Ready = Promise.resolve();
+// 山坡別墅每型的家具配色（27-props.js 的 villa_furn）：fab 沙發與抱枕、bed 床組（blender/villa_furn.py 把床單去色成灰階，乘上去就是床單色；黑床架照舊）、wood 茶几、邊几、電視櫃、餐桌腳、浴櫃（加深係數）、cab 廚房櫥櫃
+const VILLA_PAL = {
+  hm1: { fab: 0xe0d6c4, bed: 0xe6dfd2, cab: 0xf1eee8 },   // 懸崖展館：白牆玻璃盒，燕麥色布面、原色淺橡木、白櫥櫃
+  hm2: { fab: 0x55565a, bed: 0x8e9196, wood: 0x8a6f5c, cab: 0x5d6368 },   // 板岩柱：炭灰布面、胡桃木、板岩灰櫥櫃
+  hm3: { fab: 0xb98f68, bed: 0xc9a578, wood: 0xa8896e, cab: 0xd3c4a8 },   // 洞石刀片牆：駝色皮革調、煙燻橡木、洞石米色櫥櫃
+  hm4: { fab: 0x9a5c40, bed: 0x7f6a45, wood: 0x5c5650, cab: 0x7e8b78 },   // 鋼構斜撐：鏽紅布面、黑木、鼠尾草綠櫥櫃
+  hm5: { fab: 0x47607f, bed: 0x6286ad, wood: 0x7a5a42, cab: 0xe4d9c2 },   // 地中海莊園：海軍藍布面、深色木、奶油色櫥櫃
+};
 // 公園、縫與島上的樹分七種（nat_trees 四種、cs_country 三種，兩組各自擺），行道樹都是第 0 種（楓樹）
 const treePick = t => (t.park ? Math.floor(w2Hash(t.x, t.z) * 7) : 0);
 const isleTreeList = () => ISLE_TREES.map(t => ({ ...t, park: 1 }));
 // ?w2=0：不換這一輪的模型（比較效能、除錯用）
 if (/[?&]w2=0\b/.test(location.search)) W2.on = false;
 if (W2.on && GLB_VS_I !== GLB_VS) {
+  const FOREST_R = 190;   // 山林近景樹（每棵四五千面）的串流半徑
   const TREE_R = 200;   // 樹的面數多：只送 200 m 內的實例，外面用程式建模的樹（畫到 380 m）
   const W2R = { small: 110, mid: 160 };   // 小件（垃圾桶、消防栓、報紙箱、灌木）與中件（長椅、電話亭、陽傘）的串流半徑
   w2Ready = Promise.all([
@@ -345,6 +354,49 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       if (treeMesh.userData.stream) treeMesh.userData.stream.R0 = TREE_R - 6; else w2Drop(treeMesh);
       w2Drop(isleTreeMesh);
       W2.swapped.push('trees'); W2.n.trees = trees.length + ISLE_TREES.length;
+    }),
+    // ─── 外緣山林（10-city.js 的 HILL_FOREST）：近景換成 nat_forest 的冷杉與楓樹（blender/forest.py），50-assets.js 的遠景樹改成只畫在近景半徑外 ───
+    w2Load('nat_forest', it => {
+      for (const k of ['fir', 'maple']) w2Inst(it[k], HILL_FOREST[k], 0, FOREST_R);
+      HILL_FOREST.loR0 = FOREST_R - 6;   // 50-assets.js 的遠景樹只畫在這之外（WebGPU 下這裡可能比 50-assets.js 先跑，所以不直接碰 forestLo）
+      for (const k of ['fern', 'flower', 'grass']) w2Inst(it[k + '_patch'], HILL_FOREST.und[k], LY.NOREFL, 85);   // 林下層：每片幾百面，只送 85 m 內
+      W2.swapped.push('forest'); W2.n.forest = HILL_FOREST.fir.length + HILL_FOREST.maple.length; W2.n.und = Object.values(HILL_FOREST.und).reduce((a, L) => a + L.length, 0);
+    }),
+    // ─── 山坡別墅的室內家具（blender/villa_furn.py 從 Sketchfab 室內場景拆出的單件 → villa_furn；位置是 villa_plans.json 的 furniture，
+    // 建置時放進 VILLA_PLAN）：同一套模型擺進五型別墅，每型照建築換布面、木作與櫥櫃的顏色（VILLA_PAL：頂點色乘上去，貼圖照舊，
+    // 原檔的布面與櫥櫃是白的，乘上去就是那個顏色；木頭有自己的紋理，乘的是加深的係數）。Blender 座標 (x, y) 與樓板高 → 別墅的 (x, z, −y)
+    // 再照 h.ry 轉到世界；每件家具每型一組實例，只送 90 m 內 ───
+    w2Load('villa_furn', it => {
+      const YAW = { '-y': 0, '+y': Math.PI, '+x': Math.PI / 2, '-x': -Math.PI / 2 };
+      const ROLE = [[/^(Sofa|Pillows|Fabric)/, 'fab'], [/^material\.005/, 'bed'], [/^(CoffeeTable|EndTables|TVStand|Base\b|Cabinet)/, 'wood'], [/^Cupboard/, 'cab']];
+      const role = n => (ROLE.find(([re]) => re.test(n || '')) || [])[1];
+      const by = new Map();
+      for (const h of HILL_HOMES) {
+        const P = VILLA_PLAN[HOME_V[h.v][0]];
+        if (!P) continue;
+        const c = Math.cos(h.ry), s = Math.sin(h.ry);
+        for (const [L, id, x, y, face, sx, sy] of P.f) {
+          const z = -y, fy = P.lv.find(l => l.L === L).z + .025, k = id + '|' + h.v;
+          if (!by.has(k)) by.set(k, []);
+          by.get(k).push({ x: h.x + x * c + z * s, y: h.y + fy, z: h.z - x * s + z * c, ry: h.ry + YAW[face], sx, sz: sy, zn: null });
+        }
+      }
+      let n = 0;
+      for (const [k, L] of by) {
+        const [id, v] = k.split('|'), pal = VILLA_PAL[HOME_V[v][0]] || {};
+        if (!it[id]) continue;
+        for (const p of it[id].parts) {
+          const col = pal[role(p.src)];
+          let geo = p.geo;
+          if (col) {
+            const t = new T.Color(lin(col)), a = (geo = geo.clone()).attributes.color;
+            if (a) { for (let i = 0; i < a.count; i++) a.setXYZ(i, a.getX(i) * t.r, a.getY(i) * t.g, a.getZ(i) * t.b); a.needsUpdate = true; }
+          }
+          instanced(geo, propMatI(p.mat), L, LY.NOREFL, undefined, 90).userData.villaFurn = k;
+        }
+        n += L.length;
+      }
+      W2.swapped.push('villa_furn'); W2.n.villaFurn = n;
     }),
     // ─── 田園一景（abhayexe 的 Countryside Scene）拆出來的件：公園與島上的槭樹（nat_trees 的另外三種）、20 呎貨櫃、護欄 ───
     // 整景與島上的護欄在 27-world1.js（走近才擺）。貨櫃：拖吊場西牆邊兩個疊一起再一個、施工大樓工地東邊（材料棚北邊）兩個加一個疊上去；

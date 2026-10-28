@@ -237,7 +237,7 @@ if (GLB_ON && stBollardsL.length) loadProps('fort').then(it => {
 }).catch(e => console.warn('fort bollard', e));
 
 // ─── 透明玻璃（候車亭背牆、車行落地窗）：反射環境、邊緣比較不透明 ───
-const stGlassMat = new T.ShaderMaterial({
+const stGlassMat = new T.ShaderMaterial({ name: 'stGlass',
   uniforms: shared(ALLU), transparent: true, depthWrite: false, side: T.DoubleSide,
   vertexShader: /* glsl */`
 varying vec3 vW, vN;

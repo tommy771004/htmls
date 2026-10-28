@@ -1,5 +1,5 @@
 // ═══ 後製的 TSL 版本（?gfx=webgpu，02-gfx.js）：70-render.js 的泛光（mPre／mDown／mUp）與合成（mComp），照 GLSL 逐行改寫 ═══
-// 70-render.js 照舊用 blit() 換材質畫全螢幕三角形、改 uniforms 的值，這裡只換著色器。體積光（mVol）要 00-core.js 的 GL_LIB，還沒改寫前輸出 0
+// 70-render.js 照舊用 blit() 換材質畫全螢幕三角形、改 uniforms 的值，這裡只換著色器。體積光（mVol）要 00-core.js 的 GL_LIB，走 02-gfx.js 的自動轉換
 if (GFX !== 'webgl') {
   const { Fn, If, Loop, vec2, vec3, vec4, float, uv, mix, smoothstep, clamp, max, min, pow, dot, length, fract, sin, cos, abs, positionGeometry } = TSL;
   const passMat = frag => { const m = new NodeMaterial(); m.vertexNode = vec4(positionGeometry.xy, 0, 1); m.fragmentNode = frag; return m; };
@@ -32,7 +32,6 @@ if (GFX !== 'webgl') {
     const sum = s(0, 0).mul(4).add(s(1, 0).add(s(-1, 0)).add(s(0, 1)).add(s(0, -1)).mul(2)).add(s(1, 1)).add(s(-1, -1)).add(s(1, -1)).add(s(-1, 1));
     return passMat(vec4(add(Q).rgb.add(sum.div(16).mul(k)), 1));
   });
-  if (mVol) gfxPort(mVol, () => passMat(vec4(0, 0, 0, 1)));
   gfxPort(mComp, m => {
     const u = m.uniforms, G = k => gfxU(u[k]);
     const tScene = gfxT(u.tScene), tDepth = gfxT(u.tDepth), tBloom = gfxT(u.tBloom), tVol = gfxT(u.tVol);

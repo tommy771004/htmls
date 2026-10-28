@@ -341,7 +341,7 @@ ctxHooks.unshift(p => {
 function v5Key(code) {
   if (V5.lad) return code === 'Space' || code === 'KeyE' || code === 'KeyF';
   if (code === 'KeyF' && pkBail()) return true;   // 69-v5-garage.js：揹著傘包時從飛在半空的車上跳下去
-  if (code === 'Space' && player.mode === 'walk' && !player.air3) {
+  if (code === 'Space' && player.mode === 'walk' && !player.air3 && !player.jump) {
     const f = fenceNear(); if (f) { fenceStart(f); return true; }
     if (roofJump()) return true;
   }

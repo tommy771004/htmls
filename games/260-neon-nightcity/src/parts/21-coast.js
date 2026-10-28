@@ -42,9 +42,9 @@ void main(){
   n = normalize(n);
   vec3 v = normalize(uCam - vW);
   float F = .02 + .98*pow(1. - max(dot(n, v), 0.), 5.);
-  // 水體：外海深藍、淺水青綠（照環境光、日光與路燈打光，夜裡自然暗下去）；波峰透一點亮
+  // 水體：外海深藍灰、近岸偏灰綠的混濁水（城市的河與港口不是熱帶的青綠色）；照環境光、日光與路燈打光，夜裡自然暗下去；波峰透一點亮
   float sh = 1. - smoothstep(2., 26., shore + (n2(vW.xz*.03) - .5) * 8.);
-  vec3 body = mix(vec3(.004,.016,.04), vec3(.012,.085,.085), sh) * (1. + clamp(h, -.3, .6) * .9);
+  vec3 body = mix(vec3(.004,.014,.026), vec3(.014,.04,.034), sh) * (1. + clamp(h, -.3, .6) * .9);
   vec3 c = shade(vW, vec3(0., 1., 0.), v, body, .95, 0.) + shade(vW, n, v, vec3(0.), .1, 0.);
   vec3 rc;
   if (uReflOn > .5) rc = reflSample(vRP.xy / vRP.w + n.xz * vec2(.05, .11), .003 + min(dist, 600.)*.00003);
@@ -54,8 +54,8 @@ void main(){
   // 花紋是兩層順著水流漂的細胞雜訊（中間鏤空的蕾絲狀）
   vec2 fp = vW.xz + g * 6.;
   float lace = smoothstep(.42, .72, fbm(fp*.21 + vec2(t*.07, -t*.05))) * .7 + smoothstep(.55, .8, n2(fp*.9 - t*.3)) * .5;
-  float band = 1. - smoothstep(1., 5. + 7.*n2(vW.xz*.02 + t*.02), shore);
-  float wv = fract(shore / 11. + t * .11 + n2(vW.xz*.015) * .6), line = smoothstep(.0, .05, wv) * smoothstep(.3, .08, wv) * (1. - smoothstep(4., 24., shore));
+  float band = 1. - smoothstep(.6, 2.5 + 4.*n2(vW.xz*.02 + t*.02), shore);
+  float wv = fract(shore / 11. + t * .11 + n2(vW.xz*.015) * .6), line = smoothstep(.0, .05, wv) * smoothstep(.3, .08, wv) * (1. - smoothstep(3., 14., shore)) * .55;
   float cap = smoothstep(.95, 1.2, h + (n2(vW.xz*.11 + t*.15) - .5) * .3) * smoothstep(300., 80., dist) * .3;
   float foam = clamp(band * (.2 + .9*lace) + line * lace * .9 + cap * lace, 0., 1.) * smoothstep(1800., 500., dist);
   c = mix(c, shade(vW, normalize(vec3(n.x*.3, 1., n.z*.3)), v, vec3(.62,.66,.68), .85, 0.), foam);
@@ -120,7 +120,7 @@ void main(){
   vec3 c = wetSurface(alb, normalize(vN), .7, pud, 0.);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
-const groundMat = (fs, u = {}) => new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU, ...u }, vertexShader: GROUND_VS, fragmentShader: fs });
+const groundMat = (name, fs, u = {}) => new T.ShaderMaterial({ name, uniforms: { ...shared(ALLU), ...reflU, ...u }, vertexShader: GROUND_VS, fragmentShader: fs });
 // 離岸距離場：城市外緣往外一圈（含灰鷗島、光格島）切成方格，每格是不是陸地（陸地、沙灘露出水面的部分、山與對岸、光格島），
 // 再做精確的歐氏距離轉換（Felzenszwalb），存成 0–SHD_MAX m 的 8 位元貼圖。uShore：原點 x、z，1/邊長，SHD_MAX
 const SHD_MAX = 80;
@@ -159,8 +159,8 @@ const SHD = (() => {
   if (location.search.includes('shoreLog')) console.log(`離岸距離場 ${N}² · ${cs.toFixed(1)} m/格 · ${(performance.now() - t0).toFixed(0)} ms（陸地 ${(t1 - t0).toFixed(0)}）`);
   return { tex, u: new T.Vector4(x0, z0, 1 / size, SHD_MAX) };
 })();
-const MAT_WATER = groundMat(WATER_FS, { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) },
-  tShore: { value: SHD.tex }, uShore: { value: SHD.u } }), MAT_PLANK = groundMat(PLANK_FS);
+const MAT_WATER = groundMat('water', WATER_FS, { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) },
+  tShore: { value: SHD.tex }, uShore: { value: SHD.u } }), MAT_PLANK = groundMat('plank', PLANK_FS);
 {
   // 灰鷺河、南面的海、東面的海灣：一整張世界座標的水面（各區轉過、拉開之後，岸線與區之間的縫都還在水上；陸地蓋在上面）。
   // 最後才畫，被陸地擋住的部分不必算
@@ -187,17 +187,17 @@ function farClamp(X, Z) {
     p.setXYZ(i, (BEACH.x0 + BEACH.x1) / 2 + p.getX(i), -clamp((z - BEACH.z0) / BEACH.len, 0, 1.3) * BEACH.drop + .001, z);
   }
   g.computeVertexNormals();
-  groundAdd(new T.Mesh(g, groundMat(SAND_FS, { uSea: { value: SEA_Y } })));
+  groundAdd(new T.Mesh(g, groundMat('sand', SAND_FS, { uSea: { value: SEA_Y } })));
 }
 // 碼頭面與島面：上表面 y = 0，側面一路到水下
 {
   const slab = (r, mat, depth = 4) => { const g = new T.BoxGeometry(r.x1 - r.x0, depth, r.z1 - r.z0); g.translate((r.x0 + r.x1) / 2, -depth / 2, (r.z0 + r.z1) / 2); groundAdd(new T.Mesh(g, mat)); };
-  slab({ ...QUAY, z0: QUAY.z0 - INLAND }, groundMat(QUAY_FS, { uQuay: { value: new T.Vector4(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1) } }));
-  slab(ISLE, groundMat(ISLE_FS, { uIsle: { value: new T.Vector4(BRIDGE_X, ISLE.z0 + 120, ISLE.z0 + 120, 0) } }), 6);
+  slab({ ...QUAY, z0: QUAY.z0 - INLAND }, groundMat('quay', QUAY_FS, { uQuay: { value: new T.Vector4(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1) } }));
+  slab(ISLE, groundMat('isleGround', ISLE_FS, { uIsle: { value: new T.Vector4(BRIDGE_X, ISLE.z0 + 120, ISLE.z0 + 120, 0) } }), 6);
 }
 
 // 山的頂點色：林線以下深綠、往上轉成岩色（21-rail.js 的山頭蓋板也照它，接得上山坡）
-const HILL_CA = new T.Color(0x0e170c), HILL_CB = new T.Color(0x1c1a16), HILL_CC = new T.Color(0x2a2a2c);
+const HILL_CA = new T.Color(0x1e2b15), HILL_CB = new T.Color(0x2c2a20), HILL_CC = new T.Color(0x3a3a3c);   // 林、灌木與裸岩、山頂；細節在 07-kitx.js 的 TX.hill（原本 0x0e170c 近乎黑，白天是一面暗藍灰的板子）
 const hillColor = (c, X, Z, h) => c.copy(HILL_CA).lerp(HILL_CB, clamp((h - 60) / 160, 0, 1)).lerp(HILL_CC, clamp((h - 260) / 200, 0, 1)).multiplyScalar(.85 + .3 * Math.sin(X * .013 + Z * .009));
 
 // ─── 擋牆旁的欄杆、步道路燈 ───
@@ -395,7 +395,7 @@ let benchMesh, planterShrubMesh;
 }
 // 區之間的縫：碎石步道（草地 shader 的小徑顏色）、步道路燈，涼亭、茶亭與公廁（20-props.js 的 SEAM_PATH、SEAM_SITES，世界座標，掛在 scene）
 {
-  const mat = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
+  const mat = new T.ShaderMaterial({ name: 'path', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
     side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const wp = [], wn = [], k = new Kit();
   for (const run of SEAM_PATH) {
@@ -948,7 +948,7 @@ const beacon = new T.Group();
   coastLight(x, 33, z, 0xfff0c0, 22, 1.4);
   // 旋轉的光束：兩道往外的長錐（加法混合，越遠越淡）
   const bg = new T.CylinderGeometry(16, .6, 420, 20, 1, true); bg.rotateZ(-Math.PI / 2); bg.translate(210, 0, 0);
-  const bm = new T.ShaderMaterial({ uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
+  const bm = new T.ShaderMaterial({ name: 'lighthouseBeam', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
     vertexShader: `varying float vT; varying vec3 vW; void main(){ vT = position.x / 420.; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `uniform float uFogDen; varying float vT; varying vec3 vW; void main(){ float a = pow(1. - clamp(vT, 0., 1.), 2.4) * smoothstep(0., .03, vT) * .07; gl_FragColor = vec4(vec3(1., .93, .75) * a, 1.); }` });
   for (const s of [0, Math.PI]) { const b = new T.Mesh(bg, bm); b.rotation.y = s; b.layers.set(LY.NOREFL); b.frustumCulled = false; beacon.add(b); }
@@ -980,6 +980,64 @@ const beacon = new T.Group();
 // ─── 遠景：外緣外的山（北面與東面，10-city.js 的 hillH）、西岸的對岸城區（以 http(s) 開啟時換成 golukumar 的 London City）、外海的小島。
 // 模型由 27-props.js 的 COAST_MODELS 下載擺放，擺好就把 ISLE_PROXY 的替身藏起來 ───
 const PEAKS = [];   // FAR_BANK_X 在 10-city.js
+// ─── 外緣山林後面的石柱峰與雲海：10-city.js 的 hillH 在離外緣 1000 m 外把地面壓到海面上 40–70 m（盆地），這裡在盆地裡擺一叢叢石柱峰
+// （hill_homes.glb 的 karst1–4，50-assets.js 用遠景材質 MAT.uxFI 做實例，放大 1.3–3.6 倍、底部埋進地面），上面蓋三層雲海 ───
+const KARST = [];
+{
+  const rk = rng(4747), P = CITY_POLY, n = P.length;
+  for (let c = 0; c < 80 && KARST.length < 110; c++) {
+    const k = Math.floor(rk() * n), d0 = 1350 + rk() * 1650, nn = 3 + Math.floor(rk() * 6);
+    if (HILL.W[k] < 1 || HILL.W[(k + 3) % n] < 1 || HILL.W[(k + n - 3) % n] < 1) continue;
+    const R = HILL.R[k], ux = (P[k][0] - HILL.cx) / R, uz = (P[k][1] - HILL.cz) / R;
+    for (let j = 0; j < nn; j++) {
+      const a = rk() * 6.283, r = 40 + rk() * 260, X = HILL.cx + ux * (R + d0) + Math.cos(a) * r, Z = HILL.cz + uz * (R + d0) + Math.sin(a) * r, s = 1.3 + rk() * 2.3;
+      if (KARST.some(t => Math.hypot(t.x - X, t.z - Z) < 22 * (t.s + s))) continue;
+      KARST.push({ x: X, y: hillH(X, Z) - 6 * s, z: Z, ry: rk() * 6.283, s, v: Math.floor(rk() * 4), zn: null });
+    }
+  }
+}
+// 雲海：外緣多邊形的每條射線往外 950–4300 m 的環（只在靠山那一側，HILL.W），三層（標高 CLOUD_Y、+10、+21）各自一個網格；
+// 片段照兩層 fbm 的雲團（慢慢往東北飄），朝太陽那一側亮、背光的底部偏藍灰；內緣 950–1200 m 淡入；霧只算一部分距離
+const CLOUD_Y = SEA_Y + 112;
+const CLOUD_VS = /* glsl */`
+attribute float aE;
+varying vec3 vW; varying float vE;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vE = aE; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const CLOUD_FS = /* glsl */`
+${GL_LIB}
+uniform float uLayer;
+varying vec3 vW; varying float vE;
+void main(){
+  vec2 q = vW.xz * .0019 + vec2(uTime * .0045, uTime * .0018) + uLayer * 3.7;
+  float d = fbm(q) * .62 + fbm(q * 2.9 + 5.3) * .38;
+  float a = smoothstep(.36 + uLayer * .09, .7 + uLayer * .06, d) * vE * (1. - uLayer * .22);   // 底層厚、上面兩層薄而散（一縷縷）
+  if (a < .004) discard;
+  float lit = clamp(.55 + (d - fbm(q - uSun.xz * .06)) * 3.2, 0., 1.);   // 朝太陽那一側（雲團往太陽方向變薄的地方）亮
+  vec3 base = mix(uAmbBot, uAmbTop, .6) * 2.2 + uSkyHor * .35;
+  vec3 c = base * mix(vec3(.72, .76, .84), vec3(1.), lit) + uSunCol * max(uSun.y, 0.) * (.45 + .75 * lit) * .9;
+  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * .08), a * .92);   // 霧只算 8% 的距離（同石柱峰的 MAT.uxFI，鏡頭升高也一樣）
+}`;
+{
+  const P = CITY_POLY, n = P.length, DS = [950, 1100, 1300, 1600, 2000, 2500, 3100, 3700, 4300];
+  for (let L = 0; L < 3; L++) {
+    const pos = [], ae = [], idx = [], y = CLOUD_Y + [0, 10, 21][L];
+    for (let k = 0; k < n; k++) {
+      const R = HILL.R[k], w = sm01((HILL.W[k] - .3) / .6);
+      for (const d of DS) {
+        const s = (R + d) / R;
+        pos.push(HILL.cx + (P[k][0] - HILL.cx) * s, y, HILL.cz + (P[k][1] - HILL.cz) * s);
+        ae.push(w * sm01((d - 950) / 250) * (1 - sm01((d - 3700) / 600)));
+      }
+    }
+    const m = DS.length;
+    for (let k = 0; k < n; k++) { const k1 = (k + 1) % n; for (let j = 0; j < m - 1; j++) { const a = k * m + j, b = k1 * m + j; idx.push(a, a + 1, b, b, a + 1, b + 1); } }
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('aE', new T.Float32BufferAttribute(ae, 1)); g.setIndex(idx);
+    const mat = new T.ShaderMaterial({ name: 'cloudSea', uniforms: { ...shared(ALLU), uLayer: { value: L } }, vertexShader: CLOUD_VS, fragmentShader: CLOUD_FS, transparent: true, depthWrite: false, side: T.DoubleSide });
+    const mesh = new T.Mesh(g, mat); mesh.renderOrder = 2 + L; mesh.frustumCulled = false;
+    cityAdd(mesh, null);
+  }
+}
 const FAR_SITES = {
   london: { x: FAR_BANK_X - 380, z: FAR_Z1 - 660, ry: 0 },    // 模型 719×1265 m，東緣貼著河岸，最高的塔在北端；對岸只到 FAR_Z1，整座往北放
   // 外海的兩座島（World 第一輪剩下的兩個模型，下載前是下面程式建模的岩丘；邏輯座標，跟著 zoneAtL 那一片）：
@@ -1001,54 +1059,99 @@ const FAR_SITES = {
         hillCol(X, Z, h); col[v] = c.r; col[v + 1] = c.g; col[v + 2] = c.b;
       }
     }
-    // 北嶺鐵道橋挖過的山坡（10-city.js 的 NPARK.carve，公園框的範圍）：碰到的三角形另外細分，高度照 parkH
-    const CV = NPARK && NPARK.carve, sub = [];
-    const hitCV = t => {
-      if (!CV) return false;
-      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
-      for (const v of t) { const [x, z] = parkL(pos[v * 3], pos[v * 3 + 2]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
-      return x1 > CV.x0 && x0 < CV.x1 && z1 > CV.z0 && z0 < CV.z1;
+    // 挖過的山坡：北嶺鐵道橋（10-city.js 的 NPARK.carve，公園框的範圍，高度照 parkH）、雲梯城寨的平台與切坡（ENC.pad 外擴 band，高度照 encGround）。
+    // 碰到範圍的三角形另外細分（每一區自己的格距 sp），範圍之間不共用三角形
+    const CARVES = [];
+    if (NPARK && NPARK.carve) CARVES.push({ name: 'hillCarve', L: parkL, bb: NPARK.carve, sp: 3.6, h: (X, Z) => parkH(...parkL(X, Z)), out: 'carveTris' });
+    if (ENC) { const P = ENC.pad, B = ENC.band + 4; CARVES.push({ name: 'hillEnc', L: encL, bb: { x0: P.x0 - B, x1: P.x1 + B, z0: P.z0 - B, z1: 120 }, sp: 5, h: (X, Z) => { const g = encGround(X, Z); if (g === null) return hillMeshH(X, Z); const [x, z] = encL(X, Z); return x > P.x0 && x < P.x1 && z > P.z0 ? g - .12 : g; }, out: 'encTris',
+      w: (X, Z) => { const [x, z] = encL(X, Z), d = Math.hypot(Math.max(P.x0 - x, x - P.x1, 0), Math.max(P.z0 - z, 0)); return 1 - sm01((d - ENC.band) / 12); } }); }   // 平台上壓低一點，28-enclave.js 的路面與人行道蓋在上面
+    // 山坡別墅區（10-city.js 的 HILL_VIL）：每一群別墅一區，碰到任何一棟 R 公尺內的三角形；每個三角形都切成 N×N（N 固定），區與區的接邊才對得起來。
+    // 高度照 HILL_VIL.h（起伏）、權重 w 是起伏的遮罩（0 的地方顏色與法線照粗網格），材質 TX.vhill 的小數是別墅區的範圍（照片地面往外淡回林坡）
+    const triD = (P3, x, z) => {   // 點到三角形（xz）的距離，在裡面是 0
+      let inside = true, sg = 0, d = 1e9;
+      for (let q = 0; q < 3; q++) {
+        const [ax, az] = P3[q], [bx, bz] = P3[(q + 1) % 3], ex = bx - ax, ez = bz - az, cr = ex * (z - az) - ez * (x - ax);
+        if (cr !== 0) { if (sg && Math.sign(cr) !== sg) inside = false; sg = sg || Math.sign(cr); }
+        const t = clamp(((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1); d = Math.min(d, Math.hypot(x - ax - ex * t, z - az - ez * t));
+      }
+      return inside ? 0 : d;
     };
-    const idx = [];
+    HILL_VIL.groups.forEach((G, g) => CARVES.push({ name: 'hillVil' + g, N: HILL_VIL.N, h: HILL_VIL.h, w: HILL_VIL.w, out: 'vilTris' + g,
+      hit: P3 => G.some(h => triD(P3, h.x, h.z) < HILL_VIL.R), mat: (X, Z) => TX.vhill + .4 * HILL_VIL.region(X, Z) }));
+    // 山路兩側的挖填（10-city.js 的 HILL.carveH，hillMeshH 已經套上）：路兩側 40 m 碰到的三角形，別墅區沒拿走的另外細分成 N×N；
+    // w 是挖填改了多少（0 的地方顏色與法線照粗網格）
+    if (HILL.carveHit) CARVES.push({ name: 'hillRoad', N: HILL.roadN, h: hillMeshH, w: HILL.carveW, out: 'roadTris', hit: HILL.carveHit });
+    const hitCV = t => {
+      for (let c = 0; c < CARVES.length; c++) {
+        if (CARVES[c].hit) { if (CARVES[c].hit(t.map(v => [pos[v * 3], pos[v * 3 + 2]]))) return c; continue; }
+        const CV = CARVES[c].bb;
+        let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+        for (const v of t) { const [x, z] = CARVES[c].L(pos[v * 3], pos[v * 3 + 2]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+        if (x1 > CV.x0 && x0 < CV.x1 && z1 > CV.z0 && z0 < CV.z1) return c;
+      }
+      return -1;
+    };
+    const idx = [], subs = CARVES.map(() => []);
     for (let k = 0; k < n; k++) for (let j = 0; j < m - 1; j++) {
       const a = k * m + j, b = ((k + 1) % n) * m + j;
       if (Math.max(H[a], H[a + 1], H[b], H[b + 1]) < SEA_Y - .5) continue;
-      for (const t of [[a, b, a + 1], [a + 1, b, b + 1]]) (hitCV(t) ? sub : idx).push(...t);
+      for (const t of [[a, b, a + 1], [a + 1, b, b + 1]]) { const c = hitCV(t); (c < 0 ? idx : subs[c]).push(...t); }
     }
-    // 細分：每個三角形切成 N×N 份（N 全部一樣，相鄰三角形的共用邊上頂點才對得起來），頂點照位置合併；法線照合併後的網格算
-    if (sub.length) {
+    // 粗網格的平滑法線（連細分掉的三角形一起算）：粗網格自己用它，細分的網格在沒挖到的地方（CV.w 是 0）也照它內插（頂點色也是），接縫兩邊的光影才一樣
+    const CN = (() => { const t = new T.BufferGeometry(); t.setAttribute('position', new T.BufferAttribute(pos, 3)); t.setIndex([...idx, ...subs.flat()]); t.computeVertexNormals(); return t.attributes.normal.array; })();
+    // 細分：每個三角形切成 N×N 份（同一區的 N 都一樣，相鄰三角形的共用邊上頂點才對得起來），頂點照位置合併；法線照合併後的網格算
+    CARVES.forEach((CV, ci) => {
+      const sub = subs[ci]; if (!sub.length) return;
       let el = 0;
       for (let t = 0; t < sub.length; t += 3) for (let q = 0; q < 3; q++) { const a = sub[t + q], b = sub[t + (q + 1) % 3]; el = Math.max(el, Math.hypot(pos[a * 3] - pos[b * 3], pos[a * 3 + 2] - pos[b * 3 + 2])); }
-      const N = Math.ceil(el / 3.6), sp = [], sc = [], si = [], seen = new Map();
-      const vert = (X, Z) => {
+      const N = CV.N || Math.ceil(el / CV.sp), sp = [], sc = [], si = [], sn = [], seen = new Map();
+      const vert = (X, Z, t, u, w) => {   // t：所在的粗三角形，u、w：往第二、三個頂點的重心座標（內插粗網格的法線）
         const key = Math.round(X * 20) + ',' + Math.round(Z * 20); let v = seen.get(key);
-        if (v === undefined) { v = sp.length / 3; seen.set(key, v); const h = parkH(...parkL(X, Z)); sp.push(X, h, Z); hillCol(X, Z, h); sc.push(c.r, c.g, c.b); }
+        if (v === undefined) {
+          v = sp.length / 3; seen.set(key, v); const h = CV.h(X, Z); sp.push(X, h, Z); hillCol(X, Z, h); sc.push(c.r, c.g, c.b);
+          for (let k = 0; k < 3; k++) sn.push(CN[sub[t] * 3 + k] * (1 - u - w) + CN[sub[t + 1] * 3 + k] * u + CN[sub[t + 2] * 3 + k] * w);
+          if (CV.w) {   // 沒挖到的地方顏色也照粗網格的頂點色內插（每點重算 hillColor 的林線與岩色雜訊，整片大三角形會比旁邊淺）
+            const k = 1 - sm01(CV.w(X, Z)), o = sc.length - 3;
+            for (let q = 0; q < 3; q++) sc[o + q] += (col[sub[t] * 3 + q] * (1 - u - w) + col[sub[t + 1] * 3 + q] * u + col[sub[t + 2] * 3 + q] * w - sc[o + q]) * k;
+          }
+        }
         return v;
       };
       for (let t = 0; t < sub.length; t += 3) {
         const [ax, az, bx, bz, qx, qz] = [sub[t], sub[t + 1], sub[t + 2]].flatMap(v => [pos[v * 3], pos[v * 3 + 2]]), id = [];
-        for (let i = 0; i <= N; i++) { id.push([]); for (let j = 0; j <= N - i; j++) id[i].push(vert(ax + (bx - ax) * i / N + (qx - ax) * j / N, az + (bz - az) * i / N + (qz - az) * j / N)); }
+        for (let i = 0; i <= N; i++) { id.push([]); for (let j = 0; j <= N - i; j++) id[i].push(vert(ax + (bx - ax) * i / N + (qx - ax) * j / N, az + (bz - az) * i / N + (qz - az) * j / N, t, i / N, j / N)); }
         for (let i = 0; i < N; i++) for (let j = 0; j < N - i; j++) {
           si.push(id[i][j], id[i + 1][j], id[i][j + 1]);
           if (j < N - i - 1) si.push(id[i + 1][j], id[i + 1][j + 1], id[i][j + 1]);
         }
       }
       const g = new T.BufferGeometry();
-      g.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); g.setAttribute('color', new T.Float32BufferAttribute(sc, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(new Array(sp.length / 3).fill(2), 1));
+      g.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); g.setAttribute('color', new T.Float32BufferAttribute(sc, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(CV.mat ? Array.from({ length: sp.length / 3 }, (_, v) => CV.mat(sp[v * 3], sp[v * 3 + 2])) : new Array(sp.length / 3).fill(TX.hill), 1));
       g.setIndex(si); g.computeVertexNormals(); g.computeBoundingSphere();
-      const sm = new T.Mesh(g, MAT.uber); sm.name = 'hillCarve'; cityAdd(sm, null);
-      HILL.carveTris = { coarse: sub.length / 3, N, tris: si.length / 3 };
-    }
+      if (CV.w) {   // 沒挖到的地方換回粗網格的法線（中間照 w 混合）
+        const nr = g.attributes.normal.array;
+        for (let v = 0; v < sp.length / 3; v++) {
+          const w = CV.w(sp[v * 3], sp[v * 3 + 2]); if (w >= 1) continue;
+          let x = sn[v * 3] + (nr[v * 3] - sn[v * 3]) * w, y = sn[v * 3 + 1] + (nr[v * 3 + 1] - sn[v * 3 + 1]) * w, z = sn[v * 3 + 2] + (nr[v * 3 + 2] - sn[v * 3 + 2]) * w;
+          const l = Math.hypot(x, y, z) || 1; nr[v * 3] = x / l; nr[v * 3 + 1] = y / l; nr[v * 3 + 2] = z / l;
+        }
+      }
+      const sm = new T.Mesh(g, MAT.ux); sm.name = CV.name; cityAdd(sm, null);
+      HILL[CV.out] = { coarse: sub.length / 3, N, tris: si.length / 3 };
+    });
     const g = new T.BufferGeometry();
-    g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setAttribute('aMat', new T.BufferAttribute(new Float32Array(n * m).fill(2), 1));
-    g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
-    const hm = new T.Mesh(g, MAT.uber); hm.frustumCulled = false; cityAdd(hm, null);
+    g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setAttribute('aMat', new T.BufferAttribute(new Float32Array(n * m).fill(TX.hill), 1));
+    g.setIndex(idx); g.setAttribute('normal', new T.BufferAttribute(CN, 3)); g.computeBoundingSphere();
+    const hm = new T.Mesh(g, MAT.ux); hm.frustumCulled = false; cityAdd(hm, null);
     // 山上的燈
     const lk = new Kit();
     for (let i = 0; i < 60; i++) {
       const k = Math.floor(r2() * n), d = 150 + r2() * 1800, R = Math.hypot(P[k][0] - cx, P[k][1] - cz), X = cx + (P[k][0] - cx) / R * (R + d), Z = cz + (P[k][1] - cz) / R * (R + d), h = hillH(X, Z);
-      if (h < 20 || parkGround(X, Z) !== null) continue;   // 北嶺公園裡另外有步道燈
-      lk.box(X, h + 2, Z, 3, 3, 3, 0xffc880, 11);
+      if (h < 20 || parkGround(X, Z) !== null || encNear(X, Z, 20)) continue;   // 北嶺公園裡另外有步道燈；雲梯城寨的切坡上不擺
+      // 管理站與山屋：木牆、斜屋頂、正面兩扇亮窗（原本是一顆 3 m 的發光方塊，白天是橘色積木）
+      const ry = r2() * 6.28, c = Math.cos(ry), s = Math.sin(ry);
+      lk.box(X, h + 1.4, Z, 5, 3.2, 4, 0x4a3828, 2, 0, ry).add(new T.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4), 0x3a3634, 2, tf(X, h + 3.7, Z, 0, ry, 0, 6, 1.6, 5));
+      for (const u of [-1.2, 1.2]) lk.box(X + c * u + s * 2.02, h + 1.6, Z - s * u + c * 2.02, .9, .8, .06, 0xffc880, 11, 0, ry);
     }
     cityAdd(new T.Mesh(lk.build(), MAT.far), null);
     // 雪山（World 第四輪之二：只有換成模型時才擺）：山後面一排，拉伸成 1.6–2.3 km 寬、600–870 m 高

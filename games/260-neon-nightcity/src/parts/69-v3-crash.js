@@ -181,10 +181,11 @@ function vaultStep(dt) {
   return true;
 }
 
-// ─── 按鍵（69-combat.js 的 gtaKey 最前面問這裡） ───
+// ─── 按鍵（69-combat.js 的 gtaKey 最前面問這裡）：空中開傘、翻越，都不是就跳 ───
 function crashKey(code) {
   if (player.air3) { if ((code === 'KeyF' || code === 'Space') && chuteOpen()) return true; return code === 'KeyF' || code === 'Space'; }
-  if (code === 'Space' && player.mode === 'walk' && vaultTry()) return true;
+  if (code === 'Space' && player.mode === 'walk' && !player.jump && vaultTry()) return true;
+  if (code === 'Space' && jumpTry()) return true;   // 40-people.js：前面沒東西可翻就原地跳
   return false;
 }
 function crashUpdate(dt) {

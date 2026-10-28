@@ -294,14 +294,14 @@ def stash_actions(obj, names=None):
         t.mute = True
 
 
-def export_glb(name, use_selection=False):
+def export_glb(name, use_selection=False, **kw):   # kw 直接傳給 glTF 匯出（例：hill_homes.py 匯出烘好的 AO 頂點色）
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name)
     bpy.ops.export_scene.gltf(
         filepath=path, export_format='GLB', use_selection=use_selection,
         export_animations=True, export_animation_mode='NLA_TRACKS', export_force_sampling=True,
         export_yup=True, export_apply=False, export_cameras=False, export_lights=False,
-        export_extras=False, export_texcoords=False, export_normals=True, export_materials='EXPORT',
+        export_extras=False, export_texcoords=False, export_normals=True, export_materials='EXPORT', **kw,
     )
     print(f'ok  {name}  {os.path.getsize(path) / 1024:.0f} KB')
     return path

@@ -513,6 +513,19 @@ export const SETS = [
     { id: 'fern', file: 'bush', h: .6, drop: /Ivy|wall|hosta|Fern2|FernLong/ },
     { id: 'fernlong', file: 'bush', h: .5, drop: /Ivy|wall|hosta|Fern1/ },
   ] },
+  // 外緣山林的近景樹：blender/forest.py 程式長出來的冷杉與楓樹（葉片卡是 Poly Haven fir_tree_01 的枝葉照片合成的整段枝條、SVG 畫的楓葉叢，見 tools/forest-tex.mjs；CC0）。
+  // 原點是樹幹底面中心，不縮放。葉片卡兩面各一份幾何、法線照樹冠往外（不是雙面材質）
+  { out: 'nat_forest', src: '.cache/forest', tex: 1024, metalMax: 0, mask: /twig|leaf/, noEmi: /./, vcol: true, items: [   // 林下層三片：蕨叢（fern_02 的葉片照片）、紫色野花叢、草叢（forest.py 的 understory）
+    { id: 'fir', file: 'forest', only: /^fir$/, scale: 1, origin: [0, 0, 0] },
+    { id: 'maple', file: 'forest', only: /^maple$/, scale: 1, origin: [12, 0, 0] },
+    { id: 'fern_patch', file: 'forest', only: /^fern_patch$/, scale: 1, origin: [30, 0, 0] },
+    { id: 'flower_patch', file: 'forest', only: /^flower_patch$/, scale: 1, origin: [40, 0, 0] },
+    { id: 'grass_patch', file: 'forest', only: /^grass_patch$/, scale: 1, origin: [50, 0, 0] },
+  ] },
+  // 山坡別墅的室內家具：blender/villa_furn.py 從 .cache/villa-sf/ 的 Sketchfab 室內場景（CC BY：dylanheyes 的客廳、廚房、臥室、浴室，
+  // Akshat 的餐桌組，Studio 23 的沙發組）拆出來的單件，已是公尺、正面朝 +z、底面中心在 Blender 排開的位置（每件差 8 m）。27-props.js 照 villa_plans.json 的 furniture 擺
+  { out: 'villa_furn', src: '.cache/villa-furn', tex: 1024, items: ['sofa_l', 'coffee', 'tv', 'lamp', 'plant', 'kitchen', 'bed', 'vanity', 'toilet', 'dining', 'lounge']
+    .map((id, i) => ({ id, file: 'furn', only: new RegExp('^' + id + '$'), scale: 1, origin: [i * 8, 0, 0] })) },
   // 田園一景：abhayexe 的 Countryside Scene Free（CC BY 4.0，公尺）。整景是 8 m 柏油路兩側護欄、沙土地、碎石、三種楓樹各兩棵，路沿 z，原點是路面中心；
   // 路上倒著的八個小貨櫃另外一件（boxes，同一個原點），兩件疊起來就是原本的樣子。擺在灰鷗島的兩條路上（21-coast.js 的 CS_SITES），
   // 楓樹、貨櫃（放大成 20 呎）與護欄另外拆出來到處重複用（公園與島上的樹、拖吊場、施工大樓工地、島上的路邊）。

@@ -32,8 +32,12 @@ const INST_R = 380, instStreams = [];
 function instStreamAdd(m, xs, zs, R = INST_R) {
   const n = xs.length, attrs = Object.entries(m.geometry.attributes).filter(([, a]) => a.isInstancedBufferAttribute).map(([k, a]) => ({ a, src: a.array.slice(0, n * a.itemSize) }));
   const S = { m, n, mtx: m.instanceMatrix.array.slice(0, n * 16), xs, zs, attrs, cx: 1e9, cz: 1e9, dirty: true, R };
+  // 剔除用的球：中心跟著相機的水平位置，高度取實例的高低中點（山坡別墅、山林在一兩百公尺高，球心放在 y = 0 會被整組剔掉），半徑涵蓋串流半徑與高低差
+  let y0 = Infinity, y1 = -Infinity;
+  for (let k = 0; k < n; k++) { const y = S.mtx[k * 16 + 13]; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  S.cy = n ? (y0 + y1) / 2 : 0; S.hy = n ? (y1 - y0) / 2 : 0;
   m.userData.map = new Int32Array(n); m.userData.stream = S;
-  m.boundingSphere = new T.Sphere(V3(), R + 30);
+  m.boundingSphere = new T.Sphere(V3(0, S.cy, 0), Math.hypot(R + 30, S.hy));
   instStreams.push(S);
 }
 // 清單項目的所有實例縮成 0（串流的改原始矩陣）
@@ -75,7 +79,7 @@ function instUpdate(cx, cz) {
     }
     m.count = c; m.instanceMatrix.needsUpdate = true;
     for (const { a } of S.attrs) a.needsUpdate = true;
-    m.boundingSphere.center.set(cx, 0, cz);
+    m.boundingSphere.center.set(cx, S.cy, cz); m.boundingSphere.radius = Math.hypot(S.R * detailK() + 30, S.hy);
   }
 }
 // 避免設施互相重疊：佔用的圓放進 8 m 的格子（最大半徑 3.4 m），只比對附近幾格
@@ -151,8 +155,9 @@ function lampTable(heads) {
   tex.minFilter = tex.magFilter = T.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
   U.uLampT.value = tex; U.uLampG.value.set(x0, z0, nx, nz);
 }
-lampTable([...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; }),
-  ...lampsC.map(l => ({ x: l.hx, z: l.hz, t: 0, y: l.y }))]);
+const LAMP_HEADS = [...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; }),
+  ...lampsC.map(l => ({ x: l.hx, z: l.hz, t: 0, y: l.y }))];   // 28-enclave.js 再加上雲梯城寨的路燈、重畫一次
+lampTable(LAMP_HEADS);
 // 車行門前的兩台展示車與門口、車庫門前的車道：不放人行道設施
 for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
 
@@ -180,7 +185,7 @@ void main(){
   gl_FragColor = vec4(uColor * a, 1.);
 }`;
 function coneMat(col) {
-  return new T.ShaderMaterial({ uniforms: { ...shared(ALLU), uColor: { value: lin(col) } }, vertexShader: CONE_VS, fragmentShader: CONE_FS,
+  return new T.ShaderMaterial({ name: 'cone', uniforms: { ...shared(ALLU), uColor: { value: lin(col) } }, vertexShader: CONE_VS, fragmentShader: CONE_FS,
     transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
 }
 {
@@ -468,17 +473,38 @@ const binMesh = instanced(new Kit()
   .cyl(0, .48, 0, .3, .26, .96, 12, 0x2f3a33, 15).cyl(0, .98, 0, .32, .32, .06, 12, 0x232a26, 15).build(), MAT.uber, bins, LY.NOREFL);
 // 電訊箱（69-market.js 射擊、撞爛）：執行時用世界座標，和換過的碰撞圓柱同一個算法，69-market 才比對得到
 worldHooks.push(() => { for (const b of boxesN) { [b.x, b.z] = toW(b.x, b.z); } });
-const boxesMesh = instanced(new Kit()   // 藍色電訊箱：69-market.js 打爛時把該格縮成 0
-  .box(0, .62, 0, .5, .9, .45, 0x1c4f9a, 10).box(0, 1.1, 0, .5, .08, .45, 0x163f7a, 10).box(0, .7, -.23, .38, .3, .02, 0xeeeeee, 11)
-  .box(.18, .1, 0, .04, .2, .4, 0x222222, 15).box(-.18, .1, 0, .04, .2, .4, 0x222222, 15).build(), MAT.uber, boxesN, LY.NOREFL);
+// 藍色電訊箱（照路邊的電信交接箱）：水泥基座、霧面粉體烤漆的機身與出簷的頂蓋、正面的門（門縫、把手與鎖）、兩側的百葉、警告貼紙與編號牌。69-market.js 打爛時把該格縮成 0
+const boxesMesh = instanced((() => {
+  const e = new Kit(), bl = 0x2c4c6e, dk = 0x1b2f45;
+  e.box(0, .08, 0, .58, .16, .52, 0x7a776f, 20).box(0, .66, 0, .5, 1, .45, bl, 34).box(0, 1.18, 0, .56, .05, .51, bl, 34).box(0, 1.215, 0, .5, .02, .45, dk, 34);
+  e.box(0, .66, -.2255, .44, .92, .002, dk, 34).box(0, .66, -.228, .425, .905, .004, bl, 34);   // 門縫與門板
+  e.box(.16, .7, -.236, .025, .13, .018, 0xa8acb0, 35).cyl(.16, .58, -.232, .016, .016, .012, 10, 0x8a8e92, 35, Math.PI / 2);   // 把手、鎖
+  for (const sx of [-1, 1]) for (let i = 0; i < 6; i++) e.box(sx * .2515, .98 - i * .035, 0, .006, .012, .3, dk, 34);   // 百葉
+  e.box(0, .98, -.231, .11, .1, .002, 0xe2b81c, 11).box(0, .98, -.2315, .02, .05, .002, 0x161616, 2).box(0, .4, -.231, .17, .07, .002, 0xe6e4dc, 2);   // 警告貼紙、編號牌
+  return e.build();
+})(), MAT.ux, boxesN, LY.NOREFL);
 // 69-v5-street.js 以 http(s) 開啟時換成 v5works.glb 的電訊箱（照邏輯座標的 boxesL 擺）；69-market.js 打爛時每一串都要縮
 const boxesMs = [boxesMesh], boxesL = boxesN.map(b => ({ ...b }));
 // 路口護柱（照鑄鐵街柱）：底座的圓盤、微收的柱身、兩道凸環、黃色反光帶、半球頂
 instanced(new Kit().lathe(0, 0, 0, [[.14, 0], [.14, .05], [.11, .09], [.1, .14], [.095, .66], [.11, .68], [.11, .72], [.095, .74], [.095, .82], [.105, .84], [.1, .87], [.07, .93], [.03, .955], [0, .96]], 12, 0x34383d, TX.iron)
   .cyl(0, .78, 0, .1, .1, .07, 12, 0xd8a020, 10).build(), MAT.ux, bollards, LY.NOREFL);
-const boothMesh = instanced(new Kit()
-  .box(0, 1.15, 0, .9, 2.3, .9, 0x1d2a2a, 15).box(0, 1.3, -.46, .7, 1.5, .02, 0x88aaaa, 1).box(0, 2.18, -.46, .7, .16, .03, 0x7fe7ff, 8)
-  .box(0, 2.35, 0, .96, .1, .96, 0x121818, 15).build(), MAT.uber, booths);
+// 電話亭（照街邊的玻璃電話亭）：基座、四角柱、頂蓋與四面的燈箱、兩側與背面下段的踢腳板、兩側玻璃與腰帶、背板上的公用電話（不鏽鋼機身、螢幕、
+// 投幣口、按鍵、話筒與鎧裝電話線）、置物板；正面（−z）開口
+const boothMesh = instanced((() => {
+  const b = new Kit(), pc = 0x2a2e33, gl = 0x9fb2b6;
+  b.box(0, .05, 0, .96, .1, .96, 0x1a1c1e, 34);
+  for (const x of [-.44, .44]) for (const z of [-.44, .44]) b.box(x, 1.2, z, .06, 2.2, .06, pc, 34);
+  b.box(0, 2.34, 0, 1.04, .08, 1.04, pc, 34).box(0, 2.39, 0, .9, .03, .9, 0x1a1c1e, 34);
+  for (const [x, z, sx, sz] of [[0, -.47, .84, .02], [0, .47, .84, .02], [-.47, 0, .02, .84], [.47, 0, .02, .84]]) b.box(x, 2.2, z, sx, .17, sz, 0xf4ead2, 11);   // 燈箱
+  for (const [x, z, sx, sz] of [[-.44, 0, .03, .82], [.44, 0, .03, .82], [0, .44, .82, .03]]) b.box(x, .32, z, sx, .44, sz, pc, 34);   // 踢腳板
+  for (const x of [-.44, .44]) b.box(x, 1.38, 0, .015, 1.68, .82, gl, 1).box(x, .99, 0, .035, .04, .82, pc, 34);   // 側面玻璃、腰帶
+  b.box(0, 1.38, .44, .82, 1.68, .03, 0x3a3f44, 34);   // 背板
+  b.rbox(0, 1.42, .39, .34, .56, .09, .025, 0x9a9ea2, 35).box(0, 1.6, .343, .2, .06, .004, 0x2e4636, 11).box(.1, 1.48, .343, .05, .012, .004, 0x111111, 2);   // 機身、螢幕、投幣口
+  for (let i = 0; i < 12; i++) b.box(-.035 + (i % 3) * .035, 1.43 - Math.floor(i / 3) * .033, .342, .026, .024, .006, 0xc8ccd0, 35);   // 按鍵
+  b.rbox(-.125, 1.43, .338, .055, .24, .05, .02, 0x141414, 2).rod(-.125, 1.3, .34, -.08, 1.16, .35, .008, 5, 0x8a8e92, 35);   // 話筒、電話線
+  b.box(0, 1.03, .35, .42, .025, .16, 0x3a3f44, 34);   // 置物板
+  return b.build();
+})(), MAT.ux, booths);
 // 樹穴鐵蓋（照常見的鑄鐵樹穴格柵）：方框、圍著樹幹的圓環、放射狀的格條
 {
   const k = new Kit(), iron = 0x1c1b18;
@@ -489,18 +515,31 @@ const boothMesh = instanced(new Kit()
   instanced(k.build(), MAT.ux, grates, LY.NOREFL, null, 120);   // 貼地的格柵：遠處看不出來
 }
 let treeMesh;
-{ // 行道樹：幾團變形的二十面體葉團
+{ // 行道樹（檔案模式；http 換 nat_trees 的楓樹）：樹幹分出幾根枝，末端各一團變形的葉團。葉團用圓滑的法線再加一點雜訊（葉子的碎亮），
+  // 不再算平面法線（一面一面的多面體像玩具）；頂點色上亮下暗、外亮內暗（樹冠的自遮蔽），每團的綠帶一點不同
   const k = new Kit(); const r2 = rng(5);
   k.cyl(0, 2.1, 0, .1, .17, 4.2, 8, 0x3a2c20, 2);
-  for (let i = 0; i < 7; i++) {
-    const g = new T.IcosahedronGeometry(1.1 + r2() * .5, 1);
-    const p = g.attributes.position;
+  const c0 = k.pos.length / 3, hh = (x, y, z) => { const v = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5; return v - Math.floor(v); };
+  for (let i = 0; i < 9; i++) {
+    const g = new T.IcosahedronGeometry(1 + r2() * .45, 2);   // 細分 2 級：近看輪廓不是大三角面（行道樹是串流的，只畫相機附近）
+    const p = g.attributes.position, nr = g.attributes.normal;
     const ph = r2() * 10;
-    for (let v = 0; v < p.count; v++) { const x = p.getX(v), y = p.getY(v), z = p.getZ(v); const s = .86 + .22 * Math.sin(x * 4.1 + y * 2.3 + ph) * Math.cos(z * 3.7 - y * 1.9 + ph); p.setXYZ(v, x * s, y * s * .8, z * s); }
-    g.computeVertexNormals();
-    const a = i / 7 * 6.28, rr = i === 0 ? 0 : 1 + r2() * .5;
-    const col = new T.Color().setHSL(.24 + r2() * .06, .45, .2 + r2() * .08);
-    k.add(g, col, 2, tf(Math.cos(a) * rr, 4.9 + r2() * 1.3 + (i === 0 ? .8 : 0), Math.sin(a) * rr));
+    for (let v = 0; v < p.count; v++) {
+      const x = p.getX(v), y = p.getY(v), z = p.getZ(v), L = Math.hypot(x, y, z), s = .86 + .2 * Math.sin(x * 4.1 + y * 2.3 + ph) * Math.cos(z * 3.7 - y * 1.9 + ph) + .07 * Math.sin(x * 11.3 - z * 9.1 + ph) * Math.sin(y * 10.7 + ph);
+      p.setXYZ(v, x * s, y * s * .8, z * s);
+      const j = .14, nx = x / L + (hh(x, y, z) - .5) * j, ny = y / L / .8 + (hh(y, z, x) - .5) * j, nz = z / L + (hh(z, x, y) - .5) * j, m = Math.hypot(nx, ny, nz);
+      nr.setXYZ(v, nx / m, ny / m, nz / m);
+    }
+    const a = i / 8 * 6.28 + r2(), rr = i === 0 ? 0 : i < 5 ? 1.05 + r2() * .4 : 1.6 + r2() * .4, y = i === 0 ? 6.3 : i < 5 ? 5.6 + r2() * .9 : 4.8 + r2() * .8;
+    const col = new T.Color().setHSL(.22 + r2() * .06, .36, .15 + r2() * .05);
+    k.add(g, col, 2, tf(Math.cos(a) * rr, y, Math.sin(a) * rr));
+    if (i) k.rod(0, 3.6 + r2() * .5, 0, Math.cos(a) * rr * .8, y - .5, Math.sin(a) * rr * .8, .07, 5, 0x3a2c20, 2, .03);   // 枝
+  }
+  for (let v = c0; v < k.pos.length / 3; v++) {
+    if (k.mat[v] !== 2 || k.col[v * 3 + 1] < k.col[v * 3]) continue;   // 只調葉團（枝是棕色）
+    const x = k.pos[v * 3], y = k.pos[v * 3 + 1], z = k.pos[v * 3 + 2];
+    const up = Math.min(1, Math.max(0, (y - 4) / 3.4)), out = Math.min(1, Math.hypot(x, z) / 2.6), f = .5 + .45 * up + .25 * out;
+    for (let c = 0; c < 3; c++) k.col[v * 3 + c] *= f;
   }
   treeMesh = instanced(k.build(), MAT.uber, trees);
 }
@@ -544,10 +583,12 @@ for (const L of winSpots) {
   const cols = Math.max(1, Math.floor((fw - 1) / ws)), mg = (fw - cols * ws) / 2;
   let escCol = -1;
   if (cols >= 3 && rnd() < .45 && L.style !== 2) escCol = 1 + Math.floor(rnd() * (cols - 2));
+  // 凸窗（09-mass.js）裡的窗不掛冷氣；逃生梯碰到凸窗就不擺（亂數照抽）
   for (let fi = 0; fi < nF; fi++) for (let ci = 0; ci < cols; ci++) {
     if (escCol >= 0 && (ci === escCol || ci === escCol - 1)) continue;
-    if (rnd() < .14) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
+    if (rnd() < .14 && !facBayAt(L, ci, fi)) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
   }
+  if (escCol >= 0 && L.mass && L.mass.bays.some(b => b.c1 >= escCol - 1 && b.c0 <= escCol)) escCol = -1;
   if (escCol >= 0) for (let fi = 0; fi < nF; fi++) (G || escapes).push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
   const RG = roofKind(L) || L.crown ? { push() {} } : null;   // 斜屋頂（19-roofs.js）與天樞島的塔冠（20-isle.js）上不擺水塔與空調箱，亂數照抽
   // 天樞島的退台塔擺在最上一層（往裡退 ti、頂高 ty）；廠房樓 80 m 以下都可能有水塔
@@ -692,15 +733,30 @@ const rampBlock = (x, z) => RAMPS.some(r => { if (r.y0) return false; const a = 
 const garDrive = (x, z) => !!FAC.gar && x > FAC.gar.ax - 1 && x < FAC.gar.ax + 13 && z > FAC.gar.az + 20 && z < FAC.gar.az + 40;
 // 跳台的幾何直接用世界座標（RAMPS_W，和車判斷的方向一致），合併成一個網格
 {
-  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L);
+  // 照活動用的鋼構跳台：花紋鋼板面（橫向防滑條）、兩側黃邊、唇口角鋼與黃黑警示帶、底下兩條側樑、每側四根立柱、柱間斜撐、柱頂橫樑、貼地的底軌
+  const k = new Kit(), th = Math.atan2(RAMP_H, RAMP_L), sl = Math.hypot(RAMP_H, RAMP_L), steel = 0x3d4044, W2 = RAMP_W / 2;
   for (const r of RAMPS_W) {
     const cx = r.x - r.dx * RAMP_L / 2, cz = r.z - r.dz * RAMP_L / 2, rx = r.dz, rz = -r.dx, y0 = r.y0;   // y0：停車場頂樓的跳台
-    k.box(cx, y0 + RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 15, -th, r.yaw);   // 斜板
-    for (const s of [-1, 1]) k.box(cx + rx * s * (RAMP_W / 2 - .08), y0 + RAMP_H / 2 - .02, cz + rz * s * (RAMP_W / 2 - .08), .16, .14, sl, 0xd9b42a, 10, -th, r.yaw);   // 兩側黃邊
-    k.box(r.x - r.dx * .1, y0 + RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 15, 0, r.yaw);   // 邊緣的立板
-    for (const s of [-1, 1]) for (const f of [.35, .7]) k.box(r.x - r.dx * RAMP_L * (1 - f) + rx * s * 1.2, y0 + RAMP_H * f / 2, r.z - r.dz * RAMP_L * (1 - f) + rz * s * 1.2, .14, RAMP_H * f, .14, 0x2a2c2f, 15, 0, r.yaw);   // 支架
+    const P = (a, s, y) => [r.x - r.dx * (RAMP_L - a) + rx * s, y0 + y, r.z - r.dz * (RAMP_L - a) + rz * s], top = a => a * RAMP_H / RAMP_L;   // a：從斜坡起點算的水平距離，s：往右
+    const B = (p, q, w, h, col = steel, mat = 34) => k.bar(...p, ...q, w, h, col, mat);
+    k.box(cx, y0 + RAMP_H / 2 - .06, cz, RAMP_W, .12, sl, 0x55595e, 35, -th, r.yaw);   // 斜板
+    for (let a = .5; a < RAMP_L - .3; a += .45) { const [x, y, z] = P(a, 0, top(a) + .012); k.box(x, y, z, RAMP_W - .5, .02, .07, 0x1e1f20, 2, -th, r.yaw); }   // 防滑條
+    for (const s of [-1, 1]) k.box(cx + rx * s * (W2 - .08), y0 + RAMP_H / 2 - .02, cz + rz * s * (W2 - .08), .16, .14, sl, 0xd9b42a, 34, -th, r.yaw);   // 兩側黃邊
+    k.box(r.x - r.dx * .1, y0 + RAMP_H / 2, r.z - r.dz * .1, RAMP_W, RAMP_H, .2, 0x2a2c2f, 34, 0, r.yaw);   // 邊緣的立板
+    B(P(RAMP_L - .02, -W2, RAMP_H + .02), P(RAMP_L - .02, W2, RAMP_H + .02), .1, .06, 0x8a8e92, 35);   // 唇口角鋼
+    for (let i = 0; i < 8; i++) { const s0 = -W2 + i * RAMP_W / 8, [x, y, z] = P(RAMP_L + .01, s0 + RAMP_W / 16, RAMP_H - .14); k.box(x, y, z, RAMP_W / 8, .2, .02, i % 2 ? 0x161616 : 0xe0b020, 34, 0, r.yaw); }   // 立板上緣的黃黑警示帶
+    const posts = [RAMP_L * .28, RAMP_L * .52, RAMP_L * .76, RAMP_L - .35];
+    for (const s of [-(W2 - .15), W2 - .15]) {
+      B(P(.2, s, .05), P(RAMP_L - .2, s, .05), .14, .1);   // 底軌
+      B(P(.3, s, .06), P(RAMP_L - .2, s, RAMP_H - .2), .1, .18);   // 側樑（斜板底下）
+      posts.forEach((a, i) => {
+        B(P(a, s, 0), P(a, s, top(a) - .16), .1, .1);   // 立柱
+        if (i) B(P(posts[i - 1], s, .12), P(a, s, top(a) - .28), .06, .06);   // 斜撐
+      });
+    }
+    for (const a of posts) B(P(a, -(W2 - .15), top(a) - .2), P(a, W2 - .15, top(a) - .2), .08, .12);   // 柱頂橫樑
   }
-  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
+  cityAdd(new T.Mesh(k.build(), MAT.ux), null);
 }
 {
   // 施工桶（照美國的導引桶 channelizer drum）：黑色橡膠底圈、四道橘白反光帶與帶間的凹槽、頂蓋的提把、閃爍警示燈
@@ -778,6 +834,10 @@ const FASCIA = [
   ['NOODLE BAR', c => { plate(c, 512, 96); neon(c, 'NOODLE BAR', 256, 50, 56, '#7cff6a'); }, 0x7cff6a],
 ];
 FASCIA.forEach(([n, d]) => cell('f:' + n, 510, 96, d));   // 510 寬才能一排放四個
+// 每塊招牌的店內是哪一類（10-city.js 的 shopKind：0 層架、1 洗衣店、2 小吃、3 螢幕、4 藥局類），招牌照店面的 kind 挑
+const FASCIA_K = { 'LAUNDROMAT': 1, 'NOODLE 24': 2, 'RAMEN': 2, 'DINER': 2, 'PIZZA': 2, 'DUMPLING': 2, 'NOODLE BAR': 2,
+  'VOLTAGE KARAOKE': 3, 'ARCADE': 3, 'ELECTRONICS': 3, 'CYBERWARE': 3, 'PHARMACY': 4, 'TATTOO': 4, 'BARBER': 4, 'OPTICS': 4, 'NAIL SPA': 4 };
+const FASCIA_BY = [0, 1, 2, 3, 4].map(k => FASCIA.filter(f => (FASCIA_K[f[0]] || 0) === k));
 const BLADE = [
   ['HOTEL', '#ff5a3a', FONT_C], ['空室', '#4ee6ff', FONT_H], ['薬', '#3dff8e', FONT_H], ['酒', '#ff3f6a', FONT_H], ['OPEN', '#ff4bd0', FONT_C],
   ['拉麵', '#ffcf4a', FONT_H], ['BAR', '#ffa13a', FONT_C], ['電脳', '#2cf2d8', FONT_H], ['24H', '#ffe94a', FONT_C], ['按摩', '#ff7ad1', FONT_H],
@@ -874,7 +934,7 @@ void main(){
   vec3 c = t * t * (vS.z) * fl + t * .03;
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
-const MAT_SIGN = new T.ShaderMaterial({ uniforms: { ...shared(ALLU), tAtlas: { value: atlasTex } }, vertexShader: SIGN_VS, fragmentShader: SIGN_FS, side: T.DoubleSide });
+const MAT_SIGN = new T.ShaderMaterial({ name: 'sign', uniforms: { ...shared(ALLU), tAtlas: { value: atlasTex } }, vertexShader: SIGN_VS, fragmentShader: SIGN_FS, side: T.DoubleSide });
 const signGeo = { p: [], uv: [], s: [], idx: [] };
 const signLights = [];  // {x,y,z,col,r,i}
 function signQuad(cx, cy, cz, nx, nz, w, h, cellName, seed, kind, bright, col, lightR = 9) {
@@ -901,7 +961,7 @@ for (const su of shopUnits) {
   if (su.special) continue;
   const ox = su.nx * .08, oz = su.nz * .08;
   if (!su.shut || r3() < .3) {
-    const f = FASCIA[(fasciaK++ * 7 + Math.floor(r3() * 5)) % FASCIA.length];
+    const fk = FASCIA_BY[su.kind], f = fk[(fasciaK++ * 7 + Math.floor(r3() * 5)) % fk.length];   // r3() 抽的次數照舊
     const w = Math.min(su.w * .82, 6.2), h = w / 5.33;
     const kind = r3() < .1 ? 1 : 0;
     signQuad(su.x + ox + su.nx * .12, 3.95, su.z + oz + su.nz * .12, su.nx, su.nz, w, Math.min(h, 1.05), 'f:' + f[0], r3(), kind, su.shut ? .5 : 1.6, f[2], 8);
@@ -911,9 +971,18 @@ for (const su of shopUnits) {
   if (r3() < (dist.startsWith('霓虹') ? .32 : .12) && su.w > 4) {
     const b = BLADE[bladeK++ % BLADE.length];
     // 立式招牌垂直於牆，兩面各一片
-    const px = su.x + su.nx * .85, pz = su.z + su.nz * .85, tx = su.nz, tz = -su.nx;
+    let px = su.x + su.nx * .85, pz = su.z + su.nz * .85;
+    const tx = su.nz, tz = -su.nx;
     const y = 6.6 + r3() * 2;
-    const ex = px + tx * (su.w * .4), ez = pz + tz * (su.w * .4);
+    // 正面有凸窗或陽台（09-mass.js）的地方，招牌往外讓出它的深度
+    if (su.lot && su.lot.mass) {
+      const F = facFace(su.lot.mass.front, su.lot.x0, su.lot.x1, su.lot.z0, su.lot.z1);
+      if (F.nx === su.nx && F.nz === su.nz) {
+        const ux = su.x + tx * (su.w * .4), uz = su.z + tz * (su.w * .4), u = (ux - F.ax) * F.ux + (uz - F.az) * F.uz, d = facOut(su.lot, u, y);
+        px += su.nx * d; pz += su.nz * d;
+      }
+    }
+    let ex = px + tx * (su.w * .4), ez = pz + tz * (su.w * .4);
     signQuad(ex + tx * .07, y, ez + tz * .07, tx, tz, .9, 3.6, 'b:' + b[0], r3(), r3() < .12 ? 1 : 0, 1.8, hexOf(b[1]), 10);
     signQuad(ex - tx * .07, y, ez - tz * .07, -tx, -tz, .9, 3.6, 'b:' + b[0], r3(), 0, 1.8, null);
     signBacks.push({ x: ex, y, z: ez, ry: Math.atan2(tx, tz), sx: 1.02, sy: 3.75, sz: .1 });
@@ -993,11 +1062,11 @@ const holo = new T.Group();
   const HOLO_VS = /* glsl */`
   varying vec2 vUv; varying vec3 vW, vN;
   void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
-  const hm = new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: HOLO_VS, fragmentShader: HOLO_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+  const hm = new T.ShaderMaterial({ name: 'holo', uniforms: shared(ALLU), vertexShader: HOLO_VS, fragmentShader: HOLO_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
   holo.add(new T.Mesh(g, hm));
   // 投影光束
   const bg = new T.CylinderGeometry(1.4, .2, 3.4, 20, 1, true); bg.translate(0, -2.9, 0);
-  const bm = new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: HOLO_VS, fragmentShader: `${GL_LIB}
+  const bm = new T.ShaderMaterial({ name: 'holoBeam', uniforms: shared(ALLU), vertexShader: HOLO_VS, fragmentShader: `${GL_LIB}
     varying vec2 vUv; varying vec3 vW, vN;
     void main(){ float a = (1. - vUv.y) * .25 * (.7 + .3*sin(vUv.x*60. + uTime*3.)); gl_FragColor = vec4(vec3(.4,1.,1.1)*a, 1.); }`,
     transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
@@ -1054,9 +1123,8 @@ void main(){
   vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
   vec3 w = c + (right*position.x + up*position.y) * s;
   vT = t; vQ = position.xy; vW = w; vA = aPh;
-  vec3 dif = vec3(0), spc = vec3(0);
-  lampGrid(dif, spc, c, normalize(uCam - c), normalize(uCam - c), 4.);
-  pointLights(dif, spc, c, normalize(uCam - c), normalize(uCam - c), 4.);
+  mat3 lg = lampGrid(c, normalize(uCam - c), normalize(uCam - c), 4.), pl = pointLights(c, normalize(uCam - c), normalize(uCam - c), 4.);
+  vec3 dif = lg[0] + pl[0];
   vL = dif + uAmbTop*1.5 + uSunCol*.4;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
 }`;
@@ -1075,7 +1143,7 @@ void main(){
   const list = []; const ph = [];
   for (const v of vents) for (let k = 0; k < 10; k++) { list.push({ x: v.x, y: 0, z: v.z }); ph.push(k / 10 + Math.random() * .05); }
   g.setAttribute('aPh', new T.InstancedBufferAttribute(new Float32Array(ph), 1));
-  const m = instanced(g, new T.ShaderMaterial({ uniforms: shared(ALLU), vertexShader: STEAM_VS, fragmentShader: STEAM_FS, transparent: true, depthWrite: false }), list, LY.NOREFL);
+  const m = instanced(g, new T.ShaderMaterial({ name: 'steam', uniforms: shared(ALLU), vertexShader: STEAM_VS, fragmentShader: STEAM_FS, transparent: true, depthWrite: false }), list, LY.NOREFL);
   m.frustumCulled = false;
 }
 
@@ -1100,9 +1168,8 @@ void main(){
   vec3 side = normalize(cross(dir, tc)) * (.008 + length(p - uCam)*.0011);
   vec3 w = p + dir * len * aC.y + side * aC.x;
   vC = aC;
-  vec3 dif = vec3(0), spc = vec3(0);
-  lampGrid(dif, spc, p, -tc, -tc, 8.);
-  pointLights(dif, spc, p, -tc, -tc, 8.);
+  mat3 lg = lampGrid(p, -tc, -tc, 8.), pl = pointLights(p, -tc, -tc, 8.);
+  vec3 dif = lg[0] + pl[0], spc = lg[1] + pl[1];
   vL = dif * .5 + spc * .4 + uFogHi * .7 + uFlash * .8;
   vF = exp(-length(p - uCam) * .045) * uRain;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
@@ -1125,7 +1192,7 @@ const rainMesh = (() => {
   g.setAttribute('position', new T.BufferAttribute(pos, 3));
   g.setAttribute('aR', new T.BufferAttribute(aR, 4)); g.setAttribute('aC', new T.BufferAttribute(aC, 2));
   g.setIndex(new T.BufferAttribute(idx, 1));
-  const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: { ...shared(ALLU), ...rainU }, vertexShader: RAIN_VS, fragmentShader: RAIN_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'rain', uniforms: { ...shared(ALLU), ...rainU }, vertexShader: RAIN_VS, fragmentShader: RAIN_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 5;
   scene.add(m);
   return m;
@@ -1143,7 +1210,7 @@ const splashMesh = (() => {
   g.setAttribute('position', new T.BufferAttribute(new Float32Array(SPLASH_N * 12), 3));
   g.setAttribute('aR', new T.BufferAttribute(aR, 4)); g.setAttribute('aC', new T.BufferAttribute(aC, 2));
   g.setIndex(new T.BufferAttribute(idx, 1));
-  const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending,
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'splash', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending,
     vertexShader: `${GL_LIB}
     attribute vec4 aR; attribute vec2 aC;
     varying vec2 vC; varying float vT; varying vec3 vL;
@@ -1161,8 +1228,7 @@ const splashMesh = (() => {
       float s = .05 + vT * .12;
       vec3 w = c + right * aC.x * s + vec3(0., aC.y * s * 1.3, 0.);
       vC = aC;
-      vec3 dif = vec3(0), spc = vec3(0); vec3 tc = normalize(uCam - c);
-      lampGrid(dif, spc, c + vec3(0,.3,0), tc, tc, 8.);
+      vec3 tc = normalize(uCam - c); mat3 lg = lampGrid(c + vec3(0,.3,0), tc, tc, 8.); vec3 dif = lg[0];
       vL = (dif * .6 + uFogHi) * uRain * exp(-length(c - uCam)*.06);
       gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
     }`,
@@ -1176,7 +1242,7 @@ const splashMesh = (() => {
 // ─── 天空：夜裡低垂的雲被城市燈光從下方照亮（雲散了看得到星星與月亮），白天是藍天、太陽與被照亮的雲（28-sky.js 給顏色） ───
 const sky = (() => {
   const g = new T.SphereGeometry(900, 32, 16);
-  const m = new T.Mesh(g, new T.ShaderMaterial({ uniforms: shared(ALLU), side: T.BackSide, depthWrite: false,
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'sky', uniforms: shared(ALLU), side: T.BackSide, depthWrite: false,
     vertexShader: `varying vec3 vD; void main(){ vD = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.); gl_Position = p.xyww; }`,
     fragmentShader: `${GL_LIB}
     varying vec3 vD;
@@ -1192,8 +1258,9 @@ const sky = (() => {
       vec3 overcast = glow * (.55 + .7*cl*cl2);
       vec3 clear = mix(uFogHi * 1.5, vec3(.003, .005, .012), smoothstep(0., .45, h));
       vec2 sc = vec2(atan(d.z, d.x) * 140., asin(h) * 140.);
-      float star = pow(h21(floor(sc)), 60.) * smoothstep(.45, .1, length(fract(sc) - .5)) * (.6 + .4*sin(uTime*3. + h21(floor(sc) + 3.)*40.));
-      clear += vec3(.8, .85, 1.) * star * 3. * smoothstep(.12, .5, h) * smoothstep(-.08, -.22, uSun.y);   // 天全黑了才看得到星星
+      // 城市光害下只剩最亮的幾百顆（原本 pow(h, 60) 整片七千顆像天文館），亮度差很多、多半很暗，低空被天光吃掉
+      float hs = h21(floor(sc)), star = pow(smoothstep(.9982, 1., hs), 2.) * smoothstep(.3, .06, length(fract(sc) - .5)) * (.75 + .25*sin(uTime*3. + h21(floor(sc) + 3.)*40.));
+      clear += vec3(.85, .88, 1.) * star * 2.2 * smoothstep(.25, .75, h) * smoothstep(-.08, -.22, uSun.y);   // 天全黑了才看得到星星
       float md = dot(d, uMoon);
       clear += vec3(1., .96, .86) * (smoothstep(.99955, .9997, md) * 2.2 + pow(max(md, 0.), 80.) * .12) * step(0., uMoon.y);
       vec3 night = mix(clear, overcast, dens);

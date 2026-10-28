@@ -196,8 +196,10 @@ function shellCull(ix, pos, id) {
 
 // 每台車分成幾個單元（車身、各個輪子）各自減面：輪框細節多、平面少，按比例分的話面數全被輪框吃掉。
 // 每台烘兩級：近景 tris（40 m 內）與遠景 FAR_TRIS（節點名加 _far）
-const WHEEL_TRIS = 140, FAR_TRIS = 600, FAR_WHEEL = 24;
-async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
+// 輪子每顆 WHEEL_TRIS／FAR_WHEEL 面（2026-10-27 從 140／24 提高：輪框的輻條壓到 140 面會被 sloppy 減面揉成一團）；
+// 車身照舊是 tris 扣掉以前輪子分到的（WHEEL_SHARE／FAR_SHARE），輪子多出來的面另外加，車身不因此變粗
+const WHEEL_TRIS = 600, FAR_TRIS = 600, FAR_WHEEL = 120, WHEEL_SHARE = 140, FAR_SHARE = 24;
+async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id, wheelShare = WHEEL_SHARE) {
   const doc = await io.read(cfg.rawFile ? resolve(root, cfg.rawFile) : cfg.raw ? resolve(root, '.cache/raw', cfg.raw + '.glb') : srcOf(cfg));
   // raw：縮放＋繞 y 轉，原點移到整檔（不只選到的節點）的底面中心
   let xf = (p) => p, xfN = (n) => n;
@@ -226,7 +228,7 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     if (cfg.nodes && !cfg.nodes.test(node.getName())) continue;
     const wm = node.getWorldMatrix(), wheel = !cfg.raw && !cfg.rawFile && /^wheel_/.test(node.getName()), un = cfg.raw || cfg.rawFile ? 'body' : node.getName();   // raw 的零件全部合成一個單元一起減面
     let u = units.get(un);
-    if (!u) units.set(un, (u = { wheel, pos: [], nor: [], col: [], mat: [], idx: [] }));
+    if (!u) units.set(un, (u = { name: un, wheel, pos: [], nor: [], col: [], mat: [], idx: [] }));
     for (const prim of mesh.listPrimitives()) {
       const P = prim.getAttribute('POSITION'), N = prim.getAttribute('NORMAL'), C = prim.getAttribute('COLOR_0');
       const PB = prim.getAttribute('_PBR'), E = prim.getAttribute('_EMI'), UV = prim.getAttribute('TEXCOORD_0');
@@ -276,7 +278,7 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
     }
   }
   const nWheel = [...units.values()].filter((u) => u.wheel).length;
-  const bodyTris = Math.max(300, tris - nWheel * wheelTris);
+  const bodyTris = Math.max(300, tris - nWheel * wheelShare);
   const P = [], N = [], C = [], M = [], IDX = [];
   for (const u of units.values()) {
     // 依「位置（1 mm）＋材質」焊接：原檔的硬邊把面板拆成互不相連的小片，不焊接的話減面只能退回 sloppy，整台會被撕碎
@@ -303,13 +305,16 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id) {
       ix.forEach((w, i) => { let o = loc.get(w); if (o == null) { o = back.length; loc.set(w, o); back.push(w); lp.push(pos[w * 3], pos[w * 3 + 1], pos[w * 3 + 2]); } li[i] = o; });
       const P3 = new Float32Array(lp);
       let [r] = MeshoptSimplifier.simplify(li, P3, 3, tgt, err, opt);
-      if (r.length > tgt * 1.5) [r] = MeshoptSimplifier.simplifySloppy(r, P3, 3, null, tgt, sloppyErr);
+      if (sloppyErr != null && r.length > tgt * 1.5) [r] = MeshoptSimplifier.simplifySloppy(r, P3, 3, null, tgt, sloppyErr);   // 輪子不給 sloppy（會把輻條揉爛），減不到目標就多留一點
       return r.map((o) => back[o]);
     };
     if (lamp.length > lt) lamp = simp(lamp, lt, .03, [], .03);
     const bt = Math.max(target / 2, target - lamp.length);
     // Prune：整塊小零件（螺絲、徽章）在誤差內可以直接拿掉
-    if (out.length > bt) out = simp(out, bt, u.wheel ? .1 : .025, ['Prune'], u.wheel ? 1 : .03);
+    // 輪子：不用 sloppy（會把輻條揉爛）；Permissive 讓胎與框（焊接時依材質分開，彼此是邊界）的交界也能收，誤差照樣有上限；
+    // 遠景的輪子（10 px 上下）誤差放寬才減得到 FAR_WHEEL
+    if (out.length > bt) out = simp(out, bt, u.wheel && wheelTris < WHEEL_TRIS ? .1 : .025, u.wheel ? ['Prune', 'Permissive'] : ['Prune'], u.wheel ? null : .03);
+    if (process.env.TRAFFIC_LOG && u.wheel) console.log(`  輪子 ${u.name || ''}：${ix.length / 3} → ${out.length / 3} 面（目標 ${bt / 3}）`);
     if (lamp.length) { const m = new Uint32Array(out.length + lamp.length); m.set(out); m.set(lamp, out.length); out = m; }
     // 法線：相鄰面夾角 40° 內平滑，其餘保留硬邊
     const fn = [], adj = new Map();
@@ -366,7 +371,7 @@ const doc = new Document();
 const buf = doc.createBuffer();
 const scene = doc.createScene();
 const acc = (arr, type, Ctor) => doc.createAccessor().setType(type).setArray(new Ctor(arr)).setBuffer(buf);
-for (const [cfg, id, tris, wt] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS], ...(c.noFar ? [] : [[c, c.id + '_far', FAR_TRIS, FAR_WHEEL]])])) {
+for (const [cfg, id, tris, wt, ws] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS, WHEEL_SHARE], ...(c.noFar ? [] : [[c, c.id + '_far', FAR_TRIS, FAR_WHEEL, FAR_SHARE]])])) {
   let r;
   if (keep.has(id)) {
     const n = keep.get(id), p = n.getMesh().listPrimitives()[0], ex = n.getExtras();
@@ -374,7 +379,7 @@ for (const [cfg, id, tris, wt] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEE
     const wm = n.getWorldMatrix(), raw = get(p.getAttribute('POSITION')), P = [];
     for (let i = 0; i < raw.length; i += 3) P.push(...mulP(wm, raw[i], raw[i + 1], raw[i + 2]));
     r = { id, P, N: get(p.getAttribute('NORMAL')), C: get(p.getAttribute('COLOR_0')), M: get(p.getAttribute('_MAT')), IDX: Array.from(p.getIndices().getArray()), len: ex.len, w: ex.w, h: ex.h, piv: ex.piv };
-  } else r = await bake(cfg, tris, wt, id);
+  } else r = await bake(cfg, tris, wt, id, ws);
   const prim = doc.createPrimitive()
     .setAttribute('POSITION', acc(r.P, 'VEC3', Float32Array)).setAttribute('NORMAL', acc(r.N, 'VEC3', Float32Array))
     .setAttribute('COLOR_0', acc(r.C, 'VEC3', Float32Array)).setAttribute('_MAT', acc(r.M, 'SCALAR', Float32Array))
