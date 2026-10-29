@@ -8,6 +8,7 @@ if (NBR && NBR_OSM.road) {
   const B = NBR_OSM.road, cnt = nbB64(B.n, Uint16Array), xz = nbB64(B.xz, Int16Array), kind = nbB64(B.k, Uint8Array);
   const HW = [3.75, 3.25, 2.6, 1.7, 1.35], LIFT = [.1, .088, .076, .064, .058], STEP = 3, CELL = 512;   // 第 5 種是 24-nbr-bld.js 拉的車道
   const HS = new Map(), hk = (x, z) => Math.floor(x / 32) + ',' + Math.floor(z / 32);   // 鋪好的路面取樣點（32 m 一格），車道找最近的路
+  const RS = new Map(), rk = (i, j) => i * 65536 + j;   // 全部鋪好的取樣點（含車道，16 m 一格）：nbrDeck 問路面抬高多少（NBR.roadLift）
   const roadR = NBR.roadR = new Uint8Array(N.nx * N.nz);
   const mark = (x, z) => { const i = Math.round((x - N.gx0) / NBR_G), j = Math.round((z - N.gz0) / NBR_G); if (i >= 0 && j >= 0 && i < N.nx && j < N.nz) roadR[j * N.nx + i] = 1; };
   const tdAt = (x, z) => { const i = Math.round((x - N.gx0) / NBR_G), j = Math.round((z - N.gz0) / NBR_G); return i < 0 || j < 0 || i >= N.nx || j >= N.nz ? 1e9 : N.TD[j * N.nx + i]; };
@@ -45,6 +46,7 @@ if (NBR && NBR_OSM.road) {
       const nx = -(b[1] - a[1]) / L, nz = (b[0] - a[0]) / L;
       if (ok(x, z, k)) {
         S.push([x, z, nx, nz, u]); for (const t of [-HW[k] - 3, 0, HW[k] + 3]) mark(x + nx * t, z + nz * t);
+        { const key = rk(Math.floor(x / 16), Math.floor(z / 16)); let a = RS.get(key); if (!a) RS.set(key, a = []); a.push(x, z, k); }
         if (k < 4) { const key = hk(x, z); let a = HS.get(key); if (!a) HS.set(key, a = []); a.push(x, z, k); }
       } else { if (S.length > 1) run(S, k); S = []; }
     }
@@ -63,6 +65,12 @@ if (NBR && NBR_OSM.road) {
     if (best) best[2] = Math.sqrt(bd); return best;
   };
   NBR.roadLay = P => { st.drive++; st.dkm += lay(P, 4) / 1000; };
+  // 路面上一點抬高多少（最近的取樣點在那條路的半寬內；取樣 3 m 一點，所以照 √(hw² + 1.5²) 算），不在路上回傳 0
+  NBR.roadLift = (x, z) => {
+    const i0 = Math.floor(x / 16), j0 = Math.floor(z / 16); let lift = 0;
+    for (let j = j0 - 1; j <= j0 + 1; j++) for (let i = i0 - 1; i <= i0 + 1; i++) { const a = RS.get(rk(i, j)); if (a) for (let q = 0; q < a.length; q += 3) { const k = a[q + 2], d = (a[q] - x) ** 2 + (a[q + 1] - z) ** 2; if (d < HW[k] * HW[k] + 2.25 && LIFT[k] > lift) lift = LIFT[k]; } }
+    return lift;
+  };
   st.drive = 0; st.dkm = 0;
   // 路面：MAT.roadConn 的著色器與 uniform（城裡的柏油），自己的 polygonOffset 壓過草皮與碎石。24-nbr-bld.js 拉完車道才建（NBR.roadDone）
   NBR.roadDone = () => {

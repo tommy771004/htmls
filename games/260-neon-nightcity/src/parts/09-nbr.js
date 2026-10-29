@@ -151,5 +151,7 @@ function nbrDeck(X, Z) {
   const [x, z] = nbrL(X, Z);
   if (!nbrInL(x, z) || airLandL(x, z)) return null;
   const t = nbrTrackL(x, z, .3);
-  return t ? t.y : nbrMeshL(x, z);
+  if (t) return t.y;
+  const pf = NBR.pitFloor && NBR.pitFloor(x, z); if (pf !== null && pf !== undefined) return pf;   // 24-nbr-pit.js：車間地坪與門口的工作車道（抬高 10 cm）
+  return nbrMeshL(x, z) + (NBR.roadLift ? NBR.roadLift(x, z) : 0);   // 23-nbr-road.js：村道抬高 6～10 cm，輪子不陷進路面
 }

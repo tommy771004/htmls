@@ -342,6 +342,13 @@ if (NBR && nbrPitBld()) {
     if (!painted && d < 900) paint();
   });
   // 換胎（61-nbr-pit.js）：世界座標 → 第幾間（停在那一間門口的工作車道或車間裡），−1 是不在
+  // 車間地坪與門口的工作車道（地形 + 10 cm，同上面的網格）：09-nbr.js 的 nbrDeck 先問這裡，車開進車間輪子才不會陷進去。維修道路面（o < HW）照賽道
+  NBR.pitFloor = (x, z) => {
+    const dx = x - PB.A[0], dz = z - PB.A[1], t = dx * PB.ux + dz * PB.uz, o = dx * PB.nx + dz * PB.nz;
+    if (t < t0 - 12 || t > t1 + 12 || o < HW - .25) return null;
+    const w = sm01(Math.min(t - (t0 - 12), t1 + 12 - t) / 10), o1 = HW + .5 + (f0 - .02 - HW - .5) * w;
+    return o > (t >= t0 && t <= t1 ? f1 - .3 : o1) ? null : nbrMeshL(x, z) + .1;
+  };
   NBR.pitStop = {
     n, BW,
     boxAt(X, Z) {

@@ -74,7 +74,8 @@ if (NBR) {
           const [x, z] = at(t, k, s, ro[k] + 8), dy = nbrMeshL(x, z) - t.p[k][2];
           rail[k] = Math.abs(dy) > 2.6 ? 2 : 1; fence[k] = spec[k] && rail[k] === 1 ? 1 : 0;
         }
-        if (KAR) for (let k = KAR.k0 - 3; k <= KAR.k1 + 3; k++) if (s === KAR.s) { kerb[k] = 0; lawn[k] = Math.max(lawn[k], Math.min(t.hw + 30, KAR.r * .95)); }
+        // Karussell 內側：水泥槽外直接是草坡（真的沒有護欄，觀眾站在彎心的坡上看），路緣、護欄、木欄都拿掉
+        if (KAR) for (let k = KAR.k0 - 3; k <= KAR.k1 + 3; k++) if (s === KAR.s) { kerb[k] = 0; rail[k] = 0; fence[k] = 0; lawn[k] = Math.max(lawn[k], Math.min(t.hw + 30, KAR.r * .95)); }
       } else if (t.key === 'gp') {
         const ofs = smooth(t, grow(t, Float32Array.from(out, v => clamp(v * 2400, 0, 26)), 8), 8), gr = grow(t, Float32Array.from(out, v => v > 1 / 70 ? 1 : 0), 6);
         for (let k = 0; k < n; k++) {

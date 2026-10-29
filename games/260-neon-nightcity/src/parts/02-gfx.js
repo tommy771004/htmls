@@ -290,6 +290,17 @@ if (GFX !== 'webgl') {
   // （少的用 uniform 陣列、大小依 count；多的用頂點屬性）：同一份 GLSL 的道具、車流 InstancedMesh 一個物件就建一次（載入時 777 次、約 10 秒）。
   // 自動轉換的材質改成照名字讀頂點屬性 gfxIM0～3（gfxIMPos），屬性由 render object 從自己的物件拿（getAttributes），鍵裡的 uuid 換成固定字串，
   // 版面相同的物件共用一份。三處都看 gfxIMOn，條件要一致
+  // 頂點格式：three 的 WebGPUAttributeUtils 單一分量只認 32 位元（float32／sint32／uint32），glb 量化過的 1 分量屬性（城寨窗戶編號 _win 的 unorm16）
+  // 報「Vertex format not supported yet」，整條管線建不起來、那些模型畫不出來。第一次用到那份幾何時換成 float32（getX 照 normalized 反正規化，值和 WebGL 一樣）
+  const gfxVF = g => {
+    if (!g || !g.attributes || g.userData.gfxVF) return; g.userData.gfxVF = 1;
+    for (const k in g.attributes) {
+      const a = g.attributes[k], A = (a.isInterleavedBufferAttribute ? a.data.array : a.array).constructor;
+      if (a.itemSize !== 1 || A === Float32Array || A === Int32Array || A === Uint32Array) continue;
+      const f = new Float32Array(a.count); for (let i = 0; i < a.count; i++) f[i] = a.getX(i);
+      g.setAttribute(k, new T.BufferAttribute(f, 1));
+    }
+  };
   const og = R._objects.get;
   R._objects.get = function (...a) {   // RenderObject 沒有匯出：從第一個建出來的拿原型
     const ro = og.apply(this, a); delete R._objects.get;
@@ -301,6 +312,7 @@ if (GFX !== 'webgl') {
       try { return mk.call(this); } finally { this.object = o; }
     };
     P.getAttributes = function () {
+      if (this.attributes === null) gfxVF(this.geometry);
       if (this.attributes !== null || !gfxIMOn(this.object, this.material)) return ga.call(this);
       const g = this.geometry, im = gfxIMA(this.object);
       this.geometry = { getAttribute: k => im[k] || g.getAttribute(k) };

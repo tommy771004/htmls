@@ -371,6 +371,7 @@ async function embeddedGLB(name) {
   const el = document.getElementById('glb-' + name);
   if (!el) throw new Error('缺少內嵌模型 ' + name);
   const bin = Uint8Array.from(atob(el.textContent.trim()), c => c.charCodeAt(0));
+  el.textContent = '';   // 每個內嵌模型只解一次：base64 文字（合計兩千多萬字）不再留在 DOM 裡
   const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   await MeshoptDecoder.ready;
   return glbLoader.parseAsync(ab, '');

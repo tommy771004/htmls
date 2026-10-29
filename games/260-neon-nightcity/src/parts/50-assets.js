@@ -8,6 +8,7 @@ async function decodeGLB(name) {
   const txt = el && el.textContent.trim();
   if (!txt) return null;
   const bin = Uint8Array.from(atob(txt), c => c.charCodeAt(0));
+  el.textContent = '';   // 只解一次，base64 文字不再留在 DOM 裡
   const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   return new GLTFLoader().parseAsync(ab, '');
 }
