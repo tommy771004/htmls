@@ -370,6 +370,7 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       for (const k of ['fir', 'maple', 'broad', 'pine']) w2Inst(it[k], HILL_FOREST[k], 0, FOREST_R);
       HILL_FOREST.loR0 = FOREST_R - 6;   // 50-assets.js 的遠景樹只畫在這之外（WebGPU 下這裡可能比 50-assets.js 先跑，所以不直接碰 forestLo）
       for (const k of ['fern', 'flower', 'grass']) w2Inst(it[k + '_patch'], HILL_FOREST.und[k], LY.NOREFL, 85);   // 林下層：每片幾百面，只送 85 m 內
+      w2Inst(it.grass_patch, weeds.grass, LY.NOREFL, 40); w2Inst(it.fern_patch, weeds.fern, LY.NOREFL, 40); W2.n.weeds = weeds.grass.length + weeds.fern.length;   // 市區植被（20-props.js 的 weeds），只畫 40 m 內
       W2.swapped.push('forest'); W2.n.forest = HILL_FOREST.fir.length + HILL_FOREST.maple.length + HILL_FOREST.broad.length + HILL_FOREST.pine.length; W2.n.und = Object.values(HILL_FOREST.und).reduce((a, L) => a + L.length, 0);
     }),
     // ─── 山坡別墅的室內家具（blender/villa_furn.py 從 Sketchfab 室內場景拆出的單件 → villa_furn；位置是 villa_plans.json 的 furniture，

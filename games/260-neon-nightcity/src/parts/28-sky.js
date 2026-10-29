@@ -79,6 +79,7 @@ function atmApply() {
   const se = sun.y, c = wx.cloud, r = wx.rain, f = wx.fog;
   const day = sstep(-.11, .16, se), dusk = sstep(-.13, 0, se) * (1 - sstep(.06, .32, se));
   atm.day = U.uDay.value = day; U.uCloud.value = c;
+  MAT.blob.opacity = .5 * (1 - day); MAT.blob.visible = day < .98;   // 20-props.js 路燈下的暗塊：白天有日光陰影，不畫
   // 白天的天空：晴 → 陰 → 雨，日出日落時地平線偏橘
   const P = SKYC, oc = sstep(.3, .92, c);
   _c1.copy(P.day.sky).lerp(P.dayO.sky, oc).lerp(P.dayR.sky, r); _c2.copy(P.day.hor).lerp(P.dayO.hor, oc).lerp(P.dayR.hor, r);

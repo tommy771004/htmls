@@ -60,6 +60,26 @@ const STATIONS = {
     const e = nc.W(a.x + ox * 7 + oz * 2, a.z + oz * 7 - ox * 2), t = nc.W(a.x, a.z);
     return [e[0], 1.7, e[1], t[0], a.y + .5, t[1]];
   } },
+  weeds: { time: 10 * 60, wx: 'clear', cam: nc => {
+    // 市區植被（20-props.js 的 weeds）：找牆腳草最多的一般樓房，沿牆低角度看
+    const G = nc.props.weeds.grass, lots = nc.city.lots; let bi = -1, bn = 0;
+    for (let i = 0; i < lots.length; i++) {
+      const L = lots[i]; if (L.ghost || L.glb || L.special) continue;
+      const fx = L.axis === 'z' ? null : (L.face > 0 ? L.x1 : L.x0), fz = L.axis === 'z' ? (L.face > 0 ? L.z1 : L.z0) : null;
+      let n = 0;
+      for (const g of G) if (fz != null ? Math.abs(g.z - fz) < .3 && g.x > L.x0 && g.x < L.x1 : Math.abs(g.x - fx) < .3 && g.z > L.z0 && g.z < L.z1) n++;
+      if (n > bn) { bn = n; bi = i; }
+    }
+    return bi < 0 ? null : sideWalk(nc, bi, 1, 1.4, .9);
+  } },
+  blob: { time: 21 * 60, wx: 'clear', cam: nc => {
+    // 路燈下的暗塊（20-props.js 的 lampBlobs，世界座標）：挑一片拉得最長的，從側面 5 m 看
+    const B = nc.props.lampBlobs; let b = B[0];
+    for (const o of B) if (o.sz > b.sz && o.sz < 3) b = o;
+    const [lx, lz] = nc.L(b.x, b.z), [ex, ez] = nc.W(lx, lz).map((v, i) => v + (i ? -Math.sin(b.ry) : Math.cos(b.ry)) * 5);
+    const [px, pz] = nc.L(ex + (ex - b.x), ez + (ez - b.z)); nc.walk(); nc.tpL(px, pz);
+    return [ex, 1.7, ez, b.x, 0, b.z];
+  } },
   ped: { time: 20 * 60, wx: 'clear', cam: nc => {
     // 夜店門口的保鑣（站著不動）：斜前方 2.4 m、胸口高度
     const b = nc.spots.bouncer, d = nc.spots.clubDoor; nc.walk(); nc.tpL(d.x + 6, d.z + 5);

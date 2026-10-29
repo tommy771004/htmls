@@ -497,6 +497,66 @@ const clutter = { bag: [], bag2: [], box: [], crate: [], tyre: [] };
     else pile(L.face > 0 ? L.x1 + off : L.x0 - off, sd > 0 ? L.z1 - lat : L.z0 + lat, 0, 1, L.face, 0, n, .6, L.face > 0 ? Math.PI / 2 : -Math.PI / 2);
   }
 }
+// 市區植被（#8）：路緣縫、牆腳與人行道縫冒出來的草叢。借 nat_forest 的林下層（27-props.js 的 w2Load('nat_forest')）：grass_patch（4 × 3.5 m、高 0.94 m）
+// 壓扁拉長成一小撮，fern_patch 縮小擺在背陰的牆腳；只看 free() 不 claim、沒有碰撞。舊碼頭、鐵灣、琥珀、楓林、錨灣與國宅多，金融區與光環廣場少
+const weeds = { grass: [], fern: [] };
+{
+  const r = rng(2617);
+  const rate = (x, z) => { const d = district(x, z); return /舊碼頭|鐵灣|琥珀|楓林|錨灣|灰石/.test(d) ? 1.6 : /金融|光環/.test(d) ? .4 : 1; };
+  // 一撮：(x, z) 的中心、沿 ry 的方向長 len、寬 dep
+  const tuft = (x, z, ry, len, dep, h) => { if (free(x, z, .2)) weeds.grass.push({ x, y: .13, z, ry, sx: len / 4, sy: h / .94, sz: dep / 3.5 }); };
+  // 路緣：sideSpots 在離路緣 0.9 m 的地方，草長在人行道與路緣石的縫（往路那側 0.75 m）
+  for (const s of sideSpots) {
+    if (r() > .1 * rate(s.x, s.z)) continue;
+    const n = 1 + Math.floor(r() * 3), ry = s.ax === 'z' ? 0 : Math.PI / 2;
+    for (let k = 0; k < n; k++) {
+      const a = (r() - .5) * 2.4, x = s.ax === 'z' ? s.x + a : s.x + s.nx * .75, z = s.ax === 'z' ? s.z + s.nz * .75 : s.z + a;
+      tuft(x, z, ry + (r() - .5) * .3, .35 + r() * .8, .12 + r() * .1, .14 + r() * .2);
+    }
+    if (r() < .35) { const a = (r() - .5) * 2, x = s.ax === 'z' ? s.x + a : s.x - s.nx * (r() * .5), z = s.ax === 'z' ? s.z - s.nz * (r() * .5) : s.z + a; tuft(x, z, r() * 6.28, .15 + r() * .2, .15 + r() * .2, .08 + r() * .1); }   // 人行道磚縫的小撮
+  }
+  // 牆腳：一般樓房正面沿牆一兩段草，背陰處偶爾一叢蕨；玻璃大樓、特殊地塊與讓位的地塊不擺
+  for (const L of lots) {
+    if (L.ghost || L.special || L.glb || L.style === 3 || L.isle != null) continue;
+    const cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2;
+    if (r() > .3 * rate(cx, cz)) continue;
+    const n = 1 + Math.floor(r() * 2), along = L.axis === 'z' ? L.x1 - L.x0 : L.z1 - L.z0;
+    for (let k = 0; k < n; k++) {
+      const t = (r() < .5 ? .08 + r() * .2 : .72 + r() * .2) * along, off = .1 + r() * .06;   // 靠兩端（門多半在中間）
+      const x = L.axis === 'z' ? L.x0 + t : (L.face > 0 ? L.x1 + off : L.x0 - off), z = L.axis === 'z' ? (L.face > 0 ? L.z1 + off : L.z0 - off) : L.z0 + t;
+      const ry = L.axis === 'z' ? 0 : Math.PI / 2;
+      if (r() < .2) { if (free(x, z, .3)) weeds.fern.push({ x, y: .13, z, ry: r() * 6.28, sx: .1 + r() * .05, sy: .45 + r() * .3, sz: .08 + r() * .04 }); }
+      else tuft(x, z, ry, .6 + r() * 1.4, .14 + r() * .1, .18 + r() * .22);
+    }
+  }
+}
+// 路燈下的暗塊（#10）：不做點光陰影，改在路燈附近的人行道設施底下放一片橢圓的暗影，往遠離最近那盞燈頭的方向拉長
+// （長度照「物件高 × 離燈水平距離 ÷ (燈高 − 物件高)」估），離燈越遠越淡；只在夜裡看得到（28-sky.js 依 atm.day 調 MAT.blob 的不透明度）。
+// 開場就換成世界座標（zn: null）：燈頭表 LAMP_HEADS 是世界座標；快速道路的燈（帶 y，立在橋面上）不算
+MAT.blob = new T.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, name: 'blob',
+  map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.45, 'rgba(255,255,255,.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.NoColorSpace; return t; })() });
+MAT.blob.alphaMap = MAT.blob.map; MAT.blob.map = null;
+const lampBlobs = [];
+{
+  const C = 16, LAMP_H = 7.6, G = new Map();
+  for (const h of LAMP_HEADS) { if (h.y) continue; const k = Math.floor(h.x / C) + ',' + Math.floor(h.z / C); (G.get(k) || G.set(k, []).get(k)).push(h); }
+  const near = (X, Z) => { let b = null, bd = 14; const i = Math.floor(X / C), j = Math.floor(Z / C);
+    for (let a = -1; a <= 1; a++) for (let c = -1; c <= 1; c++) for (const h of G.get((i + a) + ',' + (j + c)) || []) { const d = Math.hypot(h.x - X, h.z - Z); if (d < bd) { bd = d; b = h; } }
+    return b && [b, bd]; };
+  // 每種設施：清單、底面半徑、高度
+  for (const [list, r, hh] of [[hydrants, .22, .75], [bins, .32, 1], [boxesN, .34, 1.25], [booths, .55, 2.3], [newsBoxes, .3, 1.1], [bollards, .12, .9]]) for (const t of list) {
+    const [X, Z] = t.zn === null ? [t.x, t.z] : toW(t.x, t.z, t.zn ?? undefined), nb = near(X, Z);
+    if (!nb) continue;
+    const [h, d] = nb, ux = (X - h.x) / (d || 1), uz = (Z - h.z) / (d || 1), len = Math.min(3.5, hh * d / (LAMP_H - hh));
+    lampBlobs.push({ x: X + ux * len * .45, y: (t.y || 0) + .012, z: Z + uz * len * .45, ry: Math.atan2(ux, uz), sx: r * 2.3, sy: 1, sz: r * 2 + len, zn: null });
+  }
+}
+{
+  const g = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  instanced(g, MAT.blob, lampBlobs, LY.NOREFL, null, 70);
+}
 // World 第四輪之二（27-props.js 檔尾）：以 http(s) 開啟時把下面幾種換成 Sketchfab 模型，所以留住程式建模的網格（下載好才拿掉）
 const hydrantMesh = instanced(new Kit()
   .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)
