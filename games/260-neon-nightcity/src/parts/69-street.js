@@ -45,7 +45,9 @@ function streetEnd(msg) {
 function dropVeh(v) {
   v.ai = false;
   const i = vehicles.indexOf(v); if (i >= 0) vehicles.splice(i, 1);
-  scene.remove(v.g); v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+  scene.remove(v.g);
+  if (v.carId) { v.glbTok++; disposeKit(v.g); v.mat.dispose(); return; }   // 換成實車的（68-gta.js 的 streetUp）：GLB 的幾何與貼圖共用，只收自己的材質
+  v.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
 }
 // 往遠離玩家的方向挑一個路口（dMin–dMax 公尺外，而且比現在離玩家更遠）
 function fleeNode(x, z, dMin, dMax) {

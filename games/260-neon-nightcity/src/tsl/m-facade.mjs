@@ -2,7 +2,7 @@
 // 材質 "facade"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{}": {
-  h: "8ld66ht1n", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
+  h: "1n105wau6g", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFacN","type":"sampler2DArray","src":"uFacN"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vB","type":"vec4","src":"vB"},{"name":"vB2","type":"vec4","src":"vB2"}],
   attributes: [{"name":"aB","type":"vec4","src":"aB"},{"name":"aB2","type":"vec4","src":"aB2"}],
@@ -31,7 +31,7 @@ export default {
     return main_;
   },
   fragment: (TSL, E) => {
-    const { Fn, vec2, floor, mod, step, fract, smoothstep, fwidth, sub, mix, bool, vec3, dot, max, div, mul, add, If, abs, select, min, property, float, length, sin, clamp, cos, pow, reflect, vec4, Discard, normalize, int, exp, dFdx, dFdy, sign, exp2 } = TSL;
+    const { Fn, vec2, floor, mod, step, fract, smoothstep, fwidth, sub, mix, bool, vec3, dot, max, div, mul, add, If, abs, select, min, property, float, length, cos, Loop, sin, clamp, pow, reflect, vec4, Discard, normalize, int, exp, dFdx, dFdy, sign, exp2 } = TSL;
     const { uFacA, uFacN, uFac, vW, vN, vUv, vB, vB2, aB, aB2, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
 
 
@@ -163,7 +163,7 @@ export default {
     	const tz = dim.z.sub( o.z ).mul( inv.z ).toVar();
     	const t = min( tx, min( ty, tz ) ).toVar();
     	const hp = o.add( vd.mul( t ) ).toVar();
-    	const lc = select( kind.equal( 2. ), vec3( 1., .82, .62 ), select( kind.equal( 3. ), vec3( .66, .6, .86 ), select( kind.equal( 4. ), vec3( .9, 1., .95 ), vec3( 1., .98, .94 ) ) ) ).toVar();
+    	const lc = select( kind.equal( 5. ), vec3( 1., .93, .82 ), select( kind.equal( 2. ), vec3( 1., .82, .62 ), select( kind.equal( 3. ), vec3( .66, .6, .86 ), select( kind.equal( 4. ), vec3( .9, 1., .95 ), vec3( 1., .98, .94 ) ) ) ) ).toVar();
     	const c = property( 'vec3' );
 
     	If( t.equal( tz ).or( t.equal( tx ) ), () => {
@@ -197,6 +197,27 @@ export default {
     			const tl = fract( bw.div( .15 ) ).toVar();
     			c.assign( select( bw.y.lessThan( 1.22 ), m, vec3( .74, .76, .75 ).mul( add( .88, mul( .12, step( .06, min( tl.x, tl.y ) ) ) ) ) ) );
 
+    		} ).ElseIf( kind.equal( 5. ), () => {
+
+    			c.assign( vec3( .74, .71, .66 ).mul( wn ) );
+
+    			Loop( { start: 0, end: 2, name: 'r' }, ( { r } ) => {
+
+    				const ry = select( r.equal( 0 ), 1.9, 1.18 ).toVar(), len = select( r.equal( 0 ), .6, .48 ).toVar(), gw = add( .075, mul( .02, float( r ) ) ).toVar();
+    				const gi = floor( bw.x.div( gw ) ).toVar(), gx = fract( bw.x.div( gw ) ).toVar(), g1 = h21( vec2( gi, float( r ).add( hs.mul( 9. ) ) ) ).toVar(), g2 = h21( vec2( gi.add( 3.1 ), float( r ).add( hs ) ) ).toVar();
+    				const gc = add( .5, mul( .5, cos( mul( 6.28, g1.mul( .7 ).add( hs.mul( 3. ) ).add( vec3( 0., .33, .67 ) ) ) ) ) ).toVar();
+    				gc.assign( mix( vec3( dot( gc, vec3( .33 ) ) ), gc, .5 ).mul( add( .25, mul( .55, g2 ) ) ) );
+    				const bot = ry.sub( len ).sub( mul( .22, g2 ) ).toVar();
+    				c.assign( mix( c, gc.mul( mix( .7, 1., smoothstep( bot, ry, bw.y ) ) ), step( bot, bw.y ).mul( step( bw.y, ry.sub( .02 ) ) ).mul( step( .1, gx ) ).mul( step( gx, .93 ) ) ) );
+    				c.assign( mix( c, vec3( .6, .6, .62 ), step( abs( bw.y.sub( ry ) ), .012 ) ) );
+
+    			} );
+
+    			const sy = bw.y.sub( 2.3 ).toVar(), fi = floor( bw.x.div( .36 ) ).toVar(), fx = fract( bw.x.div( .36 ) ).toVar(), fh = h21( vec2( fi, hs.mul( 5. ) ) ).toVar();
+    			const fc = add( .5, mul( .5, cos( mul( 6.28, fh.add( hs.mul( 3. ) ).add( vec3( 0., .33, .67 ) ) ) ) ) ).mul( .45 ).add( .12 ).toVar();
+    			c.assign( mix( c, fc.mul( add( .8, mul( .2, step( .5, fract( sy.div( .045 ) ) ) ) ) ), step( 0., sy ).mul( step( sy, add( .1, mul( .12, fh ) ) ) ).mul( step( .12, fx ) ).mul( step( fx, .88 ) ) ) );
+    			c.assign( mix( c, vec3( .42, .4, .37 ), step( abs( sy ), .015 ) ) );
+
     		} ).ElseIf( kind.equal( 2. ), () => {
 
     			c.assign( select( bw.y.lessThan( 1.0 ), vec3( .3, .21, .15 ).mul( add( .85, mul( .15, step( .5, fract( bw.x.mul( 2.4 ) ) ) ) ) ), vec3( .72, .66, .56 ).mul( wn ) ) );
@@ -228,7 +249,7 @@ export default {
 
     		const tl = floor( hp.xz.div( .45 ) ).toVar(), tf = fract( hp.xz.div( .45 ) ).toVar();
     		const ck = mod( tl.x.add( tl.y ), 2. ).toVar();
-    		c.assign( select( kind.equal( 2. ), mix( vec3( .56, .54, .5 ), vec3( .36, .34, .31 ), ck ), mix( vec3( .46, .45, .43 ), vec3( .4, .39, .37 ), ck.mul( .7 ) ) ) );
+    		c.assign( select( kind.equal( 5. ), vec3( .44, .32, .22 ).mul( add( .82, mul( .18, h21( vec2( floor( hp.x.div( .16 ) ), floor( hp.z.div( 1.2 ).add( fract( hp.x.mul( 2.3 ) ) ) ).add( hs ) ) ) ) ) ).mul( add( .85, mul( .15, step( .04, fract( hp.x.div( .16 ) ) ) ) ) ), select( kind.equal( 2. ), mix( vec3( .56, .54, .5 ), vec3( .36, .34, .31 ), ck ), mix( vec3( .46, .45, .43 ), vec3( .4, .39, .37 ), ck.mul( .7 ) ) ) ) );
     		c.mulAssign( add( .9, mul( .1, h21( tl.add( hs ) ) ) ).mul( add( .82, mul( .18, step( .03, min( tf.x, tf.y ) ) ) ) ) );
 
     	} );
@@ -574,7 +595,7 @@ export default {
     									const dim = vec3( uw.mul( .91 ), 3., 5.2 ).toVar();
     									const o = vec3( ux.sub( .045 ).div( .91 ).mul( dim.x ), y.sub( .42 ), 0. ).toVar();
     									const sk = mod( floor( seed ).mul( 7. ).add( ui.mul( 13. ) ).add( .5 ), 24. ).toVar();
-    									const inside = select( st.equal( 6 ), room( o, vd, dim, hs, vec3( 1.1, .6, .28 ).mul( 1.4 ), 0. ), shopRoom( o, vd, dim, hs, select( sk.lessThan( 8. ), 0., select( sk.lessThan( 9. ), 1., select( sk.lessThan( 15. ), 2., select( sk.lessThan( 19. ), 3., 4. ) ) ) ) ) ).toVar();
+    									const inside = select( st.equal( 6 ), room( o, vd, dim, hs, vec3( 1.1, .6, .28 ).mul( 1.4 ), 0. ), shopRoom( o, vd, dim, hs, select( mod( floor( vB2.x.div( exp2( ui.add( 16. ) ) ) ), 2. ).greaterThan( .5 ), 5., select( sk.lessThan( 8. ), 0., select( sk.lessThan( 9. ), 1., select( sk.lessThan( 15. ), 2., select( sk.lessThan( 19. ), 3., 4. ) ) ) ) ) ) ).toVar();
     									const door = step( .7, ux ).mul( step( ux, .86 ) ).toVar();
     									const frame = max( step( abs( ux.sub( .7 ) ), .008 ), step( abs( ux.sub( .86 ) ), .008 ) ).mul( step( y, 2.6 ) ).add( step( abs( y.sub( 2.6 ) ), .03 ).mul( door ) ).toVar();
     									frame.addAssign( step( abs( y.sub( 2.95 ) ), .025 ) );

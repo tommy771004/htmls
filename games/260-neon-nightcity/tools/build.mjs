@@ -11,7 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const minify = !process.argv.includes('--dev');
 const outArg = process.argv.find((a) => a.startsWith('--out='));
 const outFile = outArg ? resolve(process.cwd(), outArg.slice(6)) : resolve(root, '../../web/260-neon-nightcity.html');
-const GLBS = ['interior_props', 'street_props', 'people', 'traffic', 'hill_homes'];   // 人物：blender/people.py；車流：tools/traffic.mjs；山坡住宅：blender/hill_homes.py
+const GLBS = ['interior_props', 'street_props', 'people', 'wear', 'traffic', 'hill_homes'];   // 人物：blender/people.py；衣服：blender/wear.py；車流：tools/traffic.mjs；山坡住宅：blender/hill_homes.py
 
 const partsDir = resolve(root, 'src/parts');
 const parts = readdirSync(partsDir).filter((f) => f.endsWith('.js')).sort();

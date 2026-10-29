@@ -710,7 +710,7 @@ vec3 oppRefl(vec3 p, vec3 r, vec3 n, float seed){
 // 室內映射：從窗面往房間裡射線，求出撞到後牆、側牆或天花板地板
 ${ROOM_GL}
 // 店面室內：貨架、日光燈、地磚
-vec3 shopRoom(vec3 o, vec3 vd, vec3 dim, float hs, float kind){   // kind：shopKind()，和 20-props.js 挑的招牌同一類
+vec3 shopRoom(vec3 o, vec3 vd, vec3 dim, float hs, float kind){   // kind：shopKind()，和 20-props.js 挑的招牌同一類；5 是 12-wearshops.js 挑中的服裝店
   vec3 inv = 1. / max(abs(vd), vec3(1e-4));
   float tx = (vd.x > 0. ? dim.x - o.x : o.x) * inv.x;
   float ty = (vd.y > 0. ? dim.y - o.y : o.y) * inv.y;
@@ -718,7 +718,7 @@ vec3 shopRoom(vec3 o, vec3 vd, vec3 dim, float hs, float kind){   // kind：shop
   float t = min(tx, min(ty, tz));
   vec3 hp = o + vd * t;
   // 燈色照真的店：日光燈冷白、小吃店暖白、遊樂場偏紫的暗光；彩度都壓低，櫥窗裡才不會是一塊塊純色
-  vec3 lc = kind == 2. ? vec3(1.,.82,.62) : kind == 3. ? vec3(.66,.6,.86) : kind == 4. ? vec3(.9,1.,.95) : vec3(1.,.98,.94);
+  vec3 lc = kind == 5. ? vec3(1.,.93,.82) : kind == 2. ? vec3(1.,.82,.62) : kind == 3. ? vec3(.66,.6,.86) : kind == 4. ? vec3(.9,1.,.95) : vec3(1.,.98,.94);
   vec3 c;
   if (t == tz || t == tx) {
     vec2 bw = t == tz ? hp.xy : vec2(hp.z, hp.y);
@@ -745,6 +745,21 @@ vec3 shopRoom(vec3 o, vec3 vd, vec3 dim, float hs, float kind){   // kind：shop
       m = mix(m, vec3(.1,.13,.16) + .25*smoothstep(.05, .0, abs(cell.x + cell.y*.6 + .08)) * step(r, .2), smoothstep(.235, .215, r));
       vec2 tl = fract(bw / .15);
       c = bw.y < 1.22 ? m : vec3(.74,.76,.75) * (.88 + .12*step(.06, min(tl.x, tl.y)));
+    } else if (kind == 5.) {                 // 服裝店：上下兩層衣桿掛滿衣服（一件件窄的色條，下襬高低不齊、上深下淺），最上面一層板疊著摺好的衣服
+      c = vec3(.74,.71,.66) * wn;
+      for (int r = 0; r < 2; r++) {
+        float ry = r == 0 ? 1.9 : 1.18, len = r == 0 ? .6 : .48, gw = .075 + .02*float(r);
+        float gi = floor(bw.x / gw), gx = fract(bw.x / gw), g1 = h21(vec2(gi, float(r) + hs*9.)), g2 = h21(vec2(gi + 3.1, float(r) + hs));
+        vec3 gc = .5 + .5*cos(6.28*(g1*.7 + hs*3. + vec3(0., .33, .67)));
+        gc = mix(vec3(dot(gc, vec3(.33))), gc, .5) * (.25 + .55*g2);
+        float bot = ry - len - .22*g2;
+        c = mix(c, gc * mix(.7, 1., smoothstep(bot, ry, bw.y)), step(bot, bw.y) * step(bw.y, ry - .02) * step(.1, gx) * step(gx, .93));
+        c = mix(c, vec3(.6,.6,.62), step(abs(bw.y - ry), .012));
+      }
+      float sy = bw.y - 2.3, fi = floor(bw.x / .36), fx = fract(bw.x / .36), fh = h21(vec2(fi, hs*5.));
+      vec3 fc = (.5 + .5*cos(6.28*(fh + hs*3. + vec3(0., .33, .67)))) * .45 + .12;
+      c = mix(c, fc * (.8 + .2*step(.5, fract(sy / .045))), step(0., sy) * step(sy, .1 + .12*fh) * step(.12, fx) * step(fx, .88));
+      c = mix(c, vec3(.42,.4,.37), step(abs(sy), .015));
     } else if (kind == 2.) {                 // 小吃店：下半截深色木牆裙、上面奶油色牆、不鏽鋼櫃台邊、菜單燈箱（一行行字）
       c = bw.y < 1.0 ? vec3(.3,.21,.15) * (.85 + .15*step(.5, fract(bw.x*2.4))) : vec3(.72,.66,.56) * wn;
       c = mix(c, vec3(.7,.71,.72), step(abs(bw.y - 1.02), .03));
@@ -768,7 +783,8 @@ vec3 shopRoom(vec3 o, vec3 vd, vec3 dim, float hs, float kind){   // kind：shop
   } else {                                   // 地板：兩種相近色的塑膠地磚與磚縫（小吃店是低對比的黑白格）
     vec2 tl = floor(hp.xz / .45), tf = fract(hp.xz / .45);
     float ck = mod(tl.x + tl.y, 2.);
-    c = kind == 2. ? mix(vec3(.56,.54,.5), vec3(.36,.34,.31), ck) : mix(vec3(.46,.45,.43), vec3(.4,.39,.37), ck * .7);
+    c = kind == 5. ? vec3(.44,.32,.22) * (.82 + .18*h21(vec2(floor(hp.x / .16), floor(hp.z / 1.2 + fract(hp.x * 2.3)) + hs))) * (.85 + .15*step(.04, fract(hp.x / .16)))
+      : kind == 2. ? mix(vec3(.56,.54,.5), vec3(.36,.34,.31), ck) : mix(vec3(.46,.45,.43), vec3(.4,.39,.37), ck * .7);
     c *= (.9 + .1*h21(tl + hs)) * (.82 + .18*step(.03, min(tf.x, tf.y)));
   }
   // 店員或客人的剪影
@@ -955,7 +971,7 @@ void main(){
         vec3 dim = vec3(uw*.91, 3., 5.2);
         vec3 o = vec3((ux - .045) / .91 * dim.x, y - .42, 0.);
         float sk = mod(floor(seed)*7. + ui*13. + .5, 24.);   // 和 JS 的 shopKind() 同一條整數式（加 .5 避開除法誤差剛好落在整數上）
-        vec3 inside = st == 6 ? room(o, vd, dim, hs, vec3(1.1,.6,.28)*1.4, 0.) : shopRoom(o, vd, dim, hs, sk < 8. ? 0. : sk < 9. ? 1. : sk < 15. ? 2. : sk < 19. ? 3. : 4.);
+        vec3 inside = st == 6 ? room(o, vd, dim, hs, vec3(1.1,.6,.28)*1.4, 0.) : shopRoom(o, vd, dim, hs, mod(floor(vB2.x / exp2(ui + 16.)), 2.) > .5 ? 5. : sk < 8. ? 0. : sk < 9. ? 1. : sk < 15. ? 2. : sk < 19. ? 3. : 4.);   // 服裝店標在 masks 第 16 位以上
         float door = step(.7, ux) * step(ux, .86);
         float frame = max(step(abs(ux - .7), .008), step(abs(ux - .86), .008)) * step(y, 2.6) + step(abs(y - 2.6), .03) * door;
         frame += step(abs(y - 2.95), .025);
@@ -1145,7 +1161,7 @@ for (const L of lots) {
         else if (k === 'nz') { x = L.x1 - along; z = L.z0; }
         else if (k === 'px') { x = L.x1; z = L.z1 - along; }
         else { x = L.x0; z = L.z0 + along; }
-        shopUnits.push({ x, z, nx: nrm[0], nz: nrm[1], w: uw, shut: (mask >> u) & 1, lot: L, special: L.special, kind: shopKind(L.seed, u) });
+        shopUnits.push({ x, z, nx: nrm[0], nz: nrm[1], w: uw, shut: (mask >> u) & 1, lot: L, special: L.special, kind: shopKind(L.seed, u), fk: k, u });   // fk、u：12-wearshops.js 回頭在 masks 上標服裝店
         if (k === 'pz' && aptDoorOn(x - uw / 2, x + uw / 2, z)) masks[k][0] |= 1 << u;
       }
     }
@@ -1676,6 +1692,7 @@ const districtW = (X, Z) => {
   if (tronLandW(X, Z)) return '光格島';
   if (encHas(X, Z)) return `${ENC.name} ${ENC.en}`;
   if (airLandW(X, Z) && !inCity(X, Z)) return AIR.name;
+  if (nbrLandW(X, Z)) return '紐柏林賽道 Nürburgring';
   const zn = zoneOfW(X, Z); let [x, z] = toL(X, Z, zn);
   if (zn && inCity(X, Z)) { x = clamp(x, avX(zn.ni0), avX(zn.ni1)); z = clamp(z, stZ(zn.nj0), stZ(zn.nj1)); }   // 片之間的縫（快速道路）：算最近那片路網範圍裡的地名，不要外插到海邊的地名（離片遠時 unwarp 會發散）
   return district(x, z);
@@ -1737,7 +1754,15 @@ function hillH(X, Z) {
   // 雲梯城寨那個方向（HILL.enc）也緩一點：離外緣的距離打 0.55 折、左右約 ±14° 接回原本的坡（平台後面的切坡才不會上百公尺高）
   if (w > 0 && HILL.enc !== undefined) { const pe = Math.exp(-(((((a - HILL.enc + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) / .24) ** 2)); if (pe > .01) h = h * (1 - pe) + hd(d * .55) * pe; }
   // 離外緣 1000 m 外（外緣山林的稜線後面）是石柱峰的盆地：地面降到海面上 40–70 m（21-coast.js 擺石柱峰、蓋雲海），3100 m 外再升回雪山腳下
+  // 緩丘（2026-10-28）：離外緣 30 m 起疊上三組不同走向的長波（約 240、150、90 m 一個起伏，振幅隨離外緣的距離加大，最多約 ±16 m），
+  // 山坡不再是一整面平滑的坡；外緣與路口那一圈不動
+  if (w > 0 && d > 30) {
+    const k = sm01((d - 30) / 160) * (.55 + .45 * Math.min(1, d / 700));
+    h += k * (8 * Math.sin(X * .0262 + Z * .0098 + 1.7) * Math.sin(Z * .0231 - X * .0071 + .3) + 5 * Math.sin(X * .041 - Z * .029 + 2.9) * Math.sin(Z * .037 + X * .017 + 4.1)
+      + 3 * Math.sin(X * .069 + Z * .052) * Math.sin(Z * .073 - X * .044 + 1.1));
+  }
   if (w > 0 && d > 1000) { const b = sm01((d - 1000) / 450) * (1 - sm01((d - 3100) / 500)); if (b > 0) h = h * (1 - b) + (SEA_Y + 55 + 15 * Math.sin(a * 7 + d * .004)) * b; }
+  if (w > 0) h = akinaH(X, Z, h);   // 09-akina.js：北嶺公園西北的榛嶺（公園建好之前沒有）
   if (w > 0 && w < 1) h = -8 + (h + 8) * w * w * (3 - 2 * w);
   // 舊城北邊的河谷（A1 沒有轉，邏輯 ≈ 世界）
   const [lx, lz] = toL(X, Z, ZONES[0]);
@@ -1747,8 +1772,12 @@ function hillH(X, Z) {
 }
 // ─── 山坡的網格高度：21-coast.js 的山是 CITY_C 為中心的極座標網格（外緣每個頂點一條射線，往外 HILL_D 那幾圈），網格之間是平面三角形，
 // 兩圈之間會比 hillH 低。站在坡上的東西（北嶺公園的步道、樹、圍籬、玩家）照網格的高度才會貼著畫出來的坡 ───
-const HILL_D = [0, 3, 8, 16, 30, 55, 90, 140, 210, 300, 420, 580, 800, 1100, 1500, 2000, 2700, 3500];
-const hillV = (k, j) => { const p = CITY_POLY[k], s = (HILL.R[k] + HILL_D[j]) / HILL.R[k]; return [HILL.cx + (p[0] - HILL.cx) * s, HILL.cz + (p[1] - HILL.cz) * s]; };
+// 2026-10-28 加密：射線原本是外緣每個頂點一條（每 2°）、300 m 外一圈隔 120–300 m，外圈一格上百公尺，緩丘與山的起伏都畫不出來。
+// 現在外緣每條直線邊上再插 HILL_SUB − 1 條射線（HILL.ray：x、z 是第 0 圈的點，R 是離 CITY_C 的距離），30 m 外的圈也加密
+const HILL_D = [0, 3, 8, 16, 30, 45, 62, 82, 105, 130, 160, 195, 235, 280, 330, 390, 460, 540, 630, 730, 850, 1000, ...Array.from({ length: 80 }, (_, i) => 1030 + i * 30), 3500];   // 1000–3400 m 每 30 m 一圈：09-akina.js 的榛嶺在這一段（山道的挖方要細格子才不會凸到路上）
+const HILL_SUB = 2;
+HILL.ray = CITY_POLY.flatMap((p, k) => { const q = CITY_POLY[(k + 1) % CITY_POLY.length]; return Array.from({ length: HILL_SUB }, (_, i) => { const x = p[0] + (q[0] - p[0]) * i / HILL_SUB, z = p[1] + (q[1] - p[1]) * i / HILL_SUB; return { x, z, R: Math.hypot(x - HILL.cx, z - HILL.cz) }; }); });
+const hillV = (k, j) => { const p = HILL.ray[k], s = (p.R + HILL_D[j]) / p.R; return [HILL.cx + (p.x - HILL.cx) * s, HILL.cz + (p.z - HILL.cz) * s]; };
 // HILL.carveH（山路兩側的挖填，路生成之後才有）套在網格高度上；hillMeshRaw 是沒挖過的
 function hillMeshH(X, Z) { const h = hillMeshRaw(X, Z); return HILL.carveH ? HILL.carveH(X, Z, h) : h; }
 function triDist(P3, x, z) {   // 點到三角形（xz）的距離，在裡面是 0
@@ -1761,14 +1790,14 @@ function triDist(P3, x, z) {   // 點到三角形（xz）的距離，在裡面�
   return inside ? 0 : d;
 }
 function hillMeshRaw(X, Z) {
-  const n = CITY_POLY.length, m = HILL_D.length;
+  const RY = HILL.ray, n = RY.length, m = HILL_D.length;
   if (!HILL.vh) { HILL.vh = new Float32Array(n * m); for (let k = 0; k < n; k++) for (let j = 0; j < m; j++) HILL.vh[k * m + j] = hillH(...hillV(k, j)); }
-  const a0 = Math.atan2(CITY_POLY[0][1] - HILL.cz, CITY_POLY[0][0] - HILL.cx), a = Math.atan2(Z - HILL.cz, X - HILL.cx);
+  const a0 = Math.atan2(RY[0].z - HILL.cz, RY[0].x - HILL.cx), a = Math.atan2(Z - HILL.cz, X - HILL.cx);
   const k0 = Math.floor((((a - a0) / (2 * Math.PI) * n) % n + n) % n), r = Math.hypot(X - HILL.cx, Z - HILL.cz);
-  for (const k of [k0, (k0 + n - 1) % n, (k0 + 1) % n]) {
+  for (const k of [k0, (k0 + n - 1) % n, (k0 + 1) % n, (k0 + n - 2) % n, (k0 + 2) % n]) {   // 插的射線在直線邊上，角度不是完全等距：多看兩條
     const k1 = (k + 1) % n;
     for (let j = 0; j < m - 1; j++) {
-      if (r < Math.min(HILL.R[k], HILL.R[k1]) + HILL_D[j] - 40 || r > Math.max(HILL.R[k], HILL.R[k1]) + HILL_D[j + 1] + 40) continue;
+      if (r < Math.min(RY[k].R, RY[k1].R) + HILL_D[j] - 40 || r > Math.max(RY[k].R, RY[k1].R) + HILL_D[j + 1] + 40) continue;
       // 和 21-coast.js 一樣的兩個三角形：(k, j) (k1, j) (k, j+1)；(k, j+1) (k1, j) (k1, j+1)
       for (const T3 of [[[k, j], [k1, j], [k, j + 1]], [[k, j + 1], [k1, j], [k1, j + 1]]]) {
         const [A, B, C] = T3.map(([kk, jj]) => hillV(kk, jj)), den = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]);
@@ -1776,7 +1805,7 @@ function hillMeshRaw(X, Z) {
         const u = ((B[1] - C[1]) * (X - C[0]) + (C[0] - B[0]) * (Z - C[1])) / den, v = ((C[1] - A[1]) * (X - C[0]) + (A[0] - C[0]) * (Z - C[1])) / den, w = 1 - u - v;
         if (u < -1e-6 || v < -1e-6 || w < -1e-6) continue;
         const [ha, hb, hc] = T3.map(([kk, jj]) => HILL.vh[kk * m + jj]);
-        return u * ha + v * hb + w * hc;
+        return akinaFine(X, Z, u * ha + v * hb + w * hc);   // 09-akina.js：榛嶺照細網格
       }
     }
   }
@@ -1807,6 +1836,7 @@ NPARK = (() => {
   const [gx, gz] = P[best], ox = gx - HILL.cx, oz = gz - HILL.cz, ol = Math.hypot(ox, oz), f = frameW(gx, gz, -oz / ol, ox / ol);
   return { f, gx: 0, gw: 6, z1: 0, k: best, name: '北嶺公園 North Ridge Park' };
 })();
+HILL.vh = null;   // 09-akina.js 的榛嶺照公園的座標框擺，公園建好之前算過的網格高度作廢
 {
   const W = (x, z) => toW(x, z, NPARK.f);
   // 外緣在局部 x 這一條線上的位置（局部 z，往山上是負）：從城裡往外找出城的那一點
@@ -2019,15 +2049,15 @@ const HOME_V = [
 const HILL_PLANTS = { palm: [], agave: [], shrub: [], shrub_bloom: [], rock: [] };   // 別墅區的植栽與岩石（世界座標；50-assets.js 做實例）
 // 別墅區的山坡細分：21-coast.js 把每群別墅 R 公尺內碰到的山網格三角形另外細分（每個切成 N×N，N 固定，群與群之間的接邊才對得起來），
 // 高度 h = 山網格 + 起伏 × w（w：路面兩側、平台四周是 0，離別墅 R 公尺淡到 0，所以細分區的外緣和沒細分的三角形接得上），材質是 TX.vhill（照片的乾草地與露岩）
-const HILL_VIL = { R: 60, N: 14, groups: [] };
+const HILL_VIL = { R: 60, N: 9, groups: [] };   // N：粗網格加密以後從 14 降到 9（細分後的格距差不多）
 // 外緣山林（27-props.js 下載 nat_forest 換成近景樹，50-assets.js 畫遠景的 fir_lo／maple_lo）：冷杉與楓樹、林下層的世界座標清單，n 是統計
-const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: [] }, n: {} };   // und：林下層（27-props.js 只畫近處）
+const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], flower: [], grass: [] }, n: {} };   // und：林下層（27-props.js 只畫近處）
 {
   const r2 = rng(77), [cx, cz] = CITY_C, rk = new Kit();
   // 從中心往 a 方向量到外緣的距離
   const edgeR = a => { const dx = Math.cos(a), dz = Math.sin(a); let best = 0; for (let k = 0; k < CITY_POLY.length; k++) { const p = CITY_POLY[k], q = CITY_POLY[(k + 1) % CITY_POLY.length], ex = q[0] - p[0], ez = q[1] - p[1], den = dx * ez - dz * ex; if (Math.abs(den) < 1e-9) continue; const t = ((p[0] - cx) * ez - (p[1] - cz) * ex) / den, u = ((p[0] - cx) * dz - (p[1] - cz) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.max(best, t); } return best; };
   const inPark = (x, z) => { const [px, pz] = parkL(x, z); return px > NPARK.x0 - 20 && px < NPARK.x1 + 20 && pz > NPARK.z0 - 20; };   // 北嶺公園的範圍不開路、不蓋
-  const hillOK = (x, z) => !shoreAt(x, z) && !inPark(x, z) && !encNear(x, z) && polyDistPt(CITY_POLY, x, z) > 2 && Number.isFinite(hillMeshH(x, z));   // encNear：雲梯城寨與切坡；山網格外面（hillMeshH 是 NaN）不開路、不蓋
+  const hillOK = (x, z, pad) => !shoreAt(x, z) && !inPark(x, z) && !encNear(x, z, pad) && polyDistPt(CITY_POLY, x, z) > 2 && Number.isFinite(hillMeshH(x, z));   // encNear：雲梯城寨與切坡；山網格外面（hillMeshH 是 NaN）不開路、不蓋
   // ─── 路：外緣每 2.5° 試一個起點，路口間隔至少約 9°。山路照真的開法（2026-10-28 重寫；原本只看朝外的方向，一半的路段坡度 40–140%）：
   // 每 8 m 一步，邊走邊算縱斷面（每段坡度 ≤ 12%），挑地形最接近「路面再爬 9%」的方向，路就貼著山坡沿等高線走、挖填最少；
   // 橫向走出 70–110 m 試著往上坡折返（髮夾彎，要挖 15 m 以上就不折，繼續橫著走）；離外緣、別的路與自己前面的路段太近、要挖填 15 m 以上的方向不走，
@@ -2042,6 +2072,8 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
     for (let k = 0; k < own.length - skip; k++) { const d = Math.hypot(x - own[k][0], z - own[k][1]); if (d < 12 || (d < 22 && Math.abs(y - own[k][2]) < 10)) return true; }
     return false;
   };
+  // 榛嶺山道（09-akina.js）最先開：下面一般的山路照 nearRoad 避開它
+  { const ak = akinaRoad(edgeR, hillOK, nearRoad); if (ak) { roads.push(ak); for (const p of ak) { const k = gk(p[0], p[1]); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(p); } } }
   let lastA = -1e9;
   for (let i = 0; i < 144; i++) {
     const a = i / 144 * Math.PI * 2, sg0 = r2() < .5 ? -1 : 1, Dl = 70 + r2() * 40, ph = r2(), Lmax = (380 + r2() * 240) * 2.2;
@@ -2103,31 +2135,37 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
     lastA = a; roads.push(pts);
     for (const p of pts) { const k = gk(p[0], p[1]); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(p); }
   }
+  for (const L of hillLinks(roads, hillOK, edgeR)) roads.push(L);   // 09-hilllink.js：三個別墅區互相接起來的連絡路、多開幾條下到城裡的路（直線剷平，不蓋房子）
   // 路段（含縱斷面高度）放進 24 m 的格子：roadD 是到最近路段（不是路上的點）的距離；HILL.carveH 照每一段把兩側的山坡挖平、填起來
   const sgrid = new Map();
   for (const P of roads) for (let k = 0; k + 1 < P.length; k++) {
-    const A = P[k], B = P[k + 1], sgm = [A[0], A[1], A[2], B[0], B[1], B[2]];
+    const A = P[k], B = P[k + 1], sgm = [A[0], A[1], A[2], B[0], B[1], B[2], P.akina ? 1 : 0];
     for (let i = Math.floor(Math.min(A[0], B[0]) / 24); i <= Math.floor(Math.max(A[0], B[0]) / 24); i++) for (let j = Math.floor(Math.min(A[1], B[1]) / 24); j <= Math.floor(Math.max(A[1], B[1]) / 24); j++) {
       const key = i + ',' + j; let L = sgrid.get(key); if (!L) sgrid.set(key, L = []); L.push(sgm);
     }
   }
-  const segEach = (x, z, R, fn) => {   // R 公尺內的每一段：fn(到路中線的距離, 那一點的路面高)
+  const segEach = (x, z, R, fn) => {   // R 公尺內的每一段：fn(到路中線的距離, 那一點的路面高, 是不是榛嶺山道)
     const i = Math.floor(x / 24), j = Math.floor(z / 24), c = Math.ceil(R / 24), seen = new Set();
     for (let a = -c; a <= c; a++) for (let b = -c; b <= c; b++) for (const S of sgrid.get((i + a) + ',' + (j + b)) || []) {
       if (seen.has(S)) continue; seen.add(S);
-      const [ax, az, ay, bx, bz, by] = S, ex = bx - ax, ez = bz - az, t = clamp(((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1), d = Math.hypot(x - ax - ex * t, z - az - ez * t);
-      if (d < R) fn(d, ay + (by - ay) * t);
+      const [ax, az, ay, bx, bz, by, ak] = S, ex = bx - ax, ez = bz - az, t = clamp(((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1), d = Math.hypot(x - ax - ex * t, z - az - ez * t);
+      if (d < R) fn(d, ay + (by - ay) * t, ak);
     }
   };
   const roadD = (x, z) => { let d = 1e9; segEach(x, z, 48, dd => { if (dd < d) d = dd; }); return d; };
   // 挖填：路肩外 0.3 m（RC）以內是路面高；外面挖方 1.4:1（岩壁）、填方 0.75:1，碰到原本的山坡為止（CW 公尺內）。先挖再填，最後路面本身照最近那一段
-  const RC = ROAD_HW + 1.4, CW = 40, CUT = 1.4, FILL = .75;
-  HILL.roadN = 20;   // 21-coast.js 細分路兩側的三角形，每個切成 N×N
+  // 榛嶺（22-akina.js 在路緣外 1.15 m 砌擋土牆）：挖方的平台多留 2.6 m，斜坡從牆後面才開始，細格子的三角形才不會凸到牆前面
+  const RC = ROAD_HW + 1.4, RC_AK = RC + 2.6, CW = 40, CUT = 1.4, FILL = .75;
+  HILL.roadN = 12;   // 21-coast.js 細分路兩側的三角形，每個切成 N×N（粗網格加密以後從 20 降到 12，細分後的格距差不多）
   HILL.carveH = (X, Z, h) => {
-    let hc = h, best = 1e9, yr = 0;
-    segEach(X, Z, CW, (d, y) => { if (d < best) { best = d; yr = y; } if (h > y) hc = Math.min(hc, y + Math.max(0, d - RC) * CUT); });
+    let hc = h, best = 1e9, yr = 0, cap = 1e9;
+    segEach(X, Z, CW, (d, y, ak) => { if (d < best) { best = d; yr = y; } const c = y + Math.max(0, d - (ak ? RC_AK : RC)) * CUT; if (h > y) hc = Math.min(hc, c); if (ak) cap = Math.min(cap, c); });
     if (best >= CW) return h;
-    segEach(X, Z, CW, (d, y) => { if (y > hc) hc = Math.max(hc, y - Math.max(0, d - RC) * FILL); });
+    // 榛嶺的上下兩段路之間，下段的挖方和上段的填方交成一條稜線，細格子斜著切過去是一排鋸齒：照 6 m 的寬度磨圓（smooth max）
+    segEach(X, Z, CW, (d, y, ak) => { if (y > hc) { const v = y - Math.max(0, d - RC) * FILL, q = ak ? Math.max(0, 6 - Math.abs(hc - v)) / 6 : 0; hc = Math.max(hc, v) + q * q * 1.5; } });
+    // 榛嶺的髮夾彎上下疊：上段的填方不能蓋過下段的挖方斜面（不然下段的路邊被埋掉），上段路緣外的落差由 22-akina.js 的擋土牆擋
+    hc = Math.min(hc, cap);
+    if (best > RC && AKINA && AKINA.lots) hc = akinaLotH(X, Z, hc);   // OSM 的停車場：整平成一片斜平面
     return best <= RC ? yr : hc;
   };
   HILL.carveW = (X, Z) => { const h = hillMeshRaw(X, Z); return Number.isFinite(h) ? clamp(Math.abs(HILL.carveH(X, Z, h) - h) / .6, 0, 1) : 0; };   // 21-coast.js 的細分：0 的地方照粗網格
@@ -2143,6 +2181,7 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
     }
     return false;
   };
+  hillLinkCarve(roads, RC, CUT, FILL, CW, roadD);   // 09-hilllink.js：連絡路深挖、高填的路段加寬挖填
   // 路面：每一點左右各三條（路肩外緣、路面邊、中線），高度各自照山網格抬 0.25 m；柏油、碎石路肩、虛線的黃中線、每 70 m 一盞路燈（燈頭自發光）
   {
     const pos = [], col = [], mt = [], idx = [], c = new T.Color();
@@ -2159,14 +2198,29 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
       }
     };
     for (const pts of roads) {
-      strip(pts, -ROAD_HW - 1.1, -ROAD_HW, .22, 0x6a6458, TX.conc); strip(pts, ROAD_HW, ROAD_HW + 1.1, .22, 0x6a6458, TX.conc);
-      strip(pts, -ROAD_HW, ROAD_HW, .25, 0x3a3b3d, TX.conc);
-      strip(pts, -.08, .08, .27, 0xc8a030, 2, true);
-      for (let i = 4; i < pts.length - 1; i += 9) {
+      // 榛嶺山道（09-akina.js）照日本的山路：淺一點的柏油、水泥路緣、黃色實線的中線（禁止超車）、兩側白色的路側線，沒有路燈；
+      // 別墅區的山路照同一套參考圖（使用者：別墅區的樣式同步），只是留著路燈
+      const ak = pts.akina;
+      strip(pts, -ROAD_HW - 1.1, -ROAD_HW, .22, 0x77746c, TX.conc); strip(pts, ROAD_HW, ROAD_HW + 1.1, .22, 0x77746c, TX.conc);
+      {   // 使用者：路太乾淨。柏油改用連接道路的路面著色器（MAT.roadConn：柏油貼圖、補丁、裂縫、磨損的中央雙黃線；aUV 是（橫向、沿路）的公尺數），白色邊線也髒一點
+        const P = [], N = [], UV = [], AX = [], I = []; let u = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const [x, z] = pts[i], o = pts[Math.min(pts.length - 1, i + 1)], p = pts[Math.max(0, i - 1)], L = Math.hypot(o[0] - p[0], o[1] - p[1]) || 1, nx = -(o[1] - p[1]) / L, nz = (o[0] - p[0]) / L;
+          if (i) u += Math.hypot(x - pts[i - 1][0], z - pts[i - 1][1]);
+          for (const off of [-ROAD_HW, 0, ROAD_HW]) { const X = x + nx * off, Z = z + nz * off, h = hillMeshH(X, Z); P.push(X, (Number.isFinite(h) ? h : hillMeshH(x, z)) + .25, Z); N.push(0, 1, 0); UV.push(off, u); AX.push(nx, nz); }
+          if (i) { const b = (i - 1) * 3; I.push(b, b + 3, b + 1, b + 1, b + 3, b + 4, b + 1, b + 4, b + 2, b + 2, b + 4, b + 5); }
+        }
+        const ag = new T.BufferGeometry(); ag.setAttribute('position', new T.Float32BufferAttribute(P, 3)); ag.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
+        ag.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); ag.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2)); ag.setIndex(I); ag.computeVertexNormals(); ag.computeBoundingSphere();
+        const am = new T.Mesh(ag, MAT.roadConn); am.name = ak ? 'akinaAsphalt' : 'hillAsphalt'; groundAdd(am, null);
+        strip(pts, -ROAD_HW + .2, -ROAD_HW + .36, .27, 0xbdbcb4, 2); strip(pts, ROAD_HW - .36, ROAD_HW - .2, .27, 0xbdbcb4, 2);
+      }
+      for (let i = 4; !ak && i < pts.length - 1; i += 9) {   // 榛嶺沒有路燈，22-akina.js 立電線桿；別墅區的路燈換成水泥桿（參考圖的電線桿）掛一支燈臂
         const [x, z] = pts[i], o = pts[i + 1], L = Math.hypot(o[0] - x, o[1] - z), nx = -(o[1] - z) / L, nz = (o[0] - x) / L, sd = i % 18 ? 1 : -1;
         const lx = x + nx * sd * (ROAD_HW + .8), lz = z + nz * sd * (ROAD_HW + .8), y = hillMeshH(lx, lz);
-        rk.cyl(lx, y + 3, lz, .07, .09, 6, 6, 0x3a3d40, TX.enamel).bar(lx, y + 5.9, lz, lx - nx * sd * 1.4, y + 6, lz - nz * sd * 1.4, .1, .08, 0x3a3d40, TX.enamel);
+        rk.cyl(lx, y + 3.6, lz, .1, .15, 7.2, 8, 0x9c9b95, TX.conc).bar(lx, y + 5.9, lz, lx - nx * sd * 1.4, y + 6, lz - nz * sd * 1.4, .1, .08, 0x3a3d40, TX.enamel);
         rk.box(lx - nx * sd * 1.4, y + 5.92, lz - nz * sd * 1.4, .45, .1, .22, 0xffd9a0, 11);
+        (HILL.lampHeads ||= []).push({ x: lx - nx * sd * 1.4, z: lz - nz * sd * 1.4, t: 0, y: Math.max(y - 1.18, -.4) });   // 22-akina.js 寫進路燈表（燈頭高 = 7.1 + y），晚上照亮路面
       }
     }
     const g = new T.BufferGeometry();
@@ -2187,8 +2241,9 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
     g.computeVertexNormals(); return g;
   })();
   const pads = [], drvW = [], rej = { hill: 0, road: 0, wall: 0, back: 0, overlap: 0 }, P = 5, rh = rng(91);   // drvW：車道口（路緣上）的世界座標，護欄在那裡留口   // rh：樹籬的灌木（自己一串，不動 r2 的房子配置）
-  for (const pts of roads) for (let s = 10 + r2() * 12; s < pts.length * 8 - 8; s += 12 + r2() * 12) {
+  for (const pts of roads) if (!pts.link) for (let s = 10 + r2() * 12; s < pts.length * 8 - 8; s += 12 + r2() * 12) {
     const i = Math.floor(s / 8), [x, z] = pts[i], o = pts[i + 1], L = Math.hypot(o[0] - x, o[1] - z), tx = (o[0] - x) / L, tz = (o[1] - z) / L;
+    if (pts.akina && akinaIn(x, z, .8)) continue;   // 榛嶺山道：只有山腳那一段蓋房子
     // 路的哪一側：先抽一邊，那邊不是下坡而另一邊是，就換到下坡那邊（陡坡上靠山那側的平台後面會埋進坡裡太深，幾乎都蓋不了）；
     // 那一側蓋不了（山腳的路下坡那側常常就是城市或海岸）再試另一側
     const dn = sd => hillMeshH(x - tz * sd * 34, z + tx * sd * 34) < hillMeshH(x - tz * sd * 8, z + tx * sd * 8) - 2, s0 = r2() < .5 ? -1 : 1, side0 = !dn(s0) && dn(-s0) ? -s0 : s0, edge = ROAD_HW + 1.1;
@@ -2330,20 +2385,21 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
     // 除錯：某一點為什麼沒有樹（99-main.js 的 __nc.forest(x, z)）
     HILL_FOREST.probe = (X, Z) => ({ y: +(HILL_VIL.h || hillMeshH)(X, Z).toFixed(1), shore: shoreAt(X, Z), road: +roadD(X, Z).toFixed(1), pad: +padD(X, Z).toFixed(1), enc: encNear(X, Z, 30), via: nearVia(X, Z), park: parkNo(X, Z),
       dens: +(fn(X / 110, Z / 110) * .75 + fn(X / 31 + 17, Z / 31) * .25 - .22).toFixed(2), slope: +(Math.hypot(hillMeshH(X + 2, Z) - hillMeshH(X - 2, Z), hillMeshH(X, Z + 2) - hillMeshH(X, Z - 2)) / 4).toFixed(2),
-      trees: HILL_FOREST.fir.concat(HILL_FOREST.maple).filter(t => Math.hypot(t.x - X, t.z - Z) < 50).length });
+      trees: HILL_FOREST.fir.concat(HILL_FOREST.maple, HILL_FOREST.broad, HILL_FOREST.pine).filter(t => Math.hypot(t.x - X, t.z - Z) < 50).length, pines: HILL_FOREST.pine.filter(t => Math.hypot(t.x - X, t.z - Z) < 50).slice(0, 4).map(t => [+t.x.toFixed(1), +t.y.toFixed(1), +t.z.toFixed(1)]) });
     let tried = 0;
     for (let k = 0; k < n; k++) {
       const a = P[k], b = P[(k + 1) % n], el = Math.hypot(b[0] - a[0], b[1] - a[1]), Rk = (HILL.R[k] + HILL.R[(k + 1) % n]) / 2;
       if (HILL.W[k] < .2 && HILL.W[(k + 1) % n] < .2) continue;   // 靠海那側的矮丘也種（水邊與海岸照下面的 shoreAt 排除）
-      for (let s = 10; s < 980; s += CELL) {
+      for (let s = 10, sMax = akinaSMax(a, b, Rk); s < sMax; s += CELL) {   // 榛嶺那個方向種到山的另一側（稜線外的盆地只種山上）
         const sc = (Rk + s) / Rk, m = Math.max(1, Math.round(el * sc / CELL));
         for (let t = 0; t < m; t++) {
           tried++;
           const f = (t + .15 + rf() * .7) / m, s2 = s + rf() * CELL;
           const ex = a[0] + (b[0] - a[0]) * f, ez = a[1] + (b[1] - a[1]) * f, q = (HILL.R[k] * (1 - f) + HILL.R[(k + 1) % n] * f + s2) / (HILL.R[k] * (1 - f) + HILL.R[(k + 1) % n] * f);
           const X = HILL.cx + (ex - HILL.cx) * q, Z = HILL.cz + (ez - HILL.cz) * q, rnd1 = rf(), rnd2 = rf(), rnd3 = rf();
+          if (s >= 980 && !akinaIn(X, Z) || akinaWet(X, Z)) continue;
           // 林地：大片的雜訊挖出空地與草坡（約三成）；越往外緣邊越稀（城邊留一圈）
-          const dens = fn(X / 110, Z / 110) * .75 + fn(X / 31 + 17, Z / 31) * .25 - .22 + .1 * sm01((s - 20) / 60);
+          const dens = fn(X / 110, Z / 110) * .75 + fn(X / 31 + 17, Z / 31) * .25 - .22 + .1 * sm01((s - 20) / 60) + .2 * akinaW(X, Z);   // 榛嶺的林子密，一路長到路邊
           if (rnd1 > dens * 2.2) {   // 空地：三成擺一片草或紫花（草坡上的野花）
             if (rnd1 < .3 + dens * 2.2 && s < 420) {
               const uy = (HILL_VIL.h || hillMeshH)(X, Z);
@@ -2359,8 +2415,10 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
           const sl = Math.hypot(gx, gz) / 4; if (sl > 1.25 || sl > .9 && rnd3 * .35 < sl - .9) continue;   // 40° 以上漸稀、51° 以上是裸岩（07-kitx.js 的 kxCrag）
           // 樹種：楓樹成片（雜訊高的地方，到處也零星有一成五），高處（> 220 m）冷杉漸多
           const mp = (.15 + .85 * sm01((fn(X / 150 + 40, Z / 150 - 9) - .3) / .3)) * (1 - .8 * sm01((y - 220) / 140));
-          const L = rnd2 < mp ? HILL_FOREST.maple : HILL_FOREST.fir;
-          L.push({ x: X, y: y - .15, z: Z, ry: rnd3 * 6.283, s: .72 + rf() * .5, zn: null });
+          // 榛嶺（使用者給的參考圖）：綠色的闊葉雜木林為主（broad），夾著冷杉，楓樹只零星幾棵；選哪一種照位置的雜湊，不多抽 rf()（後面的樹位置不變）
+          // 別墅區（山路兩側 25–48 m、平台四周 30–70 m 內）照同一套參考圖：和榛嶺一樣以闊葉樹為主（使用者：別墅區的樣式同步）
+          const aw = Math.max(akinaW(X, Z), 1 - sm01((roadD(X, Z) - 25) / 23), 1 - sm01((padD(X, Z) - 30) / 40)), L = rnd2 < mp * (1 - .85 * aw) ? HILL_FOREST.maple : fh(Math.floor(X * 3.1), Math.floor(Z * 3.1)) < .7 * aw ? HILL_FOREST.broad : HILL_FOREST.fir;
+          L.push({ x: X, y: y - .15, z: Z, ry: rnd3 * 6.283, s: (.72 + rf() * .5) * (L === HILL_FOREST.broad ? 1.25 : 1), zn: null });   // 闊葉樹大一點，樹冠才連成一片（參考圖）
           // 林下層：每棵樹旁邊 2–6 m 一兩片（冷杉下多蕨、楓樹下多草與紫花）；路邊與平台照樣避開
           for (let u = 0, nu = rf() < .55 ? 1 : 2; u < nu; u++) {
             const ua = rf() * 6.283, ur = 2 + rf() * 4, ux = X + Math.cos(ua) * ur, uz = Z + Math.sin(ua) * ur, uk = rf();
@@ -2371,33 +2429,44 @@ const HILL_FOREST = { fir: [], maple: [], und: { fern: [], flower: [], grass: []
         }
       }
     }
-    HILL_FOREST.n = { tried, fir: HILL_FOREST.fir.length, maple: HILL_FOREST.maple.length, fern: HILL_FOREST.und.fern.length, flower: HILL_FOREST.und.flower.length, grass: HILL_FOREST.und.grass.length };
+    if (AKINA && AKINA.lots) for (const [L, m] of [[HILL_FOREST.fir, 4], [HILL_FOREST.maple, 4], [HILL_FOREST.broad, 4], ...Object.values(HILL_FOREST.und).map(u => [u, 1.5])]) { const keep = L.filter(t => !akinaLot(t.x, t.z, m)); L.length = 0; L.push(...keep); }   // OSM 的停車場上不長樹、樹冠也不蓋過去（樹 4 m、林下的草 1.5 m；種完再拿掉，rf() 的順序不變）
+    // 冷杉的輪廓（使用者：遠看都一樣）：照位置的雜湊挑三成換成松（forest.py 的 pine），其餘照雜湊拉高變瘦或壓矮變胖（instanced 吃 sx／sy／sz）；種完再分，rf() 的順序不變
+    { const F = HILL_FOREST.fir, keep = []; for (const t of F) { const h = fh(Math.floor(t.x * 5.3) + 7, Math.floor(t.z * 5.3) - 3), a = fh(Math.floor(t.x * 2.9), Math.floor(t.z * 2.9) + 11), b = fh(Math.floor(t.z * 4.1) + 5, Math.floor(t.x * 4.1)); if (h < .3) { t.sx = t.sz = t.s * (.85 + .35 * a); t.sy = t.s * (.9 + .3 * b); HILL_FOREST.pine.push(t); } else { t.sx = t.sz = t.s * (.78 + .44 * a); t.sy = t.s * (.82 + .4 * b); keep.push(t); } } F.length = 0; F.push(...keep); }
+    HILL_FOREST.n = { tried, fir: HILL_FOREST.fir.length, pine: HILL_FOREST.pine.length, maple: HILL_FOREST.maple.length, broad: HILL_FOREST.broad.length, fern: HILL_FOREST.und.fern.length, flower: HILL_FOREST.und.flower.length, grass: HILL_FOREST.und.grass.length };
   }
   // 護欄：路肩外 3.5 m 比路面低 1.5 m 以上、或 8 m 外低 4 m 以上（山網格外也算）的那一側，路肩上每 4 m 一根鍍鋅鋼柱、掛一條 W 型鋼板。
   // 車道口 8 m 內、別的路接進來的地方、路口頭兩段不立。碰撞是沿路段斜放的薄盒（frameW），ly／hy 只擋這一層路面（上下疊的路不互擋），low：子彈與相機過得去
   {
-    let n = 0;
+    let n = 0, nOsm = 0, nAk = 0;
     const drop = (x, z, nx, nz, y) => { const a = hillMeshH(x + nx * (ROAD_HW + 3.5), z + nz * (ROAD_HW + 3.5)), b = hillMeshH(x + nx * (ROAD_HW + 8), z + nz * (ROAD_HW + 8)); return !(a > y - 1.5) || !(b > y - 4); };
     for (const R of roads) for (let k = 2; k + 1 < R.length; k++) {
       const A = R[k], B = R[k + 1], L = Math.hypot(B[0] - A[0], B[1] - A[1]); if (L < .5) continue;
-      const tx = (B[0] - A[0]) / L, tz = (B[1] - A[1]) / L;
+      const tx = (B[0] - A[0]) / L, tz = (B[1] - A[1]) / L, hp = R.akina ? akinaPin(R, k) : 0;
       for (const sd of [-1, 1]) {
-        const nx = -tz * sd, nz = tx * sd;
-        if (!drop(A[0], A[1], nx, nz, A[2]) || !drop(B[0], B[1], nx, nz, B[2]) || !drop((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, nx, nz, (A[2] + B[2]) / 2)) continue;
-        const o = ROAD_HW + .85, ax = A[0] + nx * o, az = A[1] + nz * o, bx = B[0] + nx * o, bz = B[1] + nz * o, mx = (ax + bx) / 2, mz = (az + bz) / 2;
+        const nx = -tz * sd, nz = tx * sd, out = hp && Math.sign(hp) === -sd;   // out：髮夾彎外側（轉向的另一邊）
+        if (R.akina && (R.br[k] || R.gap[k] === sd)) continue;   // OSM：橋上是 22-akina.js 的高欄，支路口那一側留開口
+        // 榛嶺的髮夾彎外側：不管落差一律立護欄（紅白相間），另外每 12 m 一面黑底白箭頭的導向牌
+        if (out && k % 3 === 0) akinaChevron(rk, A, tx, tz, nx, nz, ROAD_HW + 1.9, hp);
+        const osmR = R.akina && R.rail[k] & (sd > 0 ? 1 : 2);   // OSM 畫了 guard_rail 的那一段：不看落差照樣立
+        if (!out && !osmR && (!drop(A[0], A[1], nx, nz, A[2]) || !drop(B[0], B[1], nx, nz, B[2]) || !drop((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, nx, nz, (A[2] + B[2]) / 2))) continue;
+        // 榛嶺的彎很急：鋼板兩端照前後兩點平均的法線推出去（相鄰兩段共用端點），不然彎道外側一段一段斷開
+        const pn = j => { const p = R[Math.max(0, j - 1)], q = R[Math.min(R.length - 1, j + 1)], l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; return [-(q[1] - p[1]) / l * sd, (q[0] - p[0]) / l * sd]; };
+        const [anx, anz] = pn(k), [bnx, bnz] = pn(k + 1);
+        const o = ROAD_HW + .85, ax = A[0] + anx * o, az = A[1] + anz * o, bx = B[0] + bnx * o, bz = B[1] + bnz * o, mx = (ax + bx) / 2, mz = (az + bz) / 2;
         if (drvW.some(([X, Z]) => Math.hypot(X - mx, Z - mz) < 8)) continue;
         let cross = false; segEach(mx, mz, ROAD_HW + .3, () => { cross = true; }); if (cross) continue;
         const ya = A[2] + .22, yb = B[2] + .22, ry = Math.atan2(tx, tz);
-        for (const t of [0, .5]) rk.box(ax + (bx - ax) * t, ya + (yb - ya) * t + .38, az + (bz - az) * t, .1, .76, .1, 0x8e9296, TX.galv, 0, ry, 0);
-        rk.bar(ax - tx * .12, ya + .6, az - tz * .12, bx + tx * .12, yb + .6, bz + tz * .12, .05, .32, 0xb2b6ba, TX.galv);
+        // 榛嶺與別墅區（參考圖）：白色水泥柱、白漆的鋼板（日本山路的護欄），髮夾彎外側一段紅一段白
+        rk.box(ax, ya + .4, az, .15, .8, .15, 0xb4b0a6, TX.conc, 0, ry, 0);
+        rk.bar(ax - tx * .02, ya + .6, az - tz * .02, bx + tx * .02, yb + .6, bz + tz * .02, .05, .32, out && k % 2 ? 0xa82a24 : 0xcfd0cc, TX.iron);   // 白漆的鋼板（21 塗漆的鐵：粉化、掉漆、鏽斑與鏽水痕）
         colliders.push({ x0: -.1, x1: L + .1, z0: -.12, z1: .12, zn: frameW(ax, az, bx - ax, bz - az), ly: Math.min(ya, yb) - 2, hy: Math.max(ya, yb) + .9, low: 1 });
-        n++;
+        n++; if (osmR) nOsm++; else if (R.akina) nAk++;
       }
     }
-    HILL.rails = n;
+    HILL.rails = n; HILL.railsAk = { osm: nOsm, more: nAk };   // 榛嶺：照 OSM 立的段數、OSM 沒畫但照落差／髮夾彎補上的段數
   }
   HILL.homes = { roads: roads.length, homes: HILL_HOMES.length, rej, rails: HILL.rails }; HILL_HOMES.rej = rej; HILL_HOMES.roads = roads.length;
-  HILL.roadD = roadD; HILL.roadHW = ROAD_HW; HILL.mouths = roads.map(p => p[0]); HILL.paths = roads;   // 29-villa.js：山路的地面、外緣隱形牆在路口開口
+  HILL.roadD = roadD; HILL.roadHW = ROAD_HW; HILL.mouths = roads.filter(p => !p.link || p.mouth).map(p => p[0]); HILL.paths = roads;   // 29-villa.js：山路的地面、外緣隱形牆在路口開口
   cityAdd(new T.Mesh(rk.build(), MAT.ux), null);
 }
 // 水深（水面在 SEA_Y）：陸地矩形與沙灘外的淺水照 groundH，其他地方照外緣外的地形 hillH（世界座標）
@@ -2407,6 +2476,7 @@ const seaFloor = (X, Z) => {
   const eh = encGround(X, Z); if (eh !== null) return eh;   // 雲梯城寨的平台與切坡
   if (tronLandW(X, Z)) return 0;   // 光格島上（含下層街區）不算水
   if (airLandW(X, Z)) return 0;    // 機場島與堤道
+  if (nbrIn(X, Z)) return nbrH(X, Z);   // 09-nbr.js：機場南面的紐柏林（含海崖外圈）
   if (inCity(X, Z)) { const zn = zoneAtW(X, Z); return zn ? groundHL(...zoneLocal(zn, X, Z)) : 0; }
   const zn = zoneAtW(X, Z); if (!zn) return hillH(X, Z);   // 海上的縫：同 landW
   const [x, z] = zoneLocal(zn, X, Z), f = seaFloorL(x, z);

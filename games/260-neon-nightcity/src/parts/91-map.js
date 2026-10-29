@@ -43,6 +43,7 @@ const MAP_CAT = [
   { id: 'ramp', name: '特技跳台', col: '#d9b42a', icon: 'ramp' },
   { id: 'crane', name: '塔吊', col: '#ffd23a' },
   { id: 'metro', name: '地鐵站', col: '#3ad06a' },
+  { id: 'wear', name: '服裝店', col: '#f0c890' },
   { id: 'drain', name: '排水道入口', col: '#7fa08a' },
   { id: 'race', name: '街頭賽', col: '#ff3fd2' },
   { id: 'surv', name: '生存擂台', col: '#ff8a3a' },
@@ -76,6 +77,7 @@ function mapBlips() {
   for (const o of ramenSpots) add('ramen', { name: '路邊拉麵攤', ...WP(o.x, o.z), type: '小吃', desc: '霓虹區人行道上的拉麵攤。' });
   sideBlips(add);   // 69-side.js：街頭賽起點、生存擂台、委託人、幫派據點
   metroBlips(add);   // 69-v9-metro.js：地鐵站入口
+  wearBlips(add);   // 69-wear.js：服裝店
   drainBlips(add);   // 69-v9-drain.js：排水口與人孔
   for (const r of RAMPS) { const done = motors.stunts.includes(r.i); add('ramp', { name: `特技跳台 #${r.i + 1}`, x: r.x, z: r.z, type: '特技跳台', done, rows: [['狀態', done ? '已完成' : '未完成（首次加倍獎金）']], desc: '加速衝上跳台，落地前在空中翻滾可以拿加成。' }); }
   return B;

@@ -518,6 +518,8 @@ export const SETS = [
   { out: 'nat_forest', src: '.cache/forest', tex: 1024, metalMax: 0, mask: /twig|leaf/, noEmi: /./, vcol: true, items: [   // 林下層三片：蕨叢（fern_02 的葉片照片）、紫色野花叢、草叢（forest.py 的 understory）
     { id: 'fir', file: 'forest', only: /^fir$/, scale: 1, origin: [0, 0, 0] },
     { id: 'maple', file: 'forest', only: /^maple$/, scale: 1, origin: [12, 0, 0] },
+    { id: 'broad', file: 'forest', only: /^broad$/, scale: 1, origin: [60, 0, 0] },   // 榛嶺的綠色闊葉樹（forest.py 的 maple 枝架＋forest-tex.mjs 的卵形綠葉叢）
+    { id: 'pine', file: 'forest', only: /^pine$/, scale: 1, origin: [70, 0, 0] },   // 松：pine_tree_01 的小枝照片拼的針葉叢（forest-tex.mjs 的 pine_branch），冷杉裡照位置挑一部分換成它
     { id: 'fern_patch', file: 'forest', only: /^fern_patch$/, scale: 1, origin: [30, 0, 0] },
     { id: 'flower_patch', file: 'forest', only: /^flower_patch$/, scale: 1, origin: [40, 0, 0] },
     { id: 'grass_patch', file: 'forest', only: /^grass_patch$/, scale: 1, origin: [50, 0, 0] },
@@ -564,6 +566,17 @@ export const SETS = [
   // 北嶺的雪山：遠景（far），頁面依山脊拉伸擺幾座；夜裡雪不要白到刺眼，底色壓到六成
   { out: 'cst_mount', src: '.cache/world2', far: 1, tex: 512, metalMax: 0, tint: { '01_-_Default': [.6, .9, 0] }, simplifyMat: [[/Default/, .4, .01]],
     items: [{ id: 'mount', file: 'mountain', scale: 1 }] },
+  // 紐柏林維修區（24-nbr-pit.js）：Alex Werner 的 Pit Board、kilianhoffmann13 的 Tyre Holder 2023、Victor_Biedrycki 的 Garage Cabinets、zeleniy89 的 Mechanics Tool Chest、
+  // almartin 的 Trolley Jack、loichuet1 的 Fire Extinguisher（都是 CC BY 4.0）。原檔在 .cache/pit-src，
+  // tools/nbr-pit.mjs 先把胎壁與側板的真實廠牌換掉、寫成 .cache/pit/*.glb；輪胎推車原檔 53 萬面
+  { out: 'nbr_pit', src: '.cache/pit', tex: 1024, items: [
+    { id: 'pitboard', file: 'pit_board', h: 1.45 },   // 掛牌的鐵架，牌面朝 +z
+    { id: 'tyrecart', file: 'tyre_holder_2023', h: 1.35, dropPath: /Bolts_0/, sloppy: .1 },   // 上下兩排各四條胎；螺絲（22 萬面）拿掉，其他允許跨接縫減到一成
+    { id: 'cabinets', file: 'garage_cabinets', h: 2.16 },   // 整面牆的櫃子（4.27 m 寬，沿 x），櫃門朝 +z
+    { id: 'chest', file: 'mechanics_tool_chest_with_top_box', h: 1.5 },   // 帶頂箱的工具車
+    { id: 'jack', file: 'trolley_jack_lo_poly', h: .9 },   // 千斤頂，把手沿 x
+    { id: 'extinguisher', file: 'fire_extinguisher', h: .62 },
+  ] },
 ];
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });

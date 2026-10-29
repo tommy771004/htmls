@@ -24,6 +24,6 @@ await MeshoptEncoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
 const doc = await io.read(out);
 // 材質不去重：上衣／袖子、褲子／小腿在 Blender 裡是同色素材，合併後前端就分不出可換色的分區
-await doc.transform(dedup({ propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH, PropertyType.TEXTURE] }), resample(), prune(), quantize(), meshopt({ encoder: MeshoptEncoder, level: 'high' }));
+await doc.transform(dedup({ propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH, PropertyType.TEXTURE] }), resample(), prune(), quantize({ pattern: /^(POSITION|NORMAL|TEXCOORD|JOINTS|WEIGHTS|COLOR)/ }), meshopt({ encoder: MeshoptEncoder, level: 'high' }));
 await io.write(out, doc);
 console.log(`${out}: ${(statSync(out).size / 1024).toFixed(0)} KB`);

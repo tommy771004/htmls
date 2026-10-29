@@ -151,14 +151,14 @@ const FM = { S: 2, n: 512, cx: 1e9, cz: 1e9, tex: null, top: null, bot: null, bu
   U.uFMap.value = FM.tex;
 }
 function forestMap(cx, cz) {
-  if (Math.abs(cx - FM.cx) < 160 && Math.abs(cz - FM.cz) < 160 || !HILL_FOREST.fir.length && !HILL_FOREST.maple.length) return;
+  if (Math.abs(cx - FM.cx) < 160 && Math.abs(cz - FM.cz) < 160 || !HILL_FOREST.fir.length && !HILL_FOREST.maple.length && !HILL_FOREST.broad.length && !HILL_FOREST.pine.length) return;
   const n = FM.n, S = FM.S, half = n * S / 2, top = FM.top, bot = FM.bot;
   FM.cx = Math.round(cx / 40) * 40; FM.cz = Math.round(cz / 40) * 40;
   const x0 = FM.cx - half, z0 = FM.cz - half;
   top.fill(-1e4); bot.fill(1e4);
   let any = 0;
-  const put = (t, cone) => {
-    const s = t.s || 1, r = (cone ? 4 : 4.8) * s;
+  const put = (t, cone) => {   // cone：冷杉（true）、闊葉（false）、松（'pine'：樹冠在 9.5–16 m 的扁團）
+    const s = t.sx || t.s || 1, sy = t.sy || t.s || 1, r = (cone === 'pine' ? 4.6 : cone ? 4 : 4.8) * s;
     if (t.x < x0 - r || t.x > x0 + 2 * half + r || t.z < z0 - r || t.z > z0 + 2 * half + r) return;
     any++;
     const i0 = Math.max(0, Math.floor((t.x - r - x0) / S)), i1 = Math.min(n - 1, Math.floor((t.x + r - x0) / S));
@@ -167,12 +167,15 @@ function forestMap(cx, cz) {
       const dx = x0 + (i + .5) * S - t.x, dz = z0 + (j + .5) * S - t.z, dd = Math.sqrt(dx * dx + dz * dz);
       if (dd >= r) continue;
       const o = j * n + i;
-      if (cone) { top[o] = Math.max(top[o], t.y + s * 18.7 - dd * 16.9 / 4); bot[o] = Math.min(bot[o], t.y + 1.8 * s); }
-      else { const e = Math.sqrt(1 - dd * dd / (r * r)) * 4.6 * s, cy = t.y + 7.4 * s; top[o] = Math.max(top[o], cy + e); bot[o] = Math.min(bot[o], cy - e * .8); }
+      if (cone === 'pine') { const e = Math.sqrt(1 - dd * dd / (r * r)) * 3.2 * sy, cy = t.y + 12.6 * sy; top[o] = Math.max(top[o], cy + e); bot[o] = Math.min(bot[o], cy - e); }
+      else if (cone) { top[o] = Math.max(top[o], t.y + sy * 18.7 - dd * 16.9 / 4); bot[o] = Math.min(bot[o], t.y + 1.8 * sy); }
+      else { const e = Math.sqrt(1 - dd * dd / (r * r)) * 4.6 * sy, cy = t.y + 7.4 * sy; top[o] = Math.max(top[o], cy + e); bot[o] = Math.min(bot[o], cy - e * .8); }
     }
   };
   for (const t of HILL_FOREST.fir) put(t, true);
   for (const t of HILL_FOREST.maple) put(t, false);
+  for (const t of HILL_FOREST.broad) put(t, false);
+  for (const t of HILL_FOREST.pine) put(t, 'pine');
   const arr = FM.tex.image.data, h = T.DataUtils.toHalfFloat;
   for (let o = 0; o < n * n; o++) { const e = top[o] < -1e3; arr[o * 2] = h(e ? 0 : top[o]); arr[o * 2 + 1] = h(e ? 0 : bot[o]); }
   FM.tex.needsUpdate = true; FM.builds++;

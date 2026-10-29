@@ -357,10 +357,10 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
     }),
     // ─── 外緣山林（10-city.js 的 HILL_FOREST）：近景換成 nat_forest 的冷杉與楓樹（blender/forest.py），50-assets.js 的遠景樹改成只畫在近景半徑外 ───
     w2Load('nat_forest', it => {
-      for (const k of ['fir', 'maple']) w2Inst(it[k], HILL_FOREST[k], 0, FOREST_R);
+      for (const k of ['fir', 'maple', 'broad', 'pine']) w2Inst(it[k], HILL_FOREST[k], 0, FOREST_R);
       HILL_FOREST.loR0 = FOREST_R - 6;   // 50-assets.js 的遠景樹只畫在這之外（WebGPU 下這裡可能比 50-assets.js 先跑，所以不直接碰 forestLo）
       for (const k of ['fern', 'flower', 'grass']) w2Inst(it[k + '_patch'], HILL_FOREST.und[k], LY.NOREFL, 85);   // 林下層：每片幾百面，只送 85 m 內
-      W2.swapped.push('forest'); W2.n.forest = HILL_FOREST.fir.length + HILL_FOREST.maple.length; W2.n.und = Object.values(HILL_FOREST.und).reduce((a, L) => a + L.length, 0);
+      W2.swapped.push('forest'); W2.n.forest = HILL_FOREST.fir.length + HILL_FOREST.maple.length + HILL_FOREST.broad.length + HILL_FOREST.pine.length; W2.n.und = Object.values(HILL_FOREST.und).reduce((a, L) => a + L.length, 0);
     }),
     // ─── 山坡別墅的室內家具（blender/villa_furn.py 從 Sketchfab 室內場景拆出的單件 → villa_furn；位置是 villa_plans.json 的 furniture，
     // 建置時放進 VILLA_PLAN）：同一套模型擺進五型別墅，每型照建築換布面、木作與櫥櫃的顏色（VILLA_PAL：頂點色乘上去，貼圖照舊，

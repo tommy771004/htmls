@@ -34,6 +34,17 @@ async function desktop() {
     const w1b = await ev(page, () => { const nc = window.__nc, V = nc.props.viaduct; return { has: !!V, via: !!(V && V.proxy && V.proxy.parent && V.ends.every(e => e.proxy && e.proxy.parent)), deep: V ? +(nc.park.h(V.x + V.lx0 + V.W / 2, V.z + V.lz0 + V.D / 2) - V.deck).toFixed(1) : 0, grc: ['grc_sedan', 'grc_stepvan', 'grc_mailvan'].map(t => nc.parked.filter(p => p.type === t).length) }; });
     check((w1b.via && w1b.deep < -40 || !w1b.has) && w1b.grc.every(n => n > 10), `北嶺鐵道橋與兩端洞門的程式替身在、谷底比橋面低 ${-w1b.deep} m；路邊停著 gameready_city 的三台車（${w1b.grc.join('、')}）`);
 
+
+    // 山路（10-city.js）每段坡度 ≤ 12%；山路上的車（41-hill.js）兩秒內有在開、車身貼著路面
+    const hillR = await ev(page, async () => {
+      const nc = window.__nc, R = nc.hillRoads(); let steep = 0, segs = 0;
+      for (const P of R) for (let k = 1; k < P.length; k++) { segs++; if (Math.abs(P[k][2] - P[k - 1][2]) / Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]) > .125) steep++; }
+      const a = nc.hillTraf(); await new Promise(r => setTimeout(r, 2000)); const b = nc.hillTraf();
+      const moved = b.cars.filter((c, i) => !c.out && !a.cars[i].out && Math.hypot(c.x - a.cars[i].x, c.z - a.cars[i].z) > 3).length;
+      const dy = Math.max(0, ...b.cars.filter(c => !c.out).map(c => Math.abs(c.y - (nc.villa.deck(c.x, c.z, c.y + 1) ?? 1e3))));
+      return { roads: R.length, segs, steep, cars: b.cars.length, moved, dy: +dy.toFixed(2), walkers: b.walkers.length, residents: b.residents.length };
+    });
+    check(hillR.roads >= 3 && !hillR.steep && hillR.cars >= 4 && hillR.moved >= hillR.cars / 3 && hillR.dy < .3 && hillR.walkers >= 4, `山路坡度 ≤ 12%、山上的車流在開而且貼著路面、路肩有人散步 ${JSON.stringify(hillR)}`);
     // 走路
     const p0 = await ev(page, () => ({ x: window.__nc.player.x, z: window.__nc.player.z }));
     await hold(page, 'KeyW', 900);

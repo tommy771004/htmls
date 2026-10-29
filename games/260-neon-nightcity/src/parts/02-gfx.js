@@ -259,6 +259,23 @@ function gfxUniVer(m, rid) {
   if (ch) e.v++;
   return e.v;
 }
+// 共用 U 裡的貼圖（08-tex.js 的 uVilA／uFacA 下載完才換上、22-hmap.js 的高度圖重建 GPU 貼圖）：gfxUniVer 不看共用的，換了一張或 generation 變了，
+// 已經建好的 render object 也要完整更新一次，不然一直綁著第一次畫的時候那張。開場第一幀就畫的物件（21-coast.js 的山坡粗網格，frustumCulled 關掉）
+// 原本一直綁著還沒下載的預設貼圖：WebGPU 下山坡一大塊沒有照片法線、整片變暗（邊緣是一塊長方形）
+const gfxShTex = [...gfxShared].filter(o => o && (o.value === null || o.value.isTexture)), gfxShSnap = new Map();
+let gfxShRid = -1, gfxShV = 0;
+function gfxShVer(rid) {
+  if (gfxShRid === rid) return gfxShV;
+  gfxShRid = rid;
+  const D = R._textures;
+  for (const o of gfxShTex) {
+    const t = o.value, g = t && D && D.has(t) ? D.get(t).generation : -1, p = gfxShSnap.get(o);
+    if (p && p.t === t && p.g === g) continue;
+    if (p) gfxShV++;
+    gfxShSnap.set(o, { t, g });
+  }
+  return gfxShV;
+}
 if (GFX !== 'webgl') {
   // ?gfxtrace=1：沒被呼叫的 Fn（TSL 會報 "Fn() was declared but not invoked"）印出它的原始碼開頭，好找是哪個轉出來的函式
   if (/[?&]gfxtrace=1/.test(location.search)) {
@@ -302,9 +319,9 @@ if (GFX !== 'webgl') {
   NodeMaterialObserver.prototype.needsRefresh = function (ro, f) {
     const r = nr.call(this, ro, f), m = ro.material;
     if (!m.isShaderMaterial) return r;
-    const v = gfxUniVer(m, f.renderId);
-    if (ro.gfxV === v) return r;
-    ro.gfxV = v;
+    const v = gfxUniVer(m, f.renderId), sv = gfxShVer(f.renderId);
+    if (ro.gfxV === v && ro.gfxS === sv) return r;
+    ro.gfxV = v; ro.gfxS = sv;
     return FULL;
   };
   const lib = R.library, orig = lib.fromMaterial.bind(lib);

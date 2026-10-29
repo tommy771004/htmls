@@ -99,7 +99,18 @@ for (const [k, R] of [['palm', 380], ['agave', 160], ['shrub', 260], ['shrub_blo
 }
 // 外緣山林的遠景樹（10-city.js 的 HILL_FOREST）：全部畫；27-props.js 下載 nat_forest 的近景樹之後改成只畫在近景半徑外。以檔案開啟時只有這一層
 const forestLo = {};
-for (const k of ['fir', 'maple']) if (HILL_FOREST[k].length && PROPS[k + '_lo']) {
+if (HILL_FOREST.broad.length && PROPS.maple_lo && !PROPS.broad_lo) PROPS.broad_lo = akinaBroadLo(PROPS.maple_lo);   // 榛嶺的闊葉樹（09-akina.js）
+// 松的遠景（forest.py 的 pine 沒有低模）：借 maple_lo 的樹幹與三團樹冠，樹幹拉到 10 m、樹冠壓扁放到 9.5–15.5 m（赤松：下半截沒有枝、樹冠集中在上面），換成暗的針葉綠
+if (HILL_FOREST.pine.length && PROPS.maple_lo && !PROPS.pine_lo) {
+  const g = PROPS.maple_lo.clone(), p = g.attributes.position, c = g.attributes.color, G = [[.06, .085, .04], [.05, .07, .033], [.075, .1, .05]];
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i), leaf = c && c.getX(i) >= c.getY(i) * 1.3 + .02;   // 樹冠（橘紅）；樹幹是褐灰
+    if (leaf) { p.setXYZ(i, p.getX(i) * .95, 9.5 + Math.max(0, y - 2.5) * .66, p.getZ(i) * .95); const l = Math.min(1.6, (c.getX(i) + c.getY(i) + c.getZ(i)) / .9), k = G[i % 3]; c.setXYZ(i, k[0] * l, k[1] * l, k[2] * l); }
+    else p.setXYZ(i, p.getX(i) * .9, y * 2.05, p.getZ(i) * .9);
+  }
+  if (c) c.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingSphere(); g.name = 'pine_lo'; PROPS.pine_lo = g;
+}
+for (const k of ['fir', 'maple', 'broad', 'pine']) if (HILL_FOREST[k].length && PROPS[k + '_lo']) {
   forestLo[k] = instanced(PROPS[k + '_lo'], MAT.uxI, HILL_FOREST[k], 0, null, 1e5);
   const S = forestLo[k].userData.stream; if (S) Object.defineProperty(S, 'R0', { get: () => (HILL_FOREST.loR0 || 0) * detailK() });   // 27-props.js 換上近景模型後才設 loR0
 }

@@ -84,7 +84,8 @@ if (AIR_L) {
   for (let i = 0; i < 4; i++) { const z = R.z - R.hw - 14 - i * 9; k.box(R.x0 + 420, .9, z, 1.2, 1, 2.4, 0x2a2a2a, 2); k.box(R.x0 + 420.7, 1.05, z, .3, .5, 2, i < 2 ? 0xffffff : 0xff3b30, 11); }
   // 擋牆：島邊 0.9 m 的混凝土矮牆（堤道接口、梯子前留開口）
   const pc = 0xa7a49a, wall = (x0, x1, z0, z1, swim) => { B(x0, x1, z0, z1, 0, .9, pc); colliders.push({ x0, x1, z0, z1, low: 1, zn: AIR_F, ...(swim ? { swim: 1 } : {}) }); };
-  wall(I.x0, I.x1, I.z0, I.z0 + .5); wall(I.x0, I.x1, I.z1 - .5, I.z1); wall(I.x0, I.x0 + .5, I.z0, I.z1);
+  wall(I.x0, I.x1, I.z0, I.z0 + .5); wall(I.x0, I.x0 + .5, I.z0, I.z1);
+  if (NBR) { const q = NBR.road.p.reduce((a, b) => Math.abs(b[1] - I.z1) < Math.abs(a[1] - I.z1) ? b : a), g = NBR.road.hw + 3; wall(I.x0, q[0] - g, I.z1 - .5, I.z1); wall(q[0] + g, I.x1, I.z1 - .5, I.z1); } else wall(I.x0, I.x1, I.z1 - .5, I.z1);   // 南緣：紐柏林的進場路（09-nbr.js）從這裡上引道坡，留一個口
   const lz = L.ladder.z;
   wall(I.x1 - .5, I.x1, I.z0, L.cause.z0); wall(I.x1 - .5, I.x1, L.cause.z1, lz - 1.1); wall(I.x1 - .5, I.x1, lz + 1.1, I.z1);
   colliders.push({ x0: I.x1 - .5, x1: I.x1, z0: lz - 1.1, z1: lz + 1.1, low: 1, swim: 1, zn: AIR_F });   // 梯子前的缺口：游泳的人可以過

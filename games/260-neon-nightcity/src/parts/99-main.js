@@ -262,6 +262,7 @@ function step(dt) {
     updateSignals(t);
     updateTraffic(dt, t);
     updatePeds(dt);
+    if (HILL_TRAF.on) HILL_TRAF.update(dt);   // 41-hill.js：山路上的車流、散步的人
     holo.rotation.y = t * .35;
     coastUpdate(t, dt);
     railUpdate(dt);   // 北嶺鐵道橋的列車（21-rail.js）
@@ -395,7 +396,8 @@ window.__nc = {
   gameHour: GAME_HOUR,   // 69-market.js：一遊戲小時是幾秒真實時間（28-sky.js 的 MIN_SEC × 60）
   fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對
   enc: ENC && { on: ENC_ON, f: ENC.f, pad: ENC.pad, W: (x, z) => toW(x, z, ENC.f), L: (X, Z) => encL(X, Z), ground: (X, Z) => groundH(X, Z), district: (X, Z) => districtW(X, Z), place: (X, Z) => mapPlaceName(X, Z), tris: HILL.encTris, S: ENC.S },   // 28-enclave.js 雲梯城寨（框座標換世界座標、模型與替身的狀態）
-  hillMouths: () => HILL.mouths, hillRoads: () => HILL.paths, cityC: CITY_C,
+  hillMouths: () => HILL.mouths, hillRoads: () => HILL.paths, akina: () => AKINA && { x: AKINA.x, z: AKINA.z, WL: AKINA.WL, F: AKINA.F, lake: AKINA.lake, walls: AKINA.walls, osm: AKINA.osm, road: AKINA.road ? AKINA.road.stats : null, tris: HILL.akinaTris, at: (X, Z) => ({ s: akinaShape(X, Z), real: akReal(AKINA, X, Z), h: hillMeshH(X, Z), wet: akinaWet(X, Z) }) },   // 09-akina.js：中心、湖面高、山道、細網格、某一點的山
+  hillTraf: () => ({ cars: HILL_TRAF.cars.map(c => ({ r: c.r, s: +c.s.toFixed(1), dir: c.dir, v: +c.v.toFixed(1), x: c.x, y: c.y, z: c.z, out: c.out, fade: c.fade, type: c.type })), walkers: HILL_TRAF.walkers.map(w => ({ r: w.r, s: +w.s.toFixed(1), x: w.x, y: w.y, z: w.z, pause: w.pause })), residents: HILL_TRAF.residents }), cityC: CITY_C,
   villa: { VILLA, deck: hillDeck, where: villaWhere, local: villaLocal, world: villaWorld, st: () => ({ inK: villaSt.inK, wet: U.uWet.value, sun: U.uSunCol.value.r, lights: villaLights().length }), push: (x, z, y, r = .32) => { colY = y; const o = collideCircle(x, z, r, false, true); colY = 0; return o; },
     near: (x, z, r = .5) => boxesNear(x, z, r).filter(b => boxGap(b, x, z) < r).map(b => ({ x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1, ly: b.ly, hy: b.hy, villa: b.villa, f: !!b.zn, ry: b.zn && b.zn.ry })).concat(circlesNear(x, z, r).filter(c => Math.hypot(c.x - x, c.z - z) < c.r + r).map(c => ({ circle: 1, x: c.x, z: c.z, r: c.r, hy: c.hy, car: !!c.car }))) },   // 29-villa.js 山坡別墅的地面、碰撞與出售的那幾棟
   hillHomes: HILL_HOMES,   // 10-city.js 山坡住宅的位置（世界座標，v 是 hill_homes.glb 的型號；HILL.homes 是路與房子的數量）
@@ -421,6 +423,7 @@ window.__nc = {
   forest: (x, z) => x !== undefined ? HILL_FOREST.probe(x, z) : ({ ...HILL_FOREST.n, karst: KARST.length, k: KARST.slice(0, 8).map(t => [t.x | 0, t.y | 0, t.z | 0, +t.s.toFixed(1)]), fmap: FM.builds }),   // 外緣山林（10-city.js）、石柱峰（21-coast.js）、山林樹冠圖重畫次數（22-hmap.js）
   fac: { stats: () => ({ ...fac, r: SET.fac }), sync() { facLod(camera.position.x, camera.position.z, 1e9); return { ...fac }; }, blk: facBlk },
   tpL(x, z, yaw = 0) { const s = spotW({ x, z, yaw }); this.tp(s.x, s.z, s.yaw); },
+  wear: WEAR_SHOPS,   // 12-wearshops.js、69-wear.js：服裝店與衣服
   W: (x, z) => toW(x, z), L: (x, z) => toL(x, z), Ws: (x, z, yaw = 0) => spotW({ x, z, yaw }), zones: ZONES, roads: RN, capes: CAPES, shore: SHORE, ladders: LADDERS,
   drive(name = 'kestrel') { const v = name === 'hanzo' ? hanzo : kestrel; if (player.mode === 'drive') exitVehicle(); setWhere('out'); enterVehicle(v); camState.yaw = v.yaw; camState.snap = true; },
   walk() { if (player.mode === 'drive') exitVehicle(); },

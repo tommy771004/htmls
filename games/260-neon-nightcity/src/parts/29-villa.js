@@ -60,7 +60,7 @@ function hillDeck(X, Z, y) {
     const p = villaPad(H, bx, -by);
     if (p !== null) return p;
   }
-  if (parkGround(X, Z) !== null || encGround(X, Z) !== null || airLandW(X, Z) || tronLandW(X, Z) || shoreAt(X, Z)) return null;
+  if (parkGround(X, Z) !== null || encGround(X, Z) !== null || airLandW(X, Z) || tronLandW(X, Z) || nbrIn(X, Z) || shoreAt(X, Z)) return null;
   const h = HILL_VIL.h ? HILL_VIL.h(X, Z) : hillMeshH(X, Z);
   if (!Number.isFinite(h)) return null;
   return HILL.roadD(X, Z) < HILL.roadHW + 1.1 ? hillMeshH(X, Z) + .25 : h;

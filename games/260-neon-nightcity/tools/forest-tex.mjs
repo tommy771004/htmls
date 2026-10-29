@@ -142,3 +142,64 @@ console.log('maple_leaves.png');
   await sharp(px, { raw: { width: S, height: S, channels: 4 } }).png({ compressionLevel: 9 }).toFile(resolve(OUT, 'grass_tuft.png'));
   console.log('grass_tuft.png');
 }
+// ─── 闊葉樹的葉叢（榛嶺的雜木林：枹櫟、山毛櫸那種卵形、葉緣細鋸齒的綠葉；使用者給的參考圖是一片深淺不同的綠）：細枝從卡的下緣中間散出去，
+// 每根枝上互生十來片葉，整張卡大半是葉子（遠一點看是一團綠，不是一片片分開的葉） ───
+{
+  let s5 = 55; const r5 = () => ((s5 = Math.imul(s5 ^ (s5 >>> 15), 2246822507) + 0x9e3779b9 | 0) >>> 0) / 4294967296;
+  const GP = [['#33501f', '#16290d'], ['#2c461b', '#12230a'], ['#3e5829', '#1d3311'], ['#273f17', '#0e1d06'], ['#486232', '#223916'], ['#2e4823', '#13260d']];   // 參考圖的林子是暗、偏灰的森林綠
+  const leaf = L => {   // 卵形、尖頭，葉緣細鋸齒；葉柄在原點，葉尖朝 −y
+    const pts = [];
+    for (let i = 0; i <= 40; i++) { const t = i / 40, w = Math.sin(Math.PI * Math.min(1, t * 1.08)) ** .75 * (1 - .35 * t) * L * .36 * (1 - .06 * (i % 2)); pts.push([w, -t * L]); }
+    const all = pts.concat(pts.slice(1, -1).reverse().map(([x, y]) => [-x, y]));
+    return 'M' + all.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z';
+  };
+  let defs = '', body = '';
+  GP.forEach(([a, b], k) => { defs += `<radialGradient id="b${k}" cx="50%" cy="80%" r="90%"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`; });
+  const L = [];
+  for (let k = 0; k < 13; k++) {   // 枝：從下緣中間往上散開
+    const a = (r5() - .5) * 2.4, len = 420 + r5() * 470, ex = 512 + Math.sin(a) * len, ey = 1024 - Math.cos(a) * len * 1.02;
+    body += `<path d="M512,1024 Q${(512 + ex) / 2 + (r5() - .5) * 80},${(1024 + ey) / 2} ${ex.toFixed(0)},${ey.toFixed(0)}" stroke="#4a3a24" stroke-width="${(7 - k * .2).toFixed(1)}" fill="none"/>`;
+    for (let j = 0; j < 14; j++) {   // 葉：沿枝互生，越往外越密
+      const t = .3 + .7 * (j / 13) ** .8, x = 512 + (ex - 512) * t, y = 1024 + (ey - 1024) * t, sd = j % 2 ? 1 : -1;
+      L.push({ x, y, rot: a * 57 + sd * (35 + r5() * 35) + (r5() - .5) * 20, sz: 95 + r5() * 70, g: Math.floor(r5() * GP.length) });
+    }
+  }
+  L.sort((p, q) => q.y - p.y);
+  for (const l of L) {
+    body += `<g transform="translate(${l.x.toFixed(1)},${l.y.toFixed(1)}) rotate(${l.rot.toFixed(1)})"><path d="${leaf(l.sz)}" fill="url(#b${l.g})" stroke="#1c330c" stroke-opacity=".4" stroke-width="2"/>`;
+    body += `<line x1="0" y1="0" x2="0" y2="${(-l.sz * .92).toFixed(1)}" stroke="#7d9258" stroke-opacity=".4" stroke-width="2"/>`;
+    for (let v = 1; v < 5; v++) for (const s of [-1, 1]) body += `<line x1="0" y1="${(-l.sz * v * .18).toFixed(1)}" x2="${(s * l.sz * .12).toFixed(1)}" y2="${(-l.sz * (v * .18 + .08)).toFixed(1)}" stroke="#7d9258" stroke-opacity=".25" stroke-width="1.4"/>`;
+    body += '</g>';
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}"><defs>${defs}</defs>${body}</svg>`;
+  const px = await sharp(Buffer.from(svg)).ensureAlpha().raw().toBuffer();
+  for (let i = 0; i < S * S; i++) if (px[i * 4 + 3] < 8) { px[i * 4] = 46; px[i * 4 + 1] = 66; px[i * 4 + 2] = 30; }
+  await sharp(px, { raw: { width: S, height: S, channels: 4 } }).png({ compressionLevel: 9 }).toFile(resolve(OUT, 'broad_leaves.png'));
+  console.log('broad_leaves.png');
+}
+
+// ─── 松（forest.py 的 pine）的針葉叢卡：pine_tree_01 的小枝照片一枝一枝很稀，剪下最完整的那一枝（圖的左上，梢朝上），從卡底往上扇形疊二十幾枝，
+// 成一團刷子狀的針葉叢（卡的下緣中點是枝的位置；下層暗、大，外層亮）；壓暗、往黃綠偏一點（赤松比冷杉淺） ───
+{
+  const left = 50, top = 40, width = 165, height = 415, stem = 90;   // stem：小枝基部在剪下來那張的 x
+  const px = await sharp(resolve(OUT, 'pine_twig.png')).extract({ left, top, width, height }).raw().toBuffer();
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (y > 290 && Math.abs(x - stem) > 28) px[(y * width + x) * 4 + 3] = 0;   // 下段兩側是圖上的樹皮與毬果
+  const cut = await sharp(px, { raw: { width, height, channels: 4 } }).png().toBuffer();
+  let s3 = 33; const r3 = () => ((s3 = Math.imul(s3 ^ (s3 >>> 15), 2246822507) + 0x9e3779b9 | 0) >>> 0) / 4294967296;
+  const layers = [];
+  const tuft = async (bx, by, deg, size, dark) => {
+    const k = size / height, w = Math.max(8, Math.round(width * k)), h = Math.max(8, Math.round(height * k));
+    const img = sharp(cut).resize(w, h).modulate({ brightness: dark * .5, saturation: .85, hue: 8 });
+    const rb = await img.rotate(deg, { background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer(), m = await sharp(rb).metadata();
+    const a = deg * Math.PI / 180, sx = (stem / width - .5) * w, ox = sx * Math.cos(a) - Math.sin(a) * h / 2, oy = sx * Math.sin(a) + Math.cos(a) * h / 2;   // 基部（下緣、stem 那一點）轉過之後相對中心的位置
+    layers.push({ input: rb, left: Math.round(bx - ox - m.width / 2), top: Math.round(by - oy - m.height / 2) });
+  };
+  for (let i = 0; i < 9; i++) await tuft(512 + (r3() - .5) * 30, 990 - i * 28, (i % 2 ? 1 : -1) * (30 + r3() * 40), 560 + r3() * 80, .55 + .15 * r3());   // 底層：暗、大、往兩側開
+  for (let i = 0; i < 11; i++) await tuft(512 + (r3() - .5) * 60, 900 - i * 45, (i % 2 ? -1 : 1) * (8 + r3() * 45), 440 + r3() * 80, .8 + .15 * r3());
+  for (let i = 0; i < 5; i++) await tuft(512 + (r3() - .5) * 40, 520 - i * 30, (r3() - .5) * 36, 400 + r3() * 40, 1);   // 梢
+  const raw = await sharp({ create: { width: S, height: S, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(layers.map(l => ({ ...l, left: Math.max(-2000, l.left), top: Math.max(-2000, l.top) }))).raw().toBuffer();
+  for (let i = 0; i < S * S; i++) if (raw[i * 4 + 3] < 8) { raw[i * 4] = 58; raw[i * 4 + 1] = 70; raw[i * 4 + 2] = 38; }
+  await sharp(raw, { raw: { width: S, height: S, channels: 4 } }).png({ compressionLevel: 9 }).toFile(resolve(OUT, 'pine_branch.png'));
+  console.log('pine_branch.png');
+}

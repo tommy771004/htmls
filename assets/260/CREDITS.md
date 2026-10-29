@@ -458,14 +458,46 @@
 | 7 | [forest_ground_04](https://polyhaven.com/a/forest_ground_04) | 外緣山林林間的苔與土 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
 | 8 | [rocky_trail](https://polyhaven.com/a/rocky_trail) | 碎石步道（目前沒用到，保留層號給之後的林間步道） | Amal Kumar | CC0 1.0 |
 
-外緣山林的近景樹與林下層（`props/nat_forest.glb`）是 `blender/forest.py` 程式長出來的冷杉、楓樹與蕨叢、野花叢、草叢，葉片卡與樹皮借 Poly Haven 的 CC0 1.0 照片（`tools/forest-tex.mjs` 合成帶 alpha 的 PNG，原檔在 gitignore 的 `games/260-neon-nightcity/.cache/tex-src/ph/`）；楓葉叢、紫色野花叢與草叢的卡是程式畫的 SVG，不是照片。
+外緣山林的近景樹與林下層（`props/nat_forest.glb`）是 `blender/forest.py` 程式長出來的冷杉、松（`pine`，樹皮借冷杉那張）、楓樹、榛嶺的綠色闊葉樹（`broad`，樹皮借楓樹那張）與蕨叢、野花叢、草叢，葉片卡與樹皮借 Poly Haven 的 CC0 1.0 照片（`tools/forest-tex.mjs` 合成帶 alpha 的 PNG，原檔在 gitignore 的 `games/260-neon-nightcity/.cache/tex-src/ph/`）；楓葉叢、闊葉樹的卵形綠葉叢、紫色野花叢與草叢的卡是程式畫的 SVG，不是照片。
 
 | 用在 | 原檔 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
 | 冷杉的整段枝條卡（剪下二十幾枝小枝拼成） | [fir_tree_01](https://polyhaven.com/a/fir_tree_01) 的 twig 貼圖 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
+| 松（`pine`）的針葉叢卡（剪下一枝小枝扇形疊二十幾次） | [pine_tree_01](https://polyhaven.com/a/pine_tree_01) 的 twig 貼圖 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
 | 冷杉的樹皮 | [pine_bark](https://polyhaven.com/a/pine_bark) | Dimitrios Savva | CC0 1.0 |
 | 楓樹的樹皮 | [trident_maple_bark](https://polyhaven.com/a/trident_maple_bark) | Charlotte Baglioni | CC0 1.0 |
 | 蕨叢的葉片 | [fern_02](https://polyhaven.com/a/fern_02) 的貼圖 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
+
+## 榛嶺的地形與路線（`games/260-neon-nightcity/src/parts/09-akina-dem.js`，內嵌在頁面裡）
+
+| 資料 | 來源 | 授權 |
+| :-- | :-- | :-- |
+| 榛名山一帶的標高（z14 的 DEM10B 文字瓦片 16 張，裁切、每 15 m 重取樣、照比例縮小） | 出典：[国土地理院 標高タイル](https://maps.gsi.go.jp/development/ichiran.html)（地理院タイル）を加工して作成 | 国土地理院コンテンツ利用規約（出典を明示すれば利用可） |
+| 群馬県道 33 號渋川松井田線、28 號高崎東吾妻線（湖岸一段）的路線，以及路邊的護欄（barrier=guard_rail）、バス停、展望地與停車場 | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors（Overpass API 抓取） | ODbL 1.0 |
+
+使用者另外給的參考圖（遊戲模型的截圖）只參考路面、護欄、導向牌與林相的外觀，圖裡的貼圖與模型都沒有使用。
+
+## 紐柏林的地形、賽道與周邊（`games/260-neon-nightcity/src/parts/09-nbr-dem.js`，內嵌在頁面裡）
+
+| 資料 | 來源 | 授權 |
+| :-- | :-- | :-- |
+| 紐柏林一帶的標高（z14 的 terrarium PNG 瓦片 56 張，裁切、每 20 m 重取樣） | [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)（Mapzen／tilezen joerd；這一帶的原始資料是 SRTM 與 EU-DEM 等，出處照 [joerd 的 attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)） | 照各原始資料的授權標示出處 |
+| 北環與 GP 的中心線（`highway=raceway`）、建築外形、道路、土地利用、水系與圍籬 | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors（Overpass API 抓取） | ODbL 1.0 |
+
+賽道設施照 CGTrader 的「Racetrack 3D model Nürburgring Karussell」商品頁的預覽圖做（只參考路緣、護欄、水泥槽的外觀），沒有購買或使用它的模型與貼圖；Sketchfab 的「Nürburgring GP 2016 layout」沒有用。廣告牌與門架上的贊助商（EIFELWERK、RINGLINE OIL、NORDSPEED、GRÜNWALD REIFEN、HOCHEIFEL BRÄU、KARUSSELL RADIO）都是虛構的。這是同人的地形重現，與 Nürburgring 1927 GmbH & Co. KG 及賽道的商標權利人無關。
+
+維修區的道具（`props/nbr_pit.glb`，`games/260-neon-nightcity/tools/nbr-pit.mjs` 與 `tools/props.mjs` 的 `nbr_pit`）：
+
+| 模型 | 作者 | 授權 | 修改 |
+| :-- | :-- | :-- | :-- |
+| [Pit Board](https://sketchfab.com/3d-models/pit-board-42e680a0171246f8854918ac03e4c33c) | Alex Werner | CC BY 4.0 | 縮到 1.45 m 高、貼圖縮到 1024 |
+| [Tyre Holder 2023](https://sketchfab.com/3d-models/tyre-holder-2023-0edba3250be245b381108146f20aa5f7) | kilianhoffmann13 | CC BY 4.0 | 胎壁的輪胎廠牌字樣與色帶塗回橡膠色、換成沒有字的黃色線；側板的真實賽事與贊助商標誌換成素面白板；拿掉螺絲、減面到約一成 |
+| [Garage Cabinets](https://sketchfab.com/3d-models/garage-cabinets-9f4019deb103486691ed1de3704306ac) | Victor_Biedrycki | CC BY 4.0 | 櫃體與櫃門的暗紅改成石墨灰 |
+| [Mechanics Tool Chest with Top Box](https://sketchfab.com/3d-models/mechanics-tool-chest-with-top-box-03ec67298100408ea87689059a45d865) | zeleniy89 | CC BY 4.0 | 材質的半透明改成不透明、貼圖縮到 1024 |
+| [Trolley Jack Lo Poly](https://sketchfab.com/3d-models/trolley-jack-lo-poly-c4ea505c9a6942bd9bd192602d18ce81) | almartin | CC BY 4.0 | 縮到 0.9 m 高 |
+| [Fire Extinguisher](https://sketchfab.com/3d-models/fire-extinguisher-5676b179b3b744c0aaae53a3dcea2300) | Loïc（loichuet1） | CC BY 4.0 | 縮到 0.62 m 高 |
+
+車間裡的工具推車、輪胎架、空壓機與吊臂是城裡現成的 `props/interior.glb`、`props/chrome.glb`（來源見上面各自的段落）。車隊名稱（NORDWALD RACING、HALDEN MOTORSPORT 等 12 支）與車間牆上的贊助商（HEXAWERK、LUMORA、OSTRAX 等）都是虛構的；車間的牆面、地坪、天花板與螢幕畫面是程式畫的（`24-nbr-paint.js`）。
 
 ## 音效（`sfx/`）
 

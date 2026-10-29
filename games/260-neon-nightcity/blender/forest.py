@@ -125,8 +125,45 @@ def fir_n(q, H):   # 冷杉葉片的法線：離樹軸往外＋往上（圓錐�
     return (r + UP * 0.75).normalized()
 
 
+# ─── 松（使用者：冷杉遠看都是同一個輪廓；pine_tree_01 的小枝照片）：日本山上的赤松那種——樹幹往一側微彎、下半截的枝自然枯落只剩幾根斷枝，
+# 樹冠集中在上面四成：一層層 2～3 枝往外平伸再往上翹，枝上與枝端一團團刷子狀的針葉叢（tools/forest-tex.mjs 的 pine_branch，每團三張交錯＋一張平放），頂平而不規則 ───
+def pine(H=15.0, seed=5):
+    rng = random.Random(seed); mb = MB(); zc = H * 0.5
+    zs = [H * k / 9 for k in range(10)]
+    ax = lambda z: Vector((0.6 * math.sin(z / H * 2.2) * (z / H), 0.3 * math.sin(z / H * 3.1 + 0.5) * (z / H), z))   # 樹幹的中心線（S 形微彎）
+    rad = [0.28 * (1 - z / H) ** 0.9 + 0.035 + (0.12 * (1 - z / 0.7) ** 2 if z < 0.7 else 0) for z in zs]
+    mb.tube([ax(z) for z in zs], rad, 10, 0, vk=2.0)
+    for i in range(7):   # 下段的斷枝
+        z = 2.4 + rng.random() * (zc - 3.0); a = rng.random() * 6.283; p0 = ax(z)
+        mb.tube([p0, p0 + sdir(a, -0.1 - 0.3 * rng.random()) * (0.3 + 0.6 * rng.random())], [0.035, 0.012], 4, 0, vk=0.5)
+    C = ax(H * 0.82); clumps = []
+    z, az = zc, rng.random() * 6.283
+    while z < H - 0.8:
+        t = (z - zc) / (H - zc); L = (1.2 + 3.2 * math.sin(math.pi * min(1.0, 0.3 + t * 0.8))) * (0.75 + 0.45 * rng.random())   # 中段最長、頂上收
+        nb = rng.randint(3, 4)
+        for i in range(nb):
+            a = az + i * 6.283 / nb + (rng.random() - 0.5) * 0.8; pitch = 0.12 + 0.3 * t + (rng.random() - 0.5) * 0.2
+            p0 = ax(z); p1 = p0 + sdir(a, pitch) * (L * 0.55); p2 = p1 + sdir(a + (rng.random() - 0.5) * 0.5, pitch + 0.4) * (L * 0.45)
+            br = 0.03 + 0.03 * L / 4
+            mb.tube([p0, p1, p2], [br, br * 0.6, 0.012], 5, 0, vk=0.6)
+            clumps += [(p2, a), (p1.lerp(p2, 0.35), a), (p0.lerp(p1, 0.6), a)] + ([(p1, a)] if L > 2.4 else [])
+        z += 0.55 + 0.4 * rng.random(); az += 2.4
+    clumps += [(ax(H - 0.6), rng.random() * 6.283), (ax(H - 1.1) + Vector((0.4, -0.2, 0)), rng.random() * 6.283)]   # 樹頂
+    nrm = lambda q: ((q - C) * Vector((1, 1, 1.6)) + UP * 0.5).normalized()
+    for q, a in clumps:
+        S = 1.7 + 0.8 * rng.random(); out = Vector((math.cos(a), math.sin(a), 0))
+        al = (out * 0.45 + UP * 0.85 + Vector(((rng.random() - 0.5) * 0.4, (rng.random() - 0.5) * 0.4, 0))).normalized()
+        a1 = al.cross(Vector((rng.random() - 0.5, rng.random() - 0.5, rng.random() - 0.5))).normalized(); a2 = al.cross(a1).normalized()
+        for ac in (a1, (a1 + a2).normalized(), (a2 - a1).normalized()): mb.card(q - al * (S * 0.2), al, ac, S, S, (0, 1, 0, 1), 1, nrm)
+        side = Vector((-out.y, out.x, 0)); mb.card(q - out * (S * 0.35) + UP * 0.15, (out + UP * 0.25).normalized(), side, S * 1.1, S, (0, 1, 0, 1), 1, nrm)   # 平放的一張：從上面看不是空的
+    print(f'pine clumps: {len(clumps)}')
+    ao = lambda q: 0.25 + 0.75 * min(1.0, ((q - C) * Vector((1, 1, 1.4))).length / 3.6) ** 1.1 * (0.6 + 0.4 * min(1.0, q.z / H))
+    return mb.build('pine', [M['fir_bark'], M['pine_twig']], ao)
+
+
 # ─── 楓樹：樹幹 2.6 m 後分成 3～4 枝主幹，每枝再分三次（越分越細、往外往上開），第二層以上的枝段中點與末端掛楓葉叢卡（兩張十字交叉） ───
-def maple(H=11.0, seed=11):
+# broad：榛嶺的綠色闊葉樹（雜木林）用同一套枝架，樹冠寬一點（cr）、葉叢卡大一點、每點三張（樹冠比楓樹密）
+def maple(H=11.0, seed=11, name='maple', leaf='maple_leaf', cr=4.2, S0=1.25, Sv=0.5, ncard=2):
     rng = random.Random(seed); mb = MB(); C = Vector((0, 0, H * 0.62))   # 樹冠中心（葉片法線從這裡往外）
     nrm = lambda q: ((q - C) * Vector((1, 1, 1.35)) + UP * 0.6).normalized()
     leaves = []
@@ -154,7 +191,7 @@ def maple(H=11.0, seed=11):
     mb.tube(path, [0.36, 0.25, 0.21, 0.13, 0.05], 9, 0, vk=1.5)
     z, az, k = 2.8, rng.random() * 6.283, 0
     while z < top - 0.4:
-        e = (z - C.z) / (H * 0.42); L = 4.2 * math.sqrt(max(0.05, 1 - e * e)) * (0.85 + 0.25 * rng.random())
+        e = (z - C.z) / (H * 0.42); L = cr * math.sqrt(max(0.05, 1 - e * e)) * (0.85 + 0.25 * rng.random())
         f = z / top; r = 0.13 * (1 - f) + 0.05 + 0.02
         pitch = 0.75 - 0.5 * f   # 下面的側枝平一點，上面的往上翹
         d = (Vector((math.cos(az), math.sin(az), 0)) * math.cos(pitch) + UP * math.sin(pitch)).normalized()
@@ -166,11 +203,12 @@ def maple(H=11.0, seed=11):
         out = (q - C) * Vector((1, 1, 0.6)); out = out.normalized() if out.length > 1e-3 else UP
         al = (out * 0.6 + UP * 0.5 + Vector(((rng.random() - 0.5) * 0.6, (rng.random() - 0.5) * 0.6, (rng.random() - 0.5) * 0.4))).normalized()
         a1 = al.cross(Vector((rng.random() - 0.5, rng.random() - 0.5, rng.random() - 0.5))).normalized(); a2 = al.cross(a1).normalized()
-        S = 1.25 + 0.5 * rng.random()
-        for ac in (a1, a2): mb.card(q - al * (S * 0.15), al, ac, S, S, (0, 1, 0, 1), 1, nrm)
-    print(f'maple leaves: {len(leaves)} clusters')
-    ao = lambda q: 0.3 + 0.7 * min(1.0, ((q - C) * Vector((1, 1, 1.15))).length / 4.6) ** 1.2 * (0.7 + 0.3 * min(1.0, q.z / H))
-    return mb.build('maple', [M['maple_bark'], M['maple_leaf']], ao)
+        S = S0 + Sv * rng.random()
+        acs = (a1, a2) if ncard == 2 else (a1, (a1 + a2).normalized(), (a2 - a1).normalized())
+        for ac in acs: mb.card(q - al * (S * 0.15), al, ac, S, S, (0, 1, 0, 1), 1, nrm)
+    print(f'{name} leaves: {len(leaves)} clusters')
+    ao = lambda q: 0.3 + 0.7 * min(1.0, ((q - C) * Vector((1, 1, 1.15))).length / (cr + 0.4)) ** 1.2 * (0.7 + 0.3 * min(1.0, q.z / H))
+    return mb.build(name, [M['maple_bark'], M[leaf]], ao)
 
 
 # ─── 林下層（每片幾平方公尺，拼好整片做實例）：蕨是 Poly Haven fern_02 的葉片照片彎成一圈拱出去的蕨叢；紫色野花叢與草叢是 forest-tex.mjs 畫的卡，
@@ -228,12 +266,16 @@ M = {
     'fir_twig': tmat('fir_twig', os.path.join(TEX, 'fir_branch.png'), clip=True),
     'maple_bark': tmat('maple_bark', os.path.join(PH, 'trident_maple_bark', 'trident_maple_bark_diff_1k.jpg'), rough=0.9),
     'maple_leaf': tmat('maple_leaf', os.path.join(TEX, 'maple_leaves.png'), clip=True, rough=0.7),
+    'broad_leaf': tmat('broad_leaf', os.path.join(TEX, 'broad_leaves.png'), clip=True, rough=0.75),
+    'pine_twig': tmat('pine_twig', os.path.join(TEX, 'pine_branch.png'), clip=True, rough=0.8),
     'fern_leaf': tmat('fern_leaf', os.path.join(TEX, 'fern.png'), clip=True, rough=0.8),
     'flower_leaf': tmat('flower_leaf', os.path.join(TEX, 'flowers.png'), clip=True, rough=0.8),
     'grass_leaf': tmat('grass_leaf', os.path.join(TEX, 'grass_tuft.png'), clip=True, rough=0.85),
 }
 fir().location = (0, 0, 0)
 maple().location = (12, 0, 0)
+maple(H=12.5, seed=23, name='broad', leaf='broad_leaf', cr=5.0, S0=1.6, Sv=0.7, ncard=3).location = (60, 0, 0)
+pine().location = (70, 0, 0)
 understory('fern_patch', 'fern', 61).location = (30, 0, 0)
 understory('flower_patch', 'flower', 62).location = (40, 0, 0)
 understory('grass_patch', 'grass', 63).location = (50, 0, 0)

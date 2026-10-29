@@ -239,12 +239,19 @@ const resMax = () => Math.min(GT().ss || 1, Math.sqrt((GT().px || 4.2e6) / Math.
 // 世界矩陣只重算有變的：three 原本每幀對每個 matrixAutoUpdate 的物件 compose 再乘上父矩陣（場景約四千個物件，兩千多個不會動）。
 // 位置、旋轉、縮放（matrixAutoUpdate 關掉的看 matrix 本身）與父物件都和上次一樣、父矩陣也沒重算時跳過
 {
-  const P = T.Object3D.prototype;
+  const P = T.Object3D.prototype, um = P.updateMatrix;
+  // 「上次」記在 updateMatrix 裡：lookAt 與 getWorldDirection 會經 updateWorldMatrix 直接 compose（lookAt 用的是改轉向前的那組），
+  // 只在這裡記的話，相機一幀內被設兩次（camState.over、地鐵的固定鏡頭）又回到上一幀的值時會跳過，矩陣停在中途那組
+  P.updateMatrix = function () {
+    um.call(this);
+    const p = this.position, q = this.quaternion, s = this.scale, c = this._trs || (this._trs = new Float64Array(10));
+    c[0] = p.x; c[1] = p.y; c[2] = p.z; c[3] = q._x; c[4] = q._y; c[5] = q._z; c[6] = q._w; c[7] = s.x; c[8] = s.y; c[9] = s.z;
+  };
   P.updateMatrixWorld = function (force) {
     if (this.matrixAutoUpdate) {
-      const p = this.position, q = this.quaternion, s = this.scale, c = this._trs || (this._trs = new Float64Array(10).fill(NaN));
-      if (c[0] !== p.x || c[1] !== p.y || c[2] !== p.z || c[3] !== q._x || c[4] !== q._y || c[5] !== q._z || c[6] !== q._w || c[7] !== s.x || c[8] !== s.y || c[9] !== s.z || this._trsP !== this.parent || this.pivot !== null) {
-        c[0] = p.x; c[1] = p.y; c[2] = p.z; c[3] = q._x; c[4] = q._y; c[5] = q._z; c[6] = q._w; c[7] = s.x; c[8] = s.y; c[9] = s.z; this._trsP = this.parent;
+      const p = this.position, q = this.quaternion, s = this.scale, c = this._trs;
+      if (!c || c[0] !== p.x || c[1] !== p.y || c[2] !== p.z || c[3] !== q._x || c[4] !== q._y || c[5] !== q._z || c[6] !== q._w || c[7] !== s.x || c[8] !== s.y || c[9] !== s.z || this._trsP !== this.parent || this.pivot !== null) {
+        this._trsP = this.parent;
         this.updateMatrix();
       }
     } else {   // 手動寫的 matrix：16 個數字比上次（比相乘便宜）

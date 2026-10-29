@@ -774,10 +774,11 @@ const garDrive = (x, z) => !!FAC.gar && x > FAC.gar.ax - 1 && x < FAC.gar.ax + 1
   instanced(c.build(), MAT.ux, works.filter(w => w.t === 'cone'), LY.NOREFL);
 }
 
-// ─── 招牌圖集：所有字都用 Canvas 畫在一張 2048 的貼圖上 ───
-const atlas = document.createElement('canvas'); atlas.width = 2048; atlas.height = 2048;
+// ─── 招牌圖集：所有字都用 Canvas 畫在一張 2048 × ATLAS_H 的貼圖上（服裝店的 36 塊招牌加進來之後從 2048 加高）───
+const ATLAS_H = 3072;
+const atlas = document.createElement('canvas'); atlas.width = 2048; atlas.height = ATLAS_H;
 const ax = atlas.getContext('2d');
-ax.fillStyle = '#000'; ax.fillRect(0, 0, 2048, 2048);
+ax.fillStyle = '#000'; ax.fillRect(0, 0, 2048, ATLAS_H);
 const FONT_C = '"Avenir Next Condensed","DIN Condensed","Bahnschrift","Roboto Condensed","Arial Narrow",sans-serif';
 const FONT_B = '"Arial Black","Helvetica Neue",Arial,sans-serif';
 const FONT_S = '"Snell Roundhand","Segoe Script","Brush Script MT","Apple Chancery",cursive';
@@ -788,8 +789,8 @@ function cell(name, w, h, draw) {
   if (shelfX + w > 2048) { shelfX = 0; shelfY += shelfH + 2; shelfH = 0; }
   const x = shelfX, y = shelfY; shelfX += w + 2; shelfH = Math.max(shelfH, h);
   ax.save(); ax.beginPath(); ax.rect(x, y, w, h); ax.clip(); ax.translate(x, y); draw(ax, w, h); ax.restore();
-  cells[name] = { u0: x / 2048, v0: 1 - (y + h) / 2048, u1: (x + w) / 2048, v1: 1 - y / 2048, w, h };
-  if (y + h > 2048) console.warn('sign atlas overflow', name);
+  cells[name] = { u0: x / 2048, v0: 1 - (y + h) / ATLAS_H, u1: (x + w) / 2048, v1: 1 - y / ATLAS_H, w, h };
+  if (y + h > ATLAS_H) console.warn('sign atlas overflow', name);
 }
 function neon(c, text, x, y, size, col, font = FONT_C, weight = 700, align = 'center') {
   c.font = `${weight} ${size}px ${font}`; c.textAlign = align; c.textBaseline = 'middle';
@@ -838,6 +839,19 @@ FASCIA.forEach(([n, d]) => cell('f:' + n, 510, 96, d));   // 510 寬才能一排
 const FASCIA_K = { 'LAUNDROMAT': 1, 'NOODLE 24': 2, 'RAMEN': 2, 'DINER': 2, 'PIZZA': 2, 'DUMPLING': 2, 'NOODLE BAR': 2,
   'VOLTAGE KARAOKE': 3, 'ARCADE': 3, 'ELECTRONICS': 3, 'CYBERWARE': 3, 'PHARMACY': 4, 'TATTOO': 4, 'BARBER': 4, 'OPTICS': 4, 'NAIL SPA': 4 };
 const FASCIA_BY = [0, 1, 2, 3, 4].map(k => FASCIA.filter(f => (FASCIA_K[f[0]] || 0) === k));
+// 服裝店（12-wearshops.js）的招牌：四種店型各一種畫法，字是每間店自己的名字
+const WEAR_SIGN = {
+  budget: (c, s) => boxSign(c, 512, 96, ['#ffe14a', '#f2b81c'], '#1b1b1b', s.name, s.sub),
+  street: (c, s) => { plate(c, 512, 96, '#0a0610'); neon(c, s.name, 256, 40, 50, '#ff3fb4'); c.fillStyle = '#4ee6ff'; c.font = `700 17px ${FONT_C}`; c.textAlign = 'center'; c.fillText(s.sub, 256, 80); },
+  sport: (c, s) => {
+    const g = c.createLinearGradient(0, 0, 512, 0); g.addColorStop(0, '#0d3a8a'); g.addColorStop(1, '#06204e'); c.fillStyle = g; c.fillRect(0, 0, 512, 96);
+    c.fillStyle = '#e8322a'; c.beginPath(); c.moveTo(0, 70); c.lineTo(512, 58); c.lineTo(512, 66); c.lineTo(0, 78); c.fill();   // 斜的速度線
+    c.fillStyle = '#fff'; c.font = `italic 900 46px ${FONT_B}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(s.name, 256, 38, 470);
+    c.font = `700 17px ${FONT_C}`; c.fillText(s.sub, 256, 84, 420);
+  },
+  boutique: (c, s) => { plate(c, 512, 96, '#14100c'); c.strokeStyle = '#c9a46a'; c.lineWidth = 2; c.strokeRect(8, 8, 496, 80); neon(c, s.name, 256, 42, 44, '#f0c890', '"Didot","Bodoni 72","Times New Roman",serif', 400); c.fillStyle = '#c9a46a'; c.font = `400 15px ${FONT_C}`; c.textAlign = 'center'; c.fillText(s.sub, 256, 76); },
+};
+for (const s of WEAR_SHOPS) cell('w:' + s.i, 510, 96, c => WEAR_SIGN[s.type](c, s));
 const BLADE = [
   ['HOTEL', '#ff5a3a', FONT_C], ['空室', '#4ee6ff', FONT_H], ['薬', '#3dff8e', FONT_H], ['酒', '#ff3f6a', FONT_H], ['OPEN', '#ff4bd0', FONT_C],
   ['拉麵', '#ffcf4a', FONT_H], ['BAR', '#ffa13a', FONT_C], ['電脳', '#2cf2d8', FONT_H], ['24H', '#ffe94a', FONT_C], ['按摩', '#ff7ad1', FONT_H],
@@ -964,7 +978,7 @@ for (const su of shopUnits) {
     const fk = FASCIA_BY[su.kind], f = fk[(fasciaK++ * 7 + Math.floor(r3() * 5)) % fk.length];   // r3() 抽的次數照舊
     const w = Math.min(su.w * .82, 6.2), h = w / 5.33;
     const kind = r3() < .1 ? 1 : 0;
-    signQuad(su.x + ox + su.nx * .12, 3.95, su.z + oz + su.nz * .12, su.nx, su.nz, w, Math.min(h, 1.05), 'f:' + f[0], r3(), kind, su.shut ? .5 : 1.6, f[2], 8);
+    signQuad(su.x + ox + su.nx * .12, 3.95, su.z + oz + su.nz * .12, su.nx, su.nz, w, Math.min(h, 1.05), su.wear ? 'w:' + su.wear.i : 'f:' + f[0], r3(), kind, su.shut ? .5 : 1.6, su.wear ? su.wear.glow : f[2], 8);   // 服裝店換招牌，r3() 照樣抽
     signBacks.push({ x: su.x + su.nx * .1, y: 3.95, z: su.z + su.nz * .1, ry: Math.atan2(su.nx, su.nz), sx: w + .14, sy: Math.min(h, 1.05) + .14, sz: .18 });
   }
   const dist = district(su.x, su.z);

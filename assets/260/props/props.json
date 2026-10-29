@@ -7144,7 +7144,7 @@
   ]
  },
  "nat_forest": {
-  "kb": 1544,
+  "kb": 2213,
   "items": {
    "fir": {
     "w": 9.98,
@@ -7157,6 +7157,18 @@
     "d": 11.84,
     "h": 13.04,
     "tris": 5496
+   },
+   "broad": {
+    "w": 15.85,
+    "d": 14.94,
+    "h": 14.9,
+    "tris": 8584
+   },
+   "pine": {
+    "w": 11.21,
+    "d": 11.05,
+    "h": 16.92,
+    "tris": 3012
    },
    "fern_patch": {
     "w": 3.72,
@@ -7178,6 +7190,12 @@
    }
   },
   "credits": [
+   {
+    "file": "forest"
+   },
+   {
+    "file": "forest"
+   },
    {
     "file": "forest"
    },
@@ -7557,5 +7575,90 @@
    }
   ],
   "far": 1
+ },
+ "nbr_pit": {
+  "kb": 1503,
+  "items": {
+   "pitboard": {
+    "w": 1,
+    "d": 0.04,
+    "h": 1.45,
+    "tris": 2804
+   },
+   "tyrecart": {
+    "w": 0.55,
+    "d": 1.27,
+    "h": 1.35,
+    "tris": 30949
+   },
+   "cabinets": {
+    "w": 4.26,
+    "d": 0.51,
+    "h": 2.16,
+    "tris": 21192
+   },
+   "chest": {
+    "w": 1,
+    "d": 1.2,
+    "h": 1.5,
+    "tris": 4148
+   },
+   "jack": {
+    "w": 2.08,
+    "d": 0.24,
+    "h": 0.9,
+    "tris": 8915
+   },
+   "extinguisher": {
+    "w": 0.34,
+    "d": 0.17,
+    "h": 0.62,
+    "tris": 2792
+   }
+  },
+  "credits": [
+   {
+    "file": "pit_board",
+    "title": "Pit Board",
+    "author": "Alex Werner (https://sketchfab.com/alexwerndesign)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/pit-board-42e680a0171246f8854918ac03e4c33c"
+   },
+   {
+    "file": "tyre_holder_2023",
+    "title": "Tyre Holder 2023",
+    "author": "kilianhoffmann13 (https://sketchfab.com/kilianhoffmann13)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/tyre-holder-2023-0edba3250be245b381108146f20aa5f7"
+   },
+   {
+    "file": "garage_cabinets",
+    "title": "Garage Cabinets",
+    "author": "Victor_Biedrycki (https://sketchfab.com/Victor_Biedrycki)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/garage-cabinets-9f4019deb103486691ed1de3704306ac"
+   },
+   {
+    "file": "mechanics_tool_chest_with_top_box",
+    "title": "Mechanics Tool Chest with Top Box",
+    "author": "zeleniy89 (https://sketchfab.com/zeleniy89)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/mechanics-tool-chest-with-top-box-03ec67298100408ea87689059a45d865"
+   },
+   {
+    "file": "trolley_jack_lo_poly",
+    "title": "Trolley Jack Lo Poly",
+    "author": "almartin (https://sketchfab.com/almartin)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/trolley-jack-lo-poly-c4ea505c9a6942bd9bd192602d18ce81"
+   },
+   {
+    "file": "fire_extinguisher",
+    "title": "Fire Extinguisher",
+    "author": "Loïc (https://sketchfab.com/loichuet1)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/fire-extinguisher-5676b179b3b744c0aaae53a3dcea2300"
+   }
+  ]
  }
 }

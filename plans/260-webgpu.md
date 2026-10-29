@@ -92,6 +92,9 @@ three r186 的 `WebGPURenderer` 不支援 `ShaderMaterial`／`RawShaderMaterial`
 - 點光與地上陰影的陣列 uniform 是平的 `Float32Array`（`00-core.js` 的 `V4A`／`v4set`），手寫時照 vec4 陣列讀。
 - `70-render.js` 換掉了 three 的 `Object3D.updateMatrixWorld` 與 `Frustum.intersectsObject`，WebGPURenderer 也走這兩個。
 - ✅ 倒影的 `reflCam` 遠平面已依 `R.coordinateSystem` 用 0..1 的公式（2026-10-27）。
+- 人物（`40-people.js` 的 CHAR_VS）的頂點屬性加上服裝後有 14 個，超過 WebGPU 一條管線 8 個頂點緩衝的上限：`charPack` 把 Float32 的 `aSlot`／`aUnp`／`aUnn`／`aPat`／`aWP` 與 Uint8 的 `aWA`／`aWB`／`aWC` 各交錯成一個 `InterleavedBuffer`（原始陣列留在 `userData.raw`，`charRaw` 讀）。WebGPU 沒有 3 個分量的 8／16 位元格式，這幾個屬性一律是 4 分量。新增人物屬性要放進這兩組。
+- 待辦：服裝的圖案（CHAR_FS 的 `wearTile`）在 WebGPU 下沒畫出來（底色與左右拼色正常，格線與花樣全沒有）；把 `aWP` 換到交錯緩衝的第一個沒有差別，懷疑是自動轉換在 `wearTile` 的整數 `pt` 分支或 `fract`／`floor` 上和 GLSL 不一致，要對照 `src/tsl/m-char.mjs` 查。
+- 待辦：建築組 GLB 的 `_win` 是 Uint16 單分量（unorm16 x1），WebGPU 建管線報錯 8 次（`createRenderPipeline`），要在 `tools/props.mjs` 改成 x2 或 float。
 - 效能面板要接 WebGPU 的 timestamp query（現在 WebGPU 沒有顯示卡計時），draw call 計數在 WebGPU 會累加。
 - MSAA ×2 在 WebGPU 要對應到 ×4 或關掉。
 

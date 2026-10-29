@@ -153,14 +153,15 @@ function buildVeh(type, x, z, yaw, sp = 0, seed = 0, palI = 0, kind = 'jack') {
 function streetUp(v) {
   v.up = 1;
   const p = loadGLB(v.type);
-  if (!p) return;   // 以檔案開啟沒有實車模型：維持低模
-  p.then(tpl => {
-    if (!tpl || !v.ins || !vehicles.includes(v)) return;
+  if (!p) return null;   // 以檔案開啟沒有實車模型：維持低模
+  return p.then(tpl => {
+    if (!tpl || !v.ins || !vehicles.includes(v)) return false;
     const palI = v.palI = v.ins.array[2];   // 69-phone.js 的快速存檔照這個記塗裝
     v.body.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); v.body.clear(); v.ins = null;
     v.mat = mkUber(); v.mat.uniforms.uM.value.set(0, 0, 1, 0);
     applyCar(v, v.type, CARS[v.type].paintable && palI ? PAL_HEX[palI - 1] : undefined);
     poseVehicle(v);
+    return true;
   });
 }
 function streetVeh(type, x, z, yaw, sp, palI) {

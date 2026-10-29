@@ -509,7 +509,7 @@ function v7DrinkStep(dt) {
 }
 function v7Underwear(on) {
   const c = CREW[crew.cur].look;
-  if (on) me.look(0, { r: rng(9), ...c, top: c.skin, coat: 0, bot: lin(0xe8e6e0), shoe: c.skin, glowI: 0, skirt: 0, hat: 0 });
+  if (on) me.look(0, { r: rng(9), ...c, top: c.skin, coat: 0, bot: lin(0xe8e6e0), shoe: c.skin, glowI: 0, skirt: 0, hat: 0, wear: [] });
   else me.look(0, { r: rng(9), ...c });
   if (!on) V7C.mud = 0;
 }

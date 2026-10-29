@@ -570,6 +570,10 @@ function storyCar(a, id, at, name, near) {
   const v = buildVeh(TYPES[id] ? id : 'tiara', sp.x, sp.z, sp.yaw, 0, Math.random(), 2, 'story');   // 車流的車型（30-vehicles.js 的 TYPES）
   v.y = spawnY(v.x, v.z); v.name = name; v.storyOwn = 1; poseVehicle(v);
   a.car = v; a.carHp0 = v.hp;
+  // 車行也有賣的實車（戴恩的 E34）：一擺出來就換成車行那台的完整模型（68-gta.js 的 streetUp），和之後收進車庫的是同一台；
+  // applyCar 會把名字與車況換成型錄的，換好再改回任務的名字、重記車況
+  const up = CARS[v.type] && CARS[v.type].glb && streetUp(v);
+  if (up) up.then(ok => { if (ok && a.car === v) { v.name = name; a.carHp0 = v.hp; } });
 }
 function storyDropCar(a, keep) {
   const v = a.car; if (!v) return;
