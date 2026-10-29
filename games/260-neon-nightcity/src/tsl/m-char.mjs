@@ -2,7 +2,7 @@
 // 材質 "char"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{\"SCAN\":\"*\"}": {
-  h: "v5hayx1rhu", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
+  h: "1f96w5p1rhf", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
   uniforms: [{"name":"uC","type":"vec3","size":10,"src":"uC"},{"name":"uGlow","type":"vec4","src":"uGlow"},{"name":"uPat","type":"vec4","src":"uPat"},{"name":"uTrait","type":"vec4","src":"uTrait"},{"name":"uCov","type":"vec4","src":"uCov"},{"name":"uAtlas","type":"sampler2D","src":"uAtlas"},{"name":"uPatC","type":"vec3","src":"uPatC"},{"name":"uInnerC","type":"vec3","src":"uInnerC"},{"name":"uMap","type":"sampler2D","src":"uMap"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vP","type":"vec3","src":"vP"},{"name":"vWB","type":"vec3","src":"vWB"},{"name":"vWC","type":"vec3","src":"vWC"},{"name":"vSk","type":"vec3","src":"vSk"},{"name":"vWP","type":"vec4","src":"vWP"},{"name":"vWN","type":"vec3","src":"vWN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vSlot","type":"float","src":"vSlot"}],
   attributes: [{"name":"aSlot","type":"float","src":"aSlot"},{"name":"aPat","type":"vec3","src":"aPat"},{"name":"aUnn","type":"vec3","src":"aUnn"},{"name":"aWP","type":"vec4","src":"aWP"},{"name":"aUnp","type":"vec4","src":"aUnp"},{"name":"aWA","type":"vec4","src":"aWA"},{"name":"aWB","type":"vec4","src":"aWB"},{"name":"aWC","type":"vec4","src":"aWC"},{"name":"aWN","type":"vec4","src":"aWN"}],
@@ -140,27 +140,37 @@ export default {
     		col.assign( mix( col, vWC, max( step( abs( g.x.sub( .34 ) ), .025 ), step( abs( g.y.sub( .34 ) ), .025 ) ).mul( .9 ) ) );
     		col.assign( mix( col, vWB.mul( .7 ), max( step( abs( g.x.sub( .84 ) ), .012 ), step( abs( g.y.sub( .84 ) ), .012 ) ).mul( .6 ) ) );
 
-    	} ).ElseIf( pt.equal( 8 ), () => {
+    	} );
+
+    	If( pt.equal( 8 ), () => {
 
     		col.mulAssign( sub( 1., mul( .14, max( step( .86, fract( q.x.mul( 165. ) ) ), step( .86, fract( q.y.mul( 165. ) ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 9 ), () => {
+    	} );
+
+    	If( pt.equal( 9 ), () => {
 
     		col.mulAssign( add( .8, mul( .2, smoothstep( -0.3, .9, sin( q.x.mul( vWP.y ).mul( 6.2832 ) ) ) ) ) );
     		col.mulAssign( add( .96, mul( .04, sin( q.y.mul( 900. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 10 ), () => {
+    	} );
+
+    	If( pt.equal( 10 ), () => {
 
     		col.mulAssign( add( .92, mul( .1, n2( q.mul( 420. ) ) ) ).sub( mul( .04, n2( q.mul( 60. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 11 ), () => {
+    	} );
+
+    	If( pt.equal( 11 ), () => {
 
     		const g = fract( q.mul( 28. ) ).sub( .5 ).toVar();
     		const sw = abs( sin( length( g ).mul( 22. ).add( atan( g.y, g.x ).mul( 2. ) ) ) ).toVar();
     		col.mulAssign( add( .78, mul( .22, smoothstep( .15, .5, sw ) ) ) );
     		col.mulAssign( add( .85, mul( .2, n2( q.mul( 18. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 12 ), () => {
+    	} );
+
+    	If( pt.equal( 12 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).toVar();
     		const d = float( 9. ).toVar(), an = float( 0. ).toVar(), hh = float( 0. ).toVar();
@@ -190,26 +200,34 @@ export default {
     		col.assign( mix( col, vWB, smoothstep( .2, .25, d ).mul( smoothstep( .46, .38, d ) ).mul( blob ) ) );
     		col.mulAssign( add( .9, mul( .2, n2( q.mul( 500. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 13 ), () => {
+    	} );
+
+    	If( pt.equal( 13 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const t = fract( g.y.mul( 2. ).add( select( mod( floor( g.x ), 2. ).lessThan( 1. ), fract( g.x ), sub( 1., fract( g.x ) ) ).mul( 1.2 ) ) ).toVar();
     		col.assign( mix( col, vWB, step( .5, t ).mul( .8 ) ) );
     		col.mulAssign( add( .9, mul( .18, h21( floor( q.mul( 900. ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 14 ), () => {
+    	} );
+
+    	If( pt.equal( 14 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const f = sin( g.x.add( sin( g.y.mul( 1.3 ) ).mul( 2. ) ) ).mul( sin( g.y.add( sin( g.x.mul( .7 ) ).mul( 2. ) ) ) ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .12, .04, abs( f ) ).mul( .85 ) ) );
 
-    	} ).ElseIf( pt.equal( 15 ), () => {
+    	} );
+
+    	If( pt.equal( 15 ), () => {
 
     		const g = floor( q.mul( vWP.y ) ).toVar(), g2 = floor( q.mul( vWP.y ).mul( .25 ) ).toVar();
     		const h = h21( g2.add( .3 ) ).mul( .6 ).add( h21( g ).mul( .4 ) ).toVar();
     		col.assign( select( h.lessThan( .3 ), vWB, select( h.lessThan( .55 ), col, select( h.lessThan( .78 ), vWC, col.mul( .78 ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 16 ), () => {
+    	} );
+
+    	If( pt.equal( 16 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).toVar();
     		const dir = mod( ci.x.add( ci.y ), 2. ).toVar();
@@ -217,14 +235,18 @@ export default {
     		col.mulAssign( add( .72, mul( .32, sh ) ) );
     		col.mulAssign( add( .88, mul( .2, h21( ci.add( floor( q.y.mul( 40. ) ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 17 ), () => {
+    	} );
+
+    	If( pt.equal( 17 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const f = n2( g ).mul( .6 ).add( n2( g.mul( 2.3 ).add( 4. ) ).mul( .3 ) ).add( n2( g.mul( 6. ) ).mul( .1 ) ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .45, .7, f ) ) );
     		col.assign( mix( col, vWB.mul( .5 ), smoothstep( .68, .85, f ) ) );
 
-    	} ).ElseIf( pt.equal( 20 ), () => {
+    	} );
+
+    	If( pt.equal( 20 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).sub( .5 ).toVar();
     		const h = h21( ci ).toVar(), an = h.mul( 6.2832 ).toVar();
@@ -247,17 +269,23 @@ export default {
 
     		} );
 
-    	} ).ElseIf( pt.equal( 22 ), () => {
+    	} );
+
+    	If( pt.equal( 22 ), () => {
 
     		col.mulAssign( sub( 1., mul( .3, step( length( fract( q.mul( vWP.y ) ).sub( .5 ) ), .22 ) ) ) );
 
-    	} ).ElseIf( pt.equal( 23 ), () => {
+    	} );
+
+    	If( pt.equal( 23 ), () => {
 
     		const f = n2( q.mul( 9. ) ).mul( .55 ).add( n2( q.mul( 23. ).add( 3. ) ).mul( .3 ) ).add( n2( q.mul( 70. ) ).mul( .15 ) ).toVar();
     		col.assign( mix( col, col.mul( 1.7 ).add( .07 ), smoothstep( .52, .66, f ) ) );
     		col.mulAssign( add( .9, mul( .12, smoothstep( .04, 0., abs( n2( q.mul( 14. ) ).sub( .5 ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 24 ), () => {
+    	} );
+
+    	If( pt.equal( 24 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const cx = fract( g.x ).sub( .5 ).toVar(), t = g.y.mul( 2.4 ).toVar();
@@ -266,12 +294,16 @@ export default {
     		const rope = smoothstep( .2, .05, cr ).mul( add( .75, mul( .25, smoothstep( .2, .0, top ) ) ) ).toVar();
     		col.mulAssign( mix( .72, 1.06, rope ).mul( sub( 1., mul( .25, step( .42, abs( cx ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 25 ), () => {
+    	} );
+
+    	If( pt.equal( 25 ), () => {
 
     		const l = abs( sin( q.x.mul( 38. ).add( sin( q.y.mul( 11. ) ).mul( 1.8 ) ) ) ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .16, .04, l ).mul( .85 ) ) );
 
-    	} ).ElseIf( pt.equal( 26 ), () => {
+    	} );
+
+    	If( pt.equal( 26 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), r = vec2( g.x.add( g.y ), g.x.sub( g.y ) ).mul( .7071 ).toVar(), ci = floor( r ).toVar(), cf = fract( r ).sub( .5 ).toVar();
     		const frame = smoothstep( .035, .015, sub( .5, max( abs( cf.x ), abs( cf.y ) ) ) ).toVar();
@@ -290,7 +322,9 @@ export default {
 
     		col.assign( mix( col, vWB, clamp( frame.add( m ), 0., 1. ) ) );
 
-    	} ).ElseIf( pt.equal( 29 ), () => {
+    	} );
+
+    	If( pt.equal( 29 ), () => {
 
     		col.mulAssign( add( .86, mul( .14, step( .5, fract( q.x.mul( .7 ).add( q.y ).mul( 520. ) ) ) ) ) );
     		col.assign( mix( col, col.mul( 1.55 ).add( .05 ), smoothstep( .45, .8, n2( vec2( q.x.mul( 30. ), q.y.mul( 3. ) ) ) ).mul( .7 ) ) );
@@ -302,7 +336,9 @@ export default {
 
     		} );
 
-    	} ).ElseIf( pt.equal( 30 ), () => {
+    	} );
+
+    	If( pt.equal( 30 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		g.x.addAssign( step( .5, fract( g.y.mul( .5 ) ) ).mul( .5 ) );
@@ -310,48 +346,64 @@ export default {
     		col.assign( mix( col, col.mul( .22 ), smoothstep( .3, .26, d ) ) );
     		col.mulAssign( add( .92, mul( .16, smoothstep( .36, .44, d ) ) ) );
 
-    	} ).ElseIf( pt.equal( 33 ), () => {
+    	} );
+
+    	If( pt.equal( 33 ), () => {
 
     		const c = floor( q.mul( vWP.y ) ).toVar();
     		col.assign( mix( col, vWB, mod( c.x.add( c.y ), 2. ) ) );
     		col.mulAssign( add( .8, mul( .32, n2( q.mul( 900. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 36 ), () => {
+    	} );
+
+    	If( pt.equal( 36 ), () => {
 
     		const base = select( vP.y.greaterThan( 0. ), col, vWC ).toVar();
     		const g = fract( q.mul( vWP.y ) ).toVar();
     		const c2 = mix( base, vWB, step( .62, g.x ).add( step( .62, g.y ) ).mul( .45 ) ).toVar();
     		col.assign( mix( c2, vec3( .85, .82, .7 ), clamp( step( abs( g.x.sub( .3 ) ), .018 ).add( step( abs( g.y.sub( .3 ) ), .018 ) ), 0., 1. ).mul( .6 ) ) );
 
-    	} ).ElseIf( pt.equal( 37 ), () => {
+    	} );
+
+    	If( pt.equal( 37 ), () => {
 
     		col.mulAssign( add( .88, mul( .12, sin( q.x.mul( 1800. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 38 ), () => {
+    	} );
+
+    	If( pt.equal( 38 ), () => {
 
     		const g = abs( fract( q.mul( vWP.y ) ).sub( .5 ) ).toVar();
     		col.mulAssign( sub( 1., step( g.x, .17 ).add( step( g.y, .17 ) ).mul( .22 ) ) );
     		col.assign( mix( col, vWB, max( step( g.x, .014 ), step( g.y, .014 ) ).mul( .85 ) ) );
     		col.assign( mix( col, vWC, max( step( abs( g.x.sub( .3 ) ), .0045 ), step( abs( g.y.sub( .3 ) ), .0045 ) ).mul( .55 ) ) );
 
-    	} ).ElseIf( pt.equal( 39 ), () => {
+    	} );
+
+    	If( pt.equal( 39 ), () => {
 
     		col.mulAssign( add( .97, mul( .03, sin( q.x.mul( 900. ).add( q.y.mul( 260. ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 40 ), () => {
+    	} );
+
+    	If( pt.equal( 40 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		g.x.addAssign( step( .5, fract( g.y.mul( .5 ) ) ).mul( .5 ) );
     		col.assign( mix( col, vWB, smoothstep( .16, .13, length( fract( g ).sub( .5 ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 41 ), () => {
+    	} );
+
+    	If( pt.equal( 41 ), () => {
 
     		const w = q.x.mul( vWP.y ).add( sin( q.y.mul( 11. ) ).mul( .5 ) ).add( sin( q.y.mul( 29. ).add( q.x.mul( 8. ) ) ).mul( .18 ) ).add( n2( q.mul( 7. ) ).mul( .6 ) ).toVar();
     		const s = sin( w.mul( 6.2832 ) ).add( n2( q.mul( 34. ) ).mul( .45 ) ).sub( .15 ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .05, .2, s ) ) );
     		col.mulAssign( add( .92, mul( .08, step( .5, fract( q.y.mul( 240. ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 42 ), () => {
+    	} );
+
+    	If( pt.equal( 42 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), f = fract( g ).sub( .5 ).toVar();
     		const an = h21( ci ).mul( 6.2832 ).toVar(), c = cos( an ).toVar(), sn = sin( an ).toVar();
@@ -362,7 +414,9 @@ export default {
     		col.assign( mix( col, vWB, step( d, 0. ) ) );
     		col.assign( mix( col, vWC, clamp( step( abs( d.add( .055 ) ), .012 ).add( step( abs( d.sub( .035 ) ), .01 ) ).add( step( length( f.sub( vec2( 0., -0.07 ) ) ), .045 ) ), 0., 1. ) ) );
 
-    	} ).ElseIf( pt.equal( 43 ), () => {
+    	} );
+
+    	If( pt.equal( 43 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), c = fract( g ).sub( .5 ).toVar();
     		const r = length( c ).toVar(), an = atan( c.y, c.x ).toVar();
@@ -371,53 +425,71 @@ export default {
     		const net = step( .43, max( h.x, h.y ) ).mul( step( .33, r ) ).toVar();
     		col.assign( mix( col, vWB, clamp( petal.add( net ), 0., 1. ).mul( .93 ) ) );
 
-    	} ).ElseIf( pt.equal( 44 ), () => {
+    	} );
+
+    	If( pt.equal( 44 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), a = mod( floor( g ), 2. ).toVar();
     		col.assign( mix( col, vWB, a.x.mul( a.y ).add( a.x.add( a.y ).sub( mul( 2., a.x ).mul( a.y ) ).mul( step( .5, fract( g.x.sub( g.y ).mul( 2. ) ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 45 ), () => {
+    	} );
+
+    	If( pt.equal( 45 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		g.x.addAssign( step( .5, fract( g.y.mul( .5 ) ) ).mul( .5 ) );
     		const d = length( fract( g ).sub( vec2( .5, .3 ) ) ).toVar();
     		col.mulAssign( add( .55, mul( .8, h21( floor( g ) ) ) ).mul( add( .45, mul( .55, smoothstep( .62, .5, d ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 46 ), () => {
+    	} );
+
+    	If( pt.equal( 46 ), () => {
 
     		const g = q.mul( 150. ).toVar();
     		col.mulAssign( add( .8, mul( .24, step( .5, fract( g.x ) ).mul( .5 ).add( step( .5, fract( g.y ) ).mul( .5 ) ) ).mul( add( .7, mul( .3, n2( q.mul( 40. ) ) ) ) ) ) );
     		col.assign( mix( col, col.mul( vec3( .6, .53, .43 ) ), smoothstep( .45, .8, n2( q.mul( 7. ) ).mul( .6 ).add( n2( q.mul( 23. ) ).mul( .4 ) ) ).mul( .8 ) ) );
 
-    	} ).ElseIf( pt.equal( 18 ), () => {
+    	} );
+
+    	If( pt.equal( 18 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).toVar();
     		const dir = mod( ci.x.add( floor( ci.y.mul( .5 ) ).mul( 2. ) ).add( ci.y ), 2. ).toVar();
     		const sh = select( dir.lessThan( .5 ), sin( cf.x.mul( 3.1416 ) ), sin( cf.y.mul( 3.1416 ) ) ).toVar();
     		col.assign( mix( col, vWB, add( .35, mul( .65, sh ) ) ) );
 
-    	} ).ElseIf( pt.equal( 48 ), () => {
+    	} );
+
+    	If( pt.equal( 48 ), () => {
 
     		col.mulAssign( add( .86, mul( .2, n2( q.mul( 30. ) ) ) ) );
     		col.assign( mix( col, col.mul( 1.8 ).add( .025 ), smoothstep( .62, .86, n2( q.mul( 6. ) ).mul( .7 ).add( n2( q.mul( 17. ) ).mul( .3 ) ) ).mul( .55 ) ) );
     		col.mulAssign( sub( 1., mul( .3, smoothstep( .025, .0, abs( n2( q.mul( 46. ) ).sub( .5 ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 49 ), () => {
+    	} );
+
+    	If( pt.equal( 49 ), () => {
 
     		const g = q.mul( 90. ).toVar(), f = fract( g ).sub( .5 ).toVar();
     		col.assign( mix( col, vec3( .8, .82, .88 ), step( .94, h21( floor( g ) ) ).mul( smoothstep( .13, .02, length( f ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 50 ), () => {
+    	} );
+
+    	If( pt.equal( 50 ), () => {
 
     		col.mulAssign( add( .9, mul( .12, smoothstep( -0.4, .7, sin( q.x.add( q.y ).mul( vWP.y ).mul( 6.2832 ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 52 ), () => {
+    	} );
+
+    	If( pt.equal( 52 ), () => {
 
     		const d = min( fract( q.x.mul( 6. ).add( mul( .25, sin( q.y.mul( 4. ) ) ) ) ), fract( q.y.mul( 4.3 ).add( mul( .2, sin( q.x.mul( 3. ) ) ) ) ) ).toVar();
     		col.mulAssign( sub( 1., mul( .32, smoothstep( .022, .0, d ) ) ).add( mul( .1, smoothstep( .05, .03, d ) ).mul( step( .022, d ) ) ) );
     		col.mulAssign( add( .95, mul( .05, n2( q.mul( 300. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 54 ), () => {
+    	} );
+
+    	If( pt.equal( 54 ), () => {
 
     		const g = fract( q.mul( vWP.y ) ).toVar(), h = smoothstep( .44, .52, g ).sub( smoothstep( .92, .99, g ) ).toVar();
     		col.assign( mix( col, vWB, h.x.add( h.y ).mul( .5 ) ) );
@@ -425,7 +497,9 @@ export default {
     		col.assign( mix( col, vWC, max( l.x, l.y ).mul( .8 ) ) );
     		col.mulAssign( add( .9, mul( .12, n2( q.mul( 380. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 55 ), () => {
+    	} );
+
+    	If( pt.equal( 55 ), () => {
 
     		const g = q.mul( 260. ).toVar();
     		col.assign( mix( col, vWB, step( .6, n2( g ).mul( .6 ).add( n2( g.mul( 2.7 ) ).mul( .4 ) ) ).mul( .5 ) ) );
@@ -465,7 +539,7 @@ export default {
   },
 },
 "{}": {
-  h: "pg85mo1rhk", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
+  h: "60or9o1rh5", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
   uniforms: [{"name":"uC","type":"vec3","size":10,"src":"uC"},{"name":"uGlow","type":"vec4","src":"uGlow"},{"name":"uPat","type":"vec4","src":"uPat"},{"name":"uTrait","type":"vec4","src":"uTrait"},{"name":"uCov","type":"vec4","src":"uCov"},{"name":"uAtlas","type":"sampler2D","src":"uAtlas"},{"name":"uPatC","type":"vec3","src":"uPatC"},{"name":"uInnerC","type":"vec3","src":"uInnerC"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vP","type":"vec3","src":"vP"},{"name":"vWB","type":"vec3","src":"vWB"},{"name":"vWC","type":"vec3","src":"vWC"},{"name":"vSk","type":"vec3","src":"vSk"},{"name":"vWP","type":"vec4","src":"vWP"},{"name":"vWN","type":"vec3","src":"vWN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vSlot","type":"float","src":"vSlot"}],
   attributes: [{"name":"aSlot","type":"float","src":"aSlot"},{"name":"aPat","type":"vec3","src":"aPat"},{"name":"aUnn","type":"vec3","src":"aUnn"},{"name":"aWP","type":"vec4","src":"aWP"},{"name":"aUnp","type":"vec4","src":"aUnp"},{"name":"aWA","type":"vec4","src":"aWA"},{"name":"aWB","type":"vec4","src":"aWB"},{"name":"aWC","type":"vec4","src":"aWC"},{"name":"aWN","type":"vec4","src":"aWN"}],
@@ -603,27 +677,37 @@ export default {
     		col.assign( mix( col, vWC, max( step( abs( g.x.sub( .34 ) ), .025 ), step( abs( g.y.sub( .34 ) ), .025 ) ).mul( .9 ) ) );
     		col.assign( mix( col, vWB.mul( .7 ), max( step( abs( g.x.sub( .84 ) ), .012 ), step( abs( g.y.sub( .84 ) ), .012 ) ).mul( .6 ) ) );
 
-    	} ).ElseIf( pt.equal( 8 ), () => {
+    	} );
+
+    	If( pt.equal( 8 ), () => {
 
     		col.mulAssign( sub( 1., mul( .14, max( step( .86, fract( q.x.mul( 165. ) ) ), step( .86, fract( q.y.mul( 165. ) ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 9 ), () => {
+    	} );
+
+    	If( pt.equal( 9 ), () => {
 
     		col.mulAssign( add( .8, mul( .2, smoothstep( -0.3, .9, sin( q.x.mul( vWP.y ).mul( 6.2832 ) ) ) ) ) );
     		col.mulAssign( add( .96, mul( .04, sin( q.y.mul( 900. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 10 ), () => {
+    	} );
+
+    	If( pt.equal( 10 ), () => {
 
     		col.mulAssign( add( .92, mul( .1, n2( q.mul( 420. ) ) ) ).sub( mul( .04, n2( q.mul( 60. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 11 ), () => {
+    	} );
+
+    	If( pt.equal( 11 ), () => {
 
     		const g = fract( q.mul( 28. ) ).sub( .5 ).toVar();
     		const sw = abs( sin( length( g ).mul( 22. ).add( atan( g.y, g.x ).mul( 2. ) ) ) ).toVar();
     		col.mulAssign( add( .78, mul( .22, smoothstep( .15, .5, sw ) ) ) );
     		col.mulAssign( add( .85, mul( .2, n2( q.mul( 18. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 12 ), () => {
+    	} );
+
+    	If( pt.equal( 12 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).toVar();
     		const d = float( 9. ).toVar(), an = float( 0. ).toVar(), hh = float( 0. ).toVar();
@@ -653,26 +737,34 @@ export default {
     		col.assign( mix( col, vWB, smoothstep( .2, .25, d ).mul( smoothstep( .46, .38, d ) ).mul( blob ) ) );
     		col.mulAssign( add( .9, mul( .2, n2( q.mul( 500. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 13 ), () => {
+    	} );
+
+    	If( pt.equal( 13 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const t = fract( g.y.mul( 2. ).add( select( mod( floor( g.x ), 2. ).lessThan( 1. ), fract( g.x ), sub( 1., fract( g.x ) ) ).mul( 1.2 ) ) ).toVar();
     		col.assign( mix( col, vWB, step( .5, t ).mul( .8 ) ) );
     		col.mulAssign( add( .9, mul( .18, h21( floor( q.mul( 900. ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 14 ), () => {
+    	} );
+
+    	If( pt.equal( 14 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const f = sin( g.x.add( sin( g.y.mul( 1.3 ) ).mul( 2. ) ) ).mul( sin( g.y.add( sin( g.x.mul( .7 ) ).mul( 2. ) ) ) ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .12, .04, abs( f ) ).mul( .85 ) ) );
 
-    	} ).ElseIf( pt.equal( 15 ), () => {
+    	} );
+
+    	If( pt.equal( 15 ), () => {
 
     		const g = floor( q.mul( vWP.y ) ).toVar(), g2 = floor( q.mul( vWP.y ).mul( .25 ) ).toVar();
     		const h = h21( g2.add( .3 ) ).mul( .6 ).add( h21( g ).mul( .4 ) ).toVar();
     		col.assign( select( h.lessThan( .3 ), vWB, select( h.lessThan( .55 ), col, select( h.lessThan( .78 ), vWC, col.mul( .78 ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 16 ), () => {
+    	} );
+
+    	If( pt.equal( 16 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).toVar();
     		const dir = mod( ci.x.add( ci.y ), 2. ).toVar();
@@ -680,14 +772,18 @@ export default {
     		col.mulAssign( add( .72, mul( .32, sh ) ) );
     		col.mulAssign( add( .88, mul( .2, h21( ci.add( floor( q.y.mul( 40. ) ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 17 ), () => {
+    	} );
+
+    	If( pt.equal( 17 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const f = n2( g ).mul( .6 ).add( n2( g.mul( 2.3 ).add( 4. ) ).mul( .3 ) ).add( n2( g.mul( 6. ) ).mul( .1 ) ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .45, .7, f ) ) );
     		col.assign( mix( col, vWB.mul( .5 ), smoothstep( .68, .85, f ) ) );
 
-    	} ).ElseIf( pt.equal( 20 ), () => {
+    	} );
+
+    	If( pt.equal( 20 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).sub( .5 ).toVar();
     		const h = h21( ci ).toVar(), an = h.mul( 6.2832 ).toVar();
@@ -710,17 +806,23 @@ export default {
 
     		} );
 
-    	} ).ElseIf( pt.equal( 22 ), () => {
+    	} );
+
+    	If( pt.equal( 22 ), () => {
 
     		col.mulAssign( sub( 1., mul( .3, step( length( fract( q.mul( vWP.y ) ).sub( .5 ) ), .22 ) ) ) );
 
-    	} ).ElseIf( pt.equal( 23 ), () => {
+    	} );
+
+    	If( pt.equal( 23 ), () => {
 
     		const f = n2( q.mul( 9. ) ).mul( .55 ).add( n2( q.mul( 23. ).add( 3. ) ).mul( .3 ) ).add( n2( q.mul( 70. ) ).mul( .15 ) ).toVar();
     		col.assign( mix( col, col.mul( 1.7 ).add( .07 ), smoothstep( .52, .66, f ) ) );
     		col.mulAssign( add( .9, mul( .12, smoothstep( .04, 0., abs( n2( q.mul( 14. ) ).sub( .5 ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 24 ), () => {
+    	} );
+
+    	If( pt.equal( 24 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		const cx = fract( g.x ).sub( .5 ).toVar(), t = g.y.mul( 2.4 ).toVar();
@@ -729,12 +831,16 @@ export default {
     		const rope = smoothstep( .2, .05, cr ).mul( add( .75, mul( .25, smoothstep( .2, .0, top ) ) ) ).toVar();
     		col.mulAssign( mix( .72, 1.06, rope ).mul( sub( 1., mul( .25, step( .42, abs( cx ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 25 ), () => {
+    	} );
+
+    	If( pt.equal( 25 ), () => {
 
     		const l = abs( sin( q.x.mul( 38. ).add( sin( q.y.mul( 11. ) ).mul( 1.8 ) ) ) ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .16, .04, l ).mul( .85 ) ) );
 
-    	} ).ElseIf( pt.equal( 26 ), () => {
+    	} );
+
+    	If( pt.equal( 26 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), r = vec2( g.x.add( g.y ), g.x.sub( g.y ) ).mul( .7071 ).toVar(), ci = floor( r ).toVar(), cf = fract( r ).sub( .5 ).toVar();
     		const frame = smoothstep( .035, .015, sub( .5, max( abs( cf.x ), abs( cf.y ) ) ) ).toVar();
@@ -753,7 +859,9 @@ export default {
 
     		col.assign( mix( col, vWB, clamp( frame.add( m ), 0., 1. ) ) );
 
-    	} ).ElseIf( pt.equal( 29 ), () => {
+    	} );
+
+    	If( pt.equal( 29 ), () => {
 
     		col.mulAssign( add( .86, mul( .14, step( .5, fract( q.x.mul( .7 ).add( q.y ).mul( 520. ) ) ) ) ) );
     		col.assign( mix( col, col.mul( 1.55 ).add( .05 ), smoothstep( .45, .8, n2( vec2( q.x.mul( 30. ), q.y.mul( 3. ) ) ) ).mul( .7 ) ) );
@@ -765,7 +873,9 @@ export default {
 
     		} );
 
-    	} ).ElseIf( pt.equal( 30 ), () => {
+    	} );
+
+    	If( pt.equal( 30 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		g.x.addAssign( step( .5, fract( g.y.mul( .5 ) ) ).mul( .5 ) );
@@ -773,48 +883,64 @@ export default {
     		col.assign( mix( col, col.mul( .22 ), smoothstep( .3, .26, d ) ) );
     		col.mulAssign( add( .92, mul( .16, smoothstep( .36, .44, d ) ) ) );
 
-    	} ).ElseIf( pt.equal( 33 ), () => {
+    	} );
+
+    	If( pt.equal( 33 ), () => {
 
     		const c = floor( q.mul( vWP.y ) ).toVar();
     		col.assign( mix( col, vWB, mod( c.x.add( c.y ), 2. ) ) );
     		col.mulAssign( add( .8, mul( .32, n2( q.mul( 900. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 36 ), () => {
+    	} );
+
+    	If( pt.equal( 36 ), () => {
 
     		const base = select( vP.y.greaterThan( 0. ), col, vWC ).toVar();
     		const g = fract( q.mul( vWP.y ) ).toVar();
     		const c2 = mix( base, vWB, step( .62, g.x ).add( step( .62, g.y ) ).mul( .45 ) ).toVar();
     		col.assign( mix( c2, vec3( .85, .82, .7 ), clamp( step( abs( g.x.sub( .3 ) ), .018 ).add( step( abs( g.y.sub( .3 ) ), .018 ) ), 0., 1. ).mul( .6 ) ) );
 
-    	} ).ElseIf( pt.equal( 37 ), () => {
+    	} );
+
+    	If( pt.equal( 37 ), () => {
 
     		col.mulAssign( add( .88, mul( .12, sin( q.x.mul( 1800. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 38 ), () => {
+    	} );
+
+    	If( pt.equal( 38 ), () => {
 
     		const g = abs( fract( q.mul( vWP.y ) ).sub( .5 ) ).toVar();
     		col.mulAssign( sub( 1., step( g.x, .17 ).add( step( g.y, .17 ) ).mul( .22 ) ) );
     		col.assign( mix( col, vWB, max( step( g.x, .014 ), step( g.y, .014 ) ).mul( .85 ) ) );
     		col.assign( mix( col, vWC, max( step( abs( g.x.sub( .3 ) ), .0045 ), step( abs( g.y.sub( .3 ) ), .0045 ) ).mul( .55 ) ) );
 
-    	} ).ElseIf( pt.equal( 39 ), () => {
+    	} );
+
+    	If( pt.equal( 39 ), () => {
 
     		col.mulAssign( add( .97, mul( .03, sin( q.x.mul( 900. ).add( q.y.mul( 260. ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 40 ), () => {
+    	} );
+
+    	If( pt.equal( 40 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		g.x.addAssign( step( .5, fract( g.y.mul( .5 ) ) ).mul( .5 ) );
     		col.assign( mix( col, vWB, smoothstep( .16, .13, length( fract( g ).sub( .5 ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 41 ), () => {
+    	} );
+
+    	If( pt.equal( 41 ), () => {
 
     		const w = q.x.mul( vWP.y ).add( sin( q.y.mul( 11. ) ).mul( .5 ) ).add( sin( q.y.mul( 29. ).add( q.x.mul( 8. ) ) ).mul( .18 ) ).add( n2( q.mul( 7. ) ).mul( .6 ) ).toVar();
     		const s = sin( w.mul( 6.2832 ) ).add( n2( q.mul( 34. ) ).mul( .45 ) ).sub( .15 ).toVar();
     		col.assign( mix( col, vWB, smoothstep( .05, .2, s ) ) );
     		col.mulAssign( add( .92, mul( .08, step( .5, fract( q.y.mul( 240. ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 42 ), () => {
+    	} );
+
+    	If( pt.equal( 42 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), f = fract( g ).sub( .5 ).toVar();
     		const an = h21( ci ).mul( 6.2832 ).toVar(), c = cos( an ).toVar(), sn = sin( an ).toVar();
@@ -825,7 +951,9 @@ export default {
     		col.assign( mix( col, vWB, step( d, 0. ) ) );
     		col.assign( mix( col, vWC, clamp( step( abs( d.add( .055 ) ), .012 ).add( step( abs( d.sub( .035 ) ), .01 ) ).add( step( length( f.sub( vec2( 0., -0.07 ) ) ), .045 ) ), 0., 1. ) ) );
 
-    	} ).ElseIf( pt.equal( 43 ), () => {
+    	} );
+
+    	If( pt.equal( 43 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), c = fract( g ).sub( .5 ).toVar();
     		const r = length( c ).toVar(), an = atan( c.y, c.x ).toVar();
@@ -834,53 +962,71 @@ export default {
     		const net = step( .43, max( h.x, h.y ) ).mul( step( .33, r ) ).toVar();
     		col.assign( mix( col, vWB, clamp( petal.add( net ), 0., 1. ).mul( .93 ) ) );
 
-    	} ).ElseIf( pt.equal( 44 ), () => {
+    	} );
+
+    	If( pt.equal( 44 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), a = mod( floor( g ), 2. ).toVar();
     		col.assign( mix( col, vWB, a.x.mul( a.y ).add( a.x.add( a.y ).sub( mul( 2., a.x ).mul( a.y ) ).mul( step( .5, fract( g.x.sub( g.y ).mul( 2. ) ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 45 ), () => {
+    	} );
+
+    	If( pt.equal( 45 ), () => {
 
     		const g = q.mul( vWP.y ).toVar();
     		g.x.addAssign( step( .5, fract( g.y.mul( .5 ) ) ).mul( .5 ) );
     		const d = length( fract( g ).sub( vec2( .5, .3 ) ) ).toVar();
     		col.mulAssign( add( .55, mul( .8, h21( floor( g ) ) ) ).mul( add( .45, mul( .55, smoothstep( .62, .5, d ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 46 ), () => {
+    	} );
+
+    	If( pt.equal( 46 ), () => {
 
     		const g = q.mul( 150. ).toVar();
     		col.mulAssign( add( .8, mul( .24, step( .5, fract( g.x ) ).mul( .5 ).add( step( .5, fract( g.y ) ).mul( .5 ) ) ).mul( add( .7, mul( .3, n2( q.mul( 40. ) ) ) ) ) ) );
     		col.assign( mix( col, col.mul( vec3( .6, .53, .43 ) ), smoothstep( .45, .8, n2( q.mul( 7. ) ).mul( .6 ).add( n2( q.mul( 23. ) ).mul( .4 ) ) ).mul( .8 ) ) );
 
-    	} ).ElseIf( pt.equal( 18 ), () => {
+    	} );
+
+    	If( pt.equal( 18 ), () => {
 
     		const g = q.mul( vWP.y ).toVar(), ci = floor( g ).toVar(), cf = fract( g ).toVar();
     		const dir = mod( ci.x.add( floor( ci.y.mul( .5 ) ).mul( 2. ) ).add( ci.y ), 2. ).toVar();
     		const sh = select( dir.lessThan( .5 ), sin( cf.x.mul( 3.1416 ) ), sin( cf.y.mul( 3.1416 ) ) ).toVar();
     		col.assign( mix( col, vWB, add( .35, mul( .65, sh ) ) ) );
 
-    	} ).ElseIf( pt.equal( 48 ), () => {
+    	} );
+
+    	If( pt.equal( 48 ), () => {
 
     		col.mulAssign( add( .86, mul( .2, n2( q.mul( 30. ) ) ) ) );
     		col.assign( mix( col, col.mul( 1.8 ).add( .025 ), smoothstep( .62, .86, n2( q.mul( 6. ) ).mul( .7 ).add( n2( q.mul( 17. ) ).mul( .3 ) ) ).mul( .55 ) ) );
     		col.mulAssign( sub( 1., mul( .3, smoothstep( .025, .0, abs( n2( q.mul( 46. ) ).sub( .5 ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 49 ), () => {
+    	} );
+
+    	If( pt.equal( 49 ), () => {
 
     		const g = q.mul( 90. ).toVar(), f = fract( g ).sub( .5 ).toVar();
     		col.assign( mix( col, vec3( .8, .82, .88 ), step( .94, h21( floor( g ) ) ).mul( smoothstep( .13, .02, length( f ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 50 ), () => {
+    	} );
+
+    	If( pt.equal( 50 ), () => {
 
     		col.mulAssign( add( .9, mul( .12, smoothstep( -0.4, .7, sin( q.x.add( q.y ).mul( vWP.y ).mul( 6.2832 ) ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 52 ), () => {
+    	} );
+
+    	If( pt.equal( 52 ), () => {
 
     		const d = min( fract( q.x.mul( 6. ).add( mul( .25, sin( q.y.mul( 4. ) ) ) ) ), fract( q.y.mul( 4.3 ).add( mul( .2, sin( q.x.mul( 3. ) ) ) ) ) ).toVar();
     		col.mulAssign( sub( 1., mul( .32, smoothstep( .022, .0, d ) ) ).add( mul( .1, smoothstep( .05, .03, d ) ).mul( step( .022, d ) ) ) );
     		col.mulAssign( add( .95, mul( .05, n2( q.mul( 300. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 54 ), () => {
+    	} );
+
+    	If( pt.equal( 54 ), () => {
 
     		const g = fract( q.mul( vWP.y ) ).toVar(), h = smoothstep( .44, .52, g ).sub( smoothstep( .92, .99, g ) ).toVar();
     		col.assign( mix( col, vWB, h.x.add( h.y ).mul( .5 ) ) );
@@ -888,7 +1034,9 @@ export default {
     		col.assign( mix( col, vWC, max( l.x, l.y ).mul( .8 ) ) );
     		col.mulAssign( add( .9, mul( .12, n2( q.mul( 380. ) ) ) ) );
 
-    	} ).ElseIf( pt.equal( 55 ), () => {
+    	} );
+
+    	If( pt.equal( 55 ), () => {
 
     		const g = q.mul( 260. ).toVar();
     		col.assign( mix( col, vWB, step( .6, n2( g ).mul( .6 ).add( n2( g.mul( 2.7 ) ).mul( .4 ) ) ).mul( .5 ) ) );

@@ -130,7 +130,8 @@ const lampMeshS = instanced(lampKit(0xb8dcff), MAT.uber, lampsS);
 const lampMeshC = instanced(lampKit(0xff8a3a), MAT.uber, lampsC);
 for (const l of [...lampsA, ...lampsS]) { circles.push(circleToW({ x: l.x, z: l.z, r: .22 }, l.zn)); claim(l.x, l.z, 1.4); }
 for (const l of lampsC) if (!(l.y > .3)) circles.push({ x: l.x, z: l.z, r: .22, w: 1 });   // 橋上的燈柱在護欄上，護欄就擋住了
-// 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√420 ≈ 20.5 m）蓋到的每一格；一格超過 LAMP_K 盞就留離格子中心最近的
+// 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√420 ≈ 20.5 m）蓋到的每一格；一格超過 LAMP_K 盞就留離這一格（範圍，不是中心）最近的。
+// 燈頭在 6.1 m 高，水平 17 m 外照到地面的不到正下方的 0.4%（19.6 m 外是 0），丟掉也看不出來；17 m 內的被丟掉才警告
 function lampTable(heads) {
   const R = Math.sqrt(420) + .5;
   let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
@@ -140,17 +141,18 @@ function lampTable(heads) {
     for (let c = Math.floor((h.x - R - x0) / LAMP_C); c <= Math.floor((h.x + R - x0) / LAMP_C); c++) for (let d = Math.floor((h.z - R - z0) / LAMP_C); d <= Math.floor((h.z + R - z0) / LAMP_C); d++) {
       if (c < 0 || d < 0 || c >= nx || d >= nz) continue;
       const qx = clamp(h.x, x0 + c * LAMP_C, x0 + (c + 1) * LAMP_C), qz = clamp(h.z, z0 + d * LAMP_C, z0 + (d + 1) * LAMP_C);
-      if ((qx - h.x) ** 2 + (qz - h.z) ** 2 < R * R) cells[d * nx + c].push(h);
+      const dd = (qx - h.x) ** 2 + (qz - h.z) ** 2;
+      if (dd < R * R) cells[d * nx + c].push({ h, dd });
     }
   }
   const data = new Float32Array(nx * LAMP_K * nz * 4);
   let over = 0;
   cells.forEach((L, k) => {
-    const c = k % nx, d = Math.floor(k / nx), cx = x0 + (c + .5) * LAMP_C, cz = z0 + (d + .5) * LAMP_C;
-    if (L.length > LAMP_K) { over++; L.sort((a, b) => (a.x - cx) ** 2 + (a.z - cz) ** 2 - (b.x - cx) ** 2 - (b.z - cz) ** 2); }
-    L.slice(0, LAMP_K).forEach((h, n) => data.set([h.x, h.z, h.t, 1 + (h.y || 0)], ((d * nx + c) * LAMP_K + n) * 4));
+    const c = k % nx, d = Math.floor(k / nx);
+    if (L.length > LAMP_K) { L.sort((a, b) => a.dd - b.dd); if (L[LAMP_K].dd < 289) over++; }
+    L.slice(0, LAMP_K).forEach(({ h }, n) => data.set([h.x, h.z, h.t, 1 + (h.y || 0)], ((d * nx + c) * LAMP_K + n) * 4));
   });
-  if (over) console.warn('lamp table: cells over', LAMP_K, over);
+  if (over) console.warn('lamp table: cells over', LAMP_K, 'with a dropped lamp in reach:', over);
   const tex = new T.DataTexture(data, nx * LAMP_K, nz, T.RGBAFormat, T.FloatType);
   tex.minFilter = tex.magFilter = T.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
   U.uLampT.value = tex; U.uLampG.value.set(x0, z0, nx, nz);

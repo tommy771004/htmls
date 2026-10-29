@@ -336,6 +336,7 @@ float legA(vec3 P) {
   return atan(P.z - uCov.z + ly, abs(P.y) - .11);
 }
 vec3 wearTile(int pt, vec2 q, vec3 col){
+  // 每種圖案一個獨立的 if（pt 只會等於其中一個，結果和 else if 一樣）：else if 串轉成 WGSL 是一層套一層，這裡內聯三次，會超過 WGSL 的巢狀上限 127
   if (pt == 7) {
     // 蘇格蘭格紋：兩個方向的寬色帶疊出深淺，中間一細一粗的第三色線
     vec2 g = fract(q * vWP.y);
@@ -343,23 +344,28 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
     col = mix(col, vWB, (bu + bh) * .42);
     col = mix(col, vWC, max(step(abs(g.x - .34), .025), step(abs(g.y - .34), .025)) * .9);
     col = mix(col, vWB * .7, max(step(abs(g.x - .84), .012), step(abs(g.y - .84), .012)) * .6);
-  } else if (pt == 8) {
+  }
+  if (pt == 8) {
     // 抗撕裂格（ripstop）：每 6 mm 一道加粗的格線
     col *= 1. - .14 * max(step(.86, fract(q.x * 165.)), step(.86, fract(q.y * 165.)));
-  } else if (pt == 9) {
+  }
+  if (pt == 9) {
     // 粗羅紋針織：直條的凹凸
     col *= .8 + .2 * smoothstep(-.3, .9, sin(q.x * vWP.y * 6.2832));
     col *= .96 + .04 * sin(q.y * 900.);
-  } else if (pt == 10) {
+  }
+  if (pt == 10) {
     // 毛氈、羊絨：低對比的毛絨顆粒
     col *= .92 + .1 * n2(q * 420.) - .04 * n2(q * 60.);
-  } else if (pt == 11) {
+  }
+  if (pt == 11) {
     // 雕花皮革：一圈圈捲草的壓紋（壓下去的地方深）、整體做舊的深淺
     vec2 g = fract(q * 28.) - .5;
     float sw = abs(sin(length(g) * 22. + atan(g.y, g.x) * 2.));
     col *= .78 + .22 * smoothstep(.15, .5, sw);
     col *= .85 + .2 * n2(q * 18.);
-  } else if (pt == 12) {
+  }
+  if (pt == 12) {
     // 豹紋：一個個不完整的黑色環（裡面比底色深一點），帶毛的顆粒
     vec2 g = q * vWP.y, ci = floor(g), cf = fract(g);
     float d = 9., an = 0., hh = 0.;
@@ -376,36 +382,42 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
     col = mix(col, col * .7, smoothstep(.24, .2, d));
     col = mix(col, vWB, smoothstep(.2, .25, d) * smoothstep(.46, .38, d) * blob);
     col *= .9 + .2 * n2(q * 500.);
-  } else if (pt == 13) {
+  }
+  if (pt == 13) {
     // 人字紋粗花呢
     vec2 g = q * vWP.y;
     float t = fract(g.y * 2. + (mod(floor(g.x), 2.) < 1. ? fract(g.x) : 1. - fract(g.x)) * 1.2);
     col = mix(col, vWB, step(.5, t) * .8);
     col *= .9 + .18 * h21(floor(q * 900.));
-  } else if (pt == 14) {
+  }
+  if (pt == 14) {
     // 巴洛克捲草：金色的細線交織（亮面絲綢的暗紋）
     vec2 g = q * vWP.y;
     float f = sin(g.x + sin(g.y * 1.3) * 2.) * sin(g.y + sin(g.x * .7) * 2.);
     col = mix(col, vWB, smoothstep(.12, .04, abs(f)) * .85);
-  } else if (pt == 15) {
+  }
+  if (pt == 15) {
     // 數位迷彩：方塊像素分成四種色
     vec2 g = floor(q * vWP.y), g2 = floor(q * vWP.y * .25);
     float h = h21(g2 + .3) * .6 + h21(g) * .4;
     col = h < .3 ? vWB : h < .55 ? col : h < .78 ? vWC : col * .78;
-  } else if (pt == 16) {
+  }
+  if (pt == 16) {
     // 草編：一格格交錯的編織，經緯方向的明暗、天然麥稈的色差
     vec2 g = q * vWP.y, ci = floor(g), cf = fract(g);
     float dir = mod(ci.x + ci.y, 2.);
     float sh = dir < .5 ? sin(cf.x * 3.1416) : sin(cf.y * 3.1416);
     col *= .72 + .32 * sh;
     col *= .88 + .2 * h21(ci + floor(q.y * 40.));
-  } else if (pt == 17) {
+  }
+  if (pt == 17) {
     // 玳瑁：琥珀底上一塊塊暈開的深褐斑
     vec2 g = q * vWP.y;
     float f = n2(g) * .6 + n2(g * 2.3 + 4.) * .3 + n2(g * 6.) * .1;
     col = mix(col, vWB, smoothstep(.45, .7, f));
     col = mix(col, vWB * .5, smoothstep(.68, .85, f));
-  } else if (pt == 20) {
+  }
+  if (pt == 20) {
     // 熱帶印花：一格一格亂放的龜背竹葉（第二色，葉面有開裂）與火鶴（第三色：身體、S 形的脖子、頭）
     vec2 g = q * vWP.y, ci = floor(g), cf = fract(g) - .5;
     float h = h21(ci), an = h * 6.2832;
@@ -422,15 +434,18 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
       float leg = abs(r.x + .02) - .012 + step(-.2, r.y) * 9. + step(r.y, -.44) * 9.;
       col = mix(col, vWC, step(min(min(body, neck), min(head, leg)), 0.));
     }
-  } else if (pt == 22) {
+  }
+  if (pt == 22) {
     // 球衣的透氣網眼：細密的小孔（只是深一點，不鏤空）
     col *= 1. - .3 * step(length(fract(q * vWP.y) - .5), .22);
-  } else if (pt == 23) {
+  }
+  if (pt == 23) {
     // 酸洗：漂白的雲狀斑塊、褪色的皺褶紋
     float f = n2(q * 9.) * .55 + n2(q * 23. + 3.) * .3 + n2(q * 70.) * .15;
     col = mix(col, col * 1.7 + .07, smoothstep(.52, .66, f));
     col *= .9 + .12 * smoothstep(.04, 0., abs(n2(q * 14.) - .5));
-  } else if (pt == 24) {
+  }
+  if (pt == 24) {
     // 麻花針織：一欄一欄的扭繩（兩股交叉）、欄與欄中間的反針凹溝
     vec2 g = q * vWP.y;
     float cx = fract(g.x) - .5, t = g.y * 2.4;
@@ -438,11 +453,13 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
     float top = mod(floor(t), 2.) < .5 ? s1 : s2, cr = min(s1, s2);
     float rope = smoothstep(.2, .05, cr) * (.75 + .25 * smoothstep(.2, .0, top));
     col *= mix(.72, 1.06, rope) * (1. - .25 * step(.42, abs(cx)));
-  } else if (pt == 25) {
+  }
+  if (pt == 25) {
     // 塑形暗紋：沿身體起伏的深色曲線
     float l = abs(sin(q.x * 38. + sin(q.y * 11.) * 1.8));
     col = mix(col, vWB, smoothstep(.16, .04, l) * .85);
-  } else if (pt == 26) {
+  }
+  if (pt == 26) {
     // 虛構的幾何老花：菱形格裡交替的四瓣花與圓環（第二色的緹花）
     vec2 g = q * vWP.y, r = vec2(g.x + g.y, g.x - g.y) * .7071, ci = floor(r), cf = fract(r) - .5;
     float frame = smoothstep(.035, .015, .5 - max(abs(cf.x), abs(cf.y)));
@@ -450,7 +467,8 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
     if (mod(ci.x + ci.y, 2.) < .5) { float an = atan(cf.y, cf.x); m = step(length(cf), .2 + .08 * cos(an * 4.)) - step(length(cf), .07); }
     else m = smoothstep(.03, .01, abs(length(cf) - .2)) + step(length(cf), .05);
     col = mix(col, vWB, clamp(frame + m, 0., 1.));
-  } else if (pt == 29) {
+  }
+  if (pt == 29) {
     // 丹寧：斜紋、刷白的直向深淺、貓鬚
     col *= .86 + .14 * step(.5, fract((q.x * .7 + q.y) * 520.));
     col = mix(col, col * 1.55 + .05, smoothstep(.45, .8, n2(vec2(q.x * 30., q.y * 3.))) * .7);
@@ -458,48 +476,57 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
       vec2 sg = q * 46., si = floor(sg);
       col = mix(col, vec3(.92, .9, .84), step(.93, h21(si)) * step(length(fract(sg) - .5), .07 + .13 * h21(si + 3.1)));
     }
-  } else if (pt == 30) {
+  }
+  if (pt == 30) {
     // 籃球褲的大網眼：交錯排列的孔（透出深色內襯），孔邊一圈亮的網線
     vec2 g = q * vWP.y;
     g.x += step(.5, fract(g.y * .5)) * .5;
     float d = length(fract(g) - .5);
     col = mix(col, col * .22, smoothstep(.3, .26, d));
     col *= .92 + .16 * smoothstep(.36, .44, d);
-  } else if (pt == 33) {
+  }
+  if (pt == 33) {
     // 毛巾布：第一、二色的棋盤格，布面一圈圈毛圈的凹凸
     vec2 c = floor(q * vWP.y);
     col = mix(col, vWB, mod(c.x + c.y, 2.));
     col *= .8 + .32 * n2(q * 900.);
-  } else if (pt == 36) {
+  }
+  if (pt == 36) {
     // 龐克格紋：左右兩條腿不同底色（第一色／第三色），第二色是黑色的寬格線，再一道細的米色線
     vec3 base = vP.y > 0. ? col : vWC;
     vec2 g = fract(q * vWP.y);
     vec3 c2 = mix(base, vWB, (step(.62, g.x) + step(.62, g.y)) * .45);
     col = mix(c2, vec3(.85, .82, .7), clamp(step(abs(g.x - .3), .018) + step(abs(g.y - .3), .018), 0., 1.) * .6);
-  } else if (pt == 37) {
+  }
+  if (pt == 37) {
     // 絲絨運動布：直向的細絨條（斜看的亮光在 main 算）
     col *= .88 + .12 * sin(q.x * 1800.);
-  } else if (pt == 38) {
+  }
+  if (pt == 38) {
     // 學院格紋：海軍藍底，兩個方向的深色寬帶疊出深淺，寬帶正中一道第二色（紅）的線、兩旁第三色（白）的細線
     vec2 g = abs(fract(q * vWP.y) - .5);
     col *= 1. - (step(g.x, .17) + step(g.y, .17)) * .22;
     col = mix(col, vWB, max(step(g.x, .014), step(g.y, .014)) * .85);
     col = mix(col, vWC, max(step(abs(g.x - .3), .0045), step(abs(g.y - .3), .0045)) * .55);
-  } else if (pt == 39) {
+  }
+  if (pt == 39) {
     // 緞面：很淡的橫向織紋（斜看的亮光在 main 算）
     col *= .97 + .03 * sin(q.x * 900. + q.y * 260.);
-  } else if (pt == 40) {
+  }
+  if (pt == 40) {
     // 雪紡上的植絨小波點：一排錯開半格
     vec2 g = q * vWP.y;
     g.x += step(.5, fract(g.y * .5)) * .5;
     col = mix(col, vWB, smoothstep(.16, .13, length(fract(g) - .5)));
-  } else if (pt == 41) {
+  }
+  if (pt == 41) {
     // 斑馬紋：流線的粗細黑紋（第二色）、細直的針織羅紋
     float w = q.x * vWP.y + sin(q.y * 11.) * .5 + sin(q.y * 29. + q.x * 8.) * .18 + n2(q * 7.) * .6;
     float s = sin(w * 6.2832) + n2(q * 34.) * .45 - .15;
     col = mix(col, vWB, smoothstep(.05, .2, s));
     col *= .92 + .08 * step(.5, fract(q.y * 240.));
-  } else if (pt == 42) {
+  }
+  if (pt == 42) {
     // 變形蟲（佩斯利）：每格一顆轉向不同的水滴紋，第二色填色、第三色的內外框與中心點
     vec2 g = q * vWP.y, ci = floor(g), f = fract(g) - .5;
     float an = h21(ci) * 6.2832, c = cos(an), sn = sin(an);
@@ -510,7 +537,8 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
     float d = min(length(f - vec2(0., -.1)) - .15, tail);
     col = mix(col, vWB, step(d, 0.));
     col = mix(col, vWC, clamp(step(abs(d + .055), .012) + step(abs(d - .035), .01) + step(length(f - vec2(0., -.07)), .045), 0., 1.));
-  } else if (pt == 43) {
+  }
+  if (pt == 43) {
     // 黑色雕花蕾絲蓋在酒紅緞面上：六瓣花、花心、花與花之間的細網
     vec2 g = q * vWP.y, c = fract(g) - .5;
     float r = length(c), an = atan(c.y, c.x);
@@ -518,52 +546,62 @@ vec3 wearTile(int pt, vec2 q, vec3 col){
     vec2 h = abs(fract(g * 4.) - .5);
     float net = step(.43, max(h.x, h.y)) * step(.33, r);
     col = mix(col, vWB, clamp(petal + net, 0., 1.) * .93);
-  } else if (pt == 44) {
+  }
+  if (pt == 44) {
     // 千鳥格：黑白方格，混色的兩格是斜紋（拼起來就是犬牙）
     vec2 g = q * vWP.y, a = mod(floor(g), 2.);
     col = mix(col, vWB, a.x * a.y + (a.x + a.y - 2. * a.x * a.y) * step(.5, fract((g.x - g.y) * 2.)));
-  } else if (pt == 45) {
+  }
+  if (pt == 45) {
     // 魚鱗亮片：一排錯開半格的圓片，每片的明度不同（閃光在 main 算）、片與片之間的暗縫
     vec2 g = q * vWP.y;
     g.x += step(.5, fract(g.y * .5)) * .5;
     float d = length(fract(g) - vec2(.5, .3));
     col *= (.55 + .8 * h21(floor(g))) * (.45 + .55 * smoothstep(.62, .5, d));
-  } else if (pt == 46) {
+  }
+  if (pt == 46) {
     // 粗麻：粗的平紋織線、沙塵髒污的雲斑
     vec2 g = q * 150.;
     col *= .8 + .24 * (step(.5, fract(g.x)) * .5 + step(.5, fract(g.y)) * .5) * (.7 + .3 * n2(q * 40.));
     col = mix(col, col * vec3(.6, .53, .43), smoothstep(.45, .8, n2(q * 7.) * .6 + n2(q * 23.) * .4) * .8);
-  } else if (pt == 18) {
+  }
+  if (pt == 18) {
     // 碳纖維：斜紋編織的方格，一格亮一格暗
     vec2 g = q * vWP.y, ci = floor(g), cf = fract(g);
     float dir = mod(ci.x + floor(ci.y * .5) * 2. + ci.y, 2.);
     float sh = dir < .5 ? sin(cf.x * 3.1416) : sin(cf.y * 3.1416);
     col = mix(col, vWB, .35 + .65 * sh);
-  } else if (pt == 48) {
+  }
+  if (pt == 48) {
     // 做舊皮革：低頻的深淺、磨白的雲斑、細碎的皺紋
     col *= .86 + .2 * n2(q * 30.);
     col = mix(col, col * 1.8 + .025, smoothstep(.62, .86, n2(q * 6.) * .7 + n2(q * 17.) * .3) * .55);
     col *= 1. - .3 * smoothstep(.025, .0, abs(n2(q * 46.) - .5));
-  } else if (pt == 49) {
+  }
+  if (pt == 49) {
     // 星空黑尼龍：稀疏的小白點
     vec2 g = q * 90., f = fract(g) - .5;
     col = mix(col, vec3(.8, .82, .88), step(.94, h21(floor(g))) * smoothstep(.13, .02, length(f)));
-  } else if (pt == 50) {
+  }
+  if (pt == 50) {
     // 嘎巴甸（gabardine）：細密的斜紋
     col *= .9 + .12 * smoothstep(-.4, .7, sin((q.x + q.y) * vWP.y * 6.2832));
-  } else if (pt == 52) {
+  }
+  if (pt == 52) {
     // 機能布：不規則的分片接縫壓膠（暗線旁邊一道亮邊）、霧面的細顆粒
     float d = min(fract(q.x * 6. + .25 * sin(q.y * 4.)), fract(q.y * 4.3 + .2 * sin(q.x * 3.)));
     col *= 1. - .32 * smoothstep(.022, .0, d) + .1 * smoothstep(.05, .03, d) * step(.022, d);
     col *= .95 + .05 * n2(q * 300.);
-  } else if (pt == 54) {
+  }
+  if (pt == 54) {
     // 黑白灰漸層格紋法蘭絨：兩個方向的三角漸層疊出灰階，中間一道第三色的細線、毛絨顆粒
     vec2 g = fract(q * vWP.y), h = smoothstep(.44, .52, g) - smoothstep(.92, .99, g);
     col = mix(col, vWB, (h.x + h.y) * .5);
     vec2 l = smoothstep(.026, .012, abs(g - .25));
     col = mix(col, vWC, max(l.x, l.y) * .8);
     col *= .9 + .12 * n2(q * 380.);
-  } else if (pt == 55) {
+  }
+  if (pt == 55) {
     // 粗花呢（Tweed）：黑白的圈圈紗、散落的金蔥
     vec2 g = q * 260.;
     col = mix(col, vWB, step(.6, n2(g) * .6 + n2(g * 2.7) * .4) * .5);
