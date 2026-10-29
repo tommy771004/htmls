@@ -26,6 +26,7 @@ const VIL_LAYERS = [
 ];
 const FAC_ON = /^https?:$/.test(location.protocol);
 const facTex = { st: 0, a: null, n: null }, vilTex = { st: 0, a: null, n: null };   // st：0 還沒開始、1 下載中、2 好了、-1 失敗
+const roadDec = { ok: false };   // 路面貼花（27-props.js 下載、10-city.js 的 ASPH_U）
 // 下載後的處理照 27-props.js 的 warmSlice 分幀：解碼在背景（createImageBitmap），一層一層讀回像素，最後 initTexture 在切片裡上傳，
 // 不會在第一次畫到時整批擠在同一幀（facLoad 只在畫面跑起來後由 facApply 呼叫，27 的 warmSlice 已經宣告）
 async function facLoad(withN, set = 'fac', nL = FAC_LAYERS.length, out = facTex) {
@@ -56,6 +57,7 @@ function facApply() {
       .catch(e => { facTex.st = -1; console.warn('照片材質載入失敗，照舊用程式紋理', e); });
   }
   U.uFac.value.set(facTex.st === 2 && k > 0 ? 1 : 0, facTex.st === 2 && k > 1 && facTex.n ? 1 : 0, 0, 0);
+  ASPH_U.uDecOn.value = roadDec.ok && k > 0 ? 1 : 0;
   // 山坡別墅區（tools/tex-vil.mjs 的 vil_c／vil_n）：等立面那組好了再下載，一次只解一組；設定與開關同上
   if (FAC_ON && k > 0 && facTex.st === 2 && (vilTex.st === 0 || (k > 1 && vilTex.st === 2 && !vilTex.n))) {
     vilTex.st = 1;

@@ -458,6 +458,14 @@
 | 7 | [forest_ground_04](https://polyhaven.com/a/forest_ground_04) | 外緣山林林間的苔與土 | Rob Tuytel、Rico Cilliers | CC0 1.0 |
 | 8 | [rocky_trail](https://polyhaven.com/a/rocky_trail) | 碎石步道（目前沒用到，保留層號給之後的林間步道） | Amal Kumar | CC0 1.0 |
 
+路面貼花（`10-city.js` 的路面著色器）是 [ambientCG](https://ambientcg.com/) 的 CC0 1.0 材質，由 `games/260-neon-nightcity/tools/road-dec.mjs` 拼成 `tex/road_dec_c.webp`（底色＋不透明度）、`tex/road_dec_n.webp`（法線 xy＋粗糙度）與 `tex/road_dec.json`（每一塊的範圍與尺寸）。
+
+| 材質 | 用途 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| [AsphaltDamageSet001](https://ambientcg.com/view?id=AsphaltDamageSet001) | 柏油的龜裂與補丁（依不透明度切成 7 塊） | ambientCG | CC0 1.0 |
+| [ManholeCover006](https://ambientcg.com/view?id=ManholeCover006) | 圓形人孔蓋 | ambientCG | CC0 1.0 |
+| [Grate002](https://ambientcg.com/view?id=Grate002) | 路緣的排水格柵 | ambientCG | CC0 1.0 |
+
 外緣山林的近景樹與林下層（`props/nat_forest.glb`）是 `blender/forest.py` 程式長出來的冷杉、松（`pine`，樹皮借冷杉那張）、楓樹、榛嶺的綠色闊葉樹（`broad`，樹皮借楓樹那張）與蕨叢、野花叢、草叢，葉片卡與樹皮借 Poly Haven 的 CC0 1.0 照片（`tools/forest-tex.mjs` 合成帶 alpha 的 PNG，原檔在 gitignore 的 `games/260-neon-nightcity/.cache/tex-src/ph/`）；楓葉叢、闊葉樹的卵形綠葉叢、紫色野花叢與草叢的卡是程式畫的 SVG，不是照片。
 
 | 用在 | 原檔 | 作者 | 授權 |

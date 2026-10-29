@@ -916,6 +916,13 @@ void main(){
   vec2 wmin = st == 3 ? vec2(.03,.06) : vec2(.27,.18), wmax = st == 3 ? vec2(.97,.96) : vec2(.73,.8);
   bool grid = !solid && ci >= 0. && ci < cols && fi >= 0. && fi < nF;
   bool inWin = grid && f.x > wmin.x && f.x < wmax.x && f.y > wmin.y && f.y < wmax.y;
+  // 窗台下的水漬：雨水從窗台流下來，一條條的、越往下越淡（窗戶那一欄、窗台下 1.6 m 內；玻璃帷幕、夜店、醫院不畫）
+  if (grid && st != 3 && st != 5 && st != 8 && f.x > wmin.x + .03 && f.x < wmax.x - .03 && (f.y < wmin.y || f.y > wmax.y)) {
+    float sd = f.y < wmin.y ? (wmin.y - f.y) * fh : fi + 1. < nF ? (1. + wmin.y - f.y) * fh : 9.;
+    wall *= 1. - .3 * smoothstep(.45, .8, n2(vec2(u*7. + seed*5., y*.15))) * (1. - smoothstep(0., 1.6, sd));
+  }
+  // 下雨時牆面吸水變深（28-sky.js 的 wx.wet，雨停慢慢乾）：牆腳 3 m 內最濕
+  wall *= 1. - .22 * uWet * mix(.6, 1., 1. - smoothstep(0., 3., y));
   // 平的牆：視線穿過窗洞往裡走到玻璃面（深度和 09-mass.js 的細模一樣），先碰到的是窗洞兩側、窗楣底或窗台就畫那一面
   float sgU = sign(dot(Tn, dFdx(vW))*dFdx(u) + dot(Tn, dFdy(vW))*dFdy(u) + 1e-6);   // u 沿 Tn 的哪個方向增加
   vec3 rv = vec3(vd.x*sgU, vd.y, max(vd.z, 1e-3));
@@ -1334,6 +1341,19 @@ vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
 const ROAD_FS = /* glsl */`
 ${GROUND_COMMON}
 uniform sampler2D uAsB, uAsN; uniform float uAsOn; uniform vec3 uAsM;
+// 路面貼花（tools/road-dec.mjs 的 road_dec_c／_n，27-props.js 下載好才開 uDecOn）：uDecP 是每一塊在圖上的範圍（左上原點），uDecM 是實際的長寬（公尺），
+// 0–6 是龜裂補丁、8 人孔蓋、9 排水格柵
+uniform sampler2D uDecC, uDecN; uniform float uDecOn; uniform vec4 uDecP[10]; uniform vec2 uDecM[10];
+// 一塊貼花在圖上的座標：q 是相對於貼花中心的公尺（x 沿長邊），z 是在不在範圍內
+vec3 decUV(int k, vec2 q){
+  vec2 t = q / uDecM[k] + .5; vec4 r = uDecP[k];
+  vec2 uv = mix(r.xy, r.zw, clamp(t, 0., 1.));
+  return vec3(uv.x, 1. - uv.y, step(0., t.x) * step(t.x, 1.) * step(0., t.y) * step(t.y, 1.));
+}
+vec4 decal(vec3 u){ vec4 c = texture2D(uDecC, u.xy); return vec4(c.rgb, c.a * u.z); }   // 底色（線性）與不透明度
+vec2 decalN(vec3 u){ return texture2D(uDecN, u.xy).xy * 2. - 1.; }                       // 法線 xy（貼圖的 v 往下）
+// 每一格的亂數：h21 吃整數格號時，同一格不同的第二個數彼此相關（有沒有補丁和補丁的位置會連在一起），先把兩個數混開
+float hc(float c, float s){ return h21(vec2(c + s * 17.31, c * .713 + s * 3.17)); }
 void main(){
   vec2 p = vL;
   float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
@@ -1352,6 +1372,25 @@ void main(){
     vec2 tu = p / 5.5 + vec2(n2(p*.013), n2(p*.013 + 5.)) * .6;   // 加一點低頻位移，看不出格子
     alb *= mix(vec3(1.), texture2D(uAsB, tu).rgb / uAsM, .8);
     asT = texture2D(uAsN, tu).xy * 2. - 1.;
+  }
+  // 龜裂與補丁：路的兩側各一排、沿路每 6 m 一格，七成的格子有一塊（離路中心 1–6 m）（大道與橫街各自沿自己的方向，路口照大道），長邊順著路、稍微斜一點；
+  // 照片原尺寸（最長 4.2 m）放大 1.6–2.6 倍，前後兩格也要看（跨格的那一半才不會被切掉）。顏色照柏油的明暗換算（照片除以補丁的平均亮度 0.256 再乘上原本的底色），
+  // 每塊再亂數變暗（新鋪的）或變亮（舊補丁），補丁蓋掉標線
+  float decA = 0.; vec2 decN = vec2(0.);
+  if (uDecOn > .5) {
+    float ra = onA ? p.y : p.x, rc = onA ? dx : dz;
+    for (int j = 0; j < 6; j++) {
+      // 前後三格 × 路的兩側各一排（j 的奇偶）；兩排的格子錯開半格
+      float side = float(j - j / 2 * 2), sh = side * 3., cell = floor((ra - sh) / 6.) + float(j / 2 - 1), s0 = side * 20.;
+      vec2 hh = vec2(hc(cell, s0 + (onA ? 1. : 2.)), hc(cell, s0 + (onA ? 3. : 4.)));
+      float ang = (hc(cell, s0 + 7.) - .5) * .5, ca = cos(ang), sa = sin(ang), sc = 1.6 + hh.y;
+      vec2 d = vec2(ra - (cell * 6. + sh + 3. + (hh.y - .5) * 3.), rc - (side * 2. - 1.) * (1. + hc(cell, s0 + 9.) * 5.));
+      vec3 du = decUV(int(floor(hc(cell, s0 + 11.) * 6.99)), vec2(d.x * ca + d.y * sa, -d.x * sa + d.y * ca) / sc);
+      vec4 dc = decal(du);
+      float a = dc.a * step(hh.x, .7);
+      alb = mix(alb, alb * dc.rgb / .256 * mix(.45, 1.35, hc(cell, s0 + 13.)), a);
+      vec2 nr = decalN(du); decN += (onA ? nr.yx : nr) * a; decA = max(decA, a);
+    }
   }
   float paint = 0.; vec3 pc = vec3(.8);
   // 大道上的標線
@@ -1379,8 +1418,17 @@ void main(){
     float stop = step(12.4, abs(dx)) * step(abs(dx), 12.85) * step(.3, az) * step(az, 5.1) * step(0., -dz*dx);
     paint = max(paint, stop);
   }
+  // 輪跡：車道中心（LANE 3 m）左右 0.8 m 是輪子壓的地方，柏油比較暗、標線磨得比較兇；車道中間偶爾有滴下來的油漬
+  float wheel = 0., oil = 0.;
+  if (!inter && (onA || onS)) {
+    float ar = onA ? abs(dx) : abs(dz), al = onA ? p.y : p.x;
+    wheel = (1. - smoothstep(.15, .5, abs(abs(ar - 3.) - .8))) * step(ar, 5.);
+    oil = smoothstep(.62, .8, fbm(vec2(ar * 1.6, al * .35) + 21.)) * (1. - smoothstep(.2, .7, abs(ar - 3.)));
+    alb *= (1. - .25 * wheel) * (1. - .45 * oil);
+  }
   float wear = smoothstep(.35, .7, fbm(p*1.3 + 9.));
-  alb = mix(alb, pc * .55 * (.75 + .25*fine), paint * (1. - wear*.6));
+  paint *= 1. - decA * .85;
+  alb = mix(alb, pc * .55 * (.75 + .25*fine), paint * (1. - min(1., wear*.6 + wheel*.35)));
   // 人孔蓋
   float mh = 1.;
   {
@@ -1388,8 +1436,18 @@ void main(){
     float d2 = onS ? length(vec2(mod(p.x - X0, P) - 36., abs(dz) - 3.)) : 99.;
     float md = min(d, d2);
     float disc = smoothstep(.45, .43, md);
-    alb = mix(alb, vec3(.03,.028,.026) * (.8 + .4*step(.5, fract(md*12.))), disc);
+    if (uDecOn > .5) {   // 照片的人孔蓋（鑄鐵）：圓的不透明度就是外形
+      vec2 q = md == d ? vec2(abs(dx) - 3., mod(p.y - Z0, Q) - 31.) : vec2(mod(p.x - X0, P) - 36., abs(dz) - 3.);
+      vec3 du = decUV(8, q); vec4 dc = decal(du);
+      disc = dc.a; alb = mix(alb, dc.rgb * .3, disc); decN += decalN(du) * disc;
+    } else alb = mix(alb, vec3(.03,.028,.026) * (.8 + .4*step(.5, fract(md*12.))), disc);
     mh = 1. - disc * .6;
+  }
+  // 路邊的排水格柵：靠路緣（離路中心 7.62 m）每 23 m 一個，長邊順著路；格柵縫裡是黑的
+  if (uDecOn > .5 && !inter && (onA || onS)) {
+    float ar = onA ? abs(dx) : abs(dz), al = onA ? mod(p.y - Z0, Q) : mod(p.x - X0, P);
+    vec3 du = decUV(9, vec2(mod(al, 23.) - 11.5, ar - 7.62)); vec4 dc = decal(du);
+    alb = mix(alb, dc.rgb * .3, dc.a); decN += decalN(du) * dc.a * .5;
   }
   // 積水與排水溝
   float gut = onA && !inter ? smoothstep(6.6, 7.9, abs(dx)) : onS && !inter ? smoothstep(6.6, 7.9, abs(dz)) : 0.;
@@ -1399,6 +1457,7 @@ void main(){
   float h0 = n2(p*4.), hx = n2(p*4. + vec2(.05, 0.)), hz = n2(p*4. + vec2(0., .05));
   n.xz -= vec2(hx - h0, hz - h0) * 1.6 * (1. - pud);
   n.xz += vec2(asT.x, -asT.y) * .35 * (1. - pud) * (1. - paint*.5);
+  n.xz += vec2(decN.x, -decN.y) * .6 * (1. - pud);   // 貼花的凹凸（補丁的邊、人孔蓋的花紋），積水的地方平掉
   float dist = length(vW - uCam);
   if (dist < 40.) n.xz += ripple(p, uTime) * .5 * (.3 + .7*pud) * (1. - dist/40.);
   n = normalize(nW(n));
@@ -1487,7 +1546,8 @@ void main(){
   vec3 c = wetSurface(alb, vec3(0., 1., 0.), mix(.3, .6, path), pud, 0.);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;
-const ASPH_U = { uAsB: { value: null }, uAsN: { value: null }, uAsOn: { value: 0 }, uAsM: { value: new T.Vector3(1, 1, 1) } };   // 路面與連接道路共用
+const ASPH_U = { uAsB: { value: null }, uAsN: { value: null }, uAsOn: { value: 0 }, uAsM: { value: new T.Vector3(1, 1, 1) },   // 路面與連接道路共用
+  uDecC: { value: null }, uDecN: { value: null }, uDecOn: { value: 0 }, uDecP: { value: Array.from({ length: 10 }, () => new T.Vector4()) }, uDecM: { value: Array.from({ length: 10 }, () => new T.Vector2(1, 1)) } };   // 路面貼花（ROAD_FS）
 const MAT_ROAD = new T.ShaderMaterial({ name: 'road', uniforms: { ...shared(ALLU), ...reflU, ...ASPH_U }, vertexShader: GROUND_VS, fragmentShader: ROAD_FS });
 const MAT_WALK = new T.ShaderMaterial({ name: 'walk', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS });
 // 地面網格（不進倒影，70-render.js）：幾何是邏輯座標，掛進所在的區

@@ -106,10 +106,11 @@ function atmApply() {
   atm.sunK = sunK;
   _c4.copy(WARM).lerp(NOON, sstep(.04, .42, se)).multiplyScalar(3 * sunK);
   U.uSunCol.value.set(_c4.r, _c4.g, _c4.b);
-  // 00-core.js 的 uGI：天空可見度白天才算、中以上的畫質等級才算（夜裡的環境光是城市的光害，室內 60-venues 把 uDay 歸零也就關掉）；
+  // 00-core.js 的 uGI：天空可見度中以上的畫質等級才算，白天與夜裡都算（夜裡的環境光是低雲反射的城市光害，一樣從天上來：窄巷與樓腳比大道暗；
+  // 室內 60-venues 的 applyEnv 把 x 歸零，城市的高度圖不會遮到場館裡）；
   // 日光反彈跟著日照；清晨 5–9 點起貼地薄霧（雨天淡一半）；霧裡的前向散射低角度時強
   const hr = min / 60 % 24, mist = sstep(4.6, 6, hr) * (1 - sstep(7.6, 9.4, hr)) * (1 - .5 * r);
-  U.uGI.value.set(GT().vol ? .85 * day : 0, sunK, mist * .0042 * SET.mist, lerp(.55, .25, sstep(.05, .4, se)));
+  U.uGI.value.set(GT().vol ? lerp(.7, .85, day) : 0, sunK, mist * .0042 * SET.mist, lerp(.55, .25, sstep(.05, .4, se)));
   // 霧：夜裡的霧本來就用來藏住 420 m 外不畫的建築（distCull），白天也不能太薄
   U.uFogDen.value = lerp(.0145, .0046, day) + r * lerp(.0025, .0012, day) + f * f * lerp(.028, .02, day);
   // 路燈、窗燈：天色暗到一定程度才亮

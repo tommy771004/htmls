@@ -492,6 +492,17 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       ASPH_U.uAsB.value = b; ASPH_U.uAsN.value = n; ASPH_U.uAsM.value.set(...m.map(v => Math.max(v, .005))); ASPH_U.uAsOn.value = 1;
       W2.swapped.push('asphalt');
     }, e => { console.warn('柏油貼圖下載失敗', e); W2.failed.push('w1_asphalt'); }),
+    // ─── 路面貼花（tools/road-dec.mjs）：龜裂補丁、人孔蓋、排水格柵的圖與範圍；開不開跟著照片材質的設定（08-tex.js 的 facApply） ───
+    Promise.all([...['c', 'n'].map(k => new T.TextureLoader().loadAsync(new URL(`../assets/260/tex/road_dec_${k}.webp`, location.href).href)),
+      fetch(new URL('../assets/260/tex/road_dec.json', location.href)).then(r => r.json())]).then(([c, n, j]) => {
+      c.colorSpace = T.SRGBColorSpace;
+      for (const t of [c, n]) { t.anisotropy = 4; t.needsUpdate = true; }
+      const U2 = ASPH_U, put = (k, o) => { U2.uDecP.value[k].set(...o.uv); U2.uDecM.value[k].set(...o.m); };
+      j.pieces.slice(0, 7).forEach((o, k) => put(k, o)); for (let k = j.pieces.length; k < 7; k++) put(k, j.pieces[k % j.pieces.length]);
+      put(8, j.manhole); put(9, j.grate);
+      U2.uDecC.value = c; U2.uDecN.value = n; roadDec.ok = true;
+      W2.swapped.push('road_dec');
+    }, e => { console.warn('路面貼花下載失敗', e); W2.failed.push('road_dec'); }),
     // ─── 珊瑚灘海濱步道的觀景解說牌：Èze 掃描原檔附的山城全景照（w1_board，燈箱），立在欄杆內側、鷹巖村的正對面，
     // 牌面朝步道、往後仰 34°，看牌子的人抬頭就是那座島 ───
     w2Load('w1_board', it => {

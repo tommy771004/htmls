@@ -58,11 +58,11 @@ R.domElement.tabIndex = 0;
 // ss 自動解析度往上最多到幾倍、px 內部像素數上限（70-render.js 的 resMax：顯示卡有餘裕時超過 100% 當超取樣抗鋸齒）。
 // 原本的桌機設定就是 high，觸控與小螢幕（LOW）原本的設定就是 low；ultra 不會自動選到，要在選單或網址 ?gpu=ultra 指定
 const GPU_TIERS = {
-  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6, vol: 0, tex: 0, fd: 0 },
-  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8, vol: 0, tex: 1, fd: 70 },
-  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .9, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1, vol: 10, tex: 2, fd: 110 },
-  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0, vol: 14, tex: 2, fd: 150, ss: 1.25, px: 4.2e6 },
-  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, vol: 20, tex: 2, fd: 210, ss: 1.5, px: 8.3e6 },
+  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6, vol: 0, tex: 0, fd: 0, ao: 0 },
+  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8, vol: 0, tex: 1, fd: 70, ao: 0 },
+  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .9, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1, vol: 10, tex: 2, fd: 110, ao: 1 },
+  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: 1, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0, vol: 14, tex: 2, fd: 150, ao: 1, ss: 1.25, px: 4.2e6 },
+  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, vol: 20, tex: 2, fd: 210, ao: 1, ss: 1.5, px: 8.3e6 },
 };
 const GPU = (() => {
   // WebGPU 的 adapter.info 沒有型號（Apple 只給 metal-3），名稱照舊向一個臨時的 WebGL2 context 要

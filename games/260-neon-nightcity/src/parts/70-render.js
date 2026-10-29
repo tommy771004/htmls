@@ -14,10 +14,18 @@ const resScale = () => { if (SET.res !== '1080p') return typeof SET.res === 'num
 const post = { reflHalf: false, ceil: 9, scale: resScale(), blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
 // 沒有浮點渲染目標的擴充（少數舊驅動、部分 Android）就退回 8 位元：畫得出來，只是霓虹的泛光與高光會被截在 1（00-core.js 的 GPU.hdr）
 const rtOpts = { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true };
-let rtScene, rtRefl, rtB = [], rtU = [], rtV = null;
+// 環境光遮蔽要浮點的渲染目標（深度放在 g）：退回 8 位元的驅動不畫
+// 眼睛適應（mEyeLum／mEyeAdapt）：畫面縮成 EYE_W×EYE_H 的 log 亮度，平均後存進 1×1 的兩張來回貼圖（r 快、g 慢）
+const EYE_W = 32, EYE_H = 18;
+const rtEye = [0, 1].map(() => new T.WebGLRenderTarget(1, 1, { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.NearestFilter, magFilter: T.NearestFilter, depthBuffer: false }));
+const AO_ON = !!GT().ao && GPU.hdr;
+let rtScene, rtRefl, rtB = [], rtU = [], rtV = null, rtA = [], rtL = null;
 function makeTargets() {
   const w = Math.max(2, Math.floor(innerWidth * DPR * post.scale)), h = Math.max(2, Math.floor(innerHeight * DPR * post.scale));
-  rtScene?.dispose(); rtRefl?.dispose(); rtB.forEach(r => r.dispose()); rtU.forEach(r => r.dispose()); rtV?.dispose();
+  rtScene?.dispose(); rtRefl?.dispose(); rtB.forEach(r => r.dispose()); rtU.forEach(r => r.dispose()); rtV?.dispose(); rtA.forEach(r => r.dispose()); rtL?.dispose();
+  rtL = new T.WebGLRenderTarget(EYE_W, EYE_H, { ...rtOpts, depthBuffer: false });   // 眼睛適應：畫面亮度的縮圖（log 亮度）
+  // 環境光遮蔽（半解析度）：r 是遮蔽、g 是相機空間的深度（給依深度的模糊用），要浮點；兩張來回模糊
+  rtA = AO_ON ? [0, 1].map(() => new T.WebGLRenderTarget(Math.max(1, Math.floor(w / 2)), Math.max(1, Math.floor(h / 2)), { ...rtOpts, depthBuffer: false })) : [];
   rtV = new T.WebGLRenderTarget(Math.max(1, Math.floor(w / 4)), Math.max(1, Math.floor(h / 4)), { ...rtOpts, depthBuffer: false });   // 體積光（四分之一解析度）
   rtScene = new T.WebGLRenderTarget(w, h, { ...rtOpts, samples: Math.min(SET.msaa, R.capabilities.maxSamples || 0) });   // 01-settings.js：Esc 選單的 MSAA
   rtScene.depthTexture = new T.DepthTexture(w, h); rtScene.depthTexture.type = T.UnsignedIntType;
@@ -130,7 +138,64 @@ const mVol = VOL_N ? pass('vol', `${GL_LIB}
     float sd = max(dot(rd, uSun), 0.), ph = .05 + sd * sd * sd * .9 + pow(sd, 20.) * 1.6;
     gl_FragColor = vec4(uSunCol * ph * acc * uVolK, 1.);
   }`, { ...shared(ALLU), tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uVolK: { value: 0 } }) : null;
-const mComp = pass('comp', `uniform sampler2D tScene, tDepth, tBloom, tVol; uniform float uVolOn; uniform vec2 uVolT; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint, uFx7; uniform vec2 uRes, uFx, uHi;
+// 環境光遮蔽（SSAO）：半解析度，從主畫面的深度還原相機空間的位置，法線取左右、上下兩側深度比較接近的那一邊（邊緣不糊），
+// 沿螺旋取 AO_N 個點（McGuire 的 SAO：半徑 uRad 公尺內、在法線前方的點越近越暗）。沒有 TAA，雜訊固定在畫面上（逐幀換會閃），
+// 再橫直兩趟依深度的模糊抹掉；60–140 m 淡掉（再遠在霧裡）。合成時乘在泛光之前，亮到會泛光的地方（霓虹、招牌、窗燈）不壓暗
+const AO_N = 12;
+const mAO = AO_ON ? pass('ao', `uniform sampler2D tDepth; uniform mat4 uInvProj; uniform vec2 uDT; uniform float uPy, uRad, uK, uFogD, uDayK; varying vec2 vUv;
+  vec3 vpos(vec2 q){ float d = texture2D(tDepth, q).r; vec4 v = uInvProj * vec4(q * 2. - 1., ${R.coordinateSystem === T.WebGPUCoordinateSystem ? 'd' : 'd * 2. - 1.'}, 1.); return v.xyz / v.w; }
+  void main(){
+    vec2 q = (floor(vUv / uDT) + .5) * uDT;   // 半解析度的像素中心剛好落在兩個全解析度深度像素的交界：對齊到其中一個的中心，不然左右取到同一個像素，法線壞掉成一條條紋
+    if (texture2D(tDepth, q).r >= 1.) { gl_FragColor = vec4(1., 1e4, 0., 1.); return; }
+    vec3 P = vpos(q);
+    vec3 l = vpos(q - vec2(uDT.x, 0.)), r = vpos(q + vec2(uDT.x, 0.)), b = vpos(q - vec2(0., uDT.y)), t = vpos(q + vec2(0., uDT.y));
+    vec3 dx = abs(r.z - P.z) < abs(P.z - l.z) ? r - P : P - l, dy = abs(t.z - P.z) < abs(P.z - b.z) ? t - P : P - b;
+    vec3 n = normalize(cross(dx, dy)); n *= sign(dot(n, -P));
+    float z = -P.z, ssR = min(uRad * uPy * .5 / (z * uDT.y), .12 / uDT.y);   // 半徑換成全解析度的像素，近處不超過畫面高的 12%
+    float A = 1.;
+    if (ssR > 1.5) {
+      float a0 = 6.2832 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))), sum = 0., r2 = uRad * uRad, bias = .02 + .002 * z;
+      for (int i = 0; i < ${AO_N}; i++) {
+        float a = (float(i) + .5) / ${AO_N}., th = a * 43.98 + a0;   // 7 圈
+        vec3 v = vpos(q + vec2(cos(th), sin(th)) * a * ssR * uDT) - P;
+        float vv = dot(v, v), f = max(r2 - vv, 0.);
+        sum += f * f * f * max((dot(v, n) - bias - .2 * sqrt(vv)) / (vv + .01), 0.);   // .2：仰角不到 12° 的點不算（人、樹幹這種曲面與還原的法線雜訊不會自己遮自己）
+      }
+      A = max(0., 1. - sum * uK * 5. / (r2 * r2 * r2 * ${AO_N}.));
+    }
+    // 霧裡的不壓暗：照 00-core.js applyFog 地面附近的霧量（夜裡指數、白天平方指數）淡掉，140 m 外全部不算
+    float x = z * uFogD * .75, fog = mix(1. - exp(-x), 1. - exp(-x * x), uDayK);
+    gl_FragColor = vec4(mix(A, 1., max(fog, smoothstep(90., 140., z))), z, 0., 1.);
+  }`, { tDepth: { value: null }, uInvProj: { value: new T.Matrix4() }, uDT: { value: new T.Vector2() }, uPy: { value: 1 }, uRad: { value: 1.1 }, uK: { value: 1 }, uFogD: { value: .01 }, uDayK: { value: 0 } }) : null;
+// 依深度的模糊：七個點、離中心越遠權重越低，深度差超過 6%（加 5 cm）的點不算（前景的柱子不會把遮蔽抹到後面的牆上）
+const mAOBlur = AO_ON ? pass('aoblur', `uniform sampler2D tSrc; uniform vec2 uDir; varying vec2 vUv;
+  void main(){
+    vec2 c = texture2D(tSrc, vUv).rg; float s = c.r, w = 1., tol = c.g * .06 + .05;
+    for (int i = 1; i <= 3; i++) {
+      float k = 1. - float(i) * .25;
+      vec2 p = texture2D(tSrc, vUv + uDir * float(i)).rg, q = texture2D(tSrc, vUv - uDir * float(i)).rg;
+      float kp = k * max(0., 1. - abs(p.g - c.g) / tol), kq = k * max(0., 1. - abs(q.g - c.g) / tol);
+      s += p.r * kp + q.r * kq; w += kp + kq;
+    }
+    gl_FragColor = vec4(s / w, c.g, 0., 1.);
+  }`, { tSrc: { value: null }, uDir: { value: new T.Vector2() } }) : null;
+// 眼睛適應：曝光本身照舊由 28-sky.js 的 atm.exp 與場館的 ENV.post.exp 決定（穩定時倍率是 1，調好的畫面不變），
+// 只在亮度突然變了的那幾秒補上眼睛的反應：從暗處出到大太陽下先過曝、進隧道或暗巷先一片黑，再慢慢適應回來。
+// 快的跟著畫面（0.15 s）、慢的是眼睛（約 2.5 s），倍率 =（快／慢）^0.5，夾在 0.55–1.8 倍；換鏡頭（camState.snap）時兩個一起重設
+const mEyeLum = pass('eyelum', `uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
+  float lg(vec2 o){ vec3 c = texture2D(tSrc, vUv + uTexel * o).rgb; return log(max(dot(min(c, vec3(60.)), vec3(.2126, .7152, .0722)), 1e-4)); }
+  void main(){ gl_FragColor = vec4((lg(vec2(-1., -1.)) + lg(vec2(1., -1.)) + lg(vec2(-1., 1.)) + lg(vec2(1., 1.))) * .25, 0., 0., 1.); }`,
+  { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
+const mEyeAdapt = pass('eyeadapt', `uniform sampler2D tSrc, tPrev; uniform vec2 uK; uniform float uReset; varying vec2 vUv;
+  void main(){
+    float s = 0.;
+    for (int j = 0; j < ${EYE_H}; j++) for (int i = 0; i < ${EYE_W}; i++) s += texture2D(tSrc, (vec2(float(i), float(j)) + .5) / vec2(${EYE_W}., ${EYE_H}.)).r;
+    float L = s / ${EYE_W * EYE_H}.;
+    vec2 p = texture2D(tPrev, vec2(.5)).rg;
+    gl_FragColor = vec4(uReset > .5 ? vec2(L) : vec2(mix(p.x, L, uK.x), mix(p.y, L, uK.y)), 0., 1.);
+  }`, { tSrc: { value: null }, tPrev: { value: null }, uK: { value: new T.Vector2() }, uReset: { value: 1 } });
+let eyeI = 0, eyeReset = true;
+const mComp = pass('comp', `uniform sampler2D tScene, tDepth, tBloom, tVol, tAO, tEye; uniform float uVolOn, uAOOn, uAOThr, uEyeOn; uniform vec2 uVolT; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint, uFx7; uniform vec2 uRes, uFx, uHi;
   uniform vec4 uHeat[${HEAT_N}];   // 69-v7-bunker.js 的熱源（畫面 uv、半徑、強度），uFx7：x 熱成像、y 神經毒氣、z 宿醉模糊、w 夜視鏡
   varying vec2 vUv;
   float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -159,10 +224,13 @@ const mComp = pass('comp', `uniform sampler2D tScene, tDepth, tBloom, tVol; unif
     c.b = mix(c.b, texture2D(tScene, uv + cc * edge * .012).b, .6 * uFx.x);
     if (uWob > 0.) c = mix(c, texture2D(tScene, uv + vec2(.012, 0.) * uWob).rgb, .35 * uWob);
     if (uFx7.z > 0.) { vec2 o = vec2(.007, .005) * uFx7.z; c = mix(c, (texture2D(tScene, uv + o).rgb + texture2D(tScene, uv - o).rgb + texture2D(tScene, uv + vec2(-o.y, o.x)).rgb + texture2D(tScene, uv + vec2(o.y, -o.x)).rgb) * .25, .75 * min(1., uFx7.z)); }
+    // 環境光遮蔽：亮到會泛光的地方（和 mPre 同一個門檻）不壓暗
+    if (uAOOn > 0.) { float em = smoothstep(.7 * uAOThr, 1.7 * uAOThr, max(c.r, max(c.g, c.b))); c *= mix(texture2D(tAO, uv).r, 1., em); if (uAOOn > 1.5) {   /* __nc.post.aoDbg：只看遮蔽（除錯，WebGPU 沒有） */ gl_FragColor = vec4(vec3(texture2D(tAO, uv).r), 1.); return; } }
     c += texture2D(tBloom, uv).rgb * uBloomK;
     // 體積光：四分之一解析度的四個點平均，蓋掉每幀抖動的雜訊
     if (uVolOn > 0.) c += (texture2D(tVol, uv + uVolT * vec2(.5, .5)).rgb + texture2D(tVol, uv + uVolT * vec2(-.5, .5)).rgb + texture2D(tVol, uv + uVolT * vec2(.5, -.5)).rgb + texture2D(tVol, uv - uVolT * .5).rgb) * .25;
     c *= uExp * (1. + uFlash * .5);
+    if (uEyeOn > 0.) { vec2 e = texture2D(tEye, vec2(.5)).rg; c *= clamp(exp((e.x - e.y) * .5), .55, 1.8); }   // 眼睛適應（mEyeAdapt 存的是 log 亮度）
     // 高光肩部（場館的 ENV.post.knee／range）：最亮的色版超過 knee 後漸近 knee+range，燈泡與反光不會燒成整片白；用最大色版縮放，不偏色
     if (uHi.x > 0.) { float L = max(max(c.r, c.g), c.b); if (L > uHi.x) { float e = L - uHi.x; c *= (uHi.x + e / (1. + e / uHi.y)) / L; } }
     c = aces(c);
@@ -192,7 +260,7 @@ const mComp = pass('comp', `uniform sampler2D tScene, tDepth, tBloom, tVol; unif
     c = pow(c, vec3(1. / 2.2));
     c += (h(uv * uRes + fract(uTime * 7.)) - .5) * .035 * uFx.y;
     gl_FragColor = vec4(c, 1.);
-  }`, { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, tVol: { value: null }, uVolOn: { value: 0 }, uVolT: { value: new T.Vector2() }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
+  }`, { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, tVol: { value: null }, tAO: { value: null }, tEye: { value: null }, uVolOn: { value: 0 }, uAOOn: { value: 0 }, uAOThr: { value: 1 }, uEyeOn: { value: 0 }, uVolT: { value: new T.Vector2() }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
   uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uFx7: { value: new T.Vector4() }, uHeat: { value: Array.from({ length: HEAT_N }, () => new T.Vector4()) }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
@@ -316,7 +384,7 @@ function renderFrame(dt, t) {
   }
   // 合成
   curVP.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-  if (firstFrame || camState.snap) { prevVP.copy(curVP); firstFrame = false; camState.snap = false; }
+  if (firstFrame || camState.snap) { prevVP.copy(curVP); firstFrame = false; camState.snap = false; eyeReset = true; }
   const u = mComp.uniforms;
   const volK = mVol && outdoors ? SET.vol * atm.sunK * sstep(.2, .6, U.uDay.value) : 0;
   u.uVolOn.value = volK > .01 ? 1 : 0;
@@ -324,6 +392,24 @@ function renderFrame(dt, t) {
     const v = mVol.uniforms; v.tDepth.value = rtScene.depthTexture; v.uInvVP.value.copy(curVP).invert(); v.uVolK.value = .0035 * volK;
     blit(mVol, rtV); u.tVol.value = rtV.texture; u.uVolT.value.set(1 / rtV.width, 1 / rtV.height);
   }
+  const aoK = mAO ? SET.ao : 0;
+  u.uAOOn.value = aoK > .01 ? (post.aoDbg ? 2 : 1) : 0;
+  if (u.uAOOn.value) {
+    const a = mAO.uniforms, b = mAOBlur.uniforms, A0 = rtA[0], A1 = rtA[1];
+    a.tDepth.value = rtScene.depthTexture; a.uInvProj.value.copy(camera.projectionMatrixInverse); a.uDT.value.set(1 / w, 1 / h); a.uPy.value = camera.projectionMatrix.elements[5]; a.uK.value = aoK; a.uFogD.value = outdoors ? U.uFogDen.value : 0; a.uDayK.value = U.uDay.value;
+    blit(mAO, A0);
+    b.tSrc.value = A0.texture; b.uDir.value.set(1 / A0.width, 0); blit(mAOBlur, A1);
+    b.tSrc.value = A1.texture; b.uDir.value.set(0, 1 / A0.height); blit(mAOBlur, A0);
+    u.tAO.value = A0.texture; u.uAOThr.value = mPre.uniforms.uThr.value;
+  }
+  u.uEyeOn.value = SET.eye && GPU.hdr ? 1 : 0;
+  if (u.uEyeOn.value) {
+    const e = mEyeLum.uniforms, f = mEyeAdapt.uniforms, rd = Math.min(slowmo.raw, .1);
+    e.tSrc.value = rtScene.texture; e.uTexel.value.set(.25 / EYE_W, .25 / EYE_H); blit(mEyeLum, rtL);
+    f.tSrc.value = rtL.texture; f.tPrev.value = rtEye[eyeI].texture; f.uK.value.set(1 - Math.exp(-rd / .15), 1 - Math.exp(-rd / 2.5)); f.uReset.value = eyeReset ? 1 : 0;
+    eyeI ^= 1; blit(mEyeAdapt, rtEye[eyeI]); eyeReset = false;
+    u.tEye.value = rtEye[eyeI].texture;
+  } else eyeReset = true;
   u.tScene.value = rtScene.texture; u.tDepth.value = rtScene.depthTexture; u.tBloom.value = rtU[0].texture;
   u.uInvVP.value.copy(curVP).invert(); u.uPrevVP.value.copy(prevVP);
   u.uBlur.value = post.blur; u.uExp.value = post.exposure * SET.bright * (outdoors ? atm.exp : vp?.exp ?? 1); u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;

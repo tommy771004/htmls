@@ -34,6 +34,8 @@ node tools/fac-view.mjs [dir]   # 程式立面截圖（本機 HTTP）：每塊�
 node tools/street-view.mjs [dir]   # 人行道沿街看（白天），檢查程式建模的街道設施與店面；STREET="地塊序,…"
 node tools/gen-tsl.mjs [--fresh]   # 改了 ShaderMaterial 的 GLSL 之後重新產生 src/tsl/（本機 HTTP、無頭 Chrome 要開得了 WebGPU；走戶外、光格島與每個場館），再 npm run build
 node tools/gfx-view.mjs [dir]   # 繪圖後端對照（本機 HTTP）：同鏡頭在 ?gfx=webgl 與 ?gfx=webgpu 各截一張、印出幀時間與 __nc.gfx 的 miss／err；GFX="webgl,webgpu"、SPOT="地塊序,…"
+node tools/look-view.mjs [dir]  # 質感比對截圖（本機 HTTP）：雨夜 LAZARUS、夜裡窄街、清晨大道、下雨的白天、高架橋下、白天路面、路人近景；VARS="ao=0;ao=1" 每組設定拍一張並排、ONLY="club,road"、Q="gfx=webgpu"、PAGE=另一個 web/ 檔名
+node tools/road-dec.mjs         # .cache/tex-src/ 的 ambientCG 龜裂補丁、人孔蓋、排水格柵 → assets/260/tex/road_dec_c.webp／_n.webp 與 road_dec.json（路面貼花，10-city.js 的 ROAD_FS）
 ```
 
 ### 實車模型

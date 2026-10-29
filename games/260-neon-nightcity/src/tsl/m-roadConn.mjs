@@ -2,13 +2,13 @@
 // 材質 "roadConn"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{}": {
-  h: "1y07kh5dds", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
-  uniforms: [{"name":"uReflMat","type":"mat4","src":"uReflMat"},{"name":"tRefl","type":"sampler2D","src":"tRefl"},{"name":"uReflOn","type":"float","src":"uReflOn"},{"name":"uAsB","type":"sampler2D","src":"uAsB"},{"name":"uAsN","type":"sampler2D","src":"uAsN"},{"name":"uAsOn","type":"float","src":"uAsOn"},{"name":"uAsM","type":"vec3","src":"uAsM"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
+  h: "7kdjzvfwc", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
+  uniforms: [{"name":"uReflMat","type":"mat4","src":"uReflMat"},{"name":"tRefl","type":"sampler2D","src":"tRefl"},{"name":"uReflOn","type":"float","src":"uReflOn"},{"name":"uAsB","type":"sampler2D","src":"uAsB"},{"name":"uAsN","type":"sampler2D","src":"uAsN"},{"name":"uAsOn","type":"float","src":"uAsOn"},{"name":"uAsM","type":"vec3","src":"uAsM"},{"name":"uDecC","type":"sampler2D","src":"uDecC"},{"name":"uDecN","type":"sampler2D","src":"uDecN"},{"name":"uDecOn","type":"float","src":"uDecOn"},{"name":"uDecP","type":"vec4","size":10,"src":"uDecP"},{"name":"uDecM","type":"vec2","size":10,"src":"uDecM"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vRP","type":"vec4","src":"vRP"},{"name":"vL","type":"vec2","src":"vL"},{"name":"vAx","type":"vec2","src":"vAx"}],
   attributes: [{"name":"aUV","type":"vec2","src":"aUV"},{"name":"aAx","type":"vec2","src":"aAx"}],
   vertex: (TSL, E) => {
     const { vec4, mat3, normalize, Fn } = TSL;
-    const { uReflMat, tRefl, uReflOn, uAsB, uAsN, uAsOn, uAsM, vW, vN, vRP, vL, vAx, aUV, aAx, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T } = E;
+    const { uReflMat, tRefl, uReflOn, uAsB, uAsN, uAsOn, uAsM, uDecC, uDecN, uDecOn, uDecP, uDecM, vW, vN, vRP, vL, vAx, aUV, aAx, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T } = E;
 
 
 
@@ -31,8 +31,8 @@ export default {
     return main_;
   },
   fragment: (TSL, E) => {
-    const { vec3, Fn, vec2, float, floor, fract, length, pow, exp, sub, step, max, Loop, normalize, smoothstep, mix, dot, mul, add, property, reflect, If, clamp, vec4, bool, abs, mod, select, min } = TSL;
-    const { uReflMat, tRefl, uReflOn, uAsB, uAsN, uAsOn, uAsM, vW, vN, vRP, vL, vAx, aUV, aAx, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
+    const { vec3, Fn, vec2, float, floor, fract, length, pow, exp, sub, step, max, Loop, normalize, smoothstep, mix, dot, mul, add, property, reflect, If, clamp, vec4, bool, abs, select, cos, sin, int, min, mod } = TSL;
+    const { uReflMat, tRefl, uReflOn, uAsB, uAsN, uAsOn, uAsM, uDecC, uDecN, uDecOn, uDecP, uDecM, vW, vN, vRP, vL, vAx, aUV, aAx, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
 
 
 
@@ -106,6 +106,36 @@ export default {
 
     } );
 
+    const decUV =  Fn( ( [ k, q ] ) => {
+
+    	const t = q.div( uDecM.element( k ) ).add( .5 ).toVar();
+    	const r = uDecP.element( k ).toVar();
+    	const uv = mix( r.xy, r.zw, clamp( t, 0., 1. ) ).toVar();
+
+    	return vec3( uv.x, sub( 1., uv.y ), step( 0., t.x ).mul( step( t.x, 1. ) ).mul( step( 0., t.y ) ).mul( step( t.y, 1. ) ) );
+
+    }, { k: 'int', q: 'vec2', return: 'vec3' } );
+
+    const decal =  Fn( ( [ u ] ) => {
+
+    	const c = uDecC.sample( u.xy ).toVar();
+
+    	return vec4( c.rgb, c.a.mul( u.z ) );
+
+    }, { u: 'vec3', return: 'vec4' } );
+
+    const decalN =  Fn( ( [ u ] ) => {
+
+    	return uDecN.sample( u.xy ).xy.mul( 2. ).sub( 1. );
+
+    }, { u: 'vec3', return: 'vec2' } );
+
+    const hc =  Fn( ( [ c, s ] ) => {
+
+    	return h21( vec2( c.add( s.mul( 17.31 ) ), c.mul( .713 ).add( s.mul( 3.17 ) ) ) );
+
+    }, { c: 'float', s: 'float', return: 'float' } );
+
     const main_ =  Fn( () => {
 
     	const fragOut_ = vec4( 0.0 ).toVar();
@@ -128,6 +158,31 @@ export default {
     		const tu = p.div( 5.5 ).add( vec2( n2( p.mul( .013 ) ), n2( p.mul( .013 ).add( 5. ) ) ).mul( .6 ) ).toVar();
     		alb.mulAssign( mix( vec3( 1. ), uAsB.sample( tu ).rgb.div( uAsM ), .8 ) );
     		asT.assign( uAsN.sample( tu ).xy.mul( 2. ).sub( 1. ) );
+
+    	} );
+
+    	const decA = float( 0. ).toVar();
+    	const decN = vec2( 0. ).toVar();
+
+    	If( uDecOn.greaterThan( .5 ), () => {
+
+    		const ra = select( onA, p.y, p.x ).toVar(), rc = select( onA, dx, dz ).toVar();
+
+    		Loop( { start: 0, end: 6, name: 'j' }, ( { j } ) => {
+
+    			const side = float( j.sub( j.div( 2 ).mul( 2 ) ) ).toVar(), sh = side.mul( 3. ).toVar(), cell = floor( ra.sub( sh ).div( 6. ) ).add( float( j.div( 2 ).sub( 1 ) ) ).toVar(), s0 = side.mul( 20. ).toVar();
+    			const hh = vec2( hc( cell, s0.add( select( onA, 1., 2. ) ) ), hc( cell, s0.add( select( onA, 3., 4. ) ) ) ).toVar();
+    			const ang = hc( cell, s0.add( 7. ) ).sub( .5 ).mul( .5 ).toVar(), ca = cos( ang ).toVar(), sa = sin( ang ).toVar(), sc = add( 1.6, hh.y ).toVar();
+    			const d = vec2( ra.sub( cell.mul( 6. ).add( sh ).add( 3. ).add( hh.y.sub( .5 ).mul( 3. ) ) ), rc.sub( side.mul( 2. ).sub( 1. ).mul( add( 1., hc( cell, s0.add( 9. ) ).mul( 5. ) ) ) ) ).toVar();
+    			const du = decUV( int( floor( hc( cell, s0.add( 11. ) ).mul( 6.99 ) ) ), vec2( d.x.mul( ca ).add( d.y.mul( sa ) ), d.x.negate().mul( sa ).add( d.y.mul( ca ) ) ).div( sc ) ).toVar();
+    			const dc = decal( du ).toVar();
+    			const a = dc.a.mul( step( hh.x, .7 ) ).toVar();
+    			alb.assign( mix( alb, alb.mul( dc.rgb ).div( .256 ).mul( mix( .45, 1.35, hc( cell, s0.add( 13. ) ) ) ), a ) );
+    			const nr = decalN( du ).toVar();
+    			decN.addAssign( select( onA, nr.yx, nr ).mul( a ) );
+    			decA.assign( max( decA, a ) );
+
+    		} );
 
     	} );
 
@@ -177,8 +232,20 @@ export default {
 
     	} );
 
+    	const wheel = float( 0. ).toVar(), oil = float( 0. ).toVar();
+
+    	If( inter.not().and( onA.or( onS ) ), () => {
+
+    		const ar = select( onA, abs( dx ), abs( dz ) ).toVar(), al = select( onA, p.y, p.x ).toVar();
+    		wheel.assign( sub( 1., smoothstep( .15, .5, abs( abs( ar.sub( 3. ) ).sub( .8 ) ) ) ).mul( step( ar, 5. ) ) );
+    		oil.assign( smoothstep( .62, .8, fbm( vec2( ar.mul( 1.6 ), al.mul( .35 ) ).add( 21. ) ) ).mul( sub( 1., smoothstep( .2, .7, abs( ar.sub( 3. ) ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, wheel ) ).mul( sub( 1., mul( .45, oil ) ) ) );
+
+    	} );
+
     	const wear = smoothstep( .35, .7, fbm( p.mul( 1.3 ).add( 9. ) ) ).toVar();
-    	alb.assign( mix( alb, pc.mul( .55 ).mul( add( .75, mul( .25, fine ) ) ), paint.mul( sub( 1., wear.mul( .6 ) ) ) ) );
+    	paint.mulAssign( sub( 1., decA.mul( .85 ) ) );
+    	alb.assign( mix( alb, pc.mul( .55 ).mul( add( .75, mul( .25, fine ) ) ), paint.mul( sub( 1., min( 1., wear.mul( .6 ).add( wheel.mul( .35 ) ) ) ) ) ) );
     	const mh = float( 1. ).toVar();
 
     	If( true, () => {
@@ -187,8 +254,33 @@ export default {
     		const d2 = select( onS, length( vec2( mod( p.x.sub( X0 ), P ).sub( 36. ), abs( dz ).sub( 3. ) ) ), 99. ).toVar();
     		const md = min( d, d2 ).toVar();
     		const disc = smoothstep( .45, .43, md ).toVar();
-    		alb.assign( mix( alb, vec3( .03, .028, .026 ).mul( add( .8, mul( .4, step( .5, fract( md.mul( 12. ) ) ) ) ) ), disc ) );
+
+    		If( uDecOn.greaterThan( .5 ), () => {
+
+    			const q = select( md.equal( d ), vec2( abs( dx ).sub( 3. ), mod( p.y.sub( Z0 ), Q ).sub( 31. ) ), vec2( mod( p.x.sub( X0 ), P ).sub( 36. ), abs( dz ).sub( 3. ) ) ).toVar();
+    			const du = decUV( 8, q ).toVar();
+    			const dc = decal( du ).toVar();
+    			disc.assign( dc.a );
+    			alb.assign( mix( alb, dc.rgb.mul( .3 ), disc ) );
+    			decN.addAssign( decalN( du ).mul( disc ) );
+
+    		} ).Else( () => {
+
+    			alb.assign( mix( alb, vec3( .03, .028, .026 ).mul( add( .8, mul( .4, step( .5, fract( md.mul( 12. ) ) ) ) ) ), disc ) );
+
+    		} );
+
     		mh.assign( sub( 1., disc.mul( .6 ) ) );
+
+    	} );
+
+    	If( uDecOn.greaterThan( .5 ).and( inter.not() ).and( onA.or( onS ) ), () => {
+
+    		const ar = select( onA, abs( dx ), abs( dz ) ).toVar(), al = select( onA, mod( p.y.sub( Z0 ), Q ), mod( p.x.sub( X0 ), P ) ).toVar();
+    		const du = decUV( 9, vec2( mod( al, 23. ).sub( 11.5 ), ar.sub( 7.62 ) ) ).toVar();
+    		const dc = decal( du ).toVar();
+    		alb.assign( mix( alb, dc.rgb.mul( .3 ), dc.a ) );
+    		decN.addAssign( decalN( du ).mul( dc.a ).mul( .5 ) );
 
     	} );
 
@@ -199,6 +291,7 @@ export default {
     	const h0 = n2( p.mul( 4. ) ).toVar(), hx = n2( p.mul( 4. ).add( vec2( .05, 0. ) ) ).toVar(), hz = n2( p.mul( 4. ).add( vec2( 0., .05 ) ) ).toVar();
     	n.xz.subAssign( vec2( hx.sub( h0 ), hz.sub( h0 ) ).mul( 1.6 ).mul( sub( 1., pud ) ) );
     	n.xz.addAssign( vec2( asT.x, asT.y.negate() ).mul( .35 ).mul( sub( 1., pud ) ).mul( sub( 1., paint.mul( .5 ) ) ) );
+    	n.xz.addAssign( vec2( decN.x, decN.y.negate() ).mul( .6 ).mul( sub( 1., pud ) ) );
     	const dist = length( vW.sub( uCam ) ).toVar();
 
     	If( dist.lessThan( 40. ), () => {

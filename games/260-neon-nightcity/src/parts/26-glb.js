@@ -261,6 +261,13 @@ void main(){
   }
   // uM.w：燒毀程度（68-gta.js 的爆炸），車身變成焦黑、不再反光發光
   base.rgb = mix(base.rgb, vec3(.03, .026, .022), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; coat *= 1. - uM.w;
+  #ifdef USE_WINMAP
+  // 建築組的牆（27-props.js 擺在城裡的平地上，世界 y 就是離地高）：牆腳 1.2 m 的髒污與泥水濺痕，下雨時牆面吸水變深、牆腳最濕（和 10-city.js 的程式立面一樣）
+  if (abs(n.y) < .5) {
+    float by = vW.y;
+    base.rgb *= mix(.68 + .12 * n2(vW.xz * 1.3 + vW.y * 2.5), 1., smoothstep(0., 1.2, by)) * (1. - .2 * uWet * mix(.55, 1., 1. - smoothstep(0., 3., by)));
+  }
+  #endif
   float wet = uWet * smoothstep(.55, .95, n.y);
   #ifdef FAR
   wet = 0.;

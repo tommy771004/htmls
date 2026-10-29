@@ -2,7 +2,7 @@
 // 材質 "facade"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{}": {
-  h: "1n105wau6g", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
+  h: "1torfbxukx", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFacN","type":"sampler2DArray","src":"uFacN"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vB","type":"vec4","src":"vB"},{"name":"vB2","type":"vec4","src":"vB2"}],
   attributes: [{"name":"aB","type":"vec4","src":"aB"},{"name":"aB2","type":"vec4","src":"aB2"}],
@@ -488,6 +488,15 @@ export default {
     				const wmin = select( st.equal( 3 ), vec2( .03, .06 ), vec2( .27, .18 ) ).toVar(), wmax = select( st.equal( 3 ), vec2( .97, .96 ), vec2( .73, .8 ) ).toVar();
     				const grid = solid.not().and( ci.greaterThanEqual( 0. ) ).and( ci.lessThan( cols ) ).and( fi.greaterThanEqual( 0. ) ).and( fi.lessThan( nF ) ).toVar();
     				const inWin = grid.and( f.x.greaterThan( wmin.x ) ).and( f.x.lessThan( wmax.x ) ).and( f.y.greaterThan( wmin.y ) ).and( f.y.lessThan( wmax.y ) ).toVar();
+
+    				If( grid.and( st.notEqual( 3 ) ).and( st.notEqual( 5 ) ).and( st.notEqual( 8 ) ).and( f.x.greaterThan( wmin.x.add( .03 ) ) ).and( f.x.lessThan( wmax.x.sub( .03 ) ) ).and( f.y.lessThan( wmin.y ).or( f.y.greaterThan( wmax.y ) ) ), () => {
+
+    					const sd = select( f.y.lessThan( wmin.y ), wmin.y.sub( f.y ).mul( fh ), select( fi.add( 1. ).lessThan( nF ), add( 1., wmin.y ).sub( f.y ).mul( fh ), 9. ) ).toVar();
+    					wall.mulAssign( sub( 1., mul( .3, smoothstep( .45, .8, n2( vec2( u.mul( 7. ).add( seed.mul( 5. ) ), y.mul( .15 ) ) ) ) ).mul( sub( 1., smoothstep( 0., 1.6, sd ) ) ) ) );
+
+    				} );
+
+    				wall.mulAssign( sub( 1., mul( .22, uWet ).mul( mix( .6, 1., sub( 1., smoothstep( 0., 3., y ) ) ) ) ) );
     				const sgU = sign( dot( Tn, dFdx( vW ) ).mul( dFdx( u ) ).add( dot( Tn, dFdy( vW ) ).mul( dFdy( u ) ) ).add( 1e-6 ) ).toVar();
     				const rv = vec3( vd.x.mul( sgU ), vd.y, max( vd.z, 1e-3 ) ).toVar();
 
