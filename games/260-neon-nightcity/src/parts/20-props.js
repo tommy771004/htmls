@@ -467,6 +467,36 @@ const eboxes = [];
   const r = rng(2604);
   for (const s of sideSpots) if (r() < .022 && free(s.x, s.z, 1.3)) { eboxes.push({ ...s, y: .15 }); claim(s.x, s.z, 1.3); }
 }
+// 街頭雜物（質感改善清單 #6，27-props.js 的 clutter 那段下載 Poly Haven 的掃描模型，只有模型版才擺）：路緣的垃圾袋堆（倒垃圾的晚上）、
+// 一部分垃圾桶旁邊靠著幾袋、樓房牆角一小堆，堆裡夾紙箱、塑膠籃，偶爾一個舊輪胎。只看 free() 不 claim（不動後面設施的位置），沒有碰撞（袋子軟，人和車都不會被擋住）
+const clutter = { bag: [], bag2: [], box: [], crate: [], tyre: [] };
+{
+  const r = rng(2605);
+  // 一堆：中心 (x, z)，沿 (ax, az) 散開 n 件、往 (nx, nz) 那側推開一點；第二層疊在第一層上；tyre 才給 ry0（輪胎面向）
+  const pile = (x0, z0, ax, az, nx, nz, n, w = 1, ry0 = 0) => {
+    for (let k = 0; k < n; k++) {
+      const a = (r() - .5) * Math.min(1.8, .4 + n * .2) * w, d = r() * .55, x = x0 + ax * a + nx * d, z = z0 + az * a + nz * d;
+      if (!free(x, z, .3)) continue;
+      const u = r(), y = .15 + (k > 3 && r() < .45 ? .28 : 0), ry = r() * 6.28;
+      if (u < .55) clutter.bag.push({ x, y, z, ry, rx: (r() - .5) * .3, rz: (r() - .5) * .3, s: .85 + r() * .3 });
+      else if (u < .75) clutter.bag2.push({ x, y, z, ry, s: .85 + r() * .3 });
+      else if (u < .9) clutter.box.push({ x, y, z, ry, s: .8 + r() * .5 });
+      else if (u < .97) clutter.crate.push({ x, y, z, ry, s: 1 });
+      else clutter.tyre.push({ x, y: .15, z, ry: ry0 + (r() - .5) * .4 });   // 立著靠在堆裡
+    }
+  };
+  // 路緣：sideSpots 的位置（離路緣 0.9 m），往人行道內側推
+  const curb = (s, n) => s.ax === 'z' ? pile(s.x, s.z, 1, 0, 0, -s.nz, n, 1, s.ry) : pile(s.x, s.z, 0, 1, -s.nx, 0, n, 1, s.ry);
+  for (const b of bins) if (r() < .5) curb({ ...b, x: b.x + (b.ax === 'z' ? 1 : 0) * (r() < .5 ? -1 : 1) * .9, z: b.z + (b.ax === 'x' ? 1 : 0) * (r() < .5 ? -1 : 1) * .9 }, 1 + Math.floor(r() * 3));
+  for (const s of sideSpots) if (r() < .06) curb(s, 3 + Math.floor(r() * 6));
+  // 牆腳：一般樓房正面靠兩端的牆角（門多半在中間），離牆 0.35–0.6 m 擺一小堆；玻璃帷幕大樓（style 3）、特殊地塊、背面與讓位的地塊不擺
+  for (const L of lots) {
+    if (L.ghost || L.back || L.special || L.glb || L.style === 3 || L.isle != null || r() > .35) continue;
+    const sd = r() < .5 ? -1 : 1, lat = .6 + r() * 1.2, off = .35 + r() * .25, n = 1 + Math.floor(r() * 4);
+    if (L.axis === 'z') pile(sd > 0 ? L.x1 - lat : L.x0 + lat, L.face > 0 ? L.z1 + off : L.z0 - off, 1, 0, 0, L.face, n, .6, L.face > 0 ? 0 : Math.PI);
+    else pile(L.face > 0 ? L.x1 + off : L.x0 - off, sd > 0 ? L.z1 - lat : L.z0 + lat, 0, 1, L.face, 0, n, .6, L.face > 0 ? Math.PI / 2 : -Math.PI / 2);
+  }
+}
 // World 第四輪之二（27-props.js 檔尾）：以 http(s) 開啟時把下面幾種換成 Sketchfab 模型，所以留住程式建模的網格（下載好才拿掉）
 const hydrantMesh = instanced(new Kit()
   .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)
@@ -591,6 +621,7 @@ for (const L of winSpots) {
     if (rnd() < .14 && !facBayAt(L, ci, fi)) (G || acs).push(facePoint(L, k, mg + (ci + .5) * ws, gH + fi * fh + .18 * fh + .02, .22));
   }
   if (escCol >= 0 && L.mass && L.mass.bays.some(b => b.c1 >= escCol - 1 && b.c0 <= escCol)) escCol = -1;
+  L.escC = escCol;   // 下面的落水管與室外機避開逃生梯（只記下來，不抽亂數）
   if (escCol >= 0) for (let fi = 0; fi < nF; fi++) (G || escapes).push(facePoint(L, k, mg + escCol * ws, gH + fi * fh + .18 * fh - .1, .62));
   const RG = roofKind(L) || L.crown ? { push() {} } : null;   // 斜屋頂（19-roofs.js）與天樞島的塔冠（20-isle.js）上不擺水塔與空調箱，亂數照抽
   // 天樞島的退台塔擺在最上一層（往裡退 ti、頂高 ty）；廠房樓 80 m 以下都可能有水塔
@@ -607,6 +638,56 @@ for (const L of winSpots) {
     if (f.style !== 3 && y < 75 && r() < .55) { const [x, z] = at(side(), .3 + r() * .4); towers.push({ x, y, z, ry: r() * 6, s: .8 + r() * .4, zn: null }); }
     for (let n = 0; n < 2; n++) if (r() < .6) { const [x, z] = at(side(), .2 + r() * .6); roofBits.push({ x, y, z, ry: ry + Math.floor(r() * 4) * Math.PI / 2, s: .7 + r() * .6, zn: null }); }
   }
+}
+// 立面外掛物（質感改善清單 #7）：一般樓房正面的落水管（程式建模，兩種開啟方式都有）與窗間牆上的分離式冷氣室外機（27-props.js 下載 Poly Haven 的模型才擺）。
+// 照上面同一套窗格（gH、fh、ws、cols、mg）：落水管在離面的一端 0.75 m（轉角隅石 0.58 m 寬）、離牆 0.2 m（腰線凸出 0.14 m），從人行道接到簷口下；
+// 室外機在兩扇窗之間的窗間牆、每層樓板上 0.25 層高起（一層 3.1 m 時窗楣到上一層窗台只有 0.87 m，放不下 0.93 m 高的機子）。凸窗旁、逃生梯那兩開間不擺。
+// 自己的亂數，上面窗台設施的序列不變
+const downpipes = [], pipeClamps = [], wallAcs = [[], []];
+{
+  const r = rng(2611);
+  for (const L of winSpots) {
+    if (L.ghost) continue;
+    const k = L.axis === 'z' ? (L.face > 0 ? 'pz' : 'nz') : (L.face > 0 ? 'px' : 'nx');
+    const fw = k === 'pz' || k === 'nz' ? L.x1 - L.x0 : L.z1 - L.z0;
+    const ws = L.style === 2 ? 2.2 : 2.5, fh = L.fh, gH = 4.6, nF = Math.floor((L.h - gH - .7) / fh);
+    const cols = Math.max(1, Math.floor((fw - 1) / ws)), mg = (fw - cols * ws) / 2, esc = L.escC ?? -1;
+    const escU = esc >= 0 ? mg + esc * ws : -99;   // 逃生梯平台中心（寬 5.2 m）
+    // 落水管：一半的樓一支，挑一端；那端 3.2 m 內有逃生梯就換另一端，兩端都有就不擺
+    if (r() < .5 && L.h > 7) {
+      let u = r() < .5 ? .75 : fw - .75;
+      if (Math.abs(u - escU) < 3.2) u = fw - u;
+      if (Math.abs(u - escU) >= 3.2) {
+        const y1 = L.h - 1.05, p = facePoint(L, k, u, .15, .2);
+        downpipes.push({ ...p, sy: y1 - .15 });
+        pipeClamps.push(...Array.from({ length: Math.floor((y1 - 1) / 2.2) }, (_, i) => facePoint(L, k, u, 1.2 + i * 2.2, .2)));
+        downpipes.at(-1).top = facePoint(L, k, u, y1, .2);
+      }
+    }
+    // 室外機：窗間牆（ci 是右邊那扇窗的開間）每個 5%，霓虹區、舊碼頭與鐵灣多一倍
+    const dist = district((L.x0 + L.x1) / 2, (L.z0 + L.z1) / 2), pk = /^(霓虹|舊碼頭|鐵灣|琥珀)/.test(dist) ? .1 : .05;
+    for (let fi = 1; fi < nF; fi++) for (let ci = 1; ci < cols; ci++) {
+      const u = mg + ci * ws;
+      if (r() > pk || facBayAt(L, ci - 1, fi) || facBayAt(L, ci, fi) || Math.abs(u - escU) < 3.4 || Math.abs(u - .75) < .9 || Math.abs(u - (fw - .75)) < .9) continue;
+      wallAcs[r() < .35 ? 1 : 0].push(facePoint(L, k, u + (r() - .5) * .3, gH + fi * fh + .25 * fh, .19));
+    }
+  }
+}
+// 落水管：直管（單位高度，sy 拉長）、頂上的集水斗與接進簷口的彎管、底下往外彎的出水口；每 2.2 m 一個管箍（另一組實例）
+{
+  const col = 0x6c6d69, k = new Kit();   // 烤漆或 PVC 管（鍍鋅的金屬度高，白天整支映成天空的藍）
+  k.cyl(0, .5, 0, .05, .05, 1, 8, col, TX.enamel);
+  instanced(k.build(), MAT.ux, downpipes, 0, null, 200);
+  const h = new Kit();
+  h.box(0, .12, .02, .3, .24, .22, col, TX.enamel).box(0, .26, .02, .34, .04, .26, 0x55565a, TX.enamel);   // 集水斗
+  h.bar(0, .24, -.06, 0, .5, -.2, .07, .07, col, TX.enamel);   // 接到簷口下的雨水槽
+  instanced(h.build(), MAT.ux, downpipes.map(d => d.top), 0, null, 200);
+  const sh = new Kit();
+  sh.bar(0, .3, 0, 0, .05, .16, .1, .1, col, TX.enamel);   // 出水口（往外彎）
+  instanced(sh.build(), MAT.ux, downpipes, 0, null, 160);
+  const c = new Kit();
+  c.cyl(0, 0, 0, .065, .065, .05, 8, 0x2a2b2c, TX.iron).box(0, 0, -.13, .03, .04, .22, 0x2a2b2c, TX.iron);   // 管箍與固定在牆上的鐵片
+  instanced(c.build(), MAT.ux, pipeClamps, 0, null, 120);
 }
 // 窗型冷氣（照公寓外牆上的窗機）：機身、前面板的出風百葉與進風格柵、右側的操作面板、兩側散熱百葉、下面的三角托架。局部 +z 朝外，牆在 z ≈ -0.22
 {

@@ -7038,6 +7038,111 @@
    }
   ]
  },
+ "clutter": {
+  "kb": 194,
+  "items": {
+   "bag": {
+    "w": 0.53,
+    "d": 0.46,
+    "h": 0.57,
+    "tris": 1010
+   },
+   "bag2": {
+    "w": 0.54,
+    "d": 0.47,
+    "h": 0.43,
+    "tris": 1088
+   },
+   "box": {
+    "w": 0.39,
+    "d": 0.52,
+    "h": 0.34,
+    "tris": 846
+   },
+   "crate": {
+    "w": 0.51,
+    "d": 0.41,
+    "h": 0.25,
+    "tris": 1354
+   },
+   "tyre": {
+    "w": 0.6,
+    "d": 0.16,
+    "h": 0.6,
+    "tris": 864
+   }
+  },
+  "credits": [
+   {
+    "file": "trashbag",
+    "title": "Trashbag",
+    "author": "Benny Weimer",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/trashbag"
+   },
+   {
+    "file": "compost_bag_02",
+    "title": "Compost Bag 02",
+    "author": "Satyaki Mandal",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/compost_bag_02"
+   },
+   {
+    "file": "cardboard_box_01",
+    "title": "Cardboard Box 01",
+    "author": "Rahul Chaudhary",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/cardboard_box_01"
+   },
+   {
+    "file": "plastic_crate_02",
+    "title": "Plastic Crate 02",
+    "author": "Fabi_G",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/plastic_crate_02"
+   },
+   {
+    "file": "old_tyre",
+    "title": "Old Tyre",
+    "author": "MP",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/old_tyre"
+   }
+  ]
+ },
+ "wallgear": {
+  "kb": 207,
+  "items": {
+   "ac": {
+    "w": 0.8,
+    "d": 0.37,
+    "h": 0.93,
+    "tris": 1911
+   },
+   "ac_r": {
+    "w": 0.8,
+    "d": 0.37,
+    "h": 0.93,
+    "tris": 1912
+   }
+  },
+  "credits": [
+   {
+    "file": "exterior_aircon_unit",
+    "title": "Exterior Aircon Unit",
+    "author": "Monsta3D",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/exterior_aircon_unit"
+   },
+   {
+    "file": "exterior_aircon_unit",
+    "title": "Exterior Aircon Unit",
+    "author": "Monsta3D",
+    "license": "CC0 1.0",
+    "source": "https://polyhaven.com/a/exterior_aircon_unit"
+   }
+  ]
+ },
  "nat_trees": {
   "kb": 1227,
   "items": {

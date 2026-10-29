@@ -384,6 +384,26 @@
 | `dining` | [Modern Dining Room Table Set](https://sketchfab.com/3d-models/fc73e8d591ba45f8a3b369596593dcf5) | [Akshat (shooter24994)](https://sketchfab.com/shooter24994) | CC BY 4.0 |
 | `lounge` | [Couch Complete Set](https://sketchfab.com/3d-models/7806c2e5146f471c98a561fc245f07c6) | [Studio 23](https://sketchfab.com/studio23) | CC BY 4.0 |
 
+## 街頭雜物（`props/clutter.glb`）
+
+[Poly Haven](https://polyhaven.com/) 的 CC0 1.0 掃描模型（1k glTF，原檔在 gitignore 的 `games/260-neon-nightcity/.cache/polyhaven/`），由 `tools/props.mjs` 的 `clutter` 組減面成 `props/clutter.glb`；頁面只在 http(s) 下載，路緣、垃圾桶旁與牆角的雜物堆（`20-props.js` 的 `clutter`）。
+
+| 物件 | 用途 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| `bag` | 黑色垃圾袋 | [Trashbag](https://polyhaven.com/a/trashbag) | Benny Weimer | CC0 1.0 |
+| `bag2` | 白色塑膠袋 | [Compost Bag 02](https://polyhaven.com/a/compost_bag_02) | Satyaki Mandal | CC0 1.0 |
+| `box` | 紙箱 | [Cardboard Box 01](https://polyhaven.com/a/cardboard_box_01) | Rahul Chaudhary | CC0 1.0 |
+| `crate` | 塑膠籃 | [Plastic Crate 02](https://polyhaven.com/a/plastic_crate_02) | Fabi_G | CC0 1.0 |
+| `tyre` | 舊輪胎 | [Old Tyre](https://polyhaven.com/a/old_tyre) | MP | CC0 1.0 |
+
+## 牆上的冷氣室外機（`props/wallgear.glb`）
+
+同上，Poly Haven 的 CC0 1.0 掃描模型由 `tools/props.mjs` 的 `wallgear` 組減面成 `props/wallgear.glb`（原檔一個網格乾淨、一個生鏽，拆成兩件）；頁面只在 http(s) 下載，掛在樓房窗間牆上（`20-props.js` 的 `wallAcs`）。
+
+| 物件 | 用途 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| `ac`、`ac_r` | 冷氣室外機（乾淨、生鏽） | [Exterior Aircon Unit](https://polyhaven.com/a/exterior_aircon_unit) | Monsta3D | CC0 1.0 |
+
 ## 雲梯城寨（`enclave/`）
 
 `enclave.glb`、`enclave.json` 與 `hero.jpg` 全部由 `games/260-neon-nightcity/blender/enclave.py` 程序化產生（幾何、混凝土／鐵皮／鐵窗／晾衣／窗的貼圖都是程式畫的，招牌字用 macOS 的 Arial Unicode 轉成網格），沒有外部模型、貼圖或照片，和作品同一授權。

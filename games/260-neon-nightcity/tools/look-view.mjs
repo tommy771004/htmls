@@ -1,4 +1,4 @@
-// 質感比對截圖：固定的機位（雨夜 LAZARUS、夜裡的窄街、清晨的大道、下雨的白天、白天的高架橋下、白天的路面、路人近景），每個機位依序套用幾組選單設定各拍一張
+// 質感比對截圖：固定的機位（雨夜 LAZARUS、夜裡的窄街、清晨的大道、下雨的白天、白天的高架橋下、白天的路面、路緣的垃圾堆、立面外掛物、路人近景），每個機位依序套用幾組選單設定各拍一張
 // node tools/look-view.mjs [輸出資料夾]；VARS="ao=0;ao=1"（分號隔開每組，逗號隔開同一組的多個設定；post.x=v 改 __nc.post 的欄位）、ONLY="club,ped" 只拍這幾個機位、Q="&gfx=webgpu" 加網址參數、PAGE=web/ 底下的另一個檔名（和舊版比）
 // 以本機 HTTP 開頁（照片材質、實體建築與車才會下載）；固定 gpu=high，動態模糊關掉。輸出 <機位>-<組>.png，再用 ffmpeg 併成左右對照的 <機位>.png
 import { createServer } from 'node:http';
@@ -42,6 +42,23 @@ const STATIONS = {
     const [x, z] = e.pts[k], [x1, z1] = e.pts[k + 1], L = Math.hypot(x1 - x, z1 - z) || 1, dx = (x1 - x) / L, dz = (z1 - z) / L;
     nc.walk(); nc.tp(x - dz * 3, z + dx * 3);
     return [x - dz * 3, 2.2, z + dx * 3, x - dz * 3 + dx * 12, 0, z + dx * 3 + dz * 12];
+  } },
+  trash: { time: 16 * 60, wx: 'clear', cam: nc => {
+    // 路緣的垃圾袋堆（20-props.js 的 clutter）：找袋子最密的一堆，站在人行道上 3 m 外、略高看下去
+    const B = nc.props.clutter.bag; let best = null, bn = 0;
+    for (let i = 0; i < B.length; i += 3) { const n = B.filter(b => Math.hypot(b.x - B[i].x, b.z - B[i].z) < 2).length; if (n > bn) { bn = n; best = B[i]; } }
+    nc.walk(); nc.tpL(best.x + 4, best.z + 4);
+    const e = nc.W(best.x + 2.6, best.z + 1.6), t = nc.W(best.x, best.z);
+    return [e[0], 1.6, e[1], t[0], .4, t[1]];
+  } },
+  wall: { time: 15 * 60, wx: 'clear', cam: nc => {
+    // 立面外掛物（20-props.js 的落水管與室外機）：找一台離落水管不遠、二到四樓的室外機，站在它前方 7 m、抬頭看
+    const A = nc.props.wallAcs.flat(), D = nc.props.downpipes;
+    const a = A.find(a => a.y < 14 && D.some(d => Math.hypot(d.x - a.x, d.z - a.z) < 8)) || A[0];
+    const ox = Math.sin(a.ry), oz = Math.cos(a.ry);
+    nc.walk(); nc.tpL(a.x + ox * 7, a.z + oz * 7);
+    const e = nc.W(a.x + ox * 7 + oz * 2, a.z + oz * 7 - ox * 2), t = nc.W(a.x, a.z);
+    return [e[0], 1.7, e[1], t[0], a.y + .5, t[1]];
   } },
   ped: { time: 20 * 60, wx: 'clear', cam: nc => {
     // 夜店門口的保鑣（站著不動）：斜前方 2.4 m、胸口高度

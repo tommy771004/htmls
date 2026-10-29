@@ -322,6 +322,16 @@ if (W2.on && GLB_VS_I !== GLB_VS) {
       w2Inst(it.pier, FWY_PIERS.map(t => ({ x: t.x, y: t.y0, z: t.z, ry: t.ry, sy: t.h / H, zn: null })), 0, W2R.mid * 2);
       w2Drop(fwyPierMesh); W2.swapped.push('pier'); W2.n.pier = FWY_PIERS.length;
     }),
+    // ─── 街頭雜物（20-props.js 的 clutter，質感改善清單 #6）：Poly Haven 的垃圾袋、紙箱、塑膠籃、舊輪胎，沒有碰撞 ───
+    w2Load('clutter', it => {
+      for (const k of Object.keys(clutter)) w2Inst(it[k], clutter[k], LY.NOREFL, W2R.small);
+      W2.swapped.push('clutter'); W2.n.clutter = Object.values(clutter).reduce((a, L) => a + L.length, 0);
+    }),
+    // ─── 窗間牆上的分離式冷氣室外機（20-props.js 的 wallAcs，質感改善清單 #7）：乾淨的與生鏽的兩款 ───
+    w2Load('wallgear', it => {
+      w2Inst(it.ac, wallAcs[0], LY.NOREFL, W2R.mid); w2Inst(it.ac_r, wallAcs[1], LY.NOREFL, W2R.mid);
+      W2.swapped.push('wallAc'); W2.n.wallAc = wallAcs[0].length + wallAcs[1].length;
+    }),
     w2Load('st2_street', it => {
       const BINS = ['bin_k', 'bin_g', 'bin_b', 'wheelie'];
       w2Group(bins, 4, t => Math.floor(w2Hash(t.x, t.z) * 4)).forEach((L, k) => w2Inst(it[BINS[k]], L, LY.NOREFL, W2R.small));

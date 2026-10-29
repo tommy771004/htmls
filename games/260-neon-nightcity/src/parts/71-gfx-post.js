@@ -67,10 +67,11 @@ if (GFX !== 'webgl') {
     });
     gfxPort(mAOBlur, m => {
       const u = m.uniforms, src = gfxT(u.tSrc), dir = gfxU(u.uDir);
+      // 取樣結果直接取 .x／.y，不要先 .rg 再取分量：Chrome 153 的 Tint 遇到「重疊的 swizzle」編不過（swizzle view instruction still has usages after lowering），156 沒事
       return passMat(Fn(() => {
-        const c = src(Q).rg.toVar(), s = c.x.toVar(), w = float(1).toVar(), tol = c.y.mul(.06).add(.05);
+        const c = src(Q).toVar(), s = c.x.toVar(), w = float(1).toVar(), tol = c.y.mul(.06).add(.05);
         for (let i = 1; i <= 3; i++) {
-          const k = 1 - i * .25, p = src(Q.add(dir.mul(i))).rg, q = src(Q.sub(dir.mul(i))).rg;
+          const k = 1 - i * .25, p = src(Q.add(dir.mul(i))), q = src(Q.sub(dir.mul(i)));
           const kp = max(float(1).sub(abs(p.y.sub(c.y)).div(tol)), 0).mul(k), kq = max(float(1).sub(abs(q.y.sub(c.y)).div(tol)), 0).mul(k);
           s.addAssign(p.x.mul(kp).add(q.x.mul(kq))); w.addAssign(kp.add(kq));
         }
@@ -89,7 +90,7 @@ if (GFX !== 'webgl') {
     return passMat(Fn(() => {
       const s = float(0).toVar();
       Loop({ start: 0, end: EYE_H, type: 'int', name: 'ey' }, ({ ey }) => { Loop({ start: 0, end: EYE_W, type: 'int', name: 'ex' }, ({ ex }) => { s.addAssign(src(vec2(float(ex), float(ey)).add(.5).div(vec2(EYE_W, EYE_H))).r); }); });
-      const L = s.div(EYE_W * EYE_H), p = prev(vec2(.5)).rg;
+      const L = s.div(EYE_W * EYE_H), p = prev(vec2(.5));
       return vec4(TSL.select(reset.greaterThan(.5), vec2(L), vec2(mix(p.x, L, k.x), mix(p.y, L, k.y))), 0, 1);
     })());
   });
@@ -125,7 +126,7 @@ if (GFX !== 'webgl') {
       c.addAssign(tBloom(p).rgb.mul(bloomK));
       If(volOn.greaterThan(0), () => { c.addAssign(tVol(p.add(volT.mul(vec2(.5, .5)))).rgb.add(tVol(p.add(volT.mul(vec2(-.5, .5)))).rgb).add(tVol(p.add(volT.mul(vec2(.5, -.5)))).rgb).add(tVol(p.sub(volT.mul(.5))).rgb).mul(.25)); });
       c.mulAssign(ex.mul(flash.mul(.5).add(1)));
-      If(eyeOn.greaterThan(0), () => { const e = tEye(vec2(.5)).rg; c.mulAssign(clamp(exp(e.x.sub(e.y).mul(.5)), .55, 1.8)); });   // 眼睛適應
+      If(eyeOn.greaterThan(0), () => { const e = tEye(vec2(.5)); c.mulAssign(clamp(exp(e.x.sub(e.y).mul(.5)), .55, 1.8)); });   // 眼睛適應
       // 高光肩部（場館的 ENV.post.knee／range）
       If(hi.x.greaterThan(0), () => { const L = max(max(c.r, c.g), c.b).toVar(); If(L.greaterThan(hi.x), () => { const e = L.sub(hi.x); c.mulAssign(hi.x.add(e.div(e.div(hi.y).add(1))).div(L)); }); });
       c.assign(aces(c));

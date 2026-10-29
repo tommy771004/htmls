@@ -72,7 +72,9 @@ function summonCar() {
 // 滑鼠：點畫面鎖定游標；沒鎖定時拖曳也能轉
 const cvs = R.domElement;
 let drag = null;
-cvs.addEventListener('click', () => { if (started && !isTouch && !dlg.open && !document.pointerLockElement) cvs.requestPointerLock?.(); });
+// requestPointerLock 在新版 Chrome 回傳 Promise，不能鎖（iframe、無頭）時會 reject，接住免得變成未捕捉例外
+const lockPtr = () => cvs.requestPointerLock?.()?.catch?.(() => {});
+cvs.addEventListener('click', () => { if (started && !isTouch && !dlg.open && !document.pointerLockElement) lockPtr(); });
 document.addEventListener('pointerlockchange', () => $('capture').classList.toggle('off', !!document.pointerLockElement));
 cvs.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') drag = { x: e.clientX, y: e.clientY }; });
 addEventListener('pointerup', e => { if (e.pointerType === 'mouse') drag = null; });
@@ -386,7 +388,7 @@ go.addEventListener('click', () => {
   started = true; sfx.init(); warmGo();   // 27-props.js：進場後背景載入每幀只佔 6 ms、走近才下載的道具先傳貼圖
   $('start').classList.add('gone'); $('hud').classList.add('on'); $('touch').classList.add('on');
   setTimeout(() => { $('start').style.display = 'none'; }, 700);
-  if (!isTouch) cvs.requestPointerLock?.();
+  if (!isTouch) lockPtr();
   cvs.focus();
   if (!storyGo()) toast('門禁：今晚 LAZARUS 只放名單上的人');   // 69-w0-story.js：新存檔直接進序章
 });
@@ -406,7 +408,7 @@ window.__nc = {
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
   story: storyApi,   // 69-w0-story.js：主線（go(id)、state()、skip()）
   ready: true, city: { blocks, lots, bldPlace }, gpu: GPU, reflFar: m => { reflFarT = m; },   // 街區與地塊（挑設施街區、驗收用）；顯示卡分級（00-core.js）與倒影遠平面（70-render.js，null 照等級）
-  scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, air: airApi, xrail: xrApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, story: storyApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
+  scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, clutter, wallAcs, downpipes, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, air: airApi, xrail: xrApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, story: storyApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   perf: perfApi,   // 96-perf.js：效能面板（?perf=1）、stats()、stalls()、route() 固定路線量測
   // 碰撞：靜態盒（世界 AABB 是 bx0…；有 f 的盒 x0…z1 是 f 框裡的座標）、圓柱、每幀重建的圓；collide(x, z, r, y) 照玩家走路的方式推一次（空氣牆稽核用）

@@ -499,6 +499,20 @@ export const SETS = [
       { id: 'booth', file: 'phone_booth', h: 2.4 },
       { id: 'newsbox', file: 'newsbox', h: 1.2 },
     ] },
+  // 街頭雜物（27-props.js 的 clutter 那段，質感改善清單 #6）：Poly Haven 的 CC0 掃描（.cache/polyhaven/，原檔是 1k glTF，轉成 glb 並把作者寫進 asset.extras）。
+  // 原檔已是公尺；每件會擺上千份，各自減面到一千面上下
+  { out: 'clutter', src: '.cache/polyhaven', tex: 512, metalMax: .1, items: [
+    { id: 'bag', file: 'trashbag', scale: 1, simp: [.22, .01] },   // 黑色垃圾袋，約 0.53 × 0.58 × 0.46 m
+    { id: 'bag2', file: 'compost_bag_02', scale: 1, simp: [.09, .01] },   // 裝滿的白色塑膠袋
+    { id: 'box', file: 'cardboard_box_01', scale: 1, simp: [.05, .01] },   // 紙箱 0.39 × 0.34 × 0.52 m
+    { id: 'crate', file: 'plastic_crate_02', scale: 1, simp: [.15, .01] },   // 塑膠籃（牛奶箱）
+    { id: 'tyre', file: 'old_tyre', scale: 1, simp: [.3, .01] },   // 立著的舊輪胎，軸沿 z
+  ] },
+  // 立面外掛物（20-props.js 的 wallAc，質感改善清單 #7）：Poly Haven 的分離式冷氣室外機（原檔兩台並排，乾淨的一台、生鏽的一台拆開），含牆上的托架與排水管；正面朝 +z
+  { out: 'wallgear', src: '.cache/polyhaven', tex: 512, metalMax: .3, items: [
+    { id: 'ac', file: 'exterior_aircon_unit', scale: 1, drop: /rusted/, simp: [.2, .01] },
+    { id: 'ac_r', file: 'exterior_aircon_unit', scale: 1, keepPath: /rusted/, simp: [.2, .01] },
+  ] },
   // 樹：楓樹（拿掉底下的草皮；葉片貼圖沒有 alpha，白底當透明——但葉子外面多半是淺綠的延伸填色，白底只佔一點，重跑這組之後要再跑 tools/leafkey.mjs 補葉形）、兩棵垂柳（原檔並排，依 x 切開）、三棵一叢的橡樹。樹幹減面，葉片卡不動
   { out: 'nat_trees', src: '.cache/world2', tex: 512, metalMax: 0, mask: /lea(f|ves)/i, keyWhite: /^sugar_maple_leaf$/, noEmi: /leaf|grass/i, simplifyMat: [[/bark/i, .2, .02]],
     items: [
