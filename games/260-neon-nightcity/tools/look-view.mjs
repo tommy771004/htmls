@@ -126,6 +126,15 @@ STATIONS.acstreak = { time: 15 * 60, wx: 'cloudy', cam: nc => {
   const ox = Math.sin(a.ry), oz = Math.cos(a.ry); nc.walk(); nc.tpL(a.x + ox * 7, a.z + oz * 7);
   const e = nc.W(a.x + ox * 6 + oz * 1.5, a.z + oz * 6 - ox * 1.5), t = nc.W(a.x, a.z); return [e[0], 1.7, e[1], t[0], a.y - .6, t[1]];
 } };
+// 灰泥牆（style 2）的剝漆、重新上漆、撕掉的海報、返潮鹽霜：正對一棟的立面，近看一樓上下（stucco）與二、三樓（stucco2）
+const stuccoCam = ty => new Function(`return nc => {
+  const lots = nc.city.lots, i = lots.findIndex(L => !L.ghost && !L.glb && !L.special && L.style === 2 && L.h > 12); if (i < 0) return null;
+  const L = lots[i], cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2, [nx, nz] = L.axis === 'z' ? [0, L.face] : [L.face, 0], hw = (L.axis === 'z' ? L.z1 - L.z0 : L.x1 - L.x0) / 2;
+  const fx = cx + nx * hw, fz = cz + nz * hw; nc.walk(); nc.tpL(fx + nx * 8, fz + nz * 8);
+  const e = nc.W(fx + nx * 4.5 + nz * 1.5, fz + nz * 4.5 - nx * 1.5), t = nc.W(fx, fz); return [e[0], 1.6, e[1], t[0], ${ty}, t[1]];
+}`)();   // 機位函式是用 toString 送進頁面的，閉包裡的 ty 會不見，所以把數字寫進原始碼
+STATIONS.stucco = { time: 15 * 60, wx: 'cloudy', cam: stuccoCam(1.6) };
+STATIONS.stucco2 = { time: 15 * 60, wx: 'cloudy', cam: stuccoCam(7) };
 function sideWalk(nc, i, side, off, y) {
   // 人行道上離牆 off 公尺、沿街看 20 m 外（稍微偏向牆）：牆腳、店面與地面的交界都在畫面裡
   const L = nc.city.lots[i];
