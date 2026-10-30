@@ -2,7 +2,7 @@
 // 材質 "char"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{\"SCAN\":\"*\"}": {
-  h: "1f96w5p1rhf", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
+  h: "sil3v51smy", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
   uniforms: [{"name":"uC","type":"vec3","size":10,"src":"uC"},{"name":"uGlow","type":"vec4","src":"uGlow"},{"name":"uPat","type":"vec4","src":"uPat"},{"name":"uTrait","type":"vec4","src":"uTrait"},{"name":"uCov","type":"vec4","src":"uCov"},{"name":"uAtlas","type":"sampler2D","src":"uAtlas"},{"name":"uPatC","type":"vec3","src":"uPatC"},{"name":"uInnerC","type":"vec3","src":"uInnerC"},{"name":"uMap","type":"sampler2D","src":"uMap"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vP","type":"vec3","src":"vP"},{"name":"vWB","type":"vec3","src":"vWB"},{"name":"vWC","type":"vec3","src":"vWC"},{"name":"vSk","type":"vec3","src":"vSk"},{"name":"vWP","type":"vec4","src":"vWP"},{"name":"vWN","type":"vec3","src":"vWN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vSlot","type":"float","src":"vSlot"}],
   attributes: [{"name":"aSlot","type":"float","src":"aSlot"},{"name":"aPat","type":"vec3","src":"aPat"},{"name":"aUnn","type":"vec3","src":"aUnn"},{"name":"aWP","type":"vec4","src":"aWP"},{"name":"aUnp","type":"vec4","src":"aUnp"},{"name":"aWA","type":"vec4","src":"aWA"},{"name":"aWB","type":"vec4","src":"aWB"},{"name":"aWC","type":"vec4","src":"aWC"},{"name":"aWN","type":"vec4","src":"aWN"}],
@@ -539,7 +539,7 @@ export default {
   },
 },
 "{}": {
-  h: "60or9o1rh5", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
+  h: "a3be481smo", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: true, libF: true,
   uniforms: [{"name":"uC","type":"vec3","size":10,"src":"uC"},{"name":"uGlow","type":"vec4","src":"uGlow"},{"name":"uPat","type":"vec4","src":"uPat"},{"name":"uTrait","type":"vec4","src":"uTrait"},{"name":"uCov","type":"vec4","src":"uCov"},{"name":"uAtlas","type":"sampler2D","src":"uAtlas"},{"name":"uPatC","type":"vec3","src":"uPatC"},{"name":"uInnerC","type":"vec3","src":"uInnerC"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vP","type":"vec3","src":"vP"},{"name":"vWB","type":"vec3","src":"vWB"},{"name":"vWC","type":"vec3","src":"vWC"},{"name":"vSk","type":"vec3","src":"vSk"},{"name":"vWP","type":"vec4","src":"vWP"},{"name":"vWN","type":"vec3","src":"vWN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vSlot","type":"float","src":"vSlot"}],
   attributes: [{"name":"aSlot","type":"float","src":"aSlot"},{"name":"aPat","type":"vec3","src":"aPat"},{"name":"aUnn","type":"vec3","src":"aUnn"},{"name":"aWP","type":"vec4","src":"aWP"},{"name":"aUnp","type":"vec4","src":"aUnp"},{"name":"aWA","type":"vec4","src":"aWA"},{"name":"aWB","type":"vec4","src":"aWB"},{"name":"aWC","type":"vec4","src":"aWC"},{"name":"aWN","type":"vec4","src":"aWN"}],
@@ -1118,7 +1118,25 @@ export default {
 
     		} );
 
-    		rgh.assign( clamp( sub( .56, uRain.mul( .09 ) ).add( uTrait.z.mul( .06 ) ), .36, .68 ) );
+    		rgh.assign( clamp( sub( .66, uRain.mul( .09 ) ).add( uTrait.z.mul( .06 ) ), .42, .74 ) );
+
+    		If( s.equal( 0 ), () => {
+
+    			rgh.subAssign( mul( .06, smoothstep( 1.5, 1.6, vP.x ) ).mul( smoothstep( .02, .07, vP.z ) ).mul( smoothstep( .05, .02, abs( vP.y ) ) ) );
+
+    		} );
+
+    		const pd = length( uCam.sub( vW ) ).toVar();
+
+    		If( pd.lessThan( 2.5 ), () => {
+
+    			const pp = vP.mul( 260. ).toVar();
+    			const z0 = floor( pp.z ).toVar(), fz = smoothstep( 0., 1., fract( pp.z ) ).toVar();
+    			const o = vec2( 17.31, 31.73 ).toVar();
+    			const na = mix( n2( pp.xy.add( z0.mul( o ) ) ), n2( pp.xy.add( z0.add( 1. ).mul( o ) ) ), fz ).toVar(), nb = mix( n2( pp.yx.mul( 1.13 ).add( 5.1 ).add( z0.mul( o ) ) ), n2( pp.yx.mul( 1.13 ).add( 5.1 ).add( z0.add( 1. ).mul( o ) ) ), fz ).toVar();
+    			n.assign( normalize( n.add( vec3( na.sub( .5 ), nb.sub( .5 ), na.add( nb ).sub( 1. ).mul( .5 ) ).mul( .07 ).mul( smoothstep( 2.5, 1., pd ) ) ) ) );
+
+    		} );
 
     	} ).ElseIf( s.equal( 10 ), () => {
 
@@ -1703,6 +1721,7 @@ export default {
     		} );
 
     		rgh.assign( clamp( vWP.z.sub( wcode.mul( 10. ) ).sub( uRain.mul( .12 ).mul( clamp( n.y, 0., 1. ) ) ), .3, .95 ) );
+    		rgh.assign( mix( .48, .95, rgh.sub( .3 ).div( .65 ) ) );
 
     		If( tp.equal( 2 ), () => {
 
@@ -2098,14 +2117,15 @@ export default {
 
     		col.mulAssign( add( 1., weave ) );
     		n.assign( normalize( n.add( vec3( foldWave.mul( .35 ), foldWave, foldWave.mul( .25 ) ) ) ) );
-    		const baseRgh = select( s.equal( 3 ).or( s.equal( 4 ) ), .78, select( s.equal( 9 ), .72, mix( .86, .42, uTrait.y ) ) ).toVar();
+    		const baseRgh = select( s.equal( 3 ).or( s.equal( 4 ) ), .84, select( s.equal( 9 ), .76, mix( .9, .58, uTrait.y ) ) ).toVar();
     		const rainSh = uRain.mul( clamp( n.y, 0., 1. ) ).mul( .45 ).toVar();
     		col.mulAssign( sub( 1., rainSh.mul( .22 ) ) );
-    		rgh.assign( clamp( baseRgh.sub( rainSh.mul( .28 ) ), .26, .90 ) );
+    		rgh.assign( clamp( baseRgh.sub( rainSh.mul( .28 ) ), .4, .92 ) );
 
     	} );
 
-    	const c = shade( vW, n, v, col, rgh, met ).toVar();
+    	const sRgh = select( isSkin.greaterThan( .5 ).or( s.equal( 8 ) ).or( s.equal( 6 ) ).or( met.greaterThan( .5 ) ).or( rgh.lessThan( .25 ) ), rgh, mix( rgh, 1., .55 ) ).toVar();
+    	const c = shade( vW, n, v, col, sRgh, met ).toVar();
 
     	If( s.equal( 10 ).and( met.greaterThan( .5 ) ), () => {
 
@@ -2119,7 +2139,8 @@ export default {
     		const wrap = max( 0., smoothstep( -0.48, .45, ndl ).sub( max( ndl, 0. ) ) ).toVar();
     		const back = pow( clamp( dot( v, uSun.negate() ), 0., 1. ), 3. ).mul( sub( 1., abs( ndl ).mul( .55 ) ) ).toVar();
     		const sssCol = vec3( 1., .32, .16 ).mul( add( .32, mul( .68, vCol ) ) ).toVar();
-    		c.addAssign( sssCol.mul( wrap.mul( .28 ).add( back.mul( .14 ) ).mul( uSunCol ).add( col.mul( add( .05, mul( .03, uDay ) ) ) ) ) );
+    		const E = min( c.div( max( col, vec3( .03 ) ) ), vec3( 3. ) ).toVar();
+    		c.addAssign( sssCol.mul( wrap.mul( .28 ).add( back.mul( .14 ) ).mul( uSunCol ).add( col.mul( E ).mul( .14 ) ) ) );
 
     	} );
 
@@ -2131,6 +2152,9 @@ export default {
     		const sinTH = sqrt( max( 0., sub( 1., tdh.mul( tdh ) ) ) ).toVar();
     		const specH = pow( sinTH, 28. ).mul( max( 0., dot( n, v ) ) ).toVar();
     		c.addAssign( col.mul( .6 ).add( vec3( .04 ) ).mul( specH ).mul( uSunCol.mul( .22 ).add( uFogHi.mul( .35 ) ) ) );
+    		const hU = normalize( vec3( 0., 1., 0. ).add( v ) ).toVar();
+    		const tdu = dot( tang, hU ).toVar(), specU = pow( sqrt( max( 0., sub( 1., tdu.mul( tdu ) ) ) ), 36. ).mul( max( 0., n.y ) ).toVar();
+    		c.addAssign( col.mul( .5 ).add( vec3( .03 ) ).mul( specU ).mul( min( c.div( max( col, vec3( .03 ) ) ), vec3( 3. ) ) ).mul( .35 ).mul( sub( 1., uDay.mul( .7 ) ) ) );
 
     	} );
 

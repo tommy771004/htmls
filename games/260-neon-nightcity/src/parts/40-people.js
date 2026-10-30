@@ -654,7 +654,17 @@ void main(){
     col = (s == 3 || s == 4 || s == 10 ? vSk : vCol) * skinDet;
     // 手腕與腳踝衣袖交界微遮蔽
     if (s == 2) col *= smoothstep(1.18, 1.12, vP.x) * .08 + .92;
-    rgh = clamp(.56 - uRain * .09 + uTrait.z * .06, .36, .68);
+    rgh = clamp(.66 - uRain * .09 + uTrait.z * .06, .42, .74);
+    // 臉的 T 字部位（額頭、鼻樑）比較油、高光窄一點；vP 是綁定姿勢的座標（x 高度、y 左右、z 前後）
+    if (s == 0) rgh -= .06 * smoothstep(1.5, 1.6, vP.x) * smoothstep(.02, .07, vP.z) * smoothstep(.05, .02, abs(vP.y));
+    // 毛孔與細紋：程式產生的微法線（像素小於毛孔就關掉，遠處不閃）；讓高光碎開，不再像塑膠
+    float pd = length(uCam - vW);
+    if (pd < 2.5) {
+      // 三維值雜訊（兩層 n2 沿 z 內插；只用二維的話沿第三軸拉成條紋），約 4 mm 一格
+      vec3 pp = vP * 260.; float z0 = floor(pp.z), fz = smoothstep(0., 1., fract(pp.z)); vec2 o = vec2(17.31, 31.73);
+      float na = mix(n2(pp.xy + z0 * o), n2(pp.xy + (z0 + 1.) * o), fz), nb = mix(n2(pp.yx * 1.13 + 5.1 + z0 * o), n2(pp.yx * 1.13 + 5.1 + (z0 + 1.) * o), fz);
+      n = normalize(n + vec3(na - .5, nb - .5, (na + nb - 1.) * .5) * .07 * smoothstep(2.5, 1., pd));
+    }
   } else if (s == 10) {
     // 穿上的衣服：vWP.x 圖案（39-wear-items.js 的 WEAR_PAT）、y 參數、z 粗糙度、w 部位（wear.py 的 PART）
     // 部位的小數是 wear.py 標的漸層（鏡片由上往下 0 → .8）；整數部位內插後可能是 4.99999，所以 +.05 再取整
@@ -1069,6 +1079,7 @@ void main(){
     // 針織／斜紋的細織紋只改顏色（不擾動法線，夜裡才不會整片斑駁）
     if (tp <= 1 && pt != 21 || tp >= 7 && tp <= 9) col *= 1. + (sin(vP.x * 610. + vP.y * 420.) * sin(vP.x * 380. - vP.z * 520.)) * .018;
     rgh = clamp(vWP.z - wcode * 10. - uRain * .12 * clamp(n.y, 0., 1.), .3, .95);
+    rgh = mix(.48, .95, (rgh - .3) / .65);   // 型錄的粗糙度照「看起來多亮」標（皮衣 .3、緞面 .4）：shade() 的高光太窄，直接用會在霓虹下變成乳膠，壓到 .48 以上（下面的金屬、鏡片、反光條照舊）
     if (tp == 2) { col = vec3(.62, .60, .56); rgh = .32; met = 1.; }
     else if (tp == 3) { col = vec3(1., .7, .3); rgh = .28; met = 1.; }
     else if (tp == 4) { emi = vWC * 2.4; col = vWC * .15; rgh = .4; }
@@ -1287,13 +1298,16 @@ void main(){
     col *= 1. + weave;
     n = normalize(n + vec3(foldWave * .35, foldWave, foldWave * .25));
     // 依布料屬性區分粗糙度（棉質針織偏霧、丹寧斜紋適中、皮衣／防風機能外套偏微亮；淋雨時肩膀受潮變深變潤）
-    float baseRgh = s == 3 || s == 4 ? .78 : s == 9 ? .72 : mix(.86, .42, uTrait.y);
+    // 布料的高光要寬而淡：粗糙度太低時霓虹燈管、路燈在 shade() 的窄高光會把整套衣服打成乳膠（皮衣也只到 0.58）
+    float baseRgh = s == 3 || s == 4 ? .84 : s == 9 ? .76 : mix(.9, .58, uTrait.y);
     float rainSh = uRain * clamp(n.y, 0., 1.) * .45;
     col *= 1. - rainSh * .22;
-    rgh = clamp(baseRgh - rainSh * .28, .26, .90);
+    rgh = clamp(baseRgh - rainSh * .28, .4, .92);
   }
 
-  vec3 c = shade(vW, n, v, col, rgh, met);
+  // 布料：纖維把高光散得很開，貼著輪廓的菲涅耳也弱；shade() 是共用的，這裡只把丟進去的粗糙度往 1 推（漫射不受影響）。皮膚、眼睛、頭髮、金屬與鏡片（< .25）照舊
+  float sRgh = isSkin > .5 || s == 8 || s == 6 || met > .5 || rgh < .25 ? rgh : mix(rgh, 1., .55);
+  vec3 c = shade(vW, n, v, col, sRgh, met);
   // 衣服上的金屬（扣環、鏡框、首飾）：shade() 沒有環境反射，金屬只剩高光，背光的金鍊是黑的；補上天空的反射（照粗糙度打折）
   if (s == 10 && met > .5) c += col * envMap(reflect(-v, n)) * (1. - rgh * .6) * .9;
 
@@ -1303,7 +1317,9 @@ void main(){
     float wrap = max(0., smoothstep(-.48, .45, ndl) - max(ndl, 0.));
     float back = pow(clamp(dot(v, -uSun), 0., 1.), 3.) * (1. - abs(ndl) * .55);
     vec3 sssCol = vec3(1., .32, .16) * (.32 + .68 * vCol);
-    c += sssCol * ((wrap * .28 + back * .14) * uSunCol + col * (.05 + .03 * uDay));
+    // 路燈與霓虹沒有方向可用：照實際收到的光（c ÷ 底色）補一點往紅偏的散射，暗處不再自己發橘光
+    vec3 E = min(c / max(col, vec3(.03)), vec3(3.));
+    c += sssCol * ((wrap * .28 + back * .14) * uSunCol + col * E * .14);
   }
 
   // 頭髮各向異性絲光帶（Kajiya-Kay 簡化冠部天使光環，讓深色頭髮在路燈與日光下有自然光澤而不死黑）
@@ -1314,6 +1330,10 @@ void main(){
     float sinTH = sqrt(max(0., 1. - tdh * tdh));
     float specH = pow(sinTH, 28.) * max(0., dot(n, v));
     c += (col * .6 + vec3(.04)) * specH * (uSunCol * .22 + uFogHi * .35);
+    // 夜裡：路燈從頭頂打下來的那道絲光（方向當正上方，強度照收到的光）
+    vec3 hU = normalize(vec3(0., 1., 0.) + v);
+    float tdu = dot(tang, hU), specU = pow(sqrt(max(0., 1. - tdu * tdu)), 36.) * max(0., n.y);
+    c += (col * .5 + vec3(.03)) * specU * min(c / max(col, vec3(.03)), vec3(3.)) * .35 * (1. - uDay * .7);
   }
 
   // 環境邊緣微輪廓光（比舊版收斂，避免白天像塑膠發光）

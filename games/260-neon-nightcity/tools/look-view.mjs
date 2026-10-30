@@ -87,6 +87,8 @@ const STATIONS = {
     return [E[0], 1.55, E[1], P[0], 1.35, P[1]];
   } },
 };
+STATIONS.pedday = { ...STATIONS.ped, time: 15 * 60 };   // 同一個保鑣，白天（人物著色對照日光）
+STATIONS.pedface = { ...STATIONS.ped, cam: nc => { const b = nc.spots.bouncer, d = nc.spots.clubDoor; nc.walk(); nc.tpL(d.x + 6, d.z + 5); const P = nc.W(b.x, b.z), E = nc.W(b.x + .45, b.z + .9); return [E[0], 1.72, E[1], P[0], 1.66, P[1]]; } };   // 臉的特寫（夜）
 function sideWalk(nc, i, side, off, y) {
   // 人行道上離牆 off 公尺、沿街看 20 m 外（稍微偏向牆）：牆腳、店面與地面的交界都在畫面裡
   const L = nc.city.lots[i];
