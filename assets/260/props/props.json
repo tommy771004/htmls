@@ -7143,6 +7143,78 @@
    }
   ]
  },
+ "vend": {
+  "kb": 1369,
+  "items": {
+   "pa_w": {
+    "w": 0.8,
+    "d": 0.65,
+    "h": 1.83,
+    "tris": 8650
+   },
+   "pa_b": {
+    "w": 1.16,
+    "d": 0.68,
+    "h": 1.83,
+    "tris": 10297
+   },
+   "red": {
+    "w": 1.14,
+    "d": 0.78,
+    "h": 1.95,
+    "tris": 13106
+   },
+   "sp_1": {
+    "w": 1.06,
+    "d": 0.83,
+    "h": 2,
+    "tris": 6992
+   },
+   "sp_2": {
+    "w": 1.06,
+    "d": 0.83,
+    "h": 2,
+    "tris": 7014
+   }
+  },
+  "credits": [
+   {
+    "file": "pasha",
+    "title": "vending machines",
+    "author": "Pasha (https://sketchfab.com/perga8-hAwguf-hybwup)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/vending-machines-ec9189f0429540f7a9b57a19d183d132"
+   },
+   {
+    "file": "pasha",
+    "title": "vending machines",
+    "author": "Pasha (https://sketchfab.com/perga8-hAwguf-hybwup)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/vending-machines-ec9189f0429540f7a9b57a19d183d132"
+   },
+   {
+    "file": "red",
+    "title": "Red Japanese Vending Machine",
+    "author": "Watanuki_San (https://sketchfab.com/tokyo45otaku)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/red-japanese-vending-machine-a8a6874f62da478f8572554959d3c62e"
+   },
+   {
+    "file": "spooky",
+    "title": "Japanese Inspired Vending Machines",
+    "author": "Spookyghostboo (https://sketchfab.com/spookyghostboo)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/japanese-inspired-vending-machines-2b3638c2c2a64633a3e11d473152c909"
+   },
+   {
+    "file": "spooky",
+    "title": "Japanese Inspired Vending Machines",
+    "author": "Spookyghostboo (https://sketchfab.com/spookyghostboo)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/japanese-inspired-vending-machines-2b3638c2c2a64633a3e11d473152c909"
+   }
+  ]
+ },
  "nat_trees": {
   "kb": 1227,
   "items": {

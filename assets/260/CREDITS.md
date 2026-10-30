@@ -404,6 +404,16 @@
 | :-- | :-- | :-- | :-- | :-- |
 | `ac`、`ac_r` | 冷氣室外機（乾淨、生鏽） | [Exterior Aircon Unit](https://polyhaven.com/a/exterior_aircon_unit) | Monsta3D | CC0 1.0 |
 
+## 飲料販賣機（`props/vend.glb`）
+
+Sketchfab 的三個模型（原檔在 gitignore 的 `games/260-neon-nightcity/.cache/vend/`），由 `tools/props.mjs` 的 `vend` 組拆成五款、擺正並縮成實物大小（高 1.83–2.0 m）；頁面只在 http(s) 下載，擺在關著的店面鐵捲門前（`60-venues.js` 的 `VEND`），以檔案開啟時是程式建模。修改：Pasha 的原檔兩台並排、拆成兩件並拿掉 SketchUp 的描邊線，Watanuki_San 的拿掉底下的水泥地板；罐子上的真實商標（Coca-Cola、Pocari Sweat、BOSS）、紅色機 GEORGIA 的燈箱與廣告、貼紙上的業者名模糊掉，Pasha 的展示窗加上背光。
+
+| 物件 | 用途 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- | :-- |
+| `pa_w`、`pa_b` | 白色、淺藍色販賣機 | [vending machines](https://sketchfab.com/3d-models/vending-machines-ec9189f0429540f7a9b57a19d183d132) | [Pasha](https://sketchfab.com/perga8-hAwguf-hybwup) | CC BY 4.0 |
+| `red` | 紅色販賣機 | [Red Japanese Vending Machine](https://sketchfab.com/3d-models/red-japanese-vending-machine-a8a6874f62da478f8572554959d3c62e) | [Watanuki_San](https://sketchfab.com/tokyo45otaku) | CC BY 4.0 |
+| `sp_1`、`sp_2` | 白色、深藍色販賣機 | [Japanese Inspired Vending Machines](https://sketchfab.com/3d-models/japanese-inspired-vending-machines-2b3638c2c2a64633a3e11d473152c909) | [Spookyghostboo](https://sketchfab.com/spookyghostboo) | CC BY 4.0 |
+
 ## 雲梯城寨（`enclave/`）
 
 `enclave.glb`、`enclave.json` 與 `hero.jpg` 全部由 `games/260-neon-nightcity/blender/enclave.py` 程序化產生（幾何、混凝土／鐵皮／鐵窗／晾衣／窗的貼圖都是程式畫的，招牌字用 macOS 的 Arial Unicode 轉成網格），沒有外部模型、貼圖或照片，和作品同一授權。

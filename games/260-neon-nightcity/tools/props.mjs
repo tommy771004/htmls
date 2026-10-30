@@ -513,6 +513,21 @@ export const SETS = [
     { id: 'ac', file: 'exterior_aircon_unit', scale: 1, drop: /rusted/, simp: [.2, .01] },
     { id: 'ac_r', file: 'exterior_aircon_unit', scale: 1, keepPath: /rusted/, simp: [.2, .01] },
   ] },
+  // 飲料販賣機（60-venues.js 的 VEND）：三個 Sketchfab 原檔（.cache/vend/，CC BY 4.0）拆成五款，正面朝 +z、高 1.83–2.0 m。
+  // Pasha 的原檔是兩台並排（白、藍，單位約 1/40 m，SketchUp 的 edge_color 描邊線拿掉），依 x 切開；Watanuki_San 的紅色機拿掉底下的水泥地板；
+  // Spookyghostboo 的兩台（藍、白）依節點分開。展示窗：Pasha 的商品圖照亮度發光（emi 燈種 .25），紅色機的燈管換成冷白；
+  // Pasha 的白、淺藍烤漆原檔接近全白（線性 0.94／0.99），太陽下會泛光，底色壓到七成；罐子上的真實商標（Coca-Cola、Pocari Sweat、BOSS）、紅色機 GEORGIA 的燈箱與廣告、Pasha 貼紙上的業者名模糊掉
+  { out: 'vend', src: '.cache/vend', tex: 1024, metalMax: .5, tint: { Color_M06_4: [.72, .6, 0], Color_I03: [.72, .6, 0] },
+    emi: [[/^material_[1467]$/, [.14, .15, .17], .25], [/^Vending_1_light$/, [.9, .95, 1], 0]],
+    texEdit: { ...Object.fromEntries(['Can_2', 'Can_6', 'Can_8', 'Can_9'].map((k) => [k, { blur: [[0, 0, 1, 1]] }])), material_2: { blur: [[0, .68, 1, .97]] },
+      ...Object.fromEntries(['Vending_1', 'Vending_1_sign_1', 'Vending_1_sign_2'].map((k) => [k, { blur: [[.435, .675, .55, .78], [.125, .37, .33, .475]] }])) },   // 紅色機的照片貼圖（三個材質共用）：GEORGIA 的燈箱與廣告
+    items: [
+      { id: 'pa_w', file: 'pasha', h: 1.83, drop: /^edge_color/, clip: [0, 64, -1e3, 1e3, -1e3, 1e3], seam: .004, sloppy: .3 },
+      { id: 'pa_b', file: 'pasha', h: 1.83, drop: /^edge_color/, clip: [64, 1e3, -1e3, 1e3, -1e3, 1e3], seam: .004, sloppy: .3 },
+      { id: 'red', file: 'red', h: 1.95, drop: /^Concrete_Floor/, orient: ['x', 'y'], simp: [.25, .005] },
+      { id: 'sp_1', file: 'spooky', h: 2, keepPath: /Vending_machine_1/, orient: ['x', 'y'] },
+      { id: 'sp_2', file: 'spooky', h: 2, keepPath: /Vending_machine_2/, orient: ['x', 'y'] },
+    ] },
   // 樹：楓樹（拿掉底下的草皮；葉片貼圖沒有 alpha，白底當透明——但葉子外面多半是淺綠的延伸填色，白底只佔一點，重跑這組之後要再跑 tools/leafkey.mjs 補葉形）、兩棵垂柳（原檔並排，依 x 切開）、三棵一叢的橡樹。樹幹減面，葉片卡不動
   { out: 'nat_trees', src: '.cache/world2', tex: 512, metalMax: 0, mask: /lea(f|ves)/i, keyWhite: /^sugar_maple_leaf$/, noEmi: /leaf|grass/i, simplifyMat: [[/bark/i, .2, .02]],
     items: [

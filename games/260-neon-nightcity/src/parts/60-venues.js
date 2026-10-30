@@ -69,17 +69,107 @@ worldHooks.push(() => { for (const L of outLights) if (!L.w) { [L.x, L.z] = toW(
 // 紅絨布繩的碰撞：沿繩子排五個小圓（間距 0.6、半徑 0.3，人擠不過去；以前是一個半徑 1.2 的圓，繩子前後各擋 1.2 m）
 const ROPE_CIRCLES = [-1.2, -.6, 0, .6, 1.2].map(d => ({ x: CLUB_X + d, z: CLUB_Z + 1.7, r: .3 }));
 circles.push(...ROPE_CIRCLES);
-// 販賣機（Blender 模型）
-{
-  const vm = prop('vending_machine', 1.1, 2.2, .9);
-  const list = [];
-  for (const su of shopUnits) if (!su.special && su.shut && rnd() < .18 && list.length < 14) {
-    const x = su.x + su.nx * .5 + su.nz * (su.w * .3), z = su.z + su.nz * .5 - su.nx * (su.w * .3);
-    if (!free(x, z, .8)) continue; claim(x, z, .8);
-    list.push({ x, y: .15, z, ry: Math.atan2(su.nx, su.nz) }); circles.push({ x, z, r: .55 });
-    outLights.push({ x: x + su.nx * .9, y: 1.4, z: z + su.nz * .9, col: lin(0x7fe7ff), r: 5, i: .7 });
+// 販賣機（程式建模，照 note.com 那篇的寫實做法：不用霓虹色塊，換成真的飲料販賣機）：
+// 機身是烤漆鐵板（白、紅、藍、白、深藍五款，對應 vend.glb 的五款實機的顏色，側面一條品牌色帶），正面是背光的展示窗（三排飲料樣品與價格條、按鈕）、
+// 右邊的投幣與紙鈔口、找零鈕、小螢幕，下面是取物口與踢腳板；頂上是背光的品牌燈箱。尺寸照實物：寬 0.98、高 1.83、深 0.72 m。
+// 擺放（原本：依序掃店面、每間 18%、擺滿 14 台就停，全擠在城的西北角、而且離鐵捲門 0.4 m 懸空）：
+// 整座城關著的店面都可能有，密度看區（舊區、國宅、霓虹區多，金融區少），騎樓下多一點；一叢 1–3 台並排、有時旁邊一個回收桶，
+// 背貼著凹進去的鐵捲門（09-mass.js 的 facShop 凹 0.3 m；騎樓再退 ARC_D）、靠在一邊的牆墩旁；叢與叢至少隔 32 m。
+// 沒有細模凹槽的立面（玻璃帷幕、醫院、天樞島）、整樓被隔壁擋住的面、安全屋的門、服裝店不放。
+// 以 http(s) 開啟時 27-props.js 下載 tools/props.mjs 的 vend 組（Sketchfab 的五款實機）換掉這裡的程式建模：並排的間距與背面貼牆的深度
+// 照每款模型的寬深（VEND_W／VEND_D），程式建模（0.98 × 0.72 m）只是退回用的。
+const VEND = [], VEND_BIN = [], VEND_MS = [];
+const VEND_W = [.8, 1.14, 1.16, 1.06, 1.06], VEND_D = [.65, .78, .68, .83, .83];   // vend.glb 的 pa_w、red、pa_b、sp_1、sp_2
+const VEND_V = [   // 機身、側面色帶與燈箱的品牌色、燈箱底色
+  { body: 0xdcdcd8, band: 0xb3262c, head: 0xc9ced2 },
+  { body: 0xa8262b, band: 0xe6e6e2, head: 0xd8d2cc },
+  { body: 0x2d4f8c, band: 0xe6e6e2, head: 0xc9d2dc },
+  { body: 0xe4e4e0, band: 0x2f5a8a, head: 0xd0d6dc },
+  { body: 0x1e2a58, band: 0xd8d8d4, head: 0xc9d2dc },
+];
+const VEND_DRINK = [0x2a5a9a, 0xb03030, 0xd8d0b8, 0x3a7a3a, 0xe0a030, 0x222222, 0xf0f0ee, 0x6a3a20, 0x8fb8d8, 0xc8c040];
+function vendKit(V, vi) {
+  const k = new Kit(), dim = (c, f) => new T.Color(c).multiplyScalar(f).getHex();
+  const W = .98, H = 1.83, D = .72, fz = D / 2;
+  k.box(0, H / 2 + .04, 0, W, H - .08, D, V.body, 10);                       // 機身
+  k.box(0, .04, .01, W - .04, .08, D - .04, 0x18191b, 2);                     // 踢腳板
+  k.box(0, H - .005, 0, W + .02, .012, D + .02, V.body, 10);                  // 頂蓋
+  for (const s of [-1, 1]) k.box(s * (W / 2 + .002), 1.05, 0, .004, 1.3, D * .82, V.band, 10);   // 側面色帶
+  k.box(0, 1.69, fz + .004, W - .1, .2, .008, dim(V.head, .55), 11);          // 燈箱
+  k.box(0, 1.69, fz + .009, W - .1, .055, .004, dim(V.band, .45), 11);        // 燈箱上的品牌色條
+  const dx = -.1;                                                             // 展示窗偏左，右邊是投幣區
+  k.box(dx, 1.12, fz + .004, .72, .96, .008, 0x141518, 2);                    // 展示窗的框
+  k.box(dx, 1.12, fz + .009, .68, .92, .004, dim(0xd8e0e6, .32), 11);         // 背光板
+  for (let r = 0; r < 3; r++) {
+    const y = .76 + r * .3;
+    for (let c = 0; c < 8; c++) {
+      const col = VEND_DRINK[(vi * 7 + r * 5 + c * 3 + (c >> 1)) % VEND_DRINK.length], tall = (r + c + vi) % 3 === 0;
+      k.box(dx - .3 + c * .086, y + .09 + (tall ? .015 : 0), fz + .025, .056, tall ? .15 : .12, .03, dim(col, .5), 11);   // 飲料樣品（罐與寶特瓶）
+      k.box(dx - .3 + c * .086, y + .005, fz + .016, .05, .018, .012, dim(c % 4 ? 0x3c78c8 : 0xc84040, .5), 11);   // 按鈕
+    }
+    k.box(dx, y + .03, fz + .013, .66, .022, .008, dim(0xf0f0ee, .4), 11);      // 價格條
   }
-  instanced(vm, MAT.uber, list);
+  const cx = .34;
+  k.box(cx, 1.05, fz + .005, .2, .62, .01, 0x26282c, 10);                     // 投幣區面板
+  k.box(cx, 1.28, fz + .011, .12, .05, .006, dim(0x6aa070, .4), 11);          // 金額小螢幕
+  k.box(cx, 1.16, fz + .012, .03, .07, .01, 0x8a8e94, 3);                     // 投幣口
+  k.box(cx, 1.04, fz + .012, .13, .03, .012, 0x0c0c0e, 2);                    // 紙鈔口
+  k.box(cx, .9, fz + .014, .06, .06, .02, 0x9a9ea4, 3);                       // 找零鈕
+  k.box(cx, .8, fz + .01, .1, .07, .02, 0x0e0f11, 2);                         // 找零口
+  k.box(dx, .3, fz + .006, .64, .2, .014, 0x0d0e10, 2);                       // 取物口
+  k.box(dx, .31, fz + .014, .6, .15, .004, 0x2a2e33, 1);                      // 取物口的翻蓋
+  return k.build();
+}
+function vendBinKit() {   // 回收桶：灰藍色塑膠桶，上面兩個投入孔、正面一條標籤
+  const k = new Kit();
+  k.box(0, .45, 0, .42, .9, .36, 0x5f6e7a, 2);
+  k.box(0, .905, 0, .44, .02, .38, 0x4a5761, 2);
+  for (const s of [-1, 1]) k.box(s * .1, .918, .02, .1, .006, .1, 0x08090a, 2);
+  k.box(0, .62, .182, .3, .1, .004, 0xd8dcdc, 10);
+  return k.build();
+}
+{
+  const lists = VEND_V.map(() => []), dens = d => /^灰石/.test(d) ? 1.5 : /^(霓虹|舊碼頭|雲杉坡|楓林里)/.test(d) ? 1.3 : /^(冠石|天樞金融)/.test(d) ? .35 : /^光環/.test(d) ? .7 : 1;
+  const G = 32, grid = new Map(), gk = (x, z) => Math.floor(x / G) * 8192 + Math.floor(z / G);
+  const spaced = (x, z) => { for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const q of grid.get(gk(x + a * G, z + b * G)) || []) if (Math.hypot(q[0] - x, q[1] - z) < G) return false; return true; };
+  for (const su of shopUnits) {
+    if (su.special || !su.shut) continue;
+    rnd();   // 舊的擺法每個關著的店面抽一次：照舊抽，後面的亂數序列不變
+    const L = su.lot, st = L.style;
+    if (L.glb || L.ghost || L.isle || !L.mass || st === 5 || st === 6 || st === 8 || su.wear) continue;
+    const h = facHash(L.seed + su.u * 1.37 + su.fk.charCodeAt(1) * .11, 61), arc = !!L.mass.arc && su.fk === L.mass.front;
+    if (h >= .13 * dens(district(su.x, su.z)) * (arc ? 1.5 : 1)) continue;
+    if (facCover(L, su.fk) > .05 || su.fk === 'pz' && aptDoorOn(su.x - su.w / 2, su.x + su.w / 2, su.z)) continue;
+    const h2 = facHash(L.seed + su.u, 62), side = facHash(L.seed + su.u, 63) < .5 ? -1 : 1, edge = su.w * .455 - .05;
+    const same = facHash(L.seed + su.u, 65) < .6, v0 = Math.floor(facHash(L.seed + su.u, 66) * VEND_V.length);
+    let vs = Array.from({ length: h2 < .35 ? 1 : h2 < .8 ? 2 : 3 }, (_, i) => same ? v0 : (v0 + i * 2) % VEND_V.length);
+    const run = k => vs.slice(0, k).reduce((a, v) => a + VEND_W[v] + .04, 0);   // 前 k 台並排佔的寬（台與台之間留 4 cm）
+    while (vs.length && run(vs.length) > edge * 2 - .1) vs.pop();
+    if (!vs.length) continue;
+    const n = vs.length, bin = n < 3 && facHash(L.seed + su.u, 64) < .55 && run(n) + .5 < edge * 2;
+    const tx = su.nz, tz = -su.nx, wall = (arc ? -ARC_D - .3 : -.3) + .02;
+    const at = (a, o) => [su.x + su.nx * o + tx * a * side, su.z + su.nz * o + tz * a * side];
+    const spots = vs.map((v, i) => at(edge - run(i) - VEND_W[v] / 2, wall + VEND_D[v] / 2)), bs = bin && at(edge - run(n) - .24, wall + .18);
+    if (!spaced(...spots[0]) || ![...spots, ...(bs ? [bs] : [])].every(([x, z]) => free(x, z, .5))) continue;
+    const y = arc ? .16 : .15, ry = Math.atan2(su.nx, su.nz);
+    spots.forEach(([x, z], i) => {
+      const t = { x, y, z, ry, v: vs[i] };
+      VEND.push(t); lists[t.v].push(t); claim(x, z, .6); circles.push({ x, z, r: .5 });
+    });
+    if (bs) { VEND_BIN.push({ x: bs[0], y, z: bs[1], ry }); claim(bs[0], bs[1], .3); circles.push({ x: bs[0], z: bs[1], r: .24 }); }
+    const [mx, mz] = at(edge - run(n) / 2, wall + 1.3);
+    outLights.push({ x: mx, y: 1.3, z: mz, col: lin(0xe6f0ff), r: 4.5, i: .45 });   // 一叢一盞：展示窗照在地上與對面的光
+    const c = spots[0]; let g = grid.get(gk(c[0], c[1])); if (!g) grid.set(gk(c[0], c[1]), g = []); g.push(c);
+  }
+  VEND_V.forEach((V, vi) => { if (lists[vi].length) VEND_MS.push(instanced(vendKit(V, vi), MAT.uber, lists[vi], 0, null, 150)); });
+  if (VEND_BIN.length) instanced(vendBinKit(), MAT.uber, VEND_BIN, 0, null, 150);
+  // vend.glb 的五款實機照 t.v 擺（27-props.js 的 w2Load），位置與碰撞照舊，回收桶還是程式建模。
+  // 要在這裡呼叫：27 的頂層排在前面，下載完的回呼可能比這一段先跑，那時 VEND 還是 undefined
+  if (W2.on && GLB_VS_I !== GLB_VS) w2Load('vend', it => {
+    const IDS = ['pa_w', 'red', 'pa_b', 'sp_1', 'sp_2'];
+    w2Group(VEND, IDS.length, t => t.v).forEach((L, k) => w2Inst(it[IDS[k]], L, 0, 160));
+    w2Drop(...VEND_MS); W2.swapped.push('vend'); W2.n.vend = VEND.length;
+  });
 }
 // 所有室外招牌（店招、立式招牌、廣告牌、場館招牌）合成一個 mesh
 const signMesh = (() => {

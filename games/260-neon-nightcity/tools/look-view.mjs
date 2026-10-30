@@ -142,6 +142,15 @@ STATIONS.sidewall = { time: 15 * 60, wx: 'cloudy', cam: nc => {
   const cz = (L.z0 + L.z1) / 2; nc.walk(); nc.tpL(L.x0 - 3.6, cz + 3);
   const e = nc.W(L.x0 - 3.4, cz + 2.5), t = nc.W(L.x0, cz - 1); return [e[0], 1.6, e[1], t[0], 1.3, t[1]];
 } };
+// 販賣機（60-venues.js 的 VEND）：EVAL="window.__vi = 第幾台"，從人行道斜前方 5 m 看過去
+STATIONS.vend = { time: 15 * 60, wx: 'clear', cam: nc => {
+  const L = nc.props.vend, v = L[(window.__vi || 0) % L.length] || L[0];
+  if (!v) return null;
+  const nx = Math.sin(v.ry), nz = Math.cos(v.ry), tx = nz, tz = -nx;
+  nc.walk(); nc.tpL(v.x + nx * 3, v.z + nz * 3);
+  const d = window.__vd || 4.5, ts = window.__vt || 1, e = nc.W(v.x + nx * d + tx * ts * (6 - d), v.z + nz * d + tz * ts * (6 - d)), t = nc.W(v.x, v.z); return [e[0], 1.6, e[1], t[0], 1.1, t[1]];   // window.__vd：離牆多遠（騎樓下用 1.6）、__vt = -1 從另一邊看
+} };
+STATIONS.vendN = { ...STATIONS.vend, time: 22 * 60 };
 STATIONS.viadN = { ...STATIONS.viaduct, time: 22 * 60, wx: 'clear' };   // 高架橋底的暖光（20-props.js 的 LAMP_HEADS t = 2）
 function sideWalk(nc, i, side, off, y) {
   // 人行道上離牆 off 公尺、沿街看 20 m 外（稍微偏向牆）：牆腳、店面與地面的交界都在畫面裡
@@ -191,5 +200,6 @@ try {
     console.log(name, 'ok');
   }
   console.log('errors', log.errors.slice(0, 5), log.pageerrors.slice(0, 5));
+  const fw = log.warns.filter(w => /失敗/.test(w)); if (fw.length) console.log('warns', fw.slice(0, 5));
   if (/gfx=webgpu/.test(process.env.Q || '')) console.log('gfx', JSON.stringify(await page.evaluate(() => { const g = window.__nc.gfx; return { miss: g.miss && g.miss(), err: g.err && g.err() }; })).slice(0, 600));
 } finally { await browser.close(); srv.close(); }

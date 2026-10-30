@@ -173,7 +173,7 @@ node tools/road-dec.mjs         # .cache/tex-src/ 的 ambientCG 龜裂補丁、�
 | `50-assets.js` | 解開內嵌 GLB（`interior_props`、`street_props`、`hill_homes`），烘成 `Kit` 幾何（`people` 由 40 自己解；`hill_homes` 帶烘好的 AO 頂點色，乘在材質色上）；山坡別墅區的別墅、植栽與岩石照 10-city 的 `HILL_HOMES`／`HILL_PLANTS` 做實例；外緣山林的遠景樹 `fir_lo`／`maple_lo`／`broad_lo`／`pine_lo`（後兩個由 maple_lo 改出來；10-city 的 `HILL_FOREST`，全部畫，27-props 下載近景樹後只畫近景半徑外，`forestLo`）與石柱峰 `karst1`–`4`（21-coast 的 `KARST`，遠景材質 `MAT.uxFI`） |
 | `50-nbr.js` | 紐柏林的森林：OSM 森林每 10 m 一格一到兩棵（`fir_lo`／`broad_lo`，512 m 一塊的普通 InstancedMesh、照塊剔除），鏡頭 `NBR_TREE_NEAR` 內換成 nat_forest 的冷杉與闊葉樹（遠景那幾棵抽掉）與林緣的蕨類、野花；賽道、路肩、草皮與村道邊不種 |
 | `55-motor-front.js` | 車行落地窗、雨棚與門前展示車、車庫燈條與招牌（要在 60 合併室外招牌之前） |
-| `60-venues.js` | 三座場館門面、夜店與酒吧室內場景、任務、對話、場館登錄 `VENUES` 與進出、互動掛鉤 `ctxHooks` |
+| `60-venues.js` | 三座場館門面、夜店與酒吧室內場景、任務、對話、場館登錄 `VENUES` 與進出、互動掛鉤 `ctxHooks`；街上的飲料販賣機（`VEND`／`VEND_BIN`，貼著關店的凹鐵捲門與騎樓擺；http(s) 下用 27-props.js 的 `w2Load` 換成 `vend.glb` 的五款 Sketchfab 實機，程式建模的機身是退回用的） |
 | `64-showroom.js` | VELOCE MOTORS 三層樓展示廳：明亮的建築（米色大理石地、奶油色牆板與藻井、胡桃木、黃銅、天窗、吊燈、欄杆、海報與樓層牌的 `svAtlas`；`ENV.show.post` 壓住吊燈與車漆的高光）、展車擺放 `SHOW_FLOORS`、每層的碰撞與燈 `show.lv[k]`、換層 `showLevel`、電梯 `showLift`、轉台與車廂 `updateShow` |
 | `61-nbr-pit.js` | 紐柏林維修區的換胎：開進任一間車間門口（工作車道或車間裡）停下，`ctxHooks` 提示「進站換胎」，按 E 由維修組一顆一顆換（氣動扳手聲＋對話框打勾），約 2.6 秒後 `tireFix`（68-wreck.js）。只換胎、不修車身。`__nc.nbr.pitCar(i, flat)`／`pitVeh()` 驗收 |
 | `65-motors.js` | 車庫室內、看車／買車／試駕／出庫／賣車對話、停進車庫、甩尾打賞、存檔 |
