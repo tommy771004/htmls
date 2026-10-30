@@ -64,11 +64,25 @@ function instSet(m, k, mtx) {
   if (!S) { m.setMatrixAt(k, mtx); m.instanceMatrix.needsUpdate = true; return; }
   mtx.toArray(S.mtx, k * 16); S.dirty = true;
 }
+// 霧外的不送（只限標了 stream.fogCut 的，現在是 50-assets.js 外緣山林的遠景樹：串流半徑 1e5，光環廣場每幀畫 6.4 萬棵、860 萬個三角形，
+// 晴夜幾乎全在霧外）：照 70-render.js 的 fogCull（視線距離 × uFogDen × D 超過 6 就剩不到 0.25%）剔掉整顆進霧的單一實例，材質也要是 fogFull。
+// 00-core.js 的 applyFog 裡 D 本來 ≥ .5，鏡頭在高處時城市遮罩（hk）與機場島各往 .02 混一次、混的比例都不超過 h = sstep(20, 120, 鏡頭高度)，
+// 兩個疊在一起最淡是 (1 − h)(.5 − .48h) + .02h，所以距離照鏡頭高度放寬，到 120 m 以上等於不剔；用水平距離（比 3D 距離短，只會多送），
+// 多留 FOG_PAD 給樹冠的半徑；距離往上取到 2 的 1/16 次方一檔（約 4.4%），跨檔才重排。
+// 整顆進霧是「霧的顏色」不是看不到：背後是山（也是霧色）才看不到，稜線上的樹襯著天空還是一道剪影。只有晴天（28-sky.js 的 wx：雲量 < FOG_CLR、沒有雨與霧）
+// 的白天與夜晚天空和霧色夠接近（凍結畫面朝稜線比對 0 像素）；陰雨天的低雲被城市照成紫灰、日出日落地平線上了色（atm.dusk > 0），
+// 稜線上會少一排樹（最大色差 31～36/255），那些時候照舊全送
+const FOG_PAD = 40, FOG_CLR = .12;
 function instUpdate(cx, cz) {
+  const h = sstep(20, 120, camera.position.y), fx = 6 / (Math.max(U.uFogDen.value, 1e-4) * ((1 - h) * (.5 - .48 * h) + .02 * h));
+  const clear = wx.cloud < FOG_CLR && wx.rain <= 0 && wx.fog < .05 && !(atm.dusk > 0);
+  const fd = fogCull.en && clear ? 2 ** (Math.ceil(Math.log2(fx) * 16) / 16) + FOG_PAD : Infinity;
   for (const S of instStreams) {
-    if (!S.dirty && S.dv === detail.v && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
-    S.dirty = false; S.cx = cx; S.cz = cz; S.dv = detail.v;
-    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = S.R * S.R * detailK() ** 2, R02 = (S.R0 || 0) ** 2;
+    if (S.fogCut) S.fog ??= fogFull(S.m.material);
+    const Re = Math.min(S.R * detailK(), S.fogCut && S.fog ? fd : Infinity);
+    if (!S.dirty && S.dv === detail.v && S.re === Re && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
+    S.dirty = false; S.cx = cx; S.cz = cz; S.dv = detail.v; S.re = Re;
+    const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = Re * Re, R02 = (S.R0 || 0) ** 2;
     let c = 0;
     for (let k = 0; k < S.n; k++) {
       const d2 = (S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2;
@@ -79,7 +93,7 @@ function instUpdate(cx, cz) {
     }
     m.count = c; m.instanceMatrix.needsUpdate = true;
     for (const { a } of S.attrs) a.needsUpdate = true;
-    m.boundingSphere.center.set(cx, S.cy, cz); m.boundingSphere.radius = Math.hypot(S.R * detailK() + 30, S.hy);
+    m.boundingSphere.center.set(cx, S.cy, cz); m.boundingSphere.radius = Math.hypot(Re + 30, S.hy);
   }
 }
 // 避免設施互相重疊：佔用的圓放進 8 m 的格子（最大半徑 3.4 m），只比對附近幾格

@@ -1,11 +1,12 @@
 // ═══ 效能面板（?perf=1）與固定路線量測（__nc.perf.route）═══
 // 每一幀記：幀間隔（相鄰兩次 loop 的 rAF 時間戳）、CPU 邏輯（loop 開始到 renderFrame 開始）、CPU 送出（renderFrame 本身，three 走場景圖與送指令）、
-// 顯示卡時間（EXT_disjoint_timer_query_webgl2：Chrome 桌機的 Direct3D／OpenGL 後端有，Mac 的 Metal 後端多半沒有，沒有就顯示「—」）、draw call 與三角形數。
-// 幀間隔超過 PERF_STALL 的記成卡頓：附上那段時間新編的著色器、新上傳的貼圖與幾何數，以及載入程式標的事件（26-glb.js 的 perfTag：模型解碼、建築組擺放…）。
+// 顯示卡時間（EXT_disjoint_timer_query_webgl2，沒有就顯示「—」；Chrome 156 的 ANGLE Metal 有，但讀數含排隊時間，比幀間隔還長，只能看趨勢）、draw call 與三角形數。
+// 顯示卡瓶頸時「送出」大半是 WebGL 呼叫在等顯示卡（指令緩衝滿了），不是 CPU 在做事：要分辨就看行程的 CPU 時間（tools/perf-mem.mjs）。
+// 卡頓是比平常的幀長很多的那一幀：超過 PERF_STALL、也超過最近 PERF_MED 幀中位數的 PERF_K 倍（光環廣場本來就 31 ms 一幀，不能每幀都算卡頓），附上那段時間新編的著色器、新上傳的貼圖與幾何數，以及載入程式標的事件（26-glb.js 的 perfTag：模型解碼、建築組擺放…）。
 // 無頭 Chrome 是軟體繪圖或拿不到真的顯示卡時間，數字要在玩家自己的 Chrome、實機顯示卡上量。
-const PERF_STALL = 25, PERF_N = 900;
+const PERF_STALL = 25, PERF_K = 1.8, PERF_MED = 60, PERF_N = 900;
 const PF = { on: new URLSearchParams(location.search).get('perf') === '1', ring: [], n: 0, stalls: [], cur: null, now0: 0, t0: 0, r0: 0, el: null, shown: 0,
-  ext: null, gl: GFX === 'webgl' ? R.getContext() : null, q: [], last: null, snap: [0, 0, 0] };
+  ext: null, gl: GFX === 'webgl' ? R.getContext() : null, q: [], last: null, snap: [0, 0, 0], lim: PERF_STALL, nst: 0 };
 // 顯示卡計時：同一時間只能有一個 TIME_ELAPSED 查詢，結果幾幀後才拿得到（逐幀輪詢），中間發生過 GPU_DISJOINT 的整批丟掉
 function perfGpuBegin(f) {
   if (!PF.ext) return;
@@ -41,8 +42,12 @@ perfHook.f = (now) => {
     f.ms = now - PF.now0;
     f.dp = info[0] - PF.snap[0]; f.dt = info[1] - PF.snap[1]; f.dg = info[2] - PF.snap[2];
     if (perfTags.length) f.tags = perfTags.splice(0);
+    // 門檻用這一幀之前的中位數（自己不算進去）；換到重很多的地方，前 PERF_MED / 2 幀左右會記成卡頓，之後中位數跟上
+    const med = PF.ring.length ? perfPct(PF.ring.slice(-PERF_MED).map(x => x.ms), .5) : 0;
+    PF.lim = Math.max(PERF_STALL, med * PERF_K); f.stall = f.ms > PF.lim;
     PF.ring.push(f); PF.n++; if (PF.ring.length > PERF_N) PF.ring.shift();
-    if (f.ms > PERF_STALL) { PF.stalls.push({ at: Math.round(now / 100) / 10, where: player.where, ...f }); if (PF.stalls.length > 200) PF.stalls.shift(); }
+    // k：遞增的序號（stalls 只留最近 200 筆，route() 照序號找抵達期間的卡頓，不能用陣列長度）
+    if (f.stall) { PF.stalls.push({ k: ++PF.nst, at: Math.round(now / 100) / 10, where: player.where, ...f }); if (PF.stalls.length > 200) PF.stalls.shift(); }
   }
   PF.snap = info; PF.now0 = now; PF.t0 = performance.now();
   PF.cur = { ms: 0, cpu: 0, sub: 0, gpu: null, calls: 0, tris: 0 };
@@ -60,7 +65,7 @@ const perfAvg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
 function perfStats(fr) {
   const ms = fr.map(f => f.ms), g = fr.filter(f => f.gpu != null).map(f => f.gpu);
   return { n: fr.length, fps: fr.length ? 1000 / perfAvg(ms) : 0, ms: perfAvg(ms), p95: perfPct(ms, .95), max: Math.max(0, ...ms), cpu: perfAvg(fr.map(f => f.cpu)), sub: perfAvg(fr.map(f => f.sub)),
-    gpu: g.length ? perfAvg(g) : null, gpu95: g.length ? perfPct(g, .95) : null, calls: Math.round(perfAvg(fr.map(f => f.calls))), tris: Math.round(perfAvg(fr.map(f => f.tris))), stalls: fr.filter(f => f.ms > PERF_STALL).length };
+    gpu: g.length ? perfAvg(g) : null, gpu95: g.length ? perfPct(g, .95) : null, calls: Math.round(perfAvg(fr.map(f => f.calls))), tris: Math.round(perfAvg(fr.map(f => f.tris))), stalls: fr.filter(f => f.stall).length };
 }
 const perfF1 = v => v == null ? '—' : v.toFixed(1);
 const perfStall = s => `${s.at}s ${Math.round(s.ms)}ms 邏輯${perfF1(s.cpu)} 送出${perfF1(s.sub)}${s.dp ? ` 著色器+${s.dp}` : ''}${s.dt ? ` 貼圖+${s.dt}` : ''}${s.dg ? ` 幾何+${s.dg}` : ''}${s.tags ? ' ' + s.tags.map(([n, t]) => `${n} ${Math.round(t)}ms`).join('、') : ''}`;
@@ -72,7 +77,7 @@ function perfPanel() {
     `CPU 邏輯 ${perfF1(s.cpu)} · 送出 ${perfF1(s.sub)} · 顯示卡 ${PF.ext ? perfF1(s.gpu) : '—（沒有計時擴充）'}`,
     `draw call ${s.calls} · 三角形 ${(s.tris / 1e6).toFixed(2)} M`,
     `著色器 ${info[0]} · 貼圖 ${info[1]} · 幾何 ${info[2]} · 細節距離 ×${detailK().toFixed(2)}`,
-    `卡頓（>${PERF_STALL} ms）共 ${PF.stalls.length} 次`, ...PF.stalls.slice(-4).map(perfStall),
+    `卡頓（>${Math.round(PF.lim)} ms：至少 ${PERF_STALL}、最近幀中位數的 ${PERF_K} 倍）共 ${PF.nst} 次`, ...PF.stalls.slice(-4).map(perfStall),
   ].join('\n');
 }
 // ─── 固定路線：光環廣場（賭場塔樓）、機場（21-air.js 有才去）、北嶺公園、賭場大廳（室內）。每站傳送後等下載與編譯平靜下來（最多 wait），
@@ -88,17 +93,17 @@ async function perfRoute({ wait = 12000, sample = 8000, min = 1320, weather = 'r
   perfOn(true); N.time(min); N.weather(weather);
   for (const [name, go] of PERF_STOPS) {
     if (stops && !stops.includes(name)) continue;
-    const s0 = PF.stalls.length, t0 = performance.now();
+    const s0 = PF.nst, t0 = performance.now();
     if (go(N) === false) { out.push({ name, skip: '這個版本沒有' }); continue; }
-    // 等平靜：沒有下載中的批次、沒有還在分幀做的載入工作（27-props.js 的 warmBusy）、2 秒內沒有新編著色器或卡頓
+    // 等平靜：沒有下載中的批次、沒有還在分幀做的載入工作（27-props.js 的 warmBusy）、2 秒內沒有新編著色器或卡頓（卡頓照上面的相對門檻，本來就慢的地方也等得到）
     let calm = performance.now();
     for (let k = PF.n; performance.now() - t0 < wait;) {
       await new Promise(r => setTimeout(r, 200));
       const fr = PF.ring.slice(-Math.min(PF.n - k, PERF_N)); k = PF.n;
-      if (glbBatchFrac() !== null || warmBusy || fr.some(f => f.dp || f.ms > PERF_STALL)) calm = performance.now();
+      if (glbBatchFrac() !== null || warmBusy || fr.some(f => f.dp || f.stall)) calm = performance.now();
       if (performance.now() - calm > 2000) break;
     }
-    const arrive = PF.stalls.slice(s0).map(perfStall), k0 = PF.n;
+    const arrive = PF.stalls.filter(s => s.k > s0).map(perfStall), k0 = PF.n;
     await new Promise(r => setTimeout(r, sample));
     const st = perfStats(PF.ring.slice(-Math.min(PF.n - k0, PERF_N)));
     out.push({ name, settle: Math.round(performance.now() - t0 - sample), busy: warmBusy, arrive, ...st });

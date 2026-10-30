@@ -68,7 +68,7 @@ function litAt(h) {
   for (let i = 1; i < LIT_H.length; i++) if (h <= LIT_H[i][0]) { const [a, va] = LIT_H[i - 1], [b, vb] = LIT_H[i]; return lerp(va, vb, (h - a) / (b - a)); }
   return LIT_H[0][1];
 }
-const atm = { exp: 1, bloom: 1, day: 0, lamp: 1, sunK: 0 };
+const atm = { exp: 1, bloom: 1, day: 0, lamp: 1, sunK: 0, dusk: 0 };   // dusk：日出日落地平線上色的程度（20-props.js 的 instUpdate 在這段時間不剔霧外的遠景樹）
 const _c1 = new T.Color(), _c2 = new T.Color(), _c3 = new T.Color(), _c4 = new T.Color(), _sv = V3();
 const WARM = C3(0xff8a48), NOON = C3(0xfff1de);
 // 依時間與天氣算出戶外的一切（每幀，在戶外時）
@@ -78,7 +78,7 @@ function atmApply() {
   const sun = sunDir(min, U.uSun.value); sunDir(min + 760, U.uMoon.value);
   const se = sun.y, c = wx.cloud, r = wx.rain, f = wx.fog;
   const day = sstep(-.11, .16, se), dusk = sstep(-.13, 0, se) * (1 - sstep(.06, .32, se));
-  atm.day = U.uDay.value = day; U.uCloud.value = c;
+  atm.day = U.uDay.value = day; atm.dusk = dusk; U.uCloud.value = c;
   MAT.blob.opacity = .5 * (1 - day); MAT.blob.visible = day < .98;   // 20-props.js 路燈下的暗塊：白天有日光陰影，不畫
   // 白天的天空：晴 → 陰 → 雨，日出日落時地平線偏橘
   const P = SKYC, oc = sstep(.3, .92, c);

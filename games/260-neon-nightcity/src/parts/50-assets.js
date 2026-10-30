@@ -98,7 +98,7 @@ for (const [k, R] of [['palm', 380], ['agave', 160], ['shrub', 260], ['shrub_blo
   instanced(PROPS[k], MAT.uxI, L, 0, null, R);
   if (k === 'palm' && PROPS.palm_lo) instanced(PROPS.palm_lo, MAT.uxI, L, 0, null, L.length > 160 ? 1e5 : undefined);
 }
-// 外緣山林的遠景樹（10-city.js 的 HILL_FOREST）：全部畫；27-props.js 下載 nat_forest 的近景樹之後改成只畫在近景半徑外。以檔案開啟時只有這一層
+// 外緣山林的遠景樹（10-city.js 的 HILL_FOREST）：全部畫（整顆進霧的不畫，見 20-props.js 的 instUpdate）；27-props.js 下載 nat_forest 的近景樹之後改成只畫在近景半徑外。以檔案開啟時只有這一層
 const forestLo = {};
 if (HILL_FOREST.broad.length && PROPS.maple_lo && !PROPS.broad_lo) PROPS.broad_lo = akinaBroadLo(PROPS.maple_lo);   // 榛嶺的闊葉樹（09-akina.js）
 // 松的遠景（forest.py 的 pine 沒有低模）：借 maple_lo 的樹幹與三團樹冠，樹幹拉到 10 m、樹冠壓扁放到 9.5–15.5 m（赤松：下半截沒有枝、樹冠集中在上面），換成暗的針葉綠
@@ -114,6 +114,7 @@ if (HILL_FOREST.pine.length && PROPS.maple_lo && !PROPS.pine_lo) {
 for (const k of ['fir', 'maple', 'broad', 'pine']) if (HILL_FOREST[k].length && PROPS[k + '_lo']) {
   forestLo[k] = instanced(PROPS[k + '_lo'], MAT.uxI, HILL_FOREST[k], 0, null, 1e5);
   const S = forestLo[k].userData.stream; if (S) Object.defineProperty(S, 'R0', { get: () => (HILL_FOREST.loR0 || 0) * detailK() });   // 27-props.js 換上近景模型後才設 loR0
+  if (S) S.fogCut = 1;   // 20-props.js 的 instUpdate：整顆進霧的不送（日出日落時照舊全送）
 }
 // 石柱峰（21-coast.js 的 KARST，四型）：遠景材質，全部畫
 for (let v = 0; v < 4; v++) { const L = KARST.filter(t => t.v === v); if (L.length && PROPS['karst' + (v + 1)]) instanced(PROPS['karst' + (v + 1)], MAT.uxFI, L, 0, null); }

@@ -396,7 +396,7 @@ requestAnimationFrame(loop);
 
 window.__nc = {
   gameHour: GAME_HOUR,   // 69-market.js：一遊戲小時是幾秒真實時間（28-sky.js 的 MIN_SEC × 60）
-  fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對
+  fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對（也關掉 20-props.js 遠景樹的霧外剔除）
   enc: ENC && { on: ENC_ON, f: ENC.f, pad: ENC.pad, W: (x, z) => toW(x, z, ENC.f), L: (X, Z) => encL(X, Z), ground: (X, Z) => groundH(X, Z), district: (X, Z) => districtW(X, Z), place: (X, Z) => mapPlaceName(X, Z), tris: HILL.encTris, S: ENC.S },   // 28-enclave.js 雲梯城寨（框座標換世界座標、模型與替身的狀態）
   hillMouths: () => HILL.mouths, hillRoads: () => HILL.paths, akina: () => AKINA && { x: AKINA.x, z: AKINA.z, WL: AKINA.WL, F: AKINA.F, lake: AKINA.lake, walls: AKINA.walls, osm: AKINA.osm, road: AKINA.road ? AKINA.road.stats : null, tris: HILL.akinaTris, at: (X, Z) => ({ s: akinaShape(X, Z), real: akReal(AKINA, X, Z), h: hillMeshH(X, Z), wet: akinaWet(X, Z) }) },   // 09-akina.js：中心、湖面高、山道、細網格、某一點的山
   hillTraf: () => ({ cars: HILL_TRAF.cars.map(c => ({ r: c.r, s: +c.s.toFixed(1), dir: c.dir, v: +c.v.toFixed(1), x: c.x, y: c.y, z: c.z, out: c.out, fade: c.fade, type: c.type })), walkers: HILL_TRAF.walkers.map(w => ({ r: w.r, s: +w.s.toFixed(1), x: w.x, y: w.y, z: w.z, pause: w.pause })), residents: HILL_TRAF.residents }), cityC: CITY_C,
