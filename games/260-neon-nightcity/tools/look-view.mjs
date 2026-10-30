@@ -1,5 +1,5 @@
 // 質感比對截圖：固定的機位（雨夜 LAZARUS、夜裡的窄街、清晨的大道、下雨的白天、白天的高架橋下、白天的路面、路緣的垃圾堆、立面外掛物、路人近景），每個機位依序套用幾組選單設定各拍一張
-// node tools/look-view.mjs [輸出資料夾]；VARS="ao=0;ao=1"（分號隔開每組，逗號隔開同一組的多個設定；post.x=v 改 __nc.post 的欄位）、ONLY="club,ped" 只拍這幾個機位、Q="&gfx=webgpu" 加網址參數、PAGE=web/ 底下的另一個檔名（和舊版比）
+// node tools/look-view.mjs [輸出資料夾]；VARS="ao=0;ao=1"（分號隔開每組，逗號隔開同一組的多個設定；post.x=v 改 __nc.post 的欄位）、ONLY="club,ped" 只拍這幾個機位、Q="&gfx=webgpu" 加網址參數、PAGE=web/ 底下的另一個檔名（和舊版比）、EVAL="運算式" 開場後印出結果
 // 以本機 HTTP 開頁（照片材質、實體建築與車才會下載）；固定 gpu=high，動態模糊關掉。輸出 <機位>-<組>.png，再用 ffmpeg 併成左右對照的 <機位>.png
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
@@ -135,6 +135,14 @@ const stuccoCam = ty => new Function(`return nc => {
 }`)();   // 機位函式是用 toString 送進頁面的，閉包裡的 ty 會不見，所以把數字寫進原始碼
 STATIONS.stucco = { time: 15 * 60, wx: 'cloudy', cam: stuccoCam(1.6) };
 STATIONS.stucco2 = { time: 15 * 60, wx: 'cloudy', cam: stuccoCam(7) };
+// 轉角樓的側面一樓（沒有店面）：撕掉的海報、牆腳返潮與鹽霜、轉角磨損（10-city.js 的 FACADE_FS）
+STATIONS.sidewall = { time: 15 * 60, wx: 'cloudy', cam: nc => {
+  const L = nc.city.lots.find(L => !L.ghost && !L.glb && !L.special && L.b && L.axis === 'z' && [0, 1, 2].includes(L.style) && L.h > 9 && Math.abs(L.x0 - (L.b.x0 + 4.5)) < .5 && L.z1 - L.z0 > 12);
+  if (!L) return null;
+  const cz = (L.z0 + L.z1) / 2; nc.walk(); nc.tpL(L.x0 - 3.6, cz + 3);
+  const e = nc.W(L.x0 - 3.4, cz + 2.5), t = nc.W(L.x0, cz - 1); return [e[0], 1.6, e[1], t[0], 1.3, t[1]];
+} };
+STATIONS.viadN = { ...STATIONS.viaduct, time: 22 * 60, wx: 'clear' };   // 高架橋底的暖光（20-props.js 的 LAMP_HEADS t = 2）
 function sideWalk(nc, i, side, off, y) {
   // 人行道上離牆 off 公尺、沿街看 20 m 外（稍微偏向牆）：牆腳、店面與地面的交界都在畫面裡
   const L = nc.city.lots[i];
@@ -156,6 +164,7 @@ const { browser, page, log } = await open(`http://127.0.0.1:${srv.address().port
 try {
   await page.evaluate(() => { try { localStorage.removeItem('nc260.motors'); } catch (e) {} window.__nc.start(); window.__nc.menu.set('blur', 0); });
   await page.waitForTimeout(4000);
+  if (process.env.EVAL) console.log('eval', JSON.stringify(await page.evaluate(e => (0, eval)(e), process.env.EVAL)));
   for (const [name, S] of Object.entries(STATIONS)) {
     if (only && !only.includes(name)) continue;
     const ok = await page.evaluate(([S, cam, sw]) => {

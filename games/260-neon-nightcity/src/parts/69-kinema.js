@@ -161,6 +161,7 @@ function kinVehicles(L) {
     P.mn = 1 / (P.wA + P.wB + armN(P.rA, c.nx, c.nz) ** 2 / P.iA + armN(P.rB, c.nx, c.nz) ** 2 / P.iB);
     P.mt = 1 / (P.wA + P.wB + armN(P.rA, -c.nz, c.nx) ** 2 / P.iA + armN(P.rB, -c.nz, c.nx) ** 2 / P.iB);
     const [rx, rz] = kinRel(P), vn0 = rx * c.nx + rz * c.nz;
+    P.inA = -(A.vx * c.nx + A.vz * c.nz); P.inB = B.vx * c.nx + B.vz * c.nz;   // 撞之前各自往對方開的速度（n 從 B 指向 A）：③ 判斷誰撞誰
     P.bias = vn0 < -1 ? -KIN.e * vn0 : 0; P.J = 0; P.Jt = 0;
   }
   for (let it = 0; it < KIN.iters; it++) {
@@ -183,15 +184,20 @@ function kinVehicles(L) {
   // ③ 傷害、翻車、音效、罪責：速度變化照 68-gta.js 的 crashDmg（超過 CRASH.dv0 的部分 ×CRASH.k）
   for (const P of act) {
     const { A, B, c } = P, dvA = P.J * P.wA, dvB = P.J * P.wB;
-    damageVeh(A, crashDmg(dvA), B === player.veh);
-    damageVeh(B, crashDmg(dvB), A === player.veh);
+    // 損傷記在撞過來的那一方（mine 會讓警車算拒捕、爆炸算玩家的罪）：被警車推、被追撞不算玩家造成的
+    // 警車切到前面逼停或包夾時（69-tactics.js 的 boxAim 記 cutT）玩家煞不住撞上去，也不算玩家撞的
+    const blk = v => v.unit && (v.unit.cutT || 0) > uTimeNow();
+    const ramA = P.inA > 2 && P.inA > P.inB + 1 && !blk(B), ramB = P.inB > 2 && P.inB > P.inA + 1 && !blk(A);
+    damageVeh(A, crashDmg(dvA), B === player.veh && ramB);
+    damageVeh(B, crashDmg(dvB), A === player.veh && ramA);
     rollHit(A, dvA, c.nx, c.nz); rollHit(B, dvB, -c.nx, -c.nz);   // 68-roll.js：側面被撞得夠猛就翻
     v6Plow(A, B); v6Plow(B, A);   // 69-v6-customs.js：防撞鏟正面撞車把對方往上鏟
     if (dvA + dvB > 7) sparks(c.px, Math.max(A.y || 0, B.y || 0) + .6, c.pz, 10, 4);
     if (A !== player.veh && B !== player.veh) continue;
     const mine = A === player.veh ? A : B, other = mine === A ? B : A, dv = mine === A ? dvA : dvB;
     if (dv > 2) { sfx.impact(dv); camState.shake = Math.max(camState.shake, Math.min(1, dv / 14)); }
-    if (other.unit && dv > 2) crime('ramcop', other.x, other.z);
+    // 撞警車只算玩家主動撞上去的：玩家往警車開的速度要比警車往玩家開的快（警車 PIT、逼停或追撞玩家不算你的罪）
+    if (other.unit && dv > 2 && (mine === A ? ramA : ramB)) crime('ramcop', other.x, other.z);
   }
   // ④ 夾扁：同一台車有兩個接觸法線夾角超過 135°（另一邊是牆、路邊車或另一台車），推的那台 M·v ≥ 6000
   const now = uTimeNow();
@@ -274,7 +280,6 @@ function kinWalk(x, z) {
       hurtPlayer(35 + cl * 5, v.x, v.z); sfx.impact(10, 'ped'); camState.shake = Math.max(camState.shake, .8);
       player.x = x; player.z = z;
       launchMe(-push.nx * 2.2, -push.nz * 2.2, 5.5, 0);   // 往上彈、滾上引擎蓋
-      if (v.unit) crime('resist', v.x, v.z);
       return [x, z];
     }
   }

@@ -389,7 +389,7 @@ function damageVeh(v, n, byP = false, raw = false) { if (v.dead || !(n > 0)) ret
 function explode(v) {
   if (v.dead) return;
   v.dead = 1; v.hp = 0; v.burn = 1; v.lights = 0; v.burnT = 0;
-  const mine = v.byP && uTimeNow() - v.byP < 25;
+  const mine = v !== player.veh && v.byP && uTimeNow() - v.byP < 25;   // 玩家坐著的車爆了（被幫派打爆、自己撞爛）不算玩家炸的：byP 也記玩家自己撞路燈、擦護欄的損傷
   if (player.veh === v) { exitVehicle(); if (!v.boat) knockPlayer(player.x - v.x, player.z - v.z); toast(`${v.name} 爆炸了`); }
   // 波及（69-combat.js 的 blast）：路人、警察、玩家、附近的車（連鎖爆炸）
   blast(v.x, v.y, v.z, BOOM_R, v.mass > 4000 ? 520 : 420, mine ? 'player' : null, v);

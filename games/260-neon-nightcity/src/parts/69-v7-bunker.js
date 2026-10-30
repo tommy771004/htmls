@@ -483,7 +483,7 @@ function mkHit(hit, R, A, id) {
 // 燃燒彈：中彈的人丟下武器打滾 6 秒，每秒 −18 HP
 function mkIgnite(hit, R, x, y, z) {
   const K = hit.kind, A = AMMO.inc;
-  chemIgnite(x, z, .8);
+  chemIgnite(x, z, .8, true);   // Mk II 燃燒彈只有玩家有
   if (K !== 'ped' && K !== 'cop' && K !== 'fighter') return;
   if (V7B.burn.some(b => b.ref === hit.ref && b.kind === K)) return;
   V7B.burn.push({ kind: K, ref: hit.ref, t: A.burn, dx: R.dx, dz: R.dz, tick: 0 });

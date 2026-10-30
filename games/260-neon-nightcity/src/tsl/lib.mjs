@@ -135,7 +135,7 @@ export default {
   				} );
 
   				const lk = lampK( vec3( L.x, add( 6.1, L.w ), L.y ), p, n, v, shin ).toVar();
-  				const lc = select( L.z.lessThan( .5 ), cs, cl ).toVar();
+  				const lc = select( L.z.lessThan( .5 ), cs, select( L.z.lessThan( 1.5 ), cl, vec3( 1., .7, .42 ).mul( 1.6 ).mul( uLamp ) ) ).toVar();
   				dif.addAssign( lc.mul( lk.x ) );
   				spc.addAssign( lc.mul( lk.y ) );
 
@@ -771,7 +771,7 @@ export default {
   				} );
 
   				const lk = lampK( vec3( L.x, add( 6.1, L.w ), L.y ), p, n, v, shin ).toVar();
-  				const lc = select( L.z.lessThan( .5 ), cs, cl ).toVar();
+  				const lc = select( L.z.lessThan( .5 ), cs, select( L.z.lessThan( 1.5 ), cl, vec3( 1., .7, .42 ).mul( 1.6 ).mul( uLamp ) ) ).toVar();
   				dif.addAssign( lc.mul( lk.x ) );
   				spc.addAssign( lc.mul( lk.y ) );
 

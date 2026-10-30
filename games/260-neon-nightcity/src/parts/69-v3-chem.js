@@ -27,15 +27,15 @@ function fuelDrop(x, z, src) {
   fuel.push({ x, z, y: groundH(x, z) + .015, t: 0, fire: 0, burn: 0, src, s: .75 + Math.random() * .5 });
   return true;
 }
-// 點燃半徑 r 內的油（回傳點到幾灘）
-function chemIgnite(x, z, r) {
+// 點燃半徑 r 內的油（回傳點到幾灘）；mine：玩家點的火（燒到人才算玩家的罪，幫派的爆炸、自己起火的車點的不算）
+function chemIgnite(x, z, r, mine = false) {
   let n = 0;
-  for (const f of fuel) if (!f.fire && f.burn <= 0 && (f.x - x) ** 2 + (f.z - z) ** 2 < r * r) { f.fire = FIRE_T; n++; }
+  for (const f of fuel) if (!f.fire && f.burn <= 0 && (f.x - x) ** 2 + (f.z - z) ** 2 < r * r) { f.fire = FIRE_T; f.mine = mine; n++; }
   if (n) sfx.whoosh();
   return n;
 }
 // 子彈打到地面或牆（69-combat.js 的 hitWith）：附近有油就點著
-function chemHit(x, y, z) { if (y < 1.2) chemIgnite(x, z, .7); }
+function chemHit(x, y, z, mine) { if (y < 1.2) chemIgnite(x, z, .7, mine); }
 
 // ─── 倒油：手上是汽油桶、按住開火 ───
 const pour = { d: 0, t: 0 };
@@ -63,7 +63,7 @@ function fireStep(dt) {
     if (f.fire > 0) {
       lit++;
       const was = f.fire; f.fire -= dt; f.burn = 1;
-      if (was > FIRE_T - FUEL_SPREAD && f.fire <= FIRE_T - FUEL_SPREAD) for (const g of fuel) if (!g.fire && (g.x - f.x) ** 2 + (g.z - f.z) ** 2 < 1.1) g.fire = FIRE_T;
+      if (was > FIRE_T - FUEL_SPREAD && f.fire <= FIRE_T - FUEL_SPREAD) for (const g of fuel) if (!g.fire && (g.x - f.x) ** 2 + (g.z - f.z) ** 2 < 1.1) { g.fire = FIRE_T; g.mine = f.mine; }
       if (Math.random() < dt * 14) emit('fire', f.x + (Math.random() - .5) * .5, f.y + .1, f.z + (Math.random() - .5) * .5, { vy: 1.6 + Math.random(), max: .55, s0: .32, s1: .08, drag: 1.2 });
       if (Math.random() < dt * 2.5) emit('smoke', f.x, f.y + .8, f.z, { vy: 1.2, max: 2.4, s0: .3, s1: 1.4, a: .4, c: [.1, .1, .11] });
       if (f.fire <= 0) { fuel.splice(i, 1); lit--; continue; }
@@ -73,23 +73,25 @@ function fireStep(dt) {
   for (const v of vehicles) if (!v.dead && v.hp < hpLockOf(v) * STAGE.fire) chemIgnite(v.x, v.z, 2.2);
   if (!lit) return;
   if (fxLights.length < 24) { const f = fuel.find(o => o.fire > 0); if (f) fxLights.push({ x: f.x, y: 1, z: f.z, col: COL.muzzle, r: 10, i: 1.4, life: 0, max: .05 }); }
-  const near = (x, z, r) => fuel.some(f => f.fire > 0 && (f.x - x) ** 2 + (f.z - z) ** 2 < r * r);
+  const near = (x, z, r) => fuel.find(f => f.fire > 0 && (f.x - x) ** 2 + (f.z - z) ** 2 < r * r);   // 回傳燒到的那一灘（f.mine：是不是玩家點的）
   // 玩家：每 0.25 秒燒一次
   burnSt.hurtT -= dt;
   const px = pX(), pz = pZ();
   if (burnSt.hurtT <= 0 && player.where === 'out' && near(px, pz, player.mode === 'drive' ? 0 : .9)) { burnSt.hurtT = .25; hurtPlayer(4.5 * skK.take); }
   // 路人、警察、幫派
-  for (let k = 0; k < PED_N; k++) { const p = peds.people[k], ps = pedState[k]; if (!(ps.down > 0) && near(p.x, p.z, .8)) { knockPed(k, (Math.random() - .5) * 2, (Math.random() - .5) * 2); crime('assault', p.x, p.z); } }
-  for (const c of W.cops) if (c.on && c.state !== 'down' && near(c.x, c.z, .8)) copHit(c, 60 * dt * 4, 0, 1, true);
-  for (const f of SQ.f) if (f.on && !(f.hp <= 0) && near(f.x, f.z, .8)) fHit(f, 60 * dt * 4, 0, 1, true);
+  for (let k = 0; k < PED_N; k++) { const p = peds.people[k], ps = pedState[k]; const g = !(ps.down > 0) && near(p.x, p.z, .8); if (g) { knockPed(k, (Math.random() - .5) * 2, (Math.random() - .5) * 2); if (g.mine) crime('assault', p.x, p.z); } }
+  for (const c of W.cops) { const g = c.on && c.state !== 'down' && near(c.x, c.z, .8); if (g) copHit(c, 60 * dt * 4, 0, 1, !!g.mine); }
+  for (const f of SQ.f) { const g = f.on && !(f.hp <= 0) && near(f.x, f.z, .8); if (g) fHit(f, 60 * dt * 4, 0, 1, !!g.mine); }
   // 車：底下有火燒 1 秒就起火（之後照 68-wreck.js 的起火階段燒到爆）
   const carBurn = (o, isVeh) => {
-    if (!near(o.x, o.z, 1.8)) { burnSt.carT.delete(o); return; }
+    const g = near(o.x, o.z, 1.8);
+    if (!g) { burnSt.carT.delete(o); return; }
     const t = (burnSt.carT.get(o) || 0) + dt; burnSt.carT.set(o, t);
     if (t < 1) return;
     burnSt.carT.delete(o);
-    if (isVeh) { if (!o.dead && !o.bail) damageVeh(o, Math.max(1, o.hp - hpLockOf(o) * STAGE.fire * .9), true, true); }
-    else { const v = o.det = damageCar(o, hpMaxOf(o) * .95, true); if (v && !v.bail) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), true, true); }
+    const mine = !!g.mine;   // 玩家點的火燒爆的車才算玩家的
+    if (isVeh) { if (!o.dead && !o.bail) damageVeh(o, Math.max(1, o.hp - hpLockOf(o) * STAGE.fire * .9), mine, true); }
+    else { const v = o.det = damageCar(o, hpMaxOf(o) * .95, mine); if (v && !v.bail) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), mine, true); }
   };
   for (const v of vehicles) carBurn(v, true);
   for (const c of [...traffic, ...parked]) if ((c.x - px) ** 2 + (c.z - pz) ** 2 < 160 ** 2) carBurn(c, false);
@@ -122,7 +124,7 @@ function weakHit(ref, kind, x, y, z, mine) {
     sparks(x, y, z, 10, 3);
     const lk = leaks.get(ref);
     if (lk) {   // 第二發：漏出來的油點著，車子起火
-      chemIgnite(ref.x, ref.z, 3); fuelDrop(x, z, ref); chemIgnite(x, z, 1);
+      chemIgnite(ref.x, ref.z, 3, mine); fuelDrop(x, z, ref); chemIgnite(x, z, 1, mine);
       if (kind === 'car') { const v = ref.det = damageCar(ref, hpMaxOf(ref) * .95, mine); if (v) damageVeh(v, Math.max(1, v.hp - hpLockOf(v) * STAGE.fire * .9), mine, true); }
       else if (!ref.bail) damageVeh(ref, Math.max(1, ref.hp - hpLockOf(ref) * STAGE.fire * .9), mine, true);
       leaks.delete(ref);

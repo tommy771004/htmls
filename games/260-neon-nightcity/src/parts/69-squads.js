@@ -98,8 +98,8 @@ function squadGang(x, z, dMax) {
   for (const f of SQ.f) if (fUp(f) && f.team === 'gang' && !f.calm && !f.esc) { const d = Math.hypot(f.x - x, f.z - z); if (d < bd && losClear(x, z, f.x, f.z)) { bd = d; best = f; } }
   return best;
 }
-// 赤蠍幫在你附近開槍（追殺）：有人目擊就報警，警察趕到後連你一起追
-function gangShots(x, z) { if (SQ.chase && Math.hypot(x - pX(), z - pZ()) < 70) crime('shots', x, z); }
+// 赤蠍幫開槍：不是你的罪（原本記成 crime('shots')，被追殺時沒開一槍也會被通緝、每 5 秒升一截），只當成附近有槍聲，讓站著聊天的幫派醒過來
+function gangShots(x, z) { W.bangT = uTimeNow(); W.bangR = 60; }
 
 // ─── 找目標、開槍 ───
 function pickTarget(f) {

@@ -11,10 +11,23 @@ function pitAim(u) {
   if (!P || Math.hypot(P.vx, P.vz) < PIT_V || u.kind === 'tank' || u.v.boat || P.boat) { u.pit = 0; return null; }
   const c = Math.cos(P.yaw), s = Math.sin(P.yaw), dx = u.v.x - P.x, dz = u.v.z - P.z;
   const lx = dx * c - dz * s, lz = dx * s + dz * c;   // 警車在玩家車身座標的位置（+x 左、+z 車頭）
-  if (lz > P.len * .5 + 3 || Math.hypot(lx, lz) > 40) { u.pit = 0; return null; }   // 已經在前面或太遠：照舊直接撞
+  if (lz > P.len * .5 + 3 || Math.hypot(lx, lz) > 40) { u.pit = 0; return null; }   // 已經在前面或太遠：改走 boxAim 逼停
   if (!u.pit || Math.abs(lx) > 2.5) u.pit = lx >= 0 ? 1 : -1;
   const ox = u.pit * (P.w / 2 + .2), oz = -P.len * .32;
-  return [P.x + ox * c + oz * s + P.vx * .35, P.z - ox * s + oz * c + P.vz * .35];
+  return [P.x + ox * c + oz * s + P.vx * .35, P.z - ox * s + oz * c + P.vz * .35, Math.hypot(P.vx, P.vz) + 4];   // 第三個是車速上限：只比玩家快 4 m/s，推尾不是追撞
+}
+// ─── 逼停（沒在 PIT 的時候）：警車不直接撞玩家的車。在後面或旁邊就從側邊超上去（只比玩家快 5 m/s），
+//     超到前面就切進玩家的車道、比玩家慢（把人逼得減速）；玩家慢到 6 m/s 以下時，各自卡住玩家車頭的一角包夾，到位停下讓警員下車
+function boxAim(u) {
+  const P = player.veh, ps = Math.hypot(P.vx, P.vz);
+  const c = Math.cos(P.yaw), s = Math.sin(P.yaw), dx = u.v.x - P.x, dz = u.v.z - P.z;
+  const lx = dx * c - dz * s, lz = dx * s + dz * c;   // 同 pitAim：+x 左、+z 車頭
+  if (!u.box) u.box = lx >= 0 ? 1 : -1;
+  const at = (ox, oz) => [P.x + ox * c + oz * s + P.vx * .3, P.z - ox * s + oz * c + P.vz * .3];
+  if (ps < 6 || lz > P.len * .5 + 1.5) u.cutT = uTimeNow() + 1;   // 正在擋在前面或包夾：這一秒內被玩家追撞不算玩家撞警車（69-kinema.js）
+  if (ps < 6) { const o = at(u.box * (P.w / 2 + 1.4), P.len * .5 + 2.2); return [...o, Math.min(12, ps + Math.hypot(o[0] - u.v.x, o[1] - u.v.z) * .8)]; }
+  if (lz > P.len * .5 + 1.5) return [...at(0, P.len * .5 + 7 + ps * .3), ps * (lz > P.len * .5 + 5 ? .75 : 1)];
+  return [...at(u.box * (P.w / 2 + 2.6), P.len * .5 + 6), ps + 5];
 }
 function pitStep(dt) {
   TAC.pitCd -= dt;

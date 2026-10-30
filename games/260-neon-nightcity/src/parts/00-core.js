@@ -203,7 +203,7 @@ mat3 lampGrid(vec3 p, vec3 n, vec3 v, float shin){
     vec4 L = texelFetch(uLampT, ivec2(c.x * ${LAMP_K} + k, c.y), 0);
     if (L.w < .5) break;
     vec2 lk = lampK(vec3(L.x, 6.1 + L.w, L.y), p, n, v, shin);   // w = 1 + 燈柱底的高度（快速道路橋面上的燈）
-    vec3 lc = L.z < .5 ? cs : cl;
+    vec3 lc = L.z < .5 ? cs : L.z < 1.5 ? cl : vec3(1., .7, .42) * 1.6 * uLamp;   // 2：高架橋底的暖光（20-props.js）
     dif += lc * lk.x; spc += lc * lk.y;
   }
   return mat3(dif, spc, vec3(0.));

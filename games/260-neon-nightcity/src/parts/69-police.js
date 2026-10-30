@@ -19,6 +19,7 @@ function crime(kind, x = player.x, z = player.z) {
   if (player.where !== 'out' || life.dead || v5Quiet(kind)) return;   // 69-v5-shops.js：射擊場裡開槍不算
   const t = uTimeNow(), n = CRIME[kind];
   if (!n) return;
+  if (W.trace) W.trace.push({ t: +t.toFixed(2), kind, x: Math.round(x), z: Math.round(z), stars: W.stars });   // 測試：W.trace = [] 時記下每一次報案的罪名（誰算到玩家頭上）
   if ((kind === 'shots' || kind === 'blast' || kind === 'explode') && (evBountyNear(x, z) || side.act && side.act.noCrime && side.act.noCrime(x, z))) return;   // 69-street.js 攔逃犯車、69-survival.js 的貨場不算罪
   // 槍聲傳多遠看 69-v3-skills.js 的噪音圈（noise.shotR：一般 60 m、裝消音器 7 m）；69-squads.js 站著聊天的幫派也照這個範圍醒過來
   const loud = kind === 'shots' || kind === 'blast' || kind === 'explode', hearR = kind === 'shots' ? noise.shotR : 60;
@@ -352,7 +353,7 @@ function driveUnit(u, dt) {
   if (v.dead || !u.drive) return;
   const sp = Math.hypot(v.vx, v.vz), fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), vF = v.vx * fx + v.vz * fz;
   const px = pX(), pz = pZ(), dP = Math.hypot(px - v.x, pz - v.z);
-  let tx, tz, stop = false;
+  let tx, tz, stop = false, cap = Infinity;
   if (u.state === 'leave') { tx = v.x + fx * 60; tz = v.z + fz * 60; }
   else {
     if (W.seen || dP < 20) { tx = px; tz = pz; u.search = null; }
@@ -365,9 +366,11 @@ function driveUnit(u, dt) {
       } else { tx = W.lkp.x; tz = W.lkp.z; }
     } else { tx = px; tz = pz; }
     const dT = Math.hypot(tx - v.x, tz - v.z);
-    // 衝撞：兩星以上看到玩家開車，就瞄準玩家前方一點直接撞
-    if (W.stars >= 2 && W.seen && player.mode === 'drive' && dT < 30 && u.kind !== 'tank') { const a = pitAim(u); if (a) [tx, tz] = a; else { tx = px + player.veh.vx * .5; tz = pz + player.veh.vz * .5; } }   // pitAim：69-tactics.js 高速時改成 PIT 推尾
+    // 看到玩家開車：不瞄準車身直接撞。兩星以上高速時 PIT 推尾（69-tactics.js 的 pitAim），其他時候超車切到前面或包夾車頭逼停（boxAim）；
+    // 30 m 外照路網追，但 45 m 內車速最多比玩家快一截（不會全速衝進來）
+    if (W.seen && player.mode === 'drive' && dT < 30 && u.kind !== 'tank') [tx, tz, cap] = W.stars >= 2 && pitAim(u) || boxAim(u);
     else if (dT > 28 || !losClear(v.x, v.z, tx, tz)) [tx, tz] = routeTarget(u, tx, tz);
+    if (player.mode === 'drive' && dP < 45 && cap === Infinity) cap = Math.hypot(player.veh.vx, player.veh.vz) + Math.max(5, dP * .5);
     // 玩家走路：停在附近讓警員下車；坦克停在 25 m 外開砲
     const stopD = 9 + Math.max(0, vF) ** 2 / 26;   // 煞得住的距離
     if (u.hold) { if (W.cops.some(c => c.on && c.unit === u && c.state !== 'down')) stop = true; else u.hold = false; }   // 卡住後讓警員下車跑：等他們回來再開
@@ -376,7 +379,7 @@ function driveUnit(u, dt) {
   }
   const da = wrapA(Math.atan2(tx - v.x, tz - v.z) - v.yaw), ad = Math.abs(da);
   let steer = clamp(da * 2.4, -1, 1), thr = 1, brk = 0;
-  const want = stop ? 0 : ad > 1.1 ? 8 : ad > .45 ? 15 : v.vmax;
+  const want = stop ? 0 : Math.min(cap, ad > 1.1 ? 8 : ad > .45 ? 15 : v.vmax);
   if (vF > want + 1.5) { thr = 0; brk = clamp((vF - want) / 7, .35, 1); }
   else thr = stop ? 0 : ad > 1.8 ? .5 : 1;
   if (u.rev > 0) { u.rev -= dt; thr = 0; brk = 1; steer = -u.revS; }

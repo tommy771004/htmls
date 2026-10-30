@@ -327,7 +327,7 @@ function hitWith(h, R, dmg, by, head = 2.5, stun = 0) {
   else if (h.kind === 'fn') { blood(x, y, z); h.ref(dmg, R, mine); }   // 其他會中彈的東西自己處理（69-heist.js 跑出銀行的人質）
   else if (h.kind === 'prop') h.ref(x, y, z, dmg, R, mine);   // 69-v5-street.js：玻璃、電話亭、熱狗攤的瓦斯鋼瓶、護欄
   else if (h.kind === 'fighter') { blood(x, y, z); const hd = y - (h.ref.fy || 0) > 1.55; if (fHit(h.ref, dmg * (hd ? head : 1), R.dx, R.dz, mine) && mine) spEvent('kill', hd); }   // 69-squads.js：幫派
-  else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); chemHit(x, y, z); }   // 打到地上的油就點著
+  else if (h.kind) { sparks(x, y, z, 5, 2.5); dust(x, y, z, 2); chemHit(x, y, z, mine); }   // 打到地上的油就點著
 }
 // 電擊槍：路人倒地抽搐幾秒後爬起來逃跑（原地，不重生）；警察倒地幾秒後繼續追
 function stunPed(k, t, fx, fz) {
@@ -478,7 +478,7 @@ function stepProj(dt) {
 // ─── 爆炸：路人、警察、直升機、玩家、車流、載具（連鎖爆炸） ───
 function blast(x, y, z, r, dmg, by, skip) {
   const mine = by === 'player';
-  chemIgnite(x, z, r * .6); if (mine) noiseAdd(NOISE.blast);   // 69-v3-chem.js：爆炸點燃地上的油
+  chemIgnite(x, z, r * .6, mine); if (mine) noiseAdd(NOISE.blast);   // 69-v3-chem.js：爆炸點燃地上的油
   if (mine) spEvent('boom');
   fireball(x, y, z, r > 9 ? 1.3 : 1);
   const cd = Math.hypot(camera.position.x - x, camera.position.z - z);

@@ -159,6 +159,17 @@ function lampTable(heads) {
 }
 const LAMP_HEADS = [...lampsA.map(l => { const [x, z] = toW(l.hx, l.z, l.zn); return { x, z, t: 0 }; }), ...lampsS.map(l => { const [x, z] = toW(l.x, l.hz, l.zn); return { x, z, t: 1 }; }),
   ...lampsC.map(l => ({ x: l.hx, z: l.hz, t: 0, y: l.y }))];   // 28-enclave.js 再加上雲梯城寨的路燈、重畫一次
+// 高架橋底的暖光（note.com 那篇的照明：橋底與雨棚下補暖色的光，「照亮周圍、鏡頭與倒影看不到」的發光板）：快速道路離地 5 m 以上、底下是城裡的段，
+// 沿中心線每 24 m 一盞 t = 2（00-core.js 的 lampGrid 照 3000K 暖白），燈頭在橋面下 1.8 m（至少 7.1 m，表裡的 y 是燈頭高減 7.1，要大於 0 才不會被當成地上的路燈）。沒有燈具模型
+{
+  let n = 0;
+  for (const e of RN.edges) if (e.kind === 'f' && e.fwy) for (let u = 12; u < e.len; u += 24) {
+    const h = fwyH(e, u); if (h < 5) continue;
+    const [x, z] = edgeAt(e, u); if (!inCity(x, z)) continue;
+    LAMP_HEADS.push({ x, z, t: 2, y: Math.max(h - 1.8 - 7.1, .01), deck: 1 }); n++;
+  }
+  LAMP_HEADS.deckN = n;
+}
 lampTable(LAMP_HEADS);
 // 車行門前的兩台展示車與門口、車庫門前的車道：不放人行道設施
 for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
@@ -1137,7 +1148,21 @@ void main(){
 const MAT_SIGN = new T.ShaderMaterial({ name: 'sign', uniforms: { ...shared(ALLU), tAtlas: { value: atlasTex } }, vertexShader: SIGN_VS, fragmentShader: SIGN_FS, side: T.DoubleSide });
 const signGeo = { p: [], uv: [], s: [], idx: [] };
 const signLights = [];  // {x,y,z,col,r,i}
+// 物理檢查（note.com 那篇的「招牌埋在燈籠裡」）：招牌（含立式招牌、場館門面的招牌）蓋住的牆面外掛物藏起來。
+// 招牌當成厚 0.3 m 的板（中心 c、法線 n、寬 w、高 h），冷氣與室外機當成半徑 0.45 m、高 y−0.2…y+0.9 的東西，流痕照自己的寬與往下的長度
+const signHits = { n: 0 };
+function signClear(cx, cy, cz, nx, nz, w, h) {
+  const tx = nz, tz = -nx;
+  const hit = (t, r, y0, y1) => {
+    if (t.hide || y1 < cy - h / 2 - .1 || y0 > cy + h / 2 + .1) return false;
+    const dx = t.x - cx, dz = t.z - cz;
+    return Math.abs(dx * tx + dz * tz) < w / 2 + r && Math.abs(dx * nx + dz * nz) < .15 + r;
+  };
+  for (const L of [acs, wallAcs[0], wallAcs[1]]) for (const t of L) if (hit(t, .45, t.y - .2, t.y + .9)) { instHide(t); signHits.n++; }
+  for (const t of streaks) if (hit(t, t.sx / 2, t.y - t.sy, t.y)) { instHide(t); signHits.n++; }
+}
 function signQuad(cx, cy, cz, nx, nz, w, h, cellName, seed, kind, bright, col, lightR = 9) {
+  signClear(cx, cy, cz, nx, nz, w, h);
   const c = cells[cellName]; const tx = nz, tz = -nx;  // 面向觀看者的右方
   const base = signGeo.p.length / 3;
   const pts = [[-w / 2, -h / 2, c.u0, c.v0], [w / 2, -h / 2, c.u1, c.v0], [w / 2, h / 2, c.u1, c.v1], [-w / 2, h / 2, c.u0, c.v1]];

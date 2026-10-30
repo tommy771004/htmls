@@ -5,7 +5,7 @@ import { mkdirSync } from 'node:fs';
 import { open, raf } from './lib.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const htmlPath = resolve(root, '../../web/260-neon-nightcity.html');
+const htmlPath = process.env.NC_HTML ? resolve(process.env.NC_HTML) : resolve(root, '../../web/260-neon-nightcity.html');   // NC_HTML：拿別的建置（例如 HEAD 的單檔）比對
 const shotDir = process.env.SHOT_DIR ? resolve(process.env.SHOT_DIR) : null;
 if (shotDir) mkdirSync(shotDir, { recursive: true });
 

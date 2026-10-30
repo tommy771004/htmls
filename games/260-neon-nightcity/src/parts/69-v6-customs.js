@@ -359,7 +359,7 @@ function v6Backfire(v) {
   for (const s of [-1, 1]) emit('flash', bx - fz * s * .3, .32, bz + fx * s * .3, { vx: -fx * 3, vz: -fz * 3, max: .14, s0: .35, s1: .7, c: [.6, .9, 2.6] });
   fxLights.push({ x: bx, y: .5, z: bz, col: lin(0x6aa0ff), r: 7, i: 3, life: 0, max: .12 });
   sfx.pop(.6 + v.popK * .5);
-  chemIgnite(bx, bz, .9);   // 69-v3-chem.js：點著地上的汽油
+  chemIgnite(bx, bz, .9, v === player.veh);   // 69-v3-chem.js：點著地上的汽油
 }
 // 改裝廠裡放開油門（66-chrome.js 的 cwCam）
 function v6RevRelease(m) {
