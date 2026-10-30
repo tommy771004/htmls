@@ -10,7 +10,8 @@ const HELI_R = 140, SPOT_R = 35;
 const SWIM_WATCH = 110, SWIM_SHOT = 85;   // 玩家在水裡：岸上的警察 110 m 內一直盯著（不會因為游遠就消星），85 m 內看得到就開槍
 const CRIME = { jack: 35, assault: 25, shots: 45, aim: 45, kill: 60, blast: 60, ramcop: 100, resist: 100, killcop: 180, explode: 320, heli: 600 };
 const FLOOR = { killcop: 2, explode: 3, heli: 4 };
-const W = { heat: 0, stars: 0, seen: false, evade: 0, lkp: null, lastVeh: null, disg: false, units: [], cops: [], heli: null, blocks: [], pickups: [], reports: [], spawnT: 0, shotsT: -9, visT: 0, fieldT: 0, field: null, goal: -1, bustT: 0, blockT: 8, tankT: 0 };
+const W = { heat: 0, stars: 0, seen: false, evade: 0, lkp: null, lastVeh: null, disg: false, units: [], cops: [], heli: null, blocks: [], pickups: [], reports: [], spawnT: 0, shotsT: -9, visT: 0, fieldT: 0, field: null, goal: -1, bustT: 0, blockT: 8, tankT: 0,
+  off: /[?&]cops=0\b/.test(location.search) };   // ?cops=0（驗收用，tools/accept.mjs）：照樣算罪與星級，但不自動派警車、直升機、路障，也不會被捕；執行中改 W.off 也行
 const COP_N = LOW ? 8 : 12;
 const SPOT_COL = lin(0xdfe8ff);
 
@@ -669,18 +670,18 @@ function policeUpdate(dt) {
     // 派車
     W.spawnT -= dt;
     const active = W.units.filter(u => u.state === 'chase' && !u.v.dead).length;
-    if (W.spawnT <= 0 && active < Math.round(UNITS[s - 1] * (LOW ? .6 : 1)) && player.where === 'out') {
+    if (!W.off && W.spawnT <= 0 && active < Math.round(UNITS[s - 1] * (LOW ? .6 : 1)) && player.where === 'out') {
       W.spawnT = SPAWN_IV[s - 1];
       const swat = s >= 4 && Math.random() < (s >= 6 ? .6 : .35), tank = s >= 5 && !W.units.some(u => u.kind === 'tank') && W.tankT <= 0;
       if (tank) W.tankT = s >= 6 ? 20 : 40;
       spawnUnit(tank ? 'tank' : swat ? 'swat' : null);
     }
     W.tankT -= dt;
-    if (s >= 3 && !W.heli && player.where === 'out') spawnHeli();
-    if (s >= 3 && player.mode === 'drive') { W.blockT -= dt; if (W.blockT <= 0) { W.blockT = 22; placeRoadblock(); } }
+    if (!W.off && s >= 3 && !W.heli && player.where === 'out') spawnHeli();
+    if (!W.off && s >= 3 && player.mode === 'drive') { W.blockT -= dt; if (W.blockT <= 0) { W.blockT = 22; placeRoadblock(); } }
     // 被捕：1–2 星時警員貼身（徒手、沒拿槍瞄準）1 秒，或車停著有警員在駕駛座旁 1.5 秒
     let bust = false;
-    if (s <= 2) for (const c of W.cops) {
+    if (s <= 2 && !W.off) for (const c of W.cops) {
       if (!c.on || c.state !== 'act' || c.stunT > 0) continue;   // 被電擊倒地的不算
       const d = Math.hypot(c.x - pX(), c.z - pZ());
       if (player.mode === 'walk' ? d < 2.2 && !gta.aiming : d < 3.4 && Math.hypot(player.veh.vx, player.veh.vz) < 1.5) { bust = true; break; }

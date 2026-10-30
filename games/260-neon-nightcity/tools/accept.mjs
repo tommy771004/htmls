@@ -18,9 +18,12 @@ const ev = (page, fn, arg) => page.evaluate(fn, arg);
 const shot = async (page, name) => { if (shotDir) { await raf(page); await page.screenshot({ path: resolve(shotDir, name + '.png') }); } };
 async function hold(page, key, ms) { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); }
 
+// 警方自動追捕預設關掉（69-police.js 的 ?cops=0）：前面測試撞人、開槍留下的通緝會派警車，玩家在後面不相干的測試裡被捕（車內射擊、受傷扣護甲、運鈔車等偶發失敗）；
+// 照樣算罪與星級，測追捕的「1 星逮捕」到「3 星直升機與路障」那一段自己打開
+const COPS0 = (process.env.NC_QUERY || '?') + (process.env.NC_QUERY ? '&' : '') + 'cops=0';
 async function desktop() {
   console.log('=== 1440×900 ===');
-  const { browser, page, log } = await open(htmlPath, { w: 1440, h: 900 });
+  const { browser, page, log } = await open(htmlPath, { w: 1440, h: 900, query: COPS0 });
   try {
     const a = await ev(page, () => window.__nc.assets);
     check(a.loaded.length === 3 && a.missing.length === 0, `內嵌 GLB：${a.loaded.join('、')}（缺 ${a.missing.length}）`);
@@ -315,7 +318,7 @@ async function desktop() {
     check(rk.fx > 40 && rk.proj === 0, `火箭命中爆炸：粒子 +${rk.fx}`);
     const hp = await nc(() => { const g = window.__nc.gta; g.fill(); g.hurt(60); return { hp: Math.round(g.life.hp), ar: Math.round(g.life.armor), bar: getComputedStyle(document.getElementById('hpBar').firstElementChild).width }; });
     check(hp.ar === 60 && hp.hp === 80, `受傷先扣護甲：生命 ${hp.hp}、護甲 ${hp.ar}`);
-    await nc(() => { const g = window.__nc.gta; g.fill(); g.equip('fist', true); g.wanted.set(1); });
+    await nc(() => { const g = window.__nc.gta; g.wanted.W.off = false; g.fill(); g.equip('fist', true); g.wanted.set(1); });   // 這一段測追捕，暫時打開警方（COPS0）
     let bust = null;
     for (let i = 0; i < 70 && !bust; i++) { await page.waitForTimeout(500); bust = await nc(() => window.__nc.gta.life.dead); }
     const w1 = await nc(() => ({ stars: document.querySelectorAll('#wanted svg.lit').length, units: window.__nc.gta.wanted.W.units.length }));
@@ -353,7 +356,7 @@ async function desktop() {
     check(h3.heli && h3.block, `3 星：直升機出動、前方路口擺路障與釘刺帶 ${JSON.stringify(h3)}`);
     await page.waitForTimeout(6000);
     await shot(page, 'd-heli');
-    await nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); g.god.on = false; g.fill(); window.__nc.walk(); });
+    await nc(() => { const g = window.__nc.gta; g.wanted.clear('reset'); g.wanted.W.off = true; g.god.on = false; g.fill(); window.__nc.walk(); });
 
     // 第三階段：切換到 Jax（高空鏡頭約 2.7 秒）→ 狂暴減傷與鎖血；切到 Vance → 子彈時間
     const ab = await nc(() => new Promise((r) => {
@@ -1221,7 +1224,7 @@ async function desktop() {
 
 async function mobile() {
   console.log('=== 390×844（觸控）===');
-  const { browser, page, log } = await open(htmlPath, { w: 390, h: 844, touch: true });
+  const { browser, page, log } = await open(htmlPath, { w: 390, h: 844, touch: true, query: COPS0 });
   try {
     check(await ev(page, () => !!document.querySelector('meta[name=viewport]')), '有 viewport meta');
     await ev(page, () => window.__nc.start());

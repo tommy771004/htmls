@@ -118,12 +118,6 @@ for (const k of ['fir', 'maple', 'broad', 'pine']) if (HILL_FOREST[k].length && 
   forestLo[k] = instanced(PROPS[k + '_lo'], MAT.uxI, HILL_FOREST[k], 0, null, 1e5);
   const S = forestLo[k].userData.stream; if (S) Object.defineProperty(S, 'R0', { get: () => (HILL_FOREST.loR0 || 0) * detailK() });   // 27-props.js 換上近景模型後才設 loR0
   if (S) S.fogCut = 1;   // 20-props.js 的 instUpdate：整顆進霧的不送（日出日落時照舊全送）
-  if (S) {   // 也只送鏡頭看得到的方向（instUpdate 的 S.view）；rb 是實例最大的包圍半徑（幾何的包圍球照最大縮放）
-    const g = forestLo[k].geometry, M = S.mtx; let sc = 0;
-    for (let i = 0; i < S.n; i++) for (let c = 0; c < 3; c++) sc = Math.max(sc, Math.hypot(M[i * 16 + c * 4], M[i * 16 + c * 4 + 1], M[i * 16 + c * 4 + 2]));
-    if (!g.boundingSphere) g.computeBoundingSphere();
-    S.view = 1; S.rb = (g.boundingSphere.radius + g.boundingSphere.center.length()) * sc;
-  }
 }
 // 相機 800 m 外的遠景樹換成合併頂點的版本：位置與顏色相同的頂點併成一個（留第一個的法線與其他屬性），面數不變、頂點 132 → 39、216 → 48／108。
 // 雨夜光環廣場朝山 28.7 → 24.0 ms；凍結畫面市區 0 像素、城外空地朝山最多 48 像素（最大色差 7）。再用 meshopt 減面會改掉稜線剪影（使用者選了不減面）。

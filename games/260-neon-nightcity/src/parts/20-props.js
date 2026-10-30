@@ -67,6 +67,10 @@ function instStreamAdd(m, xs, zs, R = INST_R) {
   let y0 = Infinity, y1 = -Infinity;
   for (let k = 0; k < n; k++) { const y = S.mtx[k * 16 + 13]; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   S.cy = n ? (y0 + y1) / 2 : 0; S.hy = n ? (y1 - y0) / 2 : 0;
+  // 只送鏡頭方向扇形裡的（instUpdate 的 S.view）：rb 是實例最大的包圍半徑。片區的仿射框帶斜切，縮放上限用矩陣的 Frobenius 範數（不小於最大奇異值）
+  const g = m.geometry; if (!g.boundingSphere) g.computeBoundingSphere();
+  let sc = 0; for (let k = 0; k < n; k++) { const o = k * 16; let f = 0; for (const c of [0, 1, 2, 4, 5, 6, 8, 9, 10]) f += S.mtx[o + c] ** 2; if (f > sc) sc = f; }
+  S.rb = (g.boundingSphere.radius + g.boundingSphere.center.length()) * Math.sqrt(sc); S.view = 1;
   m.userData.map = new Int32Array(n); m.userData.stream = S;
   m.boundingSphere = new T.Sphere(V3(0, S.cy, 0), Math.hypot(R + 30, S.hy));
   instStreams.push(S);
@@ -110,7 +114,7 @@ function instUpdate(cx, cz) {
   const h = sstep(20, 120, camera.position.y), fx = 6 / (Math.max(U.uFogDen.value, 1e-4) * ((1 - h) * (.5 - .48 * h) + .02 * h));
   const clear = wx.cloud < FOG_CLR && wx.rain <= 0 && wx.fog < .05 && !(atm.dusk > 0);
   const fd = fogCull.en && clear ? 2 ** (Math.ceil(Math.log2(fx) * 16) / 16) + FOG_PAD : Infinity;
-  // 標了 S.view 的（50-assets.js 的遠景樹，一整批 6.4 萬棵）只送鏡頭看得到的方向：視錐投到水平面是頂點在鏡頭的扇形，半張角 Hc 照俯仰角放寬
+  // 串流的實例（S.view，instStreamAdd 預設打開；50-assets.js 的遠景樹一整批 6.4 萬棵）只送鏡頭看得到的方向：視錐投到水平面是頂點在鏡頭的扇形，半張角 Hc 照俯仰角放寬
   // （鏡頭空間方向 (x, y, −1) 的 x² + y² 不超過四角的 t²，鏡頭怎麼側傾都涵蓋；往前的水平分量最少 cos − t·|sin|，≤ 0 就是整圈都看得到）。
   // 倒影鏡頭水平位置、投影都一樣，只是俯仰顛倒，同一個扇形也涵蓋它。多送 VIEW_M 的餘裕，轉超過餘裕才重排
   const ce = _vfw.set(0, 0, -1).applyQuaternion(camera.quaternion), sp = Math.min(1, Math.abs(ce.y)), cp = Math.sqrt(1 - sp * sp), tv = Math.tan(camera.fov * Math.PI / 360), tt = Math.hypot(tv, tv * camera.aspect), fw = cp - tt * sp;
