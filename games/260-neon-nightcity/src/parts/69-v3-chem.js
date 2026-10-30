@@ -104,7 +104,7 @@ function fuelDraw() {
     _fs.set(f.s * fade, 1, f.s * fade); _fp.set(f.x, f.y, f.z);
     fuelMesh.setMatrixAt(n++, _fm.compose(_fp, _fq, _fs));
   }
-  fuelMesh.count = n; fuelMesh.instanceMatrix.needsUpdate = true;
+  instPush(fuelMesh, n);
   fuelMesh.visible = player.where === 'out' && n > 0;
 }
 

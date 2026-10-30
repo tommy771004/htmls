@@ -123,8 +123,8 @@ const HILL_TRAF = (() => {
         _o.position.set(c.x + Math.sin(c.yaw) * ty.len / 2, c.y + .03, c.z + Math.cos(c.yaw) * ty.len / 2); _o.scale.set(4.2, 1, 11); _o.updateMatrix(); pool.setMatrixAt(kp++, _o.matrix);
       }
     }
-    for (const t of used) for (const [m, n] of [[mesh[t].near, mesh[t].n0], [mesh[t].far, mesh[t].n1]]) if (m) { m.count = n; m.instanceMatrix.needsUpdate = true; m.geometry.attributes.aIns.needsUpdate = true; }
-    shadow.count = ks; shadow.instanceMatrix.needsUpdate = true; pool.count = kp; pool.instanceMatrix.needsUpdate = true;
+    for (const t of used) for (const [m, n] of [[mesh[t].near, mesh[t].n0], [mesh[t].far, mesh[t].n1]]) if (m) instPush(m, n, m.geometry.attributes.aIns);
+    instPush(shadow, ks); instPush(pool, kp);
     // 路人：路肩上走，前面 1.5 m 有玩家或路底就停
     for (const w of O.walkers) {
       const r = R[w.r], p = at(r, w.s), yaw = Math.atan2(p[3] * w.dir, p[4] * w.dir);

@@ -91,10 +91,16 @@ function instUpdate(cx, cz) {
       for (const { a, src } of S.attrs) for (let e = 0; e < a.itemSize; e++) a.array[c * a.itemSize + e] = src[k * a.itemSize + e];
       map[c++] = k;
     }
-    m.count = c; m.instanceMatrix.needsUpdate = true;
-    for (const { a } of S.attrs) a.needsUpdate = true;
+    instPush(m, c, ...S.attrs.map(x => x.a));
     m.boundingSphere.center.set(cx, S.cy, cz); m.boundingSphere.radius = Math.hypot(Re + 30, S.hy);
   }
+}
+// 每幀重寫的實例緩衝：只上傳用到的前 k 個（updateRanges，WebGL／WebGPU 都照它），k 是 0 就不上傳（count 0 不畫，舊資料用不到）。
+// 30-vehicles.js 的車流原本每幀把 108 個網格（每型車近、遠兩級，多半是空的）的 instanceMatrix 與 aIns 整份重傳：WebGPU 每幀約 216 次 writeBuffer、1 MB
+function instPush(m, k, ...attrs) {
+  m.count = k;
+  if (!k) return;
+  for (const a of [m.instanceMatrix, ...attrs]) { a.clearUpdateRanges(); a.addUpdateRange(0, k * a.itemSize); a.needsUpdate = true; }
 }
 // 避免設施互相重疊：佔用的圓放進 8 m 的格子（最大半徑 3.4 m），只比對附近幾格
 const nearProp = new Map(), NP_S = 8, npKey = (c, d) => (c + 1024) * 4096 + d + 1024;

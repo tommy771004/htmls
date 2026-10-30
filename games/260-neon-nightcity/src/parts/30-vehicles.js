@@ -193,7 +193,7 @@ function flushTraffic() {
       m.instanceMatrix.array.set(c.m, k * 16);
       const ia = m.geometry.attributes.aIns.array; ia[k * 4] = c.brake; ia[k * 4 + 1] = c.seed; ia[k * 4 + 2] = c.palI; ia[k * 4 + 3] = c.fade || 0;
     }
-    for (const [m, k] of [[near, n[0]], [far, n[1]]]) if (m) { m.count = k; m.instanceMatrix.needsUpdate = true; m.geometry.attributes.aIns.needsUpdate = true; }
+    for (const [m, k] of [[near, n[0]], [far, n[1]]]) if (m) instPush(m, k, m.geometry.attributes.aIns);
   }
 }
 // 車底陰影與頭燈照地
@@ -423,7 +423,7 @@ function updateTraffic(dt, t) {
   const ccx = camera.position.x, ccz = camera.position.z;
   for (const c of parked) if ((c.x - ccx) ** 2 + (c.z - ccz) ** 2 < 40000) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w, groundH(c.x, c.z) + .02);
   for (const v of vehicles) putShadow(v.x, v.z, v.yaw, v.len, v.w, v.y + .02);
-  shadowMesh.count = k; shadowMesh.instanceMatrix.needsUpdate = true;
+  instPush(shadowMesh, k);
   let q = 0;
   for (const c of traffic) {
     const L = TYPES[c.type].len / 2;
@@ -433,7 +433,7 @@ function updateTraffic(dt, t) {
     const v = player.veh;
     _o.position.set(v.x + Math.sin(v.yaw) * v.len / 2, .035, v.z + Math.cos(v.yaw) * v.len / 2); _o.rotation.set(0, v.yaw, 0); _o.scale.set(5, 1, 16); _o.updateMatrix(); poolMesh.setMatrixAt(q++, _o.matrix);
   }
-  poolMesh.count = q; poolMesh.instanceMatrix.needsUpdate = true;
+  instPush(poolMesh, q);
 }
 
 // ─── 玩家座駕 ───

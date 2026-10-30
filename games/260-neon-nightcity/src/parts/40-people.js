@@ -2951,7 +2951,7 @@ function updatePeds(dt) {
       umbMesh.setMatrixAt(u++, _o.matrix);
     }
   });
-  umbMesh.count = u; umbMesh.instanceMatrix.needsUpdate = true;
+  instPush(umbMesh, u);
   peds.flush();
 }
 
