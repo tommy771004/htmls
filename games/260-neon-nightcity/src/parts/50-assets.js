@@ -96,7 +96,10 @@ for (const [k, R] of [['palm', 380], ['agave', 160], ['shrub', 260], ['shrub_blo
   const L = HILL_PLANTS[k];
   if (!L.length || !PROPS[k]) continue;
   instanced(PROPS[k], MAT.uxI, L, 0, null, R);
-  if (k === 'palm' && PROPS.palm_lo) instanced(PROPS.palm_lo, MAT.uxI, L, 0, null, L.length > 160 ? 1e5 : undefined);
+  if (k === 'palm' && PROPS.palm_lo) {
+    const S = instanced(PROPS.palm_lo, MAT.uxI, L, 0, null, L.length > 160 ? 1e5 : undefined).userData.stream;
+    if (S) Object.defineProperty(S, 'R0', { get: () => (R - 6) * detailK() });   // 細模畫到的範圍裡不再畫低模（原本 380 m 內兩級疊著畫）
+  }
 }
 // 外緣山林的遠景樹（10-city.js 的 HILL_FOREST）：全部畫（整顆進霧的不畫，見 20-props.js 的 instUpdate）；27-props.js 下載 nat_forest 的近景樹之後改成只畫在近景半徑外。以檔案開啟時只有這一層
 const forestLo = {};
@@ -115,6 +118,38 @@ for (const k of ['fir', 'maple', 'broad', 'pine']) if (HILL_FOREST[k].length && 
   forestLo[k] = instanced(PROPS[k + '_lo'], MAT.uxI, HILL_FOREST[k], 0, null, 1e5);
   const S = forestLo[k].userData.stream; if (S) Object.defineProperty(S, 'R0', { get: () => (HILL_FOREST.loR0 || 0) * detailK() });   // 27-props.js 換上近景模型後才設 loR0
   if (S) S.fogCut = 1;   // 20-props.js 的 instUpdate：整顆進霧的不送（日出日落時照舊全送）
+  if (S) {   // 也只送鏡頭看得到的方向（instUpdate 的 S.view）；rb 是實例最大的包圍半徑（幾何的包圍球照最大縮放）
+    const g = forestLo[k].geometry, M = S.mtx; let sc = 0;
+    for (let i = 0; i < S.n; i++) for (let c = 0; c < 3; c++) sc = Math.max(sc, Math.hypot(M[i * 16 + c * 4], M[i * 16 + c * 4 + 1], M[i * 16 + c * 4 + 2]));
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    S.view = 1; S.rb = (g.boundingSphere.radius + g.boundingSphere.center.length()) * sc;
+  }
+}
+// 相機 800 m 外的遠景樹換成合併頂點的版本：位置與顏色相同的頂點併成一個（留第一個的法線與其他屬性），面數不變、頂點 132 → 39、216 → 48／108。
+// 雨夜光環廣場朝山 28.7 → 24.0 ms；凍結畫面市區 0 像素、城外空地朝山最多 48 像素（最大色差 7）。再用 meshopt 減面會改掉稜線剪影（使用者選了不減面）。
+// 20-props.js 的 instUpdate 照 S.far 分兩組送，70-render.js 的 reflOcc 兩組一起換圖層
+const FOREST_FAR = 800;
+function forestMerge(g) {
+  const P = g.attributes.position.array, C = g.attributes.color ? g.attributes.color : null, n = g.attributes.position.count, seen = new Map(), rem = new Uint32Array(n), keep = [];
+  for (let i = 0; i < n; i++) {
+    let k = Math.round(P[i * 3] * 1e4) + ',' + Math.round(P[i * 3 + 1] * 1e4) + ',' + Math.round(P[i * 3 + 2] * 1e4);
+    if (C) k += '|' + Math.round(C.array[i * C.itemSize] * 1e3) + ',' + Math.round(C.array[i * C.itemSize + 1] * 1e3) + ',' + Math.round(C.array[i * C.itemSize + 2] * 1e3);
+    let j = seen.get(k); if (j === undefined) { j = keep.length; seen.set(k, j); keep.push(i); }
+    rem[i] = j;
+  }
+  const o = new T.BufferGeometry();
+  for (const [k, a] of Object.entries(g.attributes)) { if (a.isInstancedBufferAttribute) continue; const s = a.itemSize, d = new a.array.constructor(keep.length * s); keep.forEach((i, j) => { for (let e = 0; e < s; e++) d[j * s + e] = a.array[i * s + e]; }); o.setAttribute(k, new T.BufferAttribute(d, s, a.normalized)); }
+  const src = g.index ? g.index.array : Uint32Array.from({ length: n }, (_, i) => i);
+  o.setIndex(new T.BufferAttribute(Uint16Array.from(src, i => rem[i]), 1));
+  o.boundingBox = g.boundingBox && g.boundingBox.clone(); o.boundingSphere = g.boundingSphere && g.boundingSphere.clone(); o.name = (g.name || '') + '_far';
+  return o;
+}
+for (const m of Object.values(forestLo)) {
+  const S = m.userData.stream;
+  if (!S || S.attrs.length || m.geometry.attributes.position.count > 65535) continue;
+  const f = new T.InstancedMesh(forestMerge(m.geometry), m.material, S.n);
+  f.count = 0; f.layers.mask = m.layers.mask; f.name = 'forestFar'; f.boundingSphere = new T.Sphere();
+  scene.add(f); S.far = f; S.farD = FOREST_FAR; m.userData.far = f;
 }
 // 石柱峰（21-coast.js 的 KARST，四型）：遠景材質，全部畫
 for (let v = 0; v < 4; v++) { const L = KARST.filter(t => t.v === v); if (L.length && PROPS['karst' + (v + 1)]) instanced(PROPS['karst' + (v + 1)], MAT.uxFI, L, 0, null); }

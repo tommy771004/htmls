@@ -278,7 +278,60 @@ function reflFar() {
   const D = U.uFogDen.value * .6, d = lerp(2.5 / D, 1.58 / D, U.uDay.value);
   return clamp(d * k + Math.max(0, camera.position.y) * 3, 160, camera.far);
 }
+// 遠景樹進不進倒影：外緣山林的遠景樹 forestLo（50-assets.js，6.4 萬棵、860 萬個三角形）在倒影裡要再畫一次，但在市區被大樓擋住時倒影裡也看不到
+// （雨夜光環廣場 31 → 25 ms）。主畫面畫一份樹林的包圍盒（300 m 一格，不寫顏色與深度，排在不透明的最後）做遮擋查詢：連續 2 次整份被擋住，
+// forestLo 就換到 NOREFL 圖層（主鏡頭照畫、倒影不畫），看得到就放回來（結果晚 1～3 幀）。只在主畫面查：倒影鏡頭在地面下往上看，山坡與建築的背面被剔掉，
+// 擋不住後面的樹（在倒影那一趟查永遠看得到）；直接看過去被擋住的，從地面積水往上反射的光線起點更低，也被同一批建築擋住。
+// 城外空地、海面上朝山看時看得到，照畫（拿掉的話雨夜、黃昏、陰天的積水與海面少一道稜線）。WebGL 自己包 GL query，WebGPU 用 three 的 occlusionTest
+const reflOcc = { en: true, occ: 0, hold: 0, skip: false, q: [], n: 0 };
+function reflOccSet(vis) { if (reflOcc.hold > 0) return; reflOcc.n++; reflOcc.occ = vis ? 0 : reflOcc.occ + 1; }
+const reflOccMesh = (() => {
+  const L = Object.values(forestLo), C = 300, cells = new Map();
+  for (const m of L) {
+    const S = m.userData.stream; if (!S) continue;
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    const bb = m.geometry.boundingBox, hw = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z), t = S.mtx;
+    for (let k = 0; k < S.n; k++) {
+      const x = S.xs[k], z = S.zs[k], y = t[k * 16 + 13], sy = Math.hypot(t[k * 16 + 4], t[k * 16 + 5], t[k * 16 + 6]), r = hw * Math.hypot(t[k * 16], t[k * 16 + 1], t[k * 16 + 2]);
+      if (!sy) continue;
+      const key = Math.floor(x / C) * 65536 + Math.floor(z / C), b = cells.get(key) || [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
+      b[0] = Math.min(b[0], x - r); b[1] = Math.min(b[1], y + bb.min.y * sy); b[2] = Math.min(b[2], z - r);
+      b[3] = Math.max(b[3], x + r); b[4] = Math.max(b[4], y + bb.max.y * sy); b[5] = Math.max(b[5], z + r); cells.set(key, b);
+    }
+  }
+  if (!cells.size) return null;
+  const pos = [], idx = [];
+  for (const b of cells.values()) {
+    const o = pos.length / 3;
+    for (let i = 0; i < 8; i++) pos.push(i & 1 ? b[3] : b[0], i & 2 ? b[4] : b[1], i & 4 ? b[5] : b[2]);
+    for (const f of [[0, 2, 3, 1], [4, 5, 7, 6], [0, 1, 5, 4], [2, 6, 7, 3], [0, 4, 6, 2], [1, 3, 7, 5]]) idx.push(o + f[0], o + f[1], o + f[2], o + f[0], o + f[2], o + f[3]);
+  }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  const m = new T.Mesh(g, new T.MeshBasicMaterial({ name: 'reflOcc', colorWrite: false, depthWrite: false, side: T.DoubleSide }));   // 雙面：鏡頭在盒子裡也算看得到
+  m.name = 'reflOcc'; m.frustumCulled = false; m.renderOrder = 1e9; m.layers.set(LY.NOREFL);   // 1 號圖層只有主鏡頭看得到
+  if (R.isWebGPURenderer) { m.occlusionTest = true; m.onBeforeRender = r => reflOccSet(!r.isOccluded(m)); }   // 讀到的是前幾幀解出來的結果
+  else {
+    const gl = R.getContext(), Q = gl.ANY_SAMPLES_PASSED_CONSERVATIVE;
+    m.onBeforeRender = () => { m.userData.q = null; if (reflOcc.q.length > 3) return; const q = gl.createQuery(); gl.beginQuery(Q, q); m.userData.q = q; };
+    m.onAfterRender = () => { const q = m.userData.q; if (q) { gl.endQuery(Q); reflOcc.q.push(q); } };
+  }
+  scene.add(m);
+  return m;
+})();
+// 每幀在倒影之前：收 WebGL 的查詢結果、決定 forestLo 進不進倒影。切鏡頭（camState.snap）後先照畫，之前送出的查詢結果丟掉 4 幀
+function reflOccPoll() {
+  if (!reflOccMesh) return;
+  if (reflOcc.hold > 0) reflOcc.hold--;
+  if (camState.snap) { reflOcc.hold = 4; reflOcc.occ = 0; }
+  if (!R.isWebGPURenderer) {
+    const gl = R.getContext();
+    while (reflOcc.q.length && gl.getQueryParameter(reflOcc.q[0], gl.QUERY_RESULT_AVAILABLE)) { const q = reflOcc.q.shift(); reflOccSet(!!gl.getQueryParameter(q, gl.QUERY_RESULT)); gl.deleteQuery(q); }
+  }
+  const skip = reflOcc.en && reflOcc.occ >= 2;
+  if (skip !== reflOcc.skip) { reflOcc.skip = skip; for (const m of Object.values(forestLo)) for (const o of [m, m.userData.far]) if (o) o.layers.set(skip ? LY.NOREFL : LY.MAIN); }
+}
 function renderReflection() {
+  reflOccPoll();
   // 虛擬相機：位置、注視點與上方向都對 y=0 平面鏡射
   camera.getWorldDirection(_fw);
   _rp.copy(camera.position); _rp.y = -_rp.y;
@@ -337,7 +390,7 @@ const resMax = () => Math.min(GT().ss || 1, Math.sqrt((GT().px || 4.2e6) / Math.
 // 全進霧裡的不畫：00-core.js 的 applyFog 在鏡頭低於 20 m 時 D ≥ .5，視線距離 × uFogDen × .5 超過 6 就剩不到 0.25%（夜裡的指數霧與白天的平方指數霧都是），
 // 包圍球整顆在那之外的物件在視錐測試就剔掉（海上 1～3 km 的船與乘客、對岸的小東西，每幀一百多個 draw call）。
 // 只對整段霧都算的材質：GLSL 有呼叫 applyFog、沒有 FAR（遠景只算一部分距離的霧，剪影要看得到）；鏡頭在高處時霧變淡，不剔
-const fogCull = { en: true, on: false, x: 0, y: 0, z: 0, d: 0 }, fogMat = new WeakMap(), _fcS = new T.Sphere();
+const fogCull = { en: true, on: false, x: 0, y: 0, z: 0, d: 0, empty: true }, fogMat = new WeakMap(), _fcS = new T.Sphere();
 const fogFull = m => {
   if (Array.isArray(m)) return m.every(fogFull);
   let v = fogMat.get(m);
@@ -345,7 +398,13 @@ const fogFull = m => {
   return v;
 };
 function fogCullAt(p) { fogCull.on = fogCull.en && camera.position.y < 20; fogCull.x = p.x; fogCull.y = p.y; fogCull.z = p.z; fogCull.d = 12 / Math.max(U.uFogDen.value, 1e-4); }
+// 沒東西可畫的也在這裡剔掉：three 不跳過 count 0 的 InstancedMesh 與沒有頂點的幾何（照樣切程式、更新 uniform、送一次空的 draw），
+// 串流實例（20-props.js 的 instUpdate）的球跟著相機、永遠在視錐裡，附近沒有實例時每幀白送（光環廣場 980 個 draw 裡 460 個）
 T.Frustum.prototype.intersectsObject = function (o) {
+  if (fogCull.empty) {   // 99-main.js 開場 compileAsync 時關掉
+    if (o.isInstancedMesh && o.count === 0) return false;
+    const g = o.geometry; if (g && (g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 1) === 0) return false;
+  }
   const s = _fcS;
   if (o.boundingSphere !== undefined) { if (o.boundingSphere === null) o.computeBoundingSphere(); s.copy(o.boundingSphere).applyMatrix4(o.matrixWorld); }
   else { const g = o.geometry; if (g.boundingSphere === null) g.computeBoundingSphere(); s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); }

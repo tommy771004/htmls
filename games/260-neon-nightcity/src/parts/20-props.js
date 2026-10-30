@@ -6,7 +6,38 @@ const _o = new T.Object3D(), _pfm = new T.Matrix4();
 // R：只送相機附近幾公尺內的實例（預設 INST_R；面數多的模型，例如 27-props 檔尾的樹，給小一點）。
 // stream.R0：近處這幾公尺內的不送（27-props 檔尾換成模型後，程式建模的樹只畫在模型的範圍外，當遠景）
 // 每個實例記在清單項目的 t._inst（[網格, 編號]），之後要整個拿掉（27-bldfoot 讓位給實體建築的行道樹）用 instHide；標了 t.hide 的之後建的網格也不畫
+// Kit 建出來的幾何沒有索引（每個三角形三個頂點各算一次），實例化後頂點著色器跑在每個實例的每個角上：所有屬性逐位元相同的頂點併成一個、加上索引，
+// 畫出來的三角形與每個頂點的值都不變（凍結畫面 0 像素），只少算重複的頂點（遠景樹 186 → 132、240 → 216 個頂點）。只換交給 InstancedMesh 的那份，原本的幾何照舊
+const _weldC = new WeakMap();
+function instWeld(g) {
+  if (g.index || !g.userData.parts || g.groups.length || g.morphAttributes.position) return g;
+  let w = _weldC.get(g); if (w) return w;
+  const names = Object.keys(g.attributes), A = names.map(k => g.attributes[k]);
+  if (A.some(a => a.isInterleavedBufferAttribute || a.isInstancedBufferAttribute || !(a.array instanceof Float32Array))) return g;
+  // 每個頂點的所有屬性排成一列 32 位元字（逐位元比，-0 與 0 算不同），開放定址雜湊表找相同的列（字串當鍵整座城要 230 ms）
+  const n = A[0].count, W = A.reduce((s, a) => s + a.itemSize, 0), K = new Uint32Array(n * W);
+  for (let j = 0, o = 0; j < A.length; o += A[j].itemSize, j++) { const s = A[j].itemSize, u = new Uint32Array(A[j].array.buffer, A[j].array.byteOffset, n * s); for (let i = 0; i < n; i++) for (let e = 0; e < s; e++) K[i * W + o + e] = u[i * s + e]; }
+  let H = 1; while (H < n * 2) H <<= 1;
+  const tab = new Int32Array(H).fill(-1), ix = new Uint32Array(n), first = [];
+  for (let i = 0; i < n; i++) {
+    let h = 2166136261; for (let e = 0; e < W; e++) h = Math.imul(h ^ K[i * W + e], 16777619);
+    for (let p = h & (H - 1); ; p = (p + 1) & (H - 1)) {
+      const v = tab[p];
+      if (v < 0) { tab[p] = ix[i] = first.length; first.push(i); break; }
+      const f = first[v]; let e = 0; while (e < W && K[f * W + e] === K[i * W + e]) e++;
+      if (e === W) { ix[i] = v; break; }
+    }
+  }
+  if (first.length > n * .9) { _weldC.set(g, g); return g; }
+  w = new T.BufferGeometry();
+  names.forEach((k, j) => { const a = A[j], s = a.itemSize, o = new Float32Array(first.length * s); first.forEach((i, v) => { for (let e = 0; e < s; e++) o[v * s + e] = a.array[i * s + e]; }); w.setAttribute(k, new T.BufferAttribute(o, s, a.normalized)); });
+  w.setIndex(new T.BufferAttribute(first.length < 65536 ? Uint16Array.from(ix) : ix, 1));
+  w.name = g.name; w.userData = { ...g.userData }; w.drawRange = { ...g.drawRange };
+  if (g.boundingBox) w.boundingBox = g.boundingBox.clone(); if (g.boundingSphere) w.boundingSphere = g.boundingSphere.clone();
+  _weldC.set(g, w); return w;
+}
 function instanced(geo, mat, list, layer = 0, extra, R) {
+  geo = instWeld(geo);
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
   const wx = new Float32Array(list.length), wz = new Float32Array(list.length);
   list.forEach((t, k) => {
@@ -73,26 +104,40 @@ function instSet(m, k, mtx) {
 // 的白天與夜晚天空和霧色夠接近（凍結畫面朝稜線比對 0 像素）；陰雨天的低雲被城市照成紫灰、日出日落地平線上了色（atm.dusk > 0），
 // 稜線上會少一排樹（最大色差 31～36/255），那些時候照舊全送
 const FOG_PAD = 40, FOG_CLR = .12;
+const viewCull = { en: true }, VIEW_M = .3, _vfw = new T.Vector3();   // 鏡頭的方向從 quaternion 算（updateCamera 的 lookAt 只改它，matrixWorld 要到畫的時候才更新）   // __nc.viewCull.en = false 關掉比對
+const angWrap = a => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
 function instUpdate(cx, cz) {
   const h = sstep(20, 120, camera.position.y), fx = 6 / (Math.max(U.uFogDen.value, 1e-4) * ((1 - h) * (.5 - .48 * h) + .02 * h));
   const clear = wx.cloud < FOG_CLR && wx.rain <= 0 && wx.fog < .05 && !(atm.dusk > 0);
   const fd = fogCull.en && clear ? 2 ** (Math.ceil(Math.log2(fx) * 16) / 16) + FOG_PAD : Infinity;
+  // 標了 S.view 的（50-assets.js 的遠景樹，一整批 6.4 萬棵）只送鏡頭看得到的方向：視錐投到水平面是頂點在鏡頭的扇形，半張角 Hc 照俯仰角放寬
+  // （鏡頭空間方向 (x, y, −1) 的 x² + y² 不超過四角的 t²，鏡頭怎麼側傾都涵蓋；往前的水平分量最少 cos − t·|sin|，≤ 0 就是整圈都看得到）。
+  // 倒影鏡頭水平位置、投影都一樣，只是俯仰顛倒，同一個扇形也涵蓋它。多送 VIEW_M 的餘裕，轉超過餘裕才重排
+  const ce = _vfw.set(0, 0, -1).applyQuaternion(camera.quaternion), sp = Math.min(1, Math.abs(ce.y)), cp = Math.sqrt(1 - sp * sp), tv = Math.tan(camera.fov * Math.PI / 360), tt = Math.hypot(tv, tv * camera.aspect), fw = cp - tt * sp;
+  const vYaw = Math.atan2(ce.x, ce.z), Hc = viewCull.en && fw > .02 ? Math.atan2(tt, fw) : 9;
   for (const S of instStreams) {
     if (S.fogCut) S.fog ??= fogFull(S.m.material);
     const Re = Math.min(S.R * detailK(), S.fogCut && S.fog ? fd : Infinity);
-    if (!S.dirty && S.dv === detail.v && S.re === Re && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
+    const turn = S.view && (Hc + Math.abs(angWrap(vYaw - S.vy)) > S.vh || S.vh > Hc + VIEW_M + .35);   // 轉出餘裕，或扇形可以收窄很多（俯仰回正、剛打開）
+    if (!S.dirty && !turn && S.dv === detail.v && S.re === Re && (S.cx - cx) ** 2 + (S.cz - cz) ** 2 < 144) continue;
     S.dirty = false; S.cx = cx; S.cz = cz; S.dv = detail.v; S.re = Re;
+    const VH = S.view && Hc < 3 ? Hc + VIEW_M : 9, VR = (S.rb || 0) + 12;   // VR：實例的包圍半徑加上鏡頭離串流中心最多 12 m
+    if (S.view) { S.vy = vYaw; S.vh = VH; }
     const { m, mtx } = S, dst = m.instanceMatrix.array, map = m.userData.map, R2 = Re * Re, R02 = (S.R0 || 0) ** 2;
-    let c = 0;
+    const F = S.far, fdst = F && F.instanceMatrix.array, FD2 = F ? S.farD ** 2 : Infinity;   // S.far：farD 外的送進另一組（50-assets.js 的遠景樹，沒有實例屬性）
+    let c = 0, cf = 0;
     for (let k = 0; k < S.n; k++) {
       const d2 = (S.xs[k] - cx) ** 2 + (S.zs[k] - cz) ** 2;
       if (d2 > R2 || d2 < R02) continue;
+      if (VH < 3) { const dh = Math.sqrt(d2); if (dh > VR && Math.abs(angWrap(Math.atan2(S.xs[k] - cx, S.zs[k] - cz) - vYaw)) > VH + Math.asin(VR / dh)) continue; }
+      if (d2 > FD2) { for (let e = 0; e < 16; e++) fdst[cf * 16 + e] = mtx[k * 16 + e]; cf++; continue; }
       for (let e = 0; e < 16; e++) dst[c * 16 + e] = mtx[k * 16 + e];
       for (const { a, src } of S.attrs) for (let e = 0; e < a.itemSize; e++) a.array[c * a.itemSize + e] = src[k * a.itemSize + e];
       map[c++] = k;
     }
     instPush(m, c, ...S.attrs.map(x => x.a));
     m.boundingSphere.center.set(cx, S.cy, cz); m.boundingSphere.radius = Math.hypot(Re + 30, S.hy);
+    if (F) { instPush(F, cf); F.boundingSphere.copy(m.boundingSphere); }
   }
 }
 // 每幀重寫的實例緩衝：只上傳用到的前 k 個（updateRanges，WebGL／WebGPU 都照它），k 是 0 就不上傳（count 0 不畫，舊資料用不到）。
