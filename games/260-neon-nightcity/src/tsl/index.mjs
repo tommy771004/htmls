@@ -35,19 +35,20 @@ import m30 from './m-sky.mjs';
 import m31 from './m-splash.mjs';
 import m32 from './m-steam.mjs';
 import m33 from './m-stGlass.mjs';
-import m34 from './m-tronBeam.mjs';
-import m35 from './m-tronPool.mjs';
-import m36 from './m-tronTrail.mjs';
-import m37 from './m-uber.mjs';
-import m38 from './m-uberPal.mjs';
-import m39 from './m-uberTint.mjs';
-import m40 from './m-uberTraf.mjs';
-import m41 from './m-uberX.mjs';
-import m42 from './m-villaGlass.mjs';
-import m43 from './m-vol.mjs';
-import m44 from './m-wake.mjs';
-import m45 from './m-walk.mjs';
-import m46 from './m-water.mjs';
+import m34 from './m-streak.mjs';
+import m35 from './m-tronBeam.mjs';
+import m36 from './m-tronPool.mjs';
+import m37 from './m-tronTrail.mjs';
+import m38 from './m-uber.mjs';
+import m39 from './m-uberPal.mjs';
+import m40 from './m-uberTint.mjs';
+import m41 from './m-uberTraf.mjs';
+import m42 from './m-uberX.mjs';
+import m43 from './m-villaGlass.mjs';
+import m44 from './m-vol.mjs';
+import m45 from './m-wake.mjs';
+import m46 from './m-walk.mjs';
+import m47 from './m-water.mjs';
 export { LIB };
 export const MAT = {
   "carShadow": m0,
@@ -84,17 +85,18 @@ export const MAT = {
   "splash": m31,
   "steam": m32,
   "stGlass": m33,
-  "tronBeam": m34,
-  "tronPool": m35,
-  "tronTrail": m36,
-  "uber": m37,
-  "uberPal": m38,
-  "uberTint": m39,
-  "uberTraf": m40,
-  "uberX": m41,
-  "villaGlass": m42,
-  "vol": m43,
-  "wake": m44,
-  "walk": m45,
-  "water": m46,
+  "streak": m34,
+  "tronBeam": m35,
+  "tronPool": m36,
+  "tronTrail": m37,
+  "uber": m38,
+  "uberPal": m39,
+  "uberTint": m40,
+  "uberTraf": m41,
+  "uberX": m42,
+  "villaGlass": m43,
+  "vol": m44,
+  "wake": m45,
+  "walk": m46,
+  "water": m47,
 };

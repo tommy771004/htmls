@@ -189,11 +189,13 @@ mat3 texMat(int m, vec3 p, vec3 n, mat3 io){
     alb = mix(alb, alb * vec3(.82, .86, .8), up * smoothstep(.45, .75, fbm3(p * 3.)));   // 頂面的青苔髒污
     rough = .9;
   } else if (m == 21) {   // 塗漆的鐵：粉化褪色、掉漆露底、鏽斑與往下流的鏽水
-    float r = fbm3(p * 2.6 + 7.) + .14 * n3(p * 23.) + vert * .3 * smoothstep(.55, .9, fbm(vec2(uv.x * 7., p.y * .5)));
-    float rust = smoothstep(.6, .74, r), halo = smoothstep(.5, .62, r) - rust;
+    // 鏽照理由長（note.com 那篇的做法）：積水的頂面、水滴下來的底面多，直立面只有往下流的鏽水；原本整片亂撒成一塊塊橘斑，像玩具
+    float wetS = clamp(up * .2 + smoothstep(-.6, -.95, n.y) * .05, 0., 1.);
+    float r = fbm3(p * 2.6 + 7.) * .92 + .14 * n3(p * 23.) + wetS + vert * .26 * smoothstep(.55, .9, fbm(vec2(uv.x * 7., p.y * .5)));
+    float rust = smoothstep(.66, .8, r), halo = smoothstep(.54, .66, r) - rust;
     alb = mix(alb, vec3(.11, .1, .09), .35 * fbm3(p * 1.3 + 2.));
     alb = mix(alb, alb * vec3(.75, .62, .5), halo * .7);
-    alb = mix(alb, mix(vec3(.16, .055, .02), vec3(.3, .13, .04), n3(p * 31.)), rust * .9);
+    alb = mix(alb, mix(vec3(.13, .065, .035), vec3(.22, .12, .06), n3(p * 31.)), rust * .85);   // 偏咖啡的鏽（彩度壓低）
     float aa = kxAA(uv * 30.), chip = step(.84, n3(p * 34.)) * aa * (1. - rust);
     alb = mix(alb, vec3(.2, .2, .19), chip * .8);
     alb *= .9 + .2 * aa * n2(uv * vec2(90., 6.));
@@ -232,11 +234,21 @@ mat3 texMat(int m, vec3 p, vec3 n, mat3 io){
     float bv = h21(id + 1.3);
     alb *= mix(.58, 1., q) * (.76 + .38 * bv) * (.84 + .28 * n2(uv * 23.) * kxAA(uv * 23.)) * (.88 + .22 * fbm3(p * 2.));
     rough = .85;
-  } else if (m == 29) {   // 鋼板：霧面、雨痕
+  } else if (m == 29) {   // 鋼板：霧面、雨痕。直立面照 note.com 那篇的增建鐵皮：每 90 cm 一片，亮度 ±13%、色相微偏、越上面越褪色變淺，
+    // 16% 的片是後來換的（顏色不同、比較乾淨），片與片之間一道暗縫與螺栓；只有漆磕掉的地方才有金屬光澤
+    float pi = floor(uv.x / .9), ph = h21(vec2(pi, sd * 7.1 + 3.)), rep = step(.84, h21(vec2(pi, sd * 3.3 + 9.))) * vert;
+    alb *= mix(vec3(1.), (.87 + .26 * ph) * mix(vec3(1.03, 1., .96), vec3(.96, 1., 1.04), h21(vec2(pi, 5.7))), vert);
+    alb = mix(alb, alb * vec3(.9, .96, 1.04) * 1.12, rep);
+    alb *= 1. + .12 * vert * smoothstep(.5, 3., p.y);
     alb *= .82 + .3 * fbm3(p * 2.2);
-    alb = mix(alb, vec3(.1, .1, .095), .25 * fbm3(p * .9 + 4.));
-    alb *= 1. - .35 * vert * kxStreak(p, uv, 5.);
-    rough = .55; metal = .35; envK = .35;
+    alb = mix(alb, vec3(.1, .1, .095), .25 * fbm3(p * .9 + 4.) * (1. - .6 * rep));
+    alb *= 1. - .35 * vert * kxStreak(p, uv, 5.) * (1. - .6 * rep);
+    float fx = fract(uv.x / .9), seam = vert * (1. - smoothstep(.006, .018, min(fx, 1. - fx) * .9)) * kxAA(uv * 4.);
+    float bolt = vert * smoothstep(.012, .006, length(vec2((min(fx, 1. - fx) * .9 - .03), (fract(p.y / .45) - .5) * .45))) * kxAA(uv * 30.);
+    alb *= (1. - .45 * seam) * (1. - .35 * bolt);
+    float chip = step(.9, n3(p * 30.)) * smoothstep(.55, .72, fbm3(p * 2. + 3.)) * kxAA(uv * 30.) * (1. - rep);
+    alb = mix(alb, vec3(.24, .24, .23), chip * .7);
+    rough = mix(.6, .4, chip); metal = mix(.05, .8, chip); envK = mix(.12, .4, chip);
   } else if (m == 31) {   // 碳纖維：每束 6 mm 的 2×2 斜紋（每兩格換方向），兩個方向的纖維反光不同、束的斷面是圓的；外面一層清漆
     vec2 q = uv / .006, c = floor(q), f = fract(q);
     float d = mod(floor((c.x + c.y) * .5), 2.), a = d > .5 ? f.y : f.x, aa = kxAA(q);
@@ -429,6 +441,9 @@ mat3 texMat(int m, vec3 p, vec3 n, mat3 io){
 // vP／vNo 是幾何自己的座標（實例在實例的框裡）：GEOM_POS／GEOM_NRM 在 WebGL 是 position／normal，WebGPU 的轉譯器換成套實例矩陣之前的 positionGeometry／normalGeometry
 const UBERX_VS = '#ifndef GEOM_POS\n#define GEOM_POS position\n#define GEOM_NRM normal\n#endif\n' + UBER_VS.replace('varying vec3 vW, vN, vCol;', 'varying vec3 vP, vNo; varying vec3 vW, vN, vCol;').replace('vCol = color; vMat = aMat;', 'vCol = color; vMat = aMat; vP = GEOM_POS; vNo = GEOM_NRM;');
 const UBERX_FS = UBER_FS.replace('void main(){', KX_TEX + 'void main(){').replace('if (m == 0) { rough = .22; envK = .75; }', 'if (m >= 20) { vec3 tio = vec3(vIns.z, vMat - float(m), 0.); mat3 tm = texMat(m, vP, normalize(vNo), mat3(alb, vec3(rough, metal, envK), tio)); alb = tm[0]; rough = tm[1].x; metal = tm[1].y; envK = tm[1].z; emi = tm[2];\n'
+  // 照理由的髒污（世界高度，城裡的地面 0–0.15 m）：離地半公尺內是濺起的泥水，塗漆的鐵、鋼板與烤漆離地 25 cm 內一圈鏽（漆被泡壞、金屬光澤沒了）
+  + '    if (m <= 22 || m == 29 || m == 34 || m == 26 || m == 27) { float hg = vW.y - .15, vt = 1. - smoothstep(.5, .8, abs(n.y)); alb *= 1. - .28 * (1. - smoothstep(0., .5, hg)) * step(-.2, hg) * vt * (.6 + .4 * n2(vW.xz * 3. + vW.y * 4.));\n'
+  + '      if (m == 21 || m == 29 || m == 34) { float rb = (1. - smoothstep(.06, .25 + .1 * n2(vW.xz * 5.), hg)) * step(-.2, hg) * vt * smoothstep(.3, .55, n2(vW.xz * 7. + vW.y * 9.)); alb = mix(alb, vec3(.12, .065, .035), rb * .8); metal *= 1. - rb; envK *= 1. - rb; rough = mix(rough, .9, rb); } }\n'
   + '    if (uVil.y > .5 && (m >= 43 && m <= 46 || m == 42 || m == 50)) { vec4 tn = texNrm(m, vP, normalize(vNo), tio); float ca = cos(vIns.w), sa = sin(vIns.w); n = normalize(n + vec3(ca * tn.x + sa * tn.z, tn.y, ca * tn.z - sa * tn.x)); if (tn.w >= 0.) rough = tn.w; } }\n  else if (m == 0) { rough = .22; envK = .75; }');
 if (UBERX_VS === UBER_VS || !UBERX_FS.includes('texMat(m,')) console.warn('kitx: uber shader patch did not apply');
 function mkUberX(o) { const m = mkUber(o); m.name = 'uberX'; m.vertexShader = UBERX_VS; m.fragmentShader = UBERX_FS; return m; }

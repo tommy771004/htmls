@@ -152,6 +152,7 @@ const U = {
   uAirA: { value: new T.Vector4(0, 0, 1, 0) }, uAirB: { value: new T.Vector4() },
   // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
   uOccA: { value: V4A(GT().occ, 0, 0, 1, 0) }, uOccB: { value: V4A(GT().occ) },
+  uWetDbg: { value: 0 },   // 地面濕的三層換成顏色（10-city.js 的 wetSurfaceR；tools/look-view.mjs 量比例用）
 };
 const NOCC = GT().occ, SH_N = GT().sh;   // 地上陰影的車人數、日光陰影的步數
 // 依畫質等級的常數在 GLSL 裡寫成具名的 #define（GL_LIB 開頭）：WebGPU 轉 TSL 時不代換成數字，執行期從這裡（02-gfx.js 的 E）拿值，

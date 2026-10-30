@@ -2,7 +2,7 @@
 // 材質 "facade"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{}": {
-  h: "1torfbxukx", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
+  h: "fmubnqwmj", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFacN","type":"sampler2DArray","src":"uFacN"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vB","type":"vec4","src":"vB"},{"name":"vB2","type":"vec4","src":"vB2"}],
   attributes: [{"name":"aB","type":"vec4","src":"aB"},{"name":"aB2","type":"vec4","src":"aB2"}],
@@ -493,6 +493,48 @@ export default {
 
     					const sd = select( f.y.lessThan( wmin.y ), wmin.y.sub( f.y ).mul( fh ), select( fi.add( 1. ).lessThan( nF ), add( 1., wmin.y ).sub( f.y ).mul( fh ), 9. ) ).toVar();
     					wall.mulAssign( sub( 1., mul( .3, smoothstep( .45, .8, n2( vec2( u.mul( 7. ).add( seed.mul( 5. ) ), y.mul( .15 ) ) ) ) ).mul( sub( 1., smoothstep( 0., 1.6, sd ) ) ) ) );
+
+    				} );
+
+    				If( st.notEqual( 3 ).and( st.notEqual( 5 ) ).and( st.notEqual( 8 ) ), () => {
+
+    					const age = fract( seed.mul( 17.3 ) ).toVar();
+
+    					If( solid.not().and( y.greaterThan( gH ) ).and( fi.lessThan( nF ) ), () => {
+
+    						const dF = sub( 1., fract( fy ) ).mul( fh ).toVar(), len = mix( .6, 2., n2( vec2( u.mul( 1.7 ), fi.add( seed.mul( 3. ) ) ) ) ).toVar();
+    						wall.mulAssign( sub( 1., add( .28, mul( .25, age ) ).mul( smoothstep( .5, .85, n2( vec2( u.mul( 3.1 ).add( seed.mul( 7. ) ), fi.mul( 5.3 ) ) ) ) ).mul( sub( 1., smoothstep( 0., len, dF ) ) ) ) );
+
+    					} );
+
+    					wall.mulAssign( mix( sub( .84, mul( .12, age ) ), 1., smoothstep( 1., 16., y ) ) );
+    					const brk = st.equal( 0 ).or( st.equal( 1 ) ).toVar();
+    					const rs = select( brk, vec2( 2.4, 1.8 ), vec2( 3.6, 2.9 ) ).toVar(), rq = vec2( u, y.add( mul( .4, n2( vec2( u.mul( .7 ), seed ) ) ) ) ).div( rs ).toVar(), rc = floor( rq ).toVar(), rf = fract( rq ).sub( .5 ).toVar();
+    					const rsh = select( brk, smoothstep( .34, .3, length( rf.mul( vec2( 1., 1.25 ) ) ).add( n2( rq.mul( 4. ) ).sub( .5 ).mul( .3 ) ) ), smoothstep( .5, .45, max( abs( rf.x ), abs( rf.y ) ).add( n2( rq.mul( 9. ) ).sub( .5 ).mul( .04 ) ) ) ).toVar();
+    					const rep = step( sub( 1., mul( .08, age ) ), h21( rc.add( seed.mul( 3. ) ) ) ).mul( step( 1.5, y ) ).mul( rsh ).toVar();
+    					wall.assign( mix( wall, select( brk, L( vec3( .32, .31, .29 ) ).mul( add( .8, mul( .3, n2( vec2( u, y ).mul( 5. ) ) ) ) ).mul( add( .85, mul( .15, bm ) ) ), wall.mul( vec3( 1.14, 1.11, 1.05 ) ) ), rep.mul( .8 ) ) );
+
+    					If( st.equal( 2 ).or( st.equal( 4 ) ), () => {
+
+    						const pk = fbm( vec2( u, y ).mul( .9 ).add( seed.mul( 5. ) ) ).add( sub( 1., smoothstep( 0., 9., y ) ).mul( .22 ) ).add( age.mul( .1 ) ).toVar();
+    						wall.assign( mix( wall, L( vec3( .47, .49, .44 ) ).mul( add( .85, mul( .2, grime ) ) ), smoothstep( .72, .735, pk ) ) );
+    						wall.assign( mix( wall, L( vec3( .33, .32, .3 ) ).mul( add( .8, mul( .3, n2( vec2( u, y ).mul( 6. ) ) ) ) ), smoothstep( .8, .815, pk ) ) );
+
+    					} );
+
+    					If( y.greaterThan( .9 ).and( y.lessThan( 2.7 ) ), () => {
+
+    						const pc = floor( u.div( 2.3 ) ).toVar(), pr = h21( vec2( pc, seed.mul( 7. ) ) ).toVar(), px = fract( u.div( 2.3 ) ).toVar(), e = n2( vec2( u, y ).mul( 14. ) ).sub( .5 ).mul( .06 ).toVar();
+    						const x0 = add( .15, mul( .25, h21( vec2( pc, 3. ) ) ) ).toVar(), y0 = add( 1.05, mul( .3, pr ) ).toVar();
+    						const inP = step( .8, pr ).mul( step( x0.add( e ), px ) ).mul( step( px, x0.add( .3 ).sub( e ) ) ).mul( step( y0.add( e ), y ) ).mul( step( y, y0.add( .75 ).sub( e ) ) ).toVar();
+    						wall.assign( mix( wall.mul( add( 1., mul( .1, inP ) ) ), L( vec3( .66, .62, .5 ) ).mul( add( .8, mul( .3, n2( vec2( u, y ).mul( 20. ) ) ) ) ), inP.mul( smoothstep( .55, .62, n2( vec2( u, y ).mul( 7. ).add( pc ) ) ) ) ) );
+
+    					} );
+
+    					const yd = add( .4, mul( .7, age ).mul( add( .6, mul( .4, n2( vec2( u.mul( .6 ).add( seed ), 1. ) ) ) ) ) ).toVar();
+    					wall.mulAssign( sub( 1., mul( .22, sub( 1., smoothstep( yd.sub( .15 ), yd, y ) ) ) ) );
+    					wall.assign( mix( wall, L( vec3( .68, .66, .61 ) ), mul( .5, exp( pow( y.sub( yd ).div( .045 ), 2. ).negate() ) ).mul( smoothstep( .3, .65, n2( vec2( u.mul( 4. ), y.mul( 9. ) ) ) ) ) ) );
+    					wall.assign( mix( wall, wall.mul( 1.3 ).add( L( vec3( .04 ) ) ), sub( 1., smoothstep( .03, .12, edge ) ).mul( sub( 1., smoothstep( 1.4, 2.2, y ) ) ).mul( smoothstep( .4, .6, n2( vec2( u.mul( 3. ), y.mul( 6. ) ) ) ) ) ) );
 
     				} );
 

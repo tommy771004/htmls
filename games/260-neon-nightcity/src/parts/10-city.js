@@ -921,6 +921,43 @@ void main(){
     float sd = f.y < wmin.y ? (wmin.y - f.y) * fh : fi + 1. < nF ? (1. + wmin.y - f.y) * fh : 9.;
     wall *= 1. - .3 * smoothstep(.45, .8, n2(vec2(u*7. + seed*5., y*.15))) * (1. - smoothstep(0., 1.6, sd));
   }
+  // 髒污照「會髒在哪裡」的理由放（note.com 那篇雨夜大樓的做法）；玻璃帷幕、夜店、醫院不畫。age 是每棟的新舊
+  if (st != 3 && st != 5 && st != 8) {
+    float age = fract(seed*17.3);
+    // 每層樓板的邊緣正下方：雨水順著樓板邊流下的縱向黑痕，一欄一欄、長短不一（樓板線下 0.5–1.6 m）
+    if (!solid && y > gH && fi < nF) {
+      float dF = (1. - fract(fy)) * fh, len = mix(.6, 2., n2(vec2(u*1.7, fi + seed*3.)));
+      wall *= 1. - (.28 + .25*age) * smoothstep(.5, .85, n2(vec2(u*3.1 + seed*7., fi*5.3))) * (1. - smoothstep(0., len, dF));
+    }
+    // 越低的樓層越髒（廢氣、濺起的泥水）
+    wall *= mix(.84 - .12*age, 1., smoothstep(1., 16., y));
+    // 修補過的一塊塊（舊樓多）：粉刷牆重新上過漆（淺、乾淨、色偏不同），磚牆是灰色的水泥補丁
+    // 磚牆的補丁是不規則的一團（2.4 × 1.8 m 一格裡最多一塊，邊緣照雜訊抖），粉刷牆是大致方正的一片重新上漆（3.6 × 2.9 m）
+    bool brk = st == 0 || st == 1;
+    vec2 rs = brk ? vec2(2.4, 1.8) : vec2(3.6, 2.9), rq = vec2(u, y + .4*n2(vec2(u*.7, seed))) / rs, rc = floor(rq), rf = fract(rq) - .5;
+    float rsh = brk ? smoothstep(.34, .3, length(rf * vec2(1., 1.25)) + (n2(rq * 4.) - .5) * .3) : smoothstep(.5, .45, max(abs(rf.x), abs(rf.y)) + (n2(rq * 9.) - .5) * .04);
+    float rep = step(1. - .08*age, h21(rc + seed*3.)) * step(1.5, y) * rsh;
+    wall = mix(wall, brk ? L(vec3(.32,.31,.29)) * (.8 + .3*n2(vec2(u, y)*5.)) * (.85 + .15*bm) : wall * vec3(1.14, 1.11, 1.05), rep * .8);
+    // 粉刷牆（灰泥、翻新樓）的剝漆：先露出舊的那層漆、再露出底下的混凝土；靠地面與低樓層多
+    if (st == 2 || st == 4) {
+      float pk = fbm(vec2(u, y)*.9 + seed*5.) + (1. - smoothstep(0., 9., y))*.22 + age*.1;
+      wall = mix(wall, L(vec3(.47,.49,.44)) * (.85 + .2*grime), smoothstep(.72, .735, pk));
+      wall = mix(wall, L(vec3(.33,.32,.3)) * (.8 + .3*n2(vec2(u, y)*6.)), smoothstep(.8, .815, pk));
+    }
+    // 撕掉的海報（1–2.6 m，約五分之一的 2.3 m 一格）：一圈淺色的膠痕、殘留的發黃紙片
+    if (y > .9 && y < 2.7) {
+      float pc = floor(u / 2.3), pr = h21(vec2(pc, seed*7.)), px = fract(u / 2.3), e = (n2(vec2(u, y)*14.) - .5) * .06;
+      float x0 = .15 + .25*h21(vec2(pc, 3.)), y0 = 1.05 + .3*pr;
+      float inP = step(.8, pr) * step(x0 + e, px) * step(px, x0 + .3 - e) * step(y0 + e, y) * step(y, y0 + .75 - e);
+      wall = mix(wall * (1. + .1*inP), L(vec3(.66,.62,.5)) * (.8 + .3*n2(vec2(u, y)*20.)), inP * smoothstep(.55, .62, n2(vec2(u, y)*7. + pc)));
+    }
+    // 牆腳返潮：0.4–1.1 m 以下顏色深，上緣一條白色鹽霜
+    float yd = .4 + .7*age*(.6 + .4*n2(vec2(u*.6 + seed, 1.)));
+    wall *= 1. - .22 * (1. - smoothstep(yd - .15, yd, y));
+    wall = mix(wall, L(vec3(.68,.66,.61)), .5 * exp(-pow((y - yd) / .045, 2.)) * smoothstep(.3, .65, n2(vec2(u*4., y*9.))));
+    // 外凸的轉角（和隔壁棟的交界不算，edge 是離這一面兩端的距離）：人與推車擦過的地方，2 m 以下的邊磨得淺一點
+    wall = mix(wall, wall * 1.3 + L(vec3(.04)), (1. - smoothstep(.03, .12, edge)) * (1. - smoothstep(1.4, 2.2, y)) * smoothstep(.4, .6, n2(vec2(u*3., y*6.))));
+  }
   // 下雨時牆面吸水變深（28-sky.js 的 wx.wet，雨停慢慢乾）：牆腳 3 m 內最濕
   wall *= 1. - .22 * uWet * mix(.6, 1., 1. - smoothstep(0., 3., y));
   // 平的牆：視線穿過窗洞往裡走到玻璃面（深度和 09-mass.js 的細模一樣），先碰到的是窗洞兩側、窗楣底或窗台就畫那一面
@@ -1297,7 +1334,7 @@ void main(){
 }`;
 const GROUND_COMMON = /* glsl */`
 ${GL_LIB}
-uniform sampler2D tRefl; uniform float uReflOn;
+uniform sampler2D tRefl; uniform float uReflOn, uWetDbg;
 varying vec3 vW, vN; varying vec4 vRP; varying vec2 vL, vAx;
 vec3 nW(vec3 n){ return vec3(n.x*vAx.x - n.z*vAx.y, n.y, n.x*vAx.y + n.z*vAx.x); }
 vec2 ripple(vec2 p, float t){
@@ -1322,13 +1359,29 @@ vec3 reflSample(vec2 ruv, float blur){
   c += texture2D(tRefl, ruv - vec2(0., blur*2.2)).rgb * .15;
   return c;
 }
-vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
+// 頭上有沒有東西擋雨（0–1）：22-hmap.js 的高度圖（建築、實體建築的雨棚與騎樓、快速道路的橋面）高出這裡 1.3 m 以上就算遮住，
+// 取周圍 0.7 m 的五點，牆腳與雨棚的邊緣是漸層；行道樹的樹冠底下擋掉一部分（葉子還會滴水）
+float coverAt(vec3 p, vec2 o){ return smoothstep(1.3, 2.4, textureLod(uHMap, (p.xz + o - uHM.xy) * uHM.z, 0.).r - p.y); }
+float rainCover(vec3 p){
+  float s = coverAt(p, vec2(0.)) * .4 + (coverAt(p, vec2(.7, 0.)) + coverAt(p, vec2(-.7, 0.)) + coverAt(p, vec2(0., .7)) + coverAt(p, vec2(0., -.7))) * .15;
+  vec2 tr = textureLod(uTMap, (p.xz - uTM.xy) * uTM.z, 0.).rg;
+  if (tr.x > 0. && tr.y > p.y + 1.) s = max(s, .35);
+  return s;
+}
+// 地面的濕：照 note.com 那篇雨夜大樓的做法分成乾、濕、積水三層，差在顏色的暗與表面的光澤（粗糙度與一層水膜的反射）：
+// 乾 0.72、濕 0.3（底色暗到約七成，水膜反射 0.55）、積水 0.035 幾乎是鏡面（再暗一些、邊緣一圈更暗、法線由呼叫的地方抹平）。
+// 頭上有遮的地方（rainCover）是乾的、也沒有積水；rough0 是乾的時候的粗糙度（每塊地磚不同）
+vec3 wetSurfaceR(vec3 base, vec3 n, float wet, float pud, float paint, float rough0){
   vec3 v = normalize(uCam - vW);
-  pud *= smoothstep(.05, .6, uWet); wet *= uWet;   // 雨停後積水慢慢乾掉
-  float rough = mix(.75, .08, max(pud, wet*.6));
+  float dry = rainCover(vW);
+  pud *= smoothstep(.05, .6, uWet) * (1. - dry); wet *= uWet * (1. - dry);   // 雨停後積水慢慢乾掉
+  if (uWetDbg > .5) return vec3(dry + (1. - wet) * (1. - pud), wet * (1. - pud), pud) * 2.;   // look-view 的分層顏色：紅乾、綠濕、藍積水
+  float rim = smoothstep(.05, .35, pud) * (1. - smoothstep(.45, .9, pud));   // 積水的邊：泥水滲開的一圈
+  base *= mix(1., .7, wet) * mix(1., .8, pud) * (1. - .3*rim);
+  float rough = mix(mix(rough0, .3, wet), .035, pud);
   vec3 c = shade(vW, n, v, base, rough, 0.);
   float F = .05 + .95*pow(1. - max(dot(n, v), 0.), 5.);
-  float refl = mix(.3, 1., F) * mix(wet*.55, 1., pud) * (1. - paint*.4);
+  float refl = mix(.3, 1., F) * mix(wet*.55, .9, pud) * (1. - paint*.4);
   vec3 rc;
   if (uReflOn > .5) {
     vec2 ruv = vRP.xy / vRP.w + n.xz * vec2(.05, .09) * (1. + 1.5*(1. - pud));
@@ -1337,6 +1390,7 @@ vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){
   } else rc = envMap(reflect(-v, n));
   return mix(c, rc, clamp(refl, 0., 1.) * uWet);
 }
+vec3 wetSurface(vec3 base, vec3 n, float wet, float pud, float paint){ return wetSurfaceR(base, n, wet, pud, paint, .72); }
 `;
 const ROAD_FS = /* glsl */`
 ${GROUND_COMMON}
@@ -1429,8 +1483,8 @@ void main(){
   float wear = smoothstep(.35, .7, fbm(p*1.3 + 9.));
   paint *= 1. - decA * .85;
   alb = mix(alb, pc * .55 * (.75 + .25*fine), paint * (1. - min(1., wear*.6 + wheel*.35)));
-  // 人孔蓋
-  float mh = 1.;
+  // 人孔蓋（mhRing：蓋子周圍沉下去的一圈，積水用）
+  float mh = 1., mhRing = 0.;
   {
     float d = onA ? length(vec2(abs(dx) - 3., mod(p.y - Z0, Q) - 31.)) : 99.;
     float d2 = onS ? length(vec2(mod(p.x - X0, P) - 36., abs(dz) - 3.)) : 99.;
@@ -1441,7 +1495,7 @@ void main(){
       vec3 du = decUV(8, q); vec4 dc = decal(du);
       disc = dc.a; alb = mix(alb, dc.rgb * .3, disc); decN += decalN(du) * disc;
     } else alb = mix(alb, vec3(.03,.028,.026) * (.8 + .4*step(.5, fract(md*12.))), disc);
-    mh = 1. - disc * .6;
+    mh = 1. - disc * .6; mhRing = smoothstep(1.3, .5, md) * (1. - disc);
   }
   // 路邊的排水格柵：靠路緣（離路中心 7.62 m）每 23 m 一個，長邊順著路；格柵縫裡是黑的
   if (uDecOn > .5 && !inter && (onA || onS)) {
@@ -1449,17 +1503,21 @@ void main(){
     vec3 du = decUV(9, vec2(mod(al, 23.) - 11.5, ar - 7.62)); vec4 dc = decal(du);
     alb = mix(alb, dc.rgb * .3, dc.a); decN += decalN(du) * dc.a * .5;
   }
-  // 積水與排水溝
-  float gut = onA && !inter ? smoothstep(6.6, 7.9, abs(dx)) : onS && !inter ? smoothstep(6.6, 7.9, abs(dz)) : 0.;
-  float pud = smoothstep(.56, .66, fbm(p*.09 + 7.) + gut*.25 + (1. - n1)*.05);
-  pud = max(pud, gut * .6);
+  // 積水與排水溝：水只留在低的地方。路拱中間高、路緣的排水溝最低（沿著路緣一道水），輪跡壓出的淺溝、龜裂補丁與人孔蓋周圍略低；
+  // 路中間與路口中央幾乎沒有（原本照雜訊整片撒，路中間也一攤一攤）
+  float ar = onA && !inter ? abs(dx) : onS && !inter ? abs(dz) : 0.;
+  float gut = ar > 0. ? smoothstep(7., 7.9, ar) : 0.;
+  float crown = ar > 0. ? 1. - smoothstep(1., 4.5, ar) : inter ? .7 : 0.;
+  float low = gut*.3 + wheel*.07 + decA*.1 + mhRing*.1 - crown*.14;
+  float pud = smoothstep(.63, .71, fbm(p*.09 + 7.) + low + (1. - n1)*.05);
+  pud = max(pud, gut * .55);
   vec3 n = vec3(0., 1., 0.);
   float h0 = n2(p*4.), hx = n2(p*4. + vec2(.05, 0.)), hz = n2(p*4. + vec2(0., .05));
   n.xz -= vec2(hx - h0, hz - h0) * 1.6 * (1. - pud);
   n.xz += vec2(asT.x, -asT.y) * .35 * (1. - pud) * (1. - paint*.5);
   n.xz += vec2(decN.x, -decN.y) * .6 * (1. - pud);   // 貼花的凹凸（補丁的邊、人孔蓋的花紋），積水的地方平掉
   float dist = length(vW - uCam);
-  if (dist < 40.) n.xz += ripple(p, uTime) * .5 * (.3 + .7*pud) * (1. - dist/40.);
+  if (dist < 40.) n.xz += ripple(p, uTime) * .5 * (.3 + .7*pud) * (1. - dist/40.) * (1. - rainCover(vW));   // 橋下、雨棚下沒有雨滴
   n = normalize(nW(n));
   vec3 c = wetSurface(alb * mh, n, .8, pud, paint);
   gl_FragColor = vec4(applyFog(c, vW), 1.);
@@ -1517,12 +1575,14 @@ void main(){
     alb = mix(alb, vec3(.2,.19,.18) * dt.rgb * (.8 + .3*n2(p*6.)), curb);
     float stain = smoothstep(.5, .8, fbm(p*.25 + 3.));
     alb *= 1. - stain * .35;
-    float pud = smoothstep(.62, .7, fbm(p*.2 + 11.) + dirtJ*.08) * (1. - curb);
+    // 積水：鋸縫、往路緣微斜的那一側、和少數沉下去的板（sunk）；每塊板乾的粗糙度、吸水的程度不同，下雨時不會每塊都一樣濕
+    float sunk = step(.94, h21(ti + 37.));
+    float pud = smoothstep(.62, .7, fbm(p*.2 + 11.) + dirtJ*.08 + sunk*.12 + (1. - smoothstep(0., 1.2, cdist))*.05) * (1. - curb);
     float dist = length(vW - uCam);
-    if (dist < 30.) nn.xz += ripple(p, uTime + 3.) * .35 * pud * (1. - dist/30.);
+    if (dist < 30.) nn.xz += ripple(p, uTime + 3.) * .35 * pud * (1. - dist/30.) * (1. - rainCover(vW));
     nn.xz += (vec2(hs, h21(ti + 4.)) - .5) * .04;
     if (uFac.y > .5 && dt.a > .5) { vec3 tn = texture(uFacN, vec3(p / 2.5 + vec2(hs, hs2) * 7., 2.)).rgb; nn.xz += vec2(tn.r*2. - 1., 1. - tn.g*2.) * .35 * (1. - pud) * kFine; }
-    c = wetSurface(alb, normalize(nW(nn)), .6, pud, 0.);
+    c = wetSurfaceR(alb, normalize(nW(nn)), .6 * (.75 + .5*h21(ti + 29.)), pud, 0., mix(.6, .85, h21(ti + 23.)));
   }
   gl_FragColor = vec4(applyFog(c, vW), 1.);
 }`;

@@ -761,6 +761,49 @@ const downpipes = [], pipeClamps = [], wallAcs = [[], []];
   k.box(0, -.01, -.01, .62, .025, .03, 0x2a2a2a, TX.iron);
   instanced(k.build(), MAT.ux, acs, 0, null, 150);   // 小東西：150 m 外只剩幾個像素，不送
 }
+// 外掛物底下的流痕（note.com 那篇雨夜大樓的做法：室外機下、管線接頭、加蓋物下貼 0.6–2.2 m 的細長板）：貼在牆面外 1.2 cm 的直立四邊形，
+// 乘法混合（只會把牆變暗、變鏽色，日夜都對）。aIns = (鏽 1／灰塵 0, 亂數, 濃度, 0)。窗型冷氣的托架下、分離式室外機下（生鏽款是鏽水）、
+// 落水管的管箍（鏽）與集水斗（溢出的黑痕）、逃生梯平台兩端（鏽）
+const streaks = [];
+{
+  const r = rng(2618), N = p => [Math.sin(p.ry), Math.cos(p.ry)];
+  const add = (p, back, dy, w, len, rust, k = 1, along = 0) => {
+    const [nx, nz] = N(p);
+    streaks.push({ x: p.x - nx * back + nz * along, y: p.y + dy, z: p.z - nz * back - nx * along, ry: p.ry, sx: w, sy: len, rust, seed: r(), k, zn: p.zn });
+  };
+  for (const p of acs) if (r() < .7) add(p, .208, -.16, .55 + r() * .25, .8 + r() * 1.2, r() < .4 ? 1 : 0, .8 + r() * .4);
+  wallAcs.forEach((list, rusty) => { for (const p of list) if (r() < .8) add(p, .178, -.02, .7 + r() * .3, 1 + r() * 1.2, rusty || r() < .25 ? 1 : 0, .8 + r() * .5); });
+  for (const p of pipeClamps) if (r() < .55) add(p, .188, -.03, .14 + r() * .1, .5 + r() * .8, 1, .7 + r() * .5);
+  for (const d of downpipes) if (r() < .6) add(d.top, .188, 0, .45 + r() * .2, 1.4 + r() * .8, 0, 1.1);
+  for (const e of escapes) for (const s of [-1, 1]) if (r() < .6) add(e, .608, -.05, .3 + r() * .25, .8 + r() * 1.4, 1, .9 + r() * .4, 1.25 + s * 2.55);
+}
+{
+  const g = new T.PlaneGeometry(1, 1); g.translate(0, -.5, 0);   // 上緣在原點、往下長一個單位（sy 是長度）
+  const m = new T.ShaderMaterial({ name: 'streak', uniforms: shared(ALLU), transparent: true, depthWrite: false,
+    blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.ZeroFactor, blendDst: T.SrcColorFactor, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
+    vertexShader: `${GL_LIB}
+    attribute vec4 aIns;
+    varying vec2 vQ; varying vec4 vI; varying vec3 vW;
+    void main(){
+      vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.);
+      vQ = vec2(position.x + .5, -position.y); vI = aIns; vW = w.xyz;
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }`,
+    // 一道道細的縱線（每欄長短不一、稍微彎）＋緊貼著上緣的一片暈開的污漬；遠處淡回 1（乘法的白）
+    fragmentShader: `${GL_LIB}
+    varying vec2 vQ; varying vec4 vI; varying vec3 vW;
+    void main(){
+      float x = vQ.x, t = vQ.y, s = vI.y * 97.;
+      float ci = floor(x * 5.), cx = fract(x * 5.);
+      float wob = (n2(vec2(ci * 3.1 + s, t * 3.)) - .5) * .4, ln = .35 + .65 * h21(vec2(ci, s));
+      float line = (1. - smoothstep(.18, .5, abs(cx - .5 + wob))) * (1. - smoothstep(ln * .45, ln, t)) * step(.25, h21(vec2(ci + 7., s)));
+      float side = smoothstep(0., .2, x) * smoothstep(1., .8, x);
+      float a = clamp(max(line * .85, (1. - smoothstep(0., .35, t)) * .5 * side), 0., 1.) * vI.z;
+      vec3 tint = vI.x > .5 ? vec3(.56, .36, .22) : vec3(.5, .48, .45);
+      gl_FragColor = vec4(mix(vec3(1.), tint, a * (1. - smoothstep(70., 150., length(vW - uCam)))), 1.);
+    }` });
+  instanced(g, m, streaks, LY.NOREFL, (t, c) => c === 0 ? t.rust : c === 1 ? t.seed : c === 2 ? t.k : 0, 150).renderOrder = 1;
+}
 // 逃生梯（照紐約與波特蘭的老公寓）：每層一座平台（角鋼框、格柵踏板、外緣與兩端的欄杆與直欄、下面的斜撐），往上一層的斜梯（兩根側板、踏階、扶手）。
 // 局部 +z 朝外，牆在 z ≈ -0.62；斜梯爬 3.1 m（一層樓高），style 3 的高樓層差 0.6 m，照舊用同一座
 {
@@ -1329,6 +1372,7 @@ void main(){
   vec3 dif = lg[0] + pl[0], spc = lg[1] + pl[1];
   vL = dif * .5 + spc * .4 + uFogHi * .7 + uFlash * .8;
   vF = exp(-length(p - uCam) * .045) * uRain;
+  vF *= 1. - smoothstep(-.3, .3, textureLod(uHMap, (p.xz - uHM.xy) * uHM.z, 0.).r - p.y);   // 22-hmap.js 的高度圖：橋面、雨棚、屋簷底下沒有雨絲
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
 }`;
 const RAIN_FS = /* glsl */`
@@ -1387,6 +1431,7 @@ const splashMesh = (() => {
       vC = aC;
       vec3 tc = normalize(uCam - c); mat3 lg = lampGrid(c + vec3(0,.3,0), tc, tc, 8.); vec3 dif = lg[0];
       vL = (dif * .6 + uFogHi) * uRain * exp(-length(c - uCam)*.06);
+      vL *= 1. - smoothstep(1.3, 2.4, textureLod(uHMap, (c.xz - uHM.xy) * uHM.z, 0.).r - c.y);   // 頭上有遮的地方沒有水花（同 10-city.js 的 rainCover）
       gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
     }`,
     fragmentShader: `varying vec2 vC; varying float vT; varying vec3 vL;

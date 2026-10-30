@@ -89,6 +89,43 @@ const STATIONS = {
 };
 STATIONS.pedday = { ...STATIONS.ped, time: 15 * 60 };   // 同一個保鑣，白天（人物著色對照日光）
 STATIONS.pedface = { ...STATIONS.ped, cam: nc => { const b = nc.spots.bouncer, d = nc.spots.clubDoor; nc.walk(); nc.tpL(d.x + 6, d.z + 5); const P = nc.W(b.x, b.z), E = nc.W(b.x + .45, b.z + .9); return [E[0], 1.72, E[1], P[0], 1.66, P[1]]; } };   // 臉的特寫（夜）
+// 濕地面的三層（10-city.js 的 wetSurface）：雨夜的高架橋下（橋面底下要乾）、路緣的排水溝（積水只在低的地方）、實體建築的雨棚下、從上面看一個路口（VARS="U.uWetDbg=1" 換成分層的顏色量比例）
+STATIONS.wetvia = { ...STATIONS.viaduct, time: 22 * 60, wx: 'rain', rain: .8 };
+STATIONS.wetroad = { time: 22 * 60, wx: 'rain', rain: .8, cam: nc => {
+  const e = nc.roads.edges.filter(e => !e.fwy && e.pts.length > 6)[40], k = Math.floor(e.pts.length / 2);
+  const [x, z] = e.pts[k], [x1, z1] = e.pts[k + 1], L = Math.hypot(x1 - x, z1 - z) || 1, dx = (x1 - x) / L, dz = (z1 - z) / L;
+  nc.walk(); nc.tp(x - dz * 10, z + dx * 10);
+  return [x - dz * 9.6, 1.6, z + dx * 9.6, x - dz * 5 + dx * 16, 0, z + dx * 5 + dz * 16];
+} };
+STATIONS.wetwalk = { time: 22 * 60, wx: 'rain', rain: .8, cam: nc => { const i = nc.city.lots.findIndex(L => L.glb && !L.ghost); return i < 0 ? null : sideWalk(nc, i, 1, 2.2, 1.6); } };
+STATIONS.wettop = { time: 22 * 60, wx: 'rain', rain: .8, cam: nc => {
+  const e = nc.roads.edges.filter(e => !e.fwy && e.pts.length > 6)[40], [x, z] = e.pts[Math.floor(e.pts.length / 2)];
+  nc.walk(); nc.tp(x + 12, z + 12);
+  return [x + 1, 34, z + 1.5, x, 0, z];
+} };
+// 程式立面的髒污（10-city.js 的 FACADE_FS：樓板下的雨痕、低樓層較髒、修補、剝漆、撕掉的海報、返潮的鹽霜）與外掛物下的流痕（20-props.js 的 streaks）：
+// 陰天下午，挑一棟有窗型冷氣、灰泥或磚牆的程式樓房，站在人行道外緣斜看二、三樓
+STATIONS.grime = { time: 16 * 60, wx: 'cloudy', cam: nc => {
+  const A = nc.props.streaks || [], lots = nc.city.lots;
+  const i = lots.findIndex(L => !L.ghost && !L.glb && !L.special && (L.style === 2 || L.style === 0) && L.h > 14 && A.filter(a => Math.abs(a.x - (L.x0 + L.x1) / 2) < 14 && Math.abs(a.z - (L.z0 + L.z1) / 2) < 14).length > 3);
+  if (i < 0) return null;
+  const L = lots[i], cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2, [nx, nz] = L.axis === 'z' ? [0, L.face] : [L.face, 0], hw = (L.axis === 'z' ? L.z1 - L.z0 : L.x1 - L.x0) / 2;
+  const fx = cx + nx * hw, fz = cz + nz * hw; nc.walk(); nc.tpL(fx + nx * 11, fz + nz * 11);
+  const e = nc.W(fx + nx * 10 + nz * 3, fz + nz * 10 - nx * 3), t = nc.W(fx, fz); return [e[0], 1.7, e[1], t[0], 7.5, t[1]];
+} };
+// 雲梯城寨（28-enclave.js）的中庭：加蓋的鐵皮、遮雨棚與晾衣（note.com 那篇的「增建的箱子看起來像玩具」），陰天下午與雨夜
+STATIONS.enclave = { time: 15 * 60, wx: 'cloudy', cam: nc => {
+  const E = nc.enc; if (!E) return null;
+  const c = E.S.lots[0].court, [ex, ez] = E.W(c.x0 + 2, c.z0 + 2), [tx, tz] = E.W(c.x1, c.z1), g = E.ground(ex, ez) || 0;
+  nc.walk(); nc.tp(ex, ez); return [ex, g + 1.7, ez, tx, g + 10, tz];
+} };
+STATIONS.enclaveN = { ...STATIONS.enclave, time: 22 * 60, wx: 'rain', rain: .8 };
+// 窗型冷氣底下的流痕（20-props.js 的 streaks）：挑一台三樓以下的，站在 6 m 外看
+STATIONS.acstreak = { time: 15 * 60, wx: 'cloudy', cam: nc => {
+  const a = (nc.props.streaks || []).find(a => a.y > 6 && a.y < 11 && a.sy > 1.2); if (!a) return null;
+  const ox = Math.sin(a.ry), oz = Math.cos(a.ry); nc.walk(); nc.tpL(a.x + ox * 7, a.z + oz * 7);
+  const e = nc.W(a.x + ox * 6 + oz * 1.5, a.z + oz * 6 - ox * 1.5), t = nc.W(a.x, a.z); return [e[0], 1.7, e[1], t[0], a.y - .6, t[1]];
+} };
 function sideWalk(nc, i, side, off, y) {
   // 人行道上離牆 off 公尺、沿街看 20 m 外（稍微偏向牆）：牆腳、店面與地面的交界都在畫面裡
   const L = nc.city.lots[i];
@@ -128,7 +165,7 @@ try {
     const shots = [];
     for (let g = 0; g < Math.max(1, vars.length); g++) {
       await page.evaluate(t => window.__nc.time(t), S.time);   // 時間照樣在走：每張都拉回同一刻，光線才比得起來
-      if (vars[g]) await page.evaluate(kv => { for (const [k, v] of kv) if (k.startsWith('post.')) window.__nc.post[k.slice(5)] = v; else window.__nc.menu.set(k, v); }, vars[g]);
+      if (vars[g]) await page.evaluate(kv => { for (const [k, v] of kv) if (k.startsWith('post.')) window.__nc.post[k.slice(5)] = v; else if (k.startsWith('U.')) window.__nc.U[k.slice(2)].value = v; else window.__nc.menu.set(k, v); }, vars[g]);
       await page.waitForTimeout(400); await raf(page);
       const f = `${out}/${name}-${g}.png`; await page.screenshot({ path: f }); shots.push(f);
     }

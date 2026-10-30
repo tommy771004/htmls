@@ -2,7 +2,7 @@
 // 材質 "uberX"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
 export default {
 "{\"INST_EXTRA\":\"\",\"FAR\":\"*\",\"FARC\":\"\"}": {
-  h: "1qx49u5uf1", lib: "[[\"FAR\",\"*\"]]NL_T,NOCC_T,SH_N_T,VOL_N_T,FAR", libV: false, libF: true,
+  h: "261gnsvr8", lib: "[[\"FAR\",\"*\"]]NL_T,NOCC_T,SH_N_T,VOL_N_T,FAR", libV: false, libF: true,
   uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vP","type":"vec3","src":"vP"},{"name":"vNo","type":"vec3","src":"vNo"},{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"},{"name":"aIns","type":"vec4","src":"aIns"}],
@@ -35,7 +35,7 @@ export default {
     return main_;
   },
   fragment: (TSL, E) => {
-    const { fwidth, max, smoothstep, sub, Fn, bool, vec2, abs, If, floor, fract, mix, mul, mod, step, select, vec3, dot, clamp, property, length, vec4, add, cross, sin, cos, mat2, min, atan, float, div, pow, exp, mat3, Discard, normalize, int, reflect } = TSL;
+    const { fwidth, max, smoothstep, sub, Fn, bool, vec2, abs, If, floor, fract, mix, mul, mod, step, select, vec3, dot, clamp, property, length, vec4, add, cross, sin, min, cos, mat2, atan, float, div, pow, exp, mat3, Discard, normalize, int, reflect } = TSL;
     const { uM, uFacA, uFac, uVilA, uVilN, uVil, vP, vNo, vW, vN, vCol, vMat, vIns, color, aMat, aIns, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
 
 
@@ -230,11 +230,12 @@ export default {
 
     	} ).ElseIf( m.equal( 21 ), () => {
 
-    		const r = fbm3( p.mul( 2.6 ).add( 7. ) ).add( mul( .14, n3( p.mul( 23. ) ) ) ).add( vert.mul( .3 ).mul( smoothstep( .55, .9, fbm( vec2( uv.x.mul( 7. ), p.y.mul( .5 ) ) ) ) ) ).toVar();
-    		const rust = smoothstep( .6, .74, r ).toVar(), halo = smoothstep( .5, .62, r ).sub( rust ).toVar();
+    		const wetS = clamp( up.mul( .2 ).add( smoothstep( -0.6, -0.95, n.y ).mul( .05 ) ), 0., 1. ).toVar();
+    		const r = fbm3( p.mul( 2.6 ).add( 7. ) ).mul( .92 ).add( mul( .14, n3( p.mul( 23. ) ) ) ).add( wetS ).add( vert.mul( .26 ).mul( smoothstep( .55, .9, fbm( vec2( uv.x.mul( 7. ), p.y.mul( .5 ) ) ) ) ) ).toVar();
+    		const rust = smoothstep( .66, .8, r ).toVar(), halo = smoothstep( .54, .66, r ).sub( rust ).toVar();
     		alb.assign( mix( alb, vec3( .11, .1, .09 ), mul( .35, fbm3( p.mul( 1.3 ).add( 2. ) ) ) ) );
     		alb.assign( mix( alb, alb.mul( vec3( .75, .62, .5 ) ), halo.mul( .7 ) ) );
-    		alb.assign( mix( alb, mix( vec3( .16, .055, .02 ), vec3( .3, .13, .04 ), n3( p.mul( 31. ) ) ), rust.mul( .9 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .13, .065, .035 ), vec3( .22, .12, .06 ), n3( p.mul( 31. ) ) ), rust.mul( .85 ) ) );
     		const aa = kxAA( uv.mul( 30. ) ).toVar(), chip = step( .84, n3( p.mul( 34. ) ) ).mul( aa ).mul( sub( 1., rust ) ).toVar();
     		alb.assign( mix( alb, vec3( .2, .2, .19 ), chip.mul( .8 ) ) );
     		alb.mulAssign( add( .9, mul( .2, aa ).mul( n2( uv.mul( vec2( 90., 6. ) ) ) ) ) );
@@ -298,12 +299,21 @@ export default {
 
     	} ).ElseIf( m.equal( 29 ), () => {
 
+    		const pi = floor( uv.x.div( .9 ) ).toVar(), ph = h21( vec2( pi, sd.mul( 7.1 ).add( 3. ) ) ).toVar(), rep = step( .84, h21( vec2( pi, sd.mul( 3.3 ).add( 9. ) ) ) ).mul( vert ).toVar();
+    		alb.mulAssign( mix( vec3( 1. ), add( .87, mul( .26, ph ) ).mul( mix( vec3( 1.03, 1., .96 ), vec3( .96, 1., 1.04 ), h21( vec2( pi, 5.7 ) ) ) ), vert ) );
+    		alb.assign( mix( alb, alb.mul( vec3( .9, .96, 1.04 ) ).mul( 1.12 ), rep ) );
+    		alb.mulAssign( add( 1., mul( .12, vert ).mul( smoothstep( .5, 3., p.y ) ) ) );
     		alb.mulAssign( add( .82, mul( .3, fbm3( p.mul( 2.2 ) ) ) ) );
-    		alb.assign( mix( alb, vec3( .1, .1, .095 ), mul( .25, fbm3( p.mul( .9 ).add( 4. ) ) ) ) );
-    		alb.mulAssign( sub( 1., mul( .35, vert ).mul( kxStreak( p, uv, 5. ) ) ) );
-    		rough.assign( .55 );
-    		metal.assign( .35 );
-    		envK.assign( .35 );
+    		alb.assign( mix( alb, vec3( .1, .1, .095 ), mul( .25, fbm3( p.mul( .9 ).add( 4. ) ) ).mul( sub( 1., mul( .6, rep ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .35, vert ).mul( kxStreak( p, uv, 5. ) ).mul( sub( 1., mul( .6, rep ) ) ) ) );
+    		const fx = fract( uv.x.div( .9 ) ).toVar(), seam = vert.mul( sub( 1., smoothstep( .006, .018, min( fx, sub( 1., fx ) ).mul( .9 ) ) ) ).mul( kxAA( uv.mul( 4. ) ) ).toVar();
+    		const bolt = vert.mul( smoothstep( .012, .006, length( vec2( min( fx, sub( 1., fx ) ).mul( .9 ).sub( .03 ), fract( p.y.div( .45 ) ).sub( .5 ).mul( .45 ) ) ) ) ).mul( kxAA( uv.mul( 30. ) ) ).toVar();
+    		alb.mulAssign( sub( 1., mul( .45, seam ) ).mul( sub( 1., mul( .35, bolt ) ) ) );
+    		const chip = step( .9, n3( p.mul( 30. ) ) ).mul( smoothstep( .55, .72, fbm3( p.mul( 2. ).add( 3. ) ) ) ).mul( kxAA( uv.mul( 30. ) ) ).mul( sub( 1., rep ) ).toVar();
+    		alb.assign( mix( alb, vec3( .24, .24, .23 ), chip.mul( .7 ) ) );
+    		rough.assign( mix( .6, .4, chip ) );
+    		metal.assign( mix( .05, .8, chip ) );
+    		envK.assign( mix( .12, .4, chip ) );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 
@@ -646,6 +656,23 @@ export default {
     		envK.assign( tm[ 1 ].z );
     		emi.assign( tm[ 2 ] );
 
+    		If( m.lessThanEqual( 22 ).or( m.equal( 29 ) ).or( m.equal( 34 ) ).or( m.equal( 26 ) ).or( m.equal( 27 ) ), () => {
+
+    			const hg = vW.y.sub( .15 ).toVar(), vt = sub( 1., smoothstep( .5, .8, abs( n.y ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .28, sub( 1., smoothstep( 0., .5, hg ) ) ).mul( step( -0.2, hg ) ).mul( vt ).mul( add( .6, mul( .4, n2( vW.xz.mul( 3. ).add( vW.y.mul( 4. ) ) ) ) ) ) ) );
+
+    			If( m.equal( 21 ).or( m.equal( 29 ) ).or( m.equal( 34 ) ), () => {
+
+    				const rb = sub( 1., smoothstep( .06, add( .25, mul( .1, n2( vW.xz.mul( 5. ) ) ) ), hg ) ).mul( step( -0.2, hg ) ).mul( vt ).mul( smoothstep( .3, .55, n2( vW.xz.mul( 7. ).add( vW.y.mul( 9. ) ) ) ) ).toVar();
+    				alb.assign( mix( alb, vec3( .12, .065, .035 ), rb.mul( .8 ) ) );
+    				metal.mulAssign( sub( 1., rb ) );
+    				envK.mulAssign( sub( 1., rb ) );
+    				rough.assign( mix( rough, .9, rb ) );
+
+    			} );
+
+    		} );
+
     		If( uVil.y.greaterThan( .5 ).and( m.greaterThanEqual( 43 ).and( m.lessThanEqual( 46 ) ).or( m.equal( 42 ) ).or( m.equal( 50 ) ) ), () => {
 
     			const tn = texNrm( m, vP, normalize( vNo ), tio ).toVar();
@@ -772,7 +799,7 @@ export default {
   },
 },
 "{\"INST_EXTRA\":\"\"}": {
-  h: "1b3qwwwueh", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
+  h: "1160j39vqo", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vP","type":"vec3","src":"vP"},{"name":"vNo","type":"vec3","src":"vNo"},{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"},{"name":"aIns","type":"vec4","src":"aIns"}],
@@ -805,7 +832,7 @@ export default {
     return main_;
   },
   fragment: (TSL, E) => {
-    const { fwidth, max, smoothstep, sub, Fn, bool, vec2, abs, If, floor, fract, mix, mul, mod, step, select, vec3, dot, clamp, property, length, vec4, add, cross, sin, cos, mat2, min, atan, float, div, pow, exp, mat3, Discard, normalize, int, reflect } = TSL;
+    const { fwidth, max, smoothstep, sub, Fn, bool, vec2, abs, If, floor, fract, mix, mul, mod, step, select, vec3, dot, clamp, property, length, vec4, add, cross, sin, min, cos, mat2, atan, float, div, pow, exp, mat3, Discard, normalize, int, reflect } = TSL;
     const { uM, uFacA, uFac, uVilA, uVilN, uVil, vP, vNo, vW, vN, vCol, vMat, vIns, color, aMat, aIns, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
 
 
@@ -1000,11 +1027,12 @@ export default {
 
     	} ).ElseIf( m.equal( 21 ), () => {
 
-    		const r = fbm3( p.mul( 2.6 ).add( 7. ) ).add( mul( .14, n3( p.mul( 23. ) ) ) ).add( vert.mul( .3 ).mul( smoothstep( .55, .9, fbm( vec2( uv.x.mul( 7. ), p.y.mul( .5 ) ) ) ) ) ).toVar();
-    		const rust = smoothstep( .6, .74, r ).toVar(), halo = smoothstep( .5, .62, r ).sub( rust ).toVar();
+    		const wetS = clamp( up.mul( .2 ).add( smoothstep( -0.6, -0.95, n.y ).mul( .05 ) ), 0., 1. ).toVar();
+    		const r = fbm3( p.mul( 2.6 ).add( 7. ) ).mul( .92 ).add( mul( .14, n3( p.mul( 23. ) ) ) ).add( wetS ).add( vert.mul( .26 ).mul( smoothstep( .55, .9, fbm( vec2( uv.x.mul( 7. ), p.y.mul( .5 ) ) ) ) ) ).toVar();
+    		const rust = smoothstep( .66, .8, r ).toVar(), halo = smoothstep( .54, .66, r ).sub( rust ).toVar();
     		alb.assign( mix( alb, vec3( .11, .1, .09 ), mul( .35, fbm3( p.mul( 1.3 ).add( 2. ) ) ) ) );
     		alb.assign( mix( alb, alb.mul( vec3( .75, .62, .5 ) ), halo.mul( .7 ) ) );
-    		alb.assign( mix( alb, mix( vec3( .16, .055, .02 ), vec3( .3, .13, .04 ), n3( p.mul( 31. ) ) ), rust.mul( .9 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .13, .065, .035 ), vec3( .22, .12, .06 ), n3( p.mul( 31. ) ) ), rust.mul( .85 ) ) );
     		const aa = kxAA( uv.mul( 30. ) ).toVar(), chip = step( .84, n3( p.mul( 34. ) ) ).mul( aa ).mul( sub( 1., rust ) ).toVar();
     		alb.assign( mix( alb, vec3( .2, .2, .19 ), chip.mul( .8 ) ) );
     		alb.mulAssign( add( .9, mul( .2, aa ).mul( n2( uv.mul( vec2( 90., 6. ) ) ) ) ) );
@@ -1068,12 +1096,21 @@ export default {
 
     	} ).ElseIf( m.equal( 29 ), () => {
 
+    		const pi = floor( uv.x.div( .9 ) ).toVar(), ph = h21( vec2( pi, sd.mul( 7.1 ).add( 3. ) ) ).toVar(), rep = step( .84, h21( vec2( pi, sd.mul( 3.3 ).add( 9. ) ) ) ).mul( vert ).toVar();
+    		alb.mulAssign( mix( vec3( 1. ), add( .87, mul( .26, ph ) ).mul( mix( vec3( 1.03, 1., .96 ), vec3( .96, 1., 1.04 ), h21( vec2( pi, 5.7 ) ) ) ), vert ) );
+    		alb.assign( mix( alb, alb.mul( vec3( .9, .96, 1.04 ) ).mul( 1.12 ), rep ) );
+    		alb.mulAssign( add( 1., mul( .12, vert ).mul( smoothstep( .5, 3., p.y ) ) ) );
     		alb.mulAssign( add( .82, mul( .3, fbm3( p.mul( 2.2 ) ) ) ) );
-    		alb.assign( mix( alb, vec3( .1, .1, .095 ), mul( .25, fbm3( p.mul( .9 ).add( 4. ) ) ) ) );
-    		alb.mulAssign( sub( 1., mul( .35, vert ).mul( kxStreak( p, uv, 5. ) ) ) );
-    		rough.assign( .55 );
-    		metal.assign( .35 );
-    		envK.assign( .35 );
+    		alb.assign( mix( alb, vec3( .1, .1, .095 ), mul( .25, fbm3( p.mul( .9 ).add( 4. ) ) ).mul( sub( 1., mul( .6, rep ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .35, vert ).mul( kxStreak( p, uv, 5. ) ).mul( sub( 1., mul( .6, rep ) ) ) ) );
+    		const fx = fract( uv.x.div( .9 ) ).toVar(), seam = vert.mul( sub( 1., smoothstep( .006, .018, min( fx, sub( 1., fx ) ).mul( .9 ) ) ) ).mul( kxAA( uv.mul( 4. ) ) ).toVar();
+    		const bolt = vert.mul( smoothstep( .012, .006, length( vec2( min( fx, sub( 1., fx ) ).mul( .9 ).sub( .03 ), fract( p.y.div( .45 ) ).sub( .5 ).mul( .45 ) ) ) ) ).mul( kxAA( uv.mul( 30. ) ) ).toVar();
+    		alb.mulAssign( sub( 1., mul( .45, seam ) ).mul( sub( 1., mul( .35, bolt ) ) ) );
+    		const chip = step( .9, n3( p.mul( 30. ) ) ).mul( smoothstep( .55, .72, fbm3( p.mul( 2. ).add( 3. ) ) ) ).mul( kxAA( uv.mul( 30. ) ) ).mul( sub( 1., rep ) ).toVar();
+    		alb.assign( mix( alb, vec3( .24, .24, .23 ), chip.mul( .7 ) ) );
+    		rough.assign( mix( .6, .4, chip ) );
+    		metal.assign( mix( .05, .8, chip ) );
+    		envK.assign( mix( .12, .4, chip ) );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 
@@ -1416,6 +1453,23 @@ export default {
     		envK.assign( tm[ 1 ].z );
     		emi.assign( tm[ 2 ] );
 
+    		If( m.lessThanEqual( 22 ).or( m.equal( 29 ) ).or( m.equal( 34 ) ).or( m.equal( 26 ) ).or( m.equal( 27 ) ), () => {
+
+    			const hg = vW.y.sub( .15 ).toVar(), vt = sub( 1., smoothstep( .5, .8, abs( n.y ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .28, sub( 1., smoothstep( 0., .5, hg ) ) ).mul( step( -0.2, hg ) ).mul( vt ).mul( add( .6, mul( .4, n2( vW.xz.mul( 3. ).add( vW.y.mul( 4. ) ) ) ) ) ) ) );
+
+    			If( m.equal( 21 ).or( m.equal( 29 ) ).or( m.equal( 34 ) ), () => {
+
+    				const rb = sub( 1., smoothstep( .06, add( .25, mul( .1, n2( vW.xz.mul( 5. ) ) ) ), hg ) ).mul( step( -0.2, hg ) ).mul( vt ).mul( smoothstep( .3, .55, n2( vW.xz.mul( 7. ).add( vW.y.mul( 9. ) ) ) ) ).toVar();
+    				alb.assign( mix( alb, vec3( .12, .065, .035 ), rb.mul( .8 ) ) );
+    				metal.mulAssign( sub( 1., rb ) );
+    				envK.mulAssign( sub( 1., rb ) );
+    				rough.assign( mix( rough, .9, rb ) );
+
+    			} );
+
+    		} );
+
     		If( uVil.y.greaterThan( .5 ).and( m.greaterThanEqual( 43 ).and( m.lessThanEqual( 46 ) ).or( m.equal( 42 ) ).or( m.equal( 50 ) ) ), () => {
 
     			const tn = texNrm( m, vP, normalize( vNo ), tio ).toVar();
@@ -1541,7 +1595,7 @@ export default {
   },
 },
 "{}": {
-  h: "12fp40xue2", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
+  h: "h7u0gmvq9", lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vP","type":"vec3","src":"vP"},{"name":"vNo","type":"vec3","src":"vNo"},{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"}],
@@ -1574,7 +1628,7 @@ export default {
     return main_;
   },
   fragment: (TSL, E) => {
-    const { fwidth, max, smoothstep, sub, Fn, bool, vec2, abs, If, floor, fract, mix, mul, mod, step, select, vec3, dot, clamp, property, length, vec4, add, cross, sin, cos, mat2, min, atan, float, div, pow, exp, mat3, Discard, normalize, int, reflect } = TSL;
+    const { fwidth, max, smoothstep, sub, Fn, bool, vec2, abs, If, floor, fract, mix, mul, mod, step, select, vec3, dot, clamp, property, length, vec4, add, cross, sin, min, cos, mat2, atan, float, div, pow, exp, mat3, Discard, normalize, int, reflect } = TSL;
     const { uM, uFacA, uFac, uVilA, uVilN, uVil, vP, vNo, vW, vN, vCol, vMat, vIns, color, aMat, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
 
 
@@ -1769,11 +1823,12 @@ export default {
 
     	} ).ElseIf( m.equal( 21 ), () => {
 
-    		const r = fbm3( p.mul( 2.6 ).add( 7. ) ).add( mul( .14, n3( p.mul( 23. ) ) ) ).add( vert.mul( .3 ).mul( smoothstep( .55, .9, fbm( vec2( uv.x.mul( 7. ), p.y.mul( .5 ) ) ) ) ) ).toVar();
-    		const rust = smoothstep( .6, .74, r ).toVar(), halo = smoothstep( .5, .62, r ).sub( rust ).toVar();
+    		const wetS = clamp( up.mul( .2 ).add( smoothstep( -0.6, -0.95, n.y ).mul( .05 ) ), 0., 1. ).toVar();
+    		const r = fbm3( p.mul( 2.6 ).add( 7. ) ).mul( .92 ).add( mul( .14, n3( p.mul( 23. ) ) ) ).add( wetS ).add( vert.mul( .26 ).mul( smoothstep( .55, .9, fbm( vec2( uv.x.mul( 7. ), p.y.mul( .5 ) ) ) ) ) ).toVar();
+    		const rust = smoothstep( .66, .8, r ).toVar(), halo = smoothstep( .54, .66, r ).sub( rust ).toVar();
     		alb.assign( mix( alb, vec3( .11, .1, .09 ), mul( .35, fbm3( p.mul( 1.3 ).add( 2. ) ) ) ) );
     		alb.assign( mix( alb, alb.mul( vec3( .75, .62, .5 ) ), halo.mul( .7 ) ) );
-    		alb.assign( mix( alb, mix( vec3( .16, .055, .02 ), vec3( .3, .13, .04 ), n3( p.mul( 31. ) ) ), rust.mul( .9 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .13, .065, .035 ), vec3( .22, .12, .06 ), n3( p.mul( 31. ) ) ), rust.mul( .85 ) ) );
     		const aa = kxAA( uv.mul( 30. ) ).toVar(), chip = step( .84, n3( p.mul( 34. ) ) ).mul( aa ).mul( sub( 1., rust ) ).toVar();
     		alb.assign( mix( alb, vec3( .2, .2, .19 ), chip.mul( .8 ) ) );
     		alb.mulAssign( add( .9, mul( .2, aa ).mul( n2( uv.mul( vec2( 90., 6. ) ) ) ) ) );
@@ -1837,12 +1892,21 @@ export default {
 
     	} ).ElseIf( m.equal( 29 ), () => {
 
+    		const pi = floor( uv.x.div( .9 ) ).toVar(), ph = h21( vec2( pi, sd.mul( 7.1 ).add( 3. ) ) ).toVar(), rep = step( .84, h21( vec2( pi, sd.mul( 3.3 ).add( 9. ) ) ) ).mul( vert ).toVar();
+    		alb.mulAssign( mix( vec3( 1. ), add( .87, mul( .26, ph ) ).mul( mix( vec3( 1.03, 1., .96 ), vec3( .96, 1., 1.04 ), h21( vec2( pi, 5.7 ) ) ) ), vert ) );
+    		alb.assign( mix( alb, alb.mul( vec3( .9, .96, 1.04 ) ).mul( 1.12 ), rep ) );
+    		alb.mulAssign( add( 1., mul( .12, vert ).mul( smoothstep( .5, 3., p.y ) ) ) );
     		alb.mulAssign( add( .82, mul( .3, fbm3( p.mul( 2.2 ) ) ) ) );
-    		alb.assign( mix( alb, vec3( .1, .1, .095 ), mul( .25, fbm3( p.mul( .9 ).add( 4. ) ) ) ) );
-    		alb.mulAssign( sub( 1., mul( .35, vert ).mul( kxStreak( p, uv, 5. ) ) ) );
-    		rough.assign( .55 );
-    		metal.assign( .35 );
-    		envK.assign( .35 );
+    		alb.assign( mix( alb, vec3( .1, .1, .095 ), mul( .25, fbm3( p.mul( .9 ).add( 4. ) ) ).mul( sub( 1., mul( .6, rep ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .35, vert ).mul( kxStreak( p, uv, 5. ) ).mul( sub( 1., mul( .6, rep ) ) ) ) );
+    		const fx = fract( uv.x.div( .9 ) ).toVar(), seam = vert.mul( sub( 1., smoothstep( .006, .018, min( fx, sub( 1., fx ) ).mul( .9 ) ) ) ).mul( kxAA( uv.mul( 4. ) ) ).toVar();
+    		const bolt = vert.mul( smoothstep( .012, .006, length( vec2( min( fx, sub( 1., fx ) ).mul( .9 ).sub( .03 ), fract( p.y.div( .45 ) ).sub( .5 ).mul( .45 ) ) ) ) ).mul( kxAA( uv.mul( 30. ) ) ).toVar();
+    		alb.mulAssign( sub( 1., mul( .45, seam ) ).mul( sub( 1., mul( .35, bolt ) ) ) );
+    		const chip = step( .9, n3( p.mul( 30. ) ) ).mul( smoothstep( .55, .72, fbm3( p.mul( 2. ).add( 3. ) ) ) ).mul( kxAA( uv.mul( 30. ) ) ).mul( sub( 1., rep ) ).toVar();
+    		alb.assign( mix( alb, vec3( .24, .24, .23 ), chip.mul( .7 ) ) );
+    		rough.assign( mix( .6, .4, chip ) );
+    		metal.assign( mix( .05, .8, chip ) );
+    		envK.assign( mix( .12, .4, chip ) );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 
@@ -2184,6 +2248,23 @@ export default {
     		metal.assign( tm[ 1 ].y );
     		envK.assign( tm[ 1 ].z );
     		emi.assign( tm[ 2 ] );
+
+    		If( m.lessThanEqual( 22 ).or( m.equal( 29 ) ).or( m.equal( 34 ) ).or( m.equal( 26 ) ).or( m.equal( 27 ) ), () => {
+
+    			const hg = vW.y.sub( .15 ).toVar(), vt = sub( 1., smoothstep( .5, .8, abs( n.y ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .28, sub( 1., smoothstep( 0., .5, hg ) ) ).mul( step( -0.2, hg ) ).mul( vt ).mul( add( .6, mul( .4, n2( vW.xz.mul( 3. ).add( vW.y.mul( 4. ) ) ) ) ) ) ) );
+
+    			If( m.equal( 21 ).or( m.equal( 29 ) ).or( m.equal( 34 ) ), () => {
+
+    				const rb = sub( 1., smoothstep( .06, add( .25, mul( .1, n2( vW.xz.mul( 5. ) ) ) ), hg ) ).mul( step( -0.2, hg ) ).mul( vt ).mul( smoothstep( .3, .55, n2( vW.xz.mul( 7. ).add( vW.y.mul( 9. ) ) ) ) ).toVar();
+    				alb.assign( mix( alb, vec3( .12, .065, .035 ), rb.mul( .8 ) ) );
+    				metal.mulAssign( sub( 1., rb ) );
+    				envK.mulAssign( sub( 1., rb ) );
+    				rough.assign( mix( rough, .9, rb ) );
+
+    			} );
+
+    		} );
 
     		If( uVil.y.greaterThan( .5 ).and( m.greaterThanEqual( 43 ).and( m.lessThanEqual( 46 ) ).or( m.equal( 42 ) ).or( m.equal( 50 ) ) ), () => {
 

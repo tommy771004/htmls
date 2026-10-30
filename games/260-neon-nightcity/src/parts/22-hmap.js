@@ -111,6 +111,18 @@ function hmFlush() {
   for (const L of lots) if (L.tiers && !L.glb) for (const t of L.tiers) hmRectL(L.x0 + t.i, L.x1 - t.i, L.z0 + t.i, L.z1 - t.i, t.y, false, L.zn);
   for (const f of ISLE_FILL) for (const [P, h] of [[f.P, f.h], ...f.tiers.map(t => [t.P, t.y])]) { hmTri(P[0][0], h, P[0][1], P[1][0], h, P[1][1], P[2][0], h, P[2][1]); hmTri(P[0][0], h, P[0][1], P[2][0], h, P[2][1], P[3][0], h, P[3][1]); HM.max = Math.max(HM.max, h); }
   hmRectL(LIGHTHOUSE.x - 4, LIGHTHOUSE.x + 4, LIGHTHOUSE.z - 4, LIGHTHOUSE.z + 4, 36);
+  // 快速道路與匝道的橋面（06-roads.js，世界座標）：離地 3 m 以上的段沿中心線每 0.8 m 橫著畫一排，橋下有日光陰影、下雨時地面是乾的（10-city.js 的 rainCover）
+  for (const e of RN.edges) if (e.kind === 'f') for (let k = 1; k < e.pts.length; k++) {
+    const a = e.pts[k - 1], b = e.pts[k], L = e.cum[k] - e.cum[k - 1], w = e.dw || DECK_W;
+    if (!(L > 0)) continue;
+    const ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+    for (let u = 0; u <= L; u += .8) {
+      const h = fwyH(e, e.cum[k - 1] + u); if (h < 3) continue;
+      for (let s = -w; s <= w; s += .8) hmPut(hmI(a[0] + ux * u - uz * s), hmJ(a[1] + uz * u + ux * s), h);
+      HM.max = Math.max(HM.max, h);
+    }
+    hmDirty(hmI(Math.min(a[0], b[0]) - w), hmI(Math.max(a[0], b[0]) + w), hmJ(Math.min(a[1], b[1]) - w), hmJ(Math.max(a[1], b[1]) + w));
+  }
   hmFlush();
 }
 // ─── 樹冠圖：日光穿過樹冠的碎光（00-core.js 的 leafVis）與體積光（70-render.js）。每棵樹是一顆橢球：行道樹照 nat_trees 的楓樹
