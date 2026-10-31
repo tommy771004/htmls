@@ -1,5 +1,5 @@
-// 繪圖後端對照：同幾個鏡頭位置在 ?gfx=webgl 與 ?gfx=webgpu 各截一張，印出錯誤、警告、還沒改寫的材質（__nc.gfx.miss()）與自動轉換失敗的（err()）
-// node tools/gfx-view.mjs [輸出資料夾]；GFX="webgl,webgpu"（可加 webgpu-gl）；SPOT="地塊序,..."；HOUR=15；PRE="頁面裡的運算式"；每個鏡頭也印 3 秒的幀時間
+// 繪圖後端對照：同幾個鏡頭位置在 WebGPU 與 WebGPURenderer 的 WebGL2 後端（?gfx=webgpu-gl）各截一張，印出錯誤、警告、沒有 TSL 的材質（__nc.gfx.miss()）與建不起來的（err()）
+// node tools/gfx-view.mjs [輸出資料夾]；GFX="webgpu,webgpu-gl"；SPOT="地塊序,..."；HOUR=15；PRE="頁面裡的運算式"；每個鏡頭也印 3 秒的幀時間
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, sep } from 'node:path';
@@ -17,7 +17,7 @@ const srv = createServer((q, s) => {
 });
 await new Promise(r => srv.listen(0, '127.0.0.1', r));
 const spots = (process.env.SPOT || '210,480,1020').split(',').map(Number), hour = +(process.env.HOUR || 15);
-for (const gfx of (process.env.GFX || 'webgl,webgpu').split(',')) {
+for (const gfx of (process.env.GFX || 'webgpu,webgpu-gl').split(',')) {
   const { browser, page, log } = await open(`http://127.0.0.1:${srv.address().port}/web/260-neon-nightcity.html?gfx=${gfx}`, { w: 1280, h: 800 });
   try {
     await page.evaluate(() => { try { localStorage.removeItem('nc260.motors'); } catch (e) {} window.__nc.start(); window.__nc.menu.set('blur', 0); });

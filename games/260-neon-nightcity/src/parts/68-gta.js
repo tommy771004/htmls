@@ -22,39 +22,13 @@ const _gm = new T.Matrix4(), _gv = V3(), _gv2 = V3(), _gq = new T.Quaternion();
 
 // ─── 粒子：火、煙、火花、碎玻璃、閃光（兩組 instanced 公告板：加色與半透明） ───
 const FX_N = LOW ? 500 : 1100;
-const FX_VS = /* glsl */`
-attribute vec3 iPos; attribute vec4 iCol; attribute vec2 iSz;
-varying vec2 vUv; varying vec4 vCol; varying vec3 vW;
-void main(){
-  vec3 r = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]), u = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
-  float c = cos(iSz.y), s = sin(iSz.y);
-  vec2 q = mat2(c, s, -s, c) * position.xy;
-  vec3 w = iPos + (r * q.x + u * q.y) * iSz.x;
-  vW = w; vUv = uv; vCol = iCol;
-  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
-}`;
-const FX_FS = /* glsl */`
-${GL_LIB}
-varying vec2 vUv; varying vec4 vCol; varying vec3 vW;
-void main(){
-  vec2 q = vUv - .5; float d = length(q) * 2.;
-  float n = n2(vUv * 3.1 + vCol.a * 5.3 + vW.xz * .7);
-  float a = smoothstep(1., .25, d + (n - .5) * .5);
-  #ifdef ADD
-  gl_FragColor = vec4(vCol.rgb * a * vCol.a * exp(-length(vW - uCam) * uFogDen * .6), 1.);
-  #else
-  // 煙被路燈與霓虹從下方照亮：底色乘上環境光，再加一點暖色的城市光
-  vec3 c = vCol.rgb * (uAmbTop * (3. - uDay * 1.5) + .32 + uSunCol * .5) + vec3(.05, .035, .03) * (1. - vUv.y) * (1. - uDay) + uFlash * .3;
-  gl_FragColor = vec4(applyFog(c, vW), a * vCol.a);
-  #endif
-}`;
 function fxMesh(add) {
   const g = new T.InstancedBufferGeometry(); const b = new T.PlaneGeometry(1, 1);
   g.index = b.index; g.setAttribute('position', b.attributes.position); g.setAttribute('uv', b.attributes.uv);
   const at = { iPos: new T.InstancedBufferAttribute(new Float32Array(FX_N * 3), 3), iCol: new T.InstancedBufferAttribute(new Float32Array(FX_N * 4), 4), iSz: new T.InstancedBufferAttribute(new Float32Array(FX_N * 2), 2) };
   for (const k in at) { at[k].setUsage(T.DynamicDrawUsage); g.setAttribute(k, at[k]); }
   g.instanceCount = 0;
-  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'fx', uniforms: shared(ALLU), vertexShader: FX_VS, fragmentShader: FX_FS, defines: add ? { ADD: '' } : {}, transparent: true, depthWrite: false, blending: add ? T.AdditiveBlending : T.NormalBlending }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'fx', uniforms: shared(ALLU), defines: add ? { ADD: '' } : {}, transparent: true, depthWrite: false, blending: add ? T.AdditiveBlending : T.NormalBlending }));
   m.frustumCulled = false; m.renderOrder = add ? 5 : 4; m.layers.set(LY.NOREFL);
   scene.add(m);
   return { m, at, n: 0 };
@@ -134,7 +108,7 @@ function buildVeh(type, x, z, yaw, sp = 0, seed = 0, palI = 0, kind = 'jack') {
   const geo = ty.geo ? ty.geo().clone() : new T.BufferGeometry();   // traffic.glb 讀不到時沒有車身（碰撞照 len／w）
   const ins = new T.InstancedBufferAttribute(new Float32Array([0, seed, palI, 0]), 4);
   geo.setAttribute('aIns', ins);
-  const mat = mkUber({ inst: true }); mat.fragmentShader = MAT.uberI.fragmentShader; mat.name = MAT.uberI.name;
+  const mat = mkUber({ inst: true }); mat.name = MAT.uberI.name;
   const mesh = new T.InstancedMesh(geo, mat, 1); mesh.setMatrixAt(0, new T.Matrix4()); mesh.computeBoundingSphere();
   const g = new T.Group(), body = new T.Group(); g.add(body); body.add(mesh); scene.add(g);
   const truck = TRUCKS.includes(type), heavy = ty.armored;

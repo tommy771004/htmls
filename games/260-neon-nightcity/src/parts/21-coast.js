@@ -6,121 +6,11 @@
 // 波紋是九道順著風向、波長從 60 m 一路減半的方向波（深水色散：長波走得快），疊兩層雜訊打散，遠處的短波淡掉免得閃；
 // 離岸距離 tShore（下面 SHD 烘的距離場）決定淺水的顏色、一道道往岸上推的浪線與岸邊的白沫，白沫照路燈與日光打光 ───
 await bootTick(11, "鋪海岸、碼頭與跨海橋…");
-const WATER_FS = /* glsl */`
-${GROUND_COMMON}
-uniform sampler2D tTron, tShore; uniform vec3 uTronA, uTronB; uniform vec4 uTronG, uShore;
-// 方向波：回傳水面高度，g 累加斜率（dh/dx, dh/dz）
-float waves(vec2 p, float t, float dist, out vec2 g){
-  float h = 0.; g = vec2(0);
-  float L = 60.;
-  for (int i = 0; i < 9; i++) {
-    float fi = float(i), a = -.55 + (h21(vec2(fi, 3.7)) - .5) * 1.9;
-    vec2 d = vec2(cos(a), sin(a));
-    float k = 6.2832 / L, w = sqrt(9.8 * k), A = L * .0055 * smoothstep(L * 90., L * 25., dist);
-    float ph = dot(d, p) * k - w * t + h21(vec2(fi, 9.1)) * 6.2832;
-    float s = sin(ph), c = cos(ph);
-    // 波峰尖、波谷平：(1+sin)^1.6 的形狀
-    float b = 1. + s, sh = pow(b, 1.6);
-    h += A * sh * .5; g += A * .8 * pow(b, .6) * c * k * d;
-    L *= .62;
-  }
-  return h;
-}
-void main(){
-  // 光格島（21-tron.js）：島上的海面不畫（下層街區低於海面），tTron 是陸地遮罩、uTronA／B 把世界座標換成島的模型座標
-  vec2 tq = (vec2(dot(uTronA, vec3(vW.xz, 1.)), dot(uTronB, vec3(vW.xz, 1.))) - uTronG.xy) / uTronG.zw;
-  if (tq.x > 0. && tq.y > 0. && tq.x < 1. && tq.y < 1. && texture2D(tTron, tq).r > .5) discard;
-  vec2 p = vL; float t = uTime;
-  float dist = length(vW - uCam);
-  vec2 su = (vW.xz - uShore.xy) * uShore.z;
-  float shore = su.x > 0. && su.y > 0. && su.x < 1. && su.y < 1. ? texture2D(tShore, su).r * uShore.w : uShore.w;   // 離岸幾公尺（遠於 uShore.w 都當外海）
-  vec2 g; float h = waves(vW.xz, t, dist, g);
-  vec2 g2 = vec2(n2(p*.33 + vec2(t*.32, -t*.2)), n2(p*.29 + vec2(-t*.26, t*.3) + 3.)) - .5;
-  float calm = mix(.45, 1., smoothstep(4., 30., shore));   // 貼岸的水被浪花打亂、方向波弱一點
-  vec3 n = vec3(-g.x * calm + g2.x*.16, 1., -g.y * calm + g2.y*.16);
-  if (dist < 50.) n.xz += ripple(p*.7, uTime) * .3 * (1. - dist/50.);
-  n = normalize(n);
-  vec3 v = normalize(uCam - vW);
-  float F = .02 + .98*pow(1. - max(dot(n, v), 0.), 5.);
-  // 水體：外海深藍灰、近岸偏灰綠的混濁水（城市的河與港口不是熱帶的青綠色）；照環境光、日光與路燈打光，夜裡自然暗下去；波峰透一點亮
-  float sh = 1. - smoothstep(2., 26., shore + (n2(vW.xz*.03) - .5) * 8.);
-  vec3 body = mix(vec3(.004,.014,.026), vec3(.014,.04,.034), sh) * (1. + clamp(h, -.3, .6) * .9);
-  vec3 c = shade(vW, vec3(0., 1., 0.), v, body, .95, 0.) + shade(vW, n, v, vec3(0.), .1, 0.);
-  vec3 rc;
-  if (uReflOn > .5) rc = reflSample(vRP.xy / vRP.w + n.xz * vec2(.05, .11), .003 + min(dist, 600.)*.00003);
-  else rc = envMap(reflect(-v, n));
-  c = mix(c, rc, clamp(.18 + F*.85, 0., 1.) * (1. - sh * .35));
-  // 白沫：岸邊一圈（寬度隨雜訊起伏）＋一道道往岸上推的浪線（越靠岸越密、退下去會散）＋外海偶爾的白頭浪；
-  // 花紋是兩層順著水流漂的細胞雜訊（中間鏤空的蕾絲狀）
-  vec2 fp = vW.xz + g * 6.;
-  float lace = smoothstep(.42, .72, fbm(fp*.21 + vec2(t*.07, -t*.05))) * .7 + smoothstep(.55, .8, n2(fp*.9 - t*.3)) * .5;
-  float band = 1. - smoothstep(.6, 2.5 + 4.*n2(vW.xz*.02 + t*.02), shore);
-  float wv = fract(shore / 11. + t * .11 + n2(vW.xz*.015) * .6), line = smoothstep(.0, .05, wv) * smoothstep(.3, .08, wv) * (1. - smoothstep(3., 14., shore)) * .55;
-  float cap = smoothstep(.95, 1.2, h + (n2(vW.xz*.11 + t*.15) - .5) * .3) * smoothstep(300., 80., dist) * .3;
-  float foam = clamp(band * (.2 + .9*lace) + line * lace * .9 + cap * lace, 0., 1.) * smoothstep(1800., 500., dist);
-  c = mix(c, shade(vW, normalize(vec3(n.x*.3, 1., n.z*.3)), v, vec3(.62,.66,.68), .85, 0.), foam);
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
 // 沙灘：乾沙、近水的濕沙（會反光）、浪花線
-const SAND_FS = /* glsl */`
-${GROUND_COMMON}
-uniform float uSea;
-void main(){
-  vec2 p = vL;
-  float above = vW.y - uSea;                       // 離水面的高度
-  float wetK = smoothstep(.55, .05, above);
-  vec3 alb = vec3(.2,.17,.13) * (.75 + .5*fbm(p*.6)) * (.9 + .2*n2(p*9.));
-  alb = mix(alb, alb * .45, wetK);
-  float foam = smoothstep(.14, .0, abs(above - .06 - .05*sin(p.x*.13 + uTime*.9) - .04*sin(p.x*.41 - uTime*1.3)));
-  vec3 c = wetSurface(alb, vec3(0., 1., 0.), mix(.2, 1., wetK), wetK * .8, 0.);
-  c += vec3(.5,.55,.6) * foam * .12;
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
 // 碼頭面：6 m 的混凝土板、黃色邊線、岸橋的軌道
-const QUAY_FS = /* glsl */`
-${GROUND_COMMON}
-uniform vec4 uQuay;
-void main(){
-  vec2 p = vL;
-  vec2 tile = p / 6.; vec2 tf = fract(tile); vec2 ti = floor(tile);
-  float joint = smoothstep(.0, .012, tf.x) * smoothstep(1., .988, tf.x) * smoothstep(.0, .012, tf.y) * smoothstep(1., .988, tf.y);
-  vec3 alb = vec3(.1,.098,.094) * (.8 + .3*h21(ti)) * (.8 + .35*fbm(p*.4)) * mix(.6, 1., joint);
-  float edge = min(min(p.x - uQuay.x, uQuay.y - p.x), uQuay.w - p.y);
-  float paint = step(.8, edge) * step(edge, 1.2);
-  float rail = max(step(abs(p.y - (uQuay.w - 6.)), .09), step(abs(p.y - (uQuay.w - 30.)), .09));
-  alb = mix(alb, vec3(.55,.42,.08), paint);
-  alb = mix(alb, vec3(.22,.21,.2), rail);
-  float pud = smoothstep(.6, .7, fbm(p*.07 + 2.)) * joint;
-  vec3 c = wetSurface(alb, vec3(0., 1., 0.), .7, pud, paint);
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
 // 灰鷗島：濕草與裸岩、通往燈塔的碎石路
-const ISLE_FS = /* glsl */`
-${GROUND_COMMON}
-uniform vec4 uIsle;
-void main(){
-  vec2 p = vL;
-  float n1 = fbm(p*.05), rock = smoothstep(.55, .7, fbm(p*.11 + 4.));
-  vec3 alb = mix(vec3(.028,.05,.02) * (.6 + .8*n1), vec3(.07,.068,.066) * (.7 + .5*n2(p*2.)), rock);
-  float road = smoothstep(4.2, 3.6, abs(p.x - uIsle.x)) * step(p.y, uIsle.y);
-  road = max(road, smoothstep(3.6, 3., abs(p.y - uIsle.z)) * step(uIsle.x, p.x));
-  alb = mix(alb, vec3(.06,.058,.054) * (.8 + .4*h21(floor(p*5.))), road);
-  vec3 c = wetSurface(alb, vec3(0., 1., 0.), mix(.3, .7, road), road * .3, 0.);
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
 // 木棧橋：沿 z 的木板（棧橋與舊碼頭的木棧共用）
-const PLANK_FS = /* glsl */`
-${GROUND_COMMON}
-void main(){
-  vec2 p = vL;
-  float bx = p.x / .28, row = floor(bx), seam = smoothstep(.0, .08, fract(bx)) * smoothstep(1., .92, fract(bx));
-  float off = h21(vec2(row, 1.)) * 3.2, end = step(.04, fract((p.y + off) / 3.2));
-  vec3 alb = vec3(.09,.062,.042) * (.7 + .5*h21(vec2(row, floor((p.y + off) / 3.2)))) * (.85 + .3*n2(vec2(p.x*3., p.y*.3))) * mix(.35, 1., seam * end);
-  float pud = smoothstep(.62, .72, fbm(p*.3 + 4.)) * seam;
-  vec3 c = wetSurface(alb, normalize(vN), .7, pud, 0.);
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
-const groundMat = (name, fs, u = {}) => new T.ShaderMaterial({ name, uniforms: { ...shared(ALLU), ...reflU, ...u }, vertexShader: GROUND_VS, fragmentShader: fs });
+const groundMat = (name, u = {}) => new T.ShaderMaterial({ name, uniforms: { ...shared(ALLU), ...reflU, ...u } });
 // 離岸距離場：城市外緣往外一圈（含灰鷗島、光格島）切成方格，每格是不是陸地（陸地、沙灘露出水面的部分、山與對岸、光格島），
 // 再做精確的歐氏距離轉換（Felzenszwalb），存成 0–SHD_MAX m 的 8 位元貼圖。uShore：原點 x、z，1/邊長，SHD_MAX
 const SHD_MAX = 80;
@@ -159,8 +49,8 @@ const SHD = (() => {
   if (location.search.includes('shoreLog')) console.log(`離岸距離場 ${N}² · ${cs.toFixed(1)} m/格 · ${(performance.now() - t0).toFixed(0)} ms（陸地 ${(t1 - t0).toFixed(0)}）`);
   return { tex, u: new T.Vector4(x0, z0, 1 / size, SHD_MAX) };
 })();
-const MAT_WATER = groundMat('water', WATER_FS, { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) },
-  tShore: { value: SHD.tex }, uShore: { value: SHD.u } }), MAT_PLANK = groundMat('plank', PLANK_FS);
+const MAT_WATER = groundMat('water', { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) },
+  tShore: { value: SHD.tex }, uShore: { value: SHD.u } }), MAT_PLANK = groundMat('plank');
 {
   // 灰鷺河、南面的海、東面的海灣：一整張世界座標的水面（各區轉過、拉開之後，岸線與區之間的縫都還在水上；陸地蓋在上面）。
   // 最後才畫，被陸地擋住的部分不必算
@@ -188,13 +78,13 @@ function farClamp(X, Z) {
     p.setXYZ(i, (BEACH.x0 + BEACH.x1) / 2 + p.getX(i), -clamp((z - BEACH.z0) / BEACH.len, 0, 1.3) * BEACH.drop + .001, z);
   }
   g.computeVertexNormals();
-  groundAdd(new T.Mesh(g, groundMat('sand', SAND_FS, { uSea: { value: SEA_Y } })));
+  groundAdd(new T.Mesh(g, groundMat('sand', { uSea: { value: SEA_Y } })));
 }
 // 碼頭面與島面：上表面 y = 0，側面一路到水下
 {
   const slab = (r, mat, depth = 4) => { const g = new T.BoxGeometry(r.x1 - r.x0, depth, r.z1 - r.z0); g.translate((r.x0 + r.x1) / 2, -depth / 2, (r.z0 + r.z1) / 2); groundAdd(new T.Mesh(g, mat)); };
-  slab({ ...QUAY, z0: QUAY.z0 - INLAND }, groundMat('quay', QUAY_FS, { uQuay: { value: new T.Vector4(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1) } }));
-  slab(ISLE, groundMat('isleGround', ISLE_FS, { uIsle: { value: new T.Vector4(BRIDGE_X, ISLE.z0 + 120, ISLE.z0 + 120, 0) } }), 6);
+  slab({ ...QUAY, z0: QUAY.z0 - INLAND }, groundMat('quay', { uQuay: { value: new T.Vector4(QUAY.x0, QUAY.x1, QUAY.z0, QUAY.z1) } }));
+  slab(ISLE, groundMat('isleGround', { uIsle: { value: new T.Vector4(BRIDGE_X, ISLE.z0 + 120, ISLE.z0 + 120, 0) } }), 6);
 }
 
 // 山的頂點色：林線以下深綠、往上轉成岩色（21-rail.js 的山頭蓋板也照它，接得上山坡）
@@ -396,8 +286,7 @@ let benchMesh, planterShrubMesh;
 }
 // 區之間的縫：碎石步道（草地 shader 的小徑顏色）、步道路燈，涼亭、茶亭與公廁（20-props.js 的 SEAM_PATH、SEAM_SITES，世界座標，掛在 scene）
 {
-  const mat = new T.ShaderMaterial({ name: 'path', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
-    side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const mat = new T.ShaderMaterial({ name: 'path', uniforms: { ...shared(ALLU), ...reflU }, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const wp = [], wn = [], k = new Kit();
   for (const run of SEAM_PATH) {
     const side = run.map((p, i) => { const a = run[Math.max(0, i - 1)], b = run[Math.min(run.length - 1, i + 1)], l = Math.hypot(b.x - a.x, b.z - a.z) || 1; return [-(b.z - a.z) / l * 1.2, (b.x - a.x) / l * 1.2]; });
@@ -949,9 +838,7 @@ const beacon = new T.Group();
   coastLight(x, 33, z, 0xfff0c0, 22, 1.4);
   // 旋轉的光束：兩道往外的長錐（加法混合，越遠越淡）
   const bg = new T.CylinderGeometry(16, .6, 420, 20, 1, true); bg.rotateZ(-Math.PI / 2); bg.translate(210, 0, 0);
-  const bm = new T.ShaderMaterial({ name: 'lighthouseBeam', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
-    vertexShader: `varying float vT; varying vec3 vW; void main(){ vT = position.x / 420.; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform float uFogDen; varying float vT; varying vec3 vW; void main(){ float a = pow(1. - clamp(vT, 0., 1.), 2.4) * smoothstep(0., .03, vT) * .07; gl_FragColor = vec4(vec3(1., .93, .75) * a, 1.); }` });
+  const bm = new T.ShaderMaterial({ name: 'lighthouseBeam', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
   for (const s of [0, Math.PI]) { const b = new T.Mesh(bg, bm); b.rotation.y = s; b.layers.set(LY.NOREFL); b.frustumCulled = false; beacon.add(b); }
   beacon.position.set(x, 33, z); cityAdd(beacon);
   // 以檔案開啟（或模型下載失敗）時的替身：照碰撞佔地（isleFoot）一格一個方塊，矮的是瓦礫與圍籬，高的面北牆上點幾扇窗
@@ -1002,27 +889,6 @@ const KARST = [];
 // 體積（使用者：第 4 批的體積雲）：每一片取同一個密度場（兩層 fbm 的雲團，慢慢往東北飄），門檻隨高度（uLayer：0 底 → 1 頂）變高，雲團越往上越窄，
 // 疊起來底下平、上面一團團鼓起來；自陰影照這一點離那一柱雲頂多深（密度換回頂面高度），朝太陽那一側亮、深處與底部偏藍灰；內緣 950–1200 m 淡入；霧只算一部分距離
 const CLOUD_Y = SEA_Y + 112, CLOUD_N = 9, CLOUD_DY = 4.5;
-const CLOUD_VS = /* glsl */`
-attribute float aE;
-varying vec3 vW; varying float vE;
-void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vE = aE; gl_Position = projectionMatrix * viewMatrix * w; }`;
-const CLOUD_FS = /* glsl */`
-${GL_LIB}
-uniform float uLayer;
-varying vec3 vW; varying float vE;
-void main(){
-  vec2 q = vW.xz * .0019 + vec2(uTime * .0045, uTime * .0018);
-  float d = fbm(q) * .62 + fbm(q * 2.9 + 5.3) * .38;
-  float th = .38 + .26 * uLayer * uLayer;   // 這一片的門檻：底下 .38，往上越來越高（圓頂）
-  float a = smoothstep(th, th + .09, d) * vE;
-  if (a < .004) discard;
-  float top = sqrt(clamp((d - .38) / .26, 0., 1.)), deep = clamp((top - uLayer) * 2.4, 0., 1.);   // 這一柱的雲頂（0–1）與這一點在雲頂下多深
-  float lit = clamp(.55 + (d - fbm(q - uSun.xz * .06)) * 3.2, 0., 1.);   // 朝太陽那一側（雲團往太陽方向變薄的地方）亮
-  float k = clamp(lit * (1. - .7 * deep) + .25 * uLayer, 0., 1.);
-  vec3 base = mix(uAmbBot, uAmbTop, .6) * 2.2 + uSkyHor * .35;
-  vec3 c = base * mix(vec3(.52, .58, .7), vec3(1.), k) + uSunCol * max(uSun.y, 0.) * (.3 + .9 * k) * .9;
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * .08), a * mix(.5, .3, uLayer));   // 霧只算 8% 的距離（同石柱峰的 MAT.uxFI，鏡頭升高也一樣）；片疊起來中心幾乎不透、邊緣是一縷縷
-}`;
 {
   const P = CITY_POLY, n = P.length, DS = [950, 1100, 1300, 1600, 2000, 2500, 3100, 3700, 4300];
   for (let L = 0; L < CLOUD_N; L++) {
@@ -1039,7 +905,7 @@ void main(){
     for (let k = 0; k < n; k++) { const k1 = (k + 1) % n; for (let j = 0; j < m - 1; j++) { const a = k * m + j, b = k1 * m + j; idx.push(a, a + 1, b, b, a + 1, b + 1); } }
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('aE', new T.Float32BufferAttribute(ae, 1)); g.setIndex(idx);
-    const mat = new T.ShaderMaterial({ name: 'cloudSea', uniforms: { ...shared(ALLU), uLayer: { value: t } }, vertexShader: CLOUD_VS, fragmentShader: CLOUD_FS, transparent: true, depthWrite: false, side: T.DoubleSide });
+    const mat = new T.ShaderMaterial({ name: 'cloudSea', uniforms: { ...shared(ALLU), uLayer: { value: t } }, transparent: true, depthWrite: false, side: T.DoubleSide });
     const mesh = new T.Mesh(g, mat); mesh.renderOrder = 2 + t * .9; mesh.frustumCulled = false;   // 由下往上畫（鏡頭多半在雲海上面）
     cityAdd(mesh, null);
   }

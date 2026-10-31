@@ -13,7 +13,7 @@ const req = createRequire(resolve(root, '../197-openworld/package.json'));
 const imp = (n) => import(pathToFileURL(req.resolve(n)).href);
 const { NodeIO } = await imp('@gltf-transform/core');
 const { ALL_EXTENSIONS } = await imp('@gltf-transform/extensions');
-const { prune, dedup, weld, simplify, textureCompress, meshopt } = await imp('@gltf-transform/functions');
+const { prune, dedup, weld, simplify, compactPrimitive, textureCompress, meshopt } = await imp('@gltf-transform/functions');
 const { MeshoptSimplifier, MeshoptEncoder } = await imp('meshoptimizer');
 const sharp = (await imp('sharp')).default;
 
@@ -82,7 +82,8 @@ export const MODELS = [
   // 街頭車（照 gta5-mods 熱門車款補的類型，不進車行）：汽車混進車流、搶到後換成這裡的實車，開回 GARAGE 07 就收下；機車停在路邊
   { id: 'g63', file: 'mersedes-benz_g63_amg', len: 4.873, tris: 90000, soup: true },
   { id: 'lc200', file: 'toyota_land_cruiser_j200_2017', len: 4.95, tris: 90000, wheelsAt: { FL: [.82, 1.555, .39], FR: [-.82, 1.555, .39], RL: [.82, -1.295, .39], RR: [-.82, -1.295, .39] } },
-  { id: 'rr06', file: '2006_land_rover_range_rover_supercharged', len: 4.95, tris: 90000, paint: false, flip: true },   // 原檔車頭朝 -z
+  // 車身 Material.005 標成 BLEND（alpha .98），當不透明的車漆；原檔沒焊接（snap）
+  { id: 'rr06', file: 'range_rover_l405', len: 5.0, tris: 140000, snap: true, paint: 'Material.005', opaque: ['Material.005'] },
   { id: 'ramtrx', file: 'dodge_ram_trx_sandblast_edition', len: 5.92, tris: 90000, soup: true, flip: true },   // 原檔車頭朝 -z
   { id: 'ghost', file: 'rolls-royce_ghost', len: 5.546, tris: 90000, soup: true },
   { id: 's65', file: 'mersedes-benz_s65_w222', len: 5.27, tris: 90000, soup: true },
@@ -139,6 +140,18 @@ function normalMat(m) {   // 左上 3×3 的反轉置
 }
 const lum = (c) => c[0] * .2126 + c[1] * .7152 + c[2] * .0722;
 
+// snap 的原檔是很密的曲面：只看位置的減面會留下跨過曲率大的地方的長三角形，沿用舊法線在車漆的反射上變成一道道皺褶。
+// 改用 simplifyWithAttributes 把法線的差也算進誤差（權重 .5），曲面上法線變化大的地方就留著
+const simplifyN = (ratio, error) => (doc) => {
+  for (const mesh of doc.getRoot().listMeshes()) for (const p of mesh.listPrimitives()) {
+    const pa = p.getAttribute('POSITION'), na = p.getAttribute('NORMAL'), ia = p.getIndices(); if (!na || !ia) continue;
+    const I = Uint32Array.from(ia.getArray()), target = Math.floor(I.length * ratio / 3) * 3;
+    const [out] = MeshoptSimplifier.simplifyWithAttributes(I, Float32Array.from(pa.getArray()), 3, Float32Array.from(na.getArray()), 3, [.5, .5, .5], null, target, error, []);
+    ia.setArray(out);
+    compactPrimitive(p);
+  }
+};
+
 async function processModel(M) {
   const cfg = { ...M, ...(CFG[M.id] || {}) };
   const src = resolve(SRC, M.file + '.glb');
@@ -149,6 +162,7 @@ async function processModel(M) {
 
   // ─── 1. 收集每個 primitive 的世界座標幾何 ───
   const prims = [];
+  const snapN = cfg.snap ? new Map() : null;
   scene.traverse((node) => {
     const mesh = node.getMesh(); if (!mesh) return;
     if (cfg.drop && cfg.drop.test(node.getName())) return;   // drop：不要的節點（例如伸出車頭好幾公尺的大燈光束面片）
@@ -166,6 +180,16 @@ async function processModel(M) {
         pa.getElement(i, t); const w = mulPt(wm, t[0], t[1], t[2]); pos.set(w, i * 3);
         if (na) { na.getElement(i, tn); const x = nm[0] * tn[0] + nm[3] * tn[1] + nm[6] * tn[2], y = nm[1] * tn[0] + nm[4] * tn[1] + nm[7] * tn[2], z = nm[2] * tn[0] + nm[5] * tn[1] + nm[8] * tn[2]; const l = Math.hypot(x, y, z) || 1; nor.set([x / l, y / l, z / l], i * 3); }
         else nor.set([0, 1, 0], i * 3);
+      }
+      // snap：原檔是沒焊接的三角形湯、同一點的法線差在最後幾個位元，weld 合不起來（減面也就沒作用）：
+      // 位置對齊到格點，同一點上和第一個法線夾角 20° 內的歸成一群，全部讀完再寫回這群的平均法線（整台共用，原檔切塊的接縫也合得起來），真的折角才留縫
+      if (snapN) for (let i = 0; i < cnt; i++) {
+        for (let k = 0; k < 3; k++) pos[i * 3 + k] = Math.round(pos[i * 3 + k] * 1e4) / 1e4;
+        const key = pos[i * 3] + ',' + pos[i * 3 + 1] + ',' + pos[i * 3 + 2], x = nor[i * 3], y = nor[i * 3 + 1], z = nor[i * 3 + 2];
+        let L = snapN.get(key); if (!L) snapN.set(key, L = []);
+        let c = L.find((q) => q.n[0] * x + q.n[1] * y + q.n[2] * z > .94);
+        if (!c) L.push(c = { n: [x, y, z], s: [0, 0, 0], at: [] });
+        c.s[0] += x; c.s[1] += y; c.s[2] += z; c.at.push(nor, i * 3);
       }
       // 底色貼圖用的 UV（含 KHR_texture_transform 烘進 UV）
       const ti = !mat ? null : mat.getBaseColorTexture() ? mat.getBaseColorTextureInfo() : mat.getEmissiveTexture() ? mat.getEmissiveTextureInfo() : null;
@@ -187,6 +211,11 @@ async function processModel(M) {
       prims.push({ mat, pos, nor, uv, idx, cnt, node: node.getName(), path });
     }
   });
+
+  if (snapN) for (const L of snapN.values()) for (const c of L) {
+    const l = Math.hypot(...c.s) || 1, n = c.s.map((v) => v / l);
+    for (let j = 0; j < c.at.length; j += 2) c.at[j].set(n, c.at[j + 1]);
+  }
 
   // 離群的小雜物（十幾個三角形以下、整塊在大零件外框之外，例如拉到車外幾公尺的退化面片）會撐大外框、把車縮小，先丟掉
   {
@@ -341,7 +370,7 @@ async function processModel(M) {
   const matInfo = (m) => {
     if (!m) return { col: [.6, .6, .6, 1], pbr: [.6, 0, 0, 0], emi: [0, 0, 0], key: 'flat|OPAQUE|0', tex: null, etex: null, blend: false, double: false };
     const bc = m.getBaseColorFactor();
-    let a = bc[3], blend = m.getAlphaMode() === 'BLEND' && !(cfg.opaque && bc[3] > .99);   // opaque：原檔整台標成 BLEND 但其實不透明
+    let a = bc[3], blend = m.getAlphaMode() === 'BLEND' && !(Array.isArray(cfg.opaque) ? cfg.opaque.includes(m.getName()) : cfg.opaque && bc[3] > .99);   // opaque：原檔整台標成 BLEND 但其實不透明（給材質名陣列：只有那幾個）
     const tr = m.getExtension('KHR_materials_transmission');
     if (tr && tr.getTransmissionFactor() > .1) { blend = true; a = Math.min(a, 1 - tr.getTransmissionFactor() * .8); }
     const es = m.getExtension('KHR_materials_emissive_strength')?.getEmissiveStrength() ?? 1;
@@ -445,7 +474,7 @@ async function processModel(M) {
   await doc.transform(
     // keepSolidTextures：單色小貼圖不能換成 baseColorFactor（頁面的 uber 材質只讀 COLOR_0 × 貼圖，factor 是白的；消防車的紅色車身就是這樣不見的）
     prune({ keepSolidTextures: true }), dedup(), weld(),
-    simplify({ simplifier: MeshoptSimplifier, ratio: Math.min(1, cfg.tris / trisIn), error: cfg.err ?? .0012 }),
+    cfg.snap ? simplifyN(Math.min(1, cfg.tris / trisIn), cfg.err ?? .0012) : simplify({ simplifier: MeshoptSimplifier, ratio: Math.min(1, cfg.tris / trisIn), error: cfg.err ?? .0012 }),
     prune({ keepSolidTextures: true }),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [cfg.tex ?? 1024, cfg.tex ?? 1024], quality: 82 }),
     meshopt({ encoder: MeshoptEncoder, level: 'medium' }),

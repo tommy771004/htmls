@@ -48,9 +48,8 @@ resize();
 addEventListener('resize', () => { post.scale = SET.res === 'auto' ? Math.min(post.scale, Math.max(1, resMax())) : resScale(); resize(); });
 // 換畫質等級（01-settings.js 的 tierSet）：解析度上限跟著換
 function tierDpr() { DPR = Math.min(devicePixelRatio || 1, GT().dpr); R.setPixelRatio(DPR); post.ceil = 9; post.scale = SET.res === 'auto' ? Math.min(post.scale, 1) : resScale(); resize(); }
-// 驅動重置後 three 會重建 GL 狀態並重新上傳材質與貼圖，渲染目標在這裡重做；沒恢復前遊戲照跑、畫面停在最後一幀
-R.domElement.addEventListener('webglcontextlost', () => { GPU.lost++; toast('顯示卡重置中…'); }, false);
-R.domElement.addEventListener('webglcontextrestored', () => { makeTargets(); firstFrame = true; toast('畫面已恢復'); }, false);
+// 顯示卡驅動重置（WebGPU 的 device lost、WebGL2 後端的 context lost）：WebGPURenderer 不會自己重建，遊戲照跑、畫面停在最後一幀，請玩家重新整理
+R.onDeviceLost = info => { R._onDeviceLost(info); GPU.lost++; toast('顯示卡重置了，請重新整理頁面'); };
 
 // 全螢幕三角形
 const fsCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -59,36 +58,10 @@ fsGeo.setAttribute('position', new T.Float32BufferAttribute([-1, -1, 0, 3, -1, 0
 fsGeo.setAttribute('uv', new T.Float32BufferAttribute([0, 0, 2, 0, 0, 2], 2));
 const fsMesh = new T.Mesh(fsGeo); fsMesh.frustumCulled = false;
 const fsScene = new T.Scene(); fsScene.add(fsMesh);
-const FS_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`;
-const pass = (name, fs, uniforms) => new T.ShaderMaterial({ name, vertexShader: FS_VS, fragmentShader: fs, uniforms, depthTest: false, depthWrite: false });
-const mPre = pass('pre', `uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThr; varying vec2 vUv;
-  // MSAA 邊緣外插偶爾讓某個 shader 算出 NaN／inf，在這裡擋掉，免得被 bloom 擴散成白斑
-  vec3 tap(vec2 o){ vec3 c = texture2D(tSrc, vUv + uTexel * o).rgb; return any(isnan(c)) ? vec3(0.) : min(c, vec3(60.)); }
-  void main(){
-    vec3 c = tap(vec2(-1., -1.)) + tap(vec2(1., -1.)) + tap(vec2(-1., 1.)) + tap(vec2(1., 1.));
-    c *= .25;
-    float br = max(c.r, max(c.g, c.b));
-    float w = smoothstep(.7 * uThr, 1.7 * uThr, br);   // 白天門檻拉高（28-sky.js 的 atm.bloom），不然日照的牆整面發光
-    gl_FragColor = vec4(min(c * w, vec3(30.)), 1.);
-  }`, { tSrc: { value: null }, uTexel: { value: new T.Vector2() }, uThr: { value: 1 } });
-const mDown = pass('down', `uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
-  void main(){
-    vec2 t = uTexel;
-    vec3 a = texture2D(tSrc, vUv + t * vec2(-2., -2.)).rgb, b = texture2D(tSrc, vUv + t * vec2(0., -2.)).rgb, c = texture2D(tSrc, vUv + t * vec2(2., -2.)).rgb;
-    vec3 d = texture2D(tSrc, vUv + t * vec2(-2., 0.)).rgb, e = texture2D(tSrc, vUv).rgb, f = texture2D(tSrc, vUv + t * vec2(2., 0.)).rgb;
-    vec3 g = texture2D(tSrc, vUv + t * vec2(-2., 2.)).rgb, h = texture2D(tSrc, vUv + t * vec2(0., 2.)).rgb, i = texture2D(tSrc, vUv + t * vec2(2., 2.)).rgb;
-    vec3 j = texture2D(tSrc, vUv + t * vec2(-1., -1.)).rgb, k = texture2D(tSrc, vUv + t * vec2(1., -1.)).rgb, l = texture2D(tSrc, vUv + t * vec2(-1., 1.)).rgb, m = texture2D(tSrc, vUv + t * vec2(1., 1.)).rgb;
-    vec3 o = e * .125 + (a + c + g + i) * .03125 + (b + d + f + h) * .0625 + (j + k + l + m) * .125;
-    gl_FragColor = vec4(o, 1.);
-  }`, { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
-const mUp = pass('up', `uniform sampler2D tSrc, tAdd; uniform vec2 uTexel; uniform float uK; varying vec2 vUv;
-  void main(){
-    vec2 t = uTexel;
-    vec3 s = texture2D(tSrc, vUv).rgb * 4.;
-    s += (texture2D(tSrc, vUv + vec2(t.x, 0.)).rgb + texture2D(tSrc, vUv - vec2(t.x, 0.)).rgb + texture2D(tSrc, vUv + vec2(0., t.y)).rgb + texture2D(tSrc, vUv - vec2(0., t.y)).rgb) * 2.;
-    s += texture2D(tSrc, vUv + t).rgb + texture2D(tSrc, vUv - t).rgb + texture2D(tSrc, vUv + vec2(t.x, -t.y)).rgb + texture2D(tSrc, vUv + vec2(-t.x, t.y)).rgb;
-    gl_FragColor = vec4(texture2D(tAdd, vUv).rgb + s / 16. * uK, 1.);
-  }`, { tSrc: { value: null }, tAdd: { value: null }, uTexel: { value: new T.Vector2() }, uK: { value: 1 } });
+const pass = (name, uniforms) => new T.ShaderMaterial({ name, uniforms, depthTest: false, depthWrite: false });
+const mPre = pass('pre', { tSrc: { value: null }, uTexel: { value: new T.Vector2() }, uThr: { value: 1 } });
+const mDown = pass('down', { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
+const mUp = pass('up', { tSrc: { value: null }, tAdd: { value: null }, uTexel: { value: new T.Vector2() }, uK: { value: 1 } });
 // 熱成像（69-v7-bunker.js）：熱源投影到畫面上（uv、半徑、強度），HEAT_N 個以內，近的先
 const HEAT_N = 20, _heat = new Float32Array(160 * 5), _hv = new T.Vector3();
 function heatUniforms(u) {
@@ -110,157 +83,21 @@ function heatUniforms(u) {
 // 累積霧裡散射的日光：樓縫與樹冠之間照出一道道光束。空氣本身的密度很低，清晨的貼地薄霧（uGI.z）讓光束濃起來；
 // 散射偏向太陽那一側（相位函數）。只畫 160 m 內，往外衰減；合成時加在曝光前
 const VOL_N = GT().vol;
-const mVol = VOL_N ? pass('vol', `${GL_LIB}
-  uniform sampler2D tDepth; uniform mat4 uInvVP; uniform float uVolK; varying vec2 vUv;
-  float vVis(vec3 r){
-    float sl = max(length(uSun.xz), 1e-3); vec2 d = uSun.xz / sl; float k = uSun.y / sl, t = 1.2;
-    for (int i = 0; i < 12; i++) {
-      float ry = r.y + t * k; if (ry > uHM.w) break;
-      vec2 uv = (r.xz + d * t - uHM.xy) * uHM.z;
-      if (uv.x < 0. || uv.y < 0. || uv.x > 1. || uv.y > 1.) break;
-      if (textureLod(uHMap, uv, 0.).r > ry) return 0.;
-      t = t * 1.4 + 1.2;
-    }
-    return leafVis(r, d, k);
-  }
-  void main(){
-    float dp = texture2D(tDepth, vUv).r;
-    vec4 wp = uInvVP * vec4(vUv * 2. - 1., ${R.coordinateSystem === T.WebGPUCoordinateSystem ? 'dp' : 'dp * 2. - 1.'}, 1.); wp /= wp.w;   // WebGPU 的深度本來就是 0..1
-    vec3 rd = wp.xyz - uCam; float L = length(rd); rd /= max(L, 1e-3);
-    if (dp >= 1.) L = 400.;
-    L = min(L, 160.);
-    float j = hw(gl_FragCoord.xy + fract(uTime * 7.31) * 97.), ds = L / float(VOL_N_T), acc = 0.;
-    for (int i = 0; i < VOL_N_T; i++) {
-      float s = (float(i) + j) * ds; vec3 r = uCam + rd * s;
-      float den = .05 + uGI.z * 520. * exp(-max(r.y, 0.) / 7.);
-      acc += vVis(r) * den * ds * exp(-s * .012);
-    }
-    float sd = max(dot(rd, uSun), 0.), ph = .05 + sd * sd * sd * .9 + pow(sd, 20.) * 1.6;
-    gl_FragColor = vec4(uSunCol * ph * acc * uVolK, 1.);
-  }`, { ...shared(ALLU), tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uVolK: { value: 0 } }) : null;
+const mVol = VOL_N ? pass('vol', { ...shared(ALLU), tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uVolK: { value: 0 } }) : null;
 // 環境光遮蔽（SSAO）：半解析度，從主畫面的深度還原相機空間的位置，法線取左右、上下兩側深度比較接近的那一邊（邊緣不糊），
 // 沿螺旋取 AO_N 個點（McGuire 的 SAO：半徑 uRad 公尺內、在法線前方的點越近越暗）。沒有 TAA，雜訊固定在畫面上（逐幀換會閃），
 // 再橫直兩趟依深度的模糊抹掉；60–140 m 淡掉（再遠在霧裡）。合成時乘在泛光之前，亮到會泛光的地方（霓虹、招牌、窗燈）不壓暗
 const AO_N = 12;
-const mAO = AO_ON ? pass('ao', `uniform sampler2D tDepth; uniform mat4 uInvProj; uniform vec2 uDT; uniform float uPy, uRad, uK, uFogD, uDayK; varying vec2 vUv;
-  vec3 vpos(vec2 q){ float d = texture2D(tDepth, q).r; vec4 v = uInvProj * vec4(q * 2. - 1., ${R.coordinateSystem === T.WebGPUCoordinateSystem ? 'd' : 'd * 2. - 1.'}, 1.); return v.xyz / v.w; }
-  void main(){
-    vec2 q = (floor(vUv / uDT) + .5) * uDT;   // 半解析度的像素中心剛好落在兩個全解析度深度像素的交界：對齊到其中一個的中心，不然左右取到同一個像素，法線壞掉成一條條紋
-    if (texture2D(tDepth, q).r >= 1.) { gl_FragColor = vec4(1., 1e4, 0., 1.); return; }
-    vec3 P = vpos(q);
-    vec3 l = vpos(q - vec2(uDT.x, 0.)), r = vpos(q + vec2(uDT.x, 0.)), b = vpos(q - vec2(0., uDT.y)), t = vpos(q + vec2(0., uDT.y));
-    vec3 dx = abs(r.z - P.z) < abs(P.z - l.z) ? r - P : P - l, dy = abs(t.z - P.z) < abs(P.z - b.z) ? t - P : P - b;
-    vec3 n = normalize(cross(dx, dy)); n *= sign(dot(n, -P));
-    float z = -P.z, ssR = min(uRad * uPy * .5 / (z * uDT.y), .12 / uDT.y);   // 半徑換成全解析度的像素，近處不超過畫面高的 12%
-    float A = 1.;
-    if (ssR > 1.5) {
-      float a0 = 6.2832 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))), sum = 0., r2 = uRad * uRad, bias = .02 + .002 * z;
-      for (int i = 0; i < ${AO_N}; i++) {
-        float a = (float(i) + .5) / ${AO_N}., th = a * 43.98 + a0;   // 7 圈
-        vec3 v = vpos(q + vec2(cos(th), sin(th)) * a * ssR * uDT) - P;
-        float vv = dot(v, v), f = max(r2 - vv, 0.);
-        sum += f * f * f * max((dot(v, n) - bias - .2 * sqrt(vv)) / (vv + .01), 0.);   // .2：仰角不到 12° 的點不算（人、樹幹這種曲面與還原的法線雜訊不會自己遮自己）
-      }
-      A = max(0., 1. - sum * uK * 5. / (r2 * r2 * r2 * ${AO_N}.));
-    }
-    // 霧裡的不壓暗：照 00-core.js applyFog 地面附近的霧量（夜裡指數、白天平方指數）淡掉，140 m 外全部不算
-    float x = z * uFogD * .75, fog = mix(1. - exp(-x), 1. - exp(-x * x), uDayK);
-    gl_FragColor = vec4(mix(A, 1., max(fog, smoothstep(90., 140., z))), z, 0., 1.);
-  }`, { tDepth: { value: null }, uInvProj: { value: new T.Matrix4() }, uDT: { value: new T.Vector2() }, uPy: { value: 1 }, uRad: { value: 1.1 }, uK: { value: 1 }, uFogD: { value: .01 }, uDayK: { value: 0 } }) : null;
+const mAO = AO_ON ? pass('ao', { tDepth: { value: null }, uInvProj: { value: new T.Matrix4() }, uDT: { value: new T.Vector2() }, uPy: { value: 1 }, uRad: { value: 1.1 }, uK: { value: 1 }, uFogD: { value: .01 }, uDayK: { value: 0 } }) : null;
 // 依深度的模糊：七個點、離中心越遠權重越低，深度差超過 6%（加 5 cm）的點不算（前景的柱子不會把遮蔽抹到後面的牆上）
-const mAOBlur = AO_ON ? pass('aoblur', `uniform sampler2D tSrc; uniform vec2 uDir; varying vec2 vUv;
-  void main(){
-    vec2 c = texture2D(tSrc, vUv).rg; float s = c.r, w = 1., tol = c.g * .06 + .05;
-    for (int i = 1; i <= 3; i++) {
-      float k = 1. - float(i) * .25;
-      vec2 p = texture2D(tSrc, vUv + uDir * float(i)).rg, q = texture2D(tSrc, vUv - uDir * float(i)).rg;
-      float kp = k * max(0., 1. - abs(p.g - c.g) / tol), kq = k * max(0., 1. - abs(q.g - c.g) / tol);
-      s += p.r * kp + q.r * kq; w += kp + kq;
-    }
-    gl_FragColor = vec4(s / w, c.g, 0., 1.);
-  }`, { tSrc: { value: null }, uDir: { value: new T.Vector2() } }) : null;
+const mAOBlur = AO_ON ? pass('aoblur', { tSrc: { value: null }, uDir: { value: new T.Vector2() } }) : null;
 // 眼睛適應：曝光本身照舊由 28-sky.js 的 atm.exp 與場館的 ENV.post.exp 決定（穩定時倍率是 1，調好的畫面不變），
 // 只在亮度突然變了的那幾秒補上眼睛的反應：從暗處出到大太陽下先過曝、進隧道或暗巷先一片黑，再慢慢適應回來。
 // 快的跟著畫面（0.15 s）、慢的是眼睛（約 2.5 s），倍率 =（快／慢）^0.5，夾在 0.55–1.8 倍；換鏡頭（camState.snap）時兩個一起重設
-const mEyeLum = pass('eyelum', `uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
-  float lg(vec2 o){ vec3 c = texture2D(tSrc, vUv + uTexel * o).rgb; return log(max(dot(min(c, vec3(60.)), vec3(.2126, .7152, .0722)), 1e-4)); }
-  void main(){ gl_FragColor = vec4((lg(vec2(-1., -1.)) + lg(vec2(1., -1.)) + lg(vec2(-1., 1.)) + lg(vec2(1., 1.))) * .25, 0., 0., 1.); }`,
-  { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
-const mEyeAdapt = pass('eyeadapt', `uniform sampler2D tSrc, tPrev; uniform vec2 uK; uniform float uReset; varying vec2 vUv;
-  void main(){
-    float s = 0.;
-    for (int j = 0; j < ${EYE_H}; j++) for (int i = 0; i < ${EYE_W}; i++) s += texture2D(tSrc, (vec2(float(i), float(j)) + .5) / vec2(${EYE_W}., ${EYE_H}.)).r;
-    float L = s / ${EYE_W * EYE_H}.;
-    vec2 p = texture2D(tPrev, vec2(.5)).rg;
-    gl_FragColor = vec4(uReset > .5 ? vec2(L) : vec2(mix(p.x, L, uK.x), mix(p.y, L, uK.y)), 0., 1.);
-  }`, { tSrc: { value: null }, tPrev: { value: null }, uK: { value: new T.Vector2() }, uReset: { value: 1 } });
+const mEyeLum = pass('eyelum', { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
+const mEyeAdapt = pass('eyeadapt', { tSrc: { value: null }, tPrev: { value: null }, uK: { value: new T.Vector2() }, uReset: { value: 1 } });
 let eyeI = 0, eyeReset = true;
-const mComp = pass('comp', `uniform sampler2D tScene, tDepth, tBloom, tVol, tAO, tEye; uniform float uVolOn, uAOOn, uAOThr, uEyeOn; uniform vec2 uVolT; uniform mat4 uInvVP, uPrevVP; uniform float uBlur, uExp, uTime, uWob, uFlash, uBloomK, uGray, uVig, uHurt; uniform vec4 uTint, uFx7; uniform vec2 uRes, uFx, uHi;
-  uniform vec4 uHeat[${HEAT_N}];   // 69-v7-bunker.js 的熱源（畫面 uv、半徑、強度），uFx7：x 熱成像、y 神經毒氣、z 宿醉模糊、w 夜視鏡
-  varying vec2 vUv;
-  float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-  vec3 aces(vec3 x){ return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
-  void main(){
-    vec2 uv = vUv;
-    if (uWob > 0.) uv += vec2(sin(uv.y * 8. + uTime * 1.7), cos(uv.x * 6. + uTime * 1.3)) * .006 * uWob;
-    if (uFx7.y > 0.) uv += vec2(sin(uv.y * 14. + uTime * 3.1), cos(uv.x * 11. + uTime * 2.3)) * .005 * uFx7.y;
-    float d = texture2D(tDepth, uv).r;
-    vec4 wp = uInvVP * vec4(uv * 2. - 1., d * 2. - 1., 1.); wp /= wp.w;
-    vec4 pc = uPrevVP * wp; vec2 puv = pc.xy / pc.w * .5 + .5;
-    vec2 vel = (uv - puv) * uBlur;
-    float vl = length(vel); if (vl > .045) vel *= .045 / vl;
-    vec3 c = vec3(0.); float wsum = 0.;
-    float j = h(uv * uRes + uTime) - .5;
-    for (int i = 0; i < 9; i++) {
-      float t = (float(i) + j) / 8. - .5;
-      float w = 1. - abs(t) * .8;
-      c += texture2D(tScene, uv + vel * t).rgb * w; wsum += w;
-    }
-    c /= wsum;
-    if (any(isnan(c))) c = vec3(0.);
-    // 邊緣的色散
-    vec2 cc = uv - .5; float edge = dot(cc, cc);
-    c.r = mix(c.r, texture2D(tScene, uv - cc * edge * .012).r, .6 * uFx.x);   // uFx：Esc 選單的色散、底片顆粒開關
-    c.b = mix(c.b, texture2D(tScene, uv + cc * edge * .012).b, .6 * uFx.x);
-    if (uWob > 0.) c = mix(c, texture2D(tScene, uv + vec2(.012, 0.) * uWob).rgb, .35 * uWob);
-    if (uFx7.z > 0.) { vec2 o = vec2(.007, .005) * uFx7.z; c = mix(c, (texture2D(tScene, uv + o).rgb + texture2D(tScene, uv - o).rgb + texture2D(tScene, uv + vec2(-o.y, o.x)).rgb + texture2D(tScene, uv + vec2(o.y, -o.x)).rgb) * .25, .75 * min(1., uFx7.z)); }
-    // 環境光遮蔽：亮到會泛光的地方（和 mPre 同一個門檻）不壓暗
-    if (uAOOn > 0.) { float em = smoothstep(.7 * uAOThr, 1.7 * uAOThr, max(c.r, max(c.g, c.b))); c *= mix(texture2D(tAO, uv).r, 1., em); if (uAOOn > 1.5) {   /* __nc.post.aoDbg：只看遮蔽（除錯，WebGPU 沒有） */ gl_FragColor = vec4(vec3(texture2D(tAO, uv).r), 1.); return; } }
-    c += texture2D(tBloom, uv).rgb * uBloomK;
-    // 體積光：四分之一解析度的四個點平均，蓋掉每幀抖動的雜訊
-    if (uVolOn > 0.) c += (texture2D(tVol, uv + uVolT * vec2(.5, .5)).rgb + texture2D(tVol, uv + uVolT * vec2(-.5, .5)).rgb + texture2D(tVol, uv + uVolT * vec2(.5, -.5)).rgb + texture2D(tVol, uv - uVolT * .5).rgb) * .25;
-    c *= uExp * (1. + uFlash * .5);
-    if (uEyeOn > 0.) { vec2 e = texture2D(tEye, vec2(.5)).rg; c *= clamp(exp((e.x - e.y) * .5), .55, 1.8); }   // 眼睛適應（mEyeAdapt 存的是 log 亮度）
-    // 高光肩部（場館的 ENV.post.knee／range）：最亮的色版超過 knee 後漸近 knee+range，燈泡與反光不會燒成整片白；用最大色版縮放，不偏色
-    if (uHi.x > 0.) { float L = max(max(c.r, c.g), c.b); if (L > uHi.x) { float e = L - uHi.x; c *= (uHi.x + e / (1. + e / uHi.y)) / L; } }
-    c = aces(c);
-    // 調色：暗部偏青、亮部偏暖
-    float l = dot(c, vec3(.2126, .7152, .0722));
-    c = mix(c, c * vec3(.86, 1.02, 1.08), (1. - l) * .35);
-    c = mix(c, c * vec3(1.06, 1., .9), l * .25);
-    c *= 1. - edge * .9;
-    if (uTint.w > 0.) c = mix(c, vec3(dot(c, vec3(.2126, .7152, .0722))) * uTint.rgb + c * .25, uTint.w);
-    // 熱成像：深藍紫的冷背景，人與引擎發橘白光（熱源不看深度：穿過牆、煙與樹葉）
-    if (uFx7.x > 0.) {
-      float lt = dot(c, vec3(.2126, .7152, .0722)), ht = 0.;
-      vec3 th = mix(vec3(.04, .02, .14), vec3(.3, .14, .46), smoothstep(0., .9, lt));
-      for (int i = 0; i < ${HEAT_N}; i++) { vec4 q = uHeat[i]; if (q.w <= 0.) continue; vec2 dd = (uv - q.xy) * vec2(uRes.x / uRes.y, 1.); dd.y *= .55; ht = max(ht, (1. - smoothstep(q.z * .35, q.z, length(dd))) * q.w); }
-      th = mix(th, mix(vec3(1., .3, .08), vec3(1., .96, .82), smoothstep(.55, 1., ht)) * 1.3, smoothstep(.0, .4, ht));
-      c = mix(c, th, uFx7.x);
-    }
-    // 神經毒氣：發綠；夜視鏡：綠色單色、放大亮度、加雜訊
-    if (uFx7.y > 0.) c = mix(c, c * vec3(.5, 1.2, .45) + vec3(.03, .09, 0.), .8 * uFx7.y);
-    if (uFx7.w > 0.) { float ln = dot(c, vec3(.2126, .7152, .0722)); vec3 nv = vec3(.3, 1., .4) * pow(clamp(ln * 4., 0., 1.), .7) + (h(uv * uRes + fract(uTime * 5.)) - .5) * .14; c = mix(c, nv, uFx7.w); }
-    if (uGray + uVig + uHurt > 0.) {
-      float r = length(cc * vec2(uRes.x / uRes.y, 1.)) * 1.25;
-      c = mix(c, vec3(dot(c, vec3(.2126, .7152, .0722))) * vec3(1.02, 1., .97), uGray);
-      c *= 1. - uVig * smoothstep(.25, 1.05, r) * .92;
-      c = mix(c, vec3(.42, .02, .03), uHurt * smoothstep(.45, 1.15, r) * .85);
-    }
-    c = pow(c, vec3(1. / 2.2));
-    c += (h(uv * uRes + fract(uTime * 7.)) - .5) * .035 * uFx.y;
-    gl_FragColor = vec4(c, 1.);
-  }`, { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, tVol: { value: null }, tAO: { value: null }, tEye: { value: null }, uVolOn: { value: 0 }, uAOOn: { value: 0 }, uAOThr: { value: 1 }, uEyeOn: { value: 0 }, uVolT: { value: new T.Vector2() }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
+const mComp = pass('comp', { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, tVol: { value: null }, tAO: { value: null }, tEye: { value: null }, uVolOn: { value: 0 }, uAOOn: { value: 0 }, uAOThr: { value: 1 }, uEyeOn: { value: 0 }, uVolT: { value: new T.Vector2() }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
   uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uFx7: { value: new T.Vector4() }, uHeat: { value: Array.from({ length: HEAT_N }, () => new T.Vector4()) }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
@@ -282,8 +119,8 @@ function reflFar() {
 // （雨夜光環廣場 31 → 25 ms）。主畫面畫一份樹林的包圍盒（300 m 一格，不寫顏色與深度，排在不透明的最後）做遮擋查詢：連續 2 次整份被擋住，
 // forestLo 就換到 NOREFL 圖層（主鏡頭照畫、倒影不畫），看得到就放回來（結果晚 1～3 幀）。只在主畫面查：倒影鏡頭在地面下往上看，山坡與建築的背面被剔掉，
 // 擋不住後面的樹（在倒影那一趟查永遠看得到）；直接看過去被擋住的，從地面積水往上反射的光線起點更低，也被同一批建築擋住。
-// 城外空地、海面上朝山看時看得到，照畫（拿掉的話雨夜、黃昏、陰天的積水與海面少一道稜線）。WebGL 自己包 GL query，WebGPU 用 three 的 occlusionTest
-const reflOcc = { en: true, occ: 0, hold: 0, skip: false, q: [], n: 0 };
+// 城外空地、海面上朝山看時看得到，照畫（拿掉的話雨夜、黃昏、陰天的積水與海面少一道稜線）。查詢用 three 的 occlusionTest
+const reflOcc = { en: true, occ: 0, hold: 0, skip: false, n: 0 };
 function reflOccSet(vis) { if (reflOcc.hold > 0) return; reflOcc.n++; reflOcc.occ = vis ? 0 : reflOcc.occ + 1; }
 const reflOccMesh = (() => {
   const L = Object.values(forestLo), C = 300, cells = new Map();
@@ -309,24 +146,15 @@ const reflOccMesh = (() => {
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
   const m = new T.Mesh(g, new T.MeshBasicMaterial({ name: 'reflOcc', colorWrite: false, depthWrite: false, side: T.DoubleSide }));   // 雙面：鏡頭在盒子裡也算看得到
   m.name = 'reflOcc'; m.frustumCulled = false; m.renderOrder = 1e9; m.layers.set(LY.NOREFL);   // 1 號圖層只有主鏡頭看得到
-  if (R.isWebGPURenderer) { m.occlusionTest = true; m.onBeforeRender = r => reflOccSet(!r.isOccluded(m)); }   // 讀到的是前幾幀解出來的結果
-  else {
-    const gl = R.getContext(), Q = gl.ANY_SAMPLES_PASSED_CONSERVATIVE;
-    m.onBeforeRender = () => { m.userData.q = null; if (reflOcc.q.length > 3) return; const q = gl.createQuery(); gl.beginQuery(Q, q); m.userData.q = q; };
-    m.onAfterRender = () => { const q = m.userData.q; if (q) { gl.endQuery(Q); reflOcc.q.push(q); } };
-  }
+  m.occlusionTest = true; m.onBeforeRender = r => reflOccSet(!r.isOccluded(m));   // 讀到的是前幾幀解出來的結果
   scene.add(m);
   return m;
 })();
-// 每幀在倒影之前：收 WebGL 的查詢結果、決定 forestLo 進不進倒影。切鏡頭（camState.snap）後先照畫，之前送出的查詢結果丟掉 4 幀
+// 每幀在倒影之前：決定 forestLo 進不進倒影。切鏡頭（camState.snap）後先照畫，之前送出的查詢結果丟掉 4 幀
 function reflOccPoll() {
   if (!reflOccMesh) return;
   if (reflOcc.hold > 0) reflOcc.hold--;
   if (camState.snap) { reflOcc.hold = 4; reflOcc.occ = 0; }
-  if (!R.isWebGPURenderer) {
-    const gl = R.getContext();
-    while (reflOcc.q.length && gl.getQueryParameter(reflOcc.q[0], gl.QUERY_RESULT_AVAILABLE)) { const q = reflOcc.q.shift(); reflOccSet(!!gl.getQueryParameter(q, gl.QUERY_RESULT)); gl.deleteQuery(q); }
-  }
   const skip = reflOcc.en && reflOcc.occ >= 2;
   if (skip !== reflOcc.skip) { reflOcc.skip = skip; for (const m of Object.values(forestLo)) for (const o of [m, m.userData.far]) if (o) o.layers.set(skip ? LY.NOREFL : LY.MAIN); }
 }
@@ -389,12 +217,12 @@ const resMax = () => Math.min(GT().ss || 1, Math.sqrt((GT().px || 4.2e6) / Math.
 }
 // 全進霧裡的不畫：00-core.js 的 applyFog 在鏡頭低於 20 m 時 D ≥ .5，視線距離 × uFogDen × .5 超過 6 就剩不到 0.25%（夜裡的指數霧與白天的平方指數霧都是），
 // 包圍球整顆在那之外的物件在視錐測試就剔掉（海上 1～3 km 的船與乘客、對岸的小東西，每幀一百多個 draw call）。
-// 只對整段霧都算的材質：GLSL 有呼叫 applyFog、沒有 FAR（遠景只算一部分距離的霧，剪影要看得到）；鏡頭在高處時霧變淡，不剔
+// 只對整段霧都算的材質：片段著色器有呼叫 applyFog（src/tsl/ 產生時記下的 fog，02-gfx.js 的 gfxMeta）、沒有 FAR（遠景只算一部分距離的霧，剪影要看得到）；鏡頭在高處時霧變淡，不剔
 const fogCull = { en: true, on: false, x: 0, y: 0, z: 0, d: 0, empty: true }, fogMat = new WeakMap(), _fcS = new T.Sphere();
 const fogFull = m => {
   if (Array.isArray(m)) return m.every(fogFull);
   let v = fogMat.get(m);
-  if (v === undefined) { v = !!(m.isShaderMaterial && m.fragmentShader.replace(GL_LIB, '').includes('applyFog(') && !(m.defines && 'FAR' in m.defines)); fogMat.set(m, v); }
+  if (v === undefined) { const g = m.isShaderMaterial && gfxMeta(m); v = !!(g && g.fog && !(m.defines && 'FAR' in m.defines)); fogMat.set(m, v); }
   return v;
 };
 function fogCullAt(p) { fogCull.on = fogCull.en && camera.position.y < 20; fogCull.x = p.x; fogCull.y = p.y; fogCull.z = p.z; fogCull.d = 12 / Math.max(U.uFogDen.value, 1e-4); }

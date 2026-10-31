@@ -165,7 +165,7 @@ function vendBinKit() {   // 回收桶：灰藍色塑膠桶，上面兩個投入
   if (VEND_BIN.length) instanced(vendBinKit(), MAT.uber, VEND_BIN, 0, null, 150);
   // vend.glb 的五款實機照 t.v 擺（27-props.js 的 w2Load），位置與碰撞照舊，回收桶還是程式建模。
   // 要在這裡呼叫：27 的頂層排在前面，下載完的回呼可能比這一段先跑，那時 VEND 還是 undefined
-  if (W2.on && GLB_VS_I !== GLB_VS) w2Load('vend', it => {
+  if (W2.on) w2Load('vend', it => {
     const IDS = ['pa_w', 'red', 'pa_b', 'sp_1', 'sp_2'];
     w2Group(VEND, IDS.length, t => t.v).forEach((L, k) => w2Inst(it[IDS[k]], L, 0, 160));
     w2Drop(...VEND_MS); W2.swapped.push('vend'); W2.n.vend = VEND.length;
@@ -237,48 +237,12 @@ const club = { boxes: [], circles: [], lights: [], people: null, dancers: [] };
   const screen = new T.Mesh(sg, MAT_SIGN); screen.position.set(0, 4.3, 31.8); screen.rotation.y = Math.PI; S.add(screen);
 }
 // LED 舞池：12×12 格，跟著拍子換花樣
-const LED_FS = /* glsl */`
-${GL_LIB}
-varying vec3 vW;
-vec3 hue(float h){ return clamp(abs(fract(h + vec3(0., .33, .67)) * 6. - 3.) - 1., 0., 1.); }
-void main(){
-  vec2 q = vW.xz - vec2(-6., 13.);
-  vec2 g = floor(q), f = fract(q);
-  float b = uBeat; float bar = floor(b / 8.);
-  float pat = mod(bar, 4.);
-  vec2 c = g - 5.5;
-  float on; float h;
-  if (pat < 1.) { on = mod(g.x + g.y + floor(b), 2.); h = .9 + floor(b) * .07; }
-  else if (pat < 2.) { float r = length(c); on = smoothstep(1.2, 0., abs(fract(r * .25 - b * .5) - .5) * 4.); h = r * .05 + b * .02; }
-  else if (pat < 3.) { on = step(.5, fract((g.x - g.y) * .125 + b * .25)); h = .55 + g.x * .03; }
-  else { on = step(.72, h21(g + floor(b) * 7.)); h = h21(g + floor(b)); }
-  float edge = smoothstep(.0, .06, f.x) * smoothstep(1., .94, f.x) * smoothstep(.0, .06, f.y) * smoothstep(1., .94, f.y);
-  float pulse = .55 + .45 * exp(-fract(b) * 4.);
-  vec3 col = hue(h) * on * edge * 1.6 * pulse + vec3(.01);
-  vec3 v = normalize(uCam - vW);
-  col += shade(vW, vec3(0., 1., 0.), v, vec3(.02), .15, 0.);
-  gl_FragColor = vec4(applyFog(col, vW), 1.);
-}`;
 {
   const g = new T.PlaneGeometry(12, 12); g.rotateX(-Math.PI / 2); g.translate(0, .015, 19);
-  clubScene.add(new T.Mesh(g, new T.ShaderMaterial({ name: 'led', uniforms: shared(ALLU), vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: LED_FS })));
+  clubScene.add(new T.Mesh(g, new T.ShaderMaterial({ name: 'led', uniforms: shared(ALLU) })));
 }
 // 搖頭燈光束與雷射：加法混合的錐體與細長面
-const BEAM_VS = /* glsl */`varying vec3 vW, vN; varying float vL; varying vec3 vC;
-void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal); vL = uv.y;
-  #ifdef USE_INSTANCING_COLOR
-  vC = instanceColor;
-  #else
-  vC = vec3(1.);
-  #endif
-  gl_Position = projectionMatrix * viewMatrix * w; }`;
-const BEAM_FS = /* glsl */`${GL_LIB}
-uniform float uK;
-varying vec3 vW, vN; varying float vL; varying vec3 vC;
-void main(){ vec3 v = normalize(uCam - vW); float e = pow(abs(dot(normalize(vN), v)), 1.5);
-  float a = e * pow(clamp(vL, 0., 1.), 1.3) * uK * (.7 + .3 * n2(vec2(vW.y * 2. + uTime * 3., vW.x)));
-  gl_FragColor = vec4(vC * a, 1.); }`;
-const beamMat = new T.ShaderMaterial({ name: 'clubBeam', uniforms: { ...shared(ALLU), uK: { value: .35 } }, vertexShader: BEAM_VS, fragmentShader: BEAM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+const beamMat = new T.ShaderMaterial({ name: 'clubBeam', uniforms: { ...shared(ALLU), uK: { value: .35 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
 const laserMat = beamMat.clone(); laserMat.uniforms = { ...shared(ALLU), uK: { value: 2.4 } };
 const HEADS = [[-7, 13], [-7, 17.5], [-7, 22], [7, 13], [7, 17.5], [7, 22], [-3.5, 26], [3.5, 26]];
 const beams = (() => {
@@ -426,28 +390,9 @@ const bar = { boxes: [], circles: [], lights: [], people: null };
   const sm = new T.Mesh(sg, MAT_SIGN); sm.position.set(2.5, 2.45, .12); S.add(sm);
 }
 // 雨窗：玻璃上的水珠與滑落的水痕，後面是失焦的街燈
-const WINDOW_FS = /* glsl */`${GL_LIB}
-varying vec2 vUv; varying vec3 vW;
-void main(){
-  vec2 p = vUv * vec2(7.4, 2.);
-  vec3 c = vec3(.02, .025, .04);
-  for (int i = 0; i < 14; i++) {
-    float fi = float(i);
-    vec2 bc = vec2(h11(fi * 3.1) * 7.4 + sin(uTime * .1 + fi) * .3, .3 + h11(fi * 7.7) * 1.4);
-    vec3 col = fi < 5. ? vec3(1., .5, .2) : fi < 9. ? vec3(.3, .9, 1.) : fi < 12. ? vec3(1., .25, .55) : vec3(.9, .9, .8);
-    float r = .25 + h11(fi) * .35;
-    c += col * smoothstep(r, r * .7, length(p - bc)) * .5 * (.8 + .2 * sin(uTime * (1. + fi * .3)));
-  }
-  vec2 g = p * vec2(9., 7.); vec2 gi = floor(g), gf = fract(g) - .5;
-  float drop = smoothstep(.18, .1, length(gf - (vec2(h21(gi), h21(gi + 2.)) - .5) * .5)) * step(.55, h21(gi + 5.));
-  vec2 s = vec2(p.x * 6., p.y + uTime * (.5 + h11(floor(p.x * 6.)) * .8));
-  float streak = smoothstep(.08, .0, abs(fract(s.x) - .5) - .02) * step(.75, h11(floor(s.x))) * smoothstep(.0, .5, fract(s.y * .3 + h11(floor(s.x)))) ;
-  c = c * (1. - drop * .4) + drop * c * 2.5 + streak * vec3(.12, .14, .18);
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
 {
   const g = new T.PlaneGeometry(7.4, 2.0);
-  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU) }));
   m.position.set(2.5, 1.8, -.05); barScene.add(m);
 }
 {

@@ -125,7 +125,7 @@ if (FORT.on && GLB_ON) Promise.all([loadProps('fort'), loadProps('v5works')]).th
   for (const id of ['fence', 'booth', 'boom', 'sandbag', 'hangar', 'tower', 'drum', 'crate']) {
     const ms = it[id] ? w2Inst(it[id], M[id], id === 'hangar' || id === 'tower' ? 0 : LY.NOREFL, R) : [];
     // 鐵絲網：貼圖縮小後鐵絲的 alpha 被平均掉，遠一點就整片不見；門檻壓低（26-glb.js 的 MASK_CUT）
-    if (id === 'fence') for (const m of ms) { const o = m.material; m.material = new T.ShaderMaterial({ name: o.name, uniforms: o.uniforms, vertexShader: o.vertexShader, fragmentShader: o.fragmentShader, defines: { ...o.defines, MASK_CUT: '.12' }, side: o.side }); }
+    if (id === 'fence') for (const m of ms) { const o = m.material; m.material = new T.ShaderMaterial({ name: o.name, uniforms: o.uniforms, defines: { ...o.defines, MASK_CUT: '.12' }, side: o.side }); }
   }
   for (const o of M.jersey) { o.sx = .7 / wk.jersey.w; o.sy = .85 / wk.jersey.h; }   // 斷面壓成和碰撞一樣的 0.7 × 0.85 m
   w2Inst(wk.jersey, M.jersey, 0, R); w2Inst(wk.ltower, M.ltower, 0, R);
@@ -404,8 +404,7 @@ function bunkerSellStart(K) {
       hud() { const hp = v.hpMax ? v.hp / v.hpMax * 100 : 100; return { text: '把軍火送到買家那裡', bar: hp, num: money(val), low: hp < 30 }; },
       mark() { return { name: '買家', x: dest.x, y: 2.2, z: dest.z, where: 'out' }; },
       fail(why) { toast(`出貨失敗：${why}`); sideEnd(); if (v && !v.dead) heistVehGone(v); V7B.sell = null; },
-      clear() { gpsClear(); },
-    });
+      clear() { gpsClear(); } });
     toast(`地堡軍火卡車 · 送到買家那裡就拿 ${money(val)}`);
   });
 }

@@ -1,10 +1,10 @@
 // ═══ 程式立面的量體與細模：地塊照輪廓與樓層數擠出（凸窗、塔樓退角、壁柱、樓板），近處的街區再換成牆上真的挖出窗洞的細模 ═══
-// 10-city.js 的立面原本是一個方塊（boxFaces）＋ FACADE_FS 畫在平面上的窗；這裡改成：
+// 10-city.js 的立面原本是一個方塊（boxFaces）＋ m-facade 畫在平面上的窗；這裡改成：
 //   量體（遠近都建，輪廓一致）：磚樓正面的凸窗（一或兩開間寬、凸出 0.75 m、下面托座、上面壓頂）、轉角塔樓在街角退一格（基座兩層照舊是整塊）、
 //     石造廠房樓每個開間之間的壁柱（凸出 0.2 m）、翻新灰泥樓每層一道樓板（凸出 0.1 m，正面照舊畫 LED 線）
 //   細模（鏡頭 SET.fac 公尺內的街區，10-city.js 的 facLod 串流建、走遠就丟）：每扇窗挖進牆裡（玻璃退 d，窗洞的兩側、窗楣底與窗台都是面）、
 //     店面的櫥窗與鐵捲門往內凹 0.3 m（店與店之間的牆墩、上面的招牌帶留在牆面）、玻璃帷幕每層一道凸出的樓板邊
-// 窗格完全照 FACADE_FS（gH、fh、ws、cols、mg、wmin／wmax、店面 units），所以玻璃、窗內、店內照舊是著色器畫的；新的面帶 aB2.w 的 2（solid）：
+// 窗格完全照 m-facade（gH、fh、ws、cols、mg、wmin／wmax、店面 units），所以玻璃、窗內、店內照舊是著色器畫的；新的面帶 aB2.w 的 2（solid）：
 // 著色器把它當純牆（不畫窗、不當屋頂），窗洞的水平面用樣式 7（石材）。只用 L.seed 的雜湊，不抽 rnd()：亂數序列和以前一樣。
 // 騎樓：霓虹區、珊瑚灘與一部分中城、舊碼頭的街面，一樓店面往裡退 ARC_D，正面一排柱撐著上面的樓（街區的碰撞盒在那段往裡退、柱是圓柱，10-city.js）。
 // 其他的一樓不出地塊的矩形。函式在 10-city.js 的立面迴圈才呼叫（quad、boxFaces、lots 在那裡）。
@@ -65,7 +65,7 @@ function fbx(B, F, u0, u1, o0, o1, y0, y1, A, A2, S, S2, top = true, bot = true)
   if (top) fhq(B, F, u0, u1, o0, o1, y1, true, S, S2);
 }
 const solidOf = A2 => [A2[0], A2[1], A2[2], A2[3] + 2];
-// 真的凹進去的玻璃（加 4）：FACADE_FS 不再用視差畫洞口的側面
+// 真的凹進去的玻璃（加 4）：m-facade 不再用視差畫洞口的側面
 const deepOf = A2 => [A2[0], A2[1], A2[2], A2[3] + 4];
 
 // ─── 面外側緊貼的地塊有多高（側面被隔壁擋住的部分不挖窗、不擺壁柱） ───
@@ -153,7 +153,7 @@ function facWalls(L) {
   return out;
 }
 
-// ─── 細模的牆：窗格照 FACADE_FS，選到的窗挖洞（玻璃退 d，四邊是窗洞的面）；skip(ci, fi) 為真的窗不挖（凸窗後面） ───
+// ─── 細模的牆：窗格照 m-facade，選到的窗挖洞（玻璃退 d，四邊是窗洞的面）；skip(ci, fi) 為真的窗不挖（凸窗後面） ───
 function facHoles(B, F, A, A2, st, H, y0, y1, d, skip) {
   const fh = facFh(st), ws = facWs(st), nF = facNF(H, st), cols = facCols(F.w, ws), mg = (F.w - cols * ws) / 2;
   const S2 = solidOf(A2), SB = [A[0], 7, A[2], 0], SJ = [A[0], st, A[2], 0];

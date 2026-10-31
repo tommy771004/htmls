@@ -1,17 +1,15 @@
-// ═══ 繪圖後端的轉接（00-core.js 的 GFX）：WebGPURenderer 不吃 ShaderMaterial（GLSL），每個材質要有一份 TSL 版本 ═══
-// three 建管線前會向 R.library.fromMaterial 要「節點材質」：這裡攔下 ShaderMaterial，照登錄表（gfxPort）找改寫好的 TSL 版本，
-// 沒有的話給替代材質（依 GLSL 雜湊的顏色加平面明暗；半透明與疊加混色的畫成全透明），記進 gfxMiss（__nc.gfx.miss() 列出還沒改寫的）。
+// ═══ 繪圖後端的轉接（00-core.js 的 GFX）：材質照舊是 ShaderMaterial（name、uniforms、defines 與混色、深度等管線狀態），著色器是 src/tsl/ 的 TSL ═══
+// three 建管線前會向 R.library.fromMaterial 要「節點材質」：這裡攔下 ShaderMaterial，手寫的（gfxPort，後製的 pass）優先，其餘照「名字＋defines 的形狀」
+// 取 src/tsl/（TSL_GEN.MAT）；都沒有的給替代材質（依名字雜湊的顏色加平面明暗；半透明與疊加混色的畫成全透明），記進 gfxMiss（__nc.gfx.miss()）。
 // 混色、深度、正反面這些管線狀態照舊讀原本的 ShaderMaterial；節點材質只提供著色器。uniform 由 gfxU／gfxT 每次 render 從原本的 { value } 讀，
 // 所以各 part 照舊改 material.uniforms.x.value 就好。
-// 登錄的鍵：材質實例（後製的 pass）或 fragmentShader 字串（同一份 GLSL 的材質共用一個改寫）。改寫放在用到的 part 之後（如 71-gfx-post.js），
-// fromMaterial 是第一次畫到時才問，開場的 part 都跑完了
+// 手寫的登錄鍵是材質實例。改寫放在用到的 part 之後（如 71-gfx-post.js），fromMaterial 是第一次畫到時才問，開場的 part 都跑完了
 import * as TSL from 'three/tsl';
 import { NodeMaterial, TextureNode, Node as TNode, NodeBuilder, FunctionNode, AttributeNode, NodeMaterialObserver, RenderObjectRefreshType } from 'three/webgpu';
-import { glslTSL } from '../gfx/glsl-tsl.mjs';
 import * as TSL_GEN from '../tsl/index.mjs';
 const GFX_PORT = new Map(), gfxMiss = new Map(), gfxNodeOf = new WeakMap();
 const gfxPort = (key, build) => { GFX_PORT.set(key, build); };
-// WebGPU 的深度是 0..1，WebGL 是 −1..1（?gfx=webgpu-gl 走 WebGPURenderer 的 WebGL2 後端，照 WebGL 的）
+// WebGPU 的深度是 0..1，WebGL 是 −1..1（?gfx=webgpu-gl 走 WebGPURenderer 的 WebGL2 後端，照 WebGL 的）：深度轉 NDC 的 z
 const gfxZ = d => R.coordinateSystem === T.WebGPUCoordinateSystem ? d : d.mul(2).sub(1);
 // 還沒有值的貼圖 uniform（開場後才建的高度圖、照片材質）先綁一張 1×1
 const gfxTex0 = new T.DataTexture(new Uint8Array(4), 1, 1); gfxTex0.needsUpdate = true;
@@ -55,7 +53,7 @@ class GfxTex extends TextureNode {
     return super.update(f);
   }
   setup(b) { const r = super.setup(b); if (this.getBase()._src) this.updateType = 'object'; return r; }
-  // 自動轉換的 GLSL 照 WebGL 的習慣取樣（v 由下往上）：渲染目標與深度貼圖在 WGSL 裡是左上角原點，three 只在 GLSL 後端自己翻（isFlipY），
+  // src/tsl/ 的材質（從 GLSL 轉來的）照 WebGL 的習慣取樣（v 由下往上）：渲染目標與深度貼圖在 WGSL 裡是左上角原點，three 只在 GLSL 後端自己翻（isFlipY），
   // 這裡照它的做法補上，看當下綁的是不是渲染目標（70-render.js 的路面倒影 tRefl：沒翻的話取到倒影上半的天空，整片一個顏色）。
   // 手寫的 TSL（71-gfx-post.js 的 Q）自己翻過，不經這裡（_gl 只有 gfxAuto 設）
   setupUV(b, uvN) {
@@ -77,9 +75,9 @@ function gfxTN(o, arr = false, name, gl = false) {
   const v0 = arr ? gfxTexA0 : gfxTex0, base = new GfxTex(o.value || v0); base._src = o; base._v0 = v0; base._name = name; base._gl = gl;
   return TSL.nodeObject(base);
 }
-// ─── 沒有手寫移植的材質：glsl-tsl.mjs 自動轉（同一份 GLSL 與 defines 的形狀只轉一次）。轉不了的退回替代材質，記進 gfxMiss ───
+// ─── 沒有手寫移植的材質：src/tsl/ 的 TSL（名字＋defines 的形狀，每個鍵只建一次 E 的對照）。沒有的退回替代材質，記進 gfxMiss ───
 const gfxAutoT = new Map(), gfxAutoErr = new Map();
-// 有值的 defines（FAR 的距離、FARD、CUT 的範圍、MASK_CUT…）：轉出來的 TSL 留名字、執行期由 E 給值（數字或 vecN），
+// 有值的 defines（FAR 的距離、FARD、CUT 的範圍、MASK_CUT…）：TSL 裡留名字、執行期由 E 給值（數字或 vecN），
 // 所以鍵只看「有哪些 defines」（形狀），不同距離、範圍的材質共用一份；管線照樣依值分開（customProgramCacheKey）
 function gfxDefV(d) {
   const o = {};
@@ -92,13 +90,15 @@ function gfxDefV(d) {
 }
 const gfxTier = Object.fromEntries(Object.entries(GL_TIER).map(([k, v]) => [k, TSL.int(v)]));
 const gfxShape = d => JSON.stringify(Object.fromEntries(Object.entries(d || {}).map(([k, v]) => [k, v === '' || v === true ? v : '*'])));
-// 每個 ShaderMaterial 都有 name：名字加上 defines 是之後存放轉好的 TSL 的鍵，同一個鍵只能對到同一份 GLSL（沒取名字或撞名的記在 gfxClash）
-const gfxByName = new Map(), gfxClash = new Set();
+// 材質的中繼資料（src/tsl/ 產生時記下的）：fog 是片段著色器有沒有呼叫 applyFog（70-render.js 的 fogFull）、attributes 是頂點屬性（10-city.js 的 aL）
+const gfxMeta = m => (m && m.name && TSL_GEN.MAT[m.name] && TSL_GEN.MAT[m.name][gfxShape(m.defines)]) || null;
+const gfxHasAttr = (m, a) => { const g = gfxMeta(m); return !!(g && g.attributes.some(d => d.name === a)); };
+// 每個 ShaderMaterial 都有 name：名字加上 defines 的形狀就是 src/tsl/ 的鍵（沒取名字的記在 gfxClash）
+const gfxByName = new Set(), gfxClash = new Set();
 function gfxName(m) {
-  const k = (m.name || '?') + gfxShape(m.defines), src = m.vertexShader + '\u0000' + m.fragmentShader, p = gfxByName.get(k);
-  if (!m.name) gfxClash.add('沒有名字：' + m.fragmentShader.slice(m.fragmentShader.startsWith(GL_LIB) ? GL_LIB.length : 0).replace(/\s+/g, ' ').trim().slice(0, 80));
-  else if (p === undefined) gfxByName.set(k, src);
-  else if (p !== src) gfxClash.add('撞名：' + k);
+  const k = (m.name || '?') + gfxShape(m.defines);
+  if (!m.name) gfxClash.add('沒有名字：' + JSON.stringify(Object.keys(m.uniforms || {})).slice(0, 80));
+  else gfxByName.add(k);
   return k;
 }
 // three 把有 layout 的 Fn 編成的 WGSL 函式放在跨材質、跨建置的快取（以函式節點為鍵），假設函式只讀參數；轉出來的函式直接讀 uniform 與貼圖，
@@ -137,24 +137,18 @@ const GFX_TSL = { ...TSL, If: gfxIf, Fn: (f, l) => { const r = TSL.Fn(f, l); r.s
   };
 }
 const GFX_GL2TSL = { float: 'float', int: 'int', bool: 'bool', vec2: 'vec2', vec3: 'vec3', vec4: 'vec4', ivec2: 'ivec2', mat3: 'mat3', mat4: 'mat4' };
-// 產生好的 TSL（src/tsl/，node tools/gen-tsl.mjs）：鍵是名字＋defines 的形狀，h 是當時 GLSL 的雜湊。對不上（改了 GLSL 沒重新產生）或沒產生到的照舊執行期轉譯，
-// 記進 gfxGenMiss（__nc.gfx.gen()）；?tslgen=1 一律轉譯（產生器用）
-const GFX_GEN = !/[?&]tslgen=1\b/.test(location.search), gfxGenMiss = new Map();
-// 開場時還沒掛到任何物件上的材質（結局 B 才貼的通緝海報 pstMat）：登記在這裡，warm() 一起轉，產生器才拿得到
+// src/tsl/ 沒有的鍵記進 gfxGenMiss（__nc.gfx.gen()），畫替代材質
+const gfxGenMiss = new Map();
+// 開場時還沒掛到任何物件上的材質（結局 B 才貼的通緝海報 pstMat）：登記在這裡，warm() 一起建
 const gfxLate = [];
-const gfxHash = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return (h >>> 0).toString(36) + s.length.toString(36); };
 function gfxAuto(m) {
-  const nk = gfxName(m), shape = gfxShape(m.defines);
-  const key = m.vertexShader + '\u0000' + m.fragmentShader + '\u0000' + shape, dv = gfxDefV(m.defines);
-  let t = gfxAutoT.get(key);
+  const nk = gfxName(m), shape = gfxShape(m.defines), dv = gfxDefV(m.defines);
+  let t = gfxAutoT.get(nk);
   if (t === undefined) {
-    const h = gfxHash(key), g = GFX_GEN && TSL_GEN.MAT[m.name] && TSL_GEN.MAT[m.name][shape];
-    if (g && g.h === h) t = { ...g, lib: g.lib ? { make: TSL_GEN.LIB[g.lib] } : null };
-    else {
-      if (GFX_GEN) gfxGenMiss.set(nk, g ? '過期' : '沒產生');
-      try { t = glslTSL(m.vertexShader, m.fragmentShader, m.defines, { ...GL_TIER, ...dv }, GL_LIB); t.name = m.name; t.shape = shape; t.h = h; } catch (e) { t = null; gfxAutoErr.set((m.name || '?') + ' ' + e.message.slice(0, 120), m); }
-    }
-    gfxAutoT.set(key, t);
+    const g = TSL_GEN.MAT[m.name] && TSL_GEN.MAT[m.name][shape];
+    if (g) t = { ...g, lib: g.lib ? { make: TSL_GEN.LIB[g.lib] } : null };
+    else { t = null; gfxGenMiss.set(nk, '沒有 TSL'); console.error(`沒有 TSL：${nk}`); }
+    gfxAutoT.set(nk, t);
   }
   if (!t) return null;
   try {
@@ -163,7 +157,7 @@ function gfxAuto(m) {
       position: TSL.positionLocal, normal: TSL.normalLocal, uv: TSL.uv(), pGeom_: TSL.positionGeometry, nGeom_: TSL.normalGeometry,
       modelMatrix: TSL.modelWorldMatrix, viewMatrix: TSL.cameraViewMatrix, projectionMatrix: TSL.cameraProjectionMatrix,
       modelViewMatrix: TSL.modelViewMatrix, normalMatrix: TSL.modelNormalMatrix, cameraPosition: TSL.cameraPosition,
-      fragCoord_: TSL.vec4(TSL.screenCoordinate.x, TSL.screenSize.y.sub(TSL.screenCoordinate.y), 0, 1), frontFacing_: TSL.frontFacing,
+      zN_: gfxZ, fragCoord_: TSL.vec4(TSL.screenCoordinate.x, TSL.screenSize.y.sub(TSL.screenCoordinate.y), 0, 1), frontFacing_: TSL.frontFacing,
       texA_: (t, p) => t.sample(p.xy).depth(p.z), texLA_: (t, p, lv) => t.sample(p.xy).depth(p.z).level(lv),
       color: TSL.vertexColor().rgb,   // three 替 vertexColors 的 ShaderMaterial 自動加的 attribute vec3 color
     };
@@ -176,7 +170,7 @@ function gfxAuto(m) {
       else E[d.name] = gfxU(o, d.size ? GFX_GL2TSL[d.type] : undefined, d.src);
     }
     const n = new NodeMaterial();
-    // 共用函式庫（GL_LIB）的函式每個階段各建一份（全域變數 gAmb 之類不能跨材質、跨階段共用）
+    // 共用函式庫（src/tsl/lib.mjs）的函式每個階段各建一份（全域變數 gAmb 之類不能跨材質、跨階段共用）
     if (t.libV) Object.assign(E, t.lib.make(GFX_TSL, E));
     n.vertexNode = t.vertex(GFX_TSL, E)();
     if (t.libF) Object.assign(E, t.lib.make(GFX_TSL, E));
@@ -185,10 +179,7 @@ function gfxAuto(m) {
   } catch (e) { gfxAutoErr.set((m.name || '?') + ' ' + e.message.slice(0, 120), m); return null; }
 }
 function gfxFallback(m) {
-  // 很多 GLSL 開頭是同一份 GL_LIB：鍵用去掉它之後的開頭，再加整份的雜湊
-  const f = m.fragmentShader, body = f.startsWith(GL_LIB) ? f.slice(GL_LIB.length) : f;
-  let fh = 0; for (let i = 0; i < f.length; i++) fh = fh * 31 + f.charCodeAt(i) | 0;
-  const k = (m.name || '') + '|' + (fh >>> 0).toString(36) + '|' + body.replace(/\s+/g, ' ').trim().slice(0, 120);
+  const k = (m.name || '?') + gfxShape(m.defines);
   gfxMiss.set(k, (gfxMiss.get(k) || 0) + 1);
   let h = 0; for (let i = 0; i < k.length; i++) h = h * 31 + k.charCodeAt(i) | 0;
   const n = new NodeMaterial(), col = new T.Color().setHSL((h >>> 0) % 360 / 360, .3, .42);
@@ -198,7 +189,7 @@ function gfxFallback(m) {
 }
 // 實例矩陣改由頂點屬性 gfxIM0～3 進來（見下面 R._objects.get 的說明）：手寫移植（gfxPort）的、有實例顏色或變形的、頂點緩衝快滿（WebGPU 最多 8 個）的照舊走 three
 const gfxIMOn = (o, m) => o.isInstancedMesh === true && !o.instanceColor && !o.morphTexture && Object.keys(o.geometry.attributes).length < 8 &&
-  !!m && m.isShaderMaterial === true && !GFX_PORT.has(m) && !GFX_PORT.has(m.fragmentShader);
+  !!m && m.isShaderMaterial === true && !GFX_PORT.has(m);
 // 每個 instanceMatrix 一份交錯緩衝：直接用它的陣列，版本、用途、更新範圍都讀它的，各 part 照舊寫 instanceMatrix、設 needsUpdate
 const gfxIMs = new WeakMap();
 function gfxIMA(o) {
@@ -276,18 +267,19 @@ function gfxShVer(rid) {
   }
   return gfxShV;
 }
-if (GFX !== 'webgl') {
+{
   // ?gfxtrace=1：沒被呼叫的 Fn（TSL 會報 "Fn() was declared but not invoked"）印出它的原始碼開頭，好找是哪個轉出來的函式
   if (/[?&]gfxtrace=1/.test(location.search)) {
     const P = TSL.Fn(() => TSL.float(0)).constructor.prototype, g = P.generate;   // Fn() 回傳 Proxy（沒有 getPrototypeOf），constructor 才拿得到 FnNode
     P.generate = function (b) { console.warn('gfx Fn not invoked:', String(this.gfxSrc || (this.shaderNode && this.shaderNode.jsFunc) || '?').slice(0, 300)); return g.call(this, b); };
   }
-  // three 判斷「兩個材質能不能共用同一份節點」（RenderObject 的 getMaterialCacheKey）時，物件型別的屬性一律只記成 {}：GLSL 一樣、defines 不同的材質
-  // （glb 的有無 USE_MAP、FAR、CUT 的範圍）在幾何的 attribute 也一樣時會拿到同一份節點。賭場吊燈沒有底色貼圖的燈罩就拿到 USE_MAP 版、取樣空的貼圖，整片黑掉。defines 併進鍵裡
+  // three 判斷「兩個材質能不能共用同一份節點」（RenderObject 的 getMaterialCacheKey）時跳過 name，物件型別的屬性一律只記成 {}：ShaderMaterial 的
+  // 著色器字串現在都是 three 的預設值，名字不同（不同的 TSL）、uniforms 的名字一樣的材質會拿到同一份節點；defines 不同的（glb 的有無 USE_MAP、FAR、CUT 的範圍）
+  // 也一樣（賭場吊燈沒有底色貼圖的燈罩拿到 USE_MAP 版、取樣空的貼圖，整片黑掉）。名字與 defines 併進鍵裡
   const cpk = T.ShaderMaterial.prototype.customProgramCacheKey;
-  T.ShaderMaterial.prototype.customProgramCacheKey = function () { return cpk.call(this) + JSON.stringify(this.defines || {}); };
+  T.ShaderMaterial.prototype.customProgramCacheKey = function () { return cpk.call(this) + this.name + JSON.stringify(this.defines || {}); };
   // 實例：three 的 getMaterialCacheKey 對每個 InstancedMesh 加上 object.uuid，因為它的 InstanceNode 把那個物件的 instanceMatrix 直接綁進節點
-  // （少的用 uniform 陣列、大小依 count；多的用頂點屬性）：同一份 GLSL 的道具、車流 InstancedMesh 一個物件就建一次（載入時 777 次、約 10 秒）。
+  // （少的用 uniform 陣列、大小依 count；多的用頂點屬性）：同一個著色器的道具、車流 InstancedMesh 一個物件就建一次（載入時 777 次、約 10 秒）。
   // 自動轉換的材質改成照名字讀頂點屬性 gfxIM0～3（gfxIMPos），屬性由 render object 從自己的物件拿（getAttributes），鍵裡的 uuid 換成固定字串，
   // 版面相同的物件共用一份。三處都看 gfxIMOn，條件要一致
   // 頂點格式：three 的 WebGPUAttributeUtils 單一分量只認 32 位元（float32／sint32／uint32），glb 量化過的 1 分量屬性（城寨窗戶編號 _win 的 unorm16）
@@ -341,7 +333,7 @@ if (GFX !== 'webgl') {
     if (!m.isShaderMaterial) return orig(m);
     let n = gfxNodeOf.get(m);
     if (!n) {
-      const b = GFX_PORT.get(m) || GFX_PORT.get(m.fragmentShader);
+      const b = GFX_PORT.get(m);
       n = b ? b(m) : gfxAuto(m) || gfxFallback(m);
       if (!b) gfxIMPos(n, m);
       // 建管線時節點材質自己會看的幾個屬性（其餘的管線狀態讀原本的材質）
@@ -351,9 +343,74 @@ if (GFX !== 'webgl') {
     return n;
   };
 }
-const gfxApi = { name: GFX, miss: () => [...gfxMiss].map(([k, n]) => `${n}× ${k}`), ported: () => GFX_PORT.size, auto: () => [...gfxAutoT.values()].filter(Boolean).length, err: () => [...gfxAutoErr.keys()], clash: () => [...gfxClash], names: () => gfxByName.size, keys: () => [...gfxByName.keys()],
+// ─── 貼圖的解碼像素：上傳到顯示卡之後放掉（ImageBitmap.close()）───
+// glb 的貼圖是 ImageBitmap（GLTFLoader 的 ImageBitmapLoader），上傳後 three 不再讀它，但 texture.image 一直拿著解碼好的像素，都算在 renderer 行程：
+// 進出全部場館後約 2.2 GB（2026-10-31 量 footprint：關掉 1.5 GB 的 bitmap，renderer 少 1.5 GB；10-29 在 WebGL 量 RSS 沒看到效果，那時的量法不準）。
+// createImageBitmap 包一層，記下解碼前的 Blob（壓縮過的，小很多）；用到同一個 source 的貼圖都上傳了、最後一次上傳滿 GFX_BMP_SETTLE 毫秒才 close。
+// 之後還要像素（共用這個 source 的新貼圖、needsUpdate、dispose 後再畫）時從 Blob 重新解碼（gfxBmpRevive）：已經在顯示卡上的照舊用原本的像素，
+// 還沒上傳過的先走 three 的預設貼圖（version 當成 0），解碼完再 needsUpdate。?bmp=0 關掉比較
+const GFX_BMP = !/[?&]bmp=0\b/.test(location.search), GFX_BMP_SETTLE = 10000;
+const gfxBmpBlob = new WeakMap(), gfxBmpTex = new WeakMap(), gfxBmpSrc = new Set(), gfxBmpN = { closed: 0, closedB: 0, revived: 0 };
+if (GFX_BMP) {
+  const cib = globalThis.createImageBitmap.bind(globalThis);
+  globalThis.createImageBitmap = (src, ...a) => cib(src, ...a).then(b => { if (src instanceof Blob) gfxBmpBlob.set(b, { blob: src, a }); return b; });
+  // 每個 source 被哪些貼圖用（Texture 的建構與 copy／clone 都是 this.source = …）
+  const own = Object.getOwnPropertyDescriptor(T.Texture.prototype, 'source');
+  if (!own) Object.defineProperty(T.Texture.prototype, 'source', {
+    configurable: true,
+    get() { return this._gfxSrc; },
+    set(s) {
+      this._gfxSrc = s;
+      if (!s) return;
+      let L = gfxBmpTex.get(s); if (!L) gfxBmpTex.set(s, L = []);
+      L.push(new WeakRef(this));
+    },
+  });
+}
+const gfxBmpClosed = im => im instanceof ImageBitmap && im.width === 0 && gfxBmpBlob.has(im);
+function gfxBmpRevive(s) {
+  if (s._gfxRev) return;
+  const r = gfxBmpBlob.get(s.data);
+  s._gfxRev = createImageBitmap(r.blob, ...r.a).then(b => {
+    s.data = b; s._gfxRev = null; s._gfxUp = 0; gfxBmpN.revived++;
+    for (const w of gfxBmpTex.get(s) || []) { const t = w.deref(); if (t && t.source === s) t.needsUpdate = true; }
+  }, e => { s._gfxRev = null; console.warn('貼圖重新解碼失敗', e); });
+}
+if (GFX_BMP) {
+  const tx = R._textures, up = tx.updateTexture.bind(tx);
+  tx.updateTexture = (t, o = {}) => {
+    const s = t.source, im = s && s.data;
+    if (gfxBmpClosed(im)) {
+      gfxBmpRevive(s);
+      if (tx.get(t).initialized === true) return;   // 顯示卡上的像素照舊，解碼完再上傳
+      const v = t.version; t.version = 0;   // 先建 three 的預設貼圖
+      try { return up(t, o); } finally { t.version = v; }
+    }
+    const r = up(t, o);
+    if (im instanceof ImageBitmap && im.width > 0 && gfxBmpBlob.has(im)) { s._gfxUp = performance.now(); gfxBmpSrc.add(new WeakRef(s)); }
+    return r;
+  };
+  // 每 2 秒：用到這個 source 的貼圖（還活著的）都已上傳、版本對得上，而且最後一次上傳滿 GFX_BMP_SETTLE 才關
+  setInterval(() => {
+    const now = performance.now();
+    for (const w of gfxBmpSrc) {
+      const s = w.deref(), im = s && s.data;
+      if (!im || !(im instanceof ImageBitmap) || im.width === 0 || s._gfxRev) { gfxBmpSrc.delete(w); continue; }
+      if (now - (s._gfxUp || 0) < GFX_BMP_SETTLE) continue;
+      let ok = true;
+      for (const r of gfxBmpTex.get(s) || []) {
+        const t = r.deref();
+        if (!t || t.source !== s) continue;
+        const d = tx.has(t) && tx.get(t);
+        if (!d || d.initialized !== true || d.isDefaultTexture === true || d.version !== t.version) { ok = false; break; }
+      }
+      if (!ok) continue;
+      gfxBmpN.closed++; gfxBmpN.closedB += im.width * im.height * 4;
+      im.close(); gfxBmpSrc.delete(w);
+    }
+  }, 2000);
+}
+const gfxApi = { name: GFX, meta: gfxMeta, hasAttr: gfxHasAttr, bmp: () => ({ on: GFX_BMP, closed: gfxBmpN.closed, closedMB: Math.round(gfxBmpN.closedB / 1048576), revived: gfxBmpN.revived, waiting: gfxBmpSrc.size }), miss: () => [...gfxMiss].map(([k, n]) => `${n}× ${k}`), ported: () => GFX_PORT.size, auto: () => [...gfxAutoT.values()].filter(Boolean).length, err: () => [...gfxAutoErr.keys()], clash: () => [...gfxClash], names: () => gfxByName.size, keys: () => [...gfxByName],
   gen: () => [...gfxGenMiss].map(([k, v]) => `${v}：${k}`),   // 沒用到產生好的 TSL 的鍵
-  // tools/gen-tsl.mjs：執行期轉好的（?tslgen=1）原樣交出去；warm(root) 不畫、直接把 root 底下所有 ShaderMaterial 轉一次（看不到的物件也算）
-  dump: () => { const libs = {}, mats = []; for (const t of gfxAutoT.values()) if (t && t.src) { if (t.lib) libs[t.lib.key] = t.lib.src; mats.push({ name: t.name, shape: t.shape, h: t.h, lib: t.lib ? t.lib.key : null, libV: t.libV, libF: t.libF, uniforms: t.uniforms, varyings: t.varyings, attributes: t.attributes, v: t.src.v, f: t.src.f }); } return { libs, mats }; },
-  warm: root => { let k = 0; const f = m => { if (m.isShaderMaterial) { R.library.fromMaterial(m); k++; } }; root.traverse(o => [].concat(o.material || []).forEach(f)); gfxLate.forEach(f); return k; },
-  code: () => [...gfxAutoT].filter(([, t]) => t && t.code).map(([k, t]) => ({ glsl: k, v: t.code.v, f: t.code.f })) };
+  // warm(root)：不畫、直接把 root 底下所有 ShaderMaterial 建一次節點材質（看不到的物件也算）
+  warm: root => { let k = 0; const f = m => { if (m.isShaderMaterial) { R.library.fromMaterial(m); k++; } }; root.traverse(o => [].concat(o.material || []).forEach(f)); gfxLate.forEach(f); return k; } };

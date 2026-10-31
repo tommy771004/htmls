@@ -84,7 +84,7 @@ const tLoad = Date.now();
 await page.goto(url, { waitUntil: 'load', timeout: 90000 });
 await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 90000 });
 const tReady = Date.now();
-const gpuInfo = await ev(() => ({ tier: window.__nc.gpu?.tier, timer: window.__nc.perf.gpuTimer(), renderer: (() => { const gl = window.__nc.renderer.getContext(), d = gl.getExtension('WEBGL_debug_renderer_info'); return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : '?'; })() }));
+const gpuInfo = await ev(() => ({ tier: window.__nc.gpu?.tier, timer: window.__nc.perf.gpuTimer(), renderer: window.__nc.gpu?.name || '?', gfx: window.__nc.gpu?.gfx }));
 console.log(`Chrome ${res.chrome} · ${gpuInfo.renderer} · 等級 ${gpuInfo.tier} · 顯示卡計時擴充 ${gpuInfo.timer ? '有' : '沒有'}`);
 await ev(() => window.__nc.start());
 await sleep(1500);

@@ -1,6 +1,6 @@
 // ═══ 服裝型錄：每一件是 blender/wear.py 的一個款式（shape）＋固定的配色與圖案；40-people.js 的 wearGeo 把它穿到人身上，69-wear.js 賣 ═══
 // cat：hat 帽子、glasses 墨鏡、top 上衣、pants 褲子（含短褲）、skirt 裙子、jacket 外套、socks 襪子、shoes 鞋子、acc 配件
-// pat：40-people.js CHAR_FS 的衣服圖案（WEAR_PAT 的名字）；p 是那個圖案的參數（多半是每公尺幾格），ph 是位置型圖案的高度 [男, 女]；rough 布面粗糙度
+// pat：src/tsl/m-char.mjs 的衣服圖案（WEAR_PAT 的名字）；p 是那個圖案的參數（多半是每公尺幾格），ph 是位置型圖案的高度 [男, 女]；rough 布面粗糙度
 // a 主色（布面 + 圖案底色）、b 第二色（滾邊、帽簷、圖案）、c 第三色（圖案、繩子、鏡片與發光的顏色）；哪一塊用哪個顏色是 wear.py 標的部位（PART）
 // shops：賣這件的店型（12-wearshops.js 的 WEAR_TYPES）；品牌與圖樣都是虛構的
 const WEAR_CATS = { hat: '帽子', glasses: '墨鏡', top: '上衣', pants: '褲子', skirt: '裙子', jacket: '外套', socks: '襪子', shoes: '鞋子', acc: '配件' };

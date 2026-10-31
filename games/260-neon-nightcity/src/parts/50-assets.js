@@ -61,28 +61,7 @@ for (const name of ['interior_props', 'street_props', 'hill_homes']) {
 const HILL_SEED = (t, c) => c === 2 ? t.seed : c === 3 ? t.ry : 0;   // aIns：z 種子（玻璃後的房間、照片錯開）、w 繞 y 的轉角（07-kitx.js 的照片法線轉到世界）
 // 細模有照平面圖蓋的室內（blender/villa_plans.json），玻璃是另一個物件 NAME_gl、用透明的 villaGlass 畫：正看幾乎透明、斜看反射天空與城市燈（菲涅耳），
 // 霧玻璃（底色偏白，浴室）不透明、散射室內外的光。低模只畫細模半徑外的（R0），不然透過玻璃會看到藏在裡面的低模
-const VGLASS_VS = /* glsl */`
-attribute vec3 color;
-varying vec3 vW, vN, vCol;
-void main(){
-  vec4 lp = instanceMatrix * vec4(position, 1.); vec3 nn = mat3(instanceMatrix) * normal;
-  vec4 w = modelMatrix * lp; vW = w.xyz; vN = normalize(mat3(modelMatrix) * nn); vCol = color;
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`;
-const VGLASS_FS = /* glsl */`
-${GL_LIB}
-varying vec3 vW, vN, vCol;
-void main(){
-  vec3 v = normalize(uCam - vW), n = normalize(vN);
-  float nv = max(dot(n, v), 0.), F = .04 + .96 * pow(1. - nv, 5.), fr = step(.6, vCol.r);   // fr：霧玻璃（底色線性值 ≥ .6）
-  vec3 refl = envMap(reflect(-v, n)) * F + shade(vW, n, v, vec3(0.), .05, 0.);
-  float a = clamp(.1 + F * .85, 0., .95);
-  vec3 c = (refl + vec3(.012, .018, .017) * .1) / a;
-  vec3 fc = shade(vW, n, v, vCol * .8, .45, 0.) + refl * .3;
-  c = mix(c, fc, fr); a = mix(a, .88, fr);
-  gl_FragColor = vec4(applyFog(c, vW), a);
-}`;
-const VGLASS = new T.ShaderMaterial({ name: 'villaGlass', uniforms: shared(ALLU), vertexShader: VGLASS_VS, fragmentShader: VGLASS_FS, transparent: true, depthWrite: false });
+const VGLASS = new T.ShaderMaterial({ name: 'villaGlass', uniforms: shared(ALLU), transparent: true, depthWrite: false });
 const HOME_R = 420;
 HOME_V.forEach(([nm], v) => {
   const L = HILL_HOMES.filter(h => h.v === v);

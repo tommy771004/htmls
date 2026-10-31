@@ -32,10 +32,10 @@ node tools/lamps.mjs [id…]     # 照位置、朝向與底色找出實車的頭
 node tools/kit-view.mjs <dir> [id…|all]   # 以本機 HTTP 開頁、裝上 MODS 指定的外觀件，從多個角度截圖（VIEWS=tail,nose 只拍幾個角度）
 node tools/fac-view.mjs [dir]   # 程式立面截圖（本機 HTTP）：每塊地拍白天斜看、夜晚、對街人行道抬頭三張；FAC="bay:0,bal:5,notch:0,arc:0,isle:2,s2:4,any:300" 指定種類與第幾塊（arc 騎樓、isle 天樞島）；FAC_D=0 關掉細模看平牆的視差窗洞
 node tools/street-view.mjs [dir]   # 人行道沿街看（白天），檢查程式建模的街道設施與店面；STREET="地塊序,…"
-node tools/gen-tsl.mjs [--fresh]   # 改了 ShaderMaterial 的 GLSL 之後重新產生 src/tsl/（本機 HTTP、無頭 Chrome 要開得了 WebGPU；走戶外、光格島與每個場館），再 npm run build
-node tools/gfx-view.mjs [dir]   # 繪圖後端對照（本機 HTTP）：同鏡頭在 ?gfx=webgl 與 ?gfx=webgpu 各截一張、印出幀時間與 __nc.gfx 的 miss／err；GFX="webgl,webgpu"、SPOT="地塊序,…"
-node tools/look-view.mjs [dir]  # 質感比對截圖（本機 HTTP）：雨夜 LAZARUS、夜裡窄街、清晨大道、下雨的白天、高架橋下、白天路面、路人近景；VARS="ao=0;ao=1" 每組設定拍一張並排、ONLY="club,road"、Q="gfx=webgpu"、PAGE=另一個 web/ 檔名
-node tools/road-dec.mjs         # .cache/tex-src/ 的 ambientCG 龜裂補丁、人孔蓋、排水格柵 → assets/260/tex/road_dec_c.webp／_n.webp 與 road_dec.json（路面貼花，10-city.js 的 ROAD_FS）
+node tools/tsl-check.mjs        # 每個材質都有 TSL（本機 HTTP）：走遍戶外白天／夜裡／雨夜、光格島與每個場館，__nc.gfx.gen()／miss()／err() 要是空的；改了材質名字、defines 或 src/tsl/ 之後跑
+node tools/gfx-view.mjs [dir]   # 繪圖後端對照（本機 HTTP）：同鏡頭在 WebGPU 與 WebGL2 後端（?gfx=webgpu-gl）各截一張、印出幀時間與 __nc.gfx 的 miss／err；GFX="webgpu,webgpu-gl"、SPOT="地塊序,…"
+node tools/look-view.mjs [dir]  # 質感比對截圖（本機 HTTP）：雨夜 LAZARUS、夜裡窄街、清晨大道、下雨的白天、高架橋下、白天路面、路人近景；VARS="ao=0;ao=1" 每組設定拍一張並排、ONLY="club,road"、Q="gfx=webgpu-gl"、PAGE=另一個 web/ 檔名
+node tools/road-dec.mjs         # .cache/tex-src/ 的 ambientCG 龜裂補丁、人孔蓋、排水格柵 → assets/260/tex/road_dec_c.webp／_n.webp 與 road_dec.json（路面貼花，src/tsl/m-road.mjs）
 ```
 
 ### 實車模型
@@ -78,7 +78,7 @@ node tools/road-dec.mjs         # .cache/tex-src/ 的 ambientCG 龜裂補丁、�
 | 檔案 | 內容 |
 | :-- | :-- |
 | `00-core.js` | renderer、城市尺寸常數、共用 uniform `U`、GLSL 函式庫（路燈格、點光、霧、環境反射）、uber 材質、`Kit` 幾何合併（`box` 最短邊 ≥ 18 cm、最長邊 ≤ 6 m 的自動倒角 1.2–3.5 cm，`KIT_BEV` 樣板；`new Kit(true)` 全部直角；`KIT_N` 記數量） |
-| `02-gfx.js` | 繪圖後端轉接（`?gfx=webgpu`）：攔 `R.library.fromMaterial`，ShaderMaterial 先找 `gfxPort` 手寫的 TSL（`71-gfx-post.js` 的後製），沒有就用 `src/tsl/` 產生好的 TSL（`node tools/gen-tsl.mjs` 產生，鍵是材質名字＋defines 的形狀，GLSL 的雜湊對不上或沒產生到才由 `src/gfx/glsl-tsl.mjs` 在執行期轉，`__nc.gfx.gen()` 列出；`GL_LIB` 開頭的拆成共用函式庫＋本體，依畫質等級的常數與有值的 defines 由 E 給值；轉出來的 `Fn` 每個 builder 各建一份；InstancedMesh 的實例矩陣改從頂點屬性 `gfxIM0`～`3` 讀，同版面的物件共用一份節點），轉不了才畫替代色；`__nc.gfx.miss()`／`ported()`／`auto()`／`err()`／`gen()`，`?gfxtrace=1` 印出沒被呼叫的 `Fn` 的原始碼。GLSL 函式不要用 out／inout（要回傳值，多個值包成 vec／mat），實例化網格要原始座標寫 `GEOM_POS`／`GEOM_NRM`；還沒和 WebGL 完全對齊，見 HANDOFF |
+| `02-gfx.js` | 繪圖後端轉接（只有 `WebGPURenderer`；沒有 WebGPU 的瀏覽器走它的 WebGL2 後端，`?gfx=webgpu-gl` 強制）：材質照舊是帶 `name`、`uniforms`、`defines` 的 `ShaderMaterial`（沒有 GLSL），攔 `R.library.fromMaterial` 換成節點材質：先找 `gfxPort` 手寫的 TSL（`71-gfx-post.js` 的後製），其餘照「名字＋defines 的形狀」取 `src/tsl/`（`m-<名字>.mjs`，共用函式庫 `lib.mjs`；是著色器的原始碼，直接改；依畫質等級的常數與有值的 defines 由 E 給值；`Fn` 每個 builder 各建一份；InstancedMesh 的實例矩陣改從頂點屬性 `gfxIM0`～`3` 讀，同版面的物件共用一份節點），沒有的畫替代色並 `console.error`；`__nc.gfx.miss()`／`ported()`／`auto()`／`err()`／`gen()`／`meta(m)`（`fog`、`attributes`），`?gfxtrace=1` 印出沒被呼叫的 `Fn` 的原始碼 |
 | `04-layout.js` | `tools/check-zones.mjs` 產生的版面：十五片的範圍與變換 `LAYOUT`、外緣 `CITY_EDGE`／`CITY_SHORE`／`CITY_CTR`、拿掉的格子 `DROP_CELLS`（不要手改，改 check-zones 再重跑） |
 | `05-zones.js` | 分片：邏輯座標（方格）經彎曲 `warpJ`／`unwarp` 與剛體變換到世界座標 `ZONES`、換算 `toW`／`toL`／`dirW`／`yawW`／`spotW`／`rectW`、`zoneAtW`／`zoneOfW`／`zoneNearL`、座標框 `frameW`／`localZone`／`frameM4`；外緣 `CITY_POLY`、`inCity`、`shoreAt`；`?zrot=N` 把整座城再轉 N° 並平移、`?warp=0` 關掉彎曲（除錯用） |
 | `06-roads.js` | 路網圖 `RN`：各區的路口（世界座標）與路段，加上縫裡把兩區同一個路口接起來的三次貝茲連接道路（`kind: 'c'`）；車流、警車、GPS、路障、叫車都走這張圖（`edgeAt`、`rnAt`、Dijkstra 的 `rnField`）；斜穿片的大道 `DIAG`（`kind: 'd'`，穿過的格子在 `PLAZA`，`plazaAt`／`plazaD`）與沿縫的快速道路 `FWY`（`kind: 'f'`，`seamMid` 取縫的中線、`fwyClear` 推離片的路；高架橋面高度 `F.h(弧長)`／`fwyH(e, u)`，跨過連接道路，銜接點是沒有片的路口 `free`；`deckTop`／`deckAt` 查橋面、`spawnY` 給生成載具的高度）；鐵灣高架斷橋 `BROKEN`（自動挑離鐵灣貨場最近、前後都是草地的連接道路，`brokenNear` 讓路燈與樹避開） |

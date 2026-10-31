@@ -675,26 +675,7 @@ const pstCv = document.createElement('canvas'); pstCv.width = 512 * PST_K; pstCv
   }
 }
 const pstTex = new T.CanvasTexture(pstCv); pstTex.colorSpace = T.SRGBColorSpace; pstTex.anisotropy = 8;
-const PST_VS = /* glsl */`
-attribute vec4 aP;
-varying vec3 vW, vN; varying vec2 vUv; varying vec4 vP;
-void main(){ mat4 m = modelMatrix * instanceMatrix; vec4 w = m * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(m) * normal); vUv = uv; vP = aP; gl_Position = projectionMatrix * viewMatrix * w; }`;
-const PST_FS = /* glsl */`
-${GL_LIB}
-uniform sampler2D tP;
-varying vec3 vW, vN; varying vec2 vUv; varying vec4 vP;
-void main(){
-  if (vW.y < uClipY) discard;
-  float s = vP.y;
-  if (s > .6) { vec2 q = s > .8 ? 1. - vUv : vUv; if (q.x + q.y * .8 < .14 + .1 * n2(vUv * 34. + s * 90.)) discard; }   // 撕掉一角
-  vec3 t = texture2D(tP, vec2((vP.x + vUv.x) / ${PST_K}., vUv.y)).rgb;
-  float age = vP.z;
-  t *= mix(vec3(1.), vec3(1., .9, .74), age) * (1. - .22 * age * smoothstep(.45, 1., n2(vUv * vec2(5., 16.) + s * 31.)));   // 曬黃、雨水流下來的漬
-  t *= .82 - .2 * uWet;
-  vec3 v = normalize(uCam - vW);
-  gl_FragColor = vec4(applyFog(shade(vW, normalize(vN), v, t, .92, 0.), vW), 1.);
-}`;
-const pstMat = new T.ShaderMaterial({ name: 'poster', uniforms: { ...shared(ALLU), tP: { value: pstTex } }, vertexShader: PST_VS, fragmentShader: PST_FS, side: T.DoubleSide });
+const pstMat = new T.ShaderMaterial({ name: 'poster', uniforms: { ...shared(ALLU), tP: { value: pstTex } }, side: T.DoubleSide });
 gfxLate.push(pstMat);   // 02-gfx.js：結局 B 才掛上物件，產生 TSL 時要另外轉
 // 包在半徑 R 的桿子上、弧長 w、高 h 的紙（正中朝 +z）；離桿面 6 mm
 function pstWrap(R, w, h) {

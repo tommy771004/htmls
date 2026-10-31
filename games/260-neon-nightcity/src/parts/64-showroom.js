@@ -320,7 +320,7 @@ svSign('SV_PLAQUE', 0, .72, 33.47, Math.PI, 1.9, .48, .8);   // 接待櫃台正�
 svSign('SV_V8', 3.3, .4, 26.37, Math.PI, 1.3, .33, .8);   // 引擎展示台正面的說明牌
 // 前面的玻璃立面：雨夜街景（和酒吧的雨窗同一個 shader），每層四片
 for (let f = 0; f < SV_NF; f++) for (const [x, w] of f ? [[-12.75, 8.4], [-4.25, 8.4], [4.25, 8.4], [12.75, 8.4]] : [[-12.75, 8.4], [-4.95, 6.9], [4.95, 6.9], [12.75, 8.4]]) {
-  const m = new T.Mesh(new T.PlaneGeometry(w, SV_FH - .6), new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
+  const m = new T.Mesh(new T.PlaneGeometry(w, SV_FH - .6), new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU) }));
   m.position.set(x, f * SV_FH + SV_FH / 2 - .1, -.25); showScene.add(m);
 }
 

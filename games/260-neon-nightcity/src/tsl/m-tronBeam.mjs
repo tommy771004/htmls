@@ -1,8 +1,8 @@
-// 自動產生（node tools/gen-tsl.mjs），不要手改：改 GLSL 之後重跑產生器
-// 材質 "tronBeam"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
+// 材質的 TSL（原本由已刪除的 tools/gen-tsl.mjs 從 GLSL 轉出，現在是著色器的原始碼，直接改這裡）
+// 材質 "tronBeam"：鍵是 defines 的形狀（有值的寫成 *），h 是當初轉換時 GLSL 的雜湊（已不使用）
 export default {
 "{}": {
-  h: "1wvygrmib", lib: null, libV: false, libF: false,
+  h: "1wvygrmib", fog: false, lib: null, libV: false, libF: false,
   uniforms: [{"name":"uY","type":"float","src":"uY"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uK","type":"float","src":"uK"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vH","type":"float","src":"vH"}],
   attributes: [],

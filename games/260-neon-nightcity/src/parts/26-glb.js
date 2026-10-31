@@ -113,8 +113,8 @@ const GLB_CARS = [
     tag: '方盒子車身、外掛備胎與側出排氣，四千多 cc 的雙渦輪 V8。重、高、轉彎會晃，但撞上去吃虧的通常是對方。' }],
   ['lc200', { name: 'Toyota Land Cruiser 200', cls: '2017 J200 · V8 越野休旅', price: 85000, street: 1, vmax: 58, eng: 11.5, grip: 7.8,
     tag: '開到哪裡都修得好的大型越野車，在這座城裡多半載著保鑣或貨。原廠塗裝，不能換色。' }],
-  ['rr06', { name: 'Range Rover Supercharged', cls: '2006 L322 · 機械增壓 V8', price: 48000, street: 1, vmax: 58, eng: 12, grip: 7.8,
-    tag: '老派英國豪華越野車，木飾板、真皮座椅與蛤殼式引擎蓋。舊了，但壓縮機一叫還是很有派頭。原廠塗裝，不能換色。' }],
+  ['rr06', { name: 'Range Rover Supercharged', cls: 'L405 · 5.0 機械增壓 V8', price: 95000, street: 1, vmax: 58, eng: 12, grip: 7.8,
+    tag: '第四代 Range Rover：全鋁車身、懸浮式黑色車頂與細長的頭燈。兩噸多的英國豪華越野車，壓縮機一叫照樣安靜地快。' }],
   ['ramtrx', { name: 'RAM 1500 TRX', cls: '2021 · 機械增壓 HEMI V8 皮卡', price: 92000, street: 1, vmax: 55, eng: 13.5, grip: 7.4,
     tag: '七百匹的越野皮卡，長行程避震與 35 吋越野胎，連人行道邊石都不用減速。沙漠迷彩的彩繪貼在車身側面。' }],
   ['ghost', { name: 'Rolls-Royce Ghost', cls: '2021 · 雙渦輪 V12 四門', price: 340000, street: 1, vmax: 64, eng: 13.8, grip: 8.4,
@@ -165,7 +165,7 @@ const CAR_REAL = {
   f8: [1435, 720, 2.9, 340, 1.1, 32, 'M'], scg: [1300, 811, 2.9, 350, 1.4, 29, 'M'], p9x8: [1030, 707, 2.9, 340, 1.65, 26, 'M', 'cage'], c110: [1976, 1600, 2.4, 380, 1.25, 31, 'A'],
   zx6r: [196, 130, 3.2, 260, .88, 41, 'B'], v4: [198, 214, 2.9, 299, .9, 38, 'B'],
   // 街頭車：Senna 是乾重加油液、R8 照 V10 Plus、Evo VI 是 GSR 的數字；兩台 Harley 是含油車重
-  g63: [2560, 585, 4.5, 220, .85, 38, 'A'], lc200: [2700, 381, 6.7, 210, .75, 44, 'A'], rr06: [2650, 396, 7.5, 210, .75, 44, 'A'], ramtrx: [2930, 712, 4.5, 190, .72, 46, 'A'],
+  g63: [2560, 585, 4.5, 220, .85, 38, 'A'], lc200: [2700, 381, 6.7, 210, .75, 44, 'A'], rr06: [2330, 510, 5.4, 225, .8, 40, 'A'], ramtrx: [2930, 712, 4.5, 190, .72, 46, 'A'],
   ghost: [2490, 571, 4.8, 250, .85, 38, 'A'], s65: [2250, 630, 4.3, 250, .9, 36, 'R'], m5f90: [1940, 625, 3.3, 305, 1.0, 34, 'A'], camry: [1590, 206, 8.4, 210, .82, 40, 'F'],
   gt500: [1916, 771, 3.5, 290, 1.05, 33, 'R'], viper: [1520, 649, 3.4, 330, 1.05, 33, 'R'], senna: [1309, 800, 2.8, 340, 1.4, 30, 'M'], r8: [1640, 610, 3.2, 330, 1.05, 33, 'A'],
   evo6: [1360, 280, 4.6, 240, .92, 37, 'A'],
@@ -184,8 +184,7 @@ function realTune(c, r) {
     m, turn: +(bike ? 1.5 * (280 / m) ** .3 : clamp(1.05 * (1500 / kg) ** .3 * (dt === 'A' ? .97 : 1), .8, 1.35)).toFixed(3),
     drift: +(bike ? .4 : (dt === 'A' ? .56 : dt === 'F' ? .5 : .4) * (kg / 1500) ** .25).toFixed(3),
     hp: Math.round(bike ? 380 + kg : TUNE.HP0 + TUNE.HP_KG * kg + (x === 'cage' ? TUNE.HP_CAGE : 0) + (x === 'pol' ? TUNE.HP_POL : 0)),
-    brk: +(16 * (386 / d100 / 10.5) ** .8).toFixed(2),
-  });
+    brk: +(16 * (386 / d100 / 10.5) ** .8).toFixed(2) });
 }
 const shortLic = l => (l || '').replace(/\s*\(.*\)/, '').replace(/^CC-/, 'CC ').replace(/-(\d)/, ' $1');
 const shortAuthor = a => (a || '').replace(/\s*\(.*\)/, '');
@@ -201,155 +200,6 @@ for (const [id, o] of GLB_CARS) {
 }
 
 // ─── 材質 ───
-const GLB_VS = /* glsl */`
-attribute vec4 color; attribute vec4 _pbr; attribute vec4 _emi; attribute float _win;
-varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying float vWin;
-void main(){
-  vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);
-  vCol = color; vPbr = _pbr; vEmi = _emi; vWin = _win;
-  #if defined(USE_MAP) || defined(USE_WINMAP) || defined(USE_EMIMAP)   // 沒有底色貼圖的帷幕牆（賭場塔樓）也要用 UV 取窗格
-  vUv = uv;
-  #else
-  vUv = vec2(0);
-  #endif
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`;
-const GLB_FS = /* glsl */`
-${GL_LIB}
-uniform vec4 uM, uPaint; uniform sampler2D uMap, uEmiMap, uWinMap;
-varying vec3 vW, vN; varying vec4 vCol, vPbr, vEmi; varying vec2 vUv; varying float vWin;
-#ifdef USE_WINMAP
-${ROOM_GL}
-#endif
-void main(){
-  if (vW.y < uClipY) discard;
-  #ifdef CUT
-  if (vW.x > CUT.x && vW.x < CUT.y && vW.z > CUT.z && vW.z < CUT.w && vW.y < 3.9) discard;   // 拉開的落地窗（69-safehouse.js 的 cut）
-  #endif
-  if (uFocus.w > 0.) {
-    vec3 ab = uFocus.xyz - uCam; float tt = clamp(dot(vW - uCam, ab) / dot(ab, ab), 0., 1.);
-    float dd = length(vW - uCam - ab * tt), cd = length(vW - uCam);
-    float fade = max(1. - smoothstep(.5, 1.6, cd), (1. - smoothstep(.45, 1., dd)) * step(tt, .8) * .8);
-    if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < fade) discard;
-  }
-  vec4 base = vCol;
-  if (vPbr.w > .5 && uPaint.w > .5 && uPaint.r >= 0.) base.rgb = uPaint.rgb;   // r < 0：原廠色，只換烤漆材質
-  #ifdef USE_MAP
-  base *= texture2D(uMap, vUv);
-  #endif
-  #ifdef MASK
-  #ifndef MASK_CUT
-  #define MASK_CUT .5
-  #endif
-  if (base.a < MASK_CUT) discard;   // MASK_CUT：細鐵絲網的貼圖縮小後 alpha 被平均掉，霓虹堡的圍籬用低一點的門檻
-  #endif
-  vec3 n = normalize(vN);
-  #ifdef DOUBLE
-  if (!gl_FrontFacing) n = -n;
-  #endif
-  vec3 v = normalize(uCam - vW);
-  float rough = clamp(vPbr.x, .05, 1.), metal = clamp(vPbr.y, 0., 1.), coat = vPbr.z;
-  // 很多模型把金屬漆標成 metallic 1；夜城的環境光很暗，全金屬會整台變黑，所以只有很光滑的（鍍鉻）才保留全金屬
-  metal = min(metal, mix(.5, 1., step(rough, .15)));
-  // uPaint.w：66-chrome.js 的烤漆材質（1 原廠亮面、2 金屬、3 消光、4 珠光、5 電鍍鏡面），只換車漆的部分
-  if (vPbr.w > .5 && uPaint.w > 1.5) {
-    float pf = uPaint.w;
-    if (pf < 2.5) { metal = .55; rough = .3; coat = 1.; }
-    else if (pf < 3.5) { metal = 0.; rough = .72; coat = 0.; }
-    else if (pf < 4.5) { rough = .22; coat = 1.; base.rgb = mix(base.rgb, base.rgb.gbr * .7 + vec3(.12, .08, .16), pow(1. - max(dot(n, v), 0.), 1.6) * .85); }
-    else { metal = 1.; rough = .06; coat = 1.; base.rgb = mix(base.rgb, vec3(.9), .35); }
-  }
-  // uM.w：燒毀程度（68-gta.js 的爆炸），車身變成焦黑、不再反光發光
-  base.rgb = mix(base.rgb, vec3(.03, .026, .022), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; coat *= 1. - uM.w;
-  #ifdef USE_WINMAP
-  // 建築組的牆（27-props.js 擺在城裡的平地上，世界 y 就是離地高）：牆腳 1.2 m 的髒污與泥水濺痕，下雨時牆面吸水變深、牆腳最濕（和 10-city.js 的程式立面一樣）
-  if (abs(n.y) < .5) {
-    float by = vW.y;
-    base.rgb *= mix(.68 + .12 * n2(vW.xz * 1.3 + vW.y * 2.5), 1., smoothstep(0., 1.2, by)) * (1. - .2 * uWet * mix(.55, 1., 1. - smoothstep(0., 3., by)));
-  }
-  #endif
-  float wet = uWet * smoothstep(.55, .95, n.y);
-  #ifdef FAR
-  wet = 0.;
-  #endif
-  rough = mix(rough, rough * .4, wet);
-  vec3 c = shade(vW, n, v, base.rgb, rough, metal);
-  float envK = max(coat * .75, metal * .9);
-  #ifdef BLEND
-  envK = 1.1;
-  #endif
-  envK = max(envK, wet * .5);
-  if (envK > .01) {
-    vec3 r = reflect(-v, n); float F = .04 + .96 * pow(1. - max(dot(n, v), 0.), 5.);
-    float rr = coat > .3 ? min(rough, .25) : rough;
-    c += envMap(r) * envK * mix(vec3(max(F, coat * .1)), base.rgb, metal) * (1. - rr * .9);
-  }
-  #ifdef USE_WINMAP
-  // 建築組的窗戶編號貼圖（props.mjs 的 winTex：R＝玻璃、G＝這扇窗的編號）：每扇窗依編號、貼圖重複的第幾格與 _WIN（同一面牆同一層）
-  // 決定亮不亮，顏色和程式立面的窗燈同一套。編號取第 0 層 mip，遠處不會混到隔壁窗的編號
-  // 遮罩也取第 0 層：遠處的牆一個像素蓋好幾扇窗，mip 平均下來會小於 .5，整面窗燈就消失了
-  // 沿牆的水平座標 u 與「往上 1 m 在 UV 裡是多少」（螢幕導數解 2×2：世界的 (u, y) 對 UV），導數要在分支外面算
-  vec3 tg = normalize(vec3(-n.z, 0., n.x) + vec3(1e-4, 0., 0.));
-  float u = dot(vW, tg), wu = dFdx(u), wv = dFdy(u), yu = dFdx(vW.y), yv = dFdy(vW.y), det = wu * yv - wv * yu;
-  vec2 upUv = (dFdy(vUv) * wu - dFdx(vUv) * wv) / (abs(det) > 1e-9 ? det : 1e9);
-  if (textureLod(uWinMap, vUv, 0.).r > .5) {
-    // 帷幕牆的 UV 是公尺換算的格數（幾百格）：h21 先乘一百多再取 fract，數字大了精度不夠、整面牆會同一個值，
-    // 規律的格數也會排成條紋；這裡改用 Dave Hoskins 的 hash（輸入在千以內都穩）
-    vec2 cell = vec2(floor(textureLod(uWinMap, vUv, 0.).g * 255. + .5), dot(mod(floor(vUv), 256.), vec2(1., 257.))) + vWin * 997.;
-    float hs = hw(cell), hs2 = hw(cell + 71.3);
-    vec3 vd = vec3(dot(-v, tg), -v.y, max(dot(v, n), .05)), dim = vec3(4.2, 3.3, 5.);
-    float rs = hw(floor(vec2(u / dim.x, vW.y / dim.y)) + vWin * 37.);
-    // 落地窗與帷幕牆是辦公室：往上下各 0.8、1.6 m 取遮罩，五點有四點是玻璃（整層幾乎都是玻璃）就算；一般的窗是住家
-    float tall = 1. + step(.5, textureLod(uWinMap, vUv + upUv * .8, 0.).r) + step(.5, textureLod(uWinMap, vUv - upUv * .8, 0.).r)
-      + step(.5, textureLod(uWinMap, vUv + upUv * 1.6, 0.).r) + step(.5, textureLod(uWinMap, vUv - upUv * 1.6, 0.).r);
-    float office = step(3.5, tall);
-    // 燈色和程式立面一樣是自然的黃白光（辦公室偏白一點）；辦公室整層一起亮（_WIN 是同一面牆同一層），和立面的玻璃帷幕一樣
-    vec3 lc = office > .5 ? mix(vec3(1., .86, .64), vec3(1., .95, .84), hs2) : mix(vec3(1., .76, .48), vec3(1., .93, .8), hs2);
-    bool lit = hs < uLit * 1.1 * (office > .5 ? step(.55, hw(vec2(vWin * 13.1, 4.7))) * .9 + .25 : 1.);
-    // 一樓店面：一格格窗各自亂數會變成彩色馬賽克，改成同一個 6 m 開間一起亮、日光燈的白
-    if (vW.y < 4.2) { float sb = hw(vec2(floor(u / 6.), vWin * 3.7)); lit = sb < .75; lc = mix(vec3(1., .88, .66), vec3(1., .95, .86), step(.5, fract(sb * 7.))); }
-    // 窗裡是有深度的房間（10-city.js 的 room；模型的窗沒有各自的座標，房間照世界座標切格：沿牆 4.2 m、層高 3.3 m、深 5 m），
-    // 亮不亮與燈色仍照每扇窗的編號；一部分亮著的窗放下百葉。玻璃面再疊菲涅耳反射，沒開燈的窗是映著天空的暗玻璃
-    vec3 rl = lit ? lc * (office > .5 ? .75 : 1.1) : mix(lc * .025, vec3(.15, .15, .16) * (.6 + .8 * hs2), uDay);   // 辦公室天花板的日光燈本身很亮，房間光壓低
-    vec3 inside = room(vec3(mod(u, dim.x), mod(vW.y, dim.y), 0.), vd, dim, rs, rl, office);
-    if (lit && fract(hs * 41.) < .3) inside = mix(inside, rl * .5 * (.5 + .5 * step(.35, fract(vW.y * 4.3))), .8);
-    float F = .04 + .96 * pow(1. - max(dot(n, v), 0.), 5.);
-    vec3 gw = inside * (1. - F) + envMap(reflect(-v, n)) * F * .6 + c * .25;
-    c = mix(gw, c + inside * (lit ? .3 : 0.), uDay);   // 白天保留日照下的貼圖，只疊一點開著燈的房間
-  }
-  #endif
-  #ifdef WASH
-  // 沒有窗戶遮罩的拼貼立面（Neighbourhood）：夜裡依高度打一層路燈的暖光（一樓最亮、往上淡掉，屋頂與地面不打），
-  // 再依樓層與 3 m 一格的開間疊一點室內透出的光，整面牆不會黑成一片
-  {
-    float wv = uLamp * (1. - smoothstep(.45, .8, abs(n.y)));
-    vec2 bay = floor(vec2(dot(vW.xz, normalize(vec2(-n.z, n.x) + 1e-4)) / 3.1, vW.y / 3.2));
-    float room = step(hw(bay + floor(vW.xz / 40.) * 13.), uLit * .9) * smoothstep(1.2, 3., vW.y);
-    c += base.rgb * wv * (vec3(1., .72, .45) * (.06 + .7 * exp(-max(vW.y - .8, 0.) / 3.5)) + vec3(1., .8, .6) * room * .35);
-  }
-  #endif
-  vec3 emi = vEmi.rgb / max(1., max(vEmi.r, max(vEmi.g, vEmi.b)));   // 有些模型的 emissive_strength 很大，壓回 0–1 再交給燈種倍率
-  float k = vEmi.a;
-  if (abs(fract(k) - .25) < .05) {   // tools/lamps.mjs 照位置與顏色找到的燈（1.25 頭燈、2.25 尾燈）：燈罩是底色貼圖上的顏色，只讓紅的（尾燈）或亮的、透明的（頭燈）部分發光
-    k = floor(k);
-    float mx = max(base.g, base.b);
-    emi *= k > 1.5 ? smoothstep(1.6, 3.2, base.r / max(mx, .015)) * smoothstep(.015, .08, base.r) : max(smoothstep(.1, .45, dot(base.rgb, vec3(.2126, .7152, .0722))), (1. - base.a) * 1.2);
-  }
-  else if (abs(fract(k) - .5) < .05) k = floor(k);   // 1.5／2.5：lamps.mjs 的 FIX 手量範圍，整片發光
-  #ifdef USE_EMIMAP
-  else emi *= texture2D(uEmiMap, vUv).rgb;
-  #endif
-  c += emi * 1.6 * (k > 1.5 ? .5 + uM.y * 2.4 : k > .5 ? .35 + uM.x * 1.4 : uM.z) * (1. - uM.w);
-  #ifdef BLEND
-  gl_FragColor = vec4(applyFog(c, vW), clamp(base.a + (1. - max(dot(n, v), 0.)) * .25, 0., 1.));
-  #else
-  #ifdef FAR
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * farK(FAR)), 1.);   // 遠景模型（對岸城區）：和 MAT.far 一樣只算一部分距離的霧
-  #else
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-  #endif
-  #endif
-}`;
 function glbMaterial(src, inst, far, wash) {
   const defines = {};
   if (far) defines.FAR = far.toFixed(3);
@@ -361,9 +211,8 @@ function glbMaterial(src, inst, far, wash) {
   if (src.metalnessMap) defines.USE_WINMAP = '';   // 只有 props.mjs 的建築組會留金屬粗糙貼圖（窗戶遮罩）
   return new T.ShaderMaterial({ name: 'glb',
     uniforms: { ...shared(ALLU), uM: inst.uM, uPaint: inst.uPaint, uMap: { value: src.map || null }, uEmiMap: { value: src.emissiveMap || null }, uWinMap: { value: src.metalnessMap || null } },
-    vertexShader: GLB_VS, fragmentShader: GLB_FS, defines, side: src.side,
-    transparent: !!src.transparent, depthWrite: !src.transparent,
-  });
+    defines, side: src.side,
+    transparent: !!src.transparent, depthWrite: !src.transparent });
 }
 
 // ─── 下載與拆件：body 的網格、每個輪子的網格（相對輪軸）；幾何與貼圖所有實例共用 ───

@@ -74,7 +74,7 @@ if (NBR && NBR_OSM.road) {
   st.drive = 0; st.dkm = 0;
   // 路面：MAT.roadConn 的著色器與 uniform（城裡的柏油），自己的 polygonOffset 壓過草皮與碎石。24-nbr-bld.js 拉完車道才建（NBR.roadDone）
   NBR.roadDone = () => {
-  const R0 = MAT.roadConn, rdMat = new T.ShaderMaterial({ name: R0.name, uniforms: R0.uniforms, vertexShader: R0.vertexShader, fragmentShader: R0.fragmentShader, side: R0.side, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  const R0 = MAT.roadConn, rdMat = new T.ShaderMaterial({ name: R0.name, uniforms: R0.uniforms, side: R0.side, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
   gfxLate.push(rdMat);
   for (const b of bufs.values()) {
     if (!b.I.length) continue;

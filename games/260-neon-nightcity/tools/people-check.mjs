@@ -37,7 +37,7 @@ async function openWithLog(url) {
         }
         if (m.type() === 'warning') log.warns.push(m.text());
       });
-      // file:// 非安全來源無 navigator.gpu，用 webgpu-gl 透過 WebGPURenderer + NodeMaterial + glslTSL 驗證轉譯與撞名
+      // file:// 非安全來源無 navigator.gpu，WebGPURenderer 走 WebGL2 後端（webgpu-gl）
       const q = useWebGPU ? '?gfx=webgpu-gl&gpu=high&civ=0&story=0' : '?gpu=high&civ=0&story=0';
       await page.goto(toUrl(url) + q, { waitUntil: 'load', timeout: 60000 });
       await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 35000 });
@@ -397,7 +397,7 @@ const perfResult = await page.evaluate(async () => {
   };
 
   const gfxInfo = __nc.gfx ? {
-    backend: __nc.gfx.webgpu ? 'webgpu' : 'webgl',
+    backend: __nc.gfx.name,
     err: __nc.gfx.err ? __nc.gfx.err() : [],
     clash: __nc.gfx.clash ? __nc.gfx.clash() : [],
     miss: __nc.gfx.miss ? __nc.gfx.miss() : [],

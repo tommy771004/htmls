@@ -4404,53 +4404,106 @@
  },
  "rr06": {
   "id": "rr06",
-  "title": "2006 Land Rover Range Rover Supercharged",
-  "author": "Randomness (https://sketchfab.com/throwbackthursdaymodels)",
+  "title": "Range Rover (L405)",
+  "author": "SLB (https://sketchfab.com/SLBofficial)",
   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
-  "source": "https://sketchfab.com/3d-models/2006-land-rover-range-rover-supercharged-277cf51a9f95473c85580612651990fd",
+  "source": "https://sketchfab.com/3d-models/range-rover-l405-69710b943776432b9f7b9f75842c15ff",
   "bike": false,
-  "len": 4.95,
-  "w": 2.178,
-  "h": 1.949,
-  "wr": 0.407,
-  "fa": 1.605,
-  "ra": -1.253,
-  "track": 0.829,
+  "len": 5,
+  "w": 2.221,
+  "h": 1.846,
+  "wr": 0.399,
+  "fa": 1.632,
+  "ra": -1.287,
+  "track": 0.819,
   "wheels": [
    {
     "name": "FL",
-    "x": 0.831,
-    "y": 0.407,
-    "z": 1.606,
-    "r": 0.407
+    "x": 0.819,
+    "y": 0.399,
+    "z": 1.632,
+    "r": 0.399
    },
    {
     "name": "FR",
-    "x": -0.827,
-    "y": 0.407,
-    "z": 1.605,
-    "r": 0.407
+    "x": -0.819,
+    "y": 0.399,
+    "z": 1.632,
+    "r": 0.399
    },
    {
     "name": "RL",
-    "x": 0.831,
-    "y": 0.407,
-    "z": -1.253,
-    "r": 0.407
+    "x": 0.819,
+    "y": 0.399,
+    "z": -1.287,
+    "r": 0.399
    },
    {
     "name": "RR",
-    "x": -0.827,
-    "y": 0.407,
-    "z": -1.252,
-    "r": 0.407
+    "x": -0.819,
+    "y": 0.399,
+    "z": -1.287,
+    "r": 0.399
    }
   ],
-  "paint": [],
-  "paintable": false,
-  "tris": 107862,
-  "kb": 2388,
-  "draws": 35
+  "paint": [
+   "Material.005"
+  ],
+  "paintable": true,
+  "tris": 358446,
+  "kb": 4009,
+  "draws": 6,
+  "db": [
+   0.5,
+   0.05
+  ],
+  "kit": {
+   "f": [
+    0.35,
+    0.85,
+    2.367,
+    -0.04,
+    -0.363
+   ],
+   "fm": [
+    0.675,
+    0.925,
+    2.49,
+    -0.146,
+    -0.328
+   ],
+   "r": [
+    0.5,
+    0.9,
+    -2.427,
+    -0.275,
+    1.19
+   ],
+   "rm": [
+    0.875,
+    0.825,
+    -2.444,
+    0.042,
+    0.329
+   ],
+   "s": [
+    0.946,
+    0.331,
+    1.133,
+    -0.788,
+    0.449
+   ],
+   "wing": 1,
+   "d": [
+    0.325,
+    1.731,
+    -0.048,
+    -2.063,
+    -0.29,
+    1.772,
+    -0.034
+   ]
+  }
  },
  "ramtrx": {
   "id": "ramtrx",

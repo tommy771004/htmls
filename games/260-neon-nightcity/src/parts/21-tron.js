@@ -103,8 +103,7 @@ if (TRON) {
         if (!tronOpen(ax + (bx - ax) * t, az + (bz - az) * t, y0 - S.y + 1.6)) { const u = Math.max(0, (i - 1.5) / n); return [S.x + ax + (bx - ax) * u, S.z + az + (bz - az) * u]; }
       }
       return null;
-    },
-  });
+    } });
 }
 
 // ─── 下載與擺放 ───
@@ -133,26 +132,14 @@ function tronBuild(items, W) {
     const m = new T.ShaderMaterial({ name: 'tronBeam',
       uniforms: { uTime: U.uTime, uK: T0.uK, uY: { value: items.beam.h } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
       // 正對著看最亮、看到側邊淡掉（像一道體積光），近看也淡掉，不會糊成一片白
-      vertexShader: 'varying vec3 vW, vN; varying float vH; uniform float uY; void main(){ vH = position.y / uY; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-      fragmentShader: 'uniform float uTime, uK; varying vec3 vW, vN; varying float vH; void main(){ vec3 v = normalize(cameraPosition - vW); float f = (1. - smoothstep(.0, 1., vH)) * smoothstep(-.05, .08, vH) * pow(abs(dot(normalize(vN), v)), 2.); float d = length(vW - cameraPosition); float fl = .85 + .15 * sin(uTime * 3.1 + vW.x * .2); gl_FragColor = vec4(vec3(.3, .8, 1.) * f * fl * (.04 + .12 * uK) * smoothstep(3., 25., d), 1.); }',
-    });
+       });
     for (const p of items.beam.parts) { const o = new T.Mesh(p.geo, m); o.position.set(S.x, S.y, S.z); o.renderOrder = 3; g.add(o); }
   }
   // 水池（原檔的 Water_Plane）：起波紋、映著青色霓虹的水面
   if (T0.D.pool) {
     const m = new T.ShaderMaterial({ name: 'tronPool',
       uniforms: { uTime: U.uTime, uK: T0.uK },
-      vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-      fragmentShader: `uniform float uTime, uK; varying vec3 vW;
-        void main(){
-          vec2 p = vW.xz; float t = uTime;
-          vec2 n = vec2(sin(p.x * 3.1 + t * 1.7) + sin(p.y * 2.3 - t * 1.3 + p.x), cos(p.y * 3.4 + t * 1.9) + sin(p.x * 2.7 + t * 1.1)) * .12;
-          vec3 v = normalize(cameraPosition - vW), N = normalize(vec3(n.x, 1., n.y));
-          float fr = pow(1. - max(dot(N, v), 0.), 3.);
-          float c = pow(abs(sin((p.x + n.x * 3.) * 2.2) * sin((p.y + n.y * 3.) * 2.2)), 8.);
-          gl_FragColor = vec4(vec3(.004, .018, .026) + vec3(.2, .7, 1.) * (fr * (.25 + .6 * uK) + c * (.05 + .35 * uK)), 1.);
-        }`,
-    });
+       });
     for (const [x, y, z, yaw, l, w] of T0.D.pool) { const pg = new T.PlaneGeometry(w, l); pg.rotateX(-Math.PI / 2); const o = new T.Mesh(pg, m); o.position.set(S.x + x, S.y + y + .02, S.z + z); o.rotation.y = yaw; g.add(o); }
   }
   // 停著的光速機車：原檔停在人行道的車格裡，前後都被路緣的燈條擋住騎不出去，改停到附近車道的路邊（離中心線 4 m、順著右側車流），
@@ -215,9 +202,7 @@ function tronTrail(col, g) {
   const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('age', new T.BufferAttribute(age, 1)); geo.setIndex(idx);
   const m = new T.ShaderMaterial({ name: 'tronTrail',
     uniforms: { uCol: { value: lin(col) }, uK: TRON.uK }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
-    vertexShader: 'attribute float age; varying float vA; void main(){ vA = age; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
-    fragmentShader: 'uniform vec3 uCol; uniform float uK; varying float vA; void main(){ gl_FragColor = vec4(uCol * (1. - vA) * (1.2 + 1.4 * uK), 1.); }',
-  });
+     });
   const mesh = new T.Mesh(geo, m); mesh.frustumCulled = false; scene.add(mesh); mesh.visible = false;
   return { pts: [], geo, pos, age, mesh };
 }

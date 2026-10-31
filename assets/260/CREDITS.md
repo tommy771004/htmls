@@ -56,7 +56,7 @@
 | **街頭車**（車行不賣：混在車流與路邊，搶來或騎走後收進車庫） | | | |
 | `g63.glb` | [Mersedes-Benz G63 AMG](https://sketchfab.com/3d-models/mersedes-benz-g63-amg-e5e2a1d2238048a1a494b3df983c16bb) | Black Snow | CC-BY-4.0 |
 | `lc200.glb` | [Toyota Land Cruiser J200 2017](https://sketchfab.com/3d-models/toyota-land-cruiser-j200-2017-374e85a6e18743429f6d9c0e7bbffb3c) | David_Holiday | CC-BY-4.0 |
-| `rr06.glb` | [2006 Land Rover Range Rover Supercharged](https://sketchfab.com/3d-models/2006-land-rover-range-rover-supercharged-277cf51a9f95473c85580612651990fd) | Randomness | CC-BY-4.0 |
+| `rr06.glb` | [Range Rover (L405)](https://sketchfab.com/3d-models/range-rover-l405-69710b943776432b9f7b9f75842c15ff) | SLB | CC-BY-4.0 |
 | `ramtrx.glb` | [Dodge RAM TRX Sandblast Edition](https://sketchfab.com/3d-models/dodge-ram-trx-sandblast-edition-de045bf2f3b141a48a4248885d3fee1c) | 𝑵 | CC-BY-4.0 |
 | `ghost.glb` | [Rolls-Royce Ghost](https://sketchfab.com/3d-models/rolls-royce-ghost-4a590f4afa094fa8b407a14db77a63a8) | Black Snow | CC-BY-4.0 |
 | `s65.glb` | [Mersedes-Benz s65 w222](https://sketchfab.com/3d-models/mersedes-benz-s65-w222-f42d9d13b0404b5b9a2302a4c590a94d) | Black Snow | CC-BY-4.0 |

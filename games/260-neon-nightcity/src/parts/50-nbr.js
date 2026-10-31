@@ -24,7 +24,7 @@ if (NBR && PROPS.fir_lo && (PROPS.broad_lo || PROPS.maple_lo)) {
     C.treeNear = C.treeLists.flatMap((L, k) => L.length ? w2Inst(nat[k ? nk : 'fir'], L, 0, NBR_TREE_NEAR) : []).map(m => (m.name = 'nbrTreesNear', m));
     for (const k in C.und) if (C.und[k].length && nat[k + '_patch']) C.treeNear.push(...w2Inst(nat[k + '_patch'], C.und[k], LY.NOREFL, 85).map(m => (m.name = 'nbrUnder', m)));   // 林下層：同外緣山林，85 m 內
   };
-  if (W2.on && GLB_VS_I !== GLB_VS) loadProps('nat_forest').then(it => it && glbWarm(Object.values(it).flatMap(x => x.parts), null, true).then(() => { if (!it.fir || !it[nk]) return; nat = it; for (const C of live) near(C); }));
+  if (W2.on) loadProps('nat_forest').then(it => it && glbWarm(Object.values(it).flatMap(x => x.parts), null, true).then(() => { if (!it.fir || !it[nk]) return; nat = it; for (const C of live) near(C); }));
   const unstream = m => { const i = instStreams.indexOf(m.userData.stream); if (i >= 0) instStreams.splice(i, 1); scene.remove(m); m.dispose(); };
   // 遠景樹抽掉近景半徑內的（cut）或放回全部
   const cut = (m, cx, cz, R) => {

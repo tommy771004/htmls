@@ -162,7 +162,7 @@ function partMesh(id, n = 1, own = false) {
   else { const k = new Kit(); k.box(0, .4, 0, 2, .8, id === 'spike' ? .3 : 4, 0x333333, 2); geo = k.build(); }
   geo.setAttribute('aIns', new T.InstancedBufferAttribute(new Float32Array(n * 4), 4));
   let mat = MAT.uberI;
-  if (own) { mat = mkUber({ inst: true }); mat.fragmentShader = MAT.uberI.fragmentShader; mat.name = MAT.uberI.name; }
+  if (own) { mat = mkUber({ inst: true }); mat.name = MAT.uberI.name; }
   const m = new T.InstancedMesh(geo, mat, n);
   m.count = 0; m.frustumCulled = false;
   scene.add(m);

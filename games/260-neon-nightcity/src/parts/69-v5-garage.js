@@ -128,7 +128,7 @@ if (FAC.gar) {
     putCar('in', ids[Math.floor(R() * ids.length)], 21.3 + i * 2.6, Y(j), z, yaw, 1 + Math.floor(R() * PAL.length));
   }
   putCar('roof', 'senna', 21.3 + 5 * 2.6, Y(N), 30.2, 0, 5); putCar('roof', 'r8', 21.3 + 9 * 2.6, Y(N), 30.2, 0, 4);   // 頂樓南排空著：跳台的助跑道
-  const dryI = mkUber({ inst: true }); dryI.fragmentShader = MAT.uberI.fragmentShader; dryI.name = MAT.uberI.name; dryI.uniforms.uWet = { value: 0 };
+  const dryI = mkUber({ inst: true }); dryI.name = MAT.uberI.name; dryI.uniforms.uWet = { value: 0 };
   for (const set in cars) for (const id in cars[set]) {
     const L = cars[set][id], g = TRAFFIC_GEO[id].geo.clone(), ia = new Float32Array(L.length * 4);
     const m = new T.InstancedMesh(g, set === 'in' ? dryI : TRAF_MAT, L.length);

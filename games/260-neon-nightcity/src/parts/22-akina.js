@@ -1,5 +1,5 @@
 // ═══ 榛嶺的榛名湖（09-akina.js）：DEM 裡湖面那一片（1085 m 平的，A.lk）每 15 m 一格、照比例換到世界座標的一張水面，
-// 和海面同一個水的著色器（21-coast.js 的 MAT_WATER，同名、同一份 GLSL／TSL），只是自己的 uReflOn 一直是 0：平面反射的鏡面在海面高度，
+// 和海面同一個水的著色器（21-coast.js 的 MAT_WATER，同名、同一份 TSL），只是自己的 uReflOn 一直是 0：平面反射的鏡面在海面高度，
 // 湖在 270 m 上，照環境貼圖反射。離岸距離場在湖這裡都當外海，沒有岸邊的白沫。湖岸的地面比水面高，格子多鋪一圈蓋在下面 ═══
 if (AKINA && AKINA.fine) {
   const A = AKINA, D = AK_DEM, f = NPARK.f, wet = (i, j) => A.lk[j * D.nx + i] > 0, pos = [], idx = [], vid = new Map();

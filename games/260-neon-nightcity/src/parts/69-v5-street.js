@@ -239,27 +239,6 @@ if (GLB_ON && stBollardsL.length) loadProps('fort').then(it => {
 // ─── 透明玻璃（候車亭背牆、車行落地窗）：反射環境、邊緣比較不透明 ───
 const stGlassMat = new T.ShaderMaterial({ name: 'stGlass',
   uniforms: shared(ALLU), transparent: true, depthWrite: false, side: T.DoubleSide,
-  vertexShader: /* glsl */`
-varying vec3 vW, vN;
-void main(){
-  vec4 lp = vec4(position, 1.); vec3 nn = normal;
-  #ifdef USE_INSTANCING
-  lp = instanceMatrix * lp; nn = mat3(instanceMatrix) * nn;
-  #endif
-  vec4 w = modelMatrix * lp; vW = w.xyz; vN = normalize(mat3(modelMatrix) * nn);
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`,
-  fragmentShader: /* glsl */`
-${GL_LIB}
-varying vec3 vW, vN;
-void main(){
-  if (vW.y < uClipY) discard;
-  vec3 n = normalize(vN), v = normalize(uCam - vW);
-  if (dot(n, v) < 0.) n = -n;
-  float F = .05 + .95 * pow(1. - max(dot(n, v), 0.), 5.);
-  vec3 c = envMap(reflect(-v, n)) * (.3 + .7 * F) + vec3(.015, .02, .024);
-  gl_FragColor = vec4(applyFog(c, vW), clamp(.16 + .7 * F, 0., .82));
-}`,
 });
 // 碎玻璃：小三角形，玻璃材質（反射環境），落地彈兩下躺平，幾秒後縮小消失
 const ST_SH_MAX = 480;

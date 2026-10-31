@@ -27,20 +27,21 @@ if (isTouch) document.body.classList.add('touch');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const LOW = isTouch || Math.min(screen.width, screen.height) < 600;
 
-// 繪圖後端：預設是 three 的 WebGLRenderer（GLSL 的 ShaderMaterial）。?gfx=webgpu 改走 WebGPURenderer（02-gfx.js：著色器逐步改寫成 TSL，
-// 還沒改寫的用替代材質畫），瀏覽器沒有 WebGPU 時它自己退回 WebGL2 後端（?gfx=webgpu-gl 直接用那個後端，比對兩邊的 TSL）
-let GFX = (() => { const g = new URLSearchParams(location.search).get('gfx'); return g === 'webgpu' && navigator.gpu ? 'webgpu' : g === 'webgpu-gl' ? 'webgpu-gl' : 'webgl'; })();
+// 繪圖後端：WebGPURenderer（02-gfx.js：材質都是 src/tsl/ 的 TSL），瀏覽器沒有 WebGPU 時它自己退回 WebGL2 後端（GFX 是 'webgpu-gl'；?gfx=webgpu-gl 強制走那個後端）
+let GFX = (() => { const g = new URLSearchParams(location.search).get('gfx'); return g === 'webgpu-gl' || !navigator.gpu ? 'webgpu-gl' : 'webgpu'; })();
 let R;
-if (GFX !== 'webgl') {
-  try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: GFX === 'webgpu-gl' }); await R.init(); }
-  catch (e) { console.warn('WebGPU 啟用失敗，改用 WebGL', e); R?.dispose?.(); R = null; GFX = 'webgl'; }
-}
-if (!R) {
-  try { R = new T.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false }); }
-  catch (e) { bootMsg('這個瀏覽器無法啟用 WebGL。'); throw e; }
+try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: GFX === 'webgpu-gl' }); await R.init(); }
+catch (e) {
+  // WebGPU 的 adapter 要不到（被封鎖、驅動不支援）：再試一次 WebGL2 後端
+  R?.dispose?.(); R = null;
+  if (GFX === 'webgpu') {
+    console.warn('WebGPU 啟用失敗，改用 WebGL2 後端', e); GFX = 'webgpu-gl';
+    try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: true }); await R.init(); } catch (e2) { R?.dispose?.(); R = null; e = e2; }
+  }
+  if (!R) { bootMsg('這個瀏覽器無法啟用 WebGPU 或 WebGL2。'); throw e; }
 }
 // WebGPURenderer 沒有的 WebGL 介面：各 part 只用到這幾個（MSAA 上限、貼圖尺寸、非等向過濾、浮點渲染目標的擴充）
-if (GFX !== 'webgl') {
+{
   const lim = R.backend.device?.limits;
   R.capabilities = { maxSamples: 4, maxTextureSize: lim ? lim.maxTextureDimension2D : 8192, getMaxAnisotropy: () => R.getMaxAnisotropy() };
   R.extensions = { has: () => true };
@@ -66,9 +67,9 @@ const GPU_TIERS = {
 };
 const GPU = (() => {
   // WebGPU 的 adapter.info 沒有型號（Apple 只給 metal-3），名稱照舊向一個臨時的 WebGL2 context 要
-  const gl = GFX === 'webgl' ? R.getContext() : document.createElement('canvas').getContext('webgl2'); let name = '';
+  const gl = document.createElement('canvas').getContext('webgl2'); let name = '';
   try { const x = gl.getExtension('WEBGL_debug_renderer_info'); name = String(gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || ''); } catch (e) { /* 有些瀏覽器不給名稱 */ }
-  if (GFX !== 'webgl') gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  gl?.getExtension('WEBGL_lose_context')?.loseContext();
   // 沒有硬體加速（遠端桌面、驅動被瀏覽器列入黑名單）時，要求 failIfMajorPerformanceCaveat 的 context 會被拒絕
   let caveat = false;
   try { const c = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true }); caveat = !c; c?.getExtension('WEBGL_lose_context')?.loseContext(); } catch (e) { /* 當成有硬體加速 */ }
@@ -155,342 +156,14 @@ const U = {
   uWetDbg: { value: 0 },   // 地面濕的三層換成顏色（10-city.js 的 wetSurfaceR；tools/look-view.mjs 量比例用）
 };
 const NOCC = GT().occ, SH_N = GT().sh;   // 地上陰影的車人數、日光陰影的步數
-// 依畫質等級的常數在 GLSL 裡寫成具名的 #define（GL_LIB 開頭）：WebGPU 轉 TSL 時不代換成數字，執行期從這裡（02-gfx.js 的 E）拿值，
-// 轉好的 TSL 不會把某一級的數字寫死（plans/260-webgpu.md 第 2 步）
+// 依畫質等級的常數：src/tsl/ 的著色器照名字（NL_T…）讀，執行期從這裡（02-gfx.js 的 E）拿值，不寫死某一級的數字
 const GL_TIER = { NL_T: NL, NOCC_T: NOCC, SH_N_T: SH_N, VOL_N_T: GT().vol };
 const shared = keys => { const o = {}; for (const k of keys) o[k] = U[k]; return o; };
 const ALLU = Object.keys(U);
 
-// ─── GLSL 共用：雜湊、燈光、霧、環境反射 ───
-const GL_LIB = /* glsl */`
-${Object.entries(GL_TIER).map(([k, v]) => `#define ${k} ${v}`).join('\n')}
-uniform float uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR;
-uniform vec3 uCam, uFogCol, uFogHi, uAmbTop, uAmbBot; uniform vec4 uFocus;
-uniform vec4 uLP[NL_T]; uniform vec4 uLC[NL_T]; uniform vec4 uLD[NL_T];
-uniform vec4 uCity; uniform vec2 uGrid;
-uniform highp sampler2D uLampT; uniform vec4 uLampG, uZone;
-uniform float uDay, uCloud; uniform vec3 uSun, uSunCol, uSkyTop, uSkyHor, uMoon;
-uniform sampler2D uHMap, uCityM, uTMap, uFMap; uniform vec4 uHM, uAirA, uAirB, uTM, uFM, uGI;
-uniform vec4 uOccA[NOCC_T]; uniform vec4 uOccB[NOCC_T];
-float h11(float n){ return fract(sin(n)*43758.5453123); }
-float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
-float hw(vec2 p){ vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
-float n2(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
-  return mix(mix(h21(i),h21(i+vec2(1,0)),f.x), mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x), f.y); }
-float fbm(vec2 p){ float a=.5, s=0.; for(int i=0;i<4;i++){ s+=a*n2(p); p=p*2.03+17.1; a*=.5; } return s; }
-const vec3 SODIUM = vec3(1.0, .46, .16);
-const vec3 LEDW = vec3(.55, .78, 1.0);
-// 一盞路燈：回傳（漫射, 鏡面）的倍率，呼叫端乘燈色再累加。寫成回傳值而不是 inout，WebGPU 那邊才編得成一個函式（有 inout 的只能在每個呼叫處展開）
-vec2 lampK(vec3 lp, vec3 p, vec3 n, vec3 v, float shin){
-  vec3 L = lp - p; float d2 = dot(L,L); if (d2 > 420.) return vec2(0.);
-  float d = sqrt(d2); L /= d;
-  float win = 1. - d2/420.; win *= win;
-  float cone = smoothstep(.0, .6, L.y);
-  float att = win * cone * 26. / (4. + d2);
-  vec3 hv = normalize(L + v);
-  return att * vec2(max(dot(n,L), 0.), pow(max(dot(n,hv),0.), shin) * (shin + 8.) * .05);
-}
-// 路燈與點光源回傳 mat3(漫射, 鏡面, 0)，呼叫端自己累加：沒有 out／inout，WebGPU 編成一個函式，不在每個呼叫處展開
-const mat3 NOLIGHT = mat3(vec3(0.), vec3(0.), vec3(0.));
-mat3 lampGrid(vec3 p, vec3 n, vec3 v, float shin){
-  if (uLampOn < .5) return NOLIGHT;
-  vec3 cs = SODIUM*2.1*uLamp, cl = LEDW*1.5*uLamp;
-  // 大道的鈉燈與街的冷白 LED：查片段所在那一格的路燈表
-  ivec2 c = ivec2(floor((p.xz - uLampG.xy) / ${LAMP_C}.));
-  if (c.x < 0 || c.y < 0 || c.x >= int(uLampG.z) || c.y >= int(uLampG.w)) return NOLIGHT;
-  vec3 dif = vec3(0.), spc = vec3(0.);
-  for (int k = 0; k < ${LAMP_K}; k++) {
-    vec4 L = texelFetch(uLampT, ivec2(c.x * ${LAMP_K} + k, c.y), 0);
-    if (L.w < .5) break;
-    vec2 lk = lampK(vec3(L.x, 6.1 + L.w, L.y), p, n, v, shin);   // w = 1 + 燈柱底的高度（快速道路橋面上的燈）
-    vec3 lc = L.z < .5 ? cs : L.z < 1.5 ? cl : vec3(1., .7, .42) * 1.6 * uLamp;   // 2：高架橋底的暖光（20-props.js）
-    dif += lc * lk.x; spc += lc * lk.y;
-  }
-  return mat3(dif, spc, vec3(0.));
-}
-mat3 pointLights(vec3 p, vec3 n, vec3 v, float shin){
-  vec3 dif = vec3(0.), spc = vec3(0.);
-  for (int i=0; i<NL_T; i++){
-    vec4 lp = uLP[i]; if (lp.w <= 0.) continue;
-    vec3 L = lp.xyz - p; float d2 = dot(L,L); float r2 = lp.w*lp.w; if (d2 > r2) continue;
-    float d = sqrt(d2); L /= d;
-    float win = 1. - d2/r2; win *= win;
-    vec4 ld = uLD[i];
-    float sp = ld.w > -1.5 ? smoothstep(ld.w, ld.w + .14, dot(-L, ld.xyz)) : 1.;
-    vec3 col = uLC[i].rgb * win * sp * 8. / (2. + d2);
-    dif += col * max(dot(n,L), 0.) * (uLC[i].a > .5 ? 1. : 1.);
-    vec3 hv = normalize(L + v);
-    spc += col * pow(max(dot(n,hv),0.), shin) * (shin + 8.) * .05;
-  }
-  return mat3(dif, spc, vec3(0.));
-}
-// 樹冠：從 q 朝太陽方向在樹冠圖上步進（步長固定、比建築細），落在某棵樹的頂與底之間就照葉子的疏密（雜訊）擋掉一部分，
-// 葉子之間有空隙，地上是一塊塊的碎光；最多擋到剩 18%（樹蔭不會全黑）。uTM.w 是最高的樹冠，0 是沒有樹冠圖
-float leafVis(vec3 q, vec2 d, float k){
-  if (uTM.w <= 0. || q.y > uTM.w) return 1.;
-  float lt = 1., t = .3 + hw(q.xz * 7.3) * .8;   // 起點抖動：步進的位置不會在地上排成一圈圈的條紋
-  for (int i = 0; i < 10; i++) {
-    vec3 r = vec3(q.x + d.x * t, q.y + t * k, q.z + d.y * t);
-    if (r.y > uTM.w) break;
-    vec2 tb = textureLod(uTMap, (r.xz - uTM.xy) * uTM.z, 0.).rg;
-    if (r.y < tb.r && r.y > tb.g) {
-      float e = min(tb.r - r.y, r.y - tb.g);   // 離樹冠表面多深：邊上稀、裡面密
-      lt *= 1. - smoothstep(.38, .62, n2(r.xz * .95 + vec2(r.y * .7, -r.y * .4))) * mix(.45, .8, smoothstep(0., 1.2, e));
-      if (lt < .18) return .18;
-    }
-    t += .9 + t * .14;
-  }
-  return lt;
-}
-// 外緣山林：同 leafVis，但查跟著鏡頭的山林樹冠圖 uFMap（高度是世界座標；山坡不在建築高度圖的範圍裡，坡上的陰影只有這個），步長大一點（樹高 15–19 m）
-float forestVis(vec3 q, vec2 d, float k){
-  vec2 u0 = (q.xz - uFM.xy) * uFM.z;
-  if (uFM.w <= 0. || u0.x < 0. || u0.y < 0. || u0.x > 1. || u0.y > 1.) return 1.;
-  float lt = 1., t = .3 + hw(q.xz * 5.1) * 1.1;
-  for (int i = 0; i < 10; i++) {
-    vec3 r = vec3(q.x + d.x * t, q.y + t * k, q.z + d.y * t);
-    vec2 tb = textureLod(uFMap, (r.xz - uFM.xy) * uFM.z, 0.).rg;
-    if (r.y < tb.r && r.y > tb.g) {
-      float e = min(tb.r - r.y, r.y - tb.g);
-      lt *= 1. - smoothstep(.36, .6, n2(r.xz * .8 + vec2(r.y * .6, -r.y * .35))) * mix(.5, .85, smoothstep(0., 1.5, e));
-      if (lt < .15) return .15;
-    }
-    t += 1.1 + t * .2;
-  }
-  return lt;
-}
-// 日光陰影：從 p 朝太陽方向在建築高度圖上步進（步長越走越大），光線高度低於屋頂就在陰影裡；
-// 離遮擋物越遠半影越寬。牆面先往外推一點，免得取到自己那棟的高度
-float sunVis(vec3 p, vec3 n){
-  float sl = max(length(uSun.xz), 1e-3);
-  vec2 d = uSun.xz / sl; float k = uSun.y / sl;
-  vec3 q = p + vec3(n.x, 0., n.z) * 1.3 + vec3(0., .2, 0.);
-  float vis = 1., t = .9;
-  for (int i = 0; i < SH_N_T; i++) {
-    float ry = q.y + t * k;
-    if (ry > uHM.w) break;
-    vec2 uv = (q.xz + d * t - uHM.xy) * uHM.z;
-    if (uv.x < 0. || uv.y < 0. || uv.x > 1. || uv.y > 1.) break;
-    float h = textureLod(uHMap, uv, 0.).r;
-    vis = min(vis, clamp((ry - h) / (.3 + t * .02), 0., 1.));
-    if (vis < .02) return 0.;
-    t = t * 1.18 + .9;
-  }
-  return vis * leafVis(q, d, k) * forestVis(q, d, k);
-}
-// 車與行人：車底的接觸陰影（夜裡也有）與日光投在地上的影子（車身框沿太陽方向平移到兩個高度）；回傳（環境光, 日光）的倍率
-vec2 occlude(vec3 p){
-  float amb = 1., sun = 1.;
-  if (p.y > .4) return vec2(1.);
-  vec2 sd = uSun.y > .06 ? uSun.xz / uSun.y : vec2(0.);
-  bool lit = uSunCol.r + uSunCol.g > .001;
-  for (int i = 0; i < NOCC_T; i++) {
-    vec4 A = uOccA[i], B = uOccB[i];
-    if (B.x <= 0.) continue;
-    vec2 d = p.xz - A.xy;
-    if (dot(d, d) > 1600.) continue;
-    vec2 f = vec2(A.w, A.z), r = vec2(A.z, -A.w);
-    vec2 l = vec2(dot(d, f), dot(d, r));
-    float ext = length(max(abs(l) - B.xy, 0.));
-    amb = min(amb, mix(.3, 1., smoothstep(0., .35 + B.y * .5, ext)));
-    if (lit) {   // 從 p 往太陽方向的線段（高度 0 到車高）離車身框最近的距離：沿線段是凸函數，三分搜尋
-      vec2 a = vec2(dot(d, f), dot(d, r)), b = a + vec2(dot(sd, f), dot(sd, r)) * B.z;
-      float t0 = 0., t1 = 1.;
-      for (int s = 0; s < 4; s++) {
-        float m1 = mix(t0, t1, .382), m2 = mix(t0, t1, .618);
-        if (length(max(abs(mix(a, b, m1)) - B.xy, 0.)) < length(max(abs(mix(a, b, m2)) - B.xy, 0.))) t1 = m2; else t0 = m1;
-      }
-      sun = min(sun, smoothstep(0., .2, length(max(abs(mix(a, b, (t0 + t1) * .5)) - B.xy, 0.))));
-    }
-  }
-  return vec2(amb, sun);
-}
-// 天空可見度（街谷遮蔽）：在建築高度圖上朝五個方向各取兩個距離（6、16 m）找地平線的仰角，平均擋掉的天空；
-// 牆面只看前面那半圈（背後是自己那棟）。窄巷與樓腳暗、屋頂與廣場亮（近似全域光照裡的天光遮蔽）；260 m 外在霧裡，不算
-float skyVis(vec3 p, vec3 n){
-  vec3 q = p + vec3(n.x, 0., n.z) * 1.3;
-  vec2 nx = n.xz; float nl = length(nx); nx = nl > .05 ? nx / nl : vec2(0.);
-  float occ = 0., ws = 0.;
-  for (int i = 0; i < 5; i++) {
-    float a = float(i) * 1.2566 + .3; vec2 d = vec2(cos(a), sin(a));
-    float w = mix(1., max(dot(d, nx), 0.) * 2., min(nl * 1.4, 1.));
-    if (w < .01) continue;
-    float tg = 0., r = 6.;
-    for (int k = 0; k < 2; k++) { tg = max(tg, (textureLod(uHMap, (q.xz + d * r - uHM.xy) * uHM.z, 0.).r - q.y) / r); r *= 2.7; }
-    occ += w * clamp(tg * inversesqrt(1. + tg * tg), 0., 1.);
-    ws += w;
-  }
-  return 1. - occ / max(ws, 1e-3);
-}
-float gSun = -1., gAmb = -1., gOccS = 1., gSky = -1.;   // 同一個片段多次呼叫 shade()（立面的窗框、招牌）只算一次陰影與天空可見度
-vec3 shade(vec3 p, vec3 n, vec3 v, vec3 alb, float rough, float metal){
-  float shin = mix(300., 5., rough);
-  if (gAmb < 0.) { vec2 oc = occlude(p); gAmb = oc.x; gOccS = oc.y; }
-  if (gSky < 0.) gSky = uGI.x > 0. && dot(p - uCam, p - uCam) < 67600. ? mix(1., skyVis(p, n), uGI.x) : 1.;
-  vec3 dif = mix(uAmbBot, uAmbTop * gSky, n.y*.5+.5) + uFlash*vec3(.6,.66,.85)*(.35+.65*max(n.y,0.));
-  // 日光反彈（低角度陽光的間接光）：照亮的路面往上打在牆腳與招牌底面，街對面照到太陽的牆把暖光反射到背光的這一面（街谷越深越明顯）
-  if (uGI.y > 0.) {
-    float side = 1. - abs(n.y);
-    vec3 bn = uSunCol * uGI.y;
-    dif += bn * vec3(.5, .42, .36) * (.06 + .5 * max(uSun.y, 0.)) * (max(-n.y, 0.) + side * .5) * .5;
-    dif += bn * vec3(.62, .46, .36) * max(dot(-vec3(n.x, 0., n.z), uSun), 0.) * side * (1.15 - gSky) * .32;
-  }
-  vec3 spc = vec3(0);
-  mat3 lg = lampGrid(p, n, v, shin), pl = pointLights(p, n, v, shin);
-  dif += lg[0] + pl[0]; spc += lg[1] + pl[1];
-  dif *= gAmb; spc *= gAmb;
-  if (uSunCol.r + uSunCol.g > .001) {
-    float nl = dot(n, uSun);
-    if (nl > 0.) {
-      if (gSun < 0.) gSun = sunVis(p, n) * gOccS;
-      vec3 sc = uSunCol * gSun;
-      dif += sc * nl;
-      vec3 hv = normalize(uSun + v);
-      spc += sc * pow(max(dot(n,hv),0.), shin) * (shin + 8.) * .025 * nl;
-    }
-  }
-  float F = .04 + .96*pow(1. - max(dot(n,v),0.), 5.);
-  vec3 ks = mix(vec3(F + .02), alb, metal) * (1. - rough*.8);
-  return alb*(1.-metal)*dif + ks*spc;
-}
-vec3 envMap(vec3 r){
-  float y = r.y;
-  float az = atan(r.z, r.x);
-  float cell = floor(az*22.);
-  float band = exp(-abs(y - .04)*11.);
-  float on = step(.42, h21(vec2(cell, floor(y*30.))));
-  vec3 lc = mix(SODIUM*1.4, vec3(.25,.95,1.), step(.6, h21(vec2(cell,3.))));
-  lc = mix(lc, vec3(1.,.25,.55), step(.82, h21(vec2(cell,7.))));
-  vec3 sky = mix(uFogHi*1.6, vec3(.012,.012,.02), smoothstep(.0,.7,y));
-  sky += band*(.06 + on*.55*lc*smoothstep(.0,.08,fract(az*22.))*smoothstep(1.,.92,fract(az*22.)));
-  if (y < 0.) sky = mix(uFogCol*1.2, vec3(.006), smoothstep(0.,-.35,y)) + band*.25*lc*on;
-  if (uDay > .001) {   // 白天：天空漸層、太陽的反光，地平線那圈霓虹淡掉
-    vec3 dc = mix(uSkyHor, uSkyTop, smoothstep(0., .55, y));
-    dc += uSunCol * (pow(max(dot(r, uSun), 0.), 350.) * 5. + pow(max(dot(r, uSun), 0.), 8.) * .12);
-    if (y < 0.) dc = mix(uFogCol, uFogCol * .3, smoothstep(0., -.35, y));
-    sky = mix(sky, dc, uDay);
-  }
-  return sky + uFlash*.6*vec3(.6,.65,.85)*max(y,0.);
-}
-vec3 applyFog(vec3 c, vec3 p){
-  vec3 d = p - uCam; float dist = length(d);
-  float hf = exp(-max(p.y,0.)*.02), D = .5 + .5*hf;
-  // 鏡頭在高處（直升機、霓峰塔的塔吊）：霧集中在地面附近（標高 20 m 的指數大氣），往下看只穿過一小段濃霧；
-  // 只在城市的陸地上（22-hmap.js 的 uCityM）：外面的山、河與海本來就只做給地面看的剪影，照舊在霧裡。地面的鏡頭照舊（hk = 0）。畫面邊緣（uCullR：distCull 與街道設施不畫的距離）照水平距離全進霧裡，不會看到城市被切掉
-  float hk = smoothstep(20., 120., uCam.y) * texture2D(uCityM, (p.xz - uHM.xy) * uHM.z).r, yc = max(uCam.y, 0.), yp = max(p.y, 0.), dy = abs(yc - yp);
-  float Da = dy > 1. ? 20.*abs(exp(-yp/20.) - exp(-yc/20.))/dy : exp(-yp/20.);
-  #ifndef FAR
-  D = mix(D, min(D, .02 + Da), hk);   // 遠景（北嶺的山坡、對岸）照舊：本來就只做給地面看的剪影，近看的明暗不對
-  #endif
-  if (uAirB.x > 0.) {   // 機場島雖然用遠景材質（從城裡隔著海看得到），但飛得到上空：島上和城裡一樣讓高處的霧變淡
-    vec2 q = p.xz - uAirA.xy, lq = abs(vec2(dot(q, uAirA.zw), dot(q, vec2(-uAirA.w, uAirA.z)))) - uAirB.xy;
-    D = mix(D, min(D, .02 + Da), smoothstep(20., 120., uCam.y) * (1. - smoothstep(0., 80., max(lq.x, lq.y))));
-  }
-  float x = dist*uFogDen*D;
-  float f = mix(1. - exp(-x), 1. - exp(-x*x), uDay);   // 白天用平方指數：近處清楚、420 m 外（distCull 不畫的地方）照樣全進霧裡
-  #ifndef FAR
-  f = max(f, hk * smoothstep(.6, .97, length(d.xz)/uCullR));
-  #endif
-  vec3 dir = d/max(dist,1e-3);
-  vec3 fc = mix(uFogCol, uFogHi, smoothstep(-.05, .45, dir.y)) * (1. + uFlash*1.5);
-  // 霧裡的日光前向散射：朝太陽那一側的霧亮起來、偏暖（清晨低角度時最明顯）
-  float sd = max(dot(dir, uSun), 0.), ph = sd * sd * sd * .25 + pow(sd, 24.) * .9;
-  fc += uSunCol * ph * uGI.w;
-  // 清晨貼地的薄霧：標高 7 m 的指數層，沿視線積分（鏡頭與那一點的高度）；顏色是霧色加上朝太陽的散射
-  if (uGI.z > 0.) {
-    float ya = max(uCam.y, 0.), yb = max(p.y, 0.), dh = yb - ya;
-    float Dm = abs(dh) > .3 ? 7. * (exp(-ya / 7.) - exp(-yb / 7.)) / dh : exp(-yb / 7.);
-    float fm = 1. - exp(-dist * uGI.z * Dm);
-    c = mix(c, uFogCol * 1.08 + uSunCol * ph * .6, fm);
-  }
-  return mix(c, fc, clamp(f, 0., 1.));
-}
-// 遠景只算一部分距離的霧（FAR）：鏡頭升到 40–180 m（直升機、霓峰塔的塔吊）時慢慢回到完整的霧，不然中間的城區都在霧裡、遠處的對岸與山坡像浮在空中
-float farK(float k){ return mix(k, 1., smoothstep(40., 180., uCam.y)); }
-`;
-
-const VS_HEAD = /* glsl */`
-varying vec3 vW, vN;
-`;
+// 共用的雜湊、燈光、霧、環境反射在 src/tsl/lib.mjs（原本的 GL_LIB）
 
 // 通用材質：頂點色當底色，aMat 決定粗糙度、金屬與自發光
-const UBER_VS = /* glsl */`
-attribute vec3 color; attribute float aMat;
-#ifdef INST_EXTRA
-attribute vec4 aIns;
-#endif
-varying vec3 vW, vN, vCol; varying float vMat; varying vec4 vIns;
-void main(){
-  vec4 lp = vec4(position, 1.); vec3 nn = normal;
-  #ifdef USE_INSTANCING
-  lp = instanceMatrix * lp; nn = mat3(instanceMatrix) * nn;
-  #endif
-  vec4 w = modelMatrix * lp; vW = w.xyz; vN = normalize(mat3(modelMatrix) * nn);
-  vCol = color; vMat = aMat;
-  #ifdef INST_EXTRA
-  vIns = aIns;
-  #else
-  vIns = vec4(0);
-  #endif
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`;
-const UBER_FS = /* glsl */`
-${GL_LIB}
-uniform vec4 uM;     // x 頭燈、y 煞車、z 自發光倍率、w 燒毀程度（爆炸後的殘骸）
-varying vec3 vW, vN, vCol; varying float vMat; varying vec4 vIns;
-void main(){
-  if (vW.y < uClipY) discard;
-  if (uFocus.w > 0.) {   // 貼著相機或擋在相機與角色之間的東西用抖動淡掉
-    vec3 ab = uFocus.xyz - uCam; float tt = clamp(dot(vW - uCam, ab) / dot(ab, ab), 0., 1.);
-    float dd = length(vW - uCam - ab * tt), cd = length(vW - uCam);
-    float fade = max(1. - smoothstep(.5, 1.6, cd), (1. - smoothstep(.45, 1., dd)) * step(tt, .8) * .8);
-    if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < fade) discard;
-  }
-  vec3 n = normalize(vN);
-  #ifdef DOUBLE
-  if (!gl_FrontFacing) n = -n;
-  #endif
-  vec3 v = normalize(uCam - vW);
-  int m = int(vMat + .5);
-  vec3 alb = vCol; float rough = .7, metal = 0., envK = 0.; vec3 emi = vec3(0);
-  if (m == 0) { rough = .22; envK = .75; }                                   // 車漆
-  else if (m == 1) { alb *= .12; rough = .04; envK = 1.1; }                   // 玻璃
-  else if (m == 2) { rough = .85; }                                           // 塑膠、橡膠飾條
-  else if (m == 3) { rough = .14; metal = 1.; envK = 1.; }                    // 鍍鉻
-  else if (m == 4) { emi = vCol * (.2 + uM.x * 1.7); alb *= .2; }           // 頭燈
-  else if (m == 5) { float b = max(uM.y, vIns.x); emi = vCol * (.7 + b * 2.6); alb *= .2; } // 尾燈
-  else if (m == 6) { rough = .92; alb *= .5; }                                // 輪胎
-  else if (m == 7) { rough = .3; metal = 1.; envK = .6; }                    // 輪圈
-  else if (m == 8) { emi = vCol * 2.4 * uM.z * (.9 + .1*sin(uTime*2.3 + vIns.y*9.)); alb *= .1; } // 霓虹、燈箱
-  else if (m == 9) { emi = vCol * step(.5, fract(uTime*1.3 + vIns.y)) * 2.6; } // 閃爍黃燈
-  else if (m == 10) { rough = .5; }                                          // 光滑材質
-  else if (m == 11) { emi = vCol * 1.1 * uM.z; alb *= .3; }                  // 柔和自發光
-  else if (m >= 12 && m <= 14) { float on = abs(vIns.x - float(m - 12)) < .5 ? 1. : 0.; emi = vCol * (.04 + on * 3.4); alb *= .15; } // 號誌燈
-  else if (m == 15) { rough = .5; metal = .8; envK = .3; }                   // 生鐵
-  else if (m == 16) { emi = vCol * uLampOn * 1.6; alb = vec3(.03); rough = .08; envK = 1.; }   // 白天是暗玻璃、入夜才亮的窗（天樞島的塔冠）
-  alb = mix(alb, vec3(.025, .022, .02), uM.w); rough = mix(rough, .95, uM.w); metal *= 1. - uM.w; envK *= 1. - uM.w; emi *= 1. - uM.w;
-  float wet = uWet * smoothstep(.55, .95, n.y) * (1. - step(4., float(m)) * step(float(m), 9.));
-  #ifdef FAR
-  wet = 0.;   // 遠景的大片空地反射 envMap 的霓虹帶會變成一條條色塊
-  #endif
-  rough = mix(rough, rough*.35, wet); alb *= 1. - .3*wet;
-  vec3 c = shade(vW, n, v, alb, rough, metal);
-  if (envK > 0. || wet > .1) {
-    vec3 r = reflect(-v, n); float F = .04 + .96*pow(1. - max(dot(n,v),0.), 5.);
-    c += envMap(r) * max(envK, wet*.5) * mix(m == 0 ? max(F, .1) : F, 1., metal) * (1. - rough*.9);
-  }
-  c += emi;
-  #if defined(FAR) && defined(FARD)
-  float fd = length(vW - uCam);   // 北嶺（21-park.js）：FARD 公尺內照一般的霧，再遠才和遠景一樣只算一部分距離，走得到的山坡接上遠景山脊
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * (fd > FARD ? (FARD + (fd - FARD) * farK(FAR)) / fd : 1.)), 1.);
-  #elif defined(FAR) && defined(FARC)
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * FAR), 1.);   // FARC：鏡頭升高也不回到完整的霧（外緣山林後面的石柱峰，從山上的別墅看得到）
-  #elif defined(FAR)
-  gl_FragColor = vec4(applyFog(c, uCam + (vW - uCam) * farK(FAR)), 1.);   // 遠景（對岸、山、外海的島）：霧只算一部分距離，剪影才看得到
-  #else
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-  #endif
-}`;
 
 function mkUber(o = {}) {
   const defines = {};
@@ -501,9 +174,8 @@ function mkUber(o = {}) {
   if (o.farc) defines.FARC = '';
   return new T.ShaderMaterial({ name: 'uber',
     uniforms: { ...shared(ALLU), uM: { value: new T.Vector4(0, 0, o.emi ?? 1, 0) } },
-    vertexShader: UBER_VS, fragmentShader: UBER_FS, defines,
-    side: o.double ? T.DoubleSide : T.FrontSide,
-  });
+    defines,
+    side: o.double ? T.DoubleSide : T.FrontSide });
 }
 const MAT = { uber: mkUber(), uberI: mkUber({ inst: true }), uberD: mkUber({ double: true }), far: mkUber({ far: .2 }), far2: mkUber({ far: .09 }), ridge: mkUber({ far: .2, fard: 150 }) };
 

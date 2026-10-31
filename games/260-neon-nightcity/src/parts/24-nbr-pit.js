@@ -221,7 +221,7 @@ if (NBR && nbrPitBld()) {
   }
   // ─── 工作車道的柏油（MAT.roadConn 同一份著色器，aUV 橫向加 40：不畫城裡的標線）：維修道路面邊到車間門口，兩端 10 m 收窄到維修道邊 ───
   {
-    const R0 = MAT.roadConn, mat = new T.ShaderMaterial({ name: R0.name, uniforms: R0.uniforms, vertexShader: R0.vertexShader, fragmentShader: R0.fragmentShader, side: R0.side, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+    const R0 = MAT.roadConn, mat = new T.ShaderMaterial({ name: R0.name, uniforms: R0.uniforms, side: R0.side, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
     gfxLate.push(mat);
     const P = [], NN = [], UV = [], AX = [], I = [], os = [0, .33, .66, 1];
     let row = 0;

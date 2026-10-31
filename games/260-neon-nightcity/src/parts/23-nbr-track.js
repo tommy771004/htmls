@@ -124,11 +124,9 @@ if (NBR) {
   // ─── 依地形塊分組：每段（k → k+1）照 k 那一點所在的塊 ───
   const CH = new Map(), chKey = (x, z) => Math.floor((x - N.gx0) / S) + ',' + Math.floor((z - N.gz0) / S);
   for (const t of FX.keys()) for (let k = 0; k < t.n; k++) { if (t.nxt(k) < 0) continue; const ck = chKey(t.p[k][0], t.p[k][1]); let c = CH.get(ck); if (!c) CH.set(ck, c = { segs: [], m: null }); c.segs.push(t, k); }
-  // ─── 材質：草皮與碎石是城裡草地那兩份 shader（同名同 GLSL），柏油緩衝區用 22-nbr.js 北環那份柏油 ───
-  const lawnMat = new T.ShaderMaterial({ name: 'lawnBare', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 0.;'),
-    side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
-  const gravMat = new T.ShaderMaterial({ name: 'path', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: LAWN_FS.replace(/float path = max\([^;]*\);/, 'float path = 1.;'),
-    side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  // ─── 材質：草皮與碎石是城裡草地那兩份 shader（同名同 TSL），柏油緩衝區用 22-nbr.js 北環那份柏油 ───
+  const lawnMat = new T.ShaderMaterial({ name: 'lawnBare', uniforms: { ...shared(ALLU), ...reflU }, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const gravMat = new T.ShaderMaterial({ name: 'path', uniforms: { ...shared(ALLU), ...reflU }, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   gfxLate.push(lawnMat, gravMat);
   // 防護網的網面：菱形網目（6 cm 的鍍鋅鐵絲）的透明貼圖，半透明混色（遠處 mipmap 平均成一層淡淡的灰），亮度照 uDay（同廣告看板）
   const netMat = (() => {

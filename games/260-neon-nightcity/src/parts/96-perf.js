@@ -1,31 +1,14 @@
 // ═══ 效能面板（?perf=1）與固定路線量測（__nc.perf.route）═══
 // 每一幀記：幀間隔（相鄰兩次 loop 的 rAF 時間戳）、CPU 邏輯（loop 開始到 renderFrame 開始）、CPU 送出（renderFrame 本身，three 走場景圖與送指令）、
-// 顯示卡時間（EXT_disjoint_timer_query_webgl2，沒有就顯示「—」；Chrome 156 的 ANGLE Metal 有，但讀數含排隊時間，比幀間隔還長，只能看趨勢）、draw call 與三角形數。
-// 顯示卡瓶頸時「送出」大半是 WebGL 呼叫在等顯示卡（指令緩衝滿了），不是 CPU 在做事：要分辨就看行程的 CPU 時間（tools/perf-mem.mjs）。
+// draw call 與三角形數（顯示卡時間原本是 WebGL 的 EXT_disjoint_timer_query_webgl2，WebGPU 還沒接 timestamp query，顯示「—」）。
+// 顯示卡瓶頸時「送出」大半是繪圖呼叫在等顯示卡（指令緩衝滿了），不是 CPU 在做事：要分辨就看行程的 CPU 時間（tools/perf-mem.mjs）。
 // 卡頓是比平常的幀長很多的那一幀：超過 PERF_STALL、也超過最近 PERF_MED 幀中位數的 PERF_K 倍（光環廣場本來就 31 ms 一幀，不能每幀都算卡頓），附上那段時間新編的著色器、新上傳的貼圖與幾何數，以及載入程式標的事件（26-glb.js 的 perfTag：模型解碼、建築組擺放…）。
 // 無頭 Chrome 是軟體繪圖或拿不到真的顯示卡時間，數字要在玩家自己的 Chrome、實機顯示卡上量。
 const PERF_STALL = 25, PERF_K = 1.8, PERF_MED = 60, PERF_N = 900;
 const PF = { on: new URLSearchParams(location.search).get('perf') === '1', ring: [], n: 0, stalls: [], cur: null, now0: 0, t0: 0, r0: 0, el: null, shown: 0,
-  ext: null, gl: GFX === 'webgl' ? R.getContext() : null, q: [], last: null, snap: [0, 0, 0], lim: PERF_STALL, nst: 0 };
-// 顯示卡計時：同一時間只能有一個 TIME_ELAPSED 查詢，結果幾幀後才拿得到（逐幀輪詢），中間發生過 GPU_DISJOINT 的整批丟掉
-function perfGpuBegin(f) {
-  if (!PF.ext) return;
-  const q = PF.gl.createQuery(); PF.gl.beginQuery(PF.ext.TIME_ELAPSED_EXT, q); PF.q.push([q, f]);
-}
-function perfGpuEnd() {
-  if (!PF.ext) return;
-  const gl = PF.gl; gl.endQuery(PF.ext.TIME_ELAPSED_EXT);
-  const dis = gl.getParameter(PF.ext.GPU_DISJOINT_EXT);
-  while (PF.q.length) {
-    const [q, f] = PF.q[0];
-    if (!dis && !gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
-    if (!dis) f.gpu = gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6;
-    gl.deleteQuery(q); PF.q.shift();
-  }
-}
+  last: null, snap: [0, 0, 0], lim: PERF_STALL, nst: 0 };
 function perfOn(on) {
   PF.on = on;
-  if (on && PF.ext === null) PF.ext = PF.gl?.getExtension('EXT_disjoint_timer_query_webgl2') || false;
   if (on && !PF.el) {
     PF.el = document.createElement('pre'); PF.el.id = 'perf';
     PF.el.style.cssText = 'position:fixed;left:8px;top:8px;z-index:99;margin:0;padding:6px 8px;font:11px/1.45 ui-monospace,Menlo,monospace;color:#d8f0e8;background:rgba(6,10,12,.72);pointer-events:none;white-space:pre';
@@ -52,10 +35,10 @@ perfHook.f = (now) => {
   PF.snap = info; PF.now0 = now; PF.t0 = performance.now();
   PF.cur = { ms: 0, cpu: 0, sub: 0, gpu: null, calls: 0, tris: 0 };
 };
-perfHook.a = () => { if (!PF.on || !PF.cur) return; PF.r0 = performance.now(); PF.cur.cpu = PF.r0 - PF.t0; perfGpuBegin(PF.cur); };
+perfHook.a = () => { if (!PF.on || !PF.cur) return; PF.r0 = performance.now(); PF.cur.cpu = PF.r0 - PF.t0; };
 perfHook.b = () => {
   if (!PF.on || !PF.cur) return;
-  const f = PF.cur; perfGpuEnd();
+  const f = PF.cur;
   f.sub = performance.now() - PF.r0; f.calls = R.info.render.calls; f.tris = R.info.render.triangles;
   if (performance.now() - PF.shown > 500) { PF.shown = performance.now(); perfPanel(); }
 };
@@ -74,7 +57,7 @@ function perfPanel() {
   PF.el.textContent = [
     `${GPU.short} · ${GT().name} · ${rtScene.width}×${rtScene.height}（DPR ${DPR}、${Math.round(post.scale * 100)}%、MSAA ${rtScene.samples}）`,
     `幀 ${perfF1(s.ms)} ms（${Math.round(s.fps)} fps）p95 ${perfF1(s.p95)} 最長 ${perfF1(s.max)}`,
-    `CPU 邏輯 ${perfF1(s.cpu)} · 送出 ${perfF1(s.sub)} · 顯示卡 ${PF.ext ? perfF1(s.gpu) : '—（沒有計時擴充）'}`,
+    `CPU 邏輯 ${perfF1(s.cpu)} · 送出 ${perfF1(s.sub)} · 顯示卡 —`,
     `draw call ${s.calls} · 三角形 ${(s.tris / 1e6).toFixed(2)} M`,
     `著色器 ${info[0]} · 貼圖 ${info[1]} · 幾何 ${info[2]} · 細節距離 ×${detailK().toFixed(2)}`,
     `卡頓（>${Math.round(PF.lim)} ms：至少 ${PERF_STALL}、最近幀中位數的 ${PERF_K} 倍）共 ${PF.nst} 次`, ...PF.stalls.slice(-4).map(perfStall),
@@ -112,5 +95,5 @@ async function perfRoute({ wait = 12000, sample = 8000, min = 1320, weather = 'r
   perfOn(was);
   return (perfApi.last = out);
 }
-const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => (PF.ext === null ? (PF.ext = PF.gl?.getExtension('EXT_disjoint_timer_query_webgl2') || false) : PF.ext) ? true : false };
+const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => false };
 if (PF.on) perfOn(true);

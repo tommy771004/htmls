@@ -94,10 +94,10 @@ if (NBR) {
     }
     const ag = new T.BufferGeometry(); ag.setAttribute('position', new T.Float32BufferAttribute(P, 3)); ag.setAttribute('normal', new T.Float32BufferAttribute(NN, 3));
     ag.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); ag.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2)); ag.setIndex(I); ag.computeVertexNormals(); ag.computeBoundingSphere();
-    // 北環的柏油比城裡的暗（參考圖）：同一份 roadConn 著色器（同名同 GLSL），自己的 uAsM 是共用平均色（27-props.js 下載柏油貼圖時設）的 1.9 倍，
+    // 北環的柏油比城裡的暗（參考圖）：同一份 roadConn 著色器（同名同 TSL），自己的 uAsM 是共用平均色（27-props.js 下載柏油貼圖時設）的 1.9 倍，
     // 細節照片除以它就整片變暗；貼圖還沒下載（uAsOn 0）時和城裡一樣。23-nbr-track.js 的柏油緩衝區也用這份
     const R0 = MAT.roadConn, asM = new T.Vector3(1, 1, 1);
-    const asMat = NBR.asphalt = new T.ShaderMaterial({ name: R0.name, uniforms: { ...R0.uniforms, uAsM: { value: asM } }, vertexShader: R0.vertexShader, fragmentShader: R0.fragmentShader, side: R0.side, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    const asMat = NBR.asphalt = new T.ShaderMaterial({ name: R0.name, uniforms: { ...R0.uniforms, uAsM: { value: asM } }, side: R0.side, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     gfxLate.push(asMat);
     const am = new T.Mesh(ag, asMat); am.name = 'nbrAsphalt'; am.frustumCulled = false; nbrGround(am);
     am.onBeforeRender = () => { const v = ASPH_U.uAsM.value; if (asM.x !== v.x * 1.9) asM.copy(v).multiplyScalar(1.9); };

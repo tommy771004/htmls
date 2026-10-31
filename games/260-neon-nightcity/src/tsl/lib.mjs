@@ -1,5 +1,5 @@
-// 自動產生（node tools/gen-tsl.mjs），不要手改：改 GLSL 之後重跑產生器
-// 共用函式庫（00-core.js 的 GL_LIB）：鍵是它用到的 defines，make(TSL, E) 回傳函式與全域變數
+// 材質的 TSL（原本由已刪除的 tools/gen-tsl.mjs 從 GLSL 轉出，現在是著色器的原始碼，直接改這裡）
+// 共用函式庫（原本 00-core.js 的 GL_LIB）：鍵是它用到的 defines，make(TSL, E) 回傳函式與全域變數
 export default {
 "[]NL_T,NOCC_T,SH_N_T,VOL_N_T": (TSL, E) => {
   const { sin, fract, Fn, vec2, dot, vec3, floor, mul, sub, mix, float, Loop, bool, If, sqrt, smoothstep, add, normalize, max, pow, mat3, ivec2, int, Break, select, Continue, min, length, clamp, abs, cos, inverseSqrt, atan, exp, step } = TSL;
@@ -554,7 +554,8 @@ export default {
 
   }, { p: 'vec3', n: 'vec3', v: 'vec3', alb: 'vec3', rough: 'float', metal: 'float', return: 'vec3' } );
 
-  const envMap =  Fn( ( [ r ] ) => {
+  // s：窗格平滑（0 原樣、1 淡成平均的城市光帶）。車漆這種彎曲的鏡面反射窗格會碎成一塊塊彩色方塊，車身的材質傳 1（envMapS）
+  const envMapS =  Fn( ( [ r, s ] ) => {
 
   	const y = r.y.toVar();
   	const az = atan( r.z, r.x ).toVar();
@@ -563,8 +564,10 @@ export default {
   	const on = step( .42, h21( vec2( cell, floor( y.mul( 30. ) ) ) ) ).toVar();
   	const lc = mix( SODIUM.mul( 1.4 ), vec3( .25, .95, 1. ), step( .6, h21( vec2( cell, 3. ) ) ) ).toVar();
   	lc.assign( mix( lc, vec3( 1., .25, .55 ), step( .82, h21( vec2( cell, 7. ) ) ) ) );
+  	on.assign( mix( on, .58, s ) );   // 亮窗的比例
+  	lc.assign( mix( lc, vec3( .95, .67, .54 ), s ) );   // 三種窗色依出現比例的平均
   	const sky = mix( uFogHi.mul( 1.6 ), vec3( .012, .012, .02 ), smoothstep( .0, .7, y ) ).toVar();
-  	sky.addAssign( band.mul( add( .06, on.mul( .55 ).mul( lc ).mul( smoothstep( .0, .08, fract( az.mul( 22. ) ) ) ).mul( smoothstep( 1., .92, fract( az.mul( 22. ) ) ) ) ) ) );
+  	sky.addAssign( band.mul( add( .06, on.mul( .55 ).mul( lc ).mul( mix( smoothstep( .0, .08, fract( az.mul( 22. ) ) ).mul( smoothstep( 1., .92, fract( az.mul( 22. ) ) ) ), .92, s ) ) ) ) );
 
   	If( y.lessThan( 0. ), () => {
 
@@ -589,7 +592,8 @@ export default {
 
   	return sky.add( uFlash.mul( .6 ).mul( vec3( .6, .65, .85 ) ).mul( max( y, 0. ) ) );
 
-  }, { r: 'vec3', return: 'vec3' } );
+  }, { r: 'vec3', s: 'float', return: 'vec3' } );
+  const envMap =  Fn( ( [ r ] ) => envMapS( r, 0. ), { r: 'vec3', return: 'vec3' } );
 
   const applyFog =  Fn( ( [ c_immutable, p ] ) => {
 
@@ -635,7 +639,7 @@ export default {
 
   }, { k: 'float', return: 'float' } );
 
-  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK };
+  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK };
 },
 "[[\"FAR\",\"*\"]]NL_T,NOCC_T,SH_N_T,VOL_N_T,FAR": (TSL, E) => {
   const { sin, fract, Fn, vec2, dot, vec3, floor, mul, sub, mix, float, Loop, bool, If, sqrt, smoothstep, add, normalize, max, pow, mat3, ivec2, int, Break, select, Continue, min, length, clamp, abs, cos, inverseSqrt, atan, exp, step } = TSL;
@@ -1190,7 +1194,8 @@ export default {
 
   }, { p: 'vec3', n: 'vec3', v: 'vec3', alb: 'vec3', rough: 'float', metal: 'float', return: 'vec3' } );
 
-  const envMap =  Fn( ( [ r ] ) => {
+  // s：窗格平滑（0 原樣、1 淡成平均的城市光帶）。車漆這種彎曲的鏡面反射窗格會碎成一塊塊彩色方塊，車身的材質傳 1（envMapS）
+  const envMapS =  Fn( ( [ r, s ] ) => {
 
   	const y = r.y.toVar();
   	const az = atan( r.z, r.x ).toVar();
@@ -1199,8 +1204,10 @@ export default {
   	const on = step( .42, h21( vec2( cell, floor( y.mul( 30. ) ) ) ) ).toVar();
   	const lc = mix( SODIUM.mul( 1.4 ), vec3( .25, .95, 1. ), step( .6, h21( vec2( cell, 3. ) ) ) ).toVar();
   	lc.assign( mix( lc, vec3( 1., .25, .55 ), step( .82, h21( vec2( cell, 7. ) ) ) ) );
+  	on.assign( mix( on, .58, s ) );   // 亮窗的比例
+  	lc.assign( mix( lc, vec3( .95, .67, .54 ), s ) );   // 三種窗色依出現比例的平均
   	const sky = mix( uFogHi.mul( 1.6 ), vec3( .012, .012, .02 ), smoothstep( .0, .7, y ) ).toVar();
-  	sky.addAssign( band.mul( add( .06, on.mul( .55 ).mul( lc ).mul( smoothstep( .0, .08, fract( az.mul( 22. ) ) ) ).mul( smoothstep( 1., .92, fract( az.mul( 22. ) ) ) ) ) ) );
+  	sky.addAssign( band.mul( add( .06, on.mul( .55 ).mul( lc ).mul( mix( smoothstep( .0, .08, fract( az.mul( 22. ) ) ).mul( smoothstep( 1., .92, fract( az.mul( 22. ) ) ) ), .92, s ) ) ) ) );
 
   	If( y.lessThan( 0. ), () => {
 
@@ -1225,7 +1232,8 @@ export default {
 
   	return sky.add( uFlash.mul( .6 ).mul( vec3( .6, .65, .85 ) ).mul( max( y, 0. ) ) );
 
-  }, { r: 'vec3', return: 'vec3' } );
+  }, { r: 'vec3', s: 'float', return: 'vec3' } );
+  const envMap =  Fn( ( [ r ] ) => envMapS( r, 0. ), { r: 'vec3', return: 'vec3' } );
 
   const applyFog =  Fn( ( [ c_immutable, p ] ) => {
 
@@ -1269,6 +1277,6 @@ export default {
 
   }, { k: 'float', return: 'float' } );
 
-  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK };
+  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK };
 },
 };

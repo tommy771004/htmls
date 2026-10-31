@@ -1,8 +1,8 @@
-// 自動產生（node tools/gen-tsl.mjs），不要手改：改 GLSL 之後重跑產生器
-// 材質 "lighthouseBeam"：鍵是 defines 的形狀（有值的寫成 *），h 是產生時 GLSL 的雜湊
+// 材質的 TSL（原本由已刪除的 tools/gen-tsl.mjs 從 GLSL 轉出，現在是著色器的原始碼，直接改這裡）
+// 材質 "lighthouseBeam"：鍵是 defines 的形狀（有值的寫成 *），h 是當初轉換時 GLSL 的雜湊（已不使用）
 export default {
 "{}": {
-  h: "1qx10kaai", lib: null, libV: false, libF: false,
+  h: "1qx10kaai", fog: false, lib: null, libV: false, libF: false,
   uniforms: [{"name":"uFogDen","type":"float","src":"uFogDen"}],
   varyings: [{"name":"vT","type":"float","src":"vT"},{"name":"vW","type":"vec3","src":"vW"}],
   attributes: [],

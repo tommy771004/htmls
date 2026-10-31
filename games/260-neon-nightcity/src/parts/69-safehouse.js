@@ -329,7 +329,7 @@ function aptLoad(id) {
 }
 // 拉開的落地窗：原檔的玻璃是橫跨整面牆的幾個大三角形，拿不掉一扇，改用透明材質的副本（26-glb.js 的 CUT，共用 uniforms）丟掉那一扇範圍裡的像素
 function aptCutMat(m, [x0, x1, z0, z1]) {
-  return new T.ShaderMaterial({ name: m.name, uniforms: m.uniforms, vertexShader: m.vertexShader, fragmentShader: m.fragmentShader, side: m.side, transparent: true, depthWrite: m.depthWrite,
+  return new T.ShaderMaterial({ name: m.name, uniforms: m.uniforms, side: m.side, transparent: true, depthWrite: m.depthWrite,
     defines: { ...m.defines, CUT: `vec4(${x0.toFixed(2)}, ${x1.toFixed(2)}, ${z0.toFixed(2)}, ${z1.toFixed(2)})` } });
 }
 function aptUpdate() {

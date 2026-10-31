@@ -245,35 +245,13 @@ function boatReset(v) {
 // ─── 水花與尾跡 ───
 // 尾跡：貼在水面上的白沫片（自己一個 InstancedMesh，平放、會擴散變淡）；水花：68-gta.js 的粒子（spray，掉回水面就消失）
 const WAKE_N = LOW ? 140 : 320;
-const WAKE_VS = /* glsl */`
-attribute vec4 iP; attribute vec4 iA;
-varying vec2 vUv; varying vec4 vA; varying vec3 vW;
-void main(){
-  float c = cos(iP.w), s = sin(iP.w);
-  vec2 q = mat2(c, s, -s, c) * position.xz * iP.z;
-  vec3 w = vec3(iP.x + q.x, ${SEA_Y.toFixed(2)} + .04 + iA.w * .01, iP.y + q.y);
-  vW = w; vUv = uv; vA = iA;
-  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
-}`;
-const WAKE_FS = /* glsl */`
-${GL_LIB}
-varying vec2 vUv; varying vec4 vA; varying vec3 vW;
-void main(){
-  vec2 q = vUv - .5; float d = length(q) * 2.;
-  float n = n2(vW.xz * 1.9 + vA.z * 7.) * .6 + n2(vW.xz * 5.3 - vA.z * 3.) * .4;
-  float a = vA.y < .5 ? smoothstep(1., .35, d + (n - .5) * .7) * (.35 + .65 * n)                     // 白沫
-                      : smoothstep(.16, 0., abs(d - .55 - vA.x * .4) - (n - .5) * .12) * (1. - smoothstep(.95, 1., d));   // 一圈漣漪
-  a *= (1. - vA.x) * (1. - vA.x) * min(1., vA.x * 8. + .2);
-  vec3 c = vec3(.5, .56, .6) * (uAmbTop * (3. - uDay * 1.5) + .22 + uSunCol * .6);
-  gl_FragColor = vec4(applyFog(c, vW), a * .5);
-}`;
 const wake = (() => {
   const g = new T.InstancedBufferGeometry(), b = new T.PlaneGeometry(1, 1); b.rotateX(-Math.PI / 2);
   g.index = b.index; g.setAttribute('position', b.attributes.position); g.setAttribute('uv', b.attributes.uv);
   const at = { iP: new T.InstancedBufferAttribute(new Float32Array(WAKE_N * 4), 4), iA: new T.InstancedBufferAttribute(new Float32Array(WAKE_N * 4), 4) };
   for (const k in at) { at[k].setUsage(T.DynamicDrawUsage); g.setAttribute(k, at[k]); }
   g.instanceCount = 0;
-  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'wake', uniforms: shared(ALLU), vertexShader: WAKE_VS, fragmentShader: WAKE_FS, transparent: true, depthWrite: false }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'wake', uniforms: shared(ALLU), transparent: true, depthWrite: false }));
   m.frustumCulled = false; m.renderOrder = 3; m.layers.set(LY.NOREFL); scene.add(m);
   return { m, at, list: [] };
 })();

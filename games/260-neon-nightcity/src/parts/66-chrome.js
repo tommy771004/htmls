@@ -546,7 +546,7 @@ function boardDraw(list, done = []) {
   }
   S.add(new T.Mesh(k.build(), MAT.ux));
   // 捲門 B 外的雨夜街景（和車行的落地窗同一個 shader）與門 B 本身（進來之後放下）
-  { const m = new T.Mesh(new T.PlaneGeometry(DOOR_W - .2, DOOR_H - .1), new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU), vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: WINDOW_FS }));
+  { const m = new T.Mesh(new T.PlaneGeometry(DOOR_W - .2, DOOR_H - .1), new T.ShaderMaterial({ name: 'rainWin', uniforms: shared(ALLU) }));
     m.position.set(0, DOOR_H / 2, -.6); S.add(m); }
   { const dk = new Kit(); for (let y = .12; y < DOOR_H; y += .24) dk.box(0, y, 0, DOOR_W, .2, .05, 0x8c9196, TX.steel).box(0, y + .11, .02, DOOR_W, .03, .04, 0x5a5e62, 15);
     chrome.doorB = new T.Mesh(dk.build(), MAT.ux); chrome.doorB.position.set(0, 0, -.05); S.add(chrome.doorB); }

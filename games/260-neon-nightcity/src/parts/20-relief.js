@@ -1,6 +1,6 @@
 // ═══ 程式立面的浮雕：窗台與窗楣、窗側框、店面壁柱、入口門框與雨遮、簷口托架與飾帶、轉角壁柱、女兒牆與壓頂、玻璃帷幕的直向鰭片；
 //     腰線（一樓頂與每兩、三層一道）、轉角隅石、入口的門扇與氣窗、門燈與門牌、海濱灰泥樓的百葉窗與花台 ═══
-// 10-city.js 的立面（boxFaces＋FACADE_FS）是平的四邊形，磚、窗、店面都是著色器畫的；這裡照同一套窗格（gH、fh、ws、cols、mg、wmin／wmax、店面 units）
+// 10-city.js 的立面（boxFaces＋m-facade）是平的四邊形，磚、窗、店面都是著色器畫的；這裡照同一套窗格（gH、fh、ws、cols、mg、wmin／wmax、店面 units）
 // 擺出凸出牆面的幾何，照紐約老公寓的照片：石窗台與窗楣（中間一塊拱心石）、店面之間的壁柱與柱頭、簷口下的托架與飾帶。
 // 只擺看得到的面：正面一定擺，兩側只擺高過隔壁地塊的樓層，背面不擺。窗的零件用實例（距離串流 RELIEF_R），其他每個街區合併成一個網格。
 // 實體建築下載失敗時 lotFallback 補回的立面沒有浮雕（那時這裡已經跑過了）
@@ -83,7 +83,7 @@ const RELIEF_R = 230;
       if (key === rear) continue;
       const F = faceOf(L, key), cov = coverH(L, key), isFront = key === front;
       if (!isFront && cov >= L.h - .5) continue;
-      // 窗：窗格和 FACADE_FS 一樣
+      // 窗：窗格和 m-facade 一樣
       const cols = Math.max(1, Math.floor((F.w - 1) / ws)), mg = (F.w - cols * ws) / 2;
       for (let fi = 0; fi < nF; fi++) {
         const y = GH + fi * fh + .18 * fh;

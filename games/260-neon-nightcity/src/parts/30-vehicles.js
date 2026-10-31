@@ -4,16 +4,11 @@ await bootStep(BOOT.vehicles, '車流上路…');
 
 // 車漆調色盤：instance 的 aIns.z 選色
 const PAL_HEX = [0x7a1f22, 0x1e2f4f, 0x5a5e62, 0x111214, 0xd8d6d0, 0x23412e, 0x4d1a2c, 0xb3a385, 0x2d5f73, 0x6b3a1e], PAL = PAL_HEX.map(h => lin(h));   // PAL_HEX：搶到街頭車時換成實車的烤漆（68-gta.js）
-{
-  const s = PAL.map(c => `vec3(${c.r.toFixed(4)},${c.g.toFixed(4)},${c.b.toFixed(4)})`).join(',');
-  MAT.uberI.name = 'uberPal'; MAT.uberI.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `int m = int(vMat + .5);
-  const vec3 PAL[${PAL.length}] = vec3[](${s});`).replace('if (m == 0) { rough = .22; envK = .75; }', 'if (m == 0) { rough = .22; envK = .75; if (vIns.z > .5) alb = PAL[int(vIns.z - .5)]; }');
-}
+MAT.uberI.name = 'uberPal';   // 調色盤寫在 src/tsl/m-uberPal.mjs
 // 車流與路邊停車的 InstancedMesh 用自己的一份：aIns.w 是剛生成的車還要淡掉多少（1 全透明、0 不透明），用點陣丟掉像素淡入
 // （MAT.uberI 也給道具的實例用，它們的 aIns.w 另有用途，所以不改共用的那份）
 const TRAF_MAT = mkUber({ inst: true });
-TRAF_MAT.name = 'uberTraf'; TRAF_MAT.fragmentShader = MAT.uberI.fragmentShader.replace('int m = int(vMat + .5);', `if (vIns.w > 0. && fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) < vIns.w) discard;
-  int m = int(vMat + .5);`);
+TRAF_MAT.name = 'uberTraf';
 
 // ─── 車流路網：06-roads.js 的 RN（路口與路段，世界座標）；車在 (e, dir, s)，轉彎走 turnPathE 的二次貝茲 ───
 function bez(a, b, c, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * b[0] + t * t * c[0], u * u * a[1] + 2 * u * t * b[1] + t * t * c[1]]; }
@@ -197,22 +192,17 @@ function flushTraffic() {
   }
 }
 // 車底陰影與頭燈照地
-const SHADOW_FS = /* glsl */`varying vec2 vUv; void main(){ vec2 q = (vUv - .5) * 2.; float a = (1. - smoothstep(.35, 1., length(q * vec2(1., .9)))) * .82; gl_FragColor = vec4(0., 0., 0., a); }`;
-const POOL_FS = /* glsl */`${GL_LIB}
-varying vec2 vUv; varying vec3 vW;
-void main(){ vec2 q = vUv - vec2(.5, 0.); float a = smoothstep(.5, .0, abs(q.x) / (.3 + vUv.y*.7)) * smoothstep(1., .1, vUv.y) * smoothstep(0., .08, vUv.y); gl_FragColor = vec4(vec3(1.,.86,.62) * a * .5 * exp(-length(vW - uCam)*uFogDen), 1.); }`;
-const QUAD_VS = /* glsl */`varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 const allCars = () => [...traffic, ...parked];
 const shadowMesh = (() => {
   const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2);
-  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ name: 'carShadow', uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 48);
+  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ name: 'carShadow', uniforms: shared(ALLU), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), traffic.length + parked.length + 48);
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 2; scene.add(m); return m;
 })();
 const poolMesh = (() => {
   const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2); g.translate(0, 0, .5);
   // 平面往 +z 延伸：uv.y 0 在車頭、1 在遠端
   const uv = g.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setY(k, 1 - uv.getY(k));
-  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ name: 'headPool', uniforms: shared(ALLU), vertexShader: QUAD_VS, fragmentShader: POOL_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending }), traffic.length + 2);
+  const m = new T.InstancedMesh(g, new T.ShaderMaterial({ name: 'headPool', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending }), traffic.length + 2);
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 3; scene.add(m); return m;
 })();
 function placeCar(c, k, y = 0) {

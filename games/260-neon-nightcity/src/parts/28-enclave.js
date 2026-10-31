@@ -39,10 +39,9 @@ if (ENC) {
   // ── 地面 ──
   // 街：connMat（10-city.js 的連接道路：中央雙黃線、車道線、積水與倒影）。aUV.x 是橫向公尺數，換算成城裡 8 m 半路寬的比例，標線與排水溝才落在路邊；
   // 巷子（lane）不畫標線
-  const roadM = MAT.roadConn, laneFS = roadM.fragmentShader.replace(/float yel = [^;]*;/, 'float yel = 0.;').replace(/paint = max\(paint, step\(abs\(ax - 5\.1\)[^\n]*\n/, '');
-  if (laneFS === roadM.fragmentShader) console.warn('enclave: lane shader patch did not apply');
+  const roadM = MAT.roadConn;
   // uniforms 要和原本的同一份（倒影貼圖、時間、天氣每幀改的是那一份；clone() 會複製一份死的）
-  const laneM = new T.ShaderMaterial({ name: 'roadLane', uniforms: roadM.uniforms, vertexShader: roadM.vertexShader, fragmentShader: laneFS, side: roadM.side, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const laneM = new T.ShaderMaterial({ name: 'roadLane', uniforms: roadM.uniforms, side: roadM.side, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const strip = (mat, list) => {
     const Pp = [], N = [], UV = [], AX = [], I = [];
     for (const s of list) {

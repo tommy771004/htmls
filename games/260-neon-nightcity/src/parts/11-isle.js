@@ -220,7 +220,7 @@ function isleWalls(B, P, y0, y1, seed, style, h, front, roof = true) {
   }
   for (const B of bufs.values()) chunkMesh(B);
 }
-// 人行道：每棟樓前緣到路緣（路中心外 HR）鋪一條，和片裡的人行道同一個材質；aL 給一個不會碰到路緣石紋路的座標（WALK_FS 照方格畫路緣石）
+// 人行道：每棟樓前緣到路緣（路中心外 HR）鋪一條，和片裡的人行道同一個材質；aL 給一個不會碰到路緣石紋路的座標（m-walk 照方格畫路緣石）
 {
   const P = [], N = [], AL = [], I = [];
   for (const f of ISLE_FILL) {
@@ -234,7 +234,7 @@ function isleWalls(B, P, y0, y1, seed, style, h, front, roof = true) {
   if (I.length) {
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3)); g.setAttribute('aL', new T.Float32BufferAttribute(AL, 4)); g.setIndex(I);
-    const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'walk', uniforms: { ...shared(ALLU), ...reflU }, vertexShader: GROUND_VS, fragmentShader: WALK_FS, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'walk', uniforms: { ...shared(ALLU), ...reflU }, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
     groundAdd(m, null);
   }
 }

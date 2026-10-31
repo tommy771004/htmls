@@ -29,12 +29,10 @@ function floatGeo(geo, mtx) {
   return g;
 }
 // 大量重複的道具用的 InstancedMesh 版材質（後段的 w2Inst）
-const GLB_VS_I = GLB_VS.replace('vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal);',
-  'vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);');
 const propMatsI = new Map();
 function propMatI(mat) {   // 和 propMat 共用 uniforms（時間、相機、天氣都跟著動），只換頂點著色器
   let m = propMatsI.get(mat);
-  if (!m) { m = new T.ShaderMaterial({ name: mat.name + 'I', uniforms: mat.uniforms, vertexShader: GLB_VS_I, fragmentShader: mat.fragmentShader, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
+  if (!m) { m = new T.ShaderMaterial({ name: mat.name + 'I', uniforms: mat.uniforms, defines: { ...mat.defines }, side: mat.side, transparent: mat.transparent, depthWrite: mat.depthWrite }); propMatsI.set(mat, m); }
   return m;
 }
 // ─── 分幀與預熱（96-perf.js 量到的抵達卡頓：第一次畫到時一幀上傳近百張貼圖、建築組在主執行緒合併一次 0.5～1 秒）───
@@ -306,7 +304,7 @@ const treePick = t => (t.park ? Math.floor(w2Hash(t.x, t.z) * 7) : 0);
 const isleTreeList = () => ISLE_TREES.map(t => ({ ...t, park: 1 }));
 // ?w2=0：不換這一輪的模型（比較效能、除錯用）
 if (/[?&]w2=0\b/.test(location.search)) W2.on = false;
-if (W2.on && GLB_VS_I !== GLB_VS) {
+if (W2.on) {
   const FOREST_R = 190;   // 山林近景樹（每棵四五千面）的串流半徑
   const TREE_R = 200;   // 樹的面數多：只送 200 m 內的實例，外面用程式建模的樹（畫到 380 m）
   const W2R = { small: 110, mid: 160 };   // 小件（垃圾桶、消防栓、報紙箱、灌木）與中件（長椅、電話亭、陽傘）的串流半徑
@@ -579,7 +577,7 @@ function streetBoxes(it) {
   Object.assign(W2.n, { ebox: eboxes.length, pump: pumps.length });
   W2.pumps = pumps;
 }
-if (!W2.on || GLB_VS_I === GLB_VS) streetLater(null);
+if (!W2.on) streetLater(null);
 // 驗收與截圖用的幾個位置（邏輯座標；cape 是世界座標）
 W2.at = { seat: parkSeats.find(t => t.kind === 'bench'), picnic: parkSeats.find(t => t.kind === 'picnic'), news: newsBoxes[0], ebox: eboxes[0], booth: booths[0], bin: bins[0], hydrant: hydrants[0],
   palm: palms[0], guard: lifeguards[0], ferris: { x: FERRIS.cx, z: FERRIS.wz }, crane: { x: 690, z: QUAY.z1 }, yard: harbor.boxLists.flat()[0], cape: capePicnic[0], planter: planters[0], peak: PEAKS[0] };

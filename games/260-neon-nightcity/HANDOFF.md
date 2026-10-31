@@ -229,7 +229,7 @@
 - 量體與細模（2026-10-27，`09-mass.js`）：程式立面照輪廓與樓層數擠出——磚樓約 630 塊地有凸窗（一或兩開間、凸出 0.75 m、托座與壓頂，腰線包過去）、翻新灰泥樓每層一道樓板帶與約 110 塊地的陽台（玻璃或鐵欄杆）、石造廠房樓開間之間的壁柱、街角兩面都露出來的玻璃塔在街角退一格（約 20 棟）、簷口改成三段出挑的線腳。鏡頭 `SET.fac`（「建築細節距離」，預設照等級 0／70／110／150／210 m）內的街區換成細模：窗挖進牆裡（玻璃退 0.12–0.3 m，窗洞兩側、窗楣底、窗台是面）、店面往內凹 0.3 m、玻璃帷幕每層樓板邊凸出；一個街區約 2–3 ms，一幀最多建 4 ms（近的先建），走遠 40 m 丟掉。起點畫面三角形 768 → 834 萬、開場多約 0.5 s。
   - 騎樓（同日）：一樓正面往內退 `ARC_D` = 2.8 m、天花 3.42 m，柱子落在店面分格線上，3.42–4.6 m 的大梁留著招牌；照街區一面的雜湊挑（霓虹 .7、珊瑚 .45、中城與舊碼頭 .2，其他區沒有），排除街角地塊、兩端沒有鄰地的、少於兩塊連成一排的、特殊／背面／GLB／天樞島／退台／外緣／廣場地塊、樣式 3 與 5、安全屋的門（`09-mass.js` 的 `arcLot`／`arcPlan`／`arcGeo`；地坪與天花是 `FACADE_FS` 的樣式 9：0.5 m 地磚、灰泥天花與開間中間的燈條）。碰撞：街區的盒切成主體加沿街的條（`10-city.js`），柱子是半徑 .34 的圓；`27-bldfoot.js` 的 `blkFoot` 把騎樓地塊的正面內縮。`node tools/fac-view.mjs` 的 `FAC="arc:0"` 截圖。
   - 平牆的視差窗洞（同日）：遠景的平牆、天樞島的地塊、`11-isle.js` 的填空樓與 `lotFallback()` 補回的立面不建細模，改在 `FACADE_FS` 用視差補：視線打進窗洞到玻璃的深度（樣式 2 是 .3、4 是 .18、3 是 .12、其他 .22，店面 .3），先碰到窗洞兩側或窗楣、窗台就畫那個面（`reveal()`；頂點的 `aB2.w` 第 3 位是「真的有凹進去的玻璃」，有的不再做視差）。`FAC_D=0 node tools/fac-view.mjs` 關掉細模看。
-  - 沒做：天樞島的退台與塔冠、27-bldfoot 補縫的立面、醫院（`69-v5-civic.js`）的量體照舊；凸窗、陽台不在 22-hmap 的高度圖裡（日光陰影少了它們的影子）；退角塔樓的碰撞與高度圖照舊是整塊矩形（只在基座以上退，人碰不到）。WebGPU 的情況見下方「WebGPU 自動轉換」。
+  - 沒做：天樞島的退台與塔冠、27-bldfoot 補縫的立面、醫院（`69-v5-civic.js`）的量體照舊；凸窗、陽台不在 22-hmap 的高度圖裡（日光陰影少了它們的影子）；退角塔樓的碰撞與高度圖照舊是整塊矩形（只在基座以上退，人碰不到）。WebGPU 的情況見下方「WebGPU」。
   - 玩具感（同日）：`Kit.box` 最短邊 ≥ 18 cm、最長邊 ≤ 6 m 的方塊自動倒角（全城 40 萬塊裡約 2.4 萬塊，Kit 頂點 1867 → 2092 萬）；要拼成平整表面的零件用 `new Kit(true)`。店內貨架、洗衣店、小吃店、電器行、住家室內與鐵捲門塗鴉的顏色壓低彩度、加層板陰影與材質分隔（`FACADE_FS` 的 `shopRoom`／`room`）。
 
 ## 質感改善清單（2026-10-29，第 1、2 批）
@@ -266,7 +266,11 @@
 - 跳：空白鍵在 `crashKey` 裡排在翻越之後（前面有矮牆、車還是翻越；有鐵絲網、屋頂邊是 69-v5-civic 的翻網與跳樓）。`player.jump` 在 `updatePlayerWalk` 裡積分，碰撞照走路算（跳不過護欄，碼頭盡頭要翻越下水），落地只看步行面（跳不上車頂）。
 - 驗收看的是實機跟拍連拍（碼頭、河裡），沒有寫進 `accept.mjs`。
 
-## WebGPU 自動轉換（2026-10-27，還沒對齊）
+## WebGPU（2026-10-31 全面移轉完成；底下 10-27～10-30 的條目是移轉過程的紀錄，提到 GLSL、`?gfx=webgl`、轉譯器、`gen-tsl.mjs` 的都已經拿掉）
+
+- 現況：只有 `WebGPURenderer`，沒有 WebGPU 的瀏覽器走它的 WebGL2 後端（`?gfx=webgpu-gl` 強制）；WebGPU 初始化失敗會再試一次 WebGL2 後端，兩個都不行才顯示錯誤。`WebGLRenderer` 分支、`?gfx=webgl`、所有 GLSL（約 200 KB，含 `GL_LIB`）、執行期轉譯器 `src/gfx/glsl-tsl.mjs`、產生器 `tools/gen-tsl.mjs`、效能面板的 WebGL 計時查詢、倒影遮擋的 WebGL 查詢分支、`webglcontextlost` 都刪了（打包的程式 5759 → 5448 KB）。`src/tsl/` 現在就是著色器原始碼。材質照舊是 `ShaderMaterial`（只有 name、uniforms、defines 與管線狀態），計畫第 6 步寫的「改成由一個工廠建 `NodeMaterial`」沒做：各 part 建材質、改 `uniforms.x.value` 的寫法都不用動，換掉的風險比收穫大。
+- 驗證（無頭 Chrome、M3 Pro）：移轉前的固定鏡頭（12 個戶外＋3 個室內）在兩個階段後都和載入之間的雜訊同級（同一版連拍兩次最差 2.7%，移轉後最差 2.9%，都是室內人物動作）；342 個材質全部有 TSL（`__nc.gfx.gen()` 空）、霧與 `aL` 的中繼資料和原本由 GLSL 判斷的逐一相同；`node tools/tsl-check.mjs`（照原本產生器的路線走遍戶外三種天氣、光格島與 21 個場館）108 個鍵都有 TSL、沒有錯誤。`npm test`（含 `?zrot=25`）各 159 項、`test:glb` 49 項全過；`?gfx=webgpu-gl`（Metal 上的 WebGL2 後端）畫面正常、沒有錯誤。SwiftShader（`tools/lib.mjs` 的 `SOFT_ARGS`）有 `navigator.gpu`，走的是 WebGPU（SwiftShader 的 Vulkan），一幀約 11.7 s（移轉前 WebGL 約 10 s），沒有錯誤；所以計畫裡「SOFT_ARGS 在 WebGL2 後端跑得動」這一關其實沒驗到，WebGL2 後端只在 Metal 上用 `?gfx=webgpu-gl` 試過。坑：three 算材質快取鍵時跳過 `name`，GLSL 拿掉之後不同材質的 `fragmentShader` 都是預設字串，`customProgramCacheKey` 要併進名字，不然會共用節點。體積光（`m-vol.mjs`）原本照 WebGPU 的 0..1 深度寫死，WebGL2 後端要 −1..1，改用 E 的 `zN_`（`gfxZ`）。
+- 還沒過的切換關卡（計畫第 4、5 步）：晴夜光環廣場 renderer 行程約 103% 顆核心（目標 < 100%）；WebGPU 下 `camAt` 鏡頭卡牆；載入記憶體峰值；手機實機沒測；MSAA ×2 在 WebGPU 要對應到 ×4 或關掉；效能面板的顯示卡時間要接 WebGPU 的 timestamp query（現在顯示「—」）；顯示卡重置（device lost）不會自己恢復，只提示重新整理。打包檔裡還有 three 自己的 ShaderChunk（GLSL 字串，大概是 `import * as T from 'three'` 整包帶進來的；改成從 `three/webgpu` 匯入能不能拿掉還沒試）。
 
 - `?gfx=webgpu` 時，沒有手寫 TSL 的 `ShaderMaterial` 由 `src/gfx/glsl-tsl.mjs` 在第一次畫到時把 GLSL 轉成 TSL（three 的 transpiler 加上前處理、提前 return 改單一出口、out／inout 內嵌、陣列貼圖、數字常數折疊），同一份 GLSL＋defines 只轉一次；`02-gfx.js` 的 `gfxAuto` 把 uniform、varying、attribute 接成節點。這是**執行期轉譯**：每個材質只在載入時轉一次，不是每幀；GPU 上跑的 WGSL 和手寫的沒有本質差別，所以轉譯本身不會讓幀率變好或變差。
 - three 的坑：有 layout 的 `Fn` 編成的 WGSL 函式放在跨材質、跨建置的快取裡（`NodeBuilder.buildFunctionNode`，以函式節點為鍵），假設函式只讀參數；轉出來的函式直接讀 uniform 與貼圖，所以 `02-gfx.js` 讓這些函式改成每個 builder 各建一份（`gfxOwn`）。WGSL 的 varying、attribute 與內建值是 `main` 的參數，用到它們的函式不給 layout、內嵌展開；貼圖不能這樣做（`shade()` 會在每個呼叫點展開，WGSL 大到分頁當掉）。

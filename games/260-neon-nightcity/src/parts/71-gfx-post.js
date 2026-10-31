@@ -1,6 +1,6 @@
-// ═══ 後製的 TSL 版本（?gfx=webgpu，02-gfx.js）：70-render.js 的泛光（mPre／mDown／mUp）、環境光遮蔽（mAO／mAOBlur）與合成（mComp），照 GLSL 逐行改寫 ═══
-// 70-render.js 照舊用 blit() 換材質畫全螢幕三角形、改 uniforms 的值，這裡只換著色器。體積光（mVol）要 00-core.js 的 GL_LIB，走 02-gfx.js 的自動轉換
-if (GFX !== 'webgl') {
+// ═══ 後製的手寫 TSL（02-gfx.js 的 gfxPort）：70-render.js 的泛光（mPre／mDown／mUp）、環境光遮蔽（mAO／mAOBlur）與合成（mComp），照原本的 GLSL 逐行改寫 ═══
+// 70-render.js 照舊用 blit() 換材質畫全螢幕三角形、改 uniforms 的值，這裡只換著色器。體積光（mVol）要共用函式庫（src/tsl/lib.mjs），是 src/tsl/m-vol.mjs
+{
   const { Fn, If, Loop, vec2, vec3, vec4, float, uv, mix, smoothstep, clamp, max, min, pow, dot, length, fract, sin, cos, abs, normalize, cross, exp, log, positionGeometry } = TSL;
   const passMat = frag => { const m = new NodeMaterial(); m.vertexNode = vec4(positionGeometry.xy, 0, 1); m.fragmentNode = frag; return m; };
   // three 的渲染目標貼圖一律當左上角是原點（WebGPU 原生如此，WebGL2 後端取樣時自己翻），全螢幕三角形的 uv 是左下角原點：取樣用 Q（v 翻過來），
@@ -39,7 +39,7 @@ if (GFX !== 'webgl') {
       const vpos = q => { const v = invP.mul(vec4(ndcOf(q), gfxZ(tD(q).x), 1)); return v.xyz.div(v.w); };
       return passMat(Fn(() => {
         const out = vec4(1, 1e4, 0, 1).toVar();
-        const q = TSL.floor(Q.div(dt)).add(.5).mul(dt).toVar();   // 對齊到全解析度深度像素的中心（見 GLSL）
+        const q = TSL.floor(Q.div(dt)).add(.5).mul(dt).toVar();   // 對齊到全解析度深度像素的中心（原本 GLSL 的做法）
         If(tD(q).x.lessThan(1), () => {
           const P = vpos(q).toVar();
           const l = vpos(q.sub(vec2(dt.x, 0))), r = vpos(q.add(vec2(dt.x, 0))), b = vpos(q.sub(vec2(0, dt.y))), t = vpos(q.add(vec2(0, dt.y)));

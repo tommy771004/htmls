@@ -244,31 +244,8 @@ lampTable(LAMP_HEADS);
 for (const [x, z, r] of [[DEAL_X - 6.5, DEAL_Z + 2.1, 3], [DEAL_X + 6.5, DEAL_Z + 2.1, 3], [DEAL_X, DEAL_Z + 1.5, 2], [HOME_X, HOME_Z - 2.2, 3.4]]) claim(x, z, r);
 
 // 路燈下的光錐（體積光）：加法混合，越靠近燈頭越亮
-const CONE_VS = /* glsl */`
-varying vec3 vW, vN; varying float vH;
-void main(){
-  vec4 lp = instanceMatrix * vec4(position, 1.);
-  vec4 w = modelMatrix * lp; vW = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
-  vH = clamp(position.y / 7., 0., 1.);
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`;
-const CONE_FS = /* glsl */`
-${GL_LIB}
-uniform vec3 uColor;
-varying vec3 vW, vN; varying float vH;
-void main(){
-  vec3 v = normalize(uCam - vW);
-  float edge = pow(abs(dot(normalize(vN), v)), 2.2);
-  float d = length(vW - uCam);
-  float a = edge * pow(clamp(vH, 0., 1.), 1.6) * .11 * uLamp;
-  a *= smoothstep(1.2, 6., d) * exp(-d * uFogDen * .9);
-  a *= .65 + .35 * n2(vec2(atan(vN.z, vN.x) * 3., vW.y * 1.5 + uTime * 7.));
-  a *= .8 + .4 * uRain;
-  gl_FragColor = vec4(uColor * a, 1.);
-}`;
 function coneMat(col) {
-  return new T.ShaderMaterial({ name: 'cone', uniforms: { ...shared(ALLU), uColor: { value: lin(col) } }, vertexShader: CONE_VS, fragmentShader: CONE_FS,
-    transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+  return new T.ShaderMaterial({ name: 'cone', uniforms: { ...shared(ALLU), uColor: { value: lin(col) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
 }
 {
   const cg = new T.CylinderGeometry(.22, 3.1, 7, 18, 1, true); cg.translate(0, 3.5, 0);
@@ -383,7 +360,7 @@ for (const n of RN.nodes) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     if (groundHL(x, z) > 0 && inZoneL(n.zn, x, z) && free(x, z, .3)) { bollards.push({ x, z, y: .15 }); circles.push({ x, z, r: .14 }); }
   }
 }
-// 燈籠公園的步道燈籠：十字碎石小徑（10-city.js 的 LAWN_FS，沿街區中線、寬約 3.6 m）兩側每 9 m 一盞，左右交錯，十字口留空。
+// 燈籠公園的步道燈籠：十字碎石小徑（src/tsl/m-lawn.mjs，沿街區中線、寬約 3.6 m）兩側每 9 m 一盞，左右交錯，十字口留空。
 // 先擺燈再種樹，樹會避開；燈光在 signLights 宣告之後才推進去（下面 parkLamps 那段）
 const parkLamps = [];
 for (const b of blocks) {
@@ -860,28 +837,7 @@ const streaks = [];
 {
   const g = new T.PlaneGeometry(1, 1); g.translate(0, -.5, 0);   // 上緣在原點、往下長一個單位（sy 是長度）
   const m = new T.ShaderMaterial({ name: 'streak', uniforms: shared(ALLU), transparent: true, depthWrite: false,
-    blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.ZeroFactor, blendDst: T.SrcColorFactor, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
-    vertexShader: `${GL_LIB}
-    attribute vec4 aIns;
-    varying vec2 vQ; varying vec4 vI; varying vec3 vW;
-    void main(){
-      vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.);
-      vQ = vec2(position.x + .5, -position.y); vI = aIns; vW = w.xyz;
-      gl_Position = projectionMatrix * viewMatrix * w;
-    }`,
-    // 一道道細的縱線（每欄長短不一、稍微彎）＋緊貼著上緣的一片暈開的污漬；遠處淡回 1（乘法的白）
-    fragmentShader: `${GL_LIB}
-    varying vec2 vQ; varying vec4 vI; varying vec3 vW;
-    void main(){
-      float x = vQ.x, t = vQ.y, s = vI.y * 97.;
-      float ci = floor(x * 5.), cx = fract(x * 5.);
-      float wob = (n2(vec2(ci * 3.1 + s, t * 3.)) - .5) * .4, ln = .35 + .65 * h21(vec2(ci, s));
-      float line = (1. - smoothstep(.18, .5, abs(cx - .5 + wob))) * (1. - smoothstep(ln * .45, ln, t)) * step(.25, h21(vec2(ci + 7., s)));
-      float side = smoothstep(0., .2, x) * smoothstep(1., .8, x);
-      float a = clamp(max(line * .85, (1. - smoothstep(0., .35, t)) * .5 * side), 0., 1.) * vI.z;
-      vec3 tint = vI.x > .5 ? vec3(.56, .36, .22) : vec3(.5, .48, .45);
-      gl_FragColor = vec4(mix(vec3(1.), tint, a * (1. - smoothstep(70., 150., length(vW - uCam)))), 1.);
-    }` });
+    blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.ZeroFactor, blendDst: T.SrcColorFactor, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
   instanced(g, m, streaks, LY.NOREFL, (t, c) => c === 0 ? t.rust : c === 1 ? t.seed : c === 2 ? t.k : 0, 150).renderOrder = 1;
 }
 // 逃生梯（照紐約與波特蘭的老公寓）：每層一座平台（角鋼框、格柵踏板、外緣與兩端的欄杆與直欄、下面的斜撐），往上一層的斜梯（兩根側板、踏階、扶手）。
@@ -1194,27 +1150,7 @@ cell('LAZARUS_SMALL', 512, 96, (c, w, h) => { plate(c, w, h, '#050306'); c.font 
 const atlasTex = new T.CanvasTexture(atlas);
 atlasTex.colorSpace = T.SRGBColorSpace; atlasTex.anisotropy = 8; atlasTex.generateMipmaps = true; atlasTex.minFilter = T.LinearMipmapLinearFilter;
 
-const SIGN_VS = /* glsl */`
-attribute vec4 aS;
-varying vec3 vW; varying vec2 vUv; varying vec4 vS;
-void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vUv = uv; vS = aS; gl_Position = projectionMatrix * viewMatrix * w; }`;
-const SIGN_FS = /* glsl */`
-${GL_LIB}
-uniform sampler2D tAtlas;
-varying vec3 vW; varying vec2 vUv; varying vec4 vS;
-void main(){
-  if (vW.y < uClipY) discard;
-  vec3 t = texture2D(tAtlas, vUv).rgb;
-  float k = vS.y;                       // 0 穩定、1 壞掉在閃、2 全息掃描
-  float fl = 1.;
-  if (k > .5 && k < 1.5) fl = step(.22, n2(vec2(uTime*9., vS.x*40.))) * (.7 + .3*n2(vec2(uTime*30., vS.x)));
-  if (k > 1.5) fl = .75 + .25*sin(vW.y*40. - uTime*6.) + .2*step(.96, n2(vec2(uTime*4., vS.x)));
-  if (k > 2.5) fl *= .55 + .45*sin(uBeat*6.2832);
-  float lum = dot(t, vec3(.3,.5,.2));
-  vec3 c = t * t * (vS.z) * fl + t * .03;
-  gl_FragColor = vec4(applyFog(c, vW), 1.);
-}`;
-const MAT_SIGN = new T.ShaderMaterial({ name: 'sign', uniforms: { ...shared(ALLU), tAtlas: { value: atlasTex } }, vertexShader: SIGN_VS, fragmentShader: SIGN_FS, side: T.DoubleSide });
+const MAT_SIGN = new T.ShaderMaterial({ name: 'sign', uniforms: { ...shared(ALLU), tAtlas: { value: atlasTex } }, side: T.DoubleSide });
 const signGeo = { p: [], uv: [], s: [], idx: [] };
 const signLights = [];  // {x,y,z,col,r,i}
 // 物理檢查（note.com 那篇的「招牌埋在燈籠裡」）：招牌（含立式招牌、場館門面的招牌）蓋住的牆面外掛物藏起來。
@@ -1340,30 +1276,11 @@ const holo = new T.Group();
     p.setZ(i, z + (nose + brow) * front * 1.6);
   }
   g.computeVertexNormals();
-  const HOLO_FS = /* glsl */`
-  ${GL_LIB}
-  varying vec2 vUv; varying vec3 vW, vN;
-  void main(){
-    float lat = smoothstep(.08, 0., abs(fract(vUv.y*26.) - .5) - .38);
-    float lon = smoothstep(.08, 0., abs(fract(vUv.x*36.) - .5) - .38);
-    float scan = .55 + .45*sin(vW.y*18. - uTime*5.);
-    float glitch = step(.93, n2(vec2(floor(vW.y*6.), uTime*3.)));
-    vec3 v = normalize(uCam - vW);
-    float rim = pow(1. - abs(dot(normalize(vN), v)), 2.);
-    float a = (max(lat, lon) * .9 + rim * .5 + .06) * scan * (1. - glitch*.7);
-    gl_FragColor = vec4(vec3(.45,1.,1.15) * a * 1.4, 1.);
-  }`;
-  const HOLO_VS = /* glsl */`
-  varying vec2 vUv; varying vec3 vW, vN;
-  void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
-  const hm = new T.ShaderMaterial({ name: 'holo', uniforms: shared(ALLU), vertexShader: HOLO_VS, fragmentShader: HOLO_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+  const hm = new T.ShaderMaterial({ name: 'holo', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
   holo.add(new T.Mesh(g, hm));
   // 投影光束
   const bg = new T.CylinderGeometry(1.4, .2, 3.4, 20, 1, true); bg.translate(0, -2.9, 0);
-  const bm = new T.ShaderMaterial({ name: 'holoBeam', uniforms: shared(ALLU), vertexShader: HOLO_VS, fragmentShader: `${GL_LIB}
-    varying vec2 vUv; varying vec3 vW, vN;
-    void main(){ float a = (1. - vUv.y) * .25 * (.7 + .3*sin(vUv.x*60. + uTime*3.)); gl_FragColor = vec4(vec3(.4,1.,1.1)*a, 1.); }`,
-    transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+  const bm = new T.ShaderMaterial({ name: 'holoBeam', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
   holo.add(new T.Mesh(bg, bm));
 }
 // 放在 9 St 與 Bishop Av 路口西北角的樓上
@@ -1404,77 +1321,18 @@ const vents = [];
   }
   vents.push(V3(avX(1) + 3, 0, stZ(3) - 20), V3(avX(2) - 3, 0, stZ(3) + 31 - 62));
 }
-const STEAM_VS = /* glsl */`
-${GL_LIB}
-attribute float aPh;
-varying float vT, vA; varying vec2 vQ; varying vec3 vL, vW;
-void main(){
-  vec3 c0 = (instanceMatrix * vec4(0,0,0,1)).xyz;
-  float t = fract(uTime * .16 + aPh);
-  vec3 c = c0 + vec3(sin(aPh*40.)*.5*t + t*1.8, .2 + t*6.5, cos(aPh*30.)*.5*t);
-  float s = .7 + t*3.2;
-  vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
-  vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
-  vec3 w = c + (right*position.x + up*position.y) * s;
-  vT = t; vQ = position.xy; vW = w; vA = aPh;
-  mat3 lg = lampGrid(c, normalize(uCam - c), normalize(uCam - c), 4.), pl = pointLights(c, normalize(uCam - c), normalize(uCam - c), 4.);
-  vec3 dif = lg[0] + pl[0];
-  vL = dif + uAmbTop*1.5 + uSunCol*.4;
-  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
-}`;
-const STEAM_FS = /* glsl */`
-${GL_LIB}
-varying float vT, vA; varying vec2 vQ; varying vec3 vL, vW;
-void main(){
-  float r = length(vQ) * 2.;
-  float nn = fbm(vQ*2.2 + vec2(vA*9., -uTime*.4));
-  float a = smoothstep(1., .2, r + nn*.5) * vT * (1. - vT) * 2.4 * .3;
-  a *= smoothstep(.8, 4., length(vW - uCam));
-  gl_FragColor = vec4(applyFog(vL * .55 + vec3(.03), vW), a);
-}`;
 {
   const g = new T.PlaneGeometry(1, 1);
   const list = []; const ph = [];
   for (const v of vents) for (let k = 0; k < 10; k++) { list.push({ x: v.x, y: 0, z: v.z }); ph.push(k / 10 + Math.random() * .05); }
   g.setAttribute('aPh', new T.InstancedBufferAttribute(new Float32Array(ph), 1));
-  const m = instanced(g, new T.ShaderMaterial({ name: 'steam', uniforms: shared(ALLU), vertexShader: STEAM_VS, fragmentShader: STEAM_FS, transparent: true, depthWrite: false }), list, LY.NOREFL);
+  const m = instanced(g, new T.ShaderMaterial({ name: 'steam', uniforms: shared(ALLU), transparent: true, depthWrite: false }), list, LY.NOREFL);
   m.frustumCulled = false;
 }
 
 // ─── 雨：圍著相機的一大箱雨絲，依相對速度拉長，被路燈照亮 ───
 const RAIN_N = LOW ? 3600 : 9000;
 const rainU = { uVel: { value: V3() }, uIn: { value: 0 } };
-const RAIN_VS = /* glsl */`
-${GL_LIB}
-uniform vec3 uVel;
-attribute vec4 aR; attribute vec2 aC;
-varying vec2 vC; varying vec3 vL; varying float vF;
-void main(){
-  vec3 box = vec3(34., 22., 34.);
-  float sp = 10. + aR.w * 4.;
-  vec3 base = aR.xyz * box; base.y -= uTime * sp; base.x += uTime * 1.6;
-  vec3 cp = uCam - vec3(box.x*.5, 7., box.z*.5);
-  vec3 p = mod(base - cp, box) + cp;
-  vec3 vel = vec3(1.6, -sp, .3) - uVel;
-  vec3 dir = normalize(vel);
-  float len = .45 + length(vel) * .028;
-  vec3 tc = normalize(p - uCam);
-  vec3 side = normalize(cross(dir, tc)) * (.008 + length(p - uCam)*.0011);
-  vec3 w = p + dir * len * aC.y + side * aC.x;
-  vC = aC;
-  mat3 lg = lampGrid(p, -tc, -tc, 8.), pl = pointLights(p, -tc, -tc, 8.);
-  vec3 dif = lg[0] + pl[0], spc = lg[1] + pl[1];
-  vL = dif * .5 + spc * .4 + uFogHi * .7 + uFlash * .8;
-  vF = exp(-length(p - uCam) * .045) * uRain;
-  vF *= 1. - smoothstep(-.3, .3, textureLod(uHMap, (p.xz - uHM.xy) * uHM.z, 0.).r - p.y);   // 22-hmap.js 的高度圖：橋面、雨棚、屋簷底下沒有雨絲
-  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
-}`;
-const RAIN_FS = /* glsl */`
-varying vec2 vC; varying vec3 vL; varying float vF;
-void main(){
-  float a = (1. - abs(vC.x)) * vC.y * (1. - vC.y) * 4.;
-  gl_FragColor = vec4(vL * a * vF * .55, 1.);
-}`;
 const rainMesh = (() => {
   const g = new T.BufferGeometry();
   const pos = new Float32Array(RAIN_N * 4 * 3), aR = new Float32Array(RAIN_N * 4 * 4), aC = new Float32Array(RAIN_N * 4 * 2), idx = new Uint32Array(RAIN_N * 6);
@@ -1487,7 +1345,7 @@ const rainMesh = (() => {
   g.setAttribute('position', new T.BufferAttribute(pos, 3));
   g.setAttribute('aR', new T.BufferAttribute(aR, 4)); g.setAttribute('aC', new T.BufferAttribute(aC, 2));
   g.setIndex(new T.BufferAttribute(idx, 1));
-  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'rain', uniforms: { ...shared(ALLU), ...rainU }, vertexShader: RAIN_VS, fragmentShader: RAIN_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'rain', uniforms: { ...shared(ALLU), ...rainU }, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 5;
   scene.add(m);
   return m;
@@ -1505,31 +1363,7 @@ const splashMesh = (() => {
   g.setAttribute('position', new T.BufferAttribute(new Float32Array(SPLASH_N * 12), 3));
   g.setAttribute('aR', new T.BufferAttribute(aR, 4)); g.setAttribute('aC', new T.BufferAttribute(aC, 2));
   g.setIndex(new T.BufferAttribute(idx, 1));
-  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'splash', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending,
-    vertexShader: `${GL_LIB}
-    attribute vec4 aR; attribute vec2 aC;
-    varying vec2 vC; varying float vT; varying vec3 vL;
-    void main(){
-      float box = 26.;
-      float cyc = floor(uTime * 2.2 + aR.w * 7.);
-      vec2 rr = fract(aR.xy + vec2(h11(cyc + aR.z*91.), h11(cyc*1.3 + aR.z*37.)));
-      vec3 c = vec3(uCam.x + (rr.x - .5)*box, 0., uCam.z + (rr.y - .5)*box);
-      float X0=uCity.x, Z0=uCity.y, P=uCity.z, Q=uCity.w;
-      vec2 r0 = c.xz - uZone.xy, l = vec2(r0.x*uZone.z - r0.y*uZone.w, r0.x*uZone.w + r0.y*uZone.z);   // 換到相機所在區的邏輯座標
-      float dx = abs(l.x - (X0 + floor((l.x-X0)/P + .5)*P)), dz = abs(l.y - (Z0 + floor((l.y-Z0)/Q + .5)*Q));
-      c.y = (dx > 8. && dz > 8.) ? .16 : .01;
-      vT = fract(uTime * 2.2 + aR.w * 7.);
-      vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
-      float s = .05 + vT * .12;
-      vec3 w = c + right * aC.x * s + vec3(0., aC.y * s * 1.3, 0.);
-      vC = aC;
-      vec3 tc = normalize(uCam - c); mat3 lg = lampGrid(c + vec3(0,.3,0), tc, tc, 8.); vec3 dif = lg[0];
-      vL = (dif * .6 + uFogHi) * uRain * exp(-length(c - uCam)*.06);
-      vL *= 1. - smoothstep(1.3, 2.4, textureLod(uHMap, (c.xz - uHM.xy) * uHM.z, 0.).r - c.y);   // 頭上有遮的地方沒有水花（同 10-city.js 的 rainCover）
-      gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.);
-    }`,
-    fragmentShader: `varying vec2 vC; varying float vT; varying vec3 vL;
-    void main(){ vec2 q = vec2(vC.x, vC.y*2. - 1.); float r = length(q); float a = smoothstep(.15, 0., abs(r - .7)) * step(vC.y, .55) * (1. - vT); gl_FragColor = vec4(vL * a * .9, 1.); }` }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'splash', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
   m.frustumCulled = false; m.layers.set(LY.NOREFL); m.renderOrder = 5;
   scene.add(m);
   return m;
@@ -1538,39 +1372,7 @@ const splashMesh = (() => {
 // ─── 天空：夜裡低垂的雲被城市燈光從下方照亮（雲散了看得到星星與月亮），白天是藍天、太陽與被照亮的雲（28-sky.js 給顏色） ───
 const sky = (() => {
   const g = new T.SphereGeometry(900, 32, 16);
-  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'sky', uniforms: shared(ALLU), side: T.BackSide, depthWrite: false,
-    vertexShader: `varying vec3 vD; void main(){ vD = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.); gl_Position = p.xyww; }`,
-    fragmentShader: `${GL_LIB}
-    varying vec3 vD;
-    void main(){
-      vec3 d = normalize(vD);
-      vec2 q = d.xz / max(d.y + .08, .05);
-      float cl = fbm(q * .5 + vec2(uTime*.01, uTime*.004));
-      float cl2 = fbm(q * 1.3 - vec2(uTime*.015, 0.));
-      float h = clamp(d.y, 0., 1.);
-      float dens = smoothstep(1. - uCloud, 1.25 - uCloud * .8, cl + cl2 * .45);   // 雲量：uCloud 1 是整片低雲
-      // 夜
-      vec3 glow = mix(uFogHi * 2.2, uFogCol * .6, smoothstep(0., .5, h));
-      vec3 overcast = glow * (.55 + .7*cl*cl2);
-      vec3 clear = mix(uFogHi * 1.5, vec3(.003, .005, .012), smoothstep(0., .45, h));
-      vec2 sc = vec2(atan(d.z, d.x) * 140., asin(h) * 140.);
-      // 城市光害下只剩最亮的幾百顆（原本 pow(h, 60) 整片七千顆像天文館），亮度差很多、多半很暗，低空被天光吃掉
-      float hs = h21(floor(sc)), star = pow(smoothstep(.9982, 1., hs), 2.) * smoothstep(.3, .06, length(fract(sc) - .5)) * (.75 + .25*sin(uTime*3. + h21(floor(sc) + 3.)*40.));
-      clear += vec3(.85, .88, 1.) * star * 2.2 * smoothstep(.25, .75, h) * smoothstep(-.08, -.22, uSun.y);   // 天全黑了才看得到星星
-      float md = dot(d, uMoon);
-      clear += vec3(1., .96, .86) * (smoothstep(.99955, .9997, md) * 2.2 + pow(max(md, 0.), 80.) * .12) * step(0., uMoon.y);
-      vec3 night = mix(clear, overcast, dens);
-      // 白天
-      float sd = max(dot(d, uSun), 0.);
-      vec3 day = mix(uSkyHor, uSkyTop, pow(h, .55));
-      day += uSunCol * (smoothstep(.99962, .9998, sd) * 20. + pow(sd, 14.) * .22 + pow(sd, 3.) * .05);
-      vec3 cloud = (uSkyHor * .85 + uSkyTop * .2 + uSunCol * .32 * (.6 + .6*cl2)) * (.72 + .4*cl2);
-      day = mix(day, cloud, dens * .96);
-      vec3 c = mix(night, day, uDay);
-      c += vec3(.75,.8,1.) * uFlash * (.6 + cl) * 1.6;
-      if (d.y < 0.) c = uFogCol;
-      gl_FragColor = vec4(c, 1.);
-    }` }));
+  const m = new T.Mesh(g, new T.ShaderMaterial({ name: 'sky', uniforms: shared(ALLU), side: T.BackSide, depthWrite: false }));
   m.renderOrder = -10; m.frustumCulled = false;
   scene.add(m);
   return m;

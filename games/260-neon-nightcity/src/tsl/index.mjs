@@ -1,5 +1,5 @@
-// 自動產生（node tools/gen-tsl.mjs），不要手改：改 GLSL 之後重跑產生器
-// 02-gfx.js 的 gfxAuto 照「材質名字＋defines 的形狀」取用，GLSL 的雜湊對不上就退回執行期轉譯（__nc.gfx.gen() 列出）
+// 材質的 TSL（原本由已刪除的 tools/gen-tsl.mjs 從 GLSL 轉出，現在是著色器的原始碼，直接改這裡）
+// 02-gfx.js 的 gfxAuto 照「材質名字＋defines 的形狀」取用，沒有的畫替代材質（__nc.gfx.gen() 列出）
 import LIB from './lib.mjs';
 import m0 from './m-carShadow.mjs';
 import m1 from './m-char.mjs';
