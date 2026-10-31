@@ -41,6 +41,8 @@ const MAP_CAT = [
   { id: 'ramen', name: '拉麵攤', col: '#ff7a52', icon: 'ramen' },
   { id: 'shop', name: '便利商店', col: '#5ad8ff' },
   { id: 'ramp', name: '特技跳台', col: '#d9b42a', icon: 'ramp' },
+  { id: 'pit', name: '賽道維修區', col: '#e8dcc4', icon: 'garage' },
+  { id: 'view', name: '展望台', col: '#9ad0a0' },
   { id: 'crane', name: '塔吊', col: '#ffd23a' },
   { id: 'metro', name: '地鐵站', col: '#3ad06a' },
   { id: 'wear', name: '服裝店', col: '#f0c890' },
@@ -79,7 +81,9 @@ function mapBlips() {
   metroBlips(add);   // 69-v9-metro.js：地鐵站入口
   wearBlips(add);   // 69-wear.js：服裝店
   drainBlips(add);   // 69-v9-drain.js：排水口與人孔
+  outBlips(add);   // 紐柏林的維修區、榛嶺的展望台
   for (const r of RAMPS) { const done = motors.stunts.includes(r.i); add('ramp', { name: `特技跳台 #${r.i + 1}`, x: r.x, z: r.z, type: '特技跳台', done, rows: [['狀態', done ? '已完成' : '未完成（首次加倍獎金）']], desc: '加速衝上跳台，落地前在空中翻滾可以拿加成。' }); }
+  for (const b of B) [b.mx, b.mz] = mapIn(b.x, b.z);   // 大地圖上的位置（紐柏林在縮小的插圖裡）；導航與距離照 x, z
   return B;
 }
 
@@ -88,7 +92,10 @@ const MV = { cx: 0, cz: 0, zoom: 1, tx: 0, tz: 0, tzoom: 1, dirty: true, blips: 
 // 平移、縮放的限制是小地圖底圖的範圍（90-hud.js 的 MAP_BB，世界座標）
 const MAP_BOUNDS = (() => {   // 底圖的範圍再加上機場（21-air.js；不在預先畫好的底圖裡，地圖即時畫）
   const B = { ...MAP_BB };
-  if (MAP_AIR) for (const [x, z] of MAP_AIR.isl) { B.x0 = Math.min(B.x0, x - 120); B.x1 = Math.max(B.x1, x + 120); B.z0 = Math.min(B.z0, z - 120); B.z1 = Math.max(B.z1, z + 120); }
+  const add = (x, z, m) => { B.x0 = Math.min(B.x0, x - m); B.x1 = Math.max(B.x1, x + m); B.z0 = Math.min(B.z0, z - m); B.z1 = Math.max(B.z1, z + m); };
+  if (MAP_AIR) for (const [x, z] of MAP_AIR.isl) add(x, z, 120);
+  for (const P of HILL.paths || []) for (let i = 0; i < P.length; i += 8) add(P[i][0], P[i][1], 300);   // 外緣山路與榛嶺
+  if (NBR) for (const [x, z] of [[NBR.x0, AIR.isl.z1], [NBR.x1, AIR.isl.z1], [NBR.x0, NBR.z1], [NBR.x1, NBR.z1]]) { const [X, Z] = toW(x, z, SEA_FR), I = MAP_INS; add(I ? I.ax + I.s * (X - I.ax) : X, I ? I.az + I.s * (Z - I.az) : Z, 0); }   // 紐柏林（SEA_FR 的矩形；大地圖上是縮小的插圖，90-hud.js 的 MAP_INS）
   return B;
 })();
 const mapDpr = () => Math.min(devicePixelRatio || 1, 2);
@@ -127,8 +134,45 @@ const MAP_LABELS = (() => {
     { zh: '倫敦城', en: 'LONDON CITY', x: FAR_BANK_X - 260, z: FAR_Z1 - 520 });
   const air = AIR_L ? [{ zh: AIR.name, en: AIR.en.toUpperCase(), ...WP(...airW(AIR_L.term.x, AIR_L.term.z - 90), null) }] : [];   // 機場是 SEA_FR 座標框（21-air.js）
   return [...L.map(o => ({ ...o, ...WP(o.x, o.z) })), { zh: '北嶺公園', en: 'NORTH RIDGE PARK', ...parkW(0, (NPARK.walk.z0 + NPARK.walk.z1) / 2) }, ...air,   // 上面是邏輯座標，畫的時候用世界座標；北嶺公園是它自己的座標框（10-city.js）
-    ...(ENC ? [{ zh: ENC.name, en: ENC.en.toUpperCase(), ...WP(60, -130, ENC.f) }] : [])];   // 雲梯城寨（28-enclave.js，ENC.f 框座標）
+    ...(ENC ? [{ zh: ENC.name, en: ENC.en.toUpperCase(), ...WP(60, -130, ENC.f) }] : []),   // 雲梯城寨（28-enclave.js，ENC.f 框座標）
+    ...outLabels()];
 })();
+
+// ─── 城外：榛嶺、山坡別墅區、紐柏林（路與地在 90-hud.js 的 mapOut，導航在 69-gps.js 的 XG）───
+function nbrW(x, z) { return toW(x, z, SEA_FR); }   // 函式宣告：上面 MAP_LABELS 開場就用到
+function ptsMid(P) { let x = 0, z = 0; for (const p of P) { x += p[0]; z += p[1]; } return [x / P.length, z / P.length]; }
+function outLabels() {
+  const L = [];
+  if (AKINA) L.push({ zh: '榛嶺', en: 'MT. HARUNA', x: AKINA.x, z: AKINA.z });
+  for (const g of HILL_VIL.groups) if (g.length >= 3) { const [x, z] = ptsMid(g.map(h => [h.x, h.z])); L.push({ zh: '山坡別墅區', en: 'HILLSIDE VILLAS', x, z }); }
+  if (NBR) {
+    const [nx, nz] = ptsMid(NBR.ns.p), [gx, gz] = ptsMid(NBR.gp.p);
+    const [ax, az] = mapIn(...nbrW(nx, nz)), [bx, bz] = mapIn(...nbrW(gx, gz - 260));   // 插圖裡的位置
+    L.push({ zh: '紐柏林北環', en: 'NORDSCHLEIFE', x: ax, z: az }, { zh: '紐柏林 GP', en: 'GP-STRECKE', x: bx, z: bz });
+  }
+  return L;
+}
+// 北環與 GP 的彎道名（09-nbr-dem.js 的 names：[起點, 名字]），標在那一段的中點
+const MAP_CORNERS = NBR ? [NBR.ns, NBR.gp].flatMap(T => T.names.map(([k, nm], i) => { const k1 = i + 1 < T.names.length ? T.names[i + 1][0] : T.p.length, q = T.p[Math.min(T.p.length - 1, (k + k1) >> 1)]; const [x, z] = nbrW(q[0], q[1]), [mx, mz] = mapIn(x, z); return { nm, x, z, mx, mz }; })) : [];   // x, z 是世界、mx, mz 是插圖裡的位置
+function nbrCorner(X, Z) {
+  let best = null, bd = 90 ** 2;
+  for (const c of MAP_CORNERS) { const d = (c.x - X) ** 2 + (c.z - Z) ** 2; if (d < bd) { bd = d; best = c; } }
+  return best && best.nm;
+}
+function outBlips(add) {
+  if (NBR) { const B = nbrPitBld(); if (B) { const t = (B.t0 + B.t1) / 2, f = (B.f0 + B.f1) / 2, [x, z] = nbrW(B.A[0] + B.ux * t + B.nx * f, B.A[1] + B.uz * t + B.nz * f); add('pit', { name: '紐柏林維修車間', x, z, type: '維修區', desc: '紐柏林 GP 維修道旁的 22 間車間：開到車間門口停下按 E 換胎（約 2.6 秒，破胎修好）。' }); } }
+  const objs = AKINA && AKINA.osm && AKINA.osm.objs || [];
+  for (const o of objs) if (o.kind === 'view') add('view', { name: o.name || '榛嶺展望台', txt: '眺', x: o.x, z: o.z, type: '展望台', desc: '榛嶺山道旁的展望台與解說牌。' });
+}
+// 羅盤下的路名（90-hud.js 的 streetName，城外）：紐柏林照最近的彎道名，山路照路的種類
+function outStreet(X, Z) {
+  if (NBR && nbrIn(X, Z)) return nbrCorner(X, Z) || 'Nürburgring';
+  const p = xgProject(X, Z, 32, 64);
+  if (p && p.d < 30) return p.e.src === 'akina' ? 'Mt. Haruna Pass' : p.e.src === 'hill' ? 'Hillside Villas' : p.e.src === 'air' ? AIR.en : null;
+  return AKINA && akinaIn(X, Z) ? 'Mt. Haruna' : null;
+}
+// 地圖上的地區名（資訊卡用）：城外照 mapPlaceName，城裡照 districtW
+const mapArea = (X, Z) => inCity(X, Z) ? districtW(X, Z).split(' ')[0] : mapPlaceName(X, Z).split(' · ')[0].split(' / ')[0];
 
 // ─── 繪製 ───
 const MAPC = { water: '#1d2a33', land: '#202020', grass: '#1f261c', far: '#1b1d1e', road: '#8a8a8a', walk: '#3c3c3c', block: '#191919', lot: '#272727', lotEdge: '#323232', park: '#243022', trail: '#7a6446', beach: '#4a4333', quay: '#2a2a2a', pier: '#4a3d2e', isle: '#222b1e' };
@@ -143,7 +187,18 @@ function mapDraw() {
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = MAPC.water; c.fillRect(0, 0, W, H);
   const visB = bb => vis(bb[0], bb[1], bb[2], bb[3]);
-  drawCity(c, (x, z) => [X(x), Z(z)], k, MAPC, visB, k > .8 ? L => L.special ? '#3a2a36' : MAPC.lot : null, null);   // 90-hud.js；拉遠時只畫街廓，不畫一棟棟的地塊
+  const view = [vx0, vx1, vz0, vz1], PW = (x, z) => [X(x), Z(z)];
+  outMapBase(c, PW, view, true);   // 90-hud.js：城外的地形（榛嶺北端、紐柏林的插圖）
+  drawCity(c, PW, k, MAPC, visB, k > .8 ? L => L.special ? '#3a2a36' : MAPC.lot : null, null);   // 90-hud.js；拉遠時只畫街廓，不畫一棟棟的地塊
+  outMapRoads(c, PW, k, MAPC, view, true);   // 外緣山路與別墅、榛嶺、紐柏林的賽道、村道與房子
+  if (MAP_INS) {   // 插圖的外框與比例說明（框照 SEA_FR 轉）
+    const I = MAP_INS, Q = [[NBR.x0, AIR.isl.z1], [NBR.x1, AIR.isl.z1], [NBR.x1, NBR.z1], [NBR.x0, NBR.z1]].map(([x, z]) => { const [X2, Z2] = nbrW(x, z); return [X(I.ax + I.s * (X2 - I.ax)), Z(I.az + I.s * (Z2 - I.az))]; });
+    c.strokeStyle = 'rgba(236,232,224,.28)'; c.lineWidth = 1.5 * dpr; c.setLineDash([6 * dpr, 5 * dpr]);
+    c.beginPath(); Q.forEach(([a, b], n) => n ? c.lineTo(a, b) : c.moveTo(a, b)); c.closePath(); c.stroke(); c.setLineDash([]);
+    const [tx, ty] = Q.reduce((m, q) => q[0] + q[1] < m[0] + m[1] ? q : m);   // 左上的角裡面：比例說明
+    c.font = `600 ${11 * dpr}px system-ui`; c.textAlign = 'left'; c.fillStyle = 'rgba(236,232,224,.6)';
+    c.fillText(`紐柏林插圖 · 縮小為 ${Math.round(I.s * 100)}%`, tx + 8 * dpr, ty + 16 * dpr); c.textAlign = 'center';
+  }
   if (k > 2.4) {   // 車道中線（放大時）
     c.strokeStyle = 'rgba(40,40,40,.55)'; c.lineWidth = Math.max(1, k * .2); c.setLineDash([3 * dpr, 3 * dpr]);
     for (const e of RN.edges) {
@@ -183,19 +238,23 @@ function mapDraw() {
       c.save(); c.translate(X(x), Z(z)); c.rotate(a); c.fillText(nm.toUpperCase(), 0, 0); c.restore();
     }
   }
+  if (MV.zoom > .85 && MAP_CORNERS.length) {   // 紐柏林的彎道名
+    c.fillStyle = `rgba(232,220,196,${clamp((MV.zoom - .85) / .3, 0, 1) * .8})`; c.font = `600 ${10 * dpr}px system-ui`; c.shadowBlur = 3 * dpr;
+    for (const o of MAP_CORNERS) if (vis(o.mx, o.mx, o.mz, o.mz)) c.fillText(o.nm, X(o.mx), Z(o.mz) - 10 * dpr);
+  }
   c.shadowBlur = 0;
   // 導航路線、運鈔車、幫派與傭兵（各模組的大地圖函式，尺寸除以 s 所以傳 1/dpr）
   const s = 1 / dpr;
-  gpsBig(c, X, Z, s);
+  gpsBig(c, X, Z, s, mapIn);   // 紐柏林那段畫在插圖裡
   evBig(c, X, Z, s);
   squadBig(c, X, Z, s);
   sideBig(c, X, Z, s);
   // 地點圖示
   const sz = (MV.zoom > 2.5 ? 24 : 20) * dpr;
   MV.blips.forEach((b, i) => {
-    if (!vis(b.x, b.x, b.z, b.z)) return;
+    if (!vis(b.mx, b.mx, b.mz, b.mz)) return;
     if (b.cat === 'ramp' && MV.zoom < .9 && i !== MV.sel) return;   // 拉很遠時跳台太密，只畫選中的
-    const x = X(b.x), y = Z(b.z), col = b.col || MAP_CATS[b.cat].col, sel = i === MV.sel;
+    const x = X(b.mx), y = Z(b.mz), col = b.col || MAP_CATS[b.cat].col, sel = i === MV.sel;
     if (sel) {
       const pr = sz * (.85 + .1 * Math.sin(performance.now() / 180));
       c.fillStyle = 'rgba(236,232,224,.18)'; c.beginPath(); c.arc(x, y, pr, 0, 7); c.fill();
@@ -219,8 +278,8 @@ function mapDraw() {
     }
   });
   // 自己：白色箭頭，指向面朝的方向
-  const me = mapPlayer(), yaw = player.where === 'out' ? (player.mode === 'drive' ? player.veh.yaw : player.yaw) : 0;
-  c.save(); c.translate(X(me.x), Z(me.z)); c.rotate(-yaw + Math.PI);
+  const me = mapPlayer(), yaw = player.where === 'out' ? (player.mode === 'drive' ? player.veh.yaw : player.yaw) : 0, [mex, mez] = mapIn(me.x, me.z);
+  c.save(); c.translate(X(mex), Z(mez)); c.rotate(-yaw + Math.PI);
   c.beginPath(); c.moveTo(0, -11 * dpr); c.lineTo(8 * dpr, 9 * dpr); c.lineTo(0, 5 * dpr); c.lineTo(-8 * dpr, 9 * dpr); c.closePath();
   c.lineWidth = 3 * dpr; c.strokeStyle = 'rgba(0,0,0,.8)'; c.stroke(); c.fillStyle = '#ffffff'; c.fill();
   c.restore();
@@ -230,12 +289,13 @@ function mapDraw() {
     c.beginPath(); c.moveTo(0, MV.my * dpr + .5); c.lineTo(W, MV.my * dpr + .5); c.moveTo(MV.mx * dpr + .5, 0); c.lineTo(MV.mx * dpr + .5, H); c.stroke();
   }
   // 比例尺、游標所在地名
-  const steps = [25, 50, 100, 200, 250, 500, 1000, 2000];
-  const d = steps.find(m => m * MV.zoom >= 70) || 2000;
-  $('mapBar').style.width = `${Math.round(d * MV.zoom)}px`;
+  const steps = [25, 50, 100, 200, 250, 500, 1000, 2000, 5000];
+  const cw = mapInInv(MV.cx, MV.cz), zs = MV.zoom * (cw && MAP_INS && MAP_INS.inW(...cw) ? MAP_INS.s : 1);   // 畫面中心在紐柏林插圖裡：比例尺照真實距離
+  const d = steps.find(m => m * zs >= 70) || 5000;
+  $('mapBar').style.width = `${Math.round(d * zs)}px`;
   setText('mapScaleT', IMPERIAL() ? fmtDist(d) : d >= 1000 ? `${d / 1000} km` : `${d} m`);
-  const w = MV.mx >= 0 && !isTouch ? mapToWorld(MV.mx, MV.my) : { x: MV.cx, z: MV.cz };
-  setText('mapLoc', mapPlaceName(w.x, w.z));
+  const w = MV.mx >= 0 && !isTouch ? mapToWorld(MV.mx, MV.my) : { x: MV.cx, z: MV.cz }, wr = mapInInv(w.x, w.z);   // 插圖裡換回世界座標
+  setText('mapLoc', wr ? mapPlaceName(...wr) : '外海');
 }
 function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在區的邏輯座標
   const h = capeAt(X, Z); if (h) return h.name.split(' ')[0];
@@ -244,6 +304,9 @@ function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在
   if (fx < FAR_BANK_X && fz < FAR_Z1) return '倫敦城 · 灰鷺河對岸';
   if (!inCity(X, Z)) {
     if (airLandW(X, Z)) return AIR.name;
+    if (NBR && nbrIn(X, Z)) { const c = nbrCorner(X, Z); return '紐柏林' + (c ? ` / ${c}` : ''); }
+    if (AKINA && akinaIn(X, Z)) return '榛嶺';
+    { const p = xgProject(X, Z, 64, 128); if (p && p.d < 60 && (p.e.src === 'hill' || p.e.src === 'akina')) return p.e.src === 'akina' ? '榛嶺' : '山坡別墅區'; }
     if (encHas(X, Z)) { const [ex, ez] = encL(X, Z), st = ENC.S.streets.find(s => ex > s.x0 && ex < s.x1 && ez > s.z0 && ez < s.z1); return ENC.name + (st ? ` / ${st.name}` : ''); }
     if (landW(X, Z)) return z > ISLE.z0 - 10 && x > ISLE.x0 - 10 && x < ISLE.x1 + 10 ? '灰鷗島' : zh;
     if (waterDepth(X, Z) > 0) return fz < FAR_Z1 + 40 && fx < RIVER_E + 120 ? '灰鷺河' : '外海';
@@ -258,7 +321,7 @@ function mapCard() {
   if (!b) { el.classList.remove('on'); return; }
   const cat = MAP_CATS[b.cat], col = b.col || cat.col, me = mapPlayer();
   const dist = Math.hypot(b.x - me.x, b.z - me.z);
-  const rows = [['類型', b.type], ['地區', districtW(b.x, b.z).split(' ')[0]], ['距離', fmtDist(dist)], ...(b.rows || [])];
+  const rows = [['類型', b.type], ['地區', mapArea(b.x, b.z)], ['距離', fmtDist(dist)], ...(b.rows || [])];
   const canTp = b.tp && !W.stars && !fading;
   el.style.setProperty('--mc', col);
   el.innerHTML = `<header>${iconSvg(cat.icon, col, b.txt)}<h3>${b.name}<small>${cat.name}</small></h3></header><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${b.desc ? `<p>${b.desc}</p>` : ''}<div class="acts"><button data-a="wp"><kbd>Enter</kbd>${gps.wp && Math.hypot(gps.wp.x - b.x, gps.wp.z - b.z) < 3 ? '取消導航點' : '設為導航點'}</button>${b.tp ? `<button data-a="tp"${canTp ? '' : ' disabled'}><kbd>T</kbd>${canTp ? '傳送' : '通緝中不能傳送'}</button>` : ''}</div>`;
@@ -281,7 +344,7 @@ function mapLegend() {
 function mapSelect(i, fly) {
   MV.sel = i;
   const b = MV.blips[i];
-  if (b && fly) { MV.tx = b.x; MV.tz = b.z; MV.tzoom = Math.max(MV.tzoom, 1.4); mapClampView(); }
+  if (b && fly) { MV.tx = b.mx; MV.tz = b.mz; MV.tzoom = Math.max(MV.tzoom, 1.4); mapClampView(); }
   mapCard(); mapLegend(); MV.dirty = true;
 }
 function mapWp() {
@@ -302,7 +365,7 @@ function toggleMap(on = !$('map').classList.contains('on')) {
   if (document.pointerLockElement) document.exitPointerLock();
   MV.blips = mapBlips();
   const me = mapPlayer();
-  MV.cx = MV.tx = me.x; MV.cz = MV.tz = me.z; MV.zoom = MV.tzoom = 1.25; mapClampView(); MV.zoom = MV.tzoom;
+  { const [x, z] = mapIn(me.x, me.z); MV.cx = MV.tx = x; MV.cz = MV.tz = z; } MV.zoom = MV.tzoom = 1.25; mapClampView(); MV.zoom = MV.tzoom;
   MV.sel = MV.blips.findIndex(b => b.cat === 'mission'); MV.hover = -1; MV.mx = -1;
   mapCard(); mapLegend();
   MV.dirty = true;
@@ -327,7 +390,7 @@ function mapHit(sx, sy) {
   let best = -1, bd = (isTouch ? 22 : 15) ** 2;
   MV.blips.forEach((b, i) => {
     if (b.cat === 'ramp' && MV.zoom < .9) return;
-    const r = bigmap.getBoundingClientRect(), x = (b.x - MV.cx) * MV.zoom + r.width / 2, y = (b.z - MV.cz) * MV.zoom + r.height / 2;
+    const r = bigmap.getBoundingClientRect(), x = (b.mx - MV.cx) * MV.zoom + r.width / 2, y = (b.mz - MV.cz) * MV.zoom + r.height / 2;
     const d = (x - sx) ** 2 + (y - sy) ** 2; if (d < bd) { bd = d; best = i; }
   });
   return best;
@@ -335,9 +398,13 @@ function mapHit(sx, sy) {
 function mapClick(sx, sy) {
   const hit = mapHit(sx, sy);
   if (hit >= 0) { sfx.click(); mapSelect(hit, false); return; }
-  const { x, z } = mapToWorld(sx, sy);
-  { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (zn ? lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR : !seamAt(x, z)) if (!capeAt(x, z)) return; }   // 城裡、區之間的縫或岬角
-  if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14 / Math.max(.5, MV.zoom)) gpsClear(); else gpsSet(x, z);
+  const mw = mapToWorld(sx, sy), wr = mapInInv(mw.x, mw.z); if (!wr) return;   // 紐柏林插圖裡的點換回世界座標；插圖空出來的原本範圍不算
+  const [x, z] = wr, kz = MAP_INS && MAP_INS.inW(x, z) ? MAP_INS.s : 1;   // 插圖裡的容許距離照縮小的比例放寬
+  { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (zn ? lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR : !seamAt(x, z)) if (!capeAt(x, z)) {   // 城裡、區之間的縫或岬角
+    const p = xgProject(x, z, 64, 256);   // 城外：點在路上（69-gps.js 的 XG：山路、榛嶺、堤道、紐柏林的賽道與村道），或在機場、紐柏林的地上
+    if (!(p && p.d < Math.max(30, 16 / MV.zoom / kz)) && !airLandW(x, z) && !(NBR && nbrIn(x, z))) return;
+  } }
+  if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14 / Math.max(.5, MV.zoom) / kz) gpsClear(); else gpsSet(x, z);
   gps.t = 0; gpsUpdate(); mapCard(); MV.dirty = true;
 }
 const mapLocal = e => { const r = bigmap.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -392,9 +459,9 @@ function mapKey(code) {
   if (code === 'KeyT') { mapTp(); return true; }
   if (code === 'Equal' || code === 'NumpadAdd' || code === 'KeyE' || code === 'PageUp') { mapZoomAt(1.35); return true; }
   if (code === 'Minus' || code === 'NumpadSubtract' || code === 'KeyQ' || code === 'PageDown') { mapZoomAt(1 / 1.35); return true; }
-  if (code === 'KeyC') { const me = mapPlayer(); MV.tx = me.x; MV.tz = me.z; mapClampView(); MV.dirty = true; return true; }
+  if (code === 'KeyC') { const me = mapPlayer(); [MV.tx, MV.tz] = mapIn(me.x, me.z); mapClampView(); MV.dirty = true; return true; }
   const n = { Digit1: 'club', Digit2: 'clubIn', Digit3: 'barIn', Digit4: 'garage', Digit5: 'dealer', Digit6: 'home' }[code];
   if (n) { teleport(n); return true; }
   return false;
 }
-const mapApi = { MV, blips: () => MV.blips, select: i => mapSelect(i, true), key: mapKey, zoom: f => mapZoomAt(f), click: mapClick };
+const mapApi = { MV, blips: () => MV.blips, select: i => mapSelect(i, true), key: mapKey, zoom: f => mapZoomAt(f), click: mapClick, toMap: (x, z) => mapIn(x, z), out: () => MAP_OUT && { ms: MAP_OUT.ms, groups: MAP_OUT.groups.length, fill: MAP_OUT.fill.length, ras: MAP_OUT.ras.map(r => [r.cv.width, r.cv.height]) } };

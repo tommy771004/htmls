@@ -103,6 +103,140 @@ function airMapDraw(c, P, k, C) {
   c.fillStyle = C.road; for (const p of M.twy) { path(p, true); c.fill(); } path(M.rwy, true); c.fill();
   c.fillStyle = C.block; for (const p of M.bld) { path(p, true); c.fill(); }
 }
+// ─── 城外的地與路：外緣山路與別墅（HILL.paths、HILL_HOMES）、榛嶺、紐柏林（地形、賽道、進場路、OSM 村道與建築）；導航走的也是這些路（69-gps.js 的 XG）───
+// 第一次用到才建：Path2D 是世界座標（公尺），畫的時候照 P 求出的仿射套上（小地圖的旋轉、縮放照樣乘進去），每 1024 m 一組、照可見範圍挑；
+// 地形是兩張點陣：MAP_GEO 範圍外的山（榛嶺北端，hillH）與紐柏林（SEA_FR 座標的格子，nbrInL＋nbrMeshL，畫的時候再乘 SEA_FR 的框）
+let MAP_OUT = null;
+// 紐柏林在大地圖上是縮小的插圖（使用者：1:1 的紐柏林和城、機場的比例差太多，不協調）：世界裡照舊是 1:1，大地圖上整塊照 MAP_INS.s
+// 以進場路跨過機場島南緣那一點（anchor）縮小，進場路與導航線在那裡接得起來；小地圖照真實比例。
+// mapIn：世界 → 大地圖上的位置（插圖範圍外不變）；mapInInv：反過來，點在插圖空出來的地方（原本的真實範圍）回傳 null
+const MAP_INS = NBR && AIR ? (() => {
+  const z1 = AIR.isl.z1, R = NBR.road.p; let a = R[0];
+  for (let k = 1; k < R.length; k++) if (R[k][1] >= z1) { const p = R[k - 1], q = R[k], t = (z1 - p[1]) / (q[1] - p[1] || 1); a = [p[0] + (q[0] - p[0]) * t, z1]; break; }
+  const [ax, az] = toW(a[0], a[1], SEA_FR), C = NBR.core;
+  // 範圍（SEA_FR）：機場島南緣以南；引道坡那段東緣照坡的寬度（再往東是城南的海與沙灘），本體東西各留一點海崖
+  const inL = (x, z) => { if (z <= z1 || z > NBR.z1 || x < NBR.x0) return false; if (z < C.z0) { const [, e] = nbrApX(nbrApron(), z); return x < e + 60; } return x < C.x1 + 300; };
+  return { s: .35, ax, az, a, inL, inW: (X, Z) => inL(...toL(X, Z, SEA_FR)) };
+})() : null;
+function mapIn(X, Z) { const I = MAP_INS; return I && I.inW(X, Z) ? [I.ax + I.s * (X - I.ax), I.az + I.s * (Z - I.az)] : [X, Z]; }
+function mapInInv(X, Z) {
+  const I = MAP_INS; if (!I) return [X, Z];
+  const P = [I.ax + (X - I.ax) / I.s, I.az + (Z - I.az) / I.s];
+  return I.inW(...P) ? P : I.inW(X, Z) ? null : [X, Z];
+}
+const mapAff = (c, P) => { const [ox, oy] = P(0, 0), [ax, ay] = P(1, 0), [bx, by] = P(0, 1); c.transform(ax - ox, ay - oy, bx - ox, by - oy, ox, oy); };
+const MAP_OUT_ST = {   // 線寬（m）、顏色（配色表的鍵或色碼）、地圖上每公尺幾 px 以上才畫
+  hill: { w: 2 * (HILL.roadHW || 4), c: 'road' }, akina: { w: 2 * (HILL.roadHW || 4), c: 'road' },
+  track: { w: 9.2, c: '#b8b2a4' }, gp: { w: 13.2, c: '#b8b2a4' }, pit: { w: 10, c: '#9a948a' }, nbr: { w: 8, c: 'road' },
+  o0: { w: 7.5, c: 'road' }, o1: { w: 6.5, c: 'road' }, o2: { w: 5.2, c: 'road', k: .25 }, o3: { w: 3.4, c: 'road', k: .7 },
+};
+function mapOut() {
+  if (MAP_OUT) return MAP_OUT;
+  const t0 = performance.now(), G = new Map(), M = MAP_OUT = { groups: [], fill: [], ras: [] };
+  let INS;   // 紐柏林那幾層各建兩份：0 是小地圖（真實比例），1 是大地圖的插圖（mapIn）；山路 undefined 兩邊共用
+  const grp = (st, x, z) => { const key = st + INS + ':' + Math.floor(x / 1024) + ',' + Math.floor(z / 1024); let g = G.get(key); if (!g) { G.set(key, g = { st, ins: INS, S: MAP_OUT_ST[st] || {}, p: new Path2D(), bb: [1e9, -1e9, 1e9, -1e9] }); M.groups.push(g); } return g; };
+  const addLine = (st, pts) => {
+    if (pts.length < 2) return;
+    const g = grp(st, pts[0][0], pts[0][1]);
+    pts.forEach(([x, z], i) => { i ? g.p.lineTo(x, z) : g.p.moveTo(x, z); g.bb[0] = Math.min(g.bb[0], x); g.bb[1] = Math.max(g.bb[1], x); g.bb[2] = Math.min(g.bb[2], z); g.bb[3] = Math.max(g.bb[3], z); });
+  };
+  const addPoly = (key, col, minK, pts) => {   // 填色的多邊形（別墅、紐柏林的房子）：一樣照 1024 m 分組
+    const k2 = key + INS + ':' + Math.floor(pts[0][0] / 1024) + ',' + Math.floor(pts[0][1] / 1024); let g = G.get(k2);
+    if (!g) { G.set(k2, g = { col, minK, ins: INS, p: new Path2D(), bb: [1e9, -1e9, 1e9, -1e9] }); M.fill.push(g); }
+    pts.forEach(([x, z], i) => { i ? g.p.lineTo(x, z) : g.p.moveTo(x, z); g.bb[0] = Math.min(g.bb[0], x); g.bb[1] = Math.max(g.bb[1], x); g.bb[2] = Math.min(g.bb[2], z); g.bb[3] = Math.max(g.bb[3], z); });
+    g.p.closePath();
+  };
+  for (const P of HILL.paths || []) addLine(P.akina ? 'akina' : 'hill', P.map(p => [p[0], p[1]]));
+  for (const h of HILL_HOMES) {   // 平台與房子（局部 → 世界：繞 y 轉 ry）
+    const s = Math.sin(h.ry), c = Math.cos(h.ry), w = (lx, lz) => [h.x + lx * c + lz * s, h.z - lx * s + lz * c], r = (x0, x1, z0, z1) => [w(x0, z0), w(x1, z0), w(x1, z1), w(x0, z1)];
+    if (h.pad) addPoly('pad', 'walk', 0, r(...h.pad));
+    const V = HOME_V[h.v]; if (V) addPoly('home', 'block', 0, r(V[1], V[2], V[3], V[4]));
+  }
+  const W0 = (x, z) => toW(x, z, SEA_FR);
+  if (NBR) for (INS of MAP_INS ? [0, 1] : [0]) {
+    const W = INS ? (x, z) => mapIn(...W0(x, z)) : W0;
+    for (const T of [NBR.ns, NBR.gp]) addLine(T === NBR.gp ? 'gp' : 'track', [...T.p, T.p[0]].map(([x, z]) => W(x, z)));
+    addLine('pit', NBR.pit.p.map(([x, z]) => W(x, z)));
+    addLine('nbr', NBR.road.p.map(([x, z]) => W(x, z)));
+    if (NBR_OSM && NBR_OSM.road) {
+      const B = NBR_OSM.road, cnt = nbB64(B.n, Uint16Array), xz = nbB64(B.xz, Int16Array), kind = nbB64(B.k, Uint8Array);
+      for (let i = 0, o = 0; i < cnt.length; i++) { const n = cnt[i], P = []; for (let j = 0; j < n; j++) P.push(W(NBR_OX - xz[(o + j) * 2] / 2, NBR_OZ - xz[(o + j) * 2 + 1] / 2)); o += n; if (!(kind[i] & 12)) addLine('o' + (kind[i] & 3), P); }
+    }
+    if (NBR_OSM && NBR_OSM.bld) {
+      const B = NBR_OSM.bld, cnt = nbB64(B.n, Uint16Array), xz = nbB64(B.xz, Int16Array);
+      for (let i = 0, o = 0; i < cnt.length; i++) { const n = cnt[i], P = []; for (let j = 0; j < n; j++) P.push(W(NBR_OX - xz[(o + j) * 2] / 2, NBR_OZ - xz[(o + j) * 2 + 1] / 2)); o += n; if (n > 2) addPoly('nbld', 'block', .35, P); }
+    }
+    const PB = nbrPitBld();
+    if (PB) { const q = (t, f) => W(PB.A[0] + PB.ux * t + PB.nx * f, PB.A[1] + PB.uz * t + PB.nz * f); addPoly('nbld', 'block', 0, [q(PB.t0, PB.f0), q(PB.t1, PB.f0), q(PB.t1, PB.f1), q(PB.t0, PB.f1)]); }   // 維修車間大樓
+  }
+  INS = undefined;
+  const W = W0;
+  const shade = (d, o, h) => { const t = Math.min(1, h / 320); d[o] = 34 + 22 * t; d[o + 1] = 37 + 22 * t; d[o + 2] = 42 + 18 * t; d[o + 3] = 255; };   // 同 MAP_GEO 的山
+  // 榛嶺那頭：外緣山路與榛嶺的範圍（加 500 m）裡、MAP_GEO 的地形點陣沒蓋到的格子
+  {
+    const T = MAP_GEO, tx1 = T.tx0 + T.ter.width * T.tS, tz1 = T.tz0 + T.ter.height * T.tS, bb = [1e9, -1e9, 1e9, -1e9];
+    for (const P of HILL.paths || []) for (const p of P) { bb[0] = Math.min(bb[0], p[0]); bb[1] = Math.max(bb[1], p[0]); bb[2] = Math.min(bb[2], p[1]); bb[3] = Math.max(bb[3], p[1]); }
+    if (AKINA) { bb[0] = Math.min(bb[0], AKINA.x - AKINA.Rb); bb[1] = Math.max(bb[1], AKINA.x + AKINA.Rb); bb[2] = Math.min(bb[2], AKINA.z - AKINA.Rb); bb[3] = Math.max(bb[3], AKINA.z + AKINA.Rb); }
+    const S = 16, x0 = bb[0] - 500, z0 = bb[2] - 500, nx = Math.ceil((bb[1] + 500 - x0) / S), nz = Math.ceil((bb[3] + 500 - z0) / S);
+    if (nx > 0 && nz > 0 && (x0 < T.tx0 || z0 < T.tz0 || x0 + nx * S > tx1 || z0 + nz * S > tz1)) {
+      const cv = document.createElement('canvas'); cv.width = nx; cv.height = nz;
+      const cx = cv.getContext('2d'), img = cx.createImageData(nx, nz), d = img.data;
+      for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+        const X = x0 + (i + .5) * S, Z = z0 + (j + .5) * S;
+        if (X > T.tx0 && X < tx1 && Z > T.tz0 && Z < tz1) continue;
+        const h = hillH(X, Z); if (h > SEA_Y) shade(d, (j * nx + i) * 4, h);
+      }
+      cx.putImageData(img, 0, 0);
+      M.ras.push({ cv, x0, z0, S, fr: null, bb: [x0, x0 + nx * S, z0, z0 + nz * S] });
+    }
+  }
+  // 紐柏林：SEA_FR 座標 20 m 一格（從機場島南緣到海崖外）
+  if (NBR) {
+    const S = 20, x0 = NBR.x0, z0 = AIR.isl.z1, nx = Math.ceil((NBR.x1 - x0) / S), nz = Math.ceil((NBR.z1 - z0) / S);
+    const cv = document.createElement('canvas'); cv.width = nx; cv.height = nz;
+    const cx = cv.getContext('2d'), img = cx.createImageData(nx, nz), d = img.data;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+      const x = x0 + (i + .5) * S, z = z0 + (j + .5) * S;
+      if (!nbrInL(x, z)) continue;
+      const h = nbrMeshL(x, z); if (h > SEA_Y) shade(d, (j * nx + i) * 4, h);
+    }
+    cx.putImageData(img, 0, 0);
+    const P = [W(x0, z0), W(x0 + nx * S, z0), W(x0 + nx * S, z0 + nz * S), W(x0, z0 + nz * S)];
+    M.ras.push({ cv, x0, z0, S, fr: SEA_FR, bb: polyBB(P), ins: 1, bbI: polyBB(P.map(([x, z]) => MAP_INS ? [MAP_INS.ax + MAP_INS.s * (x - MAP_INS.ax), MAP_INS.az + MAP_INS.s * (z - MAP_INS.az)] : [x, z])) });
+  }
+  M.ms = Math.round(performance.now() - t0);
+  return M;
+}
+const bbHit = (a, b) => a[1] > b[0] && a[0] < b[1] && a[3] > b[2] && a[2] < b[3];
+// 地形點陣（在城的底圖之前畫）；view 是可見範圍 [x0, x1, z0, z1]（世界座標）
+// big：大地圖（紐柏林畫成縮小的插圖），否則是小地圖（真實比例）
+function outMapBase(c, P, view, big) {
+  const M = mapOut();
+  for (const R of M.ras) {
+    const ins = big && R.ins && MAP_INS;
+    if (!bbHit(ins ? R.bbI : R.bb, view)) continue;
+    c.save(); mapAff(c, P);
+    if (ins) { const I = MAP_INS; c.translate(I.ax, I.az); c.scale(I.s, I.s); c.translate(-I.ax, -I.az); }
+    if (R.fr) { const [ox, oz] = toW(0, 0, R.fr), [ax, az] = toW(1, 0, R.fr), [bx, bz] = toW(0, 1, R.fr); c.transform(ax - ox, az - oz, bx - ox, bz - oz, ox, oz); }
+    c.imageSmoothingEnabled = true; c.drawImage(R.cv, R.x0, R.z0, R.cv.width * R.S, R.cv.height * R.S);
+    c.restore();
+  }
+}
+// 路、賽道、房子（在城的底圖之後畫）；k 是每公尺幾個裝置 px（線太細時撐到 1.2 px）
+// 插圖裡的路寬與「放大到多少才畫」照縮小後的比例（ks = k × s）
+function outMapRoads(c, P, k, C, view, big) {
+  const M = mapOut(), want = big && MAP_INS ? 1 : 0, sk = g => g.ins ? MAP_INS.s : 1;
+  c.save(); mapAff(c, P);
+  for (const g of M.fill) if ((g.ins === undefined || g.ins === want) && k * sk(g) >= g.minK && bbHit(g.bb, view)) { c.fillStyle = C[g.col] || g.col; c.fill(g.p); }
+  c.lineJoin = c.lineCap = 'round';
+  for (const g of M.groups) {
+    if (g.ins !== undefined && g.ins !== want) continue;
+    const s = sk(g);
+    if (k * s < (g.S.k || 0) || !bbHit(g.bb, view)) continue;
+    c.strokeStyle = C[g.S.c] || g.S.c; c.lineWidth = Math.max(g.S.w * s, 1.2 / k); c.stroke(g.p);
+  }
+  c.restore();
+}
 function drawCity(c, P, k, C, vis, lot, line) {
   const path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
   const G = MAP_GEO, [tx, tz] = P(G.tx0, G.tz0);
@@ -185,6 +319,7 @@ function isleStreet(X, Z, x, z) {
   return null;
 }
 function streetName(X, Z, Y) {
+  if (!inCity(X, Z)) { const o = outStreet(X, Z); if (o) return o; }   // 91-map.js：紐柏林的彎道、榛嶺、別墅區山路
   if (Y === undefined || deckTop(X, Z) === null || deckAt(X, Z, Y) !== null) for (const F of FWY) if (F.edges) for (const e of F.edges) for (const p of e.pts) if (Math.abs(p[0] - X) < HR + 2 && Math.abs(p[1] - Z) < HR + 2) return F.name;   // 快速道路（世界座標，點每 4 m 一個；在橋下就照地面的路名）
   const [x, z] = toL(X, Z);
   { const p = plazaAt(x, z); if (p && plazaD(x, z) < HR + SW) return p.D.name; }   // 廣場裡斜的大道（06-roads.js）
@@ -239,6 +374,7 @@ function drawMini(px, pz, yaw, mk) {
   mctx.drawImage(mapImg, -(px - MAP_X0) * MAP_S, -(pz - MAP_Z0) * MAP_S);
   const P2 = (x, z) => [(x - px) * MAP_S, (z - pz) * MAP_S];
   if (MAP_AIR && (px < MAP_X0 + 400 || pz < MAP_Z0 + 400)) airMapDraw(mctx, P2, MAP_S, MINI_C);   // 機場（底圖外面）
+  { const r = R2 / zoom / MAP_S * 1.5, view = [px - r, px + r, pz - r, pz + r]; outMapBase(mctx, P2, view); outMapRoads(mctx, P2, MAP_S * zoom, MINI_C, view); }   // 城外的山路、榛嶺、紐柏林（底圖外面）
   gpsMini(mctx, P2, zoom);   // 導航路線（69-gps.js）
   for (const v of VENUE_PINS) { const [x, y] = P2(v.x, v.z); mctx.fillStyle = v.col; mctx.beginPath(); mctx.arc(x, y, 5 / zoom * 1.4, 0, 7); mctx.fill(); }
   v6Mini(mctx, P2, zoom);   // 69-v6-customs.js：改裝廠歇業的紅色鎖頭
