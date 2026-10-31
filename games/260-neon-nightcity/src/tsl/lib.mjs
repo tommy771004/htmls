@@ -593,7 +593,7 @@ export default {
   	return sky.add( uFlash.mul( .6 ).mul( vec3( .6, .65, .85 ) ).mul( max( y, 0. ) ) );
 
   }, { r: 'vec3', s: 'float', return: 'vec3' } );
-  const envMap =  Fn( ( [ r ] ) => envMapS( r, 0. ), { r: 'vec3', return: 'vec3' } );
+  const envMap =  Fn( ( [ r ] ) => envMapS( r, 1. ), { r: 'vec3', return: 'vec3' } );   // 使用者：晚上地面與物體映出奇怪的七彩色塊（夜景窗格每格隨機鈉黃／青／洋紅，護欄、濕路面上一格一格跳色）：全部改用平滑的城市光帶
 
   const applyFog =  Fn( ( [ c_immutable, p ] ) => {
 
@@ -613,7 +613,9 @@ export default {
   	} );
 
   	const x = dist.mul( uFogDen ).mul( D ).toVar();
-  	const f = mix( sub( 1., exp( x.negate() ) ), sub( 1., exp( x.negate().mul( x ) ) ), uDay ).toVar();
+  	// 使用者：拿掉霧氣。近處與中距離不再起霧，只在原本就整片進霧的距離前（夜裡的指數霧 x ≈ 4.6、白天的平方指數霧 x ≈ 2.15，都是 99%）淡出，
+  	// 藏住 420 m 外不畫的建築（10-city.js 的 distCull）；淡出的終點不比原本遠，70-render.js 的 fogCull 與 20-props.js 遠景樹的剔除照舊成立
+  	const f = smoothstep( .5, 1., x.div( mix( 4.6, 2.15, uDay ) ) ).toVar();
   	f.assign( max( f, hk.mul( smoothstep( .6, .97, length( d.xz ).div( uCullR ) ) ) ) );
   	const dir = d.div( max( dist, 1e-3 ) ).toVar();
   	const fc = mix( uFogCol, uFogHi, smoothstep( -0.05, .45, dir.y ) ).mul( add( 1., uFlash.mul( 1.5 ) ) ).toVar();
@@ -1233,7 +1235,7 @@ export default {
   	return sky.add( uFlash.mul( .6 ).mul( vec3( .6, .65, .85 ) ).mul( max( y, 0. ) ) );
 
   }, { r: 'vec3', s: 'float', return: 'vec3' } );
-  const envMap =  Fn( ( [ r ] ) => envMapS( r, 0. ), { r: 'vec3', return: 'vec3' } );
+  const envMap =  Fn( ( [ r ] ) => envMapS( r, 1. ), { r: 'vec3', return: 'vec3' } );   // 使用者：晚上地面與物體映出奇怪的七彩色塊（夜景窗格每格隨機鈉黃／青／洋紅，護欄、濕路面上一格一格跳色）：全部改用平滑的城市光帶
 
   const applyFog =  Fn( ( [ c_immutable, p ] ) => {
 
@@ -1252,7 +1254,9 @@ export default {
   	} );
 
   	const x = dist.mul( uFogDen ).mul( D ).toVar();
-  	const f = mix( sub( 1., exp( x.negate() ) ), sub( 1., exp( x.negate().mul( x ) ) ), uDay ).toVar();
+  	// 使用者：拿掉霧氣。近處與中距離不再起霧，只在原本就整片進霧的距離前（夜裡的指數霧 x ≈ 4.6、白天的平方指數霧 x ≈ 2.15，都是 99%）淡出，
+  	// 藏住 420 m 外不畫的建築（10-city.js 的 distCull）；淡出的終點不比原本遠，70-render.js 的 fogCull 與 20-props.js 遠景樹的剔除照舊成立
+  	const f = smoothstep( .5, 1., x.div( mix( 4.6, 2.15, uDay ) ) ).toVar();
   	const dir = d.div( max( dist, 1e-3 ) ).toVar();
   	const fc = mix( uFogCol, uFogHi, smoothstep( -0.05, .45, dir.y ) ).mul( add( 1., uFlash.mul( 1.5 ) ) ).toVar();
   	const sd = max( dot( dir, uSun ), 0. ).toVar(), ph = sd.mul( sd ).mul( sd ).mul( .25 ).add( pow( sd, 24. ).mul( .9 ) ).toVar();

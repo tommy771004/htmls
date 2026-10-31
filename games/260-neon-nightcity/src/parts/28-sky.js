@@ -18,7 +18,7 @@ const WX = {
   fog: { n: '濃霧', rain: 0, cloud: .7, fog: 1 },
 };
 const WX_NEXT = {
-  clear: { clear: 2, cloudy: 4, fog: 1 }, cloudy: { clear: 3, cloudy: 1, overcast: 3 }, overcast: { cloudy: 3, drizzle: 3, rain: 2, fog: 1 },
+  clear: { clear: 2, cloudy: 4 }, cloudy: { clear: 3, cloudy: 1, overcast: 3 }, overcast: { cloudy: 3, drizzle: 3, rain: 2 },   // 使用者：拿掉霧氣，濃霧不再自動輪到（weather('fog') 還能指定）
   drizzle: { overcast: 3, rain: 3, drizzle: 1 }, rain: { drizzle: 3, storm: 2, overcast: 2 }, storm: { rain: 3, drizzle: 1 }, fog: { cloudy: 2, overcast: 2, clear: 1 },
 };
 // 開場是凌晨兩點的雨夜；left 是這個天氣還剩幾遊戲分鐘

@@ -139,7 +139,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -376,7 +376,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -575,7 +575,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -729,7 +729,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -965,7 +965,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1163,7 +1163,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1325,7 +1325,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1486,7 +1486,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1647,7 +1647,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1814,7 +1814,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2052,7 +2052,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2252,7 +2252,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2414,7 +2414,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2573,7 +2573,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2815,7 +2815,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3019,7 +3019,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3180,7 +3180,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3344,7 +3344,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3510,7 +3510,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3665,7 +3665,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3902,7 +3902,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4101,7 +4101,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4269,7 +4269,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4430,7 +4430,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4592,7 +4592,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4751,7 +4751,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4916,7 +4916,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5088,7 +5088,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5246,7 +5246,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5480,7 +5480,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5672,7 +5672,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5832,7 +5832,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6003,7 +6003,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6167,7 +6167,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6413,7 +6413,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6621,7 +6621,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6791,7 +6791,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6957,7 +6957,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, clamp( max( coat, vPbr.w ), 0., 1. ) ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 

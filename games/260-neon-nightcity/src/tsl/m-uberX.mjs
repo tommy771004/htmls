@@ -784,7 +784,7 @@ export default {
 
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
-    		c.addAssign( envMapS( r, select( m.equal( 0 ), 1., 0. ) ).mul( max( envK, wet.mul( .5 ) ) ).mul( mix( select( m.equal( 0 ), max( F, .1 ), F ), 1., metal ) ).mul( sub( 1., rough.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( max( envK, wet.mul( .5 ) ) ).mul( mix( select( m.equal( 0 ), max( F, .1 ), F ), 1., metal ) ).mul( sub( 1., rough.mul( .9 ) ) ) );
 
     	} );
 
@@ -1580,7 +1580,7 @@ export default {
 
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
-    		c.addAssign( envMapS( r, select( m.equal( 0 ), 1., 0. ) ).mul( max( envK, wet.mul( .5 ) ) ).mul( mix( select( m.equal( 0 ), max( F, .1 ), F ), 1., metal ) ).mul( sub( 1., rough.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( max( envK, wet.mul( .5 ) ) ).mul( mix( select( m.equal( 0 ), max( F, .1 ), F ), 1., metal ) ).mul( sub( 1., rough.mul( .9 ) ) ) );
 
     	} );
 
@@ -2376,7 +2376,7 @@ export default {
 
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
-    		c.addAssign( envMapS( r, select( m.equal( 0 ), 1., 0. ) ).mul( max( envK, wet.mul( .5 ) ) ).mul( mix( select( m.equal( 0 ), max( F, .1 ), F ), 1., metal ) ).mul( sub( 1., rough.mul( .9 ) ) ) );
+    		c.addAssign( envMapS( r, 1. ).mul( max( envK, wet.mul( .5 ) ) ).mul( mix( select( m.equal( 0 ), max( F, .1 ), F ), 1., metal ) ).mul( sub( 1., rough.mul( .9 ) ) ) );
 
     	} );
 
