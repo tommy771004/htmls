@@ -115,16 +115,35 @@ $('bHelp').addEventListener('click', () => $('help').classList.toggle('on'));
 $('bMute').addEventListener('click', () => { sfx.init(); sfx.setMuted(!sfx.muted); $('muteWave').style.opacity = sfx.muted ? .15 : 1; });
 $('bMap').addEventListener('click', () => toggleMap());
 
-function readInput() {
+function readInput(dt) {
   const k = c => keys[c] ? 1 : 0;
   const frozen = dlg.open || fading || $('map').classList.contains('on');
   const f = (k('KeyW') || k('ArrowUp')) - (k('KeyS') || k('ArrowDown')) + touch.jz;
   const s = (k('KeyD') || k('ArrowRight')) - (k('KeyA') || k('ArrowLeft')) + touch.jx;
   inp.mx = frozen ? 0 : clamp(s, -1, 1); inp.mz = frozen ? 0 : clamp(f, -1, 1);
   inp.run = !!(keys.ShiftLeft || keys.ShiftRight);
-  inp.thr = Math.max(0, inp.mz); inp.brk = Math.max(0, -inp.mz); inp.steer = -inp.mx;
+  pedal(dt, Math.max(0, inp.mz), Math.max(0, -inp.mz), -inp.mx);
   inp.hb = !frozen && !!keys.Space;
   inp.nitro = inp.run;
+}
+// 油門、煞車、方向盤（2026-10-31）：鍵盤只有 0／1，照目標值以固定速率爬升，輕點一下只打一點方向、踩一點煞車。
+// 方向盤：打的速度隨車速變慢（PEDAL.st 是靜止與 40 m/s 時每秒走幾成），回正與反打比較快；煞車一踩先咬住 BRK_BITE 再往上加。
+// 觸控搖桿本來就是類比值，照樣爬升；SET.steerK 是設定選單的「轉向反應」倍率。
+// 低於 0.02 直接歸零：vdPre 與 driveVehicle 用 !inp.steer、!inp.thr 判斷放開，殘值會讓甜甜圈與停車的判斷一直成立
+const PEDAL = { st: [5.2, 2.4], back: 8, thrUp: 4.5, thrDn: 9, brkUp: 4, brkDn: 10 }, BRK_BITE = .3;
+const pedalS = { thr: 0, brk: 0, steer: 0 };
+function pedal(dt, thr, brk, steer) {
+  const v = player.mode === 'drive' && player.veh && !player.veh.air && !player.veh.tumble && !player.veh.flipped ? player.veh : null, k = SET.steerK;   // 跳台飛行中的翻滾（69-stunt.js）與側翻推回（68-roll.js）照按鍵直接給
+  const go = (c, w, up, dn) => { const r = (Math.abs(w) > Math.abs(c) && Math.sign(w) * Math.sign(c) >= 0 ? up : dn) * dt; c = c + clamp(w - c, -r, r); return Math.abs(c) < .02 && !w ? 0 : c; };
+  if (!v || !dt) { pedalS.thr = thr; pedalS.brk = brk; pedalS.steer = steer; }
+  else {
+    const spd = Math.hypot(v.vx, v.vz), up = lerp(PEDAL.st[0], PEDAL.st[1], clamp(spd / 40, 0, 1)) * k;
+    pedalS.steer = go(pedalS.steer, steer, up, Math.max(up, PEDAL.back * k));
+    pedalS.thr = go(pedalS.thr, thr, PEDAL.thrUp, PEDAL.thrDn);
+    if (brk && pedalS.brk < BRK_BITE) pedalS.brk = Math.min(brk, BRK_BITE);
+    pedalS.brk = go(pedalS.brk, brk, PEDAL.brkUp, PEDAL.brkDn);
+  }
+  inp.thr = pedalS.thr; inp.brk = pedalS.brk; inp.steer = pedalS.steer;
 }
 
 // ─── 相機 ───
@@ -255,7 +274,7 @@ function step(dt) {
   const t = (performance.now() - T0) / 1000;
   U.uTime.value = t;
   U.uBeat.value = sfx.beat();
-  readInput();
+  readInput(dt);
   v6Input(inp);   // 69-v6-customs.js：按住 X 的液壓單輪起伏
   gtaPre(dt);
   let spd = 0;
@@ -292,7 +311,7 @@ function step(dt) {
     driftTick(dt, v, r.imp, spd);
     if (!v.isCar) { me.anim(0, ANIM.ride, 0, 1); me.anim2(0, 0, 0); _o.position.set(0, 0, 0); placeRider(v); }
     driveByPlace(v);   // 69-combat.js：車內射擊時手伸出車窗
-    sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_W.x, v.z - CLUB_W.z), dBar: Math.hypot(v.x - BAR_W.x, v.z - BAR_W.z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: v.slip, nitro: nitro.on });
+    sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_W.x, v.z - CLUB_W.z), dBar: Math.hypot(v.x - BAR_W.x, v.z - BAR_W.z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: Math.max(v.slip, (v.push || 0) * 4), nitro: nitro.on });
   } else {
     nitro.on = false; nitro.v = clamp(nitro.v + .1 * dt, 0, 1);
     if (!dlg.open) updatePlayerWalk(inp, dt, camState.yaw);

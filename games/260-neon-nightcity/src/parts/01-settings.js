@@ -6,6 +6,8 @@ const SET_KEY = 'nc260.settings';
 const SET_DEF = {
   // 鍵盤／滑鼠
   sens: { d: 1, lo: .3, hi: 2.5, st: .1 }, aimSens: { d: 1, lo: .3, hi: 1.5, st: .05 }, invY: { d: false }, aimHold: { d: 'hold', o: ['hold', 'toggle'] }, touchSens: { d: 1, lo: .4, hi: 2, st: .1 },
+  // 開車：steerK 是方向盤打與回正的速度倍率（99-main.js 的 pedal）
+  steerK: { d: 1, lo: .5, hi: 2, st: .1 },
   // 聲音
   vMaster: { d: 1, lo: 0, hi: 1, st: .1 }, vSfx: { d: 1, lo: 0, hi: 1, st: .1 }, vMusic: { d: 1, lo: 0, hi: 1, st: .1 }, vAmb: { d: 1, lo: 0, hi: 1, st: .1 }, muteBlur: { d: false },
   // 攝影機：camFar 是 camState.far 的檔位（0 標準、1 遠、2 近）

@@ -580,6 +580,10 @@ function vehicleCollide(v, dt) {
 // 基礎加速調降 25%（2026-10-26）：踩油門時的淨加速度（推力減阻力）乘 ACC_K，0–100 等等的時間變成 1/0.75 倍；
 // 到極速時推力等於阻力、扣掉的是 0，所以極速不變（只把推力乘 0.75 的話，阻力沒變，淨加速度掉得更多、極速也會掉）
 const ACC_K = .75;
+// 玩家座駕的抓地極限（2026-10-31）：轉彎的側向加速度最多 LAT_K × grip（m/s²；轎跑 grip 9 約 1.7 g，下雨 69-v3-world.js 把 grip 打七折），超過就推頭（照極限轉、輪胎磨掉一點速度、發出胎鳴），
+// 不再是方向打多少車頭就轉多少；手煞車甩尾不受限。重踩煞車時車頭吃重：轉向極限多 BRK_TURN，後輪側向抓地少 BRK_SLIP（循跡煞車會甩一點尾）。
+// 停住後要再按住煞車 REV_WAIT 秒才開始倒車，停車才停得準。車流與 AI 的車照舊（只算 player.veh）
+const LAT_K = 1.9, BRK_TURN = .15, BRK_SLIP = .3, REV_WAIT = .25;
 function driveVehicle(v, inp, dt) {
   if (v.bail && v !== player.veh) inp = BAIL_INP;   // 68-wreck.js：起火後駕駛跳車，車子滑行到停
   if (v.tumble) return rollStep(v, dt);   // 68-roll.js：翻滾中、側躺或倒扣
@@ -590,29 +594,39 @@ function driveVehicle(v, inp, dt) {
   const spd = Math.abs(vF);
   const hold = vdPre(v, inp, dt, vF);   // 68-vdetail.js：原地燒胎、甜甜圈、濕沙卡軸（沙地阻力寫在 vdK／vdDrag）
   const maxSt = lerp(v.isCar ? .55 : .5, v.isCar ? .12 : .1, clamp(spd / 45, 0, 1));
-  v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）
+  const me = v === player.veh;
+  v.steer = damp(v.steer, inp.steer * maxSt * (v.stK || 1) * clamp((v.turn || 1.05) / 1.05, .6, 1.4), me ? 14 : inp.steer ? 6 : 9, dt);   // 級距表的轉向靈敏度（以轎跑 1.05 為基準）；玩家的輸入在 99-main.js 的 pedal 已經照速率爬升，這裡只抹平
+  const heavy = me && vF > 0 ? clamp((inp.brk - .6) / .4, 0, 1) * clamp((spd - 12) / 10, 0, 1) : 0;   // 高速重踩煞車
   let aF = 0;
   if (inp.thr > 0) {
     const th = v.eng * (v.engK ?? 1) * v.vdK * inp.thr * (1 - (vF / v.vmax) ** 2) * (vF < 8 ? 1.25 : 1);   // engK：68-wreck.js 的車損與熄火
     aF += th - (1 - ACC_K) * Math.max(0, th - (Math.max(vF, 0) * .12 + .35 + v.vdDrag));
   }
-  if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * (v.revK || 1) * inp.brk * (vF > -9 ? 1 : 0);   // revK：66-chrome.js 的變速箱，倒車起步比較快
+  v.revT = inp.brk > 0 && vF <= .8 ? (v.revT || 0) + dt : 0;
+  if (inp.brk > 0) aF += vF > .8 ? -(v.brk || 16) * inp.brk * (v.brkK || 1) : -6 * (v.revK || 1) * inp.brk * (vF > -9 ? 1 : 0) * (!me || vF < -.3 || v.revT > REV_WAIT ? 1 : 0);   // revK：66-chrome.js 的變速箱，倒車起步比較快
   aF -= vF * .12 + Math.sign(vF) * (.35 + v.vdDrag);
   if (inp.hb) aF -= Math.sign(vF) * 4;
   vF += aF * dt;
   if (!inp.thr && !inp.brk && Math.abs(vF) < .3) vF = 0;
   if (hold) { if (hold.vF != null) vF = hold.vF; if (hold.min) vF = Math.max(vF, hold.min); }
-  const grip = (inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6))) * (v.slideT > 0 ? .25 : 1);   // slideT：被撞得打轉（69-kinema.js）
+  const grip = (inp.hb ? (v.hbGrip ?? 1.4) : v.grip * (1 - clamp((Math.abs(vR) - 3) / 10, 0, .6)) * (1 - BRK_SLIP * heavy * Math.abs(inp.steer))) * (v.slideT > 0 ? .25 : 1);   // slideT：被撞得打轉（69-kinema.js）
   vR *= Math.exp(-grip * dt);
   if (hold && hold.vR != null) vR = hold.vR;
   const wb = v.wb;
   let targetYr = vF * Math.tan(v.steer) / wb + ((v.flatYr || 0) + (v.axleYr || 0)) * clamp(vF / 12, -1, 1);   // axleYr：69-v6-customs.js 撞歪的輪軸   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
+  let push = 0;
+  if (me && !inp.hb && spd > 3) {   // 抓地極限：推頭
+    const lim = LAT_K * v.grip * (1 + BRK_TURN * heavy) / spd;
+    if (Math.abs(targetYr) > lim) { push = Math.min(1, Math.abs(targetYr) / lim - 1); targetYr = Math.sign(targetYr) * lim; }
+  }
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
   v.yr = hold && hold.yr != null ? hold.yr : damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
   v.yaw += v.yr * dt;
   kinYaw(v, dt);
   // 甩尾時把一部分前進速度轉成側滑
   if (inp.hb && spd > 6) vR += v.yr * vF * .045 * dt * 60 * .016;
+  if (push) vF -= Math.sign(vF) * Math.min(Math.abs(vF), push * 3 * dt);   // 推頭時前輪磨掉速度
+  v.push = push;   // 99-main.js 的胎鳴（不算進 v.slip：甩尾計分與輪胎煙只看側滑）
   v.slip = hold && hold.slip != null ? hold.slip : Math.abs(vR);
   const nfx = Math.sin(v.yaw), nfz = Math.cos(v.yaw), nrx = -nfz, nrz = nfx;
   v.vx = nfx * vF + nrx * vR; v.vz = nfz * vF + nrz * vR;

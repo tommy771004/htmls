@@ -9,9 +9,12 @@
 3. 複製一副 UBC 骨架，骨頭頭尾搬到量出的關節（手指照手掌的相似變換搬），用體素代理網格算熱擴散權重（同 198 的 glb_heroes.py）。
 4. 把這副骨架擺成 UBC 靜止姿勢的方向（T 字），套用到網格；再依權重把各段平移到 UBC 的關節，網格就落在 UBC 的綁定空間。
 5. 綁回原本的 UBC 骨架（骨名相同，動畫庫只有旋轉，直接通用），只留底色貼圖（1024 JPEG）。
+有骨架的原檔（rig: True，rosa、dane）：第 2、3 步不量也不算——骨頭直接放到原檔的關節（含前後深度），權重沿用原檔的（rig_weights 照 rig_ubc
+的骨名表併過去）。原檔的 head_end／foot_end／指尖 _end 不在頭頂、腳尖、指尖，所以頭朝正上、腳尖照網格量、指尖由第三節往外延。
 """
 import math
 import os
+import re
 import sys
 
 import bmesh
@@ -76,12 +79,58 @@ def rig_rest(objs):
 
 
 def rig_bone(B, key):
-    import re
     pat = re.compile(r'(^|_)' + re.escape(key) + r'_\d+$')
     for n, p in B.items():
         if pat.search(n):
             return p
     raise KeyError(key)
+
+
+# 有骨架的原檔：骨名（去掉前綴與結尾的編號）→ UBC 的骨頭。原檔的權重照這張表併過去（扭轉骨併進本骨、臉部的小骨併進頭、末端併進上一節），
+# 不再用熱擴散重算：熱擴散在脖子會把下巴、領口一起算進 neck_01，轉頭時臉和領子跟著扭（2026-10-31）
+def rig_ubc(name):
+    k = re.sub(r'_\d+$', '', name)
+    for s in 'lr':
+        side = {f'shoulder_{s}': f'clavicle_{s}', f'upperarm_{s}': f'upperarm_{s}', f'upperarm_twist_{s}': f'upperarm_{s}',
+                f'lowerarm_{s}': f'lowerarm_{s}', f'lowerarm_twist_{s}': f'lowerarm_{s}', f'hand_{s}': f'hand_{s}',
+                f'upperleg_{s}': f'thigh_{s}', f'upperleg_twist_{s}': f'thigh_{s}', f'lowerleg_{s}': f'calf_{s}', f'lowerleg_twist_{s}': f'calf_{s}',
+                f'foot_{s}': f'foot_{s}', f'ball_{s}': f'ball_{s}', f'foot_end_{s}': f'ball_{s}'}
+        for f in FINGERS:
+            side[f'{f}_end_{s}'] = f'{f}_03_{s}'
+            for i in (1, 2, 3):
+                side[f'{f}_0{i}_{s}'] = f'{f}_0{i}_{s}'
+        for a in sorted(side, key=len, reverse=True):
+            if k.endswith('_' + a) or k == a:
+                return side[a]
+    for a, b in (('spine_01', 'spine_01'), ('spine_02', 'spine_02'), ('spine_03', 'spine_03'), ('neck', 'neck_01'), ('hip', 'pelvis'), ('root', 'pelvis')):
+        if k.endswith('_' + a) or k == a:
+            return b
+    if re.search(r'(head|jaw|eye|eyelid|eyebrow|mouth)(_end)?(_[lr])?$', k):
+        return 'Head'
+    return None
+
+
+def rig_weights(scan):
+    """原檔的頂點群組照 rig_ubc 改名、合併；每個頂點最多 4 根、和為 1 在後面統一做"""
+    src = {g.index: rig_ubc(g.name) for g in scan.vertex_groups}
+    miss = sorted({g.name for g in scan.vertex_groups if src[g.index] is None})
+    if miss:
+        print('  對不到 UBC 的群組（權重丟掉）', miss)
+    W = []
+    for v in scan.data.vertices:
+        d = {}
+        for g in v.groups:
+            n = src[g.group]
+            if n and g.weight > 0:
+                d[n] = d.get(n, 0.0) + g.weight
+        W.append(d)
+    scan.vertex_groups.clear()
+    vg = {}
+    for i, d in enumerate(W):
+        for n, w in d.items():
+            if n not in vg:
+                vg[n] = scan.vertex_groups.new(name=n)
+            vg[n].add([i], w, 'REPLACE')
 
 
 def build(sid, cfg):
@@ -116,6 +165,7 @@ def build(sid, cfg):
     z0 = P[:, 2].min()
     k = H / (P[:, 2].max() - z0)
     me.transform(Matrix.Scale(k, 4) @ Matrix.Translation((0, 0, -z0)))
+    JB = {}
     if B:
         def uv(p):
             return (round(p.x * k / H, 4), round((p.z - z0) * k / H, 4))
@@ -124,6 +174,20 @@ def build(sid, cfg):
         lm['ft'] = uv(m3 + (m3 - m2) * 0.9)
         cfg = {**cfg, 'lm': lm}
         print(f'[{sid}] lm {lm}')
+        # 骨頭的實際位置（含前後深度）：權重是原檔的，搬骨頭時要用原檔的關節，不能用網格切片的中點（脖子那層會被下巴往前拉）
+        def sc(p):
+            return V((p.x * k, p.y * k, (p.z - z0) * k))
+        for n, p in B.items():
+            kk = re.sub(r'_\d+$', '', n)
+            u = rig_ubc(n)
+            if u and not re.search(r'(twist|_end|jaw|eye|mouth|brow|root)', kk):
+                JB[u] = sc(p)
+        # 末端（head_end、foot_end、指尖的 _end）在原檔裡不是頭頂、腳尖、指尖，不能用：頭朝正上、指尖照第三節往外延，腳尖在下面照網格量
+        JB['Head_end'] = JB['Head'] + V((0, 0, 0.1))
+        for s in 'lr':
+            for f in FINGERS:
+                a, b = JB[f'{f}_02_{s}'], JB[f'{f}_03_{s}']
+                JB[f'{f}_04_leaf_{s}'] = b + (b - a) * 0.9
     # 只留第一組 UV（底色貼圖用）；原檔的切線與其他 UV 是法線、粗糙度貼圖用的
     while len(me.uv_layers) > 1:
         me.uv_layers.remove(me.uv_layers[-1])
@@ -210,59 +274,85 @@ def build(sid, cfg):
         names = ['hand_' + s] + [f'{f}_0{i}_{s}' for f in FINGERS for i in (1, 2, 3)] + [f'{f}_04_leaf_{s}' for f in FINGERS]
         for n in names:
             eb[n].head, eb[n].tail = hm(U[n][0]), hm(U[n][1])
+    if JB:   # 有骨架的原檔：骨頭直接放到原檔的關節，尾端接到鏈上的下一節
+        NXT = {'pelvis': 'spine_01', 'spine_01': 'spine_02', 'spine_02': 'spine_03', 'spine_03': 'neck_01', 'neck_01': 'Head', 'Head': 'Head_end'}
+        for s in 'lr':
+            ch = [f'clavicle_{s}', f'upperarm_{s}', f'lowerarm_{s}', f'hand_{s}', f'middle_01_{s}']
+            ch2 = [f'thigh_{s}', f'calf_{s}', f'foot_{s}', f'ball_{s}', f'ball_leaf_{s}']
+            NXT.update(zip(ch, ch[1:]))
+            NXT.update(zip(ch2, ch2[1:]))
+            for f in FINGERS:
+                c3 = [f'{f}_0{i}_{s}' for i in (1, 2, 3)] + [f'{f}_04_leaf_{s}']
+                NXT.update(zip(c3, c3[1:]))
+        for s in 'lr':
+            JB[f'ball_leaf_{s}'] = J['tip' + s]
+        miss = [n for n in list(NXT) + list(NXT.values()) if n not in JB]
+        if miss:
+            raise RuntimeError(f'{sid}: 原檔缺關節 {sorted(set(miss))}')
+        for e in eb:
+            e.use_connect = False
+        for n, t in NXT.items():
+            eb[n].head, eb[n].tail = JB[n], JB[t]
+        for e in eb:
+            if 'leaf' in e.name and e.name in JB:
+                d = JB[e.name] - eb[e.parent.name].head
+                e.head, e.tail = JB[e.name], JB[e.name] + d * 0.5
     bpy.ops.object.mode_set(mode='OBJECT')
     for b in fit.data.bones:
         b.use_deform = b.name != 'root' and 'leaf' not in b.name
 
-    # 熱擴散權重：體素重建的封閉代理網格算，再最近面內插轉移回掃描網格
-    select_only([scan], scan)
-    bpy.ops.object.duplicate()
-    px = bpy.context.view_layer.objects.active
-    px.name = 'proxy'
-    rm = px.modifiers.new('vox', 'REMESH')
-    rm.mode = 'VOXEL'
-    rm.voxel_size = 0.008
-    bpy.ops.object.modifier_apply(modifier=rm.name)
-    bm = bmesh.new()   # 只留最大的連通塊（耳環、鏈子等分離小件靠資料轉移拿到權重）
-    bm.from_mesh(px.data)
-    seen, parts = set(), []
-    for v0 in bm.verts:
-        if v0 in seen:
-            continue
-        comp, stack = [], [v0]
-        seen.add(v0)
-        while stack:
-            v = stack.pop()
-            comp.append(v)
-            for e in v.link_edges:
-                w = e.other_vert(v)
-                if w not in seen:
-                    seen.add(w)
-                    stack.append(w)
-        parts.append(comp)
-    parts.sort(key=len)
-    bmesh.ops.delete(bm, geom=[v for c in parts[:-1] for v in c], context='VERTS')
-    bm.to_mesh(px.data)
-    bm.free()
-    select_only([px, fit], fit)
-    px.scale = fit.scale = (10, 10, 10)   # 熱擴散在一公尺上下的尺度容易解不出來
-    bpy.context.view_layer.update()
-    bpy.ops.object.parent_set(type='ARMATURE_AUTO')
-    px.parent = None
-    px.scale = fit.scale = (1, 1, 1)
-    bpy.context.view_layer.update()
-    print(f'[{sid}] 代理 {len(px.data.vertices)} 頂點，有權重 {sum(1 for v in px.data.vertices if v.groups)}')
-    select_only([scan], scan)
-    dt = scan.modifiers.new('wt', 'DATA_TRANSFER')
-    dt.object = px
-    dt.use_vert_data = True
-    dt.data_types_verts = {'VGROUP_WEIGHTS'}
-    dt.vert_mapping = 'POLYINTERP_NEAREST'
-    dt.layers_vgroup_select_src = 'ALL'
-    dt.layers_vgroup_select_dst = 'NAME'
-    bpy.ops.object.datalayout_transfer(modifier=dt.name)
-    bpy.ops.object.modifier_apply(modifier=dt.name)
-    bpy.data.objects.remove(px, do_unlink=True)
+    if cfg.get('rig'):
+        rig_weights(scan)
+    else:
+        # 熱擴散權重：體素重建的封閉代理網格算，再最近面內插轉移回掃描網格
+        select_only([scan], scan)
+        bpy.ops.object.duplicate()
+        px = bpy.context.view_layer.objects.active
+        px.name = 'proxy'
+        rm = px.modifiers.new('vox', 'REMESH')
+        rm.mode = 'VOXEL'
+        rm.voxel_size = 0.008
+        bpy.ops.object.modifier_apply(modifier=rm.name)
+        bm = bmesh.new()   # 只留最大的連通塊（耳環、鏈子等分離小件靠資料轉移拿到權重）
+        bm.from_mesh(px.data)
+        seen, parts = set(), []
+        for v0 in bm.verts:
+            if v0 in seen:
+                continue
+            comp, stack = [], [v0]
+            seen.add(v0)
+            while stack:
+                v = stack.pop()
+                comp.append(v)
+                for e in v.link_edges:
+                    w = e.other_vert(v)
+                    if w not in seen:
+                        seen.add(w)
+                        stack.append(w)
+            parts.append(comp)
+        parts.sort(key=len)
+        bmesh.ops.delete(bm, geom=[v for c in parts[:-1] for v in c], context='VERTS')
+        bm.to_mesh(px.data)
+        bm.free()
+        select_only([px, fit], fit)
+        px.scale = fit.scale = (10, 10, 10)   # 熱擴散在一公尺上下的尺度容易解不出來
+        bpy.context.view_layer.update()
+        bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+        px.parent = None
+        px.scale = fit.scale = (1, 1, 1)
+        bpy.context.view_layer.update()
+        print(f'[{sid}] 代理 {len(px.data.vertices)} 頂點，有權重 {sum(1 for v in px.data.vertices if v.groups)}')
+        select_only([scan], scan)
+        dt = scan.modifiers.new('wt', 'DATA_TRANSFER')
+        dt.object = px
+        dt.use_vert_data = True
+        dt.data_types_verts = {'VGROUP_WEIGHTS'}
+        dt.vert_mapping = 'POLYINTERP_NEAREST'
+        dt.layers_vgroup_select_src = 'ALL'
+        dt.layers_vgroup_select_dst = 'NAME'
+        bpy.ops.object.datalayout_transfer(modifier=dt.name)
+        bpy.ops.object.modifier_apply(modifier=dt.name)
+        bpy.data.objects.remove(px, do_unlink=True)
     # 每個頂點最多 4 根骨頭、權重和為 1
     select_only([scan], scan)
     bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)

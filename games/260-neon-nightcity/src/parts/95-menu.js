@@ -107,7 +107,8 @@ const MENU = {
       { k: 'invY', n: '反轉滑鼠 Y 軸', d: '往前推滑鼠時鏡頭往上看。' },
       { k: 'aimHold', n: '瞄準模式', o: { hold: '按住', toggle: '切換' }, d: '按住：放開右鍵就收槍。切換：按一下右鍵舉槍，再按一下放下。' },
       { k: 'touchSens', n: '觸控環顧靈敏度', f: v => v.toFixed(1) + '×', off: !isTouch, d: isTouch ? '右半邊螢幕拖曳環顧的速度。' : '只在觸控裝置上有效。' },
-      { reset: ['sens', 'aimSens', 'invY', 'aimHold', 'touchSens'] },
+      { k: 'steerK', n: '轉向反應', f: v => v.toFixed(1) + '×', d: '開車時方向盤打到底與回正的速度。數字小，輕點方向鍵只打一點點方向，高速比較穩；數字大，反應比較直接。' },
+      { reset: ['sens', 'aimSens', 'invY', 'aimHold', 'touchSens', 'steerK'] },
     ] },
     { n: '按鍵綁定', rows: () => [
       ...KEY_ACTS.map(a => ({ bind: a.k, n: a.n, d: menu.listen === a.k ? '按下新的按鍵，Esc 取消。新鍵若已有其他動作，兩邊會對調。' : 'Enter 或點一下更改；Delete 還原這一項。方向鍵、數字鍵與 Enter 另有用途，不能綁。' })),
