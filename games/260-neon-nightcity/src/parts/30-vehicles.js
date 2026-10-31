@@ -103,7 +103,7 @@ for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) for (const d of [0, 2
     if (hydrants.some(h => Math.hypot(h.x - x, h.z - z) < 3.5) || works.some(w => Math.hypot(w.x - x, w.z - z) < 9) || rampBlock(x, z)) continue;
     if (Math.hypot(x - KESTREL_SPOT.x, z - KESTREL_SPOT.z) < 7) continue;
     const car = { type: pickType(), x, z, yaw: d === 0 ? 0 : Math.PI, pal: Math.floor(rT() * PAL.length) };
-    if (plazaD(x, z) >= HR + 2.5 && !garDrive(x, z)) parked.push(car);   // 斜的大道從路口切進廣場的那一段、停車場入口前不停車（亂數照抽，後面的車不跑位）
+    if (plazaD(x, z) >= HR + 2.5 && !garDrive(x, z) && !hillConnNearL(x, z, HILL.roadHW + 3)) parked.push(car);   // 斜的大道從路口切進廣場的那一段、停車場入口前、山路連接路（12-hillmouth.js）的路口不停車（亂數照抽，後面的車不跑位）
   }
 }
 for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3]) {
@@ -119,7 +119,7 @@ for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) for (const d of [1, 3
     if (Math.abs(z - DEAL_SPOT.z) < 3 && Math.abs(x - DEAL_X) < 14) continue;
     if (Math.abs(z - HOME_SPOT.z) < 3 && Math.abs(x - HOME_X) < 9) continue;
     const car = { type: pickType(), x, z, yaw: d === 1 ? Math.PI / 2 : -Math.PI / 2, pal: Math.floor(rT() * PAL.length) };
-    if (plazaD(x, z) >= HR + 2.5) parked.push(car);
+    if (plazaD(x, z) >= HR + 2.5 && !hillConnNearL(x, z, HILL.roadHW + 3)) parked.push(car);
   }
 }
 for (const S of [HOSP, PD]) {

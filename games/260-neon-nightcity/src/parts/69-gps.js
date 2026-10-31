@@ -41,7 +41,7 @@ function routeTo(px, pz, tx, tz) {
 // 紐柏林的進場路、GP、北環、維修道與 OSM 村道（09-nbr.js、09-nbr-dem.js）。只給玩家的導航（gps.route／mroute）與大地圖用；
 // 車流、警察、運鈔車、街頭賽照舊走 RN（routeTo），不會開上山路或賽道。
 // 城外的路各是一條長折線，只在交會處切開成邊（節點少，Dijkstra 用二元堆積）：OSM 村道共用的點（0.5 m 量化的座標）就是路口；
-// 端點落在別條路上（≤ tol）就把那條路切開接上；山路的路口（p[0]）與城裡最近的路、堤道與紐柏林進場路之間隔著一段空地，用直線接起來。
+// 端點落在別條路上（≤ tol）就把那條路切開接上；山路前面接上 12-hillmouth.js 鋪的連接路（P.conn，從城裡那條路的中心線起）；沒鋪成的路口、堤道與紐柏林進場路之間照舊用直線接起來。
 // 村道與賽道、進場路平面交叉的地方也切開（橋與隧道段 09-nbr-dem.js 已經拿掉，沒鋪也不算）。和城裡的路網連不起來的碎段照樣畫、不拿來導航。
 const XG = (() => {
   const t0 = performance.now(), nodes = [], edges = [], lines = [];
@@ -52,7 +52,7 @@ const XG = (() => {
   const line = (pts, o = {}) => { const L = { pts, cum: cumOf(pts), cuts: [], tol: [0, 0], src: 'x', ...o }; L.len = L.cum.at(-1); lines.push(L); return L; };
   for (const e of RN.edges) { const L = line(e.pts, { src: 'rn', oneway: !!e.oneway }); L.cuts.push({ u: 0, n: nodes[e.a.id] }, { u: L.len, n: nodes[e.b.id] }); }
   const nRN = lines.length, W = (x, z) => toW(x, z, SEA_FR);
-  for (const P of HILL.paths || []) if (P.length > 1) line(P.map(p => [p[0], p[1]]), { src: P.akina ? 'akina' : 'hill', tol: [P.link && !P.mouth ? 12 : 140, 12], rnOnly: [!P.link || !!P.mouth, false] });
+  for (const P of HILL.paths || []) if (P.length > 1) line([...(P.conn || []).slice(0, -1), ...P.map(p => [p[0], p[1]])], { src: P.akina ? 'akina' : 'hill', tol: [P.link && !P.mouth ? 12 : P.conn ? 20 : 140, 12], rnOnly: [!P.link || !!P.mouth, false] });
   const air = AIR ? line(AIR.road.map(([x, z]) => W(x, z)), { src: 'air', tol: [40, 0] }) : null;
   const osmK = [];
   if (NBR) {

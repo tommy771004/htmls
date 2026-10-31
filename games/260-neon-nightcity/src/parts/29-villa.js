@@ -78,15 +78,23 @@ function villaWhere(X, Z, y) {
 }
 {
   // ─── 外緣的隱形高牆：每條山路的路口開一個路寬加兩側路肩的口 ───
-  for (const [mx, mz] of HILL.mouths || []) for (const b of colliders.filter(b => b.edge)) {
-    const f = b.zn, u = (mx - f.ox) * f.c - (mz - f.oz) * f.s, v = (mx - f.ox) * f.s + (mz - f.oz) * f.c;
-    if (Math.abs(v) > 10) continue;
-    const g0 = u - HILL.roadHW - 1.6, g1 = u + HILL.roadHW + 1.6;
-    if (g1 < b.x0 || g0 > b.x1) continue;
+  // 口的範圍照路實際穿過牆的那一段量（路口前後的路每 1 m 一點，落在牆厚 ± 路寬內的點投到牆上）：路斜著穿過 4 m 厚的牆時口要比路寬寬
+  const half = HILL.roadHW + 1.6;
+  for (const P of HILL.paths || []) {
+    if (P.link && !P.mouth) continue;
+    const R = [...(P.conn || []).slice(-6, -1), ...P.slice(0, 6).map(p => [p[0], p[1]])], D = [];
+    for (let k = 1; k < R.length; k++) { const n = Math.max(1, Math.ceil(Math.hypot(R[k][0] - R[k - 1][0], R[k][1] - R[k - 1][1]))); for (let i = 0; i < n; i++) D.push([R[k - 1][0] + (R[k][0] - R[k - 1][0]) * i / n, R[k - 1][1] + (R[k][1] - R[k - 1][1]) * i / n]); }
+    if (!R.length) continue;
+    D.push(R[R.length - 1]);
+    for (const b of colliders.filter(b => b.edge)) {
+    const f = b.zn; let g0 = 1e9, g1 = -1e9;
+    for (const [mx, mz] of D) { const u = (mx - f.ox) * f.c - (mz - f.oz) * f.s, v = (mx - f.ox) * f.s + (mz - f.oz) * f.c; if (v > b.z0 - half && v < b.z1 + half) { g0 = Math.min(g0, u - half); g1 = Math.max(g1, u + half); } }
+    if (g0 > g1 || g1 < b.x0 || g0 > b.x1) continue;
     colliders.splice(colliders.indexOf(b), 1);
     if (g0 > b.x0) colliders.push({ ...b, x1: g0 });
     if (g1 < b.x1) colliders.push({ ...b, x0: g1 });
     VILLA.gaps++;
+    }
   }
   // ─── 每棟別墅 ───
   const sale = [];

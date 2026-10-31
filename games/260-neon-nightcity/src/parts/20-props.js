@@ -161,6 +161,8 @@ const free = (x, z, r) => {
 const claim = (x, z, r) => { const k = npKey(Math.floor(x / NP_S), Math.floor(z / NP_S)); let L = nearProp.get(k); if (!L) nearProp.set(k, L = []); L.push({ x, z, r }); };
 // 斜的大道（06-roads.js 的 PLAZA）先佔掉：街區邊的設施（消防栓、樹、報箱……）照樣抽亂數，只是擺不進路面
 for (const p of PLAZA.values()) for (let a = 0; a <= p.len; a += 2) claim(p.ax + p.ux * a, p.az + p.uz * a, HR + .8);
+// 山路路口的連接路（12-hillmouth.js）也先佔掉：路邊那一小段的設施不擺在路口上（claim 照那條路所屬的片換成邏輯座標）
+for (const C of HILL_CONN) for (const [x, z] of C.pts) { const [lx, lz] = C.e.zn ? toL(x, z, C.e.zn) : [x, z]; claim(lx, lz, HILL.roadHW + 1.6); }
 
 // ─── 路燈：沿路網每一段（各區自己的邊界路也有一份）；燈頭的位置寫進 shader 的路燈表（lampTable，lampGrid 查） ───
 const lampsA = [], lampsS = [], lampsC = [];
@@ -169,7 +171,7 @@ for (const e of RN.edges) {
     for (let u = HR + 10; u < e.len - HR - 6; u += 20) for (const s of [-1, 1]) {
       const [x, z] = edgeAt(e, u), [xa, za] = edgeAt(e, Math.max(0, u - 1)), [xb, zb] = edgeAt(e, Math.min(e.len, u + 1)), l = Math.hypot(xb - xa, zb - za) || 1;
       const nx = (zb - za) / l * s, nz = -(xb - xa) / l * s;   // 往路外
-      if (brokenNear(x + nx * 9.6, z + nz * 9.6, 3)) continue;   // 鐵灣高架斷橋的跑道與飛越的路段（06-roads.js）
+      if (brokenNear(x + nx * 9.6, z + nz * 9.6, 3) || hillConnNear(x + nx * 9.6, z + nz * 9.6, HILL.roadHW + 1.5)) continue;   // 山路路口的連接路；鐵灣高架斷橋的跑道與飛越的路段（06-roads.js）
       if (e.kind === 'f') {   // 快速道路：燈柱立在護欄上（DECK_W 內 0.3 m），跟著上下坡；燈頭伸到路肩上方
         const y = fwyH(e, u), o = (e.dw || DECK_W) - .3;
         lampsC.push({ x: x + nx * o, z: z + nz * o, y, ry: Math.atan2(-nz, nx), hx: x + nx * (o - 2.2), hz: z + nz * (o - 2.2), zn: null });
@@ -182,8 +184,8 @@ for (const e of RN.edges) {
   }
   const { i, j } = e.a, zn = e.zn;
   // 斜的大道切過廣場街區的轉角：落在大道路面上的燈不放（plazaD）
-  if (e.kind === 'z') { for (const s of [-1, 1]) for (const o of [16, 31, 46]) if (plazaD(avX(i) + s * 8.6, stZ(j) + o) > HR + 1) lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4, zn }); }
-  else for (const s of [-1, 1]) for (const o of [18, 36, 54]) if (plazaD(avX(i) + o, stZ(j) + s * 8.6) > HR + 1) lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4, zn });
+  if (e.kind === 'z') { for (const s of [-1, 1]) for (const o of [16, 31, 46]) if (plazaD(avX(i) + s * 8.6, stZ(j) + o) > HR + 1 && !hillConnNear(...toW(avX(i) + s * 8.6, stZ(j) + o, zn), HILL.roadHW + 1.5)) lampsA.push({ x: avX(i) + s * 8.6, z: stZ(j) + o, ry: s > 0 ? 0 : Math.PI, hx: avX(i) + s * 6.4, zn }); }
+  else for (const s of [-1, 1]) for (const o of [18, 36, 54]) if (plazaD(avX(i) + o, stZ(j) + s * 8.6) > HR + 1 && !hillConnNear(...toW(avX(i) + o, stZ(j) + s * 8.6, zn), HILL.roadHW + 1.5)) lampsS.push({ x: avX(i) + o, z: stZ(j) + s * 8.6, ry: s > 0 ? -Math.PI / 2 : Math.PI / 2, hz: stZ(j) + s * 6.4, zn });
 }
 function lampKit(col) {
   return new Kit()
@@ -439,7 +441,7 @@ const SEAM_PATH = [], SEAM_SITES = [];
     let cur = null;
     for (const [p, q] of L) {
       const x = (p[0] + q[0]) / 2, z = (p[1] + q[1]) / 2, w = Math.hypot(p[0] - q[0], p[1] - q[1]) - 2 * HR;   // w：草地寬
-      const ok = w >= 12 && inCity(x, z) && polyDistPt(CITY_POLY, x, z) > 8 && !zoneNearL(x, z, HR + 2.5) && !nearConn(x, z, HR + 2) && !brokenNear(x, z, 6) && !isleFillNear(x, z, 4);   // 天樞島的填空樓（11-isle.js）
+      const ok = w >= 12 && inCity(x, z) && polyDistPt(CITY_POLY, x, z) > 8 && !zoneNearL(x, z, HR + 2.5) && !nearConn(x, z, HR + 2) && !hillConnNear(x, z, HILL.roadHW + 3) && !brokenNear(x, z, 6) && !isleFillNear(x, z, 4);   // 天樞島的填空樓（11-isle.js）
       if (!ok) { if (cur && cur.length > 3) runs.push(cur); cur = null; continue; }
       (cur ||= []).push({ x, z, w });
     }
@@ -455,7 +457,7 @@ const SEAM_PATH = [], SEAM_SITES = [];
     const ux = q.x - p.x, uz = q.z - p.z, l = Math.hypot(ux, uz) || 1, s = n % 2 ? 1 : -1, nx = -uz / l * s, nz = ux / l * s;
     const type = KINDS[n % 3], R = type === 'pavilion' ? 4.2 : type === 'kiosk' ? 3 : 3.6;
     const x = p.x + nx * (1.2 + 4 + R), z = p.z + nz * (1.2 + 4 + R);
-    if (!inCity(x, z) || zoneNearL(x, z, HR + R + 2) || nearConn(x, z, HR + R + 3) || isleFillNear(x, z, R + 2)) continue;
+    if (!inCity(x, z) || zoneNearL(x, z, HR + R + 2) || nearConn(x, z, HR + R + 3) || hillConnNear(x, z, HILL.roadHW + R + 2) || isleFillNear(x, z, R + 2)) continue;
     SEAM_SITES.push({ type, x, z, R, ry: Math.atan2(-nx, -nz), ux: ux / l, uz: uz / l }); n++;   // ry：正面朝步道
   }
 }
@@ -466,7 +468,7 @@ const seamClear = (x, z, r) => !SEAM_PATH.some(run => run.some(p => (p.x - x) **
   for (let x = x0; x < x1; x += 11) for (let z = z0; z < z1; z += 11) {
     const tx = x + (r5() - .5) * 7, tz = z + (r5() - .5) * 7, s = .9 + r5() * .5, ry = r5() * 6.3;
     if (r5() > .55 || !inCity(tx, tz) || zoneNearL(tx, tz, HR + 4) || polyDistPt(CITY_POLY, tx, tz) < 7 || brokenNear(tx, tz, 6) || !seamClear(tx, tz, 3.5) || isleFillNear(tx, tz, 4)) continue;
-    if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9)) continue;
+    if (conn.some(e => e.pts.some(([px, pz]) => (px - tx) ** 2 + (pz - tz) ** 2 < 144)) || lampsC.some(l => (l.x - tx) ** 2 + (l.z - tz) ** 2 < 9) || hillConnNear(tx, tz, HILL.roadHW + 3.5)) continue;
     trees.push({ x: tx, z: tz, y: 0, ry, s, park: 1, zn: null }); circles.push({ x: tx, z: tz, r: TREE_COL, w: 1 });
   }
 }

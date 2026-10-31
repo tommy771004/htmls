@@ -146,7 +146,7 @@ function mapOut() {
     pts.forEach(([x, z], i) => { i ? g.p.lineTo(x, z) : g.p.moveTo(x, z); g.bb[0] = Math.min(g.bb[0], x); g.bb[1] = Math.max(g.bb[1], x); g.bb[2] = Math.min(g.bb[2], z); g.bb[3] = Math.max(g.bb[3], z); });
     g.p.closePath();
   };
-  for (const P of HILL.paths || []) addLine(P.akina ? 'akina' : 'hill', P.map(p => [p[0], p[1]]));
+  for (const P of HILL.paths || []) addLine(P.akina ? 'akina' : 'hill', [...(P.conn || []).slice(0, -1), ...P.map(p => [p[0], p[1]])]);   // P.conn：路口接到城裡的那段（12-hillmouth.js）
   for (const h of HILL_HOMES) {   // 平台與房子（局部 → 世界：繞 y 轉 ry）
     const s = Math.sin(h.ry), c = Math.cos(h.ry), w = (lx, lz) => [h.x + lx * c + lz * s, h.z - lx * s + lz * c], r = (x0, x1, z0, z1) => [w(x0, z0), w(x1, z0), w(x1, z1), w(x0, z1)];
     if (h.pad) addPoly('pad', 'walk', 0, r(...h.pad));

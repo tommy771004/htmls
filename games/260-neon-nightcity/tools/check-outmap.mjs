@@ -45,6 +45,29 @@ for (const t of T) {
   check(r.n > 10 && r.seg < 720 && r.end < 30 && r.L < air * 3.5 + 1500, `${t.k}：${(r.L / 1000).toFixed(2)} km（直線 ${(air / 1000).toFixed(2)} km）、${r.n} 點、最長一段 ${Math.round(r.seg)} m、終點離目標 ${r.end.toFixed(1)} m${r.worst ? '（最長一段在 ' + r.worst + '）' : ''}`);
 }
 
+// 山路路口的連接路（12-hillmouth.js）：每個路口都鋪了；從城裡那條路的中心線起、接到山路 P[0]；沿路（連接路＋山路開頭 40 m，三條線、車寬的圓）沒有靜態的碰撞（路邊停車、路燈、隱形牆的口）
+console.log('山路路口的連接路');
+{
+  const c = await ev(() => {
+    const nc = window.__nc, H = nc.hillConn(), st = H.pop(), P = nc.hillRoads(), mouths = P.filter(p => !p.link || p.mouth).length, hits = [];
+    const dyn = [nc.col.dynCircles.splice(0), nc.col.dynMore.splice(0)];   // 車流與路人不算（同步跑完就放回去）
+    for (const C of H) {
+      const hp = P.find(q => q.conn === C.pts) || [], L = [...C.pts.slice(0, -1), ...hp.slice(0, 6).map(q => [q[0], q[1]])];
+      for (let k = 1; k < L.length; k++) for (let t = 0; t < 1; t += .25) {
+        const dx = L[k][0] - L[k - 1][0], dz = L[k][1] - L[k - 1][1], l = Math.hypot(dx, dz) || 1, x = L[k - 1][0] + dx * t, z = L[k - 1][1] + dz * t;
+        for (const off of [-2, 0, 2]) { const X = x - dz / l * off, Z = z + dx / l * off, o = nc.col.collide(X, Z, 1.1, 0); if (o.hit && Math.hypot(o.x - X, o.z - Z) > .05) hits.push(`${Math.round(X)},${Math.round(Z)}`); }
+      }
+    }
+    nc.col.dynCircles.push(...dyn[0]); nc.col.dynMore.push(...dyn[1]);
+    const ends = H.map(C => { const hp = P.find(q => q.conn === C.pts); return hp ? Math.hypot(C.pts.at(-1)[0] - hp[0][0], C.pts.at(-1)[1] - hp[0][1]) : 99; });
+    return { st, mouths, n: H.length, hits: [...new Set(hits)], end: Math.max(...ends) };
+  });
+  console.log('   ', JSON.stringify(c.st));
+  check(c.n === c.mouths && !c.st.fail.length, `${c.mouths} 個山路路口都鋪了連接路（共 ${c.st.len} m）`);
+  check(c.end < .01, `連接路的終點就是山路的第一點（差 ${c.end.toFixed(3)} m）`);
+  check(!c.hits.length, `連接路與山路開頭沒有靜態碰撞${c.hits.length ? '：' + c.hits.slice(0, 6).join(' ') : ''}`);
+}
+
 console.log('大地圖');
 await page.keyboard.press('KeyM'); await page.waitForTimeout(200);
 check(await ev(() => document.getElementById('map').classList.contains('on')), 'M 開啟大地圖');
