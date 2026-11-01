@@ -1,12 +1,22 @@
 // ═══ 效能面板（?perf=1）與固定路線量測（__nc.perf.route）═══
 // 每一幀記：幀間隔（相鄰兩次 loop 的 rAF 時間戳）、CPU 邏輯（loop 開始到 renderFrame 開始）、CPU 送出（renderFrame 本身，three 走場景圖與送指令）、
-// draw call 與三角形數（顯示卡時間原本是 WebGL 的 EXT_disjoint_timer_query_webgl2，WebGPU 還沒接 timestamp query，顯示「—」）。
+// draw call 與三角形數、顯示卡時間（?perf=1 時 00-core.js 開 trackTimestamp：每個 render pass 前後寫 timestamp query，perfGpu 每幀讀回；
+// 讀回是非同步的，一次讀到的是上次讀回之後所有 pass 的總和，平均分給那幾幀。瀏覽器沒有 timestamp-query 時顯示「—」）。
 // 顯示卡瓶頸時「送出」大半是繪圖呼叫在等顯示卡（指令緩衝滿了），不是 CPU 在做事：要分辨就看行程的 CPU 時間（tools/perf-mem.mjs）。
 // 卡頓是比平常的幀長很多的那一幀：超過 PERF_STALL、也超過最近 PERF_MED 幀中位數的 PERF_K 倍（光環廣場本來就 31 ms 一幀，不能每幀都算卡頓），附上那段時間新編的著色器、新上傳的貼圖與幾何數，以及載入程式標的事件（26-glb.js 的 perfTag：模型解碼、建築組擺放…）。
 // 無頭 Chrome 是軟體繪圖或拿不到真的顯示卡時間，數字要在玩家自己的 Chrome、實機顯示卡上量。
 const PERF_STALL = 25, PERF_K = 1.8, PERF_MED = 60, PERF_N = 900;
 const PF = { on: new URLSearchParams(location.search).get('perf') === '1', ring: [], n: 0, stalls: [], cur: null, now0: 0, t0: 0, r0: 0, el: null, shown: 0,
-  last: null, snap: [0, 0, 0], lim: PERF_STALL, nst: 0 };
+  last: null, snap: [0, 0, 0], lim: PERF_STALL, nst: 0, gq: null, gw: [] };
+// 顯示卡計時：這幀畫完的 pass 記進 gw，沒有讀回在跑就開一次，讀回的毫秒數平均分給這段的幀（Chrome 的 timestamp 量化到 0.1 ms，平均後夠用）
+const perfGpuOn = () => !!(R.backend && R.backend.trackTimestamp);
+function perfGpu(f) {
+  if (!perfGpuOn()) return;
+  PF.gw.push(f);
+  if (PF.gq) return;
+  const fr = PF.gw; PF.gw = [];
+  PF.gq = R.resolveTimestampsAsync('render').then(ms => { if (ms > 0) for (const x of fr) x.gpu = ms / fr.length; }, () => {}).finally(() => { PF.gq = null; });
+}
 function perfOn(on) {
   PF.on = on;
   if (on && !PF.el) {
@@ -16,7 +26,8 @@ function perfOn(on) {
   }
   if (PF.el) PF.el.style.display = on ? '' : 'none';
 }
-const perfInfo = () => [R.info.programs ? R.info.programs.length : 0, R.info.memory.textures, R.info.memory.geometries];
+// 著色器數：WebGPURenderer 沒有 R.info.programs（原本一直是 0，新編著色器的卡頓都記不到），改數 three 的管線快取（每個是一條 render pipeline，新的就要編）
+const perfInfo = () => [R._pipelines ? R._pipelines.caches.size : R.info.programs ? R.info.programs.length : 0, R.info.memory.textures, R.info.memory.geometries];
 // 99-main.js 的 loop 一開始：結束上一段（上一次 loop 到這一次之間，含兩幀之間跑的下載回呼），開新的一段
 perfHook.f = (now) => {
   if (!PF.on) { perfTags.length = 0; return; }
@@ -39,7 +50,8 @@ perfHook.a = () => { if (!PF.on || !PF.cur) return; PF.r0 = performance.now(); P
 perfHook.b = () => {
   if (!PF.on || !PF.cur) return;
   const f = PF.cur;
-  f.sub = performance.now() - PF.r0; f.calls = R.info.render.calls; f.tris = R.info.render.triangles;
+  f.sub = performance.now() - PF.r0; f.calls = R.info.render.drawCalls; f.tris = R.info.render.triangles;   // r186 的 render.calls 是開機以來累計，每幀的是 drawCalls
+  perfGpu(f);
   if (performance.now() - PF.shown > 500) { PF.shown = performance.now(); perfPanel(); }
 };
 const perfPct = (a, p) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
@@ -57,7 +69,7 @@ function perfPanel() {
   PF.el.textContent = [
     `${GPU.short} · ${GT().name} · ${rtScene.width}×${rtScene.height}（DPR ${DPR}、${Math.round(post.scale * 100)}%、MSAA ${rtScene.samples}）`,
     `幀 ${perfF1(s.ms)} ms（${Math.round(s.fps)} fps）p95 ${perfF1(s.p95)} 最長 ${perfF1(s.max)}`,
-    `CPU 邏輯 ${perfF1(s.cpu)} · 送出 ${perfF1(s.sub)} · 顯示卡 —`,
+    `CPU 邏輯 ${perfF1(s.cpu)} · 送出 ${perfF1(s.sub)} · 顯示卡 ${perfF1(s.gpu)}（p95 ${perfF1(s.gpu95)}）`,
     `draw call ${s.calls} · 三角形 ${(s.tris / 1e6).toFixed(2)} M`,
     `著色器 ${info[0]} · 貼圖 ${info[1]} · 幾何 ${info[2]} · 細節距離 ×${detailK().toFixed(2)}`,
     `卡頓（>${Math.round(PF.lim)} ms：至少 ${PERF_STALL}、最近幀中位數的 ${PERF_K} 倍）共 ${PF.nst} 次`, ...PF.stalls.slice(-4).map(perfStall),
@@ -95,5 +107,5 @@ async function perfRoute({ wait = 12000, sample = 8000, min = 1320, weather = 'r
   perfOn(was);
   return (perfApi.last = out);
 }
-const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: () => false };
+const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: perfGpuOn };
 if (PF.on) perfOn(true);

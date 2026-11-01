@@ -141,6 +141,23 @@ const GFX_GL2TSL = { float: 'float', int: 'int', bool: 'bool', vec2: 'vec2', vec
 const gfxGenMiss = new Map();
 // 開場時還沒掛到任何物件上的材質（結局 B 才貼的通緝海報 pstMat）：登記在這裡，warm() 一起建
 const gfxLate = [];
+// 預先編譯：render pipeline 的鍵含渲染目標的取樣數與色彩、深度格式，compileAsync 照「當下的」渲染目標編。原本開場（99-main.js）與模型預熱
+// （27-props.js 的 glbWarm）都在 canvas 上編，場景物件其實只畫進主畫面 rtScene（MSAA）與倒影 rtRefl，第一次畫到時還要再建一次 pipeline：
+// 2026-11-01 戰鬥觀戰時鏡頭轉到新東西就卡（tools/battle.mjs）。gfxTargets 由 70-render.js 的 makeTargets 填；all 為真時 70-render.js 的
+// 視錐測試全部放行（compileAsync 的投影是同步的，呼叫完就關），畫面外的物件也一起編
+const gfxTargets = [], gfxCompiling = { all: false };
+// all 也把藏起來的物件（visible = false：垂降繩、還沒出動的單位、物件池）暫時打開一起編，投影完馬上還原
+function gfxCompile(obj, cam, all = false) {
+  const prev = R.getRenderTarget(), ps = [], hid = [];
+  if (all) obj.traverse(o => { if (!o.visible) { hid.push(o); o.visible = true; } });
+  try {
+    for (const rt of gfxTargets.length ? gfxTargets : [prev]) {
+      R.setRenderTarget(rt); gfxCompiling.all = all;
+      try { ps.push(R.compileAsync(obj, cam).catch(() => {})); } finally { gfxCompiling.all = false; }
+    }
+  } finally { for (const o of hid) o.visible = false; R.setRenderTarget(prev); }
+  return Promise.all(ps);
+}
 function gfxAuto(m) {
   const nk = gfxName(m), shape = gfxShape(m.defines), dv = gfxDefV(m.defines);
   let t = gfxAutoT.get(nk);

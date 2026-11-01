@@ -30,13 +30,15 @@ const LOW = isTouch || Math.min(screen.width, screen.height) < 600;
 // 繪圖後端：WebGPURenderer（02-gfx.js：材質都是 src/tsl/ 的 TSL），瀏覽器沒有 WebGPU 時它自己退回 WebGL2 後端（GFX 是 'webgpu-gl'；?gfx=webgpu-gl 強制走那個後端）
 let GFX = (() => { const g = new URLSearchParams(location.search).get('gfx'); return g === 'webgpu-gl' || !navigator.gpu ? 'webgpu-gl' : 'webgpu'; })();
 let R;
-try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: GFX === 'webgpu-gl' }); await R.init(); }
+// ?perf=1：顯示卡計時（每個 render pass 前後寫 timestamp query，96-perf.js 每幀讀回）；一般遊玩不開，免得多出查詢與讀回
+const PERF_TS = new URLSearchParams(location.search).get('perf') === '1';
+try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: GFX === 'webgpu-gl', trackTimestamp: PERF_TS }); await R.init(); }
 catch (e) {
   // WebGPU 的 adapter 要不到（被封鎖、驅動不支援）：再試一次 WebGL2 後端
   R?.dispose?.(); R = null;
   if (GFX === 'webgpu') {
     console.warn('WebGPU 啟用失敗，改用 WebGL2 後端', e); GFX = 'webgpu-gl';
-    try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: true }); await R.init(); } catch (e2) { R?.dispose?.(); R = null; e = e2; }
+    try { R = new WebGPURenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, forceWebGL: true, trackTimestamp: PERF_TS }); await R.init(); } catch (e2) { R?.dispose?.(); R = null; e = e2; }
   }
   if (!R) { bootMsg('這個瀏覽器無法啟用 WebGPU 或 WebGL2。'); throw e; }
 }

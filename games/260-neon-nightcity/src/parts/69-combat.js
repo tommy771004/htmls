@@ -72,7 +72,7 @@ function wModel(id) {
   const A = ARMS[id] || {}, g = A.grip;
   if (g) inner.position.set(-g[0], -g[1], -g[2]);
   inner.add(new T.Mesh(kitGeo[id] ||= armKit(id), MAT.uber));
-  h.userData = { id, inner, glb: false };
+  h.userData = { id, inner, glb: false, reflKeep: true };   // reflKeep：70-render.js 的倒影螢幕大小剔除不剔手上的槍
   scene.add(h); wModels.push(h);
   if (armItems.v) swapGlb(h);
   return h;

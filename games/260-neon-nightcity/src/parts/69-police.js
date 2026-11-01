@@ -433,6 +433,11 @@ const POOL_M = (() => {
   const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
   return new T.MeshBasicMaterial({ map: t, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -2 });
 })();
+// 探照燈的光錐：每架直升機共用（原本每架新建、走了就 dispose，three 跟著丟掉它的 pipeline，下一架出來又要現編）
+const BEAM_G = new T.ConeGeometry(1, 1, 28, 1, true).translate(0, -.5, 0);
+const BEAM_M = new T.MeshBasicMaterial({ color: 0x8c96a8, transparent: true, opacity: .085, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false });
+// 藏起來的一份光錐與光圈留在場景裡：開場 gfxCompile（02-gfx.js）會連藏起來的一起編，第一架直升機出來時不用現編
+for (const [g, m] of [[BEAM_G, BEAM_M], [POOL_G, POOL_M]]) { const w = new T.Mesh(g, m); w.visible = false; w.layers.set(LY.NOREFL); w.frustumCulled = false; scene.add(w); }
 // gang：69-survival.js 的幫派直升機（同一個槽位 W.heli，沒有探照燈、不報警，機槍手一直打玩家）
 function spawnHeli(gang = false) {
   const a = Math.random() * 6.28, px = pX(), pz = pZ();
@@ -441,8 +446,7 @@ function spawnHeli(gang = false) {
   for (const m of [body, rotor, tail]) { scene.remove(m); g.add(m); m.count = 1; }
   rotor.material = tail.material = body.material;
   scene.add(g);
-  const beamG = new T.ConeGeometry(1, 1, 28, 1, true); beamG.translate(0, -.5, 0);
-  const beam = new T.Mesh(beamG, new T.MeshBasicMaterial({ color: 0x8c96a8, transparent: true, opacity: .085, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
+  const beam = new T.Mesh(BEAM_G, BEAM_M);
   beam.layers.set(LY.NOREFL); beam.renderOrder = 6; scene.add(beam);
   const pool = new T.Mesh(POOL_G, POOL_M); pool.layers.set(LY.NOREFL); pool.renderOrder = 3; scene.add(pool);
   // 出生高度至少高過那裡的屋頂 15 m：城北的樓牆與山坡比 70 m 還高，生在裡面會當場判定撞樓墜毀
@@ -454,7 +458,7 @@ function dropHeli() {
   const h = W.heli; if (!h) return;
   scene.remove(h.g); scene.remove(h.beam); scene.remove(h.pool);
   for (const m of [h.body, h.rotor, h.tail]) m.geometry.dispose();
-  h.body.material.dispose(); h.beam.geometry.dispose(); h.beam.material.dispose();
+  h.body.material.dispose();   // 光錐的幾何與材質共用（BEAM_G／BEAM_M），不收
   W.heli = null;
 }
 function heliHit(dmg, mine) {

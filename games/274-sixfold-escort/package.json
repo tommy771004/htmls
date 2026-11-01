@@ -1,0 +1,26 @@
+{
+  "name": "sixfold-escort",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "六器鏢行：原創武俠動作 RPG——背匣六器、匣中取器、罡氣破罡與機關偃甲（作品 274）",
+  "scripts": {
+    "assets": "/opt/homebrew/bin/blender -b --factory-startup -P blender/build_actors.py",
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev --out=dist/dev.html",
+    "test": "node --test tools/core.test.mjs && node tools/accept.mjs",
+    "thumb": "node tools/thumb.mjs",
+    "shot": "node tools/build.mjs --out=dist/world.html && node tools/shot.mjs",
+    "preview:actors": "node tools/actors-preview.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.55.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -38,6 +38,7 @@ function makeTargets() {
     rtU.push(new T.WebGLRenderTarget(Math.max(1, Math.floor(w / d)), Math.max(1, Math.floor(h / d)), { ...rtOpts, depthBuffer: false }));
   }
   reflU.tRefl.value = rtRefl.texture;
+  gfxTargets.length = 0; gfxTargets.push(rtScene); if (SET.refl) gfxTargets.push(rtRefl);   // 02-gfx.js 的 gfxCompile 照這兩個目標預先編 pipeline
 }
 function resize() {
   R.setSize(innerWidth, innerHeight);
@@ -173,7 +174,9 @@ function renderReflection() {
   reflU.uReflMat.value.multiplyMatrices(reflBias, reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse);
   U.uClipY.value = 0; U.uCam.value.copy(_rp); const fw = U.uFocus.value.w; U.uFocus.value.w = 0;
   R.setRenderTarget(rtRefl); R.setClearColor(0x000000, 1); R.clear();
-  fogCullAt(_rp); R.render(scene, reflCam); fogCull.on = false;
+  fogCullAt(_rp);
+  reflCull.t = reflCull.px ?? SET.reflMin; reflCull.on = reflCull.t > 0; reflCull.x = _rp.x; reflCull.y = _rp.y; reflCull.z = _rp.z; reflCull.k = rtRefl.height / 2 * reflCam.projectionMatrix.elements[5];
+  R.render(scene, reflCam); fogCull.on = false; reflCull.on = false;
   U.uClipY.value = -1e9; U.uCam.value.copy(camera.position); U.uFocus.value.w = fw;
 }
 R.info.autoReset = false;   // 一幀有很多次 render，統計要整幀累計
@@ -228,7 +231,19 @@ const fogFull = m => {
 function fogCullAt(p) { fogCull.on = fogCull.en && camera.position.y < 20; fogCull.x = p.x; fogCull.y = p.y; fogCull.z = p.z; fogCull.d = 12 / Math.max(U.uFogDen.value, 1e-4); }
 // 沒東西可畫的也在這裡剔掉：three 不跳過 count 0 的 InstancedMesh 與沒有頂點的幾何（照樣切程式、更新 uniform、送一次空的 draw），
 // 串流實例（20-props.js 的 instUpdate）的球跟著相機、永遠在視錐裡，附近沒有實例時每幀白送（光環廣場 980 個 draw 裡 460 個）
+// 倒影的螢幕大小剔除（Unreal 平面倒影的做法：倒影那一趟不畫投影半徑小於 px 個倒影貼圖像素的物件）：倒影是半解析度、還被濕路面的粗糙度抹開，
+// 遠處的小東西在倒影裡看不出來，卻佔倒影那一趟三成的 draw call（2026-11-01 戰鬥觀戰量測；門檻是 01-settings.js 的 SET.reflMin，預設 2 px，使用者看過前後對照同意）。半透明與加法混色的（燈、招牌光暈、車燈）照畫：路面上的燈影是夜景的重點
+const reflCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null }, reflKeepM = new WeakMap();   // px：量測用的覆寫（null 照 SET.reflMin）
+const reflKeep = m => {
+  if (Array.isArray(m)) return m.some(reflKeep);
+  let v = reflKeepM.get(m);
+  if (v === undefined) { v = !!(m.transparent || (m.blending !== undefined && m.blending !== T.NormalBlending)); reflKeepM.set(m, v); }
+  return v;
+};
+// 手上的槍（69-combat.js 的 wModel 標 userData.reflKeep）照畫：小，但槍口火光照在它旁邊，戰鬥時濕路面上的那幾點火光要留著
+const reflPin = o => { for (let q = o, i = 0; q && i < 5; q = q.parent, i++) if (q.userData.reflKeep) return true; return false; };
 T.Frustum.prototype.intersectsObject = function (o) {
+  if (gfxCompiling.all) return true;   // 02-gfx.js 的 gfxCompile：畫面外的也編
   if (fogCull.empty) {   // 99-main.js 開場 compileAsync 時關掉
     if (o.isInstancedMesh && o.count === 0) return false;
     const g = o.geometry; if (g && (g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 1) === 0) return false;
@@ -237,6 +252,7 @@ T.Frustum.prototype.intersectsObject = function (o) {
   if (o.boundingSphere !== undefined) { if (o.boundingSphere === null) o.computeBoundingSphere(); s.copy(o.boundingSphere).applyMatrix4(o.matrixWorld); }
   else { const g = o.geometry; if (g.boundingSphere === null) g.computeBoundingSphere(); s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); }
   if (fogCull.on) { const c = s.center, dx = c.x - fogCull.x, dy = c.y - fogCull.y, dz = c.z - fogCull.z, L = fogCull.d + s.radius; if (dx * dx + dy * dy + dz * dz > L * L && fogFull(o.material)) return false; }
+  if (reflCull.on) { const c = s.center, d = Math.hypot(c.x - reflCull.x, c.y - reflCull.y, c.z - reflCull.z); if (d > s.radius && s.radius / d * reflCull.k < reflCull.t && !reflKeep(o.material) && !reflPin(o)) { reflCull.n++; if (reflCull.log) reflCull.log.push(o); return false; } }
   return this.intersectsSphere(s);
 };
 let reflOdd = 0;

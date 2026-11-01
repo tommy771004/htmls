@@ -71,14 +71,15 @@ async function glbWarm1(objs, near, inst) {
     mats.add(mat); tmp.add(new T.Mesh(geo, mat));
     if (inst) tmp.add(new T.InstancedMesh(geo, propMatI(mat), 1));   // inst：後段 w2Inst 用的實例版
   }
-  try { await R.compileAsync(tmp, warmCam); } catch (e) { /* 編譯失敗留給第一次畫到時再報 */ }
+  for (const o of tmp.children) o.frustumCulled = false;   // 暫存場景的網格在世界座標，多半不在 warmCam 前面
+  await gfxCompile(tmp, warmCam);   // 02-gfx.js：照主畫面與倒影的渲染目標編（失敗留給第一次畫到時再報）
   if (near) objs = objs.filter(near);
   else if (!warmLive) objs = [];
   const tex = [];
   for (const m of new Set(objs.map(o => (o.isMesh ? o.material : o.mat)))) for (const u of Object.values(m.uniforms || {})) { const v = u.value; if (v && v.isTexture && !v.isRenderTargetTexture && !warmTex.has(v)) { warmTex.add(v); tex.push(v); } }
   for (const t of tex) { await warmSlice(); R.initTexture(t); }
   if (!near) return;
-  warmRT ??= new T.WebGLRenderTarget(1, 1, { depthBuffer: false });
+  warmRT ??= new T.WebGLRenderTarget(1, 1, { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, depthBuffer: true });   // 格式同倒影 rtRefl（70-render.js 的 rtOpts）：傳頂點那一次順便建好倒影那一趟的 pipeline
   for (const m of objs) {
     await warmSlice();
     const prev = R.getRenderTarget(), ri = R.info.render, c = ri.calls, tr = ri.triangles, fc = m.frustumCulled, par = m.parent;

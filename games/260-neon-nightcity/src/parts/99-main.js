@@ -400,7 +400,7 @@ if (GLB_ON) {
 // 先把場景裡看得到的材質編好：有 KHR_parallel_shader_compile 時驅動在背景編，進度條不會凍住（Windows 的 Direct3D 後端編得特別久），
 // 進場第一幀也不用再停下來連結程式
 // （count 0 的實例與空幾何平常在 70-render.js 的視錐測試就剔掉，WebGPU 的 compileAsync 也走視錐測試：編的時候放行，之後有實例才不會現編）
-{ const t0 = performance.now(); fogCull.empty = false; await Promise.race([R.compileAsync(scene, camera).catch(() => {}), new Promise(r => setTimeout(r, 15000))]); fogCull.empty = true; GPU.compileMs = Math.round(performance.now() - t0); }
+{ const t0 = performance.now(); fogCull.empty = false; await Promise.race([gfxCompile(scene, camera, true), new Promise(r => setTimeout(r, 15000))]); fogCull.empty = true; GPU.compileMs = Math.round(performance.now() - t0); }
 bootProgress(100, '雨正在下。');
 const go = $('go'); go.disabled = false;
 go.textContent = '進入雨夜'; go.removeAttribute('role'); go.removeAttribute('aria-valuenow');
@@ -418,6 +418,7 @@ window.__nc = {
   gameHour: GAME_HOUR,   // 69-market.js：一遊戲小時是幾秒真實時間（28-sky.js 的 MIN_SEC × 60）
   viewCull,   // 20-props.js：遠景樹只送鏡頭看得到的方向（en = false 關掉比對）
   reflOcc,   // 70-render.js 遠景樹進不進倒影的遮擋查詢：reflOcc.en = false 關掉比對，skip 是現在的狀態、n 是收到幾次結果
+  reflCull,   // 70-render.js 倒影的螢幕大小剔除：門檻是 SET.reflMin（倒影貼圖的像素，0 關掉），px 填數字覆寫（量測用，null 還原），n 是累計剔掉幾次、log 設成陣列會收集被剔掉的物件
   fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對（也關掉 20-props.js 遠景樹的霧外剔除）
   enc: ENC && { on: ENC_ON, f: ENC.f, pad: ENC.pad, W: (x, z) => toW(x, z, ENC.f), L: (X, Z) => encL(X, Z), ground: (X, Z) => groundH(X, Z), district: (X, Z) => districtW(X, Z), place: (X, Z) => mapPlaceName(X, Z), tris: HILL.encTris, S: ENC.S },   // 28-enclave.js 雲梯城寨（框座標換世界座標、模型與替身的狀態）
   hillMouths: () => HILL.mouths, hillRoads: () => HILL.paths, hillConn: () => HILL_CONN.map(C => ({ pts: C.pts, lamp: C.lamp || null, e: C.e.id, akina: !!C.P.akina })).concat([HILL_CONN.stat]),   // 12-hillmouth.js 的連接路（最後一項是統計） akina: () => AKINA && { x: AKINA.x, z: AKINA.z, WL: AKINA.WL, F: AKINA.F, lake: AKINA.lake, walls: AKINA.walls, osm: AKINA.osm, road: AKINA.road ? AKINA.road.stats : null, tris: HILL.akinaTris, at: (X, Z) => ({ s: akinaShape(X, Z), real: akReal(AKINA, X, Z), h: hillMeshH(X, Z), wet: akinaWet(X, Z) }) },   // 09-akina.js：中心、湖面高、山道、細網格、某一點的山
@@ -473,5 +474,5 @@ window.__nc = {
   keys, inp, nitro, livery: cycleLivery,
   me, peds, pedState, crowd, ANIM, club, glb: glbReport, loadGLB: id => loadGLB(id), loadAllGLB: () => Promise.all(GLB_CARS.map(([id]) => loadGLB(id))),
   motors, cars: CARS, applyCar: (id, paint) => { applyCar(kestrel, id, paint); poseVehicle(kestrel); }, carInfo: id => carDialog(id), garageInfo: id => bayDialog(id), earn, garage: rebuildGarage, stow: stowCar, testDrive, driftTick, endTest: () => motors.test && endTest(),
-  getStats: () => ({ fps: Math.round(fps), drawCalls: R.info.render.calls, triangles: R.info.render.triangles, mode: player.mode, where: player.where, quest: quest.n, pos: { x: +(player.mode === 'drive' ? player.veh.x : player.x).toFixed(2), z: +(player.mode === 'drive' ? player.veh.z : player.z).toFixed(2) }, scale: post.scale }),
+  getStats: () => ({ fps: Math.round(fps), drawCalls: R.info.render.drawCalls, triangles: R.info.render.triangles, mode: player.mode, where: player.where, quest: quest.n, pos: { x: +(player.mode === 'drive' ? player.veh.x : player.x).toFixed(2), z: +(player.mode === 'drive' ? player.veh.z : player.z).toFixed(2) }, scale: post.scale }),
 };
