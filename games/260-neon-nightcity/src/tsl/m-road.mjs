@@ -310,8 +310,9 @@ export default {
     			const q = select( md.equal( d ), vec2( abs( dx ).sub( 3. ), mod( p.y.sub( Z0 ), Q ).sub( 31. ) ), vec2( mod( p.x.sub( X0 ), P ).sub( 36. ), abs( dz ).sub( 3. ) ) ).toVar();
     			const du = decUV( 8, q ).toVar();
     			const dc = decal( du ).toVar();
-    			disc.assign( dc.a );
-    			alb.assign( mix( alb, dc.rgb.mul( .3 ), disc ) );
+    			// 人孔蓋：外形用圓（半徑 0.385 m，貼圖的透明通道是去背時切出來的歪八角形），顏色不再乘 0.3、下面的 mh 只壓 0.1（原本兩次相乘整片壓成黑色、看不到孔與紋路）
+    			disc.assign( smoothstep( .39, .375, md ).mul( du.z ) );
+    			alb.assign( mix( alb, dc.rgb, disc ) );
     			decN.addAssign( decalN( du ).mul( disc ) );
 
     		} ).Else( () => {
@@ -320,7 +321,7 @@ export default {
 
     		} );
 
-    		mh.assign( sub( 1., disc.mul( .6 ) ) );
+    		mh.assign( sub( 1., disc.mul( select( uDecOn.greaterThan( .5 ), .1, .6 ) ) ) );   // 貼花的人孔蓋是照片色，不再壓暗（程式版照舊）
     		mhRing.assign( smoothstep( 1.3, .5, md ).mul( sub( 1., disc ) ) );
 
     	} );

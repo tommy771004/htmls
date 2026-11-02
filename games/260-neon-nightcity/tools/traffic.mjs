@@ -41,7 +41,7 @@ export const TRAFFIC = [
   { id: 'fvan', pal: false, tris: 3200 },
   // 第二階段：執法、救護、計程車與房車（同一位作者）
   { id: 'urban_cop', pal: false, tris: 4000 },
-  { id: 'md84', pal: false, tris: 4400 },
+  { id: 'md84', pal: false, tris: 4400, metK: .06 },   // 前臉是淺灰（178）的全金屬、全粗糙面板，原作在暗環境裡是黑的；當成塑膠畫的話日光下整片白
   { id: 'ambulance', pal: false, tris: 4000 },
   { id: 'canyon_taxi', pal: false, tris: 4000 },
   { id: 'fh', pal: true, tris: 3600 },
@@ -245,6 +245,7 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id, w
         let rgb = [c[0] * bcf[0], c[1] * bcf[1], c[2] * bcf[2]];
         vc.push(rgb[0], rgb[1], rgb[2], c[3]); vmet[i] = d[1] > .5 ? 1 : 0;
         if (px) { UV.getElement(i, uv); vuv.push(uv[0], uv[1]); const s = sample(px, uv[0], uv[1]); rgb = [rgb[0] * s[0], rgb[1] * s[1], rgb[2] * s[2]]; }
+        if (cfg.metK && d[1] > .5 && !wheel) rgb = rgb.map((v) => v * cfg.metK);   // metK（每台車的設定）：金屬面沒有漫射，底色直接當塑膠畫太亮
         if (Math.abs(e[3] - Math.floor(e[3]) - .25) < .01) { vdet[i] = Math.floor(e[3]); e.splice(0, 4, 0, 0, 0, 0); }
         const m = matOf([...rgb, c[3]], d, e, wheel, cfg.pal, real);
         // 燈：頂點色換成燈光的顏色（亮度交給 shader）；柔和自發光（燈條、儀表）壓暗，免得泛光整台爆白

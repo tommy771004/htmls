@@ -1077,7 +1077,7 @@ const FAR_SITES = {
   const ifb = (x, z) => ivn(x, z) * .55 + ivn(x * 2.13, z * 2.13) * .28 + ivn(x * 4.7, z * 4.7) * .17;
   const C_ROCK = lin(0x3a342c), C_SCRUB = lin(0x1c2a16), C_SCRUB2 = lin(0x2c3a1e), C_SHORE = lin(0x5a5244);
   for (const [ix, iz, r, h, id] of [[TRON_SITE.x, TRON_SITE.z, 330, 70, 'tron'], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90, 'eze']]) {
-    const zn = SEA_FR, kk = new Kit();
+    const zn = id === 'eze' ? zoneAtL(ix, iz) : SEA_FR, kk = new Kit();   // 鷹巖村跟著珊瑚灘那一片（同 27-props.js 的 COAST_MODELS），光格島在 SEA_FR
     for (let j = 0; j < 4; j++) {
       const rr = r * (.45 + r2() * .45), g = new T.SphereGeometry(rr, 56, 14, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1, h * (.4 + r2() * .6) / rr, .55 + r2() * .3);
       g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4);
@@ -1101,7 +1101,7 @@ const FAR_SITES = {
       cr += (C_SHORE.r - cr) * sh; cg += (C_SHORE.g - cg) * sh; cb += (C_SHORE.b - cb) * sh;
       C.setXYZ(i, cr * dk, cg * dk, cb * dk);
     }
-    cityAdd(ISLE_PROXY[id] = new T.Mesh(geo, MAT.far), zn);
+    cityAdd(ISLE_PROXY[id] = new T.Mesh(geo, MAT.far), zn, [ix, iz]);   // 給 at：整座島用一個剛體框，不逐頂點彎曲
   }
   // 對岸：沿河的堤岸與一條地面（FAR_PARTS，跟著舊城那一片），南端（FAR_Z1）是對著河口的岸；London City 的模型下載前先用程式剪影
   const bk = new Kit(), sk = new Kit(), ZA = CITY_Z0 - 1600, ZB = FAR_Z1;

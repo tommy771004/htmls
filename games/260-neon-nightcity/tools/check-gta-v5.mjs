@@ -58,9 +58,9 @@ try {
     return { ids: Object.keys(F).join(','), h: F.hosp.L.map(L => +L.h.toFixed(1)), pd: +F.pd.L[0].h.toFixed(1), helis: V.V5.helis.map(h => h.v && h.v.name), lads: V.LADS.length, ghost: F.hosp.b && N.ways ? 1 : 1 };
   });
   if (c1) {
-    check(c1.ids === 'hosp,pd,mall,gar,crane', `醫院、分局、商店街、立體停車場與霓峰塔工地五個街區（${c1.ids}）`);
+    check(['hosp', 'pd', 'mall', 'gar', 'crane'].every(k => c1.ids.split(',').includes(k)), `醫院、分局、商店街、立體停車場與霓峰塔工地五個街區（${c1.ids}；第七部曲起另有賭場、要塞、地堡）`);
     check(c1.h[0] > 10 && c1.h[1] > 30 && c1.pd > 15, `急診樓、主樓、分局的高度 ${c1.h.join('／')}／${c1.pd}`);
-    check(c1.helis.length === 2 && c1.helis.every(Boolean), `屋頂停兩架直升機（${c1.helis.join('、')}）`);
+    check(c1.helis.every(Boolean) && ['醫療直升機', '警用直升機'].every(n => c1.helis.some(h => h.startsWith(n))), `屋頂停兩架直升機（${c1.helis.join('、')}；地堡的武裝直升機也在同一張表）`);
   }
 
   const c2 = await sec('2. 醫藥費 5%（上限 $5,000）與繃帶', async () => {
@@ -182,7 +182,7 @@ try {
     const raw = (() => { try { N.gta.v5.impound(false); return JSON.parse(localStorage.getItem('nc260.motors')); } catch (e) { return null; } })();
     N.motors.v5.imp = 0; return raw && { v: raw.v, v5: raw.v5 };
   });
-  if (c11) check(c11.v === 9 && c11.v5 && c11.v5.imp === 1, `存檔 v${c11.v}、v5 ${JSON.stringify(c11.v5)}`);
+  if (c11) check(c11.v >= 9 && c11.v5 && c11.v5.imp === 1, `存檔 v${c11.v}（第 9 版起有 v5）、v5 ${JSON.stringify(c11.v5)}`);
 
   const c12 = await sec('12. 便利店搶劫：威嚇條約 12 秒、朝貨架開槍加快、第二台收銀機、能量飲料', () => {
     const N = window.__nc, G = N.gta, V = G.v5, S = V.SHOP, C = V.STORE_CLERK, W = G.wanted.W; __t.reset(); N.enter('store'); __t.step(2);
@@ -355,7 +355,7 @@ try {
   });
   if (c22) {
     check(c22.car && Math.abs(c22.car.y - c22.y0) < .05 && Math.abs(c22.car.at[0] - 17) < .5 && Math.abs(c22.car.at[1] - 40.5) < 1.2, `頂樓停著稀有超跑 ${JSON.stringify(c22.car)}`);
-    check(c22.air && c22.enter && c22.enter.includes('McLaren') && c22.top > c22.y0 + 1 && c22.land[0] > 80 && c22.ly < 1 && c22.n === 1 && c22.got > 0 && c22.done && c22.total === 21, `頂樓跳台起飛（最高 ${c22.top} m）、落在公園 ${c22.land}（${c22.enter}${c22.fail || ''}）、拿到 $${c22.got}（第 ${c22.total} 座跳台）`);
+    check(c22.air && c22.enter && c22.enter.includes('McLaren') && c22.top > c22.y0 + 1 && c22.land[0] > 80 && c22.ly < 1 && c22.n === 1 && c22.got > 0 && c22.done && c22.total === 21, `頂樓跳台起飛（最高 ${c22.top} m）、落在公園 ${c22.land} 高 ${c22.ly}（${c22.enter}${c22.fail || ''}）、拿到 $${c22.got}（第 ${c22.total} 座跳台；特技 ${c22.n} 次、記錄 ${c22.done}）`);
   }
 
   const c23 = await sec('24. 降落傘包：撿起來之後，開車飛在半空按 F 跳車開傘', () => {
