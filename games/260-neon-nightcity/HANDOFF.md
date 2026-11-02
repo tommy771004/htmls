@@ -295,6 +295,7 @@
     - **人孔蓋**：原本是黑色橢圓。貼花顏色乘 0.3，`mh` 又再壓 0.6，四種路面著色器（`m-road`／`m-roadConn`／`m-roadLane`／`m-roadRamp`）各有一份。改成外形用半徑 0.385 m 的圓、顏色照貼圖，`mh` 在貼花開著時只壓 0.1。
     - **浮空的島**：鷹巖村的程式替身用 `SEA_FR`（沒有 `?zrot` 時是 null），但下載的模型在 `coastModelsUpdate` 裡被 `o.zn || zoneAtL` 退回珊瑚灘那一片，兩者差了約 1.6 km。替身因此擺到紐柏林賽道島上空，檔案模式下浮在海平線上。改成 `'zn' in o` 判斷；鷹巖村的替身和模型都跟著 `zoneAtL`（剛體框）。光格島的遠景模型原本也被退回某一片（偏約 700 m），現在照 `TRON_SITE.zn`。
     - **md84 水箱罩的白色碎三角**：前臉貼的是淺灰（178）的全金屬、全粗糙面板，烘焙時被當成塑膠，日光下整片白。`traffic.mjs` 新增每台車的 `metK`（金屬面的頂點色乘上它），md84 用 0.06。原檔在 `.cache/cars/md_84_armored_-_low_poly_model.glb`。
+    - **md84 上車換實車**：`cars.mjs` 的 md84 拿掉 `traffic: true`，也輸出 `assets/260/md84.glb`（965 KB，跑過 `lamps.mjs`、`seats.mjs`），車流低模照舊從它烘。`26-glb.js` 登錄成 `street: 1, skin: 1`，`TYPES.md84` 也標 `street` 與 `skin`。搶案的偽裝裝甲車、地堡補給卡車在玩家坐上去時走 `streetUp` 換成實車；`skin` 會保留任務設的名字、耐久、極速與質量，`streetId` 不讓它收進車庫，路邊機車換車位時也不挑它。偽裝條（`69-heist2.js` 的 `disguiseKit`）改量 `v.body` 底下全部網格，掛在 `carHooks`，換替身與實車後各重掛一次。`streetUp` 只 `dispose` 這台車自己的材質（偽裝條用共用的 `MAT.uber`）。
 - 沒動的：翻車「當成盒子」是物理碰撞，畫面上看不到；直升機的程式火箭莢只在舊 `traffic.glb` 才用到；商店街的程式正面只在以檔案開啟時出現。超過 6 m 的長牆與寬不到 30 cm 的薄條沒有倒角（理由見第三批）。
 - 驗收截圖的腳本在 session 的 scratchpad（櫥窗近拍、場館、車與砲塔、籠鬥）；`__nc.city.shopUnits` 與 `__nc.dbg()`（`PK`、`GS`、`v7Turret`、`scene`、`Kit`、`MAT`、`trees`、`peds`）是為了截圖加的；第二批又加了 `finPool`、`finBalcony`、`rigMesh`、`siteMesh`、`VEND`、`VEND_BIN`、`ISLE_PROXY`、`HILL_PLANTS`、`XR`、`ST_SITES`、`BANK_WALKS`，路面施工的網格叫 `stWorks`。
 

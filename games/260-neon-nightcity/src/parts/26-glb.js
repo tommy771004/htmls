@@ -135,6 +135,10 @@ const GLB_CARS = [
     tag: '自然進氣 V10 的中置跑車，加了外擴寬體、鴨尾與蜂巢格柵。橘色車身是原廠彩繪，不能換色。' }],
   ['evo6', { name: 'Mitsubishi Lancer Evolution VI', cls: '1999 · 渦輪四缸四驅', price: 45000, street: 1, vmax: 66, eng: 15, grip: 9.4,
     tag: '拉力賽冠軍的街車版，四驅、渦輪與巨大的尾翼。紫色車身配藍色貼紙，原廠彩繪，不能換色。' }],
+  // 任務用的裝甲車（skin）：路上照舊是車流低模（不在 STREET 抽籤池、不能搶），搶案與地堡補給讓玩家開的那台坐上去才換成實車；
+  // 只換外觀，名字、耐久、極速與質量照任務設的（68-gta.js 的 streetUp），也不能收進車庫（65-motors.js 的 streetId）
+  ['md84', { name: 'MD 84 裝甲車', cls: '運鈔／特勤裝甲卡車', price: 0, street: 1, skin: 1, vmax: 38, eng: 8, grip: 6,
+    tag: '中型卡車底盤加裝甲車廂，車窗是防彈玻璃。慢、重、轉彎要早點打方向，但一般的槍打不穿。' }],
   ['hd72', { name: 'Harley-Davidson Seventy-Two', cls: '2015 · 1200 cc V 型雙缸', price: 12000, bike: true, street: 1, vmax: 50, eng: 11, grip: 7, seat: [-.06, -.28],
     tag: '高把手、細前輪與糖果紅油箱的復古嬉皮車。不快，但停在哪裡都很好看。' }],
   ['hdpol', { name: 'Harley-Davidson 警用重機', cls: '1700 cc V 型雙缸 · 警用', price: 28000, bike: true, street: 1, vmax: 52, eng: 11.5, grip: 7.2, seat: [-.06, -.25],

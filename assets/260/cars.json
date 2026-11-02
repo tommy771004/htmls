@@ -5166,5 +5166,61 @@
   "tris": 36722,
   "kb": 631,
   "draws": 19
+ },
+ "md84": {
+  "id": "md84",
+  "title": "MD '84 Armored - Low poly model",
+  "author": "Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)",
+  "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/md-84-armored-low-poly-model-26e809cce40e4359a3199649f12ef295",
+  "bike": false,
+  "len": 6.34,
+  "w": 2.694,
+  "h": 2.581,
+  "wr": 0.481,
+  "fa": 2.32,
+  "ra": -1.687,
+  "track": 0.99,
+  "wheels": [
+   {
+    "name": "FL",
+    "x": 1.012,
+    "y": 0.481,
+    "z": 2.32,
+    "r": 0.481
+   },
+   {
+    "name": "FR",
+    "x": -1.008,
+    "y": 0.481,
+    "z": 2.32,
+    "r": 0.481
+   },
+   {
+    "name": "RL",
+    "x": 0.971,
+    "y": 0.481,
+    "z": -1.687,
+    "r": 0.481
+   },
+   {
+    "name": "RR",
+    "x": -0.968,
+    "y": 0.481,
+    "z": -1.687,
+    "r": 0.481
+   }
+  ],
+  "paint": [
+   "MD84Armored_Bodymat"
+  ],
+  "paintable": false,
+  "tris": 20355,
+  "kb": 965,
+  "draws": 16,
+  "db": [
+   0.5,
+   1.15
+  ]
  }
 }

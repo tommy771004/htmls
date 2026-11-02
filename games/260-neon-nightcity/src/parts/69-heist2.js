@@ -115,16 +115,25 @@ function getawayCar() {
   return v;
 }
 // 偽裝塗裝：車身兩側的橘黃反光條、駕駛艙頂兩盞閃爍的工程警示燈（車漆換色在 md84 的模型上看不太出來）
+// 車身的範圍量 v.body 底下所有網格（車身座標）：低模是一個 InstancedMesh，換成實車（68-gta.js 的 streetUp）後是 GLB 的一組網格
+const DSG_M = new T.Matrix4(), DSG_I = new T.Matrix4();
 function disguiseKit(v) {
-  const geo = v.body.children[0].geometry;
-  if (!geo.boundingBox) geo.computeBoundingBox();
-  const b = geo.boundingBox, k = new Kit(), top = b.max.y, hw = (b.max.x - b.min.x) / 2 - .06, L = b.max.z - b.min.z, zc = (b.max.z + b.min.z) / 2;
+  v.body.updateMatrixWorld(true); DSG_I.copy(v.body.matrixWorld).invert();
+  const b = new T.Box3();
+  v.body.traverse(o => {
+    if (!o.isMesh || o.userData.dsg || !o.geometry.attributes.position) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    b.union(o.geometry.boundingBox.clone().applyMatrix4(DSG_M.multiplyMatrices(DSG_I, o.matrixWorld)));
+  });
+  if (b.isEmpty()) return;
+  const k = new Kit(), top = b.max.y, hw = (b.max.x - b.min.x) / 2 - .06, L = b.max.z - b.min.z, zc = (b.max.z + b.min.z) / 2;
   for (const s of [-1, 1]) {
     k.box(s * hw, top * .42, zc - L * .08, .03, .18, L * .7, 0xe8a520, 2).box(s * (hw + .005), top * .42, zc - L * .08, .03, .05, L * .7, 0xece8e0, 2);
     k.box(s * .45, top + .08, zc + L * .14, .3, .16, .3, 0xffa21a, 9);
   }
-  v.body.add(new T.Mesh(k.build(), MAT.uber));
+  const m = new T.Mesh(k.build(), MAT.uber); m.userData.dsg = m.userData.kit = 1; v.body.add(m);
 }
+carHooks.push(v => { if (v.disguise) disguiseKit(v); });   // 換成實車時 applyCar 清掉車身：替身與實車模型擺好後各掛一次
 function heliLeg() {
   const v = player.veh, h = heist.heli;
   if (h && h.dead && v !== h && !heist.heliLost) { heist.heliLost = true; toast('直升機被打爛了：開裝甲車甩掉警察，直接開進貨場'); }

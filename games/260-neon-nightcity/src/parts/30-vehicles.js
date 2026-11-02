@@ -61,7 +61,7 @@ const TYPES = {
   tiara: glbType('tiara', 14),
   shvan: glbType('shvan', 11), lct: glbType('lct', 10), conquer: glbType('conquer', 12), fvan: glbType('fvan', 10),
   // 第二階段（69-police.js）：執法車也會被派出去追捕；運鈔裝甲車與救護車偶爾出現在車流
-  urban_cop: glbType('urban_cop', 14, { police: 1 }), md84: glbType('md84', 9.5, { armored: 1 }),
+  urban_cop: glbType('urban_cop', 14, { police: 1 }), md84: glbType('md84', 9.5, { armored: 1, street: 1, skin: 1 }),   // street＋skin：玩家坐上去只換成實車的外觀（26-glb.js）
   ambulance: glbType('ambulance', 11.5), canyon_taxi: glbType('canyon_taxi', 13),
   fh: glbType('fh', 13), il: glbType('il', 13.5),
   // world_1 gameready_city 路上的三台車（tools/traffic.mjs 的 grc_*）：深藍舊轎車、白色廂型貨車、藍色郵務車

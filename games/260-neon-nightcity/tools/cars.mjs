@@ -115,7 +115,7 @@ export const MODELS = [
   { id: 'fvan', file: 'french_delivery_van_-_low_poly_model', len: 4.3, tris: 30000, traffic: true },
   // 第二階段（通緝與追捕）：執法、救護與更多計程車、房車
   { id: 'urban_cop', file: 'urban_10_cop_enforcer_-_low_poly_model', len: 4.36, tris: 30000, traffic: true, flip: true },
-  { id: 'md84', file: 'md_84_armored_-_low_poly_model', len: 6.34, tris: 30000, traffic: true, flip: true },
+  { id: 'md84', file: 'md_84_armored_-_low_poly_model', len: 6.34, tris: 30000, flip: true },   // 不標 traffic：也輸出到 assets/260/，任務裡玩家坐上去時換成實車（26-glb.js 的 street＋skin）
   { id: 'ambulance', file: 'shvan_92_ambulance_-_low_poly_model', len: 5.02, tris: 30000, traffic: true, flip: true },
   { id: 'canyon_taxi', file: 'canyon_75_taxi_-_low_poly_model', len: 5.31, tris: 30000, traffic: true, flip: true },
   { id: 'fh', file: 'fairheaven_lt_80_-_low_poly_model', len: 5.0, tris: 30000, traffic: true, flip: true },
