@@ -315,6 +315,39 @@ export default {
     		metal.assign( mix( .05, .8, chip ) );
     		envK.assign( mix( .12, .4, chip ) );
 
+    	} ).ElseIf( m.equal( 30 ), () => {
+
+    		// 30 橡膠、粗塑膠（2026-11-02 補上：原本沒有這一支，畫成素色）：細顆粒、朝上的面一層灰、霧面
+    		alb.mulAssign( add( .86, mul( .24, n3( p.mul( 70. ) ) ).mul( kxAA( uv.mul( 70. ) ) ) ).mul( add( .9, mul( .16, fbm3( p.mul( 1.7 ) ) ) ) ) );
+    		alb.assign( mix( alb, alb.add( vec3( .03, .028, .025 ) ), up.mul( .6 ) ) );
+    		rough.assign( .9 );
+    		envK.assign( .04 );
+
+    	} ).ElseIf( m.equal( 52 ), () => {
+
+    		// 52 間知石（2026-11-02，雲梯城寨擋土牆，參考圖的不規則石塊與青苔）：uv 上 34 × 27 cm 的抖動格子取 Voronoi，F2 − F1 是離石縫多遠；
+    		// 石縫 2 cm 暗、往內凹，石面中間凸（邊緣暗一點），每塊石頭亮度與色相各取一個雜湊；石縫與朝上、靠下的地方長青苔，牆面有雨水的垂流
+    		const cs = vec2( .34, .27 ), g = uv.div( cs ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).toVar();
+    		const d1 = float( 9. ).toVar(), d2 = float( 9. ).toVar(), cid = vec2( 0. ).toVar();
+    		for ( let i = - 1; i <= 1; i ++ ) for ( let j = - 1; j <= 1; j ++ ) {
+    			const o = vec2( i, j ), c = gi.add( o ), r = vec2( h21( c ), h21( c.add( 17.3 ) ) );
+    			const d = length( o.add( .12 ).add( r.mul( .76 ) ).sub( gf ).mul( cs ) );
+    			d2.assign( select( d.lessThan( d1 ), d1, min( d2, d ) ) );
+    			cid.assign( select( d.lessThan( d1 ), c, cid ) );
+    			d1.assign( min( d1, d ) );
+    		}
+    		const edge = d2.sub( d1 ).toVar(), bv = h21( cid.add( 3.7 ) ).toVar();
+    		const mort = sub( 1., smoothstep( .012, .026, edge ) ).toVar();
+    		const stone = vec3( 1. ).mul( add( .72, mul( .4, bv ) ) ).mul( mix( vec3( 1.04, 1., .94 ), vec3( .95, .98, 1.04 ), h21( cid.add( 9.1 ) ) ) ).toVar();
+    		stone.mulAssign( mix( .72, 1., smoothstep( .02, .09, edge ) ) );
+    		stone.mulAssign( add( .86, mul( .26, n3( p.mul( 19. ) ) ).mul( kxAA( uv.mul( 19. ) ) ) ) );
+    		alb.assign( alb.mul( mix( stone, vec3( .42, .4, .37 ), mort ) ) );
+    		const moss = smoothstep( .5, .75, fbm3( p.mul( 1.3 ).add( 11. ) ).add( mort.mul( .25 ) ).add( up.mul( .2 ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .07, .1, .035 ), moss.mul( .75 ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, vert ).mul( smoothstep( .6, .9, fbm3( vec3( uv.x.mul( 6. ), p.y.mul( .4 ), 1.7 ) ) ) ) ) );
+    		rough.assign( mix( .82, .95, min( mort.add( moss ), 1. ) ) );
+    		envK.assign( .05 );
+
     	} ).ElseIf( m.equal( 31 ), () => {
 
     		const q = uv.div( .006 ).toVar(), c = floor( q ).toVar(), f = fract( q ).toVar();
@@ -1112,6 +1145,39 @@ export default {
     		metal.assign( mix( .05, .8, chip ) );
     		envK.assign( mix( .12, .4, chip ) );
 
+    	} ).ElseIf( m.equal( 30 ), () => {
+
+    		// 30 橡膠、粗塑膠（2026-11-02 補上：原本沒有這一支，畫成素色）：細顆粒、朝上的面一層灰、霧面
+    		alb.mulAssign( add( .86, mul( .24, n3( p.mul( 70. ) ) ).mul( kxAA( uv.mul( 70. ) ) ) ).mul( add( .9, mul( .16, fbm3( p.mul( 1.7 ) ) ) ) ) );
+    		alb.assign( mix( alb, alb.add( vec3( .03, .028, .025 ) ), up.mul( .6 ) ) );
+    		rough.assign( .9 );
+    		envK.assign( .04 );
+
+    	} ).ElseIf( m.equal( 52 ), () => {
+
+    		// 52 間知石（2026-11-02，雲梯城寨擋土牆，參考圖的不規則石塊與青苔）：uv 上 34 × 27 cm 的抖動格子取 Voronoi，F2 − F1 是離石縫多遠；
+    		// 石縫 2 cm 暗、往內凹，石面中間凸（邊緣暗一點），每塊石頭亮度與色相各取一個雜湊；石縫與朝上、靠下的地方長青苔，牆面有雨水的垂流
+    		const cs = vec2( .34, .27 ), g = uv.div( cs ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).toVar();
+    		const d1 = float( 9. ).toVar(), d2 = float( 9. ).toVar(), cid = vec2( 0. ).toVar();
+    		for ( let i = - 1; i <= 1; i ++ ) for ( let j = - 1; j <= 1; j ++ ) {
+    			const o = vec2( i, j ), c = gi.add( o ), r = vec2( h21( c ), h21( c.add( 17.3 ) ) );
+    			const d = length( o.add( .12 ).add( r.mul( .76 ) ).sub( gf ).mul( cs ) );
+    			d2.assign( select( d.lessThan( d1 ), d1, min( d2, d ) ) );
+    			cid.assign( select( d.lessThan( d1 ), c, cid ) );
+    			d1.assign( min( d1, d ) );
+    		}
+    		const edge = d2.sub( d1 ).toVar(), bv = h21( cid.add( 3.7 ) ).toVar();
+    		const mort = sub( 1., smoothstep( .012, .026, edge ) ).toVar();
+    		const stone = vec3( 1. ).mul( add( .72, mul( .4, bv ) ) ).mul( mix( vec3( 1.04, 1., .94 ), vec3( .95, .98, 1.04 ), h21( cid.add( 9.1 ) ) ) ).toVar();
+    		stone.mulAssign( mix( .72, 1., smoothstep( .02, .09, edge ) ) );
+    		stone.mulAssign( add( .86, mul( .26, n3( p.mul( 19. ) ) ).mul( kxAA( uv.mul( 19. ) ) ) ) );
+    		alb.assign( alb.mul( mix( stone, vec3( .42, .4, .37 ), mort ) ) );
+    		const moss = smoothstep( .5, .75, fbm3( p.mul( 1.3 ).add( 11. ) ).add( mort.mul( .25 ) ).add( up.mul( .2 ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .07, .1, .035 ), moss.mul( .75 ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, vert ).mul( smoothstep( .6, .9, fbm3( vec3( uv.x.mul( 6. ), p.y.mul( .4 ), 1.7 ) ) ) ) ) );
+    		rough.assign( mix( .82, .95, min( mort.add( moss ), 1. ) ) );
+    		envK.assign( .05 );
+
     	} ).ElseIf( m.equal( 31 ), () => {
 
     		const q = uv.div( .006 ).toVar(), c = floor( q ).toVar(), f = fract( q ).toVar();
@@ -1907,6 +1973,39 @@ export default {
     		rough.assign( mix( .6, .4, chip ) );
     		metal.assign( mix( .05, .8, chip ) );
     		envK.assign( mix( .12, .4, chip ) );
+
+    	} ).ElseIf( m.equal( 30 ), () => {
+
+    		// 30 橡膠、粗塑膠（2026-11-02 補上：原本沒有這一支，畫成素色）：細顆粒、朝上的面一層灰、霧面
+    		alb.mulAssign( add( .86, mul( .24, n3( p.mul( 70. ) ) ).mul( kxAA( uv.mul( 70. ) ) ) ).mul( add( .9, mul( .16, fbm3( p.mul( 1.7 ) ) ) ) ) );
+    		alb.assign( mix( alb, alb.add( vec3( .03, .028, .025 ) ), up.mul( .6 ) ) );
+    		rough.assign( .9 );
+    		envK.assign( .04 );
+
+    	} ).ElseIf( m.equal( 52 ), () => {
+
+    		// 52 間知石（2026-11-02，雲梯城寨擋土牆，參考圖的不規則石塊與青苔）：uv 上 34 × 27 cm 的抖動格子取 Voronoi，F2 − F1 是離石縫多遠；
+    		// 石縫 2 cm 暗、往內凹，石面中間凸（邊緣暗一點），每塊石頭亮度與色相各取一個雜湊；石縫與朝上、靠下的地方長青苔，牆面有雨水的垂流
+    		const cs = vec2( .34, .27 ), g = uv.div( cs ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).toVar();
+    		const d1 = float( 9. ).toVar(), d2 = float( 9. ).toVar(), cid = vec2( 0. ).toVar();
+    		for ( let i = - 1; i <= 1; i ++ ) for ( let j = - 1; j <= 1; j ++ ) {
+    			const o = vec2( i, j ), c = gi.add( o ), r = vec2( h21( c ), h21( c.add( 17.3 ) ) );
+    			const d = length( o.add( .12 ).add( r.mul( .76 ) ).sub( gf ).mul( cs ) );
+    			d2.assign( select( d.lessThan( d1 ), d1, min( d2, d ) ) );
+    			cid.assign( select( d.lessThan( d1 ), c, cid ) );
+    			d1.assign( min( d1, d ) );
+    		}
+    		const edge = d2.sub( d1 ).toVar(), bv = h21( cid.add( 3.7 ) ).toVar();
+    		const mort = sub( 1., smoothstep( .012, .026, edge ) ).toVar();
+    		const stone = vec3( 1. ).mul( add( .72, mul( .4, bv ) ) ).mul( mix( vec3( 1.04, 1., .94 ), vec3( .95, .98, 1.04 ), h21( cid.add( 9.1 ) ) ) ).toVar();
+    		stone.mulAssign( mix( .72, 1., smoothstep( .02, .09, edge ) ) );
+    		stone.mulAssign( add( .86, mul( .26, n3( p.mul( 19. ) ) ).mul( kxAA( uv.mul( 19. ) ) ) ) );
+    		alb.assign( alb.mul( mix( stone, vec3( .42, .4, .37 ), mort ) ) );
+    		const moss = smoothstep( .5, .75, fbm3( p.mul( 1.3 ).add( 11. ) ).add( mort.mul( .25 ) ).add( up.mul( .2 ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .07, .1, .035 ), moss.mul( .75 ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, vert ).mul( smoothstep( .6, .9, fbm3( vec3( uv.x.mul( 6. ), p.y.mul( .4 ), 1.7 ) ) ) ) ) );
+    		rough.assign( mix( .82, .95, min( mort.add( moss ), 1. ) ) );
+    		envK.assign( .05 );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 

@@ -1,14 +1,14 @@
 // ─── 武裝直升機（neon_nightcity_gta_v_2.md 搶劫第三節：強攻路線的逃亡載具是「重型防彈裝甲車 + 河岸邊預藏的武裝直升機」） ───
 // 玩家可以開：W／S 前進後退、A／D 轉向、Space 爬升、Shift 下降；左鍵（觸控的開火鍵）從兩側火箭莢發射，對準準星的落點。
 // 它是 vehicles 裡 fly: true 的載具：99-main.js 開的時候換成 flyHeli，相機拉遠；沒人開時停在原地或往下掉。
-// 模型是 traffic.glb 的 AH-64（gunship／gunship_rotor／gunship_tail，PolyDucky 的 CC BY 模型，tools/traffic.mjs 烘的）；
+// 模型是 traffic.glb 的 AH-64D（gunship／gunship_rotor／gunship_tail，Muhamad Mirza Arrafi 的 Sketchfab 模型，CC BY 4.0；tools/ah64-split.mjs 切旋翼、tools/traffic.mjs 烘的）；
 // 沒有這組節點（舊的 traffic.glb）時退回警用直升機機身加程式建模的火箭莢與機鼻機砲。69-police.js 的 partMesh 在函式裡才用。
 
 const GS = { list: [], fireT: 0, side: 1, rk: 16, rkT: 0 };
 const GS_RK = 16, GS_RELOAD = 4;
 const GS_GLB = !!TRAFFIC_GEO.gunship;
 const GS_IDS = GS_GLB ? ['gunship', 'gunship_rotor', 'gunship_tail'] : ['heli', 'heli_rotor', 'heli_tail'];
-const GS_POD = GS_GLB ? [2.05, 1.1, 3.4] : [1.45, -.3, 1.2];   // 火箭莢的口（機身座標，x 取左右；AH-64 是短翼下兩組四聯莢的中間）
+const GS_POD = GS_GLB ? [1.63, .68, 2.8] : [1.45, -.3, 1.2];   // 發射口（機身座標，x 取左右；AH-64D 短翼外側掛架上四聯地獄火飛彈的中間、彈頭前緣）
 // 屋頂高度：22-hmap.js 的日光陰影高度圖（世界座標，1.25 m 一格，含實體建築模型）
 function roofH(x, z) {
   if ((x - HELIPAD.x) ** 2 + (z - HELIPAD.z) ** 2 < 56) return groundH(x, z) + .13;   // 停機坪的水泥台（下面的 HELIPAD）

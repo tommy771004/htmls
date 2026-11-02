@@ -402,7 +402,7 @@ function mapClick(sx, sy) {
   const [x, z] = wr, kz = MAP_INS && MAP_INS.inW(x, z) ? MAP_INS.s : 1;   // 插圖裡的容許距離照縮小的比例放寬
   { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (zn ? lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR : !seamAt(x, z)) if (!capeAt(x, z)) {   // 城裡、區之間的縫或岬角
     const p = xgProject(x, z, 64, 256);   // 城外：點在路上（69-gps.js 的 XG：山路、榛嶺、堤道、紐柏林的賽道與村道），或在機場、紐柏林的地上
-    if (!(p && p.d < Math.max(30, 16 / MV.zoom / kz)) && !airLandW(x, z) && !(NBR && nbrIn(x, z))) return;
+    if (!(p && p.d < Math.max(30, 16 / MV.zoom / kz)) && !airLandW(x, z) && !(NBR && nbrIn(x, z)) && !encHas(x, z)) return;   // encHas：雲梯城寨的平台（街在 XG 裡）
   } }
   if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14 / Math.max(.5, MV.zoom) / kz) gpsClear(); else gpsSet(x, z);
   gps.t = 0; gpsUpdate(); mapCard(); MV.dirty = true;

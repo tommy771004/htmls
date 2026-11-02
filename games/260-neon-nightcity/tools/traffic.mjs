@@ -61,11 +61,12 @@ export const TRAFFIC = [
   { id: 'barricade', raw: 'barricade_set_low_poly_game_ready', scale: 1, rot: 0, nodes: /^(Barricade3L|Light[789]_)/, part: true, pal: false, tris: 500, noFar: true },
   { id: 'cone', raw: 'barricade_set_low_poly_game_ready', scale: 1, rot: 0, nodes: /^ConeTraffic/, part: true, pal: false, tris: 120, noFar: true },
   { id: 'spike', raw: 'spike_strip', scale: 1, rot: 90, part: true, pal: false, tris: 500, noFar: true },
-  // 武裝直升機（69-gunship.js）：PolyDucky 的 AH-64 低面數模型，原檔機頭已朝 +z；原點以機身（Object_4）置中，主旋翼與尾旋翼各自拆出來轉。
-  // flat：原檔是低面數＋色塊迷彩，焊接時連顏色一起比，色塊才不會在相鄰面之間糊開（面數本來就在 tris 內，不必減面）
-  { id: 'gunship', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(?!(8|10|11|37|39)$)/, pal: false, tris: 4000, noFar: true, flat: true },
-  { id: 'gunship_rotor', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(8|10|11)$/, part: true, pal: false, tris: 400, noFar: true, flat: true },
-  { id: 'gunship_tail', raw: 'ah-64_apache_attack_helicopter_low_poly', scale: 4.8, rot: 0, center: /^Object_4$/, nodes: /^Object_(37|39)$/, part: true, pal: false, tris: 300, noFar: true, flat: true },
+  // 武裝直升機（69-gunship.js）：Muhamad Mirza Arrafi 的 AH-64D（Sketchfab，CC BY 4.0）。原檔依材質合併成幾大塊，旋翼和機身在同一個網格裡，
+  // 先用 tools/ah64-split.mjs 照相連元件切成 Object_N（機身）、rotor_Object_N（主旋翼：四片槳葉＋轂頭）、tail_Object_N（尾旋翼），存成 .cache/raw/ah64d_split.glb；
+  // 機頭原本朝 +x（rot -90 轉到 +z），機身 14.5 m；兩片浮貼的貼花（Object_2／4）切的時候丟掉。轉軸是量出來的轂心（整檔座標）
+  { id: 'gunship', raw: 'ah64d_split', scale: 6.6, rot: -90, nodes: /^Object_/, pal: false, tris: 10000, noFar: true },
+  { id: 'gunship_rotor', raw: 'ah64d_split', scale: 6.6, rot: -90, nodes: /^rotor_/, part: true, pivot: [0, 3.264, 1.742], pal: false, tris: 600, noFar: true },
+  { id: 'gunship_tail', raw: 'ah64d_split', scale: 6.6, rot: -90, nodes: /^tail_/, part: true, pivot: [.528, 2.756, -6.97], pal: false, tris: 400, noFar: true },
   // world_1 gameready_city 路上的三台車：tools/props.mjs 的 w1_grc 已經切出來、擺正、接地（rawFile 直接讀那個輸出；節點名就是物件 id）。
   // 轎車與白色廂型貨車原檔車頭朝 +x，郵務車朝 +z；車身顏色在貼圖上，不給調色盤
   { id: 'grc_sedan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: -90, center: /^sedan$/, nodes: /^sedan$/, pal: false, tris: 2400 },

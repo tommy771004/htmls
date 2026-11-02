@@ -37,31 +37,56 @@ const slowmo = { k: 1, want: 1, ab: 1, st: 1, raw: 1 / 60 };   // want：轉盤�
 // ─── 武器模型：外層 Group 每幀擺到手上，內層位移 −grip；實體模型（arms.glb）下載前先用程式建模 ───
 const ARM_COL = { dark: 0x17181b, mid: 0x2b2d31, wood: 0x5a3a22, steel: 0x8a8d92, olive: 0x3a4430 };
 function armKit(id) {
-  const k = new Kit(), A = ARMS[id] || {}, g = A.grip || [0, 0, 0], m = A.muzzle || [0, 0, .2];
-  if (id === 'gas') { k.cyl(0, 0, 0, .033, .033, .12, 10, 0x59614c, 2); k.cyl(0, .072, 0, .013, .013, .025, 8, ARM_COL.steel, 15); k.box(0, .07, .02, .01, .012, .04, ARM_COL.steel, 15); }
-  else if (id === 'grenade') { k.cyl(0, 0, 0, .032, .032, .07, 8, ARM_COL.olive, 2); k.box(0, .045, 0, .012, .02, .03, ARM_COL.steel, 15); }
-  else if (id === 'c4' || id === 'sticky') { k.box(0, 0, 0, .1, .04, .2, 0x8a8058, 2); k.box(0, .022, .03, .05, .01, .05, 0x1a1a1a, 2); }
-  else if (id === 'rocket') { k.cyl(0, 0, 0, .04, .04, .5, 8, ARM_COL.olive, 2, Math.PI / 2); k.cyl(0, 0, .3, .0, .045, .14, 8, 0x3c3c34, 2, -Math.PI / 2); }
+  // 去玩具感（2026-11-02）：替身（以檔案開啟、arms.glb 下載前）原本是方塊加圓柱。零件照真的槍拆：圓角的機匣（烤漆 34）、拋殼口、上方的滑軌、
+  // 準星與照門、扳機護圈與扳機、彎的彈匣、槍管（不鏽鋼 35）與槍口裝置；握把、護木與槍托的位置照舊擺在 GUN_HOLD 量的手與肩（雙手 IK 才握得到）
+  const k = new Kit(), A = ARMS[id] || {}, g = A.grip || [0, 0, 0], m = A.muzzle || [0, 0, .2], P = TX.enamel, ST = TX.steel;
+  if (id === 'gas') { k.lathe(0, -.06, 0, [[0, 0], [.03, .002], [.033, .01], [.033, .1], [.028, .115], [.012, .12]], 14, 0x59614c, P); k.cyl(0, .072, 0, .013, .013, .025, 8, ARM_COL.steel, ST); k.box(0, .07, .02, .01, .012, .04, ARM_COL.steel, ST); k.box(0, .02, .0335, .04, .03, .001, 0xd8d0b0, 2); }
+  else if (id === 'grenade') {
+    k.lathe(0, -.035, 0, [[0, 0], [.022, .004], [.032, .02], [.034, .036], [.03, .055], [.018, .066], [.012, .07]], 14, ARM_COL.olive, P);
+    for (let i = 0; i < 5; i++) k.torus(0, -.022 + i * .013, 0, .033 - Math.abs(i - 2) * .002, .002, 14, 0x2e3626, P);   // 破片溝
+    k.cyl(0, .042, 0, .012, .012, .016, 10, ARM_COL.steel, ST).box(.01, .03, 0, .008, .05, .016, ARM_COL.steel, ST, 0, 0, -.2).torus(-.018, .05, 0, .01, .0015, 12, ARM_COL.steel, ST, 0, 0, 0);   // 引信、握片、拉環
+  }
+  else if (id === 'c4' || id === 'sticky') { k.rbox(0, 0, 0, .1, .04, .2, .008, 0x8a8058, TX.rubber); k.box(0, .022, .03, .05, .01, .05, 0x1a1a1a, 2); k.box(.02, .028, .03, .012, .004, .008, 0xff2020, 9); for (const dz of [-.06, .06]) k.box(0, 0, dz, .104, .044, .012, 0x3a3a34, TX.rubber); k.rod(-.01, .027, .02, -.03, .03, -.08, .002, 4, 0xd02020, 2); }
+  else if (id === 'rocket') { k.cyl(0, 0, 0, .04, .04, .5, 12, ARM_COL.olive, P, Math.PI / 2); k.lathe(0, 0, .25, [[.04, 0], [.045, .03], [.04, .09], [.02, .14], [0, .16]], 12, 0x3c3c34, P, Math.PI / 2); for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + .78; k.box(Math.cos(a) * .05, Math.sin(a) * .05, -.22, .004, .03, .06, ARM_COL.olive, P, 0, 0, a); } }
   else if (A.melee) {
-    const L = id === 'katana' ? 1 : id === 'bat' ? .84 : .5;
-    k.cyl(0, 0, 0, id === 'bat' ? .035 : .015, id === 'bat' ? .018 : .015, L, 8, id === 'bat' ? 0x9a7a52 : id === 'katana' ? 0xc8ccd2 : ARM_COL.dark, id === 'katana' ? 15 : 2, Math.PI / 2);
-    k.cyl(0, 0, g[2], .017, .017, .2, 8, 0x111111, 2, Math.PI / 2);
+    if (id === 'katana') {
+      const t0 = g[2] + .12, bl = .5 - t0;   // 刀身從鍔到原本的刀尖（z .5）
+      k.box(0, 0, t0 + bl / 2, .006, .03, bl, 0xc8ccd2, ST).box(0, -.012, t0 + bl / 2, .007, .006, bl - .02, 0xe8eaee, 3);   // 刀身與刃
+      k.cyl(0, 0, t0, .04, .04, .008, 16, 0x2a2622, 15, Math.PI / 2);   // 鍔
+      k.cyl(0, 0, g[2], .016, .016, .24, 10, 0x111111, TX.rubber, Math.PI / 2);
+      for (let i = 0; i < 8; i++) k.box(0, 0, g[2] - .1 + i * .028, .034, .034, .012, 0x2a1a3a, 2, 0, 0, Math.PI / 4);   // 柄卷（菱形）
+    } else if (id === 'bat') {
+      k.lathe(0, 0, 0, [[.012, -.42], [.018, -.41], [.016, -.38], [.016, -.18], [.022, .05], [.033, .3], [.035, .38], [.03, .42], [0, .422]], 14, 0x9a7a52, TX.woodY, Math.PI / 2);
+      k.cyl(0, 0, g[2], .018, .018, .2, 10, 0x111111, TX.rubber, Math.PI / 2);
+    } else {
+      const t0 = g[2] + .1, bl = .25 - t0;
+      k.box(0, 0, t0 + bl / 2, .004, .03, bl, ARM_COL.steel, ST).box(0, -.013, t0 + bl / 2, .005, .005, bl - .01, 0xe8eaee, 3);   // 刀身與刃
+      k.cyl(0, 0, g[2], .017, .017, .2, 10, 0x111111, TX.rubber, Math.PI / 2).box(0, 0, g[2] + .1, .02, .07, .012, ARM_COL.dark, ST);
+    }
   } else {
-    const L = m[2] - g[2] + .1, z = (m[2] + g[2]) / 2;
-    k.box(0, m[1] - .01, z - L * .1, .035, .06, L * .7, ARM_COL.dark, 15);
-    k.cyl(0, m[1], m[2] - L * .2, .012, .012, L * .45, 8, ARM_COL.mid, 15, Math.PI / 2);
+    const L = m[2] - g[2] + .1, z = (m[2] + g[2]) / 2, rz = z - L * .1, rL = L * .7, ry = m[1] - .01;
+    k.rbox(0, ry, rz, .035, .06, rL, .008, ARM_COL.dark, P, 0, 0, 0, .004);                           // 機匣
+    k.box(.018, ry + .012, rz + rL * .1, .002, .016, Math.min(.05, rL * .2), 0x0a0a0a, 2);              // 拋殼口
+    k.box(0, ry + .034, rz, .02, .008, rL * .92, ARM_COL.mid, ST);                                    // 上方滑軌
+    for (let i = 0; i < Math.floor(rL / .02); i++) k.box(0, ry + .039, rz - rL * .45 + i * .02, .022, .003, .006, ARM_COL.dark, ST);   // 滑軌的槽
+    k.box(0, ry + .045, rz + rL * .42, .006, .022, .01, ARM_COL.dark, ST).box(0, ry + .045, rz - rL * .4, .022, .02, .012, ARM_COL.dark, ST);   // 準星、照門
+    k.cyl(0, m[1], m[2] - L * .2, .012, .012, L * .45, 10, ARM_COL.mid, ST, Math.PI / 2);              // 槍管
+    k.cyl(0, m[1], m[2] - .025, .017, .017, .05, 10, ARM_COL.dark, ST, Math.PI / 2);                   // 槍口裝置
+    for (let i = 0; i < 3; i++) k.box(.0172, m[1], m[2] - .04 + i * .014, .001, .008, .005, 0x050505, 2);
     // 握把、護木與槍托擺在 40-people.js 的 GUN_HOLD 量的手與肩的位置（握點相對 grip），雙手 IK 才會剛好握在替身上
     const H = GUN_HOLD[id], r = H ? H.r : [0, 0, 0];
-    k.box(0, g[1] + r[1], g[2] + r[2], .03, .1, .04, ARM_COL.dark, 2, -.25);
-    const wood = id === 'shotgun' || id === 'sniper' ? ARM_COL.wood : ARM_COL.dark;
-    if (H && H.lh === 'guard') k.box(0, g[1] + H.l[1] + .01, g[2] + H.l[2], .045, .05, .16, wood, 2);
-    if (H && H.b) { const z0 = g[2] + H.b[2], z1 = g[2] + r[2]; k.box(0, g[1] + H.b[1] + .025, (z0 + z1) / 2, .04, .085, Math.abs(z1 - z0), wood, 2); }
-    else if (L > .5) k.box(0, g[1] - .01, g[2] - .2, .04, .08, .22, wood, 2);
-    if (H && H.lh === 'gripL') k.box(0, g[1] + H.l[1], g[2] + H.l[2], .03, .1, .04, ARM_COL.dark, 2, -.25);   // 火箭筒的前握把
-    if (id === 'sniper') k.cyl(0, m[1] + .06, g[2] + .15, .02, .02, .3, 8, ARM_COL.dark, 15, Math.PI / 2);
+    k.rbox(0, g[1] + r[1], g[2] + r[2], .03, .1, .042, .01, ARM_COL.dark, TX.rubber, -.25, 0, 0, .004);   // 握把
+    k.torus(0, g[1] + r[1] + .05, g[2] + r[2] + .045, .025, .004, 10, ARM_COL.dark, P, 0, Math.PI / 2, Math.PI, Math.PI).box(0, g[1] + r[1] + .04, g[2] + r[2] + .04, .006, .02, .006, ARM_COL.steel, ST, -.3);   // 扳機護圈、扳機
+    if (L > .45 && id !== 'shotgun' && id !== 'rpg' && id !== 'launcher' && id !== 'minigun') k.rbox(0, ry - .07, rz + rL * .18, .022, .1, .04, .006, ARM_COL.dark, P, .22);   // 彈匣
+    const wood = id === 'shotgun' || id === 'sniper' ? ARM_COL.wood : ARM_COL.dark, wm = wood === ARM_COL.wood ? TX.woodZ : P;
+    if (H && H.lh === 'guard') { k.rbox(0, g[1] + H.l[1] + .01, g[2] + H.l[2], .045, .05, .16, .015, wood, wm, 0, 0, 0, .006); if (wm === P) for (let i = 0; i < 5; i++) k.box(.0228, g[1] + H.l[1] + .01, g[2] + H.l[2] - .06 + i * .03, .001, .02, .012, 0x0a0a0a, 2); }
+    if (H && H.b) { const z0 = g[2] + H.b[2], z1 = g[2] + r[2]; k.rbox(0, g[1] + H.b[1] + .025, (z0 + z1) / 2, .04, .085, Math.abs(z1 - z0), .02, wood, wm, 0, 0, 0, .008); k.box(0, g[1] + H.b[1] + .025, Math.min(z0, z1) + .005, .042, .088, .01, 0x111111, TX.rubber); }   // 槍托與托底板
+    else if (L > .5) k.rbox(0, g[1] - .01, g[2] - .2, .04, .08, .22, .02, wood, wm, 0, 0, 0, .008);
+    if (H && H.lh === 'gripL') k.rbox(0, g[1] + H.l[1], g[2] + H.l[2], .03, .1, .04, .01, ARM_COL.dark, TX.rubber, -.25);   // 火箭筒的前握把
+    if (id === 'sniper') { k.cyl(0, m[1] + .06, g[2] + .15, .018, .018, .22, 12, ARM_COL.dark, P, Math.PI / 2); k.cyl(0, m[1] + .06, g[2] + .29, .024, .02, .07, 12, ARM_COL.dark, P, Math.PI / 2).cyl(0, m[1] + .06, g[2] + .03, .022, .018, .05, 12, ARM_COL.dark, P, Math.PI / 2).cyl(0, m[1] + .06, g[2] + .326, .021, .021, .002, 12, 0x2a3440, 3, Math.PI / 2); for (const dz of [.1, .22]) k.box(0, m[1] + .035, g[2] + dz, .016, .03, .016, ARM_COL.dark, ST); }   // 瞄準鏡：鏡筒、物鏡、目鏡、鏡片、鏡環
     if (id === 'stun') k.box(0, m[1] + .025, z, .037, .012, L * .5, 0xd9b42a, 2);
-    if (id === 'launcher') k.cyl(0, m[1] - .045, g[2] + .17, .055, .055, .13, 12, ARM_COL.olive, 2, Math.PI / 2);   // 轉輪彈巢
-    if (id === 'minigun') for (let i = 0; i < 6; i++) k.cyl(Math.cos(i) * .03, Math.sin(i) * .03, z + .1, .008, .008, L * .8, 6, ARM_COL.steel, 15, Math.PI / 2);
+    if (id === 'launcher') { k.cyl(0, m[1] - .045, g[2] + .17, .055, .055, .13, 12, ARM_COL.olive, P, Math.PI / 2); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; k.cyl(Math.cos(a) * .033, m[1] - .045 + Math.sin(a) * .033, g[2] + .236, .014, .014, .002, 8, 0x0a0a0a, 2, Math.PI / 2); } }   // 轉輪彈巢
+    if (id === 'minigun') { for (let i = 0; i < 6; i++) k.cyl(Math.cos(i) * .03, Math.sin(i) * .03, z + .1, .008, .008, L * .8, 6, ARM_COL.steel, ST, Math.PI / 2); for (const dz of [-.1, .2]) k.cyl(0, 0, z + dz, .045, .045, .02, 14, ARM_COL.dark, P, Math.PI / 2); }
   }
   return k.build();
 }
@@ -71,7 +96,7 @@ function wModel(id) {
   h.matrixAutoUpdate = false; h.add(inner); h.visible = false;
   const A = ARMS[id] || {}, g = A.grip;
   if (g) inner.position.set(-g[0], -g[1], -g[2]);
-  inner.add(new T.Mesh(kitGeo[id] ||= armKit(id), MAT.uber));
+  inner.add(new T.Mesh(kitGeo[id] ||= armKit(id), MAT.ux));
   h.userData = { id, inner, glb: false, reflKeep: true };   // reflKeep：70-render.js 的倒影螢幕大小剔除不剔手上的槍
   scene.add(h); wModels.push(h);
   if (armItems.v) swapGlb(h);

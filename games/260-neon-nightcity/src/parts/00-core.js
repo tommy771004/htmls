@@ -217,7 +217,11 @@ const KIT_BEV = (() => {
 })();
 // 自動倒角的方塊：最短邊 ≥ KIT_BEV_MIN、最長邊 ≤ KIT_BEV_MAX（橋面、路面、長牆這種拼起來的大板不倒，接縫才不會變成一道道溝）；
 // 倒角寬照最短邊的 10%，1.2–3.5 cm。new Kit(true) 是全部直角（要拼成平整表面的零件）。KIT_N 記數量（__nc.kit）
-const KIT_BEV_MIN = .18, KIT_BEV_MAX = 6, KIT_N = { box: 0, bev: 0 };
+// 薄板（2026-11-02）：粗 8–18 cm、寬 30 cm 以上、長 60 cm 以上的板（層板、門板、踏階、櫃台面、招牌板）也倒角，寬是粗細的 12%（0.8–1.2 cm）。
+// 量過：開場 21.6 萬塊裡薄板 12.7 萬塊，全倒要多 1220 萬頂點（Kit 幾乎翻倍）；其中 7.4 萬塊是 5–8 cm 粗、不到 60 cm 的窗框收邊，倒 1 cm 看不出來，
+// 長 60 cm 以上的有 3 萬塊（多約 290 萬頂點），以檔案開啟時替身全建，renderer 記憶體撐不住、分頁直接當掉；其中 2.1 萬塊是寬不到 30 cm 的條（板條、收邊、扶手），
+// 所以只倒寬 30 cm 以上的板（約 8.8 千塊、多約 85 萬頂點）。倒角的方塊 132 頂點、直角 36。超過 6 m 的長牆仍不倒（拼起來的接縫會變成一道道溝）
+const KIT_BEV_MIN = .18, KIT_BEV_MAX = 6, KIT_BEV_THIN = .08, KIT_BEV_THIN_L = .6, KIT_BEV_THIN_W = .3, KIT_N = { box: 0, bev: 0, thin: 0 };
 class Kit {
   constructor(sharp = false) { this.pos = []; this.nor = []; this.col = []; this.mat = []; this.ext = {}; this.parts = []; this.sharp = sharp; }
   add(geo, color, mat, matrix, ext) {
@@ -242,9 +246,10 @@ class Kit {
     const B = KIT_BOX, e = tf(x, y, z, rx, ry, rz).elements, c = color instanceof T.Color ? color : lin(color);
     this.parts.push(this.pos.length / 3); KIT_N.box++;
     const mn = Math.min(sx, sy, sz);
-    if (!this.sharp && mn >= KIT_BEV_MIN && Math.max(sx, sy, sz) <= KIT_BEV_MAX) {
-      const V = KIT_BEV, b = Math.min(.035, Math.max(.012, mn * .1)), hx = sx / 2, hy = sy / 2, hz = sz / 2;
-      KIT_N.bev++;
+    const mx = Math.max(sx, sy, sz), thin = mn < KIT_BEV_MIN && mn >= KIT_BEV_THIN && mx >= KIT_BEV_THIN_L && sx + sy + sz - mn - mx >= KIT_BEV_THIN_W;
+    if (!this.sharp && mx <= KIT_BEV_MAX && (mn >= KIT_BEV_MIN || thin)) {
+      const V = KIT_BEV, b = thin ? Math.min(.012, Math.max(.008, mn * .12)) : Math.min(.035, Math.max(.012, mn * .1)), hx = sx / 2, hy = sy / 2, hz = sz / 2;
+      KIT_N.bev++; if (thin) KIT_N.thin++;
       for (let i = 0; i < V.n * 3; i += 3) {
         const px = V.A[i] * (hx - V.C[i] * b), py = V.A[i + 1] * (hy - V.C[i + 1] * b), pz = V.A[i + 2] * (hz - V.C[i + 2] * b), nx = V.N[i], ny = V.N[i + 1], nz = V.N[i + 2];
         this.pos.push(e[0] * px + e[4] * py + e[8] * pz + e[12], e[1] * px + e[5] * py + e[9] * pz + e[13], e[2] * px + e[6] * py + e[10] * pz + e[14]);

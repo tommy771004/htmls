@@ -186,7 +186,7 @@ if (FAC.pd) {
   // 老分局大門（z 22.25）兩側的燈柱，頂上藍色球燈
   for (const z of [19.9, 24.6]) k.cyl(F.ax + 60.1, 1.4, F.az + z, .06, .08, 2.8, 8, 0x1e2226, 15).cyl(F.ax + 60.1, 2.98, F.az + z, .22, .22, .4, 12, 0x3a7cff, 8);
   // 拖吊場：深色柏油、停車格線、鐵絲網（柱子、上下橫管、網面）與頂上的刺絲
-  k.box((Y.x0 + Y.x1) / 2, .165, (Y.z0 + Y.z1) / 2, Y.x1 - Y.x0, .04, Y.z1 - Y.z0, 0x2c2e31, 2);   // 人行道板高 0.15，柏油鋪在上面
+  k.box((Y.x0 + Y.x1) / 2, .165, (Y.z0 + Y.z1) / 2, Y.x1 - Y.x0, .04, Y.z1 - Y.z0, 0x2c2e31, 30);   // 人行道板高 0.15，柏油鋪在上面（去玩具感 2026-11-02：這一區改 MAT.ux，柏油 30 粗顆粒、鐵絲網鍍鋅 22、柵門塗漆的鐵 21）
   for (let x = x0 + 3; x < x1 - 2; x += 3.2) for (const z of [z0 + 22, z1 - 2.6]) k.box(F.ax + x, .19, F.az + z, .1, .01, 5, 0xd8d4c4, 2);
   const gate = { x0: 6, x1: 14 }, booth = { x0: 14.5, x1: 16.9, z0: z0 + .2, z1: z0 + 2.6 };
   F.gate = gate; F.booth = booth;
@@ -195,8 +195,8 @@ if (FAC.pd) {
   const net = new Kit();
   for (const [ax, az, bx, bz] of segs) {
     const L = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / L, uz = (bz - az) / L, ry = Math.atan2(ux, uz) - Math.PI / 2, mx = (ax + bx) / 2, mz = (az + bz) / 2;
-    for (let s = 0; s <= L + .01; s += Math.max(1, L / Math.ceil(L / 2.6))) k.cyl(F.ax + ax + ux * s, (FENCE_H + .35) / 2, F.az + az + uz * s, .04, .04, FENCE_H + .35, 6, 0x6a6e72, 15);
-    for (const y of [.12, FENCE_H]) k.box(F.ax + mx, y, F.az + mz, L, .04, .04, 0x7a7e82, 15, 0, ry);
+    for (let s = 0; s <= L + .01; s += Math.max(1, L / Math.ceil(L / 2.6))) k.cyl(F.ax + ax + ux * s, (FENCE_H + .35) / 2, F.az + az + uz * s, .04, .04, FENCE_H + .35, 8, 0x6a6e72, 22);
+    for (const y of [.12, FENCE_H]) k.box(F.ax + mx, y, F.az + mz, L, .04, .04, 0x7a7e82, 22, 0, ry);
     for (let s = .3; s < L; s += .4) k.box(F.ax + ax + ux * s, FENCE_H + .28, F.az + az + uz * s, .3, .02, .02, 0x8a8e92, 15, s * 7, ry);   // 刺絲
     net.box(F.ax + mx, FENCE_H / 2 + .06, F.az + mz, L, FENCE_H - .1, .01, 0xffffff, 2, 0, ry);
     F.fence.push({ a: [ax, az], b: [bx, bz], col: v5Box(F, Math.min(ax, bx) - .08, Math.max(ax, bx) + .08, Math.min(az, bz) - .08, Math.max(az, bz) + .08, { hy: FENCE_H + .1 }) });
@@ -210,22 +210,29 @@ if (FAC.pd) {
   cityAdd(new T.Mesh(ng, new T.MeshBasicMaterial({ map: ntx, alphaTest: .5, side: T.DoubleSide, color: 0x6a6e72 })), facZn(F));
   // 柵門（滑門）：付了錢往西滑開，撞破就倒在地上
   const gk = new Kit(), gw = gate.x1 - gate.x0;
-  gk.box(0, FENCE_H / 2, 0, gw, FENCE_H, .05, 0x7a7e82, 15).box(0, .14, 0, gw, .08, .08, 0xd8c040, 15).box(0, FENCE_H - .05, 0, gw, .08, .08, 0xd8c040, 15);
-  for (let s = -gw / 2; s <= gw / 2 + .01; s += gw / 4) gk.box(s, FENCE_H / 2, 0, .06, FENCE_H, .06, 0xd8c040, 15);
-  const gm = new T.Mesh(gk.build(), MAT.uber); gm.position.set(F.ax + x0 + (gate.x0 + gate.x1) / 2, 0, F.az + z0); cityAdd(gm, facZn(F));
+  gk.box(0, FENCE_H / 2, 0, gw, FENCE_H, .05, 0x7a7e82, 22).box(0, .14, 0, gw, .08, .08, 0xd8c040, 21).box(0, FENCE_H - .05, 0, gw, .08, .08, 0xd8c040, 21);
+  for (let s = -gw / 2; s <= gw / 2 + .01; s += gw / 4) gk.box(s, FENCE_H / 2, 0, .06, FENCE_H, .06, 0xd8c040, 21);
+  for (const s of [-gw / 2 + .5, gw / 2 - .5]) gk.cyl(s, .1, .12, .09, .09, .06, 12, 0x2a2b2e, 30, Math.PI / 2, 0, 0);   // 滑門的輪子
+  const gm = new T.Mesh(gk.build(), MAT.ux); gm.position.set(F.ax + x0 + (gate.x0 + gate.x1) / 2, 0, F.az + z0); cityAdd(gm, facZn(F));
   F.gateM = gm; F.gateP = gm.position.clone();
   F.gateCol = v5Box(F, x0 + gate.x0, x0 + gate.x1, z0 - .1, z0 + .1, { hy: FENCE_H + .1 });
   // 守衛亭：窗戶朝北對著人行道
-  k.box(F.ax + x0 + (booth.x0 + booth.x1) / 2, 1.3, F.az + (booth.z0 + booth.z1) / 2, booth.x1 - booth.x0, 2.6, booth.z1 - booth.z0, 0xd8d4c8, 2);
-  k.box(F.ax + x0 + (booth.x0 + booth.x1) / 2, 2.72, F.az + (booth.z0 + booth.z1) / 2, booth.x1 - booth.x0 + .3, .14, booth.z1 - booth.z0 + .3, 0x2a3a5c, 2);
-  k.box(F.ax + x0 + (booth.x0 + booth.x1) / 2, 1.6, F.az + booth.z0 - .02, 1.8, .9, .04, 0x9ad8ff, 1).box(F.ax + x0 + (booth.x0 + booth.x1) / 2, 1.08, F.az + booth.z0 - .18, 1.9, .06, .34, 0x8a8a86, 2);
+  { const bx = F.ax + x0 + (booth.x0 + booth.x1) / 2, bz = F.az + (booth.z0 + booth.z1) / 2, bw = booth.x1 - booth.x0, bd = booth.z1 - booth.z0, fz = F.az + booth.z0;
+    k.box(bx, .08, bz, bw + .1, .16, bd + .1, 0x8a867e, 20).box(bx, 1.38, bz, bw, 2.44, bd, 0xd8d4c8, 34);   // 底座、烤漆鋼板的牆
+    k.box(bx, 2.68, bz, bw + .3, .12, bd + .3, 0x2a3a5c, 34).box(bx, 2.78, bz, bw + .1, .08, bd + .1, 0x22242a, 34);   // 屋簷
+    k.box(bx, 1.6, fz - .02, 1.8, .9, .04, 0x9ad8ff, 1).box(bx, 1.08, fz - .18, 1.9, .06, .34, 0x8a8a86, 35);   // 窗、窗台
+    for (const o of [-.92, 0, .92]) k.box(bx + o, 1.6, fz - .04, .05, .98, .05, 0x2a2c30, 21);
+    for (const y of [1.13, 2.07]) k.box(bx, y, fz - .04, 1.9, .05, .05, 0x2a2c30, 21);
+    k.box(F.ax + x0 + booth.x1 + .02, 1.1, bz, .04, 2.0, .8, 0x6a7078, 21).box(F.ax + x0 + booth.x1 + .05, 1.05, bz - .28, .04, .04, .14, 0xb8bcc0, 3);   // 側門與門把
+    k.box(bx + .6, 2.95, bz, .7, .3, .5, 0x9a9890, 34);   // 屋頂的冷氣
+  }
   v5Box(F, x0 + booth.x0, x0 + booth.x1, booth.z0, booth.z1);
   // 投光燈兩支
   for (const [x, z] of [[x0 + 1, z0 + 1], [x0 + 1, z1 - 1]]) { k.cyl(F.ax + x, 3.5, F.az + z, .07, .09, 7, 8, 0x3a3c3e, 15).box(F.ax + x + .4, 7, F.az + z, .5, .3, .4, 0xfff4d8, 11); v5Light(F, x + 2, 6.4, z + (z < 30 ? 2 : -2), 0xfff0d0, 22, 1.2); }
   // 附樓南牆的逃生梯（地面到屋頂）、屋頂停機坪
   F.lad = v5Ladder(F, 44, 49.5, 0, 1, hy, [44, 47.6], k);
   v5Pad(F, 48.5, 40.75, hy, k);
-  cityAdd(new T.Mesh(k.build(), MAT.uber), facZn(F));
+  cityAdd(new T.Mesh(k.build(), MAT.ux), facZn(F));
   v5Put(F, v5Sign([['NCPD', .5, '#ffffff', .4], ['霓虹市警 第九分局', .26, '#cfe0ff', .8]], 6.2, 1.6, { bg: '#13306a', edge: '#6aa0ff', dim: 0xffffff }), 59.62, 5.4, 40.75, Math.PI / 2);
   v5Put(F, v5Sign([['拖吊場 IMPOUND', .42, '#1a1a1a', .36], [`贖車 ${money(IMP_FEE)} · 守衛亭`, .3, '#3a3a3a', .76]], 3.4, 1, { bg: '#f0c830' }), x0 + (gate.x0 + gate.x1) / 2, FENCE_H + .9, z0 - .08, Math.PI);
   v5Light(F, 60.6, 2.8, 22.25, 0x6a9cff, 8, 1); v5Light(F, x0 + 15.7, 2.4, z0 - 1, 0xfff0d0, 6, .8);

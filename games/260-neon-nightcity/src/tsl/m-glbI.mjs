@@ -1247,6 +1247,17 @@ export default {
     	const wet = uWet.mul( smoothstep( .55, .95, n.y ) ).toVar();
     	rough.assign( mix( rough, rough.mul( .4 ), wet ) );
     	const c = shade( vW, n, v, base.rgb, rough, metal ).toVar();
+    	// 葉片卡（綠色、剪影遮罩的面）：日光從另一面照過來時透光，逆光看樹冠是一片片透亮的黃綠，不再像不透光的紙片；
+    	// 透光也照陰影（sunVis 用背面的法線：樹冠深處被外層葉子擋住就不亮）
+    	const gL = base.g.sub( max( base.r, base.b ) ).toVar();
+    	If( gL.greaterThan( .004 ).and( uSunCol.r.add( uSunCol.g ).greaterThan( .001 ) ), () => {
+    		const bk = max( dot( n, uSun ).negate(), 0. ).toVar();
+    		If( bk.greaterThan( 0. ), () => {
+    			const vb = pow( max( dot( v, uSun ).negate(), 0. ), 3. ).toVar();
+    			const sv = sunVis( vW, n.negate() ).mul( gOccS ).toVar();
+    			c.addAssign( base.rgb.mul( vec3( 1.15, 1.3, .55 ) ).mul( uSunCol ).mul( sv ).mul( bk.mul( .3 ).add( vb.mul( .7 ) ) ).mul( smoothstep( .004, .03, gL ) ).mul( sub( 1., uM.w ) ) );
+    		} );
+    	} );
     	const envK = max( coat.mul( .75 ), metal.mul( .9 ) ).toVar();
     	envK.assign( max( envK, wet.mul( .5 ) ) );
 
@@ -1408,6 +1419,17 @@ export default {
     	const wet = uWet.mul( smoothstep( .55, .95, n.y ) ).toVar();
     	rough.assign( mix( rough, rough.mul( .4 ), wet ) );
     	const c = shade( vW, n, v, base.rgb, rough, metal ).toVar();
+    	// 葉片卡（綠色、剪影遮罩的面）：日光從另一面照過來時透光，逆光看樹冠是一片片透亮的黃綠，不再像不透光的紙片；
+    	// 透光也照陰影（sunVis 用背面的法線：樹冠深處被外層葉子擋住就不亮）
+    	const gL = base.g.sub( max( base.r, base.b ) ).toVar();
+    	If( gL.greaterThan( .004 ).and( uSunCol.r.add( uSunCol.g ).greaterThan( .001 ) ), () => {
+    		const bk = max( dot( n, uSun ).negate(), 0. ).toVar();
+    		If( bk.greaterThan( 0. ), () => {
+    			const vb = pow( max( dot( v, uSun ).negate(), 0. ), 3. ).toVar();
+    			const sv = sunVis( vW, n.negate() ).mul( gOccS ).toVar();
+    			c.addAssign( base.rgb.mul( vec3( 1.15, 1.3, .55 ) ).mul( uSunCol ).mul( sv ).mul( bk.mul( .3 ).add( vb.mul( .7 ) ) ).mul( smoothstep( .004, .03, gL ) ).mul( sub( 1., uM.w ) ) );
+    		} );
+    	} );
     	const envK = max( coat.mul( .75 ), metal.mul( .9 ) ).toVar();
     	envK.assign( max( envK, wet.mul( .5 ) ) );
 
@@ -1569,6 +1591,17 @@ export default {
     	const wet = uWet.mul( smoothstep( .55, .95, n.y ) ).toVar();
     	rough.assign( mix( rough, rough.mul( .4 ), wet ) );
     	const c = shade( vW, n, v, base.rgb, rough, metal ).toVar();
+    	// 葉片卡（綠色、剪影遮罩的面）：日光從另一面照過來時透光，逆光看樹冠是一片片透亮的黃綠，不再像不透光的紙片；
+    	// 透光也照陰影（sunVis 用背面的法線：樹冠深處被外層葉子擋住就不亮）
+    	const gL = base.g.sub( max( base.r, base.b ) ).toVar();
+    	If( gL.greaterThan( .004 ).and( uSunCol.r.add( uSunCol.g ).greaterThan( .001 ) ), () => {
+    		const bk = max( dot( n, uSun ).negate(), 0. ).toVar();
+    		If( bk.greaterThan( 0. ), () => {
+    			const vb = pow( max( dot( v, uSun ).negate(), 0. ), 3. ).toVar();
+    			const sv = sunVis( vW, n.negate() ).mul( gOccS ).toVar();
+    			c.addAssign( base.rgb.mul( vec3( 1.15, 1.3, .55 ) ).mul( uSunCol ).mul( sv ).mul( bk.mul( .3 ).add( vb.mul( .7 ) ) ).mul( smoothstep( .004, .03, gL ) ).mul( sub( 1., uM.w ) ) );
+    		} );
+    	} );
     	const envK = max( coat.mul( .75 ), metal.mul( .9 ) ).toVar();
     	envK.assign( max( envK, wet.mul( .5 ) ) );
 

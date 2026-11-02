@@ -154,15 +154,24 @@ const stSand = [], stGen = [], stTower = [], stWSign = [];
 st.siteFb = [];
 for (const s of ST_SITES) {
   const k = new Kit(), f = new Kit(), xm = (s.xl + s.curb) / 2, zm = (s.za + s.zb) / 2, L = s.zb - s.za, sd = s.side;
-  k.box(xm, .012, zm, 2.6, .02, L - .4, 0x17181a, 2);
-  k.box(xm, .03, zm - 3, 1.6, .03, 2.3, 0x55585b, 15).box(xm + sd * .1, .03, zm + .2, 1.6, .03, 2.3, 0x4c4f52, 15);
-  k.box(xm, .02, zm + 5.5, 1.1, .03, 3.6, 0x0a0a0b, 2);
+  // 去玩具感（2026-11-02）：原本是一片深色平面加兩片薄板。挖開的地方是土色碎石（MAT.ux 30），四周一圈切割過的柏油斷面與切割線、坑裡散著柏油碎塊；
+  // 鋼板有厚度、吊耳、塗漆的鐵（21：鏽、刮痕）；回填的補丁是新鋪的黑柏油加一圈封邊；坑裡放兩支橘色 PVC 管
+  const rr = rng(Math.round(s.za * 7 + s.xl * 13) & 0xffff), W = 2.6, LL = L - .4;
+  k.box(xm, .012, zm, W, .02, LL, 0x3a2e22, 30);
+  for (const o of [-1, 1]) { k.box(xm + o * (W / 2 + .04), .035, zm, .08, .07, LL + .16, 0x1c1d1f, 30).box(xm + o * (W / 2 + .085), .071, zm, .012, .004, LL + .17, 0x8a8c8e, 2); k.box(xm, .035, zm + o * (LL / 2 + .04), W, .07, .08, 0x1c1d1f, 30); }
+  for (let i = 0; i < 16; i++) k.box(xm + (rr() - .5) * (W - .4), .04, zm + (rr() - .5) * (LL - .6), .08 + rr() * .2, .04 + rr() * .04, .08 + rr() * .18, 0x26272a, 30, rr() * .4, rr() * 6.3, rr() * .4);
+  for (const [dx, dz, c] of [[0, -3, 0x55585b], [sd * .1, .2, 0x4c4f52]]) {
+    k.box(xm + dx, .045, zm + dz, 1.6, .03, 2.3, c, 21);
+    for (const e of [-.62, .62]) k.cyl(xm + dx + e, .07, zm + dz + 1.02, .045, .045, .02, 10, 0x3a3c40, 21).cyl(xm + dx + e, .07, zm + dz - 1.02, .045, .045, .02, 10, 0x3a3c40, 21);   // 吊耳
+  }
+  k.box(xm, .025, zm + 5.5, 1.1, .03, 3.6, 0x0a0a0b, 30).box(xm, .042, zm + 5.5, 1.16, .004, 3.66, 0x2a2a2c, 34).box(xm, .043, zm + 5.5, 1.04, .006, 3.54, 0x0a0a0b, 30);   // 回填補丁與封邊
+  for (const o of [0, .24]) k.rod(xm + sd * (W / 2 - .3 - o), .13, zm + 1.6, xm + sd * (W / 2 - .3 - o), .13, zm + 3.5, .11, 14, 0xd86a1a, 10);   // 坑裡鋼板與補丁之間那段
   f.cyl(xm - sd * .3, .42, s.za + 2.4, .25, 1.05, .84, 10, 0x5b4734, 2);
   f.box(xm, .38, s.zb - 2.6, .9, .7, .62, 0xd8a21a, 10).box(xm, .4, s.zb - 2.6 + .32, .6, .4, .02, 0x1a1a1a, 2);
   const lx = s.curb - sd * .5, lz = s.zb - 1.2;
   f.cyl(lx, 1.7, lz, .05, .06, 3.4, 8, 0xd8a21a, 15).box(lx, 3.45, lz, .7, .3, .14, 0x2a2c2f, 15).box(lx, 3.45, lz + s.up * -.08, .6, .22, .02, 0xfff4d8, 11);
   for (const d of [-.5, .5]) f.box(s.sign.x + d, .55, s.sign.z, .05, 1.1, .05, 0x2a2c2f, 15);
-  cityAdd(new T.Mesh(k.build(), MAT.uber), s.zn);
+  const wm = new T.Mesh(k.build(), MAT.ux); wm.name = 'stWorks'; cityAdd(wm, s.zn);
   const fm = new T.Mesh(f.build(), MAT.uber); cityAdd(fm, s.zn);
   const sm = new T.Mesh(new T.PlaneGeometry(1.4, .9), stSignMat); sm.position.set(s.sign.x, 1.35, s.sign.z); sm.rotation.y = s.sign.ry; cityAdd(sm, s.zn);
   st.siteFb.push(fm, sm);

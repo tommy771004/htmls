@@ -261,12 +261,15 @@ let benchMesh, planterShrubMesh;
     benches.push({ x, z, y: 0, ry: Math.atan2(uz * s, -ux * s), zn: null });
     colliders.push({ x0: -1.1, x1: 1.1, z0: -.45, z1: .45, zn: frameW(x, z, ux, uz) });
   }
-  // 長椅：鑄鐵腳、五條木板座面與靠背（正面朝 +z）
-  const bk = new Kit();
-  for (const sx of [-.85, .85]) bk.box(sx, .22, 0, .07, .44, .5, 0x1e2024, 15).box(sx, .62, -.24, .07, .5, .06, 0x1e2024, 15);
-  for (let i = 0; i < 3; i++) bk.box(0, .46, -.16 + i * .14, 2.1, .04, .1, 0x6a4a30, 2);
-  for (let i = 0; i < 2; i++) bk.box(0, .66 + i * .16, -.27, 2.1, .1, .03, 0x6a4a30, 2, -.12);
-  benchMesh = instanced(bk.build(), MAT.uber, benches, LY.NOREFL);
+  // 長椅：鑄鐵腳（側看是一整片：前腳、座面托、往後上彎的靠背托、扶手與渦捲）、三條座板與兩條靠背板（木紋、倒圓角）、板下的螺栓（正面朝 +z）
+  const bk = new Kit(), IR = 0x1e2024, WD = 0x6a4a30;
+  for (const sx of [-.85, .85]) {
+    bk.prism(sx, 0, 0, [[.24, 0], [.18, 0], [.16, .42], [-.18, .42], [-.2, 0], [-.26, 0], [-.24, .44], [-.32, .98], [-.27, .98], [-.2, .5], [.22, .46]], .06, IR, TX.iron, 0, -Math.PI / 2, 0);
+    bk.rod(sx, .62, .2, sx, .62, -.22, .022, 8, IR, TX.iron).torus(sx, .58, .21, .045, .014, 10, IR, TX.iron, 0, Math.PI / 2, 0);   // 扶手與前端的渦捲
+  }
+  for (let i = 0; i < 3; i++) bk.rbox(0, .455, -.15 + i * .135, .11, .04, 2.1, .015, WD, TX.woodX, 0, Math.PI / 2, 0).cyl(-.85, .43, -.15 + i * .135, .01, .01, .02, 6, 0x8a8c90, TX.steel).cyl(.85, .43, -.15 + i * .135, .01, .01, .02, 6, 0x8a8c90, TX.steel);
+  for (let i = 0; i < 2; i++) bk.box(0, .66 + i * .17, -.255 - i * .035, 2.1, .1, .035, WD, TX.woodX, -.22);
+  benchMesh = instanced(bk.build(), MAT.ux, benches, LY.NOREFL);
   // 花台：混凝土槽、土、低矮灌木（灌木分開一個網格，換成模型時只拿掉灌木）
   const fk = new Kit(), sk = new Kit();
   fk.box(0, .3, 0, 3.2, .6, 1.4, 0x5a5854, 2).box(0, .58, 0, 3, .06, 1.2, 0x1a140e, 2);
@@ -841,14 +844,34 @@ const beacon = new T.Group();
   const bm = new T.ShaderMaterial({ name: 'lighthouseBeam', uniforms: shared(ALLU), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
   for (const s of [0, Math.PI]) { const b = new T.Mesh(bg, bm); b.rotation.y = s; b.layers.set(LY.NOREFL); b.frustumCulled = false; beacon.add(b); }
   beacon.position.set(x, 33, z); cityAdd(beacon);
-  // 以檔案開啟（或模型下載失敗）時的替身：照碰撞佔地（isleFoot）一格一個方塊，矮的是瓦礫與圍籬，高的面北牆上點幾扇窗
-  const pk = new Kit();
+  // 以檔案開啟（或模型下載失敗）時的替身：照碰撞佔地（isleFoot）一格一棟。高的是辦公樓（混凝土核心、每層樓板線、四面每 2.4 m 一格的窗——
+  // 暗的玻璃、少數亮著，女兒牆與屋頂的冷氣機組）；矮的是廢墟（沿長邊一段段高低不齊的斷牆、牆腳的瓦礫堆）。只在遠處看，方塊直角（new Kit(true)，頂點少四分之三）
+  const pk = new Kit(true);
   for (const id in ISLE_SITES) for (const [x0, x1, z0, z1, h0] of isleFoot(id)) {
-    const h = Math.max(h0, 1.2), w = x1 - x0, d = z1 - z0;
-    pk.box((x0 + x1) / 2, h / 2, (z0 + z1) / 2, w, h, d, h > 4 ? 0x3a3836 : 0x4a443c, 2);
-    if (h > 6 && w > 3) for (let f = 1; f < h / 3.2; f++) if (r2() < .35) pk.box((x0 + x1) / 2, f * 3.2, z0 - .02, Math.min(2.2, w * .5), 1.3, .05, 0xffd8a0, 11);
+    const h = Math.max(h0, 1.2), w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    if (h > 4) {
+      pk.box(cx, h / 2, cz, w - .3, h, d - .3, 0x5e5c58, TX.conc);
+      const nf = Math.max(1, Math.floor(h / 3.2));
+      for (let f = 0; f <= nf; f++) pk.box(cx, Math.min(h, f * 3.2) + .1, cz, w, .24, d, 0x8a8780, TX.conc);   // 樓板線
+      for (const [ax, sgn] of [['x', -1], ['x', 1], ['z', -1], ['z', 1]]) {   // 四面的窗：ax 'x' 是南北面（沿 x 排）
+        const L = ax === 'x' ? w : d, nb = Math.max(1, Math.floor((L - .6) / 2.4)), off = (ax === 'x' ? d : w) / 2 - .14;
+        for (let f = 0; f < nf; f++) for (let b = 0; b < nb; b++) {
+          const u = -L / 2 + .3 + (b + .5) * (L - .6) / nb, y = f * 3.2 + 1.75, lit = r2() < .22, c = lit ? 0xffd8a0 : 0x1c2228, m = lit ? 11 : 1;
+          if (ax === 'x') pk.box(cx + u, y, cz + sgn * off, (L - .6) / nb - .25, 2, .04, c, m); else pk.box(cx + sgn * off, y, cz + u, .04, 2, (L - .6) / nb - .25, c, m);
+        }
+      }
+      for (const [px, pz, sx, sz] of [[cx, z0 + .1, w, .2], [cx, z1 - .1, w, .2], [x0 + .1, cz, .2, d], [x1 - .1, cz, .2, d]]) pk.box(px, h + .5, pz, sx, .8, sz, 0x7a7872, TX.conc);   // 女兒牆
+      if (w > 6 && d > 6) for (let i = 0; i < 3; i++) pk.box(cx + (r2() - .5) * (w - 5), h + .7, cz + (r2() - .5) * (d - 5), 1.8, 1.2, 1.2, 0x8a8c8e, TX.galv);   // 屋頂機組
+    } else {
+      const along = w >= d, L = along ? w : d, n = Math.max(1, Math.round(L / 2.2));
+      for (let i = 0; i < n; i++) {
+        const u = -L / 2 + (i + .5) * L / n, hh = h * (.35 + r2() * .75), sl = L / n - (r2() < .3 ? .6 : .05);
+        if (along) pk.box(cx + u, hh / 2, cz, sl, hh, Math.min(d, .35), 0x6a6258, TX.brick); else pk.box(cx, hh / 2, cz + u, Math.min(w, .35), hh, sl, 0x6a6258, TX.brick);
+        if (r2() < .6) pk.add(new T.DodecahedronGeometry(.5 + r2() * .5, 0), 0x5a544c, TX.conc, tf(cx + (along ? u : (r2() - .5) * w), .15, cz + (along ? (r2() - .5) * d : u), r2() * 3, r2() * 3, 0, 1.4, .5, 1));   // 瓦礫
+      }
+    }
   }
-  const proxy = new T.Mesh(pk.build(), MAT.uber); cityAdd(proxy); cullAdd(proxy, 700);
+  const proxy = new T.Mesh(pk.build(), MAT.ux); cityAdd(proxy); cullAdd(proxy, 700);
   // 兩個基地的燈：辦公園區四角的投光燈、廢墟裡幾堆營火（模型和替身都用得到）
   const O = ISLE_SITES.office, R = ISLE_SITES.ruin, lk = new Kit();
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
@@ -935,8 +958,6 @@ const FAR_SITES = {
     // 碰到範圍的三角形另外細分（每一區自己的格距 sp），範圍之間不共用三角形
     const CARVES = [];
     if (NPARK && NPARK.carve) CARVES.push({ name: 'hillCarve', L: parkL, bb: NPARK.carve, sp: 3.6, h: (X, Z) => parkH(...parkL(X, Z)), out: 'carveTris' });
-    if (ENC) { const P = ENC.pad, B = ENC.band + 4; CARVES.push({ name: 'hillEnc', L: encL, bb: { x0: P.x0 - B, x1: P.x1 + B, z0: P.z0 - B, z1: 120 }, sp: 5, h: (X, Z) => { const g = encGround(X, Z); if (g === null) return hillMeshH(X, Z); const [x, z] = encL(X, Z); return x > P.x0 && x < P.x1 && z > P.z0 ? g - .12 : g; }, out: 'encTris',
-      w: (X, Z) => { const [x, z] = encL(X, Z), d = Math.hypot(Math.max(P.x0 - x, x - P.x1, 0), Math.max(P.z0 - z, 0)); return 1 - sm01((d - ENC.band) / 12); } }); }   // 平台上壓低一點，28-enclave.js 的路面與人行道蓋在上面
     // 山坡別墅區（10-city.js 的 HILL_VIL）：每一群別墅一區，碰到任何一棟 R 公尺內的三角形；每個三角形都切成 N×N（N 固定），區與區的接邊才對得起來。
     // 高度照 HILL_VIL.h（起伏）、權重 w 是起伏的遮罩（0 的地方顏色與法線照粗網格），材質 TX.vhill 的小數是別墅區的範圍（照片地面往外淡回林坡）
     const triD = (P3, x, z) => {   // 點到三角形（xz）的距離，在裡面是 0
@@ -953,6 +974,14 @@ const FAR_SITES = {
     // 山路兩側的挖填（10-city.js 的 HILL.carveH，hillMeshH 已經套上）：路兩側 40 m 碰到的三角形，別墅區沒拿走的另外細分成 N×N；
     // w 是挖填改了多少（0 的地方顏色與法線照粗網格）
     // 榛嶺（09-akina.js）：裁切範圍外 200 m（真的公尺）以內的三角形切成 N×N（山道穿過的三角形也在這一區，挖填照 hillMeshH），w 是細網格的權重
+    // 雲梯城寨的平台、擋土牆後面與開挖坡（10-city.js 的 encGround、HILL.encCut）：只拿挖到的三角形（邊上沒挖，和粗網格接得起來）。
+    // 排在別墅區、榛嶺之後（它們的細分先拿）、山路之前；N 和山路一樣（HILL.roadN），平台後面那條連絡路兩邊的三角形和山路區的接邊才對得起來
+    // 範圍是平台外 band 內，以及開挖坡真的挖到的三角形（三個頂點、三邊中點與重心有一點挖了 0.05 m 以上）：西邊與東南邊的山本來就比開挖線低，不用細分
+    const encHit = P3 => { const P = ENC.pad, pts = [...P3, ...P3.map((p, q) => [(p[0] + P3[(q + 1) % 3][0]) / 2, (p[1] + P3[(q + 1) % 3][1]) / 2]), [(P3[0][0] + P3[1][0] + P3[2][0]) / 3, (P3[0][1] + P3[1][1] + P3[2][1]) / 3]];
+      for (const [X, Z] of pts) { const [x, z] = encL(X, Z); if (z > 125 || x < P.x0 - ENC.cutR - 10 || x > P.x1 + ENC.cutR + 10 || z < P.z0 - ENC.cutR - 10) continue; if (Math.hypot(Math.max(P.x0 - x, x - P.x1, 0), Math.max(P.z0 - z, 0)) < ENC.band + 4) return true; const n = encNat(X, Z), m = hillMeshH(X, Z); if (Number.isFinite(n) && Math.abs(n - m) > .05) return true; }
+      return false; };
+    if (ENC) { const P = ENC.pad; CARVES.push({ name: 'hillEnc', hit: encHit, N: HILL.roadN, h: (X, Z) => { const g = encGround(X, Z); if (g === null) return hillMeshH(X, Z); const [x, z] = encL(X, Z); return x > P.x0 && x < P.x1 && z > P.z0 ? g - .12 : g; }, out: 'encTris',
+      w: (X, Z) => { const [x, z] = encL(X, Z), d = Math.hypot(Math.max(P.x0 - x, x - P.x1, 0), Math.max(P.z0 - z, 0)); if (d < ENC.band) return 1; const n = encNat(X, Z), m = hillMeshH(X, Z); return Number.isFinite(n) && Number.isFinite(m) ? clamp(Math.abs(m - n) / .6, 0, 1) : 0; } }); }   // 平台上壓低一點，28-enclave.js 的路面與人行道蓋在上面
     if (AKINA && AKINA.fine) CARVES.push({ name: 'hillAkina', N: 12, h: hillMeshH, w: akinaFW, out: 'akinaTris', hit: P3 => P3.some(([x, z]) => akinaIn(x, z, 1 + 200 / 1500)) });
     if (HILL.carveHit) CARVES.push({ name: 'hillRoad', N: HILL.roadN, h: hillMeshH, w: HILL.carveW, out: 'roadTris', hit: HILL.carveHit });
     const hitCV = t => {
@@ -1021,7 +1050,7 @@ const FAR_SITES = {
     const lk = new Kit();
     for (let i = 0; i < 60; i++) {
       const k = Math.floor(r2() * nP), d = 150 + r2() * 1800, R = Math.hypot(P[k][0] - cx, P[k][1] - cz), X = cx + (P[k][0] - cx) / R * (R + d), Z = cz + (P[k][1] - cz) / R * (R + d), h = hillH(X, Z);
-      if (h < 20 || parkGround(X, Z) !== null || encNear(X, Z, 20)) continue;   // 北嶺公園裡另外有步道燈；雲梯城寨的切坡上不擺
+      if (h < 20 || parkGround(X, Z) !== null || encNear(X, Z, ENC ? ENC.cutR : 20)) continue;   // 北嶺公園裡另外有步道燈；雲梯城寨的切坡上不擺
       // 管理站與山屋：木牆、斜屋頂、正面兩扇亮窗（原本是一顆 3 m 的發光方塊，白天是橘色積木）
       const ry = r2() * 6.28, c = Math.cos(ry), s = Math.sin(ry);
       lk.box(X, h + 1.4, Z, 5, 3.2, 4, 0x4a3828, 2, 0, ry).add(new T.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4), 0x3a3634, 2, tf(X, h + 3.7, Z, 0, ry, 0, 6, 1.6, 5));
@@ -1036,15 +1065,43 @@ const FAR_SITES = {
       PEAKS.push({ x: X, z: Z, y: -15, ry: r8() * 6.3, sx: s, sz: s * (.8 + r8() * .4), sy: 18 + r8() * 8, zn: null });
     }
   }
-  // 外海的小島：低矮的岩丘，有幾盞燈（SEA_FR 座標，10-city.js）。兩座各自一個網格（ISLE_PROXY.tron／eze）：27-props.js 換成模型後拿掉
+  // 外海的小島：岩丘，有幾盞燈（SEA_FR 座標，10-city.js）。兩座各自一個網格（ISLE_PROXY.tron／eze）：27-props.js 換成模型後拿掉。
+  // 幾個壓扁的圓丘疊成不規則的島，表面照雜訊起伏（山脊、溝與岬角，不是光滑的饅頭）；頂點色照高度與坡度分：水線一圈岩灘、
+  // 陡坡是裸岩、緩坡與頂上是灌叢（雜訊打散成一塊塊）
+  const ihs = (x, z) => { const v = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return v - Math.floor(v); };
+  const ivn = (x, z) => {
+    const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz, u = fx * fx * (3 - 2 * fx), w = fz * fz * (3 - 2 * fz);
+    const a = ihs(ix, iz), b = ihs(ix + 1, iz), c = ihs(ix, iz + 1), d = ihs(ix + 1, iz + 1);
+    return a + (b - a) * u + (c - a) * w + (a - b - c + d) * u * w;
+  };
+  const ifb = (x, z) => ivn(x, z) * .55 + ivn(x * 2.13, z * 2.13) * .28 + ivn(x * 4.7, z * 4.7) * .17;
+  const C_ROCK = lin(0x3a342c), C_SCRUB = lin(0x1c2a16), C_SCRUB2 = lin(0x2c3a1e), C_SHORE = lin(0x5a5244);
   for (const [ix, iz, r, h, id] of [[TRON_SITE.x, TRON_SITE.z, 330, 70, 'tron'], [CITY_X0 + 500, SHORE_Z + 1900, 380, 90, 'eze']]) {
     const zn = SEA_FR, kk = new Kit();
-    for (let j = 0; j < 4; j++) {   // 幾個壓扁的圓丘疊成不規則的島
-      const rr = r * (.45 + r2() * .45), g = new T.SphereGeometry(rr, 20, 6, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1, h * (.4 + r2() * .6) / rr, .55 + r2() * .3);
-      g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4); kk.add(g, 0x0c100c, 2, null);
+    for (let j = 0; j < 4; j++) {
+      const rr = r * (.45 + r2() * .45), g = new T.SphereGeometry(rr, 56, 14, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1, h * (.4 + r2() * .6) / rr, .55 + r2() * .3);
+      g.translate(ix + (r2() - .5) * r, SEA_Y, iz + (r2() - .5) * r * .4);
+      const P = g.attributes.position;
+      for (let i = 0; i < P.count; i++) {   // 起伏：越高越強（水線附近不動，島不會浮起來）；山脊用 1 − |2n − 1|
+        const x = P.getX(i), y = P.getY(i), z = P.getZ(i), t = Math.max(0, (y - SEA_Y) / h);
+        const n = ifb(x / 90, z / 90), ridge = 1 - Math.abs(2 * ifb(x / 160 + 7, z / 160 + 3) - 1);
+        P.setY(i, SEA_Y + (y - SEA_Y) * (.75 + n * .5 + ridge * ridge * .45) + Math.min(1, t * 6) * (ifb(x / 22, z / 22) - .5) * 5);
+        const k = Math.min(1, t * 8) * (n - .5) * 28; P.setX(i, x + k * .6); P.setZ(i, z + k * .4);
+      }
+      g.computeVertexNormals(); kk.add(g, 0x0c100c, 2, null);
     }
     for (let j = 0; j < 6; j++) { const a = r2() * 6.3; kk.box(ix + Math.cos(a) * r * .6, SEA_Y + h * .35, iz + Math.sin(a) * r * .4, 2, 2, 2, 0xffd8a0, 11); }
-    cityAdd(ISLE_PROXY[id] = new T.Mesh(kk.build(), MAT.far), zn);
+    const geo = kk.build(), P = geo.attributes.position, N = geo.attributes.normal, C = geo.attributes.color, M = geo.attributes.aMat;
+    for (let i = 0; i < P.count; i++) {
+      if (M.getX(i) !== 2) continue;
+      const x = P.getX(i), y = P.getY(i), z = P.getZ(i), t = (y - SEA_Y) / h, ny = N.getY(i), n = ifb(x / 40 + 11, z / 40);
+      const veg = Math.max(0, Math.min(1, (ny - .55) * 4)) * Math.max(0, Math.min(1, (n - .3) * 3)) * Math.max(0, Math.min(1, t * 10 - .3));
+      const sc = n > .55 ? C_SCRUB2 : C_SCRUB, sh = Math.max(0, 1 - t * 22), dk = .55 + .45 * Math.min(1, t * 3 + .2);   // 溝裡與下半截暗
+      let cr = C_ROCK.r + (sc.r - C_ROCK.r) * veg, cg = C_ROCK.g + (sc.g - C_ROCK.g) * veg, cb = C_ROCK.b + (sc.b - C_ROCK.b) * veg;
+      cr += (C_SHORE.r - cr) * sh; cg += (C_SHORE.g - cg) * sh; cb += (C_SHORE.b - cb) * sh;
+      C.setXYZ(i, cr * dk, cg * dk, cb * dk);
+    }
+    cityAdd(ISLE_PROXY[id] = new T.Mesh(geo, MAT.far), zn);
   }
   // 對岸：沿河的堤岸與一條地面（FAR_PARTS，跟著舊城那一片），南端（FAR_Z1）是對著河口的岸；London City 的模型下載前先用程式剪影
   const bk = new Kit(), sk = new Kit(), ZA = CITY_Z0 - 1600, ZB = FAR_Z1;
@@ -1071,17 +1128,44 @@ const FAR_SITES = {
     const zn = zoneAtL((B.x0 + B.x1) / 2, (B.z0 + B.z1) / 2), k = new Kit(), out = B.back === 'x0' ? -1 : 1, bx = out < 0 ? B.x0 : B.x1, F = FERRY[i];
     const pv = new T.BoxGeometry(B.x1 - B.x0, .5, B.z1 - B.z0); pv.translate((B.x0 + B.x1) / 2, B.h - .25, (B.z0 + B.z1) / 2);
     groundAdd(new T.Mesh(pv, MAT_WALK), zn);
-    // 樓面：沿岸一段段 11–22 m 寬、9–21 m 高、8 m 深
+    // 樓面：沿岸一段段 11–22 m 寬、9–21 m 高、8 m 深。去玩具感（2026-11-02）：原本是素色方塊貼平面窗。牆面改用 MAT.ux 的紅磚（27）、混凝土（20）、
+    // 石材（28）；每開間一道壁柱、每層一道腰線；窗有外框、玻璃、中梃、窗台與楣石；簷口兩階加托架；一樓店面有框、招牌帶、門，遮雨棚是條紋布；
+    // 屋頂一圈女兒牆壓頂，有的樓頂有木水塔或冷氣箱
+    const W1 = (x, y, z, sx, sy, sz, c, m) => k.box(bx + out * x, y, z, sx, sy, sz, c, m);   // x：離步道邊往樓裡多遠
     for (let z = B.z0 - 6; z < B.z1 + 6;) {
-      const w = 11 + r3() * 11, z1 = Math.min(B.z1 + 6, z + w), d = z1 - z, h = 9 + Math.floor(r3() * 4) * 3.2, cz = (z + z1) / 2, col = COLS[Math.floor(r3() * COLS.length)];
-      k.box(bx + out * 4, h / 2, cz, 8, h, d - .3, col, 2).box(bx + out * .1, h + .25, cz, .5, .5, d - .1, 0x2a2826, 2);   // 樓身、簷口
-      // 一樓店面：櫥窗、門、遮雨棚（一半的店亮著）
-      const lit = r3() < .6;
-      k.box(bx - out * .02, 1.7, cz, .06, 2.4, d - 2.4, lit ? 0xffd0a0 : 0x2a3036, lit ? 11 : 1).box(bx - out * .02, 3.15, cz, .08, .5, d - 1.6, 0x1a1a1c, 2);
-      k.box(bx - out * .9, 3.6, cz, 1.8, .1, d - 1.4, AWN[Math.floor(r3() * AWN.length)], 2, 0, 0, out * -.18);
+      const w = 11 + r3() * 11, z1 = Math.min(B.z1 + 6, z + w), d = z1 - z, nf = 2 + Math.floor(r3() * 4), h = 4.4 + nf * 3.2, cz = (z + z1) / 2, ci = Math.floor(r3() * COLS.length), col = COLS[ci];
+      const wm = [27, 20, 27, 27, 20, 28][ci], trim = wm === 27 ? 0xb8ad98 : 0x6a6660, fr = r3() < .5 ? 0x1e2226 : 0xd8d2c4;
+      W1(4, h / 2, cz, 8, h, d - .3, col, wm);
+      // 簷口與女兒牆
+      W1(.05, h + .12, cz, .5, .24, d - .1, trim, 28); W1(-.08, h + .32, cz, .3, .16, d + .05, trim, 28); W1(.1, h + .7, cz, .3, .6, d - .3, col, wm); W1(.1, h + 1.03, cz, .42, .08, d - .2, trim, 28);
+      for (let a = z + .9; a < z1 - .5; a += 1.3) W1(-.02, h - .08, a, .3, .22, .16, trim, 28);
+      // 開間：寬 2.6–3.2 m，壁柱在開間之間
+      const nb = Math.max(3, Math.round((d - .6) / 2.9)), bw = (d - .6) / nb;
+      for (let j = 0; j <= nb; j++) W1(-.1, h / 2 + 2.2, z + .3 + j * bw, .22, h - 4.4, .36, col, wm);
+      for (let f = 1; f < nf + 1; f++) W1(-.06, 4.4 + (f - 1) * 3.2, cz, .14, .16, d - .4, trim, 28);   // 腰線
+      // 一樓店面
+      const lit = r3() < .6, shopC = lit ? 0xffd0a0 : 0x2a3036;
+      W1(-.02, 1.75, cz, .06, 2.7, d - 1.2, shopC, lit ? 11 : 1);
+      for (let j = 0; j <= nb; j++) W1(-.12, 1.75, z + .3 + j * bw, .2, 3.5, .28, fr, 21);   // 店面的框柱
+      W1(-.1, 3.65, cz, .18, .6, d - .6, 0x18191b, 34);   // 招牌帶
+      if (lit) W1(-.2, 3.65, cz, .02, .26, Math.min(d * .5, 6), [0xff4fa0, 0x5ae8ff, 0xffc840, 0x8aff7a][Math.floor(r3() * 4)], 8);
+      const dz = z + .3 + bw * (Math.floor(r3() * nb) + .5);
+      W1(-.04, 1.15, dz, .08, 2.3, 1.1, 0x2a2420, 23);   // 門
+      const aw = AWN[Math.floor(r3() * AWN.length)];
+      for (let a = z + .6, n = 0; a < z1 - .6; a += .5, n++) k.box(bx - out * .9, 3.6 - .02 * (n & 1), a + .25, 1.8, .06, .5, n & 1 ? 0xd8d2c4 : aw, 2, 0, 0, out * -.18);
       if (lit) coastLight(bx - out * 1.5, 2.4, cz, 0xffc890, 7, .5);
-      // 樓上的窗：每層 3.2 m、每 2.6 m 一扇，亮的暖色、暗的深色玻璃
-      for (let y = 5.6; y < h - 1; y += 3.2) for (let a = z + 1.6; a < z1 - 1.2; a += 2.6) k.box(bx - out * .02, y, a, .05, 1.5, 1.2, r3() < .35 ? 0xffd8a0 : 0x1c2228, r3() < .35 ? 11 : 1);
+      // 樓上的窗：每層 3.2 m、每開間一扇（外框、玻璃、中梃、窗台、楣石；牆是實心的方塊，玻璃貼在牆面外 1.5 cm）
+      for (let f = 0; f < nf; f++) for (let j = 0; j < nb; j++) {
+        const y = 5.9 + f * 3.2, a = z + .3 + (j + .5) * bw, on = r3() < .35, ww = Math.min(1.5, bw - .9);
+        W1(-.015, y, a, .03, 1.6, ww, on ? 0xffd8a0 : 0x1c2228, on ? 11 : 1);
+        W1(-.05, y, a - ww / 2 - .04, .1, 1.7, .08, fr, 21); W1(-.05, y, a + ww / 2 + .04, .1, 1.7, .08, fr, 21); W1(-.05, y + .84, a, .1, .08, ww + .16, fr, 21);
+        W1(-.04, y + .15, a, .05, .05, ww, fr, 21); W1(-.04, y, a, .05, 1.6, .05, fr, 21);   // 橫與直的中梃
+        W1(-.07, y - .9, a, .22, .08, ww + .3, trim, 28); W1(-.04, y + 1.02, a, .16, .22, ww + .4, trim, 28);   // 窗台、楣石
+      }
+      // 樓頂：木水塔或兩台冷氣箱
+      const rr = r3();
+      if (rr < .3) { const tx = bx + out * 4.5, ty = h + 1.1; k.cyl(tx, ty + 1, cz, .05, .05, 2, 4, 0x2a2b2e, 21); for (const o of [-.9, .9]) for (const q of [-.9, .9]) k.cyl(tx + o, ty + 1, cz + q, .06, .06, 2, 6, 0x2a2b2e, 21); k.cyl(tx, ty + 3.1, cz, 1.3, 1.3, 2.2, 16, 0x6a4a30, 24).cyl(tx, ty + 4.5, cz, .1, 1.4, .7, 16, 0x3a3a3c, 21); for (const yy of [2.3, 3.1, 3.9]) k.cyl(tx, ty + yy, cz, 1.33, 1.33, .05, 16, 0x2a2b2e, 21); }
+      else if (rr < .7) for (const o of [-1.6, 1.6]) { k.box(bx + out * 5, h + .55, cz + o, 1.3, .9, 1.1, 0x9a9890, 34); k.cyl(bx + out * 5, h + 1.02, cz + o, .4, .4, .04, 14, 0x2a2b2e, 21); }
       z = z1;
     }
     // 步道兩端的圍籬（和遠景的堤岸接起來）
@@ -1097,7 +1181,7 @@ const FAR_SITES = {
     k.box(kx, 1.3, kz, 2.6, 2.6, 2.2, 0x2c4a5a, 2).box(kx, 2.75, kz, 3, .3, 2.6, 0x1a2a34, 2).box(kx - out * 1.32, 1.5, kz, .05, 1, 1.6, 0xffe2b0, 11).box(kx, 3.3, kz, 2.4, .5, .08, 0x5ae8ff, 8);
     colliders.push({ x0: kx - 1.3, x1: kx + 1.3, z0: kz - 1.1, z1: kz + 1.1 });
     coastLight(kx - out * 2, 2.6, kz, 0xffe2b0, 8, .7);
-    cityAdd(new T.Mesh(k.build(), MAT.uber), zn);
+    cityAdd(new T.Mesh(k.build(), MAT.ux), zn);
   }
 }
 

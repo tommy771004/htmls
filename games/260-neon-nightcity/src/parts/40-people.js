@@ -691,14 +691,16 @@ function npcWear(h1, h2, h3, h4, fem) {
   const take = (cat, h, rate) => { const l = by(cat); if (l.length && h < rate) out.push(l[Math.floor(h / rate * l.length) % l.length].id); };
   // 裙子只給女性路人（型錄男女都做了，玩家自己買來穿不限）；褲子與裙子二選一
   const hb = hash01(h2 * 57.3 + h3);
-  take('top', hash01(h1 * 91.7 + h4), .34); if (fem && hb < .24) take('skirt', hb, .24); else take('pants', hb, .30); take('hat', hash01(h3 * 33.1 + h1), .12);
-  take('jacket', hash01(h4 * 47.9 + h2 * 3.1), .16);
+  // 去玩具感（2026-11-02）：原本三分之二的路人穿身體上畫的上衣與長褲（貼身、像塑膠假人），改成大多穿型錄的衣服模型
+  // （31 個路人原本就有 27 份不同的幾何，提高比例幾乎不增加份數）
+  take('top', hash01(h1 * 91.7 + h4), .72); if (fem && hb < .36) take('skirt', hb, .36); else take('pants', hb, .7); take('hat', hash01(h3 * 33.1 + h1), .12);
+  take('jacket', hash01(h4 * 47.9 + h2 * 3.1), .26);
   // 襪子只給露腿的（裙子、P01–P08 的短褲）：長褲底下看不到
   const bot = WEAR_BY[out.find(id => /^[PS]/.test(id))];
   if (bot && (bot.cat === 'skirt' || NPC_SHORTS.has(bot.id))) take('socks', hash01(h1 * 13.7 + h3 * 5.3), .45);
   // 鞋子：高跟鞋、及膝長靴只給女性路人
   const sh = WEAR.filter(w => w.cat === 'shoes' && (fem || !NPC_HEELS.has(w.id))), hs = hash01(h2 * 23.9 + h4 * 7.1);
-  if (sh.length && hs < .38) out.push(sh[Math.floor(hs / .38 * sh.length) % sh.length].id);
+  if (sh.length && hs < .62) out.push(sh[Math.floor(hs / .62 * sh.length) % sh.length].id);
   // 配件：背心、面罩、手套太顯眼不給路人；耳環、耳掛只給女性路人
   const ac = WEAR.filter(w => w.cat === 'acc' && !NPC_NOACC.has(w.id) && (fem || !w.fem)), ha = hash01(h3 * 71.3 + h4 * 2.9);
   if (ac.length && ha < .22) out.push(ac[Math.floor(ha / .22 * ac.length) % ac.length].id);

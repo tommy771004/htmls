@@ -91,9 +91,9 @@ const VEND_DRINK = [0x2a5a9a, 0xb03030, 0xd8d0b8, 0x3a7a3a, 0xe0a030, 0x222222, 
 function vendKit(V, vi) {
   const k = new Kit(), dim = (c, f) => new T.Color(c).multiplyScalar(f).getHex();
   const W = .98, H = 1.83, D = .72, fz = D / 2;
-  k.box(0, H / 2 + .04, 0, W, H - .08, D, V.body, 10);                       // 機身
+  k.rbox(0, H / 2 + .04, 0, W, H - .08, D, .025, V.body, TX.enamel, 0, 0, 0, .012);   // 機身（烤漆鋼板，邊角圓）
   k.box(0, .04, .01, W - .04, .08, D - .04, 0x18191b, 2);                     // 踢腳板
-  k.box(0, H - .005, 0, W + .02, .012, D + .02, V.body, 10);                  // 頂蓋
+  k.rbox(0, H - .005, 0, W + .02, .014, D + .02, .006, V.body, TX.enamel);       // 頂蓋
   for (const s of [-1, 1]) k.box(s * (W / 2 + .002), 1.05, 0, .004, 1.3, D * .82, V.band, 10);   // 側面色帶
   k.box(0, 1.69, fz + .004, W - .1, .2, .008, dim(V.head, .55), 11);          // 燈箱
   k.box(0, 1.69, fz + .009, W - .1, .055, .004, dim(V.band, .45), 11);        // 燈箱上的品牌色條
@@ -120,12 +120,16 @@ function vendKit(V, vi) {
   k.box(dx, .31, fz + .014, .6, .15, .004, 0x2a2e33, 1);                      // 取物口的翻蓋
   return k.build();
 }
-function vendBinKit() {   // 回收桶：灰藍色塑膠桶，上面兩個投入孔、正面一條標籤
-  const k = new Kit();
-  k.box(0, .45, 0, .42, .9, .36, 0x5f6e7a, 2);
-  k.box(0, .905, 0, .44, .02, .38, 0x4a5761, 2);
-  for (const s of [-1, 1]) k.box(s * .1, .918, .02, .1, .006, .1, 0x08090a, 2);
-  k.box(0, .62, .182, .3, .1, .004, 0xd8dcdc, 10);
+function vendBinKit() {   // 回收桶：灰藍色塑膠桶（圓角、上寬下窄一點）、掀蓋上一圓一方兩個投入孔、正面標籤、兩側提把、底下一圈黑色底座
+  const k = new Kit(), BODY = 0x5f6e7a, LID = 0x4a5761;
+  k.rbox(0, .065, 0, .4, .07, .34, .03, 0x1c1e20, TX.rubber, 0, 0, 0, .01);            // 底座
+  k.prism(0, .1, 0, [[-.2, 0], [.2, 0], [.215, .78], [-.215, .78]], .36, BODY, TX.rubber, 0, 0, 0, .02);   // 桶身（上寬下窄）
+  k.rbox(0, .905, 0, .46, .05, .4, .03, LID, TX.rubber, 0, 0, 0, .015);                 // 掀蓋
+  k.box(0, .885, -.2, .4, .03, .03, 0x3a454e, TX.rubber);                               // 鉸鏈
+  k.cyl(-.1, .931, .02, .055, .055, .004, 16, 0x08090a, 2).torus(-.1, .932, .02, .057, .007, 16, 0x3a454e, TX.rubber);   // 瓶罐孔
+  k.rbox(.1, .931, .02, .12, .004, .08, .01, 0x08090a, 2).box(.1, .934, .02, .13, .004, .09, 0x3a454e, TX.rubber);       // 紙類口
+  k.box(0, .62, .188, .3, .12, .004, 0xd8dcdc, 10).box(-.09, .62, .191, .06, .06, .002, 0x2f7a3a, 11).box(.04, .64, .191, .14, .014, .002, 0x3a3e42, 2).box(.04, .605, .191, .12, .01, .002, 0x3a3e42, 2);   // 標籤：回收標誌與兩行字
+  for (const s of [-1, 1]) k.rbox(s * .222, .74, 0, .03, .04, .16, .015, LID, TX.rubber);   // 兩側提把
   return k.build();
 }
 {
@@ -161,8 +165,8 @@ function vendBinKit() {   // 回收桶：灰藍色塑膠桶，上面兩個投入
     outLights.push({ x: mx, y: 1.3, z: mz, col: lin(0xe6f0ff), r: 4.5, i: .45 });   // 一叢一盞：展示窗照在地上與對面的光
     const c = spots[0]; let g = grid.get(gk(c[0], c[1])); if (!g) grid.set(gk(c[0], c[1]), g = []); g.push(c);
   }
-  VEND_V.forEach((V, vi) => { if (lists[vi].length) VEND_MS.push(instanced(vendKit(V, vi), MAT.uber, lists[vi], 0, null, 150)); });
-  if (VEND_BIN.length) instanced(vendBinKit(), MAT.uber, VEND_BIN, 0, null, 150);
+  VEND_V.forEach((V, vi) => { if (lists[vi].length) VEND_MS.push(instanced(vendKit(V, vi), MAT.uxI, lists[vi], 0, null, 150)); });
+  if (VEND_BIN.length) instanced(vendBinKit(), MAT.uxI, VEND_BIN, 0, null, 150);
   // vend.glb 的五款實機照 t.v 擺（27-props.js 的 w2Load），位置與碰撞照舊，回收桶還是程式建模。
   // 要在這裡呼叫：27 的頂層排在前面，下載完的回呼可能比這一段先跑，那時 VEND 還是 undefined
   if (W2.on) w2Load('vend', it => {
@@ -217,7 +221,7 @@ const club = { boxes: [], circles: [], lights: [], people: null, dancers: [] };
     k.box(10.9, .3, z, 1.6, .6, 3.6, 0x3a0a1e, 2).box(11.6, .9, z, .3, 1.2, 3.6, 0x3a0a1e, 2);
     B.push({ x0: 9.4, x1: 12, z0: z - 1.8, z1: z + 1.8 });
   }
-  S.add(new T.Mesh(k.build(), MAT.uber));
+  S.add(new T.Mesh(k.uxify({ floor: 33 }).build(), MAT.ux));   // 去玩具感：素色換程式紋理（07-kitx.js 的 uxify）
   // Blender 道具：DJ 台、音箱塔、酒架、高腳椅、卡座桌
   const fitDJ = propFit('dj_booth');
   instancedIn(S, fitDJ.geo, MAT.uber, [{ x: 0, y: .9, z: 28.3, ry: Math.PI }]);
@@ -382,7 +386,7 @@ const bar = { boxes: [], circles: [], lights: [], people: null };
   // 吊燈
   for (const z of [4.5, 8, 11.5]) { k.cyl(2.6, 3.1, z, .005, .005, 1, 4, 0x111111, 15); k.add(new T.ConeGeometry(.22, .22, 14, 1, true), 0x1a3a2a, 15, tf(2.6, 2.55, z)); k.cyl(2.6, 2.47, z, .07, .07, .06, 8, 0xffc070, 8); }
   for (const [x, z] of [[-4.6, 4], [-4.6, 8], [-1.4, 11]]) { k.cyl(x, 3.2, z, .005, .005, .8, 4, 0x111111, 15); k.add(new T.SphereGeometry(.13, 12, 8), 0xffb060, 8, tf(x, 2.75, z)); }
-  S.add(new T.Mesh(k.build(), MAT.uber));
+  S.add(new T.Mesh(k.uxify({ floor: 0 }).build(), MAT.ux));   // 去玩具感：素色換程式紋理（木地板照舊：程式木紋在這裡是一片片深色污斑）
   // 店內的 AFTERGLOW 招牌（從店內看是反的）
   const sg = new T.PlaneGeometry(3.2, .8); const uv = sg.attributes.uv; const c = cells.AFTERGLOW;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, lerp(c.u0, c.u1, uv.getX(i)), lerp(c.v0, c.v1, uv.getY(i)));

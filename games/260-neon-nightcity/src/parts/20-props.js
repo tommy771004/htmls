@@ -617,11 +617,27 @@ const lampBlobs = [];
   instanced(g, MAT.blob, lampBlobs, LY.NOREFL, null, 70);
 }
 // World 第四輪之二（27-props.js 檔尾）：以 http(s) 開啟時把下面幾種換成 Sketchfab 模型，所以留住程式建模的網格（下載好才拿掉）
-const hydrantMesh = instanced(new Kit()
-  .cyl(0, .3, 0, .13, .15, .6, 10, 0xb81e14, 10).cyl(0, .65, 0, .15, .1, .14, 10, 0xb81e14, 10)
-  .cyl(0, .4, 0, .05, .05, .42, 6, 0x9a9a9a, 3, 0, 0, Math.PI / 2).build(), MAT.uber, hydrants, LY.NOREFL);
-const binMesh = instanced(new Kit()
-  .cyl(0, .48, 0, .3, .26, .96, 12, 0x2f3a33, 15).cyl(0, .98, 0, .32, .32, .06, 12, 0x232a26, 15).build(), MAT.uber, bins, LY.NOREFL);
+// 消防栓（程式替身）：車削的柱身（底座法蘭、柱身、腰環、肩、圓頂、頂上的五角操作頭）、兩側出水口與蓋、正面的大出水口、法蘭上的螺栓
+const hydrantMesh = instanced((() => {
+  const k = new Kit(), R = 0xb81e14, ST = 0x9a9a9a;
+  k.lathe(0, 0, 0, [[.17, 0], [.17, .04], [.14, .05], [.13, .08], [.125, .5], [.14, .52], [.14, .56], [.12, .58], [.115, .62], [.1, .68], [.06, .72], [0, .73]], 16, R, TX.enamel);
+  k.cyl(0, .76, 0, .035, .035, .06, 5, R, TX.enamel);
+  for (const sx of [-1, 1]) k.cyl(sx * .16, .42, 0, .045, .05, .07, 10, R, TX.enamel, 0, 0, Math.PI / 2).cyl(sx * .2, .42, 0, .055, .055, .03, 6, ST, TX.steel, 0, 0, Math.PI / 2).rod(sx * .2, .42, .05, sx * .14, .53, .1, .004, 4, ST, TX.steel);   // 側出水口、蓋、鏈
+  k.cyl(0, .4, .15, .06, .065, .07, 10, R, TX.enamel, Math.PI / 2).cyl(0, .4, .19, .07, .07, .03, 6, ST, TX.steel, Math.PI / 2);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; k.cyl(Math.cos(a) * .155, .045, Math.sin(a) * .155, .012, .012, .02, 6, ST, TX.steel); }
+  return k.build();
+})(), MAT.ux, hydrants, LY.NOREFL);
+// 垃圾桶（程式替身）：鋼條圍成的桶身（上下兩道箍）、內桶、頂蓋與投入口、底座
+const binMesh = instanced((() => {
+  const k = new Kit(), G = 0x2f3a33, D = 0x1c2420;
+  k.cyl(0, .5, 0, .27, .24, .88, 14, 0x161a18, TX.rubber);   // 內桶
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2; k.rod(Math.cos(a) * .25, .06, Math.sin(a) * .25, Math.cos(a) * .3, .92, Math.sin(a) * .3, .012, 4, G, TX.enamel); }   // 鋼條
+  for (const [y, r] of [[.12, .255], [.5, .278], [.88, .298]]) k.torus(0, y, 0, r, .014, 20, G, TX.enamel);   // 箍
+  k.lathe(0, .92, 0, [[.33, 0], [.33, .04], [.3, .06], [.2, .1], [.12, .11], [0, .11]], 18, D, TX.enamel);   // 頂蓋
+  k.cyl(0, .98, 0, .11, .11, .04, 14, 0x050505, 2);   // 投入口
+  k.cyl(0, .03, 0, .3, .32, .06, 14, D, TX.enamel);
+  return k.build();
+})(), MAT.ux, bins, LY.NOREFL);
 // 電訊箱（69-market.js 射擊、撞爛）：執行時用世界座標，和換過的碰撞圓柱同一個算法，69-market 才比對得到
 worldHooks.push(() => { for (const b of boxesN) { [b.x, b.z] = toW(b.x, b.z); } });
 // 藍色電訊箱（照路邊的電信交接箱）：水泥基座、霧面粉體烤漆的機身與出簷的頂蓋、正面的門（門縫、把手與鎖）、兩側的百葉、警告貼紙與編號牌。69-market.js 打爛時把該格縮成 0

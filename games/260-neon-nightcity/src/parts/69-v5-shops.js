@@ -296,15 +296,27 @@ if (FAC.mall) {
   // ─ 洗車隧道：兩側波浪板牆、屋頂、入口的拱門與燈箱、地上的導軌
   const Wsh = F.wash, wx0 = Wsh.x0 - ax, wx1 = Wsh.x1 - ax, wz0 = Wsh.z0 - az, wz1 = Wsh.z1 - az, wc = (wx0 + wx1) / 2;
   for (const [x0, x1] of [[wx0, wx0 + .4], [wx1 - .4, wx1]]) {
-    for (let zz = wz0; zz < wz1 - .01; zz += .5) k.box(ax + (x0 + x1) / 2, 2.2, az + zz + .25, x1 - x0, 4.4, .46, (zz / .5) % 2 ? 0xd0d4d8 : 0xb8bcc2, 2);
+    for (let zz = wz0; zz < wz1 - .01; zz += .5) k.box(ax + (x0 + x1) / 2, 2.2, az + zz + .25, x1 - x0, 4.4, .46, (zz / .5) % 2 ? 0xd0d4d8 : 0xb8bcc2, 29);
     colliders.push({ x0: ax + x0, x1: ax + x1, z0: az + wz0, z1: az + wz1, hy: 4.4, zn: z });
   }
-  k.box(ax + wc, 4.5, az + (wz0 + wz1) / 2, wx1 - wx0 + .4, .2, wz1 - wz0, 0x2a5a8a, 2);
+  k.box(ax + wc, 4.5, az + (wz0 + wz1) / 2, wx1 - wx0 + .4, .2, wz1 - wz0, 0x2a5a8a, 29);
+  // 去玩具感（2026-11-02）：裡面原本是空的。兩支直立滾刷（藍、紅的刷毛、上下軸承座）、一支上方橫刷、入口的噴水拱架（管、噴嘴）、出口的兩台吹乾機、地上的排水格柵
+  { const zm = az + (wz0 + wz1) / 2, iw = wx1 - wx0 - .8;
+    for (const s of [-1, 1]) { const bx = ax + wc + s * (iw / 2 - .7);
+      k.cyl(bx, 1.45, zm - 1.5, .55, .55, 2.5, 18, s < 0 ? 0x2a5aba : 0xc23a3a, 30).cyl(bx, 2.85, zm - 1.5, .08, .08, .4, 8, 0x8a8e92, 22).cyl(bx, .12, zm - 1.5, .2, .2, .08, 12, 0x3a3c40, 21);
+      k.box(bx, 3.1, zm - 1.5, .16, .16, 1, 0x3a3c40, 21); }
+    k.cyl(ax + wc, 2.65, zm + .6, .45, .45, iw - .6, 18, 0x2a8a5a, 30, 0, 0, Math.PI / 2).box(ax + wc, 3.25, zm + .6, iw, .14, .14, 0x3a3c40, 21);
+    for (const s of [-1, 1]) k.rod(ax + wc + s * (iw / 2 - .1), .2, az + wz0 + 1.2, ax + wc + s * (iw / 2 - .1), 3.4, az + wz0 + 1.2, .05, 8, 0x9aa0a6, 22);
+    k.rod(ax + wc - iw / 2 + .1, 3.4, az + wz0 + 1.2, ax + wc + iw / 2 - .1, 3.4, az + wz0 + 1.2, .05, 8, 0x9aa0a6, 22);
+    for (let x = -iw / 2 + .4; x < iw / 2 - .3; x += .45) k.cyl(ax + wc + x, 3.3, az + wz0 + 1.2, .025, .015, .12, 6, 0x2a2b2e, 15);
+    for (const s of [-1, 1]) k.rbox(ax + wc + s * (iw / 2 - .25), 2.2, az + wz1 - 1.5, .5, 1.6, .7, .08, 0x9a9890, 34).box(ax + wc + s * (iw / 2 - .52), 2.2, az + wz1 - 1.5, .04, 1.2, .4, 0x1a1b1d, 30);
+    for (let zz = wz0 + 2; zz < wz1 - 1; zz += 3) k.box(ax + wc, .172, az + zz, iw * .7, .01, .3, 0x2a2c2e, 22);
+  }
   for (const zz of [wz0, wz1]) k.box(ax + wc, 4.75, az + zz, wx1 - wx0 + .6, .5, .3, 0x1a3a6a, 2);
   for (const s of [-1, 1]) k.box(ax + wc + s * 1.1, .19, az + (wz0 + wz1) / 2, .12, .05, wz1 - wz0 + 8, 0x8a8e92, 3);
   k.box(ax + wx0 - .9, 1.1, az + wz0 - 1.6, .3, 2.2, .3, 0x30343a, 15).box(ax + wx0 - .72, 1.35, az + wz0 - 1.6, .06, .5, .36, 0x6ad0ff, 8);
   colliders.push({ x0: ax + wx0 - 1.1, x1: ax + wx0 - .7, z0: az + wz0 - 1.8, z1: az + wz0 - 1.4, zn: z });
-  cityAdd(new T.Mesh(k.build(), MAT.uber), z);
+  cityAdd(new T.Mesh(k.build(), MAT.ux), z);
   cityAdd(MALL.fb = new T.Mesh(fb.build(), MAT.uber), z); cityAdd(MALL.fg = new T.Mesh(fg.build(), MAT.uber), z);
   // 店裡的陳設（模型版才擺：程式建模的正面是一整片牆）：櫥窗裡穿衣服的假人、後牆的胡桃木層架與一疊疊摺好的衣服
   { const mk = new Kit(), PAL = [0x2a3a5a, 0xc8b89a, 0x8a2a2a, 0x3a5a3a, 0xe8e2d8, 0x1a1a1a, 0x6a7a9a, 0xb07a4a];

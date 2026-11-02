@@ -123,22 +123,30 @@ function hillLinks(roads, ok, edgeR) {
 
 // ═══ 連絡路深挖、高填的路段：10-city.js 的 HILL.carveH 只改路兩側 CW（40 m），挖方 50 m 以上、填方 27 m 以上的地方會剩一道直立的斷崖。
 // 這裡把 HILL.carveH／carveHit 包一層：那幾段照需要的寬度（路肩外 RC 起、挖方 CUT:1、填方 FILL:1，接回原本的山坡為止再多 6 m）另外挖、填。
-// 其他路的挖填不變（寬度在 CW 以內的段不處理）═══
+// 2026-11-02（使用者：雲梯城寨西北邊看得到一大片岩壁）：連絡路的挖方改成 CUT_L（0.95:1 ≈ 43.5°，07-kitx.js 51° 以上才露岩，樹也長得上去），
+// 每一段都另外挖（原本 1.4:1 的路塹最深上百公尺，兩側整片岩壁）；別墅區的山路與榛嶺照舊是 10-city.js 的 1.4:1 ═══
+const CUT_L = .95;
 function hillLinkCarve(roads, RC, CUT, FILL, CW, roadD) {
   const W = [];
+  CUT = CUT_L;
   for (const P of roads) if (P.link) for (let k = 0; k + 1 < P.length; k++) {
     const A = P[k], B = P[k + 1]; let w = 0;
     for (const p of [A, B]) { const h = hillMeshRaw(p[0], p[1]); if (Number.isFinite(h)) w = Math.max(w, RC + (h > p[2] ? (h - p[2]) / CUT : (p[2] - h) / FILL) + 6); }
-    if (w > CW) W.push([A[0], A[1], A[2], B[0], B[1], B[2], w, Math.min(A[0], B[0]) - w, Math.max(A[0], B[0]) + w, Math.min(A[1], B[1]) - w, Math.max(A[1], B[1]) + w]);
+    // 往路的兩側每 6 m 量一次，量到挖方（填方）坡碰到原本的山為止（只看路面高的山會量得太窄，旁邊的山高的地方在 w 邊上留一道陡邊）
+    { const ex = B[0] - A[0], ez = B[1] - A[1], L = Math.hypot(ex, ez) || 1, nx = -ez / L, nz = ex / L;
+      for (const t of [0, .5, 1]) { const x = A[0] + ex * t, z = A[1] + ez * t, y = A[2] + (B[2] - A[2]) * t;
+        for (const s of [-1, 1]) for (let d = RC; d < 320; d += 6) { const h = hillMeshRaw(x + nx * s * d, z + nz * s * d); if (!Number.isFinite(h)) break; const cy = h > y ? y + (d - RC) * CUT : y - (d - RC) * FILL; if (h > y ? cy >= h : cy <= h) { w = Math.max(w, d + 12); break; } } } }
+    if (w > RC + 6) W.push([A[0], A[1], A[2], B[0], B[1], B[2], w, Math.min(A[0], B[0]) - w, Math.max(A[0], B[0]) + w, Math.min(A[1], B[1]) - w, Math.max(A[1], B[1]) + w]);
   }
   HILL.linkWide = W.length;
   if (!W.length) return;
-  const each = (X, Z, fn) => { for (const S of W) { if (X < S[7] || X > S[8] || Z < S[9] || Z > S[10]) continue; const [ax, az, ay, bx, bz, by, w] = S, ex = bx - ax, ez = bz - az, t = clamp(((X - ax) * ex + (Z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1), d = Math.hypot(X - ax - ex * t, Z - az - ez * t); if (d < w) fn(d, ay + (by - ay) * t); } };
+  const each = (X, Z, fn) => { for (const S of W) { if (X < S[7] || X > S[8] || Z < S[9] || Z > S[10]) continue; const [ax, az, ay, bx, bz, by, w] = S, ex = bx - ax, ez = bz - az, t = clamp(((X - ax) * ex + (Z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1), d = Math.hypot(X - ax - ex * t, Z - az - ez * t); if (d < w) fn(d, ay + (by - ay) * t, w); } };
   const base = HILL.carveH, hit = HILL.carveHit;
   HILL.carveH = (X, Z, h) => {
     let hc = base(X, Z, h), lo = Infinity, hi = -Infinity, near = Infinity, yr = 0;
     if (roadD(X, Z) <= RC) return hc;   // 路面（任何一條路的 RC 內）照原本的：加寬的挖方斜坡罩到別的路上會把那條路面挖低（車就浮起來）
-    each(X, Z, (d, y) => { if (d < near) { near = d; yr = y; } if (h > y) lo = Math.min(lo, y + Math.max(0, d - RC) * CUT); else hi = Math.max(hi, y - Math.max(0, d - RC) * FILL); });
+    // 寬度 w 是照路段兩端的山高估的，兩端之間的山比較高（或低）時，以前在 w 邊上斷開（雲梯城寨西側那道 18 m 的落差）：最後 12 m 漸漸退回原本的山
+    each(X, Z, (d, y, w) => { if (d < near) { near = d; yr = y; } const f = sm01((d - (w - 12)) / 12); if (h > y) { const c = y + Math.max(0, d - RC) * CUT; lo = Math.min(lo, c + Math.max(0, h - c) * f); } else { const c = y - Math.max(0, d - RC) * FILL; hi = Math.max(hi, c - Math.max(0, c - h) * f); } });
     if (near <= RC) return yr;
     if (lo < Infinity) hc = Math.min(hc, lo);
     if (hi > -Infinity) hc = Math.max(hc, hi);

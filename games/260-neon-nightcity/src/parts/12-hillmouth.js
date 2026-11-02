@@ -7,6 +7,7 @@
 // 讓路：20-props.js 的片邊路燈、草地上的樹、片之間的碎石步道與亭子避開 hillConnNear；69-gps.js 的導航與 90-hud.js 的地圖把 P.conn 接在山路前面 ═══
 const HILL_CONN = [];
 function hillConnNear(x, z, r) {
+  if (ENC) { const [ex, ez] = encL(x, z); if (ez < -4 && ez > -66 && Math.abs(ex) < r - (HILL.roadHW || 0) + 10) return true; }   // 雲梯城寨的主街從城裡那條路接出去的那一段（28-enclave.js，路面加人行道半寬 10 m）
   for (const C of HILL_CONN) {
     if (x < C.bb[0] - r || x > C.bb[1] + r || z < C.bb[2] - r || z > C.bb[3] + r) continue;
     const P = C.near;

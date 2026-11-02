@@ -108,5 +108,31 @@ Kit.prototype.visor = function (x, y, z, r, len, color, mat = 2, ry = 0, gap = 1
 // 著色器是 src/tsl/m-uberX.mjs：vP／vNo 是幾何自己的座標（實例在實例的框裡，pGeom_／nGeom_）
 function mkUberX(o) { const m = mkUber(o); m.name = 'uberX'; return m; }
 MAT.ux = mkUberX(); MAT.uxI = mkUberX({ inst: true }); MAT.uxFI = mkUberX({ inst: true, far: .07, farc: 1 });   // uxFI：遠景的實例（21-coast.js 的石柱峰；霧只算 7% 的距離，鏡頭升高也一樣）
-// 材質代號（Kit 的 mat 參數）
-const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36, tile: 37, slate: 38, seam: 39, hill: 42, karst: 51, board: 43, slat: 44, trav: 45, ledge: 46, pool: 47, vglass: 48, soffit: 49, vhill: 50 };
+// 去玩具感（2026-11-02）：把場館、室內裡素色的 uber 材質（2 霧面、10 半光、15 金屬）照頂點色與零件形狀換成 MAT.ux 的程式紋理，網格要改用 MAT.ux／uxI。
+// 每個零件（parts）量外框：薄而大的水平板（地板）用 o.floor（預設 33 環氧地坪），板子朝下的面（下一層看到的天花板）與底高於 o.ceil 的板用 41；直立的大板（牆）低彩度用 o.wall（預設 41 灰泥牆）；
+// 暖棕色（木頭）照最長軸換 23／24／25 的木紋；金屬照亮度分 35 室內不鏽鋼（亮）、21 塗漆的鐵（暗）；很暗的霧面當成 30 粗塑膠、橡膠；其他低彩度霧面當成 34 粉體烤漆。
+// 飽和的顏色（招牌、燈箱、霓虹、絨布）與自發光、玻璃、鍍鉻不動。o.skip(r, g, b, m) 回傳 true 的也不動
+Kit.prototype.uxify = function (o = {}) {
+  const P = this.parts, pos = this.pos, col = this.col, mat = this.mat, nV = pos.length / 3, FL = o.floor ?? 33,   // floor: 0 = 地板照舊
+    WL = o.wall ?? 41, CE = o.ceil ?? Infinity;
+  for (let k = 0; k < P.length; k++) {
+    const a = P[k], b = k + 1 < P.length ? P[k + 1] : nV; if (b <= a) continue;
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (let v = a; v < b; v++) { const x = pos[v * 3], y = pos[v * 3 + 1], z = pos[v * 3 + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
+    const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, big = Math.max(dx, dz), flat = dy < .35 && big > 2.5 && Math.min(dx, dz) > 1.2, wall = dy > 1.6 && big > 1.6 && Math.min(dx, dz) < .5;
+    for (let v = a; v < b; v++) {
+      const m = mat[v]; if (m !== 2 && m !== 10 && m !== 15) continue;
+      if (flat && FL === 0 && this.nor[v * 3 + 1] > -.5) continue;   // 地板照舊
+      const r = col[v * 3], g = col[v * 3 + 1], bl = col[v * 3 + 2], mx = Math.max(r, g, bl), mn = Math.min(r, g, bl), sat = mx > 1e-4 ? (mx - mn) / mx : 0, lum = r * .3 + g * .55 + bl * .15;
+      if (o.skip && o.skip(r, g, bl, m)) continue;
+      let t = 0;
+      if (m === 15) t = sat < .35 ? (lum > .18 ? 35 : 21) : 0;
+      else if (r > g * 1.12 && g > bl * 1.08 && sat > .3 && sat < .95 && lum < .3) t = dy < .12 && this.nor[v * 3 + 1] > .5 ? 0 : dx >= dy && dx >= dz ? 23 : dz >= dy ? 25 : 24;   // 暖棕：木頭（扁平朝上的木板＝拼好的木地板，照舊：程式木紋的大塊髒污在地板上是一片片污斑）
+      else if (sat < .3) t = flat ? (this.nor[v * 3 + 1] < -.5 || y0 > CE ? 41 : FL) : wall ? WL : lum < .02 ? 30 : 34;
+      if (t) mat[v] = t;
+    }
+  }
+  return this;
+};
+// 材質代號（Kit 的 mat 參數）；52 間知石（不規則石塊、灰縫、青苔，2026-11-02）
+const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36, tile: 37, slate: 38, seam: 39, hill: 42, karst: 51, kenchi: 52, board: 43, slat: 44, trav: 45, ledge: 46, pool: 47, vglass: 48, soffit: 49, vhill: 50 };

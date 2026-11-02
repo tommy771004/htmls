@@ -45,18 +45,25 @@ if (XR) {
   const seg = (a, len, lat, y, w, h, col, mat = 2) => { const [x, z, hx, hz] = R.at(a, lat); k.box(x, y, z, len, h, w, col, mat, 0, Math.atan2(-hz, hx)); };
   for (let a = A0; a < A1; a += ST) {
     const m = a + ST / 2, s = inSt(m), hw = s ? XR_PW : XR_HW;
-    seg(m, ST + .05, 0, XR_Y - 1.25, 5.2, 2.1, con2);                                   // 箱梁
-    seg(m, ST + .05, 0, XR_Y - .2, 2 * hw, .4, con);                                     // 橋面板
+    // 去玩具感（2026-11-02）：混凝土用 MAT.ux 20，道碴 30（粗顆粒），每 0.75 m 一根混凝土枕木，鋼軌分軌頭與軌底，橋面兩側有邊梁與滴水線，
+    // 護欄有壓頂；月台有白色收邊與黃色導盲帶，雨棚是立邊鋼板（29）
+    seg(m, ST + .05, 0, XR_Y - 1.25, 5.2, 2.1, con2, 20);                               // 箱梁
+    seg(m, ST + .05, 0, XR_Y - .2, 2 * hw, .4, con, 20);                                 // 橋面板
     for (const sd of [-1, 1]) {
-      seg(m, ST + .05, sd * XR_TRK, XR_Y + .1, 2.7, .22, ball);                          // 道碴
-      for (const r of [-.72, .72]) seg(m, ST + .05, sd * XR_TRK + r, XR_Y + .3, .08, .17, rail, 15);   // 鋼軌
-      if (!s) seg(m, ST + .05, sd * (hw - .12), XR_Y + .45, .24, 1.1, con);               // 護欄
+      seg(m, ST + .05, sd * (hw + .04), XR_Y - .3, .12, .66, con2, 20);                   // 邊梁
+      seg(m, ST + .05, sd * (hw + .02), XR_Y - .66, .14, .05, 0x55524c, 20);             // 滴水線
+      seg(m, ST + .05, sd * XR_TRK, XR_Y + .1, 2.7, .22, ball, 30);                      // 道碴
+      for (let t = -ST / 2 + .375; t < ST / 2; t += .75) seg(m + t, .22, sd * XR_TRK, XR_Y + .24, 2.5, .1, 0x8a867e, 20);   // 枕木
+      for (const r of [-.72, .72]) { seg(m, ST + .05, sd * XR_TRK + r, XR_Y + .3, .14, .03, rail, 15); seg(m, ST + .05, sd * XR_TRK + r, XR_Y + .37, .03, .11, rail, 15); seg(m, ST + .05, sd * XR_TRK + r, XR_Y + .44, .07, .045, 0x8c9094, 3); }   // 鋼軌：軌底、軌腰、磨亮的軌頭
+      if (!s) { seg(m, ST + .05, sd * (hw - .12), XR_Y + .45, .24, 1.1, con, 20); seg(m, ST + .05, sd * (hw - .12), XR_Y + 1.03, .32, .06, 0xb2ada4, 20); }   // 護欄與壓頂
       else {
-        seg(m, ST + .05, sd * (XR_TRK + 1.6 + (XR_PW - XR_TRK - 1.6) / 2), XR_Y + .55, XR_PW - XR_TRK - 1.6, .7, 0x8f8b84);   // 月台
-        seg(m, ST + .05, sd * (XR_TRK + 1.75), XR_Y + .91, .3, .02, 0xd8b43a);           // 月台邊的黃線
-        seg(m, ST + .05, sd * (XR_PW - .12), XR_Y + 1.35, .24, .9, con);                  // 月台外側的矮牆與扶手
+        seg(m, ST + .05, sd * (XR_TRK + 1.6 + (XR_PW - XR_TRK - 1.6) / 2), XR_Y + .55, XR_PW - XR_TRK - 1.6, .7, 0x8f8b84, 20);   // 月台
+        seg(m, ST + .05, sd * (XR_TRK + 1.66), XR_Y + .905, .14, .012, 0xe8e4da, 34);    // 月台邊的白色收邊
+        seg(m, ST + .05, sd * (XR_TRK + 2.05), XR_Y + .905, .4, .014, 0xd8b43a, 34);     // 黃色導盲帶
+        seg(m, ST + .05, sd * (XR_PW - .12), XR_Y + 1.35, .24, .9, con, 20);              // 月台外側的矮牆與扶手
         seg(m, ST + .05, sd * (XR_PW - .12), XR_Y + 2.0, .08, .08, steel, 15);
-        seg(m, ST + .05, sd * (XR_TRK + 3.2), XR_Y + 5.4, 5.4, .22, 0xb8bcc0, 10);        // 雨棚
+        seg(m, ST + .05, sd * (XR_TRK + 3.2), XR_Y + 5.4, 5.4, .22, 0xb8bcc0, 29);        // 雨棚
+        seg(m, ST + .05, sd * (XR_TRK + 3.2), XR_Y + 5.22, .16, .16, steel, 15);          // 雨棚下的縱梁
       }
     }
     if (s && Math.round((m - s.a) / ST) % 4 === 0) for (const sd of [-1, 1]) {           // 雨棚的柱子與燈
@@ -75,7 +82,7 @@ if (XR) {
   const colAt = (a, x, z, y0, legs) => {
     const top = XR_Y - 2.3, [, , hx, hz] = R.at(a), ry = Math.atan2(-hz, hx);
     if (y0 === 0 && inLake(x, z)) y0 = LAKE_Y;   // 天樞島的水道裡：從水底立起
-    for (const l of legs) { const [px, pz] = R.at(a, l); k.cyl(px, (y0 + top) / 2, pz, .5, .58, top - y0, 14, con, 2); circles.push({ x: px, z: pz, r: .6, w: 1 }); }   // 橋面上的也擋車（比中央護欄寬）
+    for (const l of legs) { const [px, pz] = R.at(a, l); k.cyl(px, (y0 + top) / 2, pz, .5, .58, top - y0, 14, con, 20); circles.push({ x: px, z: pz, r: .6, w: 1 }); }   // 橋面上的也擋車（比中央護欄寬）
     k.box(x, top - .3, z, 1.6, 1, legs.length > 1 ? 10.4 : 6.2, con2, 2, 0, ry);
     cols.push(a);
   };
@@ -121,7 +128,7 @@ if (XR) {
     const [x, z, hx, hz] = R.at(a); k.box(x, XR_Y + 3.2, z, .28, 6.4, .28, steel, 15).box(x, XR_Y + 6.1, z, .16, .16, 5.6, steel, 15, 0, Math.atan2(-hz, hx));
   }
   for (const sd of [-1, 1]) for (let a = A0; a < A1; a += 26) seg(a + 13, 26.1, sd * XR_TRK, XR_Y + 5.7, .03, .03, 0x2a2c30, 15);   // 架空線
-  cityAdd(new T.Mesh(k.build(), MAT.uber), null);
+  cityAdd(new T.Mesh(k.build(), MAT.ux), null);
   // 站：雨棚的燈、站名牌（畫布：深灰底、白字、下面一行英文）
   for (const s of R.sts) {
     for (const sd of [-1, 1]) for (const d of [-40, 0, 40]) { const [x, z] = R.at(s.a + d, sd * (XR_TRK + 3)); signLights.push({ x, y: XR_Y + 4.8, z, col: lin(0xfff0d8), r: 24, i: 4, w: 1 }); }

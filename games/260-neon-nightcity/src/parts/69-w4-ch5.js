@@ -109,11 +109,24 @@ function towerSite() {
   return { x, y: 49, z, gx, gz };
 }
 function siteMesh(p) {
-  const k = new Kit(), ORG = 0xd8762a;
-  k.box(0, 1.3, 0, 2.5, 2.6, 6, ORG, 2).box(0, 2.66, 0, 2.6, .12, 6.1, 0x8a4a1c, 2);
-  for (const sx of [-1, 1]) k.box(sx * 1.27, 1.6, 0, .05, 1, 3.6, 0xffd9a0, 16);   // 兩面的窗：入夜亮著燈（霍爾的人在裡面輪班）
+  // 去玩具感（2026-11-02）：原本是一個橘色方塊。浪板壁面（每 0.3 m 一道凸肋，MAT.ux 21 塗漆的鐵：掉漆、鏽）、四角柱與上下框、門、
+  // 有框與防盜條的窗、冷氣、門口一階鐵踏階
+  const k = new Kit(), ORG = 0xd8762a, DK = 0x8a4a1c;
+  k.box(0, 1.3, 0, 2.4, 2.5, 5.9, ORG, 21).box(0, 2.66, 0, 2.6, .12, 6.1, DK, 21);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(sx * 1.22, 1.3, sz * 2.97, .16, 2.6, .16, DK, 21);   // 角柱
+  for (const y of [.08, 2.52]) for (const sx of [-1, 1]) k.box(sx * 1.22, y, 0, .14, .16, 5.8, DK, 21);   // 上下框
+  for (const sx of [-1, 1]) for (let z = -2.7; z <= 2.71; z += .3) if (Math.abs(z) > 1.85 || sx < 0) k.box(sx * 1.215, 1.3, z, .03, 2.28, .12, ORG, 21);   // 浪板的凸肋（東面的窗那一段空著）
+  for (const sz of [-1, 1]) for (let x = -1.05; x <= 1.06; x += .3) k.box(x, 1.3, sz * 2.965, .12, 2.28, .03, ORG, 21);
+  for (const sx of [-1, 1]) {
+    k.box(sx * 1.24, 1.6, 0, .04, 1, 3.6, 0xffd9a0, 16);   // 兩面的窗：入夜亮著燈（霍爾的人在裡面輪班）
+    k.box(sx * 1.26, 2.13, 0, .06, .08, 3.72, 0x2a2c30, 21).box(sx * 1.26, 1.07, 0, .1, .08, 3.8, 0x2a2c30, 21);
+    for (let z = -1.8; z <= 1.81; z += .3) k.box(sx * 1.28, 1.6, z, .03, 1, .03, 0x3a3c40, 22);   // 防盜條
+  }
+  k.box(-.4, 1.1, 3.0, .9, 2.05, .06, 0x6a3a18, 21).box(-.05, 1.05, 3.04, .04, .14, .04, 0xb8bcc0, 3);   // 門與門把
+  k.box(-.4, .1, 3.3, 1, .04, .5, 0x4a4c50, 22).box(-.4, .05, 3.3, .9, .1, .44, 0x2a2b2e, 22);   // 門口的鐵踏階（貨櫃屋直接坐在樓板上）
+  k.box(.6, 2.0, 3.1, .7, .45, .3, 0xd8d4c8, 34).cyl(.6, 2.0, 3.26, .16, .16, .02, 14, 0x2a2b2e, 21, Math.PI / 2, 0, 0);   // 冷氣
   for (const sz of [-1, 1]) k.box(0, 2.85, sz * 2.7, .3, .26, .3, 0xffa818, 9);   // 屋頂兩角的黃色警示燈
-  const m = new T.Mesh(k.build(), MAT.uber); m.position.set(p.x, p.y, p.z); m.rotation.y = frameYaw(p.x, p.z); scene.add(m);
+  const m = new T.Mesh(k.build(), MAT.ux); m.position.set(p.x, p.y, p.z); m.rotation.y = frameYaw(p.x, p.z); scene.add(m);
   return m;
 }
 // 世界座標一點的街區方向（工地辦公室的長邊順著大樓的西牆）

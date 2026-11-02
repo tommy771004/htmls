@@ -16,7 +16,8 @@ export default {
     const main_ =  Fn( () => {
 
     	const glPos_ = vec4( 0.0 ).toVar();
-    	const m = modelMatrix.mul( instanceMatrix ).toVar();
+    	// position（positionLocal）已經乘過實例矩陣（three 的 InstanceNode）；原本這裡再乘一次沒宣告的 instanceMatrix，整個材質編不起來、海報畫成替代色
+    	const m = modelMatrix.toVar();
     	const w = m.mul( vec4( position, 1. ) ).toVar();
     	vW.assign( w.xyz );
     	vN.assign( normalize( mat3( m ).mul( normal ) ) );

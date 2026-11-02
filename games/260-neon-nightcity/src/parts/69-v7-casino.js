@@ -163,7 +163,7 @@ const casWheel = new T.Group(), casPod = new T.Group();
   k.cyl(CS_POD.x, .1, CS_POD.z, 2.05, 2.15, .2, 40, 0x1a1418, 15);
   cas.circles.push({ x: CS_POD.x, z: CS_POD.z, r: 2.15 });
   cas.lights.push({ x: CS_POD.x, y: 4.4, z: CS_POD.z, col: lin(0xffffff), r: 6, i: 1.4 }, { x: 0, y: 4, z: 24, col: lin(0xffc860), r: 6, i: 1.1 });
-  casScene.add(new T.Mesh(k.build(), MAT.uber));
+  casScene.add(new T.Mesh(k.uxify({ floor: 40 }).build(), MAT.ux));   // 去玩具感：素色換程式紋理（07-kitx.js 的 uxify）
   // 幸運轉盤：20 格、每格 18°，指針在正上方；第 0 格是頭獎跑車（天花板 5.1 m，縮成半徑 1.6 m）
   const kw = new Kit(), cols = [0xd8b048, 0x8a1424, 0x1a4a8a, 0x2a2a2a, 0x8a1424, 0x1a6a3a, 0x8a1424, 0x2a2a2a, 0x1a4a8a, 0x8a1424, 0x1a6a3a, 0x2a2a2a, 0x8a1424, 0x1a4a8a, 0x2a2a2a, 0x8a1424, 0x1a6a3a, 0x2a2a2a, 0x8a1424, 0x1a4a8a];
   for (let i = 0; i < WHEEL_N; i++) { const a = i / WHEEL_N * Math.PI * 2; kw.add(new T.CylinderGeometry(2.4, 2.4, .12, 3, 1, false, a - Math.PI / WHEEL_N, Math.PI * 2 / WHEEL_N), cols[i], i ? 2 : 8, tf(0, 0, 0)); }
@@ -251,7 +251,7 @@ const casBGate = [], casBPile = [];
   // 主金庫：牆、6 道柵門與後面的貨
   wall(-10.4, -10, 28.2, 43); wall(10, 10.4, 28.2, 43);
   for (let x = -9.6; x <= 9.6; x += 1.6) k.box(x, 2.2, 42.9, .06, 4.4, .1, 0x8a8e92, 15);
-  casBScene.add(new T.Mesh(k.build(), MAT.uber));
+  casBScene.add(new T.Mesh(k.uxify({ floor: 33, wall: 20 }).build(), MAT.ux));
   // 會開的門都是繞鉸鏈轉的門板（piv 是鉸鏈，ang 是全開的角度）：關著擋門口（b），開著的門板也擋路（ob）
   // 以 http(s) 開啟時換成 casino.glb 的模型（at：模型在鉸鏈座標裡的位置），程式建模是替身
   const swing = (id, hx, hz, ang, kv, model, at, b, ob) => {

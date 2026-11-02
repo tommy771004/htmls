@@ -4,11 +4,11 @@ export default {
 "{\"INST_EXTRA\":\"\"}": {
   h: "apv8u3cms", fog: true, lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
-  varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
+  varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"},{"name":"vLp","type":"vec3","src":"vLp"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"},{"name":"aIns","type":"vec4","src":"aIns"}],
   vertex: (TSL, E) => {
     const { vec4, mat3, normalize, Fn } = TSL;
-    const { uM, vW, vN, vCol, vMat, vIns, color, aMat, aIns, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T } = E;
+    const { uM, vW, vN, vCol, vMat, vIns, vLp, color, aMat, aIns, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T } = E;
 
 
 
@@ -24,6 +24,7 @@ export default {
     	vCol.assign( color );
     	vMat.assign( aMat );
     	vIns.assign( aIns );
+    	vLp.assign( pGeom_ );
     	glPos_.assign( projectionMatrix.mul( viewMatrix ).mul( w ) );
 
     	return glPos_;
@@ -34,7 +35,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, int, vec3, array, float, add, sin, abs, select, mix, reflect, pow, Fn } = TSL;
-    const { uM, vW, vN, vCol, vMat, vIns, color, aMat, aIns, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, vW, vN, vCol, vMat, vIns, vLp, color, aMat, aIns, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
 
 
 
@@ -167,6 +168,24 @@ export default {
 
     	} );
 
+    	// 去玩具感（2026-11-02）：低模只有頂點色，整台一個顏色看起來像塑膠玩具。照車身座標（車頭 +z、地面 y = 0）加上
+    	// 下半截的路面髒污（每台車髒的程度不同，輪拱、裙邊最髒）、朝下的面當成遮蔽變暗、車頂與引擎蓋一層薄灰與水痕（車漆變粗一點）；
+    	// 每台車的車漆一半是金屬漆（較粗、帶一點金屬感）。燈、玻璃、輪胎不受影響
+    	const body = select( m.equal( 0 ).or( m.equal( 2 ) ).or( m.equal( 10 ) ).or( m.equal( 15 ) ), 1., 0. ).toVar();
+    	const dirtK = add( .25, mul( .75, fract( vIns.y.mul( 37.1 ) ) ) ).toVar();
+    	const nz = fract( sin( dot( vLp.mul( vec3( 7.3, 11.1, 5.7 ) ).floor(), vec3( 12.9898, 78.233, 37.719 ) ) ).mul( 43758.5453 ) ).toVar();
+    	const low = sub( 1., smoothstep( .1, .62, vLp.y.add( nz.mul( .06 ) ) ) ).mul( dirtK ).mul( body ).toVar();
+    	alb.assign( mix( alb, alb.mul( .5 ).add( vec3( .03, .026, .02 ) ), low.mul( .7 ) ) );
+    	rough.assign( mix( rough, .75, low.mul( .8 ) ) );
+    	envK.mulAssign( sub( 1., low.mul( .6 ) ) );
+    	const occ = mix( 1., .42, smoothstep( .05, -.65, n.y ) ).mul( mix( 1., .7, sub( 1., smoothstep( .02, .3, vLp.y ) ) ) ).toVar();
+    	alb.mulAssign( mix( 1., occ, step( float( m ), 3.5 ).add( body ).min( 1. ) ) );
+    	const top = smoothstep( .7, .95, n.y ).mul( body ).mul( dirtK ).toVar();
+    	rough.assign( mix( rough, rough.add( .22 ), top.mul( add( .4, mul( .6, nz ) ) ) ) );
+    	alb.assign( mix( alb, alb.add( vec3( .02, .019, .017 ) ), top.mul( .5 ) ) );
+    	const metPaint = step( .5, fract( vIns.y.mul( 91.7 ) ) ).mul( select( m.equal( 0 ), 1., 0. ) ).toVar();
+    	rough.assign( mix( rough, rough.add( .1 ), metPaint ) );
+    	metal.assign( mix( metal, .35, metPaint ) );
     	alb.assign( mix( alb, vec3( .025, .022, .02 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
