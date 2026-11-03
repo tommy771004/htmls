@@ -73,7 +73,7 @@ STEP.shake = {
 };
 // 有人坐上車（npc 的身體收起來，到了再放回旁邊）
 STEP.pick = {
-  step: (a, s) => { const q = a.npc[s.who]; if (!q) return true; if (player.mode === 'drive' && Math.hypot(q.x - pX(), q.z - pZ()) < 9 && Math.hypot(player.veh.vx, player.veh.vz) < 3) { delete a.npc[s.who]; toast(`${castName(s.who)}上車了`); return true; } return false; },
+  step: (a, s) => { const q = a.npc[s.who]; if (!q) return true; if (player.mode === 'drive' && Math.hypot(q.x - pX(), q.z - pZ()) < 9 && Math.hypot(player.veh.vx, player.veh.vz) < 3) { delete a.npc[s.who]; gtaApi.door.pax({ id: s.who, look: castLook(CAST_IDS.indexOf(s.who), s.who), act: a }); toast(`${castName(s.who)}上車了`); return true; } return false; },
   hud: (a, s) => ({ text: player.mode === 'drive' ? s.text : '先上車', bar: -1 }),
   mark: (a, s) => { const q = a.npc[s.who]; return q ? { name: castName(s.who), x: q.x, y: 2.2, z: q.z, where: 'out' } : null; },
   skip: (a, s) => { delete a.npc[s.who]; },

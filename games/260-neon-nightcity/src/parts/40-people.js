@@ -957,9 +957,32 @@ function driveByArm(p, bike) {
   _hgf.set(x, y, z).normalize(); _hgx.set(_hgf.z, 0, -_hgf.x).normalize(); _hgu.crossVectors(_hgf, _hgx).normalize();
   p.bones.upperarm_r.getWorldPosition(_hgs); p.bones.upperarm_l.getWorldPosition(_hgT);
   gripAt(p, 'r', _hgo.copy(_hgs).addScaledVector(_hgf, .5 * m2b).addScaledVector(_v2.set(0, 1, 0), .08 * m2b), HAND.grip, _v1.set(-1, -1.1, -.3), 1, m2b);
-  if (bike) return;
+  if (bike || p.wheel) return;   // 量過方向盤的實車：左手由 wheelArms 握在真的方向盤上
   _hgf.set(0, .4, 1).normalize(); _hgx.set(1, 0, 0); _hgu.crossVectors(_hgf, _hgx).normalize();
   gripAt(p, 'l', _hgo.copy(_hgT).addScaledVector(_v2.set(-.14, -.3, .36), m2b), HAND.gripL, _v1.set(.5, -1.2, 0), 1, m2b);
+}
+// 雙手握方向盤（68-xdoor.js 的 seatShow 每幀設 p.wheel：角色空間的中心 c、朝駕駛的轉軸 n、外緣半徑 r、轉角 a、權重 k）：
+// 左手 10 點半、右手 1 點半（離正上方 ±50°），掌心從外側包住輪圈；雙手黏在輪圈上跟著轉、不換手（a 是 26-glb.js 的 SW_TURN × 前輪角，左轉為正，最多約 41°）；上身前傾 WHEEL_LEAN，肩膀靠近方向盤；
+// 車內射擊時只留左手（leftOnly）。p.noHead：車內視角把頭縮掉（68-xdoor.js 的 seatShow），鏡頭在頭裡也看得到自己的手
+const _wc = V3(), _wn = V3(), _wu = V3(), _wx = V3(), _wt = V3(), _wM = new T.Matrix4();
+const WHEEL_LEAN = .03;   // 開車動畫的上身往後靠；握方向盤時腰扶正（接近直立），肩膀往前約 8 cm
+function wheelArms(p, leftOnly) {
+  if (!p.sm) return;
+  aim(p, 'spine_01', 0, 1, WHEEL_LEAN, p.wheel.k);   // 絕對方向（不要疊在上一幀的姿勢上）
+  const W = p.wheel, m2b = 1 / (p.m2b ||= V3().setFromMatrixScale(p.sm.matrix).x), rr = W.r - .018;
+  _wM.copy(p.sm.matrix).invert();
+  _wn.set(W.n[0], W.n[1], W.n[2]).normalize();
+  _wx.set(1, 0, 0).addScaledVector(_wn, -_wn.x).normalize(); _wu.crossVectors(_wx, _wn).normalize();   // 方向盤面上的左（+x）與上
+  for (const side of leftOnly ? ['l'] : ['l', 'r']) {
+    const th = (side === 'l' ? .87 : -.87) + W.a, c = Math.cos(th), sn = Math.sin(th);   // 0 是正上方、往左為正
+    // 握點（角色空間 → 綁定空間：除掉人的縮放、再乘 sm 的反矩陣）
+    _wc.set(W.c[0], W.c[1], W.c[2]).addScaledVector(_wu, c * rr).addScaledVector(_wx, sn * rr).divide(p.sv).applyMatrix4(_wM);
+    // 手的座標：u 沿著輪圈往上的切線、f 往前（轉軸反方向）、x = u × f
+    _wt.copy(_wu).multiplyScalar(-sn).addScaledVector(_wx, c);   // θ 增加的方向
+    if (side === 'l') _wt.negate();
+    _hgu.copy(_wt).normalize(); _hgf.copy(_wn).negate().addScaledVector(_hgu, _wn.dot(_hgu)).normalize(); _hgx.crossVectors(_hgu, _hgf).normalize();
+    gripAt(p, side, _wc, side === 'l' ? HAND.gripL : HAND.grip, _v1.set(side === 'l' ? .6 : -.6, -1.2, -.1), W.k, m2b);
+  }
 }
 const sst = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const frac = x => x - Math.floor(x);
@@ -1139,6 +1162,8 @@ const OVR = {
   // 車內射擊：腿往前伸平（收在儀表板下，免得腳從車底露出來）
   [ANIM.driveBy]: p => {
     aim(p, 'thigh_l', .05, -.12, 1); aim(p, 'thigh_r', -.05, -.12, 1); aim(p, 'calf_l', 0, -.25, 1); aim(p, 'calf_r', 0, -.25, 1);
+    if (p.pax) { aim(p, 'upperarm_l', .16, -1, .3); aim(p, 'upperarm_r', -.16, -1, .3); aim(p, 'lowerarm_l', -.3, -.32, 1); aim(p, 'lowerarm_r', .3, -.32, 1); return; }   // 68-xdoor.js 的副駕乘客：雙手放腿上
+    if (p.wheel) wheelArms(p, !!p.dbDir);
     if (p.dbDir) driveByArm(p);
   },
   [ANIM.danceB]: (p, t, b) => {
@@ -1454,6 +1479,7 @@ function poseOne(p, t, b) {
   shoeDo(p, !PEOPLE.seat[n1]);
   const f = OVR[id];
   if (f && (!mix2 || w2 < .5)) f(p, t * sp + ph, b + bo);
+  if (p.isMe) { const hs = p.noHead ? .001 : 1; if (p.bones.Head.scale.x !== hs) p.bones.Head.scale.setScalar(hs); }
   // 蛙式：swK 讓下水、停下來踩水時慢慢趴下去、立起來（隔幀才擺的人用實際經過的時間）
   const bk = id === ANIM.breast ? 1 : 0;
   if (bk || p.swK > .01) { p.swK = (p.swK || 0) + (bk - (p.swK || 0)) * (1 - Math.exp(-5 * clamp(t - (p.swT ?? t), 0, .1))); breastPose(p, t * sp + ph, p.swK); }

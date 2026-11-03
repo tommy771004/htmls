@@ -341,16 +341,16 @@ function kinLungeStep(dt) {
   me.place(0, player.x, player.y, player.z, player.yaw);
   if (L.t <= 0 || player.mode !== 'walk' || player.down > 0) { kin.last = { d0: L.d0, d1: d }; kin.lunge = null; }
 }
-// 劫車與跳車：駕駛座那側（車身左側）貼著牆或設施就改走副駕側；回傳 1（左）或 −1（右）
-function kinDoorSide(v) {
-  for (const s of [1, -1]) {
+// 劫車與跳車：駕駛座那側（車身左側；first = −1 是右駕車的右側）貼著牆或設施就改走副駕側；回傳 1（左）或 −1（右）
+function kinDoorSide(v, first = 1) {
+  for (const s of [first, -first]) {
     const lx = Math.cos(v.yaw) * s, lz = -Math.sin(v.yaw) * s;
     colY = v.y || 0;
     const h = collideCircle(v.x + lx * (v.w / 2 + .55), v.z + lz * (v.w / 2 + .55), .3, false).hit;
     colY = 0;
-    if (!h) { if (s < 0) kin.door++; return s; }
+    if (!h) { if (s !== first) kin.door++; return s; }
   }
-  return 1;
+  return first;
 }
 
 // ─── 跳車：F 在時速 15 以上（99-main.js），車繼續滑；人往車門那側滾出去，落地扣 (v − 6)·1.3 ───

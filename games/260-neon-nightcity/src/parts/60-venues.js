@@ -539,7 +539,7 @@ function contextAction() {
     const v = p.veh;
     const rs = resprayCtx(v); if (rs) return rs;   // 通緝中：CHROME WORKS 噴漆消星（69-crew.js）
     const cw = chromeCtx(v); if (cw) return cw;   // 自己的車停在門口：開進 CHROME WORKS 改裝（66-chrome.js）
-    return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: v.boat ? '下船' : '下車', fn: exitVehicle } : null;
+    return Math.hypot(v.vx, v.vz) < 4 ? { key: 'F', text: v.boat ? '下船' : '下車', fn: () => doorExit() } : null;
   }
   if (p.where === 'out') {
     // 門和 Marlo 只差一步：放行之後門優先，之前 Marlo 優先
@@ -547,7 +547,7 @@ function contextAction() {
     if (near(BOUNCER.x, BOUNCER.z, 2.4)) return { key: 'E', text: '跟 Marlo 說話', fn: talkMarlo };
     if (near(CLUB_X, CLUB_Z + .6, 1.6)) return questIn() ? { key: 'E', text: '進入 LAZARUS', fn: () => enterVenue('club') } : { key: 'E', text: '門鎖著 <i>· 先跟門口的人談</i>', fn: () => toast('Marlo 擋在門前') };
     if (near(BAR_X - 4.6, BAR_Z + .6, 1.6)) return { key: 'E', text: '進入 AFTERGLOW', fn: () => enterVenue('bar') };
-    for (const v of vehicles) if (!v.dead && (v.boat || Math.abs(p.y - (v.y || 0)) < 2.5) && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `${v.boat ? '上船' : '上車'} <i>· ${v.name}</i>`, fn: () => enterVehicle(v) };
+    for (const v of vehicles) if (!v.dead && (v.boat || Math.abs(p.y - (v.y || 0)) < 2.5) && Math.hypot(p.x - v.x, p.z - v.z) < (v.boat ? 6.5 : v.isCar ? 3.2 : 2.2)) return { key: 'F', text: `${v.boat ? '上船' : '上車'} <i>· ${v.name}</i>`, fn: () => doorEnter(v) };   // 68-xdoor.js：有門的實車先開門再坐進去
   } else if (p.where === 'bar') {
     if (near(BAR_EXIT.x, BAR_EXIT.z, 1.5)) return { key: 'E', text: '回到街上', fn: exitVenue };
     if (near(JUNO.x, JUNO.z, 1.8)) return { key: 'E', text: '跟 Juno 說話', fn: talkJuno };
@@ -578,7 +578,7 @@ function toggleDance() {
 function enterVehicle(v) {
   player.jump = null; player.mode = 'drive'; player.veh = v; v.lights = v.flood ? 0 : 1;
   me.mesh.visible = v.isCar ? false : true;
-  sfx.doorCar(v.isCar); if (!vdIdleTake(v) && !v.flood) sfx.engineOn(v);   // 68-vdetail.js：長按 F 下車沒熄火的車回來不用重新發動；泡水的車發不動
+  if (!DOOR.quiet) sfx.doorCar(v.isCar); if (!vdIdleTake(v) && !v.flood) sfx.engineOn(v);   // DOOR.quiet：68-xdoor.js 的開門過場，關門時才響   // 68-vdetail.js：長按 F 下車沒熄火的車回來不用重新發動；泡水的車發不動
   camState.snap = false;
 }
 function exitVehicle(keep, idle) {   // keep：留著車速（69-kinema.js 的跳車）；idle：長按 F，引擎不熄（68-vdetail.js）
@@ -590,7 +590,7 @@ function exitVehicle(keep, idle) {   // keep：留著車速（69-kinema.js 的�
   player.x = x; player.z = z; player.y = v.y; player.yaw = v.yaw; player.mode = 'walk'; player.veh = null; player.v = 0;   // y：在快速道路橋面上下車就站在橋面
   v.lights = 0; if (!keep) v.vx = v.vz = 0; v.brakeOn = 0; v.steer = 0;
   me.mesh.visible = true;
-  sfx.doorCar(v.isCar);
+  if (!DOOR.quiet) sfx.doorCar(v.isCar);
   if (idle) vdIdleLeave(v); else sfx.engineOff();
 }
 let toastT = 0;

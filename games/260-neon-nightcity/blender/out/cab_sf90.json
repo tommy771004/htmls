@@ -1,0 +1,14 @@
+{
+ "pal": {
+  "gauge": {
+   "col": "#ffffff",
+   "r": 0.3,
+   "tex": "atlas_sf90",
+   "emi": 0.5
+  },
+  "gloss_blk": {
+   "col": "#0a0a0c",
+   "r": 0.1
+  }
+ }
+}

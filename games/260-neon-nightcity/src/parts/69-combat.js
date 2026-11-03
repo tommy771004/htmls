@@ -235,7 +235,7 @@ const _dbm = new T.Matrix4(), _dbq = new T.Quaternion(), _dbe = new T.Euler(), _
 function driveByPlace(v) {
   const p = me.people[0];
   p.dbDir = null;
-  if (!driveByOn()) { if (v.isCar) me.mesh.visible = false; return; }
+  if (!driveByOn()) { if (v.isCar) seatShow(v); return; }   // 68-xdoor.js：有門（有內裝）的實車畫出坐著的駕駛，其他照舊藏起來
   camera.getWorldDirection(_ad);
   const c = Math.cos(v.yaw), sn = Math.sin(v.yaw);
   p.dbDir = [_ad.x * c - _ad.z * sn, _ad.y, _ad.x * sn + _ad.z * c];   // 世界 → 角色空間（面向車頭）

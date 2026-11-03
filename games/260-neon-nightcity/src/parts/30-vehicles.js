@@ -663,6 +663,7 @@ function poseVehicle(v) {
     else if (w.rake) { const r = w.rake * Math.PI / 180; w.piv.quaternion.setFromAxisAngle(_rake.set(0, Math.cos(r), -Math.sin(r)), v.steer * .6); w.w.rotation.x = v.spin; }   // 實車機車：前輪連同前叉、車把繞後傾的轉向軸轉
     else { w.piv.rotation.set(0, w.front ? v.steer * .6 : 0, 0); w.w.rotation.x = v.spin; }
   }
+  if (v.inst && v.inst.sw) v.inst.sw.piv.quaternion.setFromAxisAngle(v.inst.sw.n, v.steer * SW_TURN);   // 實車的方向盤（26-glb.js 的 glbSteer）
   v.mat.uniforms.uM.value.set(v.lights * lerp(.3, 1, atm.lamp), v.brakeOn || 0, 1, v.burn || 0);   // 白天大燈暗一點（28-sky.js）
   if (v.ins) { v.ins.array[0] = v.brakeOn || 0; v.ins.needsUpdate = true; }   // 搶來的車流車（68-gta.js）：煞車燈在 aIns
 }

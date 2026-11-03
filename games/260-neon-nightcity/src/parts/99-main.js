@@ -38,7 +38,10 @@ function onKey(code) {
   if ($('map').classList.contains('on')) return;
   if (gtaKey(code)) return;
   if (code === 'KeyH') $('help').classList.toggle('on');
-  if (code === 'KeyC') { SET.camFar = camState.far = (camState.far + 1) % 3; setSave(); }   // 和 Esc 選單的「預設鏡頭距離」同一個值
+  if (code === 'KeyC') {   // 開車時多一段車內視角（68-xdoor.js 的 fpCam）：標準 → 遠 → 近 → 車內 → 標準
+    if (player.mode === 'drive' && player.veh.isCar && !player.veh.fly && (camState.fp || camState.far === 2)) { camState.fp = !camState.fp; if (!camState.fp) { SET.camFar = camState.far = 0; setSave(); } toast(camState.fp ? '車內視角' : '車外視角'); }
+    else { SET.camFar = camState.far = (camState.far + 1) % 3; setSave(); }
+  }   // 和 Esc 選單的「預設鏡頭距離」同一個值
   if (code === 'Digit1') teleport('club');
   if (code === 'Digit2') teleport('clubIn');
   if (code === 'Digit3') teleport('barIn');
@@ -47,7 +50,7 @@ function onKey(code) {
   if (code === 'Digit6') teleport('home');
   if (fading) return;
   const ctx = contextAction();
-  if (code === 'KeyF') {
+  if (code === 'KeyF' && !DOOR.seq) {   // 68-xdoor.js：開門過場中不接 F
     if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < KIN.jump) vdKeyF(); else if (!jumpOut(player.veh)) toast('先把車速降下來'); }   // jumpOut：69-kinema.js 的跳車；69-gunship.js：直升機在半空或屋頂上不能下
     else if (ctx && ctx.key === 'F') ctx.fn();
   }
@@ -162,6 +165,8 @@ function rayBox(ox, oz, dx, dz, b, pad = 0) {
 function updateCamera(dt, spd) {
   const p = player, inV = p.mode === 'drive';
   camState.idle += dt;
+  if (inV && camState.fp && fpCam(dt, spd)) return;   // 68-xdoor.js：車內視角
+  fpNear();
   let tx, ty, tz, dist;
   if (inV) {
     const v = p.veh;
