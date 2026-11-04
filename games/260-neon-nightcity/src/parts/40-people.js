@@ -1965,7 +1965,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
   const fy = player.where === 'out' ? walkY(x, z, player.y, deckAt(x, z, player.y) ?? seaFloor(x, z)) : VENUES[player.where].floorAt ? VENUES[player.where].floorAt(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板；戶外是步行面（20-walk.js）、快速道路橋面或地面
   if (J) jumpStep(J, fy, depth, dt);
-  else player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
+  else player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 + rigWave(player.x, player.z, uTimeNow()) - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合
   const sp = player.v;
   let a = player.swim ? (sp > .25 ? ANIM.breast : ANIM.swimIdle) : J ? ANIM.jump : sp > 3 ? ANIM.sprint : sp > .25 ? ANIM.walk : player.vig || (player.dance ? DANCES[player.dance - 1] : ANIM.idle);

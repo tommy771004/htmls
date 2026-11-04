@@ -41,6 +41,7 @@
 - three r186 的 `new Color(hex)` 已經是線性值，不要再 `convertSRGBToLinear()`。
 - `m-uber.mjs` 的材質編號鏈裡有範圍分支（12–14 是亮窗），新增編號前先找 `greaterThanEqual`／`lessThanEqual`，不要只看有沒有同號的 `equal`。
 - 霧只在遠處淡出。`uFogDen` 不要調小，剔除是照它算的。夜裡的環境反射一律用 `envMapS(r, 1)`，不要傳 0。
+- `MAT.ux`（`m-uberX.mjs`）的程式紋理用幾何自己的座標：`cityAdd` 烘成世界座標、離原點幾千公尺的網格，雜訊會失真成一片平色。遠處的物件把幾何留在局部座標、用網格的 position／rotation 擺過去（`21-rig.js`）。
 - 招牌字圖集是 2048×3072（`20-props.js` 的 `ATLAS_H`），新增格子前先算會不會超出。
 
 ## 載入、車、人

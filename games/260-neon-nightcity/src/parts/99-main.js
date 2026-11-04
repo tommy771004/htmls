@@ -257,6 +257,7 @@ function pickLights(t) {
     dynLights.push(...policeLights(t));   // 警車閃燈、直升機探照燈（69-police.js）
     dynLights.push(...railLights());   // 北嶺鐵道橋的列車頭燈（21-rail.js）
     dynLights.push(...xrLights());     // 港灣高架線的列車頭燈（21-xrail.js）
+    dynLights.push(...rigLights(), ...beastLights());    // 海上鑽油平台的火炬與拖船的探照燈（21-rig.js）、海獸喉部的光（21-rigbeast.js）
     dynLights.push(...villaLights());  // 山坡別墅入夜後的房間燈（69-villa.js）
     // 爆炸、起火與槍口閃光（68-gta.js），亮度隨時間衰減
     for (const l of fxLights.slice(-3)) dynLights.push({ x: l.x, y: l.y, z: l.z, col: l.col, r: l.r, i: l.i * (1 - l.life / l.max) });
@@ -295,6 +296,7 @@ function step(dt) {
     if (HILL_TRAF.on) HILL_TRAF.update(dt);   // 41-hill.js：山路上的車流、散步的人
     holo.rotation.y = t * .35;
     coastUpdate(t, dt);
+    rigUpdate(dt); beastUpdate(dt);    // 海上鑽油平台的火炬、拖船、探照燈（21-rig.js）；海獸（21-rigbeast.js）
     railUpdate(dt);   // 北嶺鐵道橋的列車（21-rail.js）
     tronUpdate(dt);   // 光格島的近景、車流與光速機車（21-tron.js）
     airUpdate(dt);    // 灰鷺角國際機場的客機起降與模型下載（21-air.js）
@@ -456,6 +458,7 @@ window.__nc = {
   // 截圖用：相機固定在世界座標 (px, py, pz) 看向 (tx, ty, tz)；camAt() 還原
   camAt(...o) { camState.over = o.length ? o : null; },
   // 程式立面的細模（09-mass.js、10-city.js 的 facLod）：stats 看建了幾個街區、幾個三角形；sync 依目前鏡頭位置一次建完
+  rig: { beast: { B: BEAST, T: BEAST_T, go: beastGo, stop: beastStop, seek: beastSeek, load: beastLoad, hold(v = true) { BEAST.hold = v; }, st: () => ({ ready: !!BEAST.mesh, fail: BEAST.fail, on: BEAST.on, t: +BEAST.t.toFixed(2), y: +BEAST.y.toFixed(1), x: +BEAST.x.toFixed(1), z: +BEAST.z.toFixed(1), glow: +BEAST.glow.toFixed(2), next: +BEAST.next.toFixed(1), lights: beastLights().length }) }, RIG, wave: rigWave, W: rigW, leg: rigLeg, R0: RIG_R0, R1: RIG_R1, st: () => ({ near: RIG.near, sea: RIG.sea.visible, flare: +RIG.flare.toFixed(2), tug: [RIG.tug.x, RIG.tug.y, RIG.tug.z].map(v => +v.toFixed(1)), lights: rigLights().length }) },   // 21-rig.js：海上鑽油平台（RIG.cx／cz 是世界座標的中心，W(局部 x, z) 換成世界）
   kit: KIT_N,   // 00-core.js：Kit.box 的方塊數與其中自動倒角的數量
   tex: () => ({ fac: facTex.st, vil: vilTex.st }),   // 照片材質的下載狀態（08-tex.js：0 還沒開始、1 下載中、2 好了、-1 失敗）
   forest: (x, z) => x !== undefined ? HILL_FOREST.probe(x, z) : ({ ...HILL_FOREST.n, karst: KARST.length, k: KARST.slice(0, 8).map(t => [t.x | 0, t.y | 0, t.z | 0, +t.s.toFixed(1)]), fmap: FM.builds }),   // 外緣山林（10-city.js）、石柱峰（21-coast.js）、山林樹冠圖重畫次數（22-hmap.js）

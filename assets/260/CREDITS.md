@@ -426,6 +426,14 @@ Sketchfab 的三個模型（原檔在 gitignore 的 `games/260-neon-nightcity/.c
 | `isle/whitehall.glb` | [Whitehall Building](https://sketchfab.com/3d-models/whitehall-building-d0db0e12b3484594a1c9eb35186b7c0f) | novusod | CC-BY-4.0 |
 | `isle/ferry.glb` | [Star Ferry](https://sketchfab.com/3d-models/star-ferry-7b0f363137e94d688db63da2b4e0b376) | chrisw225 | CC-BY-4.0 |
 
+## 海上鑽油平台的海獸（`beast/`）
+
+外海鑽油平台旁不定時浮出的海獸，經 `games/260-neon-nightcity/tools/beast-glb.mjs` 處理（攤平、轉成頭朝 +z、縮放到 60 m 高、依部位寫入頭／下顎／手／腳的骨頭權重 `_BONE`、貼圖縮成 2048 的 WebP）後放在 `beast/`，屬於原作的衍生作品，沿用原作授權。原作是作者自己設計的角色，與任何電影或遊戲的怪獸無關。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `beast/turtle_kaiju.glb` | [Turtle Kaiju](https://sketchfab.com/3d-models/turtle-kaiju-f8fbbd4a2f05416288e4f7836ec61a11) | MightyPinecone（Mighty.Pinecone） | CC-BY-4.0 |
+
 ## 武器、警方載具與路障（第二階段）
 
 `tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 的消防栓換掉人行道的程式建模消防栓，電箱擺在人行道、加油機擺在遊艇碼頭岸上（只在 http(s) 下），加油機貼圖上的品牌字樣與貼紙模糊成色塊（`texEdit`）。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。

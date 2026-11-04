@@ -276,7 +276,7 @@ export default {
     		metal.assign( mix( .45, .05, rust ) );
     		envK.assign( mul( .28, sub( 1., rust ) ) );
 
-    	} ).ElseIf( m.equal( 22 ), () => {
+    	} ).ElseIf( m.equal( 22 ).or( m.equal( 63 ) ), () => {
 
     		const sp = h21( floor( uv.mul( 16. ) ) ).toVar(), d = fbm3( p.mul( 1.3 ).add( 3. ) ).toVar();
     		alb.mulAssign( add( .84, mul( .3, sp ).mul( kxAA( uv.mul( 16. ) ) ) ).mul( add( .78, mul( .36, d ) ) ) );
@@ -659,7 +659,7 @@ export default {
     		envK.assign( 1. );
     		emi.assign( tint.mul( on ).mul( lit ).mul( uLampOn ).mul( add( .2, mul( .18, h21( id.add( 8.3 ) ) ) ) ) );
 
-    	} ).ElseIf( m.equal( 55 ), () => {
+    	} ).ElseIf( m.equal( 55 ).or( m.equal( 62 ) ), () => {
 
     		// 波浪鋼板（機庫外牆、空橋的裙板；blender/airbld.py）：0.2 m 一道的梯形肋（受光的斜面亮、背光的斜面暗、溝底一條陰影），
     		// 1.2 m 一片的色差、片與片的搭接縫、往下的雨痕與牆腳的髒污、零星的鏽點
@@ -746,11 +746,109 @@ export default {
     		rough.assign( mix( .42, .9, max( max( chip, rust ), mud ) ) );
     		envK.assign( mul( .25, sub( 1., max( rust, mud ) ) ) );
 
+    	} ).ElseIf( m.equal( 59 ), () => {
+
+    		// 海上平台的塗漆鋼（21-rig.js）：環氧面漆的半光、細橘皮；掉漆、鏽、鹽、焊縫在後面的做舊（59–63 共用）
+    		alb.mulAssign( add( .95, mul( .1, n3( p.mul( 9. ) ) ).mul( kxAA( uv.mul( 9. ) ) ) ) );
+    		rough.assign( .5 );
+    		metal.assign( .08 );
+    		envK.assign( .2 );
+
+    	} ).ElseIf( m.equal( 60 ), () => {
+
+    		// 導管架與浪花帶（21-rig.js；p 是世界座標，海面 y −1.6，浪頂到 +3）：水線附近一圈海藻、藤壺、貽貝，濕滑
+    		rough.assign( .55 );
+    		metal.assign( .08 );
+    		envK.assign( .15 );
+    		const wl = add( .6, fbm3( p.mul( .55 ) ).mul( 1.8 ) ).toVar();
+    		const gr = sub( 1., smoothstep( wl.sub( .9 ), wl, p.y ) ).toVar();
+    		const alg = mix( vec3( .03, .045, .028 ), vec3( .075, .09, .035 ), fbm3( p.mul( 3.1 ) ) ).toVar();
+    		const mus = smoothstep( .52, .66, fbm3( p.mul( 4.3 ).add( 6. ) ) ).mul( sub( 1., smoothstep( wl.sub( 1.6 ), wl.sub( .5 ), p.y ) ) ).toVar();
+    		const bq = uv.mul( 5.5 ).toVar(), bi = floor( bq ).toVar(), bf = fract( bq ).sub( .5 ).toVar(), bh = h21( bi.add( 2.3 ) ).toVar();
+    		const bo = vec2( h21( bi.add( 7.1 ) ), h21( bi.add( 3.9 ) ) ).sub( .5 ).mul( .3 ).toVar(), bd = length( bf.sub( bo ) ).toVar(), br = mix( .2, .34, bh ).toVar();
+    		const barn = sub( 1., smoothstep( br.mul( .7 ), br, bd ) ).mul( step( .35, bh ) ).mul( kxAA( bq ) ).toVar();
+    		const bcol = vec3( .46, .45, .41 ).mul( add( .55, mul( .45, smoothstep( br.mul( .15 ), br.mul( .45 ), bd ) ) ) ).toVar();
+    		alb.assign( mix( alb, alg, gr.mul( .92 ) ) );
+    		alb.assign( mix( alb, vec3( .018, .022, .03 ), mus.mul( .9 ) ) );
+    		alb.assign( mix( alb, bcol, barn.mul( gr ).mul( sub( 1., mus ) ).mul( .85 ) ) );
+    		rough.assign( mix( rough, mix( .32, .7, barn ), gr ) );
+    		envK.assign( mix( envK, .3, gr.mul( sub( 1., barn ) ) ) );
+
+    	} ).ElseIf( m.equal( 61 ), () => {
+
+    		// 甲板鋼板（21-rig.js）：頂面是防滑花紋板（3.2 cm 一格、斜向交錯的凸條）、2.4×1.2 m 的板縫、走出來的磨亮路徑、油漬、下雨時的積水；側面當一般鋼板
+    		rough.assign( .62 );
+    		metal.assign( .3 );
+    		envK.assign( .18 );
+    		If( up.greaterThan( .5 ), () => {
+
+    			const q = p.xz.div( .032 ).toVar(), qi = floor( q ).toVar(), qf = fract( q ).sub( .5 ).toVar();
+    			const dg = select( mod( qi.x.add( qi.y ), 2. ).lessThan( .5 ), qf.x.add( qf.y ), qf.x.sub( qf.y ) ).toVar();
+    			const tread = sub( 1., smoothstep( .07, .16, abs( dg ) ) ).mul( sub( 1., smoothstep( .3, .44, max( abs( qf.x ), abs( qf.y ) ) ) ) ).mul( kxAA( q ) ).toVar();
+    			alb.mulAssign( add( .86, mul( .3, tread ) ) );
+    			const ps = p.xz.div( vec2( 2.4, 1.2 ) ).toVar(), pd = min( abs( fract( ps.x.add( .5 ) ).sub( .5 ) ).mul( 2.4 ), abs( fract( ps.y.add( .5 ) ).sub( .5 ) ).mul( 1.2 ) ).toVar();
+    			const seam = sub( 1., smoothstep( .008, .025, pd ) ).mul( kxAA( p.xz.mul( 6. ) ) ).toVar();
+    			alb.mulAssign( add( .92, mul( .16, h21( floor( ps ).add( sd ) ) ) ).mul( sub( 1., mul( .5, seam ) ) ) );
+    			const wear = smoothstep( .52, .7, fbm3( vec3( p.x.mul( .22 ), 1.7, p.z.mul( .22 ) ) ) ).mul( add( .6, mul( .4, n3( p.mul( 3. ) ) ) ) ).toVar();
+    			alb.assign( mix( alb, vec3( .3, .29, .28 ).mul( add( .85, mul( .3, tread ) ) ), wear.mul( .75 ) ) );
+    			metal.assign( mix( metal, .75, wear ) );
+    			rough.assign( mix( rough, .34, wear ) );
+    			const oil = smoothstep( .64, .74, fbm3( vec3( p.x.mul( .8 ), 4.1, p.z.mul( .8 ) ) ).mul( .7 ).add( n3( p.mul( 2.3 ) ).mul( .3 ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .6, oil ) ) );
+    			rough.assign( mix( rough, .22, oil ) );
+    			envK.assign( mix( envK, .4, oil ) );
+    			const pud = smoothstep( .5, .62, fbm3( vec3( p.x.mul( .35 ), 9.3, p.z.mul( .35 ) ) ) ).mul( smoothstep( .1, .6, uWet ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .3, pud ) ) );
+    			rough.assign( mix( rough, .06, pud ) );
+    			envK.assign( mix( envK, .85, pud ) );
+
+    		} );
+
     	} ).Else( () => {
 
     		alb.assign( mix( alb, vec3( .075, .072, .068 ), mul( .3, fbm3( p.mul( 4. ) ) ).add( mul( .25, up ) ) ) );
     		alb.mulAssign( add( .88, mul( .2, n2( uv.mul( 60. ) ) ).mul( kxAA( uv.mul( 60. ) ) ) ) );
     		rough.assign( .78 );
+
+    	} );
+
+    	// 海上平台的做舊（59–63，21-rig.js；p 是世界座標）：大片褪色與白化、補漆的色塊、每 2.5 m 的橫焊縫與 3 m 的直焊縫、
+    	// 焊縫往下流的鏽水、鏽斑與鏽暈、掉漆露出紅丹底漆、底面與浪花帶的鹽霜、頂面的油污、浪花帶的濕暗
+    	If( m.greaterThanEqual( 59 ).and( m.lessThanEqual( 63 ) ), () => {
+
+    		const sz = sub( 1., smoothstep( 1.5, 11., p.y ) ).toVar(), dn = sub( 1., smoothstep( -0.85, -0.4, n.y ) ).toVar();
+    		const aw = sub( 1., smoothstep( .02, .08, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar();
+    		alb.mulAssign( add( .8, mul( .34, fbm3( p.mul( .31 ).add( 4. ) ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .78 ).add( vec3( .06, .06, .055 ) ), up.mul( .4 ) ) );
+		alb.assign( mix( alb, alb.mul( .6 ).add( vec3( .035, .03, .025 ) ), add( .2, mul( .34, fbm3( p.mul( .5 ).add( 2. ) ) ) ) ) );
+		const gs = kxStreak( p, uv, 1.6 ).mul( vert ).toVar();
+		alb.assign( mix( alb, alb.mul( vec3( .5, .46, .42 ) ), gs.mul( .5 ) ) );
+    		const rp = vec2( uv.x, p.y ).add( vec2( fbm3( p.mul( .8 ) ), fbm3( p.mul( .8 ).add( 5. ) ) ).sub( .5 ).mul( 1.4 ) ).toVar();
+    		const ri = floor( rp.div( vec2( 1.9, 1.3 ) ) ).toVar();
+    		const pm = step( .82, h21( ri.add( sd.mul( 3.1 ) ).add( 1.7 ) ) ).mul( vert ).toVar();
+    		alb.assign( mix( alb, alb.mul( mix( vec3( 1.12, 1.07, .95 ), vec3( .84, .88, .92 ), h21( ri.add( 9.1 ) ) ) ), pm.mul( .85 ) ) );
+    		const sy = fract( p.y.div( 2.5 ) ).toVar(), dy = abs( sy.sub( .5 ) ).mul( -2.5 ).add( 1.25 ).toVar(), dx = abs( fract( uv.x.div( 3. ).add( .5 ) ).sub( .5 ) ).mul( 3. ).toVar();
+    		const weld = sub( 1., smoothstep( .012, .035, min( dy, dx ) ) ).mul( vert ).mul( aw ).toVar();
+    		alb.mulAssign( sub( 1., mul( .35, weld ) ) );
+    		const db = sub( 1., sy ).mul( 2.5 ).toVar(), lane = floor( p.y.div( 2.5 ) ).toVar();
+    		const col = smoothstep( .5, .82, fbm( vec2( uv.x.mul( 2.7 ).add( lane.mul( 3.7 ) ), p.y.mul( .07 ) ) ) ).mul( add( .55, mul( .45, n2( vec2( uv.x.mul( 19. ), p.y.mul( 1.3 ) ) ) ) ) ).toVar();
+    		const run = col.mul( exp( db.mul( mix( 1.6, .45, h21( vec2( floor( uv.x.mul( 1.3 ) ), lane ) ) ) ).negate() ) ).mul( vert ).toVar();
+    		const strk = clamp( run.mul( 1.9 ).add( kxStreak( p, uv, 3.2 ).mul( .45 ) ).add( sz.mul( vert ).mul( .25 ).mul( fbm( vec2( uv.x.mul( 5. ), p.y.mul( .4 ) ) ) ) ), 0., 1. ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .6, .36, .21 ) ).add( vec3( .03, .011, .0 ) ), strk.mul( .8 ) ) );
+    		const r = fbm3( p.mul( 1.7 ).add( 3. ) ).mul( .78 ).add( mul( .22, n3( p.mul( 13. ) ) ) ).add( weld.mul( .3 ) ).add( sz.mul( .3 ) ).add( dn.mul( .03 ) ).sub( up.mul( .08 ) ).toVar();
+    		const rust = smoothstep( .7, .8, r ).toVar(), halo = smoothstep( .58, .7, r ).sub( rust ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .74, .58, .44 ) ), halo.mul( .75 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .15, .065, .028 ), vec3( .3, .13, .05 ), n3( p.mul( 29. ) ) ), rust.mul( .92 ) ) );
+    		const chip = step( .78, n3( p.mul( 23. ) ).mul( .6 ).add( n3( p.mul( 57. ).add( 2. ) ).mul( .4 ) ).add( sz.mul( .08 ) ) ).mul( aw ).mul( sub( 1., rust ) ).mul( sub( 1., up.mul( .8 ) ) ).mul( sub( 1., dn.mul( .6 ) ) ).toVar();
+    		alb.assign( mix( alb, mix( vec3( .3, .11, .065 ), vec3( .34, .33, .31 ), step( .5, n3( p.mul( 7. ) ) ) ), chip.mul( .85 ) ) );
+    		const salt = smoothstep( .5, .78, fbm3( p.mul( 2.4 ).add( 1. ) ) ).mul( clamp( dn.mul( .7 ).add( sz.mul( .8 ) ), 0., 1. ) ).toVar();
+    		alb.assign( mix( alb, vec3( .55, .56, .53 ), salt.mul( .45 ) ) );
+    		const grime = up.mul( smoothstep( .42, .72, fbm3( p.mul( 1.3 ).add( 8. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .055, .05, .045 ), grime.mul( .45 ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, sz ).mul( add( .4, mul( .6, smoothstep( .5, .9, fbm( vec2( uv.x.mul( .8 ), p.y.mul( .9 ) ) ) ) ) ) ) ) );
+    		rough.assign( mix( mix( rough, .93, max( rust, mul( .6, salt ) ) ), .3, sz.mul( .5 ).mul( sub( 1., rust ) ) ) );
+    		metal.mulAssign( sub( 1., rust ) );
+    		envK.mulAssign( sub( 1., rust ).mul( sub( 1., mul( .5, salt ) ) ) );
 
     	} );
 
@@ -1220,7 +1318,7 @@ export default {
     		metal.assign( mix( .45, .05, rust ) );
     		envK.assign( mul( .28, sub( 1., rust ) ) );
 
-    	} ).ElseIf( m.equal( 22 ), () => {
+    	} ).ElseIf( m.equal( 22 ).or( m.equal( 63 ) ), () => {
 
     		const sp = h21( floor( uv.mul( 16. ) ) ).toVar(), d = fbm3( p.mul( 1.3 ).add( 3. ) ).toVar();
     		alb.mulAssign( add( .84, mul( .3, sp ).mul( kxAA( uv.mul( 16. ) ) ) ).mul( add( .78, mul( .36, d ) ) ) );
@@ -1603,7 +1701,7 @@ export default {
     		envK.assign( 1. );
     		emi.assign( tint.mul( on ).mul( lit ).mul( uLampOn ).mul( add( .2, mul( .18, h21( id.add( 8.3 ) ) ) ) ) );
 
-    	} ).ElseIf( m.equal( 55 ), () => {
+    	} ).ElseIf( m.equal( 55 ).or( m.equal( 62 ) ), () => {
 
     		// 波浪鋼板（機庫外牆、空橋的裙板；blender/airbld.py）：0.2 m 一道的梯形肋（受光的斜面亮、背光的斜面暗、溝底一條陰影），
     		// 1.2 m 一片的色差、片與片的搭接縫、往下的雨痕與牆腳的髒污、零星的鏽點
@@ -1690,11 +1788,109 @@ export default {
     		rough.assign( mix( .42, .9, max( max( chip, rust ), mud ) ) );
     		envK.assign( mul( .25, sub( 1., max( rust, mud ) ) ) );
 
+    	} ).ElseIf( m.equal( 59 ), () => {
+
+    		// 海上平台的塗漆鋼（21-rig.js）：環氧面漆的半光、細橘皮；掉漆、鏽、鹽、焊縫在後面的做舊（59–63 共用）
+    		alb.mulAssign( add( .95, mul( .1, n3( p.mul( 9. ) ) ).mul( kxAA( uv.mul( 9. ) ) ) ) );
+    		rough.assign( .5 );
+    		metal.assign( .08 );
+    		envK.assign( .2 );
+
+    	} ).ElseIf( m.equal( 60 ), () => {
+
+    		// 導管架與浪花帶（21-rig.js；p 是世界座標，海面 y −1.6，浪頂到 +3）：水線附近一圈海藻、藤壺、貽貝，濕滑
+    		rough.assign( .55 );
+    		metal.assign( .08 );
+    		envK.assign( .15 );
+    		const wl = add( .6, fbm3( p.mul( .55 ) ).mul( 1.8 ) ).toVar();
+    		const gr = sub( 1., smoothstep( wl.sub( .9 ), wl, p.y ) ).toVar();
+    		const alg = mix( vec3( .03, .045, .028 ), vec3( .075, .09, .035 ), fbm3( p.mul( 3.1 ) ) ).toVar();
+    		const mus = smoothstep( .52, .66, fbm3( p.mul( 4.3 ).add( 6. ) ) ).mul( sub( 1., smoothstep( wl.sub( 1.6 ), wl.sub( .5 ), p.y ) ) ).toVar();
+    		const bq = uv.mul( 5.5 ).toVar(), bi = floor( bq ).toVar(), bf = fract( bq ).sub( .5 ).toVar(), bh = h21( bi.add( 2.3 ) ).toVar();
+    		const bo = vec2( h21( bi.add( 7.1 ) ), h21( bi.add( 3.9 ) ) ).sub( .5 ).mul( .3 ).toVar(), bd = length( bf.sub( bo ) ).toVar(), br = mix( .2, .34, bh ).toVar();
+    		const barn = sub( 1., smoothstep( br.mul( .7 ), br, bd ) ).mul( step( .35, bh ) ).mul( kxAA( bq ) ).toVar();
+    		const bcol = vec3( .46, .45, .41 ).mul( add( .55, mul( .45, smoothstep( br.mul( .15 ), br.mul( .45 ), bd ) ) ) ).toVar();
+    		alb.assign( mix( alb, alg, gr.mul( .92 ) ) );
+    		alb.assign( mix( alb, vec3( .018, .022, .03 ), mus.mul( .9 ) ) );
+    		alb.assign( mix( alb, bcol, barn.mul( gr ).mul( sub( 1., mus ) ).mul( .85 ) ) );
+    		rough.assign( mix( rough, mix( .32, .7, barn ), gr ) );
+    		envK.assign( mix( envK, .3, gr.mul( sub( 1., barn ) ) ) );
+
+    	} ).ElseIf( m.equal( 61 ), () => {
+
+    		// 甲板鋼板（21-rig.js）：頂面是防滑花紋板（3.2 cm 一格、斜向交錯的凸條）、2.4×1.2 m 的板縫、走出來的磨亮路徑、油漬、下雨時的積水；側面當一般鋼板
+    		rough.assign( .62 );
+    		metal.assign( .3 );
+    		envK.assign( .18 );
+    		If( up.greaterThan( .5 ), () => {
+
+    			const q = p.xz.div( .032 ).toVar(), qi = floor( q ).toVar(), qf = fract( q ).sub( .5 ).toVar();
+    			const dg = select( mod( qi.x.add( qi.y ), 2. ).lessThan( .5 ), qf.x.add( qf.y ), qf.x.sub( qf.y ) ).toVar();
+    			const tread = sub( 1., smoothstep( .07, .16, abs( dg ) ) ).mul( sub( 1., smoothstep( .3, .44, max( abs( qf.x ), abs( qf.y ) ) ) ) ).mul( kxAA( q ) ).toVar();
+    			alb.mulAssign( add( .86, mul( .3, tread ) ) );
+    			const ps = p.xz.div( vec2( 2.4, 1.2 ) ).toVar(), pd = min( abs( fract( ps.x.add( .5 ) ).sub( .5 ) ).mul( 2.4 ), abs( fract( ps.y.add( .5 ) ).sub( .5 ) ).mul( 1.2 ) ).toVar();
+    			const seam = sub( 1., smoothstep( .008, .025, pd ) ).mul( kxAA( p.xz.mul( 6. ) ) ).toVar();
+    			alb.mulAssign( add( .92, mul( .16, h21( floor( ps ).add( sd ) ) ) ).mul( sub( 1., mul( .5, seam ) ) ) );
+    			const wear = smoothstep( .52, .7, fbm3( vec3( p.x.mul( .22 ), 1.7, p.z.mul( .22 ) ) ) ).mul( add( .6, mul( .4, n3( p.mul( 3. ) ) ) ) ).toVar();
+    			alb.assign( mix( alb, vec3( .3, .29, .28 ).mul( add( .85, mul( .3, tread ) ) ), wear.mul( .75 ) ) );
+    			metal.assign( mix( metal, .75, wear ) );
+    			rough.assign( mix( rough, .34, wear ) );
+    			const oil = smoothstep( .64, .74, fbm3( vec3( p.x.mul( .8 ), 4.1, p.z.mul( .8 ) ) ).mul( .7 ).add( n3( p.mul( 2.3 ) ).mul( .3 ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .6, oil ) ) );
+    			rough.assign( mix( rough, .22, oil ) );
+    			envK.assign( mix( envK, .4, oil ) );
+    			const pud = smoothstep( .5, .62, fbm3( vec3( p.x.mul( .35 ), 9.3, p.z.mul( .35 ) ) ) ).mul( smoothstep( .1, .6, uWet ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .3, pud ) ) );
+    			rough.assign( mix( rough, .06, pud ) );
+    			envK.assign( mix( envK, .85, pud ) );
+
+    		} );
+
     	} ).Else( () => {
 
     		alb.assign( mix( alb, vec3( .075, .072, .068 ), mul( .3, fbm3( p.mul( 4. ) ) ).add( mul( .25, up ) ) ) );
     		alb.mulAssign( add( .88, mul( .2, n2( uv.mul( 60. ) ) ).mul( kxAA( uv.mul( 60. ) ) ) ) );
     		rough.assign( .78 );
+
+    	} );
+
+    	// 海上平台的做舊（59–63，21-rig.js；p 是世界座標）：大片褪色與白化、補漆的色塊、每 2.5 m 的橫焊縫與 3 m 的直焊縫、
+    	// 焊縫往下流的鏽水、鏽斑與鏽暈、掉漆露出紅丹底漆、底面與浪花帶的鹽霜、頂面的油污、浪花帶的濕暗
+    	If( m.greaterThanEqual( 59 ).and( m.lessThanEqual( 63 ) ), () => {
+
+    		const sz = sub( 1., smoothstep( 1.5, 11., p.y ) ).toVar(), dn = sub( 1., smoothstep( -0.85, -0.4, n.y ) ).toVar();
+    		const aw = sub( 1., smoothstep( .02, .08, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar();
+    		alb.mulAssign( add( .8, mul( .34, fbm3( p.mul( .31 ).add( 4. ) ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .78 ).add( vec3( .06, .06, .055 ) ), up.mul( .4 ) ) );
+		alb.assign( mix( alb, alb.mul( .6 ).add( vec3( .035, .03, .025 ) ), add( .2, mul( .34, fbm3( p.mul( .5 ).add( 2. ) ) ) ) ) );
+		const gs = kxStreak( p, uv, 1.6 ).mul( vert ).toVar();
+		alb.assign( mix( alb, alb.mul( vec3( .5, .46, .42 ) ), gs.mul( .5 ) ) );
+    		const rp = vec2( uv.x, p.y ).add( vec2( fbm3( p.mul( .8 ) ), fbm3( p.mul( .8 ).add( 5. ) ) ).sub( .5 ).mul( 1.4 ) ).toVar();
+    		const ri = floor( rp.div( vec2( 1.9, 1.3 ) ) ).toVar();
+    		const pm = step( .82, h21( ri.add( sd.mul( 3.1 ) ).add( 1.7 ) ) ).mul( vert ).toVar();
+    		alb.assign( mix( alb, alb.mul( mix( vec3( 1.12, 1.07, .95 ), vec3( .84, .88, .92 ), h21( ri.add( 9.1 ) ) ) ), pm.mul( .85 ) ) );
+    		const sy = fract( p.y.div( 2.5 ) ).toVar(), dy = abs( sy.sub( .5 ) ).mul( -2.5 ).add( 1.25 ).toVar(), dx = abs( fract( uv.x.div( 3. ).add( .5 ) ).sub( .5 ) ).mul( 3. ).toVar();
+    		const weld = sub( 1., smoothstep( .012, .035, min( dy, dx ) ) ).mul( vert ).mul( aw ).toVar();
+    		alb.mulAssign( sub( 1., mul( .35, weld ) ) );
+    		const db = sub( 1., sy ).mul( 2.5 ).toVar(), lane = floor( p.y.div( 2.5 ) ).toVar();
+    		const col = smoothstep( .5, .82, fbm( vec2( uv.x.mul( 2.7 ).add( lane.mul( 3.7 ) ), p.y.mul( .07 ) ) ) ).mul( add( .55, mul( .45, n2( vec2( uv.x.mul( 19. ), p.y.mul( 1.3 ) ) ) ) ) ).toVar();
+    		const run = col.mul( exp( db.mul( mix( 1.6, .45, h21( vec2( floor( uv.x.mul( 1.3 ) ), lane ) ) ) ).negate() ) ).mul( vert ).toVar();
+    		const strk = clamp( run.mul( 1.9 ).add( kxStreak( p, uv, 3.2 ).mul( .45 ) ).add( sz.mul( vert ).mul( .25 ).mul( fbm( vec2( uv.x.mul( 5. ), p.y.mul( .4 ) ) ) ) ), 0., 1. ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .6, .36, .21 ) ).add( vec3( .03, .011, .0 ) ), strk.mul( .8 ) ) );
+    		const r = fbm3( p.mul( 1.7 ).add( 3. ) ).mul( .78 ).add( mul( .22, n3( p.mul( 13. ) ) ) ).add( weld.mul( .3 ) ).add( sz.mul( .3 ) ).add( dn.mul( .03 ) ).sub( up.mul( .08 ) ).toVar();
+    		const rust = smoothstep( .7, .8, r ).toVar(), halo = smoothstep( .58, .7, r ).sub( rust ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .74, .58, .44 ) ), halo.mul( .75 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .15, .065, .028 ), vec3( .3, .13, .05 ), n3( p.mul( 29. ) ) ), rust.mul( .92 ) ) );
+    		const chip = step( .78, n3( p.mul( 23. ) ).mul( .6 ).add( n3( p.mul( 57. ).add( 2. ) ).mul( .4 ) ).add( sz.mul( .08 ) ) ).mul( aw ).mul( sub( 1., rust ) ).mul( sub( 1., up.mul( .8 ) ) ).mul( sub( 1., dn.mul( .6 ) ) ).toVar();
+    		alb.assign( mix( alb, mix( vec3( .3, .11, .065 ), vec3( .34, .33, .31 ), step( .5, n3( p.mul( 7. ) ) ) ), chip.mul( .85 ) ) );
+    		const salt = smoothstep( .5, .78, fbm3( p.mul( 2.4 ).add( 1. ) ) ).mul( clamp( dn.mul( .7 ).add( sz.mul( .8 ) ), 0., 1. ) ).toVar();
+    		alb.assign( mix( alb, vec3( .55, .56, .53 ), salt.mul( .45 ) ) );
+    		const grime = up.mul( smoothstep( .42, .72, fbm3( p.mul( 1.3 ).add( 8. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .055, .05, .045 ), grime.mul( .45 ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, sz ).mul( add( .4, mul( .6, smoothstep( .5, .9, fbm( vec2( uv.x.mul( .8 ), p.y.mul( .9 ) ) ) ) ) ) ) ) );
+    		rough.assign( mix( mix( rough, .93, max( rust, mul( .6, salt ) ) ), .3, sz.mul( .5 ).mul( sub( 1., rust ) ) ) );
+    		metal.mulAssign( sub( 1., rust ) );
+    		envK.mulAssign( sub( 1., rust ).mul( sub( 1., mul( .5, salt ) ) ) );
 
     	} );
 
@@ -2159,7 +2355,7 @@ export default {
     		metal.assign( mix( .45, .05, rust ) );
     		envK.assign( mul( .28, sub( 1., rust ) ) );
 
-    	} ).ElseIf( m.equal( 22 ), () => {
+    	} ).ElseIf( m.equal( 22 ).or( m.equal( 63 ) ), () => {
 
     		const sp = h21( floor( uv.mul( 16. ) ) ).toVar(), d = fbm3( p.mul( 1.3 ).add( 3. ) ).toVar();
     		alb.mulAssign( add( .84, mul( .3, sp ).mul( kxAA( uv.mul( 16. ) ) ) ).mul( add( .78, mul( .36, d ) ) ) );
@@ -2542,7 +2738,7 @@ export default {
     		envK.assign( 1. );
     		emi.assign( tint.mul( on ).mul( lit ).mul( uLampOn ).mul( add( .2, mul( .18, h21( id.add( 8.3 ) ) ) ) ) );
 
-    	} ).ElseIf( m.equal( 55 ), () => {
+    	} ).ElseIf( m.equal( 55 ).or( m.equal( 62 ) ), () => {
 
     		// 波浪鋼板（機庫外牆、空橋的裙板；blender/airbld.py）：0.2 m 一道的梯形肋（受光的斜面亮、背光的斜面暗、溝底一條陰影），
     		// 1.2 m 一片的色差、片與片的搭接縫、往下的雨痕與牆腳的髒污、零星的鏽點
@@ -2629,11 +2825,109 @@ export default {
     		rough.assign( mix( .42, .9, max( max( chip, rust ), mud ) ) );
     		envK.assign( mul( .25, sub( 1., max( rust, mud ) ) ) );
 
+    	} ).ElseIf( m.equal( 59 ), () => {
+
+    		// 海上平台的塗漆鋼（21-rig.js）：環氧面漆的半光、細橘皮；掉漆、鏽、鹽、焊縫在後面的做舊（59–63 共用）
+    		alb.mulAssign( add( .95, mul( .1, n3( p.mul( 9. ) ) ).mul( kxAA( uv.mul( 9. ) ) ) ) );
+    		rough.assign( .5 );
+    		metal.assign( .08 );
+    		envK.assign( .2 );
+
+    	} ).ElseIf( m.equal( 60 ), () => {
+
+    		// 導管架與浪花帶（21-rig.js；p 是世界座標，海面 y −1.6，浪頂到 +3）：水線附近一圈海藻、藤壺、貽貝，濕滑
+    		rough.assign( .55 );
+    		metal.assign( .08 );
+    		envK.assign( .15 );
+    		const wl = add( .6, fbm3( p.mul( .55 ) ).mul( 1.8 ) ).toVar();
+    		const gr = sub( 1., smoothstep( wl.sub( .9 ), wl, p.y ) ).toVar();
+    		const alg = mix( vec3( .03, .045, .028 ), vec3( .075, .09, .035 ), fbm3( p.mul( 3.1 ) ) ).toVar();
+    		const mus = smoothstep( .52, .66, fbm3( p.mul( 4.3 ).add( 6. ) ) ).mul( sub( 1., smoothstep( wl.sub( 1.6 ), wl.sub( .5 ), p.y ) ) ).toVar();
+    		const bq = uv.mul( 5.5 ).toVar(), bi = floor( bq ).toVar(), bf = fract( bq ).sub( .5 ).toVar(), bh = h21( bi.add( 2.3 ) ).toVar();
+    		const bo = vec2( h21( bi.add( 7.1 ) ), h21( bi.add( 3.9 ) ) ).sub( .5 ).mul( .3 ).toVar(), bd = length( bf.sub( bo ) ).toVar(), br = mix( .2, .34, bh ).toVar();
+    		const barn = sub( 1., smoothstep( br.mul( .7 ), br, bd ) ).mul( step( .35, bh ) ).mul( kxAA( bq ) ).toVar();
+    		const bcol = vec3( .46, .45, .41 ).mul( add( .55, mul( .45, smoothstep( br.mul( .15 ), br.mul( .45 ), bd ) ) ) ).toVar();
+    		alb.assign( mix( alb, alg, gr.mul( .92 ) ) );
+    		alb.assign( mix( alb, vec3( .018, .022, .03 ), mus.mul( .9 ) ) );
+    		alb.assign( mix( alb, bcol, barn.mul( gr ).mul( sub( 1., mus ) ).mul( .85 ) ) );
+    		rough.assign( mix( rough, mix( .32, .7, barn ), gr ) );
+    		envK.assign( mix( envK, .3, gr.mul( sub( 1., barn ) ) ) );
+
+    	} ).ElseIf( m.equal( 61 ), () => {
+
+    		// 甲板鋼板（21-rig.js）：頂面是防滑花紋板（3.2 cm 一格、斜向交錯的凸條）、2.4×1.2 m 的板縫、走出來的磨亮路徑、油漬、下雨時的積水；側面當一般鋼板
+    		rough.assign( .62 );
+    		metal.assign( .3 );
+    		envK.assign( .18 );
+    		If( up.greaterThan( .5 ), () => {
+
+    			const q = p.xz.div( .032 ).toVar(), qi = floor( q ).toVar(), qf = fract( q ).sub( .5 ).toVar();
+    			const dg = select( mod( qi.x.add( qi.y ), 2. ).lessThan( .5 ), qf.x.add( qf.y ), qf.x.sub( qf.y ) ).toVar();
+    			const tread = sub( 1., smoothstep( .07, .16, abs( dg ) ) ).mul( sub( 1., smoothstep( .3, .44, max( abs( qf.x ), abs( qf.y ) ) ) ) ).mul( kxAA( q ) ).toVar();
+    			alb.mulAssign( add( .86, mul( .3, tread ) ) );
+    			const ps = p.xz.div( vec2( 2.4, 1.2 ) ).toVar(), pd = min( abs( fract( ps.x.add( .5 ) ).sub( .5 ) ).mul( 2.4 ), abs( fract( ps.y.add( .5 ) ).sub( .5 ) ).mul( 1.2 ) ).toVar();
+    			const seam = sub( 1., smoothstep( .008, .025, pd ) ).mul( kxAA( p.xz.mul( 6. ) ) ).toVar();
+    			alb.mulAssign( add( .92, mul( .16, h21( floor( ps ).add( sd ) ) ) ).mul( sub( 1., mul( .5, seam ) ) ) );
+    			const wear = smoothstep( .52, .7, fbm3( vec3( p.x.mul( .22 ), 1.7, p.z.mul( .22 ) ) ) ).mul( add( .6, mul( .4, n3( p.mul( 3. ) ) ) ) ).toVar();
+    			alb.assign( mix( alb, vec3( .3, .29, .28 ).mul( add( .85, mul( .3, tread ) ) ), wear.mul( .75 ) ) );
+    			metal.assign( mix( metal, .75, wear ) );
+    			rough.assign( mix( rough, .34, wear ) );
+    			const oil = smoothstep( .64, .74, fbm3( vec3( p.x.mul( .8 ), 4.1, p.z.mul( .8 ) ) ).mul( .7 ).add( n3( p.mul( 2.3 ) ).mul( .3 ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .6, oil ) ) );
+    			rough.assign( mix( rough, .22, oil ) );
+    			envK.assign( mix( envK, .4, oil ) );
+    			const pud = smoothstep( .5, .62, fbm3( vec3( p.x.mul( .35 ), 9.3, p.z.mul( .35 ) ) ) ).mul( smoothstep( .1, .6, uWet ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .3, pud ) ) );
+    			rough.assign( mix( rough, .06, pud ) );
+    			envK.assign( mix( envK, .85, pud ) );
+
+    		} );
+
     	} ).Else( () => {
 
     		alb.assign( mix( alb, vec3( .075, .072, .068 ), mul( .3, fbm3( p.mul( 4. ) ) ).add( mul( .25, up ) ) ) );
     		alb.mulAssign( add( .88, mul( .2, n2( uv.mul( 60. ) ) ).mul( kxAA( uv.mul( 60. ) ) ) ) );
     		rough.assign( .78 );
+
+    	} );
+
+    	// 海上平台的做舊（59–63，21-rig.js；p 是世界座標）：大片褪色與白化、補漆的色塊、每 2.5 m 的橫焊縫與 3 m 的直焊縫、
+    	// 焊縫往下流的鏽水、鏽斑與鏽暈、掉漆露出紅丹底漆、底面與浪花帶的鹽霜、頂面的油污、浪花帶的濕暗
+    	If( m.greaterThanEqual( 59 ).and( m.lessThanEqual( 63 ) ), () => {
+
+    		const sz = sub( 1., smoothstep( 1.5, 11., p.y ) ).toVar(), dn = sub( 1., smoothstep( -0.85, -0.4, n.y ) ).toVar();
+    		const aw = sub( 1., smoothstep( .02, .08, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar();
+    		alb.mulAssign( add( .8, mul( .34, fbm3( p.mul( .31 ).add( 4. ) ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .78 ).add( vec3( .06, .06, .055 ) ), up.mul( .4 ) ) );
+		alb.assign( mix( alb, alb.mul( .6 ).add( vec3( .035, .03, .025 ) ), add( .2, mul( .34, fbm3( p.mul( .5 ).add( 2. ) ) ) ) ) );
+		const gs = kxStreak( p, uv, 1.6 ).mul( vert ).toVar();
+		alb.assign( mix( alb, alb.mul( vec3( .5, .46, .42 ) ), gs.mul( .5 ) ) );
+    		const rp = vec2( uv.x, p.y ).add( vec2( fbm3( p.mul( .8 ) ), fbm3( p.mul( .8 ).add( 5. ) ) ).sub( .5 ).mul( 1.4 ) ).toVar();
+    		const ri = floor( rp.div( vec2( 1.9, 1.3 ) ) ).toVar();
+    		const pm = step( .82, h21( ri.add( sd.mul( 3.1 ) ).add( 1.7 ) ) ).mul( vert ).toVar();
+    		alb.assign( mix( alb, alb.mul( mix( vec3( 1.12, 1.07, .95 ), vec3( .84, .88, .92 ), h21( ri.add( 9.1 ) ) ) ), pm.mul( .85 ) ) );
+    		const sy = fract( p.y.div( 2.5 ) ).toVar(), dy = abs( sy.sub( .5 ) ).mul( -2.5 ).add( 1.25 ).toVar(), dx = abs( fract( uv.x.div( 3. ).add( .5 ) ).sub( .5 ) ).mul( 3. ).toVar();
+    		const weld = sub( 1., smoothstep( .012, .035, min( dy, dx ) ) ).mul( vert ).mul( aw ).toVar();
+    		alb.mulAssign( sub( 1., mul( .35, weld ) ) );
+    		const db = sub( 1., sy ).mul( 2.5 ).toVar(), lane = floor( p.y.div( 2.5 ) ).toVar();
+    		const col = smoothstep( .5, .82, fbm( vec2( uv.x.mul( 2.7 ).add( lane.mul( 3.7 ) ), p.y.mul( .07 ) ) ) ).mul( add( .55, mul( .45, n2( vec2( uv.x.mul( 19. ), p.y.mul( 1.3 ) ) ) ) ) ).toVar();
+    		const run = col.mul( exp( db.mul( mix( 1.6, .45, h21( vec2( floor( uv.x.mul( 1.3 ) ), lane ) ) ) ).negate() ) ).mul( vert ).toVar();
+    		const strk = clamp( run.mul( 1.9 ).add( kxStreak( p, uv, 3.2 ).mul( .45 ) ).add( sz.mul( vert ).mul( .25 ).mul( fbm( vec2( uv.x.mul( 5. ), p.y.mul( .4 ) ) ) ) ), 0., 1. ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .6, .36, .21 ) ).add( vec3( .03, .011, .0 ) ), strk.mul( .8 ) ) );
+    		const r = fbm3( p.mul( 1.7 ).add( 3. ) ).mul( .78 ).add( mul( .22, n3( p.mul( 13. ) ) ) ).add( weld.mul( .3 ) ).add( sz.mul( .3 ) ).add( dn.mul( .03 ) ).sub( up.mul( .08 ) ).toVar();
+    		const rust = smoothstep( .7, .8, r ).toVar(), halo = smoothstep( .58, .7, r ).sub( rust ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .74, .58, .44 ) ), halo.mul( .75 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .15, .065, .028 ), vec3( .3, .13, .05 ), n3( p.mul( 29. ) ) ), rust.mul( .92 ) ) );
+    		const chip = step( .78, n3( p.mul( 23. ) ).mul( .6 ).add( n3( p.mul( 57. ).add( 2. ) ).mul( .4 ) ).add( sz.mul( .08 ) ) ).mul( aw ).mul( sub( 1., rust ) ).mul( sub( 1., up.mul( .8 ) ) ).mul( sub( 1., dn.mul( .6 ) ) ).toVar();
+    		alb.assign( mix( alb, mix( vec3( .3, .11, .065 ), vec3( .34, .33, .31 ), step( .5, n3( p.mul( 7. ) ) ) ), chip.mul( .85 ) ) );
+    		const salt = smoothstep( .5, .78, fbm3( p.mul( 2.4 ).add( 1. ) ) ).mul( clamp( dn.mul( .7 ).add( sz.mul( .8 ) ), 0., 1. ) ).toVar();
+    		alb.assign( mix( alb, vec3( .55, .56, .53 ), salt.mul( .45 ) ) );
+    		const grime = up.mul( smoothstep( .42, .72, fbm3( p.mul( 1.3 ).add( 8. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .055, .05, .045 ), grime.mul( .45 ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, sz ).mul( add( .4, mul( .6, smoothstep( .5, .9, fbm( vec2( uv.x.mul( .8 ), p.y.mul( .9 ) ) ) ) ) ) ) ) );
+    		rough.assign( mix( mix( rough, .93, max( rust, mul( .6, salt ) ) ), .3, sz.mul( .5 ).mul( sub( 1., rust ) ) ) );
+    		metal.mulAssign( sub( 1., rust ) );
+    		envK.mulAssign( sub( 1., rust ).mul( sub( 1., mul( .5, salt ) ) ) );
 
     	} );
 

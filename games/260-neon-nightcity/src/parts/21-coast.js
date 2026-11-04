@@ -50,7 +50,7 @@ const SHD = (() => {
   return { tex, u: new T.Vector4(x0, z0, 1 / size, SHD_MAX) };
 })();
 const MAT_WATER = groundMat('water', { tTron: { value: null }, uTronA: { value: V3() }, uTronB: { value: V3() }, uTronG: { value: new T.Vector4(1e9, 1e9, 1, 1) },
-  tShore: { value: SHD.tex }, uShore: { value: SHD.u } }), MAT_PLANK = groundMat('plank');
+  tShore: { value: SHD.tex }, uShore: { value: SHD.u }, uRig: { value: new T.Vector4(0, 0, -1, -100) } }), MAT_PLANK = groundMat('plank');   // uRig：21-rig.js 的暴風海面那一圈挖掉
 {
   // 灰鷺河、南面的海、東面的海灣：一整張世界座標的水面（各區轉過、拉開之後，岸線與區之間的縫都還在水上；陸地蓋在上面）。
   // 最後才畫，被陸地擋住的部分不必算
