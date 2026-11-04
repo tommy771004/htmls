@@ -1,9 +1,10 @@
 // 材質的 TSL（原本由已刪除的 tools/gen-tsl.mjs 從 GLSL 轉出，現在是著色器的原始碼，直接改這裡）
 // 材質 "uberX"：鍵是 defines 的形狀（有值的寫成 *），h 是當初轉換時 GLSL 的雜湊（已不使用）
+import airInt from './air-int.mjs';
 export default {
 "{\"INST_EXTRA\":\"\",\"FAR\":\"*\",\"FARC\":\"\"}": {
   h: "1j751vlvta", fog: true, lib: "[[\"FAR\",\"*\"]]NL_T,NOCC_T,SH_N_T,VOL_N_T,FAR", libV: false, libF: true,
-  uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
+  uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAHMap","type":"sampler2D","src":"uAHMap"},{"name":"uAHM","type":"vec4","src":"uAHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vP","type":"vec3","src":"vP"},{"name":"vNo","type":"vec3","src":"vNo"},{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"},{"name":"aIns","type":"vec4","src":"aIns"}],
   vertex: (TSL, E) => {
@@ -41,6 +42,7 @@ export default {
 
 
 
+    const AI = airInt( TSL, E );
     const kxAA =  Fn( ( [ q ] ) => {
 
     	return sub( 1., smoothstep( .25, .7, max( fwidth( q.x ), fwidth( q.y ) ) ) );
@@ -208,6 +210,37 @@ export default {
 
     } );
 
+    // 帷幕玻璃上的雨（材質 53／54／56，航廈與空橋）：下雨時一條條往下流的水痕（18 cm 一欄，亂數決定有沒有水、寬度、彎曲與流速；水頭在下、往上拖淡），
+    // 玻璃濕的時候留著靜止的水珠。水底下的室內光壓暗一半，水珠下緣與水痕帶一點亮（像透鏡收到上方的光）。座標是玻璃面上的（水平切線 × 世界高度），
+    // 格子比像素小、60 m 外或面不是直立的時候淡掉
+    const glassRain = ( e, n ) => {
+    	const h1 = ( x ) => { const t = fract( x.mul( .1031 ) ).toVar(); t.mulAssign( t.add( 33.33 ) ); t.mulAssign( t.add( t ) ); return fract( t ); };
+    	const q = vW.xz.sub( uAirA.xy ).toVar();
+    	const u = dot( q, vec2( n.z, n.x.negate() ) ).toVar(), y = vW.y.toVar();
+    	const fw = max( fwidth( u ), fwidth( y ) ).toVar();
+    	const fade = sub( 1., smoothstep( .03, .09, fw ) ).mul( sub( 1., smoothstep( 35., 60., length( uCam.sub( vW ) ) ) ) ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	const cu = u.div( .18 ).toVar(), ci = floor( cu ).toVar(), cf = fract( cu ).sub( .5 ).toVar();
+    	const ha = h1( ci ).toVar(), hb = h1( ci.add( 71.3 ) ).toVar();
+    	const wig = sin( y.mul( 5.3 ).add( ha.mul( 40. ) ) ).mul( .14 ).add( sin( y.mul( 17. ).add( hb.mul( 20. ) ) ).mul( .05 ) ).toVar();
+    	const w = mix( .08, .22, hb ).toVar();
+    	const ln = smoothstep( w, w.mul( .35 ), abs( cf.sub( wig ) ) ).mul( step( .6, ha ) ).toVar();
+    	const s = fract( y.mul( mix( .12, .3, ha ) ).add( uTime.mul( mix( .15, .45, hb ) ) ).add( hb.mul( 9. ) ) ).toVar();
+    	const riv = ln.mul( smoothstep( 0., .03, s ) ).mul( mix( 1., .2, s ) ).mul( uRain ).mul( fade ).toVar();
+    	const g = vec2( u, y ).div( .09 ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).sub( .5 ).toVar();
+    	const hd = h1( gi.x.add( gi.y.mul( 157.1 ) ) ).toVar();
+    	const off = vec2( h1( hd.mul( 91.7 ) ), h1( hd.mul( 37.3 ) ) ).sub( .5 ).mul( .45 ).toVar();
+    	const rd = mix( .12, .3, h1( hd.mul( 13.1 ) ) ).toVar();
+    	const drop = smoothstep( rd, rd.mul( .6 ), length( gf.sub( off ) ) ).mul( step( .74, hd ) ).mul( smoothstep( .1, .5, uWet ) ).mul( fade ).toVar();
+    	const lens = drop.mul( smoothstep( .0, -.25, gf.y.sub( off.y ) ) ).add( riv.mul( .3 ) ).toVar();
+    	// 整片的水膜：低頻、慢慢往下流的起伏，讓後面的室內光一明一暗（遠處也看得到，不必反鋸齒）
+    	const film = sin( u.mul( 3.1 ).add( sin( y.mul( 1.7 ).add( uTime.mul( .8 ) ) ).mul( 1.5 ) ) ).mul( sin( y.mul( .9 ).add( uTime.mul( 1.2 ) ).add( u.mul( .7 ) ) ) ).mul( .14 ).mul( uRain ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	// 中距離的水簾：15 cm 一道、左右擺動的直條，亮暗沿著往下流（25 m 外還看得出是在下雨的玻璃）
+    	const sh = smoothstep( .55, 1., sin( u.mul( 40. ).add( sin( y.mul( 2.3 ).add( h1( floor( u.mul( 6.37 ) ) ).mul( 6. ) ) ).mul( 1.2 ) ) ) ).toVar();
+    	const sheet = sh.mul( add( .5, sin( y.mul( 1.3 ).add( uTime.mul( 2.5 ) ).add( u.mul( 5. ) ) ).mul( .5 ) ) ).mul( uRain ).mul( sub( 1., smoothstep( .04, .1, fw ) ) ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	lens.addAssign( sheet.mul( .12 ) );
+    	return e.mul( add( 1., film ) ).mul( sub( 1., max( max( riv, drop ), sheet.mul( .7 ) ).mul( .5 ) ) ).add( vec3( .5, .55, .6 ).mul( uDay.mul( .25 ).add( uLamp.mul( .05 ) ) ).add( e.mul( 1.5 ) ).mul( lens ) );
+    };
+
     const texMat =  Fn( ( [ m, p, n, io ] ) => {
 
     	const alb = io[ 0 ].toVar();
@@ -243,7 +276,7 @@ export default {
     		metal.assign( mix( .45, .05, rust ) );
     		envK.assign( mul( .28, sub( 1., rust ) ) );
 
-    	} ).ElseIf( m.equal( 22 ), () => {
+    	} ).ElseIf( m.equal( 22 ).or( m.equal( 63 ) ), () => {
 
     		const sp = h21( floor( uv.mul( 16. ) ) ).toVar(), d = fbm3( p.mul( 1.3 ).add( 3. ) ).toVar();
     		alb.mulAssign( add( .84, mul( .3, sp ).mul( kxAA( uv.mul( 16. ) ) ) ).mul( add( .78, mul( .36, d ) ) ) );
@@ -314,6 +347,39 @@ export default {
     		rough.assign( mix( .6, .4, chip ) );
     		metal.assign( mix( .05, .8, chip ) );
     		envK.assign( mix( .12, .4, chip ) );
+
+    	} ).ElseIf( m.equal( 30 ), () => {
+
+    		// 30 橡膠、粗塑膠（2026-11-02 補上：原本沒有這一支，畫成素色）：細顆粒、朝上的面一層灰、霧面
+    		alb.mulAssign( add( .86, mul( .24, n3( p.mul( 70. ) ) ).mul( kxAA( uv.mul( 70. ) ) ) ).mul( add( .9, mul( .16, fbm3( p.mul( 1.7 ) ) ) ) ) );
+    		alb.assign( mix( alb, alb.add( vec3( .03, .028, .025 ) ), up.mul( .6 ) ) );
+    		rough.assign( .9 );
+    		envK.assign( .04 );
+
+    	} ).ElseIf( m.equal( 52 ), () => {
+
+    		// 52 間知石（2026-11-02，雲梯城寨擋土牆，參考圖的不規則石塊與青苔）：uv 上 34 × 27 cm 的抖動格子取 Voronoi，F2 − F1 是離石縫多遠；
+    		// 石縫 2 cm 暗、往內凹，石面中間凸（邊緣暗一點），每塊石頭亮度與色相各取一個雜湊；石縫與朝上、靠下的地方長青苔，牆面有雨水的垂流
+    		const cs = vec2( .34, .27 ), g = uv.div( cs ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).toVar();
+    		const d1 = float( 9. ).toVar(), d2 = float( 9. ).toVar(), cid = vec2( 0. ).toVar();
+    		for ( let i = - 1; i <= 1; i ++ ) for ( let j = - 1; j <= 1; j ++ ) {
+    			const o = vec2( i, j ), c = gi.add( o ), r = vec2( h21( c ), h21( c.add( 17.3 ) ) );
+    			const d = length( o.add( .12 ).add( r.mul( .76 ) ).sub( gf ).mul( cs ) );
+    			d2.assign( select( d.lessThan( d1 ), d1, min( d2, d ) ) );
+    			cid.assign( select( d.lessThan( d1 ), c, cid ) );
+    			d1.assign( min( d1, d ) );
+    		}
+    		const edge = d2.sub( d1 ).toVar(), bv = h21( cid.add( 3.7 ) ).toVar();
+    		const mort = sub( 1., smoothstep( .012, .026, edge ) ).toVar();
+    		const stone = vec3( 1. ).mul( add( .72, mul( .4, bv ) ) ).mul( mix( vec3( 1.04, 1., .94 ), vec3( .95, .98, 1.04 ), h21( cid.add( 9.1 ) ) ) ).toVar();
+    		stone.mulAssign( mix( .72, 1., smoothstep( .02, .09, edge ) ) );
+    		stone.mulAssign( add( .86, mul( .26, n3( p.mul( 19. ) ) ).mul( kxAA( uv.mul( 19. ) ) ) ) );
+    		alb.assign( alb.mul( mix( stone, vec3( .42, .4, .37 ), mort ) ) );
+    		const moss = smoothstep( .5, .75, fbm3( p.mul( 1.3 ).add( 11. ) ).add( mort.mul( .25 ) ).add( up.mul( .2 ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .07, .1, .035 ), moss.mul( .75 ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, vert ).mul( smoothstep( .6, .9, fbm3( vec3( uv.x.mul( 6. ), p.y.mul( .4 ), 1.7 ) ) ) ) ) );
+    		rough.assign( mix( .82, .95, min( mort.add( moss ), 1. ) ) );
+    		envK.assign( .05 );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 
@@ -593,20 +659,196 @@ export default {
     		envK.assign( 1. );
     		emi.assign( tint.mul( on ).mul( lit ).mul( uLampOn ).mul( add( .2, mul( .18, h21( id.add( 8.3 ) ) ) ) ) );
 
+    	} ).ElseIf( m.equal( 55 ).or( m.equal( 62 ) ), () => {
+
+    		// 波浪鋼板（機庫外牆、空橋的裙板；blender/airbld.py）：0.2 m 一道的梯形肋（受光的斜面亮、背光的斜面暗、溝底一條陰影），
+    		// 1.2 m 一片的色差、片與片的搭接縫、往下的雨痕與牆腳的髒污、零星的鏽點
+    		const q = uv.x.div( .2 ).toVar(), f = fract( q ).toVar(), aa = kxAA( vec2( q, 1. ) ).mul( vert ).toVar();
+    		const rib = smoothstep( .0, .1, f ).mul( smoothstep( .5, .4, f ) ).toVar(), dk = smoothstep( .5, .56, f ).mul( smoothstep( .78, .66, f ) ).toVar();
+    		alb.mulAssign( mix( 1., add( .8, mul( .28, rib ) ).sub( mul( .22, dk ) ), aa ) );
+    		const pn = floor( uv.x.div( 1.2 ) ).toVar();
+    		alb.mulAssign( add( .93, mul( .12, h21( vec2( pn, sd.add( 3.7 ) ) ) ) ).mul( mix( 1., sub( 1., mul( .35, kxAA( uv.mul( 2. ) ) ) ), vert.mul( step( .985, fract( uv.x.div( 1.2 ) ) ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, vert ).mul( kxStreak( p, uv, 3.5 ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .55 ).mul( vec3( .9, .85, .78 ) ), sub( 1., smoothstep( .0, 1.2, p.y ) ).mul( vert ).mul( .55 ) ) );
+    		const rs = smoothstep( .74, .86, fbm3( p.mul( 1.9 ).add( 8. ) ) ).mul( step( .55, n3( p.mul( 17. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .2, .1, .05 ), rs.mul( .6 ) ) );
+    		rough.assign( mix( .42, .75, rs ) );
+    		metal.assign( mix( .45, .1, rs ) );
+    		envK.assign( mul( .18, rib ).mul( sub( 1., rs ) ) );
+
+    	} ).ElseIf( m.equal( 53 ), () => {
+
+    		// 航廈的帷幕玻璃（blender/airbld.py）：玻璃後面的大廳由 air-int.mjs 算（interior mapping：地板、夾層、店面、座椅、人、天花燈帶），
+    		// 白天看得到裡面、入夜是暖白的燈；420 m 外（隔著海的遠景）只剩平均的亮度
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .9, .74 ).mul( uLamp.mul( .2 ) ).add( vec3( .06, .07, .08 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 420. ), () => { emi.assign( mix( AI.hall( p, n, vW ), far, smoothstep( 300., 420., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
+    	} ).ElseIf( m.equal( 56 ), () => {
+
+    		// 第二航廈 T2 的帷幕玻璃（blender/airbld.py 的 term2）：和 53 一樣，大廳是 air-int.mjs 的 hall2（空側出境大廳挑高、陸側入境大廳有夾層）
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .9, .74 ).mul( uLamp.mul( .2 ) ).add( vec3( .06, .07, .08 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 420. ), () => { emi.assign( mix( AI.hall2( p, n, vW ), far, smoothstep( 300., 420., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
+    	} ).ElseIf( m.equal( 54 ), () => {
+
+    		// 機場的小房間玻璃（blender/airbld.py）：空橋通道、塔台基座、機庫工作間，房間由 air-int.mjs 算；260 m 外只剩平均的亮度
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .95, .86 ).mul( uLamp.mul( .16 ) ).add( vec3( .05, .055, .06 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 260. ), () => { emi.assign( mix( AI.room( p, n, vW ), far, smoothstep( 180., 260., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
     	} ).ElseIf( m.equal( 49 ), () => {
 
     		const g = fract( p.xz.div( 1.6 ) ).sub( .5 ).toVar();
     		const d = length( g ).mul( 1.6 ).toVar(), dn = step( n.y, -0.5 ).toVar();
-    		const dotL = smoothstep( .075, .055, d ).mul( dn ).toVar(), halo = exp( d.negate().mul( d ).mul( 3. ) ).mul( dn ).toVar();
+    		// 低角度看時一個像素蓋好幾格：點與光暈照像素的足跡（公尺）淡成整格的平均（點 ≈ 0.005、光暈 ≈ 0.4），不然遠處是同心圓的疊紋
+    		const fw = max( fwidth( p.x ), fwidth( p.z ) ).toVar();
+    		const dotL = mix( smoothstep( .075, .055, d ), .005, smoothstep( .012, .04, fw ) ).mul( dn ).toVar(), halo = mix( exp( d.negate().mul( d ).mul( 3. ) ), .4, smoothstep( .12, .45, fw ) ).mul( dn ).toVar();
     		alb.mulAssign( add( .9, mul( .1, fbm3( p.mul( 2. ) ) ) ).sub( mul( .25, dotL ) ) );
     		rough.assign( .9 );
     		emi.assign( vec3( 1., .78, .52 ).mul( dotL.mul( 2.6 ).add( halo.mul( .22 ) ) ).mul( uLampOn ) );
+
+    	} ).ElseIf( m.equal( 57 ), () => {
+
+    		// 內照式標誌牌（blender/airbld.py 的滑行道指示牌）：白天是頂點色的壓克力面板，入夜裡面的燈管把面板打亮
+    		rough.assign( .3 );
+    		emi.assign( alb.mul( uLampOn.mul( .6 ) ) );
+
+    	} ).ElseIf( m.equal( 58 ), () => {
+
+    		// 地勤車的烤漆（blender/airgse.py 的 m58_*；p 是世界座標，機場地面 y ≈ 0）：大片髒污的深淺、細碎掉漆露出灰底漆、零星鏽斑、
+    		// 離地 1.3 m 內往下變濃的濺泥（只在直立面；車身下緣約離地 0.5 m）、頂面積灰；掉漆與鏽的細節照世界座標的像素足跡在遠處淡掉（kxAA 的 uv 在車身上變化太快，近處也會被淡掉）
+    		const aa = sub( 1., smoothstep( .015, .05, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar(), low = smoothstep( 1.3, .25, p.y ).toVar(), patch = fbm3( p.mul( 1.2 ) ).sub( .5 ).toVar();
+    		const chip = smoothstep( .69, .73, n3( p.mul( 13. ) ).mul( .55 ).add( n3( p.mul( 31. ).add( 3. ) ).mul( .45 ) ).add( patch.mul( .5 ) ).add( low.mul( .08 ) ) ).mul( aa ).toVar();
+    		const rust = smoothstep( .7, .76, n3( p.mul( 7.3 ).add( 11. ) ).mul( .6 ).add( n3( p.mul( 19. ) ).mul( .4 ) ).add( patch.mul( .4 ) ).add( low.mul( .12 ) ) ).mul( aa ).toVar();
+    		alb.mulAssign( add( .86, mul( .22, fbm3( p.mul( 1.1 ) ) ) ) );
+    		alb.assign( mix( alb, vec3( .16, .16, .155 ), chip.mul( .85 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .12, .055, .025 ), vec3( .2, .1, .045 ), n3( p.mul( 27. ) ) ), rust.mul( .8 ) ) );
+    		const mud = vert.mul( low ).mul( smoothstep( .35, .6, fbm3( vec3( p.x.mul( 2.2 ), p.y.mul( 6. ), p.z.mul( 2.2 ) ) ).add( low.mul( .25 ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .05, .042, .03 ), mud.mul( .85 ) ) );
+    		alb.assign( mix( alb, alb.mul( vec3( .9, .88, .84 ) ).add( .02 ), up.mul( .5 ) ) );
+    		rough.assign( mix( .42, .9, max( max( chip, rust ), mud ) ) );
+    		envK.assign( mul( .25, sub( 1., max( rust, mud ) ) ) );
+
+    	} ).ElseIf( m.equal( 59 ), () => {
+
+    		// 海上平台的塗漆鋼（21-rig.js）：環氧面漆的半光、細橘皮；掉漆、鏽、鹽、焊縫在後面的做舊（59–63 共用）
+    		alb.mulAssign( add( .95, mul( .1, n3( p.mul( 9. ) ) ).mul( kxAA( uv.mul( 9. ) ) ) ) );
+    		rough.assign( .5 );
+    		metal.assign( .08 );
+    		envK.assign( .2 );
+
+    	} ).ElseIf( m.equal( 60 ), () => {
+
+    		// 導管架與浪花帶（21-rig.js；p 是世界座標，海面 y −1.6，浪頂到 +3）：水線附近一圈海藻、藤壺、貽貝，濕滑
+    		rough.assign( .55 );
+    		metal.assign( .08 );
+    		envK.assign( .15 );
+    		const wl = add( .6, fbm3( p.mul( .55 ) ).mul( 1.8 ) ).toVar();
+    		const gr = sub( 1., smoothstep( wl.sub( .9 ), wl, p.y ) ).toVar();
+    		const alg = mix( vec3( .03, .045, .028 ), vec3( .075, .09, .035 ), fbm3( p.mul( 3.1 ) ) ).toVar();
+    		const mus = smoothstep( .52, .66, fbm3( p.mul( 4.3 ).add( 6. ) ) ).mul( sub( 1., smoothstep( wl.sub( 1.6 ), wl.sub( .5 ), p.y ) ) ).toVar();
+    		const bq = uv.mul( 5.5 ).toVar(), bi = floor( bq ).toVar(), bf = fract( bq ).sub( .5 ).toVar(), bh = h21( bi.add( 2.3 ) ).toVar();
+    		const bo = vec2( h21( bi.add( 7.1 ) ), h21( bi.add( 3.9 ) ) ).sub( .5 ).mul( .3 ).toVar(), bd = length( bf.sub( bo ) ).toVar(), br = mix( .2, .34, bh ).toVar();
+    		const barn = sub( 1., smoothstep( br.mul( .7 ), br, bd ) ).mul( step( .35, bh ) ).mul( kxAA( bq ) ).toVar();
+    		const bcol = vec3( .46, .45, .41 ).mul( add( .55, mul( .45, smoothstep( br.mul( .15 ), br.mul( .45 ), bd ) ) ) ).toVar();
+    		alb.assign( mix( alb, alg, gr.mul( .92 ) ) );
+    		alb.assign( mix( alb, vec3( .018, .022, .03 ), mus.mul( .9 ) ) );
+    		alb.assign( mix( alb, bcol, barn.mul( gr ).mul( sub( 1., mus ) ).mul( .85 ) ) );
+    		rough.assign( mix( rough, mix( .32, .7, barn ), gr ) );
+    		envK.assign( mix( envK, .3, gr.mul( sub( 1., barn ) ) ) );
+
+    	} ).ElseIf( m.equal( 61 ), () => {
+
+    		// 甲板鋼板（21-rig.js）：頂面是防滑花紋板（3.2 cm 一格、斜向交錯的凸條）、2.4×1.2 m 的板縫、走出來的磨亮路徑、油漬、下雨時的積水；側面當一般鋼板
+    		rough.assign( .62 );
+    		metal.assign( .3 );
+    		envK.assign( .18 );
+    		If( up.greaterThan( .5 ), () => {
+
+    			const q = p.xz.div( .032 ).toVar(), qi = floor( q ).toVar(), qf = fract( q ).sub( .5 ).toVar();
+    			const dg = select( mod( qi.x.add( qi.y ), 2. ).lessThan( .5 ), qf.x.add( qf.y ), qf.x.sub( qf.y ) ).toVar();
+    			const tread = sub( 1., smoothstep( .07, .16, abs( dg ) ) ).mul( sub( 1., smoothstep( .3, .44, max( abs( qf.x ), abs( qf.y ) ) ) ) ).mul( kxAA( q ) ).toVar();
+    			alb.mulAssign( add( .86, mul( .3, tread ) ) );
+    			const ps = p.xz.div( vec2( 2.4, 1.2 ) ).toVar(), pd = min( abs( fract( ps.x.add( .5 ) ).sub( .5 ) ).mul( 2.4 ), abs( fract( ps.y.add( .5 ) ).sub( .5 ) ).mul( 1.2 ) ).toVar();
+    			const seam = sub( 1., smoothstep( .008, .025, pd ) ).mul( kxAA( p.xz.mul( 6. ) ) ).toVar();
+    			alb.mulAssign( add( .92, mul( .16, h21( floor( ps ).add( sd ) ) ) ).mul( sub( 1., mul( .5, seam ) ) ) );
+    			const wear = smoothstep( .52, .7, fbm3( vec3( p.x.mul( .22 ), 1.7, p.z.mul( .22 ) ) ) ).mul( add( .6, mul( .4, n3( p.mul( 3. ) ) ) ) ).toVar();
+    			alb.assign( mix( alb, vec3( .3, .29, .28 ).mul( add( .85, mul( .3, tread ) ) ), wear.mul( .75 ) ) );
+    			metal.assign( mix( metal, .75, wear ) );
+    			rough.assign( mix( rough, .34, wear ) );
+    			const oil = smoothstep( .64, .74, fbm3( vec3( p.x.mul( .8 ), 4.1, p.z.mul( .8 ) ) ).mul( .7 ).add( n3( p.mul( 2.3 ) ).mul( .3 ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .6, oil ) ) );
+    			rough.assign( mix( rough, .22, oil ) );
+    			envK.assign( mix( envK, .4, oil ) );
+    			const pud = smoothstep( .5, .62, fbm3( vec3( p.x.mul( .35 ), 9.3, p.z.mul( .35 ) ) ) ).mul( smoothstep( .1, .6, uWet ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .3, pud ) ) );
+    			rough.assign( mix( rough, .06, pud ) );
+    			envK.assign( mix( envK, .85, pud ) );
+
+    		} );
 
     	} ).Else( () => {
 
     		alb.assign( mix( alb, vec3( .075, .072, .068 ), mul( .3, fbm3( p.mul( 4. ) ) ).add( mul( .25, up ) ) ) );
     		alb.mulAssign( add( .88, mul( .2, n2( uv.mul( 60. ) ) ).mul( kxAA( uv.mul( 60. ) ) ) ) );
     		rough.assign( .78 );
+
+    	} );
+
+    	// 海上平台的做舊（59–63，21-rig.js；p 是世界座標）：大片褪色與白化、補漆的色塊、每 2.5 m 的橫焊縫與 3 m 的直焊縫、
+    	// 焊縫往下流的鏽水、鏽斑與鏽暈、掉漆露出紅丹底漆、底面與浪花帶的鹽霜、頂面的油污、浪花帶的濕暗
+    	If( m.greaterThanEqual( 59 ).and( m.lessThanEqual( 63 ) ), () => {
+
+    		const sz = sub( 1., smoothstep( 1.5, 11., p.y ) ).toVar(), dn = sub( 1., smoothstep( -0.85, -0.4, n.y ) ).toVar();
+    		const aw = sub( 1., smoothstep( .02, .08, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar();
+    		alb.mulAssign( add( .8, mul( .34, fbm3( p.mul( .31 ).add( 4. ) ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .78 ).add( vec3( .06, .06, .055 ) ), up.mul( .4 ) ) );
+		alb.assign( mix( alb, alb.mul( .6 ).add( vec3( .035, .03, .025 ) ), add( .2, mul( .34, fbm3( p.mul( .5 ).add( 2. ) ) ) ) ) );
+		const gs = kxStreak( p, uv, 1.6 ).mul( vert ).toVar();
+		alb.assign( mix( alb, alb.mul( vec3( .5, .46, .42 ) ), gs.mul( .5 ) ) );
+    		const rp = vec2( uv.x, p.y ).add( vec2( fbm3( p.mul( .8 ) ), fbm3( p.mul( .8 ).add( 5. ) ) ).sub( .5 ).mul( 1.4 ) ).toVar();
+    		const ri = floor( rp.div( vec2( 1.9, 1.3 ) ) ).toVar();
+    		const pm = step( .82, h21( ri.add( sd.mul( 3.1 ) ).add( 1.7 ) ) ).mul( vert ).toVar();
+    		alb.assign( mix( alb, alb.mul( mix( vec3( 1.12, 1.07, .95 ), vec3( .84, .88, .92 ), h21( ri.add( 9.1 ) ) ) ), pm.mul( .85 ) ) );
+    		const sy = fract( p.y.div( 2.5 ) ).toVar(), dy = abs( sy.sub( .5 ) ).mul( -2.5 ).add( 1.25 ).toVar(), dx = abs( fract( uv.x.div( 3. ).add( .5 ) ).sub( .5 ) ).mul( 3. ).toVar();
+    		const weld = sub( 1., smoothstep( .012, .035, min( dy, dx ) ) ).mul( vert ).mul( aw ).toVar();
+    		alb.mulAssign( sub( 1., mul( .35, weld ) ) );
+    		const db = sub( 1., sy ).mul( 2.5 ).toVar(), lane = floor( p.y.div( 2.5 ) ).toVar();
+    		const col = smoothstep( .5, .82, fbm( vec2( uv.x.mul( 2.7 ).add( lane.mul( 3.7 ) ), p.y.mul( .07 ) ) ) ).mul( add( .55, mul( .45, n2( vec2( uv.x.mul( 19. ), p.y.mul( 1.3 ) ) ) ) ) ).toVar();
+    		const run = col.mul( exp( db.mul( mix( 1.6, .45, h21( vec2( floor( uv.x.mul( 1.3 ) ), lane ) ) ) ).negate() ) ).mul( vert ).toVar();
+    		const strk = clamp( run.mul( 1.9 ).add( kxStreak( p, uv, 3.2 ).mul( .45 ) ).add( sz.mul( vert ).mul( .25 ).mul( fbm( vec2( uv.x.mul( 5. ), p.y.mul( .4 ) ) ) ) ), 0., 1. ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .6, .36, .21 ) ).add( vec3( .03, .011, .0 ) ), strk.mul( .8 ) ) );
+    		const r = fbm3( p.mul( 1.7 ).add( 3. ) ).mul( .78 ).add( mul( .22, n3( p.mul( 13. ) ) ) ).add( weld.mul( .3 ) ).add( sz.mul( .3 ) ).add( dn.mul( .03 ) ).sub( up.mul( .08 ) ).toVar();
+    		const rust = smoothstep( .7, .8, r ).toVar(), halo = smoothstep( .58, .7, r ).sub( rust ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .74, .58, .44 ) ), halo.mul( .75 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .15, .065, .028 ), vec3( .3, .13, .05 ), n3( p.mul( 29. ) ) ), rust.mul( .92 ) ) );
+    		const chip = step( .78, n3( p.mul( 23. ) ).mul( .6 ).add( n3( p.mul( 57. ).add( 2. ) ).mul( .4 ) ).add( sz.mul( .08 ) ) ).mul( aw ).mul( sub( 1., rust ) ).mul( sub( 1., up.mul( .8 ) ) ).mul( sub( 1., dn.mul( .6 ) ) ).toVar();
+    		alb.assign( mix( alb, mix( vec3( .3, .11, .065 ), vec3( .34, .33, .31 ), step( .5, n3( p.mul( 7. ) ) ) ), chip.mul( .85 ) ) );
+    		const salt = smoothstep( .5, .78, fbm3( p.mul( 2.4 ).add( 1. ) ) ).mul( clamp( dn.mul( .7 ).add( sz.mul( .8 ) ), 0., 1. ) ).toVar();
+    		alb.assign( mix( alb, vec3( .55, .56, .53 ), salt.mul( .45 ) ) );
+    		const grime = up.mul( smoothstep( .42, .72, fbm3( p.mul( 1.3 ).add( 8. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .055, .05, .045 ), grime.mul( .45 ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, sz ).mul( add( .4, mul( .6, smoothstep( .5, .9, fbm( vec2( uv.x.mul( .8 ), p.y.mul( .9 ) ) ) ) ) ) ) ) );
+    		rough.assign( mix( mix( rough, .93, max( rust, mul( .6, salt ) ) ), .3, sz.mul( .5 ).mul( sub( 1., rust ) ) ) );
+    		metal.mulAssign( sub( 1., rust ) );
+    		envK.mulAssign( sub( 1., rust ).mul( sub( 1., mul( .5, salt ) ) ) );
 
     	} );
 
@@ -789,7 +1031,11 @@ export default {
     	} );
 
     	c.addAssign( emi );
-    	fragOut_.assign( vec4( applyFog( c, uCam.add( vW.sub( uCam ).mul( FAR ) ) ), 1. ) );
+    	// 鏡頭在城外（機場島、外海、對岸）時照完整的距離起霧：石柱峰（21-coast.js 的 KARST）底下的雲海從城外幾乎是側面、看不出來，
+    	// 只算 7% 的霧時前面的山整片進霧、石柱峰卻很清楚，像一塊塊浮在天上。城裡（uCityM）照舊；只管離鏡頭 1.8–3 km 以外的：
+    	// 機場建築從城西岸（外圈 90 m 在遮罩外）、從機場島上看都在這距離內，照舊清楚
+    	const camOut = sub( 1., smoothstep( 0., .3, uCityM.sample( uCam.xz.sub( uHM.xy ).mul( uHM.z ) ).r ) ).mul( smoothstep( 1800., 3000., length( vW.sub( uCam ) ) ) ).toVar();
+    	fragOut_.assign( vec4( applyFog( c, uCam.add( vW.sub( uCam ).mul( mix( FAR, 1., camOut ) ) ) ), 1. ) );
 
     	return fragOut_;
 
@@ -800,7 +1046,7 @@ export default {
 },
 "{\"INST_EXTRA\":\"\"}": {
   h: "1xagqf8vsq", fog: true, lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
-  uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
+  uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAHMap","type":"sampler2D","src":"uAHMap"},{"name":"uAHM","type":"vec4","src":"uAHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vP","type":"vec3","src":"vP"},{"name":"vNo","type":"vec3","src":"vNo"},{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"},{"name":"aIns","type":"vec4","src":"aIns"}],
   vertex: (TSL, E) => {
@@ -838,6 +1084,7 @@ export default {
 
 
 
+    const AI = airInt( TSL, E );
     const kxAA =  Fn( ( [ q ] ) => {
 
     	return sub( 1., smoothstep( .25, .7, max( fwidth( q.x ), fwidth( q.y ) ) ) );
@@ -1005,6 +1252,37 @@ export default {
 
     } );
 
+    // 帷幕玻璃上的雨（材質 53／54／56，航廈與空橋）：下雨時一條條往下流的水痕（18 cm 一欄，亂數決定有沒有水、寬度、彎曲與流速；水頭在下、往上拖淡），
+    // 玻璃濕的時候留著靜止的水珠。水底下的室內光壓暗一半，水珠下緣與水痕帶一點亮（像透鏡收到上方的光）。座標是玻璃面上的（水平切線 × 世界高度），
+    // 格子比像素小、60 m 外或面不是直立的時候淡掉
+    const glassRain = ( e, n ) => {
+    	const h1 = ( x ) => { const t = fract( x.mul( .1031 ) ).toVar(); t.mulAssign( t.add( 33.33 ) ); t.mulAssign( t.add( t ) ); return fract( t ); };
+    	const q = vW.xz.sub( uAirA.xy ).toVar();
+    	const u = dot( q, vec2( n.z, n.x.negate() ) ).toVar(), y = vW.y.toVar();
+    	const fw = max( fwidth( u ), fwidth( y ) ).toVar();
+    	const fade = sub( 1., smoothstep( .03, .09, fw ) ).mul( sub( 1., smoothstep( 35., 60., length( uCam.sub( vW ) ) ) ) ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	const cu = u.div( .18 ).toVar(), ci = floor( cu ).toVar(), cf = fract( cu ).sub( .5 ).toVar();
+    	const ha = h1( ci ).toVar(), hb = h1( ci.add( 71.3 ) ).toVar();
+    	const wig = sin( y.mul( 5.3 ).add( ha.mul( 40. ) ) ).mul( .14 ).add( sin( y.mul( 17. ).add( hb.mul( 20. ) ) ).mul( .05 ) ).toVar();
+    	const w = mix( .08, .22, hb ).toVar();
+    	const ln = smoothstep( w, w.mul( .35 ), abs( cf.sub( wig ) ) ).mul( step( .6, ha ) ).toVar();
+    	const s = fract( y.mul( mix( .12, .3, ha ) ).add( uTime.mul( mix( .15, .45, hb ) ) ).add( hb.mul( 9. ) ) ).toVar();
+    	const riv = ln.mul( smoothstep( 0., .03, s ) ).mul( mix( 1., .2, s ) ).mul( uRain ).mul( fade ).toVar();
+    	const g = vec2( u, y ).div( .09 ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).sub( .5 ).toVar();
+    	const hd = h1( gi.x.add( gi.y.mul( 157.1 ) ) ).toVar();
+    	const off = vec2( h1( hd.mul( 91.7 ) ), h1( hd.mul( 37.3 ) ) ).sub( .5 ).mul( .45 ).toVar();
+    	const rd = mix( .12, .3, h1( hd.mul( 13.1 ) ) ).toVar();
+    	const drop = smoothstep( rd, rd.mul( .6 ), length( gf.sub( off ) ) ).mul( step( .74, hd ) ).mul( smoothstep( .1, .5, uWet ) ).mul( fade ).toVar();
+    	const lens = drop.mul( smoothstep( .0, -.25, gf.y.sub( off.y ) ) ).add( riv.mul( .3 ) ).toVar();
+    	// 整片的水膜：低頻、慢慢往下流的起伏，讓後面的室內光一明一暗（遠處也看得到，不必反鋸齒）
+    	const film = sin( u.mul( 3.1 ).add( sin( y.mul( 1.7 ).add( uTime.mul( .8 ) ) ).mul( 1.5 ) ) ).mul( sin( y.mul( .9 ).add( uTime.mul( 1.2 ) ).add( u.mul( .7 ) ) ) ).mul( .14 ).mul( uRain ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	// 中距離的水簾：15 cm 一道、左右擺動的直條，亮暗沿著往下流（25 m 外還看得出是在下雨的玻璃）
+    	const sh = smoothstep( .55, 1., sin( u.mul( 40. ).add( sin( y.mul( 2.3 ).add( h1( floor( u.mul( 6.37 ) ) ).mul( 6. ) ) ).mul( 1.2 ) ) ) ).toVar();
+    	const sheet = sh.mul( add( .5, sin( y.mul( 1.3 ).add( uTime.mul( 2.5 ) ).add( u.mul( 5. ) ) ).mul( .5 ) ) ).mul( uRain ).mul( sub( 1., smoothstep( .04, .1, fw ) ) ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	lens.addAssign( sheet.mul( .12 ) );
+    	return e.mul( add( 1., film ) ).mul( sub( 1., max( max( riv, drop ), sheet.mul( .7 ) ).mul( .5 ) ) ).add( vec3( .5, .55, .6 ).mul( uDay.mul( .25 ).add( uLamp.mul( .05 ) ) ).add( e.mul( 1.5 ) ).mul( lens ) );
+    };
+
     const texMat =  Fn( ( [ m, p, n, io ] ) => {
 
     	const alb = io[ 0 ].toVar();
@@ -1040,7 +1318,7 @@ export default {
     		metal.assign( mix( .45, .05, rust ) );
     		envK.assign( mul( .28, sub( 1., rust ) ) );
 
-    	} ).ElseIf( m.equal( 22 ), () => {
+    	} ).ElseIf( m.equal( 22 ).or( m.equal( 63 ) ), () => {
 
     		const sp = h21( floor( uv.mul( 16. ) ) ).toVar(), d = fbm3( p.mul( 1.3 ).add( 3. ) ).toVar();
     		alb.mulAssign( add( .84, mul( .3, sp ).mul( kxAA( uv.mul( 16. ) ) ) ).mul( add( .78, mul( .36, d ) ) ) );
@@ -1111,6 +1389,39 @@ export default {
     		rough.assign( mix( .6, .4, chip ) );
     		metal.assign( mix( .05, .8, chip ) );
     		envK.assign( mix( .12, .4, chip ) );
+
+    	} ).ElseIf( m.equal( 30 ), () => {
+
+    		// 30 橡膠、粗塑膠（2026-11-02 補上：原本沒有這一支，畫成素色）：細顆粒、朝上的面一層灰、霧面
+    		alb.mulAssign( add( .86, mul( .24, n3( p.mul( 70. ) ) ).mul( kxAA( uv.mul( 70. ) ) ) ).mul( add( .9, mul( .16, fbm3( p.mul( 1.7 ) ) ) ) ) );
+    		alb.assign( mix( alb, alb.add( vec3( .03, .028, .025 ) ), up.mul( .6 ) ) );
+    		rough.assign( .9 );
+    		envK.assign( .04 );
+
+    	} ).ElseIf( m.equal( 52 ), () => {
+
+    		// 52 間知石（2026-11-02，雲梯城寨擋土牆，參考圖的不規則石塊與青苔）：uv 上 34 × 27 cm 的抖動格子取 Voronoi，F2 − F1 是離石縫多遠；
+    		// 石縫 2 cm 暗、往內凹，石面中間凸（邊緣暗一點），每塊石頭亮度與色相各取一個雜湊；石縫與朝上、靠下的地方長青苔，牆面有雨水的垂流
+    		const cs = vec2( .34, .27 ), g = uv.div( cs ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).toVar();
+    		const d1 = float( 9. ).toVar(), d2 = float( 9. ).toVar(), cid = vec2( 0. ).toVar();
+    		for ( let i = - 1; i <= 1; i ++ ) for ( let j = - 1; j <= 1; j ++ ) {
+    			const o = vec2( i, j ), c = gi.add( o ), r = vec2( h21( c ), h21( c.add( 17.3 ) ) );
+    			const d = length( o.add( .12 ).add( r.mul( .76 ) ).sub( gf ).mul( cs ) );
+    			d2.assign( select( d.lessThan( d1 ), d1, min( d2, d ) ) );
+    			cid.assign( select( d.lessThan( d1 ), c, cid ) );
+    			d1.assign( min( d1, d ) );
+    		}
+    		const edge = d2.sub( d1 ).toVar(), bv = h21( cid.add( 3.7 ) ).toVar();
+    		const mort = sub( 1., smoothstep( .012, .026, edge ) ).toVar();
+    		const stone = vec3( 1. ).mul( add( .72, mul( .4, bv ) ) ).mul( mix( vec3( 1.04, 1., .94 ), vec3( .95, .98, 1.04 ), h21( cid.add( 9.1 ) ) ) ).toVar();
+    		stone.mulAssign( mix( .72, 1., smoothstep( .02, .09, edge ) ) );
+    		stone.mulAssign( add( .86, mul( .26, n3( p.mul( 19. ) ) ).mul( kxAA( uv.mul( 19. ) ) ) ) );
+    		alb.assign( alb.mul( mix( stone, vec3( .42, .4, .37 ), mort ) ) );
+    		const moss = smoothstep( .5, .75, fbm3( p.mul( 1.3 ).add( 11. ) ).add( mort.mul( .25 ) ).add( up.mul( .2 ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .07, .1, .035 ), moss.mul( .75 ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, vert ).mul( smoothstep( .6, .9, fbm3( vec3( uv.x.mul( 6. ), p.y.mul( .4 ), 1.7 ) ) ) ) ) );
+    		rough.assign( mix( .82, .95, min( mort.add( moss ), 1. ) ) );
+    		envK.assign( .05 );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 
@@ -1390,20 +1701,196 @@ export default {
     		envK.assign( 1. );
     		emi.assign( tint.mul( on ).mul( lit ).mul( uLampOn ).mul( add( .2, mul( .18, h21( id.add( 8.3 ) ) ) ) ) );
 
+    	} ).ElseIf( m.equal( 55 ).or( m.equal( 62 ) ), () => {
+
+    		// 波浪鋼板（機庫外牆、空橋的裙板；blender/airbld.py）：0.2 m 一道的梯形肋（受光的斜面亮、背光的斜面暗、溝底一條陰影），
+    		// 1.2 m 一片的色差、片與片的搭接縫、往下的雨痕與牆腳的髒污、零星的鏽點
+    		const q = uv.x.div( .2 ).toVar(), f = fract( q ).toVar(), aa = kxAA( vec2( q, 1. ) ).mul( vert ).toVar();
+    		const rib = smoothstep( .0, .1, f ).mul( smoothstep( .5, .4, f ) ).toVar(), dk = smoothstep( .5, .56, f ).mul( smoothstep( .78, .66, f ) ).toVar();
+    		alb.mulAssign( mix( 1., add( .8, mul( .28, rib ) ).sub( mul( .22, dk ) ), aa ) );
+    		const pn = floor( uv.x.div( 1.2 ) ).toVar();
+    		alb.mulAssign( add( .93, mul( .12, h21( vec2( pn, sd.add( 3.7 ) ) ) ) ).mul( mix( 1., sub( 1., mul( .35, kxAA( uv.mul( 2. ) ) ) ), vert.mul( step( .985, fract( uv.x.div( 1.2 ) ) ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, vert ).mul( kxStreak( p, uv, 3.5 ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .55 ).mul( vec3( .9, .85, .78 ) ), sub( 1., smoothstep( .0, 1.2, p.y ) ).mul( vert ).mul( .55 ) ) );
+    		const rs = smoothstep( .74, .86, fbm3( p.mul( 1.9 ).add( 8. ) ) ).mul( step( .55, n3( p.mul( 17. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .2, .1, .05 ), rs.mul( .6 ) ) );
+    		rough.assign( mix( .42, .75, rs ) );
+    		metal.assign( mix( .45, .1, rs ) );
+    		envK.assign( mul( .18, rib ).mul( sub( 1., rs ) ) );
+
+    	} ).ElseIf( m.equal( 53 ), () => {
+
+    		// 航廈的帷幕玻璃（blender/airbld.py）：玻璃後面的大廳由 air-int.mjs 算（interior mapping：地板、夾層、店面、座椅、人、天花燈帶），
+    		// 白天看得到裡面、入夜是暖白的燈；420 m 外（隔著海的遠景）只剩平均的亮度
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .9, .74 ).mul( uLamp.mul( .2 ) ).add( vec3( .06, .07, .08 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 420. ), () => { emi.assign( mix( AI.hall( p, n, vW ), far, smoothstep( 300., 420., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
+    	} ).ElseIf( m.equal( 56 ), () => {
+
+    		// 第二航廈 T2 的帷幕玻璃（blender/airbld.py 的 term2）：和 53 一樣，大廳是 air-int.mjs 的 hall2（空側出境大廳挑高、陸側入境大廳有夾層）
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .9, .74 ).mul( uLamp.mul( .2 ) ).add( vec3( .06, .07, .08 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 420. ), () => { emi.assign( mix( AI.hall2( p, n, vW ), far, smoothstep( 300., 420., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
+    	} ).ElseIf( m.equal( 54 ), () => {
+
+    		// 機場的小房間玻璃（blender/airbld.py）：空橋通道、塔台基座、機庫工作間，房間由 air-int.mjs 算；260 m 外只剩平均的亮度
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .95, .86 ).mul( uLamp.mul( .16 ) ).add( vec3( .05, .055, .06 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 260. ), () => { emi.assign( mix( AI.room( p, n, vW ), far, smoothstep( 180., 260., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
     	} ).ElseIf( m.equal( 49 ), () => {
 
     		const g = fract( p.xz.div( 1.6 ) ).sub( .5 ).toVar();
     		const d = length( g ).mul( 1.6 ).toVar(), dn = step( n.y, -0.5 ).toVar();
-    		const dotL = smoothstep( .075, .055, d ).mul( dn ).toVar(), halo = exp( d.negate().mul( d ).mul( 3. ) ).mul( dn ).toVar();
+    		// 低角度看時一個像素蓋好幾格：點與光暈照像素的足跡（公尺）淡成整格的平均（點 ≈ 0.005、光暈 ≈ 0.4），不然遠處是同心圓的疊紋
+    		const fw = max( fwidth( p.x ), fwidth( p.z ) ).toVar();
+    		const dotL = mix( smoothstep( .075, .055, d ), .005, smoothstep( .012, .04, fw ) ).mul( dn ).toVar(), halo = mix( exp( d.negate().mul( d ).mul( 3. ) ), .4, smoothstep( .12, .45, fw ) ).mul( dn ).toVar();
     		alb.mulAssign( add( .9, mul( .1, fbm3( p.mul( 2. ) ) ) ).sub( mul( .25, dotL ) ) );
     		rough.assign( .9 );
     		emi.assign( vec3( 1., .78, .52 ).mul( dotL.mul( 2.6 ).add( halo.mul( .22 ) ) ).mul( uLampOn ) );
+
+    	} ).ElseIf( m.equal( 57 ), () => {
+
+    		// 內照式標誌牌（blender/airbld.py 的滑行道指示牌）：白天是頂點色的壓克力面板，入夜裡面的燈管把面板打亮
+    		rough.assign( .3 );
+    		emi.assign( alb.mul( uLampOn.mul( .6 ) ) );
+
+    	} ).ElseIf( m.equal( 58 ), () => {
+
+    		// 地勤車的烤漆（blender/airgse.py 的 m58_*；p 是世界座標，機場地面 y ≈ 0）：大片髒污的深淺、細碎掉漆露出灰底漆、零星鏽斑、
+    		// 離地 1.3 m 內往下變濃的濺泥（只在直立面；車身下緣約離地 0.5 m）、頂面積灰；掉漆與鏽的細節照世界座標的像素足跡在遠處淡掉（kxAA 的 uv 在車身上變化太快，近處也會被淡掉）
+    		const aa = sub( 1., smoothstep( .015, .05, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar(), low = smoothstep( 1.3, .25, p.y ).toVar(), patch = fbm3( p.mul( 1.2 ) ).sub( .5 ).toVar();
+    		const chip = smoothstep( .69, .73, n3( p.mul( 13. ) ).mul( .55 ).add( n3( p.mul( 31. ).add( 3. ) ).mul( .45 ) ).add( patch.mul( .5 ) ).add( low.mul( .08 ) ) ).mul( aa ).toVar();
+    		const rust = smoothstep( .7, .76, n3( p.mul( 7.3 ).add( 11. ) ).mul( .6 ).add( n3( p.mul( 19. ) ).mul( .4 ) ).add( patch.mul( .4 ) ).add( low.mul( .12 ) ) ).mul( aa ).toVar();
+    		alb.mulAssign( add( .86, mul( .22, fbm3( p.mul( 1.1 ) ) ) ) );
+    		alb.assign( mix( alb, vec3( .16, .16, .155 ), chip.mul( .85 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .12, .055, .025 ), vec3( .2, .1, .045 ), n3( p.mul( 27. ) ) ), rust.mul( .8 ) ) );
+    		const mud = vert.mul( low ).mul( smoothstep( .35, .6, fbm3( vec3( p.x.mul( 2.2 ), p.y.mul( 6. ), p.z.mul( 2.2 ) ) ).add( low.mul( .25 ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .05, .042, .03 ), mud.mul( .85 ) ) );
+    		alb.assign( mix( alb, alb.mul( vec3( .9, .88, .84 ) ).add( .02 ), up.mul( .5 ) ) );
+    		rough.assign( mix( .42, .9, max( max( chip, rust ), mud ) ) );
+    		envK.assign( mul( .25, sub( 1., max( rust, mud ) ) ) );
+
+    	} ).ElseIf( m.equal( 59 ), () => {
+
+    		// 海上平台的塗漆鋼（21-rig.js）：環氧面漆的半光、細橘皮；掉漆、鏽、鹽、焊縫在後面的做舊（59–63 共用）
+    		alb.mulAssign( add( .95, mul( .1, n3( p.mul( 9. ) ) ).mul( kxAA( uv.mul( 9. ) ) ) ) );
+    		rough.assign( .5 );
+    		metal.assign( .08 );
+    		envK.assign( .2 );
+
+    	} ).ElseIf( m.equal( 60 ), () => {
+
+    		// 導管架與浪花帶（21-rig.js；p 是世界座標，海面 y −1.6，浪頂到 +3）：水線附近一圈海藻、藤壺、貽貝，濕滑
+    		rough.assign( .55 );
+    		metal.assign( .08 );
+    		envK.assign( .15 );
+    		const wl = add( .6, fbm3( p.mul( .55 ) ).mul( 1.8 ) ).toVar();
+    		const gr = sub( 1., smoothstep( wl.sub( .9 ), wl, p.y ) ).toVar();
+    		const alg = mix( vec3( .03, .045, .028 ), vec3( .075, .09, .035 ), fbm3( p.mul( 3.1 ) ) ).toVar();
+    		const mus = smoothstep( .52, .66, fbm3( p.mul( 4.3 ).add( 6. ) ) ).mul( sub( 1., smoothstep( wl.sub( 1.6 ), wl.sub( .5 ), p.y ) ) ).toVar();
+    		const bq = uv.mul( 5.5 ).toVar(), bi = floor( bq ).toVar(), bf = fract( bq ).sub( .5 ).toVar(), bh = h21( bi.add( 2.3 ) ).toVar();
+    		const bo = vec2( h21( bi.add( 7.1 ) ), h21( bi.add( 3.9 ) ) ).sub( .5 ).mul( .3 ).toVar(), bd = length( bf.sub( bo ) ).toVar(), br = mix( .2, .34, bh ).toVar();
+    		const barn = sub( 1., smoothstep( br.mul( .7 ), br, bd ) ).mul( step( .35, bh ) ).mul( kxAA( bq ) ).toVar();
+    		const bcol = vec3( .46, .45, .41 ).mul( add( .55, mul( .45, smoothstep( br.mul( .15 ), br.mul( .45 ), bd ) ) ) ).toVar();
+    		alb.assign( mix( alb, alg, gr.mul( .92 ) ) );
+    		alb.assign( mix( alb, vec3( .018, .022, .03 ), mus.mul( .9 ) ) );
+    		alb.assign( mix( alb, bcol, barn.mul( gr ).mul( sub( 1., mus ) ).mul( .85 ) ) );
+    		rough.assign( mix( rough, mix( .32, .7, barn ), gr ) );
+    		envK.assign( mix( envK, .3, gr.mul( sub( 1., barn ) ) ) );
+
+    	} ).ElseIf( m.equal( 61 ), () => {
+
+    		// 甲板鋼板（21-rig.js）：頂面是防滑花紋板（3.2 cm 一格、斜向交錯的凸條）、2.4×1.2 m 的板縫、走出來的磨亮路徑、油漬、下雨時的積水；側面當一般鋼板
+    		rough.assign( .62 );
+    		metal.assign( .3 );
+    		envK.assign( .18 );
+    		If( up.greaterThan( .5 ), () => {
+
+    			const q = p.xz.div( .032 ).toVar(), qi = floor( q ).toVar(), qf = fract( q ).sub( .5 ).toVar();
+    			const dg = select( mod( qi.x.add( qi.y ), 2. ).lessThan( .5 ), qf.x.add( qf.y ), qf.x.sub( qf.y ) ).toVar();
+    			const tread = sub( 1., smoothstep( .07, .16, abs( dg ) ) ).mul( sub( 1., smoothstep( .3, .44, max( abs( qf.x ), abs( qf.y ) ) ) ) ).mul( kxAA( q ) ).toVar();
+    			alb.mulAssign( add( .86, mul( .3, tread ) ) );
+    			const ps = p.xz.div( vec2( 2.4, 1.2 ) ).toVar(), pd = min( abs( fract( ps.x.add( .5 ) ).sub( .5 ) ).mul( 2.4 ), abs( fract( ps.y.add( .5 ) ).sub( .5 ) ).mul( 1.2 ) ).toVar();
+    			const seam = sub( 1., smoothstep( .008, .025, pd ) ).mul( kxAA( p.xz.mul( 6. ) ) ).toVar();
+    			alb.mulAssign( add( .92, mul( .16, h21( floor( ps ).add( sd ) ) ) ).mul( sub( 1., mul( .5, seam ) ) ) );
+    			const wear = smoothstep( .52, .7, fbm3( vec3( p.x.mul( .22 ), 1.7, p.z.mul( .22 ) ) ) ).mul( add( .6, mul( .4, n3( p.mul( 3. ) ) ) ) ).toVar();
+    			alb.assign( mix( alb, vec3( .3, .29, .28 ).mul( add( .85, mul( .3, tread ) ) ), wear.mul( .75 ) ) );
+    			metal.assign( mix( metal, .75, wear ) );
+    			rough.assign( mix( rough, .34, wear ) );
+    			const oil = smoothstep( .64, .74, fbm3( vec3( p.x.mul( .8 ), 4.1, p.z.mul( .8 ) ) ).mul( .7 ).add( n3( p.mul( 2.3 ) ).mul( .3 ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .6, oil ) ) );
+    			rough.assign( mix( rough, .22, oil ) );
+    			envK.assign( mix( envK, .4, oil ) );
+    			const pud = smoothstep( .5, .62, fbm3( vec3( p.x.mul( .35 ), 9.3, p.z.mul( .35 ) ) ) ).mul( smoothstep( .1, .6, uWet ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .3, pud ) ) );
+    			rough.assign( mix( rough, .06, pud ) );
+    			envK.assign( mix( envK, .85, pud ) );
+
+    		} );
 
     	} ).Else( () => {
 
     		alb.assign( mix( alb, vec3( .075, .072, .068 ), mul( .3, fbm3( p.mul( 4. ) ) ).add( mul( .25, up ) ) ) );
     		alb.mulAssign( add( .88, mul( .2, n2( uv.mul( 60. ) ) ).mul( kxAA( uv.mul( 60. ) ) ) ) );
     		rough.assign( .78 );
+
+    	} );
+
+    	// 海上平台的做舊（59–63，21-rig.js；p 是世界座標）：大片褪色與白化、補漆的色塊、每 2.5 m 的橫焊縫與 3 m 的直焊縫、
+    	// 焊縫往下流的鏽水、鏽斑與鏽暈、掉漆露出紅丹底漆、底面與浪花帶的鹽霜、頂面的油污、浪花帶的濕暗
+    	If( m.greaterThanEqual( 59 ).and( m.lessThanEqual( 63 ) ), () => {
+
+    		const sz = sub( 1., smoothstep( 1.5, 11., p.y ) ).toVar(), dn = sub( 1., smoothstep( -0.85, -0.4, n.y ) ).toVar();
+    		const aw = sub( 1., smoothstep( .02, .08, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar();
+    		alb.mulAssign( add( .8, mul( .34, fbm3( p.mul( .31 ).add( 4. ) ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .78 ).add( vec3( .06, .06, .055 ) ), up.mul( .4 ) ) );
+		alb.assign( mix( alb, alb.mul( .6 ).add( vec3( .035, .03, .025 ) ), add( .2, mul( .34, fbm3( p.mul( .5 ).add( 2. ) ) ) ) ) );
+		const gs = kxStreak( p, uv, 1.6 ).mul( vert ).toVar();
+		alb.assign( mix( alb, alb.mul( vec3( .5, .46, .42 ) ), gs.mul( .5 ) ) );
+    		const rp = vec2( uv.x, p.y ).add( vec2( fbm3( p.mul( .8 ) ), fbm3( p.mul( .8 ).add( 5. ) ) ).sub( .5 ).mul( 1.4 ) ).toVar();
+    		const ri = floor( rp.div( vec2( 1.9, 1.3 ) ) ).toVar();
+    		const pm = step( .82, h21( ri.add( sd.mul( 3.1 ) ).add( 1.7 ) ) ).mul( vert ).toVar();
+    		alb.assign( mix( alb, alb.mul( mix( vec3( 1.12, 1.07, .95 ), vec3( .84, .88, .92 ), h21( ri.add( 9.1 ) ) ) ), pm.mul( .85 ) ) );
+    		const sy = fract( p.y.div( 2.5 ) ).toVar(), dy = abs( sy.sub( .5 ) ).mul( -2.5 ).add( 1.25 ).toVar(), dx = abs( fract( uv.x.div( 3. ).add( .5 ) ).sub( .5 ) ).mul( 3. ).toVar();
+    		const weld = sub( 1., smoothstep( .012, .035, min( dy, dx ) ) ).mul( vert ).mul( aw ).toVar();
+    		alb.mulAssign( sub( 1., mul( .35, weld ) ) );
+    		const db = sub( 1., sy ).mul( 2.5 ).toVar(), lane = floor( p.y.div( 2.5 ) ).toVar();
+    		const col = smoothstep( .5, .82, fbm( vec2( uv.x.mul( 2.7 ).add( lane.mul( 3.7 ) ), p.y.mul( .07 ) ) ) ).mul( add( .55, mul( .45, n2( vec2( uv.x.mul( 19. ), p.y.mul( 1.3 ) ) ) ) ) ).toVar();
+    		const run = col.mul( exp( db.mul( mix( 1.6, .45, h21( vec2( floor( uv.x.mul( 1.3 ) ), lane ) ) ) ).negate() ) ).mul( vert ).toVar();
+    		const strk = clamp( run.mul( 1.9 ).add( kxStreak( p, uv, 3.2 ).mul( .45 ) ).add( sz.mul( vert ).mul( .25 ).mul( fbm( vec2( uv.x.mul( 5. ), p.y.mul( .4 ) ) ) ) ), 0., 1. ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .6, .36, .21 ) ).add( vec3( .03, .011, .0 ) ), strk.mul( .8 ) ) );
+    		const r = fbm3( p.mul( 1.7 ).add( 3. ) ).mul( .78 ).add( mul( .22, n3( p.mul( 13. ) ) ) ).add( weld.mul( .3 ) ).add( sz.mul( .3 ) ).add( dn.mul( .03 ) ).sub( up.mul( .08 ) ).toVar();
+    		const rust = smoothstep( .7, .8, r ).toVar(), halo = smoothstep( .58, .7, r ).sub( rust ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .74, .58, .44 ) ), halo.mul( .75 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .15, .065, .028 ), vec3( .3, .13, .05 ), n3( p.mul( 29. ) ) ), rust.mul( .92 ) ) );
+    		const chip = step( .78, n3( p.mul( 23. ) ).mul( .6 ).add( n3( p.mul( 57. ).add( 2. ) ).mul( .4 ) ).add( sz.mul( .08 ) ) ).mul( aw ).mul( sub( 1., rust ) ).mul( sub( 1., up.mul( .8 ) ) ).mul( sub( 1., dn.mul( .6 ) ) ).toVar();
+    		alb.assign( mix( alb, mix( vec3( .3, .11, .065 ), vec3( .34, .33, .31 ), step( .5, n3( p.mul( 7. ) ) ) ), chip.mul( .85 ) ) );
+    		const salt = smoothstep( .5, .78, fbm3( p.mul( 2.4 ).add( 1. ) ) ).mul( clamp( dn.mul( .7 ).add( sz.mul( .8 ) ), 0., 1. ) ).toVar();
+    		alb.assign( mix( alb, vec3( .55, .56, .53 ), salt.mul( .45 ) ) );
+    		const grime = up.mul( smoothstep( .42, .72, fbm3( p.mul( 1.3 ).add( 8. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .055, .05, .045 ), grime.mul( .45 ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, sz ).mul( add( .4, mul( .6, smoothstep( .5, .9, fbm( vec2( uv.x.mul( .8 ), p.y.mul( .9 ) ) ) ) ) ) ) ) );
+    		rough.assign( mix( mix( rough, .93, max( rust, mul( .6, salt ) ) ), .3, sz.mul( .5 ).mul( sub( 1., rust ) ) ) );
+    		metal.mulAssign( sub( 1., rust ) );
+    		envK.mulAssign( sub( 1., rust ).mul( sub( 1., mul( .5, salt ) ) ) );
 
     	} );
 
@@ -1596,7 +2083,7 @@ export default {
 },
 "{}": {
   h: "zkqtnpvsb", fog: true, lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
-  uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
+  uniforms: [{"name":"uM","type":"vec4","src":"uM"},{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uVilA","type":"sampler2DArray","src":"uVilA"},{"name":"uVilN","type":"sampler2DArray","src":"uVilN"},{"name":"uVil","type":"vec4","src":"uVil"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAHMap","type":"sampler2D","src":"uAHMap"},{"name":"uAHM","type":"vec4","src":"uAHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vP","type":"vec3","src":"vP"},{"name":"vNo","type":"vec3","src":"vNo"},{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vCol","type":"vec3","src":"vCol"},{"name":"vMat","type":"float","src":"vMat"},{"name":"vIns","type":"vec4","src":"vIns"}],
   attributes: [{"name":"color","type":"vec3","src":"color"},{"name":"aMat","type":"float","src":"aMat"}],
   vertex: (TSL, E) => {
@@ -1634,6 +2121,7 @@ export default {
 
 
 
+    const AI = airInt( TSL, E );
     const kxAA =  Fn( ( [ q ] ) => {
 
     	return sub( 1., smoothstep( .25, .7, max( fwidth( q.x ), fwidth( q.y ) ) ) );
@@ -1801,6 +2289,37 @@ export default {
 
     } );
 
+    // 帷幕玻璃上的雨（材質 53／54／56，航廈與空橋）：下雨時一條條往下流的水痕（18 cm 一欄，亂數決定有沒有水、寬度、彎曲與流速；水頭在下、往上拖淡），
+    // 玻璃濕的時候留著靜止的水珠。水底下的室內光壓暗一半，水珠下緣與水痕帶一點亮（像透鏡收到上方的光）。座標是玻璃面上的（水平切線 × 世界高度），
+    // 格子比像素小、60 m 外或面不是直立的時候淡掉
+    const glassRain = ( e, n ) => {
+    	const h1 = ( x ) => { const t = fract( x.mul( .1031 ) ).toVar(); t.mulAssign( t.add( 33.33 ) ); t.mulAssign( t.add( t ) ); return fract( t ); };
+    	const q = vW.xz.sub( uAirA.xy ).toVar();
+    	const u = dot( q, vec2( n.z, n.x.negate() ) ).toVar(), y = vW.y.toVar();
+    	const fw = max( fwidth( u ), fwidth( y ) ).toVar();
+    	const fade = sub( 1., smoothstep( .03, .09, fw ) ).mul( sub( 1., smoothstep( 35., 60., length( uCam.sub( vW ) ) ) ) ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	const cu = u.div( .18 ).toVar(), ci = floor( cu ).toVar(), cf = fract( cu ).sub( .5 ).toVar();
+    	const ha = h1( ci ).toVar(), hb = h1( ci.add( 71.3 ) ).toVar();
+    	const wig = sin( y.mul( 5.3 ).add( ha.mul( 40. ) ) ).mul( .14 ).add( sin( y.mul( 17. ).add( hb.mul( 20. ) ) ).mul( .05 ) ).toVar();
+    	const w = mix( .08, .22, hb ).toVar();
+    	const ln = smoothstep( w, w.mul( .35 ), abs( cf.sub( wig ) ) ).mul( step( .6, ha ) ).toVar();
+    	const s = fract( y.mul( mix( .12, .3, ha ) ).add( uTime.mul( mix( .15, .45, hb ) ) ).add( hb.mul( 9. ) ) ).toVar();
+    	const riv = ln.mul( smoothstep( 0., .03, s ) ).mul( mix( 1., .2, s ) ).mul( uRain ).mul( fade ).toVar();
+    	const g = vec2( u, y ).div( .09 ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).sub( .5 ).toVar();
+    	const hd = h1( gi.x.add( gi.y.mul( 157.1 ) ) ).toVar();
+    	const off = vec2( h1( hd.mul( 91.7 ) ), h1( hd.mul( 37.3 ) ) ).sub( .5 ).mul( .45 ).toVar();
+    	const rd = mix( .12, .3, h1( hd.mul( 13.1 ) ) ).toVar();
+    	const drop = smoothstep( rd, rd.mul( .6 ), length( gf.sub( off ) ) ).mul( step( .74, hd ) ).mul( smoothstep( .1, .5, uWet ) ).mul( fade ).toVar();
+    	const lens = drop.mul( smoothstep( .0, -.25, gf.y.sub( off.y ) ) ).add( riv.mul( .3 ) ).toVar();
+    	// 整片的水膜：低頻、慢慢往下流的起伏，讓後面的室內光一明一暗（遠處也看得到，不必反鋸齒）
+    	const film = sin( u.mul( 3.1 ).add( sin( y.mul( 1.7 ).add( uTime.mul( .8 ) ) ).mul( 1.5 ) ) ).mul( sin( y.mul( .9 ).add( uTime.mul( 1.2 ) ).add( u.mul( .7 ) ) ) ).mul( .14 ).mul( uRain ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	// 中距離的水簾：15 cm 一道、左右擺動的直條，亮暗沿著往下流（25 m 外還看得出是在下雨的玻璃）
+    	const sh = smoothstep( .55, 1., sin( u.mul( 40. ).add( sin( y.mul( 2.3 ).add( h1( floor( u.mul( 6.37 ) ) ).mul( 6. ) ) ).mul( 1.2 ) ) ) ).toVar();
+    	const sheet = sh.mul( add( .5, sin( y.mul( 1.3 ).add( uTime.mul( 2.5 ) ).add( u.mul( 5. ) ) ).mul( .5 ) ) ).mul( uRain ).mul( sub( 1., smoothstep( .04, .1, fw ) ) ).mul( smoothstep( .4, .15, abs( n.y ) ) ).toVar();
+    	lens.addAssign( sheet.mul( .12 ) );
+    	return e.mul( add( 1., film ) ).mul( sub( 1., max( max( riv, drop ), sheet.mul( .7 ) ).mul( .5 ) ) ).add( vec3( .5, .55, .6 ).mul( uDay.mul( .25 ).add( uLamp.mul( .05 ) ) ).add( e.mul( 1.5 ) ).mul( lens ) );
+    };
+
     const texMat =  Fn( ( [ m, p, n, io ] ) => {
 
     	const alb = io[ 0 ].toVar();
@@ -1836,7 +2355,7 @@ export default {
     		metal.assign( mix( .45, .05, rust ) );
     		envK.assign( mul( .28, sub( 1., rust ) ) );
 
-    	} ).ElseIf( m.equal( 22 ), () => {
+    	} ).ElseIf( m.equal( 22 ).or( m.equal( 63 ) ), () => {
 
     		const sp = h21( floor( uv.mul( 16. ) ) ).toVar(), d = fbm3( p.mul( 1.3 ).add( 3. ) ).toVar();
     		alb.mulAssign( add( .84, mul( .3, sp ).mul( kxAA( uv.mul( 16. ) ) ) ).mul( add( .78, mul( .36, d ) ) ) );
@@ -1907,6 +2426,39 @@ export default {
     		rough.assign( mix( .6, .4, chip ) );
     		metal.assign( mix( .05, .8, chip ) );
     		envK.assign( mix( .12, .4, chip ) );
+
+    	} ).ElseIf( m.equal( 30 ), () => {
+
+    		// 30 橡膠、粗塑膠（2026-11-02 補上：原本沒有這一支，畫成素色）：細顆粒、朝上的面一層灰、霧面
+    		alb.mulAssign( add( .86, mul( .24, n3( p.mul( 70. ) ) ).mul( kxAA( uv.mul( 70. ) ) ) ).mul( add( .9, mul( .16, fbm3( p.mul( 1.7 ) ) ) ) ) );
+    		alb.assign( mix( alb, alb.add( vec3( .03, .028, .025 ) ), up.mul( .6 ) ) );
+    		rough.assign( .9 );
+    		envK.assign( .04 );
+
+    	} ).ElseIf( m.equal( 52 ), () => {
+
+    		// 52 間知石（2026-11-02，雲梯城寨擋土牆，參考圖的不規則石塊與青苔）：uv 上 34 × 27 cm 的抖動格子取 Voronoi，F2 − F1 是離石縫多遠；
+    		// 石縫 2 cm 暗、往內凹，石面中間凸（邊緣暗一點），每塊石頭亮度與色相各取一個雜湊；石縫與朝上、靠下的地方長青苔，牆面有雨水的垂流
+    		const cs = vec2( .34, .27 ), g = uv.div( cs ).toVar(), gi = floor( g ).toVar(), gf = fract( g ).toVar();
+    		const d1 = float( 9. ).toVar(), d2 = float( 9. ).toVar(), cid = vec2( 0. ).toVar();
+    		for ( let i = - 1; i <= 1; i ++ ) for ( let j = - 1; j <= 1; j ++ ) {
+    			const o = vec2( i, j ), c = gi.add( o ), r = vec2( h21( c ), h21( c.add( 17.3 ) ) );
+    			const d = length( o.add( .12 ).add( r.mul( .76 ) ).sub( gf ).mul( cs ) );
+    			d2.assign( select( d.lessThan( d1 ), d1, min( d2, d ) ) );
+    			cid.assign( select( d.lessThan( d1 ), c, cid ) );
+    			d1.assign( min( d1, d ) );
+    		}
+    		const edge = d2.sub( d1 ).toVar(), bv = h21( cid.add( 3.7 ) ).toVar();
+    		const mort = sub( 1., smoothstep( .012, .026, edge ) ).toVar();
+    		const stone = vec3( 1. ).mul( add( .72, mul( .4, bv ) ) ).mul( mix( vec3( 1.04, 1., .94 ), vec3( .95, .98, 1.04 ), h21( cid.add( 9.1 ) ) ) ).toVar();
+    		stone.mulAssign( mix( .72, 1., smoothstep( .02, .09, edge ) ) );
+    		stone.mulAssign( add( .86, mul( .26, n3( p.mul( 19. ) ) ).mul( kxAA( uv.mul( 19. ) ) ) ) );
+    		alb.assign( alb.mul( mix( stone, vec3( .42, .4, .37 ), mort ) ) );
+    		const moss = smoothstep( .5, .75, fbm3( p.mul( 1.3 ).add( 11. ) ).add( mort.mul( .25 ) ).add( up.mul( .2 ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .07, .1, .035 ), moss.mul( .75 ) ) );
+    		alb.mulAssign( sub( 1., mul( .25, vert ).mul( smoothstep( .6, .9, fbm3( vec3( uv.x.mul( 6. ), p.y.mul( .4 ), 1.7 ) ) ) ) ) );
+    		rough.assign( mix( .82, .95, min( mort.add( moss ), 1. ) ) );
+    		envK.assign( .05 );
 
     	} ).ElseIf( m.equal( 31 ), () => {
 
@@ -2186,20 +2738,196 @@ export default {
     		envK.assign( 1. );
     		emi.assign( tint.mul( on ).mul( lit ).mul( uLampOn ).mul( add( .2, mul( .18, h21( id.add( 8.3 ) ) ) ) ) );
 
+    	} ).ElseIf( m.equal( 55 ).or( m.equal( 62 ) ), () => {
+
+    		// 波浪鋼板（機庫外牆、空橋的裙板；blender/airbld.py）：0.2 m 一道的梯形肋（受光的斜面亮、背光的斜面暗、溝底一條陰影），
+    		// 1.2 m 一片的色差、片與片的搭接縫、往下的雨痕與牆腳的髒污、零星的鏽點
+    		const q = uv.x.div( .2 ).toVar(), f = fract( q ).toVar(), aa = kxAA( vec2( q, 1. ) ).mul( vert ).toVar();
+    		const rib = smoothstep( .0, .1, f ).mul( smoothstep( .5, .4, f ) ).toVar(), dk = smoothstep( .5, .56, f ).mul( smoothstep( .78, .66, f ) ).toVar();
+    		alb.mulAssign( mix( 1., add( .8, mul( .28, rib ) ).sub( mul( .22, dk ) ), aa ) );
+    		const pn = floor( uv.x.div( 1.2 ) ).toVar();
+    		alb.mulAssign( add( .93, mul( .12, h21( vec2( pn, sd.add( 3.7 ) ) ) ) ).mul( mix( 1., sub( 1., mul( .35, kxAA( uv.mul( 2. ) ) ) ), vert.mul( step( .985, fract( uv.x.div( 1.2 ) ) ) ) ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, vert ).mul( kxStreak( p, uv, 3.5 ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .55 ).mul( vec3( .9, .85, .78 ) ), sub( 1., smoothstep( .0, 1.2, p.y ) ).mul( vert ).mul( .55 ) ) );
+    		const rs = smoothstep( .74, .86, fbm3( p.mul( 1.9 ).add( 8. ) ) ).mul( step( .55, n3( p.mul( 17. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .2, .1, .05 ), rs.mul( .6 ) ) );
+    		rough.assign( mix( .42, .75, rs ) );
+    		metal.assign( mix( .45, .1, rs ) );
+    		envK.assign( mul( .18, rib ).mul( sub( 1., rs ) ) );
+
+    	} ).ElseIf( m.equal( 53 ), () => {
+
+    		// 航廈的帷幕玻璃（blender/airbld.py）：玻璃後面的大廳由 air-int.mjs 算（interior mapping：地板、夾層、店面、座椅、人、天花燈帶），
+    		// 白天看得到裡面、入夜是暖白的燈；420 m 外（隔著海的遠景）只剩平均的亮度
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .9, .74 ).mul( uLamp.mul( .2 ) ).add( vec3( .06, .07, .08 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 420. ), () => { emi.assign( mix( AI.hall( p, n, vW ), far, smoothstep( 300., 420., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
+    	} ).ElseIf( m.equal( 56 ), () => {
+
+    		// 第二航廈 T2 的帷幕玻璃（blender/airbld.py 的 term2）：和 53 一樣，大廳是 air-int.mjs 的 hall2（空側出境大廳挑高、陸側入境大廳有夾層）
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .9, .74 ).mul( uLamp.mul( .2 ) ).add( vec3( .06, .07, .08 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 420. ), () => { emi.assign( mix( AI.hall2( p, n, vW ), far, smoothstep( 300., 420., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
+    	} ).ElseIf( m.equal( 54 ), () => {
+
+    		// 機場的小房間玻璃（blender/airbld.py）：空橋通道、塔台基座、機庫工作間，房間由 air-int.mjs 算；260 m 外只剩平均的亮度
+    		alb.assign( vec3( .02, .026, .032 ) );
+    		rough.assign( .04 );
+    		metal.assign( 0. );
+    		envK.assign( 1. );
+    		const dc = length( uCam.sub( vW ) ).toVar(), far = vec3( 1., .95, .86 ).mul( uLamp.mul( .16 ) ).add( vec3( .05, .055, .06 ).mul( uDay ) ).toVar();
+    		emi.assign( far );
+    		If( dc.lessThan( 260. ), () => { emi.assign( mix( AI.room( p, n, vW ), far, smoothstep( 180., 260., dc ) ) ); } );
+    		emi.assign( glassRain( emi, n ) );
+
     	} ).ElseIf( m.equal( 49 ), () => {
 
     		const g = fract( p.xz.div( 1.6 ) ).sub( .5 ).toVar();
     		const d = length( g ).mul( 1.6 ).toVar(), dn = step( n.y, -0.5 ).toVar();
-    		const dotL = smoothstep( .075, .055, d ).mul( dn ).toVar(), halo = exp( d.negate().mul( d ).mul( 3. ) ).mul( dn ).toVar();
+    		// 低角度看時一個像素蓋好幾格：點與光暈照像素的足跡（公尺）淡成整格的平均（點 ≈ 0.005、光暈 ≈ 0.4），不然遠處是同心圓的疊紋
+    		const fw = max( fwidth( p.x ), fwidth( p.z ) ).toVar();
+    		const dotL = mix( smoothstep( .075, .055, d ), .005, smoothstep( .012, .04, fw ) ).mul( dn ).toVar(), halo = mix( exp( d.negate().mul( d ).mul( 3. ) ), .4, smoothstep( .12, .45, fw ) ).mul( dn ).toVar();
     		alb.mulAssign( add( .9, mul( .1, fbm3( p.mul( 2. ) ) ) ).sub( mul( .25, dotL ) ) );
     		rough.assign( .9 );
     		emi.assign( vec3( 1., .78, .52 ).mul( dotL.mul( 2.6 ).add( halo.mul( .22 ) ) ).mul( uLampOn ) );
+
+    	} ).ElseIf( m.equal( 57 ), () => {
+
+    		// 內照式標誌牌（blender/airbld.py 的滑行道指示牌）：白天是頂點色的壓克力面板，入夜裡面的燈管把面板打亮
+    		rough.assign( .3 );
+    		emi.assign( alb.mul( uLampOn.mul( .6 ) ) );
+
+    	} ).ElseIf( m.equal( 58 ), () => {
+
+    		// 地勤車的烤漆（blender/airgse.py 的 m58_*；p 是世界座標，機場地面 y ≈ 0）：大片髒污的深淺、細碎掉漆露出灰底漆、零星鏽斑、
+    		// 離地 1.3 m 內往下變濃的濺泥（只在直立面；車身下緣約離地 0.5 m）、頂面積灰；掉漆與鏽的細節照世界座標的像素足跡在遠處淡掉（kxAA 的 uv 在車身上變化太快，近處也會被淡掉）
+    		const aa = sub( 1., smoothstep( .015, .05, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar(), low = smoothstep( 1.3, .25, p.y ).toVar(), patch = fbm3( p.mul( 1.2 ) ).sub( .5 ).toVar();
+    		const chip = smoothstep( .69, .73, n3( p.mul( 13. ) ).mul( .55 ).add( n3( p.mul( 31. ).add( 3. ) ).mul( .45 ) ).add( patch.mul( .5 ) ).add( low.mul( .08 ) ) ).mul( aa ).toVar();
+    		const rust = smoothstep( .7, .76, n3( p.mul( 7.3 ).add( 11. ) ).mul( .6 ).add( n3( p.mul( 19. ) ).mul( .4 ) ).add( patch.mul( .4 ) ).add( low.mul( .12 ) ) ).mul( aa ).toVar();
+    		alb.mulAssign( add( .86, mul( .22, fbm3( p.mul( 1.1 ) ) ) ) );
+    		alb.assign( mix( alb, vec3( .16, .16, .155 ), chip.mul( .85 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .12, .055, .025 ), vec3( .2, .1, .045 ), n3( p.mul( 27. ) ) ), rust.mul( .8 ) ) );
+    		const mud = vert.mul( low ).mul( smoothstep( .35, .6, fbm3( vec3( p.x.mul( 2.2 ), p.y.mul( 6. ), p.z.mul( 2.2 ) ) ).add( low.mul( .25 ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .05, .042, .03 ), mud.mul( .85 ) ) );
+    		alb.assign( mix( alb, alb.mul( vec3( .9, .88, .84 ) ).add( .02 ), up.mul( .5 ) ) );
+    		rough.assign( mix( .42, .9, max( max( chip, rust ), mud ) ) );
+    		envK.assign( mul( .25, sub( 1., max( rust, mud ) ) ) );
+
+    	} ).ElseIf( m.equal( 59 ), () => {
+
+    		// 海上平台的塗漆鋼（21-rig.js）：環氧面漆的半光、細橘皮；掉漆、鏽、鹽、焊縫在後面的做舊（59–63 共用）
+    		alb.mulAssign( add( .95, mul( .1, n3( p.mul( 9. ) ) ).mul( kxAA( uv.mul( 9. ) ) ) ) );
+    		rough.assign( .5 );
+    		metal.assign( .08 );
+    		envK.assign( .2 );
+
+    	} ).ElseIf( m.equal( 60 ), () => {
+
+    		// 導管架與浪花帶（21-rig.js；p 是世界座標，海面 y −1.6，浪頂到 +3）：水線附近一圈海藻、藤壺、貽貝，濕滑
+    		rough.assign( .55 );
+    		metal.assign( .08 );
+    		envK.assign( .15 );
+    		const wl = add( .6, fbm3( p.mul( .55 ) ).mul( 1.8 ) ).toVar();
+    		const gr = sub( 1., smoothstep( wl.sub( .9 ), wl, p.y ) ).toVar();
+    		const alg = mix( vec3( .03, .045, .028 ), vec3( .075, .09, .035 ), fbm3( p.mul( 3.1 ) ) ).toVar();
+    		const mus = smoothstep( .52, .66, fbm3( p.mul( 4.3 ).add( 6. ) ) ).mul( sub( 1., smoothstep( wl.sub( 1.6 ), wl.sub( .5 ), p.y ) ) ).toVar();
+    		const bq = uv.mul( 5.5 ).toVar(), bi = floor( bq ).toVar(), bf = fract( bq ).sub( .5 ).toVar(), bh = h21( bi.add( 2.3 ) ).toVar();
+    		const bo = vec2( h21( bi.add( 7.1 ) ), h21( bi.add( 3.9 ) ) ).sub( .5 ).mul( .3 ).toVar(), bd = length( bf.sub( bo ) ).toVar(), br = mix( .2, .34, bh ).toVar();
+    		const barn = sub( 1., smoothstep( br.mul( .7 ), br, bd ) ).mul( step( .35, bh ) ).mul( kxAA( bq ) ).toVar();
+    		const bcol = vec3( .46, .45, .41 ).mul( add( .55, mul( .45, smoothstep( br.mul( .15 ), br.mul( .45 ), bd ) ) ) ).toVar();
+    		alb.assign( mix( alb, alg, gr.mul( .92 ) ) );
+    		alb.assign( mix( alb, vec3( .018, .022, .03 ), mus.mul( .9 ) ) );
+    		alb.assign( mix( alb, bcol, barn.mul( gr ).mul( sub( 1., mus ) ).mul( .85 ) ) );
+    		rough.assign( mix( rough, mix( .32, .7, barn ), gr ) );
+    		envK.assign( mix( envK, .3, gr.mul( sub( 1., barn ) ) ) );
+
+    	} ).ElseIf( m.equal( 61 ), () => {
+
+    		// 甲板鋼板（21-rig.js）：頂面是防滑花紋板（3.2 cm 一格、斜向交錯的凸條）、2.4×1.2 m 的板縫、走出來的磨亮路徑、油漬、下雨時的積水；側面當一般鋼板
+    		rough.assign( .62 );
+    		metal.assign( .3 );
+    		envK.assign( .18 );
+    		If( up.greaterThan( .5 ), () => {
+
+    			const q = p.xz.div( .032 ).toVar(), qi = floor( q ).toVar(), qf = fract( q ).sub( .5 ).toVar();
+    			const dg = select( mod( qi.x.add( qi.y ), 2. ).lessThan( .5 ), qf.x.add( qf.y ), qf.x.sub( qf.y ) ).toVar();
+    			const tread = sub( 1., smoothstep( .07, .16, abs( dg ) ) ).mul( sub( 1., smoothstep( .3, .44, max( abs( qf.x ), abs( qf.y ) ) ) ) ).mul( kxAA( q ) ).toVar();
+    			alb.mulAssign( add( .86, mul( .3, tread ) ) );
+    			const ps = p.xz.div( vec2( 2.4, 1.2 ) ).toVar(), pd = min( abs( fract( ps.x.add( .5 ) ).sub( .5 ) ).mul( 2.4 ), abs( fract( ps.y.add( .5 ) ).sub( .5 ) ).mul( 1.2 ) ).toVar();
+    			const seam = sub( 1., smoothstep( .008, .025, pd ) ).mul( kxAA( p.xz.mul( 6. ) ) ).toVar();
+    			alb.mulAssign( add( .92, mul( .16, h21( floor( ps ).add( sd ) ) ) ).mul( sub( 1., mul( .5, seam ) ) ) );
+    			const wear = smoothstep( .52, .7, fbm3( vec3( p.x.mul( .22 ), 1.7, p.z.mul( .22 ) ) ) ).mul( add( .6, mul( .4, n3( p.mul( 3. ) ) ) ) ).toVar();
+    			alb.assign( mix( alb, vec3( .3, .29, .28 ).mul( add( .85, mul( .3, tread ) ) ), wear.mul( .75 ) ) );
+    			metal.assign( mix( metal, .75, wear ) );
+    			rough.assign( mix( rough, .34, wear ) );
+    			const oil = smoothstep( .64, .74, fbm3( vec3( p.x.mul( .8 ), 4.1, p.z.mul( .8 ) ) ).mul( .7 ).add( n3( p.mul( 2.3 ) ).mul( .3 ) ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .6, oil ) ) );
+    			rough.assign( mix( rough, .22, oil ) );
+    			envK.assign( mix( envK, .4, oil ) );
+    			const pud = smoothstep( .5, .62, fbm3( vec3( p.x.mul( .35 ), 9.3, p.z.mul( .35 ) ) ) ).mul( smoothstep( .1, .6, uWet ) ).toVar();
+    			alb.mulAssign( sub( 1., mul( .3, pud ) ) );
+    			rough.assign( mix( rough, .06, pud ) );
+    			envK.assign( mix( envK, .85, pud ) );
+
+    		} );
 
     	} ).Else( () => {
 
     		alb.assign( mix( alb, vec3( .075, .072, .068 ), mul( .3, fbm3( p.mul( 4. ) ) ).add( mul( .25, up ) ) ) );
     		alb.mulAssign( add( .88, mul( .2, n2( uv.mul( 60. ) ) ).mul( kxAA( uv.mul( 60. ) ) ) ) );
     		rough.assign( .78 );
+
+    	} );
+
+    	// 海上平台的做舊（59–63，21-rig.js；p 是世界座標）：大片褪色與白化、補漆的色塊、每 2.5 m 的橫焊縫與 3 m 的直焊縫、
+    	// 焊縫往下流的鏽水、鏽斑與鏽暈、掉漆露出紅丹底漆、底面與浪花帶的鹽霜、頂面的油污、浪花帶的濕暗
+    	If( m.greaterThanEqual( 59 ).and( m.lessThanEqual( 63 ) ), () => {
+
+    		const sz = sub( 1., smoothstep( 1.5, 11., p.y ) ).toVar(), dn = sub( 1., smoothstep( -0.85, -0.4, n.y ) ).toVar();
+    		const aw = sub( 1., smoothstep( .02, .08, max( max( fwidth( p.x ), fwidth( p.y ) ), fwidth( p.z ) ) ) ).toVar();
+    		alb.mulAssign( add( .8, mul( .34, fbm3( p.mul( .31 ).add( 4. ) ) ) ) );
+    		alb.assign( mix( alb, alb.mul( .78 ).add( vec3( .06, .06, .055 ) ), up.mul( .4 ) ) );
+		alb.assign( mix( alb, alb.mul( .6 ).add( vec3( .035, .03, .025 ) ), add( .2, mul( .34, fbm3( p.mul( .5 ).add( 2. ) ) ) ) ) );
+		const gs = kxStreak( p, uv, 1.6 ).mul( vert ).toVar();
+		alb.assign( mix( alb, alb.mul( vec3( .5, .46, .42 ) ), gs.mul( .5 ) ) );
+    		const rp = vec2( uv.x, p.y ).add( vec2( fbm3( p.mul( .8 ) ), fbm3( p.mul( .8 ).add( 5. ) ) ).sub( .5 ).mul( 1.4 ) ).toVar();
+    		const ri = floor( rp.div( vec2( 1.9, 1.3 ) ) ).toVar();
+    		const pm = step( .82, h21( ri.add( sd.mul( 3.1 ) ).add( 1.7 ) ) ).mul( vert ).toVar();
+    		alb.assign( mix( alb, alb.mul( mix( vec3( 1.12, 1.07, .95 ), vec3( .84, .88, .92 ), h21( ri.add( 9.1 ) ) ) ), pm.mul( .85 ) ) );
+    		const sy = fract( p.y.div( 2.5 ) ).toVar(), dy = abs( sy.sub( .5 ) ).mul( -2.5 ).add( 1.25 ).toVar(), dx = abs( fract( uv.x.div( 3. ).add( .5 ) ).sub( .5 ) ).mul( 3. ).toVar();
+    		const weld = sub( 1., smoothstep( .012, .035, min( dy, dx ) ) ).mul( vert ).mul( aw ).toVar();
+    		alb.mulAssign( sub( 1., mul( .35, weld ) ) );
+    		const db = sub( 1., sy ).mul( 2.5 ).toVar(), lane = floor( p.y.div( 2.5 ) ).toVar();
+    		const col = smoothstep( .5, .82, fbm( vec2( uv.x.mul( 2.7 ).add( lane.mul( 3.7 ) ), p.y.mul( .07 ) ) ) ).mul( add( .55, mul( .45, n2( vec2( uv.x.mul( 19. ), p.y.mul( 1.3 ) ) ) ) ) ).toVar();
+    		const run = col.mul( exp( db.mul( mix( 1.6, .45, h21( vec2( floor( uv.x.mul( 1.3 ) ), lane ) ) ) ).negate() ) ).mul( vert ).toVar();
+    		const strk = clamp( run.mul( 1.9 ).add( kxStreak( p, uv, 3.2 ).mul( .45 ) ).add( sz.mul( vert ).mul( .25 ).mul( fbm( vec2( uv.x.mul( 5. ), p.y.mul( .4 ) ) ) ) ), 0., 1. ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .6, .36, .21 ) ).add( vec3( .03, .011, .0 ) ), strk.mul( .8 ) ) );
+    		const r = fbm3( p.mul( 1.7 ).add( 3. ) ).mul( .78 ).add( mul( .22, n3( p.mul( 13. ) ) ) ).add( weld.mul( .3 ) ).add( sz.mul( .3 ) ).add( dn.mul( .03 ) ).sub( up.mul( .08 ) ).toVar();
+    		const rust = smoothstep( .7, .8, r ).toVar(), halo = smoothstep( .58, .7, r ).sub( rust ).toVar();
+    		alb.assign( mix( alb, alb.mul( vec3( .74, .58, .44 ) ), halo.mul( .75 ) ) );
+    		alb.assign( mix( alb, mix( vec3( .15, .065, .028 ), vec3( .3, .13, .05 ), n3( p.mul( 29. ) ) ), rust.mul( .92 ) ) );
+    		const chip = step( .78, n3( p.mul( 23. ) ).mul( .6 ).add( n3( p.mul( 57. ).add( 2. ) ).mul( .4 ) ).add( sz.mul( .08 ) ) ).mul( aw ).mul( sub( 1., rust ) ).mul( sub( 1., up.mul( .8 ) ) ).mul( sub( 1., dn.mul( .6 ) ) ).toVar();
+    		alb.assign( mix( alb, mix( vec3( .3, .11, .065 ), vec3( .34, .33, .31 ), step( .5, n3( p.mul( 7. ) ) ) ), chip.mul( .85 ) ) );
+    		const salt = smoothstep( .5, .78, fbm3( p.mul( 2.4 ).add( 1. ) ) ).mul( clamp( dn.mul( .7 ).add( sz.mul( .8 ) ), 0., 1. ) ).toVar();
+    		alb.assign( mix( alb, vec3( .55, .56, .53 ), salt.mul( .45 ) ) );
+    		const grime = up.mul( smoothstep( .42, .72, fbm3( p.mul( 1.3 ).add( 8. ) ) ) ).toVar();
+    		alb.assign( mix( alb, vec3( .055, .05, .045 ), grime.mul( .45 ) ) );
+    		alb.mulAssign( sub( 1., mul( .3, sz ).mul( add( .4, mul( .6, smoothstep( .5, .9, fbm( vec2( uv.x.mul( .8 ), p.y.mul( .9 ) ) ) ) ) ) ) ) );
+    		rough.assign( mix( mix( rough, .93, max( rust, mul( .6, salt ) ) ), .3, sz.mul( .5 ).mul( sub( 1., rust ) ) ) );
+    		metal.mulAssign( sub( 1., rust ) );
+    		envK.mulAssign( sub( 1., rust ).mul( sub( 1., mul( .5, salt ) ) ) );
 
     	} );
 

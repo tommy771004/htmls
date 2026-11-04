@@ -1,0 +1,139 @@
+{
+ "pal": {
+  "leather_blk": {
+   "col": "#1b1b1d",
+   "r": 0.55
+  },
+  "leather_blk2": {
+   "col": "#1b1b1d",
+   "r": 0.55
+  },
+  "alcantara": {
+   "col": "#212124",
+   "r": 0.95,
+   "tex": "alcantara",
+   "rep": 0.12
+  },
+  "hex": {
+   "col": "#242427",
+   "r": 0.7,
+   "tex": "hex",
+   "rep": 0.1
+  },
+  "perf_blk": {
+   "col": "#1b1b1e",
+   "r": 0.62,
+   "tex": "perf",
+   "rep": 0.04
+  },
+  "dash_top": {
+   "col": "#1e1e21",
+   "r": 0.95,
+   "tex": "alcantara",
+   "rep": 0.12
+  },
+  "dash_top2": {
+   "col": "#1e1e21",
+   "r": 0.95,
+   "tex": "alcantara",
+   "rep": 0.12
+  },
+  "dash_end": {
+   "col": "#1e1e21",
+   "r": 0.95,
+   "tex": "alcantara",
+   "rep": 0.12
+  },
+  "plastic_blk": {
+   "col": "#141416",
+   "r": 0.82
+  },
+  "gloss_blk": {
+   "col": "#0a0a0c",
+   "r": 0.1
+  },
+  "satin_alu": {
+   "col": "#a3a5ab",
+   "r": 0.28,
+   "m": 0.9
+  },
+  "dark_alu": {
+   "col": "#4a4c52",
+   "r": 0.33,
+   "m": 0.85
+  },
+  "carbon": {
+   "col": "#d8d8dc",
+   "r": 0.2,
+   "tex": "carbon",
+   "rep": 0.05
+  },
+  "forged": {
+   "col": "#5c5c62",
+   "r": 0.18,
+   "tex": "forged",
+   "rep": 0.22
+  },
+  "carpet": {
+   "col": "#1a1a1c",
+   "r": 1.0
+  },
+  "mat": {
+   "col": "#131314",
+   "r": 1.0
+  },
+  "rubber": {
+   "col": "#0e0e0f",
+   "r": 0.9
+  },
+  "stitch_yel": {
+   "col": "#e8c21a",
+   "r": 0.6
+  },
+  "stitch_dk": {
+   "col": "#2a2a2c",
+   "r": 0.7
+  },
+  "leather_yel": {
+   "col": "#e0b81c",
+   "r": 0.5
+  },
+  "start_red": {
+   "col": "#c4211a",
+   "r": 0.25
+  },
+  "gauge": {
+   "col": "#ffffff",
+   "r": 0.3,
+   "tex": "atlas_svj",
+   "emi": 0.5
+  },
+  "screen": {
+   "col": "#ffffff",
+   "r": 0.15,
+   "tex": "atlas_svj",
+   "emi": 0.5
+  },
+  "badge": {
+   "col": "#ffffff",
+   "r": 0.3,
+   "tex": "atlas_svj"
+  },
+  "keys": {
+   "col": "#ffffff",
+   "r": 0.4,
+   "tex": "atlas_svj",
+   "emi": 0.3
+  },
+  "led_red": {
+   "col": "#ff2a1f",
+   "r": 0.3,
+   "emi": 1.0
+  },
+  "led_yel": {
+   "col": "#ffc21a",
+   "r": 0.3,
+   "emi": 0.9
+  }
+ }
+}

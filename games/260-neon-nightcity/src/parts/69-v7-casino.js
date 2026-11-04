@@ -98,6 +98,48 @@ const CS_SLOTS = CS_BANKS.flatMap(z0 => CS_SX.flatMap(x => [{ x, z: z0 - .53, f:
 // 輪盤桌：長邊沿 x，玩家站南邊（−z）、荷官在北邊；m 是 casino.glb 的物件（null 是大廳模型裡的那張），w／d 是桌面大小，
 // wx 是轉輪在哪一端，y 是模型墊高（cs_rl2 只有桌面，放在台座上）
 const CS_RL = [{ x: .02, z: 12.92, m: null, w: 2.33, d: 1.13, wx: -1, y: 0 }, { x: -3.6, z: 2.2, m: 'cs_rl', w: 2.7, d: 1.86, wx: -1, y: 0 }, { x: 3.6, z: 2.3, m: 'cs_rl2', w: 2.8, d: 1.16, wx: 1, y: .78 }];
+// 大廳模型的四盞燈籠吊燈：燈罩是貼著水晶照片的平板，透明通道在原檔處理時就沒了（auto_29 是 RGB），畫出來是一片片白底的紙板。
+// 下載後把燈籠的三角形拿掉（每盞 3920 面，|x| 3.2–4.42、z ±.62、y 1.95–4.52，量過範圍內沒有牆與天花板），換成程式建模的水晶吊燈：
+// 天花板的黃銅底座與吊桿、上下兩圈燈臂與燭台燈泡、垂下的水晶串、底部的大水晶墜
+const CS_CHAND = [[-3.81, 7.07], [3.81, 7.07], [-3.81, 18.77], [3.81, 18.77]];
+let casChandMesh = null;
+function casCutLanterns(o) {
+  if (!o) return;
+  o.updateMatrixWorld(true);
+  const hit = (x, y, z) => y > 1.9 && y < 4.6 && CS_CHAND.some(([cx, cz]) => Math.abs(x - cx) < .7 && Math.abs(z - cz) < .7);
+  o.traverse(m => {
+    if (!m.isMesh) return;
+    const g = m.geometry, P = g.attributes.position, I = g.index, e = m.matrixWorld.elements, n = I ? I.count : P.count, keep = [];
+    let cut = 0;
+    for (let t = 0; t < n; t += 3) {
+      let x = 0, y = 0, z = 0;
+      for (let k = 0; k < 3; k++) { const q = I ? I.getX(t + k) : t + k, px = P.getX(q), py = P.getY(q), pz = P.getZ(q); x += (e[0] * px + e[4] * py + e[8] * pz + e[12]) / 3; y += (e[1] * px + e[5] * py + e[9] * pz + e[13]) / 3; z += (e[2] * px + e[6] * py + e[10] * pz + e[14]) / 3; }
+      if (hit(x, y, z)) { cut++; continue; }
+      for (let k = 0; k < 3; k++) keep.push(I ? I.getX(t + k) : t + k);
+    }
+    if (cut) { g.setIndex(keep); g.userData.casCut = cut; }
+  });
+}
+function casChandeliers() {
+  const k = new Kit(), BR = 0xc9a24a, CR = 0xe8f0ff, BU = 0xfff0d8;
+  for (const [x, z] of CS_CHAND) {
+    k.cyl(x, 5.02, z, .16, .1, .08, 16, BR, 3).rod(x, 4.98, z, x, 3.75, z, .015, 6, BR, 3);   // 天花板底座、吊桿
+    k.lathe(x, 2.95, z, [[0, 0], [.05, .06], [.07, .25], [.04, .45], [.06, .62], [.05, .8]], 12, BR, 3);   // 中柱（花瓶形）
+    for (const [r, y, nA, rot] of [[.55, 3.05, 8, 0], [.33, 3.48, 6, .3]]) {
+      k.torus(x, y, z, r, .016, 32, BR, 3);
+      for (let i = 0; i < nA; i++) {
+        const a = i / nA * Math.PI * 2 + rot, bx = x + Math.cos(a) * r, bz = z + Math.sin(a) * r;
+        k.rod(x, y + .12, z, bx, y + .02, bz, .012, 5, BR, 3);   // 燈臂
+        k.cyl(bx, y + .05, bz, .045, .03, .03, 10, BR, 3).cyl(bx, y + .11, bz, .014, .014, .1, 6, 0xf4ecd8, 10);   // 燭台、蠟燭
+        k.add(new T.SphereGeometry(.03, 8, 6), BU, 11, tf(bx, y + .18, bz));   // 燈泡
+        for (let j = 0; j < 3; j++) k.add(new T.OctahedronGeometry(.022 - j * .003, 0), CR, 10, tf(bx, y - .06 - j * .065, bz));   // 水晶串
+      }
+    }
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; k.add(new T.OctahedronGeometry(.018, 0), CR, 10, tf(x + Math.cos(a) * .2, 2.86 - (i % 2) * .05, z + Math.sin(a) * .2)); }   // 中柱下緣一圈
+    k.add(new T.OctahedronGeometry(.09, 0), CR, 10, tf(x, 2.72, z)).cyl(x, 2.83, z, .02, .02, .06, 6, BR, 3);   // 底部的大水晶墜
+  }
+  return new T.Mesh(k.build(), MAT.uber);
+}
 const casWheel = new T.Group(), casPod = new T.Group();
 {
   const k = new Kit(), kh = new Kit(), B = cas.boxes;
@@ -137,7 +179,7 @@ const casWheel = new T.Group(), casPod = new T.Group();
   for (const x of [-2.75, 2.75]) kh.box(x, CS_H / 2, 25.5, .65, CS_H, .62, 0x8a5a38, 10);
   for (const x of [-3.3, 3.3]) for (const z of [3, 8, 13, 18.8, 23.5]) kh.box(x, 4.4, z, .5, .7, .5, 0x1a1a1a, 10).box(x, 4.3, z, .3, .4, .3, 0xffe0a0, 11);
   const hallFb = new T.Mesh(kh.build(), MAT.uber); casScene.add(hallFb);
-  propSwap('casino', hallFb, 'hall', [{ x: 0, z: 0 }], casScene, null, 'cas_hall');
+  propSwap('casino', hallFb, 'hall', [{ x: 0, z: 0 }], casScene, () => { casCutLanterns(casScene.children[casScene.children.length - 1]); casScene.add(casChandMesh ||= casChandeliers()); }, 'cas_hall');
   // ─── 不在大廳模型裡的：門口兩張輪盤桌（casino.glb）、頭獎轉台、幸運轉盤、Inside Track、員工通道 ───
   for (const R of CS_RL) {
     box(R.x - R.w / 2, R.x + R.w / 2, R.z - R.d / 2, R.z + R.d / 2);
@@ -163,7 +205,7 @@ const casWheel = new T.Group(), casPod = new T.Group();
   k.cyl(CS_POD.x, .1, CS_POD.z, 2.05, 2.15, .2, 40, 0x1a1418, 15);
   cas.circles.push({ x: CS_POD.x, z: CS_POD.z, r: 2.15 });
   cas.lights.push({ x: CS_POD.x, y: 4.4, z: CS_POD.z, col: lin(0xffffff), r: 6, i: 1.4 }, { x: 0, y: 4, z: 24, col: lin(0xffc860), r: 6, i: 1.1 });
-  casScene.add(new T.Mesh(k.build(), MAT.uber));
+  casScene.add(new T.Mesh(k.uxify({ floor: 40 }).build(), MAT.ux));   // 去玩具感：素色換程式紋理（07-kitx.js 的 uxify）
   // 幸運轉盤：20 格、每格 18°，指針在正上方；第 0 格是頭獎跑車（天花板 5.1 m，縮成半徑 1.6 m）
   const kw = new Kit(), cols = [0xd8b048, 0x8a1424, 0x1a4a8a, 0x2a2a2a, 0x8a1424, 0x1a6a3a, 0x8a1424, 0x2a2a2a, 0x1a4a8a, 0x8a1424, 0x1a6a3a, 0x2a2a2a, 0x8a1424, 0x1a4a8a, 0x2a2a2a, 0x8a1424, 0x1a6a3a, 0x2a2a2a, 0x8a1424, 0x1a4a8a];
   for (let i = 0; i < WHEEL_N; i++) { const a = i / WHEEL_N * Math.PI * 2; kw.add(new T.CylinderGeometry(2.4, 2.4, .12, 3, 1, false, a - Math.PI / WHEEL_N, Math.PI * 2 / WHEEL_N), cols[i], i ? 2 : 8, tf(0, 0, 0)); }
@@ -251,7 +293,7 @@ const casBGate = [], casBPile = [];
   // 主金庫：牆、6 道柵門與後面的貨
   wall(-10.4, -10, 28.2, 43); wall(10, 10.4, 28.2, 43);
   for (let x = -9.6; x <= 9.6; x += 1.6) k.box(x, 2.2, 42.9, .06, 4.4, .1, 0x8a8e92, 15);
-  casBScene.add(new T.Mesh(k.build(), MAT.uber));
+  casBScene.add(new T.Mesh(k.uxify({ floor: 33, wall: 20 }).build(), MAT.ux));
   // 會開的門都是繞鉸鏈轉的門板（piv 是鉸鏈，ang 是全開的角度）：關著擋門口（b），開著的門板也擋路（ob）
   // 以 http(s) 開啟時換成 casino.glb 的模型（at：模型在鉸鏈座標裡的位置），程式建模是替身
   const swing = (id, hx, hz, ang, kv, model, at, b, ob) => {

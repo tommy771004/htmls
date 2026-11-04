@@ -3,7 +3,7 @@
 export default {
 "[]NL_T,NOCC_T,SH_N_T,VOL_N_T": (TSL, E) => {
   const { sin, fract, Fn, vec2, dot, vec3, floor, mul, sub, mix, float, Loop, bool, If, sqrt, smoothstep, add, normalize, max, pow, mat3, ivec2, int, Break, select, Continue, min, length, clamp, abs, cos, inverseSqrt, atan, exp, step } = TSL;
-  const { uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T } = E;
+  const { uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAHMap, uAHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T } = E;
 
 
 
@@ -181,7 +181,9 @@ export default {
   		const win = sub( 1., d2.div( r2 ) ).toVar();
   		win.mulAssign( win );
   		const ld = uLD.element( i ).toVar();
-  		const sp = select( ld.w.greaterThan( -1.5 ), smoothstep( ld.w, ld.w.add( .14 ), dot( L.negate(), ld.xyz ) ), 1. ).toVar();
+  		// cos > −1.5 是聚光；−2 是一般點光；−3 是機坪高桿燈的配光（IES 式的蝙蝠翼：正下方 38%、45–70° 最亮、接近水平切掉）
+  		const cd = dot( L.negate(), ld.xyz ).toVar();
+  		const sp = select( ld.w.greaterThan( -1.5 ), smoothstep( ld.w, ld.w.add( .14 ), cd ), select( ld.w.lessThan( -2.5 ), mix( 1., .38, smoothstep( .55, .98, cd ) ).mul( smoothstep( .02, .3, cd ) ), 1. ) ).toVar();
   		const col = uLC.element( i ).rgb.mul( win ).mul( sp ).mul( 8. ).div( add( 2., d2 ) ).toVar();
   		dif.addAssign( col.mul( max( dot( n, L ), 0. ) ).mul( select( uLC.element( i ).a.greaterThan( .5 ), 1., 1. ) ) );
   		const hv = normalize( L.add( v ) ).toVar();
@@ -335,15 +337,30 @@ export default {
 
   		} );
 
-  		const uv = q.xz.add( d.mul( t ) ).sub( uHM.xy ).mul( uHM.z ).toVar();
+  		const sp = q.xz.add( d.mul( t ) ).toVar(), uv = sp.sub( uHM.xy ).mul( uHM.z ).toVar(), h = float( -50. ).toVar();
 
-  		If( uv.x.lessThan( 0. ).or( uv.y.lessThan( 0. ) ).or( uv.x.greaterThan( 1. ) ).or( uv.y.greaterThan( 1. ) ), () => {
+  		If( uv.x.greaterThanEqual( 0. ).and( uv.y.greaterThanEqual( 0. ) ).and( uv.x.lessThanEqual( 1. ) ).and( uv.y.lessThanEqual( 1. ) ), () => {
+
+  			h.assign( uHMap.sample( uv ).level( 0. ).r );
+
+  		} ).ElseIf( uAHM.z.greaterThan( 0. ), () => {
+
+  			// 機場島在城市高度圖外：自己一張（52-air-bld.js 畫），SEA_FR 的框（uAirA 是島中心與 +x 方向，uv =（局部座標 + uAHM.xy）× uAHM.zw）
+  			const dd = sp.sub( uAirA.xy ).toVar(), ua = vec2( dot( dd, uAirA.zw ), dot( dd, vec2( uAirA.w.negate(), uAirA.z ) ) ).add( uAHM.xy ).mul( uAHM.zw ).toVar();
+
+  			If( ua.x.lessThan( 0. ).or( ua.y.lessThan( 0. ) ).or( ua.x.greaterThan( 1. ) ).or( ua.y.greaterThan( 1. ) ), () => {
+
+  				Break();
+
+  			} );
+
+  			h.assign( uAHMap.sample( ua ).level( 0. ).r );
+
+  		} ).Else( () => {
 
   			Break();
 
   		} );
-
-  		const h = uHMap.sample( uv ).level( 0. ).r.toVar();
   		vis.assign( min( vis, clamp( ry.sub( h ).div( add( .3, t.mul( .02 ) ) ), 0., 1. ) ) );
 
   		If( vis.lessThan( .02 ), () => {
@@ -450,6 +467,15 @@ export default {
 
   }, { p: 'vec3', return: 'vec2' } );
 
+  // 某一點的建築高度：城市高度圖，城外改查機場島那張（52-air-bld.js），都不在就是 −50（skyVis 用；sunVis 自己展開成分支）
+  const hmAt = ( s ) => {
+  	const uv = s.sub( uHM.xy ).mul( uHM.z ), dd = s.sub( uAirA.xy );
+  	const ua = vec2( dot( dd, uAirA.zw ), dot( dd, vec2( uAirA.w.negate(), uAirA.z ) ) ).add( uAHM.xy ).mul( uAHM.zw );
+  	const inM = uv.x.greaterThanEqual( 0. ).and( uv.y.greaterThanEqual( 0. ) ).and( uv.x.lessThanEqual( 1. ) ).and( uv.y.lessThanEqual( 1. ) );
+  	const inA = uAHM.z.greaterThan( 0. ).and( ua.x.greaterThanEqual( 0. ) ).and( ua.y.greaterThanEqual( 0. ) ).and( ua.x.lessThanEqual( 1. ) ).and( ua.y.lessThanEqual( 1. ) );
+  	return select( inM, uHMap.sample( uv ).level( 0. ).r, select( inA, uAHMap.sample( ua ).level( 0. ).r, float( -50. ) ) );
+  };
+
   const skyVis =  Fn( ( [ p, n ] ) => {
 
   	const q = p.add( vec3( n.x, 0., n.z ).mul( 1.3 ) ).toVar();
@@ -474,7 +500,7 @@ export default {
 
   		Loop( { start: 0, end: 2, name: 'k' }, () => {
 
-  			tg.assign( max( tg, uHMap.sample( q.xz.add( d.mul( r ) ).sub( uHM.xy ).mul( uHM.z ) ).level( 0. ).r.sub( q.y ).div( r ) ) );
+  			tg.assign( max( tg, hmAt( q.xz.add( d.mul( r ) ) ).sub( q.y ).div( r ) ) );
   			r.mulAssign( 2.7 );
 
   		} );
@@ -525,6 +551,20 @@ export default {
   	spc.addAssign( lg[ 1 ].add( pl[ 1 ] ) );
   	dif.mulAssign( gAmb );
   	spc.mulAssign( gAmb );
+
+  	If( uAirB.x.greaterThan( 0. ), () => {
+
+  		// 第一航廈室內（52-air-int.js）：屋頂把天光與日光整片遮掉（機場高度圖的陰影），補一層室內照明的均勻光；uAirB.zw 是航廈中心離島中心的 SEA_FR 位移，屋頂底面照 airint.py 的 roof_in；盒子比室內大半公尺，牆的內面才吃得到（外面是 ±78.3／45.1 以外）
+  		const aq = p.xz.sub( uAirA.xy ).toVar(), al = vec2( dot( aq, uAirA.zw ), dot( aq, vec2( uAirA.w.negate(), uAirA.z ) ) ).sub( uAirB.zw ).toVar();
+  		const yr = sqrt( max( sub( 16666.81, al.y.mul( al.y ) ), 0. ) ).sub( 103.0 ).toVar();
+  		const inT = step( abs( al.x ), 77.9 ).mul( step( abs( al.y ), 44.9 ) ).mul( step( p.y, yr ) ).toVar();
+  		// 第二航廈：中心在 T1 的 (+50, −235)（21-air.js 的 AIR_L.t2 減 term），±159.9 × ±29.9；屋頂底面是摺板（airbld.py 的 t2_under＋t2_fold：17 − 0.08 z，12 m 一摺、摺高 1.4）
+  		const a2 = al.sub( vec2( 50., - 235. ) ).toVar(), f2 = fract( a2.x.add( 166. ).div( 12. ) ).toVar();
+  		const y2 = sub( 17.1, a2.y.mul( .08 ) ).add( sub( 1., abs( f2.mul( 2. ).sub( 1. ) ) ).mul( 1.4 ) ).toVar();
+  		inT.assign( max( inT, step( abs( a2.x ), 159.9 ).mul( step( abs( a2.y ), 29.9 ) ).mul( step( p.y, y2 ) ) ) );
+  		dif.addAssign( vec3( 1., .96, .9 ).mul( mix( .45, .6, uDay ) ).mul( add( .72, n.y.mul( .28 ) ) ).mul( inT ) );
+
+  	} );
 
   	If( uSunCol.r.add( uSunCol.g ).greaterThan( .001 ), () => {
 
@@ -645,7 +685,7 @@ export default {
 },
 "[[\"FAR\",\"*\"]]NL_T,NOCC_T,SH_N_T,VOL_N_T,FAR": (TSL, E) => {
   const { sin, fract, Fn, vec2, dot, vec3, floor, mul, sub, mix, float, Loop, bool, If, sqrt, smoothstep, add, normalize, max, pow, mat3, ivec2, int, Break, select, Continue, min, length, clamp, abs, cos, inverseSqrt, atan, exp, step } = TSL;
-  const { uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR } = E;
+  const { uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAHMap, uAHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR } = E;
 
 
 
@@ -823,7 +863,9 @@ export default {
   		const win = sub( 1., d2.div( r2 ) ).toVar();
   		win.mulAssign( win );
   		const ld = uLD.element( i ).toVar();
-  		const sp = select( ld.w.greaterThan( -1.5 ), smoothstep( ld.w, ld.w.add( .14 ), dot( L.negate(), ld.xyz ) ), 1. ).toVar();
+  		// cos > −1.5 是聚光；−2 是一般點光；−3 是機坪高桿燈的配光（IES 式的蝙蝠翼：正下方 38%、45–70° 最亮、接近水平切掉）
+  		const cd = dot( L.negate(), ld.xyz ).toVar();
+  		const sp = select( ld.w.greaterThan( -1.5 ), smoothstep( ld.w, ld.w.add( .14 ), cd ), select( ld.w.lessThan( -2.5 ), mix( 1., .38, smoothstep( .55, .98, cd ) ).mul( smoothstep( .02, .3, cd ) ), 1. ) ).toVar();
   		const col = uLC.element( i ).rgb.mul( win ).mul( sp ).mul( 8. ).div( add( 2., d2 ) ).toVar();
   		dif.addAssign( col.mul( max( dot( n, L ), 0. ) ).mul( select( uLC.element( i ).a.greaterThan( .5 ), 1., 1. ) ) );
   		const hv = normalize( L.add( v ) ).toVar();
@@ -977,15 +1019,30 @@ export default {
 
   		} );
 
-  		const uv = q.xz.add( d.mul( t ) ).sub( uHM.xy ).mul( uHM.z ).toVar();
+  		const sp = q.xz.add( d.mul( t ) ).toVar(), uv = sp.sub( uHM.xy ).mul( uHM.z ).toVar(), h = float( -50. ).toVar();
 
-  		If( uv.x.lessThan( 0. ).or( uv.y.lessThan( 0. ) ).or( uv.x.greaterThan( 1. ) ).or( uv.y.greaterThan( 1. ) ), () => {
+  		If( uv.x.greaterThanEqual( 0. ).and( uv.y.greaterThanEqual( 0. ) ).and( uv.x.lessThanEqual( 1. ) ).and( uv.y.lessThanEqual( 1. ) ), () => {
+
+  			h.assign( uHMap.sample( uv ).level( 0. ).r );
+
+  		} ).ElseIf( uAHM.z.greaterThan( 0. ), () => {
+
+  			// 機場島在城市高度圖外：自己一張（52-air-bld.js 畫），SEA_FR 的框（uAirA 是島中心與 +x 方向，uv =（局部座標 + uAHM.xy）× uAHM.zw）
+  			const dd = sp.sub( uAirA.xy ).toVar(), ua = vec2( dot( dd, uAirA.zw ), dot( dd, vec2( uAirA.w.negate(), uAirA.z ) ) ).add( uAHM.xy ).mul( uAHM.zw ).toVar();
+
+  			If( ua.x.lessThan( 0. ).or( ua.y.lessThan( 0. ) ).or( ua.x.greaterThan( 1. ) ).or( ua.y.greaterThan( 1. ) ), () => {
+
+  				Break();
+
+  			} );
+
+  			h.assign( uAHMap.sample( ua ).level( 0. ).r );
+
+  		} ).Else( () => {
 
   			Break();
 
   		} );
-
-  		const h = uHMap.sample( uv ).level( 0. ).r.toVar();
   		vis.assign( min( vis, clamp( ry.sub( h ).div( add( .3, t.mul( .02 ) ) ), 0., 1. ) ) );
 
   		If( vis.lessThan( .02 ), () => {
@@ -1092,6 +1149,15 @@ export default {
 
   }, { p: 'vec3', return: 'vec2' } );
 
+  // 某一點的建築高度：城市高度圖，城外改查機場島那張（52-air-bld.js），都不在就是 −50（skyVis 用；sunVis 自己展開成分支）
+  const hmAt = ( s ) => {
+  	const uv = s.sub( uHM.xy ).mul( uHM.z ), dd = s.sub( uAirA.xy );
+  	const ua = vec2( dot( dd, uAirA.zw ), dot( dd, vec2( uAirA.w.negate(), uAirA.z ) ) ).add( uAHM.xy ).mul( uAHM.zw );
+  	const inM = uv.x.greaterThanEqual( 0. ).and( uv.y.greaterThanEqual( 0. ) ).and( uv.x.lessThanEqual( 1. ) ).and( uv.y.lessThanEqual( 1. ) );
+  	const inA = uAHM.z.greaterThan( 0. ).and( ua.x.greaterThanEqual( 0. ) ).and( ua.y.greaterThanEqual( 0. ) ).and( ua.x.lessThanEqual( 1. ) ).and( ua.y.lessThanEqual( 1. ) );
+  	return select( inM, uHMap.sample( uv ).level( 0. ).r, select( inA, uAHMap.sample( ua ).level( 0. ).r, float( -50. ) ) );
+  };
+
   const skyVis =  Fn( ( [ p, n ] ) => {
 
   	const q = p.add( vec3( n.x, 0., n.z ).mul( 1.3 ) ).toVar();
@@ -1116,7 +1182,7 @@ export default {
 
   		Loop( { start: 0, end: 2, name: 'k' }, () => {
 
-  			tg.assign( max( tg, uHMap.sample( q.xz.add( d.mul( r ) ).sub( uHM.xy ).mul( uHM.z ) ).level( 0. ).r.sub( q.y ).div( r ) ) );
+  			tg.assign( max( tg, hmAt( q.xz.add( d.mul( r ) ) ).sub( q.y ).div( r ) ) );
   			r.mulAssign( 2.7 );
 
   		} );
@@ -1167,6 +1233,20 @@ export default {
   	spc.addAssign( lg[ 1 ].add( pl[ 1 ] ) );
   	dif.mulAssign( gAmb );
   	spc.mulAssign( gAmb );
+
+  	If( uAirB.x.greaterThan( 0. ), () => {
+
+  		// 第一航廈室內（52-air-int.js）：屋頂把天光與日光整片遮掉（機場高度圖的陰影），補一層室內照明的均勻光；uAirB.zw 是航廈中心離島中心的 SEA_FR 位移，屋頂底面照 airint.py 的 roof_in；盒子比室內大半公尺，牆的內面才吃得到（外面是 ±78.3／45.1 以外）
+  		const aq = p.xz.sub( uAirA.xy ).toVar(), al = vec2( dot( aq, uAirA.zw ), dot( aq, vec2( uAirA.w.negate(), uAirA.z ) ) ).sub( uAirB.zw ).toVar();
+  		const yr = sqrt( max( sub( 16666.81, al.y.mul( al.y ) ), 0. ) ).sub( 103.0 ).toVar();
+  		const inT = step( abs( al.x ), 77.9 ).mul( step( abs( al.y ), 44.9 ) ).mul( step( p.y, yr ) ).toVar();
+  		// 第二航廈：中心在 T1 的 (+50, −235)（21-air.js 的 AIR_L.t2 減 term），±159.9 × ±29.9；屋頂底面是摺板（airbld.py 的 t2_under＋t2_fold：17 − 0.08 z，12 m 一摺、摺高 1.4）
+  		const a2 = al.sub( vec2( 50., - 235. ) ).toVar(), f2 = fract( a2.x.add( 166. ).div( 12. ) ).toVar();
+  		const y2 = sub( 17.1, a2.y.mul( .08 ) ).add( sub( 1., abs( f2.mul( 2. ).sub( 1. ) ) ).mul( 1.4 ) ).toVar();
+  		inT.assign( max( inT, step( abs( a2.x ), 159.9 ).mul( step( abs( a2.y ), 29.9 ) ).mul( step( p.y, y2 ) ) ) );
+  		dif.addAssign( vec3( 1., .96, .9 ).mul( mix( .45, .6, uDay ) ).mul( add( .72, n.y.mul( .28 ) ) ).mul( inT ) );
+
+  	} );
 
   	If( uSunCol.r.add( uSunCol.g ).greaterThan( .001 ), () => {
 

@@ -16,6 +16,8 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#07080b;color:var(--ink);font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+/* 手機上長按、雙擊、拖曳搖桿時不要選到字或跳出放大鏡／拷貝選單（頁面沒有文字輸入欄；之後要加的話替那個欄位設回 user-select:text） */
+*,*::before,*::after{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #stage{position:fixed;inset:0}
 #stage canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -530,10 +532,26 @@ body.noRadar #mapBox,body.noRadar #vitals{visibility:hidden}
 body.touch #touch.on{display:block}
 #joy{position:absolute;left:max(22px,env(safe-area-inset-left));bottom:max(162px,calc(env(safe-area-inset-bottom) + 162px));width:116px;height:116px;border-radius:50%;background:rgba(12,14,18,.38);border:2px solid rgba(236,232,224,.18);pointer-events:auto;touch-action:none}
 #joyK{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(236,232,224,.32)}
-#tbtn{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(150px,calc(env(safe-area-inset-bottom) + 150px));display:grid;grid-template-columns:repeat(3,58px);gap:8px;pointer-events:auto}
-#tbtn button[data-k="Fire"]{background:rgba(120,24,30,.6)}
-#tbtn button{height:52px;border:0;border-radius:12px;background:rgba(12,14,18,.55);font-size:13px;font-weight:600;touch-action:none}
-#tbtn button.act{background:rgba(255,174,87,.42)}
+/* 觸控按鈕（2026-11-03）：只有圖示，以開火鍵為圓心排兩圈弧；走路與開車顯示不同的組（body.tDrv／tFly 由 69-gunship.js 的 gunshipTouch 每幀切換），次要的收進「更多」 */
+#tbtn{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(150px,calc(env(safe-area-inset-bottom) + 150px));width:216px;height:278px;pointer-events:none}
+#tbtn button{position:absolute;right:calc(var(--x) - 24px);bottom:calc(var(--y) - 24px);width:48px;height:48px;padding:0;display:grid;place-items:center;border:1.5px solid rgba(236,232,224,.16);border-radius:50%;background:rgba(12,14,18,.5);color:rgba(240,236,228,.92);pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;transition:background var(--dur-press) var(--ease-out),transform var(--dur-press) var(--ease-out)}
+#tbtn svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#tbtn button[data-k="Fire"]{right:0;bottom:0;width:76px;height:76px;background:rgba(150,30,36,.62);border-color:rgba(255,190,180,.28)}
+#tbtn button[data-k="Fire"] svg{width:32px;height:32px}
+#tbtn button.act{background:rgba(255,174,87,.5);transform:scale(.93)}
+#tbtn button[data-k="Fire"].act{background:rgba(220,60,60,.75)}
+#tbtn .d,#tbtn .f,body.tDrv #tbtn .w,body.tFly #tbtn .d{display:none}
+body.tDrv #tbtn .d{display:block}body.tFly #tbtn .f{display:block}
+body.tDrv #tbtn .wk{display:none}
+body.tDrv #tbtn button[data-k="KeyF"]{--x:34px!important;--y:128px!important}
+#tMoreB{width:40px!important;height:40px!important;right:calc(var(--x) - 20px)!important;bottom:calc(var(--y) - 20px)!important}
+#tbtn.open #tMoreB{background:rgba(236,232,224,.22)}
+#tMore{position:absolute;right:76px;bottom:228px;display:none;flex-direction:row-reverse;gap:6px;padding:6px;border-radius:16px;background:rgba(12,14,18,.62);pointer-events:auto}
+#tbtn.open #tMore{display:flex}
+#tMore button{position:static;width:50px;height:56px;border-radius:12px;border:0;background:transparent;grid-template-rows:26px 14px;gap:1px;align-content:center}
+#tMore button i{font-style:normal;font-size:10.5px;font-weight:600;line-height:14px;color:rgba(240,236,228,.72)}
+body.tDrv #tMore .wk{display:none}
+@media (prefers-reduced-motion:reduce){#tbtn button{transition:none}#tbtn button.act{transform:none}}
 body.touch #capture{display:none}
 
 @media (max-width:640px){
@@ -625,7 +643,7 @@ body.touch #capture{display:none}
   <div id="stCard" aria-live="polite"><small id="stCardK"></small><b id="stCardT"></b><p id="stCardS"></p></div>
   <div id="dialog" role="dialog" aria-modal="false"><b id="dlgWho"></b><p id="dlgText"></p><div id="dlgOpts"></div></div>
 </div>
-<div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="KeyE">互動</button><button data-k="KeyF">上下車</button><button data-k="Space">手煞</button><button data-k="ShiftLeft">氮氣</button><button data-k="KeyG">跳舞</button><button data-k="KeyV">叫車</button><button data-k="Tab">武器</button><button data-k="Crew">角色</button><button data-k="Ability">技能</button><button data-k="Aim">瞄準</button><button data-k="KeyZ">蹲下</button><button data-k="Fire">開火</button></div></div>
+<div id="touch"><div id="joy"><div id="joyK"></div></div><div id="tbtn"><button data-k="Fire" aria-label="開火" style="--x:38px;--y:38px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20.5V10.2C9 7 10.2 4.4 12 2.8c1.8 1.6 3 4.2 3 7.4v10.3z" fill="currentColor" fill-opacity=".25"/><path d="M8 20.5h8M9 16.5h6"/></svg></button><button data-k="Space" aria-label="跳躍" style="--x:128px;--y:34px"><svg class="w" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17V5.5m-5 5 5-5 5 5"/><path d="M5 20.5h14"/></svg><svg class="d" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10 16.5v-9h3a2.6 2.6 0 0 1 0 5.2h-3"/></svg><svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 6-6 6 6M6 19l6-6 6 6"/></svg></button><button data-k="ShiftLeft" aria-label="衝刺" style="--x:102px;--y:102px"><svg class="w" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 6 6 6-6 6M13 6l6 6-6 6"/></svg><svg class="d" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 4 5.2 5.6 5.2 10.3a5.2 5.2 0 0 1-10.4 0c0-2.6 1.5-3.7 2.6-5.2.5 2 1.5 2.6 2.6 2.6 0-2.6-1-4.7 0-7.7z"/></svg><svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 5 6 6 6-6M6 11.5l6 6 6-6"/></svg></button><button data-k="Aim" aria-label="瞄準" style="--x:34px;--y:128px" class=wk><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></button><button data-k="KeyF" aria-label="上車" style="--x:140px;--y:160px"><svg class="w" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5v-4.3L6.3 7h11.4l2.3 5.2v4.3z"/><path d="M4 12.2h16"/><circle cx="8" cy="16.6" r="1.7"/><circle cx="16" cy="16.6" r="1.7"/></svg><svg class="d" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4H6v16h7"/><path d="M10.5 12H21m-3.2-3.3L21 12l-3.2 3.3"/></svg><svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4H6v16h7"/><path d="M10.5 12H21m-3.2-3.3L21 12l-3.2 3.3"/></svg></button><button data-k="KeyE" aria-label="互動" style="--x:190px;--y:66px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 13V5.6a1.6 1.6 0 0 1 3.2 0V11m0-1.4a1.6 1.6 0 0 1 3.2 0V11m0-.4a1.6 1.6 0 0 1 3.2 0v4.6a6 6 0 0 1-6 6h-.7a5 5 0 0 1-4.1-2.1l-2.4-3.5a1.4 1.4 0 0 1 2.2-1.8l1.6 2"/></svg></button><button data-k="Tab" aria-label="武器" style="--x:46px;--y:192px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5h18v4.2h-7.4l-1.6 3H9.2L7.8 20.5H4.3l1.4-8.8H3z"/></svg></button><button id="tMoreB" aria-label="更多" aria-expanded="false" style="--x:46px;--y:252px"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg></button><div id="tMore"><button data-k="KeyZ" aria-label="蹲下" class=wk><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v10m-4.2-4.2 4.2 4.2 4.2-4.2"/><path d="M5 19.5h14"/></svg><i>蹲下</i></button><button data-k="KeyG" aria-label="跳舞" class=wk><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5l11-2v12.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></svg><i>跳舞</i></button><button data-k="KeyV" aria-label="叫車"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.8 18.3h2.4"/></svg><i>叫車</i></button><button data-k="Crew" aria-label="角色"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.3 20a5.7 5.7 0 0 1 11.4 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.3a4.6 4.6 0 0 1 5.4 4.4"/></svg><i>角色</i></button><button data-k="Ability" aria-label="技能"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 2 5 13.5h6.2L10 22l9-12h-6.2z"/></svg><i>技能</i></button></div></div></div>
 <section id="phone" aria-label="NeonPhone 手機" aria-hidden="true"><div id="phBar"><span id="phT">02:14</span><b id="phCash">$0</b></div><div id="phScr"></div></section>
 <div id="map" role="dialog" aria-label="全區地圖"><canvas id="bigmap" aria-label="城市地圖：拖曳平移、滾輪縮放、點圖示看資訊、點道路設定導航點"></canvas><div id="mapCard"></div><div id="mapLegend"></div><div id="mapScale"><i id="mapBar"></i><span><b>0</b><b id="mapScaleT">200 m</b></span></div><div id="mapLoc"></div><div id="mapKeys"><span>縮放<kbd>滾輪</kbd><kbd>＋</kbd><kbd>－</kbd></span><span>平移<kbd>拖曳</kbd><kbd>WASD</kbd></span><span>選擇地點<kbd>↑</kbd><kbd>↓</kbd></span><span>導航點<kbd>點道路</kbd><kbd>Enter</kbd></span><span>回到自己<kbd>C</kbd></span><span>返回<kbd>M</kbd></span></div><button id="mapX" aria-label="關閉地圖">×</button></div>
 <div id="menu" role="dialog" aria-modal="true" aria-label="暫停與設定" aria-hidden="true"><div id="mnIn">
@@ -641,7 +659,7 @@ body.touch #capture{display:none}
   <div id="keys"><b>WASD</b> 移動 · <b>滑鼠</b> 環顧 · <b>F</b> 上下車 · <b>E</b> 交談 · <b>Shift</b> 氮氣 · <b>Space</b> 手煞車／跳 · <b>G</b> 跳舞 · <b>M</b> 地圖 · <b>Tab</b> 武器轉盤 · <b>Q</b> 換角色 · <b>X</b> 特殊能力 · <b>P</b> 手機 · <b>右鍵</b> 瞄準 · <b>左鍵</b> 開火 · <b>Esc</b> 暫停與設定</div>
   <button id="go" disabled role="progressbar" aria-label="載入進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-label="載入中 0%">載入中 0%</button>
   <span id="bootMsg">正在下載頁面…</span>
-  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、賭場與地堡道具、直升機與戰車、遊艇、渡輪、拖船、水警艇、DJ 控制器、機場地勤車、擔架、施工區設施、軍事基地、貨運列車、田園場景與 Jason／Lucia 掃描人物模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋、酒館與賭場大廳的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。音效是 Freesound 的真實錄音（CC0；BMW 與 Porsche 的引擎聲含 ikbenraar、jerry.berumen 的 CC BY 4.0 錄音），見 <a href="../assets/260/sfx/CREDITS.md" target="_blank" rel="noopener">音效 CREDITS</a>。</small>
+  <small id="fanNote">搶車、槍戰、車損、通緝與警方追捕玩法是向開放世界犯罪遊戲致敬的非官方同人設計，與 Rockstar Games 無關。<br>車輛、建築、武器、賭場與地堡道具、直升機與戰車、遊艇、渡輪、拖船、水警艇、DJ 控制器、機場地勤車、擔架、施工區設施、軍事基地、貨運列車、田園場景、外海的龜形海獸與 Jason／Lucia 掃描人物模型來自 Sketchfab 各作者（CC BY 4.0，部分實車為 CC BY-NC-SA 4.0，新城區、海岸遠景、安全屋、酒館與賭場大廳的部分模型為 Sketchfab Standard），作者與來源見 <a href="../assets/260/CREDITS.md" target="_blank" rel="noopener">CREDITS</a>。音效是 Freesound 的真實錄音（CC0；BMW 與 Porsche 的引擎聲含 ikbenraar、jerry.berumen 的 CC BY 4.0 錄音），見 <a href="../assets/260/sfx/CREDITS.md" target="_blank" rel="noopener">音效 CREDITS</a>。</small>
 </div></div>
 <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#07080b;color:#ece8e0">這件作品需要 JavaScript 與 WebGL。</p></noscript>
 <p class="sr">可開車探索的雨夜城市：程序生成的街區、霓虹招牌與全息廣告，可下車步行並進入酒吧與夜店。</p>

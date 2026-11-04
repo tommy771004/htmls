@@ -187,7 +187,7 @@ const COAST_MODELS = [
   { set: 'isle_office', id: 'office', at: ISLE_SITES.office, proxy: 'isle', near: 900, y: .03 },
   { set: 'far_london', id: 'london', at: FAR_SITES.london, proxy: 'far', near: 1500, zn: FAR_ZN },
   // 外海的兩座島（遠景，整個城市南半都看得到，所以 near 比其他遠景大；城北的玩家要往南走才會下載）：鷹巖村的紅瓦屋頂（props.mjs 的 glow 取樣）夜裡點上一盞盞暖色的窗燈
-  { set: 'far_eze', id: 'eze', at: FAR_SITES.eze, proxy: 'eze', near: 3600, y: FAR_SITES.eze.y, zn: SEA_FR, after: (it, zn) => {
+  { set: 'far_eze', id: 'eze', at: FAR_SITES.eze, proxy: 'eze', near: 3600, y: FAR_SITES.eze.y, after: (it, zn) => {   // 跟著珊瑚灘那一片（zoneAtL），SEA_FR 的同一點是紐柏林賽道島
     const k = new Kit(), c = Math.cos(FAR_SITES.eze.ry), s = Math.sin(FAR_SITES.eze.ry), at = FAR_SITES.eze;
     for (const [x, y, z] of it.glow || []) k.box(at.x + x * c + z * s, at.y + y + 2, at.z - x * s + z * c, 4.5, 3.2, 4.5, 0xffc890, 11);   // 兩公里外一盞約兩三個像素
     cityAdd(new T.Mesh(k.build(), MAT.far), zn);
@@ -210,7 +210,7 @@ function coastModelsUpdate() {
   if (!GLB_ON || (coastTick = (coastTick + 1) % 30)) return;
   const x = pX(), z = pZ();
   for (const o of COAST_MODELS) {
-    const zn = o.zn || zoneAtL(o.at.x, o.at.z), [ax, az] = toW(o.at.x, o.at.z, zn);   // at 是邏輯座標，模型掛進所在的區（對岸的跟著 FAR_ZN）
+    const zn = 'zn' in o ? o.zn : zoneAtL(o.at.x, o.at.z), [ax, az] = toW(o.at.x, o.at.z, zn);   // at 是邏輯座標，模型掛進所在的區（對岸的跟著 FAR_ZN）；SEA_FR 沒有 ?zrot 時是 null（＝世界座標），不能用 || 退回 zoneAtL
     if (o.req || Math.hypot(x - ax, z - az) > o.near) continue;
     o.req = true;
     loadProps(o.set).then(items => {

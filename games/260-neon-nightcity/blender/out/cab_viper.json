@@ -1,0 +1,112 @@
+{
+ "pal": {
+  "leather_red": {
+   "col": "#a8281d",
+   "r": 0.55
+  },
+  "perf_red": {
+   "col": "#962218",
+   "r": 0.62,
+   "tex": "perf",
+   "rep": 0.05
+  },
+  "leather_blk": {
+   "col": "#222225",
+   "r": 0.58
+  },
+  "leather_blk2": {
+   "col": "#222225",
+   "r": 0.58
+  },
+  "perf_blk": {
+   "col": "#1d1d20",
+   "r": 0.62,
+   "tex": "perf",
+   "rep": 0.04
+  },
+  "dash_top": {
+   "col": "#1b1b1d",
+   "r": 0.78
+  },
+  "dash_top2": {
+   "col": "#1b1b1d",
+   "r": 0.78
+  },
+  "plastic_blk": {
+   "col": "#161618",
+   "r": 0.82
+  },
+  "gloss_blk": {
+   "col": "#0b0b0d",
+   "r": 0.12
+  },
+  "satin_alu": {
+   "col": "#9a9ca2",
+   "r": 0.3,
+   "m": 0.9
+  },
+  "dark_alu": {
+   "col": "#4c4e54",
+   "r": 0.35,
+   "m": 0.85
+  },
+  "carbon": {
+   "col": "#d8d8dc",
+   "r": 0.22,
+   "tex": "carbon",
+   "rep": 0.06
+  },
+  "carpet": {
+   "col": "#1d1d1f",
+   "r": 1.0
+  },
+  "mat": {
+   "col": "#151516",
+   "r": 1.0
+  },
+  "stitch_red": {
+   "col": "#d02a1e",
+   "r": 0.6
+  },
+  "stitch_dk": {
+   "col": "#2a2a2c",
+   "r": 0.7
+  },
+  "rubber": {
+   "col": "#0f0f10",
+   "r": 0.9
+  },
+  "gauge": {
+   "col": "#ffffff",
+   "r": 0.3,
+   "tex": "atlas",
+   "emi": 0.5
+  },
+  "screen": {
+   "col": "#ffffff",
+   "r": 0.15,
+   "tex": "atlas",
+   "emi": 0.55
+  },
+  "badge": {
+   "col": "#ffffff",
+   "r": 0.3,
+   "tex": "atlas"
+  },
+  "keys": {
+   "col": "#ffffff",
+   "r": 0.4,
+   "tex": "atlas",
+   "emi": 0.3
+  },
+  "led_red": {
+   "col": "#ff2a1f",
+   "r": 0.3,
+   "emi": 1.0
+  },
+  "start_red": {
+   "col": "#c4211a",
+   "r": 0.25
+  }
+ }
+}

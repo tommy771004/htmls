@@ -145,6 +145,19 @@ const XG = (() => {
     if (L.closed && C.length) { const a = C[C.length - 1], b = C[0]; addE(a.n, b.n, [...sub(L, a.u, L.len), ...sub(L, 0, b.u).slice(1)], { src: L.src }); }
   }
   for (const [a, b] of conn) addE(a, b, [[a.x, a.z], [b.x, b.z]], { src: 'link' });
+  // 雲梯城寨的街（28-enclave.js；ENC.S.streets 的中心線，ENC.f 框座標）：街與街的交點是節點，主街南端是框的原點（城裡那條路的路口），接到最近的 RN 節點
+  if (ENC) {
+    const S = ENC.S.streets, key = new Map(), cl = s => s.ax === 'z' ? (s.x0 + s.x1) / 2 : (s.z0 + s.z1) / 2;
+    const nd = (x, z) => { const k = Math.round(x) + ',' + Math.round(z); let n = key.get(k); if (!n) key.set(k, n = node(...toW(x, z, ENC.f))); return n; };
+    for (const s of S) {
+      const c = cl(s), us = s.id === 'main' ? [0] : [], [a0, a1] = s.ax === 'z' ? [s.z0, s.z1] : [s.x0, s.x1];
+      for (const o of S) if (o.ax !== s.ax) { const oc = cl(o), [b0, b1] = s.ax === 'z' ? [o.x0, o.x1] : [o.z0, o.z1]; if (oc >= a0 && oc <= a1 && c >= b0 && c <= b1) us.push(oc); }
+      us.sort((p, q) => p - q);
+      for (let i = 0; i + 1 < us.length; i++) if (us[i + 1] - us[i] > .5) { const a = s.ax === 'z' ? nd(c, us[i]) : nd(us[i], c), b = s.ax === 'z' ? nd(c, us[i + 1]) : nd(us[i + 1], c); addE(a, b, [[a.x, a.z], [b.x, b.z]], { src: 'enc' }); }
+    }
+    const o = key.get('0,0');
+    if (o) { let best = null, bd = 40; for (let i = 0; i < RN.nodes.length; i++) { const d = Math.hypot(nodes[i].x - o.x, nodes[i].z - o.z); if (d < bd) { bd = d; best = nodes[i]; } } if (best) addE(o, best, [[o.x, o.z], [best.x, best.z]], { src: 'link' }); }
+  }
   // 和城裡路網連通的部分
   const main = new Uint8Array(nodes.length), st = [0]; main[0] = 1;
   while (st.length) { const n = nodes[st.pop()]; for (const e of n.out) { const m = e.a === n ? e.b : e.a; if (!main[m.id]) { main[m.id] = 1; st.push(m.id); } } }

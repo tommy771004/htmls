@@ -149,7 +149,7 @@ try {
     await page.waitForFunction(() => window.__nc.props.air.M.items, null, { timeout: 60000 }).catch(() => {});
     await page.evaluate(() => window.__t.step(5));
     const mdl = await sec('模型', () => { const A = window.__nc.props.air; return { items: A.M.items ? Object.keys(A.M.items) : null, proxies: A.M.proxies.length, body: A.P.planes.map(p => p.body.children[0] && p.body.children[0].isGroup) }; });
-    if (mdl) check(mdl.items && mdl.items.length === 7 && mdl.proxies === 0 && mdl.body.every(Boolean), `模型換掉替身（${(mdl.items || []).join('、')}；客機 ${JSON.stringify(mdl.body)}）`);
+    if (mdl) check(mdl.items && mdl.items.length === 3 && mdl.proxies === 0 && mdl.body.every(Boolean), `模型換掉替身（${(mdl.items || []).join('、')}；客機 ${JSON.stringify(mdl.body)}）`);
   }
   if (shotDir) {
     const cams = await page.evaluate(() => {

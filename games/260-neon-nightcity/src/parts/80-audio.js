@@ -114,8 +114,9 @@ const sfx = (() => {
   function mix() {
     if (!ac) return;
     const t = ac.currentTime;
-    out.gain.setTargetAtTime(outGain(), t, .05); master.gain.setTargetAtTime(SET.vSfx, t, .05);
-    musicG.gain.setTargetAtTime(SET.vMusic, t, .05); ambG.gain.setTargetAtTime(SET.vAmb, t, .05);
+    const on = st.summit ? 0 : 1;   // 97-summit.js：峰頂觀景環開著時城市的音樂、環境音關掉（它自己接在 out 上）；電影與搭車時連音效也關，在山上走（summit === 2）時腳步這些音效照常
+    out.gain.setTargetAtTime(outGain(), t, .05); master.gain.setTargetAtTime(SET.vSfx * (st.summit === 1 ? 0 : 1), t, .05);
+    musicG.gain.setTargetAtTime(SET.vMusic * on, t, .05); ambG.gain.setTargetAtTime(SET.vAmb * on, t, .05);
     // 暫停選單打開時 step 不跑、update 不會被呼叫：甩尾、警笛、旋翼直接收掉（關掉選單後 update／loops 需要時再建）
     if (st.duck) {
       for (const k of ["skid", "wail", "yelp", "heli"]) if (st[k]) { const L = st[k]; st[k] = null; L.g.gain.setTargetAtTime(0, t, .02); try { L.s.stop(t + .1); } catch (e) {} }
@@ -322,6 +323,8 @@ const sfx = (() => {
     stats() { const db = (b) => { const y = b.getChannelData(0); let e = 0; for (let i = 0; i < y.length; i++) e += y[i] * y[i]; return +(10 * Math.log10(e / y.length + 1e-12)).toFixed(1); }; const o = {}; for (const [k, vs] of Object.entries(rec.one)) o[k] = vs.map((b) => [+b.duration.toFixed(2), db(b)]); for (const [k, b] of Object.entries(rec.loop)) o[k] = [[+b.duration.toFixed(2), db(b)]]; return o; },
     beat() { return (now() - (ac ? st.clubT0 : 0)) * CLUB_BPM / 60; },
     setMuted(m) { st.muted = m; mix(); },
+    // 97-summit.js：開關峰頂觀景環（城市的匯流排歸零；sfxOn 留著音效匯流排），回傳 AudioContext 與總輸出（受總音量、靜音、切分頁靜音控制）
+    summit(on, sfxOn) { st.summit = on ? (sfxOn ? 2 : 1) : 0; mix(); return ac ? { ac, out } : null; },
     // 95-menu.js：音量滑桿、暫停時壓低（duck）、切到別的分頁時靜音（hidden）
     mix(o) { if (o) Object.assign(st, o); mix(); },
     get muted() { return st.muted; },
@@ -411,6 +414,32 @@ const sfx = (() => {
       if (kind) { if (rplay('body', { k: clamp(k / 9, .3, 1) })) { if (kind === 'ped') rplay('bump', { k: clamp(k / 14, .2, .6) }); if (k > 9) rplay('bodyfall', { k: .55 }); return; } }
       else if (rplay(k >= 9 ? 'crash' : 'bump', { k: clamp(k / (k >= 9 ? 18 : 8), .12, 1) })) { if (k >= 16) rplay('glass', { k: .35 }); return; }
       const t = ac.currentTime; nz(t, master, 'lowpass', 500, 1, clamp(k / 12, .05, .5), .3); kick(t, master);
+    },
+    // 21-rigbeast.js 的海獸（k：照距離算好的音量）：低吼 4.6 s（四個往下滑的低音經過飽和與共振低通、9 Hz 的顫動、帶通的氣聲）、
+    // 浮出前的海底轟隆 7 s（低通的噪音＋28 Hz 正弦）；每個來源都排好 stop
+    beastRoar(k = 1) {
+      if (!ac || !(k > .01)) return;
+      const t = ac.currentTime, D = 4.6, g = ac.createGain(), lp = ac.createBiquadFilter(), ws = ac.createWaveShaper(), cv = new Float32Array(1024);
+      for (let i = 0; i < 1024; i++) cv[i] = Math.tanh((i / 511.5 - 1) * 3);
+      ws.curve = cv; lp.type = 'lowpass'; lp.Q.value = 2.2;
+      lp.frequency.setValueAtTime(260, t); lp.frequency.linearRampToValueAtTime(1500, t + .9); lp.frequency.linearRampToValueAtTime(900, t + 2.8); lp.frequency.linearRampToValueAtTime(220, t + D);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.5 * k, t + .5); g.gain.setValueAtTime(.5 * k, t + 2.9); g.gain.exponentialRampToValueAtTime(.0001, t + D);
+      ws.connect(lp); lp.connect(g); g.connect(master);
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 9; lg.gain.value = 45; lfo.connect(lg); lfo.start(t); lfo.stop(t + D + .05);
+      for (const [f0, f1, ty, a] of [[92, 64, 'sawtooth', .5], [139, 95, 'sawtooth', .3], [46, 33, 'square', .35], [61, 47, 'triangle', .4]]) {
+        const o = ac.createOscillator(), og = ac.createGain(); o.type = ty;
+        o.frequency.setValueAtTime(f0 * .8, t); o.frequency.exponentialRampToValueAtTime(f0, t + .6); o.frequency.exponentialRampToValueAtTime(f1, t + D);
+        lg.connect(o.detune); og.gain.value = a; o.connect(og); og.connect(ws); o.start(t); o.stop(t + D + .05);
+      }
+      const n = noiseSrc(true), bp = ac.createBiquadFilter(), ng = ac.createGain(); bp.type = 'bandpass'; bp.frequency.value = 700; bp.Q.value = .7; ng.gain.value = .5;
+      n.connect(bp); bp.connect(ng); ng.connect(ws); n.start(t); n.stop(t + D + .05);
+    },
+    beastRumble(k = 1) {
+      if (!ac || !(k > .01)) return;
+      const t = ac.currentTime, D = 7, g = ac.createGain(), lp = ac.createBiquadFilter(), n = noiseSrc(true), o = ac.createOscillator();
+      lp.type = 'lowpass'; lp.frequency.value = 120; o.type = 'sine'; o.frequency.value = 28;
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.6 * k, t + 2.5); g.gain.setValueAtTime(.6 * k, t + 5); g.gain.exponentialRampToValueAtTime(.0001, t + D);
+      n.connect(lp); lp.connect(g); o.connect(g); g.connect(master); n.start(t); n.stop(t + D + .05); o.start(t); o.stop(t + D + .05);
     },
     splash(k = 1) { if (!ac) return; if (rplay('splash', { k: .25 + .55 * k, rate: 1.15 - .25 * k })) return; const t = ac.currentTime; nz(t, master, 'lowpass', 900 + 900 * k, .7, .05 + .2 * k, .25 + .45 * k); nz(t + .03, master, 'highpass', 2600, .6, .03 + .07 * k, .2 + .3 * k); },
     door() { if (!ac) return; if (rplay('door', { k: .6 })) return; const t = ac.currentTime; nz(t, master, 'lowpass', 300, 1, .2, .25); tone(t + .05, master, 'sine', 90, .2, .005, .2); },

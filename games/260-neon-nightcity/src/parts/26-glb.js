@@ -7,6 +7,8 @@ import GLB_SPEC from '../../../../assets/260/cars.json';
 const GLB_ON = /^https?:$/.test(location.protocol);
 const GLB_BASE = new URL('../assets/260/', location.href).href;
 const glbReport = { on: GLB_ON, loaded: [], failed: [] };
+import { doorBuild, doorHinge, doorTurn, doorCard, doorGlassTrim, doorGlass, swSplit, swAxis } from '../doors.mjs';   // 實車的車門切分（tools/door-view.mjs 用同一份）
+import { cabTint, cabBox } from '../cabin.mjs';   // 車內重新上色（cars.json 的 cab）
 const STARTER = 'ae86', STREET_BIKE = 'zx6r';   // 開場的座駕與停在路邊的機車；車行與車庫只賣實車模型
 
 // price 美元；vmax m/s、eng 加速、grip 抓地（同 CARS）
@@ -135,6 +137,10 @@ const GLB_CARS = [
     tag: '自然進氣 V10 的中置跑車，加了外擴寬體、鴨尾與蜂巢格柵。橘色車身是原廠彩繪，不能換色。' }],
   ['evo6', { name: 'Mitsubishi Lancer Evolution VI', cls: '1999 · 渦輪四缸四驅', price: 45000, street: 1, vmax: 66, eng: 15, grip: 9.4,
     tag: '拉力賽冠軍的街車版，四驅、渦輪與巨大的尾翼。紫色車身配藍色貼紙，原廠彩繪，不能換色。' }],
+  // 任務用的裝甲車（skin）：路上照舊是車流低模（不在 STREET 抽籤池、不能搶），搶案與地堡補給讓玩家開的那台坐上去才換成實車；
+  // 只換外觀，名字、耐久、極速與質量照任務設的（68-gta.js 的 streetUp），也不能收進車庫（65-motors.js 的 streetId）
+  ['md84', { name: 'MD 84 裝甲車', cls: '運鈔／特勤裝甲卡車', price: 0, street: 1, skin: 1, vmax: 38, eng: 8, grip: 6,
+    tag: '中型卡車底盤加裝甲車廂，車窗是防彈玻璃。慢、重、轉彎要早點打方向，但一般的槍打不穿。' }],
   ['hd72', { name: 'Harley-Davidson Seventy-Two', cls: '2015 · 1200 cc V 型雙缸', price: 12000, bike: true, street: 1, vmax: 50, eng: 11, grip: 7, seat: [-.06, -.28],
     tag: '高把手、細前輪與糖果紅油箱的復古嬉皮車。不快，但停在哪裡都很好看。' }],
   ['hdpol', { name: 'Harley-Davidson 警用重機', cls: '1700 cc V 型雙缸 · 警用', price: 28000, bike: true, street: 1, vmax: 52, eng: 11.5, grip: 7.2, seat: [-.06, -.25],
@@ -195,6 +201,8 @@ for (const [id, o] of GLB_CARS) {
     len: s.len, w: s.w, wr: s.wr || .33, ww: o.bike ? [.12, .19] : [.27, .3], track: s.track || .8, fa: s.fa || 1.3, ra: s.ra || -1.3, rim: ['five', 0x9aa0a6],
     credit: `模型：${shortAuthor(s.author)} · ${shortLic(s.license)} · 非官方同人，與車廠無關`, source: s.source,
     db: s.db || null,   // tools/seats.mjs 量的駕駛座 [座椅高度, 往前偏移]（69-combat.js 的車窗射擊）
+    h: s.h, door: s.door || null,   // 車高；door：src/doors.mjs 的車門規格（68-xdoor.js 的開門上下車、坐姿駕駛、車內視角）
+    sw: s.sw || null,   // 方向盤（src/doors.mjs 的 swSplit）：中心、半徑、轉軸仰角；駕駛的手照它握
   });
   if (CAR_REAL[id]) realTune(CARS[id], CAR_REAL[id]);   // 每台車照原廠規格換算自己的極速、加速、抓地、車重、轉向、手煞車、耐久與煞車
 }
@@ -272,9 +280,49 @@ function loadGLB(id) {
         (nm === n.name ? tw.list : tw.fix).push(...list);
       } else tpl.body.push(...list);
     }
+    if (spec.cab) { const box = cabBox(spec); for (const e of tpl.body) cabTint(e.geo, e.rel, spec.cab, box, !!e.mat.map, !!e.mat.transparent); }   // 先改色再切門
+    if (spec.door) glbDoors(tpl, spec.door);
+    if (spec.sw) glbSteer(tpl, spec.sw);
     glbReport.loaded.push(id); glbDone.add(id); perfTag('車 ' + id, pt);
     return tpl;
   }, () => { glbReport.failed.push(id); glbDone.add(id); return null; });
+}
+// 車門（src/doors.mjs，cars.json 的 door）：把 body 的網格照門框切成車身、左門、右門，門的網格改成相對鉸鏈（tpl.doors[s]，s 1 左 +x、2 右 −x）；
+// 原三角形共用原本的頂點（只換索引），剪開的另建 Float32 幾何。幾何所有實例共用，只在下載後切一次
+function glbDoors(tpl, spec) {
+  const body = [], dl = { 1: [], 2: [] }, pts = { 1: [], 2: [] };
+  for (const e of tpl.body) {
+    const r = doorBuild(T, e.geo, e.rel, spec);
+    if (!r) { body.push(e); continue; }
+    for (const g of r.parts[0]) body.push({ geo: g, mat: e.mat, rel: e.rel });
+    for (const s of [1, 2]) { for (const g of r.parts[s]) dl[s].push({ geo: g, mat: e.mat, rel: e.rel.clone() }); pts[s].push(...r.pts[s]); }
+  }
+  tpl.body = doorGlass(body, spec.glass); tpl.doors = [];   // 玻璃照原檔的不透明度（src/doors.mjs）
+  for (const s of [1, 2]) dl[s] = doorGlass(dl[s], spec.glass);
+  for (const s of [1, 2]) {
+    if (!dl[s].length) continue;
+    // 門板內飾與窗線以下的玻璃（src/doors.mjs）：打開的門不再露出外殼背面與整片鏡面玻璃
+    const card = spec.card !== false && doorCard(T, dl[s], spec);
+    doorGlassTrim(T, dl[s], spec);
+    if (card) dl[s].push({ geo: card.geo, mat: card.mat, rel: new T.Matrix4() });
+    const h = doorHinge(pts[s], s, spec), off = new T.Matrix4().makeTranslation(-h.x, -h.y, -h.z);
+    for (const e of dl[s]) e.rel.premultiply(off);
+    const tu = doorTurn(spec, s);
+    tpl.doors.push({ s, x: h.x, y: h.y, z: h.z, ax: new T.Vector3(...tu.ax), sg: tu.sg, fly: !!spec.axis, ang: (spec.ang ?? 62) * Math.PI / 180, list: dl[s] });
+  }
+}
+// 方向盤：從車身拆出來（rel 先移到方向盤中心），實例掛在中心的 Group 上，30-vehicles.js 的 poseVehicle 照 v.steer × SW_TURN 繞轉軸轉
+const SW_TURN = 1.3;   // 前輪打 0.55 rad（停著打到底）時方向盤轉約 41°：雙手不換手、一直握在輪圈上（照 GTA5 第一人稱開車的手）
+function glbSteer(tpl, sw) {
+  const body = [], list = [], c = new T.Vector3(...sw.c), off = new T.Matrix4().makeTranslation(-c.x, -c.y, -c.z);
+  for (const e of tpl.body) {
+    const r = swSplit(T, e.geo, e.rel, sw);
+    if (!r) { body.push(e); continue; }
+    if (r.rest) body.push({ geo: r.rest, mat: e.mat, rel: e.rel });
+    list.push({ geo: r.wheel, mat: e.mat, rel: e.rel.clone().premultiply(off) });
+  }
+  tpl.body = body;
+  if (list.length) tpl.sw = { c, n: new T.Vector3(...swAxis(sw)), list };
 }
 // 一個實例：自己的 uM（頭燈、煞車）與車漆 uniform，網格與材質都是新的、幾何共用
 function glbInstance(tpl, paint, uM, fin = 1) {
@@ -288,6 +336,13 @@ function glbInstance(tpl, paint, uM, fin = 1) {
     return o;
   };
   for (const e of tpl.body) inst.body.add(mk(e));
+  // 車門：掛在鉸鏈的 Group 上（68-door.js 的 doorTick 轉 rotation.y；左門往外開是負角）
+  inst.doors = (tpl.doors || []).map(d => {
+    const piv = new T.Group(); piv.position.set(d.x, d.y, d.z); inst.body.add(piv);
+    for (const e of d.list) piv.add(mk(e));
+    return { s: d.s, piv, ax: d.ax, sg: d.sg, fly: d.fly, ang: d.ang, k: 0, want: 0 };
+  });
+  if (tpl.sw) { const piv = new T.Group(); piv.position.copy(tpl.sw.c); inst.body.add(piv); for (const e of tpl.sw.list) piv.add(mk(e)); inst.sw = { piv, n: tpl.sw.n }; }
   for (const w of tpl.wheels) {
     const piv = new T.Group(); piv.position.set(w.x, w.y, w.z);
     const spin = new T.Group(); piv.add(spin);
@@ -319,6 +374,7 @@ function glbWake(scn) {
       const inst = glbInstance(tpl, e.paint, null, e.fin); e.g.userData.inst = inst;
       if (e.fb) e.g.remove(e.fb);   // 替身的幾何是共用的，不釋放
       e.g.add(inst.body); for (const w of inst.wheels) e.g.add(w.piv);
+      doorShowAdd(e.g, e.id, inst);   // 68-xdoor.js：走近車門就打開
     });
   }
 }

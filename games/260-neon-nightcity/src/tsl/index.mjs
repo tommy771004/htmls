@@ -49,6 +49,11 @@ import m44 from './m-vol.mjs';
 import m45 from './m-wake.mjs';
 import m46 from './m-walk.mjs';
 import m47 from './m-water.mjs';
+import m48 from './m-apron.mjs';
+import m49 from './m-plane.mjs';
+import m50 from './m-rigSea.mjs';
+import m51 from './m-rigFx.mjs';
+import m52 from './m-beast.mjs';
 export { LIB };
 export const MAT = {
   "carShadow": m0,
@@ -99,4 +104,9 @@ export const MAT = {
   "wake": m45,
   "walk": m46,
   "water": m47,
+  "apron": m48,
+  "plane": m49,
+  "rigSea": m50,
+  "rigFx": m51,
+  "beast": m52,
 };

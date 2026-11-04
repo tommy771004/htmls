@@ -34,14 +34,16 @@ if (FAC.gar) {
 
   // k：有頂的部分（自己的材質，不算積水反射；露天的頂樓才會濕）；kr：頂樓
   const k = new Kit(), kr = new Kit(), th = Math.atan2(LV, SX1 - SX0), rl = Math.hypot(LV, SX1 - SX0) + .25;
-  const bx = (x0, x1, y0, y1, z0, z1, c, m = 2) => (y0 >= Y(N) - SL - .01 ? kr : k).box(X((x0 + x1) / 2), (y0 + y1) / 2, Z((z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0, c, m);
+  // 去玩具感（2026-11-02）：混凝土、柱子用 MAT.ux 的程式混凝土（20：細斑、氣孔、垂流、模板接縫），樓板與坡道用環氧地坪（33：胎痕、油漬、切割縫）
+  const PK_MAT = { [0x8f8b84]: 20, [0x9c978e]: 20, [0xa29d94]: 20, [0x7b7771]: 20, [0x4a4844]: 20, [0x5d5e60]: 33 };
+  const bx = (x0, x1, y0, y1, z0, z1, c, m = PK_MAT[c] || 2) => (y0 >= Y(N) - SL - .01 ? kr : k).box(X((x0 + x1) / 2), (y0 + y1) / 2, Z((z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0, c, m);
   const CONC = 0x8f8b84, DECK = 0x5d5e60, LINE = 0xe8e6de;
   // 地面層的地坪與樓板（坡道帶在每層都挖掉，頂樓的開口就是第 4 條坡道）
   bx(13, 59, .04, Y(0) + .015, 13, 49, DECK);
   for (let j = 1; j <= N; j++) for (const [x0, x1, z0, z1] of [[13, 59, SZ1, 49], [13, SX0, 13, SZ1], [SX1, 59, 13, SZ1]]) bx(x0, x1, Y(j) - SL, Y(j), z0, z1, DECK);
   for (let j = 0; j < N; j++) {
     const K = j === N - 1 ? kr : k;
-    K.box(X((SX0 + SX1) / 2), Y(j) + LV / 2 - SL / 2 * Math.cos(th), Z((13 + SZ1) / 2), rl, SL, SZ1 - 13, DECK, 2, 0, 0, th);   // 坡道
+    K.box(X((SX0 + SX1) / 2), Y(j) + LV / 2 - SL / 2 * Math.cos(th), Z((13 + SZ1) / 2), rl, SL, SZ1 - 13, DECK, 33, 0, 0, th);   // 坡道
     K.box(X((SX0 + SX1) / 2), Y(j) + LV / 2 + .012, Z((13 + SZ1) / 2), rl, .02, .14, 0xffd23a, 2, 0, 0, th);   // 中線
   }
   // 北牆（整面到頂）、坡道帶南側的隔牆、電梯井
@@ -93,6 +95,21 @@ if (FAC.gar) {
   const sz0 = lineZ(17);
   for (const [x, z, sx, sz] of [[17, sz0 - 1.3, 5.4, .14], [17, sz0 + 1.3, 5.4, .14], [14.3, sz0, .14, 2.74], [19.7, sz0, .14, 2.74]]) kr.box(X(x), Y(N) + .015, Z(z), sx, .02, sz, 0xffc83a, 8);
   for (let x = 28; x <= 44; x += 4) for (const s of [-1, 1]) kr.box(X(x - .45), Y(N) + .015, Z(lineZ(x) + s * .5), .16, .02, 1.3, 0xffd23a, 8, 0, s * .7, 0);
+  // 車擋（每個車位一條預鑄混凝土、兩端漆黃）與天花板的消防灑水管（紅色主管、每 3 m 一個吊架與灑水頭）
+  for (let j = 0; j <= N; j++) {
+    const y = j ? Y(j) : Y(0) + .015, K = j === N ? kr : k;
+    for (let i = 0; i < 12; i++) for (const zc of [31.9, 33.1, 48.4]) {
+      if (j === N && zc === 31.9) continue;
+      const x = X(21.3 + i * 2.6);
+      K.box(x, y + .06, Z(zc), 1.5, .12, .16, 0xb2ada4, 20).box(x - .62, y + .121, Z(zc), .26, .004, .16, 0xe0b828, 8).box(x + .62, y + .121, Z(zc), .26, .004, .16, 0xe0b828, 8);
+    }
+    if (j === N) continue;
+    const yc = Y(j + 1) - SL - .18;
+    for (const zc of [28.2, 37.2]) {
+      k.rod(X(19), yc, Z(zc), X(57), yc, Z(zc), .055, 10, 0x9c1c1c, 21);
+      for (let x = 20; x <= 56; x += 3) k.rod(X(x), yc + .05, Z(zc), X(x), yc + .17, Z(zc), .008, 4, 0x55585c, 15).cyl(X(x), yc - .08, Z(zc), .02, .012, .05, 6, 0xc0a040, 3);
+    }
+  }
   // 日光燈管（每層的天花板，沿著車道；坡道下面也有）與燈光
   for (let j = 0; j < N; j++) {
     const y = Y(j + 1) - SL - .05;
@@ -128,7 +145,7 @@ if (FAC.gar) {
     putCar('in', ids[Math.floor(R() * ids.length)], 21.3 + i * 2.6, Y(j), z, yaw, 1 + Math.floor(R() * PAL.length));
   }
   putCar('roof', 'senna', 21.3 + 5 * 2.6, Y(N), 30.2, 0, 5); putCar('roof', 'r8', 21.3 + 9 * 2.6, Y(N), 30.2, 0, 4);   // 頂樓南排空著：跳台的助跑道
-  const dryI = mkUber({ inst: true }); dryI.name = MAT.uberI.name; dryI.uniforms.uWet = { value: 0 };
+  const dryI = mkUber({ inst: true }); dryI.name = TRAF_MAT.name; dryI.uniforms.uWet = { value: 0 };   // 和車流同一個著色器（髒污、遮蔽、金屬漆）
   for (const set in cars) for (const id in cars[set]) {
     const L = cars[set][id], g = TRAFFIC_GEO[id].geo.clone(), ia = new Float32Array(L.length * 4);
     const m = new T.InstancedMesh(g, set === 'in' ? dryI : TRAF_MAT, L.length);
@@ -136,8 +153,8 @@ if (FAC.gar) {
     g.setAttribute('aIns', new T.InstancedBufferAttribute(ia, 4));
     m.name = 'garCars'; m.computeBoundingSphere(); cityAdd(m, F.zn, [X(36), Z(31)]);
   }
-  const dry = mkUber(); dry.uniforms.uWet = { value: 0 };
-  cityAdd(new T.Mesh(k.build(), dry), F.zn); cityAdd(new T.Mesh(kr.build(), MAT.uber), F.zn);
+  const dry = mkUberX(); dry.uniforms.uWet = { value: 0 };
+  cityAdd(new T.Mesh(k.build(), dry), F.zn); cityAdd(new T.Mesh(kr.build(), MAT.ux), F.zn);
   // 招牌：北面的大燈箱、西面的直立「P」、入口的橫招牌、頂樓跳台旁的「飛躍霓虹大道」
   v5Put(F, v5Sign([['霓虹立體停車場', .42, '#ffffff', .4], ['NEON PARK  ·  5F  ·  24H  ·  頂樓特技跳台', .2, '#2cf2d8', .78]], 18, 3, { bg: '#0d1216', edge: '#2cf2d8' }), 36, Y(2) + 1.6, 12.62, Math.PI);
   v5Put(F, v5Sign([['P', .2, '#2cf2d8', .13], ['停', .095, '#ffffff', .34], ['車', .095, '#ffffff', .47], ['場', .095, '#ffffff', .6], ['24H', .06, '#ffb02e', .82]], 1.8, 8, { bg: '#0d1216', edge: '#ff3fa0' }), 12.6, 6.2, 19.5, -Math.PI / 2);

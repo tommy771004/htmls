@@ -93,7 +93,7 @@ const MV = { cx: 0, cz: 0, zoom: 1, tx: 0, tz: 0, tzoom: 1, dirty: true, blips: 
 const MAP_BOUNDS = (() => {   // 底圖的範圍再加上機場（21-air.js；不在預先畫好的底圖裡，地圖即時畫）
   const B = { ...MAP_BB };
   const add = (x, z, m) => { B.x0 = Math.min(B.x0, x - m); B.x1 = Math.max(B.x1, x + m); B.z0 = Math.min(B.z0, z - m); B.z1 = Math.max(B.z1, z + m); };
-  if (MAP_AIR) for (const [x, z] of MAP_AIR.isl) add(x, z, 120);
+  if (MAP_AIR) for (const [x, z] of [...MAP_AIR.isl, ...MAP_AIR.isl2]) add(x, z, 120);
   for (const P of HILL.paths || []) for (let i = 0; i < P.length; i += 8) add(P[i][0], P[i][1], 300);   // 外緣山路與榛嶺
   if (NBR) for (const [x, z] of [[NBR.x0, AIR.isl.z1], [NBR.x1, AIR.isl.z1], [NBR.x0, NBR.z1], [NBR.x1, NBR.z1]]) { const [X, Z] = toW(x, z, SEA_FR), I = MAP_INS; add(I ? I.ax + I.s * (X - I.ax) : X, I ? I.az + I.s * (Z - I.az) : Z, 0); }   // 紐柏林（SEA_FR 的矩形；大地圖上是縮小的插圖，90-hud.js 的 MAP_INS）
   return B;
@@ -301,7 +301,7 @@ function mapPlaceName(X, Z) {   // 世界座標；底下的範圍判斷在所在
   const h = capeAt(X, Z); if (h) return h.name.split(' ')[0];
   const [x, z] = toL(X, Z), d = district(x, z), zh = d.split(' ')[0];
   const [fx, fz] = toL(X, Z, FAR_ZN);
-  if (fx < FAR_BANK_X && fz < FAR_Z1) return '倫敦城 · 灰鷺河對岸';
+  if (fx < FAR_BANK_X && fx > FAR_BANK_W && fz < FAR_Z1) return '倫敦城 · 灰鷺河對岸';
   if (!inCity(X, Z)) {
     if (airLandW(X, Z)) return AIR.name;
     if (NBR && nbrIn(X, Z)) { const c = nbrCorner(X, Z); return '紐柏林' + (c ? ` / ${c}` : ''); }
@@ -402,7 +402,7 @@ function mapClick(sx, sy) {
   const [x, z] = wr, kz = MAP_INS && MAP_INS.inW(x, z) ? MAP_INS.s : 1;   // 插圖裡的容許距離照縮小的比例放寬
   { const zn = zoneAtW(x, z), [lx, lz] = toL(x, z, zn); if (zn ? lx < avX(zn.ni0) - HR || lx > avX(zn.ni1) + HR || lz < stZ(zn.nj0) - HR || lz > stZ(zn.nj1) + HR : !seamAt(x, z)) if (!capeAt(x, z)) {   // 城裡、區之間的縫或岬角
     const p = xgProject(x, z, 64, 256);   // 城外：點在路上（69-gps.js 的 XG：山路、榛嶺、堤道、紐柏林的賽道與村道），或在機場、紐柏林的地上
-    if (!(p && p.d < Math.max(30, 16 / MV.zoom / kz)) && !airLandW(x, z) && !(NBR && nbrIn(x, z))) return;
+    if (!(p && p.d < Math.max(30, 16 / MV.zoom / kz)) && !airLandW(x, z) && !(NBR && nbrIn(x, z)) && !encHas(x, z)) return;   // encHas：雲梯城寨的平台（街在 XG 裡）
   } }
   if (gps.wp && Math.hypot(gps.wp.x - x, gps.wp.z - z) < 14 / Math.max(.5, MV.zoom) / kz) gpsClear(); else gpsSet(x, z);
   gps.t = 0; gpsUpdate(); mapCard(); MV.dirty = true;

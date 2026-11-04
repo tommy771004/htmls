@@ -12,13 +12,15 @@ const ST_TAPE = () => taleCorner(11, 5, -1, 1);   // 赤蠍幫拿著母帶的街
 const ST_NEON = () => taleCorner(2, 2, 1, 1);     // 霓虹區：MV 開拍的地方
 // 琥珀工業區街區裡的空地（世界座標）：半徑 r 內和一圈 8 點都推不動、在地面上
 let stOpenC = null;
+// 三圈（r、2/3 r、1/3 r）各 8 點加中心都不能有碰撞，r + 1.5 m 內也不能有樹（collideCircle 第四個參數 false 不看樹，行道樹會長在籠子裡；樹是邏輯座標）（2026-11-02）
 function stOpen(r = 5.5) {
   if (stOpenC) return stOpenC;
   const d = DISTRICTS.find(o => o.name.startsWith('琥珀')) || { i0: 13, i1: NX, j0: 7, j1: 11 };
-  const ok = (x, z) => { colY = 0; for (let k = -1; k < 8; k++) { const px = k < 0 ? x : x + Math.sin(k / 8 * Math.PI * 2) * r, pz = k < 0 ? z : z + Math.cos(k / 8 * Math.PI * 2) * r, q = collideCircle(px, pz, .5, false); if (Math.abs(q.x - px) + Math.abs(q.z - pz) > .01 || groundH(px, pz) <= 0) return false; } return true; };
+  const treeIn = (x, z) => trees.some(t => !t.hide && (t.x - x) ** 2 + (t.z - z) ** 2 < (r + 1.5) ** 2);
+  const ok = (x, z) => { colY = 0; for (let k = -1; k < 24; k++) { const rr = k < 8 ? r : k < 16 ? r * .66 : r * .33, a = (k % 8 + (k >= 8 && k < 16 ? .5 : 0)) / 8 * Math.PI * 2, px = k < 0 ? x : x + Math.sin(a) * rr, pz = k < 0 ? z : z + Math.cos(a) * rr, q = collideCircle(px, pz, .5, false); if (Math.abs(q.x - px) + Math.abs(q.z - pz) > .01 || groundH(px, pz) <= 0) return false; } return true; };
   for (let i = d.i0; i < Math.min(d.i1, NX) && !stOpenC; i++) for (let j = d.j0; j < Math.min(d.j1, NZ) && !stOpenC; j++) {
     const x0 = avX(i) + HR + SW + r + 1, x1 = avX(i + 1) - HR - SW - r - 1, z0 = stZ(j) + HR + SW + r + 1, z1 = stZ(j + 1) - HR - SW - r - 1;
-    for (let x = x0; x <= x1 && !stOpenC; x += 4) for (let z = z0; z <= z1 && !stOpenC; z += 4) { const [X, Z] = toW(x, z); if (ok(X, Z)) stOpenC = { x: X, z: Z, yaw: 0 }; }
+    for (let x = x0; x <= x1 && !stOpenC; x += 4) for (let z = z0; z <= z1 && !stOpenC; z += 4) { const [X, Z] = toW(x, z); if (ok(X, Z) && !treeIn(x, z)) stOpenC = { x: X, z: Z, yaw: 0 }; }
   }
   return stOpenC || (stOpenC = ST_SHIP);
 }
@@ -36,29 +38,69 @@ function cageAt(a, p) {
     const tx = new T.CanvasTexture(cv); tx.wrapS = tx.wrapT = T.RepeatWrapping; tx.repeat.set(36, 22); tx.colorSpace = T.SRGBColorSpace; tx.anisotropy = 4;   // 一格約 10 cm
     cageMat = new T.MeshStandardMaterial({ map: tx, alphaTest: .4, side: T.DoubleSide, metalness: .3, roughness: .5, emissive: 0x30343a });
   }
-  const k = new Kit(), y = groundH(p.x, p.z), N = 8, H = 2.4;
+  // 去玩具感（2026-11-02）：柱子包黑色護墊（上下各一道束帶、紅色柱頭蓋）、柱頂之間一圈包護墊的上欄杆、鐵絲網下緣一圈護墊；
+  // 地台一圈黑色擋邊＋鋼角條，台面帆布中間印一圈紅色標誌與中心圓、四周有踩髒的暗斑（MAT.ux 30 橡膠／34 烤漆）；投光燈有燈罩與支架
+  const k = new Kit(), y = groundH(p.x, p.z), N = 8, H = 2.4, DY = 0;   // 台面貼地（墊高的話人會陷進台子裡：地面高度不知道有這座台）
   for (let i = 0; i < N; i++) {
-    const t = i / N * Math.PI * 2, x = Math.sin(t) * CAGE_R, z = Math.cos(t) * CAGE_R;
-    k.cyl(x, H / 2, z, .07, .07, H, 10, 0x18191c, 2);
-    k.cyl(x, H + .05, z, .09, .09, .1, 10, 0x8a1c22, 2);
+    const t = i / N * Math.PI * 2, x = Math.sin(t) * CAGE_R, z = Math.cos(t) * CAGE_R, t1 = (i + 1) / N * Math.PI * 2, x1 = Math.sin(t1) * CAGE_R, z1 = Math.cos(t1) * CAGE_R;
+    k.cyl(x, DY + H / 2, z, .13, .13, H, 14, 0x141518, 30).cyl(x, DY + H + .06, z, .15, .14, .12, 14, 0x8a1c22, 34);
+    for (const yy of [DY + .5, DY + H - .4]) k.cyl(x, yy, z, .135, .135, .04, 14, 0x2a2b2e, 15);
+    k.rod(x, DY + H - .05, z, x1, DY + H - .05, z1, .08, 10, 0x141518, 30).rod(x, DY + .14, z, x1, DY + .14, z1, .07, 10, 0x141518, 30);
   }
-  k.cyl(0, .03, 0, CAGE_R + .2, CAGE_R + .2, .06, 8, 0x2a2c30, 2).cyl(0, .065, 0, CAGE_R - .1, CAGE_R - .1, .02, 8, 0x7a6a58, 2);
-  for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) k.cyl(sx * (CAGE_R + 1.6), 2, sz * (CAGE_R + 1.6), .05, .05, 4, 8, 0x202226, 2).box(sx * (CAGE_R + 1.6), 4.05, sz * (CAGE_R + 1.6), .5, .3, .3, 0xfff2d8, 4);
+  k.cyl(0, .03, 0, CAGE_R + .45, CAGE_R + .45, .06, 8, 0x16171a, 34, 0, Math.PI / 8).cyl(0, .055, 0, CAGE_R + .5, CAGE_R + .5, .012, 8, 0x55585c, 15, 0, Math.PI / 8);
+  k.cyl(0, .065, 0, CAGE_R + .05, CAGE_R + .05, .02, 8, 0xc9c2b4, 34, 0, Math.PI / 8);   // 帆布
+  k.cyl(0, .077, 0, 1.6, 1.6, .004, 40, 0x8a1c22, 34).cyl(0, .079, 0, 1.42, 1.42, .004, 40, 0xc9c2b4, 34).cyl(0, .081, 0, .55, .55, .004, 32, 0x8a1c22, 34);
+  const sr = rng(3317);
+  for (let i = 0; i < 9; i++) { const a = sr() * 6.28, d = 1.8 + sr() * 2.5; k.cyl(Math.sin(a) * d, .076, Math.cos(a) * d, .25 + sr() * .5, .25 + sr() * .5, .002, 10, 0x9a9384, 34); }
+  for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const X = sx * (CAGE_R + 1.6), Z = sz * (CAGE_R + 1.6), a = Math.atan2(-X, -Z);
+    k.cyl(X, 2.1, Z, .06, .07, 4.2, 10, 0x202226, 21).cyl(X, .05, Z, .22, .22, .1, 10, 0x2a2b2e, 21);
+    k.rbox(X, 4.15, Z, .56, .34, .34, .04, 0x1a1b1e, 34, -.5, a, 0).box(X + Math.sin(a) * .17, 4.07, Z + Math.cos(a) * .17, .48, .26, .02, 0xfff2d8, 4, -.5, a, 0);
+  }
   const grp = new T.Group(); grp.position.set(p.x, y, p.z);
-  grp.add(new T.Mesh(k.build(), MAT.uber));
+  grp.add(new T.Mesh(k.build(), MAT.ux));
   // 鐵絲網：八面直立的板子（沿柱子之間）
   const pos = [], uv = [];
   for (let i = 0; i < N; i++) {
     const t0 = i / N * Math.PI * 2, t1 = (i + 1) / N * Math.PI * 2, ax = Math.sin(t0) * CAGE_R, az = Math.cos(t0) * CAGE_R, bx = Math.sin(t1) * CAGE_R, bz = Math.cos(t1) * CAGE_R;
-    pos.push(ax, .1, az, bx, .1, bz, bx, H, bz, ax, .1, az, bx, H, bz, ax, H, az);
+    pos.push(ax, DY + .1, az, bx, DY + .1, bz, bx, DY + H, bz, ax, DY + .1, az, bx, DY + H, bz, ax, DY + H, az);
     uv.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1);
   }
   const ng = new T.BufferGeometry(); ng.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); ng.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); ng.computeVertexNormals();
   grp.add(new T.Mesh(ng, cageMat));
   scene.add(grp);
-  a.cage = { x: p.x, z: p.z, g: grp };
+  a.cage = { x: p.x, z: p.z, g: grp, aud: cageAudience(p.x, p.z) };
 }
-storyCleanups.push(a => { if (a.cage) { scene.remove(a.cage.g); a.cage.g.traverse(o => { if (o.isMesh && o.geometry) o.geometry.dispose(); }); a.cage = null; } });
+// 觀眾（去玩具感，2026-11-02；原本籠子外面沒有人）：圍欄外 1.2–2.5 m 站一圈 14 人，面向籠子，避開四角的投光燈；
+// 舉手吶喊、抱胸、聊天、拿手機拍、抽菸，每人自己的相位，臉朝籠子中間偏一點
+const CAGE_N = 14, cageCrowd = crowd(CAGE_N);
+scene.add(cageCrowd.mesh);
+const CAGE_ACT = [ANIM.handsUp, ANIM.cross, ANIM.talk, ANIM.handsUp, ANIM.phone, ANIM.idle, ANIM.smoke];
+function cageAudience(cx, cz) {
+  const r = rng(3303), out = [];
+  for (let k = 0; k < CAGE_N; k++) {
+    let t = (k + .5) / CAGE_N * Math.PI * 2 + (r() - .5) * .25;
+    const q = ((t % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2) - Math.PI / 4;   // 離最近那個 45° 角（投光燈）多遠
+    if (Math.abs(q) < .14) t += Math.sign(q || 1) * .16;
+    const R = CAGE_R + 1.2 + (k % 2) * 1.1 + r() * .3, x = cx + Math.sin(t) * R, z = cz + Math.cos(t) * R;
+    out.push({ x, z, yaw: Math.atan2(cx - x, cz - z) + (r() - .5) * .5, act: CAGE_ACT[Math.floor(r() * CAGE_ACT.length)], ph: r() * 8 });
+    if (PEOPLE) cageCrowd.look(k, { r: rng(3400 + k) });
+  }
+  return out;
+}
+function cageAudStep() {
+  for (let k = 0; k < CAGE_N; k++) cageCrowd.place(k, 0, -60, 0, 0);
+}
+storyTicks.push(a => {
+  if (!a.cage || !a.cage.aud) return;
+  const out = player.where === 'out';
+  a.cage.aud.forEach((s, k) => {
+    if (!out) { cageCrowd.place(k, 0, -60, 0, 0); return; }
+    cageCrowd.anim(k, s.act, s.ph, 1);
+    cageCrowd.place(k, s.x, groundH(s.x, s.z), s.z, s.yaw);
+  });
+});
+storyCleanups.push(a => { if (a.cage) { cageAudStep(); scene.remove(a.cage.g); a.cage.g.traverse(o => { if (o.isMesh && o.geometry) o.geometry.dispose(); }); a.cage = null; } });
 // 籠子裡：人和對手都推回圈內
 function cageKeep(c, o, r) { const dx = o.x - c.x, dz = o.z - c.z, d = Math.hypot(dx, dz); if (d > r) { o.x = c.x + dx / d * r; o.z = c.z + dz / d * r; } }
 storyTicks.push(a => {

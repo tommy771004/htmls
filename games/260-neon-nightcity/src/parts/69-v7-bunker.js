@@ -215,7 +215,7 @@ const BK_CNC = [[-27, 8], [-21, 8], [-15, 8]], BK_MILL = [[-27, 20], [-21, 20]],
   B.push({ x0: BK_BENCH.x - 2, x1: BK_BENCH.x + 2, z0: BK_BENCH.z - .7, z1: BK_BENCH.z + .7 });
   for (let i = 0; i < 8; i++) k.box(14 + i * 2.2, 2.2, 27.8, .14, 1.4, .1, 0x1a1a1c, 15).box(14 + i * 2.2, 1.4, 27.75, 1.6, .06, .2, 0x5a3a22, 10);
   for (const [x, z] of [[26, 8], [26, 14]]) { k.box(x, .9, z, 4, 1.8, 2, 0x4a5a32, 2); B.push({ x0: x - 2, x1: x + 2, z0: z - 1, z1: z + 1 }); }
-  bunkerScene.add(new T.Mesh(k.build(), MAT.uber));
+  bunkerScene.add(new T.Mesh(k.uxify({ floor: 33, wall: 20 }).build(), MAT.ux));   // 去玩具感：素色換程式紋理（07-kitx.js 的 uxify）
   bunk.lights.push({ x: -20, y: 6, z: 14, col: lin(0xffe0b0), r: 22, i: 1.3 }, { x: 0, y: 6, z: 14, col: lin(0xd8f0ff), r: 22, i: 1.2 }, { x: 20, y: 6, z: 14, col: lin(0xffe8d0), r: 22, i: 1.3 }, { x: 0, y: 4, z: 2, col: lin(0xffc020), r: 8, i: 1 });
   // 成品木箱：照庫存擺（每箱 $35,000）
   const kk = new Kit(); kk.box(0, .45, 0, 1.4, .9, 1, 0x4a5a32, 2).box(0, .91, 0, 1.42, .03, 1.02, 0x2a3220, 2);

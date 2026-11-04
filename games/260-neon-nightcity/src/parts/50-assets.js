@@ -48,7 +48,7 @@ function bakeProp(root) {
   geo.computeBoundingBox();
   return geo;
 }
-for (const name of ['interior_props', 'street_props', 'hill_homes']) {
+for (const name of ['interior_props', 'street_props', 'hill_homes', 'cableway', 'airgse', 'airbld', 'airfac']) {   // cableway：北嶺纜車的山下站、塔架、車廂（97-summit.js）；airgse：機坪地勤車（52-air-gse.js）；airbld：機場建築（52-air-bld.js）；airfac：機場支援設施（52-air-fac.js）；airint（第一航廈室內）不在這裡解，走近才解（52-air-int.js）
   try {
     const g = await decodeGLB(name);
     if (!g) { assetReport.missing.push(name); continue; }
@@ -71,6 +71,28 @@ HOME_V.forEach(([nm], v) => {
   instanced(PROPS[nm], MAT.uxI, L, 0, HILL_SEED, HOME_R);
   if (PROPS[nm + '_gl']) instanced(PROPS[nm + '_gl'], VGLASS, L, 0, null, HOME_R);
 });
+// 植栽與岩石沒有烘 AO（hill_homes.py 的 bake_ao 只烘別墅細模）：載入時照形狀補一層近似的遮蔽，乘進頂點色——
+// 貼地的下緣暗（接地陰影）、往上漸亮；朝外的面亮、朝內（團與團之間、葉叢裡面）的面暗。不然整叢一樣亮，像塑膠模型
+function plantAO(g, dark = .5, smooth = false) {
+  if (!g || g.userData.plantAO) return;
+  g.computeBoundingBox();
+  if (smooth) {   // 灌木：原本是一面一面的平面法線（多面體像塑膠球），同一個位置的頂點法線取平均，葉團才是圓滑的一團
+    const P = g.attributes.position, N = g.attributes.normal, acc = new Map(), key = i => `${Math.round(P.getX(i) * 500)},${Math.round(P.getY(i) * 500)},${Math.round(P.getZ(i) * 500)}`;
+    for (let i = 0; i < P.count; i++) { const k = key(i), a = acc.get(k) || [0, 0, 0]; a[0] += N.getX(i); a[1] += N.getY(i); a[2] += N.getZ(i); acc.set(k, a); }
+    for (let i = 0; i < P.count; i++) { const a = acc.get(key(i)), l = Math.hypot(a[0], a[1], a[2]) || 1; N.setXYZ(i, a[0] / l, a[1] / l, a[2] / l); }
+    N.needsUpdate = true;
+  }
+  const b = g.boundingBox, h = Math.max(.01, b.max.y - b.min.y), cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2, cy = b.min.y + h * .45;
+  const P = g.attributes.position, N = g.attributes.normal, C = g.attributes.color;
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i) - cx, y = P.getY(i) - cy, z = P.getZ(i) - cz, l = Math.hypot(x, y, z) || 1;
+    const out = (N.getX(i) * x + N.getY(i) * y + N.getZ(i) * z) / l, hy = (P.getY(i) - b.min.y) / h;
+    const up = Math.min(1, hy / .7), a = (dark + (1 - dark) * up * up * (3 - 2 * up)) * (.82 + .18 * Math.max(0, Math.min(1, out * .5 + .5)));
+    C.setXYZ(i, C.getX(i) * a, C.getY(i) * a, C.getZ(i) * a);
+  }
+  C.needsUpdate = true; g.userData.plantAO = 1;
+}
+for (const [k, d, sm] of [['agave', .55], ['shrub', .5, 1], ['shrub_bloom', .5, 1], ['rock', .5], ['palm', .7], ['palm_lo', .7]]) plantAO(PROPS[k], d, !!sm);
 for (const [k, R] of [['palm', 380], ['agave', 160], ['shrub', 260], ['shrub_bloom', 260], ['rock', 320]]) {
   const L = HILL_PLANTS[k];
   if (!L.length || !PROPS[k]) continue;

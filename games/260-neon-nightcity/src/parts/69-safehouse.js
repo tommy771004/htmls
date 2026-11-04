@@ -76,13 +76,13 @@ const APT = {
   // 楓林里 (2,8) 街區的南面，門朝 15 St；原檔只是一個角落（西牆與北面的書架），東、南兩面要補牆
   mini: { door: APT_DOORS.mini, spawn: { x: 2.2, z: 1.8, yaw: -Math.PI / 2 }, exit: { x: 2.45, z: 1.8 }, frame: { x: 2.93, z: 1.8, ry: Math.PI / 2 },
     robe: { x: 2.6, z: -1.7, ry: Math.PI / 2 }, nap: { x: -1.3, z: .25 }, name: '楓林里迷你閣樓', dist: '楓林里 · 15 St', ceil: 3.8, floor: 0x5a3e2c,
-    walls: [[-3.7, -2.9, -3.2, 3.5], [2.95, 3.6, -3.2, 3.5], [-3.7, 3.6, -3.2, -2.6], [-3.7, 3.6, 2.95, 3.5]], add: [1, 3],
+    wallMat: 27, wallCol: 0x8a5a48, walls: [[-3.7, -2.9, -3.2, 3.5], [2.95, 3.6, -3.2, 3.5], [-3.7, 3.6, -3.2, -2.6], [-3.7, 3.6, 2.95, 3.5]], add: [1, 3],
     solid: [[-2.9, -1.75, -2, .8], [-1.6, -.85, -1.5, -.2], [-.8, .65, -2.05, -.65], [-1.6, -.45, .55, 1.6]], round: [],
     lights: [{ x: -.5, y: 3.2, z: -.5, col: lin(0xffc890), r: 7, i: 1.1 }, { x: 1.8, y: 2.6, z: 2, col: lin(0xffd8b0), r: 5, i: .7 }] },
   // 琥珀工業區 (15,8) 街區的南面，門朝 15 St；和室風的 Loft，西、北兩面是一整排矮沙發，南面是架高的平台，東面開著要補牆
   l16: { door: APT_DOORS.l16, spawn: { x: 6.6, z: 2, yaw: -Math.PI / 2 }, exit: { x: 6.9, z: 2 }, frame: { x: 7.42, z: 2, ry: Math.PI / 2 },
     robe: { x: 7.05, z: -1.45, ry: Math.PI / 2 }, nap: { x: -3.4, z: 2.8 }, name: '琥珀和室 Loft', dist: '琥珀工業區 · 15 St', ceil: 7.8, floor: 0x3a2c22,
-    walls: [[-8.3, -7.45, -8.1, 7.1], [7.4, 8.1, -8.1, 7.1], [-8.3, 8.1, -8.1, -7.45], [-8.3, 8.1, 6.45, 7.1]], add: [1],
+    wallMat: 44, wallCol: 0x8a6a48, walls: [[-8.3, -7.45, -8.1, 7.1], [7.4, 8.1, -8.1, 7.1], [-8.3, 8.1, -8.1, -7.45], [-8.3, 8.1, 6.45, 7.1]], add: [1],
     solid: [[-7.45, -4, -5, 3.8], [-7.45, 2, -7.45, -5], [-2.9, .5, -3, 1.9], [-4.3, 6.7, 4.8, 6.45], [-7.45, -6.5, 4.7, 5.5]], round: [{ x: -5.4, z: 5.6, r: .6 }],
     lights: [{ x: 0, y: 6, z: 0, col: lin(0xffd09a), r: 16, i: 1.2 }, { x: -6.9, y: 1.2, z: 5.1, col: lin(0xffc070), r: 6, i: 1 }, { x: -2, y: 2.5, z: -6, col: lin(0xffc890), r: 9, i: .8 }] },
   // 公園大道 (12,7) 街區的南面，門朝 14 St；白色挑高大宅，西面的玻璃門當出入口
@@ -96,7 +96,7 @@ const APT = {
   // 珊瑚灘 (4,12) 街區的南面，門朝 19 St；清水模的小客廳（原檔放大 0.15 倍），西、北兩面是原檔的牆，東、南兩面開著要補，門在南牆東邊
   lr: { door: APT_DOORS.lr, spawn: { x: 2.4, z: 1.9, yaw: Math.PI }, exit: { x: 2.4, z: 2.2 }, frame: { x: 2.4, z: 2.47, ry: 0 },
     robe: { x: 3, z: .3, ry: Math.PI / 2 }, nap: { x: .17, z: -1.9 }, name: '珊瑚灘清水模公寓', dist: '珊瑚灘 · 19 St', ceil: 3, floor: 0x6a6a68,
-    walls: [[-2.7, -1.99, -3.6, 2.9], [3.26, 3.9, -3.6, 2.9], [-2.7, 3.9, -3.6, -2.96], [-2.7, 3.9, 2.49, 2.9]], add: [1, 3],
+    wallMat: 43, wallCol: 0x9a968e, walls: [[-2.7, -1.99, -3.6, 2.9], [3.26, 3.9, -3.6, 2.9], [-2.7, 3.9, -3.6, -2.96], [-2.7, 3.9, 2.49, 2.9]], add: [1, 3],
     solid: [[-1.13, 1.47, -2.42, -1.42], [-.29, .59, -1.15, -.3], [-1.99, -1.38, -1.38, .26], [1.51, 1.94, -1.08, .15], [-1.99, -1.8, .72, 1.66], [1.45, 3.26, -2.96, -2.43], [-.82, .87, 1.91, 2.2]],
     round: [{ x: 1.76, z: -1.82, r: .22 }, { x: -1.5, z: .53, r: .22 }],
     lights: [{ x: .3, y: 2.8, z: -.6, col: lin(0xffe0bc), r: 9, i: 1.1 }, { x: -1.5, y: 1.7, z: .5, col: lin(0xffc890), r: 5, i: .8 }, { x: 2.3, y: 2.5, z: 1.2, col: lin(0xffd8b0), r: 5, i: .6 }] },
@@ -177,7 +177,13 @@ for (const id of ROOM_IDS) {
   const [fx0, fx1, fz0, fz1] = [a.walls[0][1], a.walls[1][0], Math.min(a.walls[2][3], a.walls[3][3]), Math.max(a.walls[2][2], a.walls[3][2])];
   k.box((fx0 + fx1) / 2, -.05, (fz0 + fz1) / 2, fx1 - fx0, .1, fz1 - fz0, a.floor ?? (id === 'loft' ? 0x8a8072 : 0x9a9488), 10);
   k.box((fx0 + fx1) / 2, a.ceil + .05, (fz0 + fz1) / 2, fx1 - fx0, .1, fz1 - fz0, 0x1a1a1c, 2);
-  a.walls.forEach(([x0, x1, z0, z1], i) => (a.add.includes(i) ? shell : k).box((x0 + x1) / 2, a.ceil / 2, (z0 + z1) / 2, x1 - x0, a.ceil, z1 - z0, 0x4a4c54, 2));
+  // 補上的牆（去玩具感 2026-11-02：原本是灰色素牆）：照房間的風格用 MAT.ux 的材質（wallMat：預設 41 灰泥、迷你閣樓 27 紅磚、和室 Loft 44 木格柵、清水模 43），
+  // 牆腳一道踢腳板、頂上一道收邊
+  a.walls.forEach(([x0, x1, z0, z1], i) => {
+    const K = a.add.includes(i) ? shell : k, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    K.box(cx, a.ceil / 2, cz, x1 - x0, a.ceil, z1 - z0, a.wallCol || 0x8a8680, a.wallMat || 41);
+    if (a.add.includes(i)) K.box(cx, .06, cz, x1 - x0 + .03, .12, z1 - z0 + .03, 0x2a2826, 34).box(cx, a.ceil - .04, cz, x1 - x0 + .03, .08, z1 - z0 + .03, 0xd8d2c4, 34);
+  });
   for (const [x0, x1, z0, z1] of a.solid) k.box((x0 + x1) / 2, .4, (z0 + z1) / 2, x1 - x0, .8, z1 - z0, 0x5a4e44, 2);
   for (const c of a.round) k.cyl(c.x, a.ceil / 2, c.z, .12, .12, a.ceil, 8, 0x2a2a2a, 15);
   if (a.up) {   // 第二層的樓板、欄杆與踏階（電梯是一個箱子）
@@ -188,7 +194,7 @@ for (const id of ROOM_IDS) {
   }
   // 窗景：一片發光的城市剪影（只在程式建模版）
   if (id === 'loft') k.box(-3.8, 3, 1, .05, 6, 9.8, 0x3a4a8a, 11); else if (id === 'villa') k.box(3.9, 3.5, 6, 16.2, 7, .05, 0x2a3a5a, 11).box(19.1, 3.5, 6, 6.6, 7, .05, 0x2a3a5a, 11);
-  const fb = new T.Mesh(k.build(), MAT.uber); scn.add(fb);
+  const fb = new T.Mesh(k.uxify({ floor: 40 }).build(), MAT.ux); scn.add(fb);   // 去玩具感：素色換程式紋理（07-kitx.js 的 uxify，地板拋光石材）
   // 出口的門板（兩種版本都要看得到）
   if (a.cut) {   // 拉開的落地窗：框滑到隔壁那扇的內側
     const [cx0, cx1, cz0] = a.cut, w = cx1 - cx0, x = cx0 - w / 2 + .1, z = cz0 - .02;
@@ -203,7 +209,7 @@ for (const id of ROOM_IDS) {
     data.boxes.push({ x0: x - hx, x1: x + hx, z0: z - hz, z1: z + hz });
   }
   shell.box(a.frame.x, 1.15, a.frame.z, 1.2, 2.3, .06, 0x4a3a2a, 10, 0, a.frame.ry).box(a.frame.x, 2.38, a.frame.z, 1.4, .12, .1, 0xffd8a0, 11, 0, a.frame.ry);
-  scn.add(new T.Mesh(shell.build(), MAT.uber));
+  scn.add(new T.Mesh(shell.build(), MAT.ux));
   a.fb = fb; a.scn = scn; a.req = false;
   // door 是邏輯座標（擺門牌、互動提示的 near 會換算）；doorW、VENUES 的 door 與 out 是世界座標
   a.doorW = WP(a.door.x, a.door.z);

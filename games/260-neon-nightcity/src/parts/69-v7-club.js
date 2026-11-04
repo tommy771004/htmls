@@ -143,7 +143,7 @@ const V7_SAFE = { x: 5.2, z: .7 }, V7_DESK = { x: 6.9, z: 3.0 }, V7_VIP_DOOR = {
   L1.push({ x0: V7_DESK.x - 1.1, x1: V7_DESK.x + 1.1, z0: 1.65, z1: 2.55 });
   k.box(V7_SAFE.x, MEZ7 + 1.5, .06, 1.1, .8, .04, 0xb08040, 2).box(V7_SAFE.x, MEZ7 + 1.5, .085, .95, .65, .01, 0x2a4a5a, 2);
   for (let i = 0; i < 6; i++) k.box(8.2 + (i % 2) * .8 - .4, MEZ7 + 1.3 + Math.floor(i / 2) * .5, .06, .7, .42, .03, i % 3 ? 0x3080a0 : 0x40c0ff, 11);
-  clubScene.add(new T.Mesh(k.build(), MAT.uber));
+  clubScene.add(new T.Mesh(k.uxify({ floor: 40 }).build(), MAT.ux));   // 去玩具感：素色換程式紋理（07-kitx.js 的 uxify）
   // 2 樓的燈（世界座標就是夜店的室內座標）
   V7_MEZ_LIGHTS.push({ x: -7.2, y: MEZ7 + 2.4, z: 2.4, col: lin(0xff6ab0), r: 7, i: 1.1 }, { x: 6.4, y: MEZ7 + 2.4, z: 2.4, col: lin(0xffd8a0), r: 6, i: 1 }, { x: 0, y: MEZ7 + 2.4, z: 6, col: lin(0x7a2cff), r: 7, i: .8 });
 }
@@ -202,6 +202,12 @@ const CB_N = 5, CB_DY = 6, CB_H = 4.2, CB_LIFT = { x: -10.4, z: 3.5 };
 const CB_TERM = [6, 10, 14, 18, 22].map(z => ({ x: 12.4, z })), CB_PC = { x: -8.6, z: 9.2 }, CB_VAN = { x: 2, z: 17 };
 const clubBLv = Array.from({ length: CB_N }, (_, k) => ({ boxes: [], circles: [], lights: [], y: -k * CB_DY }));
 const cbCrates = {};
+const cbVan = { g: null, fb: null, tur: null };
+// 第一次進 B1–B5（27-props.js 的 propWake）：換成 v7van.glb（和 v7VanBody 同樣的縮放：原檔 3.37 × 3.23 × 5 → 2.4 × 2.3 × 4.5 m）
+if (GLB_ON) propSwaps.push({ where: 'clubB', set: 'v7van', id: 'van', fb: null, list: [], scn: clubBScene, done: () => loadProps('v7van').then(items => {
+  if (!items || !items.van || !cbVan.g) return;
+  const o = propObject(items.van, 0, 0, 0); o.scale.set(2.4 / 3.37, 2.3 / 3.23, 4.5 / 5); cbVan.fb.visible = false; cbVan.g.add(o); cbVan.tur.position.set(0, 2.32, -.6);
+}) });
 {
   const k = new Kit();
   clubBLv.forEach((L, i) => {
@@ -218,9 +224,7 @@ const cbCrates = {};
     if (i === 0) {
       // B1：武裝廂型車（車頂雙聯裝砲塔）、五台技術員終端、管理電腦
       const vx = CB_VAN.x, vz = CB_VAN.z;
-      k.box(vx, y + 1.25, vz, 2.1, 1.9, 5.4, 0x1a1c20, 0).box(vx, y + 1.55, vz + 2.25, 1.9, .7, .8, 0x6a8090, 1);
-      for (const [dx, dz] of [[-1, -1.8], [1, -1.8], [-1, 1.8], [1, 1.8]]) k.cyl(vx + dx, y + .38, vz + dz, .38, .38, .3, 14, 0x0c0c0e, 2, 0, 0, Math.PI / 2);
-      k.cyl(vx, y + 2.3, vz - .4, .45, .55, .3, 16, 0x2a2c30, 15).box(vx - .14, y + 2.5, vz + .4, .08, .08, 1.4, 0x111214, 15).box(vx + .14, y + 2.5, vz + .4, .08, .08, 1.4, 0x111214, 15);
+      // 車本身在下面（cbVan：v7van.glb 的模型＋v7Turret；以檔案開啟時是程式建模的廂型車）
       k.box(vx, y + .02, vz, 4.2, .01, 7.4, 0x7a2cff, 8);
       L.circles.push({ x: vx, z: vz - 1.6, r: 1.25 }, { x: vx, z: vz + 1.6, r: 1.25 });
       for (const T0 of CB_TERM) { k.box(T0.x + .7, y + .38, T0.z, .9, .76, 1.6, 0x2a2c30, 10).box(T0.x + 1.1, y + 1.05, T0.z, .04, .5, .8, 0x40ff9a, 11); B.push({ x0: T0.x + .25, x1: 14, z0: T0.z - .8, z1: T0.z + .8 }); }
@@ -237,7 +241,36 @@ const cbCrates = {};
       }
     }
   });
-  clubBScene.add(new T.Mesh(k.build(), MAT.uber));
+  clubBScene.add(new T.Mesh(k.uxify({ floor: 33, wall: 20 }).build(), MAT.ux));
+  // B1 的展示車：和出貨時開的那台同一個模型（v7van.glb，見 v7VanBody），車頂裝 v7Turret，第一次進 B1–B5 才下載（propSwaps）。
+  // 程式建模的替身（以檔案開啟、或還沒下載完）：倒角的車身、引擎蓋與擋風玻璃、側窗、鋼板加裝的護格與鉚釘、保險桿與推土鏟、輪拱與輪胎輪框、車燈
+  {
+    const g = new T.Group(); g.position.set(CB_VAN.x, clubBLv[0].y, CB_VAN.z);
+    const kv = new Kit(), BODY = 0x1e2024, PLATE = 0x2a2d31, TR = 0x0e0f11, GL = 0x3a4650;
+    kv.rbox(0, 1.3, -.45, 2.08, 1.75, 4.3, .12, BODY, TX.iron, 0, 0, 0, .06);                 // 貨廂
+    kv.rbox(0, .95, 2.05, 2.02, 1.05, .9, .1, BODY, TX.iron, 0, 0, 0, .05);                   // 引擎蓋
+    kv.box(0, 1.8, 1.715, 1.8, .55, .03, GL, 1, -.18).box(0, 1.8, 1.73, 1.86, .06, .04, PLATE, TX.iron, -.18);   // 擋風玻璃與中間加焊的護條
+    for (const sx of [-1, 1]) {
+      kv.box(sx * 1.045, 1.72, 1.15, .02, .5, .7, GL, 1);                                        // 車門窗
+      kv.box(sx * 1.05, 1.72, 1.15, .03, .1, .74, PLATE, TX.iron).box(sx * 1.05, 1.72, 1.15, .03, .5, .06, PLATE, TX.iron);   // 窗上加焊的護格
+      for (let i = 0; i < 4; i++) kv.box(sx * 1.055, .95 + i * .42, -.45, .03, .05, 4.1, PLATE, TX.iron);   // 側面的加裝鋼板條
+      for (let i = 0; i < 9; i++) kv.cyl(sx * 1.07, 1.92, -2.4 + i * .5, .02, .02, .02, 6, 0x6a6c70, 3, 0, 0, Math.PI / 2);   // 鉚釘
+      for (const z of [-1.75, 1.75]) {
+        kv.lathe(sx * .92, .42, z, [[.2, -.15], [.42, -.15], [.43, -.08], [.43, .08], [.42, .15], [.2, .15]], 20, TR, TX.rubber, 0, 0, Math.PI / 2);   // 輪胎
+        kv.cyl(sx * 1.02, .42, z, .24, .24, .04, 12, 0x3a3c40, TX.iron, 0, 0, Math.PI / 2);   // 鋼圈
+        kv.torus(sx * .98, .42, z, .5, .05, 16, TR, TX.rubber, 0, Math.PI / 2, 0, Math.PI);   // 輪拱
+      }
+    }
+    kv.rbox(0, .55, 2.55, 2.1, .3, .22, .04, TR, TX.iron).rbox(0, .32, 2.75, 2.2, .3, .12, .03, PLATE, TX.iron, -.3);   // 前保險桿與推土鏟
+    kv.rbox(0, .55, -2.65, 2.1, .3, .2, .04, TR, TX.iron);                                     // 後保險桿
+    for (const sx of [-1, 1]) kv.box(sx * .75, .98, 2.51, .3, .14, .02, 0xfff4d8, 11).box(sx * .85, 1.05, -2.62, .2, .3, .02, 0xb01010, 11);   // 頭燈、尾燈
+    for (let i = 0; i < 5; i++) kv.box(-.5 + i * .25, .98, 2.51, .05, .14, .02, TR, 2);            // 水箱護罩
+    kv.box(0, 2.19, -.6, 1.9, .04, 3.6, PLATE, TX.iron);                                         // 車頂座圈底板
+    const fb = new T.Mesh(kv.build(), MAT.ux); g.add(fb);
+    const tur = v7Turret(); tur.position.set(0, 2.21, -.6); tur.userData.gun.rotation.x = -.08; tur.rotation.y = .5; g.add(tur);
+    clubBScene.add(g);
+    cbVan.g = g; cbVan.fb = fb; cbVan.tur = tur;
+  }
   // 貨箱：每種貨一個 InstancedMesh（上限就是容量），數量照庫存
   const slots = [];
   for (const z of [10, 20]) for (const x0 of [-9, 2]) for (const sy of [.06, 1.66]) for (let i = 0; i < 6; i++) for (const dz of [-.35, .35]) slots.push([x0 + .6 + i * 1.16, sy, z + dz]);
@@ -564,11 +597,38 @@ function v7Stock() {
 }
 
 // ─── 全部出售：夜梟改裝廂型車（車頂砲塔、感應地雷） ───
+// 去玩具感（2026-11-02）：原本是一個圓盤＋一個方塊＋兩根方棍。改成照車頂機槍座做：帶螺栓的旋轉座圈與立柱、兩側開槽的斜面防盾（塗漆的鐵，
+// 掉漆與鏽，MAT.ux 21），俯仰的槍架（耳軸在 0.42 m）上兩挺 .50 機槍：機匣與上蓋、帶散熱環的槍管套、槍管、制退器、提把，後面的雙握把與擊發板，
+// 兩側的彈藥箱與送彈槽。gun 是俯仰的那一組（原點在耳軸），v7TurretStep 只轉它的 rotation.x
 function v7Turret() {
-  const k = new Kit();
-  k.cyl(0, 0, 0, .55, .6, .25, 18, 0x2a2c30, 15).box(0, .35, -.1, .7, .45, .8, 0x1a1c20, 15);
-  for (const s of [-1, 1]) k.box(s * .16, .4, .75, .07, .07, 1.3, 0x0e0f10, 15).box(s * .16, .4, 1.42, .1, .1, .08, 0x2a2c30, 3);
-  const g = new T.Group(), m = new T.Mesh(k.build(), MAT.uber); g.add(m); g.userData.gun = m; return g;
+  const k = new Kit(), gk = new Kit(), OD = 0x3b4030, GM = 0x17181a, DK = 0x26282b;
+  k.lathe(0, 0, 0, [[.62, 0], [.62, .05], [.57, .07], [.57, .13], [.5, .15], [.12, .16]], 28, DK, 21);
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; k.cyl(Math.sin(a) * .595, .065, Math.cos(a) * .595, .016, .016, .025, 6, 0x6a6c70, 3); }
+  k.cyl(0, .27, 0, .1, .13, .22, 14, DK, 21).box(0, .4, 0, .5, .06, .16, DK, 21);
+  for (const s of [-1, 1]) {
+    k.box(s * .26, .4, 0, .04, .1, .12, DK, 21).cyl(s * .29, .42, 0, .035, .035, .05, 10, 0x55585c, 15, 0, 0, Math.PI / 2);   // 耳軸座
+    k.rbox(s * .4, .52, .46, .26, .56, .028, .03, OD, 21, -.18, s * .32, 0, .006);   // 防盾的兩翼（中間留給槍管）
+    k.rbox(s * .63, .5, .3, .2, .48, .028, .03, OD, 21, -.15, s * .85, 0, .006);
+    k.box(s * .4, .3, .5, .2, .03, .05, 0x2a2c2e, 21, 0, s * .32, 0);
+  }
+  k.rbox(0, .86, .5, .56, .14, .028, .03, OD, 21, -.3, 0, 0, .006).rbox(0, .2, .48, .56, .12, .028, .03, OD, 21, -.1, 0, 0, .006);   // 防盾的上緣與下緣
+  k.box(-.2, .88, .53, .1, .03, .02, 0x0c0c0d, 2, -.3, 0, 0);   // 觀測縫
+  for (const s of [-1, 1]) {
+    gk.rbox(s * .16, .08, .02, .11, .15, .58, .015, GM, 15, 0, 0, 0, .006);   // 機匣
+    gk.box(s * .16, .165, -.02, .1, .02, .36, 0x2a2b2e, 15).box(s * .215, .08, .05, .012, .09, .2, 0x2e3033, 15);   // 上蓋、側板
+    gk.rod(s * .16, .08, .3, s * .16, .08, .82, .036, 14, 0x232427, 15);   // 槍管套
+    for (let j = 0; j < 7; j++) gk.rod(s * .16, .08, .34 + j * .07, s * .16, .08, .355 + j * .07, .041, 14, 0x303236, 15);
+    gk.rod(s * .16, .08, .82, s * .16, .08, 1.38, .021, 10, 0x121314, 15).rod(s * .16, .08, 1.38, s * .16, .08, 1.48, .032, 12, 0x1b1c1e, 15, .026);
+    gk.bar(s * .16, .125, .72, s * .16, .125, .92, .02, .02, 0x2a2b2e, 15).bar(s * .16, .1, .72, s * .16, .125, .72, .015, .02, 0x2a2b2e, 15).bar(s * .16, .1, .92, s * .16, .125, .92, .015, .02, 0x2a2b2e, 15);   // 提把
+    gk.rod(s * .16, .06, -.27, s * .16, .02, -.36, .018, 8, GM, 15).rod(s * .16, -.02, -.37, s * .16, .07, -.37, .022, 8, 0x1a1a1a, 30);   // 握把
+    gk.rbox(s * .38, .02, 0, .14, .2, .3, .015, OD, 34, 0, 0, 0, .006).bar(s * .38, .13, -.08, s * .38, .13, .08, .02, .015, 0x22252a, 15);   // 彈藥箱與提把
+    gk.bar(s * .31, .1, .02, s * .22, .14, .02, .06, .02, 0x2b2d22, 30);   // 送彈槽
+  }
+  gk.rbox(0, .03, -.02, .44, .09, .5, .02, DK, 21, 0, 0, 0, .006).box(0, .05, -.36, .3, .03, .03, 0x2a2b2e, 15);   // 槍架、擊發板
+  gk.box(-.16, .2, .1, .03, .05, .03, GM, 15).cyl(-.16, .25, .1, .025, .025, .008, 12, GM, 15, Math.PI / 2, 0, 0);   // 環形照門
+  const g = new T.Group(); g.add(new T.Mesh(k.build(), MAT.ux));
+  const gun = new T.Group(); gun.position.set(0, .42, 0); gun.add(new T.Mesh(gk.build(), MAT.ux)); g.add(gun);
+  g.userData.gun = gun; return g;
 }
 // Danish337 的 Armored Van（props/v7van.glb，5 × 3.37 × 3.23 m 的卡通比例）：以 http(s) 開啟時蓋掉 shvan 的車身，
 // 壓成 2.4 × 4.5 m、車頂 2.3 m，車長車寬跟著改（碰撞與輪距照新的算）；砲塔移到箱型車廂頂上。下載失敗就留著 shvan

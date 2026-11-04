@@ -1264,6 +1264,7 @@ async function mobile() {
     check(mh.stars === 2 && mh.inside && !mh.overlap && !mh.vm, `手機上的通緝星級與生命條 ${JSON.stringify(mh)}`);
     await shot(page, 'm-wanted');
     await ev(page, () => { window.__nc.gta.wanted.clear('reset'); window.__nc.gta.god.on = false; });
+    await page.tap('#tMoreB');   // 角色收在「更多」裡
     await page.tap('#tbtn button[data-k="Crew"]');
     await page.waitForTimeout(300);
     const mc = await ev(page, () => { const r = document.getElementById('crewW').getBoundingClientRect(), v = document.getElementById('spBar').getBoundingClientRect(); return { open: window.__nc.gta.crew.crew.wheel.open, l: Math.round(r.left), r: Math.round(r.right), w: innerWidth, sp: v.width > 10 }; });

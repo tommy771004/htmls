@@ -38,7 +38,10 @@ function onKey(code) {
   if ($('map').classList.contains('on')) return;
   if (gtaKey(code)) return;
   if (code === 'KeyH') $('help').classList.toggle('on');
-  if (code === 'KeyC') { SET.camFar = camState.far = (camState.far + 1) % 3; setSave(); }   // 和 Esc 選單的「預設鏡頭距離」同一個值
+  if (code === 'KeyC') {   // 開車時多一段車內視角（68-xdoor.js 的 fpCam）：標準 → 遠 → 近 → 車內 → 標準
+    if (player.mode === 'drive' && player.veh.isCar && !player.veh.fly && (camState.fp || camState.far === 2)) { camState.fp = !camState.fp; if (!camState.fp) { SET.camFar = camState.far = 0; setSave(); } toast(camState.fp ? '車內視角' : '車外視角'); }
+    else { SET.camFar = camState.far = (camState.far + 1) % 3; setSave(); }
+  }   // 和 Esc 選單的「預設鏡頭距離」同一個值
   if (code === 'Digit1') teleport('club');
   if (code === 'Digit2') teleport('clubIn');
   if (code === 'Digit3') teleport('barIn');
@@ -47,7 +50,7 @@ function onKey(code) {
   if (code === 'Digit6') teleport('home');
   if (fading) return;
   const ctx = contextAction();
-  if (code === 'KeyF') {
+  if (code === 'KeyF' && !DOOR.seq) {   // 68-xdoor.js：開門過場中不接 F
     if (player.mode === 'drive') { if (player.veh.fly && player.veh.y - groundH(player.veh.x, player.veh.z) > 1.5) { if (!skyBail()) toast(`先降落到地面（離地 ${SKY_MIN} m 以上可以跳傘）`); } else if (Math.hypot(player.veh.vx, player.veh.vz) < KIN.jump) vdKeyF(); else if (!jumpOut(player.veh)) toast('先把車速降下來'); }   // jumpOut：69-kinema.js 的跳車；69-gunship.js：直升機在半空或屋頂上不能下
     else if (ctx && ctx.key === 'F') ctx.fn();
   }
@@ -104,8 +107,12 @@ if (isTouch) {
   cvs.addEventListener('pointermove', e => { const l = touch.look; if (l && l.id === e.pointerId) { look((e.clientX - l.x) * 1.6, (e.clientY - l.y) * 1.2, SET.touchSens); l.x = e.clientX; l.y = e.clientY; } });
   const lend = e => { if (touch.look && touch.look.id === e.pointerId) touch.look = null; };
   cvs.addEventListener('pointerup', lend); cvs.addEventListener('pointercancel', lend);
-  document.querySelectorAll('#tbtn button').forEach(b => {
+  // 「更多」：展開次要的按鈕（蹲下、跳舞、叫車、角色、技能），按了其中一個就收起來
+  const tb = $('tbtn'), more = $('tMoreB'), moreSet = o => { tb.classList.toggle('open', o); more.setAttribute('aria-expanded', o ? 'true' : 'false'); };
+  more.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); moreSet(!tb.classList.contains('open')); });
+  document.querySelectorAll('#tbtn button[data-k]').forEach(b => {
     const k = b.dataset.k;
+    if (b.closest('#tMore')) b.addEventListener('pointerup', () => moreSet(false));
     b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') { keys[k] = true; if (k === 'Space' && started && player.mode === 'walk') onKey(k); } else if (k === 'Fire') triggerDown(); else onKey(k); });
     const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; if (k === 'Fire') triggerUp(); };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
@@ -162,6 +169,8 @@ function rayBox(ox, oz, dx, dz, b, pad = 0) {
 function updateCamera(dt, spd) {
   const p = player, inV = p.mode === 'drive';
   camState.idle += dt;
+  if (inV && camState.fp && fpCam(dt, spd)) return;   // 68-xdoor.js：車內視角
+  fpNear();
   let tx, ty, tz, dist;
   if (inV) {
     const v = p.veh;
@@ -205,7 +214,7 @@ function updateCamera(dt, spd) {
   // 室內：有第二層的安全屋（69-safehouse.js）地板跟著所在的層，天花板依位置（夾層下比較低，相機與角色兩處取低的）
   const V = p.where === 'out' ? null : VENUES[p.where];
   let wk = null; if (!V) { wk = walkCam(wx, wz, inV ? p.veh.y : p.y, Math.max(seaFloor(wx, wz), SEA_Y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
-  const floor = (V ? V.lvY || 0 : wk[0]) + .35;
+  const floor = (V ? (V.floorAt ? V.floorAt(wx, wz) : V.lvY || 0) : wk[0]) + .35;   // 有 floorAt 的場館（峰頂觀景環的雪地）照相機的位置問
   const ceil = !V ? wk[1] : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
   wy = clamp(wy, floor, ceil);
   if (camState.snap) camState.pos.set(wx, wy, wz);
@@ -248,6 +257,7 @@ function pickLights(t) {
     dynLights.push(...policeLights(t));   // 警車閃燈、直升機探照燈（69-police.js）
     dynLights.push(...railLights());   // 北嶺鐵道橋的列車頭燈（21-rail.js）
     dynLights.push(...xrLights());     // 港灣高架線的列車頭燈（21-xrail.js）
+    dynLights.push(...rigLights(), ...beastLights());    // 海上鑽油平台的火炬與拖船的探照燈（21-rig.js）、海獸喉部的光（21-rigbeast.js）
     dynLights.push(...villaLights());  // 山坡別墅入夜後的房間燈（69-villa.js）
     // 爆炸、起火與槍口閃光（68-gta.js），亮度隨時間衰減
     for (const l of fxLights.slice(-3)) dynLights.push({ x: l.x, y: l.y, z: l.z, col: l.col, r: l.r, i: l.i * (1 - l.life / l.max) });
@@ -286,6 +296,7 @@ function step(dt) {
     if (HILL_TRAF.on) HILL_TRAF.update(dt);   // 41-hill.js：山路上的車流、散步的人
     holo.rotation.y = t * .35;
     coastUpdate(t, dt);
+    rigUpdate(dt); beastUpdate(dt);    // 海上鑽油平台的火炬、拖船、探照燈（21-rig.js）；海獸（21-rigbeast.js）
     railUpdate(dt);   // 北嶺鐵道橋的列車（21-rail.js）
     tronUpdate(dt);   // 光格島的近景、車流與光速機車（21-tron.js）
     airUpdate(dt);    // 灰鷺角國際機場的客機起降與模型下載（21-air.js）
@@ -353,6 +364,7 @@ function step(dt) {
   if (ctx) { pr.classList.add('on'); setText('promptKey', ctx.key); if (hudCache.promptText !== ctx.text) { hudCache.promptText = ctx.text; $('promptText').innerHTML = ctx.text; } }
   else pr.classList.remove('on');
   updateHud(dt);
+  if (player.where === 'summit') SUMMIT.tick(dt); else if (out) SUMMIT.cityTick(dt);   // 97-summit.js：山上的天色與風聲、城裡纜車線上的車廂
   renderFrame(dt, t);
 }
 // 騎機車時人物坐在座墊上、跟著車身壓車
@@ -364,6 +376,7 @@ function placeRider(v) {
 }
 function loop(now) {
   requestAnimationFrame(loop);
+  if (SUMMIT.on) { T0 += now - last; last = now; SUMMIT.frame(now); return; }   // 97-summit.js：峰頂觀景環（城市停住，uTime 不走）
   if (menu.on) { T0 += now - last; last = now; menuIdle(); return; }   // 95-menu.js：暫停時世界停住（uTime 也不走），只在改了畫面設定時重畫
   if (SET.fps && now - last < 1000 / SET.fps - 2) return;   // 幀率上限
   const raw = Math.min(.05, (now - last) / 1000); last = now;
@@ -404,6 +417,7 @@ if (GLB_ON) {
 bootProgress(100, '雨正在下。');
 const go = $('go'); go.disabled = false;
 go.textContent = '進入雨夜'; go.removeAttribute('role'); go.removeAttribute('aria-valuenow');
+SUMMIT.ready();   // 97-summit.js：開始畫面的「峰頂觀景環」按鈕、?summit=1
 go.addEventListener('click', () => {
   started = true; sfx.init(); warmGo();   // 27-props.js：進場後背景載入每幀只佔 6 ms、走近才下載的道具先傳貼圖
   $('start').classList.add('gone'); $('hud').classList.add('on'); $('touch').classList.add('on');
@@ -422,7 +436,7 @@ window.__nc = {
   reflOcc,   // 70-render.js 遠景樹進不進倒影的遮擋查詢：reflOcc.en = false 關掉比對，skip 是現在的狀態、n 是收到幾次結果
   reflCull,   // 70-render.js 倒影的螢幕大小剔除：門檻是 SET.reflMin（倒影貼圖的像素，0 關掉），px 填數字覆寫（量測用，null 還原），n 是累計剔掉幾次、log 設成陣列會收集被剔掉的物件
   fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對（也關掉 20-props.js 遠景樹的霧外剔除）
-  enc: ENC && { on: ENC_ON, f: ENC.f, pad: ENC.pad, W: (x, z) => toW(x, z, ENC.f), L: (X, Z) => encL(X, Z), ground: (X, Z) => groundH(X, Z), district: (X, Z) => districtW(X, Z), place: (X, Z) => mapPlaceName(X, Z), tris: HILL.encTris, S: ENC.S },   // 28-enclave.js 雲梯城寨（框座標換世界座標、模型與替身的狀態）
+  enc: ENC && { on: ENC_ON, f: ENC.f, pad: ENC.pad, W: (x, z) => toW(x, z, ENC.f), L: (X, Z) => encL(X, Z), ground: (X, Z) => groundH(X, Z), hill: (X, Z) => hillMeshH(X, Z), nat: (X, Z) => encNat(X, Z), district: (X, Z) => districtW(X, Z), place: (X, Z) => mapPlaceName(X, Z), tris: HILL.encTris, S: ENC.S },   // 28-enclave.js 雲梯城寨（框座標換世界座標、模型與替身的狀態）
   hillMouths: () => HILL.mouths, hillRoads: () => HILL.paths, hillConn: () => HILL_CONN.map(C => ({ pts: C.pts, lamp: C.lamp || null, e: C.e.id, akina: !!C.P.akina })).concat([HILL_CONN.stat]),   // 12-hillmouth.js 的連接路（最後一項是統計） akina: () => AKINA && { x: AKINA.x, z: AKINA.z, WL: AKINA.WL, F: AKINA.F, lake: AKINA.lake, walls: AKINA.walls, osm: AKINA.osm, road: AKINA.road ? AKINA.road.stats : null, tris: HILL.akinaTris, at: (X, Z) => ({ s: akinaShape(X, Z), real: akReal(AKINA, X, Z), h: hillMeshH(X, Z), wet: akinaWet(X, Z) }) },   // 09-akina.js：中心、湖面高、山道、細網格、某一點的山
   hillTraf: () => ({ cars: HILL_TRAF.cars.map(c => ({ r: c.r, s: +c.s.toFixed(1), dir: c.dir, v: +c.v.toFixed(1), x: c.x, y: c.y, z: c.z, out: c.out, fade: c.fade, type: c.type })), walkers: HILL_TRAF.walkers.map(w => ({ r: w.r, s: +w.s.toFixed(1), x: w.x, y: w.y, z: w.z, pause: w.pause })), residents: HILL_TRAF.residents }), cityC: CITY_C,
   villa: { VILLA, deck: hillDeck, where: villaWhere, local: villaLocal, world: villaWorld, st: () => ({ inK: villaSt.inK, wet: U.uWet.value, sun: U.uSunCol.value.r, lights: villaLights().length }), push: (x, z, y, r = .32) => { colY = y; const o = collideCircle(x, z, r, false, true); colY = 0; return o; },
@@ -432,7 +446,8 @@ window.__nc = {
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
   story: storyApi,   // 69-w0-story.js：主線（go(id)、state()、skip()）
-  ready: true, city: { blocks, lots, bldPlace }, gpu: GPU, reflFar: m => { reflFarT = m; },   // 街區與地塊（挑設施街區、驗收用）；顯示卡分級（00-core.js）與倒影遠平面（70-render.js，null 照等級）
+  summit: SUMMIT,   // 97-summit.js：open()、seek(秒)、play()、close()、st()
+  ready: true, dbg: () => ({ PK, GS, v7Turret, scene, Kit, MAT, trees, peds, finPool, finBalcony, rigMesh, siteMesh, VEND, VEND_BIN, ISLE_PROXY, HILL_PLANTS, XR, ST_SITES, BANK_WALKS, hydrants, bins, benches }), city: { blocks, lots, bldPlace, shopUnits }, gpu: GPU, reflFar: m => { reflFarT = m; },   // 街區與地塊（挑設施街區、驗收用）；顯示卡分級（00-core.js）與倒影遠平面（70-render.js，null 照等級）
   scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, clutter, wallAcs, downpipes, weeds, lampBlobs, streaks, signHits, vend: VEND, vendBin: VEND_BIN, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, air: airApi, xrail: xrApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, story: storyApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),
   perf: perfApi,   // 96-perf.js：效能面板（?perf=1）、stats()、stalls()、route() 固定路線量測
@@ -445,6 +460,7 @@ window.__nc = {
   // 截圖用：相機固定在世界座標 (px, py, pz) 看向 (tx, ty, tz)；camAt() 還原
   camAt(...o) { camState.over = o.length ? o : null; },
   // 程式立面的細模（09-mass.js、10-city.js 的 facLod）：stats 看建了幾個街區、幾個三角形；sync 依目前鏡頭位置一次建完
+  rig: { beast: { B: BEAST, T: BEAST_T, go: beastGo, stop: beastStop, seek: beastSeek, load: beastLoad, hold(v = true) { BEAST.hold = v; }, st: () => ({ ready: !!BEAST.mesh, fail: BEAST.fail, on: BEAST.on, t: +BEAST.t.toFixed(2), y: +BEAST.y.toFixed(1), x: +BEAST.x.toFixed(1), z: +BEAST.z.toFixed(1), glow: +BEAST.glow.toFixed(2), next: +BEAST.next.toFixed(1), lights: beastLights().length }) }, RIG, wave: rigWave, W: rigW, leg: rigLeg, R0: RIG_R0, R1: RIG_R1, st: () => ({ near: RIG.near, sea: RIG.sea.visible, flare: +RIG.flare.toFixed(2), tug: [RIG.tug.x, RIG.tug.y, RIG.tug.z].map(v => +v.toFixed(1)), lights: rigLights().length }) },   // 21-rig.js：海上鑽油平台（RIG.cx／cz 是世界座標的中心，W(局部 x, z) 換成世界）
   kit: KIT_N,   // 00-core.js：Kit.box 的方塊數與其中自動倒角的數量
   tex: () => ({ fac: facTex.st, vil: vilTex.st }),   // 照片材質的下載狀態（08-tex.js：0 還沒開始、1 下載中、2 好了、-1 失敗）
   forest: (x, z) => x !== undefined ? HILL_FOREST.probe(x, z) : ({ ...HILL_FOREST.n, karst: KARST.length, k: KARST.slice(0, 8).map(t => [t.x | 0, t.y | 0, t.z | 0, +t.s.toFixed(1)]), fmap: FM.builds }),   // 外緣山林（10-city.js）、石柱峰（21-coast.js）、山林樹冠圖重畫次數（22-hmap.js）

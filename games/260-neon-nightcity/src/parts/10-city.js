@@ -148,6 +148,8 @@ const PIERS = [
 // 對岸（21-coast.js 的遠景）：灰鷺河西岸、東灣東岸的堤岸線
 // 灰鷺河的對岸只到 FAR_Z1（舊城的北半段）為止，再往南河口張開成海；河往北流進山谷（hillH）。EAST_BANK_X 只剩地圖的範圍在用
 const FAR_BANK_X = CITY_X0 - OUT_D - 300, EAST_BANK_X = CITY_X1 + OUT_D + 300, FAR_Z1 = CITY_Z0 + 100, RIVER_E = CITY_X0 - OUT_D;
+// 對岸的西緣：只留 London City 那一段（770 m 寬）；再往西原本是一整片空的黑色地面，2026-11-04 起是水，機場第二航廈的填海地（AIR.isl2）伸進去
+const FAR_BANK_W = FAR_BANK_X - 770;
 // 對岸的濱水步道：灰鷺河對岸（舊城那一片，London City 模型前）一條 20 m 寬，中間一座渡船碼頭（東面改成山之後，舊港那一條拿掉了）。
 // back 那一邊靠著遠景模型，不做低擋牆，換成一道高牆（21-coast.js 在那裡蓋一排近景的樓面）
 const BANK_WALKS = [
@@ -158,10 +160,11 @@ const LANDS = [{ ...BEACH, z0: SHORE_Z - INLAND }, QUAY, BRIDGE, ISLE, ...PIERS,
 const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
 // 外海的島（光格島、鷹巖村）與機場不屬於任何片：SEA_FR 是它們的剛體座標框（沒有 ?zrot 時就是世界座標；有的話跟著整座城一起轉）
 const SEA_FR = ZONE_ROT === null ? null : (() => { const [ox, oz] = zrotW(0, 0), [ex, ez] = zrotW(1, 0); return frameW(ox, oz, ex - ox, ez - oz); })();
-// ─── 灰鷺角國際機場（21-air.js）：城西外海的填海島（SEA_FR 座標的矩形，北緣離灰鷺河對岸 FAR_Z1 七十多公尺），跑道東西向，
+// ─── 灰鷺角國際機場（21-air.js）：城西外海的填海島（SEA_FR 座標的矩形 isl，2026-11-04 起往北多一塊 isl2 填進河口，放第二航廈），跑道東西向，
 // 堤道從楓林西第 9 條街的西端（外緣那條大道的路邊）沿街道方向出海，S 形彎到島東緣北段的航廈前路。堤道是 SEA_FR 座標的三次貝茲曲線，切成 8 m 一段的折線 ───
 const AIR = (() => {
   const isl = { x0: -3300, x1: -1000, z0: 20, z1: 600 }, zn = ZONES.find(z => z.name === '楓林西');
+  const isl2 = { x0: -2340, x1: -1370, z0: -440, z1: 20 };   // 往北填到河口（第二航廈 T2 與它的機坪；東緣離對岸 London City 那段 60 m 水道）
   if (!zn) return null;
   const [sx, sz] = toL(...toW(avX(zn.ni0) - HR, stZ(9), zn), SEA_FR), [dx, dz] = dirW(zn, -1, 0, avX(zn.ni0) - HR, stZ(9)), dl = Math.hypot(dx, dz);
   const ux = dx / dl, uz = dz / dl, [rx, rz] = SEA_FR ? [ux * SEA_FR.c - uz * SEA_FR.s, ux * SEA_FR.s + uz * SEA_FR.c] : [ux, uz];   // 街道方向換到 SEA_FR
@@ -172,12 +175,13 @@ const AIR = (() => {
   let acc = 0; road.push(pts[0]);
   for (let i = 1; i < pts.length; i++) { const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); acc += L; if (acc >= 8 || i === pts.length - 1) { road.push(pts[i]); acc = 0; } }
   const xs = road.map(p => p[0]), zs = road.map(p => p[1]);
-  return { isl, road, hw: 10, bb: [Math.min(...xs) - 12, Math.max(...xs) + 12, Math.min(...zs) - 12, Math.max(...zs) + 12], name: '灰鷺角國際機場', en: 'Heron Point International' };
+  return { isl, isl2, road, hw: 10, bb: [Math.min(...xs) - 12, Math.max(...xs) + 12, Math.min(...zs) - 12, Math.max(...zs) + 12], name: '灰鷺角國際機場', en: 'Heron Point International' };
 })();
 // SEA_FR 座標的一點：在機場島上（含堤道路面）。堤道從街口開始，外緣裡面那一小段本來就是陸地
 const airLandL = (x, z) => {
   if (!AIR) return false;
   const I = AIR.isl; if (x >= I.x0 && x <= I.x1 && z >= I.z0 && z <= I.z1) return true;
+  const J = AIR.isl2; if (x >= J.x0 && x <= J.x1 && z >= J.z0 && z <= J.z1) return true;
   const b = AIR.bb; if (x < b[0] || x > b[1] || z < b[2] || z > b[3]) return false;
   const R = AIR.road;
   for (let i = 1; i < R.length; i++) {
@@ -1067,7 +1071,7 @@ ENC = (() => {
     const c = L.court; flat0.push([c.x0, c.x1, c.z0, c.z1]);
     for (const p of L.passes) flat0.push(p.side === 's' ? [p.x0, p.x1, c.z1, L.z1] : p.side === 'n' ? [p.x0, p.x1, L.z0, c.z0] : p.side === 'w' ? [L.x0, c.x0, p.z0, p.z1] : [c.x1, L.x1, p.z0, p.z1]);
   }
-  return { f, S, pad: P, band: 46, flat0, name: S.name, en: S.en };
+  return { f, S, pad: P, band: 46, M: 6, WMAX: 9, G: .6, cutR: 330, flat0, name: S.name, en: S.en };   // M：擋土牆後面留平的寬度（28-enclave.js 的回填草坡蓋住），切坡從牆頂起；WMAX：牆最高；G、cutR：開挖坡的坡度與範圍（HILL.encCut）
 })();
 const encL = (X, Z) => toL(X, Z, ENC.f);
 // 城寨的地面高度（世界座標）：平台上照地塊（外緣裡面不管，照城裡）；平台外 band 公尺內 smoothstep 接回山的網格高度；不在範圍裡回傳 null
@@ -1077,9 +1081,17 @@ function encGround(X, Z) {
   if (x < P.x0 - B || x > P.x1 + B || z < P.z0 - B || z > 90) return null;
   if (inCity(X, Z)) return null;
   const dx = Math.max(P.x0 - x, x - P.x1, 0), dz = Math.max(P.z0 - z, 0), d = Math.hypot(dx, dz);
-  if (d > 0) { const t = Math.min(1, d / B); return hillMeshH(X, Z) * t * t * (3 - 2 * t); }
+  // 平台兩側與後面是擋土牆（28-enclave.js）：牆後 M 公尺內留平（細分的山網格格距比 M 小，牆前的格子才不會被後面的坡抬起來、凸到巷子上），
+  // 再來是山的網格高度：hillMeshH 已經套上 HILL.encCut 的開挖坡（從牆頂照 ENC.G 往外挖，碰到原本的山為止）
+  if (d > 0) return d < ENC.M ? 0 : hillMeshH(X, Z);
   return encFlatL(x, z);
 }
+// 擋土牆的高度（世界公尺）：照牆後那一點原本的山高，0.3 倍、最高 ENC.WMAX；不到 0.3 m 的地方 28-enclave.js 不砌
+function encWallH(H) { return Number.isFinite(H) ? clamp(H * .3 - .3, 0, ENC.WMAX) : 0; }
+// 沒有開挖坡的山高（山路的挖填照算）：牆高與 21-coast.js 細分的權重照這個量
+// 開挖坡從牆頂往外 s 公尺升多少：前 94 m 坡度 ENC.G，之後 100 m 照 smoothstep 加到 ENC.G + 0.35（積分寫成閉式）
+function encCutRise(s) { const G = ENC.G, u = clamp((s - 94) / 100, 0, 1); return G * s + .35 * 100 * (u * u * u - u * u * u * u / 2) + (s > 194 ? .35 * (s - 194) : 0); }
+function encNat(X, Z) { const h = hillMeshRaw(X, Z); return HILL.carveH ? HILL.carveH(X, Z, h) : h; }
 function encFlatL(x, z) {   // 平台上（框座標）的地面：地塊 0.15，中庭與穿堂 0，街 0
   for (const r of ENC.flat0) if (x > r[0] && x < r[1] && z > r[2] && z < r[3]) return 0;
   for (const L of ENC.S.lots) if (x > L.x0 && x < L.x1 && z > L.z0 && z < L.z1) return .15;
@@ -1112,7 +1124,7 @@ function hillH(X, Z) {
   // 舊城北邊的河谷（A1 沒有轉，邏輯 ≈ 世界）
   const [lx, lz] = toL(X, Z, ZONES[0]);
   if (lz < FAR_Z1 + 40 && lx > FAR_BANK_X - 40 && lx < RIVER_E + 120) h = Math.min(h, lx < FAR_BANK_X ? -.6 : -8 + 8.3 * sm01((lx - RIVER_E - 10) / 110));
-  else if (lx < FAR_BANK_X && lz < FAR_Z1) h = Math.min(h, -.6);
+  else if (lx < FAR_BANK_X && lx > FAR_BANK_W && lz < FAR_Z1) h = Math.min(h, -.6);
   return h;
 }
 // ─── 山坡的網格高度：21-coast.js 的山是 CITY_C 為中心的極座標網格（外緣每個頂點一條射線，往外 HILL_D 那幾圈），網格之間是平面三角形，
@@ -1124,7 +1136,7 @@ const HILL_SUB = 2;
 HILL.ray = CITY_POLY.flatMap((p, k) => { const q = CITY_POLY[(k + 1) % CITY_POLY.length]; return Array.from({ length: HILL_SUB }, (_, i) => { const x = p[0] + (q[0] - p[0]) * i / HILL_SUB, z = p[1] + (q[1] - p[1]) * i / HILL_SUB; return { x, z, R: Math.hypot(x - HILL.cx, z - HILL.cz) }; }); });
 const hillV = (k, j) => { const p = HILL.ray[k], s = (p.R + HILL_D[j]) / p.R; return [HILL.cx + (p.x - HILL.cx) * s, HILL.cz + (p.z - HILL.cz) * s]; };
 // HILL.carveH（山路兩側的挖填，路生成之後才有）套在網格高度上；hillMeshRaw 是沒挖過的
-function hillMeshH(X, Z) { const h = hillMeshRaw(X, Z); return HILL.carveH ? HILL.carveH(X, Z, h) : h; }
+function hillMeshH(X, Z) { const h = hillMeshRaw(X, Z), c = HILL.carveH ? HILL.carveH(X, Z, h) : h; return HILL.encCut ? HILL.encCut(X, Z, c) : c; }   // HILL.encCut：雲梯城寨的開挖坡（山路生成之後才有）
 function triDist(P3, x, z) {   // 點到三角形（xz）的距離，在裡面是 0
   let inside = true, sg = 0, d = 1e9;
   for (let q = 0; q < 3; q++) {
@@ -1489,25 +1501,26 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
       const key = i + ',' + j; let L = sgrid.get(key); if (!L) sgrid.set(key, L = []); L.push(sgm);
     }
   }
-  const segEach = (x, z, R, fn) => {   // R 公尺內的每一段：fn(到路中線的距離, 那一點的路面高, 是不是榛嶺山道)
+  const segEach = (x, z, R, fn) => {   // R 公尺內的每一段：fn(到路中線的距離, 那一點的路面高, 是不是榛嶺山道, 中線上最近那一點的 x, z)
     const i = Math.floor(x / 24), j = Math.floor(z / 24), c = Math.ceil(R / 24), seen = new Set();
     for (let a = -c; a <= c; a++) for (let b = -c; b <= c; b++) for (const S of sgrid.get((i + a) + ',' + (j + b)) || []) {
       if (seen.has(S)) continue; seen.add(S);
       const [ax, az, ay, bx, bz, by, ak] = S, ex = bx - ax, ez = bz - az, t = clamp(((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez || 1), 0, 1), d = Math.hypot(x - ax - ex * t, z - az - ez * t);
-      if (d < R) fn(d, ay + (by - ay) * t, ak);
+      if (d < R) fn(d, ay + (by - ay) * t, ak, ax + ex * t, az + ez * t);
     }
   };
   const roadD = (x, z) => { let d = 1e9; segEach(x, z, 48, dd => { if (dd < d) d = dd; }); return d; };
   // 挖填：路肩外 0.3 m（RC）以內是路面高；外面挖方 1.4:1（岩壁）、填方 0.75:1，碰到原本的山坡為止（CW 公尺內）。先挖再填，最後路面本身照最近那一段
   // 榛嶺（22-akina.js 在路緣外 1.15 m 砌擋土牆）：挖方的平台多留 2.6 m，斜坡從牆後面才開始，細格子的三角形才不會凸到牆前面
-  const RC = ROAD_HW + 1.4, RC_AK = RC + 2.6, CW = 40, CUT = 1.4, FILL = .75;
+  const RC = ROAD_HW + 1.4, RC_AK = RC + 2.6, CW = 40, CF = 12, CUT = 1.4, FILL = .75;
   HILL.roadN = 12;   // 21-coast.js 細分路兩側的三角形，每個切成 N×N（粗網格加密以後從 20 降到 12，細分後的格距差不多）
   HILL.carveH = (X, Z, h) => {
     let hc = h, best = 1e9, yr = 0, cap = 1e9;
-    segEach(X, Z, CW, (d, y, ak) => { if (d < best) { best = d; yr = y; } const c = y + Math.max(0, d - (ak ? RC_AK : RC)) * CUT; if (h > y) hc = Math.min(hc, c); if (ak) cap = Math.min(cap, c); });
+    // 最後 CF 公尺（CW − CF 到 CW）挖填漸漸退回原本的山：原本的山比挖方坡高很多（或比填方坡低很多）的地方，以前在 CW 邊上整片斷開（雲梯城寨西側那道 18 m 的落差）
+    segEach(X, Z, CW, (d, y, ak) => { if (d < best) { best = d; yr = y; } const f = sm01((d - (CW - CF)) / CF), c0 = y + Math.max(0, d - (ak ? RC_AK : RC)) * CUT, c = c0 + Math.max(0, h - c0) * f; if (h > y) hc = Math.min(hc, c); if (ak) cap = Math.min(cap, c); });
     if (best >= CW) return h;
     // 榛嶺的上下兩段路之間，下段的挖方和上段的填方交成一條稜線，細格子斜著切過去是一排鋸齒：照 6 m 的寬度磨圓（smooth max）
-    segEach(X, Z, CW, (d, y, ak) => { if (y > hc) { const v = y - Math.max(0, d - RC) * FILL, q = ak ? Math.max(0, 6 - Math.abs(hc - v)) / 6 : 0; hc = Math.max(hc, v) + q * q * 1.5; } });
+    segEach(X, Z, CW, (d, y, ak) => { if (y > hc) { const v0 = y - Math.max(0, d - RC) * FILL, v = v0 - Math.max(0, v0 - h) * sm01((d - (CW - CF)) / CF), q = ak ? Math.max(0, 6 - Math.abs(hc - v)) / 6 : 0; hc = Math.max(hc, v) + q * q * 1.5; } });
     // 榛嶺的髮夾彎上下疊：上段的填方不能蓋過下段的挖方斜面（不然下段的路邊被埋掉），上段路緣外的落差由 22-akina.js 的擋土牆擋
     hc = Math.min(hc, cap);
     if (best > RC && AKINA && AKINA.lots) hc = akinaLotH(X, Z, hc);   // OSM 的停車場：整平成一片斜平面
@@ -1527,6 +1540,24 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
     return false;
   };
   hillLinkCarve(roads, RC, CUT, FILL, CW, roadD);   // 09-hilllink.js：連絡路深挖、高填的路段加寬挖填
+  // 雲梯城寨的開挖坡（使用者：牆頂以上的切坡太陡、西側看得到一大片岩壁；後來：北邊的主山也是岩面）：平台外從牆頂（encWallH）照 encCutRise 往外挖
+  // （牆後 94 m 內是 ENC.G ≈ 31°，再 100 m 漸漸變陡到 0.95 ≈ 43.5°，都在 07-kitx.js 露岩的 51° 以下，樹長得上去；北邊連絡路後面那座約 210 m 的高台在 270 m 左右碰到），
+  // 和原本的山取 smooth min（碰到原本的山就停，交線磨圓）；ENC.cutR 公尺內、最後 50 m 淡回原本的山。平台後面與西北角外 80–130 m 有連絡路：
+  // 不低於路邊往外 FILL（0.75:1）的填方坡（smooth max），路不會架空。山路已經生成完，路網與別墅不受影響；21-coast.js 的 hillEnc 細分整個範圍
+  if (ENC) {
+    const P = ENC.pad, R2 = ENC.cutR, smin = (a, b, k) => { const t = clamp(.5 + .5 * (b - a) / k, 0, 1); return b + (a - b) * t - k * t * (1 - t); };
+    HILL.encCut = (X, Z, h) => {
+      if (!Number.isFinite(h)) return h;
+      const [x, z] = encL(X, Z); if (z > 90) return h;
+      const d = Math.hypot(Math.max(P.x0 - x, x - P.x1, 0), Math.max(P.z0 - z, 0)); if (d >= R2) return h;
+      const k = clamp((d - ENC.M) * .4, 1, 10), c = encWallH(h) + encCutRise(Math.max(0, d - ENC.M)); if (c >= h + k) return h;
+      const w = (1 - sm01((d - (R2 - 50)) / 50)) * (1 - sm01((z - 60) / 30));
+      let v = h + (smin(h, c, k) - h) * w, fl = -1e9;
+      segEach(X, Z, CW, (dd, y) => { fl = Math.max(fl, y - Math.max(0, dd - RC) * FILL - 1e3 * sm01((dd - (CW - CF)) / CF)); });
+      if (fl > v - 3) v = -smin(-v, -fl, 3);
+      return Math.min(v, h);
+    };
+  }
   // 路面：每一點左右各三條（路肩外緣、路面邊、中線），高度各自照山網格抬 0.25 m；柏油、碎石路肩、虛線的黃中線、每 70 m 一盞路燈（燈頭自發光）
   {
     const pos = [], col = [], mt = [], idx = [], c = new T.Color();
@@ -1696,6 +1727,37 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
       const kk = r2(); put(kk < .45 ? 'shrub' : kk < .6 ? 'shrub_bloom' : kk < .8 ? 'agave' : 'rock', lx, lz, false, .8 + r2() * .9);
     }
     if (r2() < .6) put('palm', px1 + 3 + r2() * 6, pz1 + r2() * 8, false, .9 + r2() * .4);
+  }
+  // ─── 迴頭彎上下兩段之間的直線坡（使用者：別墅區山路的路邊有 4–8 m 的斷層，用緩降的方式）───
+  // 上段的填方坡原本一路蓋到下段的路緣，下段路邊直立一道斷崖。點夾在兩段之間（往兩條中線的方向相反）、高差大於路緣間距 × FILL（上段的填方坡到下段路緣時還比路面高）、1.5 m 以上時，
+  // 改成下段路緣到上段路緣的一條直線坡；三個條件各自 smoothstep 淡入（權重取最大的那一對），範圍邊上不會再斷開。榛嶺不套（上下疊的地方有 22-akina.js 的擋土牆）。
+  // 別墅擺完才包進 HILL.carveH（房子的配置照原本的地形，不會變）；平台四周 1.5–8 m 淡回原本的挖填，坡上的植栽跟著改高度
+  {
+    const base = HILL.carveH;
+    // 另一種：高的那段路在近的那段後面（同一側、比較遠），它的填方坡越過近的那段、在近的那段外側堆出一道土堤（路緣外直立 4–5 m）。
+    // 這種地方改成只照最近那段的挖填（v1：原本的山夾在它的填方與挖方坡之間），同樣照「在後面」與高差 smoothstep 淡入
+    const bridge = (X, Z, h, hc) => {
+      let best = 1e9, yr = 0, fx = 0, fz = 0, fak = false;
+      segEach(X, Z, CW, (d, y, ak, px, pz) => { if (d < best) { best = d; yr = y; fx = px; fz = pz; fak = ak; } });
+      if (best <= RC || best >= CW || fak || !Number.isFinite(h)) return hc;
+      const ux = (fx - X) / best, uz = (fz - Z) / best, e = best - RC, v1 = clamp(h, yr - e * FILL, yr + e * CUT);
+      let bw = 0, bv = 0, fb = 0, bd = 1e9;
+      segEach(X, Z, CW, (d, y, ak, px, pz) => {
+        if (ak || d <= RC) return;
+        const dy = y - yr, cs = ux * (px - X) / d + uz * (pz - Z) / d, gap = best + d - 2 * RC;
+        const w = sm01((-cs - .5) / .3) * sm01((Math.abs(dy) - gap * FILL) / 2) * sm01((Math.abs(dy) - 1.5) / 1.5);   // 高的那段的填方坡到低的那段路緣還比路面高，才會有斷崖
+        if (w > 0 && d < bd) { bd = d; bw = w; bv = yr + dy * (best - RC) / gap; }   // 對面那條路上最近的一段（同一條路好幾段權重都是 1，挑遠的那段算出來的直線坡兩邊對不起來）
+        const vs = y - (d - RC) * FILL, wb = sm01((cs - .2) / .4) * sm01((d - best - 2) / 4) * sm01((vs - v1) / 1);   // 在近的那段後面、填方比只照近的那段高
+        if (wb > fb) fb = wb;
+      });
+      let pw = 1; for (const [px, pz, rd] of pads) { pw = Math.min(pw, sm01((Math.hypot(X - px, Z - pz) - rd - 1.5) / 6.5)); if (pw <= 0) return hc; }
+      let v = hc;
+      if (bw > 0) v += (bv - v) * bw * pw;
+      if (fb > 0 && hc > v1) v += (v1 - v) * fb * pw;
+      return v;
+    };
+    HILL.carveH = (X, Z, h) => bridge(X, Z, h, base(X, Z, h));
+    for (const k in HILL_PLANTS) for (const t of HILL_PLANTS[k]) if (t.sl) { const h = hillMeshRaw(t.x, t.z); if (Number.isFinite(h)) { const a = base(t.x, t.z, h); t.y += bridge(t.x, t.z, h, a) - a; } }
   }
   // ─── 別墅區山坡的起伏（HILL_VIL）：幾十公尺的起伏、9 m 的小丘、一塊塊突出的岩盤（±1.5 m 上下）；整數雜湊的值雜訊，不動 rnd() ───
   {

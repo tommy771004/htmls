@@ -132,7 +132,7 @@ function boatLamps(v, o) {
   return k;
 }
 // 水面起伏（三道波疊起來；只給船用）
-const seaWave = (x, z, t) => .16 * Math.sin(x * .19 + t * 1.05) + .11 * Math.sin(z * .23 - t * .83 + 1.3) + .06 * Math.sin((x + z) * .41 + t * 1.7);
+const seaWave = (x, z, t) => .16 * Math.sin(x * .19 + t * 1.05) + .11 * Math.sin(z * .23 - t * .83 + 1.3) + .06 * Math.sin((x + z) * .41 + t * 1.7) + rigWave(x, z, t);   // rigWave：21-rig.js 鑽油平台四周的暴風浪
 const boatFloor = (x, z) => seaFloor(x, z) > SEA_Y - BOAT_DRAFT - .15;   // 這裡太淺，船過不去
 function driveBoat(v, inp, dt) {
   const T0 = BOAT_TYPES[v.type], fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -fz, rz = fx;

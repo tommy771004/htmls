@@ -74,10 +74,11 @@ const MAP_RAIL = RAIL ? (() => {
 // 灰鷺角國際機場（21-air.js，SEA_FR 座標框）：島、堤道、跑道、滑行道、機坪與航廈（世界座標的多邊形）
 const MAP_AIR = AIR_L ? (() => {
   const L = AIR_L, r = (x0, x1, z0, z1) => [airW(x0, z0), airW(x1, z0), airW(x1, z1), airW(x0, z1)], R = L.rwy, W = L.twy, A = L.apron, I = L.I;
-  return { isl: r(I.x0, I.x1, I.z0, I.z1), road: AIR.road.map(([x, z]) => airW(x, z)), hw: AIR.hw, rwy: r(R.x0, R.x1, R.z - R.hw, R.z + R.hw),
-    twy: [r(W.x0 - W.hw, W.x1 + W.hw, W.z - W.hw, W.z + W.hw), ...L.links.map(([x, z0, z1]) => r(x - W.hw, x + W.hw, z0, z1))],
-    apron: [r(A.x0, A.x1, A.z0, A.z1), r(L.land.x0, L.land.x1, L.land.z0, L.land.z1), r(L.plaza.x0, L.plaza.x1, L.plaza.z0, L.plaza.z1), r(L.park.x0, L.park.x1, L.park.z0, L.park.z1)],
-    bld: [r(L.term.x - 85, L.term.x + 85, L.term.z - 55, L.term.z + 55), r(L.hangar.x - 57, L.hangar.x + 57, L.hangar.z - 38, L.hangar.z + 38), r(L.tower.x - 9, L.tower.x + 9, L.tower.z - 9, L.tower.z + 9)] };
+  const J = AIR.isl2, A2 = L.apron2, N = L.lane2, K = L.link2, t = L.t2;
+  return { isl: r(I.x0, I.x1, I.z0, I.z1), isl2: r(J.x0, J.x1, J.z0, J.z1), road: AIR.road.map(([x, z]) => airW(x, z)), hw: AIR.hw, rwy: r(R.x0, R.x1, R.z - R.hw, R.z + R.hw),
+    twy: [r(W.x0 - W.hw, W.x1 + W.hw, W.z - W.hw, W.z + W.hw), ...L.links.map(([x, z0, z1]) => r(x - W.hw, x + W.hw, z0, z1)), r(K.x - W.hw, K.x + W.hw, K.z0, K.z1), r(N.x0, N.x1, N.z - N.hw, N.z + N.hw), AIR_RET.pts.map(([x, z]) => airW(x, z))],
+    apron: [r(A.x0, A.x1, A.z0, A.z1), r(L.land.x0, L.land.x1, L.land.z0, L.land.z1), r(L.plaza.x0, L.plaza.x1, L.plaza.z0, L.plaza.z1), r(L.park.x0, L.park.x1, L.park.z0, L.park.z1), r(A2.x0, A2.x1, A2.z0, A2.z1), r(L.curb2.x0, L.curb2.x1, L.curb2.z0, L.curb2.z1), r(L.park2.x0, L.park2.x1, L.park2.z0, L.park2.z1), r(L.conn2.x0, L.conn2.x1, L.conn2.z0, L.conn2.z1)],
+    bld: [r(L.term.x - 82, L.term.x + 82, L.term.z - 51, L.term.z + 51), r(L.hangar.x - 57, L.hangar.x + 57, L.hangar.z - 46, L.hangar.z + 38), r(L.tower.x - 9, L.tower.x + 9, L.tower.z - 9, L.tower.z + 9), r(t.x - 166, t.x + 166, t.z - 38, t.z + 36)] };
 })() : null;
 // 雲梯城寨（28-enclave.js；ENC.f 框座標的矩形換成世界座標）：平台是鋪面、街是路、地塊是街區、樓照地塊的顏色
 const MAP_ENC = ENC ? (() => {
@@ -97,7 +98,7 @@ function encMapDraw(c, P, k, C) {
 function airMapDraw(c, P, k, C) {
   if (!MAP_AIR) return;
   const M = MAP_AIR, path = (pts, close) => { c.beginPath(); pts.forEach(([x, z], n) => { const [a, b] = P(x, z); if (n) c.lineTo(a, b); else c.moveTo(a, b); }); if (close) c.closePath(); };
-  c.fillStyle = C.grass; path(M.isl, true); c.fill();
+  c.fillStyle = C.grass; path(M.isl, true); c.fill(); path(M.isl2, true); c.fill();
   c.strokeStyle = C.road; c.lineWidth = 2 * M.hw * k; c.lineJoin = c.lineCap = 'round'; path(M.road); c.stroke();
   c.fillStyle = C.walk; for (const p of M.apron) { path(p, true); c.fill(); }
   c.fillStyle = C.road; for (const p of M.twy) { path(p, true); c.fill(); } path(M.rwy, true); c.fill();

@@ -102,11 +102,44 @@ Kit.prototype.visor = function (x, y, z, r, len, color, mat = 2, ry = 0, gap = 1
 //   43 板模清水混凝土（15 cm 一道的木模板紋、模板的繫結孔）  44 直向木格柵（9 cm 一根、深色的縫、沿 y 的木紋）  45 洞石（1.2×0.6 m 的板、水平的層紋與孔洞）
 //   46 層疊板岩（一片片薄石、深縫）  47 泳池水（流動的水光紋、夜裡池燈打亮）  48 別墅的落地玻璃（白天是映天空的深色玻璃，入夜是暖光的室內：天花的光暈、家具的剪影、有的房間沒開燈）
 //   49 簷下的天花（每 1.6 m 一盞崁燈，入夜亮）
+//   53 航廈的帷幕玻璃（白天深色玻璃映天空，玻璃後面是 src/tsl/air-int.mjs 的室內：地板、夾層、店面、座椅、人、天花燈帶；入夜是暖白的燈；blender/airbld.py）
+//   54 機場的小房間玻璃（空橋通道看穿到對面、塔台基座與機庫工作間的房間：桌子、螢幕、輕鋼架燈；air-int.mjs）
+//   55 波浪鋼板（0.2 m 一道的梯形肋、1.2 m 一片的色差與搭接縫、雨痕、牆腳髒污、鏽點；機庫外牆、空橋裙板）
+//   56 第二航廈 T2 的帷幕玻璃（後面的大廳是 src/tsl/air-int.mjs 的 hall2）
+//   57 內照式標誌牌（滑行道指示牌：白天照頂點色，入夜面板發光）
+//   58 地勤車的烤漆  59 海上平台的塗漆鋼  60 導管架與浪花帶（水線的海藻、藤壺、貽貝）  61 甲板花紋鋼板（磨亮路徑、油漬、積水）  62／63 = 55／22 的紋路；
+//      59–63 另外疊一層做舊（補漆色塊、焊縫與往下流的鏽水、鏽斑、掉漆露紅丹底漆、鹽霜、頂面油污、浪花帶濕暗）；p.y 當世界高度用，幾何要是局部座標（21-rig.js）
 //   50 別墅區的山坡（21-coast.js 照 10-city.js 的 HILL_VIL 細分起伏的那幾片）：照片的乾草地與露岩，往外照權重淡回 42（aMat = 50 + 0.4 × 權重，小數內插）
 //   texMat 的第三欄進來是 (實例的種子 vIns.z, aMat 的小數 vMat − m, 0)，出去是自發光（47、48、49 用）。43–46、50 另由 texNrm 算照片法線（uVil.y），
 //   實例的繞 y 轉角在 vIns.w（50-assets.js 的 HILL_SEED），法線偏移照它轉到世界
 // 著色器是 src/tsl/m-uberX.mjs：vP／vNo 是幾何自己的座標（實例在實例的框裡，pGeom_／nGeom_）
 function mkUberX(o) { const m = mkUber(o); m.name = 'uberX'; return m; }
 MAT.ux = mkUberX(); MAT.uxI = mkUberX({ inst: true }); MAT.uxFI = mkUberX({ inst: true, far: .07, farc: 1 });   // uxFI：遠景的實例（21-coast.js 的石柱峰；霧只算 7% 的距離，鏡頭升高也一樣）
-// 材質代號（Kit 的 mat 參數）
-const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36, tile: 37, slate: 38, seam: 39, hill: 42, karst: 51, board: 43, slat: 44, trav: 45, ledge: 46, pool: 47, vglass: 48, soffit: 49, vhill: 50 };
+// 去玩具感（2026-11-02）：把場館、室內裡素色的 uber 材質（2 霧面、10 半光、15 金屬）照頂點色與零件形狀換成 MAT.ux 的程式紋理，網格要改用 MAT.ux／uxI。
+// 每個零件（parts）量外框：薄而大的水平板（地板）用 o.floor（預設 33 環氧地坪），板子朝下的面（下一層看到的天花板）與底高於 o.ceil 的板用 41；直立的大板（牆）低彩度用 o.wall（預設 41 灰泥牆）；
+// 暖棕色（木頭）照最長軸換 23／24／25 的木紋；金屬照亮度分 35 室內不鏽鋼（亮）、21 塗漆的鐵（暗）；很暗的霧面當成 30 粗塑膠、橡膠；其他低彩度霧面當成 34 粉體烤漆。
+// 飽和的顏色（招牌、燈箱、霓虹、絨布）與自發光、玻璃、鍍鉻不動。o.skip(r, g, b, m) 回傳 true 的也不動
+Kit.prototype.uxify = function (o = {}) {
+  const P = this.parts, pos = this.pos, col = this.col, mat = this.mat, nV = pos.length / 3, FL = o.floor ?? 33,   // floor: 0 = 地板照舊
+    WL = o.wall ?? 41, CE = o.ceil ?? Infinity;
+  for (let k = 0; k < P.length; k++) {
+    const a = P[k], b = k + 1 < P.length ? P[k + 1] : nV; if (b <= a) continue;
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (let v = a; v < b; v++) { const x = pos[v * 3], y = pos[v * 3 + 1], z = pos[v * 3 + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
+    const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, big = Math.max(dx, dz), flat = dy < .35 && big > 2.5 && Math.min(dx, dz) > 1.2, wall = dy > 1.6 && big > 1.6 && Math.min(dx, dz) < .5;
+    for (let v = a; v < b; v++) {
+      const m = mat[v]; if (m !== 2 && m !== 10 && m !== 15) continue;
+      if (flat && FL === 0 && this.nor[v * 3 + 1] > -.5) continue;   // 地板照舊
+      const r = col[v * 3], g = col[v * 3 + 1], bl = col[v * 3 + 2], mx = Math.max(r, g, bl), mn = Math.min(r, g, bl), sat = mx > 1e-4 ? (mx - mn) / mx : 0, lum = r * .3 + g * .55 + bl * .15;
+      if (o.skip && o.skip(r, g, bl, m)) continue;
+      let t = 0;
+      if (m === 15) t = sat < .35 ? (lum > .18 ? 35 : 21) : 0;
+      else if (r > g * 1.12 && g > bl * 1.08 && sat > .3 && sat < .95 && lum < .3) t = dy < .12 && this.nor[v * 3 + 1] > .5 ? 0 : dx >= dy && dx >= dz ? 23 : dz >= dy ? 25 : 24;   // 暖棕：木頭（扁平朝上的木板＝拼好的木地板，照舊：程式木紋的大塊髒污在地板上是一片片污斑）
+      else if (sat < .3) t = flat ? (this.nor[v * 3 + 1] < -.5 || y0 > CE ? 41 : FL) : wall ? WL : lum < .02 ? 30 : 34;
+      if (t) mat[v] = t;
+    }
+  }
+  return this;
+};
+// 材質代號（Kit 的 mat 參數）；52 間知石（不規則石塊、灰縫、青苔，2026-11-02）
+const TX = { conc: 20, iron: 21, galv: 22, woodX: 23, woodY: 24, woodZ: 25, cmu: 26, brick: 27, stone: 28, sheet: 29, rubber: 30, carbon: 31, ti: 32, epoxy: 33, enamel: 34, steel: 35, peg: 36, tile: 37, slate: 38, seam: 39, hill: 42, karst: 51, kenchi: 52, board: 43, slat: 44, trav: 45, ledge: 46, pool: 47, vglass: 48, soffit: 49, vhill: 50 };

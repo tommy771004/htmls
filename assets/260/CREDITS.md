@@ -7,12 +7,12 @@
 | 檔案 | 模型 | 作者 | 授權 |
 | :-- | :-- | :-- | :-- |
 | `e92.glb` | [2010 BMW M3 (E92)](https://sketchfab.com/3d-models/2010-bmw-m3-e92-1b61f48d5ebc4d9d94ac5f76ef1aede4) | ilvskf | CC-BY-4.0 |
-| `m3c.glb` | [BMW M3 Competition](https://sketchfab.com/3d-models/bmw-m3-competition-641603169bfa4285a297a59883c653de) | VTX | CC-BY-NC-SA-4.0 |
+| `m3c.glb` | [BMW M3 Competition](https://sketchfab.com/3d-models/bmw-m3-competition-641603169bfa4285a297a59883c653de) | VTX | CC-BY-NC-SA-4.0（已修改：座艙的半透明零件改成遮罩、地墊與座椅等低解析貼圖換成本專案的貼圖） |
 | `m4wb.glb` | [BMW M4 Modified Widebody](https://sketchfab.com/3d-models/bmw-m4-modified-widebody-61b1259b14ae4840ba1b0e9d819e60c1) | VTX | CC-BY-NC-SA-4.0 |
 | `m3gtr.glb` | [BMW M3 GTR GT2](https://sketchfab.com/3d-models/bmw-m3-gtr-gt2-b6b0370337a04499973e435a66b22d5b) | Dave Love SketchFab | CC-BY-4.0 |
 | `m3t24.glb` | [2026 BMW M3 Touring 24H Shell Helix](https://sketchfab.com/3d-models/2026-bmw-m3-touring-24h-shell-helix-6828c91db6a34d1ca6bc204f064e28c1) | Dave Love SketchFab | CC-BY-4.0 |
 | `m4gt3.glb` | [2025 BMW M4 GT3 EVO G82](https://sketchfab.com/3d-models/2025-bmw-m4-gt3-evo-g82-113f83dd87064697a5ec2511d280b9d5) | Ddiaz Design | CC-BY-NC-SA-4.0 |
-| `gt3rs.glb` | [Porsche 992 GT3 RS](https://sketchfab.com/3d-models/porsche-992-gt3-rs-80bf174857414a57ac9741567d3c4534) | VTX | CC-BY-NC-SA-4.0 |
+| `gt3rs.glb` | [Porsche 992 GT3 RS](https://sketchfab.com/3d-models/porsche-992-gt3-rs-80bf174857414a57ac9741567d3c4534) | VTX | CC-BY-NC-SA-4.0（已修改：座椅、儀表板、方向盤與門板的低解析麂皮貼圖換成本專案的貼圖） |
 | `gt3r.glb` | [2024 Porsche 992 GT3 R](https://sketchfab.com/3d-models/2024-porsche-992-gt3-r-6b690bc63c8040c791d25a060ab20e1b) | VTX | CC-BY-NC-SA-4.0 |
 | `s1krr.glb` | [BMW S1000 RR](https://sketchfab.com/3d-models/bmw-s1000-rr-1873aed292d6465694119bd81860a0c2) | VTX | CC-BY-NC-SA-4.0 |
 | `s1krr19.glb` | [BMW S1000RR 2019](https://sketchfab.com/3d-models/bmw-s1000rr-2019-f842e86791ae4820aa7d45f76ecc94dc) | VTX | CC-BY-NC-SA-4.0 |
@@ -27,10 +27,10 @@
 | `e34.glb` | [BMW E34 [stance style]](https://sketchfab.com/3d-models/bmw-e34-stance-style-ffe1a3a1bcb34e0bb80f1aa41c9edb46) | Myedsu | CC-BY-4.0 |
 | `m4csl.glb` | [BMW m4 CSL 2023](https://sketchfab.com/3d-models/bmw-m4-csl-2023-26d05968e63b4fc28205cbb9abb0ea41) | Black Snow | CC-BY-4.0 |
 | `evo190.glb` | [Mercedes 190E EVO 1982 3D Model Free](https://sketchfab.com/3d-models/mercedes-190e-evo-1982-3d-model-free-15e5576f4b724f2db357165caed3492b) | Betier Models | CC-BY-4.0 |
-| `f40.glb` | [Ferrari f40](https://sketchfab.com/3d-models/ferrari-f40-52a66c41cfcd4f999fb1b1c49bf24d70) | Black Snow | CC-BY-4.0 |
-| `sf90.glb` | [2023 Ferrari SF90 XX Stradale](https://sketchfab.com/3d-models/2023-ferrari-sf90-xx-stradale-2c80c667232544649328cf3589921bcd) | Ddiaz Design | CC-BY-4.0 |
+| `f40.glb` | [Ferrari f40](https://sketchfab.com/3d-models/ferrari-f40-52a66c41cfcd4f999fb1b1c49bf24d70) | Black Snow | CC-BY-4.0（已修改：車內換成本專案以 `games/260-neon-nightcity/blender/cab_f40.py` 重做的版本） |
+| `sf90.glb` | [2023 Ferrari SF90 XX Stradale](https://sketchfab.com/3d-models/2023-ferrari-sf90-xx-stradale-2c80c667232544649328cf3589921bcd) | Ddiaz Design | CC-BY-4.0（已修改：方向盤後補上本專案以 `games/260-neon-nightcity/blender/cab_sf90.py` 做的液晶儀表） |
 | `p1.glb` | [Mclaren P1 | www.vecarz.com](https://sketchfab.com/3d-models/mclaren-p1-wwwvecarzcom-adae2edc721e4ce7b31c1d06a581e30a) | vecarz | CC-BY-4.0 |
-| `svj.glb` | [lamborghini aventador lp 770-4 svj](https://sketchfab.com/3d-models/lamborghini-aventador-lp-770-4-svj-71460dcc354045ddb1e7a8670678ffca) | amogusstrikesback2 | CC-BY-4.0 |
+| `svj.glb` | [lamborghini aventador lp 770-4 svj](https://sketchfab.com/3d-models/lamborghini-aventador-lp-770-4-svj-71460dcc354045ddb1e7a8670678ffca) | amogusstrikesback2 | CC-BY-4.0（已修改：車內換成本專案以 `games/260-neon-nightcity/blender/cab_svj.py` 重做的版本） |
 | `evija.glb` | [lotus evija](https://sketchfab.com/3d-models/lotus-evija-80d85f9fe49f4e249548a466a5674835) | amogusstrikesback2 | CC-BY-4.0 |
 | `spano.glb` | [2015 gta spano](https://sketchfab.com/3d-models/2015-gta-spano-9f115e79267742ff9a95dc7c1cf3021c) | amogusstrikesback2 | CC-BY-4.0 |
 | `f8.glb` | [ferrari f8 tributo](https://sketchfab.com/3d-models/ferrari-f8-tributo-61d8929fd08048bf8ee2e143df2de796) | amogusstrikesback2 | CC-BY-4.0 |
@@ -55,17 +55,17 @@
 | `zx6r.glb` | [Kawasaki ninja ZX-6R](https://sketchfab.com/3d-models/kawasaki-ninja-zx-6r-4af2b6840b8045a5af5e8df8a85f04fa) | valvetin | CC-BY-4.0 |
 | **街頭車**（車行不賣：混在車流與路邊，搶來或騎走後收進車庫） | | | |
 | `g63.glb` | [Mersedes-Benz G63 AMG](https://sketchfab.com/3d-models/mersedes-benz-g63-amg-e5e2a1d2238048a1a494b3df983c16bb) | Black Snow | CC-BY-4.0 |
-| `lc200.glb` | [Toyota Land Cruiser J200 2017](https://sketchfab.com/3d-models/toyota-land-cruiser-j200-2017-374e85a6e18743429f6d9c0e7bbffb3c) | David_Holiday | CC-BY-4.0 |
+| `lc200.glb` | [Toyota Land Cruiser J200 2017](https://sketchfab.com/3d-models/toyota-land-cruiser-j200-2017-374e85a6e18743429f6d9c0e7bbffb3c) | David_Holiday | CC-BY-4.0（已修改：車殼內襯從半透明改成不透明、拿掉貼在車漆外側的重複面） |
 | `rr06.glb` | [Range Rover (L405)](https://sketchfab.com/3d-models/range-rover-l405-69710b943776432b9f7b9f75842c15ff) | SLB | CC-BY-4.0 |
-| `ramtrx.glb` | [Dodge RAM TRX Sandblast Edition](https://sketchfab.com/3d-models/dodge-ram-trx-sandblast-edition-de045bf2f3b141a48a4248885d3fee1c) | 𝑵 | CC-BY-4.0 |
+| `ramtrx.glb` | [Dodge RAM TRX Sandblast Edition](https://sketchfab.com/3d-models/dodge-ram-trx-sandblast-edition-de045bf2f3b141a48a4248885d3fee1c) | 𝑵 | CC-BY-4.0（已修改：座艙的半透明零件改成遮罩） |
 | `ghost.glb` | [Rolls-Royce Ghost](https://sketchfab.com/3d-models/rolls-royce-ghost-4a590f4afa094fa8b407a14db77a63a8) | Black Snow | CC-BY-4.0 |
 | `s65.glb` | [Mersedes-Benz s65 w222](https://sketchfab.com/3d-models/mersedes-benz-s65-w222-f42d9d13b0404b5b9a2302a4c590a94d) | Black Snow | CC-BY-4.0 |
 | `m5f90.glb` | [Bmw M5 F90](https://sketchfab.com/3d-models/bmw-m5-f90-5478e978bd634337adc8e3dc413fbfa3) | RES1N | CC-BY-4.0 |
 | `camry.glb` | [Toyota Camry 2020](https://sketchfab.com/3d-models/toyota-camry-2020-236a5a6e2fa6420fbdf641f4800cd544) | ItsDiyor | CC-BY-4.0 |
 | `gt500.glb` | [Ford Mustang Shelby GT500](https://sketchfab.com/3d-models/ford-mustang-shelby-gt500-0eaa7a16796540f29461ddae05ecdeb3) | Jiaxing | CC-BY-4.0 |
-| `viper.glb` | [Dodge Viper SRT [Free]](https://sketchfab.com/3d-models/dodge-viper-srt-free-b4234b7970fa464faaecaf637acb0912) | Black Snow | CC-BY-4.0 |
+| `viper.glb` | [Dodge Viper SRT [Free]](https://sketchfab.com/3d-models/dodge-viper-srt-free-b4234b7970fa464faaecaf637acb0912) | Black Snow | CC-BY-4.0（已修改：車內換成本專案以 `games/260-neon-nightcity/blender/cab_viper.py` 重做的版本） |
 | `senna.glb` | [McLaren Senna Free](https://sketchfab.com/3d-models/mclaren-senna-free-ea3e43a6eb004853a87fe9c58422eb96) | Black Snow | CC-BY-4.0 |
-| `r8.glb` | [Audi R8](https://sketchfab.com/3d-models/audi-r8-e17e438f076f4427a58d93aa779edaed) | wallon | CC-BY-4.0 |
+| `r8.glb` | [Audi R8](https://sketchfab.com/3d-models/audi-r8-e17e438f076f4427a58d93aa779edaed) | wallon | CC-BY-4.0（已修改：車內換成本專案以 `games/260-neon-nightcity/blender/cab_r8.py` 重做的版本） |
 | `evo6.glb` | [Mitsubishi Lancer Evolution 6 · www.vecarz.com](https://sketchfab.com/3d-models/mitsubishi-lancer-evolution-6-wwwvecarzcom-c3d5dcd8ff724bc88c46760d92fc5188) | vecarz | CC-BY-4.0 |
 | `hd72.glb` | [Harley-Davidson Seventy-Two HD FXT 2015](https://sketchfab.com/3d-models/harley-davidson-seventy-two-hd-fxt-2015-15e67a3076494bb99ba7504c9913ceb5) | ᗩᒪE᙭. Kᗩ.🚗 | CC-BY-4.0 |
 | `hdpol.glb` | [Harley-Davidson Police](https://sketchfab.com/3d-models/harley-davidson-police-79dc00298bf449d7bcfdf6eb32bd15ac) | Comrade1280 | CC-BY-4.0 |
@@ -116,7 +116,7 @@
 | `canyon_taxi` | [Canyon '75 Taxi - Low poly model](https://sketchfab.com/3d-models/canyon-75-taxi-low-poly-model-9e8f92a215784f3d8aaaaeab1bef54c4) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `urban_cop` | [Urban '10 Cop Enforcer - Low poly model](https://sketchfab.com/3d-models/urban-10-cop-enforcer-low-poly-model-745830362bb342128ef6509345606ffe) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `ambulance` | [Shvan '92 Ambulance - Low Poly model](https://sketchfab.com/3d-models/shvan-92-ambulance-low-poly-model-2856dd3c61f940909dced9a5c0379484) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
-| `md84` | [MD '84 Armored - Low poly model（SWAT 裝甲車）](https://sketchfab.com/3d-models/md-84-armored-low-poly-model-26e809cce40e4359a3199649f12ef295) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
+| `md84`（另有 `md84.glb`：任務裡玩家開的那台坐上去換成實車） | [MD '84 Armored - Low poly model（SWAT 裝甲車）](https://sketchfab.com/3d-models/md-84-armored-low-poly-model-26e809cce40e4359a3199649f12ef295) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `tow` | [Lightbody '90 MD Tow Truck - Low poly model（拖吊車：拖吊場、CHROME WORKS 門口）](https://sketchfab.com/3d-models/lightbody-90-md-tow-truck-low-poly-model-5cba208001c64e8ea164f89e4dde91e7) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `fire_chief` | [Fairheaven SW '80 Fire Dept. - Low poly model（消防指揮車：派遣、分局門口）](https://sketchfab.com/3d-models/fairheaven-sw-80-fire-dept-low-poly-model-0cd661aaab6949ba9d77dbb13ab146c5) | [Daniel Zhabotinsky](https://sketchfab.com/DanielZhabotinsky) | CC BY 4.0 |
 | `firetruck` | [Fire engine/Fire truck low poly game asset（消防水箱車：派遣、醫院門口）](https://sketchfab.com/3d-models/fire-enginefire-truck-low-poly-game-asset-2f663c7477374d30af9f80c528fff55c) | [FixedShark554](https://sketchfab.com/FixedShark554) | CC BY 4.0 |
@@ -162,11 +162,7 @@
 | `drain`（排水道：河濱排水口那一段 `dr_mouth`、箱涵 `dr_seg`，以及從同一個模型切出來鋪檢查井的牆面 `dr_wall`／`dr_wall2`／`dr_lintel`／`dr_pier` 與地面 `dr_floor`；原檔是 Specular-Glossiness 材質，先轉成 Metallic-Roughness） | [dirty tunnel](https://sketchfab.com/3d-models/dirty-tunnel-a3899fe5e39b4796a36ca110663003a2) | [SPLEEN VISION](https://sketchfab.com/spleen.vision) | CC BY 4.0 |
 | `air`（灰鷺角國際機場的客機 `a320`：起降循環與停機位，白色素塗裝） | [Airbus A320-200 V2](https://sketchfab.com/3d-models/airbus-a320-200-v2-c078f9af15884a6b820c7e778831b110) | [fDlruosne](https://sketchfab.com/fDlruosne) | CC BY 4.0 |
 | `air`（客機 `b737`；拿掉原檔散在機身外的碎片） | [Boeing 737 MAX 8](https://sketchfab.com/3d-models/boeing-737-max-8-380d0315b8774117a3b1820f4857e00e) | [fDlruosne](https://sketchfab.com/fDlruosne) | CC BY 4.0 |
-| `air`（航廈 `term`，放大到 170 m 長；玻璃帷幕改寫成夜裡亮燈的窗戶編號貼圖） | [Futuristic airport building whale](https://sketchfab.com/3d-models/futuristic-airport-building-whale-023f7539dc784c919ab490f27b63f0bc) | [soysascha](https://sketchfab.com/soysascha) | CC BY 4.0 |
-| `air`（塔台 `tower`） | [Control Tower San Francisco](https://sketchfab.com/3d-models/control-tower-san-francisco-96e0b2ef0b784a48968634583617d208) | [lucassobral3d](https://sketchfab.com/lucassobral3d) | CC BY 4.0 |
-| `air`（機庫 `hangar`，縮成 0.75 倍；拿掉機庫裡的 A380 與地面板，線框色換成灰藍玻璃與鋼構色） | [Hangar structure in aisport of León, Spain](https://sketchfab.com/3d-models/hangar-structure-in-aisport-of-leon-spain-050dfc5858f041b49736f73709af28e0) | [casadofer](https://sketchfab.com/casadofer) | CC BY 4.0 |
-| `air`（空橋 `jetway`，三座登機門共用） | [Airport Jetway](https://sketchfab.com/3d-models/airport-jetway-707e860e25334b85b4bf7c538420066e) | [Cyza Store](https://sketchfab.com/CyzaStore) | CC BY 4.0 |
-| `air`（餐車 `cater`，停在登機門的客機旁） | [Airport Catering Truck](https://sketchfab.com/3d-models/airport-catering-truck-289f4e2cfa3f4722b0476b1fc37681d8) | [rwy00](https://sketchfab.com/rwy00) | CC BY 4.0 |
+| `air`（餐車 `cater`；模型還在 `air.glb` 裡，2026-11-03 起不再擺，換成自己的 Blender 空廚車 `gse_cater`） | [Airport Catering Truck](https://sketchfab.com/3d-models/airport-catering-truck-289f4e2cfa3f4722b0476b1fc37681d8) | [rwy00](https://sketchfab.com/rwy00) | CC BY 4.0 |
 | `bunker`（北嶺地堡的人員門 `bk_door`：山坡入口旁與室內南牆） | [Bunker Door](https://sketchfab.com/3d-models/bunker-door-deb898e42397499aabedd6913723c0be) | [Gabriel Gauthier](https://sketchfab.com/Gab629) | CC BY 4.0 |
 | `v5shop`（縫線服飾的店面） | [Storefronts with opening doors (empty stores)](https://sketchfab.com/3d-models/storefronts-with-opening-doors-empty-stores-151b488b26dd4ff4b15c4c03dc0711e6) | [Jungle Jim](https://sketchfab.com/jungle_jim) | CC BY 4.0 |
 | `v5shop`（掛衣架） | [Wardrobe Rack](https://sketchfab.com/3d-models/wardrobe-rack-6cf5500314b34485b88e72d9a53b4855) | [Khoa Nguyen](https://sketchfab.com/ngdkh) | CC BY 4.0 |
@@ -430,6 +426,14 @@ Sketchfab 的三個模型（原檔在 gitignore 的 `games/260-neon-nightcity/.c
 | `isle/whitehall.glb` | [Whitehall Building](https://sketchfab.com/3d-models/whitehall-building-d0db0e12b3484594a1c9eb35186b7c0f) | novusod | CC-BY-4.0 |
 | `isle/ferry.glb` | [Star Ferry](https://sketchfab.com/3d-models/star-ferry-7b0f363137e94d688db63da2b4e0b376) | chrisw225 | CC-BY-4.0 |
 
+## 海上鑽油平台的海獸（`beast/`）
+
+外海鑽油平台旁不定時浮出的海獸，經 `games/260-neon-nightcity/tools/beast-glb.mjs` 處理（攤平、轉成頭朝 +z、縮放到 60 m 高、依部位寫入頭／下顎／手／腳的骨頭權重 `_BONE`、貼圖縮成 2048 的 WebP）後放在 `beast/`，屬於原作的衍生作品，沿用原作授權。原作是作者自己設計的角色，與任何電影或遊戲的怪獸無關。
+
+| 檔案 | 模型 | 作者 | 授權 |
+| :-- | :-- | :-- | :-- |
+| `beast/turtle_kaiju.glb` | [Turtle Kaiju](https://sketchfab.com/3d-models/turtle-kaiju-f8fbbd4a2f05416288e4f7836ec61a11) | MightyPinecone（Mighty.Pinecone） | CC-BY-4.0 |
+
 ## 武器、警方載具與路障（第二階段）
 
 `tools/traffic.mjs` 把下表的直升機、戰車、路障、釘刺帶與交通錐烘進 `blender/out/traffic.glb`（直升機旋翼、尾槳與戰車砲塔拆成可轉動的部件），打包時內嵌。`tools/props.mjs` 把武器擺正（槍口朝 +z）、縮到真實長度、壓縮成 `props/arms.glb`，玩家第一次掏出武器或警察出動時才下載；以檔案開啟時用程式建模的武器替身。街道物件 `props/street.glb` 的消防栓換掉人行道的程式建模消防栓，電箱擺在人行道、加油機擺在遊艇碼頭岸上（只在 http(s) 下），加油機貼圖上的品牌字樣與貼紙模糊成色塊（`texEdit`）。原檔都不進 repo（`games/260-neon-nightcity/.cache/arms/`、`.cache/raw/`）。
@@ -440,7 +444,7 @@ Sketchfab 的三個模型（原檔在 gitignore 的 `games/260-neon-nightcity/.c
 | `traffic` `tank` | [Low Poly Abrams Free Model](https://sketchfab.com/3d-models/low-poly-abrams-free-model-ee925340fd0249bfac6f766c7eb81abd) | [Lasha-Georgy Bajadze](https://sketchfab.com/gsr19891) | CC BY 4.0 |
 | `traffic` `barricade` `cone` | [Barricade Set (low poly, game ready)](https://sketchfab.com/3d-models/barricade-set-low-poly-game-ready-209e7dc032de483cae12eb5c3e7f1bcf) | [TampaJoey](https://sketchfab.com/TampaJoey) | CC BY 4.0 |
 | `traffic` `spike` | [Spike Strip](https://sketchfab.com/3d-models/spike-strip-2c8370fccfbf4a7f9b9d9729112b8e61) | [ericzilic176](https://sketchfab.com/ericzilic176) | CC BY 4.0 |
-| `traffic` `gunship` | [AH-64 Apache Attack Helicopter Low Poly](https://sketchfab.com/3d-models/ah-64-apache-attack-helicopter-low-poly-34986214decd4b3db90e91f12e624d78) | [PolyDucky](https://sketchfab.com/salphytheunemployed) | CC BY 4.0 |
+| `traffic` `gunship` | [Boeing AH-64D Apache Combat Helicopter](https://sketchfab.com/3d-models/boeing-ah-64d-apache-combat-helicopter-c3b58008c46b45048fdd7dd283a3c8c8)（`tools/ah64-split.mjs` 拆出主旋翼與尾旋翼，兩片浮貼的貼花沒用） | Muhamad Mirza Arrafi | CC BY 4.0 |
 | `arms` `pistol` | [Heckler & Koch USP Pistol](https://sketchfab.com/3d-models/heckler-koch-usp-pistol-972e3643000246e8959a6df509557bcc) | [Urpo](https://sketchfab.com/Urpo) | CC BY 4.0 |
 | `arms` `smg` | [MAC-11](https://sketchfab.com/3d-models/mac-11-9f0dbab63c6c4ab2bee9b141ed58383e) | [SK3D](https://sketchfab.com/SplashKid) | CC BY 4.0 |
 | `arms` `rifle` | [M4A1 Sopmod Remaster](https://sketchfab.com/3d-models/m4a1-sopmod-remaster-c417b8a56e4447fe9d627000dd305f32) | [minghauLoh](https://sketchfab.com/minghau) | CC BY 4.0 |

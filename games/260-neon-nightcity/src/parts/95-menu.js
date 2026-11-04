@@ -10,7 +10,7 @@ const KEY_ACTS = [
   { k: 'KeyW', n: '前進／油門' }, { k: 'KeyS', n: '後退／煞車' }, { k: 'KeyA', n: '左移／左轉' }, { k: 'KeyD', n: '右移／右轉' },
   { k: 'ShiftLeft', n: '奔跑／氮氣' }, { k: 'Space', n: '手煞車／跳、翻越' }, { k: 'KeyF', n: '上車／下車、搶車' }, { k: 'KeyE', n: '互動' },
   { k: 'KeyR', n: '換彈匣' }, { k: 'KeyZ', n: '蹲下／站起' }, { k: 'Tab', n: '武器轉盤（按住）' }, { k: 'KeyQ', n: '角色轉盤（按住）' },
-  { k: 'KeyX', n: '特殊能力' }, { k: 'KeyG', n: '跳舞／引爆黏彈' }, { k: 'KeyV', n: '叫車' }, { k: 'KeyC', n: '切換鏡頭距離' },
+  { k: 'KeyX', n: '特殊能力' }, { k: 'KeyG', n: '跳舞／引爆黏彈' }, { k: 'KeyV', n: '叫車' }, { k: 'KeyC', n: '切換鏡頭距離／車內視角' },
   { k: 'KeyP', n: '手機' }, { k: 'KeyM', n: '全區地圖' }, { k: 'KeyB', n: 'Mk II 切換彈種' },
 ];
 const KEY_NO = /^(Escape|Enter|NumpadEnter|Backspace|Delete|CapsLock|Meta(Left|Right)|Digit\d|Numpad\w*|Arrow\w+|F\d+)$/;
@@ -90,6 +90,7 @@ const MENU = {
   game: [
     { n: '暫停', rows: () => [
       { n: '繼續遊戲', act: () => menuClose(), d: '回到雨夜。' },
+      { n: '峰頂觀景環', act: () => SUMMIT.open(), d: '電影場景：暮色裡的雪山群峰與雲海，最高峰上的環形觀景建築。45 秒循環的自動運鏡與配樂，城市在這段時間暫停。Esc 返回。' },
       { n: '快速存檔', act: menuSave, d: '存下主角、任務、彈藥、位置與正在開的車。通緝中、搶劫中或人在室內時不能存（安全屋請去床邊）。' },
       { n: '讀取快速存檔', act: menuLoad, off: !motors.game, val: motors.game ? new Date(motors.game.t).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '沒有存檔', d: '回到上次快速存檔的地方。現金與車庫本來就即時存著，不受影響。' },
     ] },
@@ -290,7 +291,7 @@ function menuLoad() {
 
 // ─── 開關 ───
 function menuOpen(tab) {
-  if (menu.on || !started) return;
+  if (menu.on || !started || SUMMIT.on) return;   // 97-summit.js 開著時不開選單（失焦、游標解鎖）
   if (arm.wheel.open) wheelClose(false);
   if (crew.wheel.open) crewWheelClose(false);
   for (const k in keys) keys[k] = false;

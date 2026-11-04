@@ -113,8 +113,8 @@ function vdUpdate(dt) {
   const f = vd.f;
   if (f) {
     if (player.mode !== 'drive' || player.veh !== f.v) vd.f = null;
-    else if (!keys.KeyF) { vd.f = null; exitVehicle(); }
-    else if ((f.t += dt) >= VD_HOLD_T) { vd.f = null; exitVehicle(false, true); toast('下車 · 引擎沒熄（按住 F 下車）'); }
+    else if (!keys.KeyF) { vd.f = null; doorExit(); }   // 68-xdoor.js：有門的實車先開門再站出去
+    else if ((f.t += dt) >= VD_HOLD_T) { vd.f = null; if (carDoors(f.v)) doorExit(true); else { exitVehicle(false, true); toast('下車 · 引擎沒熄（按住 F 下車）'); } }
   }
   // 沒熄火的車：排氣管冒白煙，走遠、進室內、上別台車、車壞了就熄掉
   const iv = vd.idle;

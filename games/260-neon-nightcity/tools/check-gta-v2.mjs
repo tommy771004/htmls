@@ -290,7 +290,7 @@ try {
     out.inHeli = N.player.veh === heli; out.mark2 = H.mark()?.name;
     const g0 = heli.y; N.keys.Space = true; step(200); N.keys.Space = false;
     out.climb = +(heli.y - g0).toFixed(1);
-    out.touchFly = document.querySelector('#tbtn button[data-k="Space"]').textContent;
+    out.touchFly = document.querySelector('#tbtn button[data-k="Space"]').getAttribute('aria-label');
     N.keys.KeyW = true; step(120); N.keys.KeyW = false;
     out.speed = +Math.hypot(heli.vx, heli.vz).toFixed(1); out.pitch = +heli.pitch.toFixed(3);
     // 半空按 F 不能下機
@@ -318,7 +318,7 @@ try {
     out.after = { enf: N.vehicles.includes(car), heli: heistHelis() };
     // 再搶一次：停機坪換一架新的，不會疊兩架
     h.how = 'loud'; h.enfReady = true; const car2 = H.getawayCar(), h2 = H.heli();
-    out.again = { heli: heistHelis(), pad: Math.hypot(h2.x - S.HELIPAD.x, h2.z - S.HELIPAD.z) < 1, touch: document.querySelector('#tbtn button[data-k="Space"]').textContent };
+    out.again = { heli: heistHelis(), pad: Math.hypot(h2.x - S.HELIPAD.x, h2.z - S.HELIPAD.z) < 1, touch: document.querySelector('#tbtn button[data-k="Space"]').getAttribute('aria-label') };
     S.drop(h2); N.vehicles.splice(N.vehicles.indexOf(car2), 1); car2.g.removeFromParent(); h.car = null;
     return out;
   });

@@ -42,7 +42,20 @@ function storyTruck(a, near, dest) {
   const v = buildVeh('shvan', sp.x, sp.z, sp.yaw, 0, Math.random(), TRUCK_PAL, 'cash');
   v.name = TRUCK_NAME; v.hp = 2600; v.mass = 3800; v.vmax = 22; v.eng = 7.5; v.y = spawnY(v.x, v.z);
   const tk = ev.truck = { v, route: null, k: 1, state: 'drive', t: 0, stuck: 0, rev: 0, cash: 0, story: 1, dest, spd: dest ? .8 : 1 };
-  truckRoute(tk); poseVehicle(v);
+  truckRoute(tk);
+  // 車頭朝路線：rnLaneSpot 照 (x, z) 在路的哪一側挑車道，路線的第一段在背後時運鈔車要原地迴轉，常衝出路面在路邊前進倒車打轉
+  // （冠石金融區那個路口卡在 (353, −205)，2-2 跟車時被車流撞到就算起疑）。這時換到同一條路的對向車道（對路中心線鏡射）重排路線，還是在背後才放回原位
+  const ahead = () => { const p = tk.route && tk.route.find(q => Math.hypot(q[0] - v.x, q[1] - v.z) > 12); return p ? Math.cos(Math.atan2(p[0] - v.x, p[1] - v.z) - v.yaw) : 1; };
+  if (ahead() < 0) {
+    const c = rnProject(v.x, v.z), o = [v.x, v.z, v.yaw];
+    if (c) {
+      const s2 = rnLaneSpot(2 * c.x - v.x, 2 * c.z - v.z, 6);
+      v.x = s2.x; v.z = s2.z; v.yaw = s2.yaw; truckRoute(tk);
+      if (ahead() < 0) { [v.x, v.z, v.yaw] = o; truckRoute(tk); }
+      v.y = spawnY(v.x, v.z);
+    }
+  }
+  poseVehicle(v);
   a.truck = tk; a.truckHp0 = v.hp;
   return tk;
 }
@@ -101,9 +114,9 @@ function storyBoatStep(v, dt, stop) {
 }
 
 // ─── 步驟 ───
-// 跟車：太近會起疑（22 m 內越近漲越快），撞到運鈔車直接被發現；離開 140 m 超過 12 秒就跟丟；運鈔車開到目的地停下就完成
+// 跟車：太近會起疑（22 m 內越近漲越快），撞到或打到運鈔車（掉 40 以上）直接被發現；離開 140 m 超過 12 秒就跟丟；運鈔車開到目的地停下就完成
 STEP.tail = {
-  start: (a, s, c) => { c.sus = 0; c.lost = 0; a.susMax = 0; },
+  start: (a, s, c) => { c.sus = 0; c.lost = 0; a.susMax = 0; c.t0 = uTimeNow(); },
   step: (a, s, c, dt) => {
     const tk = a.truck;
     if (!tk || tk.v.dead || tk.state === 'open') { storyFail(a, '運鈔車出事了'); return false; }
@@ -111,7 +124,7 @@ STEP.tail = {
     const d = Math.hypot(tk.v.x - pX(), tk.v.z - pZ());
     if (d < 22) c.sus += dt * (22 - d) / 22 * .3 * (player.mode === 'drive' ? 1 : 1.6);
     else c.sus = Math.max(0, c.sus - dt * .04);
-    if (tk.v.hp < a.truckHp0 - 40) c.sus = 1;
+    if (tk.v.hp < a.truckHp0 - 40 && tk.v.byP >= c.t0) c.sus = 1;   // 只算玩家打的、撞的（68-gta.js 的 damageVeh 記 byP）；運鈔車自己撞到車流或路邊不算
     a.susMax = Math.max(a.susMax, c.sus);
     if (c.sus >= 1) { storyFail(a, '運鈔車的司機起疑了'); return false; }
     if (d > 140) { c.lost += dt; if (c.lost > 12) { storyFail(a, '跟丟了'); return false; } } else c.lost = 0;

@@ -147,35 +147,79 @@ function leapStreet(L) {
 }
 // 頂層公寓的陽台：樓板從外牆伸出 2 m、三面玻璃欄杆，盆栽靠牆（從前面的欄杆上跳出去）
 function finBalcony(L) {
-  const k = new Kit();
-  k.box(0, -.12, 0, 3.6, .24, 2, 0xb9b3a8, 2);                                   // 樓板（混凝土）
-  k.box(0, -.3, 0, 3.4, .12, 1.8, 0x2a2c2e, 2);                                  // 樓板下緣的陰影線
-  for (const [x, z, sx, sz] of [[0, .95, 3.6, .04], [1.78, 0, .04, 1.9], [-1.78, 0, .04, 1.9]]) {
-    k.box(x, .52, z, sx, 1, sz, 0x9fb8c0, 1);                                      // 玻璃欄杆
-    k.box(x, 1.05, z, sx + .04, .06, sz + .04, 0x6e7276, 3);                       // 不鏽鋼扶手
+  const k = new Kit(), SS = 0xb8bcc0, H = .02;
+  k.rbox(0, -.12, 0, 3.6, .24, 2, .03, 0xb9b3a8, TX.conc);                       // 樓板（混凝土，邊角倒圓）
+  k.box(0, -.25, .92, 3.5, .03, .02, 0x2a2c2e, 2);                                    // 滴水線
+  k.box(0, -.245, -.05, 3.3, .01, 1.7, 0x8c877e, 41);                         // 樓板底（粉光）
+  k.box(0, H / 2, -.02, 3.5, H, 1.86, 0x7a5a40, TX.woodX);                            // 木地板
+  for (let i = 0; i < 18; i++) k.box(0, H + .001, -.93 + i * .108, 3.5, .002, .006, 0x2e2218, 2);   // 地板縫
+  const rail = (ax, az, bx, bz) => {   // 一段玻璃欄杆：底槽、分格玻璃、立柱、扶手
+    const len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / .9)), ry = Math.atan2(bx - ax, bz - az);
+    k.bar(ax, .05, az, bx, .05, bz, .07, .1, 0x5a5e62, TX.enamel);                   // 鋁底槽
+    for (let i = 0; i < n; i++) {
+      const t0 = i / n, t1 = (i + 1) / n, tm = (t0 + t1) / 2;
+      k.box(ax + (bx - ax) * tm, .55, az + (bz - az) * tm, .012, .9, len / n - .03, 0x9fb8c0, 1, 0, ry, 0);   // 強化玻璃
+    }
+    for (let i = 0; i <= n; i++) { const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t; k.rod(x, .1, z, x, 1.04, z, .022, 8, SS, TX.steel); }   // 不鏽鋼立柱
+    k.rod(ax, 1.06, az, bx, 1.06, bz, .026, 10, SS, TX.steel);                         // 圓管扶手
+  };
+  rail(-1.76, .93, 1.76, .93); rail(1.76, -.98, 1.76, .93); rail(-1.76, -.98, -1.76, .93);
+  // 盆栽：粉體塗裝花槽、土、幾團灌木
+  k.rbox(-1.1, .36, -.55, .62, .72, .62, .04, 0x33363a, TX.enamel).box(-1.1, .7, -.55, .54, .04, .54, 0x3a2c22, TX.rubber);
+  for (const [dx, dy, dz, r] of [[0, 1.05, 0, .36], [.18, .92, .14, .24], [-.2, .9, -.1, .26], [.06, 1.28, -.08, .22]]) k.lathe(-1.1 + dx, dy - r, -.55 + dz, [[0, 0], [r * .7, r * .3], [r, r], [r * .7, r * 1.7], [0, r * 2]], 7, 0x3d5a34, 2);
+  // 小圓桌與兩張椅子
+  k.cyl(.7, .72, -.45, .3, .3, .03, 16, 0xe8e4dc, 40).rod(.7, .02, -.45, .7, .72, -.45, .025, 8, 0x2a2c2e, TX.enamel).cyl(.7, .015, -.45, .18, .2, .03, 14, 0x2a2c2e, TX.enamel);
+  for (const sx of [-1, 1]) {
+    const cx = .7 + sx * .55, cz = -.45;
+    k.rbox(cx, .45, cz, .42, .04, .42, .03, 0x2a2c2e, TX.enamel).rbox(cx + sx * .2, .7, cz, .04, .46, .42, .03, 0x2a2c2e, TX.enamel);
+    for (const [ex, ez] of [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]]) k.rod(cx + ex, 0, cz + ez, cx + ex * .9, .44, cz + ez * .9, .014, 6, 0x2a2c2e, TX.enamel);
   }
-  k.box(-1.1, .45, -.55, .6, .9, .6, 0x2f3a2c, 2).box(-1.1, 1.1, -.55, .9, .5, .9, 0x3d5a34, 2);   // 盆栽
-  const m = new T.Mesh(k.build(), MAT.uber);
+  k.rbox(0, 1.9, -.98, .16, .16, .06, .02, 0x2a2c2e, TX.enamel).box(0, 1.84, -.94, .1, .03, .02, 0xffd9a0, 11);   // 壁燈
+  const m = new T.Mesh(k.build(), MAT.ux);
   m.position.set(L.ex, L.yb, L.ez); m.rotation.y = Math.atan2(-L.ix, -L.iz); scene.add(m);
   return m;
 }
 function finPool(L) {
-  const k = new Kit(), STONE = 0xcfc8b8, DECK = 0x6b5848, W = POOL_WY;
-  k.box(0, .06, 0, 10.6, .12, 8.4, DECK, 2);                                   // 木棧板平台
-  k.box(0, (W - .06) / 2, 0, 8.6, W - .06, 6.4, STONE, TX.tile);                // 池子外壁（石材，凸出屋頂）；頂面比水面低，不和水面搶同一個平面
-  k.box(0, W - .03, 0, 7.4, .02, 5.2, 0x08303d, 11);                            // 水面：入夜被池底燈照成暗青色（不是整片亮青）
-  for (const [x, z, sx, sz] of [[0, 2.9, 8.8, .64], [0, -2.9, 8.8, .64], [4, 0, .64, 5.2], [-4, 0, .64, 5.2]]) k.box(x, W + .03, z, sx, .14, sz, 0xe8e2d4, 2);   // 池緣壓頂（蓋住水面到外壁之間）
+  const k = new Kit(), STONE = 0xcfc8b8, DECK = 0x6b5848, W = POOL_WY, SS = 0xb8bcc0;
+  k.box(0, .02, 0, 10.6, .04, 8.4, 0x3a3836, TX.conc);                            // 棧板底下的墊層
+  for (let i = 0; i < 56; i++) k.box(0, .09, -4.15 + i * .15, 10.5, .06, .13, i % 7 ? DECK : 0x5e4c3e, TX.woodX);   // 木棧板一片一片（留縫）
+  k.box(0, .07, 4.2, 10.6, .1, .03, 0x4a3c30, TX.woodX).box(0, .07, -4.2, 10.6, .1, .03, 0x4a3c30, TX.woodX);       // 收邊板
+  k.box(5.3, .07, 0, .03, .1, 8.4, 0x4a3c30, TX.woodZ).box(-5.3, .07, 0, .03, .1, 8.4, 0x4a3c30, TX.woodZ);
+  k.box(0, (W - .06) / 2, 0, 8.6, W - .06, 6.4, STONE, TX.tile);                      // 池子外壁（石材，凸出屋頂）；頂面比水面低，不和水面搶同一個平面
+  k.box(0, W - .03, 0, 7.4, .02, 5.2, 0x08303d, 11);                                  // 水面：入夜被池底燈照成暗青色（不是整片亮青）
+  for (const [x, z, sx, sz] of [[0, 2.9, 8.8, .64], [0, -2.9, 8.8, .64], [4, 0, .64, 5.2], [-4, 0, .64, 5.2]]) {   // 池緣壓頂：大理石，內緣圓邊、外緣一道陰影縫
+    k.rbox(x, W + .03, z, sx, .14, sz, .04, 0xe8e2d4, 40, 0, 0, 0, .03);
+    k.box(x, W - .045, z, sx - .04, .015, sz - .04, 0x5a5650, 2);
+  }
+  for (let i = 0; i < 11; i++) k.box(-4 + i * .8, W + .101, 2.9, .006, .002, .64, 0xa8a296, 2).box(-4 + i * .8, W + .101, -2.9, .006, .002, .64, 0xa8a296, 2);   // 壓頂石縫
   // 水下燈從水面透出來的光斑：沿著長邊的池壁一排，由外往內一層比一層亮
   for (const x of [-2.4, 0, 2.4]) for (const z of [-2.2, 2.2]) {
     const zi = z * .97;
     k.box(x, W - .016, zi, 1.2, .004, .7, 0x0c4352, 11).box(x, W - .01, zi, .8, .004, .46, 0x13606f, 11).box(x, W - .004, z * 1.04, .4, .004, .2, 0x2a8c9c, 11);
   }
-  for (const sx of [-1, 1]) {   // 兩張躺椅（棧板上、池子後面）
-    k.box(sx * 1.6, .32, 3.75, .7, .1, 1.5, 0xf2efe8, 10).box(sx * 1.6, .55, 4.4, .7, .46, .08, 0xf2efe8, 10, -.5);
-    for (const dz of [-.6, .6]) k.box(sx * 1.6, .18, 3.75 + dz, .62, .14, .05, 0x3a3836, 15);
+  // 不鏽鋼爬梯（池子東端）與溢水口
+  for (const dz of [-.28, .28]) k.rod(3.62, W - .4, dz, 3.62, W + .55, dz, .022, 8, SS, TX.steel).rod(3.62, W + .55, dz, 3.86, W + .55, dz, .022, 8, SS, TX.steel).rod(3.86, W + .55, dz, 3.86, W + .1, dz, .022, 8, SS, TX.steel);
+  k.box(-3.7, W + .005, 2.55, .3, .01, .12, 0x2a2c2e, 2).box(-3.7, W + .005, -2.55, .3, .01, .12, 0x2a2c2e, 2);
+  for (const sx of [-1, 1]) {   // 兩張躺椅（棧板上、池子後面）：鋁框、厚坐墊、靠背墊、毛巾
+    const cx = sx * 1.6, z0 = 3.75;
+    for (const ex of [-.3, .3]) {
+      k.rod(cx + ex, .32, z0 - .78, cx + ex, .32, z0 + .4, .02, 8, 0x3a3836, TX.enamel).rod(cx + ex, .32, z0 + .4, cx + ex, .82, z0 + .82, .02, 8, 0x3a3836, TX.enamel);
+      for (const dz of [-.7, .3]) k.rod(cx + ex, .12, z0 + dz, cx + ex, .32, z0 + dz, .018, 6, 0x3a3836, TX.enamel);
+    }
+    k.rbox(cx, .37, z0 - .18, .64, .1, 1.18, .04, 0xf2efe8, TX.rubber, 0, 0, 0, .03);
+    k.rbox(cx, .6, z0 + .6, .64, .08, .56, .04, 0xf2efe8, TX.rubber, -.88, 0, 0, .03);
+    k.box(cx + .05, .43, z0 - .35, .5, .02, .38, sx > 0 ? 0x2f6f8a : 0xc8a050, 2);
   }
-  for (const [x, z] of [[-5, -4], [5, -4], [-5, 4], [5, 4]]) k.box(x, .5, z, .1, .76, .1, 0x2a2c2e, 15).box(x, .92, z, .18, .1, .18, 0xffd9a0, 11);   // 棧板四角的矮燈
-  const m = new T.Mesh(k.build(), MAT.uber); m.position.set(L.bx, L.by, L.bz); m.rotation.y = L.yaw; scene.add(m);
+  k.cyl(0, .5, 3.85, .22, .22, .03, 16, 0xe8e4dc, 40).rod(0, .1, 3.85, 0, .5, 3.85, .02, 8, 0x3a3836, TX.enamel);   // 兩椅中間的小邊几
+  k.cyl(0, .54, 3.85, .03, .035, .1, 8, 0x8ab070, 1);   // 邊几上的酒杯
+  // 遮陽傘（收起）
+  k.cyl(-3.4, .12, 3.6, .25, .28, .1, 14, 0x3a3836, TX.enamel).rod(-3.4, .15, 3.6, -3.4, 2.4, 3.6, .025, 8, SS, TX.steel);
+  k.lathe(-3.4, 1.15, 3.6, [[.04, 0], [.16, .3], [.19, .8], [.12, 1.15], [.03, 1.25]], 8, 0xe8e0cc, 2);
+  for (const [x, z] of [[-5, -4], [5, -4], [-5, 4], [5, 4]]) {   // 棧板四角的矮燈柱：方管、燈罩、暖光
+    k.rbox(x, .45, z, .14, .74, .14, .02, 0x2a2c2e, TX.enamel).box(x, .82, z, .16, .02, .16, 0x2a2c2e, TX.enamel);
+    for (const [dx, dz] of [[.072, 0], [-.072, 0], [0, .072], [0, -.072]]) k.box(x + dx, .7, z + dz, dx ? .004 : .1, .18, dz ? .004 : .1, 0xffd9a0, 11);
+  }
+  const m = new T.Mesh(k.build(), MAT.ux); m.position.set(L.bx, L.by, L.bz); m.rotation.y = L.yaw; scene.add(m);
   return m;
 }
 function poolSplash(x, y, z, k = 1) {
@@ -492,14 +536,36 @@ storyCleanups.push(a => { if (!a.jet) return; a.jet.g.removeFromParent(); for (c
 // ─── F-4B 直播 ───
 const UP_T = 180;   // 上傳要 3 分鐘
 function rigMesh(p) {
-  const k = new Kit();
-  k.box(0, .3, 0, .9, .6, .55, 0x1c1e22, 2).box(0, .62, 0, .92, .04, .57, 0x3a3c40, 2);   // 器材箱
-  k.box(0, .82, -.12, .62, .36, .03, 0x0e1014, 2, -.3).box(0, .82, -.105, .56, .3, .01, 0x9fd8ff, 16, -.3);   // 筆電螢幕
-  for (let i = 0; i < 3; i++) { const t = i / 3 * Math.PI * 2; k.box(1.2 + Math.sin(t) * .35, .75, Math.cos(t) * .35, .04, 1.55, .04, 0x2a2c2e, 2, Math.cos(t) * .22, 0, -Math.sin(t) * .22); }   // 腳架
-  k.box(1.2, 1.55, 0, .28, .2, .34, 0x16181a, 2).box(1.2, 1.55, .2, .14, .14, .08, 0x2a3440, 2);   // 攝影機
-  k.cyl(-.9, .95, 0, .03, .03, 1.9, 6, 0x8a8c90, 2).cyl(-.9, 1.95, 0, .42, .06, .14, 16, 0xd8d8d4, 2, .5);   // 衛星天線
+  const k = new Kit(), BLK = 0x1c1e22, AL = 0x9a9ea2;
+  // 器材箱：圓角、鋁邊條、扣鎖、提把
+  k.rbox(0, .3, 0, .9, .6, .55, .04, BLK, TX.rubber, 0, 0, 0, .02);
+  for (const y of [.03, .6]) for (const z of [-.275, .275]) k.box(0, y, z, .92, .03, .02, AL, TX.steel);
+  for (const x of [-.25, .25]) k.box(x, .52, .285, .07, .06, .02, AL, TX.steel);
+  k.rod(-.15, .64, 0, .15, .64, 0, .015, 6, BLK, TX.rubber);
+  // 筆電：機身、鍵盤區、螢幕框與畫面
+  k.rbox(0, .615, .02, .42, .02, .3, .01, 0x3a3c40, TX.steel).box(0, .627, .04, .36, .002, .14, 0x16181a, 2);
+  k.rbox(0, .78, -.13, .42, .3, .015, .01, 0x3a3c40, TX.steel, -.3).box(0, .78, -.12, .38, .26, .004, 0x9fd8ff, 16, -.3);
+  // 三腳架：三支伸縮腳（上粗下細）、中柱、雲台
+  for (let i = 0; i < 3; i++) {
+    const t = i / 3 * Math.PI * 2, fx = 1.2 + Math.sin(t) * .48, fz = Math.cos(t) * .48;
+    k.rod(fx, 0, fz, 1.2, 1.3, 0, .012, 6, 0x2a2c2e, TX.enamel, .02).box(fx, .015, fz, .05, .03, .05, BLK, TX.rubber);
+    k.rod((fx + 1.2) / 2, .65, fz / 2, 1.2, .9, 0, .008, 6, 0x2a2c2e, TX.enamel);
+  }
+  k.rod(1.2, .9, 0, 1.2, 1.42, 0, .018, 8, 0x3a3c40, TX.steel).cyl(1.2, 1.44, 0, .05, .05, .04, 10, BLK, TX.rubber);
+  // 攝影機：機身、鏡頭筒、遮光罩、觀景窗、麥克風
+  k.rbox(1.2, 1.56, 0, .2, .2, .36, .03, 0x16181a, TX.rubber, 0, 0, 0, .015);
+  k.cyl(1.2, 1.56, .25, .055, .055, .16, 14, BLK, TX.rubber, Math.PI / 2).cyl(1.2, 1.56, .35, .075, .06, .05, 14, BLK, TX.rubber, Math.PI / 2);
+  k.cyl(1.2, 1.56, .376, .05, .05, .004, 14, 0x2a3440, 3, Math.PI / 2);
+  k.rbox(1.12, 1.62, -.2, .06, .06, .1, .01, BLK, TX.rubber).rod(1.25, 1.68, -.05, 1.25, 1.68, .2, .015, 8, 0x3a3c40, TX.rubber);
+  k.box(1.2, 1.67, .1, .04, .02, .04, 0xff3a2a, 9);   // 攝影機上的紅燈
+  // 衛星天線：三腳底座、桿、拋物面、饋源臂與 LNB
+  for (let i = 0; i < 3; i++) { const t = i / 3 * Math.PI * 2 + .5; k.rod(-.9 + Math.sin(t) * .3, 0, Math.cos(t) * .3, -.9, .5, 0, .012, 6, 0x6a6c70, TX.galv); }
+  k.rod(-.9, 0, 0, -.9, 1.85, 0, .028, 8, 0x8a8c90, TX.galv);
+  k.lathe(-.9, 1.95, .02, [[0, 0], [.15, .012], [.3, .05], [.42, .11], [.43, .12]], 18, 0xd8d8d4, TX.enamel, -1.1);
+  k.rod(-.9, 1.96, .05, -.9, 2.08, .48, .01, 6, 0x8a8c90, TX.galv).cyl(-.9, 2.09, .5, .03, .02, .08, 8, 0x2a2c2e, TX.enamel, -1.1);
+  k.rod(-.5, .1, 0, -.12, .3, 0, .008, 5, 0x111111, TX.rubber).rod(.45, .2, .1, 1.17, 1.4, 0, .008, 5, 0x111111, TX.rubber);   // 纜線
   k.box(.32, .66, .2, .08, .06, .08, 0xff3a2a, 9);   // 直播中的紅燈
-  const m = new T.Mesh(k.build(), MAT.uber); m.position.set(p.x, p.y, p.z); m.rotation.y = p.yaw; scene.add(m);
+  const m = new T.Mesh(k.build(), MAT.ux); m.position.set(p.x, p.y, p.z); m.rotation.y = p.yaw; scene.add(m);
   return m;
 }
 STEP.lift = {

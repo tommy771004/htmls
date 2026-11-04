@@ -131,9 +131,12 @@ function streetUp(v) {
   return p.then(tpl => {
     if (!tpl || !v.ins || !vehicles.includes(v)) return false;
     const palI = v.palI = v.ins.array[2];   // 69-phone.js 的快速存檔照這個記塗裝
-    v.body.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); v.body.clear(); v.ins = null;
+    v.body.traverse(o => { if (o.isMesh) { o.geometry.dispose(); if (o.material === v.mat) o.material.dispose(); } }); v.body.clear(); v.ins = null;   // 只丟自己的材質（搶案偽裝條用共用的 MAT.uber）
     v.mat = mkUber(); v.mat.uniforms.uM.value.set(0, 0, 1, 0);
+    // skin（任務的裝甲車）：只換外觀，任務設的名字、耐久、極速、質量照舊（applyCar 會換成車行目錄與級距表的）
+    const keep = TYPES[v.type].skin && Object.fromEntries(['name', 'vmax', 'eng', 'grip', 'mass', 'turn', 'hbGrip', 'hp', 'hpMax', 'hpLock', 'cls'].map(k => [k, v[k]]));
     applyCar(v, v.type, CARS[v.type].paintable && palI ? PAL_HEX[palI - 1] : undefined);
+    if (keep) Object.assign(v, keep);
     poseVehicle(v);
     return true;
   });
@@ -175,7 +178,7 @@ function detachCar(c) {
 // 模型一台一兩 MB：玩家走到 STREET_BIKE_R 內才建（streetBikes，gtaUpdate 每幀呼叫；建好前那格是空的），建了就不收
 const STREET_BIKE_R = 60;
 const STREET_BIKES = [['hd72', HOME_SPOT], ['hdpol', PD], ['r6', { x: CLUB_X, z: CLUB_Z }], ['z1000', DEAL_SPOT]].map(([id, at]) => {
-  const p = spotW(at), c = parked.filter(q => SEDANS.includes(q.type) || TYPES[q.type].street).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+  const p = spotW(at), c = parked.filter(q => SEDANS.includes(q.type) || TYPES[q.type].street && !TYPES[q.type].skin).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
   if (!c) return null;
   unlinkCar(c);
   return { id, x: c.x, z: c.z, y: c.y || 0, yaw: c.yaw, v: null };
@@ -430,7 +433,7 @@ function gtaPre(dt) {
   crewPre();
   talePre();
   storyPre();   // 69-w0-story.js：主線的字幕與字卡
-  if (gta.jack || player.down > 0 || life.dead || HACK.on) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }   // HACK：69-heist2.js 的金庫破譯（WASD 用來調波形）
+  if (gta.jack || player.down > 0 || life.dead || HACK.on || DOOR.seq && DOOR.seq.lock) { inp.mx = inp.mz = 0; inp.run = false; inp.thr = inp.brk = inp.steer = 0; }   // HACK：69-heist2.js 的金庫破譯（WASD 用來調波形）
 }
 function gtaUpdate(dt) {
   const out = player.where === 'out';
@@ -477,6 +480,7 @@ function gtaUpdate(dt) {
     // 出拳、揮砍、丟擲（69-combat.js 設定 actAnim 與起始相位）
     me.anim(0, gta.actAnim || ANIM.jab, gta.punchPh, 1); me.anim2(0, 0, 0);
   }
+  doorStep(dt); doorTick(dt);   // 68-xdoor.js：開門上下車的過場（蓋掉上面擺的姿勢）、轉門、展示車走近開門
   // 瞄準的俯仰：和相機一樣（40-people.js 的 gunPose 照它擺槍，槍口才會對著準星）
   me.people[0].aimP = gta.aimK > .05 ? Math.asin(clamp(camera.getWorldDirection(_gv).y, -1, 1)) : null;
   me.people[0].aimK = gta.guard ? 1 : gta.aimK;

@@ -3,7 +3,7 @@
 export default {
 "{}": {
   h: "exherfwol", fog: true, lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
-  uniforms: [{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFacN","type":"sampler2DArray","src":"uFacN"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
+  uniforms: [{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFacN","type":"sampler2DArray","src":"uFacN"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAHMap","type":"sampler2D","src":"uAHMap"},{"name":"uAHM","type":"vec4","src":"uAHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
   varyings: [{"name":"vW","type":"vec3","src":"vW"},{"name":"vN","type":"vec3","src":"vN"},{"name":"vUv","type":"vec2","src":"vUv"},{"name":"vB","type":"vec4","src":"vB"},{"name":"vB2","type":"vec4","src":"vB2"}],
   attributes: [{"name":"aB","type":"vec4","src":"aB"},{"name":"aB2","type":"vec4","src":"aB2"}],
   vertex: (TSL, E) => {
@@ -181,7 +181,25 @@ export default {
     			const prod = pal.mul( add( .7, mul( .4, r2 ) ) ).toVar();
     			const top = add( .3, mul( .5, r3 ) ).toVar();
     			prod.assign( mix( prod, vec3( .86, .84, .8 ), step( abs( fy.sub( .16 ).sub( top.mul( .5 ) ) ), .025 ).mul( step( .55, r2 ) ) ) );
-    			const sc = mix( vec3( .26, .25, .24 ), prod, step( .12, fy ).mul( step( fy, top.add( .12 ) ) ).mul( step( .07, fx ) ).mul( step( fx, .95 ) ) ).toVar();
+    			// 去玩具感（2026-11-02）：原本每格都是一個彩色方塊。每層貨架挑一種包裝：盒裝（左緣暗一點、看得出厚度）、瓶裝（瓶身、瓶頸、瓶蓋、標籤、圓柱明暗與一道反光）、
+    			// 罐裝與瓶罐（矮、上下緣、標籤帶、圓柱明暗）
+    			const typ = h21( vec2( row, hs.mul( 5.1 ).add( 1.3 ) ) ).toVar();
+    			const inY = step( .12, fy ).mul( step( fy, top.add( .12 ) ) ).toVar();
+    			const neck = step( add( .12, top.mul( .68 ) ), fy ).toVar();
+    			const mBox = inY.mul( step( .07, fx ) ).mul( step( fx, .95 ) );
+    			const mBot = inY.mul( mix( step( .2, fx ).mul( step( fx, .8 ) ), step( .41, fx ).mul( step( fx, .59 ) ), neck ) );
+    			const cTop = add( .12, top.mul( .55 ) ).toVar();
+    			const mCan = step( .12, fy ).mul( step( fy, cTop ) ).mul( step( .12, fx ) ).mul( step( fx, .88 ) );
+    			const isBox = step( typ, .4 ).toVar(), isBot = step( .4, typ ).mul( step( typ, .72 ) ).toVar(), isCan = step( .72, typ ).toVar();
+    			const pm = mBox.mul( isBox ).add( mBot.mul( isBot ) ).add( mCan.mul( isCan ) ).toVar();
+    			const cyl = sub( 1., mul( .55, pow( abs( fx.sub( .5 ) ).mul( 2. ), 2. ) ) ).add( mul( .3, smoothstep( .07, 0., abs( fx.sub( .37 ) ) ) ) ).toVar();
+    			const boxSh = mix( .72, 1., smoothstep( .07, .2, fx ) ).mul( mix( 1., .82, smoothstep( .8, .95, fx ) ) ).toVar();
+    			const lbl = step( abs( fy.sub( add( .12, top.mul( .32 ) ) ) ), top.mul( .14 ) ).mul( isBot ).add( step( abs( fy.sub( add( .12, top.mul( .27 ) ) ) ), top.mul( .12 ) ).mul( isCan ) ).toVar();
+    			prod.assign( mix( prod, vec3( .82, .8, .74 ).mul( add( .8, mul( .3, r3 ) ) ), lbl.mul( step( .35, r2 ) ) ) );
+    			prod.assign( mix( prod, mix( vec3( .1 ), vec3( .62, .5, .25 ), step( .5, r3 ) ), isBot.mul( step( add( .12, top.mul( .9 ) ), fy ) ) ) );   // 瓶蓋
+    			prod.assign( mix( prod, prod.mul( .55 ), isCan.mul( step( abs( fy.sub( .13 ) ), .008 ).add( step( abs( fy.sub( cTop.sub( .01 ) ) ), .008 ) ) ) ) );   // 罐子的上下緣
+    			prod.mulAssign( mix( boxSh, cyl, isBot.add( isCan ) ) );
+    			const sc = mix( vec3( .26, .25, .24 ), prod, pm ).toVar();
     			sc.assign( mix( sc, vec3( .8, .8, .78 ), step( fy, .045 ) ) );
     			sc.mulAssign( mix( 1., .55, smoothstep( .7, 1., fy ) ) );
     			c.assign( mix( c, sc, step( .3, bw.y ).mul( step( bw.y, 2.1 ) ) ) );
@@ -254,14 +272,65 @@ export default {
 
     	} );
 
-    	const px = fract( hs.mul( 31. ) ).mul( dim.x ).mul( .7 ).add( dim.x.mul( .15 ) ).toVar(), pz = dim.z.mul( add( .35, mul( .4, fract( hs.mul( 11. ) ) ) ) ).toVar();
+    	// 店裡的人（2026-11-02 去玩具感）：頭、脖子、斜肩的軀幹、兩臂與手、有縫的兩腿與鞋用 SDF 組起來，邊緣照像素寬度柔化（原本是 step 切的方塊＋圓）。
+    	// 三種姿勢（hs×71：正面、側身、低頭滑手機），膚色、髮色與長髮、上衣與短袖、褲子、鞋各取一個雜湊；天花板的燈從上面打，身體兩側暗、輪廓一道逆光。
+    	// 人在店裡左右晃一點（4 cm）。出現率（65%）與被櫃架遮住的判斷（tp < t）照舊
+    	const px = fract( hs.mul( 31. ) ).mul( dim.x ).mul( .7 ).add( dim.x.mul( .15 ) ).add( sin( uTime.mul( .35 ).add( hs.mul( 19. ) ) ).mul( .04 ) ).toVar(), pz = dim.z.mul( add( .35, mul( .4, fract( hs.mul( 11. ) ) ) ) ).toVar();
     	const tp = pz.sub( o.z ).div( max( vd.z, 1e-3 ) ).toVar();
     	const pp = o.add( vd.mul( tp ) ).toVar();
-    	const dx = abs( pp.x.sub( px ) ).toVar(), py = pp.y.toVar();
-    	const body = step( length( vec2( dx, py.sub( 1.6 ).mul( .85 ) ) ), .1 ).add( step( py, 1.47 ).mul( step( .92, py ) ).mul( step( dx, mix( .15, .22, smoothstep( .92, 1.4, py ) ) ) ) ).add( step( py, .95 ).mul( step( dx, .15 ) ).mul( step( .025, dx ) ) ).add( step( py, 1.5 ).mul( step( 1.4, py ) ).mul( step( dx, .05 ) ) ).toVar();
-    	const person = clamp( body, 0., 1. ).mul( step( tp, t ) ).mul( step( .35, fract( hs.mul( 23. ) ) ) ).toVar();
+    	const sx = pp.x.sub( px ).toVar(), py = pp.y.toVar(), ax = abs( sx ).toVar();
+    	const pose = fract( hs.mul( 71. ) ).toVar();
+    	const side = step( .45, pose ).mul( step( pose, .75 ) ).toVar(), phone = step( .75, pose ).toVar();
+    	const seg = ( p, a, b, ra, rb ) => {
+    		const pa = p.sub( a ), ba = b.sub( a );
+    		const h = clamp( dot( pa, ba ).div( dot( ba, ba ) ), 0., 1. );
+    		return length( pa.sub( ba.mul( h ) ) ).sub( mix( ra, rb, h ) );
+    	};
+    	const ell = ( p, cc, r ) => length( p.sub( cc ).div( r ) ).sub( 1. ).mul( min( r.x, r.y ) );
+    	const wk = mix( 1., .6, side ).toVar();   // 側身：肩寬、臀寬變窄
+    	const hc = sub( 1.6, mul( .02, phone ) ).toVar();   // 滑手機的人頭低一點
+    	const dHead = ell( vec2( sx.sub( mul( .025, side ) ), py ), vec2( 0., hc ), vec2( .09, .112 ) ).toVar();
+    	const dNeck = seg( vec2( ax, py ), vec2( 0., 1.41 ), vec2( 0., hc.sub( .06 ) ), .047, .04 ).toVar();
+    	const tw = mix( .155, .2, smoothstep( .9, 1.36, py ) ).mul( wk ).toVar();
+    	const tq = vec2( ax.sub( tw ).add( .06 ), abs( py.add( ax.mul( ax ).mul( 1.6 ) ).sub( 1.15 ) ).sub( .24 ) ).toVar();
+    	const dTorso = length( max( tq, vec2( 0. ) ) ).add( min( max( tq.x, tq.y ), 0. ) ).sub( .06 ).toVar();
+    	const aA = vec2( mix( .2, .03, side ), 1.37 ), aB = vec2( mix( .232, .07, side ), .86 );
+    	const dArmN = seg( vec2( ax, py ), aA, aB, .05, .038 ).toVar();
+    	const dHandN = length( vec2( ax, py ).sub( vec2( mix( .236, .075, side ), .8 ) ) ).sub( .042 ).toVar();
+    	const pr = vec2( sx, py ).toVar();
+    	const dArmP = min( seg( pr, vec2( .2, 1.37 ), vec2( .218, 1.1 ), .05, .042 ), seg( pr, vec2( .218, 1.1 ), vec2( .075, 1.23 ), .042, .036 ) ).toVar();
+    	const dHandP = length( pr.sub( vec2( .065, 1.25 ) ) ).sub( .04 ).toVar();
+    	const usePh = step( 0., sx ).mul( phone ).toVar();
+    	const dArm = mix( dArmN, dArmP, usePh ).toVar(), dHand = mix( dHandN, dHandP, usePh ).toVar();
+    	const lA = vec2( mix( .085, .035, side ), .88 ), lB = vec2( mix( .09, .075, side ), .08 );
+    	const dLeg = seg( vec2( ax, py ), lA, lB, .074, .05 ).toVar();
+    	const dShoe = ell( vec2( ax, py ), vec2( mix( .095, .1, side ), .045 ), vec2( mix( .06, .085, side ), .045 ) ).toVar();
+    	const dPhone = max( abs( sx.sub( .055 ) ).sub( .033 ), abs( py.sub( 1.285 ) ).sub( .052 ) ).add( sub( 1., phone ).mul( 9. ) ).toVar();
+    	const longH = step( .62, fract( hs.mul( 29. ) ) ).toVar();
+    	const dLong = ell( vec2( sx.add( mul( .03, side ) ), py ), vec2( 0., 1.47 ), vec2( .115, .2 ) ).add( sub( 1., longH ).mul( 9. ) ).toVar();
+    	const d = min( min( min( dHead, dNeck ), min( dTorso, dArm ) ), min( min( dHand, dLeg ), min( dShoe, min( dPhone, dLong ) ) ) ).toVar();
+    	const aa = max( fwidth( py ), .004 ).toVar();
+    	const person = smoothstep( aa, aa.negate(), d ).mul( step( tp, t ) ).mul( step( .35, fract( hs.mul( 23. ) ) ) ).toVar();
+    	const skin = mix( vec3( .78, .56, .42 ), vec3( .3, .19, .13 ), fract( hs.mul( 37. ) ) ).toVar();
+    	const hair = mix( vec3( .035, .028, .022 ), vec3( .36, .25, .14 ), step( .72, fract( hs.mul( 43. ) ) ).mul( fract( hs.mul( 17. ) ) ) ).toVar();
     	const cloth = add( .06, mul( .22, add( .5, mul( .5, cos( mul( 6.28, fract( hs.mul( 53. ) ).add( vec3( 0., .33, .67 ) ) ) ) ) ) ) ).toVar();
-    	c.assign( mix( c, mix( cloth, vec3( .05, .045, .05 ), step( py, .95 ).mul( .7 ).add( step( 1.5, py ).mul( .5 ) ) ).mul( add( .8, mul( .4, smoothstep( .9, 1.5, py ) ) ) ), person ) );
+    	const pants = mix( vec3( .05, .07, .12 ), vec3( .2, .18, .15 ), fract( hs.mul( 47. ) ) ).toVar();
+    	const shoe = mix( vec3( .03 ), vec3( .62, .6, .58 ), step( .8, fract( hs.mul( 83. ) ) ) ).toVar();
+    	const sleeve = step( .5, fract( hs.mul( 61. ) ) ).mul( step( py, 1.17 ) ).toVar();   // 短袖：手肘以下露出手臂
+    	const pc = cloth.toVar();
+    	pc.assign( mix( pc, pants, step( dLeg, 0. ).mul( step( py, .9 ) ).add( step( dTorso, 0. ).mul( step( py, .93 ) ) ).min( 1. ) ) );   // 褲子與褲頭（腰以下）
+    	pc.assign( mix( pc, pants.mul( .5 ), step( dTorso, 0. ).mul( step( abs( py.sub( .935 ) ), .012 ) ) ) );   // 腰帶
+    	pc.assign( mix( pc, mix( cloth, skin, sleeve ), step( dArm, 0. ).mul( step( 0., dTorso ) ) ) );
+    	pc.assign( mix( pc, skin, step( dHand, 0. ) ) );
+    	pc.assign( mix( pc, shoe, step( dShoe, 0. ).mul( step( py, .09 ) ) ) );
+    	pc.assign( mix( pc, skin.mul( .85 ), step( dNeck, 0. ).mul( step( 0., dTorso ) ) ) );
+    	pc.assign( mix( pc, hair, step( dLong, 0. ).mul( min( step( 0., dTorso ).add( step( 1.35, py ) ), 1. ) ) ) );
+    	const hl = hc.add( .035 ).sub( smoothstep( .035, .085, abs( sx.sub( mul( .025, side ) ) ) ).mul( .085 ) ).sub( side.mul( step( sx, -.01 ) ).mul( .06 ) ).toVar();   // 髮線：額頭以上、兩鬢；側身時後腦也是頭髮
+    	pc.assign( mix( pc, mix( skin, hair, step( hl, py ) ), step( dHead, 0. ) ) );
+    	pc.assign( mix( pc, vec3( .02 ), step( dPhone, 0. ) ) );
+    	const sh = add( .72, mul( .38, smoothstep( .3, 1.7, py ) ) ).mul( sub( 1., mul( .28, smoothstep( .06, .2, ax.div( wk ) ) ) ) ).toVar();
+    	const rim = smoothstep( mul( -3.5, aa ).sub( .02 ), 0., d ).mul( .35 ).toVar();
+    	c.assign( mix( c, pc.mul( sh ).add( lc.mul( rim ).mul( .3 ) ), person ) );
 
     	return c.mul( lc ).mul( mix( 1.25, .7, hp.z.div( dim.z ) ) ).mul( mix( .55, .5, uDay ) );
 

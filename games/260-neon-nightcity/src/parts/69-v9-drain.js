@@ -86,11 +86,11 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
     const k = new Kit(), at = (a, o, y) => [M.X + M.nz * a + M.nx * o, y, M.Z - M.nx * a + M.nz * o];
     const y0 = SEA_Y - .25;
     // 替身：伸出去的箱身（頂、兩側）與端牆，開口裡面黑的
-    k.box(...at(0, 2.25, y0 + 1.76), 3, .16, 4.5, 0x6e6a60, 2, 0, M.ry);
-    for (const s of [-1, 1]) k.box(...at(s * 1.42, 2.25, y0 + .92), .16, 1.84, 4.5, 0x6e6a60, 2, 0, M.ry);
-    k.box(...at(0, 4.4, y0 + 1.72), 3.1, .24, .12, 0x6e6a60, 2, 0, M.ry);
+    k.box(...at(0, 2.25, y0 + 1.76), 3, .16, 4.5, 0x6e6a60, 20, 0, M.ry);
+    for (const s of [-1, 1]) k.box(...at(s * 1.42, 2.25, y0 + .92), .16, 1.84, 4.5, 0x6e6a60, 20, 0, M.ry);
+    k.box(...at(0, 4.4, y0 + 1.72), 3.1, .24, .12, 0x6e6a60, 20, 0, M.ry);
     for (let i = 0; i < 9; i++) k.box(...at(-1.2 + i * .3, 4.47, y0 + 1.72), .15, .1, .02, i % 2 ? 0x15140f : 0xd8b020, 2, 0, M.ry);
-    const fb = new T.Mesh(k.build(), MAT.uber); cityAdd(fb, null);
+    const fb = new T.Mesh(k.build(), MAT.ux); cityAdd(fb, null);
     if (GLB_ON) loadProps('drain').then(items => {
       if (!items || !items.dr_mouth) return;
       fb.removeFromParent();   // distCull 每幀重設 visible，替身要拿掉
@@ -140,7 +140,7 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   for (const [r0, r1] of [DR_X.run1, DR_X.run2]) {
     const L = r1 - r0, cx = (r0 + r1) / 2;
     fb.box(cx, -.1, 0, L, .2, DR_W * 2 + .6, 0x5a5448, 2).box(cx, DR_H + .15, 0, L, .3, DR_W * 2 + .6, dk, 2);
-    for (const s of [-1, 1]) fb.box(cx, DR_H / 2, s * (DR_W + .15), L, DR_H, .3, con, 2);
+    for (const s of [-1, 1]) fb.box(cx, DR_H / 2, s * (DR_W + .15), L, DR_H, .3, con, 20);
   }
   const fbM = new T.Mesh(fb.build(), MAT.uber); drScene.add(fbM);
   const list = [];
@@ -149,7 +149,7 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   // 西端：排水口那一段（模型的 −z 端牆朝 −x，就是開口）
   const mk = new Kit();
   mk.box(DR_MOUTH, -.1, 0, DR_MOUTH * 2, .2, DR_W * 2 + .6, 0x5a5448, 2).box(DR_MOUTH, DR_H + .15, 0, DR_MOUTH * 2, .3, DR_W * 2 + .6, dk, 2);
-  for (const s of [-1, 1]) mk.box(DR_MOUTH, DR_H / 2, s * (DR_W + .15), DR_MOUTH * 2, DR_H, .3, con, 2);
+  for (const s of [-1, 1]) mk.box(DR_MOUTH, DR_H / 2, s * (DR_W + .15), DR_MOUTH * 2, DR_H, .3, con, 20);
   for (let i = 0; i < 13; i++) mk.box(0, DR_H - .12, -1.8 + i * .3, .04, .16, .15, i % 2 ? 0x15140f : 0xd8b020, 2);
   const mkM = new T.Mesh(mk.build(), MAT.uber); drScene.add(mkM);
   propSwap('drain', mkM, 'dr_mouth', [{ x: DR_MOUTH, z: 0, ry: Math.PI / 2, s: DR_S }], drScene, null, 'drain');
@@ -167,23 +167,23 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   });
   for (const [ch, end] of [[DR_X.chB, false], [DR_X.chA, true]]) {
     const [c0, c1] = ch, cx = (c0 + c1) / 2, L = c1 - c0;
-    fl.box(cx, -.1, 0, L, .2, DR_CHW * 2, 0x47443b, 2);
+    fl.box(cx, -.1, 0, L, .2, DR_CHW * 2, 0x47443b, 20);
     pans.dr_floor.push({ x: cx, y: .04, z: 0, ry: Math.PI / 2, s: FS });
     for (const s of [-1, 1]) {
-      k.box(cx, DR_CHH / 2, s * (DR_CHW + .15), L + .6, DR_CHH, .3, con, 2);
+      k.box(cx, DR_CHH / 2, s * (DR_CHW + .15), L + .6, DR_CHH, .3, con, 20);
       pan(s > 0 ? ['dr_wall', 'dr_wall2'] : ['dr_wall2', 'dr_wall'], cx, s * DR_CHW, 0, s, 0, s > 0 ? [-.8, .3, 1.1] : [.6, -1.1, 0]);
     }
     for (const [x, open, sx] of [[c0, true, 1], [c1, !end, -1]]) {
       if (open) {
         for (const s of [-1, 1]) {
-          k.box(x, DR_CHH / 2, s * (DR_W + (DR_CHW - DR_W) / 2), .3, DR_CHH, DR_CHW - DR_W, con, 2);
+          k.box(x, DR_CHH / 2, s * (DR_W + (DR_CHW - DR_W) / 2), .3, DR_CHH, DR_CHW - DR_W, con, 20);
           pan(['dr_pier'], x + sx * .15, s * (DR_W + (DR_CHW - DR_W) / 2), -sx, 0, 0, [0, 0, 0]);
         }
-        k.box(x, (DR_H + DR_CHH) / 2, 0, .3, DR_CHH - DR_H, DR_W * 2, con, 2);
+        k.box(x, (DR_H + DR_CHH) / 2, 0, .3, DR_CHH - DR_H, DR_W * 2, con, 20);
         pan(['dr_lintel'], x + sx * .15, 0, -sx, 0, DR_H, [0, 0]);
         for (let i = 0; i < 13; i++) for (const o of [-.16, .22]) k.box(x + sx * o, DR_H + .1, -1.8 + i * .3, .02, .14, .15, i % 2 ? 0x15140f : 0xd8b020, 2);
       } else {
-        k.box(x + .15, DR_CHH / 2, 0, .3, DR_CHH, DR_CHW * 2, con, 2);
+        k.box(x + .15, DR_CHH / 2, 0, .3, DR_CHH, DR_CHW * 2, con, 20);
         pan(['dr_wall2', 'dr_wall'], x, 0, 1, 0, 0, [.4, -.9, 1]);
       }
     }
@@ -197,7 +197,7 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
     k.box(cx, DR_CHH + .15, (hz + hw + DR_CHW) / 2, L, .3, DR_CHW - hz - hw, dk, 2);
     for (const s of [-1, 1]) k.box(cx + s * (hw + L / 2) / 2, DR_CHH + .15, hz, L / 2 - hw, .3, hw * 2, dk, 2);
     const sh = DR_SHAFT - DR_CHH;
-    for (const s of [-1, 1]) { k.box(cx + s * (hw + .1), DR_CHH + sh / 2, hz, .2, sh, hw * 2 + .4, con, 2); k.box(cx, DR_CHH + sh / 2, hz + s * (hw + .1), hw * 2, sh, .2, con, 2); }
+    for (const s of [-1, 1]) { k.box(cx + s * (hw + .1), DR_CHH + sh / 2, hz, .2, sh, hw * 2 + .4, con, 20); k.box(cx, DR_CHH + sh / 2, hz + s * (hw + .1), hw * 2, sh, .2, con, 20); }
     k.cyl(cx, DR_SHAFT + .05, hz, .34, .34, .06, 20, 0x8aa0b8, 11);   // 人孔蓋的縫透下來的光
     // 爬梯：貼著北牆，從地上到豎井頂
     const lz = hz + hw - .1;   // 爬梯貼著豎井的北壁往下到地上
@@ -214,8 +214,8 @@ const drHoles = DR.ents.filter(e => e.kind === 'hole');
   for (const [r0, r1] of [DR_X.run1, DR_X.run2]) for (let x = r0 + DR_SEG; x < r1; x += DR_SEG * 2) { k.box(x, DR_H - .12, s * 1.5, .22, .16, .22, 0xffd9a0, 11); s = -s; }
   // 箱涵中間淺淺的一道水
   for (const [r0, r1] of [[0, DR_X.run1[1]], DR_X.run2]) k.box((r0 + r1) / 2, .02, 0, r1 - r0, .02, 1.1, 0x0d110e, 2);
-  drScene.add(new T.Mesh(k.build(), MAT.uber));
-  const flM = new T.Mesh(fl.build(), MAT.uber); drScene.add(flM);
+  drScene.add(new T.Mesh(k.build(), MAT.ux));   // 去玩具感（2026-11-02）：檢查井的程式牆、端牆框用 MAT.ux 20 混凝土（原本素色）
+  const flM = new T.Mesh(fl.build(), MAT.ux); drScene.add(flM);
   for (const id in pans) propSwap('drain', null, id, pans[id], drScene, id === 'dr_floor' ? () => { flM.position.y = -.18; loadProps('drain').then(it => it && it.dr_seg && drCeil(it.dr_seg, ceil)); } : null, 'drain');
   // 走私包：東端檢查井的角落
   DR.bag = new T.Mesh(new Kit().box(0, .2, 0, .7, .4, .36, 0x2a3a2a, 15).box(0, .42, 0, .5, .04, .06, 0x15140f, 15).build(), MAT.uber);
