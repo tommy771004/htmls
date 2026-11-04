@@ -52,7 +52,9 @@ class GfxTex extends TextureNode {
     if (t && !t.isRenderTargetTexture && D && D.has(t)) { const g = D.get(t).generation, p = gfxGen.get(t); if (p !== undefined && p !== g) t.needsUpdate = true; gfxGen.set(t, g); }
     return super.update(f);
   }
-  setup(b) { const r = super.setup(b); if (this.getBase()._src) this.updateType = 'object'; return r; }
+  // 建節點時先換上 { value } 現在的貼圖：WGSL 的貼圖型別（深度貼圖分不分多重取樣）照建的時候節點手上那張決定，
+  // 換了渲染目標（70-render.js 的 makeTargets：Esc 選單換 MSAA）後重建的話，節點還拿著舊的、已經釋放的那張
+  setup(b) { const bs = this.getBase(), o = bs._src; if (o && o.value && o.value !== bs.value) bs.value = o.value; const r = super.setup(b); if (o) this.updateType = 'object'; return r; }
   // src/tsl/ 的材質（從 GLSL 轉來的）照 WebGL 的習慣取樣（v 由下往上）：渲染目標與深度貼圖在 WGSL 裡是左上角原點，three 只在 GLSL 後端自己翻（isFlipY），
   // 這裡照它的做法補上，看當下綁的是不是渲染目標（70-render.js 的路面倒影 tRefl：沒翻的話取到倒影上半的天空，整片一個顏色）。
   // 手寫的 TSL（71-gfx-post.js 的 Q）自己翻過，不經這裡（_gl 只有 gfxAuto 設）

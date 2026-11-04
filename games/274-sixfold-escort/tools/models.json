@@ -1,0 +1,2427 @@
+{
+ "note": "pack-models.mjs 的輸入。每件輸出成 blender/out/<group>.glb 裡名為 m_<id> 的根節點（正面朝 +Z、y=0 著地、x/z 置中；arms 是握把座標系）。欄位說明見 tools/pack-models.mjs 檔頭。skip:true 的件保留紀錄但不打包（reason 寫原因）。",
+ "defaults": {
+  "texSize": 512,
+  "quality": 76,
+  "error": 0.05
+ },
+ "models": [
+  {
+   "id": "qp_courtyard",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/traditional_chinese_siheyuan_courtyard.glb",
+   "name": "Traditional Chinese Siheyuan Courtyard",
+   "author": "andertan",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/a18881525cfd4fe882e739c9c7cee752",
+   "role": "順安鏢局院落（正房＋廂房＋院牆）",
+   "fit": {
+    "w": 26
+   },
+   "triTarget": 25000,
+   "texSize": 512,
+   "keep": [
+    "normal"
+   ],
+   "flags": [
+    "Prune"
+   ],
+   "error": 0.08,
+   "noPermissive": true,
+   "sloppy": false,
+   "skip": true,
+   "reason": "屋頂是逐片瓦的幾何（59.6 萬面）：一般減面到 8.7k 時瓦片被吃光、Permissive 會把 UV 拉花；要保住屋頂得留 8 萬面以上（內嵌約 2.4 MB），超出預算。鏢局院落維持程式建模。"
+  },
+  {
+   "id": "qp_hall",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/small_chinese_imperial_style_building.glb",
+   "name": "Small Chinese imperial style building",
+   "author": "andertan",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/631615777ba4421a98814559dc2d4c5a",
+   "role": "鏢局正廳／渡口行會大堂（歇山紅柱）",
+   "fit": {
+    "h": 8
+   },
+   "triTarget": 15000,
+   "texSize": 512,
+   "keep": [
+    "normal"
+   ],
+   "dropMaterials": "^stone_brick_large_2$",
+   "skip": true,
+   "reason": "同作者同結構（68 萬面、23 張貼圖），減到 1.5 萬面時紅牆與屋瓦的 UV 拉花；另附一塊 23×31 m 地台。正廳改用 qp_storehouse。"
+  },
+  {
+   "id": "qp_teahouse",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/ancient_chinese_courtyard_house.glb",
+   "name": "Ancient Chinese Courtyard House",
+   "author": "BlackBirb",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/ed4ea9eb5f024d989eec182d48fa72d8",
+   "role": "渡口茶樓（雙層迴廊）",
+   "fit": {
+    "h": 8.5
+   },
+   "triTarget": 8000,
+   "texSize": 1024,
+   "keep": []
+  },
+  {
+   "id": "qp_pavilion",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/chinese_pavilion.glb",
+   "name": "Chinese pavilion",
+   "author": "shineSUU",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/b0f6c1fb43e744ec876faecaba3d4925",
+   "role": "碼頭茶棚／涼亭",
+   "fit": {
+    "h": 4.2
+   },
+   "triTarget": 6000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "SketchUp 轉檔，屋面是純黃色材質（Yellow_4），玩具感。"
+  },
+  {
+   "id": "qp_house",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/chinese_house.glb",
+   "name": "Chinese house",
+   "author": "Katydid.",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/5b4804924d694f4dbf5d2e3fcaaf73fa",
+   "role": "貨棧／民居小院",
+   "fit": {
+    "h": 6.5
+   },
+   "triTarget": 20000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "52 張貼圖、70 個 primitive，零件散開錯位；份量（1.1 MB）也不合算。"
+  },
+  {
+   "id": "qp_storehouse",
+   "group": "arch",
+   "source": "objaverse",
+   "file": "objaverse/dea5596f50ce4235a67b11aa2678fce4.glb",
+   "name": "Chinese ancient building",
+   "author": "LsWaterPipe",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/dea5596f50ce4235a67b11aa2678fce4",
+   "role": "鏢局正廳／渡口行會大堂（廡殿頂、月台、欄杆）",
+   "fit": {
+    "h": 6.5
+   },
+   "triTarget": 7000,
+   "texSize": 512,
+   "keep": []
+  },
+  {
+   "id": "qp_gate",
+   "group": "arch",
+   "source": "objaverse",
+   "file": "objaverse/0ffd9067916642779ae1c270d083d77f.glb",
+   "name": "CHINESE TEMPLE",
+   "author": "mervemacit",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/0ffd9067916642779ae1c270d083d77f",
+   "role": "鏢局門樓",
+   "fit": {
+    "h": 6.5
+   },
+   "triTarget": 7000,
+   "texSize": 1024,
+   "keep": [],
+   "rot": [
+    0,
+    90,
+    0
+   ]
+  },
+  {
+   "id": "qp_smallhall",
+   "group": "arch",
+   "source": "objaverse",
+   "file": "objaverse/bcb41894d1b5451b9c4f6489d50766d4.glb",
+   "name": "Ancient Chinese House",
+   "author": "ninojazz",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/bcb41894d1b5451b9c4f6489d50766d4",
+   "role": "石台基小殿（驛站主屋／祠堂）",
+   "fit": {
+    "h": 5
+   },
+   "triTarget": 4100,
+   "texSize": 512
+  },
+  {
+   "id": "qp_bridge",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/ancient_stone_bridge_in_china.glb",
+   "name": "Ancient stone bridge in China",
+   "author": "gyj11g11g",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/03633f83044448d79b6ff7e8711854e2",
+   "role": "渡口單孔石拱橋",
+   "fit": {
+    "w": 16
+   },
+   "triTarget": 12000,
+   "texSize": 1024,
+   "crop": {
+    "z": [
+     0,
+     0.76
+    ]
+   },
+   "cut": [
+    {
+     "x": [
+      0.2,
+      0.4
+     ],
+     "y": [
+      0.2,
+      1
+     ],
+     "z": [
+      0,
+      0.31
+     ]
+    },
+    {
+     "x": [
+      0.2,
+      0.4
+     ],
+     "y": [
+      0.78,
+      1
+     ],
+     "z": [
+      0.31,
+      0.37
+     ]
+    },
+    {
+     "x": [
+      0.58,
+      0.82
+     ],
+     "y": [
+      0.15,
+      1
+     ],
+     "z": [
+      0.7,
+      1
+     ]
+    },
+    {
+     "x": [
+      0.55,
+      0.62
+     ],
+     "y": [
+      0.9,
+      1
+     ],
+     "z": [
+      0.4,
+      0.7
+     ]
+    },
+    {
+     "x": [
+      0.62,
+      0.68
+     ],
+     "y": [
+      0.78,
+      1
+     ],
+     "z": [
+      0.4,
+      0.7
+     ]
+    },
+    {
+     "x": [
+      0.68,
+      0.74
+     ],
+     "y": [
+      0.66,
+      1
+     ],
+     "z": [
+      0.45,
+      0.7
+     ]
+    },
+    {
+     "x": [
+      0.74,
+      0.82
+     ],
+     "y": [
+      0.57,
+      1
+     ],
+     "z": [
+      0.45,
+      0.7
+     ]
+    }
+   ]
+  },
+  {
+   "id": "qp_well",
+   "group": "arch",
+   "source": "sketchfab",
+   "file": "sketchfab/stone_well_remastered_scan.glb",
+   "name": "stone well (Remastered scan)",
+   "author": "SibeYu",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/d24edbece6f147bdafd6358ad00c5a76",
+   "role": "巷口石井",
+   "fit": {
+    "w": 2.2
+   },
+   "triTarget": 6000,
+   "texSize": 512,
+   "crop": {
+    "y": [
+     0.72,
+     1
+    ],
+    "x": [
+     0.15,
+     0.85
+    ],
+    "z": [
+     0.15,
+     0.85
+    ]
+   },
+   "skip": true,
+   "reason": "掃描是與地面齊平的井口＋地下碎石柱，裁切後只剩一圈破邊石板，不像井。井臺維持程式建模。"
+  },
+  {
+   "id": "qp_pier",
+   "group": "arch",
+   "source": "polyhaven",
+   "file": "polyhaven/modular_wooden_pier/modular_wooden_pier_1k.gltf",
+   "name": "modular_wooden_pier",
+   "author": "Rico Cilliers",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/modular_wooden_pier",
+   "role": "碼頭木棧橋",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 4000,
+   "texSize": 512
+  },
+  {
+   "id": "qp_boat",
+   "group": "arch",
+   "source": "objaverse",
+   "file": "objaverse/8c08d196fb814724a97c120d33cdf466.glb",
+   "name": "Chinese boat",
+   "author": "MuriloMilkieviczdaRocha",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/8c08d196fb814724a97c120d33cdf466",
+   "role": "烏篷渡船",
+   "fit": {
+    "w": 7
+   },
+   "triTarget": 5400,
+   "texSize": 512,
+   "skip": true,
+   "reason": "沒有貼圖的灰色素模（10 個純色材質），玩具感。烏篷船維持程式建模。"
+  },
+  {
+   "id": "qp_stall",
+   "group": "arch",
+   "source": "objaverse",
+   "file": "objaverse/ff6c0680a17e40989043a503c86e3f33.glb",
+   "name": "Market Stall",
+   "author": "Kairomitsu",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/ff6c0680a17e40989043a503c86e3f33",
+   "role": "掛燈籠的攤棚",
+   "fit": {
+    "h": 3.2
+   },
+   "triTarget": 10000,
+   "texSize": 256,
+   "skip": true,
+   "reason": "16 張貼圖、17 個 primitive，風格偏手繪；攤棚已有程式建模，貨品改用 goods。"
+  },
+  {
+   "id": "bk_house",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/82071f8a_old_chinese_roof_house_2.glb",
+   "name": "Old Chinese Roof House 2",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/82071f8a-47af-4d3f-8d20-5b886d01cebe/",
+   "role": "鏢局院內廂房／渡口民居（歇山小殿、石台基、朱柱白牆）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/82071f8a_old_chinese_roof_house_2.glb",
+     "tris": 8000,
+     "tex": 1024,
+     "voxel": 0.2,
+     "solid": 0.2,
+     "ext": 0.2,
+     "ray": 0.5
+    }
+   },
+   "fit": {
+    "h": 5.2
+   },
+   "triTarget": 0,
+   "texSize": 1024,
+   "keep": [],
+   "notes": "原檔 72 萬面、5 材質×3 張 4K 圖；meshopt 直接減到 8k 時瓦頂成條狀破洞、石台基碎裂。改走 prep-models.mjs：加厚 0.2＋體素 0.2 外殼＋減面 8k＋重展 UV，底色烘成一張 1024 圖（1 primitive）。"
+  },
+  {
+   "id": "bk_stilthouse",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/6a944c19_chinese_high_house_wood.glb",
+   "name": "Chinese HIgh House Wood",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/6a944c19-fa36-4f4f-bc72-24d61eb5aa88/",
+   "role": "渡口吊腳樓（兩層木構、架空木柱、挑廊）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/6a944c19_chinese_high_house_wood.glb",
+     "tris": 8000,
+     "tex": 1024,
+     "voxel": 0.35,
+     "solid": 0.35,
+     "ext": 0.35,
+     "ray": 0.875
+    }
+   },
+   "fit": {
+    "h": 9
+   },
+   "triTarget": 0,
+   "texSize": 512,
+   "keep": [],
+   "notes": "原檔高 22.4 m（單位偏大），正規化到 9 m。46 萬面、6 材質；不加厚時板牆、屋面體素化後破洞，加厚 0.35 後封閉。"
+  },
+  {
+   "id": "bk_tower",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/8701a79a_chinese_temple_2.glb",
+   "name": "Chinese Temple 2",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/8701a79a-1635-437c-b1d2-6b14f14fc351/",
+   "role": "遠景鐘鼓樓（朱牆、綠琉璃重簷）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/8701a79a_chinese_temple_2.glb",
+     "tris": 6000,
+     "tex": 1024,
+     "voxel": 0.25,
+     "solid": 0.25,
+     "ext": 0.25,
+     "ray": 0.625
+    }
+   },
+   "fit": {
+    "h": 11
+   },
+   "triTarget": 0,
+   "texSize": 512,
+   "keep": [],
+   "notes": "BlenderKit 下載的 GLB 是 Draco 壓縮；Blender 匯入可直接解，管線只讀烘焙後的檔。",
+   "skip": true,
+   "reason": "烘焙後品質可用（6k 面、一張 512 圖、約 134 KB），但與 bk_temple、bk_pagoda 同為對岸遠景，三件擇二；朱牆綠瓦在霧裡比青灰瓦的寺閣搶眼，跟青萍渡的低彩度不合。要用時拿掉 skip 即可（prep 參數已調好）。"
+  },
+  {
+   "id": "bk_temple",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/27de2944_chinese_temple.glb",
+   "name": "Chinese Temple",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/27de2944-5605-4075-a409-e0dfb85dc12a/",
+   "role": "遠景重簷木構寺閣（青灰瓦、朱欄）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/27de2944_chinese_temple.glb",
+     "tris": 6000,
+     "tex": 1024,
+     "voxel": 0.3,
+     "solid": 0.3,
+     "ext": 0.3,
+     "ray": 0.75
+    }
+   },
+   "fit": {
+    "h": 12
+   },
+   "triTarget": 0,
+   "texSize": 512,
+   "keep": [],
+   "notes": "原檔 35 萬面、10 材質×4 張 2K 圖（UDIM 式拆圖）。"
+  },
+  {
+   "id": "bk_pagoda",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/d831a8dc_scan_dasheng_pagoda.glb",
+   "name": "Scan The Dasheng Pagoda",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/d831a8dc-788a-4b21-8187-26112bd3592c/",
+   "role": "對岸遠景磚塔（大聖塔掃描，七層八角、白灰塔身）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/d831a8dc_scan_dasheng_pagoda.glb",
+     "tris": 4000,
+     "tex": 512,
+     "voxel": 0.4,
+     "solid": 0,
+     "ext": 0.4,
+     "ray": 1.0
+    }
+   },
+   "fit": {
+    "h": 24
+   },
+   "triTarget": 0,
+   "texSize": 512,
+   "keep": [],
+   "notes": "掃描 60 萬面、2 材質各一張 8K 圖；烘成 4k 面、一張 512 圖。原高 42 m，遠景用 24 m。"
+  },
+  {
+   "id": "bk_pavilion",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/30a0078c_chinese_pavilion.glb",
+   "name": "Chinese Pavilion",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/30a0078c-8465-43a5-82a2-66c327f30a71/",
+   "role": "碼頭茶棚／渡口涼亭（六角重簷）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/30a0078c_chinese_pavilion.glb",
+     "tris": 6000,
+     "tex": 1024,
+     "voxel": 0.15,
+     "solid": 0.15,
+     "ext": 0.15,
+     "ray": 0.375
+    }
+   },
+   "fit": {
+    "h": 5.5
+   },
+   "triTarget": 0,
+   "texSize": 512,
+   "keep": [],
+   "skip": true,
+   "reason": "89.6 萬面、10 材質；meshopt 減面後 UV 碎成馬賽克，烘焙版屋面斑駁、亭內被體素填成一團暗色。近景涼亭讀不出來，維持程式建模的茶棚。"
+  },
+  {
+   "id": "bk_ruin_house",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "blenderkit/c12863fd_old_chinese_roof_house.glb",
+   "name": "Old Chinese Roof House",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/c12863fd-af2f-42e9-b436-00b5af5b2d5d/",
+   "role": "破屋",
+   "fit": {
+    "h": 5
+   },
+   "triTarget": 8000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "屋頂有破洞、地面散落瓦礫碎片，是廢屋；青萍渡市集用不上，遺墟是上古機關城，不是民居廢墟。"
+  },
+  {
+   "id": "bk_hut",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "blenderkit/7c4def52_chinese_wood_house_wall.glb",
+   "name": "Chinese Wood House Wall",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/7c4def52-e40b-4b77-bd89-44985e00375b/",
+   "role": "山牆小屋",
+   "fit": {
+    "h": 4.5
+   },
+   "triTarget": 6000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "烘焙後可用，但與 bk_house 同用途、正面只有一道素面山牆；預算優先給 bk_house。"
+  },
+  {
+   "id": "bk_wall",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "blenderkit/a9096e48_chinese_building_wall.glb",
+   "name": "Chinese Building Wall",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/a9096e48-c281-498a-ace7-d00ce49b9251/",
+   "role": "院牆",
+   "fit": {
+    "h": 4
+   },
+   "triTarget": 6000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "97 萬面，另有一塊 319×326×357 m 的遊離網格；院牆已是程式建模，沒有明確用途。"
+  },
+  {
+   "id": "bk_floor",
+   "group": "arch",
+   "source": "blenderkit",
+   "file": "_decoded/blenderkit/deb2d5b8_scan_chinese_old_floor.glb",
+   "name": "Scan Chinese old floor",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/deb2d5b8-e515-4c50-a0ff-40bc0e58380f/",
+   "role": "石板地",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 4000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "70 MB 地板掃描（5 張 8K 圖）；地面是程式 TSL 材質，不需要。"
+  },
+  {
+   "id": "tree_willow",
+   "group": "nature",
+   "source": "sketchfab",
+   "file": "sketchfab/weeping_willow.glb",
+   "name": "weeping Willow",
+   "author": "homxis-mydqyp-juNke1",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/6c49b1d81c4949b0a409a278a283cc0d",
+   "role": "河岸垂柳",
+   "fit": {
+    "h": 9
+   },
+   "triTarget": 15000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "沒有貼圖的葉片卡，減面後像竹子。垂柳維持程式建模（canopy 材質）。"
+  },
+  {
+   "id": "tree_dead",
+   "group": "nature",
+   "source": "sketchfab",
+   "file": "sketchfab/dead_tree.glb",
+   "name": "Dead tree",
+   "author": "YN14R",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/3db412498aec432da8687afe37cc32bb",
+   "role": "枯胡楊（多分枝）",
+   "fit": {
+    "h": 8
+   },
+   "triTarget": 7000,
+   "texSize": 512,
+   "dropMaterials": "^dead_tree_mat\\.1$"
+  },
+  {
+   "id": "tree_dead2",
+   "group": "nature",
+   "source": "sketchfab",
+   "file": "sketchfab/high_quality_tree_56.glb",
+   "name": "HIGH QUALITY TREE 5/6",
+   "author": "evan4129",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/9060fc25bef14afa9dae4a8048035fb6",
+   "role": "枯胡楊（輕量）",
+   "fit": {
+    "h": 7
+   },
+   "triTarget": 8000,
+   "texSize": 1024,
+   "skip": true,
+   "reason": "與 tree_dead 同用途；717 KB 不合算。"
+  },
+  {
+   "id": "log_dead",
+   "group": "nature",
+   "source": "polyhaven",
+   "file": "polyhaven/dead_tree_trunk_02/dead_tree_trunk_02_1k.gltf",
+   "name": "dead_tree_trunk_02",
+   "author": "Jenelle van Heerden, Rico Cilliers",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/dead_tree_trunk_02",
+   "role": "倒伏枯幹",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 3000,
+   "texSize": 512
+  },
+  {
+   "id": "rock_mesa",
+   "group": "nature",
+   "source": "sketchfab",
+   "file": "sketchfab/sandstone_mesa_megascan.glb",
+   "name": "Sandstone mesa megascan",
+   "author": "GoochFauxRock",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/4dd149fe9b094675b5b4036df830665e",
+   "role": "赤沙驛雅丹土台",
+   "fit": {
+    "h": 12
+   },
+   "triTarget": 8000,
+   "texSize": 1024
+  },
+  {
+   "id": "rock_pillar",
+   "group": "nature",
+   "source": "sketchfab",
+   "file": "sketchfab/desert_pillar_terrain_-_raw_scan.glb",
+   "name": "Desert Pillar Terrain - RAW Scan",
+   "author": "majedhd",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/867910e78d674d608909aa5001b0064f",
+   "role": "雅丹孤柱",
+   "fit": {
+    "h": 10
+   },
+   "triTarget": 8000,
+   "texSize": 1024,
+   "crop": {
+    "x": [
+     0.435,
+     0.515
+    ],
+    "z": [
+     0.435,
+     0.545
+    ]
+   },
+   "notes": "原掃描是一大片地形；裁到孤柱與底下的土脊（俯視找中心），邊緣仍有一圈地皮，擺放時下沉約 0.3 m 埋進地形。"
+  },
+  {
+   "id": "rock_lidar",
+   "group": "nature",
+   "source": "sketchfab",
+   "file": "sketchfab/lidar_rock_scan_ramon_crater_negev_israel.glb",
+   "name": "LiDAR Rock Scan, Ramon Crater, Negev, Israel",
+   "author": "doron_altaratz",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/f0e424595ce14df9b82c35b658beb882",
+   "role": "風蝕巨岩",
+   "fit": {
+    "w": 5
+   },
+   "triTarget": 6000,
+   "texSize": 1024,
+   "skip": true,
+   "reason": "掃描帶一圈地皮，rock_b03／b04／rock_cliff 已涵蓋。"
+  },
+  {
+   "id": "rock_b03",
+   "group": "nature",
+   "source": "polyhaven",
+   "file": "polyhaven/namaqualand_boulder_03/namaqualand_boulder_03_1k.gltf",
+   "name": "namaqualand_boulder_03",
+   "author": "Jenelle van Heerden, Dario Barresi",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/namaqualand_boulder_03",
+   "role": "方正砂岩塊",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 3000,
+   "texSize": 512
+  },
+  {
+   "id": "rock_b04",
+   "group": "nature",
+   "source": "polyhaven",
+   "file": "polyhaven/namaqualand_boulder_04/namaqualand_boulder_04_1k.gltf",
+   "name": "namaqualand_boulder_04",
+   "author": "Jenelle van Heerden",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/namaqualand_boulder_04",
+   "role": "鏽紅岩塊",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 3000,
+   "texSize": 512
+  },
+  {
+   "id": "rock_cliff",
+   "group": "nature",
+   "source": "polyhaven",
+   "file": "polyhaven/namaqualand_cliff_01/namaqualand_cliff_01_1k.gltf",
+   "name": "namaqualand_cliff_01",
+   "author": "Jenelle van Heerden, Rico Cilliers",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/namaqualand_cliff_01",
+   "role": "8 m 岩壁",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 8000,
+   "texSize": 1024
+  },
+  {
+   "id": "firepit",
+   "group": "nature",
+   "source": "polyhaven",
+   "file": "polyhaven/stone_fire_pit/stone_fire_pit_1k.gltf",
+   "name": "stone_fire_pit",
+   "author": "Sebastian Platen",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/stone_fire_pit",
+   "role": "驛站營火石圈",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 3000,
+   "texSize": 512
+  },
+  {
+   "id": "grotto_row",
+   "group": "relics",
+   "source": "sketchfab",
+   "file": "sketchfab/yungang_grottoes.glb",
+   "name": "Yungang Grottoes",
+   "author": "adrianocanotto",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/68ae55e0d13443248b7ece98c7549517",
+   "role": "赤沙驛崖壁連排小龕",
+   "fit": {
+    "h": 9
+   },
+   "triTarget": 10000,
+   "texSize": 1024,
+   "skip": true,
+   "reason": "與 grotto_cave 同用途（崖壁石窟擇一）；薄殼掃描背面是空的，只能正面看。保留大佛主窟。"
+  },
+  {
+   "id": "grotto_cave",
+   "group": "relics",
+   "source": "sketchfab",
+   "file": "sketchfab/yungang_cave_20.glb",
+   "name": "Yungang Cave 20",
+   "author": "dluo",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/745ab213fd9d468e9646a99c60f1183e",
+   "role": "崖壁大佛主窟",
+   "fit": {
+    "h": 14
+   },
+   "triTarget": 12000,
+   "texSize": 1024
+  },
+  {
+   "id": "beast_winged",
+   "group": "relics",
+   "source": "smithsonian",
+   "file": "smithsonian/kneeling-winged-monster-150k-4096.glb",
+   "name": "Kneeling winged monster",
+   "author": "Smithsonian National Museum of Asian Art",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://asia.si.edu/object/F1916.345/",
+   "role": "遺墟守門石獸",
+   "fit": {
+    "h": 1.8
+   },
+   "triTarget": 6000,
+   "texSize": 512
+  },
+  {
+   "id": "relief_buddhas",
+   "group": "relics",
+   "source": "smithsonian",
+   "file": "smithsonian/f1921_1-full_res-150k-4096_std.glb",
+   "name": "Gathering of Buddhas and bodhisattvas",
+   "author": "Smithsonian National Museum of Asian Art",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://asia.si.edu/object/F1921.1/",
+   "role": "石壁浮雕",
+   "fit": {
+    "w": 3.45
+   },
+   "triTarget": 6000,
+   "texSize": 1024
+  },
+  {
+   "id": "dragon_disc",
+   "group": "relics",
+   "source": "sketchfab",
+   "file": "sketchfab/dragon_circle.glb",
+   "name": "Dragon Circle",
+   "author": "zhengzhangxun",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/304a8be46461429b96a40d90dd8fc748",
+   "role": "機樞盤龍石盤",
+   "fit": {
+    "h": 3
+   },
+   "triTarget": 8000,
+   "texSize": 1024
+  },
+  {
+   "id": "general_statue",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/db4bdb897b95456f98681242947d51a8.glb",
+   "name": "Statues of generals",
+   "author": "inception4",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/db4bdb897b95456f98681242947d51a8",
+   "role": "神道石像生（武將）",
+   "fit": {
+    "h": 3.2
+   },
+   "triTarget": 8000,
+   "texSize": 1024
+  },
+  {
+   "id": "lion_stone",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/68e7b4db10214d12bf4ae6ec53bf1e4f.glb",
+   "name": "Stone Big Lion 01",
+   "author": "zhengzhangxun",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/68e7b4db10214d12bf4ae6ec53bf1e4f",
+   "role": "石獅（鏢局門口／遺墟）",
+   "fit": {
+    "h": 1.9
+   },
+   "triTarget": 6000,
+   "texSize": 512
+  },
+  {
+   "id": "ding_bronze",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/d31e7161afb947269980ec8a311ae33e.glb",
+   "name": "Bronze 'Ding' food vessel, 5th C BCE",
+   "author": "artsmia",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/d31e7161afb947269980ec8a311ae33e",
+   "role": "青銅鼎（遺墟祭器）",
+   "fit": {
+    "h": 0.9
+   },
+   "triTarget": 4000,
+   "texSize": 512,
+   "metal": 0.6,
+   "rough": 0.55
+  },
+  {
+   "id": "fangding",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/aae4f51f1c874a0dad5f59eec2340811.glb",
+   "name": "Fangding (Chinese food vessel)",
+   "author": "artsmia",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/aae4f51f1c874a0dad5f59eec2340811",
+   "role": "青銅方鼎",
+   "fit": {
+    "h": 1.0
+   },
+   "triTarget": 4000,
+   "texSize": 512,
+   "metal": 0.6,
+   "rough": 0.55
+  },
+  {
+   "id": "gui_bronze",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/81983aad41fe4981b06dd2f26d98213c.glb",
+   "name": "Gui (Chinese food vessel)",
+   "author": "artsmia",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/81983aad41fe4981b06dd2f26d98213c",
+   "role": "青銅簋",
+   "fit": {
+    "h": 0.5
+   },
+   "triTarget": 3000,
+   "texSize": 512,
+   "metal": 0.6,
+   "rough": 0.55,
+   "skip": true,
+   "reason": "與青銅鼎、方鼎重複；先不用。"
+  },
+  {
+   "id": "boshanlu",
+   "group": "relics",
+   "source": "smithsonian",
+   "file": "smithsonian/incense-burner-in-the-form-of-a-mountain-_boshanlu_-150k-4096.glb",
+   "name": "Lidded incense burner (xianglu) with geometric decoration and narrative scenes",
+   "author": "Smithsonian National Museum of Asian Art",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://asia.si.edu/object/F1947.15a-b/",
+   "role": "博山爐",
+   "fit": {
+    "h": 0.5
+   },
+   "triTarget": 4000,
+   "texSize": 512,
+   "metal": 0.5,
+   "rough": 0.55
+  },
+  {
+   "id": "tiger_bronze",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/8fe05f974a004d348d75ef76e045946b.glb",
+   "name": "Chinese Tiger, 5th C BCE",
+   "author": "artsmia",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/8fe05f974a004d348d75ef76e045946b",
+   "role": "青銅虎（機關獸）",
+   "fit": {
+    "h": 1.2
+   },
+   "triTarget": 5000,
+   "texSize": 512,
+   "metal": 0.5,
+   "rough": 0.55,
+   "skip": true,
+   "reason": "4 個材質、199 KB；遺墟已有石獸、石像生與三件青銅器，先不用。"
+  },
+  {
+   "id": "citygate",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/b64e62bd4f9c46d78670489564844ffe.glb",
+   "name": "Lost city gate",
+   "author": "Scandinavian",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/b64e62bd4f9c46d78670489564844ffe",
+   "role": "赤沙驛夯土城門",
+   "fit": {
+    "h": 14
+   },
+   "triTarget": 20000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "夯土城門掃描 169 萬面／186 MB，含大片地形；減到 2 萬面仍要 12 張貼圖、726 KB，城門本體只佔畫面一小塊。超出預算，赤沙驛驛站大門維持程式建模。"
+  },
+  {
+   "id": "watchtower",
+   "group": "relics",
+   "source": "objaverse",
+   "file": "objaverse/405928f2624742d18408896d26fc0d28.glb",
+   "name": "14th century Great Wall",
+   "author": "Scandinavian",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/405928f2624742d18408896d26fc0d28",
+   "role": "邊牆敵樓（烽燧周邊遠景）",
+   "fit": {
+    "h": 14
+   },
+   "triTarget": 15000,
+   "texSize": 1024,
+   "skip": true,
+   "reason": "敵樓只佔掃描頂端一小塊，其餘是山坡地形；539 KB 不合算。烽燧維持程式建模。"
+  },
+  {
+   "id": "bk_scholar_rock",
+   "group": "relics",
+   "source": "blenderkit",
+   "file": "blenderkit/9e7889d8_scan_chinese_stone_sculpture.glb",
+   "name": "Scan Chinese Stone Sculpture",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/9e7889d8-4fcc-46b0-a2bf-1e875d275542/",
+   "role": "太湖石立峰（雕花須彌座）：遺墟祭壇、鏢局院內",
+   "fit": {
+    "h": 1.95
+   },
+   "triTarget": 6000,
+   "texSize": 512,
+   "keep": []
+  },
+  {
+   "id": "bk_stone_desk",
+   "group": "relics",
+   "source": "blenderkit",
+   "file": "_decoded/blenderkit/772645db_scan_chinese_old_stone_desk.glb",
+   "name": "Scan Chinese Old Stone Desk",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/772645db-979f-453b-a265-30ffc2f9aa8e/",
+   "role": "雕花石案（鼓腰方几）：遺墟石台",
+   "prep": {
+    "decode": "blenderkit/772645db_scan_chinese_old_stone_desk.glb"
+   },
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 5000,
+   "texSize": 512,
+   "keep": [],
+   "notes": "6 萬面開口掃描。meshopt 減到 3.5k 時 UV 縫塌出白色碎片；烘焙試了兩次（體素 0.006／0.012、有無加厚）都破成碎片。最後用 meshopt 不放寬（noPermissive／sloppy:false）留 5k 面。",
+   "noPermissive": true,
+   "sloppy": false
+  },
+  {
+   "id": "bk_relief",
+   "group": "relics",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/9f90a9d1_scan_chinese_relief_02.glb",
+   "name": "Scan Chinese Relief 02",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/9f90a9d1-487f-4e2d-ada2-757c1566cfec/",
+   "role": "人物故事石雕板（嵌牆浮雕）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/9f90a9d1_scan_chinese_relief_02.glb",
+     "tris": 3000,
+     "tex": 1024,
+     "voxel": 0.008,
+     "solid": 0.01,
+     "ext": 0.02,
+     "ray": 0.05
+    }
+   },
+   "rot": [
+    -90,
+    0,
+    0
+   ],
+   "fit": {
+    "w": 1.33
+   },
+   "triTarget": 0,
+   "texSize": 512,
+   "keep": [],
+   "notes": "原檔平躺在地（厚 5 cm）；rot −90° 立起、正面朝 +Z。4 萬面 meshopt 減到 6k 時表面糊爛，改烘焙成 3k 面一張圖。"
+  },
+  {
+   "id": "hall_armchair",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_armchair/chinese_armchair_1k.gltf",
+   "name": "chinese_armchair",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_armchair",
+   "role": "鏢局正堂／帳房官帽椅",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2700,
+   "texSize": 512
+  },
+  {
+   "id": "hall_cabinet",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_cabinet/chinese_cabinet_1k.gltf",
+   "name": "chinese_cabinet",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_cabinet",
+   "role": "藥舖／帳房多寶格櫃",
+   "fit": {
+    "h": 2.2
+   },
+   "triTarget": 3000,
+   "texSize": 512,
+   "notes": "原始高 2.87 m 偏高，改以高 2.2 m 正規化。"
+  },
+  {
+   "id": "hall_console_table",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_console_table/chinese_console_table_1k.gltf",
+   "name": "chinese_console_table",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_console_table",
+   "role": "正堂翹頭案",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 3000,
+   "texSize": 512
+  },
+  {
+   "id": "hall_tea_table",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_tea_table/chinese_tea_table_1k.gltf",
+   "name": "chinese_tea_table",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_tea_table",
+   "role": "茶攤矮方桌",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2600,
+   "texSize": 512
+  },
+  {
+   "id": "hall_stool",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_stool/chinese_stool_1k.gltf",
+   "name": "chinese_stool",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_stool",
+   "role": "方凳",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 1100,
+   "texSize": 512
+  },
+  {
+   "id": "hall_screen_panels",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_screen_panels/chinese_screen_panels_1k.gltf",
+   "name": "chinese_screen_panels",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_screen_panels",
+   "role": "刺繡屏風",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 800,
+   "texSize": 512
+  },
+  {
+   "id": "hall_commode",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_commode/chinese_commode_1k.gltf",
+   "name": "chinese_commode",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_commode",
+   "role": "藥舖背櫃",
+   "fit": {
+    "h": 0.9
+   },
+   "triTarget": 3000,
+   "texSize": 512,
+   "notes": "Poly Haven 原始比例 4.49×2.02 m 偏大（悶戶櫥一般寬約 2 m、高約 0.9 m），改以高 0.9 m 正規化。"
+  },
+  {
+   "id": "hall_chandelier",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_chandelier/chinese_chandelier_1k.gltf",
+   "name": "chinese_chandelier",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_chandelier",
+   "role": "正堂宮燈",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 3000,
+   "texSize": 512
+  },
+  {
+   "id": "hall_sofa",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/chinese_sofa/chinese_sofa_1k.gltf",
+   "name": "chinese_sofa",
+   "author": "Kirill Sannikov",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/chinese_sofa",
+   "role": "帳房羅漢床",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 800,
+   "texSize": 512
+  },
+  {
+   "id": "censer_ding",
+   "group": "props",
+   "source": "sketchfab",
+   "file": "sketchfab/ding_censer_with_an_openwork_cover.glb",
+   "name": "Ding censer with an openwork cover",
+   "author": "WirtualneMuzeaMalopolski",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/1034cd8e4df5430cb874f012415a43b0",
+   "role": "正堂鼎式香爐",
+   "fit": {
+    "h": 0.8
+   },
+   "triTarget": 3500,
+   "texSize": 512,
+   "metal": 0.5,
+   "rough": 0.5
+  },
+  {
+   "id": "vase_blue",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/antique_ceramic_vase_01/antique_ceramic_vase_01_1k.gltf",
+   "name": "antique_ceramic_vase_01",
+   "author": "James Ray Cock",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/antique_ceramic_vase_01",
+   "role": "青花瓶",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2000,
+   "texSize": 256
+  },
+  {
+   "id": "jar_wine",
+   "group": "props",
+   "source": "sketchfab",
+   "file": "sketchfab/584.147.glb",
+   "name": "纹饰陶罐（584.147）",
+   "author": "wsmuseum",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/073534d7bb5d4b90a86c44316c0f112d",
+   "role": "酒罈（陶罐）",
+   "fit": {
+    "h": 0.6
+   },
+   "triTarget": 2000,
+   "texSize": 512
+  },
+  {
+   "id": "pot_herb",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/ceramic_pot/ceramic_pot_1k.gltf",
+   "name": "ceramic_pot",
+   "author": "Aron Łyczek",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/ceramic_pot",
+   "role": "藥舖煎藥陶鍋",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2000,
+   "texSize": 256
+  },
+  {
+   "id": "barrel",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/wine_barrel_01/wine_barrel_01_1k.gltf",
+   "name": "wine_barrel_01",
+   "author": "James Ray Cock",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/wine_barrel_01",
+   "role": "木桶",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2000,
+   "texSize": 512
+  },
+  {
+   "id": "bucket",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/wooden_bucket_01/wooden_bucket_01_1k.gltf",
+   "name": "wooden_bucket_01",
+   "author": "James Ray Cock",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/wooden_bucket_01",
+   "role": "提水木桶",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 1800,
+   "texSize": 256
+  },
+  {
+   "id": "tub",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/wooden_bucket_02/wooden_bucket_02_1k.gltf",
+   "name": "wooden_bucket_02",
+   "author": "James Ray Cock",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/wooden_bucket_02",
+   "role": "木盆",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 1800,
+   "texSize": 256
+  },
+  {
+   "id": "crate",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/wooden_crate_01/wooden_crate_01_1k.gltf",
+   "name": "wooden_crate_01",
+   "author": "James Ray Cock",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/wooden_crate_01",
+   "role": "貨棧木箱",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2000,
+   "texSize": 512
+  },
+  {
+   "id": "basket_lid",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/wicker_basket_02/wicker_basket_02_1k.gltf",
+   "name": "wicker_basket_02",
+   "author": "Kuutti Siitonen",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/wicker_basket_02",
+   "role": "有蓋竹簍",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2500,
+   "texSize": 256
+  },
+  {
+   "id": "basket_flat",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/wicker_basket_01/wicker_basket_01_1k.gltf",
+   "name": "wicker_basket_01",
+   "author": "Kuutti Siitonen",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/wicker_basket_01",
+   "role": "淺竹籃",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2500,
+   "texSize": 256
+  },
+  {
+   "id": "lantern_red",
+   "group": "props",
+   "source": "sketchfab",
+   "file": "sketchfab/chinese_lamp_-_4096px2.glb",
+   "name": "Chinese Lamp - 4096px²",
+   "author": "mark-peters",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/9eddb4de98274410b7405f7ea6667f3a",
+   "role": "紅燈籠",
+   "fit": {
+    "h": 0.75
+   },
+   "triTarget": 2000,
+   "texSize": 512,
+   "keep": [
+    "emissive"
+   ]
+  },
+  {
+   "id": "stool_carved",
+   "group": "props",
+   "source": "sketchfab",
+   "file": "sketchfab/chinese_wooden_stool_scaniverse.glb",
+   "name": "Chinese Wooden Stool (Scaniverse)",
+   "author": "db4",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/000d500df82b44d9879cd604d38ee87b",
+   "role": "雕花圓凳",
+   "fit": {
+    "h": 0.47
+   },
+   "triTarget": 2500,
+   "texSize": 512,
+   "crop": {
+    "y": [
+     0.03,
+     1
+    ]
+   }
+  },
+  {
+   "id": "escort_cart",
+   "group": "props",
+   "source": "sketchfab",
+   "file": "sketchfab/medieval_wooden_cart.glb",
+   "name": "Medieval wooden cart",
+   "author": "rakutin",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/c4ee19920e9b45aaa6ebe37839b1ad2a",
+   "role": "鏢車（雙輪木板車＋油布）",
+   "fit": {
+    "w": 3.2
+   },
+   "triTarget": 5000,
+   "texSize": 512
+  },
+  {
+   "id": "escort_chests",
+   "group": "props",
+   "source": "sketchfab",
+   "file": "sketchfab/old_wooden_safe_boxes.glb",
+   "name": "Old Wooden Safe Boxes",
+   "author": "Mad_Lobster_Workshop",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/7ba3976ec79242ceaa1f29ea856bf5df",
+   "role": "鏢箱（包鐵角木箱一組）",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 8000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "五只開蓋空箱排成一列，不像封好的鏢箱；4 張貼圖 351 KB。鏢箱改用 camphor_chest、crate。"
+  },
+  {
+   "id": "lacquer_box",
+   "group": "props",
+   "source": "objaverse",
+   "file": "objaverse/341500e6ceec44f4aea3db16c4fe000b.glb",
+   "name": "Carved lacquer box",
+   "author": "WirtualneMuzeaMalopolski",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/341500e6ceec44f4aea3db16c4fe000b",
+   "role": "剔紅漆盒（鏢貨寶物）",
+   "fit": {
+    "h": 0.3
+   },
+   "triTarget": 2000,
+   "texSize": 256
+  },
+  {
+   "id": "camphor_chest",
+   "group": "props",
+   "source": "objaverse",
+   "file": "objaverse/30327c7a58544ff2806601c54be5f499.glb",
+   "name": "Chinese Camphor Chest - Photogrammetry Scan",
+   "author": "aqpetteri",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/30327c7a58544ff2806601c54be5f499",
+   "role": "樟木雕花箱（鏢貨箱）",
+   "fit": {
+    "w": 0.96
+   },
+   "triTarget": 3500,
+   "texSize": 512
+  },
+  {
+   "id": "hammer",
+   "group": "props",
+   "source": "polyhaven",
+   "file": "polyhaven/cross_pein_hammer/cross_pein_hammer_1k.gltf",
+   "name": "cross_pein_hammer",
+   "author": "Tics",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://polyhaven.com/a/cross_pein_hammer",
+   "role": "鍛爐錘",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 1500,
+   "texSize": 256
+  },
+  {
+   "id": "bk_lion",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/50b661cb_chinese_porcelain_lion.glb",
+   "name": "Chinese Porcelain Lion",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/50b661cb-119d-4e80-8a9c-5c6996cbb0c8/",
+   "role": "案上綠釉瓷獅（大堂櫃台、帳桌擺件）",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/50b661cb_chinese_porcelain_lion.glb",
+     "tris": 2000,
+     "tex": 512,
+     "voxel": 0.003,
+     "solid": 0,
+     "ext": 0.004,
+     "ray": 0.01
+    }
+   },
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 0,
+   "texSize": 256,
+   "keep": [],
+   "notes": "10.9 萬面掃描；meshopt 減到 3k 要放寬到 Permissive，貼圖 UV 碎成馬賽克，改烘焙（Draco 原檔由 Blender 直接匯入）。"
+  },
+  {
+   "id": "bk_censer",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/26203a8b_chinese_tripod_censer.glb",
+   "name": "Chinese Tripod Censer",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/26203a8b-8c21-49ab-803e-55c99c2dd5e0/",
+   "role": "掐絲琺瑯三足香爐（鏢局門前／大堂，落地大爐）",
+   "fit": {
+    "h": 0.9
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "keep": [],
+   "notes": "原件高 0.23 m 是案上小爐；放大成落地爐用，擺案上時 Batch 縮 0.25。"
+  },
+  {
+   "id": "bk_lotus_lamp",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/bdae1d9a_chinese_lotus_lamp.glb",
+   "name": "Chinese lotus lamp",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/bdae1d9a-0510-48db-a950-1aa7ce639757/",
+   "role": "銅蓮花油燈（大堂案頭）",
+   "fit": {
+    "h": 0.42
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "keep": []
+  },
+  {
+   "id": "bk_candlestick",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/eb156fb7_chinese_candlestick.glb",
+   "name": "Chinese Candlestick",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/eb156fb7-b6d3-4777-a5f4-2282c2ca0d2f/",
+   "role": "鳳鳥石燭台（大堂翹頭案兩側）",
+   "fit": {
+    "h": 0.36
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "keep": []
+  },
+  {
+   "id": "bk_chair",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "_decoded/blenderkit/0716c650_china_chair.glb",
+   "name": "China Chair",
+   "author": "PBRPX",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/0716c650-c735-493b-8f3a-3be2edfd3115/",
+   "role": "舊漆圈椅（茶棚、帳桌）",
+   "prep": {
+    "decode": "blenderkit/0716c650_china_chair.glb"
+   },
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "keep": []
+  },
+  {
+   "id": "bk_steamer",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "_baked/blenderkit/8571cabc_scan_chinese_steamer.glb",
+   "name": "Scan Chinese Steamer",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/8571cabc-3331-424e-8943-10d8427f30e3/",
+   "role": "竹蒸籠一屜＋蓋（茶棚、點心攤）",
+   "fit": {
+    "w": 0.95
+   },
+   "triTarget": 0,
+   "texSize": 256,
+   "keep": [],
+   "notes": "原檔把籠屜與籠蓋並排放（0.95×0.38×1.45 m，單位偏大），整組正規化到最長邊 0.95 m。meshopt 減面 UV 碎裂，改烘焙成一個材質（原本兩個）。",
+   "prep": {
+    "bake": {
+     "src": "blenderkit/8571cabc_scan_chinese_steamer.glb",
+     "tris": 2000,
+     "tex": 512,
+     "voxel": 0.008,
+     "solid": 0.01,
+     "ext": 0.012,
+     "ray": 0.03
+    }
+   }
+  },
+  {
+   "id": "bk_scoop",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "_decoded/blenderkit/d88b73c8_china_water_scoop.glb",
+   "name": "China Water scoop",
+   "author": "PBRPX",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/d88b73c8-4a8f-456e-8bea-0434b0c7d1fa/",
+   "role": "鐵瓢（水缸、灶邊）",
+   "prep": {
+    "decode": "blenderkit/d88b73c8_china_water_scoop.glb"
+   },
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 1500,
+   "texSize": 256,
+   "keep": []
+  },
+  {
+   "id": "bk_anvil",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/3a4d8f34_new_anvil.glb",
+   "name": "New Anvil",
+   "author": "Joshua Whitney",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/3a4d8f34-f89f-4f5b-a390-9ade34ffdf24/",
+   "role": "鐵砧（石老鐵的鍛爐）",
+   "fit": {
+    "w": 0.78
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "keep": [],
+   "notes": "原圖 8K 幾乎是單色灰鐵，256 就夠。模型只有砧體（高約 0.36 m），要擺在鍛爐原本的程式木墩上。"
+  },
+  {
+   "id": "bk_red_lamp",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "_decoded/blenderkit/b97e433c_chinese_red_lamp.glb",
+   "name": "Chinese red lamp",
+   "author": "Kin Chen",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/b97e433c-2eb1-46b8-9633-5bdee21e4e7a/",
+   "role": "紅紙燈籠",
+   "fit": {
+    "h": 0.6
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "skip": true,
+   "reason": "實際是橙色素面紙燈籠（貼圖幾乎單色），1.35 萬面的竹編頂減到 2k 會糊；lantern_red 已有，程式燈籠串留著。"
+  },
+  {
+   "id": "bk_rusty_jar",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/e9b9ad05_scan_rusty_jar_02.glb",
+   "name": "Scan Rusty Jar 02",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/e9b9ad05-2782-4a48-8e51-adf06b7af5e3/",
+   "role": "鏽罐",
+   "fit": {
+    "h": 0.4
+   },
+   "triTarget": 1500,
+   "texSize": 256,
+   "skip": true,
+   "reason": "是 7 cm 的鏽鐵罐頭（像現代馬口鐵罐），不像中式陶罐或醬缸。"
+  },
+  {
+   "id": "bk_farm_cart",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/f281551a_farm_cart.glb",
+   "name": "Farm Cart",
+   "author": "The Doctor By Design",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/f281551a-6afb-4688-a50b-b9a929966e0c/",
+   "role": "農用板車",
+   "fit": {
+    "w": 1.6
+   },
+   "triTarget": 3000,
+   "texSize": 512,
+   "skip": true,
+   "reason": "只有輪軸與車架（沒有車板），紅漆輻條輪偏西式；53 萬面、2 材質。不比現有 escort_cart 更像中式板車。"
+  },
+  {
+   "id": "bk_barrel",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/cf46a1d5_wooden_barrel.glb",
+   "name": "Wooden Barrel",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/cf46a1d5-41f7-47b7-95eb-097a70058cc5/",
+   "role": "木桶",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 1200,
+   "texSize": 256,
+   "skip": true,
+   "reason": "西式橡木桶，與 barrel 重複。"
+  },
+  {
+   "id": "bk_box",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/370524b8_wooden_box.glb",
+   "name": "Wooden box",
+   "author": "Free poly",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/370524b8-0cc7-4ead-92fe-253c264cacc1/",
+   "role": "木箱",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 300,
+   "texSize": 256,
+   "skip": true,
+   "reason": "素面木箱，與 crate 重複。"
+  },
+  {
+   "id": "bk_halberd_catcher",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/cc8ca915_man_catcher_halberd.glb",
+   "name": "Man-catcher halberd",
+   "author": "Joachim Bornemann",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/cc8ca915-3228-484b-b252-60bf433943c9/",
+   "role": "捕人叉戟",
+   "fit": {
+    "h": 2.0
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "skip": true,
+   "reason": "歐式捕人叉（Menschenfänger）、4 材質；不是中式兵器。"
+  },
+  {
+   "id": "bk_halberd",
+   "group": "props",
+   "source": "blenderkit",
+   "file": "blenderkit/878d7c1f_halberd.glb",
+   "name": "Halberd",
+   "author": "Joachim Bornemann",
+   "license": "CC0 1.0",
+   "sourceUrl": "https://www.blenderkit.com/asset-gallery-detail/878d7c1f-62eb-46bc-a423-a9cce9f78c12/",
+   "role": "戟",
+   "fit": {
+    "h": 2.4
+   },
+   "triTarget": 2000,
+   "texSize": 256,
+   "skip": true,
+   "reason": "歐式斧槍（halberd）、3 材質；練功場兵器架已是程式建模。"
+  },
+  {
+   "id": "arm_dao",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/chinese_dao_from_song_dynasty_sword.glb",
+   "name": "Chinese Dao from Song Dynasty (Sword)",
+   "author": "leeeck",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/e1bac7a95b2e4ffa8dafb2dca1c16cf3",
+   "role": "六器・截江刀",
+   "pca": true,
+   "fit": {
+    "len": 0.95,
+    "grip": 0.19
+   },
+   "triTarget": 4000,
+   "texSize": 512,
+   "keep": [
+    "orm"
+   ],
+   "flip": [
+    0,
+    0,
+    180
+   ],
+   "notes": "單刃：刃口量剖面厚度確認朝 +Z（flip 繞 Z 180°＝原本繞 X 180° 再把刃口轉向）。 只留 ORM、不留法線：六器全部共用同一種材質組態（底色＋ORM），SwiftShader 開場只多編一支著色器。",
+   "dropMaterials": "^Box041__0$"
+  },
+  {
+   "id": "arm_jian",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/chinese_jian_of_song_dynasty_sword.glb",
+   "name": "Chinese Jian of Song Dynasty (Sword)",
+   "author": "leeeck",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/a469b185647d4ba39c97db0e51c6b602",
+   "role": "六器・青鋒劍",
+   "pca": true,
+   "fit": {
+    "len": 0.95,
+    "grip": 0.12
+   },
+   "triTarget": 4000,
+   "texSize": 512,
+   "keep": [
+    "orm"
+   ],
+   "flip": [
+    180,
+    0,
+    0
+   ],
+   "notes": "只留 ORM、不留法線：六器全部共用同一種材質組態（底色＋ORM），SwiftShader 開場只多編一支著色器。"
+  },
+  {
+   "id": "arm_spear",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/spear.glb",
+   "name": "Spear",
+   "author": "DafVader",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/6e48245075af4dd792a5449007407585",
+   "role": "六器・白蠟長槍（紅纓另以程式補）",
+   "pca": true,
+   "fit": {
+    "len": 2.2,
+    "grip": 0.35
+   },
+   "triTarget": 3000,
+   "texSize": 512,
+   "keep": [
+    "orm"
+   ],
+   "crop": {
+    "y": [
+     0.212,
+     1
+    ]
+   },
+   "notes": "原檔兩頭都有槍頭：crop 去掉尾端那一頭（套筒留著當鐏），紅纓與鐏尖在 weapons.js 以程式補。 只留 ORM、不留法線：六器全部共用同一種材質組態（底色＋ORM），SwiftShader 開場只多編一支著色器。"
+  },
+  {
+   "id": "arm_fist",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/knuckle_dusters.glb",
+   "name": "Knuckle Dusters",
+   "author": "vmatthew",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/7d4e69caea6b42a49d3db76ef2494228",
+   "role": "六器・鐵指虎",
+   "fit": {
+    "len": 0.11,
+    "grip": 0.5
+   },
+   "triTarget": 4000,
+   "texSize": 256,
+   "keep": [],
+   "dropMaterials": "^Brass_Knuckle$",
+   "pca": true,
+   "metal": 0.85,
+   "rough": 0.42,
+   "notes": "畫面上很小：不留法線／ORM（少一組貼圖、少一種著色器變體，SwiftShader 首幀編譯較快），金屬感用 metal／rough 常數。"
+  },
+  {
+   "id": "arm_bow",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/mongol_bow.glb",
+   "name": "Mongol Bow",
+   "author": "scott-ewing",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/596e833e014a4723994664bd5432d80d",
+   "role": "六器・牛角弓",
+   "pca": true,
+   "fit": {
+    "len": 1.2,
+    "grip": 0.5
+   },
+   "triTarget": 6000,
+   "texSize": 512,
+   "keep": [],
+   "notes": "畫面上很小：不留法線／ORM（少一組貼圖、少一種著色器變體，SwiftShader 首幀編譯較快），金屬感用 metal／rough 常數。"
+  },
+  {
+   "id": "arm_quiver",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/old_red_leather_quiver.glb",
+   "name": "Old red leather quiver",
+   "author": "anderson.paulo.pixel",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/4324ef6354894d979c4cb781a8b82843",
+   "role": "牛角弓的箭筒",
+   "fit": {
+    "h": 0.45
+   },
+   "triTarget": 2400,
+   "texSize": 256,
+   "keep": [],
+   "notes": "畫面上很小：不留法線／ORM（少一組貼圖、少一種著色器變體，SwiftShader 首幀編譯較快），金屬感用 metal／rough 常數。"
+  },
+  {
+   "id": "arm_knife",
+   "group": "arms",
+   "source": "sketchfab",
+   "file": "sketchfab/throwing_knife.glb",
+   "name": "throwing_knife",
+   "author": "strmcat",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://sketchfab.com/3d-models/17a31b12e21945418b0e50ab209e5db8",
+   "role": "六器・柳葉飛針（出手單支的外形）",
+   "pca": true,
+   "fit": {
+    "len": 0.2,
+    "grip": 0.15
+   },
+   "triTarget": 1500,
+   "texSize": 256,
+   "keep": [],
+   "flip": [
+    180,
+    0,
+    0
+   ],
+   "metal": 0.85,
+   "rough": 0.38,
+   "notes": "畫面上很小：不留法線／ORM（少一組貼圖、少一種著色器變體，SwiftShader 首幀編譯較快），金屬感用 metal／rough 常數。"
+  },
+  {
+   "id": "g_bottle_clay",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/container_bottle_clay_a01.glb",
+   "name": "container_bottle_clay_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_egg_chicken",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_egg_chicken_a01.glb",
+   "name": "food_egg_chicken_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_blueTilapia",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_fish_blueTilapia_a01.glb",
+   "name": "food_fish_blueTilapia_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_rainbowTrout",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_fish_rainbowTrout_a01.glb",
+   "name": "food_fish_rainbowTrout_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_spottedSardine",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_fish_spottedSardine_a01.glb",
+   "name": "food_fish_spottedSardine_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_stripedBass",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_fish_stripedBass_a01.glb",
+   "name": "food_fish_stripedBass_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_tandyrNan",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_prepared_bread_tandyrNan_a01.glb",
+   "name": "food_prepared_bread_tandyrNan_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_bitterMelon",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_bitterMelon_a01.glb",
+   "name": "food_produce_bitterMelon_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_bocChoy",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_bocChoy_a01.glb",
+   "name": "food_produce_bocChoy_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_cucumber",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_cucumber_a01.glb",
+   "name": "food_produce_cucumber_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_eggplant",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_eggplant_a01.glb",
+   "name": "food_produce_eggplant_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_garlic_bulb",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_garlic_bulb_a01.glb",
+   "name": "food_produce_garlic_bulb_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_mushroom",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_mushroom_a01.glb",
+   "name": "food_produce_mushroom_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_peach",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_peach_a01.glb",
+   "name": "food_produce_peach_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_pear",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_pear_a01.glb",
+   "name": "food_produce_pear_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_squash",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_squash_a01.glb",
+   "name": "food_produce_squash_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_sweetPotato",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_sweetPotato_a01.glb",
+   "name": "food_produce_sweetPotato_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_tangerine",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/food_produce_tangerine_a01.glb",
+   "name": "food_produce_tangerine_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_bowl",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/kitchenware_bowl_b01.glb",
+   "name": "kitchenware_bowl_b01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_cuttingBoard",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/kitchenware_cuttingBoard_a01.glb",
+   "name": "kitchenware_cuttingBoard_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02,
+   "rot": [
+    0,
+    0,
+    90
+   ],
+   "notes": "原檔直立，轉平放。"
+  },
+  {
+   "id": "g_ladle",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/kitchenware_ladle_a01.glb",
+   "name": "kitchenware_ladle_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_rollingPin",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/kitchenware_rollingPin_a01.glb",
+   "name": "kitchenware_rollingPin_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  },
+  {
+   "id": "g_spoon_wooden",
+   "group": "goods",
+   "source": "simready",
+   "file": "simready/utensil_spoon_wooden_a01.glb",
+   "name": "utensil_spoon_wooden_a01",
+   "author": "NVIDIA（SimReady，經 Hugging Face codepawl/simready-glb 轉 GLB）",
+   "license": "CC BY 4.0",
+   "sourceUrl": "https://huggingface.co/datasets/codepawl/simready-glb",
+   "role": "攤位貨品",
+   "fit": {
+    "scale": 1
+   },
+   "triTarget": 900,
+   "texSize": 128,
+   "error": 0.02
+  }
+ ]
+}

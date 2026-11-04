@@ -19,7 +19,7 @@ const SET_DEF = {
   gpu: { d: 'auto', o: ['auto', 'soft', 'low', 'mid', 'high', 'ultra'] },
   res: { d: GPU.tier === 'soft' ? 'auto' : '1080p', o: ['1080p', 'auto', .5, .6, .75, .85, 1] }, msaa: { d: GT().msaa, o: [0, 2, 4, 8] }, fps: { d: GT().fps, o: [30, 60, 0] }, pauseBlur: { d: true }, ped: { d: 1, lo: .2, hi: 1, st: .1 }, dist: { d: GT().dist, lo: .6, hi: 1.2, st: .1 },
   // 進階影像：refl 0 關、1 低（三分之一解析度）、2 高（一半）
-  refl: { d: GT().refl, o: [0, 1, 2] }, reflMin: { d: 2, o: [0, 1, 2, 3] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
+  refl: { d: GT().refl, o: [0, 1, 2] }, reflMin: { d: 2, o: [0, 1, 2, 3] }, farMin: { d: .5, o: [0, .5, 1] }, ssr: { d: 1, o: [0, 1] }, bloom: { d: 1, lo: 0, hi: 1.5, st: .1 }, blur: { d: reduceMotion ? 0 : 1, lo: 0, hi: 1, st: .1 }, rainFx: { d: true }, ca: { d: true }, grain: { d: true },
   // 清晨的光（00-core.js 的 uGI、70-render.js 的體積光）：vol 0 是不畫體積光（等級沒有步數時固定關掉），mist 是清晨薄霧的濃度
   vol: { d: GT().vol ? 1 : 0, lo: 0, hi: 1.5, st: .1 }, mist: { d: 0, lo: 0, hi: 1.5, st: .1 },   // 使用者：拿掉霧氣（清晨薄霧預設關掉，設定裡還能打開）
   // 環境光遮蔽（70-render.js 的 mAO）：強度，0 是不畫；等級沒開（GT().ao）時不建渲染目標，固定關掉

@@ -8,7 +8,9 @@ import { MeshBasicNodeMaterial } from 'three/webgpu';
 import { Fn, uv, float, vec3, sin, time, smoothstep, mx_noise_float, positionLocal, mix, color } from 'three/tsl';
 import { Kit, T, rng, roofGeo, roofRidges, textTexture, pennantTexture, decalMaterial, gearShape, MAT } from './kit.js';
 import { lumpGeo } from './creatures.js';
-import { makeWaterMaterial } from './shaders.js';
+import { makeWaterMaterial, groundHeight } from './shaders.js';
+import { Batch } from './assets.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -217,8 +219,22 @@ function boatKit(len = 6, w = 1.5, seed = 1, ferry = false) {
   const rim2 = [];
   for (let i = 0; i <= n; i++) rim2.push(new THREE.Vector3(...pt(i, m)));
   k.add('wood', new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rim2), 20, 0.05, 4), 0x6a4a30);
-  // 甲板
-  k.box('wood', 0x7a5a3a, len * 0.7, 0.05, w * 0.82, T(0, 0.3, 0));
+  // 甲板：跟著船身在 y = 0.3 的內寬收窄（船頭船尾起翹，船底比甲板高的那兩段就不鋪），不從船舷穿出去
+  {
+    const DY = 0.3, half = [];
+    for (let i = 0; i <= 40; i++) {
+      const u = i / 40;
+      const c = (0.55 + Math.pow(Math.abs(u - 0.5) * 2, 2.5) * 0.45 - DY) / 0.55;
+      if (c >= 0.995) continue;
+      half.push([(u - 0.5) * len, Math.sqrt(1 - c * c) * (w / 2) * Math.pow(Math.sin(u * Math.PI), 0.55) * 0.94]);
+    }
+    const sh = new THREE.Shape();
+    half.forEach(([x, z], i) => (i ? sh.lineTo(x, z) : sh.moveTo(x, z)));
+    for (let i = half.length - 1; i >= 0; i--) sh.lineTo(half[i][0], -half[i][1]);
+    const dg = new THREE.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: false });
+    dg.rotateX(Math.PI / 2);
+    k.add('wood', dg, 0x7a5a3a, T(0, DY + 0.025, 0));
+  }
   // 竹篷：一段段半圓殼（黑篷）
   const segs = ferry ? 2 : 3;
   for (let i = 0; i < segs; i++) {
@@ -380,8 +396,10 @@ function buildQingping({ stalls, playerStall }) {
   const k = new Kit(11);
   const npcs = [];
   const colliders = [];
-  const box = (x0, y0, z0, x1, y1, z1) => colliders.push(new THREE.Box3(V3(x0, y0, z0), V3(x1, y1, z1)));
+  const box = (x0, y0, z0, x1, y1, z1, soft = false) => { const b = new THREE.Box3(V3(x0, y0, z0), V3(x1, y1, z1)); b.soft = soft; colliders.push(b); return b; };
   const hFor = (c) => (Math.abs(c) < 2 ? 5.4 : 4.6); // 牌坊柱連屋頂的高度
+  const fadeGroups = [];
+  const mb = new Batch('qingping-models'); // 匯入模型（assets.js）：同一件擺幾次都只算一個 draw call
 
   // ── 北：順安鏢局（門樓、院牆、正廳、兩面大鏢旗） ──
   // 門樓
@@ -417,15 +435,21 @@ function buildQingping({ stalls, playerStall }) {
     // 門樓兩側掛燈籠
     for (const sx of [-1, 1]) hangingLantern(g, sx * 2.1, 3.0, 1.1, 1.15);
     // 門樓在 g 裡以 +z 為正面建模；轉半圈讓台階、門柱、燈籠和匾額朝向南邊的街（−z）
-    k.merge(g, T(gx, 0, gz, 0, Math.PI, 0));
-    box(-4.2, 0, gz - 1.3, 4.2, 5.5, gz + 0.7);
+    // 門樓單獨成一組：預設追尾鏡頭在主角北邊，主角站到門前時鏡頭落在院子上空、整座門樓擋在中間，
+    // 這時整座點狀溶掉（fadeGroups，scene.js 每幀判斷），鏡頭不爬高、不拉近
+    const gk = new Kit(6);
+    gk.merge(g, T(gx, 0, gz, 0, Math.PI, 0));
+    const gateBox = box(-4.8, 0, gz - 2.0, 4.8, 5.8, gz + 1.9, true); // 包到屋簷
     // 匾額「順安鏢局」（朝街）
     // 掛在門楣兩道枋子前面、屋簷下（舊位置 y 4.25 埋在屋頂裡看不到）
     const plaque = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.6), decalMaterial(textTexture('順安鏢局', { w: 640, h: 175, bg: '#1d1814', fg: '#d9b35a' }), { alphaTest: 0 }));
     plaque.position.set(gx, 3.5, gz - 0.86);
     plaque.rotation.y = Math.PI;
     group.add(plaque);
-    k.box('wood', 0xb08d48, 2.4, 0.76, 0.06, T(gx, 3.5, gz - 0.82));
+    gk.box('wood', 0xb08d48, 2.4, 0.76, 0.06, T(gx, 3.5, gz - 0.82));
+    const gate = gk.build({ name: 'agency-gate', see: true });
+    group.add(gate);
+    fadeGroups.push({ box: gateBox, objs: [gate, plaque] });
   }
   // 院牆
   for (const [x0, x1] of [[-16, -4.1], [4.1, 16]]) {
@@ -436,23 +460,47 @@ function buildQingping({ stalls, playerStall }) {
     // 牆頂瓦脊：四稜錐先在幾何上轉 45°（稜邊對齊 x、z 軸）再沿 x 拉長。T() 是先縮放後旋轉，
     // 把 45° 放進 T() 會把拉長的稜錐斜轉出牆外，在街上變成一道 6 m 長的暗色斜楔。
     k.add('stone', new THREE.CylinderGeometry(0.01, 0.48, 0.32, 4, 1).rotateY(Math.PI / 4), 0x2c2e30, T(cx, 2.95, 21.8, 0, 0, 0, w * 1.42, 1, 1));
-    box(x0, 0, 21.4, x1, 3, 22.2);
+    box(x0, 0, 21.4, x1, 3, 22.2, true);
   }
   for (const sx of [-1, 1]) {
     k.box('stone', 0xd5ccb6, 0.5, 2.6, 12, T(sx * 16, 1.3, 27.8));
     k.box('stone', 0x34373a, 0.9, 0.18, 12.2, T(sx * 16, 2.7, 27.8));
   }
   // 院內正廳與廂房（屋頂露出牆頭）
-  building(k, T(0, 0, 28.5, 0, Math.PI, 0), { w: 13, d: 6, h: 3.8, rise: 2.0, front: 'doors', seed: 21 }); // 正廳朝門樓
-  building(k, T(-11, 0, 26.5, 0, Math.PI / 2, 0), { w: 6, d: 4, h: 3.0, rise: 1.4, front: 'doors', seed: 22 });
-  building(k, T(11, 0, 26.5, 0, -Math.PI / 2, 0), { w: 6, d: 4, h: 3.0, rise: 1.4, front: 'doors', seed: 23 });
-  // 走路沒有碰撞，主角可以穿過門樓走進院子（可走範圍到 z 25.5）：正廳與廂房也要擋鏡頭
-  box(-7.4, 0, 24.6, 7.4, 6.2, 31.8); // 前緣包到屋簷
-  box(-13.4, 0, 23.2, -8.6, 4.8, 29.8);
-  box(8.6, 0, 23.2, 13.4, 4.8, 29.8);
+  // 正廳：匯入的歇山大殿（qp_storehouse，17.5×6.5×9.2 m，台基 0.6 m），轉半圈朝門樓。
+  // 主角站在門前時鏡頭就在正廳屋頂上方，跟門樓一樣整棟溶掉
+  {
+    const hb = new Batch('agency-hall');
+    hb.add('qp_storehouse', 0, 0, 28.9, Math.PI);
+    const hall = hb.build();
+    group.add(hall);
+    fadeGroups.push({ box: new THREE.Box3(V3(-9, 0, 24.1), V3(9, 6.8, 33.6)), objs: [hall] });
+  }
+  // 兩側廂房：匯入的歇山小屋（bk_house，7.4×5.2×6.6 m，正面 +Z），轉 ±90° 正面朝院子、縮 0.89 塞進原廂房的位置（占地 5.9×6.6、高 4.6）。
+  // 兩棟同一批次（一個 draw call），鏡頭穿過任一棟就整批溶掉（fadeGroups 的 boxes）
+  // 院子走不進去（MAP_BLOCKERS），這幾棟只在鏡頭擋到時溶掉（soft），鏡頭不爬高
+  box(-9, 0, 24.1, 9, 6.8, 33.6, true);
+  {
+    const wb = new Batch('agency-wings');
+    const boxes = [-1, 1].map((sx) => wb.add('bk_house', sx * 12.6, 0, 27.4, sx * -Math.PI / 2, 0.89));
+    if (boxes.every(Boolean)) {
+      const wings = wb.build();
+      group.add(wings);
+      for (const b of boxes) { b.soft = true; colliders.push(b); }
+      fadeGroups.push({ boxes, objs: [wings] });
+    }
+  }
   // 兩根大鏢旗
   flagpole(k, group, -5.2, 20.6, 7.5, '鏢', 2.6, 0);
   flagpole(k, group, 5.2, 20.6, 7.5, '安', 2.6, 0);
+  // 門前一輛待發的鏢車：車上兩只樟木鏢箱，箱上一只漆盒
+  mb.add('escort_cart', -8.6, 0, 17.6, 0.35);
+  mb.add('camphor_chest', -8.7, 0.98, 17.65, 0.35, 0.82);
+  mb.add('camphor_chest', -8.45, 1.39, 17.55, 0.25, 0.7);
+  mb.add('barrel', -11.2, 0, 18.6, 0.4, 0.95);
+  mb.add('bucket', -10.5, 0, 19.3, 1.2);
+  // 門前右側一只落地的掐絲琺瑯三足香爐（bk_censer），在祁鏢頭與東邊大鏢旗之間，不擋縮圖鏡頭裡的主角
+  mb.add('bk_censer', 3.8, 0, 19.9, Math.PI + 0.2, 1, { shadow: true });
   // 祁鏢頭與帳房阿檀（門前一張小帳桌）
   npcs.push({ id: 'npc-chief', name: '祁鏢頭', sub: '順安鏢局總鏢頭', kind: 'npc', look: { preset: 'chief', gender: 'Male', hair: 0, height: 1.03 }, x: 2.4, z: 19.2, rotY: 0.25, anim: 'idle' });
   npcs.push({ id: 'npc-clerk', name: '阿檀', sub: '帳房', kind: 'npc', look: { preset: 'clerk', gender: 'Male', hair: 1, height: 0.97 }, x: -2.9, z: 19.6, rotY: -0.2, anim: 'idle' });
@@ -484,8 +532,8 @@ function buildQingping({ stalls, playerStall }) {
   // ── 東：茶棚、練功場、東門牌坊 ──
   {
     const g = new Kit(41);
-    // 茶棚：四柱布頂、方桌長凳
-    for (const [x, z] of [[-2.6, -1.8], [2.6, -1.8], [-2.6, 1.8], [2.6, 1.8]]) g.box('wood', 0x5a4028, 0.14, 2.7, 0.14, T(x, 1.35, z));
+    // 茶棚：四柱布頂、方桌長凳。布頂往前後兩緣垂（柱位那裡只剩 2.53 m），柱高 2.5 收在布底下，柱頭不從布面穿出
+    for (const [x, z] of [[-2.6, -1.8], [2.6, -1.8], [-2.6, 1.8], [2.6, 1.8]]) g.box('wood', 0x5a4028, 0.14, 2.5, 0.14, T(x, 1.25, z));
     const canvas = new THREE.PlaneGeometry(6, 4.4, 6, 4);
     const cp = canvas.attributes.position;
     for (let i = 0; i < cp.count; i++) cp.setZ(i, -Math.abs(cp.getY(i)) * 0.18 + Math.sin(cp.getX(i) * 1.2) * 0.04);
@@ -495,17 +543,31 @@ function buildQingping({ stalls, playerStall }) {
     for (const [x, z] of [[-1.4, -0.6], [1.3, 0.7]]) {
       g.box('wood', 0x7a5a3a, 1.0, 0.07, 1.0, T(x, 0.78, z));
       for (const [dx, dz] of [[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]]) g.box('wood', 0x5a4028, 0.06, 0.76, 0.06, T(x + dx, 0.38, z + dz));
-      for (const sz of [-1, 1]) g.box('wood', 0x6a4a30, 1.1, 0.06, 0.26, T(x, 0.45, z + sz * 0.75));
-      g.lathe('stone', 0xd8d2c0, [[0, 0], [0.07, 0], [0.09, 0.08], [0.05, 0.13], [0, 0.13]], 10, T(x + 0.2, 0.82, z));
-      for (let c = 0; c < 2; c++) g.cyl('stone', 0xe8e2d0, 0.04, 0.035, 0.05, 8, T(x - 0.2 + c * 0.15, 0.845, z + 0.2));
     }
-    // 爐灶與水缸
+    // 爐灶與水缸（灶上的蒸籠、缸蓋上的鐵瓢是匯入模型，見下）
     g.box('stone', 0x6a6258, 0.9, 0.8, 0.7, T(2.2, 0.4, -1.4));
-    g.cyl('iron', 0x2a2a2a, 0.32, 0.25, 0.25, 12, T(2.2, 0.9, -1.4));
     g.lathe('stone', 0x4a3a2c, [[0, 0], [0.32, 0], [0.4, 0.4], [0.38, 0.7], [0, 0.7]], 14, T(-2.3, 0, 1.4));
-    hangingLantern(g, -2.2, 2.2, 1.9, 0.9);
-    hangingLantern(g, 2.2, 2.2, 1.9, 0.9);
     k.merge(g, T(18.8, 0, -7.5, 0, -Math.PI / 2, 0));
+    // 桌上的茶碗、陶壺，棚簷掛兩盞紅燈籠（茶棚在 g 裡建模後繞 y 轉 −90°：local (x, z) → world (18.8 − z, −7.5 + x)；
+    // 舊版寫成 −7.5 − x，桌上的碗壺、灶上的東西都落到鏡像的位置，懸在半空）
+    const tw = (lx, lz) => [18.8 - lz, -7.5 + lx];
+    for (const [lx, lz] of [[-1.4, -0.6], [1.3, 0.7]]) {
+      const [wx, wz] = tw(lx, lz);
+      mb.add('g_bottle_clay', wx + 0.15, 0.815, wz - 0.2, 0.4, 1, { shadow: false });
+      mb.add('g_bowl', wx - 0.2, 0.815, wz + 0.05, 0, 1, { shadow: false });
+      mb.add('g_bowl', wx - 0.05, 0.815, wz + 0.25, 0, 1, { shadow: false });
+    }
+    for (const lx of [-1.2, 1.2]) { const [wx, wz] = tw(lx, 2.05); mb.add('lantern_red', wx, 1.85, wz, -Math.PI / 2, 0.9, { shadow: false }); }
+    // 每張桌子兩把舊漆圈椅（bk_chair，取代原本的長凳），隔桌對坐：棚內 +z 側的椅子朝世界 +x、−z 側朝 −x
+    for (const [lx, lz] of [[-1.4, -0.6], [1.3, 0.7]]) {
+      for (const sz of [-1, 1]) {
+        const [wx, wz] = tw(lx + sz * 0.08, lz + sz * 0.78);
+        mb.add('bk_chair', wx, 0, wz, sz > 0 ? Math.PI / 2 : -Math.PI / 2, 1, { shadow: true });
+      }
+    }
+    // 灶上一套竹蒸籠（籠屜＋擱在旁邊的籠蓋，取代原本程式建模的鐵鍋）、水缸蓋上一只鐵瓢
+    { const [wx, wz] = tw(2.2, -1.4); mb.add('bk_steamer', wx, 0.8, wz, 0, 0.9, { shadow: false }); }
+    { const [wx, wz] = tw(-2.3, 1.4); mb.add('bk_scoop', wx, 0.7, wz, 0.6, 1, { shadow: false }); }
     // 茶字幌
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.5), decalMaterial(textTexture('茶', { w: 128, h: 320, bg: '#e8dcc2', fg: '#7a2318', border: '#3a2a1c', vertical: true, size: 0.75 }), { alphaTest: 0 }));
     sign.position.set(15.9, 2.2, -10.1);
@@ -546,6 +608,9 @@ function buildQingping({ stalls, playerStall }) {
   }
 
   // ── 市集：攤位 ──
+  // 坐姿動作（Sitting_Idle_Loop）把骨盆往背後帶約 0.34 m：坐著的攤主往前挪 SIT_FWD，骨盆才落在小凳（vz + SEAT_FWD）上，
+  // 位置在貨架前緣（−0.675）與櫃台背板（0）之間，不會坐到攤子後柱外面、被晾網或貨架蓋住身體
+  const SIT_FWD = 0.61, SEAT_FWD = 0.27;
   const STALL_STYLE = {
     '河西貨郎': { canopy: 0x3a5274, goods: 'cloth', look: { preset: 'vendor', gender: 'Male', hair: 1 }, anim: 'sit' },
     '說書人老周': { canopy: 0x9a7444, goods: 'books', look: { preset: 'clerk', gender: 'Male', hair: 1, beard: true, hairColor: 0x9a958e }, anim: 'sit' },
@@ -559,11 +624,11 @@ function buildQingping({ stalls, playerStall }) {
     const isHero = !!st.isConsigned;
     const S = isHero ? { canopy: 0xb08d48, goods: 'hero', look: { preset: 'clerk', gender: 'Female', hair: 0, palette: 'indigo' }, anim: 'idle' } : (STALL_STYLE[st.owner] || { canopy: 0x6a5a40, goods: 'cloth', look: { preset: 'vendor', gender: 'Male', hair: 0 }, anim: 'idle' });
     const g = new Kit(100 + si);
-    stallKit(g, S, isHero);
+    stallKit(g, S, isHero, (id, lx, ly, lz, ry = 0, sc = 1, o) => mb.add(id, st.x + lx, ly, st.z + lz, ry, sc, { shadow: false, ...o }));
     k.merge(g, T(st.x, 0, st.z));
     const sit = S.anim === 'sit';
     const vz = st.z - (S.goods === 'forge' ? 1.0 : 0.82);
-    if (sit) k.box('wood', 0x5a4330, 0.42, 0.44, 0.34, T(st.x + 0.35, 0.22, vz + 0.12));
+    if (sit) k.box('wood', 0x5a4330, 0.42, 0.44, 0.3, T(st.x + 0.35, 0.22, vz + SEAT_FWD));
     npcs.push({
       id: isHero ? 'stall-hero' : st.id,
       name: isHero ? '渡口行會' : st.owner,
@@ -571,11 +636,21 @@ function buildQingping({ stalls, playerStall }) {
       kind: 'vendor',
       look: S.look,
       x: st.x + (sit ? 0.35 : 0.3),
-      z: vz,
+      z: sit ? vz + SIT_FWD : vz,
       rotY: Math.PI,
       anim: S.anim,
     });
   });
+
+  // 菜攤（裝飾攤，不在行會清單）：石鼓村菜農
+  {
+    const sx = -13.6, sz = -3.2;
+    const g = new Kit(140);
+    stallKit(g, { canopy: 0x5a7a44, goods: 'veg' }, false, (id, lx, ly, lz, ry = 0, sc = 1, o) => mb.add(id, sx + lx, ly, sz + lz, ry, sc, { shadow: false, ...o }));
+    k.merge(g, T(sx, 0, sz));
+    k.box('wood', 0x5a4330, 0.42, 0.44, 0.3, T(sx + 0.35, 0.22, sz - 0.82 + SEAT_FWD));
+    npcs.push({ id: 'npc-veg', name: '石鼓村菜農', sub: '菜攤', kind: 'npc', look: { preset: 'vendor', gender: 'Female', hair: 2, palette: 'ochre' }, x: sx + 0.35, z: sz - 0.82 + SIT_FWD, rotY: Math.PI, anim: 'sit' });
+  }
 
   // ── 市集上空：沿街兩側（順著鏡頭方向）拉繩掛燈籠，不橫過主角頭頂 ──
   for (const sx of [-1, 1]) {
@@ -606,11 +681,11 @@ function buildQingping({ stalls, playerStall }) {
   // 攤位邊的桶、籮筐
   {
     const R = rng(55);
-    for (const [x, z] of [[-11.6, -1.2], [-7.2, 3.9], [11.7, 0.4], [7.3, -5.2], [-3.6, -9.6], [3.5, -10.2], [-11.8, 4.6], [11.6, 4.4]]) {
-      if (R() > 0.5) k.lathe('wood', 0x7a5634, [[0, 0], [0.26, 0], [0.3, 0.3], [0.26, 0.6], [0, 0.6]], 14, T(x, 0, z), 0.1);
-      else k.cyl('wood', 0xa48b62, 0.32, 0.24, 0.32, 14, T(x, 0.16, z), 0.1, true);
-      if (R() > 0.4) sack(k, x + 0.5, 0, z + 0.2, 0.8, R() * 3);
-    }
+    const kinds = ['barrel', 'tub', 'jar_wine', 'barrel', 'tub', 'jar_wine', 'barrel', 'crate'];
+    [[-11.6, -1.2], [-7.2, 3.9], [11.7, 0.4], [7.3, -5.2], [-3.6, -9.6], [3.5, -10.2], [-11.8, 4.6], [11.6, 4.4]].forEach(([x, z], i) => {
+      mb.add(kinds[i], x, 0, z, R() * 6, 0.85 + R() * 0.2);
+      if (R() > 0.4) sack(k, x + 0.55, 0, z + 0.2, 0.8, R() * 3);
+    });
   }
 
   // ── 街景：燈籠柱、水井、石凳 ──
@@ -665,16 +740,8 @@ function buildQingping({ stalls, playerStall }) {
       k.cyl('wood', 0x3d2a1c, 0.12, 0.14, 0.75, 10, T(x, 0.45, z1 + 0.25));
       k.torus('cloth', 0xb59a6a, 0.15, 0.03, 5, 12, Math.PI * 2, T(x, 0.6, z1 + 0.25, Math.PI / 2, 0, 0));
     }
-    // 碼頭：伸進河裡
-    for (let z = z1; z > -37; z -= 0.36) k.box('wood', 0x7a5c3c, 3.2, 0.08, 0.34, T(0, 0.12, z), 0.15);
-    for (let z = z1; z > -37; z -= 2.6) for (const sx of [-1, 1]) {
-      k.cyl('wood', 0x4a3420, 0.14, 0.14, 2.2, 8, T(sx * 1.6, -0.5, z));
-      k.cyl('wood', 0x4a3420, 0.1, 0.12, 0.9, 8, T(sx * 1.6, 0.5, z));
-    }
-    k.box('wood', 0x5a4028, 0.1, 0.1, 11, T(-1.6, 0.9, -31.5));
-    k.box('wood', 0x5a4028, 0.1, 0.1, 11, T(1.6, 0.9, -31.5));
-    for (const z of [-28, -32.5, -36.6]) hangingLantern(k, 1.6, 1.55, z, 0.8);
-    for (const z of [-28, -32.5, -36.6]) k.cyl('wood', 0x3d2a1c, 0.05, 0.05, 1.3, 6, T(1.6, 1.4, z));
+    // 碼頭：匯入的木棧橋（qp_pier，3.1×7.5×19 m，含水下木樁；橋面在模型 y 3.6）伸進河裡，橋面對齊沿岸木棧道
+    mb.add('qp_pier', 0, 0.12 - 3.6, z1 - 9.5, Math.PI);
     // 渡口木牌坊「青萍渡」：四柱三間三樓，匾額嵌在中間大小額枋之間
     const g = new Kit(51);
     const pf = paifang(g);
@@ -696,7 +763,7 @@ function buildQingping({ stalls, playerStall }) {
   group.add(water);
   // 船：會隨水起伏
   const boats = [];
-  for (const [x, z, ry, len, ferry, seed] of [[-8.5, -28.6, 0.08, 6, false, 1], [-15.5, -30.4, -0.15, 5.4, false, 2], [9.5, -29, 0.12, 6.2, false, 3], [17, -34, -0.08, 5.6, false, 4], [3.6, -33.5, Math.PI / 2 + 0.03, 7, true, 5]]) {
+  for (const [x, z, ry, len, ferry, seed] of [[-8.5, -28.6, 0.08, 6, false, 1], [-15.5, -30.4, -0.15, 5.4, false, 2], [9.5, -29, 0.12, 6.2, false, 3], [17, -34, -0.08, 5.6, false, 4], [5.4, -33.5, Math.PI / 2 + 0.03, 7, true, 5]]) {
     const b = boatKit(len, ferry ? 1.8 : 1.5, seed, ferry).build({ shadow: false });
     b.position.set(x, -0.42, z);
     b.rotation.y = ry;
@@ -714,46 +781,41 @@ function buildQingping({ stalls, playerStall }) {
       const x = -90 + R() * 180;
       k.add('leaf', lumpGeo(1.6 + R() * 1.4, 0, 0.3, 950 + i), 0x4d6340, T(x, 1.2, -66 - R() * 10, 0, 0, 0, 1, 1.4, 1));
     }
-    // 塔：五層八角樓閣式磚塔（每層塔身＋平座欄杆＋出簷翹角），頂上塔剎（覆缽、五重相輪、剎頂珠）
-    const tx = -34, tz = -84;
-    k.cyl('stone', 0x6e695f, 3.1, 3.3, 0.9, 8, T(tx, 0.45, tz)); // 台基
-    let y = 0.9;
-    for (let i = 0; i < 5; i++) {
-      const r = 2.3 - i * 0.3, h = 2.4 - i * 0.18;
-      k.cyl('stone', 0x7a7468, r, r + 0.06, h, 8, T(tx, y + h / 2, tz, 0, Math.PI / 8, 0));
-      // 每面一個深色門洞
-      for (let f = 0; f < 4; f++) {
-        const a = f * Math.PI / 2;
-        k.box('woodDark', 0x2a2420, 0.55, h * 0.48, 0.1, T(tx + Math.sin(a) * (r - 0.02), y + h * 0.42, tz + Math.cos(a) * (r - 0.02), 0, a, 0));
-      }
-      // 出簷：八角斜坡＋八個起翹的角梁
-      const ey = y + h;
-      k.cyl('stone', 0x4a4d4c, r + 0.15, r + 1.05, 0.5, 8, T(tx, ey + 0.2, tz, 0, Math.PI / 8, 0));
-      for (let c = 0; c < 8; c++) {
-        const a = c * Math.PI / 4;
-        k.box('stone', 0x3f4241, 0.16, 0.12, 0.7, T(tx + Math.sin(a) * (r + 1.0), ey + 0.06, tz + Math.cos(a) * (r + 1.0), -0.45, a, 0));
-      }
-      y = ey + 0.45;
-      if (i < 4) {
-        // 平座：上一層腳下的一圈挑台與欄杆
-        const pr = r + 0.25;
-        k.cyl('wood', 0x6a5444, pr, pr - 0.1, 0.16, 8, T(tx, y + 0.08, tz, 0, Math.PI / 8, 0));
-        k.cyl('wood', 0x7a2a1c, pr - 0.04, pr - 0.04, 0.32, 8, T(tx, y + 0.32, tz, 0, Math.PI / 8, 0), 0.05, true);
-        y += 0.2;
-      }
-    }
-    k.cyl('stone', 0x4a4d4c, 0.25, 1.3, 1.0, 8, T(tx, y + 0.5, tz, 0, Math.PI / 8, 0)); // 攢尖頂
-    y += 1.0;
-    k.sphere('bronze', 0x8a6a3a, 0.42, 10, 6, T(tx, y + 0.1, tz, 0, 0, 0, 1, 0.6, 1)); // 覆缽
-    k.cyl('bronze', 0x8a6a3a, 0.07, 0.07, 2.3, 6, T(tx, y + 1.3, tz)); // 剎桿
-    for (let j = 0; j < 5; j++) k.torus('bronze', 0x9a7a44, 0.3 - j * 0.035, 0.05, 5, 12, Math.PI * 2, T(tx, y + 0.5 + j * 0.32, tz, Math.PI / 2, 0, 0)); // 相輪
-    k.sphere('bronze', 0xb08d48, 0.2, 10, 8, T(tx, y + 2.55, tz)); // 剎頂珠
+    // 遠景：匯入的大聖塔掃描（bk_pagoda，七層八角，24 m）取代原本程式建模的五層塔；對岸的重簷寺閣（bk_temple）。
+    // 都在霧裡、不投影；台基壓進對岸起伏的地面（取占地四角最低的地面高度再往下 0.2）
+    const sink = (x, z, r) => Math.min(...[[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]].map(([a, b]) => groundHeight(1001, x + a * r, z + b * r))) - 0.2;
+    mb.add('bk_pagoda', -34, sink(-34, -84, 2.8), -84, 0.4, 1, { shadow: false });
+    mb.add('bk_temple', 26, sink(26, -92, 6), -92, -0.25, 1, { shadow: false });
   }
   // 北側遠景：民居屋頂
-  for (const [x, z, w, ry] of [[-24, 22, 8, 0.1], [24, 22, 8, -0.1], [-30, 6, 7, Math.PI / 2], [31, 10, 8, -Math.PI / 2], [30, -8, 7, -Math.PI / 2]]) {
+  for (const [x, z, w, ry] of [[-24, 22, 8, 0.1], [24, 22, 8, -0.1], [31, 10, 8, -Math.PI / 2]]) {
     building(k, T(x, 0, z, 0, ry, 0), { w, d: 5, h: 3.0, rise: 1.5, front: 'wall', seed: Math.round(x * 3 + z) });
   }
-  box(27, 0, -12, 34, 6, 14);
+  box(27, 0, -1, 34, 6, 14);
+  // 東：渡口茶樓（qp_teahouse，兩層、帶白粉牆小院），面朝西邊的街；西：河神小廟（qp_smallhall）
+  mb.add('qp_teahouse', 31.4, 0, -8.6, -Math.PI / 2, 1, { shadow: false }); // 在陰影範圍邊上，不投影省 draw call
+  box(25.2, 0, -15.3, 37.6, 8.6, -1.9);
+  // 茶樓南邊、河岸上一座兩層吊腳樓（bk_stilthouse，架空木柱、挑廊），面朝西邊的渡口；在可走範圍外。
+  // 盒子是模型外框、離走帶東緣只有一兩公尺：做硬盒的話主角貼著河岸東南角、鏡頭朝東時會被夾到 3.5 m，
+  // 所以跟廂房一樣標 soft、整棟溶解（自成一個批次，烘焙件本來就是獨立材質，不多 draw call）
+  {
+    const sbt = new Batch('qingping-stilthouse');
+    const sb = sbt.add('bk_stilthouse', 31, 0, -20, -Math.PI / 2, 1, { shadow: false });
+    if (sb) {
+      const stilt = sbt.build();
+      group.add(stilt);
+      const b = box(sb.min.x, 0, sb.min.z, sb.max.x, sb.max.y, sb.max.z, true);
+      fadeGroups.push({ box: b, objs: [stilt] });
+    }
+  }
+  mb.add('qp_smallhall', -30.2, 0, 4.6, Math.PI / 2, 1, { shadow: false });
+  box(-32.9, 0, 1.9, -27.5, 5, 7.3);
+  // 西：沿岸木棧道盡頭接一座石拱橋（qp_bridge），跨過河灣往西
+  mb.add('qp_bridge', -34.2, -0.36, -24.35, 0, 1, { shadow: false });
+  // 河灘上的石塊、漂來的枯木
+  mb.add('rock_b04', -22.6, -0.25, -19.2, 0.8, 0.55);
+  mb.add('rock_b03', 22.8, -0.2, -18.6, 2.2, 0.6);
+  mb.add('log_dead', 7.6, 0, -21.2, 0.25, 0.8);
 
   // 傳送點：南往赤沙驛（渡口）、東往偃師遺墟
   const portals = [
@@ -763,9 +825,10 @@ function buildQingping({ stalls, playerStall }) {
   portalMarker(k, group, 0, -23.6, '沙', 'stele');
   portalMarker(k, group, 22, 0, '墟', 'stele');
 
-  group.add(k.build({ name: 'qingping' }));
+  group.add(k.build({ name: 'qingping', see: true }));
+  group.add(mb.build());
   return {
-    group, npcs, colliders, portals, beaconViews: [],
+    group, npcs, colliders, portals, beaconViews: [], fadeGroups,
     update(dt, t) {
       for (const B of boats) {
         B.b.position.y = -0.42 + Math.sin(t * 1.1 + B.ph) * 0.05;
@@ -776,8 +839,9 @@ function buildQingping({ stalls, playerStall }) {
   };
 }
 
-// 攤位（面向 +z，客人站在 z+1.4）：布篷、四柱、櫃台、貨架與各家的貨
-function stallKit(k, S, isHero) {
+// 攤位（面向 +z，客人站在 z+1.4）：布篷、四柱、櫃台、貨架與各家的貨。
+// put(id, lx, ly, lz, ry, s, opts)：在攤位座標擺一件匯入模型（goods／props，assets.js 的 Batch）；貨品略放大 1.3～1.5 倍，追尾鏡頭下才認得出來
+function stallKit(k, S, isHero, put = () => {}) {
   const cw = 2.6, cd = 2.0;
   if (S.goods !== 'forge') {
     for (const [x, z, h] of [[-cw / 2, -cd / 2, 2.6], [cw / 2, -cd / 2, 2.6], [-cw / 2, cd / 2, 2.2], [cw / 2, cd / 2, 2.2]]) k.box('wood', 0x4a3420, 0.09, h, 0.09, T(x, h / 2, z));
@@ -807,7 +871,7 @@ function stallKit(k, S, isHero) {
     counter(); shelf();
     for (let i = 0; i < 5; i++) k.cyl('cloth', [0x2c3e57, 0x9a6a36, 0xb23a24, 0x2f4a3c, 0xe8dcc2][i], 0.11, 0.11, 0.55, 10, T(-0.8 + i * 0.4, 0.99, 0.3, 0, 0, Math.PI / 2));
     for (let i = 0; i < 4; i++) crate(k, -0.7 + i * 0.45, 1.08, -0.85, 0.3, R());
-    for (let i = 0; i < 3; i++) jar(k, -0.6 + i * 0.6, 0.53, -0.85, 0.7, 0x6a4a2c);
+    for (let i = 0; i < 3; i++) put('jar_wine', -0.6 + i * 0.6, 0.525, -0.85, R() * 6, 0.5);
     // 百鍊烏鋼錠
     for (let i = 0; i < 4; i++) k.box('iron', 0x3a3c40, 0.28, 0.08, 0.12, T(0.3 + (i % 2) * 0.3, 1.66 + Math.floor(i / 2) * 0.09, -0.85));
   } else if (S.goods === 'books') {
@@ -815,6 +879,8 @@ function stallKit(k, S, isHero) {
     for (let i = 0; i < 6; i++) k.box('cloth', [0x2c3e57, 0x8a3a2a, 0x4a5a3a][i % 3], 0.22, 0.05, 0.3, T(-0.7 + (i % 3) * 0.3, 0.8 + Math.floor(i / 3) * 0.06, 0.25, 0, R() * 0.3, 0));
     for (let i = 0; i < 3; i++) k.cyl('cloth', 0xe8dcc2, 0.04, 0.04, 0.5, 8, T(0.4 + i * 0.15, 0.82, 0.3, 0, 0.3, Math.PI / 2));
     k.box('woodDark', 0x2a1e16, 0.35, 0.12, 0.1, T(0.75, 0.84, 0.15)); // 醒木
+    put('lacquer_box', 0.72, 0.785, 0.4, 0.3, 0.7);
+    put('vase_blue', 0.75, 1.625, -0.9, 0, 0.9);
     k.cyl('cloth', 0xe8dcc2, 0.22, 0.22, 0.01, 12, T(-0.9, 0.82, 0.2, 0.3, 0, 0, 1, 1, 1)); // 摺扇（簡化）
     shelf(-0.9);
     for (let i = 0; i < 10; i++) k.box('cloth', [0x2c3e57, 0x8a3a2a, 0x4a5a3a, 0xc2ad84][i % 4], 0.08, 0.32, 0.25, T(-0.85 + i * 0.12, 0.7 + (i > 5 ? 0.55 : 0), -0.9));
@@ -827,7 +893,11 @@ function stallKit(k, S, isHero) {
       k.sphere('bronze', 0xb08d48, 0.018, 6, 4, T(-0.82 + c * 0.33, 0.3 + r * 0.33, -0.62));
     }
     for (let i = 0; i < 4; i++) k.cyl('wood', 0xa48b62, 0.18, 0.15, 0.08, 14, T(-0.75 + i * 0.5, 0.92, 0.3)); // 藥篩
-    for (let i = 0; i < 4; i++) k.sphere('leaf', [0x6a7a3a, 0x9a6a3a, 0xb8a070, 0x5a4a3a][i], 0.13, 8, 6, T(-0.75 + i * 0.5, 0.98, 0.3, 0, 0, 0, 1, 0.35, 1));
+    for (let i = 0; i < 2; i++) k.sphere('leaf', [0x6a7a3a, 0x9a6a3a][i], 0.13, 8, 6, T(-0.75 + i * 0.5, 0.98, 0.3, 0, 0, 0, 1, 0.35, 1));
+    for (let i = 0; i < 4; i++) put('g_mushroom', 0.25 + (i % 2) * 0.09 - 0.04, 0.965, 0.26 + (i >> 1) * 0.09, i * 1.7, 1.5);
+    for (let i = 0; i < 3; i++) put('g_garlic_bulb', 0.72 + (i - 1) * 0.08, 0.965, 0.3 + (i % 2) * 0.05, i, 1.5);
+    put('pot_herb', 1.5, 0, 0.55, -0.4, 0.8, { shadow: true });
+    put('basket_lid', -1.5, 0, 0.5, 0.6, 1.1);
     k.box('iron', 0x2a2a2a, 0.3, 0.06, 0.12, T(0.9, 0.9, 0.45)); // 戥子
     // 藥葫蘆掛串
     for (let i = 0; i < 3; i++) k.lathe('wood', 0xc8a050, [[0, 0], [0.09, 0.03], [0.1, 0.1], [0.05, 0.16], [0.07, 0.22], [0.03, 0.29], [0, 0.29]], 10, T(-1.0 + i * 0.25, 1.65, 0.95));
@@ -843,14 +913,18 @@ function stallKit(k, S, isHero) {
     for (let i = 0; i < 3; i++) k.lathe('stone', 0x8fb8a0, [[0, 0], [0.05, 0], [0.06, 0.12], [0.02, 0.16], [0.025, 0.2], [0, 0.2]], 8, T(-0.4 + i * 0.15, 1.6, -0.85)); // 養玉露瓶
   } else if (S.goods === 'fish') {
     counter(2.2, 0.7);
-    for (let i = 0; i < 3; i++) {
-      const x = -0.7 + i * 0.7;
-      k.cyl('wood', 0x9a8a5a, 0.3, 0.24, 0.22, 14, T(x, 0.82, 0.3), 0.1, true);
-      for (let f = 0; f < 4; f++) k.sphere('iron', [0x8a9aa0, 0xa8a080, 0x7a8a90][f % 3], 0.07, 8, 6, T(x - 0.12 + f * 0.08, 0.92, 0.28 + (f % 2) * 0.08, 0, f, 0, 2.6, 0.7, 1));
-    }
+    // 一只木盆盛兩尾虹鱒、案上一尾鱸魚，砧板上幾尾沙丁，攤前地上一只扁籮擺吳郭魚
+    put('tub', -0.72, 0.735, 0.3, 0.3, 0.85);
+    put('g_rainbowTrout', -0.76, 0.86, 0.3, 1.2, 1.2);
+    put('g_rainbowTrout', -0.66, 0.89, 0.28, 2.1, 1.2);
+    put('g_stripedBass', 0.02, 0.735, 0.3, Math.PI / 2 + 0.12, 1.15);
+    put('g_cuttingBoard', 0.66, 0.735, 0.3, 0.1, 1.2);
+    for (let i = 0; i < 3; i++) put('g_spottedSardine', 0.56 + i * 0.1, 0.752, 0.3, 0.15 - i * 0.1, 1.25);
+    put('basket_flat', -0.6, 0, 0.95, 0.2, 1.6);
+    put('g_blueTilapia', -0.6, 0.06, 0.95, Math.PI / 2 + 0.3, 0.9);
     // 晾著的漁網
-    k.add('cloth', new THREE.PlaneGeometry(1.8, 1.4, 6, 6), 0x6a6250, T(0, 1.2, -0.95), 0.05);
-    for (let i = 0; i < 4; i++) k.sphere('cloth', 0xb59a6a, 0.04, 6, 4, T(-0.8 + i * 0.55, 0.52, -0.95));
+    k.add('cloth', new THREE.PlaneGeometry(1.8, 1.4, 6, 6), 0x9c8f72, T(0, 1.2, -1.07), 0.05); // 掛在後柱外側、色淺一點，跟坐在前面的攤主分得開
+    for (let i = 0; i < 4; i++) k.sphere('cloth', 0xc9ad7a, 0.04, 6, 4, T(-0.8 + i * 0.55, 0.52, -1.07));
     // 淬紋石
     for (let i = 0; i < 4; i++) k.add('stone', lumpGeo(0.06, 0, 0.3, i), [0xb23a24, 0x2c5e80, 0xb23a24, 0x2c5e80][i], T(0.5 + i * 0.12, 0.75, 0.42));
   } else if (S.goods === 'forge') {
@@ -864,23 +938,42 @@ function stallKit(k, S, isHero) {
     k.box('paper', 0xff7a2a, 0.6, 0.18, 0.5, T(-0.7, 1.05, -0.86));
     k.box('woodDark', 0x2a1a12, 0.5, 0.3, 0.8, T(-1.5, 0.5, -0.9)); // 風箱
     k.lathe('iron', 0x2c2c2e, [[0, 0], [0.22, 0], [0.18, 0.15], [0.14, 0.45], [0.3, 0.5], [0.34, 0.62], [0, 0.62]], 10, T(0.5, 0, 0.2)); // 鐵砧座
-    k.box('iron', 0x2c2c2e, 0.6, 0.12, 0.22, T(0.5, 0.68, 0.2));
-    k.cone('iron', 0x2c2c2e, 0.1, 0.3, 4, T(0.88, 0.68, 0.2, 0, 0, -Math.PI / 2));
-    k.rod('wood', 0x6a4a30, [0.3, 0.75, 0.35], [0.1, 0.75, 0.6], 0.025);
-    k.box('iron', 0x3a3a3c, 0.12, 0.08, 0.08, T(0.32, 0.77, 0.33));
-    k.cyl('wood', 0x5a4028, 0.28, 0.25, 0.5, 12, T(1.1, 0.25, -0.6), 0.1, true); // 淬火桶
-    k.cyl('stone', 0x28323a, 0.26, 0.26, 0.02, 12, T(1.1, 0.48, -0.6));
+    // 砧體是匯入的鐵砧（bk_anvil，0.78×0.36×0.41 m，取代原本的方塊＋錐形砧角），坐在程式建模的砧座上；砧面高約 0.975
+    put('bk_anvil', 0.5, 0.62, 0.2, 0, 1, { shadow: true });
+    k.rod('wood', 0x6a4a30, [0.3, 0.99, 0.32], [0.1, 0.93, 0.62], 0.025); // 火鉗擱在砧面上、柄往外斜
+    k.box('iron', 0x3a3a3c, 0.12, 0.08, 0.08, T(0.32, 1.01, 0.3));
+    put('bucket', 1.1, 0, -0.6, 0.4, 1.1, { shadow: true }); // 淬火桶
+    put('hammer', 0.62, 0.99, 0.24, 0.5, 1.3, { rx: Math.PI / 2 });
+    put('barrel', -1.45, 0, 0.55, 0.8, 0.8, { shadow: true });
     for (let i = 0; i < 5; i++) {
       k.box('iron', 0xb9c2c9, 0.05, 0.8, 0.012, T(0.6 + i * 0.18, 1.6, -1.25, 0, 0, 0.05));
       k.box('woodDark', 0x2a1e16, 0.04, 0.22, 0.03, T(0.6 + i * 0.18, 1.12, -1.25));
     }
     k.box('wood', 0x4a3420, 1.1, 0.06, 0.12, T(0.95, 2.0, -1.25));
+  } else if (S.goods === 'veg') {
+    // 菜攤：三只扁籮裝茄子苦瓜、桃梨橘、青江菜黃瓜；案頭擺南瓜、地瓜
+    counter();
+    const veg = [
+      [['g_eggplant', 0], ['g_eggplant', 0.6], ['g_bitterMelon', 1.4], ['g_bitterMelon', 2.0]],
+      [['g_tangerine', 0], ['g_peach', 1], ['g_tangerine', 2], ['g_pear', 3], ['g_peach', 4]],
+      [['g_bocChoy', 0.2], ['g_bocChoy', 2.6], ['g_cucumber', 1.4], ['g_cucumber', 1.9]],
+    ];
+    veg.forEach((list, b) => {
+      const bx = -0.72 + b * 0.62;
+      put('basket_flat', bx, 0.885, 0.3, b * 0.4, 1.45);
+      list.forEach(([id, a], i) => put(id, bx + Math.cos(a * 2.1 + i) * 0.13, 0.91 + (i > 2 ? 0.04 : 0), 0.3 + Math.sin(a * 2.1 + i) * 0.08, a, 1.4));
+    });
+    put('g_squash', 0.95, 0.885, 0.5, 0, 1.6);
+    put('g_sweetPotato', 0.98, 0.885, 0.15, 0.7, 1.5);
+    put('g_sweetPotato', 0.86, 0.885, 0.1, 2.1, 1.5);
+    put('basket_lid', 1.45, 0, 0.6, -0.5, 1.2);
+    put('crate', -1.5, 0, 0.5, 0.2, 0.9, { shadow: true });
   }
   if (isHero) {
     // 寄攤：一方草蓆、兩只箱、一塊木牌
     k.box('cloth', 0xb5985a, 2.2, 0.04, 1.6, T(0, 0.02, 0));
-    crate(k, -0.5, 0.04, -0.2, 0.5);
-    crate(k, 0.2, 0.04, -0.3, 0.42, 0.3);
+    put('camphor_chest', -0.35, 0.04, -0.25, 0.1, 0.9, { shadow: true });
+    put('lacquer_box', 0.35, 0.04, -0.2, 0.4, 0.9);
     k.box('wood', 0x7a5a3a, 0.6, 0.4, 0.04, T(0.7, 0.6, 0.4, -0.2, 0, 0));
     k.rod('wood', 0x4a3420, [0.7, 0, 0.45], [0.7, 0.6, 0.42], 0.025);
   }
@@ -999,7 +1092,7 @@ function buildChisha({ beacons }) {
   const k = new Kit(61);
   const npcs = [];
   const colliders = [];
-  const box = (x0, y0, z0, x1, y1, z1) => colliders.push(new THREE.Box3(V3(x0, y0, z0), V3(x1, y1, z1)));
+  const box = (x0, y0, z0, x1, y1, z1, soft = false) => { const b = new THREE.Box3(V3(x0, y0, z0), V3(x1, y1, z1)); b.soft = soft; colliders.push(b); return b; };
 
   // ── 西：驛站（夯土牆圍出的大院），門朝東開在 x = −26.6 ──
   const X0 = -42, X1 = -26.6, Z0 = 4, Z1 = 28;
@@ -1008,27 +1101,49 @@ function buildChisha({ beacons }) {
   rammedWall(k, X0, Z0, X1, Z0);
   rammedWall(k, X0, Z1, X1, Z1);
   rammedWall(k, X0, Z0, X0, Z1);
-  box(X1 - 1, 0, Z0, X1 + 0.6, 4, 13.6);
-  box(X1 - 1, 0, 18.4, X1 + 0.6, 4, Z1);
-  // 門樓：兩座土墩夾一道木門樓
+  box(X1 - 1, 0, Z0, X1 + 0.6, 4, 12.2);
+  box(X1 - 1, 0, 19.8, X1 + 0.6, 4, Z1);
+  // 門樓：匯入的石砌門樓（qp_gate，7.7×6.5×3.9 m，風化的黃石牆、木構翹簷），轉 90° 朝東
+  const mb = new Batch('chisha-models');
+  mb.add('qp_gate', X1, 0, 16, Math.PI / 2);
+  box(X1 - 2.1, 0, 12.0, X1 + 2.1, 6.6, 20.0);
   {
-    const g = new Kit(62);
-    for (const sz of [-1, 1]) g.add('earth', new THREE.BoxGeometry(2.2, 5.2, 2.2, 1, 6, 1), EARTH, T(0, 2.6, sz * 3.4), 0.04);
-    g.box('wood', 0x4a3420, 1.6, 0.4, 5.2, T(0, 4.4, 0));
-    for (const sz of [-1, 1]) g.box('wood', 0x4a3420, 0.3, 4.4, 0.3, T(0.5, 2.2, sz * 2.3));
-    const rg = roofGeo(7.6, 2.6, 1.0, { curl: 0.3, overhang: 0.5 });
-    g.add('stone', rg, 0x5a4a3a, T(0, 5.2, 0, 0, Math.PI / 2, 0));
-    g.add('woodDark', flipGeo(rg), 0x2a1e16, T(0, 5.12, 0, 0, Math.PI / 2, 0));
-    g.box('woodDark', 0x3a2418, 0.1, 3.6, 1.2, T(0.2, 1.8, -1.3, 0, -0.9, 0)); // 開著的門扇
-    g.box('woodDark', 0x3a2418, 0.1, 3.6, 1.2, T(0.2, 1.8, 1.3, 0, 0.9, 0));
-    for (const sz of [-1, 1]) hangingLantern(g, 1.0, 3.6, sz * 1.9, 1.0, 0xd8642e);
-    k.merge(g, T(X1, 0, 16));
-    box(X1 - 1.2, 0, 11.8, X1 + 1.2, 6, 14.6);
-    box(X1 - 1.2, 0, 17.4, X1 + 1.2, 6, 20.2);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.6), decalMaterial(textTexture('赤沙驛', { w: 520, h: 160 }), { alphaTest: 0 }));
-    sign.position.set(X1 + 0.85, 4.35, 16);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.5), decalMaterial(textTexture('赤沙驛', { w: 520, h: 152 }), { alphaTest: 0 }));
+    sign.position.set(X1 + 2.08, 3.72, 16);
     sign.rotation.y = Math.PI / 2;
     group.add(sign);
+  }
+  {
+    // 兩扇門板上原本的門神貼紙壓縮後只剩米色框裡一塊鋸齒深色（還有幾處破洞），蓋一對朱紅斗方「平」「安」。
+    // 北扇（z 大）往裡開約 26°，南扇關著（x = −26.41）；位置與大小是從正面鏡頭打射線量的。兩張共用一張圖、合成一個 mesh
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 320;
+    const c = cv.getContext('2d');
+    ['平', '安'].forEach((ch, i) => {
+      const x0 = i * 256;
+      c.fillStyle = '#8c2a1c'; c.fillRect(x0, 0, 256, 320);
+      c.strokeStyle = '#d6b46a'; c.lineWidth = 6; c.strokeRect(x0 + 14, 14, 228, 292);
+      c.lineWidth = 2; c.strokeRect(x0 + 26, 26, 204, 268);
+      c.fillStyle = '#e6c67c'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = '900 168px "Songti TC","STSong","Noto Serif TC",serif';
+      c.fillText(ch, x0 + 128, 166);
+    });
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const leaf = (u0, w, h, x, y, z, ry) => {
+      const g = new THREE.PlaneGeometry(w, h);
+      const uvA = g.attributes.uv;
+      for (let i = 0; i < uvA.count; i++) uvA.setX(i, u0 + uvA.getX(i) * 0.5);
+      g.rotateY(ry);
+      g.translate(x + Math.sin(ry) * 0.014, y, z + Math.cos(ry) * 0.014);
+      return g;
+    };
+    const posters = new THREE.Mesh(mergeGeometries([
+      leaf(0, 0.84, 1.08, -26.743, 2.155, 16.75, Math.PI / 2 + 0.452),
+      leaf(0.5, 0.86, 1.06, -26.409, 2.17, 15.477, Math.PI / 2),
+    ]), decalMaterial(tex, { alphaTest: 0 }));
+    group.add(posters);
   }
   // 院內：平頂土屋、馬棚、角樓
   for (const [x, z, w, d, h] of [[-36, 22, 9, 5, 3.6], [-37, 9.5, 7, 4.5, 3.2]]) {
@@ -1055,6 +1170,17 @@ function buildChisha({ beacons }) {
       k.cyl('wood', 0x4a3420, 0.1, 0.12, 1.4, 8, T(-22, 0.7, z));
       k.box('wood', 0x4a3420, 0.1, 0.1, 1.6, T(-22, 1.2, z));
     }
+    for (const [x, z, r] of [[-24.2, 8.2, 0.3], [-23.4, 7.6, 1.9], [-24.6, 21.2, 0.8]]) mb.add('barrel', x, 0, z, r, 0.9);
+    // 驛門外的歇腳處：火塘、一截枯木當凳，條桌上一籃胡餅（饢）、陶壺、粗碗
+    mb.add('firepit', -20.4, 0.02, 20.6, 0.4, 1.1);
+    mb.add('log_dead', -19.0, 0, 22.3, 0.35, 0.55);
+    k.box('wood', 0x6a4a30, 1.5, 0.07, 0.6, T(-22.3, 0.76, 18.6, 0, 0.15, 0));
+    for (const [dx, dz] of [[-0.65, -0.24], [0.65, -0.24], [-0.65, 0.24], [0.65, 0.24]]) k.box('wood', 0x4a3420, 0.06, 0.74, 0.06, T(-22.3 + dx, 0.37, 18.6 + dz, 0, 0.15, 0));
+    mb.add('basket_flat', -22.7, 0.795, 18.6, 0.2, 1.5, { shadow: false });
+    for (let i = 0; i < 4; i++) mb.add('g_tandyrNan', -22.7 + (i % 2) * 0.05 - 0.02, 0.81 + i * 0.045, 18.6 + (i >> 1) * 0.04, i * 1.3, 1.25, { shadow: false });
+    mb.add('g_tandyrNan', -22.15, 0.795, 18.75, 0.5, 1.25, { shadow: false });
+    mb.add('g_bottle_clay', -21.8, 0.795, 18.45, 0, 1.3, { shadow: false });
+    for (const [dx, dz] of [[-0.05, -0.15], [0.18, -0.05]]) mb.add('g_bowl', -22.0 + dx, 0.795, 18.6 + dz, 0, 1.2, { shadow: false });
     // 里程碑
     k.box('stone', 0x8a7f6e, 0.6, 1.8, 0.3, T(-18.5, 0.9, 13.2, 0, 0.3, 0));
     k.box('stone', 0x7a6f5e, 0.9, 0.3, 0.6, T(-18.5, 0.15, 13.2, 0, 0.3, 0));
@@ -1111,11 +1237,27 @@ function buildChisha({ beacons }) {
   {
     const R = rng(81);
     const spots = [[-31, -14], [-36, -2], [-30, -30], [-14, -34], [3, -38], [18, -33], [31, -26], [36, -10], [33, 6], [34, 22], [22, 34], [4, 38], [-16, 36], [19.5, 15.5], [-21, -19.5], [21.5, -20.5]];
+    // 換成匯入掃描的幾處：南邊正對出生鏡頭的雅丹土台、兩根孤柱、兩段砂岩崖；場內三處小土丘換成大石
+    const SCAN = {
+      '3,-38': ['rock_mesa', 1.0, Math.PI / 2], '-14,-34': ['rock_mesa', 0.62, 0.5], '-30,-30': ['rock_pillar', 1.1, 0.3], '31,-26': ['rock_pillar', 0.9, 2.1],
+      '36,-10': ['rock_cliff', 1.7, -Math.PI / 2], '-36,-2': ['rock_cliff', 1.9, Math.PI / 2 + 0.2],
+      '19.5,15.5': ['rock_b03', 1.5, 0.6], '-21,-19.5': ['rock_b04', 1.4, 2.0], '21.5,-20.5': ['rock_b03', 1.3, 4.1],
+    };
     spots.forEach(([x, z], i) => {
       const inside = Math.abs(x) < 26 && Math.abs(z) < 26;
       const s = inside ? 1.4 + R() * 0.6 : 3 + R() * 3.5;
-      yardang(k, x, z, s * (1.2 + R() * 0.6), s * (0.9 + R() * 0.7), s * (0.8 + R() * 0.5), R() * 3, 200 + i);
-      if (!inside) box(x - s, 0, z - s, x + s, s * 2, z + s);
+      const sx = s * (1.2 + R() * 0.6), sy = s * (0.9 + R() * 0.7), sz = s * (0.8 + R() * 0.5), ry = R() * 3;
+      const scan = SCAN[`${x},${z}`];
+      if (scan) {
+        // 掃描底下帶一圈地皮與零碎浮片：沉進沙裡
+        const [id, sc, rr] = scan;
+        const y = inside ? -0.15 : groundHeight(1002, x, z) - 0.9 * sc;
+        const b = mb.add(id, x, y, z, rr, sc);
+        if (!inside && b) box(b.min.x + 1, 0, b.min.z + 1, b.max.x - 1, b.max.y, b.max.z - 1);
+      } else {
+        yardang(k, x, z, sx, sy, sz, ry, 200 + i);
+        if (!inside) box(x - s, 0, z - s, x + s, s * 2, z + s);
+      }
     });
     // 地上碎石
     for (let i = 0; i < 60; i++) {
@@ -1129,13 +1271,8 @@ function buildChisha({ beacons }) {
       camelThorn(k, x, z, 0.7 + R() * 0.8, 600 + i);
     }
     // 胡楊枯木
-    for (const [x, z, s] of [[-17, -6, 1], [15, 19, 1.2], [24, 4, 0.9], [-12, 22, 1.1]]) {
-      k.add('wood', new THREE.CylinderGeometry(0.2 * s, 0.38 * s, 2.6 * s, 7), 0x5a4a3a, T(x, 1.3 * s, z, 0.1, 0, 0.15));
-      for (let j = 0; j < 5; j++) {
-        const a = R() * Math.PI * 2;
-        k.rod('wood', 0x5a4a3a, [x + 0.2 * s, 2.4 * s, z], [x + Math.cos(a) * 1.4 * s, (2.8 + R() * 1.2) * s, z + Math.sin(a) * 1.4 * s], 0.08 * s, 5);
-      }
-    }
+    // 胡楊枯木（匯入的枯樹 tree_dead，8 m 縮到 5～6.5 m）：擋在鏡頭與主角之間時整棵溶掉，跟青萍渡的柳樹一樣
+    for (const [x, z, s, r] of [[-17, -6, 0.7, 0.4], [15, 19, 0.8, 2.2], [24, 4, 0.65, 4.0], [-12, 22, 0.75, 5.3]]) mb.add('tree_dead', x, -0.1, z, r, s, { whole: true });
   }
   // ── 地脈裂口（往偃師遺墟）：一道冷綠光的地縫、兩根傾倒的石柱 ──
   {
@@ -1154,7 +1291,8 @@ function buildChisha({ beacons }) {
   // 驛道上的駝隊頭領（NPC，驛站門口）
   npcs.push({ id: 'npc-station', name: '驛丞老宋', sub: '赤沙驛', kind: 'npc', look: { preset: 'chief', gender: 'Male', hair: 1, height: 0.98 }, x: -23.2, z: 15, rotY: -Math.PI / 2 - 0.4, anim: 'idle' });
 
-  group.add(k.build({ name: 'chisha' }));
+  group.add(k.build({ name: 'chisha', see: true }));
+  group.add(mb.build());
   let acc = 0;
   return {
     group, npcs, colliders, portals, beaconViews,
@@ -1215,7 +1353,8 @@ function buildRuins() {
   const group = new THREE.Group();
   const k = new Kit(91);
   const colliders = [];
-  const box = (x0, y0, z0, x1, y1, z1) => colliders.push(new THREE.Box3(V3(x0, y0, z0), V3(x1, y1, z1)));
+  const fadeGroups = [];
+  const box = (x0, y0, z0, x1, y1, z1, soft = false) => { const b = new THREE.Box3(V3(x0, y0, z0), V3(x1, y1, z1)); b.soft = soft; colliders.push(b); return b; };
   const R = rng(93);
 
   // ── 北（−z）：機關城牆與大圓門 ──
@@ -1245,6 +1384,77 @@ function buildRuins() {
   k.box('bronze', 0x6a5838, 7.5, 0.3, 0.3, T(-18.5, 3.9, WZ + 1.45, 0, 0, 0.21));
   k.box('bronze', 0x6a5838, 9.5, 0.3, 0.3, T(18.5, 4.2, WZ + 1.45, 0, 0, -0.17));
 
+  // ── 匯入的石刻與青銅器：城牆上嵌一塊佛龕浮雕與一面盤龍石盤，圓門兩側一對石獅、一對武士石像 ──
+  const mb = new Batch('ruins-models');
+  mb.add('relief_buddhas', -5.6, 2.2, WZ + 1.36, 0, 1.4);
+  // 佛龕浮雕西側再嵌一塊人物故事石雕板（bk_relief，1.33×0.91 m，放大 1.4 倍），底緣與佛龕齊平
+  mb.add('bk_relief', -10.0, 2.2, WZ + 1.36, 0, 1.4);
+  mb.add('dragon_disc', 6.4, 5.0, WZ + 1.42, 0, 1.0);
+  for (const sx of [-1, 1]) {
+    mb.add('lion_stone', sx * 4.4, 0, -24.9, sx * -0.12, 1.0);
+    mb.add('general_statue', sx * 8.6, 0, -24.6, sx * -0.2, 1.15, { whole: true });
+  }
+  // 兩側崖腳：一隻有翼石獸、一隻蹲在東邊；場中兩座石台上擺方鼎、圓鼎，出生點旁一只博山爐
+  mb.add('beast_winged', -22.4, 0, -5.6, Math.PI / 2 - 0.3, 1.2, { whole: true });
+  mb.add('beast_winged', 22.6, 0, -9.4, -Math.PI / 2 + 0.25, 1.2, { whole: true });
+  for (const [x, z, id, r] of [[-12.5, -17, 'fangding', 0.3], [12.5, -17, 'ding_bronze', -0.4]]) {
+    k.box('stone', 0x5a5c56, 1.6, 0.5, 1.6, T(x, 0.25, z, 0, r, 0));
+    k.box('stone', 0x4e504a, 1.8, 0.12, 1.8, T(x, 0.06, z, 0, r, 0));
+    mb.add(id, x, 0.5, z, r, 1.15);
+  }
+  // 出生點前方左側：雕花鼓腰石案（bk_stone_desk，取代原本的方石墩）上擺博山爐；右側對一座太湖石立峰（bk_scholar_rock，整件溶）
+  mb.add('bk_stone_desk', -3.4, 0, 7.2, 0.3, 1.0);
+  mb.add('boshanlu', -3.4, 0.846, 7.2, 0.4, 1.3);
+  mb.add('bk_scholar_rock', 4.2, 0, 6.2, -0.5, 1.0, { whole: true });
+  // 西崖：鑿進崖壁的一座石窟（grotto_cave 縮到 55%，窟口在模型 +X、背面是空殼，背靠崖壁、窟口朝場內）。
+  // 掃描是一塊淺灰砂岩、四周是不規則切邊：切邊後面墊一圈同色調的程式岩塊（兩側、背後），跟深色的崖壁之間有一段過渡。
+  // 模型不能再往崖裡推：北邊那塊崖（x −35, z 18）會蓋住窟裡的佛像
+  // 石窟自成一個批次（掃描本來就是獨立材質，不多 draw call），才能跟墊岩一起整窟溶解（fadeGroups）
+  const gb = new Batch('ruins-grotto');
+  gb.add('grotto_cave', -28.2, -0.66, 11.2, 0, 0.55);
+  const grottoMesh = gb.build();
+  group.add(grottoMesh);
+  const grottoBox = new THREE.Box3(V3(-32, 0, 4.2), V3(-24.6, 7.8, 18.2));
+  let grottoRocks;
+  {
+    // 這幾塊不投影（另成一個 mesh）：投下來的影子會把窟裡的佛像整個蓋黑
+    const rk = new Kit(97);
+    const rock = (x, y, z, sx, sy, sz, ry, seed, dark = 0) => {
+      const g = lumpGeo(1, 2, 0.3, seed);
+      const p = g.attributes.position;
+      const col = new Float32Array(p.count * 3);
+      const lo = new THREE.Color(0x9a9a92).lerp(new THREE.Color(0x2c2e2c), dark), hi = new THREE.Color(0xdcdad0).lerp(new THREE.Color(0x4a4a44), dark);
+      for (let i = 0; i < p.count; i++) {
+        const band = Math.sin(p.getY(i) * 6 + p.getX(i) * 1.7 + seed) * 0.5 + 0.5;
+        const c = lo.clone().lerp(hi, band * 0.6 + (p.getY(i) + 1) * 0.2);
+        col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      const M = T(x, y, z, 0, ry, 0, sx, sy, sz);
+      rk.add('stone', g, 0xffffff, M, 0);
+      g.computeBoundingBox();
+      return g.boundingBox.clone().applyMatrix4(M); // 世界 AABB（相機防擋盒要包住兩側墊岩）
+    };
+    // 岩塊都放在掃描正面（x ≈ −25.5）後面，只從切邊外露出來，不擋窟口與佛像
+    rock(-33.2, 5.0, 11.2, 2.6, 5.8, 8.8, 0.05, 301, 0.3); // 窟後的整塊岩體：從掃描頂緣後面露出來，往外接深色崖壁
+    // 石窟的相機防擋盒包住窟口與兩側墊岩（墊岩伸到 z 3.7、18.7 再往外 ±1.7 多，舊盒子只到 4.2～18.2）
+    grottoBox.union(rock(-28.2, 3.0, 3.7, 2.2, 3.8, 1.7, 0.3, 303)); // 南側岩壁
+    grottoBox.union(rock(-28.3, 3.2, 18.7, 2.2, 4.0, 1.7, -0.25, 304)); // 北側岩壁
+    grottoBox.union(rock(-29.4, 2.8, 16.0, 1.8, 3.2, 1.4, 0.15, 307)); // 北側岩壁與窟緣之間的縫
+    for (const [z, s] of [[5.2, 0.8], [17.3, 0.9]]) rock(-25.6, 0.15, z, 1.0 * s, 0.6 * s, 1.1 * s, z, 310 + z); // 窟口兩角的碎岩
+    grottoRocks = rk.build({ shadow: false, name: 'grotto-rocks', see: true });
+    group.add(grottoRocks);
+  }
+  grottoBox.min.y = 0;
+  // 防擋盒是 soft：盒子南北伸到 z 1.35～21.35、東緣 x −24.6，包住了主角走得到的西緣走帶（|x| ≤ 25.5）。
+  // 硬盒會在主角貼著窟口、鏡頭朝西時把鏡頭夾到 3.5 m、俯角爬到頂，主角掉出畫面；改成鏡頭穿過去，整窟（掃描＋墊岩）溶掉。
+  // 溶解盒只取走帶以西（x ≤ −25.6）：預設追尾鏡頭在主角南北方向時線段不經過，主角沿西緣走不會讓石窟消失
+  grottoBox.soft = true;
+  colliders.push(grottoBox);
+  const grottoFadeBox = grottoBox.clone();
+  grottoFadeBox.max.x = -25.6;
+  fadeGroups.push({ box: grottoFadeBox, objs: [grottoMesh, grottoRocks] });
+
   // ── 兩側崖壁與前方山壁 ──
   const cl = [
     [-36, -18, 7, 15, 12, 0.2], [-38, 0, 8, 18, 12, -0.3], [-35, 18, 7, 13, 12, 0.1], [-26, 34, 12, 14, 7, 0.4],
@@ -1260,10 +1470,10 @@ function buildRuins() {
   bigGear(k, -28.5, 2.4, -11, 7, 48, 0.15, Math.PI / 2, 0, 11);
   bigGear(k, 28.8, 1.8, -19, 6, 40, -0.1, Math.PI / 2 - 0.2, 0.3, 12, 0x6e6040);
   bigGear(k, 28, 0.4, 13, 4.5, 30, Math.PI / 2 - 0.35, 0.3, 0, 13, 0x7c6a44);
-  bigGear(k, -27.5, 0.6, 19, 3.8, 26, Math.PI / 2 - 0.5, -0.4, 0, 14, 0x86704a);
-  bigGear(k, -26, 1.2, 3.5, 2.4, 18, 0.2, Math.PI / 2 + 0.3, 0, 15, 0x6e6040);
+  bigGear(k, -27.5, 0.6, 21.8, 3.8, 26, Math.PI / 2 - 0.5, -0.4, 0, 14, 0x86704a);
+  bigGear(k, -26, 1.2, 1.4, 2.4, 18, 0.2, Math.PI / 2 + 0.3, 0, 15, 0x6e6040);
   // 連桿：長銅條＋銷軸
-  for (const [a, b, r] of [[[-28, 2.5, -4], [-25.5, 0.3, 7.5], 0.32], [[28.5, 2, -12], [26.2, 0.2, 2], 0.3], [[-22, 0.4, -24], [-28, 3.2, -16], 0.28], [[22, 0.2, 26.5], [28, 1.8, 17], 0.26]]) {
+  for (const [a, b, r] of [[[-28, 2.5, -4], [-25.2, 0.3, 2.6], 0.32], [[28.5, 2, -12], [26.2, 0.2, 2], 0.3], [[-22, 0.4, -24], [-28, 3.2, -16], 0.28], [[22, 0.2, 26.5], [28, 1.8, 17], 0.26]]) {
     k.rod('bronze', 0x6e5c3a, a, b, r, 8);
     for (const p of [a, b]) k.cyl('bronze', 0x86704a, r * 1.6, r * 1.6, r * 1.4, 12, T(p[0], p[1], p[2], 0, 0, Math.PI / 2));
   }
@@ -1313,12 +1523,13 @@ function buildRuins() {
   portalMarker(k, group, -17, 14, '渡', 'crack');
   portalMarker(k, group, 20, 0, '沙', 'crack');
 
-  group.add(k.build({ name: 'ruins' }));
+  group.add(k.build({ name: 'ruins', see: true }));
+  group.add(mb.build());
   // 夜裡的機樞綠光：從場中高處斜打圓門。放在門前 2.5 m 時，銅輪轂會映出一顆亮綠光球（像發光體），所以退到場中、抬高
   const l1 = new THREE.PointLight(0x4ff0a8, 70, 30, 1.6);
   l1.position.set(0, 9, WZ + 11);
   group.add(l1);
-  return { group, npcs: [], colliders, portals, beaconViews: [], update() {} };
+  return { group, npcs: [], colliders, portals, beaconViews: [], fadeGroups, update() {} };
 }
 
 export function buildMapSceneryV2(mapId, opts) {

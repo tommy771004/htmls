@@ -3,6 +3,7 @@
 //   node tools/actors-preview.mjs            # 兩種後端全部鏡頭
 //   node tools/actors-preview.mjs --only=gpu # 只跑 Metal
 //   node tools/actors-preview.mjs --shots=lineup,close
+//   鏡頭：lineup、back、close、weapons、case（六器匣特寫）、portrait（--q=w=BOW&hold=1&zoom=2&ly=1.1 之類，hold=1 開場展示握法）
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -25,6 +26,7 @@ import * as THREE from 'three';
 import { WebGPURenderer } from 'three/webgpu';
 import { loadActors, createActor } from './chars.js';
 import { makeWeapon, makeCase, makeStowed, WEAPON_TYPES } from './weapons.js';
+import { makeEnvironment } from './shaders.js';
 
 const q = new URLSearchParams(location.search);
 const shot = q.get('shot') || 'lineup';
@@ -60,6 +62,11 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
+// 跟遊戲一樣有環境反射（青萍渡的天色），金屬兵器才不會一片黑。SwiftShader（gl=1）上 PMREM 很慢（lineup 會超過 open() 的 30 秒），只在 GPU 後端做
+if (!q.get('gl')) {
+  scene.environment = makeEnvironment(renderer, { top: 0x46688a, horizon: 0xdcc8a2, ground: 0x5e5240, sunDir: new THREE.Vector3(-0.4, 0.7, 0.6).normalize(), sunColor: 0xfff1dc });
+  scene.environmentIntensity = 0.85;
+}
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.05, 80);
 await loadActors();
 
@@ -111,11 +118,22 @@ if (shot === 'lineup' || shot === 'back') {
   camera.lookAt(0.35, 1.15, 0);
 } else if (shot === 'portrait') {
   add({ preset: q.get('preset') || 'escort', gender: q.get('g') || 'Male', palette: q.get('pal') || 'indigo', hair: Number(q.get('hair') || 0) }, 0, q.get('anim') || 'idle', { weapon: q.get('w') || null, ry: Number(q.get('ry') || 0), t: Number(q.get('t') || 0.5) });
+  if (q.get('hold')) { actors[0].setIntroHold(true); actors[0].update(0); }
   if (q.get('tilt')) actors[0].handR.rotateX(Number(q.get('tilt')));
   if (q.get('roll')) actors[0].handR.rotateY(Number(q.get('roll')));
   const zoom = Number(q.get('zoom') || 1);
-  camera.position.set(0, 1.3, 4.2 / zoom);
-  camera.lookAt(0, Number(q.get('ly') || 1.0), 0);
+  const cx = Number(q.get('cx') || 0);
+  camera.position.set(cx, Number(q.get('cy') || 1.3), 4.2 / zoom);
+  camera.lookAt(Number(q.get('lx') || 0), Number(q.get('ly') || 1.0), 0);
+  // focus=hand_r（骨頭名）：鏡頭對準那根骨頭，從 (fx, fy, fd) 方向看過去（世界座標，人物面向 +Z）
+  if (q.get('focus')) {
+    actors[0].root.updateMatrixWorld(true);
+    const b = actors[0].bones[q.get('focus')];
+    const p = b.getWorldPosition(new THREE.Vector3());
+    const d = new THREE.Vector3(Number(q.get('fx') || 0), Number(q.get('fy') || 0.05), Number(q.get('fd') || 0.4));
+    camera.position.copy(p).add(d);
+    camera.lookAt(p);
+  }
 } else if (shot === 'weapons') {
   scene.background = new THREE.Color(0x6f6a62);
   scene.fog = null;
@@ -147,6 +165,20 @@ if (shot === 'lineup' || shot === 'back') {
   camera.fov = 34;
   camera.position.set(0.2, 1.05, 3.6);
   camera.lookAt(0.2, 1.0, 0);
+} else if (shot === 'case') {
+  // 六器匣特寫：外面（銅鎖那面）、右側（箭筒那側）、頂上（六格）三個角度
+  scene.background = new THREE.Color(0x6f6a62);
+  scene.fog = null;
+  for (const [x, ry, rx] of [[-0.62, Math.PI, 0], [0, Math.PI / 2, 0], [0.62, Math.PI * 0.8, 0.9]]) {
+    const c = makeCase();
+    for (const t of WEAPON_TYPES) c.add(makeStowed(t));
+    c.position.set(x, 1.0, 0);
+    c.rotation.set(rx, ry, 0, 'XYZ');
+    scene.add(c);
+  }
+  camera.fov = 34;
+  camera.position.set(0, 1.2, 3.2);
+  camera.lookAt(0, 1.15, 0);
 }
 // 自我檢查：once 動作播完要回到之前的循環
 {
@@ -173,20 +205,22 @@ const res = await build({
 });
 const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const glb = gzipSync(readFileSync(resolve(root, 'blender/out/actors.glb')), { level: 9 }).toString('base64');
+const arms = gzipSync(readFileSync(resolve(root, 'blender/out/arms.glb')), { level: 9 }).toString('base64');
 const html = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>六器鏢行 人物預覽</title><style>html,body{margin:0;height:100%;overflow:hidden;background:#8f8a80}canvas{display:block;width:100vw;height:100vh}</style></head>
-<body><canvas></canvas><script type="application/octet-stream" id="glb-actors">${glb}</script><script type="module">${js}</script></body></html>`;
+<body><canvas></canvas><script type="application/octet-stream" id="glb-actors">${glb}</script><script type="application/octet-stream" id="glb-arms">${arms}</script><script type="module">${js}</script></body></html>`;
 const file = resolve(dist, 'actors-preview.html');
 writeFileSync(file, html);
-console.log(`預覽頁 ${file}（glb gzip ${(glb.length * 0.75 / 1024).toFixed(0)} KB）`);
+console.log(`預覽頁 ${file}（glb gzip：人物 ${(glb.length * 0.75 / 1024).toFixed(0)} KB、兵器 ${(arms.length * 0.75 / 1024).toFixed(0)} KB）`);
 
 const backends = [['gpu', false], ['soft', true]].filter(([k]) => !only || only === k);
 let bad = 0;
 for (const [tag, soft] of backends) {
   for (const s of shots) {
     const extra = arg('q', '');
-    const w = s === 'close' || s === 'weapons' || s === 'portrait' ? 1200 : 1600;
-    const h = s === 'close' || s === 'weapons' || s === 'portrait' ? 900 : 700;
+    const sq = ['close', 'weapons', 'portrait', 'case'].includes(s);
+    const w = sq ? 1200 : 1600;
+    const h = sq ? 900 : 700;
     const t0 = Date.now();
     const { browser, page: pg, log } = await open(file, { w, h, soft, query: `?shot=${s}${soft ? '&gl=1' : ''}${extra ? '&' + extra : ''}` });
     await raf(pg);

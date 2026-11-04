@@ -17,7 +17,7 @@ import {
 } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
-import { makeWeapon, makeStowed, makeCase, WEAPON_TYPES } from './weapons.js';
+import { makeWeapon, makeStowed, makeCase, loadArms, WEAPON_TYPES } from './weapons.js';
 
 export { WEAPON_TYPES };
 
@@ -85,8 +85,8 @@ const HOLD_Q = {
   SPEAR: holdQ([-1, 0, 0], [0.06, 1, 0], [0, 0, -1]),
   SWORD: holdQ([1, 0, 0], [0, -0.97, -0.24], [0, 0.24, -0.97]),
   BLADE: holdQ([1, 0, 0], [0, -0.97, -0.24], [0, 0.24, -0.97]),
-  // 弓：弓面原本正對身體前方，開場鏡頭在斜前方時只看得到一條線。往鏡頭那側轉 30°、上弓臂斜過胸前 28°，弓臂的弧線和弓弦都看得出來
-  BOW: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 6, -0.49, 'YZX')).multiply(holdQ([0, 0, 1], [0, 1, 0], [-1, 0, 0])),
+  // 弓：弓面原本正對身體前方，開場鏡頭在斜前方時只看得到一條線。往鏡頭那側轉 36°、上弓臂斜過胸前 17°（牛角弓反曲大，斜太多上梢會落到腰際），弓臂的弧線和弓弦都看得出來
+  BOW: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 5, -0.3, 'YZX')).multiply(holdQ([0, 0, 1], [0, 1, 0], [-1, 0, 0])),
 };
 const _hq1 = new THREE.Quaternion(), _hq2 = new THREE.Quaternion(), _hq3 = new THREE.Quaternion(), _hv = new THREE.Vector3();
 
@@ -97,6 +97,7 @@ let loading = null;
 export function loadActors() {
   if (loading) return loading;
   loading = (async () => {
+    const arms = loadArms(); // 兵器模型（arms.glb）跟人物一起解，makeWeapon／makeStowed 之後才能同步呼叫
     const el = document.getElementById('glb-actors');
     if (!el) throw new Error('缺少內嵌的人物模型 #glb-actors');
     const bin = Uint8Array.from(atob(el.textContent.trim()), (c) => c.charCodeAt(0));
@@ -137,6 +138,7 @@ export function loadActors() {
     for (const g of ['Male', 'Female']) rig[g] = measureRig(templates[g]);
     LIB = { templates, clips, mats, fists, rig, body: {} };
     for (const g of ['Male', 'Female']) LIB.body[g] = makeBodyMaterial(g, mats[`${g}_skin`]);
+    await arms;
     return { clips };
   })();
   return loading;
@@ -616,6 +618,7 @@ class Actor {
     gr.r.decompose(this.handR.position, this.handR.quaternion, this.handR.scale);
     gr.l.decompose(this.handL.position, this.handL.quaternion, this.handL.scale);
     this.held.clear();
+    this.fistL = null;
     this.caseObj = null;
     if (this.curName) this.play(this.curName, { fade: 0 });
   }
@@ -683,9 +686,11 @@ class Actor {
   }
 
   // 抽出兵器（null＝全部收回匣中）
+  // 弓在左手；指虎雙拳各套一個（左手那個另存 fistL，鍛器流光殼只跟 held 裡右手那個）
   drawWeapon(type) {
     this.weapon = type || null;
     for (const [, w] of this.held) w.visible = false;
+    if (this.fistL) this.fistL.visible = false;
     if (type) {
       let w = this.held.get(type);
       if (!w) {
@@ -694,6 +699,13 @@ class Actor {
         this.held.set(type, w);
       }
       w.visible = true;
+      if (type === 'FIST') {
+        if (!this.fistL) {
+          this.fistL = makeWeapon('FIST', { left: true });
+          this.handL.add(this.fistL);
+        }
+        this.fistL.visible = true;
+      }
     }
     if (this.stowed) for (const [t, s] of this.stowed) s.visible = t !== type;
   }
@@ -736,10 +748,11 @@ class Actor {
     this.mixer.update(dt);
     // 手上有兵器時把手指扣成握拳（走路、待機的動作原本是張開的）
     if (this.weapon) {
-      const side = this.weapon === 'BOW' ? 'l' : 'r';
-      for (const [bone, q] of LIB.fists[side]) {
-        const b = this.bones[bone];
-        if (b) b.quaternion.copy(q);
+      for (const side of this.weapon === 'FIST' ? ['r', 'l'] : [this.weapon === 'BOW' ? 'l' : 'r']) {
+        for (const [bone, q] of LIB.fists[side]) {
+          const b = this.bones[bone];
+          if (b) b.quaternion.copy(q);
+        }
       }
     }
     if (this.introHold) this._applyHold();

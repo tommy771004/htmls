@@ -13,9 +13,11 @@ function sum(file, v) {
     const hitches = [];
     const medW = pct(F.map(f => f[0]), .5), lim = Math.max(50, medW * 1.8);   // 和 96-perf.js 的卡頓同一套：比這場的中位數長 1.8 倍以上
     F.forEach((f, i) => { if (f[0] > lim && (f[1] + f[2] > lim * .66 || (f[3] || 0) > lim * .66)) hitches.push({ i, t: +(i / F.length * b.dur).toFixed(1), ms: f[0], cpu: f[1], sub: f[2], gpu: f[3], dp: f[7] }); });
+    // 絕對門檻（新舊版比較用）：相對門檻跟著那場的中位數走，快的版本中位數小、門檻低，反而數到比較多。這裡數「兩幀平均」超過 50／100 ms 的
+    const abs50 = ms2.filter(x => x > 50).length, abs100 = ms2.filter(x => x > 100).length;
     const st = b.stalls || [];
     for (const h of hitches) { const s = st.find(x => Math.abs(x.ms - h.ms) < .2); h.dt = s?.dt || 0; h.dg = s?.dg || 0; h.tags = s?.tags; allHitch.push({ ...h, kind: b.kind, i: b.i }); }
-    rows.push({ i: b.i, kind: b.kind, dur: b.dur, n: F.length, fps: F.length / b.dur, low1: 1000 / pct(ms2, .99), med: pct(F.map(f => f[0]), .5), p99_2: pct(ms2, .99), work: avg(work), cpu: avg(F.map(f => f[1])), sub: avg(F.map(f => f[2])), gpu: avg(gpu), gpu95: pct(gpu, .95), calls: avg(F.map(f => f[4])), tris: avg(F.map(f => f[5])), hitch: hitches.length, worst: Math.max(...F.map(f => f[0])), rcpu: b.cpuPct?.renderer, gcpu: b.cpuPct?.gpu, mem: b.mem });
+    rows.push({ i: b.i, kind: b.kind, dur: b.dur, n: F.length, fps: F.length / b.dur, low1: 1000 / pct(ms2, .99), med: pct(F.map(f => f[0]), .5), p99_2: pct(ms2, .99), work: avg(work), cpu: avg(F.map(f => f[1])), sub: avg(F.map(f => f[2])), gpu: avg(gpu), gpu95: pct(gpu, .95), calls: avg(F.map(f => f[4])), tris: avg(F.map(f => f[5])), hitch: hitches.length, abs50: abs50 / b.dur * 10, abs100: abs100 / b.dur * 10, p99: pct(F.map(f => f[0]), .99), worst: Math.max(...F.map(f => f[0])), rcpu: b.cpuPct?.renderer, gcpu: b.cpuPct?.gpu, mem: b.mem });
   }
   return { R, rows, allHitch };
 }
@@ -24,6 +26,7 @@ function report(name, S) {
   const { rows, allHitch } = S;
   console.log(`\n=== ${name}：${rows.length} 場 ===`);
   const by = {}; for (const r of rows) (by[r.kind] ||= []).push(r); by.all = rows;
+  console.log('掉幀（絕對）：兩幀平均 > 50 ms 每 10 秒 ' + f1(avg(rows.map(r => r.abs50))) + ' 幀、> 100 ms 每 10 秒 ' + f1(avg(rows.map(r => r.abs100))) + ' 幀；單幀 p99 ' + f1(avg(rows.map(r => r.p99))) + ' ms');
   console.log('型別    場  平均fps  1%low  幀中位ms  CPU邏輯  送出  顯示卡  顯示卡p95  drawcall  三角形M  卡頓/場  最長ms  renderer%  GPU行程%');
   for (const [k, a] of Object.entries(by)) console.log(`${k.padEnd(6)} ${String(a.length).padStart(3)}  ${f1(avg(a.map(r => r.fps))).padStart(6)}  ${f1(avg(a.map(r => r.low1))).padStart(5)}  ${f1(avg(a.map(r => r.med))).padStart(7)}  ${f1(avg(a.map(r => r.cpu))).padStart(6)}  ${f1(avg(a.map(r => r.sub))).padStart(5)}  ${f1(avg(a.map(r => r.gpu))).padStart(5)}  ${f1(avg(a.map(r => r.gpu95))).padStart(7)}  ${String(Math.round(avg(a.map(r => r.calls)))).padStart(7)}  ${(avg(a.map(r => r.tris)) / 1e6).toFixed(2).padStart(6)}  ${f1(avg(a.map(r => r.hitch))).padStart(6)}  ${f1(Math.max(...a.map(r => r.worst))).padStart(7)}  ${String(Math.round(avg(a.map(r => r.rcpu || 0)))).padStart(7)}  ${String(Math.round(avg(a.map(r => r.gcpu || 0)))).padStart(7)}`);
   // 卡頓的成因
@@ -41,7 +44,8 @@ function report(name, S) {
 function compare(A, Bs, la, lb) {
   const m = new Map(A.rows.map(r => [r.i, r])), pr = Bs.rows.filter(r => m.has(r.i)).map(r => [m.get(r.i), r]);
   const d = k => avg(pr.map(([a, b]) => (b[k] - a[k]) / a[k] * 100));
-  console.log(`\n配對 ${pr.length} 場，${lb} 相對 ${la}：fps ${f1(d('fps'))}%、1%low ${f1(d('low1'))}%、CPU 送出 ${f1(d('sub'))}%、主執行緒工作 ${f1(d('work'))}%、顯示卡 ${f1(d('gpu'))}%、draw call ${f1(d('calls'))}%、卡頓 ${f1(avg(pr.map(([a]) => a.hitch)))} → ${f1(avg(pr.map(([, b]) => b.hitch)))} 次/場`);
+  console.log(`\n配對 ${pr.length} 場，${lb} 相對 ${la}：fps ${f1(d('fps'))}%、1%low ${f1(d('low1'))}%、CPU 送出 ${f1(d('sub'))}%、主執行緒工作 ${f1(d('work'))}%、顯示卡 ${f1(d('gpu'))}%、draw call ${f1(d('calls'))}%、相對卡頓 ${f1(avg(pr.map(([a]) => a.hitch)))} → ${f1(avg(pr.map(([, b]) => b.hitch)))} 次/場`);
+  console.log(`掉幀（絕對）每 10 秒：> 50 ms ${f1(avg(pr.map(([a]) => a.abs50)))} → ${f1(avg(pr.map(([, b]) => b.abs50)))}、> 100 ms ${f1(avg(pr.map(([a]) => a.abs100)))} → ${f1(avg(pr.map(([, b]) => b.abs100)))}；單幀 p99 ${f1(avg(pr.map(([a]) => a.p99)))} → ${f1(avg(pr.map(([, b]) => b.p99)))} ms、最長 ${f1(avg(pr.map(([a]) => a.worst)))} → ${f1(avg(pr.map(([, b]) => b.worst)))} ms（每場平均）`);
   console.log(`fps 變高的場數 ${pr.filter(([a, b]) => b.fps > a.fps).length}/${pr.length}`);
 }
 const file = process.argv[2], raw = JSON.parse(readFileSync(file, 'utf8')), vs = [...new Set(raw.battles.map(b => b.v || ''))];

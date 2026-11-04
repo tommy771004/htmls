@@ -232,6 +232,25 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true], [667, 375, tr
     ok(dtabs.tabs.length === 8 && offTabs.length === 0,
       `${tag} 抽屜頁籤八面都在視窗內、不必捲動 (欄 ${dtabs.bar.map(Math.round).join(',')})${offTabs.length ? `（超出：${offTabs.join('、')}）` : ''}`);
 
+    // 說明抽屜的素材來源：每筆都列出、能捲到、不撐出水平捲軸
+    const cr = await page.evaluate(async () => {
+      window.__sf.hud.openDrawer('handoff');
+      await new Promise((r) => requestAnimationFrame(r));
+      const box = document.querySelector('.credits');
+      const pane = box?.closest('.d-pane');
+      if (!box || !pane) return null;
+      box.scrollIntoView({ block: 'end' });
+      await new Promise((r) => requestAnimationFrame(r));
+      const b = box.getBoundingClientRect(), p = pane.getBoundingClientRect();
+      const wide = [...box.querySelectorAll('li, a, b, span')].some((e) => e.getBoundingClientRect().right > p.right + 0.5);
+      const n = box.querySelectorAll('li').length;
+      window.__sf.hud.closeDrawer();
+      return { n, wide, paneOver: pane.scrollWidth > pane.clientWidth + 1, reach: b.bottom <= p.bottom + 1 && b.bottom > p.top };
+    });
+    const nCredits = (await import('../src/ui/credits.js')).CREDITS.length;
+    ok(cr && cr.n === nCredits && !cr.wide && !cr.paneOver && cr.reach,
+      `${tag} 說明抽屜列出全部 ${nCredits} 筆素材來源、捲得到、零水平溢出${cr ? ` (${cr.n} 筆)` : '（找不到）'}`);
+
     // 鏢路圖：節點（旗＋字）兩兩不重疊，也不超出地圖卡
     const wm = await page.evaluate(async () => {
       window.__sf.hud.openDrawer('worldmap');
@@ -287,6 +306,22 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true], [667, 375, tr
       const handoff = await page.evaluate(() => window.__sf.world.performSessionHandoff('mobile'));
       ok(handoff.handoff_latency_ms < 300, `${tag} 換手 (${handoff.handoff_latency_ms}ms)`);
     }
+
+    // 效能上限：三張圖最重的視角，draw call ≤ 400、三角形 ≤ 130 萬（2026-11 實測最重約 98 萬／360 次，見 CLAUDE.md）
+    const views = [['青萍渡', 1001, 0, 4, Math.PI], ['鏢局門前', 1001, 0.4, 19.4, 0], ['碼頭', 1001, 0, -20, Math.PI], ['赤沙驛', 1002, 0, 12, Math.PI], ['遺墟', 2001, 0, 11, Math.PI]];
+    const perf = [];
+    for (const [name, map, x, z, ry] of views) {
+      const i = await page.evaluate(async ([map, x, z, ry]) => {
+        const S = window.__sf, W = S.world;
+        if (W.char.mapId !== map) W.changeMap(map);
+        W.char.x = x; W.char.z = z; W.char.rotY = ry;
+        for (let k = 0; k < 4; k++) await new Promise((r) => requestAnimationFrame(r));
+        return S.info();
+      }, [map, x, z, ry]);
+      perf.push({ name, calls: i.calls, tris: i.triangles });
+    }
+    const heavy = perf.filter((p) => p.calls > 400 || p.tris > 1.3e6);
+    ok(heavy.length === 0, `${tag} draw call ≤ 400、三角形 ≤ 130 萬（${perf.map((p) => `${p.name} ${p.calls}/${Math.round(p.tris / 1000)}k`).join('、')}）`);
 
     const shadowWarn = log.warns.filter((m) => /PCFSoftShadowMap/.test(m));
     ok(shadowWarn.length === 0, `${tag} 沒有 PCFSoftShadowMap 已移除的 warning${shadowWarn.length ? `（${shadowWarn[0]}）` : ''}`);

@@ -11,7 +11,10 @@
     "test": "node --test tools/core.test.mjs && node tools/accept.mjs",
     "thumb": "node tools/thumb.mjs",
     "shot": "node tools/build.mjs --out=dist/world.html && node tools/shot.mjs",
-    "preview:actors": "node tools/actors-preview.mjs"
+    "preview:actors": "node tools/actors-preview.mjs",
+    "prep:models": "node tools/prep-models.mjs",
+    "models": "node --max-old-space-size=12000 tools/pack-models.mjs",
+    "preview:models": "node tools/models-preview.mjs"
   },
   "dependencies": {
     "three": "0.186.0"
