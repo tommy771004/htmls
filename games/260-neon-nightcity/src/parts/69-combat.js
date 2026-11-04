@@ -854,7 +854,8 @@ R.domElement.addEventListener('pointerdown', e => {
   if (e.button === 0) triggerDown();
 });
 addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') return; if (e.button === 2) gta.rmb = false; if (e.button === 0) triggerUp(); });
-addEventListener('contextmenu', e => { if (started) e.preventDefault(); });
+addEventListener('contextmenu', e => { if (started || matchMedia('(pointer: coarse)').matches) e.preventDefault(); });   // 觸控裝置長按不跳選單
+addEventListener('selectstart', e => { if (!e.target.closest?.('input,textarea,[contenteditable]')) e.preventDefault(); });   // CSS 的 user-select 之外再擋一次（iOS 雙擊、長按）
 addEventListener('wheel', e => {
   if (!started || (!document.pointerLockElement && !arm.wheel.open) || life.dead) return;
   e.preventDefault();

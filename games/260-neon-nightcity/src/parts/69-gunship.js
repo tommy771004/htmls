@@ -114,12 +114,15 @@ function flyHeli(v, inp, dt) {
   return { imp, vF, aF };
 }
 // 每幀：沒人開的直升機停著或往下掉、旋翼慢下來；開火冷卻與火箭莢裝填；擺旋翼
-// 手機的 Space／Shift 按鈕：開直升機時是爬升／下降
+// 手機的按鈕組：走路／開車（body.tDrv）／開直升機（再加 tFly）。Space 是跳躍／手煞／爬升、Shift 是衝刺／氮氣／下降、F 是上車／下車；
+// 圖示三組都在按鈕裡由 CSS 切換，名字寫在 aria-label
 let gsTouch = null;
 function gunshipTouch(fly) {
-  if (gsTouch === fly) return;
-  gsTouch = fly;
-  for (const [k, a, b] of [['Space', '手煞', '爬升'], ['ShiftLeft', '氮氣', '下降']]) { const e = document.querySelector(`#tbtn button[data-k="${k}"]`); if (e) e.textContent = fly ? b : a; }
+  const m = fly ? 2 : player.veh ? 1 : 0;
+  if (gsTouch === m) return;
+  gsTouch = m;
+  document.body.classList.toggle('tDrv', m > 0); document.body.classList.toggle('tFly', m === 2);
+  for (const [k, ...l] of [['Space', '跳躍', '手煞', '爬升'], ['ShiftLeft', '衝刺', '氮氣', '下降'], ['KeyF', '上車', '下車', '下機']]) { const e = document.querySelector(`#tbtn button[data-k="${k}"]`); if (e) e.setAttribute('aria-label', l[m]); }
 }
 function gunshipStep(dt) {
   gunshipTouch(!!(player.veh && player.veh.fly));

@@ -489,6 +489,7 @@ const VENUES = {
 };
 let curScene = scene;
 function setWhere(w) {
+  const was = player.where; if (was !== w && VENUES[was] && VENUES[was].leave) VENUES[was].leave();   // 場館自己的進出（97-summit.js：相機遠平面、風聲）
   player.where = w; player.jump = null;
   curScene = w === 'out' ? scene : VENUES[w].scene;
   curScene.add(me.mesh);
@@ -497,6 +498,7 @@ function setWhere(w) {
   if (w === 'out') { activeBoxes = colliders; activeCircles = circles; }
   else { const v = VENUES[w].data; activeBoxes = v.boxes; activeCircles = v.circles; }
   rainMesh.visible = splashMesh.visible = w === 'out';
+  if (was !== w && VENUES[w] && VENUES[w].enter) VENUES[w].enter();
 }
 let fading = false;
 function transition(fn) {

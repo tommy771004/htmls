@@ -114,8 +114,9 @@ const sfx = (() => {
   function mix() {
     if (!ac) return;
     const t = ac.currentTime;
-    out.gain.setTargetAtTime(outGain(), t, .05); master.gain.setTargetAtTime(SET.vSfx, t, .05);
-    musicG.gain.setTargetAtTime(SET.vMusic, t, .05); ambG.gain.setTargetAtTime(SET.vAmb, t, .05);
+    const on = st.summit ? 0 : 1;   // 97-summit.js：峰頂觀景環開著時城市的音樂、環境音關掉（它自己接在 out 上）；電影與搭車時連音效也關，在山上走（summit === 2）時腳步這些音效照常
+    out.gain.setTargetAtTime(outGain(), t, .05); master.gain.setTargetAtTime(SET.vSfx * (st.summit === 1 ? 0 : 1), t, .05);
+    musicG.gain.setTargetAtTime(SET.vMusic * on, t, .05); ambG.gain.setTargetAtTime(SET.vAmb * on, t, .05);
     // 暫停選單打開時 step 不跑、update 不會被呼叫：甩尾、警笛、旋翼直接收掉（關掉選單後 update／loops 需要時再建）
     if (st.duck) {
       for (const k of ["skid", "wail", "yelp", "heli"]) if (st[k]) { const L = st[k]; st[k] = null; L.g.gain.setTargetAtTime(0, t, .02); try { L.s.stop(t + .1); } catch (e) {} }
@@ -322,6 +323,8 @@ const sfx = (() => {
     stats() { const db = (b) => { const y = b.getChannelData(0); let e = 0; for (let i = 0; i < y.length; i++) e += y[i] * y[i]; return +(10 * Math.log10(e / y.length + 1e-12)).toFixed(1); }; const o = {}; for (const [k, vs] of Object.entries(rec.one)) o[k] = vs.map((b) => [+b.duration.toFixed(2), db(b)]); for (const [k, b] of Object.entries(rec.loop)) o[k] = [[+b.duration.toFixed(2), db(b)]]; return o; },
     beat() { return (now() - (ac ? st.clubT0 : 0)) * CLUB_BPM / 60; },
     setMuted(m) { st.muted = m; mix(); },
+    // 97-summit.js：開關峰頂觀景環（城市的匯流排歸零；sfxOn 留著音效匯流排），回傳 AudioContext 與總輸出（受總音量、靜音、切分頁靜音控制）
+    summit(on, sfxOn) { st.summit = on ? (sfxOn ? 2 : 1) : 0; mix(); return ac ? { ac, out } : null; },
     // 95-menu.js：音量滑桿、暫停時壓低（duck）、切到別的分頁時靜音（hidden）
     mix(o) { if (o) Object.assign(st, o); mix(); },
     get muted() { return st.muted; },

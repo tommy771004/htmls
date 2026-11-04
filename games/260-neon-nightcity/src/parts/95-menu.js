@@ -90,6 +90,7 @@ const MENU = {
   game: [
     { n: '暫停', rows: () => [
       { n: '繼續遊戲', act: () => menuClose(), d: '回到雨夜。' },
+      { n: '峰頂觀景環', act: () => SUMMIT.open(), d: '電影場景：暮色裡的雪山群峰與雲海，最高峰上的環形觀景建築。45 秒循環的自動運鏡與配樂，城市在這段時間暫停。Esc 返回。' },
       { n: '快速存檔', act: menuSave, d: '存下主角、任務、彈藥、位置與正在開的車。通緝中、搶劫中或人在室內時不能存（安全屋請去床邊）。' },
       { n: '讀取快速存檔', act: menuLoad, off: !motors.game, val: motors.game ? new Date(motors.game.t).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '沒有存檔', d: '回到上次快速存檔的地方。現金與車庫本來就即時存著，不受影響。' },
     ] },
@@ -288,7 +289,7 @@ function menuLoad() {
 
 // ─── 開關 ───
 function menuOpen(tab) {
-  if (menu.on || !started) return;
+  if (menu.on || !started || SUMMIT.on) return;   // 97-summit.js 開著時不開選單（失焦、游標解鎖）
   if (arm.wheel.open) wheelClose(false);
   if (crew.wheel.open) crewWheelClose(false);
   for (const k in keys) keys[k] = false;

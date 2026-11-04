@@ -1955,6 +1955,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   let r = skyWalk() ? { x: nx, z: nz } : collideCircle(nx, nz, .32, false, true);   // 塔吊的吊臂上（69-v5-tower.js）只看步行面
   colY = 0;
   let x = r.x, z = r.z;
+  if (player.where !== 'out' && VENUES[player.where].walk) [x, z] = VENUES[player.where].walk(player.x, player.z, x, z);   // 牆是函式的場館（97-summit.js 的弧形玻璃牆）
   if (depth > 0) { [x, z] = farClamp(x, z); if (!tronNear(x, z)) z = Math.min(z, ISLE.z1 + 320); }   // 游不到對岸（21-coast.js 的 farClamp）；光格島附近（21-tron.js）可以游到碼頭的梯子
   // 車流、載具與路人（69-kinema.js：停著的車推得動一點、被車夾在牆上、和路人互相讓開、衝刺撞人）
   if (!skyWalk()) [x, z] = kinWalk(x, z);
@@ -1962,7 +1963,7 @@ function updatePlayerWalk(inp, dt, camYaw) {
   player.x = x; player.z = z;
   // 游泳時根骨貼著水面，慢慢上下起伏
   // 從梯子前的缺口上岸（31-boats.js、10-city.js 的 LADDERS）：一下子高 1.6 m，慢一點爬上去
-  const fy = player.where === 'out' ? walkY(x, z, player.y, deckAt(x, z, player.y) ?? seaFloor(x, z)) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板；戶外是步行面（20-walk.js）、快速道路橋面或地面
+  const fy = player.where === 'out' ? walkY(x, z, player.y, deckAt(x, z, player.y) ?? seaFloor(x, z)) : VENUES[player.where].floorAt ? VENUES[player.where].floorAt(x, z) : VENUES[player.where].lvs ? VENUES[player.where].lvY : groundH(x, z);   // 分層的安全屋：所在那一層的地板；戶外是步行面（20-walk.js）、快速道路橋面或地面
   if (J) jumpStep(J, fy, depth, dt);
   else player.y = player.swim ? damp(player.y, SEA_Y - SWIM_Y + Math.sin(uTimeNow() * 2.1) * .04 - (player.diveK || 0) * DIVE_D, 6, dt) : damp(player.y, fy, fy - player.y > .8 ? 4 : 20, dt);
   // 動作混合

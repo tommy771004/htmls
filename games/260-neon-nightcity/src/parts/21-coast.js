@@ -61,11 +61,15 @@ const MAT_WATER = groundMat('water', { tTron: { value: null }, uTronA: { value: 
 // 河對岸（還有對岸的 London City 模型，27-props.js）跟著舊城那一片（A1，沒有轉）：對岸只到 FAR_Z1，再往南是河口與海
 const FAR_ZN = ZONES[0];
 const FAR_PARTS = [{ zn: FAR_ZN, z0: -1e5, z1: FAR_Z1 }];
-// 游泳與開船：世界座標的點擋在對岸堤岸外 4 m、外緣外的山（hillH 高過水面）以外。對岸步道（10-city.js 的 BANK_WALKS）那一段擋到岸邊為止，前面有擋牆與梯子，靠得了岸
+// 游泳與開船：世界座標的點擋在對岸堤岸外 4 m（對岸只到 FAR_BANK_W，再往西是水與機場的 isl2）、外緣外的山（hillH 高過水面）以外。對岸步道（10-city.js 的 BANK_WALKS）那一段擋到岸邊為止，前面有擋牆與梯子，靠得了岸
 function farClamp(X, Z) {
   let [x, z] = toL(X, Z, FAR_ZN);
   const B = BANK_WALKS[0], lim = z > B.z0 - 4 && z < B.z1 + 4 ? 0 : 4;
-  if (z < FAR_Z1 + 2 && x < FAR_BANK_X + lim) { x = FAR_BANK_X + lim; [X, Z] = toW(x, z, FAR_ZN); }
+  if (z < FAR_Z1 + 2 && x < FAR_BANK_X + lim && x > FAR_BANK_W - 4) {   // 對岸只剩 FAR_BANK_W..FAR_BANK_X：推到最近的那一邊（東岸、西岸或南端）
+    const de = FAR_BANK_X + lim - x, dw = x - (FAR_BANK_W - 4), ds = FAR_Z1 + 2 - z;
+    if (ds <= de && ds <= dw) z = FAR_Z1 + 2; else if (de <= dw) x = FAR_BANK_X + lim; else x = FAR_BANK_W - 4;
+    [X, Z] = toW(x, z, FAR_ZN);
+  }
   return [X, Z];
 }
 // 沙灘：沿 z 切 40 段，高度和 groundH 一樣（往海裡再多延伸一段，讓水面切出岸線）
@@ -1106,12 +1110,15 @@ const FAR_SITES = {
   // 對岸：沿河的堤岸與一條地面（FAR_PARTS，跟著舊城那一片），南端（FAR_Z1）是對著河口的岸；London City 的模型下載前先用程式剪影
   const bk = new Kit(), sk = new Kit(), ZA = CITY_Z0 - 1600, ZB = FAR_Z1;
   {
-    const bank = new T.PlaneGeometry(1800, ZB - ZA, 1, 1); bank.rotateX(-Math.PI / 2); bank.translate(FAR_BANK_X - 900, 0, (ZA + ZB) / 2);
-    bk.add(bank, 0x0e0f10, 2, null);
-    bk.box(FAR_BANK_X + 2, -1, (ZA + ZB) / 2, 4, 2, ZB - ZA, 0x2a2826, 2).box(FAR_BANK_X - 900, -1, ZB + 2, 1800, 2, 4, 0x2a2826, 2);
+    // 地面只到 FAR_BANK_W（London City 那一段）：原本往西 1800 m 是一整片近黑的平面，機場第二航廈蓋好後近看是一塊黑板，改成水
+    const BW = FAR_BANK_X - FAR_BANK_W, bank = new T.PlaneGeometry(BW, ZB - ZA, 1, 1); bank.rotateX(-Math.PI / 2); bank.translate(FAR_BANK_X - BW / 2, 0, (ZA + ZB) / 2);
+    bk.add(bank, 0x6c6a64, 2, null);   // London City 底下的城區地面：淺灰的石板鋪面（原本近黑 0x0e0f10，白天從機場看像一塊黑板）
+    for (let x = FAR_BANK_W + 24; x < FAR_BANK_X; x += 24) bk.box(x, .03, (ZA + ZB) / 2, .5, .04, ZB - ZA, 0x55534e, 2);   // 鋪面的分格縫（24 m 一格）
+    for (let z = ZB - 24; z > ZA; z -= 24) bk.box(FAR_BANK_X - BW / 2, .031, z, BW, .04, .5, 0x55534e, 2);
+    bk.box(FAR_BANK_X + 2, -1, (ZA + ZB) / 2, 4, 2, ZB - ZA, 0x2a2826, 2).box(FAR_BANK_X - BW / 2, -1, ZB + 2, BW + 8, 2, 4, 0x2a2826, 2).box(FAR_BANK_W - 2, -1, (ZA + ZB) / 2, 4, 2, ZB - ZA, 0x2a2826, 2);
   }
-  for (let z = CITY_Z0 - 1400; z < ZB; z += 30) bk.box(FAR_BANK_X - 4, 5, z, .5, .5, .5, 0xffc880, 11);
-  for (let x = FAR_BANK_X - 30; x > FAR_BANK_X - 1200; x -= 34) bk.box(x, 5, ZB - 4, .5, .5, .5, 0xffc880, 11);
+  for (let z = CITY_Z0 - 1400; z < ZB; z += 30) { bk.box(FAR_BANK_X - 4, 5, z, .5, .5, .5, 0xffc880, 11); bk.box(FAR_BANK_W + 4, 5, z, .5, .5, .5, 0xffc880, 11); }
+  for (let x = FAR_BANK_X - 30; x > FAR_BANK_W + 10; x -= 34) bk.box(x, 5, ZB - 4, .5, .5, .5, 0xffc880, 11);
   cityAdd(new T.Mesh(bk.build(), MAT.far), FAR_ZN);
   for (let i = 0; i < 70; i++) {
     const x = FAR_BANK_X - 40 - r2() * 700, z = ZA + 200 + r2() * (ZB - ZA - 240), w = 18 + r2() * 30, h = 20 + r2() * (r2() < .2 ? 160 : 60);

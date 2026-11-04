@@ -107,8 +107,12 @@ if (isTouch) {
   cvs.addEventListener('pointermove', e => { const l = touch.look; if (l && l.id === e.pointerId) { look((e.clientX - l.x) * 1.6, (e.clientY - l.y) * 1.2, SET.touchSens); l.x = e.clientX; l.y = e.clientY; } });
   const lend = e => { if (touch.look && touch.look.id === e.pointerId) touch.look = null; };
   cvs.addEventListener('pointerup', lend); cvs.addEventListener('pointercancel', lend);
-  document.querySelectorAll('#tbtn button').forEach(b => {
+  // 「更多」：展開次要的按鈕（蹲下、跳舞、叫車、角色、技能），按了其中一個就收起來
+  const tb = $('tbtn'), more = $('tMoreB'), moreSet = o => { tb.classList.toggle('open', o); more.setAttribute('aria-expanded', o ? 'true' : 'false'); };
+  more.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); moreSet(!tb.classList.contains('open')); });
+  document.querySelectorAll('#tbtn button[data-k]').forEach(b => {
     const k = b.dataset.k;
+    if (b.closest('#tMore')) b.addEventListener('pointerup', () => moreSet(false));
     b.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); b.classList.add('act'); if (k === 'Space' || k === 'ShiftLeft') { keys[k] = true; if (k === 'Space' && started && player.mode === 'walk') onKey(k); } else if (k === 'Fire') triggerDown(); else onKey(k); });
     const up = () => { b.classList.remove('act'); if (k === 'Space' || k === 'ShiftLeft') keys[k] = false; if (k === 'Fire') triggerUp(); };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
@@ -210,7 +214,7 @@ function updateCamera(dt, spd) {
   // 室內：有第二層的安全屋（69-safehouse.js）地板跟著所在的層，天花板依位置（夾層下比較低，相機與角色兩處取低的）
   const V = p.where === 'out' ? null : VENUES[p.where];
   let wk = null; if (!V) { wk = walkCam(wx, wz, inV ? p.veh.y : p.y, Math.max(seaFloor(wx, wz), SEA_Y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
-  const floor = (V ? V.lvY || 0 : wk[0]) + .35;
+  const floor = (V ? (V.floorAt ? V.floorAt(wx, wz) : V.lvY || 0) : wk[0]) + .35;   // 有 floorAt 的場館（峰頂觀景環的雪地）照相機的位置問
   const ceil = !V ? wk[1] : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
   wy = clamp(wy, floor, ceil);
   if (camState.snap) camState.pos.set(wx, wy, wz);
@@ -358,6 +362,7 @@ function step(dt) {
   if (ctx) { pr.classList.add('on'); setText('promptKey', ctx.key); if (hudCache.promptText !== ctx.text) { hudCache.promptText = ctx.text; $('promptText').innerHTML = ctx.text; } }
   else pr.classList.remove('on');
   updateHud(dt);
+  if (player.where === 'summit') SUMMIT.tick(dt); else if (out) SUMMIT.cityTick(dt);   // 97-summit.js：山上的天色與風聲、城裡纜車線上的車廂
   renderFrame(dt, t);
 }
 // 騎機車時人物坐在座墊上、跟著車身壓車
@@ -369,6 +374,7 @@ function placeRider(v) {
 }
 function loop(now) {
   requestAnimationFrame(loop);
+  if (SUMMIT.on) { T0 += now - last; last = now; SUMMIT.frame(now); return; }   // 97-summit.js：峰頂觀景環（城市停住，uTime 不走）
   if (menu.on) { T0 += now - last; last = now; menuIdle(); return; }   // 95-menu.js：暫停時世界停住（uTime 也不走），只在改了畫面設定時重畫
   if (SET.fps && now - last < 1000 / SET.fps - 2) return;   // 幀率上限
   const raw = Math.min(.05, (now - last) / 1000); last = now;
@@ -409,6 +415,7 @@ if (GLB_ON) {
 bootProgress(100, '雨正在下。');
 const go = $('go'); go.disabled = false;
 go.textContent = '進入雨夜'; go.removeAttribute('role'); go.removeAttribute('aria-valuenow');
+SUMMIT.ready();   // 97-summit.js：開始畫面的「峰頂觀景環」按鈕、?summit=1
 go.addEventListener('click', () => {
   started = true; sfx.init(); warmGo();   // 27-props.js：進場後背景載入每幀只佔 6 ms、走近才下載的道具先傳貼圖
   $('start').classList.add('gone'); $('hud').classList.add('on'); $('touch').classList.add('on');
@@ -435,6 +442,7 @@ window.__nc = {
   // 95-menu.js：Esc 選單（st 狀態、SET 設定值、set(k, v) 改設定、key(code) 模擬選單按鍵、rt() 渲染目標、t() 著色器時間）
   menu: { st: menu, SET, open: menuOpen, close: menuClose, set: (k, v) => menuSet(k, v), key: c => menuKey(c), rt: () => ({ w: rtScene.width, h: rtScene.height, samples: rtScene.samples, scale: post.scale }), detail: () => ({ k: detail.k, v: detail.v, dist: detailK() }), t: () => U.uTime.value },
   story: storyApi,   // 69-w0-story.js：主線（go(id)、state()、skip()）
+  summit: SUMMIT,   // 97-summit.js：open()、seek(秒)、play()、close()、st()
   ready: true, dbg: () => ({ PK, GS, v7Turret, scene, Kit, MAT, trees, peds, finPool, finBalcony, rigMesh, siteMesh, VEND, VEND_BIN, ISLE_PROXY, HILL_PLANTS, XR, ST_SITES, BANK_WALKS, hydrants, bins, benches }), city: { blocks, lots, bldPlace, shopUnits }, gpu: GPU, reflFar: m => { reflFarT = m; },   // 街區與地塊（挑設施街區、驗收用）；顯示卡分級（00-core.js）與倒影遠平面（70-render.js，null 照等級）
   scene, camera, renderer: R, player, quest, traffic, parked, vehicles, U, post, boat: boatApi, seam: { path: SEAM_PATH, sites: SEAM_SITES }, ways: { fwy: FWY, ramps: FWY_RAMPS, diag: DIAG, plaza: () => { const B = blocks.filter(b => b.plaza); return { blocks: B.length, lots: lots.filter(L => L.b && L.b.plaza).length, road: B.reduce((a, b) => a + groundHL((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2), 0), walk: B.filter(b => groundHL(b.x1 - SW - 3, b.z0 + SW + 3) > 0 || groundHL(b.x0 + SW + 3, b.z1 - SW - 3) > 0).length }; } }, assets: assetReport, props: { bld: bldPlace, ramen: ramenSpots, clutter, wallAcs, downpipes, weeds, lampBlobs, streaks, signHits, vend: VEND, vendBin: VEND_BIN, w1: W1_SITES, viaduct: VIADUCT, rail: railApi, tron: tronApi, air: airApi, xrail: xrApi, coast: { models: COAST_MODELS, ISLE, FAR_BANK_X, EAST_BANK_X, FAR_SITES } }, gta: Object.assign(gtaApi, combatApi, { wanted: wantedApi, crew: crewApi, gps: gpsApi, phone: phoneApi, stunt: stuntApi, ev: evApi, squad: squadApi, market: marketApi, heist: heistApi, apt: aptApi, roll: rollApi, side: sideApi, story: storyApi, race: raceApi, turf: turfApi, surv: survApi, tale: taleApi }),
   step: (dt = 1 / 60) => step(dt),

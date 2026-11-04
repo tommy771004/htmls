@@ -12,7 +12,7 @@
 
 - 城市在方格的「邏輯座標」生成，`05-zones.js` 的 `ZONES` 是每片的剛體變換加片內彎曲。玩家、車流、地圖、碰撞、存檔（第 5 版起）都是世界座標。
 - 新程式碰到位置，先想清楚是邏輯還是世界座標（`toW`／`toL`、`spotW`）。世界座標的圓柱與光源標 `w: 1`，實例標 `zn: null`。驗收腳本用 `__nc.tpL`／`W`／`L`／`Ws`，不要寫死世界座標。
-- `04-layout.js` 由 `tools/check-zones.mjs` 產生，不要手改。
+- `04-layout.js` 由 `tools/check-zones.mjs` 產生，不要手改。`52-air-int-data.js`（第一、第二航廈室內的擺放、碰撞、步行面）也一樣，是 `blender/airint.py` 產生的。
 - 地面高度先問 `deckAt`（疊在一起的橋面看 `deckOn`），生成載具用 `spawnY`。
 - 碰撞盒是切段的平行四邊形（`boxSplitW`、`frameA`）；圓對盒走 `quadPush`。
 - 改 `DIAG` 的起點要避開特殊地塊、實體建築和安全屋的門。跳台與斷橋不能飛越片與片之間的縫。
@@ -34,7 +34,12 @@
   - `Object3D.updateMatrixWorld` 只在有變動時才重算，所以不要直接寫 `matrixWorld`。
   - `Frustum.intersectsObject` 在低空時剔掉整顆在霧裡的物件；霧外還要看得到的東西要用 `FAR`。
 - 點光與地上陰影的陣列 uniform 用 `v4set` 寫。
+- TSL 裡不能寫 JS 數字＋節點（`.008 + x.mul(2)`），要寫 `x.mul(2).add(.008)`，不然編譯時是 `this.bNode.getNodeType is not a function`。
+- 帶 layout 的 `Fn`（`{ p: 'vec3', return: 'vec3' }`）會變成獨立的 WGSL 函式，裡面讀不到 varying（`vW` 之類會是 `unresolved value 'gv_vW'`），要當參數傳進去。
+- 所有材質共用的貼圖 uniform（例如 `U.uAHMap`）要在材質編譯前就掛上真的貼圖（沒有資料也先掛 1×1）；晚掛的話先編好的管線綁的是別的貼圖，WebGPU 報 `Binding doesn't exist`／型別不符。
+- 直接寫 `NodeMaterial`（`97-summit.js`）時，會變的 uniform 要 `setGroup(renderGroup)`：`02-gfx.js` 的 uniform 版本檢查只管 ShaderMaterial，物件沒變時 objectGroup 的值不會重寫。
 - three r186 的 `new Color(hex)` 已經是線性值，不要再 `convertSRGBToLinear()`。
+- `m-uber.mjs` 的材質編號鏈裡有範圍分支（12–14 是亮窗），新增編號前先找 `greaterThanEqual`／`lessThanEqual`，不要只看有沒有同號的 `equal`。
 - 霧只在遠處淡出。`uFogDen` 不要調小，剔除是照它算的。夜裡的環境反射一律用 `envMapS(r, 1)`，不要傳 0。
 - 招牌字圖集是 2048×3072（`20-props.js` 的 `ATLAS_H`），新增格子前先算會不會超出。
 
@@ -45,7 +50,10 @@
 - 重跑 `npm run cars`（`tools/cars.mjs`）會保留 `cars.json` 裡新規格沒有的欄位（`db`、`kit`、`door`、`sw`）。
 - 換過車內或修過的實車（換車內：viper、r8、svj、f40、sf90，glb 的 `asset.extras.cab`；只修：lc200、ramtrx、m3c、gt3rs，`asset.extras.fix`）：改車內是改 `blender/cab_<id>.py`、修正是改 `tools/cab-swap.mjs` 的 `FIX`，再跑 `tools/cab-swap.mjs <id>`（從 `.cache/cab-src/` 的原檔備份重做）；直接重跑 `cars.mjs` 會把這些換回原模型。
 - 人物的骨架不在場景圖裡。動畫庫沒有的動作，在播放後用 `aim()` 覆寫骨頭方向。
-- 互動提示掛進 `ctxHooks`；要排在固定提示之後的掛 `ctxLate`。室內場館登錄在 `60-venues.js` 的 `VENUES`。展示廳換樓層一律走 `showLevel(k)`。
+- 互動提示掛進 `ctxHooks`；要排在固定提示之後的掛 `ctxLate`。室內場館登錄在 `60-venues.js` 的 `VENUES`。場館可以帶 `enter()`／`leave()`（`setWhere` 換場館時呼叫，例如 `summit` 換相機遠平面與聲音）、`walk(ox, oz, nx, nz)`（40-people 的移動先過它，曲面牆用可走區域而不是碰撞盒）與 `floorAt(x, z)`（有它時人物與相機的地面高度照它算，不看 `lvY`）。展示廳換樓層一律走 `showLevel(k)`。
+- Blender 腳本裡開放的面（帷幕、屋頂帶、單片玻璃）不要用 `common.py` 的 `MB.build`：它的 `recalc_face_normals` 會把這種面隔一片翻一片，背面在遊戲裡看不到（`airbld.py` 有自己的 `build`，面照寫的方向朝外）。
+- 機場的 Blender 腳本（`airkit.py` 的 `finish` 會 `remove_doubles`）不要用「正反各畫一次」做雙面：兩面頂點相同會被併成一面，只剩先畫的繞向，另一側整片看不到。貼在板面上的圖形用 `airkit.py` 的 `ow(b, pts, m, 法線)` 畫單面；真的要兩面就把背面錯開幾 mm。
+- `bmesh.ops.bevel` 新長出來的倒角面都是第 0 號材質（細管、輪胎溝會變成那個顏色）；要照相鄰原面改回來（`airgse.py` 的 `finish`）。
 - 服裝的 `blender/wear*.py` 都 `exec` 進同一個命名空間，新函式不要和別的檔案撞名。裙子的線條與開衩要對齊放樣的環與欄（`rows_d`／`cols`）。改鞋子先用 Blender 單獨出圖看。
 
 ## 音效與設定

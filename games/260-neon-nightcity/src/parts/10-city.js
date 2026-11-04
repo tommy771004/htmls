@@ -148,6 +148,8 @@ const PIERS = [
 // 對岸（21-coast.js 的遠景）：灰鷺河西岸、東灣東岸的堤岸線
 // 灰鷺河的對岸只到 FAR_Z1（舊城的北半段）為止，再往南河口張開成海；河往北流進山谷（hillH）。EAST_BANK_X 只剩地圖的範圍在用
 const FAR_BANK_X = CITY_X0 - OUT_D - 300, EAST_BANK_X = CITY_X1 + OUT_D + 300, FAR_Z1 = CITY_Z0 + 100, RIVER_E = CITY_X0 - OUT_D;
+// 對岸的西緣：只留 London City 那一段（770 m 寬）；再往西原本是一整片空的黑色地面，2026-11-04 起是水，機場第二航廈的填海地（AIR.isl2）伸進去
+const FAR_BANK_W = FAR_BANK_X - 770;
 // 對岸的濱水步道：灰鷺河對岸（舊城那一片，London City 模型前）一條 20 m 寬，中間一座渡船碼頭（東面改成山之後，舊港那一條拿掉了）。
 // back 那一邊靠著遠景模型，不做低擋牆，換成一道高牆（21-coast.js 在那裡蓋一排近景的樓面）
 const BANK_WALKS = [
@@ -158,10 +160,11 @@ const LANDS = [{ ...BEACH, z0: SHORE_Z - INLAND }, QUAY, BRIDGE, ISLE, ...PIERS,
 const inLand = (x, z) => LANDS.some(r => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
 // 外海的島（光格島、鷹巖村）與機場不屬於任何片：SEA_FR 是它們的剛體座標框（沒有 ?zrot 時就是世界座標；有的話跟著整座城一起轉）
 const SEA_FR = ZONE_ROT === null ? null : (() => { const [ox, oz] = zrotW(0, 0), [ex, ez] = zrotW(1, 0); return frameW(ox, oz, ex - ox, ez - oz); })();
-// ─── 灰鷺角國際機場（21-air.js）：城西外海的填海島（SEA_FR 座標的矩形，北緣離灰鷺河對岸 FAR_Z1 七十多公尺），跑道東西向，
+// ─── 灰鷺角國際機場（21-air.js）：城西外海的填海島（SEA_FR 座標的矩形 isl，2026-11-04 起往北多一塊 isl2 填進河口，放第二航廈），跑道東西向，
 // 堤道從楓林西第 9 條街的西端（外緣那條大道的路邊）沿街道方向出海，S 形彎到島東緣北段的航廈前路。堤道是 SEA_FR 座標的三次貝茲曲線，切成 8 m 一段的折線 ───
 const AIR = (() => {
   const isl = { x0: -3300, x1: -1000, z0: 20, z1: 600 }, zn = ZONES.find(z => z.name === '楓林西');
+  const isl2 = { x0: -2340, x1: -1370, z0: -440, z1: 20 };   // 往北填到河口（第二航廈 T2 與它的機坪；東緣離對岸 London City 那段 60 m 水道）
   if (!zn) return null;
   const [sx, sz] = toL(...toW(avX(zn.ni0) - HR, stZ(9), zn), SEA_FR), [dx, dz] = dirW(zn, -1, 0, avX(zn.ni0) - HR, stZ(9)), dl = Math.hypot(dx, dz);
   const ux = dx / dl, uz = dz / dl, [rx, rz] = SEA_FR ? [ux * SEA_FR.c - uz * SEA_FR.s, ux * SEA_FR.s + uz * SEA_FR.c] : [ux, uz];   // 街道方向換到 SEA_FR
@@ -172,12 +175,13 @@ const AIR = (() => {
   let acc = 0; road.push(pts[0]);
   for (let i = 1; i < pts.length; i++) { const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); acc += L; if (acc >= 8 || i === pts.length - 1) { road.push(pts[i]); acc = 0; } }
   const xs = road.map(p => p[0]), zs = road.map(p => p[1]);
-  return { isl, road, hw: 10, bb: [Math.min(...xs) - 12, Math.max(...xs) + 12, Math.min(...zs) - 12, Math.max(...zs) + 12], name: '灰鷺角國際機場', en: 'Heron Point International' };
+  return { isl, isl2, road, hw: 10, bb: [Math.min(...xs) - 12, Math.max(...xs) + 12, Math.min(...zs) - 12, Math.max(...zs) + 12], name: '灰鷺角國際機場', en: 'Heron Point International' };
 })();
 // SEA_FR 座標的一點：在機場島上（含堤道路面）。堤道從街口開始，外緣裡面那一小段本來就是陸地
 const airLandL = (x, z) => {
   if (!AIR) return false;
   const I = AIR.isl; if (x >= I.x0 && x <= I.x1 && z >= I.z0 && z <= I.z1) return true;
+  const J = AIR.isl2; if (x >= J.x0 && x <= J.x1 && z >= J.z0 && z <= J.z1) return true;
   const b = AIR.bb; if (x < b[0] || x > b[1] || z < b[2] || z > b[3]) return false;
   const R = AIR.road;
   for (let i = 1; i < R.length; i++) {
@@ -1120,7 +1124,7 @@ function hillH(X, Z) {
   // 舊城北邊的河谷（A1 沒有轉，邏輯 ≈ 世界）
   const [lx, lz] = toL(X, Z, ZONES[0]);
   if (lz < FAR_Z1 + 40 && lx > FAR_BANK_X - 40 && lx < RIVER_E + 120) h = Math.min(h, lx < FAR_BANK_X ? -.6 : -8 + 8.3 * sm01((lx - RIVER_E - 10) / 110));
-  else if (lx < FAR_BANK_X && lz < FAR_Z1) h = Math.min(h, -.6);
+  else if (lx < FAR_BANK_X && lx > FAR_BANK_W && lz < FAR_Z1) h = Math.min(h, -.6);
   return h;
 }
 // ─── 山坡的網格高度：21-coast.js 的山是 CITY_C 為中心的極座標網格（外緣每個頂點一條射線，往外 HILL_D 那幾圈），網格之間是平面三角形，

@@ -142,6 +142,8 @@ const U = {
   uSkyTop: { value: V3() }, uSkyHor: { value: V3() }, uMoon: { value: V3(0, -1, 0) },
   // 建築高度圖（28-sky.js）：xy 是西北角的世界座標，z 是 1/邊長，w 是最高的屋頂；日光朝太陽方向在圖上步進求陰影
   uHMap: { value: null }, uHM: { value: new T.Vector4(0, 0, 1, 0) }, uCityM: { value: null },
+  // 機場島的高度圖（52-air-bld.js）：城市高度圖外的日光陰影改查這張；uAHM：uv =（島中心起算的 SEA_FR 座標 + xy）× zw（中心與方向在 uAirA），z = 0 是沒有
+  uAHMap: { value: null }, uAHM: { value: new T.Vector4(0, 0, 0, 0) },
   // 樹冠圖（22-hmap.js）：rg 是樹冠的頂與底（0 是沒有樹），uTM 和 uHM 一樣是西北角、1/邊長；日光穿過樹冠時照葉子的疏密打成碎光
   uTMap: { value: null }, uTM: { value: new T.Vector4(0, 0, 1, 0) },
   // 外緣山林的樹冠圖（22-hmap.js，跟著鏡頭的 1 km 見方，鏡頭走遠才重畫）：rg 是樹冠的頂與底（世界高度），uFM 是西北角、1/邊長、w 1 = 有圖

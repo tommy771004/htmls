@@ -48,7 +48,7 @@ function bakeProp(root) {
   geo.computeBoundingBox();
   return geo;
 }
-for (const name of ['interior_props', 'street_props', 'hill_homes']) {
+for (const name of ['interior_props', 'street_props', 'hill_homes', 'cableway', 'airgse', 'airbld', 'airfac']) {   // cableway：北嶺纜車的山下站、塔架、車廂（97-summit.js）；airgse：機坪地勤車（52-air-gse.js）；airbld：機場建築（52-air-bld.js）；airfac：機場支援設施（52-air-fac.js）；airint（第一航廈室內）不在這裡解，走近才解（52-air-int.js）
   try {
     const g = await decodeGLB(name);
     if (!g) { assetReport.missing.push(name); continue; }
