@@ -1,6 +1,8 @@
 // 材質的 TSL（原本由已刪除的 tools/gen-tsl.mjs 從 GLSL 轉出，現在是著色器的原始碼，直接改這裡）
 // 材質 "facade"：鍵是 defines 的形狀（有值的寫成 *），h 是當初轉換時 GLSL 的雜湊（已不使用）
-export default {
+// YB（光格島，27-props.js 的 facYMat）：地面不在 y = 0 的大樓，樓層、店面、牆腳的高度改讀 uv.y（離這棟地面的高度，tools/props.mjs 的 facade 選項算好）；
+// 加 FAR 是遠景（霧照 m-glb 的 FAR 只算那個比例的距離）。三個鍵共用同一份著色器
+const F = {
 "{}": {
   h: "exherfwol", fog: true, lib: "[]NL_T,NOCC_T,SH_N_T,VOL_N_T", libV: false, libF: true,
   uniforms: [{"name":"uFacA","type":"sampler2DArray","src":"uFacA"},{"name":"uFacN","type":"sampler2DArray","src":"uFacN"},{"name":"uFac","type":"vec4","src":"uFac"},{"name":"uTime","type":"float","src":"uTime"},{"name":"uLampOn","type":"float","src":"uLampOn"},{"name":"uFlash","type":"float","src":"uFlash"},{"name":"uClipY","type":"float","src":"uClipY"},{"name":"uWet","type":"float","src":"uWet"},{"name":"uFogDen","type":"float","src":"uFogDen"},{"name":"uBeat","type":"float","src":"uBeat"},{"name":"uRain","type":"float","src":"uRain"},{"name":"uLit","type":"float","src":"uLit"},{"name":"uLamp","type":"float","src":"uLamp"},{"name":"uCullR","type":"float","src":"uCullR"},{"name":"uCam","type":"vec3","src":"uCam"},{"name":"uFogCol","type":"vec3","src":"uFogCol"},{"name":"uFogHi","type":"vec3","src":"uFogHi"},{"name":"uAmbTop","type":"vec3","src":"uAmbTop"},{"name":"uAmbBot","type":"vec3","src":"uAmbBot"},{"name":"uFocus","type":"vec4","src":"uFocus"},{"name":"uLP","type":"vec4","size":"NL_T","src":"uLP"},{"name":"uLC","type":"vec4","size":"NL_T","src":"uLC"},{"name":"uLD","type":"vec4","size":"NL_T","src":"uLD"},{"name":"uCity","type":"vec4","src":"uCity"},{"name":"uGrid","type":"vec2","src":"uGrid"},{"name":"uLampT","type":"sampler2D","src":"uLampT"},{"name":"uLampG","type":"vec4","src":"uLampG"},{"name":"uZone","type":"vec4","src":"uZone"},{"name":"uDay","type":"float","src":"uDay"},{"name":"uCloud","type":"float","src":"uCloud"},{"name":"uSun","type":"vec3","src":"uSun"},{"name":"uSunCol","type":"vec3","src":"uSunCol"},{"name":"uSkyTop","type":"vec3","src":"uSkyTop"},{"name":"uSkyHor","type":"vec3","src":"uSkyHor"},{"name":"uMoon","type":"vec3","src":"uMoon"},{"name":"uHMap","type":"sampler2D","src":"uHMap"},{"name":"uCityM","type":"sampler2D","src":"uCityM"},{"name":"uTMap","type":"sampler2D","src":"uTMap"},{"name":"uFMap","type":"sampler2D","src":"uFMap"},{"name":"uHM","type":"vec4","src":"uHM"},{"name":"uAHMap","type":"sampler2D","src":"uAHMap"},{"name":"uAHM","type":"vec4","src":"uAHM"},{"name":"uAirA","type":"vec4","src":"uAirA"},{"name":"uAirB","type":"vec4","src":"uAirB"},{"name":"uTM","type":"vec4","src":"uTM"},{"name":"uFM","type":"vec4","src":"uFM"},{"name":"uGI","type":"vec4","src":"uGI"},{"name":"uOccA","type":"vec4","size":"NOCC_T","src":"uOccA"},{"name":"uOccB","type":"vec4","size":"NOCC_T","src":"uOccB"}],
@@ -36,6 +38,8 @@ export default {
 
 
 
+
+    const fogW = E.FAR ? ( c, w ) => applyFog( c, E.uCam.add( w.sub( E.uCam ).mul( E.farK( E.FAR ) ) ) ) : applyFog;
 
     const L =  Fn( ( [ c ] ) => {
 
@@ -387,7 +391,7 @@ export default {
     	const v = normalize( uCam.sub( vW ) ).toVar();
     	const seed = vB.x.toVar(), fw = vB.z.toVar(), shop = vB.w.toVar();
     	const st = int( vB.y.add( .5 ) ).toVar();
-    	const u = vUv.x.toVar(), y = vW.y.toVar(), H = vB2.z.toVar();
+    	const u = vUv.x.toVar(), y = ( E.YB ? vUv.y : vW.y ).toVar(), H = vB2.z.toVar();
     	const solid = mod( floor( vB2.w.mul( .5 ) ), 2. ).greaterThan( .5 ).toVar();
     	const flatW = vB2.w.lessThan( 3.5 ).toVar();
     	const c = property( 'vec3' );
@@ -415,7 +419,7 @@ export default {
     		alb.mulAssign( sub( 1., mul( .3, pud0 ).mul( sub( 1., pud ) ) ) );
     		c.assign( shade( vW, n, v, alb, mix( .85, .1, pud ), 0. ) );
     		c.addAssign( envMap( reflect( v.negate(), n ) ).mul( pud ).mul( .35 ) );
-    		fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    		fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     		done_.assign( true );
 
     	} );
@@ -441,7 +445,7 @@ export default {
 
     			} );
 
-    			fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    			fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     			done_.assign( true );
 
     		} );
@@ -452,7 +456,7 @@ export default {
 
     				const alb = L( mix( vec3( .42, .36, .3 ), vec3( .3, .28, .27 ), fract( seed.mul( 3. ) ) ) ).mul( add( .8, mul( .3, fbm( vec2( u, y ).mul( 2. ) ) ) ) ).toVar();
     				c.assign( shade( vW, n, v, alb, .8, 0. ) );
-    				fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    				fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     				done_.assign( true );
 
     			} );
@@ -585,7 +589,7 @@ export default {
 
     					If( st.equal( 2 ).or( st.equal( 4 ) ), () => {
 
-    						const pk = fbm( vec2( u, y ).mul( .9 ).add( seed.mul( 5. ) ) ).add( sub( 1., smoothstep( 0., 9., y ) ).mul( .22 ) ).add( age.mul( .1 ) ).toVar();
+    						const pk = fbm( vec2( u, y ).mul( .9 ).add( seed.mul( 5. ) ) ).add( sub( 1., smoothstep( 0., 9., y ) ).mul( E.YB ? .04 : .22 ) ).add( age.mul( .1 ) ).sub( E.YB ? .04 : 0 ).toVar();   // 光格島（YB）整面是灰泥的樓多，牆腳不另外加剝落
     						wall.assign( mix( wall, L( vec3( .47, .49, .44 ) ).mul( add( .85, mul( .2, grime ) ) ), smoothstep( .72, .735, pk ) ) );
     						wall.assign( mix( wall, L( vec3( .33, .32, .3 ) ).mul( add( .8, mul( .3, n2( vec2( u, y ).mul( 6. ) ) ) ) ), smoothstep( .8, .815, pk ) ) );
 
@@ -621,7 +625,7 @@ export default {
     						const nr = select( h.z.lessThan( 1.5 ), sign( rv.x ).negate().mul( sgU ).mul( Tn ), vec3( 0., sign( rv.y ).negate(), 0. ) ).toVar();
     						const alb = select( st.equal( 3 ), L( vec3( .2, .22, .25 ) ), select( h.z.greaterThan( 1.5 ).and( rv.y.lessThan( 0. ) ), L( vec3( .62, .58, .5 ) ).mul( add( .8, mul( .2, grime ) ) ), wall.mul( .85 ) ) ).toVar();
     						c.assign( shade( vW.sub( n.mul( h.w ).mul( dR ) ), nr, v, alb, .85, select( st.equal( 3 ), .6, 0. ) ).mul( sub( 1., mul( .4, h.w ) ) ) );
-    						fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    						fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     						done_.assign( true );
 
     					} );
@@ -661,7 +665,7 @@ export default {
 
     									const nr = select( h.z.lessThan( 1.5 ), sign( rv.x ).negate().mul( sgU ).mul( Tn ), vec3( 0., -1, 0. ) ).toVar();
     									c.assign( shade( vW.sub( n.mul( h.w ).mul( .3 ) ), nr, v, select( h.z.lessThan( 1.5 ), L( vec3( .3, .28, .26 ) ), L( vec3( .08, .08, .09 ) ) ), .7, 0. ).mul( sub( 1., mul( .35, h.w ) ) ) );
-    									fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    									fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     									done_.assign( true );
 
     								} );
@@ -753,7 +757,7 @@ export default {
 
     						If( done_.not(), () => {
 
-    							fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    							fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     							done_.assign( true );
 
     						} );
@@ -871,7 +875,7 @@ export default {
 
     									const led = mix( mix( vec3( .2, .9, 1. ), vec3( 1., .35, .6 ), step( fract( seed.mul( 3. ) ), .5 ) ), vec3( 1. ), .35 ).toVar();
     									c.assign( c.mul( .75 ).add( led.mul( 1.8 ).mul( sub( 1., uDay ) ).mul( step( abs( y.sub( H.sub( .9 ) ) ), .08 ) ) ) );
-    									fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    									fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     									done_.assign( true );
 
     								} );
@@ -898,7 +902,7 @@ export default {
 
     						If( done_.not(), () => {
 
-    							fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
+    							fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
 
     						} );
 
@@ -920,3 +924,4 @@ export default {
   },
 },
 };
+export default { ...F, '{"YB":"*"}': F['{}'], '{"FAR":"*","YB":"*"}': F['{}'] };

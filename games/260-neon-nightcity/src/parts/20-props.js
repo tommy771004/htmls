@@ -808,6 +808,22 @@ const downpipes = [], pipeClamps = [], wallAcs = [[], []];
     }
   }
 }
+// 光格島（21-tron.js）的程式立面：tools/props.mjs 的 facadeKit 照窗格算好的位置（isle_tron 的 kit，模型座標）也用上面這幾組模型。
+// 島只有用 HTTP 開、有 TRON_LAND 才在（同 21-tron.js 的 TRON）；座標加上 TRON_SITE、帶島的座標框 zn
+const TRON_KIT = /^https?:$/.test(location.protocol) && TRON_LAND ? PROPS_SPEC.isle_tron?.items.tron?.kit : null;
+if (TRON_KIT) {
+  const S = TRON_SITE, at = (a, k = {}) => ({ x: S.x + a[0], y: S.y + a[1], z: S.z + a[2], ry: a[3], zn: S.zn, ...k });
+  for (const a of TRON_KIT.ac) acs.push(at(a));
+  for (const a of TRON_KIT.wac) wallAcs[a[4]].push(at(a));
+  for (const a of TRON_KIT.esc) escapes.push(at(a));
+  for (const a of TRON_KIT.tower) towers.push(at(a, { s: a[4] }));
+  for (const a of TRON_KIT.rtu) roofBits.push(at(a, { s: a[4] }));
+  for (const a of TRON_KIT.pipe) {
+    const p = at(a), y1 = S.y + a[4];
+    downpipes.push({ ...p, sy: y1 - p.y, top: { ...p, y: y1 } });
+    for (let y = p.y + 1.05; y < y1 - .5; y += 2.2) pipeClamps.push({ ...p, y });
+  }
+}
 // 落水管：直管（單位高度，sy 拉長）、頂上的集水斗與接進簷口的彎管、底下往外彎的出水口；每 2.2 m 一個管箍（另一組實例）
 {
   const col = 0x6c6d69, k = new Kit();   // 烤漆或 PVC 管（鍍鋅的金屬度高，白天整支映成天空的藍）

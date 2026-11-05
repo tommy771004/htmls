@@ -49,6 +49,65 @@ if (TRON && TRON.P) {
   B(cx, 5.1, P.z1 - 1, w, .5, .3, 0x101215); B(cx, 5.1, P.z1 - 1.17, w - 1.4, .22, .02, mag, 8);
   cityAdd(new T.Mesh(k.build(), MAT.uber), TRON_ZN);
 }
+// ─── 店招與立式招牌（tools/props.mjs 的 facadeKit：kit.fascia／blade，模型座標）：和城裡 20-props.js 的 signQuad 同一個著色器與背板，
+// 另外合成網格掛在島的座標框（城裡的招牌網格照邏輯座標烘到片區，島在海上的座標框）。冷氣、水塔這些在 20-props.js 的 TRON_KIT
+if (TRON && TRON.D.kit) {
+  const { S } = TRON, K = TRON.D.kit, r = rng(2741), bk = new Kit(), GF = { p: [], uv: [], s: [], idx: [] }, GB = { p: [], uv: [], s: [], idx: [] };
+  // 島上自己的店名（城裡的招牌圖集只剩不到 200 px）：店的種類（英文、中文、副標、木牌或霓虹、配色、夜裡的光）× 島上的地名，洗牌後每間店一個不重複的名字，
+  // 畫在島自己的圖集（2048 × 1024，每格 336 × 63，一列 6 格、15 列 = 90 格）；畫法用城裡的 boxSign／plate／neon
+  const TYPES = [
+    ['NOODLE HOUSE', '麵館', 'HAND-PULLED', 0, ['#b8201c', '#7e130f'], '#fff1d6', 0xff5a3a], ['BAKERY', '麵包', 'FRESH DAILY · 現烤', 0, ['#f3e2c0', '#d9be8c'], '#6b3410', 0xffd9a0],
+    ['TEA ROOM', '茶室', 'OOLONG · 奶茶', 1, '#071a10', '#7dffb0', 0x7dffb0], ['HARDWARE', '五金', 'TOOLS · KEYS · 打鑰匙', 0, ['#1d4f8f', '#12325c'], '#ffe27a', 0x9fc8ff],
+    ['CYCLE REPAIR', '單車', 'PARTS · 修理', 0, ['#2b2b2b', '#151515'], '#ffb43a', 0xffb43a], ['FISH MARKET', '魚市', 'DAILY CATCH · 漁獲', 0, ['#e8f2f4', '#b6d3da'], '#0b4f7a', 0xbfe8ff],
+    ['BOOKS', '書店', 'USED · 二手 · 漫畫', 1, '#100a04', '#ffcf7a', 0xffcf7a], ['DUMPLINGS', '餃子', 'STEAMED · 煎餃', 0, ['#ffd23a', '#e6a80e'], '#a3121a', 0xffc23a],
+    ['FLOWERS', '花店', 'BOUQUETS · 盆栽', 1, '#14060c', '#ff7ac8', 0xff7ac8], ['DENTAL', '牙科', 'CLINIC · 診所', 0, ['#f4f6f8', '#cdd5dc'], '#0d6b5e', 0xdff7f2],
+    ['STATIONERY', '文具', 'PENS · 影印', 0, ['#3a7d44', '#24522c'], '#fff8e0', 0xb8ffb0], ['RECORDS', '唱片', 'VINYL · TAPES', 1, '#0a0614', '#b88aff', 0xb88aff],
+    ['COFFEE', '咖啡', 'ESPRESSO · 手沖', 1, '#120a04', '#ffa24a', 0xffa24a], ['SEAFOOD GRILL', '海鮮', 'BBQ · 燒烤', 0, ['#0d2b4a', '#081a2e'], '#ff8a4a', 0xff8a4a],
+    ['MINI MART', '商店', '24H · 飲料', 0, ['#e23a2a', '#a8221a'], '#ffffff', 0xff6a5a], ['BOXING GYM', '拳擊', 'OPEN LATE · 健身', 1, '#0a0a0a', '#ff3a3a', 0xff3a3a],
+    ['TAILOR', '西服', 'SUITS · 修改', 0, ['#2a1a10', '#170e08'], '#e8c98a', 0xe8c98a], ['PHOTO STUDIO', '照相', 'PASSPORT · 證件照', 1, '#060a14', '#4ee6ff', 0x4ee6ff],
+    ['RICE SHOP', '米行', 'RICE · OIL · 雜糧', 0, ['#efe6cf', '#cfc2a0'], '#5a3a14', 0xffe8b0], ['HERBAL', '藥行', '中藥 · 補品', 0, ['#5c1a12', '#3a0f0a'], '#ffd88a', 0xffb060],
+  ];
+  const PLACES = ['HARBOR', 'PIER 9', 'LANTERN', 'GRIDLINE', 'SALT', 'TIDE', 'NORTH GATE', 'COPPER', 'KELP', 'BEACON', 'DRIFT', 'ANCHOR', 'SEAWALL', 'EAST QUAY', 'FOGHORN', 'DOCKSIDE'];
+  const pairs = TYPES.flatMap((t, a) => PLACES.map((pl, b) => [a, b]));
+  for (let k = pairs.length - 1; k > 0; k--) { const q = Math.floor(r() * (k + 1)); [pairs[k], pairs[q]] = [pairs[q], pairs[k]]; }
+  const cv = document.createElement('canvas'); cv.width = 2048; cv.height = 1024;
+  const c2 = cv.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, 2048, 1024);
+  const CW = 336, CH = 63, nSign = Math.min(K.fascia.length, 90), names = [];
+  for (let k = 0; k < nSign; k++) {
+    const [a, b] = pairs[k], [en, zh, sub, neonK, bg, fg, glow] = TYPES[a], x = (k % 6) * (CW + 2), y = Math.floor(k / 6) * (CH + 2), name = PLACES[b] + ' ' + en;
+    c2.save(); c2.beginPath(); c2.rect(x, y, CW, CH); c2.clip(); c2.translate(x, y);
+    if (neonK) { plate(c2, CW, CH, bg); neon(c2, name, CW / 2, CH * .4, CH * .4, fg); c2.font = `600 ${CH * .2}px ${FONT_H}`; c2.fillStyle = fg; c2.globalAlpha = .75; c2.textAlign = 'center'; c2.fillText(zh + ' · ' + sub, CW / 2, CH * .82, CW * .85); c2.globalAlpha = 1; }
+    else boxSign(c2, CW, CH, bg, fg, name, zh + ' · ' + sub);
+    c2.restore();
+    names.push({ u0: x / 2048, u1: (x + CW) / 2048, v0: 1 - (y + CH) / 1024, v1: 1 - y / 1024, glow });
+  }
+  const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; tex.generateMipmaps = true; tex.minFilter = T.LinearMipmapLinearFilter;
+  const quad = (G, cx, cy, cz, nx, nz, w, h, c, seed, kind, bright) => {
+    const tx = nz, tz = -nx, b = G.p.length / 3;
+    for (const [a, v, cu, cv2] of [[-w / 2, -h / 2, c.u0, c.v0], [w / 2, -h / 2, c.u1, c.v0], [w / 2, h / 2, c.u1, c.v1], [-w / 2, h / 2, c.u0, c.v1]]) { G.p.push(S.x + cx + tx * a, S.y + cy + v, S.z + cz + tz * a); G.uv.push(cu, cv2); G.s.push(seed, kind, bright, 0); }
+    G.idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  };
+  const light = (x, y, z, col, rr, i) => { const [X, Z] = tronW(x, z); signLights.push({ x: X, y: S.y + y, z: Z, col: lin(col), r: rr, i, w: 1 }); };
+  const back = (x, y, z, ry, sx, sy, sz) => { bk.box(0, 0, 0, sx, sy, sz, 0x111214, 2); applyLast(bk, { x: S.x + x, y: S.y + y, z: S.z + z, ry }); };
+  K.fascia.forEach(([x, y, z, nx, nz, w, shut], k) => {   // 店招：位置已在牆外 0.2 m，背板貼牆
+    const c = names[k % names.length], h = Math.min(w / 5.33, 1.05), br = shut ? .5 : 1.6;
+    quad(GF, x, y, z, nx, nz, w, h, c, r(), r() < .1 ? 1 : 0, br);
+    light(x + nx * 1.2, y - .3, z + nz * 1.2, c.glow, 8, br * .55);
+    back(x - nx * .1, y, z - nz * .1, Math.atan2(nx, nz), w + .14, h + .14, .18);
+  });
+  const blades = BLADE.slice(); for (let k = blades.length - 1; k > 0; k--) { const q = Math.floor(r() * (k + 1)); [blades[k], blades[q]] = [blades[q], blades[k]]; }
+  K.blade.forEach(([x, y, z, nx, nz], k) => {   // 立式招牌：城裡的圖集，洗牌後依序取（不重複）；垂直於牆、兩面各一片，一支橫桿接回牆上
+    const b = blades[k % blades.length], c = cells['b:' + b[0]], tx = nz, tz = -nx;
+    quad(GB, x + tx * .07, y, z + tz * .07, tx, tz, .9, 3.6, c, r(), r() < .12 ? 1 : 0, 1.8);
+    quad(GB, x - tx * .07, y, z - tz * .07, -tx, -tz, .9, 3.6, c, r(), 0, 1.8);
+    light(x + nx * .6, y, z + nz * .6, hexOf(b[1]), 10, 1);
+    back(x, y, z, Math.atan2(tx, tz), 1.02, 3.75, .1); back(x - nx * .45, y + 1.5, z - nz * .45, Math.atan2(nx, nz), .06, .06, .9);
+  });
+  const mesh = (G, m) => { if (!G.idx.length) return; const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(G.p, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(G.uv, 2)); g.setAttribute('aS', new T.Float32BufferAttribute(G.s, 4)); g.setIndex(G.idx); g.computeBoundingSphere(); cityAdd(new T.Mesh(g, m), TRON_ZN); };
+  mesh(GF, new T.ShaderMaterial({ name: 'sign', uniforms: { ...shared(ALLU), tAtlas: { value: tex } }, side: T.DoubleSide }));
+  mesh(GB, MAT_SIGN);
+  if (bk.pos.length) cityAdd(new T.Mesh(bk.build(), MAT.uber), TRON_ZN);
+}
 // 路燈（原檔的 PF_LampPost）：夜裡在燈頭補一盞點光
 if (TRON) for (const [x, y, z, , , , h] of TRON.D.lamp || []) { const [X, Z] = tronW(x, z); signLights.push({ x: X, y: TRON.S.y + y + h - .4, z: Z, col: lin(0x9fe8ff), r: 15, i: 1.2, w: 1 }); }
 

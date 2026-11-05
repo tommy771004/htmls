@@ -89,6 +89,13 @@ async function glbWarm1(objs, near, inst) {
     ri.calls = c; ri.triangles = tr;
   }
 }
+// 光格島的大樓（tools/props.mjs 的 facade 選項，glb 材質名 tron_facade）：城裡的程式立面 MAT_FACADE，YB 鍵讀 uv.y 當離地高度；遠景加 FAR
+const facYMats = new Map();
+function facYMat(far) {
+  const k = far || 0;
+  if (!facYMats.has(k)) facYMats.set(k, new T.ShaderMaterial({ name: 'facade', uniforms: MAT_FACADE.uniforms, defines: far ? { FAR: far.toFixed(3), YB: '1' } : { YB: '1' } }));
+  return facYMats.get(k);
+}
 // 一個輸出檔 → { 物件 id: { parts: [{ geo, mat, src（原檔材質名） }], w, d, h } }
 function loadProps(set) {
   if (!GLB_ON || !PROPS_SPEC[set]) return Promise.resolve(null);
@@ -100,7 +107,11 @@ function loadProps(set) {
     for (const n of g.scene.children) {
       const parts = [], ms = [];
       n.traverse(m => { if (m.isMesh) ms.push(m); });
-      for (const m of ms) { parts.push({ geo: floatGeo(m.geometry, m.matrixWorld), mat: propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)), src: m.material.name }); await clk.tick(); }
+      for (const m of ms) {
+        const geo = floatGeo(m.geometry, m.matrixWorld), fac = m.material.name === 'tron_facade';
+        if (fac) for (const [k, to] of [['_fuv', 'uv'], ['_fb', 'aB'], ['_fb2', 'aB2']]) { geo.setAttribute(to, geo.getAttribute(k)); geo.deleteAttribute(k); }
+        parts.push({ geo, mat: fac ? facYMat(PROPS_SPEC[set].far && FAR_FOG) : propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)), src: m.material.name }); await clk.tick();
+      }
       items[n.name] = { parts, ...PROPS_SPEC[set].items[n.name] };
     }
     perfTags.push(['道具 ' + set, clk.ms()]);
@@ -192,17 +203,21 @@ const COAST_MODELS = [
     for (const [x, y, z] of it.glow || []) k.box(at.x + x * c + z * s, at.y + y + 2, at.z - x * s + z * c, 4.5, 3.2, 4.5, 0xffc890, 11);   // 兩公里外一盞約兩三個像素
     cityAdd(new T.Mesh(k.build(), MAT.far), zn);
   } },
-  // 光格島的街區是原檔的遮光盒（純黑），只有路面邊線會亮：沿岸線（props.mjs 的 edges，tools/walkgrid.mjs 量的陸地邊界）在岸壁頂下拉一條青色的燈帶，
+  // 光格島的街區原檔是純黑的立面板（props.mjs 的 facade 已換成程式立面、補了量體），原檔的亮線只在路面邊線：沿岸線（props.mjs 的 edges，tools/walkgrid.mjs 量的陸地邊界）在岸壁頂下拉一條青色的燈帶，
   // 每走 40 m 立一支洋紅色的燈柱；近景（21-tron.js）換上來之後這些還留著
   { set: 'far_tron', id: 'tron', at: FAR_SITES.tron, proxy: 'tron', near: 3600, y: FAR_SITES.tron.y, zn: TRON_SITE.zn, after: (it, zn) => {
     const k = new Kit(), at = FAR_SITES.tron, y = at.y;
     let run = 40;
-    for (const [x0, z0, x1, z1] of it.edges || []) {
+    // 岸壁照近景量的陸地邊界（10-city.js 的 TRON_LAND）：遠景只剩街區，量出來的邊界在街上有假線段，柱子會立在人行道上
+    for (const [x0, z0, x1, z1] of (TRON_LAND && TRON_LAND.edges.length ? TRON_LAND.edges : it.edges) || []) {
       const L = Math.hypot(x1 - x0, z1 - z0); if (L < .5) continue;
       k.box(at.x + (x0 + x1) / 2, y - .4, at.z + (z0 + z1) / 2, L + .3, .3, .3, 0x46e6ff, 11, 0, -Math.atan2(z1 - z0, x1 - x0), 0);
       if ((run += L) > 40) { run = 0; k.box(at.x + x0, y + 3, at.z + z0, .5, 6, .5, 0x1a1c22, 2).box(at.x + x0, y + 6.3, at.z + z0, 1, .6, 1, 0xff3ad0, 11); }
     }
     cityAdd(new T.Mesh(k.build(), MAT.far), zn);
+    // 近景（21-tron.js）只在切換的那一刻拿掉遠景：遠景比近景晚載完（直接傳送、讀檔在島上）時兩個會疊在一起，同一面牆兩片搶深度
+    const far = COAST_MODELS.find(o => o.id === 'tron');
+    if (TRON && TRON.nearOn && far && far.obj) far.obj.removeFromParent();
   } },
 ];
 let coastTick = 0;

@@ -26,6 +26,8 @@ const OUT = resolve(root, '../../assets/260/props');
 const byBuilding = (node, mat) => node.replace(new RegExp('_' + mat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_\\d+$'), '');
 // out：輸出檔名；items：單一物件 { id, h（目標高）或 len（目標最長水平邊）或 scale，rot（繞 y 轉幾個 90°），drop（拿掉的節點／材質） }
 // split：整組拆成多個物件（依 group(節點名, 材質名) 分），scale 統一，min／max 篩掉太小或太怪的
+// 光格島（far_tron、isle_tron）的大樓：原檔是純黑的遮光盒（M_Base_Dither），白天遠看是一整條黑影；facade 選項把它們換成城裡的程式立面（facadePrims）
+const TRON_BLD = /^M_Base_(Orange_)?Dither/;
 export const SETS = [
   { out: 'interior', items: [
     { id: 'jukebox', file: 'rocket_vinyl_jukebox_game_ready', h: 1.62 },
@@ -430,14 +432,14 @@ export const SETS = [
   // 光格島（外海東南那座島）：SpringSociety 的 Arq Grid Tron（CC BY 4.0，公尺；霓虹格線的未來街區，亮線全在自發光貼圖），縮成 0.85、
   // 原點放在島心（原檔 [32, 0, 91]）。遠景（far_tron）不要水面、街道家具、樹與車；tron 選項（tools/walkgrid.mjs）把街區之間封閉的洞補上島面、
   // 外緣長出黑色岸壁，land（陸地遊程編碼）、edges（岸線）、dock（北端那條路的盡頭）給頁面放碼頭、護岸燈與海底
-  { out: 'far_tron', src: '.cache/world1', far: 1, tex: 1024, sloppy: .3, metalMax: .3, items: [{ id: 'tron', file: 'tron', scale: .85, origin: [32, 0, 91], drop: /Water|Bench|Vending|Crate|Planter|Postbox|StreetBin|SignPost|Dumpster|Hydrant|BikeRack|Barrel|TrafficCone|Door_Maintenance|Table|Glasses|Spanner|Console|LightOrnament|Tree|Foliage|GodRay|CarPipeline|TronCycle|Blocker_|Lit\.|UnlitPureBlack/,
+  { out: 'far_tron', src: '.cache/world1', far: 1, tex: 1024, facade: TRON_BLD, sloppy: .3, metalMax: .3, items: [{ id: 'tron', file: 'tron', scale: .85, origin: [32, 0, 91], drop: /Water|Bench|Vending|Crate|Planter|Postbox|StreetBin|SignPost|Dumpster|Hydrant|BikeRack|Barrel|TrafficCone|Door_Maintenance|Table|Glasses|Spanner|Console|LightOrnament|Tree|Foliage|GodRay|CarPipeline|TronCycle|Blocker_|Lit\.|UnlitPureBlack/,
     tron: {} }] },
   // 光格島的近景（21-tron.js：開船靠岸、走進街區時才下載）：整個街區含長椅、販賣機、樹、停著的車；光速機車、水面、光束拆成自己的物件，
   // 頁面自己畫（水面與光束換成 shader、光速機車可以騎）。tron 選項另外寫步行格 isle_tron.walk.bin、車道圖、家具與升降梯的位置。
   // only：只留路徑符合的原件、inst 取第幾份；beam 保留島的座標（和 tron 同一個原點）
   // emi：原檔的樹是全白自發光（強度 2），夜裡泛光糊成一團白，壓成淡青色的發光樹；metalMax：路面原檔是金屬度 1、粗糙度 0.3，
   // 照出來是城市環境圖裡一格格的彩色窗燈，壓到 0.3；tint 把路面與鋪面的粗糙度拉到 0.8（斜看時的反射也糊開）
-  { out: 'isle_tron', src: '.cache/world1', tex: 1024, metalMax: .3, tint: Object.fromEntries(['M_Hexagon_Ground_01', 'M_Decal_Road', 'M_Pavement_Tiles_03', 'M_Pavement_Tiles_2'].map((k) => [k, [1, .8, .3]])), emi: [[/^M_(Tree|Foliage)/, [.07, .19, .24], 0]], items: [
+  { out: 'isle_tron', src: '.cache/world1', tex: 1024, facade: TRON_BLD, metalMax: .3, tint: Object.fromEntries(['M_Hexagon_Ground_01', 'M_Decal_Road', 'M_Pavement_Tiles_03', 'M_Pavement_Tiles_2'].map((k) => [k, [1, .8, .3]])), emi: [[/^M_(Tree|Foliage)/, [.07, .19, .24], 0]], items: [
     { id: 'tron', file: 'tron', scale: .85, origin: [32, 0, 91], drop: /Blocker_|Lit\.|UnlitPureBlack/, tron: { walk: true, cut: /(^|\/)(PF_TronCycle|Water_Plane|SM_GodRayBeam)/ } },
     { id: 'beam', file: 'tron', scale: .85, origin: [32, 0, 91], only: /^SM_GodRayBeam/ },
     { id: 'cycle', file: 'tron', scale: 1.1, rot: 1, only: /^PF_TronCycle/, inst: 0 },   // 原檔比人小（2.2 m），放大到 2.4 m 長讓人騎得上去；長邊轉到 z
@@ -701,6 +703,380 @@ function curtainUV(ps, re) {
     }
     ps.splice(ps.indexOf(p), 1, w, ...(rest.length ? [subPrim(p, rest)] : []));
   }
+}
+// 程式立面（facade：材質名）：光格島的大樓原檔是純黑的遮光盒，符合的三角形拆出來給頁面的程式立面（m-facade.mjs 的 YB 鍵，和城裡同一套窗、店面、做舊；27-props.js 的 facYMat）。
+// 牆（|ny| < .3）：共用邊、法線相差 30° 內的併成一面（彎的牆整面超過 60° 再照方位切開），u 是沿面平均切線（從外面看左邊起算）的距離、v 是離這棟地面的高度。
+// 地面：路面材質（鋪面、六角地磚、車道）每 2 m 一格的高度，面腳往外 1.5 m 取樣、取不高過面腳的最高一層；v 從這裡起算。貼地的面一樓是店面，懸空或退縮的面不做店面。
+// 屋頂（ny > .5）走立面的屋頂分支；斜面與朝下的面是沒有窗的實牆。樣式、亂數照樓型（PassiveBuildings_X）。
+// 輸出一個 primitive（mat null、fac 為真），屬性 _FUV（u, v）、_FB（亂數、樣式、面寬、店面）、_FB2（鐵捲門遮罩、店數、高、旗標），都在 [-1, 1] 外，meshopt 不量化
+function facadePrims(prims, re) {
+  const keep = [], src = [];
+  for (const p of prims) (p.mat && re.test(p.mat.getName()) ? src : keep).push(p);
+  if (!src.length) return prims;
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const V = (p, i) => [p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]];
+  // 路面的高度格
+  const G = 2, ground = new Map();
+  let road = false;   // 車道與六角地磚（真正的路）；鋪面可能是街廓裡的空地
+  const roads = new Map();
+  const gAdd = (i, j, y) => { const k = i + ',' + j, l = ground.get(k); if (!l) ground.set(k, [y]); else if (!l.some((h) => Math.abs(h - y) < .3)) l.push(y); if (road) { const r = roads.get(k); if (!r) roads.set(k, [y]); else if (!r.some((h) => Math.abs(h - y) < .3)) r.push(y); } };
+  for (const p of keep) {
+    if (!p.mat || !/Pavement|Hexagon_Ground|Decal_Road/.test(p.mat.getName())) continue;
+    road = /Hexagon_Ground|Decal_Road/.test(p.mat.getName());
+    for (let t = 0; t < p.idx.length; t += 3) {
+      const a = V(p, p.idx[t]), b = V(p, p.idx[t + 1]), c = V(p, p.idx[t + 2]), n = cross(sub(b, a), sub(c, a)), l = Math.hypot(...n);
+      if (l < 1e-6 || Math.abs(n[1]) / l < .7) continue;
+      const y = (a[1] + b[1] + c[1]) / 3, d = (b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2]);
+      for (const q of [a, b, c]) gAdd(Math.floor(q[0] / G), Math.floor(q[2] / G), y);
+      for (let i = Math.floor(Math.min(a[0], b[0], c[0]) / G); i <= Math.floor(Math.max(a[0], b[0], c[0]) / G); i++) for (let j = Math.floor(Math.min(a[2], b[2], c[2]) / G); j <= Math.floor(Math.max(a[2], b[2], c[2]) / G); j++) {
+        const x = (i + .5) * G, z = (j + .5) * G;
+        const w1 = ((b[0] - x) * (c[2] - z) - (c[0] - x) * (b[2] - z)) / d, w2 = ((c[0] - x) * (a[2] - z) - (a[0] - x) * (c[2] - z)) / d;
+        if (w1 >= -.05 && w2 >= -.05 && 1 - w1 - w2 >= -.05) gAdd(i, j, y);
+      }
+    }
+  }
+  const groundAt = (x, z, ymax) => { let best = null; for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) for (const h of ground.get((Math.floor(x / G) + di) + ',' + (Math.floor(z / G) + dj)) || []) if (h <= ymax && (best == null || h > best)) best = h; return best; };
+  // 三角形：幾何法線照頂點法線定方向（原檔是雙面材質，繞向不一定朝外），朝外的繞向
+  const T = [];
+  for (const p of src) {
+    const key = (p.path.match(/PassiveBuildings_[A-Za-z]+(?:_[A-Z](?![a-z]))?/) || [p.node])[0];
+    for (let t = 0; t < p.idx.length; t += 3) {
+      let ia = p.idx[t], ib = p.idx[t + 1], ic = p.idx[t + 2];
+      const a = V(p, ia), b = V(p, ib), c = V(p, ic); let n = cross(sub(b, a), sub(c, a)); const l = Math.hypot(...n);
+      if (l < 1e-8) continue;
+      n = n.map((v) => v / l);
+      const vn = [0, 1, 2].map((k) => p.nor[ia * 3 + k] + p.nor[ib * 3 + k] + p.nor[ic * 3 + k]);
+      if (n[0] * vn[0] + n[1] * vn[1] + n[2] * vn[2] < 0) { n = n.map((v) => -v); [ib, ic] = [ic, ib]; }
+      const kind = Math.abs(n[1]) < .3 ? 0 : n[1] > .5 ? 1 : 2, h = Math.hypot(n[0], n[2]) || 1;
+      T.push({ p, v: [ia, ib, ic], n, hn: [n[0] / h, n[2] / h], area: l / 2, kind, key });
+    }
+  }
+  // 牆併成面：共用邊（位置取到 1 cm）且法線夾角 < 30°
+  const pk = (p, i) => `${Math.round(p.pos[i * 3] * 100)},${Math.round(p.pos[i * 3 + 1] * 100)},${Math.round(p.pos[i * 3 + 2] * 100)}`;
+  const edges = new Map();
+  T.forEach((o, ti) => { if (o.kind) return; for (let k = 0; k < 3; k++) { const x = pk(o.p, o.v[k]), y = pk(o.p, o.v[(k + 1) % 3]), e = x < y ? x + '|' + y : y + '|' + x; if (!edges.has(e)) edges.set(e, []); edges.get(e).push(ti); } });
+  const groupOf = (ok) => {
+    const par = T.map((_, i) => i), root = (a) => { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; };
+    for (const l of edges.values()) for (let i = 1; i < l.length; i++) for (let j = 0; j < i; j++) { const A = T[l[i]], B = T[l[j]]; if (A.hn[0] * B.hn[0] + A.hn[1] * B.hn[1] > .866 && ok(A, B)) par[root(l[i])] = root(l[j]); }
+    const g = new Map(); T.forEach((o, i) => { if (o.kind) return; const r = root(i); if (!g.has(r)) g.set(r, []); g.get(r).push(o); }); return g;
+  };
+  const mean = (l) => { let x = 0, z = 0; for (const o of l) { x += o.hn[0] * o.area; z += o.hn[1] * o.area; } const h = Math.hypot(x, z) || 1; return [x / h, z / h]; };
+  let faces = [...groupOf(() => true).values()];
+  if (faces.some((l) => { const m = mean(l); return l.some((o) => o.hn[0] * m[0] + o.hn[1] * m[1] < .5); })) {
+    for (const o of T) o.sec = Math.round(Math.atan2(o.hn[1], o.hn[0]) / (Math.PI / 3));
+    const bad = new Set(); for (const l of faces) { const m = mean(l); if (l.some((o) => o.hn[0] * m[0] + o.hn[1] * m[1] < .5)) for (const o of l) bad.add(o); }
+    faces = [...groupOf((A, B) => !bad.has(A) || A.sec === B.sec).values()];
+  }
+  // 每面：切線、u 的範圍、高度、地面；每個樓型的最高點（選樣式）
+  const F = faces.map((l) => {
+    const n = mean(l), t = [n[1], -n[0]];   // 從外面看，u 往右增加（10-city.js 的 boxFaces：+z 面從 x0 到 x1）
+    let u0 = Infinity, u1 = -Infinity, y0 = Infinity, y1 = -Infinity, cx = 0, cz = 0, A = 0;
+    for (const o of l) for (const i of o.v) { const x = o.p.pos[i * 3], y = o.p.pos[i * 3 + 1], z = o.p.pos[i * 3 + 2], u = x * t[0] + z * t[1]; u0 = Math.min(u0, u); u1 = Math.max(u1, u); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    for (const o of l) { for (const i of o.v) { cx += o.p.pos[i * 3] * o.area / 3; cz += o.p.pos[i * 3 + 2] * o.area / 3; } A += o.area; }
+    cx /= A; cz /= A;
+    const uc = cx * t[0] + cz * t[1];
+    let g = null;
+    for (const f of [.15, .5, .85]) { const u = u0 + (u1 - u0) * f, x = cx + t[0] * (u - uc) + n[0] * 1.5, z = cz + t[1] * (u - uc) + n[1] * 1.5, h = groundAt(x, z, y0 + .5); if (h != null && (g == null || h > g)) g = h; }
+    const key = l[0].key;
+    return { l, n, t, u0, u1, y0, y1, g, key, cx, cz };
+  });
+  const STY = [2, 2, 2, 4, 4, 8, 8, 0, 1, 2];
+  const styleOf = (key) => STY[Math.floor(seedOf(key + 't') * STY.length)];   // 不用玻璃帷幕（3）：深色玻璃遠看又是一塊黑
+  const seedK = (key) => 1 + Math.floor(seedOf(key) * 9000) / 10;
+  const fhOf = (st) => st === 3 ? 3.7 : st === 2 || st === 8 ? 3.4 : 3.1;   // 層高，照 m-facade.mjs
+  // 輸出
+  const pos = [], nor = [], uv = [], fb = [], fb2 = [], idx = [];
+  const put = (o, vals) => { const base = pos.length / 3; for (const [k, i] of o.v.entries()) { pos.push(...V(o.p, i)); nor.push(...o.n); uv.push(...vals.uv[k]); fb.push(...vals.b); fb2.push(...vals.b2); } idx.push(base, base + 1, base + 2); };
+  let shops = 0;
+  for (const f of F) {
+    const st = styleOf(f.key), fw = f.u1 - f.u0, seed = seedK(f.key);
+    // 樓層線一律從街面起算（同一棟被線腳切成上下幾面也對齊）。底下沒有地面的面（架在半空、水上）與窄面（寬不到 4 m）不做一樓：
+    // 樓層基準再往下一層，窗格的位置不變，一樓的店門變成一排窗（不然矮的架高面只有一扇門、一大片空牆，窄面只看得到門裡的木地板）
+    const gb = f.g ?? f.y0, lift = f.g == null || fw < 4, base = gb - (lift ? fhOf(st) : 0), street = !lift && f.y0 - f.g < .6;
+    const H = f.y1 - base, shop = street && fw >= 6 && H >= 6 ? 1 : 0, units = shop ? Math.max(1, Math.round(fw / 6.5)) : 1;
+    let shut = 0; if (shop) for (let i = 0; i < Math.min(units, 16); i++) if (seedOf(f.key + ':' + Math.round(f.u0) + ':' + i) < .3) shut += 2 ** i;
+    shops += shop; Object.assign(f, { gb, base, st, seed, shop, units, shut });
+    const b = [seed, st, fw, shop], b2 = [shut, units, H, fw < 2.5 ? 2 : 0];
+    for (const o of f.l) put(o, { b, b2, uv: o.v.map((i) => [o.p.pos[i * 3] * f.t[0] + o.p.pos[i * 3 + 2] * f.t[1] - f.u0, o.p.pos[i * 3 + 1] - base]) });
+  }
+  // 屋頂、斜面與朝下的面
+  for (const o of T) {
+    if (!o.kind) continue;
+    const st = styleOf(o.key), seed = seedK(o.key), t = Math.hypot(...o.hn) > .5 ? [o.hn[1], -o.hn[0]] : [1, 0];
+    const ys = o.v.map((i) => o.p.pos[i * 3 + 1]), y0 = Math.min(...ys);
+    put(o, o.kind === 1 ? { b: [seed, st, 1, 0], b2: [0, 1, 0, 0], uv: o.v.map(() => [0, 0]) }
+      : { b: [seed, 2, 50, 0], b2: [0, 1, 100, 2], uv: o.v.map((i) => [o.p.pos[i * 3] * t[0] + o.p.pos[i * 3 + 2] * t[1], o.p.pos[i * 3 + 1] - y0 + 6]) });
+  }
+  // ─── 補量體：原檔的樓是朝街的立面板（背後是空的，街廓中間看得到海）。1 m 一格：每面牆往背後（−法線）走，碰到別的牆、
+  // 走得到的地面（從車道灌得到的街道、廣場、騎樓，見下面的 reach）或 24 m 就停；原檔的空殼裡面也鋪了地磚，那些灌不到的照樣填。前方 30 m 內沒有路的面（背面、天井）
+  // 碰到任何地面都停。島外的海只有朝街的面能填到 12 m。走過的格子填成這面牆的高度；填好的格子蓋平屋頂（低 0.1 m，原檔的屋頂在的話藏在下面），
+  // 邊上碰到沒填、更矮的格子（原檔的牆比這裡矮也算）就立一面牆（同一條邊、同高的連成一段），一樣是程式立面（不做店面；樓層照牆腳的地面算，下面沒地面就照來源那面牆）
+  const R = 1, cells = new Map(), walls = new Map(), wlo = new Map(), whi = new Map(), ck = (i, j) => i + ',' + j;   // wlo／whi：這格的牆最低、最高到哪（騎樓上面的立面不擋路；矮牆上面還要補牆）
+  F.forEach((f, fi) => {
+    for (const o of f.l) {
+      const lo = Math.min(...o.v.map((i) => o.p.pos[i * 3 + 1])), hi = Math.max(...o.v.map((i) => o.p.pos[i * 3 + 1]));
+      for (let k = 0; k < 3; k++) {
+        const a = o.v[k], b = o.v[(k + 1) % 3], ax = o.p.pos[a * 3], az = o.p.pos[a * 3 + 2], bx = o.p.pos[b * 3], bz = o.p.pos[b * 3 + 2], L = Math.hypot(bx - ax, bz - az), m = Math.max(1, Math.ceil(L / .4));
+        for (let q = 0; q <= m; q++) { const x = ax + (bx - ax) * q / m, z = az + (bz - az) * q / m, key = ck(Math.floor(x / R), Math.floor(z / R)); if (!walls.has(key)) walls.set(key, new Set()); walls.get(key).add(fi); if (!(wlo.get(key) <= lo)) wlo.set(key, lo); if (!(whi.get(key) >= hi)) whi.set(key, hi); }
+      }
+    }
+  });
+  // 島外：所有原件（2 m 一格，三角形的邊與內部）佔到的格子以外，從外框灌進來灌得到的空格是海
+  let gx0 = Infinity, gz0 = Infinity, gx1 = -Infinity, gz1 = -Infinity;
+  for (const p of prims) for (let i = 0; i < p.cnt; i++) { gx0 = Math.min(gx0, p.pos[i * 3]); gx1 = Math.max(gx1, p.pos[i * 3]); gz0 = Math.min(gz0, p.pos[i * 3 + 2]); gz1 = Math.max(gz1, p.pos[i * 3 + 2]); }
+  const oi0 = Math.floor(gx0 / G) - 2, oj0 = Math.floor(gz0 / G) - 2, onx = Math.floor(gx1 / G) + 3 - oi0, onz = Math.floor(gz1 / G) + 3 - oj0, occ = new Uint8Array(onx * onz);
+  for (const p of prims) for (let t = 0; t < p.idx.length; t += 3) {
+    const q = [0, 1, 2].map((k) => [p.pos[p.idx[t + k] * 3], p.pos[p.idx[t + k] * 3 + 2]]);
+    for (let k = 0; k < 3; k++) { const [ax, az] = q[k], [bx, bz] = q[(k + 1) % 3], m = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / (G / 2))); for (let r = 0; r <= m; r++) occ[(Math.floor((az + (bz - az) * r / m) / G) - oj0) * onx + Math.floor((ax + (bx - ax) * r / m) / G) - oi0] = 1; }
+    const d = (q[1][0] - q[0][0]) * (q[2][1] - q[0][1]) - (q[2][0] - q[0][0]) * (q[1][1] - q[0][1]); if (Math.abs(d) < 1e-6) continue;
+    for (let i = Math.floor(Math.min(q[0][0], q[1][0], q[2][0]) / G); i <= Math.floor(Math.max(q[0][0], q[1][0], q[2][0]) / G); i++) for (let j = Math.floor(Math.min(q[0][1], q[1][1], q[2][1]) / G); j <= Math.floor(Math.max(q[0][1], q[1][1], q[2][1]) / G); j++) {
+      const x = (i + .5) * G, z = (j + .5) * G, w1 = ((q[1][0] - x) * (q[2][1] - z) - (q[2][0] - x) * (q[1][1] - z)) / d, w2 = ((q[2][0] - x) * (q[0][1] - z) - (q[0][0] - x) * (q[2][1] - z)) / d;
+      if (w1 >= 0 && w2 >= 0 && w1 + w2 <= 1) occ[(j - oj0) * onx + i - oi0] = 1;
+    }
+  }
+  // 閉合：佔用格先長 CL 格再灌水，灌到的海再長回 CL 格（街廓的缺口窄於 2·CL·G = 24 m 的封起來，裡面算陸地）
+  const CL = 6, grow = (m) => { for (let r = 0; r < CL; r++) { const o = m.slice(); for (let c = 0; c < m.length; c++) if (!o[c]) { const x = c % onx; if ((x > 0 && o[c - 1]) || (x < onx - 1 && o[c + 1]) || (c >= onx && o[c - onx]) || (c + onx < m.length && o[c + onx])) m[c] = 1; } } return m; };
+  const occD = grow(occ.slice()), sea = new Uint8Array(onx * onz), st = [];
+  for (let i = 0; i < onx; i++) st.push(i, (onz - 1) * onx + i); for (let j = 0; j < onz; j++) st.push(j * onx, j * onx + onx - 1);
+  while (st.length) { const c = st.pop(); if (sea[c] || occD[c]) continue; sea[c] = 1; const x = c % onx, z = (c / onx) | 0; if (x > 0) st.push(c - 1); if (x < onx - 1) st.push(c + 1); if (z > 0) st.push(c - onx); if (z < onz - 1) st.push(c + onx); }
+  grow(sea);
+  const atSea = (i, j) => { const x = Math.floor((i + .5) * R / G) - oi0, z = Math.floor((j + .5) * R / G) - oj0; return x < 0 || z < 0 || x >= onx || z >= onz || sea[z * onx + x] === 1; };
+  // 走得到的地面：從車道與六角地磚的格子灌（1 m 一格、高差 ≤ 0.6 m 才走得過去）。原檔的空殼裡面也鋪了地磚，灌不到的就是封在樓裡的。
+  // 先灌街道（原檔的牆都擋）；騎樓上面的立面（下緣離地 2.2 m 以上）不擋的話會從騎樓灌進整個空殼，所以只從街道往裡多走 4 m（騎樓、凹進去的店門口）
+  const gl = (i, j) => ground.get(Math.floor((i + .5) * R / G) + ',' + Math.floor((j + .5) * R / G)) || [];
+  const reach = new Map(), Q = [];
+  const has = (k, h) => (reach.get(k) || []).some((y) => Math.abs(y - h) < .3);
+  const push = (i, j, h, d) => { const k = ck(i, j); if (d === 0 ? walls.has(k) : wlo.get(k) < h + 2.2) return; if (has(k, h)) return; if (!reach.has(k)) reach.set(k, []); reach.get(k).push(h); Q.push([i, j, h, d]); };
+  for (const [k, l] of roads) { const [a, b] = k.split(',').map(Number); for (const h of l) for (let di = 0; di < G / R; di++) for (let dj = 0; dj < G / R; dj++) push(a * G / R + di, b * G / R + dj, h, 0); }
+  const n0 = (q0) => { for (let q = q0; q < Q.length; q++) { const [i, j, h, d] = Q[q]; if (d >= 5) continue; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const h2 of gl(i + di, j + dj)) if (Math.abs(h2 - h) <= .6) push(i + di, j + dj, h2, d && d + 1); } };
+  n0(0);   // 街道：深度一直是 0
+  const n1 = Q.length; for (let q = 0; q < n1; q++) Q[q][3] = 1;   // 騎樓：從每一格街道往外放寬走 4 格（深度 1 → 5）
+  n0(0);
+  // 停：這一格有走得到、又比牆頂低的地面（街道、廣場、下層街區的坑）。前方沒有路的面（背面、天井）不確定背後是不是樓，碰到任何地面都停（升降梯上端的平台就是灌不到的地磚）
+  const stopAt = (i, j, f) => { for (const h of (f.dr === Infinity ? gl(i, j) : reach.get(ck(i, j))) || []) if (h < f.y1) return true; return false; };
+  // 每面前方多遠有路（面中心往 +法線走，30 m 內；沒有是 Infinity）：有厚度的立面板前後兩面，路比較近的那面朝街，只有它往後填
+  const roadAt = (x, z, y0, y1) => { for (const h of roads.get(Math.floor(x / G) + ',' + Math.floor(z / G)) || []) if (h > y0 - 1.5 && h < y1) return true; return false; };
+  for (const f of F) { f.dr = Infinity; for (let d = 1; d <= 30; d++) if (roadAt(f.cx + f.n[0] * d, f.cz + f.n[1] * d, f.gb, f.y1)) { f.dr = d; break; } }
+  for (const [key, fs] of walls) {
+    const [i0, j0] = key.split(',').map(Number);
+    for (const fi of fs) {
+      const f = F[fi]; if (f.y1 - f.gb < 4 || f.u1 - f.u0 < 2) continue;
+      for (let d = 1; d <= 24; d++) {
+        const i = Math.floor(((i0 + .5) * R - f.n[0] * d) / R), j = Math.floor(((j0 + .5) * R - f.n[1] * d) / R), k2 = ck(i, j);
+        if (k2 === key) continue;
+        const w = walls.get(k2);
+        if (w && !w.has(fi)) {
+          // 3 m 內：自己這塊板的背面（法線相反、路比較遠）照走，旁邊的側牆、線腳也照走；自己才是背面就停
+          const near = d <= 3 && [...w].every((fj) => { const g = F[fj], dot = g.n[0] * f.n[0] + g.n[1] * f.n[1]; return dot > -.7 || f.dr < g.dr; });
+          if (!near) break;
+          continue;
+        }
+        if (stopAt(i, j, f) || (atSea(i, j) && (d > 12 || f.dr > 30))) break;   // 朝街的樓背後是海：至少 12 m 進深（水岸的樓）
+        const c = cells.get(k2);
+        if (!c) cells.set(k2, { h: f.y1, base: f.base, f });
+        else if (f.y1 > c.h) { c.h = f.y1; c.base = Math.min(c.base, f.base); c.f = f; }
+      }
+    }
+  }
+  for (const key of walls.keys()) cells.delete(key);
+  // 填谷：正面是高低交錯的立面板時，每片往後填會拉出一條條 45° 的高低條紋。一格在某個方向（橫、直、兩條斜向）兩側 7 m 內都有比它高的量體（中間只隔量體或原檔牆），就抬到兩側較低的那個高度；高量體旁 2 m 內就到邊緣的細邊也抬上去。
+  // 退台（低的那側外面是街或空地、超過 2 m 寬）只有一側比較高，不動
+  const VD = [[1, 0, 7], [0, 1, 7], [1, 1, 5], [1, -1, 5]];
+  const valley = (edge) => {   // 一輪：先照目前的高度決定，再一起套用
+    const up = [];
+    for (const [k, c] of cells) {
+      const [i, j] = k.split(',').map(Number); let best = null;
+      for (const [di, dj, K] of VD) {
+        let ta = 0, tb = 0;
+        const side = (sg) => { for (let t = 1; t <= K; t++) { const k2 = ck(i + di * t * sg, j + dj * t * sg), c2 = cells.get(k2); if (c2) { if (c2.h > c.h + .5) return [c2, t]; } else if (!walls.has(k2)) return t <= 2 ? ['E', t] : null; } return null; };
+        const A = side(1), B = side(-1); if (!A || !B) continue;
+        const [a, ta2] = A, [b, tb2] = B; ta = ta2; tb = tb2;
+        if (a === 'E' && b === 'E') continue;
+        if ((a === 'E' || b === 'E') && (!edge || ta + tb - 1 > 3)) continue;   // 'E'：到量體邊緣；矮的那段連邊緣加起來 2 m 內才算細邊
+        const lo = a === 'E' ? b : b === 'E' ? a : a.h < b.h ? a : b; if (!best || lo.h > best.h) best = lo;
+      }
+      if (best) up.push([c, best.h, best.f, best.base]);
+    }
+    for (const [c, h, f, base] of up) { c.h = h; c.f = f; c.base = Math.min(c.base, base); }
+    return up.length;
+  };
+  // 兩側都高的填谷反覆做到不再變；窄邊收兩輪（離邊緣 2 m 內才算，不會一路往裙樓裡傳），每輪收完再補谷
+  for (let n = 0; n < 8 && valley(false); n++);
+  for (let r = 0; r < 2; r++) { valley(true); for (let n = 0; n < 8 && valley(false); n++); }
+  const outQ = (P, n, UV, b, b2) => { const base = pos.length / 3; for (let k = 0; k < 4; k++) { pos.push(...P[k]); nor.push(...n); uv.push(...UV[k]); fb.push(...b); fb2.push(...b2); } idx.push(base, base + 1, base + 2, base, base + 2, base + 3); };
+  // 屋頂與外露的牆：在格子中心連成的對偶格上做 marching squares（每 2×2 個格子中心一塊）。四角同一塊屋頂（同高）的整塊照 0.5 m 子格併成大矩形；
+  // 只有一塊屋頂、其他角是空地（不是原檔的牆）的切成 45° 斜邊（斜向的街廓不再是 1 m 一階的鋸齒）；其他（兩塊以上、或有原檔的牆）每個角各佔四分之一。
+  // 原檔牆的格子另外補：取旁邊最高的屋頂，照牆面的平面切掉牆外那一側（斜牆背後不留一排鋸齒縫）
+  F.forEach((f, i) => { f.i = i; });
+  const rkOf = (c) => c ? c.h.toFixed(1) : null;   // 同高就是同一塊屋頂（來源面不同只差屋頂的亂數）
+  const tri = (a, b, c, y, at) => { const cr = (b[1] - a[1]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[1] - a[1]), base = pos.length / 3; for (const p of cr >= 0 ? [a, b, c] : [a, c, b]) { pos.push(p[0], y, p[1]); nor.push(0, 1, 0); uv.push(0, 0); fb.push(at.f.seed, at.f.st, 1, 0); fb2.push(0, 1, 0, 0); } idx.push(base, base + 1, base + 2); };
+  const fan = (poly, c) => { for (let k = 1; k + 1 < poly.length; k++) tri(poly[0], poly[k], poly[k + 1], c.h - .1, c); };
+  const blocks = new Set(); for (const key of cells.keys()) { const [i, j] = key.split(',').map(Number); for (const di of [-1, 0]) for (const dj of [-1, 0]) blocks.add(ck(i + di, j + dj)); }
+  const segs = [], subs = new Map();
+  let nRoof = 0, nWall = 0;
+  for (const bk of blocks) {
+    const [i, j] = bk.split(',').map(Number), IJ = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], K = IJ.map(([a, b]) => ck(a, b)), C = K.map((k) => cells.get(k)), RK = C.map(rkOf);
+    const P = IJ.map(([a, b]) => [(a + .5) * R, (b + .5) * R]), M = [(i + 1) * R, (j + 1) * R], mid = (a, b) => [(P[a][0] + P[b][0]) / 2, (P[a][1] + P[b][1]) / 2];
+    const subOf = (n) => { const [ci, cj] = IJ[n], k = (2 * ci + (ci === i ? 1 : 0)) + ',' + (2 * cj + (cj === j ? 1 : 0)); subs.set(k, C[n]); };   // 這個角的格子靠區塊中心的那個 0.5 m 子格
+    if (RK.every((r) => r && r === RK[0])) { for (let n = 0; n < 4; n++) subOf(n); continue; }
+    const ks = new Set(RK.filter(Boolean)), wallC = K.some((k, n) => !C[n] && walls.has(k));
+    if (ks.size === 1 && !wallC) {
+      const c = C.find(Boolean), inn = C.map(Boolean), poly = [], mids = [];
+      for (let n = 0; n < 4; n++) { if (inn[n]) poly.push(P[n]); if (inn[n] !== inn[(n + 1) % 4]) { const m = mid(n, (n + 1) % 4); poly.push(m); mids.push([poly.length - 1, n, (n + 1) % 4]); } }
+      fan(poly, c); nRoof++;
+      // 斜邊（相鄰兩個中點）：外面是兩個中點之間那個空角
+      for (let q = 0; q < poly.length; q++) {
+        const A = mids.find((m) => m[0] === q), B = mids.find((m) => m[0] === (q + 1) % poly.length); if (!A || !B) continue;
+        const pa = poly[q], pb = poly[(q + 1) % poly.length], cx = (pa[0] + pb[0]) / 2, cz = (pa[1] + pb[1]) / 2;
+        let best = -1, bd = 1e9; for (let n = 0; n < 4; n++) if (!inn[n]) { const d = Math.hypot(P[n][0] - cx, P[n][1] - cz); if (d < bd) { bd = d; best = n; } }
+        segs.push({ a: pa, b: pb, c, out: K[best], oc: P[best] });
+      }
+    } else {
+      for (let n = 0; n < 4; n++) {
+        if (!C[n]) continue;
+        const nx = (n + 1) % 4, pv = (n + 3) % 4;
+        subOf(n);
+        for (const m of [nx, pv]) if (RK[m] !== RK[n] && (!C[m] || C[m].h < C[n].h)) segs.push({ a: mid(n, m), b: M, c: C[n], out: K[m], oc: P[m] });
+      }
+    }
+  }
+  // 0.5 m 的子格（整塊與各佔四分之一的角）：同高的一列連成一段，上下列一樣的段再併成矩形
+  const rowsS = new Map(); for (const [k, c] of subs) { const [a, b] = k.split(',').map(Number); if (!rowsS.has(b)) rowsS.set(b, []); rowsS.get(b).push([a, c]); }
+  let open = new Map();
+  const flush = (o) => { const x0 = o.a0 * R / 2, x1 = (o.a1 + 1) * R / 2, z0 = o.b0 * R / 2, z1 = (o.b1 + 1) * R / 2; tri([x0, z0], [x1, z0], [x1, z1], o.c.h - .1, o.c); tri([x0, z0], [x1, z1], [x0, z1], o.c.h - .1, o.c); nRoof++; };
+  for (const b of [...rowsS.keys()].sort((p, q) => p - q)) {
+    const l = rowsS.get(b).sort((p, q) => p[0] - q[0]), next = new Map();
+    for (let s0 = 0; s0 < l.length;) {
+      let e = s0; while (e + 1 < l.length && l[e + 1][0] === l[e][0] + 1 && rkOf(l[e + 1][1]) === rkOf(l[s0][1])) e++;
+      const key = l[s0][0] + '|' + l[e][0] + '|' + rkOf(l[s0][1]), o = open.get(key);
+      if (o && o.b1 === b - 1) { o.b1 = b; next.set(key, o); open.delete(key); } else next.set(key, { a0: l[s0][0], a1: l[e][0], b0: b, b1: b, c: l[s0][1] });
+      s0 = e + 1;
+    }
+    for (const o of open.values()) flush(o);
+    open = next;
+  }
+  for (const o of open.values()) flush(o);
+  // 原檔牆的格子：旁邊最高的屋頂，牆頂夠高（差不到 0.3 m）才補；照每一面「屋頂在它背後」的牆切（留在牆後 3 cm）
+  for (const [wk, fs] of walls) {
+    if (cells.has(wk)) continue;
+    const [i, j] = wk.split(',').map(Number); let c = null;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = cells.get(ck(i + di, j + dj)); if (n && (!c || n.h > c.h)) c = n; }
+    if (!c || whi.get(wk) < c.h - .3) continue;
+    const cc = [(i + .5) * R, (j + .5) * R]; let poly = [[i * R, j * R], [(i + 1) * R, j * R], [(i + 1) * R, (j + 1) * R], [i * R, (j + 1) * R]], cut = 0;
+    for (const fi of fs) {
+      const f = F[fi], d = f.cx * f.n[0] + f.cz * f.n[1], side = (p) => p[0] * f.n[0] + p[1] * f.n[1] - d + .03;
+      // 屋頂那格的中心在這面牆背後才切
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([di, dj]) => [i + di, j + dj]).find(([a, b]) => cells.get(ck(a, b)) === c);
+      if (!nb || side([(nb[0] + .5) * R, (nb[1] + .5) * R]) >= 0) continue;
+      const out = []; for (let k = 0; k < poly.length; k++) { const p = poly[k], q = poly[(k + 1) % poly.length], sp = side(p), sq = side(q); if (sp < 0) out.push(p); if ((sp < 0) !== (sq < 0)) { const t = sp / (sp - sq); out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); } }
+      poly = out; cut++; if (poly.length < 3) break;
+    }
+    if (cut && poly.length >= 3) { fan(poly, c); nRoof++; }
+  }
+  // 牆：每段邊界的外面（空地、原檔的牆、比較矮的屋頂）決定牆腳；同一條線、同高、同一面來源的段連起來
+  const mws = [];   // 補的牆（下面擺外掛物用）
+  const runs = new Map();
+  for (const sg of segs) {
+    const { c, out } = sg, [oi, oj] = out.split(',').map(Number), nc = cells.get(out);
+    // 鄰格是原檔的牆：從那面牆頂補起；鄰格是地面：從那裡的地面蓋起，樓層也從那裡算（樓蓋在高一階的平台上時，前面低處那截牆才有窗、有一樓）；海與空洞：蓋到水下，樓層從島面（y = 0）算
+    const gd = nc || walls.has(out) ? [] : gl(oi, oj).filter((y) => y < c.h - 4), g0 = gd.length ? Math.min(...gd) : null;
+    const bot = nc ? nc.h - .1 : walls.has(out) ? whi.get(out) - .1 : g0 ?? Math.min(c.base, -2), top = c.h - .1, wb = g0 ?? (nc || walls.has(out) ? c.base : Math.min(c.base, 0));
+    if (top - bot < .5) continue;
+    let n = [sg.b[1] - sg.a[1], sg.a[0] - sg.b[0]]; const L = Math.hypot(...n); n = n.map((v) => v / L);
+    if ((sg.oc[0] - (sg.a[0] + sg.b[0]) / 2) * n[0] + (sg.oc[1] - (sg.a[1] + sg.b[1]) / 2) * n[1] < 0) n = n.map((v) => -v);
+    const t = [n[1], -n[0]], line = sg.a[0] * n[0] + sg.a[1] * n[1], sa = sg.a[0] * t[0] + sg.a[1] * t[1], sb = sg.b[0] * t[0] + sg.b[1] * t[1];
+    const lk = [n[0].toFixed(3), n[1].toFixed(3), line.toFixed(2), bot.toFixed(1), top.toFixed(1), c.f.seed, wb.toFixed(1)].join('|');
+    if (!runs.has(lk)) runs.set(lk, { n, t, line, c, bot, top, wb, l: [] });
+    runs.get(lk).l.push([Math.min(sa, sb), Math.max(sa, sb)]);
+  }
+  for (const { n, t, line, c, bot, top, wb: wb0, l } of runs.values()) {
+    l.sort((a, b) => a[0] - b[0]);
+    const Pt = (s, y) => [n[0] * line + t[0] * s, y, n[1] * line + t[1] * s];
+    for (let s0 = 0; s0 < l.length;) {
+      let e = s0, s1 = l[s0][1]; while (e + 1 < l.length && l[e + 1][0] - s1 < 1e-3) { e++; s1 = Math.max(s1, l[e][1]); }
+      const a0 = l[s0][0], fw = s1 - a0, wb = wb0 - (fw < 4 ? fhOf(c.f.st) : 0), H = top - wb, v0 = bot - wb, v1 = top - wb;   // 窄的牆不做一樓（同上面的原檔面）
+      outQ([Pt(a0, bot), Pt(s1, bot), Pt(s1, top), Pt(a0, top)], [n[0], 0, n[1]], [[0, v0], [fw, v0], [fw, v1], [0, v1]], [c.f.seed, c.f.st, fw, 0], [0, 1, H, fw < 2.5 ? 2 : 0]); nWall++;
+      mws.push({ o: [n[0] * line + t[0] * a0, n[1] * line + t[1] * a0], t, n, fw, base: wb, H, v0, v1, st: c.f.st, seed: c.f.seed });
+      s0 = e + 1;
+    }
+  }
+  console.log(`  補量體：${cells.size} 格、${nRoof} 片屋頂、${nWall} 面牆`);
+  const kit = facadeKit(F, mws, cells, walls, R, ck);
+  console.log(`  外掛物：${Object.entries(kit).map(([k, v]) => k + ' ' + v.length).join('、')}`);
+  console.log(`  facade：${F.length} 面（${shops} 面有店面）、${T.filter((o) => o.kind === 1).length} 片屋頂、${T.filter((o) => o.kind === 2).length} 片實牆`);
+  const cnt = pos.length / 3;
+  const res = keep.concat([{ node: 'tron_facade', path: 'tron_facade', mat: null, fac: true, pos: Float32Array.from(pos), nor: Float32Array.from(nor), uv: null, col: null,
+    fuv: Float32Array.from(uv), fb: Float32Array.from(fb), fb2: Float32Array.from(fb2), idx: Uint32Array.from(idx), cnt }]);
+  res.kit = kit; return res;
+}
+// 程式立面的外掛物與屋頂設備（頁面 20-props.js 交給城裡同一套模型：窗型冷氣、分離式室外機、落水管與管箍、逃生梯、木水塔、空調箱；21-tron.js 擺店招與立式招牌）。
+// 窗格照 m-facade.mjs 的算法（一樓 gH = 4.6 m，層高 fh、開間 ws 照樣式），面上真的有牆（原檔的面照三角形查）、前面 0.8 m 不是補的量體才擺。
+// 位置是模型座標、取到公分：ac／wac／esc [x, y, z, ry]（wac 第 5 個是生鏽款）、pipe [x, y0, z, ry, y1]、tower／rtu [x, y, z, ry, s]、fascia [x, y, z, nx, nz, 寬, 拉下鐵捲門]、blade [x, y, z, nx, nz]
+function facadeKit(F, mws, cells, walls, R, ck) {
+  let sd = 260117; const rnd = () => { sd = (sd + 0x6D2B79F5) | 0; let t = Math.imul(sd ^ (sd >>> 15), 1 | sd); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const r2 = (v) => Math.round(v * 100) / 100, K = { ac: [], wac: [], pipe: [], esc: [], tower: [], rtu: [], fascia: [], blade: [] };
+  const grid = (st, H, fw) => { const fh = st === 3 ? 3.7 : st === 2 || st === 8 ? 3.4 : 3.1, ws = st === 3 ? 1.6 : st === 2 || st === 8 ? 2.2 : 2.5, cols = Math.max(1, Math.floor((fw - 1) / ws)); return { gH: 4.6, fh, ws, nF: Math.floor((H - 4.6 - .7) / fh), cols, mg: (fw - cols * ws) / 2 }; };
+  const buried = (x, z, n) => cells.has(ck(Math.floor((x + n[0] * .8) / R), Math.floor((z + n[1] * .8) / R)));
+  const walls0 = [];   // 每一面：起點、切線、法線、寬、樓層基準、高、樣式、店面、有牆嗎（u, v）
+  for (const f of F) {
+    const fw = f.u1 - f.u0, H = f.y1 - f.base; if (fw < 2.5 || H < 6) continue;
+    const d0 = f.cx * f.n[0] + f.cz * f.n[1], tri = f.l.map((o) => o.v.map((i) => [o.p.pos[i * 3] * f.t[0] + o.p.pos[i * 3 + 2] * f.t[1] - f.u0, o.p.pos[i * 3 + 1] - f.base]));
+    const on = (u, v) => tri.some(([a, b, c]) => { const d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]); if (Math.abs(d) < 1e-9) return false; const w1 = ((b[1] - c[1]) * (u - c[0]) + (c[0] - b[0]) * (v - c[1])) / d, w2 = ((c[1] - a[1]) * (u - c[0]) + (a[0] - c[0]) * (v - c[1])) / d; return w1 >= -.01 && w2 >= -.01 && w1 + w2 <= 1.01; });
+    walls0.push({ o: [f.t[0] * f.u0 + f.n[0] * d0, f.t[1] * f.u0 + f.n[1] * d0], t: f.t, n: f.n, fw, base: f.base, H, st: f.st, seed: f.seed, shop: f.shop, units: f.units, shut: f.shut, on });
+  }
+  for (const m of mws) if (m.fw >= 2.5 && m.H >= 6) walls0.push({ ...m, shop: 0, on: (u, v) => v >= m.v0 - .01 && v <= m.v1 + .01 });
+  for (const w of walls0) {
+    const { o, t, n, fw, base, H, st } = w, ry = Math.atan2(n[0], n[1]), g = grid(st, H, fw);
+    const at = (u, v, out) => [o[0] + t[0] * u + n[0] * out, base + v, o[1] + t[1] * u + n[1] * out];
+    const ok = (u, v) => w.on(u, v) && w.on(u - .4, v) && w.on(u + .4, v) && w.on(u, v + .9) && !buried(o[0] + t[0] * u, o[1] + t[1] * u, n);
+    const put = (L, p, ...x) => L.push([r2(p[0]), r2(p[1]), r2(p[2]), r2(ry), ...x]);
+    // 逃生梯（磚與灰泥樓、三開間以上）佔兩開間；窗型冷氣、窗間的室外機避開它
+    let esc = -1;
+    if (g.cols >= 3 && g.nF >= 2 && st !== 8 && rnd() < .3) esc = 1 + Math.floor(rnd() * (g.cols - 2));
+    if (esc >= 0) { const u = g.mg + esc * g.ws; let okE = true; for (let fi = 0; fi < g.nF && okE; fi++) okE = ok(u - 2, g.gH + fi * g.fh) && ok(u + 2, g.gH + fi * g.fh + g.fh); if (okE) for (let fi = 0; fi < g.nF; fi++) put(K.esc, at(u, g.gH + fi * g.fh + .18 * g.fh - .1, .62)); else esc = -1; }
+    for (let fi = 0; fi < g.nF; fi++) for (let ci = 0; ci < g.cols; ci++) {
+      if (esc >= 0 && (ci === esc || ci === esc - 1)) continue;
+      const u = g.mg + (ci + .5) * g.ws, v = g.gH + fi * g.fh + .18 * g.fh + .02;
+      if (rnd() < .12 && ok(u, v)) put(K.ac, at(u, v, .22));
+    }
+    for (let fi = 1; fi < g.nF; fi++) for (let ci = 1; ci < g.cols; ci++) {
+      const u = g.mg + ci * g.ws + (rnd() - .5) * .3, v = g.gH + fi * g.fh + .25 * g.fh;
+      if (rnd() > .06 || (esc >= 0 && Math.abs(ci - esc) < 2)) continue;
+      if (ok(u, v)) put(K.wac, at(u, v, .19), rnd() < .35 ? 1 : 0);
+    }
+    // 落水管：三分之一的面一支，在一端 0.75 m
+    if (H > 7 && fw >= 6 && rnd() < .33) {
+      let u = rnd() < .5 ? .75 : fw - .75;
+      if (esc >= 0 && Math.abs(u - (g.mg + esc * g.ws)) < 3.2) u = fw - u;
+      const y1 = H - 1.05;
+      if (!(esc >= 0 && Math.abs(u - (g.mg + esc * g.ws)) < 3.2) && [.5, y1 / 2, y1 - .3].every((v) => w.on(u, v)) && !buried(o[0] + t[0] * u, o[1] + t[1] * u, n)) { const p = at(u, .15, .2); K.pipe.push([r2(p[0]), r2(p[1]), r2(p[2]), r2(ry), r2(base + y1)]); }
+    }
+    // 店招：每一間店門上 3.95 m（城裡 20-props.js 的店招高度），拉下鐵捲門的只有三成還掛著；一成二掛立式招牌（垂直於牆、離牆 0.85 m）
+    if (w.shop) {
+      const uw = fw / w.units;
+      for (let k = 0; k < w.units; k++) {
+        const u = (k + .5) * uw, shut = k < 16 && (w.shut >> k) & 1;
+        if (!w.on(u, 3.95) || buried(o[0] + t[0] * u, o[1] + t[1] * u, n)) continue;
+        if (!shut || rnd() < .3) { const p = at(u, 3.95, .2), sw = Math.min(uw * .82, 6.2); K.fascia.push([r2(p[0]), r2(p[1]), r2(p[2]), r2(n[0]), r2(n[1]), r2(sw), shut]); }
+        if (rnd() < .12 && uw > 4) { const y = 6.6 + rnd() * 2, p = at(u + uw * .4, y, .85); if (w.on(u + uw * .4, y + 1.8) && w.on(u + uw * .4, y - 1.8)) K.blade.push([r2(p[0]), r2(p[1]), r2(p[2]), r2(n[0]), r2(n[1])]); }
+      }
+    }
+  }
+  // 屋頂：補的量體同一面來源、同高連成一塊，往裡縮 2 格的地方擺木水塔（矮樓）與空調箱，彼此隔 4 m
+  const seen = new Set();
+  for (const [k0, c0] of cells) {
+    if (seen.has(k0)) continue;
+    const reg = [], st = [k0]; seen.add(k0);
+    while (st.length) { const k = st.pop(), [i, j] = k.split(',').map(Number); reg.push([i, j]); for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const kk = ck(i + di, j + dj), c = cells.get(kk); if (c && !seen.has(kk) && c.f === c0.f && Math.abs(c.h - c0.h) < .05) { seen.add(kk); st.push(kk); } } }
+    if (reg.length < 30) continue;
+    const inR = new Set(reg.map(([i, j]) => ck(i, j))), core = reg.filter(([i, j]) => { for (let di = -2; di <= 2; di++) for (let dj = -2; dj <= 2; dj++) if (!inR.has(ck(i + di, j + dj))) return false; return true; });
+    if (!core.length) continue;
+    const used = [], pick = () => { for (let tries = 0; tries < 12; tries++) { const [i, j] = core[Math.floor(rnd() * core.length)], x = (i + .5) * R, z = (j + .5) * R; if (used.every(([a, b]) => Math.hypot(a - x, b - z) > 4.5)) { used.push([x, z]); return [x, z]; } } return null; };
+    const y = c0.h - .1, n = Math.min(4, Math.max(1, Math.round(reg.length / 180)));
+    if (c0.h - c0.base < 34 && rnd() < .3) { const p = pick(); if (p) K.tower.push([r2(p[0]), r2(y), r2(p[1]), r2(rnd() * 6), r2(.8 + rnd() * .4)]); }
+    for (let q = 0; q < n; q++) if (rnd() < .6) { const p = pick(); if (p) K.rtu.push([r2(p[0]), r2(y), r2(p[1]), r2(Math.floor(rnd() * 4) * Math.PI / 2), r2(.7 + rnd() * .6)]); }
+  }
+  return K;
 }
 // 重算頂點法線（renorm）：照面積加權、同一個位置（1 mm）的頂點共用（UV 接縫兩邊一樣平滑）。照片掃描減面後原檔的法線對不上細長的三角形，
 // 打光時會冒出一點一點的亮斑
@@ -1269,8 +1645,15 @@ async function build(set) {
   const emit = async (id, prims, dims) => {
     const node = out.createNode(id).setExtras(dims), mesh = out.createMesh(id);
     const groups = new Map();
-    for (const p of prims) { const k = p.curtain ? 'c:' + (p.mat ? p.mat.getName() : '') : p.mat; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
-    for (const [, ps] of groups) {
+    for (const p of prims) { const k = p.fac ? 'fac' : p.curtain ? 'c:' + (p.mat ? p.mat.getName() : '') : p.mat; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+    for (const [gk, ps] of groups) {
+      if (gk === 'fac') {   // 程式立面（facadePrims）：頁面換成 MAT_FACADE 的 YB 鍵，不用 glb 的材質屬性
+        for (const p of ps) mesh.addPrimitive(out.createPrimitive().setMaterial(out.createMaterial('tron_facade').setBaseColorFactor([.31, .32, .33, 1]).setMetallicFactor(0).setExtras({ facade: 1 }))
+          .setAttribute('POSITION', acc(p.pos, 'VEC3', Float32Array)).setAttribute('NORMAL', acc(p.nor, 'VEC3', Float32Array))
+          .setAttribute('_FUV', acc(p.fuv, 'VEC2', Float32Array)).setAttribute('_FB', acc(p.fb, 'VEC4', Float32Array)).setAttribute('_FB2', acc(p.fb2, 'VEC4', Float32Array))
+          .setIndices(acc(p.idx, 'SCALAR', Uint32Array)));
+        continue;
+      }
       const m = ps[0].mat, curtain = !!ps[0].curtain;
       const tint = set.tint && m && set.tint[m.getName()];   // [底色倍率, 最低粗糙度, 最高金屬度]
       const rc = set.recolor && m && set.recolor[m.getName()];   // [r, g, b, a, 粗糙度]：整個換掉原檔的底色（偏色很重、又粗糙到一片霧白的玻璃）
@@ -1494,6 +1877,7 @@ async function build(set) {
       if (src.renorm) renormal(prims);
       const dims = place(prims, src);
       if (set.curtain) curtainUV(prims, set.curtain);   // 單件的物件也能有帷幕窗格（賭場塔樓）
+      if (set.facade) { prims = facadePrims(prims, set.facade); if (src.tron?.walk) dims.kit = prims.kit; }   // 光格島：純黑的遮光盒換成程式立面（近景另外記外掛物的位置）
       if (src.hf) dims.hf = heightField(prims, ...src.hf);   // 崖壁之前量：只量掃描本身的地面
       if (src.line) dims.line = trackLine(prims, src.line);
       if (src.skirt) { prims = addSkirt(prims, src.skirt); if (src.skirt.ring) dims.ring = prims.ring; }
@@ -1544,5 +1928,6 @@ for (const k of Object.keys(manifest)) if (!ordered[k]) ordered[k] = manifest[k]
 // foot（tools/foot.mjs 量的碰撞矩形）每個矩形寫成一行，和 foot.mjs 寫出來的格式一樣
 // 光格島（tools/walkgrid.mjs）的大陣列：岸線、車道圖、家具位置整個擠成一行，不然 props.json 會多上萬行
 const TIGHT = new Set(['edges', 'graph', 'vend', 'bench', 'tree', 'lamp', 'cycle', 'pool', 'shop', 'lift']), tight = [];
-const tightOf = (k, v) => { if (!TIGHT.has(k) || !(Array.isArray(v) || k === 'graph' && v && v.nodes)) return v; tight.push(JSON.stringify(v)); return `@@tight${tight.length - 1}@@`; };
+const tightOf = (k, v) => { if (k === 'kit' && v && !Array.isArray(v)) return Object.fromEntries(Object.entries(v).map(([a, b]) => (tight.push(JSON.stringify(b)), [a, `@@tight${tight.length - 1}@@`])));   // 光格島的外掛物：每一種一行
+  if (!TIGHT.has(k) || !(Array.isArray(v) || k === 'graph' && v && v.nodes)) return v; tight.push(JSON.stringify(v)); return `@@tight${tight.length - 1}@@`; };
 writeFileSync(manifestPath, JSON.stringify(ordered, tightOf, 1).replace(/"@@tight(\d+)@@"/g, (_, i) => tight[i]).replace(/\[\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+),\n\s*(-?[\d.]+)\n\s*\]/g, '[$1, $2, $3, $4, $5]') + '\n');

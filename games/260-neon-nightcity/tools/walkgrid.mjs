@@ -325,7 +325,7 @@ export function tronData(prims, { walk, cut, file, mat }) {
     Object.assign(dims, { vend: mk(/^PF_Vending_Machine/), bench: mk(/^PF_(Bench_Street|City_Bench)/), tree: mk(/^(SM_TEST_Tree|Point|Icosphere)/), lamp: mk(/^PF_LampPost/),
       cycle: mk(/^PF_TronCycle/), pool: mk(/^Water_Plane/), shop: mk(/^PF_Console_Shop_Freestanding/) });
   }
-  const M = landMask(G, prims), cap = capHoles(G, M, -.2, mat('cap', [.012, .014, .02])), wall = seaWall(M, -.12, -9, mat('seawall', [.02, .022, .028]));
+  const M = landMask(G, prims), cap = capHoles(G, M, -.2, mat('cap', [.05, .052, .056])), wall = seaWall(M, -.12, -9, mat('seawall', [.13, .13, .125]));
   const out = (cut ? prims.filter((p) => !cut.test(p.path)) : prims).concat([cap, wall.prim]);
   // 碼頭：海拔 0 附近的車道格裡最北（z 最小）的那一格
   let dock = null;
@@ -336,7 +336,7 @@ export function tronData(prims, { walk, cut, file, mat }) {
     dims.walk = { file: basename(file), x0: G.x0, z0: G.z0, res: G.res, nx: G.nx, nz: G.nz, layers: G.L.length };
     dims.graph = roadGraph(G);
     // 升降梯：上層（約 0 m）與下層街區（低於 -5 m）各取最大一塊連通的地面（最低那層、相鄰格高差不到半公尺算連通），
-    // 兩塊之間水平距離最近的一對格子（每 4 m 取一格比）
+    // 兩塊之間水平距離最近、頭上空著的一對格子（每 4 m 取一格比）
     const N = G.nx * G.nz, comp = new Int32Array(N).fill(-1), L0 = G.L[0], best = {};
     for (let k0 = 0, c = 0; k0 < N; k0++) {
       const v0 = L0[k0]; if (v0 === NONE || comp[k0] >= 0) continue;
@@ -351,7 +351,7 @@ export function tronData(prims, { walk, cut, file, mat }) {
       c++;
     }
     if (best.up && best.lo) {
-      const pt = (k) => [G.x0 + (k % G.nx + .5) * G.res, L0[k] / 10, G.z0 + (((k / G.nx) | 0) + .5) * G.res], sub = (a) => a.filter((k) => (k % G.nx) % 8 === 0 && ((k / G.nx) | 0) % 8 === 0).map(pt);
+      const pt = (k) => [G.x0 + (k % G.nx + .5) * G.res, L0[k] / 10, G.z0 + (((k / G.nx) | 0) + .5) * G.res], sub = (a) => a.filter((k) => (k % G.nx) % 8 === 0 && ((k / G.nx) | 0) % 8 === 0 && G.L.every((L, l) => !l || L[k] === NONE)).map(pt);   // 頭上沒有別層（props.mjs 補的量體蓋住的地面不算）
       let bd = 1e9;
       for (const a of sub(best.up)) for (const b of sub(best.lo)) { const d = (a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2; if (d < bd) { bd = d; dims.lift = [a, b].map((q) => q.map((v) => +v.toFixed(2))); } }
       console.log(`  升降梯：上層 ${(best.up.length * G.res * G.res / 1e4).toFixed(1)} 公頃、下層 ${(best.lo.length * G.res * G.res / 1e4).toFixed(1)} 公頃，${JSON.stringify(dims.lift)}`);
