@@ -107,5 +107,114 @@ async function perfRoute({ wait = 12000, sample = 8000, min = 1320, weather = 'r
   perfOn(was);
   return (perfApi.last = out);
 }
-const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: perfGpuOn };
+// ─── 觀測模型（tools/observe.mjs）用的兩個量測，平常沒有成本 ───
+// sample()：拆解下一幀（只包那一幀的 R.render／R.renderObject，由 renderFrame 頭尾的 perfHook.a／b 開關）。每一趟（主畫面、倒影、後製）記 CPU 時間、
+// draw call、三角形，依材質名分組；白畫的 draw 分類：空實例、空幾何、drawRange 0、藏在地底、縮成 0、實例全死、整顆在視錐外、整顆在霧外、
+// 主畫面投影不到半個像素（不透明的）。同幾何同材質分開畫的（可以實例化）、實例只有幾成在視錐裡的另外列
+const PERF_WASTE = ['inst0', 'emptyGeo', 'range0', 'under', 'scale0', 'instDead', 'outside', 'instOutside', 'fogged', 'subpx'];
+function perfWaste(o, g, m, p) {
+  const n = g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 0;
+  if (o.isInstancedMesh && o.count === 0) return 'inst0';
+  if (n === 0) return 'emptyGeo';
+  if (g.drawRange.count === 0) return 'range0';
+  const e = o.matrixWorld.elements;
+  if (e[13] < -1000) return 'under';
+  if (Math.abs(o.matrixWorld.determinant()) < 1e-12) return 'scale0';
+  if (!p.fr || o === fsMesh) return null;
+  if (g.boundingSphere === null) g.computeBoundingSphere();
+  const s = g.boundingSphere, sp = new T.Sphere();
+  if (o.isInstancedMesh) {
+    const a = o.instanceMatrix.array, M = new T.Matrix4(); let live = 0, vis = 0;
+    for (let i = 0, c = Math.min(o.count, 4000); i < c; i++) {
+      const b = i * 16; if (a[b] * a[b] + a[b + 1] * a[b + 1] + a[b + 2] * a[b + 2] < 1e-10 || a[b + 13] < -1000) continue;
+      live++; M.fromArray(a, b).premultiply(o.matrixWorld); sp.copy(s).applyMatrix4(M); if (p.fr.intersectsSphere(sp)) vis++;
+    }
+    p.inst.push([m.name || m.type, o.count, vis]);
+    return live === 0 ? 'instDead' : vis === 0 ? 'instOutside' : null;
+  }
+  sp.copy(s).applyMatrix4(o.matrixWorld);
+  if (!p.fr.intersectsSphere(sp)) return 'outside';
+  const c = p.cam.position, d = sp.center.distanceTo(c);
+  if (c.y < 20 && fogFull(m) && d - sp.radius > 12 / Math.max(U.uFogDen.value, 1e-4)) return 'fogged';
+  if (p.nm === 'main' && d > sp.radius && sp.radius / d * p.k < .5 && !reflKeep(m)) return 'subpx';
+  return null;
+}
+function perfSample() {
+  return new Promise(res => {
+    const pa = perfHook.a, pb = perfHook.b, r0 = R.render, ro0 = R.renderObject, passes = []; let cur = null;
+    const M = new T.Matrix4();
+    perfHook.a = () => {
+      pa?.();
+      R.render = function (s, c) {
+        const nm = c === camera ? 'main' : c === reflCam ? 'refl' : s === fsScene ? 'post:' + (fsMesh.material.name || '?') : 'other:' + (s.name || c.name || c.type);
+        const rt = R.getRenderTarget(), p = cur = { nm, cam: c, ms: 0, L: [], inst: [], fr: null, k: 1 };
+        if (s !== fsScene && c.isPerspectiveCamera) { p.fr = new T.Frustum().setFromProjectionMatrix(M.multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse), R.coordinateSystem); p.k = (rt ? rt.height : innerHeight) / 2 * c.projectionMatrix.elements[5]; }
+        passes.push(p);
+        const t = performance.now(); try { return r0.apply(this, arguments); } finally { p.ms = performance.now() - t; cur = null; }
+      };
+      R.renderObject = function (o, sc, c, g, m) { if (cur) cur.L.push([o, g, m]); return ro0.apply(this, arguments); };
+    };
+    perfHook.b = () => {
+      R.render = r0; R.renderObject = ro0; perfHook.a = pa; perfHook.b = pb; pb?.();
+      const out = [];
+      for (const p of passes) {
+        const by = new Map(), waste = {}, wex = {}, dup = new Map(); let tris = 0;
+        for (const [o, g, m] of p.L) {
+          const n = (g.drawRange.count !== Infinity ? Math.min(g.drawRange.count, g.index ? g.index.count : g.attributes.position?.count || 0) : g.index ? g.index.count : g.attributes.position?.count || 0) / 3 * (o.isInstancedMesh ? o.count : 1);
+          tris += n;
+          const mn = m.name || m.type, b = by.get(mn) || { d: 0, t: 0, w: 0 }; b.d++; b.t += n; by.set(mn, b);
+          const w = perfWaste(o, g, m, p);
+          if (w) { b.w++; waste[w] = (waste[w] || 0) + 1; const ex = (wex[w] ||= new Set()); if (ex.size < 8) ex.add(mn + ' ' + (o.name || o.parent?.name || '')); }
+          if (!o.isInstancedMesh && !o.isSkinnedMesh) { const k = g.id + ':' + m.id; dup.set(k, (dup.get(k) || 0) + 1); }
+        }
+        const dupL = [...dup].filter(([, v]) => v > 1);
+        out.push({ nm: p.nm, ms: +p.ms.toFixed(2), draws: p.L.length, tris: Math.round(tris), waste, wex: Object.fromEntries(Object.entries(wex).map(([k, v]) => [k, [...v]])),
+          top: [...by].sort((a, b) => b[1].d - a[1].d).slice(0, 25).map(([k, v]) => [k, v.d, Math.round(v.t), v.w]),
+          dupDraws: dupL.reduce((s, [, v]) => s + v, 0), dupSave: dupL.reduce((s, [, v]) => s + v - 1, 0),
+          instLow: p.inst.filter(([, n, v]) => n >= 8 && v / n < .25).sort((a, b) => b[1] - a[1]).slice(0, 12) });
+      }
+      res(out);
+    };
+  });
+}
+// frozen(n, sets)：暫停（Esc 選單開著）時同一幀重畫，記 renderFrame 的 CPU 時間（送出）、整幀做完的時間（gpu：開始送出到顯示卡佇列做完）、draw call。
+// sets 是要比的幾種設定（函式，null 是照現在）：n 輪，每輪每種先畫一幀丟掉（剛切換，可能建渲染目標或管線），再一口氣連畫 FROZEN_K 幀（偶數：倒影隔幀畫）
+// 等顯示卡做完，總時間除以幀數——取各輪的中位數。交錯著量是因為無頭 Metal 的顯示卡時間整段飄 ±25%，前後分開量的差會被飄移蓋掉。
+// 不一幀一幀「送出、等做完」：每幀之間顯示卡閒下來會降頻，前面剛好多做了事（例如 Esc 選單換設定）的那組就顯得快，
+// 2026-11-01 觀測模型的拆解因此每一項都「省」2～5 ms（色差實際 ±0.5）。連畫時 gpu 是每幀的吞吐（CPU 送出與顯示卡重疊，取兩者中慢的），lat 是單幀從送出到做完。
+// 回傳每種設定一筆（單位是「每幀」）。面板的統計這段時間暫停，免得兩邊搶 timestamp 讀回
+const FROZEN_K = 8;
+async function perfFrozen(n = 10, sets = [null]) {
+  const was = PF.on; PF.on = false;
+  while (PF.gq) await PF.gq;
+  const S = sets.map(() => []);
+  const one = async () => {
+    const q = R.backend.device?.queue;
+    if (q) await q.onSubmittedWorkDone();
+    const f = await new Promise(r => requestAnimationFrame(() => { const t0 = performance.now(); renderFrame(0, (performance.now() - T0) / 1000); r([performance.now() - t0, R.info.render.drawCalls, R.info.render.triangles, t0]); }));
+    // 顯示卡：送出後等佇列做完的牆鐘時間（前一幀已經等完，所以是這一幀從開始送到顯示卡畫完）。無頭 Metal 的 timestamp query 讀回的數字不可信
+    // （畫面 60 fps 時讀到每幀 50 ms 以上、同一設定差到 ±25%），不用它
+    let g = null; if (q) { await q.onSubmittedWorkDone(); g = performance.now() - f[3]; }
+    return [f[0], f[1], f[2], g];
+  };
+  const burst = async () => {
+    const q = R.backend.device?.queue;
+    const f = await new Promise(r => requestAnimationFrame(() => {
+      const t0 = performance.now(); let cpu = 0, dc = 0, tr = 0;
+      for (let k = 0; k < FROZEN_K; k++) { const a = performance.now(); renderFrame(0, (a - T0) / 1000); cpu += performance.now() - a; dc += R.info.render.drawCalls; tr += R.info.render.triangles; }
+      r([cpu / FROZEN_K, dc / FROZEN_K, tr / FROZEN_K, t0]);
+    }));
+    let g = null; if (q) { await q.onSubmittedWorkDone(); g = (performance.now() - f[3]) / FROZEN_K; }
+    return [f[0], f[1], f[2], g];
+  };
+  try {
+    for (let i = 0; i < n; i++) for (let j = 0; j < sets.length; j++) {
+      sets[j]?.(); await one();
+      const l = await one(), b = await burst();
+      S[j].push([b[0], b[1], b[2], b[3], l[3]]);
+    }
+  } finally { PF.on = was; }
+  return S.map(L => { const md = k => { const a = L.map(s => s[k]).filter(x => x != null && x > 0); return a.length ? +perfPct(a, .5).toFixed(3) : null; }; return { sub: md(0), draws: md(1), tris: md(2), gpu: md(3), lat: md(4), n: L.length }; });
+}
+const perfApi = { PF, busy: () => warmBusy, on: perfOn, stats: (n = 120) => perfStats(PF.ring.slice(-n)), stalls: () => PF.stalls.map(perfStall), route: perfRoute, last: null, gpuTimer: perfGpuOn, sample: perfSample, frozen: perfFrozen };
 if (PF.on) perfOn(true);

@@ -7,6 +7,7 @@ import { Kit, T, rng, textTexture, decalMaterial } from './kit.js';
 import { hangingLantern, lattice, flipGeo, pennantMesh, crate } from './scenery.js';
 import { makeWeapon } from './weapons.js';
 import { roofGeo } from './kit.js';
+import { Batch } from './assets.js';
 
 export const HALL_ORIGIN = new THREE.Vector3(0, 0, 400);
 
@@ -16,6 +17,7 @@ export function buildIntroHall() {
   const k = new Kit(201);
   const top = new Kit(202); // 天花、樑：不投影（當作天光從高窗進來）
   const R = rng(203);
+  const mb = new Batch('hall-models'); // 匯入的家具與器物（assets.js）
   const W = 16, D = 12, H = 5.6;
   const Z0 = -5.2; // 後牆
 
@@ -59,12 +61,16 @@ export function buildIntroHall() {
   plaque.position.set(0, 4.25, Z0 + 0.2);
   group.add(plaque);
   k.box('wood', 0xb08d48, 4.9, 1.5, 0.08, T(0, 4.25, Z0 + 0.12));
-  // 匾下：一張供桌、香爐、兩側對聯木牌
-  k.box('woodDark', 0x2a1810, 2.8, 0.1, 0.8, T(0, 1.0, Z0 + 0.6));
-  for (const sx of [-1, 1]) k.box('woodDark', 0x2a1810, 0.1, 1.0, 0.7, T(sx * 1.3, 0.5, Z0 + 0.6));
-  k.lathe('bronze', 0x8a6a3a, [[0, 0], [0.18, 0], [0.22, 0.12], [0.2, 0.24], [0.24, 0.26], [0, 0.26]], 14, T(0, 1.05, Z0 + 0.6));
+  // 匾下：條案（翹頭案）上一只掐絲琺瑯香爐、一對青花瓶；案前一張方桌、兩把官帽椅；兩側對聯木牌、靠牆一對書櫃
+  mb.add('hall_console_table', 0, 0, Z0 + 0.42, 0, 1.55);
+  mb.add('censer_ding', 0, 1.02, Z0 + 0.42, 0, 0.62);
+  for (const sx of [-1, 1]) mb.add('vase_blue', sx * 0.95, 1.02, Z0 + 0.42, 0, 1.1);
+  // 香爐兩側一對鳳鳥石燭台（bk_candlestick）：爐、燭台、花瓶湊成案上五供
+  for (const sx of [-1, 1]) mb.add('bk_candlestick', sx * 0.55, 1.02, Z0 + 0.42, 0, 1.0);
+  mb.add('hall_tea_table', 0, 0, Z0 + 1.75, 0, 1.0);
+  for (const sx of [-1, 1]) mb.add('hall_armchair', sx * 0.98, 0, Z0 + 1.75, sx * -0.12, 1.0);
+  for (const sx of [-1, 1]) mb.add('hall_cabinet', sx * 3.75, 0, Z0 + 0.32, 0, 1.0);
   for (const sx of [-1, 1]) {
-    k.lathe('stone', 0xd8d0b8, [[0, 0], [0.1, 0], [0.12, 0.25], [0.06, 0.38], [0.08, 0.42], [0, 0.42]], 10, T(sx * 0.9, 1.05, Z0 + 0.6));
     const cp = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 2.4), decalMaterial(textTexture(sx < 0 ? '鏢行萬里' : '一諾千金', { w: 120, h: 640, bg: '#6a1e14', fg: '#e3c070', border: '#b08d48', vertical: true, size: 0.7 }), { alphaTest: 0 }));
     cp.position.set(sx * 2.95, 3.0, Z0 + 0.16);
     group.add(cp);
@@ -80,7 +86,8 @@ export function buildIntroHall() {
     const types = ['SPEAR', 'BLADE', 'SWORD', 'SPEAR', 'BLADE'];
     types.forEach((t, i) => {
       const w = makeWeapon(t);
-      w.position.set(rx - 1.0 + i * 0.5, t === 'SPEAR' ? 0.2 : 0.65, rz + 0.12);
+      // 長槍原點在握把（離鐏底 0.845 m），立在架座頂面 y=0.14
+      w.position.set(rx - 1.0 + i * 0.5, t === 'SPEAR' ? 0.99 : 0.65, rz + 0.12);
       w.rotation.set(0, 0, (i - 2) * 0.03);
       w.scale.setScalar(t === 'SPEAR' ? 1.0 : 1.1);
       group.add(w);
@@ -97,6 +104,10 @@ export function buildIntroHall() {
     p.rotation.y = 0.5;
     group.add(p);
   }
+  // 左牆邊一張羅漢床、一對鼓凳
+  mb.add('hall_sofa', -7.35, 0, 2.6, Math.PI / 2, 1.0);
+  for (const z of [1.1, 4.1]) mb.add('stool_carved', -6.9, 0, z, 0.3, 1.1);
+
   // 掛在橫樑上的小鏢旗串（沿前樑）
   for (let i = 0; i < 6; i++) {
     const p = pennantMesh(['順', '安', '鏢', '局', '平', '安'][i], 0.7, { bg: i % 2 ? '#2c3e57' : '#b23a24' });
@@ -120,14 +131,25 @@ export function buildIntroHall() {
     k.box('woodDark', 0x3a2418, 3.6, 2.6, 0.5, T(cx, 1.3, cz - 1.6));
     for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) k.box('wood', 0x5a3a24, 0.5, 0.5, 0.02, T(cx - 1.4 + c * 0.56, 0.4 + r * 0.6, cz - 1.34));
     // 鏢箱：紅封條
-    for (const [x, z, y, s] of [[2.6, 2.3, 0, 0.8], [3.5, 2.6, 0, 0.75], [3.0, 2.4, 0.8, 0.7], [6.4, 1.8, 0, 0.85]]) {
-      crate(k, x, y, z, s, 0.2 * (x - 3), 0x4a2a1a);
-      k.box('paper', 0xa8301c, 0.12, s + 0.01, s + 0.02, T(x, y + s / 2, z, 0, 0.2 * (x - 3), 0));
+    // 鏢箱：樟木雕花箱疊兩層，貼一道紅封條
+    for (const [x, z, y, s] of [[2.5, 2.3, 0, 1.0], [3.55, 2.55, 0, 0.95], [3.0, 2.4, 0.5, 0.9], [6.4, 1.8, 0, 1.05]]) {
+      const ry = 0.2 * (x - 3);
+      mb.add('camphor_chest', x, y, z, ry, s);
+      k.box('paper', 0xa8301c, 0.1, 0.5 * s + 0.01, 0.48 * s + 0.02, T(x, y + 0.25 * s, z, 0, ry, 0));
     }
+    mb.add('lacquer_box', cx + 1.45, 1.13, cz + 0.05, 0.4, 0.55);
   }
+  // 案前方桌（頂面 y 0.405、寬 0.68 m）上一只綠釉瓷獅（bk_lion）、一盞銅蓮花油燈（bk_lotus_lamp）。
+  // 原本放在右側櫃台上，橫式開場被入局帖蓋住、蓮燈在畫面外；方桌在入局帖左邊、主角右後方，三種尺寸都看得到
+  mb.add('bk_lion', -0.17, 0.405, Z0 + 1.78, 0.5, 1.0);
+  mb.add('bk_lotus_lamp', 0.18, 0.405, Z0 + 1.7, 0, 1.0);
   // 吊燈籠（暖光）
   const lanterns = [];
-  for (const [x, z] of [[-2.2, 0.6], [2.2, 0.6], [-6, 0.6], [6, 0.6], [0, 3.2]]) hangingLantern(top, x, H - 1.2, z, 1.25, 0xd8502c);
+  // 宮燈（匯入的六角宮燈）：從橫樑吊下來
+  for (const [x, z] of [[-2.2, 0.6], [2.2, 0.6], [-6, 0.6], [6, 0.6], [0, 3.2]]) {
+    mb.add('hall_chandelier', x, H - 2.0, z, 0, 1.1, { shadow: false });
+    top.cyl('wood', 0x2a1c14, 0.015, 0.015, 1.25, 4, T(x, H - 0.55, z));
+  }
   const lights = [];
   for (const [x, z, i] of [[-2.2, 1.2, 9], [2.2, 1.2, 7], [6, 0.8, 6]]) {
     const L = new THREE.PointLight(0xffa860, i, 9, 1.5);
@@ -142,6 +164,7 @@ export function buildIntroHall() {
   group.add(rimL, rimL.target);
 
   group.add(k.build({ name: 'hall' }));
+  group.add(mb.build());
   group.add(top.build({ name: 'hall-top', shadow: false }));
   void roofGeo; void flipGeo; void lanterns;
 

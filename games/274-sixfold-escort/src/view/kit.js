@@ -4,7 +4,7 @@
 // 用法：const k = new Kit(); k.box('wood', 0x6b4c30, w, h, d, T(x, y, z, rx, ry, rz)); …; const g = k.build();
 // 矩陣小工具 T(x, y, z, rx, ry, rz, sx, sy, sz)：先縮放、再旋轉（XYZ 歐拉角）、再平移。
 import * as THREE from 'three';
-import { MeshStandardNodeMaterial, MeshBasicNodeMaterial } from 'three/webgpu';
+import { MeshStandardNodeMaterial, MeshPhysicalNodeMaterial, MeshBasicNodeMaterial } from 'three/webgpu';
 import {
   Fn, uniform, float, vec3, vertexColor, positionLocal, positionWorld, normalView, positionViewDirection,
   dot, max, pow, mix, sin, time, smoothstep, mx_noise_float, clamp, length, bool, attribute, fract,
@@ -76,8 +76,30 @@ function nearFade() {
 function stipple() {
   return fract(sin(dot(positionWorld.mul(7.3), vec3(12.9898, 78.233, 45.164))).mul(43758.5453));
 }
+// 視線圓錐：鏡頭到主角胸口之間、會蓋住主角的片段（屋簷、門樓、攤篷、匯入的建築）挖空。
+// 圓錐頂點在鏡頭、在主角處半徑 uSeeR（站立 1.3 m、上機放大），所以地面、主角腳邊與主角背後的牆都不會被挖。
+// 主角前方 1 m 內不算（t 接近 L 時漸弱），貼著主角的東西照常遮擋。
+export const uSeeR = uniform(1.3);
+function losFade() {
+  const ab = uSeeFocus.sub(uSeeCam);
+  const L = max(length(ab), float(1e-3));
+  const dir = ab.div(L);
+  const ap = positionWorld.sub(uSeeCam);
+  const t = dot(ap, dir);
+  const perp = length(ap.sub(dir.mul(t)));
+  const rc = uSeeR.mul(max(t, 0.0)).div(L);
+  return smoothstep(rc, rc.mul(0.55), perp).mul(smoothstep(L.sub(0.4), L.sub(1.1), t)).mul(smoothstep(0.0, 0.6, t)).mul(uSeeOn);
+}
+// Kit 合併的 mesh 共用 MAT：只有地圖場景（userData.see）才挖視線圓錐，怪物、偃甲、大堂不挖
+const uSeeObj = uniform(0).onObjectUpdate(({ object }) => (object?.userData?.see ? 1 : 0));
+// 整棟溶解（門樓這類鏡頭常卡在後面的建築）：scene.js 每幀判斷「鏡頭→主角」線段有沒有穿過那棟的盒子，
+// 把 0..1 寫進 mesh.userData.fade（見 scenery.js 的 fadeGroups），這裡整件點狀溶掉。
+const uObjFade = uniform(0).onObjectUpdate(({ object }) => object?.userData?.fade || 0);
+function sceneFade() {
+  return max(max(nearFade(), losFade().mul(uSeeObj)), uObjFade);
+}
 function nearKeep() {
-  return stipple().greaterThanEqual(nearFade().mul(1.02));
+  return stipple().greaterThanEqual(sceneFade().mul(1.02));
 }
 
 // ── 路邊樹透視：整棵樹擋在鏡頭與主角之間（或貼著鏡頭）時，用噪點溶掉整棵樹（只溶畫面，陰影照投） ──
@@ -98,10 +120,27 @@ function seeThrough(m) {
   const block = smoothstep(R.add(1.4), R.add(0.2), d).mul(smoothstep(float(1.02), float(0.9), tRaw));
   // 貼鏡頭：樹離鏡頭比主角一半距離還近
   const near = smoothstep(R.add(length(ab).mul(0.55)), R.add(length(ab).mul(0.3)), length(C.sub(uSeeCam)));
-  const fade = max(max(block, near).mul(uSeeOn).mul(R.greaterThan(0.0).select(float(1), float(0))), nearFade());
+  const fade = max(max(block, near).mul(uSeeOn).mul(R.greaterThan(0.0).select(float(1), float(0))), sceneFade());
   const n = mx_noise_float(positionWorld.mul(2.7)).mul(0.5).add(0.5);
   m.maskNode = n.greaterThanEqual(fade.mul(1.08));
   m.maskShadowNode = bool(true);
+  return m;
+}
+
+// ── 匯入模型（glb）的材質：沿用原本的貼圖與 PBR 參數，換成節點材質並接上同一套透視溶解 ──
+// whole：幾何帶 tree 屬性（那件的包圍球），擋在鏡頭與主角之間時整件溶掉（樹、雕像）；否則只挖視線圓錐。
+// 一律只溶畫面、陰影照投。
+export function sceneryMaterial(src, { whole = false } = {}) {
+  const m = src.isMeshPhysicalMaterial ? new MeshPhysicalNodeMaterial() : new MeshStandardNodeMaterial();
+  m.copy(src);
+  m.name = src.name;
+  if (!src.emissiveMap) m.emissiveNode = rimNode(0.6);
+  if (whole) seeThrough(m);
+  else {
+    const n = mx_noise_float(positionWorld.mul(2.7)).mul(0.5).add(0.5);
+    m.maskNode = n.greaterThanEqual(sceneFade().mul(1.08));
+    m.maskShadowNode = bool(true);
+  }
   return m;
 }
 
@@ -207,7 +246,8 @@ export class Kit {
     return this;
   }
 
-  build({ shadow = true, receive = true, name = '' } = {}) {
+  // see：地圖場景用，擋在鏡頭與主角之間的部分挖視線圓錐（kit.js 的 losFade）
+  build({ shadow = true, receive = true, name = '', see = false } = {}) {
     const grp = new THREE.Group();
     grp.name = name;
     for (const [k, list] of Object.entries(this.parts)) {
@@ -216,6 +256,7 @@ export class Kit {
       m.castShadow = shadow && !NO_SHADOW.has(k);
       m.receiveShadow = receive;
       m.name = `${name}:${k}`;
+      if (see) m.userData.see = true;
       grp.add(m);
     }
     return grp;
@@ -403,6 +444,9 @@ export function pennantTexture(char = '鏢', { bg = '#b23a24', edge = '#e0b24a',
 export function decalMaterial(tex, { wave = 0, alphaTest = 0.4, emissive = 0 } = {}) {
   const m = new MeshStandardNodeMaterial({ map: tex, roughness: 0.85, side: THREE.DoubleSide, alphaTest });
   if (emissive) m.emissiveNode = vec3(emissive, emissive * 0.8, emissive * 0.55);
+  // 掛在門樓上的匾額、旗面跟著那棟一起溶（userData.fade），貼近鏡頭時也點狀溶掉
+  m.maskNode = stipple().greaterThanEqual(max(nearFade(), uObjFade).mul(1.02));
+  m.maskShadowNode = bool(true);
   if (wave > 0) {
     m.positionNode = Fn(() => {
       const x = max(positionLocal.x, 0.0);

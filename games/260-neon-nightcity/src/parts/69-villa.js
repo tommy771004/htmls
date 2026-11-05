@@ -18,10 +18,13 @@ const vdrType = HOME_V.map(([nm], v) => {
   const dummy = Array.from({ length: VDR_NEAR }, () => ({ x: 0, y: -1e4, z: 0, hide: 1, seed: 0, ry: 0, zn: null }));
   const leaves = P.dr.map(([name]) => [PROPS[name], PROPS[name + '_g']].map((g, i) => {
     if (!g) return null;
-    const m = instanced(g, i ? VGLASS : MAT.uxI, dummy, 0, i ? null : HILL_SEED); m.frustumCulled = false; return m;
+    const m = instanced(g, i ? VGLASS : MAT.uxI, dummy, 0, i ? null : HILL_SEED); m.frustumCulled = false; m.count = 0; return m;
   }));
   return { L, far, leaves, slots: Array(VDR_NEAR).fill(null) };
 });
+// 近景門扇只畫用到的槽位：count = 最後一個有人的槽 + 1（附近沒有別墅時 0）。原本 count 一直是 3、空槽縮成 0，
+// 每一型每一扇各一個 InstancedMesh、又關了視錐剔除，在市區也每趟送約 107 個什麼都畫不出來的 draw（2026-11-01 戰鬥觀戰量測）
+function vdrCount(t) { const n = t.slots.reduce((k, H, i) => H ? i + 1 : k, 0); for (const L of t.leaves) for (const m of L) if (m) m.count = n; }
 function vdrPose(H) {   // 這棟每一扇的姿勢寫進它的近景實例（開合用 smoothstep）
   const t = vdrType[H.h.v], s = H.vdSlot;
   H.doors.forEach((d, j) => {
@@ -36,7 +39,7 @@ function vdrPose(H) {   // 這棟每一扇的姿勢寫進它的近景實例（�
 function vdrTake(H) {
   const t = vdrType[H.h.v], s = t ? t.slots.indexOf(null) : -1;
   if (s < 0) return;
-  t.slots[s] = H; H.vdSlot = s; H.vdK = t.L.indexOf(H.h);
+  t.slots[s] = H; H.vdSlot = s; H.vdK = t.L.indexOf(H.h); vdrCount(t);
   H.vdOrig = t.far.map(m => m.userData.stream.mtx.slice(H.vdK * 16, H.vdK * 16 + 16));
   for (const m of t.far) instSet(m, H.vdK, _vdrZ);
   vdrPose(H);
@@ -46,7 +49,7 @@ function vdrRelease(H) {
   for (const d of H.doors) { d.a = 0; d.b.hy = d.hy; }
   t.far.forEach((m, i) => instSet(m, H.vdK, _vdrM.fromArray(H.vdOrig[i])));
   for (const L of t.leaves) for (const m of L) if (m) { m.setMatrixAt(s, _vdrZ); m.instanceMatrix.needsUpdate = true; }
-  t.slots[s] = null; H.vdSlot = null;
+  t.slots[s] = null; H.vdSlot = null; vdrCount(t);
 }
 function vdrUpdate(dt, p) {
   const out = p.where === 'out', want = out ? VILLA.homes.filter(H => H.doors.length && Math.hypot(H.h.x - p.x, H.h.z - p.z) < VDR_R) : [];

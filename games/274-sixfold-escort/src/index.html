@@ -129,6 +129,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--brass-hi); 
 .plate small { font-size: 10px; line-height: 1.1; color: var(--brass-hi); }
 .plate.bandit b { color: #ff8466; }
 .plate.boss b { color: #f2cf86; }
+.plate.hero { z-index: 1; }
 .plate.hero b { color: #f6edd8; }
 .plate.vendor { pointer-events: auto; cursor: pointer; }
 .plate.vendor small { color: #e9dfca; }
@@ -719,6 +720,18 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 22px; border: 0; bo
 .pkt { max-height: 170px; overflow-y: auto; font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.5; padding: 7px 9px; background: var(--lacquer-deep); color: var(--text-dim); border-radius: 1px; }
 .help p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.6; color: var(--ink); }
 .help kbd { font: 700 11px var(--sans); padding: 0 4px; border: 1px solid rgba(42, 33, 26, 0.45); border-radius: 1px; }
+/* 素材來源：麻紙帳冊，依授權分冊；每筆一行用途、一行原名與作者 */
+.credits { padding-top: 9px; }
+.cr-book + .cr-book { margin-top: 12px; }
+.cr-lic { font-family: var(--serif); font-size: 13px; font-weight: 900; color: var(--ink); text-decoration: none; }
+.cr-n { margin-left: 8px; font-size: 11px; color: var(--ink-2); }
+.credits ol { margin: 4px 0 0; padding: 0; list-style: none; }
+.credits li { padding: 5px 0 4px; border-top: 1px dashed rgba(42, 33, 26, 0.22); font-size: 11.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.credits li b { display: block; font-family: var(--serif); font-size: 12px; font-weight: 800; color: var(--ink); }
+.credits li span { color: var(--ink-2); }
+.cr-more summary { margin-top: 2px; font-size: 11px; color: var(--indigo); cursor: pointer; }
+.cr-more p { margin: 3px 0 0; font-size: 10.5px; line-height: 1.5; color: var(--ink-2); }
+.credits li a { color: var(--indigo); text-decoration: underline; text-decoration-color: rgba(44, 62, 87, 0.35); text-underline-offset: 2px; }
 /* 鏢路圖：麻紙地圖、節點是小鏢旗 */
 .route-map { position: relative; width: 100%; aspect-ratio: 1.45; min-height: 220px; border-radius: 1px; overflow: hidden; box-shadow: 0 1px 2px rgba(8, 6, 4, 0.5); }
 .route-map svg.routes { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -793,6 +806,7 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 22px; border: 0; bo
   .slot:hover { background: linear-gradient(180deg, #120e0b, #241b14 30%, #261d16); }
   .mb:hover { background: linear-gradient(180deg, #120e0b, #2a2018); }
   .seg button:hover { background: rgba(44, 62, 87, 0.1); }
+  .credits li a:hover, .cr-lic:hover { color: var(--indigo-hi); text-decoration-color: currentColor; }
   .wpn-opt:hover { background: rgba(44, 62, 87, 0.08); }
   #startBtn:hover { background: #9c311d; box-shadow: inset 0 0 0 3px #9c311d, inset 0 0 0 4.5px rgba(232, 220, 194, 0.85); }
   #btnCloseDrawer:hover { background: rgba(176, 141, 72, 0.14); }

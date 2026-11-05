@@ -11,7 +11,8 @@ import {
 } from './shaders.js';
 import { buildMapScenery, buildCreature, buildMechRig, updateMechAppearance, buildIntroHall, HALL_ORIGIN, MAP_LOOK } from './models.js';
 import { loadActors, createActor } from './chars.js';
-import { uRim, uRimK, uSeeCam, uSeeFocus, uSeeOn } from './kit.js';
+import { uRim, uRimK, uSeeCam, uSeeFocus, uSeeOn, uSeeR } from './kit.js';
+import { loadSceneModels, releaseUnusedTextures, libraryTextureMB, LOW_TEX } from './assets.js';
 import { MAPS, SKILLS } from '../core/data.js';
 import { getWeaponAuraTier } from '../core/combat.js';
 
@@ -65,7 +66,7 @@ function arcGeometry(r0, r1, theta, seg = 28) {
 
 export async function createEscortScene(canvas, world, { forceWebGL = false } = {}) {
   const { renderer, backendName } = await createEscortRenderer(canvas, forceWebGL);
-  await loadActors();
+  await Promise.all([loadActors(), loadSceneModels()]);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x23394d);
@@ -142,24 +143,28 @@ export async function createEscortScene(canvas, world, { forceWebGL = false } = 
   const auraMat = makeWeaponAuraMaterial();
   const auraShells = new Map();
   function syncAura(type, tier) {
-    for (const [t, m] of auraShells) m.visible = t === type && tier > 0;
+    // 指虎雙手各一：左手那個（hero.fistL）另掛一層殼，鍵名 'FIST_L'
+    for (const [t, m] of auraShells) m.visible = (t === type || (t === 'FIST_L' && type === 'FIST')) && tier > 0;
     if (!type || tier <= 0) return;
-    let shell = auraShells.get(type);
-    const held = hero.held.get(type);
-    if (!shell && held) {
-      shell = new THREE.Group();
-      held.traverse((o) => {
-        if (o.isMesh && o.geometry) {
-          const m = new THREE.Mesh(o.geometry, auraMat);
-          m.scale.setScalar(1.06);
-          m.frustumCulled = false;
-          shell.add(m);
-        }
-      });
-      held.add(shell);
-      auraShells.set(type, shell);
-    }
-    if (shell) shell.visible = true;
+    const ensure = (key, held) => {
+      let shell = auraShells.get(key);
+      if (!shell && held) {
+        shell = new THREE.Group();
+        held.traverse((o) => {
+          if (o.isMesh && o.geometry) {
+            const m = new THREE.Mesh(o.geometry, auraMat);
+            m.scale.setScalar(1.06);
+            m.frustumCulled = false;
+            shell.add(m);
+          }
+        });
+        held.add(shell);
+        auraShells.set(key, shell);
+      }
+      if (shell) shell.visible = true;
+    };
+    ensure(type, hero.held.get(type));
+    if (type === 'FIST') ensure('FIST_L', hero.fistL);
     auraMat.userData.uTier.value = tier;
   }
 
@@ -315,6 +320,8 @@ export async function createEscortScene(canvas, world, { forceWebGL = false } = 
 
     mapData = buildMapScenery(currentMapId, { stalls: world.stalls, playerStall: world.getPlayerStall(), beacons: world.beacons, heroName: world.char.name });
     scene.add(mapData.group);
+    // 上一張圖用過、這張圖用不到的模型貼圖從 GPU 釋放（大堂在開場時才保留）
+    releaseUnusedTextures(introOn ? [mapData.group, hall.group] : [mapData.group]);
     for (const b of mapData.colliders || []) colliders.push(b);
 
     // NPC（攤主、鏢局的人）
@@ -781,6 +788,26 @@ export async function createEscortScene(canvas, world, { forceWebGL = false } = 
     void elapsed;
   }
 
+  // 貼圖記憶體估算：場景裡材質用到的每張貼圖 w×h×4 位元組 ×4/3（mipmap），同一張只算一次
+  function textureMB(root) {
+    if (!root) return 0;
+    const seen = new Set();
+    let bytes = 0;
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      for (const m of [].concat(o.material)) {
+        for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap']) {
+          const t = m[k];
+          if (!t || seen.has(t.uuid)) continue;
+          seen.add(t.uuid);
+          const w = t.image?.width || 0, h = t.image?.height || 0;
+          bytes += w * h * 4 * (t.generateMipmaps === false ? 1 : 4 / 3);
+        }
+      }
+    });
+    return bytes / (1024 * 1024);
+  }
+
   function cameraBlocked(from, to) {
     // 鏡頭跟主角之間有建築：回傳最近的遮擋距離
     const d = to.clone().sub(from);
@@ -791,6 +818,8 @@ export async function createEscortScene(canvas, world, { forceWebGL = false } = 
       // 焦點在主角前方 camLead 公尺：主角貼著門樓、院牆站時焦點會落進那棟的盒子裡。射線從盒內出發會在原點就「撞到」，
       // 鏡頭被拉到 3.5 m、俯角爬到頂（只看得到屋瓦）；焦點所在的盒子不算遮擋，鏡頭在主角身後、本來就在盒子外
       if (b.containsPoint(from)) continue;
+      // soft：那棟會被視線圓錐挖空（kit.js 的 losFade），鏡頭不必為它拉近或爬高
+      if (b.soft) continue;
       if (ray.intersectBox(b, hitP)) {
         const t = hitP.distanceTo(from);
         if (t < best) best = t;
@@ -852,9 +881,34 @@ export async function createEscortScene(canvas, world, { forceWebGL = false } = 
     camera.lookAt(camTarget.x, camTarget.y - 0.1, camTarget.z);
     // 樹冠透視管道：鏡頭 → 主角胸口（截圖改看別處時就對準那個點）
     uSeeOn.value = 1;
+    uSeeR.value = merged ? 3.0 : 1.3;
     uSeeCam.value.copy(camera.position);
     if (camFocus) uSeeFocus.value.copy(camTarget);
     else uSeeFocus.value.set(ch.x, merged ? 2.4 : 1.1, ch.z);
+    updateFadeGroups();
+  }
+
+  // 整棟溶解（scenery.js 的 fadeGroups）：鏡頭→主角線段穿過那棟的盒子（主角站在屋簷下也算）、或鏡頭在盒子裡時，整棟漸漸溶掉
+  const fadeSeg = new THREE.Ray();
+  const fadeHit = new THREE.Vector3();
+  // 漸變用牆上時鐘，不用模擬的 dt（main.js 把 dt 夾在 0.05）：慢機器一秒只有幾幀時，不然會一直停在半溶的點狀
+  let fadeT = 0;
+  function updateFadeGroups() {
+    const now = performance.now() / 1000;
+    const dt = fadeT ? Math.min(0.5, now - fadeT) : 0.016;
+    fadeT = now;
+    const groups = mapData?.fadeGroups;
+    if (!groups?.length) return;
+    const from = camera.position, to = uSeeFocus.value;
+    const len = from.distanceTo(to);
+    fadeSeg.set(from, tmpV.copy(to).sub(from).normalize());
+    for (const fg of groups) {
+      // boxes：同一個 mesh 合併了好幾棟（例如兩側廂房同一批次）時，穿過任一棟就整批溶
+      const hit = (fg.boxes || [fg.box]).some((b) => b.containsPoint(from) || (fadeSeg.intersectBox(b, fadeHit) && fadeHit.distanceTo(from) < len - 0.3));
+      fg.k = (fg.k || 0) + ((hit ? 1 : 0) - (fg.k || 0)) * Math.min(1, dt * 6);
+      if (fg.k < 0.002) fg.k = 0;
+      for (const o of fg.objs) o.traverse((m) => { if (m.isMesh) m.userData.fade = fg.k; });
+    }
   }
 
   function updateSun() {
@@ -973,6 +1027,9 @@ export async function createEscortScene(canvas, world, { forceWebGL = false } = 
       calls: renderer.info?.render?.drawCalls ?? 0, // 每幀 draw call（含陰影 pass）
       drawCalls: renderer.info?.render?.drawCalls ?? 0,
       triangles: renderer.info?.render?.triangles ?? 0,
+      texMB: Math.round(textureMB(introOn ? hall.group : mapData?.group) * 10) / 10, // 目前場景的貼圖解碼後估算（RGBA8＋mipmap），不含人物
+      libMB: Math.round(libraryTextureMB() * 10) / 10, // 模型庫全部貼圖留在記憶體裡的量（不含 mipmap）
+      lowTex: LOW_TEX,
     }),
   };
 }

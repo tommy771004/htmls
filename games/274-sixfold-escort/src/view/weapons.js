@@ -1,16 +1,26 @@
-// 六器鏢行：六器（截江刀、青鋒劍、白蠟長槍、鐵指虎、牛角弓、柳葉飛針）與背上的「六器匣」，全部程式建模。
+// 六器鏢行：六器（截江刀、青鋒劍、白蠟長槍、鐵指虎、牛角弓、柳葉飛針）與背上的「六器匣」。
+//
+// 兵器本體是外部模型 blender/out/arms.glb（tools/models.json 的 arms 群組，pack-models.mjs 已轉成下面的握把座標系並定好尺寸），
+// 打包時 gzip＋base64 內嵌成 <script id="glb-arms">；chars.js 的 loadActors() 會先 await loadArms()。
+// 紅纓、劍穗、刀綢、鐏、飛針尾絲、箭與六器匣本身仍是程式建模。
+//   截江刀 arm_dao（宋刀，0.95 m）｜青鋒劍 arm_jian（宋劍，0.95 m）｜白蠟長槍 arm_spear（2.2 m，原檔尾端的第二個槍頭已裁掉）
+//   鐵指虎 arm_fist（0.11 m，雙手各一）｜牛角弓 arm_bow（1.2 m）＋箭筒 arm_quiver（掛在匣側）｜柳葉飛針 arm_knife（飛刀壓細縮短，三枚扇開）
 //
 // 兵器座標系（握把座標系，chars.js 依手骨量出）：+Y 沿握把指向兵器尖端（拳頭食指那側），
 // +Z 是拳背／刃口方向，X = Y × Z。原點在握把中心。弓也是同一套：+Y 為上弓臂，弓弦在 −Z（朝向射手）。
-// 六器匣座標系：原點在匣子中心，+Y 朝上，+Z 貼背（朝身體），−Z 是外面（銅鎖那面）。
+// makeWeapon 回傳的 Group 與底下每個 mesh 都是單位矩陣（模型節點的位移縮放已烘進 Float32 幾何）：
+// chars.js 的 introHold 直接寫 Group 的 quaternion，scene.js 的鍛器流光殼直接拿 mesh.geometry 套外殼。
+// 六器匣座標系：原點在匣子中心，+Y 朝上，+Z 貼背（朝身體），−Z 是外面（銅鎖那面），+X 是人物左手側。
 import * as THREE from 'three';
 import { MeshStandardNodeMaterial } from 'three/webgpu';
 import { vertexColor, positionLocal, mx_noise_float, vec3 } from 'three/tsl';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const WEAPON_TYPES = ['BLADE', 'SWORD', 'SPEAR', 'FIST', 'BOW', 'THROWN'];
 
-// ── 材質（全部用頂點色，四種表面） ──
+// ── 程式建模零件的材質（全部用頂點色，四種表面） ──
 const lacquerMat = new MeshStandardNodeMaterial({ roughness: 0.2, metalness: 0 });
 // 黑漆木：極淡的縱向木紋
 lacquerMat.colorNode = vertexColor().mul(mx_noise_float(positionLocal.mul(vec3(34, 2.2, 34))).mul(0.3).add(mx_noise_float(positionLocal.mul(vec3(140, 9, 140))).mul(0.08)).add(1));
@@ -84,73 +94,129 @@ const T = (x, y, z) => M().makeTranslation(x, y, z);
 const R = (x, y, z) => M().makeRotationFromEuler(new THREE.Euler(x, y, z));
 const TR = (x, y, z, rx = 0, ry = 0, rz = 0, s = 1) => M().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(s, s, s));
 
-// 放樣：沿 y 的一串截面（截面點在 xz 平面）。截面每條邊是獨立的面帶：沿長度平滑、跨邊有稜線（刃線清楚）
-// sec(t) → { y, pts: [[x, z], ...], ox?, oz? }；color(i, t) → THREE.Color（第 i 條邊）
-function loft(stations, sec, color, { closed = true, capStart = false, capEnd = false } = {}) {
-  const S = stations.map((t) => ({ t, ...sec(t) }));
-  const n = S[0].pts.length;
-  const pos = [], col = [];
-  const P = (s, i) => {
-    const p = s.pts[i % n];
-    return [p[0] + (s.ox || 0), s.y, p[1] + (s.oz || 0)];
-  };
-  const edges = closed ? n : n - 1;
-  for (let i = 0; i < edges; i++) {
-    for (let k = 0; k < S.length - 1; k++) {
-      const a = P(S[k], i), b = P(S[k], i + 1), c = P(S[k + 1], i + 1), d = P(S[k + 1], i);
-      const ca = color(i, S[k].t), cc = color(i, S[k + 1].t);
-      pos.push(...a, ...b, ...c, ...a, ...c, ...d);
-      for (const cl of [ca, ca, cc, ca, cc, cc]) col.push(cl.r, cl.g, cl.b);
+// ── 外部模型（arms.glb） ──
+// 各件在握把座標系裡量出來的位置（pack-models 之後，tools/models.json 改了 fit 要重量）
+const DAO = { pommel: -0.181, guard: 0.056 }; // 刀首底、護手（宋刀柄長 0.24 m，握在靠護手那半）
+const JIAN = { pommel: -0.114, guard: 0.044 };
+const SPEAR = { butt: -0.77, tassel: 0.715 }; // 尾端套筒底（接鐏）、紅纓掛點（槍頭套筒上的箍；刃根在 0.83）
+const STOW_SINK = 0.34, STOW_TILT = -0.2; // 匣中長槍下沉量、往 +X（人物左肩）斜的角度
+const BOW_Z = -0.095; // 弓把在模型 +Z 0.095（弓臂往射手側彎），平移到握把軸上
+// 指虎：指環那排在 +Z（出拳方向）。握把原點在握拳的指圈中間，FIST_Z 把指環推到近節指骨上；
+// FIST_X 往手背那側移，讓打擊面落在指根關節下方。左右手握把座標系的 X 對手掌是鏡像，左手用 −FIST_X
+const FIST_Z = -0.022;
+const FIST_X = -0.022;
+// 柳葉飛針：飛刀壓細（刃寬 ×0.32、厚 ×0.6）縮短 ×0.75，三枚沿 X 軸扇開
+const NEEDLE_S = [0.6, 0.75, 0.32];
+const NEEDLE_FAN = [-0.22, 0, 0.22];
+
+let ARMS = null;
+let armsLoading = null;
+export function loadArms() {
+  if (armsLoading) return armsLoading;
+  armsLoading = (async () => {
+    const el = document.getElementById('glb-arms');
+    if (!el) throw new Error('缺少內嵌的兵器模型 #glb-arms');
+    const bin = Uint8Array.from(atob(el.textContent.trim()), (c) => c.charCodeAt(0));
+    const ab = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    const gltf = await new Promise((res, rej) => new GLTFLoader().parse(ab, '', res, rej));
+    gltf.scene.updateMatrixWorld(true);
+    // 材質組態統一成「底色＋ORM」：沒有 ORM 的件掛一張共用的 1×1 白圖（係數照舊），
+    // 全部兵器共用同一支著色器（SwiftShader 開場編譯一支燈光齊全的 PBR 著色器就要秒級）
+    const white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    white.needsUpdate = true;
+    const unify = (m) => {
+      if (m.userData.armUnified) return;
+      m.userData.armUnified = true;
+      m.normalMap = null;
+      m.aoMap = null;
+      m.emissiveMap = null;
+      if (!m.roughnessMap) m.roughnessMap = white;
+      if (!m.metalnessMap) m.metalnessMap = m.roughnessMap;
+      m.vertexColors = false;
+      m.side = THREE.DoubleSide;
+      m.needsUpdate = true;
+    };
+    const lib = {};
+    for (const root of gltf.scene.children) {
+      if (!root.name.startsWith('m_')) continue;
+      const inv = root.matrixWorld.clone().invert();
+      const parts = [];
+      root.traverse((o) => {
+        if (!o.isMesh) return;
+        unify(o.material);
+        const g = floatGeo(o.geometry);
+        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+        parts.push({ geo: g, mat: o.material });
+      });
+      lib[root.name.slice(2)] = parts;
     }
-  }
-  const cap = (s, flip) => {
-    const c = s.pts.reduce((acc, p) => [acc[0] + p[0] / n, acc[1] + p[1] / n], [0, 0]);
-    const cen = [c[0] + (s.ox || 0), s.y, c[1] + (s.oz || 0)];
-    for (let i = 0; i < n; i++) {
-      const a = P(s, i), b = P(s, i + 1);
-      if (flip) pos.push(...cen, ...b, ...a); else pos.push(...cen, ...a, ...b);
-      const cl = color(i, s.t);
-      for (let j = 0; j < 3; j++) col.push(cl.r, cl.g, cl.b);
-    }
-  };
-  if (capStart) cap(S[0], true);
-  if (capEnd) cap(S[S.length - 1], false);
+    ARMS = lib;
+  })();
+  return armsLoading;
+}
+
+// KHR_mesh_quantization 的 Int16／Int8 屬性轉成 Float32（applyMatrix4 才不會把小數寫進整數陣列）
+function floatGeo(src) {
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  smoothAlong(g);
+  for (const k of ['position', 'normal', 'uv']) {
+    const a = src.attributes[k];
+    if (!a) continue;
+    const n = a.itemSize;
+    const arr = new Float32Array(a.count * n);
+    for (let i = 0; i < a.count; i++) {
+      arr[i * n] = a.getX(i);
+      if (n > 1) arr[i * n + 1] = a.getY(i);
+      if (n > 2) arr[i * n + 2] = a.getZ(i);
+    }
+    g.setAttribute(k, new THREE.BufferAttribute(arr, n));
+  }
+  if (src.index) g.setIndex(new THREE.BufferAttribute(Uint32Array.from(src.index.array), 1));
   return g;
 }
 
-// 面帶內部同位置頂點共用法線（沿長度平滑），不同面帶不共用（保留稜線）
-function smoothAlong(g) {
-  g.computeVertexNormals();
-  const p = g.attributes.position.array, nrm = g.attributes.normal.array;
-  const key = (i) => `${p[i * 3].toFixed(5)},${p[i * 3 + 1].toFixed(5)},${p[i * 3 + 2].toFixed(5)}`;
-  // 每 6 個頂點一個 quad；同一面帶（相同 quad 群）在建立時是連續的，用「法線夾角 < 40°」決定要不要共用
-  const groups = new Map();
-  const cnt = g.attributes.position.count;
-  for (let i = 0; i < cnt; i++) {
-    const k = key(i);
-    let arr = groups.get(k);
-    if (!arr) groups.set(k, (arr = []));
-    arr.push(i);
+// 只留三角形質心 y（握把座標系，套 m 之前）符合 keep 的部分：匣中只露出柄或槍頭
+function cutTris(geo, keep) {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  const p = g.attributes.position;
+  const tris = [];
+  for (let t = 0; t < p.count; t += 3) if (keep((p.getY(t) + p.getY(t + 1) + p.getY(t + 2)) / 3)) tris.push(t);
+  if (!tris.length) return null;
+  const out = new THREE.BufferGeometry();
+  for (const [k, a] of Object.entries(g.attributes)) {
+    const n = a.itemSize;
+    const arr = new Float32Array(tris.length * 3 * n);
+    tris.forEach((t, j) => arr.set(a.array.subarray(t * n, (t + 3) * n), j * 3 * n));
+    out.setAttribute(k, new THREE.BufferAttribute(arr, n));
   }
-  const out = new Float32Array(nrm.length);
-  const v = new THREE.Vector3(), w = new THREE.Vector3(), s = new THREE.Vector3();
-  for (const arr of groups.values()) {
-    for (const i of arr) {
-      v.fromArray(nrm, i * 3);
-      s.set(0, 0, 0);
-      for (const j of arr) {
-        w.fromArray(nrm, j * 3);
-        if (v.dot(w) > 0.77) s.add(w);
-      }
-      s.normalize().toArray(out, i * 3);
-    }
-  }
-  g.setAttribute('normal', new THREE.BufferAttribute(out, 3));
+  return out;
 }
+
+// 一件模型 → 每個材質一個 mesh。ms：一或多個矩陣（多個時同材質合併成一個 mesh，例如三枚飛針）
+function armMeshes(id, ms = [null], keep = null) {
+  if (!ARMS) throw new Error('先 await loadArms()');
+  const parts = ARMS[id];
+  if (!parts) throw new Error(`兵器模型缺少 m_${id}`);
+  const out = [];
+  for (const { geo, mat } of parts) {
+    const list = [];
+    for (const m of [].concat(ms)) {
+      const g = keep ? cutTris(geo, keep) : geo.clone();
+      if (!g) continue;
+      if (m) g.applyMatrix4(m);
+      list.push(g); // 同一件來源，裁切與否全部一致（全有 index 或全沒有），mergeGeometries 才合得起來
+    }
+    if (!list.length) continue;
+    const g = list.length > 1 ? mergeGeometries(list) : list[0];
+    g.computeBoundingSphere();
+    const mesh = new THREE.Mesh(g, mat);
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+    out.push(mesh);
+  }
+  return out;
+}
+
+export const armsLoaded = () => !!ARMS;
 
 // 迴轉體：profile = [[r, y], ...]
 function lathe(profile, segs = 20) {
@@ -188,24 +254,6 @@ function tube(points, radius, radial = 6, closed = false) {
   return g;
 }
 
-// 纏柄：芯＋兩股反向螺旋的纏繩（菱形纏法）
-function wrappedGrip(K, y0, y1, r0, r1, turns, coreCol = COL.ray, cordCol = COL.cord) {
-  K.add('matte', lathe([[0, y0], [r0, y0], [(r0 + r1) / 2 + 0.0015, (y0 + y1) / 2], [r1, y1], [0, y1]], 16), coreCol);
-  for (const dir of [1, -1]) {
-    for (const ph of [0, Math.PI]) {
-      const pts = [];
-      const N = turns * 10;
-      for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        const a = ph + dir * t * turns * Math.PI * 2;
-        const r = (r0 + (r1 - r0) * t + 0.0015 * Math.sin(t * Math.PI)) + 0.0018;
-        pts.push(new THREE.Vector3(Math.cos(a) * r, y0 + (y1 - y0) * t, Math.sin(a) * r));
-      }
-      K.add('matte', tube(pts, 0.0032, 5), dir > 0 ? cordCol : cordCol.clone().lerp(COL.cordHi, 0.5));
-    }
-  }
-}
-
 // 穗子：一束細絲從 (0, y, 0) 往 −Y 垂下
 function tassel(K, at, len, spread, n, col, mat = 'matte', r0 = 0.0024) {
   const rnd = mulberry(7);
@@ -232,112 +280,6 @@ function mulberry(a) {
   };
 }
 
-// ── 各兵器 ──
-// 青鋒劍：菱形斷面雙刃直劍、如意形銅護手、纏柄、銅首、紅穗
-function sword(K, { hiltOnly = false } = {}) {
-  const yG = 0.09; // 護手底
-  // 劍身
-  if (!hiltOnly) {
-    const L = 0.74;
-    const st = [];
-    for (let i = 0; i <= 24; i++) st.push(i / 24);
-    K.add('steel', loft(st, (t) => {
-      const y = yG + 0.028 + t * L;
-      let w = 0.0175 - t * 0.0045;
-      if (t > 0.9) w *= Math.sqrt(Math.max(0, (1 - t) / 0.1));
-      const th = 0.0042 * (w / 0.0175) + 0.0006;
-      return { y, pts: [[0, w], [th * 0.42, w * 0.6], [th, 0], [th * 0.42, -w * 0.6], [0, -w], [-th * 0.42, -w * 0.6], [-th, 0], [-th * 0.42, w * 0.6]] };
-    }, (i) => (i % 4 === 0 || i % 4 === 3 ? COL.edge : COL.steel), { capStart: true }));
-    // 劍身根部的銅鞘口（劍格上的護片）
-  }
-  // 護手：如意形，沿刃寬（Z）展開
-  const sh = new THREE.Shape();
-  sh.moveTo(-0.052, 0.004);
-  sh.bezierCurveTo(-0.05, 0.02, -0.03, 0.016, -0.014, 0.02);
-  sh.quadraticCurveTo(-0.004, 0.024, 0, 0.034);
-  sh.quadraticCurveTo(0.004, 0.024, 0.014, 0.02);
-  sh.bezierCurveTo(0.03, 0.016, 0.05, 0.02, 0.052, 0.004);
-  sh.bezierCurveTo(0.044, -0.006, 0.03, -0.012, 0.012, -0.012);
-  sh.quadraticCurveTo(0, -0.022, -0.012, -0.012);
-  sh.bezierCurveTo(-0.03, -0.012, -0.044, -0.006, -0.052, 0.004);
-  const guard = new THREE.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.0025, bevelSegments: 2, curveSegments: 10 });
-  guard.translate(0, 0, -0.008);
-  K.add('brass', guard, COL.brass, M().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0)).setPosition(0, yG, 0));
-  // 柄
-  K.add('brass', lathe([[0, yG - 0.004], [0.0125, yG - 0.004], [0.0135, yG - 0.012], [0.0125, yG - 0.02], [0, yG - 0.02]], 16), COL.brassDk);
-  wrappedGrip(K, -0.085, yG - 0.02, 0.0118, 0.011, 6);
-  // 劍首
-  K.add('brass', lathe([[0, -0.085], [0.0125, -0.085], [0.016, -0.094], [0.018, -0.104], [0.014, -0.114], [0.007, -0.119], [0, -0.12]], 18), COL.brass);
-  // 劍穗：穗繩環＋結＋流蘇
-  K.add('matte', new THREE.TorusGeometry(0.009, 0.0022, 6, 14), COL.red, TR(0, -0.128, 0, 0, Math.PI / 2, 0));
-  K.add('matte', new THREE.SphereGeometry(0.008, 10, 8), COL.red, T(0, -0.142, 0));
-  K.add('brass', lathe([[0, -0.148], [0.006, -0.149], [0.0075, -0.156], [0.006, -0.162], [0, -0.163]], 10), COL.brassDk);
-  tassel(K, new THREE.Vector3(0, -0.16, 0), 0.11, 0.022, 16, COL.red);
-}
-
-// 截江刀：單刃柳葉刀，刀背厚、血槽、刃口一條亮線，刀尖上挑；橢圓銅盤護手、纏柄、刀環掛紅綢
-function blade(K, { hiltOnly = false } = {}) {
-  const yG = 0.115;
-  if (!hiltOnly) {
-    const L = 0.72;
-    const st = [];
-    for (let i = 0; i <= 30; i++) st.push(i / 30);
-    K.add('steel', loft(st, (t) => {
-      const y = yG + 0.018 + t * L;
-      let w = 0.034 + 0.01 * Math.sin(Math.min(1, t / 0.85) * Math.PI * 0.5) ; // 漸寬
-      const curve = -0.05 * t * t; // 往刀背方向彎
-      let edgeZ = w * 0.7, spineZ = -w * 0.3;
-      if (t > 0.82) { // 刀尖：刃線往上挑，與刀背交會
-        const k = (t - 0.82) / 0.18;
-        edgeZ = w * 0.7 * (1 - k * k) - k * k * w * 0.3;
-        spineZ = -w * 0.3 + k * k * 0.0;
-        w *= 1;
-      }
-      const wd = edgeZ - spineZ;
-      const th = 0.0042 * Math.max(0.15, 1 - Math.max(0, t - 0.82) / 0.2);
-      const z = (f) => spineZ + wd * f;
-      return {
-        y, oz: curve,
-        pts: [
-          [th, z(0)], [th * 0.95, z(0.16)], [th * 0.55, z(0.21)], [th * 0.95, z(0.27)], [th * 0.85, z(0.62)], [0.0004, z(1)],
-          [-0.0004, z(1)], [-th * 0.85, z(0.62)], [-th * 0.95, z(0.27)], [-th * 0.55, z(0.21)], [-th * 0.95, z(0.16)], [-th, z(0)],
-        ],
-      };
-    }, (i) => {
-      if (i === 4 || i === 6) return COL.edge; // 刃線
-      if (i === 5) return COL.edge;
-      if (i === 1 || i === 2 || i === 8 || i === 9) return COL.fuller; // 血槽
-      if (i === 11) return COL.ridge; // 刀背
-      return COL.steel;
-    }, { capStart: true, capEnd: true }));
-  }
-  // 吞口（刀身與護手之間的銅套）
-  K.add('brass', new RoundedBoxGeometry(0.012, 0.022, 0.04, 2, 0.003), COL.brass, T(0, yG + 0.006, -0.002));
-  // 護手：橢圓盤
-  const disc = lathe([[0, 0], [0.026, 0], [0.03, 0.003], [0.03, 0.009], [0.026, 0.012], [0, 0.012]], 28);
-  K.add('brass', disc, COL.brass, M().compose(new THREE.Vector3(0, yG - 0.012, 0.004), new THREE.Quaternion(), new THREE.Vector3(0.75, 1, 1.25)));
-}
-
-function bladeHilt(K) {
-  const yG = 0.115;
-  K.add('brass', lathe([[0, yG - 0.012], [0.0135, yG - 0.012], [0.0145, yG - 0.02], [0, yG - 0.02]], 16), COL.brassDk);
-  wrappedGrip(K, -0.105, yG - 0.02, 0.0128, 0.0118, 7, COL.redDk, COL.cord);
-  K.add('brass', lathe([[0, -0.105], [0.0135, -0.105], [0.0125, -0.115], [0, -0.115]], 16), COL.brass);
-  // 刀環
-  K.add('brass', new THREE.TorusGeometry(0.022, 0.0042, 8, 26), COL.brass, TR(0, -0.137, 0, 0, Math.PI / 2, 0));
-  // 紅綢
-  for (const [dz, len, tw] of [[-0.006, 0.17, 0.4], [0.008, 0.13, -0.3]]) {
-    const pts = [];
-    for (let k = 0; k <= 6; k++) {
-      const t = k / 6;
-      pts.push(new THREE.Vector3(Math.sin(t * 2.4) * 0.012 * tw, -0.158 - t * len, dz + t * t * 0.03 * Math.sign(tw)));
-    }
-    const ribbon = ribbonGeo(pts, 0.022, 0.012);
-    K.add('matte', ribbon, COL.silk);
-  }
-  K.add('matte', new THREE.SphereGeometry(0.009, 10, 8), COL.silk, M().compose(new THREE.Vector3(0, -0.158, 0), new THREE.Quaternion(), new THREE.Vector3(1.3, 0.9, 1)));
-}
-
 // 帶狀布條（雙面）：沿點列，寬度在 X 方向
 function ribbonGeo(pts, w0, w1) {
   const pos = [];
@@ -361,41 +303,30 @@ function ribbonGeo(pts, w0, w1) {
   return g;
 }
 
-// 白蠟長槍：白蠟桿、鐵鐏、銅箍、柳葉槍頭（菱形斷面）、紅纓
-function spear(K, { headOnly = false } = {}) {
-  const yS = 1.3; // 槍頭套筒底
-  if (!headOnly) {
-    // 桿：分段上色做木紋濃淡
-    const shaft = new THREE.CylinderGeometry(0.0145, 0.0165, yS + 0.8, 12, 24, true);
-    shaft.translate(0, (yS - 0.8) / 2, 0);
-    const p = shaft.attributes.position;
-    const col = new Float32Array(p.count * 3);
-    for (let i = 0; i < p.count; i++) {
-      const y = p.getY(i), a = Math.atan2(p.getZ(i), p.getX(i));
-      const g = 0.5 + 0.5 * Math.sin(y * 9 + Math.sin(a * 2) * 1.3) * Math.sin(y * 3.1 + 1.7);
-      const c = COL.wood.clone().lerp(COL.woodDk, g * 0.45);
-      c.toArray(col, i * 3);
+// ── 程式補的配件 ──
+// 劍穗：穗繩環＋結＋流蘇，掛在劍首下
+function swordTassel(K, y) {
+  K.add('matte', new THREE.TorusGeometry(0.009, 0.0022, 6, 14), COL.red, TR(0, y - 0.008, 0, 0, Math.PI / 2, 0));
+  K.add('matte', new THREE.SphereGeometry(0.008, 10, 8), COL.red, T(0, y - 0.022, 0));
+  K.add('brass', lathe([[0, y - 0.028], [0.006, y - 0.029], [0.0075, y - 0.036], [0.006, y - 0.042], [0, y - 0.043]], 10), COL.brassDk);
+  tassel(K, new THREE.Vector3(0, y - 0.04, 0), 0.11, 0.022, 16, COL.red);
+}
+
+// 刀綢：刀首下兩條紅綢
+function daoSilk(K, y) {
+  for (const [dz, len, tw] of [[-0.006, 0.17, 0.4], [0.008, 0.13, -0.3]]) {
+    const pts = [];
+    for (let k = 0; k <= 6; k++) {
+      const t = k / 6;
+      pts.push(new THREE.Vector3(Math.sin(t * 2.4) * 0.012 * tw, y - 0.012 - t * len, dz + t * t * 0.03 * Math.sign(tw)));
     }
-    shaft.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    K.add('matte', shaft);
-    // 鐏
-    K.add('steel', lathe([[0, -0.97], [0.004, -0.96], [0.012, -0.86], [0.0175, -0.81], [0.0178, -0.8], [0, -0.8]], 12), COL.iron);
-    // 握處纏麻繩
-    for (let i = 0; i < 14; i++) K.add('matte', new THREE.TorusGeometry(0.0168, 0.0024, 5, 14), COL.cord, TR(0, -0.07 + i * 0.01, 0, Math.PI / 2, 0, 0));
+    K.add('matte', ribbonGeo(pts, 0.022, 0.012), COL.silk);
   }
-  // 槍頭套筒（銅箍）
-  K.add('steel', lathe([[0.0165, yS - 0.02], [0.017, yS], [0.0145, yS + 0.06], [0.0118, yS + 0.1], [0.0105, yS + 0.115]], 14), COL.iron);
-  for (const dy of [-0.012, 0.03]) K.add('brass', lathe([[0.0172, yS + dy], [0.0195, yS + dy + 0.004], [0.0195, yS + dy + 0.01], [0.0172, yS + dy + 0.014]], 16), COL.brass);
-  // 槍頭
-  const st = [];
-  for (let i = 0; i <= 18; i++) st.push(i / 18);
-  K.add('steel', loft(st, (t) => {
-    const y = yS + 0.11 + t * 0.25;
-    const w = 0.036 * Math.pow(Math.sin(Math.min(1, t * 1.05) * Math.PI * 0.9 + 0.12), 0.9) * (1 - t * 0.25) + 0.0004;
-    const th = Math.max(0.0012, 0.009 * (1 - t) + 0.001);
-    return { y, pts: [[0, w], [th * 0.35, w * 0.55], [th, 0], [th * 0.35, -w * 0.55], [0, -w], [-th * 0.35, -w * 0.55], [-th, 0], [-th * 0.35, w * 0.55]] };
-  }, (i) => (i % 4 === 0 || i % 4 === 3 ? COL.edge : COL.steel), { capStart: true }));
-  // 紅纓：從套筒口往四周散開下垂
+  K.add('matte', new THREE.SphereGeometry(0.009, 10, 8), COL.silk, M().compose(new THREE.Vector3(0, y - 0.008, 0), new THREE.Quaternion(), new THREE.Vector3(1.3, 0.9, 1)));
+}
+
+// 紅纓：從槍頭套筒的箍往四周散開下垂
+function spearTassel(K, y) {
   const rnd = mulberry(11);
   for (let i = 0; i < 44; i++) {
     const a = (i / 44) * Math.PI * 2 + rnd() * 0.3;
@@ -404,86 +335,21 @@ function spear(K, { headOnly = false } = {}) {
     const pts = [];
     for (let k = 0; k <= 5; k++) {
       const t = k / 5;
-      const r = 0.016 + sp * Math.sin(t * Math.PI * 0.55);
-      pts.push(new THREE.Vector3(Math.cos(a) * r, yS + 0.1 - t * L, Math.sin(a) * r));
+      const r = 0.02 + sp * Math.sin(t * Math.PI * 0.55);
+      pts.push(new THREE.Vector3(Math.cos(a) * r, y - t * L, Math.sin(a) * r));
     }
     K.add('matte', tube(pts, (t) => 0.0036 * (1 - t * 0.6), 3), COL.red.clone().multiplyScalar(0.7 + rnd() * 0.5));
   }
 }
 
-// 鐵指虎：四環一體，拳背四顆銅釘，掌心橫把
-function fist(K) {
-  const ringZ = 0.024;
-  for (let i = 0; i < 4; i++) {
-    const y = -0.033 + i * 0.022;
-    K.add('steel', new THREE.TorusGeometry(0.0118, 0.0042, 8, 20), COL.iron, TR(0, y, ringZ - 0.004, 0, Math.PI / 2, 0));
-    K.add('brass', new THREE.ConeGeometry(0.0065, 0.012, 6), COL.brass, TR(0, y, ringZ + 0.0135, Math.PI / 2, 0, 0));
-  }
-  // 拳背連板
-  K.add('steel', new RoundedBoxGeometry(0.014, 0.092, 0.008, 2, 0.003), COL.ironHi, T(0, -0.0, ringZ + 0.006));
-  // 掌心橫把與側板
-  K.add('steel', tube([new THREE.Vector3(0, -0.05, 0.004), new THREE.Vector3(0, -0.02, -0.008), new THREE.Vector3(0, 0.02, -0.008), new THREE.Vector3(0, 0.05, 0.004)], 0.0075, 8), COL.iron);
-  for (const s of [-1, 1]) K.add('steel', new RoundedBoxGeometry(0.01, 0.012, 0.034, 2, 0.003), COL.iron, T(0, s * 0.047, ringZ * 0.45));
+// 鐏：槍尾的鐵尖
+function spearButt(K, y) {
+  K.add('steel', lathe([[0, y - 0.075], [0.004, y - 0.068], [0.011, y - 0.03], [0.0165, y - 0.004], [0.017, y], [0, y]], 12), COL.iron);
 }
 
-// 牛角弓：反曲弓臂（腹面牛角深色、背面樺皮）、銅包握把、弓弭、弓弦
-function bow(K, { stub = false } = {}) {
-  const half = 0.66;
-  const center = (yy) => {
-    const a = Math.abs(yy);
-    // 弓臂往射手側彎，近梢處平順地反曲（一階導數連續，不折角）
-    const base = -0.21 * Math.pow(Math.min(a, 0.62) / 0.62, 1.6);
-    const rec = a > 0.46 ? 0.085 * Math.pow((a - 0.46) / (half - 0.46), 2) : 0;
-    return base + rec;
-  };
-  const st = [];
-  const y0 = stub ? 0.4 : -half, y1 = half;
-  const N = stub ? 12 : 40;
-  for (let i = 0; i <= N; i++) st.push(y0 + (i / N) * (y1 - y0));
-  K.add('matte', loft(st, (yy) => {
-    const a = Math.abs(yy);
-    const w = a < 0.06 ? 0.017 : 0.017 - (a - 0.06) * 0.012;
-    const th = a < 0.07 ? 0.021 : Math.max(0.009, 0.016 - (a - 0.07) * 0.012);
-    // 截面：背面（+Z 側）樺皮、腹面（−Z 側）牛角
-    const pts = [];
-    for (let k = 0; k < 10; k++) {
-      const an = (k / 10) * Math.PI * 2;
-      pts.push([Math.cos(an) * w, Math.sin(an) * th * 0.5]);
-    }
-    // 弓臂切線方向近似：截面不轉，只平移
-    return { y: yy, pts, oz: center(yy) };
-  }, (i) => (Math.sin((i / 10) * Math.PI * 2) > 0.05 ? COL.bark : COL.horn), { capStart: true, capEnd: true }));
-  if (!stub) {
-    // 握把：皮纏＋銅箍
-    K.add('matte', lathe([[0.019, -0.07], [0.0205, -0.04], [0.021, 0.04], [0.019, 0.07]], 14), COL.leather, M().compose(new THREE.Vector3(0, 0, center(0)), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.75)));
-    for (const yy of [-0.075, 0.075]) K.add('brass', lathe([[0.017, -0.006], [0.0205, -0.004], [0.0205, 0.004], [0.017, 0.006]], 16), COL.brass, M().compose(new THREE.Vector3(0, yy, center(yy)), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.8)));
-  }
-  // 弓弭（骨白）與弓弦
-  const tipZ = center(half);
-  for (const s of stub ? [1] : [1, -1]) {
-    K.add('matte', new THREE.SphereGeometry(0.008, 8, 6), COL.ray, M().compose(new THREE.Vector3(0, s * (half + 0.004), tipZ), new THREE.Quaternion(), new THREE.Vector3(1, 1.6, 1)));
-  }
-  const sy0 = stub ? 0.4 : -half + 0.01;
-  const sz = (yy) => tipZ + (Math.abs(yy) > half - 0.01 ? 0 : 0);
-  K.add('matte', tube([new THREE.Vector3(0, sy0, sz(sy0) - 0.004), new THREE.Vector3(0, half - 0.01, tipZ - 0.004)], 0.0016, 4), COL.string);
-}
-
-// 柳葉飛針：三枚，指縫間扇開；尾端紅絲
-function needles(K) {
-  for (const [i, a] of [-0.22, 0, 0.22].entries()) {
-    const m = TR(0, -0.01, 0.0 + i * 0.002, a, 0, 0);
-    const st = [];
-    for (let k = 0; k <= 10; k++) st.push(k / 10);
-    K.add('steel', loft(st, (t) => {
-      const y = -0.02 + t * 0.15;
-      const leaf = t > 0.6 ? Math.sin(((t - 0.6) / 0.4) * Math.PI) * 0.0045 : 0;
-      const r = 0.0016 * (1 - t * 0.4) + leaf;
-      return { y, pts: [[0, r], [0.0012, 0], [0, -r], [-0.0012, 0]] };
-    }, (k) => (k % 2 ? COL.edge : COL.steel), { capStart: true, capEnd: true }), null, m);
-    const tail = [];
-    for (let k = 0; k <= 4; k++) tail.push(new THREE.Vector3(Math.sin(k) * 0.003, -0.02 - k * 0.012, 0));
-    K.add('matte', tube(tail, (t) => 0.0018 * (1 - t * 0.5), 3), COL.silk, m);
-  }
+function needleMatrices() {
+  const s = new THREE.Vector3(...NEEDLE_S);
+  return NEEDLE_FAN.map((a, i) => M().compose(new THREE.Vector3(0, 0.006, i * 0.002), new THREE.Quaternion().setFromEuler(new THREE.Euler(a, 0, 0)), s));
 }
 
 // 箭：竹桿、鐵鏃朝下藏在格裡，露出三片白羽
@@ -508,27 +374,52 @@ function arrows(K, x, top, z) {
   }
 }
 
-// 兵器手上那把
-const heldCache = new Map();
-export function makeWeapon(type) {
-  let geoGroup = heldCache.get(type);
-  if (!geoGroup) {
-    const K = new Kit();
-    if (type === 'SWORD') sword(K);
-    else if (type === 'BLADE') { blade(K); bladeHilt(K); }
-    else if (type === 'SPEAR') spear(K);
-    else if (type === 'FIST') fist(K);
-    else if (type === 'BOW') bow(K);
-    else if (type === 'THROWN') needles(K);
-    geoGroup = K.build();
-    heldCache.set(type, geoGroup);
+// ── 手上那把 ──
+function buildHeld(type, left) {
+  const grp = new THREE.Group();
+  const K = new Kit();
+  let meshes;
+  if (type === 'BLADE') { meshes = armMeshes('arm_dao'); daoSilk(K, DAO.pommel); }
+  else if (type === 'SWORD') { meshes = armMeshes('arm_jian'); swordTassel(K, JIAN.pommel); }
+  else if (type === 'SPEAR') { meshes = armMeshes('arm_spear'); spearTassel(K, SPEAR.tassel); spearButt(K, SPEAR.butt); }
+  else if (type === 'FIST') meshes = armMeshes('arm_fist', [T(left ? -FIST_X : FIST_X, 0, FIST_Z)]);
+  else if (type === 'BOW') meshes = armMeshes('arm_bow', [T(0, 0, BOW_Z)]);
+  else if (type === 'THROWN') {
+    const ms = needleMatrices();
+    meshes = armMeshes('arm_knife', ms);
+    // 尾端紅絲：從飛針尾環往下飄
+    for (const m of ms) {
+      const tail = [];
+      for (let k = 0; k <= 4; k++) tail.push(new THREE.Vector3(Math.sin(k) * 0.003, -0.022 - k * 0.012, 0));
+      const p = new THREE.Vector3(), q = new THREE.Quaternion();
+      m.decompose(p, q, new THREE.Vector3());
+      K.add('matte', tube(tail, (t) => 0.0018 * (1 - t * 0.5), 3), COL.silk, M().compose(p, q, new THREE.Vector3(1, 1, 1)));
+    }
   }
-  const g = geoGroup.clone();
+  for (const m of meshes || []) grp.add(m);
+  for (const m of [...K.build().children]) grp.add(m);
+  return grp;
+}
+
+const heldCache = new Map();
+// left：左手那一份（目前只有鐵指虎左右不同）
+export function makeWeapon(type, { left = false } = {}) {
+  const key = left && type === 'FIST' ? 'FIST_L' : type;
+  let tpl = heldCache.get(key);
+  if (!tpl) {
+    tpl = buildHeld(type, key === 'FIST_L');
+    heldCache.set(key, tpl);
+  }
+  const g = tpl.clone();
   g.name = `weapon_${type}`;
   return g;
 }
 
 // ── 六器匣 ──
+// 箭筒掛在匣子右側（人物右手那邊，−X），插四支箭。模型 0.29×0.45×0.19 m（含背帶），底在 y=0；
+// 繞 Y 轉 180°：背帶（模型 −X）貼匣、小袋（模型 +Z）朝外；tilt 讓筒口略往外（−X）斜
+// 縮 0.85（0.38 m 高）、往外（−Z）挪 3 cm：正面看不會從肩膀旁邊凸出一大截
+const QUIVER = { x: -0.235, y: -0.2, z: -0.03, tilt: -0.12, ry: Math.PI, h: 0.45, s: 0.85 };
 export const CASE = { W: 0.34, H: 0.54, D: 0.15 };
 // 頂上六格：外排（−Z）與內排（+Z）各三格
 const SLOT = {
@@ -583,47 +474,82 @@ export function makeCase() {
     }
     // 背面（貼身）：兩條背帶的掛扣
     for (const sx of [-1, 1]) for (const y of [0.22, -0.2]) K.add('matte', new RoundedBoxGeometry(0.04, 0.05, 0.01, 2, 0.003), COL.leather, T(sx * 0.1, y, D / 2 + 0.004));
+    // 箭筒（外部模型）＋筒裡四支箭
+    const QK = new Kit();
+    const qm = M().makeTranslation(QUIVER.x, QUIVER.y, QUIVER.z).multiply(R(0, QUIVER.ry, QUIVER.tilt)).multiply(M().makeScale(QUIVER.s, QUIVER.s, QUIVER.s));
+    const mouth = new THREE.Vector3(0, QUIVER.h - 0.03, 0).applyMatrix4(qm);
+    arrows(QK, 0, 0, 0);
+    const am = M().makeTranslation(mouth.x, mouth.y, mouth.z).multiply(R(0, QUIVER.ry, QUIVER.tilt));
+    for (const [k, list] of Object.entries(QK.parts)) for (const g of list) K.parts[k].push(g.applyMatrix4(am));
     caseGroup = K.build();
+    for (const m of armMeshes('arm_quiver', [qm])) caseGroup.add(m);
   }
   const g = caseGroup.clone();
   g.name = 'sixfold_case';
   return g;
 }
 
-// 匣中的兵器：只露出柄或頭，插在各自的格子裡
+// 匣中的兵器：只露出柄或槍頭，插在各自的格子裡
+// 刀劍：刃朝下插進格子、柄朝上（繞 Z 轉 180°），刃面沿匣寬（X）；護手落在格口上方一點，格子下面的刃身裁掉
+function sheathMatrix(guard, x, z, tilt) {
+  const top = CASE.H / 2 + 0.006;
+  return M().makeTranslation(x, top + 0.012, z).multiply(R(0, 0, tilt)).multiply(R(0, Math.PI / 2, 0)).multiply(R(0, 0, Math.PI)).multiply(T(0, -guard, 0));
+}
+
 const stowCache = new Map();
 export function makeStowed(type) {
   let grp = stowCache.get(type);
   if (!grp) {
+    grp = new THREE.Group();
     const K = new Kit();
     const { H } = CASE;
     const [x, z] = SLOT[type];
     const top = H / 2 + 0.006;
-    const sub = new Kit();
-    const sub2 = K;
-    let m;
-    if (type === 'SWORD') { sword(sub, { hiltOnly: true }); m = TR(x, top - 0.09 + 0.13, z, 0, Math.PI / 2, -0.12); }
-    else if (type === 'BLADE') { bladeHilt(sub); blade(sub, { hiltOnly: true }); m = TR(x, top - 0.105 + 0.17, z, 0, Math.PI / 2, 0.12); }
-    else if (type === 'SPEAR') { spear(sub, { headOnly: true }); m = TR(x, top - 1.3 + 0.02, z, 0, Math.PI / 2, 0); }
-    else if (type === 'BOW') {
-      // 弓斜綁在匣子外面（弦朝外），格子裡插四支箭
-      bow(sub);
-      m = M().makeTranslation(0, -0.02, -CASE.D / 2 - 0.035).multiply(R(0, Math.PI, -0.95)).multiply(M().makeScale(0.85, 0.85, 0.85));
-      arrows(sub2, x, top, z);
-    }
-    else if (type === 'THROWN') {
+    let meshes = [];
+    if (type === 'SWORD' || type === 'BLADE') {
+      // 柄朝上，劍穗／刀綢從朝上的柄首往下垂（在匣座標系裡另建，不跟著翻）
+      const [id, P, tilt] = type === 'SWORD' ? ['arm_jian', JIAN, -0.1] : ['arm_dao', DAO, 0.1];
+      const m = sheathMatrix(P.guard, x, z, tilt);
+      meshes = armMeshes(id, [m], (y) => y < P.guard + 0.2);
+      const head = new THREE.Vector3(0, P.pommel, 0).applyMatrix4(m);
+      const sub = new Kit();
+      if (type === 'SWORD') swordTassel(sub, 0.004);
+      else daoSilk(sub, 0.004);
+      for (const [k, list] of Object.entries(sub.parts)) for (const g of list) K.parts[k].push(g.applyMatrix4(T(head.x, head.y, head.z)));
+    } else if (type === 'SPEAR') {
+      // 槍頭朝上，往匣裡沉 STOW_SINK（槍頭 0.56 m，整支露出會高過頭頂近 0.4 m），往人物左肩斜一點避開後腦；
+      // 紅纓不綁在套筒（已沉進匣裡）而是掛在格口那一截刃上，露出的槍尖只比頭頂高約 5 cm
+      const at = SPEAR.tassel + STOW_SINK;
+      const m = M().makeTranslation(x, top + 0.03, z).multiply(R(0, 0, STOW_TILT)).multiply(R(0, Math.PI / 2, 0)).multiply(T(0, -at, 0));
+      meshes = armMeshes('arm_spear', [m], (y) => y > at - 0.32);
+      const sub = new Kit();
+      spearTassel(sub, at);
+      for (const [k, list] of Object.entries(sub.parts)) for (const g of list) K.parts[k].push(g.applyMatrix4(m));
+    } else if (type === 'BOW') {
+      // 弓斜綁在匣子外面，格子裡插四支箭
+      const m = M().makeTranslation(0, -0.02, -CASE.D / 2 - 0.035).multiply(R(0, Math.PI, -0.95)).multiply(M().makeScale(0.9, 0.9, 0.9)).multiply(T(0, 0, BOW_Z));
+      meshes = armMeshes('arm_bow', [m]);
+      arrows(K, x, top, z);
+    } else if (type === 'THROWN') {
       // 針筒：銅口竹筒，露出三束紅絲
+      const sub = new Kit();
       sub.add('matte', lathe([[0, 0], [0.016, 0], [0.016, 0.07], [0.0185, 0.074], [0.0185, 0.082], [0, 0.082]], 16), COL.bark);
       sub.add('brass', lathe([[0.0165, 0.06], [0.019, 0.062], [0.019, 0.082], [0.0165, 0.084]], 16), COL.brass);
       for (const a of [0, 2.1, 4.2]) sub.add('matte', tube([new THREE.Vector3(Math.cos(a) * 0.006, 0.08, Math.sin(a) * 0.006), new THREE.Vector3(Math.cos(a) * 0.012, 0.1, Math.sin(a) * 0.012), new THREE.Vector3(Math.cos(a) * 0.02, 0.105, Math.sin(a) * 0.02)], 0.0024, 4), COL.silk);
-      m = T(x, top - 0.05, z);
-    } else if (type === 'FIST') { fist(sub); m = TR(x, top + 0.03, z, 0, 0, Math.PI / 2); }
-    for (const [k, list] of Object.entries(sub.parts)) for (const g of list) K.parts[k].push(g.applyMatrix4(m));
-    grp = K.build();
+      const m = T(x, top - 0.05, z);
+      for (const [k, list] of Object.entries(sub.parts)) for (const g of list) K.parts[k].push(g.applyMatrix4(m));
+    } else if (type === 'FIST') {
+      // 指虎立在格子裡：指環孔朝外（兵器 X → 匣 −Z）、長邊沿匣寬，指環那側朝上露出格口
+      const m = M().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 1, 0)).setPosition(x, top - 0.004, z);
+      meshes = armMeshes('arm_fist', [m]);
+    }
+    for (const mm of meshes) grp.add(mm);
+    for (const mm of [...K.build().children]) grp.add(mm);
+    // 匣中兵器只露出一小截：不投影（六器匣本身照投），省下陰影那一趟的 draw call（外部模型一種材質一個 mesh，比程式建模多）
+    grp.traverse((o) => { if (o.isMesh) o.castShadow = false; });
     stowCache.set(type, grp);
   }
   const g = grp.clone();
   g.name = `stowed_${type}`;
   return g;
 }
-

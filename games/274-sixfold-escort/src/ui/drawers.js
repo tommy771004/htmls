@@ -6,8 +6,31 @@ import {
 } from '../core/data.js';
 import { getWeaponAtk, getSkillScaling, getWeaponAuraTier, getWeaponAuraName, UPGRADE_RATES } from '../core/combat.js';
 import { weaponSvg, glyphSvg } from './icons.js';
+import { CREDITS, LICENSES } from './credits.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// 說明抽屜的「素材來源」：依授權分兩冊，每筆是用途、原名（連到來源）與作者。
+// SimReady 那筆原名後面列了 23 個檔名，畫面上只留件數，完整清單在 CREDITS.md。
+function creditsHtml() {
+  const short = (t) => t.replace(/：[^）]*）$/, '）');
+  const books = Object.keys(LICENSES).map((lic) => {
+    const list = CREDITS.filter((c) => c.license === lic);
+    if (!list.length) return '';
+    // 一筆含多件資產的（SimReady 23 件貨品）：標題只留件數，資產名稱收在可展開的清單裡
+    const more = (t) => {
+      const m = /：([^）]*)）$/.exec(t);
+      if (!m) return '';
+      const names = m[1].split(/,\s*/);
+      return `<details class="cr-more"><summary>展開 ${names.length} 件資產名稱</summary><p>${names.map(esc).join('、')}</p></details>`;
+    };
+    const rows = list.map((c) => `
+      <li><b>${esc(c.use)}</b><span><a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(short(c.title))}</a>　${esc(c.author)}</span>${more(c.title)}</li>`).join('');
+    return `<div class="cr-book"><a class="cr-lic" href="${esc(LICENSES[lic])}" target="_blank" rel="noopener noreferrer">${esc(lic)}</a><span class="cr-n">${list.length} 筆</span><ol>${rows}</ol></div>`;
+  }).join('');
+  return `<h3>素材來源<small>模型皆經減面、貼圖重新壓縮；未列出的場景、怪物與偃甲為程式自製</small></h3>
+          <div class="card paper credits">${books}</div>`;
+}
 
 const PHASE_NAME = { INACTIVE: '待命', CASTING_7S: '上機中', ACTIVE_MERGED: '已上機', COOLDOWN: '冷卻中' };
 const BOUNTY_STATUS = { ACTIVE: '張榜中', ACCEPTED: '已揭榜', CLAIMED: '已結案' };
@@ -497,6 +520,7 @@ export function createDrawers({ world, sceneView, sfx, ui }) {
             <p><b>酣戰</b>：出招命中會攢酣戰值，攢滿點左小匣的酣戰鈕，12 秒內傷害 +25%、冷卻縮短。</p>
             <p><b>偃甲</b>：上機讀條 7 秒，期間受創超過三成氣血會被打斷；偃師遺墟的機樞地脈不耗樞力。</p>
           </div>
+          ${creditsHtml()}
         </div>`;
       body.querySelector('#btnHandoffPc').onclick = () => { ui.handoff('pc'); rerender(); };
       body.querySelector('#btnHandoffMob').onclick = () => { ui.handoff('mobile'); rerender(); };

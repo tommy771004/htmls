@@ -624,25 +624,51 @@ export function createEscortHud(world, sceneView, sfx) {
     </g></svg>`;
   const smallStamp = window.matchMedia('(max-width: 820px), (max-height: 520px)');
   let stampBox = null; // 印章的畫面範圍（跳字讓位用）
-  function stampBreak() {
-    // 印蓋在主角頭頂上方（畫面水平中央），不壓在主角身上，也不壓上方的目標框（血量數字）；投影失敗時退回 CSS 的 42%
+  // 印的位置：主角頭頂上方（畫面水平中央），不壓在主角身上，也不壓上方的目標框（血量數字）與威脅列；投影失敗時退回 CSS 的 42%。
+  // 鎖定目標和出招常在同一幀，目標卡那時還是 empty，所以印在畫面上的期間每幀重算（updateHud 呼叫）。
+  // 直式螢幕目標卡＋威脅列很高，夾在中間放不下時先把印縮小（最小 0.55 倍），還放不下就移到主角右側
+  function placeStamp() {
     const ch = world.char;
-    const half = smallStamp.matches ? (window.innerHeight <= 520 ? 48 : 58) : 75;
-    const head = safe(() => sceneView.projectToScreen(ch.x, ch.mechPhase === 'ACTIVE_MERGED' ? 4.6 : 2.3, ch.z, window.innerWidth, window.innerHeight));
+    const W = window.innerWidth, H = window.innerHeight;
+    const half0 = smallStamp.matches ? (H <= 520 ? 48 : 58) : 75;
+    const head = safe(() => sceneView.projectToScreen(ch.x, ch.mechPhase === 'ACTIVE_MERGED' ? 4.6 : 2.3, ch.z, W, H));
     const card = $('targetCard');
     let cardBottom = card && !card.classList.contains('empty') ? card.getBoundingClientRect().bottom : 0;
     // 目標卡下方緊接的威脅列（#threatRadar）也讓開：只算跨過畫面中線的那一列
     const radar = $('threatRadar');
     if (radar && radar.childElementCount) {
       const rr = radar.getBoundingClientRect();
-      if (rr.height > 0 && rr.left < window.innerWidth / 2 + half && rr.right > window.innerWidth / 2 - half) cardBottom = Math.max(cardBottom, rr.bottom);
+      if (rr.height > 0 && rr.left < W / 2 + half0 && rr.right > W / 2 - half0) cardBottom = Math.max(cardBottom, rr.bottom);
     }
-    let cy = head ? Math.min(window.innerHeight * 0.42, head.y - 30 - half) : window.innerHeight * 0.42;
-    cy = Math.max(half + 6, cardBottom + half + 8, cy);
+    const top = Math.max(6, cardBottom + 8);
+    const bottom = head ? head.y - 30 : H * 0.42 + half0;
+    let half = half0, cx = W / 2, cy;
+    if (bottom - top >= half0 * 2) {
+      cy = head ? Math.min(H * 0.42, bottom - half0) : H * 0.42;
+      cy = Math.max(top + half0, cy);
+    } else if (bottom - top >= half0 * 2 * 0.55) {
+      half = (bottom - top) / 2;
+      cy = top + half;
+    } else {
+      // 縮到最小也放不下：印放在主角右側（頭頂高度附近），不蓋主角
+      half = half0 * 0.7;
+      cy = Math.max(top + half, Math.min(H - half - 8, (head ? head.y : H * 0.42) + half * 0.6));
+      cx = Math.min(W - half - 8, W / 2 + 40 + half);
+    }
+    if (half !== elBreak._half || cx !== elBreak._cx) {
+      elBreak._half = half; elBreak._cx = cx;
+      const sz = half === half0 ? '' : `${(half * 2).toFixed(0)}px`;
+      elBreak.style.width = sz; elBreak.style.height = sz;
+      elBreak.style.margin = half === half0 ? '' : `${(-half).toFixed(0)}px 0 0 ${(-half).toFixed(0)}px`;
+      elBreak.style.left = cx === W / 2 ? '' : `${cx.toFixed(0)}px`;
+    }
     elBreak.style.top = `${cy.toFixed(0)}px`;
     // 印本身斜放幾度、外圈有暈，讓位範圍多留 8 px
     const pad = 8;
-    stampBox = { l: window.innerWidth / 2 - half - pad, r: window.innerWidth / 2 + half + pad, t: cy - half - pad, b: cy + half + pad };
+    stampBox = { l: cx - half - pad, r: cx + half + pad, t: cy - half - pad, b: cy + half + pad };
+  }
+  function stampBreak() {
+    placeStamp();
     elBreak.classList.remove('on');
     void elBreak.offsetWidth; // 重新觸發動畫
     elBreak.classList.add('on');
@@ -704,7 +730,7 @@ export function createEscortHud(world, sceneView, sfx) {
       if (prev !== undefined && prev > 0 && ent.curShield <= 0 && ent.maxShield > 0 && ent.curHp > 0) stampBreak();
       prevEntShield.set(ent.id, ent.curShield);
     }
-    if (breakTimer > 0) { breakTimer -= dt; if (breakTimer <= 0) elBreak.classList.remove('on'); }
+    if (breakTimer > 0) { breakTimer -= dt; if (breakTimer <= 0) elBreak.classList.remove('on'); else placeStamp(); }
 
     const btnPk = $('btnPk');
     btnPk.setAttribute('aria-pressed', String(!!ch.pkMode));
@@ -846,16 +872,52 @@ export function createEscortHud(world, sceneView, sfx) {
     // 木牌整塊夾在視窗內（直式窄螢幕的攤主牌掛著長攤招，錨點靠邊時會被裁掉）
     const vw = window.innerWidth;
     if (el._pw + 8 < vw) x = Math.max(el._pw / 2 + 4, Math.min(vw - el._pw / 2 - 4, x));
+    placePlate(el, x, y, kind);
+    el._x = x; el._y = y; el._kind = kind; el._lift = 0;
+    return el;
+  }
+  function placePlate(el, x, y, kind) {
     el.style.left = `${x.toFixed(0)}px`;
     el.style.top = `${y.toFixed(0)}px`;
     // 實際木牌外框壓到介面器物就收起（主角的牌不收；傳送口的指路牌被威脅標籤蓋住時讀不到字，一樣收起，羅盤上仍有傳送口記號）
     el.style.visibility = kind !== 'hero' && underPanel(x, y, el._pw / 2 + 4, el._ph + 2) ? 'hidden' : '';
-    return el;
+  }
+  // 名牌互相讓位：主角的牌不動、畫在最上層；其他牌從畫面下方（通常較近）往上排，跟已排好的牌重疊就疊到那塊牌上面。
+  // 整串最多 PLATE_STACK + 1 塊（最底那塊算第 0 層，往上疊 PLATE_STACK 層）：怪擠成一團時不疊成一長串遮住畫面，
+  // 疊不下的牌先收起（威脅列仍列著）；層數跟著底下那塊牌累加，不是看各自抬了多高。
+  // 沒被抬、但跟下面的牌左右重疊、中間塞不下另一塊牌（間隙 < 自身高度）的也算疊在它上面。鎖定的目標最先排、一定顯示
+  const PLATE_STACK = 2;
+  function declutterPlates(list) {
+    const rect = (el, lvl = 0) => ({ l: el._x - el._pw / 2 - 2, r: el._x + el._pw / 2 + 2, t: el._y - el._ph - 2, b: el._y, lvl });
+    const hit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+    const placed = list.filter((el) => el._kind === 'hero').map((el) => rect(el));
+    const locked = world.char.lockedTargetId ? labelPool.get(`a:${world.char.lockedTargetId}`) : null;
+    const rest = list.filter((el) => el._kind !== 'hero').sort((a, b) => (b === locked) - (a === locked) || b._y - a._y);
+    for (const el of rest) {
+      if (el.style.visibility === 'hidden') continue; // 壓到介面器物、已收起的牌不佔位
+      const y0 = el._y;
+      let free = false, lvl = 0;
+      for (let k = 0; k < 8; k++) {
+        const o = placed.find((q) => hit(rect(el), q));
+        if (!o) { free = true; break; }
+        lvl = Math.max(lvl, o.lvl + 1);
+        if (lvl > PLATE_STACK && el !== locked) break;
+        el._y = o.t - 1;
+      }
+      if (free) {
+        const r = rect(el);
+        for (const q of placed) if (r.l < q.r && r.r > q.l && q.t - r.b > -1 && q.t - r.b < el._ph) lvl = Math.max(lvl, q.lvl + 1);
+        if (lvl > PLATE_STACK && el !== locked) free = false;
+      }
+      if (!free && el !== locked) { el._y = y0; el._lift = 0; el.style.visibility = 'hidden'; continue; }
+      placed.push(rect(el, Math.min(lvl, PLATE_STACK)));
+      if (el._y !== y0) { el._lift = y0 - el._y; placePlate(el, el._x, el._y, el._kind); }
+    }
   }
 
   // 名牌不壓在介面器物上：估計木牌外框（錨點在牌底中央），碰到鏢單／羅盤／匣／驛報就不畫
   // 整塊器物用自身外框；#topCenter、#skillFan 是鋪滿的容器，改量裡面看得見的子件
-  const PANEL_IDS = ['heroBox', 'compass', 'mapFlag', 'bountyCompass', 'chatBox', 'pcBar', 'sideTabs', 'btnMobileTabs', 'joyZone', 'mobPotions', 'btnWheelMech'];
+  const PANEL_IDS = ['heroBox', 'compass', 'mapFlag', 'bountyCompass', 'chatBox', 'pcBar', 'uiActiveWpnLabel', 'sideTabs', 'btnMobileTabs', 'joyZone', 'mobPotions', 'btnWheelMech'];
   const PANEL_KIDS = ['#topCenter > *', '#threatRadar > *', '#skillFan > *'];
   let panelRects = [];
   function pushRect(el) {
@@ -870,9 +932,32 @@ export function createEscortHud(world, sceneView, sfx) {
   }
   function underPanel(x, y, halfW = 64, tall = 38) {
     for (const r of panelRects) {
-      if (x + halfW > r.left && x - halfW < r.right && y > r.top && y - tall < r.bottom) return true;
+      if (x + halfW > r.left && x - halfW < r.right && y + 4 > r.top && y - tall < r.bottom) return true;
     }
     return false;
+  }
+
+  // 跳字（錨點在底邊中央，寬 fw、高 fh）壓到介面器物或「破」印時，找最近的空位：
+  // 候選點是貼著壓到的那塊的左、右、下、上緣，再夾回視窗安全區；一輪找不到就從候選點再試一輪，都不行就維持原位
+  function dodgePanels(fx, fy, fw, fh, w, h, extra) {
+    const rects = extra ? [...panelRects, { left: extra.l, right: extra.r, top: extra.t, bottom: extra.b }] : panelRects;
+    const over = (x, y) => rects.find((r) => x + fw / 2 > r.left && x - fw / 2 < r.right && y > r.top && y - fh < r.bottom);
+    const clampX = (x) => (fw + 16 < w ? Math.max(fw / 2 + 8, Math.min(w - fw / 2 - 8, x)) : x);
+    const clampY = (y) => Math.max(fh + 8, Math.min(h - 8, y));
+    if (!over(fx, fy)) return [fx, fy];
+    let front = [[fx, fy]];
+    for (let round = 0; round < 2; round++) {
+      const next = [];
+      for (const [x, y] of front) {
+        const r = over(x, y);
+        if (!r) continue;
+        for (const c of [[r.left - fw / 2 - 6, y], [r.right + fw / 2 + 6, y], [x, r.bottom + fh + 6], [x, r.top - 6]]) next.push([clampX(c[0]), clampY(c[1])]);
+      }
+      const ok = next.filter(([x, y]) => !over(x, y));
+      if (ok.length) return ok.reduce((a, b) => (Math.hypot(a[0] - fx, a[1] - fy) <= Math.hypot(b[0] - fx, b[1] - fy) ? a : b));
+      front = next;
+    }
+    return [fx, fy];
   }
 
   function renderWorldLabels(isMoving) {
@@ -888,6 +973,7 @@ export function createEscortHud(world, sceneView, sfx) {
       const far = mobile ? 15 : 22;
       const fold = isMoving && !ch.browseStallMode;
       const stallsById = new Map((world.getPlayerStall() ? [world.getPlayerStall(), ...world.stalls] : world.stalls).map((st) => [st.id, st]));
+      const shown = [];
       for (const a of anchors) {
         if (!a?.pos) continue;
         if (a.kind !== 'hero' && a.kind !== 'portal' && Math.hypot(a.pos.x - ch.x, a.pos.z - ch.z) > far) continue;
@@ -903,7 +989,9 @@ export function createEscortHud(world, sceneView, sfx) {
         }
         const el = plate(`a:${a.id}`, p.x, p.y, a.name, sub, a.kind || 'npc', hp);
         if (a.kind === 'vendor' && !el._bound) { el._bound = true; el.addEventListener('click', () => openDrawer('market')); }
+        shown.push(el);
       }
+      declutterPlates(shown);
     } else {
       // 退回：自己投影鏢師、怪物與劫鏢匪
       const hp0 = sceneView.projectToScreen(ch.x, 2.3, ch.z, w, h);
@@ -959,7 +1047,7 @@ export function createEscortHud(world, sceneView, sfx) {
       const n = stackOf.get(key) || 0;
       stackOf.set(key, n + 1);
       const plateEl = a ? labelPool.get(`a:${a.id}`) : null;
-      const lift = (plateEl?._ph || (a ? 30 : 0)) + 4 + n * 18;
+      const lift = (plateEl?._ph || (a ? 30 : 0)) + (plateEl?._lift || 0) + 4 + n * 18;
       const dx = n === 0 ? 0 : (n % 2 ? 14 : -14);
       let fx = p.x + dx;
       let fy = p.y - lift;
@@ -979,6 +1067,12 @@ export function createEscortHud(world, sceneView, sfx) {
           else { fx = side(fx); fy = stampBox.b + fh + 6; }
         }
       }
+      // 跳字整塊夾在視窗安全區內（四邊留 8 px）：貼著畫面頂端或左右緣時不被切掉
+      if (el._mt !== ft.text) { el._mt = ft.text; el._fw = el.offsetWidth; el._fh = el.offsetHeight; }
+      if (el._fw + 16 < w) fx = Math.max(el._fw / 2 + 8, Math.min(w - el._fw / 2 - 8, fx));
+      fy = Math.max(el._fh + 8, Math.min(h - 8, fy));
+      // 夾回畫面後壓到介面器物（目標錨點在畫面外時常被夾到右上角的地圖旗、懸紅榜上）：挪到最近的空處
+      [fx, fy] = dodgePanels(fx, fy, el._fw || 60, el._fh || 20, w, h, stamping ? stampBox : null);
       el.style.left = `${fx.toFixed(0)}px`;
       el.style.top = `${fy.toFixed(0)}px`;
       el.style.opacity = fade.toFixed(2);

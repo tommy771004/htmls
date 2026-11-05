@@ -3,6 +3,8 @@
 // 以及這段時間 renderer 與 GPU 行程的 CPU（CDP SystemInfo）。結果每場寫一次 OUT（中途掛掉也留得下來）。
 //   N=100 OUT=x.json HTML=web/260-neon-nightcity.html SECS=30 node tools/battle.mjs
 //   PROFILE=1：每場同時錄 CPU 剖析，彙整自身時間前幾名
+//   HTMLS='base=web/_260base.html;cur=web/260-neon-nightcity.html'：兩個建置各開一頁、同一個瀏覽器，每個地點各打一場（順序輪換），
+//     閒著的那頁開 Esc 選單暫停（暫停時只畫選單、不跑世界），新舊版吃同一段機器負載
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, resolve, extname, sep } from 'node:path';
@@ -21,17 +23,23 @@ const srv = createServer((q, s) => {
   s.writeHead(200, { 'content-type': TYPES[extname(f)] || 'application/octet-stream' }); s.end(readFileSync(f));
 });
 await new Promise(r => srv.listen(0, '127.0.0.1', r));
-const url = `http://127.0.0.1:${srv.address().port}/${HTML}?perf=1&gpu=${process.env.GPU || 'high'}&civ=0&story=0${process.env.Q || ''}`;
+const urlOf = h => `http://127.0.0.1:${srv.address().port}/${h}?perf=1&gpu=${process.env.GPU || 'high'}&civ=0&story=0${process.env.Q || ''}`, url = urlOf(HTML);
+const HTMLS = process.env.HTMLS ? process.env.HTMLS.split(';').map(x => { const k = x.indexOf('='); return { name: x.slice(0, k), html: x.slice(k + 1) }; }) : null;
 
 const browser = await chromium.launch({ headless: true, executablePath: chromePath(), args: [...GPU_ARGS, '--disable-gpu-vsync', '--disable-frame-rate-limit', ...(process.env.ARGS ? process.env.ARGS.split(' ') : [])] });
 const bcdp = await browser.newBrowserCDPSession();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-const page = await ctx.newPage();
 const log = { errors: [], pageerrors: [] };
-page.on('pageerror', e => log.pageerrors.push(String(e.message || e) + ' @ ' + String(e.stack || '').split('\n').slice(1, 7).join(' | ')));
-page.on('console', m => { if (m.type() === 'error') log.errors.push(m.text().slice(0, 300)); });
-const pcdp = await ctx.newCDPSession(page);
+let page, pcdp;
 const ev = (fn, arg) => page.evaluate(fn, arg);
+async function openPage(h, tag) {
+  const p = await ctx.newPage();
+  p.on('pageerror', e => log.pageerrors.push(tag + String(e.message || e) + ' @ ' + String(e.stack || '').split('\n').slice(1, 7).join(' | ')));
+  p.on('console', m => { if (m.type() === 'error') log.errors.push(tag + m.text().slice(0, 300)); });
+  await p.goto(urlOf(h), { waitUntil: 'load', timeout: 120000 });
+  await p.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 300000, polling: 300 });
+  return { p, cdp: await ctx.newCDPSession(p) };
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function cpuSnap() {
   const { processInfo } = await bcdp.send('SystemInfo.getProcessInfo');
@@ -40,9 +48,11 @@ async function cpuSnap() {
 }
 const cpuPct = (a, b) => Object.fromEntries(['renderer', 'gpu', 'browser'].map(k => [k, Math.round(((b.by[k] || 0) - (a.by[k] || 0)) / ((b.t - a.t) / 1000) * 100)]));
 
-await page.goto(url, { waitUntil: 'load', timeout: 120000 });
-await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 300000, polling: 300 });
-const info = await ev(() => { __nc.start(); __nc.menu.set('fps', 0); return { gfx: __nc.gfx.backend ? __nc.gfx.backend() : null, gpuTimer: __nc.perf.gpuTimer(), ts: __nc.renderer.hasFeature('timestamp-query'), gpu: __nc.gpu.short, tier: __nc.menu.SET && __nc.menu.SET.tier }; });
+const PAGES = {};
+for (const h of HTMLS || [{ name: '', html: HTML }]) { PAGES[h.name] = await openPage(h.html, h.name ? `[${h.name}] ` : ''); ({ p: page, cdp: pcdp } = PAGES[h.name]); await ev(() => { __nc.start(); __nc.menu.set('fps', 0); __nc.menu.set('pauseBlur', false); __nc.menu.open(); }); }
+const usePage = async name => { ({ p: page, cdp: pcdp } = PAGES[name]); await ev(() => __nc.menu.close()); };
+await usePage(Object.keys(PAGES)[0]);
+const info = await ev(() => { return { gfx: __nc.gfx.backend ? __nc.gfx.backend() : null, gpuTimer: __nc.perf.gpuTimer(), ts: __nc.renderer.hasFeature('timestamp-query'), gpu: __nc.gpu.short, tier: __nc.menu.SET && __nc.menu.SET.tier }; });
 console.log('page', info);
 await sleep(4000);
 
@@ -69,12 +79,14 @@ let prof = null;
 if (PROFILE) { await pcdp.send('Profiler.enable'); await pcdp.send('Profiler.setSamplingInterval', { interval: 250 }); }
 
 // AB='名字=JS;名字=JS'：每個地點把每種設定各打一場（順序每場輪換），同一頁交錯跑，機器負載的漂移兩邊一起吃
-const AB = process.env.AB ? process.env.AB.split(';').map(x => { const k = x.indexOf('='); return { name: x.slice(0, k), js: x.slice(k + 1) }; }) : [{ name: '', js: '' }];
+const AB = HTMLS ? HTMLS.map(h => ({ name: h.name, js: '', page: h.name })) : process.env.AB ? process.env.AB.split(';').map(x => { const k = x.indexOf('='); return { name: x.slice(0, k), js: x.slice(k + 1) }; }) : [{ name: '', js: '' }];
 const jobs = [];
 for (let i = START; i < Math.min(N, locs.length); i++) { const o = AB.map((_, j) => AB[(j + i) % AB.length]); for (const v of o) jobs.push([i, v]); }
 for (const [i, V] of jobs) {
   const kind = KINDS[i % 4]; if (ONLY && !ONLY.includes(kind)) continue;
   const L = locs[i];
+  if (V.page !== undefined) await usePage(V.page);
+  if (PROFILE && V.page !== undefined) { await pcdp.send('Profiler.enable'); await pcdp.send('Profiler.setSamplingInterval', { interval: 250 }); }
   if (V.js) await ev(V.js);
   // 傳送、無敵、等平靜（沒有下載、沒有分幀載入、2 秒內沒有新編著色器或卡頓，最多 10 秒）
   const arrive = await ev(async ({ L }) => {
@@ -147,6 +159,7 @@ for (const [i, V] of jobs) {
   const ms = b.F.map(f => f[0]).sort((x, y) => x - y), q = p => ms[Math.min(ms.length - 1, Math.floor(ms.length * p))] || 0;
   const g = b.F.map(f => f[3]).filter(x => x != null), avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const sum = { i, v: V.name, kind, loc: L, arrive, ...b, cpuPct: cpuPct(c0, c1), med: q(.5), p99: q(.99), max: ms.at(-1) || 0, fps: b.F.length / b.dur, gpu: avg(g), cpu: avg(b.F.map(f => f[1])), sub: avg(b.F.map(f => f[2])), calls: avg(b.F.map(f => f[4])) };
+  if (V.page !== undefined) await ev(() => __nc.menu.open());
   res.battles.push(sum); save();
   console.log(`#${i}${V.name ? '/' + V.name : ''} ${kind} ${b.dur}s fr ${b.F.length} fps ${sum.fps.toFixed(0)} med ${sum.med} p99 ${sum.p99} max ${sum.max} cpu ${sum.cpu?.toFixed(1)} sub ${sum.sub?.toFixed(1)} gpu ${sum.gpu?.toFixed(2)} calls ${sum.calls?.toFixed(0)} stalls ${b.stalls.length} left ${b.left.gang}/${b.left.merc} peak ${JSON.stringify(b.peak)} cpu% ${JSON.stringify(sum.cpuPct)}`);
 }

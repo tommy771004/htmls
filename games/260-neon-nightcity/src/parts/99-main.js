@@ -431,6 +431,8 @@ requestAnimationFrame(loop);
 window.__nc = {
   gameHour: GAME_HOUR,   // 69-market.js：一遊戲小時是幾秒真實時間（28-sky.js 的 MIN_SEC × 60）
   viewCull,   // 20-props.js：遠景樹只送鏡頭看得到的方向（en = false 關掉比對）
+  farCull,   // 70-render.js：主畫面遠處小物剔除（px 覆寫門檻、n 累計剔掉幾次、log = [] 記下剔掉的）
+  instCl,   // 70-render.js：實例全在視錐外的整個不畫（en = false 關掉比對，n 是累計剔掉幾次）
   reflOcc,   // 70-render.js 遠景樹進不進倒影的遮擋查詢：reflOcc.en = false 關掉比對，skip 是現在的狀態、n 是收到幾次結果
   reflCull,   // 70-render.js 倒影的螢幕大小剔除：門檻是 SET.reflMin（倒影貼圖的像素，0 關掉），px 填數字覆寫（量測用，null 還原），n 是累計剔掉幾次、log 設成陣列會收集被剔掉的物件
   fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對（也關掉 20-props.js 遠景樹的霧外剔除）

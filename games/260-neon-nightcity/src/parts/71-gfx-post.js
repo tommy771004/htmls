@@ -79,6 +79,56 @@
       })());
     });
   }
+  // 螢幕空間倒影（70-render.js 的 mSSR）：輸出照平面倒影的版面（鏡射相機的畫面），一個像素一條反射光線
+  gfxPort(mSSR, m => {
+    const u = m.uniforms, G = k => gfxU(u[k]), tS = gfxT(u.tScene), tD = gfxT(u.tDepth);
+    const VP = G('uVP'), invVP = G('uInvVP'), invR = G('uInvRVP'), rp = G('uRP'), skyT = G('uSkyTop'), skyH = G('uSkyHor'), fogC = G('uFogCol'), prm = G('uPrm');
+    const inScr = n => abs(n.x).lessThan(1).and(abs(n.y).lessThan(1));
+    // 上一幀這個 NDC 的深度換成視線深度（clip.w）：反投影的 w 是 1 / clip.w
+    const sceneW = (n, d) => float(1).div(invVP.mul(vec4(n, gfxZ(d), 1)).w);
+    return passMat(Fn(() => {
+      const fp = invR.mul(vec4(ndcOf(Q), gfxZ(float(1)), 1)), D = normalize(fp.xyz.div(fp.w).sub(rp)).toVar();
+      const up = max(D.y, 0);
+      const out = mix(fogC, mix(skyH, skyT, TSL.sqrt(up)), smoothstep(0, .2, up)).toVar();
+      // 方向本身（w = 0）投影到畫面：天空在畫面裡、那裡沒有東西擋（深度 1）就取畫面上的天空
+      const cs = VP.mul(vec4(D, 0)).toVar();
+      If(cs.w.greaterThan(1e-4), () => {
+        const n = cs.xy.div(cs.w).toVar();
+        If(inScr(n), () => { const q = uvOf(n); If(tD(q, 0).x.greaterThanEqual(1), () => { out.assign(tS(q, 0).rgb); }); });
+      });
+      If(D.y.greaterThan(1e-4).and(prm.w.greaterThan(.5)), () => {
+        const P0 = rp.add(D.mul(rp.y.negate().div(D.y))).toVar();
+        const jit = fract(fract(dot(TSL.screenCoordinate.xy, vec2(.06711056, .00583715))).mul(52.9829189));
+        const s = prm.x.mul(jit.add(.5)).toVar(), s0 = float(0).toVar(), hit = float(0).toVar(), lq = vec2(-1).toVar();
+        Loop(SSR_N, () => {
+          const c = VP.mul(vec4(P0.add(D.mul(s)), 1)).toVar();
+          If(c.w.lessThan(.1).or(s.greaterThan(prm.z)), () => { TSL.Break(); });
+          const n = c.xy.div(c.w).toVar();
+          If(inScr(n).not(), () => { TSL.Break(); });
+          const q = uvOf(n).toVar(); lq.assign(q);
+          const dz = c.w.sub(sceneW(n, tD(q, 0).x)).toVar();
+          // 走到表面後面、而且在厚度內才算碰到；比厚度深是從前景的細東西（樹、桿子、人）後面穿過去，繼續走
+          If(dz.greaterThan(0).and(dz.lessThan(s.sub(s0).mul(2).add(.35))), () => { hit.assign(1); TSL.Break(); });
+          s0.assign(s); s.assign(s.mul(prm.y).add(.04));
+        });
+        If(hit.greaterThan(.5), () => {
+          const a = s0.toVar(), b = s.toVar();
+          for (let k = 0; k < 5; k++) {
+            const mid = a.add(b).mul(.5), c = VP.mul(vec4(P0.add(D.mul(mid)), 1)), n = c.xy.div(c.w);
+            If(c.w.greaterThan(sceneW(n, tD(uvOf(n), 0).x)), () => { b.assign(mid); }).Else(() => { a.assign(mid); });
+          }
+          const c = VP.mul(vec4(P0.add(D.mul(b)), 1)), n = c.xy.div(c.w), q = uvOf(n);
+          const edge = smoothstep(0, .08, min(min(q.x, q.y.oneMinus()), min(q.x.oneMinus(), q.y)));
+          out.assign(mix(out, tS(q, 0).rgb, edge));
+        }).ElseIf(lq.x.greaterThanEqual(0), () => {
+          // 沒碰到東西就走出畫面（多半是從畫面上緣出去：高處看下來，對街的樓在倒影裡要比畫面裡看得到的更高）：取最後一個還在畫面裡的點的顏色，
+          // 大多是樓的上緣或天空，比天空的漸層接近
+          out.assign(tS(lq, 0).rgb);
+        });
+      });
+      return vec4(min(max(out, vec3(0)), vec3(60)), 1);
+    })());
+  });
   // 眼睛適應：縮圖的 log 亮度，再整張平均（取樣的上下翻轉不影響平均）
   gfxPort(mEyeLum, m => {
     const u = m.uniforms, src = gfxT(u.tSrc), tx = gfxU(u.uTexel);

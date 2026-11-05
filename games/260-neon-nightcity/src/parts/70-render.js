@@ -20,6 +20,16 @@ const EYE_W = 32, EYE_H = 18;
 const rtEye = [0, 1].map(() => new T.WebGLRenderTarget(1, 1, { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.NearestFilter, magFilter: T.NearestFilter, depthBuffer: false }));
 const AO_ON = !!GT().ao && GPU.hdr;
 let rtScene, rtRefl, rtB = [], rtU = [], rtV = null, rtA = [], rtL = null;
+// 讀場景深度的後製（螢幕空間倒影、體積光、環境光遮蔽、合成）：WGSL 的深度貼圖型別分多重取樣與否，在第一次建節點時就定了，
+// 而 three 的快取鍵不看取樣數：Esc 選單換 MSAA 後照舊拿舊的程式，每幀十幾個 WebGPU 驗證錯誤（「Sample count (1) … doesn't match」）、那幾趟畫不出來。
+// 取樣數寫進它們的 defines（02-gfx.js 把 defines 併進快取鍵），換了就重建（2026-11-01 觀測模型抓到）
+let depthMats = null;
+function depthMsaa() {
+  if (depthMats) for (const m of depthMats) if (m.defines?.MSAA !== rtScene.samples) {
+    m.uniforms.tDepth.value = rtScene.depthTexture; if (m.uniforms.tScene) m.uniforms.tScene.value = rtScene.texture;   // 重建時節點照這張決定型別（02-gfx.js 的 GfxTex.setup）
+    m.defines = { ...m.defines, MSAA: rtScene.samples }; m.needsUpdate = true;
+  }
+}
 function makeTargets() {
   const w = Math.max(2, Math.floor(innerWidth * DPR * post.scale)), h = Math.max(2, Math.floor(innerHeight * DPR * post.scale));
   rtScene?.dispose(); rtRefl?.dispose(); rtB.forEach(r => r.dispose()); rtU.forEach(r => r.dispose()); rtV?.dispose(); rtA.forEach(r => r.dispose()); rtL?.dispose();
@@ -39,6 +49,7 @@ function makeTargets() {
   }
   reflU.tRefl.value = rtRefl.texture;
   gfxTargets.length = 0; gfxTargets.push(rtScene); if (SET.refl) gfxTargets.push(rtRefl);   // 02-gfx.js 的 gfxCompile 照這兩個目標預先編 pipeline
+  depthMsaa();
 }
 function resize() {
   R.setSize(innerWidth, innerHeight);
@@ -84,6 +95,15 @@ function heatUniforms(u) {
 // 累積霧裡散射的日光：樓縫與樹冠之間照出一道道光束。空氣本身的密度很低，清晨的貼地薄霧（uGI.z）讓光束濃起來；
 // 散射偏向太陽那一側（相位函數）。只畫 160 m 內，往外衰減；合成時加在曝光前
 const VOL_N = GT().vol;
+// 螢幕空間倒影（SET.ssr）：不再從路面下方把整個場景畫一次，而是用上一幀的畫面與深度填 rtRefl（路面、積水、海面的材質照舊讀它，不用改）。
+// rtRefl 的每個像素：鏡射相機的視線先打到 y=0 的路面點 P0，再從 P0 沿同一方向往上走（就是真實鏡頭的視線在路面的反射），投影到上一幀的畫面
+// 比深度，走到牆或車後面就取那一點的顏色；走出畫面、碰不到東西的照「這個方向的天空」：天空在畫面裡就取畫面上的天空，不在就用天空的漸層。
+// 2026-11-01 使用者看過前後對照後選了預設螢幕空間（戰鬥觀戰同頁 A/B：fps 中位數 +37%、draw −38%、送出 −31%；高處招牌、被樹擋住的天際線倒影會少）。
+// uPrm：x 起步長、y 每步倍率（56 步約走到 1.6 km）、z 最遠距離、w 開關（0 時整片天空漸層，量測用）
+const SSR_N = 56;
+const mSSR = pass('ssr', { tScene: { value: null }, tDepth: { value: null }, uVP: { value: new T.Matrix4() }, uInvVP: { value: new T.Matrix4() }, uInvRVP: { value: new T.Matrix4() }, uRP: { value: V3() },
+  uSkyTop: U.uSkyTop, uSkyHor: U.uSkyHor, uFogCol: U.uFogCol, uPrm: { value: new T.Vector4(.12, 1.16, 2500, 1) } });
+const _ssrM = new T.Matrix4();
 const mVol = VOL_N ? pass('vol', { ...shared(ALLU), tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uVolK: { value: 0 } }) : null;
 // 環境光遮蔽（SSAO）：半解析度，從主畫面的深度還原相機空間的位置，法線取左右、上下兩側深度比較接近的那一邊（邊緣不糊），
 // 沿螺旋取 AO_N 個點（McGuire 的 SAO：半徑 uRad 公尺內、在法線前方的點越近越暗）。沒有 TAA，雜訊固定在畫面上（逐幀換會閃），
@@ -100,6 +120,7 @@ const mEyeAdapt = pass('eyeadapt', { tSrc: { value: null }, tPrev: { value: null
 let eyeI = 0, eyeReset = true;
 const mComp = pass('comp', { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, tVol: { value: null }, tAO: { value: null }, tEye: { value: null }, uVolOn: { value: 0 }, uAOOn: { value: 0 }, uAOThr: { value: 1 }, uEyeOn: { value: 0 }, uVolT: { value: new T.Vector2() }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
   uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uFx7: { value: new T.Vector4() }, uHeat: { value: Array.from({ length: HEAT_N }, () => new T.Vector4()) }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
+depthMats = [mSSR, mVol, mAO, mComp].filter(Boolean); depthMsaa();
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
 const prevVP = new T.Matrix4(), curVP = new T.Matrix4();
@@ -176,7 +197,14 @@ function renderReflection() {
   R.setRenderTarget(rtRefl); R.setClearColor(0x000000, 1); R.clear();
   fogCullAt(_rp);
   reflCull.t = reflCull.px ?? SET.reflMin; reflCull.on = reflCull.t > 0; reflCull.x = _rp.x; reflCull.y = _rp.y; reflCull.z = _rp.z; reflCull.k = rtRefl.height / 2 * reflCam.projectionMatrix.elements[5];
-  R.render(scene, reflCam); fogCull.on = false; reflCull.on = false;
+  if (SET.ssr && !firstFrame && !camState.snap) {   // 螢幕空間：rtScene 這時還是上一幀的畫面與深度，curVP 也還是上一幀的（切鏡頭那一幀上一幀是別的鏡頭，照平面畫）
+    reflCull.on = false; fogCull.on = false;
+    const s = mSSR.uniforms; s.tScene.value = rtScene.texture; s.tDepth.value = rtScene.depthTexture;
+    s.uVP.value.copy(curVP); s.uInvVP.value.copy(curVP).invert(); s.uRP.value.copy(_rp);
+    s.uInvRVP.value.copy(_ssrM.multiplyMatrices(reflCam.projectionMatrix, reflCam.matrixWorldInverse).invert());
+    blit(mSSR, rtRefl);
+  } else R.render(scene, reflCam);
+  fogCull.on = false; reflCull.on = false;
   U.uClipY.value = -1e9; U.uCam.value.copy(camera.position); U.uFocus.value.w = fw;
 }
 R.info.autoReset = false;   // 一幀有很多次 render，統計要整幀累計
@@ -233,7 +261,11 @@ function fogCullAt(p) { fogCull.on = fogCull.en && camera.position.y < 20; fogCu
 // 串流實例（20-props.js 的 instUpdate）的球跟著相機、永遠在視錐裡，附近沒有實例時每幀白送（光環廣場 980 個 draw 裡 460 個）
 // 倒影的螢幕大小剔除（Unreal 平面倒影的做法：倒影那一趟不畫投影半徑小於 px 個倒影貼圖像素的物件）：倒影是半解析度、還被濕路面的粗糙度抹開，
 // 遠處的小東西在倒影裡看不出來，卻佔倒影那一趟三成的 draw call（2026-11-01 戰鬥觀戰量測；門檻是 01-settings.js 的 SET.reflMin，預設 2 px，使用者看過前後對照同意）。半透明與加法混色的（燈、招牌光暈、車燈）照畫：路面上的燈影是夜景的重點
-const reflCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null }, reflKeepM = new WeakMap();   // px：量測用的覆寫（null 照 SET.reflMin）
+const reflCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null }, reflKeepM = new WeakMap();
+// 主畫面的遠處小物剔除（SET.farMin，0 關閉）：同一套做法用在主畫面，門檻是 rtScene 像素；包圍球整顆投影半徑小於門檻的不透明物件不畫。
+// 2026-11-01 觀測模型：中距離視角約 1080 個 draw 裡約 90 個是 2 km 外不到半像素的建築與設施模型（glb）。InstancedMesh 的球是全部實例合起來的，不適用。
+// 0.5 px（預設）與 1 px 在 tools/lossless.mjs 的六個視角都和關閉時逐像素相同（差異在暫停畫面本身的雜訊內）；中距離視角 draw −91（1 px 是 −149），CPU 送出只少 0.1～0.3 ms
+const farCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null };   // px：量測用的覆寫（null 照 SET.reflMin）
 const reflKeep = m => {
   if (Array.isArray(m)) return m.some(reflKeep);
   let v = reflKeepM.get(m);
@@ -253,11 +285,70 @@ T.Frustum.prototype.intersectsObject = function (o) {
   else { const g = o.geometry; if (g.boundingSphere === null) g.computeBoundingSphere(); s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); }
   if (fogCull.on) { const c = s.center, dx = c.x - fogCull.x, dy = c.y - fogCull.y, dz = c.z - fogCull.z, L = fogCull.d + s.radius; if (dx * dx + dy * dy + dz * dz > L * L && fogFull(o.material)) return false; }
   if (reflCull.on) { const c = s.center, d = Math.hypot(c.x - reflCull.x, c.y - reflCull.y, c.z - reflCull.z); if (d > s.radius && s.radius / d * reflCull.k < reflCull.t && !reflKeep(o.material) && !reflPin(o)) { reflCull.n++; if (reflCull.log) reflCull.log.push(o); return false; } }
-  return this.intersectsSphere(s);
+  if (farCull.on && !o.isInstancedMesh) { const c = s.center, d = Math.hypot(c.x - farCull.x, c.y - farCull.y, c.z - farCull.z); if (d > s.radius && s.radius / d * farCull.k < farCull.t && !reflKeep(o.material) && !reflPin(o) && this.intersectsSphere(s)) { farCull.n++; if (farCull.log) farCull.log.push(o); return false; } }
+  if (!this.intersectsSphere(s)) return false;
+  return !o.isInstancedMesh || !instCl.en || instAny(this, o);
 };
+// 實例全在視錐外的整個不畫：three 拿全部實例合起來的一顆球測，散在全城的實例（遠景樹 forestFar 的球半徑 10 萬 m、路邊道具、車庫的車）幾乎永遠「在裡面」，
+// 高處俯瞰時每幀白送五百多萬個三角形（2026-11-01 觀測模型：凍結畫面藏起這些 −2 ms）。實例照所在格子（實例本身座標，格寬照分布範圍取 8×8 左右）分群，
+// 每群一顆包住「實例中心＋幾何球半徑×縮放」的球，多留 INST_PAD；任一群碰到視錐就照舊整個畫（不重排、不改緩衝，畫出來的東西一樣）。
+// 實例矩陣改了（instanceMatrix.version）或 count 變了才重算；每幀都在改的（車流這類）連續 4 次就不分群，照舊。instCl.en = false 關掉比對，log = [] 記下剔掉的
+const INST_PAD = 2, instCl = { en: true, n: 0, f: 0, log: null }, _icS = new T.Sphere();
+function instClusters(o) {
+  let C = o.userData.icl;
+  const v = o.instanceMatrix.version, n = o.count;
+  if (C && C.v === v && C.n === n) { if (C.s || C.churn < 4 || instCl.f - C.f <= 30) return C; }   // 每幀在改的停了 30 幀，再試著分群
+  else if (C && C.churn >= 4) { C.v = v; C.n = n; C.f = instCl.f; return C; }
+  const churn = C && instCl.f - C.f <= 1 ? C.churn + 1 : 0;   // 連續幾幀都在改
+  C = o.userData.icl = { v, n, churn, f: instCl.f, s: null };
+  if (churn >= 4 || n < 8) return C;
+  const g = o.geometry; if (g.boundingSphere === null) g.computeBoundingSphere();
+  const gc = g.boundingSphere.center, gr = g.boundingSphere.radius, A = o.instanceMatrix.array;
+  const X = new Float32Array(n), Y = new Float32Array(n), Z = new Float32Array(n), Rr = new Float32Array(n);
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (let i = 0; i < n; i++) {
+    const b = i * 16;
+    X[i] = A[b] * gc.x + A[b + 4] * gc.y + A[b + 8] * gc.z + A[b + 12]; Y[i] = A[b + 1] * gc.x + A[b + 5] * gc.y + A[b + 9] * gc.z + A[b + 13]; Z[i] = A[b + 2] * gc.x + A[b + 6] * gc.y + A[b + 10] * gc.z + A[b + 14];
+    Rr[i] = gr * Math.sqrt(Math.max(A[b] * A[b] + A[b + 1] * A[b + 1] + A[b + 2] * A[b + 2], A[b + 4] * A[b + 4] + A[b + 5] * A[b + 5] + A[b + 6] * A[b + 6], A[b + 8] * A[b + 8] + A[b + 9] * A[b + 9] + A[b + 10] * A[b + 10]));
+    if (X[i] < x0) x0 = X[i]; if (X[i] > x1) x1 = X[i]; if (Z[i] < z0) z0 = Z[i]; if (Z[i] > z1) z1 = Z[i];
+  }
+  if (!(x1 >= x0 && z1 >= z0)) return C;   // NaN：照舊
+  const cw = Math.max(16, (x1 - x0) / 8, (z1 - z0) / 8), nx = Math.floor((x1 - x0) / cw) + 1, nz = Math.floor((z1 - z0) / cw) + 1;
+  const B = new Float32Array(nx * nz * 7).fill(NaN);   // 每格：x0 y0 z0 x1 y1 z1 最大半徑
+  for (let i = 0; i < n; i++) {
+    const k = (Math.min(nx - 1, Math.floor((X[i] - x0) / cw)) * nz + Math.min(nz - 1, Math.floor((Z[i] - z0) / cw))) * 7;
+    if (!(B[k] <= X[i])) B[k] = X[i]; if (!(B[k + 1] <= Y[i])) B[k + 1] = Y[i]; if (!(B[k + 2] <= Z[i])) B[k + 2] = Z[i];
+    if (!(B[k + 3] >= X[i])) B[k + 3] = X[i]; if (!(B[k + 4] >= Y[i])) B[k + 4] = Y[i]; if (!(B[k + 5] >= Z[i])) B[k + 5] = Z[i];
+    if (!(B[k + 6] >= Rr[i])) B[k + 6] = Rr[i];
+  }
+  const S = [];
+  for (let k = 0; k < B.length; k += 7) if (B[k] === B[k]) S.push((B[k] + B[k + 3]) / 2, (B[k + 1] + B[k + 4]) / 2, (B[k + 2] + B[k + 5]) / 2, Math.hypot(B[k + 3] - B[k], B[k + 4] - B[k + 1], B[k + 5] - B[k + 2]) / 2 + B[k + 6] + INST_PAD);
+  for (const q of S) if (!Number.isFinite(q)) return C;
+  C.s = new Float32Array(S);
+  return C;
+}
+function instAny(fr, o) {
+  const C = instClusters(o);
+  if (!C || !C.s) return true;
+  const S = C.s, M = o.matrixWorld;
+  for (let k = 0; k < S.length; k += 4) { _icS.center.set(S[k], S[k + 1], S[k + 2]); _icS.radius = S[k + 3]; _icS.applyMatrix4(M); if (fr.intersectsSphere(_icS)) return true; }
+  instCl.n++; if (instCl.log) { const rt = R.getRenderTarget(); instCl.log.push([o.name || o.parent?.name || '', o.material.name || o.material.type, o.count, rt ? `${rt.width}x${rt.height}` : 'canvas']); }
+  return false;
+}
+// 關掉視錐剔除的空實例：車流、路邊停車（uberTraf／uberPal）、uberTint、蒸氣、車底陰影與頭燈照地的 InstancedMesh 都設了 frustumCulled = false，
+// three 不會呼叫上面的 intersectsObject，count 0 時照樣送一次空的 draw（2026-11-01 戰鬥觀戰：每趟約 70 個，倒影與主畫面合計約一成二的 draw）。
+// 在走訪時先擋掉；開場預編（gfxCompiling.all、fogCull.empty 關掉）照舊放行。fogCull.emptyFc = false 可以關掉做 A/B
+fogCull.emptyFc = true;
+{
+  const po = R._projectObject;
+  R._projectObject = function (o, cam, go, rl, cc) {
+    if (o.count === 0 && o.isInstancedMesh && fogCull.empty && fogCull.emptyFc && !gfxCompiling.all && o.children.length === 0) return;
+    return po.call(this, o, cam, go, rl, cc);
+  };
+}
 let reflOdd = 0;
 function renderFrame(dt, t) {
-  perfHook.a?.();
+  perfHook.a?.(); instCl.f++;
   R.info.reset();
   // 整個場景的矩陣一幀只算一次：倒影與主畫面兩趟 R.render 原本各算一次（場景有三千多個物件）
   curScene.matrixWorldAutoUpdate = false; curScene.updateMatrixWorld();
@@ -273,7 +364,8 @@ function renderFrame(dt, t) {
   if (outdoors && SET.refl && (!post.reflHalf || (reflOdd ^= 1) || firstFrame || camState.snap)) renderReflection();
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
   if (outdoors) fogCullAt(camera.position);
-  R.render(curScene, camera); fogCull.on = false;
+  farCull.t = farCull.px ?? SET.farMin; farCull.on = farCull.t > 0 && !gfxCompiling.all; farCull.x = camera.position.x; farCull.y = camera.position.y; farCull.z = camera.position.z; farCull.k = rtScene.height / 2 * camera.projectionMatrix.elements[5];
+  R.render(curScene, camera); fogCull.on = false; farCull.on = false;
   // 泛光
   const w = rtScene.width, h = rtScene.height;
   mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : vp?.thr ?? 1; blit(mPre, rtB[0]);

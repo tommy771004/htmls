@@ -33,6 +33,10 @@
 - `70-render.js` 換掉了 three 的兩個方法：
   - `Object3D.updateMatrixWorld` 只在有變動時才重算，所以不要直接寫 `matrixWorld`。
   - `Frustum.intersectsObject` 在低空時剔掉整顆在霧裡的物件；霧外還要看得到的東西要用 `FAR`。
+  - InstancedMesh 另外照實例分格測（`instAny`，實例全在視錐外就不畫）：實例的頂點在著色器裡位移超過幾何包圍球 2 m（`INST_PAD`）的要加大它，改實例矩陣後要 `needsUpdate`。
+- 關了視錐剔除（`frustumCulled = false`）的 InstancedMesh 沒東西畫時把 `count` 設 0（`70-render.js` 走訪時就跳過），不要用縮成 0 或移到地底的實例藏起來，那樣每趟照樣送一次 draw。
+- 路面倒影預設是螢幕空間（`SET.ssr`，`70-render.js` 的 `mSSR` 用上一幀的畫面填 `rtRefl`）；`R.render(scene, reflCam)` 只在選平面、第一幀與切鏡頭時畫，`reflCull`／`reflOcc` 也只在那時有作用，量倒影效能前先確認是哪一種。
+- 效能：`node tools/observe.mjs` 跑七個情境出瓶頸報告（`.cache/observe/<雜湊>/report.md`），改完用 `ON='…' OFF='…' node tools/lossless.mjs` 驗六個視角像素不變並量凍結整幀；凍結量測要連畫多幀（一幀一幀等做完，顯示卡會降頻、數字偏）。做法與結論在 HANDOFF「觀測模型」。
 - 點光與地上陰影的陣列 uniform 用 `v4set` 寫。
 - TSL 裡不能寫 JS 數字＋節點（`.008 + x.mul(2)`），要寫 `x.mul(2).add(.008)`，不然編譯時是 `this.bNode.getNodeType is not a function`。
 - 帶 layout 的 `Fn`（`{ p: 'vec3', return: 'vec3' }`）會變成獨立的 WGSL 函式，裡面讀不到 varying（`vW` 之類會是 `unresolved value 'gv_vW'`），要當參數傳進去。

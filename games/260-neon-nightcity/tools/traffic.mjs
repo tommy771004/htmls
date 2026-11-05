@@ -73,19 +73,22 @@ export const TRAFFIC = [
   { id: 'grc_stepvan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: -90, center: /^stepvan$/, nodes: /^stepvan$/, pal: false, tris: 2400 },
   { id: 'grc_mailvan', rawFile: '../../assets/260/props/w1_grc.glb', scale: 1, rot: 0, center: /^mailvan$/, nodes: /^mailvan$/, pal: false, tris: 2400 },
   // 街頭車（26-glb.js 的 street）：車行的實車模型烘成車流版，搶到時才換回實車（68-gta.js 的 streetVeh）；pal 照 cars.json 的 paintable
-  { id: 'g63', src: 'g63', pal: true, tris: 4000 },
-  { id: 'lc200', src: 'lc200', pal: false, tris: 4000 },
-  { id: 'rr06', src: 'rr06', pal: false, tris: 4000 },
-  { id: 'ramtrx', src: 'ramtrx', pal: false, tris: 4000 },
-  { id: 'ghost', src: 'ghost', pal: true, tris: 4000 },
-  { id: 's65', src: 's65', pal: true, tris: 4000 },
-  { id: 'm5f90', src: 'm5f90', pal: false, tris: 4000 },
-  { id: 'camry', src: 'camry', pal: true, tris: 4000 },
-  { id: 'gt500', src: 'gt500', pal: true, tris: 4000 },
-  { id: 'viper', src: 'viper', pal: false, tris: 4000 },
-  { id: 'senna', src: 'senna', pal: true, tris: 4000 },
-  { id: 'r8', src: 'r8', pal: false, tris: 4000 },
-  { id: 'evo6', src: 'evo6', pal: false, tris: 4000 },
+  // perm（2026-11-01）：車行的實車是十萬面以上、零件互不相連的模型，原本 4000 面時一般減面停在兩萬面左右，退回 sloppy 把車身揉爛
+  // （路上的街頭車車殼皺成一團、缺面、車窗破洞、尖刺）。改成 Permissive 減面（可跨過焊接留下的邊界收邊）、不用 sloppy、車窗另外減面（不 Prune），
+  // 面數近景 7000、遠景 farTris 2400（遠景 600 面在 40 m 外還是看得出撕裂）
+  { id: 'g63', src: 'g63', pal: true, tris: 7000, farTris: 2400, perm: true },
+  { id: 'lc200', src: 'lc200', pal: false, tris: 7000, farTris: 2400, perm: true },
+  { id: 'rr06', src: 'rr06', pal: false, tris: 7000, farTris: 2400, perm: true },
+  { id: 'ramtrx', src: 'ramtrx', pal: false, tris: 7000, farTris: 2400, perm: true },
+  { id: 'ghost', src: 'ghost', pal: true, tris: 7000, farTris: 2400, perm: true },
+  { id: 's65', src: 's65', pal: true, tris: 7000, farTris: 2400, perm: true },
+  { id: 'm5f90', src: 'm5f90', pal: false, tris: 7000, farTris: 2400, perm: true },
+  { id: 'camry', src: 'camry', pal: true, tris: 7000, farTris: 2400, perm: true },
+  { id: 'gt500', src: 'gt500', pal: true, tris: 7000, farTris: 2400, perm: true },
+  { id: 'viper', src: 'viper', pal: false, tris: 7000, farTris: 2400, perm: true },
+  { id: 'senna', src: 'senna', pal: true, tris: 7000, farTris: 2400, perm: true },
+  { id: 'r8', src: 'r8', pal: false, tris: 7000, farTris: 2400, perm: true },
+  { id: 'evo6', src: 'evo6', pal: false, tris: 7000, farTris: 2400, perm: true },
 ];
 const srcOf = (cfg) => {
   const a = resolve(root, '../../assets/260', (cfg.src || cfg.id) + '.glb');
@@ -299,6 +302,14 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id, w
     for (let t = 0; t < out.length; t += 3) (isLamp(out, t) ? li : bi).push(out[t], out[t + 1], out[t + 2]);
     let lamp = new Uint32Array(li);
     out = new Uint32Array(bi);
+    // perm：車窗（材質 1）和燈一樣是不和車身共用頂點的小島，Prune 會整片拿掉（車窗變成洞、看得到車裡或背後），另外減面、不 Prune
+    const perm = real && !u.wheel && cfg.perm;
+    let glass = new Uint32Array(0);
+    if (perm) {
+      const gi = [], rest = [];
+      for (let t = 0; t < out.length; t += 3) (triMat(u.mat[wsrc[out[t]]], u.mat[wsrc[out[t + 1]]], u.mat[wsrc[out[t + 2]]]) === 1 ? gi : rest).push(out[t], out[t + 1], out[t + 2]);
+      glass = new Uint32Array(gi); out = new Uint32Array(rest);
+    }
     const lt = Math.min(lamp.length, Math.round(target * .15 / 3) * 3);
     // 減面只給這一組三角形用到的頂點：meshopt 把位置相同的頂點當成同一個，燈和車身在交界處位置相同，整份頂點一起給的話，
     // 減完的燈三角形會改用車身的頂點（材質跟著變回車身）
@@ -311,13 +322,15 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id, w
       return r.map((o) => back[o]);
     };
     if (lamp.length > lt) lamp = simp(lamp, lt, .03, [], .03);
-    const bt = Math.max(target / 2, target - lamp.length);
+    const gt = Math.min(glass.length, Math.round(target * .12 / 3) * 3);
+    if (glass.length > gt) glass = simp(glass, gt, .03, ['Permissive'], null);
+    const bt = Math.max(target / 2, target - lamp.length - glass.length);
     // Prune：整塊小零件（螺絲、徽章）在誤差內可以直接拿掉
     // 輪子：不用 sloppy（會把輻條揉爛）；Permissive 讓胎與框（焊接時依材質分開，彼此是邊界）的交界也能收，誤差照樣有上限；
     // 遠景的輪子（10 px 上下）誤差放寬才減得到 FAR_WHEEL
-    if (out.length > bt) out = simp(out, bt, u.wheel && wheelTris < WHEEL_TRIS ? .1 : .025, u.wheel ? ['Prune', 'Permissive'] : ['Prune'], u.wheel ? null : .03);
+    if (out.length > bt) out = simp(out, bt, u.wheel && wheelTris < WHEEL_TRIS ? .1 : .025, u.wheel || perm ? ['Prune', 'Permissive'] : ['Prune'], u.wheel || perm ? null : .03);
     if (process.env.TRAFFIC_LOG && u.wheel) console.log(`  輪子 ${u.name || ''}：${ix.length / 3} → ${out.length / 3} 面（目標 ${bt / 3}）`);
-    if (lamp.length) { const m = new Uint32Array(out.length + lamp.length); m.set(out); m.set(lamp, out.length); out = m; }
+    if (lamp.length || glass.length) { const m = new Uint32Array(out.length + lamp.length + glass.length); m.set(out); m.set(lamp, out.length); m.set(glass, out.length + lamp.length); out = m; }
     // 法線：相鄰面夾角 40° 內平滑，其餘保留硬邊
     const fn = [], adj = new Map();
     for (let t = 0; t < out.length; t += 3) {
@@ -373,7 +386,7 @@ const doc = new Document();
 const buf = doc.createBuffer();
 const scene = doc.createScene();
 const acc = (arr, type, Ctor) => doc.createAccessor().setType(type).setArray(new Ctor(arr)).setBuffer(buf);
-for (const [cfg, id, tris, wt, ws] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS, WHEEL_SHARE], ...(c.noFar ? [] : [[c, c.id + '_far', FAR_TRIS, FAR_WHEEL, FAR_SHARE]])])) {
+for (const [cfg, id, tris, wt, ws] of TRAFFIC.flatMap((c) => [[c, c.id, c.tris, WHEEL_TRIS, WHEEL_SHARE], ...(c.noFar ? [] : [[c, c.id + '_far', c.farTris ?? FAR_TRIS, FAR_WHEEL, FAR_SHARE]])])) {
   let r;
   if (keep.has(id)) {
     const n = keep.get(id), p = n.getMesh().listPrimitives()[0], ex = n.getExtras();
