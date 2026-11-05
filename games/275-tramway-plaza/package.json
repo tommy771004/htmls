@@ -1,0 +1,20 @@
+{
+  "name": "tramway-plaza",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "白城環線 · BELVEDERE LOOP — Three.js r187 全程序生成等角迷你歐風城市與環形高架電車（作品 275）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev --out=dist/dev.html",
+    "shot": "node tools/shot.mjs",
+    "thumb": "node tools/thumb.mjs",
+    "test": "node tools/accept.mjs"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

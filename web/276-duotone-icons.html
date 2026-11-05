@@ -1,0 +1,2746 @@
+<!doctype html>
+<html lang="zh-Hant" data-palette="multicolor">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>語意微動 · 48 枚雙層動態功能圖標集｜DUOTONE 24</title>
+<meta name="description" content="48 枚建構於 24px 網格的圓角雙層動態功能圖標展示頁：內嵌純 SVG 與 CSS 語意微動畫、七組 CSS 變數配色切換與自動輪播演示模式，零外部素材。">
+<style>
+:root {
+  --page-bg: #f5f6f9;
+  --surface: #ffffff;
+  --surface-subtle: #eef1f6;
+  --ink: #161b26;
+  --ink-2: #4c5568;
+  --ink-3: #7b8499;
+  --line: #e1e5ee;
+  --line-strong: #cbd2e1;
+  --accent: #2563eb;
+  --accent-soft: #dbeafe;
+  --theme-fg: #35526e;
+  --theme-bg: #d9e6f2;
+  --icon-size: 32px;
+  --sans: "Avenir Next", "SF Pro Text", "Segoe UI", "PingFang TC", "Hiragino Sans", "Microsoft JhengHei", sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", "Menlo", "Consolas", ui-monospace, monospace;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* ── 7 組頂部配色：全以 CSS 變數實作 ── */
+html[data-palette="slate"] {
+  --theme-fg: #36536e;
+  --theme-bg: #d8e5f1;
+  --accent: #36536e;
+  --accent-soft: #e3ecf5;
+}
+html[data-palette="celadon"] {
+  --theme-fg: #266b62;
+  --theme-bg: #cfece6;
+  --accent: #266b62;
+  --accent-soft: #dcf2ee;
+}
+html[data-palette="mint"] {
+  --theme-fg: #167c54;
+  --theme-bg: #cbf2df;
+  --accent: #167c54;
+  --accent-soft: #daf6e8;
+}
+html[data-palette="lavender"] {
+  --theme-fg: #5c479e;
+  --theme-bg: #e4defb;
+  --accent: #5c479e;
+  --accent-soft: #ece8fc;
+}
+html[data-palette="apricot"] {
+  --theme-fg: #c25624;
+  --theme-bg: #fde1ce;
+  --accent: #c25624;
+  --accent-soft: #feeadd;
+}
+html[data-palette="mono"] {
+  --theme-fg: #17191e;
+  --theme-bg: #dfe2e8;
+  --accent: #17191e;
+  --accent-soft: #eaecf0;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+button:focus-visible, input:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── 頂部導覽與配色／演示控制列 ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(245, 246, 249, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: border-color 0.18s, color 0.18s;
+}
+.back-link:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.title-block {
+  min-width: 0;
+}
+.title-block h1 {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.spec-pill {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--surface-subtle);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+
+/* 配色切換器 */
+.palette-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+.palette-bar::-webkit-scrollbar { display: none; }
+
+.pal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  transition: background 0.18s, color 0.18s;
+}
+.pal-btn:hover {
+  color: var(--ink);
+  background: var(--page-bg);
+}
+.pal-btn[aria-pressed="true"] {
+  background: var(--ink);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  position: relative;
+  flex: none;
+  background: var(--sw-bg, #dbeafe);
+  border: 1.5px solid var(--sw-fg, #2563eb);
+}
+.swatch::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 2px;
+  background: var(--sw-fg, #2563eb);
+}
+.swatch.multi {
+  border: 0;
+  background: conic-gradient(#ef4444, #f59e0b, #10b981, #0ea5e9, #6366f1, #ec4899, #ef4444);
+}
+.swatch.multi::after {
+  inset: 3.5px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* 右上角「演示」開關 */
+.demo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+.demo-ticker {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  display: none;
+}
+.demo-ticker.visible {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.demo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.demo-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px 6px 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(22, 27, 38, 0.04);
+  transition: border-color 0.2s, background 0.2s;
+}
+.demo-switch:hover {
+  border-color: var(--ink-2);
+}
+.demo-switch[aria-checked="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #ffffff;
+}
+.switch-track {
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: #cfd6e4;
+  position: relative;
+  transition: background 0.22s var(--ease-out);
+  flex: none;
+}
+.demo-switch[aria-checked="true"] .switch-track {
+  background: #34d399;
+}
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.22s var(--ease-spring);
+}
+.demo-switch[aria-checked="true"] .switch-thumb {
+  transform: translateX(15px);
+}
+
+/* ── 主內容區與標本規格頭標 ── */
+.page-wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 14px 24px 40px;
+}
+
+.hero-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.hero-copy p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+.hero-copy strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-box svg {
+  position: absolute;
+  left: 10px;
+  width: 15px;
+  height: 15px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.search-box input {
+  width: 196px;
+  height: 34px;
+  padding: 0 28px 0 31px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.search-box input::placeholder {
+  color: var(--ink-3);
+}
+.clear-q {
+  position: absolute;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+}
+.clear-q[hidden] { display: none; }
+
+.tool-seg {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 2px;
+  height: 34px;
+}
+.tool-seg button {
+  padding: 0 9px;
+  height: 28px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.tool-seg button[aria-pressed="true"] {
+  background: var(--surface-subtle);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.grid-toggle {
+  height: 34px;
+  padding: 0 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.grid-toggle[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 分類膠囊列 */
+.group-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  scrollbar-width: none;
+}
+.group-tabs::-webkit-scrollbar { display: none; }
+.grp-btn {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.grp-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.grp-btn[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #ffffff;
+}
+.grp-count {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  opacity: 0.72;
+  margin-left: 3px;
+}
+
+/* ── 48 枚圖標標本網格 ── */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.ico-card {
+  --ico-fg: var(--theme-fg);
+  --ico-bg: var(--theme-bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 9px;
+  min-height: 102px;
+  border-radius: 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: center;
+  transition: border-color 0.18s, box-shadow 0.18s, background-color 0.18s;
+}
+
+html[data-palette="multicolor"] .ico-card {
+  --ico-fg: var(--c-fg);
+  --ico-bg: var(--c-bg);
+}
+
+.ico-card[hidden] {
+  display: none;
+}
+
+.ico-card:hover,
+.ico-card:focus-visible,
+.ico-card.is-playing {
+  border-color: var(--ico-fg);
+  box-shadow: 0 6px 18px -10px rgba(22, 27, 38, 0.22), 0 0 0 1px var(--ico-bg);
+}
+
+.ico-card.is-selected {
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  border-color: var(--ink);
+}
+
+.card-meta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.card-verb {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ico-fg);
+  opacity: 0;
+  transition: opacity 0.16s;
+}
+.ico-card:hover .card-verb,
+.ico-card:focus-visible .card-verb,
+.ico-card.is-playing .card-verb {
+  opacity: 1;
+}
+
+/* 24px 圖標畫布框 */
+.glyph-stage {
+  position: relative;
+  width: calc(var(--icon-size) + 16px);
+  height: calc(var(--icon-size) + 16px);
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  margin: 2px 0;
+}
+
+/* 可選 24px 網格輔助線 */
+.show-grid .glyph-stage {
+  background-color: #fafbfd;
+  background-image:
+    linear-gradient(to right, rgba(37, 99, 235, 0.11) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.11) 1px, transparent 1px);
+  background-size: calc(var(--icon-size) / 6) calc(var(--icon-size) / 6);
+  background-position: center;
+  outline: 1px dashed rgba(37, 99, 235, 0.28);
+  outline-offset: -9px;
+}
+
+.ico-svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* 統一雙層結構：淺色底塊 + 1.8px 圓角前景主色 */
+.ico-svg .bg {
+  fill: var(--ico-bg);
+  stroke: none;
+}
+.ico-svg .fg {
+  fill: none;
+  stroke: var(--ico-fg);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ico-svg .fg-dot {
+  fill: var(--ico-fg);
+  stroke: none;
+}
+.ico-svg .cutout {
+  fill: var(--surface);
+  stroke: none;
+}
+
+.ico-svg g,
+.ico-svg path,
+.ico-svg circle,
+.ico-svg rect,
+.ico-svg line {
+  transform-box: view-box;
+}
+
+.card-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+
+.empty-state {
+  padding: 48px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.empty-state[hidden] { display: none; }
+.empty-state button {
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12.5px;
+}
+
+/* ── 底部即時標本檢視台（點選任一圖標檢視 24px 網格與複製 SVG+CSS） ── */
+.inspector {
+  margin-top: 20px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 22px;
+}
+
+.insp-canvas {
+  --ico-fg: var(--theme-fg);
+  --ico-bg: var(--theme-bg);
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background-color: #fbfcfe;
+  background-image:
+    linear-gradient(to right, rgba(22, 27, 38, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(22, 27, 38, 0.06) 1px, transparent 1px),
+    linear-gradient(to right, rgba(37, 99, 235, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.16) 1px, transparent 1px);
+  background-size: 4px 4px, 4px 4px, 16px 16px, 16px 16px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+}
+html[data-palette="multicolor"] .insp-canvas {
+  --ico-fg: var(--c-fg);
+  --ico-bg: var(--c-bg);
+}
+.insp-canvas::after {
+  content: "24×24";
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+}
+.insp-canvas .ico-svg {
+  width: 64px;
+  height: 64px;
+}
+
+.insp-info h2 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.insp-info h2 span.code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.insp-info p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.scale-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.scale-item {
+  --ico-fg: var(--theme-fg);
+  --ico-bg: var(--theme-bg);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  background: var(--page-bg);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+html[data-palette="multicolor"] .scale-item {
+  --ico-fg: var(--c-fg);
+  --ico-bg: var(--c-bg);
+}
+
+.insp-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.act-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  transition: background 0.16s, border-color 0.16s;
+}
+.act-btn:hover {
+  background: var(--page-bg);
+}
+.act-btn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #ffffff;
+}
+.act-btn.primary:hover {
+  opacity: 0.92;
+}
+
+.foot-note {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   48 組貼合語意的 Hover / 演示 微動畫（0.65s – 0.95s）
+   ══════════════════════════════════════════════════════════════ */
+
+/* 01 資料夾：前袋外傾、內頁紙張上抽 */
+.i-folder .p-flap { transform-origin: 50% 83.33%; }
+.i-folder .p-doc  { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-folder .p-flap {
+  animation: kf-folder-flap 0.78s var(--ease-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-folder .p-doc {
+  animation: kf-folder-doc 0.78s var(--ease-spring);
+}
+@keyframes kf-folder-flap {
+  0%, 100% { transform: scaleY(1) skewX(0deg); }
+  40% { transform: scaleY(0.86) skewX(-7deg); }
+  70% { transform: scaleY(0.96) skewX(-2deg); }
+}
+@keyframes kf-folder-doc {
+  0%, 100% { transform: translateY(0); }
+  42% { transform: translateY(-2.4px); }
+  75% { transform: translateY(-0.5px); }
+}
+
+/* 02 文件：摺角輕翻、內文逐行描寫 */
+.i-file .p-fold { transform-origin: 58.33% 33.33%; }
+.i-file .p-l1, .i-file .p-l2, .i-file .p-l3 { stroke-dasharray: 10; stroke-dashoffset: 0; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-file .p-fold {
+  animation: kf-file-fold 0.75s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-file .p-l1 {
+  animation: kf-line-draw 0.75s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-file .p-l2 {
+  animation: kf-line-draw 0.75s 0.08s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-file .p-l3 {
+  animation: kf-line-draw 0.75s 0.16s ease-out;
+}
+@keyframes kf-file-fold {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.18) translate(-0.4px, 0.4px); }
+}
+@keyframes kf-line-draw {
+  0% { stroke-dashoffset: 10; opacity: 0.35; }
+  55%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* 03 便利貼：底邊掀起微飄、摺角捲起 */
+.i-note .p-sheet { transform-origin: 50% 16.67%; }
+.i-note .p-curl  { transform-origin: 62.5% 62.5%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-note .p-sheet {
+  animation: kf-note-peel 0.78s var(--ease-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-note .p-curl {
+  animation: kf-note-curl 0.78s var(--ease-spring);
+}
+@keyframes kf-note-peel {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  42% { transform: rotate(-5deg) translateY(-1.2px); }
+  72% { transform: rotate(1.5deg) translateY(0); }
+}
+@keyframes kf-note-curl {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.22) translate(-0.5px, -0.5px); }
+}
+
+/* 04 剪貼簿：頂夾按壓、勾選筆畫完成 */
+.i-clipboard .p-clip  { transform-origin: 50% 20.83%; }
+.i-clipboard .p-check { stroke-dasharray: 12; stroke-dashoffset: 0; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-clipboard .p-clip {
+  animation: kf-clip-snap 0.72s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-clipboard .p-check {
+  animation: kf-check-draw 0.76s var(--ease-out);
+}
+@keyframes kf-clip-snap {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  30% { transform: translateY(-1.4px) scaleY(1.08); }
+  65% { transform: translateY(0.5px) scaleY(0.95); }
+}
+@keyframes kf-check-draw {
+  0% { stroke-dashoffset: 12; }
+  30% { stroke-dashoffset: 12; }
+  85%, 100% { stroke-dashoffset: 0; }
+}
+
+/* 05 搜尋：放大鏡左右巡檢並微放大 */
+.i-search .p-glass { transform-origin: 45.83% 45.83%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-search .p-glass {
+  animation: kf-search-scan 0.82s var(--ease-in-out);
+}
+@keyframes kf-search-scan {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  32% { transform: translate(-1.6px, -1px) rotate(-13deg) scale(1.08); }
+  68% { transform: translate(1.5px, 0.6px) rotate(9deg) scale(1.05); }
+}
+
+/* 06 篩選：漏斗輕晃過篩、水滴落下 */
+.i-filter .p-funnel { transform-origin: 50% 45%; }
+.i-filter .p-drop   { transform-origin: 50% 85%; opacity: 0; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-filter .p-funnel {
+  animation: kf-filter-sift 0.8s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-filter .p-drop {
+  animation: kf-filter-drop 0.8s ease-out;
+}
+@keyframes kf-filter-sift {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-6deg); }
+  55% { transform: rotate(6deg); }
+  80% { transform: rotate(-2deg); }
+}
+@keyframes kf-filter-drop {
+  0% { transform: translateY(-3px) scale(0.5); opacity: 0; }
+  45% { transform: translateY(0) scale(1.1); opacity: 1; }
+  90%, 100% { transform: translateY(2.2px) scale(0.6); opacity: 0; }
+}
+
+/* 07 書籤：絲帶下拉夾入後回彈 */
+.i-bookmark .p-ribbon { transform-origin: 50% 12.5%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-bookmark .p-ribbon {
+  animation: kf-bookmark-pull 0.74s var(--ease-spring);
+}
+@keyframes kf-bookmark-pull {
+  0%, 100% { transform: scaleY(1); }
+  38% { transform: scaleY(1.14); }
+  72% { transform: scaleY(0.95); }
+}
+
+/* 08 標籤：繞吊孔鐘擺搖晃 */
+.i-tag .p-body { transform-origin: 34.17% 34.17%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-tag .p-body {
+  animation: kf-tag-swing 0.85s var(--ease-in-out);
+}
+@keyframes kf-tag-swing {
+  0%, 100% { transform: rotate(0deg); }
+  28% { transform: rotate(15deg); }
+  58% { transform: rotate(-10deg); }
+  82% { transform: rotate(4deg); }
+}
+
+/* 09 收藏：星星彈躍閃耀 */
+.i-star .p-star { transform-origin: 50% 52%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-star .p-star {
+  animation: kf-star-pop 0.8s var(--ease-spring);
+}
+@keyframes kf-star-pop {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(0.84) rotate(-10deg); }
+  58% { transform: scale(1.18) rotate(14deg); }
+  82% { transform: scale(0.97) rotate(-3deg); }
+}
+
+/* 10 首頁：屋簷輕躍、門扉迎賓 */
+.i-home .p-roof { transform-origin: 50% 35%; }
+.i-home .p-base { transform-origin: 50% 87.5%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-home .p-roof {
+  animation: kf-home-roof 0.75s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-home .p-base {
+  animation: kf-home-base 0.75s var(--ease-spring);
+}
+@keyframes kf-home-roof {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-2.2px); }
+}
+@keyframes kf-home-base {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.04, 0.95); }
+  68% { transform: scale(0.98, 1.03); }
+}
+
+/* 11 相簿：太陽升起、山稜微移 */
+.i-album .p-sun { transform-origin: 35.4% 39.6%; }
+.i-album .p-mtn { transform-origin: 50% 70%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-album .p-sun {
+  animation: kf-album-sun 0.82s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-album .p-mtn {
+  animation: kf-album-mtn 0.82s var(--ease-out);
+}
+@keyframes kf-album-sun {
+  0%, 100% { transform: translateY(0) scale(1); }
+  48% { transform: translateY(-1.8px) scale(1.24); }
+}
+@keyframes kf-album-mtn {
+  0%, 100% { transform: translateY(0); }
+  48% { transform: translateY(-0.9px); }
+}
+
+/* 12 相機：快門下壓、鏡頭光圈縮放 */
+.i-camera .p-lens    { transform-origin: 50% 54.17%; }
+.i-camera .p-shutter { transform-origin: 73% 25%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-camera .p-lens {
+  animation: kf-cam-lens 0.7s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-camera .p-shutter {
+  animation: kf-cam-btn 0.7s ease-out;
+}
+@keyframes kf-cam-lens {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(0.68); }
+  65% { transform: scale(1.14); }
+}
+@keyframes kf-cam-btn {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(1.3px); }
+}
+
+/* 13 影片：播放鍵向前推進彈跳 */
+.i-video .p-play { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-video .p-play {
+  animation: kf-video-play 0.74s var(--ease-spring);
+}
+@keyframes kf-video-play {
+  0%, 100% { transform: translateX(0) scale(1); }
+  38% { transform: translateX(2.2px) scale(1.16); }
+  72% { transform: translateX(-0.5px) scale(0.96); }
+}
+
+/* 14 音樂：音符隨拍點輕盈搖擺 */
+.i-music .p-note { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-music .p-note {
+  animation: kf-music-sway 0.86s var(--ease-in-out);
+}
+@keyframes kf-music-sway {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-2.1px) rotate(-8deg); }
+  66% { transform: translateY(0.6px) rotate(7deg); }
+}
+
+/* 15 麥克風：收音頭微振、聲波外擴 */
+.i-mic .p-head { transform-origin: 50% 33.33%; }
+.i-mic .p-wave { transform-origin: 50% 33.33%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-mic .p-head {
+  animation: kf-mic-bob 0.76s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-mic .p-wave {
+  animation: kf-mic-wave 0.76s ease-out;
+}
+@keyframes kf-mic-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-1.3px) scale(1.06); }
+}
+@keyframes kf-mic-wave {
+  0%, 100% { transform: scaleX(1); opacity: 0.7; }
+  45% { transform: scaleX(1.16); opacity: 1; }
+}
+
+/* 16 耳機：耳罩隨節拍律動開合 */
+.i-headphones .p-band { transform-origin: 50% 50%; }
+.i-headphones .p-cupL { transform-origin: 20.8% 66.7%; }
+.i-headphones .p-cupR { transform-origin: 79.2% 66.7%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-headphones .p-band {
+  animation: kf-hp-band 0.8s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-headphones .p-cupL {
+  animation: kf-hp-cupl 0.8s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-headphones .p-cupR {
+  animation: kf-hp-cupr 0.8s var(--ease-spring);
+}
+@keyframes kf-hp-band {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  40% { transform: translateY(-1.2px) scaleX(1.05); }
+}
+@keyframes kf-hp-cupl {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  38% { transform: rotate(-10deg) translateX(-1px); }
+  70% { transform: rotate(5deg) translateX(0.4px); }
+}
+@keyframes kf-hp-cupr {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  38% { transform: rotate(10deg) translateX(1px); }
+  70% { transform: rotate(-5deg) translateX(-0.4px); }
+}
+
+/* 17 購物車：推車加速微翹後煞停 */
+.i-cart .p-cart { transform-origin: 40% 79%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-cart .p-cart {
+  animation: kf-cart-roll 0.82s var(--ease-out);
+}
+@keyframes kf-cart-roll {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  32% { transform: translateX(-1.4px) rotate(-5deg); }
+  66% { transform: translateX(2.4px) rotate(2deg); }
+}
+
+/* 18 禮物：盒蓋與蝴蝶結歡快彈開 */
+.i-gift .p-lid { transform-origin: 50% 37.5%; }
+.i-gift .p-box { transform-origin: 50% 85%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-gift .p-lid {
+  animation: kf-gift-lid 0.82s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-gift .p-box {
+  animation: kf-gift-box 0.82s var(--ease-spring);
+}
+@keyframes kf-gift-lid {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  36% { transform: translateY(-2.8px) rotate(-7deg); }
+  64% { transform: translateY(-1.6px) rotate(5deg); }
+}
+@keyframes kf-gift-box {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.05, 0.94); }
+  62% { transform: scale(0.98, 1.03); }
+}
+
+/* 19 通知鈴：鈴身與鈴舌錯相搖晃 */
+.i-bell .p-dome    { transform-origin: 50% 16.67%; }
+.i-bell .p-clapper { transform-origin: 50% 16.67%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-bell .p-dome {
+  animation: kf-bell-ring 0.88s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-bell .p-clapper {
+  animation: kf-bell-clap 0.88s var(--ease-in-out);
+}
+@keyframes kf-bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(17deg); }
+  44% { transform: rotate(-14deg); }
+  68% { transform: rotate(9deg); }
+  86% { transform: rotate(-4deg); }
+}
+@keyframes kf-bell-clap {
+  0%, 100% { transform: rotate(0deg); }
+  24% { transform: rotate(-12deg); }
+  50% { transform: rotate(14deg); }
+  74% { transform: rotate(-7deg); }
+}
+
+/* 20 使用者：親切點頭致意 */
+.i-user .p-head { transform-origin: 50% 33.33%; }
+.i-user .p-body { transform-origin: 50% 83.33%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-user .p-head {
+  animation: kf-user-nod 0.76s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-user .p-body {
+  animation: kf-user-body 0.76s var(--ease-out);
+}
+@keyframes kf-user-nod {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(-1.5px) rotate(8deg); }
+  72% { transform: translateY(0.4px) rotate(-3deg); }
+}
+@keyframes kf-user-body {
+  0%, 100% { transform: scaleX(1); }
+  42% { transform: scaleX(1.05); }
+}
+
+/* 21 日曆：日曆頁掀動翻閱 */
+.i-calendar .p-page { transform-origin: 50% 22%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-calendar .p-page {
+  animation: kf-cal-flip 0.76s var(--ease-spring);
+}
+@keyframes kf-cal-flip {
+  0%, 100% { transform: scaleY(1) skewX(0deg); }
+  38% { transform: scaleY(0.88) skewX(-4deg); }
+  70% { transform: scaleY(1.03) skewX(1deg); }
+}
+
+/* 22 時鐘：分針走一圈、時針推進 */
+.i-clock .p-min  { transform-origin: 50% 50%; }
+.i-clock .p-hour { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-clock .p-min {
+  animation: kf-clock-min 0.9s var(--ease-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-clock .p-hour {
+  animation: kf-clock-hr 0.9s var(--ease-out);
+}
+@keyframes kf-clock-min {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes kf-clock-hr {
+  0%, 100% { transform: rotate(0deg); }
+  55% { transform: rotate(35deg); }
+}
+
+/* 23 地點：圖釘躍起精準落點 */
+.i-pin .p-pin  { transform-origin: 50% 85%; }
+.i-pin .p-spot { transform-origin: 50% 88%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-pin .p-pin {
+  animation: kf-pin-drop 0.78s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-pin .p-spot {
+  animation: kf-pin-spot 0.78s ease-out;
+}
+@keyframes kf-pin-drop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-3.4px) scale(0.96, 1.05); }
+  68% { transform: translateY(0.5px) scale(1.07, 0.92); }
+}
+@keyframes kf-pin-spot {
+  0%, 100% { transform: scaleX(1); opacity: 0.7; }
+  35% { transform: scaleX(0.55); opacity: 0.35; }
+  68% { transform: scaleX(1.25); opacity: 1; }
+}
+
+/* 24 地球：經線立體自轉 */
+.i-globe .p-meridian { transform-origin: 50% 50%; }
+.i-globe .p-sphere   { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-globe .p-meridian {
+  animation: kf-globe-spin 0.9s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-globe .p-sphere {
+  animation: kf-globe-tilt 0.9s var(--ease-in-out);
+}
+@keyframes kf-globe-spin {
+  0%, 100% { transform: scaleX(1); }
+  45% { transform: scaleX(0.32); }
+  78% { transform: scaleX(1.08); }
+}
+@keyframes kf-globe-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  45% { transform: rotate(10deg); }
+}
+
+/* 25 雲端：雲朵輕柔上下浮動 */
+.i-cloud .p-cloud { transform-origin: 50% 55%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-cloud .p-cloud {
+  animation: kf-cloud-float 0.95s var(--ease-in-out);
+}
+@keyframes kf-cloud-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  38% { transform: translateY(-2.6px) scale(1.03, 0.98); }
+  74% { transform: translateY(1.2px) scale(0.99, 1.02); }
+}
+
+/* 26 上傳：箭頭向上升空回彈 */
+.i-upload .p-arrow { transform-origin: 50% 42%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-upload .p-arrow {
+  animation: kf-upload-up 0.75s var(--ease-spring);
+}
+@keyframes kf-upload-up {
+  0%, 100% { transform: translateY(0); }
+  42% { transform: translateY(-3.1px); }
+  75% { transform: translateY(0.6px); }
+}
+
+/* 27 下載：箭頭落入托盤緩衝 */
+.i-download .p-arrow { transform-origin: 50% 42%; }
+.i-download .p-tray  { transform-origin: 50% 80%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-download .p-arrow {
+  animation: kf-dl-arrow 0.75s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-download .p-tray {
+  animation: kf-dl-tray 0.75s var(--ease-out);
+}
+@keyframes kf-dl-arrow {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(2.8px); }
+  76% { transform: translateY(-0.6px); }
+}
+@keyframes kf-dl-tray {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1.1px); }
+}
+
+/* 28 郵件：信封上折蓋掀開 */
+.i-mail .p-flap { transform-origin: 50% 27%; }
+.i-mail .p-env  { transform-origin: 50% 54%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-mail .p-flap {
+  animation: kf-mail-flap 0.8s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-mail .p-env {
+  animation: kf-mail-env 0.8s var(--ease-out);
+}
+@keyframes kf-mail-flap {
+  0%, 100% { transform: scaleY(1); }
+  45% { transform: scaleY(-0.45); }
+}
+@keyframes kf-mail-env {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(1px); }
+}
+
+/* 29 聊天：對話框輕彈、三點波浪輸入 */
+.i-chat .p-d1, .i-chat .p-d2, .i-chat .p-d3 { transform-origin: 50% 46%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-chat .p-d1 {
+  animation: kf-chat-dot 0.72s 0s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-chat .p-d2 {
+  animation: kf-chat-dot 0.72s 0.1s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-chat .p-d3 {
+  animation: kf-chat-dot 0.72s 0.2s var(--ease-in-out);
+}
+@keyframes kf-chat-dot {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-2.3px); }
+}
+
+/* 30 分享：雙向節點外擴傳遞 */
+.i-share .p-n1 { transform-origin: 25% 50%; }
+.i-share .p-n2 { transform-origin: 72.9% 25%; }
+.i-share .p-n3 { transform-origin: 72.9% 75%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-share .p-n1 {
+  animation: kf-share-src 0.78s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-share .p-n2 {
+  animation: kf-share-hi 0.78s 0.08s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-share .p-n3 {
+  animation: kf-share-lo 0.78s 0.14s var(--ease-spring);
+}
+@keyframes kf-share-src {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.22); }
+}
+@keyframes kf-share-hi {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  48% { transform: translate(1.2px, -1px) scale(1.16); }
+}
+@keyframes kf-share-lo {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  48% { transform: translate(1.2px, 1px) scale(1.16); }
+}
+
+/* 31 連結：雙鏈環斜向拉開再扣緊 */
+.i-link .p-top { transform-origin: 50% 50%; }
+.i-link .p-bot { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-link .p-top {
+  animation: kf-link-a 0.76s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-link .p-bot {
+  animation: kf-link-b 0.76s var(--ease-spring);
+}
+@keyframes kf-link-a {
+  0%, 100% { transform: translate(0, 0); }
+  38% { transform: translate(1.4px, -1.4px); }
+  72% { transform: translate(-0.4px, 0.4px); }
+}
+@keyframes kf-link-b {
+  0%, 100% { transform: translate(0, 0); }
+  38% { transform: translate(-1.4px, 1.4px); }
+  72% { transform: translate(0.4px, -0.4px); }
+}
+
+/* 32 鎖頭：鎖鉤彈起旋開再扣合 */
+.i-lock .p-shackle { transform-origin: 66.67% 45.83%; }
+.i-lock .p-body    { transform-origin: 50% 66.67%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-lock .p-shackle {
+  animation: kf-lock-open 0.86s var(--ease-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-lock .p-body {
+  animation: kf-lock-jolt 0.86s ease-out;
+}
+@keyframes kf-lock-open {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  34% { transform: translateY(-2.4px) rotate(16deg); }
+  62% { transform: translateY(-2.1px) rotate(14deg); }
+  86% { transform: translateY(0.3px) rotate(0deg); }
+}
+@keyframes kf-lock-jolt {
+  0%, 78%, 100% { transform: translateY(0); }
+  86% { transform: translateY(1px); }
+}
+
+/* 33 鑰匙：插入轉動開鎖 */
+.i-key .p-key { transform-origin: 33.33% 62.5%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-key .p-key {
+  animation: kf-key-turn 0.8s var(--ease-spring);
+}
+@keyframes kf-key-turn {
+  0%, 100% { transform: rotate(0deg); }
+  38% { transform: rotate(22deg); }
+  70% { transform: rotate(-6deg); }
+}
+
+/* 34 盾牌：防禦穩固撐起、勾選確認 */
+.i-shield .p-shield { transform-origin: 50% 50%; }
+.i-shield .p-check  { stroke-dasharray: 10; stroke-dashoffset: 0; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-shield .p-shield {
+  animation: kf-shield-guard 0.78s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-shield .p-check {
+  animation: kf-check-draw 0.78s var(--ease-out);
+}
+@keyframes kf-shield-guard {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.09); }
+}
+
+/* 35 設定：八齒齒輪精準順轉 90 度（對稱無跳幀） */
+.i-settings .p-gear { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-settings .p-gear {
+  animation: kf-gear-turn 0.85s var(--ease-spring);
+}
+@keyframes kf-gear-turn {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(90deg); }
+}
+
+/* 36 圖表：三根長條由基線依序拉升 */
+.i-chart .p-b1, .i-chart .p-b2, .i-chart .p-b3 { transform-origin: 50% 81.25%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-chart .p-b1 {
+  animation: kf-bar-rise 0.72s 0s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-chart .p-b2 {
+  animation: kf-bar-rise 0.72s 0.08s var(--ease-spring);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-chart .p-b3 {
+  animation: kf-bar-rise 0.72s 0.16s var(--ease-spring);
+}
+@keyframes kf-bar-rise {
+  0%, 100% { transform: scaleY(1); }
+  32% { transform: scaleY(0.35); }
+  72% { transform: scaleY(1.1); }
+}
+
+/* 37 鉛筆：筆尖在紙面書寫擺動 */
+.i-pencil .p-pen { transform-origin: 18.75% 81.25%; }
+.i-pencil .p-ink { stroke-dasharray: 9; stroke-dashoffset: 0; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-pencil .p-pen {
+  animation: kf-pen-write 0.84s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-pencil .p-ink {
+  animation: kf-line-draw 0.84s ease-out;
+}
+@keyframes kf-pen-write {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  28% { transform: rotate(-9deg) translateX(-0.6px); }
+  62% { transform: rotate(7deg) translateX(1.8px); }
+}
+
+/* 38 旗子：旗面迎風波浪飄揚 */
+.i-flag .p-cloth { transform-origin: 22.9% 37.5%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-flag .p-cloth {
+  animation: kf-flag-wave 0.86s var(--ease-in-out);
+}
+@keyframes kf-flag-wave {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  30% { transform: skewY(-7deg) scaleX(0.94); }
+  66% { transform: skewY(6deg) scaleX(1.04); }
+}
+
+/* 39 眼睛：自然眨眼與瞳孔凝視 */
+.i-eye .p-lid   { transform-origin: 50% 50%; }
+.i-eye .p-pupil { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-eye .p-lid {
+  animation: kf-eye-blink 0.76s var(--ease-in-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-eye .p-pupil {
+  animation: kf-eye-look 0.76s var(--ease-in-out);
+}
+@keyframes kf-eye-blink {
+  0%, 100% { transform: scaleY(1); }
+  32% { transform: scaleY(0.12); }
+  65% { transform: scaleY(1.05); }
+}
+@keyframes kf-eye-look {
+  0%, 100% { transform: translateX(0); }
+  65% { transform: translateX(1.1px); }
+}
+
+/* 40 問號：好奇歪頭發問 */
+.i-help .p-mark { transform-origin: 50% 54%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-help .p-mark {
+  animation: kf-help-tilt 0.8s var(--ease-spring);
+}
+@keyframes kf-help-tilt {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  35% { transform: rotate(15deg) translateY(-1px); }
+  68% { transform: rotate(-8deg) translateY(0); }
+}
+
+/* 41 電池：三格電量依序充飽 */
+.i-battery .p-c1, .i-battery .p-c2, .i-battery .p-c3 { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-battery .p-c1 {
+  animation: kf-bat-charge 0.8s 0s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-battery .p-c2 {
+  animation: kf-bat-charge 0.8s 0.12s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-battery .p-c3 {
+  animation: kf-bat-charge 0.8s 0.24s ease-out;
+}
+@keyframes kf-bat-charge {
+  0% { opacity: 0.15; transform: scaleY(0.5); }
+  55%, 100% { opacity: 1; transform: scaleY(1); }
+}
+
+/* 42 Wi-Fi：訊號由內而外層層擴散 */
+.i-wifi .p-w1, .i-wifi .p-w2, .i-wifi .p-w3 { transform-origin: 50% 77%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-wifi .p-w1 {
+  animation: kf-wifi-pulse 0.82s 0.04s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-wifi .p-w2 {
+  animation: kf-wifi-pulse 0.82s 0.14s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-wifi .p-w3 {
+  animation: kf-wifi-pulse 0.82s 0.24s ease-out;
+}
+@keyframes kf-wifi-pulse {
+  0% { opacity: 0.2; transform: scale(0.88); }
+  55%, 100% { opacity: 1; transform: scale(1); }
+}
+
+/* 43 愛心：真實雙搏心跳 */
+.i-heart .p-heart { transform-origin: 50% 54%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-heart .p-heart {
+  animation: kf-heart-beat 0.82s var(--ease-in-out);
+}
+@keyframes kf-heart-beat {
+  0%, 100% { transform: scale(1); }
+  22% { transform: scale(1.18); }
+  42% { transform: scale(0.96); }
+  64% { transform: scale(1.14); }
+}
+
+/* 44 印表機：進紙微沉、列印紙張吐出 */
+.i-printer .p-in  { transform-origin: 50% 25%; }
+.i-printer .p-out { transform-origin: 50% 70%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-printer .p-in {
+  animation: kf-print-in 0.85s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-printer .p-out {
+  animation: kf-print-out 0.85s var(--ease-spring);
+}
+@keyframes kf-print-in {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(1.2px); }
+}
+@keyframes kf-print-out {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2.2px); }
+}
+
+/* 45 垃圾桶：桶蓋繞左側樞紐掀開後落回 */
+.i-trash .p-lid { transform-origin: 22.9% 29.17%; }
+.i-trash .p-bin { transform-origin: 50% 85%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-trash .p-lid {
+  animation: kf-trash-lid 0.8s var(--ease-out);
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-trash .p-bin {
+  animation: kf-trash-bin 0.8s ease-out;
+}
+@keyframes kf-trash-lid {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  38% { transform: rotate(-25deg) translateY(-1px); }
+  66% { transform: rotate(-18deg) translateY(-0.6px); }
+  88% { transform: rotate(2deg); }
+}
+@keyframes kf-trash-bin {
+  0%, 80%, 100% { transform: scaleY(1); }
+  88% { transform: scaleY(0.96); }
+}
+
+/* 46 鬧鐘：雙耳急促響鈴跳動 */
+.i-alarm .p-clock { transform-origin: 50% 54.17%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-alarm .p-clock {
+  animation: kf-alarm-buzz 0.76s linear;
+}
+@keyframes kf-alarm-buzz {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  15% { transform: translateY(-1.8px) rotate(-9deg); }
+  30% { transform: translateY(-2px) rotate(9deg); }
+  45% { transform: translateY(-2px) rotate(-8deg); }
+  60% { transform: translateY(-1.6px) rotate(8deg); }
+  75% { transform: translateY(-0.8px) rotate(-4deg); }
+}
+
+/* 47 計算機：按鍵依序敲擊、螢幕閃亮 */
+.i-calc .p-scr { transform-origin: 50% 31%; }
+.i-calc .p-k1  { transform-origin: 37.5% 56%; }
+.i-calc .p-k2  { transform-origin: 50% 71%; }
+.i-calc .p-k3  { transform-origin: 62.5% 56%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-calc .p-k1 {
+  animation: kf-key-tap 0.65s 0s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-calc .p-k2 {
+  animation: kf-key-tap 0.65s 0.12s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-calc .p-k3 {
+  animation: kf-key-tap 0.65s 0.24s ease-out;
+}
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-calc .p-scr {
+  animation: kf-calc-scr 0.78s ease-out;
+}
+@keyframes kf-key-tap {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(0.45); }
+}
+@keyframes kf-calc-scr {
+  0%, 100% { transform: scaleX(1); }
+  55% { transform: scaleX(1.06); }
+}
+
+/* 48 指南針：磁針阻尼擺動尋北 */
+.i-compass .p-needle { transform-origin: 50% 50%; }
+:is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .i-compass .p-needle {
+  animation: kf-compass-seek 0.95s var(--ease-in-out);
+}
+@keyframes kf-compass-seek {
+  0%, 100% { transform: rotate(0deg); }
+  26% { transform: rotate(38deg); }
+  54% { transform: rotate(-22deg); }
+  78% { transform: rotate(9deg); }
+}
+
+/* ── 尊重 prefers-reduced-motion：停用位移與搖擺，保留靜態色階回饋 ── */
+@media (prefers-reduced-motion: reduce) {
+  .switch-thumb,
+  .ico-card {
+    transition: none;
+  }
+  :is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing, .insp-canvas.is-playing) .ico-svg *,
+  .ico-svg * {
+    animation: none !important;
+    transition: none !important;
+  }
+  :is(.ico-card:hover, .ico-card:focus-visible, .ico-card.is-playing) .ico-svg .bg {
+    filter: brightness(0.93);
+  }
+}
+
+/* ── RWD 響應式網格（1440×900 桌機 8 欄、平板 4–6 欄、390×844 手機 3 欄零水平溢出） ── */
+@media (max-width: 1120px) {
+  .icon-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .icon-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .inspector { grid-template-columns: auto 1fr; }
+  .insp-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .topbar-inner { padding: 10px 14px; gap: 10px; }
+  .page-wrap { padding: 14px 14px 36px; }
+  .title-block h1 { font-size: 15px; }
+  .spec-pill { display: none; }
+  .palette-bar { order: 3; width: 100%; }
+  .demo-ticker { display: none !important; }
+  .search-box { flex: 1 1 100%; }
+  .search-box input { width: 100%; }
+  .icon-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ico-card { min-height: 106px; padding: 10px 6px 9px; border-radius: 12px; }
+  .inspector { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+  .insp-canvas { margin: 0 auto; }
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%) translateY(14px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s var(--ease-out);
+  z-index: 60;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-group">
+      <a class="back-link" href="../index.html" aria-label="返回作品集">← 作品集</a>
+      <div class="title-block">
+        <h1>語意微動圖標集 <span class="spec-pill">24px · DUOTONE · 48</span></h1>
+      </div>
+    </div>
+
+    <div class="palette-bar" role="group" aria-label="切換圖標配色">
+      <button type="button" class="pal-btn" data-set-palette="multicolor" aria-pressed="true">
+        <span class="swatch multi" aria-hidden="true"></span>彩色
+      </button>
+      <button type="button" class="pal-btn" data-set-palette="slate" aria-pressed="false" style="--sw-fg:#36536e;--sw-bg:#d8e5f1">
+        <span class="swatch" aria-hidden="true"></span>藍灰
+      </button>
+      <button type="button" class="pal-btn" data-set-palette="celadon" aria-pressed="false" style="--sw-fg:#266b62;--sw-bg:#cfece6">
+        <span class="swatch" aria-hidden="true"></span>青瓷
+      </button>
+      <button type="button" class="pal-btn" data-set-palette="mint" aria-pressed="false" style="--sw-fg:#167c54;--sw-bg:#cbf2df">
+        <span class="swatch" aria-hidden="true"></span>薄荷
+      </button>
+      <button type="button" class="pal-btn" data-set-palette="lavender" aria-pressed="false" style="--sw-fg:#5c479e;--sw-bg:#e4defb">
+        <span class="swatch" aria-hidden="true"></span>薰衣草
+      </button>
+      <button type="button" class="pal-btn" data-set-palette="apricot" aria-pressed="false" style="--sw-fg:#c25624;--sw-bg:#fde1ce">
+        <span class="swatch" aria-hidden="true"></span>杏色
+      </button>
+      <button type="button" class="pal-btn" data-set-palette="mono" aria-pressed="false" style="--sw-fg:#17191e;--sw-bg:#dfe2e8">
+        <span class="swatch" aria-hidden="true"></span>黑色單色
+      </button>
+    </div>
+
+    <div class="demo-wrap">
+      <span class="demo-ticker" id="demoTicker" aria-live="polite">
+        <span class="demo-dot" aria-hidden="true"></span>
+        <span id="demoLabel">01 / 48</span>
+      </span>
+      <button type="button" class="demo-switch" id="demoSwitch" role="switch" aria-checked="false" aria-label="演示：輪流自動播放所有圖標動畫">
+        <span>演示</span>
+        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="page-wrap" id="pageWrap">
+  <section class="hero-strip" aria-label="設計規格與工具">
+    <div class="hero-copy">
+      <p><strong>24×24 像素網格 · 1.8px 圓角筆畫 · 前景主色＋淺色底塊雙層結構</strong>。滑鼠懸停或點選觸發 0.65–0.95 秒語意微動畫，支援減少動態偏好。</p>
+    </div>
+    <div class="toolbar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="searchInput" placeholder="搜尋 48 枚圖標…" aria-label="搜尋圖標">
+        <button type="button" class="clear-q" id="clearQ" hidden aria-label="清除搜尋">×</button>
+      </div>
+      <div class="tool-seg" role="group" aria-label="顯示尺寸">
+        <button type="button" data-size="24px" aria-pressed="false">24px</button>
+        <button type="button" data-size="32px" aria-pressed="true">32px</button>
+        <button type="button" data-size="40px" aria-pressed="false">40px</button>
+      </div>
+      <button type="button" class="grid-toggle" id="gridToggle" aria-pressed="false">24px 網格</button>
+    </div>
+  </section>
+
+  <nav class="group-tabs" id="groupTabs" aria-label="圖標語意分組">
+    <button type="button" class="grp-btn" data-group="all" aria-pressed="true">全部<span class="grp-count">48</span></button>
+    <button type="button" class="grp-btn" data-group="doc" aria-pressed="false">檔案文具<span class="grp-count">4</span></button>
+    <button type="button" class="grp-btn" data-group="nav" aria-pressed="false">探索標記<span class="grp-count">6</span></button>
+    <button type="button" class="grp-btn" data-group="media" aria-pressed="false">影音媒體<span class="grp-count">6</span></button>
+    <button type="button" class="grp-btn" data-group="social" aria-pressed="false">商務互動<span class="grp-count">4</span></button>
+    <button type="button" class="grp-btn" data-group="time" aria-pressed="false">時間地理<span class="grp-count">4</span></button>
+    <button type="button" class="grp-btn" data-group="cloud" aria-pressed="false">雲端通訊<span class="grp-count">7</span></button>
+    <button type="button" class="grp-btn" data-group="sec" aria-pressed="false">安全系統<span class="grp-count">5</span></button>
+    <button type="button" class="grp-btn" data-group="util" aria-pressed="false">工具狀態<span class="grp-count">12</span></button>
+  </nav>
+
+  <!-- ══ 48 枚內嵌 SVG 圖標展示網格 ══ -->
+  <section class="icon-grid" id="iconGrid" aria-label="48 枚動態功能圖標">
+
+    <!-- 01 資料夾 -->
+    <button type="button" class="ico-card is-selected" data-idx="01" data-key="folder" data-group="doc" data-name="資料夾" data-verb="前袋掀開 · 0.78s" data-desc="前袋外傾展開、內夾文件微微上抽後歸位" style="--c-fg:#d97706;--c-bg:#fde68a">
+      <span class="card-meta"><span>01</span><span class="card-verb">掀袋</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-folder" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="fg" d="M3.5 7A2 2 0 0 1 5.5 5h3.8l2 2h7.2a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7Z"/>
+          <g class="p-doc"><rect class="cutout" x="6.5" y="7.8" width="11" height="5" rx="1"/><path class="fg" d="M7 11V8.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V11"/></g>
+          <g class="p-flap"><path class="bg" d="M3.5 11h17v6.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V11Z"/><path class="fg" d="M3.5 11h17v6.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V11Z"/></g>
+        </svg>
+      </span>
+      <span class="card-name">資料夾</span>
+    </button>
+
+    <!-- 02 文件 -->
+    <button type="button" class="ico-card" data-idx="02" data-key="file" data-group="doc" data-name="文件" data-verb="逐行書寫 · 0.75s" data-desc="右上摺角輕彈，三列文字依序描繪浮現" style="--c-fg:#2563eb;--c-bg:#dbeafe">
+      <span class="card-meta"><span>02</span><span class="card-verb">描行</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-file" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="bg" d="M6.5 3.5h7.5l4.5 4.5v10.5a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/>
+          <path class="fg" d="M6.5 3.5h7.5l4.5 4.5v10.5a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/>
+          <path class="fg p-fold" d="M14 3.5V7a1 1 0 0 0 1 1h3.5"/>
+          <line class="fg p-l1" x1="8" y1="11.5" x2="13" y2="11.5"/>
+          <line class="fg p-l2" x1="8" y1="14.5" x2="16" y2="14.5"/>
+          <line class="fg p-l3" x1="8" y1="17.5" x2="14" y2="17.5"/>
+        </svg>
+      </span>
+      <span class="card-name">文件</span>
+    </button>
+
+    <!-- 03 便利貼 -->
+    <button type="button" class="ico-card" data-idx="03" data-key="note" data-group="doc" data-name="便利貼" data-verb="紙角掀起 · 0.78s" data-desc="便利貼自右下角微捲掀起，隨氣流輕晃落定" style="--c-fg:#ca8a04;--c-bg:#fef08a">
+      <span class="card-meta"><span>03</span><span class="card-verb">掀角</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-note" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-sheet">
+            <path class="bg" d="M4.5 4.5h15v10.5l-4.5 4.5H4.5a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z"/>
+            <path class="fg" d="M6.5 4.5h11a2 2 0 0 1 2 2v8.5l-4.5 4.5h-8.5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"/>
+            <path class="fg p-curl" d="M15 19.5V16a1 1 0 0 1 1-1h3.5"/>
+            <line class="fg" x1="8" y1="9.5" x2="16" y2="9.5"/>
+            <line class="fg" x1="8" y1="13" x2="12.5" y2="13"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">便利貼</span>
+    </button>
+
+    <!-- 04 剪貼簿 -->
+    <button type="button" class="ico-card" data-idx="04" data-key="clipboard" data-group="doc" data-name="剪貼簿" data-verb="夾扣打勾 · 0.76s" data-desc="金屬頂夾彈壓扣緊，板面勾選筆畫一氣呵成" style="--c-fg:#0d9488;--c-bg:#ccfbf1">
+      <span class="card-meta"><span>04</span><span class="card-verb">打勾</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-clipboard" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="5" y="5" width="14" height="15.5" rx="2.2"/>
+          <path class="fg" d="M9 5H7a2 2 0 0 0-2 2v11.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <g class="p-clip"><rect class="cutout" x="8.8" y="3.2" width="6.4" height="3.6" rx="1.4"/><rect class="fg" x="8.8" y="3.2" width="6.4" height="3.6" rx="1.4"/></g>
+          <path class="fg p-check" d="M9.2 13.2l2 2 3.8-4.2"/>
+        </svg>
+      </span>
+      <span class="card-name">剪貼簿</span>
+    </button>
+
+    <!-- 05 搜尋 -->
+    <button type="button" class="ico-card" data-idx="05" data-key="search" data-group="nav" data-name="搜尋" data-verb="鏡面掃描 · 0.82s" data-desc="放大鏡左右探照巡檢並伴隨輕微倍率對焦" style="--c-fg:#4f46e5;--c-bg:#e0e7ff">
+      <span class="card-meta"><span>05</span><span class="card-verb">掃描</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-search" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-glass">
+            <circle class="bg" cx="10.8" cy="10.8" r="6.5"/>
+            <circle class="fg" cx="10.8" cy="10.8" r="6.5"/>
+            <path class="fg" d="M8.3 8.8a3.2 3.2 0 0 1 2.5-1"/>
+            <line class="fg" x1="15.5" y1="15.5" x2="20" y2="20"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">搜尋</span>
+    </button>
+
+    <!-- 06 篩選 -->
+    <button type="button" class="ico-card" data-idx="06" data-key="filter" data-group="nav" data-name="篩選" data-verb="過篩滴落 · 0.80s" data-desc="漏斗左右搖晃過濾雜訊，底部濾出一滴精華" style="--c-fg:#7c3aed;--c-bg:#ede9fe">
+      <span class="card-meta"><span>06</span><span class="card-verb">過篩</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-filter" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-funnel">
+            <path class="bg" d="M4 5h16l-6.2 7v5.2l-3.6 1.8V12L4 5Z"/>
+            <path class="fg" d="M4 5h16l-6.2 7v5.2l-3.6 1.8V12L4 5Z"/>
+          </g>
+          <circle class="fg-dot p-drop" cx="12" cy="20.8" r="1.1"/>
+        </svg>
+      </span>
+      <span class="card-name">篩選</span>
+    </button>
+
+    <!-- 07 書籤 -->
+    <button type="button" class="ico-card" data-idx="07" data-key="bookmark" data-group="nav" data-name="書籤" data-verb="絲帶夾頁 · 0.74s" data-desc="燕尾書籤向下拉長夾入書頁後彈性回縮" style="--c-fg:#e11d48;--c-bg:#ffe4e6">
+      <span class="card-meta"><span>07</span><span class="card-verb">夾頁</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-bookmark" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-ribbon">
+            <path class="bg" d="M6.5 5.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14.8L12 16.5l-5.5 3.8V5.5Z"/>
+            <path class="fg" d="M6.5 5.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14.8L12 16.5l-5.5 3.8V5.5Z"/>
+            <line class="fg" x1="9.5" y1="8" x2="14.5" y2="8"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">書籤</span>
+    </button>
+
+    <!-- 08 標籤 -->
+    <button type="button" class="ico-card" data-idx="08" data-key="tag" data-group="nav" data-name="標籤" data-verb="吊牌擺動 · 0.85s" data-desc="以左上穿繩圓孔為支點進行自然阻尼鐘擺搖晃" style="--c-fg:#059669;--c-bg:#d1fae5">
+      <span class="card-meta"><span>08</span><span class="card-verb">搖牌</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-tag" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-body">
+            <path class="bg" fill-rule="evenodd" d="M4.5 11.2V5.8A1.3 1.3 0 0 1 5.8 4.5h5.4l8.3 8.3a1.6 1.6 0 0 1 0 2.2l-4.5 4.5a1.6 1.6 0 0 1-2.2 0l-8.3-8.3Zm3.7-1.7a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6Z"/>
+            <path class="fg" d="M4.5 11.2V5.8A1.3 1.3 0 0 1 5.8 4.5h5.4l8.3 8.3a1.6 1.6 0 0 1 0 2.2l-4.5 4.5a1.6 1.6 0 0 1-2.2 0l-8.3-8.3Z"/>
+            <circle class="fg" cx="8.2" cy="8.2" r="1.2"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">標籤</span>
+    </button>
+
+    <!-- 09 收藏 -->
+    <button type="button" class="ico-card" data-idx="09" data-key="star" data-group="nav" data-name="收藏" data-verb="星芒彈躍 · 0.80s" data-desc="五角星蓄力微縮後旋轉彈起，落定收斂" style="--c-fg:#d97706;--c-bg:#fde68a">
+      <span class="card-meta"><span>09</span><span class="card-verb">星彈</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-star" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-star">
+            <path class="bg" d="m12 3.6 2.5 5.1 5.6.8-4 4 .9 5.6L12 16.4l-5 2.7.9-5.6-4-4 5.6-.8L12 3.6Z"/>
+            <path class="fg" d="m12 3.6 2.5 5.1 5.6.8-4 4 .9 5.6L12 16.4l-5 2.7.9-5.6-4-4 5.6-.8L12 3.6Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">收藏</span>
+    </button>
+
+    <!-- 10 首頁 -->
+    <button type="button" class="ico-card" data-idx="10" data-key="home" data-group="nav" data-name="首頁" data-verb="屋簷輕躍 · 0.75s" data-desc="斜屋頂輕快上揚，屋體與拱門彈性舒展迎賓" style="--c-fg:#ea580c;--c-bg:#ffedd5">
+      <span class="card-meta"><span>10</span><span class="card-verb">迎賓</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-home" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-base">
+            <path class="bg" d="M5.5 10.5L12 5l6.5 5.5V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19v-8.5Z"/>
+            <path class="fg" d="M5.5 10.8V19A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5v-8.2"/>
+            <path class="fg" d="M9.8 20.5v-5a2.2 2.2 0 0 1 4.4 0v5"/>
+          </g>
+          <path class="fg p-roof" d="M3.2 11.6L12 4l8.8 7.6"/>
+        </svg>
+      </span>
+      <span class="card-name">首頁</span>
+    </button>
+
+    <!-- 11 相簿 -->
+    <button type="button" class="ico-card" data-idx="11" data-key="album" data-group="media" data-name="相簿" data-verb="旭日山景 · 0.82s" data-desc="畫框內的太陽冉冉升起，遠近山稜產生柔和視差" style="--c-fg:#0284c7;--c-bg:#e0f2fe">
+      <span class="card-meta"><span>11</span><span class="card-verb">日升</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-album" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="3.8" y="4.5" width="16.4" height="15" rx="2.5"/>
+          <rect class="fg" x="3.8" y="4.5" width="16.4" height="15" rx="2.5"/>
+          <circle class="fg p-sun" cx="8.5" cy="9.2" r="1.5"/>
+          <path class="fg p-mtn" d="m4.5 17.5 4.6-4.4 3.2 2.9 3.4-3.7 4 5.2"/>
+        </svg>
+      </span>
+      <span class="card-name">相簿</span>
+    </button>
+
+    <!-- 12 相機 -->
+    <button type="button" class="ico-card" data-idx="12" data-key="camera" data-group="media" data-name="相機" data-verb="快門對焦 · 0.70s" data-desc="頂部快門鍵壓下，中央鏡頭光圈收縮再張開完成拍攝" style="--c-fg:#4338ca;--c-bg:#e0e7ff">
+      <span class="card-meta"><span>12</span><span class="card-verb">快門</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-camera" viewBox="0 0 24 24" aria-hidden="true">
+          <line class="fg p-shutter" x1="16.5" y1="4.8" x2="18.8" y2="4.8"/>
+          <path class="bg" fill-rule="evenodd" d="M3.5 9A2 2 0 0 1 5.5 7h1.8l1.4-2h6.6l1.4 2h1.8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V9Zm8.5 7.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/>
+          <path class="fg" d="M3.5 9A2 2 0 0 1 5.5 7h1.8l1.4-2h6.6l1.4 2h1.8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V9Z"/>
+          <circle class="fg p-lens" cx="12" cy="13" r="3.4"/>
+        </svg>
+      </span>
+      <span class="card-name">相機</span>
+    </button>
+
+    <!-- 13 影片 -->
+    <button type="button" class="ico-card" data-idx="13" data-key="video" data-group="media" data-name="影片" data-verb="播放推進 · 0.74s" data-desc="螢幕中央播放三角向前衝刺彈跳，暗示即刻開播" style="--c-fg:#e11d48;--c-bg:#ffe4e6">
+      <span class="card-meta"><span>13</span><span class="card-verb">開播</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-video" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="3.2" y="5" width="17.6" height="14" rx="2.8"/>
+          <rect class="fg" x="3.2" y="5" width="17.6" height="14" rx="2.8"/>
+          <g class="p-play">
+            <path class="cutout" d="M10.2 9.3l5.3 2.7-5.3 2.7V9.3Z"/>
+            <path class="fg" d="M10.2 9.3l5.3 2.7-5.3 2.7V9.3Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">影片</span>
+    </button>
+
+    <!-- 14 音樂 -->
+    <button type="button" class="ico-card" data-idx="14" data-key="music" data-group="media" data-name="音樂" data-verb="旋律搖擺 · 0.86s" data-desc="雙連八分音符隨節奏輕盈上下起伏搖曳" style="--c-fg:#c026d3;--c-bg:#fae8ff">
+      <span class="card-meta"><span>14</span><span class="card-verb">躍動</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-music" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-note">
+            <circle class="bg" cx="7" cy="17.2" r="2.6"/>
+            <circle class="bg" cx="16.5" cy="15.2" r="2.6"/>
+            <path class="fg" d="M9.5 17.2V6.4l9.5-2v10.8"/>
+            <line class="fg" x1="9.5" y1="9.5" x2="19" y2="7.5"/>
+            <circle class="fg" cx="7" cy="17.2" r="2.5"/>
+            <circle class="fg" cx="16.5" cy="15.2" r="2.5"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">音樂</span>
+    </button>
+
+    <!-- 15 麥克風 -->
+    <button type="button" class="ico-card" data-idx="15" data-key="mic" data-group="media" data-name="麥克風" data-verb="收音聲波 · 0.76s" data-desc="電容收音頭輕彈共鳴，U 型托架隨聲壓微擴" style="--c-fg:#0891b2;--c-bg:#cffafe">
+      <span class="card-meta"><span>15</span><span class="card-verb">收音</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-mic" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-head">
+            <rect class="bg" x="9" y="3.5" width="6" height="10" rx="3"/>
+            <rect class="fg" x="9" y="3.5" width="6" height="10" rx="3"/>
+          </g>
+          <path class="fg p-wave" d="M5.8 10.8a6.2 6.2 0 0 0 12.4 0"/>
+          <line class="fg" x1="12" y1="17" x2="12" y2="20.5"/>
+          <line class="fg" x1="8.8" y1="20.5" x2="15.2" y2="20.5"/>
+        </svg>
+      </span>
+      <span class="card-name">麥克風</span>
+    </button>
+
+    <!-- 16 耳機 -->
+    <button type="button" class="ico-card" data-idx="16" data-key="headphones" data-group="media" data-name="耳機" data-verb="耳罩律動 · 0.80s" data-desc="頭樑彈性微張，左右雙耳罩跟著重低音對稱律動" style="--c-fg:#7e22ce;--c-bg:#f3e8ff">
+      <span class="card-meta"><span>16</span><span class="card-verb">重拍</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-headphones" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="fg p-band" d="M4.5 13.5V12a7.5 7.5 0 0 1 15 0v1.5"/>
+          <g class="p-cupL"><rect class="bg" x="3.5" y="13" width="3.8" height="6.2" rx="1.8"/><rect class="fg" x="3.5" y="13" width="3.8" height="6.2" rx="1.8"/></g>
+          <g class="p-cupR"><rect class="bg" x="16.7" y="13" width="3.8" height="6.2" rx="1.8"/><rect class="fg" x="16.7" y="13" width="3.8" height="6.2" rx="1.8"/></g>
+        </svg>
+      </span>
+      <span class="card-name">耳機</span>
+    </button>
+
+    <!-- 17 購物車 -->
+    <button type="button" class="ico-card" data-idx="17" data-key="cart" data-group="social" data-name="購物車" data-verb="推車滑行 · 0.82s" data-desc="推車後傾蓄力再向前輕快滑行煞停" style="--c-fg:#ea580c;--c-bg:#ffedd5">
+      <span class="card-meta"><span>17</span><span class="card-verb">滑行</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-cart" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-cart">
+            <path class="bg" d="M6.2 7.2h13.8l-1.6 7.3a1.5 1.5 0 0 1-1.5 1.2H9a1.5 1.5 0 0 1-1.5-1.2L6.2 7.2Z"/>
+            <path class="fg" d="M3.2 4.5h2.2l2.1 10a1.5 1.5 0 0 0 1.5 1.2h7.9a1.5 1.5 0 0 0 1.5-1.2L20 7.2H6.2"/>
+            <circle class="fg" cx="9.5" cy="19.2" r="1.4"/>
+            <circle class="fg" cx="16.8" cy="19.2" r="1.4"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">購物車</span>
+    </button>
+
+    <!-- 18 禮物 -->
+    <button type="button" class="ico-card" data-idx="18" data-key="gift" data-group="social" data-name="禮物" data-verb="開盒驚喜 · 0.82s" data-desc="蝴蝶結與上蓋歡快彈起，盒身彈性擠壓舒展" style="--c-fg:#e11d48;--c-bg:#ffe4e6">
+      <span class="card-meta"><span>18</span><span class="card-verb">開盒</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-gift" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-box">
+            <rect class="bg" x="5" y="11" width="14" height="9" rx="1.6"/>
+            <path class="fg" d="M5 11v7.4A1.6 1.6 0 0 0 6.6 20h10.8a1.6 1.6 0 0 0 1.6-1.6V11"/>
+            <line class="fg" x1="12" y1="11" x2="12" y2="20"/>
+          </g>
+          <g class="p-lid">
+            <rect class="bg" x="3.8" y="7.8" width="16.4" height="3.2" rx="1"/>
+            <rect class="fg" x="3.8" y="7.8" width="16.4" height="3.2" rx="1"/>
+            <path class="fg" d="M12 7.8c-2.4 0-3.8-1.2-3.8-2.4S9.6 3.5 11 4.8L12 7.8Z"/>
+            <path class="fg" d="M12 7.8c2.4 0 3.8-1.2 3.8-2.4S14.4 3.5 13 4.8L12 7.8Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">禮物</span>
+    </button>
+
+    <!-- 19 通知鈴 -->
+    <button type="button" class="ico-card" data-idx="19" data-key="bell" data-group="social" data-name="通知鈴" data-verb="鈴鐺清搖 · 0.88s" data-desc="鈴身繞頂環左右搖擺，下方鈴舌以相位差擺動敲響" style="--c-fg:#d97706;--c-bg:#fef3c7">
+      <span class="card-meta"><span>19</span><span class="card-verb">搖鈴</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-bell" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="fg p-clapper" d="M9.8 18.2a2.3 2.3 0 0 0 4.4 0"/>
+          <g class="p-dome">
+            <path class="bg" d="M6.2 10.2a5.8 5.8 0 0 1 11.6 0c0 4.2 1.8 5.8 1.8 5.8H4.4s1.8-1.6 1.8-5.8Z"/>
+            <line class="fg" x1="12" y1="3.2" x2="12" y2="4.4"/>
+            <path class="fg" d="M6.2 10.2a5.8 5.8 0 0 1 11.6 0c0 4.2 1.8 5.8 1.8 5.8H4.4s1.8-1.6 1.8-5.8Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">通知鈴</span>
+    </button>
+
+    <!-- 20 使用者 -->
+    <button type="button" class="ico-card" data-idx="20" data-key="user" data-group="social" data-name="使用者" data-verb="點頭致意 · 0.76s" data-desc="頭像親切微傾點頭，雙肩隨呼吸柔和展開" style="--c-fg:#2563eb;--c-bg:#dbeafe">
+      <span class="card-meta"><span>20</span><span class="card-verb">致意</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-user" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-head">
+            <circle class="bg" cx="12" cy="8.2" r="3.6"/>
+            <circle class="fg" cx="12" cy="8.2" r="3.6"/>
+          </g>
+          <g class="p-body">
+            <path class="bg" d="M5.2 19.5c0-3.2 3-5.3 6.8-5.3s6.8 2.1 6.8 5.3H5.2Z"/>
+            <path class="fg" d="M5.2 19.5c0-3.2 3-5.3 6.8-5.3s6.8 2.1 6.8 5.3"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">使用者</span>
+    </button>
+
+    <!-- 21 日曆 -->
+    <button type="button" class="ico-card" data-idx="21" data-key="calendar" data-group="time" data-name="日曆" data-verb="撕頁翻閱 · 0.76s" data-desc="日曆內頁繞頂部裝訂環向上掀動翻頁" style="--c-fg:#dc2626;--c-bg:#fee2e2">
+      <span class="card-meta"><span>21</span><span class="card-verb">翻頁</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-calendar" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-page">
+            <rect class="bg" x="4" y="5.2" width="16" height="14.8" rx="2.4"/>
+            <rect class="fg" x="4" y="5.2" width="16" height="14.8" rx="2.4"/>
+            <line class="fg" x1="4" y1="9.6" x2="20" y2="9.6"/>
+            <line class="fg" x1="8.2" y1="13.5" x2="9.2" y2="13.5"/>
+            <line class="fg" x1="12" y1="13.5" x2="15.8" y2="13.5"/>
+            <line class="fg" x1="8.2" y1="16.8" x2="12.5" y2="16.8"/>
+          </g>
+          <line class="fg" x1="8.2" y1="3.4" x2="8.2" y2="6.6"/>
+          <line class="fg" x1="15.8" y1="3.4" x2="15.8" y2="6.6"/>
+        </svg>
+      </span>
+      <span class="card-name">日曆</span>
+    </button>
+
+    <!-- 22 時鐘 -->
+    <button type="button" class="ico-card" data-idx="22" data-key="clock" data-group="time" data-name="時鐘" data-verb="指針走時 · 0.90s" data-desc="分針順時針走滿一圈，帶動短時針推進一格" style="--c-fg:#0284c7;--c-bg:#e0f2fe">
+      <span class="card-meta"><span>22</span><span class="card-verb">走時</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-clock" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="bg" cx="12" cy="12" r="8.4"/>
+          <circle class="fg" cx="12" cy="12" r="8.4"/>
+          <line class="fg p-min" x1="12" y1="12" x2="12" y2="7.2"/>
+          <line class="fg p-hour" x1="12" y1="12" x2="15.2" y2="13.8"/>
+        </svg>
+      </span>
+      <span class="card-name">時鐘</span>
+    </button>
+
+    <!-- 23 地點 -->
+    <button type="button" class="ico-card" data-idx="23" data-key="pin" data-group="time" data-name="地點" data-verb="座標落釘 · 0.78s" data-desc="地標釘騰空躍起後精準落點，地面座標圈隨之擴張" style="--c-fg:#e11d48;--c-bg:#ffe4e6">
+      <span class="card-meta"><span>23</span><span class="card-verb">落釘</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-pin" viewBox="0 0 24 24" aria-hidden="true">
+          <line class="fg p-spot" x1="8.8" y1="20.8" x2="15.2" y2="20.8"/>
+          <g class="p-pin">
+            <path class="bg" fill-rule="evenodd" d="M12 19.6S6 14.5 6 10a6 6 0 1 1 12 0c0 4.5-6 9.6-6 9.6Zm0-7.4a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4Z"/>
+            <path class="fg" d="M12 19.6S6 14.5 6 10a6 6 0 1 1 12 0c0 4.5-6 9.6-6 9.6Z"/>
+            <circle class="fg" cx="12" cy="10" r="2.1"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">地點</span>
+    </button>
+
+    <!-- 24 地球 -->
+    <button type="button" class="ico-card" data-idx="24" data-key="globe" data-group="time" data-name="地球" data-verb="經線自轉 · 0.90s" data-desc="球體微傾，中央經線橢圓縮放呈現立體自轉感" style="--c-fg:#0891b2;--c-bg:#cffafe">
+      <span class="card-meta"><span>24</span><span class="card-verb">自轉</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-globe" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-sphere">
+            <circle class="bg" cx="12" cy="12" r="8.4"/>
+            <circle class="fg" cx="12" cy="12" r="8.4"/>
+            <line class="fg" x1="3.8" y1="12" x2="20.2" y2="12"/>
+            <ellipse class="fg p-meridian" cx="12" cy="12" rx="3.8" ry="8.4"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">地球</span>
+    </button>
+
+    <!-- 25 雲端 -->
+    <button type="button" class="ico-card" data-idx="25" data-key="cloud" data-group="cloud" data-name="雲端" data-verb="雲朵飄浮 · 0.95s" data-desc="蓬鬆雲朵在空中輕盈上下浮動並伴隨呼吸舒展" style="--c-fg:#0284c7;--c-bg:#e0f2fe">
+      <span class="card-meta"><span>25</span><span class="card-verb">浮雲</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-cloud" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-cloud">
+            <path class="bg" d="M6.8 18.2h10.5a3.8 3.8 0 0 0 .5-7.57A5.2 5.2 0 0 0 7.6 9.3a4.3 4.3 0 0 0-.8 8.9Z"/>
+            <path class="fg" d="M6.8 18.2h10.5a3.8 3.8 0 0 0 .5-7.57A5.2 5.2 0 0 0 7.6 9.3a4.3 4.3 0 0 0-.8 8.9Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">雲端</span>
+    </button>
+
+    <!-- 26 上傳 -->
+    <button type="button" class="ico-card" data-idx="26" data-key="upload" data-group="cloud" data-name="上傳" data-verb="箭頭升空 · 0.75s" data-desc="箭頭自底部托盤向上彈射傳送後平順復位" style="--c-fg:#059669;--c-bg:#d1fae5">
+      <span class="card-meta"><span>26</span><span class="card-verb">傳送</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-upload" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="4.5" y="14.5" width="15" height="5.3" rx="2"/>
+          <path class="fg" d="M4.5 16v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2"/>
+          <g class="p-arrow">
+            <line class="fg" x1="12" y1="15" x2="12" y2="4.5"/>
+            <path class="fg" d="m8.2 8.3 3.8-3.8 3.8 3.8"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">上傳</span>
+    </button>
+
+    <!-- 27 下載 -->
+    <button type="button" class="ico-card" data-idx="27" data-key="download" data-group="cloud" data-name="下載" data-verb="落盤接收 · 0.75s" data-desc="箭頭向下墜入接收盤，帶動托盤微幅下沉緩衝" style="--c-fg:#4f46e5;--c-bg:#e0e7ff">
+      <span class="card-meta"><span>27</span><span class="card-verb">接收</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-download" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-tray">
+            <rect class="bg" x="4.5" y="14.5" width="15" height="5.3" rx="2"/>
+            <path class="fg" d="M4.5 16v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2"/>
+          </g>
+          <g class="p-arrow">
+            <line class="fg" x1="12" y1="4.2" x2="12" y2="14.5"/>
+            <path class="fg" d="m8.2 10.7 3.8 3.8 3.8-3.8"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">下載</span>
+    </button>
+
+    <!-- 28 郵件 -->
+    <button type="button" class="ico-card" data-idx="28" data-key="mail" data-group="cloud" data-name="郵件" data-verb="信封拆閱 · 0.80s" data-desc="信封封口沿頂邊折線向上翻開再闔上" style="--c-fg:#2563eb;--c-bg:#dbeafe">
+      <span class="card-meta"><span>28</span><span class="card-verb">拆信</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-mail" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-env">
+            <rect class="bg" x="3.5" y="6" width="17" height="12.5" rx="2.2"/>
+            <rect class="fg" x="3.5" y="6" width="17" height="12.5" rx="2.2"/>
+            <path class="fg p-flap" d="m4 6.8 8 5.7 8-5.7"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">郵件</span>
+    </button>
+
+    <!-- 29 聊天 -->
+    <button type="button" class="ico-card" data-idx="29" data-key="chat" data-group="cloud" data-name="聊天" data-verb="訊息輸入 · 0.85s" data-desc="對話泡泡內三個圓點呈現真實波浪輸入狀態" style="--c-fg:#10b981;--c-bg:#d1fae5">
+      <span class="card-meta"><span>29</span><span class="card-verb">輸入</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-chat" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="bg" d="M4.2 6.8A2.3 2.3 0 0 1 6.5 4.5h11a2.3 2.3 0 0 1 2.3 2.3v7.6a2.3 2.3 0 0 1-2.3 2.3H9.2l-4.2 3.1v-3.1a2.3 2.3 0 0 1-.8-1.7V6.8Z"/>
+          <path class="fg" d="M4.2 6.8A2.3 2.3 0 0 1 6.5 4.5h11a2.3 2.3 0 0 1 2.3 2.3v7.6a2.3 2.3 0 0 1-2.3 2.3H9.2l-4.2 3.1v-3.1a2.3 2.3 0 0 1-.8-1.7V6.8Z"/>
+          <circle class="fg-dot p-d1" cx="8.6" cy="10.8" r="1.15"/>
+          <circle class="fg-dot p-d2" cx="12" cy="10.8" r="1.15"/>
+          <circle class="fg-dot p-d3" cx="15.4" cy="10.8" r="1.15"/>
+        </svg>
+      </span>
+      <span class="card-name">聊天</span>
+    </button>
+
+    <!-- 30 分享 -->
+    <button type="button" class="ico-card" data-idx="30" data-key="share" data-group="cloud" data-name="分享" data-verb="節點擴散 · 0.78s" data-desc="左側起點脈衝發射，上下兩端目標節點依序彈開回應" style="--c-fg:#7c3aed;--c-bg:#ede9fe">
+      <span class="card-meta"><span>30</span><span class="card-verb">擴散</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-share" viewBox="0 0 24 24" aria-hidden="true">
+          <line class="fg" x1="8.2" y1="10.8" x2="15.3" y2="7.1"/>
+          <line class="fg" x1="8.2" y1="13.2" x2="15.3" y2="16.9"/>
+          <g class="p-n1"><circle class="bg" cx="6" cy="12" r="2.5"/><circle class="fg" cx="6" cy="12" r="2.5"/></g>
+          <g class="p-n2"><circle class="bg" cx="17.5" cy="6" r="2.5"/><circle class="fg" cx="17.5" cy="6" r="2.5"/></g>
+          <g class="p-n3"><circle class="bg" cx="17.5" cy="18" r="2.5"/><circle class="fg" cx="17.5" cy="18" r="2.5"/></g>
+        </svg>
+      </span>
+      <span class="card-name">分享</span>
+    </button>
+
+    <!-- 31 連結 -->
+    <button type="button" class="ico-card" data-idx="31" data-key="link" data-group="cloud" data-name="連結" data-verb="鏈環扣合 · 0.76s" data-desc="斜對角雙鏈環微幅拉開張力後緊密扣合" style="--c-fg:#0891b2;--c-bg:#cffafe">
+      <span class="card-meta"><span>31</span><span class="card-verb">扣合</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-link" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="5.8" y="9" width="12.4" height="6" rx="3" transform="rotate(-45 12 12)"/>
+          <path class="fg p-top" d="M10.2 13.8a3.4 3.4 0 0 0 4.8 0l2.8-2.8a3.4 3.4 0 0 0-4.8-4.8l-1.3 1.3"/>
+          <path class="fg p-bot" d="M13.8 10.2a3.4 3.4 0 0 0-4.8 0l-2.8 2.8a3.4 3.4 0 0 0 4.8 4.8l1.3-1.3"/>
+        </svg>
+      </span>
+      <span class="card-name">連結</span>
+    </button>
+
+    <!-- 32 鎖頭 -->
+    <button type="button" class="ico-card" data-idx="32" data-key="lock" data-group="sec" data-name="鎖頭" data-verb="鎖鉤開合 · 0.86s" data-desc="U 型鎖鉤向上彈起旋開解鎖，停頓後喀擦落鎖" style="--c-fg:#d97706;--c-bg:#fef3c7">
+      <span class="card-meta"><span>32</span><span class="card-verb">開鎖</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-lock" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="fg p-shackle" d="M8.2 11V7.6a3.8 3.8 0 0 1 7.6 0V11"/>
+          <g class="p-body">
+            <rect class="bg" x="5.2" y="11" width="13.6" height="9.2" rx="2.4"/>
+            <rect class="fg" x="5.2" y="11" width="13.6" height="9.2" rx="2.4"/>
+            <circle class="fg-dot" cx="12" cy="14.8" r="1.15"/>
+            <line class="fg" x1="12" y1="15.6" x2="12" y2="17.4"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">鎖頭</span>
+    </button>
+
+    <!-- 33 鑰匙 -->
+    <button type="button" class="ico-card" data-idx="33" data-key="key" data-group="sec" data-name="鑰匙" data-verb="旋動開鎖 · 0.80s" data-desc="鑰匙以握柄為軸順時針旋動開啟門鎖" style="--c-fg:#b45309;--c-bg:#fde68a">
+      <span class="card-meta"><span>33</span><span class="card-verb">旋鑰</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-key" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-key">
+            <path class="bg" fill-rule="evenodd" d="M8.2 19.2a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4Zm0-2.9a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6Z"/>
+            <circle class="fg" cx="8.2" cy="15" r="4.1"/>
+            <path class="fg" d="m11.2 12 7.8-7.8 2 2"/>
+            <line class="fg" x1="16" y1="7.2" x2="18" y2="9.2"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">鑰匙</span>
+    </button>
+
+    <!-- 34 盾牌 -->
+    <button type="button" class="ico-card" data-idx="34" data-key="shield" data-group="sec" data-name="盾牌" data-verb="護盾驗證 · 0.78s" data-desc="盾面堅實微張並描繪出中央防護勾選標記" style="--c-fg:#059669;--c-bg:#d1fae5">
+      <span class="card-meta"><span>34</span><span class="card-verb">防護</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-shield" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-shield">
+            <path class="bg" d="M12 3.5l7 2.8v5.2c0 4.6-3 7.8-7 9.3-4-1.5-7-4.7-7-9.3V6.3l7-2.8Z"/>
+            <path class="fg" d="M12 3.5l7 2.8v5.2c0 4.6-3 7.8-7 9.3-4-1.5-7-4.7-7-9.3V6.3l7-2.8Z"/>
+            <path class="fg p-check" d="m9.2 12 2 2 3.8-4"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">盾牌</span>
+    </button>
+
+    <!-- 35 設定 -->
+    <button type="button" class="ico-card" data-idx="35" data-key="settings" data-group="sec" data-name="設定" data-verb="齒輪順轉 · 0.85s" data-desc="八齒機構順時針彈轉 90°，對稱齒位無縫銜接" style="--c-fg:#475569;--c-bg:#e2e8f0">
+      <span class="card-meta"><span>35</span><span class="card-verb">轉動</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-settings" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-gear">
+            <path class="bg" fill-rule="evenodd" d="M10.4 3.6h3.2l.4 1.9c.5.2 1 .4 1.4.7l1.8-.9 2.2 2.2-.9 1.8c.3.4.5.9.7 1.4l1.9.4v3.2l-1.9.4c-.2.5-.4 1-.7 1.4l.9 1.8-2.2 2.2-1.8-.9c-.4.3-.9.5-1.4.7l-.4 1.9h-3.2l-.4-1.9c-.5-.2-1-.4-1.4-.7l-1.8.9-2.2-2.2.9-1.8c-.3-.4-.5-.9-.7-1.4l-1.9-.4v-3.2l1.9-.4c.2-.5.4-1 .7-1.4L5 7.5l2.2-2.2 1.8.9c.4-.3.9-.5 1.4-.7l.4-1.9ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+            <path class="fg" d="M10.4 3.6h3.2l.4 1.9c.5.2 1 .4 1.4.7l1.8-.9 2.2 2.2-.9 1.8c.3.4.5.9.7 1.4l1.9.4v3.2l-1.9.4c-.2.5-.4 1-.7 1.4l.9 1.8-2.2 2.2-1.8-.9c-.4.3-.9.5-1.4.7l-.4 1.9h-3.2l-.4-1.9c-.5-.2-1-.4-1.4-.7l-1.8.9-2.2-2.2.9-1.8c-.3-.4-.5-.9-.7-1.4l-1.9-.4v-3.2l1.9-.4c.2-.5.4-1 .7-1.4L5 7.5l2.2-2.2 1.8.9c.4-.3.9-.5 1.4-.7l.4-1.9Z"/>
+            <circle class="fg" cx="12" cy="12" r="2.9"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">設定</span>
+    </button>
+
+    <!-- 36 圖表 -->
+    <button type="button" class="ico-card" data-idx="36" data-key="chart" data-group="sec" data-name="圖表" data-verb="長條攀升 · 0.80s" data-desc="三組統計長條自底部基線依序回彈拉升" style="--c-fg:#4f46e5;--c-bg:#e0e7ff">
+      <span class="card-meta"><span>36</span><span class="card-verb">攀升</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-chart" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-b1"><rect class="bg" x="5.2" y="12" width="3.4" height="7.5" rx="1"/><rect class="fg" x="5.2" y="12" width="3.4" height="7.5" rx="1"/></g>
+          <g class="p-b2"><rect class="bg" x="10.3" y="8.2" width="3.4" height="11.3" rx="1"/><rect class="fg" x="10.3" y="8.2" width="3.4" height="11.3" rx="1"/></g>
+          <g class="p-b3"><rect class="bg" x="15.4" y="4.8" width="3.4" height="14.7" rx="1"/><rect class="fg" x="15.4" y="4.8" width="3.4" height="14.7" rx="1"/></g>
+          <line class="fg" x1="3.5" y1="19.5" x2="20.5" y2="19.5"/>
+        </svg>
+      </span>
+      <span class="card-name">圖表</span>
+    </button>
+
+    <!-- 37 鉛筆 -->
+    <button type="button" class="ico-card" data-idx="37" data-key="pencil" data-group="util" data-name="鉛筆" data-verb="揮毫書寫 · 0.84s" data-desc="筆桿繞筆尖左右書寫擺動，同時畫出底部墨跡線" style="--c-fg:#ea580c;--c-bg:#ffedd5">
+      <span class="card-meta"><span>37</span><span class="card-verb">書寫</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-pencil" viewBox="0 0 24 24" aria-hidden="true">
+          <line class="fg p-ink" x1="12.5" y1="19.5" x2="20" y2="19.5"/>
+          <g class="p-pen">
+            <path class="bg" d="M15.2 4.5a1.8 1.8 0 0 1 2.5 0l1.8 1.8a1.8 1.8 0 0 1 0 2.5L8.5 19.5H4.5v-4L15.2 4.5Z"/>
+            <path class="fg" d="M15.2 4.5a1.8 1.8 0 0 1 2.5 0l1.8 1.8a1.8 1.8 0 0 1 0 2.5L8.5 19.5H4.5v-4L15.2 4.5Z"/>
+            <line class="fg" x1="13.2" y1="6.5" x2="17.5" y2="10.8"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">鉛筆</span>
+    </button>
+
+    <!-- 38 旗子 -->
+    <button type="button" class="ico-card" data-idx="38" data-key="flag" data-group="util" data-name="旗子" data-verb="迎風飄揚 · 0.86s" data-desc="旗面固定於左側旗桿，受微風吹拂產生波浪擺幅" style="--c-fg:#dc2626;--c-bg:#fee2e2">
+      <span class="card-meta"><span>38</span><span class="card-verb">飄揚</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-flag" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-cloth">
+            <path class="bg" d="M5.5 5c3-1.2 4.8 1.2 7.8 0s4.5 1 6 .2v8.2c-1.5.8-3-1.4-6-.2s-4.8 1.2-7.8 0V5Z"/>
+            <path class="fg" d="M5.5 5c3-1.2 4.8 1.2 7.8 0s4.5 1 6 .2v8.2c-1.5.8-3-1.4-6-.2s-4.8 1.2-7.8 0"/>
+          </g>
+          <line class="fg" x1="5.5" y1="3.8" x2="5.5" y2="20.2"/>
+        </svg>
+      </span>
+      <span class="card-name">旗子</span>
+    </button>
+
+    <!-- 39 眼睛 -->
+    <button type="button" class="ico-card" data-idx="39" data-key="eye" data-group="util" data-name="眼睛" data-verb="眨眼凝視 · 0.76s" data-desc="上下眼瞼輕柔閉合眨眼，睜開後瞳孔微移聚焦" style="--c-fg:#0d9488;--c-bg:#ccfbf1">
+      <span class="card-meta"><span>39</span><span class="card-verb">眨眼</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-eye" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-lid">
+            <path class="bg" d="M3 12s3.4-5.8 9-5.8 9 5.8 9 5.8-3.4 5.8-9 5.8S3 12 3 12Z"/>
+            <path class="fg" d="M3 12s3.4-5.8 9-5.8 9 5.8 9 5.8-3.4 5.8-9 5.8S3 12 3 12Z"/>
+            <circle class="fg p-pupil" cx="12" cy="12" r="2.6"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">眼睛</span>
+    </button>
+
+    <!-- 40 問號 -->
+    <button type="button" class="ico-card" data-idx="40" data-key="help" data-group="util" data-name="問號" data-verb="好奇歪頭 · 0.80s" data-desc="圓章內的問號輕跳歪頭，表現探索與提問語氣" style="--c-fg:#7c3aed;--c-bg:#ede9fe">
+      <span class="card-meta"><span>40</span><span class="card-verb">提問</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-help" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="bg" cx="12" cy="12" r="8.5"/>
+          <circle class="fg" cx="12" cy="12" r="8.5"/>
+          <g class="p-mark">
+            <path class="fg" d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"/>
+            <circle class="fg-dot" cx="12" cy="16.6" r="1"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">問號</span>
+    </button>
+
+    <!-- 41 電池 -->
+    <button type="button" class="ico-card" data-idx="41" data-key="battery" data-group="util" data-name="電池" data-verb="逐格快充 · 0.80s" data-desc="電池艙內三道電量格由左至右依序亮起充飽" style="--c-fg:#16a34a;--c-bg:#dcfce7">
+      <span class="card-meta"><span>41</span><span class="card-verb">充電</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-battery" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="3" y="7" width="15.8" height="10" rx="2.2"/>
+          <rect class="fg" x="3" y="7" width="15.8" height="10" rx="2.2"/>
+          <line class="fg" x1="21" y1="10.3" x2="21" y2="13.7"/>
+          <line class="fg p-c1" x1="7" y1="10.2" x2="7" y2="13.8"/>
+          <line class="fg p-c2" x1="10.9" y1="10.2" x2="10.9" y2="13.8"/>
+          <line class="fg p-c3" x1="14.8" y1="10.2" x2="14.8" y2="13.8"/>
+        </svg>
+      </span>
+      <span class="card-name">電池</span>
+    </button>
+
+    <!-- 42 Wi-Fi -->
+    <button type="button" class="ico-card" data-idx="42" data-key="wifi" data-group="util" data-name="Wi-Fi" data-verb="訊號滿格 · 0.82s" data-desc="無線電波自底部圓點由近至遠層層向外擴散" style="--c-fg:#0284c7;--c-bg:#e0f2fe">
+      <span class="card-meta"><span>42</span><span class="card-verb">滿格</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-wifi" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="bg" d="M3.5 9.6a12.2 12.2 0 0 1 17 0L12 18.5 3.5 9.6Z"/>
+          <circle class="fg-dot" cx="12" cy="18.2" r="1.25"/>
+          <path class="fg p-w1" d="M8.8 15a4.6 4.6 0 0 1 6.4 0"/>
+          <path class="fg p-w2" d="M6 12.2a8.5 8.5 0 0 1 12 0"/>
+          <path class="fg p-w3" d="M3.2 9.4a12.5 12.5 0 0 1 17.6 0"/>
+        </svg>
+      </span>
+      <span class="card-name">Wi-Fi</span>
+    </button>
+
+    <!-- 43 愛心 -->
+    <button type="button" class="ico-card" data-idx="43" data-key="heart" data-group="util" data-name="愛心" data-verb="雙搏心跳 · 0.82s" data-desc="模擬真實心臟撲通、撲通兩段式溫潤搏動" style="--c-fg:#e11d48;--c-bg:#ffe4e6">
+      <span class="card-meta"><span>43</span><span class="card-verb">心跳</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-heart" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-heart">
+            <path class="bg" d="M12 19.8S3.8 14.6 3.8 9.2A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.2 2.9c0 5.4-8.2 10.6-8.2 10.6Z"/>
+            <path class="fg" d="M12 19.8S3.8 14.6 3.8 9.2A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.2 2.9c0 5.4-8.2 10.6-8.2 10.6Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">愛心</span>
+    </button>
+
+    <!-- 44 印表機 -->
+    <button type="button" class="ico-card" data-idx="44" data-key="printer" data-group="util" data-name="印表機" data-verb="進紙吐印 · 0.85s" data-desc="上方紙匣微進，下方印妥文件順暢滑出機身" style="--c-fg:#4338ca;--c-bg:#e0e7ff">
+      <span class="card-meta"><span>44</span><span class="card-verb">吐紙</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-printer" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="fg p-in" d="M7.2 7.5V4h9.6v3.5"/>
+          <rect class="bg" x="3.8" y="7.5" width="16.4" height="8.5" rx="2"/>
+          <path class="fg" d="M7 16H5.5a1.7 1.7 0 0 1-1.7-1.7V9.5a2 2 0 0 1 2-2h12.4a2 2 0 0 1 2 2v4.8a1.7 1.7 0 0 1-1.7 1.7H17"/>
+          <g class="p-out">
+            <rect class="cutout" x="7.2" y="13.2" width="9.6" height="6.6" rx="1"/>
+            <rect class="fg" x="7.2" y="13.2" width="9.6" height="6.6" rx="1"/>
+            <line class="fg" x1="9.6" y1="16.5" x2="14.4" y2="16.5"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">印表機</span>
+    </button>
+
+    <!-- 45 垃圾桶 -->
+    <button type="button" class="ico-card" data-idx="45" data-key="trash" data-group="util" data-name="垃圾桶" data-verb="桶蓋掀開 · 0.80s" data-desc="桶蓋繞左側鉸鏈上掀 25°，再清脆蓋回桶身" style="--c-fg:#dc2626;--c-bg:#fee2e2">
+      <span class="card-meta"><span>45</span><span class="card-verb">掀蓋</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-trash" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-bin">
+            <path class="bg" d="M6.3 7.2h11.4l-.9 11.3a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8l-.9-11.3Z"/>
+            <path class="fg" d="M6.3 7.2h11.4l-.9 11.3a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8l-.9-11.3Z"/>
+            <line class="fg" x1="10.2" y1="11" x2="10.2" y2="16.5"/>
+            <line class="fg" x1="13.8" y1="11" x2="13.8" y2="16.5"/>
+          </g>
+          <g class="p-lid">
+            <line class="fg" x1="4.5" y1="7.2" x2="19.5" y2="7.2"/>
+            <path class="fg" d="M9.5 7.2V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2v2"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">垃圾桶</span>
+    </button>
+
+    <!-- 46 鬧鐘 -->
+    <button type="button" class="ico-card" data-idx="46" data-key="alarm" data-group="util" data-name="鬧鐘" data-verb="響鈴跳動 · 0.76s" data-desc="整座雙耳鬧鐘騰空離地並高頻左右震動報時" style="--c-fg:#ea580c;--c-bg:#ffedd5">
+      <span class="card-meta"><span>46</span><span class="card-verb">響鈴</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-alarm" viewBox="0 0 24 24" aria-hidden="true">
+          <g class="p-clock">
+            <circle class="bg" cx="12" cy="13" r="6.8"/>
+            <circle class="fg" cx="12" cy="13" r="6.8"/>
+            <path class="fg" d="M12 9.6V13l2.3 1.5"/>
+            <line class="fg" x1="4.5" y1="6.4" x2="7.4" y2="4"/>
+            <line class="fg" x1="19.5" y1="6.4" x2="16.6" y2="4"/>
+            <line class="fg" x1="7.6" y1="18.6" x2="6" y2="20.4"/>
+            <line class="fg" x1="16.4" y1="18.6" x2="18" y2="20.4"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">鬧鐘</span>
+    </button>
+
+    <!-- 47 計算機 -->
+    <button type="button" class="ico-card" data-idx="47" data-key="calc" data-group="util" data-name="計算機" data-verb="按鍵演算 · 0.78s" data-desc="數字鍵依序點按觸發，上方液晶視窗同步回饋" style="--c-fg:#0f766e;--c-bg:#ccfbf1">
+      <span class="card-meta"><span>47</span><span class="card-verb">演算</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-calc" viewBox="0 0 24 24" aria-hidden="true">
+          <rect class="bg" x="5.2" y="3.5" width="13.6" height="17" rx="2.4"/>
+          <rect class="fg" x="5.2" y="3.5" width="13.6" height="17" rx="2.4"/>
+          <g class="p-scr">
+            <rect class="cutout" x="7.8" y="6" width="8.4" height="3.4" rx="0.9"/>
+            <rect class="fg" x="7.8" y="6" width="8.4" height="3.4" rx="0.9"/>
+          </g>
+          <circle class="fg-dot p-k1" cx="8.8" cy="13.2" r="1"/>
+          <circle class="fg-dot" cx="12" cy="13.2" r="1"/>
+          <circle class="fg-dot p-k3" cx="15.2" cy="13.2" r="1"/>
+          <circle class="fg-dot" cx="8.8" cy="16.8" r="1"/>
+          <circle class="fg-dot p-k2" cx="12" cy="16.8" r="1"/>
+          <circle class="fg-dot" cx="15.2" cy="16.8" r="1"/>
+        </svg>
+      </span>
+      <span class="card-name">計算機</span>
+    </button>
+
+    <!-- 48 指南針 -->
+    <button type="button" class="ico-card" data-idx="48" data-key="compass" data-group="util" data-name="指南針" data-verb="磁針尋北 · 0.95s" data-desc="菱形磁針大幅偏轉後，以真實磁場阻尼收斂回北方" style="--c-fg:#1d4ed8;--c-bg:#dbeafe">
+      <span class="card-meta"><span>48</span><span class="card-verb">尋北</span></span>
+      <span class="glyph-stage">
+        <svg class="ico-svg i-compass" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="bg" cx="12" cy="12" r="8.5"/>
+          <circle class="fg" cx="12" cy="12" r="8.5"/>
+          <g class="p-needle">
+            <path class="cutout" d="m10.3 10.3 5.2-1.8-1.8 5.2-5.2 1.8 1.8-5.2Z"/>
+            <path class="fg" d="m10.3 10.3 5.2-1.8-1.8 5.2-5.2 1.8 1.8-5.2Z"/>
+          </g>
+        </svg>
+      </span>
+      <span class="card-name">指南針</span>
+    </button>
+
+  </section>
+
+  <div class="empty-state" id="emptyState" hidden>
+    <div>找不到符合條件的圖標</div>
+    <button type="button" id="resetFilter">顯示全部 48 枚圖標</button>
+  </div>
+
+  <!-- ══ 底部即時 24px 標本放大與程式碼複製台 ══ -->
+  <section class="inspector" id="inspector" aria-label="圖標標本檢視器">
+    <div class="insp-canvas" id="inspCanvas" title="點擊重播此圖標微動畫" style="--c-fg:#d97706;--c-bg:#fde68a"></div>
+    <div class="insp-info">
+      <h2>
+        <span id="inspName">01 · 資料夾</span>
+        <span class="code" id="inspVerb">前袋掀開 · 0.78s</span>
+      </h2>
+      <p id="inspDesc">前袋外傾展開、內夾文件微微上抽後歸位</p>
+      <div class="scale-strip" id="scaleStrip" aria-label="實寸視覺重量對照"></div>
+    </div>
+    <div class="insp-actions">
+      <button type="button" class="act-btn" id="replayBtn">重播動畫</button>
+      <button type="button" class="act-btn primary" id="copySvgBtn">複製 SVG</button>
+    </div>
+  </section>
+
+  <footer class="foot-note">
+    <span>DUOTONE 24 · 48 枚純內嵌 SVG + CSS @keyframes 動態圖標標本</span>
+    <span>提示：按空白鍵可切換右上角「演示」自動輪播</span>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const root = document.documentElement;
+  const pageWrap = document.getElementById('pageWrap');
+  const cards = Array.from(document.querySelectorAll('.ico-card'));
+  const palBtns = Array.from(document.querySelectorAll('[data-set-palette]'));
+  const sizeBtns = Array.from(document.querySelectorAll('[data-size]'));
+  const grpBtns = Array.from(document.querySelectorAll('[data-group]'));
+  const gridToggle = document.getElementById('gridToggle');
+  const searchInput = document.getElementById('searchInput');
+  const clearQ = document.getElementById('clearQ');
+  const emptyState = document.getElementById('emptyState');
+  const resetFilter = document.getElementById('resetFilter');
+
+  const demoSwitch = document.getElementById('demoSwitch');
+  const demoTicker = document.getElementById('demoTicker');
+  const demoLabel = document.getElementById('demoLabel');
+
+  const inspCanvas = document.getElementById('inspCanvas');
+  const inspName = document.getElementById('inspName');
+  const inspVerb = document.getElementById('inspVerb');
+  const inspDesc = document.getElementById('inspDesc');
+  const scaleStrip = document.getElementById('scaleStrip');
+  const replayBtn = document.getElementById('replayBtn');
+  const copySvgBtn = document.getElementById('copySvgBtn');
+  const toastEl = document.getElementById('toast');
+
+  let activeGroup = 'all';
+  let query = '';
+  let selectedCard = cards[0];
+  let demoTimer = null;
+  let demoIndex = 0;
+  let toastTimer = null;
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+  }
+
+  /* ── 1) 頂部七組配色切換（CSS 變數） ── */
+  function setPalette(pal) {
+    root.setAttribute('data-palette', pal);
+    palBtns.forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(btn.dataset.setPalette === pal));
+    });
+  }
+  palBtns.forEach((btn) => {
+    btn.addEventListener('click', () => setPalette(btn.dataset.setPalette));
+  });
+
+  /* ── 2) 尺寸與 24px 網格線切換 ── */
+  sizeBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      root.style.setProperty('--icon-size', btn.dataset.size);
+      sizeBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    });
+  });
+
+  gridToggle.addEventListener('click', () => {
+    const next = gridToggle.getAttribute('aria-pressed') !== 'true';
+    gridToggle.setAttribute('aria-pressed', String(next));
+    pageWrap.classList.toggle('show-grid', next);
+  });
+
+  /* ── 3) 搜尋與語意分組篩選 ── */
+  function visibleCards() {
+    return cards.filter((c) => !c.hidden);
+  }
+
+  function applyFilter() {
+    const q = query.trim().toLowerCase();
+    let shown = 0;
+    cards.forEach((card) => {
+      const matchGroup = activeGroup === 'all' || card.dataset.group === activeGroup;
+      const hay = `${card.dataset.idx} ${card.dataset.name} ${card.dataset.key} ${card.dataset.verb}`.toLowerCase();
+      const matchQ = !q || hay.includes(q);
+      const ok = matchGroup && matchQ;
+      card.hidden = !ok;
+      if (ok) shown++;
+    });
+    emptyState.hidden = shown > 0;
+    clearQ.hidden = !query.length;
+    if (demoTimer && shown === 0) stopDemo();
+  }
+
+  searchInput.addEventListener('input', () => {
+    query = searchInput.value;
+    applyFilter();
+  });
+  clearQ.addEventListener('click', () => {
+    searchInput.value = '';
+    query = '';
+    applyFilter();
+    searchInput.focus();
+  });
+  resetFilter.addEventListener('click', () => {
+    searchInput.value = '';
+    query = '';
+    activeGroup = 'all';
+    grpBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.group === 'all')));
+    applyFilter();
+  });
+  grpBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeGroup = btn.dataset.group;
+      grpBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      applyFilter();
+    });
+  });
+
+  /* ── 4) 標本檢視台與單枚重播／複製 ── */
+  function triggerPlay(el, duration = 920) {
+    el.classList.remove('is-playing');
+    void el.offsetWidth;
+    el.classList.add('is-playing');
+    clearTimeout(el._playT);
+    el._playT = setTimeout(() => el.classList.remove('is-playing'), duration);
+  }
+
+  function selectCard(card, play = true) {
+    selectedCard = card;
+    cards.forEach((c) => c.classList.toggle('is-selected', c === card));
+    const fg = card.style.getPropertyValue('--c-fg');
+    const bg = card.style.getPropertyValue('--c-bg');
+    inspCanvas.style.setProperty('--c-fg', fg);
+    inspCanvas.style.setProperty('--c-bg', bg);
+
+    const svgClone = card.querySelector('svg').cloneNode(true);
+    inspCanvas.replaceChildren(svgClone);
+    inspName.textContent = `${card.dataset.idx} · ${card.dataset.name}`;
+    inspVerb.textContent = card.dataset.verb;
+    inspDesc.textContent = card.dataset.desc;
+
+    scaleStrip.innerHTML = '';
+    [16, 20, 24, 32].forEach((px) => {
+      const wrap = document.createElement('span');
+      wrap.className = 'scale-item';
+      wrap.style.setProperty('--c-fg', fg);
+      wrap.style.setProperty('--c-bg', bg);
+      const s = card.querySelector('svg').cloneNode(true);
+      s.style.width = `${px}px`;
+      s.style.height = `${px}px`;
+      const lbl = document.createElement('span');
+      lbl.textContent = `${px}px`;
+      wrap.append(s, lbl);
+      scaleStrip.appendChild(wrap);
+    });
+
+    if (play) {
+      triggerPlay(card);
+      triggerPlay(inspCanvas);
+    }
+  }
+
+  cards.forEach((card) => {
+    card.addEventListener('click', () => selectCard(card, true));
+  });
+  inspCanvas.addEventListener('click', () => triggerPlay(inspCanvas));
+  replayBtn.addEventListener('click', () => {
+    triggerPlay(selectedCard);
+    triggerPlay(inspCanvas);
+  });
+
+  copySvgBtn.addEventListener('click', async () => {
+    const cs = getComputedStyle(selectedCard);
+    const fg = cs.getPropertyValue('--ico-fg').trim() || '#2563eb';
+    const bg = cs.getPropertyValue('--ico-bg').trim() || '#dbeafe';
+    const clone = selectedCard.querySelector('svg').cloneNode(true);
+    clone.removeAttribute('class');
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', '24');
+    clone.setAttribute('height', '24');
+    clone.setAttribute('fill', 'none');
+    clone.querySelectorAll('.bg').forEach((n) => { n.removeAttribute('class'); n.setAttribute('fill', bg); });
+    clone.querySelectorAll('.cutout').forEach((n) => { n.removeAttribute('class'); n.setAttribute('fill', '#ffffff'); });
+    clone.querySelectorAll('.fg-dot').forEach((n) => { n.removeAttribute('class'); n.setAttribute('fill', fg); });
+    clone.querySelectorAll('.fg').forEach((n) => {
+      n.removeAttribute('class');
+      n.setAttribute('fill', 'none');
+      n.setAttribute('stroke', fg);
+      n.setAttribute('stroke-width', '1.8');
+      n.setAttribute('stroke-linecap', 'round');
+      n.setAttribute('stroke-linejoin', 'round');
+    });
+    clone.querySelectorAll('[class]').forEach((n) => n.removeAttribute('class'));
+    const markup = `<!-- ${selectedCard.dataset.name} (24px Duotone) -->\n${clone.outerHTML}`;
+    try {
+      await navigator.clipboard.writeText(markup);
+      showToast(`已複製「${selectedCard.dataset.name}」獨立 SVG`);
+    } catch {
+      showToast(`已選取「${selectedCard.dataset.name}」SVG`);
+    }
+  });
+
+  /* ── 5) 右上角「演示」開關：所有圖標輪流自動播放動畫 ── */
+  function stepDemo() {
+    const list = visibleCards();
+    if (!list.length) return;
+    if (demoIndex >= list.length) demoIndex = 0;
+    const current = list[demoIndex];
+    cards.forEach((c) => {
+      if (c !== current) c.classList.remove('is-playing');
+    });
+    triggerPlay(current, 880);
+    selectCard(current, false);
+    triggerPlay(inspCanvas, 880);
+    demoLabel.textContent = `${current.dataset.idx} · ${current.dataset.name}`;
+    demoIndex = (demoIndex + 1) % list.length;
+  }
+
+  function startDemo() {
+    if (demoTimer) return;
+    demoSwitch.setAttribute('aria-checked', 'true');
+    demoTicker.classList.add('visible');
+    const list = visibleCards();
+    const curIdx = list.indexOf(selectedCard);
+    demoIndex = curIdx >= 0 ? curIdx : 0;
+    stepDemo();
+    demoTimer = setInterval(stepDemo, 720);
+  }
+
+  function stopDemo() {
+    clearInterval(demoTimer);
+    demoTimer = null;
+    demoSwitch.setAttribute('aria-checked', 'false');
+    demoTicker.classList.remove('visible');
+    cards.forEach((c) => c.classList.remove('is-playing'));
+  }
+
+  demoSwitch.addEventListener('click', () => {
+    if (demoTimer) stopDemo();
+    else startDemo();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && document.activeElement !== searchInput && document.activeElement?.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (demoTimer) stopDemo();
+      else startDemo();
+    }
+  });
+
+  selectCard(cards[0], false);
+})();
+</script>
+</body>
+</html>

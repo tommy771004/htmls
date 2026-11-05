@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>墨嶺行 · Ink Ridge</title>
+<meta name="description" content="水墨風第三人稱 3D 平台解謎原型：戴斗笠的旅人登上雲海裡的試劍崖，跑跳、抓岩縫、橫移上攀、敲鐘升吊台、開山門。">
+<meta name="theme-color" content="#e4d6b8">
+<style>
+:root {
+  --paper: #ece1c8; --paper2: #e0d2b2; --ink: #17171c; --ink2: #3b3a3d; --red: #a63a2d; --mute: #6b6559;
+  --serif: "Songti TC", "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "MingLiU", serif;
+  --brush: "Kaiti TC", "BiauKai", "STKaiti", "DFKai-SB", "標楷體", "Songti TC", serif;
+  --g: max(14px, env(safe-area-inset-left));
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; overflow: hidden; background: #e4d6b8; overscroll-behavior: none; }
+body { font-family: var(--serif); color: var(--ink); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* 區段名：左上直書感的楷書＋朱印 */
+#sec { position: fixed; left: var(--g); top: 16px; display: flex; align-items: center; gap: 10px; pointer-events: none; opacity: 0; transition: opacity .6s; }
+#sec.on { opacity: 1; }
+#sec b { font-family: var(--brush); font-weight: 400; font-size: 26px; letter-spacing: .12em; color: var(--ink); text-shadow: 0 0 10px rgba(236,225,200,.9), 0 0 3px rgba(236,225,200,.9); }
+.seal { display: inline-grid; place-items: center; width: 30px; height: 30px; background: var(--red); color: #f3e6cf; font-family: var(--brush); font-size: 15px; line-height: 1; border-radius: 3px; transform: rotate(-4deg); box-shadow: inset 0 0 0 2px rgba(243,230,207,.35); }
+#meta { position: fixed; right: calc(var(--g) + 50px); top: 18px; padding: 2px 8px; background: rgba(236,225,200,.78); border-radius: 2px; text-align: right; font-size: 14px; color: var(--ink2); letter-spacing: .08em; text-shadow: 0 0 10px rgba(236,225,200,1), 0 0 4px rgba(236,225,200,1), 0 0 2px rgba(236,225,200,.95); pointer-events: none; opacity: 0; transition: opacity .6s; font-variant-numeric: tabular-nums; }
+#meta.on { opacity: 1; }
+#pauseBtn { position: fixed; right: var(--g); top: 12px; width: 42px; height: 42px; border: 1.5px solid var(--ink); border-radius: 50%; background: rgba(236,225,200,.7); font-size: 15px; letter-spacing: -1px; display: none; }
+#pauseBtn.on { display: block; }
+
+/* 教學字幕：下方置中、斜體襯線，底下一道淡墨 */
+#hint { position: fixed; left: 50%; bottom: max(30px, calc(env(safe-area-inset-bottom) + 22px)); transform: translateX(-50%); max-width: min(680px, calc(100vw - 2 * var(--g))); padding: 10px 26px 12px; font-size: 17px; font-style: italic; letter-spacing: .06em; text-align: center; color: #f4ead4; pointer-events: none; opacity: 0; transition: opacity .45s;
+  background: radial-gradient(ellipse 60% 70% at 50% 55%, rgba(18,18,22,.78), rgba(18,18,22,.45) 55%, transparent 75%); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+#hint.on { opacity: 1; }
+body.touch #hint { bottom: 196px; font-size: 15px; }
+
+/* 開場、暫停、過關卡片：宣紙＋墨框 */
+.card { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 2 * var(--g))); max-height: calc(100vh - 32px); overflow: auto; padding: 30px 32px 26px; background: var(--paper);
+  border: 2px solid var(--ink); box-shadow: 0 0 0 6px var(--paper), 0 0 0 7px rgba(23,23,28,.55), 0 24px 60px rgba(40,30,20,.35); }
+.card[hidden] { display: none; }
+.card h1 { font-family: var(--brush); font-weight: 400; font-size: 54px; letter-spacing: .2em; line-height: 1.05; display: flex; align-items: center; gap: 14px; }
+.card h1 .seal { width: 42px; height: 42px; font-size: 20px; }
+.card h2 { font-family: var(--brush); font-weight: 400; font-size: 34px; letter-spacing: .14em; }
+.sub { margin-top: 8px; font-size: 13px; letter-spacing: .24em; color: var(--mute); }
+.card p { margin-top: 14px; font-size: 15px; line-height: 1.75; color: var(--ink2); }
+.keys { margin-top: 16px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; line-height: 1.5; }
+.keys dt { font-weight: 700; white-space: nowrap; }
+.keys dd { color: var(--ink2); }
+.k-touch { display: none; }
+body.touch .k-desk { display: none; }
+body.touch .k-touch { display: grid; }
+.row { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { padding: 10px 26px; border: 2px solid var(--ink); background: var(--ink); color: var(--paper); font-family: var(--brush); font-size: 21px; letter-spacing: .3em; border-radius: 2px; transition: transform .12s cubic-bezier(.2,.8,.2,1), background .2s; }
+.btn:hover { background: #2c2b30; }
+.btn:active { transform: scale(.97); }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.ghost:hover { background: rgba(23,23,28,.06); }
+.stats { margin-top: 14px; display: flex; gap: 22px; font-size: 14px; color: var(--ink2); }
+.stats b { display: block; font-size: 26px; font-family: var(--brush); font-weight: 400; color: var(--ink); }
+.lvs { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.lvs a { padding: 5px 14px; border: 1.5px solid var(--ink); border-radius: 2px; font-family: var(--brush); font-size: 17px; letter-spacing: .1em; color: var(--ink); text-decoration: none; }
+.lvs a.on { background: var(--ink); color: var(--paper); }
+.note a { color: inherit; }
+.note { margin-top: 14px; font-size: 13px; color: var(--mute); line-height: 1.7; }
+#veil { position: fixed; inset: 0; background: rgba(228,214,184,.35); pointer-events: none; opacity: 0; transition: opacity .3s; }
+#veil.on { opacity: 1; }
+
+/* 觸控：左下搖桿、右下「躍」「擊」 */
+#pad { display: none; }
+body.touch #pad.on { display: block; }
+#stick { position: fixed; left: max(22px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom)); width: 134px; height: 134px; border-radius: 50%; border: 2px solid rgba(23,23,28,.55); background: radial-gradient(circle, rgba(236,225,200,.35), rgba(236,225,200,.12)); touch-action: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(23,23,28,.72); box-shadow: 0 0 0 3px rgba(236,225,200,.5); pointer-events: none; }
+.pb { position: fixed; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--ink); background: rgba(236,225,200,.78); font-family: var(--brush); color: var(--ink); touch-action: none; transition: transform .08s; }
+.pb.on { transform: scale(.92); background: var(--ink); color: var(--paper); }
+#bJump { right: max(24px, env(safe-area-inset-right)); bottom: max(34px, env(safe-area-inset-bottom)); width: 84px; height: 84px; font-size: 30px; }
+#bStrike { right: max(122px, calc(env(safe-area-inset-right) + 100px)); bottom: max(60px, calc(env(safe-area-inset-bottom) + 26px)); width: 62px; height: 62px; font-size: 24px; border-color: var(--red); color: var(--red); }
+#bStrike.on { background: var(--red); color: var(--paper); }
+@media (max-width: 520px) { .card { padding: 24px 22px 20px; } .card h1 { font-size: 44px; } #sec b { font-size: 21px; } }
+@media (prefers-reduced-motion: reduce) { #sec, #meta, #hint, #veil { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="墨嶺行遊戲畫面"></canvas>
+<div id="sec"><span class="seal">嶺</span><b id="secName">壹 · 石階</b></div>
+<div id="meta"><span id="tm">0:00</span>　墜 <span id="falls">0</span></div>
+<button id="pauseBtn" aria-label="暫停">❙❙</button>
+<div id="hint" role="status" aria-live="polite"></div>
+<div id="veil"></div>
+
+<div id="pad">
+  <div id="stick"><div id="knob"></div></div>
+  <button class="pb" id="bStrike" data-k="strike" aria-label="出手">擊</button>
+  <button class="pb" id="bJump" data-k="jump" aria-label="跳">躍</button>
+</div>
+
+<section class="card" id="intro">
+  <h1>墨嶺行<span class="seal">試</span></h1>
+  <div class="sub" id="lvSub">INK RIDGE · 第一關「試劍崖」</div>
+  <div class="lvs"><a href="?lv=1" data-lv="1">壹　試劍崖</a><a href="?lv=2" data-lv="2">貳　寒潭渡</a></div>
+  <p id="lvText">雲海上的試劍崖只有一條路：石階、踏石、岩縫、崖道，最後敲響山門的鐘。戴斗笠的旅人一路往上，掉下去就回到最後點亮的石燈籠。</p>
+  <dl class="keys k-desk">
+    <dt>WASD</dt><dd>移動（相對鏡頭）</dd>
+    <dt>空白鍵</dt><dd>跳；掛在岩縫上時配合方向側跳</dd>
+    <dt>滑鼠</dt><dd>點畫面鎖定後轉鏡頭；也可以直接拖曳</dd>
+    <dt>J／左鍵</dt><dd>出手、敲鐘</dd>
+    <dt>掛邊時</dt><dd>W 上攀　A／D 橫移　S 放手　S＋空白 往後躍</dd>
+    <dt>Esc</dt><dd>暫停與說明</dd>
+  </dl>
+  <dl class="keys k-touch">
+    <dt>左下搖桿</dt><dd>移動；掛在岩縫上時：上＝攀、左右＝橫移、下＝放手</dd>
+    <dt>躍</dt><dd>跳；搖桿往左右再按＝側跳，往下再按＝往後躍</dd>
+    <dt>擊</dt><dd>出手、敲鐘</dd>
+    <dt>右半邊拖曳</dt><dd>轉鏡頭</dd>
+  </dl>
+  <div class="row"><button class="btn" id="startBtn">啟程</button></div>
+  <p class="note">主角模型改作自 <a href="https://sketchfab.com/3d-models/wuxia-chinese-swordman-a57812f2b6a74354a4978a3883fe6167" target="_blank" rel="noopener">wuxia chinese swordman</a>，作者 xiamilisite，<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>（已加骨架、放大斗笠、調整貼圖與材質）。</p>
+</section>
+
+<section class="card" id="pause" hidden>
+  <h2>暫歇</h2>
+  <dl class="keys k-desk">
+    <dt>WASD</dt><dd>移動　空白鍵 跳　J／左鍵 出手</dd>
+    <dt>掛邊時</dt><dd>W 上攀　A／D 橫移　S 放手　S＋空白 往後躍　A／D＋空白 側跳</dd>
+    <dt>滑鼠</dt><dd>點畫面鎖定後轉鏡頭（Esc 解除）</dd>
+  </dl>
+  <dl class="keys k-touch">
+    <dt>搖桿</dt><dd>移動；掛邊時上攀、橫移、放手</dd>
+    <dt>躍／擊</dt><dd>跳／出手；掛邊時搖桿方向＋躍＝側跳、往後躍</dd>
+  </dl>
+  <div class="row"><button class="btn" id="resumeBtn">繼續</button><button class="btn ghost" id="cpBtn">回到燈籠</button><button class="btn ghost" id="restartBtn">從頭</button></div>
+</section>
+
+<section class="card" id="done" hidden>
+  <h2 id="doneTitle">試劍崖 · 完</h2>
+  <div class="stats"><div><b id="dTime">0:00</b>用時</div><div><b id="dFalls">0</b>墜落</div><div><b id="dLant">0/6</b>燈籠</div></div>
+  <p id="doneText">山門開了，鐘聲落進雲海。門後往北的山路積著雪，下一關要渡過一潭黑水。</p>
+  <div class="row"><button class="btn" id="nextBtn">下一關</button><button class="btn ghost" id="againBtn">再走一次</button></div>
+</section>
+<!--ASSETS-->
+<!--BUNDLE-->
+</body>
+</html>

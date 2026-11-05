@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>白城環線 · BELVEDERE LOOP — Three.js r187 全程序生成等角歐風微縮城市</title>
+<meta name="description" content="以 Three.js r187（WebGPU / TSL 節點材質、NodeMaterialInstance、RenderPipeline 與二次方步進 GTAO 環境遮蔽）全程式碼即時生成的等角視角歐風迷你城市：中央鐘塔市政廳與圓形噴水池廣場、奶油色歐式街屋與空中花園公寓、西側水池木涼亭公園，以及拱頂高架車站與持續環狀行駛的雙節輕軌電車。零匯入 3D 模型、零外部網路請求。">
+<meta name="theme-color" content="#dcd7d0">
+<link rel="icon" href="../favicon.svg">
+<style>
+@layer reset, tokens, stage, ui;
+
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #dcd7d0;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  button, select, input { font: inherit; color: inherit; }
+  button { cursor: pointer; background: none; border: 0; padding: 0; }
+}
+
+@layer tokens {
+  :root {
+    --paper: rgba(250, 247, 241, 0.84);
+    --paper-strong: rgba(252, 250, 245, 0.94);
+    --ink: #2a2621;
+    --ink-muted: #686055;
+    --ink-soft: #8c8377;
+    --bronze: #7c6242;
+    --bronze-fill: rgba(124, 98, 66, 0.12);
+    --hairline: rgba(58, 50, 40, 0.15);
+    --hairline-strong: rgba(124, 98, 66, 0.42);
+    --shadow-card: 0 10px 28px rgba(38, 32, 24, 0.09), 0 1px 3px rgba(38, 32, 24, 0.06);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti TC", "Noto Serif TC", serif;
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@layer stage {
+  body {
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+  #viewport {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  #viewport canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+}
+
+@layer ui {
+  body.clean-mode :where(.atelier-placard, .dock-bar, .hint-tag),
+  body.screenshot-mode .clean-btn {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+  }
+
+  /* 左上建築模型銘牌 */
+  .atelier-placard {
+    position: fixed;
+    inset-block-start: max(14px, env(safe-area-inset-top));
+    inset-inline-start: max(16px, env(safe-area-inset-left));
+    z-index: 10;
+    max-inline-size: min(356px, calc(100vw - 76px));
+    padding: 11px 15px 10px;
+    background: var(--paper);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--hairline);
+    border-inline-start: 3px solid var(--bronze);
+    border-radius: 6px;
+    box-shadow: var(--shadow-card);
+    transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+  }
+  .placard-kicker {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font: 600 10px/1.2 var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--bronze);
+  }
+  .placard-rev {
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--bronze-fill);
+    border: 1px solid rgba(124, 98, 66, 0.24);
+    font-variant-numeric: tabular-nums;
+  }
+  .atelier-placard h1 {
+    margin: 4px 0 3px;
+    font: 700 clamp(16px, 1.8vw, 19px)/1.22 var(--serif);
+    letter-spacing: 0.02em;
+    color: var(--ink);
+  }
+  .placard-sub {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+  }
+  .stats-strip {
+    margin-block-start: 7px;
+    padding-block-start: 6px;
+    border-block-start: 1px solid var(--hairline);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font: 500 10.5px/1.2 var(--mono);
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .stats-strip b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* 右上純淨檢視開關 */
+  .clean-btn {
+    position: fixed;
+    inset-block-start: max(14px, env(safe-area-inset-top));
+    inset-inline-end: max(16px, env(safe-area-inset-right));
+    z-index: 12;
+    padding: 7px 11px;
+    background: var(--paper);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    box-shadow: var(--shadow-card);
+    font: 500 11.5px/1 var(--sans);
+    color: var(--ink-muted);
+    transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+  }
+  .clean-btn:hover {
+    background: var(--paper-strong);
+    color: var(--ink);
+    border-color: var(--hairline-strong);
+  }
+  .clean-btn:focus-visible,
+  .preset-btn:focus-visible,
+  .ctrl-chip:focus-visible {
+    outline: 2px solid var(--bronze);
+    outline-offset: 2px;
+  }
+
+  /* 底部建築分區導覽與環境控制列 */
+  .dock-bar {
+    position: fixed;
+    inset-block-end: max(14px, env(safe-area-inset-bottom));
+    inset-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    z-index: 10;
+    margin-inline: auto;
+    inline-size: fit-content;
+    max-inline-size: calc(100vw - 24px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 9px;
+    background: var(--paper);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--hairline);
+    border-radius: 7px;
+    box-shadow: var(--shadow-card);
+    overflow-x: auto;
+    scrollbar-width: none;
+    transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+  }
+  .dock-bar::-webkit-scrollbar { display: none; }
+
+  .preset-group, .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .dock-sep {
+    inline-size: 1px;
+    block-size: 18px;
+    background: var(--hairline);
+    flex-shrink: 0;
+  }
+  .preset-btn, .ctrl-chip {
+    padding: 5px 9px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--ink-muted);
+    border: 1px solid transparent;
+    transition: background 0.16s var(--ease-out), color 0.16s var(--ease-out), border-color 0.16s var(--ease-out);
+  }
+  .preset-btn:hover, .ctrl-chip:hover {
+    color: var(--ink);
+    background: rgba(124, 98, 66, 0.08);
+  }
+  .preset-btn[aria-pressed="true"], .ctrl-chip[aria-pressed="true"] {
+    color: var(--ink);
+    font-weight: 600;
+    background: var(--bronze-fill);
+    border-color: var(--hairline-strong);
+  }
+
+  .hint-tag {
+    position: fixed;
+    inset-block-end: max(58px, calc(env(safe-area-inset-bottom) + 48px));
+    inset-inline-end: max(16px, env(safe-area-inset-right));
+    z-index: 9;
+    font-size: 11px;
+    color: var(--ink-soft);
+    background: rgba(250, 247, 241, 0.66);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(58, 50, 40, 0.09);
+    pointer-events: none;
+    transition: opacity 0.25s var(--ease-out);
+  }
+
+  #bootError {
+    position: fixed;
+    inset: 24px;
+    margin: auto;
+    max-inline-size: 420px;
+    block-size: fit-content;
+    padding: 18px 20px;
+    background: var(--paper-strong);
+    border: 1px solid var(--hairline-strong);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+    z-index: 30;
+  }
+
+  @media (max-width: 680px) {
+    .placard-sub, .hint-tag { display: none; }
+    .atelier-placard { padding: 8px 11px; max-inline-size: calc(100vw - 128px); }
+    .stats-strip { margin-block-start: 4px; padding-block-start: 4px; gap: 4px 8px; font-size: 9.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atelier-placard, .dock-bar, .preset-btn, .ctrl-chip, .clean-btn {
+      transition: none;
+    }
+  }
+}
+</style>
+</head>
+<body>
+<div id="viewport" aria-label="等角視角歐風迷你城市 3D 互動畫布"></div>
+
+<header class="atelier-placard">
+  <div class="placard-kicker">
+    <span>Architectural Miniature · No. 275</span>
+    <span class="placard-rev" id="revBadge">Three.js r187</span>
+  </div>
+  <h1>白城環線 · BELVEDERE LOOP</h1>
+  <p class="placard-sub">全程式碼生成歐風微縮街廓：鐘塔噴泉廣場、奶油灰泥街屋與環狀高架輕軌</p>
+  <div class="stats-strip" aria-live="polite">
+    <span>後端 <b id="stBackend">初始化中</b></span>
+    <span>Draw <b id="stCalls">--</b></span>
+    <span>面數 <b id="stTris">--</b></span>
+    <span>FPS <b id="stFps">--</b></span>
+  </div>
+</header>
+
+<button type="button" class="clean-btn" id="cleanToggle" title="切換純淨檢視 (H)">純淨畫面 · H</button>
+
+<div class="hint-tag">左鍵環繞 · 右鍵平移 · 滾輪縮放 · 1–7 切換分區</div>
+
+<nav class="dock-bar" aria-label="分區視角與環境控制">
+  <div class="preset-group" id="presetBar">
+    <button type="button" class="preset-btn" data-preset="overview" aria-pressed="true">1 全景配置</button>
+    <button type="button" class="preset-btn" data-preset="plaza" aria-pressed="false">2 鐘塔廣場</button>
+    <button type="button" class="preset-btn" data-preset="cafe" aria-pressed="false">3 街角咖啡</button>
+    <button type="button" class="preset-btn" data-preset="station" aria-pressed="false">4 高架車站</button>
+    <button type="button" class="preset-btn" data-preset="apartments" aria-pressed="false">5 北側公寓</button>
+    <button type="button" class="preset-btn" data-preset="park" aria-pressed="false">6 西側水池</button>
+    <button type="button" class="preset-btn" data-preset="train" aria-pressed="false">7 列車跟拍</button>
+  </div>
+  <div class="dock-sep" role="separator"></div>
+  <div class="ctrl-group">
+    <button type="button" class="ctrl-chip" id="btnGtao" aria-pressed="true">GTAO 遮蔽</button>
+    <button type="button" class="ctrl-chip" id="btnLight" aria-pressed="false">光線：柔光棚</button>
+    <button type="button" class="ctrl-chip" id="btnTrain" aria-pressed="true">列車：行駛</button>
+  </div>
+</nav>
+
+<div id="bootError" role="alert"></div>
+
+<!--BUNDLE-->
+</body>
+</html>
