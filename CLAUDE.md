@@ -85,5 +85,6 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 | 274 | 六器鏢行 | `games/274-sixfold-escort/`（WebGPU / TSL 節點材質 + esbuild） | 同資料夾 `CLAUDE.md` |
 | 275 | 白城環線 | `games/275-tramway-plaza/`（Three.js r187 WebGPU / TSL 全程序建模 + esbuild） | 同資料夾 `CLAUDE.md` |
 | 277 | 墨嶺行 | `games/277-ink-ridge/`（Three.js r186 WebGL 程式自建場景 + 有骨架的主角 glb + esbuild，Verlet 布料） | 同資料夾 `CLAUDE.md`（規格 `SPEC.md`、參考影片截圖 `ref/`） |
+| 278 | 赭線 OCHRE LINE | `games/278-ochre-line/`（Babylon.js 9 WebGPU、FAST 快照、Havok、esbuild；素材留在 `assets/278/`，不內嵌） | 同資料夾 `CLAUDE.md`（規格 `SPEC.md`，`SPEC_Super.md` 是使用者原檔不可改） |
 
 新增有原始碼的作品時，把專屬說明寫進該資料夾的 `CLAUDE.md`，這裡只加一列。

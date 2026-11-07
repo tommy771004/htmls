@@ -1,0 +1,172 @@
+// 赭線 OCHRE LINE：開機、主迴圈、測試介面。
+import { POSES, flushAll, vm, selectWeapon as vmSelect } from './game/viewmodel.js';
+import { nav, nearest, tagged } from './map/nav.js';
+import { step } from './game/mover.js';
+import { snapshotActive } from './core/tmp.js';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { Bone as B0 } from '@babylonjs/core/Bones/bone.pure.js';
+import { Skeleton as S0 } from '@babylonjs/core/Bones/skeleton.js';
+import '@babylonjs/loaders/glTF/2.0/index.js';
+import '@babylonjs/core/Culling/ray.js';
+import '@babylonjs/core/Materials/standardMaterial.js';
+import { createEngine } from './core/engine.js';
+import { LAYOUT } from './map/layout.js';
+import { buildMap } from './map/build.js';
+import { buildCollision } from './map/collide.js';
+import { buildNav } from './map/nav.js';
+import { initCollision } from './game/mover.js';
+import { you, teleport } from './game/player.js';
+import { buildViewmodel } from './game/viewmodel.js';
+import { finishNewGuns } from './game/guns/load.js';
+import { buildSoldiers, buildWorldGuns, updateSoldiers, clipDebug, chargePos, pool } from './game/soldiers.js';
+import { G, WEAPONS } from './game/state.js';
+import { addMatch } from './game/record.js';
+import { world, giveWeapon } from './game/weapons.js';
+import { initBots } from './game/bots.js';
+import { setupMatch, leaveMatch, onKill, buy, startRound, nextRound } from './game/round.js';
+import { tick, frame } from './game/loop.js';
+import { buildFx, updateFx } from './fx/particles.js';
+import { input, bindInput, lockPointer } from './core/input.js';
+import { initAudio, setListener, preloadSfx, sfxStatus } from './audio/sfx.js';
+import { initHud, frameHud } from './ui/hud.js';
+import { initMenu, showMenu, hideMenu, showPause, hidePause, showResult, hideResult } from './ui/menu.js';
+import { initBuy, toggleBuy, frameBuy } from './ui/buy.js';
+import { initScore, frameScore } from './ui/score.js';
+import { initTouch } from './ui/touch.js';
+import { selectWeapon as import_select } from './game/viewmodel.js';
+import { stage, startStage, stopStage, frameStage, fitStage, setStage, asideStage, pointStage, tuneStage } from './game/stage.js';
+window.__keep = [B0, S0];
+
+const q = new URLSearchParams(location.search);
+const canvas = document.getElementById('view');
+
+function placeCam(cam, s) {
+  const D = Math.PI / 180;
+  cam.position.set(s.x, s.y, s.z); cam.rotation.set(-(s.pitch || 0) * D, (s.yaw || 0) * D, 0);
+  if (s.fov) cam.fov = s.fov;
+}
+
+async function boot() {
+  const t0 = performance.now();
+  preloadSfx();   // 只抓 bytes，不等、不算進度；解碼在 initAudio
+  const ctx = await createEngine(canvas, { forceWebGL: q.get('gfx') === 'webgl' });
+  const info = await buildMap(ctx, LAYOUT, +(q.get('seed') || 278));
+  buildCollision(ctx, LAYOUT); initCollision(LAYOUT); buildNav(LAYOUT); initBots();
+  world.ctx = ctx; world.onKill = onKill;
+  await Promise.all([buildViewmodel(ctx, ctx.snapshot), buildSoldiers(ctx), buildWorldGuns(ctx)]);
+  await finishNewGuns();
+  buildFx(ctx);
+  await ctx.scene.whenReadyAsync();
+
+  const ui = document.getElementById('ui');
+  const actions = {
+    start({ side }) { initAudio(); hideMenu(); lastSide = side; begin(side); lockPointer(canvas); },
+    again() { hideResult(); initAudio(); begin(lastSide); lockPointer(canvas); },
+    resume() { initAudio(); hidePause(); G.paused = false; lockPointer(canvas); },
+    toMenu,
+    buy,
+    stage(side, cur) { setStage(side ?? stage.side, cur); }, aside: asideStage, point: pointStage,
+    fps: () => ctx.engine.getFps(), backend: ctx.isWebGPU ? 'WebGPU' : 'WebGL',
+  };
+  let lastSide = 'atk', overShown = false;
+  const endStage = () => { if (stage.on) { stopStage(); ctx.fitFov(); } };
+  const begin = side => { endStage(); overShown = false; setupMatch(side === 'rand' ? (Math.random() < 0.5 ? 'atk' : 'def') : side); free = null; };
+  function toMenu() {
+    hidePause(); hideResult(); leaveMatch();
+    vmSelect('knife'); if (vm.cur) { vm.cur.holder.scaling.set(1e-5, 1e-5, -1e-5); flushAll(); vm.cur = null; }   // 第一人稱槍收起來，開機時也是這個狀態；z 負號見 CLAUDE.md
+    document.exitPointerLock?.(); input.fire = input.alt = false; input.fwd = input.side = 0;
+    showMenu(); startStage(); free = stage.cam;
+  }
+  { const b = LAYOUT.sites.B, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2; LAYOUT.spots.siteBOverview = { x: cx + 15, y: b.y + 17, z: cz - 15, yaw: -45, pitch: -38 }; }
+  let free = LAYOUT.spots[q.get('spot') || 'key'] ?? LAYOUT.spots.key;
+  initHud(ui, G, LAYOUT, actions); initMenu(ui, actions); initBuy(ui, G, actions); initScore(ui, G); initTouch(ui, input, canvas);
+  if (!q.has('clean')) { showMenu(); startStage(); free = stage.cam; addEventListener('resize', () => { if (stage.on) fitStage(); }); }
+  bindInput(canvas, locked => { if (!locked && G.me && G.phase !== 'over' && !G.buyOpen) { G.paused = true; showPause(); } });
+  canvas.addEventListener('click', () => { if (G.me && !input.locked) { initAudio(); hidePause(); G.paused = false; lockPointer(canvas); } });
+
+  const DT = 1 / 64; let speed = 1, acc = 0, frames = 0;
+  const scene = ctx.scene, cam = ctx.camera;
+  const alloc = window.__alloc;
+  scene.onBeforeRenderObservable.add(() => {
+    if (alloc) alloc.on = true;
+    const dt = Math.min(0.1, ctx.engine.getDeltaTime() / 1000);
+    if (!G.paused) { acc += dt * speed; while (acc >= DT) { tick(DT, cam); acc -= DT; } }
+    if (input.buy) { input.buy = false; if (G.canBuy) toggleBuy(); }
+    G.scoreOpen = input.score;
+    if (G.me && !free) { frame(acc / DT, dt, cam); updateSoldiers(dt * speed, cam); setListener(you.x, you.y + 1.6, you.z, you.yaw); }
+    else { const sdt = stage.on ? frameStage(dt) : dt; placeCam(cam, free); cam.computeWorldMatrix(true); if (G.me || stage.on) updateSoldiers(sdt, cam); }
+    updateFx(dt, cam);
+    frameHud(dt); frameBuy(); frameScore();
+    if (G.phase === 'over' && !overShown) {
+      overShown = true; document.exitPointerLock?.();
+      const m = G.me, win = G.winner === m.team, my = G.score[m.team], opp = G.score[1 - m.team];
+      addMatch(win, my, opp, m.kills, m.deaths); showResult(win, my, opp, m.kills, m.deaths);
+    }
+    if (alloc) alloc.on = false;
+  });
+  ctx.engine.runRenderLoop(() => scene.render());
+  if (!q.has('nosnap')) scene.onAfterRenderObservable.add(() => { if (++frames === 4 && ctx.isWebGPU) { ctx.snapshot.enable(); snapshotActive.on = true; flushAll(); } });
+
+  const api = window.__ol = {
+    ready: true, ctx, info, G, you, input, LAYOUT, chargePos, weapons: WEAPONS, boot: performance.now() - t0, sfx: sfxStatus,
+    state: () => ({ phase: G.phase, time: G.time, round: G.round, score: [...G.score], hp: G.me?.hp, money: G.me?.money, alive: G.agents.map(a => a.alive), pos: [you.x, you.y, you.z], charge: G.charge }),
+    teleport(x, y, z, yaw = 0, pitch = 0) { free = null; const D = Math.PI / 180; teleport(x, y, z, yaw * D, pitch * D); },
+    tuneStage, pool, stageGun(id, side = 'atk') { setStage(side, id); }, spot(n) { endStage(); free = LAYOUT.spots[n] ?? null; }, fps() { endStage(); free = null; },
+    setClean(b) { ui.style.display = b ? 'none' : ''; },
+    startMatch(o = {}) { hideMenu(); begin(o.side ?? 'atk'); if (o.skipBuy) { G.time = 0; } },
+    fire(n = 1) { input.fire = true; setTimeout(() => { input.fire = false; }, n * 90); },
+    giveWeapon(id) { const m = G.me; giveWeapon(m, id); m.cur = id; api.select(id); },
+    forceClip(name, t = -1) { clipDebug.name = name; clipDebug.t = t; },
+    select(id) { import_select(id); },
+    killBots() { for (const a of G.agents) if (a.bot && a.team !== G.me.team) { a.hp = 0; onKill(G.me, a, 'ar5', false); } },
+    setRound(p) { G.phase = p; }, skip(s) { G.time -= s; },
+    /** 倍速跑遊戲（仍經過渲染，骨架與命中判定才是真的）。 */
+    speed(k) { speed = k; },
+    /** 同步推進遊戲時間，不經過渲染。驗收跑完整比賽用。 */
+    sim(sec) { const n = Math.round(sec / DT); for (let i = 0; i < n && G.phase !== 'over'; i++) tick(DT, cam); },
+    /** 用真實移動與碰撞沿導航圖走到炸點，回傳秒數。 */
+    walk(sp, tag) {
+      const fromV = new Vector3(), toV = new Vector3();
+      const a = { x: sp.x, y: sp.y, z: sp.z, vx: 0, vy: 0, vz: 0, h: 1.8, ground: true, crouch: false }; let cur = nearest(a.x, a.y, a.z), goal = -1, best = 1e9;
+      for (const g of tagged(tag)) { const d = nav.dist[cur * nav.n + g]; if (d < best) { best = d; goal = g; } }
+      let t = 0, stuck = 0; const S = LAYOUT.sites[tag.slice(-1)];
+      while (t < 60) {
+        if (a.x >= S.x0 && a.x <= S.x1 && a.z >= S.z0 && a.z <= S.z1 && Math.abs(a.y - S.y) < 1.5) return { t, ok: true };   // 與 check-layout 同定義：踏進炸點範圍
+        if (cur === goal) return { t, ok: false, at: [a.x, a.y, a.z], why: 'goal' };
+        const nx = nav.next[cur * nav.n + goal], dx = nav.x[nx] - a.x, dz = nav.z[nx] - a.z, d = Math.hypot(dx, dz);
+        if (d < 0.7) { cur = nx; continue; }
+        // 玩家會抄直線：下下個節點看得到、高差不大就直接朝它走
+        if (nx !== goal) { const nn = nav.next[nx * nav.n + goal]; fromV.set(a.x, a.y + 0.9, a.z); toV.set(nav.x[nn], nav.y[nn] + 0.9, nav.z[nn]); if (Math.abs(nav.y[nn] - a.y) < 0.6 && !ctx.ray(fromV, toV).hasHit) { cur = nx; continue; } }
+        const ox = a.x, oz = a.z; step(a, dx / d, dz / d, 5.4, false, DT); t += DT;
+        stuck = Math.hypot(a.x - ox, a.z - oz) < 0.002 ? stuck + 1 : 0; if (stuck > 64) return { t, ok: false, at: [a.x, a.y, a.z], next: LAYOUT.nav.nodes[nx].id };
+      }
+      return { t, ok: false, at: [a.x, a.y, a.z] };
+    },
+    /** 量每幀 CPU：scene.render 內的主執行緒時間。 */
+    cpu(n = 120) {
+      return new Promise(ok => {
+        const t = [], render = scene.render, end = ctx.engine.endFrame; let t0 = 0;
+        scene.render = function (...a) { t0 = performance.now(); return render.apply(this, a); };
+        ctx.engine.endFrame = function (...a) {
+          const r = end.apply(this, a); t.push(performance.now() - t0);
+          if (t.length >= n) { delete scene.render; delete ctx.engine.endFrame; t.sort((x, y) => x - y); ok({ frames: t.length, median: t[t.length >> 1], p95: t[t.length * 0.95 | 0] }); }
+          return r;
+        };
+      });
+    },
+    /** 俯視正交雷達相機：只用於 ?nosnap 下截圖。 */
+    orthoTop() {
+      const b = LAYOUT.bounds, D = (b.x1 - b.x0) / 2; free = { x: (b.x0 + b.x1) / 2, y: 120, z: (b.z0 + b.z1) / 2, yaw: 0, pitch: -90 };
+      cam.mode = 1; cam.orthoLeft = -D; cam.orthoRight = D; cam.orthoTop = D; cam.orthoBottom = -D; cam.maxZ = 400;
+      scene.fogMode = 0;
+    },
+    stats: () => ({ fps: ctx.engine.getFps(), snapshot: ctx.engine.snapshotRendering, meshes: scene.meshes.length, webgpu: ctx.isWebGPU, draws: ctx.engine._drawCalls?.current ?? 0, frame: ctx.engine.frameId }),
+  };
+  window.__GAME_MCP__ = {
+    poses: POSES, vm, switchToKeyArtCam() { api.setClean(true); api.spot('key'); }, switchToSiteBOverview() { api.setClean(true); api.spot('siteBOverview'); }, switchToFpsCam() { api.fps(); },
+    teleportFpsCam(x, y, z, yaw, pitch) { api.teleport(x, y, z, yaw, pitch); },
+    setHudState(on) { api.setClean(!on); }, getPerformanceStats: api.stats,
+  };
+  console.log('boot', Math.round(performance.now() - t0), JSON.stringify(info, (k, v) => k === 'kit' ? undefined : v));
+}
+boot().catch(e => { console.error(e?.stack || e); document.title = 'ERR ' + e; });

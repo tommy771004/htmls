@@ -1,0 +1,265 @@
+{
+ "hitbox": {
+  "Head": {
+   "bone": "Head",
+   "a": [
+    0,
+    0.1123,
+    -0.0061
+   ],
+   "b": [
+    0,
+    0.0917,
+    0.0614
+   ],
+   "r": 0.0877,
+   "verts": 1727
+  },
+  "Chest": {
+   "bone": "spine_03",
+   "a": [
+    -0.0013,
+    0.0183,
+    0.0319
+   ],
+   "b": [
+    0.0038,
+    0.0504,
+    -0.0034
+   ],
+   "r": 0.226,
+   "verts": 2255
+  },
+  "Stomach": {
+   "bone": "spine_01",
+   "a": [
+    0.0452,
+    0.0017,
+    0.0457
+   ],
+   "b": [
+    -0.0646,
+    -0.0139,
+    0.0201
+   ],
+   "r": 0.1806,
+   "verts": 1836
+  },
+  "UpperArm_L": {
+   "bone": "upperarm_l",
+   "a": [
+    0.0208,
+    0.068,
+    -0.0163
+   ],
+   "b": [
+    0.0153,
+    0.1595,
+    0.0057
+   ],
+   "r": 0.0779,
+   "verts": 157
+  },
+  "UpperArm_R": {
+   "bone": "upperarm_r",
+   "a": [
+    -0.0207,
+    0.0666,
+    -0.0181
+   ],
+   "b": [
+    -0.0131,
+    0.1605,
+    0.0069
+   ],
+   "r": 0.0789,
+   "verts": 157
+  },
+  "Forearm_L": {
+   "bone": "lowerarm_l",
+   "a": [
+    0.0086,
+    0.3029,
+    0.0056
+   ],
+   "b": [
+    0.018,
+    0.0003,
+    -0.0174
+   ],
+   "r": 0.0494,
+   "verts": 341
+  },
+  "Forearm_R": {
+   "bone": "lowerarm_r",
+   "a": [
+    -0.0065,
+    0.305,
+    0.0056
+   ],
+   "b": [
+    -0.0143,
+    -0.0027,
+    -0.0193
+   ],
+   "r": 0.0471,
+   "verts": 341
+  },
+  "Thigh_L": {
+   "bone": "thigh_l",
+   "a": [
+    0.0266,
+    0.1286,
+    -0.0032
+   ],
+   "b": [
+    0.0266,
+    0.2889,
+    -0.0032
+   ],
+   "r": 0.1263,
+   "verts": 510
+  },
+  "Thigh_R": {
+   "bone": "thigh_r",
+   "a": [
+    -0.0263,
+    0.1073,
+    0.0272
+   ],
+   "b": [
+    0.0055,
+    0.3258,
+    -0.0391
+   ],
+   "r": 0.102,
+   "verts": 467
+  },
+  "Calf_L": {
+   "bone": "calf_l",
+   "a": [
+    0.0068,
+    0.0834,
+    -0.0171
+   ],
+   "b": [
+    0.0113,
+    0.4608,
+    0.0082
+   ],
+   "r": 0.0932,
+   "verts": 955
+  },
+  "Calf_R": {
+   "bone": "calf_r",
+   "a": [
+    -0.0028,
+    0.0774,
+    -0.0209
+   ],
+   "b": [
+    -0.0146,
+    0.4655,
+    0.0147
+   ],
+   "r": 0.0886,
+   "verts": 959
+  }
+ },
+ "socket": {
+  "bone": "hand_r",
+  "pos": [
+   -0.03378,
+   0.094,
+   0.00021
+  ],
+  "quat": [
+   0.01403,
+   -0.60546,
+   -0.79562,
+   0.01439
+  ],
+  "name": "hand_R_socket",
+  "note": "槍框架：原點在握把、+Z 槍口、+Y 上；掛在這個節點下的槍以 grip=原點 對齊；Babylon 要把槍的內層網格（不含 __root__）直接接到 socket、局部變換歸零，才不會翻轉兩次"
+ },
+ "clips": {
+  "idle_rifle": {
+   "frames": 61,
+   "seconds": 2.5
+  },
+  "aim_rifle": {
+   "frames": 61,
+   "seconds": 2.5
+  },
+  "walk_rifle": {
+   "frames": 33,
+   "seconds": 1.333
+  },
+  "run_rifle": {
+   "frames": 23,
+   "seconds": 0.917
+  },
+  "back_rifle": {
+   "frames": 33,
+   "seconds": 1.333
+  },
+  "strafe_l_rifle": {
+   "frames": 33,
+   "seconds": 1.333
+  },
+  "strafe_r_rifle": {
+   "frames": 33,
+   "seconds": 1.333
+  },
+  "crouch_idle": {
+   "frames": 37,
+   "seconds": 1.5
+  },
+  "crouch_walk": {
+   "frames": 49,
+   "seconds": 2
+  },
+  "jump": {
+   "frames": 61,
+   "seconds": 2.5
+  },
+  "hit": {
+   "frames": 9,
+   "seconds": 0.333
+  },
+  "death_a": {
+   "frames": 58,
+   "seconds": 2.375
+  },
+  "death_b": {
+   "frames": 58,
+   "seconds": 2.375
+  },
+  "plant": {
+   "frames": 59,
+   "seconds": 2.417,
+   "loopFrom": 0.417
+  },
+  "defuse": {
+   "frames": 59,
+   "seconds": 2.417,
+   "loopFrom": 0.417
+  },
+  "idle_pistol": {
+   "frames": 41,
+   "seconds": 1.667
+  },
+  "aim_pistol": {
+   "frames": 41,
+   "seconds": 1.667
+  },
+  "walk_pistol": {
+   "frames": 33,
+   "seconds": 1.333
+  },
+  "run_pistol": {
+   "frames": 23,
+   "seconds": 0.917
+  }
+ }
+}

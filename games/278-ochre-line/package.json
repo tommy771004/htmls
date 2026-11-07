@@ -1,0 +1,23 @@
+{
+  "name": "ochre-line",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "赭線 OCHRE LINE — Babylon.js WebGPU + Havok 寫實 5v5 戰術射擊（作品 278）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/accept.mjs"
+  },
+  "dependencies": {
+    "@babylonjs/core": "9.34.0",
+    "@babylonjs/havok": "1.3.14",
+    "@babylonjs/loaders": "^9.34.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "playwright-core": "^1.50.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
