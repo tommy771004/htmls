@@ -64,11 +64,12 @@ function makeBus(ctx, raw = false) {
 export function initAudio() {
   if (ac) { ac.resume?.(); return; }
   const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
-  ac = new C({ latencyHint: 'interactive' });
+  ac = new C({ latencyHint: 'interactive' }); window.__ac = ac;
   // 切 App、來電或瀏覽器節流都會把 context 暫停，play() 在非 running 時直接丟棄。回到前景或下一次操作就叫醒
   const real = ac, wake = () => { if (!document.hidden && real.state !== 'running' && real.state !== 'closed') real.resume?.().catch?.(() => {}); };
   wake(); real.addEventListener?.('statechange', wake); document.addEventListener('visibilitychange', wake);
-  addEventListener('pointerdown', wake, { passive: true }); addEventListener('keydown', wake, { passive: true });
+  // iOS Safari 的使用者手勢只認 touchend／click，pointerdown 叫 resume 不會生效
+  for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(ev, wake, { passive: true });
   bus = makeBus(ac);
   noise = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   loadBank(ac).catch((e) => { stat.failed = String(e?.message ?? e); });

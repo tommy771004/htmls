@@ -11,7 +11,6 @@ import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
 import { CascadedShadowGenerator } from '@babylonjs/core/Lights/Shadows/cascadedShadowGenerator.js';
 import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent.js';
-import { HDRCubeTexture } from '@babylonjs/core/Materials/Textures/hdrCubeTexture.js';
 import { DefaultRenderingPipeline } from '@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline.js';
 import { ImageProcessingConfiguration } from '@babylonjs/core/Materials/imageProcessingConfiguration.js';
 import { ColorCurves } from '@babylonjs/core/Materials/colorCurves.js';
@@ -25,20 +24,28 @@ import '@babylonjs/core/Physics/v2/physicsEngineComponent.js';
 import { HavokPlugin } from '@babylonjs/core/Physics/v2/Plugins/havokPlugin.js';
 import HavokPhysics from '@babylonjs/havok';
 import wasmData from '@babylonjs/havok/lib/esm/HavokPhysics.wasm';
-import { ASSET_BASE } from './assets.js';
+import { loadEnv } from './env.js';
+import { sendWorld } from './tmp.js';
 
 /** 太陽方向（由光源指向場景）。env.hdr 已移除太陽盤，這裡比 HDR 的太陽再抬高、轉向巷道，讓主要街道有直射光。 */
 export const SUN_DIR = new Vector3(-0.42, -0.80, 0.42).normalize();
 
 export async function createEngine(canvas, { forceWebGL = false } = {}) {
-  const gpu = !forceWebGL && await WebGPUEngine.IsSupportedAsync.catch(() => false);
-  let engine;
+  let gpu = !forceWebGL && await WebGPUEngine.IsSupportedAsync.catch(() => false), engine = null;
   if (gpu) {
-    engine = new WebGPUEngine(canvas, { enableAllFeatures: true, setMaximumLimits: true, antialias: false, powerPreference: 'high-performance' });
-    await engine.initAsync();
-  } else {
-    engine = new Engine(canvas, false, { preserveDrawingBuffer: false, stencil: true, powerPreference: 'high-performance' });
+    try {
+      engine = new WebGPUEngine(canvas, { enableAllFeatures: true, setMaximumLimits: true, antialias: false, powerPreference: 'high-performance', doNotHandleContextLost: true });
+      await engine.initAsync();
+    } catch (e) {   // 有 navigator.gpu 不代表拿得到裝置（requestDevice 失敗、超限）：退回 WebGL，不要讓開機死在這裡
+      console.warn('WebGPU 初始化失敗，改用 WebGL', e?.message ?? e);
+      try { engine?.dispose(); } catch { /* 沒建好的引擎 dispose 可能再丟一次 */ }
+      engine = null; gpu = false;
+      const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh;   // 畫布已經拿過 webgpu context 就不能再拿 webgl2
+    }
   }
+  if (!engine) engine = new Engine(canvas, false, { preserveDrawingBuffer: false, stencil: true, powerPreference: 'high-performance', doNotHandleContextLost: true });
+  // 裝置遺失不交給 Babylon 還原：快照 bundle 和 sendWorld 記的緩衝都綁舊裝置，還原後第一幀就在 bindUniformBuffer 丟例外，主迴圈整個停住。main.js 改成重載頁面
+  const gpuLost = new Promise(ok => { if (gpu) engine._device.lost.then(ok); else canvas.addEventListener('webglcontextlost', ok, { once: true }); });
   engine.setHardwareScalingLevel(1 / Math.min(devicePixelRatio || 1, 2));
 
   const scene = new Scene(engine);
@@ -75,7 +82,7 @@ export async function createEngine(canvas, { forceWebGL = false } = {}) {
   bounce.groundColor = new Color3(0.86, 0.66, 0.42);
   bounce.specular = new Color3(0, 0, 0);
 
-  const useCSM = !forceWebGL && !new URLSearchParams(location.search).has('nocsm');
+  const useCSM = !!gpu && !new URLSearchParams(location.search).has('nocsm');   // 看實際後端，不看 ?gfx：沒有 WebGPU 的裝置才會和 ?gfx=webgl 走同一條
   const shadow = useCSM ? new CascadedShadowGenerator(2048, sun, true) : new ShadowGenerator(4096, sun, true);
   shadow.usePercentageCloserFiltering = true;
   shadow.filteringQuality = ShadowGenerator.QUALITY_MEDIUM;
@@ -84,14 +91,14 @@ export async function createEngine(canvas, { forceWebGL = false } = {}) {
   if (useCSM) { shadow.numCascades = 4; shadow.lambda = 0.82; shadow.shadowMaxZ = 170; shadow.stabilizeCascades = true; shadow.autoCalcDepthBounds = false; shadow.cascadeBlendPercentage = 0.08; }
   shadow.getShadowMap().refreshRate = 1;
 
-  const env = new HDRCubeTexture(ASSET_BASE + 'sky/env.hdr', scene, 128, false, true, false, true);
+  const { env, sky: skyTex } = await loadEnv(scene);
   scene.environmentTexture = env;
   scene.environmentIntensity = 1.2;
 
   // 天空用同一張 HDR，走同一條 ACES，方位自然和 IBL 一致
   const skyMat = new PBRMaterial('sky', scene);
   skyMat.reflectivityColor = new Color3(1, 1, 1); skyMat.environmentIntensity = 1.5; skyMat.emissiveColor = new Color3(0.36, 0.48, 0.6); skyMat.backFaceCulling = false; skyMat.disableLighting = true; skyMat.microSurface = 1; skyMat.twoSidedLighting = true;
-  const skyTex = env.clone(); skyTex.coordinatesMode = Constants.TEXTURE_SKYBOX_MODE;
+  skyTex.coordinatesMode = Constants.TEXTURE_SKYBOX_MODE;
   skyMat.reflectionTexture = skyTex;
   const dome = MeshBuilder.CreateBox('skydome', { size: 500, sideOrientation: 1 }, scene);
   dome.material = skyMat; dome.infiniteDistance = true; dome.isPickable = false; dome.ignoreCameraMaxZ = true;
@@ -109,6 +116,12 @@ export async function createEngine(canvas, { forceWebGL = false } = {}) {
 
   // 快照：FAST 模式。enable() 之後 mesh 集合與實例數凍結。
   const helper = gpu ? new SnapshotRenderingHelper(scene) : null;
+  if (helper) {
+    // helper 每幀對所有骨架 prepare(true)、掃所有網格，10 副骨架就要 0.8 ms，占 FAST 一幀一半，而且士兵停放時根本沒變。
+    // 骨架與世界矩陣 updateSoldiers 已經送了，粒子、精靈、變形目標這裡都沒用，只有天空罩要跟著鏡頭。
+    scene.onBeforeRenderObservable.remove(helper._onBeforeRenderObserver);
+    scene.onBeforeRenderObservable.add(() => { if (engine.snapshotRendering) { dome.computeWorldMatrix(true); sendWorld(dome); } });
+  }
   const snapshot = {
     helper, active: false,
     enable() { if (helper && !this.active) { helper.fixMeshes(); helper.enableSnapshotRendering(); this.active = true; } },
@@ -121,5 +134,5 @@ export async function createEngine(canvas, { forceWebGL = false } = {}) {
   const fitFov = () => { camera.fov = innerWidth < innerHeight ? 1.1 : Math.PI / 2; };
   fitFov();
   addEventListener('resize', () => { engine.resize(); fitFov(); });
-  return { engine, scene, camera, sun, bounce, shadow, plugin, pipeline, snapshot, isWebGPU: !!gpu, Constants, fitFov };
+  return { engine, scene, camera, sun, bounce, shadow, plugin, pipeline, snapshot, isWebGPU: !!gpu, Constants, fitFov, canvas, gpuLost };
 }

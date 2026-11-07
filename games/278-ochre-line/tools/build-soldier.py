@@ -2840,6 +2840,9 @@ SHOULDER_R = {'rifle': (-0.12, -0.2, -0.49), 'pistol': (-0.11, -0.22, -0.46), 'o
 SHOULDER_L = {'rifle': (0.2, -0.2, -0.17), 'pistol': (0.17, -0.22, -0.44), 'both': (0.22, -0.2, -0.42)}
 
 
+CYCLE_POSE = {}   # 手動上膛：右手抓栓柄的姿勢，格式同 RELOAD_POSE，輸出 arms_<id>_RB，頂點順序與 arms_<id> 相同
+
+
 def load_new_poses():
     """新槍的握持寫在 tools/guns/<id>.py 的 POSE／RELOAD，併進上面兩張表。回傳新槍 id。"""
     import importlib.util
@@ -2855,6 +2858,8 @@ def load_new_poses():
         WEAPON_POSE[gid] = m.POSE
         if getattr(m, 'RELOAD', None):
             RELOAD_POSE[gid] = m.RELOAD
+        if getattr(m, 'CYCLE_HAND', None):
+            CYCLE_POSE[gid] = m.CYCLE_HAND
         ids.append(gid)
     return ids
 
@@ -4402,6 +4407,13 @@ def stage_arms():
             pos_mag = lbs(base.data, gnames, P, M2)
             soft_contact(base.data, pos_mag, body, [rig_l])
             print(f'{wid} 換彈手 手腕 {M2["hand_l"].translation}', flush=True)
+        pos_bolt = None
+        if wid in CYCLE_POSE:
+            rest3 = {n: (v[0].copy(), v[1].copy()) for n, v in rest.items()}
+            M3 = {n: m.copy() for n, m in M.items()}
+            fit_hand(HA, rig_r, body, rest3, M3, '_r', CYCLE_POSE[wid], SR + gun_to_bl((-0.3, -0.6, 0.0)))
+            pos_bolt = lbs(base.data, gnames, P, M3)
+            print(f'{wid} 上膛手 手腕 {M3["hand_r"].translation}', flush=True)
         fails += bad
         if arg('--dump'):
             np.savez(os.path.join(arg('--dump'), wid + '.npz'), pos=pos_mag if arg('--lr') and pos_mag is not None else pos, tri_r=tri_r, tri_l=tri_l)
@@ -4433,6 +4445,8 @@ def stage_arms():
             if Lres:
                 part(pos, f'arms_{wid}_L', 'r')
             part(pos_mag, f'arms_{wid}_LR', 'r')
+        if pos_bolt is not None:
+            part(pos_bolt, f'arms_{wid}_RB', 'l')
         meta[wid] = {'right': list(grip), 'left': list(left) if two else None, 'kind': kind}
     report += ['', f'未過門檻 {len(fails)} 項（門檻 {GATE}）'] + [' ' + f for f in fails]
     rp = arg('--report', os.path.join(DIST, 'grip-report.txt' if not new_out else f'grip-{only}.txt'))

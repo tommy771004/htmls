@@ -103,6 +103,25 @@ function matchSig(w, s, sig) {
   }
   return w;
 }
+// 第二層匹配：同一把的變體用 1/3 倍頻帶拉向彼此的平均。八度音色線只管大形狀，sfx-report 的距離是 25 個 1/3 倍頻帶，錄音之間細部的峰谷要在這裡收掉
+const THIRD = Array.from({ length: 25 }, (_, k) => 1000 * 2 ** ((k - 13) / 3));
+function third(x) {
+  const n = 8192, re = new Float64Array(n), im = new Float64Array(n), L = Math.min(n, Math.round(SR * 0.12), x.length);
+  for (let i = 0; i < L; i++) re[i] = x[i] * Math.cos((Math.PI * i) / (2 * L)) ** 2;
+  fft(re, im); const df = SR / n;
+  const b = THIRD.map((f) => { const lo = Math.max(1, Math.floor(f * 2 ** (-1 / 6) / df)), hi = Math.ceil(f * 2 ** (1 / 6) / df); let p = 0; for (let i = lo; i < Math.min(n / 2, hi); i++) p += re[i] ** 2 + im[i] ** 2; return 10 * Math.log10(p / Math.max(1, hi - lo) + 1e-12); });
+  const m = b.reduce((p, c) => p + c, 0) / b.length; return b.map((v) => v - m);
+}
+function tighten(clips, peak) {
+  for (let pass = 0; pass < 3; pass++) {
+    const P = clips.map(third), mean = THIRD.map((_, k) => P.reduce((p, q) => p + q[k], 0) / P.length);
+    clips.forEach((c, j) => { let w = c; THIRD.forEach((f, k) => { const g = Math.max(-9, Math.min(9, (mean[k] - P[j][k]) * 0.8)); if (Math.abs(g) > 0.25) w = biquad(w, 'peak', f, 4.3, g); }); clips[j] = w; });
+  }
+  // 音量對齊前 120 ms 的能量，不是峰值：sfx.js 疊上去的低頻衝擊是固定量，主體各自正規化峰值時，尖的錄音主體偏小，低頻比例就和其他變體不同
+  const rms = clips.map((c) => { let e = 0; const L = Math.min(c.length, Math.round(SR * 0.12)); for (let i = 0; i < L; i++) e += c[i] ** 2; return Math.sqrt(e / L); });
+  const ref = Math.min(...clips.map((c, j) => { let pk = 0; for (const v of c) pk = Math.max(pk, Math.abs(v)); return (peak / (pk || 1)) * rms[j]; }));
+  clips.forEach((c, j) => { const k = ref / (rms[j] || 1); for (let i = 0; i < c.length; i++) c[i] *= k; });
+}
 /** 切一段：從起音開始，hold 秒後以 tau 指數衰減，len 秒結束，最後 12 ms 淡出。eq 先做（濾波器要看到起音前的靜音）。 */
 function cut(x, i0, { hold = 0.03, tau = 0.09, len = 0.5, eq = [], peak = 0.84, sig = null }, nextOnset = Infinity) {
   const pre = 400, a = Math.max(0, i0 - pre);
@@ -139,7 +158,7 @@ if (process.argv.includes('--list')) {
 // ---- 組精靈圖 ----
 const used = new Set();
 async function bakeSet(name, spec, chunks, list, pos, fileIdx) {
-  list[name] = [];
+  list[name] = []; const clips = [];
   for (const v of spec.v) {
     const [id, at, over] = v, x = await raw(id); used.add(id);
     const on = (over?.peaks ?? spec.peaks) ? peaks(x, spec.gap ?? 45) : onsets(x, spec.floor ?? -18, spec.gap ?? 45);
@@ -147,7 +166,10 @@ async function bakeSet(name, spec, chunks, list, pos, fileIdx) {
     if (typeof at === 'number' && Number.isInteger(at) && at >= 0 && !v.sec && !spec.sec) { i0 = on[at]; next = on[at + 1] ?? Infinity; if (i0 == null) throw new Error(`${name}: ${id} 沒有第 ${at} 個起音（共 ${on.length}）`); }
     else i0 = Math.round(at * SR);
     if (over?.nonext ?? spec.nonext) next = Infinity;
-    const clip = cut(x, i0, { ...spec, ...over }, next);
+    clips.push(cut(x, i0, { ...spec, ...over }, next));
+  }
+  if (spec.tight && clips.length > 1) tighten(clips, spec.peak ?? 0.84);
+  for (const clip of clips) {
     list[name].push([fileIdx, +(pos.t / SR).toFixed(5), +(clip.length / SR).toFixed(4)]);
     chunks.push(clip); pos.t += clip.length;
     const gap = new Float32Array((0.16 * SR) | 0); chunks.push(gap); pos.t += gap.length;

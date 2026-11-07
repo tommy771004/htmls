@@ -1426,8 +1426,10 @@ def stage_tex(gid):
         metal[idx] = 0
         h[idx] = (fib - .5) * texel * .10 - pore * texel * .28
     # 新槍逐把壓暗：第一人稱的環境與自發光倍率高，橄欖、木色會亮成黃綠、橘。模組寫 TINT = {'olive': (.3, .25, .3)} 或單一倍率
+    # 世界模型照一般打光，壓暗後整把發黑，所以另存一張未壓暗的小圖 <id>_aw（stage_glb 掛到 <id>_w 的材質）；tint 記下每個像素壓了多少
+    tint = np.ones((n, 3), np.float32)
     for name, k in getattr(PLUG.get(gid), 'TINT', {}).items():
-        alb[pick(name)] *= np.array(k, np.float32)
+        alb[pick(name)] *= np.array(k, np.float32); tint[pick(name)] *= np.array(k, np.float32)
     # 大平面的色階：模組寫 BREAKUP = {'oxide': .3}。粗糙度與明度跟著低頻雜訊走，順便整體抬一點，側面在陽光下才不會壓成一塊黑
     for name, k in getattr(PLUG.get(gid), 'BREAKUP', {}).items():
         idx = pick(name); nz_ = fbm(P[idx] * 90, 3, 47) - .5
@@ -1476,6 +1478,7 @@ def stage_tex(gid):
     dust *= (M != MAT_IDS.index('glass')) * (M != MAT_IDS.index('dot'))
     for y0, y1, z0, z1 in getattr(PLUG.get(gid), 'NODUST', []):   # 彈匣蓋住的面 AO 全黑，會積成一整片沙，彈匣抽走就露出來
         dust[(P[:, 1] > y0) & (P[:, 1] < y1) & (P[:, 2] > z0) & (P[:, 2] < z1)] = 0
+    alb_w = mix(alb / tint, np.tile(hx('#5B4A38'), (n, 1)), dust * .55)
     alb = mix(alb, np.tile(hx('#5B4A38'), (n, 1)), dust * .55)
     rough = rough * (1 - dust) + .78 * dust; metal = metal * (1 - dust * .8)
     ao = np.clip(AO, 0, 1) * .75 + .25
@@ -1496,6 +1499,8 @@ def stage_tex(gid):
     NRM = dilate(np.dstack([-dx * nz, -dy * nz, nz])[..., :3] * .5 + .5, mask, 14)
     for name, arr in (('a', A), ('n', NRM), ('orm', ORM)):
         save_png(arr, os.path.join(WORK, f'{gid}_{name}.png'))
+    if getattr(PLUG.get(gid), 'TINT', None):
+        save_png(dilate(field(to_srgb(alb_w), 3), mask, 14), os.path.join(WORK, f'{gid}_aw.png'))
     print(f'[tex] {gid} 完成 {time.time()-t0:.1f}s', flush=True)
 
 
@@ -1523,6 +1528,9 @@ def to_webp(gid):
         if gid in PLUG and k == 'n':   # 新槍預算緊：法線用 near-lossless，比 lossless 省四成。亮面看到階梯就在模組寫 NEAR = 100（等於 lossless）
             cmd += ['-near_lossless', str(getattr(PLUG[gid], 'NEAR', NEAR_NORMAL))]
         subprocess.check_call(cmd + [src, '-o', dst]); out[k] = dst
+    src = os.path.join(WORK, f'{gid}_aw.png'); dst = os.path.join(WORK, f'{gid}_aw.webp')
+    if getattr(PLUG.get(gid), 'TINT', None) and os.path.exists(src):   # 世界模型的未壓暗基色：畫面上最多幾百像素，384 就夠，一張約 8 KB。只跑 glb 沒跑過新版 tex 時沒有這張，世界模型沿用主基色
+        subprocess.check_call(['cwebp', '-quiet', '-m', '6', '-q', '45', '-sharp_yuv', '-resize', '384', '384', src, '-o', dst]); out['aw'] = dst
     return out
 
 
@@ -1550,6 +1558,10 @@ def stage_glb(ids=GUNS, out_glb=None):
         to = tx('orm', 'Non-Color'); sp = nt.nodes.new('ShaderNodeSeparateColor'); nt.links.new(to.outputs[0], sp.inputs[0])
         nt.links.new(sp.outputs[1], b.inputs['Roughness']); nt.links.new(sp.outputs[2], b.inputs['Metallic'])
         g = nt.nodes.new('ShaderNodeGroup'); g.node_tree = occ; nt.links.new(sp.outputs[0], g.inputs[0])
+        if 'aw' in tex:   # <id>_w 換一份材質，只有基色圖不同，法線與 ORM 在 glb 裡共用
+            mw = m.copy(); mw.name = m.name + '_w'
+            next(n for n in mw.node_tree.nodes if n.type == 'TEX_IMAGE' and n.image == ta.image).image = bpy.data.images.load(tex['aw'])
+            bpy.data.objects[gid + '_w'].data.materials[0] = mw
         rz = RZ180
         for name, co in meta['marks'].items():
             parent = gid

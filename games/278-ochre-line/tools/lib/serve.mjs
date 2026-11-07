@@ -10,12 +10,13 @@ export const GAME_DIR = resolve(here, '../..');
 export const REPO_ROOT = resolve(GAME_DIR, '../..');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.glb': 'model/gltf-binary', '.webp': 'image/webp', '.hdr': 'application/octet-stream', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.wasm': 'application/wasm', '.mp3': 'audio/mpeg' };
 
-export function startServer(root = REPO_ROOT, extra = {}) {
+// isolate：加 COOP／COEP 開跨來源隔離，performance.now() 解析度從 100 µs 變 5 µs。量每幀 CPU 要開，0.7 ms 的量用 100 µs 的尺會差 14%。
+export function startServer(root = REPO_ROOT, extra = {}, { isolate = false } = {}) {
   const srv = http.createServer((req, res) => {
     const p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     const f = extra[p] ?? normalize(join(root, p));
     if ((!extra[p] && !f.startsWith(root)) || !existsSync(f) || !statSync(f).isFile()) { res.writeHead(404); res.end('nf'); return; }
-    res.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    res.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream', 'cache-control': 'no-store', ...(isolate ? { 'cross-origin-opener-policy': 'same-origin', 'cross-origin-embedder-policy': 'require-corp' } : {}) });
     createReadStream(f).pipe(res);
   });
   srv.keepAliveTimeout = 500;

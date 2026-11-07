@@ -8,6 +8,7 @@ import { ASSET_BASE } from '../core/assets.js';
 import { TMP_MAT_A, TMP_MAT_B, TMP_MAT_C, TMP_QUAT_A, TMP_VEC3_A } from '../core/tmp.js';
 import meta from './soldier-meta.json' with { type: 'json' };
 import { loadNewGuns, alias } from './guns/load.js';
+import { NEW_GUNS } from './guns/index.js';
 
 const FPS = 30;
 let clipData = {}, clipNames = [], bones = [], boneIdx = {};
@@ -64,7 +65,7 @@ export async function buildSoldiers(ctx) {
     const nodes = sk.bones.map(b => b.getTransformNode());
     for (const t of nodes) { t.rotationQuaternion ??= Quaternion.Identity(); }
     return { team, holder, root, mesh: keep, sk, nodes, agent: null,
-      clipA: 'idle_rifle', tA: 0, clipB: 'idle_rifle', tB: 0, blend: 1, once: false, hidden: false, rate: 1, rateA: 1, bd: 0.14, gunM: new Matrix(), gunOn: false, bf: sk.bones.map(b => b.getFinalMatrix()), world: new Matrix(), caps: new Float32Array(11 * 7) };
+      clipA: 'idle_rifle', tA: 0, clipB: 'idle_rifle', tB: 0, blend: 1, once: false, hidden: false, rate: 1, rateA: 1, bd: 0.14, gunM: new Matrix(), gunOn: false, sup: null, bf: sk.bones.map(b => b.getFinalMatrix()), world: new Matrix(), caps: new Float32Array(11 * 7) };
   };
   // 先用一組的骨頭順序烘動畫
   const first = make('atk');
@@ -75,6 +76,7 @@ export async function buildSoldiers(ctx) {
   for (let i = 1; i < 5; i++) pool.atk.push(make('atk'));
   for (let i = 0; i < 5; i++) pool.def.push(make('def'));
   for (const s of [...pool.atk, ...pool.def]) park(s);
+  buildChain();
 }
 
 // 不能縮成 0：行列式不再是負的，FAST 快照會把繞序記反，士兵整個內外翻面（看到身體內側與對面的肩）
@@ -83,6 +85,62 @@ function pushWorld(s) {
   s.holder.computeWorldMatrix(true); s.root.computeWorldMatrix(true); s.mesh.computeWorldMatrix(true);
   s.world.copyFrom(s.root.getWorldMatrix());
   if (snapshotActive.on) sendWorld(s.mesh);
+}
+
+// 左手執行時 IK。動畫把左手烘在槍框架 (0, HOLD_Y, HOLD_Z)，那是 AR5 的護木；其他槍要把手沿槍身滑到自己的護木（SUPPORT）。
+// 手的朝向與手肘方向都沿用動畫，只解上臂、前臂兩段，手骨反向補回來，所以手形和手指不用動。
+// 走 sampleTo 之後、sk.prepare 之前：先自算胸到雙手這一小段 FK，改好節點只 prepare 一次，骨架貼圖每幀仍只上傳一次。
+const HOLD_Y = 0.075, HOLD_Z = 0.22;
+const HOLD = { idle_rifle: 1, aim_rifle: 1, walk_rifle: 1, run_rifle: 1, back_rifle: 1, strafe_l_rifle: 1, strafe_r_rifle: 1, crouch_idle: 1, crouch_walk: 1, jump: 1, hit: 1 };   // 這些片段左手在槍上；手槍類片段、下跪、死亡不解
+const SUPPORT = { v11: [0.06, 0.085], ks: [0.055, 0.27], l40: [0.02, 0.23], s8: [-0.02, 0.29] };   // 舊槍的左手支撐點 [y, z]，槍框架；新槍在 guns/<id>.js 的 support。沒列的槍（AR5）就是烘焙值，不解
+export const ik = { on: true };
+let chain = null;   // at：骨頭索引；up：父骨在 chain 的位置；m：預配置矩陣；hr、ua、la、ha：右手與左臂在 chain 的位置
+function buildChain() {
+  const set = new Set();
+  for (const n of ['hand_r', 'hand_l']) for (let b = bones[boneIdx[n]]; b; b = b.getParent()) set.add(bones.indexOf(b));
+  const at = [...set].sort((a, b) => a - b), pos = i => at.indexOf(i);   // Babylon 的骨頭陣列本來就是父骨在前
+  chain = { at, up: at.map(i => { const p = bones[i].getParent(); return p ? pos(bones.indexOf(p)) : -1; }), m: at.map(() => new Matrix()), hr: pos(boneIdx.hand_r), ua: pos(boneIdx.upperarm_l), la: pos(boneIdx.lowerarm_l), ha: pos(boneIdx.hand_l) };
+}
+/** 四元數右乘：q ⊗ (x y z w)，寫回節點。 */
+function rotLocal(q, x, y, z, w) { const a = q.x, b = q.y, c = q.z, d = q.w; q.copyFromFloats(d * x + a * w + b * z - c * y, d * y - a * z + b * w + c * x, d * z + a * y - b * x + c * w, d * w - a * x - b * y - c * z); }
+/** 世界空間的旋轉轉成掛在這根骨頭本地、右乘的旋轉：向量部分投到骨頭的三軸，再正規化。 */
+function applyDelta(node, m, x, y, z, w) {
+  const a = m[0] * x + m[1] * y + m[2] * z, b = m[4] * x + m[5] * y + m[6] * z, c = m[8] * x + m[9] * y + m[10] * z, l = Math.hypot(a, b, c), v = Math.hypot(x, y, z), k = l > 1e-9 ? v / l : 0;
+  rotLocal(node.rotationQuaternion, a * k, b * k, c * k, w);
+}
+function holdSupport(s, sup) {
+  const w = (HOLD[s.clipB] ?? 0) * s.blend + (HOLD[s.clipA] ?? 0) * (1 - s.blend); if (w < 1e-3) return;
+  const c = chain, N = c.at.length, F = c.m;
+  for (let i = 0; i < N; i++) {
+    const n = s.nodes[c.at[i]], u = c.up[i];
+    if (u < 0) { Matrix.ComposeToRef(n.scaling, n.rotationQuaternion, n.position, F[i]); continue; }
+    Matrix.ComposeToRef(n.scaling, n.rotationQuaternion, n.position, TMP_MAT_C);
+    TMP_MAT_C.multiplyToRef(F[u], F[i]);
+  }
+  socketM.multiplyToRef(F[c.hr], TMP_MAT_C);
+  const g = TMP_MAT_C.m, dy = (sup[0] - HOLD_Y) * w, dz = (sup[1] - HOLD_Z) * w;
+  const U = F[c.ua].m, L = F[c.la].m, H = F[c.ha].m;
+  const sx = U[12], sy = U[13], sz = U[14], ex = L[12] - sx, ey = L[13] - sy, ez = L[14] - sz, fx = H[12] - L[12], fy = H[13] - L[13], fz = H[14] - L[14];
+  const l1 = Math.hypot(ex, ey, ez), l2 = Math.hypot(fx, fy, fz);
+  let wx = H[12] + g[4] * dy + g[8] * dz - sx, wy = H[13] + g[5] * dy + g[9] * dz - sy, wz = H[14] + g[6] * dy + g[10] * dz - sz;
+  const D0 = Math.hypot(wx, wy, wz), D = Math.min(D0, (l1 + l2) * 0.999), ux = wx / D0, uy = wy / D0, uz = wz / D0;
+  wx = ux * D; wy = uy * D; wz = uz * D;
+  const a = (l1 * l1 - l2 * l2 + D * D) / (2 * D), b = Math.sqrt(Math.max(0, l1 * l1 - a * a)), t = ex * ux + ey * uy + ez * uz;
+  let vx = ex - ux * t, vy = ey - uy * t, vz = ez - uz * t; const vl = Math.hypot(vx, vy, vz); if (vl < 1e-5) return;   // 手臂全直，手肘沒有方向
+  vx /= vl; vy /= vl; vz /= vl;
+  const nx = (ux * a + vx * b) / l1, ny = (uy * a + vy * b) / l1, nz = (uz * a + vz * b) / l1;   // 新上臂方向
+  const mx = (wx - ux * a - vx * b) / l2, my = (wy - uy * a - vy * b) / l2, mz = (wz - uz * a - vz * b) / l2;   // 新前臂方向
+  // q1：舊上臂轉到新上臂；q2：舊前臂轉到新前臂。都是世界空間的最短弧。半角形式 (a×b, 1+a·b)
+  const ax = ex / l1, ay = ey / l1, az = ez / l1, bx = fx / l2, by = fy / l2, bz = fz / l2;
+  let q1x = ay * nz - az * ny, q1y = az * nx - ax * nz, q1z = ax * ny - ay * nx, q1w = 1 + ax * nx + ay * ny + az * nz, q = 1 / Math.hypot(q1x, q1y, q1z, q1w);
+  q1x *= q; q1y *= q; q1z *= q; q1w *= q;
+  let q2x = by * mz - bz * my, q2y = bz * mx - bx * mz, q2z = bx * my - by * mx, q2w = 1 + bx * mx + by * my + bz * mz; q = 1 / Math.hypot(q2x, q2y, q2z, q2w);
+  q2x *= q; q2y *= q; q2z *= q; q2w *= q;
+  // 上臂：q1。前臂：扣掉父骨已轉的 q1，得 q1⁻¹⊗q2。手：扣掉前臂的 q2，世界朝向就維持動畫的值
+  const rw = q1w * q2w + q1x * q2x + q1y * q2y + q1z * q2z, rx = q1w * q2x - q1x * q2w - q1y * q2z + q1z * q2y, ry = q1w * q2y - q1y * q2w - q1z * q2x + q1x * q2z, rz = q1w * q2z - q1z * q2w - q1x * q2y + q1y * q2x;
+  applyDelta(s.nodes[c.at[c.ua]], U, q1x, q1y, q1z, q1w);
+  applyDelta(s.nodes[c.at[c.la]], L, rx, ry, rz, rw);
+  applyDelta(s.nodes[c.at[c.ha]], H, -q2x, -q2y, -q2z, q2w);
 }
 
 /** 掛到 agent。 */
@@ -140,7 +198,7 @@ export async function buildWorldGuns(ctx) {
     const g = guns[id] ??= { meshes: [], buf: new Float32Array(11 * 16) };
     g.meshes.push(m);
   }
-  // 新槍的世界模型是同一個 glb 裡減面過的 <id>_w，和第一人稱共用貼圖
+  // 新槍的世界模型是同一個 glb 裡減面過的 <id>_w，法線與 ORM 和第一人稱共用；模組有 TINT 的槍另有一張未壓暗的小基色圖（build_guns_hd.py 的 aw）
   for (const id in more.gun) {
     const m = more.gun[id].meshes.find(x => x.name === id + '_w'), mat = m.material, w = m.computeWorldMatrix(true).clone();
     if (mat.ambientTexture && mat.metallicTexture) { mat.useAmbientOcclusionFromMetallicTextureRed = false; mat.ambientTexture = null; }
@@ -148,6 +206,7 @@ export async function buildWorldGuns(ctx) {
     m.bakeTransformIntoVertices(w);
     guns[id] = { meshes: [m], buf: new Float32Array(11 * 16) }; MUZZLE[id] = more.index[id].muzzle;
   }
+  for (const n of NEW_GUNS) if (n.support) SUPPORT[n.id] = n.support;
   for (const id in guns) for (const m of guns[id].meshes) {
     m.thinInstanceSetBuffer('matrix', guns[id].buf, 16, false);
     m.alwaysSelectAsActiveMesh = true; m.doNotSyncBoundingInfo = true; m.isPickable = false; m.receiveShadows = true; m.freezeWorldMatrix();
@@ -175,8 +234,10 @@ export function updateSoldiers(dt, cam) {
     Quaternion.RotationYawPitchRollToRef(a.yaw, 0, 0, TMP_QUAT_A);
     s.holder.rotationQuaternion.copyFrom(TMP_QUAT_A);
     pushWorld(s);
+    const id = a.alive && !s.busy ? alias[a.cur] ?? a.cur : '', g = guns[id];
+    if (SUPPORT[id]) s.sup = SUPPORT[id]; else if (s.blend >= 1) s.sup = null;   // 槍收掉後手還在淡出：撐到片段混完
+    if (s.sup && ik.on) holdSupport(s, s.sup);
     s.sk.prepare(true);
-    const g = guns[a.alive && !s.busy ? alias[a.cur] ?? a.cur : ''];
     s.gunOn = !!g;
     if (g) {
       const hand = s.bf[boneIdx.hand_r];

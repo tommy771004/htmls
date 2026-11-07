@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // 赭線驗收：兩尺寸 × 兩後端、完整比賽、路線實走、零配置、快照 CPU 比較。結果寫到 dist/accept.json。
-// node tools/accept.mjs [--only desk,flow,guns,follow,draws,route,gc,snap]
-import { startServer, launch, GAME_DIR } from './lib/serve.mjs';
+// node tools/accept.mjs [--only desk,env,lost,webkit,flow,guns,follow,draws,route,gc,snap]
+import { startServer, launch, GAME_DIR, REPO_ROOT } from './lib/serve.mjs';
 import { resolve, basename } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 
 const only = (process.argv[process.argv.indexOf('--only') + 1] ?? '').split(',').filter(Boolean), want = k => !process.argv.includes('--only') || only.includes(k);
 // --page=dist/x.html：驗收自己的打包，不動 web/，截圖、計數版與結果都分開放，可以和別的 session 同時跑
@@ -12,7 +12,7 @@ const pageArg = process.argv.find(a => a.startsWith('--page='))?.slice(7), tag0 
 const shots = resolve(GAME_DIR, 'dist/accept' + tag0); mkdirSync(shots, { recursive: true });
 const countHtml = resolve(GAME_DIR, `dist/count${tag0}.html`);
 if (want('gc')) execFileSync('node', ['tools/build.mjs', '--count', `--out=dist/count${tag0}.html`], { cwd: GAME_DIR, stdio: 'ignore' });
-const s = await startServer(undefined, { '/web/__count.html': countHtml, ...(pageArg ? { '/web/278-ochre-line.html': resolve(GAME_DIR, pageArg) } : {}) }), b = await launch();
+const s = await startServer(undefined, { '/web/__count.html': countHtml, ...(pageArg ? { '/web/278-ochre-line.html': resolve(GAME_DIR, pageArg) } : {}) }, { isolate: true }), b = await launch();
 // draw 上限：2026-11-07 全部七把新槍載入後量到 569／281，換槍不變，上限只留一點餘裕，多一把槍或多拆一個網格要先想過再改這裡
 const DRAW_LIMIT = [575, 285], DRAW_SPREAD = 4;
 const out = { checks: [], fails: [] }, PAGE = '/web/278-ochre-line.html';
@@ -75,6 +75,87 @@ try {
     check(`${label} 無外部請求`, !ext.length, ext[0] ?? '');
     note(`${label} 效能`, `fps ${m.fps.toFixed(1)}，draw ${m.draws}`);
     await ctx.close();
+  }
+
+  if (want('env')) {
+    // 彩虹槍面與全白的根因：開機在 GPU 上濾環境貼圖，遇到 GPU 重啟留下隨機位元。這裡擋三件事：打包裡不能再有濾波、
+    // 上傳後每層數值要對（含反向對照：故意寫壞一層，檢查要抓得到）、非 clean 畫面不能全白或出現高飽和色塊
+    const look = async p => { const png = (await p.screenshot()).toString('base64'); return p.evaluate(async png => { const i = new Image(); i.src = 'data:image/png;base64,' + png; await i.decode(); const w = 160, h = 100, c = new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true }); c.drawImage(i, 0, 0, w, h); const d = c.getImageData(0, 12, w, 72).data, n = d.length / 4; let wh = 0, sat = 0; for (let k = 0; k < d.length; k += 4) { const R = d[k], G = d[k + 1], B = d[k + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B); if (mn > 245) wh++; if (mx > 200 && mn < 90 && !(R > G && G > B)) sat++; } return { white: +(wh / n).toFixed(3), sat: +(sat / n).toFixed(4) }; }, png); };
+    for (const [tag, q] of [['WebGPU', ''], ['WebGL', '?gfx=webgl']]) {
+      const { p, ctx, bad } = await open(PAGE + q, { width: 1280, height: 720 });
+      await p.waitForTimeout(800);
+      const fx = await p.evaluate(() => ({ eff: Object.keys(__ol.ctx.engine._compiledEffects ?? {}).filter(k => /hdrFiltering/i.test(k)), hdr: performance.getEntriesByType('resource').filter(e => /env\.hdr/.test(e.name)).length, bin: performance.getEntriesByType('resource').filter(e => /env\.bin/.test(e.name)).length }));
+      check(`${tag} 開機不跑 GPU 環境濾波`, !fx.eff.length && !fx.hdr && fx.bin === 1, JSON.stringify(fx));
+      const r = await p.evaluate(async () => {
+        const half = v => { const e = (v >> 10) & 31, m = v & 1023, s = v >> 15 ? -1 : 1; return e === 31 ? (m ? NaN : s * Infinity) : s * (e ? (1 + m / 1024) * 2 ** (e - 15) : m / 1024 * 2 ** -14); };
+        const t = __ol.ctx.scene.environmentTexture, stat = async () => { const L = []; for (let l = 0; l < 8; l++) { let mx = 0, sum = 0, n = 0, bad = 0; for (let f = 0; f < 6; f++) { const u = await t.readPixels(f, l, null, true, true); const a = u instanceof Float32Array ? u : new Uint16Array(u.buffer, u.byteOffset, u.byteLength >> 1), flt = a instanceof Float32Array; for (let i = 0; i < a.length; i++) { if ((i & 3) === 3) continue; const v = flt ? a[i] : half(a[i]); if (!Number.isFinite(v) || v < 0) bad++; else { if (v > mx) mx = v; sum += v; n++; } } } L.push({ mx, mean: sum / n, bad }); } return L; };
+        const ok = L => L.every(x => !x.bad && x.mx < 16 && x.mean > 0.1 && x.mean < 0.25);
+        const L = await stat(), it = t.getInternalTexture(), g = new Uint16Array(128 * 128 * 4).map((_, i) => i * 40503 & 65535);
+        const good = ok(L); __ol.ctx.engine._uploadArrayBufferViewToTexture(it, g, 2, 0); const L2 = await stat();
+        return { good, lod0: L[0], ctl: ok(L2), ctl0: L2[0] };
+      }).catch(e => ({ err: String(e).slice(0, 160) }));
+      check(`${tag} 環境貼圖數值正確`, r.good === true, JSON.stringify(r.lod0 ?? r));
+      check(`${tag} 環境貼圖反向對照`, r.ctl === false, JSON.stringify(r.ctl0 ?? r));
+      await ctx.close();
+      const o = await open(PAGE + q, { width: 1280, height: 720 });
+      await o.p.evaluate(() => { document.querySelector('button[data-s=atk]').click(); }); await o.p.waitForTimeout(1200);
+      await o.p.evaluate(async () => { const O = __ol, G = O.G, W = ms => new Promise(f => setTimeout(f, ms)); G.time = 0; await W(500); G.time = 900; G.me.hp = 1e6; O.giveWeapon('n9'); await W(700); });
+      const j = await look(o.p);
+      check(`${tag} 實機畫面沒有全白或彩虹`, j.white < 0.05 && j.sat < 0.002, JSON.stringify(j));
+      check(`${tag} 實機畫面無錯誤`, !o.bad.length, o.bad[0] ?? '');
+      await o.ctx.close();
+    }
+  }
+
+  if (want('lost')) for (const [tag, q] of [['WebGPU', ''], ['WebGL', '?gfx=webgl']]) {
+    // 裝置遺失不能卡死：Babylon 的還原和 FAST 快照不相容，主迴圈會死在 bindUniformBuffer。要自動重載回到可玩
+    const { p, ctx, bad } = await open(PAGE + q, { width: 960, height: 600 });
+    await p.evaluate(() => { document.querySelector('button[data-s=atk]').click(); }); await p.waitForTimeout(1000);
+    const t0 = await p.evaluate(() => performance.timeOrigin);
+    await p.evaluate(() => { const e = __ol.ctx.engine; if (__ol.ctx.isWebGPU) e._device.destroy(); else e._gl.getExtension('WEBGL_lose_context').loseContext(); });
+    const back = await p.waitForFunction(t => window.__ol?.ready && performance.timeOrigin > t, t0, { timeout: 60000 }).then(() => true, () => false);
+    const f0 = back ? await p.evaluate(() => __ol.stats().frame) : 0; await p.waitForTimeout(800); const f1 = back ? await p.evaluate(() => __ol.stats().frame) : 0;
+    const gone = back ? await p.evaluate(() => document.querySelector('button[data-s=atk]') && !document.getElementById('gpulost')) : false;
+    check(`${tag} 裝置遺失後自動重載`, back && f1 > f0 && gone, JSON.stringify({ back, frames: f1 - f0 }));
+    check(`${tag} 裝置遺失沒有未捕捉例外`, !bad.some(x => x.startsWith('uncaught')), bad.find(x => x.startsWith('uncaught')) ?? '');
+    await ctx.close();
+  }
+
+  if (want('webkit')) {
+    // iOS 無法實機測，這裡在 Chromium 模擬 WebKit 的限制，至少走過那幾條程式路徑。實機項目見 dist/ios-checklist.md
+    const scene = async (name, init, allow = /$^/) => {
+      const c = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }), p = await c.newPage(), bad = [];
+      p.on('console', m => { const t = m.text(); if ((m.type() === 'error' || /validation|Destroyed texture/i.test(t)) && !allow.test(t)) bad.push(t.slice(0, 220)); });
+      p.on('pageerror', e => bad.push('uncaught ' + String(e.stack || e).slice(0, 240)));
+      await p.addInitScript(init);
+      await p.goto(s.url + PAGE); await p.waitForFunction(() => window.__ol?.ready || /^ERR/.test(document.title), null, { timeout: 120000 });
+      const up = await p.evaluate(() => !!window.__ol); check(`${name} 開機`, up, await p.title());
+      if (up) {
+        await p.waitForTimeout(800); await p.tap('button[data-s=atk]'); await p.waitForTimeout(1800);
+        const r = await p.evaluate(() => ({ webgpu: __ol.ctx.isWebGPU, csm: !!__ol.ctx.shadow.numCascades, phase: __ol.G.phase, sfx: __ol.sfx().ctx, frame: __ol.stats().frame }));
+        await p.screenshot({ path: `${shots}/webkit_${name.replace(/\s/g, '_')}.png` });
+        check(`${name} 走 WebGL 且進遊戲`, !r.webgpu && !r.csm && r.phase === 'buy' && r.frame > 10, JSON.stringify(r));
+        check(`${name} 無錯誤`, !bad.length, bad[0] ?? '');
+      }
+      return { p, c };
+    };
+    const noGpu = () => { delete Navigator.prototype.gpu; Object.defineProperty(navigator, 'gpu', { value: undefined }); };
+    const safari = () => {   // 舊版 iOS：沒有 WebGPU、沒有指標鎖定、只有 webkitAudioContext、半浮點以外的線性過濾缺席
+      delete Navigator.prototype.gpu; Object.defineProperty(navigator, 'gpu', { value: undefined });
+      delete Element.prototype.requestPointerLock; delete Document.prototype.exitPointerLock;
+      window.webkitAudioContext = window.AudioContext; delete window.AudioContext;
+      const ge = WebGL2RenderingContext.prototype.getExtension, gs = WebGL2RenderingContext.prototype.getSupportedExtensions, no = /OES_texture_float_linear|EXT_texture_filter_anisotropic/;
+      WebGL2RenderingContext.prototype.getExtension = function (n) { return no.test(n) ? null : ge.call(this, n); };
+      WebGL2RenderingContext.prototype.getSupportedExtensions = function () { return gs.call(this).filter(n => !no.test(n)); };
+    };
+    const badDevice = () => { GPUAdapter.prototype.requestDevice = () => Promise.reject(new Error('模擬 requestDevice 失敗')); };
+    const A = await scene('無 WebGPU', noGpu); await A.c.close();
+    const B = await scene('模擬舊版 iOS', safari);
+    // 喚醒：iOS 的手勢只認 touchend／click。先把 context 暫停，只送 touchend，要回到 running
+    const wake = await B.p.evaluate(async () => { const st = () => __ol.sfx().ctx, w = ms => new Promise(f => setTimeout(f, ms)); const ac = window.__ac; if (!ac) return { skip: st() }; await ac.suspend(); const a = st(); await w(50); window.dispatchEvent(new Event('touchend')); await w(250); return { a, b: st() }; }).catch(e => ({ err: String(e).slice(0, 120) }));
+    if (!wake.skip) check('模擬舊版 iOS touchend 叫醒聲音', wake.a === 'suspended' && wake.b === 'running', JSON.stringify(wake));
+    await B.c.close();
+    const C = await scene('requestDevice 失敗', badDevice, /fatal error occurred during WebGPU/); await C.c.close();   // 這行是 Babylon 自己印的，我們接住後退回 WebGL
   }
 
   if (want('flow')) for (const side of ['atk', 'def']) {
@@ -173,7 +254,9 @@ try {
     const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
     await p.goto(`${s.url}/web/278-ochre-line.html?clean=1`);
     await p.waitForFunction(() => window.__ol?.ready, null, { timeout: 90000 });
-    await p.evaluate(async () => { const O = __ol, G = O.G, w = ms => new Promise(f => setTimeout(f, ms)); O.startMatch({ side: 'def' }); O.setClean(true); G.time = 1; while (G.phase === 'buy') await w(50); G.time = 900; G.me.hp = 1e6; await w(700); });
+    // 量測要穩：相減的兩張之間世界不能動。G.paused 停掉 tick（bot、投擲物、回合），frame() 照跑，第一人稱仍走 updateViewmodel → sendWorld；
+    // 士兵閒置動作還在播，所以把 bot 全移到地底，畫面裡只剩靜態場景和第一人稱。
+    await p.evaluate(async () => { const O = __ol, G = O.G, w = ms => new Promise(f => setTimeout(f, ms)); O.startMatch({ side: 'def' }); O.setClean(true); G.time = 1; while (G.phase === 'buy') await w(50); G.time = 900; G.me.hp = 1e6; await w(100); G.paused = true; for (const a of G.agents) if (a.bot) { a.x = a.px = 0; a.y = a.py = -100; a.z = a.pz = 0; } await w(700); });
     const shot = async () => (await p.screenshot()).toString('base64');
     const where = (a, c) => p.evaluate(async ([a, c]) => {
       const px = async s => { const i = new Image(); i.src = 'data:image/png;base64,' + s; await i.decode(); const k = new OffscreenCanvas(i.width, i.height).getContext('2d'); k.drawImage(i, 0, 0); return k.getImageData(0, 0, i.width, i.height); };
@@ -182,7 +265,7 @@ try {
       return { n, x: n ? sx / n / A.width : 0, y: n ? sy / n / A.height : 0 };
     }, [a, c]);
     const place = async (id, yaw, pitch) => {
-      await p.evaluate(([id, yaw, pitch]) => { const O = __ol, y = O.you; O.G.time = 900; O.G.me.hp = 1e6; if (id === 'knife') O.select('knife'); else O.giveWeapon(id); y.yaw = yaw; y.pitch = pitch; }, [id, yaw, pitch]);
+      await p.evaluate(([id, yaw, pitch]) => { const O = __ol, y = O.you; if (id === 'knife') O.select('knife'); else O.giveWeapon(id); y.yaw = yaw; y.pitch = pitch; }, [id, yaw, pitch]);
       await p.waitForTimeout(700); const a = await shot();
       await p.evaluate(() => __GAME_MCP__.vm.cur.holder.scaling.set(1e-5, 1e-5, -1e-5)); await p.waitForTimeout(150); const c = await shot();
       await p.evaluate(() => { const g = __GAME_MCP__.vm.cur; g.holder.scaling.copyFrom(g.scale); });
@@ -192,11 +275,8 @@ try {
       const y0 = await p.evaluate(() => __ol.you.yaw);
       for (const id of ['p9', 'ar5', 'knife', 'c7', 'm7', 'b90', 't4', 'x10', 's6', 'n9']) {
         // 同一把槍換三個朝向，畫面位置要一樣；留在世界裡的槍會跟著場景移動
-        // 十把槍要跑三分鐘，bot 會走進畫面，相減時多出一大塊。錯緩衝是必然重現的，重量一次不會放過真的問題
-        const once = async () => { const A = await place(id, y0, 0), B = await place(id, y0 + 0.7, 0.1), C = await place(id, y0 + 1.9, -0.15); return { n: [A.n, B.n, C.n], d: Math.max(Math.hypot(A.x - B.x, A.y - B.y), Math.hypot(A.x - C.x, A.y - C.y)) }; };
-        const good = r => Math.min(...r.n) > 3000 && r.d < 0.05;
-        let r = await once(); const retry = !good(r); if (retry) r = await once();
-        check(`第一人稱跟著鏡頭（${tag} ${id}）`, good(r), JSON.stringify({ n: r.n, d: +r.d.toFixed(3), retry }));
+        const A = await place(id, y0, 0), B = await place(id, y0 + 0.7, 0.1), C = await place(id, y0 + 1.9, -0.15), r = { n: [A.n, B.n, C.n], d: Math.max(Math.hypot(A.x - B.x, A.y - B.y), Math.hypot(A.x - C.x, A.y - C.y)) };
+        check(`第一人稱跟著鏡頭（${tag} ${id}）`, Math.min(...r.n) > 3000 && r.d < 0.02, JSON.stringify({ n: r.n, d: +r.d.toFixed(3) }));
       }
     };
     await probe('開局');
@@ -259,12 +339,13 @@ try {
   }
 
   if (want('snap')) {
-    const measure = async q => { const { p, ctx } = await open(PAGE + '?clean=1&spot=key' + q, { width: 1440, height: 900 }); await p.waitForTimeout(2500); const r = await p.evaluate(() => __ol.cpu(240)); await ctx.close(); return r; };
-    const on = [], off = [];
-    for (let i = 0; i < 3; i++) { on.push(await measure('')); off.push(await measure('&nosnap=1')); }
-    const med = a => a.map(x => x.median).sort((x, y) => x - y)[1], A = med(on), B = med(off);
-    note('快照 CPU（每幀 scene.render + endFrame 主執行緒，3 次交錯取中位）', `FAST 開 ${A.toFixed(2)} ms；關 ${B.toFixed(2)} ms；降低 ${((1 - A / B) * 100).toFixed(1)}%`);
-    out.snapshot = { on: A, off: B, reduction: 1 - A / B };
+    // 同一頁交錯（ABBA）比相鄰區塊。兩頁各量一次會吃到效能核／節能核的差距，同一支程式能差到 3 倍，舊做法因此在 73.9–86.5% 間跳。
+    const pages = [];
+    for (let i = 0; i < 5; i++) { const { p, ctx } = await open(PAGE + '?clean=1&spot=key', { width: 1440, height: 900 }); await p.waitForTimeout(2500); pages.push(await p.evaluate(() => __ol.cpuAB())); await ctx.close(); }
+    const med = k => pages.map(x => x[k]).sort((x, y) => x - y)[2], R = med('reduction'), low = Math.min(...pages.map(x => x.reduction));
+    note('快照 CPU（scene.render + endFrame，5 頁各 12 對 ABBA，取每頁相鄰區塊降幅中位）', `FAST 開 ${med('on').toFixed(2)} ms；關 ${med('off').toFixed(2)} ms；每頁 ${pages.map(x => (x.reduction * 100).toFixed(1)).join(' ')}%`);
+    check('快照 CPU 降幅達 80%', R >= 0.8 && low >= 0.8, `中位 ${(R * 100).toFixed(1)}%，最低 ${(low * 100).toFixed(1)}%`);
+    out.snapshot = { on: med('on'), off: med('off'), reduction: R, low, pages: pages.map(x => x.reduction) };
   }
 } finally {
   await b.close(); await s.close();

@@ -28,7 +28,7 @@ Cransh 的模型說明沒有標示袖子 `sleeve_st6_generalist` 的來源，這
 - 貼圖、天空：[Poly Haven](https://polyhaven.com/)，逐張作者見 `credits/textures.md`。
 - 人物底模、骨架、動畫：Quaternius 的 Universal Base Characters、Universal Animation Library。
 
-- 武器與動作音效的錄音：Freesound 上標示 CC0 的錄音，逐一開音效頁確認授權；標題、描述或標籤提到遊戲名稱、或疑似從遊戲擷取的一律不用。每個來源的網址、作者、授權見 `credits/sfx.md`。
+- 武器與動作音效的錄音：Freesound 上標示 CC0 的錄音，逐一開音效頁確認授權；標題、描述或標籤提到遊戲名稱、或疑似從遊戲擷取的一律不用。錄音都經過切段、等化與音量處理，每把武器用的來源互不重複。每個來源的網址、作者、授權見 `credits/sfx.md`，用 `node tools/sfx.mjs --verify` 重新確認（最近一次 2026-11-07，78 個來源）。
 
 ## 本作品自製
 

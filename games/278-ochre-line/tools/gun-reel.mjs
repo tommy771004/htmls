@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // 換彈逐格：node tools/gun-reel.mjs <id>[,<id>] [--page=dist/x.html] [--u=.1,.2,.3] [--size=1440x900] [--cell=480] [--out=dist/shots/reel_<id>.png]
 // 凍在指定進度截圖拼成一張，看得到手接彈匣的那幾格（gun-check 的 reloadA／B 常常剛好錯過）。
-// --cycle 改拍開火後的上膛動作，--inspect 拍檢視；u 都是 0..1。
+// --cycle 改拍開火後的上膛動作，--inspect 拍檢視；u 都是 0..1。--js='v.CYCLE.s6[2]=50' 開拍前在頁面執行（v 是 vm），現場試數字。--crop=x,y,w,h 只截畫面一塊（看零件用）。--part=bolt 把活動零件的通道釘在 u（bolt、pull、lift、cover，逗號可多個）看行程，槍不動。
 import { startServer, launch, GAME_DIR } from './lib/serve.mjs';
 import { resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 
 const arg = (n, d) => process.argv.find(a => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
 const ids = process.argv[2]?.split(','), page = arg('page', 'dist/int.html'), [W, H] = arg('size', '1440x900').split('x').map(Number);
-const us = arg('u', '0.1,0.18,0.26,0.34,0.44,0.5,0.56,0.66,0.8').split(',').map(Number), mode = process.argv.includes('--cycle') ? 'cycle' : process.argv.includes('--inspect') ? 'inspect' : 'reload';
-const tall = H > W, cols = Math.min(us.length, tall ? 6 : 3), cw = +arg('cell', tall ? 260 : 480), ch = Math.round(cw * H / W);
+const us = arg('u', '0.1,0.18,0.26,0.34,0.44,0.5,0.56,0.66,0.8').split(',').map(Number), part = arg('part'), mode = part ? 'part' : process.argv.includes('--cycle') ? 'cycle' : process.argv.includes('--inspect') ? 'inspect' : 'reload';
+const crop = arg('crop')?.split(',').map(Number), clip = crop && { x: crop[0], y: crop[1], width: crop[2], height: crop[3] };
+const tall = H > W, cols = Math.min(us.length, tall ? 6 : 3), cw = +arg('cell', tall ? 260 : 480), ch = Math.round(cw * (crop ? crop[3] / crop[2] : H / W));
 const dir = resolve(GAME_DIR, 'dist/shots'); mkdirSync(dir, { recursive: true });
 const s = await startServer(undefined, { '/web/278-ochre-line.html': resolve(GAME_DIR, page) }), b = await launch();
 try {
@@ -21,15 +22,17 @@ try {
   const page2 = await ctx.newPage();
   for (const id of ids) {
     await p.evaluate(id => { const O = __ol; O.G.time = 900; O.G.me.hp = 1e6; O.giveWeapon(id); }, id); await p.waitForTimeout(800);
+    if (arg('js')) await p.evaluate(js => { const v = __GAME_MCP__.vm; eval(js); }, arg('js'));
     const cells = [];
     for (const u of us) {
-      await p.evaluate(([u, mode]) => { const v = __GAME_MCP__.vm, O = __ol; O.G.time = 900; clearInterval(window.__fz); cancelAnimationFrame(window.__fz);
+      await p.evaluate(([u, mode, part]) => { const v = __GAME_MCP__.vm, O = __ol; O.G.time = 900; clearInterval(window.__fz); cancelAnimationFrame(window.__fz);
+        if (mode === 'part') { v.pin = Object.fromEntries(part.split(',').map(k => [k, u])); return; }
         const T = mode === 'reload' ? (O.G.me.reloadT = 0, 4) : mode === 'cycle' ? 1.25 : 2.6;
-        const f = () => { if (mode === 'reload') { v.reloadT = T; v.reload = T * (1 - u); } else if (mode === 'cycle') v.cycle = u * T; else v.inspect = T * (1 - u); window.__fz = requestAnimationFrame(f); }; f(); }, [u, mode]);
+        const f = () => { if (mode === 'reload') { v.reloadT = T; v.reload = T * (1 - u); } else if (mode === 'cycle') v.cycle = u * T; else v.inspect = T * (1 - u); window.__fz = requestAnimationFrame(f); }; f(); }, [u, mode, part]);
       await p.waitForTimeout(220);
-      cells.push({ u, png: (await p.screenshot()).toString('base64') });
+      cells.push({ u, png: (await p.screenshot(clip ? { clip } : {})).toString('base64') });
     }
-    await p.evaluate(() => { const v = __GAME_MCP__.vm; cancelAnimationFrame(window.__fz); v.reload = 0; v.cycle = -1; v.inspect = 0; });
+    await p.evaluate(() => { const v = __GAME_MCP__.vm; cancelAnimationFrame(window.__fz); v.reload = 0; v.cycle = -1; v.inspect = 0; v.pin = null; });
     await page2.setViewportSize({ width: cw * cols, height: ch * Math.ceil(cells.length / cols) });
     await page2.setContent(`<body style="margin:0;background:#222;display:grid;grid-template-columns:repeat(${cols},${cw}px)">` + cells.map(c => `<div style="position:relative;width:${cw}px;height:${ch}px;overflow:hidden"><img src="data:image/png;base64,${c.png}" style="width:100%;height:100%"><b style="position:absolute;left:4px;top:2px;color:#fff;font:13px sans-serif;background:#0009;padding:1px 4px">${id} u=${c.u}</b></div>`).join(''));
     await page2.waitForTimeout(250);

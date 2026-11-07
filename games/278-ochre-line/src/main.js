@@ -18,10 +18,10 @@ import { initCollision } from './game/mover.js';
 import { you, teleport } from './game/player.js';
 import { buildViewmodel } from './game/viewmodel.js';
 import { finishNewGuns } from './game/guns/load.js';
-import { buildSoldiers, buildWorldGuns, updateSoldiers, clipDebug, chargePos, pool } from './game/soldiers.js';
+import { buildSoldiers, buildWorldGuns, updateSoldiers, clipDebug, chargePos, pool, ik } from './game/soldiers.js';
 import { G, WEAPONS } from './game/state.js';
 import { addMatch } from './game/record.js';
-import { world, giveWeapon } from './game/weapons.js';
+import { world, giveWeapon, fire, clear } from './game/weapons.js';
 import { initBots } from './game/bots.js';
 import { setupMatch, leaveMatch, onKill, buy, startRound, nextRound } from './game/round.js';
 import { tick, frame } from './game/loop.js';
@@ -38,7 +38,7 @@ import { stage, startStage, stopStage, frameStage, fitStage, setStage, asideStag
 window.__keep = [B0, S0];
 
 const q = new URLSearchParams(location.search);
-const canvas = document.getElementById('view');
+let canvas = document.getElementById('view');
 
 function placeCam(cam, s) {
   const D = Math.PI / 180;
@@ -46,10 +46,22 @@ function placeCam(cam, s) {
   if (s.fov) cam.fov = s.fov;
 }
 
+/** GPU 裝置遺失：回到開機狀態是唯一安全的路。連續三次就退回 WebGL，別讓壞驅動卡在重載迴圈。這一局的進度會消失，戰績本來就只在打完才記。 */
+const LOST_KEY = 'ochre-line.gpulost';
+function onGpuLost() {
+  const ctx = window.__ol?.ctx; ctx?.engine.stopRenderLoop();
+  const n = +(sessionStorage.getItem(LOST_KEY) || 0) + 1; sessionStorage.setItem(LOST_KEY, n);
+  const m = document.createElement('p'); m.id = 'gpulost'; m.textContent = '顯示裝置重設了，正在重新載入';
+  m.style.cssText = 'position:fixed;inset:0;margin:0;display:grid;place-items:center;background:#16120d;color:#e9e0cf;font-size:18px;z-index:99'; document.body.append(m);
+  setTimeout(() => { if (n >= 3 && !q.has('gfx')) { q.set('gfx', 'webgl'); location.search = q; } else location.reload(); }, 900);
+}
+
 async function boot() {
   const t0 = performance.now();
   preloadSfx();   // 只抓 bytes，不等、不算進度；解碼在 initAudio
   const ctx = await createEngine(canvas, { forceWebGL: q.get('gfx') === 'webgl' });
+  canvas = ctx.canvas;   // WebGPU 初始化失敗時畫布會換一張
+  ctx.gpuLost.then(onGpuLost);
   const info = await buildMap(ctx, LAYOUT, +(q.get('seed') || 278));
   buildCollision(ctx, LAYOUT); initCollision(LAYOUT); buildNav(LAYOUT); initBots();
   world.ctx = ctx; world.onKill = onKill;
@@ -105,16 +117,19 @@ async function boot() {
     if (alloc) alloc.on = false;
   });
   ctx.engine.runRenderLoop(() => scene.render());
-  if (!q.has('nosnap')) scene.onAfterRenderObservable.add(() => { if (++frames === 4 && ctx.isWebGPU) { ctx.snapshot.enable(); snapshotActive.on = true; flushAll(); } });
+  setTimeout(() => sessionStorage.removeItem(LOST_KEY), 60000);   // 撐過一分鐘就算恢復正常
+  if (!q.has('nosnap')) scene.onAfterRenderObservable.add(() => { if (++frames === (+q.get('snapAt') || 4) && ctx.isWebGPU) { ctx.snapshot.enable(); snapshotActive.on = true; flushAll(); } });
 
   const api = window.__ol = {
     ready: true, ctx, info, G, you, input, LAYOUT, chargePos, weapons: WEAPONS, boot: performance.now() - t0, sfx: sfxStatus,
     state: () => ({ phase: G.phase, time: G.time, round: G.round, score: [...G.score], hp: G.me?.hp, money: G.me?.money, alive: G.agents.map(a => a.alive), pos: [you.x, you.y, you.z], charge: G.charge }),
     teleport(x, y, z, yaw = 0, pitch = 0) { free = null; const D = Math.PI / 180; teleport(x, y, z, yaw * D, pitch * D); },
-    tuneStage, pool, stageGun(id, side = 'atk') { setStage(side, id); }, spot(n) { endStage(); free = LAYOUT.spots[n] ?? null; }, fps() { endStage(); free = null; },
+    tuneStage, pool, ik, stageGun(id, side = 'atk') { setStage(side, id); }, benchSoldiers(n = 2000) { const t = performance.now(); for (let i = 0; i < n; i++) updateSoldiers(0.016, cam); return (performance.now() - t) / n; }, spot(n) { endStage(); free = LAYOUT.spots[n] ?? null; }, fps() { endStage(); free = null; },
     setClean(b) { ui.style.display = b ? 'none' : ''; },
     startMatch(o = {}) { hideMenu(); begin(o.side ?? 'atk'); if (o.skipBuy) { G.time = 0; } },
     fire(n = 1) { input.fire = true; setTimeout(() => { input.fire = false; }, n * 90); },
+    /** 繞過輸入直接扣一次扳機，走真正的 fire()：tools/balance.mjs 量擊殺時間用。 */
+    shoot(yaw, pitch) { return fire(G.me, yaw, pitch, cam); }, los: clear,
     giveWeapon(id) { const m = G.me; giveWeapon(m, id); m.cur = id; api.select(id); },
     forceClip(name, t = -1) { clipDebug.name = name; clipDebug.t = t; },
     select(id) { import_select(id); },
@@ -149,7 +164,32 @@ async function boot() {
         scene.render = function (...a) { t0 = performance.now(); return render.apply(this, a); };
         ctx.engine.endFrame = function (...a) {
           const r = end.apply(this, a); t.push(performance.now() - t0);
-          if (t.length >= n) { delete scene.render; delete ctx.engine.endFrame; t.sort((x, y) => x - y); ok({ frames: t.length, median: t[t.length >> 1], p95: t[t.length * 0.95 | 0] }); }
+          if (t.length >= n) { delete scene.render; delete ctx.engine.endFrame; t.sort((x, y) => x - y); const lo = t.length * 0.1 | 0, hi = t.length * 0.9 | 0; let sum = 0; for (let i = lo; i < hi; i++) sum += t[i]; ok({ frames: t.length, median: t[t.length >> 1], trim: sum / (hi - lo), p95: t[t.length * 0.95 | 0] }); }
+          return r;
+        };
+      });
+    },
+    /**
+     * 同一頁交錯量快照開與關（ABBA）。macOS 會把主執行緒放在效能核或節能核，換一頁速度就差一倍，
+     * 所以比的是相鄰區塊，不是兩頁各自的中位。切換後略過 skip 幀，等快照重錄、JIT 回穩。
+     */
+    cpuAB({ blocks = 24, n = 60, skip = 40 } = {}) {
+      return new Promise(ok => {
+        const set = on => { if (on) { ctx.snapshot.enable(); snapshotActive.on = true; flushAll(); } else { snapshotActive.on = false; ctx.snapshot.disable(); } };
+        const render = scene.render, end = ctx.engine.endFrame, med = a => [...a].sort((x, y) => x - y)[a.length >> 1];
+        const order = i => (i % 4 === 0 || i % 4 === 3), meds = [], t = []; let t0 = 0, b = 0, wait = skip;
+        set(order(0));
+        scene.render = function (...a) { t0 = performance.now(); return render.apply(this, a); };
+        ctx.engine.endFrame = function (...a) {
+          const r = end.apply(this, a), dt = performance.now() - t0;
+          if (ctx.engine.snapshotRendering !== order(b) || !ctx.snapshot.helper.isReady) return r;   // 還沒切完
+          if (wait > 0) { wait--; return r; }
+          t.push(dt);
+          if (t.length >= n) {
+            meds.push(med(t)); t.length = 0; wait = skip;
+            if (++b >= blocks) { delete scene.render; delete ctx.engine.endFrame; set(true); const on = meds.filter((_, i) => order(i)), off = meds.filter((_, i) => !order(i)), rs = on.map((x, i) => 1 - x / off[i]); ok({ on: med(on), off: med(off), reduction: med(rs), rs, meds, stable: ctx.engine.snapshotRendering }); return r; }
+            set(order(b));
+          }
           return r;
         };
       });

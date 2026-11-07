@@ -11,9 +11,9 @@ import { NEW_GUNS } from './guns/index.js';
 export const WEAPONS = {
   knife: { id: 'knife', name: 'K2 戰鬥刀', slot: 3, price: 0, mag: 0, rsv: 0, rpm: 150, dmg: 35, head: 55, pen: 1, range: 1.8, spread: 0, speedK: 1, reload: 0 },
   p9: { id: 'p9', name: 'P9 手槍', slot: 2, price: 0, mag: 12, rsv: 36, rpm: 400, dmg: 30, head: 110, pen: 0.5, range: 90, spread: 0.008, speedK: 0.96, reload: 2.2, semi: true },
-  r50: { id: 'r50', name: 'R50 重型手槍', slot: 2, price: 700, mag: 7, rsv: 35, rpm: 240, dmg: 55, head: 190, pen: 0.92, range: 110, spread: 0.012, speedK: 0.92, reload: 2.2, semi: true },
+  r50: { id: 'r50', name: 'R50 重型手槍', slot: 2, price: 700, mag: 7, rsv: 35, rpm: 240, dmg: 55, head: 190, pen: 0.88, range: 110, spread: 0.012, speedK: 0.92, reload: 2.2, semi: true },
   v11: { id: 'v11', name: 'V11 衝鋒槍', slot: 1, price: 1200, mag: 30, rsv: 120, rpm: 900, dmg: 24, head: 72, pen: 0.6, range: 70, spread: 0.02, speedK: 0.96, reload: 2.6, auto: true, rec: 'smg' },
-  s8: { id: 's8', name: 'S8 霰彈槍', slot: 1, price: 1800, mag: 7, rsv: 28, rpm: 68, dmg: 20, head: 40, pen: 0.6, range: 40, spread: 0.05, pellets: 9, speedK: 0.86, reload: 3.4 },
+  s8: { id: 's8', name: 'S8 霰彈槍', slot: 1, price: 1800, mag: 7, rsv: 28, rpm: 68, dmg: 21, head: 42, pen: 0.72, range: 40, spread: 0.043, pellets: 9, speedK: 0.88, reload: 3.4 },
   ks: { id: 'ks', name: 'KS 短突擊步槍', slot: 1, price: 2700, mag: 30, rsv: 90, rpm: 650, dmg: 34, head: 120, pen: 0.77, range: 130, spread: 0.009, speedK: 0.86, reload: 2.5, auto: true, rec: 'ks' },
   ar5: { id: 'ar5', name: 'AR5 突擊步槍', slot: 1, price: 3100, mag: 30, rsv: 90, rpm: 700, dmg: 31, head: 105, pen: 0.7, range: 130, spread: 0.008, speedK: 0.9, reload: 3.1, auto: true, rec: 'ar5' },
   l40: { id: 'l40', name: 'L40 狙擊槍', slot: 1, price: 4750, mag: 5, rsv: 20, rpm: 40, dmg: 110, head: 250, pen: 0.97, range: 300, spread: 0.0004, hipSpread: 0.07, speedK: 0.8, reload: 3.6, scope: true },
@@ -45,7 +45,7 @@ export const G = {
 export function makeAgent(i, team, name, isBot) {
   return {
     i, team, name, isBot, alive: true, hp: 100, armor: 0, helmet: false, kit: false, money: RULES.startMoney,
-    kills: 0, deaths: 0, score: 0, rk: 0, rd: 0, obj: 0, // rk／rd／obj：本回合擊殺、傷害、目標（裝藥或拆除）
+    kills: 0, deaths: 0, score: 0, shots: 0, hits: 0, rk: 0, rd: 0, obj: 0, // rk／rd／obj：本回合擊殺、傷害、目標（裝藥或拆除）
     slots: [null, 'knife', null, null, null], // 依序 主、手槍、刀… 見 weapons.js
     primary: null, secondary: 'p9', nades: [], hasCharge: false, cur: 'p9',
     ammo: {}, rsv: {},

@@ -135,8 +135,9 @@ export function fire(a, yaw, pitch, cam) {
     const y = yaw + ry + Math.cos(th) * r, p = pitch + rp + Math.sin(th) * r, cp = Math.cos(p);
     const dx = Math.sin(y) * cp, dy = Math.sin(p), dz = Math.cos(y) * cp;
     if (w.range < 3) { const v = melee(a, w, ox, oy, oz, dx, dy, dz); hitAny = hitAny || !!v; continue; }
-    shootOne(a, w, ox, oy, oz, dx, dy, dz, i === 0, cam);
+    hitAny = !!shootOne(a, w, ox, oy, oz, dx, dy, dz, i === 0, cam) || hitAny;
   }
+  a.shots++; if (hitAny) a.hits++;   // 命中率統計（tools/balance.mjs）：一次扣扳機算一發，霰彈任一顆打中就算
   a.burst++; a.burstT = 0.32;
   if (w.range > 3) {
     const sy = Math.sin(yaw), cy = Math.cos(yaw), cp = Math.cos(pitch);

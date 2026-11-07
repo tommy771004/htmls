@@ -35,7 +35,7 @@ const KIND = { knife: 'one', p9: 'pistol', r50: 'pistol', v11: 'pistol', s8: 'ri
 const DEG = Math.PI / 180;
 const HIDE = 1e-5;   // 隱藏的縮放量，z 要保持負號（見檔頭）
 export const POSES = POSE;
-export const vm = { anchor: null, groups: {}, cur: null, kick: 0, kickV: 0, swap: 0, swapT: 0.42, reload: 0, reloadT: 1, inspect: 0, cycle: -1, slide: 0, dry: false, bobT: 0, muzzle: null, swayX: 0, swayY: 0, lastYaw: 0, lastPitch: 0, land: 0, landV: 0, wasGround: true };
+export const vm = { CYCLE: null, anchor: null, groups: {}, cur: null, kick: 0, kickV: 0, swap: 0, swapT: 0.42, reload: 0, reloadT: 1, inspect: 0, cycle: -1, slide: 0, ch: { bolt: 0, pull: 0, lift: 0, cover: 0 }, pin: null, dry: false, bobT: 0, muzzle: null, swayX: 0, swayY: 0, lastYaw: 0, lastPitch: 0, land: 0, landV: 0, wasGround: true };
 
 function adopt(mat, seen) {
   let c = seen.get(mat);
@@ -54,10 +54,19 @@ const MAG = { ks: [0.02, -0.165, 0.045, 0.1, 0.23], ar5: [0.018, -0.16, 0.04, 0.
 // 手槍的彈匣藏在握把裡，模型只有底板：補一段看得到的匣身。寬、高、深、上端傾斜（度）、下端中心 z
 const MAG_BODY = { p9: [0.018, 0.1, 0.03, 12, -0.005], r50: [0.018, 0.09, 0.03, 12, 0.017] };
 const REACH = [0.12, -0.42, -0.12];   // 換彈時手與彈匣離開畫面的位移（槍座標）
+const REACH_TALL = [1, 1.5, 1.8];
 const REACHES = {};   // 個別武器的 REACH，例如彈匣在頂部的 B90
 const INSPECT = { ks: 0.5, ar5: 0.75 };   // 檢視前半段的轉動量：槍身長、握點靠後的槍，袖子末端會比較早掃進畫面
-const ARC = {}, SLIDE = {}, TILT = {}, CYCLE = {}, SHELL = {};   // 換彈傾斜、開火後手動上膛、單發裝填的秒數，欄位見 guns/index.js
-for (const g of NEW_GUNS) { POSE[g.id] = g.vm.pose; KICK[g.id] = g.vm.kick; KIND[g.id] = g.vm.kind; if (g.vm.mag) MAG[g.id] = g.vm.mag; if (g.vm.magBody) MAG_BODY[g.id] = g.vm.magBody; if (g.vm.reach) REACHES[g.id] = g.vm.reach; if (g.vm.arc) ARC[g.id] = g.vm.arc; if (g.vm.slide) SLIDE[g.id] = g.vm.slide; if (g.vm.inspect) INSPECT[g.id] = g.vm.inspect; if (g.vm.tilt) TILT[g.id] = g.vm.tilt; if (g.vm.cycle) CYCLE[g.id] = g.vm.cycle; if (g.shell) SHELL[g.id] = g.shell; }
+const ARC = {}, SLIDE = {}, TILT = {}, CYCLE = {}, SHELL = {}, BOLT_T = { ks: 0.07, ar5: 0.07 };   // 換彈傾斜、開火後手動上膛、單發裝填的秒數，欄位見 guns/index.js
+// 會動的零件（槍座標 glTF，x 取反於建模座標）。沒有獨立網格：見 buildParts。舊槍的資料也寫在這裡，新槍在 guns/<id>.js 的 vm.parts
+const PARTS = {
+  // 舊槍沒有分組，靠範圍從 guns_hd.glb 的主網格選零件，模型不用重烘。AR5 的拉機柄是不隨動折疊片，只在換彈拉一次
+  ks: [{ box: [0.0095, 0.0445, 0.0695, 0.0835, 0.1375, 0.1515], ch: 'bolt', t: [0, 0, -0.08] }, { box: [-0.0125, 0.0095, 0.0575, 0.0845, 0.0955, 0.1905], ch: 'bolt', t: [0, 0, -0.08] }],
+  ar5: [{ box: [0.0085, 0.0348, 0.0692, 0.0788, 0.1185, 0.1405], ch: 'pull', t: [0, 0, -0.06] }, { box: [-0.0106, 0.0086, 0.056, 0.083, 0.0695, 0.1605], ch: 'bolt', t: [0, 0, -0.06] }],
+  r50: [{ box: [-0.0165, 0.0155, 0.0485, 0.0935, -0.0395, 0.153], ch: 'bolt', t: [0, 0, -0.026] }],
+  p9: [{ box: [-0.0148, 0.0148, 0.044, 0.0902, -0.0745, 0.1165], skip: [0.0086, 0.009, 0.058, 0.083, 0.005, 0.056], ch: 'bolt', t: [0, 0, -0.03] }],
+}, KNOB = {};
+for (const g of NEW_GUNS) { POSE[g.id] = g.vm.pose; KICK[g.id] = g.vm.kick; KIND[g.id] = g.vm.kind; if (g.vm.mag) MAG[g.id] = g.vm.mag; if (g.vm.magBody) MAG_BODY[g.id] = g.vm.magBody; if (g.vm.reach) REACHES[g.id] = g.vm.reach; if (g.vm.arc) ARC[g.id] = g.vm.arc; if (g.vm.slide) SLIDE[g.id] = g.vm.slide; if (g.vm.inspect) INSPECT[g.id] = g.vm.inspect; if (g.vm.tilt) TILT[g.id] = g.vm.tilt; if (g.vm.cycle) CYCLE[g.id] = g.vm.cycle; if (g.shell) SHELL[g.id] = g.shell; if (g.vm.parts) PARTS[g.id] = g.vm.parts; if (g.vm.knob) KNOB[g.id] = g.vm.knob; if (g.vm.boltT) BOLT_T[g.id] = g.vm.boltT; }
 
 /** 把範圍內的零件從 mesh 拆成新網格，回傳新網格；mesh 只留其餘三角形。 */
 function splitPart(mesh, box) {
@@ -108,9 +117,10 @@ function buildReload(id, holder, armL, armR, gunMeshes, magMeshes) {
 /** 依換彈進度擺左手與彈匣。u 是 0..1，未在換彈時傳 -1 歸位。c 是單發裝填這一發的進度，t／T 是全程的秒數：
  *  手先空手下去，再帶著這一發回到裝彈口；下去時彈殼留在槍裡，所以 mag 只在回程跟著手。 */
 function poseReload(rl, u, c = -1, t = 0, T = 0) {
-  let grab, off, mag;
+  let grab, off, mag, arc = 0;
   if (u < 0) { grab = 0; off = rl.p0 ? 0 : 1; mag = 0; }
   else if (c >= 0) { grab = ease(0, 0.16, t) * (1 - ease(T - 0.16, T, t)); const back = 1 - ease(0.34, 0.86, c); off = c < 0.34 ? ease(0, 0.34, c) : back; mag = c < 0.34 ? 0 : back; }
+  else if (rl.arc) { grab = ease(0.1, 0.14, u) * (1 - ease(0.66, 0.7, u)); off = ease(0.2, 0.36, u) * (1 - ease(0.4, 0.54, u)); mag = off; arc = ease(0.03, 0.1, u) * (1 - ease(0.14, 0.24, u)) + ease(0.6, 0.66, u) * (1 - ease(0.7, 0.8, u)); }   // 兩個姿勢差太多，內插途中手會塌：先退到畫面外，看不到時才換姿勢
   else if (rl.p0) { grab = ease(0.04, 0.2, u) * (1 - ease(0.62, 0.78, u)); off = ease(0.2, 0.36, u) * (1 - ease(0.4, 0.54, u)); mag = off; }
   else { off = (1 - ease(0.3, 0.52, u)) + ease(0.62, 0.8, u); grab = 1; const drop = ease(0.1, 0.3, u); mag = u < 0.3 ? drop * drop : (u < 0.54 ? off : 0); }
   if (rl.p0 && Math.abs(grab - rl.k) > 1e-3) {
@@ -118,11 +128,92 @@ function poseReload(rl, u, c = -1, t = 0, T = 0) {
     for (let i = 0; i < a.length; i++) { pw[i] = a[i] + (b[i] - a[i]) * grab; nw[i] = c[i] + (d[i] - c[i]) * grab; }
     rl.vp.update(pw); rl.vn.update(nw);
   }
-  const R = rl.reach;
+  const R = rl.reach, tall = innerHeight > innerWidth, ky = tall && R[1] < 0 ? REACH_TALL[1] : 1, kz = tall ? REACH_TALL[2] : 1, kx = tall ? REACH_TALL[0] : 1;   // 直式畫面又高又窄：手與彈匣要走更遠、更靠近鏡頭才出得了畫面，不然整段換彈都掛在中段
   let ax = 0, ay = 0, az = 0;
-  if (rl.arc) { const s = Math.sin(Math.PI * grab), A = rl.arc; ax = A[0] * s; ay = A[1] * s * s * (innerHeight > innerWidth ? 2.2 : 1); az = A[2] * s; }   // y 用平方：快到彈匣時已經在彈匣高度，手不會擦過機匣左肩
-  rl.arm.position.set(rl.base[0] + R[0] * off * off + ax, rl.base[1] + R[1] * off + ay, rl.base[2] + R[2] * off * off + az);
-  for (let i = 0; i < rl.mags.length; i++) { const m = rl.mags[i], o = rl.magBase[i]; m.position.set(o[0] + R[0] * mag * mag, o[1] + R[1] * mag, o[2] + R[2] * mag * mag); }
+  if (rl.arc) { const A = rl.arc; ax = A[0] * arc; ay = A[1] * arc * (tall ? 2.2 : 1); az = A[2] * arc; }
+  rl.arm.position.set(rl.base[0] + R[0] * kx * off * off + ax, rl.base[1] + R[1] * ky * off + ay, rl.base[2] + R[2] * kz * off * off + az);
+  for (let i = 0; i < rl.mags.length; i++) { const m = rl.mags[i], o = rl.magBase[i]; m.position.set(o[0] + R[0] * kx * mag * mag, o[1] + R[1] * ky * mag, o[2] + R[2] * kz * mag * mag); }
+}
+
+/** 手動上膛的右手：持握與抓栓柄兩個姿勢，頂點順序相同，內插方式同 poseReload。抓栓柄的姿勢只拿頂點，不進場景。 */
+function buildBoltHand(id, arm, node) {
+  const p0 = arm.getVerticesData('position'), n0 = arm.getVerticesData('normal'), p1 = node.getVerticesData('position'), n1 = node.getVerticesData('normal');
+  node.dispose(false, false);
+  if (p0.length !== p1.length) { console.warn('上膛手頂點數不符', id); return null; }
+  arm.markVerticesDataAsUpdatable('position'); arm.markVerticesDataAsUpdatable('normal');
+  const lever = PARTS[id].find(p => p.rc);   // 手跟著的零件：旋轉軸與後拉行程都讀它的資料
+  return { arm, p0, n0, p1, n1, pw: new Float32Array(p0), nw: new Float32Array(n0), vp: arm.getVertexBuffer('position'), vn: arm.getVertexBuffer('normal'), k: 0, x: arm.position.x, y: arm.position.y, z: arm.position.z, knob: KNOB[id], axis: lever.r[1], ang: lever.r[2] * DEG, back: lever.t[2], dirty: false };
+}
+
+/** k 是手抓住栓柄的程度，dx…是握球離烘焙位置（舉起、未後拉）的位移。 */
+function poseBoltHand(rb, k, dx, dy, dz) {
+  if (Math.abs(k - rb.k) > 1e-3) {
+    rb.k = k; const a = rb.p0, b = rb.p1, c = rb.n0, d = rb.n1, pw = rb.pw, nw = rb.nw;
+    for (let i = 0; i < a.length; i++) { pw[i] = a[i] + (b[i] - a[i]) * k; nw[i] = c[i] + (d[i] - c[i]) * k; }
+    rb.vp.update(pw); rb.vn.update(nw);
+  }
+  rb.arm.position.set(rb.x + dx * k, rb.y + dy * k, rb.z + dz * k);
+}
+
+/** 把 box 內完整的零件標成 tag。整個連通塊都在範圍內才算，skip 範圍裡的不算。 */
+function markBox(p, ix, def, tag, label) {
+  const n = p.length / 3, up = new Int32Array(n).map((_, i) => i), root = (i) => { while (up[i] !== i) i = up[i] = up[up[i]]; return i; }, out = new Uint8Array(n), [a, b, c, d, e, f] = def.box, sk = def.skip;
+  for (let i = 0; i < ix.length; i += 3) { up[root(ix[i])] = root(ix[i + 1]); up[root(ix[i])] = root(ix[i + 2]); }
+  for (let i = 0; i < n; i++) { const x = p[i * 3], y = p[i * 3 + 1], z = p[i * 3 + 2]; if (x < a || x > b || y < c || y > d || z < e || z > f || (sk && x >= sk[0] && x <= sk[1] && y >= sk[2] && y <= sk[3] && z >= sk[4] && z <= sk[5])) out[root(i)] = 1; }
+  let hit = 0;
+  for (let i = 0; i < n; i++) if (!out[root(i)] && label[i] < 0) { label[i] = tag; hit++; }
+  return hit;
+}
+
+/** 活動零件留在主網格裡，每個都排到頂點緩衝尾端，動的時候只上傳那一段，和 poseReload 改手臂頂點同一招。
+ *  draw 上限很緊，拆成獨立網格每件多 1 draw（隱藏的槍也算），所以不拆；FAST 快照下緩衝不換，bundle 不用重錄。 */
+function buildParts(id, meshes) {
+  const defs = PARTS[id]; if (!defs) return null;
+  const out = [];
+  for (const m of meshes) {
+    const p = m.getVerticesData('position'), ix = m.getIndices(), n = p.length / 3, label = new Int8Array(n).fill(-1), hits = defs.map((d, k) => markBox(p, ix, d, k, label));
+    if (!hits.some(Boolean)) continue;
+    const order = new Int32Array(n), inv = new Int32Array(n); let w = 0;
+    for (let i = 0; i < n; i++) if (label[i] < 0) order[w++] = i;
+    const runs = [];
+    defs.forEach((d, k) => { if (!hits[k]) return; const start = w; for (let i = 0; i < n; i++) if (label[i] === k) order[w++] = i; runs.push({ d, start, count: w - start }); });
+    for (let i = 0; i < n; i++) inv[order[i]] = i;
+    const turn = runs.some(r => r.d.r);
+    for (const kind of m.getVerticesDataKinds()) {
+      const a = m.getVerticesData(kind), c = a.length / n, r = new Float32Array(a.length);
+      for (let i = 0; i < n; i++) for (let k = 0; k < c; k++) r[i * c + k] = a[order[i] * c + k];
+      m.setVerticesData(kind, r, kind === 'position' || (turn && kind === 'normal'), c);
+    }
+    m.setIndices(Array.from(ix, v => inv[v]));
+    const pos = m.getVerticesData('position'), nor = m.getVerticesData('normal');
+    for (const r of runs) {
+      const q = { ...r, vp: m.getVertexBuffer('position'), vn: turn ? m.getVertexBuffer('normal') : null, p0: pos.slice(r.start * 3, (r.start + r.count) * 3), n0: nor.slice(r.start * 3, (r.start + r.count) * 3), pw: new Float32Array(r.count * 3), nw: new Float32Array(r.count * 3), k0: 0, k1: 0, axis: r.d.r ? 'xyz'.indexOf(r.d.r[0]) : -1 };
+      out.push(q);
+    }
+  }
+  return out.length ? out : null;
+}
+
+/** 依通道值擺零件：先繞軸轉（r: [軸, [軸上兩座標], 度]，通道 rc），再平移（t，通道 ch）。值沒變就不上傳。 */
+function poseParts(parts) {
+  const c = vm.ch;
+  for (let i = 0; i < parts.length; i++) {
+    const q = parts[i], d = q.d, k0 = c[d.ch] ?? 0, k1 = d.rc ? c[d.rc] ?? 0 : 0;
+    if (k0 === q.k0 && k1 === q.k1) continue;
+    q.k0 = k0; q.k1 = k1;
+    const a = q.p0, b = q.pw, t = d.t, tx = t ? t[0] * k0 : 0, ty = t ? t[1] * k0 : 0, tz = t ? t[2] * k0 : 0, N = a.length;
+    if (q.axis < 0) { for (let j = 0; j < N; j += 3) { b[j] = a[j] + tx; b[j + 1] = a[j + 1] + ty; b[j + 2] = a[j + 2] + tz; } }
+    else {
+      const u = q.axis, v = (u + 1) % 3, w = (u + 2) % 3, P = d.r[1], pv = P[0], pw = P[1], th = d.r[2] * DEG * k1, cs = Math.cos(th), sn = Math.sin(th), m = q.n0, o = q.nw;
+      for (let j = 0; j < N; j += 3) {
+        const y = a[j + v] - pv, z = a[j + w] - pw;
+        b[j + u] = a[j + u]; b[j + v] = pv + y * cs - z * sn; b[j + w] = pw + y * sn + z * cs; b[j] += tx; b[j + 1] += ty; b[j + 2] += tz;
+        const ny = m[j + v], nz = m[j + w]; o[j + u] = m[j + u]; o[j + v] = ny * cs - nz * sn; o[j + w] = ny * sn + nz * cs;
+      }
+      q.vn.updateDirectly(o, q.start * 3);
+    }
+    q.vp.updateDirectly(b, q.start * 3);
+  }
 }
 
 export async function buildViewmodel(ctx, snapshot) {
@@ -161,10 +252,13 @@ export async function buildViewmodel(ctx, snapshot) {
       rl = buildReload(id, holder, armL, armR, gunMeshes.filter(m => m.getTotalVertices() > 0), magMeshes);
       if (rl) for (const m of rl.mags) { if (magMeshes.includes(m)) continue; m.material = adopt(m.material, seen); m.isPickable = false; m.alwaysSelectAsActiveMesh = true; m.doNotSyncBoundingInfo = true; m.receiveShadows = false; meshes.push(m); }
       if (rl) poseReload(rl, -1);
+      if (armL && more.arms[id]) armR.dispose(false, false);   // 只要它的頂點。新槍的容器不走下面的 trash，留著會在世界原點多畫一隻手
     }
+    const parts = buildParts(id, gunMeshes.filter(m => m.getTotalVertices() > 0));
+    const rbNode = find(armSrc, 'arms_' + id + '_RB'), rb = rbNode ? buildBoltHand(id, arm, rbNode) : null;
     const mz = find(src, id + '_muzzle'), local = new Vector3();
     if (mz) { const w = mz.computeWorldMatrix(true).getTranslation(), inv = anchor.computeWorldMatrix(true).clone().invert(); Vector3.TransformCoordinatesToRef(w, inv, local); }
-    vm.groups[id] = { id, holder, meshes, kind: KIND[id], muzzle: mz, muzzleLocal: local, scale: new Vector3(1, 1, -1), rl, slide: slideNode || null, slideZ: slideNode ? slideNode.position.z : 0 };
+    vm.groups[id] = { id, holder, meshes, kind: KIND[id], muzzle: mz, muzzleLocal: local, scale: new Vector3(1, 1, -1), rl, parts, rb, slide: slideNode || null, slideZ: slideNode ? slideNode.position.z : 0 };
     holder.scaling.set(HIDE, HIDE, -HIDE);
   }
   // 替身共用舊槍的節點與換彈資料，不多畫任何東西；id 和 kind 用新槍自己的，POSE、KICK 才走得到
@@ -181,7 +275,7 @@ export function muzzleTo(out) { Vector3.TransformCoordinatesToRef(vm.cur.muzzleL
 
 export function selectWeapon(id) {
   const g = vm.groups[id]; if (!g || vm.cur === g) return;
-  if (vm.cur) { if (vm.cur.rl) poseReload(vm.cur.rl, -1); vm.cur.holder.scaling.set(HIDE, HIDE, -HIDE); flush(vm.cur); }
+  if (vm.cur) { if (vm.cur.rl) poseReload(vm.cur.rl, -1); if (vm.cur.parts) { vm.ch.bolt = vm.ch.pull = vm.ch.lift = vm.ch.cover = 0; poseParts(vm.cur.parts); } if (vm.cur.rb) poseBoltHand(vm.cur.rb, 0, 0, 0, 0); vm.cur.holder.scaling.set(HIDE, HIDE, -HIDE); flush(vm.cur); }
   vm.cur = g; g.holder.scaling.copyFrom(g.scale); vm.swap = 1; vm.swapT = g.kind === 'pistol' ? 0.32 : 0.42; vm.reload = 0; vm.inspect = 0; vm.cycle = -1; vm.kick = 0; vm.kickV = 0;
 }
 /** 快照剛啟用時呼叫：啟用前換的槍沒寫進 uniform，不補的話那把會一直留在畫面上。 */
@@ -191,6 +285,7 @@ function flush(g) {
   for (let i = 0; i < g.meshes.length; i++) { const m = g.meshes[i]; m.computeWorldMatrix(true); if (snapshotActive.on) sendWorld(m); }
 }
 
+vm.CYCLE = CYCLE; vm.REACHES = REACHES; vm.ARC = ARC; vm.TILT = TILT; vm.REACH_TALL = REACH_TALL;   // 除錯：gun-reel --js 現場改數字
 const clamp01 = (x) => x < 0 ? 0 : x > 1 ? 1 : x, ease = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 
 /** 開火：給後座彈簧一個衝量。臨界阻尼下 v0 = ωe 時峰值約為 1。 */
@@ -226,18 +321,19 @@ export function updateViewmodel(dt, speed, ground, yaw, pitch) {
   // 拔槍：從右下翻上來
   const sw = vm.swap * vm.swap, dx0 = sw * 0.04, dy0 = -sw * 0.2, rP = sw * 42, rR = sw * 24;
   // 換彈：傾斜露出彈匣，中段插匣下頓一下，收尾拉機柄
-  let eR = 0, eP = 0, eY = 0, eX = 0;
+  let eR = 0, eP = 0, eY = 0, eX = 0, pull = 0, lift = 0, cover = 0;
   if (vm.reload > 0) {
     const u = 1 - vm.reload / vm.reloadT, env = ease(0, 0.16, u) * (1 - ease(0.84, 1, u));
     let seat = ease(0.5, 0.56, u) * (1 - ease(0.56, 0.68, u)), bolt = ease(0.76, 0.8, u) * (1 - ease(0.8, 0.88, u));
     const sh = SHELL[g.id], T = vm.reloadT, t = T - vm.reload, c = sh ? (t / sh) % 1 : -1, tl = TILT[g.id];
     if (sh) { seat = ease(0.8, 0.86, c) * (1 - ease(0.86, 1, c)); bolt = 0; }   // 每一發頓一下
+    pull = bolt; lift = ease(0.72, 0.76, u) * (1 - ease(0.88, 0.92, u)); cover = ease(0.06, 0.16, u) * (1 - ease(0.82, 0.92, u));
     eR = (tl ? tl[0] : -26) * env; eP = (tl ? tl[1] : -13) * env + seat * 4 - bolt * 3; eY = (tl ? tl[2] : -0.04) * env - seat * 0.016; eX = (tl ? tl[3] : -0.035) * env + bolt * 0.006;
     if (g.kind === 'pistol') { eY = (g.id === 'v11' ? 0.1 : 0.06) * env - seat * 0.016; eR = -20 * env; eP = -16 * env + seat * 4; eX = -0.05 * env; }   // 手槍抬起來，彈匣口才進得了畫面
     if (g.rl) { poseReload(g.rl, u, c, t, T); g.rl.dirty = true; }
   } else if (g.rl?.dirty) { poseReload(g.rl, -1); g.rl.dirty = false; }
   // 滑套：開火往後一下，打空掛在後方，換彈收尾才放回去
-  vm.slide = Math.max(0, vm.slide - dt / 0.1);
+  vm.slide = Math.max(0, vm.slide - dt / (BOLT_T[g.id] ?? 0.1));
   if (g.slide) {
     const p = 1 - vm.slide, back = p < 0.3 ? p / 0.3 : (1 - p) / 0.7;
     let lock = vm.dry ? 1 : 0;
@@ -245,11 +341,30 @@ export function updateViewmodel(dt, speed, ground, yaw, pitch) {
     g.slide.position.z = g.slideZ - SLIDE[g.id] * Math.max(vm.slide > 0 ? back : 0, lock);
   }
   // 手動上膛：開火後把槍側過來拉一次槍機。槍機在右側，畫面裡看到的是整把槍翻過來、往後一頓
-  let cR = 0, cP = 0, cZ = 0, cY = 0;
+  let cR = 0, cP = 0, cZ = 0, cY = 0, cX = 0, cW = 0;
   if (vm.cycle >= 0) {
     const C = CYCLE[g.id]; vm.cycle += dt;
     if (vm.cycle > C[1]) vm.cycle = -1;
-    else { const k = vm.cycle, e = ease(C[0], C[0] + 0.14, k) * (1 - ease(C[1] - 0.16, C[1], k)), a = ease(C[0] + 0.14, C[0] + 0.26, k), b = ease(C[1] - 0.34, C[1] - 0.22, k); cR = C[2] * e; cP = C[3] * e; cY = C[4] * e; cZ = -C[5] * a * (1 - b); }
+    else { const k = vm.cycle, e = ease(C[0], C[0] + 0.2, k) * (1 - ease(C[1] - 0.2, C[1], k)), a = ease(C[0] + 0.26, C[0] + 0.38, k), b = ease(C[1] - 0.3, C[1] - 0.18, k); cR = C[2] * e; cP = C[3] * e; cY = C[4] * e; cX = (C[6] ?? 0) * e; cW = (C[7] ?? 0) * e; cZ = -C[5] * a * (1 - b) + (C[8] ?? 0) * e; lift = ease(C[0] + 0.16, C[0] + 0.25, k) * (1 - ease(C[1] - 0.18, C[1] - 0.1, k)); pull = a * (1 - b); }
+  }
+  // 活動零件：開火往後一下，打空掛在後方，換彈收尾拉一次；連發每發重新起算，所以 BOLT_T 要短於 60/rpm
+  if (g.parts) {
+    const p = 1 - vm.slide, back = vm.slide > 0 ? (p < 0.3 ? p / 0.3 : (1 - p) / 0.7) : 0, ch = vm.ch;
+    let lock = vm.dry ? 1 : 0;
+    if (vm.reload > 0) lock *= 1 - ease(0.78, 0.84, 1 - vm.reload / vm.reloadT);
+    ch.bolt = Math.max(back, lock, pull); ch.pull = pull; ch.lift = lift; ch.cover = cover;
+    if (vm.pin) Object.assign(ch, vm.pin);
+    poseParts(g.parts);
+  }
+  // 右手跟著栓柄：先伸過去，再隨舉起與後拉移動（只在開火後的上膛，換彈時槍朝另一邊翻，看不到右側）
+  if (g.rb) {
+    const C = CYCLE[g.id], R = g.rb, on = vm.cycle >= 0 ? vm.cycle : -1;
+    if (on >= 0 || R.dirty) {
+      const k = on < 0 ? 0 : ease(C[0] + 0.02, C[0] + 0.16, on) * (1 - ease(C[1] - 0.1, C[1], on));
+      const th = R.ang * (vm.ch.lift - 1), cs = Math.cos(th), sn = Math.sin(th), K = R.knob, x = K[0] - R.axis[0], y = K[1] - R.axis[1];
+      poseBoltHand(R, k, x * cs - y * sn - x, x * sn + y * cs - y, R.back * vm.ch.pull);
+      R.dirty = on >= 0;
+    }
   }
   // 檢視：把槍轉過來看
   let iY = 0, iR = 0, iX = 0, iZ = 0, iH = 0;
@@ -260,11 +375,11 @@ export function updateViewmodel(dt, speed, ground, yaw, pitch) {
   }
   const tall = innerHeight > innerWidth ? 1 : 0;   // 直式畫面垂直視角大，手臂要壓低，否則露出切口
   vm.anchor.position.copyFromFloats(
-    P[0] * (tall ? 0.95 : 1) + bx + dx0 + eX + iX + K[3] * kp - vm.swayX * 0.1,
+    P[0] * (tall ? 0.95 : 1) + bx + dx0 + eX + cX + iX + K[3] * kp - vm.swayX * 0.1,
     P[1] + by + dy0 + eY + cY + iH + K[2] * kp + vm.land * 0.04 + vm.swayY * 0.1 - tall * 0.22,
     P[2] - K[1] * kp + iZ + cZ + tall * 0.05);
   Quaternion.RotationYawPitchRollToRef(
-    (P[3] + iY) * DEG - vm.swayX * 0.5,
+    (P[3] + iY + cW) * DEG - vm.swayX * 0.5,
     (-P[4] - K[0] * kp + rP + eP + cP) * DEG - vm.swayY * 0.5,
     (K[4] * kp + rR + eR + iR + cR) * DEG, vm.anchor.rotationQuaternion);
   vm.anchor.computeWorldMatrix(true);

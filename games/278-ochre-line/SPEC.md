@@ -31,7 +31,7 @@
 | p9 | P9 手槍（起始） | usp | 0 | 12/36 | 400 半自動 | 30/110 |
 | r50 | R50 重型手槍 | usp 換塗裝 | 700 | 7/35 | 240 半自動 | 55/190 |
 | v11 | V11 衝鋒槍 | mac-11 | 1200 | 30/120 | 900 | 24/72 |
-| s8 | S8 霰彈槍 | 870 | 1800 | 7/28 | 68 泵動 | 9×20 |
+| s8 | S8 霰彈槍 | 870 | 1800 | 7/28 | 68 泵動 | 21×9/42 |
 | ks | KS 短突擊步槍 | aksu | 2700 | 30/90 | 650 | 34/120 |
 | ar5 | AR5 突擊步槍 | m4a1 | 3100 | 30/90 | 700 | 31/105 |
 | l40 | L40 狙擊槍 | m40a5 | 4750 | 5/20 | 40 栓動 | 110/250 |
@@ -40,7 +40,7 @@
 | b90 | B90 防衛武器 | 原創 | 2350 | 50/100 | 900 | 25/80 |
 | t4 | T4 輕型步槍 | 原創 | 2000 | 35/90 | 680 | 27/96 |
 | x10 | X10 半自動霰彈槍 | 原創 | 2300 | 7/32 | 240 單發裝填 | 17×6/36 |
-| s6 | S6 輕型狙擊槍 | 原創 | 1700 | 10/90 | 48 栓動 | 74/215 |
+| s6 | S6 輕型狙擊槍 | 原創 | 1700 | 10/90 | 54 栓動 | 74/215 |
 | n9 | N9 輕機槍 | 原創 | 4700 | 100/200 | 800 | 30/100 |
 | frag/smoke/flash | 破片／煙霧／閃光 | m67、smoke_grenade | 300/300/200 | | | |
 | armor/helmet/kit | 防彈衣／頭盔／拆彈鉗 | | 650/+350/400 | | | |
@@ -103,7 +103,7 @@ tools/accept.mjs      兩尺寸驗收、零 GC、顏色對照、截圖
 | --- | --- |
 | 六階段視覺錨點流程、每階段截圖驗證 | 照做 |
 | 4 m 網格、Wall_Sandstone／Wall_Archway（2.2 m 拱）／Wall_Upper_Window／Floor_Limestone、1.25 m 掩體箱（站姿露頭、蹲姿全隱蔽） | 照做 |
-| thin instance + Havok 靜態碰撞、freezeWorldMatrix、材質 freeze、快照 | 照做，80% 改報實測值 |
+| thin instance + Havok 靜態碰撞、freezeWorldMatrix、材質 freeze、快照 | 照做，80% 由 `accept --only snap` 以同頁 ABBA 判定 |
 | KeyArtRefCam、SiteBOverviewCam、俯視正交雷達相機、`radar_overview_raw.png`、`window.__GAME_MCP__`（switchToKeyArtCam、switchToFpsCam、teleportFpsCam、setHudState、getPerformanceStats） | 照做，另保留 `__ol` 給驗收 |
 | 水平 FOV 90°、眼高 1.70、站高 1.80、蹲高 1.25 | 照做 |
 | HSV／CIELAB 取樣、ΔS／ΔV／ΔE00、\|ΔS\| < 2.5% 閉環校色、ACES、colorCurves、CascadedShadowGenerator 2048 PCF、暖色 groundColor | 照做（基準圖用 `ref/key.jpg`） |

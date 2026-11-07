@@ -4,17 +4,21 @@
 
 | 用途 | 音效 | 作者 | 授權 | 確認日期 |
 | --- | --- | --- | --- | --- |
+| shot_s6 | [carbine single.wav](https://freesound.org/s/46655/) | cognito perceptu | CC0 1.0 | 2026-11-07 |
 | shell | [Single Barreled Shotgun Loading.wav](https://freesound.org/s/52202/) | sentryx86 | CC0 1.0 | 2026-11-07 |
 | mag_out_r | [Mag remove.wav](https://freesound.org/s/104407/) | Nanashi | CC0 1.0 | 2026-11-07 |
 | mag_rattle | [gunfiddle.wav](https://freesound.org/s/107795/) | j1987 | CC0 1.0 | 2026-11-07 |
 | empty_p | [handgun-dryfire.wav](https://freesound.org/s/119168/) | davdud101 | CC0 1.0 | 2026-11-07 |
+| shot_v11 | [barreta M9 shot](https://freesound.org/s/138679/) | haydensayshi123 | CC0 1.0 | 2026-11-07 |
 | slide_p | [Beretta M9 slide release](https://freesound.org/s/151067/) | vabadus | CC0 1.0 | 2026-11-07 |
 | mag_in_r | [Magazine Insert](https://freesound.org/s/171209/) | brianhanson2nd | CC0 1.0 | 2026-11-07 |
 | empty_p | [Dry Fire](https://freesound.org/s/171211/) | brianhanson2nd | CC0 1.0 | 2026-11-07 |
 | mag_in_r | [Mag Reload 1.mp3](https://freesound.org/s/171614/) | Pjkasinski3 | CC0 1.0 | 2026-11-07 |
 | bolt_r | [Wasr RPK Charge Foreward1.mp3](https://freesound.org/s/171631/) | Pjkasinski3 | CC0 1.0 | 2026-11-07 |
 | belt | [.30 Shell Bouncing](https://freesound.org/s/205126/) | Danwardvs | CC0 1.0 | 2026-11-07 |
+| shot_v11 | [9mm.mp3](https://freesound.org/s/233318/) | ngphil22 | CC0 1.0 | 2026-11-07 |
 | bolt_s | [Pistol slide release.mp3](https://freesound.org/s/233320/) | ngphil22 | CC0 1.0 | 2026-11-07 |
+| shot_v11 | [9mm_gunshot.wav](https://freesound.org/s/244138/) | mnslugger20 | CC0 1.0 | 2026-11-07 |
 | draw_k | [Unsheath knife.wav](https://freesound.org/s/329365/) | bassoonrckr | CC0 1.0 | 2026-11-07 |
 | shot_c7 | [Gunshot_002.wav](https://freesound.org/s/344142/) | Brokenphono | CC0 1.0 | 2026-11-07 |
 | shot_c7 | [Gunshot_001.wav](https://freesound.org/s/344143/) | Brokenphono | CC0 1.0 | 2026-11-07 |
@@ -29,9 +33,8 @@
 | nade_explode | [Explosion](https://freesound.org/s/398283/) | FlashTrauma | CC0 1.0 | 2026-11-07 |
 | slide_p | [Pistol Cock.wav](https://freesound.org/s/405538/) | nebulasnails | CC0 1.0 | 2026-11-07 |
 | shot_s8 | [Shotgun kaliber 20 compressed the spike by 12 dB wav](https://freesound.org/s/410551/) | straget | CC0 1.0 | 2026-11-07 |
-| shot_s6 | [Rifle kaliber 6.5-55 compressed the spike by 12 dB.wav](https://freesound.org/s/410552/) | straget | CC0 1.0 | 2026-11-07 |
 | shot_m7 | [Submachine gun automatic fire.wav](https://freesound.org/s/417689/) | SuperPhat | CC0 1.0 | 2026-11-07 |
-| shot_v11 shot_m7 | [9mm pistol shot](https://freesound.org/s/427592/) | michorvath | CC0 1.0 | 2026-11-07 |
+| shot_v11 | [9mm pistol shot](https://freesound.org/s/427592/) | michorvath | CC0 1.0 | 2026-11-07 |
 | shot_s8 | [20 gauge shotgun gunshot](https://freesound.org/s/427595/) | michorvath | CC0 1.0 | 2026-11-07 |
 | shot_ar5 | [AR15 rifle shot](https://freesound.org/s/427596/) | michorvath | CC0 1.0 | 2026-11-07 |
 | empty_r | [Rifle clip empty](https://freesound.org/s/427603/) | michorvath | CC0 1.0 | 2026-11-07 |
@@ -64,7 +67,7 @@
 | shot_r50 | [Heckler & Koch USP45](https://freesound.org/s/734062/) | areniporgen | CC0 1.0 | 2026-11-07 |
 | flash | [Flashbang](https://freesound.org/s/737326/) | modusmogulus | CC0 1.0 | 2026-11-07 |
 | mag_out_r | [Mag_Out_2](https://freesound.org/s/738334/) | SuHomunRiko | CC0 1.0 | 2026-11-07 |
-| shot_v11 shot_b90 | [FN P90 (Full Auto)](https://freesound.org/s/740896/) | areniporgen | CC0 1.0 | 2026-11-07 |
+| shot_b90 | [FN P90 (Full Auto)](https://freesound.org/s/740896/) | areniporgen | CC0 1.0 | 2026-11-07 |
 | shot_r50 | [Colt 1911](https://freesound.org/s/740897/) | areniporgen | CC0 1.0 | 2026-11-07 |
 | flash | [Flashbang Open Field High Quality](https://freesound.org/s/752628/) | modusmogulus | CC0 1.0 | 2026-11-07 |
 | mag_out_p mag_in_p | [Handgun clip change](https://freesound.org/s/812532/) | CoalescenceGames | CC0 1.0 | 2026-11-07 |

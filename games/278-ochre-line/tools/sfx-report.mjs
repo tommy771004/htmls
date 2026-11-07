@@ -22,6 +22,9 @@ writeFileSync(resolve(GAME_DIR, 'dist/sfx/_page.html'), html);
 const srv = await startServer(REPO_ROOT, { '/web/_sfx.html': resolve(GAME_DIR, 'dist/sfx/_page.html') });
 const br = await launch(), page = await br.newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(String(e))); page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+// 取樣率跟著輸出裝置走（無頭環境 44100 或 48000 都遇過），峰值會差到半個 dB：--sr=44100 固定下來，兩種都要過
+const SR = +(process.argv.find((a) => a.startsWith('--sr='))?.slice(5) ?? 0);
+if (SR) await page.addInitScript((sr) => { const C = window.AudioContext; window.AudioContext = class extends C { constructor(o = {}) { super({ ...o, sampleRate: sr }); } }; }, SR);
 await page.goto(srv.url + '/web/_sfx.html');
 const load = await page.evaluate(async () => { const t = performance.now(); SFX.preloadSfx(); SFX.initAudio(); await SFX.whenSfxReady(); return { ms: performance.now() - t, st: SFX.sfxStatus(), sr: (new AudioContext()).sampleRate }; });
 const render = (events, dur, opt) => page.evaluate(async ({ events, dur, opt }) => {
@@ -57,7 +60,8 @@ for (const id of GUNS) {
   rows.push({ id, a: list[0], far: fa, lr: 10 * Math.log10(R / (L || 1e-9)), v: list });
 }
 // 每把的所有變體兩兩比：best 是和別把任一變體的最小距離，within 是同一把內的最大距離。within 大於 best 表示有變體比自己人更靠近別把
-const near = rows.map((r) => { let best = 1e9, who = '', within = 0; for (const a of r.v) { for (const q of rows) if (q !== r) for (const b of q.v) { const d = distance(a, b); if (d < best) { best = d; who = q.id; } } for (const b of r.v) within = Math.max(within, distance(a, b)); } return { best, who, within }; });
+const nearest = (key) => rows.map((r) => { let best = 1e9, who = '', within = 0; for (const a of r.v) { for (const q of rows) if (q !== r) for (const b of q.v) { const d = distance(a, b, key); if (d < best) { best = d; who = q.id; } } for (const b of r.v) within = Math.max(within, distance(a, b, key)); } return { best, who, within }; });
+const near = nearest('bands'), nearOld = nearest('bandsOld');
 
 const bursts = [];
 for (const id of Object.keys(RPM)) {
@@ -87,6 +91,8 @@ const sz = ['guns.mp3', 'foley.mp3'].map((f) => [f, statSync(resolve(REPO_ROOT, 
 const f1 = (v, n = 1) => v.toFixed(n);
 const md = ['# 武器音效量測（dist/sfx-report.md）', '', '由 `tools/sfx-report.mjs` 產生。數字來自 OfflineAudioContext 走完 `sfx.js` 的實際路徑（主體＋合成層＋空間＋限幅），音量設定 0.8。**這些都是量測，沒有任何聽感判斷**：開發者無法聽聲音。', '', `載入與解碼 ${f1(load.ms, 0)} ms（無頭環境），片段 ${load.st.clips}，合成層 ${load.st.guns} 把，取樣率 ${load.sr}。素材 ${sz.map(([f, s]) => `${f} ${f1(s / 1024, 0)} KB`).join('、')}，合計 ${f1(sz.reduce((a, b) => a + b[1], 0) / 1048576, 2)} MB。頁面錯誤 ${errs.length} 筆${errs.length ? '：' + errs.slice(0, 3).join(' / ') : ''}。`, '', '## 第一人稱單發（全部變體，開槍前預捲 1 秒，峰值逐聲道）', '', `單發不可碰到限幅器（門檻 -2.5 dBFS）。「限幅前」是不經壓縮器與 soft clip 的峰值，每把取最差的變體。`, '', '| 武器 | 類別 | 變體 | 峰值 dBFS（音量 .8） | 限幅前 .8 | 限幅前 1.0 | 峰值（音量 1.0） | ≥.84 ms（.8／1.0） | 起音 ms | -20 dB 尾長 s（全變體平均與範圍） | -40 dB s | 重心 Hz | <150 Hz 佔比 | 前 150 ms RMS | 尾長目標 | 判定 | 最近鄰（各變體最小距離 dB） | 同把變體最大距離 dB |', '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: |'];
 rows.forEach((r, i) => { const R = RANGE[CLASS[r.id]], ok = r.a.t20m >= R[0] && r.a.t20m <= R[1]; md.push(`| ${r.id} | ${CLASS[r.id]} | ${r.v.length} | ${f1(r.a.max_peak)} | ${f1(r.a.max_raw8)} | ${f1(r.a.max_raw10)} | ${f1(r.a.max_lim10)} | ${f1(r.a.max_hot8)}／${f1(r.a.max_hot10)} | ${f1(r.a.attack, 2)} | ${f1(r.a.t20m, 3)}（${f1(r.a.t20lo, 2)}–${f1(r.a.t20hi, 2)}） | ${f1(r.a.t40, 3)} | ${f1(r.a.cen, 0)} | ${f1(r.a.lo * 100)}% | ${f1(r.a.rms)} | ${R[0]}–${R[1]} | ${ok ? '在內' : '**超出**'} | ${near[i].who}（${f1(near[i].best)}） | ${f1(near[i].within)} |`); });
+md.push('', '起音點 2026-11-07 改過：舊定義從峰值往回找第一個低於 -20 dB 的 .25 ms 窗，低頻為主的槍會停在零交越，頻譜視窗和尾長的起點比真正的起音晚 10–60 ms。下表對照兩種定義，判定用新定義。', '', '| 武器 | -20 dB 尾長（各變體，新定義） | 舊定義 | 最近鄰（新） | 同把（新） | 最近鄰（舊） | 同把（舊） |', '| --- | --- | --- | ---: | ---: | ---: | ---: |');
+rows.forEach((r, i) => md.push(`| ${r.id} | ${r.v.map((q) => f1(q.t20, 3)).join(' ')} | ${r.v.map((q) => f1(q.t20old, 3)).join(' ')} | ${f1(near[i].best)} | ${f1(near[i].within)} | ${f1(nearOld[i].best)} | ${f1(nearOld[i].within)} |`));
 md.push('', '距離是 50 Hz–12.5 kHz 的 25 個 1/3 倍頻帶、去掉平均後的方均根差（前 120 ms），只看頻譜，不含尾長與起音。沒有對應的聽感門檻：同把距離大於最近鄰的武器，表示量測上分不開，不代表聽得出或聽不出。', '', '## 遠方（右前方約 40 m）', '', '| 武器 | 相對近距峰值 dB | 重心 Hz | 近距重心 Hz | -20 dB 尾長 s | 右/左 dB |', '| --- | ---: | ---: | ---: | ---: | ---: |');
 rows.forEach((r) => md.push(`| ${r.id} | ${f1(r.far.peak - r.a.peak)} | ${f1(r.far.cen, 0)} | ${f1(r.a.cen, 0)} | ${f1(r.far.t20, 3)} | ${f1(r.lr)} |`));
 md.push('', '## 連發 30 發（含限幅）', '', '| 武器 | rpm | 峰值 dBFS | ≥0.98 累計 ms | ≥0.84（soft clip 區）累計 ms | 音量 1.0 峰值 | 音量 1.0 ≥0.84 ms | 音量 1.0 ≥0.98 ms | 發間谷底 dB |', '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
@@ -94,5 +100,7 @@ bursts.forEach((b) => md.push(`| ${b.id} | ${RPM[b.id]} | ${f1(b.peak)} | ${f1(b
 md.push('', '## 動作聲與其他片段', '', '| 片段 | 變體 | 長度 s | 峰值 dBFS | -20 dB 尾長 s | 重心 Hz |', '| --- | ---: | ---: | ---: | ---: | ---: |');
 others.forEach((o) => md.push(`| ${o.name} | ${o.v} | ${f1(o.dur, 2)} | ${f1(o.peak)} | ${f1(o.t20, 3)} | ${f1(o.cen, 0)} |`));
 md.push('', `壓力測試（音量 1.0，自己 N9 全自動＋四把近距離槍同時開 2 s）：峰值 ${f1(db(sp))} dBFS，≥0.98 的樣本 ${sc}。`, '', `退路：拿掉錄音時 shot_ar5 走純合成，峰值 ${f1(syn.peak)} dBFS，重心 ${f1(syn.cen, 0)} Hz。`, '', '每把的第一人稱、遠方、連發 WAV 在 `dist/sfx/`，給人耳驗收。', '');
-writeFileSync(resolve(GAME_DIR, 'dist/sfx-report.md'), md.join('\n'));
+const suffix = SR ? `-${SR}` : '';
+writeFileSync(resolve(GAME_DIR, `dist/sfx-report${suffix}.md`), md.join('\n'));
+writeFileSync(resolve(GAME_DIR, `dist/sfx-report${suffix}.json`), JSON.stringify(rows.map((r, i) => ({ id: r.id, near: near[i], v: r.v.map((q) => ({ t20old: q.t20old, startOld: q.startOld, start: q.start, peakAt: q.peakAt, t20: q.t20, peak: q.peak, raw10: q.raw10, cen: q.cen, lo: q.lo, bands: q.bands })) }))));
 console.log(md.join('\n'));
