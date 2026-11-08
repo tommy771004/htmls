@@ -1,4 +1,7 @@
 // 手機觸控：左搖桿、右半邊滑動轉向、右下按鈕。
+import { SENS0 } from '../core/input.js';
+// 觸控轉向的倍率依滑鼠預設靈敏度換算：預設調低後手機轉速維持原本的 1.6 × 0.0022。
+const TK = 1.6 * 0.0022 / SENS0;
 // 圖示一律 inline SVG：單檔、不多一次請求，顏色跟著 currentColor。位置在 style.js 的 .k-*。
 const svg = (body, attrs = 'fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"') => `<svg viewBox="0 0 24 24" aria-hidden="true" ${attrs}>${body}</svg>`;
 const fill = 'fill="currentColor"';
@@ -24,8 +27,8 @@ export function initTouch(root, input, canvas) {
   stick.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; input.locked = true; });
   stick.addEventListener('pointermove', e => { if (!e.buttons && e.pointerType === 'mouse') return; input.side = Math.max(-1, Math.min(1, (e.clientX - sx) / 44)); input.fwd = Math.max(-1, Math.min(1, -(e.clientY - sy) / 44)); });
   const stop = () => { input.side = 0; input.fwd = 0; }; stick.addEventListener('pointerup', stop); stick.addEventListener('pointercancel', stop);
-  btn('fire', '射擊', () => { input.fire = true; }, () => { input.fire = false; });
-  btn('jump', '跳躍', () => { input.jump = true; }, () => { input.jump = false; });
+  btn('fire', '射擊', () => { input.fire = true; input.firePress++; }, () => { input.fire = false; });
+  btn('jump', '跳躍', () => { input.jump = true; input.jumpPress = true; }, () => { input.jump = false; });
   btn('crouch', '蹲下', () => { input.crouch = !input.crouch; });
   btn('reload', '換彈', () => { input.reload = true; }, () => { input.reload = false; });
   btn('use', '使用', () => { input.use = true; }, () => { input.use = false; });
@@ -34,6 +37,6 @@ export function initTouch(root, input, canvas) {
   btn('buy', '購買', () => { input.buy = true; }).classList.add('buy');
   let lx = 0, ly = 0, id = -1;
   canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; input.locked = true; id = e.pointerId; lx = e.clientX; ly = e.clientY; });
-  canvas.addEventListener('pointermove', e => { if (e.pointerId !== id) return; input.dx += (e.clientX - lx) * 1.6; input.dy += (e.clientY - ly) * 1.6; lx = e.clientX; ly = e.clientY; });
+  canvas.addEventListener('pointermove', e => { if (e.pointerId !== id) return; input.dx += (e.clientX - lx) * TK; input.dy += (e.clientY - ly) * TK; lx = e.clientX; ly = e.clientY; });
   canvas.addEventListener('pointerup', () => { id = -1; });
 }

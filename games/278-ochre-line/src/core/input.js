@@ -1,8 +1,11 @@
 // 鍵鼠輸入。狀態存在預配置欄位，遊戲迴圈只讀不配置。
+/** 靈敏度 1.00 倍的弧度／計數。2026-11-08 由 0.0022 調低：800 DPI 約 13 公分轉一圈（原本 9 公分）。 */
+export const SENS0 = 0.0015;
 export const input = {
   fwd: 0, side: 0, jump: false, crouch: false, walk: false,
   fire: false, alt: false, reload: false, use: false,
-  dx: 0, dy: 0, locked: false, sens: 0.0022, scopeSens: 1,
+  firePress: 0, jumpPress: false, // 按下的瞬間（tick 消耗）：同一幀內按下又放開也不會漏掉
+  dx: 0, dy: 0, locked: false, sens: SENS0, scopeSens: 1, invertY: false, raw: true,
   slot: 0, nextSlot: 0, // 1..5 按下時的一次性事件
   buy: false, score: false, wheel: 0,
   menu: false, // 主選單開著：Tab、空白鍵、方向鍵留給瀏覽器操作按鈕與滑桿
@@ -30,6 +33,7 @@ export function bindInput(canvas, onLockChange) {
       if (e.code === 'KeyB') input.buy = true;
       if (e.code === 'KeyG') input.drop = true;
       if (e.code === 'KeyF') input.inspect = true;
+      if (e.code === 'Space') input.jumpPress = true;
     }
     keys[e.code] = true; axes();
   });
@@ -41,7 +45,7 @@ export function bindInput(canvas, onLockChange) {
   });
   canvas.addEventListener('mousedown', e => {
     if (!input.locked) return;
-    if (e.button === 0) input.fire = true;
+    if (e.button === 0) { input.fire = true; input.firePress++; }
     if (e.button === 2) input.alt = true;
   });
   addEventListener('mouseup', e => { if (e.button === 0) input.fire = false; if (e.button === 2) input.alt = false; });
@@ -54,7 +58,7 @@ export function bindInput(canvas, onLockChange) {
 }
 
 export function lockPointer(canvas) {
-  const p = canvas.requestPointerLock?.({ unadjustedMovement: true });
+  const p = canvas.requestPointerLock?.(input.raw ? { unadjustedMovement: true } : undefined);
   // 部分瀏覽器不支援 unadjustedMovement，退回一般鎖定
   p?.catch?.(() => { const r = canvas.requestPointerLock?.(); r?.catch?.(() => {}); });
 }

@@ -218,11 +218,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const salt = createSaltcape({ origins });
   const { createRoadster } = await import('../roadster/server.mjs');
   const rsa = createRoadster({ origins });
-  const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head);
+  const { createOchre } = await import('../ochre/server.mjs');
+  const ochre = createOchre({ origins });
+  const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head) || ochre.handleUpgrade(req, socket, head);
   const app = createJadeServer({ port: Number(process.env.PORT || 8127), host: process.env.HOST || '127.0.0.1', origins, onUpgrade });
   const address = await app.listen();
   console.log(`青雀伺服器：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/127-jade-table.html`);
   console.log(`鹽岬大逃殺：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/199-saltcape.html`);
   console.log(`Roadster Stunt Arena：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/200-roadster-arena.html`);
-  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { salt.close(); rsa.close(); await app.close(); process.exit(0); });
+  console.log(`赭線 OCHRE LINE（多人）：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/278-ochre-line.html`);
+  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { salt.close(); rsa.close(); ochre.close(); await app.close(); process.exit(0); });
 }

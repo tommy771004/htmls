@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `web/NNN-keyword.html`：網頁作品（001–100 為原始百件，101、102 為 AI 教學簡報，103 起為後續作品）。
 - `app/NNN-keyword.html`：100 個手機 App 原型（001–100）。
 
-根目錄的 `index.html` 是展示頁（搜尋、分類、預覽 iframe、收藏、自評）。唯一的後端是第 127 件「青雀真人麻將」的 WebSocket 服務（見下方）。網站內容與文件一律使用繁體中文。
+根目錄的 `index.html` 是展示頁（搜尋、分類、預覽 iframe、收藏、自評）。常駐後端是第 127 件「青雀真人麻將」的 WebSocket 服務（見下方），199、200、278 的連線房間掛在同一個 `npm start` 伺服器上。網站內容與文件一律使用繁體中文。
 
 ## 指令
 
@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm ci
-npm start                 # 麻將＋鹽岬大逃殺（199）伺服器 + 靜態檔，http://127.0.0.1:8127（/ 會轉到 127）
+npm start                 # 麻將＋鹽岬大逃殺（199）＋278 連線房間伺服器 + 靜態檔，http://127.0.0.1:8127（/ 會轉到 127）
 npm run test:mahjong      # node:test，規則引擎 + 跨實例四人房整合測試
 npm run test:saltcape     # 199 的規則層與 WebSocket 伺服器測試
 node --test --test-name-pattern="行牌" server/jade-table/game.test.mjs   # 只跑單一測試
@@ -85,6 +85,6 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 | 274 | 六器鏢行 | `games/274-sixfold-escort/`（WebGPU / TSL 節點材質 + esbuild） | 同資料夾 `CLAUDE.md` |
 | 275 | 白城環線 | `games/275-tramway-plaza/`（Three.js r187 WebGPU / TSL 全程序建模 + esbuild） | 同資料夾 `CLAUDE.md` |
 | 277 | 墨嶺行 | `games/277-ink-ridge/`（Three.js r186 WebGL 程式自建場景 + 有骨架的主角 glb + esbuild，Verlet 布料） | 同資料夾 `CLAUDE.md`（規格 `SPEC.md`、參考影片截圖 `ref/`） |
-| 278 | 赭線 OCHRE LINE | `games/278-ochre-line/`（Babylon.js 9 WebGPU、FAST 快照、Havok、esbuild；素材留在 `assets/278/`，不內嵌） | 同資料夾 `CLAUDE.md`（規格 `SPEC.md`，`SPEC_Super.md` 是使用者原檔不可改） |
+| 278 | 赭線 OCHRE LINE | `games/278-ochre-line/`（Babylon.js 9 WebGPU、FAST 快照、Havok、esbuild；素材留在 `assets/278/`，不內嵌）、連線房間 `server/ochre/`、`games/278-ochre-line/worker/` | 同資料夾 `CLAUDE.md`（規格 `SPEC.md`，`SPEC_Super.md` 是使用者原檔不可改；多人連線 `NET.md`） |
 
 新增有原始碼的作品時，把專屬說明寫進該資料夾的 `CLAUDE.md`，這裡只加一列。

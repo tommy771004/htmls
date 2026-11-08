@@ -1,0 +1,18 @@
+# Cloudflare Worker＋Durable Objects：赭線多人房間（每個房號一個 Room，只做名單與主機轉送）。
+# 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行：npx wrangler login && npx wrangler deploy
+# 部署完把網址設給打包：OL_SERVER=wss://<名稱>.<帳號>.workers.dev npm run build（在 games/278-ochre-line）
+name = "ochre-line"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+# 允許連線的網頁來源，逗號分隔；留空＝不限制
+ALLOWED_ORIGINS = "https://htmls-ruddy.vercel.app"
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]

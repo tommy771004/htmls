@@ -27,6 +27,7 @@ blender -b -P tools/build-soldier.py -- --stage arms [--only ar5,ks] [--dump dir
 node tools/sfx.mjs [--verify]     # 音效烘焙：tools/sfx-table.mjs 的來源 → assets/278/sfx/{guns,foley}.mp3、src/audio/sfx-list.js、credits/sfx.md；--verify 重新逐頁確認 CC0
 node tools/sfx-report.mjs         # 走實際訊號路徑（含限幅）量測每把槍，寫 dist/sfx-report.md，WAV 在 dist/sfx/ 給人聽；單發在音量 1.0 的「限幅前」要 ≤ -3 dBFS 才不碰限幅器，調 gain 要看這欄（wet 也會加峰值）
 node tools/sfx-check.mjs [--page=dist/audio.html]   # 實機冒煙：點開始鈕、逐把開火換彈，確認走錄音路徑
+node tools/mp.mjs [--quick] [--page=dist/x.html] [--shots=dir]   # 連線對戰：兩、三個無頭分頁走完建房、加入、選邊、同步、互射、擊殺、購買、斷線接手、房主離開（npm run test:net 是房間邏輯）
 node tools/balance.mjs --page=dist/x.html [--only=range,bots] [--trials=300] [--matches=3] [--modes=stand,fair] [--out=dist/balance.json]   # 武器與 Bot 實算：走真的 fire() 打骨架膠囊，整場比賽走 speed()
 node tools/balance-report.mjs dist/balance.json dist/改動前.json dist/bots.json   # 出 dist/balance.md；第二參數沒有就填 -
 blender -b -P tools/gun-icons.py # 武器剪影 assets/278/ui/<id>.webp（HUD、購買頁用 CSS mask）
@@ -47,6 +48,7 @@ export PW_MODULES=$PWD/node_modules
 - `src/ui/`：DOM HUD。觸控按鈕的圖示是 `touch.js` 的 inline SVG，位置與大小在 `style.js` 的 `.k-*`（`--s`，透明命中區靠 `::after` 外擴）。UI 每幀讀 `G`、只寫改變的節點，要動作走 `actions`。`--u` 是 1920×1080 設計稿的 1px。
 - 主選單：`src/ui/menu.js` 是分頁（開戰、隊伍〔只在直式〕、軍械、簡報、操作、設定、署名），樣式在 `style.js` 的 `.m-*`，版面斷點是 `max-aspect-ratio:1/1`（直式）與 `max-height:520px`（橫式手機）。背景不是圖：`src/game/stage.js` 借士兵池 `pool[side][0]` 掛一個假 agent 站在日晷前，走 `updateSoldiers`，所以 FAST 快照、零配置都和遊戲中 bot 相同；開賽時 `bindSoldiers` 全部停放，`?clean=1`（校色、雷達、快照量測）不開舞台。鏡位在 `SHOT`（wide／tall／short），`__ol.tuneStage({ az, d, h, f, mx, my }, { x, z, face })` 現場調；`d` 拉太遠鏡頭會穿到近景物件。軍裝外觀直接來自 `soldier.glb`，換模型不用改選單。
 - 主選單的資料都是實算的：名單用 `state.js` 的 `NAMES`（索引 1–4 隊友、5–9 對手），戰績與設定在 `src/game/record.js` 的 localStorage（`ochre-line.record.v1`、`ochre-line.settings.v1`），比賽打完才記、中途離開不算。數值來自 `WEAPONS`、`RULES`，軍械頁的表與 `buy.js` 共用 `COLS／DESC／SPEC／statRows`。不要加積分、好友、ping 這類單機沒有的東西。
+- 設定頁（`menu.js` 的 `setHtml`）：子分頁 滑鼠／影像／音訊／準星／資料（`data-st`）。每一項都要接到遊戲裡真的會變的東西，`DEF` 是預設、`NUM` 是滑桿（存原單位，數字框顯示 ×k）、`CHOICE` 是下拉。改了立即生效並存檔；「放棄變更」回到進設定頁時的快照，「重設為預設」走頁內確認框（不要用 `window.confirm`，無頭測試會卡）。靈敏度存倍率 `look`，弧度是 `look × SENS0`（`input.js`，2026-11-08 由 0.0022 調低到 0.0015）；設定存 `v: 2`，v1 存的 `sens` 等於舊預設 0.0022 的視為沒調過。觸控轉向倍率依 `SENS0` 換算，轉速不變。渲染解析度走 `actions.res` → `setHardwareScalingLevel`，FAST 下中途切換實測正常；準星是 `#ui` 上的 `--xc／--xl／--xg／--xw`，比賽與預覽共用 `.xh`。不要加 FOV（袖口開口是照 90° 調的）、後製開關（快照錄好後改管線）、幀率上限（`getDeltaTime` 會錯）。`menu-check` 會逐一點過子分頁、打字進數字框、切下拉、放棄變更與重設確認。
 - 開始鈕 `#m-go` 帶 `data-s`（目前選的邊），`accept.mjs` 用 `button[data-s=atk]` 找它，所以預設要是 `atk`。模式列用 `data-mode`。
 - 回主選單不重載：`main.js` 的 `toMenu()` 呼叫 `leaveMatch()` 清比賽狀態，並把第一人稱槍收回開機時的隱藏狀態。主選單開著時 `input.menu` 為真，`input.js` 不攔 Tab、空白鍵、方向鍵，鍵盤才操作得了。
 - `tools/arms_hd.py`：第一人稱手套與袖子的來源。原 GLB（`.cache/sketchfab/fps_benelli_m4_animations.glb`，不進 git，從 Sketchfab 重抓）的骨架帶不均勻縮放，Blender 匯入會拉成一條線，所以自己讀 glTF 算蒙皮，再逐骨對到 UBC 骨架的 rest。`ARM_SLIM` 控制袖子粗細。
@@ -77,8 +79,36 @@ export PW_MODULES=$PWD/node_modules
 - **手臂烘焙**：舊武器的手臂在 `arms.glb`，新槍一把一檔。`--stage arms` 不加 `--only` 重烘 `arms.glb`，只含舊武器，新槍會跳過；`--only ar5` 不加 `--arms-out` 只算報告，不寫檔（2026-11-07 實測，舊文件寫會覆寫是錯的）；新槍用 `--only m7 --arms-out $PWD/../../assets/278/models/guns/m7_arms.glb`，握持寫在 `tools/guns/<id>.py` 的 `POSE`／`RELOAD`，開機由 `load_new_poses()` 併進 `WEAPON_POSE`／`RELOAD_POSE`，不要再抄進 `build-soldier.py`。不加 `--only` 時 `arms.glb` 寫出後才判門檻，門檻未全過時退出碼非 0，但 glb 仍是新的。換成高模手套後門檻未全過是常態（2026-11 有 38 項），門檻是舊網格的尺度，看第一人稱圖判斷。
 - **裝彈、拆彈姿勢**：`kneel_task` 的手肘極點要朝後、雙腳不能開太寬，左膝外開讓手臂從膝內側穿過。手腕離裝置太遠時手臂會打直下垂，正面看像猩猩。調姿勢用 `--stage pose --team def --preview <dir>/ --clips plant:30:f,plant:30:q`，幾秒就有圖；`--stage all` 寫回 glb 後還要把 meta 三欄寫回 `src/`。
 - **快照送矩陣**：一律用 `core/tmp.js` 的 `sendWorld`，不要直接呼叫 `transferToEffect`。UBO 是環形緩衝，快照錄到第二個緩衝時，只寫第一個的網格會留在世界裡，而 CPU 端的矩陣和 `_bufferData` 全是對的，只有畫面看得出來。驗收有「第一人稱跟著鏡頭」，用藏槍前後的畫面差異比三個朝向的位置，含改尺寸重錄。`sendWorld` 讀 Babylon 私有欄位（`_buffers`、`_buffer`、`_bufferData`），升級 Babylon 要重驗。
-- **玩家命中**：`bindSoldiers` 不給玩家配士兵（第一人稱不畫自己），`shootOne` 對沒有 `soldier` 的目標改用 `bodyCaps` 的四段膠囊。別把 `!v.soldier` 的跳過加回去，否則子彈打不到玩家。驗收有「敵人子彈打得到玩家」。
+- **視角跟畫面幀、移動跟 tick**：滑鼠位移由 `player.js` 的 `look()` 每幀消耗（在 `main.js` 的 tick 迴圈前呼叫），不要搬回 64 Hz 的 `tickPlayer`：120 Hz 螢幕會有近一半的幀視角不動（2026-11-08 實測 132／281 幀），橫移一頓一頓。死亡、暫停、自由視角時 `look` 直接丟掉位移。鏡頭後座 `kickP／kickY` 也用前一 tick 的值內插；`updateViewmodel` 的擺動把每幀轉角換算成 60 fps 一幀，擺幅不隨更新率變。
+- **玩家命中**：`bindSoldiers` 不給玩家配士兵（第一人稱不畫自己），`shootOne` 對沒有 `soldier` 的目標改用 `bodyCaps` 的四段膠囊。別把 `!v.soldier` 的跳過加回去，否則子彈打不到玩家。驗收有「敵人子彈打得到玩家」。命中回饋在 `weapons.js` 的 `damage`：打頭且有頭盔回傳 true，`shootOne` 改噴 `particles.js` 的 `sparks`（火光池，不加網格），否則噴血；爆頭聲是 `sfx.js` 的合成音 `helmet`（金屬鏗聲）與 `head`，射手是玩家時不衰減。命中膠囊在開槍時才更新，測試要先打一發才讀得到頭部高度。
 - **零 GC 驗收**：Babylon 的數學類別實作在 `Maths/math.vector.pure.js`、`math.color.pure.js`，計數要注入 pure 檔。驗收含正向對照，對照沒數到就是注入失敗。`onBeforeRender` 內不可 `new Vector3/Matrix/Quaternion`，`getAbsolutePosition` 也會配置。
+- **射擊手感**（2026-11-08）：
+  - 散布全部由 `weapons.js` 的 `spreadOf(a)` 計算，`fire()` 與動態準星共用。移動懲罰是連續曲線：最高速 30% 以下不加，之後依 t^1.5 長到跑步值，靜步約為跑步的 1/5。空中 +0.092。騰空超過 0.2 s 落地時 `landT` 加散布，玩家另外減速 ×0.8。下樓梯的短暫離地不算。
+  - 射速餘數會帶到下一發（`fireT` 在一個 tick 內到期就累加），不然 64 Hz 會把 700 rpm 進位成 640。
+  - 後座回復：`burst` 是小數，停火超過「射擊間隔 + 0.05 s」後每秒退 25 發，不再過 0.32 s 一次歸零。讀彈道表要 `|0`。畫面後座在相鄰兩發之間內插。`burstT` 仍代表「0.32 s 內開過槍」（Bot 聽覺、第三人稱姿勢）。Bot 連發到上限就設 `cool`，等索引退到 1.5 以下才繼續開火。
+  - 中彈上抬 `G.punch`：鏡頭和子彈的仰角都要加上，有甲 ×0.55，在 `tickMe` 衰減。
+  - 輸入：`input.firePress`／`jumpPress` 記錄按下的瞬間，tick 消耗，同一幀內按下又放開也不會漏。`look()` 在 `main.js` 的 tick 迴圈之前呼叫，開槍用的是這一幀最新的視角。
+  - 動態準星：`hud.js` 把「目前散布 − 站定散布」加上連發量換算成像素，寫到 `#cross` 的 `--xd`。設定在準星分頁的「準星樣式」（`xs`，預設動態）。
+- **槍械擬真**（2026-11-08）：
+  - 換彈：閉鎖式槍機（`chamber()`：非單發裝填、非 n9）沒打空就換彈，是戰術換彈：時間 ×`TAC_K` 0.85，跳過拉機柄／放滑套的聲音（`BOLT_CUE`）與第一人稱拉柄動作（`vm.tac`），裝完膛內多一發（30+1）。打空的換彈照原表時間。換彈進度用 `a.reloadDur`，不要再用 `w.reload`。
+  - 拔槍：`drawTime(w)` 寫進 `fireT`，拔出前不能開火、開鏡、丟投擲物（玩家 `setCur`、買槍、Bot `equip`）。第一人稱舉槍動畫是拔槍時間 ×0.85。
+  - 開鏡：`m.scopeT` 在 `SCOPE_IN` 0.3 s 內從 0 到 1，`spreadOf` 從腰射散布平滑收到開鏡散布。視角縮放約 0.1 s（`fovNow`）。開鏡移動速度 ×0.55。開鏡晃動 `G.swayY/swayP`：蹲下減半，移動與落地時變大，鏡頭與子彈都加。栓動槍（`AFTER_SHOT` 有項目）開槍後退出瞄準鏡，拉完栓自動回鏡（`rezoom`），拉栓中按右鍵取消回鏡。
+  - 彈著材質：`collide.js` 建碰撞網格時替每個三角形標材質（`ctx.surf`，0 石 1 灰泥 2 木 3 金屬 4 沙），射線的 `triangleIndex` 直接查表。`particles.js` 的 `impact(..., mat)` 依材質換彈孔、碎屑、火星與聲音（`imp_*`，目前是合成音）。改碰撞形狀時，每個形狀之後都要 `tag()`。
+  - 彈殼會在地面彈跳（`floorAt`），第一下有 `brass` 聲，三四下後躺平，存在 2.2 s。槍管熱度 `heat`：停火後熱度 >3 就從槍口冒煙。`__ol.fx` 可讀粒子池狀態。
+- **Bot AI**（`bots.js`，2026-11-08 補齊）：
+  - 懷疑點 `sx/sy/sz/sT/sKind`：1 被打（`weapons.js` 的 `hurt()` 寫入）、2 聽到（敵人開槍 45 m、跑步 16 m，跑步門檻和腳步聲同一個 3.6 m/s）、3 跟丟時最後看到的位置。沒目標時轉過去看；掃描只看正前方，轉過去下一次就看得到。聽到或跟丟時放慢到 3.3 m/s 靜步。跟丟時血量 >40 才用暫時目標 `tmp` 追過去。
+  - 攻方路線分流：`assignGoal` 從卡口與攻方架點挑經過點 `via`，總長 ≤ 直走 ×1.35+4 m，同一條節點序列只留一個，依角色分配。經過攻方架點時停 1.6–4 s，看向炸點。改了導航圖要重看分流結果（node 跑 `buildNav` 列出每個炸點節點的選項）。
+  - 投擲物：`botBuy` 在有長槍和甲之後才買，最多兩種。`tryNade` 每 0.8 s 判斷一次：破片丟聽到或跟丟的位置；守方回防時把閃光丟到裝藥上空；攻方離目標 32 m 內時，煙霧封守方回防路線，閃光丟進前方看得到的最遠節點。仰角由 `lob()` 依 `throwNade` 的初速 15、上拋 2.5、重力 15 解低拋物線。丟閃光時附近隊友 `away` 轉頭。
+  - 交火：每次交火擲一次 `head`（瞄頭 1.64／蹲 1.15）與 `duck`（自動武器 12 m 外蹲射）。血量低於 35 時邊打邊退。卡住時隨機跳一下。Bot 蹲下時 `eye` 降到 1.15。
+  - 裝藥後攻方去 `postPool`（炸點節點加 22 m 內的守方架點），看守方回防的路。
+  - 掉包：攜帶者陣亡會把裝藥丟在腳邊（`round.js` 的 `dropCharge`），按 G 也能丟。狀態在 `G.drop`，畫面用 `chargePos`，雷達只畫給攻方。攻方任何人在 1.2 m 內就撿起（`pickCharge`），最近的攻方 Bot 會去撿。`botObjectives` 收裝藥時要保留 `G.drop.on`。
+  - 難度：設定頁的「遊戲」分頁寫 `OPT.diff`，`setupMatch` 依 `BOT_SKILL` 取技術值範圍（簡單 .22–.5、普通 .42–.82、困難 .7–.95），下一場比賽生效。
+- **連線對戰**（2026-11-08，細節與協定在 `NET.md`）：開房者的瀏覽器是主機，照單機規則跑整場；伺服器（`src/net/core.js`，本機 `server/ochre/`、Cloudflare `worker/`）只管名單與轉送。`world.net` 是 `sync.js` 掛上的掛鉤，單機是 null：`weapons.js` 的 `shootOne`／`fire`／`hurt`、`round.js` 的 `onKill`／`endRound`／`plantDone`／`pickCharge`／`buy`／`startRound`、`grenades.js` 的 `throwNadeAt` 都會呼叫它，改這些函式時要保留。
+  - 主機上的遠端真人是 `a.remote`（pid），客戶端上自己以外的人是 `a.puppet`，兩者都沒有 `bot`，位置由 `sync.js` 的內插緩衝 `nb` 每個 tick 寫入。`frame()` 的動畫用 `a.netTask`、`a.aim` 代替 Bot 的狀態。
+  - 客戶端不跑 `tickRound`、Bot、`botObjectives`、`pickCharge`；安裝、拆除、丟裝藥、購買走 `netAct` 請主機做。命中在客戶端判定、`world.net.hit` 回報，主機用 `damage()` 扣血；客戶端的 `detonate` 不算破片傷害。
+  - 回合重置看快照的回合序號 `rs`（`startRoundClient`），不是收事件；換邊也走這條。
+  - 連線時 `G.paused` 不停 tick（`main.js` 與 `loop.js` 的 `tick` 都有判斷），暫停畫面只是放開游標。主機分頁在背景時改用 Worker 計時器呼叫 `advance()`（不要叫 `step`，會蓋掉 mover 的 `step`）。
+  - 部署 Cloudflare 要用使用者自己的帳號，不要自動執行；打包時 `OL_SERVER=wss://… npm run build` 帶入網址。改了房間邏輯跑 `npm run test:net`，改了同步跑 `node tools/mp.mjs`。
 - **倍速測試要過渲染**：骨架與命中膠囊靠 render 更新，同步 `sim` 打不到人。整場比賽用 `speed(k)`。
 - **平衡量測**：`__ol.shoot(yaw, pitch)` 直接扣扳機，`G.paused` 時 tick 停但士兵還在更新。目標 `e.hp = 1e6`、看扣掉的血就不會觸發回合結束。全地圖最長的直線空巷只有 48 m，超過的距離量不到。連發類不補償後座時 10 m 外幾乎打不死，表上的擊殺時間是「完全壓住後座」，另有不壓槍的表。比賽的 `history[].winner` 是隊伍索引，換邊後 `a.team` 會跟著翻，所以 0 永遠是攻方。玩家站樁時比賽是 4 對 5，攻守勝率要用 `--modes=fair`（玩家當觀眾、對面少一隻，要避開持裝藥的那隻）。同一半場的回合受經濟連動，不是獨立樣本。
 - **校色**：`color.mjs` 的 sunFloor 分類受 v>.45 門檻影響，只比 ΔS 與 ΔE 的趨勢。

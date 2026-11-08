@@ -15,21 +15,24 @@ import { buildMap } from './map/build.js';
 import { buildCollision } from './map/collide.js';
 import { buildNav } from './map/nav.js';
 import { initCollision } from './game/mover.js';
-import { you, teleport } from './game/player.js';
+import { you, teleport, look } from './game/player.js';
 import { buildViewmodel } from './game/viewmodel.js';
 import { finishNewGuns } from './game/guns/load.js';
 import { buildSoldiers, buildWorldGuns, updateSoldiers, clipDebug, chargePos, pool, ik } from './game/soldiers.js';
-import { G, WEAPONS } from './game/state.js';
+import { G, WEAPONS, OPT } from './game/state.js';
 import { addMatch } from './game/record.js';
-import { world, giveWeapon, fire, clear } from './game/weapons.js';
+import { world, giveWeapon, fire, clear, spreadOf } from './game/weapons.js';
 import { initBots } from './game/bots.js';
 import { setupMatch, leaveMatch, onKill, buy, startRound, nextRound } from './game/round.js';
 import { tick, frame } from './game/loop.js';
-import { buildFx, updateFx } from './fx/particles.js';
+import { buildFx, updateFx, fx } from './fx/particles.js';
 import { input, bindInput, lockPointer } from './core/input.js';
 import { initAudio, setListener, preloadSfx, sfxStatus } from './audio/sfx.js';
 import { initHud, frameHud } from './ui/hud.js';
-import { initMenu, showMenu, hideMenu, showPause, hidePause, showResult, hideResult } from './ui/menu.js';
+import { initMenu, showMenu, hideMenu, showPause, hidePause, showResult, hideResult, openTab } from './ui/menu.js';
+import { SYNC, endMatch, netBuy } from './net/sync.js';
+import { NET, join as netJoin, leave as netLeave, savedName } from './net/client.js';
+import { netNotice } from './ui/net.js';
 import { initBuy, toggleBuy, frameBuy } from './ui/buy.js';
 import { initScore, frameScore } from './ui/score.js';
 import { initTouch } from './ui/touch.js';
@@ -72,18 +75,22 @@ async function boot() {
 
   const ui = document.getElementById('ui');
   const actions = {
-    start({ side }) { initAudio(); hideMenu(); lastSide = side; begin(side); lockPointer(canvas); },
-    again() { hideResult(); initAudio(); begin(lastSide); lockPointer(canvas); },
+    start({ side }) { if (NET.status !== 'off') netLeave(); initAudio(); hideMenu(); lastSide = side; begin(side); lockPointer(canvas); },   // 在房間裡開單機：先離開房間
+    again() { if (SYNC.role) { backToRoom(''); return; } hideResult(); initAudio(); begin(lastSide); lockPointer(canvas); },
     resume() { initAudio(); hidePause(); G.paused = false; lockPointer(canvas); },
     toMenu,
-    buy,
+    buy: id => SYNC.role === 'client' ? netBuy(id) : buy(id),
+    netWarm() { initAudio(); },
     stage(side, cur) { setStage(side ?? stage.side, cur); }, aside: asideStage, point: pointStage,
-    fps: () => ctx.engine.getFps(), backend: ctx.isWebGPU ? 'WebGPU' : 'WebGL',
+    fps: () => ctx.engine.getFps(), viewFov: () => ctx.camera.fov, backend: ctx.isWebGPU ? 'WebGPU' : 'WebGL',
+    // 渲染解析度：相對裝置像素（上限 2 倍）。改縮放會走 engine.resize，和改視窗大小同一條路
+    res(k) { const l = 1 / (Math.min(devicePixelRatio || 1, 2) * k); if (Math.abs(ctx.engine.getHardwareScalingLevel() - l) > 1e-6) ctx.engine.setHardwareScalingLevel(l); },
   };
   let lastSide = 'atk', overShown = false;
   const endStage = () => { if (stage.on) { stopStage(); ctx.fitFov(); } };
   const begin = side => { endStage(); overShown = false; setupMatch(side === 'rand' ? (Math.random() < 0.5 ? 'atk' : 'def') : side); free = null; };
   function toMenu() {
+    if (SYNC.role || NET.status !== 'off') { endMatch(); netLeave(); }   // 連線對戰：離開房間（席位立刻交給電腦）
     hidePause(); hideResult(); leaveMatch();
     vmSelect('knife'); if (vm.cur) { vm.cur.holder.scaling.set(1e-5, 1e-5, -1e-5); flushAll(); vm.cur = null; }   // 第一人稱槍收起來，開機時也是這個狀態；z 負號見 CLAUDE.md
     document.exitPointerLock?.(); input.fire = input.alt = false; input.fwd = input.side = 0;
@@ -93,35 +100,59 @@ async function boot() {
   let free = LAYOUT.spots[q.get('spot') || 'key'] ?? LAYOUT.spots.key;
   initHud(ui, G, LAYOUT, actions); initMenu(ui, actions); initBuy(ui, G, actions); initScore(ui, G); initTouch(ui, input, canvas);
   if (!q.has('clean')) { showMenu(); startStage(); free = stage.cam; addEventListener('resize', () => { if (stage.on) fitStage(); }); }
-  bindInput(canvas, locked => { if (!locked && G.me && G.phase !== 'over' && !G.buyOpen) { G.paused = true; showPause(); } });
+  bindInput(canvas, locked => { if (!locked && G.me && G.phase !== 'over' && !G.buyOpen) { G.paused = true; showPause(!!SYNC.role); } });
+  // 連線對戰：伺服器說開賽（或中途接手電腦席位）就進場；游標鎖定要使用者點一下，先停在暫停畫面
+  SYNC.onBegin = () => { endStage(); hideMenu(); hideResult(); overShown = false; free = null; initAudio(); G.paused = true; showPause(true); };
+  /** 比賽結束或被迫中止，回到房間（連線分頁）。why 空字串是正常打完。 */
+  function backToRoom(why) {
+    endMatch(); hidePause(); hideResult(); leaveMatch();
+    vmSelect('knife'); if (vm.cur) { vm.cur.holder.scaling.set(1e-5, 1e-5, -1e-5); flushAll(); vm.cur = null; }
+    document.exitPointerLock?.(); input.fire = input.alt = false; input.fwd = input.side = 0;
+    showMenu(); openTab('net'); netNotice(why); startStage(); free = stage.cam;
+  }
+  SYNC.onEnd = why => backToRoom(why);
+  // 邀請網址 ?room=123456：打開連線分頁，記得名字就直接進房
+  { const room = q.get('room'); if (room && /^\d{6}$/.test(room) && !q.has('clean')) { openTab('net'); if (savedName()) netJoin(room, savedName()); } }
   canvas.addEventListener('click', () => { if (G.me && !input.locked) { initAudio(); hidePause(); G.paused = false; lockPointer(canvas); } });
 
   const DT = 1 / 64; let speed = 1, acc = 0, frames = 0;
   const scene = ctx.scene, cam = ctx.camera;
   const alloc = window.__alloc;
-  scene.onBeforeRenderObservable.add(() => {
+  scene.onBeforeRenderObservable.add(() => advance(Math.min(0.1, ctx.engine.getDeltaTime() / 1000)));
+  // 連線的主機切到背景分頁：requestAnimationFrame 停了，改由 Worker 計時器推進（不渲染），別人的比賽才不會跟著停
+  let bgWorker = null, bgLast = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && SYNC.role === 'host' && !bgWorker) {
+      bgWorker = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 16)'], { type: 'text/javascript' })));
+      bgLast = performance.now();
+      bgWorker.onmessage = () => { if (!document.hidden) return; const now = performance.now(), dt = Math.min(0.1, (now - bgLast) / 1000); bgLast = now; advance(dt); };
+    } else if (!document.hidden && bgWorker) { bgWorker.terminate(); bgWorker = null; }
+  });
+  function advance(dt) {
     if (alloc) alloc.on = true;
-    const dt = Math.min(0.1, ctx.engine.getDeltaTime() / 1000);
-    if (!G.paused) { acc += dt * speed; while (acc >= DT) { tick(DT, cam); acc -= DT; } }
+    // 滑鼠位移在 tick 之前消耗：這一幀裡開的槍用的是最新的視角，不是上一幀的
+    if (G.me && !free) look(G.me.alive && !G.paused);
+    if (!G.paused || SYNC.role) { acc += dt * speed; while (acc >= DT) { tick(DT, cam); acc -= DT; } }
     if (input.buy) { input.buy = false; if (G.canBuy) toggleBuy(); }
     G.scoreOpen = input.score;
     if (G.me && !free) { frame(acc / DT, dt, cam); updateSoldiers(dt * speed, cam); setListener(you.x, you.y + 1.6, you.z, you.yaw); }
-    else { const sdt = stage.on ? frameStage(dt) : dt; placeCam(cam, free); cam.computeWorldMatrix(true); if (G.me || stage.on) updateSoldiers(sdt, cam); }
+    else { input.dx = input.dy = 0; const sdt = stage.on ? frameStage(dt) : dt; placeCam(cam, free); cam.computeWorldMatrix(true); if (G.me || stage.on) updateSoldiers(sdt, cam); }
     updateFx(dt, cam);
     frameHud(dt); frameBuy(); frameScore();
     if (G.phase === 'over' && !overShown) {
       overShown = true; document.exitPointerLock?.();
       const m = G.me, win = G.winner === m.team, my = G.score[m.team], opp = G.score[1 - m.team];
-      addMatch(win, my, opp, m.kills, m.deaths); showResult(win, my, opp, m.kills, m.deaths);
+      addMatch(win, my, opp, m.kills, m.deaths); showResult(win, my, opp, m.kills, m.deaths, !!SYNC.role);
     }
     if (alloc) alloc.on = false;
-  });
+  }
   ctx.engine.runRenderLoop(() => scene.render());
   setTimeout(() => sessionStorage.removeItem(LOST_KEY), 60000);   // 撐過一分鐘就算恢復正常
   if (!q.has('nosnap')) scene.onAfterRenderObservable.add(() => { if (++frames === (+q.get('snapAt') || 4) && ctx.isWebGPU) { ctx.snapshot.enable(); snapshotActive.on = true; flushAll(); } });
 
   const api = window.__ol = {
-    ready: true, ctx, info, G, you, input, LAYOUT, chargePos, weapons: WEAPONS, boot: performance.now() - t0, sfx: sfxStatus,
+    ready: true, ctx, info, G, OPT, you, input, LAYOUT, chargePos, weapons: WEAPONS, boot: performance.now() - t0, sfx: sfxStatus, NET, SYNC,
+    net: { join: netJoin, leave: netLeave }, buyNet: id => actions.buy(id),
     state: () => ({ phase: G.phase, time: G.time, round: G.round, score: [...G.score], hp: G.me?.hp, money: G.me?.money, alive: G.agents.map(a => a.alive), pos: [you.x, you.y, you.z], charge: G.charge }),
     teleport(x, y, z, yaw = 0, pitch = 0) { free = null; const D = Math.PI / 180; teleport(x, y, z, yaw * D, pitch * D); },
     tuneStage, pool, ik, stageGun(id, side = 'atk') { setStage(side, id); }, benchSoldiers(n = 2000) { const t = performance.now(); for (let i = 0; i < n; i++) updateSoldiers(0.016, cam); return (performance.now() - t) / n; }, spot(n) { endStage(); free = LAYOUT.spots[n] ?? null; }, fps() { endStage(); free = null; },
@@ -129,7 +160,7 @@ async function boot() {
     startMatch(o = {}) { hideMenu(); begin(o.side ?? 'atk'); if (o.skipBuy) { G.time = 0; } },
     fire(n = 1) { input.fire = true; setTimeout(() => { input.fire = false; }, n * 90); },
     /** 繞過輸入直接扣一次扳機，走真正的 fire()：tools/balance.mjs 量擊殺時間用。 */
-    shoot(yaw, pitch) { return fire(G.me, yaw, pitch, cam); }, los: clear,
+    shoot(yaw, pitch) { return fire(G.me, yaw, pitch, cam); }, los: clear, spreadOf, fx,
     giveWeapon(id) { const m = G.me; giveWeapon(m, id); m.cur = id; api.select(id); },
     forceClip(name, t = -1) { clipDebug.name = name; clipDebug.t = t; },
     select(id) { import_select(id); },

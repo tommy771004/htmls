@@ -224,7 +224,7 @@ try {
         const a1 = m.ammo[id]; O.sim(60 / w.rpm + 0.05); I.fire = true; O.sim(1.5); I.fire = false; hold();
         const a2 = m.ammo[id], fired = a1 - a2, autoOk = w.auto ? Math.abs(fired - Math.min(a1, Math.round(1.5 * w.rpm / 60))) <= 3 : fired >= 1;
         const rsv = m.rsv[id]; O.sim(0.3); press('reload'); const T = w.shell ? w.shell * (w.mag - a2 + 1) : w.reload; O.sim(T + 0.2); hold();
-        out.g[id] = { a0, a1, a2, fired, autoOk, full: m.ammo[id], rsvUsed: rsv - m.rsv[id], mag: w.mag };
+        out.g[id] = { a0, a1, a2, fired, autoOk, full: m.ammo[id], rsvUsed: rsv - m.rsv[id], mag: w.mag, want: w.mag + (!w.shell && id !== 'n9' && a2 > 0 ? 1 : 0) };   // 閉鎖槍機沒打空：膛內多一發
       }
       // 單發裝填：一次進一發、開火可以中斷
       { const id = 'x10', w = W[id]; hold(); O.giveWeapon(id); O.sim(0.6); m.ammo[id] = 3; m.rsv[id] = 20; press('reload');
@@ -240,7 +240,7 @@ try {
       out.bots = { seen, phase: G.phase }; await wait(600);
       return out;
     }, NEW);
-    for (const id of NEW) { const x = r.g[id]; check(`新槍 ${id} 開火與換彈`, x.a1 < x.a0 && x.autoOk && x.full === x.mag && x.rsvUsed > 0, JSON.stringify(x)); }
+    for (const id of NEW) { const x = r.g[id]; check(`新槍 ${id} 開火與換彈`, x.a1 < x.a0 && x.autoOk && x.full === x.want && x.rsvUsed === x.full - x.a2, JSON.stringify(x)); }
     const S = r.shell; check('x10 一次裝一發、開火中斷', S.a[1] === S.a[0] + 1 && S.a[2] === S.a[1] + 1 && S.reloading && S.shot === S.a[2] - 1 && S.after === S.shot, JSON.stringify(S));
     check('n9 打穿 100 發、視角沒有壞', r.n9.left === 0 && Number.isFinite(r.n9.pitch) && Number.isFinite(r.n9.yaw), JSON.stringify(r.n9));
     check('s6 打身體不致命', r.lethal.max < 100 && r.lethal.headK >= 100 && r.lethal.hit && r.lethal.alive && r.lethal.hp > 0 && r.lethal.hp < 100, JSON.stringify(r.lethal));

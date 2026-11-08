@@ -8,6 +8,8 @@ import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Constants } from '@babylonjs/core/Engines/constants.js';
+import { floorAt } from '../game/mover.js';
+import { play as sfx } from '../audio/sfx.js';
 
 function quadMesh(name, scene, flat = false) {
   const m = new Mesh(name, scene), v = new VertexData();
@@ -85,7 +87,7 @@ export function buildFx(ctx) {
   // 彈殼：八面小方塊，矩陣自己算，不經 Matrix 物件
   const bm = MeshBuilder.CreateBox('fx_brass', { size: 1 }, scene), bmat = new StandardMaterial('fxBrass', scene);
   bmat.disableLighting = true; bmat.emissiveColor = new Color3(0.82, 0.6, 0.24); bm.material = bmat; bm.isPickable = false; bm.alwaysSelectAsActiveMesh = true; bm.doNotSyncBoundingInfo = true; bm.freezeWorldMatrix();
-  fx.brass = { m: bm, n: 24, next: 0, buf: new Float32Array(24 * 16), life: new Float32Array(24), big: new Uint8Array(24), pos: new Float32Array(72), vel: new Float32Array(72), ang: new Float32Array(24), spin: new Float32Array(24) };
+  fx.brass = { m: bm, n: 24, next: 0, buf: new Float32Array(24 * 16), life: new Float32Array(24), big: new Uint8Array(24), hit: new Uint8Array(24), pos: new Float32Array(72), vel: new Float32Array(72), ang: new Float32Array(24), spin: new Float32Array(24) };
   bm.thinInstanceSetBuffer('matrix', fx.brass.buf, 16, false);
   return fx;
 }
@@ -133,7 +135,7 @@ export function muzzle(x, y, z, dx, dy, dz, k = 1) {
 }
 /** 拋殼：從拋殼口往右上飛，翻滾落下。 */
 export function casing(x, y, z, vx, vy, vz, big = false) {
-  const b = fx.brass, i = b.next; b.next = (i + 1) % b.n, b.life[i] = 0.75; b.big[i] = big ? 1 : 0;
+  const b = fx.brass, i = b.next; b.next = (i + 1) % b.n, b.life[i] = 2.2; b.big[i] = big ? 1 : 0; b.hit[i] = 0;
   b.pos[i * 3] = x; b.pos[i * 3 + 1] = y; b.pos[i * 3 + 2] = z; b.vel[i * 3] = vx; b.vel[i * 3 + 1] = vy; b.vel[i * 3 + 2] = vz;
   b.ang[i] = Math.random() * 6.28; b.spin[i] = 16 + Math.random() * 14;
 }
@@ -143,16 +145,54 @@ function updateBrass(dt) {
     const o = i * 16, p = i * 3;
     if (b.life[i] <= 0) { if (M[o + 15] !== 0) { M.fill(0, o, o + 16); any = true; } continue; }
     b.life[i] -= dt; any = true;
-    b.vel[p + 1] -= 9.8 * dt; b.pos[p] += b.vel[p] * dt; b.pos[p + 1] += b.vel[p + 1] * dt; b.pos[p + 2] += b.vel[p + 2] * dt; b.ang[i] += b.spin[i] * dt;
+    if (b.hit[i] < 4) {
+      b.vel[p + 1] -= 9.8 * dt; b.pos[p] += b.vel[p] * dt; b.pos[p + 1] += b.vel[p + 1] * dt; b.pos[p + 2] += b.vel[p + 2] * dt; b.ang[i] += b.spin[i] * dt;
+      // 落地彈跳：第一下叮一聲，之後越跳越低，三四下後躺平
+      const f = b.vel[p + 1] < 0 ? floorAt(b.pos[p], b.pos[p + 2], b.pos[p + 1] - 0.4, 0.01) : -Infinity, r0 = b.big[i] ? 0.0095 : 0.0055;
+      if (f > -Infinity && b.pos[p + 1] <= f + r0) {
+        if (b.hit[i] === 0) sfx('brass', b.pos[p], f, b.pos[p + 2], 0.85 + Math.random() * 0.35);
+        b.hit[i]++; b.pos[p + 1] = f + r0;
+        const up = -b.vel[p + 1] * (0.32 - b.hit[i] * 0.06);
+        if (b.hit[i] >= 4 || up < 0.25) { b.hit[i] = 4; b.vel[p] = b.vel[p + 1] = b.vel[p + 2] = 0; b.ang[i] = Math.round(b.ang[i] / Math.PI) * Math.PI; }
+        else { b.vel[p + 1] = up; b.vel[p] *= 0.45; b.vel[p + 2] *= 0.45; b.spin[i] *= 0.55; }
+      }
+    }
     const c = Math.cos(b.ang[i]), s = Math.sin(b.ang[i]), r = b.big[i] ? 0.0095 : 0.0055, l = b.big[i] ? 0.03 : 0.022;
     M[o] = c * l; M[o + 1] = s * l; M[o + 2] = 0; M[o + 3] = 0; M[o + 4] = -s * r; M[o + 5] = c * r; M[o + 6] = 0; M[o + 7] = 0; M[o + 8] = 0; M[o + 9] = 0; M[o + 10] = r; M[o + 11] = 0;
     M[o + 12] = b.pos[p]; M[o + 13] = b.pos[p + 1]; M[o + 14] = b.pos[p + 2]; M[o + 15] = 1;
   }
   if (any) b.m.thinInstanceBufferUpdated('matrix');
 }
-export function impact(x, y, z, nx, ny, nz) {
-  addDecal(x, y, z, nx, ny, nz);
-  for (let i = 0; i < 3; i++) fx.soft.spawn(x, y, z, nx * 1.2 + (Math.random() - 0.5), ny * 1.2 + Math.random() * 0.7, nz * 1.2 + (Math.random() - 0.5), 0.4, 0.1, 0.45, 0.78, 0.68, 0.54, 0.5, 2);
+// 彈著碎屑顏色：石、灰泥、木、金屬、沙（collide.js 的 SURF）
+const DUST = [[0.78, 0.68, 0.54], [0.9, 0.87, 0.8], [0.56, 0.42, 0.28], [0.5, 0.5, 0.5], [0.84, 0.74, 0.56]];
+const CHIP = [[0.42, 0.36, 0.3], [0.86, 0.84, 0.78], [0.62, 0.46, 0.28], [0, 0, 0], [0.78, 0.68, 0.5]];
+const IMP = ['imp_stone', 'imp_plaster', 'imp_wood', 'imp_metal', 'imp_sand'];
+/** 打在牆、地、掩體上：依材質換彈孔大小、粉塵顏色、碎屑（石片、木屑、沙）或火星，加一聲彈著聲。 */
+export function impact(x, y, z, nx, ny, nz, mat = 0) {
+  const D = DUST[mat] ?? DUST[0], C = CHIP[mat] ?? CHIP[0], S = fx.soft;
+  if (mat !== 4) addDecal(x, y, z, nx, ny, nz, mat === 3 ? 0.05 : mat === 2 ? 0.075 : 0.09);
+  if (mat === 3) {   // 金屬：火星沿反射方向彈開，少量灰
+    const F = fx.fire; F.spawn(x, y, z, 0, 0, 0, 0.04, 0.12, 0.05, 1, 0.92, 0.75, 1);
+    for (let i = 0; i < 6; i++) { const r = 2 + Math.random() * 3; F.spawn(x, y, z, (nx + (Math.random() - 0.5) * 1.4) * r, (ny + 0.3 + Math.random() * 0.8) * r, (nz + (Math.random() - 0.5) * 1.4) * r, 0.1 + Math.random() * 0.14, 0.04, 0.012, 1, 0.78, 0.4, 1, 9.8); }
+    S.spawn(x, y, z, nx * 0.5, 0.3, nz * 0.5, 0.35, 0.05, 0.22, D[0], D[1], D[2], 0.3, 0);
+  } else {
+    const n = mat === 4 ? 5 : mat === 1 ? 4 : 3, up = mat === 4 ? 1.6 : 0.7, sz = mat === 1 ? 0.55 : 0.45;
+    for (let i = 0; i < n; i++) S.spawn(x, y, z, nx * 1.2 + (Math.random() - 0.5), ny * 1.2 + Math.random() * up, nz * 1.2 + (Math.random() - 0.5), 0.4, 0.1, sz, D[0], D[1], D[2], 0.5, mat === 4 ? 4 : 2);
+    // 碎屑：小而重，沿法線噴出再落下
+    for (let i = 0; i < (mat === 2 ? 4 : 3); i++) S.spawn(x, y, z, nx * 2.6 + (Math.random() - 0.5) * 2, ny * 2 + 0.8 + Math.random() * 1.6, nz * 2.6 + (Math.random() - 0.5) * 2, 0.45 + Math.random() * 0.25, mat === 2 ? 0.028 : 0.02, 0.016, C[0], C[1], C[2], 0.95, 9.8);
+  }
+  sfx(IMP[mat] ?? IMP[0], x, y, z, 0.9 + Math.random() * 0.2);
+}
+/** 槍口餘煙：停火後從槍口往上飄的細煙，k 是槍管熱度 0..1。 */
+export function muzzleSmoke(x, y, z, k) {
+  fx.soft.spawn(x + (Math.random() - 0.5) * 0.01, y, z + (Math.random() - 0.5) * 0.01, (Math.random() - 0.5) * 0.06, 0.12 + Math.random() * 0.08, (Math.random() - 0.5) * 0.06, 1 + Math.random() * 0.5, 0.012, 0.08 + 0.06 * k, 0.8, 0.78, 0.74, 0.06 + 0.1 * k, -0.25);
+}
+/** 打中頭盔：一閃白核，火星往射手方向彈回再被重力拉下，留一點金屬灰。(dx,dy,dz) 是子彈方向。 */
+export function sparks(x, y, z, dx, dy, dz) {
+  const F = fx.fire;
+  F.spawn(x, y, z, 0, 0, 0, 0.05, 0.18, 0.06, 1, 0.95, 0.82, 1);
+  for (let i = 0; i < 10; i++) { const r = 2.4 + Math.random() * 3.4; F.spawn(x, y, z, (-dx + (Math.random() - 0.5) * 1.8) * r, (-dy + 0.2 + Math.random() * 0.9) * r, (-dz + (Math.random() - 0.5) * 1.8) * r, 0.12 + Math.random() * 0.16, 0.05, 0.014, 1, 0.8 + Math.random() * 0.14, 0.45, 1, 9.8); }
+  fx.soft.spawn(x, y, z, -dx * 0.4, 0.25, -dz * 0.4, 0.45, 0.06, 0.3, 0.62, 0.6, 0.57, 0.35);
 }
 export function blood(x, y, z) { for (let i = 0; i < 4; i++) fx.soft.spawn(x, y, z, (Math.random() - 0.5) * 1.6, Math.random() * 1.2, (Math.random() - 0.5) * 1.6, 0.35, 0.08, 0.32, 0.42, 0.05, 0.03, 0.8, 5); }
 export function explosion(x, y, z) {

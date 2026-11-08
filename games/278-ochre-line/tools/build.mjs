@@ -27,7 +27,7 @@ const res = await build({
       return { contents: src, loader: 'js' };
     });
   } }] : [],
-  define: { 'import.meta.url': '"http://local/"', __DEV__: dev ? 'true' : 'false' },
+  define: { 'import.meta.url': '"http://local/"', __DEV__: dev ? 'true' : 'false', __OL_SERVER__: JSON.stringify(process.env.OL_SERVER || '') },   // OL_SERVER：連線伺服器（Cloudflare Worker 的 wss 網址），見 NET.md
 });
 const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const html = readFileSync(resolve(root, 'src/index.html'), 'utf8').replace('/*__BUNDLE__*/', () => js);

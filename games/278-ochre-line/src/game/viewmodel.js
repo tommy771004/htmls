@@ -273,10 +273,10 @@ export async function buildViewmodel(ctx, snapshot) {
 /** 槍口世界座標，寫進 out。用開機時算好的本地點，開火時不動節點樹。 */
 export function muzzleTo(out) { Vector3.TransformCoordinatesToRef(vm.cur.muzzleLocal, vm.anchor.worldMatrixFromCache, out); return out; }
 
-export function selectWeapon(id) {
+export function selectWeapon(id, draw = 0) {
   const g = vm.groups[id]; if (!g || vm.cur === g) return;
   if (vm.cur) { if (vm.cur.rl) poseReload(vm.cur.rl, -1); if (vm.cur.parts) { vm.ch.bolt = vm.ch.pull = vm.ch.lift = vm.ch.cover = 0; poseParts(vm.cur.parts); } if (vm.cur.rb) poseBoltHand(vm.cur.rb, 0, 0, 0, 0); vm.cur.holder.scaling.set(HIDE, HIDE, -HIDE); flush(vm.cur); }
-  vm.cur = g; g.holder.scaling.copyFrom(g.scale); vm.swap = 1; vm.swapT = g.kind === 'pistol' ? 0.32 : 0.42; vm.reload = 0; vm.inspect = 0; vm.cycle = -1; vm.kick = 0; vm.kickV = 0;
+  vm.cur = g; g.holder.scaling.copyFrom(g.scale); vm.swap = 1; vm.swapT = draw ? draw * 0.85 : g.kind === 'pistol' ? 0.32 : 0.42;   // 舉槍動畫比拔槍時間略短，槍舉穩了才能開火 vm.reload = 0; vm.inspect = 0; vm.cycle = -1; vm.kick = 0; vm.kickV = 0;
 }
 /** 快照剛啟用時呼叫：啟用前換的槍沒寫進 uniform，不補的話那把會一直留在畫面上。 */
 export function flushAll() { for (const id in vm.groups) flush(vm.groups[id]); }
@@ -293,7 +293,7 @@ export function fireKick() {
   const g = vm.cur; if (!g) return;
   vm.kickV += KICK[g.id][5] * 2.72; vm.inspect = 0; if (CYCLE[g.id]) vm.cycle = 0; vm.slide = 1;
 }
-export function startReloadAnim(t) { vm.reload = t; vm.reloadT = t; vm.inspect = 0; vm.cycle = -1; }
+export function startReloadAnim(t, tac = false, total = t) { vm.reload = t; vm.reloadT = total; vm.tac = tac; vm.inspect = 0; vm.cycle = -1; }
 export function stopReloadAnim() { vm.reload = 0; }
 /** 開新回合或買到同一把時 selectWeapon 會提早返回，換彈、上膛、檢視要另外歸零。 */
 export function stopAnims() { vm.reload = 0; vm.cycle = -1; vm.inspect = 0; }
@@ -311,7 +311,9 @@ export function updateViewmodel(dt, speed, ground, yaw, pitch) {
   if (ground && !vm.wasGround) vm.landV -= 1.6; vm.wasGround = ground;
   vm.landV += (-2 * 14 * vm.landV - 196 * vm.land) * Math.min(dt, 0.033); vm.land += vm.landV * Math.min(dt, 0.033);
   // 轉頭時槍慢半拍
-  let dy = yaw - vm.lastYaw; if (dy > 3.14) dy -= 6.283; else if (dy < -3.14) dy += 6.283; const dp = pitch - vm.lastPitch; vm.lastYaw = yaw; vm.lastPitch = pitch;
+  let dy = yaw - vm.lastYaw; if (dy > 3.14) dy -= 6.283; else if (dy < -3.14) dy += 6.283; let dp = pitch - vm.lastPitch; vm.lastYaw = yaw; vm.lastPitch = pitch;
+  // 換算成 60 fps 一幀的轉角：擺幅不隨更新率變（120 Hz 不會只剩一半）
+  const fr = 1 / (60 * (dt > 0.002 ? dt : 0.002)); dy *= fr; dp *= fr;
   const lag = 1 - Math.exp(-dt * 11), lim = 0.09;
   vm.swayX += ((dy < -lim ? -lim : dy > lim ? lim : dy) - vm.swayX) * lag; vm.swayY += ((dp < -lim ? -lim : dp > lim ? lim : dp) - vm.swayY) * lag;
   // 計時
@@ -324,10 +326,10 @@ export function updateViewmodel(dt, speed, ground, yaw, pitch) {
   let eR = 0, eP = 0, eY = 0, eX = 0, pull = 0, lift = 0, cover = 0;
   if (vm.reload > 0) {
     const u = 1 - vm.reload / vm.reloadT, env = ease(0, 0.16, u) * (1 - ease(0.84, 1, u));
-    let seat = ease(0.5, 0.56, u) * (1 - ease(0.56, 0.68, u)), bolt = ease(0.76, 0.8, u) * (1 - ease(0.8, 0.88, u));
+    let seat = ease(0.5, 0.56, u) * (1 - ease(0.56, 0.68, u)), bolt = vm.tac ? 0 : ease(0.76, 0.8, u) * (1 - ease(0.8, 0.88, u));   // 戰術換彈不拉機柄
     const sh = SHELL[g.id], T = vm.reloadT, t = T - vm.reload, c = sh ? (t / sh) % 1 : -1, tl = TILT[g.id];
     if (sh) { seat = ease(0.8, 0.86, c) * (1 - ease(0.86, 1, c)); bolt = 0; }   // 每一發頓一下
-    pull = bolt; lift = ease(0.72, 0.76, u) * (1 - ease(0.88, 0.92, u)); cover = ease(0.06, 0.16, u) * (1 - ease(0.82, 0.92, u));
+    pull = bolt; lift = vm.tac ? 0 : ease(0.72, 0.76, u) * (1 - ease(0.88, 0.92, u)); cover = ease(0.06, 0.16, u) * (1 - ease(0.82, 0.92, u));
     eR = (tl ? tl[0] : -26) * env; eP = (tl ? tl[1] : -13) * env + seat * 4 - bolt * 3; eY = (tl ? tl[2] : -0.04) * env - seat * 0.016; eX = (tl ? tl[3] : -0.035) * env + bolt * 0.006;
     if (g.kind === 'pistol') { eY = (g.id === 'v11' ? 0.1 : 0.06) * env - seat * 0.016; eR = -20 * env; eP = -16 * env + seat * 4; eX = -0.05 * env; }   // 手槍抬起來，彈匣口才進得了畫面
     if (g.rl) { poseReload(g.rl, u, c, t, T); g.rl.dirty = true; }

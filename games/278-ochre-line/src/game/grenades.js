@@ -11,11 +11,16 @@ export const smokes = []; for (let i = 0; i < 4; i++) smokes.push({ on: false, x
 
 export function clearNades() { for (const n of ng) n.on = false; for (const s of smokes) s.on = false; }
 export function throwNade(a, kind, yaw, pitch) {
-  const n = ng.find(g => !g.on); if (!n) return;
   const cp = Math.cos(pitch), sp = 15;
+  throwNadeAt(a, kind, a.x + Math.sin(yaw) * 0.4, a.y + a.eye - 0.1, a.z + Math.cos(yaw) * 0.4,
+    Math.sin(yaw) * cp * sp + a.vx, Math.sin(pitch) * sp + 2.5 + a.vy * 0.5, Math.cos(yaw) * cp * sp + a.vz);
+}
+/** 從指定位置與初速丟出。連線時別人丟的投擲物用這個重演，每台機器各自模擬彈跳（傷害只有主機算）。 */
+export function throwNadeAt(a, kind, x, y, z, vx, vy, vz) {
+  const n = ng.find(g => !g.on); if (!n) return;
   n.on = true; n.kind = kind; n.owner = a; n.t = kind === 'smoke' ? 2 : 1.6;
-  n.x = a.x + Math.sin(yaw) * 0.4; n.y = a.y + a.eye - 0.1; n.z = a.z + Math.cos(yaw) * 0.4;
-  n.vx = Math.sin(yaw) * cp * sp + a.vx; n.vy = Math.sin(pitch) * sp + 2.5 + a.vy * 0.5; n.vz = Math.cos(yaw) * cp * sp + a.vz;
+  n.x = x; n.y = y; n.z = z; n.vx = vx; n.vy = vy; n.vz = vz;
+  world.net?.nade(a, kind, x, y, z, vx, vy, vz);
 }
 
 const from = TMP_VEC3_A, to = TMP_VEC3_B;
@@ -23,6 +28,7 @@ function detonate(n) {
   n.on = false;
   if (n.kind === 'frag') {
     explosion(n.x, n.y, n.z); sfx('nade_explode', n.x, n.y, n.z);
+    if (world.net?.client) return;   // 連線的客戶端：破片傷害由主機算
     for (const v of world.agents) {
       if (!v.alive) continue;
       const d = Math.hypot(v.x - n.x, v.y + 1 - n.y, v.z - n.z); if (d > 8) continue;

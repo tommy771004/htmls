@@ -6,7 +6,9 @@
   "description": "赭線 OCHRE LINE — Babylon.js WebGPU + Havok 寫實 5v5 戰術射擊（作品 278）",
   "scripts": {
     "build": "node tools/build.mjs",
-    "test": "node tools/accept.mjs"
+    "test": "node --test tools/net.test.mjs && node tools/accept.mjs",
+    "test:net": "node --test tools/net.test.mjs",
+    "mp": "node tools/mp.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "9.34.0",

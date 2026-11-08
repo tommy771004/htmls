@@ -17,7 +17,8 @@ const audit = (p, touch) => p.evaluate(touch => {
     const r = e.getBoundingClientRect(); if (!r.width || !r.height || getComputedStyle(e).visibility === 'hidden') continue;
     const sheet = e.closest('.m-sheet,#m-roster');   // 捲動區裡的元素可以在捲動範圍外
     if (r.left < -0.5 || r.right > W + 0.5 || (!sheet && (r.top < -0.5 || r.bottom > H + 0.5))) { bad.push('出界 ' + (e.textContent || e.dataset.set).trim().slice(0, 10) + ' ' + [r.left, r.top, r.right, r.bottom].map(Math.round)); continue; }
-    if (sheet && (r.bottom > H || r.top < 0)) continue;
+    const box = e.closest('.m-sbody')?.getBoundingClientRect();   // 設定頁的捲動區在面板裡面，區外的要捲才看得到
+    if (sheet && (r.bottom > Math.min(H, box?.bottom ?? H) || r.top < Math.max(0, box?.top ?? 0))) continue;
     const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     if (t !== e && !e.contains(t) && !t?.closest('label')?.contains(e)) bad.push('被蓋 ' + (e.textContent || '').trim().slice(0, 10) + ' <- ' + (t?.id || t?.className || t?.tagName));
     if (touch && r.height < 32) bad.push('太矮 ' + (e.textContent || '').trim().slice(0, 10) + ' ' + Math.round(r.height));
@@ -52,8 +53,32 @@ try {
     for (const i of gun) { const t = (await p.$$('.m-tile'))[i]; await t.scrollIntoViewIfNeeded(); if (touch) await t.tap(); else await t.click(); await p.waitForTimeout(60); const n = await p.evaluate(i => { const b = document.querySelectorAll('.m-tile')[i]; return b.getAttribute('aria-pressed') === 'true' && document.querySelector('.m-info h3').textContent === b.querySelector('span').textContent; }, i); if (!n) check(`${tag} 軍械第 ${i} 格`, false); }
     for (const id of ['l40', 'p9', 'ar5']) { const i = await p.$$eval('.m-tile span', (e, n) => e.findIndex(x => x.textContent.startsWith(n)), id.toUpperCase()); const t = (await p.$$('.m-tile'))[i]; await t.scrollIntoViewIfNeeded(); if (touch) await t.tap(); else await t.click(); await p.waitForTimeout(500); await p.screenshot({ path: `${dir}/menu_${tag}_arm_${id}.png` }); }
     await click('[data-tab=set]');
-    const set = await p.evaluate(() => { const e = document.querySelector('.m-set [data-set=vol]'); e.value = 0.35; e.dispatchEvent(new Event('input', { bubbles: true })); const s = document.querySelector('.m-set [data-set=sens]'); s.value = 0.0044; s.dispatchEvent(new Event('input', { bubbles: true })); return [__ol.input.sens, document.querySelector('[data-out=vol]').textContent, localStorage.getItem('ochre-line.settings.v1')]; });
-    check(`${tag} 設定寫入`, set[0] === 0.0044 && set[1] === '35%' && /0\.35/.test(set[2]), JSON.stringify(set));
+    // 設定：滑桿、數字框（真的打字）、下拉選單、放棄變更、重設確認框都走真實點擊
+    const S0 = 0.0015, SK = 'ochre-line.settings.v1', st = async id => { await click(`[data-st=${id}]`); const r = await audit(p, touch); check(`${tag} 設定・${id} 版面`, !r.bad.length && r.ow <= r.cw, r.bad.join('；')); await p.screenshot({ path: `${dir}/menu_${tag}_set_${id}.png` }); };
+    for (const id of ['game', 'mouse', 'video', 'audio', 'cross', 'data']) await st(id);
+    await click('[data-st=game]'); await p.selectOption('#s-diff', '2'); await p.waitForTimeout(100);
+    const df = await p.evaluate(K => [__ol.OPT.diff, JSON.parse(localStorage.getItem(K)).diff], SK);
+    check(`${tag} 難度設定`, df[0] === 2 && df[1] === 2, JSON.stringify(df));
+    await click('[data-st=audio]');
+    const set = await p.evaluate(() => { const e = document.querySelector('.m-set [data-set=vol]'); e.value = 0.35; e.dispatchEvent(new Event('input', { bubbles: true })); return [document.querySelector('[data-num=vol]').value, localStorage.getItem('ochre-line.settings.v1')]; });
+    await click('[data-st=mouse]'); await p.fill('[data-num=look]', '2'); await p.press('[data-num=look]', 'Enter'); await p.waitForTimeout(100);
+    const s2 = await p.evaluate(() => [__ol.input.sens, document.querySelector('.m-set [data-set=look]').value, document.querySelector('#m-undo').disabled]);
+    check(`${tag} 設定寫入`, set[0] === '35' && /"vol":0\.35/.test(set[1]) && Math.abs(s2[0] - 2 * S0) < 1e-9 && s2[1] === '2' && s2[2] === false, JSON.stringify([set, s2]));
+    await click('[data-st=video]'); await p.selectOption('#s-res', '0.5'); await p.waitForTimeout(300);
+    const rs = await p.evaluate(() => [__ol.ctx.engine.getHardwareScalingLevel() * Math.min(devicePixelRatio, 2), __ol.ctx.engine.getRenderWidth(), innerWidth]);
+    check(`${tag} 渲染解析度 50%`, Math.abs(rs[0] - 2) < 1e-6, JSON.stringify(rs));
+    await click('#m-undo');
+    const u = await p.evaluate(K => [__ol.input.sens, JSON.parse(localStorage.getItem(K)).vol, __ol.ctx.engine.getHardwareScalingLevel() * Math.min(devicePixelRatio, 2), document.querySelector('#m-undo').disabled], SK);
+    check(`${tag} 放棄變更`, Math.abs(u[0] - S0) < 1e-9 && u[1] === 0.8 && Math.abs(u[2] - 1) < 1e-6 && u[3], JSON.stringify(u));
+    await click('[data-st=cross]'); await p.selectOption('#s-xc', '#5fe0c4'); await p.fill('[data-num=xl]', '14'); await p.press('[data-num=xl]', 'Enter'); await p.waitForTimeout(100);
+    const xh = await p.evaluate(() => [getComputedStyle(document.querySelector('#cross i')).backgroundColor, document.querySelector('.m-xp .xh i').getBoundingClientRect().height / parseFloat(getComputedStyle(document.querySelector('.m-xp .xh')).getPropertyValue('--xa'))]);
+    check(`${tag} 準星設定生效`, xh[0] === 'rgb(95, 224, 196)', JSON.stringify(xh));
+    await p.screenshot({ path: `${dir}/menu_${tag}_set_cross2.png` });
+    await click('#m-reset'); const a1 = await p.evaluate(() => !document.querySelector('.m-ask').hidden); await p.screenshot({ path: `${dir}/menu_${tag}_set_ask.png` });
+    await click('#m-askn'); const a2 = await p.evaluate(() => [document.querySelector('.m-ask').hidden, document.querySelector('[data-num=xl]').value]);
+    await click('#m-reset'); await click('#m-asky');
+    const a3 = await p.evaluate(K => [document.querySelector('.m-ask').hidden, document.querySelector('[data-num=xl]').value, JSON.parse(localStorage.getItem(K)).xc, __ol.input.sens], SK);
+    check(`${tag} 重設要確認`, a1 && a2[0] && a2[1] === '14' && a3[0] && a3[1] === '8' && a3[2] === '#f6f1e4' && Math.abs(a3[3] - S0) < 1e-9, JSON.stringify([a1, a2, a3]));
     await click('[data-tab=play]');
     for (const m of ['def', 'rand', 'atk']) { await click(`[data-mode=${m}]`); const o = await p.evaluate(m => [document.querySelector(`[data-mode=${m}]`).getAttribute('aria-checked'), document.querySelector('#m-go').dataset.s, document.querySelector('#m-go').getBoundingClientRect().bottom <= innerHeight], m); check(`${tag} 模式 ${m}`, o[0] === 'true' && o[1] === m && o[2], o.join()); if (m === 'def') await p.screenshot({ path: `${dir}/menu_${tag}_def.png` }); }
     check(`${tag} 離開鈕指向作品集`, await p.getAttribute('.m-exit', 'href') === '../index.html');
@@ -88,7 +113,7 @@ try {
       await p.click('#leave'); await p.waitForTimeout(600);
       const q = await p.evaluate(() => ({ ph: __ol.G.phase, matches: JSON.parse(localStorage.getItem('ochre-line.record.v1')).matches, paused: __ol.G.paused }));
       check(`${tag} 中途離開不計戰績`, q.ph === 'menu' && q.matches === 2 && !q.paused, JSON.stringify(q));
-      await click('[data-tab=set]'); await click('#m-clear'); const c1 = await p.textContent('#m-clear'), kept = await p.evaluate(() => !!localStorage.getItem('ochre-line.record.v1')); await click('#m-clear');
+      await click('[data-tab=set]'); await click('[data-st=data]'); await click('#m-clear'); const c1 = await p.textContent('#m-clear'), kept = await p.evaluate(() => !!localStorage.getItem('ochre-line.record.v1')); await click('#m-clear');
       const c2 = await p.evaluate(() => [localStorage.getItem('ochre-line.record.v1'), document.querySelector('#m-rec').innerText, document.querySelector('#m-clear').disabled]);
       check(`${tag} 清除戰績要按兩次`, /再按一次/.test(c1) && kept && c2[0] === null && /尚無戰績/.test(c2[1]) && c2[2], JSON.stringify(c2));
       await p.click('.m-exit'); await p.waitForURL('**/index.html', { timeout: 15000 }).catch(() => {});

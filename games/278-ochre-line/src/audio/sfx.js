@@ -268,7 +268,9 @@ export function play(name, x = lx, y = ly, z = lz, rate = 1) {
     case 'reload': nz(t, out, 0.04, 0.4, 'highpass', 2400); nz(t + 0.42, out, 0.05, 0.5, 'bandpass', 1500, 2); tone(t + 0.42, out, 0.05, 0.3, 320, 180, 'triangle'); nz(t + 0.8, out, 0.05, 0.55, 'bandpass', 1900, 2); break;
     case 'step': nz(t, out, 0.07, 0.22, 'lowpass', 520, 0.8, 200); nz(t, out, 0.03, 0.09, 'highpass', 3000); break;
     case 'hit': tone(t, out, 0.1, 0.5, 190, 70); nz(t, out, 0.06, 0.35, 'bandpass', 900, 1); break;
-    case 'head': tone(t, out, 0.08, 0.3, 1800, 1200, 'triangle'); break;
+    case 'head': tone(t, out, 0.08, 0.3, 1800, 1200, 'triangle'); nz(t, out, 0.07, 0.32, 'lowpass', 700, 0.8, 260); break;
+    // 頭盔：幾個不成倍數的高頻正弦一起衰減，聽起來是鋼殼被敲的鏗聲；前面一聲很短的高頻喀
+    case 'helmet': nz(t, out, 0.012, 0.5, 'highpass', 5000); tone(t, out, 0.34, 0.2, 3150, 3080); tone(t, out, 0.24, 0.14, 4710, 4650); tone(t, out, 0.16, 0.1, 6890, 6800); tone(t, out, 0.1, 0.16, 1500, 1100, 'triangle'); break;
     case 'death': tone(t, out, 0.32, 0.26, 150, 60); nz(t + 0.1, out, 0.2, 0.2, 'lowpass', 420); break;
     case 'nade_bounce': nz(t, out, 0.04, 0.4, 'bandpass', 2300, 3); break;
     case 'nade_explode': nz(t, out, 0.05, 1.2, 'highpass', 2000); tone(t, out, 0.5, 1.2, 130, 34); nz(t, out, 1.1, 0.8, 'lowpass', 1200, 0.5, 120); break;
@@ -279,6 +281,14 @@ export function play(name, x = lx, y = ly, z = lz, rate = 1) {
     case 'defuse': tone(t, out, 0.22, 0.3, 660, 990, 'triangle'); break;
     case 'win': tone(t, bus.master, 0.2, 0.26, 523, 523, 'triangle'); tone(t + 0.16, bus.master, 0.34, 0.26, 784, 784, 'triangle'); break;
     case 'lose': tone(t, bus.master, 0.42, 0.26, 330, 196, 'triangle'); break;
+    // 彈殼落地與彈著：短、高頻為主，數量多所以音量壓低
+    case 'brass': tone(t, out, 0.09, 0.11, 5200, 5050, 'triangle'); tone(t, out, 0.15, 0.06, 7450, 7380); nz(t, out, 0.018, 0.12, 'highpass', 6000); tone(t + 0.075, out, 0.06, 0.05, 5600, 5520, 'triangle'); break;
+    case 'imp_stone': nz(t, out, 0.045, 0.34, 'bandpass', 2600, 1.2); nz(t, out, 0.12, 0.18, 'lowpass', 900, 0.7); break;
+    case 'imp_plaster': nz(t, out, 0.06, 0.28, 'bandpass', 1800, 0.9); nz(t + 0.01, out, 0.16, 0.12, 'lowpass', 700); break;
+    case 'imp_wood': nz(t, out, 0.04, 0.28, 'bandpass', 1250, 1.5); tone(t, out, 0.09, 0.28, 330, 180, 'triangle'); break;
+    case 'imp_metal': nz(t, out, 0.015, 0.3, 'highpass', 4000); tone(t, out, 0.34, 0.12, 2350, 2300); tone(t, out, 0.26, 0.08, 3720, 3650); if (Math.random() < 0.3) tone(t + 0.02, out, 0.32, 0.06, 4300, 1700); break;   // 偶爾跳彈的呼嘯
+    case 'imp_sand': nz(t, out, 0.1, 0.26, 'lowpass', 700, 0.6); nz(t, out, 0.05, 0.09, 'bandpass', 3000, 0.8); break;
+    case 'pickup': nz(t, out, 0.03, 0.34, 'bandpass', 1300, 3); nz(t + 0.07, out, 0.04, 0.3, 'bandpass', 2100, 3); tone(t + 0.07, out, 0.06, 0.12, 620, 520, 'triangle'); break;
     case 'buy': nz(t, out, 0.03, 0.3, 'bandpass', 1800, 3); tone(t + 0.02, out, 0.08, 0.22, 1040, 1040, 'triangle'); break;
   }
 }

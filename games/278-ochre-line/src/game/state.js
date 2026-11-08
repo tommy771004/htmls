@@ -26,18 +26,23 @@ export const WEAPONS = {
 export const GEAR = { armor: { name: '防彈衣', price: 650 }, helmet: { name: '防彈衣＋頭盔', price: 1000 }, kit: { name: '拆彈鉗', price: 400 } };
 export const RULES = { winTarget: 7, half: 6, buyTime: 12, roundTime: 105, chargeTime: 40, plantTime: 3.2, defuseTime: 10, defuseKit: 5, postTime: 5, startMoney: 800, maxMoney: 16000, winMoney: 3250, loseBase: 1400, loseStep: 500, loseMax: 3400 };
 
+/** 比賽選項（設定頁寫入，開新比賽時讀）：diff 0 簡單 1 普通 2 困難，決定 Bot 技術值的範圍。 */
+export const OPT = { diff: 1 };
+export const BOT_SKILL = [[0.22, 0.5], [0.42, 0.82], [0.7, 0.95]];
+
 export const G = {
   history: [],
   phase: 'menu',     // menu | buy | live | planted | post | over
   paused: false, time: 0, round: 1, score: [0, 0], lossStreak: [0, 0],
   charge: null,      // { x, y, z, site, t } 裝藥狀態，未安裝為 null；t 剩餘秒數
+  drop: { on: false, x: 0, y: 0, z: 0, by: null }, // 攜帶者陣亡或按 G 丟下的裝藥，攻方任何人走到 1.2 m 內撿起；by 是丟的人，離開 2 m 前不會自己撿回去
   plantP: 0, defuseP: 0,  // 玩家進度 0..1
   agents: [], me: null,
   feed: [],          // 最近擊殺：{ killer, kteam, victim, vteam, weapon, wid, head, mine, t }
   log: [],           // 左下事件紀錄：{ text, gold, t }，只記玩家自己的金錢與購買
   mvp: null,         // 回合最佳：{ name, kills, dmg, team, obj }
   banner: '', bannerT: 0, // 置中訊息
-  flash: 0, hitMark: 0, dmgDir: 0, dmgT: 0, zone: '', scoped: false,
+  flash: 0, punch: 0, swayY: 0, swayP: 0, hitMark: 0, dmgDir: 0, dmgT: 0, zone: '', scoped: false,
   canBuy: false, buyOpen: false, scoreOpen: false,
   winner: -1,
 };
@@ -50,6 +55,7 @@ export function makeAgent(i, team, name, isBot) {
     primary: null, secondary: 'p9', nades: [], hasCharge: false, cur: 'p9',
     ammo: {}, rsv: {},
     x: 0, y: 0, z: 0, px: 0, py: 0, pz: 0, vx: 0, vy: 0, vz: 0, yaw: 0, pitch: 0, h: 1.8, eye: 1.7, ground: true, crouch: false, fell: false,
-    speedK: 1, slowT: 0, hitT: 0, fireT: 0, reloadT: 0, burst: 0, burstT: 0, inaccuracy: 0, soldier: null, bot: null,
+    speedK: 1, slowT: 0, hitT: 0, stepT: 0, fireT: 0, reloadT: 0, burst: 0, burstT: 0, recT: 0, landT: 0, inaccuracy: 0, soldier: null, bot: null,
+    remote: 0, puppet: false, netTask: '', aim: false, dying: false, nb: null, // 連線：remote 是主機上遠端真人的 pid、puppet 是客戶端照快照擺的人、netTask 安裝或拆除中、nb 位置內插緩衝
   };
 }

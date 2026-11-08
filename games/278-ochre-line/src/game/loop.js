@@ -3,10 +3,10 @@ import { G, RULES, WEAPONS } from './state.js';
 import { LAYOUT } from '../map/layout.js';
 import { input } from '../core/input.js';
 import { you, tickPlayer, applyCamera, teleport } from './player.js';
-import { fire, tickWeapon, startReload, recoilTable, maxSpeed, RECOIL_LAST } from './weapons.js';
+import { fire, tickWeapon, startReload, recoilTable, maxSpeed, RECOIL_LAST, LAND_T, drawTime } from './weapons.js';
 import { tickBot, plan } from './bots.js';
 import { tickNades, throwNade } from './grenades.js';
-import { endRound, nextRound, plantDone, defuseDone, checkElim, showCharge } from './round.js';
+import { endRound, nextRound, plantDone, defuseDone, checkElim, showCharge, dropCharge, pickCharge } from './round.js';
 import { play as anim, chargePos } from './soldiers.js';
 import { vm, selectWeapon, updateViewmodel, muzzleTo, fireKick, startReloadAnim, stopReloadAnim, startInspect } from './viewmodel.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
@@ -19,17 +19,21 @@ const BIG_CASE = { s8: true, l40: true };
 for (const g of NEW_GUNS) { PORT[g.id] = g.port; FLASH[g.id] = g.flash; if (g.bigCase) BIG_CASE[g.id] = true; }
 import { muzzle, casing } from '../fx/particles.js';
 import { play as sfx } from '../audio/sfx.js';
-import { DRAW } from '../audio/cues.js';
+import { DRAW, AFTER_SHOT } from '../audio/cues.js';
+import { muzzleSmoke } from '../fx/particles.js';
+import { SYNC, netPre, netPost, netAct } from '../net/sync.js';
 
 const S = LAYOUT.sites;
 const SCOPE_FOV = 0.32, SCOPE_SENS = Math.tan(SCOPE_FOV / 2) / Math.tan(Math.PI / 4);   // 開鏡時畫面轉速和腰射一樣
 const inSite = (x, y, z) => x >= S.A.x0 && x <= S.A.x1 && z >= S.A.z0 && z <= S.A.z1 && Math.abs(y - S.A.y) < 3 ? 'A' : x >= S.B.x0 && x <= S.B.x1 && z >= S.B.z0 && z <= S.B.z1 && Math.abs(y - S.B.y) < 3 ? 'B' : '';
-let lastSlot = 'p9', fireHeld = false, altHeld = false, zoneT = 0, beepT = 0, stepT = 0, kickP = 0, kickY = 0, nadeHeld = false;
+let rezoom = false, fovNow = Math.PI / 2, swayT = 0, swayA = 0, heat = 0, smokeT = 0;   // 栓動後自動回鏡、鏡頭視角、開鏡晃動、槍管熱度（槍口冒煙）
+const SCOPE_IN = 0.3;   // 開鏡到完全穩定的秒數
+let lastSlot = 'p9', fireHeld = false, altHeld = false, zoneT = 0, beepT = 0, stepT = 0, kickP = 0, kickY = 0, kickP0 = 0, kickY0 = 0, nadeHeld = false;
 
 function setCur(m, id) {
   if (!id || m.cur === id) return;
-  lastSlot = m.cur; m.cur = id; m.reloadT = 0; m.fireT = 0.35; G.scoped = false;
-  selectWeapon(id);
+  lastSlot = m.cur; m.cur = id; m.reloadT = 0; m.fireT = drawTime(WEAPONS[id]); G.scoped = false; rezoom = false; heat = 0;   // 拔出前不能開火
+  selectWeapon(id, m.fireT);
   if (WEAPONS[id]?.id && !WEAPONS[id].nade && id !== 'charge') sfx(DRAW(WEAPONS[id]), m.x, m.y, m.z);
 }
 
@@ -44,12 +48,17 @@ function quickSwap(m) {
 function tickMe(dt, cam) {
   const m = G.me;
   if (!m.alive) { you.frozen = true; return; }
-  you.frozen = G.phase === 'buy' || G.phase === 'menu' || G.plantP > 0 || G.defuseP > 0;
-  you.speedK = (WEAPONS[m.cur]?.speedK ?? 1) * (m.slowT > 0 ? 0.55 : 1);
+  if (G.paused) { input.fire = false; input.firePress = 0; input.use = false; }   // 連線時暫停選單開著遊戲照跑，人站著不動
+  you.frozen = G.paused || G.phase === 'buy' || G.phase === 'menu' || G.plantP > 0 || G.defuseP > 0;
+  you.speedK = (WEAPONS[m.cur]?.speedK ?? 1) * (m.slowT > 0 ? 0.55 : 1) * (G.scoped ? 0.55 : 1);   // 開鏡走得慢
   you.sensK = G.scoped ? SCOPE_SENS * input.scopeSens : 1;
   tickPlayer(dt);
+  const wasG = m.ground;
   m.px = m.x; m.py = m.y; m.pz = m.z; m.x = you.x; m.y = you.y; m.z = you.z; m.vx = you.vx; m.vy = you.vy; m.vz = you.vz;
   m.yaw = you.yaw; m.pitch = you.pitch; m.ground = you.ground; m.crouch = you.crouch; m.eye = you.eye; m.h = you.h; m.scoped = G.scoped;
+  // 落地：騰空超過 0.2 s（跳躍、從高處落下；下樓梯的短暫離地不算）才有散布懲罰與減速
+  if (!m.ground) m.airT = (m.airT || 0) + dt;
+  else if (!wasG) { if (m.airT > 0.2) { m.landT = LAND_T; you.vx *= 0.8; you.vz *= 0.8; m.vx = you.vx; m.vz = you.vz; } m.airT = 0; }
   tickWeapon(m, dt);
 
   if (input.slot) {
@@ -59,20 +68,30 @@ function tickMe(dt, cam) {
     else if (s === 9) quickSwap(m);
   }
   if (input.wheel) { const list = [m.primary, m.secondary, 'knife', ...m.nades, m.hasCharge && 'charge'].filter(Boolean), i = list.indexOf(m.cur); setCur(m, list[(i + (input.wheel > 0 ? 1 : list.length - 1)) % list.length]); input.wheel = 0; }
-  if (input.reload) { if (startReload(m)) { const r = WEAPONS[m.cur]; startReloadAnim(r.shell ? r.shell * Math.min(r.mag - m.ammo[m.cur], m.rsv[m.cur]) : r.reload); } }
+  if (input.reload) { if (startReload(m)) { const r = WEAPONS[m.cur]; startReloadAnim(r.shell ? r.shell * Math.min(r.mag - m.ammo[m.cur], m.rsv[m.cur]) : m.reloadT, m.reloadTac); } }
   if (input.inspect) { input.inspect = false; startInspect(); }
-  if (input.alt && !altHeld && WEAPONS[m.cur]?.scope) G.scoped = !G.scoped;
+  // 開鏡：拔槍中、拉栓中不能開；拉栓時按右鍵是取消「拉完自動回鏡」
+  if (input.alt && !altHeld && WEAPONS[m.cur]?.scope) { if (m.fireT > 0 && !G.scoped) rezoom = false; else G.scoped = !G.scoped; }
   altHeld = input.alt;
+  if (rezoom && m.fireT <= 0) { rezoom = false; if (WEAPONS[m.cur]?.scope) G.scoped = true; }
+  m.scopeT = G.scoped ? Math.min(1, (m.scopeT || 0) + dt / SCOPE_IN) : 0;
+  // 開鏡晃動：呼吸般的慢擺，蹲下減半，移動與剛落地時變大。鏡頭和子彈都加，準星中心就是彈著點
+  swayT += dt;
+  const sa = G.scoped ? 0.0011 * (m.crouch ? 0.5 : 1) + Math.min(0.006, Math.hypot(m.vx, m.vz) * 0.0016) + (m.landT > 0 ? 0.004 : 0) : 0;
+  swayA += (sa - swayA) * Math.min(1, dt * 4);
+  G.swayY = Math.sin(swayT * 0.83) * swayA * 1.3; G.swayP = Math.sin(swayT * 1.37 + 0.6) * swayA;
 
   const w = WEAPONS[m.cur], live = G.phase === 'live' || G.phase === 'planted' || G.phase === 'post';
+  if (input.drop) { input.drop = false; if (m.hasCharge && !G.charge && G.phase !== 'buy') { if (m.cur === 'charge') setCur(m, m.primary ?? m.secondary); if (SYNC.role === 'client') netAct(['g']); else dropCharge(m, 1.1); } }
+  const press = input.firePress > 0; input.firePress = 0;
   if (w?.nade) {
-    if (input.fire) nadeHeld = true;
-    else if (nadeHeld && live) {
+    if (input.fire || press) nadeHeld = true;
+    else if (nadeHeld && live && m.fireT <= 0) {   // 拔出前放開，等拔好再丟
       nadeHeld = false; fireKick(); throwNade(m, w.id, m.yaw, m.pitch + 0.1); m.nades.splice(m.nades.indexOf(w.id), 1);
       setCur(m, m.nades[0] ?? m.primary ?? m.secondary);
     }
-  } else if (input.fire && live && w) {
-    if ((w.auto || !fireHeld) && fire(m, m.yaw, m.pitch, cam.position)) {
+  } else if ((input.fire || press) && live && w) {
+    if ((w.auto || press || !fireHeld) && fire(m, m.yaw + G.swayY, m.pitch + G.punch + G.swayP, cam.position)) {
       fireKick();
       if (w.range > 3 && vm.cur?.muzzle) {
         const q = muzzleTo(TMP_VEC_MZ), v = cam.getViewMatrix().m, fx0 = v[2], fy0 = v[6], fz0 = v[10], rx = v[0], rz = v[8];
@@ -80,22 +99,31 @@ function tickMe(dt, cam) {
         const back = PORT[m.cur] ?? 0.2, sp = 1.7 + Math.random() * 0.7;
         casing(q.x - fx0 * back + rx * 0.02, q.y - fy0 * back + 0.02, q.z - fz0 * back + rz * 0.02, rx * sp + m.vx, 1.5 + Math.random() * 0.6, rz * sp + m.vz, BIG_CASE[m.cur] === true);
       }
-      if (w.scope) G.scoped = false;
+      if (w.scope && AFTER_SHOT[w.id]) { if (G.scoped) rezoom = true; G.scoped = false; }   // 栓動：拉栓時退出瞄準鏡，拉完自動回鏡
+      if (w.range > 3) heat = Math.min(12, heat + (w.auto ? 1 : 2.5));
       if (w.shell) stopReloadAnim();   // 開火中斷單發裝填
       if (!w.auto) { /* 栓動後短暫不可瞄 */ }
     }
   }
   fireHeld = input.fire; vm.dry = (m.ammo[m.cur] | 0) <= 0;
-  if (m.reloadT > 0 && vm.reload <= 0 && !w?.shell) startReloadAnim(m.reloadT);   // 打空自動換彈也要播；單發裝填在按下時已排好全程
-  const tbl = recoilTable(m), b = Math.min(Math.max(0, m.burst - 1), RECOIL_LAST);
-  const tp = tbl && m.burst > 0 ? tbl[b * 2] * 0.55 : 0, ty = tbl && m.burst > 0 ? tbl[b * 2 + 1] * 0.55 : 0, kk = Math.min(1, dt * (m.burst > 0 ? 40 : 9));
-  kickP += (tp - kickP) * kk; kickY += (ty - kickY) * kk;
+  // 槍口冒煙：連發或重槍打完、停火後，槍口飄一縷煙，熱度越高越久
+  if (heat > 0) {
+    if (m.burstT <= 0 && heat > 3 && vm.cur?.muzzle && vm.swap <= 0) { smokeT -= dt; if (smokeT <= 0) { smokeT = 0.05; const q = muzzleTo(TMP_VEC_MZ); muzzleSmoke(q.x, q.y, q.z, heat / 12); } }
+    heat = Math.max(0, heat - dt * 2.2);
+  }
+  if (m.reloadT > 0 && vm.reload <= 0 && !w?.shell) startReloadAnim(m.reloadT, m.reloadTac, m.reloadDur);   // 打空自動換彈也要播；單發裝填在按下時已排好全程
+  // 畫面後座跟彈道索引走：索引是小數（停火後逐漸回退），相鄰兩發內插，回位才會平順；中彈上抬 G.punch 疊在上面
+  const tbl = recoilTable(m), bf = Math.min(Math.max(0, m.burst - 1), RECOIL_LAST - 1), i0 = bf | 0, fr = bf - i0, on = Math.min(1, m.burst);
+  const tp = G.swayP + (tbl ? (tbl[i0 * 2] + (tbl[i0 * 2 + 2] - tbl[i0 * 2]) * fr) * 0.55 * on : 0) + G.punch, ty = tbl ? (tbl[i0 * 2 + 1] + (tbl[i0 * 2 + 3] - tbl[i0 * 2 + 1]) * fr) * 0.55 * on + G.swayY : G.swayY;
+  const kk = Math.min(1, dt * (m.recT < 0.12 || G.punch > 0.002 ? 40 : 16));
+  if (G.punch > 0) G.punch = Math.max(0, G.punch - dt * (0.01 + G.punch * 7));
+  kickP0 = kickP; kickY0 = kickY; kickP += (tp - kickP) * kk; kickY += (ty - kickY) * kk;   // 留上一 tick 的值，畫面幀內插
 
   // 安裝／拆除
   const site = inSite(m.x, m.y, m.z), c = G.charge;
-  if (input.use && m.hasCharge && site && G.phase === 'live' && m.ground) { G.plantP += dt / RULES.plantTime; if (G.plantP >= 1) { G.plantP = 0; plantDone(m, site); setCur(m, m.primary ?? m.secondary); } }
+  if (input.use && m.hasCharge && site && G.phase === 'live' && m.ground) { G.plantP += dt / RULES.plantTime; if (G.plantP >= 1) { G.plantP = 0; if (SYNC.role === 'client') netAct(['p', site]); else plantDone(m, site); setCur(m, m.primary ?? m.secondary); } }
   else G.plantP = 0;
-  if (input.use && c && m.team === 1 && Math.hypot(c.x - m.x, c.z - m.z, c.y - m.y) < 2 && G.phase === 'planted') { G.defuseP += dt / (m.kit ? RULES.defuseKit : RULES.defuseTime); if (G.defuseP >= 1) { G.defuseP = 0; defuseDone(m); } }
+  if (input.use && c && m.team === 1 && Math.hypot(c.x - m.x, c.z - m.z, c.y - m.y) < 2 && G.phase === 'planted') { G.defuseP += dt / (m.kit ? RULES.defuseKit : RULES.defuseTime); if (G.defuseP >= 1) { G.defuseP = 0; if (SYNC.role === 'client') netAct(['d']); else defuseDone(m); } }
   else G.defuseP = 0;
   // 腳步
   const sp = Math.hypot(m.vx, m.vz);
@@ -122,22 +150,43 @@ function botObjectives(dt) {
   const c = G.charge;
   for (let i = 0; i < G.agents.length; i++) {
     const a = G.agents[i]; if (!a.bot) continue;
-    if (!a.alive) { if (a.bot.plantT > 0) { a.bot.plantT = 0; chargePos.on = !!G.charge; } continue; }
+    if (!a.alive) { if (a.bot.plantT > 0) { a.bot.plantT = 0; chargePos.on = !!G.charge || G.drop.on; } continue; }
     const site = inSite(a.x, a.y, a.z); a.onSite = !!site;
     if (a.hasCharge && site && !c && G.phase === 'live') { a.bot.plantT += dt; if (a.bot.plantT >= RULES.plantTime) { a.bot.plantT = 0; plantDone(a, site); } else if (!chargePos.on) showCharge(a); }
-    else { if (a.bot.plantT > 0) chargePos.on = !!G.charge; a.bot.plantT = 0; }
+    else { if (a.bot.plantT > 0) chargePos.on = !!G.charge || G.drop.on; a.bot.plantT = 0; }
     if (c && a.team === 1 && G.phase === 'planted' && Math.hypot(c.x - a.x, c.z - a.z) < 1.6 && Math.hypot(a.vx, a.vz) < 0.3 && !(a.bot.target?.alive)) { a.bot.defT = (a.bot.defT || 0) + dt; if (a.bot.defT >= (a.kit ? RULES.defuseKit : RULES.defuseTime)) { a.bot.defT = 0; defuseDone(a); } }
     else if (a.bot) a.bot.defT = 0;
   }
 }
 
+/** 連線的客戶端：階段與勝負由主機判，這裡只在快照之間自己倒數、響裝藥的嗶聲。 */
+function clientRound(dt) {
+  if (G.bannerT > 0) G.bannerT -= dt;
+  if (G.phase === 'menu' || G.phase === 'over') return;
+  if (G.time > 0) G.time -= dt;
+  const c = G.charge;
+  if (G.phase === 'planted' && c) { beepT -= dt; if (beepT <= 0) { beepT = Math.max(0.15, G.time / 22); sfx('beep', c.x, c.y, c.z); } }
+}
+
 export function tick(dt, cam) {
-  if (G.paused || !G.me) return;
-  tickRound(dt, cam);
-  if (G.phase === 'over' || G.phase === 'menu') return;
+  if (!G.me) return;
+  const net = SYNC.role;
+  if (G.paused && !net) return;   // 連線對戰不會暫停
+  if (net) netPre(dt, cam);
+  if (net === 'client') clientRound(dt); else tickRound(dt, cam);
+  if (G.phase === 'over' || G.phase === 'menu') { if (net) netPost(); return; }
   tickMe(dt, cam);
-  for (let i = 0; i < G.agents.length; i++) { const a = G.agents[i]; if (a.bot && a.alive) tickBot(a, dt, cam.position); }
-  botObjectives(dt);
+  if (net !== 'client') {   // Bot、裝藥的安裝與撿起只在主機（或單機）跑
+    for (let i = 0; i < G.agents.length; i++) { const a = G.agents[i]; if (a.bot && a.alive) tickBot(a, dt, cam.position); }
+    botObjectives(dt);
+    pickCharge();
+  }
+  // 別人的腳步聲（玩家自己的在 tickMe）：跑步才有聲音，靜步、蹲走沒有；Bot 靠同一個門檻判斷聽不聽得到
+  for (let i = 0; i < G.agents.length; i++) {
+    const a = G.agents[i]; if (a === G.me || !a.alive || !a.ground) continue;
+    const sp = Math.hypot(a.vx, a.vz); if (sp <= 3.6 || a.crouch) continue;
+    a.stepT -= dt * sp; if (a.stepT <= 0) { a.stepT = 7; sfx('step', a.x, a.y, a.z); }
+  }
   tickNades(dt);
   for (let i = 0; i < G.agents.length; i++) { const a = G.agents[i]; if (a.fell && a.alive) { a.fell = false; } if (a.seen > 0) a.seen -= dt; }
   if (plan.alertT > 0) plan.alertT -= dt;
@@ -151,6 +200,7 @@ export function tick(dt, cam) {
     zoneT = 0.3; const m = G.me; G.zone = '';
     for (const c of LAYOUT.callouts) if (m.x >= c.x0 && m.x <= c.x1 && m.z >= c.z0 && m.z <= c.z1 && (c.y1 === undefined || m.y < c.y1)) { G.zone = c.name; break; }
   }
+  if (net) netPost();
 }
 
 /** 每幀：內插、動畫選擇、相機。 */
@@ -161,10 +211,10 @@ export function frame(alpha, dt, cam) {
     a.rx = a.px + (a.x - a.px) * alpha; a.ry = a.py + (a.y - a.py) * alpha; a.rz = a.pz + (a.z - a.pz) * alpha;
     const s = a.soldier; if (!s || !a.alive) continue;
     const sp = Math.hypot(a.vx, a.vz), pistol = WEAPONS[a.cur]?.slot === 2;
-    const task = a === m ? (G.plantP > 0 ? 'plant' : G.defuseP > 0 ? 'defuse' : '') : (a.bot?.plantT > 0 ? 'plant' : a.bot?.defT > 0 ? 'defuse' : '');
+    const task = a === m ? (G.plantP > 0 ? 'plant' : G.defuseP > 0 ? 'defuse' : '') : a.bot ? (a.bot.plantT > 0 ? 'plant' : a.bot.defT > 0 ? 'defuse' : '') : a.netTask;   // 連線的真人與客戶端的 puppet 由網路帶來
     s.busy = !!task && sp < 0.6;   // 雙手在忙，世界裡的槍要收起來
     if (a.hitT > 0) a.hitT -= dt;
-    const firing = a.burstT > 0 || !!a.bot?.target?.alive, wr = Math.min(2.2, Math.max(0.7, sp / 0.93));
+    const firing = a.burstT > 0 || !!a.bot?.target?.alive || a.aim, wr = Math.min(2.2, Math.max(0.7, sp / 0.93));
     if (s.busy) anim(s, task);
     else if (a.hitT > 0 && a.ground) anim(s, 'hit');
     else if (!a.ground) anim(s, 'jump');
@@ -176,8 +226,9 @@ export function frame(alpha, dt, cam) {
       else anim(s, a.vx * fz - a.vz * fx > 0 ? 'strafe_r_rifle' : 'strafe_l_rifle', false, wr);
     } else anim(s, firing ? (pistol ? 'aim_pistol' : 'aim_rifle') : (pistol ? 'idle_pistol' : 'idle_rifle'));
   }
-  applyCamera(cam, alpha, kickP, kickY);
-  cam.fov = G.scoped ? SCOPE_FOV : Math.PI / 2;
+  applyCamera(cam, alpha, kickP0 + (kickP - kickP0) * alpha, kickY0 + (kickY - kickY0) * alpha);
+  // 開鏡的視角縮放約 0.1 s，不是一格跳過去
+  const fT = G.scoped ? SCOPE_FOV : Math.PI / 2; fovNow += (fT - fovNow) * Math.min(1, dt * 28); if (Math.abs(fovNow - fT) < 2e-3) fovNow = fT; cam.fov = fovNow;
   cam.computeWorldMatrix(true);
   updateViewmodel(dt, Math.hypot(you.vx, you.vz), you.ground, you.yaw, you.pitch);
 }
