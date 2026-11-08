@@ -28,7 +28,7 @@ import { tick, frame } from './game/loop.js';
 import { buildFx, updateFx, fx } from './fx/particles.js';
 import { input, bindInput, lockPointer } from './core/input.js';
 import { initAudio, setListener, preloadSfx, sfxStatus } from './audio/sfx.js';
-import { initHud, frameHud } from './ui/hud.js';
+import { initHud, frameHud, perfAcc } from './ui/hud.js';
 import { initMenu, showMenu, hideMenu, showPause, hidePause, showResult, hideResult, openTab } from './ui/menu.js';
 import { SYNC, endMatch, netBuy } from './net/sync.js';
 import { NET, join as netJoin, leave as netLeave, savedName } from './net/client.js';
@@ -74,6 +74,12 @@ async function boot() {
   await ctx.scene.whenReadyAsync();
 
   const ui = document.getElementById('ui');
+  let resP = 1080;
+  const fitRes = () => {
+    const c = ctx.canvas, short = Math.min(c.clientWidth || innerWidth, c.clientHeight || innerHeight), px = Math.min(short * Math.min(devicePixelRatio || 1, 2), resP), l = short / px;
+    if (Math.abs(ctx.engine.getHardwareScalingLevel() - l) > 1e-6) ctx.engine.setHardwareScalingLevel(l);
+  };
+  addEventListener('resize', fitRes);   // 排在 engine.js 的 resize 之後：視窗變大小要重算比例
   const actions = {
     start({ side }) { if (NET.status !== 'off') netLeave(); initAudio(); hideMenu(); lastSide = side; begin(side); lockPointer(canvas); },   // 在房間裡開單機：先離開房間
     again() { if (SYNC.role) { backToRoom(''); return; } hideResult(); initAudio(); begin(lastSide); lockPointer(canvas); },
@@ -83,8 +89,9 @@ async function boot() {
     netWarm() { initAudio(); },
     stage(side, cur) { setStage(side ?? stage.side, cur); }, aside: asideStage, point: pointStage,
     fps: () => ctx.engine.getFps(), viewFov: () => ctx.camera.fov, backend: ctx.isWebGPU ? 'WebGPU' : 'WebGL',
-    // 渲染解析度：相對裝置像素（上限 2 倍）。改縮放會走 engine.resize，和改視窗大小同一條路
-    res(k) { const l = 1 / (Math.min(devicePixelRatio || 1, 2) * k); if (Math.abs(ctx.engine.getHardwareScalingLevel() - l) > 1e-6) ctx.engine.setHardwareScalingLevel(l); },
+    // 渲染解析度：720p／1080p／1440p，以畫面短邊計（直式手機看寬度），不超過裝置像素（DPR 上限 2）。改縮放會走 engine.resize
+    res(p) { resP = p; fitRes(); },
+    rsize: () => `${ctx.engine.getRenderWidth()}×${ctx.engine.getRenderHeight()}`,
   };
   let lastSide = 'atk', overShown = false;
   const endStage = () => { if (stage.on) { stopStage(); ctx.fitFov(); } };
@@ -146,7 +153,7 @@ async function boot() {
     }
     if (alloc) alloc.on = false;
   }
-  ctx.engine.runRenderLoop(() => scene.render());
+  ctx.engine.runRenderLoop(() => { const t = performance.now(); scene.render(); perfAcc.cpu += performance.now() - t; });
   setTimeout(() => sessionStorage.removeItem(LOST_KEY), 60000);   // 撐過一分鐘就算恢復正常
   if (!q.has('nosnap')) scene.onAfterRenderObservable.add(() => { if (++frames === (+q.get('snapAt') || 4) && ctx.isWebGPU) { ctx.snapshot.enable(); snapshotActive.on = true; flushAll(); } });
 

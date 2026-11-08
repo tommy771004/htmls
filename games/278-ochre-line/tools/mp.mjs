@@ -17,11 +17,13 @@ const wsSrv = http.createServer((q, r) => { r.writeHead(404); r.end(); });
 wsSrv.on('upgrade', (q, s, h) => { if (!ochre.handleUpgrade(q, s, h)) s.destroy(); });
 await new Promise(ok => wsSrv.listen(0, '127.0.0.1', ok));
 const WS = `ws://127.0.0.1:${wsSrv.address().port}`;
-const b = await launch();
+// 每個分頁各開一個瀏覽器：無頭 Chromium 同一個瀏覽器的第二個 WebGPU 分頁會卡在建引擎之後（HEAD 版也一樣）
+const browsers = [];
 const errs = [];
 let fails = 0;
 const check = (name, ok, info = '') => { if (!ok) fails++; console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${info ? '  ' + (typeof info === 'string' ? info : JSON.stringify(info)) : ''}`); };
 async function page(tag) {
+  const b = await launch(); browsers.push(b);
   const p = await b.newPage({ viewport: { width: 960, height: 600 } });
   p.on('pageerror', e => errs.push(`${tag}: ${e}`)); p.on('console', m => { if (m.type() === 'error') errs.push(`${tag}: ${m.text()}`); });
   await p.goto(`${srv.url}${PAGE}?server=${encodeURIComponent(WS)}`); await p.waitForFunction(() => window.__ol?.ready, null, { timeout: 180000 });
@@ -135,7 +137,7 @@ try {
   check('房主離開：其他人回到房間、成為新房主', !back.role && back.host && back.phase === 'lobby' && back.tab === 'net', back);
 } catch (e) { check('流程跑完', false, String(e.stack || e).split('\n').slice(0, 4).join(' | ')); } finally {
   check('沒有頁面錯誤', !errs.length, errs.slice(0, 6));
-  await b.close(); ochre.close(); wsSrv.close(); await srv.close();
+  for (const b of browsers) await b.close(); ochre.close(); wsSrv.close(); await srv.close();
   console.log(fails ? `未通過 ${fails} 項` : '全部通過');
   process.exit(fails ? 1 : 0);
 }

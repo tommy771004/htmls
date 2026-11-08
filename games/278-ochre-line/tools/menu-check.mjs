@@ -64,12 +64,15 @@ try {
     await click('[data-st=mouse]'); await p.fill('[data-num=look]', '2'); await p.press('[data-num=look]', 'Enter'); await p.waitForTimeout(100);
     const s2 = await p.evaluate(() => [__ol.input.sens, document.querySelector('.m-set [data-set=look]').value, document.querySelector('#m-undo').disabled]);
     check(`${tag} 設定寫入`, set[0] === '35' && /"vol":0\.35/.test(set[1]) && Math.abs(s2[0] - 2 * S0) < 1e-9 && s2[1] === '2' && s2[2] === false, JSON.stringify([set, s2]));
-    await click('[data-st=video]'); await p.selectOption('#s-res', '0.5'); await p.waitForTimeout(300);
-    const rs = await p.evaluate(() => [__ol.ctx.engine.getHardwareScalingLevel() * Math.min(devicePixelRatio, 2), __ol.ctx.engine.getRenderWidth(), innerWidth]);
-    check(`${tag} 渲染解析度 50%`, Math.abs(rs[0] - 2) < 1e-6, JSON.stringify(rs));
+    // 解析度以短邊計、不超過裝置像素：預設 1080p，選 720p 後短邊應是 min(短邊×DPR, 720)
+    const shortPx = P => p.evaluate(P => { const e = __ol.ctx.engine, c = __ol.ctx.canvas, s = Math.min(c.clientWidth, c.clientHeight); return [Math.min(e.getRenderWidth(), e.getRenderHeight()), Math.round(Math.min(s * Math.min(devicePixelRatio, 2), P))]; }, P);
+    const rd = await shortPx(1080);
+    await click('[data-st=video]'); await p.selectOption('#s-res', '720'); await p.waitForTimeout(300);
+    const rs = await shortPx(720);
+    check(`${tag} 解析度 1080p → 720p`, Math.abs(rd[0] - rd[1]) <= 1 && Math.abs(rs[0] - rs[1]) <= 1, JSON.stringify([rd, rs]));
     await click('#m-undo');
-    const u = await p.evaluate(K => [__ol.input.sens, JSON.parse(localStorage.getItem(K)).vol, __ol.ctx.engine.getHardwareScalingLevel() * Math.min(devicePixelRatio, 2), document.querySelector('#m-undo').disabled], SK);
-    check(`${tag} 放棄變更`, Math.abs(u[0] - S0) < 1e-9 && u[1] === 0.8 && Math.abs(u[2] - 1) < 1e-6 && u[3], JSON.stringify(u));
+    const u = await p.evaluate(K => [__ol.input.sens, JSON.parse(localStorage.getItem(K)).vol, JSON.parse(localStorage.getItem(K)).res, document.querySelector('#m-undo').disabled], SK), ru = await shortPx(1080);
+    check(`${tag} 放棄變更`, Math.abs(u[0] - S0) < 1e-9 && u[1] === 0.8 && u[2] === 1080 && Math.abs(ru[0] - ru[1]) <= 1 && u[3], JSON.stringify([u, ru]));
     await click('[data-st=cross]'); await p.selectOption('#s-xc', '#5fe0c4'); await p.fill('[data-num=xl]', '14'); await p.press('[data-num=xl]', 'Enter'); await p.waitForTimeout(100);
     const xh = await p.evaluate(() => [getComputedStyle(document.querySelector('#cross i')).backgroundColor, document.querySelector('.m-xp .xh i').getBoundingClientRect().height / parseFloat(getComputedStyle(document.querySelector('.m-xp .xh')).getPropertyValue('--xa'))]);
     check(`${tag} 準星設定生效`, xh[0] === 'rgb(95, 224, 196)', JSON.stringify(xh));

@@ -88,7 +88,9 @@ export async function createEngine(canvas, { forceWebGL = false } = {}) {
   shadow.filteringQuality = ShadowGenerator.QUALITY_MEDIUM;
   shadow.bias = 0.0012; shadow.normalBias = 0.02;
   shadow.setDarkness(0);
-  if (useCSM) { shadow.numCascades = 4; shadow.lambda = 0.82; shadow.shadowMaxZ = 170; shadow.stabilizeCascades = true; shadow.autoCalcDepthBounds = false; shadow.cascadeBlendPercentage = 0.08; }
+  // 2026-11-08 效能：快照模式不做剔除，每一層都畫全部投影物件（每層約 480 萬三角形），層數就是頂點成本。
+  // 4 層 → 3 層、陰影距離 170 → 90 m（最長直線視野 48 m），同頁交錯量 GPU 每幀 24.2 → 約 21 ms，畫面只差遠處陰影邊緣。
+  if (useCSM) { shadow.numCascades = 3; shadow.lambda = 0.82; shadow.shadowMaxZ = 90; shadow.stabilizeCascades = true; shadow.autoCalcDepthBounds = false; shadow.cascadeBlendPercentage = 0.08; }
   shadow.getShadowMap().refreshRate = 1;
 
   const { env, sky: skyTex } = await loadEnv(scene);

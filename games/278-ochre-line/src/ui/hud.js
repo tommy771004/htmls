@@ -4,9 +4,12 @@ import { CSS } from './style.js';
 import { ASSET_BASE } from '../core/assets.js';
 import { spreadOf } from '../game/weapons.js';
 
-let G, L, $ = {}, last = {}, rc, rctx, base, viewR = 42, acts, fpsT = 0, coneFill, coneEdge;
-/** 設定頁寫入：比賽畫面右上角顯示幀率。 */
-export const hudOpt = { fps: false, xdyn: true };
+let G, L, $ = {}, last = {}, rc, rctx, base, viewR = 42, acts, coneFill, coneEdge;
+/** 設定頁寫入：比賽畫面右上角顯示幀率與每幀毫秒。 */
+export const hudOpt = { fps: true, xdyn: true };
+/** main.js 每幀把 scene.render 的主執行緒時間加進來，HUD 每 0.5 s 取平均後歸零。 */
+export const perfAcc = { cpu: 0 };
+const pf = { n: 0, t: 0 };
 let xd = 0;   // 動態準星目前多開的間距（px）
 const ICONS = Object.keys(WEAPONS);
 const coarse = matchMedia('(pointer:coarse)').matches;
@@ -55,7 +58,8 @@ export function initHud(root, g, layout, actions) {
   $.feed = el('div', 'feed', '', h); for (let i = 0; i < 5; i++) { const d = el('div', '', '', $.feed); d.style.display = 'none'; }
   $.banner = el('div', 'banner', '', h); $.hint = el('div', 'hint', '', h);
   $.rwin = el('div', 'rwin', '', h); $.rwT = el('h3', '', '', $.rwin); $.rwP = el('p', '', '', $.rwin);
-  $.fpsr = el('div', 'fpsr', '', h); $.fpsr.style.display = 'none';
+  $.fpsr = el('div', 'fpsr', '', h); $.fpsr.style.display = 'none'; $.fpsr.title = '幀率 · 平均每幀毫秒 · 主執行緒每幀毫秒';
+  $.fpsN = el('b', '', '', $.fpsr); el('span', '', '', $.fpsr).textContent = 'fps'; $.fpsM = el('b', '', '', $.fpsr); el('span', '', '', $.fpsr).textContent = 'ms'; $.fpsC = el('small', '', '', $.fpsr);
   $.cross = el('div', 'cross', 'xh', h); for (let i = 0; i < 4; i++) el('i', '', '', $.cross);
   $.hit = el('div', 'hit', '', h); $.hurt = el('div', 'hurt', '', h); el('i', '', '', $.hurt);
   $.scope = el('div', 'scope', '', h); el('div', '', 'r', $.scope); el('div', '', 'x', $.scope); el('div', '', 'y', $.scope);
@@ -109,10 +113,11 @@ export function frameHud(dt) {
   const m = G.me, on = !!m && G.phase !== 'menu' && G.phase !== 'over';
   if (on !== showing) { showing = on; $.root.style.display = on ? 'block' : 'none'; document.body.classList.toggle('playing', on); }
   if ($.flash.style.opacity !== String(+Math.min(1, G.flash).toFixed(2))) $.flash.style.opacity = Math.min(1, G.flash).toFixed(2);
-  if (!on) return;
+  if (!on) { pf.n = pf.t = 0; perfAcc.cpu = 0; return; }
   radT -= dt; if (radT <= 0) { radT = 1 / 20; radar(); }
   if (last.fpsOn !== hudOpt.fps) { last.fpsOn = hudOpt.fps; $.fpsr.style.display = hudOpt.fps ? 'block' : 'none'; }
-  if (hudOpt.fps && (fpsT -= dt) <= 0) { fpsT = 0.5; set('fps', $.fpsr, Math.round(acts.fps()) + ' fps'); }
+  // 自己數這 0.5 s 的幀數與時間：fps 和 ms 是同一組樣本，CPU 是 scene.render 在主執行緒上的時間（GPU 慢時它會遠小於 ms）
+  if (hudOpt.fps && dt > 0) { pf.n++; pf.t += dt; if (pf.t >= 0.5) { set('fpsN', $.fpsN, String(Math.round(pf.n / pf.t))); set('fpsM', $.fpsM, (pf.t / pf.n * 1000).toFixed(1)); set('fpsC', $.fpsC, 'CPU ' + (perfAcc.cpu / pf.n).toFixed(1)); pf.n = pf.t = 0; perfAcc.cpu = 0; } }
   set('s0', $.s0, String(G.score[0])); set('s1', $.s1, String(G.score[1]));
   set('clock', $.clock, mmss(G.time));
   const hot = G.phase === 'planted'; if (last.hot !== hot) { last.hot = hot; $.clock.className = hot ? 'hot' : ''; }

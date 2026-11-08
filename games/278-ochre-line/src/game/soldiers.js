@@ -183,7 +183,7 @@ function sampleTo(s, dt) {
 
 /** 槍的 thin instance：id → 所有 primitive。每位士兵固定佔第 k 格。 */
 export async function buildWorldGuns(ctx) {
-  const { scene, shadow } = ctx;
+  const { scene } = ctx;
   const [c, more] = await Promise.all([LoadAssetContainerAsync(ASSET_BASE + 'models/guns.glb', scene, { pluginExtension: '.glb' }), loadNewGuns(scene)]);
   c.addAllToScene();
   for (const m of c.materials) if (m.ambientTexture && m.metallicTexture) { m.useAmbientOcclusionFromMetallicTextureRed = false; m.ambientTexture = null; }
@@ -210,7 +210,8 @@ export async function buildWorldGuns(ctx) {
   for (const id in guns) for (const m of guns[id].meshes) {
     m.thinInstanceSetBuffer('matrix', guns[id].buf, 16, false);
     m.alwaysSelectAsActiveMesh = true; m.doNotSyncBoundingInfo = true; m.isPickable = false; m.receiveShadows = true; m.freezeWorldMatrix();
-    shadow?.addShadowCaster?.(m, false);
+    // 不投影：16 種槍 × 11 格約 130 萬三角形，快照裡沒用到的格子（矩陣是 0）也照跑頂點，每層陰影都要再畫一次；
+    // 槍在手上的影子幾乎看不到（2026-11-08 同頁量 GPU 少 1–2 ms）
   }
   for (const t of c.transformNodes) if (!t.getChildMeshes().length) t.dispose();
   for (const m of c.meshes) if (!m.getTotalVertices() && !m.isDisposed()) m.dispose(false, false);

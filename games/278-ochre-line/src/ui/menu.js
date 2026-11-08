@@ -36,13 +36,13 @@ const keys = rows => `<table>${rows.map(([k, v]) => `<tr><td><kbd>${k}</kbd></td
 // 每一項都接到遊戲裡真的會變的東西；改了立即生效並存檔。「放棄變更」回到進設定頁時的值。
 const RESET = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.500 12a7.500 7.500 0 1 0 2.200-5.300"/><path d="M4 3.500v4h4"/><path d="M12 8v4.200l2.800 1.800"/></svg>';
 const UNDO = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 4 10l5 5"/><path d="M4.500 10H15a5 5 0 0 1 0 10h-3"/></svg>';
-const DEF = { diff: 1, look: 1, scope: 1, invert: 0, raw: 1, res: 1, fps: 0, vol: 0.8, xs: 1, xc: '#f6f1e4', xl: 8, xg: 6, xw: 2 };
+const DEF = { diff: 1, look: 1, scope: 1, invert: 0, raw: 1, res: 1080, perf: 1, vol: 0.8, xs: 1, xc: '#f6f1e4', xl: 8, xg: 6, xw: 2 };
 // 滑桿：值存原單位，數字框顯示 ×k，dec 位小數
 const NUM = { look: [0.2, 3, 0.05, 1, 2], scope: [0.4, 2, 0.05, 1, 2], vol: [0, 1, 0.01, 100, 0], xl: [2, 20, 1, 1, 0], xg: [0, 16, 1, 1, 0], xw: [1, 6, 1, 1, 0] };
 const CHOICE = {
   diff: [[0, '簡單'], [1, '普通'], [2, '困難']],
-  invert: [[0, '否'], [1, '是']], raw: [[1, '開啟'], [0, '關閉']], fps: [[0, '否'], [1, '是']],
-  res: [[1, '100%'], [0.85, '85%'], [0.7, '70%'], [0.5, '50%']],
+  invert: [[0, '否'], [1, '是']], raw: [[1, '開啟'], [0, '關閉']], perf: [[1, '是'], [0, '否']],
+  res: [[1440, '1440p'], [1080, '1080p'], [720, '720p']],
   xs: [[1, '動態'], [0, '固定']],
   xc: [['#f6f1e4', '象牙白'], ['#f2d33a', '鉻黃'], ['#5fe0c4', '青綠'], ['#ff5c9a', '桃紅']],
 };
@@ -58,7 +58,7 @@ function setHtml() {
   <div class="m-sbody">
     ${sec('game', head('電腦對手') + choice('diff', '難度', '<small>敵我雙方的電腦一起套用，下一場比賽生效</small>') + `<p class="m-snote">簡單：反應慢、瞄得散，很少瞄頭。普通：預設。困難：反應快、壓得住槍，常瞄頭。</p>`)}
     ${sec('mouse', head('靈敏度') + slider('look', '滑鼠靈敏度', '<small data-info="turn"></small>') + slider('scope', '開鏡靈敏度倍率', '<small>乘在滑鼠靈敏度上</small>') + head('輸入') + choice('invert', '反轉垂直視角') + choice('raw', '原始滑鼠輸入', '<small>略過系統的滑鼠加速，下次鎖定游標時生效</small>'))}
-    ${sec('video', head('畫面') + choice('res', '渲染解析度', '<small>調低可換取更高幀率</small>') + choice('fps', '比賽中顯示幀率', '<small>畫面右上角</small>') + head('目前') + info('繪圖後端', 'backend') + info('幀率', 'fps'))}
+    ${sec('video', head('畫面') + choice('res', '解析度', '<small>以畫面短邊計，不會超過螢幕實際像素；調低可換取更高幀率</small>') + choice('perf', '比賽中顯示幀率與毫秒', '<small>畫面右上角：幀率、平均每幀毫秒、CPU 每幀毫秒</small>') + head('目前') + info('繪圖後端', 'backend') + info('目前渲染', 'rsize') + info('幀率', 'fps'))}
     ${sec('audio', head('音量') + slider('vol', '主音量'))}
     ${sec('cross', `<div class="m-xp" aria-hidden="true"><div style="background-image:url(${ASSET_BASE}tex/sandstone_a.webp)"><span>日照牆面</span><div class="xh"><i></i><i></i><i></i><i></i></div></div><div class="dk" style="background-image:linear-gradient(#0d0a07c2,#0d0a07c2),url(${ASSET_BASE}tex/sandstone_a.webp)"><span>陰影</span><div class="xh"><i></i><i></i><i></i><i></i></div></div></div>` + head('樣式') + choice('xs', '準星樣式', '<small>動態：移動、跳躍、連發時張開，張開的量就是子彈散布</small>') + choice('xc', '顏色') + slider('xl', '長度') + slider('xg', '中心間距') + slider('xw', '粗細'))}
     ${sec('data', head('本機資料') + `<div class="m-row"><span class="m-lab">戰績<small>比賽打完才記，中途離開不算</small></span><div class="m-ctl"><button type="button" id="m-clear"></button></div></div>`)}
@@ -109,7 +109,7 @@ function loadSet() {
 const store = () => saveSettings({ v: 2, ...set });
 function applyAll() {
   OPT.diff = set.diff; input.sens = set.look * SENS0; input.scopeSens = set.scope; input.invertY = !!set.invert; input.raw = !!set.raw;
-  setVolume(set.vol); hudOpt.fps = !!set.fps; hudOpt.xdyn = !!set.xs; acts?.res(set.res);
+  setVolume(set.vol); hudOpt.fps = !!set.perf; hudOpt.xdyn = !!set.xs; acts?.res(set.res);
   const ui = menu?.parentNode; if (ui) for (const k of ['xc', 'xl', 'xg', 'xw']) ui.style.setProperty('--' + k, set[k]);
   for (const e of document.querySelectorAll('[data-set]')) { const id = e.dataset.set, v = set[id]; if (e.value !== String(v)) e.value = v; if (e.type === 'range') e.style.setProperty('--f', ((v - e.min) / (e.max - e.min)).toFixed(4)); }
   for (const e of document.querySelectorAll('[data-num]')) { const [, , , k, d] = NUM[e.dataset.num]; if (document.activeElement !== e) e.value = (set[e.dataset.num] * k).toFixed(d); }
@@ -212,7 +212,7 @@ export function initMenu(root, actions) {
   applyAll(); pickSide('atk');
 }
 const show = (e, on) => { e.style.display = on ? 'flex' : 'none'; };
-const fpsTick = () => { const f = Math.round(acts.fps()) + ' fps'; $.fps.textContent = `${acts.backend} · ${f}`; for (const e of menu.querySelectorAll('[data-info=fps]')) e.textContent = f; for (const e of menu.querySelectorAll('[data-info=backend]')) e.textContent = acts.backend; };
+const fpsTick = () => { const f = Math.round(acts.fps()) + ' fps'; $.fps.textContent = `${acts.backend} · ${f}`; for (const e of menu.querySelectorAll('[data-info=fps]')) e.textContent = f; for (const e of menu.querySelectorAll('[data-info=backend]')) e.textContent = acts.backend; for (const e of menu.querySelectorAll('[data-info=rsize]')) e.textContent = acts.rsize(); };
 export function showMenu() { show(menu, true); input.menu = true; drawRecord(); line(); fpsTick(); clearInterval(fpsTimer); fpsTimer = setInterval(fpsTick, 1000); }
 export function hideMenu() { show(menu, false); input.menu = false; clearInterval(fpsTimer); }
 /** net：連線對戰的暫停（遊戲照跑）。按鈕文字跟著換。 */
