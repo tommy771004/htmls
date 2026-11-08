@@ -23,7 +23,7 @@ function pattern(climb, sway, phase) {
 const REC = { ar5: pattern(0.0165, 0.042, 0), ks: pattern(0.0195, 0.055, 2.4), smg: pattern(0.011, 0.03, 1.1) };
 for (const g of NEW_GUNS) if (g.recoil) REC[g.rec] = pattern(...g.recoil);
 
-export const world = { ctx: null, agents: null, onKill: null, net: null };   // net：連線時 src/net/sync.js 掛上的掛鉤（主機廣播、客戶端回報），單機是 null
+export const world = { ctx: null, agents: null, onKill: null, net: null, specShot: null };   // specShot：loop.js 的第一人稱觀戰火光   // net：連線時 src/net/sync.js 掛上的掛鉤（主機廣播、客戶端回報），單機是 null
 const from = TMP_VEC3_A, to = TMP_VEC3_B;
 
 export function resetWeaponState(a) { a.fireT = 0; a.reloadT = 0; a.afterT = 0; a.burst = 0; a.burstT = 0; a.recT = 0; a.landT = 0; a.inaccuracy = 0; }
@@ -144,7 +144,9 @@ export function damage(a, v, w, group, x, y, z) {
 
 export function hurt(v, dmg, a, weaponId, head, x, z) {
   if (!v.alive) return;
-  if (a && a.team !== v.team) a.rd += Math.min(v.hp, dmg);
+  const dd = Math.min(v.hp, dmg);   // 實際扣掉的血
+  if (a && a.team !== v.team) a.rd += dd;
+  if (a === G.me && v !== a) { v.dGiven += dd; v.nGiven++; } else if (v === G.me && a && a !== v) { a.dTaken += dd; a.nTaken++; }
   v.hp = Math.max(0, v.hp - dmg);
   v.slowT = Math.max(v.slowT, 0.35); v.hitT = 0.33;
   if (v === G.me) {
@@ -153,7 +155,7 @@ export function hurt(v, dmg, a, weaponId, head, x, z) {
   }
   // Bot 被打：記下打的人在哪，沒有目標時會轉過去找（bots.js 的 suspect）
   else if (v.bot && a && a.team !== v.team) { const b = v.bot; b.sx = a.x; b.sy = a.y; b.sz = a.z; b.sT = 3; b.sKind = 1; }
-  world.net?.hurt(v, dmg, a, x, z);
+  world.net?.hurt(v, dd, a, x, z);
   if (v.hp <= 0) world.onKill?.(a, v, weaponId, head);
 }
 
@@ -183,7 +185,7 @@ export function fire(a, yaw, pitch, cam) {
   a.burst = (a.burst | 0) + 1; a.burstT = 0.32; a.recT = 0;
   if (w.range > 3) {
     const sy = Math.sin(yaw), cy = Math.cos(yaw), cp = Math.cos(pitch);
-    if (a !== G.me) {
+    if (a !== G.me && !world.specShot?.(a, sy * cp, Math.sin(pitch), cy * cp)) {   // 第一人稱觀戰的對象：火光在第一人稱槍口
       if (a.soldier && gunMuzzle(a.soldier, a.cur, MZ)) muzzle(MZ.x, MZ.y, MZ.z, sy * cp, Math.sin(pitch), cy * cp, 0.8);
       else muzzle(ox + sy * cp * 0.75 + cy * 0.15, oy - 0.12 + Math.sin(pitch) * 0.75, oz + cy * cp * 0.75 - sy * 0.15, sy * cp, Math.sin(pitch), cy * cp, 0.8);
     }
@@ -202,7 +204,8 @@ export function shotFx(a, wid, hx, hy, hz, hitAgent, cam) {
   if (w.range < 3) { sfx('knife', a.x, a.y, a.z); if (hitAgent) blood(hx, hy, hz); return; }
   let ox = a.x, oy = a.y + a.eye, oz = a.z;
   const dx0 = hx - ox, dy0 = hy - oy, dz0 = hz - oz, L = Math.hypot(dx0, dy0, dz0) || 1, dx = dx0 / L, dy = dy0 / L, dz = dz0 / L;
-  if (a.soldier && gunMuzzle(a.soldier, wid, MZ)) { muzzle(MZ.x, MZ.y, MZ.z, dx, dy, dz, 0.8); ox = MZ.x; oy = MZ.y; oz = MZ.z; }
+  if (world.specShot?.(a, dx, dy, dz)) { /* 第一人稱觀戰的對象 */ }
+  else if (a.soldier && gunMuzzle(a.soldier, wid, MZ)) { muzzle(MZ.x, MZ.y, MZ.z, dx, dy, dz, 0.8); ox = MZ.x; oy = MZ.y; oz = MZ.z; }
   else muzzle(ox + dx * 0.75, oy - 0.12 + dy * 0.75, oz + dz * 0.75, dx, dy, dz, 0.8);
   if (hitAgent) blood(hx, hy, hz);
   else {   // 彈著點的法線與材質：沿彈道往前多掃 0.3 m

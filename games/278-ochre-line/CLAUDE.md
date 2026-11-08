@@ -116,8 +116,14 @@ export PW_MODULES=$PWD/node_modules
 - **環境貼圖一律用烘好的 `env.bin`**，不要改回 `HDRCubeTexture` 的 `prefilterOnLoad`。開機在 GPU 上濾 48 個 draw、約 300 ms，碰到 macOS GPU 重啟時那批指令被殺，cube 留下隨機位元，整局金屬面彩虹或所有 PBR 面全白，console 沒有任何錯誤。`baseTexture.polynomial.js` 是副作用 import，少了它 IBL 漫射無聲消失。上傳要用 `_uploadArrayBufferViewToTexture`：`_uploadDataToTextureDirectly` 在 WebGL 不綁貼圖，cube 是空的，天空變灰、金屬反射全黑，也不報錯（`accept --only env` 兩個後端都讀回數值）。查 GPU 重啟看 `/usr/bin/log show --predicate 'process == "WindowServer" AND eventMessage CONTAINS "GPU restart"'`（zsh 的 `log` 是內建指令；不限 process 會比對到 log 自己的啟動參數）。`/Library/Logs/DiagnosticReports/gpuEvent-*.ips` 不完整。
 - **裝置遺失**：`doNotHandleContextLost: true`，遺失就重載頁面（`main.js` 的 `onGpuLost`），連續 3 次改走 `?gfx=webgl`。Babylon 自己的還原與 FAST 快照不相容，會凍結畫面並丟 TypeError。
 - **FAST 每幀的工作**：`engine.js` 拿掉了 `SnapshotRenderingHelper` 的 `onBeforeRender` 觀察者（10 副骨架 `prepare(true)` 要 0.8 ms），只留天空罩跟鏡頭。之後若用粒子、精靈、變形目標，或新增 `infiniteDistance` 網格，要在那裡補回對應處理。
+- **玩家陣亡**（2026-11-08 補上；玩家以前打不死，所以原本沒有死亡畫面，使用者回報成「被打中就不會動、開不了槍」。之後依使用者要求做成仿 CS2 的死亡卡片＋第一人稱觀戰）：
+  - `round.js` 的 `killFx` 記 `G.killer`／`killWid`／`killHead`／`killDist` 並 `hideViewmodel()`；`weapons.js` 的 `hurt()` 與 `sync.js` 的 `h` 事件累計 `dGiven`／`nGiven`／`dTaken`／`nTaken`（只算 `G.me` 相關的，`startRound`／`startRoundClient` 歸零）。
+  - `loop.js` 的 `deathCam`：先在倒地處轉向擊殺者 1.2 s，之後預設第一人稱看活著的隊友（`G.specFP`；隊友全滅就看擊殺者）。第一人稱時 `G.specView` 是被看的人、`fpHide.s` 是他的 soldier：`soldiers.js` 的 `pushWorld` 照算 `s.world`（碰撞膠囊不受影響），只把渲染用的 holder 縮到 1e-5，世界槍的 thin instance 也跳過。第一人稱槍用 `selectWeapon(t.cur, 0.3)` 跟著他換槍、`startReloadAnim` 跟著換彈；`world.specShot` 讓他開槍時用第一人稱槍口焰與後座（`fire()`／`shotFx` 先問它）。
+  - 操作：左鍵下一位、右鍵上一位、空白鍵切第一／第三人稱（第三人稱跟在背後，牆擋住就拉近）。復活時 `frame()` 清掉 `G.specView`、`fpHide.s`。
+  - HUD：`#dpanel` 是死亡卡片（擊殺者、武器、爆頭、他剩的血與距離、你造成／你承受），陣亡 5.5 s 內顯示後淡出；`#sbar` 是底部觀戰列（轉向那 1.2 s 不顯示）。`frameHud` 的 `V` 在陣亡時改成被觀戰的人，血、甲、武器、彈藥、武器列都照他的（客戶端的 puppet 沒有彈藥資料就不顯示），錢仍是自己的。`#hudroot.dead` 收起 `#hint`，第三人稱時再收起準星與武器列。
+  - 下一回合 `selectWeapon` 會把自己的第一人稱槍拿回來；客戶端快照補槍要先看 `me.alive`。
 - **GPU 是頂點量**（2026-11-08 量測）：快照不剔除，每一層（主畫面＋每層陰影）都畫全部約 480 萬三角形；2880×1800 每幀 GPU 約 27 ms，DPR 1 只少 5 ms、陰影圖 2048→1024 不變，所以瓶頸是三角形數不是像素。已改成陰影 3 層、`shadowMaxZ` 90、世界槍不投影（約 −25%）。剩下的大頭：世界槍 16 種 × 11 格約 133 萬（沒用到的格子矩陣是 0，頂點照跑；舊 9 把的世界模型沒減面，KS 2.4 萬、刀 1.3 萬）、`roof_trim` 75 萬、`window_a` 69 萬，要再省得改模型（`build-kit.py`、世界槍 LOD）。小細節從最遠一層陰影拿掉可再省約 1 ms，但遠處簷口與窗框的影子會不見，沒採用。
   - 量 GPU 用「停 render loop、自己 render、`await device.queue.onSubmittedWorkDone()`」，同頁交錯切設定（切完要關快照重錄）；無頭的 rAF 間隔帶 15–20 ms 的額外延遲，不能當幀率。比賽畫面右上角的 fps／ms／CPU（設定 `perf`，預設開）才是實機判斷。
   - 解析度設定 `res` 是 720／1080／1440（預設 1080），以畫布短邊計、不超過裝置像素（DPR 上限 2），`main.js` 的 `fitRes` 在視窗改大小時重算縮放。
 - **無頭同一個瀏覽器開第二個 WebGPU 分頁會卡在建引擎之後**（HEAD 版也一樣），多分頁測試每頁各 `launch()` 一個瀏覽器（`mp.mjs`）。
-- **量 CPU 不要比兩個頁面**：macOS 把主執行緒放效能核或節能核，同一支程式換一頁差到 3 倍。`cpuAB` 比同頁相鄰區塊；降幅門檻 80% 在 `accept --only snap`。
+- **量 CPU 不要比兩個頁面**：macOS 把主執行緒放效能核或節能核，同一支程式換一頁差到 3 倍。`cpuAB` 比同頁相鄰區塊；降幅門檻 80% 在 `accept --only snap`。降幅跟 Chrome 版本有關：2026-11-08 同一份 HEAD 在 headless-shell 1234 是 86–88%，在 `serve.mjs` 預設的 1248 只有 70–72%（FAST 開從 0.3 ms 變 0.8 ms），這項不過時先用上面的 1234 重跑再判斷。

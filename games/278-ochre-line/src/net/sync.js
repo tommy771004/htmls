@@ -151,6 +151,7 @@ function clientEv(e) {
     case 'k': if (A[e[2]]) killFx(e[1] >= 0 ? A[e[1]] : null, A[e[2]], e[3], !!e[4]); break;
     case 'h': {
       const v = A[e[1]]; if (!v) break; v.hitT = 0.33;
+      const sh = A[e[2]]; if (sh === me && v !== me) { v.dGiven += e[3]; v.nGiven++; } else if (v === me && sh && sh !== me) { sh.dTaken += e[3]; sh.nTaken++; }
       if (v === me) { G.dmgDir = Math.atan2(e[4] - v.x, e[5] - v.z) - v.yaw; G.dmgT = 1; sfx('hit', v.x, v.y, v.z); G.punch = Math.min(0.04, G.punch + Math.min(0.025, e[3] * 0.0008) * (v.armor > 0 ? 0.55 : 1)); }
       break;
     }
@@ -185,7 +186,7 @@ function clientSnap(m) {
     a.alive = alive;
   }
   if (fresh || init) { SYNC.rs = g[5]; SYNC.needMe = false; startRoundClient(); }
-  if (me.cur === 'charge' && !me.hasCharge) { me.cur = me.primary ?? me.secondary; selectWeapon(me.cur); }
+  if (me.cur === 'charge' && !me.hasCharge) { me.cur = me.primary ?? me.secondary; if (me.alive) selectWeapon(me.cur); }
   // 地上的裝藥：已安裝、掉在地上、或有人正在安裝
   const c = G.charge;
   if (c) { chargePos.on = true; chargePos.x = c.x; chargePos.y = c.y + 0.02; chargePos.z = c.z; }

@@ -58,6 +58,13 @@ export function initHud(root, g, layout, actions) {
   $.feed = el('div', 'feed', '', h); for (let i = 0; i < 5; i++) { const d = el('div', '', '', $.feed); d.style.display = 'none'; }
   $.banner = el('div', 'banner', '', h); $.hint = el('div', 'hint', '', h);
   $.rwin = el('div', 'rwin', '', h); $.rwT = el('h3', '', '', $.rwin); $.rwP = el('p', '', '', $.rwin);
+  // 陣亡：擊殺者卡片（誰、什麼槍、剩多少血、雙方傷害）＋ 觀戰列（看誰、怎麼換）
+  $.dp = el('div', 'dpanel', '', h); el('p', '', 'dp-h', $.dp).textContent = '擊殺你的人';
+  const dk = el('div', '', 'dp-k', $.dp); $.dpN = el('b', '', '', dk); $.dpI = el('i', '', 'ic', dk); $.dpW = el('span', '', '', dk); $.dpH = el('em', '', '', dk); $.dpH.textContent = '爆頭';
+  const dh = el('div', '', 'dp-hp', $.dp); $.dpB = el('b', '', '', el('i', '', '', dh)); $.dpL = el('span', '', '', dh);
+  const dd = el('div', '', 'dp-d', $.dp);
+  for (const [k, t] of [['G', '你造成'], ['T', '你承受']]) { const r = el('div', '', '', dd); el('span', '', '', r).textContent = t; $['dp' + k] = el('b', '', '', r); $['dp' + k + 'n'] = el('small', '', '', r); }
+  $.sb = el('div', 'sbar', '', h); el('small', '', '', $.sb).textContent = '觀戰'; $.sbN = el('b', '', '', $.sb); $.sbH = el('span', '', '', $.sb);
   $.fpsr = el('div', 'fpsr', '', h); $.fpsr.style.display = 'none'; $.fpsr.title = '幀率 · 平均每幀毫秒 · 主執行緒每幀毫秒';
   $.fpsN = el('b', '', '', $.fpsr); el('span', '', '', $.fpsr).textContent = 'fps'; $.fpsM = el('b', '', '', $.fpsr); el('span', '', '', $.fpsr).textContent = 'ms'; $.fpsC = el('small', '', '', $.fpsr);
   $.cross = el('div', 'cross', 'xh', h); for (let i = 0; i < 4; i++) el('i', '', '', $.cross);
@@ -108,12 +115,45 @@ function rack(m) {
   $.rack.innerHTML = h;
 }
 
+/** 陣亡畫面的文字：數值變了才重寫。 */
+function deathHud(m) {
+  const k = G.killer, sa = G.agents[G.specIdx];
+  const khp = k ? (k.alive ? Math.ceil(k.hp) : 0) : -1, dpk = k ? `${k.i}|${khp}|${k.dGiven}|${k.nGiven}|${k.dTaken}|${k.nTaken}|${G.killWid}` : 'none';
+  if (last.dpk !== dpk) {
+    last.dpk = dpk;
+    $.dp.classList.toggle('nok', !k);
+    $.dpN.textContent = k ? k.name : '你陣亡了'; $.dpN.style.color = k ? TEAM_COLOR[k.team] : '';
+    $.dpI.className = 'ic ic-' + (WEAPONS[G.killWid] ? G.killWid : 'knife'); $.dpI.style.display = WEAPONS[G.killWid] ? '' : 'none';
+    $.dpW.textContent = WEAPONS[G.killWid]?.name ?? ''; $.dpH.style.display = G.killHead ? '' : 'none';
+    if (k) {
+      $.dpB.style.width = Math.max(0, khp) + '%'; $.dpB.style.background = TEAM_COLOR[k.team];
+      $.dpL.textContent = `${k.alive ? `剩 ${khp} HP` : '已陣亡'} · 距離 ${Math.round(G.killDist)} m`;
+      $.dpG.textContent = String(Math.round(k.dGiven)); $.dpGn.textContent = `${k.nGiven} 次命中`;
+      $.dpT.textContent = String(Math.round(k.dTaken)); $.dpTn.textContent = `${k.nTaken} 次命中`;
+    }
+  }
+  const sbk = sa ? `${sa.i}|${sa.team === m.team}|${G.specFP}` : '';
+  if (last.sbk !== sbk) {
+    last.sbk = sbk; $.sb.style.display = sa ? '' : 'none';
+    if (sa) {
+      $.sbN.textContent = sa.name; $.sbN.style.color = TEAM_COLOR[sa.team];
+      $.sbH.textContent = (sa.team === m.team ? '' : '隊友全數陣亡 · ') + (coarse ? '點射擊鈕換人' : `左鍵／右鍵換人 · 空白鍵${G.specFP ? '第三人稱' : '第一人稱'}`);
+    }
+  }
+}
+
 export function frameHud(dt) {
   if (canBuyShown !== !!G.canBuy) { canBuyShown = !!G.canBuy; document.body.classList.toggle('canbuy', canBuyShown); }
   const m = G.me, on = !!m && G.phase !== 'menu' && G.phase !== 'over';
   if (on !== showing) { showing = on; $.root.style.display = on ? 'block' : 'none'; document.body.classList.toggle('playing', on); }
   if ($.flash.style.opacity !== String(+Math.min(1, G.flash).toFixed(2))) $.flash.style.opacity = Math.min(1, G.flash).toFixed(2);
   if (!on) { pf.n = pf.t = 0; perfAcc.cpu = 0; return; }
+  // 陣亡：擊殺者卡片前幾秒完整顯示後收起，之後只留觀戰列；第一人稱觀戰時準星與武器列換成對方的
+  const dead = !m.alive, fp = dead && !!G.specView, dpOn = dead && G.deadT < 5.5;
+  if (last.dead !== dead) { last.dead = dead; $.root.classList.toggle('dead', dead); if (dead) last.dpk = last.sbk = null; }
+  if (last.fp !== fp) { last.fp = fp; $.root.classList.toggle('fp', fp); }
+  if (last.dpOn !== dpOn) { last.dpOn = dpOn; $.dp.classList.toggle('on', dpOn); }
+  if (dead) deathHud(m);
   radT -= dt; if (radT <= 0) { radT = 1 / 20; radar(); }
   if (last.fpsOn !== hudOpt.fps) { last.fpsOn = hudOpt.fps; $.fpsr.style.display = hudOpt.fps ? 'block' : 'none'; }
   // 自己數這 0.5 s 的幀數與時間：fps 和 ms 是同一組樣本，CPU 是 scene.render 在主執行緒上的時間（GPU 慢時它會遠小於 ms）
@@ -126,18 +166,19 @@ export function frameHud(dt) {
     let n = 0; for (const a of G.agents) if (a.team === t && a.alive) n++; set('al' + t, t ? $.a1 : $.a0, `存活 ${n}`);
     const key = 'ros' + t; if (last[key] !== c) { last[key] = c; let j = 0; const nodes = (t ? $.r1 : $.r0).children; for (const a of G.agents) if (a.team === t) nodes[j++].className = a.alive ? '' : 'x'; }
   }
-  set('hp', $.hp, String(Math.ceil(m.hp))); set('ar', $.ar, String(Math.ceil(m.armor))); set('arL', $.arL, m.helmet ? '護甲＋盔' : '護甲');
-  const w = Math.round(m.hp), low = w <= 25;
+  const V = dead ? G.agents[G.specIdx] ?? m : m;   // 觀戰時下方的血量、彈藥、武器列看對方
+  set('hp', $.hp, String(Math.ceil(V.hp))); set('ar', $.ar, String(Math.ceil(V.armor))); set('arL', $.arL, V.helmet ? '護甲＋盔' : '護甲');
+  const w = Math.round(V.hp), low = w <= 25 && V.alive; 
   if (last.w !== w) { last.w = w; $.bar.style.transform = `scaleX(${w / 100})`; }
   if (last.low !== low) { last.low = low; $.hpW.classList.toggle('low', low); $.lnL.classList.toggle('low', low); }
   set('money', $.money, '$' + m.money);
   set('emb', $.emblem, String(G.round)); if (last.embT !== m.team) { last.embT = m.team; $.emblem.style.setProperty('--c', TEAM_COLOR[m.team]); }
-  const W = WEAPONS[m.cur], cur = W?.mag ? (m.ammo[m.cur] ?? 0) : -1;
-  set('am', $.am, cur < 0 ? '' : String(cur)); set('rs', $.rs, cur < 0 ? '' : `/ ${m.rsv[m.cur] ?? 0}`); set('wn', $.wn, m.reloadT > 0 ? '裝填中' : W?.name ?? '');
+  const W = WEAPONS[V.cur], cur = W?.mag && !V.puppet ? (V.ammo[V.cur] ?? 0) : -1;   // 連線的別人沒有彈藥資料
+  set('am', $.am, cur < 0 ? '' : String(cur)); set('rs', $.rs, cur < 0 ? '' : `/ ${V.rsv[V.cur] ?? 0}`); set('wn', $.wn, V.reloadT > 0 ? '裝填中' : W?.name ?? '');
   const fill = cur < 0 ? 1 : Math.round(cur / W.mag * 100) / 100, dry = cur >= 0 && cur <= Math.ceil(W.mag * 0.2);
   if (last.fill !== fill) { last.fill = fill; $.mag.style.transform = `scaleX(${fill})`; }
   if (last.dry !== dry) { last.dry = dry; $.amW.classList.toggle('low', dry); $.lnR.classList.toggle('low', dry); }
-  rack(m);
+  rack(V);
   set('zone', $.zone, G.zone);
   const won = G.phase === 'post' && !!G.mvp;
   set('banner', $.banner, !won && G.bannerT > 0 ? G.banner : '');

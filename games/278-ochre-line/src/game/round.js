@@ -9,7 +9,7 @@ import { makeBrain, assignGoal, botBuy, roundPlan } from './bots.js';
 import { clearNades } from './grenades.js';
 import { teleport, you } from './player.js';
 import { play as sfx } from '../audio/sfx.js';
-import { selectWeapon, stopAnims } from './viewmodel.js';
+import { selectWeapon, stopAnims, hideViewmodel } from './viewmodel.js';
 
 const RAY_A = new Vector3(), RAY_B = new Vector3();
 const feedPool = []; for (let i = 0; i < 6; i++) feedPool.push({ killer: '', kteam: 0, victim: '', vteam: 0, weapon: '', wid: '', head: false, mine: false, t: 0 });
@@ -71,7 +71,7 @@ export function bindSoldiers() {
 }
 
 export function startRound() {
-  G.mvp = null; for (const a of G.agents) a.rk = a.rd = a.obj = 0;
+  G.mvp = null; G.killer = null; G.specIdx = -1; for (const a of G.agents) a.rk = a.rd = a.obj = a.dGiven = a.nGiven = a.dTaken = a.nTaken = 0;
   clearNades(); G.charge = null; G.drop.on = false; chargePos.on = false; G.plantP = 0; G.defuseP = 0; G.canBuy = true; G.phase = 'buy'; G.time = RULES.buyTime; G.flash = 0; G.scoped = false;
   roundPlan();
   bindSoldiers();
@@ -97,8 +97,8 @@ export function startRound() {
 
 /** 連線的客戶端：主機開了新回合。隊伍、位置、裝備已由 sync.js 照快照寫進 agent，這裡做本機的重置（士兵、第一人稱、子彈）。 */
 export function startRoundClient() {
-  G.mvp = null; clearNades(); G.plantP = G.defuseP = 0; G.flash = 0; G.scoped = false; G.punch = 0; G.buyOpen = false;
-  for (const a of G.agents) { a.rk = a.rd = a.obj = 0; a.dying = false; a.seen = 0; resetWeaponState(a); a.netTask = ''; }
+  G.mvp = null; G.killer = null; G.specIdx = -1; clearNades(); G.plantP = G.defuseP = 0; G.flash = 0; G.scoped = false; G.punch = 0; G.buyOpen = false;
+  for (const a of G.agents) { a.rk = a.rd = a.obj = a.dGiven = a.nGiven = a.dTaken = a.nTaken = 0; a.dying = false; a.seen = 0; resetWeaponState(a); a.netTask = ''; }
   bindSoldiers();
   for (const a of G.agents) if (a.soldier) play(a.soldier, 'idle_rifle');
   const m = G.me; giveWeapon(m, m.secondary); if (m.primary) giveWeapon(m, m.primary); m.cur = m.primary ?? m.secondary;
@@ -151,7 +151,8 @@ export function onKill(k, v, weapon, head) {
 /** 陣亡的畫面與記錄：擊殺列、倒地動畫、聲音、擊殺獎金。連線的客戶端收到主機的擊殺事件時也走這裡。 */
 export function killFx(k, v, weapon, head) {
   if (v.dying) return;
-  v.alive = false; v.dying = true; v.deaths++; v.reloadT = 0; v.afterT = 0; if (v === G.me) G.scoped = false;
+  v.alive = false; v.dying = true; v.deaths++; v.reloadT = 0; v.afterT = 0;
+  if (v === G.me) { G.scoped = false; G.killer = k && k !== v ? k : null; G.killWid = weapon; G.killHead = !!head; G.specIdx = -1; G.killDist = k ? Math.hypot(k.x - v.x, k.y - v.y, k.z - v.z) : 0; hideViewmodel(); }
   if (k && k !== v && k.team !== v.team) { k.kills++; k.rk++; const bonus = WEAPONS[weapon]?.bonus ?? (WEAPONS[weapon]?.slot === 3 ? 1500 : weapon === 'l40' ? 100 : weapon === 'v11' ? 600 : weapon === 's8' ? 900 : 300); k.money = Math.min(RULES.maxMoney, k.money + bonus); if (k === G.me) note(`+$${bonus} 擊殺 ${v.name}（${WEAPONS[weapon]?.name ?? weapon}）`, true); }
   const e = feedPool.pop() ?? G.feed.shift();
   e.killer = k?.name ?? ''; e.kteam = k?.team ?? 0; e.victim = v.name; e.vteam = v.team; e.weapon = WEAPONS[weapon]?.name ?? weapon; e.wid = WEAPONS[weapon] ? weapon : ''; e.head = head; e.mine = k === G.me || v === G.me; e.t = 6;

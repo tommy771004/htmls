@@ -81,9 +81,13 @@ export async function buildSoldiers(ctx) {
 
 // 不能縮成 0：行列式不再是負的，FAST 快照會把繞序記反，士兵整個內外翻面（看到身體內側與對面的肩）
 export function park(s) { s.hidden = true; s.agent = null; s.holder.scaling.setAll(1e-5); s.holder.position.set(0, -100, 0); pushWorld(s); }
+/** 第一人稱觀戰的對象：畫面上縮到看不見（鏡頭在他頭裡），s.world 與命中膠囊照常算。 */
+export const fpHide = { s: null };
 function pushWorld(s) {
+  if (!s.hidden && s.holder.scaling.x !== 1) s.holder.scaling.setAll(1);   // 只在觀戰縮小過才還原，不要每幀弄髒
   s.holder.computeWorldMatrix(true); s.root.computeWorldMatrix(true); s.mesh.computeWorldMatrix(true);
   s.world.copyFrom(s.root.getWorldMatrix());
+  if (s === fpHide.s && !s.hidden) { s.holder.scaling.setAll(1e-5); s.holder.computeWorldMatrix(true); s.root.computeWorldMatrix(true); s.mesh.computeWorldMatrix(true); }
   if (snapshotActive.on) sendWorld(s.mesh);
 }
 
@@ -243,7 +247,7 @@ export function updateSoldiers(dt, cam) {
     if (g) {
       const hand = s.bf[boneIdx.hand_r];
       socketM.multiplyToRef(hand, TMP_MAT_A); TMP_MAT_A.multiplyToRef(s.world, TMP_MAT_B);
-      TMP_MAT_B.copyToArray(g.buf, (k - 1) * 16);
+      if (s !== fpHide.s) TMP_MAT_B.copyToArray(g.buf, (k - 1) * 16);
       s.gunM.copyFrom(TMP_MAT_B);
     }
   }

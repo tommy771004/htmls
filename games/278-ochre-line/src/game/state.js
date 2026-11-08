@@ -45,12 +45,18 @@ export const G = {
   flash: 0, punch: 0, swayY: 0, swayP: 0, hitMark: 0, dmgDir: 0, dmgT: 0, zone: '', scoped: false,
   canBuy: false, buyOpen: false, scoreOpen: false,
   winner: -1,
+  killer: null, killWid: '', killHead: false,   // 玩家這回合被誰、用什麼打死（死亡畫面與觀戰）
+  specIdx: -1,       // 玩家陣亡後觀戰的對象（G.agents 索引）
+  specFP: true,      // 觀戰用對方的第一人稱視角；空白鍵切第三人稱
+  specView: null,    // 正在用第一人稱看的人（畫面上藏起他的身體，第一人稱槍跟著他）
+  deadT: 0, killDist: 0,   // 陣亡後經過秒數、被擊殺時的距離
 };
 
 export function makeAgent(i, team, name, isBot) {
   return {
     i, team, name, isBot, alive: true, hp: 100, armor: 0, helmet: false, kit: false, money: RULES.startMoney,
     kills: 0, deaths: 0, score: 0, shots: 0, hits: 0, rk: 0, rd: 0, obj: 0, // rk／rd／obj：本回合擊殺、傷害、目標（裝藥或拆除）
+    dGiven: 0, nGiven: 0, dTaken: 0, nTaken: 0, // 本回合玩家打這個人的傷害與次數、這個人打玩家的（死亡畫面）
     slots: [null, 'knife', null, null, null], // 依序 主、手槍、刀… 見 weapons.js
     primary: null, secondary: 'p9', nades: [], hasCharge: false, cur: 'p9',
     ammo: {}, rsv: {},

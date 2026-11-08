@@ -142,7 +142,7 @@ async function boot() {
     if (!G.paused || SYNC.role) { acc += dt * speed; while (acc >= DT) { tick(DT, cam); acc -= DT; } }
     if (input.buy) { input.buy = false; if (G.canBuy) toggleBuy(); }
     G.scoreOpen = input.score;
-    if (G.me && !free) { frame(acc / DT, dt, cam); updateSoldiers(dt * speed, cam); setListener(you.x, you.y + 1.6, you.z, you.yaw); }
+    if (G.me && !free) { frame(acc / DT, dt, cam); updateSoldiers(dt * speed, cam); if (G.me.alive) setListener(you.x, you.y + 1.6, you.z, you.yaw); else setListener(cam.position.x, cam.position.y, cam.position.z, cam.rotation.y); }   // 陣亡觀戰：聲音跟著鏡頭
     else { input.dx = input.dy = 0; const sdt = stage.on ? frameStage(dt) : dt; placeCam(cam, free); cam.computeWorldMatrix(true); if (G.me || stage.on) updateSoldiers(sdt, cam); }
     updateFx(dt, cam);
     frameHud(dt); frameBuy(); frameScore();
