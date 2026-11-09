@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>280 模型預覽</title>
+<style>html,body{margin:0;height:100%;background:#2b2d42;color:#fff;font:14px system-ui}#c{width:100%;height:100%;display:block}#info{position:fixed;left:8px;top:8px;background:#0008;padding:6px 10px;border-radius:6px}</style>
+</head><body><canvas id="c"></canvas><div id="info"></div>
+<script type="module">
+// 用法：preview.html?set=units|props|scenery&theme=desert&lv=1&keys=chad,karen&yaw=0.6&dist=30
+import * as T from '../../../vendor/three-0.186.0/three.module.js';
+globalThis.THREE = T;
+const q = new URLSearchParams(location.search);
+const set = q.get('set') || 'units';
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(q.get('bg') || '#8fb8de');
+const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 400);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(10, 20, 8); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30 });
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshLambertMaterial({ color: 0x9a9a8a }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const kit = await import('../src/kit.js');
+let items = [], span = 2.6;
+const data = await import('../src/data.js');
+if (set === 'units') {
+  const M = await import('../src/models.js');
+  const keys = (q.get('keys') || ['chad', 'karen', 'dale', 'doge', ...Object.keys(data.ENEMIES), 'lizard2'].join(',')).split(',');
+  items = keys.map(k => [k, M.buildUnit(k)]);
+} else if (set === 'props') {
+  const P = await import('../src/props.js');
+  const keys = (q.get('keys') || Object.keys(data.PROPS).join(',')).split(',');
+  items = keys.map(k => [k, P.buildProp(k, 1, 1)]); span = 3.2;
+} else if (set === 'scenery') {
+  const P = await import('../src/scenery.js');
+  const lv = +(q.get('lv') || 1) - 1;
+  const L = data.LEVELS[lv];
+  const g = P.buildScenery(L, L.h === 'bbq' ? data.bbqMap() : L.h);
+  scene.add(g);
+  document.getElementById('info').textContent = L.name;
+}
+const cols = Math.ceil(Math.sqrt(items.length * 1.6));
+items.forEach(([k, g], i) => {
+  const x = (i % cols) * span, z = Math.floor(i / cols) * span * 1.15;
+  g.position.set(x, 0, z); scene.add(g);
+  const lab = kit.textPlane(k, 1.6, { color: '#fff', stroke: '#000', size: 48 });
+  lab.position.set(x, 0.02, z + 1.1); lab.rotation.x = -Math.PI / 2; scene.add(lab);
+});
+const rows = Math.ceil(items.length / cols);
+const cx = set === 'scenery' ? 12 : (cols - 1) * span / 2, cz = set === 'scenery' ? 12 : (rows - 1) * span * 1.15 / 2;
+const yaw = +(q.get('yaw') ?? 0.5), pitch = +(q.get('pitch') ?? 0.75), dist = +(q.get('dist') || (set === 'scenery' ? 46 : Math.max(10, cols * span * 1.3)));
+cam.position.set(cx + Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, cz + Math.cos(yaw) * Math.cos(pitch) * dist);
+cam.lookAt(cx, 0.8, cz);
+if (set !== 'scenery') document.getElementById('info').textContent = items.length + ' items';
+renderer.setAnimationLoop(() => renderer.render(scene, cam));
+</script></body></html>

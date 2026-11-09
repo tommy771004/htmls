@@ -1,0 +1,14 @@
+{
+  "name": "cancel-anytime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "絕命免運費 · CANCEL ANYTIME：原創美式搞怪 3D 回合制戰術 RPG（作品 280）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node --test test/",
+    "sim": "node tools/sim.mjs 40 all standard",
+    "accept": "node tools/accept.mjs 1-10"
+  }
+}

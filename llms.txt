@@ -168,6 +168,7 @@
 - [274 六器鏢行 · SIXFOLD ESCORT](https://htmls-ruddy.vercel.app/web/274-sixfold-escort.html)：原創武俠動作 RPG：你是青萍渡鏢局的鏢師，背上的漆木六器匣收著刀、劍、槍、鐵指虎、弓與飛針，按下武功就自動從匣中抽出對應兵器出招；開場在順安鏢局大堂立帖入局，可選男女、髮式、衣色、慣用兵器與身高體型。無職業四維配點、五行相剋、罡氣分攤與破罡（易傷與硬直）、十二重修煉與第十三重「通玄」、+1～+12 鍛器與爐溫保底；三張地圖：河渡市集青萍渡（寄攤、渡口行會檢索與朱砂引路線）、赤沙驛（一真二假烽燧攻防、懸紅榜追拿劫鏢匪）、偃師遺墟（偃甲不耗樞力、可一直上機）。人物用 Quaternius CC0 骨架模型配上程式著色的鏢師衣著，鏢局、茶樓、門樓、雅丹、石窟造像、兵器與攤上貨品則用 Sketchfab、NVIDIA SimReady（CC BY 4.0）與 Poly Haven、Smithsonian、BlenderKit（CC0）的掃描與 PBR 模型，減面並改 WebP 貼圖後內嵌，作者與授權列在遊戲內「說明」；Three.js WebGPU／TSL 節點材質（無 WebGPU 時退回 WebGL2），PC 鍵鼠與手機觸控雙模操作；打包成單檔，零外部網路請求。
 - [277 墨嶺行 · INK RIDGE](https://htmls-ruddy.vercel.app/web/277-ink-ridge.html)：水墨風第三人稱 3D 平台解謎原型（依 @xikhar 的 AI 製作遊戲影片）：雲海試劍崖上跑跳、抓岩縫橫移上攀、側跳與往後躍，白圍巾與衣襬為 Verlet 布料物理，敲鐘升吊台、開山門；第二關「寒潭渡」（?lv=2）搭木筏渡黑水、推石墊腳、石壓機關板開閘、攀會碎的冰縫上雪塔；場景以 Three.js 程式自建，主角模型改作自 xiamilisite 的 wuxia chinese swordman（CC BY 4.0），加上五指骨架與岩緣 IK，支援觸控。
 - [278 赭線 · OCHRE LINE](https://htmls-ruddy.vercel.app/web/278-ochre-line.html)：受 @0xKense1 AI 做遊戲影片啟發的原創寫實日照 5v5 回合制戰術射擊：地中海舊城地圖「日晷坊」三線攻防，赤沙送破門裝藥進 A、B 炸點，海防守住或拆除，先贏 7 回合、第 6 回合後換邊；購買經濟、十五種武器與投擲物、固定彈道、部位傷害、Bot 走位回防；Babylon.js 9 WebGPU FAST 快照、thin instance、Havok，每幀邏輯零配置，手機有觸控操作，不支援 WebGPU 時退回 WebGL。
+- [280 絕命免運費 · CANCEL ANYTIME](https://htmls-ruddy.vercel.app/web/280-cancel-anytime.html)：依 GDD 做成的原創美式搞怪 3D 回合制戰術 RPG。四人小隊打過 10 關公路怪談，12×12 高低差格子、d20 命中與背刺、高地掩體、推撞墜落、丟椅子、四種地表連鎖反應、死亡豁免與救護車帳單、戰前嘴砲檢定；Three.js 全程序建模 toon 描邊，WebAudio 合成音效，三種難度
 
 ### 品牌頁面
 
