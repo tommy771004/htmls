@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>黃昏月台 · Dusk Platform</title>
+<meta name="description" content="透過 Blender MCP 以 Python 從零建模的寫實日本島式月台：傍晚無人，夕陽斜射與日光燈混光，Cycles 渲染 12.5 秒推軌鏡頭，附建模、材質、打光縮時花絮。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b1814'/%3E%3Crect x='4' y='19' width='24' height='3' fill='%23e9a04a'/%3E%3Crect x='14' y='8' width='4' height='14' fill='%23f2eee6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#1b1814; --bg2:#231f1a; --ink:#ece4d6; --ink2:#b9ad9b; --ink3:#8a7f6f;
+  --amber:#e9a04a; --ochre:#c26b25; --board:#f2eee6; --board-ink:#26221d;
+  --led:#ffb547; --led-r:#ff5a3c; --led-g:#7fd96a;
+  --ease-out:cubic-bezier(.22,.8,.24,1);
+  --f:"Hiragino Sans","Hiragino Kaku Gothic ProN","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);font-family:var(--f);line-height:1.7;font-size:16px}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ---- station-name board header ---- */
+.ekimei{padding-top:28px}
+.board{background:var(--board);color:var(--board-ink);border-radius:4px;overflow:hidden;position:relative}
+.board .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:26px 28px 18px}
+.board .name{text-align:center}
+.board .kana{font-size:15px;letter-spacing:.32em;color:#6d6458;font-weight:500}
+.board h1{margin:2px 0 0;font-size:clamp(40px,7vw,76px);line-height:1.08;font-weight:800;letter-spacing:.14em;padding-left:.14em}
+.board .roman{font-size:15px;letter-spacing:.18em;color:#4c453c;font-weight:600;margin-top:4px}
+.board .stripe{height:12px;background:var(--ochre)}
+.board .nb{display:flex;justify-content:space-between;padding:10px 28px 14px;font-size:15px;font-weight:600}
+.board .nb a{text-decoration:none;display:inline-flex;align-items:baseline;gap:8px;padding:4px 2px;border-bottom:2px solid transparent;transition:border-color .2s var(--ease-out)}
+.board .nb a:hover{border-color:var(--ochre)}
+.board .nb small{font-weight:400;color:#6d6458;font-size:13px}
+.board .badge{width:62px;height:62px;border:3px solid var(--board-ink);border-radius:6px;display:grid;place-items:center;font:800 34px/1 var(--f)}
+.board .side{font-size:13px;color:#5d554b;line-height:1.5}
+.board .side.r{text-align:right}
+.lede{max-width:780px;margin:28px 0 0;color:var(--ink2);font-size:17px}
+
+/* ---- film ---- */
+section{padding:44px 0 0}
+.sh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:0 0 14px}
+.sh h2{margin:0;font-size:24px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.sh span{color:var(--ink3);font-size:14px}
+.screen{position:relative;background:#000;border-radius:3px;overflow:hidden;aspect-ratio:16/9}
+.screen video{display:block;width:100%;height:100%;object-fit:cover;background:#000}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px}
+.btn{font:600 14px/1 var(--f);color:var(--bg);background:var(--amber);border:0;border-radius:3px;padding:10px 16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:#f3b56a}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px #5a5146}
+.btn.ghost:hover{background:#2c2721}
+.btn:focus-visible,.chap button:focus-visible,.stage button:focus-visible,.board a:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tc{font:500 14px/1 var(--mono);color:var(--ink3)}
+
+/* LED departure board used as the spec sheet */
+.led{margin-top:26px;background:#0d0c0a;border-radius:4px;padding:16px 20px;font-family:var(--f);overflow:hidden}
+.led .hd{display:flex;justify-content:space-between;color:#9b8f7c;font-size:12px;letter-spacing:.08em;border-bottom:1px solid #2a2620;padding-bottom:8px;margin-bottom:6px}
+.led table{width:100%;border-collapse:collapse}
+.led td{padding:7px 0;color:var(--led);font-size:16px;font-weight:600;white-space:nowrap;vertical-align:top}
+.led td.k{color:var(--led-g);width:7.5em}
+.led td.v{white-space:normal;color:#ffcf86}
+.led td.n{text-align:right;font-family:var(--mono);font-weight:500;color:var(--led);padding-left:14px}
+.marq{margin-top:8px;border-top:1px solid #2a2620;padding-top:9px;overflow:hidden;white-space:nowrap;color:var(--led-r);font-weight:700}
+.marq span{display:inline-block;padding-left:100%;animation:marq 22s linear infinite}
+@keyframes marq{to{transform:translateX(-100%)}}
+
+/* ---- making-of ---- */
+.chap{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;margin-top:12px;border-top:1px solid #3a342c}
+.chap button{all:unset;cursor:pointer;padding:12px 2px 4px;position:relative;color:var(--ink3);font-size:15px;font-weight:600}
+.chap button i{position:absolute;left:0;top:-1px;height:3px;width:0;background:var(--amber)}
+.chap button b{display:block;font:500 12px/1.4 var(--mono);color:#6f6557;margin-top:2px}
+.chap button.on{color:var(--ink)}
+.chap button:hover{color:var(--ink)}
+
+/* ---- three stages, same camera ---- */
+.stage{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:start}
+.stage .tabs{display:flex;flex-direction:column;gap:4px}
+.stage button{all:unset;cursor:pointer;padding:12px 14px;border-radius:3px;color:var(--ink2);line-height:1.45}
+.stage button strong{display:block;color:var(--ink);font-size:16px}
+.stage button span{font-size:13px}
+.stage button[aria-selected=true]{background:var(--bg2);box-shadow:inset 3px 0 0 var(--amber)}
+.stage button:hover{background:#26211c}
+.stage .pic{position:relative;aspect-ratio:16/9;background:#0b0a09;border-radius:3px;overflow:hidden}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .35s var(--ease-out)}
+.stage img.on{opacity:1}
+
+/* ---- notes ---- */
+.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:28px 36px;margin-top:6px}
+.notes h3{margin:0 0 6px;font-size:17px;color:var(--amber);font-weight:700}
+.notes p{margin:0;color:var(--ink2);font-size:15px}
+.notes code{font:13px var(--mono);color:var(--ink);background:#2a251f;padding:1px 5px;border-radius:2px}
+footer.wrap{margin:64px auto 0;padding-bottom:40px}
+.foot{padding-top:22px;border-top:1px solid #322c25;color:var(--ink3);font-size:14px;display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+.foot a{color:var(--ink2)}
+
+@media (max-width:820px){
+  .wrap{padding:0 16px}
+  .board .top{grid-template-columns:1fr;padding:22px 16px 14px}
+  .board .side{display:none}
+  .board .nb{padding:10px 16px 12px;font-size:14px}
+  .board .nb small{display:none}
+  .stage{grid-template-columns:1fr}
+  .stage .tabs{flex-direction:row;overflow-x:auto}
+  .stage button{flex:1;min-width:0;padding:10px}
+  .stage button span{display:none}
+  .stage button[aria-selected=true]{box-shadow:inset 0 -3px 0 var(--amber)}
+  .notes{grid-template-columns:1fr}
+  .led td{font-size:14px}
+  .led td.k{width:5.5em}
+  .led td.n{display:none}
+  .chap button{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){
+  .marq span{animation:none;padding-left:0}
+  .stage img{transition:none}
+}
+</style>
+</head>
+<body>
+<header class="wrap ekimei">
+  <div class="board" role="banner">
+    <div class="top">
+      <div class="side">島式月台 2 面 2 線<br>傍晚 17:02</div>
+      <div class="name">
+        <div class="kana">た そ が れ の ホ ー ム</div>
+        <h1>黃昏月台</h1>
+        <div class="roman">DUSK PLATFORM</div>
+      </div>
+      <div class="side r">Blender 5.2 · Cycles<br>全程序建模</div>
+    </div>
+    <div class="stripe"></div>
+    <nav class="nb" aria-label="頁內導覽">
+      <a href="#making">← 製作花絮 <small>Making-of</small></a>
+      <a href="#film"><small>Film</small> 正片 →</a>
+    </nav>
+  </div>
+  <p class="lede">一座虛構的日本 JR 式島式月台，傍晚、沒有人。月台、Y 字頂棚、柱子、黃色導盲磚、方向牌、發車看板、鐵軌與遠方街景，全部由 Python 在 Blender 裡一步步建出來；鏡頭沿月台中線緩慢推進 12.5 秒。</p>
+</header>
+
+<main class="wrap">
+  <section id="film" aria-labelledby="h-film">
+    <div class="sh"><h2 id="h-film">正片</h2><span>12.5 秒 · 300 格 · 1920×1080 · 24 fps</span></div>
+    <div class="screen">
+      <video id="film-v" src="../assets/279/platform.mp4" poster="../assets/279/poster.jpg" muted loop playsinline autoplay preload="metadata" aria-label="月台推軌鏡頭影片"></video>
+    </div>
+    <div class="ctl">
+      <button class="btn" id="film-play" type="button">暫停</button>
+      <button class="btn ghost" id="film-slow" type="button">0.5 倍速</button>
+      <span class="tc" id="film-tc">00.0 / 12.5 s</span>
+    </div>
+
+    <div class="led" aria-label="製作規格">
+      <div class="hd"><span>汐見台　2番線　製作規格</span><span>Shiomidai Platform 2</span></div>
+      <table>
+        <tr><td class="k">建模</td><td class="v">Python（bpy / bmesh）6 個模組 42 步，經 Blender MCP 逐步送進 GUI Blender</td><td class="n" id="spec-tris">2,190 萬面</td></tr>
+        <tr><td class="k">材質</td><td class="v">程序化節點：磁磚接縫與磨損、混凝土水痕、烤漆掉漆與積塵、鋼軌鏽蝕</td><td class="n">28 種</td></tr>
+        <tr><td class="k">貼圖</td><td class="v">只有日文字標示：方向牌、LED 看板、站名標、廣告，用 HTML 排版後截圖</td><td class="n">tex/</td></tr>
+        <tr><td class="k">打光</td><td class="v">6° 低角度夕陽 ＋ 日光燈列 ＋ 多重散射天空，AgX 色彩</td><td class="n">7800 K</td></tr>
+        <tr><td class="k">渲染</td><td class="v">Cycles · Metal GPU · 96 spp 自適應取樣 · OIDN 降噪</td><td class="n" id="spec-time">約 37 秒／格</td></tr>
+      </table>
+      <div class="marq" aria-hidden="true"><span>★まもなく 2番線に 電車が参ります　危ないですから 黄色い線の内側まで お下がりください　★ This is a fictional station. No trains will stop here.</span></div>
+    </div>
+  </section>
+
+  <section id="making" aria-labelledby="h-making">
+    <div class="sh"><h2 id="h-making">製作花絮</h2><span>建模、上材質、打光的 Blender 畫面截圖串成縮時</span></div>
+    <div class="screen">
+      <video id="mk-v" src="../assets/279/making.mp4" poster="../assets/279/making.jpg" controls muted playsinline preload="metadata" aria-label="製作過程縮時影片"></video>
+    </div>
+    <div class="chap" id="chap" role="group" aria-label="花絮章節"></div>
+  </section>
+
+  <section aria-labelledby="h-stage">
+    <div class="sh"><h2 id="h-stage">同一個鏡頭，三個階段</h2><span>從 Blender 視窗直接截下</span></div>
+    <div class="stage">
+      <div class="tabs" role="tablist" aria-label="製作階段">
+        <button role="tab" aria-selected="true" data-i="0"><strong>建模</strong><span>實體著色，只看形狀與比例</span></button>
+        <button role="tab" aria-selected="false" data-i="1"><strong>材質</strong><span>材質預覽，程序化節點上色</span></button>
+        <button role="tab" aria-selected="false" data-i="2"><strong>打光</strong><span>Cycles 即時預覽，夕陽與日光燈</span></button>
+        <button role="tab" aria-selected="false" data-i="3"><strong>成片</strong><span>最終渲染與色彩</span></button>
+      </div>
+      <div class="pic" role="tabpanel" aria-live="polite">
+        <img class="on" src="../assets/279/stage-model.jpg" alt="實體著色下的月台模型" loading="lazy">
+        <img src="../assets/279/stage-material.jpg" alt="材質預覽下的月台" loading="lazy">
+        <img src="../assets/279/stage-light.jpg" alt="Cycles 即時預覽的打光" loading="lazy">
+        <img src="../assets/279/poster.jpg" alt="最終渲染畫面" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-notes">
+    <div class="sh"><h2 id="h-notes">製作筆記</h2></div>
+    <div class="notes">
+      <div><h3>經 MCP 一步一步建</h3><p>Blender 官方 MCP 外掛開一個本機 socket，每個建模步驟是一次請求，送一段 Python 進正在開著的 Blender；每一步完成後再請 Blender 截一次自己的視窗，花絮就是這些截圖。</p></div>
+      <div><h3>全部自己建模</h3><p>月台、頂棚鋼骨、導盲磚凸點、鋼軌斷面、道碴、電車線、擋土牆、坡地住宅與遠方市街都是程式生成；沒有用 Tripo 或任何下載模型。站名「汐見台」是虛構的，看板上也沒有真實鐵道公司的標誌。</p></div>
+      <div><h3>材質是節點，不是照片</h3><p>地磚用格狀座標算接縫、每塊磚的色差與光澤，再疊上走道磨亮與角落髒污；混凝土用雜訊與 <code>Ambient Occlusion</code> 做水痕和積灰。只有需要日文字的地方另外產生貼圖。</p></div>
+      <div><h3>兩種光</h3><p>太陽放在左後方 6° 仰角，斜斜照亮柱子正面與右側擋土牆；頂棚下的日光燈列是發光燈管加上一層朝上的補光，讓折板屋面不會黑成一片。天空用多重散射大氣模型。</p></div>
+      <div><h3>遠景的空氣</h3><p>市街與遠山的材質依距離混入天空色，模擬傍晚的空氣透視；遠山壓到仰角 1° 以下，月台才顯得高。</p></div>
+      <div><h3>渲染</h3><p>正片在背景 Blender 裡渲染 300 格，每格約 37 秒，再用 ffmpeg 編成 H.264。花絮的字幕條在無頭 Chrome 排版後串接，結尾淡入正片。</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap"><div class="foot">
+  <span>279 · 黃昏月台 · 虛構車站，與任何鐵道公司無關</span>
+  <a href="../index.html#279">回作品集</a>
+</div></footer>
+
+<script>
+(function(){
+  var CHAPTERS = [{"phase":"model","name":"建模","t":0},{"phase":"materials","name":"材質","t":21.42},{"phase":"lighting","name":"打光","t":25.62}];
+  function fmt(t){ var m = Math.floor(t/60), s = t - m*60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(0); }
+
+  // film controls
+  var fv = document.getElementById('film-v'), fp = document.getElementById('film-play'),
+      fs = document.getElementById('film-slow'), tc = document.getElementById('film-tc');
+  function syncPlay(){ fp.textContent = fv.paused ? '播放' : '暫停'; }
+  fp.addEventListener('click', function(){ if (fv.paused) { var p = fv.play(); if (p && p.catch) p.catch(function(){}); } else fv.pause(); });
+  fv.addEventListener('play', syncPlay); fv.addEventListener('pause', syncPlay);
+  fs.addEventListener('click', function(){ var slow = fv.playbackRate === 1; fv.playbackRate = slow ? 0.5 : 1; fs.textContent = slow ? '原速' : '0.5 倍速'; });
+  fv.addEventListener('timeupdate', function(){ tc.textContent = (fv.currentTime < 10 ? '0' : '') + fv.currentTime.toFixed(1) + ' / 12.5 s'; });
+  syncPlay();
+
+  // making-of chapters
+  var mv = document.getElementById('mk-v'), box = document.getElementById('chap'), btns = [];
+  CHAPTERS.forEach(function(c, i){
+    var b = document.createElement('button'); b.type = 'button';
+    b.innerHTML = '<i></i>' + c.name + '<b>' + fmt(c.t) + '</b>';
+    b.addEventListener('click', function(){ mv.currentTime = c.t + 0.01; var p = mv.play(); if (p && p.catch) p.catch(function(){}); });
+    box.appendChild(b); btns.push(b);
+  });
+  function chapSync(){
+    var t = mv.currentTime, d = mv.duration || 0;
+    CHAPTERS.forEach(function(c, i){
+      var end = i + 1 < CHAPTERS.length ? CHAPTERS[i + 1].t : d, on = t >= c.t && t < end;
+      btns[i].classList.toggle('on', on);
+      var f = end > c.t ? Math.max(0, Math.min(1, (t - c.t) / (end - c.t))) : 0;
+      btns[i].firstChild.style.width = (t >= end ? 100 : f * 100) + '%';
+    });
+  }
+  mv.addEventListener('timeupdate', chapSync); mv.addEventListener('seeked', chapSync); chapSync();
+
+  // stage tabs
+  var tabs = document.querySelectorAll('.stage [role=tab]'), imgs = document.querySelectorAll('.stage img');
+  function pick(i){
+    tabs.forEach(function(t, k){ t.setAttribute('aria-selected', k === i ? 'true' : 'false'); t.tabIndex = k === i ? 0 : -1; });
+    imgs.forEach(function(im, k){ im.classList.toggle('on', k === i); });
+  }
+  tabs.forEach(function(t, k){
+    t.addEventListener('click', function(){ pick(k); });
+    t.addEventListener('keydown', function(e){
+      var n = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (n) { e.preventDefault(); var j = (k + n + tabs.length) % tabs.length; pick(j); tabs[j].focus(); }
+    });
+  });
+  pick(0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body><pre id="o"></pre><script>
+const FONT = '400 15px "Hiragino Sans"';
+function bitmap(spans, W){            // spans: [[text, colour, x], ...] -> {W, H:16, px:[colour|null]}
+  const c=document.createElement('canvas'); c.width=W; c.height=16; const g=c.getContext('2d');
+  const px=new Array(W*16).fill(null);
+  for(const [t,col,x] of spans){
+    g.clearRect(0,0,W,16); g.fillStyle='#fff'; g.font=FONT; g.textBaseline='alphabetic'; g.fillText(t,x,13);
+    const d=g.getImageData(0,0,W,16).data;
+    for(let i=0;i<W*16;i++) if(d[i*4+3]>110) px[i]=col;
+  }
+  return px;
+}
+function width(t){const c=document.createElement('canvas').getContext('2d');c.font=FONT;return Math.ceil(c.measureText(t).width);}
+const COL={amber:[255,150,26],green:[70,230,90],red:[255,40,18],white:[255,236,200]};
+function board(lines, P){             // lines: [{row, spans, W}] ; P = px per LED
+  const NX=208, NY=40, c=document.createElement('canvas'); c.width=NX*P; c.height=NY*P; const g=c.getContext('2d');
+  g.fillStyle='#0a0a09'; g.fillRect(0,0,c.width,c.height);
+  const lit=new Map();
+  for(const L of lines){const px=bitmap(L.spans,NX); for(let y=0;y<16;y++)for(let x=0;x<NX;x++){const v=px[y*NX+x]; if(v) lit.set((L.row+y)*NX+x, v);} }
+  const r=P*0.36;
+  for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){
+    const cx=(x+.5)*P, cy=(y+.5)*P, v=lit.get(y*NX+x);
+    if(!v){ const gr=g.createRadialGradient(cx-r*.25,cy-r*.3,0,cx,cy,r); gr.addColorStop(0,'#2b2723'); gr.addColorStop(1,'#151311');
+      g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,r,0,7); g.fill(); continue; }
+    const [R,G,B]=COL[v]; const gr=g.createRadialGradient(cx,cy,0,cx,cy,r);
+    gr.addColorStop(0,'rgb('+Math.min(255,R+60)+','+Math.min(255,G+70)+','+Math.min(255,B+60)+')');
+    gr.addColorStop(.55,'rgb('+R+','+G+','+B+')'); gr.addColorStop(1,'rgb('+(R*.7|0)+','+(G*.7|0)+','+(B*.7|0)+')');
+    g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,r,0,7); g.fill();
+  }
+  return c.toDataURL('image/png');
+}
+function strip(text, pad){            // 1 px per LED bitmap, red on black, tiles horizontally
+  const W=width(text)+pad, px=bitmap([[text,'red',0]],W);
+  const c=document.createElement('canvas'); c.width=W; c.height=16; const g=c.getContext('2d');
+  const im=g.createImageData(W,16);
+  for(let i=0;i<W*16;i++){ const on=px[i]?255:0; im.data[i*4]=on; im.data[i*4+1]=on?40:0; im.data[i*4+2]=on?18:0; im.data[i*4+3]=255; }
+  g.putImageData(im,0,0); return c.toDataURL('image/png');
+}
+
+document.getElementById('o').textContent=strip("★まもなく　2番線に　電車が参ります　黄色い線の内側までお下がりください", 216);</script></body></html>
