@@ -1408,6 +1408,50 @@ const HILL_PLANTS = { palm: [], agave: [], shrub: [], shrub_bloom: [], rock: [] 
 // 高度 h = 山網格 + 起伏 × w（w：路面兩側、平台四周是 0，離別墅 R 公尺淡到 0，所以細分區的外緣和沒細分的三角形接得上），材質是 TX.vhill（照片的乾草地與露岩）
 const HILL_VIL = { R: 60, N: 9, groups: [] };   // N：粗網格加密以後從 14 降到 9（細分後的格距差不多）
 // 外緣山林（27-props.js 下載 nat_forest 換成近景樹，50-assets.js 畫遠景的 fir_lo／maple_lo）：冷杉與楓樹、林下層的世界座標清單，n 是統計
+// 路口的喇叭口（2026-11-09，使用者：分叉路沒接好、看起來很奇怪）：支路（別墅區的連絡路、榛嶺的 OSM 支路）原本從主線的中心線鋪起，
+// 前 HWm 公尺的柏油、中線、白邊線整片疊在主線上（同高互相閃爍，白線在主線中央形成尖角）。改成每一條縱向線（左緣、中線、右緣）
+// 各自從碰到主線柏油邊的那一點開始，左右緣在接口 RF 公尺內往外張 F 公尺（圓弧的轉角），主線那一側的白邊線在接口留開口（gap）。
+// e：主線上的接點、d：支路往外的方向（單位）、t：主線在接點的切線（單位）、HWm：主線柏油半寬、hw：支路半寬、L：從接點量起的長度、
+// yAt(X, Z, s)：路面高度。回傳 { geo（MAT.roadConn 的 aUV／aAx）, sd（支路在主線的哪一側）, a0, a1（開口在主線切線方向的範圍，相對 e）, s1（喇叭口結束的 s） }
+function roadMouth(e, d, t, HWm, hw, L, yAt, { F = 3.2, RF = 6.5, M = 18 } = {}) {
+  const nx = -t[1], nz = t[0], dn = nx * d[0] + nz * d[1], sd = dn >= 0 ? 1 : -1;
+  const px = d[1], pz = -d[0], sinA = Math.max(.35, Math.abs(dn)), np = sd * (nx * px + nz * pz);   // 太斜的支路當作 20°
+  const wAt = (s, s0) => hw + F * (1 - Math.min(1, Math.max(0, (s - s0) / RF))) ** 2;
+  // 每條線碰到主線柏油邊的 s：橫向距離 = sinA·s + np·o = HWm（o 跟著喇叭口變寬，迭代幾次）
+  const sMid = HWm / sinA, s1 = sMid + RF;
+  const start = k => { let s = sMid; for (let it = 0; it < 8; it++) s = Math.max(0, (HWm - np * k * wAt(s, sMid)) / sinA); return s; };
+  const S0 = [-1, 0, 1].map(start);
+  const P = [], N = [], UV = [], AX = [], I = [];
+  let a0 = Infinity, a1 = -Infinity;
+  for (let i = 0; i <= M; i++) {
+    const u = i / M, uu = u * u * .55 + u * .45;   // 接口附近密一點（喇叭口的弧）
+    for (let k = -1; k <= 1; k++) {
+      const s = S0[k + 1] + (L - S0[k + 1]) * uu, o = k * wAt(s, sMid), X = e[0] + d[0] * s + px * o, Z = e[1] + d[1] * s + pz * o;
+      P.push(X, yAt(X, Z, s), Z); N.push(0, 1, 0); UV.push(k ? k * Math.min(Math.max(o * k, 1.6), 4.8) : 0, s); AX.push(px, pz);   // 橫向座標不到 5.1（roadConn 在那裡畫白色虛線），也離開 0.2 的黃線
+      if (i === 0 && k) { const a = (X - e[0]) * t[0] + (Z - e[1]) * t[1]; a0 = Math.min(a0, a); a1 = Math.max(a1, a); }
+    }
+    if (i) { const b = (i - 1) * 3; I.push(b, b + 3, b + 1, b + 1, b + 3, b + 4, b + 1, b + 4, b + 2, b + 2, b + 4, b + 5); }
+  }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
+  g.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); g.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2)); g.setIndex(I); g.computeVertexNormals(); g.computeBoundingSphere();
+  return { geo: g, sd, a0: a0 - .6, a1: a1 + .6, s1, sMid };
+}
+// (x, z) 在不在某個路口的開口裡：side 的正負是在主線哪一側（strip 傳 o0 + o1），pad 是開口前後多讓幾公尺
+function mouthGap(gaps, x, z, side, pad = 0) {
+  for (const g of gaps) {
+    const rx = x - g.x, rz = z - g.z, a = rx * g.t[0] + rz * g.t[1], lat = -rx * g.t[1] + rz * g.t[0];
+    if (Math.abs(lat) < 12 && Math.sign(side) === g.sd && a > g.a0 - pad && a < g.a1 + pad) return true;
+  }
+  return false;
+}
+// 主線在接點附近的切線（單位向量）：前後各取 6 m 左右的點
+function roadTan(pts, j) {
+  let a = j, b = j;
+  while (a > 0 && Math.hypot(pts[a][0] - pts[j][0], pts[a][1] - pts[j][1]) < 6) a--;
+  while (b < pts.length - 1 && Math.hypot(pts[b][0] - pts[j][0], pts[b][1] - pts[j][1]) < 6) b++;
+  const dx = pts[b][0] - pts[a][0], dz = pts[b][1] - pts[a][1], l = Math.hypot(dx, dz) || 1;
+  return [dx / l, dz / l];
+}
 const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], flower: [], grass: [] }, n: {} };   // und：林下層（27-props.js 只畫近處）
 {
   const r2 = rng(77), [cx, cz] = CITY_C, rk = new Kit();
@@ -1510,6 +1554,7 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
     }
   };
   const roadD = (x, z) => { let d = 1e9; segEach(x, z, 48, dd => { if (dd < d) d = dd; }); return d; };
+  HILL.roadNear = (x, z, R) => { let best = null; segEach(x, z, R, (d, y) => { if (!best || d < best.d) best = { d, y }; }); return best; };   // 21-coast.js：細格子的地形在路邊壓到路面下
   // 挖填：路肩外 0.3 m（RC）以內是路面高；外面挖方 1.4:1（岩壁）、填方 0.75:1，碰到原本的山坡為止（CW 公尺內）。先挖再填，最後路面本身照最近那一段
   // 榛嶺（22-akina.js 在路緣外 1.15 m 砌擋土牆）：挖方的平台多留 2.6 m，斜坡從牆後面才開始，細格子的三角形才不會凸到牆前面
   const RC = ROAD_HW + 1.4, RC_AK = RC + 2.6, CW = 40, CF = 12, CUT = 1.4, FILL = .75;
@@ -1561,10 +1606,11 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
   // 路面：每一點左右各三條（路肩外緣、路面邊、中線），高度各自照山網格抬 0.25 m；柏油、碎石路肩、虛線的黃中線、每 70 m 一盞路燈（燈頭自發光）
   {
     const pos = [], col = [], mt = [], idx = [], c = new T.Color();
-    const strip = (pts, o0, o1, y, hex, mat, dash) => {
+    const strip = (pts, o0, o1, y, hex, mat, dash, gaps) => {
       c.set(hex);
       for (let i = 0; i + 1 < pts.length; i++) {
         if (dash && i % 2) continue;
+        if (gaps && mouthGap(gaps, (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2, o0 + o1)) continue;   // 路口的開口（roadMouth）
         const q = [pts[i], pts[i + 1]], base = pos.length / 3;
         for (const [k, [x, z]] of q.entries()) {
           const o = pts[Math.min(pts.length - 1, i + k + 1)], p = pts[Math.max(0, i + k - 1)], tx = o[0] - p[0], tz = o[1] - p[1], L = Math.hypot(tx, tz) || 1, nx = -tz / L, nz = tx / L;
@@ -1573,11 +1619,46 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
         idx.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
       }
     };
-    for (const pts of roads) {
+    // ─── 路口（roadMouth）：連絡路的端點落在別的山路上（09-hilllink.js 接過去的 T 字路口），以及榛嶺的 OSM 支路（09-akina.js 的 jun）───
+    // 支路那一頭的路面、路肩、白邊線從喇叭口後面才鋪（只改畫面用的折線，roads 本身照舊給導航、挖填、碰撞），主線那一側的白邊線留開口
+    const GAPS = new Map(), cut = new Map(), mouthH = (X, Z) => { const h = hillMeshH(X, Z); return Number.isFinite(h) ? h + .25 : NaN; };
+    const addGap = (R, g) => { if (!GAPS.has(R)) GAPS.set(R, []); GAPS.get(R).push(g); };
+    const mouthMesh = (geo, nm) => { const m = new T.Mesh(geo, MAT.roadConn); m.name = nm; groundAdd(m, null); HILL.mouthN = (HILL.mouthN || 0) + 1; };
+    const nearest = (R, x, z) => { let best = null; R.forEach((q, j) => { const dd = Math.hypot(q[0] - x, q[1] - z); if (!best || dd < best.d) best = { d: dd, j }; }); return best; };
+    for (const R of roads) for (const end of [0, R.length - 1]) {
+      const E = R[end]; let hit = null;
+      for (const Q of roads) { if (Q === R) continue; const b = nearest(Q, E[0], E[1]); if (b && b.d < 1.5 && (!hit || b.d < hit.d)) hit = { ...b, Q }; }
+      if (!hit) continue;
+      const dir = end ? -1 : 1, t = roadTan(hit.Q, hit.j), e = [hit.Q[hit.j][0], hit.Q[hit.j][1]];
+      // 支路方向：從接點往支路裡面量 14 m 的那一點（連絡路是直線，必要時一個彎點，前 14 m 都是直的）
+      let k = end, acc = 0; while (k + dir >= 0 && k + dir < R.length && acc < 14) { acc += Math.hypot(R[k + dir][0] - R[k][0], R[k + dir][1] - R[k][1]); k += dir; }
+      const dx = R[k][0] - e[0], dz = R[k][1] - e[1], dl = Math.hypot(dx, dz) || 1, d = [dx / dl, dz / dl];
+      const sinA = Math.max(.35, Math.abs(-t[1] * d[0] + t[0] * d[1])), Lm = ROAD_HW / sinA + 6.5 + 2;
+      const Mo = roadMouth(e, d, t, ROAD_HW, ROAD_HW, Lm, (X, Z) => { const h = mouthH(X, Z); return Number.isFinite(h) ? h : E[2] + .25; });
+      mouthMesh(Mo.geo, 'hillMouth'); addGap(hit.Q, { x: e[0], z: e[1], t, sd: Mo.sd, a0: Mo.a0, a1: Mo.a1 });
+      cut.set(R, { ...(cut.get(R) || {}), [end ? 'b' : 'a']: Lm });
+    }
+    // 榛嶺的支路：主線是 akina 山道；長 34 m，最後 4 m 沉進地裡（OSM 的支路只畫一截）
+    for (const R of roads) if (R.akina && R.jun) for (const j of R.jun) {
+      const t = roadTan(R, j.k), e = [R[j.k][0], R[j.k][1]], y0 = R[j.k][2], L = 34;
+      const Mo = roadMouth(e, [j.dx, j.dz], t, ROAD_HW, j.hwd, L, (X, Z, s) => { const h = hillMeshH(X, Z); return (Number.isFinite(h) ? h : y0) + .25 - .35 * Math.max(0, (s - (L - 4)) / 4); });
+      mouthMesh(Mo.geo, 'akinaSpur'); addGap(R, { x: e[0], z: e[1], t, sd: Mo.sd, a0: Mo.a0, a1: Mo.a1 }); j.s0 = Mo.sMid;   // 22-akina.js 的停止線從這裡往後量
+    }
+    // 照 cut 把支路那一頭剪掉 Lm 公尺（畫面用的折線）
+    const trim = (R, from, Lm) => {
+      const A = from ? [...R].reverse() : [...R]; let acc = 0, i = 0;
+      while (i + 1 < A.length && acc + Math.hypot(A[i + 1][0] - A[i][0], A[i + 1][1] - A[i][1]) < Lm) { acc += Math.hypot(A[i + 1][0] - A[i][0], A[i + 1][1] - A[i][1]); i++; }
+      if (i + 1 >= A.length) return A.slice(-2);
+      const l = Math.hypot(A[i + 1][0] - A[i][0], A[i + 1][1] - A[i][1]) || 1, f = (Lm - acc) / l, P0 = [A[i][0] + (A[i + 1][0] - A[i][0]) * f, A[i][1] + (A[i + 1][1] - A[i][1]) * f, A[i][2] + (A[i + 1][2] - A[i][2]) * f];
+      const out = [P0, ...A.slice(i + 1)]; return from ? out.reverse() : out;
+    };
+    const visPts = R => { const c2 = cut.get(R); if (!c2) return R; let V = R; if (c2.a) V = trim(V, 0, c2.a); if (c2.b) V = trim(V, 1, c2.b); return Object.assign(V, { akina: R.akina }); };
+    for (const pts0 of roads) {
+      const pts = visPts(pts0), gaps = GAPS.get(pts0);
       // 榛嶺山道（09-akina.js）照日本的山路：淺一點的柏油、水泥路緣、黃色實線的中線（禁止超車）、兩側白色的路側線，沒有路燈；
       // 別墅區的山路照同一套參考圖（使用者：別墅區的樣式同步），只是留著路燈
       const ak = pts.akina;
-      strip(pts, -ROAD_HW - 1.1, -ROAD_HW, .22, 0x77746c, TX.conc); strip(pts, ROAD_HW, ROAD_HW + 1.1, .22, 0x77746c, TX.conc);
+      strip(pts, -ROAD_HW - 1.1, -ROAD_HW, .22, 0x77746c, TX.conc, false, gaps); strip(pts, ROAD_HW, ROAD_HW + 1.1, .22, 0x77746c, TX.conc, false, gaps);   // 水泥路肩在路口開口也斷開（喇叭口從柏油邊鋪起）
       {   // 使用者：路太乾淨。柏油改用連接道路的路面著色器（MAT.roadConn：柏油貼圖、補丁、裂縫、磨損的中央雙黃線；aUV 是（橫向、沿路）的公尺數），白色邊線也髒一點
         const P = [], N = [], UV = [], AX = [], I = []; let u = 0;
         for (let i = 0; i < pts.length; i++) {
@@ -1589,11 +1670,12 @@ const HILL_FOREST = { fir: [], maple: [], broad: [], pine: [], und: { fern: [], 
         const ag = new T.BufferGeometry(); ag.setAttribute('position', new T.Float32BufferAttribute(P, 3)); ag.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
         ag.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); ag.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2)); ag.setIndex(I); ag.computeVertexNormals(); ag.computeBoundingSphere();
         const am = new T.Mesh(ag, MAT.roadConn); am.name = ak ? 'akinaAsphalt' : 'hillAsphalt'; groundAdd(am, null);
-        strip(pts, -ROAD_HW + .2, -ROAD_HW + .36, .27, 0xbdbcb4, 2); strip(pts, ROAD_HW - .36, ROAD_HW - .2, .27, 0xbdbcb4, 2);
+        strip(pts, -ROAD_HW + .2, -ROAD_HW + .36, .27, 0xbdbcb4, 2, false, gaps); strip(pts, ROAD_HW - .36, ROAD_HW - .2, .27, 0xbdbcb4, 2, false, gaps);
       }
       for (let i = 4; !ak && i < pts.length - 1; i += 9) {   // 榛嶺沒有路燈，22-akina.js 立電線桿；別墅區的路燈換成水泥桿（參考圖的電線桿）掛一支燈臂
         const [x, z] = pts[i], o = pts[i + 1], L = Math.hypot(o[0] - x, o[1] - z), nx = -(o[1] - z) / L, nz = (o[0] - x) / L, sd = i % 18 ? 1 : -1;
         const lx = x + nx * sd * (ROAD_HW + .8), lz = z + nz * sd * (ROAD_HW + .8), y = hillMeshH(lx, lz);
+        if (gaps && mouthGap(gaps, x, z, sd, 3)) continue;   // 路口的喇叭口上不立燈桿
         rk.cyl(lx, y + 3.6, lz, .1, .15, 7.2, 8, 0x9c9b95, TX.conc).bar(lx, y + 5.9, lz, lx - nx * sd * 1.4, y + 6, lz - nz * sd * 1.4, .1, .08, 0x3a3d40, TX.enamel);
         rk.box(lx - nx * sd * 1.4, y + 5.92, lz - nz * sd * 1.4, .45, .1, .22, 0xffd9a0, 11);
         (HILL.lampHeads ||= []).push({ x: lx - nx * sd * 1.4, z: lz - nz * sd * 1.4, t: 0, y: Math.max(y - 1.18, -.4) });   // 22-akina.js 寫進路燈表（燈頭高 = 7.1 + y），晚上照亮路面

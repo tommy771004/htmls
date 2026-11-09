@@ -1007,6 +1007,7 @@ const FAR_SITES = {
     // 粗網格的平滑法線（連細分掉的三角形一起算）：粗網格自己用它，細分的網格在沒挖到的地方（CV.w 是 0）也照它內插（頂點色也是），接縫兩邊的光影才一樣
     const CN = (() => { const t = new T.BufferGeometry(); t.setAttribute('position', new T.BufferAttribute(pos, 3)); t.setIndex([...idx, ...subs.flat()]); t.computeVertexNormals(); return t.attributes.normal.array; })();
     // 細分：每個三角形切成 N×N 份（同一區的 N 都一樣，相鄰三角形的共用邊上頂點才對得起來），頂點照位置合併；法線照合併後的網格算
+    const BUILT = [];   // 先把每一區細分好，壓完路邊（下面）再建網格
     CARVES.forEach((CV, ci) => {
       const sub = subs[ci]; if (!sub.length) return;
       let el = 0;
@@ -1032,6 +1033,29 @@ const FAR_SITES = {
           if (j < N - i - 1) si.push(id[i + 1][j], id[i + 1][j + 1], id[i][j + 1]);
         }
       }
+      BUILT.push({ CV, sub, N, sp, sc, si, sn });
+    });
+    // 路面、路緣不被細格子的地形蓋過：三角形是頂點高度的線性內插，路緣外挖方坡（1.4:1）上的頂點內插過來會凸出路面（格距 2–14 m；連絡路最多高 1 m、別墅區山路 0.4 m、榛嶺 0.7 m）。
+    // 可能碰到路面＋路緣（離中線 ROAD_HW + 1.1）的細三角形（最近的頂點離路 − 最長邊 < 那個寬度），三個頂點都壓到路的縱斷面 + 0.08（柏油是 + 0.25）；
+    // 照頂點位置記（各區共用邊上的頂點一起壓，不會裂開）；幾條路的高度差 3 m 內（路口）取低的，再多就是榛嶺髮夾彎上下疊，取高的那條（不在上段的路肩挖洞）。只改畫面，hillMeshH（走路、車輪）照舊
+    if (HILL.roadNear) {
+      const B = HILL.roadHW + 1.1, CAP = new Map(), key = (X, Z) => Math.round(X * 20) + ',' + Math.round(Z * 20);
+      for (const { sp, si } of BUILT) {
+        const nv = sp.length / 3, D = new Float32Array(nv), Y = new Float32Array(nv);
+        for (let v = 0; v < nv; v++) { const q = HILL.roadNear(sp[v * 3], sp[v * 3 + 2], B + 16); D[v] = q ? q.d : 1e9; Y[v] = q ? q.y : 0; }
+        const L = (a, b) => Math.hypot(sp[a * 3] - sp[b * 3], sp[a * 3 + 2] - sp[b * 3 + 2]);
+        for (let t = 0; t < si.length; t += 3) {
+          const a = si[t], b = si[t + 1], c = si[t + 2]; let k = a; if (D[b] < D[k]) k = b; if (D[c] < D[k]) k = c;
+          if (D[k] > 1e8 || D[k] - Math.max(L(a, b), L(b, c), L(c, a)) >= B) continue;
+          const y = Y[k] + .08;
+          for (const v of [a, b, c]) { const kk = key(sp[v * 3], sp[v * 3 + 2]), o = CAP.get(kk); if (!o) CAP.set(kk, [y, y]); else { o[0] = Math.min(o[0], y); o[1] = Math.max(o[1], y); } }
+        }
+      }
+      let n = 0;
+      for (const { sp } of BUILT) for (let v = 0; v < sp.length / 3; v++) { const o = CAP.get(key(sp[v * 3], sp[v * 3 + 2])), y = o ? (o[1] - o[0] < 3 ? o[0] : o[1]) : Infinity; if (sp[v * 3 + 1] > y) { sp[v * 3 + 1] = y; n++; } }
+      HILL.roadSinkN = n;
+    }
+    BUILT.forEach(({ CV, sub, N, sp, sc, si, sn }) => {
       const g = new T.BufferGeometry();
       g.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); g.setAttribute('color', new T.Float32BufferAttribute(sc, 3)); g.setAttribute('aMat', new T.Float32BufferAttribute(CV.mat ? Array.from({ length: sp.length / 3 }, (_, v) => CV.mat(sp[v * 3], sp[v * 3 + 2])) : new Array(sp.length / 3).fill(TX.hill), 1));
       g.setIndex(si); g.computeVertexNormals(); g.computeBoundingSphere();

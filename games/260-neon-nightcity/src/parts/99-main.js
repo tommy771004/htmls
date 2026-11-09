@@ -166,6 +166,31 @@ function rayBox(ox, oz, dx, dz, b, pad = 0) {
   }
   return t0;
 }
+// 地形擋住視線（2026-11-09，使用者：山路兩邊都是山時視角變成俯視）：以前只在相機那一點把高度夾到地面以上，
+// 相機甩到山坡上方時被頂高十幾公尺、往下看。改成沿「角色 → 相機」量 CAM_N 點的地面：照原本的仰角看得到就不動；
+// 被擋時先把仰角抬高（最多 CAM_LIFT），還是被擋就照那個仰角拉近到最先撞到的那一點前面（不近於 CAM_MIN）。最後一樣夾地板與天花板
+const CAM_N = 10, CAM_LIFT = .3, CAM_MIN = .9, _camT = [0, 0, 0];
+// 相機的地面：先問 deckAt（城外的山是 29-villa.js 的 hillDeck，有算山路的挖填；快速道路的橋面），沒有才用 seaFloor。
+// seaFloor 在城外回傳沒挖過的 hillH：山路從山脊挖過去的地方原本的山比路面高一百多公尺，相機被頂到那上面往下看（使用者回報的俯視）
+const camGround = (x, z, y0) => deckAt(x, z, y0) ?? Math.max(seaFloor(x, z), SEA_Y);
+const camFloor = (x, z, y0) => { const f = camGround(x, z, y0) + .35; if (!WALKS.length) return f; const w = walkAt(x, z, y0, 1); return w == null ? f : w + .35; };
+function camTerrain(ox, oy, oz, wx, wy, wz, y0) {
+  const dx = wx - ox, dz = wz - oz, hd = Math.hypot(dx, dz);
+  if (hd < CAM_MIN) return false;
+  const ux = dx / hd, uz = dz / hd, dist = Math.hypot(hd, wy - oy), e0 = Math.atan2(wy - oy, hd);
+  let need = -9;
+  for (let k = 1; k <= CAM_N; k++) { const s = hd * k / CAM_N; need = Math.max(need, Math.atan2(camFloor(ox + ux * s, oz + uz * s, y0) - oy, s)); }
+  if (need <= e0) return false;
+  const e = Math.min(need, e0 + CAM_LIFT), te = Math.tan(e);
+  let L = dist;
+  if (need > e) {   // 抬到上限還被擋：沿這個仰角往外走，停在撞到的那一點前面
+    const h = dist * Math.cos(e);
+    for (let k = 1; k <= CAM_N; k++) { const s = h * k / CAM_N; if (oy + te * s < camFloor(ox + ux * s, oz + uz * s, y0)) { L = Math.max(CAM_MIN, h * (k - .5) / CAM_N / Math.cos(e)); break; } }
+  }
+  const hh = L * Math.cos(e);
+  _camT[0] = ox + ux * hh; _camT[1] = oy + L * Math.sin(e); _camT[2] = oz + uz * hh;
+  return true;
+}
 function updateCamera(dt, spd) {
   const p = player, inV = p.mode === 'drive';
   camState.idle += dt;
@@ -213,7 +238,8 @@ function updateCamera(dt, spd) {
   if (tmin < 1) { const t = Math.max(.12, tmin * .92); wx = ox + (wx - ox) * t; wz = oz + (wz - oz) * t; wy = ty + (wy - ty) * t; }
   // 室內：有第二層的安全屋（69-safehouse.js）地板跟著所在的層，天花板依位置（夾層下比較低，相機與角色兩處取低的）
   const V = p.where === 'out' ? null : VENUES[p.where];
-  let wk = null; if (!V) { wk = walkCam(wx, wz, inV ? p.veh.y : p.y, Math.max(seaFloor(wx, wz), SEA_Y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
+  if (!V && !(p.air3 && p.air3.kind !== 'eject') && camTerrain(ox, ty, oz, wx, wy, wz, inV ? p.veh.y : p.y)) { wx = _camT[0]; wy = _camT[1]; wz = _camT[2]; }   // 山坡擋在視線上：先抬一點，再不行就拉近
+  let wk = null; if (!V) { wk = walkCam(wx, wz, inV ? p.veh.y : p.y, camGround(wx, wz, inV ? p.veh.y : p.y)); wx = wk[2]; wz = wk[3]; }   // 北嶺鐵道橋的橋面與隧道（20-walk.js）
   const floor = (V ? (V.floorAt ? V.floorAt(wx, wz) : V.lvY || 0) : wk[0]) + .35;   // 有 floorAt 的場館（峰頂觀景環的雪地）照相機的位置問
   const ceil = !V ? wk[1] : V.ceilAt ? Math.min(V.ceilAt(wx, wz), V.ceilAt(tx, tz)) : V.ceil;
   wy = clamp(wy, floor, ceil);
@@ -279,7 +305,7 @@ function pickLights(t) {
 const HEAD_COL = lin(0xfff0d8), POL_R = lin(0xff1030), POL_B = lin(0x2050ff);
 
 // ─── 主迴圈 ───
-let last = performance.now(), T0 = last, frames = 0, fpsT = 0, fps = 60;
+let last = performance.now(), T0 = last, frames = 0, fpsT = 0, fps = 60, capT = 0;
 function step(dt) {
   const t = (performance.now() - T0) / 1000;
   U.uTime.value = t;
@@ -378,7 +404,9 @@ function loop(now) {
   requestAnimationFrame(loop);
   if (SUMMIT.on) { T0 += now - last; last = now; SUMMIT.frame(now); return; }   // 97-summit.js：峰頂觀景環（城市停住，uTime 不走）
   if (menu.on) { T0 += now - last; last = now; menuIdle(); return; }   // 95-menu.js：暫停時世界停住（uTime 也不走），只在改了畫面設定時重畫
-  if (SET.fps && now - last < 1000 / SET.fps - 2) return;   // 幀率上限
+  // 幀率上限：照目標時間累進（capT 每畫一幀往後推一個間隔，到點後的第一個 vsync 就畫，容許 2 ms 的 rAF 抖動）。
+  // 舊的「離上次不到 1000/fps − 2 ms 就跳過」在 144 Hz 螢幕上要等第三個 vsync（20.8 ms），上限 60 實際只有 48 fps，慢一點就掉到 36（使用者回報 20–40 fps）
+  if (SET.fps) { const iv = 1000 / SET.fps; if (now < capT - 2) return; capT = Math.max(capT + iv, now); }
   const raw = Math.min(.05, (now - last) / 1000); last = now;
   // 子彈時間（武器轉盤、WASTED／BUSTED）：遊戲時間放慢，uTime 也跟著慢（T0 往後推）
   slowmo.raw = raw;

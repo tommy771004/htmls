@@ -96,12 +96,37 @@ function facYMat(far) {
   if (!facYMats.has(k)) facYMats.set(k, new T.ShaderMaterial({ name: 'facade', uniforms: MAT_FACADE.uniforms, defines: far ? { FAR: far.toFixed(3), YB: '1' } : { YB: '1' } }));
   return facYMats.get(k);
 }
+// 同一個物件裡共用同一個材質的零件合併成一個幾何（propObject 一份少畫幾個 draw，w2Inst 少幾個 InstancedMesh）：原檔常把一個物件拆成十幾個網格、只用兩三種材質
+// （2026-11-09 觀測：白天街道主畫面 693 個 draw 裡約 65 個是這種，沙灘救生員塔一座 10～13 個網格只有 2 種材質）。半透明的不併（彼此要照距離排序），
+// 屬性不同、有 morph 的不併；建築組不經過這裡（bldPut 照分塊與材質合併）。?merge=0 關掉（比對用）
+const PROP_MERGE = !/[?&]merge=0\b/.test(location.search), propMergeN = { in: 0, out: 0 };
+async function propMerge(parts, clk) {
+  propMergeN.in += parts.length;
+  if (!PROP_MERGE || parts.length < 2) { propMergeN.out += parts.length; return parts; }
+  const by = new Map(), out = [];
+  for (const p of parts) {
+    const g = p.geo, key = p.mat.transparent || Object.keys(g.morphAttributes).length ? null : p.mat.uuid + '|' + !!g.index + '|' + Object.entries(g.attributes).map(([k, a]) => k + a.itemSize).sort().join(',');
+    let e = key && by.get(key);
+    if (!e) { e = { p, list: [] }; out.push(e); if (key) by.set(key, e); }
+    e.list.push(g);
+  }
+  const res = [];
+  for (const e of out) {
+    if (e.list.length === 1) { res.push(e.p); continue; }
+    const g = mergeGeometries(e.list);
+    if (!g) { for (const p of parts) if (p.mat === e.p.mat && e.list.includes(p.geo)) res.push(p); continue; }   // 合不起來：照舊分開
+    for (const x of e.list) x.dispose();
+    res.push({ ...e.p, geo: g }); await clk.tick();
+  }
+  propMergeN.out += res.length;
+  return res;
+}
 // 一個輸出檔 → { 物件 id: { parts: [{ geo, mat, src（原檔材質名） }], w, d, h } }
 function loadProps(set) {
   if (!GLB_ON || !PROPS_SPEC[set]) return Promise.resolve(null);
   const key = 'p:' + set;
   return propCache[set] ??= glbLoader.loadAsync(PROP_BASE + set + '.glb', e => { glbBytes[key] = [e.loaded, e.lengthComputable ? e.total : 0]; }).then(g => warmJob(async () => {
-    const clk = warmClock();
+    const clk = warmClock(), bldSet = bldPlace.some(b => b.set === set);
     g.scene.updateMatrixWorld(true);
     const items = {};
     for (const n of g.scene.children) {
@@ -112,7 +137,7 @@ function loadProps(set) {
         if (fac) for (const [k, to] of [['_fuv', 'uv'], ['_fb', 'aB'], ['_fb2', 'aB2']]) { geo.setAttribute(to, geo.getAttribute(k)); geo.deleteAttribute(k); }
         parts.push({ geo, mat: fac ? facYMat(PROPS_SPEC[set].far && FAR_FOG) : propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)), src: m.material.name }); await clk.tick();
       }
-      items[n.name] = { parts, ...PROPS_SPEC[set].items[n.name] };
+      items[n.name] = { parts: bldSet ? parts : await propMerge(parts, clk), ...PROPS_SPEC[set].items[n.name] };
     }
     perfTags.push(['道具 ' + set, clk.ms()]);
     const parts = Object.values(items).flatMap(it => it.parts);
@@ -321,8 +346,8 @@ const isleTreeList = () => ISLE_TREES.map(t => ({ ...t, park: 1 }));
 // ?w2=0：不換這一輪的模型（比較效能、除錯用）
 if (/[?&]w2=0\b/.test(location.search)) W2.on = false;
 if (W2.on) {
-  const FOREST_R = 190;   // 山林近景樹（每棵四五千面）的串流半徑
-  const TREE_R = 200;   // 樹的面數多：只送 200 m 內的實例，外面用程式建模的樹（畫到 380 m）
+  const FOREST_R = 130;   // 山林近景樹（每棵四五千面）的串流半徑（2026-11-09 從 190 縮到 130，乘上細節距離；外面是 50-assets.js 程式建模的簡模，GTA V 的近景樹也只到一百公尺上下）
+  const TREE_R = 140;   // 樹的面數多：只送 140 m 內的實例（2026-11-09 從 200 縮），外面用程式建模的樹（畫到 380 m）
   const W2R = { small: 110, mid: 160 };   // 小件（垃圾桶、消防栓、報紙箱、灌木）與中件（長椅、電話亭、陽傘）的串流半徑
   w2Ready = Promise.all([
     // ─── 人行道：消防栓（street.glb）、垃圾桶四款、電話亭、報紙箱；公園的長椅與野餐桌；海濱與岬角的長椅、岬角的野餐桌 ───
@@ -375,7 +400,7 @@ if (W2.on) {
       w2Group(trees, 7, treePick).slice(0, 4).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, TREE_R));
       w2Group(isleTreeList(), 7, treePick).slice(0, 4).forEach((L, k) => w2Inst(it[MIX[k]], L, 0, 700));   // 島上的樹少，從岸邊看得到
       // 程式建模的行道樹留著當遠景：只畫在 TREE_R 外（20-props 的 stream.R0），近處換成模型
-      if (treeMesh.userData.stream) treeMesh.userData.stream.R0 = TREE_R - 6; else w2Drop(treeMesh);
+      if (treeMesh.userData.stream) Object.defineProperty(treeMesh.userData.stream, 'R0', { get: () => (TREE_R - 6) * detailK() }); else w2Drop(treeMesh);   // 跟著細節距離（近景模型的半徑乘了 detailK，原本寫死的 R0 在細節距離 < 1 時中間空一圈沒有樹）
       w2Drop(isleTreeMesh);
       W2.swapped.push('trees'); W2.n.trees = trees.length + ISLE_TREES.length;
     }),

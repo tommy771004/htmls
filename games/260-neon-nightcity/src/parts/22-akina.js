@@ -182,19 +182,12 @@ if (AKINA && AKINA.road) {
   }
   // 支路
   for (const j of R.jun) {
-    const [x, z, y] = R[j.k], P = [], N = [], UV = [], AX = [], I = [], L = 26, M = 14, px = j.dz, pz = -j.dx;
-    for (let i = 0; i <= M; i++) {
-      const s = L * i / M, cx = x + j.dx * s, cz = z + j.dz * s, t = sm01((s - HW) / (L - HW)), tg = hillMeshH(cx, cz), cy = (Number.isFinite(tg) ? y + (tg - y) * t : y) + .24 - (i === M ? .3 : 0);
-      for (const off of [-j.hwd, 0, j.hwd]) { P.push(cx + px * off, cy, cz + pz * off); N.push(0, 1, 0); UV.push(off, s); AX.push(px, pz); }
-      if (i) { const b = (i - 1) * 3; I.push(b, b + 3, b + 1, b + 1, b + 3, b + 4, b + 1, b + 4, b + 2, b + 2, b + 4, b + 5); }
-    }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
-    g.setAttribute('aUV', new T.Float32BufferAttribute(UV, 2)); g.setAttribute('aAx', new T.Float32BufferAttribute(AX, 2)); g.setIndex(I); g.computeVertexNormals(); g.computeBoundingSphere();
-    const m = new T.Mesh(g, MAT.roadConn); m.name = 'akinaSpur'; groundAdd(m, null); osm.spur++;
+    // 支路的柏油是 10-city.js 的路口喇叭口（roadMouth，從主線柏油邊鋪起、轉角張開，主線的白邊線在那裡留開口），這裡只立停止線與標誌
+    const [x, z, y] = R[j.k]; osm.spur++;
     if (j.hw === 'tertiary' || j.hw === 'unclassified') {   // 往山道開的那一側（車道在右）：停止線與停車再開（倒三角，紅底白邊）
-      const s0 = HW + 2.6, rx = j.dz, rz = -j.dx, sx = x + j.dx * s0 + rx * j.hwd / 2, sz = z + j.dz * s0 + rz * j.hwd / 2, sy = hillMeshH(sx, sz);
+      const s0 = (j.s0 || HW) + 2.6, rx = j.dz, rz = -j.dx, sx = x + j.dx * s0 + rx * j.hwd / 2, sz = z + j.dz * s0 + rz * j.hwd / 2, sy = hillMeshH(sx, sz);
       if (Number.isFinite(sy)) rk.box(sx, Math.max(sy, y) + .27, sz, j.hwd, .02, .45, 0xc9c8c0, 2, 0, Math.atan2(-rz, rx), 0);
-      const qx = x + j.dx * (HW + 3.4) + rx * (j.hwd + .8), qz = z + j.dz * (HW + 3.4) + rz * (j.hwd + .8), qy = hillMeshH(qx, qz), ry = Math.atan2(j.dx, j.dz);
+      const qx = x + j.dx * (s0 + .8) + rx * (j.hwd + .8), qz = z + j.dz * (s0 + .8) + rz * (j.hwd + .8), qy = hillMeshH(qx, qz), ry = Math.atan2(j.dx, j.dz);
       if (Number.isFinite(qy)) {
         rk.cyl(qx, qy + 1.1, qz, .03, .03, 2.2, 6, 0x9a9da0, TX.galv);
         rk.add(flat(3, .46), 0x9a9da0, TX.galv, tf(...face(qx, qy + 2.05, qz, ry, 0, 0, -.025), 0, ry, 0)).add(flat(3, .46), 0xf2f2ee, 2, tf(...face(qx, qy + 2.05, qz, ry, 0, 0, -.01), 0, ry, 0)).add(flat(3, .38), 0xc4221c, 2, tf(...face(qx, qy + 2.05, qz, ry, 0, 0, .008), 0, ry, 0));

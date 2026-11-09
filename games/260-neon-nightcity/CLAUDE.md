@@ -52,6 +52,7 @@
 ## 載入、車、人
 
 - 下載後的處理要分幀做（`warmClock`／`warmSlice`，每幀共用 6 ms），放進場景前先 `glbWarm`。新增大量載入的工作也照這樣切片。
+- `loadProps` 回傳的 `it.parts` 已經把同一物件裡共用材質的不透明零件併成一個（`propMerge`，建築組除外）：零件數與順序不等於原檔網格，不要用 `parts[i]` 指某個原檔網格；要分開動的零件（門扇、會轉的輪子）在 `tools/props.mjs` 拆成不同物件或不同材質。
 - 換車一律走 `applyCar(v, id, paint)`（玩家座駕只有一個物件，沿用 `kestrel`）。搶來或打壞的車流車是 `detachCar()` 建的臨時載具（`kind: 'jack'`），不走 `applyCar`，也不進存檔。
 - 重跑 `npm run cars`（`tools/cars.mjs`）會保留 `cars.json` 裡新規格沒有的欄位（`db`、`kit`、`door`、`sw`）。
 - 換過車內或修過的實車（換車內：viper、r8、svj、f40、sf90，glb 的 `asset.extras.cab`；只修：lc200、ramtrx、m3c、gt3rs，`asset.extras.fix`）：改車內是改 `blender/cab_<id>.py`、修正是改 `tools/cab-swap.mjs` 的 `FIX`，再跑 `tools/cab-swap.mjs <id>`（從 `.cache/cab-src/` 的原檔備份重做）；直接重跑 `cars.mjs` 會把這些換回原模型。

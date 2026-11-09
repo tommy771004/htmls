@@ -584,6 +584,26 @@ const ACC_K = .75;
 // 不再是方向打多少車頭就轉多少；手煞車甩尾不受限。重踩煞車時車頭吃重：轉向極限多 BRK_TURN，後輪側向抓地少 BRK_SLIP（循跡煞車會甩一點尾）。
 // 停住後要再按住煞車 REV_WAIT 秒才開始倒車，停車才停得準。車流與 AI 的車照舊（只算 player.veh）
 const LAT_K = 1.9, BRK_TURN = .15, BRK_SLIP = .3, REV_WAIT = .25;
+// 坡面貼地（2026-11-09，使用者：輪胎跟底盤沒有根據地形貼合，例如爬山）：前後軸（±軸距/2）與左右輪（±車寬 0.42）四點問地面高度，
+// 坡面的俯仰 v.tP、側傾 v.tR 轉在車架 v.g 上（汽車的輪子掛在車架，跟著一起斜；車身自己的加速俯仰與轉彎側傾疊在上面）。
+// 車身高度取「四點平均」與中心點較高的那個：谷底中心低、四輪高，只看中心會讓前後輪陷進坡裡。
+// 某一點和中心差超過 SLOPE_JUMP（橋面邊緣外是 8 m 下的地面、牆腳）就當作和中心同高，不讓車翻過去。
+// 疊在車頂、在水裡、離畫面遠的車流與警車不量（每台每幀多四次 groundH），慢慢回正
+const SLOPE_JUMP = 1, SLOPE_FAR = 140;
+function slopeTilt(v, gh, dt) {
+  let tp = 0, tr = 0, y = gh;
+  const far = v !== player.veh && (v.x - camera.position.x) ** 2 + (v.z - camera.position.z) ** 2 > SLOPE_FAR * SLOPE_FAR;
+  if (!v.onCar && !v.flood && !far) {
+    const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), a = (v.wb || 2.6) / 2, b = v.isCar ? v.w * .42 : 0;
+    const h = (dx, dz) => { const X = v.x + dx, Z = v.z + dz, g = deckAt(X, Z, v.y) ?? groundH(X, Z); return Math.abs(g - gh) > SLOPE_JUMP ? gh : g; };
+    const hF = h(fx * a, fz * a), hB = h(-fx * a, -fz * a);
+    tp = Math.atan2(hB - hF, 2 * a);
+    if (b) { const hL = h(fz * b, -fx * b), hR = h(-fz * b, fx * b); tr = Math.atan2(hL - hR, 2 * b); y = Math.max(gh, (hF + hB + hL + hR) / 4); }   // 左邊是 −右向量 (−rx, −rz) = (fz, −fx)
+    else y = Math.max(gh, (hF + hB) / 2);
+  }
+  v.tP = damp(v.tP || 0, tp, 14, dt); v.tR = damp(v.tR || 0, tr, 14, dt);
+  return y;
+}
 function driveVehicle(v, inp, dt) {
   if (v.bail && v !== player.veh) inp = BAIL_INP;   // 68-wreck.js：起火後駕駛跳車，車子滑行到停
   if (v.tumble) return rollStep(v, dt);   // 68-roll.js：翻滾中、側躺或倒扣
@@ -633,7 +653,8 @@ function driveVehicle(v, inp, dt) {
   if (hold && hold.piv) { const h = wb / 2; v.vx = (fx - nfx) * h / dt; v.vz = (fz - nfz) * h / dt; }   // 甜甜圈：前軸那一點不動，車尾甩出去
   v.x += v.vx * dt; v.z += v.vz * dt;
   const imp = vehicleCollide(v, dt);
-  const gh = v.isCar ? surfaceH(v) : deckAt(v.x, v.z, v.y) ?? groundH(v.x, v.z);   // 68-roll.js：疊在別台車的車頂上；06-roads.js：快速道路的橋面
+  let gh = v.isCar ? surfaceH(v) : deckAt(v.x, v.z, v.y) ?? groundH(v.x, v.z);   // 68-roll.js：疊在別台車的車頂上；06-roads.js：快速道路的橋面
+  gh = slopeTilt(v, gh, dt);   // 坡面：車架照四輪著地點傾斜（山路），車身高度取四輪平面
   v.y = vdWater(v, dt, gh) ?? damp(v.y, gh, 18, dt);   // 68-vdetail.js：下水、沉到海底
   // 車身姿態：側傾、俯仰、機車壓車
   const latA = vF * v.yr;
@@ -652,7 +673,8 @@ function driveVehicle(v, inp, dt) {
 const _rake = V3();
 function poseVehicle(v) {
   v.g.position.set(v.x, v.y, v.z);
-  v.g.rotation.set(0, v.yaw, 0);
+  const slope = !(v.air || v.tumble || v.flipped || v.boat || v.fly);   // 跳台飛行、翻車、船、直升機照自己的姿態
+  v.g.rotation.set(slope ? v.tP || 0 : 0, v.yaw, slope && v.isCar ? v.tR || 0 : 0, 'YXZ');   // 坡面（slopeTilt）
   v.body.rotation.set(v.pitch + (v.sagP || 0) + (v.hydP || 0), 0, (v.isCar ? v.roll : v.lean) + (v.sagR || 0) + (v.hydR || 0), 'YXZ');   // sag：68-wreck.js 的破胎下沉；hyd：69-v6-customs.js 的液壓起伏
   // 跳台飛行中（69-stunt.js）與翻車（68-roll.js）繞車身中心翻轉，平常繞著地面
   if ((v.air || v.tumble || v.flipped) && v.isCar) { const h = .7, cr = Math.cos(v.roll); v.body.position.set(h * Math.sin(v.roll), h * (1 - cr * Math.cos(v.pitch)), -h * cr * Math.sin(v.pitch)); }

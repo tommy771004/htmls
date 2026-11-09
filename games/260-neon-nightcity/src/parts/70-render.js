@@ -7,8 +7,11 @@ const reflCam = new T.PerspectiveCamera(); reflCam.layers.set(LY.MAIN);
 for (const m of groundMeshes) m.layers.set(LY.NOREFL);
 let DPR = Math.min(devicePixelRatio || 1, GT().dpr);   // 00-core.js 的畫質等級：解析度上限
 R.setPixelRatio(DPR);
-// 固定的內部解析度比例：'1080p' 是短邊 1080 px（螢幕本身不到 1080 就照螢幕的實際像素，不超取樣；觸控裝置不超過等級的 DPR 上限，手機照舊），數字照比例；'auto' 從 100% 開始
-const resScale = () => { if (SET.res !== '1080p') return typeof SET.res === 'number' ? SET.res : 1; const s = Math.min(innerWidth, innerHeight), k = Math.min(1080, s * (devicePixelRatio || 1)) / (s * DPR); return isTouch ? Math.min(k, 1) : k; };
+// 固定的內部解析度比例：'1080p' 是短邊 1080 px（螢幕本身不到 1080 就照螢幕的實際像素，不超取樣；觸控裝置不超過等級的 DPR 上限，手機照舊），數字照比例；
+// 'auto'（預設，2026-11-09）從 1080p 那一檔開始（原本從 100% 起：2560 寬的視窗是 1080p 的 1.5 倍像素，開場一定先卡一陣子才降），最低到 1080p 的七成（resMin）
+const res1080 = () => { const s = Math.min(innerWidth, innerHeight), k = Math.min(1080, s * (devicePixelRatio || 1)) / (s * DPR); return isTouch ? Math.min(k, 1) : k; };
+const resScale = () => SET.res === '1080p' ? res1080() : typeof SET.res === 'number' ? SET.res : Math.min(1, res1080());
+const resMin = () => Math.min(.6, res1080() * .7);
 // gray／vig／hurt：69-combat.js 的 WASTED／BUSTED 去色與暗角、受傷時畫面邊緣泛紅
 // reflHalf：倒影隔幀畫（依幀時調整在 CPU 送不完時打開）；ceil：自動解析度往上升的上限（在 1 以上降過一次就停在那一檔下面）
 const post = { reflHalf: false, ceil: 9, scale: resScale(), blur: .5 * SET.blur, exposure: 1.18, wobble: 0, ft: 16, vs: 16.7, cool: 0, slow: 0, fast: 0, gray: 0, vig: 0, hurt: 0, tint: new T.Vector4(1, 1, 1, 0) };   // tint：特殊能力的調色（rgb 乘在亮度上，w 是強度）
@@ -264,8 +267,9 @@ function fogCullAt(p) { fogCull.on = fogCull.en && camera.position.y < 20; fogCu
 const reflCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null }, reflKeepM = new WeakMap();
 // 主畫面的遠處小物剔除（SET.farMin，0 關閉）：同一套做法用在主畫面，門檻是 rtScene 像素；包圍球整顆投影半徑小於門檻的不透明物件不畫。
 // 2026-11-01 觀測模型：中距離視角約 1080 個 draw 裡約 90 個是 2 km 外不到半像素的建築與設施模型（glb）。InstancedMesh 的球是全部實例合起來的，不適用。
-// 0.5 px（預設）與 1 px 在 tools/lossless.mjs 的六個視角都和關閉時逐像素相同（差異在暫停畫面本身的雜訊內）；中距離視角 draw −91（1 px 是 −149），CPU 送出只少 0.1～0.3 ms
-const farCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null };   // px：量測用的覆寫（null 照 SET.reflMin）
+// 0.5 px（預設）與 1 px 在 tools/lossless.mjs 的六個視角都和關閉時逐像素相同（差異在暫停畫面本身的雜訊內）；中距離視角 draw −91（1 px 是 −149），CPU 送出只少 0.1～0.3 ms。
+// 2026-11-09 預設改 2 px：和 0.5 px 比，六個視角最多差 12 個像素、每個差 ≤ 4/255（多在霧裡）；中距離視角 draw 916 → 701、平面倒影視角 1310 → 1013（整幀 −0.4／−1.5 ms）
+const farCull = { px: null, t: 0, on: false, x: 0, y: 0, z: 0, k: 1, n: 0, log: null };   // px：量測用的覆寫（null 照 SET.farMin）
 const reflKeep = m => {
   if (Array.isArray(m)) return m.some(reflKeep);
   let v = reflKeepM.get(m);
@@ -293,15 +297,15 @@ T.Frustum.prototype.intersectsObject = function (o) {
 // 高處俯瞰時每幀白送五百多萬個三角形（2026-11-01 觀測模型：凍結畫面藏起這些 −2 ms）。實例照所在格子（實例本身座標，格寬照分布範圍取 8×8 左右）分群，
 // 每群一顆包住「實例中心＋幾何球半徑×縮放」的球，多留 INST_PAD；任一群碰到視錐就照舊整個畫（不重排、不改緩衝，畫出來的東西一樣）。
 // 實例矩陣改了（instanceMatrix.version）或 count 變了才重算；每幀都在改的（車流這類）連續 4 次就不分群，照舊。instCl.en = false 關掉比對，log = [] 記下剔掉的
-const INST_PAD = 2, instCl = { en: true, n: 0, f: 0, log: null }, _icS = new T.Sphere();
+const INST_EACH = 64, INST_EACH_CHURN = 128, INST_PAD = 2, instCl = { en: true, each: true, n: 0, f: 0, log: null }, _icS = new T.Sphere();
 function instClusters(o) {
   let C = o.userData.icl;
   const v = o.instanceMatrix.version, n = o.count;
   if (C && C.v === v && C.n === n) { if (C.s || C.churn < 4 || instCl.f - C.f <= 30) return C; }   // 每幀在改的停了 30 幀，再試著分群
-  else if (C && C.churn >= 4) { C.v = v; C.n = n; C.f = instCl.f; return C; }
+  else if (C && C.churn >= 4 && (n > INST_EACH_CHURN || !instCl.each)) { C.v = v; C.n = n; C.f = instCl.f; return C; }
   const churn = C && instCl.f - C.f <= 1 ? C.churn + 1 : 0;   // 連續幾幀都在改
   C = o.userData.icl = { v, n, churn, f: instCl.f, s: null };
-  if (churn >= 4 || n < 8) return C;
+  if (churn >= 4 && (n > INST_EACH_CHURN || !instCl.each) || !instCl.each && n < 8) return C;
   const g = o.geometry; if (g.boundingSphere === null) g.computeBoundingSphere();
   const gc = g.boundingSphere.center, gr = g.boundingSphere.radius, A = o.instanceMatrix.array;
   const X = new Float32Array(n), Y = new Float32Array(n), Z = new Float32Array(n), Rr = new Float32Array(n);
@@ -313,6 +317,13 @@ function instClusters(o) {
     if (X[i] < x0) x0 = X[i]; if (X[i] > x1) x1 = X[i]; if (Z[i] < z0) z0 = Z[i]; if (Z[i] > z1) z1 = Z[i];
   }
   if (!(x1 >= x0 && z1 >= z0)) return C;   // NaN：照舊
+  if (instCl.each && (n <= INST_EACH || churn >= 4)) {   // 實例不多（或每幀在改、但不多）：每個實例一顆球；縮成 0 或藏到地底的不算（全都是就整個不畫）
+    const S = [];
+    for (let i = 0; i < n; i++) if (Rr[i] > 1e-6 && Y[i] > -1000) S.push(X[i], Y[i], Z[i], Rr[i] + INST_PAD);
+    for (const q of S) if (!Number.isFinite(q)) return C;
+    C.s = new Float32Array(S);
+    return C;
+  }
   const cw = Math.max(16, (x1 - x0) / 8, (z1 - z0) / 8), nx = Math.floor((x1 - x0) / cw) + 1, nz = Math.floor((z1 - z0) / cw) + 1;
   const B = new Float32Array(nx * nz * 7).fill(NaN);   // 每格：x0 y0 z0 x1 y1 z1 最大半徑
   for (let i = 0; i < n; i++) {
@@ -338,11 +349,19 @@ function instAny(fr, o) {
 // 關掉視錐剔除的空實例：車流、路邊停車（uberTraf／uberPal）、uberTint、蒸氣、車底陰影與頭燈照地的 InstancedMesh 都設了 frustumCulled = false，
 // three 不會呼叫上面的 intersectsObject，count 0 時照樣送一次空的 draw（2026-11-01 戰鬥觀戰：每趟約 70 個，倒影與主畫面合計約一成二的 draw）。
 // 在走訪時先擋掉；開場預編（gfxCompiling.all、fogCull.empty 關掉）照舊放行。fogCull.emptyFc = false 可以關掉做 A/B
-fogCull.emptyFc = true;
+fogCull.emptyFc = true; fogCull.instFc = true;
+const INST_FC_MAT = new Set(['uberTraf', 'uberPal']);
 {
   const po = R._projectObject;
+  const fr = new T.Frustum(), pm = new T.Matrix4(), frVi = new T.Matrix4(), frPr = new T.Matrix4(); let frCam = null;
   R._projectObject = function (o, cam, go, rl, cc) {
     if (o.count === 0 && o.isInstancedMesh && fogCull.empty && fogCull.emptyFc && !gfxCompiling.all && o.children.length === 0) return;
+    // 車流（uberTraf）與路邊停車（uberPal）：實例每幀換位置，three 那顆合起來的球不會更新，所以關了視錐剔除；這裡照每台車的位置測（instClusters 的每實例球），
+    // 一台都不在視錐裡就整個不畫（2026-11-09 觀測：跟車時主畫面每幀約三十個這種白畫的 draw）。fogCull.instFc = false 關掉做 A/B
+    if (o.isInstancedMesh && !o.frustumCulled && o.count > 0 && fogCull.instFc && fogCull.empty && instCl.en && !gfxCompiling.all && o.visible && INST_FC_MAT.has(o.material.name) && o.layers.test(cam.layers)) {
+      if (frCam !== cam || !frVi.equals(cam.matrixWorldInverse) || !frPr.equals(cam.projectionMatrix)) { frCam = cam; frVi.copy(cam.matrixWorldInverse); frPr.copy(cam.projectionMatrix); pm.multiplyMatrices(frPr, frVi); fr.setFromProjectionMatrix(pm, cam.coordinateSystem, cam.reversedDepth); }
+      if (!instAny(fr, o)) { if (o.children.length === 0) return; }
+    }
     return po.call(this, o, cam, go, rl, cc);
   };
 }
@@ -420,7 +439,7 @@ function renderFrame(dt, t) {
   // 目標幀時：螢幕更新間隔（取最近最短的幀間隔，慢慢往上漂）與幀率上限取長的。60 Hz 螢幕的幀時不會低於 16.7 ms，
   // 所以「夠快」是貼著更新間隔；30 fps 上限時不能拿 19 ms 當太慢（不然一直降）。降過一次 15 秒內不升，免得在兩檔之間來回重建渲染目標
   const ms = slowmo.raw * 1000, rd = slowmo.raw;
-  post.ft = lerp(post.ft, ms, .05); post.vs = Math.min(post.vs + .01, Math.max(ms, 4)); post.cool = Math.max(0, post.cool - rd);
+  post.ft = lerp(post.ft, Math.min(ms, 50), .05);   // 單幀上限 50 ms：開場與瞬移時載入的一兩百 ms 尖峰原本會把平滑幀時推高，讓自動模式一開場就把倒影與細節距離降下去，之後回不來 post.vs = Math.min(post.vs + .01, Math.max(ms, 4)); post.cool = Math.max(0, post.cool - rd);
   const tgt = Math.max(post.vs, SET.fps ? 1000 / SET.fps : 0);
   if (post.ft > Math.max(19, tgt * 1.15)) { post.slow += rd; post.fast = 0; } else if (post.ft < Math.max(13, tgt * 1.04)) { post.fast += rd; post.slow = 0; } else { post.slow = post.fast = 0; }
   if (SET.res !== 'auto' || post.cool > 0) post.fast = 0;
@@ -428,11 +447,12 @@ function renderFrame(dt, t) {
   // 太慢時的順序：CPU 送不完（整幀 CPU 超過目標的八成）先讓戶外的倒影隔幀畫，再縮短細節距離；顯示卡畫不完先降內部解析度（到 60%），
   // 都到底了才動另一邊。變快時倒著放回來：距離 → 倒影（CPU 留得出倒影那一趟的餘裕才放）→ 解析度（可以超過 100%，到 resMax 為止）
   frameClk.cpu = lerp(frameClk.cpu, performance.now() - frameClk.t0, .05);
-  const cpuB = frameClk.cpu > tgt * .8, reflOn = outdoors && SET.refl;
+  // CPU 忙不忙照「至少 60 fps」算：144 Hz 螢幕的 tgt 只有 6.9 ms，原本拿它的八成（5.5 ms）比，幾乎每幀都算 CPU 忙，山路顯示卡畫不完時不降解析度、先去縮細節距離
+  const cpuB = frameClk.cpu > Math.max(tgt, 1000 / 60) * .8, reflOn = outdoors && SET.refl, rMin = resMin();
   if (post.slow > 1.2) {
     const s0 = post.scale;
-    if (reflOn && !post.reflHalf && (cpuB || post.scale <= .6)) post.reflHalf = true;
-    else if (post.scale > .6 && (!cpuB || detail.k <= .6)) { post.scale = Math.max(.6, post.scale - .1); makeTargets(); }
+    if (reflOn && !post.reflHalf && (cpuB || post.scale <= rMin)) post.reflHalf = true;
+    else if (post.scale > rMin && (!cpuB || detail.k <= .6)) { post.scale = Math.max(rMin, post.scale - .1); makeTargets(); }
     else if (detail.k > .6) { detail.k = Math.max(.6, detail.k - .1); detail.v++; }   // 縮短建築與街道設施的細節距離（01-settings.js）
     if (s0 > 1 && post.scale < s0) post.ceil = Math.min(post.ceil, s0 - .05);   // 超過 100% 降過一次就不再升回那一檔
     post.slow = 0; post.cool = 15;

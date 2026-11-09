@@ -102,8 +102,7 @@ function modApply(v, id = v.carId, glb) {
   if (v.modG) { v.modG.removeFromParent(); disposeKit(v.modG); v.modG = null; }
   if (!c.bike) { const g = modParts(id, m); if (g) { v.body.add(g); v.modG = g; } }
 }
-carHooks.push(modApply);
-modApply(kestrel);   // 65-motors.js 開場已經照存檔 applyCar 過一次（那時這個 hook 還沒掛上）
+carHooks.push(modApply);   // 開場的那一次 modApply(kestrel) 在檔案最後（改裝件用到下面的 const，這裡呼叫是 TDZ，存檔有前保桿等外觀件時開場當在 46%）
 
 // ─── 改裝件的外觀（程式建模，掛在車身上，跟著車身俯仰）：前下巴、防撞鋼架、尖刺鏟、鴨尾、GT 大尾翼、排氣尾管、側排管、底盤霓虹燈條 ───
 // 實車照 cars.json 的 kit（tools/kitfit.mjs 量的保險桿平面輪廓、側裙、尾箱後緣）貼著這台車的外形做；沒有 kit 的（以檔案開啟時的 traffic.glb 替身）照車長車寬擺
@@ -1071,3 +1070,4 @@ ctxHooks.push((p, near) => {
   if (chrome.parked && near(CHROME_CAR.x, CHROME_CAR.z, 3.8)) return { key: 'E', text: `改裝 <i>· ${kestrel.name}</i>`, fn: () => cwOpen() };
   return v6Downstairs(p, near);
 });
+modApply(kestrel);   // 65-motors.js 開場已經照存檔 applyCar 過一次（那時 carHooks 還沒掛上）；要等這個檔的 CARBON、kzD、kitTube 等 const 都宣告過
