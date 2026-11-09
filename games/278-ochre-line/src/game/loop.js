@@ -22,7 +22,7 @@ import { play as sfx } from '../audio/sfx.js';
 import { DRAW, AFTER_SHOT } from '../audio/cues.js';
 import { muzzleSmoke } from '../fx/particles.js';
 import { SYNC, netPre, netPost, netAct } from '../net/sync.js';
-import { world } from './weapons.js';
+import { world, clear } from './weapons.js';
 
 const S = LAYOUT.sites;
 const SCOPE_FOV = 0.32, SCOPE_SENS = Math.tan(SCOPE_FOV / 2) / Math.tan(Math.PI / 4);   // 開鏡時畫面轉速和腰射一樣
@@ -76,7 +76,10 @@ function tickMe(dt, cam) {
     else if (s === 9) quickSwap(m);
   }
   if (input.wheel) { const list = [m.primary, m.secondary, 'knife', ...m.nades, m.hasCharge && 'charge'].filter(Boolean), i = list.indexOf(m.cur); setCur(m, list[(i + (input.wheel > 0 ? 1 : list.length - 1)) % list.length]); input.wheel = 0; }
-  if (input.reload) { if (startReload(m)) { const r = WEAPONS[m.cur]; startReloadAnim(r.shell ? r.shell * Math.min(r.mag - m.ammo[m.cur], m.rsv[m.cur]) : m.reloadT, m.reloadTac); } }
+  // 打空自動換彈：最後一發的射擊間隔走完、還有備彈就開始換（以前只有 Bot 會，玩家按住左鍵只會一直空響）
+  const wr0 = WEAPONS[m.cur], dry = !!wr0?.mag && (m.ammo[m.cur] | 0) <= 0 && m.fireT <= 0 && m.reloadT <= 0 && (m.rsv[m.cur] | 0) > 0;
+  const rp = input.reloadPress; input.reloadPress = false;
+  if (input.reload || rp || dry) { if (startReload(m)) { const r = WEAPONS[m.cur]; startReloadAnim(r.shell ? r.shell * Math.min(r.mag - m.ammo[m.cur], m.rsv[m.cur]) : m.reloadT, m.reloadTac); } }
   if (input.inspect) { input.inspect = false; startInspect(); }
   // 開鏡：拔槍中、拉栓中不能開；拉栓時按右鍵是取消「拉完自動回鏡」
   if (input.alt && !altHeld && WEAPONS[m.cur]?.scope) { if (m.fireT > 0 && !G.scoped) rezoom = false; else G.scoped = !G.scoped; }
@@ -205,15 +208,23 @@ export function tick(dt, cam) {
   for (let i = G.log.length - 1; i >= 0; i--) G.log[i].t -= dt;
   zoneT -= dt;
   if (zoneT <= 0) {
-    zoneT = 0.3; const m = G.me; G.zone = '';
+    zoneT = 0.3; const m = !G.me.alive && G.agents[G.specIdx]?.alive ? G.agents[G.specIdx] : G.me; G.zone = '';   // 觀戰時是被看的人的位置
     for (const c of LAYOUT.callouts) if (m.x >= c.x0 && m.x <= c.x1 && m.z >= c.z0 && m.z <= c.z1 && (c.y1 === undefined || m.y < c.y1)) { G.zone = c.name; break; }
   }
   if (net) netPost();
 }
 
 // ── 陣亡鏡頭：先在倒下的位置轉向擊殺者，DEATH_HOLD 秒後跟在隊友背後觀戰（左鍵換人）；隊友全滅就看擊殺者 ──
-const DEATH_HOLD = 1.2, CHASE = 3.1, CHASE_UP = 0.55;
-const dead = { t: 0, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, cx: 0, cy: 0, cz: 0, snap: true, last: -1, wid: '', rl: false };
+const DEATH_HOLD = 1.2, CHASE = 3.2, CHASE_P = 0.18;
+const dead = { t: 0, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, cx: 0, cy: 0, cz: 0, snap: true, last: -1, wid: '', rl: false, ly: 0, oy: 0, op: 0, ep: 0, cd: 3.2, hide: false };
+/** 從頭往後拉鏡頭（朝向 yaw、俯角 p）能退多遠。 */
+function chaseRay(hx, hy, hz, yaw, p) {
+  const cp = Math.cos(p), dx = Math.sin(yaw) * cp, dy = -Math.sin(p), dz = Math.cos(yaw) * cp;
+  RAY_C.set(hx, hy, hz); RAY_D.set(hx - dx * CHASE, hy - dy * CHASE, hz - dz * CHASE);
+  const hit = world.ctx.ray(RAY_C, RAY_D); return hit.hasHit ? Math.max(0.4, hit.hitDistance - 0.3) : CHASE;
+}
+/** 陣亡觀戰的第三人稱：滑鼠繞著目標轉（main.js 在 look() 丟掉位移之前呼叫，已乘過靈敏度）。 */
+export function specMouse(dx, dy) { if (G.specFP || dead.t < DEATH_HOLD) return; dead.oy += dx; dead.op = Math.max(-0.45, Math.min(1.1, dead.op + dy)); }
 const RAY_C = new Vector3(), RAY_D = new Vector3();
 const wrapPi = d => d > Math.PI ? d - 2 * Math.PI : d < -Math.PI ? d + 2 * Math.PI : d;
 /** 換到下一個還活著的隊友；沒有隊友就看擊殺者。回傳觀戰對象或 null。 */
@@ -235,15 +246,19 @@ world.specShot = (a, dx, dy, dz) => {
   fireKick(); if (vm.cur.muzzle) { const q = muzzleTo(TMP_VEC_MZ); muzzle(q.x, q.y, q.z, dx, dy, dz, FLASH[a.cur] ?? 1); }
   return true;
 };
-function endSpecView() { if (G.specView) { G.specView = null; fpHide.s = null; hideViewmodel(); dead.wid = ''; } }
+function endSpecView() { if (G.specView) { G.specView = null; hideViewmodel(); dead.wid = ''; } fpHide.s = null; }
 function deathCam(cam, dt) {
   const m = G.me;
-  if (dead.t === 0) { dead.x = you.x; dead.y = you.y + you.eye; dead.z = you.z; dead.yaw = you.yaw; dead.pitch = you.pitch; dead.snap = true; dead.last = -1; dead.wid = ''; }
+  if (dead.t === 0) { dead.x = you.x; dead.y = you.y + you.eye; dead.z = you.z; dead.yaw = you.yaw; dead.pitch = you.pitch; dead.snap = true; dead.last = -1; dead.wid = '';
+    // 倒地高度：降到還看得到擊殺者的最低處，不要躲在掩體後面只看到箱子（只在陣亡那一刻算一次）
+    const k = G.killer, lo = you.y + 0.55; dead.ly = lo;
+    if (k && clear(dead.x, dead.y, dead.z, k.x, k.y + 1.4, k.z)) for (let i = 0; i <= 4; i++) { const h = lo + (dead.y - lo) * i / 4; if (clear(dead.x, h, dead.z, k.x, k.y + 1.4, k.z)) { dead.ly = h; break; } }
+  }
   dead.t += dt; G.deadT = dead.t;
   fovNow = Math.PI / 2; cam.fov = fovNow;
   if (dead.t < DEATH_HOLD) {
     // 倒下：視線降到地面附近，轉頭看向擊殺者
-    const k = G.killer, drop = Math.min(1, dead.t / 0.45), y = dead.y - (dead.y - (you.y + 0.55)) * drop * drop;
+    const k = G.killer, drop = Math.min(1, dead.t / 0.45), y = dead.y - (dead.y - dead.ly) * drop * drop;
     if (k) {
       const dx = k.rx - dead.x, dz = k.rz - dead.z, ty = Math.atan2(dx, dz), tp = Math.atan2(k.ry + (k.eye || 1.6) - y, Math.hypot(dx, dz)), e = Math.min(1, dt * 5);
       dead.yaw += wrapPi(ty - dead.yaw) * e; dead.pitch += (tp - dead.pitch) * e;
@@ -267,41 +282,50 @@ function deathCam(cam, dt) {
     return;
   }
   endSpecView();
-  // 跟在背後：轉向跟著目標，鏡頭被牆擋住就往目標拉近
-  const e = dead.snap ? 1 : Math.min(1, dt * 7);
-  dead.yaw += wrapPi(t.yaw - dead.yaw) * e;
-  const hx = t.rx, hy = t.ry + (t.eye || 1.6), hz = t.rz, sy = Math.sin(dead.yaw), cy = Math.cos(dead.yaw);
-  RAY_C.set(hx, hy, hz); RAY_D.set(hx - sy * CHASE, hy + CHASE_UP, hz - cy * CHASE);
-  const hit = world.ctx.ray(RAY_C, RAY_D), f = hit.hasHit ? Math.max(0.12, (hit.hitDistance - 0.3) / Math.hypot(CHASE, CHASE_UP)) : 1;
-  const px = hx - sy * CHASE * f, py = hy + CHASE_UP * f, pz = hz - cy * CHASE * f, pe = dead.snap ? 1 : Math.min(1, dt * 14);
-  dead.cx += (px - dead.cx) * pe; dead.cy += (py - dead.cy) * pe; dead.cz += (pz - dead.cz) * pe; dead.snap = false;
-  const lx = hx + sy * 2 - dead.cx, lz = hz + cy * 2 - dead.cz;   // 看目標前方一點，人在畫面中下方
-  cam.position.copyFromFloats(dead.cx, dead.cy, dead.cz);
-  cam.rotation.copyFromFloats(-Math.atan2(hy - 0.25 - dead.cy, Math.hypot(lx, lz)), Math.atan2(lx, lz), 0);
+  // 第三人稱：繞著目標的頭，方向由滑鼠決定（specMouse），換人時才擺到他背後。以前鏡頭追目標的朝向，Bot 一甩頭整個畫面就甩
+  if (dead.snap) { dead.oy = t.yaw; dead.op = dead.ep = CHASE_P; dead.cd = CHASE; dead.hide = false; }
+  const hx = t.rx, hy = t.ry + (t.eye || 1.6) - 0.15, hz = t.rz;
+  // 背後有牆：稍微往上抬（最多約 34°）能退到 1.3 m 以上才抬；抬了還是很近就不抬（抬高只會看到地板），
+  // 照玩家的仰角拉近，近到 0.8 m 內把目標的身體藏起來（同第一人稱觀戰），畫面不會整片都是他的背
+  let pick = dead.op;
+  if (chaseRay(hx, hy, hz, dead.oy, dead.op) < 1.3) for (let k = 1; k <= 2; k++) {
+    const p = Math.max(dead.op, Math.min(0.6, dead.op + k * 0.2));
+    if (p > dead.op && chaseRay(hx, hy, hz, dead.oy, p) >= 1.3) { pick = p; break; }
+  }
+  dead.ep += (pick - dead.ep) * (dead.snap ? 1 : Math.min(1, dt * 6));
+  const cp = Math.cos(dead.ep), dx = Math.sin(dead.oy) * cp, dy = -Math.sin(dead.ep), dz = Math.cos(dead.oy) * cp, d = chaseRay(hx, hy, hz, dead.oy, dead.ep);
+  dead.cd += (d - dead.cd) * (d < dead.cd || dead.snap ? 1 : Math.min(1, dt * 10));   // 撞牆立刻拉近，離開牆慢慢退回
+  dead.snap = false;
+  dead.hide = dead.cd < (dead.hide ? 1.0 : 0.8); fpHide.s = dead.hide ? t.soldier : null;   // 有遲滯，不會在門檻上閃
+  cam.position.copyFromFloats(hx - dx * dead.cd, hy - dy * dead.cd, hz - dz * dead.cd);
+  cam.rotation.copyFromFloats(dead.ep, dead.oy, 0);
   cam.computeWorldMatrix(true);
 }
 
 /** 每幀：內插、動畫選擇、相機。 */
+const MOVING = { walk_rifle: 1, walk_pistol: 1, run_rifle: 1, run_pistol: 1, back_rifle: 1, strafe_l_rifle: 1, strafe_r_rifle: 1 };
 export function frame(alpha, dt, cam) {
   const m = G.me; if (!m) return;
   for (let i = 0; i < G.agents.length; i++) {
     const a = G.agents[i];
     a.rx = a.px + (a.x - a.px) * alpha; a.ry = a.py + (a.y - a.py) * alpha; a.rz = a.pz + (a.z - a.pz) * alpha;
+    if (a.hitT > 0) a.hitT -= dt;   // 死了也要倒數，不然下一回合復活先抽一下
     const s = a.soldier; if (!s || !a.alive) continue;
     const sp = Math.hypot(a.vx, a.vz), pistol = WEAPONS[a.cur]?.slot === 2;
     const task = a === m ? (G.plantP > 0 ? 'plant' : G.defuseP > 0 ? 'defuse' : '') : a.bot ? (a.bot.plantT > 0 ? 'plant' : a.bot.defT > 0 ? 'defuse' : '') : a.netTask;   // 連線的真人與客戶端的 puppet 由網路帶來
-    s.busy = !!task && sp < 0.6;   // 雙手在忙，世界裡的槍要收起來
-    if (a.hitT > 0) a.hitT -= dt;
+    s.busy = !!task && sp < 0.6; s.pis = pistol;   // 雙手在忙，世界裡的槍要收起來
     const firing = a.burstT > 0 || !!a.bot?.target?.alive || a.aim, wr = Math.min(2.2, Math.max(0.7, sp / 0.93));
     if (s.busy) anim(s, task);
-    else if (a.hitT > 0 && a.ground) anim(s, 'hit');
-    else if (!a.ground) anim(s, 'jump');
-    else if (a.crouch) { if (sp > 0.3) anim(s, 'crouch_walk', false, wr); else anim(s, 'crouch_idle'); }
-    else if (sp > 3.4) anim(s, pistol ? 'run_pistol' : 'run_rifle');
-    else if (sp > 0.3) {
-      const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), f = (a.vx * fx + a.vz * fz) / sp;
-      if (f > 0.5) anim(s, pistol ? 'walk_pistol' : 'walk_rifle', false, wr); else if (f < -0.5) anim(s, 'back_rifle', false, wr);
-      else anim(s, a.vx * fz - a.vz * fx > 0 ? 'strafe_r_rifle' : 'strafe_l_rifle', false, wr);
+    else if (a.hitT > 0 && a.ground) anim(s, 'hit', true);
+    else if (!a.ground) anim(s, 'jump', true);
+    // 門檻都有遲滯：照現在播的片段決定進出門檻。速度或方向剛好在門檻附近時，以前每幀在走／跑、前進／橫移之間來回切
+    else if (a.crouch) { if (sp > (s.clipB === 'crouch_walk' ? 0.15 : 0.4)) anim(s, 'crouch_walk', false, wr); else anim(s, 'crouch_idle'); }
+    else if (sp > (s.clipB.startsWith('run_') ? 3.0 : 3.6)) anim(s, pistol ? 'run_pistol' : 'run_rifle');
+    else if (sp > (MOVING[s.clipB] ? 0.15 : 0.4)) {
+      const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), f = (a.vx * fx + a.vz * fz) / sp, lat = (a.vx * fz - a.vz * fx) / sp, cb = s.clipB;
+      const fwdT = cb.startsWith('walk_') || cb.startsWith('run_') ? 0.3 : 0.6, backT = cb === 'back_rifle' ? -0.3 : -0.6;
+      if (f > fwdT) anim(s, pistol ? 'walk_pistol' : 'walk_rifle', false, wr); else if (f < backT) anim(s, 'back_rifle', false, wr);
+      else anim(s, (cb === 'strafe_r_rifle' ? lat > -0.25 : cb === 'strafe_l_rifle' ? lat > 0.25 : lat > 0) ? 'strafe_r_rifle' : 'strafe_l_rifle', false, wr);
     } else anim(s, firing ? (pistol ? 'aim_pistol' : 'aim_rifle') : (pistol ? 'idle_pistol' : 'idle_rifle'));
   }
   if (!m.alive) { deathCam(cam, dt); return; }

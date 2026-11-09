@@ -24,7 +24,7 @@ import { addMatch } from './game/record.js';
 import { world, giveWeapon, fire, clear, spreadOf } from './game/weapons.js';
 import { initBots } from './game/bots.js';
 import { setupMatch, leaveMatch, onKill, buy, startRound, nextRound } from './game/round.js';
-import { tick, frame } from './game/loop.js';
+import { tick, frame, specMouse } from './game/loop.js';
 import { buildFx, updateFx, fx } from './fx/particles.js';
 import { input, bindInput, lockPointer } from './core/input.js';
 import { initAudio, setListener, preloadSfx, sfxStatus } from './audio/sfx.js';
@@ -138,6 +138,7 @@ async function boot() {
   function advance(dt) {
     if (alloc) alloc.on = true;
     // 滑鼠位移在 tick 之前消耗：這一幀裡開的槍用的是最新的視角，不是上一幀的
+    if (G.me && !free && !G.me.alive && !G.paused) specMouse(input.dx * input.sens, (input.invertY ? -input.dy : input.dy) * input.sens);   // 陣亡第三人稱觀戰用滑鼠繞
     if (G.me && !free) look(G.me.alive && !G.paused);
     if (!G.paused || SYNC.role) { acc += dt * speed; while (acc >= DT) { tick(DT, cam); acc -= DT; } }
     if (input.buy) { input.buy = false; if (G.canBuy) toggleBuy(); }
@@ -177,6 +178,14 @@ async function boot() {
     speed(k) { speed = k; },
     /** 同步推進遊戲時間，不經過渲染。驗收跑完整比賽用。 */
     sim(sec) { const n = Math.round(sec / DT); for (let i = 0; i < n && G.phase !== 'over'; i++) tick(DT, cam); },
+    /** 除錯：從 (x,y,z) 往炸點 tag 的下一個導航點（實玩腳本用真鍵盤照著走）。 */
+    navStep(x, y, z, tag) {
+      let cur = nearest(x, y, z), goal = -1, best = 1e9;
+      for (const g of tagged(tag)) { const d = nav.dist[cur * nav.n + g]; if (d < best) { best = d; goal = g; } }
+      if (goal < 0) return null;
+      for (let k = 0; k < 3 && cur !== goal; k++) { const nx = nav.next[cur * nav.n + goal]; cur = nx; if (Math.hypot(nav.x[nx] - x, nav.z[nx] - z) > 1.2) break; }
+      return { x: nav.x[cur], z: nav.z[cur], left: best };
+    },
     /** 用真實移動與碰撞沿導航圖走到炸點，回傳秒數。 */
     walk(sp, tag) {
       const fromV = new Vector3(), toV = new Vector3();

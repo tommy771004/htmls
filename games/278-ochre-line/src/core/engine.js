@@ -52,6 +52,8 @@ export async function createEngine(canvas, { forceWebGL = false } = {}) {
   scene.clearColor = new Color4(0.74, 0.84, 0.93, 1);
   scene.skipFrustumClipping = !!gpu;           // 快照 bundle 不做剔除；WebGL 退回路徑保留
   scene.autoClearDepthAndStencil = true;
+  // Babylon 預設在 pointerdown 呼叫 preventDefault，瀏覽器就不會再送 mousedown，左鍵開火（input.js 聽 mousedown）整個失效
+  scene.preventDefaultOnPointerDown = scene.preventDefaultOnPointerUp = false;
 
   const bytes = Uint8Array.from(atob(wasmData.split(',')[1]), c => c.charCodeAt(0));
   const hk = await HavokPhysics({ wasmBinary: bytes.buffer });

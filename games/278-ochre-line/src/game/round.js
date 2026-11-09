@@ -80,7 +80,7 @@ export function startRound() {
   let botI = 0;
   for (const a of G.agents) {
     const sp = (a.team === 0 ? spawns.atk : spawns.def)[idx[a.team]++ % 5];
-    a.x = a.px = a.rx = sp.x; a.y = a.py = a.ry = sp.y; a.z = a.pz = a.rz = sp.z; a.vx = a.vy = a.vz = 0; a.yaw = sp.yaw * Math.PI / 180; a.pitch = 0;
+    a.x = a.px = a.rx = sp.x; a.y = a.py = a.ry = sp.y; a.z = a.pz = a.rz = sp.z; a.vx = a.vy = a.vz = 0; a.yaw = sp.yaw * Math.PI / 180; a.pitch = 0; a.hitT = 0;
     a.ground = true; a.crouch = false; a.h = 1.8; a.onSite = false; a.seen = 0; a.dying = false;
     const was = a.alive; a.alive = true; a.hp = 100;
     if (!was) { a.primary = null; a.secondary = 'p9'; a.armor = 0; a.helmet = false; a.kit = false; a.nades = []; }
@@ -89,7 +89,7 @@ export function startRound() {
     giveWeapon(a, a.secondary); if (a.primary) giveWeapon(a, a.primary);
     resetWeaponState(a); a.cur = a.primary ?? a.secondary;
     if (a.bot) { botBuy(a); assignGoal(a, botI++); a.bot.post = false; }
-    if (a.soldier) play(a.soldier, 'idle_rifle');
+    if (a.soldier) { a.soldier.ryaw = a.yaw; play(a.soldier, 'idle_rifle'); }   // 身體朝向直接對齊出生點，不從上一回合的方向轉過來
   }
   const m = G.me; teleport(m.x, m.y, m.z, m.yaw); selectWeapon(m.cur); stopAnims(); G.banner = `第 ${G.round} 回合 · ${TEAM_NAME[m.team]}${m.team === 0 ? '（攻方）' : '（守方）'}`; G.bannerT = 2.4;
   world.net?.round();

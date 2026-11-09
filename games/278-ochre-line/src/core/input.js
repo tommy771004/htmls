@@ -3,7 +3,7 @@
 export const SENS0 = 0.0015;
 export const input = {
   fwd: 0, side: 0, jump: false, crouch: false, walk: false,
-  fire: false, alt: false, reload: false, use: false,
+  fire: false, alt: false, reload: false, reloadPress: false, use: false,
   firePress: 0, jumpPress: false, // 按下的瞬間（tick 消耗）：同一幀內按下又放開也不會漏掉
   dx: 0, dy: 0, locked: false, sens: SENS0, scopeSens: 1, invertY: false, raw: true,
   slot: 0, nextSlot: 0, // 1..5 按下時的一次性事件
@@ -33,6 +33,7 @@ export function bindInput(canvas, onLockChange) {
       if (e.code === 'KeyB') input.buy = true;
       if (e.code === 'KeyG') input.drop = true;
       if (e.code === 'KeyF') input.inspect = true;
+      if (e.code === 'KeyR') input.reloadPress = true;   // 按一下比一個 tick 還短也不會漏
       if (e.code === 'Space') input.jumpPress = true;
     }
     keys[e.code] = true; axes();

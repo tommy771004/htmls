@@ -299,6 +299,7 @@ export function tickBot(a, dt, cam) {
     if (q < 0.5 && q > 1e-4 && Math.abs(a.y - v.y) < 1.5) { const k = (0.71 - Math.sqrt(q)) / Math.sqrt(q); a.x += dx * k * 0.5; a.z += dz * k * 0.5; }
   }
   const wasG = a.ground;
-  step(a, wx, wz, crouch ? 0 : speed, jump, dt);
+  // 卡住跳一下是在前面判的，後面安裝／拆除會把移動歸零並蹲下：那時還跳就是蹲著原地彈起來
+  step(a, wx, wz, crouch ? 0 : speed, jump && !crouch && (wx !== 0 || wz !== 0), dt);
   if (!a.ground) a.airT = (a.airT || 0) + dt; else if (!wasG) { if (a.airT > 0.2) a.landT = LAND_T; a.airT = 0; }
 }

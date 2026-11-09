@@ -78,7 +78,8 @@ export function initHud(root, g, layout, actions) {
 
 const CONE_R = 138;   // 約 39 m，停在雷達圓框內
 function radar() {
-  const m = G.me, S = 300, x = rctx, b = L.bounds, k = 1000 / (b.x1 - b.x0), sc = (S / 2) / viewR;
+  const me = G.me, sv = !me.alive && G.agents[G.specIdx]?.alive ? G.agents[G.specIdx] : null, m = sv ?? me, S = 300, x = rctx,   // 觀戰時雷達跟著被看的人；看得到誰仍照自己的隊伍
+  b = L.bounds, k = 1000 / (b.x1 - b.x0), sc = (S / 2) / viewR;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#17130e'; x.fillRect(0, 0, S, S);
   x.save(); x.translate(S / 2, S / 2); x.rotate(-m.yaw); x.scale(sc / k, sc / k); x.translate(-(m.x - b.x0) * k, -(b.z1 - m.z) * k);
   x.drawImage(base, 0, 0); x.restore();
@@ -88,12 +89,12 @@ function radar() {
   x.fillStyle = coneFill; x.fill(); x.strokeStyle = coneEdge; x.lineWidth = 1.5; x.stroke();
   const P = (px, pz) => { const dx = px - m.x, dz = pz - m.z, c = Math.cos(m.yaw), s = Math.sin(m.yaw); return [S / 2 + (dx * c - dz * s) * sc, S / 2 - (dx * s + dz * c) * sc]; };
   for (const a of G.agents) {
-    if (a === m || !a.alive || (a.team !== m.team && !(a.seen > 0))) continue;
-    const [px, py] = P(a.x, a.z); x.fillStyle = a.team === m.team ? '#e8dcc4' : '#e0432a'; x.beginPath(); x.arc(px, py, 6, 0, 6.3); x.fill();
+    if (a === m || !a.alive || (a.team !== me.team && !(a.seen > 0) && a !== sv)) continue;
+    const [px, py] = P(a.x, a.z); x.fillStyle = a.team === me.team ? '#e8dcc4' : '#e0432a'; x.beginPath(); x.arc(px, py, 6, 0, 6.3); x.fill();
   }
   if (G.charge) { const [px, py] = P(G.charge.x, G.charge.z); x.fillStyle = '#ffd25a'; x.fillRect(px - 5, py - 5, 10, 10); }
   // 掉在地上的裝藥只有攻方看得到：空心框，和已安裝的實心框分開
-  else if (G.drop.on && m.team === 0) { const [px, py] = P(G.drop.x, G.drop.z); x.strokeStyle = '#ffd25a'; x.lineWidth = 2.5; x.strokeRect(px - 5, py - 5, 10, 10); }
+  else if (G.drop.on && me.team === 0) { const [px, py] = P(G.drop.x, G.drop.z); x.strokeStyle = '#ffd25a'; x.lineWidth = 2.5; x.strokeRect(px - 5, py - 5, 10, 10); }
   x.fillStyle = TEAM_COLOR[m.team]; x.beginPath(); x.moveTo(S / 2, S / 2 - 11); x.lineTo(S / 2 + 7, S / 2 + 7); x.lineTo(S / 2 - 7, S / 2 + 7); x.fill();
 }
 
@@ -137,7 +138,7 @@ function deathHud(m) {
     last.sbk = sbk; $.sb.style.display = sa ? '' : 'none';
     if (sa) {
       $.sbN.textContent = sa.name; $.sbN.style.color = TEAM_COLOR[sa.team];
-      $.sbH.textContent = (sa.team === m.team ? '' : '隊友全數陣亡 · ') + (coarse ? '點射擊鈕換人' : `左鍵／右鍵換人 · 空白鍵${G.specFP ? '第三人稱' : '第一人稱'}`);
+      $.sbH.textContent = (sa.team === m.team ? '' : '隊友全數陣亡 · ') + (coarse ? '點射擊鈕換人' : `左鍵／右鍵換人 · 空白鍵${G.specFP ? '第三人稱' : '第一人稱 · 滑鼠轉視角'}`);
     }
   }
 }

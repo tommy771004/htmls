@@ -2,8 +2,9 @@
 import { input } from '../core/input.js';
 import { step, canStand, STAND_H, CROUCH_H } from './mover.js';
 
+const EYE_W = 28;
 export const RUN = 5.4, WALK = 2.9, CROUCH_SPD = 1.9, EYE = 1.70, CROUCH_EYE = 1.15;
-export const you = { x: 0, y: 2, z: -44, vx: 0, vy: 0, vz: 0, px: 0, py: 2, pz: -44, yaw: 0, pitch: 0, h: STAND_H, eye: EYE, ground: true, crouch: false, fell: false, frozen: false, speedK: 1, sensK: 1, recoilP: 0, recoilY: 0 };
+export const you = { x: 0, y: 2, z: -44, vx: 0, vy: 0, vz: 0, px: 0, py: 2, pz: -44, yaw: 0, pitch: 0, h: STAND_H, eye: EYE, peye: EYE, eyeV: 0, ground: true, crouch: false, fell: false, frozen: false, speedK: 1, sensK: 1, recoilP: 0, recoilY: 0 };
 
 export function teleport(x, y, z, yaw = 0, pitch = 0) { you.x = you.px = x; you.y = you.py = y; you.z = you.pz = z; you.yaw = yaw; you.pitch = pitch; you.vx = you.vy = you.vz = 0; you.ground = true; }
 
@@ -21,11 +22,13 @@ export function look(on) {
 
 export function tickPlayer(dt) {
   const p = you;
-  p.px = p.x; p.py = p.y; p.pz = p.z;
+  p.px = p.x; p.py = p.y; p.pz = p.z; p.peye = p.eye;
   const want = input.crouch && !p.frozen;
   if (want) p.crouch = true; else if (p.crouch && canStand(p)) p.crouch = false;
   const hT = p.crouch ? CROUCH_H : STAND_H, eT = p.crouch ? CROUCH_EYE : EYE, r = Math.min(1, dt * 12);
-  p.h += (hT - p.h) * r; p.eye += (eT - p.eye) * r;
+  p.h += (hT - p.h) * r;
+  // 視線高度用臨界阻尼彈簧（約 0.15 s 到位，起步不會一下子掉 10 cm），畫面再跨 tick 內插
+  p.eyeV += (EYE_W * EYE_W * (eT - p.eye) - 2 * EYE_W * p.eyeV) * dt; p.eye += p.eyeV * dt;
   const sn = Math.sin(p.yaw), cs = Math.cos(p.yaw), f = p.frozen ? 0 : input.fwd, s = p.frozen ? 0 : input.side;
   const wx = sn * f + cs * s, wz = cs * f - sn * s;
   const speed = (p.crouch ? CROUCH_SPD : input.walk ? WALK : RUN) * p.speedK;
@@ -35,6 +38,6 @@ export function tickPlayer(dt) {
 
 export function applyCamera(cam, alpha, kickP = 0, kickY = 0) {
   const p = you, x = p.px + (p.x - p.px) * alpha, y = p.py + (p.y - p.py) * alpha, z = p.pz + (p.z - p.pz) * alpha;
-  cam.position.copyFromFloats(x, y + p.eye, z);
+  cam.position.copyFromFloats(x, y + p.peye + (p.eye - p.peye) * alpha, z);
   cam.rotation.copyFromFloats(-(p.pitch + kickP), p.yaw + kickY, 0);
 }

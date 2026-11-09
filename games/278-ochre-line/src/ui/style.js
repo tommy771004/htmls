@@ -123,6 +123,7 @@ body.buying #hudroot{visibility:hidden}
 @media (max-width:379px){.k-use{right:27px;bottom:326px}}
 @media (min-aspect-ratio:1/1) and (max-height:520px){.k-stick{bottom:56px}.k-buy{left:calc(5vw + 132px);bottom:56px}.k-fire{bottom:56px;right:max(14px,env(safe-area-inset-right))}.k-jump,.k-reload,.k-use{bottom:69px}.k-crouch{bottom:132px}.k-scope{bottom:182px}.k-swap{bottom:232px}}
 @media (pointer:coarse){body.playing .tc{display:flex}}
+@media (hover:hover) and (pointer:fine) and (min-aspect-ratio:1/1){#dpanel{left:calc(28*var(--u));bottom:calc(112*var(--u));width:max(300px,calc(430*var(--u)));transform:none}#dpanel:not(.on){transform:translateY(10px)}#hudroot.dead #log{bottom:calc(372*var(--u))}}
 .tc.buy{display:none!important}body.buying .tc{display:none!important}body.playing.canbuy .tc.buy{display:flex!important}body.playing.canbuy.buying .tc.buy{display:none!important}
 @media (hover:hover) and (pointer:fine){.tc.buy,body.playing.canbuy .tc.buy{display:none!important}body.buying .tc{display:none!important}}
 .pn.main{--g:clamp(8px,1.5vw,24px);--lw:clamp(214px,23vw,370px);--rw:clamp(170px,17vw,290px);--nav:clamp(44px,6.4vh,62px);--p:#17130ed9;--p2:#2a2219;--p3:#433626;--mut:#a99a80;--sec:#cdbfa7;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:linear-gradient(90deg,#120e0a8c 0,#120e0a00 34%,#120e0a00 74%,#120e0a59 100%);font-size:15px}

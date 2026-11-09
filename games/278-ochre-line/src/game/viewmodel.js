@@ -276,7 +276,7 @@ export function muzzleTo(out) { Vector3.TransformCoordinatesToRef(vm.cur.muzzleL
 export function selectWeapon(id, draw = 0) {
   const g = vm.groups[id]; if (!g || vm.cur === g) return;
   putAway();
-  vm.cur = g; g.holder.scaling.copyFrom(g.scale); vm.swap = 1; vm.swapT = draw ? draw * 0.85 : g.kind === 'pistol' ? 0.32 : 0.42;   // 舉槍動畫比拔槍時間略短，槍舉穩了才能開火 vm.reload = 0; vm.inspect = 0; vm.cycle = -1; vm.kick = 0; vm.kickV = 0;
+  vm.cur = g; g.holder.scaling.copyFrom(g.scale); vm.swap = 1; vm.swapT = draw ? draw * 0.85 : g.kind === 'pistol' ? 0.32 : 0.42; vm.reload = 0; vm.inspect = 0; vm.cycle = -1; vm.kick = 0; vm.kickV = 0;   // 舉槍動畫比拔槍時間略短，槍舉穩了才能開火
 }
 /** 目前那把收起來：換彈、拉栓的零件姿勢歸位，縮到看不見。 */
 function putAway() { if (!vm.cur) return; if (vm.cur.rl) poseReload(vm.cur.rl, -1); if (vm.cur.parts) { vm.ch.bolt = vm.ch.pull = vm.ch.lift = vm.ch.cover = 0; poseParts(vm.cur.parts); } if (vm.cur.rb) poseBoltHand(vm.cur.rb, 0, 0, 0, 0); vm.cur.holder.scaling.set(HIDE, HIDE, -HIDE); flush(vm.cur); }

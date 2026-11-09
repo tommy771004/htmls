@@ -65,7 +65,7 @@ export async function buildSoldiers(ctx) {
     const nodes = sk.bones.map(b => b.getTransformNode());
     for (const t of nodes) { t.rotationQuaternion ??= Quaternion.Identity(); }
     return { team, holder, root, mesh: keep, sk, nodes, agent: null,
-      clipA: 'idle_rifle', tA: 0, clipB: 'idle_rifle', tB: 0, blend: 1, once: false, hidden: false, rate: 1, rateA: 1, bd: 0.14, gunM: new Matrix(), gunOn: false, sup: null, bf: sk.bones.map(b => b.getFinalMatrix()), world: new Matrix(), caps: new Float32Array(11 * 7) };
+      clipA: 'idle_rifle', tA: 0, clipB: 'idle_rifle', tB: 0, blend: 1, once: false, hidden: false, rate: 1, rateA: 1, bd: 0.14, gunM: new Matrix(), gunOn: false, sup: null, bf: sk.bones.map(b => b.getFinalMatrix()), world: new Matrix(), caps: new Float32Array(11 * 7), snap: new Float32Array(sk.bones.length * PAR), raw: new Float32Array(sk.bones.length * PAR), useSnap: false, ryaw: 0, onceA: false, holdA: 1, pis: false, upA: 0, upW: 0, tU: 0, qa: new Float32Array(sk.bones.length * 4), qb: new Float32Array(sk.bones.length * 4), qNew: 2 };
   };
   // 先用一組的骨頭順序烘動畫
   const first = make('atk');
@@ -97,7 +97,7 @@ function pushWorld(s) {
 const HOLD_Y = 0.075, HOLD_Z = 0.22;
 const HOLD = { idle_rifle: 1, aim_rifle: 1, walk_rifle: 1, run_rifle: 1, back_rifle: 1, strafe_l_rifle: 1, strafe_r_rifle: 1, crouch_idle: 1, crouch_walk: 1, jump: 1, hit: 1 };   // 這些片段左手在槍上；手槍類片段、下跪、死亡不解
 const SUPPORT = { v11: [0.06, 0.085], ks: [0.055, 0.27], l40: [0.02, 0.23], s8: [-0.02, 0.29] };   // 舊槍的左手支撐點 [y, z]，槍框架；新槍在 guns/<id>.js 的 support。沒列的槍（AR5）就是烘焙值，不解
-export const ik = { on: true };
+export const ik = { on: true, arms: true, cont: true };   // arms：拿手槍時換手臂（upperArms）；cont：混合的正負號跟上一幀連續（sampleTo）。驗圖可關
 let chain = null;   // at：骨頭索引；up：父骨在 chain 的位置；m：預配置矩陣；hr、ua、la、ha：右手與左臂在 chain 的位置
 function buildChain() {
   const set = new Set();
@@ -113,7 +113,7 @@ function applyDelta(node, m, x, y, z, w) {
   rotLocal(node.rotationQuaternion, a * k, b * k, c * k, w);
 }
 function holdSupport(s, sup) {
-  const w = (HOLD[s.clipB] ?? 0) * s.blend + (HOLD[s.clipA] ?? 0) * (1 - s.blend); if (w < 1e-3) return;
+  const w = (HOLD[s.clipB] ?? 0) * s.blend + s.holdA * (1 - s.blend); if (w < 1e-3) return;
   const c = chain, N = c.at.length, F = c.m;
   for (let i = 0; i < N; i++) {
     const n = s.nodes[c.at[i]], u = c.up[i];
@@ -148,7 +148,7 @@ function holdSupport(s, sup) {
 }
 
 /** 掛到 agent。 */
-export function assign(s, agent) { s.agent = agent; agent.soldier = s; s.hidden = false; s.holder.scaling.setAll(1); s.clipA = s.clipB = 'idle_rifle'; s.tA = s.tB = 0; s.blend = 1; s.once = false; s.rate = s.rateA = 1; s.bd = 0.14; }
+export function assign(s, agent) { s.agent = agent; agent.soldier = s; s.hidden = false; s.holder.scaling.setAll(1); s.ryaw = agent.yaw; s.useSnap = false; s.onceA = false; s.holdA = 1; s.pis = false; s.upA = s.upW = 0; s.qNew = 2; s.clipA = s.clipB = 'idle_rifle'; s.tA = s.tB = 0; s.blend = 1; s.once = false; s.rate = s.rateA = 1; s.bd = 0.14; }
 
 export const clipDebug = { name: '', t: -1 };   // __ol.forceClip：驗圖用，固定所有士兵的片段與時間
 /** rate：片段倍速，走路跟著實際速度才不會腳滑。 */
@@ -156,33 +156,70 @@ export function play(s, name, once = false, rate = 1) {
   if (clipDebug.name) name = clipDebug.name;
   if (s.clipB === name) { s.rate = rate; return; }
   s.bd = s.clipB === 'plant' || s.clipB === 'defuse' ? 0.3 : 0.14;   // 從跪姿站起來要時間
-  s.clipA = s.clipB; s.tA = s.tB; s.rateA = s.rate; s.rate = rate; s.clipB = name; s.tB = 0; s.blend = 0; s.once = once;
+  // 前一段還沒混完就換：把現在畫面上的姿勢凍成起點，從它淡到新片段。直接拿 clipB 當起點會把還佔大半權重的 clipA 一幀丟掉，腳會瞬移 20–60 cm
+  s.useSnap = s.blend < 0.999;
+  s.holdA = (HOLD[s.clipB] ?? 0) * s.blend + s.holdA * (1 - s.blend);   // 左手支撐權重也從當下的值淡出，不要從 0.06 跳到 1
+  s.upA = s.upW;
+  if (s.useSnap) s.snap.set(s.raw);   // 取片段混合的結果（左手 IK 與手槍手臂之前），疊加層下一幀會再套一次
+  // 新的起點沿用舊 B 的正負號（凍結起點就是上一幀結果，正負號也一樣）；新的 B 第一幀照點積選最短路徑，之後鎖住
+  if (s.useSnap) for (let i = 0, o = 3, j = 0; i < bones.length; i++, o += PAR, j += 4) { s.qa[j] = s.raw[o]; s.qa[j + 1] = s.raw[o + 1]; s.qa[j + 2] = s.raw[o + 2]; s.qa[j + 3] = s.raw[o + 3]; }
+  else s.qa.set(s.qb);
+  if (s.qNew === 0) s.qNew = 1;
+  s.clipA = s.clipB; s.tA = s.tB; s.rateA = s.rate; s.onceA = s.once; s.rate = rate; s.clipB = name; s.tB = 0; s.blend = 0; s.once = once;   // 單次片段當起點時也要停在最後一格，不能繞回開頭
 }
 const wrap = (t, c) => (t < c.dur ? t : c.lf + (t - c.lf) % (c.dur - c.lf));
+// 手槍沒有後退、橫移、蹲、跳的片段，拿手槍時這些片段的雙臂（鎖骨以下）換成 idle_pistol 的手臂，腿與軀幹照原片段。
+// 權重跟著片段混合走（同 holdA 的做法），中途換槍再平滑一次，所以不會一幀跳成持步槍的手。
+const PIS_UP = { back_rifle: 1, strafe_l_rifle: 1, strafe_r_rifle: 1, crouch_idle: 1, crouch_walk: 1, jump: 1 }, UP_CLIP = 'idle_pistol';
+let UP = null;   // 手臂骨頭索引
+function upperArms(s, dt) {
+  const tgt = (s.pis && PIS_UP[s.clipB] ? 1 : 0) * s.blend + s.upA * (1 - s.blend);
+  s.upW += (tgt - s.upW) * Math.min(1, dt * 20); if (Math.abs(tgt - s.upW) < 1e-3) s.upW = tgt;
+  const C = clipData[UP_CLIP]; s.tU += dt; if (!ik.arms) s.upW = 0; if (s.upW < 1e-3 || !C) return;
+  if (!UP) { const a = []; for (let i = 0; i < bones.length; i++) for (let b = bones[i]; b; b = b.getParent()) if (b.name === 'clavicle_l' || b.name === 'clavicle_r') { a.push(i); break; } UP = Int32Array.from(a); }
+  const b = bones.length, R = s.raw, d = C.data, f = wrap(s.tU, C) / C.dur * (C.N - 1), i0 = f | 0, t = f - i0, f0 = i0 * b * PAR, f1 = Math.min(i0 + 1, C.N - 1) * b * PAR, k = s.upW;
+  for (let j = 0; j < UP.length; j++) {
+    const i = UP[j], o = i * PAR, n = s.nodes[i]; if (!n) continue;
+    const p0 = f0 + o + 3, p1 = f1 + o + 3, sg = d[p0] * d[p1] + d[p0 + 1] * d[p1 + 1] + d[p0 + 2] * d[p1 + 2] + d[p0 + 3] * d[p1 + 3] < 0 ? -1 : 1;
+    let qx = d[p0] + (d[p1] * sg - d[p0]) * t, qy = d[p0 + 1] + (d[p1 + 1] * sg - d[p0 + 1]) * t, qz = d[p0 + 2] + (d[p1 + 2] * sg - d[p0 + 2]) * t, qw = d[p0 + 3] + (d[p1 + 3] * sg - d[p0 + 3]) * t;
+    const h = R[o + 3] * qx + R[o + 4] * qy + R[o + 5] * qz + R[o + 6] * qw < 0 ? -k : k, m = 1 - k;
+    qx = R[o + 3] * m + qx * h; qy = R[o + 4] * m + qy * h; qz = R[o + 5] * m + qz * h; qw = R[o + 6] * m + qw * h;
+    const l = 1 / Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+    n.rotationQuaternion.copyFromFloats(qx * l, qy * l, qz * l, qw * l);   // 只寫節點：s.raw 留片段混合的原值，換片段凍結起點時才不會把手臂疊兩次
+  }
+}
 
 function sampleTo(s, dt) {
-  const b = bones.length, A = clipData[s.clipA], B = clipData[s.clipB]; if (!A || !B) return;
+  const b = bones.length, B = clipData[s.clipB], S = s.useSnap, A = S ? B : clipData[s.clipA]; if (!A || !B) return;
   s.tA += dt * s.rateA; s.tB += dt * s.rate; s.blend = Math.min(1, s.blend + dt / s.bd);
   if (clipDebug.t >= 0) { s.tA = s.tB = clipDebug.t; s.blend = 1; }
-  const fa = wrap(s.tA, A) / A.dur * (A.N - 1), ia = fa | 0, ta = fa - ia;
-  const tb = s.once ? Math.min(s.tB, B.dur - 1e-3) : wrap(s.tB, B), fb = tb / B.dur * (B.N - 1), ib = fb | 0, tt = fb - ib, w = s.blend, d0 = A.data, d1 = B.data;
-  const a0 = ia * b * PAR, a1 = Math.min(ia + 1, A.N - 1) * b * PAR, b0 = ib * b * PAR, b1 = Math.min(ib + 1, B.N - 1) * b * PAR;
+  const fa = (s.onceA ? Math.min(s.tA, A.dur - 1e-3) : wrap(s.tA, A)) / A.dur * (A.N - 1), ia = fa | 0, ta = fa - ia;
+  const tb = s.once ? Math.min(s.tB, B.dur - 1e-3) : wrap(s.tB, B), fb = tb / B.dur * (B.N - 1), ib = fb | 0, tt = fb - ib, w = s.blend, d0 = S ? s.snap : A.data, d1 = B.data;
+  const a0 = S ? 0 : ia * b * PAR, a1 = S ? 0 : Math.min(ia + 1, A.N - 1) * b * PAR, b0 = ib * b * PAR, b1 = Math.min(ib + 1, B.N - 1) * b * PAR;
   for (let i = 0, o = 0; i < b; i++, o += PAR) {
     const n = s.nodes[i]; if (!n) continue;
     const pA = d0[a0 + o] + (d0[a1 + o] - d0[a0 + o]) * ta, pB = d1[b0 + o] + (d1[b1 + o] - d1[b0 + o]) * tt;
     const qA = d0[a0 + o + 1], yA = d0[a0 + o + 1] + (d0[a1 + o + 1] - d0[a0 + o + 1]) * ta, yB = d1[b0 + o + 1] + (d1[b1 + o + 1] - d1[b0 + o + 1]) * tt, zA = d0[a0 + o + 2] + (d0[a1 + o + 2] - d0[a0 + o + 2]) * ta, zB = d1[b0 + o + 2] + (d1[b1 + o + 2] - d1[b0 + o + 2]) * tt;
-    n.position.copyFromFloats(pA + (pB - pA) * w, yA + (yB - yA) * w, zA + (zB - zA) * w); void qA;
-    let x = 0, y = 0, z = 0, ww = 0;
+    const R = s.raw; R[o] = pA + (pB - pA) * w; R[o + 1] = yA + (yB - yA) * w; R[o + 2] = zA + (zB - zA) * w;
+    n.position.copyFromFloats(R[o], R[o + 1], R[o + 2]); void qA;
+    // 正負號：兩片段差將近 180°（跪姿的小腿對站姿）時點積在 0 附近，每幀照點積選邊會隨時間翻面，膝蓋一幀轉到另一邊、腳瞬移。
+    // 所以 A、B 各自跟自己上一幀的正負號連續（qa、qb），B 只在換片段後的第一幀照點積對齊 A（最短路徑），之後鎖住。
+    // （不能改成「選離上一幀結果近的那一支」：混合剛開始兩支都從 A 出發，一樣近，會隨機走到繞遠路那支）
+    let x = 0, y = 0, z = 0, ww = 0; const j = i * 4, QA = s.qa, QB = s.qb;
     for (let c = 0; c < 2; c++) {
-      const dd = c ? d1 : d0, p0 = (c ? b0 : a0) + o + 3, p1 = (c ? b1 : a1) + o + 3, t = c ? tt : ta, k = c ? w : 1 - w;
+      const dd = c ? d1 : d0, p0 = (c ? b0 : a0) + o + 3, p1 = (c ? b1 : a1) + o + 3, t = c ? tt : ta, k = c ? w : 1 - w, Q = c ? QB : QA;
       let sg = dd[p0] * dd[p1] + dd[p0 + 1] * dd[p1 + 1] + dd[p0 + 2] * dd[p1 + 2] + dd[p0 + 3] * dd[p1 + 3] < 0 ? -1 : 1;
-      const qx = dd[p0] + (dd[p1] * sg - dd[p0]) * t, qy = dd[p0 + 1] + (dd[p1 + 1] * sg - dd[p0 + 1]) * t, qz = dd[p0 + 2] + (dd[p1 + 2] * sg - dd[p0 + 2]) * t, qw = dd[p0 + 3] + (dd[p1 + 3] * sg - dd[p0 + 3]) * t;
-      sg = x * qx + y * qy + z * qz + ww * qw < 0 ? -k : k;
-      x += qx * sg; y += qy * sg; z += qz * sg; ww += qw * sg;
+      let qx = dd[p0] + (dd[p1] * sg - dd[p0]) * t, qy = dd[p0 + 1] + (dd[p1 + 1] * sg - dd[p0 + 1]) * t, qz = dd[p0 + 2] + (dd[p1 + 2] * sg - dd[p0 + 2]) * t, qw = dd[p0 + 3] + (dd[p1 + 3] * sg - dd[p0 + 3]) * t;
+      const ref = ik.cont && (c ? s.qNew === 0 : s.qNew !== 2);   // 有上一幀可以比
+      sg = (ref ? Q[j] * qx + Q[j + 1] * qy + Q[j + 2] * qz + Q[j + 3] * qw : c ? x * qx + y * qy + z * qz + ww * qw : 1) < 0 ? -1 : 1;
+      qx *= sg; qy *= sg; qz *= sg; qw *= sg; Q[j] = qx; Q[j + 1] = qy; Q[j + 2] = qz; Q[j + 3] = qw;
+      x += qx * k; y += qy * k; z += qz * k; ww += qw * k;
     }
     const l = 1 / Math.sqrt(x * x + y * y + z * z + ww * ww);
-    n.rotationQuaternion.copyFromFloats(x * l, y * l, z * l, ww * l);
+    R[o + 3] = x * l; R[o + 4] = y * l; R[o + 5] = z * l; R[o + 6] = ww * l;
+    n.rotationQuaternion.copyFromFloats(R[o + 3], R[o + 4], R[o + 5], R[o + 6]);
   }
+  s.qNew = 0;
 }
 
 /** 槍的 thin instance：id → 所有 primitive。每位士兵固定佔第 k 格。 */
@@ -234,9 +271,11 @@ export function updateSoldiers(dt, cam) {
   for (const team of ['atk', 'def']) for (let i = 0; i < 5; i++) {
     const s = pool[team][i], a = s.agent; k++;
     if (!a || s.hidden) continue;
-    sampleTo(s, dt);
+    sampleTo(s, dt); upperArms(s, dt);
     s.holder.position.copyFromFloats(a.rx, a.ry, a.rz);
-    Quaternion.RotationYawPitchRollToRef(a.yaw, 0, 0, TMP_QUAT_A);
+    // 朝向：邏輯 64 Hz、畫面 120 Hz，直接用 a.yaw 轉身會一格一格跳，Bot 瞬間轉向也很突兀。畫面上追 40 ms 時間常數
+    { let d = a.yaw - s.ryaw; d -= Math.round(d / 6.283185307179586) * 6.283185307179586; s.ryaw += d * (1 - Math.exp(-dt * 25)); }
+    Quaternion.RotationYawPitchRollToRef(s.ryaw, 0, 0, TMP_QUAT_A);
     s.holder.rotationQuaternion.copyFrom(TMP_QUAT_A);
     pushWorld(s);
     const id = a.alive && !s.busy ? alias[a.cur] ?? a.cur : '', g = guns[id];
