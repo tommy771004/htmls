@@ -363,16 +363,19 @@ if (FAC.mall) {
 }
 // ─── 模型版（只在 http(s)）：走近商店街 160 m 內才下載 v5shop.glb（服飾店店面、掛衣架、吊靶、射擊位）與武器模型（槍牆、展示櫃）───
 const _mm = new T.Matrix4(), _mq = new T.Quaternion(), _me = new T.Euler();
-// 同一材質的部件合併成一個網格：o = { it, x, y, z（設施座標）, ry, rz（先繞 z 再繞 y）}
-function v5Merge(F, list) {
+// 同一材質的部件合併成一個網格：o = { it, x, y, z（設施座標）, ry, rz（先繞 z 再繞 y）}。clk（27-props.js 的 warmClock）：每擺一件、每合併一組就看
+// 這一幀的預算夠不夠，不夠就讓到下一幀（2026-11-09 有頭 Chrome 實測：開車經過商店街 160 m 時整批在同一幀做完，那一幀 70～160 ms）
+async function v5Merge(F, list, clk) {
   const by = new Map();
   for (const o of list) {
     _me.set(0, o.ry || 0, o.rz || 0, 'YZX'); _mm.compose(V3(F.ax + o.x, o.y, F.az + o.z), _mq.setFromEuler(_me), V3(1, 1, 1));
     for (const p of o.it.parts) { if (!by.has(p.mat)) by.set(p.mat, []); by.get(p.mat).push(p.geo.clone().applyMatrix4(_mm)); }
+    await clk.tick();
   }
   for (const [mat, geos] of by) {
     const g = mergeGeometries(geos); for (const x of geos) x.dispose(); if (!g) continue;
     const m = new T.Mesh(g, mat); m.matrixAutoUpdate = false; m.userData.noTess = 1; cityAdd(m, facZn(F));
+    await clk.tick();
   }
 }
 // 槍牆三排（由上往下）：照模型長度由左往右排到牆尾；展示櫃裡橫躺的手槍、衝鋒槍與手榴彈
@@ -382,15 +385,16 @@ const GUN_ROWS = [[2.8, ['sniper', 'rifle', 'shotgun', 'rifle', 'sniper', 'shotg
 const CASE_ROW = ['pistol', 'grenade', 'pistol', 'smg', 'pistol', 'c4', 'pistol', 'pistol', 'grenade', 'smg', 'pistol', 'gas', 'pistol', 'pistol', 'smg', 'pistol'];
 function mallGlb() {
   const F = FAC.mall; MALL.glb = 1;
-  return Promise.all([loadProps('v5shop'), loadProps('arms')]).then(([S, A]) => {
+  return Promise.all([loadProps('v5shop'), loadProps('arms')]).then(([S, A]) => warmJob(async () => {
+    const clk = warmClock();
     if (S) {
       v5Put(F, propObject(S.front, 0, 0, 0), 37.5, 0, 13, Math.PI);
-      v5Merge(F, [[33, 16.6, 'rackA'], [35.9, 18.6, 'rackB'], [39.9, 16.6, 'rackB'], [42.4, 18.6, 'rackA']].map(([x, zz, id]) => ({ it: S[id], x, y: .07, z: zz, ry: Math.PI / 2 })));
+      await v5Merge(F, [[33, 16.6, 'rackA'], [35.9, 18.6, 'rackB'], [39.9, 16.6, 'rackB'], [42.4, 18.6, 'rackA']].map(([x, zz, id]) => ({ it: S[id], x, y: .07, z: zz, ry: Math.PI / 2 })), clk);
       const R = F.range, cx = (R.x0 + R.x1) / 2 - F.ax, rz0 = R.z0 - F.az;
-      v5Merge(F, [-2, -1, 0, 1, 2].map(i => ({ it: S.booth, x: cx + i * 1.9, y: .19, z: rz0 + 4.5 })));
+      await v5Merge(F, [-2, -1, 0, 1, 2].map(i => ({ it: S.booth, x: cx + i * 1.9, y: .19, z: rz0 + 4.5 })), clk);
       const pk = new Kit(); for (const s of [-1, 1]) pk.box(s * .64, .99, 0, .05, 1.98, .05, 0x3a3c40, 3); pk.box(0, 1.98, 0, 1.36, .05, .05, 0x3a3c40, 3);
       const posts = pk.build();
-      for (const t of MALL.targets) { t.m.geometry.dispose(); t.m.geometry = posts; t.m.add(propObject(S.target, 0, .95, 0, Math.PI)); }
+      for (const t of MALL.targets) { t.m.geometry.dispose(); t.m.geometry = posts; t.m.add(propObject(S.target, 0, .95, 0, Math.PI)); await clk.tick(); }
       MALL.mann.visible = true; MALL.fb.visible = false;
     }
     if (A) {
@@ -405,9 +409,10 @@ function mallGlb() {
       }
       CASE_ROW.forEach((id, i) => { const it = A[id]; if (!it) return; const lie = id !== 'grenade' && id !== 'gas';
         list.push({ it, x: 16.5 + i * .6, y: .82 + (lie ? it.w : it.h) / 2, z: 14.6 + (i % 2 ? .09 : -.09), ry: Math.PI / 2 + (i % 3 - 1) * .25, rz: lie ? Math.PI / 2 : 0 }); });
-      v5Merge(F, list); MALL.fg.visible = false;
+      await v5Merge(F, list, clk); MALL.fg.visible = false;
     }
-  });
+    perfTags.push(['商店街 v5shop＋arms 擺放', clk.ms()]);
+  }));
 }
 // 店面前的路邊車位清掉（洗車隧道的進出口與槍店騎樓前）：30-vehicles.js 的 facParked 之後呼叫
 function mallParkClear() {

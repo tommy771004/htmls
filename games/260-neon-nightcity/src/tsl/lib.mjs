@@ -69,7 +69,7 @@ export default {
   	const L = lp.sub( p ).toVar();
   	const d2 = dot( L, L ).toVar();
 
-  	If( d2.greaterThan( 420. ), () => {
+  	If( d2.greaterThan( 650. ), () => {
 
   		ret_.assign( vec2( 0. ) );
   		done_.assign( true );
@@ -80,10 +80,10 @@ export default {
 
   		const d = sqrt( d2 ).toVar();
   		L.divAssign( d );
-  		const win = sub( 1., d2.div( 420. ) ).toVar();
+  		const win = sub( 1., d2.div( 650. ) ).toVar();
   		win.mulAssign( win );
   		const cone = smoothstep( .0, .6, L.y ).toVar();
-  		const att = win.mul( cone ).mul( 26. ).div( add( 4., d2 ) ).toVar();
+  		const att = win.mul( cone ).mul( 34. ).div( add( 4., d2 ) ).toVar();
   		const hv = normalize( L.add( v ) ).toVar();
   		ret_.assign( att.mul( vec2( max( dot( n, L ), 0. ), pow( max( dot( n, hv ), 0. ), shin ).mul( shin.add( 8. ) ).mul( .05 ) ) ) );
   		done_.assign( true );
@@ -124,9 +124,9 @@ export default {
 
   			const dif = vec3( 0. ).toVar(), spc = vec3( 0. ).toVar();
 
-  			Loop( { start: 0, end: 16, name: 'k' }, ( { k } ) => {
+  			Loop( { start: 0, end: 24, name: 'k' }, ( { k } ) => {
 
-  				const L = uLampT.sample( ivec2( c.x.mul( 16 ).add( k ), c.y ) ).setSampler( false ).toVar();
+  				const L = uLampT.sample( ivec2( c.x.mul( 24 ).add( k ), c.y ) ).setSampler( false ).toVar();
 
   				If( L.w.lessThan( .5 ), () => {
 
@@ -751,7 +751,7 @@ export default {
   	const L = lp.sub( p ).toVar();
   	const d2 = dot( L, L ).toVar();
 
-  	If( d2.greaterThan( 420. ), () => {
+  	If( d2.greaterThan( 650. ), () => {
 
   		ret_.assign( vec2( 0. ) );
   		done_.assign( true );
@@ -762,10 +762,10 @@ export default {
 
   		const d = sqrt( d2 ).toVar();
   		L.divAssign( d );
-  		const win = sub( 1., d2.div( 420. ) ).toVar();
+  		const win = sub( 1., d2.div( 650. ) ).toVar();
   		win.mulAssign( win );
   		const cone = smoothstep( .0, .6, L.y ).toVar();
-  		const att = win.mul( cone ).mul( 26. ).div( add( 4., d2 ) ).toVar();
+  		const att = win.mul( cone ).mul( 34. ).div( add( 4., d2 ) ).toVar();
   		const hv = normalize( L.add( v ) ).toVar();
   		ret_.assign( att.mul( vec2( max( dot( n, L ), 0. ), pow( max( dot( n, hv ), 0. ), shin ).mul( shin.add( 8. ) ).mul( .05 ) ) ) );
   		done_.assign( true );
@@ -806,9 +806,9 @@ export default {
 
   			const dif = vec3( 0. ).toVar(), spc = vec3( 0. ).toVar();
 
-  			Loop( { start: 0, end: 16, name: 'k' }, ( { k } ) => {
+  			Loop( { start: 0, end: 24, name: 'k' }, ( { k } ) => {
 
-  				const L = uLampT.sample( ivec2( c.x.mul( 16 ).add( k ), c.y ) ).setSampler( false ).toVar();
+  				const L = uLampT.sample( ivec2( c.x.mul( 24 ).add( k ), c.y ) ).setSampler( false ).toVar();
 
   				If( L.w.lessThan( .5 ), () => {
 

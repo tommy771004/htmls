@@ -201,10 +201,10 @@ const lampMeshS = instanced(lampKit(0xb8dcff), MAT.uber, lampsS);
 const lampMeshC = instanced(lampKit(0xff8a3a), MAT.uber, lampsC);
 for (const l of [...lampsA, ...lampsS]) { circles.push(circleToW({ x: l.x, z: l.z, r: .22 }, l.zn)); claim(l.x, l.z, 1.4); }
 for (const l of lampsC) if (!(l.y > .3)) circles.push({ x: l.x, z: l.z, r: .22, w: 1 });   // 橋上的燈柱在護欄上，護欄就擋住了
-// 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√420 ≈ 20.5 m）蓋到的每一格；一格超過 LAMP_K 盞就留離這一格（範圍，不是中心）最近的。
-// 燈頭在 6.1 m 高，水平 17 m 外照到地面的不到正下方的 0.4%（19.6 m 外是 0），丟掉也看不出來；17 m 內的被丟掉才警告
+// 路燈表（00-core.js 的 lampGrid）：燈頭的世界座標放進光照範圍（√650 ≈ 25.5 m，要和 src/tsl/lib.mjs 的 lampK 兩份的 650 一致；2026-11-09 從 420 放大、亮度 26 → 34）蓋到的每一格；
+// 一格超過 LAMP_K 盞就留離這一格（範圍，不是中心）最近的。燈頭水平 21 m 外照到地面的不到正下方的 1%，丟掉也看不出來；21 m 內的被丟掉才警告
 function lampTable(heads) {
-  const R = Math.sqrt(420) + .5;
+  const R = Math.sqrt(650) + .5;
   let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
   for (const h of heads) { x0 = Math.min(x0, h.x - R); x1 = Math.max(x1, h.x + R); z0 = Math.min(z0, h.z - R); z1 = Math.max(z1, h.z + R); }
   const nx = Math.ceil((x1 - x0) / LAMP_C), nz = Math.ceil((z1 - z0) / LAMP_C), cells = Array.from({ length: nx * nz }, () => []);
@@ -220,7 +220,7 @@ function lampTable(heads) {
   let over = 0;
   cells.forEach((L, k) => {
     const c = k % nx, d = Math.floor(k / nx);
-    if (L.length > LAMP_K) { L.sort((a, b) => a.dd - b.dd); if (L[LAMP_K].dd < 289) over++; }
+    if (L.length > LAMP_K) { L.sort((a, b) => a.dd - b.dd); if (L[LAMP_K].dd < 441) over++; }
     L.slice(0, LAMP_K).forEach(({ h }, n) => data.set([h.x, h.z, h.t, 1 + (h.y || 0)], ((d * nx + c) * LAMP_K + n) * 4));
   });
   if (over) console.warn('lamp table: cells over', LAMP_K, 'with a dropped lamp in reach:', over);

@@ -72,7 +72,17 @@ async function glbWarm1(objs, near, inst) {
     if (inst) tmp.add(new T.InstancedMesh(geo, propMatI(mat), 1));   // inst：後段 w2Inst 用的實例版
   }
   for (const o of tmp.children) o.frustumCulled = false;   // 暫存場景的網格在世界座標，多半不在 warmCam 前面
-  await gfxCompile(tmp, warmCam);   // 02-gfx.js：照主畫面與倒影的渲染目標編（失敗留給第一次畫到時再報）
+  // 02-gfx.js：照主畫面與倒影的渲染目標編（失敗留給第一次畫到時再報）。進場後一個材質、一個目標地編，每次之間等下一幀：
+  // compileAsync 每個物件之間只用 scheduler.yield 讓出（不等下一幀），TSL 組著色器又是一個目標一次（光格島遠景的立面一次 30～50 ms），
+  // 兩個目標一起編時兩次擠在同一幀（2026-11-09 有頭 Chrome 實測開車時 100～146 ms 一幀）。開始畫面時照舊整批一起編
+  if (warmLive && gfxTargets.length) {
+    const one = new T.Scene();
+    for (const o of [...tmp.children]) {
+      one.add(o);
+      for (const rt of gfxTargets) { await gfxCompile(one, warmCam, false, rt); await nextFrame(); }
+      one.remove(o);
+    }
+  } else await gfxCompile(tmp, warmCam);
   if (near) objs = objs.filter(near);
   else if (!warmLive) objs = [];
   const tex = [];
@@ -95,6 +105,16 @@ function facYMat(far) {
   const k = far || 0;
   if (!facYMats.has(k)) facYMats.set(k, new T.ShaderMaterial({ name: 'facade', uniforms: MAT_FACADE.uniforms, defines: far ? { FAR: far.toFixed(3), YB: '1' } : { YB: '1' } }));
   return facYMats.get(k);
+}
+// 開場預熱：立面的 TSL 組一次 30～70 ms（主畫面、倒影各一次），開車途中才下載光格島遠景時現組會卡兩幀（2026-11-09 有頭 Chrome 實測 85～146 ms）。
+// 這裡先把兩組會用到的材質各掛在一個藏起來的三角形上，99-main.js 開場的 gfxCompile（連藏起來的一起編）就在開始畫面組好；
+// 幾何屬性要和 loadProps 改好名字的一樣（aB、aB2、normal、position、uv、有 index），才會共用同一份著色器
+if (GLB_ON) for (const set of ['far_tron', 'isle_tron']) {
+  if (!PROPS_SPEC[set]) continue;
+  const g = new T.BufferGeometry();
+  for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2], ['aB', 4], ['aB2', 4]]) g.setAttribute(k, new T.BufferAttribute(new Float32Array(3 * n), n));
+  g.setIndex([0, 1, 2]);
+  const m = new T.Mesh(g, facYMat(PROPS_SPEC[set].far && FAR_FOG)); m.visible = false; m.frustumCulled = false; m.name = 'facWarm'; scene.add(m);
 }
 // 同一個物件裡共用同一個材質的零件合併成一個幾何（propObject 一份少畫幾個 draw，w2Inst 少幾個 InstancedMesh）：原檔常把一個物件拆成十幾個網格、只用兩三種材質
 // （2026-11-09 觀測：白天街道主畫面 693 個 draw 裡約 65 個是這種，沙灘救生員塔一座 10～13 個網格只有 2 種材質）。半透明的不併（彼此要照距離排序），

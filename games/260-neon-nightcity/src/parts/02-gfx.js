@@ -148,12 +148,13 @@ const gfxLate = [];
 // 2026-11-01 戰鬥觀戰時鏡頭轉到新東西就卡（tools/battle.mjs）。gfxTargets 由 70-render.js 的 makeTargets 填；all 為真時 70-render.js 的
 // 視錐測試全部放行（compileAsync 的投影是同步的，呼叫完就關），畫面外的物件也一起編
 const gfxTargets = [], gfxCompiling = { all: false };
-// all 也把藏起來的物件（visible = false：垂降繩、還沒出動的單位、物件池）暫時打開一起編，投影完馬上還原
-function gfxCompile(obj, cam, all = false) {
+// all 也把藏起來的物件（visible = false：垂降繩、還沒出動的單位、物件池）暫時打開一起編，投影完馬上還原。
+// only：只照這一個渲染目標編（27-props.js 的 glbWarm 進場後一個目標、一個材質地編，中間讓一幀）
+function gfxCompile(obj, cam, all = false, only = null) {
   const prev = R.getRenderTarget(), ps = [], hid = [];
   if (all) obj.traverse(o => { if (!o.visible) { hid.push(o); o.visible = true; } });
   try {
-    for (const rt of gfxTargets.length ? gfxTargets : [prev]) {
+    for (const rt of only ? [only] : gfxTargets.length ? gfxTargets : [prev]) {
       R.setRenderTarget(rt); gfxCompiling.all = all;
       try { ps.push(R.compileAsync(obj, cam).catch(() => {})); } finally { gfxCompiling.all = false; }
     }
@@ -409,10 +410,12 @@ if (GFX_BMP) {
     if (im instanceof ImageBitmap && im.width > 0 && gfxBmpBlob.has(im)) { s._gfxUp = performance.now(); gfxBmpSrc.add(new WeakRef(s)); }
     return r;
   };
-  // 每 2 秒：用到這個 source 的貼圖（還活著的）都已上傳、版本對得上，而且最後一次上傳滿 GFX_BMP_SETTLE 才關
+  // 每半秒：用到這個 source 的貼圖（還活著的）都已上傳、版本對得上，而且最後一次上傳滿 GFX_BMP_SETTLE 才關。
+  // 一次最多做 3 ms，剩下的下一次再關：剛進場時幾百張一起到期，原本每 2 秒一口氣關完，一次 145 ms（2026-11-09 有頭 Chrome 實測）
   setInterval(() => {
     const now = performance.now();
     for (const w of gfxBmpSrc) {
+      if (performance.now() - now > 3) break;
       const s = w.deref(), im = s && s.data;
       if (!im || !(im instanceof ImageBitmap) || im.width === 0 || s._gfxRev) { gfxBmpSrc.delete(w); continue; }
       if (now - (s._gfxUp || 0) < GFX_BMP_SETTLE) continue;
@@ -427,7 +430,7 @@ if (GFX_BMP) {
       gfxBmpN.closed++; gfxBmpN.closedB += im.width * im.height * 4;
       im.close(); gfxBmpSrc.delete(w);
     }
-  }, 2000);
+  }, 500);
 }
 const gfxApi = { name: GFX, meta: gfxMeta, hasAttr: gfxHasAttr, bmp: () => ({ on: GFX_BMP, closed: gfxBmpN.closed, closedMB: Math.round(gfxBmpN.closedB / 1048576), revived: gfxBmpN.revived, waiting: gfxBmpSrc.size }), miss: () => [...gfxMiss].map(([k, n]) => `${n}× ${k}`), ported: () => GFX_PORT.size, auto: () => [...gfxAutoT.values()].filter(Boolean).length, err: () => [...gfxAutoErr.keys()], clash: () => [...gfxClash], names: () => gfxByName.size, keys: () => [...gfxByName],
   gen: () => [...gfxGenMiss].map(([k, v]) => `${v}：${k}`),   // 沒用到產生好的 TSL 的鍵

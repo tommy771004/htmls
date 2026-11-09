@@ -125,7 +125,7 @@ const LANE = 3.0, PARK = 6.6;               // 車道與停車格中心離路中
 
 // ─── 共用 uniform ───
 const NL = GT().nl;
-const LAMP_C = 16, LAMP_K = 16;   // 路燈表的格子邊長（公尺）與每格最多幾盞
+const LAMP_C = 16, LAMP_K = 24;   // 路燈表的格子邊長（公尺）與每格最多幾盞（LAMP_K 寫死在 src/tsl/lib.mjs 兩份 lampGrid 的迴圈與 c.x.mul(24)，要一起改；2026-11-09 路燈範圍放大後從 16 改 24）
 const U = {
   uTime: { value: 0 }, uLampOn: { value: 1 }, uFlash: { value: 0 }, uClipY: { value: -1e9 }, uWet: { value: 1 },
   uCam: { value: V3() }, uFogCol: { value: C3(0x1a1d26) }, uFogHi: { value: C3(0x3a2a3a) }, uFogDen: { value: .016 }, uCullR: { value: 380 },

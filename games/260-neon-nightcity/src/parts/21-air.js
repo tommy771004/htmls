@@ -29,7 +29,7 @@ const AIR_L = AIR && (() => {
     curb2: { x0: -2060, x1: -1600, z0: -54, z1: -36 }, park2: { x0: -2050, x1: -1660, z0: -24, z1: 14 }, conn2: { x0: -1612, x1: -1588, z0: -54, z1: 40 },
     // 支援設施（blender/airfac.py → 52-air-fac.js，2026-11-04）：消防站的正面就是 T1 機坪北緣的圍籬線（z 197，圍籬在 x −2164…−2104 斷開）、油庫、搜索雷達在航廈西邊的陸側；
     // ILS 定位台在跑道東端外的中線上、下滑台與氣象觀測場在著陸區南側；EMAS 在跑道東端（取代原本 50 m 的防爆區，模型 +x 朝跑道外），再往東是定位台、防吹籬（擋起飛前的噴流吹到島東緣的道路）
-    fac: { fire: { x: -2140, z: 183 }, fuel: { x: -2520, z: 95 }, asr: { x: -2620, z: 150 }, loc: { x: -1082, z: 500 }, gs: { x: -2880, z: 578 }, met: { x: -2845, z: 576 }, emas: [{ x: -1146, ry: 0 }], blast: { x: -1060, z: 500 },
+    fac: { fire: { x: -2140, z: 183 }, fuel: { x: -2520, z: 95 }, asr: { x: -2620, z: 150 }, loc: { x: -1082, z: 500 }, gs: { x: -2880, z: 578 }, met: { x: -2845, z: 576 }, emas: [{ x: -1146, ry: 0 }], blast: { x: -1064, z: 500 },   // 防吹籬 2026-11-09 從 x −1060 西移：南端原本伸進紐柏林進場路（開始往西南彎）西側車道 2.6 m
       // 第二批（2026-11-04）：貨運站（建築中心，北面是卡車碼頭、南面接貨機坪）、機坪西緣的試車坪（開口朝東）、空廚大樓與地勤車基地（K1 西邊，南面直接開向 T1 機坪）
       cargo: { x: -2930, z: 200 }, runup: { x: -2700, z: 316 }, cater: { x: -2395, z: 172 }, gseb: { x: -2340, z: 160 } },
   };
@@ -398,7 +398,15 @@ if (AIR_L) {
     fence(xw, zt, xw, zn, -1);                                                            // K1 東側：東邊是陸側
     const fs = L.fac.fire; if (document.getElementById('glb-airfac')) { fence(xw, zn, fs.x - 24, zn, -1); fence(fs.x + 36, zn, Tw, zn, -1); } else fence(xw, zn, Tw, zn, -1);   // 消防站的正面（車庫門）就是圍籬線
     fence(Tw, zn, Tw, T0.z + 45.3, -1);                                                   // T1 航廈西邊，接到航廈南牆
-    fence(Te, T0.z + 45.3, Te, zn, -1); fence(Te, zn, gx0, zn, -1); fence(gx1, zn, I.x1 - .5, zn, -1);   // T1 航廈東邊、出入口、到島的東緣
+    fence(Te, T0.z + 45.3, Te, zn, -1); fence(Te, zn, gx0, zn, -1);   // T1 航廈東邊、出入口
+    if (NBR) {   // 到島的東緣：紐柏林的進場路（09-nbr.js，沿島東緣往南）從這裡穿過，留一個有門柱、抬起柵欄臂的口（2026-11-09 以前圍籬整段擋住了路）
+      const q = NBR.road.p.reduce((a, b) => Math.abs(b[1] - zn) < Math.abs(a[1] - zn) ? b : a), ga = q[0] - NBR.road.hw - 3, gb = q[0] + NBR.road.hw + 3;
+      fence(gx1, zn, ga, zn, -1); fence(gb, zn, I.x1 - .5, zn, -1);
+      for (const x of [ga, gb]) k.box(x, 1.4, zn, .3, 2.8, .3, 0x5a5e62, 15);
+      k.box(ga + .6, .55, zn + .7, .3, 1.1, .3, 0xd9b23a, 21).box(ga + .6, 1.15, zn + .7, .4, .2, .4, 0x2a2b2e, 21);
+      for (let i = 0; i < 6; i++) k.box(ga + .6, 1.6 + i * .9, zn + .7, .1, .9, .1, i & 1 ? 0xc2261c : 0xeeeeea, 21);
+      circles.push(...[ga, gb].map(x => { const [X, Z] = airW(x, zn); return { x: X, z: Z, r: .25, w: 1 }; }));
+    } else fence(gx1, zn, I.x1 - .5, zn, -1);
     for (const x of [gx0, gx1]) k.box(x, 1.4, zn, .3, 2.8, .3, 0x5a5e62, 15);              // 出入口的門柱
     k.box(gx1 + .6, .55, zn - .7, .3, 1.1, .3, 0xd9b23a, 21).box(gx1 + .6, 1.15, zn - .7, .4, .2, .4, 0x2a2b2e, 21);   // 柵欄機的機箱
     for (let i = 0; i < 6; i++) k.box(gx1 + .6, 1.6 + i * .9, zn - .7, .1, .9, .1, i & 1 ? 0xc2261c : 0xeeeeea, 21);   // 抬起的柵欄臂（紅白相間）
@@ -451,12 +459,12 @@ if (AIR_L) {
   { const [X, Z] = airW(L.plaza.x0 + 40, (L.plaza.z0 + L.plaza.z1) / 2); signLights.push({ x: X, y: 9, z: Z, col: lin(0xffd6a0), r: 55, i: 6, w: 1 }); }
   const pole = (x, z, h = 10) => {   // 航廈前路與停車場的路燈
     k.box(x, h / 2, z, .3, h, .3, 0x4d5055, 15); k.box(x, h - .1, z, .9, .14, .9, 0xffe8c4, 11);
-    const [X, Z] = airW(x, z); signLights.push({ x: X, y: h - .4, z: Z, col: lin(0xffdcae), r: 34, i: 5, w: 1 }); circles.push({ x: X, z: Z, r: .3, w: 1 });
+    const [X, Z] = airW(x, z); signLights.push({ x: X, y: h - .4, z: Z, col: lin(0xffdcae), r: 50, i: 12, w: 1 }); circles.push({ x: X, z: Z, r: .3, w: 1 });   // 2026-11-09 從 r 34、i 5 調亮（夜裡機場太暗）
   };
-  for (let x = L.land.x0 + 30; x < L.land.x1 - 10; x += 70) pole(x, L.land.z1 + 1.5);
-  for (let x = L.park.x0 + 50; x < L.park.x1; x += 100) for (const z of [L.park.z0 + 20, L.park.z1 - 20]) pole(x, z, 12);   // 停車格之間的走道上
-  for (let x = L.park2.x0 + 45; x < L.park2.x1; x += 100) pole(x, (L.park2.z0 + L.park2.z1) / 2, 12);   // T2 停車場、往 T1 的連絡路
-  for (let z = L.conn2.z0 + 30; z < L.conn2.z1; z += 50) pole(L.conn2.x1 + 1.5, z);
+  for (let x = L.land.x0 + 30; x < L.land.x1 - 10; x += 40) pole(x, L.land.z1 + 1.5);
+  for (let x = L.park.x0 + 50; x < L.park.x1; x += 60) for (const z of [L.park.z0 + 20, L.park.z1 - 20]) pole(x, z, 12);   // 停車格之間的走道上
+  for (let x = L.park2.x0 + 45; x < L.park2.x1; x += 60) pole(x, (L.park2.z0 + L.park2.z1) / 2, 12);   // T2 停車場、往 T1 的連絡路
+  for (let z = L.conn2.z0 + 20; z < L.conn2.z1; z += 35) pole(L.conn2.x1 + 1.5, z);
   // 堤道：路面（雙向四線）、標線、兩側的紐澤西護欄與往海裡斜下去的消波石、路燈。外緣裡面那一段只鋪路面
   const RD = AIR.road, hw = AIR.hw;
   for (let i = 1; i < RD.length; i++) {
@@ -476,14 +484,29 @@ if (AIR_L) {
       colliders.push(s < 0 ? { x0: -.2, x1: len + .2, z0: -hw - .3, z1: -hw + .5, low: 1, zn: f } : { x0: -.2, x1: len + .2, z0: hw - .5, z1: hw + .3, low: 1, zn: f });
     }
     k.box(cx, -5, cz, len + .4, 9.6, hw * 2 + 2, rk, 2, 0, ry);                                // 路堤
-    if (i % 6 === 3) {
-      const s = i % 12 === 3 ? 1 : -1, px = cx + Math.sin(ry) * s * (hw + .2), pz = cz + Math.cos(ry) * s * (hw + .2);
+    if (i % 4 === 2) {
+      const s = i % 8 === 2 ? 1 : -1, px = cx + Math.sin(ry) * s * (hw + .2), pz = cz + Math.cos(ry) * s * (hw + .2);
       k.box(px, 5, pz, .3, 10, .3, 0x4d5055, 15); k.box(px - Math.sin(ry) * s * 1.4, 9.9, pz - Math.cos(ry) * s * 1.4, .35, .2, 2.8, 0x4d5055, 15, 0, ry + Math.PI / 2);
       k.box(px - Math.sin(ry) * s * 2.6, 9.75, pz - Math.cos(ry) * s * 2.6, .6, .12, .9, 0xffe8c4, 11, 0, ry);
-      const [X, Z] = airW(px - Math.sin(ry) * s * 2.6, pz - Math.cos(ry) * s * 2.6); signLights.push({ x: X, y: 9.4, z: Z, col: lin(0xffdcae), r: 30, i: 5, w: 1 });
+      const [X, Z] = airW(px - Math.sin(ry) * s * 2.6, pz - Math.cos(ry) * s * 2.6); signLights.push({ x: X, y: 9.4, z: Z, col: lin(0xffdcae), r: 48, i: 12, w: 1 });
     }
   }
   cityAdd(new T.Mesh(k.build(), MAT.far), AIR_ZN);
+}
+// 紐柏林進場路（09-nbr.js 的 NBR.road，SEA_FR）的路燈（2026-11-09：夜裡從機場往南整條路沒有燈，看不出路在哪）：城裡的路燈燈具（20-props.js 的 lampKit），
+// 立在行車方向右手邊（島上那段是東側，離跑道遠）路肩外 1.2 m，每 40 m 一盞；圍籬的口、南緣擋牆的口與接 GP 的最後 60 m 不放。點光走 signLights（每幀挑最近幾盞），不進路燈表
+if (AIR_L && NBR) {
+  nbrGrid();   // 進場路的縱斷面在這裡才算好
+  const P = NBR.road.p, n = P.length, hw = NBR.road.hw, list = [];
+  for (let k = 5; k < n - 15; k += 10) {
+    const [x, z, y] = P[k], a = P[k - 1], b = P[k + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = (b[1] - a[1]) / l, nz = -(b[0] - a[0]) / l;   // 往路外（右手邊）
+    if (Math.abs(z - 197) < 12 || Math.abs(z - AIR.isl.z1) < 12) continue;
+    const [X, Z] = airW(x + nx * (hw + 1.2), z + nz * (hw + 1.2)), [HX, HZ] = airW(x + nx * (hw - 1), z + nz * (hw - 1)), [ox, oz] = airW(x, z), wx = X - ox, wz = Z - oz, wl = Math.hypot(wx, wz);
+    list.push({ x: X, y, z: Z, ry: Math.atan2(-wz / wl, wx / wl), zn: null });
+    signLights.push({ x: HX, y: y + 6.6, z: HZ, col: lin(0xffc890), r: 30, i: 7, w: 1 });
+    circles.push({ x: X, z: Z, r: .22, w: 1 });
+  }
+  instanced(lampKit(0xff8a3a), MAT.uber, list);
 }
 
 // ─── 建築與客機：模型（http(s)）或程式建模的替身 ───
