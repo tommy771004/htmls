@@ -58,7 +58,7 @@ man.forEach((m, i) => {
     '--window-size=1920,1080', `--screenshot=${png}`, `file://${html}`], { stdio: 'ignore' })
   // longer hold on phase changes and on the last shot of each phase
   const last = i === man.length - 1 || man[i + 1].phase !== m.phase
-  if (i === 0 || man[i - 1].phase !== m.phase) chapters.push({ phase: m.phase, name: PH[m.phase][0], t: +tAcc.toFixed(2) })
+  if (i === 0 || man[i - 1].phase !== m.phase) chapters.push({ phase: m.phase, name: PH[m.phase][0], t: +tAcc.toFixed(2) })   // concat start = sum of earlier durations
   tAcc += last ? HOLD * 4 : HOLD
   list.push(`file '${png}'`, `duration ${(last ? HOLD * 4 : HOLD).toFixed(3)}`)
 })
@@ -86,8 +86,8 @@ if (parts.length === 1) {
   execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', parts[0], '-i', parts[1], '-filter_complex',
     `[0][1]xfade=transition=fade:duration=0.6:offset=${(d - 0.6).toFixed(3)},format=yuv420p`,
     '-c:v', 'libx264', '-crf', '20', '-preset', 'slow', '-movflags', '+faststart', OUT])
+  chapters.push({ phase: 'film', name: '成片', t: +(d - 0.6).toFixed(2) })
 }
-if (parts.length > 1) chapters.push({ phase: 'film', name: '成片', t: +(tAcc - 0.6).toFixed(2) })
 writeFileSync(join(ROOT, 'out/chapters.json'), JSON.stringify(chapters))
 console.log(JSON.stringify(chapters))
 console.log('timelapse ->', OUT, man.length, 'shots')
