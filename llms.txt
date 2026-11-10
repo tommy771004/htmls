@@ -72,6 +72,7 @@
 - [171 繩結 · HITCH 代理工作台](https://htmls-ruddy.vercel.app/web/171-hitch-harness.html): 桌面 AI 代理工作台。虛構的代理 App：工作區側欄、七個外掛、權限模式與模型選單；外掛開關會改變產品行為，每次工具呼叫畫成繩上的一個結，連網安裝要按允許。單檔、零外部資源
 - [176 動態十六式 · Motion Studies](https://htmls-ruddy.vercel.app/web/176-motion-studies.html)：16 種介面、字體與資料動效，可重播、暫停、變速與逐格觀察；HTML / SVG / JavaScript 單檔，內嵌圖片，離線可用。
 - [276 語意微動 · 48 枚雙層動態功能圖標集](https://htmls-ruddy.vercel.app/web/276-duotone-icons.html)：48 枚 24px 圓角雙層（前景主色＋淺色底塊）內嵌 SVG 功能圖標標本，每枚具 0.65–0.95 秒貼合語意的 CSS hover 微動畫並支援 prefers-reduced-motion；頂部以 CSS 變數切換彩色、藍灰、青瓷、薄荷、薰衣草、杏色、黑色單色七組配色，右上角「演示」開關可輪流自動播放，附 24px 網格放大檢視與 SVG 複製。單檔、零外部資源。
+- [281 明暗五十式 · 50 種材質的明暗開關](https://htmls-ruddy.vercel.app/web/281-fifty-toggles.html)：一頁 50 款材質擬真的明暗模式開關（折射玻璃、水銀、翻頁時刻表、輝光管、日月蝕、拉線開關、紙張捲角、電漿環、細胞分裂、鋼琴琴鍵、像素祭壇、彈珠台、枯山水砂盤、莫比烏斯環等十類），各有物理動效、以開關為圓心擴散的主題轉場、WebAudio 合成音效與引線參數標註；鍵盤 ←／→、Space、H、Esc 操作。單檔、零外部資源。
 
 ### 工具產生器
 
