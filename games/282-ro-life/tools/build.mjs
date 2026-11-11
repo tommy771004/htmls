@@ -84,7 +84,8 @@ const roRewritePlugin = {
         );
         // 普隆德拉大廳（看得到其他玩家）：只有頁面設定了 window.__roLobby（/api/ro/config 有回大廳網址）才連線，
         // 否則和以前一樣不開 WebSocket。入場票放在 hello 的 rt；本機模式的角色都是 dev，有大廳時也讓它上線。
-        // 他人選單只留名字（好友、密語、交易、組隊、檢視、檢舉還沒做）。
+        // 社交（檢視、密語、好友）要等伺服器的 welcome 帶 social 才顯示：頁面比 Worker 先更新時，舊 Worker 不送它，按鈕就不出現。
+        // 他人選單只留名字、檢視、密語、加好友（交易、組隊、檢舉沒做）；訪客看得到「檢視」，密語與加好友要登入、對方也不能是訪客。
         const must = (from, to) => {
           if (!src.includes(from)) throw Error(`build.mjs: 找不到要替換的引擎程式碼：${from.slice(0, 60)}`);
           src = src.replace(from, to);
@@ -101,7 +102,20 @@ const roRewritePlugin = {
           'e.dev||r.then(()=>re===i&&i.goOnline(e.name,vh(e),kx(e)))',
           'r.then(()=>window.__roLobbyReady).then(()=>re===i&&(!e.dev||window.__roLobby)&&i.goOnline(e.name,vh(e),kx(e)))'
         );
-        must('n.append(o,i,d,...(y=this.friends)!=null&&y.has(e.name)?[]:[p],r,l)', 'n.append(o)');
+        must(
+          'case"welcome":this.retryMs=1e3,this.joined=!0,',
+          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),'
+        );
+        must('const h=!Pa(),u=this.guests.has(e.id)', 'const h=!(Pa()||window.__roLobby?.ticket),u=this.guests.has(e.id)');
+        must(
+          'n.append(o,i,d,...(y=this.friends)!=null&&y.has(e.name)?[]:[p],r,l)',
+          'n.append(o,...document.body.classList.contains("ro-social")?[i,...h||u?[]:[d,...(y=this.friends)!=null&&y.list.some(f=>f.id===e.id)?[]:[p]]]:[])' // 名字可能重複，用 id 判斷是不是好友
+        );
+        must('{t:"friendAdd",name:e.name}', '{t:"friendAdd",name:e.name,id:e.id}'); // 同名時伺服器靠 id 找到點的那個人
+        must('if(!((w=this.party)!=null&&w.has(e.id))&&((m=this.party)!=null&&m.canInvite)){', 'if(!1){'); // 組隊還沒做
+        // 好友面板：登入（有入場票）就能用
+        must('const t=!Pa();if(document.getElementById("fr-form")', 'const t=!(Pa()||window.__roLobby?.ticket);if(document.getElementById("fr-form")');
+        must('Ue("friends"),Pa()&&this.input.focus()', 'Ue("friends"),(Pa()||window.__roLobby?.ticket)&&this.input.focus()');
         // 單機版引擎的帳號永遠是訪客（Pa() 為 null）：用 Google／LINE 登入、拿到入場票的玩家才開放聊天框、名字不標訪客
         must('this.input.disabled=!Pa()', 'this.input.disabled=!(Pa()||window.__roLobby?.ticket)');
         must('Pa()||G0(this.nameLabel)', 'Pa()||window.__roLobby?.ticket||G0(this.nameLabel)');

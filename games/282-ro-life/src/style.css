@@ -2096,6 +2096,10 @@ body.demo-on #skillbar {
   mask: var(--ic) center / 22px no-repeat;
 }
 #lobby-friends { --ic: var(--ic-friends); }
+/* 好友鈕：大廳伺服器有社交功能（welcome 帶 social）才顯示 */
+body:not(.ro-social) #lobby-friends { display: none !important; }
+/* 點別人跟著角色的選單：要蓋在上方的地點標題之上（橫式手機角色靠上時會重疊） */
+#lobby-labels .player-menu { z-index: 5; }
 #lobby-char { --ic: var(--ic-char); }
 #lobby-switch { --ic: var(--ic-switch); }
 #lobby-options { --ic: var(--ic-gear); }

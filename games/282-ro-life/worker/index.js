@@ -1,8 +1,10 @@
 // Cloudflare Worker＋Durable Objects 版的普隆德拉大廳（不會自動部署，見 wrangler.toml）。
-// 每個大廳編號一個 Lobby 物件；邏輯和本機 Node 版（server/ro-life/lobby.mjs）共用 server/ro-life/lobby-core.mjs。
-// 用 WebSocket 休眠 API：沒有訊息時物件可以休眠、不計運算時間，每條連線的狀態存在 attachment（上限 16 KB）。
+// 大廳編號 1–9 都進同一個 Lobby 物件（lobby-1），好友上線狀態與密語才在同一處；邏輯和本機 Node 版（server/ro-life/lobby.mjs）
+// 共用 server/ro-life/lobby-core.mjs。用 WebSocket 休眠 API：沒有訊息時物件可以休眠、不計運算時間，每條連線的狀態存在
+// attachment（上限 16 KB，實測）。好友、邀請、最後的角色名與檢視資料存在這個物件內建的 SQLite（lobby-store.mjs），永久保存。
 import { DurableObject } from 'cloudflare:workers';
 import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from '../../../server/ro-life/lobby-core.mjs';
+import { sqlStore } from '../../../server/ro-life/lobby-store.mjs';
 
 function allowed(req, env) {
   const origin = req.headers.get('Origin');
@@ -18,9 +20,8 @@ export default {
     if (url.pathname !== LOBBY_PATH) return new Response('Not found', { status: 404 });
     if (req.headers.get('Upgrade') !== 'websocket') return new Response('Expected WebSocket', { status: 426 });
     if (!allowed(req, env)) return new Response('Forbidden', { status: 403 });
-    const l = lobbyId(url.searchParams.get('l'));
-    if (!l) return new Response('Not found', { status: 404 });
-    return env.LOBBY.get(env.LOBBY.idFromName(`lobby-${l}`)).fetch(req);
+    if (!lobbyId(url.searchParams.get('l'))) return new Response('Not found', { status: 404 });
+    return env.LOBBY.get(env.LOBBY.idFromName('lobby-1')).fetch(req);
   },
 };
 
@@ -34,8 +35,11 @@ export class Lobby extends DurableObject {
       send: (ws, msg) => { try { ws.send(JSON.stringify(msg)); } catch { /* 已關閉 */ } },
       close: (ws, code, reason) => { try { ws.close(code, reason); } catch { /* 已關閉 */ } },
       verify: (ticket, now) => verifyTicket(env.RO_LOBBY_SECRET, ticket, now),
+      db: sqlStore((q, ...p) => ctx.storage.sql.exec(q, ...p).toArray()),
       log: (...a) => console.log(...a),
     };
+    // 醒來時清掉已離線玩家的檢視資料
+    this.io.db.keepProfiles(ctx.getWebSockets().map((ws) => this.io.get(ws)?.id).filter(Boolean));
   }
   async fetch() {
     const [client, server] = Object.values(new WebSocketPair());

@@ -5,26 +5,20 @@
 ## 狀態
 
 - 已上線（Vercel 自動部署）：Google／LINE 登入＋雲端存檔（`RO_DATABASE_URL`）、快捷列圖示修正、新的 app icon／og 圖。
-- **普隆德拉大廳第一階段（看得到其他玩家）**：程式已 commit，**Cloudflare Worker 還沒部署**，所以正式站目前不開 WebSocket，維持單機（已驗證零錯誤）。
-  - 能做：彼此看得到、走動／外觀／表情同步、公開聊天（要登入）、訪客只能看，名字是「冒險者 NNNN」、進出關卡會離開／重新加入大廳。
-  - 本機已驗過：兩個瀏覽器經 `wrangler dev`（本機 Worker）互通；config 沒有 lobby／config 500／大廳連不上（照常可玩，重試指數退避上限 30 秒）；登入玩家由頁面自己換票、hello 帶 `rt`。`npm run test:ro` 14 項通過。
-  - **還沒驗過**：真正的 Google／LINE 登入接大廳、部署後的 Worker。
+- **普隆德拉大廳第一階段（看得到其他玩家）**：已上線。Worker 在使用者的 `ro-lobby.<帳號>.workers.dev`，Vercel 設好 `RO_LOBBY_URL`／`RO_LOBBY_SECRET`，正式站兩人互相看得到（2026-11-11 驗證）。
+- **第二階段（社交：查看資料、密語、好友）**：程式寫好、本機驗過，**要使用者再執行一次 `npx wrangler deploy` 才會在正式站出現**（頁面先更新也沒關係：舊 Worker 不送 `social`，社交按鈕不會顯示）。
+  - 好友存在 Durable Object 內建的 SQLite，不在 Neon（原本規劃存 Neon，改掉的原因：不用手動建表、Cloudflare 不用放資料庫密碼、本機能完整測試）。
+  - 本機已驗過：`npm run test:ro` 20 項（含 node:sqlite 跑同一份 SQL、惡意檢視資料、重名）；瀏覽器經 `wrangler dev`：真的點選玩家（桌機與 844×390 觸控）、查看（惡意資料沒有執行；真實格式的天賦、卡片、詞綴都顯示）、密語與 `/r` 回覆、加好友→對方接受→清單上線／離線、兩個同名玩家加對人、重啟 Worker 好友還在、舊 Worker 不顯示社交按鈕，零錯誤。
+  - **還沒驗過**：真正的 Google／LINE 帳號在正式站使用社交功能（正式站兩個登入都已開啟）。
 
 ## 下一步
 
-1. **使用者自己部署 Worker**（不可由 Claude 執行 `wrangler login`／`deploy`）：
-   ```bash
-   cd games/282-ro-life/worker
-   npx wrangler login
-   npx wrangler secret put RO_LOBBY_SECRET   # 長亂數
-   npx wrangler deploy
-   ```
-   然後 Vercel 設 `RO_LOBBY_URL=wss://ro-lobby.<帳號>.workers.dev/api/ro/lobby`、`RO_LOBBY_SECRET`（同值），重新部署。
-2. 部署後在正式站驗證：`/api/ro/config` 有回 `lobby`；兩台裝置（一台登入、一台訪客）互相看得到；登入的能聊天；`https://ro-lobby.<帳號>.workers.dev/health` 回 ok。若用 Vercel 預覽網址或自訂網域，要加進 `worker/wrangler.toml` 的 `ALLOWED_ORIGINS` 再 deploy。
+1. 使用者部署第二階段（不可由 Claude 執行）：先 commit＋push，在要執行 wrangler 的那台電腦 `git pull`，再 `cd games/282-ro-life/worker && npx wrangler deploy`。不用新的密鑰或環境變數。部署後可請 Claude 檢查正式站的 welcome 有沒有 `social`。
+2. 部署後在正式站驗證：兩台裝置各用 Google／LINE 登入，互相查看、密語、加好友；訪客點別人只有「查看」。
 3. 之後可選的擴充（使用者還沒決定）：
-   - ② 社交：密語、好友、檢視他人資料（好友名單存 Neon，`ro_` 前綴新表，DDL 由使用者自己套用）。
-   - ③ 交易、組隊打關卡：要把遊戲規則搬到伺服器，工作量大，等 ①② 穩定再評估。
-   - 其他待辦：多頻道（現在每個大廳只有頻道 1、上限 80 人）、檢舉、角色名審核。
+   - ③ 交易、組隊打關卡：要把遊戲規則搬到伺服器，工作量大。
+   - 其他待辦：檢舉、多頻道（現在只有頻道 1、總上限 80 人）、角色名審核、離線好友留言。
+   - 已知小限制：密語是打名字送出，如果線上的好友和陌生人同名，會送給好友。
 
 ## 上一台電腦的習慣（memory 不會跟著換電腦）
 

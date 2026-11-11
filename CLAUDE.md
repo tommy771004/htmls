@@ -20,7 +20,7 @@ npm ci
 npm start                 # 麻將＋鹽岬大逃殺（199）＋278 連線房間伺服器 + 靜態檔，http://127.0.0.1:8127（/ 會轉到 127）
 npm run test:mahjong      # node:test，規則引擎 + 跨實例四人房整合測試
 npm run test:saltcape     # 199 的規則層與 WebSocket 伺服器測試
-npm run test:ro           # 282 的 Google／LINE 登入、雲端存檔 API 與大廳連線（假的第三方端點、記憶體資料）
+npm run test:ro           # 282 的 Google／LINE 登入、雲端存檔 API、大廳連線與社交（假的第三方端點、記憶體資料、node:sqlite）
 node --test --test-name-pattern="行牌" server/jade-table/game.test.mjs   # 只跑單一測試
 node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對真實 Neon 驗證（需 DATABASE_URL）
 ```

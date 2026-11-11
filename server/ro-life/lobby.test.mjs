@@ -8,6 +8,7 @@ import { createRoLobby } from './lobby.mjs';
 import { signTicket, verifyTicket, cleanLook, onMessage, onClose, MAX_PLAYERS } from './lobby-core.mjs';
 import { createRoLife } from './server.mjs';
 import { RoStore } from './store.mjs';
+import { memoryStore } from './lobby-store.mjs';
 
 const SECRET = 'test-secret-0123456789';
 const LOOK = { job: 'hunter', gender: 'f', hair: 3, hairColor: 2, cloth: 1, equip: { headTop: 2220, weapon: 1701 } };
@@ -41,7 +42,7 @@ function fakeIo() {
   return {
     peers: () => peers, get: (ws) => st.get(ws) ?? null, set: (ws, v) => (v ? st.set(ws, v) : st.delete(ws)),
     send: (ws, msg) => sent.push([ws, msg]), close: (ws, code) => closed.push([ws, code]),
-    verify: (t, now) => verifyTicket(SECRET, t, now), add: (ws) => peers.push(ws), sent, closed, st,
+    verify: (t, now) => verifyTicket(SECRET, t, now), db: memoryStore(), add: (ws) => peers.push(ws), sent, closed, st,
   };
 }
 
@@ -164,14 +165,14 @@ test('本機伺服器：兩個人互相看得到，走動、外觀、表情、�
   await t.close();
 });
 
-test('本機伺服器：不同大廳互不相見、壞的入場票當訪客、不合法的大廳編號拒絕', async () => {
+test('本機伺服器：不同大廳編號進同一個廣場、壞的入場票當訪客、不合法的大廳編號拒絕', async () => {
   const t = await boot();
   const a = client(t.port, 1), b = client(t.port, 2);
   await Promise.all([a.open, b.open]);
   a.send({ t: 'hello', name: 'One', look: LOOK, x: 0, y: 0, f: 0, rt: 'bad.ticket' });
-  b.send({ t: 'hello', name: 'Two', look: LOOK, x: 0, y: 0, f: 0 });
   assert.deepEqual((await a.next((m) => m.t === 'welcome')).players, []);
-  assert.deepEqual((await b.next((m) => m.t === 'welcome')).players, []);
+  b.send({ t: 'hello', name: 'Two', look: LOOK, x: 0, y: 0, f: 0 });
+  assert.equal((await b.next((m) => m.t === 'welcome')).players[0].guest, true); // 2 號大廳也看得到 1 號的人
   a.send({ t: 'chat', ch: 'local', text: 'x' });
   assert.deepEqual(await a.next((m) => m.t === 'chatErr'), { t: 'chatErr', e: 'guest' });
   const bad = new WebSocket(`ws://127.0.0.1:${t.port}/api/ro/lobby?l=99`);
