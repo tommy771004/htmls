@@ -39,6 +39,7 @@ games/282-ro-life/
 - **`window.__ro`**：引擎本身暴露的實例與資料表（`__ro.run`、`__ro.lobby`、`__ro.getAccount()`、`__ro.getChars()`、`__ro.items`、`__ro.monsters` 等），無頭測試用。
 - **網址參數**：`?perf=1` 顯示左上角即時效能面板；`?diag` 開啟邊界框與碰撞除錯視圖。
 - 原本的 F2 Debug 面板與 `window.RODebug` 已依使用者要求整個移除，不要再加回頁面上的除錯按鈕。
+- **正式站與本機走不同分支**：引擎用主機名稱（`localhost`、`127.*`、`staging.*`）判斷開發環境，只有正式站會執行像 `#dl-btn` 移除這類程式；拿掉 DOM 節點時要把引擎裡對應的 `getElementById(...)` 改成 `?.`。驗收不要只開 localhost，要用 `--host-resolver-rules=MAP ro.test 127.0.0.1` 以 `http://ro.test:8127/web/282-ro-life.html`（`npm start`）開一次，按「開始遊戲」進到選角畫面。
 
 ## 注意事項
 
