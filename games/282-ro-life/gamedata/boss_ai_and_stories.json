@@ -1,0 +1,2775 @@
+{
+  "totalBossesWithAi": 27,
+  "bossAiStateMachineRules": {
+    "className": "_c",
+    "mvpGlobalCooldownSec": 2.2,
+    "miniBossGlobalCooldownSec": 3,
+    "hitMarginPx": 10,
+    "initialSkillRandomDelaySec": "0..3.0",
+    "targetSelection": "Closest living player in party (or solo player)",
+    "phaseTriggerRule": "Triggered immediately when HP <= maxHp * phase.at and boss is not hidden; sets GCD = 3.0s"
+  },
+  "storyCampaigns": {
+    "sunken_story": {
+      "className": "JA (extends X1)",
+      "stageId": "sunken_story",
+      "companions": [
+        {
+          "id": "celine",
+          "job": "high_priest",
+          "role": "Healer & Holy support"
+        },
+        {
+          "id": "lain",
+          "job": "professor",
+          "role": "Mage/Scholar who guides rune barrier deactivation"
+        },
+        {
+          "id": "haru",
+          "job": "paladin",
+          "role": "Frontline Tank"
+        }
+      ],
+      "phases": [
+        "Phase 1 (island): Spawn on Sunken Ship deck with Celine, Lain, and Haru; Lain identifies 3 rune seals on the portal.",
+        "Phase 2 (switches): Navigate deck and activate 3 rune mechanisms while holding off Pirate Skeletons, Whisper, and Penomena.",
+        "Phase 3 (drake): Barrier opens; defeat MVP Drake (180,000 HP) to clear Sunken Story and unlock Sunken Ship & Tier 2 stages."
+      ]
+    },
+    "prt_castle": {
+      "className": "oP (extends X1)",
+      "stageId": "prt_castle",
+      "requirement": "Job Lv 50 + 185 Gearscore",
+      "phases": [
+        "Phase 1 (intro & siege): Defend Prontera Castle Throne Room alongside guild companions against waves of Orc Warriors, Orc Ladies, and High Orc boss (190,000 HP @ 1:30).",
+        "Phase 2 (ceremony): King / Job Master promotion ceremony; player chooses 1 of the 2 Second Jobs for their class and receives exclusive 2nd-Job Emblem accessory (Item ID 22847)."
+      ]
+    }
+  },
+  "endlessTower": {
+    "className": "D5",
+    "stageId": "endless",
+    "waveDurationSec": 60,
+    "structure": "Infinite waves; every wave spawns scaled monster pools and periodic Mini-Boss/MVP encounters with reduced summon clutter and custom Moonlight 50% HP Bell phase (FE)."
+  },
+  "bossProfiles": [
+    {
+      "bossId": "eclipse",
+      "name": {
+        "es": "Eclipse",
+        "en": "Eclipse",
+        "zh-TW": "Eclipse"
+      },
+      "bossTier": "mini",
+      "level": 3,
+      "baseHp": 3400,
+      "baseDamage": 18,
+      "baseSpeed": 92,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Salto lunar",
+          "name": {
+            "es": "Salto lunar",
+            "en": "Lunar Leap",
+            "zh-TW": "月之跳躍"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 460,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 95,
+            "telegraphMs": 1300,
+            "dmgMult": 2.2,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Embestida",
+          "name": {
+            "es": "Embestida",
+            "en": "Charge",
+            "zh-TW": "衝鋒"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 420,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 420,
+            "width": 80,
+            "telegraphMs": 1100,
+            "dmgMult": 2,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Luna llena",
+          "name": {
+            "es": "Luna llena",
+            "en": "Full Moon",
+            "zh-TW": "滿月"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 5,
+            "radius": 62,
+            "telegraphMs": 1050,
+            "intervalSec": 0.35,
+            "scatterRadius": 140,
+            "dmgMult": 1.6,
+            "fx": "holy"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "vocal",
+      "name": {
+        "es": "Vocal",
+        "en": "Vocal",
+        "zh-TW": "Vocal"
+      },
+      "bossTier": "mini",
+      "level": 7,
+      "baseHp": 7500,
+      "baseDamage": 25,
+      "baseSpeed": 88,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Canto ensordecedor",
+          "name": {
+            "es": "Canto ensordecedor",
+            "en": "Deafening Song",
+            "zh-TW": "震耳之歌"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 210,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 175,
+            "telegraphMs": 1500,
+            "dmgMult": 2.2,
+            "fx": "sound"
+          }
+        },
+        {
+          "rawNameEs": "Saltos de grillo",
+          "name": {
+            "es": "Saltos de grillo",
+            "en": "Cricket Hops",
+            "zh-TW": "蟋蟀跳"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 460,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 1.05,
+            "inner": {
+              "pattern": "leap_slam",
+              "shape": "circle",
+              "radius": 78,
+              "telegraphMs": 900,
+              "dmgMult": 1.6,
+              "fx": "dust"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Chirrido",
+          "name": {
+            "es": "Chirrido",
+            "en": "Screech",
+            "zh-TW": "尖嘯"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 330,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 320,
+            "halfAngleRad": 0.42,
+            "angleDeg": 48,
+            "telegraphMs": 1100,
+            "dmgMult": 2,
+            "fx": "sound"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "toad",
+      "name": {
+        "es": "Toad",
+        "en": "Toad",
+        "zh-TW": "Toad"
+      },
+      "bossTier": "mini",
+      "level": 4,
+      "baseHp": 4600,
+      "baseDamage": 20,
+      "baseSpeed": 80,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Chorro de burbujas",
+          "name": {
+            "es": "Chorro de burbujas",
+            "en": "Bubble Jet",
+            "zh-TW": "泡泡噴射"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 420,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 2,
+            "intervalSec": 1.35,
+            "inner": {
+              "pattern": "bubble_cone_spray",
+              "shape": "cone",
+              "radius": 420,
+              "halfAngleRad": 0.32,
+              "angleDeg": 37,
+              "telegraphMs": 900,
+              "dmgMult": 1.6,
+              "bubbleCount": 26,
+              "sprayMs": 750
+            }
+          }
+        },
+        {
+          "rawNameEs": "Salto del sapo",
+          "name": {
+            "es": "Salto del sapo",
+            "en": "Toad Leap",
+            "zh-TW": "蟾蜍跳"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 2,
+            "intervalSec": 1.15,
+            "inner": {
+              "pattern": "leap_slam",
+              "shape": "circle",
+              "radius": 90,
+              "telegraphMs": 950,
+              "dmgMult": 1.9,
+              "fx": "water"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Croar",
+          "name": {
+            "es": "Croar",
+            "en": "Croak",
+            "zh-TW": "呱呱叫"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 210,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 185,
+            "telegraphMs": 1400,
+            "dmgMult": 2.2,
+            "fx": "sound"
+          }
+        },
+        {
+          "rawNameEs": "¡Ranas!",
+          "name": {
+            "es": "¡Ranas!",
+            "en": "Frogs!",
+            "zh-TW": "青蛙們！"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "roda_frog",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "dragon_fly",
+      "name": {
+        "es": "Dragon Fly",
+        "en": "Dragon Fly",
+        "zh-TW": "Dragon Fly"
+      },
+      "bossTier": "mini",
+      "level": 5,
+      "baseHp": 5600,
+      "baseDamage": 22,
+      "baseSpeed": 115,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Picado",
+          "name": {
+            "es": "Picado",
+            "en": "Dive",
+            "zh-TW": "俯衝"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 0.85,
+            "inner": {
+              "pattern": "line_charge",
+              "shape": "line",
+              "length": 400,
+              "width": 70,
+              "telegraphMs": 750,
+              "dmgMult": 1.6,
+              "fx": "dust"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Zumbido",
+          "name": {
+            "es": "Zumbido",
+            "en": "Buzz",
+            "zh-TW": "嗡嗡"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 200,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 175,
+            "telegraphMs": 1300,
+            "dmgMult": 2.1,
+            "fx": "sound"
+          }
+        },
+        {
+          "rawNameEs": "Aguijonazo",
+          "name": {
+            "es": "Aguijonazo",
+            "en": "Sting",
+            "zh-TW": "螫刺"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 280,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 260,
+            "halfAngleRad": 0.45,
+            "angleDeg": 52,
+            "telegraphMs": 850,
+            "dmgMult": 1.9,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Enjambre",
+          "name": {
+            "es": "Enjambre",
+            "en": "Swarm",
+            "zh-TW": "蟲群"
+          },
+          "cooldownSec": 16,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "chonchon",
+            "count": 6
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "mastering",
+      "name": {
+        "es": "Mastering",
+        "en": "Mastering",
+        "zh-TW": "Mastering"
+      },
+      "bossTier": "mvp",
+      "level": 8,
+      "baseHp": 52000,
+      "baseDamage": 44,
+      "baseSpeed": 82,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Rebote gelatinoso",
+          "name": {
+            "es": "Rebote gelatinoso",
+            "en": "Jelly Bounce",
+            "zh-TW": "果凍彈跳"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 1.1,
+            "inner": {
+              "pattern": "leap_slam",
+              "shape": "circle",
+              "radius": 92,
+              "telegraphMs": 1000,
+              "dmgMult": 1.9,
+              "fx": "dust"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Lluvia de Porings",
+          "name": {
+            "es": "Lluvia de Porings",
+            "en": "Poring Rain",
+            "zh-TW": "波利雨"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 8,
+            "radius": 60,
+            "telegraphMs": 1100,
+            "intervalSec": 0.2,
+            "scatterRadius": 180,
+            "dmgMult": 1.6,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Aplastamiento",
+          "name": {
+            "es": "Aplastamiento",
+            "en": "Crush",
+            "zh-TW": "碾壓"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 200,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 160,
+            "telegraphMs": 1400,
+            "dmgMult": 2.4,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Gran salto",
+          "name": {
+            "es": "Gran salto",
+            "en": "Great Leap",
+            "zh-TW": "大躍進"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 140,
+            "telegraphMs": 1500,
+            "dmgMult": 2.8,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Ondas de gelatina",
+          "name": {
+            "es": "Ondas de gelatina",
+            "en": "Jelly Waves",
+            "zh-TW": "果凍波"
+          },
+          "cooldownSec": 14,
+          "triggerRangePx": 600,
+          "mechanic": {
+            "pattern": "expanding_concentric_rings",
+            "shape": "ring",
+            "radii": [
+              160,
+              320,
+              480
+            ],
+            "stepSec": 1.3,
+            "telegraphMs": 2400,
+            "dmgMult": 2.2
+          }
+        },
+        {
+          "rawNameEs": "¡Me parto en Porings!",
+          "name": {
+            "es": "¡Me parto en Porings!",
+            "en": "Split into Porings!",
+            "zh-TW": "分裂成波利！"
+          },
+          "cooldownSec": 20,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "poring",
+            "count": 8
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "tarou_bite",
+      "name": {
+        "es": "Biting Tarou",
+        "en": "Biting Tarou",
+        "zh-TW": "Biting Tarou"
+      },
+      "bossTier": "mini",
+      "level": 10,
+      "baseHp": 5500,
+      "baseDamage": 23,
+      "baseSpeed": 110,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Mordisco",
+          "name": {
+            "es": "Mordisco",
+            "en": "Bite",
+            "zh-TW": "咬擊"
+          },
+          "cooldownSec": 5,
+          "triggerRangePx": 220,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 200,
+            "halfAngleRad": 0.5,
+            "angleDeg": 57,
+            "telegraphMs": 700,
+            "dmgMult": 1.5,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Carrera rabiosa",
+          "name": {
+            "es": "Carrera rabiosa",
+            "en": "Rabid Rush",
+            "zh-TW": "狂暴突進"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 0.9,
+            "inner": {
+              "pattern": "line_charge",
+              "shape": "line",
+              "length": 420,
+              "width": 80,
+              "telegraphMs": 800,
+              "dmgMult": 1.7,
+              "fx": "dust"
+            }
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "tarou_plague",
+      "name": {
+        "es": "Plague Tarou",
+        "en": "Plague Tarou",
+        "zh-TW": "Plague Tarou"
+      },
+      "bossTier": "mini",
+      "level": 10,
+      "baseHp": 5500,
+      "baseDamage": 21,
+      "baseSpeed": 95,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Mordisco",
+          "name": {
+            "es": "Mordisco",
+            "en": "Bite",
+            "zh-TW": "咬擊"
+          },
+          "cooldownSec": 5,
+          "triggerRangePx": 220,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 200,
+            "halfAngleRad": 0.5,
+            "angleDeg": 57,
+            "telegraphMs": 700,
+            "dmgMult": 1.5,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Peste de cloaca",
+          "name": {
+            "es": "Peste de cloaca",
+            "en": "Sewer Plague",
+            "zh-TW": "地下水道瘟疫"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "plague_poison_pools",
+            "shape": "circle",
+            "count": 4,
+            "radius": 75,
+            "telegraphMs": 1000,
+            "intervalSec": 0.35,
+            "scatterRadius": 160,
+            "dmgMult": 1.4,
+            "poolDurationSec": 6,
+            "poolTickEverySec": 0.5,
+            "poolTickDmgMult": 0.3
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "tarou_burrow",
+      "name": {
+        "es": "Burrowing Tarou",
+        "en": "Burrowing Tarou",
+        "zh-TW": "Burrowing Tarou"
+      },
+      "bossTier": "mini",
+      "level": 10,
+      "baseHp": 5500,
+      "baseDamage": 23,
+      "baseSpeed": 100,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Mordisco",
+          "name": {
+            "es": "Mordisco",
+            "en": "Bite",
+            "zh-TW": "咬擊"
+          },
+          "cooldownSec": 5,
+          "triggerRangePx": 220,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 200,
+            "halfAngleRad": 0.5,
+            "angleDeg": 57,
+            "telegraphMs": 700,
+            "dmgMult": 1.5,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Madriguera",
+          "name": {
+            "es": "Madriguera",
+            "en": "Burrow",
+            "zh-TW": "鑽地"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "burrow_ambush_chain",
+            "shape": "circle",
+            "burrowStrikes": 2,
+            "radius": 85,
+            "telegraphMs": 950,
+            "dmgMult": 1.8,
+            "goldenSpikes": false
+          }
+        },
+        {
+          "rawNameEs": "¡Ratas!",
+          "name": {
+            "es": "¡Ratas!",
+            "en": "Rats!",
+            "zh-TW": "老鼠們！"
+          },
+          "cooldownSec": 16,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "tarou",
+            "count": 3
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "golden_thief_bug",
+      "name": {
+        "es": "Golden Thief Bug",
+        "en": "Golden Thief Bug",
+        "zh-TW": "Golden Thief Bug"
+      },
+      "bossTier": "mvp",
+      "level": 12,
+      "baseHp": 58000,
+      "baseDamage": 47,
+      "baseSpeed": 100,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Excavación dorada",
+          "name": {
+            "es": "Excavación dorada",
+            "en": "Golden Burrow",
+            "zh-TW": "黃金鑽地"
+          },
+          "cooldownSec": 14,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "burrow_ambush_chain",
+            "shape": "circle",
+            "burrowStrikes": 3,
+            "radius": 95,
+            "telegraphMs": 1100,
+            "dmgMult": 2.2,
+            "goldenSpikes": true
+          }
+        },
+        {
+          "rawNameEs": "Caparazón de oro",
+          "name": {
+            "es": "Caparazón de oro",
+            "en": "Golden Carapace",
+            "zh-TW": "黃金甲殼"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "golden_carapace_guard_burst",
+            "shape": "circle",
+            "shieldDurationSec": 4.5,
+            "damageReduction": 0.75,
+            "explosionRadius": 230,
+            "dmgMult": 2.6
+          }
+        },
+        {
+          "rawNameEs": "Codicia",
+          "name": {
+            "es": "Codicia",
+            "en": "Greed",
+            "zh-TW": "貪婪"
+          },
+          "cooldownSec": 13,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "checkerboard_coin_crush",
+            "shape": "checkerboard_grid",
+            "gridSize": 5,
+            "cellSize": 95,
+            "telegraphMs": 1000,
+            "waveIntervalSec": 1.05,
+            "dmgMult": 1.6,
+            "waves": 3
+          }
+        },
+        {
+          "rawNameEs": "Embestida dorada",
+          "name": {
+            "es": "Embestida dorada",
+            "en": "Golden Charge",
+            "zh-TW": "黃金衝鋒"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 520,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 1.25,
+            "inner": {
+              "pattern": "line_charge",
+              "shape": "line",
+              "length": 480,
+              "width": 100,
+              "telegraphMs": 900,
+              "dmgMult": 2,
+              "fx": "gold",
+              "streak": true
+            }
+          }
+        },
+        {
+          "rawNameEs": "Mandíbulas de oro",
+          "name": {
+            "es": "Mandíbulas de oro",
+            "en": "Golden Mandibles",
+            "zh-TW": "黃金大顎"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 250,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 235,
+            "halfAngleRad": 0.65,
+            "angleDeg": 74,
+            "telegraphMs": 900,
+            "dmgMult": 2.4,
+            "fx": "gold"
+          }
+        },
+        {
+          "rawNameEs": "Enjambre",
+          "name": {
+            "es": "Enjambre",
+            "en": "Swarm",
+            "zh-TW": "蟲群"
+          },
+          "cooldownSec": 22,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "thief_bug",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "angeling",
+      "name": {
+        "es": "Angeling",
+        "en": "Angeling",
+        "zh-TW": "Angeling"
+      },
+      "bossTier": "mini",
+      "level": 22,
+      "baseHp": 35100,
+      "baseDamage": 30,
+      "baseSpeed": 82,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Luz sagrada",
+          "name": {
+            "es": "Luz sagrada",
+            "en": "Holy Light",
+            "zh-TW": "聖光"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 4,
+            "radius": 72,
+            "telegraphMs": 1000,
+            "intervalSec": 0.6,
+            "scatterRadius": 0,
+            "dmgMult": 1.8,
+            "fx": "holy"
+          }
+        },
+        {
+          "rawNameEs": "Salto angelical",
+          "name": {
+            "es": "Salto angelical",
+            "en": "Angelic Leap",
+            "zh-TW": "天使之躍"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 460,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 95,
+            "telegraphMs": 1200,
+            "dmgMult": 2.2,
+            "fx": "holy"
+          }
+        },
+        {
+          "rawNameEs": "Juicio del cielo",
+          "name": {
+            "es": "Juicio del cielo",
+            "en": "Judgement of Heaven",
+            "zh-TW": "天堂審判"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 210,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 170,
+            "telegraphMs": 1500,
+            "dmgMult": 2.4,
+            "fx": "holy"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "deviling",
+      "name": {
+        "es": "Deviling",
+        "en": "Deviling",
+        "zh-TW": "Deviling"
+      },
+      "bossTier": "mini",
+      "level": 23,
+      "baseHp": 58500,
+      "baseDamage": 36,
+      "baseSpeed": 96,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Bola oscura",
+          "name": {
+            "es": "Bola oscura",
+            "en": "Dark Orb",
+            "zh-TW": "黑暗球"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 6,
+            "radius": 64,
+            "telegraphMs": 1050,
+            "intervalSec": 0.25,
+            "scatterRadius": 160,
+            "dmgMult": 1.7,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Salto diabólico",
+          "name": {
+            "es": "Salto diabólico",
+            "en": "Devil Leap",
+            "zh-TW": "惡魔之躍"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 460,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 95,
+            "telegraphMs": 1150,
+            "dmgMult": 2.2,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Carga infernal",
+          "name": {
+            "es": "Carga infernal",
+            "en": "Infernal Charge",
+            "zh-TW": "地獄衝鋒"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 460,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 460,
+            "width": 90,
+            "telegraphMs": 1000,
+            "dmgMult": 2.2,
+            "fx": "dark"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "ghostring",
+      "name": {
+        "es": "Ghostring",
+        "en": "Ghostring",
+        "zh-TW": "Ghostring"
+      },
+      "bossTier": "mini",
+      "level": 13,
+      "baseHp": 28000,
+      "baseDamage": 24,
+      "baseSpeed": 92,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Lamento",
+          "name": {
+            "es": "Lamento",
+            "en": "Lament",
+            "zh-TW": "哀嘆"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 220,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 185,
+            "telegraphMs": 1500,
+            "dmgMult": 2.3,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Toque fantasma",
+          "name": {
+            "es": "Toque fantasma",
+            "en": "Ghost Touch",
+            "zh-TW": "幽靈之觸"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 5,
+            "radius": 66,
+            "telegraphMs": 1000,
+            "intervalSec": 0.3,
+            "scatterRadius": 150,
+            "dmgMult": 1.7,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Desvanecerse",
+          "name": {
+            "es": "Desvanecerse",
+            "en": "Fade Away",
+            "zh-TW": "消逝"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "blink_ambush",
+            "shape": "circle",
+            "vanishMs": 320,
+            "radius": 150,
+            "telegraphMs": 1100,
+            "dmgMult": 2.2,
+            "fx": "dark"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "penomena",
+      "name": {
+        "es": "Penomena",
+        "en": "Penomena",
+        "zh-TW": "Penomena"
+      },
+      "bossTier": "mini",
+      "level": 15,
+      "baseHp": 28000,
+      "baseDamage": 29,
+      "baseSpeed": 60,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Tentáculos",
+          "name": {
+            "es": "Tentáculos",
+            "en": "Tentacles",
+            "zh-TW": "觸手"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 5,
+            "radius": 70,
+            "telegraphMs": 1000,
+            "intervalSec": 0.3,
+            "scatterRadius": 160,
+            "dmgMult": 1.7,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "Raíces del fondo",
+          "name": {
+            "es": "Raíces del fondo",
+            "en": "Roots of the Deep",
+            "zh-TW": "深海之根"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "burrow_ambush_chain",
+            "shape": "circle",
+            "burrowStrikes": 3,
+            "radius": 95,
+            "telegraphMs": 1000,
+            "dmgMult": 2,
+            "goldenSpikes": true
+          }
+        },
+        {
+          "rawNameEs": "Marea venenosa",
+          "name": {
+            "es": "Marea venenosa",
+            "en": "Venom Tide",
+            "zh-TW": "毒液潮"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 600,
+          "mechanic": {
+            "pattern": "expanding_concentric_rings",
+            "shape": "ring",
+            "radii": [
+              180,
+              360,
+              540
+            ],
+            "stepSec": 1.4,
+            "telegraphMs": 2600,
+            "dmgMult": 2
+          }
+        },
+        {
+          "rawNameEs": "Brotes de Hydra",
+          "name": {
+            "es": "Brotes de Hydra",
+            "en": "Hydra Sprouts",
+            "zh-TW": "九頭蛇新芽"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "hydra",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "drake",
+      "name": {
+        "es": "Drake",
+        "en": "Drake",
+        "zh-TW": "Drake"
+      },
+      "bossTier": "mvp",
+      "level": 15,
+      "baseHp": 180000,
+      "baseDamage": 49,
+      "baseSpeed": 100,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Sablazo",
+          "name": {
+            "es": "Sablazo",
+            "en": "Saber Slash",
+            "zh-TW": "軍刀斬"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 500,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 480,
+            "halfAngleRad": 0.5,
+            "angleDeg": 57,
+            "telegraphMs": 750,
+            "dmgMult": 2.4,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Remolino",
+          "name": {
+            "es": "Remolino",
+            "en": "Whirlwind",
+            "zh-TW": "旋風"
+          },
+          "cooldownSec": 16,
+          "triggerRangePx": 680,
+          "mechanic": {
+            "pattern": "expanding_concentric_rings",
+            "shape": "ring",
+            "radii": [
+              170,
+              340,
+              510,
+              680
+            ],
+            "stepSec": 1.6,
+            "telegraphMs": 3300,
+            "dmgMult": 2.6
+          }
+        },
+        {
+          "rawNameEs": "Oleaje",
+          "name": {
+            "es": "Oleaje",
+            "en": "Swell",
+            "zh-TW": "膨脹"
+          },
+          "cooldownSec": 13,
+          "triggerRangePx": 720,
+          "mechanic": {
+            "pattern": "rotating_cone_waves",
+            "shape": "cone",
+            "cones": 4,
+            "radius": 700,
+            "waves": 3,
+            "telegraphMs": 1500,
+            "dmgMult": 2.2
+          }
+        },
+        {
+          "rawNameEs": "¡A mí la tripulación!",
+          "name": {
+            "es": "¡A mí la tripulación!",
+            "en": "All hands, to me!",
+            "zh-TW": "全員，到我身邊！"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "pirate_skel",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "deviace",
+      "name": {
+        "es": "Deviace",
+        "en": "Deviace",
+        "zh-TW": "Deviace"
+      },
+      "bossTier": "mini",
+      "level": 17,
+      "baseHp": 30000,
+      "baseDamage": 30,
+      "baseSpeed": 110,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Mordisco voraz",
+          "name": {
+            "es": "Mordisco voraz",
+            "en": "Ravenous Bite",
+            "zh-TW": "貪婪啃咬"
+          },
+          "cooldownSec": 5,
+          "triggerRangePx": 230,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 210,
+            "halfAngleRad": 0.5,
+            "angleDeg": 57,
+            "telegraphMs": 750,
+            "dmgMult": 1.6,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "Embestida abisal",
+          "name": {
+            "es": "Embestida abisal",
+            "en": "Abyssal Rush",
+            "zh-TW": "深淵突進"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 0.9,
+            "inner": {
+              "pattern": "line_charge",
+              "shape": "line",
+              "length": 420,
+              "width": 80,
+              "telegraphMs": 800,
+              "dmgMult": 1.7,
+              "fx": "water"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Remolino",
+          "name": {
+            "es": "Remolino",
+            "en": "Whirlwind",
+            "zh-TW": "旋風"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 220,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 190,
+            "telegraphMs": 1400,
+            "dmgMult": 2.2,
+            "fx": "water"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "strouf",
+      "name": {
+        "es": "Strouf",
+        "en": "Strouf",
+        "zh-TW": "Strouf"
+      },
+      "bossTier": "mini",
+      "level": 19,
+      "baseHp": 50000,
+      "baseDamage": 35,
+      "baseSpeed": 95,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Coletazo",
+          "name": {
+            "es": "Coletazo",
+            "en": "Tail Slap",
+            "zh-TW": "甩尾"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 260,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 240,
+            "halfAngleRad": 0.65,
+            "angleDeg": 74,
+            "telegraphMs": 900,
+            "dmgMult": 2,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "Thunderstorm",
+          "name": {
+            "es": "Tormenta eléctrica",
+            "en": "Thunderstorm",
+            "zh-TW": "雷爆術"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 3,
+            "radius": 105,
+            "telegraphMs": 1100,
+            "intervalSec": 0.35,
+            "scatterRadius": 230,
+            "dmgMult": 2,
+            "fx": "thunder"
+          }
+        },
+        {
+          "rawNameEs": "Marejada",
+          "name": {
+            "es": "Marejada",
+            "en": "Surge",
+            "zh-TW": "湧浪"
+          },
+          "cooldownSec": 13,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "rotating_cone_waves",
+            "shape": "cone",
+            "cones": 3,
+            "radius": 620,
+            "waves": 3,
+            "telegraphMs": 1500,
+            "dmgMult": 2
+          }
+        },
+        {
+          "rawNameEs": "¡Banco de peces!",
+          "name": {
+            "es": "¡Banco de peces!",
+            "en": "School of Fish!",
+            "zh-TW": "魚群！"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "phen",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "king_dramoh",
+      "name": {
+        "es": "King Dramoh",
+        "en": "King Dramoh",
+        "zh-TW": "King Dramoh"
+      },
+      "bossTier": "mini",
+      "level": 20,
+      "baseHp": 80000,
+      "baseDamage": 40,
+      "baseSpeed": 80,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Pinzazo",
+          "name": {
+            "es": "Pinzazo",
+            "en": "Pincer Strike",
+            "zh-TW": "鉗擊"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 260,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 250,
+            "halfAngleRad": 0.6,
+            "angleDeg": 69,
+            "telegraphMs": 950,
+            "dmgMult": 2.2,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "Carga del rey",
+          "name": {
+            "es": "Carga del rey",
+            "en": "King's Charge",
+            "zh-TW": "國王衝鋒"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 520,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 500,
+            "width": 100,
+            "telegraphMs": 1000,
+            "dmgMult": 2.2,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "Burbujas",
+          "name": {
+            "es": "Burbujas",
+            "en": "Bubbles",
+            "zh-TW": "泡泡"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 6,
+            "radius": 64,
+            "telegraphMs": 1050,
+            "intervalSec": 0.3,
+            "scatterRadius": 160,
+            "dmgMult": 1.7,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "Pinzas de hierro",
+          "name": {
+            "es": "Pinzas de hierro",
+            "en": "Iron Pincers",
+            "zh-TW": "鋼鐵巨鉗"
+          },
+          "cooldownSec": 12,
+          "triggerRangePx": 240,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 215,
+            "telegraphMs": 1500,
+            "dmgMult": 2.4,
+            "fx": "water"
+          }
+        },
+        {
+          "rawNameEs": "¡Mis súbditos!",
+          "name": {
+            "es": "¡Mis súbditos!",
+            "en": "My Subjects!",
+            "zh-TW": "我的子民們！"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "vadon",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "kraken",
+      "name": {
+        "es": "Kraken",
+        "en": "Kraken",
+        "zh-TW": "Kraken"
+      },
+      "bossTier": "mvp",
+      "level": 20,
+      "baseHp": 280000,
+      "baseDamage": 62,
+      "baseSpeed": 45,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Hileras de tentáculos",
+          "name": {
+            "es": "Hileras de tentáculos",
+            "en": "Tentacle Rows",
+            "zh-TW": "觸手列陣"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "tentacle_lane_eruption",
+            "shape": "circle_lanes",
+            "lanes": 3,
+            "laneAngleSpreadRad": 0.4,
+            "stepsPerLane": 6,
+            "stepDist": 95,
+            "radius": 52,
+            "stepDelaySec": 0.18,
+            "telegraphMs": 900,
+            "dmgMult": 1.8
+          }
+        },
+        {
+          "rawNameEs": "Latigazo cruzado",
+          "name": {
+            "es": "Latigazo cruzado",
+            "en": "Cross Lash",
+            "zh-TW": "交叉鞭打"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "cross_tentacle_slam",
+            "shape": "cross_lines",
+            "length": 760,
+            "width": 90,
+            "telegraphMs": 1100,
+            "secondCrossDelaySec": 0.7,
+            "dmgMult": 2.2
+          }
+        },
+        {
+          "rawNameEs": "Nube de tinta",
+          "name": {
+            "es": "Nube de tinta",
+            "en": "Ink Cloud",
+            "zh-TW": "墨雲"
+          },
+          "cooldownSec": 12,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "ink_cloud_pools",
+            "shape": "circle",
+            "count": 4,
+            "radius": 80,
+            "telegraphMs": 1000,
+            "intervalSec": 0.35,
+            "scatterRadius": 170,
+            "dmgMult": 1.4,
+            "poolDurationSec": 6,
+            "poolTickEverySec": 0.5,
+            "poolTickDmgMult": 0.3
+          }
+        },
+        {
+          "rawNameEs": "Abrazo del Kraken",
+          "name": {
+            "es": "Abrazo del Kraken",
+            "en": "Kraken’s Embrace",
+            "zh-TW": "海妖之擁"
+          },
+          "cooldownSec": 13,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "ring_then_inner_crush",
+            "shape": "ring_then_circle",
+            "innerRadius": 95,
+            "outerRadius": 230,
+            "ringTelegraphMs": 1300,
+            "innerFollowupMs": 900,
+            "ringDmgMult": 2,
+            "innerDmgMult": 2.5
+          }
+        },
+        {
+          "rawNameEs": "Vórtice del abismo",
+          "name": {
+            "es": "Vórtice del abismo",
+            "en": "Abyssal Vortex",
+            "zh-TW": "深淵漩渦"
+          },
+          "cooldownSec": 17,
+          "triggerRangePx": 600,
+          "mechanic": {
+            "pattern": "abyssal_vortex_pull",
+            "shape": "circle",
+            "pullDurationSec": 3.2,
+            "pullRadius": 650,
+            "pullSpeed": 110,
+            "explosionRadius": 230,
+            "dmgMult": 3
+          }
+        },
+        {
+          "rawNameEs": "¡Tentáculos del Kraken!",
+          "name": {
+            "es": "¡Tentáculos del Kraken!",
+            "en": "Kraken Tentacles!",
+            "zh-TW": "海妖觸手！"
+          },
+          "cooldownSec": 22,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "kraken_leg",
+            "count": 3
+          }
+        }
+      ],
+      "hpPhasesNormal": [
+        {
+          "hpThresholdRatio": 0.5,
+          "rawNameEs": "Furia del abismo",
+          "name": {
+            "es": "Furia del abismo",
+            "en": "Fury of the Deep",
+            "zh-TW": "深海之怒"
+          },
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "kraken_leg",
+            "count": 5
+          }
+        }
+      ],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "vagabond_wolf",
+      "name": {
+        "es": "Vagabond Wolf",
+        "en": "Vagabond Wolf",
+        "zh-TW": "Vagabond Wolf"
+      },
+      "bossTier": "mini",
+      "level": 24,
+      "baseHp": 93600,
+      "baseDamage": 42,
+      "baseSpeed": 125,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Dentelladas",
+          "name": {
+            "es": "Dentelladas",
+            "en": "Snapping Bites",
+            "zh-TW": "連續咬擊"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 230,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 0.5,
+            "inner": {
+              "pattern": "frontal_cone_cleave",
+              "shape": "cone",
+              "radius": 210,
+              "halfAngleRad": 0.5,
+              "angleDeg": 57,
+              "telegraphMs": 650,
+              "dmgMult": 1.3,
+              "fx": "slash"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Salto del lobo",
+          "name": {
+            "es": "Salto del lobo",
+            "en": "Wolf Leap",
+            "zh-TW": "狼躍"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 2,
+            "intervalSec": 1.1,
+            "inner": {
+              "pattern": "leap_slam",
+              "shape": "circle",
+              "radius": 90,
+              "telegraphMs": 1000,
+              "dmgMult": 2.2,
+              "fx": "dust"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Carrera salvaje",
+          "name": {
+            "es": "Carrera salvaje",
+            "en": "Wild Rush",
+            "zh-TW": "狂野突進"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 520,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 520,
+            "width": 90,
+            "telegraphMs": 900,
+            "dmgMult": 2.2,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Golpe de tierra",
+          "name": {
+            "es": "Golpe de tierra",
+            "en": "Ground Slam",
+            "zh-TW": "大地重擊"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 230,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 210,
+            "telegraphMs": 1400,
+            "dmgMult": 2.4,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Aullido de la manada",
+          "name": {
+            "es": "Aullido de la manada",
+            "en": "Howl of the Pack",
+            "zh-TW": "群狼之嚎"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "wolf",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "skeleton_general",
+      "name": {
+        "es": "Skeleton General",
+        "en": "Skeleton General",
+        "zh-TW": "Skeleton General"
+      },
+      "bossTier": "mini",
+      "level": 27,
+      "baseHp": 71250,
+      "baseDamage": 46,
+      "baseSpeed": 100,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Tajo del general",
+          "name": {
+            "es": "Tajo del general",
+            "en": "General's Cleave",
+            "zh-TW": "將軍劈砍"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 250,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 240,
+            "halfAngleRad": 0.6,
+            "angleDeg": 69,
+            "telegraphMs": 900,
+            "dmgMult": 2.2,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "¡A la carga!",
+          "name": {
+            "es": "¡A la carga!",
+            "en": "Charge!",
+            "zh-TW": "衝啊！"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 500,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 500,
+            "width": 90,
+            "telegraphMs": 1000,
+            "dmgMult": 2.2,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "¡Arqueros, disparad!",
+          "name": {
+            "es": "¡Arqueros, disparad!",
+            "en": "Archers, fire!",
+            "zh-TW": "弓箭手，放箭！"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 7,
+            "radius": 60,
+            "telegraphMs": 1100,
+            "intervalSec": 0.2,
+            "scatterRadius": 170,
+            "dmgMult": 1.5,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "¡A formar!",
+          "name": {
+            "es": "¡A formar!",
+            "en": "Fall in!",
+            "zh-TW": "列隊！"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "skel_soldier",
+            "count": 3
+          }
+        },
+        {
+          "rawNameEs": "¡Arqueros, a mí!",
+          "name": {
+            "es": "¡Arqueros, a mí!",
+            "en": "Archers, to me!",
+            "zh-TW": "弓箭手，到我身邊！"
+          },
+          "cooldownSec": 22,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "skel_archer",
+            "count": 2
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "cat_o_nine_tail",
+      "name": {
+        "es": "Cat O' Nine Tails",
+        "en": "Cat O' Nine Tails",
+        "zh-TW": "Cat O' Nine Tails"
+      },
+      "bossTier": "mini",
+      "level": 28,
+      "baseHp": 112500,
+      "baseDamage": 52,
+      "baseSpeed": 120,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Zarpazos",
+          "name": {
+            "es": "Zarpazos",
+            "en": "Claw Swipes",
+            "zh-TW": "連續爪擊"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 240,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 2,
+            "intervalSec": 0.55,
+            "inner": {
+              "pattern": "frontal_cone_cleave",
+              "shape": "cone",
+              "radius": 220,
+              "halfAngleRad": 0.55,
+              "angleDeg": 63,
+              "telegraphMs": 700,
+              "dmgMult": 1.5,
+              "fx": "blaze"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Fuego de zorro",
+          "name": {
+            "es": "Fuego de zorro",
+            "en": "Fox Fire",
+            "zh-TW": "狐火"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "fireball_rain_with_burning_ground",
+            "shape": "circle",
+            "count": 6,
+            "radius": 60,
+            "telegraphMs": 1050,
+            "intervalSec": 0.25,
+            "scatterRadius": 170,
+            "dmgMult": 1.5,
+            "burnDurationSec": 2,
+            "burnTickEverySec": 0.5,
+            "burnTickDmgMult": 0.3,
+            "fireballSize": 520
+          }
+        },
+        {
+          "rawNameEs": "Paso de zorro",
+          "name": {
+            "es": "Paso de zorro",
+            "en": "Fox Step",
+            "zh-TW": "狐步"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "blink_ambush",
+            "shape": "circle",
+            "vanishMs": 320,
+            "radius": 150,
+            "telegraphMs": 1000,
+            "dmgMult": 2.2,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Nueve colas",
+          "name": {
+            "es": "Nueve colas",
+            "en": "Nine Tails",
+            "zh-TW": "九尾"
+          },
+          "cooldownSec": 12,
+          "triggerRangePx": 240,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 220,
+            "telegraphMs": 1400,
+            "dmgMult": 2.4,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "¡Hermanas!",
+          "name": {
+            "es": "¡Hermanas!",
+            "en": "Sisters!",
+            "zh-TW": "姊妹們！"
+          },
+          "cooldownSec": 20,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "nine_tail",
+            "count": 3
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "hyegun",
+      "name": {
+        "es": "Hyegun",
+        "en": "Hyegun",
+        "zh-TW": "Hyegun"
+      },
+      "bossTier": "mini",
+      "level": 29,
+      "baseHp": 150000,
+      "baseDamage": 58,
+      "baseSpeed": 105,
+      "globalCooldownSec": 3,
+      "skills": [
+        {
+          "rawNameEs": "Saltos del vampiro",
+          "name": {
+            "es": "Saltos del vampiro",
+            "en": "Vampire Hops",
+            "zh-TW": "殭屍跳"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 520,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 4,
+            "intervalSec": 0.9,
+            "inner": {
+              "pattern": "leap_slam",
+              "shape": "circle",
+              "radius": 80,
+              "telegraphMs": 850,
+              "dmgMult": 1.7,
+              "fx": "dark"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Talismanes",
+          "name": {
+            "es": "Talismanes",
+            "en": "Talismans",
+            "zh-TW": "符咒"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 5,
+            "radius": 66,
+            "telegraphMs": 1000,
+            "intervalSec": 0.35,
+            "scatterRadius": 150,
+            "dmgMult": 1.6,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Abrazo de la muerte",
+          "name": {
+            "es": "Abrazo de la muerte",
+            "en": "Embrace of Death",
+            "zh-TW": "死亡之擁"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 220,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 190,
+            "telegraphMs": 1300,
+            "dmgMult": 2.4,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Gran salto",
+          "name": {
+            "es": "Gran salto",
+            "en": "Great Leap",
+            "zh-TW": "大躍進"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 110,
+            "telegraphMs": 1200,
+            "dmgMult": 2.4,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "¡Despertad!",
+          "name": {
+            "es": "¡Despertad!",
+            "en": "Awaken!",
+            "zh-TW": "甦醒吧！"
+          },
+          "cooldownSec": 18,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "bon_gun",
+            "count": 4
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "moonlight",
+      "name": {
+        "es": "Moonlight Flower",
+        "en": "Moonlight Flower",
+        "zh-TW": "Moonlight Flower"
+      },
+      "bossTier": "mvp",
+      "level": 30,
+      "baseHp": 1000000,
+      "baseDamage": 80,
+      "baseSpeed": 110,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Fuego fatuo",
+          "name": {
+            "es": "Fuego fatuo",
+            "en": "Foxfire",
+            "zh-TW": "狐火"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "fireball_rain_with_burning_ground",
+            "shape": "circle",
+            "count": 7,
+            "radius": 66,
+            "telegraphMs": 1100,
+            "intervalSec": 0.24,
+            "scatterRadius": 190,
+            "dmgMult": 1.7,
+            "burnDurationSec": 2.5,
+            "burnTickEverySec": 0.5,
+            "burnTickDmgMult": 0.34,
+            "fireballSize": 600
+          }
+        },
+        {
+          "rawNameEs": "Paso de la luna",
+          "name": {
+            "es": "Paso de la luna",
+            "en": "Moon Step",
+            "zh-TW": "月步"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "blink_ambush",
+            "shape": "circle",
+            "vanishMs": 320,
+            "radius": 160,
+            "telegraphMs": 1050,
+            "dmgMult": 2.4,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Danza lunar",
+          "name": {
+            "es": "Danza lunar",
+            "en": "Moon Dance",
+            "zh-TW": "月之舞"
+          },
+          "cooldownSec": 13,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "multi_repeat",
+            "repeats": 3,
+            "intervalSec": 1.1,
+            "inner": {
+              "pattern": "blink_ambush",
+              "shape": "circle",
+              "vanishMs": 320,
+              "radius": 130,
+              "telegraphMs": 900,
+              "dmgMult": 1.8,
+              "fx": "blaze"
+            }
+          }
+        },
+        {
+          "rawNameEs": "Abanico de llamas",
+          "name": {
+            "es": "Abanico de llamas",
+            "en": "Fan of Flames",
+            "zh-TW": "火焰扇"
+          },
+          "cooldownSec": 7,
+          "triggerRangePx": 280,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 280,
+            "halfAngleRad": 0.6,
+            "angleDeg": 69,
+            "telegraphMs": 1000,
+            "dmgMult": 2.4,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Luna de fuego",
+          "name": {
+            "es": "Luna de fuego",
+            "en": "Fire Moon",
+            "zh-TW": "火之月"
+          },
+          "cooldownSec": 12,
+          "triggerRangePx": 260,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 250,
+            "telegraphMs": 1600,
+            "dmgMult": 2.7,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Las nueve colas",
+          "name": {
+            "es": "Las nueve colas",
+            "en": "The Nine Tails",
+            "zh-TW": "九尾"
+          },
+          "cooldownSec": 20,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "nine_tail",
+            "count": 3
+          }
+        }
+      ],
+      "hpPhasesNormal": [
+        {
+          "hpThresholdRatio": 0.66,
+          "rawNameEs": "Campana de la luna",
+          "name": {
+            "es": "Campana de la luna",
+            "en": "Moon Bell",
+            "zh-TW": "月之鐘"
+          },
+          "mechanic": {
+            "pattern": "moonlight_bell_wipe_mechanic",
+            "safeZoneRadius": 150,
+            "countdownSec": 9,
+            "lethalDamage": 999,
+            "sealGuard": null
+          }
+        },
+        {
+          "hpThresholdRatio": 0.33,
+          "rawNameEs": "Campana sellada",
+          "name": {
+            "es": "Campana sellada",
+            "en": "Sealed Bell",
+            "zh-TW": "封印之鐘"
+          },
+          "mechanic": {
+            "pattern": "moonlight_bell_wipe_mechanic",
+            "safeZoneRadius": 150,
+            "countdownSec": 23,
+            "lethalDamage": 999,
+            "sealGuard": {
+              "id": "cat_o_nine_tail",
+              "secs": 20,
+              "hp": 175000
+            },
+            "sealedByMonster": "cat_o_nine_tail"
+          }
+        }
+      ],
+      "hpPhasesEndless": [
+        {
+          "hpThresholdRatio": 0.5,
+          "rawNameEs": "Campana de la luna",
+          "name": {
+            "es": "Campana de la luna",
+            "en": "Moon Bell",
+            "zh-TW": "月之鐘"
+          },
+          "mechanic": {
+            "pattern": "moonlight_bell_wipe_mechanic",
+            "safeZoneRadius": 150,
+            "countdownSec": 10,
+            "lethalDamage": 999,
+            "sealGuard": null
+          }
+        }
+      ]
+    },
+    {
+      "bossId": "eddga",
+      "name": {
+        "es": "Eddga",
+        "en": "Eddga",
+        "zh-TW": "Eddga"
+      },
+      "bossTier": "mvp",
+      "level": 25,
+      "baseHp": 338000,
+      "baseDamage": 72,
+      "baseSpeed": 100,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Zarpazo ígneo",
+          "name": {
+            "es": "Zarpazo ígneo",
+            "en": "Blazing Claw",
+            "zh-TW": "烈焰之爪"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 260,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 240,
+            "halfAngleRad": 0.7,
+            "angleDeg": 80,
+            "telegraphMs": 900,
+            "dmgMult": 2.4,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Embestida ardiente",
+          "name": {
+            "es": "Embestida ardiente",
+            "en": "Burning Charge",
+            "zh-TW": "燃燒衝鋒"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 560,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 560,
+            "width": 100,
+            "telegraphMs": 1000,
+            "dmgMult": 2.4,
+            "fx": "fire",
+            "trailFire": {
+              "secs": 3.5,
+              "mult": 0.35
+            }
+          }
+        },
+        {
+          "rawNameEs": "Salto del tigre",
+          "name": {
+            "es": "Salto del tigre",
+            "en": "Tiger Pounce",
+            "zh-TW": "猛虎撲擊"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 115,
+            "telegraphMs": 1200,
+            "dmgMult": 2.6,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Rugido infernal",
+          "name": {
+            "es": "Rugido infernal",
+            "en": "Infernal Roar",
+            "zh-TW": "地獄咆哮"
+          },
+          "cooldownSec": 12,
+          "triggerRangePx": 250,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 245,
+            "telegraphMs": 1600,
+            "dmgMult": 2.6,
+            "fx": "blaze"
+          }
+        },
+        {
+          "rawNameEs": "Lluvia de brasas",
+          "name": {
+            "es": "Lluvia de brasas",
+            "en": "Ember Rain",
+            "zh-TW": "餘燼之雨"
+          },
+          "cooldownSec": 13,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "fireball_rain_with_burning_ground",
+            "shape": "circle",
+            "count": 8,
+            "radius": 72,
+            "telegraphMs": 1300,
+            "intervalSec": 0.22,
+            "scatterRadius": 220,
+            "dmgMult": 1.8,
+            "burnDurationSec": 3,
+            "burnTickEverySec": 0.5,
+            "burnTickDmgMult": 0.36,
+            "fireballSize": 800
+          }
+        },
+        {
+          "rawNameEs": "¡A mí, Bigfoot!",
+          "name": {
+            "es": "¡A mí, Bigfoot!",
+            "en": "To me, Bigfoot!",
+            "zh-TW": "到我身邊，大腳熊！"
+          },
+          "cooldownSec": 20,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "summon_adds",
+            "summonMonsterId": "bigfoot",
+            "count": 3
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "orc_hero",
+      "name": {
+        "es": "Orc Hero",
+        "en": "Orc Hero",
+        "zh-TW": "Orc Hero"
+      },
+      "bossTier": "mvp",
+      "level": 1,
+      "baseHp": 22500,
+      "baseDamage": 50,
+      "baseSpeed": 92,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Hachazo",
+          "name": {
+            "es": "Hachazo",
+            "en": "Axe Cleave",
+            "zh-TW": "斧劈"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 270,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 260,
+            "halfAngleRad": 0.6,
+            "angleDeg": 69,
+            "telegraphMs": 1000,
+            "dmgMult": 2.6,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Grito de guerra",
+          "name": {
+            "es": "Grito de guerra",
+            "en": "War Cry",
+            "zh-TW": "戰吼"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 260,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 230,
+            "telegraphMs": 1600,
+            "dmgMult": 2.4,
+            "fx": "sound"
+          }
+        },
+        {
+          "rawNameEs": "Carga orca",
+          "name": {
+            "es": "Carga orca",
+            "en": "Orcish Charge",
+            "zh-TW": "獸人衝鋒"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 520,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 520,
+            "width": 110,
+            "telegraphMs": 1000,
+            "dmgMult": 2.4,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Salto del héroe",
+          "name": {
+            "es": "Salto del héroe",
+            "en": "Heroic Leap",
+            "zh-TW": "英勇之躍"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 110,
+            "telegraphMs": 1300,
+            "dmgMult": 2.6,
+            "fx": "dust"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "osiris",
+      "name": {
+        "es": "Osiris",
+        "en": "Osiris",
+        "zh-TW": "Osiris"
+      },
+      "bossTier": "mvp",
+      "level": 1,
+      "baseHp": 33000,
+      "baseDamage": 60,
+      "baseSpeed": 86,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Maldición de la momia",
+          "name": {
+            "es": "Maldición de la momia",
+            "en": "Mummy's Curse",
+            "zh-TW": "木乃伊詛咒"
+          },
+          "cooldownSec": 9,
+          "triggerRangePx": 650,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 8,
+            "radius": 66,
+            "telegraphMs": 1100,
+            "intervalSec": 0.22,
+            "scatterRadius": 200,
+            "dmgMult": 1.7,
+            "fx": "dark"
+          }
+        },
+        {
+          "rawNameEs": "Arenas del desierto",
+          "name": {
+            "es": "Arenas del desierto",
+            "en": "Desert Sands",
+            "zh-TW": "沙漠之沙"
+          },
+          "cooldownSec": 11,
+          "triggerRangePx": 260,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 225,
+            "telegraphMs": 1600,
+            "dmgMult": 2.4,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Teletransporte",
+          "name": {
+            "es": "Teletransporte",
+            "en": "Teleport",
+            "zh-TW": "傳送"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 480,
+          "mechanic": {
+            "pattern": "leap_slam",
+            "shape": "circle",
+            "radius": 100,
+            "telegraphMs": 1100,
+            "dmgMult": 2.4,
+            "fx": "dark"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    },
+    {
+      "bossId": "baphomet",
+      "name": {
+        "es": "Baphomet",
+        "en": "Baphomet",
+        "zh-TW": "Baphomet"
+      },
+      "bossTier": "mvp",
+      "level": 1,
+      "baseHp": 60000,
+      "baseDamage": 80,
+      "baseSpeed": 96,
+      "globalCooldownSec": 2.2,
+      "skills": [
+        {
+          "rawNameEs": "Tormenta oscura",
+          "name": {
+            "es": "Tormenta oscura",
+            "en": "Dark Storm",
+            "zh-TW": "黑暗風暴"
+          },
+          "cooldownSec": 10,
+          "triggerRangePx": 700,
+          "mechanic": {
+            "pattern": "meteor_barrage",
+            "shape": "circle",
+            "count": 12,
+            "radius": 76,
+            "telegraphMs": 1200,
+            "intervalSec": 0.15,
+            "scatterRadius": 250,
+            "dmgMult": 1.8,
+            "fx": "thunder"
+          }
+        },
+        {
+          "rawNameEs": "Guadaña",
+          "name": {
+            "es": "Guadaña",
+            "en": "Scythe",
+            "zh-TW": "鐮刀"
+          },
+          "cooldownSec": 6,
+          "triggerRangePx": 290,
+          "mechanic": {
+            "pattern": "frontal_cone_cleave",
+            "shape": "cone",
+            "radius": 280,
+            "halfAngleRad": 0.75,
+            "angleDeg": 86,
+            "telegraphMs": 950,
+            "dmgMult": 2.8,
+            "fx": "slash"
+          }
+        },
+        {
+          "rawNameEs": "Embestida",
+          "name": {
+            "es": "Embestida",
+            "en": "Charge",
+            "zh-TW": "衝鋒"
+          },
+          "cooldownSec": 8,
+          "triggerRangePx": 560,
+          "mechanic": {
+            "pattern": "line_charge",
+            "shape": "line",
+            "length": 560,
+            "width": 110,
+            "telegraphMs": 1000,
+            "dmgMult": 2.6,
+            "fx": "dust"
+          }
+        },
+        {
+          "rawNameEs": "Terremoto",
+          "name": {
+            "es": "Terremoto",
+            "en": "Earthquake",
+            "zh-TW": "地震"
+          },
+          "cooldownSec": 12,
+          "triggerRangePx": 290,
+          "mechanic": {
+            "pattern": "point_blank_aoe",
+            "shape": "circle",
+            "radius": 260,
+            "telegraphMs": 1700,
+            "dmgMult": 2.8,
+            "fx": "dust"
+          }
+        }
+      ],
+      "hpPhasesNormal": [],
+      "hpPhasesEndless": []
+    }
+  ]
+}

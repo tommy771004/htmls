@@ -1,0 +1,31 @@
+{
+  "name": "sunken_deck",
+  "models": "models.json",
+  "ambient": "ambient.json",
+  "collision": {
+    "file": "walk.bin",
+    "w": 192,
+    "h": 192
+  },
+  "altitude": {
+    "file": "altitude.bin",
+    "w": 192,
+    "h": 192
+  },
+  "width": 96,
+  "height": 96,
+  "lightmapCell": 6,
+  "atlas": "atlas.png",
+  "cells": "cells.bin",
+  "heights": "heights.bin",
+  "walls": "walls.bin",
+  "zoom": 10,
+  "shadow": "shadow.png",
+  "light": "light.png",
+  "minimap": "minimap.png",
+  "warps": [],
+  "start": [
+    96,
+    96
+  ]
+}

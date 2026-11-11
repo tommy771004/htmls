@@ -1,0 +1,55 @@
+{
+  "name": "prt_throne",
+  "models": "models.json",
+  "ambient": "ambient.json",
+  "collision": {
+    "file": "walk.bin",
+    "w": 344,
+    "h": 232
+  },
+  "altitude": {
+    "file": "altitude.bin",
+    "w": 344,
+    "h": 232
+  },
+  "width": 172,
+  "height": 116,
+  "lightmapCell": 6,
+  "atlas": "atlas.png",
+  "cells": "cells.bin",
+  "heights": "heights.bin",
+  "walls": "walls.bin",
+  "zoom": 10,
+  "shadow": "shadow.png",
+  "light": "light.png",
+  "minimap": "minimap.png",
+  "parts": [
+    {
+      "map": "prt_cas",
+      "dx": 22,
+      "dy": 0,
+      "crop": {
+        "x": 34,
+        "y": 15,
+        "w": 26,
+        "h": 52
+      }
+    },
+    {
+      "map": "prontera",
+      "dx": 76,
+      "dy": 0,
+      "crop": {
+        "x": 30,
+        "y": 0,
+        "w": 96,
+        "h": 116
+      }
+    }
+  ],
+  "warps": [],
+  "start": [
+    70,
+    50
+  ]
+}

@@ -1,0 +1,3843 @@
+{
+  "totalMonsters": 93,
+  "monsters": [
+    {
+      "id": "poring",
+      "name": {
+        "es": "Poring",
+        "en": "Poring",
+        "zh-TW": "Poring"
+      },
+      "level": 1,
+      "hp": 30,
+      "speed": 70,
+      "damage": 3,
+      "exp": 1,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4001,
+      "drops": [
+        {
+          "itemId": 1202,
+          "itemName": {
+            "es": "Knife",
+            "en": "Knife",
+            "zh-TW": "Knife"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2102,
+          "itemName": {
+            "es": "Guard",
+            "en": "Guard",
+            "zh-TW": "Guard"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "lunatic",
+      "name": {
+        "es": "Lunatic",
+        "en": "Lunatic",
+        "zh-TW": "Lunatic"
+      },
+      "level": 1,
+      "hp": 25,
+      "speed": 85,
+      "damage": 3,
+      "exp": 1,
+      "radius": 12,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "neutral",
+      "elementLv": 3,
+      "size": "small",
+      "cardId": 4006,
+      "drops": [
+        {
+          "itemId": 2262,
+          "itemName": {
+            "es": "Clown Nose",
+            "en": "Clown Nose",
+            "zh-TW": "Clown Nose"
+          },
+          "ratePercent": 4
+        }
+      ]
+    },
+    {
+      "id": "fabre",
+      "name": {
+        "es": "Fabre",
+        "en": "Fabre",
+        "zh-TW": "Fabre"
+      },
+      "level": 2,
+      "hp": 35,
+      "speed": 60,
+      "damage": 4,
+      "exp": 1,
+      "radius": 13,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4002,
+      "drops": [
+        {
+          "itemId": 1502,
+          "itemName": {
+            "es": "Club",
+            "en": "Club",
+            "zh-TW": "Club"
+          },
+          "ratePercent": 80
+        }
+      ]
+    },
+    {
+      "id": "pupa",
+      "name": {
+        "es": "Pupa",
+        "en": "Pupa",
+        "zh-TW": "Pupa"
+      },
+      "level": 2,
+      "hp": 60,
+      "speed": 0,
+      "damage": 0,
+      "exp": 2,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4003,
+      "drops": [
+        {
+          "itemId": 2102,
+          "itemName": {
+            "es": "Guard",
+            "en": "Guard",
+            "zh-TW": "Guard"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "drops",
+      "name": {
+        "es": "Drops",
+        "en": "Drops",
+        "zh-TW": "Drops"
+      },
+      "level": 2,
+      "hp": 45,
+      "speed": 72,
+      "damage": 5,
+      "exp": 2,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "fire",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4004,
+      "drops": [
+        {
+          "itemId": 1602,
+          "itemName": {
+            "es": "Rod",
+            "en": "Rod",
+            "zh-TW": "Rod"
+          },
+          "ratePercent": 80
+        }
+      ]
+    },
+    {
+      "id": "picky",
+      "name": {
+        "es": "Picky",
+        "en": "Picky",
+        "zh-TW": "Picky"
+      },
+      "level": 3,
+      "hp": 40,
+      "speed": 90,
+      "damage": 4,
+      "exp": 2,
+      "radius": 12,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "fire",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4008,
+      "drops": [
+        {
+          "itemId": 2302,
+          "itemName": {
+            "es": "Cotton Shirt",
+            "en": "Cotton Shirt",
+            "zh-TW": "Cotton Shirt"
+          },
+          "ratePercent": 150
+        }
+      ]
+    },
+    {
+      "id": "roda_frog",
+      "name": {
+        "es": "Roda Frog",
+        "en": "Roda Frog",
+        "zh-TW": "Roda Frog"
+      },
+      "level": 3,
+      "hp": 55,
+      "speed": 78,
+      "damage": 5,
+      "exp": 2,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4014,
+      "drops": [
+        {
+          "itemId": 2424,
+          "itemName": {
+            "es": "Tidal Shoes",
+            "en": "Tidal Shoes",
+            "zh-TW": "Tidal Shoes"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "peco_egg",
+      "name": {
+        "es": "Peco Peco Egg",
+        "en": "Peco Peco Egg",
+        "zh-TW": "Peco Peco Egg"
+      },
+      "level": 3,
+      "hp": 90,
+      "speed": 0,
+      "damage": 0,
+      "exp": 3,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "formless",
+      "element": "neutral",
+      "elementLv": 3,
+      "size": "small",
+      "cardId": 4007,
+      "drops": [
+        {
+          "itemId": 2102,
+          "itemName": {
+            "es": "Guard",
+            "en": "Guard",
+            "zh-TW": "Guard"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "condor",
+      "name": {
+        "es": "Condor",
+        "en": "Condor",
+        "zh-TW": "Condor"
+      },
+      "level": 4,
+      "hp": 65,
+      "speed": 108,
+      "damage": 6,
+      "exp": 3,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "wind",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4015,
+      "drops": [
+        {
+          "itemId": 1702,
+          "itemName": {
+            "es": "Bow",
+            "en": "Bow",
+            "zh-TW": "Bow"
+          },
+          "ratePercent": 150
+        }
+      ]
+    },
+    {
+      "id": "savage_babe",
+      "name": {
+        "es": "Savage Babe",
+        "en": "Savage Babe",
+        "zh-TW": "Savage Babe"
+      },
+      "level": 4,
+      "hp": 75,
+      "speed": 80,
+      "damage": 7,
+      "exp": 3,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4017,
+      "drops": [
+        {
+          "itemId": 1302,
+          "itemName": {
+            "es": "Axe",
+            "en": "Axe",
+            "zh-TW": "Axe"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "creamy",
+      "name": {
+        "es": "Creamy",
+        "en": "Creamy",
+        "zh-TW": "Creamy"
+      },
+      "level": 5,
+      "hp": 80,
+      "speed": 100,
+      "damage": 7,
+      "exp": 3,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "wind",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4040,
+      "drops": [
+        {
+          "itemId": 2321,
+          "itemName": {
+            "es": "Silk Robe",
+            "en": "Silk Robe",
+            "zh-TW": "Silk Robe"
+          },
+          "ratePercent": 10
+        },
+        {
+          "itemId": 2207,
+          "itemName": {
+            "es": "Fancy Flower",
+            "en": "Fancy Flower",
+            "zh-TW": "Fancy Flower"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "hornet",
+      "name": {
+        "es": "Hornet",
+        "en": "Hornet",
+        "zh-TW": "Hornet"
+      },
+      "level": 5,
+      "hp": 70,
+      "speed": 120,
+      "damage": 7,
+      "exp": 3,
+      "radius": 12,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "wind",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4019,
+      "drops": [
+        {
+          "itemId": 1208,
+          "itemName": {
+            "es": "Main Gauche",
+            "en": "Main Gauche",
+            "zh-TW": "Main Gauche"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "mandragora",
+      "name": {
+        "es": "Mandragora",
+        "en": "Mandragora",
+        "zh-TW": "Mandragora"
+      },
+      "level": 6,
+      "hp": 160,
+      "speed": 0,
+      "damage": 10,
+      "exp": 4,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": {
+        "range": 380,
+        "cd": 3,
+        "warn": 1.2,
+        "windup": 0.15,
+        "radius": 40,
+        "fx": "fx_mandragora_atk"
+      },
+      "caster": null,
+      "race": "plant",
+      "element": "earth",
+      "elementLv": 3,
+      "size": "medium",
+      "cardId": 4030,
+      "drops": [
+        {
+          "itemId": 1405,
+          "itemName": {
+            "es": "Spear",
+            "en": "Spear",
+            "zh-TW": "Spear"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "baby_desert_wolf",
+      "name": {
+        "es": "Baby Desert Wolf",
+        "en": "Baby Desert Wolf",
+        "zh-TW": "Baby Desert Wolf"
+      },
+      "level": 7,
+      "hp": 150,
+      "speed": 118,
+      "damage": 11,
+      "exp": 5,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "fire",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4023,
+      "drops": [
+        {
+          "itemId": 2306,
+          "itemName": {
+            "es": "Adventurer's Suit",
+            "en": "Adventurer's Suit",
+            "zh-TW": "Adventurer's Suit"
+          },
+          "ratePercent": 80
+        },
+        {
+          "itemId": 13011,
+          "itemName": {
+            "es": "Asura",
+            "en": "Asura",
+            "zh-TW": "阿修羅"
+          },
+          "ratePercent": 5
+        }
+      ]
+    },
+    {
+      "id": "rocker",
+      "name": {
+        "es": "Rocker",
+        "en": "Rocker",
+        "zh-TW": "Rocker"
+      },
+      "level": 8,
+      "hp": 200,
+      "speed": 90,
+      "damage": 13,
+      "exp": 6,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4021,
+      "drops": [
+        {
+          "itemId": 2298,
+          "itemName": {
+            "es": "Green Feeler",
+            "en": "Green Feeler",
+            "zh-TW": "Green Feeler"
+          },
+          "ratePercent": 4
+        },
+        {
+          "itemId": 1402,
+          "itemName": {
+            "es": "Javelin",
+            "en": "Javelin",
+            "zh-TW": "Javelin"
+          },
+          "ratePercent": 80
+        }
+      ]
+    },
+    {
+      "id": "eclipse",
+      "name": {
+        "es": "Eclipse",
+        "en": "Eclipse",
+        "zh-TW": "Eclipse"
+      },
+      "level": 3,
+      "hp": 3400,
+      "speed": 92,
+      "damage": 18,
+      "exp": 110,
+      "radius": 20,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "neutral",
+      "elementLv": 3,
+      "size": "medium",
+      "cardId": 4266,
+      "drops": [
+        {
+          "itemId": 2250,
+          "itemName": {
+            "es": "Cute Ribbon",
+            "en": "Cute Ribbon",
+            "zh-TW": "Cute Ribbon"
+          },
+          "ratePercent": 200
+        },
+        {
+          "itemId": 2355,
+          "itemName": {
+            "es": "Angelic Protection",
+            "en": "Angelic Protection",
+            "zh-TW": "Angelic Protection"
+          },
+          "ratePercent": 1000
+        }
+      ]
+    },
+    {
+      "id": "toad",
+      "name": {
+        "es": "Toad",
+        "en": "Toad",
+        "zh-TW": "Toad"
+      },
+      "level": 4,
+      "hp": 4600,
+      "speed": 80,
+      "damage": 20,
+      "exp": 135,
+      "radius": 22,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4306,
+      "drops": [
+        {
+          "itemId": 2244,
+          "itemName": {
+            "es": "Big Ribbon",
+            "en": "Big Ribbon",
+            "zh-TW": "Big Ribbon"
+          },
+          "ratePercent": 50
+        },
+        {
+          "itemId": 2424,
+          "itemName": {
+            "es": "Tidal Shoes",
+            "en": "Tidal Shoes",
+            "zh-TW": "Tidal Shoes"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "dragon_fly",
+      "name": {
+        "es": "Dragon Fly",
+        "en": "Dragon Fly",
+        "zh-TW": "Dragon Fly"
+      },
+      "level": 5,
+      "hp": 5600,
+      "speed": 115,
+      "damage": 22,
+      "exp": 150,
+      "radius": 18,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "wind",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4179,
+      "drops": [
+        {
+          "itemId": 2245,
+          "itemName": {
+            "es": "Sweet Gent",
+            "en": "Sweet Gent",
+            "zh-TW": "Sweet Gent"
+          },
+          "ratePercent": 200
+        },
+        {
+          "itemId": 2607,
+          "itemName": {
+            "es": "Clip",
+            "en": "Clip",
+            "zh-TW": "Clip"
+          },
+          "ratePercent": 3000
+        }
+      ]
+    },
+    {
+      "id": "vocal",
+      "name": {
+        "es": "Vocal",
+        "en": "Vocal",
+        "zh-TW": "Vocal"
+      },
+      "level": 7,
+      "hp": 7500,
+      "speed": 88,
+      "damage": 25,
+      "exp": 180,
+      "radius": 20,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4211,
+      "drops": [
+        {
+          "itemId": 2247,
+          "itemName": {
+            "es": "Romantic Gent",
+            "en": "Romantic Gent",
+            "zh-TW": "Romantic Gent"
+          },
+          "ratePercent": 50
+        },
+        {
+          "itemId": 2420,
+          "itemName": {
+            "es": "Angel's Reincarnation",
+            "en": "Angel's Reincarnation",
+            "zh-TW": "Angel's Reincarnation"
+          },
+          "ratePercent": 1000
+        }
+      ]
+    },
+    {
+      "id": "mastering",
+      "name": {
+        "es": "Mastering",
+        "en": "Mastering",
+        "zh-TW": "Mastering"
+      },
+      "level": 8,
+      "hp": 52000,
+      "speed": 82,
+      "damage": 44,
+      "exp": 700,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4197,
+      "drops": [
+        {
+          "itemId": 5035,
+          "itemName": {
+            "es": "Poring Hat",
+            "en": "Poring Hat",
+            "zh-TW": "Poring Hat"
+          },
+          "ratePercent": 500
+        },
+        {
+          "itemId": 2257,
+          "itemName": {
+            "es": "Unicorn Horn",
+            "en": "Unicorn Horn",
+            "zh-TW": "Unicorn Horn"
+          },
+          "ratePercent": 200
+        },
+        {
+          "itemId": 2116,
+          "itemName": {
+            "es": "Angelic Guard",
+            "en": "Angelic Guard",
+            "zh-TW": "Angelic Guard"
+          },
+          "ratePercent": 1000
+        }
+      ]
+    },
+    {
+      "id": "thief_bug_egg",
+      "name": {
+        "es": "Thief Bug Egg",
+        "en": "Thief Bug Egg",
+        "zh-TW": "Thief Bug Egg"
+      },
+      "level": 9,
+      "hp": 195,
+      "speed": 0,
+      "damage": 0,
+      "exp": 5,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4012,
+      "drops": [
+        {
+          "itemId": 2102,
+          "itemName": {
+            "es": "Guard",
+            "en": "Guard",
+            "zh-TW": "Guard"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "familiar",
+      "name": {
+        "es": "Familiar",
+        "en": "Familiar",
+        "zh-TW": "Familiar"
+      },
+      "level": 9,
+      "hp": 225,
+      "speed": 95,
+      "damage": 9,
+      "exp": 4,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4020,
+      "drops": [
+        {
+          "itemId": 1105,
+          "itemName": {
+            "es": "Falchion",
+            "en": "Falchion",
+            "zh-TW": "Falchion"
+          },
+          "ratePercent": 20
+        },
+        {
+          "itemId": 2209,
+          "itemName": {
+            "es": "Ribbon",
+            "en": "Ribbon",
+            "zh-TW": "Ribbon"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "thief_bug",
+      "name": {
+        "es": "Thief Bug",
+        "en": "Thief Bug",
+        "zh-TW": "Thief Bug"
+      },
+      "level": 9,
+      "hp": 255,
+      "speed": 90,
+      "damage": 10,
+      "exp": 4,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "neutral",
+      "elementLv": 3,
+      "size": "small",
+      "cardId": 4016,
+      "drops": [
+        {
+          "itemId": 2303,
+          "itemName": {
+            "es": "Jacket",
+            "en": "Jacket",
+            "zh-TW": "Jacket"
+          },
+          "ratePercent": 120
+        },
+        {
+          "itemId": 2304,
+          "itemName": {
+            "es": "Jacket",
+            "en": "Jacket",
+            "zh-TW": "Jacket"
+          },
+          "ratePercent": 80
+        }
+      ]
+    },
+    {
+      "id": "tarou",
+      "name": {
+        "es": "Tarou",
+        "en": "Tarou",
+        "zh-TW": "Tarou"
+      },
+      "level": 10,
+      "hp": 285,
+      "speed": 85,
+      "damage": 10,
+      "exp": 5,
+      "radius": 13,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4028,
+      "drops": [
+        {
+          "itemId": 2288,
+          "itemName": {
+            "es": "Mr. Scream",
+            "en": "Mr. Scream",
+            "zh-TW": "Mr. Scream"
+          },
+          "ratePercent": 20
+        }
+      ]
+    },
+    {
+      "id": "plankton",
+      "name": {
+        "es": "Plankton",
+        "en": "Plankton",
+        "zh-TW": "Plankton"
+      },
+      "level": 10,
+      "hp": 330,
+      "speed": 60,
+      "damage": 11,
+      "exp": 5,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 3,
+      "size": "small",
+      "cardId": 4024,
+      "drops": [
+        {
+          "itemId": 2615,
+          "itemName": {
+            "es": "Safety Ring",
+            "en": "Safety Ring",
+            "zh-TW": "Safety Ring"
+          },
+          "ratePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "drainliar",
+      "name": {
+        "es": "Drainliar",
+        "en": "Drainliar",
+        "zh-TW": "Drainliar"
+      },
+      "level": 11,
+      "hp": 300,
+      "speed": 110,
+      "damage": 11,
+      "exp": 6,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "shadow",
+      "elementLv": 2,
+      "size": "small",
+      "cardId": 4069,
+      "drops": [
+        {
+          "itemId": 2286,
+          "itemName": {
+            "es": "Elven Ears",
+            "en": "Elven Ears",
+            "zh-TW": "Elven Ears"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "thief_bug_female",
+      "name": {
+        "es": "Thief Bug Female",
+        "en": "Thief Bug Female",
+        "zh-TW": "Thief Bug Female"
+      },
+      "level": 11,
+      "hp": 345,
+      "speed": 90,
+      "damage": 12,
+      "exp": 6,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4026,
+      "drops": [
+        {
+          "itemId": 1108,
+          "itemName": {
+            "es": "Blade",
+            "en": "Blade",
+            "zh-TW": "Blade"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "cramp",
+      "name": {
+        "es": "Cramp",
+        "en": "Cramp",
+        "zh-TW": "Cramp"
+      },
+      "level": 12,
+      "hp": 390,
+      "speed": 92,
+      "damage": 13,
+      "exp": 7,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "poison",
+      "elementLv": 2,
+      "size": "small",
+      "cardId": 4296,
+      "drops": [
+        {
+          "itemId": 2616,
+          "itemName": {
+            "es": "Critical Ring",
+            "en": "Critical Ring",
+            "zh-TW": "Critical Ring"
+          },
+          "ratePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "tarou_bite",
+      "name": {
+        "es": "Biting Tarou",
+        "en": "Biting Tarou",
+        "zh-TW": "Biting Tarou"
+      },
+      "level": 10,
+      "hp": 5500,
+      "speed": 110,
+      "damage": 23,
+      "exp": 120,
+      "radius": 24,
+      "boss": true,
+      "scale": 2.8,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": null,
+      "drops": [
+        {
+          "itemId": 2292,
+          "itemName": {
+            "es": "Welding Mask",
+            "en": "Welding Mask",
+            "zh-TW": "Welding Mask"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2627,
+          "itemName": {
+            "es": "Belt",
+            "en": "Belt",
+            "zh-TW": "Belt"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2620,
+          "itemName": {
+            "es": "Rogue's Treasure",
+            "en": "Rogue's Treasure",
+            "zh-TW": "Rogue's Treasure"
+          },
+          "ratePercent": 50
+        }
+      ]
+    },
+    {
+      "id": "tarou_plague",
+      "name": {
+        "es": "Plague Tarou",
+        "en": "Plague Tarou",
+        "zh-TW": "Plague Tarou"
+      },
+      "level": 10,
+      "hp": 5500,
+      "speed": 95,
+      "damage": 21,
+      "exp": 120,
+      "radius": 24,
+      "boss": true,
+      "scale": 2.8,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": null,
+      "drops": [
+        {
+          "itemId": 2292,
+          "itemName": {
+            "es": "Welding Mask",
+            "en": "Welding Mask",
+            "zh-TW": "Welding Mask"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2627,
+          "itemName": {
+            "es": "Belt",
+            "en": "Belt",
+            "zh-TW": "Belt"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2620,
+          "itemName": {
+            "es": "Rogue's Treasure",
+            "en": "Rogue's Treasure",
+            "zh-TW": "Rogue's Treasure"
+          },
+          "ratePercent": 50
+        }
+      ]
+    },
+    {
+      "id": "tarou_burrow",
+      "name": {
+        "es": "Burrowing Tarou",
+        "en": "Burrowing Tarou",
+        "zh-TW": "Burrowing Tarou"
+      },
+      "level": 10,
+      "hp": 5500,
+      "speed": 100,
+      "damage": 23,
+      "exp": 120,
+      "radius": 24,
+      "boss": true,
+      "scale": 2.8,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": null,
+      "drops": [
+        {
+          "itemId": 2292,
+          "itemName": {
+            "es": "Welding Mask",
+            "en": "Welding Mask",
+            "zh-TW": "Welding Mask"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2627,
+          "itemName": {
+            "es": "Belt",
+            "en": "Belt",
+            "zh-TW": "Belt"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2620,
+          "itemName": {
+            "es": "Rogue's Treasure",
+            "en": "Rogue's Treasure",
+            "zh-TW": "Rogue's Treasure"
+          },
+          "ratePercent": 50
+        }
+      ]
+    },
+    {
+      "id": "golden_thief_bug",
+      "name": {
+        "es": "Golden Thief Bug",
+        "en": "Golden Thief Bug",
+        "zh-TW": "Golden Thief Bug"
+      },
+      "level": 12,
+      "hp": 58000,
+      "speed": 100,
+      "damage": 47,
+      "exp": 750,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "fire",
+      "elementLv": 2,
+      "size": "large",
+      "cardId": 4128,
+      "drops": [
+        {
+          "itemId": 1524,
+          "itemName": {
+            "es": "Golden Mace",
+            "en": "Golden Mace",
+            "zh-TW": "Golden Mace"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2246,
+          "itemName": {
+            "es": "Golden Gear",
+            "en": "Golden Gear",
+            "zh-TW": "Golden Gear"
+          },
+          "ratePercent": 250
+        },
+        {
+          "itemId": 2610,
+          "itemName": {
+            "es": "Gold Ring",
+            "en": "Gold Ring",
+            "zh-TW": "Gold Ring"
+          },
+          "ratePercent": 2000
+        }
+      ]
+    },
+    {
+      "id": "chonchon",
+      "name": {
+        "es": "Chonchon",
+        "en": "Chonchon",
+        "zh-TW": "Chonchon"
+      },
+      "level": 1,
+      "hp": 30,
+      "speed": 115,
+      "damage": 4,
+      "exp": 2,
+      "radius": 12,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "wind",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4009,
+      "drops": []
+    },
+    {
+      "id": "goblin",
+      "name": {
+        "es": "Goblin",
+        "en": "Goblin",
+        "zh-TW": "Goblin"
+      },
+      "level": 1,
+      "hp": 160,
+      "speed": 96,
+      "damage": 11,
+      "exp": 5,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "wind",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4060,
+      "drops": []
+    },
+    {
+      "id": "kobold",
+      "name": {
+        "es": "Kobold",
+        "en": "Kobold",
+        "zh-TW": "Kobold"
+      },
+      "level": 1,
+      "hp": 180,
+      "speed": 92,
+      "damage": 12,
+      "exp": 5,
+      "radius": 17,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "wind",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4091,
+      "drops": []
+    },
+    {
+      "id": "orc_skeleton",
+      "name": {
+        "es": "Orc Skeleton",
+        "en": "Orc Skeleton",
+        "zh-TW": "Orc Skeleton"
+      },
+      "level": 1,
+      "hp": 300,
+      "speed": 78,
+      "damage": 18,
+      "exp": 9,
+      "radius": 18,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4085,
+      "drops": []
+    },
+    {
+      "id": "ghostring",
+      "name": {
+        "es": "Ghostring",
+        "en": "Ghostring",
+        "zh-TW": "Ghostring"
+      },
+      "level": 13,
+      "hp": 28000,
+      "speed": 92,
+      "damage": 24,
+      "exp": 180,
+      "radius": 20,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "ghost",
+      "elementLv": 4,
+      "size": "medium",
+      "cardId": 4047,
+      "drops": [
+        {
+          "itemId": 2274,
+          "itemName": {
+            "es": "Ghost Bandana",
+            "en": "Ghost Bandana",
+            "zh-TW": "Ghost Bandana"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2336,
+          "itemName": {
+            "es": "Thief Clothes",
+            "en": "Thief Clothes",
+            "zh-TW": "Thief Clothes"
+          },
+          "ratePercent": 50
+        }
+      ]
+    },
+    {
+      "id": "orc_hero",
+      "name": {
+        "es": "Orc Hero",
+        "en": "Orc Hero",
+        "zh-TW": "Orc Hero"
+      },
+      "level": 1,
+      "hp": 22500,
+      "speed": 92,
+      "damage": 50,
+      "exp": 450,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "earth",
+      "elementLv": 2,
+      "size": "large",
+      "cardId": 4143,
+      "drops": []
+    },
+    {
+      "id": "osiris",
+      "name": {
+        "es": "Osiris",
+        "en": "Osiris",
+        "zh-TW": "Osiris"
+      },
+      "level": 1,
+      "hp": 33000,
+      "speed": 86,
+      "damage": 60,
+      "exp": 550,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 4,
+      "size": "medium",
+      "cardId": 4144,
+      "drops": []
+    },
+    {
+      "id": "baphomet",
+      "name": {
+        "es": "Baphomet",
+        "en": "Baphomet",
+        "zh-TW": "Baphomet"
+      },
+      "level": 1,
+      "hp": 60000,
+      "speed": 96,
+      "damage": 80,
+      "exp": 1000,
+      "radius": 40,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "shadow",
+      "elementLv": 3,
+      "size": "large",
+      "cardId": 4147,
+      "drops": []
+    },
+    {
+      "id": "kukre",
+      "name": {
+        "es": "Kukre",
+        "en": "Kukre",
+        "zh-TW": "Kukre"
+      },
+      "level": 13,
+      "hp": 560,
+      "speed": 75,
+      "damage": 9,
+      "exp": 4,
+      "radius": 13,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4027,
+      "drops": [
+        {
+          "itemId": 2503,
+          "itemName": {
+            "es": "Muffler",
+            "en": "Muffler",
+            "zh-TW": "Muffler"
+          },
+          "ratePercent": 80
+        },
+        {
+          "itemId": 2405,
+          "itemName": {
+            "es": "Boots",
+            "en": "Boots",
+            "zh-TW": "Boots"
+          },
+          "ratePercent": 40
+        }
+      ]
+    },
+    {
+      "id": "marina",
+      "name": {
+        "es": "Marina",
+        "en": "Marina",
+        "zh-TW": "Marina"
+      },
+      "level": 13,
+      "hp": 620,
+      "speed": 60,
+      "damage": 10,
+      "exp": 4,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 2,
+      "size": "small",
+      "cardId": 4055,
+      "drops": [
+        {
+          "itemId": 1604,
+          "itemName": {
+            "es": "Wand",
+            "en": "Wand",
+            "zh-TW": "Wand"
+          },
+          "ratePercent": 60
+        },
+        {
+          "itemId": 2607,
+          "itemName": {
+            "es": "Clip",
+            "en": "Clip",
+            "zh-TW": "Clip"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "hydra",
+      "name": {
+        "es": "Hydra",
+        "en": "Hydra",
+        "zh-TW": "Hydra"
+      },
+      "level": 14,
+      "hp": 680,
+      "speed": 40,
+      "damage": 12,
+      "exp": 5,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": {
+        "range": 320,
+        "cd": 2.6,
+        "warn": 1.5,
+        "windup": 0.12,
+        "radius": 38,
+        "fx": "fx_hydra_atk"
+      },
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 2,
+      "size": "small",
+      "cardId": 4035,
+      "drops": [
+        {
+          "itemId": 1704,
+          "itemName": {
+            "es": "Composite Bow",
+            "en": "Composite Bow",
+            "zh-TW": "Composite Bow"
+          },
+          "ratePercent": 50
+        },
+        {
+          "itemId": 13104,
+          "itemName": {
+            "es": "Garrison",
+            "en": "Garrison",
+            "zh-TW": "Garrison"
+          },
+          "ratePercent": 30
+        },
+        {
+          "itemId": 2201,
+          "itemName": {
+            "es": "Sunglasses",
+            "en": "Sunglasses",
+            "zh-TW": "Sunglasses"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "whisper",
+      "name": {
+        "es": "Whisper",
+        "en": "Whisper",
+        "zh-TW": "Whisper"
+      },
+      "level": 14,
+      "hp": 590,
+      "speed": 105,
+      "damage": 13,
+      "exp": 6,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "ghost",
+      "elementLv": 3,
+      "size": "small",
+      "cardId": 4102,
+      "drops": [
+        {
+          "itemId": 2333,
+          "itemName": {
+            "es": "Silver Robe",
+            "en": "Silver Robe",
+            "zh-TW": "Silver Robe"
+          },
+          "ratePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "penomena",
+      "name": {
+        "es": "Penomena",
+        "en": "Penomena",
+        "zh-TW": "Penomena"
+      },
+      "level": 15,
+      "hp": 28000,
+      "speed": 60,
+      "damage": 29,
+      "exp": 240,
+      "radius": 20,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": {
+        "range": 360,
+        "cd": 2.4,
+        "warn": 1.3,
+        "windup": 0.12,
+        "radius": 54,
+        "fx": "fx_hydra_atk"
+      },
+      "caster": null,
+      "race": "fish",
+      "element": "poison",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4314,
+      "drops": [
+        {
+          "itemId": 2308,
+          "itemName": {
+            "es": "Mantle",
+            "en": "Mantle",
+            "zh-TW": "Mantle"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2505,
+          "itemName": {
+            "es": "Manteau",
+            "en": "Manteau",
+            "zh-TW": "Manteau"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2406,
+          "itemName": {
+            "es": "Boots",
+            "en": "Boots",
+            "zh-TW": "Boots"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "sword_fish",
+      "name": {
+        "es": "Sword Fish",
+        "en": "Sword Fish",
+        "zh-TW": "Sword Fish"
+      },
+      "level": 14,
+      "hp": 740,
+      "speed": 110,
+      "damage": 18,
+      "exp": 8,
+      "radius": 17,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 2,
+      "size": "large",
+      "cardId": 4089,
+      "drops": [
+        {
+          "itemId": 1117,
+          "itemName": {
+            "es": "Katana",
+            "en": "Katana",
+            "zh-TW": "Katana"
+          },
+          "ratePercent": 25
+        },
+        {
+          "itemId": 2257,
+          "itemName": {
+            "es": "Unicorn Horn",
+            "en": "Unicorn Horn",
+            "zh-TW": "Unicorn Horn"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "pirate_skel",
+      "name": {
+        "es": "Pirate Skeleton",
+        "en": "Pirate Skeleton",
+        "zh-TW": "Pirate Skeleton"
+      },
+      "level": 14,
+      "hp": 800,
+      "speed": 95,
+      "damage": 20,
+      "exp": 9,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4073,
+      "drops": [
+        {
+          "itemId": 2211,
+          "itemName": {
+            "es": "Bandana",
+            "en": "Bandana",
+            "zh-TW": "Bandana"
+          },
+          "ratePercent": 250
+        },
+        {
+          "itemId": 1104,
+          "itemName": {
+            "es": "Falchion",
+            "en": "Falchion",
+            "zh-TW": "Falchion"
+          },
+          "ratePercent": 250
+        },
+        {
+          "itemId": 2287,
+          "itemName": {
+            "es": "Pirate Bandana",
+            "en": "Pirate Bandana",
+            "zh-TW": "Pirate Bandana"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "drake",
+      "name": {
+        "es": "Drake",
+        "en": "Drake",
+        "zh-TW": "Drake"
+      },
+      "level": 15,
+      "hp": 180000,
+      "speed": 100,
+      "damage": 49,
+      "exp": 800,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4137,
+      "drops": [
+        {
+          "itemId": 1125,
+          "itemName": {
+            "es": "Ring Pommel Saber",
+            "en": "Ring Pommel Saber",
+            "zh-TW": "Ring Pommel Saber"
+          },
+          "ratePercent": 950
+        },
+        {
+          "itemId": 1127,
+          "itemName": {
+            "es": "Saber",
+            "en": "Saber",
+            "zh-TW": "Saber"
+          },
+          "ratePercent": 600
+        },
+        {
+          "itemId": 1128,
+          "itemName": {
+            "es": "Haedong Gum",
+            "en": "Haedong Gum",
+            "zh-TW": "Haedong Gum"
+          },
+          "ratePercent": 400
+        },
+        {
+          "itemId": 5019,
+          "itemName": {
+            "es": "Corsair",
+            "en": "Corsair",
+            "zh-TW": "Corsair"
+          },
+          "ratePercent": 350
+        },
+        {
+          "itemId": 1135,
+          "itemName": {
+            "es": "Cutlus",
+            "en": "Cutlus",
+            "zh-TW": "Cutlus"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 1189,
+          "itemName": {
+            "es": "Krasnaya",
+            "en": "Krasnaya",
+            "zh-TW": "Krasnaya"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "vadon",
+      "name": {
+        "es": "Vadon",
+        "en": "Vadon",
+        "zh-TW": "Vadon"
+      },
+      "level": 16,
+      "hp": 820,
+      "speed": 70,
+      "damage": 12,
+      "exp": 6,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4049,
+      "drops": [
+        {
+          "itemId": 2104,
+          "itemName": {
+            "es": "Buckler",
+            "en": "Buckler",
+            "zh-TW": "Buckler"
+          },
+          "ratePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "cornutus",
+      "name": {
+        "es": "Cornutus",
+        "en": "Cornutus",
+        "zh-TW": "Cornutus"
+      },
+      "level": 16,
+      "hp": 900,
+      "speed": 60,
+      "damage": 12,
+      "exp": 6,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4061,
+      "drops": [
+        {
+          "itemId": 2102,
+          "itemName": {
+            "es": "Guard",
+            "en": "Guard",
+            "zh-TW": "Guard"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "marse",
+      "name": {
+        "es": "Marse",
+        "en": "Marse",
+        "zh-TW": "Marse"
+      },
+      "level": 17,
+      "hp": 860,
+      "speed": 95,
+      "damage": 13,
+      "exp": 6,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 2,
+      "size": "small",
+      "cardId": 4095,
+      "drops": [
+        {
+          "itemId": 2205,
+          "itemName": {
+            "es": "Diver Goggles",
+            "en": "Diver Goggles",
+            "zh-TW": "Diver Goggles"
+          },
+          "ratePercent": 20
+        }
+      ]
+    },
+    {
+      "id": "phen",
+      "name": {
+        "es": "Phen",
+        "en": "Phen",
+        "zh-TW": "Phen"
+      },
+      "level": 18,
+      "hp": 1100,
+      "speed": 125,
+      "damage": 15,
+      "exp": 7,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4077,
+      "drops": [
+        {
+          "itemId": 2424,
+          "itemName": {
+            "es": "Tidal Shoes",
+            "en": "Tidal Shoes",
+            "zh-TW": "Tidal Shoes"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "obeaune",
+      "name": {
+        "es": "Obeaune",
+        "en": "Obeaune",
+        "zh-TW": "Obeaune"
+      },
+      "level": 18,
+      "hp": 1200,
+      "speed": 100,
+      "damage": 15,
+      "exp": 7,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4093,
+      "drops": [
+        {
+          "itemId": 2607,
+          "itemName": {
+            "es": "Clip",
+            "en": "Clip",
+            "zh-TW": "Clip"
+          },
+          "ratePercent": 20
+        }
+      ]
+    },
+    {
+      "id": "marine_sphere",
+      "name": {
+        "es": "Marine Sphere",
+        "en": "Marine Sphere",
+        "zh-TW": "Marine Sphere"
+      },
+      "level": 19,
+      "hp": 950,
+      "speed": 0,
+      "damage": 16,
+      "exp": 7,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 2,
+      "size": "small",
+      "cardId": 4084,
+      "drops": [
+        {
+          "itemId": 2605,
+          "itemName": {
+            "es": "Brooch",
+            "en": "Brooch",
+            "zh-TW": "Brooch"
+          },
+          "ratePercent": 5
+        }
+      ]
+    },
+    {
+      "id": "merman",
+      "name": {
+        "es": "Merman",
+        "en": "Merman",
+        "zh-TW": "Merman"
+      },
+      "level": 20,
+      "hp": 1400,
+      "speed": 105,
+      "damage": 18,
+      "exp": 9,
+      "radius": 17,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "water",
+      "elementLv": 3,
+      "size": "medium",
+      "cardId": 4199,
+      "drops": [
+        {
+          "itemId": 1460,
+          "itemName": {
+            "es": "Trident",
+            "en": "Trident",
+            "zh-TW": "Trident"
+          },
+          "ratePercent": 20
+        },
+        {
+          "itemId": 2205,
+          "itemName": {
+            "es": "Diver Goggles",
+            "en": "Diver Goggles",
+            "zh-TW": "Diver Goggles"
+          },
+          "ratePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "kraken_leg",
+      "name": {
+        "es": "Kraken Leg",
+        "en": "Kraken Leg",
+        "zh-TW": "Kraken Leg"
+      },
+      "level": 20,
+      "hp": 9000,
+      "speed": 0,
+      "damage": 22,
+      "exp": 20,
+      "radius": 22,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": {
+        "range": 420,
+        "cd": 2.8,
+        "warn": 1.3,
+        "windup": 0.12,
+        "radius": 46,
+        "fx": "fx_hydra_atk"
+      },
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 2,
+      "size": "large",
+      "cardId": null,
+      "drops": []
+    },
+    {
+      "id": "deviace",
+      "name": {
+        "es": "Deviace",
+        "en": "Deviace",
+        "zh-TW": "Deviace"
+      },
+      "level": 17,
+      "hp": 30000,
+      "speed": 110,
+      "damage": 30,
+      "exp": 210,
+      "radius": 22,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 4,
+      "size": "medium",
+      "cardId": 4125,
+      "drops": [
+        {
+          "itemId": 2205,
+          "itemName": {
+            "es": "Diver Goggles",
+            "en": "Diver Goggles",
+            "zh-TW": "Diver Goggles"
+          },
+          "ratePercent": 300
+        },
+        {
+          "itemId": 2424,
+          "itemName": {
+            "es": "Tidal Shoes",
+            "en": "Tidal Shoes",
+            "zh-TW": "Tidal Shoes"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2505,
+          "itemName": {
+            "es": "Manteau",
+            "en": "Manteau",
+            "zh-TW": "Manteau"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "strouf",
+      "name": {
+        "es": "Strouf",
+        "en": "Strouf",
+        "zh-TW": "Strouf"
+      },
+      "level": 19,
+      "hp": 50000,
+      "speed": 95,
+      "damage": 35,
+      "exp": 280,
+      "radius": 24,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 3,
+      "size": "large",
+      "cardId": 4111,
+      "drops": [
+        {
+          "itemId": 1460,
+          "itemName": {
+            "es": "Trident",
+            "en": "Trident",
+            "zh-TW": "Trident"
+          },
+          "ratePercent": 200
+        },
+        {
+          "itemId": 2424,
+          "itemName": {
+            "es": "Tidal Shoes",
+            "en": "Tidal Shoes",
+            "zh-TW": "Tidal Shoes"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2603,
+          "itemName": {
+            "es": "Necklace",
+            "en": "Necklace",
+            "zh-TW": "Necklace"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "king_dramoh",
+      "name": {
+        "es": "King Dramoh",
+        "en": "King Dramoh",
+        "zh-TW": "King Dramoh"
+      },
+      "level": 20,
+      "hp": 80000,
+      "speed": 80,
+      "damage": 40,
+      "exp": 400,
+      "radius": 28,
+      "boss": true,
+      "scale": 1.25,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 3,
+      "size": "large",
+      "cardId": 4524,
+      "drops": [
+        {
+          "itemId": 2235,
+          "itemName": {
+            "es": "Crown",
+            "en": "Crown",
+            "zh-TW": "Crown"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 2104,
+          "itemName": {
+            "es": "Buckler",
+            "en": "Buckler",
+            "zh-TW": "Buckler"
+          },
+          "ratePercent": 300
+        },
+        {
+          "itemId": 2603,
+          "itemName": {
+            "es": "Necklace",
+            "en": "Necklace",
+            "zh-TW": "Necklace"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "kraken",
+      "name": {
+        "es": "Kraken",
+        "en": "Kraken",
+        "zh-TW": "Kraken"
+      },
+      "level": 20,
+      "hp": 280000,
+      "speed": 45,
+      "damage": 62,
+      "exp": 1000,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "fish",
+      "element": "water",
+      "elementLv": 4,
+      "size": "large",
+      "cardId": 4525,
+      "drops": [
+        {
+          "itemId": 2205,
+          "itemName": {
+            "es": "Diver Goggles",
+            "en": "Diver Goggles",
+            "zh-TW": "Diver Goggles"
+          },
+          "ratePercent": 500
+        },
+        {
+          "itemId": 2509,
+          "itemName": {
+            "es": "Manteau of Survival",
+            "en": "Manteau of Survival",
+            "zh-TW": "Manteau of Survival"
+          },
+          "ratePercent": 250
+        },
+        {
+          "itemId": 1460,
+          "itemName": {
+            "es": "Trident",
+            "en": "Trident",
+            "zh-TW": "Trident"
+          },
+          "ratePercent": 200
+        },
+        {
+          "itemId": 2235,
+          "itemName": {
+            "es": "Crown",
+            "en": "Crown",
+            "zh-TW": "Crown"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "spore",
+      "name": {
+        "es": "Spore",
+        "en": "Spore",
+        "zh-TW": "Spore"
+      },
+      "level": 21,
+      "hp": 830,
+      "speed": 65,
+      "damage": 12,
+      "exp": 6,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "water",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4022,
+      "drops": [
+        {
+          "itemId": 2220,
+          "itemName": {
+            "es": "Hat",
+            "en": "Hat",
+            "zh-TW": "Hat"
+          },
+          "ratePercent": 40
+        }
+      ]
+    },
+    {
+      "id": "willow",
+      "name": {
+        "es": "Willow",
+        "en": "Willow",
+        "zh-TW": "Willow"
+      },
+      "level": 21,
+      "hp": 860,
+      "speed": 55,
+      "damage": 12,
+      "exp": 6,
+      "radius": 18,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4010,
+      "drops": [
+        {
+          "itemId": 1610,
+          "itemName": {
+            "es": "Arc Wand",
+            "en": "Arc Wand",
+            "zh-TW": "Arc Wand"
+          },
+          "ratePercent": 50
+        },
+        {
+          "itemId": 2103,
+          "itemName": {
+            "es": "Buckler",
+            "en": "Buckler",
+            "zh-TW": "Buckler"
+          },
+          "ratePercent": 60
+        }
+      ]
+    },
+    {
+      "id": "poporing",
+      "name": {
+        "es": "Poporing",
+        "en": "Poporing",
+        "zh-TW": "Poporing"
+      },
+      "level": 21,
+      "hp": 840,
+      "speed": 78,
+      "damage": 13,
+      "exp": 6,
+      "radius": 14,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "poison",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4033,
+      "drops": [
+        {
+          "itemId": 1207,
+          "itemName": {
+            "es": "Main Gauche",
+            "en": "Main Gauche",
+            "zh-TW": "Main Gauche"
+          },
+          "ratePercent": 5
+        }
+      ]
+    },
+    {
+      "id": "snake",
+      "name": {
+        "es": "Boa",
+        "en": "Boa",
+        "zh-TW": "Boa"
+      },
+      "level": 22,
+      "hp": 1200,
+      "speed": 95,
+      "damage": 15,
+      "exp": 7,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4037,
+      "drops": [
+        {
+          "itemId": 1117,
+          "itemName": {
+            "es": "Katana",
+            "en": "Katana",
+            "zh-TW": "Katana"
+          },
+          "ratePercent": 15
+        }
+      ]
+    },
+    {
+      "id": "worm_tail",
+      "name": {
+        "es": "Wormtail",
+        "en": "Wormtail",
+        "zh-TW": "Wormtail"
+      },
+      "level": 22,
+      "hp": 1250,
+      "speed": 80,
+      "damage": 15,
+      "exp": 7,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4034,
+      "drops": [
+        {
+          "itemId": 1408,
+          "itemName": {
+            "es": "Pike",
+            "en": "Pike",
+            "zh-TW": "Pike"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "poison_spore",
+      "name": {
+        "es": "Poison Spore",
+        "en": "Poison Spore",
+        "zh-TW": "Poison Spore"
+      },
+      "level": 22,
+      "hp": 1300,
+      "speed": 68,
+      "damage": 16,
+      "exp": 8,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "poison",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4048,
+      "drops": [
+        {
+          "itemId": 2221,
+          "itemName": {
+            "es": "Hat",
+            "en": "Hat",
+            "zh-TW": "Hat"
+          },
+          "ratePercent": 20
+        }
+      ]
+    },
+    {
+      "id": "smokie",
+      "name": {
+        "es": "Smokie",
+        "en": "Smokie",
+        "zh-TW": "Smokie"
+      },
+      "level": 23,
+      "hp": 1350,
+      "speed": 100,
+      "damage": 17,
+      "exp": 8,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4044,
+      "drops": [
+        {
+          "itemId": 2213,
+          "itemName": {
+            "es": "Kitty Band",
+            "en": "Kitty Band",
+            "zh-TW": "Kitty Band"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "wolf",
+      "name": {
+        "es": "Wolf",
+        "en": "Wolf",
+        "zh-TW": "Wolf"
+      },
+      "level": 23,
+      "hp": 1400,
+      "speed": 128,
+      "damage": 18,
+      "exp": 9,
+      "radius": 18,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4029,
+      "drops": [
+        {
+          "itemId": 2308,
+          "itemName": {
+            "es": "Mantle",
+            "en": "Mantle",
+            "zh-TW": "Mantle"
+          },
+          "ratePercent": 10
+        }
+      ]
+    },
+    {
+      "id": "elder_willow",
+      "name": {
+        "es": "Elder Willow",
+        "en": "Elder Willow",
+        "zh-TW": "Elder Willow"
+      },
+      "level": 23,
+      "hp": 1650,
+      "speed": 55,
+      "damage": 20,
+      "exp": 10,
+      "radius": 20,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "plant",
+      "element": "fire",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4052,
+      "drops": [
+        {
+          "itemId": 2329,
+          "itemName": {
+            "es": "Wooden Mail",
+            "en": "Wooden Mail",
+            "zh-TW": "Wooden Mail"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "dragon_tail",
+      "name": {
+        "es": "Dragon Tail",
+        "en": "Dragon Tail",
+        "zh-TW": "Dragon Tail"
+      },
+      "level": 24,
+      "hp": 1450,
+      "speed": 125,
+      "damage": 21,
+      "exp": 10,
+      "radius": 15,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "insect",
+      "element": "wind",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4178,
+      "drops": [
+        {
+          "itemId": 2207,
+          "itemName": {
+            "es": "Fancy Flower",
+            "en": "Fancy Flower",
+            "zh-TW": "Fancy Flower"
+          },
+          "ratePercent": 8
+        },
+        {
+          "itemId": 2226,
+          "itemName": {
+            "es": "Cap",
+            "en": "Cap",
+            "zh-TW": "Cap"
+          },
+          "ratePercent": 2
+        }
+      ]
+    },
+    {
+      "id": "bigfoot",
+      "name": {
+        "es": "Bigfoot",
+        "en": "Bigfoot",
+        "zh-TW": "Bigfoot"
+      },
+      "level": 24,
+      "hp": 2000,
+      "speed": 80,
+      "damage": 24,
+      "exp": 12,
+      "radius": 22,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "large",
+      "cardId": 4074,
+      "drops": [
+        {
+          "itemId": 2289,
+          "itemName": {
+            "es": "Poo Poo Hat",
+            "en": "Poo Poo Hat",
+            "zh-TW": "Poo Poo Hat"
+          },
+          "ratePercent": 5
+        }
+      ]
+    },
+    {
+      "id": "greatest_general",
+      "name": {
+        "es": "Greatest General",
+        "en": "Greatest General",
+        "zh-TW": "Greatest General"
+      },
+      "level": 24,
+      "hp": 2200,
+      "speed": 0,
+      "damage": 22,
+      "exp": 12,
+      "radius": 18,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "formless",
+      "element": "fire",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4283,
+      "drops": [
+        {
+          "itemId": 2272,
+          "itemName": {
+            "es": "Stop Post",
+            "en": "Stop Post",
+            "zh-TW": "Stop Post"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "dokebi",
+      "name": {
+        "es": "Dokebi",
+        "en": "Dokebi",
+        "zh-TW": "Dokebi"
+      },
+      "level": 25,
+      "hp": 1900,
+      "speed": 115,
+      "damage": 25,
+      "exp": 13,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "shadow",
+      "elementLv": 1,
+      "size": "small",
+      "cardId": 4098,
+      "drops": [
+        {
+          "itemId": 1517,
+          "itemName": {
+            "es": "Sword Mace",
+            "en": "Sword Mace",
+            "zh-TW": "Sword Mace"
+          },
+          "ratePercent": 2
+        },
+        {
+          "itemId": 1613,
+          "itemName": {
+            "es": "Mighty Staff",
+            "en": "Mighty Staff",
+            "zh-TW": "Mighty Staff"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "nine_tail",
+      "name": {
+        "es": "Nine Tail",
+        "en": "Nine Tail",
+        "zh-TW": "Nine Tail"
+      },
+      "level": 25,
+      "hp": 2100,
+      "speed": 125,
+      "damage": 27,
+      "exp": 14,
+      "radius": 18,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "fire",
+      "elementLv": 3,
+      "size": "medium",
+      "cardId": 4159,
+      "drops": [
+        {
+          "itemId": 2505,
+          "itemName": {
+            "es": "Manteau",
+            "en": "Manteau",
+            "zh-TW": "Manteau"
+          },
+          "ratePercent": 50
+        },
+        {
+          "itemId": 2605,
+          "itemName": {
+            "es": "Brooch",
+            "en": "Brooch",
+            "zh-TW": "Brooch"
+          },
+          "ratePercent": 30
+        },
+        {
+          "itemId": 1711,
+          "itemName": {
+            "es": "Cross Bow",
+            "en": "Cross Bow",
+            "zh-TW": "Cross Bow"
+          },
+          "ratePercent": 40
+        }
+      ]
+    },
+    {
+      "id": "angeling",
+      "name": {
+        "es": "Angeling",
+        "en": "Angeling",
+        "zh-TW": "Angeling"
+      },
+      "level": 22,
+      "hp": 35100,
+      "speed": 82,
+      "damage": 30,
+      "exp": 220,
+      "radius": 20,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "angel",
+      "element": "holy",
+      "elementLv": 4,
+      "size": "medium",
+      "cardId": 4054,
+      "drops": [
+        {
+          "itemId": 2254,
+          "itemName": {
+            "es": "Angel Wings",
+            "en": "Angel Wings",
+            "zh-TW": "Angel Wings"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2324,
+          "itemName": {
+            "es": "Scapulare",
+            "en": "Scapulare",
+            "zh-TW": "Scapulare"
+          },
+          "ratePercent": 60
+        },
+        {
+          "itemId": 2282,
+          "itemName": {
+            "es": "Halo",
+            "en": "Halo",
+            "zh-TW": "Halo"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "deviling",
+      "name": {
+        "es": "Deviling",
+        "en": "Deviling",
+        "zh-TW": "Deviling"
+      },
+      "level": 23,
+      "hp": 58500,
+      "speed": 96,
+      "damage": 36,
+      "exp": 300,
+      "radius": 20,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "shadow",
+      "elementLv": 4,
+      "size": "medium",
+      "cardId": 4174,
+      "drops": [
+        {
+          "itemId": 2255,
+          "itemName": {
+            "es": "Evil Wings",
+            "en": "Evil Wings",
+            "zh-TW": "Evil Wings"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "vagabond_wolf",
+      "name": {
+        "es": "Vagabond Wolf",
+        "en": "Vagabond Wolf",
+        "zh-TW": "Vagabond Wolf"
+      },
+      "level": 24,
+      "hp": 93600,
+      "speed": 125,
+      "damage": 42,
+      "exp": 430,
+      "radius": 29,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4183,
+      "drops": [
+        {
+          "itemId": 2248,
+          "itemName": {
+            "es": "Western Grace",
+            "en": "Western Grace",
+            "zh-TW": "Western Grace"
+          },
+          "ratePercent": 200
+        }
+      ]
+    },
+    {
+      "id": "eddga",
+      "name": {
+        "es": "Eddga",
+        "en": "Eddga",
+        "zh-TW": "Eddga"
+      },
+      "level": 25,
+      "hp": 338000,
+      "speed": 100,
+      "damage": 72,
+      "exp": 1100,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "brute",
+      "element": "fire",
+      "elementLv": 1,
+      "size": "large",
+      "cardId": 4123,
+      "drops": [
+        {
+          "itemId": 2268,
+          "itemName": {
+            "es": "Pipe",
+            "en": "Pipe",
+            "zh-TW": "Pipe"
+          },
+          "ratePercent": 250
+        },
+        {
+          "itemId": 1258,
+          "itemName": {
+            "es": "Katar of Raging Blaze",
+            "en": "Katar of Raging Blaze",
+            "zh-TW": "Katar of Raging Blaze"
+          },
+          "ratePercent": 500
+        },
+        {
+          "itemId": 1133,
+          "itemName": {
+            "es": "Fire Brand",
+            "en": "Fire Brand",
+            "zh-TW": "Fire Brand"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 13046,
+          "itemName": {
+            "es": "Krieg",
+            "en": "Krieg",
+            "zh-TW": "Krieg"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "zombie",
+      "name": {
+        "es": "Zombie",
+        "en": "Zombie",
+        "zh-TW": "Zombie"
+      },
+      "level": 26,
+      "hp": 2875,
+      "speed": 55,
+      "damage": 28,
+      "exp": 15,
+      "radius": 18,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4038,
+      "drops": [
+        {
+          "itemId": 2212,
+          "itemName": {
+            "es": "Eye Patch",
+            "en": "Eye Patch",
+            "zh-TW": "Eye Patch"
+          },
+          "ratePercent": 30
+        },
+        {
+          "itemId": 2608,
+          "itemName": {
+            "es": "Rosary",
+            "en": "Rosary",
+            "zh-TW": "Rosary"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "skeleton",
+      "name": {
+        "es": "Skeleton",
+        "en": "Skeleton",
+        "zh-TW": "Skeleton"
+      },
+      "level": 26,
+      "hp": 2760,
+      "speed": 95,
+      "damage": 28,
+      "exp": 15,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4025,
+      "drops": [
+        {
+          "itemId": 1505,
+          "itemName": {
+            "es": "Mace",
+            "en": "Mace",
+            "zh-TW": "Mace"
+          },
+          "ratePercent": 80
+        },
+        {
+          "itemId": 2609,
+          "itemName": {
+            "es": "Skull Ring",
+            "en": "Skull Ring",
+            "zh-TW": "Skull Ring"
+          },
+          "ratePercent": 30
+        }
+      ]
+    },
+    {
+      "id": "skel_archer",
+      "name": {
+        "es": "Archer Skeleton",
+        "en": "Archer Skeleton",
+        "zh-TW": "Archer Skeleton"
+      },
+      "level": 27,
+      "hp": 2640,
+      "speed": 60,
+      "damage": 26,
+      "exp": 16,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": {
+        "range": 380,
+        "cd": 2.6,
+        "warn": 0,
+        "windup": 0.3,
+        "radius": 0,
+        "fx": "fx_arrow",
+        "arrow": 560
+      },
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4094,
+      "drops": [
+        {
+          "itemId": 1708,
+          "itemName": {
+            "es": "Great Bow",
+            "en": "Great Bow",
+            "zh-TW": "Great Bow"
+          },
+          "ratePercent": 35
+        },
+        {
+          "itemId": 2285,
+          "itemName": {
+            "es": "Apple of Archer",
+            "en": "Apple of Archer",
+            "zh-TW": "Apple of 弓箭手"
+          },
+          "ratePercent": 3
+        }
+      ]
+    },
+    {
+      "id": "skel_soldier",
+      "name": {
+        "es": "Soldier Skeleton",
+        "en": "Soldier Skeleton",
+        "zh-TW": "Soldier Skeleton"
+      },
+      "level": 27,
+      "hp": 3385,
+      "speed": 100,
+      "damage": 31,
+      "exp": 17,
+      "radius": 17,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4086,
+      "drops": [
+        {
+          "itemId": 1216,
+          "itemName": {
+            "es": "Stiletto",
+            "en": "Stiletto",
+            "zh-TW": "Stiletto"
+          },
+          "ratePercent": 50
+        },
+        {
+          "itemId": 1214,
+          "itemName": {
+            "es": "Dagger",
+            "en": "Dagger",
+            "zh-TW": "Dagger"
+          },
+          "ratePercent": 12
+        }
+      ]
+    },
+    {
+      "id": "munak",
+      "name": {
+        "es": "Munak",
+        "en": "Munak",
+        "zh-TW": "Munak"
+      },
+      "level": 28,
+      "hp": 3540,
+      "speed": 85,
+      "damage": 32,
+      "exp": 18,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4090,
+      "drops": [
+        {
+          "itemId": 2305,
+          "itemName": {
+            "es": "Adventurer's Suit",
+            "en": "Adventurer's Suit",
+            "zh-TW": "Adventurer's Suit"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 2404,
+          "itemName": {
+            "es": "Shoes",
+            "en": "Shoes",
+            "zh-TW": "Shoes"
+          },
+          "ratePercent": 15
+        },
+        {
+          "itemId": 2264,
+          "itemName": {
+            "es": "Munak Hat",
+            "en": "Munak Hat",
+            "zh-TW": "Munak Hat"
+          },
+          "ratePercent": 2
+        },
+        {
+          "itemId": 2337,
+          "itemName": {
+            "es": "Ninja Suit",
+            "en": "Ninja Suit",
+            "zh-TW": "Ninja Suit"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "bon_gun",
+      "name": {
+        "es": "Bongun",
+        "en": "Bongun",
+        "zh-TW": "Bongun"
+      },
+      "level": 28,
+      "hp": 3265,
+      "speed": 115,
+      "damage": 33,
+      "exp": 18,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4212,
+      "drops": [
+        {
+          "itemId": 5046,
+          "itemName": {
+            "es": "Bongun Hat",
+            "en": "Bongun Hat",
+            "zh-TW": "Bongun Hat"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "sohee",
+      "name": {
+        "es": "Sohee",
+        "en": "Sohee",
+        "zh-TW": "Sohee"
+      },
+      "level": 29,
+      "hp": 3775,
+      "speed": 95,
+      "damage": 34,
+      "exp": 19,
+      "radius": 16,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "water",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4100,
+      "drops": [
+        {
+          "itemId": 2504,
+          "itemName": {
+            "es": "Muffler",
+            "en": "Muffler",
+            "zh-TW": "Muffler"
+          },
+          "ratePercent": 5
+        },
+        {
+          "itemId": 1217,
+          "itemName": {
+            "es": "Stiletto",
+            "en": "Stiletto",
+            "zh-TW": "Stiletto"
+          },
+          "ratePercent": 5
+        },
+        {
+          "itemId": 2277,
+          "itemName": {
+            "es": "Nurse Cap",
+            "en": "Nurse Cap",
+            "zh-TW": "Nurse Cap"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "horong",
+      "name": {
+        "es": "Horong",
+        "en": "Horong",
+        "zh-TW": "Horong"
+      },
+      "level": 30,
+      "hp": 1890,
+      "speed": 140,
+      "damage": 30,
+      "exp": 16,
+      "radius": 13,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "formless",
+      "element": "fire",
+      "elementLv": 4,
+      "size": "small",
+      "cardId": 4103,
+      "drops": [
+        {
+          "itemId": 1351,
+          "itemName": {
+            "es": "Battle Axe",
+            "en": "Battle Axe",
+            "zh-TW": "Battle Axe"
+          },
+          "ratePercent": 40
+        },
+        {
+          "itemId": 13151,
+          "itemName": {
+            "es": "Cyclone",
+            "en": "Cyclone",
+            "zh-TW": "Cyclone"
+          },
+          "ratePercent": 30
+        },
+        {
+          "itemId": 2107,
+          "itemName": {
+            "es": "Mirror Shield",
+            "en": "Mirror Shield",
+            "zh-TW": "Mirror Shield"
+          },
+          "ratePercent": 20
+        }
+      ]
+    },
+    {
+      "id": "skeleton_general",
+      "name": {
+        "es": "Skeleton General",
+        "en": "Skeleton General",
+        "zh-TW": "Skeleton General"
+      },
+      "level": 27,
+      "hp": 71250,
+      "speed": 100,
+      "damage": 46,
+      "exp": 480,
+      "radius": 26,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4221,
+      "drops": [
+        {
+          "itemId": 1219,
+          "itemName": {
+            "es": "Gladius",
+            "en": "Gladius",
+            "zh-TW": "Gladius"
+          },
+          "ratePercent": 80
+        },
+        {
+          "itemId": 1220,
+          "itemName": {
+            "es": "Gladius",
+            "en": "Gladius",
+            "zh-TW": "Gladius"
+          },
+          "ratePercent": 35
+        },
+        {
+          "itemId": 2274,
+          "itemName": {
+            "es": "Ghost Bandana",
+            "en": "Ghost Bandana",
+            "zh-TW": "Ghost Bandana"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "cat_o_nine_tail",
+      "name": {
+        "es": "Cat O' Nine Tails",
+        "en": "Cat O' Nine Tails",
+        "zh-TW": "Cat O' Nine Tails"
+      },
+      "level": 28,
+      "hp": 112500,
+      "speed": 120,
+      "damage": 52,
+      "exp": 600,
+      "radius": 26,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "fire",
+      "elementLv": 3,
+      "size": "small",
+      "cardId": 4290,
+      "drops": [
+        {
+          "itemId": 1234,
+          "itemName": {
+            "es": "Moonlight Sword",
+            "en": "Moonlight Sword",
+            "zh-TW": "Moonlight Sword"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 5008,
+          "itemName": {
+            "es": "Puppy Love",
+            "en": "Puppy Love",
+            "zh-TW": "Puppy Love"
+          },
+          "ratePercent": 1
+        },
+        {
+          "itemId": 2603,
+          "itemName": {
+            "es": "Necklace",
+            "en": "Necklace",
+            "zh-TW": "Necklace"
+          },
+          "ratePercent": 100
+        }
+      ]
+    },
+    {
+      "id": "hyegun",
+      "name": {
+        "es": "Hyegun",
+        "en": "Hyegun",
+        "zh-TW": "Hyegun"
+      },
+      "level": 29,
+      "hp": 150000,
+      "speed": 105,
+      "damage": 58,
+      "exp": 700,
+      "radius": 26,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "undead",
+      "element": "undead",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": 4328,
+      "drops": [
+        {
+          "itemId": 2406,
+          "itemName": {
+            "es": "Boots",
+            "en": "Boots",
+            "zh-TW": "Boots"
+          },
+          "ratePercent": 1
+        }
+      ]
+    },
+    {
+      "id": "moonlight",
+      "name": {
+        "es": "Moonlight Flower",
+        "en": "Moonlight Flower",
+        "zh-TW": "Moonlight Flower"
+      },
+      "level": 30,
+      "hp": 1000000,
+      "speed": 110,
+      "damage": 80,
+      "exp": 1400,
+      "radius": 41,
+      "boss": true,
+      "scale": 1.5,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demon",
+      "element": "fire",
+      "elementLv": 3,
+      "size": "medium",
+      "cardId": 4131,
+      "drops": [
+        {
+          "itemId": 1525,
+          "itemName": {
+            "es": "Long Mace",
+            "en": "Long Mace",
+            "zh-TW": "Long Mace"
+          },
+          "ratePercent": 150
+        },
+        {
+          "itemId": 1234,
+          "itemName": {
+            "es": "Moonlight Sword",
+            "en": "Moonlight Sword",
+            "zh-TW": "Moonlight Sword"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 1648,
+          "itemName": {
+            "es": "Staff of Bordeaux",
+            "en": "Staff of Bordeaux",
+            "zh-TW": "Staff of Bordeaux"
+          },
+          "ratePercent": 100
+        },
+        {
+          "itemId": 1477,
+          "itemName": {
+            "es": "Spectral Spear",
+            "en": "Spectral Spear",
+            "zh-TW": "Spectral Spear"
+          },
+          "ratePercent": 50
+        }
+      ]
+    },
+    {
+      "id": "orc_warrior",
+      "name": {
+        "es": "Orc Warrior",
+        "en": "Orc Warrior",
+        "zh-TW": "Orc Warrior"
+      },
+      "level": 31,
+      "hp": 3900,
+      "speed": 86,
+      "damage": 36,
+      "exp": 20,
+      "radius": 20,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "earth",
+      "elementLv": 1,
+      "size": "medium",
+      "cardId": 4066,
+      "drops": []
+    },
+    {
+      "id": "orc_lady",
+      "name": {
+        "es": "Orc Lady",
+        "en": "Orc Lady",
+        "zh-TW": "Orc Lady"
+      },
+      "level": 32,
+      "hp": 3500,
+      "speed": 108,
+      "damage": 34,
+      "exp": 20,
+      "radius": 17,
+      "boss": false,
+      "scale": 1,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "earth",
+      "elementLv": 2,
+      "size": "medium",
+      "cardId": null,
+      "drops": []
+    },
+    {
+      "id": "high_orc",
+      "name": {
+        "es": "High Orc",
+        "en": "High Orc",
+        "zh-TW": "High Orc"
+      },
+      "level": 35,
+      "hp": 190000,
+      "speed": 95,
+      "damage": 62,
+      "exp": 800,
+      "radius": 26,
+      "boss": true,
+      "scale": 1.35,
+      "fly": false,
+      "ranged": null,
+      "caster": null,
+      "race": "demihuman",
+      "element": "fire",
+      "elementLv": 2,
+      "size": "large",
+      "cardId": null,
+      "drops": []
+    }
+  ]
+}

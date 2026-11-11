@@ -1,0 +1,2142 @@
+{
+  "totalJobs": 23,
+  "firstAndExtendedJobs": [
+    {
+      "id": "swordsman",
+      "base": null,
+      "tier": "first",
+      "rank": 1,
+      "hp": 130,
+      "speed": 150,
+      "armor": 1,
+      "startWeapon": "bash",
+      "starterWeaponOptions": [
+        1110,
+        1152,
+        1407,
+        2104
+      ],
+      "castAction": "attack2",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [
+        "bash",
+        "magnum",
+        "sword_dance",
+        "shield_bash",
+        "provoke",
+        "demoralizing_shout",
+        "endure",
+        "hp_recovery"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Swordsman",
+          "f": "Swordsman"
+        },
+        "en": {
+          "m": "Swordsman",
+          "f": "Swordsman"
+        },
+        "zh-TW": {
+          "m": "劍士",
+          "f": "劍士"
+        }
+      },
+      "desc": {
+        "es": "Mucha vida y armadura. Golpes potentes cuerpo a cuerpo.",
+        "en": "Lots of HP and armor. Powerful melee blows.",
+        "zh-TW": "血量與護甲都很高，近戰攻擊強勁。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "sm_bash",
+          "name": {
+            "es": "Armas",
+            "en": "Weapons",
+            "zh-TW": "武器"
+          },
+          "desc": {
+            "es": "Golpe fuerte, Explosión Magnum y el dominio de la espada.",
+            "en": "Bash, Magnum Break and mastery of the sword.",
+            "zh-TW": "狂擊、怒爆與劍術精通。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "sm_autoberserk",
+          "name": {
+            "es": "Furia",
+            "en": "Fury",
+            "zh-TW": "狂怒"
+          },
+          "desc": {
+            "es": "Ataques básicos rápidos, críticos y más peligro con poca vida.",
+            "en": "Fast basic attacks, criticals and more danger at low HP.",
+            "zh-TW": "快速普通攻擊、爆擊，HP 越低越危險。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "sm_endure",
+          "name": {
+            "es": "Protección",
+            "en": "Protection",
+            "zh-TW": "守護"
+          },
+          "desc": {
+            "es": "Vida, armadura y recuperación. Provocar y Aguante.",
+            "en": "HP, armor and recovery. Provoke and Endure.",
+            "zh-TW": "HP、護甲與恢復。挑釁與霸體。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mage",
+      "base": null,
+      "tier": "first",
+      "rank": 1,
+      "hp": 80,
+      "speed": 145,
+      "armor": 0,
+      "startWeapon": "firebolt",
+      "starterWeaponOptions": [
+        1607
+      ],
+      "castAction": "cast",
+      "mount": null,
+      "scaling": "magic",
+      "skills": [
+        "firebolt",
+        "coldbolt",
+        "lightning",
+        "soul_strike",
+        "napalm",
+        "fire_wall",
+        "frost_diver",
+        "sight",
+        "thunderstorm"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Mage",
+          "f": "Mage"
+        },
+        "en": {
+          "m": "Mage",
+          "f": "Mage"
+        },
+        "zh-TW": {
+          "m": "魔法師",
+          "f": "魔法師"
+        }
+      },
+      "desc": {
+        "es": "Frágil pero letal a distancia.",
+        "en": "Fragile but deadly at range.",
+        "zh-TW": "脆弱，但遠距離致命。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "mg_firebolt",
+          "name": {
+            "es": "Fuego",
+            "en": "Fire",
+            "zh-TW": "火"
+          },
+          "desc": {
+            "es": "Saeta de fuego, Muro de fuego y llamas orbitales.",
+            "en": "Fire Bolt, Fire Wall and orbiting flames.",
+            "zh-TW": "火箭術、火焰之壁與環繞火焰。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "mg_frostdiver",
+          "name": {
+            "es": "Hielo",
+            "en": "Ice",
+            "zh-TW": "冰"
+          },
+          "desc": {
+            "es": "Congela y controla a la horda.",
+            "en": "Freezes and controls the horde.",
+            "zh-TW": "冰凍並控制怪物群。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "mg_soulstrike",
+          "name": {
+            "es": "Arcano",
+            "en": "Arcane",
+            "zh-TW": "奧術"
+          },
+          "desc": {
+            "es": "Almas, rayos y tormentas. Enfriamiento y casteo.",
+            "en": "Souls, bolts and storms. Cooldowns and casting.",
+            "zh-TW": "靈魂、雷擊與風暴。冷卻與詠唱。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "archer",
+      "base": null,
+      "tier": "first",
+      "rank": 1,
+      "hp": 95,
+      "speed": 165,
+      "armor": 0,
+      "startWeapon": "double_strafe",
+      "starterWeaponOptions": [
+        1711
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "ranged",
+      "skills": [
+        "double_strafe",
+        "arrow_shower",
+        "arrow_rain",
+        "arrow_repel",
+        "retreat",
+        "arcane_shot",
+        "fire_arrow",
+        "concentration"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Archer",
+          "f": "Archer"
+        },
+        "en": {
+          "m": "Archer",
+          "f": "Archer"
+        },
+        "zh-TW": {
+          "m": "弓箭手",
+          "f": "弓箭手"
+        }
+      },
+      "desc": {
+        "es": "Rápido, dispara flechas que perforan.",
+        "en": "Fast, shoots piercing arrows.",
+        "zh-TW": "速度快，射出貫穿箭矢。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "ac_double",
+          "name": {
+            "es": "Tirador",
+            "en": "Marksman",
+            "zh-TW": "神射手"
+          },
+          "desc": {
+            "es": "Ataque básico, críticos, Doble ráfaga y Retirada.",
+            "en": "Basic attack, crits, Double Strafe and Retreat.",
+            "zh-TW": "普通攻擊、爆擊、二連矢與撤退。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "ac_arcaneshot",
+          "name": {
+            "es": "Arcano",
+            "en": "Arcane",
+            "zh-TW": "奧術"
+          },
+          "desc": {
+            "es": "Celeridad, área, Tiro arcano y Flecha ígnea.",
+            "en": "Haste, area, Arcane Shot and Fire Arrow.",
+            "zh-TW": "冷卻縮減、範圍、奧術射擊與火焰箭。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "ac_shower",
+          "name": {
+            "es": "Asedio",
+            "en": "Siege",
+            "zh-TW": "圍攻"
+          },
+          "desc": {
+            "es": "Lluvia de flechas, Aguacero de flechas y Flecha repulsora: aguanta la posición y cubre el campo de flechas.",
+            "en": "Arrow Shower, Arrow Rain and Arrow Repel: hold your ground and cover the field in arrows.",
+            "zh-TW": "箭雨、箭矢暴雨與衝鋒箭：堅守陣地，讓箭矢覆蓋戰場。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "acolyte",
+      "base": null,
+      "tier": "first",
+      "rank": 1,
+      "hp": 105,
+      "speed": 150,
+      "armor": 1,
+      "startWeapon": "heal",
+      "starterWeaponOptions": [
+        1607,
+        1511
+      ],
+      "castAction": "cast",
+      "mount": null,
+      "scaling": "magic",
+      "skills": [
+        "heal",
+        "holy_light",
+        "ruwach",
+        "decrease_agi",
+        "signum_crucis",
+        "aqua_benedicta",
+        "blessing",
+        "holy_smite"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Acolyte",
+          "f": "Acolyte"
+        },
+        "en": {
+          "m": "Acolyte",
+          "f": "Acolyte"
+        },
+        "zh-TW": {
+          "m": "服事",
+          "f": "服事"
+        }
+      },
+      "desc": {
+        "es": "Se cura y castiga a los no-muertos.",
+        "en": "Heals itself and punishes the undead.",
+        "zh-TW": "能自我治療，並懲戒不死族。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "al_heal",
+          "name": {
+            "es": "Sagrado",
+            "en": "Holy",
+            "zh-TW": "神聖"
+          },
+          "desc": {
+            "es": "Curación, Aqua Benedicta y Bendición: aguantar curándote en medio de la horda.",
+            "en": "Heal, Aqua Benedicta and Blessing: hold out by healing yourself in the middle of the horde.",
+            "zh-TW": "治癒術、天使之淚與天使之賜福：在怪物群中自我治療撐下去。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "al_holylight",
+          "name": {
+            "es": "Exorcismo",
+            "en": "Exorcism",
+            "zh-TW": "驅魔"
+          },
+          "desc": {
+            "es": "Luz sagrada, Signum Crucis y Reducir AGI: la luz que purga, marca y frena.",
+            "en": "Holy Light, Signum Crucis and Decrease AGI: the light that purges, marks and slows.",
+            "zh-TW": "神聖之光、天使之光與緩速術：淨化、標記並緩速的光。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "pr_macemastery",
+          "name": {
+            "es": "Retribución",
+            "en": "Retribution",
+            "zh-TW": "懲戒"
+          },
+          "desc": {
+            "es": "Golpe sagrado, ataques con maza, nudillos o libro y Ruwach: la build de cara al Monk.",
+            "en": "Holy Smite, mace, knuckle or book attacks and Ruwach: the build that leads to the Monk.",
+            "zh-TW": "神聖重擊、鈍器／拳套／書本攻擊與光獵：通往武僧的路線。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "thief",
+      "base": null,
+      "tier": "first",
+      "rank": 1,
+      "hp": 90,
+      "speed": 175,
+      "armor": 0,
+      "startWeapon": "envenom",
+      "starterWeaponOptions": [
+        1210,
+        1110
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [
+        "envenom",
+        "sand_attack",
+        "hiding",
+        "throw_stone",
+        "poison_bomb",
+        "shadowstep",
+        "fan_of_knives",
+        "caltrops"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Thief",
+          "f": "Thief"
+        },
+        "en": {
+          "m": "Thief",
+          "f": "Thief"
+        },
+        "zh-TW": {
+          "m": "盜賊",
+          "f": "盜賊"
+        }
+      },
+      "desc": {
+        "es": "Muy rápido. Puñaladas que envenenan.",
+        "en": "Very fast. Poisonous stabs.",
+        "zh-TW": "非常快，刺擊帶毒。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "tf_poison",
+          "name": {
+            "es": "Asesinato",
+            "en": "Assassination",
+            "zh-TW": "暗殺"
+          },
+          "desc": {
+            "es": "Envenenar, Bomba de veneno y venenos que pudren a la horda.",
+            "en": "Envenom, Poison Bomb and poisons that rot the horde.",
+            "zh-TW": "施毒、毒藥瓶與腐蝕怪物群的毒素。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "tf_double",
+          "name": {
+            "es": "Combate",
+            "en": "Combat",
+            "zh-TW": "戰鬥"
+          },
+          "desc": {
+            "es": "Golpes dobles, cuchillos, arena, piedras y botín.",
+            "en": "Double hits, knives, sand, stones and loot.",
+            "zh-TW": "雙重攻擊、飛刀、撒沙、投石與掠奪。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "tf_hiding",
+          "name": {
+            "es": "Sombras",
+            "en": "Shadows",
+            "zh-TW": "暗影"
+          },
+          "desc": {
+            "es": "Ocultarse, Paso sombrío y Abrojos: escapar y no caer nunca.",
+            "en": "Hiding, Shadowstep and Caltrops: escape and never fall.",
+            "zh-TW": "隱匿、影步與撒菱：脫逃且永不倒下。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "merchant",
+      "base": null,
+      "tier": "first",
+      "rank": 1,
+      "hp": 130,
+      "speed": 145,
+      "armor": 1,
+      "startWeapon": "mammonite",
+      "starterWeaponOptions": [
+        1309,
+        1355,
+        2104
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [
+        "mammonite",
+        "cart_revolution",
+        "zeny_rain",
+        "cart_rush",
+        "vending",
+        "crazy_uproar",
+        "enlarge_weight"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Merchant",
+          "f": "Merchant"
+        },
+        "en": {
+          "m": "Merchant",
+          "f": "Merchant"
+        },
+        "zh-TW": {
+          "m": "商人",
+          "f": "商人"
+        }
+      },
+      "desc": {
+        "es": "Golpes de zeny devastadores, pero lentos.",
+        "en": "Devastating but slow zeny strikes.",
+        "zh-TW": "毀滅性但緩慢的金幣打擊。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "mc_overcharge",
+          "name": {
+            "es": "Comercio",
+            "en": "Trade",
+            "zh-TW": "交易"
+          },
+          "desc": {
+            "es": "Lluvia de zeny, Venta ambulante y zeny: el dinero como arma.",
+            "en": "Zeny Rain, Vending and zeny: money as a weapon.",
+            "zh-TW": "金幣雨、露天商店與金幣：以金錢為武器。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "mc_cartrevolution",
+          "name": {
+            "es": "Carro",
+            "en": "Cart",
+            "zh-TW": "手推車"
+          },
+          "desc": {
+            "es": "Revolución del carro y Embestida del carro: el carro como arma y escudo.",
+            "en": "Cart Revolution and Cart Rush: the cart as weapon and shield.",
+            "zh-TW": "手推車攻擊與手推車衝撞：手推車既是武器也是盾牌。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "mc_mammonite",
+          "name": {
+            "es": "Herrería",
+            "en": "Smithing",
+            "zh-TW": "鍛造"
+          },
+          "desc": {
+            "es": "Mammonita, gritos y el golpe del arma.",
+            "en": "Mammonite, shouts and weapon strikes.",
+            "zh-TW": "金錢攻擊、吶喊與武器打擊。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "taekwon",
+      "base": null,
+      "tier": "extended",
+      "rank": 1,
+      "hp": 110,
+      "speed": 160,
+      "armor": 0,
+      "startWeapon": "tornado_kick",
+      "starterWeaponOptions": [
+        1806
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [
+        "tornado_kick",
+        "heel_drop",
+        "roundhouse",
+        "counter_kick",
+        "sprint"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Taekwon",
+          "f": "Taekwon"
+        },
+        "en": {
+          "m": "Taekwon",
+          "f": "Taekwon"
+        },
+        "zh-TW": {
+          "m": "跆拳少年",
+          "f": "跆拳少年"
+        }
+      },
+      "desc": {
+        "es": "Patadas giratorias que barren a la horda.",
+        "en": "Spinning kicks that sweep the horde.",
+        "zh-TW": "迴旋踢掃蕩成群的敵人。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "tk_stormkick",
+          "name": {
+            "es": "Tormenta",
+            "en": "Storm",
+            "zh-TW": "暴風雨"
+          },
+          "desc": {
+            "es": "Patada tornado y Patada giratoria: patadas que barren todo.",
+            "en": "Tornado Kick and Roundhouse: kicks that sweep everything.",
+            "zh-TW": "迴旋踢與轉身踢：橫掃一切的踢擊。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "tk_downkick",
+          "name": {
+            "es": "Combate",
+            "en": "Combat",
+            "zh-TW": "戰鬥"
+          },
+          "desc": {
+            "es": "Caída de talón y Contrapatada: golpes que aturden.",
+            "en": "Heel Drop and Counter Kick: stunning blows.",
+            "zh-TW": "砸踢與還擊踢：致暈的打擊。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "tk_hptime",
+          "name": {
+            "es": "Disciplina",
+            "en": "Discipline",
+            "zh-TW": "修行"
+          },
+          "desc": {
+            "es": "Carrera, meditación y aguante.",
+            "en": "Sprint, meditation and endurance.",
+            "zh-TW": "跑步、冥想與耐力。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ninja",
+      "base": null,
+      "tier": "extended",
+      "rank": 1,
+      "hp": 90,
+      "speed": 165,
+      "armor": 0,
+      "startWeapon": "shuriken",
+      "starterWeaponOptions": [
+        13007
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "ranged",
+      "skills": [
+        "shuriken",
+        "kunai",
+        "huuma",
+        "flaming_petals",
+        "lightning_strike"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Ninja",
+          "f": "Ninja"
+        },
+        "en": {
+          "m": "Ninja",
+          "f": "Ninja"
+        },
+        "zh-TW": {
+          "m": "忍者",
+          "f": "忍者"
+        }
+      },
+      "desc": {
+        "es": "Lluvia de shurikens.",
+        "en": "A rain of shurikens.",
+        "zh-TW": "手裡劍之雨。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "nj_syuriken",
+          "name": {
+            "es": "Arrojadizas",
+            "en": "Throwing",
+            "zh-TW": "投擲"
+          },
+          "desc": {
+            "es": "Shuriken y Huuma: lluvia de acero.",
+            "en": "Shuriken and Huuma: a rain of steel.",
+            "zh-TW": "手裡劍與風魔：鋼鐵之雨。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "nj_kouenka",
+          "name": {
+            "es": "Ninjutsu",
+            "en": "Ninjutsu",
+            "zh-TW": "忍術"
+          },
+          "desc": {
+            "es": "Pétalos llameantes y Golpe de rayo: fuego y rayo ninja.",
+            "en": "Flaming Petals and Lightning Strike: ninja fire and lightning.",
+            "zh-TW": "火炎花與雷擊碎：忍者的火與雷。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "nj_utsusemi",
+          "name": {
+            "es": "Sigilo",
+            "en": "Stealth",
+            "zh-TW": "潛行"
+          },
+          "desc": {
+            "es": "Kunais, Flee y críticos.",
+            "en": "Kunai, Flee and criticals.",
+            "zh-TW": "苦無、迴避與爆擊。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gunslinger",
+      "base": null,
+      "tier": "extended",
+      "rank": 1,
+      "hp": 95,
+      "speed": 155,
+      "armor": 0,
+      "startWeapon": "triple_action",
+      "starterWeaponOptions": [
+        13150
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "ranged",
+      "skills": [
+        "triple_action",
+        "rapid_shower",
+        "spread_attack",
+        "desperado",
+        "ground_drift",
+        "tracking"
+      ],
+      "deitySkills": [],
+      "name": {
+        "es": {
+          "m": "Gunslinger",
+          "f": "Gunslinger"
+        },
+        "en": {
+          "m": "Gunslinger",
+          "f": "Gunslinger"
+        },
+        "zh-TW": {
+          "m": "神槍手",
+          "f": "神槍手"
+        }
+      },
+      "desc": {
+        "es": "Ráfagas de balas en abanico.",
+        "en": "Fan-shaped bullet bursts.",
+        "zh-TW": "扇形子彈連射。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "gs_tripleaction",
+          "name": {
+            "es": "Pistolero",
+            "en": "Pistoleer",
+            "zh-TW": "槍手"
+          },
+          "desc": {
+            "es": "Acción triple y Ráfaga rápida: ráfagas de revólver.",
+            "en": "Triple Action and Rapid Shower: revolver bursts.",
+            "zh-TW": "三連攻擊與五連擊：左輪連射。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "gs_spreadattack",
+          "name": {
+            "es": "Escopeta",
+            "en": "Shotgun",
+            "zh-TW": "霰彈槍"
+          },
+          "desc": {
+            "es": "Ataque disperso y Desperado: destrucción a corta distancia.",
+            "en": "Spread Attack and Desperado: close-range destruction.",
+            "zh-TW": "火力全開與亡命之徒：近距離毀滅。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "gs_tracking",
+          "name": {
+            "es": "Francotirador",
+            "en": "Sniper",
+            "zh-TW": "狙擊手"
+          },
+          "desc": {
+            "es": "Rastreo y Granada rasante: disparos certeros y granadas.",
+            "en": "Tracking and Ground Drift: precise shots and grenades.",
+            "zh-TW": "百步穿楊與四面埋伏：精準射擊與榴彈。"
+          }
+        }
+      ]
+    }
+  ],
+  "secondJobs": [
+    {
+      "id": "knight",
+      "base": "swordsman",
+      "tier": "first",
+      "rank": 2,
+      "hp": 360,
+      "speed": 150,
+      "armor": 1,
+      "startWeapon": "bash",
+      "starterWeaponOptions": [
+        1110,
+        1152,
+        1407,
+        2104
+      ],
+      "castAction": "attack2",
+      "mount": "peco",
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "brandish_spear",
+        "charge_attack",
+        "pierce",
+        "spear_boomerang",
+        "auto_counter",
+        "bowling_bash"
+      ],
+      "name": {
+        "es": {
+          "m": "Knight",
+          "f": "Knight"
+        },
+        "en": {
+          "m": "Knight",
+          "f": "Knight"
+        },
+        "zh-TW": {
+          "m": "騎士",
+          "f": "騎士"
+        }
+      },
+      "desc": {
+        "es": "Caballero montado en Peco Peco: lanzas y espadones con mucho alcance.",
+        "en": "A knight mounted on a Peco Peco: spears and two-handed swords with long reach.",
+        "zh-TW": "騎乘大嘴鳥的騎士：長距離的長矛與雙手劍。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "kn_riding",
+          "name": {
+            "es": "Caballería",
+            "en": "Cavalry",
+            "zh-TW": "騎兵"
+          },
+          "desc": {
+            "es": "Montar te monta en el Peco Peco: pisotón, galope, Barrido de lanza y Ataque a la carga.",
+            "en": "Riding puts you on your Peco Peco: trample, gallop, Brandish Spear and Charge Attack.",
+            "zh-TW": "騎乘術讓你騎上大嘴鳥：踐踏、奔馳、騎乘攻擊與衝鋒攻擊。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "kn_spearmastery",
+          "name": {
+            "es": "Lanza",
+            "en": "Spear",
+            "zh-TW": "長矛"
+          },
+          "desc": {
+            "es": "Perforar y Lanza bumerán: estocadas y lanzas que vuelven.",
+            "en": "Pierce and Spear Boomerang: thrusts and returning spears.",
+            "zh-TW": "連刺攻擊與投擲長矛攻擊：突刺與迴返的長矛。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "kn_twohandquicken",
+          "name": {
+            "es": "Espadón",
+            "en": "Two-Hand Sword",
+            "zh-TW": "雙手劍"
+          },
+          "desc": {
+            "es": "Contraataque y Derribo en cadena: la espada a dos manos, para aguantar el golpe y devolverlo.",
+            "en": "Counter Attack and Bowling Bash: the two-handed sword, to take the hit and return it.",
+            "zh-TW": "反擊與怪物互擊：用雙手劍承受攻擊再加以回敬。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "crusader",
+      "base": "swordsman",
+      "tier": "first",
+      "rank": 2,
+      "hp": 380,
+      "speed": 150,
+      "armor": 1,
+      "startWeapon": "bash",
+      "starterWeaponOptions": [
+        1110,
+        1152,
+        1407,
+        2104
+      ],
+      "castAction": "attack2",
+      "mount": "peco",
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "spear_quicken",
+        "shield_charge",
+        "holy_cross",
+        "grand_cross",
+        "shield_boomerang",
+        "auto_guard"
+      ],
+      "name": {
+        "es": {
+          "m": "Crusader",
+          "f": "Crusader"
+        },
+        "en": {
+          "m": "Crusader",
+          "f": "Crusader"
+        },
+        "zh-TW": {
+          "m": "十字軍",
+          "f": "十字軍"
+        }
+      },
+      "desc": {
+        "es": "Guerrero sagrado sobre su Peco: escudo, fe y golpes de luz.",
+        "en": "A holy warrior on his Peco: shield, faith and blows of light.",
+        "zh-TW": "騎著大嘴鳥的神聖戰士：盾牌、信仰與光之打擊。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "sl_crusader",
+          "name": {
+            "es": "Caballería sagrada",
+            "en": "Holy Cavalry",
+            "zh-TW": "神聖騎兵"
+          },
+          "desc": {
+            "es": "Gran Peco te monta en tu Peco: pisotón sagrado, Celeridad de lanza y Carga de escudo.",
+            "en": "Grand Peco puts you on your Peco: holy trample, Spear Quicken and Shield Charge.",
+            "zh-TW": "神聖大嘴鳥讓你騎上大嘴鳥：神聖踐踏、長矛加速術與盾擊。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "cr_holycross",
+          "name": {
+            "es": "Fe",
+            "en": "Faith",
+            "zh-TW": "信仰"
+          },
+          "desc": {
+            "es": "Cruz sagrada y Gran cruz: la luz como arma, a costa de tu vida.",
+            "en": "Holy Cross and Grand Cross: light as a weapon, at the cost of your HP.",
+            "zh-TW": "聖十字攻擊與聖十字審判：以 HP 為代價，以光為武器。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "cr_shieldboomerang",
+          "name": {
+            "es": "Escudo",
+            "en": "Shield",
+            "zh-TW": "盾牌"
+          },
+          "desc": {
+            "es": "Escudo bumerán y Guardia automática: el escudo para golpear y para no caer.",
+            "en": "Shield Boomerang and Auto Guard: the shield to strike and to stay standing.",
+            "zh-TW": "迴旋盾擊與自動防禦：用盾牌打擊，也用盾牌屹立不倒。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wizard",
+      "base": "mage",
+      "tier": "first",
+      "rank": 2,
+      "hp": 205,
+      "speed": 145,
+      "armor": 0,
+      "startWeapon": "firebolt",
+      "starterWeaponOptions": [
+        1607
+      ],
+      "castAction": "cast",
+      "mount": null,
+      "scaling": "magic",
+      "skills": [],
+      "deitySkills": [
+        "meteor_storm",
+        "fire_pillar",
+        "frost_nova",
+        "storm_gust",
+        "jupitel_thunder",
+        "lord_of_vermilion"
+      ],
+      "name": {
+        "es": {
+          "m": "Wizard",
+          "f": "Wizard"
+        },
+        "en": {
+          "m": "Wizard",
+          "f": "Wizard"
+        },
+        "zh-TW": {
+          "m": "巫師",
+          "f": "巫師"
+        }
+      },
+      "desc": {
+        "es": "Magia de destrucción masiva: meteoros, ventiscas y tormentas.",
+        "en": "Magic of mass destruction: meteors, blizzards and storms.",
+        "zh-TW": "大規模毀滅魔法：隕石、暴風雪與風暴。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "so_summon_agni",
+          "name": {
+            "es": "Fuego",
+            "en": "Fire",
+            "zh-TW": "火"
+          },
+          "desc": {
+            "es": "Tormenta de meteoros y Pilar de fuego: el cielo y el suelo arden.",
+            "en": "Meteor Storm and Fire Pillar: the sky and the ground burn.",
+            "zh-TW": "隕石術與火柱攻擊：天空與大地都在燃燒。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "wl_jackfrost",
+          "name": {
+            "es": "Hielo",
+            "en": "Ice",
+            "zh-TW": "冰"
+          },
+          "desc": {
+            "es": "Nova de escarcha y Ráfaga de tormenta: congela a la horda entera.",
+            "en": "Frost Nova and Storm Gust: freeze the whole horde.",
+            "zh-TW": "霜凍之術與暴風雪：冰凍整群怪物。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "wz_yupitel",
+          "name": {
+            "es": "Tormenta",
+            "en": "Storm",
+            "zh-TW": "暴風雨"
+          },
+          "desc": {
+            "es": "Trueno de Júpiter y Señor del Bermellón: rayos que no paran.",
+            "en": "Jupitel Thunder and Lord of Vermilion: lightning that never stops.",
+            "zh-TW": "雷鳴術與怒雷強擊：永不停歇的雷電。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sage",
+      "base": "mage",
+      "tier": "first",
+      "rank": 2,
+      "hp": 240,
+      "speed": 145,
+      "armor": 0,
+      "startWeapon": "firebolt",
+      "starterWeaponOptions": [
+        1607
+      ],
+      "castAction": "cast",
+      "mount": null,
+      "scaling": "magic",
+      "skills": [],
+      "deitySkills": [
+        "volcano",
+        "deluge",
+        "earth_spike",
+        "heavens_drive",
+        "hindsight",
+        "abracadabra"
+      ],
+      "name": {
+        "es": {
+          "m": "Sage",
+          "f": "Sage"
+        },
+        "en": {
+          "m": "Sage",
+          "f": "Sage"
+        },
+        "zh-TW": {
+          "m": "賢者",
+          "f": "賢者"
+        }
+      },
+      "desc": {
+        "es": "Erudito de los elementos: campos mágicos, tierra y conjuros automáticos.",
+        "en": "Scholar of the elements: magic fields, earth and automatic spells.",
+        "zh-TW": "元素學者：魔法領域、大地與自動法術。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "so_warmer",
+          "name": {
+            "es": "Campos",
+            "en": "Fields",
+            "zh-TW": "領域"
+          },
+          "desc": {
+            "es": "Volcán y Diluvio: campos en el suelo que te refuerzan mientras estás dentro.",
+            "en": "Volcano and Deluge: fields on the ground that empower you while you're inside.",
+            "zh-TW": "火元素領域與水元素領域：站在其中就能強化你的地面領域。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "sa_seismicweapon",
+          "name": {
+            "es": "Tierra",
+            "en": "Earth",
+            "zh-TW": "地"
+          },
+          "desc": {
+            "es": "Pico de tierra y Impulso celestial: la tierra se levanta contra la horda.",
+            "en": "Earth Spike and Heaven's Drive: the earth rises against the horde.",
+            "zh-TW": "地震術與崩裂術：大地起身對抗怪物群。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "sa_autospell",
+          "name": {
+            "es": "Erudito",
+            "en": "Scholar",
+            "zh-TW": "學者"
+          },
+          "desc": {
+            "es": "Retrospección y Abracadabra: conjuros que salen solos y magia caprichosa.",
+            "en": "Hindsight and Abracadabra: spells that cast themselves and whimsical magic.",
+            "zh-TW": "自動念咒與隨機技能：自己施放的法術與異想天開的魔法。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hunter",
+      "base": "archer",
+      "tier": "first",
+      "rank": 2,
+      "hp": 230,
+      "speed": 165,
+      "armor": 0,
+      "startWeapon": "double_strafe",
+      "starterWeaponOptions": [
+        1711
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "ranged",
+      "skills": [],
+      "deitySkills": [
+        "blitz_beat",
+        "detecting",
+        "claymore_trap",
+        "sandman",
+        "beast_strafing",
+        "phantasmic_arrow"
+      ],
+      "name": {
+        "es": {
+          "m": "Hunter",
+          "f": "Hunter"
+        },
+        "en": {
+          "m": "Hunter",
+          "f": "Hunter"
+        },
+        "zh-TW": {
+          "m": "獵人",
+          "f": "獵人"
+        }
+      },
+      "desc": {
+        "es": "Cazador con halcón y trampas.",
+        "en": "A hunter with a falcon and traps.",
+        "zh-TW": "帶著獵鷹與陷阱的獵人。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "ht_falcon",
+          "name": {
+            "es": "Halcón",
+            "en": "Falcon",
+            "zh-TW": "獵鷹"
+          },
+          "desc": {
+            "es": "Ataque relámpago y Detectar: tu halcón caza contigo y señala a las presas.",
+            "en": "Blitz Beat and Detecting: your falcon hunts with you and marks the prey.",
+            "zh-TW": "閃電衝擊與獵鷹尋敵：你的獵鷹與你一同狩獵並標記獵物。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "ht_claymoretrap",
+          "name": {
+            "es": "Trampas",
+            "en": "Traps",
+            "zh-TW": "陷阱"
+          },
+          "desc": {
+            "es": "Trampa Claymore y Hombre de arena: el suelo que pisan es tuyo.",
+            "en": "Claymore Trap and Sandman: the ground they walk on is yours.",
+            "zh-TW": "爆散陷阱與睡魔陷阱：牠們踏過的地面是你的。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "ra_wugmastery",
+          "name": {
+            "es": "Caza mayor",
+            "en": "Big Game",
+            "zh-TW": "大型獵物"
+          },
+          "desc": {
+            "es": "Ráfaga bestial y Flecha fantasmal: flechas para las presas grandes.",
+            "en": "Beast Strafing and Phantasmic Arrow: arrows for big prey.",
+            "zh-TW": "動物猛擊與幻影箭：為大型獵物準備的箭。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bard",
+      "base": "archer",
+      "tier": "first",
+      "rank": 2,
+      "hp": 220,
+      "speed": 165,
+      "armor": 0,
+      "startWeapon": "double_strafe",
+      "starterWeaponOptions": [
+        1711
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "ranged",
+      "skills": [],
+      "deitySkills": [
+        "arrow_vulcan",
+        "dissonance",
+        "lullaby",
+        "lokis_veil",
+        "drum_battlefield",
+        "siegfried"
+      ],
+      "name": {
+        "es": {
+          "m": "Bard",
+          "f": "Dancer"
+        },
+        "en": {
+          "m": "Bard",
+          "f": "Dancer"
+        },
+        "zh-TW": {
+          "m": "吟遊詩人",
+          "f": "舞孃"
+        }
+      },
+      "desc": {
+        "es": "Canciones y danzas que te refuerzan y desconciertan a la horda.",
+        "en": "Songs and dances that empower you and bewilder the horde.",
+        "zh-TW": "強化你並迷惑怪物群的歌曲與舞蹈。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "tr_rhythmshooting",
+          "name": {
+            "es": "Actuación",
+            "en": "Performance",
+            "zh-TW": "演奏"
+          },
+          "desc": {
+            "es": "Vulcano de flechas y Disonancia: flechas y notas contra la horda.",
+            "en": "Arrow Vulcan and Dissonance: arrows and notes against the horde.",
+            "zh-TW": "奧義箭亂舞與不諧和音：用箭與音符對抗怪物群。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "bd_adaptation",
+          "name": {
+            "es": "Conjunto",
+            "en": "Ensemble",
+            "zh-TW": "合奏"
+          },
+          "desc": {
+            "es": "Nana y Velo de Loki: la horda duerme o no acierta.",
+            "en": "Lullaby and Loki's Veil: the horde sleeps or misses.",
+            "zh-TW": "搖籃曲與洛奇的悲鳴：讓怪物群沉睡或失手。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "ba_poembragi",
+          "name": {
+            "es": "Himnos",
+            "en": "Hymns",
+            "zh-TW": "聖歌"
+          },
+          "desc": {
+            "es": "Tambor en el campo de batalla e Siegfried invulnerable: canciones que te hacen más fuerte.",
+            "en": "A Drum on the Battlefield and Invulnerable Siegfried: songs that make you stronger.",
+            "zh-TW": "戰鼓震天與不死神齊格弗里德：讓你更強的歌曲。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "priest",
+      "base": "acolyte",
+      "tier": "first",
+      "rank": 2,
+      "hp": 270,
+      "speed": 150,
+      "armor": 1,
+      "startWeapon": "heal",
+      "starterWeaponOptions": [
+        1607,
+        1511
+      ],
+      "castAction": "cast",
+      "mount": null,
+      "scaling": "magic",
+      "skills": [],
+      "deitySkills": [
+        "sanctuary",
+        "safety_wall",
+        "benedictio",
+        "magnus_exorcismus",
+        "impositio",
+        "magnificat"
+      ],
+      "name": {
+        "es": {
+          "m": "Priest",
+          "f": "Priest"
+        },
+        "en": {
+          "m": "Priest",
+          "f": "Priest"
+        },
+        "zh-TW": {
+          "m": "祭司",
+          "f": "祭司"
+        }
+      },
+      "desc": {
+        "es": "Sanación, bendiciones y exorcismo.",
+        "en": "Healing, blessings and exorcism.",
+        "zh-TW": "治療、祝福與驅魔。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "pr_sanctuary",
+          "name": {
+            "es": "Santuario",
+            "en": "Sanctuary",
+            "zh-TW": "聖域"
+          },
+          "desc": {
+            "es": "Santuario y Muro de seguridad: suelo sagrado y barreras para no caer.",
+            "en": "Sanctuary and Safety Wall: holy ground and barriers to stay standing.",
+            "zh-TW": "光耀之堂與暗之障壁：神聖之地與屏障，讓你屹立不倒。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "pr_magnus",
+          "name": {
+            "es": "Exorcismo",
+            "en": "Exorcism",
+            "zh-TW": "驅魔"
+          },
+          "desc": {
+            "es": "Benedictio y Magnus Exorcismus: la luz que purga a la horda.",
+            "en": "Benedictio and Magnus Exorcismus: the light that purges the horde.",
+            "zh-TW": "聖母之祈福與十字驅魔攻擊：淨化怪物群的光。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "pr_impositio",
+          "name": {
+            "es": "Liturgia",
+            "en": "Liturgy",
+            "zh-TW": "禮拜"
+          },
+          "desc": {
+            "es": "Impositio Manus y Magnificat: bendiciones que te hacen más fuerte y más rápido.",
+            "en": "Impositio Manus and Magnificat: blessings that make you stronger and faster.",
+            "zh-TW": "神威祈福與聖母之頌歌：讓你更強更快的祝福。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "monk",
+      "base": "acolyte",
+      "tier": "first",
+      "rank": 2,
+      "hp": 300,
+      "speed": 150,
+      "armor": 1,
+      "startWeapon": "heal",
+      "starterWeaponOptions": [
+        1607,
+        1511
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "call_spirits",
+        "finger_offensive",
+        "chain_combo",
+        "combo_finish",
+        "fury",
+        "asura_strike"
+      ],
+      "name": {
+        "es": {
+          "m": "Monk",
+          "f": "Monk"
+        },
+        "en": {
+          "m": "Monk",
+          "f": "Monk"
+        },
+        "zh-TW": {
+          "m": "武僧",
+          "f": "武僧"
+        }
+      },
+      "desc": {
+        "es": "Puños, esferas espirituales y combos hasta el Golpe Asura.",
+        "en": "Fists, spirit spheres and combos all the way to Asura Strike.",
+        "zh-TW": "拳頭、氣彈與一路連到阿修羅霸凰拳的連擊。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "mo_callspirits",
+          "name": {
+            "es": "Esferas",
+            "en": "Spheres",
+            "zh-TW": "氣彈"
+          },
+          "desc": {
+            "es": "Invocar esferas y Lanzar esferas: tu ki, en esferas que giran y que disparas.",
+            "en": "Call Spirits and Finger Offensive: your ki, in spheres that orbit and that you fire.",
+            "zh-TW": "蓄氣與彈指神通：你的氣化為環繞與射出的氣彈。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "ch_chaincrush",
+          "name": {
+            "es": "Combo",
+            "en": "Combo",
+            "zh-TW": "連擊"
+          },
+          "desc": {
+            "es": "Combo en cadena y Remate del combo: golpes encadenados que acaban en un remate.",
+            "en": "Chain Combo and Combo Finish: chained blows that end in a finisher.",
+            "zh-TW": "連環全身掌與猛龍誇強：以終結技收尾的連續攻擊。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "mo_extremityfist",
+          "name": {
+            "es": "Asura",
+            "en": "Asura",
+            "zh-TW": "阿修羅"
+          },
+          "desc": {
+            "es": "Ira y Golpe Asura: todo tu ki en un solo golpe.",
+            "en": "Fury and Asura Strike: all your ki in a single blow.",
+            "zh-TW": "爆氣與阿修羅霸凰拳：所有的氣集中於一擊。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "assassin",
+      "base": "thief",
+      "tier": "first",
+      "rank": 2,
+      "hp": 250,
+      "speed": 175,
+      "armor": 0,
+      "startWeapon": "envenom",
+      "starterWeaponOptions": [
+        1210,
+        1110
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "sonic_blow",
+        "grimtooth",
+        "enchant_poison",
+        "venom_dust",
+        "cloaking",
+        "venom_knife"
+      ],
+      "name": {
+        "es": {
+          "m": "Assassin",
+          "f": "Assassin"
+        },
+        "en": {
+          "m": "Assassin",
+          "f": "Assassin"
+        },
+        "zh-TW": {
+          "m": "刺客",
+          "f": "刺客"
+        }
+      },
+      "desc": {
+        "es": "Katares, venenos y golpes desde las sombras.",
+        "en": "Katars, poisons and strikes from the shadows.",
+        "zh-TW": "拳刃、毒與來自暗影的打擊。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "as_katar",
+          "name": {
+            "es": "Katar",
+            "en": "Katar",
+            "zh-TW": "拳刃"
+          },
+          "desc": {
+            "es": "Golpe sónico y Diente sombrío: cuchilladas que no se ven venir.",
+            "en": "Sonic Blow and Grimtooth: slashes no one sees coming.",
+            "zh-TW": "音速投擲與無影之牙：沒人看得見的斬擊。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "as_venomdust",
+          "name": {
+            "es": "Venenos",
+            "en": "Poisons",
+            "zh-TW": "毒"
+          },
+          "desc": {
+            "es": "Encantar veneno y Polvo venenoso: todo lo que tocas se envenena.",
+            "en": "Enchant Poison and Venom Dust: everything you touch is poisoned.",
+            "zh-TW": "塗毒與病毒散撥：你碰到的一切都會中毒。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "as_cloaking",
+          "name": {
+            "es": "Sombras",
+            "en": "Shadows",
+            "zh-TW": "暗影"
+          },
+          "desc": {
+            "es": "Encubrimiento y Cuchillo venenoso: desapareces y atacas desde donde no te ven.",
+            "en": "Cloaking and Venom Knife: you vanish and strike from where they can't see you.",
+            "zh-TW": "偽裝與毒刃：消失後從看不見的地方出手。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rogue",
+      "base": "thief",
+      "tier": "first",
+      "rank": 2,
+      "hp": 205,
+      "speed": 175,
+      "armor": 0,
+      "startWeapon": "envenom",
+      "starterWeaponOptions": [
+        1210,
+        1110
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "back_stab",
+        "raid",
+        "divest_weapon",
+        "intimidate",
+        "steal_coin",
+        "graffiti"
+      ],
+      "name": {
+        "es": {
+          "m": "Rogue",
+          "f": "Rogue"
+        },
+        "en": {
+          "m": "Rogue",
+          "f": "Rogue"
+        },
+        "zh-TW": {
+          "m": "流氓",
+          "f": "流氓"
+        }
+      },
+      "desc": {
+        "es": "Pícaro: puñaladas por la espalda, despojos y trucos sucios.",
+        "en": "A rogue: stabs in the back, plunder and dirty tricks.",
+        "zh-TW": "流氓：背刺、掠奪與骯髒手段。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "rg_backstap",
+          "name": {
+            "es": "Asalto",
+            "en": "Assault",
+            "zh-TW": "突擊"
+          },
+          "desc": {
+            "es": "Puñalada trasera y Incursión: siempre por la espalda.",
+            "en": "Back Stab and Raid: always from behind.",
+            "zh-TW": "背刺與潛擊：永遠從背後。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "rg_stripweapon",
+          "name": {
+            "es": "Despojo",
+            "en": "Plunder",
+            "zh-TW": "掠奪"
+          },
+          "desc": {
+            "es": "Despojar arma e Intimidar: deja a la horda sin armas ni ganas de pelear.",
+            "en": "Divest Weapon and Intimidate: leave the horde without weapons or the will to fight.",
+            "zh-TW": "卸除武器與脅持：讓怪物群失去武器與鬥志。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "rg_stealcoin",
+          "name": {
+            "es": "Picardía",
+            "en": "Trickery",
+            "zh-TW": "詭計"
+          },
+          "desc": {
+            "es": "Robar monedas y Grafiti: zeny ajeno y trucos sucios.",
+            "en": "Steal Coin and Graffiti: other people's zeny and dirty tricks.",
+            "zh-TW": "偷錢與塗鴉：別人的金幣與骯髒手段。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "blacksmith",
+      "base": "merchant",
+      "tier": "first",
+      "rank": 2,
+      "hp": 370,
+      "speed": 145,
+      "armor": 1,
+      "startWeapon": "mammonite",
+      "starterWeaponOptions": [
+        1309,
+        1355,
+        2104
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "axe_tornado",
+        "axe_boomerang",
+        "weapon_perfection",
+        "rush_quake",
+        "greed",
+        "ore_discovery"
+      ],
+      "name": {
+        "es": {
+          "m": "Blacksmith",
+          "f": "Blacksmith"
+        },
+        "en": {
+          "m": "Blacksmith",
+          "f": "Blacksmith"
+        },
+        "zh-TW": {
+          "m": "鐵匠",
+          "f": "鐵匠"
+        }
+      },
+      "desc": {
+        "es": "Herrero: martillazos que aturden y fuerza bruta forjada.",
+        "en": "A smith: stunning hammer blows and forged brute force.",
+        "zh-TW": "鐵匠：致暈的錘擊與鍛造出的蠻力。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "nc_axetornado",
+          "name": {
+            "es": "Furia",
+            "en": "Fury",
+            "zh-TW": "狂怒"
+          },
+          "desc": {
+            "es": "Tornado de hacha y Hacha bumerán: el hacha que gira y que vuela.",
+            "en": "Axe Tornado and Axe Boomerang: the axe that spins and flies.",
+            "zh-TW": "旋風斧與回力斧：旋轉飛舞的斧頭。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "bs_weaponperfect",
+          "name": {
+            "es": "Forja",
+            "en": "Forge",
+            "zh-TW": "鍛造"
+          },
+          "desc": {
+            "es": "Arma perfecta y Terremoto: un arma perfecta y un martillazo que sacude el suelo.",
+            "en": "Weapon Perfection and Rush Quake: a perfect weapon and a hammer blow that shakes the ground.",
+            "zh-TW": "無視體型攻擊與衝擊震地：完美的武器與震撼大地的錘擊。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "bs_findingore",
+          "name": {
+            "es": "Mena",
+            "en": "Ore",
+            "zh-TW": "礦石"
+          },
+          "desc": {
+            "es": "Avidez y Hallar mineral: botín, zeny y lluvias de mineral.",
+            "en": "Greed and Ore Discovery: loot, zeny and showers of ore.",
+            "zh-TW": "貪婪與尋找礦石：戰利品、金幣與礦石雨。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "alchemist",
+      "base": "merchant",
+      "tier": "first",
+      "rank": 2,
+      "hp": 370,
+      "speed": 145,
+      "armor": 1,
+      "startWeapon": "mammonite",
+      "starterWeaponOptions": [
+        1309,
+        1355,
+        2104
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "acid_terror",
+        "demonstration",
+        "call_homunculus",
+        "summon_flora",
+        "potion_pitcher",
+        "chemical_protection"
+      ],
+      "name": {
+        "es": {
+          "m": "Alchemist",
+          "f": "Alchemist"
+        },
+        "en": {
+          "m": "Alchemist",
+          "f": "Alchemist"
+        },
+        "zh-TW": {
+          "m": "鍊金術師",
+          "f": "鍊金術師"
+        }
+      },
+      "desc": {
+        "es": "Ácidos, botellas de fuego, plantas y su homúnculo.",
+        "en": "Acids, fire bottles, plants and a homunculus.",
+        "zh-TW": "強酸、火焰瓶、植物與生命體。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "am_acidterror",
+          "name": {
+            "es": "Química",
+            "en": "Chemistry",
+            "zh-TW": "化學"
+          },
+          "desc": {
+            "es": "Terror ácido y Demostración: ácidos que corroen y botellas que arden.",
+            "en": "Acid Terror and Demonstration: corrosive acids and burning bottles.",
+            "zh-TW": "強酸攻擊與火煙瓶投擲：腐蝕強酸與燃燒瓶。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "am_bioethics",
+          "name": {
+            "es": "Bioética",
+            "en": "Bioethics",
+            "zh-TW": "生命倫理"
+          },
+          "desc": {
+            "es": "Llamar homúnculo y Invocar flora: criaturas que pelean a tu lado.",
+            "en": "Call Homunculus and Summon Flora: creatures that fight by your side.",
+            "zh-TW": "生命體召喚與生物調撥：與你並肩作戰的生物。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "am_potionpitcher",
+          "name": {
+            "es": "Farmacia",
+            "en": "Pharmacy",
+            "zh-TW": "製藥"
+          },
+          "desc": {
+            "es": "Lanzar poción y Protección química: pociones y protecciones para no caer.",
+            "en": "Potion Pitcher and Chemical Protection: potions and protections to stay standing.",
+            "zh-TW": "藥水投擲與化學保護：讓你屹立不倒的藥水與防護。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "star_gladiator",
+      "base": "taekwon",
+      "tier": "extended",
+      "rank": 2,
+      "hp": 240,
+      "speed": 160,
+      "armor": 0,
+      "startWeapon": "tornado_kick",
+      "starterWeaponOptions": [
+        1806
+      ],
+      "castAction": "attack",
+      "mount": null,
+      "scaling": "melee",
+      "skills": [],
+      "deitySkills": [
+        "warmth_sun",
+        "solar_burst",
+        "full_moon_kick",
+        "new_moon_kick",
+        "falling_star",
+        "union"
+      ],
+      "name": {
+        "es": {
+          "m": "Star Gladiator",
+          "f": "Star Gladiator"
+        },
+        "en": {
+          "m": "Star Gladiator",
+          "f": "Star Gladiator"
+        },
+        "zh-TW": {
+          "m": "拳聖",
+          "f": "拳聖"
+        }
+      },
+      "desc": {
+        "es": "El poder del sol, la luna y las estrellas en cada patada.",
+        "en": "The power of the sun, the moon and the stars in every kick.",
+        "zh-TW": "每一踢都蘊含太陽、月亮與星星之力。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "sj_sunstance",
+          "name": {
+            "es": "Sol",
+            "en": "Sun",
+            "zh-TW": "太陽"
+          },
+          "desc": {
+            "es": "Calor del sol y Estallido solar: el sol que quema a la horda.",
+            "en": "Warmth of the Sun and Solar Burst: the sun that burns the horde.",
+            "zh-TW": "太陽的溫暖與太陽爆發：焚燒怪物群的太陽。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "sj_lunarstance",
+          "name": {
+            "es": "Luna",
+            "en": "Moon",
+            "zh-TW": "月亮"
+          },
+          "desc": {
+            "es": "Patada de luna llena y Patada de luna nueva: patadas que barren y que caen del cielo.",
+            "en": "Full Moon Kick and New Moon Kick: kicks that sweep and that fall from the sky.",
+            "zh-TW": "滿月踢與新月踢：橫掃與從天而降的踢擊。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "sj_starstance",
+          "name": {
+            "es": "Estrellas",
+            "en": "Stars",
+            "zh-TW": "星星"
+          },
+          "desc": {
+            "es": "Lluvia de estrellas y Union: estrellas que caen y el poder de los tres astros.",
+            "en": "Falling Star and Union: falling stars and the power of the three celestial bodies.",
+            "zh-TW": "流星墜落與太陽和月亮和星星的融合：墜落的星星與三大天體之力。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "soul_linker",
+      "base": "taekwon",
+      "tier": "extended",
+      "rank": 2,
+      "hp": 220,
+      "speed": 160,
+      "armor": 0,
+      "startWeapon": "tornado_kick",
+      "starterWeaponOptions": [
+        1806
+      ],
+      "castAction": "cast",
+      "mount": null,
+      "scaling": "magic",
+      "skills": [],
+      "deitySkills": [
+        "esma",
+        "estin",
+        "estun",
+        "kaizel",
+        "kaahi",
+        "kaupe"
+      ],
+      "name": {
+        "es": {
+          "m": "Soul Linker",
+          "f": "Soul Linker"
+        },
+        "en": {
+          "m": "Soul Linker",
+          "f": "Soul Linker"
+        },
+        "zh-TW": {
+          "m": "悟靈士",
+          "f": "悟靈士"
+        }
+      },
+      "desc": {
+        "es": "Conjuros de espíritu y protecciones Ka.",
+        "en": "Spirit spells and Ka protections.",
+        "zh-TW": "靈魂咒術與 Ka 系防護。"
+      },
+      "talentBranches": [
+        {
+          "branchIndex": 0,
+          "icon": "sl_sma",
+          "name": {
+            "es": "Conjuro",
+            "en": "Spell",
+            "zh-TW": "咒術"
+          },
+          "desc": {
+            "es": "Esma y Estin: el espíritu como arma.",
+            "en": "Esma and Estin: the spirit as a weapon.",
+            "zh-TW": "艾斯麻與艾斯提：以靈魂為武器。"
+          }
+        },
+        {
+          "branchIndex": 1,
+          "icon": "sl_soullinker",
+          "name": {
+            "es": "Espíritus",
+            "en": "Spirits",
+            "zh-TW": "靈魂"
+          },
+          "desc": {
+            "es": "Estun, Kaizel y el espíritu de cada job: un poco de todos.",
+            "en": "Estun, Kaizel and the spirit of every job: a bit of everything.",
+            "zh-TW": "艾斯敦、凱易哲與各職業之魂：什麼都會一點。"
+          }
+        },
+        {
+          "branchIndex": 2,
+          "icon": "sl_kaahi",
+          "name": {
+            "es": "Ka",
+            "en": "Ka",
+            "zh-TW": "Ka"
+          },
+          "desc": {
+            "es": "Kaahi y Kaupe: curarte con cada golpe y esquivar los que importan.",
+            "en": "Kaahi and Kaupe: heal with every hit and dodge the ones that matter.",
+            "zh-TW": "凱阿希與凱誣僕：每次受擊都回血，並閃過關鍵的攻擊。"
+          }
+        }
+      ]
+    }
+  ],
+  "statDefinitions": [
+    {
+      "id": "str",
+      "name": {
+        "es": "STR",
+        "en": "STR",
+        "zh-TW": "STR"
+      },
+      "desc": {
+        "es": "Fuerza: +3 ATK por punto en jobs cuerpo a cuerpo, +1 ATK en jobs a distancia.",
+        "en": "Strength: +3 ATK per point on melee jobs, +1 ATK on ranged jobs.",
+        "zh-TW": "力量：近戰職業每點 +3 ATK，遠程職業每點 +1 ATK。"
+      }
+    },
+    {
+      "id": "agi",
+      "name": {
+        "es": "AGI",
+        "en": "AGI",
+        "zh-TW": "AGI"
+      },
+      "desc": {
+        "es": "Agilidad: +0,67 de Celeridad por punto (con 99, un 40% menos de enfriamiento en todas las skills), y +0,2% de Flee por punto (cuenta también la AGI del equipo).",
+        "en": "Agility: +0.67 Haste per point (40% lower cooldown on all skills at 99), and +0.2% Flee per point (gear AGI counts too).",
+        "zh-TW": "敏捷：每點 +0.67 冷卻縮減（99 時所有技能冷卻減少 40%），每點 +0.2% 迴避（裝備的 AGI 也算）。"
+      }
+    },
+    {
+      "id": "vit",
+      "name": {
+        "es": "VIT",
+        "en": "VIT",
+        "zh-TW": "VIT"
+      },
+      "desc": {
+        "es": "Vitalidad: +2% de HP máximo, +0,1 HP/s de regeneración y +2% de curación de pociones por punto.",
+        "en": "Vitality: +2% max HP, +0.1 HP/s regeneration and +2% potion healing per point.",
+        "zh-TW": "體力：每點 +2% 最大 HP、+0.1 HP/秒回復與 +2% 藥水治療量。"
+      }
+    },
+    {
+      "id": "int",
+      "name": {
+        "es": "INT",
+        "en": "INT",
+        "zh-TW": "INT"
+      },
+      "desc": {
+        "es": "Inteligencia: +3 MATK por punto (daño y curación de los jobs mágicos).",
+        "en": "Intelligence: +3 MATK per point (damage and healing of magic jobs).",
+        "zh-TW": "智力：每點 +3 MATK（魔法職業的傷害與治療）。"
+      }
+    },
+    {
+      "id": "dex",
+      "name": {
+        "es": "DEX",
+        "en": "DEX",
+        "zh-TW": "DEX"
+      },
+      "desc": {
+        "es": "Destreza: casteos más cortos (instantáneos a 100 DEX a un objetivo, 150 DEX zonales). +0,1% de doble casteo por punto; en jobs a distancia, además +3 ATK por punto.",
+        "en": "Dexterity: shorter casts (instant at 100 DEX for single target, 150 DEX for area). +0.1% double cast per point; on ranged jobs, also +3 ATK per point.",
+        "zh-TW": "靈巧：縮短詠唱（單體 100 DEX、範圍 150 DEX 時瞬發）。每點 +0.1% 雙重詠唱；遠程職業每點另 +3 ATK。"
+      }
+    },
+    {
+      "id": "luk",
+      "name": {
+        "es": "LUK",
+        "en": "LUK",
+        "zh-TW": "LUK"
+      },
+      "desc": {
+        "es": "Suerte: +0,3% de crítico, +0,1% de Flee y +0,05% de doble casteo por punto.",
+        "en": "Luck: +0.3% crit, +0.1% Flee and +0.05% double cast per point.",
+        "zh-TW": "幸運：每點 +0.3% 爆擊、+0.1% 迴避與 +0.05% 雙重詠唱。"
+      }
+    }
+  ]
+}

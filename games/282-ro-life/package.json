@@ -1,0 +1,17 @@
+{
+  "name": "ro-life",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "仙境人生 · RO LIFE — 致敬《仙境傳說》的 2.5D 彈幕生存動作 RPG（作品 282）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "build:dev": "node tools/build.mjs --dev"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "pay_fild08",
+  "models": "models.json",
+  "ambient": "ambient.json",
+  "collision": {
+    "file": "walk.bin",
+    "w": 280,
+    "h": 400
+  },
+  "altitude": {
+    "file": "altitude.bin",
+    "w": 280,
+    "h": 400
+  },
+  "width": 140,
+  "height": 200,
+  "lightmapCell": 6,
+  "atlas": "atlas.png",
+  "cells": "cells.bin",
+  "heights": "heights.bin",
+  "walls": "walls.bin",
+  "zoom": 10,
+  "shadow": "shadow.png",
+  "light": "light.png",
+  "minimap": "minimap.png",
+  "textures": [
+    "BACKSIDE.bmp",
+    "BACKSIDE.BMP",
+    "필드바닥\\숲속바닥-02.bmp",
+    "필드바닥\\숲속바닥-01.bmp",
+    "필드바닥\\숲속바닥-08.bmp",
+    "필드바닥\\숲속바닥-03.bmp",
+    "필드바닥\\숲속바닥-04.bmp",
+    "BLACK.BMP",
+    "필드바닥\\숲속바닥-07.bmp",
+    "필드바닥\\숲속바닥-06.bmp",
+    "필드바닥\\숲속바닥-10.bmp",
+    "필드바닥\\숲속바닥-11.bmp",
+    "필드바닥\\숲속바닥-09.bmp",
+    "필드바닥\\pe-wall-004.bmp"
+  ]
+}

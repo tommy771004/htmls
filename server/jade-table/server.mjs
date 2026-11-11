@@ -9,11 +9,13 @@ import { MahjongGame } from '../../assets/jade-table/engine.mjs';
 import { EMOTES } from '../../assets/jade-table/emotes.mjs';
 
 // Room transitions are persisted atomically before any client sees the resulting state.
-export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = [], turnMs = 20000, claimMs = 10000, onUpgrade = null } = {}) {
+export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = [], turnMs = 20000, claimMs = 10000, onUpgrade = null, onRequest = null } = {}) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.css': 'text/css', '.bin': 'application/octet-stream', '.glb': 'model/gltf-binary', '.json': 'application/json; charset=utf-8', '.py': 'text/plain; charset=utf-8', '.blend': 'application/octet-stream', '.hdr': 'application/octet-stream', '.gltf': 'model/gltf+json', '.spz': 'application/octet-stream', '.skin': 'application/octet-stream', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
   const server = createServer(async (req, res) => {
     try {
+      // Other games' HTTP APIs on the same port (e.g. 282's /api/ro) answer first.
+      if (onRequest && await onRequest(req, res)) return;
       const path = new URL(req.url, 'http://localhost').pathname;
       if (path === '/health') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"service":"jade-table","ok":true}'); return; }
       if (path === '/') { res.writeHead(302, { Location: '/web/127-jade-table.html' }); res.end(); return; }
@@ -221,7 +223,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const { createOchre } = await import('../ochre/server.mjs');
   const ochre = createOchre({ origins });
   const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head) || ochre.handleUpgrade(req, socket, head);
-  const app = createJadeServer({ port: Number(process.env.PORT || 8127), host: process.env.HOST || '127.0.0.1', origins, onUpgrade });
+  const { createRoLife } = await import('../ro-life/server.mjs');
+  const ro = createRoLife();
+  const app = createJadeServer({ port: Number(process.env.PORT || 8127), host: process.env.HOST || '127.0.0.1', origins, onUpgrade, onRequest: ro.handle });
   const address = await app.listen();
   console.log(`青雀伺服器：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/127-jade-table.html`);
   console.log(`鹽岬大逃殺：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/199-saltcape.html`);

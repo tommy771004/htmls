@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1584" height="672" viewBox="0 0 1584 672">
+  <!-- máscara del desenfoque de la portada (splash.css .sp-bg::before) para endless-tower.jpg, a su misma medida:
+       opaca (se desenfoca) en todo menos en la torre y su brillo, que quedan nítidos; borde difuminado -->
+  <defs>
+    <filter id="f" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="12" /></filter>
+  </defs>
+  <path fill="#000" fill-rule="evenodd" filter="url(#f)"
+    d="M-100 -100H1684V772H-100Z M995 -40L1050 -40L1100 90L1125 250L1130 370L935 370L940 250L965 90Z" />
+</svg>

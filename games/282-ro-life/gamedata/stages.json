@@ -1,0 +1,1291 @@
+{
+  "stageSelectorList": [
+    {
+      "id": "prontera",
+      "name": {
+        "es": "Campos de Prontera",
+        "en": "Prontera Fields",
+        "zh-TW": "普隆德拉原野"
+      },
+      "place": {
+        "es": "Al sur de Prontera",
+        "en": "South of Prontera",
+        "zh-TW": "普隆德拉南方"
+      },
+      "levels": "1–8",
+      "tier": 1,
+      "gsMin": 0,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": "prt_fild08",
+      "monsters": [
+        "poring",
+        "lunatic",
+        "fabre",
+        "drops",
+        "picky",
+        "roda_frog",
+        "condor",
+        "savage_babe",
+        "creamy",
+        "hornet",
+        "mandragora",
+        "baby_desert_wolf",
+        "rocker"
+      ],
+      "minis": [
+        {
+          "id": "eclipse",
+          "t": 150
+        },
+        {
+          "id": "toad",
+          "t": 300
+        },
+        {
+          "id": "dragon_fly",
+          "t": 450
+        },
+        {
+          "id": "vocal",
+          "t": 600
+        }
+      ],
+      "mvp": {
+        "id": "mastering",
+        "t": 720
+      }
+    },
+    {
+      "id": "sewer",
+      "name": {
+        "es": "Alcantarillas de Prontera",
+        "en": "Prontera Culverts",
+        "zh-TW": "普隆德拉地下水道"
+      },
+      "place": {
+        "es": "Bajo las calles de Prontera",
+        "en": "Beneath the streets of Prontera",
+        "zh-TW": "普隆德拉街道地底"
+      },
+      "levels": "9–12",
+      "tier": 1,
+      "gsMin": 20,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": "prt_sewer",
+      "monsters": [
+        "thief_bug",
+        "familiar",
+        "tarou",
+        "thief_bug_egg",
+        "plankton",
+        "drainliar",
+        "thief_bug_female",
+        "cramp"
+      ],
+      "minis": [
+        {
+          "id": "tarou_bite",
+          "t": 180
+        },
+        {
+          "id": "tarou_plague",
+          "t": 180
+        },
+        {
+          "id": "tarou_burrow",
+          "t": 180
+        }
+      ],
+      "mvp": {
+        "id": "golden_thief_bug",
+        "t": 480
+      }
+    },
+    {
+      "id": "sunken",
+      "name": {
+        "es": "Barco hundido",
+        "en": "Sunken Ship",
+        "zh-TW": "失事輪"
+      },
+      "place": {
+        "es": "Costa de Alberta",
+        "en": "Alberta Coast",
+        "zh-TW": "艾爾貝塔海岸"
+      },
+      "levels": "13–15",
+      "tier": 1,
+      "gsMin": 40,
+      "jobLvMin": null,
+      "storyStageId": "sunken_story",
+      "secret": null,
+      "map": "sunken_deck",
+      "monsters": [
+        "kukre",
+        "marina",
+        "hydra",
+        "whisper",
+        "sword_fish",
+        "pirate_skel"
+      ],
+      "minis": [
+        {
+          "id": "ghostring",
+          "t": 180
+        },
+        {
+          "id": "penomena",
+          "t": 360
+        }
+      ],
+      "mvp": {
+        "id": "drake",
+        "t": 600
+      }
+    },
+    {
+      "id": "byalan",
+      "name": {
+        "es": "Isla de Byalan",
+        "en": "Byalan Island",
+        "zh-TW": "柏伊亞嵐島"
+      },
+      "place": {
+        "es": "Mazmorra de Izlude",
+        "en": "The Izlude dungeon",
+        "zh-TW": "依斯魯得島海盜地洞"
+      },
+      "levels": "16–20",
+      "tier": 2,
+      "gsMin": 110,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": "byalan",
+      "monsters": [
+        "vadon",
+        "cornutus",
+        "marse",
+        "obeaune",
+        "marine_sphere",
+        "phen",
+        "merman"
+      ],
+      "minis": [
+        {
+          "id": "deviace",
+          "t": 180
+        },
+        {
+          "id": "strouf",
+          "t": 360
+        },
+        {
+          "id": "king_dramoh",
+          "t": 540
+        }
+      ],
+      "mvp": {
+        "id": "kraken",
+        "t": 720
+      }
+    },
+    {
+      "id": "payon",
+      "name": {
+        "es": "Bosque de Payon",
+        "en": "Payon Forest",
+        "zh-TW": "斐揚森林"
+      },
+      "place": {
+        "es": "Alrededores de Payon",
+        "en": "Outskirts of Payon",
+        "zh-TW": "斐揚近郊"
+      },
+      "levels": "21–25",
+      "tier": 2,
+      "gsMin": 135,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": "pay_fild08",
+      "monsters": [
+        "spore",
+        "willow",
+        "poporing",
+        "snake",
+        "worm_tail",
+        "poison_spore",
+        "smokie",
+        "wolf",
+        "elder_willow",
+        "dragon_tail",
+        "bigfoot",
+        "greatest_general",
+        "dokebi",
+        "nine_tail"
+      ],
+      "minis": [
+        {
+          "id": "angeling",
+          "t": 180
+        },
+        {
+          "id": "deviling",
+          "t": 360
+        },
+        {
+          "id": "vagabond_wolf",
+          "t": 600
+        }
+      ],
+      "mvp": {
+        "id": "eddga",
+        "t": 840
+      }
+    },
+    {
+      "id": "payon_cave",
+      "name": {
+        "es": "Cueva de Payon",
+        "en": "Payon Cave",
+        "zh-TW": "斐揚洞穴"
+      },
+      "place": {
+        "es": "Bajo las montañas de Payon",
+        "en": "Beneath the Payon mountains",
+        "zh-TW": "斐揚山脈地底"
+      },
+      "levels": "26–30",
+      "tier": 2,
+      "gsMin": 165,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": "payon_cave",
+      "monsters": [
+        "zombie",
+        "skeleton",
+        "poporing",
+        "skel_archer",
+        "skel_soldier",
+        "munak",
+        "bon_gun",
+        "sohee",
+        "horong",
+        "nine_tail"
+      ],
+      "minis": [
+        {
+          "id": "skeleton_general",
+          "t": 180
+        },
+        {
+          "id": "cat_o_nine_tail",
+          "t": 360
+        },
+        {
+          "id": "hyegun",
+          "t": 600
+        }
+      ],
+      "mvp": {
+        "id": "moonlight",
+        "t": 840
+      }
+    },
+    {
+      "id": "prt_castle",
+      "name": {
+        "es": "Castillo de Prontera",
+        "en": "Prontera Castle",
+        "zh-TW": "普隆德拉城"
+      },
+      "place": {
+        "es": "Sala del trono",
+        "en": "Throne room",
+        "zh-TW": "王座廳"
+      },
+      "levels": "31–35",
+      "tier": 2,
+      "gsMin": 185,
+      "jobLvMin": 50,
+      "storyStageId": null,
+      "secret": null,
+      "map": "prt_throne",
+      "monsters": [
+        "orc_warrior",
+        "orc_lady"
+      ],
+      "minis": [],
+      "mvp": {
+        "id": "high_orc",
+        "t": 90
+      }
+    },
+    {
+      "id": "orcs",
+      "name": {
+        "es": "Aldea orca",
+        "en": "Orc Village",
+        "zh-TW": "獸人村"
+      },
+      "place": {
+        "es": "Campos de Geffen",
+        "en": "Geffen Fields",
+        "zh-TW": "吉芬原野"
+      },
+      "levels": "31–40",
+      "tier": 3,
+      "gsMin": 800,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": null,
+      "monsters": [
+        "goblin",
+        "kobold",
+        "wolf",
+        "orc_warrior"
+      ],
+      "minis": [
+        {
+          "id": "ghostring"
+        }
+      ],
+      "mvp": {
+        "id": "orc_hero"
+      }
+    },
+    {
+      "id": "pyramid",
+      "name": {
+        "es": "Pirámides de Morroc",
+        "en": "Morroc Pyramids",
+        "zh-TW": "夢羅克金字塔"
+      },
+      "place": {
+        "es": "Desierto de Morroc",
+        "en": "Morroc Desert",
+        "zh-TW": "蘇克拉特沙漠"
+      },
+      "levels": "41–50",
+      "tier": 3,
+      "gsMin": 1200,
+      "jobLvMin": null,
+      "storyStageId": null,
+      "secret": null,
+      "map": null,
+      "monsters": [
+        "zombie",
+        "orc_skeleton"
+      ],
+      "minis": [
+        {
+          "id": "ghostring"
+        },
+        {
+          "id": "deviling"
+        }
+      ],
+      "mvp": {
+        "id": "osiris"
+      }
+    }
+  ],
+  "stageRuntimeConfigs": {
+    "prontera": {
+      "id": "prontera",
+      "map": "prt_fild08",
+      "mapTitle": {
+        "es": "Campos de Prontera",
+        "en": "Prontera Fields",
+        "zh-TW": "普隆德拉原野"
+      },
+      "bgm": "field",
+      "runLengthSeconds": 900,
+      "jobCap": 12,
+      "jobExp": 0.25,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": null,
+      "waves": [
+        {
+          "from": 0,
+          "to": 90,
+          "pool": [
+            "poring",
+            "lunatic",
+            "fabre"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 40
+        },
+        {
+          "from": 90,
+          "to": 180,
+          "pool": [
+            "poring",
+            "lunatic",
+            "drops",
+            "picky",
+            "roda_frog"
+          ],
+          "perSecond": 2,
+          "maxAlive": 70
+        },
+        {
+          "from": 180,
+          "to": 300,
+          "pool": [
+            "drops",
+            "picky",
+            "roda_frog",
+            "condor",
+            "savage_babe"
+          ],
+          "perSecond": 2.8,
+          "maxAlive": 100
+        },
+        {
+          "from": 300,
+          "to": 420,
+          "pool": [
+            "condor",
+            "savage_babe",
+            "creamy",
+            "hornet",
+            "mandragora"
+          ],
+          "perSecond": 3.5,
+          "maxAlive": 140
+        },
+        {
+          "from": 420,
+          "to": 600,
+          "pool": [
+            "creamy",
+            "hornet",
+            "mandragora",
+            "baby_desert_wolf",
+            "rocker"
+          ],
+          "perSecond": 4.5,
+          "maxAlive": 180
+        },
+        {
+          "from": 600,
+          "to": 720,
+          "pool": [
+            "hornet",
+            "creamy",
+            "baby_desert_wolf",
+            "rocker"
+          ],
+          "perSecond": 5.5,
+          "maxAlive": 220
+        },
+        {
+          "from": 720,
+          "to": 900,
+          "pool": [
+            "creamy",
+            "baby_desert_wolf",
+            "rocker",
+            "hornet",
+            "mandragora"
+          ],
+          "perSecond": 7,
+          "maxAlive": 260
+        }
+      ],
+      "bosses": [
+        {
+          "t": 150,
+          "id": "eclipse"
+        },
+        {
+          "t": 300,
+          "id": "toad"
+        },
+        {
+          "t": 450,
+          "id": "dragon_fly"
+        },
+        {
+          "t": 600,
+          "id": "vocal"
+        },
+        {
+          "t": 720,
+          "id": "mastering"
+        }
+      ]
+    },
+    "sewer": {
+      "id": "sewer",
+      "map": "prt_sewer",
+      "mapTitle": {
+        "es": "Alcantarillas de Prontera",
+        "en": "Prontera Culverts",
+        "zh-TW": "普隆德拉地下水道"
+      },
+      "bgm": "sewer",
+      "runLengthSeconds": 660,
+      "jobCap": 20,
+      "jobExp": 1,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": {
+        "hp": 0.25,
+        "damage": 0.5,
+        "gems": 0.4,
+        "full": 240,
+        "early": {
+          "hp": 0.8,
+          "until": 60
+        }
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 60,
+          "pool": [
+            "thief_bug",
+            "familiar",
+            "tarou"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 45
+        },
+        {
+          "from": 60,
+          "to": 150,
+          "pool": [
+            "thief_bug",
+            "familiar",
+            "tarou",
+            "thief_bug_egg"
+          ],
+          "perSecond": 1.9,
+          "maxAlive": 70
+        },
+        {
+          "from": 150,
+          "to": 270,
+          "pool": [
+            "tarou",
+            "plankton",
+            "drainliar",
+            "thief_bug"
+          ],
+          "perSecond": 2.6,
+          "maxAlive": 95
+        },
+        {
+          "from": 270,
+          "to": 390,
+          "pool": [
+            "drainliar",
+            "thief_bug_female",
+            "plankton",
+            "tarou"
+          ],
+          "perSecond": 3.3,
+          "maxAlive": 120
+        },
+        {
+          "from": 390,
+          "to": 660,
+          "pool": [
+            "thief_bug_female",
+            "cramp",
+            "drainliar",
+            "plankton"
+          ],
+          "perSecond": 4,
+          "maxAlive": 145
+        }
+      ],
+      "bosses": [
+        {
+          "t": 180,
+          "id": "tarou_bite"
+        },
+        {
+          "t": 180,
+          "id": "tarou_plague"
+        },
+        {
+          "t": 180,
+          "id": "tarou_burrow"
+        },
+        {
+          "t": 480,
+          "id": "golden_thief_bug"
+        }
+      ]
+    },
+    "sunken": {
+      "id": "sunken",
+      "map": "sunken_deck",
+      "mapTitle": {
+        "es": "Cubierta del barco hundido",
+        "en": "Sunken Ship deck",
+        "zh-TW": "失事輪甲板"
+      },
+      "bgm": "sunken",
+      "runLengthSeconds": 780,
+      "jobCap": 25,
+      "jobExp": 2,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": {
+        "hp": 0.15,
+        "damage": 0.4,
+        "gems": 0.3,
+        "full": 300,
+        "early": {
+          "hp": 0.33,
+          "until": 60
+        }
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 60,
+          "pool": [
+            "kukre",
+            "marina"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 45
+        },
+        {
+          "from": 60,
+          "to": 150,
+          "pool": [
+            "kukre",
+            "marina",
+            "hydra",
+            "whisper"
+          ],
+          "perSecond": 1.8,
+          "maxAlive": 68
+        },
+        {
+          "from": 150,
+          "to": 240,
+          "pool": [
+            "marina",
+            "hydra",
+            "whisper",
+            "sword_fish"
+          ],
+          "perSecond": 2.4,
+          "maxAlive": 90
+        },
+        {
+          "from": 240,
+          "to": 330,
+          "pool": [
+            "whisper",
+            "sword_fish",
+            "pirate_skel"
+          ],
+          "perSecond": 3,
+          "maxAlive": 113
+        },
+        {
+          "from": 330,
+          "to": 780,
+          "pool": [
+            "whisper",
+            "sword_fish",
+            "pirate_skel",
+            "hydra"
+          ],
+          "perSecond": 3.6,
+          "maxAlive": 135
+        }
+      ],
+      "bosses": [
+        {
+          "t": 180,
+          "id": "ghostring"
+        },
+        {
+          "t": 360,
+          "id": "penomena"
+        },
+        {
+          "t": 600,
+          "id": "drake"
+        }
+      ]
+    },
+    "sunken_story": {
+      "id": "sunken_story",
+      "map": "sunken",
+      "mapTitle": {
+        "es": "Barco hundido",
+        "en": "Sunken Ship",
+        "zh-TW": "失事輪"
+      },
+      "bgm": "sunken",
+      "runLengthSeconds": 600,
+      "jobCap": 25,
+      "jobExp": 2,
+      "tier": 1,
+      "story": true,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": {
+        "hp": 0.1,
+        "damage": 0.35,
+        "gems": 0.5,
+        "full": 480
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 60,
+          "pool": [
+            "kukre",
+            "marina"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 45
+        },
+        {
+          "from": 60,
+          "to": 150,
+          "pool": [
+            "kukre",
+            "marina",
+            "hydra",
+            "whisper"
+          ],
+          "perSecond": 1.8,
+          "maxAlive": 68
+        },
+        {
+          "from": 150,
+          "to": 240,
+          "pool": [
+            "marina",
+            "hydra",
+            "whisper",
+            "sword_fish"
+          ],
+          "perSecond": 2.4,
+          "maxAlive": 90
+        },
+        {
+          "from": 240,
+          "to": 330,
+          "pool": [
+            "whisper",
+            "sword_fish",
+            "pirate_skel"
+          ],
+          "perSecond": 3,
+          "maxAlive": 113
+        },
+        {
+          "from": 330,
+          "to": 780,
+          "pool": [
+            "whisper",
+            "sword_fish",
+            "pirate_skel",
+            "hydra"
+          ],
+          "perSecond": 3.6,
+          "maxAlive": 135
+        }
+      ],
+      "bosses": [
+        {
+          "t": 180,
+          "id": "ghostring"
+        },
+        {
+          "t": 420,
+          "id": "drake"
+        }
+      ]
+    },
+    "byalan": {
+      "id": "byalan",
+      "map": "byalan",
+      "mapTitle": {
+        "es": "Templo de Byalan",
+        "en": "Byalan Temple",
+        "zh-TW": "柏伊亞嵐神殿"
+      },
+      "bgm": "byalan",
+      "runLengthSeconds": 900,
+      "jobCap": 31,
+      "jobExp": 1.8,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": {
+        "hp": 0.27,
+        "damage": 0.3,
+        "gems": 0.25,
+        "full": 450,
+        "early": {
+          "hp": 0.25,
+          "until": 60
+        }
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 60,
+          "pool": [
+            "vadon",
+            "cornutus"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 50
+        },
+        {
+          "from": 60,
+          "to": 150,
+          "pool": [
+            "vadon",
+            "cornutus",
+            "marse"
+          ],
+          "perSecond": 2,
+          "maxAlive": 85
+        },
+        {
+          "from": 150,
+          "to": 270,
+          "pool": [
+            "cornutus",
+            "marse",
+            "obeaune",
+            "marine_sphere"
+          ],
+          "perSecond": 2.8,
+          "maxAlive": 120
+        },
+        {
+          "from": 270,
+          "to": 420,
+          "pool": [
+            "marse",
+            "obeaune",
+            "phen",
+            "marine_sphere"
+          ],
+          "perSecond": 3.5,
+          "maxAlive": 165
+        },
+        {
+          "from": 420,
+          "to": 600,
+          "pool": [
+            "obeaune",
+            "phen",
+            "merman",
+            "marine_sphere"
+          ],
+          "perSecond": 4.5,
+          "maxAlive": 210
+        },
+        {
+          "from": 600,
+          "to": 900,
+          "pool": [
+            "phen",
+            "merman",
+            "obeaune",
+            "marse"
+          ],
+          "perSecond": 5.5,
+          "maxAlive": 255
+        }
+      ],
+      "bosses": [
+        {
+          "t": 180,
+          "id": "deviace"
+        },
+        {
+          "t": 360,
+          "id": "strouf"
+        },
+        {
+          "t": 540,
+          "id": "king_dramoh"
+        },
+        {
+          "t": 720,
+          "id": "kraken"
+        }
+      ]
+    },
+    "payon": {
+      "id": "payon",
+      "map": "pay_fild08",
+      "mapTitle": {
+        "es": "Bosque de Payon",
+        "en": "Payon Forest",
+        "zh-TW": "斐揚森林"
+      },
+      "bgm": "payon",
+      "runLengthSeconds": 1020,
+      "jobCap": 38,
+      "jobExp": 2.2,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": {
+        "hp": 0.27,
+        "damage": 0.3,
+        "gems": 0.25,
+        "full": 450,
+        "early": {
+          "hp": 0.25,
+          "until": 60
+        }
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 85,
+          "pool": [
+            "spore",
+            "willow",
+            "poporing"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 50
+        },
+        {
+          "from": 85,
+          "to": 170,
+          "pool": [
+            "spore",
+            "willow",
+            "poporing",
+            "snake",
+            "worm_tail"
+          ],
+          "perSecond": 2,
+          "maxAlive": 88
+        },
+        {
+          "from": 170,
+          "to": 285,
+          "pool": [
+            "poporing",
+            "snake",
+            "worm_tail",
+            "poison_spore",
+            "smokie"
+          ],
+          "perSecond": 2.8,
+          "maxAlive": 125
+        },
+        {
+          "from": 285,
+          "to": 395,
+          "pool": [
+            "worm_tail",
+            "poison_spore",
+            "smokie",
+            "wolf",
+            "elder_willow"
+          ],
+          "perSecond": 3.5,
+          "maxAlive": 175
+        },
+        {
+          "from": 395,
+          "to": 565,
+          "pool": [
+            "smokie",
+            "wolf",
+            "elder_willow",
+            "dragon_tail",
+            "bigfoot"
+          ],
+          "perSecond": 4.5,
+          "maxAlive": 225
+        },
+        {
+          "from": 565,
+          "to": 735,
+          "pool": [
+            "wolf",
+            "dragon_tail",
+            "bigfoot",
+            "greatest_general",
+            "dokebi"
+          ],
+          "perSecond": 5.5,
+          "maxAlive": 275
+        },
+        {
+          "from": 735,
+          "to": 1020,
+          "pool": [
+            "dragon_tail",
+            "bigfoot",
+            "greatest_general",
+            "dokebi",
+            "nine_tail"
+          ],
+          "perSecond": 7,
+          "maxAlive": 325
+        }
+      ],
+      "bosses": [
+        {
+          "t": 180,
+          "id": "angeling"
+        },
+        {
+          "t": 360,
+          "id": "deviling"
+        },
+        {
+          "t": 600,
+          "id": "vagabond_wolf"
+        },
+        {
+          "t": 840,
+          "id": "eddga"
+        }
+      ]
+    },
+    "payon_cave": {
+      "id": "payon_cave",
+      "map": "payon_cave",
+      "mapTitle": {
+        "es": "Cueva de Payon",
+        "en": "Payon Cave",
+        "zh-TW": "斐揚洞穴"
+      },
+      "bgm": "payon_cave",
+      "runLengthSeconds": 1020,
+      "jobCap": 49,
+      "jobExp": 3,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": {
+        "hp": 0.104,
+        "damage": 0.3,
+        "gems": 0.25,
+        "full": 450,
+        "early": {
+          "hp": 0.24,
+          "until": 60
+        }
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 90,
+          "pool": [
+            "zombie",
+            "skeleton",
+            "poporing"
+          ],
+          "perSecond": 1.2,
+          "maxAlive": 55
+        },
+        {
+          "from": 90,
+          "to": 180,
+          "pool": [
+            "zombie",
+            "skeleton",
+            "poporing",
+            "skel_archer"
+          ],
+          "perSecond": 2,
+          "maxAlive": 97
+        },
+        {
+          "from": 180,
+          "to": 330,
+          "pool": [
+            "skeleton",
+            "skel_archer",
+            "zombie",
+            "skel_soldier"
+          ],
+          "perSecond": 2.8,
+          "maxAlive": 138
+        },
+        {
+          "from": 330,
+          "to": 540,
+          "pool": [
+            "skel_soldier",
+            "skel_archer",
+            "munak",
+            "bon_gun"
+          ],
+          "perSecond": 3.6,
+          "maxAlive": 193
+        },
+        {
+          "from": 540,
+          "to": 720,
+          "pool": [
+            "munak",
+            "bon_gun",
+            "sohee",
+            "horong"
+          ],
+          "perSecond": 4.6,
+          "maxAlive": 248
+        },
+        {
+          "from": 720,
+          "to": 1020,
+          "pool": [
+            "sohee",
+            "horong",
+            "nine_tail",
+            "bon_gun",
+            "munak"
+          ],
+          "perSecond": 7.7,
+          "maxAlive": 358
+        }
+      ],
+      "bosses": [
+        {
+          "t": 180,
+          "id": "skeleton_general"
+        },
+        {
+          "t": 360,
+          "id": "cat_o_nine_tail"
+        },
+        {
+          "t": 600,
+          "id": "hyegun"
+        },
+        {
+          "t": 840,
+          "id": "moonlight"
+        }
+      ]
+    },
+    "prt_castle": {
+      "id": "prt_castle",
+      "map": "prt_throne",
+      "mapTitle": {
+        "es": "Sala del trono",
+        "en": "Throne room",
+        "zh-TW": "王座廳"
+      },
+      "bgm": "prontera",
+      "runLengthSeconds": 90,
+      "jobCap": 49,
+      "jobExp": null,
+      "tier": 1,
+      "story": true,
+      "storyOnly": true,
+      "endless": false,
+      "ramp": {
+        "hp": 0.28,
+        "damage": 0.45,
+        "gems": 0.4,
+        "full": 300
+      },
+      "waves": [
+        {
+          "from": 0,
+          "to": 30,
+          "pool": [
+            "orc_warrior"
+          ],
+          "perSecond": 4.4,
+          "maxAlive": 100
+        },
+        {
+          "from": 30,
+          "to": 60,
+          "pool": [
+            "orc_warrior",
+            "orc_lady"
+          ],
+          "perSecond": 6.8,
+          "maxAlive": 150
+        },
+        {
+          "from": 60,
+          "to": 90,
+          "pool": [
+            "orc_warrior",
+            "orc_lady"
+          ],
+          "perSecond": 9.6,
+          "maxAlive": 200
+        }
+      ],
+      "bosses": [
+        {
+          "t": 90,
+          "id": "high_orc"
+        }
+      ]
+    },
+    "endless": {
+      "id": "endless",
+      "map": "endless",
+      "mapTitle": {
+        "es": "endless",
+        "en": "endless",
+        "zh-TW": "endless"
+      },
+      "bgm": "endless",
+      "runLengthSeconds": 1000000000,
+      "jobCap": null,
+      "jobExp": null,
+      "tier": 1,
+      "story": false,
+      "storyOnly": false,
+      "endless": false,
+      "ramp": null,
+      "waves": [
+        {
+          "from": 0,
+          "to": 1000000000,
+          "pool": [
+            "poring"
+          ],
+          "perSecond": 0,
+          "maxAlive": 0
+        }
+      ],
+      "bosses": []
+    }
+  }
+}

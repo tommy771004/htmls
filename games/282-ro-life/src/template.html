@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="en" translate="no">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- el juego trae su propio inglés: el traductor del navegador rompía textos («+1 VIT» salía como «+1 years») -->
+    <meta name="google" content="notranslate" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#8fa8de" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RO Life" />
+    <link rel="manifest" href="app-manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="app-icons/app-ro-192.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="app-icons/favicon-ro-64.png" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="app-icons/app-ro-apple-180.png" />
+    <title>仙境人生 · RO LIFE — 2.5D 仙境傳說彈幕生存動作 RPG</title>
+    <meta name="description" content="仙境人生 RO LIFE：致敬《仙境傳說 Ragnarok Online》的非官方同人 2.5D 彈幕生存動作 RPG。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RO Life" />
+    <meta property="og:title" content="仙境人生 · RO LIFE" />
+    <meta property="og:description" content="致敬《仙境傳說 Ragnarok Online》的非官方同人 2.5D 彈幕生存動作 RPG。" />
+    <meta property="og:image" content="../assets/282/splash/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <script>try{localStorage.setItem("ro-life.dev","32b9d0a39ce4d0e72a383610db1f25823d6e433b225e5ed7b17c36916ab989cb")}catch{}</script>
+    <script type="module" crossorigin src="./build/main-DRFCcdKO.js"></script>
+    <link rel="modulepreload" crossorigin href="./build/soul_linker-BDJ4Lgcc.js">
+    <link rel="modulepreload" crossorigin href="./build/CanvasPool-Ce3Co8zu.js">
+    <link rel="modulepreload" crossorigin href="./build/TextStyle-DWFihlCB.js">
+    <link rel="modulepreload" crossorigin href="./build/getPo2TextureFromSource-CUNKFDIB.js">
+    <link rel="stylesheet" crossorigin href="./build/main-kcTI5QFT.css">
+  </head>
+  <body>
+    <!-- Cloudflare no cifra los correos de la página (su script no corre en la ventana del aviso legal del juego) -->
+    <!--email_off-->
+    <div id="stage"></div>
+
+    <div id="run-labels"></div>
+    <div id="party-wait" class="hidden"></div>
+    <div id="loot-rolls"></div>
+    <div id="hud" class="hidden">
+      <div id="basic-info">
+        <div class="hud-portrait"><img id="hud-portrait" alt=""><span class="hud-lv">Lv <b id="lv">1</b></span></div>
+        <div class="hud-bars">
+          <div class="hud-name" id="hud-name">Espadachín</div>
+          <div class="bar hp"><div id="hp-fill"></div><span id="hp-text">0 / 0</span></div>
+          <div class="hud-exp"><span>EXP</span><div class="bar exp"><div id="exp-fill"></div></div><span id="exp-text">0.0%</span></div>
+        </div>
+      </div>
+      <div id="buffs"></div>
+      <div id="timer-box">
+        <div id="timer">00:00</div>
+        <div class="hud-chips">
+          <span class="chip" id="kills">☠ 0</span>
+          <span class="chip" id="zeny"><img id="zeny-icon" alt=""><span id="zeny-text">0</span><small id="chest-cost"></small></span>
+        </div>
+        <div id="weather"></div>
+      </div>
+      <div id="minimap" class="ro-window">
+        <div class="ro-title"><span id="minimap-name"></span> <span id="minimap-coords"></span></div>
+        <canvas></canvas>
+        <div class="mm-zoom"><button class="ro-btn small" data-zoom="out" aria-label="Alejar minimapa">−</button><button class="ro-btn small" data-zoom="in" aria-label="Acercar minimapa">+</button></div>
+      </div>
+      <div id="skillbar"></div>
+      <div id="runitems"></div>
+      <div id="toasts"></div>
+      <div id="boss-bar" class="hidden"></div>
+      <div id="announce"></div>
+      <div id="quest" class="hidden"><small>Misión</small><b id="quest-text"></b></div>
+    </div>
+
+    <div id="story" class="hidden">
+      <div class="story-bar top"></div>
+      <div class="story-bar bottom"></div>
+      <div class="story-box">
+        <canvas id="story-face" width="96" height="96"></canvas>
+        <div class="story-body"><b id="story-name"></b><p id="story-text"></p></div>
+        <small class="story-next">▶ <span class="desktop-only">Espacio / clic</span></small>
+      </div>
+    </div>
+
+    <div id="lobby-ui" class="hidden">
+      <div id="lobby-labels"></div>
+      <div id="lobby-place"><b>Prontera</b><small>Plaza de la fuente</small><small id="lobby-online"></small></div>
+      <div id="lobby-actions">
+        <button class="ro-btn" id="lobby-friends">Amigos <span id="lobby-friends-on" class="fr-badge on hidden"></span><span id="lobby-friends-n" class="fr-badge hidden"></span></button>
+        <button class="ro-btn" id="lobby-char">Personaje <kbd class="desktop-only">C</kbd></button>
+        <button class="ro-btn" id="lobby-switch">Cambiar personaje <kbd class="desktop-only">X</kbd></button>
+        <button class="ro-btn" id="lobby-options" aria-label="Opciones">⚙ <kbd class="desktop-only">Esc</kbd></button>
+      </div>
+      <button id="chat-toggle" class="touch-only hidden" aria-label="Chat">💬<span id="chat-unread" class="hidden"></span></button>
+      <div id="party-frame" class="hidden"></div>
+      <div id="lobby-chat" class="hidden">
+        <div id="chat-tabs"></div>
+        <div id="chat-log"></div>
+        <form id="chat-form" autocomplete="off">
+          <button type="button" id="chat-channel" class="chat-ch local" title="Cambiar de canal (Tab)">Canal</button>
+          <input id="chat-input" type="text" enterkeyhint="send" placeholder="Pulsa Enter para escribir" />
+          <button type="button" id="chat-emote" title="Emotes" aria-label="Emotes">☺</button>
+        </form>
+        <div id="emote-panel" class="hidden"></div>
+      </div>
+      <button id="lobby-prompt" class="hidden"></button>
+    </div>
+
+    <div id="npc-dialog" class="overlay hidden">
+      <div class="ro-window npc-window">
+        <div class="ro-title" id="npc-name"></div>
+        <div class="ro-body"><div id="npc-text" class="npc-text"></div></div>
+        <div class="btn-row pad" id="npc-options"></div>
+      </div>
+    </div>
+
+    <!-- amigos de la plaza (friends.ts) -->
+    <div id="friends" class="overlay hidden">
+      <div class="ro-window friends-window">
+        <div class="ro-title">Amigos <small id="fr-count"></small></div>
+        <div class="ro-body">
+          <form id="fr-form" autocomplete="off">
+            <input id="fr-name" type="text" maxlength="16" enterkeyhint="send" placeholder="Nombre del personaje" />
+            <button class="ro-btn primary" type="submit">Añadir</button>
+          </form>
+          <div id="fr-msg" class="fr-msg"></div>
+          <div id="fr-body"></div>
+        </div>
+        <div class="btn-row pad"><span class="spacer"></span><button class="ro-btn" id="fr-close">Cerrar</button></div>
+      </div>
+    </div>
+
+    <!-- inspeccionar a otro jugador del lobby (inspect.ts): su equipo, estadísticas y récord, sin poder tocar nada -->
+    <div id="inspect" class="overlay hidden">
+      <div class="ro-window inspect-window">
+        <div class="ro-title" id="ins-title"></div>
+        <div class="ro-body panel-body">
+          <div class="ins-head" id="ins-head"></div>
+          <div class="tabs ins-tabs">
+            <button class="tab-btn active" data-tab="equip">Equipo</button>
+            <button class="tab-btn" data-tab="stats">Estado</button>
+            <button class="tab-btn" data-tab="job">Job</button>
+          </div>
+          <div id="ins-tab-equip" class="ins-tab">
+            <div class="ins-equip" id="ins-equip">
+              <div class="equip-col" id="ins-slots-left"></div>
+              <div class="equip-col" id="ins-slots-right"></div>
+            </div>
+            <div id="ins-detail" class="inv-box"></div>
+          </div>
+          <div id="ins-tab-stats" class="ins-tab off">
+            <div class="ins-stats">
+              <div class="status-box"><div class="box-title">Estadísticas</div><div id="ins-prim"></div></div>
+              <div class="status-box"><div class="box-title">En partida</div><div id="ins-derived" class="stat-grid"></div></div>
+              <div class="status-box"><div class="box-title">Récord</div><div id="ins-record" class="ins-record"></div></div>
+            </div>
+          </div>
+          <div id="ins-tab-job" class="ins-tab off">
+            <div id="ins-trees" class="talent-trees"></div>
+            <div id="ins-job-detail" class="inv-box hidden"></div>
+          </div>
+        </div>
+        <div class="btn-row pad"><span class="spacer"></span><button class="ro-btn primary" id="ins-close">Cerrar</button></div>
+      </div>
+    </div>
+
+    <!-- comercio con otro jugador del lobby (trade.ts): las dos ofertas, tu inventario y un chat entre los dos -->
+    <div id="trade" class="overlay hidden">
+      <div class="ro-window trade-window">
+        <div class="ro-title" id="tr-title"></div>
+        <div class="ro-body panel-body">
+          <div class="tr-sides">
+            <div class="tr-side">
+              <div class="box-title">Tú ofreces <span id="tr-my-state"></span></div>
+              <div id="tr-mine-items" class="item-grid tr-items"></div>
+              <label class="tr-kafra">Puntos Kafra <input id="tr-kafra" type="number" min="0" step="1" inputmode="numeric" /> <span id="tr-kafra-have" class="muted"></span></label>
+            </div>
+            <div class="tr-side">
+              <div class="box-title"><span id="tr-their-title"></span> <span id="tr-their-state"></span></div>
+              <div id="tr-theirs-items" class="item-grid tr-items"></div>
+              <div class="tr-kafra" id="tr-their-kafra"></div>
+            </div>
+          </div>
+          <div id="tr-note" class="tr-note muted"></div>
+          <div class="inv-box tr-inv-box">
+            <div class="box-title">Tu inventario</div>
+            <div id="tr-filters" class="inv-filters"></div>
+            <div id="tr-inv" class="item-grid tr-inv"></div>
+          </div>
+          <div class="tr-chat">
+            <div id="tr-log" class="tr-log"></div>
+            <form id="tr-form" autocomplete="off"><input id="tr-input" type="text" maxlength="120" enterkeyhint="send" placeholder="Escribe al otro jugador…" /></form>
+          </div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="tr-cancel">Cancelar</button><span class="spacer"></span>
+          <button class="ro-btn" id="tr-lock">OK</button>
+          <button class="ro-btn primary" id="tr-confirm">Comerciar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="charselect" class="overlay menu hidden">
+      <div class="brand"><img class="brand-logo" src="../assets/282/splash/logo-ro-life.png" alt="RO Life" width="693" height="223" /><small>Aventura fan (Fan Game Adventure)</small></div>
+      <div class="ro-window select-window">
+        <div class="ro-title">Selección de personaje</div>
+        <div class="ro-body">
+          <div id="slots"></div>
+          <div id="slot-info" class="info-panel"></div>
+          <div class="btn-row">
+            <button class="ro-btn" id="btn-delete">Borrar</button>
+            <button class="ro-btn" id="btn-options">⚙ Opciones</button>
+            <span class="spacer"></span>
+            <button class="ro-btn" id="btn-create">Crear</button>
+            <button class="ro-btn primary" id="btn-play">Jugar</button>
+          </div>
+        </div>
+      </div>
+      <!-- barra de perfil (profile.ts): retrato, cuenta, crear cuenta si es de invitado y salir a la portada -->
+      <div id="profile-bar">
+        <button id="pb-portrait" title="Cambiar retrato"><canvas width="128" height="128"></canvas><span class="pb-edit">✎</span></button>
+        <div class="pb-panel">
+          <div class="pb-name"><b id="pb-name">Invitado</b> <small id="pb-kind"></small></div>
+          <div class="pb-ach"><span>Logros</span><div class="bar exp"><div id="pb-ach-fill"></div></div><span id="pb-ach-text"></span></div>
+          <div class="pb-row">
+            <span class="pb-kafra" id="pb-kafra"></span><span class="spacer"></span>
+            <button class="ro-btn small primary" id="pb-register">Crear cuenta</button>
+            <button class="ro-btn small" id="pb-exit" title="Volver a la portada">Salir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="legal-popup" class="overlay hidden">
+      <div class="ro-window legal-window">
+        <div class="ro-title">Aviso legal</div>
+        <div class="ro-body" id="legal-body"></div>
+        <div class="btn-row pad">
+          <span class="spacer"></span>
+          <button class="ro-btn primary" id="legal-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- novedades (news.ts): el CHANGELOG.md del repositorio, empaquetado con el juego -->
+    <div id="news-popup" class="overlay hidden">
+      <div class="ro-window news-window">
+        <div class="ro-title">Novedades</div>
+        <div class="news-main">
+          <div class="news-tabs hidden" id="news-tabs" role="tablist"></div>
+          <div class="ro-body" id="news-body"></div>
+        </div>
+        <div class="btn-row pad"><span class="spacer"></span><button class="ro-btn primary" id="news-close">Cerrar</button></div>
+      </div>
+    </div>
+
+    <!-- preguntas de seguridad al entrar (accountwin.ts): se configuran una sola vez -->
+    <div id="account-popup" class="overlay hidden">
+      <div class="ro-window acc-window">
+        <div class="ro-title">Preguntas de seguridad</div>
+        <div class="ro-body">
+          <!-- al entrar sin preguntas (cuenta de antes) o con las que le dimos desde el panel: por qué y lo importante -->
+          <div class="acc-intro" id="acc-intro">
+            <b>Protege tu cuenta</b>
+            <p class="acc-why" id="acc-why-none">Ahora puedes configurar, si quieres, unas preguntas de seguridad para tu cuenta.</p>
+            <p class="acc-why" id="acc-why-reset">Has recuperado tu cuenta con las respuestas que te dio el equipo del juego. Si quieres, elige ahora las tuyas: las que te dimos dejarán de valer.</p>
+            <p>El juego no pide email. Si algún día olvidas la contraseña, <b>la única forma de recuperar la cuenta</b> es contestar estas 5 preguntas exactamente como las elijas ahora.</p>
+            <p><b>Apunta tus respuestas en un sitio seguro</b> o elige las que sepas que vas a recordar.</p>
+            <p>Son opcionales, pero <b>si no las quieres, es para siempre</b>: no te las volveremos a ofrecer y, si pierdes la contraseña, no se podrá recuperar la cuenta.</p>
+          </div>
+          <form class="acc-section" id="acc-questions" autocomplete="off">
+            <fieldset class="sp-form">
+              <div class="rq-head">Preguntas de seguridad</div>
+              <div class="rq-list" data-questions></div>
+              <div class="sp-error" aria-live="polite"></div>
+              <div class="btn-row acc-q-buttons"><button class="ro-btn" type="button" id="acc-decline">No quiero preguntas</button><span class="spacer"></span><button class="ro-btn primary" type="submit">Guardar preguntas</button></div>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="portrait-picker" class="overlay hidden">
+      <div class="ro-window pb-window">
+        <div class="ro-title">Elige tu retrato</div>
+        <div class="ro-body"><div id="pb-grid" class="pb-grid"></div></div>
+        <div class="btn-row pad"><span class="spacer"></span><button class="ro-btn primary" id="pb-close">Cerrar</button></div>
+      </div>
+    </div>
+
+    <div id="charcreate" class="overlay menu hidden">
+      <div class="ro-window create-window">
+        <div class="ro-title">Crear personaje</div>
+        <div class="ro-body create-body">
+          <div class="preview-col">
+            <canvas id="cc-preview" width="200" height="230"></canvas>
+            <div class="btn-row center">
+              <button class="ro-btn small" id="cc-rot-l" title="Girar">⟲</button>
+              <button class="ro-btn small" id="cc-anim">Quieto</button>
+              <button class="ro-btn small" id="cc-rot-r" title="Girar">⟳</button>
+            </div>
+            <div id="cc-jobinfo" class="info-panel"></div>
+          </div>
+          <div class="form-col">
+            <label class="field">Nombre <input id="cc-name" maxlength="16" autocomplete="off" spellcheck="false" /></label>
+            <div class="field">Sexo
+              <div class="seg"><button class="ro-btn small" data-gender="m">♂ Hombre</button><button class="ro-btn small" data-gender="f">♀ Mujer</button></div>
+            </div>
+            <div class="field">Job <div id="cc-jobs"></div></div>
+            <div class="field">Peinado
+              <div class="stepper"><button class="ro-btn small" id="cc-hair-prev">◀</button><span id="cc-hair">1</span><button class="ro-btn small" id="cc-hair-next">▶</button></div>
+            </div>
+            <div class="field">Color de pelo <div id="cc-haircolors" class="swatches"></div></div>
+            <div class="field">Color de ropa <div id="cc-clothcolors" class="swatches"></div></div>
+            <div class="field">Estadísticas <span class="cc-stat-left">Puntos restantes: <b id="cc-stat-left">48</b></span>
+              <div id="cc-stats" class="cc-stats"></div>
+              <div id="cc-stat-desc" class="cc-stat-desc hidden"></div>
+            </div>
+            <div id="cc-error" class="error"></div>
+          </div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="cc-random">Aleatorio</button>
+          <span class="spacer"></span>
+          <button class="ro-btn" id="cc-cancel">Cancelar</button>
+          <button class="ro-btn primary" id="cc-ok">Crear</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="charpanel" class="overlay menu hidden">
+      <div class="ro-window panel-window">
+        <div class="ro-title" id="cp-title">Personaje</div>
+        <div class="ro-body panel-body">
+          <div class="cp-header">
+            <b class="cp-lv" id="cp-level">Base Lv 1</b>
+            <div class="bar exp cp-exp"><div id="cp-exp-fill"></div></div>
+            <div id="cp-exp-text" class="muted"></div>
+            <div id="cp-stat-points"></div>
+            <b class="cp-lv" id="cp-job-level">Job Lv 1</b>
+            <div class="bar exp job cp-exp"><div id="cp-job-exp-fill"></div></div>
+            <div id="cp-job-exp-text" class="muted"></div>
+            <div id="cp-points"></div>
+          </div>
+          <div class="cp-tabrow">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="equip">Equipo</button>
+            <button class="tab-btn" data-tab="inv">Inventario</button>
+            <button class="tab-btn" data-tab="cards">Cartas</button>
+            <button class="tab-btn" data-tab="pets">Pets</button>
+            <button class="tab-btn" data-tab="stats">Estado</button>
+            <button class="tab-btn" data-tab="talents">Job</button>
+          </div>
+          <div id="cp-gs" class="gs-total"></div>
+          </div>
+          <div id="cp-tab-equip" class="tab">
+            <div class="equip-layout">
+              <div class="equip-col" id="cp-slots-left"></div>
+              <div class="equip-center">
+                <canvas id="cp-avatar" width="176" height="220"></canvas>
+              </div>
+              <div class="equip-col" id="cp-slots-right"></div>
+            </div>
+            <div class="eq-work">
+              <div id="cp-eq-current" class="inv-box"></div>
+              <div id="cp-eq-cmp" class="inv-box"></div>
+              <div class="inv-box"><div class="box-title" id="cp-eq-list-title"></div><div id="cp-eq-list" class="cand-list"></div></div>
+            </div>
+          </div>
+          <div id="cp-tab-inv" class="tab hidden">
+            <div class="browse-layout">
+              <div class="inv-box"><div class="box-title">Inventario <span id="cp-kafra" class="kafra"></span></div><div id="cp-inv-filters" class="inv-filters"></div><div id="cp-inventory" class="item-grid"></div></div>
+              <div id="cp-inv-detail" class="inv-box browse-detail"></div>
+            </div>
+          </div>
+          <div id="cp-tab-cards" class="tab hidden">
+            <div class="browse-layout">
+              <div class="inv-box"><div class="box-title">Cartas</div><div id="cp-card-filters" class="inv-filters"></div><div id="cp-cards" class="item-grid"></div></div>
+              <div id="cp-card-detail" class="inv-box browse-detail"></div>
+            </div>
+          </div>
+          <div id="cp-tab-pets" class="tab hidden">
+            <div class="browse-layout">
+              <div class="inv-box"><div class="box-title">Pets <small id="cp-pet-count"></small></div><div id="cp-pets" class="item-grid"></div></div>
+              <div id="cp-pet-detail" class="inv-box browse-detail"></div>
+            </div>
+          </div>
+          <div id="cp-tab-stats" class="tab hidden">
+            <div class="status-layout">
+              <div class="status-box"><div class="box-title">Estadísticas</div><div id="cp-radar" class="radar"></div><div id="cp-prim"></div><div class="status-left">Puntos restantes: <b id="cp-prim-left">0</b></div></div>
+              <div class="status-box"><div class="box-title">En partida</div><div id="cp-derived" class="stat-grid"></div></div>
+            </div>
+            <div id="cp-stats" class="stat-strip"></div>
+            <div class="btn-row cp-reset-row"><span class="muted desktop-only">+: subir · Clic derecho en +: subir 10 · −: bajar</span><span class="muted touch-only">+: subir · −: bajar</span><span class="spacer"></span><button class="ro-btn small" id="cp-stat-reset">Reiniciar estadísticas</button></div>
+          </div>
+          <div id="cp-tab-talents" class="tab hidden">
+            <div id="cp-trees" class="talent-trees"></div>
+            <div class="btn-row cp-reset-row"><span class="muted desktop-only">Clic: añadir punto · Clic derecho: quitar</span><span class="muted touch-only">Toca un talento para ver su ficha y subirlo o bajarlo</span><span class="spacer"></span><button class="ro-btn small" id="cp-reset">Reiniciar talentos</button></div>
+          </div>
+        </div>
+        <!-- a los campos se sale desde el capitán de expediciones del lobby -->
+        <div class="btn-row pad cp-foot">
+          <button class="ro-btn" id="cp-back">Cambiar personaje</button>
+        </div>
+      </div>
+      <div id="cp-sock" class="sock-overlay hidden">
+        <div class="ro-window sock-window">
+          <div class="ro-title">Encajar cartas</div>
+          <div class="ro-body" id="cp-sock-body"></div>
+          <div class="btn-row pad"><span class="spacer"></span><button class="ro-btn primary" id="cp-sock-done">Hecho</button></div>
+        </div>
+      </div>
+      <div id="tooltip" class="tooltip hidden"></div>
+    </div>
+
+    <!-- elegir mejora u objeto (picker.ts): cartas sobre fondo negro, con el aura en el canvas de detrás -->
+    <div id="picker" class="hidden">
+      <canvas id="pk-aura"></canvas>
+      <div class="pk-inner">
+        <div class="pk-head">
+          <div id="pk-title"></div>
+          <div id="pk-gain" class="hidden"></div>
+          <div id="pk-sub"></div>
+        </div>
+        <div id="lu-sockets" class="hidden"></div>
+        <div id="pk-cards"></div>
+        <div id="pk-hint"></div>
+      </div>
+    </div>
+
+    <div id="stages" class="overlay hidden">
+      <div class="ro-window stages-window">
+        <div class="ro-title">Expediciones</div>
+        <div class="ro-body stages-body">
+          <div class="stg-side"><div id="stg-gs" class="stg-gs"></div><div id="stg-list" class="stg-list"></div></div>
+          <div id="stg-detail" class="stg-detail"></div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="stg-close">Cerrar</button>
+          <span class="spacer"></span>
+          <button class="ro-btn stg-go hidden" id="stg-skip">Saltar historia</button>
+          <button class="ro-btn stg-go hidden" id="stg-story">Historia</button>
+          <button class="ro-btn primary stg-go" id="stg-go">Partir</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="shop" class="overlay hidden">
+      <div class="ro-window shop-window">
+        <div class="ro-title">Vendedor de minerales</div>
+        <div class="ro-body">
+          <div class="shop-top">
+            <div class="tabs"><button class="tab-btn active" data-shop="sell">Vender</button><button class="tab-btn" data-shop="buy">Comprar</button></div>
+            <span id="shop-kafra" class="kafra"></span>
+          </div>
+          <div id="shop-sell">
+            <div id="shop-filters" class="inv-filters"></div>
+            <div id="shop-quality" class="shop-quality"></div>
+            <div id="shop-items" class="item-grid shop-grid"></div>
+            <div id="shop-info" class="info-panel"></div>
+          </div>
+          <div id="shop-buy" class="hidden"></div>
+        </div>
+        <div class="btn-row pad">
+          <span id="shop-total" class="shop-total"></span>
+          <span class="spacer"></span>
+          <button class="ro-btn" id="shop-close">Cerrar</button>
+          <button class="ro-btn primary" id="shop-sell-btn">Vender</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="chronicle" class="overlay hidden">
+      <div class="ro-window chronicle-window">
+        <div class="ro-title">Cronista de hazañas</div>
+        <div class="ro-body">
+          <div class="shop-top">
+            <div class="tabs"><button class="tab-btn active" data-chr="perks">Mejoras</button><button class="tab-btn" data-chr="log">Logros</button></div>
+            <span id="chr-points" class="kafra"></span>
+          </div>
+          <div id="chr-perks"></div>
+          <div id="chr-log-tab" class="hidden">
+            <div id="chr-filters" class="inv-filters"></div>
+            <div id="chr-log" class="chr-list chr-scroll"></div>
+          </div>
+        </div>
+        <div class="btn-row pad">
+          <span class="spacer"></span>
+          <button class="ro-btn" id="chr-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- el Guardián de la Endless Tower (towerkeeper.ts): con la forma del selector de stages -->
+    <div id="towerkeeper" class="overlay hidden">
+      <div class="ro-window stages-window">
+        <div class="ro-title">Guardián de la Torre</div>
+        <div class="ro-body stages-body">
+          <div class="stg-side"><div id="tk-nav" class="stg-list"></div></div>
+          <div id="tk-detail" class="stg-detail"></div>
+        </div>
+        <div class="btn-row pad">
+          <span class="spacer"></span>
+          <button class="ro-btn" id="tk-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="petkeeper" class="overlay hidden">
+      <div class="ro-window chronicle-window">
+        <div class="ro-title">Cuidadora de pets</div>
+        <div class="ro-body">
+          <div class="shop-top">
+            <div class="tabs"><button class="tab-btn active" data-pk="acc">Accesorios</button><button class="tab-btn" data-pk="evo">Evoluciones</button></div>
+            <span id="pk-kafra" class="kafra"></span>
+          </div>
+          <div id="pk-list" class="chr-list chr-scroll pk-list"></div>
+          <div id="pk-note" class="info-panel"></div>
+        </div>
+        <div class="btn-row pad">
+          <span class="spacer"></span>
+          <button class="ro-btn" id="pk-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mailbox" class="overlay hidden">
+      <div class="ro-window chronicle-window">
+        <div class="ro-title">Cartero</div>
+        <div class="ro-body mb-body-wrap">
+          <div id="mb-list" class="chr-list chr-scroll mb-list"></div>
+          <div id="mb-read" class="info-panel mb-read"></div>
+          <div id="mb-note" class="mb-note"></div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="mb-delete" hidden>Tirar la carta</button>
+          <span class="spacer"></span>
+          <button class="ro-btn primary" id="mb-claim" hidden>Recoger</button>
+          <button class="ro-btn" id="mb-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="stylist" class="overlay hidden">
+      <div class="ro-window stylist-window">
+        <div class="ro-title">Estilista</div>
+        <div class="ro-body create-body">
+          <div class="preview-col">
+            <canvas id="st-preview" width="200" height="230"></canvas>
+            <div class="btn-row center">
+              <button class="ro-btn small" id="st-rot-l" title="Girar">⟲</button>
+              <button class="ro-btn small" id="st-rot-r" title="Girar">⟳</button>
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="field">Peinado
+              <div class="stepper"><button class="ro-btn small" id="st-hair-prev">◀</button><span id="st-hair">1</span><button class="ro-btn small" id="st-hair-next">▶</button></div>
+            </div>
+            <div class="field">Color de pelo <div id="st-haircolors" class="swatches"></div></div>
+            <div class="field">Color de ropa <div id="st-clothcolors" class="swatches"></div></div>
+            <div id="st-note" class="info-panel"></div>
+          </div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="st-reset">Deshacer</button>
+          <span class="spacer"></span>
+          <button class="ro-btn" id="st-close">Cerrar</button>
+          <button class="ro-btn primary" id="st-ok">Aplicar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- el Bibliotecario (wiki.ts): la wiki del juego, con la forma del selector de stages -->
+    <div id="wiki" class="overlay hidden">
+      <div class="ro-window stages-window wiki-window">
+        <div class="ro-title">Bibliotecario de Prontera</div>
+        <div class="ro-body stages-body wiki-body">
+          <div class="stg-side">
+            <input id="wk-search" class="wk-search" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar en la wiki…" />
+            <div id="wk-nav" class="stg-list wk-nav"></div>
+          </div>
+          <div id="wk-detail" class="stg-detail wk-detail"></div>
+        </div>
+        <div class="btn-row pad">
+          <span class="spacer"></span>
+          <button class="ro-btn" id="wk-close">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="smith" class="overlay hidden">
+      <div class="ro-window smith-window">
+        <div class="ro-title">Herrero Hollgrehenn</div>
+        <div class="ro-body smith-body">
+          <div class="smith-side">
+            <div id="smith-filters" class="inv-filters"></div>
+            <div id="smith-list" class="cand-list"></div>
+          </div>
+          <div id="smith-detail" class="smith-detail"></div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="smith-close">Cerrar</button>
+          <span class="spacer"></span>
+          <button class="ro-btn primary" id="smith-go">Refinar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause" class="overlay hidden">
+      <div class="ro-window small-window">
+        <div class="ro-title">Pausa</div>
+        <div class="ro-body center">
+          <button class="ro-btn" id="btn-resume">Continuar</button>
+          <button class="ro-btn" id="btn-pause-options">Opciones</button>
+          <button class="ro-btn" id="btn-quit">Salir al menú</button>
+          <button class="ro-btn hidden" id="btn-endrun">Terminar la partida</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="gameover" class="overlay hidden">
+      <div class="ro-window summary-window">
+        <div class="ro-title" id="go-title">Has muerto</div>
+        <div class="ro-body center">
+          <div id="go-stats"></div>
+        </div>
+        <div class="btn-row pad"><button class="ro-btn primary" id="btn-restart">Volver al personaje</button></div>
+      </div>
+    </div>
+
+    <div id="options" class="overlay hidden">
+      <div class="ro-window options-window">
+        <div class="ro-title">Opciones</div>
+        <div class="ro-body">
+          <div class="tabs" id="opt-tabs"></div>
+          <div id="opt-body"></div>
+        </div>
+        <div class="btn-row pad">
+          <button class="ro-btn" id="opt-defaults">Valores por defecto</button>
+          <button class="ro-btn hidden" id="opt-install">Instalar</button>
+          <span class="spacer"></span>
+          <button class="ro-btn primary" id="opt-close">Cerrar</button>
+          <small class="opt-version" id="opt-version"></small>
+        </div>
+      </div>
+    </div>
+
+    <div id="skill-tip" class="tooltip skill-tip hidden"></div>
+
+    <div id="drop-reveal" class="hidden"></div>
+
+    <!-- portada (splash.ts): Prontera de fondo, el logo y la ventana para entrar; hace de pantalla de carga -->
+    <div id="splash">
+      <div class="sp-bg"></div>
+      <div class="sp-veil"></div>
+      <canvas id="sp-parade"></canvas>
+      <canvas id="sp-parade-fly"></canvas>
+      <div class="sp-motes"></div>
+      <div class="sp-logo">
+        <!-- logo：與 app icon（assets/282/app-icons/）同一張，只去掉金框外的深色底 -->
+        <img class="sp-logo-img" src="../assets/282/splash/logo-ro-icon.png" alt="RO Life" width="300" height="313" />
+        <small>Aventura fan (Fan Game Adventure)</small>
+        <span class="sp-logo-sub">Obra de fans · sin fines comerciales</span>
+      </div>
+      <div class="ro-window sp-card">
+        <div class="ro-title"><span class="sp-dual">LOGIN</span> <span>Iniciar sesión</span></div>
+        <div class="ro-body">
+          <div class="sp-tabs" role="tablist">
+            <button role="tab" data-sp-tab="guest" class="active">Invitado</button>
+            <button role="tab" data-sp-tab="login">Entrar</button>
+            <button role="tab" data-sp-tab="register">Crear cuenta</button>
+          </div>
+          <!-- invitado: la partida vive en este navegador, como hasta ahora -->
+          <div class="sp-pane" data-sp-pane="guest">
+            <!-- 圖2版面的帳號欄位：帳號功能關閉時（單機版）整組停用，「開始遊戲」一律以訪客進入（見檔尾 sp-cred 腳本） -->
+            <div class="sp-cred">
+              <label class="sp-in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.8 21c.6-4.6 4-7.2 8.2-7.2s7.6 2.6 8.2 7.2z"/></svg><input id="sp-id" placeholder="Cuenta ID" autocomplete="username" maxlength="16" spellcheck="false" /></label>
+              <label class="sp-in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1.2c.7 0 1.3.6 1.3 1.3v8.4c0 .7-.6 1.3-1.3 1.3H5.8c-.7 0-1.3-.6-1.3-1.3v-8.4c0-.7.6-1.3 1.3-1.3zm2.4 0h5.2V7.5a2.6 2.6 0 0 0-5.2 0z"/></svg><input id="sp-pw" type="password" placeholder="Contraseña de la cuenta" autocomplete="current-password" /></label>
+              <label class="sp-remember"><input type="checkbox" id="sp-remember" /><span>Recordar cuenta</span><i class="sp-switch" aria-hidden="true"></i></label>
+              <small class="sp-cred-note">Versión offline: no hace falta iniciar sesión, pulsa Jugar.</small>
+            </div>
+            <!-- Google／LINE 登入（server/ro-life）：/api/ro/config 說有設定才顯示；登入後只做雲端存檔同步，遊戲照舊是單機模式 -->
+            <div class="sp-oauth hidden">
+              <div class="sp-oauth-or"><span>o entra con tu cuenta</span></div>
+              <button class="sp-oauth-btn google hidden" type="button" data-oauth="google" aria-label="Google" title="Google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continuar con Google</span></button>
+              <button class="sp-oauth-btn line hidden" type="button" data-oauth="line" aria-label="LINE" title="LINE"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M12 3.5C6.75 3.5 2.5 6.95 2.5 11.2c0 3.8 3.37 6.99 7.93 7.6.31.07.73.2.83.47.1.24.06.62.03.86l-.13.81c-.04.24-.19.94.82.51 1.01-.42 5.45-3.21 7.43-5.5 1.37-1.5 2.02-3.03 2.02-4.75C21.5 6.95 17.25 3.5 12 3.5z"/><path fill="#06C755" d="M6.6 9.3h1.1v3.6h2v1H6.6zm3.9 0h1.1v4.6h-1.1zm2.1 0h1l1.9 2.8V9.3h1.1v4.6h-1l-1.9-2.8v2.8h-1.1zm4.8 0h3.1v1h-2v.8h2v1h-2v.8h2v1h-3.1z"/></svg><span>Continuar con LINE</span></button>
+              <div class="sp-oauth-err hidden" aria-live="polite"></div>
+            </div>
+            <div class="sp-cloud hidden" id="sp-cloud">
+              <span class="sp-cloud-who"><b id="sp-cloud-name"></b><small id="sp-cloud-via"></small></span>
+              <span class="sp-cloud-status" id="sp-cloud-status"></span>
+              <button class="sp-link" type="button" id="sp-cloud-out">Cerrar sesión en la nube</button>
+            </div>
+            <div class="sp-feat online-only"><img src="assets/items/1101.png" alt="" />Elige job, empuña tu arma y aguanta la horda. Sin descargas.</div>
+            <div class="sp-feat online-only"><img src="assets/items/501.png" alt="" />Tus personajes y su equipo se quedan guardados en este navegador.</div>
+            <div class="sp-feat online-only"><img src="assets/items/2220.png" alt="" />Con cuenta, a comerciar en la plaza y a jugar con tus personajes desde cualquier sitio.</div>
+            <!-- versión offline (offline.ts): se juega solo, en este PC -->
+            <div class="sp-feat offline-only"><img src="assets/items/1101.png" alt="" />Elige job, empuña tu arma y aguanta la horda.</div>
+            <div class="sp-feat offline-only"><img src="assets/items/501.png" alt="" />Versión offline: juegas solo y sin conexión.</div>
+            <div class="sp-feat offline-only"><img src="assets/items/2220.png" alt="" />Tus personajes y su equipo se guardan en este PC.</div>
+            <button class="ro-btn primary sp-submit" id="sp-play" disabled><i class="sp-fill"></i><span>Cargando…</span><small class="sp-dual">(GAME START)</small></button>
+            <div class="sp-actions">
+              <a class="ro-btn sp-exit" href="../index.html"><span>Salir del juego</span><small class="sp-dual">(EXIT)</small></a>
+              <button class="ro-btn sp-reg" type="button" data-sp-tab="register"><span>Registrar cuenta</span><small class="sp-dual">(REGISTER)</small></button>
+            </div>
+            <!-- con la sesión de una cuenta guardada: cerrarla y volver a Invitado / Entrar / Crear cuenta -->
+            <button class="ro-btn small sp-leave hidden" id="sp-leave" type="button">Salir</button>
+            <button class="ro-btn small sp-client-update offline-only" id="sp-update">Actualizar cliente</button>
+          </div>
+          <!-- cuentas (usuario + contraseña, sin email): account.ts -->
+          <form class="sp-pane hidden" data-sp-pane="login" id="sp-login" autocomplete="on">
+            <fieldset class="sp-form">
+              <label class="sp-field">Usuario <input name="username" autocomplete="username" maxlength="16" spellcheck="false" /></label>
+              <label class="sp-field">Contraseña <input name="password" type="password" autocomplete="current-password" /></label>
+              <div class="sp-error" aria-live="polite"></div>
+              <button class="ro-btn primary sp-submit" type="submit">Entrar</button>
+            </fieldset>
+            <button class="sp-link" type="button" id="sp-forgot">¿Has olvidado la contraseña?</button>
+          </form>
+          <!-- contraseña olvidada (no es una pestaña: se llega desde Entrar): usuario + las 5 preguntas de seguridad -->
+          <div class="sp-pane hidden" data-sp-pane="recover">
+            <!-- paso 1: usuario + las 5 respuestas (3 intentos fallidos por cuenta cada 7 días) -->
+            <form id="sp-recover" autocomplete="off">
+              <fieldset class="sp-form">
+                <small class="sp-note rq-help">Contesta las 5 preguntas de seguridad de tu cuenta. Si aciertas, podrás poner una contraseña nueva. Tienes 3 intentos a la semana.</small>
+                <label class="sp-field">Usuario <input name="username" autocomplete="username" maxlength="16" spellcheck="false" /></label>
+                <div class="rq-list" data-questions></div>
+                <div class="sp-error" aria-live="polite"></div>
+                <button class="ro-btn primary sp-submit" type="submit">Comprobar respuestas</button>
+              </fieldset>
+            </form>
+            <!-- paso 2: respuestas correctas → contraseña nueva, dos veces -->
+            <form id="sp-reset" class="hidden" autocomplete="on">
+              <fieldset class="sp-form">
+                <div class="sp-ok">Respuestas correctas. Elige tu contraseña nueva.</div>
+                <input name="username" autocomplete="username" hidden />
+                <label class="sp-field">Contraseña nueva <input name="password" type="password" autocomplete="new-password" minlength="8" /></label>
+                <label class="sp-field">Repite la contraseña <input name="password2" type="password" autocomplete="new-password" minlength="8" /></label>
+                <div class="sp-error" aria-live="polite"></div>
+                <button class="ro-btn primary sp-submit" type="submit">Guardar y entrar</button>
+              </fieldset>
+            </form>
+            <button class="sp-link" type="button" id="sp-recover-back">Volver</button>
+          </div>
+          <form class="sp-pane hidden" data-sp-pane="register" id="sp-register" autocomplete="on">
+            <small class="sp-oauth-reg hidden">Crea tu cuenta con Google o LINE. El registro con contraseña llegará más adelante.</small>
+            <div class="sp-oauth hidden reg">
+              <div class="sp-oauth-or"><span>o entra con tu cuenta</span></div>
+              <button class="sp-oauth-btn google hidden" type="button" data-oauth="google" aria-label="Google" title="Google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continuar con Google</span></button>
+              <button class="sp-oauth-btn line hidden" type="button" data-oauth="line" aria-label="LINE" title="LINE"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M12 3.5C6.75 3.5 2.5 6.95 2.5 11.2c0 3.8 3.37 6.99 7.93 7.6.31.07.73.2.83.47.1.24.06.62.03.86l-.13.81c-.04.24-.19.94.82.51 1.01-.42 5.45-3.21 7.43-5.5 1.37-1.5 2.02-3.03 2.02-4.75C21.5 6.95 17.25 3.5 12 3.5z"/><path fill="#06C755" d="M6.6 9.3h1.1v3.6h2v1H6.6zm3.9 0h1.1v4.6h-1.1zm2.1 0h1l1.9 2.8V9.3h1.1v4.6h-1l-1.9-2.8v2.8h-1.1zm4.8 0h3.1v1h-2v.8h2v1h-2v.8h2v1h-3.1z"/></svg><span>Continuar con LINE</span></button>
+              <div class="sp-oauth-err hidden" aria-live="polite"></div>
+            </div>
+            <fieldset class="sp-form">
+              <label class="sp-field">Usuario <input name="username" autocomplete="username" maxlength="16" spellcheck="false" /></label>
+              <label class="sp-field">Contraseña <input name="password" type="password" autocomplete="new-password" minlength="8" /></label>
+              <label class="sp-field">Repite la contraseña <input name="password2" type="password" autocomplete="new-password" minlength="8" /></label>
+              <!-- opcionales: sin ellas la cuenta no se puede recuperar, y es para siempre (splash.ts) -->
+              <div class="rq-head">Preguntas de seguridad <small>(opcional)</small></div>
+              <label class="sp-check"><input name="questions" type="checkbox" checked />Configurar preguntas para poder recuperar la contraseña si la olvido</label>
+              <small class="sp-note rq-help" id="sp-rq-help">Sin email, si olvidas la contraseña la única forma de recuperar la cuenta son estas 5 respuestas. Recuérdalas o apúntalas en un sitio seguro.</small>
+              <div class="rq-list" data-questions></div>
+              <div class="rq-declined hidden" id="sp-rq-declined">Sin preguntas de seguridad, si pierdes la contraseña no se podrá recuperar la cuenta. Es una decisión permanente: no podrás añadirlas después.</div>
+              <label class="sp-check"><input name="upload" type="checkbox" checked />Subir a la cuenta los personajes de este dispositivo</label>
+              <div class="sp-error" aria-live="polite"></div>
+              <button class="ro-btn primary sp-submit" type="submit">Crear cuenta</button>
+            </fieldset>
+            <small class="sp-note">De invitado se suben los personajes, su equipo y sus cartas, pero no los Puntos Kafra ni los minerales; lo subido se puede usar, no comerciar.</small>
+            <button class="sp-link" type="button" data-sp-tab="guest">Volver a iniciar sesión</button>
+          </form>
+          <!-- mantenimiento (maintenance.ts): por qué no se puede jugar ahora -->
+          <small class="sp-maint hidden" id="sp-maint"></small>
+          <small class="sp-soon hidden">Las cuentas llegan muy pronto. De momento, juega como invitado.</small>
+        </div>
+      </div>
+      <label class="sp-server"><select id="sp-server" aria-label="Servidor del juego"><option>Servidor: Nuevo Comienzo</option></select><i class="sp-caret"></i></label>
+      <div class="sp-foot">
+        <div class="sp-ver"><span><b class="sp-status" id="sp-version"></b> (Fan Work)</span><span>Obra creada por fans, solo para compartir.</span></div>
+        <p class="sp-legal">RO Life es un fan game no oficial y gratuito, sin anuncios ni compras. No está afiliado, patrocinado ni respaldado por Gravity Co., Ltd. ni por Lee Myoung-Jin (studio DTDS). Ragnarok Online y sus personajes, gráficos y músicas son propiedad de sus respectivos dueños. © Gravity Co., Ltd. &amp; Lee Myoung-Jin (studio DTDS).</p>
+      </div>
+    </div>
+    <div class="sp-top" id="sp-top">
+      <button class="sp-news-btn" id="news-btn">Novedades</button>
+      <div class="sp-lang" id="sp-lang">
+        <button class="sp-lang-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Idioma"><b></b><i class="sp-caret"></i></button>
+        <ul class="sp-lang-list hidden" role="listbox"></ul>
+      </div>
+    </div>
+
+    <div id="loading" class="overlay hidden"><div class="loading-ring"></div><div class="loading-text">Cargando assets de Ragnarok…</div></div>
+
+    <!-- file:// 開啟提示：瀏覽器禁止以 fetch 讀取本機檔案，素材（../assets/282/）只能透過 HTTP 載入 -->
+    <script>
+      if (location.protocol === "file:") {
+        const n = document.createElement("div");
+        n.id = "ro-file-note";
+        n.innerHTML = "<b>請透過本機伺服器開啟</b><span>瀏覽器不允許以 file:// 讀取遊戲素材，因此會顯示「遊戲無法載入」。</span><span>請在作品集根目錄執行 <code>npm start</code>，再開啟 <code>http://127.0.0.1:8127/web/282-ro-life.html</code></span>";
+        n.style.cssText = "position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));transform:translate(-50%);z-index:100000;display:flex;flex-direction:column;gap:4px;max-width:min(560px,calc(100vw - 24px));padding:12px 18px;border-radius:18px;font:700 13px/1.5 Nunito,'PingFang TC','Noto Sans TC',sans-serif;color:#102347;text-align:center;background:linear-gradient(145deg,rgba(255,255,255,.78),rgba(214,234,255,.6));-webkit-backdrop-filter:blur(26px) saturate(200%);backdrop-filter:blur(26px) saturate(200%);border:1px solid rgba(255,255,255,.85);box-shadow:0 16px 40px -8px rgba(8,22,56,.35),inset 0 1.5px 1px #fff";
+        document.body.appendChild(n);
+      }
+    </script>
+    <!-- 手機只支援橫向：直拿時的轉向提示（要在引擎腳本之前，翻譯才會套到） -->
+    <div id="rotate-hint" role="alert" aria-live="polite">
+      <div class="rh-phone" aria-hidden="true"></div>
+      <b>Gira el teléfono</b>
+      <span>Esta versión para móvil solo funciona en horizontal.</span>
+    </div>
+    <!-- 雲端存檔腳本用的文字：放在引擎標記前面讓 bt() 翻譯，腳本再從這裡取用 -->
+    <div id="ro-cloud-i18n" hidden><span data-k="saved">Partida guardada en la nube</span><span data-k="syncing">Sincronizando con la nube…</span><span data-k="syncfail">No se pudo sincronizar con la nube</span><span data-k="loginfail">No se pudo iniciar sesión. Inténtalo de nuevo.</span><span data-k="cancelled">Inicio de sesión cancelado.</span><span data-k="banned">Esta cuenta está suspendida.</span><span data-k="conflict">Tu partida en la nube y la de este dispositivo no coinciden</span><span data-k="choose">Elige cuál quieres conservar. La otra se sustituirá.</span><span data-k="usecloud">Usar la partida de la nube</span><span data-k="keeplocal">Conservar la de este dispositivo</span><span data-k="cloud">Partida en la nube</span><span data-k="local">Partida de este dispositivo</span><span data-k="nochars">Sin personajes</span><span data-k="lastsaved">Última vez guardada</span></div>
+    <!-- ENGINE: tools/build.mjs 把打包後的引擎腳本插在這一行 -->
+    <!-- 手機只支援橫向：直拿時蓋一層提示，戰鬥中順便暫停 -->
+    <script>
+      (() => {
+        const mq = matchMedia("(orientation: portrait) and (pointer: coarse) and (max-width: 900px)");
+        const sync = () => {
+          if (!mq.matches) return;
+          const hud = document.getElementById("hud"), pause = document.getElementById("pause");
+          // 戰鬥中直拿：送一次 Esc 打開暫停選單，轉回橫向後由玩家按繼續
+          if (hud && !hud.classList.contains("hidden") && pause && pause.classList.contains("hidden")) {
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+          }
+        };
+        mq.addEventListener("change", sync);
+      })();
+    </script>
+
+    <!-- 登入框（圖2版面）：帳號欄位、記住帳號、Enter 開始；帳號功能關閉時欄位停用，開始遊戲一律走 #sp-play 的訪客流程 -->
+    <script>
+      (() => {
+        const $ = (id) => document.getElementById(id);
+        const id = $("sp-id"), pw = $("sp-pw"), rem = $("sp-remember"), play = $("sp-play"), cred = document.querySelector(".sp-cred");
+        const loginSet = document.querySelector("#sp-login fieldset");
+        if (!id || !play || !cred || !loginSet) return;
+        const KEY = "ro-remember-id";
+        try { const v = localStorage.getItem(KEY); if (v) { id.value = v; rem.checked = true; } } catch {}
+        // 單檔版沒有帳號後端：build.mjs 把 /api 換成永遠回 ok 的假 nt()，登入會變成假帳號，所以欄位一律停用、開始遊戲一律以訪客進入
+        const NO_BACKEND = true;
+        if (NO_BACKEND) document.documentElement.classList.add("ro-no-backend");
+        const sync = () => {
+          const off = NO_BACKEND || loginSet.disabled;
+          for (const el of [id, pw, rem]) el.disabled = off;
+          cred.classList.toggle("off", off);
+        };
+        sync();
+        // 註冊分頁同樣沒有後端：鎖住表單並顯示原本的「帳號即將推出」提示（引擎切分頁時會重設，所以等它跑完再鎖）
+        if (NO_BACKEND) {
+          const lockReg = () => {
+            const regSet = document.querySelector("#sp-register fieldset");
+            if (regSet) regSet.disabled = true;
+            if (!document.querySelector('[data-sp-pane="register"]')?.classList.contains("hidden")) document.querySelector("#splash .sp-soon")?.classList.remove("hidden");
+          };
+          for (const b of document.querySelectorAll('#splash [data-sp-tab="register"]')) b.addEventListener("click", () => setTimeout(lockReg, 0));
+          lockReg();
+        }
+        new MutationObserver(sync).observe(loginSet, { attributes: true, attributeFilter: ["disabled"] });
+        const remember = () => { try { rem.checked && id.value.trim() ? localStorage.setItem(KEY, id.value.trim()) : localStorage.removeItem(KEY); } catch {} };
+        rem.addEventListener("change", remember);
+        // 有填帳號且帳號功能開著：改送原本的登入表單；其餘情況照舊由 #sp-play 以訪客開始
+        document.addEventListener("click", (e) => {
+          if (!play.contains(e.target) || cred.classList.contains("off") || !id.value.trim()) return;
+          e.stopPropagation(); e.preventDefault(); remember();
+          const form = $("sp-login");
+          form.querySelector("[name=username]").value = id.value.trim();
+          form.querySelector("[name=password]").value = pw.value;
+          document.querySelector('[data-sp-tab="login"]')?.click();
+          form.requestSubmit();
+        }, true);
+        for (const el of [id, pw]) el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); play.click(); } });
+      })();
+    </script>
+
+    <!-- Google／LINE 登入與雲端存檔（後端 server/ro-life、api/ro.mjs）。遊戲照舊是單機模式，存檔在 localStorage 的 ro-life.dev.*；
+         登入後把那些存檔同步到 Neon。靜態託管（npx serve）沒有 /api，所以本機只在網址帶 ?api 時才去問設定，避免 404。 -->
+    <script>
+      (() => {
+        const API = new URL("../api/ro/", document.baseURI).href;
+        const PREFIX = "ro-life.dev.", STATE = "ro-life.cloud.v1";
+        const SAVE_KEY = /^(characters\.v1|account\.v1|achievements\.v1|pets\.v1|run\.v1\.[\w-]{1,40}|stages-seen\.v1\.[\w-]{1,40})$/;
+        const $ = (id) => document.getElementById(id);
+        const T = (k) => document.querySelector(`#ro-cloud-i18n [data-k="${k}"]`)?.textContent ?? k;
+        const params = new URLSearchParams(location.hash.slice(1));
+        let allow = /^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+        try {
+          if (new URLSearchParams(location.search).has("api")) sessionStorage.setItem("ro-api", "1");
+          if (sessionStorage.getItem("ro-api") === "1") allow = true;
+        } catch {}
+        if (params.has("ro-login") || params.has("ro-login-error")) allow = true;
+        if (!allow) return;
+
+        const load = () => { try { return JSON.parse(localStorage.getItem(STATE)) ?? null; } catch { return null; } };
+        const store = (v) => { try { v ? localStorage.setItem(STATE, JSON.stringify(v)) : localStorage.removeItem(STATE); } catch {} };
+        let st = load(), busy = null, conflict = false, applying = false;
+        // 只在標題畫面套用雲端存檔或詢問玩家；已經進遊戲就延到下次開頁（引擎正在寫存檔，換掉會被它蓋回去）
+        const onSplash = () => !!document.getElementById("splash") && !document.getElementById("splash").classList.contains("hidden");
+
+        const api = async (method, path, body, keepalive = false) => {
+          const headers = {};
+          if (body !== undefined) headers["content-type"] = "application/json";
+          if (st?.token) headers.authorization = `Bearer ${st.token}`;
+          const r = await fetch(API + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), keepalive, cache: "no-store" });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw Object.assign(new Error(j.error || String(r.status)), { status: r.status, body: j });
+          return j;
+        };
+        // 本機存檔：照 key 排序，雜湊用來判斷有沒有改過
+        const localDoc = () => {
+          const doc = {};
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k?.startsWith(PREFIX) && SAVE_KEY.test(k.slice(PREFIX.length))) doc[k.slice(PREFIX.length)] = localStorage.getItem(k);
+            }
+          } catch {}
+          return Object.fromEntries(Object.entries(doc).sort(([a], [b]) => (a < b ? -1 : 1)));
+        };
+        const canon = (doc) => JSON.stringify(Object.fromEntries(Object.entries(doc ?? {}).sort(([a], [b]) => (a < b ? -1 : 1))));
+        const hash = (str) => {
+          let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+          for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+          h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+          h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+          return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+        };
+        const empty = (doc) => {
+          try { return !JSON.parse(doc["characters.v1"] ?? "[]").length; } catch { return !Object.keys(doc).length; }
+        };
+        const summary = (doc) => {
+          let chars = [];
+          try { chars = JSON.parse(doc["characters.v1"] ?? "[]"); } catch {}
+          return chars.length ? chars.map((c) => `${c.name} Lv ${c.level ?? 1}`).join("、") : T("nochars");
+        };
+
+        // ---- 介面 ----
+        const status = (key) => { const el = $("sp-cloud-status"); if (el) el.textContent = key ? T(key) : ""; };
+        const showError = (key) => {
+          for (const el of document.querySelectorAll(".sp-oauth-err")) { el.textContent = T(key); el.classList.remove("hidden"); }
+        };
+        const render = (providers) => {
+          const on = !!st?.token;
+          document.documentElement.classList.toggle("ro-oauth", !!providers && Object.values(providers).some(Boolean));
+          for (const box of document.querySelectorAll(".sp-oauth")) box.classList.toggle("hidden", on || !providers || !Object.values(providers).some(Boolean));
+          for (const b of document.querySelectorAll("[data-oauth]")) b.classList.toggle("hidden", !providers?.[b.dataset.oauth]);
+          document.querySelector(".sp-oauth-reg")?.classList.toggle("hidden", on || !providers || !Object.values(providers).some(Boolean));
+          $("sp-cloud")?.classList.toggle("hidden", !on);
+          if (on) {
+            $("sp-cloud-name").textContent = st.account?.name ?? "";
+            $("sp-cloud-via").textContent = { google: "Google", line: "LINE" }[st.account?.via] ?? "";
+          }
+        };
+        for (const b of document.querySelectorAll("[data-oauth]")) {
+          b.addEventListener("click", () => {
+            b.disabled = true;
+            location.href = `${API}auth/${b.dataset.oauth}?return=${encodeURIComponent(location.pathname)}`;
+          });
+        }
+        $("sp-cloud-out")?.addEventListener("click", async () => {
+          await push(true).catch(() => {});
+          await api("POST", "logout").catch(() => {});
+          st = null; store(null); conflict = false;
+          render(cfg);
+        });
+
+        // 雲端與本機不同、兩邊都有角色：讓玩家選，不默默蓋掉任何一邊
+        const ask = (cloud, local) => new Promise((resolve) => {
+          const box = document.createElement("div");
+          box.id = "ro-cloud-pick";
+          box.innerHTML = `<div class="ro-window"><div class="ro-title"></div><div class="ro-body"><p class="rcp-note"></p>
+            <div class="rcp-grid"><div class="rcp-card" data-c="cloud"><b></b><span></span><small></small></div><div class="rcp-card" data-c="local"><b></b><span></span></div></div>
+            <div class="btn-row"><button class="ro-btn" data-pick="local"></button><button class="ro-btn primary" data-pick="cloud"></button></div></div></div>`;
+          box.querySelector(".ro-title").textContent = T("conflict");
+          box.querySelector(".rcp-note").textContent = T("choose");
+          const [cb, cs, csm] = box.querySelectorAll('[data-c="cloud"] > *'), [lb, ls] = box.querySelectorAll('[data-c="local"] > *');
+          cb.textContent = T("cloud"); cs.textContent = summary(cloud.doc);
+          csm.textContent = cloud.updatedAt ? `${T("lastsaved")}：${new Date(cloud.updatedAt).toLocaleString()}` : "";
+          lb.textContent = T("local"); ls.textContent = summary(local);
+          box.querySelector('[data-pick="cloud"]').textContent = T("usecloud");
+          box.querySelector('[data-pick="local"]').textContent = T("keeplocal");
+          box.addEventListener("click", (e) => { const p = e.target.closest("[data-pick]")?.dataset.pick; if (p) { box.remove(); resolve(p); } });
+          document.body.appendChild(box);
+        });
+        // 套用雲端存檔：換掉本機的存檔 key 後重新載入，讓引擎從頭讀
+        const applyCloud = (cloud) => {
+          if (!onSplash()) { conflict = true; return; }
+          applying = true;
+          try {
+            for (const k of Object.keys(localDoc())) localStorage.removeItem(PREFIX + k);
+            for (const [k, v] of Object.entries(cloud.doc)) if (SAVE_KEY.test(k) && typeof v === "string") localStorage.setItem(PREFIX + k, v);
+          } catch {}
+          st = { ...st, rev: cloud.rev, sent: hash(canon(cloud.doc)) };
+          store(st);
+          location.reload();
+        };
+        const upload = async (rev, doc, keepalive = false) => {
+          const r = await api("PUT", "save", { rev, doc }, keepalive);
+          st = { ...st, rev: r.rev, sent: hash(canon(doc)) };
+          store(st);
+        };
+
+        // 開頁或剛登入時：比對雲端與本機，決定上傳、下載或問玩家
+        async function reconcile() {
+          status("syncing");
+          const cloud = await api("GET", "save");
+          const local = localDoc(), lh = hash(canon(local)), ch = hash(canon(cloud.doc));
+          if (lh === ch) { st = { ...st, rev: cloud.rev, sent: lh }; store(st); }
+          else if (st.rev === cloud.rev && st.sent) await upload(cloud.rev, local);      // 雲端沒被別台改過，本機較新
+          else if (empty(cloud.doc)) await upload(cloud.rev, local);                    // 雲端是空的：上傳本機
+          else if (empty(local) || (st.sent === lh && st.rev !== undefined)) return applyCloud(cloud); // 本機沒有進度或沒改過：用雲端
+          else if (!onSplash()) { conflict = true; return status("syncfail"); }
+          else {
+            const pick = await ask(cloud, local);
+            if (pick === "cloud") return applyCloud(cloud);
+            const again = await api("GET", "save");                                     // 選的時候雲端可能又被別台改過
+            if (again.rev !== cloud.rev) { conflict = true; return status("syncfail"); }
+            await upload(cloud.rev, localDoc());
+          }
+          conflict = false;
+          status("saved");
+        }
+        // 遊戲中定時上傳；rev 對不上（別台裝置存過）就停下，下次開頁再處理
+        async function push(keepalive = false) {
+          if (!st?.token || conflict || applying || st.rev === undefined) return;
+          const doc = localDoc(), h = hash(canon(doc));
+          if (h === st.sent) return;
+          try { await upload(st.rev, doc, keepalive && JSON.stringify(doc).length < 60000); status("saved"); }
+          catch (e) { if (e.status === 409) conflict = true; if (e.status === 401) { st = null; store(null); render(cfg); } status("syncfail"); }
+        }
+        const run = (fn) => (busy ??= fn().catch((e) => {
+          if (e.status === 401) { st = null; store(null); render(cfg); }
+          else if (e.status === 403) showError("banned");
+          else status("syncfail");
+        }).finally(() => { busy = null; }));
+
+        let cfg = null;
+        (async () => {
+          // 從 Google／LINE 回來：網址片段帶一次性代碼
+          if (params.has("ro-login") || params.has("ro-login-error")) {
+            const code = params.get("ro-login"), err = params.get("ro-login-error");
+            history.replaceState(null, "", location.pathname + location.search);
+            if (code) {
+              try {
+                const r = await api("POST", "auth/exchange", { code });
+                st = { token: r.token, account: r.account };
+                store(st);
+              } catch (e) { setTimeout(() => showError(e.status === 403 ? "banned" : "loginfail"), 0); }
+            } else setTimeout(() => showError(err === "denied" ? "cancelled" : "loginfail"), 0);
+          }
+          try { cfg = (await api("GET", "config")).providers; } catch { cfg = null; }
+          render(cfg);
+          if (st?.token) {
+            try {
+              const me = await api("GET", "me");
+              st = { ...st, account: { ...st.account, ...me.account } };
+              store(st);
+              render(cfg);
+              await run(reconcile);
+            } catch (e) {
+              if (e.status === 401) { st = null; store(null); render(cfg); }
+              else if (e.status === 403) showError("banned");
+            }
+          }
+        })();
+        setInterval(() => run(push), 45000);
+        document.addEventListener("visibilitychange", () => { if (document.hidden) push(true); });
+        addEventListener("pagehide", () => push(true));
+      })();
+    </script>
+
+    <!-- 大廳右上角與登入畫面右上角改成圖示鈕（style.css 精簡化段落）：把原本的文字與快捷鍵放進 title／aria-label -->
+    <script>
+      (() => {
+        // 登入畫面的最新消息鈕同樣只剩圖示：文字放進 title
+        const news = document.getElementById("news-btn");
+        if (news) {
+          const tip = () => { const t = news.textContent.trim(); if (t && news.title !== t) { news.title = t; news.setAttribute("aria-label", t); } };
+          tip();
+          new MutationObserver(tip).observe(news, { subtree: true, childList: true, characterData: true });
+        }
+        const lang = document.querySelector(".sp-lang-btn");
+        if (lang) {
+          const tip = () => { const t = [lang.getAttribute("aria-label"), lang.querySelector("b")?.textContent.trim()].filter(Boolean).join("："); if (t && lang.title !== t) lang.title = t; };
+          tip();
+          new MutationObserver(tip).observe(lang, { subtree: true, childList: true, characterData: true });
+        }
+        const box = document.getElementById("lobby-actions");
+        if (!box) return;
+        const sync = () => {
+          for (const b of box.querySelectorAll(".ro-btn")) {
+            const key = b.querySelector("kbd")?.textContent.trim();
+            const text = (b.getAttribute("aria-label") && b.id === "lobby-options" ? b.getAttribute("aria-label") : [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").replace(/[⚙\s]+/g, " ").trim()) || b.dataset.label || "";
+            if (!text) continue;
+            b.dataset.label = text;
+            const tip = key ? `${text}（${key}）` : text;
+            if (b.title !== tip) { b.title = tip; b.setAttribute("aria-label", text); }
+          }
+        };
+        sync();
+        new MutationObserver(sync).observe(box, { subtree: true, childList: true, characterData: true });
+      })();
+    </script>
+    <!--/email_off-->
+  </body>
+</html>

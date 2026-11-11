@@ -170,6 +170,7 @@
 - [277 墨嶺行 · INK RIDGE](https://htmls-ruddy.vercel.app/web/277-ink-ridge.html)：水墨風第三人稱 3D 平台解謎原型（依 @xikhar 的 AI 製作遊戲影片）：雲海試劍崖上跑跳、抓岩縫橫移上攀、側跳與往後躍，白圍巾與衣襬為 Verlet 布料物理，敲鐘升吊台、開山門；第二關「寒潭渡」（?lv=2）搭木筏渡黑水、推石墊腳、石壓機關板開閘、攀會碎的冰縫上雪塔；場景以 Three.js 程式自建，主角模型改作自 xiamilisite 的 wuxia chinese swordman（CC BY 4.0），加上五指骨架與岩緣 IK，支援觸控。
 - [278 赭線 · OCHRE LINE](https://htmls-ruddy.vercel.app/web/278-ochre-line.html)：受 @0xKense1 AI 做遊戲影片啟發的原創寫實日照 5v5 回合制戰術射擊：地中海舊城地圖「日晷坊」三線攻防，赤沙送破門裝藥進 A、B 炸點，海防守住或拆除，先贏 7 回合、第 6 回合後換邊；購買經濟、十五種武器與投擲物、固定彈道、部位傷害、Bot 走位回防；Babylon.js 9 WebGPU FAST 快照、thin instance、Havok，每幀邏輯零配置，手機有觸控操作，不支援 WebGPU 時退回 WebGL。
 - [280 絕命免運費 · CANCEL ANYTIME](https://htmls-ruddy.vercel.app/web/280-cancel-anytime.html)：依 GDD 做成的原創美式搞怪 3D 回合制戰術 RPG。四人小隊打過 10 關公路怪談，12×12 高低差格子、d20 命中與背刺、高地掩體、推撞墜落、丟椅子、四種地表連鎖反應、死亡豁免與救護車帳單、戰前嘴砲檢定；Three.js 全程序建模 toon 描邊，WebAudio 合成音效，三種難度
+- [282 仙境人生 · RO LIFE](https://htmls-ruddy.vercel.app/web/282-ro-life.html)：致敬《仙境傳說 Ragnarok Online》的非官方同人 2.5D 彈幕生存動作 RPG。14 種職業（劍士、法師、弓箭手、服事、盜賊、商人、跆拳、忍者、神槍手與騎士、巫師、獵人、祭司、刺客二轉進階）各有三系天賦樹（382 個節點、238 招技能）；普隆德拉噴水池廣場大廳有鐵匠精煉、礦石商、寵物進化、圖書館 Wiki 圖鑑與二轉專精大師等 8 位 NPC；13 座經典 3D 網格關卡與無盡之塔、179 種魔物與 25 隻多階段機制 MVP／Mini Boss（巴風特、俄塞里斯、德古拉、死靈、黑暗之王等）、193 件裝備精煉詞綴與 87 張卡片插槽；預設繁體中文與全解鎖單機存檔，按 F2 可開啟內建視覺化除錯面板（無敵、秒殺、召喚 MVP、滿等、全卡全裝）。原始碼與資料庫在 games/282-ro-life/，素材從 assets/282/ 載入。
 
 ### 品牌頁面
 

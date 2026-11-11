@@ -1,0 +1,2649 @@
+{
+  "totalPets": 24,
+  "totalAchievements": 71,
+  "totalAchievementPoints": 163,
+  "totalChroniclePerks": 5,
+  "petIntimacyTiers": [
+    {
+      "tier": "Neutral",
+      "minIntimacy": 0,
+      "bonusMultiplier": 0.5
+    },
+    {
+      "tier": "Cordial",
+      "minIntimacy": 750,
+      "bonusMultiplier": 0.75,
+      "unlocksAccessory": true
+    },
+    {
+      "tier": "Loyal",
+      "minIntimacy": 910,
+      "bonusMultiplier": 1,
+      "unlocksEvolution": true
+    }
+  ],
+  "accessoryBonusMultiplier": 1.5,
+  "pets": [
+    {
+      "id": "poring",
+      "monsterName": {
+        "es": "Poring",
+        "en": "Poring",
+        "zh-TW": "Poring"
+      },
+      "eggItemId": 9001,
+      "eggName": {
+        "es": "#9001",
+        "en": "#9001",
+        "zh-TW": "#9001"
+      },
+      "accessoryItemId": 10013,
+      "accessoryName": {
+        "es": "#10013",
+        "en": "#10013",
+        "zh-TW": "#10013"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+3 LUK",
+          "+1% de crítico"
+        ],
+        "en": [
+          "+3 LUK",
+          "+1% critical"
+        ],
+        "zh-TW": [
+          "+3 LUK",
+          "+1% 爆擊"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+5 LUK",
+          "+1,5% de crítico"
+        ],
+        "en": [
+          "+5 LUK",
+          "+1.5% critical"
+        ],
+        "zh-TW": [
+          "+5 LUK",
+          "+1.5% 爆擊"
+        ]
+      }
+    },
+    {
+      "id": "lunatic",
+      "monsterName": {
+        "es": "Lunatic",
+        "en": "Lunatic",
+        "zh-TW": "Lunatic"
+      },
+      "eggItemId": 9004,
+      "eggName": {
+        "es": "#9004",
+        "en": "#9004",
+        "zh-TW": "#9004"
+      },
+      "accessoryItemId": 10007,
+      "accessoryName": {
+        "es": "#10007",
+        "en": "#10007",
+        "zh-TW": "#10007"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2% de crítico",
+          "+2% de daño"
+        ],
+        "en": [
+          "+2% critical",
+          "+2% damage"
+        ],
+        "zh-TW": [
+          "+2% 爆擊",
+          "+2% 傷害"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3% de crítico",
+          "+3% de daño"
+        ],
+        "en": [
+          "+3% critical",
+          "+3% damage"
+        ],
+        "zh-TW": [
+          "+3% 爆擊",
+          "+3% 傷害"
+        ]
+      }
+    },
+    {
+      "id": "drops",
+      "monsterName": {
+        "es": "Drops",
+        "en": "Drops",
+        "zh-TW": "Drops"
+      },
+      "eggItemId": 9002,
+      "eggName": {
+        "es": "#9002",
+        "en": "#9002",
+        "zh-TW": "#9002"
+      },
+      "accessoryItemId": 10013,
+      "accessoryName": {
+        "es": "#10013",
+        "en": "#10013",
+        "zh-TW": "#10013"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+4% de daño"
+        ],
+        "en": [
+          "+4% damage"
+        ],
+        "zh-TW": [
+          "+4% 傷害"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+6% de daño"
+        ],
+        "en": [
+          "+6% damage"
+        ],
+        "zh-TW": [
+          "+6% 傷害"
+        ]
+      }
+    },
+    {
+      "id": "picky",
+      "monsterName": {
+        "es": "Picky",
+        "en": "Picky",
+        "zh-TW": "Picky"
+      },
+      "eggItemId": 9005,
+      "eggName": {
+        "es": "#9005",
+        "en": "#9005",
+        "zh-TW": "#9005"
+      },
+      "accessoryItemId": 10012,
+      "accessoryName": {
+        "es": "#10012",
+        "en": "#10012",
+        "zh-TW": "#10012"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 STR",
+          "+2% de daño"
+        ],
+        "en": [
+          "+2 STR",
+          "+2% damage"
+        ],
+        "zh-TW": [
+          "+2 STR",
+          "+2% 傷害"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 STR",
+          "+3% de daño"
+        ],
+        "en": [
+          "+3 STR",
+          "+3% damage"
+        ],
+        "zh-TW": [
+          "+3 STR",
+          "+3% 傷害"
+        ]
+      }
+    },
+    {
+      "id": "savage_babe",
+      "monsterName": {
+        "es": "Savage Babe",
+        "en": "Savage Babe",
+        "zh-TW": "Savage Babe"
+      },
+      "eggItemId": 9009,
+      "eggName": {
+        "es": "#9009",
+        "en": "#9009",
+        "zh-TW": "#9009"
+      },
+      "accessoryItemId": 10015,
+      "accessoryName": {
+        "es": "#10015",
+        "en": "#10015",
+        "zh-TW": "#10015"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 VIT",
+          "+40 HP máximo"
+        ],
+        "en": [
+          "+2 VIT",
+          "+40 max HP"
+        ],
+        "zh-TW": [
+          "+2 VIT",
+          "+40 最大 HP"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 VIT",
+          "+60 HP máximo"
+        ],
+        "en": [
+          "+3 VIT",
+          "+60 max HP"
+        ],
+        "zh-TW": [
+          "+3 VIT",
+          "+60 最大 HP"
+        ]
+      }
+    },
+    {
+      "id": "baby_desert_wolf",
+      "monsterName": {
+        "es": "Baby Desert Wolf",
+        "en": "Baby Desert Wolf",
+        "zh-TW": "Baby Desert Wolf"
+      },
+      "eggItemId": 9010,
+      "eggName": {
+        "es": "#9010",
+        "en": "#9010",
+        "zh-TW": "#9010"
+      },
+      "accessoryItemId": 10003,
+      "accessoryName": {
+        "es": "#10003",
+        "en": "#10003",
+        "zh-TW": "#10003"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 INT",
+          "+2 de Celeridad"
+        ],
+        "en": [
+          "+2 INT",
+          "+2 Haste"
+        ],
+        "zh-TW": [
+          "+2 INT",
+          "+2 冷卻縮減"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 INT",
+          "+3 de Celeridad"
+        ],
+        "en": [
+          "+3 INT",
+          "+3 Haste"
+        ],
+        "zh-TW": [
+          "+3 INT",
+          "+3 冷卻縮減"
+        ]
+      }
+    },
+    {
+      "id": "rocker",
+      "monsterName": {
+        "es": "Rocker",
+        "en": "Rocker",
+        "zh-TW": "Rocker"
+      },
+      "eggItemId": 9011,
+      "eggName": {
+        "es": "#9011",
+        "en": "#9011",
+        "zh-TW": "#9011"
+      },
+      "accessoryItemId": 10014,
+      "accessoryName": {
+        "es": "#10014",
+        "en": "#10014",
+        "zh-TW": "#10014"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+0,5 HP/s",
+          "+25 HP máximo"
+        ],
+        "en": [
+          "+0.5 HP/s",
+          "+25 max HP"
+        ],
+        "zh-TW": [
+          "+0.5 HP/秒",
+          "+25 最大 HP"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+0,75 HP/s",
+          "+37,5 HP máximo"
+        ],
+        "en": [
+          "+0.75 HP/s",
+          "+37.5 max HP"
+        ],
+        "zh-TW": [
+          "+0.75 HP/秒",
+          "+37.5 最大 HP"
+        ]
+      }
+    },
+    {
+      "id": "familiar",
+      "monsterName": {
+        "es": "Familiar",
+        "en": "Familiar",
+        "zh-TW": "Familiar"
+      },
+      "eggItemId": 9138,
+      "eggName": {
+        "es": "#9138",
+        "en": "#9138",
+        "zh-TW": "#9138"
+      },
+      "accessoryItemId": 10031,
+      "accessoryName": {
+        "es": "#10031",
+        "en": "#10031",
+        "zh-TW": "#10031"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+3 INT"
+        ],
+        "en": [
+          "+3 INT"
+        ],
+        "zh-TW": [
+          "+3 INT"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+5 INT"
+        ],
+        "en": [
+          "+5 INT"
+        ],
+        "zh-TW": [
+          "+5 INT"
+        ]
+      }
+    },
+    {
+      "id": "mastering",
+      "monsterName": {
+        "es": "Mastering",
+        "en": "Mastering",
+        "zh-TW": "Mastering"
+      },
+      "eggItemId": 9069,
+      "eggName": {
+        "es": "#9069",
+        "en": "#9069",
+        "zh-TW": "#9069"
+      },
+      "accessoryItemId": null,
+      "accessoryName": null,
+      "evolvesFrom": "poring",
+      "bonusesAtLoyal": {
+        "es": [
+          "+4 LUK",
+          "+2% de crítico",
+          "+2% de Flee"
+        ],
+        "en": [
+          "+4 LUK",
+          "+2% critical",
+          "+2% Flee"
+        ],
+        "zh-TW": [
+          "+4 LUK",
+          "+2% 爆擊",
+          "+2% 迴避"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+6 LUK",
+          "+3% de crítico",
+          "+3% de Flee"
+        ],
+        "en": [
+          "+6 LUK",
+          "+3% critical",
+          "+3% Flee"
+        ],
+        "zh-TW": [
+          "+6 LUK",
+          "+3% 爆擊",
+          "+3% 迴避"
+        ]
+      }
+    },
+    {
+      "id": "whisper",
+      "monsterName": {
+        "es": "Whisper",
+        "en": "Whisper",
+        "zh-TW": "Whisper"
+      },
+      "eggItemId": 9045,
+      "eggName": {
+        "es": "#9045",
+        "en": "#9045",
+        "zh-TW": "#9045"
+      },
+      "accessoryItemId": 10027,
+      "accessoryName": {
+        "es": "#10027",
+        "en": "#10027",
+        "zh-TW": "#10027"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+5% de Flee"
+        ],
+        "en": [
+          "+5% Flee"
+        ],
+        "zh-TW": [
+          "+5% 迴避"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+7,5% de Flee"
+        ],
+        "en": [
+          "+7.5% Flee"
+        ],
+        "zh-TW": [
+          "+7.5% 迴避"
+        ]
+      }
+    },
+    {
+      "id": "spore",
+      "monsterName": {
+        "es": "Spore",
+        "en": "Spore",
+        "zh-TW": "Spore"
+      },
+      "eggItemId": 9012,
+      "eggName": {
+        "es": "#9012",
+        "en": "#9012",
+        "zh-TW": "#9012"
+      },
+      "accessoryItemId": 10017,
+      "accessoryName": {
+        "es": "#10017",
+        "en": "#10017",
+        "zh-TW": "#10017"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+3 DEX"
+        ],
+        "en": [
+          "+3 DEX"
+        ],
+        "zh-TW": [
+          "+3 DEX"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+5 DEX"
+        ],
+        "en": [
+          "+5 DEX"
+        ],
+        "zh-TW": [
+          "+5 DEX"
+        ]
+      }
+    },
+    {
+      "id": "poison_spore",
+      "monsterName": {
+        "es": "Poison Spore",
+        "en": "Poison Spore",
+        "zh-TW": "Poison Spore"
+      },
+      "eggItemId": 9013,
+      "eggName": {
+        "es": "#9013",
+        "en": "#9013",
+        "zh-TW": "#9013"
+      },
+      "accessoryItemId": 10017,
+      "accessoryName": {
+        "es": "#10017",
+        "en": "#10017",
+        "zh-TW": "#10017"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 STR",
+          "+2 INT"
+        ],
+        "en": [
+          "+2 STR",
+          "+2 INT"
+        ],
+        "zh-TW": [
+          "+2 STR",
+          "+2 INT"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 STR",
+          "+3 INT"
+        ],
+        "en": [
+          "+3 STR",
+          "+3 INT"
+        ],
+        "zh-TW": [
+          "+3 STR",
+          "+3 INT"
+        ]
+      }
+    },
+    {
+      "id": "poporing",
+      "monsterName": {
+        "es": "Poporing",
+        "en": "Poporing",
+        "zh-TW": "Poporing"
+      },
+      "eggItemId": 9003,
+      "eggName": {
+        "es": "#9003",
+        "en": "#9003",
+        "zh-TW": "#9003"
+      },
+      "accessoryItemId": 10013,
+      "accessoryName": {
+        "es": "#10013",
+        "en": "#10013",
+        "zh-TW": "#10013"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 LUK",
+          "-3% de daño recibido"
+        ],
+        "en": [
+          "+2 LUK",
+          "-3% damage taken"
+        ],
+        "zh-TW": [
+          "+2 LUK",
+          "-3% 受到傷害"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 LUK",
+          "-4,5% de daño recibido"
+        ],
+        "en": [
+          "+3 LUK",
+          "-4.5% damage taken"
+        ],
+        "zh-TW": [
+          "+3 LUK",
+          "-4.5% 受到傷害"
+        ]
+      }
+    },
+    {
+      "id": "smokie",
+      "monsterName": {
+        "es": "Smokie",
+        "en": "Smokie",
+        "zh-TW": "Smokie"
+      },
+      "eggItemId": 9015,
+      "eggName": {
+        "es": "#9015",
+        "en": "#9015",
+        "zh-TW": "#9015"
+      },
+      "accessoryItemId": 10019,
+      "accessoryName": {
+        "es": "#10019",
+        "en": "#10019",
+        "zh-TW": "#10019"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 AGI",
+          "+2% de Flee"
+        ],
+        "en": [
+          "+2 AGI",
+          "+2% Flee"
+        ],
+        "zh-TW": [
+          "+2 AGI",
+          "+2% 迴避"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 AGI",
+          "+3% de Flee"
+        ],
+        "en": [
+          "+3 AGI",
+          "+3% Flee"
+        ],
+        "zh-TW": [
+          "+3 AGI",
+          "+3% 迴避"
+        ]
+      }
+    },
+    {
+      "id": "dokebi",
+      "monsterName": {
+        "es": "Dokebi",
+        "en": "Dokebi",
+        "zh-TW": "Dokebi"
+      },
+      "eggItemId": 9019,
+      "eggName": {
+        "es": "#9019",
+        "en": "#9019",
+        "zh-TW": "#9019"
+      },
+      "accessoryItemId": 10005,
+      "accessoryName": {
+        "es": "#10005",
+        "en": "#10005",
+        "zh-TW": "#10005"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 INT",
+          "+3 de rapidez de casteo"
+        ],
+        "en": [
+          "+2 INT",
+          "+3 cast speed"
+        ],
+        "zh-TW": [
+          "+2 INT",
+          "+3 詠唱速度"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 INT",
+          "+4,5 de rapidez de casteo"
+        ],
+        "en": [
+          "+3 INT",
+          "+4.5 cast speed"
+        ],
+        "zh-TW": [
+          "+3 INT",
+          "+4.5 詠唱速度"
+        ]
+      }
+    },
+    {
+      "id": "nine_tail",
+      "monsterName": {
+        "es": "Nine Tail",
+        "en": "Nine Tail",
+        "zh-TW": "Nine Tail"
+      },
+      "eggItemId": 9095,
+      "eggName": {
+        "es": "#9095",
+        "en": "#9095",
+        "zh-TW": "#9095"
+      },
+      "accessoryItemId": 10040,
+      "accessoryName": {
+        "es": "#10040",
+        "en": "#10040",
+        "zh-TW": "#10040"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2% de crítico",
+          "+2 DEX"
+        ],
+        "en": [
+          "+2% critical",
+          "+2 DEX"
+        ],
+        "zh-TW": [
+          "+2% 爆擊",
+          "+2 DEX"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3% de crítico",
+          "+3 DEX"
+        ],
+        "en": [
+          "+3% critical",
+          "+3 DEX"
+        ],
+        "zh-TW": [
+          "+3% 爆擊",
+          "+3 DEX"
+        ]
+      }
+    },
+    {
+      "id": "willow",
+      "monsterName": {
+        "es": "Willow",
+        "en": "Willow",
+        "zh-TW": "Willow"
+      },
+      "eggItemId": 9103,
+      "eggName": {
+        "es": "#9103",
+        "en": "#9103",
+        "zh-TW": "#9103"
+      },
+      "accessoryItemId": 10023,
+      "accessoryName": {
+        "es": "#10023",
+        "en": "#10023",
+        "zh-TW": "#10023"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+3 INT"
+        ],
+        "en": [
+          "+3 INT"
+        ],
+        "zh-TW": [
+          "+3 INT"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+5 INT"
+        ],
+        "en": [
+          "+5 INT"
+        ],
+        "zh-TW": [
+          "+5 INT"
+        ]
+      }
+    },
+    {
+      "id": "angeling",
+      "monsterName": {
+        "es": "Angeling",
+        "en": "Angeling",
+        "zh-TW": "Angeling"
+      },
+      "eggItemId": 9088,
+      "eggName": {
+        "es": "#9088",
+        "en": "#9088",
+        "zh-TW": "#9088"
+      },
+      "accessoryItemId": null,
+      "accessoryName": null,
+      "evolvesFrom": "mastering",
+      "bonusesAtLoyal": {
+        "es": [
+          "+5% de HP máximo",
+          "+15% curación de la carne"
+        ],
+        "en": [
+          "+5% max HP",
+          "+15% meat healing"
+        ],
+        "zh-TW": [
+          "最大 HP +5%",
+          "+15% 肉的治療量"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+7,5% de HP máximo",
+          "+22,5% curación de la carne"
+        ],
+        "en": [
+          "+7.5% max HP",
+          "+22.5% meat healing"
+        ],
+        "zh-TW": [
+          "最大 HP +7.5%",
+          "+22.5% 肉的治療量"
+        ]
+      }
+    },
+    {
+      "id": "munak",
+      "monsterName": {
+        "es": "Munak",
+        "en": "Munak",
+        "zh-TW": "Munak"
+      },
+      "eggItemId": 9018,
+      "eggName": {
+        "es": "#9018",
+        "en": "#9018",
+        "zh-TW": "#9018"
+      },
+      "accessoryItemId": 10008,
+      "accessoryName": {
+        "es": "#10008",
+        "en": "#10008",
+        "zh-TW": "#10008"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 de armadura",
+          "+2 INT"
+        ],
+        "en": [
+          "+2 armor",
+          "+2 INT"
+        ],
+        "zh-TW": [
+          "+2 護甲",
+          "+2 INT"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 de armadura",
+          "+3 INT"
+        ],
+        "en": [
+          "+3 armor",
+          "+3 INT"
+        ],
+        "zh-TW": [
+          "+3 護甲",
+          "+3 INT"
+        ]
+      }
+    },
+    {
+      "id": "bon_gun",
+      "monsterName": {
+        "es": "Bongun",
+        "en": "Bongun",
+        "zh-TW": "Bongun"
+      },
+      "eggItemId": 9025,
+      "eggName": {
+        "es": "#9025",
+        "en": "#9025",
+        "zh-TW": "#9025"
+      },
+      "accessoryItemId": 10020,
+      "accessoryName": {
+        "es": "#10020",
+        "en": "#10020",
+        "zh-TW": "#10020"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+3 VIT",
+          "+20 HP máximo"
+        ],
+        "en": [
+          "+3 VIT",
+          "+20 max HP"
+        ],
+        "zh-TW": [
+          "+3 VIT",
+          "+20 最大 HP"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+5 VIT",
+          "+30 HP máximo"
+        ],
+        "en": [
+          "+5 VIT",
+          "+30 max HP"
+        ],
+        "zh-TW": [
+          "+5 VIT",
+          "+30 最大 HP"
+        ]
+      }
+    },
+    {
+      "id": "sohee",
+      "monsterName": {
+        "es": "Sohee",
+        "en": "Sohee",
+        "zh-TW": "Sohee"
+      },
+      "eggItemId": 9020,
+      "eggName": {
+        "es": "#9020",
+        "en": "#9020",
+        "zh-TW": "#9020"
+      },
+      "accessoryItemId": 10016,
+      "accessoryName": {
+        "es": "#10016",
+        "en": "#10016",
+        "zh-TW": "#10016"
+      },
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+2 STR",
+          "+2 DEX"
+        ],
+        "en": [
+          "+2 STR",
+          "+2 DEX"
+        ],
+        "zh-TW": [
+          "+2 STR",
+          "+2 DEX"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+3 STR",
+          "+3 DEX"
+        ],
+        "en": [
+          "+3 STR",
+          "+3 DEX"
+        ],
+        "zh-TW": [
+          "+3 STR",
+          "+3 DEX"
+        ]
+      }
+    },
+    {
+      "id": "hyegun",
+      "monsterName": {
+        "es": "Hyegun",
+        "en": "Hyegun",
+        "zh-TW": "Hyegun"
+      },
+      "eggItemId": 9093,
+      "eggName": {
+        "es": "#9093",
+        "en": "#9093",
+        "zh-TW": "#9093"
+      },
+      "accessoryItemId": null,
+      "accessoryName": null,
+      "evolvesFrom": "bon_gun",
+      "bonusesAtLoyal": {
+        "es": [
+          "+4 VIT",
+          "-4% de daño recibido"
+        ],
+        "en": [
+          "+4 VIT",
+          "-4% damage taken"
+        ],
+        "zh-TW": [
+          "+4 VIT",
+          "-4% 受到傷害"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+6 VIT",
+          "-6% de daño recibido"
+        ],
+        "en": [
+          "+6 VIT",
+          "-6% damage taken"
+        ],
+        "zh-TW": [
+          "+6 VIT",
+          "-6% 受到傷害"
+        ]
+      }
+    },
+    {
+      "id": "cat_o_nine_tail",
+      "monsterName": {
+        "es": "Cat O' Nine Tails",
+        "en": "Cat O' Nine Tails",
+        "zh-TW": "Cat O' Nine Tails"
+      },
+      "eggItemId": 9096,
+      "eggName": {
+        "es": "#9096",
+        "en": "#9096",
+        "zh-TW": "#9096"
+      },
+      "accessoryItemId": null,
+      "accessoryName": null,
+      "evolvesFrom": "nine_tail",
+      "bonusesAtLoyal": {
+        "es": [
+          "+4% de crítico",
+          "+0,6 HP/s"
+        ],
+        "en": [
+          "+4% critical",
+          "+0.6 HP/s"
+        ],
+        "zh-TW": [
+          "+4% 爆擊",
+          "+0.6 HP/秒"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+6% de crítico",
+          "+0,9 HP/s"
+        ],
+        "en": [
+          "+6% critical",
+          "+0.9 HP/s"
+        ],
+        "zh-TW": [
+          "+6% 爆擊",
+          "+0.9 HP/秒"
+        ]
+      }
+    },
+    {
+      "id": "moonlight",
+      "monsterName": {
+        "es": "Moonlight Flower",
+        "en": "Moonlight Flower",
+        "zh-TW": "Moonlight Flower"
+      },
+      "eggItemId": 9112,
+      "eggName": {
+        "es": "#9112",
+        "en": "#9112",
+        "zh-TW": "#9112"
+      },
+      "accessoryItemId": null,
+      "accessoryName": null,
+      "evolvesFrom": null,
+      "bonusesAtLoyal": {
+        "es": [
+          "+4% de crítico",
+          "+0,6 HP/s al moverte",
+          "+3% de velocidad de movimiento"
+        ],
+        "en": [
+          "+4% critical",
+          "+0.6 HP/s while moving",
+          "+3% movement speed"
+        ],
+        "zh-TW": [
+          "+4% 爆擊",
+          "移動時 +0.6 HP/秒",
+          "+3% 移動速度"
+        ]
+      },
+      "bonusesAtLoyalWithAccessory": {
+        "es": [
+          "+6% de crítico",
+          "+0,9 HP/s al moverte",
+          "+4,5% de velocidad de movimiento"
+        ],
+        "en": [
+          "+6% critical",
+          "+0.9 HP/s while moving",
+          "+4.5% movement speed"
+        ],
+        "zh-TW": [
+          "+6% 爆擊",
+          "移動時 +0.9 HP/秒",
+          "+4.5% 移動速度"
+        ]
+      }
+    }
+  ],
+  "chroniclePerks": [
+    {
+      "id": "reroll",
+      "icon": "reroll",
+      "costsByRank": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "maxRank": 5,
+      "name": {
+        "es": "Reroll deck",
+        "en": "Reroll deck",
+        "zh-TW": "重抽全部"
+      },
+      "desc": {
+        "es": "Cambia las cartas de una subida de nivel o de un cofre por otras nuevas.",
+        "en": "Swaps the cards of a level-up or a chest for new ones.",
+        "zh-TW": "將升級或寶箱的卡片全部換成新的。"
+      }
+    },
+    {
+      "id": "reroll_card",
+      "icon": "reroll_card",
+      "costsByRank": [
+        2,
+        3,
+        3,
+        4,
+        4,
+        5,
+        5,
+        6,
+        6,
+        7
+      ],
+      "maxRank": 10,
+      "name": {
+        "es": "Reroll card",
+        "en": "Reroll card",
+        "zh-TW": "重抽卡片"
+      },
+      "desc": {
+        "es": "Vuelve a tirar una carta: la misma habilidad con otra mejora, o el mismo hueco del cofre con otra pieza.",
+        "en": "Rerolls one card: same skill with a different upgrade, or the same chest slot with a different piece.",
+        "zh-TW": "重抽一張卡片：同一技能的不同強化，或同一寶箱欄位的不同裝備。"
+      }
+    },
+    {
+      "id": "banish",
+      "icon": "banish",
+      "costsByRank": [
+        3,
+        4,
+        6,
+        8
+      ],
+      "maxRank": 4,
+      "name": {
+        "es": "Banish",
+        "en": "Banish",
+        "zh-TW": "放逐"
+      },
+      "desc": {
+        "es": "Saca una habilidad u objeto de los rolls para el resto de la partida; si ya lo tienes, deja de salir para mejorarlo.",
+        "en": "Removes a skill or item from the rolls for the rest of the run; if you already have it, it stops showing up for upgrades.",
+        "zh-TW": "在本局剩餘時間內，將某個技能或物品移出抽選；若已擁有，則不再出現它的強化。"
+      }
+    },
+    {
+      "id": "focus",
+      "icon": "focus",
+      "costsByRank": [
+        4,
+        7
+      ],
+      "maxRank": 2,
+      "name": {
+        "es": "Focus",
+        "en": "Focus",
+        "zh-TW": "專注"
+      },
+      "desc": {
+        "es": "Una habilidad u objeto sale con prioridad en los rolls (×3) el resto de la partida.",
+        "en": "A skill or item shows up with priority in the rolls (×3) for the rest of the run.",
+        "zh-TW": "在本局剩餘時間內，某個技能或物品會優先出現在抽選中（×3）。"
+      }
+    },
+    {
+      "id": "deity",
+      "icon": "deity",
+      "costsByRank": [
+        8
+      ],
+      "maxRank": 1,
+      "name": {
+        "es": "Deity cambiante",
+        "en": "Shifting Deity",
+        "zh-TW": "轉移神祇"
+      },
+      "desc": {
+        "es": "Siguen saliendo Deity de otras habilidades después de coger la primera: puedes cambiar de Deity a media partida (se pierden sus refinados).",
+        "en": "Deities of other skills keep showing up after you take the first one: you can switch Deity mid-run (its refines are lost).",
+        "zh-TW": "取得第一個神祇後，其他技能的神祇仍會出現：可在局中更換神祇（其精煉會遺失）。"
+      }
+    }
+  ],
+  "achievements": [
+    {
+      "id": "clear_prontera",
+      "category": "stages",
+      "points": 2,
+      "goal": 1,
+      "vars": {
+        "s": "Campos de Prontera"
+      },
+      "name": {
+        "es": "Campos de Prontera",
+        "en": "Prontera Fields",
+        "zh-TW": "普隆德拉原野"
+      },
+      "desc": {
+        "es": "Supera Campos de Prontera por primera vez.",
+        "en": "Clear Prontera Fields for the first time.",
+        "zh-TW": "首次通關普隆德拉原野。"
+      }
+    },
+    {
+      "id": "clear_sewer",
+      "category": "stages",
+      "points": 2,
+      "goal": 1,
+      "vars": {
+        "s": "Alcantarillas de Prontera"
+      },
+      "name": {
+        "es": "Alcantarillas de Prontera",
+        "en": "Prontera Culverts",
+        "zh-TW": "普隆德拉地下水道"
+      },
+      "desc": {
+        "es": "Supera Alcantarillas de Prontera por primera vez.",
+        "en": "Clear Prontera Culverts for the first time.",
+        "zh-TW": "首次通關普隆德拉地下水道。"
+      }
+    },
+    {
+      "id": "clear_sunken_story",
+      "category": "stages",
+      "points": 2,
+      "goal": 1,
+      "vars": {
+        "s": "Historia del Barco hundido"
+      },
+      "name": {
+        "es": "Historia del Barco hundido",
+        "en": "Sunken Ship story",
+        "zh-TW": "失事輪劇情"
+      },
+      "desc": {
+        "es": "Supera Historia del Barco hundido por primera vez.",
+        "en": "Clear Sunken Ship story for the first time.",
+        "zh-TW": "首次通關失事輪劇情。"
+      }
+    },
+    {
+      "id": "clear_sunken",
+      "category": "stages",
+      "points": 3,
+      "goal": 1,
+      "vars": {
+        "s": "Barco hundido"
+      },
+      "name": {
+        "es": "Barco hundido",
+        "en": "Sunken Ship",
+        "zh-TW": "失事輪"
+      },
+      "desc": {
+        "es": "Supera Barco hundido por primera vez.",
+        "en": "Clear Sunken Ship for the first time.",
+        "zh-TW": "首次通關失事輪。"
+      }
+    },
+    {
+      "id": "clear_byalan",
+      "category": "stages",
+      "points": 3,
+      "goal": 1,
+      "vars": {
+        "s": "Isla de Byalan"
+      },
+      "name": {
+        "es": "Isla de Byalan",
+        "en": "Byalan Island",
+        "zh-TW": "柏伊亞嵐島"
+      },
+      "desc": {
+        "es": "Supera Isla de Byalan por primera vez.",
+        "en": "Clear Byalan Island for the first time.",
+        "zh-TW": "首次通關柏伊亞嵐島。"
+      }
+    },
+    {
+      "id": "clear_payon",
+      "category": "stages",
+      "points": 3,
+      "goal": 1,
+      "vars": {
+        "s": "Bosque de Payon"
+      },
+      "name": {
+        "es": "Bosque de Payon",
+        "en": "Payon Forest",
+        "zh-TW": "斐揚森林"
+      },
+      "desc": {
+        "es": "Supera Bosque de Payon por primera vez.",
+        "en": "Clear Payon Forest for the first time.",
+        "zh-TW": "首次通關斐揚森林。"
+      }
+    },
+    {
+      "id": "clear_payon_cave",
+      "category": "stages",
+      "points": 4,
+      "goal": 1,
+      "vars": {
+        "s": "Cueva de Payon"
+      },
+      "name": {
+        "es": "Cueva de Payon",
+        "en": "Payon Cave",
+        "zh-TW": "斐揚洞穴"
+      },
+      "desc": {
+        "es": "Supera Cueva de Payon por primera vez.",
+        "en": "Clear Payon Cave for the first time.",
+        "zh-TW": "首次通關斐揚洞穴。"
+      }
+    },
+    {
+      "id": "clear_prt_castle",
+      "category": "stages",
+      "points": 3,
+      "goal": 1,
+      "vars": {
+        "s": "Castillo de Prontera"
+      },
+      "name": {
+        "es": "Castillo de Prontera",
+        "en": "Prontera Castle",
+        "zh-TW": "普隆德拉城"
+      },
+      "desc": {
+        "es": "Supera Castillo de Prontera por primera vez.",
+        "en": "Clear Prontera Castle for the first time.",
+        "zh-TW": "首次通關普隆德拉城。"
+      }
+    },
+    {
+      "id": "minis_prontera",
+      "category": "stages",
+      "points": 2,
+      "goal": 4,
+      "vars": {
+        "s": "Campos de Prontera",
+        "list": "Eclipse, Toad, Dragon Fly, Vocal"
+      },
+      "name": {
+        "es": "Cazajefes: Campos de Prontera",
+        "en": "Boss hunter: Prontera Fields",
+        "zh-TW": "頭目獵人：普隆德拉原野"
+      },
+      "desc": {
+        "es": "Vence a todos los mini-jefes de Campos de Prontera (Eclipse, Toad, Dragon Fly, Vocal).",
+        "en": "Defeat every mini-boss of Prontera Fields (Eclipse, Toad, Dragon Fly, Vocal).",
+        "zh-TW": "擊敗普隆德拉原野的所有小頭目（Eclipse, Toad, Dragon Fly, Vocal）。"
+      }
+    },
+    {
+      "id": "minis_sewer",
+      "category": "stages",
+      "points": 2,
+      "goal": 3,
+      "vars": {
+        "s": "Alcantarillas de Prontera",
+        "list": "Biting Tarou, Plague Tarou, Burrowing Tarou"
+      },
+      "name": {
+        "es": "Cazajefes: Alcantarillas de Prontera",
+        "en": "Boss hunter: Prontera Culverts",
+        "zh-TW": "頭目獵人：普隆德拉地下水道"
+      },
+      "desc": {
+        "es": "Vence a todos los mini-jefes de Alcantarillas de Prontera (Biting Tarou, Plague Tarou, Burrowing Tarou).",
+        "en": "Defeat every mini-boss of Prontera Culverts (Biting Tarou, Plague Tarou, Burrowing Tarou).",
+        "zh-TW": "擊敗普隆德拉地下水道的所有小頭目（Biting Tarou, Plague Tarou, Burrowing Tarou）。"
+      }
+    },
+    {
+      "id": "minis_byalan",
+      "category": "stages",
+      "points": 2,
+      "goal": 3,
+      "vars": {
+        "s": "Isla de Byalan",
+        "list": "Deviace, Strouf, King Dramoh"
+      },
+      "name": {
+        "es": "Cazajefes: Isla de Byalan",
+        "en": "Boss hunter: Byalan Island",
+        "zh-TW": "頭目獵人：柏伊亞嵐島"
+      },
+      "desc": {
+        "es": "Vence a todos los mini-jefes de Isla de Byalan (Deviace, Strouf, King Dramoh).",
+        "en": "Defeat every mini-boss of Byalan Island (Deviace, Strouf, King Dramoh).",
+        "zh-TW": "擊敗柏伊亞嵐島的所有小頭目（Deviace, Strouf, King Dramoh）。"
+      }
+    },
+    {
+      "id": "minis_payon",
+      "category": "stages",
+      "points": 2,
+      "goal": 3,
+      "vars": {
+        "s": "Bosque de Payon",
+        "list": "Angeling, Deviling, Vagabond Wolf"
+      },
+      "name": {
+        "es": "Cazajefes: Bosque de Payon",
+        "en": "Boss hunter: Payon Forest",
+        "zh-TW": "頭目獵人：斐揚森林"
+      },
+      "desc": {
+        "es": "Vence a todos los mini-jefes de Bosque de Payon (Angeling, Deviling, Vagabond Wolf).",
+        "en": "Defeat every mini-boss of Payon Forest (Angeling, Deviling, Vagabond Wolf).",
+        "zh-TW": "擊敗斐揚森林的所有小頭目（Angeling, Deviling, Vagabond Wolf）。"
+      }
+    },
+    {
+      "id": "minis_payon_cave",
+      "category": "stages",
+      "points": 2,
+      "goal": 3,
+      "vars": {
+        "s": "Cueva de Payon",
+        "list": "Skeleton General, Cat O' Nine Tails, Hyegun"
+      },
+      "name": {
+        "es": "Cazajefes: Cueva de Payon",
+        "en": "Boss hunter: Payon Cave",
+        "zh-TW": "頭目獵人：斐揚洞穴"
+      },
+      "desc": {
+        "es": "Vence a todos los mini-jefes de Cueva de Payon (Skeleton General, Cat O' Nine Tails, Hyegun).",
+        "en": "Defeat every mini-boss of Payon Cave (Skeleton General, Cat O' Nine Tails, Hyegun).",
+        "zh-TW": "擊敗斐揚洞穴的所有小頭目（Skeleton General, Cat O' Nine Tails, Hyegun）。"
+      }
+    },
+    {
+      "id": "second_job",
+      "category": "jobs",
+      "points": 3,
+      "goal": 1,
+      "vars": null,
+      "name": {
+        "es": "Segundo job",
+        "en": "Second job",
+        "zh-TW": "二轉"
+      },
+      "desc": {
+        "es": "Sube a un 2nd job con algún personaje.",
+        "en": "Promote any character to a 2nd job.",
+        "zh-TW": "將任一角色轉為二轉職業。"
+      }
+    },
+    {
+      "id": "second_jobs_3",
+      "category": "jobs",
+      "points": 3,
+      "goal": 3,
+      "vars": {
+        "n": 3
+      },
+      "name": {
+        "es": "Versátil",
+        "en": "Versatile",
+        "zh-TW": "多才多藝"
+      },
+      "desc": {
+        "es": "Consigue 3 2nd jobs distintos.",
+        "en": "Get 3 different 2nd jobs.",
+        "zh-TW": "取得 3 種不同的二轉職業。"
+      }
+    },
+    {
+      "id": "second_jobs_6",
+      "category": "jobs",
+      "points": 4,
+      "goal": 6,
+      "vars": {
+        "n": 6
+      },
+      "name": {
+        "es": "Polivalente",
+        "en": "Jack of many trades",
+        "zh-TW": "十項全能"
+      },
+      "desc": {
+        "es": "Consigue 6 2nd jobs distintos.",
+        "en": "Get 6 different 2nd jobs.",
+        "zh-TW": "取得 6 種不同的二轉職業。"
+      }
+    },
+    {
+      "id": "second_jobs_all",
+      "category": "jobs",
+      "points": 6,
+      "goal": 14,
+      "vars": {
+        "n": 14
+      },
+      "name": {
+        "es": "Maestro de oficios",
+        "en": "Master of trades",
+        "zh-TW": "職業大師"
+      },
+      "desc": {
+        "es": "Consigue los 14 2nd jobs.",
+        "en": "Get all 14 2nd jobs.",
+        "zh-TW": "取得全部 14 種二轉職業。"
+      }
+    },
+    {
+      "id": "first_jobs_3",
+      "category": "jobs",
+      "points": 2,
+      "goal": 3,
+      "vars": {
+        "n": 3
+      },
+      "name": {
+        "es": "Curioso",
+        "en": "Curious",
+        "zh-TW": "好奇心"
+      },
+      "desc": {
+        "es": "Juega partidas con 3 1st jobs distintos.",
+        "en": "Play runs with 3 different 1st jobs.",
+        "zh-TW": "用 3 種不同的一轉職業遊玩。"
+      }
+    },
+    {
+      "id": "first_jobs_all",
+      "category": "jobs",
+      "points": 3,
+      "goal": 6,
+      "vars": {
+        "n": 6
+      },
+      "name": {
+        "es": "Aprendiz de todo",
+        "en": "Apprentice of all",
+        "zh-TW": "萬事學徒"
+      },
+      "desc": {
+        "es": "Juega partidas con los 6 1st jobs clásicos.",
+        "en": "Play runs with all 6 classic 1st jobs.",
+        "zh-TW": "用全部 6 種經典一轉職業遊玩。"
+      }
+    },
+    {
+      "id": "job_50",
+      "category": "jobs",
+      "points": 2,
+      "goal": 50,
+      "vars": {
+        "n": 50
+      },
+      "name": {
+        "es": "Job al máximo",
+        "en": "Maxed job",
+        "zh-TW": "職業滿級"
+      },
+      "desc": {
+        "es": "Llega a Job Lv 50 con algún personaje.",
+        "en": "Reach Job Lv 50 with any character.",
+        "zh-TW": "以任一角色達到職業等級 50。"
+      }
+    },
+    {
+      "id": "base_30",
+      "category": "jobs",
+      "points": 1,
+      "goal": 30,
+      "vars": {
+        "n": 30
+      },
+      "name": {
+        "es": "Aventurero",
+        "en": "Adventurer",
+        "zh-TW": "冒險者"
+      },
+      "desc": {
+        "es": "Llega a Base Lv 30 con algún personaje.",
+        "en": "Reach Base Lv 30 with any character.",
+        "zh-TW": "以任一角色達到基本等級 30。"
+      }
+    },
+    {
+      "id": "base_60",
+      "category": "jobs",
+      "points": 2,
+      "goal": 60,
+      "vars": {
+        "n": 60
+      },
+      "name": {
+        "es": "Veterano",
+        "en": "Veteran",
+        "zh-TW": "老手"
+      },
+      "desc": {
+        "es": "Llega a Base Lv 60 con algún personaje.",
+        "en": "Reach Base Lv 60 with any character.",
+        "zh-TW": "以任一角色達到基本等級 60。"
+      }
+    },
+    {
+      "id": "base_99",
+      "category": "jobs",
+      "points": 4,
+      "goal": 99,
+      "vars": {
+        "n": 99
+      },
+      "name": {
+        "es": "Leyenda",
+        "en": "Legend",
+        "zh-TW": "傳奇"
+      },
+      "desc": {
+        "es": "Llega a Base Lv 99 con algún personaje.",
+        "en": "Reach Base Lv 99 with any character.",
+        "zh-TW": "以任一角色達到基本等級 99。"
+      }
+    },
+    {
+      "id": "mvp_mastering_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "Mastering"
+      },
+      "name": {
+        "es": "Vence a Mastering",
+        "en": "Defeat Mastering",
+        "zh-TW": "擊敗Mastering"
+      },
+      "desc": {
+        "es": "Vence a Mastering por primera vez.",
+        "en": "Defeat Mastering for the first time.",
+        "zh-TW": "首次擊敗Mastering。"
+      }
+    },
+    {
+      "id": "mvp_mastering_10",
+      "category": "bosses",
+      "points": 2,
+      "goal": 10,
+      "vars": {
+        "m": "Mastering",
+        "n": 10
+      },
+      "name": {
+        "es": "Mastering ×10",
+        "en": "Mastering ×10",
+        "zh-TW": "Mastering ×10"
+      },
+      "desc": {
+        "es": "Vence a Mastering 10 veces.",
+        "en": "Defeat Mastering 10 times.",
+        "zh-TW": "擊敗Mastering 10 次。"
+      }
+    },
+    {
+      "id": "mvp_mastering_30",
+      "category": "bosses",
+      "points": 3,
+      "goal": 30,
+      "vars": {
+        "m": "Mastering",
+        "n": 30
+      },
+      "name": {
+        "es": "Mastering ×30",
+        "en": "Mastering ×30",
+        "zh-TW": "Mastering ×30"
+      },
+      "desc": {
+        "es": "Vence a Mastering 30 veces.",
+        "en": "Defeat Mastering 30 times.",
+        "zh-TW": "擊敗Mastering 30 次。"
+      }
+    },
+    {
+      "id": "mvp_golden_thief_bug_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "Golden Thief Bug"
+      },
+      "name": {
+        "es": "Vence a Golden Thief Bug",
+        "en": "Defeat Golden Thief Bug",
+        "zh-TW": "擊敗Golden Thief Bug"
+      },
+      "desc": {
+        "es": "Vence a Golden Thief Bug por primera vez.",
+        "en": "Defeat Golden Thief Bug for the first time.",
+        "zh-TW": "首次擊敗Golden Thief Bug。"
+      }
+    },
+    {
+      "id": "mvp_golden_thief_bug_19",
+      "category": "bosses",
+      "points": 3,
+      "goal": 19,
+      "vars": {
+        "m": "Golden Thief Bug",
+        "n": 19
+      },
+      "name": {
+        "es": "Golden Thief Bug ×19",
+        "en": "Golden Thief Bug ×19",
+        "zh-TW": "Golden Thief Bug ×19"
+      },
+      "desc": {
+        "es": "Vence a Golden Thief Bug 19 veces.",
+        "en": "Defeat Golden Thief Bug 19 times.",
+        "zh-TW": "擊敗Golden Thief Bug 19 次。"
+      }
+    },
+    {
+      "id": "mvp_golden_thief_bug_50",
+      "category": "bosses",
+      "points": 3,
+      "goal": 50,
+      "vars": {
+        "m": "Golden Thief Bug",
+        "n": 50
+      },
+      "name": {
+        "es": "Golden Thief Bug ×50",
+        "en": "Golden Thief Bug ×50",
+        "zh-TW": "Golden Thief Bug ×50"
+      },
+      "desc": {
+        "es": "Vence a Golden Thief Bug 50 veces.",
+        "en": "Defeat Golden Thief Bug 50 times.",
+        "zh-TW": "擊敗Golden Thief Bug 50 次。"
+      }
+    },
+    {
+      "id": "mvp_drake_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "Drake"
+      },
+      "name": {
+        "es": "Vence a Drake",
+        "en": "Defeat Drake",
+        "zh-TW": "擊敗Drake"
+      },
+      "desc": {
+        "es": "Vence a Drake por primera vez.",
+        "en": "Defeat Drake for the first time.",
+        "zh-TW": "首次擊敗Drake。"
+      }
+    },
+    {
+      "id": "mvp_drake_10",
+      "category": "bosses",
+      "points": 2,
+      "goal": 10,
+      "vars": {
+        "m": "Drake",
+        "n": 10
+      },
+      "name": {
+        "es": "Drake ×10",
+        "en": "Drake ×10",
+        "zh-TW": "Drake ×10"
+      },
+      "desc": {
+        "es": "Vence a Drake 10 veces.",
+        "en": "Defeat Drake 10 times.",
+        "zh-TW": "擊敗Drake 10 次。"
+      }
+    },
+    {
+      "id": "mvp_drake_30",
+      "category": "bosses",
+      "points": 3,
+      "goal": 30,
+      "vars": {
+        "m": "Drake",
+        "n": 30
+      },
+      "name": {
+        "es": "Drake ×30",
+        "en": "Drake ×30",
+        "zh-TW": "Drake ×30"
+      },
+      "desc": {
+        "es": "Vence a Drake 30 veces.",
+        "en": "Defeat Drake 30 times.",
+        "zh-TW": "擊敗Drake 30 次。"
+      }
+    },
+    {
+      "id": "mvp_kraken_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "Kraken"
+      },
+      "name": {
+        "es": "Vence a Kraken",
+        "en": "Defeat Kraken",
+        "zh-TW": "擊敗Kraken"
+      },
+      "desc": {
+        "es": "Vence a Kraken por primera vez.",
+        "en": "Defeat Kraken for the first time.",
+        "zh-TW": "首次擊敗Kraken。"
+      }
+    },
+    {
+      "id": "mvp_kraken_10",
+      "category": "bosses",
+      "points": 2,
+      "goal": 10,
+      "vars": {
+        "m": "Kraken",
+        "n": 10
+      },
+      "name": {
+        "es": "Kraken ×10",
+        "en": "Kraken ×10",
+        "zh-TW": "Kraken ×10"
+      },
+      "desc": {
+        "es": "Vence a Kraken 10 veces.",
+        "en": "Defeat Kraken 10 times.",
+        "zh-TW": "擊敗Kraken 10 次。"
+      }
+    },
+    {
+      "id": "mvp_kraken_30",
+      "category": "bosses",
+      "points": 3,
+      "goal": 30,
+      "vars": {
+        "m": "Kraken",
+        "n": 30
+      },
+      "name": {
+        "es": "Kraken ×30",
+        "en": "Kraken ×30",
+        "zh-TW": "Kraken ×30"
+      },
+      "desc": {
+        "es": "Vence a Kraken 30 veces.",
+        "en": "Defeat Kraken 30 times.",
+        "zh-TW": "擊敗Kraken 30 次。"
+      }
+    },
+    {
+      "id": "mvp_eddga_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "Eddga"
+      },
+      "name": {
+        "es": "Vence a Eddga",
+        "en": "Defeat Eddga",
+        "zh-TW": "擊敗Eddga"
+      },
+      "desc": {
+        "es": "Vence a Eddga por primera vez.",
+        "en": "Defeat Eddga for the first time.",
+        "zh-TW": "首次擊敗Eddga。"
+      }
+    },
+    {
+      "id": "mvp_eddga_10",
+      "category": "bosses",
+      "points": 2,
+      "goal": 10,
+      "vars": {
+        "m": "Eddga",
+        "n": 10
+      },
+      "name": {
+        "es": "Eddga ×10",
+        "en": "Eddga ×10",
+        "zh-TW": "Eddga ×10"
+      },
+      "desc": {
+        "es": "Vence a Eddga 10 veces.",
+        "en": "Defeat Eddga 10 times.",
+        "zh-TW": "擊敗Eddga 10 次。"
+      }
+    },
+    {
+      "id": "mvp_eddga_30",
+      "category": "bosses",
+      "points": 3,
+      "goal": 30,
+      "vars": {
+        "m": "Eddga",
+        "n": 30
+      },
+      "name": {
+        "es": "Eddga ×30",
+        "en": "Eddga ×30",
+        "zh-TW": "Eddga ×30"
+      },
+      "desc": {
+        "es": "Vence a Eddga 30 veces.",
+        "en": "Defeat Eddga 30 times.",
+        "zh-TW": "擊敗Eddga 30 次。"
+      }
+    },
+    {
+      "id": "mvp_moonlight_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "Moonlight Flower"
+      },
+      "name": {
+        "es": "Vence a Moonlight Flower",
+        "en": "Defeat Moonlight Flower",
+        "zh-TW": "擊敗Moonlight Flower"
+      },
+      "desc": {
+        "es": "Vence a Moonlight Flower por primera vez.",
+        "en": "Defeat Moonlight Flower for the first time.",
+        "zh-TW": "首次擊敗Moonlight Flower。"
+      }
+    },
+    {
+      "id": "mvp_moonlight_10",
+      "category": "bosses",
+      "points": 2,
+      "goal": 10,
+      "vars": {
+        "m": "Moonlight Flower",
+        "n": 10
+      },
+      "name": {
+        "es": "Moonlight Flower ×10",
+        "en": "Moonlight Flower ×10",
+        "zh-TW": "Moonlight Flower ×10"
+      },
+      "desc": {
+        "es": "Vence a Moonlight Flower 10 veces.",
+        "en": "Defeat Moonlight Flower 10 times.",
+        "zh-TW": "擊敗Moonlight Flower 10 次。"
+      }
+    },
+    {
+      "id": "mvp_moonlight_30",
+      "category": "bosses",
+      "points": 3,
+      "goal": 30,
+      "vars": {
+        "m": "Moonlight Flower",
+        "n": 30
+      },
+      "name": {
+        "es": "Moonlight Flower ×30",
+        "en": "Moonlight Flower ×30",
+        "zh-TW": "Moonlight Flower ×30"
+      },
+      "desc": {
+        "es": "Vence a Moonlight Flower 30 veces.",
+        "en": "Defeat Moonlight Flower 30 times.",
+        "zh-TW": "擊敗Moonlight Flower 30 次。"
+      }
+    },
+    {
+      "id": "mvp_high_orc_1",
+      "category": "bosses",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "m": "High Orc"
+      },
+      "name": {
+        "es": "Vence a High Orc",
+        "en": "Defeat High Orc",
+        "zh-TW": "擊敗High Orc"
+      },
+      "desc": {
+        "es": "Vence a High Orc por primera vez.",
+        "en": "Defeat High Orc for the first time.",
+        "zh-TW": "首次擊敗High Orc。"
+      }
+    },
+    {
+      "id": "mvp_high_orc_5",
+      "category": "bosses",
+      "points": 2,
+      "goal": 5,
+      "vars": {
+        "m": "High Orc",
+        "n": 5
+      },
+      "name": {
+        "es": "High Orc ×5",
+        "en": "High Orc ×5",
+        "zh-TW": "High Orc ×5"
+      },
+      "desc": {
+        "es": "Vence a High Orc 5 veces.",
+        "en": "Defeat High Orc 5 times.",
+        "zh-TW": "擊敗High Orc 5 次。"
+      }
+    },
+    {
+      "id": "hunt_poring",
+      "category": "hunt",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "m": "Poring",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Poring",
+        "en": "Poring hunter",
+        "zh-TW": "Poring獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Poring.",
+        "en": "Kill 1,000 Poring.",
+        "zh-TW": "擊殺 1,000 隻Poring。"
+      }
+    },
+    {
+      "id": "hunt_thief_bug",
+      "category": "hunt",
+      "points": 1,
+      "goal": 500,
+      "vars": {
+        "m": "Thief Bug",
+        "n": 500
+      },
+      "name": {
+        "es": "Cazador de Thief Bug",
+        "en": "Thief Bug hunter",
+        "zh-TW": "Thief Bug獵人"
+      },
+      "desc": {
+        "es": "Mata 500 Thief Bug.",
+        "en": "Kill 500 Thief Bug.",
+        "zh-TW": "擊殺 500 隻Thief Bug。"
+      }
+    },
+    {
+      "id": "hunt_tarou",
+      "category": "hunt",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "m": "Tarou",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Tarou",
+        "en": "Tarou hunter",
+        "zh-TW": "Tarou獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Tarou.",
+        "en": "Kill 1,000 Tarou.",
+        "zh-TW": "擊殺 1,000 隻Tarou。"
+      }
+    },
+    {
+      "id": "hunt_whisper",
+      "category": "hunt",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "m": "Whisper",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Whisper",
+        "en": "Whisper hunter",
+        "zh-TW": "Whisper獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Whisper.",
+        "en": "Kill 1,000 Whisper.",
+        "zh-TW": "擊殺 1,000 隻Whisper。"
+      }
+    },
+    {
+      "id": "hunt_hydra",
+      "category": "hunt",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "m": "Hydra",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Hydra",
+        "en": "Hydra hunter",
+        "zh-TW": "Hydra獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Hydra.",
+        "en": "Kill 1,000 Hydra.",
+        "zh-TW": "擊殺 1,000 隻Hydra。"
+      }
+    },
+    {
+      "id": "hunt_merman",
+      "category": "hunt",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "m": "Merman",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Merman",
+        "en": "Merman hunter",
+        "zh-TW": "Merman獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Merman.",
+        "en": "Kill 1,000 Merman.",
+        "zh-TW": "擊殺 1,000 隻Merman。"
+      }
+    },
+    {
+      "id": "hunt_smokie",
+      "category": "hunt",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "m": "Smokie",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Smokie",
+        "en": "Smokie hunter",
+        "zh-TW": "Smokie獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Smokie.",
+        "en": "Kill 1,000 Smokie.",
+        "zh-TW": "擊殺 1,000 隻Smokie。"
+      }
+    },
+    {
+      "id": "hunt_wolf",
+      "category": "hunt",
+      "points": 2,
+      "goal": 1000,
+      "vars": {
+        "m": "Wolf",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Wolf",
+        "en": "Wolf hunter",
+        "zh-TW": "Wolf獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Wolf.",
+        "en": "Kill 1,000 Wolf.",
+        "zh-TW": "擊殺 1,000 隻Wolf。"
+      }
+    },
+    {
+      "id": "hunt_skeleton",
+      "category": "hunt",
+      "points": 2,
+      "goal": 1000,
+      "vars": {
+        "m": "Skeleton",
+        "n": 1000
+      },
+      "name": {
+        "es": "Cazador de Skeleton",
+        "en": "Skeleton hunter",
+        "zh-TW": "Skeleton獵人"
+      },
+      "desc": {
+        "es": "Mata 1000 Skeleton.",
+        "en": "Kill 1,000 Skeleton.",
+        "zh-TW": "擊殺 1,000 隻Skeleton。"
+      }
+    },
+    {
+      "id": "hunt_sohee",
+      "category": "hunt",
+      "points": 2,
+      "goal": 500,
+      "vars": {
+        "m": "Sohee",
+        "n": 500
+      },
+      "name": {
+        "es": "Cazador de Sohee",
+        "en": "Sohee hunter",
+        "zh-TW": "Sohee獵人"
+      },
+      "desc": {
+        "es": "Mata 500 Sohee.",
+        "en": "Kill 500 Sohee.",
+        "zh-TW": "擊殺 500 隻Sohee。"
+      }
+    },
+    {
+      "id": "hunt_orc_warrior",
+      "category": "hunt",
+      "points": 2,
+      "goal": 500,
+      "vars": {
+        "m": "Orc Warrior",
+        "n": 500
+      },
+      "name": {
+        "es": "Cazador de Orc Warrior",
+        "en": "Orc Warrior hunter",
+        "zh-TW": "Orc Warrior獵人"
+      },
+      "desc": {
+        "es": "Mata 500 Orc Warrior.",
+        "en": "Kill 500 Orc Warrior.",
+        "zh-TW": "擊殺 500 隻Orc Warrior。"
+      }
+    },
+    {
+      "id": "pets_1",
+      "category": "pets",
+      "points": 1,
+      "goal": 1,
+      "vars": {
+        "n": 1
+      },
+      "name": {
+        "es": "Primer compañero",
+        "en": "First companion",
+        "zh-TW": "第一個夥伴"
+      },
+      "desc": {
+        "es": "Consigue un pet.",
+        "en": "Get a pet.",
+        "zh-TW": "取得一隻寵物。"
+      }
+    },
+    {
+      "id": "pets_5",
+      "category": "pets",
+      "points": 2,
+      "goal": 5,
+      "vars": {
+        "n": 5
+      },
+      "name": {
+        "es": "Criador",
+        "en": "Breeder",
+        "zh-TW": "飼育員"
+      },
+      "desc": {
+        "es": "Consigue 5 pets distintos.",
+        "en": "Get 5 different pets.",
+        "zh-TW": "取得 5 種不同的寵物。"
+      }
+    },
+    {
+      "id": "pets_12",
+      "category": "pets",
+      "points": 3,
+      "goal": 12,
+      "vars": {
+        "n": 12
+      },
+      "name": {
+        "es": "Domador",
+        "en": "Tamer",
+        "zh-TW": "馴獸師"
+      },
+      "desc": {
+        "es": "Consigue 12 pets distintos.",
+        "en": "Get 12 different pets.",
+        "zh-TW": "取得 12 種不同的寵物。"
+      }
+    },
+    {
+      "id": "pets_all",
+      "category": "pets",
+      "points": 5,
+      "goal": 24,
+      "vars": {
+        "n": 24
+      },
+      "name": {
+        "es": "Zoológico de Rune-Midgard",
+        "en": "Rune-Midgard Zoo",
+        "zh-TW": "盧恩米德加茲動物園"
+      },
+      "desc": {
+        "es": "Consigue 24 pets distintos.",
+        "en": "Get 24 different pets.",
+        "zh-TW": "取得 24 種不同的寵物。"
+      }
+    },
+    {
+      "id": "pets_evolve",
+      "category": "pets",
+      "points": 2,
+      "goal": 1,
+      "vars": null,
+      "name": {
+        "es": "Evolución",
+        "en": "Evolution",
+        "zh-TW": "進化"
+      },
+      "desc": {
+        "es": "Evoluciona un pet.",
+        "en": "Evolve a pet.",
+        "zh-TW": "讓一隻寵物進化。"
+      }
+    },
+    {
+      "id": "pets_evolve_all",
+      "category": "pets",
+      "points": 3,
+      "goal": 4,
+      "vars": {
+        "n": 4
+      },
+      "name": {
+        "es": "Linaje completo",
+        "en": "Full lineage",
+        "zh-TW": "完整血統"
+      },
+      "desc": {
+        "es": "Consigue los 4 pets evolucionados.",
+        "en": "Get all 4 evolved pets.",
+        "zh-TW": "取得全部 4 種進化寵物。"
+      }
+    },
+    {
+      "id": "pets_loyal",
+      "category": "pets",
+      "points": 1,
+      "goal": 1,
+      "vars": null,
+      "name": {
+        "es": "Amigo fiel",
+        "en": "Faithful friend",
+        "zh-TW": "忠實好友"
+      },
+      "desc": {
+        "es": "Sube un pet a Leal.",
+        "en": "Raise a pet to Loyal.",
+        "zh-TW": "將一隻寵物培養到忠誠。"
+      }
+    },
+    {
+      "id": "pets_loyal_5",
+      "category": "pets",
+      "points": 2,
+      "goal": 5,
+      "vars": {
+        "n": 5
+      },
+      "name": {
+        "es": "Manada leal",
+        "en": "Loyal pack",
+        "zh-TW": "忠誠之群"
+      },
+      "desc": {
+        "es": "Ten 5 pets en Leal.",
+        "en": "Have 5 Loyal pets.",
+        "zh-TW": "擁有 5 隻忠誠的寵物。"
+      }
+    },
+    {
+      "id": "kills_1000",
+      "category": "feats",
+      "points": 1,
+      "goal": 1000,
+      "vars": {
+        "n": 1000
+      },
+      "name": {
+        "es": "Primera sangre",
+        "en": "First blood",
+        "zh-TW": "第一滴血"
+      },
+      "desc": {
+        "es": "Mata 1000 monstruos en total.",
+        "en": "Kill 1,000 monsters in total.",
+        "zh-TW": "總共擊殺 1,000 隻怪物。"
+      }
+    },
+    {
+      "id": "kills_10000",
+      "category": "feats",
+      "points": 2,
+      "goal": 10000,
+      "vars": {
+        "n": 10000
+      },
+      "name": {
+        "es": "Exterminador",
+        "en": "Exterminator",
+        "zh-TW": "滅絕者"
+      },
+      "desc": {
+        "es": "Mata 10.000 monstruos en total.",
+        "en": "Kill 10,000 monsters in total.",
+        "zh-TW": "總共擊殺 10,000 隻怪物。"
+      }
+    },
+    {
+      "id": "kills_50000",
+      "category": "feats",
+      "points": 3,
+      "goal": 50000,
+      "vars": {
+        "n": 50000
+      },
+      "name": {
+        "es": "Azote de monstruos",
+        "en": "Scourge of monsters",
+        "zh-TW": "怪物剋星"
+      },
+      "desc": {
+        "es": "Mata 50.000 monstruos en total.",
+        "en": "Kill 50,000 monsters in total.",
+        "zh-TW": "總共擊殺 50,000 隻怪物。"
+      }
+    },
+    {
+      "id": "kills_250000",
+      "category": "feats",
+      "points": 5,
+      "goal": 250000,
+      "vars": {
+        "n": 250000
+      },
+      "name": {
+        "es": "Plaga de Rune-Midgard",
+        "en": "Plague of Rune-Midgard",
+        "zh-TW": "盧恩米德加茲之災"
+      },
+      "desc": {
+        "es": "Mata 250.000 monstruos en total.",
+        "en": "Kill 250,000 monsters in total.",
+        "zh-TW": "總共擊殺 250,000 隻怪物。"
+      }
+    },
+    {
+      "id": "kills_1000000",
+      "category": "feats",
+      "points": 6,
+      "goal": 1000000,
+      "vars": {
+        "n": 1000000
+      },
+      "name": {
+        "es": "Fin de los tiempos",
+        "en": "End of days",
+        "zh-TW": "末日"
+      },
+      "desc": {
+        "es": "Mata 1.000.000 monstruos en total.",
+        "en": "Kill 1,000,000 monsters in total.",
+        "zh-TW": "總共擊殺 1,000,000 隻怪物。"
+      }
+    },
+    {
+      "id": "wins_10",
+      "category": "feats",
+      "points": 1,
+      "goal": 10,
+      "vars": {
+        "n": 10
+      },
+      "name": {
+        "es": "Superviviente",
+        "en": "Veteran",
+        "zh-TW": "歷戰勇者"
+      },
+      "desc": {
+        "es": "Gana 10 partidas.",
+        "en": "Win 10 runs.",
+        "zh-TW": "贏得 10 局。"
+      }
+    },
+    {
+      "id": "wins_50",
+      "category": "feats",
+      "points": 3,
+      "goal": 50,
+      "vars": {
+        "n": 50
+      },
+      "name": {
+        "es": "Invicto",
+        "en": "Undefeated",
+        "zh-TW": "不敗"
+      },
+      "desc": {
+        "es": "Gana 50 partidas.",
+        "en": "Win 50 runs.",
+        "zh-TW": "贏得 50 局。"
+      }
+    },
+    {
+      "id": "runs_100",
+      "category": "feats",
+      "points": 2,
+      "goal": 100,
+      "vars": {
+        "n": 100
+      },
+      "name": {
+        "es": "Incansable",
+        "en": "Tireless",
+        "zh-TW": "不知疲倦"
+      },
+      "desc": {
+        "es": "Juega 100 partidas.",
+        "en": "Play 100 runs.",
+        "zh-TW": "遊玩 100 局。"
+      }
+    },
+    {
+      "id": "runs_500",
+      "category": "feats",
+      "points": 4,
+      "goal": 500,
+      "vars": {
+        "n": 500
+      },
+      "name": {
+        "es": "Obsesión",
+        "en": "Obsession",
+        "zh-TW": "執著"
+      },
+      "desc": {
+        "es": "Juega 500 partidas.",
+        "en": "Play 500 runs.",
+        "zh-TW": "遊玩 500 局。"
+      }
+    }
+  ]
+}

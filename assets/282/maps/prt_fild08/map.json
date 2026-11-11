@@ -1,0 +1,49 @@
+{
+  "name": "prt_fild08",
+  "models": "models.json",
+  "ambient": "ambient.json",
+  "collision": {
+    "file": "walk.bin",
+    "w": 400,
+    "h": 400
+  },
+  "altitude": {
+    "file": "altitude.bin",
+    "w": 400,
+    "h": 400
+  },
+  "width": 200,
+  "height": 200,
+  "lightmapCell": 6,
+  "atlas": "atlas.png",
+  "cells": "cells.bin",
+  "heights": "heights.bin",
+  "walls": "walls.bin",
+  "zoom": 10,
+  "shadow": "shadow.png",
+  "light": "light.png",
+  "minimap": "minimap.png",
+  "textures": [
+    "BACKSIDE.bmp",
+    "필드바닥\\prt_흙02.bmp",
+    "필드바닥\\prt_언덕04.bmp",
+    "필드바닥\\prt_초원02.bmp",
+    "필드바닥\\prt_초원01.bmp",
+    "필드바닥\\prt_초원04.bmp",
+    "필드바닥\\prt_언덕01.bmp",
+    "필드바닥\\prt_언덕02.bmp",
+    "필드바닥\\prt_언덕05.bmp",
+    "필드바닥\\prt_언덕06.bmp",
+    "필드바닥\\prt_언덕03.bmp",
+    "필드바닥\\prt_초원06.bmp",
+    "필드바닥\\prt_초원08.bmp",
+    "필드바닥\\prt_초원09.bmp",
+    "필드바닥\\prt_언덕10.bmp",
+    "필드바닥\\prt_언덕11.bmp",
+    "필드바닥\\prt_바위01.bmp",
+    "필드바닥\\prt_도시08.bmp",
+    "필드바닥\\prt_도시04.bmp",
+    "필드바닥\\prt_도시02.bmp",
+    "필드바닥\\prt_도시01.bmp"
+  ]
+}

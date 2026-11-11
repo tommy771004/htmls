@@ -1,0 +1,40 @@
+{
+  "name": "prontera",
+  "models": "models.json",
+  "ambient": "ambient.json",
+  "collision": {
+    "file": "walk.bin",
+    "w": 312,
+    "h": 392
+  },
+  "altitude": {
+    "file": "altitude.bin",
+    "w": 312,
+    "h": 392
+  },
+  "width": 156,
+  "height": 196,
+  "lightmapCell": 6,
+  "atlas": "atlas.png",
+  "cells": "cells.bin",
+  "heights": "heights.bin",
+  "walls": "walls.bin",
+  "zoom": 10,
+  "shadow": "shadow.png",
+  "light": "light.png",
+  "minimap": "minimap.png",
+  "textures": [
+    "필드바닥\\prt_초원01.bmp",
+    "필드바닥\\prt_도시08.bmp",
+    "필드바닥\\prt_도시04.bmp",
+    "필드바닥\\prt_도시02.bmp",
+    "필드바닥\\prt_도시01.bmp",
+    "필드바닥\\prt_흙03.bmp",
+    "필드바닥\\prt_도시05.bmp",
+    "필드바닥\\prt_도시03.bmp",
+    "프론테라\\pron-ctwr4.bmp",
+    "필드바닥\\prt_초원09.bmp",
+    "필드바닥\\prt_초원06.bmp",
+    "필드바닥\\prt_초원08.bmp"
+  ]
+}

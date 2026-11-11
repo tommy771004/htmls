@@ -1,0 +1,111 @@
+-- 282 仙境人生 RO LIFE：帳號（Google／LINE 登入）與雲端存檔。
+-- 連線字串用 RO_DATABASE_URL。每張表都加 ro_ 前綴、不動其他表，所以就算和青雀等作品放在同一個資料庫也不衝突。
+-- 欄位命名參考 rAthena 官方 main.sql（login、char、inventory），改寫成 PostgreSQL：
+--   * 沒有密碼欄位：帳號只能用第三方登入建立，身分記在 ro_login_identity。
+--   * 存檔以 ro_save.doc（jsonb）為準；ro_char、ro_inventory 是每次存檔時一起改寫的投影，方便查詢，不會反向寫回存檔。
+-- 套用：psql "$RO_DATABASE_URL" -f server/ro-life/schema.sql（可重複執行）
+
+-- 帳號（對應 rAthena login）
+CREATE TABLE IF NOT EXISTS ro_login (
+  account_id      bigint GENERATED ALWAYS AS IDENTITY (START WITH 2000000) PRIMARY KEY,
+  userid          text NOT NULL,                       -- 顯示名稱，取自第三方帳號，可重複
+  sex             char(1) NOT NULL DEFAULT 'U' CHECK (sex IN ('M', 'F', 'U')),
+  group_id        smallint NOT NULL DEFAULT 0,
+  state           integer NOT NULL DEFAULT 0,          -- 0 正常；其他值視為停權
+  unban_time      timestamptz,                         -- 暫時停權到這個時間
+  logincount      integer NOT NULL DEFAULT 0,
+  lastlogin       timestamptz,
+  character_slots smallint NOT NULL DEFAULT 9,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- 第三方登入身分：同一個帳號可以綁 Google 與 LINE
+CREATE TABLE IF NOT EXISTS ro_login_identity (
+  provider     text NOT NULL CHECK (provider IN ('google', 'line')),
+  subject      text NOT NULL,                          -- id_token 的 sub
+  account_id   bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  display_name text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  last_login   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (provider, subject)
+);
+CREATE INDEX IF NOT EXISTS ro_login_identity_account ON ro_login_identity (account_id);
+
+-- 登入工作階段：只存權杖的 SHA-256
+CREATE TABLE IF NOT EXISTS ro_session (
+  token_hash text PRIMARY KEY,
+  account_id bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ro_session_expires ON ro_session (expires_at);
+
+-- OAuth 進行中的 state（PKCE verifier、nonce）與登入後換權杖用的一次性代碼，幾分鐘就過期
+CREATE TABLE IF NOT EXISTS ro_auth_state (
+  id         text PRIMARY KEY,
+  kind       text NOT NULL CHECK (kind IN ('state', 'code')),
+  provider   text NOT NULL,
+  verifier   text,
+  nonce      text,
+  return_to  text,
+  account_id bigint REFERENCES ro_login ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL
+);
+
+-- 雲端存檔：引擎存檔用的 key → 字串（characters.v1、account.v1…），rev 做樂觀鎖
+CREATE TABLE IF NOT EXISTS ro_save (
+  account_id bigint PRIMARY KEY REFERENCES ro_login ON DELETE CASCADE,
+  doc        jsonb NOT NULL,
+  rev        bigint NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 角色（對應 rAthena char），由 characters.v1 投影
+CREATE TABLE IF NOT EXISTS ro_char (
+  char_id       bigint GENERATED ALWAYS AS IDENTITY (START WITH 150000) PRIMARY KEY,
+  account_id    bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  game_id       text NOT NULL,                         -- 引擎裡的角色 id
+  char_num      smallint NOT NULL DEFAULT 0,
+  name          text NOT NULL,
+  class         text NOT NULL,                         -- 職業 id（knight、high_priest…）
+  base_level    smallint NOT NULL DEFAULT 1,
+  job_level     smallint NOT NULL DEFAULT 1,
+  base_exp      bigint NOT NULL DEFAULT 0,
+  job_exp       bigint NOT NULL DEFAULT 0,
+  str           smallint NOT NULL DEFAULT 1,
+  agi           smallint NOT NULL DEFAULT 1,
+  vit           smallint NOT NULL DEFAULT 1,
+  "int"         smallint NOT NULL DEFAULT 1,
+  dex           smallint NOT NULL DEFAULT 1,
+  luk           smallint NOT NULL DEFAULT 1,
+  sex           char(1) NOT NULL DEFAULT 'M',
+  hair          smallint NOT NULL DEFAULT 0,
+  hair_color    smallint NOT NULL DEFAULT 0,
+  clothes_color smallint NOT NULL DEFAULT 0,
+  created_at    timestamptz,
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (account_id, game_id)
+);
+
+-- 物品（對應 rAthena inventory／storage）：本作的背包屬於帳號，所以用 account_id；裝備中的物品記下角色與欄位
+CREATE TABLE IF NOT EXISTS ro_inventory (
+  id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  account_id   bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  kind         text NOT NULL CHECK (kind IN ('equip', 'card', 'material')),
+  uid          text,                                   -- 引擎裡的物品 uid（卡片、材料沒有）
+  nameid       integer NOT NULL,                       -- 物品 id（同 rAthena item_db）
+  amount       integer NOT NULL DEFAULT 1,
+  refine       smallint NOT NULL DEFAULT 0,
+  card0        integer,
+  card1        integer,
+  card2        integer,
+  card3        integer,
+  quality      smallint,
+  tier         smallint,
+  ilvl         smallint,
+  affixes      jsonb,
+  bound_char   text,                                   -- 綁定角色的 game_id
+  char_id      bigint REFERENCES ro_char ON DELETE SET NULL, -- 正在裝備這件的角色
+  equip        text                                    -- 裝備欄位（weapon、head_top…）
+);
+CREATE INDEX IF NOT EXISTS ro_inventory_account ON ro_inventory (account_id);

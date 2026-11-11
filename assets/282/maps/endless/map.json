@@ -1,0 +1,57 @@
+{
+  "name": "endless",
+  "models": "models.json",
+  "ambient": null,
+  "collision": {
+    "file": "walk.bin",
+    "w": 160,
+    "h": 160
+  },
+  "altitude": {
+    "file": "altitude.bin",
+    "w": 160,
+    "h": 160
+  },
+  "width": 80,
+  "height": 80,
+  "lightmapCell": 6,
+  "atlas": "atlas.png",
+  "cells": "cells.bin",
+  "heights": "heights.bin",
+  "walls": "walls.bin",
+  "zoom": 10,
+  "shadow": "shadow.png",
+  "light": "light.png",
+  "minimap": "minimap.png",
+  "warps": [],
+  "start": [
+    80,
+    80
+  ],
+  "themes": [
+    {
+      "id": "prontera",
+      "cells": "cells_prontera.bin"
+    },
+    {
+      "id": "sewer",
+      "cells": "cells_sewer.bin"
+    },
+    {
+      "id": "sunken",
+      "cells": "cells_sunken.bin"
+    },
+    {
+      "id": "byalan",
+      "cells": "cells_byalan.bin"
+    },
+    {
+      "id": "payon",
+      "cells": "cells_payon.bin"
+    },
+    {
+      "id": "payon_cave",
+      "cells": "cells_payon_cave.bin"
+    }
+  ]
+}

@@ -1,0 +1,511 @@
+/* ==========================================================================
+   iOS 27 Liquid Glass UI System (藍白液態玻璃視覺系統)
+   Multi-layered optical refraction, specular caustic rims & squircle physics
+   ========================================================================== */
+
+/* 1. Spatial Menu & Modal Overlays */
+.overlay {
+  background: radial-gradient(ellipse 75% 65% at 50% 35%, rgba(120, 185, 255, 0.16), rgba(8, 18, 42, 0.44));
+}
+.overlay.menu {
+  background:
+    radial-gradient(ellipse 85% 60% at 20% 15%, rgba(255, 255, 255, 0.72), transparent 62%),
+    radial-gradient(ellipse 75% 60% at 82% 85%, rgba(118, 188, 255, 0.58), transparent 64%),
+    radial-gradient(ellipse 60% 50% at 50% 45%, rgba(215, 236, 255, 0.45), transparent 70%),
+    linear-gradient(145deg, #c6dfff 0%, #96bFF4 48%, #76a4e8 100%);
+}
+body.sp-backdrop #charselect,
+body.sp-backdrop #charcreate {
+  background: transparent;
+}
+
+/* 2. Primary iOS 27 Liquid Glass Windows (.ro-window) */
+.ro-window {
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    rgba(248, 252, 255, 0.68) 0%,
+    rgba(224, 240, 255, 0.50) 48%,
+    rgba(236, 246, 255, 0.60) 100%
+  );
+  backdrop-filter: blur(30px) saturate(210%) brightness(1.06);
+  -webkit-backdrop-filter: blur(30px) saturate(210%) brightness(1.06);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 20px;
+  box-shadow:
+    0 22px 54px -10px rgba(8, 22, 56, 0.34),
+    0 6px 18px rgba(14, 36, 84, 0.16),
+    0 0 0 1px rgba(130, 185, 255, 0.28),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.94),
+    inset 0 -1.5px 2px rgba(155, 208, 255, 0.42);
+}
+
+/* 3. Iridescent Sapphire-Cyan Liquid Glass Title Bar (.ro-title, .tree-head, .st-head, .hud-name, .pb-name, .rp-name) */
+.ro-title,
+.tree-head,
+.st-head,
+.hud-name,
+.pb-name,
+.rp-name,
+.wk-table th,
+#news-body h2 {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 152, 255, 0.74) 0%,
+    rgba(38, 106, 234, 0.60) 48%,
+    rgba(96, 178, 255, 0.70) 100%
+  );
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.56);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.86),
+    inset 0 -1px 1px rgba(16, 52, 130, 0.22),
+    0 4px 14px rgba(20, 60, 150, 0.14);
+  text-shadow: 0 1px 2px rgba(10, 28, 74, 0.48);
+}
+
+.ro-title:before {
+  border-radius: 2px;
+  background: linear-gradient(135deg, #ffffff, #d6ecff);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.95);
+}
+
+/* 4. Window Footer Action Bar (.btn-row.pad) */
+.btn-row.pad,
+.select-window .btn-row,
+.cp-reset-row {
+  background: linear-gradient(
+    180deg,
+    rgba(236, 246, 255, 0.36) 0%,
+    rgba(214, 234, 255, 0.54) 100%
+  );
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.64);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+/* 5. iOS 27 Liquid Glass Capsule Buttons (.ro-btn & interactive buttons) */
+.ro-btn,
+.prim-btn,
+.pk-act,
+.tk-go,
+.tk-buy,
+#demo-bar button,
+.sp-lang-btn,
+.sp-news-btn {
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.76) 0%,
+    rgba(226, 241, 255, 0.48) 52%,
+    rgba(210, 232, 255, 0.62) 100%
+  );
+  backdrop-filter: blur(16px) saturate(185%);
+  -webkit-backdrop-filter: blur(16px) saturate(185%);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 13px;
+  color: var(--ro-blue-3);
+  box-shadow:
+    0 5px 14px -2px rgba(16, 42, 98, 0.14),
+    0 1px 3px rgba(16, 42, 98, 0.10),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1.5px rgba(150, 202, 255, 0.42);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.18s ease,
+    border-color 0.18s ease,
+    filter 0.18s ease;
+}
+.ro-btn.small {
+  border-radius: 10px;
+}
+.ro-btn:hover:not(:disabled),
+.pk-act:hover:not(:disabled),
+.tk-go:hover:not(:disabled),
+.tk-buy:hover:not(:disabled),
+.sp-lang-btn:hover,
+.sp-news-btn:hover {
+  transform: translateY(-1px);
+  border-color: #ffffff;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(232, 245, 255, 0.62) 52%,
+    rgba(216, 236, 255, 0.74) 100%
+  );
+  box-shadow:
+    0 8px 20px -3px rgba(24, 72, 168, 0.22),
+    0 0 0 1px rgba(120, 185, 255, 0.35),
+    inset 0 1.5px 1.5px #ffffff,
+    inset 0 -1px 2px rgba(140, 198, 255, 0.5);
+}
+.ro-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+  box-shadow:
+    0 2px 6px rgba(16, 42, 98, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
+}
+
+/* Primary Cobalt-Azure Liquid Glass Button */
+.ro-btn.primary,
+.prim-btn[data-d="1"],
+.tk-go.primary,
+.tk-buy.primary,
+#demo-bar button.on,
+#demo-bar .demo-play,
+#demo-bar .demo-build-btn.on,
+#lobby-prompt {
+  color: #ffffff;
+  background: linear-gradient(
+    145deg,
+    rgba(86, 166, 255, 0.86) 0%,
+    rgba(34, 104, 236, 0.74) 52%,
+    rgba(68, 146, 255, 0.82) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 2px rgba(10, 28, 76, 0.5);
+  box-shadow:
+    0 8px 22px -4px rgba(24, 92, 224, 0.38),
+    0 2px 6px rgba(18, 64, 168, 0.22),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1.5px 2px rgba(130, 205, 255, 0.48);
+}
+.ro-btn.primary:hover:not(:disabled),
+.tk-go.primary:hover:not(:disabled),
+.tk-buy.primary:hover:not(:disabled),
+#lobby-prompt:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(108, 180, 255, 0.92) 0%,
+    rgba(46, 118, 246, 0.82) 52%,
+    rgba(84, 160, 255, 0.88) 100%
+  );
+  border-color: #ffffff;
+  box-shadow:
+    0 10px 26px -3px rgba(28, 102, 240, 0.48),
+    0 0 12px rgba(100, 180, 255, 0.45),
+    inset 0 1.5px 2px #ffffff,
+    inset 0 -1.5px 2px rgba(150, 218, 255, 0.55);
+}
+
+/* Active Selected Button State */
+.ro-btn.active {
+  color: var(--ro-blue-3);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(190, 224, 255, 0.68) 100%
+  );
+  border-color: rgba(77, 163, 255, 0.9);
+  box-shadow:
+    0 0 0 2px rgba(77, 163, 255, 0.28),
+    0 4px 12px rgba(24, 72, 168, 0.16),
+    inset 0 1.5px 1px #ffffff;
+}
+
+/* 6. iOS 27 Segmented Glass Tab Bars (.tabs, .tree-tabs, .sp-tabs, .news-tabs) */
+.tabs,
+.tree-tabs,
+.sp-tabs,
+.news-tabs {
+  background: linear-gradient(
+    145deg,
+    rgba(210, 232, 255, 0.38) 0%,
+    rgba(232, 245, 255, 0.28) 100%
+  );
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 2px rgba(16, 42, 96, 0.10),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+}
+.tab-btn,
+.tree-tab,
+.sp-tabs button,
+.news-tabs button {
+  border-radius: 10px;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tab-btn:hover:not(.active),
+.tree-tab:hover:not(.active),
+.sp-tabs button:hover:not(.active),
+.news-tabs button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.46);
+  color: var(--ro-blue-3);
+}
+.tab-btn.active,
+.tree-tab.active,
+.inv-chip.active {
+  color: #ffffff;
+  background: linear-gradient(
+    145deg,
+    rgba(82, 160, 255, 0.84) 0%,
+    rgba(36, 106, 236, 0.72) 100%
+  );
+  box-shadow:
+    0 4px 12px rgba(24, 86, 214, 0.28),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 2px rgba(10, 28, 74, 0.45);
+}
+.sp-tabs button.active,
+.news-tabs button.active {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.84) 0%,
+    rgba(222, 239, 255, 0.66) 100%
+  );
+  color: var(--ro-blue-3);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 3px 10px rgba(20, 56, 130, 0.14),
+    inset 0 1.5px 1px #ffffff;
+}
+
+/* 7. Nested Liquid Glass Cards, Wells & Panels */
+.inv-box,
+.status-box,
+.info-panel,
+.cp-header,
+.stat-strip,
+.tree-col,
+.shop-grid,
+.ore-row,
+.chr-perk,
+.chr-ach,
+.tr-side,
+.tr-log,
+.cand,
+.sock-card,
+.ref-ore,
+.stg-card,
+.stg-sec,
+.tk-lrow,
+.tk-tile,
+.tk-points-bar,
+.tk-ljob,
+.opt-row,
+.opt-keys,
+.go-box,
+.choice,
+.pf-row,
+.fr-row,
+.sp-feat,
+.sp-maint,
+.acc-intro,
+.sp-ok,
+#legal-body .summary li,
+#legal-body dl.card,
+#legal-body .box,
+.wk-step,
+.wk-stat,
+.wk-out-group,
+.wk-chip,
+.wk-hit-big,
+.wk-chart,
+.wk-pipe-step:first-child,
+.wk-trio-c,
+.wk-mini,
+.wk-jobbtn,
+.wk-skill,
+.wk-item,
+.wk-job,
+.wk-npc,
+.wk-result,
+.wk-gear,
+.wk-tip,
+.wk-formula {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(228, 242, 255, 0.42) 55%,
+    rgba(215, 235, 255, 0.50) 100%
+  );
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  box-shadow:
+    0 4px 14px -2px rgba(14, 36, 84, 0.08),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.88),
+    inset 0 -1px 1px rgba(165, 212, 255, 0.32);
+}
+
+/* Selected / Highlighted Liquid Glass Cards */
+.equip-slot,
+.item-cell,
+.talent,
+.skill-slot,
+.run-slot,
+.buff {
+  backdrop-filter: blur(14px) saturate(175%);
+  -webkit-backdrop-filter: blur(14px) saturate(175%);
+  box-shadow:
+    0 2px 8px rgba(14, 36, 84, 0.10),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.88),
+    inset 0 -1px 1px rgba(160, 210, 255, 0.32);
+}
+.equip-slot {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.60) 0%,
+    rgba(224, 240, 255, 0.40) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+}
+.equip-slot.sel,
+.cand.sel,
+.ref-ore.sel,
+.stg-card.sel,
+.tk-tile.on,
+.tk-ljob.active,
+.wk-job.sel,
+.wk-jobbtn.sel,
+.slot.selected,
+.chr-ach.done,
+.pf-row.me {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(192, 224, 255, 0.60) 55%,
+    rgba(172, 212, 255, 0.68) 100%
+  );
+  border-color: rgba(77, 163, 255, 0.92);
+  box-shadow:
+    0 0 0 2px rgba(77, 163, 255, 0.30),
+    0 8px 20px -4px rgba(24, 84, 204, 0.22),
+    inset 0 1.5px 1.5px #ffffff;
+}
+
+/* 8. HUD, Lobby Floating Panels, Chat & Tooltips */
+#skillbar,
+.chip,
+#timer,
+.hud-bars,
+#quest,
+#party-wait,
+.lr-row,
+.lobby-name.npc,
+#lobby-place,
+#channel-list,
+.player-menu,
+#party-frame,
+.pb-panel,
+.rp-bars,
+.eh-panel,
+.dr-stats,
+.dr-result,
+.story-box,
+.tooltip,
+#chat-toggle,
+.tc-btn,
+#lobby-chat #chat-log,
+#run-chat.open .rc-log,
+#emote-panel,
+.sp-lang-list,
+#demo-bar .demo-info,
+#demo-bar .demo-ctrl,
+#demo-bar .demo-build {
+  background: linear-gradient(
+    145deg,
+    rgba(244, 250, 255, 0.64) 0%,
+    rgba(216, 236, 255, 0.46) 52%,
+    rgba(232, 245, 255, 0.56) 100%
+  );
+  backdrop-filter: blur(24px) saturate(200%) brightness(1.05);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.05);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 12px 30px -4px rgba(10, 26, 62, 0.24),
+    0 2px 8px rgba(14, 36, 84, 0.12),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.92),
+    inset 0 -1px 1.5px rgba(155, 208, 255, 0.40);
+}
+
+/* Glass Inputs & Search Fields */
+.field > input,
+.sp-field input,
+.sp-field select,
+#chat-input,
+#run-chat .rc-form input,
+#fr-form input,
+#tr-input,
+#tr-kafra,
+.wk-search,
+.wk-select select {
+  background-color: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1.5px 3px rgba(16, 42, 96, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.85),
+    0 2px 6px rgba(16, 42, 96, 0.06);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+.field > input:focus,
+.sp-field input:focus,
+.sp-field select:focus,
+#chat-input:focus,
+#run-chat .rc-form input:focus,
+#fr-form input:focus,
+#tr-input:focus,
+.wk-search:focus {
+  background-color: rgba(255, 255, 255, 0.84);
+  border-color: rgba(77, 163, 255, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(77, 163, 255, 0.28),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95);
+}
+
+/* Level-Up Picker Cards & Drop Reveal Cards */
+.pk-card,
+.dr-card {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--q, #4da3ff) 18%, rgba(255, 255, 255, 0.78)) 0%,
+    rgba(235, 246, 255, 0.62) 45%,
+    rgba(215, 235, 255, 0.70) 100%
+  );
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 18px 40px -6px rgba(8, 20, 52, 0.42),
+    0 0 24px color-mix(in srgb, var(--q, #4da3ff) 45%, transparent),
+    inset 0 1.5px 1.5px #ffffff,
+    inset 0 -1.5px 2px rgba(155, 208, 255, 0.45);
+}
+
+/* Splash Footer & Badges */
+.sp-legal,
+.sp-meta,
+.sp-logo small,
+body.sp-backdrop #charselect .brand small {
+  background: linear-gradient(
+    145deg,
+    rgba(244, 250, 255, 0.62),
+    rgba(218, 236, 255, 0.46)
+  );
+  backdrop-filter: blur(18px) saturate(190%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 6px 18px rgba(12, 30, 72, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.88);
+}
+
+/* Scrollbar Thumb Liquid Glass */
+::-webkit-scrollbar-thumb {
+  background: rgba(96, 158, 242, 0.55);
+  background-clip: padding-box;
+  border: 5px solid transparent;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(58, 128, 238, 0.80);
+}
