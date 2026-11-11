@@ -955,6 +955,7 @@
           await push(true).catch(() => {});
           await api("POST", "logout").catch(() => {});
           st = null; store(null); conflict = false;
+          if (window.__roLobby) window.__roLobby.ticket = null;
           render(cfg);
         });
 
@@ -1028,6 +1029,26 @@
           else status("syncfail");
         }).finally(() => { busy = null; }));
 
+        // 普隆德拉大廳（看得到其他玩家）：/api/ro/config 有回大廳網址才連線（引擎端見 tools/build.mjs 的大廳段落）。
+        // 登入的玩家在 hello 帶短效入場票，訪客只能看、不能聊天。引擎進大廳前會等 __roLobbyReady。
+        let lobbyDone;
+        window.__roLobbyReady = new Promise((r) => (lobbyDone = r));
+        const wsUrl = (base, l) => {
+          const u = new URL(base, location.href);
+          u.protocol = u.protocol === "https:" || u.protocol === "wss:" ? "wss:" : "ws:";
+          u.searchParams.set("l", String(l));
+          return u.href;
+        };
+        // 入場票 15 分鐘有效：每 5 分鐘、回到分頁時與每次（重新）連線前更新；4 分鐘內拿過就不再拿
+        let ticketAt = 0;
+        const refreshTicket = async (force = false) => {
+          const L = window.__roLobby;
+          if (!L) return;
+          if (!st?.token) { L.ticket = null; return; }
+          if (!force && L.ticket && Date.now() - ticketAt < 4 * 60_000) return;
+          try { L.ticket = (await api("GET", "lobby-ticket")).ticket; ticketAt = Date.now(); } catch { L.ticket = null; }
+        };
+
         let cfg = null;
         (async () => {
           // 從 Google／LINE 回來：網址片段帶一次性代碼
@@ -1042,7 +1063,16 @@
               } catch (e) { setTimeout(() => showError(e.status === 403 ? "banned" : "loginfail"), 0); }
             } else setTimeout(() => showError(err === "denied" ? "cancelled" : "loginfail"), 0);
           }
-          try { cfg = (await api("GET", "config")).providers; } catch { cfg = null; }
+          let conf = null;
+          try { conf = await api("GET", "config"); } catch {}
+          cfg = conf?.providers ?? null;
+          if (typeof conf?.lobby === "string" && conf.lobby) {
+            window.__roLobby = { url: (l) => wsUrl(conf.lobby, l), ticket: null, refresh: () => { refreshTicket(); } };
+            await refreshTicket(true);
+            setInterval(() => refreshTicket(true), 5 * 60_000);
+            document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshTicket(); });
+          }
+          lobbyDone();
           render(cfg);
           if (st?.token) {
             try {

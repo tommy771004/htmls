@@ -2,6 +2,8 @@
 
 致敬《仙境傳說 Ragnarok Online》的非官方同人 2.5D 彈幕生存動作 RPG。單檔打包輸出至 `../../web/282-ro-life.html`，圖檔、3D 地圖網格、音效與精靈圖集放在 `../../assets/282/`。
 
+目前進度與下一步（大廳 Worker 待部署）見 `HANDOFF.md`。
+
 ## 指令
 
 ```bash
@@ -65,4 +67,11 @@ games/282-ro-life/
   - 回呼網址（要在 Google Cloud Console／LINE Developers 登記）：`https://<網域>/api/ro/auth/google/callback`、`https://<網域>/api/ro/auth/line/callback`；網域可用 `RO_PUBLIC_ORIGIN` 固定，否則取請求的 host。
   - 資料表：`../../server/ro-life/schema.sql`（全部 `ro_` 前綴，參考 rAthena `main.sql` 的 login／char／inventory 改成 PostgreSQL，沒有密碼欄位），要手動套用一次：`psql "$RO_DATABASE_URL" -f server/ro-life/schema.sql`。`ro_save.doc` 是存檔本體；`ro_char`、`ro_inventory` 是每次存檔一起改寫的投影，只供查詢。rAthena 的 `item_db`／`mob_db` 沒有匯入。
   - 測試：`npm run test:ro`（根目錄；Google／LINE 用假 fetch、資料在記憶體）。真正的 Google／LINE 登入要有憑證才能試。
+- **普隆德拉大廳（看得到其他玩家，第一階段）**：沿用引擎原本的大廳協定（`Xj` 類別），伺服器只轉送加入／離開、走動、外觀、表情與公開聊天，不碰遊戲規則。
+  - 程式：核心 `../../server/ro-life/lobby-core.mjs`（訊息格式與清理規則寫在檔頭）；本機版 `../../server/ro-life/lobby.mjs` 掛在 `npm start` 的 `/api/ro/lobby?l=<1–9>`；正式站是 Cloudflare Worker＋Durable Object（`worker/`，WebSocket 休眠 API，每條連線的狀態放在 attachment）。三者共用同一份核心，測試在 `lobby.test.mjs`。
+  - 開關：`/api/ro/config` 回 `lobby` 網址才連線。正式站要在 Vercel 設 `RO_LOBBY_URL`（`wss://…/api/ro/lobby`）與 `RO_LOBBY_SECRET`，Worker 也用 `wrangler secret put RO_LOBBY_SECRET` 設同一個值；本機 `npm start` 自己產生密鑰、網址用同一台。沒設定時頁面完全不開 WebSocket（靜態託管零錯誤）。
+  - 身分：登入的玩家由頁面向 `/api/ro/lobby-ticket` 換 15 分鐘的 HMAC 入場票（每 5 分鐘、切回前景與每次連線時更新），放在 hello 的 `rt`；60 天的登入權杖不會送到大廳。沒有票是訪客：看得到、會被看到，不能聊天，別人看到的名字是伺服器給的「冒險者 NNNN」（訪客沒有帳號可停權，所以不用自填名）。登入玩家顯示角色名（玩家自填，伺服器只清理不驗證）。
+  - 引擎改動都在 `tools/build.mjs` 的大廳段落（找不到原字串就讓 build 失敗）：`connect()` 改連 `window.__roLobby.url()`；hello 加 `rt`；進大廳時等 `window.__roLobbyReady`，本機模式的 dev 角色在有大廳時也上線；點別人只顯示名字（好友、密語、檢視、檢舉都拿掉）；訪客的聊天框鎖住；不跳「中文頻道」提示（伺服器不分流）。
+  - 驗收：`wrangler dev --local --port 8788 --var RO_LOBBY_SECRET:<值> --var ALLOWED_ORIGINS:http://ro.test:8127`，再用 `RO_LOBBY_SECRET=<同值> RO_LOBBY_URL=ws://127.0.0.1:8788/api/ro/lobby npm start` 開兩個瀏覽器分頁（ro.test）。進大廳點「與隊長交談」開遠征面板。測完刪掉 `worker/.wrangler/`。
+  - 尚未做：好友、密語、交易、組隊、檢視資料、檢舉、多頻道（每個大廳只有頻道 1，上限 80 人）。部署 Worker 一律由使用者用自己的 Cloudflare 帳號執行（見 `worker/wrangler.toml` 檔頭）。
 - **精簡化（使用者要求「簡潔為主」）**：寫在 `style.css` 最後的「精簡化」段落，圖示是 `:root` 的 `--ic-*` SVG 遮罩（顏色跟文字色）。登入只留 Google／LINE 圓形 logo 鈕（`aria-label` 是品牌名），有第三方登入時藏起單機版本來就停用的帳密欄位；登入畫面右上角的最新消息（鈴鐺，未讀紅點保留）與語系（地球）、大廳右上角 `#lobby-actions` 四顆鈕都改成圖示，原本的文字與快捷鍵由檔尾腳本寫進 `title`／`aria-label`；遠征的關卡狀態改圖示（可挑戰不顯示、鎖、時鐘、金色勾），「新！」改小紅點，裝備分數改 `GS` 標籤。新文字一律短句，不要加說明句。

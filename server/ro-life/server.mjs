@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { RoStore } from './store.mjs';
+import { signTicket } from './lobby-core.mjs';
 
 // 282 仙境人生：Google／LINE 登入與雲端存檔 API（/api/ro/…）。
 // 遊戲本身照舊是單機模式（存檔在瀏覽器）；登入後由頁面把存檔同步到這裡。
@@ -9,6 +10,7 @@ import { RoStore } from './store.mjs';
 //   POST /api/ro/auth/exchange {code}    一次性代碼換登入權杖
 //   GET  /api/ro/me · POST /api/ro/logout
 //   GET  /api/ro/save · PUT /api/ro/save {rev, doc}   雲端存檔（rev 不符回 409）
+//   GET  /api/ro/lobby-ticket            普隆德拉大廳的短效入場票（大廳伺服器用 RO_LOBBY_SECRET 驗證）
 
 export const SAVE_KEY = /^(characters\.v1|account\.v1|achievements\.v1|pets\.v1|run\.v1\.[\w-]{1,40}|stages-seen\.v1\.[\w-]{1,40})$/;
 const GAME_PATH = /^\/web\/282-ro-life(?:\.html)?$/;
@@ -95,8 +97,10 @@ export function projectDoc(doc) {
   }
 }
 
-export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, store = new RoStore(env) } = {}) {
+export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, store = new RoStore(env), lobby = null } = {}) {
   const providers = () => Object.fromEntries(Object.entries(PROVIDERS).map(([k, p]) => [k, store.ready && p.enabled(env)]));
+  // 大廳：正式站是 Cloudflare Worker（RO_LOBBY_URL＋RO_LOBBY_SECRET 都要設）；本機 npm start 傳進同一台的 /api/ro/lobby
+  const lobbyConf = () => (/^wss?:\/\//.test(env.RO_LOBBY_URL ?? '') && env.RO_LOBBY_SECRET ? { url: env.RO_LOBBY_URL, secret: env.RO_LOBBY_SECRET } : lobby);
 
   const send = (res, status, body, headers = {}) => {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', ...headers });
@@ -138,7 +142,7 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
 
   async function route(req, res, path, query) {
     const method = req.method;
-    if (path === 'config' && method === 'GET') return send(res, 200, { providers: providers() });
+    if (path === 'config' && method === 'GET') return send(res, 200, { providers: providers(), lobby: lobbyConf()?.url ?? null });
 
     let m = path.match(/^auth\/(google|line)(\/callback)?$/);
     if (m && method === 'GET') {
@@ -196,13 +200,18 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
       return send(res, 200, { token, account: { id: acc.id, name: acc.name, providers: acc.providers, via: row.provider } });
     }
 
-    if (!['me', 'logout', 'save'].includes(path)) return send(res, 404, { error: 'not_found' });
+    if (!['me', 'logout', 'save', 'lobby-ticket'].includes(path)) return send(res, 404, { error: 'not_found' });
     const who = await authed(req);
     if (!who) return send(res, 401, { error: 'session' });
     if (who.banned) return send(res, 403, { error: 'banned', until: who.banned.unbanTime });
     const acc = who.account;
 
     if (path === 'me' && method === 'GET') return send(res, 200, { account: { id: acc.id, name: acc.name, providers: acc.providers } });
+    if (path === 'lobby-ticket' && method === 'GET') {
+      const conf = lobbyConf();
+      if (!conf) return send(res, 404, { error: 'disabled' });
+      return send(res, 200, { ticket: await signTicket(conf.secret, { account: acc.id, name: acc.name }) });
+    }
     if (path === 'logout' && method === 'POST') { await store.deleteSession(who.hash); return send(res, 200, { ok: true }); }
     if (path === 'save' && method === 'GET') return send(res, 200, await store.getSave(acc.id));
     if (path === 'save' && method === 'PUT') {

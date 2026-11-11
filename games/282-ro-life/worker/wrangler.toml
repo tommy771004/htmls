@@ -1,0 +1,21 @@
+# Cloudflare Worker＋Durable Objects：282 普隆德拉大廳（每個大廳編號一個 Lobby，只轉送走動、外觀、表情與聊天）。
+# 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行（Free 方案即可）：
+#   npx wrangler login
+#   npx wrangler secret put RO_LOBBY_SECRET     # 和 Vercel 的 RO_LOBBY_SECRET 填同一個長亂數
+#   npx wrangler deploy
+# 部署完把 Vercel 的 RO_LOBBY_URL 設成 wss://ro-lobby.<帳號>.workers.dev/api/ro/lobby，重新部署 Vercel。
+name = "ro-lobby"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+# 允許連線的網頁來源，逗號分隔；留空＝不限制
+ALLOWED_ORIGINS = "https://htmls-ruddy.vercel.app"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Lobby"]

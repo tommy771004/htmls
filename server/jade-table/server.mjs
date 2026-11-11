@@ -222,9 +222,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const rsa = createRoadster({ origins });
   const { createOchre } = await import('../ochre/server.mjs');
   const ochre = createOchre({ origins });
-  const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head) || ochre.handleUpgrade(req, socket, head);
+  // 282 普隆德拉大廳：本機用同一台伺服器發入場票與轉送，密鑰每次啟動隨機產生（正式站見 RO_LOBBY_URL／RO_LOBBY_SECRET）
+  const { createRoLobby } = await import('../ro-life/lobby.mjs');
+  const { LOBBY_PATH } = await import('../ro-life/lobby-core.mjs');
+  const lobbySecret = process.env.RO_LOBBY_SECRET || randomBytes(32).toString('base64url');
+  const roLobby = createRoLobby({ secret: lobbySecret, origins, log: console.log });
+  const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head) || ochre.handleUpgrade(req, socket, head) || roLobby.handleUpgrade(req, socket, head);
   const { createRoLife } = await import('../ro-life/server.mjs');
-  const ro = createRoLife();
+  const ro = createRoLife({ lobby: { url: LOBBY_PATH, secret: lobbySecret } });
   const app = createJadeServer({ port: Number(process.env.PORT || 8127), host: process.env.HOST || '127.0.0.1', origins, onUpgrade, onRequest: ro.handle });
   const address = await app.listen();
   console.log(`青雀伺服器：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/127-jade-table.html`);
