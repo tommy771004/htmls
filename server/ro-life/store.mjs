@@ -9,7 +9,74 @@ export class RoStore {
     this.raw = raw;
     this.sql = raw ? (...args) => raw(...args).catch((e) => { console.warn('[ro-life] db', e.message); throw Error('db'); }) : null;
     this.ready = !!this.sql || !env.VERCEL;
-    this.mem = { accounts: new Map(), identities: new Map(), sessions: new Map(), states: new Map(), saves: new Map(), chars: new Map(), items: new Map(), nextId: 2000000 };
+    this.mem = { accounts: new Map(), identities: new Map(), sessions: new Map(), states: new Map(), saves: new Map(), chars: new Map(), items: new Map(), nextId: 2000000, gameSaves: new Map(), gameRuns: new Map(), gameLogs: [] };
+  }
+
+  // ---- 線上角色（game.mjs）：存檔、關卡憑證、紀錄 ----
+  async gameTablesReady() {
+    if (!this.sql) return true;
+    const rows = await this.sql`SELECT to_regclass('ro_game_save') IS NOT NULL AND to_regclass('ro_game_run') IS NOT NULL AND to_regclass('ro_game_log') IS NOT NULL AS ok`;
+    return rows[0]?.ok === true;
+  }
+  async getGameSave(accountId) {
+    if (this.sql) {
+      const rows = await this.sql`SELECT doc, rev, wid, updated_at FROM ro_game_save WHERE account_id = ${accountId}`;
+      const r = rows[0];
+      return r ? { doc: r.doc, rev: Number(r.rev), wid: r.wid, updatedAt: new Date(r.updated_at).getTime() } : { doc: {}, rev: 0, wid: null, updatedAt: 0 };
+    }
+    return this.mem.gameSaves.get(accountId) ?? { doc: {}, rev: 0, wid: null, updatedAt: 0 };
+  }
+  async putGameSave(accountId, rev, doc, wid) {
+    const json = JSON.stringify(doc);
+    if (this.sql) {
+      const rows = rev === 0
+        ? await this.sql`INSERT INTO ro_game_save (account_id, doc, rev, wid) VALUES (${accountId}, ${json}::jsonb, 1, ${wid}) ON CONFLICT (account_id) DO NOTHING RETURNING rev`
+        : await this.sql`UPDATE ro_game_save SET doc = ${json}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${accountId} AND rev = ${rev} RETURNING rev`;
+      return rows.length ? Number(rows[0].rev) : null;
+    }
+    const cur = this.mem.gameSaves.get(accountId)?.rev ?? 0;
+    if (cur !== rev) return null;
+    this.mem.gameSaves.set(accountId, { doc: JSON.parse(json), rev: rev + 1, wid, updatedAt: Date.now() });
+    return rev + 1;
+  }
+  async createGameRun(accountId, run) {
+    if (this.sql) {
+      await this.sql`DELETE FROM ro_game_run WHERE issued_at < now() - interval '7 days'`;
+      await this.sql`INSERT INTO ro_game_run (id, account_id, stage, mult, skip, char) VALUES (${run.id}, ${accountId}, ${run.stage}, ${run.mult}, ${run.skip}, ${run.char})`;
+      return;
+    }
+    this.mem.gameRuns.set(run.id, { ...run, account_id: accountId, issued: Date.now(), claimed: null });
+  }
+  async countGameRuns(accountId, sec) {
+    if (this.sql) {
+      const rows = await this.sql`SELECT count(*)::int AS n FROM ro_game_run WHERE account_id = ${accountId} AND issued_at > now() - make_interval(secs => ${sec}::double precision)`;
+      return rows[0].n;
+    }
+    let n = 0;
+    for (const r of this.mem.gameRuns.values()) if (r.account_id === accountId && r.issued > Date.now() - sec * 1000) n++;
+    return n;
+  }
+  // 領取關卡憑證：ok／unknown（不是這個帳號的、不存在或過期）／reused（領過了）
+  async claimGameRun(accountId, id) {
+    if (this.sql) {
+      const rows = await this.sql`UPDATE ro_game_run SET claimed_at = now() WHERE id = ${id} AND account_id = ${accountId} AND claimed_at IS NULL RETURNING stage, mult, skip, char, issued_at`;
+      if (rows[0]) return { status: 'ok', run: { id, stage: rows[0].stage, mult: Number(rows[0].mult), skip: rows[0].skip, char: rows[0].char, issued: new Date(rows[0].issued_at).getTime() } };
+      const seen = await this.sql`SELECT 1 FROM ro_game_run WHERE id = ${id} AND account_id = ${accountId}`;
+      return { status: seen.length ? 'reused' : 'unknown' };
+    }
+    const r = this.mem.gameRuns.get(id);
+    if (!r || r.account_id !== accountId) return { status: 'unknown' };
+    if (r.claimed) return { status: 'reused' };
+    r.claimed = Date.now();
+    return { status: 'ok', run: { id, stage: r.stage, mult: r.mult, skip: r.skip, char: r.char, issued: r.issued } };
+  }
+  async addGameLog(accountId, kind, { rev = null, runId = null, flags = [], detail = null } = {}) {
+    if (this.sql) {
+      await this.sql`INSERT INTO ro_game_log (account_id, kind, rev, run_id, flags, detail) VALUES (${accountId}, ${kind}, ${rev}, ${runId}, ${flags}, ${detail === null ? null : JSON.stringify(detail)}::jsonb)`;
+      return;
+    }
+    this.mem.gameLogs.push({ account_id: accountId, at: Date.now(), kind, rev, run_id: runId, flags, detail });
+    if (this.mem.gameLogs.length > 2000) this.mem.gameLogs.splice(0, 1000);
   }
 
   // 第三方身分 → 帳號；第一次登入就建立帳號

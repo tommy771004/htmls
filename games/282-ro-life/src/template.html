@@ -688,6 +688,8 @@
             <div class="sp-cloud hidden" id="sp-cloud">
               <span class="sp-cloud-who"><b id="sp-cloud-name"></b><small id="sp-cloud-via"></small></span>
               <span class="sp-cloud-status" id="sp-cloud-status"></span>
+              <!-- 線上角色（server/ro-life/game.mjs）：/api/ro/config 回 online 才顯示；切換後重新載入，引擎開頁時就決定模式（tools/build.mjs 的 __roOnline） -->
+              <span class="sp-mode hidden" id="sp-mode" role="group" aria-label="Modo de juego"><button type="button" data-mode="single">Un jugador</button><button type="button" data-mode="online">En línea</button></span>
               <button class="sp-link" type="button" id="sp-cloud-out">Cerrar sesión en la nube</button>
             </div>
             <div class="sp-feat online-only"><img src="assets/items/1101.png" alt="" />Elige job, empuña tu arma y aguanta la horda. Sin descargas.</div>
@@ -940,6 +942,8 @@
           for (const b of document.querySelectorAll("[data-oauth]")) b.classList.toggle("hidden", !providers?.[b.dataset.oauth]);
           document.querySelector(".sp-oauth-reg")?.classList.toggle("hidden", on || !providers || !Object.values(providers).some(Boolean));
           $("sp-cloud")?.classList.toggle("hidden", !on);
+          $("sp-mode")?.classList.toggle("hidden", !on || !onlineOk);
+          for (const b of document.querySelectorAll("#sp-mode [data-mode]")) b.classList.toggle("on", (b.dataset.mode === "online") === !!window.__roOnline);
           if (on) {
             $("sp-cloud-name").textContent = st.account?.name ?? "";
             $("sp-cloud-via").textContent = { google: "Google", line: "LINE" }[st.account?.via] ?? "";
@@ -955,9 +959,22 @@
           await push(true).catch(() => {});
           await api("POST", "logout").catch(() => {});
           st = null; store(null); conflict = false;
+          if (window.__roOnline) return window.__roOffline();
           if (window.__roLobby) window.__roLobby.ticket = null;
           render(cfg);
         });
+        // 單機／線上：記在 ro-life.mode，重新載入後由頁首的 __roOnline 決定引擎用哪一種
+        for (const b of document.querySelectorAll("#sp-mode [data-mode]")) {
+          b.addEventListener("click", async () => {
+            const online = b.dataset.mode === "online";
+            if (online === !!window.__roOnline || !onSplash()) return;
+            if (!online) return window.__roOffline();
+            await push(true).catch(() => {});
+            try { localStorage.setItem("ro-life.mode", "online"); } catch {}
+            applying = true;
+            location.reload();
+          });
+        }
 
         // 雲端與本機不同、兩邊都有角色：讓玩家選，不默默蓋掉任何一邊
         const ask = (cloud, local) => new Promise((resolve) => {
@@ -1017,14 +1034,14 @@
         }
         // 遊戲中定時上傳；rev 對不上（別台裝置存過）就停下，下次開頁再處理
         async function push(keepalive = false) {
-          if (!st?.token || conflict || applying || st.rev === undefined) return;
+          if (!st?.token || conflict || applying || st.rev === undefined || window.__roOnline) return;
           const doc = localDoc(), h = hash(canon(doc));
           if (h === st.sent) return;
           try { await upload(st.rev, doc, keepalive && JSON.stringify(doc).length < 60000); status("saved"); }
           catch (e) { if (e.status === 409) conflict = true; if (e.status === 401) { st = null; store(null); render(cfg); } status("syncfail"); }
         }
         const run = (fn) => (busy ??= fn().catch((e) => {
-          if (e.status === 401) { st = null; store(null); render(cfg); }
+          if (e.status === 401) { st = null; store(null); if (window.__roOnline) return window.__roOffline(); render(cfg); }
           else if (e.status === 403) showError("banned");
           else status("syncfail");
         }).finally(() => { busy = null; }));
@@ -1049,7 +1066,7 @@
           try { L.ticket = (await api("GET", "lobby-ticket")).ticket; ticketAt = Date.now(); } catch { L.ticket = null; }
         };
 
-        let cfg = null;
+        let cfg = null, onlineOk = false;
         (async () => {
           // 從 Google／LINE 回來：網址片段帶一次性代碼
           if (params.has("ro-login") || params.has("ro-login-error")) {
@@ -1066,6 +1083,9 @@
           let conf = null;
           try { conf = await api("GET", "config"); } catch {}
           cfg = conf?.providers ?? null;
+          onlineOk = !!conf?.online;
+          // 線上模式但伺服器沒開放、或已經沒有登入：退回單機
+          if (window.__roOnline && (!onlineOk || !st?.token)) return window.__roOffline();
           if (typeof conf?.lobby === "string" && conf.lobby) {
             window.__roLobby = { url: (l) => wsUrl(conf.lobby, l), ticket: null, refresh: () => { refreshTicket(); } };
             await refreshTicket(true);
@@ -1080,9 +1100,9 @@
               st = { ...st, account: { ...st.account, ...me.account } };
               store(st);
               render(cfg);
-              await run(reconcile);
+              if (!window.__roOnline) await run(reconcile);
             } catch (e) {
-              if (e.status === 401) { st = null; store(null); render(cfg); }
+              if (e.status === 401) { st = null; store(null); if (window.__roOnline) return window.__roOffline(); render(cfg); }
               else if (e.status === 403) showError("banned");
             }
           }

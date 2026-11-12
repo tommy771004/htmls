@@ -2240,3 +2240,30 @@ body:not(.ro-social) #lobby-friends { display: none !important; }
 @media (max-height: 520px) and (min-aspect-ratio: 5/4) {
   #splash .sp-logo .sp-logo-img { height: min(118px, 32vh); }
 }
+
+/* 線上角色：登入後的「單機／線上」切換（/api/ro/config 回 online 才顯示），和登出圖示同一行 */
+.sp-cloud .sp-mode {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+  border-radius: 999px;
+  border: 1px solid rgba(246, 194, 74, 0.45);
+  overflow: hidden;
+}
+.sp-cloud .sp-mode.hidden { display: none; }
+.sp-cloud .sp-mode button {
+  border: 0;
+  background: transparent;
+  color: var(--ro-muted);
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.3em 0.75em;
+  cursor: pointer;
+}
+.sp-cloud .sp-mode button.on {
+  background: rgba(246, 194, 74, 0.85);
+  color: #2a1a00;
+}
+.sp-cloud .sp-mode:not(.hidden) ~ .sp-link { margin-left: 0.3em; }
+.sp-cloud .sp-cloud-status { flex: none; white-space: nowrap; }
+.sp-cloud .sp-cloud-who { flex: 1 1 auto; }

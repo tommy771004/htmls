@@ -3,7 +3,7 @@
 -- 欄位命名參考 rAthena 官方 main.sql（login、char、inventory），改寫成 PostgreSQL：
 --   * 沒有密碼欄位：帳號只能用第三方登入建立，身分記在 ro_login_identity。
 --   * 存檔以 ro_save.doc（jsonb）為準；ro_char、ro_inventory 是每次存檔時一起改寫的投影，方便查詢，不會反向寫回存檔。
--- 套用：psql "$RO_DATABASE_URL" -f server/ro-life/schema.sql（可重複執行）
+-- 套用：psql "$RO_DATABASE_URL" -f server/ro-life/schema.sql（可重複執行，只會建立還沒有的表）
 
 -- 帳號（對應 rAthena login）
 CREATE TABLE IF NOT EXISTS ro_login (
@@ -109,3 +109,40 @@ CREATE TABLE IF NOT EXISTS ro_inventory (
   equip        text                                    -- 裝備欄位（weapon、head_top…）
 );
 CREATE INDEX IF NOT EXISTS ro_inventory_account ON ro_inventory (account_id);
+
+-- ===== 線上角色（server/ro-life/game.mjs）=====
+-- 線上角色從 Lv1 練起、由伺服器把關，存檔和上面單機的雲端備份（ro_save）分開。套用後在 Vercel 設 RO_ONLINE=1 才會開放。
+CREATE TABLE IF NOT EXISTS ro_game_save (
+  account_id bigint PRIMARY KEY REFERENCES ro_login ON DELETE CASCADE,
+  doc        jsonb NOT NULL,
+  rev        bigint NOT NULL DEFAULT 0,
+  wid        text,                                     -- 最後一次寫入的編號（用戶端產生，回應遺失時用來認出自己的寫入）
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 關卡憑證：開打時 POST run 發出，結算存檔時帶回來領取（每張只能領一次）；7 天前的自動清掉
+CREATE TABLE IF NOT EXISTS ro_game_run (
+  id         text PRIMARY KEY,
+  account_id bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  stage      text NOT NULL,
+  mult       real NOT NULL DEFAULT 1,
+  skip       boolean NOT NULL DEFAULT false,
+  char       text,
+  issued_at  timestamptz NOT NULL DEFAULT now(),
+  claimed_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS ro_game_run_account ON ro_game_run (account_id, issued_at);
+
+-- 線上存檔的紀錄：每次存檔和上一版比對，記下等級、經驗、物品的變化與疑點（flags），第二步的驗證規則依這些資料訂
+CREATE TABLE IF NOT EXISTS ro_game_log (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  account_id bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  at         timestamptz NOT NULL DEFAULT now(),
+  kind       text NOT NULL,                            -- save／run
+  rev        bigint,
+  run_id     text,
+  flags      text[] NOT NULL DEFAULT '{}',             -- gain-no-claim、new-high、big-jump、dev、claim-reused…
+  detail     jsonb
+);
+CREATE INDEX IF NOT EXISTS ro_game_log_account ON ro_game_log (account_id, at DESC);
+CREATE INDEX IF NOT EXISTS ro_game_log_flagged ON ro_game_log (at DESC) WHERE flags <> '{}';
