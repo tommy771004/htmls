@@ -1,0 +1,8 @@
+# Cloudflare 靜態素材（games/282-ro-life/assets-worker/）的回應標頭；Vercel 不讀這個檔。
+/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/manifest.json
+  ! Cache-Control
+  Cache-Control: public, max-age=300, stale-while-revalidate=3600

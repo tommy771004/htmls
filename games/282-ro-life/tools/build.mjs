@@ -1,5 +1,5 @@
 // 打包：src/engine/main-DRFCcdKO.js（含 soul_linker 與 PixiJS 8 渲染器模組）＋ src/style.css → 內嵌進 src/template.html，輸出 ../../web/282-ro-life.html。
-// 素材（sprites / maps / items / audio / splash）執行時從 ../assets/282/ 讀取；--dev 不額外壓縮。
+// 素材（sprites / maps / items / audio / splash）執行時從 window.__RA 讀取（正式站＝Cloudflare，其他＝../assets/282/）；--dev 不額外壓縮。
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -9,6 +9,12 @@ const root = resolve(here, '..');
 const dev = process.argv.includes('--dev');
 const outArg = process.argv.find((a) => a.startsWith('--out='));
 const outFile = outArg ? resolve(root, outArg.slice(6)) : resolve(root, '../../web/282-ro-life.html');
+
+// 素材根目錄 window.__RA：正式站改從 Cloudflare（assets-worker/，靜態素材請求免費不限量）讀，省下 Vercel 每次約 2,900 個請求；
+// 其他網址（本機 npm start、預覽）照舊讀 ../assets/282/。--no-cdn 或 RO_ASSET_CDN= 空字串可關掉。
+const ASSET_CDN = process.argv.includes('--no-cdn') ? '' : (process.env.RO_ASSET_CDN ?? 'https://ro-assets.tommy771004.workers.dev/');
+const ASSET_HOSTS = ['htmls-ruddy.vercel.app'];
+const raScript = `<script>window.__RA=window.__RA||(${JSON.stringify(ASSET_CDN)}&&${JSON.stringify(ASSET_HOSTS)}.includes(location.hostname)?${JSON.stringify(ASSET_CDN)}:new URL("../assets/282/",document.baseURI).href)</script>`;
 
 // 尋找可用的 esbuild 模組（本資料夾、鄰近作品 node_modules 或 npx 快取）
 async function loadEsbuild() {
@@ -40,16 +46,12 @@ const roRewritePlugin = {
       );
       src = src.replace(/,import\.meta\.url\)/g, ',document.baseURI)');
 
-      // 2. soul_linker：將素材根目錄指到 ../assets/282/，並將預設語系設為繁體中文（zh-TW）
+      // 2. soul_linker：將素材根目錄指到 window.__RA（頁首設定；預設 ../assets/282/ 的絕對網址），並將預設語系設為繁體中文（zh-TW）
       if (args.path.includes('soul_linker')) {
-        src = src.replace(
-          'const js="assets/"',
-          'const js=new URL("../assets/282/",document.baseURI).href'
-        );
-        src = src.replace(
-          'const tq="assets/"',
-          'const tq=new URL("../assets/282/",document.baseURI).href'
-        );
+        for (const k of ['js', 'tq']) {
+          if (!src.includes(`const ${k}="assets/"`)) throw new Error(`soul_linker 找不到 const ${k}="assets/"`);
+          src = src.replace(`const ${k}="assets/"`, `const ${k}=window.__RA`);
+        }
         src = src.replace(
           'lang:(RM=navigator.language)!=null&&RM.toLowerCase().startsWith("es")?"es":(zM=navigator.language)!=null&&zM.toLowerCase().startsWith("zh")?"zh-TW":"en"',
           'lang:(RM=navigator.language)!=null&&RM.toLowerCase().startsWith("es")?"es":"zh-TW"'
@@ -58,9 +60,15 @@ const roRewritePlugin = {
 
       // 3. main：修正所有相對素材路徑、啟用單機離線／全解鎖模式並移除無後端時的 404 請求
       if (args.path.includes('main-')) {
-        src = src.replace(/(?<![.\w/])assets\//g, '../assets/282/');
-        src = src.replace('"/splash/endless-tower.jpg"', '"../assets/282/splash/endless-tower.jpg"');
-        src = src.replace('"/splash/endless-tower-mask.svg"', '"../assets/282/splash/endless-tower-mask.svg"');
+        // 素材字串改接 window.__RA：樣板字串（含 CSS url(…) 在樣板內）用 ${__RA}，一般字串用 __RA+"…"
+        const nAssets = (src.match(/(?<![.\w/])assets\//g) || []).length;
+        src = src.replace(/`assets\//g, '`${window.__RA}');
+        src = src.replace(/url\(assets\//g, 'url(${window.__RA}');
+        src = src.replace(/"assets\//g, 'window.__RA+"');
+        const left = src.match(/(?<![.\w/])assets\//g);
+        if (left) throw new Error(`main 還有 ${left.length} 處未改的 assets/（共 ${nAssets}）`);
+        src = src.replace('"/splash/endless-tower.jpg"', '(window.__RA+"splash/endless-tower.jpg")');
+        src = src.replace('"/splash/endless-tower-mask.svg"', '(window.__RA+"splash/endless-tower-mask.svg")');
 
         // 預設啟用本機模式（Lh = true）：全 14 職業與二轉大師 NPC 解鎖、使用 localStorage 單機存檔
         src = src.replace('let Lh=!1,Oi=null;', 'let Lh=!0,Oi=null;');
@@ -188,6 +196,7 @@ let html = readFileSync(resolve(root, 'src/template.html'), 'utf8');
 
 // 調整語系、標題與移除外部字型／模組連結，改為單檔內嵌
 html = html
+  .replace('<head>', () => `<head>\n    ${raScript}`)
   .replace('<html lang="en" translate="no">', '<html lang="zh-Hant" translate="no">')
   .replace(/<link rel="manifest"[^>]*>\s*/g, '')
   .replace(/<link rel="preconnect"[^>]*>\s*/g, '')

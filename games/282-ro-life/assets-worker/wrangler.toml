@@ -1,0 +1,13 @@
+# Cloudflare Worker（只有靜態素材，沒有程式）：把 assets/282/ 整個資料夾放上 Cloudflare，正式站的圖、地圖、音效改從這裡讀，
+# 不再算進 Vercel 的請求數。靜態素材請求在 Cloudflare 是免費、不限量的（Free 方案上限：每版 20,000 個檔、單檔 25 MiB）。
+# 跨網域與快取標頭寫在 assets/282/_headers。
+# 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行（已經登入過大廳 Worker 就不用再 login）：
+#   npx wrangler deploy
+# 網址會是 https://ro-assets.<帳號>.workers.dev/；和 tools/build.mjs 的 ASSET_CDN 不同時，改那裡再 npm run build。
+# 素材有增減或換檔後要再 deploy 一次（只會上傳有變的檔）。
+name = "ro-assets"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "../../../assets/282"
+not_found_handling = "none"

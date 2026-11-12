@@ -46,8 +46,8 @@ games/282-ro-life/
 
 ## 注意事項
 
-- `tools/build.mjs` 將 `soul_linker` 內的 `js` 與 `tq` 素材基底路徑設為 `new URL("../assets/282/", document.baseURI).href`，確保 PixiJS 8 `Assets.load` 在 `/web/282-ro-life.html` 下以絕對 URL 載入 `assets/282/` 內的所有圖集、地圖與音訊，不會因相對路徑 `../` 解析差異而失敗。
-- **素材快取**：根目錄 `vercel.json` 讓 `/assets/282/*` 快取 7 天（`manifest.json` 只快取 5 分鐘），因為一次進到廣場就有約 2,900 個素材請求（技能圖示 1,500、物品 342、精靈圖 280、地圖 340），沒快取時每次重新整理都會全部重新驗證。**換掉同名的素材檔，玩家最多要 7 天才看得到**；要立刻生效就改檔名並更新 manifest。
+- **素材根目錄 `window.__RA`**：`tools/build.mjs` 在 `<head>` 第一行設定它，`soul_linker` 的 `js`／`tq` 與 main 裡所有 `assets/` 字串都改接它（樣板字串用 `${window.__RA}`，一般字串用 `window.__RA+"…"`；漏改會讓 build 失敗）。正式站（`htmls-ruddy.vercel.app`）指到 Cloudflare 的 `ASSET_CDN`（`https://ro-assets.tommy771004.workers.dev/`），其他網址指到 `../assets/282/` 的絕對網址。登入畫面的背景、logo、app icon 與 `og.jpg` 仍走 Vercel（約 10 個檔）。`npm run build -- --no-cdn` 可全部改回 Vercel；測試時可用 `addInitScript` 預先設定 `window.__RA`。
+- **素材放在 Cloudflare**：一次進到廣場就有約 2,900 個素材請求（技能圖示 1,500、物品 342、精靈圖 280、地圖 340），所以正式站改從 `assets-worker/`（只有靜態素材、沒有程式的 Worker，請求免費不限量）讀。CORS 與快取標頭寫在 `assets/282/_headers`：全部 7 天，`manifest.json` 5 分鐘。**新增或換掉素材後，要在 `assets-worker/` 再執行一次 `npx wrangler deploy`**（使用者自己的帳號，不要自動執行），否則正式站讀不到新檔；換同名檔，玩家最多要 7 天才看得到，要立刻生效就改檔名並更新 manifest。Vercel 上的 `/assets/282/*` 保留，供本機與 `--no-cdn` 使用（`vercel.json` 的快取標頭不變）。
 - 單檔版預設啟用單機全解鎖模式（`Lh = true`）並停用遠端 `/api/`、`status.json`、`sw.js` 與 WebSocket 連線，離線或靜態託管時零 404 與零 `console.error`。
 - **開場登入畫面**：背景 `assets/282/splash/login-plaza.jpg`（1024×572）是使用者給的設計圖，原圖畫死的 logo、登入框、伺服器列與版本字已用插值補掉。桌機以 cover 置中，`style.css` 的 `--s` 換算圖上座標，四個元件照圖上位置蓋回補過的區域（座標寫在該段註解）；改版面時元件不能縮得比那些區域小，否則會露出補過的模糊塊。直式手機背景改靠左、橫式手機背景放大靠左。
 - **Logo**：app icon（`assets/282/app-icons/`，金框天使波利，使用者提供的 328px 原圖放大，512 版略軟）與開場登入頁的 `assets/282/splash/logo-ro-icon.png` 是同一張圖，後者只去掉金框外的深色底；登入頁以高度定尺寸（`style.css` 檔尾）。選角畫面的 `.brand-logo` 仍用舊的橫幅 `logo-ro-life.png`。
