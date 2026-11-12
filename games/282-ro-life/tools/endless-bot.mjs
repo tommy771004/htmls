@@ -8,6 +8,7 @@
 //   --strong           塔的強化點滿（測後面的樓層、MVP 層用）
 //   --skills a,b,c     塔用技能（守護者畫面上的名稱，最多 4 個；預設依職業）
 //   --suspend 0        打到第幾秒先中斷一次再從守護者處繼續（0＝不測）
+//   --pet poring       帶一隻滿親密度、有配件的寵物進塔（塔裡寵物不加成也不出場；重跑的那一頁沒有寵物資料，要照樣對得上）
 //   --headed           開視窗看它打
 //   --out <資料夾>     截圖與報告（預設系統暫存資料夾）
 // 流程：本機起一份 createRoLife（記憶體資料）→ 真的頁面登入、切線上模式、建角（一轉職業）→ 直接改伺服器存檔
@@ -34,6 +35,8 @@ const MINUTES = Number(opt('minutes', 8));
 const FLOORS = Number(opt('floors', 0));
 const MIN_FLOOR = Number(opt('min-floor', 2));
 const SUSPEND = Number(opt('suspend', 0));
+const PET = opt('pet', '');
+if (PET && !R.pets?.[PET]) throw new Error(`沒有這隻寵物：${PET}`);
 const OUT = resolve(opt('out', join(tmpdir(), `ro-endless-bot-${Date.now()}`)));
 if (!process.env.PLAYWRIGHT_MODULE) throw new Error('要設 PLAYWRIGHT_MODULE（playwright 的 index.mjs 路徑）');
 const job = R.jobs[JOB];
@@ -123,7 +126,9 @@ try {
   acct.inventory.push({ uid: 'botspare1', itemId: 2244, quality: 1, cards: [], affixes: [{ stat: 'dex', value: 1 }], ilvl: 8, tier: 1, refine: 2 });
   acct.cards = { ...(acct.cards ?? {}), 4001: 2 };
   acct.kafra = 4321;
-  store.mem.gameSaves.set(accId, { ...sv, doc: { ...sv.doc, 'characters.v1': JSON.stringify(chars), 'account.v1': JSON.stringify(acct) }, rev: sv.rev + 1, wid: 'bot-seed' });
+  if (PET) ch.pet = PET;
+  const petsDoc = PET ? { 'pets.v1': JSON.stringify({ pets: { [PET]: { intimacy: 950, at: Date.now(), acc: true } } }) } : {};
+  store.mem.gameSaves.set(accId, { ...sv, doc: { ...sv.doc, 'characters.v1': JSON.stringify(chars), 'account.v1': JSON.stringify(acct), ...petsDoc }, rev: sv.rev + 1, wid: 'bot-seed' });
   const ups = flag('strong')
     ? { damage: 250, hp: 150, haste: 120, guard: 40, area: 80, reach: 40, targets: 5, proj: 5, repeat: 5, pierce: 5, crit: 60, critDmg: 60, boss: 150, regen: 12, speed: 12 }
     : { damage: 80, hp: 80, haste: 40, guard: 20, area: 20, reach: 20, crit: 20, speed: 4 };
@@ -254,6 +259,11 @@ try {
   const live = await status();
   log('收工', JSON.stringify({ ...live, pickClicks: picks, states: [...states], minutes: ((Date.now() - t0) / 60000).toFixed(1) }));
   await shot('3-end');
+  if (PET) {
+    const pet = await page.evaluate((id) => ({ worn: window.__ro.getChars()[0]?.pet === id, inRun: !!window.__ro.run?.pet }), PET);
+    check(`角色帶著寵物 ${PET}`, pet.worn, pet);
+    check('塔裡寵物不出場', !pet.inRun, pet);
+  }
   check(`打到第 ${MIN_FLOOR} 層以上`, (live?.wave ?? maxWave) >= MIN_FLOOR, { wave: live?.wave ?? maxWave, cleared: live?.cleared, failed: live?.failed });
   if ((live?.cleared ?? 0) >= 10) log('通過第 10 層（MVP 層），重跑會涵蓋 MVP 與第 9 層換圖');
 
@@ -266,6 +276,7 @@ try {
   const run = runs.at(-1);
   check('伺服器收到整局並等待驗證', run?.status === 'pending', { state: run?.state, status: run?.status, ticks: run?.ticks, checks: run?.checks });
   check(`開局快照是 ${JOB}`, (run?.snapshot?.promotion ?? run?.snapshot?.job) === JOB, { job: run?.snapshot?.job, promotion: run?.snapshot?.promotion });
+  if (PET) check('開局快照記著帶的寵物', run?.snapshot?.pet === PET, { pet: run?.snapshot?.pet });
   check('伺服器的格數和頁面一致', run && Math.abs(run.ticks - (live?.ticks ?? 0)) <= 120, { server: run?.ticks, page: live?.ticks });
 
   // 7. 驗證程式重跑（用目前這一版頁面）
@@ -289,6 +300,10 @@ try {
   const now = { inv: accAfter.inventory.map((i) => i.uid + ':' + (i.refine ?? 0)).sort(), cards: JSON.stringify(accAfter.cards), kafra: accAfter.kafra };
   check('倉庫、卡片、Kafra 沒變', JSON.stringify(now) === JSON.stringify(seeded), JSON.stringify(now) === JSON.stringify(seeded) ? '' : { seeded, now });
   const fixes = store.mem.gameLogs.filter((l) => l.flags.includes('would-fix') || l.flags.includes('fixed') || (l.detail?.fix ?? []).length);
+  if (PET) {
+    const petNow = JSON.parse((await store.getGameSave(accId)).doc['pets.v1'] ?? '{}')?.pets?.[PET];
+    check('打完塔寵物的親密度沒變', petNow?.intimacy === 950 && petNow?.acc === true, { pet: petNow, logs: store.mem.gameLogs.map((l) => l.kind) });
+  }
   check('存檔沒有被伺服器修正', !fixes.length, fixes.map((l) => (l.detail?.fix ?? []).map((f) => f.code)));
   check('頁面沒有錯誤', !errs.length, errs.slice(0, 5));
   if (suspended) log('有測中斷／繼續');

@@ -2798,10 +2798,15 @@ body:has(#charcreate:not(.hidden)) #sp-top {
   letter-spacing: 0.12em;
   color: rgba(190, 200, 224, 0.82);
 }
-/* 性別：面板最上面的兩個分頁（標題字藏起來） */
+/* 性別：面板最上面的兩個分頁（標題字藏起來）。面板要捲動時分頁釘在最上面（底色不透明，捲過去的內容才不會透出來） */
 #charcreate .form-col > .field:has(.seg) {
-  margin: 0 -12px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -12px 10px;
   font-size: 0;
+  border-radius: 15px 15px 0 0;
+  background: #1c2237;
 }
 #charcreate .seg {
   display: grid;
@@ -2875,6 +2880,47 @@ body:has(#charcreate:not(.hidden)) #sp-top {
   justify-content: center;
   gap: 5px;
   margin-top: 6px;
+}
+/* 桌機：整個造型面板在 1440×900 不用捲。髮色、服裝顏色各排成一列（色票跟著欄寬縮小），職業鈕與欄位間距收一點 */
+@media (min-height: 501px) {
+  #charcreate .form-col > .field { margin-bottom: 8px; }
+  #charcreate .form-col > .field:has(.seg) { margin-bottom: 10px; }
+  #charcreate #cc-jobs .job-btn { padding: 4px 2px; }
+  #charcreate #cc-haircolors,
+  #charcreate #cc-clothcolors {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 36px);
+    gap: 4px;
+  }
+  #charcreate #cc-haircolors .swatch,
+  #charcreate #cc-clothcolors .swatch {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    aspect-ratio: 1;
+    overflow: hidden;
+  }
+  #charcreate #cc-haircolors .swatch canvas,
+  #charcreate #cc-clothcolors .swatch canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+}
+/* 視窗矮、面板還是要捲的時候：底部一道漸層提示下面還有（疊在最後一欄的下邊距上，捲到底不會蓋到內容） */
+@media (max-height: 820px) {
+  #charcreate .form-col::after {
+    content: "";
+    display: block;
+    position: sticky;
+    bottom: -4px;
+    z-index: 2;
+    height: 22px;
+    margin: -8px -12px 0;
+    background: linear-gradient(180deg, rgba(14, 17, 29, 0), rgba(14, 17, 29, 0.96));
+    pointer-events: none;
+  }
 }
 /* 中間：放大的角色，腳下一圈影子；轉向與動作鈕在角色下面 */
 #charcreate .preview-col {
@@ -3055,6 +3101,7 @@ body:has(#charcreate:not(.hidden)) #sp-top {
   #charcreate .form-col { padding: 0 8px 2px; }
   #charcreate .form-col > .field { margin-bottom: 6px; }
   #charcreate .form-col > .field:has(.seg) { margin: 0 -8px 6px; }
+  #charcreate .form-col::after { bottom: -2px; margin: -6px -8px 0; } /* 跟這裡的內距 8px、欄位間距 6px 對齊，不然面板會多出 4px 可以左右捲 */
   #charcreate .seg .ro-btn { padding: 6px 4px; }
   #charcreate #cc-radar { display: none; }
   #charcreate .preview-col { padding-bottom: calc(var(--cc-foot) + 4px); gap: 2px; }
