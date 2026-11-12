@@ -23,6 +23,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS chat_log (id INTEGER PRIMARY KEY AUTOINCREMENT, acc TEXT NOT NULL, name TEXT NOT NULL, kind TEXT NOT NULL, dst TEXT, text TEXT NOT NULL, at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS report (id INTEGER PRIMARY KEY AUTOINCREMENT, reporter TEXT NOT NULL, reporter_name TEXT NOT NULL, target TEXT NOT NULL, target_name TEXT NOT NULL, why TEXT NOT NULL, evidence TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'open\', at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS mute (acc TEXT PRIMARY KEY, until INTEGER NOT NULL, reason TEXT NOT NULL, name TEXT NOT NULL, at INTEGER NOT NULL)',
+  // 隊伍（lobby-party.mjs）：只在組隊、離隊、換隊長、出發這類事件時寫，不會每則訊息寫
+  'CREATE TABLE IF NOT EXISTS party (pid INTEGER PRIMARY KEY, doc TEXT NOT NULL, at INTEGER NOT NULL)',
 ];
 const dayOf = (now) => Math.floor(now / 86_400_000);
 
@@ -86,6 +88,9 @@ export function sqlStore(exec, { chatPerDay = CHAT_LOG_PER_DAY } = {}) {
     setMute: (acc, until, reason, name, at) => void exec('INSERT OR REPLACE INTO mute (acc, until, reason, name, at) VALUES (?, ?, ?, ?, ?)', acc, until, reason, name, at),
     delMute: (acc) => exec('DELETE FROM mute WHERE acc = ? RETURNING acc', acc).length > 0,
     listMutes: (now) => exec('SELECT acc, until, reason, name, at FROM mute WHERE until > ? ORDER BY until', now),
+    parties: () => exec('SELECT doc FROM party').map((r) => JSON.parse(r.doc)),
+    saveParty: (p, at) => void exec('INSERT OR REPLACE INTO party (pid, doc, at) VALUES (?, ?, ?)', p.pid, JSON.stringify(p), at),
+    delParty: (pid) => void exec('DELETE FROM party WHERE pid = ?', pid),
   };
 }
 
@@ -98,6 +103,7 @@ export function memoryStore() {
   let chat = []; // {acc, name, kind, dst, text, at}
   const reports = []; // 同 sqlStore 的 report()
   const mutes = new Map(); // acc → {until, reason, name, at}
+  const parties = new Map(); // pid → JSON（同 sqlStore，讀回來是新的物件）
   const sorted = (m) => (m ? [...m].sort((x, y) => x[1] - y[1]).map(([k]) => k) : []);
   const edge = (m, a, b, at) => { if (!m.has(a)) m.set(a, new Map()); if (!m.get(a).has(b)) m.get(a).set(b, at); };
   return {
@@ -137,5 +143,8 @@ export function memoryStore() {
     setMute: (acc, until, reason, name, at) => void mutes.set(acc, { until, reason, name, at }),
     delMute: (acc) => mutes.delete(acc),
     listMutes: (now) => [...mutes].filter(([, m]) => m.until > now).sort((x, y) => x[1].until - y[1].until).map(([acc, m]) => ({ acc, ...m })),
+    parties: () => [...parties.values()].map((j) => JSON.parse(j)),
+    saveParty: (p) => void parties.set(p.pid, JSON.stringify(p)),
+    delParty: (pid) => void parties.delete(pid),
   };
 }

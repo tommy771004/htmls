@@ -105,7 +105,7 @@ const roRewritePlugin = {
         );
         must(
           'case"welcome":this.retryMs=1e3,this.joined=!0,',
-          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),document.body.classList.toggle("ro-report",!!s.report),document.body.classList.toggle("ro-mail",!!s.mail),'
+          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),document.body.classList.toggle("ro-report",!!s.report),document.body.classList.toggle("ro-mail",!!s.mail),document.body.classList.toggle("ro-party",!!s.party),'
         );
         must('const h=!Pa(),u=this.guests.has(e.id)', 'const h=!(Pa()||window.__roLobby?.ticket),u=this.guests.has(e.id)');
         must(
@@ -113,7 +113,17 @@ const roRewritePlugin = {
           'n.append(o,...document.body.classList.contains("ro-social")?[i,...h||u?[]:[d,...(y=this.friends)!=null&&y.list.some(f=>f.id===e.id)?[]:[p],...document.body.classList.contains("ro-report")?[l]:[]]]:[])' // 名字可能重複，用 id 判斷是不是好友
         );
         must('{t:"friendAdd",name:e.name}', '{t:"friendAdd",name:e.name,id:e.id}'); // 同名時伺服器靠 id 找到點的那個人
-        must('if(!((w=this.party)!=null&&w.has(e.id))&&((m=this.party)!=null&&m.canInvite)){', 'if(!1){'); // 組隊還沒做
+        // 組隊：伺服器 welcome 帶 party 才顯示「邀請組隊」；訪客不能邀請、也不能被邀請
+        must(
+          'if(!((w=this.party)!=null&&w.has(e.id))&&((m=this.party)!=null&&m.canInvite)){',
+          'if(document.body.classList.contains("ro-party")&&!h&&!u&&!((w=this.party)!=null&&w.has(e.id))&&((m=this.party)!=null&&m.canInvite)){'
+        );
+        // 合作關卡的本局連線：原本連 /web/ws-run，改連大廳同一個網址（hello 帶 run:true），並帶入場票讓伺服器對到隊伍
+        must(
+          'function Yj(a=Gf()){const e=new URL("ws-run",document.baseURI);return e.searchParams.set("l",String(a)),e.href.replace(/^http/,"ws")}',
+          'function Yj(a=Gf()){return window.__roLobby?.url(a)??"ws://invalid"}'
+        );
+        must('key:t,run:!0,hm:!0,...s?{token:s}:{},', 'key:t,run:!0,hm:!0,...s?{token:s}:{},...window.__roLobby?.ticket?{rt:window.__roLobby.ticket}:{},');
         // 密語帶對方的 id（從選單點密語、或 /r 回覆最後密語你的人），伺服器在名字也對得上時用 id 找人，不會送錯同名的人
         must(
           'd.onclick=()=>{var f;this.closeMenu(),de("friends"),(f=this.chat)==null||f.whisperTo(e.name)}',

@@ -1,6 +1,6 @@
 // 282 普隆德拉大廳的連線核心。
 // 第一階段：加入／離開、走動、外觀、表情、公開聊天。第二階段（社交）：檢視資料、密語、好友。
-// 第三階段：多頻道、離線留言、檢舉與禁言（管理介面在 lobby-admin.mjs）。不碰遊戲規則；組隊、交易還沒做。
+// 第三階段：多頻道、離線留言、檢舉與禁言（管理介面在 lobby-admin.mjs）。組隊與合作關卡的轉送在 lobby-party.mjs。不碰遊戲規則；交易還沒做。
 // 全部大廳編號共用同一個廣場，廣場分 CHANNELS 個頻道、每頻道 CHANNEL_CAP 人（引擎的 sp）。
 // 走動、外觀、表情、「頻道」聊天只送同頻道；「一般」「交易」聊天、密語、好友、查看都跨頻道（玩家 id 在整個廣場唯一）。
 // 本機 Node（server/ro-life/lobby.mjs）與 Cloudflare Durable Object（games/282-ro-life/worker/index.js）共用這一份。
@@ -14,6 +14,8 @@
 //   verify(ticket, now) → Promise<{a, n, exp} | null>   驗證 /api/ro/lobby-ticket 發的入場票
 //   db                 lobby-store.mjs 的 sqlStore／memoryStore（同步；寫入失敗不影響聊天與連線，見 safe()）
 //   cap?               每頻道人數上限（測試用，預設 CHANNEL_CAP）
+//   wake?(at)          在 at 時呼叫 lobby-party.mjs 的 onAlarm（邀請與出發確認的期限）
+//   sendRaw?(ws, str)  直接送字串（本局轉送用，省一次 JSON 編碼）
 //   log?(...args)
 // 身分只認入場票的 a（帳號）；票裡的 n 是 Google／LINE 的名字，不顯示。
 //
@@ -24,10 +26,12 @@
 //            chat{ch, name, text, id, c, gm} emote{id, e} chatErr{e} channels{c, me} hopErr{e} reported{ok}
 //            profile{id, p, name, look} whisper{out, name, text, id, c} whisperErr{name}
 //            friends{list:[{name, on, id?}], asks:[name]} friendAsk{name} friendNote{what, name}
-// welcome 的 social／report／mail＝這個伺服器有社交、檢舉、離線留言；頁面比伺服器先更新時，舊伺服器不送，頁面就不顯示那些按鈕。
+//   組隊、合作關卡：見 lobby-party.mjs 檔頭
+// welcome 的 social／report／mail／party＝這個伺服器有社交、檢舉、離線留言、組隊；頁面比伺服器先更新時，舊伺服器不送，頁面就不顯示那些按鈕。
 // 換頻道（hop）成功時再送一次 welcome（同一個 id、新頻道的人），引擎會自己清掉舊頻道的人並顯示「已切換到頻道 N」。
 
 import { FRIEND_MAX, ASK_MAX, OFFLINE_MAX, OFFLINE_PER_SENDER } from './lobby-store.mjs';
+import { partyMessage, partyChat, partyPresence, runHello, runMessage, runClose, RUN_MAX_MESSAGE } from './lobby-party.mjs';
 
 export const LOBBY_PATH = '/api/ro/lobby';
 export const CHANNELS = 4;
@@ -85,12 +89,12 @@ export async function verifyTicket(secret, ticket, now = Date.now()) {
 }
 
 // ---- 清理：每個用戶端都會照伺服器轉的內容畫圖，所以在這裡把關 ----
-const clean = (s, max) =>
+export const clean = (s, max) =>
   String(s ?? '')
     .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff<>]/g, '')
     .trim()
     .slice(0, max);
-const int = (v, lo, hi) => {
+export const int = (v, lo, hi) => {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo;
 };
@@ -146,7 +150,7 @@ export function cleanProfile(v) {
 const pub = (p) => ({ id: p.id, name: p.name, look: p.look, x: p.x, y: p.y, f: p.f, ...(p.guest ? { guest: true } : {}) });
 
 // 固定視窗計數：key 在 windowMs 內最多 max 次
-function allow(p, key, now, max, windowMs) {
+export function allow(p, key, now, max, windowMs) {
   const r = (p.rl ??= {});
   const cur = r[key];
   if (!cur || now - cur[1] >= windowMs) { r[key] = [1, now]; return true; }
@@ -155,7 +159,7 @@ function allow(p, key, now, max, windowMs) {
   return true;
 }
 
-function members(io) {
+export function members(io) {
   const out = [];
   for (const ws of io.peers()) {
     const st = io.get(ws);
@@ -174,19 +178,19 @@ function counts(io, except = null) {
   return c;
 }
 // 資料庫失敗（例如免費方案當天的寫入額度用完）不能讓聊天、進場、好友整個壞掉
-function safe(io, fn, fallback = undefined) {
+export function safe(io, fn, fallback = undefined) {
   try { return fn(); } catch (e) { io.log?.('[ro-lobby] db', e?.message ?? e); return fallback; }
 }
 const welcome = (io, me) => ({
-  t: 'welcome', id: me.id, gm: false, channel: me.ch, social: 1, report: 1, mail: 1,
+  t: 'welcome', id: me.id, gm: false, channel: me.ch, social: 1, report: 1, mail: 1, party: 1,
   players: members(io).filter(([, s]) => s.id !== me.id && s.ch === me.ch).map(([, s]) => pub(s)),
 });
-const muted = (io, me, now) => (me.acc ? safe(io, () => io.db.getMute(me.acc, now), null) : null);
+export const muted = (io, me, now) => (me.acc ? safe(io, () => io.db.getMute(me.acc, now), null) : null);
 
 // ---- 社交 ----
 const lower = (s) => s.toLocaleLowerCase();
 // 登入的玩家依帳號分組（同一個帳號可能開好幾個分頁）；except 是正在關閉、還列在 peers() 裡的連線
-function byAccount(io, except = null) {
+export function byAccount(io, except = null) {
   const out = new Map();
   for (const [ws, st] of members(io)) {
     if (ws === except || st.guest || !st.acc) continue;
@@ -345,6 +349,7 @@ async function hello(io, ws, m, now) {
         io.send(ws, { t: 'whisper', out: false, name: nameIn(list, o.src) ?? o.srcName, text: OFFLINE_TAG + o.text, id: live?.id ?? 0, c: live?.ch ?? 0, gm: false });
       }
     }
+    partyPresence(io, me.acc, now); // 回到廣場：隊友看到上線，自己拿到隊伍
   }
 }
 
@@ -393,15 +398,16 @@ function report(io, ws, me, m, now) {
 
 export async function onMessage(io, ws, data, now = Date.now()) {
   if (typeof data !== 'string') return;
-  if (data.length > MAX_MESSAGE) return io.close(ws, 1009, 'too big');
+  const me = io.get(ws);
+  if (data.length > (me?.run ? RUN_MAX_MESSAGE : MAX_MESSAGE)) return io.close(ws, 1009, 'too big');
   let m;
   try { m = JSON.parse(data); } catch { return; }
   if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
-  const me = io.get(ws);
+  if (me?.run) return runMessage(io, ws, me, m, data, now);
   if (!me?.id) {
     if (m.t === 'hello' && !(me?.hello)) {
       io.set(ws, { hello: true }); // 驗票期間重送的 hello 不重複處理
-      return hello(io, ws, m, now);
+      return m.run === true ? runHello(io, ws, m, now) : hello(io, ws, m, now);
     }
     return;
   }
@@ -423,7 +429,7 @@ export async function onMessage(io, ws, data, now = Date.now()) {
     }
     case 'chat': {
       if (me.guest) return io.send(ws, { t: 'chatErr', e: 'guest' });
-      if (!CHAT_CHANNELS.has(m.ch)) return;
+      if (!CHAT_CHANNELS.has(m.ch) && m.ch !== 'party') return;
       const text = clean(m.text, 200);
       if (!text) return;
       const ok = allow(me, 'ch', now, 5, 10_000);
@@ -431,6 +437,7 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       if (!ok) return io.send(ws, { t: 'chatErr', e: 'rate' });
       const mu = muted(io, me, now);
       if (mu) return io.send(ws, { t: 'chatErr', e: 'muted', until: mu.until });
+      if (m.ch === 'party') return partyChat(io, ws, me, text, now);
       broadcast(io, { t: 'chat', ch: m.ch, name: me.name, text, id: me.id, c: me.ch, gm: false }, null, m.ch === 'local' ? me.ch : 0);
       return safe(io, () => io.db.logChat({ acc: me.acc, name: me.name, kind: m.ch, text, at: now }));
     }
@@ -457,6 +464,7 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       io.send(ws, welcome(io, me));
       broadcast(io, { t: 'join', p: pub(me) }, ws, n);
       if (me.acc) safe(io, () => tellFriends(io, me.acc, byAccount(io)));
+      if (me.acc) safe(io, () => partyPresence(io, me.acc, now)); // 隊伍框的頻道
       return;
     }
     case 'whisper': {
@@ -474,6 +482,7 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       io.set(ws, me);
       if (!ok) return;
       const p = cleanProfile(m.p);
+      if (p) { me.lv = p.level; me.jl = p.jobLevel; me.gs = p.gs; io.set(ws, me); } // 隊伍框與出發條件用的等級、職業等級、裝備分數
       const json = p && JSON.stringify(p);
       if (json && json.length <= MAX_PROFILE) return safe(io, () => io.db.setProfile(me.id, json));
       safe(io, () => io.db.delProfile(me.id));
@@ -498,18 +507,28 @@ export async function onMessage(io, ws, data, now = Date.now()) {
     }
     case 'report':
       return report(io, ws, me, m, now);
+    case 'partyInvite':
+    case 'partyReply':
+    case 'partyLeave':
+    case 'partyKick':
+    case 'partyLead':
+    case 'partyGo':
+    case 'partyReady':
+      return safe(io, () => partyMessage(io, ws, me, m, now));
     default:
-      // chatCn、組隊、交易：還沒做
+      // chatCn、跨大廳組隊（引擎的 *Far，全部大廳本來就同一個廣場）、交易：不處理
       return;
   }
 }
 
-export function onClose(io, ws) {
+export function onClose(io, ws, now = Date.now()) {
   const me = io.get(ws);
   io.set(ws, null);
+  if (me?.run) return safe(io, () => runClose(io, ws, me, now));
   if (!me?.id) return;
   broadcast(io, { t: 'leave', id: me.id }, ws, me.ch);
   safe(io, () => io.db.delProfile(me.id));
   // 同帳號還有別的分頁時也通知：好友清單上的 id 要換成還在的那一頁
   if (me.acc) safe(io, () => tellFriends(io, me.acc, byAccount(io, ws)));
+  if (me.acc) safe(io, () => partyPresence(io, me.acc, now, ws));
 }

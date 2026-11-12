@@ -1,5 +1,5 @@
 # Cloudflare Worker＋Durable Objects：282 普隆德拉大廳（所有大廳編號共用一個 Lobby，廣場內分 4 個頻道；走動、外觀、表情、
-# 聊天、檢視、密語、好友、離線留言、檢舉與禁言）。資料存在 Lobby 內建的 SQLite，不需要資料庫連線；程式更新後再執行一次 npx wrangler deploy。
+# 聊天、檢視、密語、好友、離線留言、檢舉與禁言、組隊與合作關卡的轉送）。資料存在 Lobby 內建的 SQLite，不需要資料庫連線；程式更新後再執行一次 npx wrangler deploy。
 # 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行（Free 方案即可）：
 #   npx wrangler login
 #   npx wrangler secret put RO_LOBBY_SECRET     # 和 Vercel 的 RO_LOBBY_SECRET 填同一個長亂數

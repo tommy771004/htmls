@@ -2,11 +2,12 @@
 // 邏輯在 lobby-core.mjs，和 Cloudflare 版（games/282-ro-life/worker/index.js）共用。
 // 大廳編號 1–9 都進同一個廣場（同 Cloudflare 版）；好友等資料放記憶體，重開就清空（正式站存在 Durable Object 的 SQLite）。
 import { WebSocketServer, WebSocket } from 'ws';
-import { LOBBY_PATH, MAX_MESSAGE, lobbyId, onMessage, onClose, verifyTicket } from './lobby-core.mjs';
+import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from './lobby-core.mjs';
 import { memoryStore } from './lobby-store.mjs';
+import { onAlarm, RUN_MAX_MESSAGE } from './lobby-party.mjs';
 
 export function createRoLobby({ secret, origins = [], log = () => {}, db = memoryStore() } = {}) {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE * 2, perMessageDeflate: false });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: RUN_MAX_MESSAGE, perMessageDeflate: false });
   const plaza = new Set();
   const state = new WeakMap();
 
@@ -20,10 +21,20 @@ export function createRoLobby({ secret, origins = [], log = () => {}, db = memor
       ws.send(JSON.stringify(msg));
     },
     close: (ws, code, reason) => { try { ws.close(code, reason); } catch { ws.terminate(); } },
+    sendRaw: (ws, str) => { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount <= 1024 * 1024) ws.send(str); },
     verify: (ticket, now) => verifyTicket(secret, ticket, now),
+    // 邀請與出發確認的期限（Cloudflare 版用 Durable Object 的 alarm）
+    wake: (at) => {
+      if (alarm && alarm.at <= at) return;
+      if (alarm) clearTimeout(alarm.t);
+      const t = setTimeout(() => { alarm = null; onAlarm(io, Date.now()); }, Math.max(0, at - Date.now()) + 5);
+      t.unref?.();
+      alarm = { at, t };
+    },
     db,
     log,
   };
+  let alarm = null;
 
   wss.on('connection', (ws) => {
     plaza.add(ws);
@@ -59,6 +70,6 @@ export function createRoLobby({ secret, origins = [], log = () => {}, db = memor
   return {
     handleUpgrade,
     plaza,
-    close() { clearInterval(heartbeat); for (const ws of wss.clients) ws.terminate(); wss.close(); },
+    close() { clearInterval(heartbeat); if (alarm) clearTimeout(alarm.t); for (const ws of wss.clients) ws.terminate(); wss.close(); },
   };
 }

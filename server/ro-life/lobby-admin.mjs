@@ -80,7 +80,7 @@ button{cursor:pointer}button.warn{color:var(--warn)}.card{background:var(--card)
 (() => {
   const $ = (id) => document.getElementById(id);
   const WHY = { abuse: '辱罵或騷擾', cheat: '作弊', rmt: '現金交易', spam: '洗版', other: '其他' };
-  const KIND = { local: '頻道', general: '一般', trade: '交易', cn: '中文', whisper: '密語' };
+  const KIND = { local: '頻道', general: '一般', trade: '交易', cn: '中文', party: '隊伍', whisper: '密語' };
   let key = '';
   try { key = sessionStorage.getItem('ro-admin-key') || ''; } catch {}
   const time = (t) => new Date(t).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' });

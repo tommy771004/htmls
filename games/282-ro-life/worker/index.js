@@ -2,10 +2,11 @@
 // 大廳編號 1–9 都進同一個 Lobby 物件（lobby-1），廣場裡再分頻道；邏輯和本機 Node 版（server/ro-life/lobby.mjs）
 // 共用 server/ro-life/lobby-core.mjs。用 WebSocket 休眠 API：沒有訊息時物件可以休眠、不計運算時間，每條連線的狀態存在
 // attachment（上限 16 KB，實測）。好友、邀請、角色名、檢視資料、離線留言、聊天紀錄、檢舉與禁言存在這個物件內建的 SQLite
-// （lobby-store.mjs），永久保存。管理頁 /admin 要 Worker 的 RO_ADMIN_KEY（wrangler secret put RO_ADMIN_KEY），沒設就 404。
+// （lobby-store.mjs），永久保存。組隊與合作關卡的本局連線（hello 帶 run:true）也走同一個網址、同一個物件（lobby-party.mjs）。管理頁 /admin 要 Worker 的 RO_ADMIN_KEY（wrangler secret put RO_ADMIN_KEY），沒設就 404。
 import { DurableObject } from 'cloudflare:workers';
 import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from '../../../server/ro-life/lobby-core.mjs';
 import { sqlStore } from '../../../server/ro-life/lobby-store.mjs';
+import { onAlarm } from '../../../server/ro-life/lobby-party.mjs';
 import { ADMIN_PATH, ADMIN_HTML, ADMIN_HEADERS, ADMIN_MIN_KEY, adminApi, adminAuthorized } from '../../../server/ro-life/lobby-admin.mjs';
 
 const ADMIN_API = `${ADMIN_PATH}/api/`;
@@ -47,10 +48,13 @@ export class Lobby extends DurableObject {
       get: (ws) => { try { return ws.deserializeAttachment() ?? null; } catch { return null; } },
       set: (ws, st) => { try { ws.serializeAttachment(st); } catch { /* 已關閉 */ } },
       send: (ws, msg) => { try { ws.send(JSON.stringify(msg)); } catch { /* 已關閉 */ } },
+      sendRaw: (ws, str) => { try { ws.send(str); } catch { /* 已關閉 */ } },
       close: (ws, code, reason) => { try { ws.close(code, reason); } catch { /* 已關閉 */ } },
       verify: (ticket, now) => verifyTicket(env.RO_LOBBY_SECRET, ticket, now),
       db: sqlStore((q, ...p) => ctx.storage.sql.exec(q, ...p).toArray()),
       ...(Number.isInteger(cap) && cap > 0 ? { cap } : {}),
+      // 邀請與出發確認的期限：用 alarm 叫醒（休眠中的 setTimeout 會不見）
+      wake: (at) => { ctx.storage.getAlarm().then((cur) => (cur == null || cur > at) && ctx.storage.setAlarm(at)).catch((e) => console.log('[ro-lobby] alarm', e.message)); },
       log: (...a) => console.log(...a),
     };
     // 醒來時清掉已離線玩家的檢視資料
@@ -75,6 +79,9 @@ export class Lobby extends DurableObject {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     return new Response(null, { status: 101, webSocket: client });
+  }
+  async alarm() {
+    try { onAlarm(this.io, Date.now()); } catch (e) { console.log('[ro-lobby] alarm', e.message); }
   }
   async webSocketMessage(ws, data) {
     await onMessage(this.io, ws, typeof data === 'string' ? data : '', Date.now());
