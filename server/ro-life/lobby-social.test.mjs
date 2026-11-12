@@ -18,7 +18,7 @@ async function sqliteStore() {
   const db = new DatabaseSync(':memory:');
   return sqlStore((q, ...p) => {
     const st = db.prepare(q);
-    return /^\s*(SELECT|WITH)/i.test(q) ? st.all(...p) : (st.run(...p), []);
+    return /^\s*(SELECT|WITH)|RETURNING/i.test(q) ? st.all(...p) : (st.run(...p), []);
   });
 }
 
@@ -68,7 +68,7 @@ test('檢視：送出的資料清理後存起來，別人檢視拿得到，人�
   const a = await w.join('a', 'Amy', 10);
   const b = await w.join('b', 'Bob', 11);
   const g = await w.join('g', 'x');
-  assert.equal(w.last('a', 'welcome').social, 1);
+  assert.deepEqual([w.last('a', 'welcome').social, w.last('a', 'welcome').report, w.last('a', 'welcome').mail], [1, 1, 1]);
   await w.say('b', { t: 'profile', p: { ...PROFILE, gs: '<b>' } });
   w.clear();
   await w.say('g', { t: 'inspect', id: b }); // 訪客也能檢視

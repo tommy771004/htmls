@@ -6,19 +6,19 @@
 
 - 已上線（Vercel 自動部署）：Google／LINE 登入＋雲端存檔（`RO_DATABASE_URL`）、快捷列圖示修正、新的 app icon／og 圖。
 - **普隆德拉大廳第一階段（看得到其他玩家）**：已上線。Worker 在使用者的 `ro-lobby.<帳號>.workers.dev`，Vercel 設好 `RO_LOBBY_URL`／`RO_LOBBY_SECRET`，正式站兩人互相看得到（2026-11-11 驗證）。
-- **第二階段（社交：查看資料、密語、好友）**：程式寫好、本機驗過，**要使用者再執行一次 `npx wrangler deploy` 才會在正式站出現**（頁面先更新也沒關係：舊 Worker 不送 `social`，社交按鈕不會顯示）。
-  - 好友存在 Durable Object 內建的 SQLite，不在 Neon（原本規劃存 Neon，改掉的原因：不用手動建表、Cloudflare 不用放資料庫密碼、本機能完整測試）。
-  - 本機已驗過：`npm run test:ro` 20 項（含 node:sqlite 跑同一份 SQL、惡意檢視資料、重名）；瀏覽器經 `wrangler dev`：真的點選玩家（桌機與 844×390 觸控）、查看（惡意資料沒有執行；真實格式的天賦、卡片、詞綴都顯示）、密語與 `/r` 回覆、加好友→對方接受→清單上線／離線、兩個同名玩家加對人、重啟 Worker 好友還在、舊 Worker 不顯示社交按鈕，零錯誤。
-  - **還沒驗過**：真正的 Google／LINE 帳號在正式站使用社交功能（正式站兩個登入都已開啟）。
+- **第二階段（社交：查看資料、密語、好友）**：已上線（`a3233c8`，push 後正式站的 welcome 已帶 `social: 1`）。
+  - 好友存在 Durable Object 內建的 SQLite，不在 Neon（不用手動建表、Cloudflare 不用放資料庫密碼、本機能完整測試）。
+  - **還沒驗過**：真正的 Google／LINE 帳號在正式站使用社交功能。
+- **第三階段（多頻道、離線留言、檢舉、禁言、管理頁）**：程式寫好、本機驗過，**要使用者部署 Worker 才會出現**（頁面先更新也沒關係：舊 Worker 不送 `report`／`mail`，檢舉與留言鈕不顯示）。
+  - 本機已驗過：`npm run test:ro` 30 項；瀏覽器經 `wrangler dev`（`LOBBY_CHANNEL_CAP=2`）：自動分到頻道 2、頻道清單換頻道（重送 welcome、看到的人跟著換）、頻道聊天只到同頻道、「一般」跨頻道（在「一般」分頁）、選單檢舉（證據含對方發言）、選單密語帶 id、離線好友「留言」（桌機與 844×390 觸控）→ 對方上線收到、好友選單「前往頻道 N」（滿了顯示「該頻道已滿」、有空位就換過去）、管理頁錯誤密鑰被擋、沒設 `RO_ADMIN_KEY` 時 `/admin` 與 API 都 404、惡意聊天文字在管理頁只顯示成文字、禁言 1 小時 → 對方發言被擋 → 解除；舊 Worker（拿掉 `report`／`mail`）不顯示檢舉與留言鈕，同場的新版對照組會顯示。全程零錯誤。
+  - 隱私：聊天紀錄（含密語）在 Durable Object 留 3 天；被檢舉時的證據快照留到管理頁處理為止（目前沒有刪除鈕，只能標為已處理）。
 
 ## 下一步
 
-1. 使用者部署第二階段（不可由 Claude 執行）：先 commit＋push，在要執行 wrangler 的那台電腦 `git pull`，再 `cd games/282-ro-life/worker && npx wrangler deploy`。不用新的密鑰或環境變數。部署後可請 Claude 檢查正式站的 welcome 有沒有 `social`。
-2. 部署後在正式站驗證：兩台裝置各用 Google／LINE 登入，互相查看、密語、加好友；訪客點別人只有「查看」。
-3. 之後可選的擴充（使用者還沒決定）：
-   - ③ 交易、組隊打關卡：要把遊戲規則搬到伺服器，工作量大。
-   - 其他待辦：檢舉、多頻道（現在只有頻道 1、總上限 80 人）、角色名審核、離線好友留言。
-   - 已知小限制：密語是打名字送出，如果線上的好友和陌生人同名，會送給好友。
+1. 使用者部署第三階段（不可由 Claude 執行）：commit＋push 後，在執行 wrangler 的電腦 `git pull`，`cd games/282-ro-life/worker`，`npx wrangler secret put RO_ADMIN_KEY`（至少 16 字的長亂數），再 `npx wrangler deploy`。管理頁在 `https://ro-lobby.<帳號>.workers.dev/admin`。
+2. 部署後在正式站驗證：換頻道、檢舉、管理頁禁言／解除、離線留言。
+3. ③ 交易、組隊：評估寫在 `PLAN-trade-party.md`，等使用者決定方向。
+4. 其他待辦：角色名審核、檢舉證據的刪除鈕。
 
 ## 上一台電腦的習慣（memory 不會跟著換電腦）
 

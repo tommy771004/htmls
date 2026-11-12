@@ -1,10 +1,12 @@
-# Cloudflare Worker＋Durable Objects：282 普隆德拉大廳（所有大廳編號共用一個 Lobby；走動、外觀、表情、聊天、檢視、密語、好友）。
-# 好友資料存在 Lobby 內建的 SQLite，不需要資料庫連線；程式更新後再執行一次 npx wrangler deploy。
+# Cloudflare Worker＋Durable Objects：282 普隆德拉大廳（所有大廳編號共用一個 Lobby，廣場內分 4 個頻道；走動、外觀、表情、
+# 聊天、檢視、密語、好友、離線留言、檢舉與禁言）。資料存在 Lobby 內建的 SQLite，不需要資料庫連線；程式更新後再執行一次 npx wrangler deploy。
 # 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行（Free 方案即可）：
 #   npx wrangler login
 #   npx wrangler secret put RO_LOBBY_SECRET     # 和 Vercel 的 RO_LOBBY_SECRET 填同一個長亂數
+#   npx wrangler secret put RO_ADMIN_KEY        # 管理頁 /admin 的密鑰（至少 16 字）；不設則管理頁 404
 #   npx wrangler deploy
 # 部署完把 Vercel 的 RO_LOBBY_URL 設成 wss://ro-lobby.<帳號>.workers.dev/api/ro/lobby，重新部署 Vercel。
+# 管理頁：https://ro-lobby.<帳號>.workers.dev/admin（看檢舉、禁言／解除）。
 name = "ro-lobby"
 main = "index.js"
 compatibility_date = "2026-09-01"

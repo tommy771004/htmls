@@ -85,7 +85,8 @@ const roRewritePlugin = {
         // 普隆德拉大廳（看得到其他玩家）：只有頁面設定了 window.__roLobby（/api/ro/config 有回大廳網址）才連線，
         // 否則和以前一樣不開 WebSocket。入場票放在 hello 的 rt；本機模式的角色都是 dev，有大廳時也讓它上線。
         // 社交（檢視、密語、好友）要等伺服器的 welcome 帶 social 才顯示：頁面比 Worker 先更新時，舊 Worker 不送它，按鈕就不出現。
-        // 他人選單只留名字、檢視、密語、加好友（交易、組隊、檢舉沒做）；訪客看得到「檢視」，密語與加好友要登入、對方也不能是訪客。
+        // 他人選單只留名字、查看、密語、加好友、檢舉（交易、組隊沒做）；訪客看得到「查看」，其他要登入、對方也不能是訪客。
+        // 檢舉要伺服器 welcome 帶 report 才顯示（舊伺服器收到檢舉不會存）。
         const must = (from, to) => {
           if (!src.includes(from)) throw Error(`build.mjs: 找不到要替換的引擎程式碼：${from.slice(0, 60)}`);
           src = src.replace(from, to);
@@ -104,15 +105,34 @@ const roRewritePlugin = {
         );
         must(
           'case"welcome":this.retryMs=1e3,this.joined=!0,',
-          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),'
+          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),document.body.classList.toggle("ro-report",!!s.report),document.body.classList.toggle("ro-mail",!!s.mail),'
         );
         must('const h=!Pa(),u=this.guests.has(e.id)', 'const h=!(Pa()||window.__roLobby?.ticket),u=this.guests.has(e.id)');
         must(
           'n.append(o,i,d,...(y=this.friends)!=null&&y.has(e.name)?[]:[p],r,l)',
-          'n.append(o,...document.body.classList.contains("ro-social")?[i,...h||u?[]:[d,...(y=this.friends)!=null&&y.list.some(f=>f.id===e.id)?[]:[p]]]:[])' // 名字可能重複，用 id 判斷是不是好友
+          'n.append(o,...document.body.classList.contains("ro-social")?[i,...h||u?[]:[d,...(y=this.friends)!=null&&y.list.some(f=>f.id===e.id)?[]:[p],...document.body.classList.contains("ro-report")?[l]:[]]]:[])' // 名字可能重複，用 id 判斷是不是好友
         );
         must('{t:"friendAdd",name:e.name}', '{t:"friendAdd",name:e.name,id:e.id}'); // 同名時伺服器靠 id 找到點的那個人
         must('if(!((w=this.party)!=null&&w.has(e.id))&&((m=this.party)!=null&&m.canInvite)){', 'if(!1){'); // 組隊還沒做
+        // 密語帶對方的 id（從選單點密語、或 /r 回覆最後密語你的人），伺服器在名字也對得上時用 id 找人，不會送錯同名的人
+        must(
+          'd.onclick=()=>{var f;this.closeMenu(),de("friends"),(f=this.chat)==null||f.whisperTo(e.name)}',
+          'd.onclick=()=>{var f;window.__roWhisperTo={name:e.name,id:e.id},this.closeMenu(),de("friends"),(f=this.chat)==null||f.whisperTo(e.name)}'
+        );
+        must(
+          'whisper:(o,i)=>{var r;return!!((r=this.net)!=null&&r.send({t:"whisper",to:o,text:i}))}',
+          'whisper:(o,i)=>{var r;return!!((r=this.net)!=null&&r.send({t:"whisper",to:o,text:i,...window.__roWhisperTo?.name===o&&window.__roWhisperTo.id?{id:window.__roWhisperTo.id}:{}}))}'
+        );
+        must('whisper(e,t,s,n,o,i){e||(op=t),', 'whisper(e,t,s,n,o,i){e||(op=t,window.__roWhisperTo={name:t,id:n}),');
+        // 離線好友的那一列加「留言」（伺服器 welcome 帶 mail 才顯示）：點了關掉面板、在聊天框填好「/w "名字" 」
+        must(
+          '<span class="fr-acts">${y}${p}</span></div>`',
+          '<span class="fr-acts">${y}${!r.on&&document.body.classList.contains("ro-mail")?`<button class="ro-btn small" data-act="msg" data-name="${wn(r.name)}">${c("Dejar mensaje")}</button>`:""}${p}</span></div>`'
+        );
+        must(
+          'n.dataset.act==="invite"&&this.actions.inviteFar(o)',
+          'n.dataset.act==="invite"?this.actions.inviteFar(o):n.dataset.act==="msg"&&(window.__roWhisperTo=null,this.close(),window.__ro?.lobby?.chat?.whisperTo(o))'
+        );
         // 好友面板：登入（有入場票）就能用
         must('const t=!Pa();if(document.getElementById("fr-form")', 'const t=!(Pa()||window.__roLobby?.ticket);if(document.getElementById("fr-form")');
         must('Ue("friends"),Pa()&&this.input.focus()', 'Ue("friends"),(Pa()||window.__roLobby?.ticket)&&this.input.focus()');

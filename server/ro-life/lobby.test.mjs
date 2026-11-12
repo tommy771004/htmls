@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import { WebSocket } from 'ws';
 import { createRoLobby } from './lobby.mjs';
-import { signTicket, verifyTicket, cleanLook, onMessage, onClose, MAX_PLAYERS } from './lobby-core.mjs';
+import { signTicket, verifyTicket, cleanLook, onMessage, onClose, MAX_PLAYERS, CHANNEL_CAP } from './lobby-core.mjs';
 import { createRoLife } from './server.mjs';
 import { RoStore } from './store.mjs';
 import { memoryStore } from './lobby-store.mjs';
@@ -69,7 +69,7 @@ test('核心：人滿就關、訪客不能聊天、聊天限速、離開會通�
   assert.deepEqual(io.sent, [['a', { t: 'leave', id: gid }]]);
   // 人滿
   const full = fakeIo();
-  for (let i = 0; i < MAX_PLAYERS; i++) { full.add(i); full.st.set(i, { id: i + 1, name: 'x', look: LOOK, x: 0, y: 0, f: 0 }); }
+  for (let i = 0; i < MAX_PLAYERS; i++) { full.add(i); full.st.set(i, { id: i + 1, name: 'x', look: LOOK, x: 0, y: 0, f: 0, ch: 1 + Math.floor(i / CHANNEL_CAP) }); }
   full.add('late'); await onMessage(full, 'late', JSON.stringify({ t: 'hello', name: 'Late', look: LOOK }), now);
   assert.deepEqual(full.closed, [['late', 1013]]);
 });
@@ -157,7 +157,7 @@ test('本機伺服器：兩個人互相看得到，走動、外觀、表情、�
   assert.equal(chat.name, 'Ann');
   await b.next((m) => m.t === 'chat'); // 自己也會收到（引擎靠伺服器回送顯示自己的話）
   a.send({ t: 'channels' });
-  assert.deepEqual(await a.next((m) => m.t === 'channels'), { t: 'channels', c: [[1, 2]], me: 1 });
+  assert.deepEqual(await a.next((m) => m.t === 'channels'), { t: 'channels', c: [[1, 2], [2, 0], [3, 0], [4, 0]], me: 1 });
 
   b.ws.close();
   assert.deepEqual(await a.next((m) => m.t === 'leave'), { t: 'leave', id: wb.id });

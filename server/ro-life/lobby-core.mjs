@@ -1,6 +1,8 @@
 // 282 普隆德拉大廳的連線核心。
-// 第一階段：加入／離開、走動、外觀、表情、公開聊天。第二階段（社交）：檢視資料、密語、好友。不碰遊戲規則；組隊、交易還沒做。
-// 全部大廳編號共用同一個廣場（好友上線狀態與密語才不會分散在不同大廳），上限 MAX_PLAYERS 人。
+// 第一階段：加入／離開、走動、外觀、表情、公開聊天。第二階段（社交）：檢視資料、密語、好友。
+// 第三階段：多頻道、離線留言、檢舉與禁言（管理介面在 lobby-admin.mjs）。不碰遊戲規則；組隊、交易還沒做。
+// 全部大廳編號共用同一個廣場，廣場分 CHANNELS 個頻道、每頻道 CHANNEL_CAP 人（引擎的 sp）。
+// 走動、外觀、表情、「頻道」聊天只送同頻道；「一般」「交易」聊天、密語、好友、查看都跨頻道（玩家 id 在整個廣場唯一）。
 // 本機 Node（server/ro-life/lobby.mjs）與 Cloudflare Durable Object（games/282-ro-life/worker/index.js）共用這一份。
 // 核心本身不留狀態：每條連線的資料經 io.get／io.set 存取（DO 版放在 WebSocket attachment，休眠後還在）。
 //
@@ -10,27 +12,32 @@
 //   send(ws, msg)      送 JSON
 //   close(ws, code, reason)
 //   verify(ticket, now) → Promise<{a, n, exp} | null>   驗證 /api/ro/lobby-ticket 發的入場票
-//   db                 lobby-store.mjs 的 sqlStore／memoryStore（同步）
+//   db                 lobby-store.mjs 的 sqlStore／memoryStore（同步；寫入失敗不影響聊天與連線，見 safe()）
+//   cap?               每頻道人數上限（測試用，預設 CHANNEL_CAP）
 //   log?(...args)
 // 身分只認入場票的 a（帳號）；票裡的 n 是 Google／LINE 的名字，不顯示。
 //
 // 訊息格式照引擎原本的大廳協定（main-*.js 的 Xj 類別）：
 //   用戶端 → hello{name, look, x, y, f, rt?} move{x, y, f} look{look} chat{ch, text} emote{e} channels hop{n} report{id, why}
-//            profile{p} inspect{id} whisper{to, text} friendAdd{name, id?} friendReply{name, ok} friendRemove{name}
-//   伺服器 → welcome{id, players, gm, channel, social} join{p} leave{id} moves{m:[[id, x, y, f]]} look{id, look}
+//            profile{p} inspect{id} whisper{to, text, id?} friendAdd{name, id?} friendReply{name, ok} friendRemove{name}
+//   伺服器 → welcome{id, players, gm, channel, social, report, mail} join{p} leave{id} moves{m:[[id, x, y, f]]} look{id, look}
 //            chat{ch, name, text, id, c, gm} emote{id, e} chatErr{e} channels{c, me} hopErr{e} reported{ok}
 //            profile{id, p, name, look} whisper{out, name, text, id, c} whisperErr{name}
 //            friends{list:[{name, on, id?}], asks:[name]} friendAsk{name} friendNote{what, name}
-// welcome 的 social＝這個伺服器有社交功能；頁面比伺服器先更新時，舊伺服器不送它，頁面就不顯示社交按鈕。
+// welcome 的 social／report／mail＝這個伺服器有社交、檢舉、離線留言；頁面比伺服器先更新時，舊伺服器不送，頁面就不顯示那些按鈕。
+// 換頻道（hop）成功時再送一次 welcome（同一個 id、新頻道的人），引擎會自己清掉舊頻道的人並顯示「已切換到頻道 N」。
 
-import { FRIEND_MAX, ASK_MAX } from './lobby-store.mjs';
+import { FRIEND_MAX, ASK_MAX, OFFLINE_MAX, OFFLINE_PER_SENDER } from './lobby-store.mjs';
 
 export const LOBBY_PATH = '/api/ro/lobby';
-export const MAX_PLAYERS = 80;
+export const CHANNELS = 4;
+export const CHANNEL_CAP = 25; // 同引擎 sp
+export const MAX_PLAYERS = CHANNELS * CHANNEL_CAP;
+export const OFFLINE_TAG = '（離線留言）';
 export const MAX_MESSAGE = 16384;
 export const MAX_PROFILE = 12000; // 清理後的檢視資料 JSON 上限（存在 db，不放 attachment）
-const CHANNEL = 1;
-const CHAT_CHANNELS = new Set(['local', 'general', 'trade', 'cn']);
+const CHAT_CHANNELS = new Set(['local', 'general', 'trade', 'cn']); // local 只送同頻道，其他送整個廣場
+const REPORT_WHY = new Set(['abuse', 'cheat', 'rmt', 'spam', 'other']);
 const LOOK_EQUIP = ['headTop', 'headMid', 'headLow', 'weapon', 'shield', 'offhand', 'cart'];
 const TOKEN = /^[a-z0-9_]{1,32}$/;
 const KEY = /^[A-Za-z0-9_.]{1,64}$/; // 能力、天賦（swordsman.0.sword_mastery）、詞綴、技能、裝備欄位的代號
@@ -156,9 +163,25 @@ function members(io) {
   }
   return out;
 }
-function broadcast(io, msg, except = null) {
-  for (const [ws] of members(io)) if (ws !== except) io.send(ws, msg);
+// ch 有值時只送那個頻道
+function broadcast(io, msg, except = null, ch = 0) {
+  for (const [ws, st] of members(io)) if (ws !== except && (!ch || st.ch === ch)) io.send(ws, msg);
 }
+const capOf = (io) => io.cap ?? CHANNEL_CAP;
+function counts(io, except = null) {
+  const c = Array(CHANNELS + 1).fill(0);
+  for (const [ws, st] of members(io)) if (ws !== except && st.ch) c[st.ch]++;
+  return c;
+}
+// 資料庫失敗（例如免費方案當天的寫入額度用完）不能讓聊天、進場、好友整個壞掉
+function safe(io, fn, fallback = undefined) {
+  try { return fn(); } catch (e) { io.log?.('[ro-lobby] db', e?.message ?? e); return fallback; }
+}
+const welcome = (io, me) => ({
+  t: 'welcome', id: me.id, gm: false, channel: me.ch, social: 1, report: 1, mail: 1,
+  players: members(io).filter(([, s]) => s.id !== me.id && s.ch === me.ch).map(([, s]) => pub(s)),
+});
+const muted = (io, me, now) => (me.acc ? safe(io, () => io.db.getMute(me.acc, now), null) : null);
 
 // ---- 社交 ----
 const lower = (s) => s.toLocaleLowerCase();
@@ -180,12 +203,13 @@ function uniqueNames(rows) {
   return rows;
 }
 function friendView(io, acc, on = byAccount(io)) {
-  const nameOf = (a) => on.get(a)?.[0][1].name ?? io.db.getName(a) ?? '?';
-  const list = uniqueNames(io.db.friendsOf(acc).map((a) => {
+  const nameOf = (a) => on.get(a)?.[0][1].name ?? safe(io, () => io.db.getName(a), null) ?? '?';
+  // 讀不到資料庫就當作沒有好友：密語、聊天仍然可以用
+  const list = uniqueNames(safe(io, () => io.db.friendsOf(acc), []).map((a) => {
     const s = on.get(a)?.[0][1];
-    return { acc: a, name: nameOf(a), on: s ? CHANNEL : 0, ...(s ? { id: s.id } : {}) };
+    return { acc: a, name: nameOf(a), on: s ? s.ch : 0, ...(s ? { id: s.id } : {}) };
   }));
-  const asks = uniqueNames(io.db.asksTo(acc).map((a) => ({ acc: a, name: nameOf(a) })));
+  const asks = uniqueNames(safe(io, () => io.db.asksTo(acc), []).map((a) => ({ acc: a, name: nameOf(a) })));
   return { list, asks };
 }
 function sendFriends(io, acc, on = byAccount(io)) {
@@ -271,6 +295,7 @@ function friendRemove(io, ws, me, m) {
   const row = friendView(io, me.acc, on).list.find((r) => lower(r.name) === k);
   if (row) {
     io.db.removeFriend(me.acc, row.acc);
+    safe(io, () => io.db.dropOffline(me.acc, row.acc));
     io.send(ws, { t: 'friendNote', what: 'removed', name: row.name });
     sendFriends(io, row.acc, on);
   }
@@ -282,7 +307,12 @@ async function hello(io, ws, m, now) {
   // 驗票是非同步的：名單與人數要在驗完之後才算，不然同時進來的兩個人會互相漏掉
   if (!io.get(ws)) return; // 驗票期間已經斷線
   const others = members(io).filter(([w]) => w !== ws);
-  if (others.length >= MAX_PLAYERS) return io.close(ws, 1013, 'full');
+  // 先把頻道填到八成再開下一個，都超過就挑最空的；全滿用 1013 關閉（引擎會照退避重連，不會用 4001 觸發立刻換大廳）
+  const cap = capOf(io), c = counts(io, ws);
+  let ch = 0;
+  for (let n = 1; n <= CHANNELS && !ch; n++) if (c[n] < Math.ceil(cap * 0.8)) ch = n;
+  if (!ch) for (let n = 1; n <= CHANNELS; n++) if (c[n] < cap && (!ch || c[n] < c[ch])) ch = n;
+  if (!ch) return io.close(ws, 1013, 'full');
   const taken = new Set(others.map(([, s]) => s.id));
   let id;
   do id = 1 + Math.floor(Math.random() * 0x7ffffffe); while (taken.has(id));
@@ -296,17 +326,69 @@ async function hello(io, ws, m, now) {
     f: int(m.f, 0, 1023),
     guest: !auth,
     acc: auth?.a != null ? String(auth.a) : null,
+    ch,
     rl: {},
   };
   io.set(ws, me);
-  io.send(ws, { t: 'welcome', id, players: others.map(([, s]) => pub(s)), gm: false, channel: CHANNEL, social: 1 });
-  broadcast(io, { t: 'join', p: pub(me) }, ws);
+  io.send(ws, welcome(io, me));
+  broadcast(io, { t: 'join', p: pub(me) }, ws, ch);
   if (me.acc) {
-    io.db.setName(me.acc, me.name, now);
+    safe(io, () => io.db.setName(me.acc, me.name, now));
     const on = byAccount(io);
-    sendFriends(io, me.acc, on);
-    tellFriends(io, me.acc, on);
+    safe(io, () => { sendFriends(io, me.acc, on); tellFriends(io, me.acc, on); });
+    // 離線時收到的留言：當成密語送出，前面標「（離線留言）」
+    const msgs = safe(io, () => io.db.takeOffline(me.acc), []);
+    if (msgs.length) {
+      const list = safe(io, () => friendView(io, me.acc, on).list, []);
+      for (const o of msgs) {
+        const live = on.get(o.src)?.[0][1];
+        io.send(ws, { t: 'whisper', out: false, name: nameIn(list, o.src) ?? o.srcName, text: OFFLINE_TAG + o.text, id: live?.id ?? 0, c: live?.ch ?? 0, gm: false });
+      }
+    }
   }
+}
+
+function whisper(io, ws, me, m, now) {
+  const to = clean(m.to, 32);
+  const on = byAccount(io);
+  // 從選單或 /r 回覆會帶 id：名字也對得上就用 id，不會送錯同名的人
+  const byId = Number.isInteger(m.id) ? members(io).find(([, st]) => st.id === m.id)?.[1] : null;
+  const acc = byId && !byId.guest && lower(byId.name) === lower(to) ? byId.acc : resolve(io, me, to, on);
+  const text = clean(m.text, 200);
+  if (acc && acc !== me.acc && on.has(acc)) {
+    const them = (byId?.acc === acc ? byId : null) ?? on.get(acc)[0][1];
+    toAcc(io, on, acc, { t: 'whisper', out: false, name: nameIn(friendView(io, acc, on).list, me.acc) ?? me.name, text, id: me.id, c: me.ch, gm: false });
+    io.send(ws, { t: 'whisper', out: true, name: nameIn(friendView(io, me.acc, on).list, acc) ?? them.name, text, id: them.id, c: them.ch, gm: false });
+    return safe(io, () => io.db.logChat({ acc: me.acc, name: me.name, kind: 'whisper', dst: acc, text, at: now }));
+  }
+  // 不在線上的好友：存成離線留言，對方上線時送達
+  const k = lower(to);
+  const f = !acc ? friendView(io, me.acc, on).list.find((r) => lower(r.name) === k && !r.on) : null;
+  if (f && safe(io, () => io.db.offlineCount(f.acc) < OFFLINE_MAX && io.db.offlineFrom(me.acc, f.acc) < OFFLINE_PER_SENDER, false)) {
+    const ok = safe(io, () => { io.db.addOffline(f.acc, me.acc, me.name, text, now); return true; }, false);
+    if (ok) {
+      safe(io, () => io.db.logChat({ acc: me.acc, name: me.name, kind: 'whisper', dst: f.acc, text, at: now }));
+      return io.send(ws, { t: 'whisper', out: true, name: f.name, text: OFFLINE_TAG + text, id: 0, c: 0, gm: false });
+    }
+  }
+  return io.send(ws, { t: 'whisperErr', name: to });
+}
+
+function report(io, ws, me, m, now) {
+  const done = (ok) => io.send(ws, { t: 'reported', ok });
+  if (me.guest || !allow(me, 'rp', now, 5, 600_000)) return done(false);
+  io.set(ws, me);
+  const target = members(io).find(([, st]) => st.id === int(m.id, 0, 0x7fffffff))?.[1];
+  if (!target?.acc || target.acc === me.acc) return done(false);
+  if (safe(io, () => io.db.hasReport(me.acc, target.acc, now - 3_600_000), true)) return done(false); // 一小時內檢舉過同一個人
+  const why = REPORT_WHY.has(m.why) ? m.why : 'other';
+  const id = safe(io, () => io.db.addReport({
+    reporter: me.acc, reporterName: me.name, target: target.acc, targetName: target.name, why, at: now,
+    // 證據：對方最近的公開發言，以及雙方之間的密語
+    evidence: { chat: io.db.recentChat(target.acc, 15), whispers: io.db.whispersBetween(me.acc, target.acc, 15) },
+  }), null);
+  io.log?.('[ro-lobby] report', id, why);
+  return done(id != null);
 }
 
 export async function onMessage(io, ws, data, now = Date.now()) {
@@ -330,14 +412,14 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       if (x === me.x && y === me.y && f === me.f) return;
       Object.assign(me, { x, y, f });
       io.set(ws, me);
-      return broadcast(io, { t: 'moves', m: [[me.id, x, y, f]] }, ws);
+      return broadcast(io, { t: 'moves', m: [[me.id, x, y, f]] }, ws, me.ch);
     }
     case 'look': {
       const look = cleanLook(m.look);
       if (!look || !allow(me, 'lk', now, 6, 10_000)) return;
       me.look = look;
       io.set(ws, me);
-      return broadcast(io, { t: 'look', id: me.id, look }, ws);
+      return broadcast(io, { t: 'look', id: me.id, look }, ws, me.ch);
     }
     case 'chat': {
       if (me.guest) return io.send(ws, { t: 'chatErr', e: 'guest' });
@@ -347,34 +429,45 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       const ok = allow(me, 'ch', now, 5, 10_000);
       io.set(ws, me);
       if (!ok) return io.send(ws, { t: 'chatErr', e: 'rate' });
-      return broadcast(io, { t: 'chat', ch: m.ch, name: me.name, text, id: me.id, c: CHANNEL, gm: false });
+      const mu = muted(io, me, now);
+      if (mu) return io.send(ws, { t: 'chatErr', e: 'muted', until: mu.until });
+      broadcast(io, { t: 'chat', ch: m.ch, name: me.name, text, id: me.id, c: me.ch, gm: false }, null, m.ch === 'local' ? me.ch : 0);
+      return safe(io, () => io.db.logChat({ acc: me.acc, name: me.name, kind: m.ch, text, at: now }));
     }
     case 'emote': {
       const e = int(m.e, 0, 99);
       const ok = allow(me, 'em', now, 3, 3000);
       io.set(ws, me);
-      if (ok) broadcast(io, { t: 'emote', id: me.id, e });
+      if (ok) broadcast(io, { t: 'emote', id: me.id, e }, null, me.ch);
       return;
     }
-    case 'channels':
-      return io.send(ws, { t: 'channels', c: [[CHANNEL, members(io).length]], me: CHANNEL });
-    case 'hop':
-      if (int(m.n, 0, 99) !== CHANNEL) io.send(ws, { t: 'hopErr', e: 'full' });
+    case 'channels': {
+      const c = counts(io);
+      return io.send(ws, { t: 'channels', c: Array.from({ length: CHANNELS }, (_, i) => [i + 1, c[i + 1]]), me: me.ch });
+    }
+    case 'hop': {
+      const n = int(m.n, 0, 99);
+      if (n < 1 || n > CHANNELS || n === me.ch) return;
+      if (!allow(me, 'hp', now, 1, 3000)) { io.set(ws, me); return io.send(ws, { t: 'hopErr', e: 'wait' }); }
+      io.set(ws, me);
+      if (counts(io, ws)[n] >= capOf(io)) return io.send(ws, { t: 'hopErr', e: 'full' });
+      broadcast(io, { t: 'leave', id: me.id }, ws, me.ch);
+      me.ch = n;
+      io.set(ws, me);
+      io.send(ws, welcome(io, me));
+      broadcast(io, { t: 'join', p: pub(me) }, ws, n);
+      if (me.acc) safe(io, () => tellFriends(io, me.acc, byAccount(io)));
       return;
+    }
     case 'whisper': {
-      const to = clean(m.to, 32);
       if (me.guest) return io.send(ws, { t: 'chatErr', e: 'guest' });
-      const text = clean(m.text, 200);
-      if (!text) return;
+      if (!clean(m.text, 200)) return;
       const ok = allow(me, 'ch', now, 5, 10_000);
       io.set(ws, me);
       if (!ok) return io.send(ws, { t: 'chatErr', e: 'rate' });
-      const on = byAccount(io);
-      const acc = resolve(io, me, to, on);
-      if (!acc || acc === me.acc) return io.send(ws, { t: 'whisperErr', name: to });
-      const [, them] = on.get(acc)[0];
-      toAcc(io, on, acc, { t: 'whisper', out: false, name: nameIn(friendView(io, acc, on).list, me.acc) ?? me.name, text, id: me.id, c: CHANNEL, gm: false });
-      return io.send(ws, { t: 'whisper', out: true, name: nameIn(friendView(io, me.acc, on).list, acc) ?? them.name, text, id: them.id, c: CHANNEL, gm: false });
+      const mu = muted(io, me, now);
+      if (mu) return io.send(ws, { t: 'chatErr', e: 'muted', until: mu.until });
+      return safe(io, () => whisper(io, ws, me, m, now));
     }
     case 'profile': {
       const ok = allow(me, 'pf', now, 6, 10_000);
@@ -382,8 +475,8 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       if (!ok) return;
       const p = cleanProfile(m.p);
       const json = p && JSON.stringify(p);
-      if (json && json.length <= MAX_PROFILE) return io.db.setProfile(me.id, json);
-      io.db.delProfile(me.id);
+      if (json && json.length <= MAX_PROFILE) return safe(io, () => io.db.setProfile(me.id, json));
+      safe(io, () => io.db.delProfile(me.id));
       return io.log?.('[ro-lobby] profile dropped', json ? json.length : 'invalid');
     }
     case 'inspect': {
@@ -391,7 +484,7 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       const ok = allow(me, 'in', now, 10, 10_000);
       io.set(ws, me);
       const st = ok ? members(io).find(([, s]) => s.id === id)?.[1] : null;
-      const raw = st ? io.db.getProfile(id) : null;
+      const raw = st ? safe(io, () => io.db.getProfile(id), null) : null;
       return io.send(ws, st && raw ? { t: 'profile', id, p: JSON.parse(raw), name: st.name, look: st.look } : { t: 'profile', id, p: null });
     }
     case 'friendAdd':
@@ -401,13 +494,10 @@ export async function onMessage(io, ws, data, now = Date.now()) {
       const ok = allow(me, 'fr', now, 20, 60_000);
       io.set(ws, me);
       if (!ok) return;
-      if (m.t === 'friendAdd') return friendAdd(io, ws, me, m, now);
-      if (m.t === 'friendReply') return friendReply(io, ws, me, m, now);
-      return friendRemove(io, ws, me, m);
+      return safe(io, () => (m.t === 'friendAdd' ? friendAdd(io, ws, me, m, now) : m.t === 'friendReply' ? friendReply(io, ws, me, m, now) : friendRemove(io, ws, me, m)));
     }
     case 'report':
-      io.log?.('[ro-lobby] report', me.acc ?? 'guest', '→', int(m.id, 0, 0x7fffffff), clean(m.why, 16));
-      return io.send(ws, { t: 'reported', ok: true });
+      return report(io, ws, me, m, now);
     default:
       // chatCn、組隊、交易：還沒做
       return;
@@ -418,8 +508,8 @@ export function onClose(io, ws) {
   const me = io.get(ws);
   io.set(ws, null);
   if (!me?.id) return;
-  broadcast(io, { t: 'leave', id: me.id }, ws);
-  io.db?.delProfile(me.id);
+  broadcast(io, { t: 'leave', id: me.id }, ws, me.ch);
+  safe(io, () => io.db.delProfile(me.id));
   // 同帳號還有別的分頁時也通知：好友清單上的 id 要換成還在的那一頁
-  if (me.acc) tellFriends(io, me.acc, byAccount(io, ws));
+  if (me.acc) safe(io, () => tellFriends(io, me.acc, byAccount(io, ws)));
 }
