@@ -12,6 +12,7 @@
 // 邀請放在被邀請者連線的 attachment，邀請與出發確認的期限用 io.wake(at) 叫醒（DO 用 alarm、Node 用 setTimeout）。
 // 本局連線的身分只認入場票，不轉送、也不比對引擎的分頁 key。
 import { members, byAccount, safe, clean, int, allow, cleanLook, muted } from './lobby-core.mjs';
+import { tradeAlarm } from './lobby-trade.mjs';
 
 export const PARTY_MAX = 3; // 同引擎 $0
 export const INVITE_MS = 30_000;
@@ -320,5 +321,6 @@ export function onAlarm(io, now = Date.now()) {
       else next = Math.min(next, (p.seen ?? now) + PARTY_IDLE_MS);
     }
   }
+  next = Math.min(next, safe(io, () => tradeAlarm(io, now), Infinity));
   if (next < Infinity) io.wake?.(next);
 }

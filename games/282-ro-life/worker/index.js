@@ -7,6 +7,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from '../../../server/ro-life/lobby-core.mjs';
 import { sqlStore } from '../../../server/ro-life/lobby-store.mjs';
 import { onAlarm } from '../../../server/ro-life/lobby-party.mjs';
+import { makeSettle } from '../../../server/ro-life/trade.mjs';
 import { ADMIN_PATH, ADMIN_HTML, ADMIN_HEADERS, ADMIN_MIN_KEY, adminApi, adminAuthorized } from '../../../server/ro-life/lobby-admin.mjs';
 
 const ADMIN_API = `${ADMIN_PATH}/api/`;
@@ -57,6 +58,9 @@ export class Lobby extends DurableObject {
       wake: (at) => { ctx.storage.getAlarm().then((cur) => (cur == null || cur > at) && ctx.storage.setAlarm(at)).catch((e) => console.log('[ro-lobby] alarm', e.message)); },
       log: (...a) => console.log(...a),
     };
+    // 交易：成交時打 Vercel 的 /api/ro/trade/settle（RO_TRADE_URL，例如 https://<網域>/api/ro/trade/settle；Vercel 也要設 RO_TRADE=1）。沒設就不開放交易
+    const settle = makeSettle({ url: env.RO_TRADE_URL, secret: env.RO_LOBBY_SECRET, fetchImpl: (...a) => fetch(...a), log: (...a) => console.log(...a) });
+    if (settle) this.io.settle = settle;
     // 醒來時清掉已離線玩家的檢視資料
     try { this.io.db.keepProfiles(ctx.getWebSockets().map((ws) => this.io.get(ws)?.id).filter(Boolean)); } catch (e) { console.log('[ro-lobby] db', e.message); }
   }

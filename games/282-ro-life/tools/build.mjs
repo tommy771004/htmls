@@ -99,7 +99,7 @@ const roRewritePlugin = {
         // 普隆德拉大廳（看得到其他玩家）：只有頁面設定了 window.__roLobby（/api/ro/config 有回大廳網址）才連線，
         // 否則和以前一樣不開 WebSocket。入場票放在 hello 的 rt；本機模式的角色都是 dev，有大廳時也讓它上線。
         // 社交（檢視、密語、好友）要等伺服器的 welcome 帶 social 才顯示：頁面比 Worker 先更新時，舊 Worker 不送它，按鈕就不出現。
-        // 他人選單只留名字、查看、密語、加好友、檢舉（交易、組隊沒做）；訪客看得到「查看」，其他要登入、對方也不能是訪客。
+        // 他人選單：名字、查看、密語、加好友、交易（welcome 帶 trade 而且自己是線上模式）、檢舉；訪客看得到「查看」，其他要登入、對方也不能是訪客。
         // 檢舉要伺服器 welcome 帶 report 才顯示（舊伺服器收到檢舉不會存）。
         const must = (from, to) => {
           if (!src.includes(from)) throw Error(`build.mjs: 找不到要替換的引擎程式碼：${from.slice(0, 60)}`);
@@ -111,7 +111,7 @@ const roRewritePlugin = {
         );
         must(
           '...o?{token:o}:{},...i?{mkey:i}:{}}},this.on=t',
-          '...o?{token:o}:{},...i?{mkey:i}:{},...window.__roLobby?.ticket?{rt:window.__roLobby.ticket}:{}}},this.on=t'
+          '...o?{token:o}:{},...i?{mkey:i}:{},...window.__roLobby?.ticket?{rt:window.__roLobby.ticket}:{},...window.__roOnline?{on:1}:{}}},this.on=t'
         );
         must(
           'e.dev||r.then(()=>re===i&&i.goOnline(e.name,vh(e),kx(e)))',
@@ -119,14 +119,18 @@ const roRewritePlugin = {
         );
         must(
           'case"welcome":this.retryMs=1e3,this.joined=!0,',
-          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),document.body.classList.toggle("ro-report",!!s.report),document.body.classList.toggle("ro-mail",!!s.mail),document.body.classList.toggle("ro-party",!!s.party),'
+          'case"welcome":this.retryMs=1e3,this.joined=!0,document.body.classList.toggle("ro-social",!!s.social),document.body.classList.toggle("ro-report",!!s.report),document.body.classList.toggle("ro-mail",!!s.mail),document.body.classList.toggle("ro-party",!!s.party),document.body.classList.toggle("ro-trade",!!s.trade&&!!window.__roOnline),'
         );
         must('const h=!Pa(),u=this.guests.has(e.id)', 'const h=!(Pa()||window.__roLobby?.ticket),u=this.guests.has(e.id)');
         must(
           'n.append(o,i,d,...(y=this.friends)!=null&&y.has(e.name)?[]:[p],r,l)',
-          'n.append(o,...document.body.classList.contains("ro-social")?[i,...h||u?[]:[d,...(y=this.friends)!=null&&y.list.some(f=>f.id===e.id)?[]:[p],...document.body.classList.contains("ro-report")?[l]:[]]]:[])' // 名字可能重複，用 id 判斷是不是好友
+          'n.append(o,...document.body.classList.contains("ro-social")?[i,...h||u?[]:[d,...(y=this.friends)!=null&&y.list.some(f=>f.id===e.id)?[]:[p],...document.body.classList.contains("ro-trade")?[r]:[],...document.body.classList.contains("ro-report")?[l]:[]]]:[])' // 名字可能重複，用 id 判斷是不是好友
         );
-        must('{t:"friendAdd",name:e.name}', '{t:"friendAdd",name:e.name,id:e.id}'); // 同名時伺服器靠 id 找到點的那個人
+        must('{t:"friendAdd",name:e.name}', '{t:"friendAdd",name:e.name,id:e.id}');
+        // 交易（伺服器權威，server/ro-life/lobby-trade.mjs＋trade.mjs）：大廳撮合、Vercel 在雙方的伺服器存檔上結算。
+        // 伺服器多一個結束原因 offline（有一邊不是線上模式）；按鈕文字原本沒有中文
+        must('missing:c("No se ha hecho el comercio: a alguien ya le faltaba algo de lo que ofrecía.")}', 'missing:c("No se ha hecho el comercio: a alguien ya le faltaba algo de lo que ofrecía."),offline:"只有線上角色能交易。"}');
+        must('r.textContent=c("Comerciar")', 'r.textContent="交易"'); // 同名時伺服器靠 id 找到點的那個人
         // 組隊：伺服器 welcome 帶 party 才顯示「邀請組隊」；訪客不能邀請、也不能被邀請
         must(
           'if(!((w=this.party)!=null&&w.has(e.id))&&((m=this.party)!=null&&m.canInvite)){',

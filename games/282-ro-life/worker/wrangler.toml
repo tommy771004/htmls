@@ -7,6 +7,7 @@
 #   npx wrangler deploy
 # 部署完把 Vercel 的 RO_LOBBY_URL 設成 wss://ro-lobby.<帳號>.workers.dev/api/ro/lobby，重新部署 Vercel。
 # 管理頁：https://ro-lobby.<帳號>.workers.dev/admin（看檢舉、禁言／解除）。
+# 交易（線上角色）：Vercel 設 RO_TRADE=1 後，在下面 [vars] 加 RO_TRADE_URL = "https://htmls-ruddy.vercel.app/api/ro/trade/settle" 再 deploy；沒設就不開放交易。
 name = "ro-lobby"
 main = "index.js"
 compatibility_date = "2026-09-01"
@@ -14,6 +15,7 @@ compatibility_date = "2026-09-01"
 [vars]
 # 允許連線的網頁來源，逗號分隔；留空＝不限制
 ALLOWED_ORIGINS = "https://htmls-ruddy.vercel.app"
+RO_TRADE_URL = "https://htmls-ruddy.vercel.app/api/ro/trade/settle"
 
 [[durable_objects.bindings]]
 name = "LOBBY"

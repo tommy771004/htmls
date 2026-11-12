@@ -226,7 +226,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const { createRoLobby } = await import('../ro-life/lobby.mjs');
   const { LOBBY_PATH } = await import('../ro-life/lobby-core.mjs');
   const lobbySecret = process.env.RO_LOBBY_SECRET || randomBytes(32).toString('base64url');
-  const roLobby = createRoLobby({ secret: lobbySecret, origins, log: console.log });
+  // 交易成交時大廳打同一台的 /api/ro/trade/settle（和正式站 Worker → Vercel 同一條路）
+  const { makeSettle } = await import('../ro-life/trade.mjs');
+  const settle = makeSettle({ url: `http://127.0.0.1:${Number(process.env.PORT || 8127)}/api/ro/trade/settle`, secret: lobbySecret, log: console.log });
+  const roLobby = createRoLobby({ secret: lobbySecret, origins, log: console.log, settle });
   const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head) || ochre.handleUpgrade(req, socket, head) || roLobby.handleUpgrade(req, socket, head);
   const { createRoLife } = await import('../ro-life/server.mjs');
   const ro = createRoLife({ lobby: { url: LOBBY_PATH, secret: lobbySecret } });

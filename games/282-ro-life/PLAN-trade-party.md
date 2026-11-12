@@ -70,7 +70,7 @@
 | 1 組隊 | 邀請、接受、離隊、踢人、換隊長、隊伍頻道、出發前確認（`partyGo`／`partyReady`／`partyCheck`／`partyStart`） | 大廳 Durable Object | **完成（2026-11-12，待部署）** |
 | 2 合作關卡 | `ws-run` 房間轉送、房主斷線換人、重連；獎勵暫時仍由各自的用戶端結算 | 同一個 Durable Object（以隊伍分房） | **完成（2026-11-12，待部署）**；實測房主每秒約 20 則、隊員約 10 則 |
 | 3 伺服器權威：存檔驗證 | 啟用引擎的線上模式（`Lh=false`、真的 `nt()`）；`POST run` 發憑證；`PUT save` 驗證差異；`POST op` 的買賣、精煉 | Vercel＋Neon（線上存檔在 `ro_game_save`） | 2–4 週；**3a 完成（2026-11-12，待套表）** |
-| 4 交易 | 引擎原本的交易協定，成交時伺服器在 Neon 的同一個交易裡改雙方存檔 | 大廳 DO 撮合＋Neon 結算 | 1 週 |
+| 4 交易 | 引擎原本的交易協定，成交時伺服器在 Neon 的同一個交易裡改雙方存檔 | 大廳 DO 撮合＋Neon 結算 | **完成（2026-11-12，預設關閉，待開啟）** |
 | 5 排行榜 | `GET ladder`；只收階段 3 驗證過的成績 | Vercel＋Neon | 數天 |
 | 6 無盡之塔重跑驗證 | 伺服器端無頭跑引擎驗證操作紀錄 | 待評估 | 待評估（先做技術驗證） |
 
@@ -144,7 +144,35 @@
 - 掉寶實測：真實頁面打普隆德拉（關卡內無敵、怪物一擊死，好打到魔王），撿到魔王掉的品質 1 帶詞綴裝備，存檔沒有 `would-fix`；1,364 隻怪的經驗 3,446，上限 70,712。另外修正：傳說品質（4）有 5 條詞綴（`Dy` 加特殊詞綴），規則改成照品質的 `affixMax`；二轉職業樹只能點專精的分支（引擎 `r5`）。
 - 大廳實測：兩個線上角色互加好友、查看對方裝備、郵差信箱（空的），沒有錯誤。
 - 無盡之塔改走 HTTP（`server/ro-life/endless.mjs`，見 282 `CLAUDE.md` 線上段落），新表 `ro_endless_run`／`ro_endless_chunk`／`ro_endless_progress` 在 `schema.sql`。真實頁面實測（記憶體資料，Metal 顯卡）：開局 → 打 30～70 秒 → 結束回 `pending` → 驗證程式在另一個無頭 Chrome（SwiftShader）重跑，雜湊全部對上、分數一致 → `verified`、上排行榜；存起來再接續的那場也對得上；關卡中把自己設成無敵的那場在第 900 格對不上 → `unranked`。
-- 長局實測：8 分鐘、通過 7 層、打倒 7 隻頭目、選卡 16 次、28,821 格，960 個雜湊全部對上，分數 155,044 與點數 +8 照重跑結果入帳；帳號裡沒穿的裝備、卡片、Kafra 都沒被動到。還沒跑到第 10 層的 MVP 與第 9 層換怪物圖。
+- 長局實測：8 分鐘、通過 7 層、打倒 7 隻頭目、選卡 16 次、28,821 格，960 個雜湊全部對上，分數 155,044 與點數 +8 照重跑結果入帳；帳號裡沒穿的裝備、卡片、Kafra 都沒被動到。第 10 層的 MVP 與第 9 層換怪物圖後來由自動打塔腳本補測（見下）。
 - 存檔規則補上：打倒的 MVP、通過的關卡只能跟著該關憑證；轉職只能在 `prt_castle` 的憑證下（塔的開放樓層靠這些）。塔要在 `RO_ONLINE_ENFORCE=1` 之後才開得起來。已通過的樓層可以 ×2／×4 快轉，所以牆鐘上限是 4 倍。
-- 還沒驗證：不同瀏覽器核心（Safari／Firefox 錄、Chrome 重跑）是否決定性一致——本機的 Playwright 只裝了 Chromium。引擎的模擬用了 `Math.hypot`（59 處）、`sin`／`cos`／`atan2`（79 處），這些在不同 JS 引擎不保證逐位元相同，iPhone 玩家很可能全部對不上（`unranked`，不加點、不上榜）。可能的解法：模擬期間換成純 JS 的 fdlibm 實作（只用加減乘除與 sqrt，各引擎一致）。
+- 自動打塔＋自我測試（`tools/endless-bot.mjs`，用法見 282 `CLAUDE.md`）：獵人（70 級、塔用技能箭矢暴雨／箭雨／衝鋒箭／二連矢）13 分鐘、第 100 秒中斷再接續，打到第 12 層（通過 11 層，含第 10 層 MVP），43,878 格、1,462 個雜湊全部對上 → `verified`，分數 339,164、點數 +16、排行榜第 1；帳號沒被動到、存檔沒被修正。不帶塔用技能時第 1 層的分數門檻過不了（塔內沒有經驗，等級＝通過樓層數＋1）。
+- 跨瀏覽器核心：WebKit 26.5（Safari／iPhone 的核心，Playwright）錄 2.5 分鐘、通過 2 層，Chrome 重跑 300 個雜湊全部對上 → `verified`。引擎的 `Math.hypot`／`sin`／`cos` 在這兩個核心上結果一致，不用換數學函式。Firefox 還沒測。
 - 上線步驟（使用者）：套用 `schema.sql` → 確認影子紀錄沒有誤判後開 `RO_ONLINE_ENFORCE=1` → Vercel 設 `RO_ENDLESS=1` → 定期在自己電腦跑 `node --env-file=.env.local games/282-ro-life/tools/verify-endless.mjs`（先加 `--dry` 看結果）。每位玩家在塔裡每 10 秒送一次操作（一次 Vercel 呼叫）。
+
+### 2026-11-12 階段 4：交易（伺服器權威）
+
+- 做法照方案 C：大廳（`server/ro-life/lobby-trade.mjs`）用引擎原本的交易協定撮合，雙方確認後打 Vercel 的 `POST /api/ro/trade/settle`（`server/ro-life/trade.mjs`，HMAC 簽章、交易 id 冪等），在兩邊的 `ro_game_save` 上搬東西，一個 SQL 交易寫完（任一邊 rev 不符整筆回滾），兩邊各記 `ro_game_log` kind `trade`。不用新表、不用 DDL。細節見 282 `CLAUDE.md` 大廳段落。
+- 只限線上角色；可交易的是沒裝在身上、沒上鎖、不是新手裝備的物品，以及卡片、礦石、Kafra。給對方看的裝備在結算時逐件比對伺服器上的那件，造假就 `missing`。
+- 測試：`trade.test.mjs` 10 項（清單、出價清理、結算、造假、冪等、rev 被搶重讀、端點簽章與時效、大廳撮合全流程、逾時、斷線）；PGlite 驗證兩邊 rev 任一不符都整筆回滾（只證明 rev 不符時回滾，不是真的併發壓測）。
+- 真實頁面雙人實測（本機記憶體資料）：A 從選單點「交易」→ B 接受 → A 放 +2 劍與 1 張卡、B 放 3,000 Kafra → 雙方 OK、確認 → 伺服器結算，兩邊頁面自動套用新存檔、聊天框顯示交易內容；之後的存檔沒有被修正、沒有錯誤或彈窗。
+- 交易後把給出去的那件加回存檔：新物品規則本來就要求精煉 0、沒插卡、品質與 ilvl 在該關範圍內，所以最多等於在關卡憑證下偽造一件普通掉落（和交易無關的既有風險，物品數上限目前只記錄）。
+- 開啟步驟（使用者）：Vercel 設 `RO_TRADE=1` 並重新部署 → Worker 的 `wrangler.toml` `[vars]` 加 `RO_TRADE_URL = "https://htmls-ruddy.vercel.app/api/ro/trade/settle"` → 在 `worker/` 執行 `npx wrangler deploy`。只做其中一邊時交易不會出現（Worker 沒設就不送 `trade`）或結算一律失敗（Vercel 沒開回 404，大廳回「已取消」）。
+
+
+### 2026-11-12 市場＋信箱（規格，實作中）
+
+- 順序：信箱 → 市場（市場的收款與到期退回走信箱）。只限線上角色；開關 `RO_MARKET=1`＋兩張新表（`to_regclass` 檢查），沒開時信箱照舊回空、`op:mail` 回 `missing`，頁面不出現市場鈕、不發請求。
+- 新表（`schema.sql`，使用者自己套）：
+  - `ro_game_mail(id bigint identity, account_id, kind 'notice'|'gift'|'recovered', title jsonb {es,en,zh}, body jsonb {es,en,zh}, attach jsonb {gear:[物品], cards:{id:n}, ores:{id:n}, kafra}, ref text UNIQUE（冪等）, created_at, read_at, claimed_at, deleted_at)`
+  - `ro_market(id bigint identity, seller_id, seller_name, kind 'gear'|'card'|'ore', item_id, item jsonb（gear 才有，cleanItem 後）, count, price bigint, status 'open'|'sold'|'cancelled'|'expired', buyer_id, created_at, expires_at, closed_at)`
+- 引擎信箱的格式：`GET mail → {mail:[{id(數字), kind, title, body, at, read, claimed, attach}], pending}`；`POST mail/read`（全部已讀）；`POST mail/delete {id}` 回新的 `{mail, pending}`（只能刪沒有待領附件的）；`op:'mail' {id}` 領附件 → `{rev, doc, trade}`，已領或沒有回 `missing`。
+- 市場 op（POST game/op，都回 `{rev, doc, trade, …}`，引擎照 `ei()` 套用）：
+  - `marketList {uid}` 或 `{card, count}` 或 `{ore, count}` ＋ `price`：從存檔拿出（可交易的才行）→ 新增上架；每人最多 `MARKET_MAX_LISTINGS` 筆。
+  - `marketBuy {id}`：上架中、沒過期、不是自己的；扣買家 Kafra、物品進買家存檔、上架改 sold、賣家收到一封信（Kafra＝價格扣 `MARKET_FEE` 手續費，ref `market-sold-<id>`）。
+  - `marketCancel {id}`：自己上架中的 → 物品回存檔。
+  - 到期（`MARKET_DAYS`）：賣家開市場或信箱時，把自己過期的上架改 expired 並寄回（ref `market-expired-<id>`），一句 SQL。
+- 讀取：`GET game/market?kind=&q=&page=`（上架中、沒過期，價格低到高，每頁 `MARKET_PAGE`）、`GET game/market/mine`。回傳只有清理過的物品樣子與賣家名。
+- 每個 op 一個 `sql.transaction`：存檔照 rev 改寫＋上架／信件那一列的變更＋最後一句確認（以這次的 wid 或買家 id 判斷），否則除以零整筆回滾。
+- 常數：手續費 3%（Kafra 回收），上架 7 天，每人 20 筆，價格 1～10 億 Kafra，每頁 40 筆。
+- 風險（開啟前要知道）：物品數上限目前只記錄，關卡憑證下偽造的普通掉落可以在市場換成別人的 Kafra。

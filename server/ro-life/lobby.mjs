@@ -6,7 +6,7 @@ import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from './lobby-c
 import { memoryStore } from './lobby-store.mjs';
 import { onAlarm, RUN_MAX_MESSAGE } from './lobby-party.mjs';
 
-export function createRoLobby({ secret, origins = [], log = () => {}, db = memoryStore() } = {}) {
+export function createRoLobby({ secret, origins = [], log = () => {}, db = memoryStore(), settle = null } = {}) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: RUN_MAX_MESSAGE, perMessageDeflate: false });
   const plaza = new Set();
   const state = new WeakMap();
@@ -33,6 +33,7 @@ export function createRoLobby({ secret, origins = [], log = () => {}, db = memor
     },
     db,
     log,
+    ...(settle ? { settle } : {}), // 交易結算（trade.mjs 的 makeSettle）；沒有就不開放交易
   };
   let alarm = null;
 

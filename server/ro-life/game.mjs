@@ -2,15 +2,18 @@ import { randomBytes } from 'node:crypto';
 import { checkSave } from './game-rules.mjs';
 import { applyOp } from './game-ops.mjs';
 import { createEndlessRoutes } from './endless.mjs';
+import { tradeLedger } from './trade.mjs';
+import { takeForListing, attachOf, addAttach, sellerPays, mailView, claimable, listingView, marketQuery, MAIL_TEXT, MARKET_DAYS, MARKET_MAX_LISTINGS, MARKET_PAGE, MARKET_FEE } from './market.mjs';
 
 // 282 線上角色（/api/ro/game/…）：引擎原本的線上協定，由我們的伺服器保存存檔。
 // 第一步「只記錄不擋」：照單全收，但每次存檔都和上一版比對，把等級、經驗、物品的變化與疑點寫進 ro_game_log，
 // 之後的存檔驗證（第二步）就照這些紀錄訂規則。存檔和單機的雲端備份（ro_save）分開放在 ro_game_save。
-//   GET  game/save                       {rev, doc, name}
+//   GET  game/save                       {rev, doc, name, trade}   trade＝可交易清單（引擎的 b1()，交易視窗只能放這裡面的東西；PUT save 與 op 也帶）
 //   PUT  game/save {rev, doc, wid, mine?, run?, wipe?, lite?}   rev 不符回 409 {error:'conflict', rev, doc}
 //   POST game/run {stage, mult, played?} 或 {stage, skip:true, char}   發關卡憑證 {run}
 //   POST game/op {op:'buy'|'sell'|'refine'|'mail', …}       伺服器算好寫進存檔，回 {rev, doc, …}（game-ops.mjs）
-//   GET  game/mail → {mail:[], pending:0} · POST game/mail/read · game/mail/delete（信箱還沒有內容）
+//   GET  game/mail → {mail, pending} · POST game/mail/read · game/mail/delete {id} → {mail, pending}；op:'mail' {id} 領附件（market.mjs）
+//   GET  game/market?kind=&ids=&page= · game/market/mine；op:'marketList'／'marketBuy'／'marketCancel'（RO_MARKET=1＋新表才開）
 //   POST game/name {char, name} · game/visit · game/crash · game/logout
 // 引擎用 x-session 標頭帶登入權杖（和 Bearer 是同一個）。正式站要套用 schema.sql 的新表、再設 RO_ONLINE=1 才開放。
 // 第二步：每次存檔用 game-rules.mjs 驗證。預設影子模式（照存用戶端的版本，只把會修正的地方記成 would-fix）；
@@ -126,6 +129,76 @@ export function createGameRoutes({ env, store, send, readBody }) {
   }
 
   const endless = createEndlessRoutes({ env, store, send, readBody });
+  // 信箱與市場：要有 ro_game_mail／ro_market 表；市場另外要 RO_MARKET=1（本機記憶體資料預設開）。沒開時信箱照舊是空的
+  let mprobe = { at: 0, ok: false };
+  async function mailOn() {
+    if (!store.sql) return true;
+    if (Date.now() - mprobe.at < 60_000) return mprobe.ok;
+    let ok = false;
+    try { ok = await store.marketTablesReady(); } catch {}
+    mprobe = { at: Date.now(), ok };
+    return ok;
+  }
+  const marketOn = async () => (store.sql ? env.RO_MARKET === '1' : env.RO_MARKET !== '0') && (await mailOn());
+  async function mailList(id) {
+    if (!(await mailOn())) return { mail: [], pending: 0 };
+    if (await marketOn()) await store.marketExpire(id, MAIL_TEXT.expired);
+    const mail = (await store.listMail(id)).map(mailView);
+    return { mail, pending: mail.filter(claimable).length };
+  }
+  // 照目前的存檔算出新版 → 寫入（rev 被搶就重讀一次）；write(cur, doc, wid) 回 {rev, …} 或 null
+  async function saveOp(id, compute, write) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const cur = await store.getGameSave(id);
+      const r = await compute(cur.doc);
+      if (r.error) return r;
+      const w = await write(cur, r.doc, 'op-' + randomBytes(6).toString('base64url'), r);
+      if (w?.error) return w;
+      if (w) return { ...r, ...w, trade: tradeLedger(r.doc) };
+    }
+    return { error: 'conflict' };
+  }
+  const charName = (doc, charId) => {
+    const c = (parse(doc, 'characters.v1', []) || []).find((x) => String(x?.id) === String(charId)) ?? (parse(doc, 'characters.v1', []) || [])[0];
+    return String(c?.name ?? '冒險者').replace(/[\u0000-\u001f<>]/g, '').slice(0, 24) || '冒險者';
+  };
+  async function marketOp(acc, body) {
+    const id = acc.id;
+    const ok = (r, log) => { store.addGameLog(id, 'op', { rev: r.rev, flags: [], detail: { op: body.op, ...log } }).catch(() => {}); return { status: 200, body: { rev: r.rev, doc: r.doc, trade: r.trade, ...(r.listing ? { listing: r.listingId } : {}) } }; };
+    const fail = (r) => ({ status: r.error === 'conflict' ? 409 : 400, body: { error: r.error } });
+    if (body.op === 'mail') {
+      if (!(await mailOn())) return fail({ error: 'missing' });
+      const mid = Number(body.id);
+      const m = Number.isInteger(mid) ? await store.getMail(id, mid) : null;
+      if (!m || !claimable(mailView(m))) return fail({ error: 'missing' });
+      const r = await saveOp(id, (doc) => addAttach(doc, m.attach), (cur, doc, wid) => store.claimMailSave(id, mid, cur.rev, doc, wid).then((w) => w ?? (store.getMail(id, mid).then((x) => (x && !x.claimed_at ? null : { error: 'missing' })))));
+      return r.error ? fail(r) : ok(r, { mail: mid });
+    }
+    if (!(await marketOn())) return fail({ error: 'bad_op' });
+    if (body.op === 'marketList') {
+      if ((await store.marketOpenCount(id)) >= MARKET_MAX_LISTINGS) return fail({ error: 'full' });
+      const r = await saveOp(id, (doc) => takeForListing(doc, body), (cur, doc, wid, x) => store.marketListSave(id, cur.rev, doc, wid, x.listing, charName(cur.doc, body.char), MARKET_DAYS).then((w) => w && { rev: w.rev, listingId: w.id }));
+      return r.error ? fail(r) : ok(r, { kind: r.listing.kind, item: r.listing.itemId, count: r.listing.count, price: r.listing.price, listing: r.listingId });
+    }
+    const lid = Number(body.id);
+    const l = Number.isInteger(lid) ? await store.marketGet(lid) : null;
+    if (body.op === 'marketBuy') {
+      if (!l || l.status !== 'open' || new Date(l.expires_at).getTime() <= Date.now()) return fail({ error: 'gone' });
+      if (String(l.seller_id) === String(id)) return fail({ error: 'own' });
+      const price = Number(l.price);
+      const listing = { kind: l.kind, itemId: Number(l.item_id), item: l.item, count: Number(l.count) };
+      const mail = { ...MAIL_TEXT.sold, attach: { gear: [], cards: {}, ores: {}, kafra: sellerPays(price) }, ref: `market-sold-${lid}` };
+      const r = await saveOp(id, (doc) => addAttach(doc, attachOf(listing), { pay: price }), (cur, doc, wid) => store.marketBuySave(id, lid, cur.rev, doc, wid, mail).then((w) => w ?? store.marketGet(lid).then((x) => (x?.status === 'open' ? null : { error: 'gone' }))));
+      return r.error ? fail(r) : ok(r, { listing: lid, price, seller: String(l.seller_id), item: listing.itemId, count: listing.count });
+    }
+    if (body.op === 'marketCancel') {
+      if (!l || String(l.seller_id) !== String(id) || l.status !== 'open') return fail({ error: 'gone' });
+      const listing = { kind: l.kind, itemId: Number(l.item_id), item: l.item, count: Number(l.count) };
+      const r = await saveOp(id, (doc) => addAttach(doc, attachOf(listing)), (cur, doc, wid) => store.marketCancelSave(id, lid, cur.rev, doc, wid).then((w) => w ?? store.marketGet(lid).then((x) => (x?.status === 'open' ? null : { error: 'gone' }))));
+      return r.error ? fail(r) : ok(r, { listing: lid });
+    }
+    return fail({ error: 'bad_op' });
+  }
 
   async function route(req, res, path, acc, sessionHash, query = null) {
     const method = req.method;
@@ -140,7 +213,7 @@ export function createGameRoutes({ env, store, send, readBody }) {
 
     if (path === 'save' && method === 'GET') {
       const s = await store.getGameSave(id);
-      return send(res, 200, { rev: s.rev, doc: s.doc, name: displayName(acc) });
+      return send(res, 200, { rev: s.rev, doc: s.doc, name: displayName(acc), trade: tradeLedger(s.doc) });
     }
     if (path === 'save' && method === 'PUT') {
       const body = await readBody(req);
@@ -181,7 +254,7 @@ export function createGameRoutes({ env, store, send, readBody }) {
         const fix = { ...(check.issues.length ? { fix: check.issues.slice(0, LIST_MAX) } : {}), ...(check.meta?.gain > 0 ? { cap: check.meta } : {}) };
         await store.addGameLog(id, 'save', { rev: next, runId, flags, detail: { ...(sum?.detail ?? {}), ...run, ...fix } }).catch((e) => console.warn('[ro-life] game log', e.message));
       }
-      return send(res, 200, stored === doc ? { rev: next } : { rev: next, doc: stored });
+      return send(res, 200, stored === doc ? { rev: next, trade: tradeLedger(stored) } : { rev: next, doc: stored, trade: tradeLedger(stored) });
     }
     if (path === 'run' && method === 'POST') {
       const body = await readBody(req);
@@ -223,7 +296,11 @@ export function createGameRoutes({ env, store, send, readBody }) {
         });
         if (r.error) return send(res, r.error === 'conflict' ? 409 : 400, { error: r.error });
         await store.addGameLog(id, 'op', { rev: r.rev, flags: [], detail: { op: 'towerReset', char: shortStr(body.char, 40) } }).catch((e) => console.warn('[ro-life] game log', e.message));
-        return send(res, 200, r);
+        return send(res, 200, { ...r, trade: tradeLedger(r.doc) });
+      }
+      if (body?.op === 'mail' || String(body?.op ?? '').startsWith('market')) {
+        const r = await marketOp(acc, body);
+        return send(res, r.status, r.body);
       }
       // 存檔被別的請求搶先改了就用新的一版重算一次
       for (let attempt = 0; attempt < 2; attempt++) {
@@ -233,17 +310,36 @@ export function createGameRoutes({ env, store, send, readBody }) {
         const put = await store.putGameSave(id, cur.rev, r.doc, 'op-' + randomBytes(6).toString('base64url'));
         if (put === null) continue;
         await store.addGameLog(id, 'op', { rev: put.rev, flags: [], detail: { op: shortStr(body.op, 20), ...r.log } }).catch((e) => console.warn('[ro-life] game log', e.message));
-        return send(res, 200, { rev: put.rev, doc: r.doc, ...r.result });
+        return send(res, 200, { rev: put.rev, doc: r.doc, ...r.result, trade: tradeLedger(r.doc) });
       }
       return send(res, 409, { error: 'conflict' });
     }
-    if (path === 'mail' && method === 'GET') return send(res, 200, { mail: [], pending: 0 });
-    if ((path === 'mail/read' || path === 'mail/delete') && method === 'POST') return send(res, 200, { ok: true });
+    if (path === 'mail' && method === 'GET') return send(res, 200, await mailList(id));
+    if (path === 'mail/read' && method === 'POST') {
+      if (await mailOn()) await store.readAllMail(id);
+      return send(res, 200, { ok: true });
+    }
+    if (path === 'mail/delete' && method === 'POST') {
+      const body = await readBody(req);
+      if ((await mailOn()) && Number.isInteger(Number(body.id))) await store.deleteMail(id, Number(body.id));
+      return send(res, 200, await mailList(id));
+    }
+    if ((path === 'market' || path === 'market/mine') && method === 'GET') {
+      if (!(await marketOn())) return send(res, 404, { error: 'disabled' });
+      const meta = { fee: MARKET_FEE, days: MARKET_DAYS, max: MARKET_MAX_LISTINGS };
+      if (path === 'market/mine') {
+        await store.marketExpire(id, MAIL_TEXT.expired);
+        return send(res, 200, { rows: (await store.marketMine(id)).map((r) => listingView(r, id)), ...meta });
+      }
+      const q = marketQuery(query);
+      const rows = await store.marketBrowse({ ...q, size: MARKET_PAGE });
+      return send(res, 200, { rows: rows.slice(0, MARKET_PAGE).map((r) => listingView(r, id)), more: rows.length > MARKET_PAGE, page: q.page, ...meta });
+    }
     if (path === 'logout' && method === 'POST') {
       await store.deleteSession(sessionHash);
       return send(res, 200, { ok: true });
     }
     return send(res, 404, { error: 'not_found' });
   }
-  return { route, enabled, endlessEnabled: endless.enabled };
+  return { route, enabled, endlessEnabled: endless.enabled, marketEnabled: marketOn };
 }

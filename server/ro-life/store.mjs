@@ -47,6 +47,195 @@ export class RoStore {
     if (claimed) r.claimed = Date.now();
     return { rev: rev + 1, claimed };
   }
+  // 交易：兩個帳號的存檔在同一個交易裡各自照 rev 改寫（帳號 id 小的先寫，避免互相等鎖）；
+  // 最後一句確認兩邊都寫成了（wid 都是這筆交易），否則除以零讓整個交易回滾。回傳 {revA, revB} 或 null（有一邊 rev 不符）
+  async tradeGameSaves(a, b, wid) {
+    if (this.sql) {
+      const sql = this.raw;
+      const [x, y] = String(a.acc) < String(b.acc) ? [a, b] : [b, a];
+      const upd = (s) => sql`UPDATE ro_game_save SET doc = ${JSON.stringify(s.doc)}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${s.acc} AND rev = ${s.rev}`;
+      try {
+        await sql.transaction([
+          upd(x),
+          upd(y),
+          sql`SELECT 1 / (CASE WHEN (SELECT count(*) FROM ro_game_save WHERE account_id IN (${a.acc}, ${b.acc}) AND wid = ${wid}) = 2 THEN 1 ELSE 0 END) AS ok`,
+        ]);
+      } catch (e) {
+        if (/division by zero/i.test(e?.message ?? '')) return null;
+        console.warn('[ro-life] db', e?.message);
+        throw Error('db');
+      }
+      return { revA: a.rev + 1, revB: b.rev + 1 };
+    }
+    const ca = this.mem.gameSaves.get(a.acc), cb = this.mem.gameSaves.get(b.acc);
+    if ((ca?.rev ?? 0) !== a.rev || (cb?.rev ?? 0) !== b.rev || !ca || !cb) return null;
+    const now = Date.now();
+    this.mem.gameSaves.set(a.acc, { doc: structuredClone(a.doc), rev: a.rev + 1, wid, updatedAt: now });
+    this.mem.gameSaves.set(b.acc, { doc: structuredClone(b.doc), rev: b.rev + 1, wid, updatedAt: now });
+    return { revA: a.rev + 1, revB: b.rev + 1 };
+  }
+  // ---- 信箱與市場（market.mjs）。改存檔的動作都是一句 SQL：存檔照 rev 改寫只在那一列真的改到時才做，
+  // 最後 1 / count(存檔改到的列) —— 0 列就除以零，整句回滾。回傳 null＝rev 不符或那一列已經被別人改了 ----
+  async marketTablesReady() {
+    if (!this.sql) return true;
+    const rows = await this.sql`SELECT to_regclass('ro_game_mail') IS NOT NULL AND to_regclass('ro_market') IS NOT NULL AS ok`;
+    return rows[0]?.ok === true;
+  }
+  async #guarded(run) {
+    try { return await run(this.raw); } catch (e) {
+      if (/division by zero/i.test(e?.message ?? '')) return null;
+      console.warn('[ro-life] db', e?.message);
+      throw Error('db');
+    }
+  }
+  #memMail() { return (this.mem.mail ??= []); }
+  #memMarket() { return (this.mem.market ??= []); }
+  // 過期的上架寄回賣家（開市場或信箱時對自己做一次）
+  async marketExpire(accountId, text) {
+    if (this.sql) {
+      await this.sql`WITH x AS (UPDATE ro_market SET status = 'expired', closed_at = now() WHERE seller_id = ${accountId} AND status = 'open' AND expires_at <= now() RETURNING id, kind, item_id, item, count)
+        INSERT INTO ro_game_mail (account_id, kind, title, body, attach, ref)
+        SELECT ${accountId}, 'recovered', ${JSON.stringify(text.title)}::jsonb, ${JSON.stringify(text.body)}::jsonb,
+          jsonb_build_object('gear', CASE WHEN kind = 'gear' AND item IS NOT NULL THEN jsonb_build_array(item) ELSE '[]'::jsonb END,
+            'cards', CASE WHEN kind = 'card' THEN jsonb_build_object(item_id::text, count) ELSE '{}'::jsonb END,
+            'ores', CASE WHEN kind = 'ore' THEN jsonb_build_object(item_id::text, count) ELSE '{}'::jsonb END, 'kafra', 0),
+          'market-expired-' || id FROM x ON CONFLICT (ref) DO NOTHING`;
+      return;
+    }
+    const now = Date.now();
+    for (const l of this.#memMarket()) {
+      if (l.seller_id !== accountId || l.status !== 'open' || l.expires_at > now) continue;
+      Object.assign(l, { status: 'expired', closed_at: now });
+      this.#memSend(accountId, { kind: 'recovered', ...text, attach: { gear: l.kind === 'gear' && l.item ? [l.item] : [], cards: l.kind === 'card' ? { [l.item_id]: l.count } : {}, ores: l.kind === 'ore' ? { [l.item_id]: l.count } : {}, kafra: 0 }, ref: `market-expired-${l.id}` });
+    }
+  }
+  #memSend(accountId, m) {
+    const box = this.#memMail();
+    if (m.ref && box.some((x) => x.ref === m.ref)) return null;
+    const row = { id: (this.mem.mailSeq = (this.mem.mailSeq ?? 0) + 1), account_id: accountId, kind: m.kind ?? 'notice', title: m.title, body: m.body, attach: m.attach ?? null, ref: m.ref ?? null, created_at: Date.now(), read_at: null, claimed_at: null, deleted_at: null };
+    box.push(row);
+    return row.id;
+  }
+  async sendMail(accountId, m) {
+    if (this.sql) {
+      const rows = await this.sql`INSERT INTO ro_game_mail (account_id, kind, title, body, attach, ref) VALUES (${accountId}, ${m.kind ?? 'notice'}, ${JSON.stringify(m.title)}::jsonb, ${JSON.stringify(m.body)}::jsonb, ${m.attach ? JSON.stringify(m.attach) : null}::jsonb, ${m.ref ?? null}) ON CONFLICT (ref) DO NOTHING RETURNING id`;
+      return rows[0] ? Number(rows[0].id) : null;
+    }
+    return this.#memSend(accountId, m);
+  }
+  async listMail(accountId, limit = 50) {
+    if (this.sql) return this.sql`SELECT id, kind, title, body, attach, created_at, read_at, claimed_at FROM ro_game_mail WHERE account_id = ${accountId} AND deleted_at IS NULL ORDER BY id DESC LIMIT ${limit}`;
+    return this.#memMail().filter((m) => m.account_id === accountId && !m.deleted_at).sort((a, b) => b.id - a.id).slice(0, limit);
+  }
+  async getMail(accountId, id) {
+    if (this.sql) return (await this.sql`SELECT id, kind, title, body, attach, created_at, read_at, claimed_at FROM ro_game_mail WHERE id = ${id} AND account_id = ${accountId} AND deleted_at IS NULL`)[0] ?? null;
+    return this.#memMail().find((m) => m.id === id && m.account_id === accountId && !m.deleted_at) ?? null;
+  }
+  async readAllMail(accountId) {
+    if (this.sql) return void (await this.sql`UPDATE ro_game_mail SET read_at = now() WHERE account_id = ${accountId} AND read_at IS NULL AND deleted_at IS NULL`);
+    for (const m of this.#memMail()) if (m.account_id === accountId && !m.read_at) m.read_at = Date.now();
+  }
+  // 只能刪沒有待領附件的
+  async deleteMail(accountId, id) {
+    if (this.sql) return (await this.sql`UPDATE ro_game_mail SET deleted_at = now() WHERE id = ${id} AND account_id = ${accountId} AND deleted_at IS NULL AND (attach IS NULL OR claimed_at IS NOT NULL) RETURNING id`).length > 0;
+    const m = this.#memMail().find((x) => x.id === id && x.account_id === accountId && !x.deleted_at);
+    if (!m || (m.attach && !m.claimed_at)) return false;
+    m.deleted_at = Date.now();
+    return true;
+  }
+  // 領信：信件標成已領＋存檔照 rev 改寫，一起成功或一起不做
+  async claimMailSave(accountId, id, rev, doc, wid) {
+    if (this.sql) {
+      return this.#guarded(async (sql) => {
+        const rows = await sql`WITH m AS (UPDATE ro_game_mail SET claimed_at = now(), read_at = COALESCE(read_at, now()) WHERE id = ${id} AND account_id = ${accountId} AND claimed_at IS NULL AND deleted_at IS NULL AND attach IS NOT NULL RETURNING id),
+          s AS (UPDATE ro_game_save SET doc = ${JSON.stringify(doc)}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${accountId} AND rev = ${rev} AND EXISTS (SELECT 1 FROM m) RETURNING rev)
+          SELECT (SELECT rev FROM s) AS rev, 1 / (SELECT count(*) FROM s) AS ok`;
+        return { rev: Number(rows[0].rev) };
+      });
+    }
+    const m = this.#memMail().find((x) => x.id === id && x.account_id === accountId && !x.deleted_at && !x.claimed_at && x.attach);
+    const cur = this.mem.gameSaves.get(accountId);
+    if (!m || !cur || cur.rev !== rev) return null;
+    m.claimed_at = Date.now(); m.read_at ??= m.claimed_at;
+    this.mem.gameSaves.set(accountId, { doc: structuredClone(doc), rev: rev + 1, wid, updatedAt: Date.now() });
+    return { rev: rev + 1 };
+  }
+  async marketOpenCount(accountId) {
+    if (this.sql) return Number((await this.sql`SELECT count(*)::int AS n FROM ro_market WHERE seller_id = ${accountId} AND status = 'open'`)[0].n);
+    return this.#memMarket().filter((l) => l.seller_id === accountId && l.status === 'open').length;
+  }
+  async marketGet(id) {
+    if (this.sql) return (await this.sql`SELECT * FROM ro_market WHERE id = ${id}`)[0] ?? null;
+    return this.#memMarket().find((l) => l.id === id) ?? null;
+  }
+  async marketBrowse({ kind, ids, page, size }) {
+    if (this.sql) {
+      return this.sql`SELECT id, seller_id, seller_name, kind, item_id, item, count, price, status, expires_at FROM ro_market
+        WHERE status = 'open' AND expires_at > now() AND (${kind} = '' OR kind = ${kind}) AND (cardinality(${ids}::int[]) = 0 OR item_id = ANY (${ids}::int[]))
+        ORDER BY price ASC, id ASC LIMIT ${size + 1} OFFSET ${page * size}`;
+    }
+    const now = Date.now();
+    return this.#memMarket().filter((l) => l.status === 'open' && l.expires_at > now && (!kind || l.kind === kind) && (!ids.length || ids.includes(l.item_id)))
+      .sort((a, b) => a.price - b.price || a.id - b.id).slice(page * size, page * size + size + 1);
+  }
+  async marketMine(accountId) {
+    if (this.sql) return this.sql`SELECT id, seller_id, seller_name, kind, item_id, item, count, price, status, expires_at FROM ro_market WHERE seller_id = ${accountId} AND (status = 'open' OR closed_at > now() - interval '7 days') ORDER BY id DESC LIMIT 60`;
+    return this.#memMarket().filter((l) => l.seller_id === accountId && (l.status === 'open' || l.closed_at > Date.now() - 7 * 86400_000)).sort((a, b) => b.id - a.id).slice(0, 60);
+  }
+  // 上架：存檔照 rev 改寫（物品拿出來）＋新增一筆上架
+  async marketListSave(accountId, rev, doc, wid, l, sellerName, days) {
+    if (this.sql) {
+      return this.#guarded(async (sql) => {
+        const rows = await sql`WITH s AS (UPDATE ro_game_save SET doc = ${JSON.stringify(doc)}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${accountId} AND rev = ${rev} RETURNING rev),
+          l AS (INSERT INTO ro_market (seller_id, seller_name, kind, item_id, item, count, price, expires_at)
+            SELECT ${accountId}, ${sellerName}, ${l.kind}, ${l.itemId}, ${l.item ? JSON.stringify(l.item) : null}::jsonb, ${l.count}, ${l.price}, now() + make_interval(days => ${days}) WHERE EXISTS (SELECT 1 FROM s) RETURNING id)
+          SELECT (SELECT rev FROM s) AS rev, (SELECT id FROM l) AS id, 1 / (SELECT count(*) FROM l) AS ok`;
+        return { rev: Number(rows[0].rev), id: Number(rows[0].id) };
+      });
+    }
+    const cur = this.mem.gameSaves.get(accountId);
+    if (!cur || cur.rev !== rev) return null;
+    this.mem.gameSaves.set(accountId, { doc: structuredClone(doc), rev: rev + 1, wid, updatedAt: Date.now() });
+    const id = (this.mem.marketSeq = (this.mem.marketSeq ?? 0) + 1);
+    this.#memMarket().push({ id, seller_id: accountId, seller_name: sellerName, kind: l.kind, item_id: l.itemId, item: l.item, count: l.count, price: l.price, status: 'open', buyer_id: null, created_at: Date.now(), expires_at: Date.now() + days * 86400_000, closed_at: null });
+    return { rev: rev + 1, id };
+  }
+  // 購買：上架改 sold（還開著、沒過期、不是自己的）＋買家存檔照 rev 改寫＋寄信給賣家，一起成功或一起不做
+  async marketBuySave(buyerId, id, rev, doc, wid, mail) {
+    if (this.sql) {
+      return this.#guarded(async (sql) => {
+        const rows = await sql`WITH l AS (UPDATE ro_market SET status = 'sold', buyer_id = ${buyerId}, closed_at = now() WHERE id = ${id} AND status = 'open' AND expires_at > now() AND seller_id <> ${buyerId} RETURNING seller_id),
+          s AS (UPDATE ro_game_save SET doc = ${JSON.stringify(doc)}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${buyerId} AND rev = ${rev} AND EXISTS (SELECT 1 FROM l) RETURNING rev),
+          m AS (INSERT INTO ro_game_mail (account_id, kind, title, body, attach, ref) SELECT l.seller_id, 'gift', ${JSON.stringify(mail.title)}::jsonb, ${JSON.stringify(mail.body)}::jsonb, ${JSON.stringify(mail.attach)}::jsonb, ${mail.ref} FROM l WHERE EXISTS (SELECT 1 FROM s) RETURNING id)
+          SELECT (SELECT rev FROM s) AS rev, 1 / (SELECT count(*) FROM m) AS ok`;
+        return { rev: Number(rows[0].rev) };
+      });
+    }
+    const l = this.#memMarket().find((x) => x.id === id && x.status === 'open' && x.expires_at > Date.now() && x.seller_id !== buyerId);
+    const cur = this.mem.gameSaves.get(buyerId);
+    if (!l || !cur || cur.rev !== rev) return null;
+    Object.assign(l, { status: 'sold', buyer_id: buyerId, closed_at: Date.now() });
+    this.mem.gameSaves.set(buyerId, { doc: structuredClone(doc), rev: rev + 1, wid, updatedAt: Date.now() });
+    this.#memSend(l.seller_id, { kind: 'gift', ...mail });
+    return { rev: rev + 1 };
+  }
+  // 取消上架：上架改 cancelled（自己的、還開著）＋存檔照 rev 改寫（物品回來）
+  async marketCancelSave(accountId, id, rev, doc, wid) {
+    if (this.sql) {
+      return this.#guarded(async (sql) => {
+        const rows = await sql`WITH l AS (UPDATE ro_market SET status = 'cancelled', closed_at = now() WHERE id = ${id} AND seller_id = ${accountId} AND status = 'open' RETURNING id),
+          s AS (UPDATE ro_game_save SET doc = ${JSON.stringify(doc)}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${accountId} AND rev = ${rev} AND EXISTS (SELECT 1 FROM l) RETURNING rev)
+          SELECT (SELECT rev FROM s) AS rev, 1 / (SELECT count(*) FROM s) AS ok`;
+        return { rev: Number(rows[0].rev) };
+      });
+    }
+    const l = this.#memMarket().find((x) => x.id === id && x.seller_id === accountId && x.status === 'open');
+    const cur = this.mem.gameSaves.get(accountId);
+    if (!l || !cur || cur.rev !== rev) return null;
+    Object.assign(l, { status: 'cancelled', closed_at: Date.now() });
+    this.mem.gameSaves.set(accountId, { doc: structuredClone(doc), rev: rev + 1, wid, updatedAt: Date.now() });
+    return { rev: rev + 1 };
+  }
   // 發新憑證：同一個帳號同時只留一張沒領的。接續中斷的關卡（resume）時，沿用同一關舊憑證的開打時間，不讓秒數被灌大
   async createGameRun(accountId, run, { resume = false } = {}) {
     if (this.sql) {

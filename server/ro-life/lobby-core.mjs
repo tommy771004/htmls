@@ -1,6 +1,7 @@
 // 282 普隆德拉大廳的連線核心。
 // 第一階段：加入／離開、走動、外觀、表情、公開聊天。第二階段（社交）：檢視資料、密語、好友。
-// 第三階段：多頻道、離線留言、檢舉與禁言（管理介面在 lobby-admin.mjs）。組隊與合作關卡的轉送在 lobby-party.mjs。不碰遊戲規則；交易還沒做。
+// 第三階段：多頻道、離線留言、檢舉與禁言（管理介面在 lobby-admin.mjs）。組隊與合作關卡的轉送在 lobby-party.mjs。
+// 交易的撮合在 lobby-trade.mjs（結算由 io.settle 交給伺服器存檔，大廳不碰庫存）。
 // 全部大廳編號共用同一個廣場，廣場分 CHANNELS 個頻道、每頻道 CHANNEL_CAP 人（引擎的 sp）。
 // 走動、外觀、表情、「頻道」聊天只送同頻道；「一般」「交易」聊天、密語、好友、查看都跨頻道（玩家 id 在整個廣場唯一）。
 // 本機 Node（server/ro-life/lobby.mjs）與 Cloudflare Durable Object（games/282-ro-life/worker/index.js）共用這一份。
@@ -14,7 +15,8 @@
 //   verify(ticket, now) → Promise<{a, n, exp} | null>   驗證 /api/ro/lobby-ticket 發的入場票
 //   db                 lobby-store.mjs 的 sqlStore／memoryStore（同步；寫入失敗不影響聊天與連線，見 safe()）
 //   cap?               每頻道人數上限（測試用，預設 CHANNEL_CAP）
-//   wake?(at)          在 at 時呼叫 lobby-party.mjs 的 onAlarm（邀請與出發確認的期限）
+//   wake?(at)          在 at 時呼叫 lobby-party.mjs 的 onAlarm（邀請與出發確認的期限，也處理交易邀請）
+//   settle?(payload)   交易結算（Worker 打 Vercel 的 /api/ro/trade/settle）；沒有就不開放交易
 //   sendRaw?(ws, str)  直接送字串（本局轉送用，省一次 JSON 編碼）
 //   log?(...args)
 // 身分只認入場票的 a（帳號）；票裡的 n 是 Google／LINE 的名字，不顯示。
@@ -27,11 +29,13 @@
 //            profile{id, p, name, look} whisper{out, name, text, id, c} whisperErr{name}
 //            friends{list:[{name, on, id?}], asks:[name]} friendAsk{name} friendNote{what, name}
 //   組隊、合作關卡：見 lobby-party.mjs 檔頭
-// welcome 的 social／report／mail／party＝這個伺服器有社交、檢舉、離線留言、組隊；頁面比伺服器先更新時，舊伺服器不送，頁面就不顯示那些按鈕。
+// hello 的 on:1＝頁面是線上模式（只有線上角色能交易）。
+// welcome 的 social／report／mail／party／trade＝這個伺服器有社交、檢舉、離線留言、組隊、交易；頁面比伺服器先更新時，舊伺服器不送，頁面就不顯示那些按鈕。
 // 換頻道（hop）成功時再送一次 welcome（同一個 id、新頻道的人），引擎會自己清掉舊頻道的人並顯示「已切換到頻道 N」。
 
 import { FRIEND_MAX, ASK_MAX, OFFLINE_MAX, OFFLINE_PER_SENDER } from './lobby-store.mjs';
 import { partyMessage, partyChat, partyPresence, runHello, runMessage, runClose, RUN_MAX_MESSAGE } from './lobby-party.mjs';
+import { tradeMessage, tradeClose } from './lobby-trade.mjs';
 
 export const LOBBY_PATH = '/api/ro/lobby';
 export const CHANNELS = 4;
@@ -61,11 +65,12 @@ const unb64u = (s) => {
   const t = s.replace(/-/g, '+').replace(/_/g, '/');
   return Uint8Array.from(atob(t + '='.repeat((4 - (t.length % 4)) % 4)), (c) => c.charCodeAt(0));
 };
+export const hmacB64 = (secret, data) => hmac(secret, data);
 async function hmac(secret, data) {
   const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return b64u(await crypto.subtle.sign('HMAC', key, enc.encode(data)));
 }
-const sameStr = (a, b) => {
+export const sameStr = (a, b) => {
   if (a.length !== b.length) return false;
   let d = 0;
   for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -182,7 +187,7 @@ export function safe(io, fn, fallback = undefined) {
   try { return fn(); } catch (e) { io.log?.('[ro-lobby] db', e?.message ?? e); return fallback; }
 }
 const welcome = (io, me) => ({
-  t: 'welcome', id: me.id, gm: false, channel: me.ch, social: 1, report: 1, mail: 1, party: 1,
+  t: 'welcome', id: me.id, gm: false, channel: me.ch, social: 1, report: 1, mail: 1, party: 1, ...(io.settle ? { trade: 1 } : {}),
   players: members(io).filter(([, s]) => s.id !== me.id && s.ch === me.ch).map(([, s]) => pub(s)),
 });
 export const muted = (io, me, now) => (me.acc ? safe(io, () => io.db.getMute(me.acc, now), null) : null);
@@ -329,6 +334,7 @@ async function hello(io, ws, m, now) {
     y: int(m.y, 0, MAX_COORD),
     f: int(m.f, 0, 1023),
     guest: !auth,
+    ...(auth && m.on === 1 ? { on: 1 } : {}),
     acc: auth?.a != null ? String(auth.a) : null,
     ch,
     rl: {},
@@ -515,8 +521,16 @@ export async function onMessage(io, ws, data, now = Date.now()) {
     case 'partyGo':
     case 'partyReady':
       return safe(io, () => partyMessage(io, ws, me, m, now));
+    case 'tradeReq':
+    case 'tradeReply':
+    case 'tradeOffer':
+    case 'tradeLock':
+    case 'tradeConfirm':
+    case 'tradeCancel':
+    case 'tradeChat':
+      return tradeMessage(io, ws, me, m, now).catch((e) => io.log?.('[ro-lobby] trade', e?.message ?? e));
     default:
-      // chatCn、跨大廳組隊（引擎的 *Far，全部大廳本來就同一個廣場）、交易：不處理
+      // chatCn、跨大廳組隊（引擎的 *Far，全部大廳本來就同一個廣場）：不處理
       return;
   }
 }
@@ -526,6 +540,7 @@ export function onClose(io, ws, now = Date.now()) {
   io.set(ws, null);
   if (me?.run) return safe(io, () => runClose(io, ws, me, now));
   if (!me?.id) return;
+  safe(io, () => tradeClose(io, ws, me));
   broadcast(io, { t: 'leave', id: me.id }, ws, me.ch);
   safe(io, () => io.db.delProfile(me.id));
   // 同帳號還有別的分頁時也通知：好友清單上的 id 要換成還在的那一頁

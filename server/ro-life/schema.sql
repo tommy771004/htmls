@@ -201,3 +201,39 @@ CREATE TABLE IF NOT EXISTS ro_endless_progress (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (account_id, char_id)
 );
+
+-- 信箱（引擎原本的郵差信箱）：市場的收款、到期退回，以及之後的系統通知與補償。ref 讓同一件事只寄一次
+CREATE TABLE IF NOT EXISTS ro_game_mail (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  account_id bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  kind       text NOT NULL DEFAULT 'notice' CHECK (kind IN ('notice', 'gift', 'recovered')),
+  title      jsonb NOT NULL,                           -- {es, en, zh}
+  body       jsonb NOT NULL,                           -- {es, en, zh}
+  attach     jsonb,                                    -- {gear:[物品], cards:{id:n}, ores:{id:n}, kafra}
+  ref        text UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  read_at    timestamptz,
+  claimed_at timestamptz,
+  deleted_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS ro_game_mail_account ON ro_game_mail (account_id, id DESC) WHERE deleted_at IS NULL;
+
+-- 市場（線上角色）：上架時物品從存檔拿出來放這裡；賣出後賣家的 Kafra 用信件寄，過期或取消的物品退回
+CREATE TABLE IF NOT EXISTS ro_market (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  seller_id   bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  seller_name text NOT NULL,
+  kind        text NOT NULL CHECK (kind IN ('gear', 'card', 'ore')),
+  item_id     int NOT NULL,
+  item        jsonb,                                   -- 裝備才有（清理過的物品）
+  count       int NOT NULL CHECK (count > 0),
+  price       bigint NOT NULL CHECK (price > 0),
+  status      text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'sold', 'cancelled', 'expired')),
+  buyer_id    bigint,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  expires_at  timestamptz NOT NULL,
+  closed_at   timestamptz
+);
+CREATE INDEX IF NOT EXISTS ro_market_open ON ro_market (kind, price, id) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS ro_market_item ON ro_market (item_id, price) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS ro_market_seller ON ro_market (seller_id, status, id DESC);

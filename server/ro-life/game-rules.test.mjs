@@ -211,7 +211,7 @@ test('API：影子模式照存並記 would-fix；RO_ONLINE_ENFORCE=1 存修正�
     const saved = account(store.mem.gameSaves.get(id).doc);
     const log = store.mem.gameLogs.at(-1);
     if (!enforce) {
-      assert.deepEqual(r.body, { rev: 2 });
+      assert.deepEqual({ ...r.body, trade: undefined }, { trade: undefined, rev: 2 });
       assert.equal(saved.kafra, 999999);
       assert.ok(log.flags.includes('would-fix'));
     } else {
@@ -220,7 +220,7 @@ test('API：影子模式照存並記 would-fix；RO_ONLINE_ENFORCE=1 存修正�
       assert.equal(saved.kafra, 50);
       assert.ok(log.flags.includes('fixed'));
       const again = await call('PUT', 'game/save', { rev: 2, doc: r.body.doc, wid: 'c' });
-      assert.deepEqual(again.body, { rev: 3 });
+      assert.deepEqual({ ...again.body, trade: undefined }, { trade: undefined, rev: 3 });
       // op：伺服器扣點數、加材料，回傳新版存檔
       const op = await call('POST', 'game/op', { op: 'buy', ore: 1010, count: 2 });
       assert.equal(op.status, 200);
@@ -230,7 +230,7 @@ test('API：影子模式照存並記 would-fix；RO_ONLINE_ENFORCE=1 存修正�
       assert.equal((await call('POST', 'game/op', { op: 'buy', ore: 1010, count: 99 })).body.error, 'missing');
       // 用戶端拿 op 回傳的 rev 繼續存檔：材料不會被當成憑空出現
       const after = await call('PUT', 'game/save', { rev: 4, doc: op.body.doc, wid: 'd' });
-      assert.deepEqual(after.body, { rev: 5 });
+      assert.deepEqual({ ...after.body, trade: undefined }, { trade: undefined, rev: 5 });
     }
     assert.equal(log.detail.fix[0].code, 'kafra');
     assert.deepEqual((await call('GET', 'game/mail')).body, { mail: [], pending: 0 });

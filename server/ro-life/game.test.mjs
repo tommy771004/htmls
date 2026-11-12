@@ -7,6 +7,8 @@ import { createServer } from 'node:http';
 import { createRoLife } from './server.mjs';
 import { RoStore } from './store.mjs';
 import { summarizeSave } from './game.mjs';
+// 存檔與 op 的回應都帶可交易清單 trade（trade.test.mjs 另外測內容）
+const noTrade = ({ trade, ...b }) => (assert.ok(trade && Array.isArray(trade.uids)), b);
 
 const sha = (s) => createHash('sha256').update(s).digest('hex');
 const TOKEN = 'tok_' + 'x'.repeat(30);
@@ -34,17 +36,17 @@ test('線上存檔：讀寫、rev 衝突、回應遺失時用 mine 接回，且�
   assert.deepEqual((await s.call('GET', 'config', null, {})).body.online, true);
   let r = await s.call('GET', 'game/save');
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body, { rev: 0, doc: {}, name: '阿光' });
+  assert.deepEqual(noTrade(r.body), { rev: 0, doc: {}, name: '阿光' });
 
   r = await s.call('PUT', 'game/save', { rev: 0, doc: docOf([char()]), wid: 'w1', lite: true });
-  assert.deepEqual(r, { status: 200, body: { rev: 1 } });
+  assert.deepEqual({ ...r, body: noTrade(r.body) }, { status: 200, body: { rev: 1 } });
   r = await s.call('PUT', 'game/save', { rev: 0, doc: docOf([char({ name: 'X' })]), wid: 'w2' });
   assert.equal(r.status, 409);
   assert.equal(r.body.rev, 1);
   assert.equal(JSON.parse(r.body.doc['characters.v1'])[0].name, 'Tommy');
   // 上一筆 w1 其實寫進去了，這台不知道：帶 mine:[w1] 就接著寫
   r = await s.call('PUT', 'game/save', { rev: 0, doc: docOf([char({ exp: 5 })]), wid: 'w3', mine: ['w1'] });
-  assert.deepEqual(r.body, { rev: 2 });
+  assert.deepEqual(noTrade(r.body), { rev: 2 });
 
   // Bearer 也可以；沒登入 401
   assert.equal((await s.call('GET', 'game/save', null, { authorization: `Bearer ${TOKEN}` })).body.rev, 2);
@@ -63,11 +65,11 @@ test('關卡憑證：領取後記下關卡，重複領或沒憑證就加註疑�
   const run = (await s.call('POST', 'game/run', { stage: 'prontera', mult: 1 })).body.run;
   assert.match(run, /^[\w-]{20,}$/);
   let r = await s.call('PUT', 'game/save', { rev: 1, doc: docOf([char({ level: 3, exp: 40 })]), wid: 'b', run });
-  assert.deepEqual(r.body, { rev: 2 });
+  assert.deepEqual(noTrade(r.body), { rev: 2 });
   r = await s.call('PUT', 'game/save', { rev: 2, doc: docOf([char({ level: 4, exp: 80 })]), wid: 'c', run });
-  assert.deepEqual(r.body, { rev: 3 });
+  assert.deepEqual(noTrade(r.body), { rev: 3 });
   r = await s.call('PUT', 'game/save', { rev: 3, doc: docOf([char({ level: 4, exp: 90 })], { inventory: [{ uid: 'u1', itemId: 1101, tier: 3 }], cards: {}, materials: {}, kafra: 0 }), wid: 'd' });
-  assert.deepEqual(r.body, { rev: 4 });
+  assert.deepEqual(noTrade(r.body), { rev: 4 });
 
   const logs = s.store.mem.gameLogs.filter((l) => l.kind === 'save');
   assert.equal(logs.length, 4);
@@ -104,7 +106,7 @@ test('關卡憑證：領取後記下關卡，重複領或沒憑證就加註疑�
   const other = await s.store.loginIdentity('google', 'sub-2', '別人');
   await s.store.createGameRun(other, { id: 'someone-elses-run-0000', stage: 'prontera', mult: 1, skip: false, char: null });
   r = await s.call('PUT', 'game/save', { rev: 4, doc: docOf([char({ level: 5, exp: 90 })], { inventory: [{ uid: 'u1', itemId: 1101, tier: 3 }], cards: {}, materials: {}, kafra: 0 }), wid: 'e', run: 'someone-elses-run-0000' });
-  assert.deepEqual(r.body, { rev: 5 });
+  assert.deepEqual(noTrade(r.body), { rev: 5 });
   assert.deepEqual(s.store.mem.gameLogs.at(-1).flags, ['claim-unknown', 'gain-no-claim', 'would-fix']);
 });
 
