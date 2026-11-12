@@ -262,6 +262,35 @@ export class RoStore {
     for (const r of this.mem.gameRuns.values()) if (r.account_id === accountId && r.issued > Date.now() - sec * 1000) n++;
     return n;
   }
+  // ---- 角色名全站唯一（ro_game_name：name_key 是 name-rules.mjs 的 nameKey；表在才啟用，game.mjs 每分鐘查一次）----
+  async nameTableReady() {
+    if (!this.sql) return true;
+    return (await this.sql`SELECT to_regclass('ro_game_name') IS NOT NULL AS ok`)[0]?.ok === true;
+  }
+  // 這些名字各是哪個帳號登記的 → Map(name_key → account_id)
+  async nameOwners(keys) {
+    const out = new Map();
+    if (!keys.length) return out;
+    if (this.sql) { for (const r of await this.sql`SELECT name_key, account_id FROM ro_game_name WHERE name_key = ANY(${keys})`) out.set(r.name_key, Number(r.account_id)); return out; }
+    for (const k of keys) { const r = (this.mem.names ??= new Map()).get(k); if (r) out.set(k, r.account_id); }
+    return out;
+  }
+  // 登記名字：沒人用、或本來就是這個帳號的才成功（同一句 SQL，兩個人同時搶只有一個成功）
+  async claimName(accountId, charId, key, name) {
+    if (this.sql) return (await this.sql`INSERT INTO ro_game_name (name_key, account_id, char_id, name) VALUES (${key}, ${accountId}, ${charId}, ${name})
+      ON CONFLICT (name_key) DO UPDATE SET char_id = EXCLUDED.char_id, name = EXCLUDED.name, at = now() WHERE ro_game_name.account_id = EXCLUDED.account_id RETURNING account_id`).length > 0;
+    const names = (this.mem.names ??= new Map()), cur = names.get(key);
+    if (cur && cur.account_id !== accountId) return false;
+    names.set(key, { account_id: accountId, char_id: charId, name, at: Date.now() });
+    return true;
+  }
+  // 存檔後對帳：這個帳號現有角色的名字都登記起來，不再使用的（改名、刪角色）放掉。剛登記的留 10 分鐘（建角時先登記名字、之後才存檔）
+  async syncNames(accountId, rows) {
+    const keys = rows.map((r) => r.key);
+    if (this.sql) await this.sql`DELETE FROM ro_game_name WHERE account_id = ${accountId} AND NOT (name_key = ANY(${keys})) AND at < now() - interval '10 minutes'`;
+    else for (const [k, r] of (this.mem.names ??= new Map())) if (r.account_id === accountId && !keys.includes(k) && Date.now() - r.at > 600_000) this.mem.names.delete(k);
+    for (const r of rows) await this.claimName(accountId, r.charId, r.key, r.name);
+  }
   // 合作關卡的行程收據（coop.mjs）：憑證 id 是「p人數.這一趟的編號.亂數」。同一趟的憑證領過了，那張收據就不能再換一張
   async gameRunTripUsed(accountId, tid) {
     if (this.sql) return (await this.sql`SELECT 1 FROM ro_game_run WHERE account_id = ${accountId} AND claimed_at IS NOT NULL AND id LIKE ${'p_.' + tid + '.%'} LIMIT 1`).length > 0;

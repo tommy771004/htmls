@@ -36,7 +36,8 @@ const data = await tab.evaluate(() => {
   for (const j of Object.values(jobs)) if (j.base && !jobs[j.base]) jobs[j.base] = { base: null, rank: 1, jobMax: R.jobMax(j.base) };
   const items = {}, sellBase = {};
   for (const [id, it] of Object.entries(ro.items)) {
-    items[id] = { slot: it.slot ?? null, cardSlots: it.cardSlots ?? 0, starter: !!it.starter, rare: !!it.rare, jobs: it.jobs ?? null, refinable: R.refinable(id),
+    // jobsAll＝引擎 En() 實際比對的職業清單（zM 展開過）；gender、wtype 是穿戴限制與雙持判斷用
+    items[id] = { slot: it.slot ?? null, cardSlots: it.cardSlots ?? 0, starter: !!it.starter, rare: !!it.rare, jobs: it.jobs ?? null, jobsAll: it.jobs ? R.equipJobs(it) ?? null : null, gender: it.gender ?? null, wtype: it.wtype ?? null, refinable: R.refinable(id),
       slotsByQuality: [0, 1, 2, 3, 4].map((q) => R.cardSlots(id, q)) };
     // Wr 對 quality 0、無詞綴、無卡、+0 的值就是 VE(def)（KE 的 a）
     sellBase[id] = R.sellValue({ itemId: id, quality: 0, affixes: [], cards: [], refine: 0 });
@@ -89,6 +90,10 @@ const data = await tab.evaluate(() => {
     ores: { ...R.ores }, orePrice: { ...R.orePrice }, maxRefine: R.maxRefine,
     refineRate: range(1, R.maxRefine).map((l) => R.refineRate(l)), refineOre,
     endless: R.endless, affix,
+    // 裝備欄位（引擎 bs）：欄位 id → 要放哪一類裝備；dual＝可以把武器放在盾牌欄的職業與武器類型（引擎 TT）
+    equipSlots: Object.fromEntries(R.equipSlots.map((s) => [s.id, s.gear])), dual: { ...R.dual },
+    // 寵物（引擎 Ca）：from＝由哪一隻進化來（不用蛋）
+    pets: Object.fromEntries(Object.entries(R.pets).map(([id, p]) => [id, { from: p.from ?? null, acc: !!p.acc }])),
   };
 });
 await browser.close(); srv.close();
@@ -102,6 +107,8 @@ data.difficulty = { min: 1, max: 2 }; // sr()：難度滑桿換算的掉寶倍�
 data.maxCount = 3; // Ko.count 上限（同時出怪數）
 data.eliteExp = 5; // 菁英怪經驗 ×5
 data.jobCapPenalty = 0.1;
+// 掉落（引擎 killEnemy）：卡片每隻怪 1e-4、頭目 1e-3，再乘難度倍率；小怪掉的裝備一場最多 floor(4 × 難度倍率) 件（mobLoot／pd），頭目一隻最多一件
+data.drops = { card: 1e-4, cardBoss: 1e-3, mobLoot: 4, egg: 1e-4, eggBoss: 1e-3 };
 // 傳說裝備的技能詞綴（引擎 y0）：0.1～0.2；取樣到的值要落在裡面
 data.affix.skill = [0.1, 0.2];
 if (data.affix.skillSeen && (data.affix.skillSeen[0] < 0.1 || data.affix.skillSeen[1] > 0.2)) throw new Error('技能詞綴超出 0.1～0.2：' + data.affix.skillSeen);

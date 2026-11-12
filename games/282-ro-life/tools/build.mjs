@@ -273,10 +273,16 @@ const roRewritePlugin = {
         // 素材在 Cloudflare（跨網域）時，沒有用 CORS 載入的圖會讓 canvas 變成受污染、toDataURL 丟錯，引擎吞掉後頭像就是空的。
         // 素材主機回 Access-Control-Allow-Origin: *（assets/282/_headers），所以用 anonymous 載入即可；同網域（本機）不受影響
         must('r=new Image;r.onload=()=>{const l=v0(r,o.frame,e);', 'r=new Image;r.crossOrigin="anonymous",r.onload=()=>{const l=v0(r,o.frame,e);');
+        // 建立角色（頁面的函式在 template.html 檔尾）：髮型縮圖一頁 8 個（__roHairGrid）、頭飾試戴疊在預覽上（__roTryOn，只是預覽）
+        must(
+          '$e("cc-hair").textContent=`${C.indexOf(t.hair)+1} / ${C.length}`,k(),y(),',
+          '$e("cc-hair").textContent=`${C.indexOf(t.hair)+1} / ${C.length}`,window.__roHairGrid?.(C,t,M,jp,_S),k(),y(),'
+        );
+        must('It(n,t,vj(n))', 'It(n,t,{...vj(n),...window.__roTryOn})');
         // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
         must(
           'window.__ro={get run(){return z},',
-          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,affixGen:Zl,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
+          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,affixGen:Zl,equipSlots:bs,equipJobs:zM,dual:TT,pets:Ca,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
         );
       }
 

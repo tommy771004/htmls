@@ -308,10 +308,12 @@
             </div>
             <div class="field">Job <div id="cc-jobs"></div></div>
             <div class="field">Peinado
+              <div id="cc-hairgrid"></div>
               <div class="stepper"><button class="ro-btn small" id="cc-hair-prev">◀</button><span id="cc-hair">1</span><button class="ro-btn small" id="cc-hair-next">▶</button></div>
             </div>
             <div class="field">Color de pelo <div id="cc-haircolors" class="swatches"></div></div>
             <div class="field">Color de ropa <div id="cc-clothcolors" class="swatches"></div></div>
+            <div class="field" id="cc-tryon-field">頭飾試戴 <div id="cc-tryon" class="swatches"></div></div>
             <div class="field">Estadísticas <span class="cc-stat-left">Puntos restantes: <b id="cc-stat-left">48</b></span>
               <div id="cc-stats" class="cc-stats"></div>
               <div id="cc-stat-desc" class="cc-stat-desc hidden"></div>
@@ -1505,6 +1507,63 @@
       })();
     </script>
     <script>
+      // 建立角色的髮型縮圖與頭飾試戴（引擎的掛點在 tools/build.mjs「建立角色」段落）。
+      //   __roHairGrid(髮型清單, 目前的外觀, 重畫, 取髮型圖, 載入圖)：引擎每次重畫創角畫面時呼叫，畫出目前這一頁的 8 個髮型
+      //   __roTryOn：試戴中的頭飾 {headTop: 物品編號}，引擎畫預覽時會疊上去；只是預覽，不會帶進角色
+      (() => {
+        const grid = document.getElementById("cc-hairgrid"), tryon = document.getElementById("cc-tryon"), page = document.getElementById("charcreate");
+        if (!grid || !page) return;
+        const PER = 8, SIZE = 52;
+        window.__roHairGrid = (hairs, look, refresh, sheetOf, load) => {
+          const from = Math.floor(Math.max(0, hairs.indexOf(look.hair)) / PER) * PER;
+          grid.textContent = "";
+          for (const h of hairs.slice(from, from + PER)) {
+            const b = document.createElement("button"), cv = document.createElement("canvas");
+            b.className = "ro-btn swatch" + (h === look.hair ? " active" : "");
+            b.title = String(hairs.indexOf(h) + 1);
+            cv.width = cv.height = SIZE;
+            b.appendChild(cv);
+            b.onclick = () => { look.hair = h; refresh(); };
+            grid.appendChild(b);
+            const sheet = sheetOf(look.gender, h);
+            if (!sheet) continue;
+            load(sheet.json, Math.min(look.hairColor, (sheet.palettes ?? 1) - 1)).then((w) => {
+              const f = w.frames[w.action("idle").dirs[0][0][0]];
+              if (!f) return;
+              const g = cv.getContext("2d"), k = Math.min((SIZE - 4) / f.w, (SIZE - 4) / f.h, 2.4);
+              g.imageSmoothingEnabled = false;
+              g.drawImage(w.canvas, f.x, f.y, f.w, f.h, SIZE / 2 - (f.w * k) / 2, SIZE / 2 - (f.h * k) / 2, f.w * k, f.h * k);
+            }).catch(() => {});
+          }
+        };
+        // 頭飾試戴：列出幾件頭上的裝備，點一下戴上、再點一下拿掉
+        const redraw = () => document.querySelector("#charcreate [data-gender].active")?.click();
+        function fill() {
+          const items = window.__ro?.items;
+          if (!tryon || !items || tryon.childElementCount) return;
+          const ids = Object.keys(items).filter((id) => items[id].slot === "head_top" && !items[id].gender).slice(0, 6);
+          for (const id of ids) {
+            const b = document.createElement("button"), img = document.createElement("img");
+            b.className = "ro-btn swatch";
+            b.dataset.item = id;
+            img.alt = "";
+            img.src = window.__RA + "items/" + (items[id].icon ?? id) + ".png";
+            img.onerror = () => b.remove();
+            b.appendChild(img);
+            b.onclick = () => {
+              const on = window.__roTryOn?.headTop === Number(id);
+              window.__roTryOn = on ? null : { headTop: Number(id) };
+              for (const x of tryon.children) x.classList.toggle("active", !on && x === b);
+              redraw();
+            };
+            tryon.appendChild(b);
+          }
+        }
+        new MutationObserver(() => {
+          if (page.classList.contains("hidden")) { window.__roTryOn = null; for (const x of tryon?.children ?? []) x.classList.remove("active"); }
+          else fill();
+        }).observe(page, { attributes: true, attributeFilter: ["class"] });
+      })();
       // 建立角色的能力雷達圖（style.css 檔尾「建立角色」段落）：讀 #cc-stats 裡六個數字畫六角形，引擎每次重畫配點列就跟著更新。
       // 只是顯示用，不影響配點；矮螢幕用 CSS 藏起來。
       (() => {
@@ -1545,11 +1604,16 @@
         hero.height = 105;
         hero.setAttribute("aria-hidden", "true");
         slots.parentNode.insertBefore(hero, slots);
-        // 帳號列的資訊拆開放：「角色 n/15」搬到右邊角色欄位上面，「離開」搬進按鈕列（CSS 把它畫成左下角的圓鈕）。
+        // 帳號列的資訊拆開放：「角色 n/15」搬到右邊角色欄位上面，「離開」與頭像（更換頭像）搬進按鈕列（CSS 把它們畫成左下角的圓鈕）。
         // 只是換位置，節點與 id 不變，引擎照樣用 getElementById 更新它們
-        const kind = document.getElementById("pb-kind"), exit = document.getElementById("pb-exit");
+        const kind = document.getElementById("pb-kind"), row = page.querySelector(".select-window .btn-row");
         if (kind) slots.parentNode.insertBefore(kind, slots);
-        if (exit) page.querySelector(".select-window .btn-row")?.appendChild(exit);
+        for (const id of ["pb-exit", "pb-portrait"]) { const el = document.getElementById(id); if (el && row) row.appendChild(el); }
+        // 點空欄位：引擎先選中它，接著直接進建立角色（下面的「建立」鈕留給鍵盤與手把）
+        slots.addEventListener("click", (e) => {
+          if (!e.target.closest(".slot.empty")) return;
+          setTimeout(() => { const b = document.getElementById("btn-create"); if (b && !b.disabled && !page.classList.contains("hidden")) b.click(); }, 0);
+        });
         const ctx = hero.getContext("2d");
         function draw() {
           if (page.classList.contains("hidden")) return;

@@ -34,6 +34,19 @@
 - **要提醒使用者的**：`worker/wrangler.toml` 的 `[vars]` 已經有 `RO_TRADE_URL`，重新部署 Worker 大廳就會顯示「交易」；Vercel 沒設 `RO_TRADE=1` 的話結算會失敗。
 - 這一輪的實測腳本在暫存資料夾（沒進 repo）：`coop/coop-e2e.mjs`（兩個瀏覽器的合作關卡）、`coop/coop-e2e-oldlobby.mjs`（同一支換成上一版的大廳）、`market/market-e2e-strict.mjs`、`stage/stage-e2e.mjs`、`affix-check.mjs`，路徑 `/private/tmp/claude-501/-Users-xieyuanyou-Documents-htmls/54451823-5807-4370-bd80-6f21cdb0144e/scratchpad/`。
 
+## 第三輪（2026-11-12 深夜）
+
+已 push 到 `bdc1e4a 20261112-9`：怪物頭像在正式站是空的（素材跨網域，改用 CORS 載入）、面板大小跟著內容、建立角色與選擇角色照使用者給的手遊參考圖重排。規則都寫在 282 `CLAUDE.md`。
+
+之後這一批**還沒提交**（清單與每項的結果在 `PLAN-trade-party.md`「第三輪」）：
+
+- 角色名全站唯一（新表 `ro_game_name`，**使用者要自己套 `schema.sql`**，表在才啟用）。
+- 物品與卡片上限照引擎的掉落規則收緊；穿戴限制、寵物、成就的存檔檢查（都是先記錄）。
+- 每個帳號每分鐘 240 個請求的流量上限；282 頁面完整的 CSP（`vercel.json`）。
+- 創角的髮型縮圖格與頭飾試戴；選角的更換頭像鈕、點空欄位直接進創角。
+- 做不到的：單人關卡「掛著不打、時間到再領」（一般關卡沒有可重播的操作紀錄）。
+- 規則資料重新倒過兩次（`affix`、`equipSlots`、`dual`、`pets`、`drops`，每件裝備多 `jobsAll`／`gender`／`wtype`），頁面重新 build。
+
 ## 下一步（使用者說「依序實作」）
 
 1. **合作關卡獎勵改由伺服器裁決**：完成（見上）。剩下的是部署後的確認：Worker 部署 → 自己組隊打一場看紀錄 → 開 `RO_COOP_RECEIPT=1`。下面是當初的調查範圍。
@@ -47,7 +60,7 @@
 
 ## 測試
 
-- `npm run test:ro`：106 項，含 `anticheat.test.mjs`、`lobby-party.test.mjs`（收據與擲骰）、`trade.test.mjs`、`market.test.mjs`。
+- `npm run test:ro`：111 項，含 `anticheat.test.mjs`、`lobby-party.test.mjs`（收據與擲骰）、`trade.test.mjs`、`market.test.mjs`。
 - 下面這些腳本放在上一個 session 的暫存資料夾，**沒有進 repo**，重開機可能就不見了，需要時照 `PLAN-trade-party.md` 的描述重寫：
   - PGlite 真 PostgreSQL 測試（`pg/pg-trade.mjs`、`pg/pg-market.mjs`、`pg/pg-schema2.mjs`）。
   - 兩個瀏覽器實測（`trade/trade-e2e.mjs`、`market/market-e2e.mjs`）。

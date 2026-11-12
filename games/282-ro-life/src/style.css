@@ -2832,6 +2832,31 @@ body:has(#charcreate:not(.hidden)) #sp-top {
   gap: 6px;
   margin-top: 6px;
 }
+/* 髮型縮圖：一頁 8 個（4 × 2），下面的 ◀ ▶ 一次換一個、翻到別頁時整頁跟著換 */
+#charcreate #cc-hairgrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+#charcreate #cc-hairgrid .swatch {
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
+}
+#charcreate #cc-hairgrid .swatch canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+#charcreate #cc-tryon .swatch img {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+#charcreate #cc-tryon-field:has(#cc-tryon:empty) {
+  display: none;
+}
 #charcreate .stepper {
   justify-content: space-between;
   gap: 6px;
@@ -3307,8 +3332,26 @@ body:has(#charcreate:not(.hidden)) #sp-top {
 #charselect #profile-bar {
   width: 260px;
 }
-/* 使用者要求左上不放頭像（更換頭像的入口跟著拿掉；節點留著，引擎照樣會畫它） */
-#charselect #pb-portrait {
+/* 使用者要求左上不放頭像：檔尾腳本把它搬進按鈕列，變成左下角第四顆圓鈕（按下去照樣是更換頭像） */
+#charselect .select-window #pb-portrait {
+  position: absolute;
+  left: 168px;
+  bottom: 16px;
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+#charselect .select-window #pb-portrait canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#charselect .select-window #pb-portrait .pb-edit {
   display: none;
 }
 /* 「角色 n/15」：右邊角色欄位的標題（template.html 檔尾腳本把節點搬到 #slots 前面） */
@@ -3357,6 +3400,7 @@ body:has(#charcreate:not(.hidden)) #sp-top {
   mask: var(--ic-logout) center / contain no-repeat;
 }
 @media (max-height: 560px) {
+  #charselect .select-window #pb-portrait { left: 132px; bottom: 7px; width: 36px; height: 36px; }
   #charselect .select-window #pb-exit { left: 88px; bottom: 7px; width: 36px; height: 36px; }
   #charselect .select-window #pb-exit::before { width: 18px; height: 18px; }
   #charselect .select-window #pb-kind { height: 20px; font-size: var(--fs-xs); }

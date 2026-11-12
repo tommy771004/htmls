@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { checkSave, runExpCap } from './game-rules.mjs';
+import { checkSave, runExpCap, runKillCap, poissonCap } from './game-rules.mjs';
 import { applyOp } from './game-ops.mjs';
 import { takeForListing } from './market.mjs';
 import { nameProblem, nameKey } from './name-rules.mjs';
@@ -155,7 +155,8 @@ test('同一件裝備穿在兩個欄位：先記錄，strict 才卸下', () => {
   const prev = doc([ch()], acc({ inventory: [sword()] }));
   const next = () => doc([ch({ equipped: { weapon: 'u1', shield: 'u1', armor: 'u1' } })], acc({ inventory: [sword()] }));
   let r = checkSave(prev, next(), at());
-  assert.deepEqual([codes(r), r.issues[0].fixed, r.doc], [['equip-dup'], false, null]);
+  // 劍放在盾牌欄、盔甲欄本身也不合（equip-bad），而且是同一件（equip-dup）
+  assert.deepEqual([codes(r), r.issues.every((i) => i.fixed === false), r.doc], [['equip-bad', 'equip-bad', 'equip-dup'], true, null]);
   r = checkSave(prev, next(), at(null, { strict: true }));
   assert.deepEqual(chars(r.doc)[0].equipped, { weapon: 'u1' });
 });
@@ -367,3 +368,94 @@ test('API 合作關卡：行程收據換到帶人數的憑證；冒用別人的�
 });
 // 累積經驗 gain 對應的等級與經驗（從 1 級 0 經驗起算）
 function lvFor(gain) { let lv = 1, left = gain; while (left >= R.expNext[lv - 1]) { left -= R.expNext[lv - 1]; lv++; } return { level: lv, exp: left }; }
+
+// ---- 照引擎掉落規則訂的上限、穿戴限制、寵物與成就、名字全站唯一、流量上限 ----
+test('物品與卡片上限：小怪掉裝一場最多 floor(4 × 難度) 件加頭目各一件；卡片是萬分之一的稀有事件', () => {
+  const k = runKillCap('prontera', 600, { mult: 1, party: 1 });
+  assert.ok(k.kills > 500 && k.bosses === 4);
+  assert.ok(runKillCap('prontera', 600, { mult: 1, party: 3 }).kills > k.kills * 3);
+  assert.deepEqual(runKillCap('endless', 600), { kills: 0, bosses: 0 });
+  // 卜瓦松上限：平均 0.3 張時最多 6 張（超過的機率低於千萬分之一），平均越高上限越高；平均 0 也留 1 張
+  assert.deepEqual([poissonCap(0), poissonCap(0.3), poissonCap(1.2) > poissonCap(0.3), poissonCap(1.2) < 12], [1, 6, true, true]);
+  const item = (i) => sword({ uid: 'n' + i, quality: 1, tier: 1, ilvl: 5, cards: [null], affixes: [{ stat: 'str', value: 1 }] });
+  const many = (n) => doc([ch()], acc({ inventory: Array.from({ length: n }, (_, i) => item(i)) }));
+  // 10 分鐘單人、難度 1：4（小怪）＋4（出場過的頭目）＋3（餘裕）＝11 件
+  let r = checkSave(doc([ch()]), many(11), at(claim('prontera', 600), { coop: true }));
+  assert.deepEqual(r.issues, []);
+  r = checkSave(doc([ch()]), many(12), at(claim('prontera', 600), { coop: true }));
+  assert.deepEqual([codes(r), r.issues[0].cap, r.issues[0].fixed], [['item-count'], 11, false]);
+  r = checkSave(doc([ch()]), many(14), at(claim('prontera', 600), { coop: true, strict: true }));
+  assert.equal(account(r.doc).inventory.length, 11);
+  // 卡片：10 分鐘單人最多幾張就是幾張，多一張整批退回
+  const cap = poissonCap((k.kills * R.drops.card + k.bosses * R.drops.cardBoss) * 1);
+  assert.ok(cap >= 2 && cap <= 7, String(cap));
+  assert.deepEqual(checkSave(doc([ch()]), doc([ch()], acc({ cards: { [PORING]: cap } })), at(claim('prontera', 600), { coop: true })).issues, []);
+  r = checkSave(doc([ch()]), doc([ch()], acc({ cards: { [PORING]: cap + 1 } })), at(claim('prontera', 600), { coop: true }));
+  assert.deepEqual([codes(r), account(r.doc).cards], [['cards'], {}]);
+});
+
+test('穿戴限制：欄位不對、職業不能穿、別人的新手裝備（先記錄，strict 才卸下）', () => {
+  const MAGE = Object.keys(R.items).find((id) => R.items[id].slot === 'weapon' && !R.items[id].starter && R.items[id].jobsAll && !R.items[id].jobsAll.includes('swordsman'));
+  const HAT = Object.keys(R.items).find((id) => R.items[id].slot === 'head_top' && !R.items[id].jobsAll && !R.items[id].gender);
+  const inv = [sword(), { uid: 'm1', itemId: Number(MAGE), cards: [] }, { uid: 'h1', itemId: Number(HAT), cards: [] }, { uid: 's1', itemId: 1101, owner: 'someone-else', cards: [] }];
+  const eq = (equipped) => checkSave(doc([ch()], acc({ inventory: inv })), doc([ch({ equipped })], acc({ inventory: inv })), at());
+  assert.deepEqual(eq({ weapon: 'u1', head_top: 'h1' }).issues, []);
+  assert.deepEqual(eq({ weapon: 'm1' }).issues.map((i) => [i.code, i.why, i.fixed]), [['equip-bad', 'job', false]]);
+  assert.deepEqual(eq({ armor: 'h1' }).issues.map((i) => i.why), ['slot']);
+  assert.deepEqual(eq({ nowhere: 'h1' }).issues.map((i) => i.why), ['slot']);
+  assert.deepEqual(eq({ weapon: 's1' }).issues.map((i) => i.why), ['owner']);
+  const r = checkSave(doc([ch()], acc({ inventory: inv })), doc([ch({ equipped: { weapon: 'm1', head_top: 'h1' } })], acc({ inventory: inv })), at(null, { strict: true }));
+  assert.deepEqual(chars(r.doc)[0].equipped, { head_top: 'h1' });
+});
+
+test('寵物與成就：新寵物要有蛋（關卡憑證）或進化來源；親密度、殺怪數只在關卡結算時增加（先記錄，strict 才改回）', () => {
+  const EVO = Object.keys(R.pets).find((id) => R.pets[id].from), FROM = R.pets[EVO].from;
+  const pets = (o) => ({ 'pets.v1': JSON.stringify({ pets: o }) });
+  const base = doc([ch()]), withPets = (o, extra = {}) => ({ ...doc([ch()]), ...pets(o), ...extra });
+  // 沒有憑證就多一隻；有憑證可以孵蛋、親密度照時間漲；進化不用憑證
+  let r = checkSave(base, withPets({ poring: { intimacy: 250 } }), at());
+  assert.deepEqual(codes(r), ['pet-new']);
+  assert.deepEqual(checkSave(base, withPets({ poring: { intimacy: 250 } }), at(claim('prontera', 300))).issues, []);
+  assert.deepEqual(checkSave(withPets({ [FROM]: { intimacy: 900 } }), withPets({ [FROM]: { intimacy: 900 }, [EVO]: { intimacy: 250 } }), at()).issues, []);
+  assert.deepEqual(codes(checkSave(base, withPets({ not_a_pet: { intimacy: 1 } }), at(claim('prontera', 300)))), ['pet-new']);
+  r = checkSave(withPets({ poring: { intimacy: 250 } }), withPets({ poring: { intimacy: 1000 } }), at(claim('prontera', 300)));
+  assert.deepEqual([codes(r), r.issues[0].cap], [['pet-intimacy'], 90]);
+  r = checkSave(withPets({ poring: { intimacy: 250 } }), withPets({ poring: { intimacy: 1000 }, drops: { intimacy: 1000 } }), at(null, { strict: true }));
+  assert.deepEqual(JSON.parse(r.doc['pets.v1']).pets, { poring: { intimacy: 250 } });
+  // 成就
+  const ach = (o) => ({ 'achievements.v1': JSON.stringify({ totalKills: 0, runs: 0, wins: 0, ...o }) });
+  assert.deepEqual(checkSave({ ...base, ...ach({}) }, { ...base, ...ach({ totalKills: 300, runs: 1 }) }, at(claim('prontera', 600))).issues, []);
+  assert.deepEqual(codes(checkSave({ ...base, ...ach({}) }, { ...base, ...ach({ totalKills: 300, runs: 1 }) }, at())), ['ach-gain']);
+  r = checkSave({ ...base, ...ach({ totalKills: 5 }) }, { ...base, ...ach({ totalKills: 999999, runs: 1 }) }, at(claim('prontera', 600), { strict: true }));
+  assert.deepEqual([JSON.parse(r.doc['achievements.v1']).totalKills, JSON.parse(r.doc['achievements.v1']).runs], [5, 0]);
+});
+
+test('API 角色名全站唯一：別的帳號登記過的名字回 nameTaken；存檔裡硬塞的要求改名；改名、刪角色後名字放出來', async (t) => {
+  const s = await boot({ RO_ONLINE_ENFORCE: '1' });
+  t.after(s.close);
+  const other = await s.store.loginIdentity('google', 'sub-other', '別人');
+  assert.equal(await s.store.claimName(other, 'x1', 'tommy', 'Tommy'), true);
+  // 大小寫、全形、分隔符號不同也算同一個名字
+  for (const n of ['Tommy', 'TOMMY', 'Ｔｏｍｍｙ', 'Tom_my', 'tom my']) assert.deepEqual((await s.call('POST', 'game/name', { char: 'c1', name: n })).body, { error: 'nameTaken' }, n);
+  assert.deepEqual((await s.call('POST', 'game/name', { char: 'c1', name: 'Hikari' })).body, { ok: true });
+  assert.deepEqual((await s.call('POST', 'game/name', { char: 'c1', name: 'hikari' })).body, { ok: true }); // 自己的名字可以再登記
+  // 繞過頁面直接存一個別人的名字：換成冒險者NNNN、要求改名
+  let r = await s.call('PUT', 'game/save', { rev: 0, doc: doc([ch({ level: 1, jobLevel: 1, name: 'Tommy' }), ch({ id: 'c2', level: 1, jobLevel: 1, name: 'Hikari' })]), wid: 'w1' });
+  const cs = chars(r.body.doc);
+  assert.ok(/^冒險者\d{4}$/.test(cs[0].name) && cs[0].rename === true);
+  assert.equal(cs[1].name, 'Hikari');
+  assert.equal((await s.store.nameOwners(['hikari'])).get('hikari'), s.id);
+  // 別人現在拿不到 Hikari；刪掉 c2（登記超過 10 分鐘）之後就拿得到
+  assert.equal(await s.store.claimName(other, 'x2', 'hikari', 'Hikari'), false);
+  for (const v of s.store.mem.names.values()) v.at -= 700_000;
+  r = await s.call('PUT', 'game/save', { rev: r.body.rev, doc: doc([cs[0]]), wid: 'w2' });
+  assert.equal(await s.store.claimName(other, 'x2', 'hikari', 'Hikari'), true);
+});
+
+test('API 流量上限：同一個帳號一分鐘內太多請求回 429', async (t) => {
+  const s = await boot({ RO_RATE_MAX: '20' });
+  t.after(s.close);
+  const codes_ = [];
+  for (let i = 0; i < 24; i++) codes_.push((await s.call('GET', 'me')).status);
+  assert.deepEqual([codes_.slice(0, 20).every((c) => c === 200), codes_.slice(20)], [true, [429, 429, 429, 429]]);
+});

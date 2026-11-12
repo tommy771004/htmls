@@ -10,11 +10,11 @@
     },
     {
       "source": "/web/282-ro-life.html",
-      "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }, { "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }]
+      "headers": [{ "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev; media-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev; font-src 'self' data:; connect-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev https://*.workers.dev wss://*.workers.dev; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }, { "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }]
     },
     {
       "source": "/web/282-ro-life",
-      "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }, { "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }]
+      "headers": [{ "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev; media-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev; font-src 'self' data:; connect-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev https://*.workers.dev wss://*.workers.dev; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }, { "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }]
     }
   ],
   "rewrites": [

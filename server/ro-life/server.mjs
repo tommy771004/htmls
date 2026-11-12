@@ -133,6 +133,19 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
     }
     return null;
   };
+  // 以帳號計的流量上限（固定視窗；Vercel 上每個執行個體各算各的，擋的是單一來源狂打，不是精確的全站額度）。
+  // 正常玩：存檔每 3 秒最多一次、塔每 10 秒一次，遠低於這個數字
+  const RATE_MAX = Number(env.RO_RATE_MAX) > 0 ? Number(env.RO_RATE_MAX) : 240, RATE_MS = 60_000;
+  const hits = new Map();
+  const limited = (id) => {
+    const now = Date.now(), r = hits.get(id);
+    if (!r || now - r[0] >= RATE_MS) {
+      if (hits.size > 5000) for (const [k, v] of hits) if (now - v[0] >= RATE_MS) hits.delete(k);
+      hits.set(id, [now, 1]);
+      return false;
+    }
+    return ++r[1] > RATE_MAX;
+  };
   const game = createGameRoutes({ env, store, send, readBody, lobbySecret: () => lobbyConf()?.secret ?? null });
 
   async function authed(req) {
@@ -221,6 +234,7 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
     if (!who) return send(res, 401, { error: 'session' });
     if (who.banned) return send(res, 403, { error: 'banned', until: who.banned.unbanTime });
     const acc = who.account;
+    if (limited(acc.id)) return send(res, 429, { error: 'rate' }, { 'retry-after': '30' });
     if (isGame) return game.route(req, res, path.slice(5), acc, who.hash, query);
 
     if (path === 'me' && method === 'GET') return send(res, 200, { account: { id: acc.id, name: acc.name, providers: acc.providers } });

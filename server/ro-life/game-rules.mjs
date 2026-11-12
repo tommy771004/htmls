@@ -1,5 +1,5 @@
 import R from './rules-data.mjs';
-import { nameProblem, fallbackName } from './name-rules.mjs';
+import { nameProblem, nameKey, fallbackName } from './name-rules.mjs';
 
 // 282 線上角色的存檔驗證。規則數值來自引擎（games/282-ro-life/tools/dump-rules.mjs 倒成 rules-data.mjs）。
 // checkSave(上一版, 這一版, 情境) 回傳 { issues, doc, meta }：issues 是違規清單，doc 是修正後的存檔（沒有要修正時為 null）。
@@ -12,8 +12,10 @@ export const RULES_SOURCE = R.source;
 const SP = R.spawn;
 const LATE = 600; // 關卡時間到之後還能打多久（魔王戰、收尾）
 const SLACK = 1.25; // 估算以外的餘裕
-const ITEMS_BASE = 10, ITEMS_PER_SEC = 1 / 5; // 一場關卡的新物品上限（目前只記錄）
-const CARDS_BASE = 3, CARDS_PER_SEC = 1 / 60; // 一場關卡的新卡片上限
+// 一場關卡的新物品、新卡片上限照引擎的掉落規則算（R.drops，見 runKillCap／poissonCap）
+const ITEM_SLACK = 3; // 劇情獎勵之類不算在小怪掉落裡的
+const SKIP_ITEMS = 8; // 跳過劇情：劇情獎勵＋職業武器
+const PET_NEW = 2, PET_GRACE = 30; // 一場最多孵幾顆蛋；親密度每 5 秒 +1（引擎 lT）外加的餘裕
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const int = (v) => Math.trunc(num(v));
@@ -94,6 +96,29 @@ export function runExpCap(stageId, secs, { mult = 2, level = 1, skip = false, pa
   for (const b of s.bossAt) if (b.t <= T) total += monExp(b.id) * ep(level, monLv(b.id));
   return total * SLACK;
 }
+// 一場關卡最多能殺幾隻怪（和 runExpCap 同一個出怪模型，只是不乘經驗）、時間內出場過幾隻頭目
+export function runKillCap(stageId, secs, { mult = 2, party = null } = {}) {
+  const s = R.stages[stageId];
+  if (!s || stageId === 'endless' || !s.waves.length) return { kills: 0, bosses: 0 };
+  const m = Math.max(1, Math.min(R.difficulty.max, num(mult) || 1));
+  const count = Math.min(R.maxCount, 1 + 10 * (m - 1)), events = Math.min(SP.maxEvents, 1 + 5 * (m - 1));
+  const partyMult = SP.partyCount[party == null ? SP.partyCount.length - 1 : Math.max(1, Math.min(SP.partyCount.length - 1, int(party)))];
+  const C = count * partyMult, T = Math.max(0, Math.min(num(secs), s.runLength + LATE));
+  const waveAt = (t) => s.waves.find((w) => t >= w.from && t < w.to) ?? s.waves[s.waves.length - 1];
+  let kills = 0;
+  for (let t = 0; t < T; t++) kills += waveAt(t).perSecond * C;
+  const horde = SP.hordeEvery / events;
+  for (let t = horde; t <= T && t < s.runLength; t += horde) kills += SP.hordeRings * Math.min(SP.hordeMax, SP.hordeBase + t / SP.hordeGrowth) * C;
+  kills += Math.floor(T / (SP.eliteEvery / events) + 1) * partyMult;
+  const bosses = s.bossAt.filter((b) => b.t <= T).length;
+  return { kills: (kills + bosses) * SLACK, bosses };
+}
+// 平均 lam 次的稀有事件，實際發生超過幾次的機率才低於 p（卜瓦松分布）：卡片上限用，正常玩家千萬場才會碰到一次
+export function poissonCap(lam, p = 1e-7) {
+  let k = 0, term = Math.exp(-Math.max(0, lam)), cdf = term;
+  while (1 - cdf > p && k < 200) { k++; term *= lam / k; cdf += term; }
+  return Math.max(1, k);
+}
 const runSecs = (claim, now) => (claim?.issued ? Math.max(0, (now - claim.issued) / 1000) : 0);
 
 // ── 物品 ──
@@ -157,7 +182,8 @@ const ORE_IDS = new Set([...Object.keys(R.orePrice ?? {}), ...Object.values(R.or
 // 合作關卡（收據由大廳簽、game.mjs 驗過才放進 claim，格式見 coop.mjs）：
 //   claim.party：行程收據上的人數 → 經驗上限照那個人數的出怪量。沒有收據時，coop（RO_COOP_RECEIPT=1）當單人算，沒開照舊用 3 人隊。
 //   claim.end：結算收據。連線秒數、房主宣布打倒過的怪、這個人擲骰拿到的東西，都拿來核對，但先只記錄（coop-secs／coop-mvp／coop-loot）。
-export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, strict = false, coop = false, nameExtra = [] } = {}) {
+// nameTaken：別的帳號已經登記的角色名（nameKey 的集合，game.mjs 從 ro_game_name 查好傳進來）
+export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, strict = false, coop = false, nameExtra = [], nameTaken = null } = {}) {
   const issues = [];
   const soft = (issue) => { issues.push(strict ? issue : { ...issue, fixed: false }); return strict; };
   const secs = runSecs(claim, now);
@@ -170,6 +196,7 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, st
   // 先記錄（coop-noend）；strict 時這張憑證不給新物品、卡片，也不記打倒與通關
   const noEnd = !!claim?.party && !end;
   const prevChars = new Map(list(parse(prevDoc, 'characters.v1', [])).filter((c) => c?.id).map((c) => [String(c.id), c]));
+  const wornInv = new Map(list(obj(parse(nextDoc, 'account.v1', {})).inventory).filter((i) => i?.uid).map((i) => [String(i.uid), i]));
   const newIds = new Set(), seenChars = new Map();
   let charsFixed = false, used = null, topGain = 0, topCap = 0, credited = false;
 
@@ -201,7 +228,7 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, st
     const fix = (code, extra, apply) => { issues.push({ code, char: id, ...extra }); apply(); charsFixed = true; };
     // 角色名（name-rules.mjs）：新角色或改名時才查，舊名字不追溯。不能用的名字：改名的退回原名，新角色換成「冒險者NNNN」並要求改名（引擎的 rename）
     if (!p || c.name !== p.name) {
-      const why = nameProblem(c.name, { extra: nameExtra });
+      const why = nameProblem(c.name, { extra: nameExtra }) ?? (nameTaken?.has(nameKey(c.name)) ? 'taken' : null);
       if (why) fix('name', { why }, () => {
         if (p && typeof p.name === 'string' && p.name) c.name = p.name;
         else { c.name = fallbackName(id); c.rename = true; }
@@ -295,6 +322,15 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, st
         if (!ok) fix('promotion', { from: p.promotion ?? null, to: c.promotion ?? null, stage: claim?.stage ?? null }, () => { if (p.promotion) c.promotion = p.promotion; else delete c.promotion; });
       }
     }
+    // 穿戴限制（引擎 Ck／En／Tn）：欄位要對、職業與性別要能穿、新手裝備只有原主能穿。先記錄，strict 才卸下
+    for (const [slot, uid] of Object.entries(obj(c.equipped))) {
+      const it = uid ? wornInv.get(String(uid)) : null, def = it ? itemDef(it.itemId) : null;
+      if (!def || !R.equipSlots) continue;
+      const gear = R.equipSlots[slot];
+      const fits = !!gear && (gear === def.slot || (slot === 'shield' && def.slot === 'weapon' && list(R.dual?.[c.job]).includes(def.wtype)));
+      const why = !fits ? 'slot' : def.jobsAll && !def.jobsAll.includes(c.job) ? 'job' : def.gender && def.gender !== c.look?.gender ? 'gender' : it.owner && String(it.owner) !== id ? 'owner' : null;
+      if (why && soft({ code: 'equip-bad', char: id, slot, item: String(it.itemId), why })) { delete c.equipped[slot]; charsFixed = true; }
+    }
     // 同一件裝備不能同時穿在兩個欄位（塔的開局快照照 equipped 算能力）：先記錄，strict 才卸下後面那幾格
     const worn = new Set(), dupSlots = [];
     for (const [slot, uid] of Object.entries(obj(c.equipped))) { if (!uid) continue; if (worn.has(String(uid))) dupSlots.push(slot); else worn.add(String(uid)); }
@@ -328,7 +364,10 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, st
   let fresh = 0;
   // 憑證發出不到 QUICK_SECS 秒就結算：平常照給（只記 claim-quick），strict 時這張憑證不給物品與卡片（不然每張憑證一發就有底數可以領）
   const quick = !!claim && !claim.skip && secs < QUICK_SECS;
-  const itemCap = claim && !(strict && (quick || noEnd)) ? Math.round(ITEMS_BASE + secs * ITEMS_PER_SEC) : 0;
+  // 上限照引擎的掉落規則：小怪掉的裝備一場最多 floor(4 × 難度倍率) 件、出場過的頭目一隻一件；卡片是每隻怪萬分之一（頭目千分之一）的稀有事件
+  const off = strict && (quick || noEnd), dm = Math.max(1, Math.min(R.difficulty.max, num(claim?.mult) || 1));
+  const kc = claim && !claim.skip ? runKillCap(claim.stage, secs, { mult: claim.mult, party: players }) : { kills: 0, bosses: 0 };
+  const itemCap = !claim || off ? 0 : claim.skip ? SKIP_ITEMS : Math.floor(R.drops.mobLoot * dm) + kc.bosses + ITEM_SLACK;
   for (let it of list(na.inventory)) {
     // 物品一定有 uid（引擎 Hh），而且不重複：沒有 uid 的東西下面都查不到、重複的 uid 等於複製物品。
     // 上一版就有的照留（賣出、精煉、上架、交易都不認沒有 uid 的東西，重複的只算一件），只擋新出現的
@@ -386,7 +425,8 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, st
   const ups = [...after].map(([cid, n]) => [cid, n - (before.get(cid) ?? 0)]).filter(([, d]) => d > 0);
   for (const [cid, n] of Object.entries(ncards)) if ((!R.cards[cid] || !(int(n) >= 0)) && !ups.some(([u]) => u === cid)) issues.push({ code: 'card-unknown', card: cid, fixed: false });
   const stageMon = stage ? new Set([...stage.waves.flatMap((w) => list(w.pool)), ...stage.bossAt.map((b) => b.id), ...list(stage.minis), ...list(stage.bosses)].map(String)) : null;
-  const cardCap = claim && !claim.skip && !(strict && (quick || noEnd)) ? Math.round(CARDS_BASE + secs * CARDS_PER_SEC) : 0;
+  // 殺怪數上限在高難度、多人時很寬（出怪模型的理論最大值），所以再跟原本「3 張＋每分鐘 1 張」取小的
+  const cardCap = claim && !claim.skip && !off ? Math.min(poissonCap((kc.kills * R.drops.card + kc.bosses * R.drops.cardBoss) * dm), Math.round(3 + secs / 60)) : 0;
   const back = new Map();
   let cardGain = 0;
   for (const [cid, d] of ups) {
@@ -429,9 +469,35 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null, st
   if (noEnd && !strict && (fresh > 0 || cardGain > 0)) issues.push({ code: 'coop-noend', items: fresh, cards: cardGain, stage: claim.stage, fixed: false });
   if (quick && (fresh > 0 || cardGain > 0 || topGain > 0 || credited)) issues.push({ code: 'claim-quick', secs: Math.round(secs), stage: claim.stage, fixed: false });
 
+  // ── 寵物（pets.v1）與成就（achievements.v1）：都先記錄，strict 才改回 ──
+  // 新寵物只能來自關卡裡的蛋（一場最多 PET_NEW 隻）或進化（規則資料的 from，要有原本那一隻）；親密度每玩 5 秒 +1
+  const petsDoc = obj(parse(nextDoc, 'pets.v1', {})), np = obj(petsDoc.pets), pp = obj(obj(parse(prevDoc, 'pets.v1', {})).pets);
+  let petsFixed = false, hatched = 0;
+  for (const pid of Object.keys(np)) {
+    const def = R.pets?.[pid], was = pp[pid];
+    if (!was) {
+      const ok = !!def && ((def.from && pp[def.from]) || (!!claim && !claim.skip && !off && ++hatched <= PET_NEW));
+      if (!ok && soft({ code: 'pet-new', pet: pid })) { delete np[pid]; petsFixed = true; }
+      continue;
+    }
+    const up = int(obj(np[pid]).intimacy) - int(obj(was).intimacy), room = claim && !claim.skip ? Math.floor(secs / 5) + PET_GRACE : 0;
+    if (up > room && soft({ code: 'pet-intimacy', pet: pid, gain: up, cap: room })) { np[pid] = { ...obj(np[pid]), intimacy: int(obj(was).intimacy) + room }; petsFixed = true; }
+  }
+  // 成就的累計（殺怪數、場數、勝場）只會在關卡結算時增加，殺怪數不超過這一場殺得到的量
+  const achDoc = obj(parse(nextDoc, 'achievements.v1', {})), pach = obj(parse(prevDoc, 'achievements.v1', {}));
+  let achFixed = false;
+  const grew = ['totalKills', 'runs', 'wins'].filter((k) => num(achDoc[k]) > num(pach[k]));
+  const killUp = num(achDoc.totalKills) - num(pach.totalKills);
+  if (grew.length && (!claim || killUp > kc.kills + 50 || num(achDoc.runs) - num(pach.runs) > 1) && soft({ code: 'ach-gain', keys: grew, kills: killUp, cap: Math.round(kc.kills) })) {
+    for (const k of grew) achDoc[k] = num(pach[k]);
+    achFixed = true;
+  }
+
   const meta = { cap: Math.round(topCap), secs: Math.round(secs), gain: Math.round(topGain), ...(claim ? { stage: claim.stage } : {}), ...(claim?.party ? { party: claim.party } : {}), ...(end ? { end: { secs: Math.round(num(end.secs)), end: end.end ?? null, full: !!end.full, host: !!end.host, won: list(end.won).length, killed: list(end.killed).length } } : {}) };
-  if (!charsFixed && !accFixed) return { issues, doc: null, meta };
+  if (!charsFixed && !accFixed && !petsFixed && !achFixed) return { issues, doc: null, meta };
   const doc = { ...nextDoc };
+  if (petsFixed) doc['pets.v1'] = JSON.stringify({ ...petsDoc, pets: np });
+  if (achFixed) doc['achievements.v1'] = JSON.stringify(achDoc);
   if (charsFixed) doc['characters.v1'] = JSON.stringify(nextChars);
   if (accFixed) { na.inventory = keep; na.cards = ncards; na.materials = nm; doc['account.v1'] = JSON.stringify(na); }
   return { issues, doc, meta };

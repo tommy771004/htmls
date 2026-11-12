@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { checkSave } from './game-rules.mjs';
-import { nameProblem, nameBlockList } from './name-rules.mjs';
+import { nameProblem, nameKey, nameBlockList } from './name-rules.mjs';
 import R from './rules-data.mjs';
 import { openReceipt, TRIP_MAX_AGE } from './coop.mjs';
 import { applyOp } from './game-ops.mjs';
@@ -179,6 +179,17 @@ export function createGameRoutes({ env, store, send, readBody, lobbySecret = () 
     mprobe = { at: Date.now(), ok };
     return ok;
   }
+  // 角色名全站唯一：有 ro_game_name 表才啟用（記憶體資料一律啟用）
+  let nprobe = { at: 0, ok: false };
+  async function namesOn() {
+    if (!store.sql) return true;
+    if (Date.now() - nprobe.at < 60_000) return nprobe.ok;
+    let ok = false;
+    try { ok = await store.nameTableReady(); } catch {}
+    nprobe = { at: Date.now(), ok };
+    return ok;
+  }
+  const namedChars = (doc) => list(parse(doc, 'characters.v1', [])).filter((c) => c && c.id && typeof c.name === 'string' && c.name).map((c) => ({ charId: String(c.id), name: c.name.slice(0, 24), key: nameKey(c.name) })).filter((r) => r.key);
   const marketOn = async () => (store.sql ? env.RO_MARKET === '1' : env.RO_MARKET !== '0') && (await mailOn());
   async function mailList(id) {
     if (!(await mailOn())) return { mail: [], pending: 0 };
@@ -283,8 +294,19 @@ export function createGameRoutes({ env, store, send, readBody, lobbySecret = () 
       }
       if (body.wipe) flagsExtra.push('wipe');
       const enforce = env.RO_ONLINE_ENFORCE === '1';
+      // 新角色或改過的名字：查有沒有被別的帳號登記（只有名字有變動的存檔才查）
+      let nameTaken = null, namesChanged = false;
+      if (await namesOn()) {
+        const had = new Map(namedChars(cur.doc).map((r) => [r.charId, r.key])), now_ = namedChars(doc);
+        const fresh = now_.filter((r) => had.get(r.charId) !== r.key).map((r) => r.key);
+        namesChanged = fresh.length > 0 || now_.length !== had.size;
+        if (fresh.length) {
+          const owners = await store.nameOwners([...new Set(fresh)]).catch(() => new Map());
+          nameTaken = new Set([...owners].filter(([, a]) => String(a) !== String(id)).map(([k]) => k));
+        }
+      }
       let check = { issues: [], doc: null };
-      try { check = checkSave(cur.doc, structuredClone(doc), { now: Date.now(), claim: claim?.status === 'ok' ? claim.run : null, strict: env.RO_ONLINE_STRICT === '1', coop: env.RO_COOP_RECEIPT === '1', nameExtra }); }
+      try { check = checkSave(cur.doc, structuredClone(doc), { now: Date.now(), claim: claim?.status === 'ok' ? claim.run : null, strict: env.RO_ONLINE_STRICT === '1', coop: env.RO_COOP_RECEIPT === '1', nameExtra, nameTaken }); }
       catch (e) {
         console.warn('[ro-life] check', e.message);
         // 驗證本身出錯：把關模式下不能照存（不然弄壞驗證就等於繞過驗證），這一版不收、憑證也不會用掉
@@ -302,6 +324,7 @@ export function createGameRoutes({ env, store, send, readBody, lobbySecret = () 
         return send(res, 409, { error: 'conflict', rev: again.rev, doc: again.doc });
       }
       const next = put.rev;
+      if (namesChanged) await store.syncNames(id, namedChars(stored)).catch((e) => console.warn('[ro-life] names', e.message));
       // 同時有兩個請求搶同一張憑證：這筆沒搶到就當作沒有憑證
       if (claim?.status === 'ok' && !put.claimed) { flagsExtra.push('claim-race'); claim = { status: 'reused' }; }
       const sum = summarizeSave(cur.doc, doc, { claim: claim?.status === 'ok' ? claim.run : null });
@@ -348,7 +371,10 @@ export function createGameRoutes({ env, store, send, readBody, lobbySecret = () 
     if (path === 'name' && method === 'POST') {
       const body = await readBody(req);
       // 引擎只認得 offensive（這個名字不能用）與 nameTaken；格式不對、冒充官方、不雅都回 offensive
-      if (nameProblem(shortStr(body.name, 80), { extra: nameExtra })) return send(res, 400, { error: 'offensive' });
+      const name = shortStr(body.name, 80)?.trim() ?? '';
+      if (nameProblem(name, { extra: nameExtra })) return send(res, 400, { error: 'offensive' });
+      // 全站唯一：登記成功才算（別的帳號已經用了回 nameTaken，引擎顯示「這個名字已經有人用了」）
+      if ((await namesOn()) && !(await store.claimName(id, shortStr(body.char, 40) ?? '', nameKey(name), name))) return send(res, 400, { error: 'nameTaken' });
       return send(res, 200, { ok: true });
     }
     if ((path === 'visit' || path === 'crash') && method === 'POST') {

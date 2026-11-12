@@ -237,3 +237,14 @@ CREATE TABLE IF NOT EXISTS ro_market (
 CREATE INDEX IF NOT EXISTS ro_market_open ON ro_market (kind, price, id) WHERE status = 'open';
 CREATE INDEX IF NOT EXISTS ro_market_item ON ro_market (item_id, price) WHERE status = 'open';
 CREATE INDEX IF NOT EXISTS ro_market_seller ON ro_market (seller_id, status, id DESC);
+
+-- 角色名全站唯一（線上角色）。name_key 是正規化後的名字（NFKC、小寫、去掉空白 _ -，見 server/ro-life/name-rules.mjs 的 nameKey）。
+-- 有這張表就啟用：POST game/name 會登記名字（被別的帳號用了回 nameTaken），存檔時硬塞別人名字的角色會被要求改名。
+CREATE TABLE IF NOT EXISTS ro_game_name (
+  name_key   text PRIMARY KEY,
+  account_id bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  char_id    text NOT NULL,
+  name       text NOT NULL,
+  at         timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ro_game_name_account ON ro_game_name (account_id);
