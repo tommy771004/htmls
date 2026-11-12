@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { checkSave } from './game-rules.mjs';
 import { applyOp } from './game-ops.mjs';
+import { createEndlessRoutes } from './endless.mjs';
 
 // 282 線上角色（/api/ro/game/…）：引擎原本的線上協定，由我們的伺服器保存存檔。
 // 第一步「只記錄不擋」：照單全收，但每次存檔都和上一版比對，把等級、經驗、物品的變化與疑點寫進 ro_game_log，
@@ -124,11 +125,18 @@ export function createGameRoutes({ env, store, send, readBody }) {
     return ok;
   }
 
-  async function route(req, res, path, acc, sessionHash) {
+  const endless = createEndlessRoutes({ env, store, send, readBody });
+
+  async function route(req, res, path, acc, sessionHash, query = null) {
     const method = req.method;
     // 線上模式關閉（或資料表還沒套用）時回 401，引擎會退回單機模式
     if (!(await enabled())) return send(res, 401, { error: 'offline' });
     const id = acc.id;
+    if (path === 'endless' || path.startsWith('endless/') || path === 'ladder') {
+      const r = await endless.route(req, res, path, acc, query);
+      if (r !== null) return r;
+      return send(res, 404, { error: 'not_found' });
+    }
 
     if (path === 'save' && method === 'GET') {
       const s = await store.getGameSave(id);
@@ -201,6 +209,22 @@ export function createGameRoutes({ env, store, send, readBody }) {
     }
     if (path === 'op' && method === 'POST') {
       const body = await readBody(req);
+      if (body?.op === 'towerReset') {
+        const r = await endless.towerReset(acc, body, {
+          putSave: async (edit) => {
+            for (let attempt = 0; attempt < 3; attempt++) {
+              const cur = await store.getGameSave(id);
+              const doc = edit(cur.doc);
+              const put = await store.putGameSave(id, cur.rev, doc, 'op-' + randomBytes(6).toString('base64url'));
+              if (put) return { rev: put.rev, doc };
+            }
+            return null;
+          },
+        });
+        if (r.error) return send(res, r.error === 'conflict' ? 409 : 400, { error: r.error });
+        await store.addGameLog(id, 'op', { rev: r.rev, flags: [], detail: { op: 'towerReset', char: shortStr(body.char, 40) } }).catch((e) => console.warn('[ro-life] game log', e.message));
+        return send(res, 200, r);
+      }
       // 存檔被別的請求搶先改了就用新的一版重算一次
       for (let attempt = 0; attempt < 2; attempt++) {
         const cur = await store.getGameSave(id);
@@ -221,5 +245,5 @@ export function createGameRoutes({ env, store, send, readBody }) {
     }
     return send(res, 404, { error: 'not_found' });
   }
-  return { route, enabled };
+  return { route, enabled, endlessEnabled: endless.enabled };
 }

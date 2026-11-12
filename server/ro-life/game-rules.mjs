@@ -44,6 +44,8 @@ const statPts = (lv) => R.statPts[Math.max(0, Math.min(R.statPts.length - 1, lv 
 // ── 天賦（引擎 QE／JE）：每個職業一棵樹各自計點。角色職業（job，轉職不會改）的樹＝職業等級，
 // 同一職業線上前面的職業＝該階的滿點（r7），其他職業的樹 0 點；每項不能超過 maxRank ──
 const lineage = (job) => { const out = []; for (let j = job, n = 0; j && n < 5; j = R.jobs[j]?.base, n++) out.unshift(j); return out; };
+const PROMOTION_STAGE = 'prt_castle'; // 轉職的劇情關（引擎 choosePromotion）
+
 export function talentProblem(c) {
   const t = obj(c.talents), job = String(c.job ?? ''), jl = Math.max(1, int(c.jobLevel) || 1), line = lineage(job);
   const spent = {};
@@ -52,6 +54,11 @@ export function talentProblem(c) {
     if (!def) return { id, why: 'unknown' };
     if (!Number.isInteger(rank) || rank < 0 || rank > def.maxRank) return { id, why: 'rank' };
     spent[def.job] = (spent[def.job] ?? 0) + rank;
+  }
+  // 二轉以上的職業樹只能點一個分支（引擎 r5／qp：c.spec，第一次點的分支就是專精）
+  if ((R.jobs[job]?.rank ?? 1) >= 2) {
+    const branches = new Set(Object.keys(t).filter((id) => R.talents[id].job === job && t[id] > 0).map((id) => R.talents[id].branch));
+    if (branches.size > 1 || (c.spec !== undefined && branches.size === 1 && !branches.has(c.spec))) return { tree: job, why: 'spec' };
   }
   for (const [tree, n] of Object.entries(spent)) {
     const pts = tree === job ? jl : line.includes(tree) ? SP.talentRankPts[R.jobs[tree]?.rank ?? 1] ?? 0 : 0;
@@ -103,7 +110,7 @@ function badNewItem(it, { maxIlvl, maxTier }) {
   if (!def) return 'unknown-item';
   const q = it.quality ?? 0;
   if (!Number.isInteger(q) || q < 0 || q > R.maxQuality) return 'quality';
-  if (list(it.affixes).length > R.maxQuality) return 'affixes';
+  if (list(it.affixes).length > (R.affixMax?.[q] ?? R.maxQuality)) return 'affixes';
   if (it.ilvl != null && !(num(it.ilvl) >= 0 && num(it.ilvl) <= maxIlvl)) return 'ilvl';
   if (it.tier != null && !(num(it.tier) >= 0 && num(it.tier) <= maxTier)) return 'tier';
   if (int(it.refine) !== 0) return 'refine';
@@ -134,6 +141,8 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null } =
       if (int(c.level) > 1 || int(c.jobLevel) > 1 || num(c.exp) > 0 || num(c.jobExp) > 0)
         fix('new-high', { lv: int(c.level), jl: int(c.jobLevel) }, () => { c.level = 1; c.exp = 0; c.jobLevel = 1; c.jobExp = 0; });
       if (c.promotion) fix('new-promoted', { job: c.promotion }, () => { delete c.promotion; });
+      if (list(c.mvpsDefeated).length) fix('mvps', { ids: list(c.mvpsDefeated) }, () => { c.mvpsDefeated = []; });
+      if (list(c.stagesCleared).length) fix('stages', { ids: list(c.stagesCleared) }, () => { c.stagesCleared = []; });
     } else {
       if (c.dev && !p.dev) fix('dev', {}, () => { delete c.dev; });
       const was = toCum(BASE_CUM, int(p.level) || 1, num(p.exp)), now_ = toCum(BASE_CUM, int(c.level) || 1, num(c.exp));
@@ -160,6 +169,20 @@ export function checkSave(prevDoc, nextDoc, { now = Date.now(), claim = null } =
         });
       }
       if (int(c.level) < int(p.level) || int(c.jobLevel) < int(p.jobLevel)) issues.push({ code: 'level-down', char: id, fixed: false });
+      // 打倒的 MVP、通過的關卡、轉職（無盡之塔開幾層、能不能進塔都看這些）：只能跟著該關的憑證來（引擎 Dh／Jk 結算時才寫）
+      const forMe = !!claim && (!claim.char || claim.char === id) && (used === null || used === id);
+      const bosses = new Set(forMe ? (R.stages[claim.stage]?.bossAt ?? []).map((b) => b.id) : []);
+      const had = new Set(list(p.mvpsDefeated).map(String));
+      const badMvp = list(c.mvpsDefeated).filter((x) => !had.has(String(x)) && !bosses.has(String(x)));
+      if (badMvp.length) fix('mvps', { ids: badMvp, stage: claim?.stage ?? null }, () => { c.mvpsDefeated = list(c.mvpsDefeated).filter((x) => !badMvp.includes(x)); });
+      const cleared = new Set(list(p.stagesCleared).map(String));
+      const badStage = list(c.stagesCleared).filter((x) => !cleared.has(String(x)) && !(forMe && String(x) === claim.stage));
+      if (badStage.length) fix('stages', { ids: badStage, stage: claim?.stage ?? null }, () => { c.stagesCleared = list(c.stagesCleared).filter((x) => !badStage.includes(x)); });
+      // 轉職只發生在普隆德拉城的劇情裡（引擎 choosePromotion），之後不能再換
+      if ((c.promotion ?? null) !== (p.promotion ?? null)) {
+        const ok = !p.promotion && forMe && claim.stage === PROMOTION_STAGE && R.jobs[c.promotion]?.base === c.job;
+        if (!ok) fix('promotion', { from: p.promotion ?? null, to: c.promotion ?? null, stage: claim?.stage ?? null }, () => { if (p.promotion) c.promotion = p.promotion; else delete c.promotion; });
+      }
     }
     // 能力點、天賦（有變動才查，舊資料不追溯；不合理就重置，等同遊戲內的重置）
     const lv = Math.max(1, Math.min(R.baseMax, int(c.level) || 1));

@@ -147,7 +147,7 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
 
   async function route(req, res, path, query) {
     const method = req.method;
-    if (path === 'config' && method === 'GET') return send(res, 200, { providers: providers(), lobby: lobbyConf()?.url ?? null, online: await game.enabled() });
+    if (path === 'config' && method === 'GET') return send(res, 200, { providers: providers(), lobby: lobbyConf()?.url ?? null, online: await game.enabled(), endless: (await game.enabled()) && (await game.endlessEnabled()) });
 
     let m = path.match(/^auth\/(google|line)(\/callback)?$/);
     if (m && method === 'GET') {
@@ -211,7 +211,7 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
     if (!who) return send(res, 401, { error: 'session' });
     if (who.banned) return send(res, 403, { error: 'banned', until: who.banned.unbanTime });
     const acc = who.account;
-    if (isGame) return game.route(req, res, path.slice(5), acc, who.hash);
+    if (isGame) return game.route(req, res, path.slice(5), acc, who.hash, query);
 
     if (path === 'me' && method === 'GET') return send(res, 200, { account: { id: acc.id, name: acc.name, providers: acc.providers } });
     if (path === 'lobby-ticket' && method === 'GET') {

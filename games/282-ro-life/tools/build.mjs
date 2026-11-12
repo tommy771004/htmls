@@ -1,6 +1,7 @@
 // 打包：src/engine/main-DRFCcdKO.js（含 soul_linker 與 PixiJS 8 渲染器模組）＋ src/style.css → 內嵌進 src/template.html，輸出 ../../web/282-ro-life.html。
 // 素材（sprites / maps / items / audio / splash）執行時從 window.__RA 讀取（正式站＝Cloudflare，其他＝../assets/282/）；--dev 不額外壓縮。
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -174,9 +175,22 @@ const roRewritePlugin = {
         must('function h1(){return new URL("api/",document.baseURI).href}', 'function h1(){return new URL("../api/ro/game/",document.baseURI).href}');
         // 買賣、精煉、信箱走伺服器（Hl() 照原作：線上模式為真）：POST game/op 的 buy／sell／refine 由伺服器算、精煉亂數在伺服器，
         // 回傳 {rev, doc} 由引擎 ei() 套用；信箱還沒有內容，GET game/mail 回空的
-        // 無盡之塔的伺服器重跑還沒做：線上角色也先在本機跑（天賦頁、開局都不連 ?endless=1）
-        must('const f_=()=>!!ir()&&!0', 'const f_=()=>!1');
-        must('if(l&&!i){const k=ir();if(k)', 'if(l&&!i){const k=void 0;if(k)');
+        // 無盡之塔（server/ro-life/endless.mjs）：/api/ro/config 回 endless（RO_ENDLESS=1 且表格在）才對線上角色開放，
+        // 否則和以前一樣關著。Vercel 沒有 WebSocket：Pn.socket 換成 __RoHttpSocket（下面），每次 send 變成 POST game/endless/io，
+        // 回應裡的訊息照原本的 onmessage 送回引擎；任何失敗都當成斷線（onclose），讓引擎自己 resume 重新對齊。
+        // 同一輪同步送出的訊息（例如關頁時的 in＋suspend）用 queueMicrotask 併成一個 keepalive 的 POST。
+        must('const f_=()=>!!ir()&&!0', 'const f_=()=>!!ir()&&window.__roEndless===!0');
+        must('if(l&&!i){const k=ir();if(k)', 'if(l&&!i){const k=window.__roEndless===!0?ir():void 0;if(k)');
+        must(
+          'static socket(e){const t=new URL(e);return t.searchParams.set("endless","1"),new WebSocket(t.href)}',
+          'static socket(e){return new __RoHttpSocket(new URL("endless/io",h1()).href)}'
+        );
+        must('class Pn{', `class __RoHttpSocket{constructor(u){this.url=u,this.readyState=0,this.q=[],this.busy=!1,this.token=null,this.run=null,setTimeout(()=>{this.readyState===0&&(this.readyState=1,this.onopen?.())},0)}send(s){if(this.readyState!==1)return;const m=JSON.parse(s);if(m.t==="ping")return;m.token&&(this.token=m.token),m.run&&(this.run=m.run),delete m.token,this.q.push(m),this.q.length===1&&queueMicrotask(()=>this.pump())}async pump(){if(this.busy)return;this.busy=!0;try{for(;this.q.length&&this.readyState===1;){const b=this.q.splice(0),r=await fetch(this.url,{method:"POST",headers:{"content-type":"application/json","x-session":this.token??""},body:JSON.stringify({run:this.run,msgs:b}),keepalive:b.some(m=>m.t==="suspend"||m.t==="end")});if(!r.ok)throw Error(String(r.status));const j=await r.json();for(const m of j.msgs??[]){if(this.readyState!==1)break;m.t==="started"&&(this.run=m.run),this.onmessage?.({data:JSON.stringify(m)})}}}catch{this.fail()}this.busy=!1}fail(){this.readyState<2&&(this.readyState=3,this.onerror?.(),this.onclose?.())}close(){this.readyState<2&&(this.readyState=3,setTimeout(()=>this.onclose?.(),0))}}class Pn{`);
+        // 每次 build 的編號（打包結果的雜湊，見下方 BUILD_MARK）：無盡之塔開局時送給伺服器，驗證程式照它找回同一版頁面重跑
+        must('i_={commit:"7967a1a"}', 'i_={commit:"__RO_BUILD__"}');
+        must('h_={commit:"7967a1a"};const u_=1e4', 'h_={commit:"__RO_BUILD__"};const u_=1e4');
+        // 驗證程式（tools/verify-endless.mjs）用：照伺服器存的開局快照、種子、操作重跑一場，回傳引擎的比對結果與最後的樓層、分數
+        must('let Rb=null;', 'let Rb=null;window.__roEndlessSkillsOk=A=>{const E=Ph(A),C=lw(lr(A).id,E.learned).filter(({id:I})=>{const N=ce[I];return N.needsShield&&!E.shield?!1:!N.weapons||N.weapons.includes(E.weapon?.wtype??"")}),F=[...new Set(E.starts.map(I=>I.skill))].filter(I=>ce[I]?.create),S=ga(A).skills;return S.every(I=>C.some(N=>N.id===I)||F.includes(I))&&S.filter(I=>!F.includes(I)).length<=Math.max(0,ow(lr(A).rank)-F.length)};window.__roReplayEndless=async r=>{Rb=null,await Zq(r.char,void 0,{...Ta},"endless",null,1,r);const e=z?.endless;return{rb:Rb,claim:e?Gh(e):null,failed:e?.failed??null,state:z?.state??null,ticks:z?.ticks??0}};');
         // 關卡中的「在線狀態」連線（原作的 /web/ws）不用；大廳已經有人數與名單
         must('!a.dev&&a.id!=="dev"&&ir()&&(cl=new e3(', '!1&&(cl=new e3(');
         // 資料庫的登入權杖不能送到 Cloudflare 的大廳：大廳只認入場票 rt
@@ -188,7 +202,7 @@ const roRewritePlugin = {
         // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
         must(
           'window.__ro={get run(){return z},',
-          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze},get run(){return z},'
+          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
         );
       }
 
@@ -210,7 +224,11 @@ const result = await build({
   plugins: [roRewritePlugin],
 });
 
-const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
+const bundled = result.outputFiles[0].text;
+// BUILD_MARK：打包結果（不含編號本身）的 sha256 前 12 碼。模擬只讀這段程式（地圖碰撞等素材另計，改素材時要重新 build）
+const buildId = createHash('sha256').update(bundled).digest('hex').slice(0, 12);
+if (!bundled.includes('__RO_BUILD__')) throw new Error('build.mjs: 找不到 __RO_BUILD__');
+const js = bundled.replaceAll('__RO_BUILD__', buildId).replace(/<\/script/gi, '<\\/script');
 if (js.includes('import.meta')) {
   throw new Error('打包結果仍含 import.meta，請檢查 build.mjs 轉換規則');
 }

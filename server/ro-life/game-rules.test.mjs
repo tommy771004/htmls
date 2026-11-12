@@ -105,11 +105,22 @@ test('能力點與天賦：超過就重置；沒變動的舊資料不追溯', ()
   assert.deepEqual(chars(t.doc)[0].talents, {});
   // 轉職後職業不變（job 還是一轉），天賦照一轉的點數算
   assert.equal(talentProblem(ch({ promotion: 'knight', jobLevel: 50, talents: pick(50) })), null);
+  // 二轉職業樹只能點專精的那個分支
+  const kn = (b) => Object.keys(R.talents).find((id) => R.talents[id].job === 'knight' && R.talents[id].branch === b);
+  assert.equal(talentProblem(ch({ job: 'knight', jobLevel: 10, talents: { [kn(0)]: 1 } })), null);
+  assert.equal(talentProblem(ch({ job: 'knight', jobLevel: 10, spec: 0, talents: { [kn(0)]: 1 } })), null);
+  assert.equal(talentProblem(ch({ job: 'knight', jobLevel: 10, talents: { [kn(0)]: 1, [kn(1)]: 1 } })).why, 'spec');
+  assert.equal(talentProblem(ch({ job: 'knight', jobLevel: 10, spec: 2, talents: { [kn(0)]: 1 } })).why, 'spec');
 });
 
 test('新物品：只能來自關卡結算，品質、等級、階級要合理；同一件不能換內容', () => {
   const ok = { uid: 'a', itemId: 1104, quality: 2, ilvl: 8, tier: 1, affixes: [{}], cards: [null, null] };
   assert.equal(checkSave(doc([ch()]), doc([ch()], acc({ inventory: [ok] })), at(claim())).doc, null);
+  // 詞綴數照品質：普通 0、精良 1、稀有 2、史詩 4、傳說 4＋1 條特殊詞綴
+  const affixed = (quality, n) => checkSave(doc([ch()]), doc([ch()], acc({ inventory: [{ ...ok, quality, affixes: Array(n).fill({}) }] })), at(claim()));
+  assert.deepEqual(codes(affixed(4, 5)).filter((c) => c === 'item-affixes'), []);
+  assert.deepEqual(codes(affixed(1, 2)).filter((c) => c === 'item-affixes'), ['item-affixes']);
+  assert.deepEqual(codes(affixed(4, 6)).filter((c) => c === 'item-affixes'), ['item-affixes']);
   const none = checkSave(doc([ch()]), doc([ch({ equipped: { weapon: 'a' } })], acc({ inventory: [ok] })), at());
   assert.deepEqual(codes(none), ['item-no-claim']);
   assert.deepEqual([account(none.doc).inventory, chars(none.doc)[0].equipped], [[], {}]);
@@ -227,4 +238,28 @@ test('API：影子模式照存並記 would-fix；RO_ONLINE_ENFORCE=1 存修正�
     const run = (await call('POST', 'game/run', { stage: 'prontera', mult: 50 })).body.run;
     assert.equal(store.mem.gameRuns.get(run).mult, 2);
   }
+});
+
+test('打倒的 MVP、通過的關卡、轉職：只能跟著該關憑證來（無盡之塔開幾層看這些）', () => {
+  // 普隆德拉的憑證：可以記 mastering、通過 prontera；不能順便記別關的 MVP
+  let r = checkSave(doc([ch()]), doc([ch({ mvpsDefeated: ['mastering', 'drake'], stagesCleared: ['prontera', 'sewer'] })]), at(claim()));
+  assert.deepEqual(codes(r), ['mvps', 'stages']);
+  assert.deepEqual([chars(r.doc)[0].mvpsDefeated, chars(r.doc)[0].stagesCleared], [['mastering'], ['prontera']]);
+  // 沒憑證：全部拿掉；舊的照留
+  r = checkSave(doc([ch({ mvpsDefeated: ['mastering'] })]), doc([ch({ mvpsDefeated: ['mastering', 'golden_thief_bug'] })]), at());
+  assert.deepEqual([codes(r), chars(r.doc)[0].mvpsDefeated], [['mvps'], ['mastering']]);
+  // 新角色不能一開始就有
+  r = checkSave(doc([]), doc([ch({ id: 'n', level: 1, jobLevel: 1, mvpsDefeated: ['mastering'], stagesCleared: ['prontera'] })]), at());
+  assert.deepEqual(codes(r), ['mvps', 'stages']);
+  // 轉職：只在普隆德拉城的劇情關、要是同一條職業線，之後不能換
+  assert.equal(checkSave(doc([ch()]), doc([ch({ promotion: 'knight' })]), at(claim('prt_castle', 300))).doc, null);
+  r = checkSave(doc([ch()]), doc([ch({ promotion: 'knight' })]), at(claim()));
+  assert.deepEqual([codes(r), chars(r.doc)[0].promotion], [['promotion'], undefined]);
+  r = checkSave(doc([ch()]), doc([ch({ promotion: 'wizard' })]), at(claim('prt_castle', 300)));
+  assert.deepEqual(codes(r), ['promotion']);
+  r = checkSave(doc([ch({ promotion: 'knight' })]), doc([ch({ promotion: 'crusader' })]), at(claim('prt_castle', 300)));
+  assert.deepEqual([codes(r), chars(r.doc)[0].promotion], [['promotion'], 'knight']);
+  // 憑證綁別的角色就不算
+  r = checkSave(doc([ch()]), doc([ch({ mvpsDefeated: ['mastering'] })]), at(claim('prontera', 600, { char: 'other' })));
+  assert.deepEqual(codes(r), ['mvps']);
 });

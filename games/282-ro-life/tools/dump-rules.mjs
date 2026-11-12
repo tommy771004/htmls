@@ -76,6 +76,7 @@ const data = await tab.evaluate(() => {
     jobs, talents, items, sellBase, sellSamples, cards, cardValue, monsters, stages, stageList,
     ores: { ...R.ores }, orePrice: { ...R.orePrice }, maxRefine: R.maxRefine,
     refineRate: range(1, R.maxRefine).map((l) => R.refineRate(l)), refineOre,
+    endless: R.endless,
   };
 });
 await browser.close(); srv.close();
@@ -84,6 +85,7 @@ if (errs.length) throw new Error('頁面錯誤：' + errs.join(' | '));
 // 引擎內部常數（不是函式，build 沒掛出來）：照 main-DRFCcdKO.js 抄，改引擎時一起改
 data.qualityMult = [1, 2, 4, 8, 16]; // UE：賣價依品質倍數
 data.maxQuality = 4;
+data.affixMax = [0, 1, 2, 4, 5]; // Dy：每個品質的詞綴數，傳說（4）另加一條特殊詞綴（pO）
 data.difficulty = { min: 1, max: 2 }; // sr()：難度滑桿換算的掉寶倍率
 data.maxCount = 3; // Ko.count 上限（同時出怪數）
 data.eliteExp = 5; // 菁英怪經驗 ×5

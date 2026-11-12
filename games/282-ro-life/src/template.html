@@ -1084,6 +1084,8 @@
           try { conf = await api("GET", "config"); } catch {}
           cfg = conf?.providers ?? null;
           onlineOk = !!conf?.online;
+          // 無盡之塔（server/ro-life/endless.mjs）：伺服器開放才讓線上角色進塔（引擎端見 tools/build.mjs）
+          window.__roEndless = !!conf?.endless && !!window.__roOnline;
           // 線上模式但伺服器沒開放、或已經沒有登入：退回單機
           if (window.__roOnline && (!onlineOk || !st?.token)) return window.__roOffline();
           if (typeof conf?.lobby === "string" && conf.lobby) {

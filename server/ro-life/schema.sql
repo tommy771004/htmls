@@ -146,3 +146,58 @@ CREATE TABLE IF NOT EXISTS ro_game_log (
 );
 CREATE INDEX IF NOT EXISTS ro_game_log_account ON ro_game_log (account_id, at DESC);
 CREATE INDEX IF NOT EXISTS ro_game_log_flagged ON ro_game_log (at DESC) WHERE flags <> '{}';
+
+-- 無盡之塔（endless.mjs）：每場的開局快照、種子與狀態；操作分段存在 ro_endless_chunk。
+-- 結束後 status = pending，擁有者電腦上的 games/282-ro-life/tools/verify-endless.mjs 用同一版頁面重跑，
+-- 改成 verified（加塔的點數、上排行榜）／unranked（重跑對不上、技能不合法、比牆鐘快太多）；empty 是沒玩就結束；cheat 保留給人工判定。
+CREATE TABLE IF NOT EXISTS ro_endless_run (
+  id          text PRIMARY KEY,
+  account_id  bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  char_id     text NOT NULL,
+  build       text NOT NULL,                           -- 頁面的 build 編號（打包結果的雜湊），驗證時找回同一版
+  engine      int,
+  seed        bigint NOT NULL,
+  wave        int NOT NULL DEFAULT 1,
+  last        int NOT NULL,                            -- 開局時已開放的樓層數
+  snapshot    jsonb NOT NULL,                          -- 開局時伺服器存檔裡的角色（含塔的強化與技能）
+  season      text NOT NULL,                           -- YYYY-MM（UTC）
+  name        text,
+  job         text,
+  state       text NOT NULL DEFAULT 'live',            -- live／suspended／ended
+  status      text,                                    -- pending／empty／verified／unranked（／cheat 人工）
+  ticks       int NOT NULL DEFAULT 0,
+  checks      int NOT NULL DEFAULT 0,
+  picks       jsonb NOT NULL DEFAULT '[]',
+  claim       jsonb,                                   -- 用戶端自報的樓層與分數（只顯示用，排行榜用重跑的結果）
+  cut         int,                                     -- 存起來時的接續點（格數）
+  resumed     boolean NOT NULL DEFAULT false,
+  started_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  ended_at    timestamptz,
+  verified_at timestamptz,
+  verdict     jsonb,
+  score       int,
+  floor       int
+);
+CREATE INDEX IF NOT EXISTS ro_endless_run_account ON ro_endless_run (account_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS ro_endless_run_pending ON ro_endless_run (updated_at) WHERE status = 'pending' OR state = 'live';
+CREATE INDEX IF NOT EXISTS ro_endless_run_ladder ON ro_endless_run (season, job, score DESC) WHERE status = 'verified';
+
+CREATE TABLE IF NOT EXISTS ro_endless_chunk (
+  seq        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  run_id     text NOT NULL REFERENCES ro_endless_run ON DELETE CASCADE,
+  at         int NOT NULL,                             -- 這段第一格
+  runs       jsonb NOT NULL,                           -- 操作（dx, dy, 連續格數）…
+  from_check int NOT NULL,
+  checks     jsonb NOT NULL                            -- 每 30 格一個狀態雜湊
+);
+CREATE INDEX IF NOT EXISTS ro_endless_chunk_run ON ro_endless_chunk (run_id, seq);
+
+-- 塔的進度（點數、強化、帶進塔的技能、最高樓層）：只有伺服器能改，點數由驗證程式加
+CREATE TABLE IF NOT EXISTS ro_endless_progress (
+  account_id bigint NOT NULL REFERENCES ro_login ON DELETE CASCADE,
+  char_id    text NOT NULL,
+  data       jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account_id, char_id)
+);
