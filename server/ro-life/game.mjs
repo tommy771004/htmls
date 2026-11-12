@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { checkSave } from './game-rules.mjs';
+import { applyOp } from './game-ops.mjs';
 
 // 282 線上角色（/api/ro/game/…）：引擎原本的線上協定，由我們的伺服器保存存檔。
 // 第一步「只記錄不擋」：照單全收，但每次存檔都和上一版比對，把等級、經驗、物品的變化與疑點寫進 ro_game_log，
@@ -6,8 +8,12 @@ import { randomBytes } from 'node:crypto';
 //   GET  game/save                       {rev, doc, name}
 //   PUT  game/save {rev, doc, wid, mine?, run?, wipe?, lite?}   rev 不符回 409 {error:'conflict', rev, doc}
 //   POST game/run {stage, mult, played?} 或 {stage, skip:true, char}   發關卡憑證 {run}
+//   POST game/op {op:'buy'|'sell'|'refine'|'mail', …}       伺服器算好寫進存檔，回 {rev, doc, …}（game-ops.mjs）
+//   GET  game/mail → {mail:[], pending:0} · POST game/mail/read · game/mail/delete（信箱還沒有內容）
 //   POST game/name {char, name} · game/visit · game/crash · game/logout
 // 引擎用 x-session 標頭帶登入權杖（和 Bearer 是同一個）。正式站要套用 schema.sql 的新表、再設 RO_ONLINE=1 才開放。
+// 第二步：每次存檔用 game-rules.mjs 驗證。預設影子模式（照存用戶端的版本，只把會修正的地方記成 would-fix）；
+// 設 RO_ONLINE_ENFORCE=1 才存修正後的版本，並在回應帶 doc 讓引擎載入（引擎收到 {rev, doc} 會呼叫 ei() 套用）。
 
 export const GAME_KEY = /^(characters\.v1|account\.v1|achievements\.v1|pets\.v1|run\.v1\.[\w-]{1,40}|stages-seen\.v1\.[\w-]{1,40})$/;
 const MAX_DOC = 1_000_000;
@@ -142,30 +148,41 @@ export function createGameRoutes({ env, store, send, readBody }) {
       const runId = shortStr(body.run, 64);
       const flagsExtra = [];
       if (runId) {
-        claim = await store.claimGameRun(id, runId);
+        claim = await store.peekGameRun(id, runId);
         if (claim.status !== 'ok') flagsExtra.push(`claim-${claim.status}`);
       }
       if (body.wipe) flagsExtra.push('wipe');
-      const next = await store.putGameSave(id, rev, doc, wid);
-      if (next === null) {
+      const enforce = env.RO_ONLINE_ENFORCE === '1';
+      let check = { issues: [], doc: null };
+      try { check = checkSave(cur.doc, structuredClone(doc), { now: Date.now(), claim: claim?.status === 'ok' ? claim.run : null }); }
+      catch (e) { console.warn('[ro-life] check', e.message); flagsExtra.push('check-error'); }
+      if (check.issues.length) flagsExtra.push(check.doc ? (enforce ? 'fixed' : 'would-fix') : 'suspect');
+      const stored = enforce && check.doc ? check.doc : doc;
+      const put = await store.putGameSave(id, rev, stored, wid, claim?.status === 'ok' ? runId : null);
+      if (put === null) {
         const again = await store.getGameSave(id);
         return send(res, 409, { error: 'conflict', rev: again.rev, doc: again.doc });
       }
+      const next = put.rev;
+      // 同時有兩個請求搶同一張憑證：這筆沒搶到就當作沒有憑證
+      if (claim?.status === 'ok' && !put.claimed) { flagsExtra.push('claim-race'); claim = { status: 'reused' }; }
       const sum = summarizeSave(cur.doc, doc, { claim: claim?.status === 'ok' ? claim.run : null });
       if (sum || flagsExtra.length) {
         const flags = [...new Set([...(sum?.flags ?? []), ...flagsExtra])].sort();
         const run = claim?.run ? { stage: claim.run.stage, mult: claim.run.mult, secs: Math.round((Date.now() - claim.run.issued) / 1000), ...(claim.run.skip ? { skip: true } : {}) } : {};
-        await store.addGameLog(id, 'save', { rev: next, runId, flags, detail: { ...(sum?.detail ?? {}), ...run } }).catch((e) => console.warn('[ro-life] game log', e.message));
+        const fix = { ...(check.issues.length ? { fix: check.issues.slice(0, LIST_MAX) } : {}), ...(check.meta?.gain > 0 ? { cap: check.meta } : {}) };
+        await store.addGameLog(id, 'save', { rev: next, runId, flags, detail: { ...(sum?.detail ?? {}), ...run, ...fix } }).catch((e) => console.warn('[ro-life] game log', e.message));
       }
-      return send(res, 200, { rev: next });
+      return send(res, 200, stored === doc ? { rev: next } : { rev: next, doc: stored });
     }
     if (path === 'run' && method === 'POST') {
       const body = await readBody(req);
       const stage = shortStr(body.stage, 40);
       if (!stage) return send(res, 400, { error: 'bad_run' });
       if ((await store.countGameRuns(id, 3600)) >= RUNS_PER_HOUR) return send(res, 429, { error: 'rate' });
-      const run = { id: randomBytes(18).toString('base64url'), stage, mult: Math.min(100, Math.max(0, num(body.mult) || 1)), skip: !!body.skip, char: shortStr(body.char, 40) };
-      await store.createGameRun(id, run);
+      const run = { id: randomBytes(18).toString('base64url'), stage, mult: Math.min(2, Math.max(1, num(body.mult) || 1)) /* 引擎 sr()：難度換算的掉寶倍率 1～2 */, skip: !!body.skip, char: shortStr(body.char, 40) };
+      // played：接續中斷的關卡時引擎帶的已玩秒數（用戶端說的，不採信；只用來沿用舊憑證的開打時間）
+      await store.createGameRun(id, run, { resume: num(body.played) > 0 });
       if (run.skip) await store.addGameLog(id, 'run', { runId: run.id, flags: ['skip'], detail: { stage, char: run.char } }).catch((e) => console.warn('[ro-life] game log', e.message));
       return send(res, 200, { run: run.id });
     }
@@ -182,6 +199,22 @@ export function createGameRoutes({ env, store, send, readBody }) {
       }
       return send(res, 200, { ok: true });
     }
+    if (path === 'op' && method === 'POST') {
+      const body = await readBody(req);
+      // 存檔被別的請求搶先改了就用新的一版重算一次
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const cur = await store.getGameSave(id);
+        const r = applyOp(cur.doc, body);
+        if (r.error) return send(res, 400, { error: r.error });
+        const put = await store.putGameSave(id, cur.rev, r.doc, 'op-' + randomBytes(6).toString('base64url'));
+        if (put === null) continue;
+        await store.addGameLog(id, 'op', { rev: put.rev, flags: [], detail: { op: shortStr(body.op, 20), ...r.log } }).catch((e) => console.warn('[ro-life] game log', e.message));
+        return send(res, 200, { rev: put.rev, doc: r.doc, ...r.result });
+      }
+      return send(res, 409, { error: 'conflict' });
+    }
+    if (path === 'mail' && method === 'GET') return send(res, 200, { mail: [], pending: 0 });
+    if ((path === 'mail/read' || path === 'mail/delete') && method === 'POST') return send(res, 200, { ok: true });
     if (path === 'logout' && method === 'POST') {
       await store.deleteSession(sessionHash);
       return send(res, 200, { ok: true });

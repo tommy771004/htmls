@@ -172,8 +172,8 @@ const roRewritePlugin = {
         // ---- 線上模式（第一步：伺服器只記錄不擋）----
         // API 根目錄：原本是 /web/api/，改到 /api/ro/game/
         must('function h1(){return new URL("api/",document.baseURI).href}', 'function h1(){return new URL("../api/ro/game/",document.baseURI).href}');
-        // 買賣、精煉、信箱還沒搬到伺服器：先照單機的做法在本機算，結果隨存檔上傳、由伺服器記錄（第二步改成伺服器 op）
-        must('function Hl(){return!!ee&&!Mt()}', 'function Hl(){return!1}');
+        // 買賣、精煉、信箱走伺服器（Hl() 照原作：線上模式為真）：POST game/op 的 buy／sell／refine 由伺服器算、精煉亂數在伺服器，
+        // 回傳 {rev, doc} 由引擎 ei() 套用；信箱還沒有內容，GET game/mail 回空的
         // 無盡之塔的伺服器重跑還沒做：線上角色也先在本機跑（天賦頁、開局都不連 ?endless=1）
         must('const f_=()=>!!ir()&&!0', 'const f_=()=>!1');
         must('if(l&&!i){const k=ir();if(k)', 'if(l&&!i){const k=void 0;if(k)');
@@ -185,6 +185,11 @@ const roRewritePlugin = {
         // 沒有訪客帳號：登入失效時退回單機，不去建訪客
         must('async function hm(){if(Mt()||ee)return;', 'async function hm(){if(Mt()||ee||window.__roOnline)return;');
         must('function hn(){const a=ee;', 'function hn(){if(window.__roOnline)return void window.__roOffline?.();const a=ee;');
+        // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
+        must(
+          'window.__ro={get run(){return z},',
+          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze},get run(){return z},'
+        );
       }
 
       return { contents: src, loader: 'js' };

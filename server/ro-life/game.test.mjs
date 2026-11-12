@@ -72,21 +72,40 @@ test('關卡憑證：領取後記下關卡，重複領或沒憑證就加註疑�
   const logs = s.store.mem.gameLogs.filter((l) => l.kind === 'save');
   assert.equal(logs.length, 4);
   assert.deepEqual(logs[0].detail.chars[0].new, true);
-  assert.deepEqual(logs[1].flags, []);
+  // 憑證才領到幾毫秒就升 2 級：超過這一場的經驗上限（影子模式照存，只記 would-fix）
+  assert.deepEqual(logs[1].flags, ['would-fix']);
+  assert.equal(logs[1].detail.fix[0].code, 'exp');
   assert.equal(logs[1].detail.stage, 'prontera');
   assert.equal(logs[1].detail.mult, 1);
   assert.equal(typeof logs[1].detail.secs, 'number');
   assert.deepEqual(logs[1].detail.chars[0].lv, [1, 3]);
-  assert.deepEqual(logs[2].flags, ['claim-reused', 'gain-no-claim']);
-  assert.deepEqual(logs[3].flags, ['gain-no-claim']);
+  // 憑證已經用過：經驗當作沒有憑證
+  assert.deepEqual(logs[2].flags, ['claim-reused', 'gain-no-claim', 'would-fix']);
+  assert.equal(logs[2].detail.fix[0].code, 'exp-no-claim');
+  // 沒有憑證的經驗與新物品
+  assert.deepEqual(logs[3].flags, ['gain-no-claim', 'would-fix']);
+  assert.deepEqual(logs[3].detail.fix.map((f) => f.code), ['exp-no-claim', 'item-no-claim']);
   assert.equal(logs[3].detail.addedCount, 1);
+  assert.equal(JSON.parse(s.store.mem.gameSaves.get(s.id).doc['account.v1']).inventory.length, 1);
   assert.equal((await s.call('POST', 'game/run', {})).status, 400);
+  // 存檔 409 不會用掉憑證；接續中斷的關卡沿用原本的開打時間，舊憑證作廢
+  const r1 = (await s.call('POST', 'game/run', { stage: 'payon', mult: 1 })).body.run;
+  const issued1 = s.store.mem.gameRuns.get(r1).issued;
+  assert.equal((await s.call('PUT', 'game/save', { rev: 0, doc: docOf([char({ level: 4, exp: 95 })]), wid: 'x', run: r1 })).status, 409);
+  assert.equal(s.store.mem.gameRuns.get(r1).claimed, null);
+  await new Promise((r) => setTimeout(r, 5));
+  const r2 = (await s.call('POST', 'game/run', { stage: 'payon', mult: 1, played: 30 })).body.run;
+  assert.equal(s.store.mem.gameRuns.has(r1), false);
+  assert.equal(s.store.mem.gameRuns.get(r2).issued, issued1);
+  const r3 = (await s.call('POST', 'game/run', { stage: 'payon', mult: 1 })).body.run;
+  assert.ok(s.store.mem.gameRuns.get(r3).issued > issued1);
+  assert.equal(s.store.mem.gameRuns.has(r2), false);
   // 別人的憑證不能領
   const other = await s.store.loginIdentity('google', 'sub-2', '別人');
   await s.store.createGameRun(other, { id: 'someone-elses-run-0000', stage: 'prontera', mult: 1, skip: false, char: null });
   r = await s.call('PUT', 'game/save', { rev: 4, doc: docOf([char({ level: 5, exp: 90 })], { inventory: [{ uid: 'u1', itemId: 1101, tier: 3 }], cards: {}, materials: {}, kafra: 0 }), wid: 'e', run: 'someone-elses-run-0000' });
   assert.deepEqual(r.body, { rev: 5 });
-  assert.deepEqual(s.store.mem.gameLogs.at(-1).flags, ['claim-unknown', 'gain-no-claim']);
+  assert.deepEqual(s.store.mem.gameLogs.at(-1).flags, ['claim-unknown', 'gain-no-claim', 'would-fix']);
 });
 
 test('summarizeSave：新角色等級過高、dev 角色、一次跳太多級都會標記；沒變化回 null', () => {

@@ -114,7 +114,7 @@
     </div>
 
     <!-- amigos de la plaza (friends.ts) -->
-    <div id="friends" class="overlay hidden">
+    <div id="friends" class="overlay dock-panel hidden">
       <div class="ro-window friends-window">
         <div class="ro-title">Amigos <small id="fr-count"></small></div>
         <div class="ro-body">
@@ -130,12 +130,12 @@
     </div>
 
     <!-- inspeccionar a otro jugador del lobby (inspect.ts): su equipo, estadísticas y récord, sin poder tocar nada -->
-    <div id="inspect" class="overlay hidden">
+    <div id="inspect" class="overlay dock-panel hidden">
       <div class="ro-window inspect-window">
         <div class="ro-title" id="ins-title"></div>
         <div class="ro-body panel-body">
           <div class="ins-head" id="ins-head"></div>
-          <div class="tabs ins-tabs">
+          <div class="tabs ins-tabs dock-rail">
             <button class="tab-btn active" data-tab="equip">Equipo</button>
             <button class="tab-btn" data-tab="stats">Estado</button>
             <button class="tab-btn" data-tab="job">Job</button>
@@ -427,7 +427,7 @@
       </div>
     </div>
 
-    <div id="stages" class="overlay hidden">
+    <div id="stages" class="overlay dock-panel hidden">
       <div class="ro-window stages-window">
         <div class="ro-title">Expediciones</div>
         <div class="ro-body stages-body">
@@ -444,11 +444,11 @@
       </div>
     </div>
 
-    <div id="shop" class="overlay hidden">
+    <div id="shop" class="overlay dock-panel hidden">
       <div class="ro-window shop-window">
         <div class="ro-title">Vendedor de minerales</div>
         <div class="ro-body">
-          <div class="shop-top">
+          <div class="shop-top dock-rail">
             <div class="tabs"><button class="tab-btn active" data-shop="sell">Vender</button><button class="tab-btn" data-shop="buy">Comprar</button></div>
             <span id="shop-kafra" class="kafra"></span>
           </div>
@@ -469,11 +469,11 @@
       </div>
     </div>
 
-    <div id="chronicle" class="overlay hidden">
+    <div id="chronicle" class="overlay dock-panel hidden">
       <div class="ro-window chronicle-window">
         <div class="ro-title">Cronista de hazañas</div>
         <div class="ro-body">
-          <div class="shop-top">
+          <div class="shop-top dock-rail">
             <div class="tabs"><button class="tab-btn active" data-chr="perks">Mejoras</button><button class="tab-btn" data-chr="log">Logros</button></div>
             <span id="chr-points" class="kafra"></span>
           </div>
@@ -491,7 +491,7 @@
     </div>
 
     <!-- el Guardián de la Endless Tower (towerkeeper.ts): con la forma del selector de stages -->
-    <div id="towerkeeper" class="overlay hidden">
+    <div id="towerkeeper" class="overlay dock-panel hidden">
       <div class="ro-window stages-window">
         <div class="ro-title">Guardián de la Torre</div>
         <div class="ro-body stages-body">
@@ -505,11 +505,11 @@
       </div>
     </div>
 
-    <div id="petkeeper" class="overlay hidden">
+    <div id="petkeeper" class="overlay dock-panel hidden">
       <div class="ro-window chronicle-window">
         <div class="ro-title">Cuidadora de pets</div>
         <div class="ro-body">
-          <div class="shop-top">
+          <div class="shop-top dock-rail">
             <div class="tabs"><button class="tab-btn active" data-pk="acc">Accesorios</button><button class="tab-btn" data-pk="evo">Evoluciones</button></div>
             <span id="pk-kafra" class="kafra"></span>
           </div>
@@ -523,7 +523,7 @@
       </div>
     </div>
 
-    <div id="mailbox" class="overlay hidden">
+    <div id="mailbox" class="overlay dock-panel hidden">
       <div class="ro-window chronicle-window">
         <div class="ro-title">Cartero</div>
         <div class="ro-body mb-body-wrap">
@@ -540,7 +540,7 @@
       </div>
     </div>
 
-    <div id="stylist" class="overlay hidden">
+    <div id="stylist" class="overlay dock-panel hidden">
       <div class="ro-window stylist-window">
         <div class="ro-title">Estilista</div>
         <div class="ro-body create-body">
@@ -570,7 +570,7 @@
     </div>
 
     <!-- el Bibliotecario (wiki.ts): la wiki del juego, con la forma del selector de stages -->
-    <div id="wiki" class="overlay hidden">
+    <div id="wiki" class="overlay dock-panel hidden">
       <div class="ro-window stages-window wiki-window">
         <div class="ro-title">Bibliotecario de Prontera</div>
         <div class="ro-body stages-body wiki-body">
@@ -587,7 +587,7 @@
       </div>
     </div>
 
-    <div id="smith" class="overlay hidden">
+    <div id="smith" class="overlay dock-panel hidden">
       <div class="ro-window smith-window">
         <div class="ro-title">Herrero Hollgrehenn</div>
         <div class="ro-body smith-body">
@@ -627,11 +627,11 @@
       </div>
     </div>
 
-    <div id="options" class="overlay hidden">
+    <div id="options" class="overlay dock-panel hidden">
       <div class="ro-window options-window">
         <div class="ro-title">Opciones</div>
         <div class="ro-body">
-          <div class="tabs" id="opt-tabs"></div>
+          <div class="tabs dock-rail" id="opt-tabs"></div>
           <div id="opt-body"></div>
         </div>
         <div class="btn-row pad">

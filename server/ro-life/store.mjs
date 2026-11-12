@@ -26,26 +26,43 @@ export class RoStore {
     }
     return this.mem.gameSaves.get(accountId) ?? { doc: {}, rev: 0, wid: null, updatedAt: 0 };
   }
-  async putGameSave(accountId, rev, doc, wid) {
+  // 寫入存檔；帶 runId 時在同一個語句裡領取憑證：存檔沒寫成（rev 不符）就不會用掉憑證。回傳 {rev, claimed} 或 null（rev 不符）
+  async putGameSave(accountId, rev, doc, wid, runId = null) {
     const json = JSON.stringify(doc);
     if (this.sql) {
       const rows = rev === 0
-        ? await this.sql`INSERT INTO ro_game_save (account_id, doc, rev, wid) VALUES (${accountId}, ${json}::jsonb, 1, ${wid}) ON CONFLICT (account_id) DO NOTHING RETURNING rev`
-        : await this.sql`UPDATE ro_game_save SET doc = ${json}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${accountId} AND rev = ${rev} RETURNING rev`;
-      return rows.length ? Number(rows[0].rev) : null;
+        ? await this.sql`WITH s AS (INSERT INTO ro_game_save (account_id, doc, rev, wid) VALUES (${accountId}, ${json}::jsonb, 1, ${wid}) ON CONFLICT (account_id) DO NOTHING RETURNING rev),
+            r AS (UPDATE ro_game_run SET claimed_at = now() WHERE id = ${runId}::text AND account_id = ${accountId} AND claimed_at IS NULL AND EXISTS (SELECT 1 FROM s) RETURNING id)
+            SELECT (SELECT rev FROM s) AS rev, (SELECT count(*) FROM r)::int AS claimed`
+        : await this.sql`WITH s AS (UPDATE ro_game_save SET doc = ${json}::jsonb, rev = rev + 1, wid = ${wid}, updated_at = now() WHERE account_id = ${accountId} AND rev = ${rev} RETURNING rev),
+            r AS (UPDATE ro_game_run SET claimed_at = now() WHERE id = ${runId}::text AND account_id = ${accountId} AND claimed_at IS NULL AND EXISTS (SELECT 1 FROM s) RETURNING id)
+            SELECT (SELECT rev FROM s) AS rev, (SELECT count(*) FROM r)::int AS claimed`;
+      return rows[0]?.rev == null ? null : { rev: Number(rows[0].rev), claimed: rows[0].claimed > 0 };
     }
     const cur = this.mem.gameSaves.get(accountId)?.rev ?? 0;
     if (cur !== rev) return null;
     this.mem.gameSaves.set(accountId, { doc: JSON.parse(json), rev: rev + 1, wid, updatedAt: Date.now() });
-    return rev + 1;
+    const r = runId ? this.mem.gameRuns.get(runId) : null;
+    const claimed = !!r && r.account_id === accountId && !r.claimed;
+    if (claimed) r.claimed = Date.now();
+    return { rev: rev + 1, claimed };
   }
-  async createGameRun(accountId, run) {
+  // 發新憑證：同一個帳號同時只留一張沒領的。接續中斷的關卡（resume）時，沿用同一關舊憑證的開打時間，不讓秒數被灌大
+  async createGameRun(accountId, run, { resume = false } = {}) {
     if (this.sql) {
       await this.sql`DELETE FROM ro_game_run WHERE issued_at < now() - interval '7 days'`;
-      await this.sql`INSERT INTO ro_game_run (id, account_id, stage, mult, skip, char) VALUES (${run.id}, ${accountId}, ${run.stage}, ${run.mult}, ${run.skip}, ${run.char})`;
+      const prev = resume ? (await this.sql`SELECT issued_at FROM ro_game_run WHERE account_id = ${accountId} AND stage = ${run.stage} AND claimed_at IS NULL ORDER BY issued_at LIMIT 1`)[0]?.issued_at ?? null : null;
+      await this.sql`DELETE FROM ro_game_run WHERE account_id = ${accountId} AND claimed_at IS NULL`;
+      await this.sql`INSERT INTO ro_game_run (id, account_id, stage, mult, skip, char, issued_at) VALUES (${run.id}, ${accountId}, ${run.stage}, ${run.mult}, ${run.skip}, ${run.char}, COALESCE(${prev}::timestamptz, now()))`;
       return;
     }
-    this.mem.gameRuns.set(run.id, { ...run, account_id: accountId, issued: Date.now(), claimed: null });
+    let issued = Date.now();
+    for (const [k, r] of this.mem.gameRuns) {
+      if (r.account_id !== accountId || r.claimed) continue;
+      if (resume && r.stage === run.stage) issued = Math.min(issued, r.issued);
+      this.mem.gameRuns.delete(k);
+    }
+    this.mem.gameRuns.set(run.id, { ...run, account_id: accountId, issued, claimed: null });
   }
   async countGameRuns(accountId, sec) {
     if (this.sql) {
@@ -56,18 +73,17 @@ export class RoStore {
     for (const r of this.mem.gameRuns.values()) if (r.account_id === accountId && r.issued > Date.now() - sec * 1000) n++;
     return n;
   }
-  // 領取關卡憑證：ok／unknown（不是這個帳號的、不存在或過期）／reused（領過了）
-  async claimGameRun(accountId, id) {
+  // 查看關卡憑證（不領取，領取在 putGameSave）：ok／unknown（不是這個帳號的、不存在、過期或被新憑證取代）／reused（領過了）
+  async peekGameRun(accountId, id) {
     if (this.sql) {
-      const rows = await this.sql`UPDATE ro_game_run SET claimed_at = now() WHERE id = ${id} AND account_id = ${accountId} AND claimed_at IS NULL RETURNING stage, mult, skip, char, issued_at`;
-      if (rows[0]) return { status: 'ok', run: { id, stage: rows[0].stage, mult: Number(rows[0].mult), skip: rows[0].skip, char: rows[0].char, issued: new Date(rows[0].issued_at).getTime() } };
-      const seen = await this.sql`SELECT 1 FROM ro_game_run WHERE id = ${id} AND account_id = ${accountId}`;
-      return { status: seen.length ? 'reused' : 'unknown' };
+      const r = (await this.sql`SELECT stage, mult, skip, char, issued_at, claimed_at FROM ro_game_run WHERE id = ${id} AND account_id = ${accountId}`)[0];
+      if (!r) return { status: 'unknown' };
+      if (r.claimed_at) return { status: 'reused' };
+      return { status: 'ok', run: { id, stage: r.stage, mult: Number(r.mult), skip: r.skip, char: r.char, issued: new Date(r.issued_at).getTime() } };
     }
     const r = this.mem.gameRuns.get(id);
     if (!r || r.account_id !== accountId) return { status: 'unknown' };
     if (r.claimed) return { status: 'reused' };
-    r.claimed = Date.now();
     return { status: 'ok', run: { id, stage: r.stage, mult: r.mult, skip: r.skip, char: r.char, issued: r.issued } };
   }
   async addGameLog(accountId, kind, { rev = null, runId = null, flags = [], detail = null } = {}) {

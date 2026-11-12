@@ -2267,3 +2267,400 @@ body:not(.ro-social) #lobby-friends { display: none !important; }
 .sp-cloud .sp-mode:not(.hidden) ~ .sp-link { margin-left: 0.3em; }
 .sp-cloud .sp-cloud-status { flex: none; white-space: nowrap; }
 .sp-cloud .sp-cloud-who { flex: 1 1 auto; }
+
+/* ============================================================
+   面板共用版面（.dock-panel）：其他面板照角色面板（#charpanel）的配置
+   沒有視窗外框、懸浮在遊戲畫面上；標題是左上角的白字；內容是深色毛玻璃卡片；
+   右側直立欄（.dock-rail）放點數卡片與膠囊分頁，底部按鈕列直排在右下，關閉鈕在最下面。
+   數值與角色面板相同（--cp-rail 108px／矮螢幕 80px、卡片圓角 14px、金色選中分頁）
+   ============================================================ */
+.dock-panel {
+  --dk-rail: 108px;
+  --dk-head: 42px;
+  --dk-w: 1280px;
+}
+.dock-panel.overlay {
+  background: radial-gradient(ellipse 90% 80% at 50% 50%, rgba(6, 8, 16, 0.18), rgba(6, 8, 16, 0.5));
+}
+/* 從選角畫面或暫停選單打開設定時，底下還有別的視窗：壓暗並模糊，不讓它透出來 */
+#charselect:not(.hidden) ~ #options,
+#pause:not(.hidden) ~ #options,
+#gameover:not(.hidden) ~ #options {
+  background: rgba(6, 8, 16, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* 選角畫面右上角的最新消息／語系鈕疊在最上層，打開面板時先藏起來，免得蓋到直立欄 */
+body:has(.dock-panel:not(.hidden)) #sp-top {
+  visibility: hidden;
+}
+.dock-panel > .ro-window {
+  position: relative;
+  width: min(var(--dk-w), calc((100vw - 24px) / var(--ui)));
+  height: min(940px, calc((100dvh - 16px) / var(--ui)));
+  max-height: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#options { --dk-w: 760px; }
+#smith { --dk-w: 1100px; }
+#stylist { --dk-w: 820px; }
+#friends { --dk-w: 640px; }
+#inspect { --dk-w: 720px; }
+:is(#shop, #chronicle, #petkeeper, #mailbox) { --dk-w: 900px; }
+
+/* 標題列：沒有底色與分隔線，白字加陰影（同 #cp-title） */
+.dock-panel > .ro-window > .ro-title {
+  display: flex;
+  align-items: center;
+  flex: none;
+  height: var(--dk-head);
+  padding: 0 14px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+/* 內容欄：右邊讓出直立欄的寬度 */
+.dock-panel > .ro-window > .ro-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(var(--dk-rail) + 14px) 0 0;
+  padding: 4px 12px 14px 14px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  background: none;
+}
+:is(#options, #shop, #chronicle, #petkeeper, #mailbox, #friends) > .ro-window > .ro-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+:is(#options, #shop, #chronicle, #petkeeper, #mailbox, #friends) > .ro-window > .ro-body > * {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* 右側直立欄：點數卡片在上、膠囊分頁在下（同 .cp-tabrow） */
+.dock-panel .dock-rail {
+  position: absolute;
+  top: calc(var(--dk-head) + 4px);
+  right: 14px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: var(--dk-rail);
+  margin: 0;
+}
+.dock-panel .dock-rail.tabs,
+.dock-panel .dock-rail .tabs {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  order: 2;
+}
+.dock-panel .dock-rail.tabs { width: var(--dk-rail); }
+.dock-panel .dock-rail .tab-btn {
+  flex: none;
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+  background-color: rgba(14, 17, 29, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(214, 220, 236, 0.86);
+  text-align: center;
+  white-space: normal;
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.dock-panel .dock-rail .tab-btn:hover {
+  color: #fff;
+  border-color: rgba(246, 194, 74, 0.45);
+}
+.dock-panel .dock-rail .tab-btn.active {
+  color: #2a1803;
+  text-shadow: none;
+  border-color: var(--dg-gold-1);
+  background: linear-gradient(180deg, var(--dg-gold-1) 0%, var(--dg-gold-2) 55%, var(--dg-gold-3) 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 0 0 2px rgba(246, 194, 74, 0.2), 0 6px 14px -4px rgba(246, 184, 52, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+/* 點數（卡普拉點數、編年史點數）：直立欄最上面的金框卡片（同 .gs-total） */
+.dock-panel .dock-rail .kafra {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(246, 194, 74, 0.35);
+  background: linear-gradient(180deg, rgba(246, 194, 74, 0.14), rgba(246, 194, 74, 0.03));
+  background-color: rgba(14, 17, 29, 0.78);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-size: var(--fs-xs);
+  color: var(--ro-muted);
+  text-align: center;
+  white-space: normal;
+}
+.dock-panel .dock-rail .kafra:not(:has(b)) {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: var(--dg-gold-text);
+}
+.dock-panel .dock-rail .kafra b {
+  font-size: var(--fs-xl);
+  color: var(--dg-gold-text);
+}
+.dock-panel .dock-rail .kafra:empty {
+  display: none;
+}
+
+/* 底部按鈕列：直排在直立欄最下面，關閉鈕在最底（同 .cp-foot） */
+.dock-panel > .ro-window > .btn-row.pad {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+  width: calc(var(--dk-rail) + 28px);
+  margin: 0;
+  padding: 0 14px 14px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.dock-panel > .ro-window > .btn-row.pad > .spacer {
+  display: none;
+}
+.dock-panel > .ro-window > .btn-row.pad .ro-btn {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  padding: 7px 6px;
+  white-space: normal;
+  line-height: 1.25;
+}
+.dock-panel > .ro-window > .btn-row.pad > :is([id$="-close"], #opt-close) {
+  order: 9;
+}
+/* 按鈕列裡的文字（已選數量、版本）：小字放在深色卡片裡 */
+.dock-panel > .ro-window > .btn-row.pad > :not(.ro-btn):not(.spacer):not(:empty) {
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+  color: var(--ro-muted);
+  background-color: rgba(14, 17, 29, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  overflow-wrap: anywhere;
+}
+
+/* 深色毛玻璃卡片：最外層的內容區塊（同角色面板各區塊）；卡片裡的卡片維持原本的淡色 */
+/* 用 :where() 讓這幾條只有 .dock-panel 的權重，選中（.sel）、聚焦等狀態樣式才蓋得過 */
+.dock-panel :where(
+  #opt-body, #shop-sell, #shop-buy, #chr-perks, #chr-log-tab, #pk-list, #pk-note, #mb-list, #mb-read,
+  #fr-body, #fr-form, .ins-head, .ins-equip, .smith-side, .smith-detail, .preview-col, .form-col,
+  .stg-detail > *, .wk-search,
+  .status-box, .inv-box, .tree-col, .info-panel
+) {
+  background-color: rgba(14, 17, 29, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 14px;
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* 左側清單（遠征、塔、Wiki）每一列：只鋪深色底不模糊，一次十幾列也不吃效能 */
+.dock-panel :where(.stg-side .stg-card) {
+  background-color: rgba(14, 17, 29, 0.86);
+  border-radius: 14px;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* 選中、上鎖等狀態列的 background 簡寫會把底色清掉：只補回深色底色，漸層與外框照舊 */
+.dock-panel .stg-side .stg-card {
+  background-color: rgba(14, 17, 29, 0.86);
+}
+.dock-panel :where(#opt-body, #shop-sell, #shop-buy, #chr-perks, #chr-log-tab, #pk-list, #mb-list, #fr-body, .smith-side, .smith-detail, .preview-col, .form-col, .stg-detail > *) :where(.info-panel, .inv-box, .status-box, .stg-card) {
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.dock-panel :where(#opt-body, #shop-sell, #shop-buy, #chr-perks, #chr-log-tab, #pk-list, #mb-list, #fr-body, .smith-side, .smith-detail, .preview-col, .form-col) {
+  padding: 12px;
+}
+.dock-panel :where(#fr-form, .ins-head, .ins-equip) {
+  padding: 8px 10px;
+}
+/* 天賦樹（檢視他人）：.tree-col.t0～t2 的 background 簡寫會清掉底色，補回深色底；樹的分頁列也鋪深色底 */
+.dock-panel .tree-col,
+.dock-panel .tree-tabs {
+  background-color: rgba(14, 17, 29, 0.78);
+}
+/* 信箱底下的提示字：有內容才顯示成小卡片 */
+.dock-panel .mb-note:not(:empty) {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background-color: rgba(14, 17, 29, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+/* 各面板：清單撐滿高度、自己捲動 */
+#chr-perks,
+#chr-log-tab,
+#pk-list,
+.dock-panel .mb-list,
+.dock-panel .mb-read {
+  height: auto;
+  flex: 1 1 0;
+  min-height: 96px;
+}
+#chronicle #chr-perks.hidden,
+#chronicle #chr-log-tab.hidden {
+  display: none;
+}
+#chronicle .chr-list,
+#pk-list,
+#mb-list {
+  overflow-y: auto;
+}
+#opt-body,
+#shop-sell,
+#shop-buy,
+#fr-body {
+  flex: 1 0 auto;
+}
+#opt-body {
+  min-height: 0;
+}
+/* 商店：物品格撐滿卡片，說明列在卡片底部（同角色面板背包頁） */
+#shop-sell:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#shop-sell > * {
+  margin: 0;
+}
+#shop-sell .shop-grid {
+  flex: 1 1 auto;
+  max-height: none;
+  align-content: start;
+}
+#fr-body {
+  max-height: none;
+  flex: 1 1 0;
+  min-height: 96px;
+}
+.dock-panel .stages-body {
+  height: auto;
+}
+.dock-panel .smith-body {
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  overflow: hidden;
+  grid-template-rows: minmax(0, 1fr);
+}
+.dock-panel .smith-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.dock-panel .smith-side .cand-list {
+  flex: 1 1 0;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+.dock-panel .smith-detail {
+  min-height: 0;
+  overflow-y: auto;
+}
+.dock-panel .create-body {
+  overflow-y: auto;
+  align-items: stretch;
+}
+.dock-panel .stylist-window .info-panel {
+  margin-top: 8px;
+}
+.dock-panel .ins-tab:not(.off) {
+  flex: 1 1 auto;
+}
+
+/* 橫式手機與矮螢幕（同 #charpanel 的 max-height: 560px） */
+@media (max-height: 560px) {
+  .dock-panel {
+    --dk-rail: 80px;
+    --dk-head: 30px;
+  }
+  .dock-panel > .ro-window > .ro-body {
+    padding: 2px 8px 8px 10px;
+  }
+  .dock-panel .dock-rail {
+    gap: 6px;
+  }
+  .dock-panel .dock-rail .tabs,
+  .dock-panel .dock-rail.tabs {
+    gap: 4px;
+  }
+  .dock-panel .dock-rail .tab-btn {
+    padding: 4px 6px;
+    letter-spacing: 0;
+  }
+  .dock-panel .dock-rail .kafra {
+    padding: 5px 4px;
+    gap: 1px;
+  }
+  .dock-panel .dock-rail .kafra b {
+    font-size: var(--fs-lg);
+  }
+  .dock-panel > .ro-window > .btn-row.pad {
+    gap: 4px;
+    padding: 0 14px 8px;
+  }
+  .dock-panel > .ro-window > .btn-row.pad .ro-btn {
+    padding: 5px 4px;
+    font-size: var(--fs-xs);
+  }
+  .dock-panel :where(#opt-body, #shop-sell, #shop-buy, #chr-perks, #chr-log-tab, #pk-list, #mb-list, #fr-body, .smith-side, .smith-detail, .preview-col, .form-col) {
+    padding: 8px;
+  }
+  .dock-panel .smith-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  /* 直立欄只有 80px，版本字串會折成四行；版本在登入畫面左下也看得到 */
+  #options #opt-version {
+    display: none;
+  }
+}
