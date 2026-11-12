@@ -269,6 +269,10 @@ const roRewritePlugin = {
           '...i?{run:i}:{},...r?{wipe:r}:{}}',
           '...i?{run:i,...window.__roTripEnd?{trip:window.__roTripEnd}:{}}:{},...r?{wipe:r}:{}}'
         );
+        // 怪物頭像（遠征面板的關卡清單、頭目、怪物，引擎 Ge()）：精靈圖還沒載入時另外開一張 Image 裁到 canvas 再 toDataURL()。
+        // 素材在 Cloudflare（跨網域）時，沒有用 CORS 載入的圖會讓 canvas 變成受污染、toDataURL 丟錯，引擎吞掉後頭像就是空的。
+        // 素材主機回 Access-Control-Allow-Origin: *（assets/282/_headers），所以用 anonymous 載入即可；同網域（本機）不受影響
+        must('r=new Image;r.onload=()=>{const l=v0(r,o.frame,e);', 'r=new Image;r.crossOrigin="anonymous",r.onload=()=>{const l=v0(r,o.frame,e);');
         // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
         must(
           'window.__ro={get run(){return z},',
