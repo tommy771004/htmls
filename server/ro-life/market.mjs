@@ -84,6 +84,7 @@ export function addAttach(doc, attach, { pay = 0 } = {}) {
   S.acc.kafra -= pay;
   const have = new Set(S.acc.inventory.map((i) => String(i?.uid)));
   for (const g of list(attach?.gear)) {
+    if (!g || typeof g !== 'object') continue;
     const it = cleanItem(g);
     if (have.has(it.uid)) it.uid = `${it.uid}-${Date.now().toString(36)}`;
     have.add(it.uid);

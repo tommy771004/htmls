@@ -178,7 +178,7 @@ const roRewritePlugin = {
         // API 根目錄：原本是 /web/api/，改到 /api/ro/game/
         must('function h1(){return new URL("api/",document.baseURI).href}', 'function h1(){return new URL("../api/ro/game/",document.baseURI).href}');
         // 買賣、精煉、信箱走伺服器（Hl() 照原作：線上模式為真）：POST game/op 的 buy／sell／refine 由伺服器算、精煉亂數在伺服器，
-        // 回傳 {rev, doc} 由引擎 ei() 套用；信箱還沒有內容，GET game/mail 回空的
+        // 回傳 {rev, doc} 由引擎 ei() 套用；信箱（郵差 NPC）的內容是市場賣出的錢與到期退回的物品，領附件是 op:'mail'（server/ro-life/market.mjs）
         // 無盡之塔（server/ro-life/endless.mjs）：/api/ro/config 回 endless（RO_ENDLESS=1 且表格在）才對線上角色開放，
         // 否則和以前一樣關著。Vercel 沒有 WebSocket：Pn.socket 換成 __RoHttpSocket（下面），每次 send 變成 POST game/endless/io，
         // 回應裡的訊息照原本的 onmessage 送回引擎；任何失敗都當成斷線（onclose），讓引擎自己 resume 重新對齊。
@@ -203,6 +203,14 @@ const roRewritePlugin = {
         // 沒有訪客帳號：登入失效時退回單機，不去建訪客
         must('async function hm(){if(Mt()||ee)return;', 'async function hm(){if(Mt()||ee||window.__roOnline)return;');
         must('function hn(){const a=ee;', 'function hn(){if(window.__roOnline)return void window.__roOffline?.();const a=ee;');
+        // 市場（server/ro-life/market.mjs，頁面在 template.html 的 #market）：把需要的引擎函式掛在 window.__ro.mkt。
+        // op 和引擎的 nc() 一樣先送出存檔、套用伺服器回的 {rev, doc}，但錯誤碼原樣丟出（gone／own／kafra／full…）讓市場自己顯示
+        must(
+          'isDev:Mt,setDev:mk};',
+          'isDev:Mt,setDev:mk,mkt:{online:Hl,get:e=>nt("GET",e),op:async e=>{const t=ee;if(!t)throw new Error("offline");await Ma();const s=await nt("POST","op",e);return ee===t&&(ei(t.id,s.rev,s.doc),wr=s.trade),s},acct:F0,gearName:ss,itemName:e=>zo(e,""),cardName:qt,oreName:Ft,icon:Me,cardArt:Fs,tipGear:rc,tipCard:Fh,tip:to,confirm:sa,esc:km,num:Em,lang:Ia,ores:at}};'
+        );
+        // 市場面板也算一個 UI 面板（手把／鍵盤焦點導覽的清單）
+        must('"#petkeeper","#mailbox","#wiki"', '"#petkeeper","#mailbox","#market","#wiki"');
         // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
         must(
           'window.__ro={get run(){return z},',

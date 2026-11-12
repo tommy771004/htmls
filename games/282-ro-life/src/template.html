@@ -86,6 +86,7 @@
       <div id="lobby-place"><b>Prontera</b><small>Plaza de la fuente</small><small id="lobby-online"></small></div>
       <div id="lobby-actions">
         <button class="ro-btn" id="lobby-friends">Amigos <span id="lobby-friends-on" class="fr-badge on hidden"></span><span id="lobby-friends-n" class="fr-badge hidden"></span></button>
+        <button class="ro-btn" id="lobby-market">市場</button>
         <button class="ro-btn" id="lobby-char">Personaje <kbd class="desktop-only">C</kbd></button>
         <button class="ro-btn" id="lobby-switch">Cambiar personaje <kbd class="desktop-only">X</kbd></button>
         <button class="ro-btn" id="lobby-options" aria-label="Opciones">⚙ <kbd class="desktop-only">Esc</kbd></button>
@@ -537,6 +538,38 @@
           <button class="ro-btn primary" id="mb-claim" hidden>Recoger</button>
           <button class="ro-btn" id="mb-close">Cerrar</button>
         </div>
+      </div>
+    </div>
+
+    <!-- 市場（server/ro-life/market.mjs）：線上角色上架、購買、取消；賣出的錢與到期退回的物品寄到信箱。下方 <script> 驅動 -->
+    <div id="market" class="overlay dock-panel hidden">
+      <div class="ro-window market-window">
+        <div class="ro-title" id="mk-title">市場</div>
+        <div class="ro-body">
+          <div class="shop-top dock-rail">
+            <div class="tabs" id="mk-tabs"><button class="tab-btn active" data-mk="browse"></button><button class="tab-btn" data-mk="sell"></button><button class="tab-btn" data-mk="mine"></button></div>
+            <span id="mk-kafra" class="kafra"></span>
+          </div>
+          <div id="mk-browse" class="mk-pane">
+            <form id="mk-search" class="mk-search" autocomplete="off"><input id="mk-q" type="search" maxlength="40" enterkeyhint="search" /><div id="mk-kinds" class="inv-filters"></div></form>
+            <div id="mk-rows" class="mk-rows"></div>
+            <div class="mk-pager"><button class="ro-btn small" id="mk-prev">◀</button><span id="mk-page"></span><button class="ro-btn small" id="mk-next">▶</button></div>
+          </div>
+          <div id="mk-sell" class="mk-pane hidden">
+            <div id="mk-sfilters" class="inv-filters"></div>
+            <div id="mk-inv" class="item-grid mk-inv"></div>
+            <div id="mk-form" class="mk-form">
+              <div id="mk-pick" class="mk-pick"></div>
+              <label id="mk-count-l" class="mk-field"><span></span><input id="mk-count" type="number" min="1" step="1" inputmode="numeric" /></label>
+              <label id="mk-price-l" class="mk-field"><span></span><input id="mk-price" type="number" min="1" step="1" inputmode="numeric" /></label>
+              <span id="mk-get" class="mk-get muted"></span>
+              <button class="ro-btn primary" id="mk-list"></button>
+            </div>
+          </div>
+          <div id="mk-mine" class="mk-pane hidden"><div id="mk-mine-rows" class="mk-rows"></div></div>
+          <div id="mk-note" class="mk-note" role="status"></div>
+        </div>
+        <div class="btn-row pad"><span id="mk-hint" class="muted mk-hint"></span><span class="spacer"></span><button class="ro-btn" id="mk-close"></button></div>
       </div>
     </div>
 
@@ -1086,6 +1119,9 @@
           onlineOk = !!conf?.online;
           // 無盡之塔（server/ro-life/endless.mjs）：伺服器開放才讓線上角色進塔（引擎端見 tools/build.mjs）
           window.__roEndless = !!conf?.endless && !!window.__roOnline;
+          // 市場（server/ro-life/market.mjs）：伺服器開放（RO_MARKET=1 且表格在）才對線上角色顯示大廳的市場鈕
+          window.__roMarket = !!conf?.market && !!window.__roOnline;
+          document.body.classList.toggle("ro-market", window.__roMarket);
           // 線上模式但伺服器沒開放、或已經沒有登入：退回單機
           if (window.__roOnline && (!onlineOk || !st?.token)) return window.__roOffline();
           if (typeof conf?.lobby === "string" && conf.lobby) {
@@ -1112,6 +1148,259 @@
         setInterval(() => run(push), 45000);
         document.addEventListener("visibilitychange", () => { if (document.hidden) push(true); });
         addEventListener("pagehide", () => push(true));
+      })();
+    </script>
+
+    <!-- 市場面板（server/ro-life/market.mjs）：只對線上角色、伺服器開放時顯示（上面設定的 window.__roMarket＋body.ro-market）。
+         引擎函式由 tools/build.mjs 掛在 window.__ro.mkt；改存檔的動作都走 POST game/op，回 {rev, doc} 由引擎套用。不輪詢，開面板、換分頁、動作後才查。 -->
+    <script>
+      (() => {
+        const $ = (id) => document.getElementById(id);
+        const panel = $("market"), btn = $("lobby-market");
+        if (!panel || !btn) return;
+        const T = {
+          zh: { title: "市場", browse: "瀏覽", sell: "上架", mine: "我的上架", close: "關閉", search: "搜尋物品名稱", all: "全部", gear: "裝備", card: "卡片", ore: "礦石",
+            buy: "購買", cancel: "下架", loading: "讀取中…", empty: "目前沒有符合的上架。", noMine: "你還沒有上架任何東西。", noInv: "這一類沒有可上架的物品（身上穿的、上鎖的、新手裝備不能賣）。",
+            pickFirst: "先在上面點選要上架的物品。", count: "數量", total: "總價（Kafra）", get: "賣出後收到 {n} Kafra（扣 {fee}% 手續費，寄到信箱）", list: "上架",
+            hint: "上架 {days} 天，最多 {max} 件；賣出的錢與到期退回的物品都寄到信箱。", buyQ: "以 {p} Kafra 購買？", buyT: "購買",
+            bought: "買到了，已放進背包。", listed: "已上架。", cancelled: "已下架，物品回到背包。", sold: "已售出", expired: "到期（已寄回信箱）", gone: "已下架",
+            left: "剩 {t}", d: "{n} 天", h: "{n} 小時", m: "{n} 分", seller: "賣家", page: "第 {n} 頁",
+            e_gone: "這件已經賣出或下架了。", e_own: "不能買自己上架的東西。", e_kafra: "Kafra 不夠。", e_full: "同時最多上架 {max} 件。", e_missing: "背包裡已經沒有這件了。",
+            e_bad: "這件不能上架，或價格不對（1～10 億）。", e_conflict: "存檔忙碌中，請再試一次。", e_net: "連不上伺服器，請稍後再試。" },
+          en: { title: "Market", browse: "Browse", sell: "Sell", mine: "My listings", close: "Close", search: "Search item name", all: "All", gear: "Gear", card: "Cards", ore: "Ores",
+            buy: "Buy", cancel: "Withdraw", loading: "Loading…", empty: "No listings match.", noMine: "You have no listings yet.", noInv: "Nothing to sell here (worn, locked and starter items can't be sold).",
+            pickFirst: "Pick an item above first.", count: "Amount", total: "Price (Kafra)", get: "You receive {n} Kafra when sold ({fee}% fee, by mail)", list: "List",
+            hint: "Listings last {days} days, up to {max}; earnings and expired items arrive by mail.", buyQ: "Buy for {p} Kafra?", buyT: "Buy",
+            bought: "Bought — it's in your inventory.", listed: "Listed.", cancelled: "Withdrawn — back in your inventory.", sold: "Sold", expired: "Expired (mailed back)", gone: "Withdrawn",
+            left: "{t} left", d: "{n}d", h: "{n}h", m: "{n}m", seller: "Seller", page: "Page {n}",
+            e_gone: "That listing is already sold or withdrawn.", e_own: "You can't buy your own listing.", e_kafra: "Not enough Kafra.", e_full: "Up to {max} listings at a time.", e_missing: "That item is no longer in your inventory.",
+            e_bad: "That item can't be listed, or the price is out of range (1–1,000,000,000).", e_conflict: "Your save is busy, try again.", e_net: "Can't reach the server, try again later." },
+          es: { title: "Mercado", browse: "Explorar", sell: "Vender", mine: "Mis anuncios", close: "Cerrar", search: "Buscar objeto", all: "Todo", gear: "Equipo", card: "Cartas", ore: "Minerales",
+            buy: "Comprar", cancel: "Retirar", loading: "Cargando…", empty: "No hay anuncios que coincidan.", noMine: "Aún no tienes anuncios.", noInv: "Nada que vender aquí (lo equipado, bloqueado y de novato no se vende).",
+            pickFirst: "Primero elige un objeto arriba.", count: "Cantidad", total: "Precio (Kafra)", get: "Recibirás {n} Kafra al venderse ({fee} % de comisión, por correo)", list: "Anunciar",
+            hint: "Los anuncios duran {days} días, máx. {max}; las ganancias y lo caducado llegan por correo.", buyQ: "¿Comprar por {p} Kafra?", buyT: "Comprar",
+            bought: "Comprado: ya está en tu inventario.", listed: "Anunciado.", cancelled: "Retirado: vuelve a tu inventario.", sold: "Vendido", expired: "Caducado (devuelto por correo)", gone: "Retirado",
+            left: "quedan {t}", d: "{n} d", h: "{n} h", m: "{n} min", seller: "Vendedor", page: "Página {n}",
+            e_gone: "Ese anuncio ya se vendió o se retiró.", e_own: "No puedes comprar tu propio anuncio.", e_kafra: "No tienes suficientes Kafra.", e_full: "Máximo {max} anuncios a la vez.", e_missing: "Ese objeto ya no está en tu inventario.",
+            e_bad: "Ese objeto no se puede anunciar o el precio no es válido (1–1.000.000.000).", e_conflict: "Tu partida está ocupada, inténtalo otra vez.", e_net: "No se puede conectar con el servidor." },
+        };
+        const M = () => window.__ro?.mkt;
+        const lang = () => { const l = String(M()?.lang?.() ?? document.documentElement.lang ?? "zh"); return l.startsWith("zh") ? "zh" : l.startsWith("en") ? "en" : "es"; };
+        const t = (k, v = {}) => String(T[lang()][k] ?? T.zh[k]).replace(/\{(\w+)\}/g, (_, x) => String(v[x] ?? ""));
+        const num = (n) => (M()?.num ? M().num(n) : String(n));
+        let meta = { fee: 0.03, days: 7, max: 20 };
+        let tab = "browse", kind = "", page = 0, more = false, query = "", rows = [], mine = [], pick = null, sKind = "gear", seq = 0, busy = false;
+
+        const note = (msg, bad = false) => { const n = $("mk-note"); n.textContent = msg || ""; n.classList.toggle("bad", !!bad); };
+        const errMsg = (e) => {
+          const code = e?.code || "";
+          if (code === "gone" || code === "own" || code === "kafra" || code === "full" || code === "missing" || code === "conflict") return t("e_" + code, meta);
+          if (code === "bad_op") return t("e_bad");
+          if (e?.status === 409) return t("e_conflict");
+          return t("e_net");
+        };
+        const nameOf = (kindOf, itemId, item) => { const m = M(); return kindOf === "gear" ? (item ? m.gearName(item) : m.itemName(itemId)) : kindOf === "card" ? m.cardName(itemId) : m.oreName(itemId); };
+        const iconOf = (kindOf, itemId) => (kindOf === "card" ? M().cardArt(itemId) : M().icon(itemId)) || "";
+        // 引擎的「不可交易」標籤是照自己的可交易清單判斷，市場上別人的東西一定不在裡面，所以拿掉
+        const tipOf = (kindOf, itemId, item) => { const m = M(); return kindOf === "gear" && item ? m.tipGear(item).replace(/<span class="untradable-tag"[^>]*>[^<]*<\/span>/, "") : kindOf === "card" ? m.tipCard(itemId) : `<b>${m.esc(nameOf(kindOf, itemId, item))}</b>`; };
+        const kafra = () => Number(window.__ro?.getAccount?.()?.kafra ?? 0);
+        const leftText = (ms) => { const s = Math.max(0, ms - Date.now()) / 1000; return t("left", { t: s >= 86400 ? t("d", { n: Math.ceil(s / 86400) }) : s >= 3600 ? t("h", { n: Math.ceil(s / 3600) }) : t("m", { n: Math.max(1, Math.floor(s / 60)) }) }); };
+
+        // 名稱搜尋：頁面把名稱換成物品 id 再查（伺服器只認 id）
+        function searchIds(q) {
+          const m = M(), R = window.__ro, s = q.trim().toLowerCase(), out = [];
+          if (!s) return out;
+          const hit = (name) => String(name ?? "").toLowerCase().includes(s);
+          const want = (k) => !kind || kind === k;
+          if (want("gear")) for (const id of Object.keys(R.items ?? {})) { if (out.length >= 60) break; try { if (hit(m.itemName(Number(id)))) out.push(Number(id)); } catch {} }
+          if (want("card")) for (const id of Object.keys(R.cards ?? {})) { if (out.length >= 60) break; try { if (hit(m.cardName(Number(id)))) out.push(Number(id)); } catch {} }
+          if (want("ore")) for (const id of Object.values(m.ores ?? {})) { if (out.length >= 60) break; try { if (hit(m.oreName(Number(id)))) out.push(Number(id)); } catch {} }
+          return [...new Set(out)];
+        }
+
+        function rowEl(r, isMine) {
+          const el = document.createElement("div");
+          el.className = "mk-row" + (r.status !== "open" ? " closed" : "");
+          el.dataset.id = String(r.id);
+          const img = document.createElement("img"); img.className = "mk-ic" + (r.kind === "card" ? " card" : ""); img.alt = ""; img.src = iconOf(r.kind, r.itemId);
+          const nm = document.createElement("span"); nm.className = "mk-name"; nm.textContent = nameOf(r.kind, r.itemId, r.item) + (r.count > 1 ? ` ×${r.count}` : "");
+          const sub = document.createElement("small"); sub.className = "mk-sub muted";
+          sub.textContent = isMine ? (r.status === "open" ? leftText(r.expires) : t(r.status === "sold" ? "sold" : r.status === "expired" ? "expired" : "gone")) : r.seller;
+          nm.append(sub);
+          const pr = document.createElement("span"); pr.className = "mk-price"; pr.textContent = num(r.price);
+          el.append(img, nm, pr);
+          if (r.status === "open" && (isMine || !r.mine)) {
+            const b = document.createElement("button");
+            b.className = "ro-btn small" + (isMine ? "" : " primary");
+            b.textContent = t(isMine ? "cancel" : "buy");
+            b.dataset.act = isMine ? "cancel" : "buy";
+            el.append(b);
+          }
+          return el;
+        }
+        function fillRows(box, list, isMine, emptyKey) {
+          box.textContent = "";
+          if (!list.length) { const e = document.createElement("div"); e.className = "empty-note"; e.textContent = t(emptyKey); box.append(e); return; }
+          for (const r of list) box.append(rowEl(r, isMine));
+        }
+
+        function renderChrome() {
+          $("mk-title").textContent = t("title");
+          for (const b of $("mk-tabs").children) { b.textContent = t(b.dataset.mk); b.classList.toggle("active", b.dataset.mk === tab); }
+          $("mk-q").placeholder = t("search");
+          $("mk-close").textContent = t("close");
+          $("mk-list").textContent = t("list");
+          $("mk-hint").textContent = t("hint", meta);
+          $("mk-kafra").textContent = `${num(kafra())} Kafra`;
+          $("mk-kinds").innerHTML = ["", "gear", "card", "ore"].map((k) => `<button type="button" class="inv-chip${k === kind ? " active" : ""}" data-k="${k}">${t(k || "all")}</button>`).join("");
+          for (const id of ["browse", "sell", "mine"]) $("mk-" + id).classList.toggle("hidden", id !== tab);
+        }
+        async function loadBrowse() {
+          const my = ++seq;
+          const ids = query ? searchIds(query) : [];
+          if (query && !ids.length) { rows = []; more = false; return renderBrowse(); }
+          const p = new URLSearchParams();
+          if (kind) p.set("kind", kind);
+          if (ids.length) p.set("ids", ids.join(","));
+          if (page) p.set("page", String(page));
+          $("mk-rows").innerHTML = `<div class="empty-note">${t("loading")}</div>`;
+          try {
+            const r = await M().get("market" + (String(p) ? "?" + p : ""));
+            if (my !== seq) return;
+            rows = r.rows ?? []; more = !!r.more; meta = { fee: r.fee ?? meta.fee, days: r.days ?? meta.days, max: r.max ?? meta.max };
+            renderChrome(); renderBrowse();
+          } catch (e) { if (my === seq) { rows = []; renderBrowse(); note(errMsg(e), true); } }
+        }
+        function renderBrowse() {
+          fillRows($("mk-rows"), rows, false, "empty");
+          $("mk-page").textContent = t("page", { n: page + 1 });
+          $("mk-prev").disabled = page <= 0;
+          $("mk-next").disabled = !more;
+        }
+        async function loadMine() {
+          const my = ++seq;
+          $("mk-mine-rows").innerHTML = `<div class="empty-note">${t("loading")}</div>`;
+          try {
+            const r = await M().get("market/mine");
+            if (my !== seq) return;
+            mine = r.rows ?? [];
+            fillRows($("mk-mine-rows"), mine, true, "noMine");
+          } catch (e) { if (my === seq) { $("mk-mine-rows").textContent = ""; note(errMsg(e), true); } }
+        }
+
+        // 上架分頁：可交易的東西（引擎 F0()：不含身上穿的、上鎖的、新手裝備）
+        function renderSell() {
+          const a = M().acct(), m = M();
+          $("mk-sfilters").innerHTML = ["gear", "card", "ore"].map((k) => `<button type="button" class="inv-chip${k === sKind ? " active" : ""}" data-s="${k}">${t(k)}</button>`).join("");
+          const cells = sKind === "gear"
+            ? a.inventory.map((it) => `<div class="item-cell${it.quality ? ` q${it.quality}` : ""}${pick?.uid === it.uid ? " sel" : ""}" data-uid="${m.esc(String(it.uid))}"><img src="${iconOf("gear", it.itemId)}" alt="">${it.refine ? `<span class="qty">+${Number(it.refine)}</span>` : ""}</div>`)
+            : Object.entries(sKind === "card" ? a.cards : a.materials).filter(([, n]) => n > 0).map(([id, n]) => `<div class="item-cell${sKind === "card" ? " card-cell" : ""}${pick?.id === Number(id) && pick.kind === sKind ? " sel" : ""}" data-${sKind}="${Number(id)}"><img src="${iconOf(sKind, Number(id))}" alt=""><span class="qty">${Number(n)}</span></div>`);
+          $("mk-inv").innerHTML = cells.length ? cells.join("") : `<div class="empty-note">${t("noInv")}</div>`;
+          // 選到的東西如果已經不在了（剛上架、被交易走）就清掉
+          if (pick && !(pick.kind === "gear" ? a.inventory.some((i) => i.uid === pick.uid) : (pick.kind === "card" ? a.cards : a.materials)[pick.id] > 0)) pick = null;
+          const pk = $("mk-pick");
+          pk.textContent = "";
+          const isStack = pick && pick.kind !== "gear";
+          $("mk-count-l").hidden = !isStack;
+          $("mk-count-l").firstElementChild.textContent = t("count");
+          $("mk-price-l").firstElementChild.textContent = t("total");
+          if (!pick) { pk.className = "mk-pick muted"; pk.textContent = t("pickFirst"); }
+          else {
+            pk.className = "mk-pick";
+            const item = pick.kind === "gear" ? a.inventory.find((i) => i.uid === pick.uid) : null;
+            const img = document.createElement("img"); img.className = "mk-ic" + (pick.kind === "card" ? " card" : ""); img.alt = ""; img.src = iconOf(pick.kind, pick.kind === "gear" ? item.itemId : pick.id);
+            const nm = document.createElement("span"); nm.textContent = nameOf(pick.kind, pick.kind === "gear" ? item.itemId : pick.id, item);
+            pk.append(img, nm);
+            if (isStack) { const have = (pick.kind === "card" ? a.cards : a.materials)[pick.id]; $("mk-count").max = String(have); if (!(Number($("mk-count").value) >= 1)) $("mk-count").value = "1"; if (Number($("mk-count").value) > have) $("mk-count").value = String(have); }
+          }
+          $("mk-list").disabled = !pick || busy;
+          renderGet();
+        }
+        function renderGet() {
+          const p = Math.trunc(Number($("mk-price").value));
+          $("mk-get").textContent = pick && p >= 1 ? t("get", { n: num(p - Math.floor(p * meta.fee)), fee: Math.round(meta.fee * 100) }) : "";
+        }
+
+        async function act(fn, okKey) {
+          if (busy) return;
+          busy = true; note("");
+          panel.classList.add("busy");
+          try { await fn(); note(t(okKey)); }
+          catch (e) { note(errMsg(e), true); }
+          finally { busy = false; panel.classList.remove("busy"); $("mk-kafra").textContent = `${num(kafra())} Kafra`; }
+        }
+        function buy(r) {
+          const m = M();
+          const what = `${m.esc(nameOf(r.kind, r.itemId, r.item))}${r.count > 1 ? ` ×${r.count}` : ""}`;
+          m.confirm(t("buyT"), `${what}<br>${m.esc(t("buyQ", { p: num(r.price) }))}`, t("buy"), () => act(async () => { await m.op({ op: "marketBuy", id: r.id }); }, "bought").then(loadBrowse));
+        }
+        function cancel(r) { act(async () => { await M().op({ op: "marketCancel", id: r.id }); }, "cancelled").then(loadMine); }
+        function list() {
+          if (!pick) return;
+          const price = Math.trunc(Number($("mk-price").value));
+          const body = { op: "marketList", price, char: window.__ro?.charId ?? undefined };
+          if (pick.kind === "gear") body.uid = pick.uid;
+          else { body[pick.kind] = pick.id; body.count = Math.trunc(Number($("mk-count").value)); }
+          act(async () => { await M().op(body); pick = null; $("mk-price").value = ""; }, "listed").then(renderSell);
+        }
+
+        const rowOf = (ev, list) => { const el = ev.target.closest(".mk-row"); return el ? list.find((r) => String(r.id) === el.dataset.id) : null; };
+        $("mk-rows").onclick = (ev) => { const b = ev.target.closest("button[data-act]"); const r = b && rowOf(ev, rows); if (r) buy(r); };
+        $("mk-mine-rows").onclick = (ev) => { const b = ev.target.closest("button[data-act]"); const r = b && rowOf(ev, mine); if (r) cancel(r); };
+        $("mk-tabs").onclick = (ev) => { const b = ev.target.closest("[data-mk]"); if (!b || b.dataset.mk === tab) return; tab = b.dataset.mk; note(""); renderChrome(); refresh(); };
+        $("mk-kinds").onclick = (ev) => { const b = ev.target.closest("[data-k]"); if (!b) return; kind = b.dataset.k; page = 0; renderChrome(); loadBrowse(); };
+        $("mk-search").onsubmit = (ev) => { ev.preventDefault(); query = $("mk-q").value.trim(); page = 0; loadBrowse(); };
+        $("mk-q").onsearch = () => { if (!$("mk-q").value && query) { query = ""; page = 0; loadBrowse(); } };
+        $("mk-prev").onclick = () => { if (page > 0) { page--; loadBrowse(); } };
+        $("mk-next").onclick = () => { if (more) { page++; loadBrowse(); } };
+        $("mk-sfilters").onclick = (ev) => { const b = ev.target.closest("[data-s]"); if (!b) return; sKind = b.dataset.s; renderSell(); };
+        $("mk-inv").onclick = (ev) => {
+          const c = ev.target.closest(".item-cell"); if (!c) return;
+          pick = c.dataset.uid ? { kind: "gear", uid: c.dataset.uid } : c.dataset.card ? { kind: "card", id: Number(c.dataset.card) } : { kind: "ore", id: Number(c.dataset.ore) };
+          $("mk-count").value = "1";
+          renderSell();
+          $("mk-price").focus();
+        };
+        $("mk-price").oninput = renderGet;
+        $("mk-count").oninput = renderGet;
+        $("mk-list").onclick = list;
+        $("mk-form").onkeydown = (ev) => { if (ev.key === "Enter" && ev.target.matches("input")) { ev.preventDefault(); list(); } };
+
+        let tipsBound = false;
+        function bindTips() {
+          if (tipsBound || !M()?.tip) return;
+          tipsBound = true;
+          const tipRow = (list) => (el) => { const r = list().find((x) => String(x.id) === el.dataset.id); return r ? tipOf(r.kind, r.itemId, r.item) : ""; };
+          M().tip($("mk-rows"), ".mk-row", tipRow(() => rows));
+          M().tip($("mk-mine-rows"), ".mk-row", tipRow(() => mine));
+          M().tip($("mk-inv"), ".item-cell", (el) => { const a = M().acct(); if (el.dataset.uid) { const it = a.inventory.find((i) => i.uid === el.dataset.uid); return it ? tipOf("gear", it.itemId, it) : ""; } return el.dataset.card ? tipOf("card", Number(el.dataset.card)) : tipOf("ore", Number(el.dataset.ore)); });
+        }
+        function refresh() {
+          renderChrome();
+          if (tab === "browse") loadBrowse();
+          else if (tab === "mine") loadMine();
+          else renderSell();
+        }
+        const onKey = (ev) => { if (ev.key === "Escape" && !panel.classList.contains("hidden")) { ev.stopPropagation(); close(); } };
+        function open() {
+          if (!window.__roMarket || !M()?.online?.()) return;
+          bindTips();
+          note("");
+          panel.classList.remove("hidden");
+          addEventListener("keydown", onKey, true);
+          refresh();
+        }
+        function close() {
+          panel.classList.add("hidden");
+          removeEventListener("keydown", onKey, true);
+          seq++;
+        }
+        // 輸入框打字時不要觸發大廳的快捷鍵（C、X、移動…）
+        for (const ev of ["keydown", "keyup", "keypress"]) panel.addEventListener(ev, (e) => { if (e.target.matches?.("input") && e.key !== "Escape") e.stopPropagation(); });
+        btn.onclick = open;
+        $("mk-close").onclick = close;
+        // 離開大廳（進關卡、換角色）就關掉
+        new MutationObserver(() => { if ($("lobby-ui")?.classList.contains("hidden") && !panel.classList.contains("hidden")) close(); }).observe($("lobby-ui"), { attributes: true, attributeFilter: ["class"] });
       })();
     </script>
 

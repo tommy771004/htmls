@@ -2664,3 +2664,47 @@ body:has(.dock-panel:not(.hidden)) #sp-top {
     display: none;
   }
 }
+
+/* ============================================================
+   市場（template.html 的 #market，server/ro-life/market.mjs）：只對線上角色、伺服器開放時顯示（body.ro-market）
+   ============================================================ */
+:root { --ic-market: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.5 5.5 4h13L20 9.5'/%3E%3Cpath d='M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0'/%3E%3Cpath d='M5.5 12v8h13v-8M10 20v-4.5h4V20'/%3E%3C/svg%3E"); }
+#lobby-market { --ic: var(--ic-market); }
+body:not(.ro-market) #lobby-market { display: none !important; }
+#market { --dk-w: 760px; }
+.market-window .ro-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+#market.busy .mk-pane { opacity: .6; pointer-events: none; }
+.mk-pane { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px; border-radius: 14px; background-color: rgba(14, 17, 29, 0.78); border: 1px solid rgba(255, 255, 255, 0.11); -webkit-backdrop-filter: blur(14px) saturate(130%); backdrop-filter: blur(14px) saturate(130%); }
+.mk-pane.hidden { display: none; }
+.mk-search { display: flex; flex-direction: column; gap: 6px; }
+.mk-search input, .mk-field input { padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06); color: #fff; font: inherit; }
+.mk-search input { width: 100%; }
+.mk-rows { display: flex; flex-direction: column; gap: 4px; max-height: min(46vh, 360px); overflow-y: auto; }
+.mk-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 10px; background: var(--dg-well); border: 1px solid rgba(255, 255, 255, 0.08); }
+.mk-row.closed { opacity: .62; }
+.mk-ic { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+.mk-ic.card { object-fit: cover; border-radius: 3px; }
+.mk-name { display: flex; flex-direction: column; min-width: 0; font-weight: 700; color: var(--ro-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-name .mk-sub { font-weight: 400; font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; }
+.mk-price { font-weight: 800; color: var(--ro-text); font-variant-numeric: tabular-nums; }
+.mk-price:after { content: " K"; font-weight: 400; color: var(--ro-muted); font-size: var(--fs-xs); }
+.mk-pager { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: var(--fs-sm); color: var(--ro-muted); }
+.mk-inv { max-height: min(30vh, 220px); overflow-y: auto; }
+.mk-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; background: var(--dg-well); border: 1px solid rgba(255, 255, 255, 0.08); }
+.mk-pick { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; font-weight: 700; min-width: 0; }
+.mk-field { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ro-muted); }
+.mk-field[hidden] { display: none; }
+.mk-field input { width: 120px; padding: 4px 8px; }
+#mk-count { width: 72px; }
+.mk-get { flex: 1 1 100%; font-size: var(--fs-xs); }
+.mk-note:empty { display: none; }
+.mk-note { padding: 6px 10px; border-radius: 10px; font-size: var(--fs-sm); color: #fff; background-color: rgba(14, 17, 29, 0.78); border: 1px solid rgba(255, 255, 255, 0.11); }
+.mk-note.bad { color: #ff9b9b; }
+.mk-hint { font-size: var(--fs-xs); }
+#mk-kafra { white-space: nowrap; }
+@media (max-width: 720px), (max-height: 500px) {
+  .mk-rows { max-height: 38vh; }
+  .mk-inv { max-height: 22vh; }
+  .mk-hint { display: none; }
+  .mk-field input { width: 96px; }
+}

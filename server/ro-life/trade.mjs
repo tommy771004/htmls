@@ -54,9 +54,11 @@ const look = (it) => ({
 });
 // 物品跨帳號（交易、市場、信箱）時重建：只留引擎物品的欄位（引擎建物品只用這幾個），safe（上鎖）、owner（新手）不帶過去；
 // 詞綴保留原本的鍵（引擎可能還有別的欄位），但只收基本型別的值
-const PRIM = (v) => (typeof v === 'string' ? v.slice(0, 40) : typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'boolean' ? v : undefined);
+// 詞綴的字串只會是識別字（stat、skill 的 id）：別的字串一律丟掉。引擎的物品提示是 innerHTML，對方的存檔內容不能帶標籤進來
+const IDENT = /^[A-Za-z0-9_.:-]{1,40}$/;
+const PRIM = (v) => (typeof v === 'string' ? (IDENT.test(v) ? v : undefined) : typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'boolean' ? v : undefined);
 export function cleanItem(it) {
-  const out = { uid: String(it.uid).slice(0, 64), itemId: int(it.itemId), quality: Math.max(0, Math.min(9, int(it.quality))), refine: Math.max(0, Math.min(20, int(it.refine))) };
+  const out = { uid: String(it?.uid ?? '').replace(/[^\w.:-]/g, '_').slice(0, 64) || 'item', itemId: int(it.itemId), quality: Math.max(0, Math.min(9, int(it.quality))), refine: Math.max(0, Math.min(20, int(it.refine))) };
   out.cards = list(it.cards).slice(0, 4).map((c) => (c == null ? null : int(c)));
   out.affixes = list(it.affixes).slice(0, 8).filter((a) => a && typeof a === 'object').map((a) => Object.fromEntries(Object.entries(a).filter(([k]) => KEY.test(k)).slice(0, 6).map(([k, v]) => [k, PRIM(v)]).filter(([, v]) => v !== undefined)));
   if (it.ilvl != null) out.ilvl = int(it.ilvl);

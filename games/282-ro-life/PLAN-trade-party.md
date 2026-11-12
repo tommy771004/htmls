@@ -71,6 +71,7 @@
 | 2 合作關卡 | `ws-run` 房間轉送、房主斷線換人、重連；獎勵暫時仍由各自的用戶端結算 | 同一個 Durable Object（以隊伍分房） | **完成（2026-11-12，待部署）**；實測房主每秒約 20 則、隊員約 10 則 |
 | 3 伺服器權威：存檔驗證 | 啟用引擎的線上模式（`Lh=false`、真的 `nt()`）；`POST run` 發憑證；`PUT save` 驗證差異；`POST op` 的買賣、精煉 | Vercel＋Neon（線上存檔在 `ro_game_save`） | 2–4 週；**3a 完成（2026-11-12，待套表）** |
 | 4 交易 | 引擎原本的交易協定，成交時伺服器在 Neon 的同一個交易裡改雙方存檔 | 大廳 DO 撮合＋Neon 結算 | **完成（2026-11-12，預設關閉，待開啟）** |
+| 4b 市場＋信箱 | 線上角色上架、購買、下架；賣出的錢與到期退回寄到信箱（郵差 NPC），領附件走 `op:'mail'` | Vercel＋Neon（`ro_market`、`ro_game_mail`） | **完成（2026-11-12，預設關閉，待套表、待開啟）** |
 | 5 排行榜 | `GET ladder`；只收階段 3 驗證過的成績 | Vercel＋Neon | 數天 |
 | 6 無盡之塔重跑驗證 | 伺服器端無頭跑引擎驗證操作紀錄 | 待評估 | 待評估（先做技術驗證） |
 
@@ -160,7 +161,7 @@
 - 開啟步驟（使用者）：Vercel 設 `RO_TRADE=1` 並重新部署 → Worker 的 `wrangler.toml` `[vars]` 加 `RO_TRADE_URL = "https://htmls-ruddy.vercel.app/api/ro/trade/settle"` → 在 `worker/` 執行 `npx wrangler deploy`。只做其中一邊時交易不會出現（Worker 沒設就不送 `trade`）或結算一律失敗（Vercel 沒開回 404，大廳回「已取消」）。
 
 
-### 2026-11-12 市場＋信箱（規格，實作中）
+### 2026-11-12 市場＋信箱（完成，預設關閉）
 
 - 順序：信箱 → 市場（市場的收款與到期退回走信箱）。只限線上角色；開關 `RO_MARKET=1`＋兩張新表（`to_regclass` 檢查），沒開時信箱照舊回空、`op:mail` 回 `missing`，頁面不出現市場鈕、不發請求。
 - 新表（`schema.sql`，使用者自己套）：
@@ -172,7 +173,12 @@
   - `marketBuy {id}`：上架中、沒過期、不是自己的；扣買家 Kafra、物品進買家存檔、上架改 sold、賣家收到一封信（Kafra＝價格扣 `MARKET_FEE` 手續費，ref `market-sold-<id>`）。
   - `marketCancel {id}`：自己上架中的 → 物品回存檔。
   - 到期（`MARKET_DAYS`）：賣家開市場或信箱時，把自己過期的上架改 expired 並寄回（ref `market-expired-<id>`），一句 SQL。
-- 讀取：`GET game/market?kind=&q=&page=`（上架中、沒過期，價格低到高，每頁 `MARKET_PAGE`）、`GET game/market/mine`。回傳只有清理過的物品樣子與賣家名。
-- 每個 op 一個 `sql.transaction`：存檔照 rev 改寫＋上架／信件那一列的變更＋最後一句確認（以這次的 wid 或買家 id 判斷），否則除以零整筆回滾。
+- 讀取：`GET game/market?kind=&ids=&page=`（名稱搜尋在頁面上把名稱換成物品 id，最多 60 個）（上架中、沒過期，價格低到高，每頁 `MARKET_PAGE`）、`GET game/market/mine`。回傳只有清理過的物品樣子與賣家名。
+- 每個 op 是**一句** SQL（資料修改的 CTE）：上架／信件那一列的變更＋存檔照 rev 改寫（只在前者真的改到時）＋最後 `1 / count(改到的列)`，0 列就除以零、整句回滾，`store` 回 null；`game.mjs` 再查一次那一列，已經被別人改了就回 `gone`／`missing`，只是 rev 不符就用新存檔重算（最多 3 次）。
 - 常數：手續費 3%（Kafra 回收），上架 7 天，每人 20 筆，價格 1～10 億 Kafra，每頁 40 筆。
 - 風險（開啟前要知道）：物品數上限目前只記錄，關卡憑證下偽造的普通掉落可以在市場換成別人的 Kafra。
+- 頁面：大廳下方圖示列多一顆市場鈕（`#lobby-market`，`/api/ro/config` 回 `market` 而且是線上角色才出現，`body.ro-market`）；面板 `#market`（template.html，dock-panel 版面）分「瀏覽／上架／我的上架」，引擎函式由 `tools/build.mjs` 掛在 `window.__ro.mkt`。不輪詢：開面板、換分頁、動作之後才查。信箱沿用引擎原本的郵差 NPC。
+- 測試：`server/ro-life/market.test.mjs`（在 `npm run test:ro` 裡，記憶體資料）；PGlite 真的 PostgreSQL 跑過每一句 SQL（兩人買同一件、買 vs 下架、同一封信領兩次、到期掃兩次、rev 不符回滾；PGlite 只有一條連線，這些是依序跑的，同時發生時靠 UPDATE 的列鎖與重新檢查條件），`schema.sql` 連套兩次沒有錯；上架物品的詞綴只留數字與識別字、uid 去掉怪字元（引擎的物品提示是 innerHTML）；兩個瀏覽器實測（上架劍與卡片 → 另一人搜尋、篩選、購買 → 賣家下架卡片、找郵差領 1,455 Kafra），開 `RO_ONLINE_ENFORCE=1` 沒有任何修正、沒有錯誤；在搜尋框與價格欄打字、在按鈕上按空白／C／X 都不會觸發大廳快捷鍵或移動，Esc 只關市場；1440×900 與手機橫向 844×390 截圖。單機模式與靜態主機（沒有 `/api`）兩種尺寸都不出現市場鈕、沒有 `/api` 請求、沒有錯誤；`endless-bot.mjs` 3 分鐘 17/17。
+- 開啟步驟（使用者）：
+  1. 套用 `server/ro-life/schema.sql`（只新增 `ro_game_mail`、`ro_market` 兩張表與索引，其他都是 `IF NOT EXISTS`）。
+  2. Vercel 設 `RO_MARKET=1`，重新部署。沒設時信箱照舊是空的、頁面不出現市場鈕。

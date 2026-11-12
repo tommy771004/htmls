@@ -176,6 +176,7 @@ export function createGameRoutes({ env, store, send, readBody }) {
     }
     if (!(await marketOn())) return fail({ error: 'bad_op' });
     if (body.op === 'marketList') {
+      await store.marketExpire(id, MAIL_TEXT.expired); // 過期沒掃的不佔名額
       if ((await store.marketOpenCount(id)) >= MARKET_MAX_LISTINGS) return fail({ error: 'full' });
       const r = await saveOp(id, (doc) => takeForListing(doc, body), (cur, doc, wid, x) => store.marketListSave(id, cur.rev, doc, wid, x.listing, charName(cur.doc, body.char), MARKET_DAYS).then((w) => w && { rev: w.rev, listingId: w.id }));
       return r.error ? fail(r) : ok(r, { kind: r.listing.kind, item: r.listing.itemId, count: r.listing.count, price: r.listing.price, listing: r.listingId });

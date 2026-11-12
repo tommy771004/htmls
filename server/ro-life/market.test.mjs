@@ -54,6 +54,21 @@ test('上架拿出物品：身上的、上鎖的、新手的、不存在的、�
   assert.deepEqual(acct(o.doc).materials, { 984: 3 });
 });
 
+test('上架的物品：詞綴只留數字與識別字、uid 換掉怪字元（引擎的提示是 innerHTML）', () => {
+  const evil = sword('a"><img src=x onerror=alert(1)>', { refine: '<b>9</b>', quality: '<i>', affixes: [{ stat: '<img src=x onerror=1>', value: '<svg onload=1>' }, { stat: 'skill', skill: 'MG_FIREBOLT', value: 2 }, { stat: 'dex', value: 3, '<k>': 1 }], cards: ['<x>', 4001] });
+  const r = takeForListing(docOf({ inventory: [evil] }), { uid: evil.uid, price: 10 });
+  assert.ok(!r.error, r.error);
+  const it = r.listing.item;
+  assert.match(it.uid, /^[\w.:-]+$/);
+  assert.deepEqual([it.refine, it.quality, it.cards], [0, 0, [0, 4001]]);
+  assert.deepEqual(it.affixes, [{}, { stat: 'skill', skill: 'MG_FIREBOLT', value: 2 }, { stat: 'dex', value: 3 }]);
+  assert.ok(!/[<>]|\\"/.test(JSON.stringify(it))); // 結構以外沒有 < > "
+  // 信件附件裡的怪東西也一樣（null 跳過）
+  const back = acct(addAttach(docOf(), { gear: [null, evil] }).doc).inventory;
+  assert.equal(back.length, 1);
+  assert.ok(!/[<>]|\\"/.test(JSON.stringify(back)));
+});
+
 test('附件加回存檔：uid 撞號換新、Kafra 不夠付不行；手續費 3%（無條件捨去）', () => {
   const doc = docOf({ inventory: [sword('x')], kafra: 100 });
   const r = addAttach(doc, attachOf({ kind: 'gear', itemId: 1104, item: sword('x', { extra: 1 }), count: 1 }));
