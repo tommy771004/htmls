@@ -46,6 +46,7 @@
 - 創角的髮型縮圖格與頭飾試戴；選角的更換頭像鈕、點空欄位直接進創角。
 - 做不到的：單人關卡「掛著不打、時間到再領」（一般關卡沒有可重播的操作紀錄）。
 - 之後（`20261112-11`）：創角左側面板在 1440×900 不用捲、矮視窗時性別分頁釘在最上面；`endless-bot.mjs` 多 `--pet`。查證後「寵物進塔會對不上」是誤判，引擎開塔時本來就不帶寵物，沒有改引擎與伺服器。
+- 第四輪（commit `20261112-12`，清單在 `PLAN-trade-party.md`「第四輪」）：登入權杖改放 HttpOnly cookie、正式站的 `window.__ro` 只剩 `mkt`、事後稽核工具 `tools/audit-activity.mjs`（經濟、行為、停權 SQL，分數到 15 才產生 UPDATE）。沒做：Cloudflare Turnstile（要使用者的金鑰）、新登入踢掉舊的大廳連線。
 - 規則資料重新倒過兩次（`affix`、`equipSlots`、`dual`、`pets`、`drops`，每件裝備多 `jobsAll`／`gender`／`wtype`），頁面重新 build。
 
 ## 下一步（使用者說「依序實作」）

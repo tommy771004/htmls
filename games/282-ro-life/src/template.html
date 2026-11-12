@@ -925,6 +925,20 @@
         const load = () => { try { return JSON.parse(localStorage.getItem(STATE)) ?? null; } catch { return null; } };
         const store = (v) => { try { v ? localStorage.setItem(STATE, JSON.stringify(v)) : localStorage.removeItem(STATE); } catch {} };
         let st = load(), busy = null, conflict = false, applying = false;
+        // 登入權杖在 HttpOnly cookie 裡（server/ro-life/server.mjs），這裡讀不到也不存。st 只記帳號與 key：
+        // key 是 c.<帳號 id>.<亂數>，不是權杖，放在 x-session 告訴伺服器這一頁以為自己是哪個帳號（另一個分頁換了帳號時
+        // 伺服器回 401 account，這一頁重新載入），也交給引擎當它的「token」（引擎要一個字串：判斷有沒有登入、加密本機快取）。
+        // st.token 只會出現在升級前的舊資料裡：開頁時拿去換成 cookie（auth/upgrade），換完就刪。
+        const mkKey = (id) => `c.${id}.${Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("")}`;
+        const signedIn = () => !!(st?.account && (st.key || st.token));
+        // 帳號對不上：重新載入一次（讀到現在的登入）。重新載入後還是對不上就當成沒登入，不要一直轉
+        const acctGone = window.__roAcctGone = () => {
+          try {
+            if (sessionStorage.getItem("ro-acct-reload") !== "1") { sessionStorage.setItem("ro-acct-reload", "1"); location.reload(); return true; }
+            sessionStorage.removeItem("ro-acct-reload");
+          } catch {}
+          return false;
+        };
         // 只在標題畫面套用雲端存檔或詢問玩家；已經進遊戲就延到下次開頁（引擎正在寫存檔，換掉會被它蓋回去）
         const onSplash = () => !!document.getElementById("splash") && !document.getElementById("splash").classList.contains("hidden");
 
@@ -932,8 +946,10 @@
           const headers = {};
           if (body !== undefined) headers["content-type"] = "application/json";
           if (st?.token) headers.authorization = `Bearer ${st.token}`;
+          else if (st?.key) headers["x-session"] = st.key;
           const r = await fetch(API + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), keepalive, cache: "no-store" });
           const j = await r.json().catch(() => ({}));
+          if (r.status === 401 && j.error === "account" && acctGone()) return new Promise(() => {});
           if (!r.ok) throw Object.assign(new Error(j.error || String(r.status)), { status: r.status, body: j });
           return j;
         };
@@ -971,7 +987,7 @@
           for (const el of document.querySelectorAll(".sp-oauth-err")) { el.textContent = T(key); el.classList.remove("hidden"); }
         };
         const render = (providers) => {
-          const on = !!st?.token;
+          const on = signedIn();
           document.documentElement.classList.toggle("ro-oauth", !!providers && Object.values(providers).some(Boolean));
           for (const box of document.querySelectorAll(".sp-oauth")) box.classList.toggle("hidden", on || !providers || !Object.values(providers).some(Boolean));
           for (const b of document.querySelectorAll("[data-oauth]")) b.classList.toggle("hidden", !providers?.[b.dataset.oauth]);
@@ -1068,12 +1084,16 @@
           status("saved");
         }
         // 遊戲中定時上傳；rev 對不上（別台裝置存過）就停下，下次開頁再處理
+        // 重新載入或關頁時 visibilitychange 與 pagehide 會同時觸發：同一個 rev 送兩次，第二個一定 409，所以一次只送一個
+        let pushing = false;
         async function push(keepalive = false) {
-          if (!st?.token || conflict || applying || st.rev === undefined || window.__roOnline) return;
+          if (pushing || !signedIn() || conflict || applying || st.rev === undefined || window.__roOnline) return;
           const doc = localDoc(), h = hash(canon(doc));
           if (h === st.sent) return;
+          pushing = true;
           try { await upload(st.rev, doc, keepalive && JSON.stringify(doc).length < 60000); status("saved"); }
           catch (e) { if (e.status === 409) conflict = true; if (e.status === 401) { st = null; store(null); render(cfg); } status("syncfail"); }
+          finally { pushing = false; }
         }
         const run = (fn) => (busy ??= fn().catch((e) => {
           if (e.status === 401) { st = null; store(null); if (window.__roOnline) return window.__roOffline(); render(cfg); }
@@ -1096,7 +1116,7 @@
         const refreshTicket = async (force = false) => {
           const L = window.__roLobby;
           if (!L) return;
-          if (!st?.token) { L.ticket = null; return; }
+          if (!signedIn()) { L.ticket = null; return; }
           if (!force && L.ticket && Date.now() - ticketAt < 4 * 60_000) return;
           try { L.ticket = (await api("GET", "lobby-ticket")).ticket; ticketAt = Date.now(); } catch { L.ticket = null; }
         };
@@ -1110,10 +1130,34 @@
             if (code) {
               try {
                 const r = await api("POST", "auth/exchange", { code });
-                st = { token: r.token, account: r.account };
+                st = { account: r.account, key: mkKey(r.account.id) };
                 store(st);
               } catch (e) { setTimeout(() => showError(e.status === 403 ? "banned" : "loginfail"), 0); }
             } else setTimeout(() => showError(err === "denied" ? "cancelled" : "loginfail"), 0);
+          }
+          // 升級前的舊登入（權杖在 localStorage）：換成 cookie，舊權杖伺服器那邊作廢、這邊刪掉
+          if (st?.token) {
+            try {
+              const r = await api("POST", "auth/upgrade");
+              st = { ...st, account: { ...st.account, ...r.account }, key: mkKey(r.account.id) };
+              delete st.token;
+              store(st);
+              try { if (localStorage.getItem("ro-life-session")) localStorage.setItem("ro-life-session", JSON.stringify({ token: st.key, id: +st.account.id, name: st.account.name || "冒險者" })); } catch {}
+              // 線上模式：引擎這次已經拿舊權杖開起來了，重新載入讓它改用新的
+              if (window.__roOnline) return location.reload();
+            } catch (e) {
+              if (e.status === 401) {
+                // 另一個分頁可能剛好先換完（舊權杖只能換一次），而且它的 200 可能比這邊的 401 晚到：
+                // 等到 localStorage 不再是這個舊權杖（最多 3 秒）再決定。已經換成 key 就直接用，不要登出、也不要退回單機
+                let now = load();
+                for (let i = 0; i < 10 && now?.token === st.token; i++) { await new Promise((r) => setTimeout(r, 300)); now = load(); }
+                if (now?.key && !now.token) {
+                  st = now;
+                  if (window.__roOnline) return location.reload();
+                } else { st = null; store(null); if (window.__roOnline) return window.__roOffline(); }
+              }
+              // 其他錯誤（連不上）：這次照舊帶標頭，下次開頁再換
+            }
           }
           let conf = null;
           try { conf = await api("GET", "config"); } catch {}
@@ -1125,7 +1169,7 @@
           window.__roMarket = !!conf?.market && !!window.__roOnline;
           document.body.classList.toggle("ro-market", window.__roMarket);
           // 線上模式但伺服器沒開放、或已經沒有登入：退回單機
-          if (window.__roOnline && (!onlineOk || !st?.token)) return window.__roOffline();
+          if (window.__roOnline && (!onlineOk || !signedIn())) return window.__roOffline();
           if (typeof conf?.lobby === "string" && conf.lobby) {
             window.__roLobby = { url: (l) => wsUrl(conf.lobby, l), ticket: null, refresh: () => { refreshTicket(); } };
             await refreshTicket(true);
@@ -1134,9 +1178,10 @@
           }
           lobbyDone();
           render(cfg);
-          if (st?.token) {
+          if (signedIn()) {
             try {
               const me = await api("GET", "me");
+              try { sessionStorage.removeItem("ro-acct-reload"); } catch {}
               st = { ...st, account: { ...st.account, ...me.account } };
               store(st);
               render(cfg);
@@ -1205,12 +1250,12 @@
         const iconOf = (kindOf, itemId) => (kindOf === "card" ? M().cardArt(itemId) : M().icon(itemId)) || "";
         // 引擎的「不可交易」標籤是照自己的可交易清單判斷，市場上別人的東西一定不在裡面，所以拿掉
         const tipOf = (kindOf, itemId, item) => { const m = M(); return kindOf === "gear" && item ? m.tipGear(item).replace(/<span class="untradable-tag"[^>]*>[^<]*<\/span>/, "") : kindOf === "card" ? m.tipCard(itemId) : `<b>${m.esc(nameOf(kindOf, itemId, item))}</b>`; };
-        const kafra = () => Number(window.__ro?.getAccount?.()?.kafra ?? 0);
+        const kafra = () => Number(M()?.kafra?.() ?? 0);
         const leftText = (ms) => { const s = Math.max(0, ms - Date.now()) / 1000; return t("left", { t: s >= 86400 ? t("d", { n: Math.ceil(s / 86400) }) : s >= 3600 ? t("h", { n: Math.ceil(s / 3600) }) : t("m", { n: Math.max(1, Math.floor(s / 60)) }) }); };
 
         // 名稱搜尋：頁面把名稱換成物品 id 再查（伺服器只認 id）
         function searchIds(q) {
-          const m = M(), R = window.__ro, s = q.trim().toLowerCase(), out = [];
+          const m = M(), R = m, s = q.trim().toLowerCase(), out = [];
           if (!s) return out;
           const hit = (name) => String(name ?? "").toLowerCase().includes(s);
           const want = (k) => !kind || kind === k;
@@ -1340,7 +1385,7 @@
         function list() {
           if (!pick) return;
           const price = Math.trunc(Number($("mk-price").value));
-          const body = { op: "marketList", price, char: window.__ro?.charId ?? undefined };
+          const body = { op: "marketList", price, char: M()?.charId?.() ?? undefined };
           if (pick.kind === "gear") body.uid = pick.uid;
           else { body[pick.kind] = pick.id; body.count = Math.trunc(Number($("mk-count").value)); }
           act(async () => { await M().op(body); pick = null; $("mk-price").value = ""; }, "listed").then(renderSell);
@@ -1539,7 +1584,7 @@
         // 頭飾試戴：列出幾件頭上的裝備，點一下戴上、再點一下拿掉
         const redraw = () => document.querySelector("#charcreate [data-gender].active")?.click();
         function fill() {
-          const items = window.__ro?.items;
+          const items = window.__ro?.mkt?.items;
           if (!tryon || !items || tryon.childElementCount) return;
           const ids = Object.keys(items).filter((id) => items[id].slot === "head_top" && !items[id].gender).slice(0, 6);
           for (const id of ids) {

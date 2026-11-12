@@ -16,9 +16,11 @@ const outFile = outArg ? resolve(root, outArg.slice(6)) : resolve(root, '../../w
 const ASSET_CDN = process.argv.includes('--no-cdn') ? '' : (process.env.RO_ASSET_CDN ?? 'https://ro-assets.tommy771004.workers.dev/');
 const ASSET_HOSTS = ['htmls-ruddy.vercel.app'];
 // 線上角色（server/ro-life/game.mjs）：登入且選了「線上」（localStorage 的 ro-life.mode）才用引擎原本的線上模式，
-// 把頁面的登入權杖寫成引擎認得的 ro-life-session；其他情況一律單機，並清掉那個 key（單機時引擎也會讀它）。
+// 把頁面的登入狀態寫成引擎認得的 ro-life-session；其他情況一律單機，並清掉那個 key（單機時引擎也會讀它）。
+// 引擎的 token 是頁面的 st.key（c.<帳號 id>.<亂數>，不是權杖；真的權杖在 HttpOnly cookie 裡，見 template.html 的登入腳本）。
+// 引擎照舊把它放進 x-session，伺服器拿來核對帳號。st.token 是升級前的舊資料，頁面開起來後會換掉。
 // __roOffline：伺服器沒開放、登入過期或登出時退回單機並重新載入。
-const onlineScript = '<script>window.__roOnline=(()=>{try{const st=JSON.parse(localStorage.getItem("ro-life.cloud.v1")||"null");if(localStorage.getItem("ro-life.mode")==="online"&&st&&st.token&&st.account&&Number.isInteger(+st.account.id)){localStorage.setItem("ro-life-session",JSON.stringify({token:st.token,id:+st.account.id,name:st.account.name||"冒險者"}));return!0}localStorage.removeItem("ro-life-session")}catch{}return!1})();window.__roOffline=()=>{try{localStorage.setItem("ro-life.mode","single");localStorage.removeItem("ro-life-session")}catch{}location.reload()};document.documentElement.classList.toggle("ro-online",window.__roOnline)</script>';
+const onlineScript = '<script>window.__roOnline=(()=>{try{const st=JSON.parse(localStorage.getItem("ro-life.cloud.v1")||"null");if(localStorage.getItem("ro-life.mode")==="online"&&st&&(st.key||st.token)&&st.account&&Number.isInteger(+st.account.id)){localStorage.setItem("ro-life-session",JSON.stringify({token:st.key||st.token,id:+st.account.id,name:st.account.name||"冒險者"}));return!0}localStorage.removeItem("ro-life-session")}catch{}return!1})();window.__roOffline=()=>{try{localStorage.setItem("ro-life.mode","single");localStorage.removeItem("ro-life-session")}catch{}location.reload()};document.documentElement.classList.toggle("ro-online",window.__roOnline)</script>';
 // 合作關卡的收據與伺服器擲骰（引擎的掛點在下面 must() 的「合作關卡獎勵裁決」段落）：
 //   __roTripStart(rc)：出發時大廳給的行程收據；__roRunBody(b)：換關卡憑證時帶上
 //   __roTripGot(rc)：結算收據到了；__roCoopEnd(coop)：結算前向大廳要結算收據，存檔最多等 1.5 秒（__roTripWait）
@@ -164,7 +166,7 @@ const roRewritePlugin = {
         );
         must(
           'n.dataset.act==="invite"&&this.actions.inviteFar(o)',
-          'n.dataset.act==="invite"?this.actions.inviteFar(o):n.dataset.act==="msg"&&(window.__roWhisperTo=null,this.close(),window.__ro?.lobby?.chat?.whisperTo(o))'
+          'n.dataset.act==="invite"?this.actions.inviteFar(o):n.dataset.act==="msg"&&(window.__roWhisperTo=null,this.close(),re?.chat?.whisperTo(o))'
         );
         // 好友面板：登入（有入場票）就能用
         must('const t=!Pa();if(document.getElementById("fr-form")', 'const t=!(Pa()||window.__roLobby?.ticket);if(document.getElementById("fr-form")');
@@ -208,11 +210,19 @@ const roRewritePlugin = {
         // 沒有訪客帳號：登入失效時退回單機，不去建訪客
         must('async function hm(){if(Mt()||ee)return;', 'async function hm(){if(Mt()||ee||window.__roOnline)return;');
         must('function hn(){const a=ee;', 'function hn(){if(window.__roOnline)return void window.__roOffline?.();const a=ee;');
+        // 另一個分頁換了帳號（cookie 是別的帳號）：伺服器回 401 account，重新載入這一頁，不要當成登入過期退回單機
+        must('if(!o.ok)throw new Ks(o.status,i);return i}function cL(', 'if(!o.ok){if(o.status===401&&i.error==="account"&&window.__roAcctGone?.())return new Promise(()=>{});throw new Ks(o.status,i)}return i}function cL(');
+        // window.__ro（引擎的除錯掛點：目前這一局、大廳、讀寫角色與帳號、資料表、setDev）只在開發用的網址留著
+        // （引擎的 OT()：localhost、127.*、[::1]、staging.*；自動打塔、倒規則、驗證程式都在 127.0.0.1 上跑）。
+        // 其他網址（正式站、ro.test）只剩 mkt，主控台拿不到 saveAccount／saveChar／setDev 這些。
+        // 頁面腳本（template.html）與這裡的 must() 都不能讀 __ro 的其他欄位：正式站上是 undefined，用 ?. 會安靜地沒反應。
+        // 頁面要的引擎資料一律加在 mkt（市場的函式、items／cards 資料表、kafra()、charId()）；引擎內部直接用變數。
+        // 做法：整包先放在 const __roAll（下面「規則數值」那個 must 把開頭改名），這裡在物件結尾決定要掛哪些。
         // 市場（server/ro-life/market.mjs，頁面在 template.html 的 #market）：把需要的引擎函式掛在 window.__ro.mkt。
         // op 和引擎的 nc() 一樣先送出存檔、套用伺服器回的 {rev, doc}，但錯誤碼原樣丟出（gone／own／kafra／full…）讓市場自己顯示
         must(
           'isDev:Mt,setDev:mk};',
-          'isDev:Mt,setDev:mk,mkt:{online:Hl,get:e=>nt("GET",e),op:async e=>{const t=ee;if(!t)throw new Error("offline");await Ma();const s=await nt("POST","op",e);return ee===t&&(ei(t.id,s.rev,s.doc),wr=s.trade),s},acct:F0,gearName:ss,itemName:e=>zo(e,""),cardName:qt,oreName:Ft,icon:Me,cardArt:Fs,tipGear:rc,tipCard:Fh,tip:to,confirm:sa,esc:km,num:Em,lang:Ia,ores:at}};'
+          'isDev:Mt,setDev:mk,mkt:{online:Hl,get:e=>nt("GET",e),op:async e=>{const t=ee;if(!t)throw new Error("offline");await Ma();const s=await nt("POST","op",e);return ee===t&&(ei(t.id,s.rev,s.doc),wr=s.trade),s},acct:F0,gearName:ss,itemName:e=>zo(e,""),cardName:qt,oreName:Ft,icon:Me,cardArt:Fs,tipGear:rc,tipCard:Fh,tip:to,confirm:sa,esc:km,num:Em,lang:Ia,ores:at,items:fe,cards:ms,kafra:()=>Number(xt()?.kafra??0),charId:()=>qi??void 0}};window.__ro=OT()?__roAll:{mkt:__roAll.mkt};'
         );
         // 市場面板也算一個 UI 面板（手把／鍵盤焦點導覽的清單）
         must('"#petkeeper","#mailbox","#wiki"', '"#petkeeper","#mailbox","#market","#wiki"');
@@ -282,7 +292,7 @@ const roRewritePlugin = {
         // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
         must(
           'window.__ro={get run(){return z},',
-          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,affixGen:Zl,equipSlots:bs,equipJobs:zM,dual:TT,pets:Ca,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
+          'const __roAll={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,affixGen:Zl,equipSlots:bs,equipJobs:zM,dual:TT,pets:Ca,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
         );
       }
 

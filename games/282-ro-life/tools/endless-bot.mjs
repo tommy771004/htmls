@@ -71,7 +71,10 @@ const check = (name, ok, info = '') => { checks.push({ name, ok: !!ok, info }); 
 const log = (...a) => console.log('·', ...a);
 
 const browser = await chromium.launch({ channel: 'chrome', headless: !flag('headed'), args: ['--use-angle=metal', '--mute-audio'] });
-const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// 登入權杖在 HttpOnly cookie 裡（和正式站一樣）；頁面的 localStorage 只有帳號與 key（c.<帳號 id>.…，不是權杖）
+await ctx.addCookies([{ name: 'ro_session', value: TOKEN, domain: '127.0.0.1', path: '/api/ro', httpOnly: true, sameSite: 'Strict' }]);
+const page = await ctx.newPage();
 const errs = [];
 page.on('console', (m) => { if (m.type() === 'error' && !/404|Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 200)); });
 page.on('pageerror', (e) => errs.push('pageerror ' + e.message.slice(0, 200)));
@@ -90,10 +93,10 @@ let exitCode = 1;
 try {
   // 1. 登入、切線上模式
   await page.goto(`${ORIGIN}/web/282-ro-life.html?api`); await ready();
-  await page.evaluate(([token, id]) => {
-    localStorage.setItem('ro-life.cloud.v1', JSON.stringify({ token, account: { id, name: '塔測機器人', providers: ['google'], via: 'google' } }));
+  await page.evaluate((id) => {
+    localStorage.setItem('ro-life.cloud.v1', JSON.stringify({ key: `c.${id}.bot`, account: { id, name: '塔測機器人', providers: ['google'], via: 'google' } }));
     localStorage.setItem('ro-life.mode', 'online');
-  }, [TOKEN, accId]);
+  }, accId);
   await page.reload(); await ready(); await page.waitForTimeout(1200);
   const flags = await page.evaluate(() => ({ online: window.__roOnline, endless: window.__roEndless }));
   check('線上模式與無盡之塔已開啟', flags.online && flags.endless, flags);
@@ -305,6 +308,8 @@ try {
     check('打完塔寵物的親密度沒變', petNow?.intimacy === 950 && petNow?.acc === true, { pet: petNow, logs: store.mem.gameLogs.map((l) => l.kind) });
   }
   check('存檔沒有被伺服器修正', !fixes.length, fixes.map((l) => (l.detail?.fix ?? []).map((f) => f.code)));
+  const leak = await page.evaluate((t) => document.cookie.includes(t) || Object.keys(localStorage).some((k) => String(localStorage.getItem(k)).includes(t)) || Object.keys(sessionStorage).some((k) => String(sessionStorage.getItem(k)).includes(t)), TOKEN);
+  check('頁面的腳本拿不到登入權杖', !leak);
   check('頁面沒有錯誤', !errs.length, errs.slice(0, 5));
   if (suspended) log('有測中斷／繼續');
   exitCode = checks.every((c) => c.ok) ? 0 : 1;

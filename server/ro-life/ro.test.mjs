@@ -54,6 +54,12 @@ async function signIn(t, provider, code) {
   const ex = await fetch(`${t.base}/api/ro/auth/exchange`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: m[1] }) });
   assert.equal(ex.status, 200);
   const out = await ex.json();
+  // 權杖只在 HttpOnly cookie 裡，回應的 JSON 沒有
+  assert.equal(out.token, undefined);
+  const set = ex.headers.get('set-cookie');
+  assert.match(set, /^ro_session=[\w-]{20,100}; Path=\/api\/ro; Max-Age=\d+; HttpOnly; SameSite=Strict$/);
+  out.cookie = set.split(';')[0];
+  out.token = out.cookie.split('=')[1]; // 測試裡也拿它當 Bearer 用（標頭帶真的權杖仍然接受）
   // 代碼只能用一次
   const again = await fetch(`${t.base}/api/ro/auth/exchange`, { method: 'POST', body: JSON.stringify({ code: m[1] }) });
   assert.equal(again.status, 400);
@@ -130,6 +136,75 @@ test('LINE 登入走官方驗證端點；同一個 LINE 帳號再登入是同一
   const b = await signIn(t, 'line', 'l-code');
   assert.equal(b.account.id, a.account.id);
   assert.notEqual(b.token, a.token);
+  await t.close();
+});
+
+test('cookie 登入：同源、帳號標記、登出清 cookie；https 才加 Secure', async () => {
+  const t = await boot(ENV);
+  const a = await signIn(t, 'google', 'g-code');
+  const pin = `c.${a.account.id}.abcdef`;
+  const call = (method, path, headers = {}, body) => fetch(`${t.base}/api/ro/${path}`, { method, headers: { cookie: a.cookie, ...(body ? { 'content-type': 'application/json' } : {}), ...headers }, body: body ? JSON.stringify(body) : undefined });
+  // 讀取：只帶 cookie 就可以；帶了別的帳號的標記就不行
+  assert.equal((await call('GET', 'me')).status, 200);
+  assert.equal((await call('GET', 'me', { 'x-session': pin })).status, 200);
+  let r = await call('GET', 'me', { 'x-session': `c.${a.account.id + 1}.abcdef` });
+  assert.equal(r.status, 401);
+  assert.equal((await r.json()).error, 'account');
+  // 寫入：要帶自己的帳號標記
+  const doc = { 'characters.v1': '[]' };
+  r = await call('PUT', 'save', {}, { rev: 0, doc });
+  assert.equal(r.status, 401);
+  assert.equal((await r.json()).error, 'account');
+  r = await call('PUT', 'save', { 'x-session': `c.${a.account.id + 1}.abcdef` }, { rev: 0, doc });
+  assert.equal(r.status, 401);
+  r = await call('PUT', 'save', { 'x-session': pin }, { rev: 0, doc });
+  assert.deepEqual(await r.json(), { rev: 1 });
+  // 別的網站發的寫入請求（瀏覽器會標 cross-site／same-site，或 Origin 不是本站）一律擋
+  for (const h of [{ 'sec-fetch-site': 'cross-site' }, { 'sec-fetch-site': 'same-site' }, { origin: 'https://evil.example' }]) {
+    r = await call('PUT', 'save', { 'x-session': pin, ...h }, { rev: 1, doc });
+    assert.equal(r.status, 403, JSON.stringify(h));
+    assert.equal((await r.json()).error, 'origin');
+  }
+  r = await call('PUT', 'save', { 'x-session': pin, 'sec-fetch-site': 'same-origin', origin: t.base }, { rev: 1, doc });
+  assert.deepEqual(await r.json(), { rev: 2 });
+  r = await call('PUT', 'save', { 'x-session': pin, origin: t.base }, { rev: 2, doc });
+  assert.deepEqual(await r.json(), { rev: 3 });
+  // 用標頭帶權杖的（測試、工具）不受同源與標記的限制：那不是瀏覽器自動帶的東西
+  r = await fetch(`${t.base}/api/ro/save`, { method: 'PUT', headers: { authorization: `Bearer ${a.token}`, 'content-type': 'application/json', origin: 'https://evil.example' }, body: JSON.stringify({ rev: 3, doc }) });
+  assert.deepEqual(await r.json(), { rev: 4 });
+  // 亂寫的 cookie 不算登入；cookie 壞掉但標頭的權杖是好的仍然可以
+  assert.equal((await fetch(`${t.base}/api/ro/me`, { headers: { cookie: 'ro_session=' + 'x'.repeat(40) } })).status, 401);
+  assert.equal((await fetch(`${t.base}/api/ro/me`, { headers: { cookie: 'ro_session=' + 'x'.repeat(40), 'x-session': a.token } })).status, 200);
+  // 登出：刪掉登入、清 cookie
+  r = await call('POST', 'logout', { 'x-session': pin });
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('set-cookie'), /^ro_session=; Path=\/api\/ro; Max-Age=0; HttpOnly; SameSite=Strict$/);
+  assert.equal((await call('GET', 'me')).status, 401);
+  // https（Vercel 的 x-forwarded-proto）才加 Secure
+  const b = await signIn(t, 'line', 'l-code');
+  r = await fetch(`${t.base}/api/ro/logout`, { method: 'POST', headers: { cookie: b.cookie, 'x-session': `c.${b.account.id}.zz`, 'x-forwarded-proto': 'https' } });
+  assert.match(r.headers.get('set-cookie'), /; HttpOnly; SameSite=Strict; Secure$/);
+  await t.close();
+});
+
+test('舊版頁面的權杖換成 cookie：舊權杖作廢、只收標頭', async () => {
+  const t = await boot(ENV);
+  const a = await signIn(t, 'google', 'g-code');
+  const old = a.token;
+  // 只帶 cookie 不能換（不然別的網站可以幫你換一張新的）
+  assert.equal((await fetch(`${t.base}/api/ro/auth/upgrade`, { method: 'POST', headers: { cookie: a.cookie } })).status, 401);
+  const r = await fetch(`${t.base}/api/ro/auth/upgrade`, { method: 'POST', headers: { authorization: `Bearer ${old}` } });
+  assert.equal(r.status, 200);
+  const body = await r.json();
+  assert.equal(body.token, undefined);
+  assert.equal(body.account.id, a.account.id);
+  const fresh = r.headers.get('set-cookie').split(';')[0];
+  assert.notEqual(fresh, a.cookie);
+  // 舊權杖（標頭或 cookie）都不能用了，新的 cookie 可以
+  assert.equal((await fetch(`${t.base}/api/ro/me`, { headers: { authorization: `Bearer ${old}` } })).status, 401);
+  assert.equal((await fetch(`${t.base}/api/ro/me`, { headers: { cookie: a.cookie } })).status, 401);
+  assert.equal((await fetch(`${t.base}/api/ro/me`, { headers: { cookie: fresh } })).status, 200);
+  assert.equal((await fetch(`${t.base}/api/ro/auth/upgrade`, { method: 'POST', headers: { authorization: `Bearer ${old}` } })).status, 401);
   await t.close();
 });
 
