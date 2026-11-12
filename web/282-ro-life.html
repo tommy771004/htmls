@@ -2740,6 +2740,680 @@ body:not(.ro-market) #lobby-market { display: none !important; }
   .mk-field input { width: 96px; }
 }
 
+/* ============================================================
+   面板高度跟著內容（.dock-panel）
+   原本每個面板都撐到畫面高度，內容少的時候下面一大片空的深色卡片。
+   template.html 檔尾的「面板大小」腳本找出放得下內容的最小高度與寬度，設 --dk-h、--dk-fw、--dk-top；
+   內容多到放不下、或沒有 JS 時照舊撐滿。版面本身不變（清單照樣撐滿視窗、自己捲動），只是視窗變小。
+   ============================================================ */
+.dock-panel > .ro-window {
+  height: min(var(--dk-h, 940px), 940px, calc((100dvh - 16px) / var(--ui)));
+  width: min(var(--dk-fw, var(--dk-w)), var(--dk-w), calc((100vw - 24px) / var(--ui)));
+  margin-top: var(--dk-top, 0px);
+}
+/* 腳本量過的面板：上緣由 --dk-top 決定（打開時置中，之後固定），不再垂直置中 */
+.dock-panel[style*="--dk-top"] {
+  justify-content: flex-start;
+}
+
+/* ============================================================
+   建立角色（#charcreate）：照使用者給的手遊創角畫面
+   左邊一張造型面板（性別分頁、職業、髮型、髮色、服色），中間是放大的角色，右上是職業旗幟、
+   右下是能力雷達圖與配點，名字在下方中間，建立鈕在右下，返回鈕在左上。沒有視窗外框。
+   只用 CSS 重排、沒改 DOM（引擎直接取用這些節點）；雷達圖是 template.html 檔尾腳本另外加的 <svg id="cc-radar">。
+   名字、配點、錯誤訊息的節點在 .form-col 裡面，用 absolute 拉到視窗的其他位置：
+   所以 .create-body、.form-col 不能加 position／transform／filter／backdrop-filter（會變成它們的定位基準）。
+   ============================================================ */
+#charcreate {
+  --cc-side: 300px;
+  --cc-right: 300px;
+  --cc-foot: 76px; /* 下方留給名字與建立鈕 */
+  --cc-stats-h: 340px; /* 右下配點區最多這麼高，職業說明用剩下的 */
+  --cc-mid: calc(var(--cc-side) + (100% - var(--cc-side) - var(--cc-right)) / 2);
+}
+body:has(#charcreate:not(.hidden)) #sp-top {
+  visibility: hidden;
+}
+#charcreate > .create-window {
+  position: relative;
+  width: min(1320px, calc((100vw - 24px) / var(--ui)));
+  height: min(820px, calc((100dvh - 16px) / var(--ui)));
+  max-height: none;
+  overflow: visible;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#charcreate .ro-title {
+  flex: none;
+  height: 44px;
+  padding: 0 0 0 54px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+#charcreate .create-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 0;
+  padding: 4px calc(var(--cc-right) + 12px) 0 0;
+  overflow: visible;
+  background: none;
+}
+/* 左邊的造型面板 */
+#charcreate .form-col {
+  order: 1;
+  flex: none;
+  align-self: flex-start;
+  width: var(--cc-side);
+  max-height: calc(100% - var(--cc-foot));
+  overflow-y: auto;
+  padding: 0 12px 4px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(30, 36, 58, 0.94), rgba(14, 17, 29, 0.94));
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+#charcreate .form-col > .field {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(190, 200, 224, 0.82);
+}
+/* 性別：面板最上面的兩個分頁（標題字藏起來） */
+#charcreate .form-col > .field:has(.seg) {
+  margin: 0 -12px 12px;
+  font-size: 0;
+}
+#charcreate .seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0;
+}
+#charcreate .seg .ro-btn {
+  margin: 0;
+  padding: 11px 6px;
+  border: 0;
+  border-radius: 0;
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  color: rgba(214, 220, 236, 0.7);
+  background: rgba(6, 8, 16, 0.55);
+  box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.06);
+}
+#charcreate .seg .ro-btn:first-child { border-top-left-radius: 15px; }
+#charcreate .seg .ro-btn:last-child { border-top-right-radius: 15px; }
+#charcreate .seg .ro-btn.active {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(92, 140, 232, 0.5), rgba(92, 140, 232, 0.12));
+  box-shadow: inset 0 -2px 0 var(--dg-gold-1);
+}
+#charcreate #cc-jobs {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+#charcreate .stepper {
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 6px;
+}
+#charcreate .stepper span {
+  flex: 1 1 auto;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(6, 8, 16, 0.5);
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+#charcreate .swatches {
+  justify-content: center;
+  gap: 5px;
+  margin-top: 6px;
+}
+/* 中間：放大的角色，腳下一圈影子；轉向與動作鈕在角色下面 */
+#charcreate .preview-col {
+  order: 2;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 8px calc(var(--cc-foot) + 26px);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+#charcreate #cc-preview {
+  flex: 0 1 auto;
+  min-height: 0;
+  height: min(480px, 100%);
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 200 / 230;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(ellipse 30% 4.5% at 50% 91%, rgba(0, 0, 0, 0.55), transparent 72%);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#charcreate .preview-col > .btn-row {
+  flex: none;
+  margin: 0;
+}
+/* 右上：職業旗幟（第一個粗體字是職業名） */
+#charcreate #cc-jobinfo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--cc-right);
+  max-height: calc(100% - var(--cc-foot) - var(--cc-stats-h) - 14px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 14px 12px;
+  border-radius: 4px 4px 16px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(30, 36, 58, 0.94), rgba(14, 17, 29, 0.94));
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.7);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+#charcreate #cc-jobinfo > b:first-child {
+  display: block;
+  margin: 0 -14px 10px;
+  padding: 12px 10px 16px;
+  text-align: center;
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.2em;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, #e2473d 0%, #b82a26 100%);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.16);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%);
+}
+/* 右下：能力雷達圖與配點 */
+#charcreate .form-col > .field:has(#cc-stats) {
+  position: absolute;
+  right: 0;
+  bottom: var(--cc-foot);
+  width: var(--cc-right);
+  max-height: var(--cc-stats-h);
+  overflow-y: auto;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(30, 36, 58, 0.94), rgba(14, 17, 29, 0.94));
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.7);
+  text-align: left;
+  letter-spacing: 0;
+}
+#charcreate #cc-radar {
+  display: block;
+  width: 100%;
+  height: 150px;
+  margin: 0 0 4px;
+}
+#charcreate .cc-stats {
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+/* 下方中間：名字與錯誤訊息 */
+#charcreate .form-col > .field:has(#cc-name) {
+  position: absolute;
+  left: var(--cc-mid);
+  bottom: 10px;
+  width: min(340px, calc(100% - var(--cc-side) - var(--cc-right) - 40px));
+  margin: 0;
+  transform: translateX(-50%);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+#charcreate #cc-name {
+  margin-top: 3px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  text-align: center;
+  background: rgba(8, 10, 20, 0.82);
+}
+#charcreate #cc-error {
+  position: absolute;
+  left: var(--cc-mid);
+  bottom: calc(var(--cc-foot) + 4px);
+  max-width: calc(100% - var(--cc-side) - var(--cc-right) - 40px);
+  margin: 0;
+  padding: 4px 12px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(40, 8, 12, 0.88);
+  text-align: center;
+}
+#charcreate #cc-error:empty {
+  display: none;
+}
+/* 按鈕：返回在左上（圓鈕）、隨機在造型面板下面、建立在右下 */
+#charcreate .create-window > .btn-row.pad {
+  display: contents;
+}
+#charcreate .create-window > .btn-row.pad > .spacer {
+  display: none;
+}
+#charcreate #cc-cancel {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+#charcreate #cc-cancel::before {
+  content: "↩";
+  font-size: 20px;
+  line-height: 1;
+}
+#charcreate #cc-random {
+  position: absolute;
+  left: 0;
+  bottom: 12px;
+  width: var(--cc-side);
+  margin: 0;
+}
+#charcreate #cc-ok {
+  position: absolute;
+  right: 0;
+  bottom: 10px;
+  width: var(--cc-right);
+  height: 54px;
+  margin: 0;
+  border-radius: 14px;
+  font-size: var(--fs-xl);
+  letter-spacing: 0.3em;
+}
+/* 橫式手機與矮螢幕：兩側變窄、不畫雷達圖 */
+@media (max-height: 560px) {
+  #charcreate {
+    --cc-side: 236px;
+    --cc-right: 232px;
+    --cc-foot: 50px;
+    --cc-stats-h: 168px;
+  }
+  #charcreate .ro-title { height: 32px; padding-left: 40px; }
+  #charcreate #cc-cancel { width: 30px; height: 30px; top: 1px; }
+  #charcreate #cc-cancel::before { font-size: 15px; }
+  #charcreate .form-col { padding: 0 8px 2px; }
+  #charcreate .form-col > .field { margin-bottom: 6px; }
+  #charcreate .form-col > .field:has(.seg) { margin: 0 -8px 6px; }
+  #charcreate .seg .ro-btn { padding: 6px 4px; }
+  #charcreate #cc-radar { display: none; }
+  #charcreate .preview-col { padding-bottom: calc(var(--cc-foot) + 4px); gap: 2px; }
+  #charcreate #cc-jobinfo { padding: 0 8px 6px; font-size: var(--fs-xs); line-height: 1.4; }
+  #charcreate #cc-jobinfo > b:first-child { margin: 0 -8px 6px; padding: 6px 6px 10px; font-size: var(--fs-lg); }
+  #charcreate .form-col > .field:has(#cc-stats) { padding: 6px 8px; }
+  #charcreate #cc-ok { height: 38px; bottom: 6px; font-size: var(--fs-lg); }
+  #charcreate #cc-random { bottom: 6px; }
+  #charcreate .form-col > .field:has(#cc-name) { bottom: 4px; font-size: 0; }
+  #charcreate #cc-name { margin-top: 0; padding: 6px 12px; font-size: var(--fs-md); }
+}
+
+/* ============================================================
+   選擇角色（#charselect）：照使用者給的手遊選角畫面
+   中間是選中角色的大圖（template.html 檔尾腳本把選中那一格的預覽圖複製到 <canvas id="cs-hero">），
+   上方中間是名字與紀錄，右邊一欄是角色欄位（選中的金框發亮、空欄位是深色膠囊），
+   下方中間是進入遊戲／建立（哪一顆能按就顯示哪一顆），左下是刪除與選項的圓鈕。沒有視窗外框。
+   只用 CSS 重排、沒改 DOM。#slots、#slot-info、按鈕都用 absolute 定在視窗上，
+   所以 .ro-body 不能加 position／transform／filter／backdrop-filter。
+   ============================================================ */
+#charselect {
+  --cs-list: 268px;
+  --cs-mid: calc((100% - var(--cs-list)) / 2);
+  --cs-go: 320px; /* 進入遊戲鈕的寬度 */
+}
+#charselect .brand-logo {
+  height: 62px;
+  width: auto;
+}
+#charselect > .select-window {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(1320px, calc((100vw - 24px) / var(--ui)));
+  max-height: none;
+  overflow: visible;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#charselect .select-window > .ro-title {
+  display: none;
+}
+#charselect .select-window > .ro-body {
+  position: static;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  overflow: visible;
+  background: none;
+}
+/* 中間的大角色 */
+#charselect #cs-hero {
+  position: absolute;
+  left: var(--cs-mid);
+  bottom: 84px;
+  height: min(60%, 460px);
+  width: auto;
+  aspect-ratio: 114 / 105;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+  pointer-events: none;
+  background: radial-gradient(ellipse 26% 5% at 50% 88%, rgba(0, 0, 0, 0.55), transparent 72%);
+}
+/* 上方中間：名字（底下一條線）與紀錄 */
+#charselect #slot-info {
+  position: absolute;
+  top: 4px;
+  left: var(--cs-mid);
+  width: max-content;
+  max-width: calc(100% - var(--cs-list) - 40px);
+  margin: 0;
+  padding: 0;
+  transform: translateX(-50%);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.7);
+}
+#charselect #slot-info .grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 16px;
+  font-size: var(--fs-sm);
+  color: rgba(226, 232, 246, 0.9);
+}
+#charselect #slot-info .grid > div:first-child {
+  flex: 0 0 100%;
+  margin-bottom: 4px;
+  font-size: 0;
+}
+#charselect #slot-info b.n {
+  display: inline-block;
+  padding: 0 28px 5px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.75);
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+/* 右邊的角色欄位 */
+#charselect #slots {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--cs-list);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 6px 4px 4px;
+  overflow-y: auto;
+}
+#charselect #slots .slot {
+  position: static;
+  flex: none;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-content: stretch;
+  column-gap: 10px;
+  height: auto;
+  min-height: 66px;
+  padding: 6px 18px 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(14, 17, 29, 0.86);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+#charselect #slots .slot canvas {
+  grid-row: 1 / span 2;
+  width: 54px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  image-rendering: pixelated;
+}
+#charselect #slots .slot .slot-name {
+  align-self: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+  color: #fff;
+}
+#charselect #slots .slot .slot-job {
+  align-self: start;
+  font-size: var(--fs-xs);
+  line-height: 1.25;
+  color: rgba(214, 220, 236, 0.8);
+}
+#charselect #slots .slot.selected {
+  border-color: var(--dg-gold-1);
+  background: linear-gradient(100deg, rgba(92, 140, 232, 0.62), rgba(246, 194, 74, 0.3));
+  background-color: rgba(14, 17, 29, 0.86);
+  box-shadow: 0 0 0 2px rgba(246, 194, 74, 0.35), 0 0 20px rgba(120, 170, 255, 0.6);
+}
+#charselect #slots .slot.empty {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 6px 18px 6px 10px;
+  border-style: solid;
+  letter-spacing: 0.2em;
+  color: rgba(214, 220, 236, 0.78);
+}
+/* 空欄位：左邊一個人影 */
+#charselect #slots .slot.empty::before {
+  content: "";
+  flex: none;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 36%, rgba(4, 6, 14, 0.85) 0 21%, transparent 22%),
+    radial-gradient(ellipse 34% 30% at 50% 88%, rgba(4, 6, 14, 0.85) 0 98%, transparent 100%),
+    rgba(120, 140, 190, 0.28);
+}
+/* 按鈕：進入遊戲／建立在下方中間，刪除與選項是左下的圓鈕 */
+#charselect .select-window .btn-row {
+  display: contents;
+}
+#charselect .select-window .btn-row > .spacer {
+  display: none;
+}
+#charselect :is(#btn-play, #btn-create) {
+  position: absolute;
+  left: var(--cs-mid);
+  bottom: 14px;
+  width: var(--cs-go);
+  height: 52px;
+  margin: 0 0 0 calc(var(--cs-go) / -2);
+  border-radius: 999px;
+  font-size: var(--fs-xl);
+  letter-spacing: 0.3em;
+}
+#charselect :is(#btn-play, #btn-create):disabled {
+  display: none;
+}
+#charselect #btn-create {
+  color: #fff;
+  border-color: rgba(150, 190, 255, 0.7);
+  background: linear-gradient(180deg, rgba(92, 140, 232, 0.85), rgba(46, 86, 180, 0.85));
+  box-shadow: 0 0 22px rgba(120, 170, 255, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+#charselect :is(#btn-delete, #btn-options) {
+  position: absolute;
+  bottom: 16px;
+  width: 46px;
+  height: 46px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+#charselect #btn-delete {
+  left: 0;
+  border-color: rgba(255, 150, 140, 0.7);
+  background: linear-gradient(180deg, #ef5a50, #b62a26);
+}
+#charselect #btn-options {
+  left: 56px;
+}
+#charselect :is(#btn-delete, #btn-options)::before {
+  content: "";
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: auto;
+  background: #fff;
+  -webkit-mask: var(--ic-gear) center / contain no-repeat;
+  mask: var(--ic-gear) center / contain no-repeat;
+}
+#charselect #btn-delete::before {
+  --ic-trash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6'/%3E%3C/svg%3E");
+  -webkit-mask-image: var(--ic-trash);
+  mask-image: var(--ic-trash);
+}
+#charselect #btn-delete:disabled {
+  opacity: 0.35;
+}
+/* 橫式手機與矮螢幕 */
+@media (max-height: 560px) {
+  #charselect {
+    --cs-list: 214px;
+    --cs-go: 240px;
+  }
+  #charselect #slots { gap: 5px; }
+  #charselect #slots .slot { min-height: 50px; grid-template-columns: 40px minmax(0, 1fr); padding: 4px 12px 4px 6px; }
+  #charselect #slots .slot canvas { width: 40px; height: 37px; }
+  #charselect #slots .slot.empty::before { width: 36px; height: 36px; }
+  #charselect #cs-hero { bottom: 52px; height: 62%; }
+  #charselect #slot-info .grid > div:not(:first-child) { display: none; }
+  #charselect #slot-info b.n { font-size: var(--fs-lg); padding: 0 16px 2px; }
+  #charselect :is(#btn-play, #btn-create) { height: 38px; bottom: 6px; font-size: var(--fs-lg); }
+  #charselect :is(#btn-delete, #btn-options) { width: 36px; height: 36px; bottom: 7px; }
+  #charselect #btn-options { left: 44px; }
+  #charselect :is(#btn-delete, #btn-options)::before { width: 18px; height: 18px; }
+}
+
+/* 選擇角色左上角的帳號列：原本是一塊有外框與陰影的深色面板，壓在風景上很突兀。
+   改成沒有外框、往右淡出的半透明底，字加陰影，頭像用白色細框，和畫面上其他浮在背景上的元件一致 */
+#charselect #profile-bar {
+  width: 260px;
+}
+/* 使用者要求左上不放頭像（更換頭像的入口跟著拿掉；節點留著，引擎照樣會畫它） */
+#charselect #pb-portrait {
+  display: none;
+}
+/* 「角色 n/15」：右邊角色欄位的標題（template.html 檔尾腳本把節點搬到 #slots 前面） */
+#charselect .select-window #pb-kind {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--cs-list);
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(232, 238, 250, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+#charselect .select-window #pb-kind:empty {
+  display: none;
+}
+#charselect .select-window:has(#pb-kind:not(:empty)) #slots {
+  top: 30px;
+}
+/* 「離開」：左下角第三顆圓鈕（腳本把節點搬進按鈕列） */
+#charselect .select-window #pb-exit {
+  position: absolute;
+  left: 112px;
+  bottom: 16px;
+  width: 46px;
+  height: 46px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+#charselect .select-window #pb-exit::before {
+  content: "";
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: auto;
+  background: #fff;
+  -webkit-mask: var(--ic-logout) center / contain no-repeat;
+  mask: var(--ic-logout) center / contain no-repeat;
+}
+@media (max-height: 560px) {
+  #charselect .select-window #pb-exit { left: 88px; bottom: 7px; width: 36px; height: 36px; }
+  #charselect .select-window #pb-exit::before { width: 18px; height: 18px; }
+  #charselect .select-window #pb-kind { height: 20px; font-size: var(--fs-xs); }
+  #charselect .select-window:has(#pb-kind:not(:empty)) #slots { top: 22px; }
+}
+#charselect #profile-bar .pb-panel {
+  margin-left: 0;
+  padding-left: 14px;
+  border: 0;
+  border-radius: 14px 44px 44px 14px;
+  background: linear-gradient(90deg, rgba(8, 11, 22, 0.56) 0%, rgba(8, 11, 22, 0.34) 58%, rgba(8, 11, 22, 0) 100%);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.5);
+}
+#charselect #profile-bar .pb-ach .bar {
+  height: 5px;
+  border: 0;
+  background-color: rgba(255, 255, 255, 0.24);
+}
+#charselect #pb-register {
+  border-radius: 999px;
+  text-shadow: none;
+}
+
 </style>
   </head>
   <body>
@@ -11480,6 +12154,134 @@ First public release of RO LIFE.
         };
         sync();
         new MutationObserver(sync).observe(box, { subtree: true, childList: true, characterData: true });
+      })();
+    </script>
+    <script>
+      // 面板大小跟著內容（style.css 檔尾的 .dock-panel 段落用 --dk-h／--dk-fw／--dk-top）：
+      // 把視窗試著縮矮、再縮窄，找出「沒有任何區塊被擠到要捲動或換行變高」的最小尺寸。
+      // 版面不動：清單照樣撐滿視窗、自己捲動；內容本來就放不下的面板量出來就是滿版。
+      // 打開期間視窗上緣固定（換分頁時右側的分頁鈕不會跑掉），寬度只會變寬不會變窄；關掉再開才重新置中。
+      (() => {
+        const FLOOR = 320; // 再矮就不像面板了
+        const MIN_SAVE = 28; // 省不到這麼多就不縮
+        const MIN_W = 520, MIN_W_RATIO = 0.62; // 最窄縮到原本寬度的幾成
+        const MAX_NODES = 1500; // 內容太多的面板不量（一定是滿的）
+        const opened = new WeakMap(); // 打開期間記住的上緣位置與寬度
+        const clear = (o) => { for (const k of ["--dk-h", "--dk-fw", "--dk-top"]) o.style.removeProperty(k); };
+        function fit(o) {
+          if (o.classList.contains("hidden")) { opened.delete(o); clear(o); return; }
+          const w = o.querySelector(":scope > .ro-window");
+          if (!w) return;
+          let st = opened.get(o);
+          const first = !st;
+          if (first) opened.set(o, (st = { top: 0, width: 0 }));
+          clear(o); // 先回到滿版、置中再量（上一次的上緣位置會把視窗擠矮）
+          const b = w.querySelector(":scope > .ro-body") || w;
+          const all = b.getElementsByTagName("*");
+          const full = w.offsetHeight, fullW = w.offsetWidth;
+          if (!full || all.length > MAX_NODES) return;
+          // 會裁切或捲動的區塊（內容區本身、清單、兩欄版面）：記下滿版時各自超出多少，縮小之後不能比這更多
+          const boxes = [b];
+          for (const e of all) if (e.offsetHeight && getComputedStyle(e).overflowY !== "visible") boxes.push(e);
+          const baseY = boxes.map((e) => e.scrollHeight - e.clientHeight), baseX = boxes.map((e) => e.scrollWidth - e.clientWidth);
+          const fits = () => boxes.every((e, i) => e.scrollHeight - e.clientHeight <= baseY[i] + 1 && e.scrollWidth - e.clientWidth <= baseX[i] + 1);
+          const search = (prop, lo, hi, step) => {
+            const at = (v) => { o.style.setProperty(prop, v + "px"); return fits(); };
+            if (at(lo)) return lo;
+            while (hi - lo > step) { const mid = (lo + hi) >> 1; if (at(mid)) hi = mid; else lo = mid; }
+            return hi;
+          };
+          // 高度：至少放得下標題、右側直立欄與底部按鈕
+          const rail = o.querySelector(".dock-rail"), btn = w.querySelector(":scope > .btn-row");
+          const least = Math.max(FLOOR, (b === w ? 0 : b.offsetTop) + (rail ? rail.offsetHeight + 10 : 0) + (btn ? btn.offsetHeight : 0) + 8);
+          let h = full;
+          if (least < full - MIN_SAVE) h = search("--dk-h", least, full, 6);
+          if (full - h >= MIN_SAVE) o.style.setProperty("--dk-h", h + "px");
+          else { h = full; o.style.removeProperty("--dk-h"); }
+          // 寬度：在這個高度下縮窄，不能擠出捲軸或讓原本就在捲的清單變得更長（內容會換行的面板自然縮不動）
+          const narrow = Math.max(st.width, Math.min(fullW, Math.max(MIN_W, Math.round(fullW * MIN_W_RATIO))));
+          const fw = narrow < fullW - 24 ? search("--dk-fw", narrow, fullW, 8) : fullW;
+          st.width = fw;
+          if (fullW - fw >= 24) o.style.setProperty("--dk-fw", fw + "px");
+          else o.style.removeProperty("--dk-fw");
+          // 上緣：第一次量的時候置中，之後固定在那裡（變高到放不下才往上移）
+          const ui = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui")) || 1;
+          const pad = parseFloat(getComputedStyle(o).paddingTop) || 8, seen = innerHeight, tall = h * ui;
+          if (first) st.top = Math.max(pad, (seen - tall) / 2);
+          const top = Math.max(pad, Math.min(st.top, seen - pad - tall));
+          o.style.setProperty("--dk-top", ((top - pad) / ui).toFixed(1) + "px");
+        }
+        // 面板打開、換分頁、內容更新時重量；同一個面板 80 毫秒內只量一次（滑過清單會一直改 class）
+        const last = new WeakMap(), timer = new WeakMap();
+        function queue(o) {
+          const now = performance.now();
+          if (now - (last.get(o) || 0) >= 80) { last.set(o, now); fit(o); return; }
+          if (timer.get(o)) return;
+          timer.set(o, setTimeout(() => { timer.delete(o); last.set(o, performance.now()); fit(o); }, 90));
+        }
+        for (const o of document.querySelectorAll(".overlay.dock-panel"))
+          new MutationObserver(() => queue(o)).observe(o, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "hidden"] });
+        addEventListener("resize", () => document.querySelectorAll(".overlay.dock-panel:not(.hidden)").forEach((o) => { opened.delete(o); queue(o); }));
+      })();
+    </script>
+    <script>
+      // 建立角色的能力雷達圖（style.css 檔尾「建立角色」段落）：讀 #cc-stats 裡六個數字畫六角形，引擎每次重畫配點列就跟著更新。
+      // 只是顯示用，不影響配點；矮螢幕用 CSS 藏起來。
+      (() => {
+        const box = document.getElementById("cc-stats");
+        if (!box) return;
+        const NS = "http://www.w3.org/2000/svg";
+        const ORDER = ["str", "vit", "luk", "int", "dex", "agi"]; // 從正上方順時針
+        const svg = document.createElementNS(NS, "svg");
+        svg.id = "cc-radar";
+        svg.setAttribute("viewBox", "-100 -74 200 148");
+        svg.setAttribute("aria-hidden", "true");
+        box.parentNode.insertBefore(svg, box);
+        const pt = (i, r) => { const a = (Math.PI / 3) * i - Math.PI / 2; return [Math.cos(a) * r, Math.sin(a) * r]; };
+        const ring = (r) => ORDER.map((_, i) => pt(i, r).map((v) => v.toFixed(1)).join(",")).join(" ");
+        function draw() {
+          const v = ORDER.map((s) => Number(box.querySelector('[data-uid="stat-' + s + '"] span')?.textContent) || 1);
+          const top = Math.max(9, ...v), R = 52;
+          let h = "";
+          for (const f of [1, 0.66, 0.33]) h += '<polygon points="' + ring(R * f) + '" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>';
+          for (let i = 0; i < 6; i++) { const [x, y] = pt(i, R); h += '<line x1="0" y1="0" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>'; }
+          h += '<polygon points="' + v.map((n, i) => pt(i, R * (0.14 + 0.86 * (n - 1) / (top - 1))).map((q) => q.toFixed(1)).join(",")).join(" ") + '" fill="rgba(226,71,61,0.72)" stroke="#ff8b7e" stroke-width="1.5" stroke-linejoin="round"/>';
+          ORDER.forEach((s, i) => { const [x, y] = pt(i, R + 13); h += '<text x="' + x.toFixed(1) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(214,220,236,0.9)">' + s[0].toUpperCase() + s.slice(1) + "</text>"; });
+          svg.innerHTML = h;
+        }
+        new MutationObserver(draw).observe(box, { subtree: true, childList: true, characterData: true });
+        draw();
+      })();
+    </script>
+    <script>
+      // 選擇角色的中間大圖（style.css 檔尾「選擇角色」段落）：把選中那一格的預覽圖複製到 #cs-hero 放大顯示。
+      // 選到空欄位就藏起來；預覽圖是引擎畫的（可能晚一點才畫好、也可能會動），所以畫面開著時每 200 毫秒複製一次。
+      (() => {
+        const page = document.getElementById("charselect"), slots = document.getElementById("slots");
+        if (!page || !slots) return;
+        const hero = document.createElement("canvas");
+        hero.id = "cs-hero";
+        hero.width = 114;
+        hero.height = 105;
+        hero.setAttribute("aria-hidden", "true");
+        slots.parentNode.insertBefore(hero, slots);
+        // 帳號列的資訊拆開放：「角色 n/15」搬到右邊角色欄位上面，「離開」搬進按鈕列（CSS 把它畫成左下角的圓鈕）。
+        // 只是換位置，節點與 id 不變，引擎照樣用 getElementById 更新它們
+        const kind = document.getElementById("pb-kind"), exit = document.getElementById("pb-exit");
+        if (kind) slots.parentNode.insertBefore(kind, slots);
+        if (exit) page.querySelector(".select-window .btn-row")?.appendChild(exit);
+        const ctx = hero.getContext("2d");
+        function draw() {
+          if (page.classList.contains("hidden")) return;
+          const src = slots.querySelector(".slot.selected canvas");
+          hero.hidden = !src;
+          if (!src || !src.width) return;
+          if (hero.width !== src.width || hero.height !== src.height) { hero.width = src.width; hero.height = src.height; }
+          ctx.clearRect(0, 0, hero.width, hero.height);
+          ctx.drawImage(src, 0, 0);
+        }
+        setInterval(draw, 200);
+        new MutationObserver(draw).observe(slots, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
       })();
     </script>
     <!--/email_off-->

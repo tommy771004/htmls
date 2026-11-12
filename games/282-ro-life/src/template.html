@@ -1436,6 +1436,134 @@
         new MutationObserver(sync).observe(box, { subtree: true, childList: true, characterData: true });
       })();
     </script>
+    <script>
+      // 面板大小跟著內容（style.css 檔尾的 .dock-panel 段落用 --dk-h／--dk-fw／--dk-top）：
+      // 把視窗試著縮矮、再縮窄，找出「沒有任何區塊被擠到要捲動或換行變高」的最小尺寸。
+      // 版面不動：清單照樣撐滿視窗、自己捲動；內容本來就放不下的面板量出來就是滿版。
+      // 打開期間視窗上緣固定（換分頁時右側的分頁鈕不會跑掉），寬度只會變寬不會變窄；關掉再開才重新置中。
+      (() => {
+        const FLOOR = 320; // 再矮就不像面板了
+        const MIN_SAVE = 28; // 省不到這麼多就不縮
+        const MIN_W = 520, MIN_W_RATIO = 0.62; // 最窄縮到原本寬度的幾成
+        const MAX_NODES = 1500; // 內容太多的面板不量（一定是滿的）
+        const opened = new WeakMap(); // 打開期間記住的上緣位置與寬度
+        const clear = (o) => { for (const k of ["--dk-h", "--dk-fw", "--dk-top"]) o.style.removeProperty(k); };
+        function fit(o) {
+          if (o.classList.contains("hidden")) { opened.delete(o); clear(o); return; }
+          const w = o.querySelector(":scope > .ro-window");
+          if (!w) return;
+          let st = opened.get(o);
+          const first = !st;
+          if (first) opened.set(o, (st = { top: 0, width: 0 }));
+          clear(o); // 先回到滿版、置中再量（上一次的上緣位置會把視窗擠矮）
+          const b = w.querySelector(":scope > .ro-body") || w;
+          const all = b.getElementsByTagName("*");
+          const full = w.offsetHeight, fullW = w.offsetWidth;
+          if (!full || all.length > MAX_NODES) return;
+          // 會裁切或捲動的區塊（內容區本身、清單、兩欄版面）：記下滿版時各自超出多少，縮小之後不能比這更多
+          const boxes = [b];
+          for (const e of all) if (e.offsetHeight && getComputedStyle(e).overflowY !== "visible") boxes.push(e);
+          const baseY = boxes.map((e) => e.scrollHeight - e.clientHeight), baseX = boxes.map((e) => e.scrollWidth - e.clientWidth);
+          const fits = () => boxes.every((e, i) => e.scrollHeight - e.clientHeight <= baseY[i] + 1 && e.scrollWidth - e.clientWidth <= baseX[i] + 1);
+          const search = (prop, lo, hi, step) => {
+            const at = (v) => { o.style.setProperty(prop, v + "px"); return fits(); };
+            if (at(lo)) return lo;
+            while (hi - lo > step) { const mid = (lo + hi) >> 1; if (at(mid)) hi = mid; else lo = mid; }
+            return hi;
+          };
+          // 高度：至少放得下標題、右側直立欄與底部按鈕
+          const rail = o.querySelector(".dock-rail"), btn = w.querySelector(":scope > .btn-row");
+          const least = Math.max(FLOOR, (b === w ? 0 : b.offsetTop) + (rail ? rail.offsetHeight + 10 : 0) + (btn ? btn.offsetHeight : 0) + 8);
+          let h = full;
+          if (least < full - MIN_SAVE) h = search("--dk-h", least, full, 6);
+          if (full - h >= MIN_SAVE) o.style.setProperty("--dk-h", h + "px");
+          else { h = full; o.style.removeProperty("--dk-h"); }
+          // 寬度：在這個高度下縮窄，不能擠出捲軸或讓原本就在捲的清單變得更長（內容會換行的面板自然縮不動）
+          const narrow = Math.max(st.width, Math.min(fullW, Math.max(MIN_W, Math.round(fullW * MIN_W_RATIO))));
+          const fw = narrow < fullW - 24 ? search("--dk-fw", narrow, fullW, 8) : fullW;
+          st.width = fw;
+          if (fullW - fw >= 24) o.style.setProperty("--dk-fw", fw + "px");
+          else o.style.removeProperty("--dk-fw");
+          // 上緣：第一次量的時候置中，之後固定在那裡（變高到放不下才往上移）
+          const ui = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui")) || 1;
+          const pad = parseFloat(getComputedStyle(o).paddingTop) || 8, seen = innerHeight, tall = h * ui;
+          if (first) st.top = Math.max(pad, (seen - tall) / 2);
+          const top = Math.max(pad, Math.min(st.top, seen - pad - tall));
+          o.style.setProperty("--dk-top", ((top - pad) / ui).toFixed(1) + "px");
+        }
+        // 面板打開、換分頁、內容更新時重量；同一個面板 80 毫秒內只量一次（滑過清單會一直改 class）
+        const last = new WeakMap(), timer = new WeakMap();
+        function queue(o) {
+          const now = performance.now();
+          if (now - (last.get(o) || 0) >= 80) { last.set(o, now); fit(o); return; }
+          if (timer.get(o)) return;
+          timer.set(o, setTimeout(() => { timer.delete(o); last.set(o, performance.now()); fit(o); }, 90));
+        }
+        for (const o of document.querySelectorAll(".overlay.dock-panel"))
+          new MutationObserver(() => queue(o)).observe(o, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "hidden"] });
+        addEventListener("resize", () => document.querySelectorAll(".overlay.dock-panel:not(.hidden)").forEach((o) => { opened.delete(o); queue(o); }));
+      })();
+    </script>
+    <script>
+      // 建立角色的能力雷達圖（style.css 檔尾「建立角色」段落）：讀 #cc-stats 裡六個數字畫六角形，引擎每次重畫配點列就跟著更新。
+      // 只是顯示用，不影響配點；矮螢幕用 CSS 藏起來。
+      (() => {
+        const box = document.getElementById("cc-stats");
+        if (!box) return;
+        const NS = "http://www.w3.org/2000/svg";
+        const ORDER = ["str", "vit", "luk", "int", "dex", "agi"]; // 從正上方順時針
+        const svg = document.createElementNS(NS, "svg");
+        svg.id = "cc-radar";
+        svg.setAttribute("viewBox", "-100 -74 200 148");
+        svg.setAttribute("aria-hidden", "true");
+        box.parentNode.insertBefore(svg, box);
+        const pt = (i, r) => { const a = (Math.PI / 3) * i - Math.PI / 2; return [Math.cos(a) * r, Math.sin(a) * r]; };
+        const ring = (r) => ORDER.map((_, i) => pt(i, r).map((v) => v.toFixed(1)).join(",")).join(" ");
+        function draw() {
+          const v = ORDER.map((s) => Number(box.querySelector('[data-uid="stat-' + s + '"] span')?.textContent) || 1);
+          const top = Math.max(9, ...v), R = 52;
+          let h = "";
+          for (const f of [1, 0.66, 0.33]) h += '<polygon points="' + ring(R * f) + '" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>';
+          for (let i = 0; i < 6; i++) { const [x, y] = pt(i, R); h += '<line x1="0" y1="0" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>'; }
+          h += '<polygon points="' + v.map((n, i) => pt(i, R * (0.14 + 0.86 * (n - 1) / (top - 1))).map((q) => q.toFixed(1)).join(",")).join(" ") + '" fill="rgba(226,71,61,0.72)" stroke="#ff8b7e" stroke-width="1.5" stroke-linejoin="round"/>';
+          ORDER.forEach((s, i) => { const [x, y] = pt(i, R + 13); h += '<text x="' + x.toFixed(1) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(214,220,236,0.9)">' + s[0].toUpperCase() + s.slice(1) + "</text>"; });
+          svg.innerHTML = h;
+        }
+        new MutationObserver(draw).observe(box, { subtree: true, childList: true, characterData: true });
+        draw();
+      })();
+    </script>
+    <script>
+      // 選擇角色的中間大圖（style.css 檔尾「選擇角色」段落）：把選中那一格的預覽圖複製到 #cs-hero 放大顯示。
+      // 選到空欄位就藏起來；預覽圖是引擎畫的（可能晚一點才畫好、也可能會動），所以畫面開著時每 200 毫秒複製一次。
+      (() => {
+        const page = document.getElementById("charselect"), slots = document.getElementById("slots");
+        if (!page || !slots) return;
+        const hero = document.createElement("canvas");
+        hero.id = "cs-hero";
+        hero.width = 114;
+        hero.height = 105;
+        hero.setAttribute("aria-hidden", "true");
+        slots.parentNode.insertBefore(hero, slots);
+        // 帳號列的資訊拆開放：「角色 n/15」搬到右邊角色欄位上面，「離開」搬進按鈕列（CSS 把它畫成左下角的圓鈕）。
+        // 只是換位置，節點與 id 不變，引擎照樣用 getElementById 更新它們
+        const kind = document.getElementById("pb-kind"), exit = document.getElementById("pb-exit");
+        if (kind) slots.parentNode.insertBefore(kind, slots);
+        if (exit) page.querySelector(".select-window .btn-row")?.appendChild(exit);
+        const ctx = hero.getContext("2d");
+        function draw() {
+          if (page.classList.contains("hidden")) return;
+          const src = slots.querySelector(".slot.selected canvas");
+          hero.hidden = !src;
+          if (!src || !src.width) return;
+          if (hero.width !== src.width || hero.height !== src.height) { hero.width = src.width; hero.height = src.height; }
+          ctx.clearRect(0, 0, hero.width, hero.height);
+          ctx.drawImage(src, 0, 0);
+        }
+        setInterval(draw, 200);
+        new MutationObserver(draw).observe(slots, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+      })();
+    </script>
     <!--/email_off-->
   </body>
 </html>
