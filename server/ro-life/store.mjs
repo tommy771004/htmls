@@ -262,6 +262,18 @@ export class RoStore {
     for (const r of this.mem.gameRuns.values()) if (r.account_id === accountId && r.issued > Date.now() - sec * 1000) n++;
     return n;
   }
+  // 合作關卡的行程收據（coop.mjs）：憑證 id 是「p人數.這一趟的編號.亂數」。同一趟的憑證領過了，那張收據就不能再換一張
+  async gameRunTripUsed(accountId, tid) {
+    if (this.sql) return (await this.sql`SELECT 1 FROM ro_game_run WHERE account_id = ${accountId} AND claimed_at IS NOT NULL AND id LIKE ${'p_.' + tid + '.%'} LIMIT 1`).length > 0;
+    for (const [k, r] of this.mem.gameRuns) if (r.account_id === accountId && r.claimed && /^p\d\./.test(k) && k.split('.')[1] === tid) return true;
+    return false;
+  }
+  // 接續中斷的關卡：同一關還沒領的那張憑證的 id（沿用它的合作關卡前綴）
+  async openGameRunId(accountId, stage) {
+    if (this.sql) return (await this.sql`SELECT id FROM ro_game_run WHERE account_id = ${accountId} AND stage = ${stage} AND claimed_at IS NULL ORDER BY issued_at LIMIT 1`)[0]?.id ?? null;
+    for (const [k, r] of this.mem.gameRuns) if (r.account_id === accountId && !r.claimed && r.stage === stage) return k;
+    return null;
+  }
   // 查看關卡憑證（不領取，領取在 putGameSave）：ok／unknown（不是這個帳號的、不存在、過期或被新憑證取代）／reused（領過了）
   async peekGameRun(accountId, id) {
     if (this.sql) {

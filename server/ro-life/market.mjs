@@ -38,10 +38,10 @@ export function takeForListing(doc, body) {
   const S = open(doc);
   if (!S.chars.length) return { error: 'missing' };
   if (body.uid != null) {
-    const it = S.acc.inventory.find((i) => String(i?.uid) === String(body.uid));
+    const it = S.acc.inventory.find((i) => i?.uid && String(i.uid) === String(body.uid));
     if (!it) return { error: 'missing' };
     if (S.worn.has(String(it.uid)) || it.safe || R.items[String(it.itemId)]?.starter || !R.items[String(it.itemId)]) return { error: 'bad_op' };
-    S.acc.inventory = S.acc.inventory.filter((i) => i !== it);
+    S.acc.inventory = S.acc.inventory.filter((i) => !(i?.uid && String(i.uid) === String(it.uid))); // 同 uid 的全部拿走（不留複製品）
     const item = cleanItem(it);
     return { doc: S.out(), listing: { kind: 'gear', itemId: item.itemId, item, count: 1, price } };
   }

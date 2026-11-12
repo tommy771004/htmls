@@ -19,6 +19,11 @@ const ASSET_HOSTS = ['htmls-ruddy.vercel.app'];
 // 把頁面的登入權杖寫成引擎認得的 ro-life-session；其他情況一律單機，並清掉那個 key（單機時引擎也會讀它）。
 // __roOffline：伺服器沒開放、登入過期或登出時退回單機並重新載入。
 const onlineScript = '<script>window.__roOnline=(()=>{try{const st=JSON.parse(localStorage.getItem("ro-life.cloud.v1")||"null");if(localStorage.getItem("ro-life.mode")==="online"&&st&&st.token&&st.account&&Number.isInteger(+st.account.id)){localStorage.setItem("ro-life-session",JSON.stringify({token:st.token,id:+st.account.id,name:st.account.name||"冒險者"}));return!0}localStorage.removeItem("ro-life-session")}catch{}return!1})();window.__roOffline=()=>{try{localStorage.setItem("ro-life.mode","single");localStorage.removeItem("ro-life-session")}catch{}location.reload()};document.documentElement.classList.toggle("ro-online",window.__roOnline)</script>';
+// 合作關卡的收據與伺服器擲骰（引擎的掛點在下面 must() 的「合作關卡獎勵裁決」段落）：
+//   __roTripStart(rc)：出發時大廳給的行程收據；__roRunBody(b)：換關卡憑證時帶上
+//   __roTripGot(rc)：結算收據到了；__roCoopEnd(coop)：結算前向大廳要結算收據，存檔最多等 1.5 秒（__roTripWait）
+//   __roCoopOver(coop, go)：房主結束本局時還有沒擲的骰，請大廳擲完（最多等 2 秒）再結算；回 true＝已接手
+const coopScript = '<script>(()=>{let done=null;const held=new WeakSet;window.__roRunBody=b=>window.__roTrip?{...b,trip:window.__roTrip}:b;window.__roTripStart=rc=>{window.__roTrip=rc||void 0;window.__roTripEnd=void 0};window.__roTripGot=rc=>{window.__roTripEnd=rc;done&&done()};window.__roCoopEnd=c=>{try{if(!c||!window.__roRunRc||window.__roTripEnd||window.__roTripWait)return;const ws=c.link&&c.link.ws;if(!ws||ws.readyState!==1)return;ws.send(JSON.stringify({t:"runEnd"}));window.__roTripWait=new Promise(r=>{const fin=()=>{if(done!==fin)return;done=null;window.__roTripWait=null;r()};done=fin;setTimeout(fin,1500)})}catch{}};window.__roCoopOver=(c,go)=>{try{if(!c||!window.__roSrvRoll||!c.isHost||c.over||!c.rolls.size)return!1;if(held.has(c))return!0;held.add(c);c.link.send({k:"rollEnd"});const t0=Date.now(),iv=setInterval(()=>{if(!c.rolls.size||Date.now()-t0>2e3){clearInterval(iv);go()}},50);return!0}catch{return!1}}})()</script>';
 const raScript = `<script>window.__RA=window.__RA||(${JSON.stringify(ASSET_CDN)}&&${JSON.stringify(ASSET_HOSTS)}.includes(location.hostname)?${JSON.stringify(ASSET_CDN)}:new URL("../assets/282/",document.baseURI).href)</script>`;
 
 // 尋找可用的 esbuild 模組（本資料夾、鄰近作品 node_modules 或 npx 快取）
@@ -141,7 +146,7 @@ const roRewritePlugin = {
           'function Yj(a=Gf()){const e=new URL("ws-run",document.baseURI);return e.searchParams.set("l",String(a)),e.href.replace(/^http/,"ws")}',
           'function Yj(a=Gf()){return window.__roLobby?.url(a)??"ws://invalid"}'
         );
-        must('key:t,run:!0,hm:!0,...s?{token:s}:{},', 'key:t,run:!0,hm:!0,...s?{token:s}:{},...window.__roLobby?.ticket?{rt:window.__roLobby.ticket}:{},');
+        must('key:t,run:!0,hm:!0,...s?{token:s}:{},', 'key:t,run:!0,hm:!0,sr:1,...s?{token:s}:{},...window.__roLobby?.ticket?{rt:window.__roLobby.ticket}:{},');
         // 密語帶對方的 id（從選單點密語、或 /r 回覆最後密語你的人），伺服器在名字也對得上時用 id 找人，不會送錯同名的人
         must(
           'd.onclick=()=>{var f;this.closeMenu(),de("friends"),(f=this.chat)==null||f.whisperTo(e.name)}',
@@ -211,10 +216,63 @@ const roRewritePlugin = {
         );
         // 市場面板也算一個 UI 面板（手把／鍵盤焦點導覽的清單）
         must('"#petkeeper","#mailbox","#wiki"', '"#petkeeper","#mailbox","#market","#wiki"');
+        // 合作關卡獎勵裁決（大廳 server/ro-life/lobby-party.mjs、收據 coop.mjs；頁首的 coopScript 是下面用到的 window.__ro* 函式）
+        must(
+          's.t==="runWelcome"?(this.on.welcome(s.me,s.host,s.mates),this.on.status("online")):s.t==="runJoin"?this.on.join(s.m):s.t==="runLeave"?this.on.leave(s.mid):s.t==="runHost"?this.on.host(s.mid):s.t==="run"?this.on.data(s.from,s.d):',
+          's.t==="runWelcome"?(window.__roSrvRoll=s.roll===1,window.__roRunRc=s.rc===1,this.on.welcome(s.me,s.host,s.mates),this.on.status("online")):s.t==="runJoin"?this.on.join(s.m):s.t==="runLeave"?this.on.leave(s.mid):s.t==="runHost"?(s.roll!==void 0&&(window.__roSrvRoll=s.roll===1),this.on.host(s.mid)):s.t==="runReceipt"?window.__roTripGot?.(s.rc):s.t==="run"?this.on.data(s.from,s.d):'
+        );
+        must(
+          'onData(e,t){var o,i;const s=this.mates.get(e),n=this.game;',
+          'onData(e,t){var o,i;if(e===0){t&&t.k==="rolled"&&Array.isArray(t.r)&&(this.rolls.delete(t.id),this.rollDone(t.id,t.r,t.win));return}const s=this.mates.get(e),n=this.game;'
+        );
+        must(
+          'this.isHost?this.rollPicked(this.me,e,t):this.link.send({k:"rollPick",id:e,c:t})',
+          'this.isHost&&!window.__roSrvRoll?this.rollPicked(this.me,e,t):this.link.send({k:"rollPick",id:e,c:t})'
+        );
+        must(
+          'rollReady(e){return performance.now()>=e.until||e.who.every(t=>e.picks.has(t)||t!==this.me&&!this.mates.has(t))}',
+          'rollReady(e){return!window.__roSrvRoll&&(performance.now()>=e.until||e.who.every(t=>e.picks.has(t)||t!==this.me&&!this.mates.has(t)))}'
+        );
+        must(
+          'resolveRoll(e){var l;const t=this.rolls.get(e);if(!t)return;',
+          'resolveRoll(e){var l;if(window.__roSrvRoll)return;const t=this.rolls.get(e);if(!t)return;'
+        );
+        must(
+          'onGameOver:k=>{zn||(mt==null||mt.gameOver(k),Ki(k))}',
+          'onGameOver:k=>{zn||window.__roCoopOver?.(mt,()=>{mt==null||mt.gameOver(k),Ki(k)})||(mt==null||mt.gameOver(k),Ki(k))}'
+        );
+        must(
+          'case"partyStart":this.on.partyStart(s.trip);break;',
+          'case"partyStart":window.__roTripStart?.(s.rc),this.on.partyStart(s.trip);break;'
+        );
+        must(
+          '{stage:a,mult:t,played:Math.round(s+(Date.now()-o)/1e3)}:{stage:a,mult:t}).then(h=>',
+          '{stage:a,mult:t,played:Math.round(s+(Date.now()-o)/1e3)}:{stage:a,mult:t})).then(h=>'
+        );
+        must(
+          'nt("POST","run",e&&s>0?{stage:a,mult:t,played:',
+          'nt("POST","run",window.__roRunBody(e&&s>0?{stage:a,mult:t,played:'
+        );
+        must(
+          'pt=a,Fn=!1,!a.dev&&a.id!=="dev"&&!l&&wL(s,!!e,',
+          'pt=a,Fn=!1,n||(window.__roTrip=window.__roTripEnd=void 0),!a.dev&&a.id!=="dev"&&!l&&wL(s,!!e,'
+        );
+        must(
+          'function Ki(a,e=!1){var h;if(!z||!pt)return;if(z.endless)return Fn?void 0:hI(a,e);',
+          'function Ki(a,e=!1){var h;if(!z||!pt)return;if(z.endless)return Fn?void 0:hI(a,e);window.__roCoopEnd?.(mt);'
+        );
+        must(
+          'function Ma(a=!1,e=!1){if(!ee||Mt()||Ef)return Promise.resolve();',
+          'function Ma(a=!1,e=!1){if(!ee||Mt()||Ef)return Promise.resolve();if(window.__roTripWait&&!a)return window.__roTripWait.then(()=>Ma(a,e));'
+        );
+        must(
+          '...i?{run:i}:{},...r?{wipe:r}:{}}',
+          '...i?{run:i,...window.__roTripEnd?{trip:window.__roTripEnd}:{}}:{},...r?{wipe:r}:{}}'
+        );
         // 規則數值給伺服器用（tools/dump-rules.mjs 從無頭瀏覽器倒成 server/ro-life/rules-data.json）：經驗曲線、能力點、價格、精煉、關卡掉落等級
         must(
           'window.__ro={get run(){return z},',
-          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
+          'window.__ro={rules:{expNext:Go,jobNext:Ql,ep:Ep,statPts:So,talentPts:yg,jobMax:Zn,jobFactor:i$,baseMax:Jl,sellValue:Wr,cardValue:Yr,orePrice:xy,ores:at,refineRate:Li,refineOre:My,maxRefine:ma,cardSlots:Mh,refinable:a=>!!tl(fe[a]),stageIlvl:ac,stageTier:pf,stageList:Se,talents:Ze,affixGen:Zl,endless:{floorsPerStage:Qt,mvps:_a.map(s=>s.mvp.id),mvpAlias:jT,ups:ih.map(u=>u.id),upMax:Object.fromEntries(ih.map(u=>[u.id,fm(u.id)])),upCost:Object.fromEntries(ih.map(u=>[u.id,Array.from({length:Math.min(fm(u.id),200)},(_,r)=>rv(u,r))])),checkEvery:Nf,step:Gs.STEP}},get run(){return z},'
         );
       }
 
@@ -252,7 +310,7 @@ let html = readFileSync(resolve(root, 'src/template.html'), 'utf8');
 
 // 調整語系、標題與移除外部字型／模組連結，改為單檔內嵌
 html = html
-  .replace('<head>', () => `<head>\n    ${raScript}\n    ${onlineScript}`)
+  .replace('<head>', () => `<head>\n    ${raScript}\n    ${onlineScript}\n    ${coopScript}`)
   .replace('<html lang="en" translate="no">', '<html lang="zh-Hant" translate="no">')
   .replace(/<link rel="manifest"[^>]*>\s*/g, '')
   .replace(/<link rel="preconnect"[^>]*>\s*/g, '')

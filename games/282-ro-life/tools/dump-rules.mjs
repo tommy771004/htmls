@@ -63,6 +63,18 @@ const data = await tab.evaluate(() => {
   // 天賦表（引擎 Ze）：所屬職業、最高等級、二轉分支
   const talents = Object.fromEntries(Object.entries(R.talents).map(([id, t]) => [id, { job: t.job, maxRank: num(t.maxRank), branch: t.branch ?? null }]));
   const stageList = R.stageList.map((s) => ({ id: s.id, story: s.story ?? null, levels: s.levels ?? null, tier: s.tier ?? null }));
+  // 詞綴（引擎 d9）：用引擎自己的產生器取樣。六維的值＝階級倍率；其他能力的值＝基礎值 × 階級倍率（階級 1 的倍率是 1）
+  const SIX = ['str', 'agi', 'vit', 'int', 'dex', 'luk'];
+  const gear = Object.keys(ro.items).filter((id) => !ro.items[id].starter).map((id) => (/^\d+$/.test(id) ? Number(id) : id));
+  const maxTier = Math.max(...R.stageList.map((s) => s.tier ?? 1));
+  const tierMult = range(0, maxTier).map((t) => R.affixGen(1, t, gear[0])[0].value);
+  const affixBase = {}, sixSeen = new Set(), skillSeen = [];
+  for (const id of gear) for (let k = 0; k < 40; k++) for (const a of R.affixGen(4, 1, id, 'swordsman')) {
+    if (a.stat === 'skill') skillSeen.push(a.value);
+    else if (SIX.includes(a.stat)) { sixSeen.add(a.stat); if (a.value !== tierMult[1]) throw new Error('六維詞綴的值不是階級倍率：' + JSON.stringify(a)); }
+    else affixBase[a.stat] = Math.max(affixBase[a.stat] ?? 0, a.value);
+  }
+  const affix = { stats: SIX.filter((s) => sixSeen.has(s)), base: affixBase, tierMult, skillSeen: skillSeen.length ? [Math.min(...skillSeen), Math.max(...skillSeen)] : null };
   const refineOre = {};
   for (const slot of ['weapon', 'armor']) refineOre[slot] = range(1, R.maxRefine).map((lv) => R.refineOre(slot, lv));
   return {
@@ -76,7 +88,7 @@ const data = await tab.evaluate(() => {
     jobs, talents, items, sellBase, sellSamples, cards, cardValue, monsters, stages, stageList,
     ores: { ...R.ores }, orePrice: { ...R.orePrice }, maxRefine: R.maxRefine,
     refineRate: range(1, R.maxRefine).map((l) => R.refineRate(l)), refineOre,
-    endless: R.endless,
+    endless: R.endless, affix,
   };
 });
 await browser.close(); srv.close();
@@ -89,7 +101,12 @@ data.affixMax = [0, 1, 2, 4, 5]; // Dy：每個品質的詞綴數，傳說（4�
 data.difficulty = { min: 1, max: 2 }; // sr()：難度滑桿換算的掉寶倍率
 data.maxCount = 3; // Ko.count 上限（同時出怪數）
 data.eliteExp = 5; // 菁英怪經驗 ×5
-data.jobCapPenalty = 0.1; // p5：職業等級超過上限後每級 ×0.1
+data.jobCapPenalty = 0.1;
+// 傳說裝備的技能詞綴（引擎 y0）：0.1～0.2；取樣到的值要落在裡面
+data.affix.skill = [0.1, 0.2];
+if (data.affix.skillSeen && (data.affix.skillSeen[0] < 0.1 || data.affix.skillSeen[1] > 0.2)) throw new Error('技能詞綴超出 0.1～0.2：' + data.affix.skillSeen);
+delete data.affix.skillSeen;
+if (data.affix.stats.length !== 6 || Object.keys(data.affix.base).length < 7 || data.affix.tierMult[1] !== 1) throw new Error('詞綴取樣不完整：' + JSON.stringify(data.affix)); // p5：職業等級超過上限後每級 ×0.1
 // 生怪（引擎 spawn／horde）：菁英每 45 秒、大群每 120 秒（都除以難度的 events，最多 2）；
 // 大群一波 3 × min(120, 36 + 秒數/8) × 出怪數 × 組隊倍率；組隊倍率 Z0（1～3 人）
 data.spawn = { eliteEvery: 45, hordeEvery: 120, hordeBase: 36, hordeMax: 120, hordeGrowth: 8, hordeRings: 3, partyCount: [1, 1, 2.5, 3.85], maxEvents: 2, talentRankPts: { 1: 50, 2: 50, 3: 70 } };

@@ -120,7 +120,8 @@ export function createEndlessRoutes({ env, store, send, readBody }) {
 
   const charOf = async (accId, charId, { gear = false } = {}) => {
     const save = await store.getGameSave(accId);
-    const c = list(parse(save.doc, 'characters.v1', [])).find((x) => x && String(x.id) === String(charId)) ?? null;
+    // 沒有 id 的角色（存檔驗證不查它）不算角色：不然 charId 傳 "undefined" 就對得上
+    const c = (charId ? list(parse(save.doc, 'characters.v1', [])).find((x) => x && x.id && String(x.id) === String(charId)) : null) ?? null;
     if (!c || !gear) return c;
     // 引擎的角色物件帶著帳號的倉庫（La() 從 inventory 找裝備）；快照只放身上穿的，卡片庫存不影響戰鬥
     const worn = new Set(Object.values(c.equipped ?? {}).filter(Boolean).map(String));

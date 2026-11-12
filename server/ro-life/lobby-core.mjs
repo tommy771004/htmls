@@ -19,6 +19,7 @@
 //   settle?(payload)   交易結算（Worker 打 Vercel 的 /api/ro/trade/settle）；沒有就不開放交易
 //   sendRaw?(ws, str)  直接送字串（本局轉送用，省一次 JSON 編碼）
 //   log?(...args)
+//   nameBlock?         額外的禁用角色名（name-rules.mjs 的 extra）
 // 身分只認入場票的 a（帳號）；票裡的 n 是 Google／LINE 的名字，不顯示。
 //
 // 訊息格式照引擎原本的大廳協定（main-*.js 的 Xj 類別）：
@@ -36,6 +37,7 @@
 import { FRIEND_MAX, ASK_MAX, OFFLINE_MAX, OFFLINE_PER_SENDER } from './lobby-store.mjs';
 import { partyMessage, partyChat, partyPresence, runHello, runMessage, runClose, RUN_MAX_MESSAGE } from './lobby-party.mjs';
 import { tradeMessage, tradeClose } from './lobby-trade.mjs';
+import { nameProblem } from './name-rules.mjs';
 
 export const LOBBY_PATH = '/api/ro/lobby';
 export const CHANNELS = 4;
@@ -325,10 +327,13 @@ async function hello(io, ws, m, now) {
   const taken = new Set(others.map(([, s]) => s.id));
   let id;
   do id = 1 + Math.floor(Math.random() * 0x7ffffffe); while (taken.has(id));
+  const numbered = `冒險者 ${String(id % 10000).padStart(4, '0')}`;
+  // 登入玩家的角色名是自填的：冒充官方或不雅的（name-rules.mjs）改用伺服器給的編號；格式不查，舊名字不受影響
+  const own = auth ? clean(m.name, 24) : '';
   const me = {
     id,
     // 訪客沒有帳號可以停權，所以不用自填的角色名，改用伺服器給的編號（用戶端會再加上「訪客」標記）
-    name: auth ? clean(m.name, 24) || 'Adventurer' : `冒險者 ${String(id % 10000).padStart(4, '0')}`,
+    name: !auth ? numbered : !own ? 'Adventurer' : nameProblem(own, { format: false, extra: io.nameBlock ?? [] }) ? numbered : own,
     look: cleanLook(m.look) ?? { job: 'novice', gender: 'm', hair: 0, hairColor: 0, cloth: 0, equip: {} },
     x: int(m.x, 0, MAX_COORD),
     y: int(m.y, 0, MAX_COORD),

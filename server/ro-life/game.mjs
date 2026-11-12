@@ -1,5 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { checkSave } from './game-rules.mjs';
+import { nameProblem, nameBlockList } from './name-rules.mjs';
+import R from './rules-data.mjs';
+import { openReceipt, TRIP_MAX_AGE } from './coop.mjs';
 import { applyOp } from './game-ops.mjs';
 import { createEndlessRoutes } from './endless.mjs';
 import { tradeLedger } from './trade.mjs';
@@ -14,14 +17,18 @@ import { takeForListing, attachOf, addAttach, sellerPays, mailView, claimable, l
 //   POST game/op {op:'buy'|'sell'|'refine'|'mail', …}       伺服器算好寫進存檔，回 {rev, doc, …}（game-ops.mjs）
 //   GET  game/mail → {mail, pending} · POST game/mail/read · game/mail/delete {id} → {mail, pending}；op:'mail' {id} 領附件（market.mjs）
 //   GET  game/market?kind=&ids=&page= · game/market/mine；op:'marketList'／'marketBuy'／'marketCancel'（RO_MARKET=1＋新表才開）
-//   POST game/name {char, name} · game/visit · game/crash · game/logout
+//   POST game/name {char, name}   角色名審核（name-rules.mjs）：不能用回 400 {error:'offensive'}，引擎顯示「這個名字不能用」
+//   POST game/visit · game/crash · game/logout
 // 引擎用 x-session 標頭帶登入權杖（和 Bearer 是同一個）。正式站要套用 schema.sql 的新表、再設 RO_ONLINE=1 才開放。
 // 第二步：每次存檔用 game-rules.mjs 驗證。預設影子模式（照存用戶端的版本，只把會修正的地方記成 would-fix）；
 // 設 RO_ONLINE_ENFORCE=1 才存修正後的版本，並在回應帶 doc 讓引擎載入（引擎收到 {rev, doc} 會呼叫 ei() 套用）。
+// RO_ONLINE_STRICT=1：跟時間、數量有關的規則（頭目還沒出場就記打倒、不是這一關的卡、詞綴數值、物品數、還沒解鎖的關卡）
+// 平常只記錄（issue 帶 fixed:false、run 記 stage-locked），設了才真的擋；先看 ro_game_log 沒有誤判再開。
+// RO_NAME_BLOCK：額外的禁用字（逗號分隔）。
 
 export const GAME_KEY = /^(characters\.v1|account\.v1|achievements\.v1|pets\.v1|run\.v1\.[\w-]{1,40}|stages-seen\.v1\.[\w-]{1,40})$/;
 const MAX_DOC = 1_000_000;
-const RUNS_PER_HOUR = 120;
+const RUNS_PER_HOUR = 60; // 每張憑證都帶一份物品與卡片的底數，所以發的張數也要有上限；正常玩一場至少幾分鐘
 const LIST_MAX = 20;
 
 export const displayName = (acc) => acc.name || '冒險者';
@@ -113,8 +120,40 @@ const badDoc = (doc) => {
   return entries.length > 200 || entries.some(([k, v]) => !GAME_KEY.test(k) || typeof v !== 'string') || JSON.stringify(doc).length > MAX_DOC;
 };
 const shortStr = (v, n) => (typeof v === 'string' ? v.slice(0, n) : null);
+const list = (v) => (Array.isArray(v) ? v : []);
+// 寫進伺服器 log 的用戶端字串：去掉換行與控制字元（不讓人偽造 log 行）
+const logStr = (v, n) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').slice(0, n) : null);
 
-export function createGameRoutes({ env, store, send, readBody }) {
+// 關卡解鎖（引擎 Ud）：要先打倒清單上前一區的 MVP（R.endless.mvpAlias 是引擎的替代表）。POST run 沒帶角色，所以只要帳號裡有一個角色符合就算
+const prevMvp = (stage) => {
+  const i = R.stageList.findIndex((s) => s.id === stage || s.story === stage);
+  return i > 0 ? R.stages[R.stageList[i - 1].id]?.bossAt.at(-1)?.id ?? null : null;
+};
+export function stageUnlocked(chars, stage) {
+  const need = prevMvp(stage);
+  if (!need) return true;
+  const ids = [need, ...list(R.endless?.mvpAlias?.[need])];
+  return list(chars).some((c) => c && !c.dev && list(c.mvpsDefeated).some((m) => ids.includes(String(m))));
+}
+// 跳過劇情（引擎 Ux）：自己還沒通關、而且帳號裡別的角色通關過（普隆德拉城：已經轉職也算）
+export function canSkip(chars, stage, charId) {
+  const done = (c) => list(c?.stagesCleared).map(String).includes(stage) || (stage === 'prt_castle' && !!c?.promotion);
+  const me = charId ? list(chars).find((c) => c && c.id && String(c.id) === String(charId)) : null;
+  return !!me && !me.dev && !done(me) && list(chars).some((c) => c && c !== me && !c.dev && done(c));
+}
+
+// 合作關卡憑證的 id：「p人數.這一趟的編號.亂數」（人數與編號來自大廳簽的行程收據；id 是伺服器發的、查詢時連帳號一起比對，所以前綴可信）
+const PARTY_ID = /^p([23])\.([0-9a-f]{8,32})\./;
+// 行程收據上的關卡是隊長選的那一格；實際打的可能是它的劇情版（規則資料的 story 指回那一格）
+const sameTrip = (tripStage, stage) => tripStage === stage || R.stages[stage]?.story === tripStage;
+// 結算收據只留驗證會用到的欄位
+const cleanEnd = (e) => ({
+  secs: Math.max(0, num(e.secs)), end: e.end === 'win' || e.end === 'lose' ? e.end : null, host: e.host === true, full: e.full === true, n: num(e.n),
+  killed: list(e.killed).filter((x) => typeof x === 'string').slice(0, 200),
+  won: list(e.won).filter((w) => Array.isArray(w) && typeof w[0] === 'string' && Number.isFinite(w[1])).slice(0, 400).map((w) => [w[0], w[1], num(w[2])]),
+});
+
+export function createGameRoutes({ env, store, send, readBody, lobbySecret = () => null }) {
   // 正式站：要設 RO_ONLINE=1，而且 ro_game_* 表真的在（每分鐘最多查一次），否則回報關閉
   let probe = { at: 0, ok: false };
   async function enabled() {
@@ -128,6 +167,7 @@ export function createGameRoutes({ env, store, send, readBody }) {
     return ok;
   }
 
+  const nameExtra = nameBlockList(env.RO_NAME_BLOCK);
   const endless = createEndlessRoutes({ env, store, send, readBody });
   // 信箱與市場：要有 ro_game_mail／ro_market 表；市場另外要 RO_MARKET=1（本機記憶體資料預設開）。沒開時信箱照舊是空的
   let mprobe = { at: 0, ok: false };
@@ -233,11 +273,27 @@ export function createGameRoutes({ env, store, send, readBody }) {
         claim = await store.peekGameRun(id, runId);
         if (claim.status !== 'ok') flagsExtra.push(`claim-${claim.status}`);
       }
+      // 合作關卡：人數與這一趟的編號在憑證 id 的前綴；結算收據（body.trip）要是大廳簽給這個帳號、這一趟的
+      const pm = claim?.status === 'ok' ? PARTY_ID.exec(runId) : null;
+      if (pm) {
+        claim.run.party = Number(pm[1]);
+        const e = body.trip ? await openReceipt(lobbySecret(), 'tripend', body.trip).catch(() => null) : null;
+        if (e && String(e.a) === String(id) && e.tid === pm[2]) claim.run.end = cleanEnd(e);
+        else flagsExtra.push(body.trip ? 'tripend-bad' : 'tripend-missing');
+      }
       if (body.wipe) flagsExtra.push('wipe');
       const enforce = env.RO_ONLINE_ENFORCE === '1';
       let check = { issues: [], doc: null };
-      try { check = checkSave(cur.doc, structuredClone(doc), { now: Date.now(), claim: claim?.status === 'ok' ? claim.run : null }); }
-      catch (e) { console.warn('[ro-life] check', e.message); flagsExtra.push('check-error'); }
+      try { check = checkSave(cur.doc, structuredClone(doc), { now: Date.now(), claim: claim?.status === 'ok' ? claim.run : null, strict: env.RO_ONLINE_STRICT === '1', coop: env.RO_COOP_RECEIPT === '1', nameExtra }); }
+      catch (e) {
+        console.warn('[ro-life] check', e.message);
+        // 驗證本身出錯：把關模式下不能照存（不然弄壞驗證就等於繞過驗證），這一版不收、憑證也不會用掉
+        if (enforce) {
+          await store.addGameLog(id, 'save', { rev: cur.rev, runId, flags: ['check-error'], detail: { error: logStr(String(e?.message ?? e), 200) } }).catch(() => {});
+          return send(res, 400, { error: 'bad_save' });
+        }
+        flagsExtra.push('check-error');
+      }
       if (check.issues.length) flagsExtra.push(check.doc ? (enforce ? 'fixed' : 'would-fix') : 'suspect');
       const stored = enforce && check.doc ? check.doc : doc;
       const put = await store.putGameSave(id, rev, stored, wid, claim?.status === 'ok' ? runId : null);
@@ -251,8 +307,8 @@ export function createGameRoutes({ env, store, send, readBody }) {
       const sum = summarizeSave(cur.doc, doc, { claim: claim?.status === 'ok' ? claim.run : null });
       if (sum || flagsExtra.length) {
         const flags = [...new Set([...(sum?.flags ?? []), ...flagsExtra])].sort();
-        const run = claim?.run ? { stage: claim.run.stage, mult: claim.run.mult, secs: Math.round((Date.now() - claim.run.issued) / 1000), ...(claim.run.skip ? { skip: true } : {}) } : {};
-        const fix = { ...(check.issues.length ? { fix: check.issues.slice(0, LIST_MAX) } : {}), ...(check.meta?.gain > 0 ? { cap: check.meta } : {}) };
+        const run = claim?.run ? { stage: claim.run.stage, mult: claim.run.mult, secs: Math.round((Date.now() - claim.run.issued) / 1000), ...(claim.run.skip ? { skip: true } : {}), ...(claim.run.party ? { party: claim.run.party } : {}) } : {};
+        const fix = { ...(check.issues.length ? { fix: check.issues.slice(0, LIST_MAX) } : {}), ...(check.meta?.gain > 0 || check.meta?.end ? { cap: check.meta } : {}) };
         await store.addGameLog(id, 'save', { rev: next, runId, flags, detail: { ...(sum?.detail ?? {}), ...run, ...fix } }).catch((e) => console.warn('[ro-life] game log', e.message));
       }
       return send(res, 200, stored === doc ? { rev: next, trade: tradeLedger(stored) } : { rev: next, doc: stored, trade: tradeLedger(stored) });
@@ -260,24 +316,45 @@ export function createGameRoutes({ env, store, send, readBody }) {
     if (path === 'run' && method === 'POST') {
       const body = await readBody(req);
       const stage = shortStr(body.stage, 40);
-      if (!stage) return send(res, 400, { error: 'bad_run' });
+      // 只發給真的關卡：引擎的關卡一定在規則資料裡；無盡之塔不走憑證（它的關卡長度等於沒有上限）
+      if (!stage || !Object.hasOwn(R.stages, stage) || stage === 'endless') return send(res, 400, { error: 'bad_run' });
       if ((await store.countGameRuns(id, 3600)) >= RUNS_PER_HOUR) return send(res, 429, { error: 'rate' });
-      const run = { id: randomBytes(18).toString('base64url'), stage, mult: Math.min(2, Math.max(1, num(body.mult) || 1)) /* 引擎 sr()：難度換算的掉寶倍率 1～2 */, skip: !!body.skip, char: shortStr(body.char, 40) };
+      const skip = body.skip === true, charId = shortStr(body.char, 40);
+      const roster = list(parse((await store.getGameSave(id)).doc, 'characters.v1', []));
+      const runFlags = [];
+      // 跳過劇情：引擎送出前會先存檔，所以伺服器上的角色就是當下的狀態
+      if (skip && !canSkip(roster, stage, charId)) return send(res, 400, { error: 'bad_run' });
+      if (!skip && !stageUnlocked(roster, stage)) {
+        if (env.RO_ONLINE_STRICT === '1') return send(res, 400, { error: 'bad_run' });
+        runFlags.push('stage-locked');
+      }
+      // 合作關卡的行程收據（大廳在出發時簽的）：是這個帳號的、同一關、剛發的、而且這一趟還沒領過 → 把人數記在憑證 id 的前綴。
+      // 接續中斷的關卡沿用原本那張憑證的前綴（頁面重新載入後手上已經沒有收據）
+      let prefix = '';
+      if (!skip && body.trip) {
+        const t = await openReceipt(lobbySecret(), 'trip', body.trip).catch(() => null);
+        const age = t ? Date.now() - Number(t.at) : NaN;
+        if (t && String(t.a) === String(id) && (t.n === 2 || t.n === 3) && sameTrip(t.stage, stage) && age <= TRIP_MAX_AGE && age >= -60_000 && !(await store.gameRunTripUsed(id, t.tid))) prefix = `p${t.n}.${t.tid}.`;
+        else runFlags.push('trip-bad');
+      } else if (!skip && num(body.played) > 0) prefix = PARTY_ID.exec((await store.openGameRunId(id, stage)) ?? '')?.[0] ?? '';
+      if (prefix) runFlags.push('party');
+      const run = { id: prefix + randomBytes(18).toString('base64url'), stage, mult: Math.min(2, Math.max(1, num(body.mult) || 1)) /* 引擎 sr()：難度換算的掉寶倍率 1～2 */, skip, char: charId };
       // played：接續中斷的關卡時引擎帶的已玩秒數（用戶端說的，不採信；只用來沿用舊憑證的開打時間）
       await store.createGameRun(id, run, { resume: num(body.played) > 0 });
-      if (run.skip) await store.addGameLog(id, 'run', { runId: run.id, flags: ['skip'], detail: { stage, char: run.char } }).catch((e) => console.warn('[ro-life] game log', e.message));
+      if (run.skip) runFlags.push('skip');
+      if (runFlags.length) await store.addGameLog(id, 'run', { runId: run.id, flags: runFlags, detail: { stage, char: run.char } }).catch((e) => console.warn('[ro-life] game log', e.message));
       return send(res, 200, { run: run.id });
     }
     if (path === 'name' && method === 'POST') {
       const body = await readBody(req);
-      const name = shortStr(body.name, 40)?.trim();
-      if (!name || name.length > 24) return send(res, 400, { error: 'bad_name' });
+      // 引擎只認得 offensive（這個名字不能用）與 nameTaken；格式不對、冒充官方、不雅都回 offensive
+      if (nameProblem(shortStr(body.name, 80), { extra: nameExtra })) return send(res, 400, { error: 'offensive' });
       return send(res, 200, { ok: true });
     }
     if ((path === 'visit' || path === 'crash') && method === 'POST') {
       if (path === 'crash') {
         const body = await readBody(req).catch(() => ({}));
-        console.warn('[ro-life] crash', id, shortStr(body.message ?? body.msg, 200), shortStr(body.build, 40));
+        console.warn('[ro-life] crash', id, logStr(body.message ?? body.msg, 200), logStr(body.build, 40));
       }
       return send(res, 200, { ok: true });
     }

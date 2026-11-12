@@ -46,8 +46,11 @@ export function applyOp(doc, body, rng = defaultRng) {
     case 'sell': { // 引擎 s_ 的賣出：已裝備、上鎖（safe）的不賣；插著的卡退回卡片庫存；卡片照張數賣
       const uids = new Set(list(body.uids).map(String).slice(0, 500));
       let gained = 0, items = 0, cards = 0;
+      const sold = new Set(); // 同一個 uid 只算一次錢（存檔裡萬一有重複的也一起移除）
       acc.inventory = acc.inventory.filter((it) => {
         if (!it?.uid || !uids.has(String(it.uid)) || equippedBy.has(String(it.uid)) || it.safe) return true;
+        if (sold.has(String(it.uid))) return false;
+        sold.add(String(it.uid));
         gained += sellValue(it);
         items++;
         for (const c of list(it.cards)) if (c != null) acc.cards[c] = int(acc.cards[c]) + 1;
@@ -67,7 +70,7 @@ export function applyOp(doc, body, rng = defaultRng) {
     }
     case 'refine': { // 引擎 a_／aT：用一顆對應的礦，成功 +1；失敗時卡片毀掉、裝備壞掉（從身上卸下並移除）
       const uid = String(body.uid ?? '');
-      const it = acc.inventory.find((i) => String(i?.uid) === uid);
+      const it = acc.inventory.find((i) => i?.uid && String(i.uid) === uid);
       const def = it && R.items[String(it.itemId)];
       const slot = refineSlot(def);
       const lv = int(it?.refine);
@@ -82,7 +85,7 @@ export function applyOp(doc, body, rng = defaultRng) {
       let charsChanged = false;
       if (ok) it.refine = lv + 1;
       else {
-        acc.inventory = acc.inventory.filter((i) => i !== it);
+        acc.inventory = acc.inventory.filter((i) => !(i?.uid && String(i.uid) === uid));
         for (const c of chars) for (const [k, v] of Object.entries(obj(c?.equipped))) if (String(v) === uid) { delete c.equipped[k]; charsChanged = true; }
       }
       return out({ ok }, { item: String(it.itemId), from: lv, ok, rate }, charsChanged);

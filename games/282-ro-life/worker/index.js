@@ -8,9 +8,14 @@ import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from '../../../
 import { sqlStore } from '../../../server/ro-life/lobby-store.mjs';
 import { onAlarm } from '../../../server/ro-life/lobby-party.mjs';
 import { makeSettle } from '../../../server/ro-life/trade.mjs';
+import { nameBlockList } from '../../../server/ro-life/name-rules.mjs';
+import { signer } from '../../../server/ro-life/coop.mjs';
 import { ADMIN_PATH, ADMIN_HTML, ADMIN_HEADERS, ADMIN_MIN_KEY, adminApi, adminAuthorized } from '../../../server/ro-life/lobby-admin.mjs';
 
 const ADMIN_API = `${ADMIN_PATH}/api/`;
+// 連線數上限：廣場 100 人＋本局連線＋還沒打招呼的；同一個 IP 另有上限（還沒打招呼的連線也佔名額，不限制的話一台機器就能把大廳塞滿）
+const MAX_SOCKETS = 400;
+const IP_SOCKETS = 16; // 一個人是大廳＋本局兩條；同一個對外 IP（家裡、宿舍）可以有好幾個人。Worker 變數 LOBBY_IP_CAP 可調
 
 function allowed(req, env) {
   const origin = req.headers.get('Origin');
@@ -52,11 +57,14 @@ export class Lobby extends DurableObject {
       sendRaw: (ws, str) => { try { ws.send(str); } catch { /* 已關閉 */ } },
       close: (ws, code, reason) => { try { ws.close(code, reason); } catch { /* 已關閉 */ } },
       verify: (ticket, now) => verifyTicket(env.RO_LOBBY_SECRET, ticket, now),
+      ...(env.RO_LOBBY_SECRET ? { sign: signer(env.RO_LOBBY_SECRET) } : {}), // 合作關卡的行程收據、結算收據（coop.mjs）
       db: sqlStore((q, ...p) => ctx.storage.sql.exec(q, ...p).toArray()),
       ...(Number.isInteger(cap) && cap > 0 ? { cap } : {}),
       // 邀請與出發確認的期限：用 alarm 叫醒（休眠中的 setTimeout 會不見）
       wake: (at) => { ctx.storage.getAlarm().then((cur) => (cur == null || cur > at) && ctx.storage.setAlarm(at)).catch((e) => console.log('[ro-lobby] alarm', e.message)); },
       log: (...a) => console.log(...a),
+      nameBlock: nameBlockList(env.NAME_BLOCK), // 額外的禁用角色名（逗號分隔，可不設）
+      ...(env.LOBBY_REQUIRE_SR === '1' ? { requireSr: true } : {}), // 合作關卡只收支援伺服器擲骰的頁面（所有人都更新後再開）
     };
     // 交易：成交時打 Vercel 的 /api/ro/trade/settle（RO_TRADE_URL，例如 https://<網域>/api/ro/trade/settle；Vercel 也要設 RO_TRADE=1）。沒設就不開放交易
     const settle = makeSettle({ url: env.RO_TRADE_URL, secret: env.RO_LOBBY_SECRET, fetchImpl: (...a) => fetch(...a), log: (...a) => console.log(...a) });
@@ -80,8 +88,12 @@ export class Lobby extends DurableObject {
       }
     }
     if (url.pathname !== LOBBY_PATH || req.headers.get('Upgrade') !== 'websocket') return new Response('Not found', { status: 404 });
+    // 連線按來源 IP 加標籤（休眠 API 的 tag），超過上限就不收
+    const ip = (req.headers.get('CF-Connecting-IP') || 'unknown').slice(0, 64);
+    const ipCap = Number(this.env.LOBBY_IP_CAP) > 0 ? Number(this.env.LOBBY_IP_CAP) : IP_SOCKETS;
+    if (this.ctx.getWebSockets().length >= MAX_SOCKETS || this.ctx.getWebSockets(`ip:${ip}`).length >= ipCap) return new Response('Busy', { status: 503 });
     const [client, server] = Object.values(new WebSocketPair());
-    this.ctx.acceptWebSocket(server);
+    this.ctx.acceptWebSocket(server, [`ip:${ip}`]);
     return new Response(null, { status: 101, webSocket: client });
   }
   async alarm() {

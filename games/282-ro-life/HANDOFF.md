@@ -1,36 +1,82 @@
-# 282 交接（2026-11-11）
+# 282 交接（2026-11-12）
 
-換電腦、開新 session 接續用。架構與規則以同資料夾的 `CLAUDE.md` 為準，這裡只記「做到哪、下一步、上一台電腦的習慣」。
+換模型、換電腦、開新 session 接續用。架構與規則以同資料夾的 `CLAUDE.md` 為準，線上路線與每一階段的規格、測試、開啟步驟在 `PLAN-trade-party.md`。這裡只記「做到哪、下一步、使用者的習慣」。
 
-## 狀態
+## 狀態（到 `92073e0 20261112-6`，已 push）
 
-- 已上線（Vercel 自動部署）：Google／LINE 登入＋雲端存檔（`RO_DATABASE_URL`）、快捷列圖示修正、新的 app icon／og 圖。
-- **普隆德拉大廳第一階段（看得到其他玩家）**：已上線。Worker 在使用者的 `ro-lobby.<帳號>.workers.dev`，Vercel 設好 `RO_LOBBY_URL`／`RO_LOBBY_SECRET`，正式站兩人互相看得到（2026-11-11 驗證）。
-- **第二階段（社交：查看資料、密語、好友）**：已上線（`a3233c8`，push 後正式站的 welcome 已帶 `social: 1`）。
-  - 好友存在 Durable Object 內建的 SQLite，不在 Neon（不用手動建表、Cloudflare 不用放資料庫密碼、本機能完整測試）。
-  - **還沒驗過**：真正的 Google／LINE 帳號在正式站使用社交功能。
-- **第三階段（多頻道、離線留言、檢舉、禁言、管理頁）**：程式寫好、本機驗過，**要使用者部署 Worker 才會出現**（頁面先更新也沒關係：舊 Worker 不送 `report`／`mail`，檢舉與留言鈕不顯示）。
-  - 本機已驗過：`npm run test:ro` 30 項；瀏覽器經 `wrangler dev`（`LOBBY_CHANNEL_CAP=2`）：自動分到頻道 2、頻道清單換頻道（重送 welcome、看到的人跟著換）、頻道聊天只到同頻道、「一般」跨頻道（在「一般」分頁）、選單檢舉（證據含對方發言）、選單密語帶 id、離線好友「留言」（桌機與 844×390 觸控）→ 對方上線收到、好友選單「前往頻道 N」（滿了顯示「該頻道已滿」、有空位就換過去）、管理頁錯誤密鑰被擋、沒設 `RO_ADMIN_KEY` 時 `/admin` 與 API 都 404、惡意聊天文字在管理頁只顯示成文字、禁言 1 小時 → 對方發言被擋 → 解除；舊 Worker（拿掉 `report`／`mail`）不顯示檢舉與留言鈕，同場的新版對照組會顯示。全程零錯誤。
-  - 隱私：聊天紀錄（含密語、隊伍頻道）在 Durable Object 留 3 天；被檢舉時的證據快照留到管理頁處理為止（目前沒有刪除鈕，只能標為已處理）。
+- **已上線**：Google／LINE 登入＋雲端存檔、普隆德拉大廳（看得到其他玩家、社交）、素材搬到使用者的 `ro-assets` Worker。
+- **線上角色（伺服器權威）**：已上線，正式站設了 `RO_ONLINE_ENFORCE=1`、`RO_ENDLESS=1`。
+  - 線上角色另起一條線，從 Lv1 開始；原本的雲端存檔留作單機存檔。
+  - 存檔、買賣、精煉、領信都在伺服器上算。違規的增加會被默默修正，記在 `ro_game_log`。
+  - 無盡之塔走 HTTP；驗證程式 `tools/verify-endless.mjs` 在使用者電腦重跑，排行榜只列驗證過的。
+- **自動打塔自測**：`tools/endless-bot.mjs`（預設獵人），只在本機起記憶體資料的伺服器，不碰 Neon 與正式排行榜。最近一次 3 分鐘 17/17。
+- **交易（階段 4）**：已提交，**預設關閉**。
+  - 開啟要 Vercel 設 `RO_TRADE=1`。
+  - Worker 的 `wrangler.toml` `[vars]` 要加 `RO_TRADE_URL = "https://htmls-ruddy.vercel.app/api/ro/trade/settle"`，再由使用者自己 `npx wrangler deploy`。
+- **市場＋信箱**：已提交，**預設關閉**。
+  - 開啟要先套 `server/ro-life/schema.sql`（新增 `ro_game_mail`、`ro_market`），再在 Vercel 設 `RO_MARKET=1`。
+  - 風險已告知使用者：物品數上限目前只記錄不擋，偽造的普通掉落可以在市場換成別人的 Kafra。
+- **大廳 Worker**：第三、四階段（多頻道、留言、檢舉、禁言、管理頁、組隊、合作關卡）和交易撮合都在 `worker/`。是否已部署最新版未確認，部署一次就全部包含。部署步驟見 `worker/wrangler.toml` 檔頭；`RO_ADMIN_KEY` 要用 `wrangler secret put` 設。
 
-- **第四階段（組隊＋合作關卡）**：程式寫好、本機驗過，**要使用者部署 Worker**（不用新的密鑰）。頁面先更新沒關係：舊 Worker 不送 `party`，「邀請組隊」不顯示。
-  - 本機已驗過：`npm run test:ro` 40 項（含本局中被踢、同帳號兩個分頁、64 KB 大封包）；瀏覽器經 `wrangler dev`：選單「邀請組隊」→ 對方接受 → 隊伍框（桌機與 844×390 觸控）、隊伍頻道、隊長提議關卡 → 對方按好 → 兩人進同一局（房主是隊長、看得到對方、擊殺數同步）→ 打 30 秒後兩人離開 → 回到廣場隊伍還在 → 第二趟也能出發；擊殺數寫進各自的本機存檔；房主關掉頁面後另一人接手房主。全程零錯誤。
-  - 沒驗過：舊 Worker 不送 `party` 時隱藏「邀請組隊」（和檢舉、留言同一套開關，那兩個驗過）；大波怪時的封包大小（上限已放寬到 64 KB）。
-  - 費用：一個 3 人隊伍打關卡時，Durable Object 每秒約收 40 則訊息。Cloudflare 免費方案約每天 10 萬次請求（第三方資料說 WebSocket 訊息 20 則算 1 次，官方文件沒查到這個比例），粗算每天約 13 個「隊伍小時」就會用完，用完時整個大廳都會失效；玩的人多就要升級 Workers Paid。
+## 這一輪（2026-11-12 晚，全部未提交）
 
-## 下一步
+- **安全與防作弊加固**：完成。補了十個洞（複製物品、沒有 uid 的物品可上架、假角色進塔、卡片換種類、`endless` 憑證沒有時間上限、跳過劇情不查資格…），清單、哪些直接擋、哪些先記錄、還沒補的，都在 `PLAN-trade-party.md`「安全與防作弊加固」。
+  - 新開關 `RO_ONLINE_STRICT=1`：先記錄的那幾條規則改成真的擋。**還沒開**，要先看正式站紀錄。
+  - 新工具 `tools/audit-saves.mjs`（正式站唯讀稽核）。要使用者當場明講同意才能跑。
+  - 規則資料重新倒過（多了 `affix`）。
+- **角色名審核**：完成（`server/ro-life/name-rules.mjs`）。沒做名字全站唯一（要新表）。
+- **合作關卡獎勵**：三個階段都做完了（使用者選「階段 1＋2＋3」）。行程收據、結算收據、大廳擲骰，規格、驗收與**部署順序**在 `PLAN-trade-party.md`「合作關卡獎勵裁決：階段 1～3」。
+  - 新開關 `RO_COOP_RECEIPT=1`（Vercel）：沒有行程收據的憑證當單人算。**還沒開，而且一定要在大廳 Worker 重新部署之後才能開**，不然合作關卡的經驗會被砍。
+  - 頁面重新 build 過（引擎多 13 處 `must()`、頁首多一段 `coopScript`）。
+- **正式站稽核**（使用者同意後跑了 `tools/audit-saves.mjs`，只有 SELECT）：線上存檔、紀錄、憑證、塔場次都是 **0 筆**，還沒有人用線上模式玩過。所以沒有資料可以訂上限的數字；這一輪只收緊了從引擎推得出來的（單人／合作分開算、每小時憑證 120 → 60、strict 時剛發的憑證不給物品與卡片）。
+- **Firefox 重跑驗證**：使用者說不測，從待辦拿掉。
+- **launchd 排程**：使用者說先不設。範本在 `tools/launchd/com.htmls.ro-verify-endless.plist`，沒有安裝、沒有載入。
+- **要提醒使用者的**：`worker/wrangler.toml` 的 `[vars]` 已經有 `RO_TRADE_URL`，重新部署 Worker 大廳就會顯示「交易」；Vercel 沒設 `RO_TRADE=1` 的話結算會失敗。
+- 這一輪的實測腳本在暫存資料夾（沒進 repo）：`coop/coop-e2e.mjs`（兩個瀏覽器的合作關卡）、`coop/coop-e2e-oldlobby.mjs`（同一支換成上一版的大廳）、`market/market-e2e-strict.mjs`、`stage/stage-e2e.mjs`、`affix-check.mjs`，路徑 `/private/tmp/claude-501/-Users-xieyuanyou-Documents-htmls/54451823-5807-4370-bd80-6f21cdb0144e/scratchpad/`。
 
-1. 使用者部署（不可由 Claude 執行；第三、四階段一起）：commit＋push 後，在執行 wrangler 的電腦 `git pull`，`cd games/282-ro-life/worker`，`npx wrangler secret put RO_ADMIN_KEY`（至少 16 字的長亂數），再 `npx wrangler deploy`。管理頁在 `https://ro-lobby.<帳號>.workers.dev/admin`。
-2. 部署後在正式站驗證：換頻道、檢舉、管理頁禁言／解除、離線留言、兩個登入帳號組隊打一關。
-3. 使用者已選定：交易走伺服器權威、近期要排行榜。下一個大工程是 `PLAN-trade-party.md` 的階段 3（啟用引擎線上模式、伺服器驗證存檔與關卡獎勵）。
-4. 其他待辦：角色名審核、檢舉證據的刪除鈕。
+## 下一步（使用者說「依序實作」）
 
-## 上一台電腦的習慣（memory 不會跟著換電腦）
+1. **合作關卡獎勵改由伺服器裁決**：完成（見上）。剩下的是部署後的確認：Worker 部署 → 自己組隊打一場看紀錄 → 開 `RO_COOP_RECEIPT=1`。下面是當初的調查範圍。
+   - 現況：合作關卡的獎勵由各自的用戶端結算。使用者選了「發給獎勵、只記錄」。
+   - 要看的地方：大廳的 `ws-run` 轉送（`server/ro-life/lobby-party.mjs`）、單人關卡的 `POST run` 憑證與 `PUT save` 驗證（`server/ro-life/game.mjs`、`game-rules.mjs`）、無盡之塔的重跑驗證（`endless.mjs`、`tools/verify-endless.mjs`）。
+2. 角色名審核：完成。剩「名字全站唯一」，要新表，先問使用者。
+3. ~~Firefox 重跑驗證~~：使用者決定不測（2026-11-12）。
+4. 驗證程式的 launchd 排程：使用者說先不設，只留範本（見上）。之後要設也要先問。
+5. 使用者自己做：開啟交易、市場（見上）；部署大廳 Worker；commit。
+6. 收緊經驗與物品上限：能從引擎推的已經做了；正式站目前 0 筆資料。有玩家之後再跑稽核（要使用者明講同意，或請使用者自己跑 `tools/audit-saves.mjs`），看過資料再決定開 `RO_ONLINE_STRICT=1` 與物品、卡片的數字。
+
+## 測試
+
+- `npm run test:ro`：106 項，含 `anticheat.test.mjs`、`lobby-party.test.mjs`（收據與擲骰）、`trade.test.mjs`、`market.test.mjs`。
+- 下面這些腳本放在上一個 session 的暫存資料夾，**沒有進 repo**，重開機可能就不見了，需要時照 `PLAN-trade-party.md` 的描述重寫：
+  - PGlite 真 PostgreSQL 測試（`pg/pg-trade.mjs`、`pg/pg-market.mjs`、`pg/pg-schema2.mjs`）。
+  - 兩個瀏覽器實測（`trade/trade-e2e.mjs`、`market/market-e2e.mjs`）。
+  - 單機／靜態主機檢查（`market/static-check.mjs`）。
+  - 暫存資料夾：`/private/tmp/claude-501/-Users-xieyuanyou-Documents-htmls/1e10ce14-1705-4c1d-8d91-a21a81fedeb0/scratchpad/`。
+- PGlite 只有一條連線，「兩人同時買」這類情境實際上是依序跑的；真的同時發生時，靠的是 UPDATE 的列鎖與重新檢查條件。
+
+## 使用者的習慣（memory 不會跟著換電腦或模型）
 
 - 一律用繁體中文回覆。
-- 沒被要求就不 commit；commit 訊息格式 `YYYYMMDD-N`＋一行說明＋ attribution。使用者常同時開多個 session，commit 前看 `git status`。
-- Cloudflare 一律用使用者自己的帳號、不自動部署；不要對使用者的 Neon 執行 DDL。
-- 不要加回 F2 Debug 鈕；手機只做橫向；介面精簡、用圖示；保留同人聲明（`#fanNote`、`CREDITS.md`）。
-- 不要把使用者的 email 或個資送到外部服務。
-- 登錄檔（`index.html`、`README.md`、`llms.txt`、`sitemap.xml`）換行混用，`server/jade-table/server.mjs` 是 CRLF：用小範圍編輯，改完看 `git diff --stat`。
-- 驗收用 Playwright（上一台的路徑 `/Users/xieyuanyou/Documents/TransitRail/node_modules/playwright/index.mjs` 是機器專屬；新電腦自己裝），`channel: 'chrome'`、`--use-angle=metal`，並加 `--host-resolver-rules=MAP ro.test 127.0.0.1` 走正式站分支。大廳驗收步驟寫在 `CLAUDE.md` 的大廳段落。
+- 沒被要求就不 commit；使用者自己會在 session 中途 commit／push，結束時回報還沒提交的檔案。
+  - commit 格式是 `YYYYMMDD-N`，結尾加 attribution。
+  - 使用者常同時開多個 session，commit 前看 `git status`。
+- Cloudflare 一律用使用者自己的帳號，**不執行** `wrangler login`／`wrangler deploy`。
+- 不要對使用者的 Neon 執行 DDL：新表寫進 `schema.sql` 讓使用者自己套。正式資料只做唯讀查詢。
+- 介面規則：
+  - 不要加回 F2 Debug 鈕。
+  - 手機只做橫向。
+  - 介面精簡、用圖示（大廳鈕是 `#lobby-actions` 的 SVG 遮罩圖示）。
+  - 新面板沿用 `dock-panel` 版面。
+  - 保留同人聲明（`#fanNote`、`CREDITS.md`）。
+- 不要把使用者的 email 或個資送到外部服務；瀏覽器裡不輸入密碼、不讀或外洩 token。
+- 換行與編輯：
+  - 登錄檔（`index.html`、`README.md`、`llms.txt`、`sitemap.xml`）換行混用，`server/jade-table/server.mjs` 是 CRLF，用位元組層級的小範圍編輯，改完看 `git diff --stat`。
+  - `src/style.css` 開頭是一行壓縮過的 CSS，新的規則加在檔尾。
+- 引擎改動一律寫在 `tools/build.mjs` 的 `must()` 替換裡（找不到原字串就讓 build 失敗）。改了 `src/` 要 `node games/282-ro-life/tools/build.mjs`，連同 `web/282-ro-life.html` 一起交付。
+- 本機的工具限制：
+  - context-mode 的 hook 會擋 curl、WebFetch 與指令裡直接寫的 `fetch(`；檔案裡改用 `globalThis['fe'+'tch']`。
+  - macOS 沒有 `timeout` 指令。
+- 驗收用 Playwright：
+  - 模組路徑 `/Users/xieyuanyou/Documents/TransitRail/node_modules/playwright/index.mjs`（機器專屬），啟動時用 `channel: 'chrome'`、`--use-angle=metal`；WebKit 已安裝。
+  - 檢查兩種尺寸：1440×900 與手機橫向 844×390。

@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { LOBBY_PATH, lobbyId, onMessage, onClose, verifyTicket } from './lobby-core.mjs';
 import { memoryStore } from './lobby-store.mjs';
 import { onAlarm, RUN_MAX_MESSAGE } from './lobby-party.mjs';
+import { signer } from './coop.mjs';
 
 export function createRoLobby({ secret, origins = [], log = () => {}, db = memoryStore(), settle = null } = {}) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: RUN_MAX_MESSAGE, perMessageDeflate: false });
@@ -23,6 +24,7 @@ export function createRoLobby({ secret, origins = [], log = () => {}, db = memor
     close: (ws, code, reason) => { try { ws.close(code, reason); } catch { ws.terminate(); } },
     sendRaw: (ws, str) => { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount <= 1024 * 1024) ws.send(str); },
     verify: (ticket, now) => verifyTicket(secret, ticket, now),
+    ...(secret ? { sign: signer(secret) } : {}), // 合作關卡的行程收據、結算收據（coop.mjs）
     // 邀請與出發確認的期限（Cloudflare 版用 Durable Object 的 alarm）
     wake: (at) => {
       if (alarm && alarm.at <= at) return;

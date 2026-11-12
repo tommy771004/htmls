@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  282 無盡之塔驗證程式（tools/verify-endless.mjs）的 launchd 排程。這個檔只是範本，沒有安裝、也沒有載入。
+  它會讀寫正式站 Neon 的塔場次（pending → verified／unranked、加點數），要用時自己安裝：
+
+    cp games/282-ro-life/tools/launchd/com.htmls.ro-verify-endless.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.htmls.ro-verify-endless.plist
+    launchctl kickstart gui/$(id -u)/com.htmls.ro-verify-endless      # 馬上跑一次
+    tail -f ~/Library/Logs/ro-verify-endless.log
+
+  停用：launchctl bootout gui/$(id -u)/com.htmls.ro-verify-endless，再刪掉 ~/Library/LaunchAgents 裡的檔案。
+  安裝前先手動跑一次確認結果（加 --dry 只看不寫）：
+    PLAYWRIGHT_MODULE=… node --env-file=.env.local games/282-ro-life/tools/verify-endless.mjs --dry
+
+  下面的路徑是這台電腦的（node、倉庫、Playwright）；換電腦要改。StartInterval 是每幾秒跑一次（600＝10 分鐘）。
+  電腦睡眠時不會跑，醒來後照間隔繼續；排行榜在驗證前顯示「驗證中」。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.htmls.ro-verify-endless</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/xieyuanyou/.local/bin/node</string>
+    <string>--env-file=/Users/xieyuanyou/Documents/htmls/.env.local</string>
+    <string>/Users/xieyuanyou/Documents/htmls/games/282-ro-life/tools/verify-endless.mjs</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/xieyuanyou/Documents/htmls</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PLAYWRIGHT_MODULE</key>
+    <string>/Users/xieyuanyou/Documents/TransitRail/node_modules/playwright/index.mjs</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>600</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>/Users/xieyuanyou/Library/Logs/ro-verify-endless.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/xieyuanyou/Library/Logs/ro-verify-endless.log</string>
+</dict>
+</plist>

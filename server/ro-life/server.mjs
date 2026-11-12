@@ -133,7 +133,7 @@ export function createRoLife({ env = process.env, fetchImpl = globalThis.fetch, 
     }
     return null;
   };
-  const game = createGameRoutes({ env, store, send, readBody });
+  const game = createGameRoutes({ env, store, send, readBody, lobbySecret: () => lobbyConf()?.secret ?? null });
 
   async function authed(req) {
     // 頁面用 Bearer；引擎的線上協定用 x-session（同一個權杖）

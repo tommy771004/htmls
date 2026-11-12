@@ -10,7 +10,7 @@ import { createRoLife } from './server.mjs';
 import { RoStore } from './store.mjs';
 
 const NOW = 1_800_000_000_000;
-const ch = (o = {}) => ({ id: 'c1', name: 'T', job: 'swordsman', level: 10, jobLevel: 10, exp: 0, jobExp: 0, stats: { str: 1, agi: 1, vit: 1, int: 1, dex: 1, luk: 1 }, talents: {}, equipped: {}, ...o });
+const ch = (o = {}) => ({ id: 'c1', name: 'Tommy', job: 'swordsman', level: 10, jobLevel: 10, exp: 0, jobExp: 0, stats: { str: 1, agi: 1, vit: 1, int: 1, dex: 1, luk: 1 }, talents: {}, equipped: {}, ...o });
 const acc = (o = {}) => ({ inventory: [], cards: {}, materials: {}, kafra: 0, ...o });
 const doc = (chars, a = acc()) => ({ 'characters.v1': JSON.stringify(chars), 'account.v1': JSON.stringify(a) });
 const chars = (d) => JSON.parse(d['characters.v1']);
@@ -42,8 +42,9 @@ test('經驗上限：時間越長、難度越高越多；等級遠高於怪物�
   const lv = 1, boss = R.monsters.angeling.exp;
   assert.ok(runExpCap('payon', 181, { mult: 1, level: lv }) - runExpCap('payon', 179, { mult: 1, level: lv }) >= boss);
   assert.equal(runExpCap('nowhere', 300), 0);
-  // 跳過劇情：只有頭目的量
-  assert.ok(runExpCap('sunken', 0, { skip: true }) > 0);
+  // 跳過劇情：沒有經驗（引擎結算時 baseExp 是 0）；無盡之塔不走關卡憑證
+  assert.equal(runExpCap('sunken', 0, { skip: true }), 0);
+  assert.equal(runExpCap('endless', 600), 0);
 });
 
 test('沒有違規：回傳 doc 為 null', () => {
@@ -114,7 +115,7 @@ test('能力點與天賦：超過就重置；沒變動的舊資料不追溯', ()
 });
 
 test('新物品：只能來自關卡結算，品質、等級、階級要合理；同一件不能換內容', () => {
-  const ok = { uid: 'a', itemId: 1104, quality: 2, ilvl: 8, tier: 1, affixes: [{}], cards: [null, null] };
+  const ok = { uid: 'a', itemId: 1104, quality: 2, ilvl: 8, tier: 1, affixes: [{ stat: 'str', value: 1 }], cards: [null, null] };
   assert.equal(checkSave(doc([ch()]), doc([ch()], acc({ inventory: [ok] })), at(claim())).doc, null);
   // 詞綴數照品質：普通 0、精良 1、稀有 2、史詩 4、傳說 4＋1 條特殊詞綴
   const affixed = (quality, n) => checkSave(doc([ch()]), doc([ch()], acc({ inventory: [{ ...ok, quality, affixes: Array(n).fill({}) }] })), at(claim()));
@@ -159,8 +160,11 @@ test('Kafra、材料、精煉：存檔裡只能變少（增加要走伺服器 op
   assert.deepEqual(codes(r), ['refine', 'kafra', 'materials', 'materials']);
   const a = account(r.doc);
   assert.deepEqual([a.kafra, a.materials, a.inventory[0].refine], [100, { 1010: 2 }, 3]);
-  const u = checkSave(doc([ch()]), doc([ch()], acc({ materials: { weird: 3 } })), at());
+  // 不認得的材料：原本就有的只記錄，變多一樣退回
+  const u = checkSave(doc([ch()], acc({ materials: { weird: 3 } })), doc([ch()], acc({ materials: { weird: 3 } })), at());
   assert.deepEqual([codes(u), u.doc], [['material-unknown'], null]);
+  const v = checkSave(doc([ch()]), doc([ch()], acc({ materials: { weird: 3 } })), at());
+  assert.deepEqual([codes(v), account(v.doc).materials], [['materials'], {}]);
 });
 
 test('op：買礦、賣出、精煉照引擎的算法；精煉亂數在伺服器', () => {
@@ -242,7 +246,7 @@ test('API：影子模式照存並記 would-fix；RO_ONLINE_ENFORCE=1 存修正�
 
 test('打倒的 MVP、通過的關卡、轉職：只能跟著該關憑證來（無盡之塔開幾層看這些）', () => {
   // 普隆德拉的憑證：可以記 mastering、通過 prontera；不能順便記別關的 MVP
-  let r = checkSave(doc([ch()]), doc([ch({ mvpsDefeated: ['mastering', 'drake'], stagesCleared: ['prontera', 'sewer'] })]), at(claim()));
+  let r = checkSave(doc([ch()]), doc([ch({ mvpsDefeated: ['mastering', 'drake'], stagesCleared: ['prontera', 'sewer'] })]), at(claim('prontera', 900)));
   assert.deepEqual(codes(r), ['mvps', 'stages']);
   assert.deepEqual([chars(r.doc)[0].mvpsDefeated, chars(r.doc)[0].stagesCleared], [['mastering'], ['prontera']]);
   // 沒憑證：全部拿掉；舊的照留
@@ -260,6 +264,6 @@ test('打倒的 MVP、通過的關卡、轉職：只能跟著該關憑證來（�
   r = checkSave(doc([ch({ promotion: 'knight' })]), doc([ch({ promotion: 'crusader' })]), at(claim('prt_castle', 300)));
   assert.deepEqual([codes(r), chars(r.doc)[0].promotion], [['promotion'], 'knight']);
   // 憑證綁別的角色就不算
-  r = checkSave(doc([ch()]), doc([ch({ mvpsDefeated: ['mastering'] })]), at(claim('prontera', 600, { char: 'other' })));
+  r = checkSave(doc([ch()]), doc([ch({ mvpsDefeated: ['mastering'] })]), at(claim('prontera', 900, { char: 'other' })));
   assert.deepEqual(codes(r), ['mvps']);
 });

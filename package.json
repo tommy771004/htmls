@@ -7,7 +7,7 @@
     "test:mahjong": "node --test server/jade-table/game.test.mjs",
     "test:saltcape": "node --test games/199-saltcape/tools/sim.test.mjs games/199-saltcape/tools/net.test.mjs games/199-saltcape/tools/assets.test.mjs",
     "test:ochre": "node --test games/278-ochre-line/tools/net.test.mjs",
-    "test:ro": "node --test server/ro-life/ro.test.mjs server/ro-life/game.test.mjs server/ro-life/game-rules.test.mjs server/ro-life/endless.test.mjs server/ro-life/lobby.test.mjs server/ro-life/lobby-social.test.mjs server/ro-life/lobby-mod.test.mjs server/ro-life/lobby-party.test.mjs server/ro-life/trade.test.mjs server/ro-life/market.test.mjs"
+    "test:ro": "node --test server/ro-life/ro.test.mjs server/ro-life/game.test.mjs server/ro-life/game-rules.test.mjs server/ro-life/anticheat.test.mjs server/ro-life/endless.test.mjs server/ro-life/lobby.test.mjs server/ro-life/lobby-social.test.mjs server/ro-life/lobby-mod.test.mjs server/ro-life/lobby-party.test.mjs server/ro-life/trade.test.mjs server/ro-life/market.test.mjs"
   },
   "engines": {
     "node": ">=22"

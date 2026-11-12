@@ -8,6 +8,8 @@
 # 部署完把 Vercel 的 RO_LOBBY_URL 設成 wss://ro-lobby.<帳號>.workers.dev/api/ro/lobby，重新部署 Vercel。
 # 管理頁：https://ro-lobby.<帳號>.workers.dev/admin（看檢舉、禁言／解除）。
 # 交易（線上角色）：Vercel 設 RO_TRADE=1 後，在下面 [vars] 加 RO_TRADE_URL = "https://htmls-ruddy.vercel.app/api/ro/trade/settle" 再 deploy；沒設就不開放交易。
+# 合作關卡的行程收據、結算收據與擲骰（server/ro-life/coop.mjs）也在這個 Worker，用同一個 RO_LOBBY_SECRET 簽。
+# 部署之後才能在 Vercel 設 RO_COOP_RECEIPT=1（沒有行程收據的關卡憑證當單人算）；順序反了合作關卡的經驗會被砍。
 name = "ro-lobby"
 main = "index.js"
 compatibility_date = "2026-09-01"
