@@ -1,0 +1,11 @@
+{
+  "name": "lineage-life",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare-assets": "node tools/prepare-assets.mjs",
+    "build": "node tools/build.mjs",
+    "accept": "node tools/accept.mjs"
+  }
+}
