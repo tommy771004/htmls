@@ -107,7 +107,8 @@ export async function boot() {
 
   // ---------- 對戰的建立與切換 ----------
   function newGame(o) {
-    for (const s of soldiers) { scene.remove(s.group); s.dispose(); }
+    // 舊角色的材質晚幾幀再丟：先丟的話 shader program 的引用數歸零會被刪掉，新角色又得重編一次（開場卡一下）
+    const old = soldiers; for (const s of old) scene.remove(s.group); if (old.length) setTimeout(() => { for (const s of old) s.dispose(); }, 400);
     const seed = +q.get('seed') || ((Date.now() ^ (Math.random() * 1e9)) & 0x7fffffff) || 1;
     game = new Game({ map, world, seed, difficulty: S.diff, playerTeam: S.team, auto: !!o.auto, loadout: S.lo });
     soldiers = game.ents.map(e => { const s = new Soldier(e, Tx); scene.add(s.group); return s; });

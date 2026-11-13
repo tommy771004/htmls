@@ -1,17 +1,22 @@
 // 單張截圖＋印出 console.error / 例外 / 外部請求。
 // node tools/shot.mjs "<網址參數，如 ?cam=0,1.6,8,0,0>" out.png [寬=1440] [高=900] [等待毫秒=2500] [--page 檔名] [--pre "就緒後先執行的 js"] [--eval "截圖前執行並印出的 js"] [--cams "x,y,z,yaw°,pitch°;…"] [--seq "js;;js;;…"（每段執行後各截一張 out-N.png）]
 import { chromium } from 'playwright-core';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 const a = process.argv.slice(2);
 const take = k => { const i = a.indexOf(k); return i >= 0 ? a.splice(i, 2)[1] : null; };
-const cams = take('--cams'); const page_ = take('--page') || '283-late-checkout.html', ev = take('--eval'), pre = take('--pre'), seq = take('--seq'), port = take('--port') || '8283';
+const cams = take('--cams'); const page_ = take('--page') || '283-late-checkout.html', ev = take('--eval'), pre = take('--pre'), seq = take('--seq'), port = take('--port'); // 不給 --port 就不需要伺服器：用請求攔截直接從 repo 讀檔
 const [q = '', out = '/tmp/283.png', w = '1440', h = '900', wait = '2500'] = a;
 const browser = await chromium.launch({ headless: true, channel: 'chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const ctx = await browser.newContext({ viewport: { width: +w, height: +h }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log(m.type() + ':', m.text().slice(0, 600)); });
 page.on('pageerror', e => console.log('pageerror:', e.message, (e.stack || '').split('\n').slice(0, 4).join(' | ')));
-page.on('request', r => { const u = r.url(); if (!u.startsWith(`http://127.0.0.1:${port}`) && !u.startsWith('data:') && !u.startsWith('blob:')) console.log('external:', u); });
-await page.goto(`http://127.0.0.1:${port}/web/${page_}${q}`, { waitUntil: 'load' });
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url)), ORIGIN = port ? `http://127.0.0.1:${port}` : 'http://lc.test';
+const MIME = { html: 'text/html; charset=utf-8', js: 'text/javascript', mjs: 'text/javascript', css: 'text/css', svg: 'image/svg+xml', json: 'application/json', jpg: 'image/jpeg', png: 'image/png' };
+if (!port) await page.route(ORIGIN + '/**', async route => { const rel = decodeURIComponent(new URL(route.request().url()).pathname).replace(/^\/+/, ''); if (rel.includes('..')) return route.fulfill({ status: 403, body: '' }); try { await route.fulfill({ status: 200, contentType: MIME[rel.split('.').pop()] || 'application/octet-stream', body: await readFile(ROOT + rel) }); } catch { await route.fulfill({ status: 404, body: '' }); } });
+page.on('request', r => { const u = r.url(); if (!u.startsWith(ORIGIN) && !u.startsWith('data:') && !u.startsWith('blob:')) console.log('external:', u); });
+await page.goto(`${ORIGIN}/web/${page_}${q}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__lc && window.__lc.ready, null, { timeout: 60000 }).catch(() => console.log('timeout: __lc.ready'));
 if (pre) await page.evaluate(pre);
 await page.waitForTimeout(+wait);

@@ -252,9 +252,14 @@ export class Lights {
     out[0] = r; out[1] = g; out[2] = b;
   }
   // 動態物件用：這一點目前的環境光顏色（吃得到燈的亮滅、閃爍與閃電）
-  probe(x, y, z, col) {
-    const n = this._gather(x, y, z, 0, 0, 0), acc = this.acc, ids = this.ids, cur = this.cur; let r = AMB[0], g = AMB[1], b = AMB[2];
-    for (let i = 0; i < n; i++) { const id = ids[i], k = acc[id]; r += cur[id * 3] * k; g += cur[id * 3 + 1] * k; b += cur[id * 3 + 2] * k; acc[id] = 0; }
+  // dir（可省略）：主要光線來的方向 × 方向性（0＝四面八方一樣亮、1＝只有一盞燈），角色拿它當主光，弧面才有明暗
+  probe(x, y, z, col, dir) {
+    const n = this._gather(x, y, z, 0, 0, 0), acc = this.acc, ids = this.ids, cur = this.cur; let r = AMB[0], g = AMB[1], b = AMB[2], vx = 0, vy = 0, vz = 0, ws = 0.02;
+    for (let i = 0; i < n; i++) {
+      const id = ids[i], k = acc[id], cr = cur[id * 3] * k, cg = cur[id * 3 + 1] * k, cb = cur[id * 3 + 2] * k; r += cr; g += cg; b += cb; acc[id] = 0;
+      if (dir) { const w = cr * 0.3 + cg * 0.55 + cb * 0.15, l = id === MOON ? null : this.lamps[id]; let dx, dy, dz; if (l) { dx = l.x - x; dy = l.y - y; dz = l.z - z; } else { dx = -this.moon.dir[0]; dy = -this.moon.dir[1]; dz = -this.moon.dir[2]; } const d = Math.hypot(dx, dy, dz) || 1; vx += dx / d * w; vy += dy / d * w; vz += dz / d * w; ws += w; }
+    }
+    if (dir) dir.set(vx / ws, vy / ws, vz / ws);
     return col.setRGB(r, g, b);
   }
 }

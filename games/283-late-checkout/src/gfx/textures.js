@@ -163,6 +163,27 @@ export function makeTextures() {
     });
     T.fabric = { map: tex(p.c, true), normalMap: normalMap(p.hgt, 256, 1.0), scale: 0.5, rough: 0.95 };
   }
+  { // 槍的金屬：細顆粒的磷化表面＋零星刮痕（刮痕處較亮、較光滑）
+    const Z = 256, r = rng(771), n = fbm(Z, 32, 91, 3), big = fbm(Z, 4, 92, 3), h = new Float32Array(Z * Z), rg = new Float32Array(Z * Z);
+    for (let i = 0; i < Z * Z; i++) { h[i] = n[i] * 0.45 + r() * 0.3; rg[i] = 0.4 + big[i] * 0.22 + (r() - 0.5) * 0.06; }
+    for (let k = 0; k < 34; k++) { let x = r() * Z, y = r() * Z; const a = (r() - 0.5) * 0.7 + (r() < 0.25 ? 1.57 : 0), dx = Math.cos(a), dy = Math.sin(a), len = 14 + r() * 80, dp = 0.25 + r() * 0.45;
+      for (let t = 0; t < len; t++) { const i = ((y | 0) & (Z - 1)) * Z + ((x | 0) & (Z - 1)); h[i] -= dp; rg[i] -= 0.16; x += dx; y += dy; } }
+    T.gunMetal = { normalMap: normalMap(h, Z, 0.9), roughnessMap: roughMap(rg, Z) };
+  }
+  { // 槍的聚合物：交錯排列的小凸點（握把、槍托的止滑紋）
+    const Z = 128, h = new Float32Array(Z * Z), rg = new Float32Array(Z * Z), r = rng(772);
+    for (let y = 0; y < Z; y++) for (let x = 0; x < Z; x++) { const xx = (x + ((y >> 2) & 1) * 2) % 4 - 1.5, yy = y % 4 - 1.5, d = Math.hypot(xx, yy); h[y * Z + x] = Math.max(0, 1 - d / 1.9) * 0.8 + r() * 0.12; rg[y * Z + x] = 0.62 + r() * 0.1; }
+    T.gunPoly = { normalMap: normalMap(h, Z, 1.1), roughnessMap: roughMap(rg, Z) };
+  }
+  { // 衣服：大皺褶（脊狀雜訊）＋細織紋；底色只做明暗變化（髒污、磨白），顏色由頂點色決定
+    const Z = 256, f1 = fbm(Z, 3, 311, 3), f2 = fbm(Z, 7, 312, 3), dirt = fbm(Z, 5, 313, 4), r = rng(773), h = new Float32Array(Z * Z);
+    const p = paint(Z, (x, y, i, o) => {
+      const rd1 = 1 - Math.abs(2 * f1[i] - 1), rd2 = 1 - Math.abs(2 * f2[i] - 1), w = (Math.sin(x * 1.57) * 0.5 + 0.5) * (Math.sin(y * 1.57) * 0.5 + 0.5);
+      h[i] = rd1 * rd1 * 0.75 + rd2 * rd2 * 0.3 + w * 0.05;
+      const v = 236 + (rd1 * rd1 - 0.4) * 20 - sm(0.55, 0.85, dirt[i]) * 34 + (r() - 0.5) * 10; o[0] = o[1] = o[2] = Math.max(60, Math.min(255, v));
+    });
+    T.cloth = { map: tex(p.c, true), normalMap: normalMap(h, Z, 2.4) };
+  }
   { // 門板：兩格凹板（整張 = 一扇門）
     const p = paint(256, (x, y, i, o, h, rg) => {
       const u = x / 256, v = y / 256, j = (y * 2) * S + x * 2;

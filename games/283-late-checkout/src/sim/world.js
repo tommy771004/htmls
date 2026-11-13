@@ -111,7 +111,8 @@ export class World {
         if (d2 >= r * r) continue;
         if (d2 > 1e-10) { const d = Math.sqrt(d2), f = (r - d) / d; p.x += ex * f; p.y += ey * f; p.z += ez * f; }
         else { // 球心在盒內：往最近的面推出去（不往下推）
-          const l = p.x - b[o], rr = b[o + 3] - p.x, t = p.z - b[o + 2], bb = b[o + 5] - p.z, u = b[o + 4] - p.y, m = Math.min(l, rr, t, bb, u);
+          const l = p.x - b[o], rr = b[o + 3] - p.x, t = p.z - b[o + 2], bb = b[o + 5] - p.z, u = b[o + 4] - p.y < 0.2 ? b[o + 4] - p.y : Infinity, m = Math.min(l, rr, t, bb, u); // 只有淺淺陷進頂面才往上推，不然會被牆「吐」到牆頂
+          if (m > 0.6) continue; // 陷得太深（大片樓板、厚牆的正中間）就不管，免得被瞬間搬到好幾公尺外
           if (m === u) p.y = b[o + 4] + r; else if (m === l) p.x = b[o] - r; else if (m === rr) p.x = b[o + 3] + r; else if (m === t) p.z = b[o + 2] - r; else p.z = b[o + 5] + r;
         }
         hit = true;
