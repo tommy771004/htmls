@@ -7,6 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
     <!-- 🗑️ v3.5.87 移除死的行動裝置偵測 IIFE：applyViewport 無任何分支（mobile 變數算了沒用）、
          DESIGN_W/isMobileDevice/window.__mobileScaling 全專案零呼叫；唯一實際效果 viewport-fit=cover 直接併入上方 meta。
          （width=1180 手機縮放已於桌機專注決策時移除·本作 desktop-only） -->
@@ -3903,6 +3904,263 @@ button.classic-skill-cell { cursor:pointer; }
     }
 }
 
+/* ===== 🗺️ HTMLS 284：重製版風格 HUD（場景滿版；左下聊天、中下等級章＋體力魔力＋快捷列、右上小地圖＋清單、左上狀態圖示）=====
+   只改外觀與位置，按鈕、選單與日誌都保留原本的 DOM 與事件；小地圖與清單由 js/33-hud-minimap.js 產生。 */
+.town-npc .tn-label {
+    padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+    text-shadow: -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000, 1px 1px 1px #000;
+}
+.town-npc .tn-label .tn-name { color: #f4eedf; font-size: 13px; letter-spacing: .02em; }
+.town-npc .tn-label .tn-title { color: #c9bc9c; font-size: 11px; margin-left: 4px; }
+.town-npc.wandering-player .tn-label { border: 0; background: none; box-shadow: none; }
+.town-npc.wandering-player .tn-label .tn-name { color: #8fb8ff; }
+.town-npc.wandering-player .tn-label .tn-title { color: #d7cfbd; }
+#hud-minimap, #hud-tracker { display: none; }
+
+@media (min-width: 769px) {
+    #game-screen {
+        --g: 8px;
+        --chat-w: clamp(300px, 29vw, 440px);
+        --chat-h: clamp(210px, 29dvh, 290px);
+        --bar-w: clamp(460px, 44vw, 640px);
+        --slot: clamp(38px, 3.2vw, 46px);
+        --bar-left: max(calc(50% - var(--bar-w) / 2), calc(var(--g) * 2 + var(--chat-w)));
+        --mm: clamp(170px, 15vw, 220px);
+        --row-slots: calc(var(--slot) + 10px);
+        --row-stats: 24px;
+        --row-vitals: 36px;
+        --cluster-h: calc(var(--row-slots) + var(--row-stats) + var(--row-vitals) + 6px);
+        --hud-h: calc(var(--cluster-h) + 12px);   /* 上方桌機區塊用它決定戰鬥場地的下緣留白 */
+        --glass: rgba(9, 9, 11, .66);
+        --glass-deep: rgba(4, 4, 6, .8);
+        --edge: rgba(176, 148, 102, .38);
+        --edge-dim: rgba(255, 255, 255, .07);
+        --gold: #c9a464;
+        --ink: #f0ebe0;
+        --ink-dim: #a9a294;
+    }
+
+    /* 場景直接頂到上緣，原本的「冒險地圖」字樣收起來（保留旁邊的警示與攻城倒數） */
+    #map-view-panel { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #070707 !important; }
+    #map-view-panel > .panel-header { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; pointer-events: none; }
+    #map-view-panel > .panel-header > span.text-xl {
+        position: fixed; left: var(--g); top: 44px; font-size: 0 !important; gap: 8px !important; pointer-events: auto;
+        background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; min-width: 0 !important; min-height: 0 !important;
+    }
+    #map-view-panel > .panel-header > span.text-xl > * { font-size: 14px !important; text-shadow: 1px 1px 0 #000; }
+
+    /* 右上：小地圖下方的地圖操作列 */
+    #map-view-panel > .panel-header > div {
+        position: fixed; right: var(--g); top: calc(var(--g) + var(--mm) + 28px); width: var(--mm);
+        display: flex !important; flex-wrap: wrap; gap: 3px !important; padding: 4px;
+        pointer-events: auto; border-radius: 0 !important;
+        background: var(--glass) !important; border: 1px solid var(--edge-dim) !important; box-shadow: none !important;
+    }
+    #map-view-panel > .panel-header > div > button {
+        flex: 1 1 0; min-width: 0; padding: 3px 0 !important; border-radius: 2px !important;
+        border: 1px solid rgba(0,0,0,.6) !important; background: linear-gradient(180deg, #34312c, #1b1a18) !important;
+        box-shadow: inset 0 1px rgba(255,255,255,.08) !important; color: var(--ink) !important;
+        font-size: 12px !important; font-weight: 600 !important; text-shadow: 1px 1px 0 #000;
+    }
+    #map-view-panel > .panel-header > div > button#btn-revive { flex-basis: 100%; }
+    #map-view-panel > .panel-header select {
+        flex: 1 1 100%; width: 100%; padding: 3px 6px !important; border-radius: 2px !important;
+        background: rgba(0,0,0,.55) !important; border: 1px solid rgba(255,255,255,.1) !important;
+        color: var(--ink) !important; font-size: 12px !important;
+    }
+    #map-view-panel > .panel-header > div > button:hover,
+    #map-view-panel > .panel-header select:hover { border-color: var(--edge) !important; }
+
+    /* 右上：小地圖與清單 */
+    #hud-minimap {
+        display: block; position: fixed; right: var(--g); top: var(--g); width: var(--mm); z-index: 31;
+        background: var(--glass-deep); border: 1px solid var(--edge); padding: 3px;
+    }
+    #hud-minimap .mm-view {
+        position: relative; width: 100%; aspect-ratio: 1; overflow: hidden;
+        background: #111 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(0,0,0,.8);
+    }
+    #hud-minimap .mm-dot { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #f2c14e; box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+    #hud-minimap .mm-me { position: absolute; left: 50%; top: 60%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px #1d6fd8, 0 0 0 2.5px rgba(0,0,0,.6); }
+    #hud-minimap .mm-name {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
+        padding: 3px 3px 1px; font-size: 12px; color: var(--ink); text-shadow: 1px 1px 0 #000; white-space: nowrap;
+    }
+    #hud-minimap .mm-name b { overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+    #hud-minimap .mm-zone { font-size: 11px; color: #7fd67f; }
+    #hud-minimap .mm-zone.is-hunt { color: #f08a6f; }
+    #hud-tracker {
+        display: block; position: fixed; right: var(--g); width: var(--mm); z-index: 31; max-height: 34dvh; overflow-y: auto;
+        background: var(--glass); border: 1px solid var(--edge-dim); padding: 4px 0;
+        font-size: 12px; color: var(--ink); text-shadow: 1px 1px 0 #000;
+    }
+    #hud-tracker:empty { display: none; }
+    #hud-tracker .trk-head { padding: 2px 8px 4px; color: var(--gold); font-weight: 700; }
+    #hud-tracker button {
+        display: flex; width: 100%; gap: 6px; align-items: baseline; padding: 2px 8px 2px 16px; text-align: left;
+        background: none; border: 0; color: var(--ink); cursor: pointer; position: relative;
+    }
+    #hud-tracker button::before { content: ''; position: absolute; left: 7px; top: 50%; width: 4px; height: 4px; margin-top: -2px; background: #f2c14e; transform: rotate(45deg); }
+    #hud-tracker button span { color: var(--ink-dim); font-size: 11px; }
+    #hud-tracker button:hover { background: rgba(255,255,255,.06); color: #fff; }
+
+    /* 左上：狀態圖示一排 */
+    #status-icon-bar { top: var(--g) !important; left: var(--g) !important; right: calc(var(--mm) + var(--g) * 3) !important; flex-flow: row wrap !important; }
+
+    /* 主角與傭兵站在場地裡，不要被中下方的快捷列蓋住 */
+    #battle-view #player-morph-sprite,
+    #battle-view .party-sprite { margin-bottom: calc(var(--hud-h) + 6px); }
+
+    /* 左下：聊天視窗（戰鬥日誌在上、世界頻道在下） */
+    #log-row,
+    #col-center:has(#battle-view.area-fit:not(.hidden)) #log-row,
+    #col-center:has(#town-view:not(.hidden)) #log-row {
+        left: var(--g); right: auto; bottom: var(--g); width: var(--chat-w); height: var(--chat-h);
+        flex-direction: column; gap: 0 !important;
+    }
+    #combat-log-panel, #syslog-panel {
+        flex: 1 1 0 !important; min-height: 0;
+        background: var(--glass) !important; backdrop-filter: none !important;
+        border: 1px solid var(--edge-dim) !important; border-radius: 0 !important; box-shadow: none !important;
+    }
+    #combat-log-panel { flex-grow: 1.25 !important; }
+    #syslog-panel { border-top: 0 !important; }
+    #combat-log-panel > .panel-header, #syslog-panel > .panel-header {
+        background: rgba(0,0,0,.35) !important; border: 0 !important; border-bottom: 1px solid var(--edge-dim) !important;
+        box-shadow: none !important; padding: 2px 6px !important; color: var(--ink) !important; font-size: 12px !important;
+    }
+    #combat-log-panel > .panel-header { flex-direction: row !important; align-items: center !important; justify-content: space-between; gap: 2px 6px; flex-wrap: wrap; }
+    #combat-filter-pills { flex-wrap: wrap !important; }
+    .log-bg { background: transparent !important; }
+    #combat-log, #sys-log, #world-log { padding: 3px 8px !important; font-size: 12px !important; line-height: 1.4; color: var(--ink); text-shadow: 1px 1px 0 #000; }
+    #combat-log .log-entry, #sys-log .log-entry {
+        background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important;
+        padding: 0 !important; margin: 0 !important;
+        font-size: 12px !important; line-height: 1.45 !important; color: var(--ink) !important;
+        text-shadow: 1px 1px 0 #000 !important;
+    }
+    #combat-log-panel .logtab-btn {
+        border-radius: 0 !important; border: 0 !important; box-shadow: none !important; background: none !important;
+        color: var(--ink-dim) !important; padding: 2px 7px !important; font-size: 12px !important;
+    }
+    #combat-log-panel .logtab-btn.active, #combat-log-panel .logtab-btn[aria-selected="true"] {
+        color: #fff !important; background: rgba(255,255,255,.08) !important;
+    }
+    #combat-log-panel .cf-pill {
+        border-radius: 0 !important; border: 0 !important; background: none !important;
+        padding: 1px 3px !important; filter: none !important; font-size: 11px !important; text-shadow: 1px 1px 0 #000; min-height: 0 !important;
+    }
+    #combat-log-panel .cf-pill.cf-off { opacity: .35; }
+    #syslog-panel #sys-log-pins { background: rgba(0,0,0,.3) !important; font-size: 11px !important; }
+    #world-input-row { padding: 3px 6px !important; background: rgba(0,0,0,.45) !important; border-top: 1px solid var(--edge-dim); }
+    #world-input { border-radius: 0 !important; background: rgba(0,0,0,.5) !important; border: 1px solid rgba(255,255,255,.1) !important; color: var(--ink) !important; font-size: 12px !important; }
+    #world-send { border-radius: 2px !important; background: linear-gradient(180deg, #34312c, #1b1a18) !important; border: 1px solid #000 !important; color: var(--ink) !important; font-size: 12px !important; box-shadow: inset 0 1px rgba(255,255,255,.08) !important; }
+
+    /* 中下：快捷列底板（等級章、體力魔力、數值列、12 格） */
+    #game-screen::after {
+        content: ''; position: fixed; z-index: 29; pointer-events: none;
+        left: calc(var(--bar-left) - 6px); width: calc(var(--bar-w) + 12px);
+        bottom: calc(var(--g) - 4px); height: calc(var(--cluster-h) + 8px);
+        background:
+            linear-gradient(180deg, rgba(201,164,100,.55), rgba(201,164,100,0) 1px) top / 100% 1px no-repeat,
+            linear-gradient(180deg, rgba(22,21,20,.9), rgba(6,6,7,.94));
+        border: 1px solid rgba(0,0,0,.85); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+        clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
+    }
+
+    /* 數值列：職業、AC、MR、金幣、經驗 */
+    #status-panel {
+        left: var(--bar-left); width: var(--bar-w); height: var(--row-stats);
+        bottom: calc(var(--g) + var(--row-slots) + 2px);
+        display: flex !important; flex-direction: row !important; align-items: center; gap: 12px; padding: 0 6px !important;
+        background: none !important; background-image: none !important;
+        border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+        font-size: 12px; color: var(--ink);
+    }
+    #status-panel > .panel-header {
+        padding: 0 !important; min-height: 0 !important; border: 0 !important; flex-direction: row !important;
+        align-items: baseline !important; gap: 4px !important; flex: 0 0 auto;
+    }
+    #status-panel > .panel-header, #status-panel > .panel-header * { font-size: 12px !important; color: var(--ink) !important; }
+    #status-panel .status-defense-row { display: flex !important; flex-direction: row !important; flex: 0 0 auto; gap: 12px; font-size: 12px !important; }
+    #status-panel .status-stat, #status-panel .status-gold-row {
+        display: inline-flex !important; flex-direction: row !important; flex: 0 0 auto; white-space: nowrap;
+        width: auto !important; height: auto !important; min-height: 0 !important; gap: 4px; align-items: baseline; padding: 0 !important;
+        border: 0 !important; background: none !important; box-shadow: none !important; font-size: 12px !important;
+    }
+    #status-panel .status-stat > span:first-child, #status-panel .status-gold-row > span:first-child { color: var(--ink-dim) !important; font-size: 11px; }
+    #status-panel #st-ac, #status-panel #st-mr { font-size: 12px !important; color: var(--ink) !important; }
+    #status-panel #st-gold { font-size: 12px !important; color: #e8c675 !important; }
+    #status-panel .status-exp-bar {
+        flex: 1 1 auto; height: 13px !important; min-width: 60px;
+        border: 1px solid #000 !important; border-radius: 0 !important; background: #050505 !important; box-shadow: 0 0 0 1px rgba(255,255,255,.08);
+    }
+    #status-panel .status-exp-bar .bar-text { font-size: 10px !important; line-height: 11px !important; top: 0; color: #f6eedc; text-shadow: 1px 1px 0 #000; }
+
+    /* 等級章 */
+    #status-panel .status-level-row {
+        position: fixed; z-index: 32; left: calc(var(--bar-left) + 2px);
+        bottom: calc(var(--g) + var(--row-slots) + var(--row-stats) + 4px);
+        width: 38px; height: 38px; padding: 0 !important; border-radius: 50% !important;
+        display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+        background: radial-gradient(circle at 50% 35%, #3a3630, #121110 70%) !important;
+        border: 2px solid var(--gold) !important; box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(0,0,0,.7);
+    }
+    #status-panel .status-level-row > span:first-child { font-size: 8px !important; line-height: 1; color: var(--ink-dim) !important; }
+    #status-panel #st-lv { font-size: 16px !important; line-height: 1 !important; color: #fff !important; }
+
+    /* 體力 / 魔力 */
+    #status-panel .status-vitals-row {
+        left: calc(var(--bar-left) + 48px) !important; right: auto !important; width: calc(var(--bar-w) - 54px) !important;
+        bottom: calc(var(--g) + var(--row-slots) + var(--row-stats) + 4px); height: var(--row-vitals);
+        grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: 1fr 1fr; gap: 3px !important;
+        padding: 0 !important; border: 0 !important; border-radius: 0 !important;
+        background: none !important; backdrop-filter: none !important; box-shadow: none !important;
+    }
+    #status-panel .status-vitals-row > .compact-vital-bar {
+        border: 1px solid #000 !important; border-radius: 0 !important; background: #070606 !important;
+        box-shadow: 0 0 0 1px rgba(255,255,255,.07), inset 0 1px 3px #000 !important;
+    }
+    #status-panel .status-vitals-row > .compact-vital-bar .bar-fill { border-radius: 0 !important; }
+    #status-panel .status-vitals-row #bar-hp { background: linear-gradient(180deg, #ec5d4f 0%, #b9271e 35%, #7e1510 75%, #4d0b08 100%) !important; }
+    #status-panel .status-vitals-row #bar-mp { background: linear-gradient(180deg, #6e95e6 0%, #3a62bf 35%, #233f8a 75%, #142454 100%) !important; }
+    #status-panel .status-vitals-row > .compact-vital-bar .bar-text { font-size: 11px; letter-spacing: .03em; text-shadow: 1px 1px 0 #000, -1px 0 #000; }
+
+    /* 快捷格：一排 12 格 */
+    #col-right > .tab-bar {
+        left: var(--bar-left); right: auto; width: var(--bar-w); bottom: var(--g); height: var(--row-slots);
+        grid-template-columns: repeat(12, minmax(0, 1fr)) !important; grid-template-rows: 1fr !important;
+        gap: 3px; padding: 5px;
+        border: 0 !important; border-radius: 0 !important; background: none !important; backdrop-filter: none !important; box-shadow: none !important;
+    }
+    #game-screen #col-right > .tab-bar > .btn {
+        border-radius: 2px !important; border: 1px solid #000 !important; padding: 0 2px !important;
+        background: linear-gradient(180deg, #23211e, #0d0c0b) !important;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), inset 0 -8px 10px rgba(0,0,0,.45) !important;
+        color: #ddd5c4 !important; font-size: 11px !important; font-weight: 600 !important; line-height: 1.1 !important;
+        white-space: normal; word-break: keep-all; text-align: center; text-shadow: 1px 1px 0 #000;
+        filter: none !important; outline: 0 !important;
+    }
+    #game-screen #col-right > .tab-bar > .btn:hover { color: #fff !important; box-shadow: inset 0 0 0 1px var(--edge), inset 0 -8px 10px rgba(0,0,0,.45) !important; }
+    #game-screen #col-right:has(#tab-content-panel.drawer-open) > .tab-bar > .btn.active {
+        color: #fff !important; background: linear-gradient(180deg, #3b3427, #15120d) !important;
+        box-shadow: inset 0 0 0 1px var(--gold) !important;
+    }
+
+    /* 抽屜開在小地圖左邊；隊伍欄疊在聊天視窗上方 */
+    #tab-content-panel {
+        right: calc(var(--mm) + var(--g) * 2); top: var(--g); bottom: calc(var(--hud-h) + var(--g));
+        border: 1px solid var(--edge) !important; border-radius: 0 !important;
+        background: rgba(10, 10, 11, .92) !important; backdrop-filter: none !important; box-shadow: none !important;
+    }
+    .right-drawer-bar { background: rgba(0,0,0,.4) !important; border-bottom: 1px solid var(--edge-dim) !important; color: var(--ink) !important; }
+    #squad-panel {
+        left: var(--g); bottom: calc(var(--chat-h) + var(--g) * 2);
+        border: 1px solid var(--edge-dim) !important; border-radius: 0 !important;
+        background: var(--glass) !important; backdrop-filter: none !important; box-shadow: none !important;
+    }
+}
+
 </style>
     <style data-src="css/floating-ui.css">
 .equipment-window{position:fixed;inset:0;z-index:70;pointer-events:none}.equipment-window-frame{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(72vw,650px);aspect-ratio:1084/1447;pointer-events:auto;filter:drop-shadow(0 18px 30px #000b);user-select:none;touch-action:none}.equipment-window-bg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.equipment-window-drag{position:absolute;z-index:3;left:2.5%;top:1.2%;width:82%;height:8.5%;cursor:grab}.equipment-window-close,.equipment-window-arrow{position:absolute;z-index:7;padding:0;border:0;background:transparent;cursor:pointer}.equipment-window-close{left:85.5%;top:1.3%;width:12.5%;height:5.7%}.equipment-window-next{left:89%;top:6.6%;width:9.6%;height:6.2%}.equipment-window-prev{left:89%;top:13.4%;width:9.6%;height:6.2%}.equipment-window-arrow:disabled{background:#080b10bb;border-radius:9px}.equipment-window-slots{position:absolute;inset:0;pointer-events:none}.equipment-visual-slot{position:absolute;z-index:5;display:flex;align-items:center;justify-content:center;padding:1.1%;border:0;background:transparent;pointer-events:auto;transform:translate(-50%,-50%)}.equipment-visual-slot.is-filled{cursor:pointer}.equipment-visual-slot img{width:82%;height:82%;object-fit:contain;filter:drop-shadow(0 2px 3px #000)}.equipment-slot-enhance{position:absolute;right:3%;bottom:2%;color:#ffe07a;font-weight:800}.equipment-side-panel{position:absolute;z-index:10;left:calc(100% + 8px);top:0;width:clamp(280px,29vw,390px);height:100%;display:flex;flex-direction:column;overflow:hidden;border:2px solid #64748b;border-radius:10px;background:#111925fa}.equipment-side-header{min-height:62px;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:linear-gradient(135deg,#334155,#475569,#1e293b);color:#f1f5f9}.equipment-side-header strong,.equipment-side-header small{display:block}.equipment-side-list{flex:1;overflow:auto;padding:9px;display:flex;flex-direction:column;gap:7px}.equipment-side-item{width:100%;min-height:64px;display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:9px;padding:7px;border:1px solid #475569;border-radius:7px;background:#1e293b;color:#eee;text-align:left}.equipment-side-item img{width:44px;height:44px;object-fit:contain}.equipment-side-item.cannot-equip{opacity:.5}.warehouse-window{position:fixed;inset:0;z-index:72;pointer-events:none}.warehouse-window-frame{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(82vw,920px);height:min(92vh,868px);min-width:680px;display:flex;flex-direction:column;pointer-events:auto;overflow:hidden;border:3px solid #64748b;border-radius:13px;background:#111925fc;box-shadow:0 22px 48px #000d;user-select:none;touch-action:none}.warehouse-window-header{flex:0 0 76px;display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 20px;cursor:grab;color:#f1f5f9;border-bottom:2px solid #64748b;background:linear-gradient(135deg,#1e293b,#475569,#334155,#64748b,#1e293b)}.warehouse-window-header h2{margin:0;font-size:1.55rem;font-weight:900}.warehouse-window-header span{display:block;font-size:.82rem}.warehouse-window-header button{min-width:78px;height:42px;border:1px solid #94a3b8;border-radius:8px;background:#151b25;color:#f1f5f9}.warehouse-window-content{flex:1;min-height:0;overflow:auto;padding:14px 16px 18px;color:#e2e8f0;user-select:text;touch-action:auto}.warehouse-window-content #wh-inv-list,.warehouse-window-content #wh-store-list{max-height:calc(min(92vh,868px) - 315px)!important}@media(max-width:760px){.equipment-window-frame{width:min(88vw,calc(92vh*1084/1447))}.warehouse-window-frame{width:96vw;min-width:0}.warehouse-window-content .grid.grid-cols-2{grid-template-columns:1fr}}
@@ -4285,6 +4543,89 @@ window.__LL_ASSETS = {"assets/area/1920x1080/妖精森林村莊.jpg":"../assets/
       };
     }
   });
+
+  // Chrome 157+ exposes every CSS property as an own data property of each style object,
+  // so the prototype hooks above never fire there and town/battle scene art fell back to
+  // a flat colour. Hand out a thin proxy from `el.style` whose writes go through the same
+  // rewrite synchronously (before any layout read can start a fetch of the logical URL).
+  var protoHooked = false;
+  try {
+    var probeEl = document.createElement('div');
+    probeEl.style.backgroundImage = 'url("assets/__probe__.png")';
+    protoHooked = probeEl.style.backgroundImage.indexOf('__probe__') === -1;
+  } catch (_) {}
+  if (!protoHooked && typeof Proxy !== 'undefined') {
+    var proxyOf = new WeakMap();
+    var wrapStyle = function (real) {
+      var px = proxyOf.get(real);
+      if (px) return px;
+      var fnCache = Object.create(null);
+      px = new Proxy(real, {
+        get: function (t, k) {
+          var v = t[k];
+          if (typeof v !== 'function') return v;
+          if (!fnCache[k]) {
+            fnCache[k] = k === 'setProperty'
+              ? function (name, val, prio) { return v.call(t, name, rewriteCssUrls(val), prio); }
+              : function () { return v.apply(t, arguments); };
+          }
+          return fnCache[k];
+        },
+        set: function (t, k, v) {
+          t[k] = (typeof v === 'string' && v.indexOf('assets/') !== -1) ? rewriteCssUrls(v) : v;
+          return true;
+        }
+      });
+      proxyOf.set(real, px);
+      return px;
+    };
+    [typeof HTMLElement !== 'undefined' && HTMLElement.prototype,
+     typeof SVGElement !== 'undefined' && SVGElement.prototype].forEach(function (proto) {
+      if (!proto) return;
+      var d = Object.getOwnPropertyDescriptor(proto, 'style');
+      if (!d || !d.get || !d.configurable) return;
+      Object.defineProperty(proto, 'style', {
+        configurable: true,
+        enumerable: d.enumerable,
+        get: function () { return wrapStyle(d.get.call(this)); },
+        set: function (v) { d.set.call(this, typeof v === 'string' ? rewriteCssUrls(v) : v); }
+      });
+    });
+  }
+
+  // Safety net for style attributes written as markup (innerHTML templates, setAttribute
+  // paths that bypass the hooks): MutationObserver callbacks run before the next style
+  // recalc, so the mapped file is usually swapped in before the browser fetches anything.
+  if (typeof MutationObserver !== 'undefined' && origGetAttr && origSetAttr) {
+    var needsRewrite = /url\(\s*['"]?(?:\.?\/)?(?:public\/)?assets\//i;
+    var fixStyle = function (el) {
+      var s = origGetAttr.call(el, 'style');
+      if (!s || !needsRewrite.test(s)) return;
+      var next = rewriteCssUrls(s);
+      if (next !== s) origSetAttr.call(el, 'style', next);
+    };
+    var styleObserver = new MutationObserver(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i];
+        if (m.type === 'attributes') { fixStyle(m.target); continue; }
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var n = m.addedNodes[j];
+          if (n.nodeType !== 1) continue;
+          fixStyle(n);
+          if (n.querySelectorAll) {
+            var inner = n.querySelectorAll('[style*="assets/"]');
+            for (var k = 0; k < inner.length; k++) fixStyle(inner[k]);
+          }
+        }
+      }
+    });
+    var startObserver = function () {
+      styleObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'], childList: true, subtree: true });
+      var pre = document.querySelectorAll('[style*="assets/"]');
+      for (var i = 0; i < pre.length; i++) fixStyle(pre[i]);
+    };
+    if (document.documentElement) startObserver();
+  }
 })();
 
 </script>
@@ -41444,9 +41785,16 @@ function _sfxTryLoad(key, def) {
         : exts.map(function (ext) { return 'assets/sfx/' + def.file + '.' + ext; });
     if (!urls.length) { _sfxPool[key] = null; return; }
     var i = 0;
+    // 🔌 HTMLS 284：先整檔 fetch 成 blob 再交給 <audio>。數十個 preload=auto 的音效元素會各自佔住一條連線不放，
+    //   在 HTTP/1.1（本機 npm start）下把每個主機 6 條連線吃光，精靈圖與場景圖就排不到隊、畫面整片空白。
     function tryNext() {
         if (i >= urls.length) { _sfxPool[key] = null; return; }
-        var url = urls[i++];
+        var src = urls[i++];
+        if (typeof fetch !== 'function' || typeof URL === 'undefined' || !URL.createObjectURL) { useUrl(src); return; }
+        fetch(src).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+            .then(function (b) { useUrl(URL.createObjectURL(b)); }, function () { tryNext(); });
+    }
+    function useUrl(url) {
         var probe = new Audio();
         probe.preload = 'auto';
         probe.addEventListener('canplaythrough', function () {
@@ -42009,6 +42357,8 @@ function _bgmResolve(scene, file) {
         ? window.__llResolveAudioCandidates('assets/bgm/' + file, exts)
         : exts.map(function (ext) { return 'assets/bgm/' + file + '.' + ext; });
     if (!urls.length) { _bgmUrl[scene] = null; return; }
+    // 🔌 HTMLS 284：素材對照表裡有的檔就一定存在，不必再用 <audio preload=metadata> 逐首探測（每個探測元素都會卡住一條連線）
+    if (typeof window !== 'undefined' && typeof window.__llResolveAudioCandidates === 'function') { _bgmUrl[scene] = urls[0]; return; }
     var i = 0;
     (function tryNext() {
         if (i >= urls.length) { _bgmUrl[scene] = null; return; }
@@ -72294,6 +72644,121 @@ function stripThreatForSave() {
     if (typeof mapState === 'undefined' || !mapState || !mapState.mobs) return;
     for (let m of mapState.mobs) { if (m) { if (m._threat) delete m._threat; if (m._threatT != null) delete m._threatT; if (m._ironGuardTaunt) delete m._ironGuardTaunt; } }
 }
+
+</script>
+<script data-src="js/33-hud-minimap.js">
+/* ==========================================================================
+   HTMLS 284：右上角小地圖與清單（桌機 HUD）
+   - 小地圖：拿目前場景（安全區 #town-npc-map／狩獵區 #battle-view）的背景圖縮成正方形，
+     安全區把 NPC 站位畫成小點，中間白點是自己。
+   - 清單：安全區列出 NPC（點一下等同點地圖上的那位 NPC）；狩獵區不顯示。
+   只讀既有 DOM，不改任何遊戲狀態；手機版由 CSS 隱藏。
+   ========================================================================== */
+(function () {
+    if (typeof document === 'undefined') return;
+    var mm, view, nameEl, zoneEl, tracker, lastKey = '', lastBg = '';
+
+    function build() {
+        var gs = document.getElementById('game-screen');
+        if (!gs || document.getElementById('hud-minimap')) return !!mm;
+        mm = document.createElement('div');
+        mm.id = 'hud-minimap';
+        mm.setAttribute('aria-hidden', 'true');
+        mm.innerHTML = '<div class="mm-view"><i class="mm-me"></i></div><div class="mm-name"><b></b><span class="mm-zone"></span></div>';
+        view = mm.querySelector('.mm-view');
+        nameEl = mm.querySelector('.mm-name b');
+        zoneEl = mm.querySelector('.mm-zone');
+        tracker = document.createElement('nav');
+        tracker.id = 'hud-tracker';
+        tracker.setAttribute('aria-label', '本區 NPC');
+        gs.appendChild(mm);
+        gs.appendChild(tracker);
+        return true;
+    }
+
+    function visible(el) { return !!(el && !el.classList.contains('hidden') && el.offsetParent !== null); }
+    function lastUrl(bg) {
+        var m = bg && bg.match(/url\((['"]?)([^'")]+)\1\)(?!.*url\()/);
+        return m ? m[2] : '';
+    }
+
+    function tick() {
+        if (!build()) return;
+        var gs = document.getElementById('game-screen');
+        if (!gs || gs.classList.contains('hidden') || getComputedStyle(mm).display === 'none') return;
+
+        var townView = document.getElementById('town-view');
+        var inTown = visible(townView);
+        var src = inTown ? document.getElementById('town-npc-map') : document.getElementById('battle-view');
+        var bg = src ? lastUrl(getComputedStyle(src).backgroundImage) : '';
+        if (bg !== lastBg) {
+            lastBg = bg;
+            view.style.backgroundImage = bg ? 'url("' + bg + '")' : 'none';
+        }
+
+        var sel = document.getElementById('map-select');
+        var label = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+        if (nameEl.textContent !== label) nameEl.textContent = label;
+        zoneEl.textContent = inTown ? '安全區域' : '戰鬥區域';
+        zoneEl.classList.toggle('is-hunt', !inTown);
+
+        // NPC 小點與清單（只在安全區）
+        var npcs = inTown ? Array.prototype.slice.call(document.querySelectorAll('#town-npc-map .town-npc')) : [];
+        var key = (inTown ? 't' : 'b') + '|' + label + '|' + npcs.map(function (n) {
+            var nm = n.querySelector('.tn-name');
+            return (nm ? nm.textContent : '') + '@' + n.style.left + ',' + n.style.top;
+        }).join(';');
+        if (key !== lastKey) {
+            lastKey = key;
+            Array.prototype.slice.call(view.querySelectorAll('.mm-dot')).forEach(function (d) { d.remove(); });
+            tracker.textContent = '';
+            if (npcs.length) {
+                var head = document.createElement('div');
+                head.className = 'trk-head';
+                head.textContent = '本區 NPC';
+                tracker.appendChild(head);
+            }
+            var crop = 9 / 16;   // 16:9 場景圖以 cover 塞進正方形：左右各裁掉 (1 - 9/16) / 2
+            npcs.forEach(function (n) {
+                var x = parseFloat(n.style.left), y = parseFloat(n.style.top);
+                if (isFinite(x) && isFinite(y)) {
+                    var mx = (x / 100 - (1 - crop) / 2) / crop;
+                    if (mx >= 0 && mx <= 1) {
+                        var d = document.createElement('i');
+                        d.className = 'mm-dot';
+                        d.style.left = (mx * 100).toFixed(1) + '%';
+                        d.style.top = y.toFixed(1) + '%';
+                        view.appendChild(d);
+                    }
+                }
+                var nm = n.querySelector('.tn-name'), tt = n.querySelector('.tn-title');
+                if (!nm) return;
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = nm.textContent;
+                if (tt && tt.textContent) {
+                    var s = document.createElement('span');
+                    s.textContent = tt.textContent;
+                    b.appendChild(s);
+                }
+                b.addEventListener('click', function () { if (n.isConnected) n.click(); });
+                tracker.appendChild(b);
+            });
+        }
+
+        // 清單接在地圖操作列下面
+        var ctl = document.querySelector('#map-view-panel > .panel-header > div');
+        if (ctl) {
+            var r = ctl.getBoundingClientRect();
+            var top = Math.round(r.bottom + 4) + 'px';
+            if (tracker.style.top !== top) tracker.style.top = top;
+        }
+    }
+
+    function start() { tick(); setInterval(tick, 500); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+})();
 
 </script>
 </body>

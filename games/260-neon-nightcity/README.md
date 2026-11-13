@@ -51,6 +51,12 @@ node tools/look-view.mjs [dir]  # 質感比對截圖（本機 HTTP）：雨夜 L
 node tools/road-dec.mjs         # .cache/tex-src/ 的 ambientCG 龜裂補丁、人孔蓋、排水格柵 → assets/260/tex/road_dec_c.webp／_n.webp 與 road_dec.json（路面貼花，src/tsl/m-road.mjs）
 ```
 
+### 素材放在 Cloudflare（選用）
+
+- 頁面下載的素材（`assets/260/`：實車、建築組、人物、貼圖、音效，約 325 MB、277 個檔）的根網址是 `00-core.js` 的 `A260`，取自 `tools/build.mjs` 寫在 `<head>` 的 `window.__A260`；沒設就是 `../assets/260/`。素材網址一律寫成 `A260 + '…'`。
+- `assets-worker/` 是只有靜態素材的 Cloudflare Worker（`nc-assets`，CORS 與快取標頭在 `assets/260/_headers`：1 小時，之後用 ETag 確認）。部署要用你自己的 Cloudflare 帳號，在那個資料夾執行 `npx wrangler deploy`（不要自動執行）；確認 `https://nc-assets.<帳號>.workers.dev/cars.json` 讀得到之後，把網址填進 `tools/build.mjs` 的 `ASSET_CDN_DEFAULT` 再 build。之後只有正式站（`htmls-ruddy.vercel.app`）讀 Cloudflare，本機、預覽、驗收與網址帶 `?cdn=0` 照舊讀 `../assets/260/`；`NC_ASSET_CDN=… npm run build` 臨時覆寫、`--no-cdn` 關掉。
+- 素材有增減或換檔後要再 deploy 一次，否則正式站讀到舊檔或 404（缺的實車與建築退回程式建模的替身）。這只影響下載速度與 Vercel 流量，和遊戲中的幀率無關。
+
 ### 實車模型
 
 - 原檔放在 gitignore 的 `.cache/cars/`（檔名對應 `tools/cars.mjs` 的 `MODELS`），處理後的 `assets/260/*.glb`（47 台約 64 MB）與 `cars.json` 有 commit；`cars.json` 在打包時併進頁面（車長、輪距、軸距、輪徑、可否換色、作者與授權）。

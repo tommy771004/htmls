@@ -735,7 +735,7 @@ function scanGet(id, p) {
   (scanWait[id] ||= new Set()).add(p);   // 下載中再有人要穿也登記，下載好一起重新 look
   if (SCAN[id]) return null;
   SCAN[id] = {};
-  glbLoader.loadAsync(`../assets/260/people/${id}.glb`).then(gltf => {
+  glbLoader.loadAsync(`${A260}people/${id}.glb`).then(gltf => {
     let m = null;
     gltf.scene.traverse(o => { if (o.isSkinnedMesh && !m) m = o; });
     const g = SCAN_SEX[id], B = PEOPLE.bind[g], ms = m.skeleton, jm = ms.bones.findIndex(b => b.name === 'pelvis');

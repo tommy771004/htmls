@@ -1,0 +1,14 @@
+# Cloudflare Worker（只有靜態素材，沒有程式）：把 assets/260/ 整個資料夾（約 325 MB、277 個檔，最大單檔約 13 MB）放上 Cloudflare，
+# 正式站的實車、建築組、人物、貼圖與音效改從這裡讀，不再算進 Vercel 的流量。靜態素材請求在 Cloudflare 是免費、不限量的
+# （Free 方案上限：每版 20,000 個檔、單檔 25 MiB）。跨網域與快取標頭寫在 assets/260/_headers。
+# 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行（已經用 282 登入過就不用再 login）：
+#   npx wrangler deploy
+# 網址會是 https://nc-assets.<帳號>.workers.dev/。部署好、用瀏覽器確認 https://nc-assets.<帳號>.workers.dev/cars.json 讀得到之後，
+# 把網址填進 ../tools/build.mjs 的 ASSET_CDN_DEFAULT，再 npm run build（之前不要填，正式站會讀不到素材）。
+# 素材有增減或換檔後要再 deploy 一次（只會上傳有變的檔）；沒 deploy 的話正式站讀到的是舊檔或 404。
+name = "nc-assets"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "../../../assets/260"
+not_found_handling = "none"

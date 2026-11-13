@@ -3,7 +3,7 @@
 // 依材質合併、逐頂點彎進所在的片（bakeMesh）、預熱後放進場景，距離剔除半徑放大到三倍（三百公尺的塔遠遠就看得到）；
 // 日光陰影的高度圖用模型的三角形畫（22-hmap.js 的 hmModel），街區的碰撞盒照模型在人的高度的外形換掉（27-bldfoot.js 的 bldCut／blkFoot）。
 // 模型沒有窗戶遮罩：夜裡的窗燈與路燈光是 LMWIN（src/tsl/m-glbLM.mjs）。下載失敗的地塊補回程式立面（lotFallback）。
-const ISLE_LM_BASE = new URL('../assets/260/isle/', location.href).href;
+const ISLE_LM_BASE = A260 + 'isle/';
 const ISLE_LM_ON = { n: 0, failed: [] };   // __nc 驗收用：擺好幾棟
 // 夜裡的窗燈：26-glb.js 的 WASH 打的光乘上底色（深藍的玻璃帷幕幾乎看不到），室內光又是整片開間一起亮（紅磚牆會變成一塊塊的格子），所以不用它，另外加一段：
 // 每扇窗依 uLit 亂數開燈（暖白為主，偶爾冷白），只亮在玻璃上，白天只留一點

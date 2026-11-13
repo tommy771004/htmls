@@ -20,7 +20,7 @@ const sfx = (() => {
   // ─── 真實錄音（tools/sfx.mjs → assets/260/sfx/，Freesound 的 CC0 錄音）：只在 http(s) 下載；以檔案開啟、下載失敗或還沒解碼完時，各音效退回下面的合成音 ───
   // 生命週期：單發音在解碼時就裁好長度、最後 35% 淡到無聲，播完 onended 立刻斷線；同名的音有同時發聲上限，超過時最舊的 30 ms 內收掉。
   // 循環音（引擎、甩尾、警笛、旋翼）只在需要時建立，音量歸零 0.4 s 後就停掉來源，不在背景空轉。
-  const REC_ON = /^https?:$/.test(location.protocol), REC_DIR = '../assets/260/sfx/';
+  const REC_ON = /^https?:$/.test(location.protocol), REC_DIR = A260 + 'sfx/';
   const rec = { one: {}, loop: {}, last: {}, live: {}, gapT: {}, gapK: {}, n: 0, fail: [], ready: false, man: null, eng: {}, engSt: {} };
   const CAP = { pistol: 6, smg: 8, rifle: 8, shotgun: 4, sniper: 3, silenced: 6, explode: 3, crash: 3, bump: 3, body: 3, step: 2, punch: 3, horn: 3 };
   const GAP = { crash: .12, bump: .07, body: .06, bodyfall: .3, glass: .1, splash: .15, horn: .2 };   // 同名的音最短間隔（碰撞每幀都可能回報），間隔內只讓更大聲的蓋過去

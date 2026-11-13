@@ -5,7 +5,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import GLB_SPEC from '../../../../assets/260/cars.json';
 
 const GLB_ON = /^https?:$/.test(location.protocol);
-const GLB_BASE = new URL('../assets/260/', location.href).href;
+const GLB_BASE = A260;
 const glbReport = { on: GLB_ON, loaded: [], failed: [] };
 import { doorBuild, doorHinge, doorTurn, doorCard, doorGlassTrim, doorGlass, swSplit, swAxis } from '../doors.mjs';   // 實車的車門切分（tools/door-view.mjs 用同一份）
 import { cabTint, cabBox } from '../cabin.mjs';   // 車內重新上色（cars.json 的 cab）

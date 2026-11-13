@@ -1,5 +1,8 @@
 // ═══ 霓虹夜城：雨夜城市、車、人、酒吧與夜店 ═══
 // src/parts/*.js 依檔名順序串成同一個模組再打包（tools/build.mjs），彼此共用頂層變數。
+// 下載素材（assets/260/ 的實車、建築組、人物、貼圖、音效）的根網址，結尾有 /：tools/build.mjs 在 <head> 設 window.__A260
+// （正式站可以指到 Cloudflare 的 assets-worker/，其他網址與 ?cdn=0 照舊讀 ../assets/260/）。素材網址一律接在它後面，不要再寫 ../assets/260/
+const A260 = window.__A260 || new URL('../assets/260/', location.href).href;
 const $ = id => document.getElementById(id);
 const bootMsg = t => { $('bootMsg').textContent = t; };
 // 開始畫面的進度 0–100：「進入雨夜」按鈕本身就是進度條（--p 是填滿的寬度）。每個階段讓出一幀，畫面才看得到數字前進

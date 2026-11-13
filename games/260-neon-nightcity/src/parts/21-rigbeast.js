@@ -8,7 +8,7 @@
 const BEAST_T = { boil: 7, rise: 20, roar: 26, walk: 62, sink: 75 };   // 每一段結束在第幾秒：翻騰 → 浮出 → 吼叫 → 涉水 → 下沉
 const BEAST_R = 150, BEAST_A0 = -.5, BEAST_A1 = .25;   // 平台局部座標的極座標：半徑、起訖方位 atan2(z, x)（東北 → 東南，避開西邊的拖船與火炬臂）
 const BEAST_Y = SEA_Y - 13, BEAST_DEEP = -82;   // 站著時根節點的高度（腳底；水到膝蓋）、藏在海裡的高度（頭頂也在水面下）
-const BEAST_URL = new URL('../assets/260/beast/turtle_kaiju.glb', location.href).href;
+const BEAST_URL = A260 + 'beast/turtle_kaiju.glb';
 const BEAST_NB = 7;   // 骨頭：0 身體、1 頭（脖子根）、2 下顎、3 右手、4 左手、5 右腳、6 左腳
 const BEAST = { on: false, hold: false, t: 0, next: 20, root: null, body: null, mesh: null, J: null, load: null, fail: '', spray: null, circ: null, played: {}, glow: 0, x: 0, z: 0, y: BEAST_DEEP, yaw: 0, light: V3(), k: 0,
   bn: V4A(BEAST_NB * 3), bw: new T.Vector4(0, SEA_Y, 0, 0) };

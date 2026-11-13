@@ -270,4 +270,87 @@
       };
     }
   });
+
+  // Chrome 157+ exposes every CSS property as an own data property of each style object,
+  // so the prototype hooks above never fire there and town/battle scene art fell back to
+  // a flat colour. Hand out a thin proxy from `el.style` whose writes go through the same
+  // rewrite synchronously (before any layout read can start a fetch of the logical URL).
+  var protoHooked = false;
+  try {
+    var probeEl = document.createElement('div');
+    probeEl.style.backgroundImage = 'url("assets/__probe__.png")';
+    protoHooked = probeEl.style.backgroundImage.indexOf('__probe__') === -1;
+  } catch (_) {}
+  if (!protoHooked && typeof Proxy !== 'undefined') {
+    var proxyOf = new WeakMap();
+    var wrapStyle = function (real) {
+      var px = proxyOf.get(real);
+      if (px) return px;
+      var fnCache = Object.create(null);
+      px = new Proxy(real, {
+        get: function (t, k) {
+          var v = t[k];
+          if (typeof v !== 'function') return v;
+          if (!fnCache[k]) {
+            fnCache[k] = k === 'setProperty'
+              ? function (name, val, prio) { return v.call(t, name, rewriteCssUrls(val), prio); }
+              : function () { return v.apply(t, arguments); };
+          }
+          return fnCache[k];
+        },
+        set: function (t, k, v) {
+          t[k] = (typeof v === 'string' && v.indexOf('assets/') !== -1) ? rewriteCssUrls(v) : v;
+          return true;
+        }
+      });
+      proxyOf.set(real, px);
+      return px;
+    };
+    [typeof HTMLElement !== 'undefined' && HTMLElement.prototype,
+     typeof SVGElement !== 'undefined' && SVGElement.prototype].forEach(function (proto) {
+      if (!proto) return;
+      var d = Object.getOwnPropertyDescriptor(proto, 'style');
+      if (!d || !d.get || !d.configurable) return;
+      Object.defineProperty(proto, 'style', {
+        configurable: true,
+        enumerable: d.enumerable,
+        get: function () { return wrapStyle(d.get.call(this)); },
+        set: function (v) { d.set.call(this, typeof v === 'string' ? rewriteCssUrls(v) : v); }
+      });
+    });
+  }
+
+  // Safety net for style attributes written as markup (innerHTML templates, setAttribute
+  // paths that bypass the hooks): MutationObserver callbacks run before the next style
+  // recalc, so the mapped file is usually swapped in before the browser fetches anything.
+  if (typeof MutationObserver !== 'undefined' && origGetAttr && origSetAttr) {
+    var needsRewrite = /url\(\s*['"]?(?:\.?\/)?(?:public\/)?assets\//i;
+    var fixStyle = function (el) {
+      var s = origGetAttr.call(el, 'style');
+      if (!s || !needsRewrite.test(s)) return;
+      var next = rewriteCssUrls(s);
+      if (next !== s) origSetAttr.call(el, 'style', next);
+    };
+    var styleObserver = new MutationObserver(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i];
+        if (m.type === 'attributes') { fixStyle(m.target); continue; }
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var n = m.addedNodes[j];
+          if (n.nodeType !== 1) continue;
+          fixStyle(n);
+          if (n.querySelectorAll) {
+            var inner = n.querySelectorAll('[style*="assets/"]');
+            for (var k = 0; k < inner.length; k++) fixStyle(inner[k]);
+          }
+        }
+      }
+    });
+    var startObserver = function () {
+      styleObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'], childList: true, subtree: true });
+      var pre = document.querySelectorAll('[style*="assets/"]');
+      for (var i = 0; i < pre.length; i++) fixStyle(pre[i]);
+    };
+    if (document.documentElement) startObserver();
+  }
 })();

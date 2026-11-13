@@ -33,6 +33,7 @@
 - `70-render.js` 換掉了 three 的兩個方法：
   - `Object3D.updateMatrixWorld` 只在有變動時才重算，所以不要直接寫 `matrixWorld`。
   - `Frustum.intersectsObject` 在低空時剔掉整顆在霧裡的物件；霧外還要看得到的東西要用 `FAR`。
+  - `Object3D.updateMatrixWorld` 每幀那一次整棵更新（`mwSkip`）跳過藏起來的物件，重新出現時才重算：藏著的物件要讀 `matrixWorld` 前先自己 `updateMatrixWorld(true)` 或用 `getWorldPosition`。
   - InstancedMesh 另外照實例分格測（`instAny`，實例全在視錐外就不畫）：實例的頂點在著色器裡位移超過幾何包圍球 2 m（`INST_PAD`）的要加大它，改實例矩陣後要 `needsUpdate`。
 - 關了視錐剔除（`frustumCulled = false`）的 InstancedMesh 沒東西畫時把 `count` 設 0（`70-render.js` 走訪時就跳過），不要用縮成 0 或移到地底的實例藏起來，那樣每趟照樣送一次 draw。
 - 路面倒影預設是螢幕空間（`SET.ssr`，`70-render.js` 的 `mSSR` 用上一幀的畫面填 `rtRefl`）；`R.render(scene, reflCam)` 只在選平面、第一幀與切鏡頭時畫，`reflCull`／`reflOcc` 也只在那時有作用，量倒影效能前先確認是哪一種。
@@ -51,6 +52,7 @@
 
 ## 載入、車、人
 
+- 下載素材的網址一律接在 `A260`（`00-core.js`）後面，不要寫 `../assets/260/`：正式站可能指到 Cloudflare（README「素材放在 Cloudflare」）。`assets-worker/` 的部署由使用者用自己的帳號執行，不要自動跑。
 - 下載後的處理要分幀做（`warmClock`／`warmSlice`，每幀共用 6 ms），放進場景前先 `glbWarm`。新增大量載入的工作也照這樣切片。
 - `loadProps` 回傳的 `it.parts` 已經把同一物件裡共用材質的不透明零件併成一個（`propMerge`，建築組除外）：零件數與順序不等於原檔網格，不要用 `parts[i]` 指某個原檔網格；要分開動的零件（門扇、會轉的輪子）在 `tools/props.mjs` 拆成不同物件或不同材質。
 - 換車一律走 `applyCar(v, id, paint)`（玩家座駕只有一個物件，沿用 `kestrel`）。搶來或打壞的車流車是 `detachCar()` 建的臨時載具（`kind: 'jack'`），不走 `applyCar`，也不進存檔。

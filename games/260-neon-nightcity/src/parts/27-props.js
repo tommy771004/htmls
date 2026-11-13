@@ -4,7 +4,7 @@
 // 以檔案開啟或下載失敗：建築那幾塊地補回程式立面，室內沿用 Blender 道具，拉麵攤不擺。
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-const PROP_BASE = new URL('../assets/260/props/', location.href).href;
+const PROP_BASE = A260 + 'props/';
 const PROP_INST = { uM: { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, 0) } };
 const propCache = {}, propMats = new Map(), FAR_FOG = .2;   // FAR_FOG：props.json 標 far 的遠景組，霧和 MAT.far 一樣只算兩成距離
 // WASH_SETS：立面是拼貼圖集、量不出窗戶的組，夜裡在 shader 依高度打一層路燈光（26-glb.js 的 WASH）
@@ -563,8 +563,8 @@ if (W2.on) {
       W2.swapped.push('asphalt');
     }, e => { console.warn('柏油貼圖下載失敗', e); W2.failed.push('w1_asphalt'); }),
     // ─── 路面貼花（tools/road-dec.mjs）：龜裂補丁、人孔蓋、排水格柵的圖與範圍；開不開跟著照片材質的設定（08-tex.js 的 facApply） ───
-    Promise.all([...['c', 'n'].map(k => new T.TextureLoader().loadAsync(new URL(`../assets/260/tex/road_dec_${k}.webp`, location.href).href)),
-      fetch(new URL('../assets/260/tex/road_dec.json', location.href)).then(r => r.json())]).then(([c, n, j]) => {
+    Promise.all([...['c', 'n'].map(k => new T.TextureLoader().loadAsync(A260 + `tex/road_dec_${k}.webp`)),
+      fetch(A260 + 'tex/road_dec.json').then(r => r.json())]).then(([c, n, j]) => {
       c.colorSpace = T.SRGBColorSpace;
       for (const t of [c, n]) { t.anisotropy = 4; t.needsUpdate = true; }
       const U2 = ASPH_U, put = (k, o) => { U2.uDecP.value[k].set(...o.uv); U2.uDecM.value[k].set(...o.m); };

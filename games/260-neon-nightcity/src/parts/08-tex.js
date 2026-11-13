@@ -32,7 +32,7 @@ const roadDec = { ok: false };   // 路面貼花（27-props.js 下載、10-city.
 async function facLoad(withN, set = 'fac', nL = FAC_LAYERS.length, out = facTex) {
   const S = 1024;
   const get = async (name) => {
-    const bmp = await createImageBitmap(await (await fetch(new URL(`../assets/260/tex/${name}.jpg`, location.href))).blob());
+    const bmp = await createImageBitmap(await (await fetch(`${A260}tex/${name}.jpg`)).blob());
     await warmSlice();
     const cv = new OffscreenCanvas(S, S * nL), cx = cv.getContext('2d', { willReadFrequently: true }), data = new Uint8Array(S * S * 4 * nL);
     cx.drawImage(bmp, 0, 0); bmp.close();

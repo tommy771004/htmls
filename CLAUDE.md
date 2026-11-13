@@ -60,7 +60,7 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 
 - 共通做法：每個資料夾有自己的 `package.json`（不少是 `node_modules` 連到 `201-coral-cove/`），`npm run build` 把程式與內嵌素材打包成單檔 `web/NNN-*.html`。**網站沒有 build step，commit 的是打包後的單檔**：改了 `src/`（或 `blender/out/` 等內嵌來源）要重新 build，把產出一起 commit。`npm test` 多半是規則測試＋兩種尺寸的無頭 Chrome 驗收（跑打包後的單檔）。Blender、VOICEVOX、Kokoro 等只是開發依賴，產出有 commit，build 不需要它們。
 - 各作品的架構、指令、坑與測試 API 在**各自資料夾的 `CLAUDE.md`**（碰到那個資料夾的檔案時會自動載入），細節再看同資料夾的 `README.md`／`SPEC.md`／`HANDOFF.md`。程式不在 `games/` 底下的作品，動手前要自己先讀表中的檔案。
-- 部署到 Cloudflare 一律要用使用者自己的帳號，不要自動執行（195、200）。同人作品頁面上的「與原作／車廠無關」聲明、`#fanNote`、作者與授權標示都要保留。
+- 部署到 Cloudflare 一律要用使用者自己的帳號，不要自動執行（195、200、260 的素材 Worker）。同人作品頁面上的「與原作／車廠無關」聲明、`#fanNote`、作者與授權標示都要保留。
 
 | 編號 | 作品 | 原始碼 | 先讀 |
 | --- | --- | --- | --- |

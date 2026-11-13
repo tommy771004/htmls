@@ -221,32 +221,45 @@ function frameBegin(now) { frameClk.t0 = performance.now(); perfHook.f?.(now); }
 const resMax = () => Math.min(GT().ss || 1, Math.sqrt((GT().px || 4.2e6) / Math.max(1, innerWidth * innerHeight * DPR * DPR)), R.capabilities.maxTextureSize / Math.max(innerWidth, innerHeight) / DPR);
 // 世界矩陣只重算有變的：three 原本每幀對每個 matrixAutoUpdate 的物件 compose 再乘上父矩陣（場景約四千個物件，兩千多個不會動）。
 // 位置、旋轉、縮放（matrixAutoUpdate 關掉的看 matrix 本身）與父物件都和上次一樣、父矩陣也沒重算時跳過
+// mwSkip：renderFrame 每幀那一次整棵更新（on）跳過藏起來的子物件與它底下整串（場景約兩千個藏著的網格，多半是 distCull 收起的遠處街區），
+// 重新出現時強制重算一次。只限那一次：程式裡自己呼叫的 updateMatrixWorld（例如先 updateMatrixWorld(true) 再讀子物件的 matrixWorld）照舊整棵算，
+// getWorldPosition 之類走 updateWorldMatrix 也照舊。代價：藏著時直接讀 matrixWorld、沒先更新的，讀到的是藏起來那一刻的值（2026-11-13 查過全部讀 matrixWorld 的地方，
+// 都是先更新過、載入時、或只讀看得到的物件）。en = false 關掉做 A/B
+const mwSkip = { en: true, on: false };
 {
   const P = T.Object3D.prototype, um = P.updateMatrix;
+  // 「上次」的值放在每個物件一份固定形狀的記錄（_mw）裡：場景五千個物件有十幾種類別，直接讀 position／quaternion／scale 與後加的欄位，
+  // 每個存取點都是多型（megamorphic）查表，比對一個物件約 300 ns；記錄先拿好三個向量的參照，每物件少五次這種查表（2026-11-13 同頁交錯：整棵 1.52 → 1.28 ms）。
+  // position／quaternion／scale 在 three 是唯讀屬性（defineProperties 沒有 writable），參照不會換
+  class MwRec { constructor(o) { this.p = o.position; this.q = o.quaternion; this.s = o.scale; this.trs = new Float64Array(10).fill(NaN); this.mtx = null; this.par = undefined; this.sk = false; } }
   // 「上次」記在 updateMatrix 裡：lookAt 與 getWorldDirection 會經 updateWorldMatrix 直接 compose（lookAt 用的是改轉向前的那組），
   // 只在這裡記的話，相機一幀內被設兩次（camState.over、地鐵的固定鏡頭）又回到上一幀的值時會跳過，矩陣停在中途那組
   P.updateMatrix = function () {
     um.call(this);
-    const p = this.position, q = this.quaternion, s = this.scale, c = this._trs || (this._trs = new Float64Array(10));
+    const u = this._mw || (this._mw = new MwRec(this)), p = u.p, q = u.q, s = u.s, c = u.trs;
     c[0] = p.x; c[1] = p.y; c[2] = p.z; c[3] = q._x; c[4] = q._y; c[5] = q._z; c[6] = q._w; c[7] = s.x; c[8] = s.y; c[9] = s.z;
   };
   P.updateMatrixWorld = function (force) {
+    const u = this._mw || (this._mw = new MwRec(this)), par = this.parent;
     if (this.matrixAutoUpdate) {
-      const p = this.position, q = this.quaternion, s = this.scale, c = this._trs;
-      if (!c || c[0] !== p.x || c[1] !== p.y || c[2] !== p.z || c[3] !== q._x || c[4] !== q._y || c[5] !== q._z || c[6] !== q._w || c[7] !== s.x || c[8] !== s.y || c[9] !== s.z || this._trsP !== this.parent || this.pivot !== null) {
-        this._trsP = this.parent;
+      const p = u.p, q = u.q, s = u.s, c = u.trs;
+      if (c[0] !== p.x || c[1] !== p.y || c[2] !== p.z || c[3] !== q._x || c[4] !== q._y || c[5] !== q._z || c[6] !== q._w || c[7] !== s.x || c[8] !== s.y || c[9] !== s.z || u.par !== par || this.pivot !== null) {
+        u.par = par;
         this.updateMatrix();
       }
     } else {   // 手動寫的 matrix：16 個數字比上次（比相乘便宜）
-      const e = this.matrix.elements, c = this._mtx || (this._mtx = new Float64Array(16).fill(NaN));
+      const e = this.matrix.elements, c = u.mtx || (u.mtx = new Float64Array(16).fill(NaN));
       let k = 0; while (k < 16 && c[k] === e[k]) k++;
-      if (k < 16 || this._trsP !== this.parent) { c.set(e); this._trsP = this.parent; this.matrixWorldNeedsUpdate = true; }
+      if (k < 16 || u.par !== par) { c.set(e); u.par = par; this.matrixWorldNeedsUpdate = true; }
     }
+    if (u.sk) { u.sk = false; force = true; }   // 上次整棵更新時藏著、被跳過：父矩陣可能已經變了，重算一次
     if (this.matrixWorldNeedsUpdate || force) {
-      if (this.matrixWorldAutoUpdate === true) { if (this.parent === null) this.matrixWorld.copy(this.matrix); else this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix); }
+      if (this.matrixWorldAutoUpdate === true) { if (par === null) this.matrixWorld.copy(this.matrix); else this.matrixWorld.multiplyMatrices(par.matrixWorld, this.matrix); }
       this.matrixWorldNeedsUpdate = false; force = true;
     }
-    const ch = this.children; for (let i = 0, l = ch.length; i < l; i++) ch[i].updateMatrixWorld(force);
+    const ch = this.children;
+    if (mwSkip.on) for (let i = 0, l = ch.length; i < l; i++) { const k = ch[i]; if (k.visible === false) { (k._mw || (k._mw = new MwRec(k))).sk = true; continue; } k.updateMatrixWorld(force); }
+    else for (let i = 0, l = ch.length; i < l; i++) ch[i].updateMatrixWorld(force);
   };
 }
 // 全進霧裡的不畫：00-core.js 的 applyFog 在鏡頭低於 20 m 時 D ≥ .5，視線距離 × uFogDen × .5 超過 6 就剩不到 0.25%（夜裡的指數霧與白天的平方指數霧都是），
@@ -370,7 +383,7 @@ function renderFrame(dt, t) {
   perfHook.a?.(); instCl.f++;
   R.info.reset();
   // 整個場景的矩陣一幀只算一次：倒影與主畫面兩趟 R.render 原本各算一次（場景有三千多個物件）
-  curScene.matrixWorldAutoUpdate = false; curScene.updateMatrixWorld();
+  curScene.matrixWorldAutoUpdate = false; mwSkip.on = mwSkip.en; try { curScene.updateMatrixWorld(); } finally { mwSkip.on = false; }
   camera.updateMatrixWorld();
   sky.position.copy(camera.position); sky.updateMatrixWorld();   // 天空球跟著相機（城市東西兩端離原點超過半徑）
   U.uCam.value.copy(camera.position);

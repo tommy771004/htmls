@@ -54,7 +54,16 @@ const template = readFileSync(resolve(root, 'src/index.html'), 'utf8');
 for (const k of ['<!--BUNDLE-->', '<!--ASSETS-->']) {
   if (!template.includes(k)) throw new Error(`src/index.html 缺少 ${k} 佔位符`);
 }
-const full = template.replace('<!--ASSETS-->', () => assets).replace('<!--BUNDLE-->', () => `<script type="module">${js}</script>`);
+// 下載素材的根網址 window.__A260（src/parts/00-core.js 的 A260）：正式站可以改從 Cloudflare（assets-worker/，靜態素材請求免費不限量）讀，
+// 其他網址（本機、預覽、驗收）與 ?cdn=0 照舊讀 ../assets/260/。ASSET_CDN 空字串＝全部讀 Vercel。
+// assets-worker 部署好之前不要填：頁面推上線就會去讀還不存在的網址（素材全部 404，車與建築退回替身）。NC_ASSET_CDN 環境變數可以臨時覆寫，--no-cdn 關掉
+const ASSET_CDN_DEFAULT = 'https://nc-assets.tommy771004.workers.dev/';   // assets-worker 的網址（結尾要有 /）；換帳號或停用時改這裡，空字串＝全部讀 Vercel
+const ASSET_CDN = process.argv.includes('--no-cdn') ? '' : (process.env.NC_ASSET_CDN ?? ASSET_CDN_DEFAULT);
+const ASSET_HOSTS = ['htmls-ruddy.vercel.app'];
+if (ASSET_CDN && !/^https:\/\/.+\/$/.test(ASSET_CDN)) throw new Error(`素材 CDN 網址要是 https:// 開頭、/ 結尾：${ASSET_CDN}`);
+const cdnScript = ASSET_CDN ? `<script>window.__A260=${JSON.stringify(ASSET_HOSTS)}.includes(location.hostname)&&!/[?&]cdn=0(&|$)/.test(location.search)?${JSON.stringify(ASSET_CDN)}:""</script>` : '';
+if (!template.includes('<meta charset="utf-8">')) throw new Error('src/index.html 缺少 <meta charset="utf-8">');
+const full = template.replace('<meta charset="utf-8">', () => '<meta charset="utf-8">' + cdnScript).replace('<!--ASSETS-->', () => assets).replace('<!--BUNDLE-->', () => `<script type="module">${js}</script>`);
 mkdirSync(dirname(outFile), { recursive: true });
 writeFileSync(outFile, full, 'utf8');
 const kb = (s) => (Buffer.byteLength(s) / 1024).toFixed(0);

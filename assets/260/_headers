@@ -1,0 +1,5 @@
+# Cloudflare 靜態素材（games/260-neon-nightcity/assets-worker/）的回應標頭；Vercel 不讀這個檔。
+# 檔名會沿用（換車模、重烘建築組都是同名覆寫），所以快取只留 1 小時，之後用 ETag 重新確認（沒變是 304，不重傳）。
+/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400

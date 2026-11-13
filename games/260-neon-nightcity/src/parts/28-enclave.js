@@ -3,7 +3,7 @@
 // 平台與切坡的地面高度是 10-city.js 的 encGround，山的網格在 21-coast.js 細分。這裡開場同步做：城市外緣的隱形高牆在平台前開口、
 // 平台三面立牆、樓的碰撞盒（穿堂底下留空）、街道與人行道、中庭的黃色網格線、燈；模型 assets/260/enclave/enclave.glb 在背景下載，
 // 下載好拿掉替身方塊。模型的頂點色與窗號照 26-glb.js 的 glbMaterial（窗是 USE_WINMAP 的房間），粗糙度與自發光每種材質一個值，在這裡補成 _pbr／_emi。
-const ENC_BASE = new URL('../assets/260/enclave/', location.href).href;
+const ENC_BASE = A260 + 'enclave/';
 const ENC_ON = { glb: 0, failed: 0, blds: 0, lights: 0, proxy: 0 };   // __nc.enc 驗收用
 // 材質名（enclave-glb.mjs）→ [粗糙度, 金屬度]；emi 是霓虹與燈，頂點色就是發光色
 const ENC_PBR = { conc: [.9, 0], win: [.2, 0], tin: [.6, .3], rail: [.7, .4], cage: [.7, .4], cloth: [.9, 0], misc: [.7, .05], emi: [.5, 0] };

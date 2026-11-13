@@ -51,9 +51,16 @@ function _sfxTryLoad(key, def) {
         : exts.map(function (ext) { return 'assets/sfx/' + def.file + '.' + ext; });
     if (!urls.length) { _sfxPool[key] = null; return; }
     var i = 0;
+    // 🔌 HTMLS 284：先整檔 fetch 成 blob 再交給 <audio>。數十個 preload=auto 的音效元素會各自佔住一條連線不放，
+    //   在 HTTP/1.1（本機 npm start）下把每個主機 6 條連線吃光，精靈圖與場景圖就排不到隊、畫面整片空白。
     function tryNext() {
         if (i >= urls.length) { _sfxPool[key] = null; return; }
-        var url = urls[i++];
+        var src = urls[i++];
+        if (typeof fetch !== 'function' || typeof URL === 'undefined' || !URL.createObjectURL) { useUrl(src); return; }
+        fetch(src).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+            .then(function (b) { useUrl(URL.createObjectURL(b)); }, function () { tryNext(); });
+    }
+    function useUrl(url) {
         var probe = new Audio();
         probe.preload = 'auto';
         probe.addEventListener('canplaythrough', function () {
@@ -616,6 +623,8 @@ function _bgmResolve(scene, file) {
         ? window.__llResolveAudioCandidates('assets/bgm/' + file, exts)
         : exts.map(function (ext) { return 'assets/bgm/' + file + '.' + ext; });
     if (!urls.length) { _bgmUrl[scene] = null; return; }
+    // 🔌 HTMLS 284：素材對照表裡有的檔就一定存在，不必再用 <audio preload=metadata> 逐首探測（每個探測元素都會卡住一條連線）
+    if (typeof window !== 'undefined' && typeof window.__llResolveAudioCandidates === 'function') { _bgmUrl[scene] = urls[0]; return; }
     var i = 0;
     (function tryNext() {
         if (i >= urls.length) { _bgmUrl[scene] = null; return; }
